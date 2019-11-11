@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/mccanne/zq/pkg/zval"
-	"github.com/looky-cloud/lookytalk/ast"
+	"github.com/mccanne/zq/ast"
 )
 
 var (

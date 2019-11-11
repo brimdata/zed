@@ -48,7 +48,7 @@ func (i *Interval) Type() Type {
 }
 
 func (i *Interval) Comparison(op string) (Predicate, error) {
-	// XXX we need to add time/interval literals to lookytalk before this matters
+	// XXX we need to add time/interval literals to zql before this matters
 	return nil, errors.New("interval comparisons not yet implemented")
 }
 

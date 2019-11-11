@@ -1,0 +1,909 @@
+#define DQUOTE \x22
+#define SQUOTE \x27
+
+#ifdef GO
+{
+    package zql
+
+    import "github.com/mccanne/zq/ast"
+    import "github.com/mccanne/zq/reglob"
+
+    // ParseProc() is an entry point for use from external go code,
+    // mostly just a wrapper around Parse() that casts the return value.
+    func ParseProc(query string) (ast.Proc, error) {
+        parsed, err := Parse("", []byte(query))
+        if err != nil {
+            return nil, err
+        }
+        ret, ok := parsed.(ast.Proc)
+        if !ok {
+            return nil, fmt.Errorf("parser generated a %T (expected ast.Proc)", parsed)
+        }
+        return ret, nil
+    }
+
+    func makeSequentialProc(firstIn, procsIn interface{}) (*ast.SequentialProc) {
+        procs := []ast.Proc{firstIn.(ast.Proc)}
+        for _, p := range procsIn.([]interface{}) {
+            procs = append(procs, p.(ast.Proc))
+        }
+        return &ast.SequentialProc{ast.Node{"SequentialProc"}, procs}
+    }
+
+    func makeParallelProc(firstIn, procsIn interface{}) *ast.ParallelProc {
+        procs := []ast.Proc{firstIn.(ast.Proc)}
+        for _, p := range procsIn.([]interface{}) {
+            procs = append(procs, p.(ast.Proc))
+        }
+        return &ast.ParallelProc{ast.Node{"ParallelProc"}, procs}
+    }
+
+    func makeTypedValue(typ string, val interface{}) *ast.TypedValue {
+        return &ast.TypedValue{typ, val.(string)}
+    }
+
+    func getValueType(val interface{}) string {
+        return val.(*ast.TypedValue).Type
+    }
+
+    func makeFieldRead(field interface{}) *ast.FieldRead {
+        return &ast.FieldRead{ast.Node{"FieldRead"}, field.(string)}
+    }
+
+    func makeFieldCall(fn, field, paramIn interface{}) *ast.FieldCall {
+        var param string
+        if paramIn != nil {
+            param = paramIn.(string)
+        }
+        return &ast.FieldCall{ast.Node{"FieldCall"}, fn.(string), field.(string), param}
+    }
+
+    func makeBooleanLiteral(val bool) *ast.BooleanLiteral {
+        return &ast.BooleanLiteral{ast.Node{"BooleanLiteral"}, val}
+    }
+
+    func makeCompareField(comparatorIn, fieldIn, valueIn interface{}) *ast.CompareField {
+        comparator := comparatorIn.(string)
+        field := fieldIn.(ast.FieldExpr)
+        value := valueIn.(*ast.TypedValue)
+        return &ast.CompareField{ast.Node{"CompareField"}, comparator, field, *value}
+    }
+
+    func makeCompareAny(comparatorIn, valueIn interface{}) *ast.CompareAny {
+        comparator := comparatorIn.(string)
+        value := valueIn.(*ast.TypedValue)
+        return &ast.CompareAny{ast.Node{"CompareAny"}, comparator, *value}
+    }
+
+    func makeLogicalNot(exprIn interface{}) *ast.LogicalNot {
+         return &ast.LogicalNot{ast.Node{"LogicalNot"}, exprIn.(ast.BooleanExpr)}
+    }
+
+    func makeOrChain(firstIn, restIn interface{}) ast.BooleanExpr {
+        first := firstIn.(ast.BooleanExpr)
+        if restIn == nil {
+            return first
+        }
+
+        result := first
+        rest := restIn.([]interface{})
+        for _, r := range rest {
+            term := r.(ast.BooleanExpr)
+            result = &ast.LogicalOr{ast.Node{"LogicalOr"}, result, term}
+        }
+        return result
+    }
+
+    func makeAndChain(firstIn, restIn interface{}) ast.BooleanExpr {
+        first := firstIn.(ast.BooleanExpr)
+        if restIn == nil {
+            return first
+        }
+
+        result := first
+        rest := restIn.([]interface{})
+        for _, r := range rest {
+            term := r.(ast.BooleanExpr)
+            result = &ast.LogicalAnd{ast.Node{"LogicalAnd"}, result, term}
+        }
+        return result
+    }
+
+    func makeSearchString(val interface{}) *ast.SearchString {
+        return &ast.SearchString{ast.Node{"SearchString"}, *(val.(*ast.TypedValue))}
+    }
+
+    func resetSearchStringType(val interface{}) {
+        val.(*ast.SearchString).Value.Type = "string"
+    }
+
+    // Helper to get a properly-typed array of strings from an interface{}
+    func stringArray(val interface{}) []string {
+        if val == nil {
+            return nil
+        }
+        arr := val.([]interface{})
+        ret := make([]string, len(arr))
+        for i, s := range arr {
+            ret[i] = s.(string)
+        }
+        return ret
+    }
+
+    func makeSortProc(fieldsIn, dirIn, limitIn interface{}) *ast.SortProc {
+        fields := stringArray(fieldsIn)
+        sortdir := dirIn.(int)
+        var limit int;
+        if limitIn != nil {
+            limit = limitIn.(int)
+        }
+        return &ast.SortProc{ast.Node{"SortProc"}, limit, fields, sortdir}
+    }
+
+    func makeCutProc(fieldsIn interface{}) *ast.CutProc {
+        fields := stringArray(fieldsIn)
+        return &ast.CutProc{ast.Node{"CutProc"}, fields}
+    }
+
+    func makeHeadProc(countIn interface{}) *ast.HeadProc {
+        count := countIn.(int)
+        return &ast.HeadProc{ast.Node{"HeadProc"}, count}
+    }
+
+    func makeTailProc(countIn interface{}) *ast.TailProc {
+        count := countIn.(int)
+        return &ast.TailProc{ast.Node{"TailProc"}, count}
+    }
+
+    func makeUniqProc(cflag bool) *ast.UniqProc {
+        return &ast.UniqProc{ast.Node{"UniqProc"}, cflag}
+    }
+
+    func makeFilterProc(expr interface{}) *ast.FilterProc {
+        return &ast.FilterProc{ast.Node{"FilterProc"}, expr.(ast.BooleanExpr)}
+    }
+
+    func makeReducer(opIn, varIn, fieldIn interface{}) *ast.Reducer {
+        var field string
+        if fieldIn != nil {
+            field = fieldIn.(string)
+        }
+        return &ast.Reducer{ast.Node{opIn.(string)}, varIn.(string), field}
+    }
+
+    func overrideReducerVar(reducerIn, varIn interface{}) *ast.Reducer {
+         reducer := reducerIn.(*ast.Reducer)
+         reducer.Var = varIn.(string)
+         return reducer
+    }
+
+    func makeDuration(seconds interface{}) *ast.Duration {
+        return &ast.Duration{seconds.(int)}
+    }
+
+    func reducersArray(reducersIn interface{}) []ast.Reducer {
+        arr := reducersIn.([]interface{})
+        ret := make([]ast.Reducer, len(arr))
+        for i, r := range arr {
+            ret[i] = *(r.(*ast.Reducer))
+        }
+        return ret
+    }
+
+    func makeReducerProc(reducers interface{}) *ast.ReducerProc {
+        return &ast.ReducerProc{
+            Node: ast.Node{"ReducerProc"},
+            Reducers: reducersArray(reducers),
+        }
+    }
+
+    func makeGroupByProc(durationIn, limitIn, keysIn, reducersIn interface{}) *ast.GroupByProc {
+      var duration ast.Duration
+      if durationIn != nil {
+        duration = *(durationIn.(*ast.Duration))
+      }
+
+      var limit int
+      if limitIn != nil {
+        limit = limitIn.(int)
+      }
+
+      keys := stringArray(keysIn)
+      reducers := reducersArray(reducersIn)
+
+      return &ast.GroupByProc{
+          Node: ast.Node{"GroupByProc"},
+          Duration: duration,
+          Limit: limit,
+          Keys: keys,
+          Reducers: reducers,
+      }
+    }
+
+    func joinChars(in interface{}) string {
+        str := bytes.Buffer{}
+        for _, i := range in.([]interface{}) {
+            // handle joining bytes or strings
+            if s, ok := i.([]byte); ok {
+                str.Write(s)
+            } else {
+                str.WriteString(i.(string))
+            }
+        }
+        return str.String()
+    }
+
+    func toLowerCase(in interface{}) interface{} {
+        return strings.ToLower(in.(string))
+    }
+
+    func parseInt(v interface{}) interface{} {
+        num := v.(string)
+        i, err := strconv.Atoi(num)
+        if err != nil {
+            return nil
+        }
+
+        return i
+    }
+
+    func parseFloat(v interface{}) interface{} {
+        num := v.(string)
+        if f, err := strconv.ParseFloat(num, 10); err != nil {
+            return f
+        }
+
+        return nil
+    }
+
+    func OR(a, b interface{}) interface{} {
+        if a != nil {
+            return a
+        }
+
+        return b
+    }
+}
+#define RETURN(x) return x, nil
+#define INIT_ASSIGN_VAR(x, var) x := var
+#define ARRAY(...) []interface{}{__VA_ARGS__}
+#define ARRAY_LEN(a) len(a.([]interface{}))
+#define FOREACH(arr, var) for _, var := range arr
+#define IF(stmt) if stmt
+#define APPEND(arr, value) arr = append(arr, value)
+#define TEXT string(c.text)
+#define TOSTRING(s) fmt.Sprintf("%v", s)
+#define ISNOTNULL(n) n != nil
+#define ASSERT_ARRAY(a) a.([]interface{})
+#define ASSERT_STRING(s) s.(string)
+#define ASSERT_INT(i) i.(int)
+#else
+{
+    let reglob = require("../reglob/reglob")
+
+    function makeSequentialProc(first, rest) {
+        return { op: "SequentialProc", procs: [first].concat(...rest) };
+    }
+
+    function makeParallelProc(first, rest) {
+        return { op: "ParallelProc", procs: [first].concat(...rest) };
+    }
+
+    function makeTypedValue(type, value) { return { type, value }; }
+    function getValueType(v) { return v.type; }
+
+    function makeFieldRead(field) { return { op: "FieldRead", field }; }
+    function makeFieldCall(fn, field, param) {
+        return { op: "FieldCall", fn, field, param };
+    }
+
+    function makeBooleanLiteral(value) {
+        return { op: "BooleanLiteral", value };
+    }
+
+    function makeCompareField(comparator, field, value) {
+        return { op: "CompareField", comparator, field, value };
+    }
+
+    function makeCompareAny(comparator, value) {
+        return { op: "CompareAny", comparator, value };
+    }
+
+    function makeLogicalNot(expr) { return { op: "LogicalNot", expr }; }
+
+    function makeChain(first, rest, op) {
+        if (!rest || rest.length == 0) {
+            return first;
+        }
+        let result = first;
+        for (let term of rest) {
+            result = { op, left: result, right: term };
+        }
+        return result;
+    }
+
+    function makeOrChain(first, rest) {
+        return makeChain(first, rest, "LogicalOr");
+    }
+    function makeAndChain(first, rest) {
+        return makeChain(first, rest, "LogicalAnd");
+    }
+
+    function makeSearchString(value) {
+        return { op: "SearchString", value };
+    }
+    function resetSearchStringType(v) {
+        v.type = "string";
+    }
+
+    function makeSortProc(fields, sortdir, limit) {
+        if (limit === null) { limit = undefined; }
+        return { op: "SortProc", fields, sortdir, limit };
+    }
+
+    function makeCutProc(fields) { return { op: "CutProc", fields }; }
+    function makeHeadProc(count) { return { op: "HeadProc", count }; }
+    function makeTailProc(count) { return { op: "TailProc", count }; }
+    function makeUniqProc(cflag) { return { op: "TailProc", cflag }; }
+    function makeFilterProc(filter) { return { op: "FilterProc", filter }; }
+    function makeReducer(op, var_, field) {
+        if (field === null) { field = undefined; }
+        return { op, var: var_, field };
+    }
+    function overrideReducerVar(reducer, v) {
+        reducer.var = v;
+        return reducer;
+    }
+
+    function makeDuration(seconds) {
+        return {type: "Duration", seconds};
+    }
+
+    function makeReducerProc(reducers) {
+        return { op: "ReducerProc", reducers };
+    }
+    function makeGroupByProc(duration, limit, keys, reducers) {
+        if (limit === null) { limit = undefined; }
+        return { op: "GroupByProc", keys, reducers, duration, limit };
+    }
+
+    function joinChars(chars) {
+        return chars.join("");
+    }
+
+    function toLowerCase(str) {
+        return str.toLowerCase();
+    }
+
+    function OR(a, b) {
+        return a || b
+    }
+}
+#define RETURN(x) return x
+#define INIT_ASSIGN_VAR(x, var) let x = var
+#define ARRAY(...) [__VA_ARGS__]
+#define ARRAY_LEN(a) a.length
+#define FOREACH(arr, var) for(let var of arr)
+#define IF(stmt) if (stmt)
+#define APPEND(arr, value) arr.push(value)
+#define TEXT text()
+#define ASSERT_INT(i) i
+#define TOSTRING(s) s.toString()
+#define ISNOTNULL(n) (n)
+#define ASSERT_ARRAY(a) a
+#define ASSERT_STRING(s) s
+#endif
+
+
+start = _? ast:boomCommand _? EOF { RETURN(ast) }
+
+boomCommand
+   = s:search _? rest:chainedProc* {
+      IF(ARRAY_LEN(rest) == 0) {
+          RETURN(s)
+      } else {
+          RETURN(makeSequentialProc(s, rest))
+      }
+     }
+   / s:search {
+      RETURN(s)
+    }
+
+chainedProc = _? "|" _? p:proc { RETURN(p) }
+
+search
+  = expr:searchExpr {
+      RETURN(makeFilterProc(expr))
+    }
+
+searchExpr
+  = first:searchTerm rest:oredSearchTerm* {
+      RETURN(makeOrChain(first, rest))
+    }
+
+oredSearchTerm = _ orToken _ t:searchTerm { RETURN(t) }
+
+searchTerm
+  = first:searchFactor rest:andedSearchTerm* {
+      RETURN(makeAndChain(first, rest))
+    }
+
+andedSearchTerm = _ (andToken _)? f:searchFactor { RETURN(f) }
+
+searchFactor
+  = (notToken _ / "!" _?) e:searchExpr {
+      RETURN(makeLogicalNot(e))
+    }
+  / !("-") s:searchPred { RETURN(s) }
+  / "(" _? expr:searchExpr _? ")" { RETURN(expr) }
+
+searchPred
+  = "*" _? fieldComparator:equalityToken _? v:searchValue {
+      RETURN(makeCompareAny(fieldComparator, v))
+    }
+  / "*" {
+      RETURN(makeBooleanLiteral(true))
+    }
+  / f:fieldExpr _? fieldComparator:equalityToken _? v:searchValue {
+      RETURN(makeCompareField(fieldComparator, f, v))
+    }
+  / v:searchValue _? inToken _? "*" {
+      RETURN(makeCompareAny("in", v))
+    }
+  / v:searchValue _? inToken _? f:fieldRead {
+      RETURN(makeCompareField("in", f, v))
+    }
+  / v:searchValue {
+      INIT_ASSIGN_VAR(ss, makeSearchString(v))
+      IF(getValueType(v) == "string") {
+        RETURN(ss)
+      }
+      ss = makeSearchString(makeTypedValue("string", TEXT))
+      RETURN(makeOrChain(ss, ARRAY(makeCompareAny("eql", v), makeCompareAny("in", v))))
+    }
+
+searchValue
+  = v:quotedString {
+      RETURN(makeTypedValue("string", v))
+    }
+  / v:reString {
+      RETURN(makeTypedValue("regexp", v))
+    }
+  / v:port {
+      RETURN(makeTypedValue("port", v))
+  }
+  / v:ip6subnet {
+      RETURN(makeTypedValue("subnet", v))
+    }
+  / v:ip6addr {
+      RETURN(makeTypedValue("addr", v))
+    }
+  / v:subnet {
+      RETURN(makeTypedValue("subnet", v))
+    }
+  / v:addr {
+      RETURN(makeTypedValue("addr", v))
+    }
+  / v:sdouble {
+      RETURN(makeTypedValue("double", v))
+    }
+  / v:sinteger !boomWord {
+      RETURN(makeTypedValue("int", v))
+    }
+  / !(searchKeywords _) v:booleanLiteral { RETURN(v) }
+  / !(searchKeywords _) v:unsetLiteral { RETURN(v) }
+  / !(searchKeywords _) v:boomWord {
+      IF(reglob.IsGlobby(ASSERT_STRING(v)) || ASSERT_STRING(v) == "*") {
+         INIT_ASSIGN_VAR(re, reglob.Reglob(ASSERT_STRING(v)))
+         RETURN(makeTypedValue("regexp", re))
+      }
+      RETURN(makeTypedValue("string", v))
+    }
+
+searchKeywords
+  = andToken
+  / orToken
+  / inToken
+
+booleanLiteral
+  = "true"           { RETURN(makeTypedValue("bool", "true")) }
+  / "false"          { RETURN(makeTypedValue("bool", "false")) }
+
+unsetLiteral
+  = "nil"           { RETURN(makeTypedValue("unset", "")) }
+
+procList
+  = first:procChain rest:parallelChain* {
+      RETURN(makeParallelProc(first, rest))
+    }
+
+parallelChain = _? ";" _? ch:procChain { RETURN(ch) }
+
+procChain
+  = first:proc rest:chainedProc* {
+      IF(ARRAY_LEN(rest) == 0) {
+          RETURN(first)
+      } else {
+          RETURN(makeSequentialProc(first, rest))
+      }
+    }
+
+proc
+  = simpleProc
+  / reducerProc
+  / "(" _? proc:procList _? ")" {
+      RETURN(proc)
+    }
+
+groupBy
+  = "by"i _ list:fieldList { RETURN(list) }
+
+everyDur
+  = "every"i _ dur:duration { RETURN(dur) }
+
+equalityToken
+  = "=" { RETURN("eql") }
+  / "!=" { RETURN("neql") }
+  / "<=" { RETURN("lte") }
+  / ">=" { RETURN("gte") }
+  / "<" { RETURN("lt") }
+  / ">" { RETURN("gt") }
+
+types
+  = "bool"
+  / "int"
+  / "count"
+  / "double"
+  / "string"
+  / "addr"
+  / "subnet"
+  / "port"
+
+dash = "-" / "\u2014" / "\u2013" / "to"&(_)
+
+andToken = "and"
+orToken = "or"
+inToken = "in"
+notToken = "not"
+
+fieldName = fieldNameStart fieldNameRest* { RETURN(TEXT) }
+
+fieldNameStart = [A-Za-z_$]
+fieldNameRest = fieldNameStart / [0-9.]
+
+fieldRead
+  = field:fieldName {
+     RETURN(makeFieldRead(field))
+    }
+
+fieldExpr
+  = op:fieldOp _? "(" _? field:fieldName _? ")" {
+      RETURN(makeFieldCall(op, field, nil))
+    }
+  / field:fieldName "[" index:sinteger "]" {
+      RETURN(makeFieldCall("Index", field, index))
+    }
+  / fieldRead
+
+fieldOp
+  = "len"i { RETURN("Len") }
+
+fieldList
+  = first:fieldName rest:(_? "," _? fieldName)* {
+      INIT_ASSIGN_VAR(result, ARRAY(first))
+
+      FOREACH(ASSERT_ARRAY(rest), r) {
+        APPEND(result, ASSERT_ARRAY(r)[3])
+      }
+
+      RETURN(result)
+  }
+
+countOp
+  = "count"i { RETURN("Count") }
+
+fieldReducerOp
+  = "sum"i  { RETURN("Sum") }
+  / "avg"i  { RETURN("Avg") }
+  / "stdev"i { RETURN("Stdev") }
+  / "sd"i   { RETURN("Stdev") }
+  / "var"i  { RETURN("Var") }
+  / "entropy"i { RETURN("Entropy") }
+  / "min"i  { RETURN("Min") }
+  / "max"i  { RETURN("Max") }
+  / "first"i  { RETURN("First") }
+  / "last"i  { RETURN("Last") }
+
+paddedFieldName = _? field:fieldName _? { RETURN(field) }
+
+countReducer
+  = op:countOp _? "(" field:paddedFieldName?  _? ")" {
+    RETURN(makeReducer(op, "count", field))
+  }
+
+fieldReducer
+  = op:fieldReducerOp _? "(" _? field:fieldName  _? ")" {
+    RETURN(makeReducer(op, toLowerCase(op), field))
+  }
+
+reducerProc
+  = every:(everyDur _)? reducers:reducerList keys:(_ groupBy)? limit:procLimitArg? {
+    if ISNOTNULL(OR(keys, every)) {
+      if ISNOTNULL(keys) {
+        keys = ASSERT_ARRAY(keys)[1]
+      } else {
+        keys = ARRAY()
+      }
+
+      if ISNOTNULL(every) {
+        every = ASSERT_ARRAY(every)[0]
+      }
+
+      RETURN(makeGroupByProc(every, limit, keys, reducers))
+    }
+
+    RETURN(makeReducerProc(reducers))
+  }
+
+asClause
+  = "as"i _ v:fieldName { RETURN(v) }
+
+reducerExpr
+  = field:fieldName _? "=" _? f:reducer {
+    RETURN(overrideReducerVar(f, field))
+  }
+  / f:reducer _ field:asClause {
+    RETURN(overrideReducerVar(f, field))
+  }
+  / reducer
+
+reducer
+  = countReducer
+  / fieldReducer
+
+reducerList
+  = first:reducerExpr rest:(_? "," _? reducerExpr)* {
+      INIT_ASSIGN_VAR(result, ARRAY(first))
+      FOREACH(ASSERT_ARRAY(rest), r) {
+        APPEND(result, ASSERT_ARRAY(r)[3])
+      }
+      RETURN(result)
+    }
+
+simpleProc
+  = sort
+  / cut
+  / head
+  / tail
+  / filter
+  / uniq
+
+sort
+  = "sort"i rev:(_ "-r")? limit:procLimitArg?  _? !"-r" list:(fieldList)? {
+    INIT_ASSIGN_VAR(sortdir, 1)
+    IF(ISNOTNULL(rev)) { sortdir = -1 }
+    RETURN(makeSortProc(list, sortdir, limit))
+  }
+  / "sort"i limit:procLimitArg? rev:(_ "-r")? _? list:(fieldList)? {
+    INIT_ASSIGN_VAR(sortdir, 1)
+    IF(ISNOTNULL(rev)) { sortdir = -1 }
+    RETURN(makeSortProc(list, sortdir, limit))
+  }
+
+procLimitArg
+  = _ "-limit" _ limit:integer { RETURN(limit) }
+
+cut
+  = "cut"i _ list:fieldList { RETURN(makeCutProc(list)) }
+head
+  = "head"i _ count:integer { RETURN(makeHeadProc(count)) }
+  / "head"i { RETURN(makeHeadProc(1)) }
+tail
+  = "tail"i _ count:integer { RETURN(makeTailProc(count)) }
+  / "tail"i { RETURN(makeTailProc(1)) }
+
+filter
+  = "filter"i _ expr:searchExpr {
+      RETURN(makeFilterProc(expr))
+    }
+uniq
+  = "uniq"i _ "-c" {
+      RETURN(makeUniqProc(true))
+    }
+  / "uniq"i {
+      RETURN(makeUniqProc(false))
+    }
+
+duration
+  = seconds
+  / minutes
+  / hours
+  / hours _ "and" _ minutes
+  / days
+  / weeks
+
+sec_abbrev
+  = "seconds"
+  / "second"
+  / "secs"
+  / "sec"
+  / "s"
+
+min_abbrev
+  = "minutes"
+  / "minute"
+  / "mins"
+  / "min"
+  / "m"
+
+hour_abbrev
+  = "hours"
+  / "hrs"
+  / "hr"
+  / "h"
+  / "hour"
+
+day_abbrev = "days"/"day"/"d"
+week_abbrev = "weeks"/"week"/"wks"/"wk"/"w"
+
+seconds
+  = "second" { RETURN(makeDuration(1)) }
+  / num:number _? sec_abbrev { RETURN(makeDuration(num)) }
+
+minutes
+  = "minute" { RETURN(makeDuration(60)) }
+  / num:number _? min_abbrev { RETURN(makeDuration(ASSERT_INT(num)*60)) }
+
+hours
+  = "hour" { RETURN(makeDuration(3600)) }
+  / num:number _? hour_abbrev { RETURN(makeDuration(ASSERT_INT(num)*3600)) }
+
+days
+  = "day" { RETURN(makeDuration(3600*24)) }
+  / num:number _? day_abbrev { RETURN(makeDuration(ASSERT_INT(num)*3600*24)) }
+
+weeks
+  = num:number _? week_abbrev { RETURN(makeDuration(ASSERT_INT(num)*3600*24*7)) }
+
+number = integer
+
+
+//XXX what about mac addrs?
+addr
+  = a:(integer "." integer "." integer "." integer) { RETURN(TEXT) }
+
+port
+  = ":" v:sinteger { RETURN(v) }
+
+// this matches a superset of legal syntax for ip6 addresses but the compiler
+// will catch any errors when translating the filter
+ip6addr
+  = a:(h_prepend)+ b:ip6tail {
+      RETURN(joinChars(a) + ASSERT_STRING(b))
+    }
+  / a:h16 b:(h_append)* "::" d:(h_prepend)* e:ip6tail {
+      RETURN(ASSERT_STRING(a) + joinChars(b) + "::" + joinChars(d) + ASSERT_STRING(e))
+    }
+  / "::" a:(h_prepend)* b:ip6tail {
+      RETURN("::" + joinChars(a) + ASSERT_STRING(b))
+    }
+  / a:h16 b:(h_append)* "::" {
+      RETURN(ASSERT_STRING(a) + joinChars(b) + "::")
+    }
+  / "::" {
+      RETURN("::")
+    }
+
+ip6tail
+  = addr
+  / h16
+
+h_append = ":" v:h16 { RETURN(":" + ASSERT_STRING(v)) }
+h_prepend = v:h16 ":" { RETURN(ASSERT_STRING(v) + ":") }
+
+sub_addr
+  = addr
+  / a:(integer "." integer "." integer ) { RETURN(TEXT + ".0") }
+  / a:(integer "." integer ) { RETURN(TEXT + ".0.0") }
+  / a:integer { RETURN(TEXT + ".0.0.0") }
+
+subnet
+  = a:sub_addr '/' m:integer {
+      RETURN(ASSERT_STRING(a) + "/" + TOSTRING(m));
+    }
+
+ip6subnet
+  = a:ip6addr '/' m:integer {
+      RETURN(ASSERT_STRING(a) + "/" + ASSERT_STRING(m));
+    }
+
+integer
+  = s:sinteger {
+    RETURN(parseInt(s))
+  }
+
+sinteger
+  = chars:[0-9]+ {
+    RETURN(TEXT)
+  }
+
+double
+  = s:sdouble {
+      RETURN(parseFloat(s))
+  }
+
+sdouble
+  = doubleInteger+ "." doubleDigit+ exponentPart? {
+      RETURN(TEXT)
+    }
+  / "." doubleDigit+ exponentPart? {
+      RETURN(TEXT)
+    }
+
+doubleInteger
+  = "0"
+  / [1-9] [0-9]*
+
+doubleDigit = [0-9]
+
+signedInteger = [+-]? doubleDigit+
+
+exponentPart = "e"i signedInteger
+
+h16 = chars:hexdigit+ { RETURN(TEXT) }
+
+hexdigit = [0-9a-fA-F]
+
+boomWord "boomWord" = chars:boomWordPart+ { RETURN(TEXT) }
+
+boomWordPart
+  = !([\x00-\x1F\x5C(),!><=DQUOTE|SQUOTE;] / ws) .
+
+quotedString
+  = '"' v:doubleQuotedChar* '"' { RETURN(joinChars(v)) }
+  / "'" v:singleQuotedChar* "'" { RETURN(joinChars(v)) }
+
+doubleQuotedChar
+  = !('"' / escapedChar) . { RETURN(TEXT) }
+  / "\\" s:escapeSequence { RETURN(s) }
+
+singleQuotedChar
+  = !("'" / escapedChar) . { RETURN(TEXT) }
+  / "\\" s:escapeSequence { RETURN(s) }
+
+escapeSequence = singleCharEscape / unicodeEscape
+
+singleCharEscape
+  = "'"
+  / '"'
+  / "\\"
+  / "b" { RETURN("\b") }
+  / "f" { RETURN("\f") }
+  / "n" { RETURN("\n") }
+  / "r" { RETURN("\r") }
+  / "t" { RETURN("\t") }
+  / "v" { RETURN("\v") }
+
+unicodeEscape
+  = "u" hexdigit hexdigit hexdigit hexdigit
+
+reString
+  = '/' v:reBody '/' { RETURN(v) }
+
+reBody
+  = ([^/\\]/"\\/")+ { RETURN(TEXT) }
+
+escapedChar
+  = [\x00-\x1f\\]
+
+ws
+  = "\t"
+  / "\v"
+  / "\f"
+  / " "
+  / "\u00A0"
+  / "\uFEFF"
+
+_ "whitespace" = ws+
+
+EOF = !.

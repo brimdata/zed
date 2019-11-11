@@ -11,7 +11,7 @@ import (
 	"github.com/mccanne/zq/pkg/zson/resolver"
 	"github.com/mccanne/zq/reducer"
 	"github.com/mccanne/zq/reducer/compile"
-	"github.com/looky-cloud/lookytalk/ast"
+	"github.com/mccanne/zq/ast"
 	"go.uber.org/zap"
 )
 

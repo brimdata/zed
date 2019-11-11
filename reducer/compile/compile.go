@@ -8,7 +8,7 @@ import (
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/reducer"
 	"github.com/mccanne/zq/reducer/field"
-	"github.com/looky-cloud/lookytalk/ast"
+	"github.com/mccanne/zq/ast"
 )
 
 var (

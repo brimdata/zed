@@ -8,7 +8,7 @@ import (
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
-	"github.com/looky-cloud/lookytalk/ast"
+	"github.com/mccanne/zq/ast"
 	"go.uber.org/zap"
 )
 

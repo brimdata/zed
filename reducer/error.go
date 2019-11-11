@@ -3,7 +3,7 @@ package reducer
 import (
 	"github.com/mccanne/zq/pkg/zeek"
 	"github.com/mccanne/zq/pkg/zson"
-	"github.com/looky-cloud/lookytalk/ast"
+	"github.com/mccanne/zq/ast"
 )
 
 type Error struct {
