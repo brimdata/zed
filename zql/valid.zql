@@ -1,0 +1,20 @@
+foo
+foo | count()
+* | count() -limit 10
+* | count() by _path -limit 10
+* | every 1h count() by _path -limit 10
+* | filter x=1
+:80
+_path=conn
+_path=conn id.resp_p=80
+* | count(), sum(foo)
+* | (count() by _path; count() by addr)
+* | count() by _path | count() by addr
+* | (count() by _path; sort) | (count() by addr)
+* | sort -r
+* | sort -limit 1
+* | sort -limit 1 a, b, c
+* | sort -r a, b, c
+* | sort -r a, b, c
+* | sort -r -limit 1 a, b, c
+* | sort -limit 1 -r a, b, c

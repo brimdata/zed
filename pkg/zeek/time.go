@@ -48,7 +48,7 @@ func (t *Time) Type() Type {
 }
 
 func (t *Time) Comparison(op string) (Predicate, error) {
-	// XXX we need to add time literals to lookytalk before this matters
+	// XXX we need to add time literals to zql before this matters
 	return nil, errors.New("time comparisons not yet implemented")
 }
 

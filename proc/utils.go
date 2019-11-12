@@ -9,10 +9,10 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
-	"github.com/looky-cloud/lookytalk/ast"
-	"github.com/looky-cloud/lookytalk/parser"
+	"github.com/mccanne/zq/zql"
 )
 
 func compileProc(code string, ctx *Context, parent Proc) (Proc, error) {
@@ -23,7 +23,7 @@ func compileProc(code string, ctx *Context, parent Proc) (Proc, error) {
 	// a wildcard filter and then pull out just the proc we care
 	// about below.
 	prog := fmt.Sprintf("* | %s", code)
-	parsed, err := parser.Parse("", []byte(prog))
+	parsed, err := zql.Parse("", []byte(prog))
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func compileProc(code string, ctx *Context, parent Proc) (Proc, error) {
 // batches fed into the proc under test.
 type TestSource struct {
 	records []zson.Batch
-	idx int
+	idx     int
 }
 
 func (t *TestSource) Pull() (zson.Batch, error) {
@@ -66,7 +66,7 @@ func (t *TestSource) Pull() (zson.Batch, error) {
 	return b, nil
 }
 
-func (t *TestSource) Done() { }
+func (t *TestSource) Done()           {}
 func (t *TestSource) Parents() []Proc { return nil }
 
 // Helper for testing an individual proc.

@@ -67,12 +67,12 @@ var typeMap = map[string]Type{
 	"interval": TypeInterval,
 	"string":   TypeString,
 	"pattern":  TypePattern,
-	"regexp":   TypePattern, // lookytalk
+	"regexp":   TypePattern, // zql
 	"port":     TypePort,
 	"addr":     TypeAddr,
 	"subnet":   TypeSubnet,
 	"enum":     TypeEnum,
-	"unset":    TypeUnset, // lookytalk
+	"unset":    TypeUnset, // zql
 	"none":     TypeNone,
 }
 

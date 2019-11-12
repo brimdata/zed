@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/filter"
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
-	"github.com/looky-cloud/lookytalk/ast"
 	"go.uber.org/zap"
 )
 

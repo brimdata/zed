@@ -7,15 +7,15 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/mccanne/charm"
+	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/emitter"
 	"github.com/mccanne/zq/pkg/zsio"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
 	"github.com/mccanne/zq/proc"
 	"github.com/mccanne/zq/scanner"
-	"github.com/looky-cloud/lookytalk/ast"
-	"github.com/looky-cloud/lookytalk/parser"
-	"github.com/mccanne/charm"
+	"github.com/mccanne/zq/zql"
 	"go.uber.org/zap"
 )
 
@@ -92,7 +92,7 @@ func (c *Command) Run(args []string) error {
 		return Zq.Exec(c, []string{"help"})
 	}
 
-	query, err := parser.ParseProc(args[0])
+	query, err := zql.ParseProc(args[0])
 	if err != nil {
 		return fmt.Errorf("parse error: %s", err)
 	}
