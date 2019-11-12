@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/mccanne/zq/pkg/zval"
 	"github.com/mccanne/zq/ast"
+	"github.com/mccanne/zq/pkg/zval"
 )
 
 var (

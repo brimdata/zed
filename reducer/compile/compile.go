@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/pkg/zeek"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/reducer"
 	"github.com/mccanne/zq/reducer/field"
-	"github.com/mccanne/zq/ast"
 )
 
 var (

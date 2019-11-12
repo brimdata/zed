@@ -3,10 +3,10 @@ package proc
 import (
 	"time"
 
+	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/reducer/compile"
-	"github.com/mccanne/zq/ast"
 )
 
 type ReducerProc struct {

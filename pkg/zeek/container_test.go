@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/filter"
 	"github.com/mccanne/zq/pkg/zeek"
 	"github.com/mccanne/zq/pkg/zson"
-	"github.com/mccanne/zq/ast"
 	"github.com/stretchr/testify/require"
 )
 
