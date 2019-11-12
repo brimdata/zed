@@ -9,8 +9,9 @@ executors:
     docker:
       - image: circleci/golang:1.13-stretch
 
-commands:
+jobs:
   build:
+    executor: go_builder
     steps:
       - run:
           name: Log date
@@ -29,14 +30,8 @@ commands:
           paths:
             - /go/pkg/mod
 
-jobs:
-  build:
-    executor: go_builder
-    steps:
-      - build
-
 workflows:
   version: 2
   main:
     jobs:
-      - build:
+      - build
