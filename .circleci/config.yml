@@ -7,7 +7,7 @@ version: 2.1
 executors:
   go_builder:
     docker:
-      - image: circleci/golang:1.13-stretch
+      - image: circleci/golang:1.13-buster
 
 jobs:
   build:
