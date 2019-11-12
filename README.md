@@ -1,4 +1,4 @@
-# `zq`
+# `zq` [![CI][ci-img]][ci] [![GoDoc][doc-img]][doc]
 
 `zq` is a command-line tool for processing
 [Zeek](https://www.zeek.org) logs.  If you are familiar with
@@ -135,3 +135,8 @@ add a processor in
 [zq/proc](proc)
 or an aggregate function in
 [zq/reducer](reducer).
+
+[doc-img]: https://godoc.org/github.com/mccanne/zq?status.svg
+[doc]: https://godoc.org/github.com/mccanne/zq
+[ci-img]: https://circleci.com/gh/mccanne/zq.svg?style=svg
+[ci]: https://circleci.com/gh/looky-cloud/boom
