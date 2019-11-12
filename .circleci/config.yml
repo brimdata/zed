@@ -1,0 +1,40 @@
+# Golang CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-go/ for more details
+version: 2.1
+
+# Go Docker environment
+executors:
+  go_builder:
+    docker:
+      - image: circleci/golang:1.13-stretch
+  build:
+    steps:
+      - run:
+          name: Log date
+          command: date -u
+      - checkout
+      - restore_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}
+      - run:
+          name: Go vet
+          command: 'make vet'
+      - run:
+          name: Unit Tests
+          command: 'make test-unit'
+      - save_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}
+          paths:
+            - /go/pkg/mod
+
+jobs:
+  build:
+    executor: go_builder
+    steps:
+      - build
+
+workflows:
+  version: 2
+  main:
+    jobs:
+      - build:
