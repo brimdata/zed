@@ -188,8 +188,7 @@ func (c *Command) openOutput() (zson.WriteCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	// XXX need to create writer based on output format flag
-	writer := zsio.LookupWriter("zeek", file)
+	writer := zsio.LookupWriter(c.format, file)
 	return writer, nil
 }
 
