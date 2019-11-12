@@ -116,18 +116,6 @@ And to run system tests, execute
 make test-system
 ```
 
-### Profiling
-
-To use the [Go profiler ](https://golang.org/pkg/net/http/pprof/) to see where CPU
-is being used, see the built-in help for the profiling command *-P*.
-
-This will output a `pprof` command that you can view as follows:
-
-```
-go tool pprof -http localhost:8081 localhost:9867
-open http://localhost:8081/ui/
-```
-
 The flame graph is usually pretty helpful.
 
 ## Contributing
