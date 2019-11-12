@@ -62,7 +62,7 @@ format:
 ```
 zq -f zeek "* | cut ts,id.orig_h,id.orig_p" conn.log
 ```
-To summarize data, you can use an aggregate function to summarize data over one or
+You can use an aggregate function to summarize data over one or
 more fields, e.g., summing field values, counting, or computing an average.
 ```
 zq "* | sum(orig_bytes)" conn.log
