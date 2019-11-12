@@ -44,7 +44,7 @@ zq help
 Here are a few examples.
 
 To cut the columns of a Zeek "conn" log like
-[`zeek-cut`](https://github.com/zeek/zeek-aux/tree/master/zeek-cut) does, run:
+`zeek-cut` does, run:
 ```
 zq "* | cut ts,id.orig_h,id.orig_p" conn.log
 ```
