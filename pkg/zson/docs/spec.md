@@ -171,7 +171,7 @@ record[x:double,y:double]
 ```
 Containers can be embedded in containers:
 ```
-record[vector[int],set[bool,string],record[x:double,y:double],set[record[a:string,b:string]]
+record[v:vector[int],s:set[bool,string],r:record[x:double,y:double],s2:set[record[a:string,b:string]]
 ```
 
 Types can also refer to previously defined descriptors, e.g.,
@@ -339,7 +339,7 @@ the set_separator character).
 ## Legacy Values
 
 A legacy value exists on any line that is not a directive and whose most
-recent directive was a legacy value.  The legacy value is parsed by simply
+recent directive was a legacy directive.  The legacy value is parsed by simply
 splitting the line using the separator character, then splitting each container
 value by the set_separator character.
 For example,
