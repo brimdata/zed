@@ -96,10 +96,6 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return fmt.Errorf("parse error: %s", err)
 	}
-	// XXX c.format should really implement the flag.Value interface.
-	if err := checkFormat(c.format); err != nil {
-		return err
-	}
 	paths := args[1:]
 	var reader zson.Reader
 	if len(paths) > 0 {
@@ -189,6 +185,9 @@ func (c *Command) openOutput() (zson.WriteCloser, error) {
 		return nil, err
 	}
 	writer := zsio.LookupWriter(c.format, file)
+	if writer == nil {
+		return nil, fmt.Errorf("invalid format: %s", c.format)
+	}
 	return writer, nil
 }
 
@@ -203,12 +202,4 @@ func (c *Command) openOutputFile() (*os.File, error) {
 func (c *Command) openOutputDir() (*emitter.Dir, error) {
 	ext := extension(c.format)
 	return emitter.NewDir(c.dir, c.outputFile, ext, os.Stderr)
-}
-
-func checkFormat(f string) error {
-	switch f {
-	case "zson", "zeek", "ndjson", "json", "text", "table", "raw":
-		return nil
-	}
-	return fmt.Errorf("invalid format: %s", f)
 }
