@@ -34,7 +34,6 @@ type ReadStats struct {
 type Reader struct {
 	scanner  *skim.Scanner
 	parser   *parser
-	resolver *resolver.Table
 	stats    ReadStats
 }
 
@@ -42,8 +41,7 @@ func NewReader(reader io.Reader, r *resolver.Table) *Reader {
 	buffer := make([]byte, ReadSize)
 	return &Reader{
 		scanner:  skim.NewScanner(reader, buffer, MaxLineSize),
-		parser:   newParser(),
-		resolver: r,
+		parser:   newParser(r),
 	}
 }
 
@@ -82,12 +80,16 @@ again:
 	if line == nil {
 		return nil, err
 	}
+	// remove newline
+	line = line[:len(line)-1]
 	if line[0] == '#' {
-		// parse a directive without the newline
-		r.parser.parseDirective(line[:len(line)-1])
+		err = r.parser.parseDirective(line)
+		if err != nil {
+			return nil, err
+		}
 		goto again
 	}
-	rec, err := r.parser.parseValue(line, r.resolver)
+	rec, err := r.parser.parseValue(line)
 	if err != nil {
 		return nil, err
 	}
