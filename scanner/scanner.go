@@ -20,22 +20,22 @@ func (s *Scanner) Pull() (zson.Batch, error) {
 	minTs, maxTs := nano.MaxTs, nano.MinTs
 	var arr []*zson.Record
 	for i := 0; i < 24; i++ {
-		tup, err := s.reader.Read()
+		rec, err := s.reader.Read()
 		if err != nil {
 			return nil, err
 		}
-		if tup == nil {
+		if rec == nil {
 			break
 		}
-		if tup.Ts < minTs {
-			minTs = tup.Ts
+		if rec.Ts < minTs {
+			minTs = rec.Ts
 		}
-		if tup.Ts > maxTs {
-			maxTs = tup.Ts
+		if rec.Ts > maxTs {
+			maxTs = rec.Ts
 		}
-		// Use tuple.Keep() to copy underlying buffer because call to next
+		// Use rec.Keep() to copy underlying buffer because call to next
 		// reader.Next() will overwrite said buffer.
-		arr = append(arr, tup.Keep())
+		arr = append(arr, rec.Keep())
 	}
 	if arr == nil {
 		return nil, nil

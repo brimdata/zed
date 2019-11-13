@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// Column defines the field name and type of a column in a tuple type
+// Column defines the field name and type of a column in a record type
 type Column struct {
 	Name string
 	Type Type

@@ -5,7 +5,6 @@ import (
 	"github.com/mccanne/zq/pkg/zson"
 )
 
-// A Mapper... XXX
 type Mapper struct {
 	Slice
 	out *Table

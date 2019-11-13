@@ -30,13 +30,13 @@ func SearchString(s string) Filter {
 	pattern := []byte(s)
 	return func(p *zson.Record) bool {
 		// Go implements a very efficient string search algorithm so we
-		// use it here to look for the substring-match to pattern in the Raw tuple string
-		// this is the common use case of typing a basic string as a search
-		// parameter... (XXX doesn't handle stemming etc very well)
+		// use it here first to rule out misses on a substring match.
 		if !bytes.Contains(p.Raw, pattern) {
 			return false
 		}
-		// XXX This is terrible.
+		// If we have a hit, double check field by field in case the
+		// framing bytes give us a false positive.
+		// XXX we should refactor these iterators to make this tighter.
 		it := p.ZvalIter()
 		for _, c := range p.Type.Columns {
 			val, err := it.Next()
@@ -66,7 +66,7 @@ func SearchString(s string) Filter {
 
 func CompileFieldCompare(node ast.CompareField, val zeek.Value) (Filter, error) {
 	// Treat len(field) specially since we're looking at a computed
-	// value, not something from a tuple.
+	// value rather than a field from a record.
 	if op, ok := node.Field.(*ast.FieldCall); ok && op.Fn == "Len" {
 		i, ok := val.(*zeek.Int)
 		if !ok {
@@ -121,7 +121,7 @@ func EvalField(field string, eval zeek.Predicate) Filter {
 	return func(p *zson.Record) bool {
 		col, ok := p.Descriptor.LUT[field]
 		if !ok {
-			// field name doesn't exist in this tuple
+			// field name doesn't exist in this record
 			return false
 		}
 		return eval(p.TypeOfColumn(col), p.Slice(col))

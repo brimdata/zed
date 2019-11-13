@@ -23,13 +23,13 @@ type Proc interface {
 	Copy() Proc
 }
 
-// BooleanExpr is the interface implement by all AST boolean expression nodes
+// BooleanExpr is the interface implement by all AST boolean expression nodes.
 type BooleanExpr interface {
 	booleanExprNode()
 	Copy() BooleanExpr
 }
 
-// FieldExpr is the interface implemented by expressions that reference fields
+// FieldExpr is the interface implemented by expressions that reference fields.
 type FieldExpr interface {
 	fieldExprNode()
 	Copy() FieldExpr
@@ -41,7 +41,7 @@ type FieldExpr interface {
 // the native Go types) and value is a string representation of that value that
 // must conform to the provided type.
 // XXX these should be broken out into different native Go types but for now
-// we'll keep them as strings
+// we'll keep them as strings.
 type TypedValue struct {
 	Type  string `json:"type"`
 	Value string `json:"value"`
@@ -54,37 +54,37 @@ type TypedValue struct {
 // or more of the following concrete expression nodes.
 //
 type (
-	// A LogicalAnd node represents a logical and of two subexpressions
+	// A LogicalAnd node represents a logical and of two subexpressions.
 	LogicalAnd struct {
 		Node
 		Left  BooleanExpr `json:"left"`
 		Right BooleanExpr `json:"right"`
 	}
-	// A LogicalOr node represents a logical or of two subexpressions
+	// A LogicalOr node represents a logical or of two subexpressions.
 	LogicalOr struct {
 		Node
 		Left  BooleanExpr `json:"left"`
 		Right BooleanExpr `json:"right"`
 	}
-	// A LogicalNot node represents a logical not of a subexpression
+	// A LogicalNot node represents a logical not of a subexpression.
 	LogicalNot struct {
 		Node
 		Expr BooleanExpr `json:"expr"`
 	}
-	// A BooleanLiteral node represents the constant true of false
+	// A BooleanLiteral node represents the constant true of false.
 	BooleanLiteral struct {
 		Node
 		Value bool `json:"value"`
 	}
 	// A CompareAny node represents a comparison operator with all of
-	// the fields in a tuple
+	// the fields in a record.
 	CompareAny struct {
 		Node
 		Comparator string `json:"comparator"`
 		Value      TypedValue
 	}
 	// A CompareField node represents a comparison operator with a specific
-	// field in a tuple
+	// field in a record.
 	CompareField struct {
 		Node
 		Comparator string    `json:"comparator"`
@@ -92,7 +92,7 @@ type (
 		Value      TypedValue
 	}
 	// A SearchString node represents a string match against the raw
-	// tuple info
+	// record info.
 	SearchString struct {
 		Node
 		Value TypedValue `json:"value"`
@@ -134,25 +134,25 @@ func (e *FieldCall) fieldExprNode() {}
 // ----------------------------------------------------------------------------
 // Procs
 
-// A proc is a node in the flowgraph that takes tuples in, processes them,
-// and produces tuples as output
+// A proc is a node in the flowgraph that takes records in, processes them,
+// and produces records as output
 //
 type (
 	// A SequentialProc node represents a set of procs that receive
-	// a stream of tuples from their parent into the first proc
-	// and each subsequent proc processes the output tuples from the
-	// previous proc
+	// a stream of records from their parent into the first proc
+	// and each subsequent proc processes the output records from the
+	// previous proc.
 	SequentialProc struct {
 		Node
 		Procs []Proc `json:"procs"`
 	}
 	// A ParallelProc node represents a set of procs that each get
-	// a stream of tuples from their parent
+	// a stream of records from their parent.
 	ParallelProc struct {
 		Node
 		Procs []Proc `json:"procs"`
 	}
-	// A SortProc node represents a proc that sorts tuples
+	// A SortProc node represents a proc that sorts records.
 	SortProc struct {
 		Node
 		Limit   int      `json:"limit,omitempty"`
@@ -160,26 +160,26 @@ type (
 		SortDir int      `json:"sortdir"`
 	}
 	// A CutProc node represents a proc that removes fields from each
-	// input tuple where each removed field matches one of the named fields
-	// sending each such modified tuple to its output in the order received
+	// input record where each removed field matches one of the named fields
+	// sending each such modified record to its output in the order received.
 	CutProc struct {
 		Node
 		Fields []string `json:"fields"`
 	}
 	// A HeadProc node represents a proc that forwards the indicated number
-	// of tuples then terminates
+	// of records then terminates.
 	HeadProc struct {
 		Node
 		Count int `json:"count"`
 	}
-	// A TailProc node represents a proc that reads all its tuples from its
-	// input transmits the final number of tuples indicated by the count
+	// A TailProc node represents a proc that reads all its records from its
+	// input transmits the final number of records indicated by the count.
 	TailProc struct {
 		Node
 		Count int `json:"count"`
 	}
-	// A FilterProc node represents a proc that discards all tuples that do
-	// not match the indicfated filter and forwards all that match to its output
+	// A FilterProc node represents a proc that discards all records that do
+	// not match the indicfated filter and forwards all that match to its output.
 	FilterProc struct {
 		Node
 		Filter BooleanExpr `json:"filter"`
@@ -189,25 +189,25 @@ type (
 	PassProc struct {
 		Node
 	}
-	// A UniqProc node represents a proc that discards any tuple that matches
-	// the previous tuple transmitted.  The Cflag causes the output tuples
+	// A UniqProc node represents a proc that discards any record that matches
+	// the previous record transmitted.  The Cflag causes the output records
 	// to contain a new field called count that contains the number of matched
-	// tuples in that set, similar to the unix shell command uniq
+	// records in that set, similar to the unix shell command uniq.
 	UniqProc struct {
 		Node
 		Cflag bool `json:"cflag"`
 	}
-	// A ReducerProc node represents a proc that consumes all the tuples
-	// in its input and processes each tuple with one or more reducers.
-	// After all the tuples have been consumed, the proc generates a single
-	// tuple that contains each reducer's result as a field in that tuple
+	// A ReducerProc node represents a proc that consumes all the records
+	// in its input and processes each record with one or more reducers.
+	// After all the records have been consumed, the proc generates a single
+	// record that contains each reducer's result as a field in that record.
 	ReducerProc struct {
 		Node
 		UpdateInterval Duration  `json:"update_interval"`
 		Reducers       []Reducer `json:"reducers"`
 	}
-	// A GroupByProc node represents a proc that consumes all the tuples
-	// in its input, partitions the tuples into groups based on the values
+	// A GroupByProc node represents a proc that consumes all the records
+	// in its input, partitions the records into groups based on the values
 	// of the fields specified in the keys paramater, and applies one or
 	// more reducers to each group.  If the duration parameter is non-zero,
 	// then the groups further partioned by time according to the time interval
@@ -226,7 +226,7 @@ type (
 	}
 )
 
-//XXX placeholder till we fix the client together with boom
+//XXX placeholder
 type Duration struct {
 	Seconds int
 }
@@ -260,7 +260,7 @@ func (p *GroupByProc) ProcNode()    {}
 
 // A Reducer is an AST node that represents any of the boom reducers.  The Op
 // parameter indicates the specific reducer while the Field parameter indicates
-// which field of the incoming tuples should be operated upon by the reducer.
+// which field of the incoming records should be operated upon by the reducer.
 // The result is given the field name specified by the Var parameter.
 type Reducer struct {
 	Node

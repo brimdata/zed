@@ -119,7 +119,6 @@ func (d *Double) Coerce(typ Type) Value {
 // their nanosecond values.  If input interface is already a Double, then
 // it is returned as a *Double.  If the value cannot be coerced, then
 // nil is returned.
-// XXX this should be
 func CoerceToDouble(in Value) *Double {
 	switch v := in.(type) {
 	case *Double:
