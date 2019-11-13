@@ -56,6 +56,10 @@ type TestSource struct {
 	idx     int
 }
 
+func NewTestSource(batches []zson.Batch) *TestSource {
+	return &TestSource{records: batches}
+}
+
 func (t *TestSource) Pull() (zson.Batch, error) {
 	if t.idx >= len(t.records) {
 		return nil, nil
@@ -75,21 +79,30 @@ func (t *TestSource) Parents() []Proc { return nil }
 // output of the proc.  Always end a test case with Finish() to ensure
 // there weren't any unexpected records or warnings.
 type ProcTest struct {
-	ctx          Context
+	ctx          *Context
 	compiledProc Proc
 	eos          bool
 }
 
-func NewProcTest(code string, resolver *resolver.Table, inRecords []zson.Batch) (*ProcTest, error) {
-	ctx := Context{
+func NewProcTestWithProc(proc Proc, ctx *Context) *ProcTest {
+	return &ProcTest{ctx, proc, false}
+}
+
+func NewTestContext(res *resolver.Table) *Context {
+	if res == nil {
+		res = resolver.NewTable()
+	}
+	return &Context{
 		Context:  context.Background(),
-		Resolver: resolver,
+		Resolver: res,
 		Warnings: make(chan string, 5),
 	}
+}
 
+func NewProcTest(code string, resolver *resolver.Table, inRecords []zson.Batch) (*ProcTest, error) {
+	ctx := NewTestContext(resolver)
 	src := TestSource{inRecords, 0}
-
-	compiledProc, err := compileProc(code, &ctx, &src)
+	compiledProc, err := compileProc(code, ctx, &src)
 	if err != nil {
 		return nil, err
 	}
