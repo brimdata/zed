@@ -22,20 +22,29 @@
         return ret, nil
     }
 
-    func makeSequentialProc(firstIn, procsIn interface{}) (*ast.SequentialProc) {
-        procs := []ast.Proc{firstIn.(ast.Proc)}
-        for _, p := range procsIn.([]interface{}) {
-            procs = append(procs, p.(ast.Proc))
+    // Helper to get a properly-typed slice of Procs from an interface{}.
+    func procArray(val interface{}) []ast.Proc {
+        var ret []ast.Proc
+        for _, v := range val.([]interface{}) {
+            ret = append(ret, v.(ast.Proc))
+        }
+        return ret
+    }
+
+    func makeSequentialProc(procsIn interface{}) ast.Proc {
+        procs := procArray(procsIn)
+        if len(procs) == 0 {
+            return procs[0]
         }
         return &ast.SequentialProc{ast.Node{"SequentialProc"}, procs}
     }
 
-    func makeParallelProc(firstIn, procsIn interface{}) *ast.ParallelProc {
-        procs := []ast.Proc{firstIn.(ast.Proc)}
-        for _, p := range procsIn.([]interface{}) {
-            procs = append(procs, p.(ast.Proc))
+    func makeParallelProc(procsIn interface{}) ast.Proc {
+        procs := procArray(procsIn)
+        if len(procs) == 0 {
+            return procs[0]
         }
-        return &ast.ParallelProc{ast.Node{"ParallelProc"}, procs}
+        return &ast.ParallelProc{ast.Node{"ParallelProc"}, procArray(procsIn)}
     }
 
     func makeTypedValue(typ string, val interface{}) *ast.TypedValue {
@@ -117,15 +126,13 @@
         val.(*ast.SearchString).Value.Type = "string"
     }
 
-    // Helper to get a properly-typed array of strings from an interface{}
+    // Helper to get a properly-typed slice of strings from an interface{}
     func stringArray(val interface{}) []string {
-        if val == nil {
-            return nil
-        }
-        arr := val.([]interface{})
-        ret := make([]string, len(arr))
-        for i, s := range arr {
-            ret[i] = s.(string)
+        var ret []string
+        if val != nil {
+            for _, v := range val.([]interface{}) {
+                ret = append(ret, v.(string))
+            }
         }
         return ret
     }
@@ -271,6 +278,7 @@
 #define FOREACH(arr, var) for _, var := range arr
 #define IF(stmt) if stmt
 #define APPEND(arr, value) arr = append(arr, value)
+#define PREPEND(value, arr) append([]interface{}{value}, (arr.([]interface{}))...)
 #define TEXT string(c.text)
 #define TOSTRING(s) fmt.Sprintf("%v", s)
 #define ISNOTNULL(n) n != nil
@@ -281,12 +289,12 @@
 {
     let reglob = require("../reglob/reglob")
 
-    function makeSequentialProc(first, rest) {
-        return { op: "SequentialProc", procs: [first].concat(...rest) };
+    function makeSequentialProc(procs) {
+        return { op: "SequentialProc", procs };
     }
 
-    function makeParallelProc(first, rest) {
-        return { op: "ParallelProc", procs: [first].concat(...rest) };
+    function makeParallelProc(procs) {
+        return { op: "ParallelProc", procs };
     }
 
     function makeTypedValue(type, value) { return { type, value }; }
@@ -386,6 +394,7 @@
 #define FOREACH(arr, var) for(let var of arr)
 #define IF(stmt) if (stmt)
 #define APPEND(arr, value) arr.push(value)
+#define PREPEND(value, arr) [value, ...arr]
 #define TEXT text()
 #define ASSERT_INT(i) i
 #define TOSTRING(s) s.toString()
@@ -398,15 +407,28 @@
 start = _? ast:boomCommand _? EOF { RETURN(ast) }
 
 boomCommand
-   = s:search _? rest:chainedProc* {
-      IF(ARRAY_LEN(rest) == 0) {
+  = procs:procChain {
+      INIT_ASSIGN_VAR(filt, makeFilterProc(makeBooleanLiteral(true)))
+      RETURN(makeSequentialProc(PREPEND(filt, procs)))
+    }
+  / s:search _? rest:chainedProc* {
+      if(ARRAY_LEN(rest) == 0) {
           RETURN(s)
       } else {
-          RETURN(makeSequentialProc(s, rest))
+          RETURN(makeSequentialProc(PREPEND(s, rest)))
       }
-     }
-   / s:search {
-      RETURN(s)
+    }
+  / s:search {
+      RETURN(makeSequentialProc(ARRAY(s)))
+    }
+
+procChain
+  = first:proc rest:chainedProc* {
+      IF(ISNOTNULL(rest)) {
+        RETURN(PREPEND(first, rest))
+      } else {
+        RETURN(ARRAY(first))
+      }
     }
 
 chainedProc = _? "|" _? p:proc { RETURN(p) }
@@ -514,19 +536,16 @@ unsetLiteral
 
 procList
   = first:procChain rest:parallelChain* {
-      RETURN(makeParallelProc(first, rest))
-    }
-
-parallelChain = _? ";" _? ch:procChain { RETURN(ch) }
-
-procChain
-  = first:proc rest:chainedProc* {
-      IF(ARRAY_LEN(rest) == 0) {
-          RETURN(first)
+      INIT_ASSIGN_VAR(fp, makeSequentialProc(first))
+      IF(ISNOTNULL(rest)) {
+        RETURN(makeParallelProc(PREPEND(fp, rest)))
       } else {
-          RETURN(makeSequentialProc(first, rest))
+        RETURN(fp)
       }
     }
+
+parallelChain
+  = _? ";" _? ch:procChain { RETURN(makeSequentialProc(ch)) }
 
 proc
   = simpleProc

@@ -18,3 +18,4 @@ _path=conn id.resp_p=80
 * | sort -r a, b, c
 * | sort -r -limit 1 a, b, c
 * | sort -limit 1 -r a, b, c
+count() | sort
