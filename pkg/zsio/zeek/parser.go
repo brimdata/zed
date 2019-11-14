@@ -40,7 +40,6 @@ type parser struct {
 	needtypes   bool
 	legacyDesc *zson.Descriptor
 	legacyVal   bool
-	addPath     bool
 }
 
 var (
@@ -243,12 +242,9 @@ func (c *parser) lookup() (*zson.Descriptor, error) {
 		return nil, ErrBadRecordDef
 	}
 	cols := c.columns
-	if !c.hasField("_path", nil) && len(c.path) > 0 {
+	if !c.hasField("_path", nil) {
 		pathcol := zeek.Column{Name: "_path", Type: zeek.TypeString}
 		cols = append([]zeek.Column{pathcol}, cols...)
-		c.addPath = true
-	} else {
-		c.addPath = false
 	}
 	return c.resolver.GetByColumns(cols), nil
 }

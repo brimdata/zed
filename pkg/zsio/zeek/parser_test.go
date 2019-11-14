@@ -76,13 +76,12 @@ func assertError(t *testing.T, err error, pattern, what string) {
 // Test things related to legacy zeek records that the parser should
 // handle successfully.
 func TestLegacyZeekValid(t *testing.T) {
-	// Test standard headers but no #path and no timestamp in records
+	// Test standard headers but no timestamp in records
 	parser := startLegacyTest(t, fields, types, "")
 	record, err := sendLegacyValues(parser, values)
 	require.NoError(t, err)
 
 	assert.Equal(t, record.Ts, nano.MinTs, "Record has MinTs")
-	assert.False(t, record.HasField("_path"), "Record does not have a _path field")
 	// XXX check contents of other fields?
 
 	// Test standard headers with a timestamp in records
@@ -99,7 +98,7 @@ func TestLegacyZeekValid(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, record.Ts, ts, "Timestamp is correct")
 
-	// Test standard headers including a #path header
+	// Test the #path header
 	parser = startLegacyTest(t, fieldsWithTs, typesWithTs, "testpath")
 	record, err = sendLegacyValues(parser, valsWithTs)
 	require.NoError(t, err)
@@ -151,7 +150,7 @@ func TestLegacyZeekInvalid(t *testing.T) {
 	// Test that the wrong number of values is an error
 	parser = startTest(t, append(standardHeaders, fh, th))
 	_, err = sendLegacyValues(parser, append(values, "extra"))
-	assertError(t, err, "got 6 values, expected 5", "wrong number of values")
+	assertError(t, err, "got 7 values, expected 6", "wrong number of values")
 
 	// XXX check invalid types?
 }

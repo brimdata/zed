@@ -112,9 +112,7 @@ func NewRawAndTsFromJSON(d *Descriptor, tsCol int, data []byte) (Raw, nano.Ts, e
 
 func NewRawAndTsFromZeekTSV(d *Descriptor, tsCol int, path []byte, data []byte) (Raw, nano.Ts, error) {
 	vals := make([][]byte, 0, 32) // Fixed length for stack allocation.
-	if len(path) > 0 {
-		vals = append(vals, path)
-	}
+	vals = append(vals, path)
 	const separator = '\t'
 	var start int
 	for i, c := range data {
