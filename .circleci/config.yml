@@ -9,13 +9,19 @@ executors:
     docker:
       - image: circleci/golang:1.13-buster
 
-jobs:
-  build:
-    executor: go_builder
+commands:
+  log_date:
+    description: Log date
     steps:
       - run:
           name: Log date
           command: date -u
+
+jobs:
+  build:
+    executor: go_builder
+    steps:
+      - log_date
       - checkout
       - restore_cache:
           key: go-mod-v1-{{ checksum "go.sum" }}
@@ -25,13 +31,35 @@ jobs:
       - run:
           name: Unit Tests
           command: 'make test-unit'
+      - run:
+          name: Build
+          command: 'make build'
       - save_cache:
           key: go-mod-v1-{{ checksum "go.sum" }}
           paths:
             - /go/pkg/mod
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .
+  system_test:
+    docker:
+      - image: circleci/python:3.8-buster
+    steps:
+      - log_date
+      - attach_workspace:
+          at: .
+      - run:
+          name: System Tests
+          command: 'make test-system'
+
 
 workflows:
   version: 2
   main:
     jobs:
       - build
+      - system_test:
+          requires: 
+            - build
+
