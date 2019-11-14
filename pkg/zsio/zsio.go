@@ -22,10 +22,10 @@ func LookupWriter(format string, w io.WriteCloser) zson.WriteCloser {
 		return ndjson.NewWriter(w)
 	case "json":
 		return json.NewWriter(w)
-	/* XXX not yet
-	case "text":
-		return text.NewWriter(f, c.showTypes, c.showFields, c.epochDates)
-	*/
+		/* XXX not yet
+		case "text":
+			return text.NewWriter(f, c.showTypes, c.showFields, c.epochDates)
+		*/
 	case "table":
 		return table.NewWriter(w)
 	case "raw":
@@ -40,17 +40,18 @@ func LookupReader(format string, r io.Reader, table *resolver.Table) zson.Reader
 		return NewReader(r, table)
 	case "zeek":
 		return zeek.NewReader(r, table)
-	/* XXX not yet
-	case "ndjson":
-		return ndjson.NewReader(r, table)
-	case "json":
-		return json.NewReader(r, table)
-	case "text":
-		return text.NewReader(f, c.showTypes, c.showFields, c.epochDates)
-	case "table":
-		return table.NewReader(r, table)
-	case "raw":
-		return raw.NewReader(r, table) */
+		/* XXX not yet
+		case "ndjson":
+			return ndjson.NewReader(r, table)
+		case "json":
+			return json.NewReader(r, table)
+				case "text":
+					return text.NewReader(f, c.showTypes, c.showFields, c.epochDates)
+
+			case "table":
+				return table.NewReader(r, table)
+			case "raw":
+				return raw.NewReader(r, table) */
 	}
 	return nil
 }
