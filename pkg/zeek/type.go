@@ -152,19 +152,22 @@ func parseType(in string) (string, Type, error) {
 	switch word {
 	case "set":
 		rest, t, err := parseSetTypeBody(rest)
-		if err == nil {
-			return rest, addType(t), nil
+		if err != nil {
+			return "", nil, err
 		}
+		return rest, addType(t), nil
 	case "vector":
 		rest, t, err := parseVectorTypeBody(rest)
-		if err == nil {
-			return rest, addType(t), nil
+		if err != nil {
+			return "", nil, err
 		}
+		return rest, addType(t), nil
 	case "record":
 		rest, t, err := parseRecordTypeBody(rest)
-		if err == nil {
-			return rest, addType(t), nil
+		if err != nil {
+			return "", nil, err
 		}
+		return rest, addType(t), nil
 	}
 	return "", nil, fmt.Errorf("unknown type: %s", word)
 }

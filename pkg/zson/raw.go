@@ -1,6 +1,7 @@
 package zson
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/buger/jsonparser"
@@ -110,7 +111,6 @@ func NewRawAndTsFromJSON(d *Descriptor, tsCol int, data []byte) (Raw, nano.Ts, e
 }
 
 func NewRawAndTsFromZeekTSV(d *Descriptor, tsCol int, path []byte, data []byte) (Raw, nano.Ts, error) {
-	data = data[:len(data)-1]     // Remove terminal newline.
 	vals := make([][]byte, 0, 32) // Fixed length for stack allocation.
 	vals = append(vals, path)
 	const separator = '\t'
@@ -148,4 +148,87 @@ func NewRawAndTsFromZeekValues(d *Descriptor, tsCol int, vals [][]byte) (Raw, na
 		raw = appendZvalFromZeek(raw, d.Type.Columns[i].Type, val)
 	}
 	return raw, ts, nil
+}
+
+var ErrUnterminated = errors.New("zson parse error: unterminated container")
+
+func NewRawFromZSON(desc *Descriptor, zson []byte) (Raw, error) {
+	// XXX no validation on types from the descriptor, though we'll
+	// want to add that to support eg the bytes type.
+	// if we did this, we could also get at the ts field without
+	// making a separate pass in the parser.
+	vals, rest, err := zsonParseContainer(zson)
+	if err != nil {
+		return nil, err
+	}
+	if len(rest) != 0 {
+		return nil, ErrUnterminated
+	}
+
+	raw := zval.AppendUvarint(nil, uint64(desc.ID))
+	for _, v := range vals {
+		raw = zval.AppendValue(raw, v)
+	}
+	return raw, nil
+}
+
+const (
+	semicolon    = byte(';')
+	leftbracket  = byte('[')
+	rightbracket = byte(']')
+	backslash    = byte('\\')
+)
+
+// zsonParseContainer() parses the given byte array representing a container
+// in the zson format.
+// If there is no error, the first two return values are:
+//  1. an array of zvals corresponding to the indivdiual elements
+//  2. the passed-in byte array advanced past all the data that was parsed.
+func zsonParseContainer(b []byte) ([][]byte, []byte, error) {
+	// skip leftbracket
+	b = b[1:]
+
+	// XXX if we have the Type we can size this properly
+	vals := make([][]byte, 0)
+	for {
+		if len(b) == 0 {
+			return nil, nil, ErrUnterminated
+		}
+		if b[0] == rightbracket {
+			return vals, b[1:], nil
+		}
+		field, rest, err := zsonParseField(b)
+		if err != nil {
+			return nil, nil, err
+		}
+		vals = append(vals, field)
+		b = rest
+	}
+}
+
+// zsonParseField() parses the given bye array representing any value
+// in the zson format.
+func zsonParseField(b []byte) ([]byte, []byte, error) {
+	if b[0] == leftbracket {
+		vals, rest, err := zsonParseContainer(b)
+		if err != nil {
+			return nil, nil, err
+		}
+		return zval.AppendContainer(nil, vals), rest, nil
+	}
+	i := 0
+	for {
+		if i >= len(b) {
+			return nil, nil, ErrUnterminated
+		}
+		switch b[i] {
+		case semicolon:
+			return b[:i], b[i+1:], nil
+		case backslash:
+			// XXX need to implement full escape parsing,
+			// for now just skip one character
+			i += 1
+		}
+		i += 1
+	}
 }
