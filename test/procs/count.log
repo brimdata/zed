@@ -1,0 +1,21 @@
+# @TEST-EXEC: zq "count()" %INPUT >output
+# @TEST-EXEC: btest-diff output
+#separator \x09
+#set_separator	,
+#empty_field	(empty)
+#unset_field	-
+#path	conn
+#open	2018-10-20-14-39-16
+#fields	foo
+#types	string
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+#close	2018-10-20-14-39-16
