@@ -135,7 +135,7 @@ func (e *FieldCall) fieldExprNode() {}
 // Procs
 
 // A proc is a node in the flowgraph that takes records in, processes them,
-// and produces records as output
+// and produces records as output.
 //
 type (
 	// A SequentialProc node represents a set of procs that receive
@@ -226,7 +226,7 @@ type (
 	}
 )
 
-//XXX placeholder
+//XXX TBD: chance to nano.Duration
 type Duration struct {
 	Seconds int
 }

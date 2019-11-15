@@ -11,7 +11,7 @@ type Resolver interface {
 	Lookup(td int) *Descriptor
 }
 
-// Descriptor as en entry for mapping small-integer descriptors to
+// Descriptor is an entry for mapping small-integer descriptors to
 // a zeek record structure along with a map to efficiently find a
 // column index for a given field name.
 type Descriptor struct {
