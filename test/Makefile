@@ -8,4 +8,5 @@ btest:
 
 clean:
 	@rm -f .btest.failed.dat
+	@rm -rf btest
 	@rm -rf .tmp

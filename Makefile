@@ -7,7 +7,7 @@ test-unit:
 	@go test -short ./...
 
 test-system:
-	@(cd test/system && make)
+	@$(MAKE) -C test
 
 build:
 	@mkdir -p dist 
