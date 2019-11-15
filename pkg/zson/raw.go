@@ -1,6 +1,7 @@
 package zson
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 
@@ -57,12 +58,9 @@ func NewRawAndTsFromJSON(d *Descriptor, tsCol int, data []byte) (zval.Encoding, 
 		val := jsonVals[i].val
 		if i == tsCol {
 			var err error
-			ts, err = nano.Parse(val)
+			ts, val, err = handleJSONTimestamp(val)
 			if err != nil {
-				ts, err = nano.ParseRFC3339Nano(val)
-				if err != nil {
-					return nil, 0, 0, err
-				}
+				return nil, 0, 0, err
 			}
 		}
 		switch jsonVals[i].typ {
@@ -89,6 +87,29 @@ func NewRawAndTsFromJSON(d *Descriptor, tsCol int, data []byte) (zval.Encoding, 
 		raw = zval.AppendValue(raw, val)
 	}
 	return raw, ts, droppedFields, nil
+}
+
+// handleJSONTimestamp interprets data as a timestamp and returns its value as
+// both a nano.Ts and the standard Zeek format (a decimal floating-point number
+// representing seconds since the Unix epoch).
+//
+// handleJSONTimestamp understands the three timestamp formats that Zeek's ASCII
+// log writer can produce when LogAscii::use_json is true.  These formats
+// correspond to the three possible values for LogAscii::json_timestamps:
+// JSON::TS_EPOCH, JSON::TS_ISO8601, and JSON::TS_MILLIS.  For descriptions, see
+// https://docs.zeek.org/en/stable/scripts/base/init-bare.zeek.html#type-JSON::TimestampFormat.
+func handleJSONTimestamp(data []byte) (nano.Ts, []byte, error) {
+	switch {
+	case bytes.Contains(data, []byte{'-'}): // JSON::TS_ISO8601
+		ts, err := nano.ParseRFC3339Nano(data)
+		return ts, []byte(ts.StringFloat()), err
+	case bytes.Contains(data, []byte{'.'}): // JSON::TS_EPOCH
+		ts, err := nano.Parse(data)
+		return ts, data, err
+	default: // JSON::TS_MILLIS
+		ts, err := nano.ParseMillis(data)
+		return ts, []byte(ts.StringFloat()), err
+	}
 }
 
 func NewRawAndTsFromZeekTSV(d *Descriptor, tsCol int, path []byte, data []byte) (zval.Encoding, nano.Ts, error) {
