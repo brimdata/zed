@@ -136,6 +136,27 @@ add a processor in
 or an aggregate function in
 [zq/reducer](reducer).
 
+## System Tests
+
+`zq` uses https://github.com/zeek/btest to run tests on the `zq` binary. System
+tests can be run with `make test-system`.
+
+ ### Adding/Updating System Tests
+
+ System tests live in the btest directory.
+
+btest works mostly by comparing the output from the `zq` binary against a 
+preexisting baseline. If a new test is written or new functionality causes
+expected changes to `zq`'s output and the test relies on the `btest-diff`
+command, a new baseline will have to be generated. Here is how you do this:
+
+1. `cd test`
+2. Make sure the btest command has been downloaded: `make btest`
+3. Run btest in interactive update mode: `./btest/btest -u path/to.test`
+4. Type `d` to make sure the output is expected. 
+5. Type `u` to update/generate the baseline.
+6. You did it!
+
 [doc-img]: https://godoc.org/github.com/mccanne/zq?status.svg
 [doc]: https://godoc.org/github.com/mccanne/zq
 [ci-img]: https://circleci.com/gh/mccanne/zq.svg?style=svg
