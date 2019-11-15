@@ -34,7 +34,7 @@ func runTest(valType string, valRaw string, containerType string, containerRaw s
 		return err
 	}
 
-	// Mock up a tuple with a single column that holds the set.
+	// Mock up a record with a single column that holds the set.
 	containerTyp, err := zeek.LookupType(containerType)
 	if err != nil {
 		return err

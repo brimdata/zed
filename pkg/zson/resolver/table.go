@@ -166,8 +166,8 @@ func (t *Table) CreateCut(r *zson.Record, fields []string) (*zson.Record, uint64
 		return nil, found, nil
 	}
 	d := t.GetByColumns(columns)
-	tuple, err := zson.NewRecordZvals(d, vals...)
-	return tuple, found, err
+	rec, err := zson.NewRecordZvals(d, vals...)
+	return rec, found, err
 }
 
 // Cache returns a cache of this table providing lockless lookups, but cannot

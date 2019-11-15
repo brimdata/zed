@@ -11,11 +11,11 @@ import (
 
 // Errors...
 var (
-	ErrNoSuchField = errors.New("tuple: no such field")
+	ErrNoSuchField = errors.New("no such field")
 
-	ErrCorruptTd = errors.New("internal server error: corrupt type descriptor in tuple storage")
+	ErrCorruptTd = errors.New("corrupt type descriptor")
 
-	ErrCorruptColumns = errors.New("internal server error: wrong number of columns in tuple storage")
+	ErrCorruptColumns = errors.New("wrong number of columns in record value")
 
 	ErrTypeMismatch = errors.New("type retrieved does not match type requested")
 )
@@ -100,7 +100,7 @@ func (r *Record) ZvalIter() zval.Iter {
 	return r.Raw.ZvalIter()
 }
 
-// Width returns the number of columns in the tuple.
+// Width returns the number of columns in the record.
 func (r *Record) Width() int { return len(r.Descriptor.Type.Columns) }
 
 func (t *Record) Keep() *Record {
@@ -308,11 +308,11 @@ func (r *Record) CutTypes(fields []string) ([]zeek.Type, uint64) {
 	return nil, found
 }
 
-func Descriptors(tuples []*Record) []*Descriptor {
+func Descriptors(recs []*Record) []*Descriptor {
 	m := make(map[int]*Descriptor)
-	for _, t := range tuples {
-		if t.Descriptor != nil {
-			m[t.Descriptor.ID] = t.Descriptor
+	for _, r := range recs {
+		if r.Descriptor != nil {
+			m[r.Descriptor.ID] = r.Descriptor
 		}
 	}
 	descriptors := make([]*Descriptor, len(m))

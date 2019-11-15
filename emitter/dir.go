@@ -12,14 +12,14 @@ import (
 )
 
 var (
-	ErrNoPath = errors.New("no _path field in column 1 of tuple")
+	ErrNoPath = errors.New("no _path field in zson record")
 )
 
 // Dir implements the Writer interface and sends all log lines with the
 // same descriptor to a file named <prefix><path>.<ext> in the directory indicated,
 // where <prefix> and <ext> are specificied and <path> is determined by the
 // _path field in the boom descriptor.  If more than one path exists with
-// different descriptors, the later tuples are ignored.
+// different descriptors, the later records are ignored.
 type Dir struct {
 	dir     string
 	prefix  string
@@ -110,7 +110,7 @@ func (p *Dir) newFile(rec *zson.Record) (*os.File, string, error) {
 		if err == os.ErrExist {
 			// The files exists and we're not going to overwrite it.
 			// Return nil for the file with no error indicating that
-			// we should track this path but block all such tuples.
+			// we should track this path but block all such records.
 			return nil, filename, nil
 		}
 		return nil, filename, err

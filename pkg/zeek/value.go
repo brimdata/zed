@@ -39,9 +39,6 @@ type Value interface {
 	// performed such that v.Coerce(t1).Coerce(v.Type).String() == v.String(),
 	// then nil is returned.
 	Coerce(Type) Value
-	// XXX we will add Marshal and Unmarshal when we move zeek.Value
-	// into the ast
-
 	// If this value is a container (set or vector), return an array of
 	// the contained Values and true.  If this value is not a container,
 	// return an empty list and false.
@@ -49,9 +46,6 @@ type Value interface {
 }
 
 // Parse translates an ast.TypedValue into a zeek.Value.
-// XXX at some point, we will move zeek.Value into the ast and make
-// this automatic.  At that point, ast will depend on package zeek
-// and we'll need to get rid of this.
 func Parse(v ast.TypedValue) (Value, error) {
 	typeMapMutex.RLock()
 	t, ok := typeMap[v.Type]

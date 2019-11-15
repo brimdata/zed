@@ -1,7 +1,6 @@
 package emitter
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -11,10 +10,6 @@ import (
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/proc"
 )
-
-// ErrNoTd occurs when a search result returns a tuple td which has
-// not be defined previously in the stream
-var ErrNoTd = errors.New("tuple with undefined td")
 
 type Emitter struct {
 	writer     zson.WriteCloser

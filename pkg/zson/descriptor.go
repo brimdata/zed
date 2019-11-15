@@ -1,7 +1,5 @@
 package zson
 
-//XXX need to add lock pointer to each Descriptor?
-
 import (
 	"encoding/json"
 
@@ -13,9 +11,9 @@ type Resolver interface {
 	Lookup(td int) *Descriptor
 }
 
-// Descriptor describes the field names and types of a Tuple.
-// It is a list of the column descriptors along with a
-// map to do a fast lookup table of column index by field name
+// Descriptor is an entry for mapping small-integer descriptors to
+// a zeek record structure along with a map to efficiently find a
+// column index for a given field name.
 type Descriptor struct {
 	ID   int
 	Type *zeek.TypeRecord
