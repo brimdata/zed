@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/mccanne/charm"
 	"github.com/mccanne/zq/ast"
@@ -141,10 +140,6 @@ func (c *Command) loadFile(path string) (zson.Reader, error) {
 	}
 	if info.IsDir() {
 		return nil, errInvalidFile("is a directory")
-	}
-	// XXX this should go away soon
-	if filepath.Ext(path) != ".log" {
-		return nil, errInvalidFile("does not have .log extension")
 	}
 	f, err := os.Open(path)
 	if err != nil {

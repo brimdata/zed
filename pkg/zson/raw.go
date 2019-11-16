@@ -11,9 +11,8 @@ import (
 )
 
 // Raw is the serialization format for zson records.  A raw value comprises a
-// descriptor ID followed by a sequence of zvals, one per descriptor column.
-// The descriptor ID is encoded with zval.AppendUvarint, and each zval is
-// encoded with zval.AppendValue.
+// sequence of zvals, one per descriptor column.  The descriptor is stored
+// outside of the raw serialization but is needed to interpret the raw values.
 type Raw []byte
 
 // ZvalIter returns an iterator over the receiver's zvals.
@@ -149,7 +148,7 @@ func NewRawFromZSON(desc *Descriptor, zson []byte) (Raw, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(rest) != 0 {
+	if len(rest) != 1 || rest[0] != ';' {
 		return nil, ErrUnterminated
 	}
 
