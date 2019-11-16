@@ -80,6 +80,8 @@ func unpackProc(custom Unpacker, node joe.JSON) (Proc, error) {
 		return &ReducerProc{}, nil
 	case "GroupByProc":
 		return &GroupByProc{}, nil
+	case "TopProc":
+		return &TopProc{}, nil
 	default:
 		return nil, fmt.Errorf("unknown proc op: %s", op)
 	}

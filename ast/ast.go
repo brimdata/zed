@@ -224,6 +224,17 @@ type (
 		Keys           []string  `json:"keys"`
 		Reducers       []Reducer `json:"reducers"`
 	}
+	// TopProc is similar to proc.SortProc with a view key differences:
+	// - It only sorts in descending order.
+	// - It utilizes a MaxHeap, immediately discarding records are not in the top
+	// N of the sort.
+	// - It has a hidden option (FlushEvery) to sort and emit on every batch.
+	TopProc struct {
+		Node
+		Limit  int      `json:"limit,omitempty"`
+		Fields []string `json:"fields,omitempty"`
+		Flush  bool     `json:"flush"`
+	}
 )
 
 //XXX TBD: chance to nano.Duration
@@ -257,6 +268,7 @@ func (p *FilterProc) ProcNode()     {}
 func (p *UniqProc) ProcNode()       {}
 func (p *ReducerProc) ProcNode()    {}
 func (p *GroupByProc) ProcNode()    {}
+func (p *TopProc) ProcNode()        {}
 
 // A Reducer is an AST node that represents any of the boom reducers.  The Op
 // parameter indicates the specific reducer while the Field parameter indicates
