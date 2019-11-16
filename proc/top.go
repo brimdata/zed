@@ -18,7 +18,8 @@ type TopProc struct {
 	Base
 	limit      int
 	fields     []string
-	sorter     *zson.Sorter
+	records    *zson.RecordSlice
+	sorter     zson.SortFn
 	flushEvery bool
 	out        []*zson.Record
 }
@@ -58,28 +59,30 @@ func (s *TopProc) consume(rec *zson.Record) {
 	if s.fields == nil {
 		s.fields = []string{guessSortField(rec)}
 	}
-	if s.sorter == nil {
+	if s.records == nil {
 		// 1 == MaxHeap
-		s.sorter = zson.NewSorter(1, s.fields...)
-		heap.Init(s.sorter)
+		s.sorter = zson.NewSortFn(1, s.fields...)
+		s.records = zson.NewRecordSlice(s.sorter)
+		heap.Init(s.records)
 	}
-	// XXX should probably compare the top element here instead.
-	heap.Push(s.sorter, rec)
-	if s.sorter.Len() > s.limit {
-		heap.Pop(s.sorter)
+	if s.records.Len() < s.limit || s.sorter(s.records.Index(0), rec) < 0 {
+		heap.Push(s.records, rec.Keep())
+	}
+	if s.records.Len() > s.limit {
+		heap.Pop(s.records)
 	}
 }
 
 func (s *TopProc) sorted() zson.Batch {
-	if s.sorter == nil {
+	if s.records == nil {
 		return nil
 	}
-	out := make([]*zson.Record, s.sorter.Len())
-	for i := s.sorter.Len() - 1; i >= 0; i-- {
-		rec := heap.Pop(s.sorter).(*zson.Record)
-		out[i] = rec.Keep()
+	out := make([]*zson.Record, s.records.Len())
+	for i := s.records.Len() - 1; i >= 0; i-- {
+		rec := heap.Pop(s.records).(*zson.Record)
+		out[i] = rec
 	}
-	// clear sorter
-	s.sorter = nil
+	// clear records
+	s.records = nil
 	return zson.NewArray(out, nano.NewSpanTs(s.MinTs, s.MaxTs))
 }

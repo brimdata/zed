@@ -14,7 +14,6 @@ type SortProc struct {
 	dir    int
 	limit  int
 	fields []string
-	sorter *zson.Sorter
 	out    []*zson.Record
 }
 
@@ -99,9 +98,7 @@ func (s *SortProc) sort() zson.Batch {
 	if s.fields == nil {
 		s.fields = []string{guessSortField(out[0])}
 	}
-	if s.sorter == nil {
-		s.sorter = zson.NewSorter(s.dir, s.fields...)
-	}
-	s.sorter.SortStable(out)
+	sorter := zson.NewSortFn(s.dir, s.fields...)
+	zson.SortStable(out, sorter)
 	return zson.NewArray(out, nano.NewSpanTs(s.MinTs, s.MaxTs))
 }
