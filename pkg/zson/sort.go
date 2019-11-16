@@ -14,6 +14,8 @@ type Sorter struct {
 	dir     int
 }
 
+type sortFn func(a *Record, b *Record, dir int) int
+
 func NewSorter(dir int, fields ...string) *Sorter {
 	return &Sorter{
 		dir:     dir,
@@ -78,8 +80,6 @@ func (s *Sorter) Pop() interface{} {
 func (s *Sorter) Index(i int) *Record {
 	return s.records[i]
 }
-
-type sortFn func(a *Record, b *Record, dir int) int
 
 func lookupSorter(r *Record, field string, dir int) sortFn {
 	zv := r.ValueByField(field)

@@ -84,7 +84,7 @@ type ProcTest struct {
 	eos          bool
 }
 
-func NewProcTestWithProc(proc Proc, ctx *Context) *ProcTest {
+func NewProcTest(proc Proc, ctx *Context) *ProcTest {
 	return &ProcTest{ctx, proc, false}
 }
 
@@ -99,7 +99,7 @@ func NewTestContext(res *resolver.Table) *Context {
 	}
 }
 
-func NewProcTest(code string, resolver *resolver.Table, inRecords []zson.Batch) (*ProcTest, error) {
+func NewProcTestFromSource(code string, resolver *resolver.Table, inRecords []zson.Batch) (*ProcTest, error) {
 	ctx := NewTestContext(resolver)
 	src := TestSource{inRecords, 0}
 	compiledProc, err := compileProc(code, ctx, &src)

@@ -40,21 +40,21 @@ func TestCut(t *testing.T) {
 	fooBarBatch := zson.NewArray([]*zson.Record{r1, r2, r3}, nano.MaxSpan)
 
 	// test "cut foo" on records that only have field foo
-	pt, err := proc.NewProcTest("cut foo", resolver, []zson.Batch{fooBatch})
+	pt, err := proc.NewProcTestFromSource("cut foo", resolver, []zson.Batch{fooBatch})
 	require.NoError(t, err)
 	require.NoError(t, pt.Expect(fooBatch))
 	require.NoError(t, pt.ExpectEOS())
 	require.NoError(t, pt.Finish())
 
 	// test "cut foo" on records that have fields foo and bar
-	pt, err = proc.NewProcTest("cut foo", resolver, []zson.Batch{fooBarBatch})
+	pt, err = proc.NewProcTestFromSource("cut foo", resolver, []zson.Batch{fooBarBatch})
 	require.NoError(t, err)
 	require.NoError(t, pt.Expect(fooBatch))
 	require.NoError(t, pt.ExpectEOS())
 	require.NoError(t, pt.Finish())
 
 	// test "cut foo" on records that don't have field foo
-	pt, err = proc.NewProcTest("cut foo", resolver, []zson.Batch{barBatch})
+	pt, err = proc.NewProcTestFromSource("cut foo", resolver, []zson.Batch{barBatch})
 	require.NoError(t, err)
 	require.NoError(t, pt.ExpectEOS())
 	require.NoError(t, pt.ExpectWarning("Cut field foo not present in input"))
@@ -63,14 +63,14 @@ func TestCut(t *testing.T) {
 	// test "cut foo" on some fields with foo, some without
 	// Note there is no warning in this case since some of the input
 	// records have field "foo".
-	pt, err = proc.NewProcTest("cut foo", resolver, []zson.Batch{fooBatch, barBatch})
+	pt, err = proc.NewProcTestFromSource("cut foo", resolver, []zson.Batch{fooBatch, barBatch})
 	require.NoError(t, err)
 	require.NoError(t, pt.Expect(fooBatch))
 	require.NoError(t, pt.ExpectEOS())
 	require.NoError(t, pt.Finish())
 
 	// test cut on multiple fields.
-	pt, err = proc.NewProcTest("cut foo,bar", resolver, []zson.Batch{fooBarBatch})
+	pt, err = proc.NewProcTestFromSource("cut foo,bar", resolver, []zson.Batch{fooBarBatch})
 	require.NoError(t, err)
 	require.NoError(t, pt.Expect(fooBarBatch))
 	require.NoError(t, pt.ExpectEOS())

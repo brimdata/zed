@@ -97,8 +97,7 @@ func (s *SortProc) sort() zson.Batch {
 	}
 	s.out = nil
 	if s.fields == nil {
-		fld := guess(out)
-		s.fields = []string{fld}
+		s.fields = []string{guess(out)}
 	}
 	if s.sorter == nil {
 		s.sorter = zson.NewSorter(s.dir, s.fields...)
