@@ -22,12 +22,12 @@ func appendZvalFromZeek(dst []byte, typ zeek.Type, val []byte) []byte {
 	const empty = "(empty)"
 	const setSeparator = ','
 	const unset = '-'
-	if bytes.Equal(val, []byte{unset}) {
-		return zval.AppendValue(dst, nil)
-	}
 	switch typ.(type) {
 	case *zeek.TypeSet, *zeek.TypeVector:
-		var vals [][]byte
+		if bytes.Equal(val, []byte{unset}) {
+			return zval.AppendContainer(dst, nil)
+		}
+		vals := [][]byte{} // [][]byte{} is the empty container.
 		if !bytes.Equal(val, []byte(empty)) {
 			for _, v := range bytes.Split(val, []byte{setSeparator}) {
 				vals = append(vals, zeek.Unescape(v))
@@ -35,6 +35,9 @@ func appendZvalFromZeek(dst []byte, typ zeek.Type, val []byte) []byte {
 		}
 		return zval.AppendContainer(dst, vals)
 	default:
+		if bytes.Equal(val, []byte{unset}) {
+			return zval.AppendValue(dst, nil)
+		}
 		return zval.AppendValue(dst, zeek.Unescape(val))
 	}
 }

@@ -85,9 +85,9 @@ func TestNewRawAndTsFromZeekValues(t *testing.T) {
 	}{
 		{[]string{"some path", "123.456", "-"}, [][]byte{b("some path"), b("123.456"), nil, nil}},
 		{[]string{"some path", "123.456", "(empty)"}, [][]byte{b("some path"), b("123.456"), b(""), nil}},
-		{[]string{"some path", "123.456", ""}, [][]byte{b("some path"), b("123.456"), b("\x01"), nil}},
-		{[]string{"some path", "123.456", "987"}, [][]byte{b("some path"), b("123.456"), b("\x04987"), nil}},
-		{[]string{"some path", "123.456", "987,65"}, [][]byte{b("some path"), b("123.456"), b("\x04987" + "\x0365"), nil}},
+		{[]string{"some path", "123.456", ""}, [][]byte{b("some path"), b("123.456"), b("\x02"), nil}},
+		{[]string{"some path", "123.456", "987"}, [][]byte{b("some path"), b("123.456"), b("\x08987"), nil}},
+		{[]string{"some path", "123.456", "987,65"}, [][]byte{b("some path"), b("123.456"), b("\x08987" + "\x0665"), nil}},
 	}
 	for i, c := range cases {
 		var bs [][]byte
