@@ -212,7 +212,7 @@ func Contains(compare Predicate) Predicate {
 			return false
 		}
 		for it := zval.Iter(val); !it.Done(); {
-			val, err := it.Next()
+			val, _, err := it.Next()
 			if err != nil {
 				return false
 			}
@@ -232,7 +232,7 @@ func ContainerLength(typ Type, val []byte) (int, error) {
 		}
 		var n int
 		for it := zval.Iter(val); !it.Done(); {
-			if _, err := it.Next(); err != nil {
+			if _, _, err := it.Next(); err != nil {
 				return -1, err
 			}
 			n++
@@ -256,7 +256,7 @@ func VectorIndex(typ Type, val []byte, idx int64) (Type, []byte, error) {
 		return nil, nil, ErrIndex
 	}
 	for i, it := 0, zval.Iter(val); !it.Done(); i++ {
-		v, err := it.Next()
+		v, _, err := it.Next()
 		if err != nil {
 			return nil, nil, err
 		}

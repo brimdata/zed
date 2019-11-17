@@ -39,14 +39,14 @@ func SearchString(s string) Filter {
 		// XXX we should refactor these iterators to make this tighter.
 		it := p.ZvalIter()
 		for _, c := range p.Type.Columns {
-			val, err := it.Next()
+			val, _, err := it.Next()
 			if err != nil {
 				return false
 			}
 			switch c.Type.(type) {
 			case *zeek.TypeSet, *zeek.TypeVector:
 				for it2 := zval.Iter(val); !it2.Done(); {
-					val2, err := it2.Next()
+					val2, _, err := it2.Next()
 					if err != nil {
 						return false
 					}
@@ -132,7 +132,7 @@ func EvalAny(eval zeek.Predicate) Filter {
 	return func(p *zson.Record) bool {
 		it := p.ZvalIter()
 		for _, c := range p.Type.Columns {
-			val, err := it.Next()
+			val, _, err := it.Next()
 			if err != nil {
 				return false
 			}

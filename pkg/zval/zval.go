@@ -25,30 +25,33 @@ func (i *Iter) Done() bool {
 
 // Next returns the next zval.  It returns an empty slice for an empty or
 // zero-length zval and nil for an unset zval.
-func (i *Iter) Next() ([]byte, error) {
+func (i *Iter) Next() ([]byte, bool, error) {
 	// Uvarint is zero for an unset zval; otherwise, it is the value's
 	// length plus one.
 	u64, n := Uvarint(*i)
 	if n <= 0 {
-		return nil, fmt.Errorf("bad uvarint: %d", n)
+		return nil, false, fmt.Errorf("bad uvarint: %d", n)
 	}
-	if u64 == 0 {
+	if tagIsUnset(u64) {
 		*i = (*i)[n:]
-		return nil, nil
+		return nil, tagIsContainer(u64), nil
 	}
-	u64--
-	val := (*i)[n : n+int(u64)]
-	*i = (*i)[n+int(u64):]
-	return val, nil
+	end := n + tagLength(u64)
+	val := (*i)[n:end]
+	*i = (*i)[end:]
+	return val, tagIsContainer(u64), nil
 }
 
 // AppendContainer appends to dst a zval container comprising the zvals in vals.
 func AppendContainer(dst []byte, vals [][]byte) []byte {
+	if vals == nil {
+		return AppendUvarint(dst, newTagUnset(true))
+	}
 	var n int
 	for _, v := range vals {
 		n += sizeBytes(v)
 	}
-	dst = AppendUvarint(dst, 1+uint64(n))
+	dst = AppendUvarint(dst, newTag(true, n))
 	for _, v := range vals {
 		dst = AppendValue(dst, v)
 	}
@@ -58,9 +61,9 @@ func AppendContainer(dst []byte, vals [][]byte) []byte {
 // AppendValue appends to dst the zval in val.
 func AppendValue(dst []byte, val []byte) []byte {
 	if val == nil {
-		return AppendUvarint(dst, 0)
+		return AppendUvarint(dst, newTagUnset(false))
 	}
-	dst = AppendUvarint(dst, 1+uint64(len(val)))
+	dst = AppendUvarint(dst, newTag(false, len(val)))
 	return append(dst, val...)
 }
 
@@ -91,4 +94,31 @@ func Uvarint(buf []byte) (uint64, int) {
 // represent u64.
 func sizeUvarint(u64 uint64) int {
 	return len(AppendUvarint(make([]byte, 0, binary.MaxVarintLen64), u64))
+}
+
+func newTag(container bool, length int) uint64 {
+	t := (uint64(length) + 1) << 1
+	if container {
+		t |= 1
+	}
+	return t
+}
+
+func newTagUnset(container bool) uint64 {
+	if container {
+		return 1
+	}
+	return 0
+}
+
+func tagIsContainer(t uint64) bool {
+	return t&1 == 1
+}
+
+func tagIsUnset(t uint64) bool {
+	return t>>1 == 0
+}
+
+func tagLength(t uint64) int {
+	return int(t>>1 - 1)
 }
