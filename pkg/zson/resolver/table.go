@@ -134,7 +134,7 @@ func (t *Table) AddColumns(r *zson.Record, cols []zeek.Column, vals []string) (*
 	}
 	var oldVals [][]byte
 	for it := r.ZvalIter(); !it.Done(); {
-		v, err := it.Next()
+		v, _, err := it.Next()
 		if err != nil {
 			return nil, err
 		}

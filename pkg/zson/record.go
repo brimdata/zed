@@ -114,7 +114,7 @@ func (t *Record) Strings() ([]string, error) {
 	var ss []string
 	it := t.ZvalIter()
 	for _, col := range t.Descriptor.Type.Columns {
-		val, err := it.Next()
+		val, _, err := it.Next()
 		if err != nil {
 			return nil, err
 		}
@@ -145,7 +145,7 @@ func (t *Record) Slice(column int) []byte {
 			return nil
 		}
 		var err error
-		val, err = it.Next()
+		val, _, err = it.Next()
 		if err != nil {
 			return nil
 		}

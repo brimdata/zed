@@ -62,7 +62,7 @@ func Parse(v ast.TypedValue) (Value, error) {
 func parseContainer(containerType Type, elementType Type, b []byte) ([]Value, error) {
 	var vals []Value
 	for it := zval.Iter(b); !it.Done(); {
-		val, err := it.Next()
+		val, _, err := it.Next()
 		if err != nil {
 			return nil, fmt.Errorf("parsing %s element %q: %w", containerType.String(), val, err)
 		}

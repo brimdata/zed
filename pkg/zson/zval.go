@@ -12,7 +12,8 @@ import (
 // and val.
 func ZvalFromZeekString(typ zeek.Type, val string) ([]byte, error) {
 	it := zval.Iter(appendZvalFromZeek(nil, typ, []byte(val)))
-	return it.Next()
+	v, _, err := it.Next()
+	return v, err
 }
 
 // appendZvalFromZeek appends to dst the zval for the Zeek UTF-8 value described
@@ -21,13 +22,12 @@ func appendZvalFromZeek(dst []byte, typ zeek.Type, val []byte) []byte {
 	const empty = "(empty)"
 	const setSeparator = ','
 	const unset = '-'
-	if bytes.Equal(val, []byte{unset}) {
-		// An unset field is encoded as a zero-length field.
-		return zval.AppendUvarint(dst, 0)
-	}
 	switch typ.(type) {
 	case *zeek.TypeSet, *zeek.TypeVector:
-		var vals [][]byte
+		if bytes.Equal(val, []byte{unset}) {
+			return zval.AppendContainer(dst, nil)
+		}
+		vals := [][]byte{} // [][]byte{} is the empty container.
 		if !bytes.Equal(val, []byte(empty)) {
 			for _, v := range bytes.Split(val, []byte{setSeparator}) {
 				vals = append(vals, zeek.Unescape(v))
@@ -35,6 +35,9 @@ func appendZvalFromZeek(dst []byte, typ zeek.Type, val []byte) []byte {
 		}
 		return zval.AppendContainer(dst, vals)
 	default:
+		if bytes.Equal(val, []byte{unset}) {
+			return zval.AppendValue(dst, nil)
+		}
 		return zval.AppendValue(dst, zeek.Unescape(val))
 	}
 }
@@ -55,11 +58,11 @@ func ZvalToZeekString(typ zeek.Type, val []byte) string {
 		var b strings.Builder
 		it := zval.Iter(val)
 		for {
-			v, err := it.Next()
+			v, _, err := it.Next()
 			if err != nil {
 				return zeek.Escape(val)
 			}
-			// Escape the set separator after ZeekEscape.n
+			// Escape the set separator after ZeekEscape.
 			_, _ = b.WriteString(strings.ReplaceAll(zeek.Escape(v), ",", "\\x2c"))
 			if it.Done() {
 				break

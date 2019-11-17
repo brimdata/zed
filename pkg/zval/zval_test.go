@@ -19,19 +19,21 @@ var appendCases = [][][]byte{
 	{[]byte("data"), nil, []byte("\x1a\x2b\x3c"), []byte("UTF-8 \b5Ὂg̀9!℃ᾭG€�")},
 }
 
-func TestAppendContainerx(t *testing.T) {
+func TestAppendContainer(t *testing.T) {
 	for _, c := range appendCases {
 		buf := AppendContainer(nil, c)
 		it := Iter(buf)
 		assert.False(t, it.Done())
 		{
-			val, err := it.Next()
+			val, container, err := it.Next()
 			assert.NoError(t, err)
+			assert.True(t, container)
 			containerIt := Iter(val)
 			for _, expected := range c {
 				assert.False(t, containerIt.Done())
-				val, err := containerIt.Next()
+				val, container, err := containerIt.Next()
 				assert.NoError(t, err)
+				assert.False(t, container)
 				assert.Exactly(t, expected, val)
 			}
 			assert.True(t, containerIt.Done())
@@ -49,8 +51,9 @@ func TestAppendValue(t *testing.T) {
 		it := Iter(buf)
 		for _, expected := range c {
 			assert.False(t, it.Done())
-			val, err := it.Next()
+			val, container, err := it.Next()
 			assert.NoError(t, err)
+			assert.False(t, container)
 			assert.Exactly(t, expected, val)
 		}
 		assert.True(t, it.Done())
