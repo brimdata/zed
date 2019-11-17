@@ -80,14 +80,6 @@ func NewRecordZeekStrings(d *Descriptor, ss ...string) (t *Record, err error) {
 	return NewRecord(d, ts, raw), nil
 }
 
-//XXX change name
-func Parse(r *Record, ts nano.Ts, d *Descriptor, raw Raw) error {
-	r.Ts = ts
-	r.Descriptor = d
-	r.Raw = raw
-	return nil
-}
-
 // ZvalIter returns an iterator over the receiver's zvals.
 func (r *Record) ZvalIter() zval.Iter {
 	return r.Raw.ZvalIter()
