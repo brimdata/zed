@@ -258,7 +258,7 @@ two descriptors then uses them in three values:
 #1:string
 #2:record[a:string,b:string]
 1:hello, world;
-2:[hello;world;]
+2:[hello;world;];
 1:this is a semicolon: \;;
 ```
 which represents a stream of the following three values:
@@ -271,7 +271,7 @@ string("this is a semicolon: ;")
 The semicolon terminator is important.  Consider this zson depicting
 sets of strings:
 ```
-#3 set[string]
+#3:set[string]
 3:[hello,world;];
 3:[hello;world;];
 3:[];
