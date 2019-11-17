@@ -51,7 +51,7 @@ jobs:
           at: .
       - run:
           name: System Tests
-          command: 'make test-system'
+          command: 'make -C test'
 
 workflows:
   version: 2
