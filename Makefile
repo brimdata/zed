@@ -6,7 +6,7 @@ vet:
 test-unit:
 	@go test -short ./...
 
-test-system:
+test-system: build
 	@$(MAKE) -C test
 
 build:
