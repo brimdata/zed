@@ -16,19 +16,9 @@ import (
 // encoded with zval.AppendValue.
 type Raw []byte
 
-// DescriptorID returns the receiver's descriptor ID.
-func (r Raw) DescriptorID() (int, error) {
-	id, n := zval.Uvarint(r)
-	if n <= 0 {
-		return 0, fmt.Errorf("bad uvarint: %d", n)
-	}
-	return int(id), nil
-}
-
 // ZvalIter returns an iterator over the receiver's zvals.
 func (r Raw) ZvalIter() zval.Iter {
-	_, n := zval.Uvarint(r) // Skip descriptor ID.
-	return zval.Iter(r[n:])
+	return zval.Iter(r)
 }
 
 // NewRawFromZvals builds a raw value from a descriptor and zvals.
@@ -37,7 +27,7 @@ func NewRawFromZvals(d *Descriptor, vals [][]byte) (Raw, error) {
 		return nil, fmt.Errorf("got %d values (%q), expected %d (%q)", nv, vals, nc, d.Type.Columns)
 
 	}
-	raw := zval.AppendUvarint(nil, uint64(d.ID))
+	var raw Raw
 	for _, val := range vals {
 		raw = zval.AppendValue(raw, val)
 	}
@@ -70,7 +60,6 @@ func NewRawAndTsFromJSON(d *Descriptor, tsCol int, data []byte) (Raw, nano.Ts, e
 		return nil, 0, err
 	}
 	raw := make([]byte, 0, n)
-	raw = zval.AppendUvarint(raw, uint64(d.ID))
 	var ts nano.Ts
 	for i := range d.Type.Columns {
 		val := jsonVals[i].val
@@ -135,7 +124,6 @@ func NewRawAndTsFromZeekValues(d *Descriptor, tsCol int, vals [][]byte) (Raw, na
 		n += len(v) + 1 // Estimate for zval and its length uvarint.
 	}
 	raw := make([]byte, 0, n)
-	raw = zval.AppendUvarint(raw, uint64(d.ID))
 	var ts nano.Ts
 	for i, val := range vals {
 		var err error
@@ -165,7 +153,7 @@ func NewRawFromZSON(desc *Descriptor, zson []byte) (Raw, error) {
 		return nil, ErrUnterminated
 	}
 
-	raw := zval.AppendUvarint(nil, uint64(desc.ID))
+	var raw Raw
 	for _, v := range vals {
 		raw = zval.AppendValue(raw, v)
 	}
