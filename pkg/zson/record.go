@@ -1,6 +1,7 @@
 package zson
 
 import (
+	"encoding/json"
 	"errors"
 	"net"
 
@@ -291,6 +292,15 @@ func (r *Record) CutTypes(fields []string) ([]zeek.Type, uint64) {
 		return cut, found
 	}
 	return nil, found
+}
+
+// MarshalJSON implements json.Mashaler.
+func (r *Record) MarshalJSON() ([]byte, error) {
+	value, err := r.Descriptor.Type.New(r.ZvalIter())
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(value)
 }
 
 func Descriptors(recs []*Record) []*Descriptor {

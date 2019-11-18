@@ -1,0 +1,14 @@
+# @TEST-EXEC: cat %INPUT > in.log
+# @TEST-EXEC: zq -f ndjson "*" in.log > output.ndjson
+# @TEST-EXEC: btest-diff output.ndjson
+#separator \x09
+#set_separator	,
+#empty_field	(empty)
+#unset_field	-
+#path	conn
+#open	2018-10-20-14-39-16
+#fields	foo	bar
+#types	string	string
+key1 value1	key2 value1
+key1 value2	key2 value2
+#close	2018-10-20-14-39-16

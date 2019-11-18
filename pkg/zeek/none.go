@@ -1,6 +1,9 @@
 package zeek
 
-import "errors"
+import (
+	"encoding/json"
+	"errors"
+)
 
 type TypeOfNone struct{}
 
@@ -35,6 +38,10 @@ func (n *None) Comparison(op string) (Predicate, error) {
 
 func (n *None) Coerce(typ Type) Value {
 	return nil
+}
+
+func (n *None) MarshalJSON() ([]byte, error) {
+	return json.Marshal(nil)
 }
 
 func (n *None) Elements() ([]Value, bool) { return nil, false }

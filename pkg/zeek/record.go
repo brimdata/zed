@@ -152,4 +152,12 @@ func (r *Record) Coerce(typ Type) Value {
 	return nil
 }
 
+func (r *Record) MarshalJSON() ([]byte, error) {
+	m := make(map[string]Value)
+	for i, col := range r.typ.Columns {
+		m[col.Name] = r.values[i]
+	}
+	return json.Marshal(m)
+}
+
 func (r *Record) Elements() ([]Value, bool) { return r.values, true }

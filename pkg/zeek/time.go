@@ -1,6 +1,7 @@
 package zeek
 
 import (
+	"encoding/json"
 	"errors"
 
 	"github.com/mccanne/zq/pkg/nano"
@@ -75,6 +76,10 @@ func CoerceToTime(in Value) *Time {
 		return &Time{nano.Ts(s)}
 	}
 	return nil
+}
+
+func (t *Time) MarshalJSON() ([]byte, error) {
+	return json.Marshal(t.Native)
 }
 
 func (t *Time) Elements() ([]Value, bool) { return nil, false }
