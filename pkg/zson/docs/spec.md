@@ -2,16 +2,16 @@
 
 ZSON is a format for structured data values, ideally suited for streams
 of heterogeneously typed records.
-ZSON is richly typed and thinner than json.
-Like [newline-delimited json (ndjson)](http://ndjson.org/),
+ZSON is richly typed and thinner than JSON.
+Like [newline-delimited JSON (NDJSON)](http://ndjson.org/),
 ZSON represents a sequence of data objects that can be parsed line by line.
 
-ZSON strikes a balance between the narrowly typed but flexible ndjson format and
+ZSON strikes a balance between the narrowly typed but flexible NDJSON format and
 a more structured approach like
 [Apache Avro](https://avro.apache.org).
 ZSON is type rich and
 embeds all type/schema in the stream, while having a value syntax
-independent of the schema, making it is easy and efficient to parse on the fly
+independent of the schema, making it easy and efficient to parse on the fly
 and mix and match streams from different sources with heterogeneous types.
 Like Avro,
 ZSON embeds schema information in the data stream but ZSON schema bindings
@@ -122,7 +122,7 @@ as regular values instead of legacy values (as there is no legacy comment direct
 ### Type Grammar
 
 The syntax for ZSON types is a superset of the type syntax produced by Zeek logs
-(Zeek logs do not produce record or bytes types).
+(Zeek logs do not produce `record` or `bytes` types).
 Here is a pseudo-grammar for ZSON types:
 ```
 <type> :=  string | bytes | int | count | double | time |
@@ -176,7 +176,7 @@ Types can also refer to previously defined descriptors, e.g.,
 #9:record[s:8]
 ```
 Or more usefully, descriptor references can refer to previously
-declared record types:
+declared `record` types:
 ```
 #10:record[src:addr,srcport:port,dst:addr,dstport:port]
 #11:record[list:set[10],info:string]
@@ -273,29 +273,29 @@ sets of strings:
 3:[;];
 ```
 In this example:
-* the first value is a set of one string
-* the second value is a set of two strings "hello" and "world",
-* the third value is an empty set, and
-* the fourth value is a set of one zero-length string "".
+* the first value is a `set` of one `string`
+* the second value is a set of two `string` values, `hello` and `world`,
+* the third value is an empty `set`, and
+* the fourth value is a `set` of one zero-length string.
 
-In this way, empty set and set of zero value can be distinguished.
+In this way, empty set and set of zero-length string can be distinguished.
 
 This scheme allows composites to be embedded in composites, e.g., a
-record inside of a record like this:
+`record` inside of a `record` like this:
 ```
 #4:record[compass:string,degree:double]
 #5:record[city:string,lat:4,long:4]
 5:[NYC;[NE;40.7128];[W;74.0060;];];
 ```
-An unset value indicates a field of a record that wasn't set by the encoder:
+An unset value indicates a field of a `record` that wasn't set by the encoder:
 ```
 5:[North Pole;[N;90];-;];
 ```
 e.g., the North Pole has a latitude but no meaningful longitude.
 
-A record type can use shorthand notation as defined by
+A `record` type can use shorthand notation as defined by
 the [type grammar](#type-grammer), where reference can be made
-to a previously defined record via its descriptor.  e.g., the record
+to a previously defined `record` via its descriptor.  e.g., the `record`
 defined above could be defined as follows:
 ```
 #4:record[a:string,b:double,c:string]
@@ -322,13 +322,13 @@ stream, then overridden by the `#separator` directive.
 In the legacy format, the `#separator` character and the `#set_separator` character
 define how to parse both a legacy value line and a legacy descriptor.
 
-Every legacy value line corresponds to a record type defined by the
+Every legacy value line corresponds to a `record` type defined by the
 fields and types directives possibly modified for the `#path` directive
 as described below.
 
 Record types may not be used in the `#types` directive,
-which means there is no need to recursively parse the set and vector
-container values (set and vector values are split according to
+which means there is no need to recursively parse the `set` and `vector`
+container values (`set` and `vector` values are split according to
 the `#set_separator` character).
 
 ## Legacy Values
@@ -359,14 +359,14 @@ The special characters that must be escaped if they appear within a value are:
 * the `#set_separator` character inside of set and vector values (usually `,`)
 * `#unset_field` (usually `-`) if it appears as a value not be interpreted as "unset",
 
-Similarly, a set with no values must be specified by the `#empty_field` string (usually `(empty)`)
-to distinguish it from a set with a single value that's a zero-length string (""), and this must be escaped if it
-is a single-element set with the value `(empty)`, i.e., escaped as `\(empty)`.
+Similarly, a `set` with no values must be specified by the `#empty_field` string (usually `(empty)`)
+to distinguish it from a `set` with a single value that's a zero-length string, and this must be escaped if it
+is a single-element set with the value `(empty)`, i.e., escaped as `\x28empty)`.
 
-When processing legacy values, a column of type string named `_path` is
+When processing legacy values, a column of type `string` named `_path` is
 inserted into each value, provided a `#path` directive previously appeared in the
 stream.  The contents of this `_path` field is set to the string value indicated
-in the `#path` directive. It becomes the leftmost column and all the other columns are shifted one space to
+in the `#path` directive. It becomes the leftmost column in the value and all the other columns are shifted one space to
 the right.
 
 For example,
@@ -401,7 +401,7 @@ e.g.,
 #fields id.orig_h,id.orig_p,id.resp_h,id.resp_p,message
 #types addr,port,addr,port,string
 ```
-would be interpreted as the following ZSON record:
+would be interpreted as the following ZSON `record`:
 ```
 record[id:record[orig_h:addr,orig_p:port,resp_h:addr,resp_p:port],message:string]
 ```
