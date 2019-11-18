@@ -76,7 +76,7 @@ The descriptor directive is the only directive that begins with an ASCII decimal
 digit.
 
 For example, a directive that is a binding between descriptor `27`
-and a record comprised of fields
+and a `record` comprised of fields
 "foo" of type `string` and "bar" of type `int` is expressed as follows:
 ```
 #27:record[foo:string,bar:int]
