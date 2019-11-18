@@ -7,11 +7,11 @@ import (
 )
 
 type TypeVector struct {
-	typ Type
+	Type Type
 }
 
 func (t *TypeVector) String() string {
-	return fmt.Sprintf("vector[%s]", t.typ)
+	return fmt.Sprintf("vector[%s]", t.Type)
 }
 
 // parse a vector body type of the form "[type]"
@@ -39,7 +39,7 @@ type Vector struct {
 }
 
 func (t *TypeVector) Parse(b []byte) ([]Value, error) {
-	return parseContainer(t, t.typ, b)
+	return parseContainer(t, t.Type, b)
 }
 
 func (t *TypeVector) Format(value []byte) (interface{}, error) {

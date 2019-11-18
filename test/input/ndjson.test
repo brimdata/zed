@@ -1,0 +1,7 @@
+# @TEST-EXEC: zq "*" input.ndjson > output.zeek
+# @TEST-EXEC: btest-diff output.zeek
+@TEST-START-FILE input.ndjson
+{ "string1": "value1", "string2": "value1", "int1": 4, "bool1": true }
+{ "int1": 4, "bool1": true, "string2": "value2", "string1": "value2" }
+
+@TEST-END-FILE

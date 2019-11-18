@@ -182,7 +182,7 @@ func ContainedType(typ Type) (Type, bool) {
 	case *TypeSet:
 		return typ.innerType, true
 	case *TypeVector:
-		return typ.typ, true
+		return typ.Type, true
 	default:
 		return nil, false
 	}
@@ -207,7 +207,7 @@ func Contains(compare Predicate) Predicate {
 		case *TypeSet:
 			elType = typ.innerType
 		case *TypeVector:
-			elType = typ.typ
+			elType = typ.Type
 		default:
 			return false
 		}
@@ -261,7 +261,7 @@ func VectorIndex(typ Type, val []byte, idx int64) (Type, []byte, error) {
 			return nil, nil, err
 		}
 		if i == int(idx) {
-			return vec.typ, v, nil
+			return vec.Type, v, nil
 		}
 	}
 	return nil, nil, ErrIndex
