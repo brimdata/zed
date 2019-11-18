@@ -18,11 +18,11 @@ func NewSortFn(dir int, fields ...string) SortFn {
 				sf = lookupSorter(a, field, dir)
 			}
 			if sf == nil {
-				// if we can't build a sorter, then
+				// If we can't build a sorter, then
 				// the record doesn't have a field
 				// with the corresponding name, so
 				// we return equal causing these records
-				// to get sorted first
+				// to get sorted first.
 				return 0
 			}
 			sorters[k] = sf

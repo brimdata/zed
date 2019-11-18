@@ -224,10 +224,10 @@ type (
 		Keys           []string  `json:"keys"`
 		Reducers       []Reducer `json:"reducers"`
 	}
-	// TopProc is similar to proc.SortProc with a view key differences:
+	// TopProc is similar to proc.SortProc with a few key differences:
 	// - It only sorts in descending order.
-	// - It utilizes a MaxHeap, immediately discarding records are not in the top
-	// N of the sort.
+	// - It utilizes a MaxHeap, immediately discarding records that are not in
+	// the top N of the sort.
 	// - It has a hidden option (FlushEvery) to sort and emit on every batch.
 	TopProc struct {
 		Node

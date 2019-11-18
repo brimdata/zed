@@ -11,8 +11,8 @@ const defaultTopLimit = 100
 
 // TopProc is similar to proc.SortProc with a view key differences:
 // - It only sorts in descending order.
-// - It utilizes a MaxHeap, immediately discarding records are not in the top
-// N of the sort.
+// - It utilizes a MaxHeap, immediately discarding records that are not in
+// the top N of the sort.
 // - It has a hidden option (FlushEvery) to sort and emit on every batch.
 type TopProc struct {
 	Base
