@@ -23,7 +23,7 @@ and maintains backward compatibility with the original [Zeek ASCII TSV log forma
 
 ## ZSON format
 
-ZSON is a UTF-8 encoded stream of "lines" where each line is terminated by a
+ZSON is a UTF-8 encoded stream of "lines" where each line is terminated by
 newline.  Each line is either a directive or a value.
 
 Directives and values, in turn, come in two flavors: regular and legacy.
