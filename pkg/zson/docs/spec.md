@@ -423,7 +423,7 @@ Type | Format
 `time` | unsigned dotted decimal notation of seconds (32-bit second, 32-bit nanosecond)
 `interval` | signed dotted decimal notation of seconds (32-bit second, 32-bit nanosecond)
 `port` | an integer string in `[0,65535]` with an optional suffix of `/udp` or `/tcp`
-`addr` | a string representing a numeric in IPv4 address form or IPv6 form
+`addr` | a string representing an IP address IPv4 or IPv6 form
 `subnet` | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291.
 `enum` | a string representing an enumeration value defined outside the scope of ZSON
 
