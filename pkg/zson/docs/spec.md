@@ -392,7 +392,7 @@ ingested into ZSON-aware systems while retaining the [Zeek log type](https://doc
 
 To maintain backward compatibility where Zeek uses `.` in columns that
 came from Zeek records, e.g., `id.orig_h`, such columns shall be converted by
-a legacy parser and converted to ZSON records.  Likewise, emitters of legacy
+a legacy parser into ZSON records.  Likewise, emitters of legacy
 Zeek files shall flatten any records in the output by converting each sub-field
 of a record to the corresponding flattened field name using dotted notation.
 e.g.,
