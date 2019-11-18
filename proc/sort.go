@@ -14,7 +14,6 @@ type SortProc struct {
 	dir    int
 	limit  int
 	fields []string
-	sorter *zson.Sorter
 	out    []*zson.Record
 }
 
@@ -48,8 +47,8 @@ func firstNot(d *zson.Descriptor, which zeek.Type) string {
 	return ""
 }
 
-func guess(recs []*zson.Record) string {
-	d := recs[0].Descriptor
+func guessSortField(rec *zson.Record) string {
+	d := rec.Descriptor
 	if fld := firstOf(d, zeek.TypeCount); fld != "" {
 		return fld
 	}
@@ -97,11 +96,9 @@ func (s *SortProc) sort() zson.Batch {
 	}
 	s.out = nil
 	if s.fields == nil {
-		s.fields = []string{guess(out)}
+		s.fields = []string{guessSortField(out[0])}
 	}
-	if s.sorter == nil {
-		s.sorter = zson.NewSorter(s.dir, s.fields...)
-	}
-	s.sorter.SortStable(out)
+	sorter := zson.NewSortFn(s.dir, s.fields...)
+	zson.SortStable(out, sorter)
 	return zson.NewArray(out, nano.NewSpanTs(s.MinTs, s.MaxTs))
 }

@@ -147,6 +147,16 @@
         return &ast.SortProc{ast.Node{"SortProc"}, limit, fields, sortdir}
     }
 
+	func makeTopProc(fieldsIn, limitIn, flushIn interface{}) *ast.TopProc {
+        fields := stringArray(fieldsIn)
+        var limit int;
+        if limitIn != nil {
+            limit = limitIn.(int)
+        }
+        flush := flushIn != nil
+        return &ast.TopProc{ast.Node{"TopProc"}, limit, fields, flush}
+	}
+
     func makeCutProc(fieldsIn interface{}) *ast.CutProc {
         fields := stringArray(fieldsIn)
         return &ast.CutProc{ast.Node{"CutProc"}, fields}
@@ -347,6 +357,13 @@
     function makeSortProc(fields, sortdir, limit) {
         if (limit === null) { limit = undefined; }
         return { op: "SortProc", fields, sortdir, limit };
+    }
+
+    function makeTopProc(fields, limit, flush) {
+        if (limit === null) { limit = undefined; }
+        if (fields === null) { fields = undefined; }
+        flush = !!flush
+        return { op: "SortProc", fields, limit, flush};
     }
 
     function makeCutProc(fields) { return { op: "CutProc", fields }; }
@@ -691,6 +708,7 @@ reducerList
 
 simpleProc
   = sort
+  / top
   / cut
   / head
   / tail
@@ -707,6 +725,11 @@ sort
     INIT_ASSIGN_VAR(sortdir, 1)
     IF(ISNOTNULL(rev)) { sortdir = -1 }
     RETURN(makeSortProc(list, sortdir, limit))
+  }
+
+top
+  = "top"i limit:procLimitArg? flush:(_ "-flush")? _? list:(fieldList)? {
+    RETURN(makeTopProc(list, limit, flush))
   }
 
 procLimitArg

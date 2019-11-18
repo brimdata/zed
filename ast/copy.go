@@ -60,6 +60,14 @@ func (p *SortProc) Copy() Proc {
 	}
 }
 
+func (t *TopProc) Copy() Proc {
+	return &TopProc{
+		Node:   Node{t.Op},
+		Limit:  t.Limit,
+		Fields: append([]string{}, t.Fields...),
+	}
+}
+
 func (p *HeadProc) Copy() Proc {
 	copy := *p
 	return &copy
