@@ -14,7 +14,7 @@ embeds all type/schema in the stream, while having a value syntax
 independent of the schema so it is easy and efficient to parse on the fly
 and mix and match streams from different sources with heterogeneous types.
 Like Avro,
-zson embeds schema information in the data stream but zson schema definitions
+zson embeds schema information in the data stream but zson schema bindings
 are lighter-weight and specified with a simple integer encoding that
 accompanies each each data value.
 
@@ -41,7 +41,7 @@ as regular values always begin with an integer descriptor.)
 
 Directives indicate how subsequent values in the zson stream are interpreted.
 A value is a regular value if the most recent preceding directive in the stream
-is regular directive; otherwise, it is a legacy value.
+is a regular directive; otherwise, it is a legacy value.
 
 Any line beginning with '#' that does not conform with the syntax of a
 directive is an error.
@@ -71,7 +71,7 @@ a "descriptor" and a type according to the following form:
 ```
 There must be a single colon between the ascii integer descriptor
 and the type definition and the integer must be composed of string of
-ascii digits 0-9 with no leading 0.
+ascii digits 0-9 with no leading 0 for any non-zero descriptor.
 The syntax for \<type> is described by the [type grammar](#type-grammar).
 The same grammar applies to both regular types and legacy types (except for
 an exception regarding "." in field names).
@@ -146,7 +146,7 @@ Here is a pseudo-grammar for zson types:
 
 <id> := <identifier as defined by javascript spec>
 
-<descriptor> := [1-9][0-9]*
+<descriptor> := 0 | [1-9][0-9]*
 ```
 
 A reference implementation of this type system is embedded in
@@ -245,7 +245,7 @@ string and bytes (see [Type Semantics](#type-semantics)).
 
 These special characters must be escaped if they appear within a value:
 ```
-[ ] ; \n \\
+; \n \\
 ```
 In addition, "-" must be escaped if the value is not the unset value but
 is a single ascii byte equal to "-".
