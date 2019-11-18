@@ -274,7 +274,7 @@ sets of strings:
 ```
 In this example:
 * the first value is a `set` of one `string`
-* the second value is a set of two `string` values, `hello` and `world`,
+* the second value is a `set` of two `string` values, `hello` and `world`,
 * the third value is an empty `set`, and
 * the fourth value is a `set` of one zero-length string.
 
