@@ -6,7 +6,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/mccanne/zq/pkg/zsio/raw"
 	"github.com/mccanne/zq/pkg/zsio/table"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/proc"
@@ -50,9 +49,6 @@ func (e *Emitter) writeWarnings(msg string) error {
 }
 
 func (e *Emitter) handle(res proc.MuxResult) error {
-	if raw, ok := e.writer.(*raw.Raw); ok {
-		return raw.WriteRaw(res)
-	}
 	if res.Warning != "" {
 		e.writeWarnings(res.Warning)
 		return nil

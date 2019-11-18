@@ -2,9 +2,17 @@ package zson
 
 import (
 	"context"
+	"errors"
 	"io"
 
 	"github.com/mccanne/zq/pkg/nano"
+)
+
+var (
+	ErrDescriptorExists  = errors.New("zson descriptor exists")
+	ErrDescriptorInvalid = errors.New("zson descriptor out of range")
+	ErrBadValue          = errors.New("malformed zson value")
+	ErrBadFormat         = errors.New("malformed zson record")
 )
 
 type Reader interface {

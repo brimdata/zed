@@ -10,6 +10,7 @@ import (
 	"github.com/mccanne/charm"
 	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/emitter"
+	"github.com/mccanne/zq/filter"
 	"github.com/mccanne/zq/pkg/zsio"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
@@ -95,6 +96,26 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	return c, nil
 }
 
+func liftFilter(p ast.Proc) (*ast.FilterProc, ast.Proc) {
+	if fp, ok := p.(*ast.FilterProc); ok {
+		pass := &ast.PassProc{
+			Node: ast.Node{"PassProc"},
+		}
+		return fp, pass
+	}
+	seq, ok := p.(*ast.SequentialProc)
+	if ok && len(seq.Procs) > 0 {
+		if fp, ok := seq.Procs[0].(*ast.FilterProc); ok {
+			rest := &ast.SequentialProc{
+				Node:  ast.Node{"SequentialProc"},
+				Procs: seq.Procs[1:],
+			}
+			return fp, rest
+		}
+	}
+	return nil, nil
+}
+
 func (c *Command) compile(p ast.Proc, reader zson.Reader) (*proc.MuxOutput, error) {
 	ctx := &proc.Context{
 		Context:  context.Background(),
@@ -102,7 +123,22 @@ func (c *Command) compile(p ast.Proc, reader zson.Reader) (*proc.MuxOutput, erro
 		Logger:   zap.NewNop(),
 		Warnings: make(chan string, 5),
 	}
-	scr := scanner.NewScanner(reader)
+	// Try to move the filter into the scanner so we can throw
+	// out unmatched records without copying their contents in the
+	// case of readers (like zsio raw.Reader) that create volatile
+	// records that are kepted by the scanner only if matched.
+	// For other readers, it certainly doesn't hurt to do this.
+	var f filter.Filter
+	filterProc, rest := liftFilter(p)
+	if filterProc != nil {
+		var err error
+		f, err = filter.Compile(filterProc.Filter)
+		if err != nil {
+			return nil, err
+		}
+		p = rest
+	}
+	scr := scanner.NewScanner(reader, f)
 	leaves, err := proc.CompileProc(nil, p, ctx, scr)
 	if err != nil {
 		return nil, err
@@ -174,6 +210,8 @@ func extension(format string) string {
 		return ".ndson"
 	case "json":
 		return ".json"
+	case "raw":
+		return ".raw"
 	default:
 		return ".txt"
 	}
@@ -197,6 +235,8 @@ func (c *Command) loadFile(path string) (zson.Reader, error) {
 	switch ext := filepath.Ext(path); ext {
 	case ".ndjson":
 		reader = "ndjson"
+	case ".raw":
+		reader = "raw"
 	default:
 		reader = "zeek"
 	}

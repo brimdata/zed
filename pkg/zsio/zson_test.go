@@ -7,10 +7,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mccanne/zq/pkg/zsio/raw"
 	zsonio "github.com/mccanne/zq/pkg/zsio/zson"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type Output struct {
@@ -27,6 +29,24 @@ func identity(t *testing.T, logs string) {
 	in := []byte(strings.TrimSpace(logs) + "\n")
 	src := zsonio.NewReader(bytes.NewReader(in), resolver.NewTable())
 	err := zson.Copy(dst, src)
+	if assert.NoError(t, err) {
+		assert.Equal(t, in, out.Bytes())
+	}
+}
+
+// Send logs to zson reader -> raw writer -> raw reader -> zson writer
+func boomerang(t *testing.T, logs string) {
+	in := []byte(strings.TrimSpace(logs) + "\n")
+	zsonSrc := zsonio.NewReader(bytes.NewReader(in), resolver.NewTable())
+	var rawZson Output
+	rawDst := &flusher{raw.NewWriter(&rawZson)}
+	err := zson.Copy(rawDst, zsonSrc)
+	require.NoError(t, err)
+
+	var out Output
+	rawSrc := raw.NewReader(bytes.NewReader(rawZson.Bytes()), resolver.NewTable())
+	zsonDst := zsonio.NewWriter(&out)
+	err = zson.Copy(zsonDst, rawSrc)
 	if assert.NoError(t, err) {
 		assert.Equal(t, in, out.Bytes())
 	}
@@ -80,4 +100,14 @@ func TestZson(t *testing.T) {
 	identity(t, zson4)
 	identity(t, zson5)
 	identity(t, zsonBig())
+}
+
+func TestRaw(t *testing.T) {
+	boomerang(t, zson1)
+	boomerang(t, zson2)
+	boomerang(t, zson3)
+	boomerang(t, zson4)
+	boomerang(t, zson5)
+	boomerang(t, zsonBig())
+
 }

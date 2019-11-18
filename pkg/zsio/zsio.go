@@ -82,9 +82,9 @@ func LookupReader(format string, r io.Reader, table *resolver.Table) zson.Reader
 					return text.NewReader(f, c.showTypes, c.showFields, c.epochDates)
 
 			case "table":
-				return table.NewReader(r, table)
-			case "raw":
-				return raw.NewReader(r, table) */
+				return table.NewReader(r, table) */
+	case "raw":
+		return raw.NewReader(r, table)
 	}
 	return nil
 }
