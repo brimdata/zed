@@ -245,7 +245,7 @@ string and bytes (see [Type Semantics](#type-semantics)).
 
 These special characters must be escaped if they appear within a value:
 ```
-[ ] ; \n \\
+; \n \\
 ```
 In addition, "-" must be escaped if the value is not the unset value but
 is a single ascii byte equal to "-".
