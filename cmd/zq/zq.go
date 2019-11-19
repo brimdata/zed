@@ -28,15 +28,15 @@ func (reason errInvalidFile) Error() string {
 var Zq = &charm.Spec{
 	Name:  "zq",
 	Usage: "zq [ options ] [ zql ] file [ file ... ]",
-	Short: "command line zeek processor",
+	Short: "command line logs processor",
 	Long: `
 zq is a command-line tool for processing logs.  It applies boolean logic
 to filter each log value, optionally computes analytics and transformations,
 and writes the output to one or more files or standard output.
 
-The input  and output formats are either specified explicitly or derived from
+The input and output formats are either specified explicitly or derived from
 file name extensions.  Supported input formats include ZSON (.zson), JSON (.json),
-NDJSON (.ndjson), and zeek log format (.log).  Supported output formats include
+NDJSON (.ndjson), and Zeek log format (.log).  Supported output formats include
 all the input formats along with text and tabular formats.
 
 zq must be run with at least one input file specified.  As with awk, standard input
@@ -46,11 +46,11 @@ sent to the indicated file comforming to the type implied by the extension (unle
 -f explicitly indicates the output type).
 
 After the options, the query may be specified as a
-single argument conforming with zql syntax, i.e., it should be quoted as
+single argument conforming with ZQL syntax, i.e., it should be quoted as
 a single string in the shell.
-If the first argument is a path to a valid file rather than a zql query,
-then the zql expression is assumed to be "*", i.e., match and output all
-of the input.  If the first argument is both valid zql and an existing file,
+If the first argument is a path to a valid file rather than a ZQL query,
+then the ZQL expression is assumed to be "*", i.e., match and output all
+of the input.  If the first argument is both valid ZQL and an existing file,
 then the file overrides.
 
 Further details and examples for the matching and analytics syntax are described at
