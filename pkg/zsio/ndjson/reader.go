@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/mccanne/zq/pkg/zeek"
+	zjson "github.com/mccanne/zq/pkg/zsio/json"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
 )
@@ -30,7 +31,7 @@ again:
 	if len(line) == 0 {
 		goto again
 	}
-	raw, typ, err := zson.NewRawFromJSON(line)
+	raw, typ, err := zjson.NewRawFromJSON(line)
 	if err != nil {
 		return nil, err
 	}
