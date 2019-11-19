@@ -1,4 +1,4 @@
-# @TEST-EXEC: zq "count()" %INPUT >output
+# @TEST-EXEC: zq -f table "count()" %INPUT >output
 # @TEST-EXEC: btest-diff output
 #separator \x09
 #set_separator	,

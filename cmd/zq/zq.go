@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/mccanne/charm"
 	"github.com/mccanne/zq/ast"
@@ -57,7 +56,7 @@ type Command struct {
 func New(f *flag.FlagSet) (charm.Command, error) {
 	cwd, _ := os.Getwd()
 	c := &Command{dt: resolver.NewTable()}
-	f.StringVar(&c.format, "f", "table", "format for output data [text,table,zeek,json,ndjson,raw]")
+	f.StringVar(&c.format, "f", "zson", "format for output data [text,table,zeek,json,ndjson,raw,zson]")
 	f.StringVar(&c.path, "p", cwd, "path for input")
 	f.StringVar(&c.dir, "d", "", "directory for output data files")
 	f.StringVar(&c.outputFile, "o", "", "write data to output file")
@@ -125,6 +124,8 @@ func extension(format string) string {
 	switch format {
 	case "zeek":
 		return ".log"
+	case "zson":
+		return ".zson"
 	case "ndson":
 		return ".ndson"
 	case "json":
@@ -141,10 +142,6 @@ func (c *Command) loadFile(path string) (zson.Reader, error) {
 	}
 	if info.IsDir() {
 		return nil, errInvalidFile("is a directory")
-	}
-	// XXX this should go away soon
-	if filepath.Ext(path) != ".log" {
-		return nil, errInvalidFile("does not have .log extension")
 	}
 	f, err := os.Open(path)
 	if err != nil {

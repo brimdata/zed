@@ -36,10 +36,8 @@ func LookupWriter(format string, w io.WriteCloser) zson.WriteCloser {
 
 func LookupReader(format string, r io.Reader, table *resolver.Table) zson.Reader {
 	switch format {
-	case "zson":
+	case "zson", "zeek":
 		return NewReader(r, table)
-	case "zeek":
-		return zeek.NewReader(r, table)
 		/* XXX not yet
 		case "ndjson":
 			return ndjson.NewReader(r, table)

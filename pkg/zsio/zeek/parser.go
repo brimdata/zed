@@ -1,13 +1,10 @@
 package zeek
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 
-	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/zeek"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
@@ -20,42 +17,30 @@ type header struct {
 	unsetField   string
 	path         string
 	open         string
+	close        string
 	columns      []zeek.Column
 }
 
-type parser struct {
+type Parser struct {
 	header
-	resolver    *resolver.Table
-	descriptors map[int]*zson.Descriptor
-	unknown     int  // Count of unknown directives
-
-	// Members below (plus header above) are all state related to
-	// parsing legacy zeek.  legacyVal indicates whether the last
-	// parsed directive was legacy or not.  As described in the
-	// zson spec, this governs whether values should be parsed as
-	// legacy or not.
-	// legacyDesc is a lazily-allocated Descriptor corresponding
+	resolver   *resolver.Table
+	unknown    int // Count of unknown directives
+	needfields bool
+	needtypes  bool
+	// descriptor is a lazily-allocated Descriptor corresponding
 	// to the contents of the #fields and #types directives.
-	needfields  bool
-	needtypes   bool
-	legacyDesc *zson.Descriptor
-	legacyVal   bool
+	descriptor *zson.Descriptor
 }
 
 var (
-	ErrBadRecordDef     = errors.New("bad types/fields definition in zeek header")
-	ErrBadFormat        = errors.New("bad format")          //XXX
-	ErrBadValue         = errors.New("bad value")           //XXX
-	ErrBadEscape        = errors.New("bad escape sequence") //XXX
-	ErrDescriptorExists = errors.New("descriptor already exists")
-	ErrInvalidDesc      = errors.New("invalid descriptor")
+	ErrBadRecordDef = errors.New("bad types/fields definition in zeek header")
+	ErrBadEscape    = errors.New("bad escape sequence") //XXX
 )
 
-func newParser(r *resolver.Table) *parser {
-	return &parser{
-		header:      header{separator: " "},
-		resolver:    r,
-		descriptors: make(map[int]*zson.Descriptor),
+func NewParser(r *resolver.Table) *Parser {
+	return &Parser{
+		header:   header{separator: " "},
+		resolver: r,
 	}
 }
 
@@ -63,115 +48,54 @@ func badfield(field string) error {
 	return fmt.Errorf("encountered bad header field %s parsing zeek log", field)
 }
 
-func (c *parser) parseFields(fields []string) error {
-	if len(c.columns) != len(fields) {
-		c.columns = make([]zeek.Column, len(fields))
-		c.needtypes = true
+func (p *Parser) parseFields(fields []string) error {
+	if len(p.columns) != len(fields) {
+		p.columns = make([]zeek.Column, len(fields))
+		p.needtypes = true
 	}
 	for k, field := range fields {
 		//XXX check that string conforms to a field name syntax
-		c.columns[k].Name = field
+		p.columns[k].Name = field
 	}
-	c.needfields = false
-	c.legacyDesc = nil
+	p.needfields = false
+	p.descriptor = nil
 	return nil
 }
 
-func (c *parser) parseTypes(types []string) error {
-	if len(c.columns) != len(types) {
-		c.columns = make([]zeek.Column, len(types))
-		c.needfields = true
+func (p *Parser) parseTypes(types []string) error {
+	if len(p.columns) != len(types) {
+		p.columns = make([]zeek.Column, len(types))
+		p.needfields = true
 	}
 	for k, name := range types {
 		typ, err := zeek.LookupType(name)
 		if err != nil {
 			return err
 		}
-		c.columns[k].Type = typ
+		p.columns[k].Type = typ
 	}
-	c.needtypes = false
-	c.legacyDesc = nil
+	p.needtypes = false
+	p.descriptor = nil
 	return nil
 }
 
-func parseLeadingInt(line []byte) (val int, rest []byte, err error) {
-	i := bytes.IndexByte(line, byte(':'))
-	if i < 0 {
-		return -1, nil, ErrBadFormat
+func (p *Parser) ParseDirective(line []byte) error {
+	if line[0] == '#' {
+		line = line[1:]
 	}
-	v, err := strconv.ParseUint(string(line[:i]), 10, 32)
-	if err != nil {
-		return -1, nil, err
-	}
-	return int(v), line[i+1:], nil
-}
-
-func (p *parser) parseDescriptor(line []byte) error {
-	// #int:type
-	descriptor, rest, err := parseLeadingInt(line)
-	if err != nil {
-		return err
-	}
-
-	_, exists := p.descriptors[descriptor]
-	if exists {
-		return ErrDescriptorExists
-	}
-
-	// XXX doesn't handle nested descriptors such as
-	// #1:record[foo:int]
-	// #2:record[foos:vector[1]]
-	typ, err := zeek.LookupType(string(rest))
-	if err != nil {
-		return err
-	}
-
-	recordType, ok := typ.(*zeek.TypeRecord)
-	if !ok {
-		return ErrBadValue // XXX?
-	}
-
-	p.descriptors[descriptor] = p.resolver.GetByValue(recordType)
-	return nil
-}
-
-func (c *parser) parseDirective(line []byte) error {
-	if len(line) == 0 {
-		return ErrBadFormat
-	}
-	// skip '#'
-	line = line[1:]
-	if len(line) == 0 {
-		return ErrBadFormat
-	}
-
-	if line[0] == '!' {
-		// comment
-		c.legacyVal = false
-		return nil
-	}
-
-	if line[0] >= '1' && line[0] <= '9' {
-		c.legacyVal = false
-		return c.parseDescriptor(line)
-	}
-
-	tokens := strings.Split(string(line), c.separator)
+	tokens := strings.Split(string(line), p.separator)
 	switch tokens[0] {
 	case "separator":
-		c.legacyVal = true
 		if len(tokens) != 2 {
 			return badfield("separator")
 		}
-		c.separator = string(zeek.Unescape([]byte(tokens[1])))
+		p.separator = string(zeek.Unescape([]byte(tokens[1])))
 	case "set_separator":
-		c.legacyVal = true
 		if len(tokens) != 2 {
 			return badfield("set_separator")
 		}
-		c.setSeparator = tokens[1]
+		p.setSeparator = tokens[1]
 	case "empty_field":
-		c.legacyVal = true
 		if len(tokens) != 2 {
 			return badfield("empty_field")
 		}
@@ -179,9 +103,8 @@ func (c *parser) parseDirective(line []byte) error {
 		if tokens[1] != "(empty)" {
 			return badfield(fmt.Sprintf("#empty_field (non-standard value '%s')", tokens[1]))
 		}
-		c.emptyField = tokens[1]
+		p.emptyField = tokens[1]
 	case "unset_field":
-		c.legacyVal = true
 		if len(tokens) != 2 {
 			return badfield("unset_field")
 		}
@@ -189,67 +112,58 @@ func (c *parser) parseDirective(line []byte) error {
 		if tokens[1] != "-" {
 			return badfield(fmt.Sprintf("#unset_field (non-standard value '%s')", tokens[1]))
 		}
-		c.unsetField = tokens[1]
+		p.unsetField = tokens[1]
 	case "path":
-		c.legacyVal = true
 		if len(tokens) != 2 {
 			return badfield("path")
 		}
-		c.path = tokens[1]
+		p.path = tokens[1]
 	case "open":
-		c.legacyVal = true
 		if len(tokens) != 2 {
 			return badfield("open")
 		}
-		c.open = tokens[1]
+		p.open = tokens[1]
 	case "close":
-		c.legacyVal = true
 		if len(tokens) != 2 {
 			return badfield("close")
 		}
-		c.open = tokens[1]
+		p.close = tokens[1]
 	case "fields":
-		c.legacyVal = true
 		if len(tokens) < 2 {
 			return badfield("fields")
 		}
-		if err := c.parseFields(tokens[1:]); err != nil {
+		if err := p.parseFields(tokens[1:]); err != nil {
 			return err
 		}
 	case "types":
-		c.legacyVal = true
 		if len(tokens) < 2 {
 			return badfield("types")
 		}
-		if err := c.parseTypes(tokens[1:]); err != nil {
+		if err := p.parseTypes(tokens[1:]); err != nil {
 			return err
 		}
-	case "sort":
-		// #sort [+-]<field>,[+-]<field>,...
-		// XXX handle me
-		c.legacyVal = false
 	default:
-		c.unknown++
+		// XXX return an error?
+		p.unknown++
 	}
 	return nil
 }
 
-func (c *parser) lookup() (*zson.Descriptor, error) {
+func (p *Parser) lookup() (*zson.Descriptor, error) {
 	// add descriptor and _path, form the columns, and lookup the td
-	// in the space's descriptor table.  If it is a new descriptor, we
-	// persist the space's state to disk
-	if len(c.columns) == 0 || c.needfields || c.needtypes {
+	// in the space's descriptor table.
+	if len(p.columns) == 0 || p.needfields || p.needtypes {
 		return nil, ErrBadRecordDef
 	}
-	cols := c.columns
-	if !c.hasField("_path", nil) {
+	cols := p.columns
+	if !p.hasField("_path", nil) {
 		pathcol := zeek.Column{Name: "_path", Type: zeek.TypeString}
 		cols = append([]zeek.Column{pathcol}, cols...)
 	}
-	return c.resolver.GetByColumns(cols), nil
+	return p.resolver.GetByColumns(cols), nil
 }
 
-func (p *parser) findField(name string, typ zeek.Type) int {
+func (p *Parser) findField(name string, typ zeek.Type) int {
 	for i, c := range p.columns {
 		if name == c.Name && (typ == nil || c.Type == typ) {
 			return i
@@ -258,60 +172,25 @@ func (p *parser) findField(name string, typ zeek.Type) int {
 	return -1
 }
 
-func (c *parser) hasField(name string, typ zeek.Type) bool {
-	return c.findField(name, typ) >= 0
+func (p *Parser) hasField(name string, typ zeek.Type) bool {
+	return p.findField(name, typ) >= 0
 }
 
-func (p *parser) parseLegacyValue(line []byte) (*zson.Record, error) {
-	if p.legacyDesc == nil {
+func (p *Parser) ParseValue(line []byte) (*zson.Record, error) {
+	if p.descriptor == nil {
 		d, err := p.lookup()
 		if err != nil {
 			return nil, err
 		}
-		p.legacyDesc = d
+		p.descriptor = d
 	}
-	tsCol, ok := p.legacyDesc.ColumnOfField("ts")
+	tsCol, ok := p.descriptor.ColumnOfField("ts")
 	if !ok {
 		tsCol = -1
 	}
-	raw, ts, err := zson.NewRawAndTsFromZeekTSV(p.legacyDesc, tsCol, []byte(p.path), line)
+	raw, ts, err := zson.NewRawAndTsFromZeekTSV(p.descriptor, tsCol, []byte(p.path), line)
 	if err != nil {
 		return nil, err
 	}
-	return zson.NewRecord(p.legacyDesc, ts, raw), nil
-}
-
-func (p *parser) parseValue(line []byte) (*zson.Record, error) {
-	if p.legacyVal {
-		return p.parseLegacyValue(line)
-	}
-
-	// From the zson spec:
-	// A regular value is encoded on a line as type descriptor
-	// followed by ":" followed by a value encoding.
-	id, rest, err := parseLeadingInt(line)
-	if err != nil {
-		return nil, err
-	}
-
-	descriptor, ok := p.descriptors[id]
-	if !ok {
-		return nil, ErrInvalidDesc
-	}
-
-	raw, err := zson.NewRawFromZSON(descriptor, rest)
-	if err != nil {
-		return nil, err
-	}
-
-	record, err := zson.NewRecord(descriptor, nano.MinTs, raw), nil
-	if err != nil {
-		return nil, err
-	}
-	ts, err := record.AccessTime("ts")
-	if err == nil {
-		record.Ts = ts
-	}
-	// Ignore errors, it just means the point doesn't have a ts field
-	return record, nil
+	return zson.NewRecord(p.descriptor, ts, raw), nil
 }
