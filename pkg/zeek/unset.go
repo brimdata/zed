@@ -1,6 +1,9 @@
 package zeek
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 type TypeOfUnset struct{}
 
@@ -50,6 +53,10 @@ func (n *Unset) Comparison(op string) (Predicate, error) {
 
 func (n *Unset) Coerce(typ Type) Value {
 	return nil
+}
+
+func (n *Unset) MarshalJSON() ([]byte, error) {
+	return json.Marshal(nil)
 }
 
 func (n *Unset) Elements() ([]Value, bool) { return nil, false }

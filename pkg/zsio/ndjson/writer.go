@@ -1,31 +1,25 @@
 package ndjson
 
 import (
-	"errors"
+	"encoding/json"
 	"io"
 
 	"github.com/mccanne/zq/pkg/zson"
 )
 
-// NDJSON implements a Formatter for ndjson
-type NDJSON struct {
+// Writer implements a Formatter for ndjson
+type Writer struct {
 	zson.Writer
+	encoder *json.Encoder
 }
 
-func NewWriter(w io.WriteCloser) *NDJSON {
-	return &NDJSON{Writer: zson.Writer{w}}
+func NewWriter(w io.WriteCloser) *Writer {
+	return &Writer{
+		Writer:  zson.Writer{w},
+		encoder: json.NewEncoder(w),
+	}
 }
 
-func (p *NDJSON) Write(rec *zson.Record) error {
-	return errors.New("not yet implemented")
-	// XXX not yet
-	// td from column 0 has been stripped out
-	// out, err := formatJSON(d, t)
-	// if err != nil {
-	// return err
-	// }
-	// out = append(out, byte('\n'))
-	// _, err = p.File.Write(out)
-	// return err
-	return nil
+func (w *Writer) Write(rec *zson.Record) error {
+	return w.encoder.Encode(rec)
 }

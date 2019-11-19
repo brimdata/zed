@@ -1,6 +1,7 @@
 package zeek
 
 import (
+	"encoding/json"
 	"errors"
 
 	"github.com/mccanne/zq/pkg/nano"
@@ -75,6 +76,10 @@ func CoerceToInterval(in Value) *Interval {
 		return &Interval{int64(s)}
 	}
 	return nil
+}
+
+func (i *Interval) MarshalJSON() ([]byte, error) {
+	return json.Marshal(i.Native)
 }
 
 func (i *Interval) Elements() ([]Value, bool) { return nil, false }

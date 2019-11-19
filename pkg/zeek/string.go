@@ -1,6 +1,9 @@
 package zeek
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 type TypeOfString struct{}
 
@@ -69,6 +72,10 @@ func (s *String) Coerce(typ Type) Value {
 		return &Enum{s.Native}
 	}
 	return nil
+}
+
+func (s *String) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.Native)
 }
 
 func (s *String) Elements() ([]Value, bool) { return nil, false }

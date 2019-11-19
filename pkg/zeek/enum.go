@@ -1,6 +1,9 @@
 package zeek
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 type TypeOfEnum struct{}
 
@@ -61,6 +64,10 @@ func (e *Enum) Coerce(typ Type) Value {
 		return e
 	}
 	return nil
+}
+
+func (e *Enum) MarshalJSON() ([]byte, error) {
+	return json.Marshal(e.Native)
 }
 
 func (e *Enum) Elements() ([]Value, bool) { return nil, false }

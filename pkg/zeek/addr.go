@@ -2,6 +2,7 @@ package zeek
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"net"
 )
@@ -80,6 +81,10 @@ func (a *Addr) Coerce(typ Type) Value {
 		return a
 	}
 	return nil
+}
+
+func (a *Addr) MarshalJSON() ([]byte, error) {
+	return json.Marshal(a.Native)
 }
 
 func (a *Addr) Elements() ([]Value, bool) { return nil, false }
