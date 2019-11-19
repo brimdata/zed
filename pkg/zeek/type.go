@@ -132,6 +132,11 @@ func LookupType(in string) (Type, error) {
 	return typ, err
 }
 
+// LookupVectorType returns the VectorType for the provided innerType.
+func LookupVectorType(innerType Type) Type {
+	return addType(&TypeVector{innerType})
+}
+
 func parseType(in string) (string, Type, error) {
 	typeMapMutex.RLock()
 	t, ok := typeMap[strings.TrimSpace(in)]
@@ -182,7 +187,7 @@ func ContainedType(typ Type) (Type, bool) {
 	case *TypeSet:
 		return typ.innerType, true
 	case *TypeVector:
-		return typ.Type, true
+		return typ.typ, true
 	default:
 		return nil, false
 	}
@@ -207,7 +212,7 @@ func Contains(compare Predicate) Predicate {
 		case *TypeSet:
 			elType = typ.innerType
 		case *TypeVector:
-			elType = typ.Type
+			elType = typ.typ
 		default:
 			return false
 		}
@@ -261,7 +266,7 @@ func VectorIndex(typ Type, val []byte, idx int64) (Type, []byte, error) {
 			return nil, nil, err
 		}
 		if i == int(idx) {
-			return vec.Type, v, nil
+			return vec.typ, v, nil
 		}
 	}
 	return nil, nil, ErrIndex

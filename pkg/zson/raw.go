@@ -349,5 +349,5 @@ func jsonParseArray(raw []byte) ([]byte, zeek.Type, error) {
 	if vType == nil {
 		vType = zeek.TypeString
 	}
-	return zval.AppendContainer(nil, values), &zeek.TypeVector{Type: vType}, nil
+	return zval.AppendContainer(nil, values), zeek.LookupVectorType(vType), nil
 }
