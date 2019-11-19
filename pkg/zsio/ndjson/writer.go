@@ -14,11 +14,10 @@ type NDJSON struct {
 }
 
 func NewWriter(w io.WriteCloser) *NDJSON {
-	writer := &NDJSON{
-		Writer: zson.Writer{w},
+	return &NDJSON{
+		Writer:  zson.Writer{w},
+		encoder: json.NewEncoder(w),
 	}
-	writer.encoder = json.NewEncoder(writer.Writer)
-	return writer
 }
 
 func (w *NDJSON) Write(rec *zson.Record) error {

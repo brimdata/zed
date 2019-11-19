@@ -294,7 +294,7 @@ func (r *Record) CutTypes(fields []string) ([]zeek.Type, uint64) {
 	return nil, found
 }
 
-// MarshalJSON implements json.Mashaler.
+// MarshalJSON implements json.Marshaler.
 func (r *Record) MarshalJSON() ([]byte, error) {
 	value, err := r.Descriptor.Type.New(r.ZvalIter())
 	if err != nil {
