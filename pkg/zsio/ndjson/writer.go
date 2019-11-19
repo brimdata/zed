@@ -7,19 +7,19 @@ import (
 	"github.com/mccanne/zq/pkg/zson"
 )
 
-// NDJSON implements a Formatter for ndjson
-type NDJSON struct {
+// Writer implements a Formatter for ndjson
+type Writer struct {
 	zson.Writer
 	encoder *json.Encoder
 }
 
-func NewWriter(w io.WriteCloser) *NDJSON {
-	return &NDJSON{
+func NewWriter(w io.WriteCloser) *Writer {
+	return &Writer{
 		Writer:  zson.Writer{w},
 		encoder: json.NewEncoder(w),
 	}
 }
 
-func (w *NDJSON) Write(rec *zson.Record) error {
+func (w *Writer) Write(rec *zson.Record) error {
 	return w.encoder.Encode(rec)
 }
