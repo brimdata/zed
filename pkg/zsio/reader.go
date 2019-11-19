@@ -64,7 +64,7 @@ func NewReader(reader io.Reader, r *resolver.Table) *Reader {
 }
 
 // getline returns the next line skipping blank lines and too-long lines
-// XXX for zq, we should probabluy return line-too-long error
+// XXX for zq, we should probably return line-too-long error
 func (r *Reader) getline() ([]byte, error) {
 	for {
 		line, err := r.scanner.Scan()

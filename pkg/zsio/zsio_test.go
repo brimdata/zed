@@ -11,7 +11,7 @@ import (
 )
 
 func assertError(t *testing.T, err error, pattern, what string) {
-	assert.NotNilf(t, err, "Received error for %s", what)
+	assert.Error(t, err, "Received error for %s", what)
 	assert.Containsf(t, err.Error(), pattern, "error message for %s is as expected", what)
 }
 
