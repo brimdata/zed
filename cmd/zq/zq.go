@@ -26,9 +26,35 @@ func (reason errInvalidFile) Error() string {
 
 var Zq = &charm.Spec{
 	Name:  "zq",
-	Usage: "zq [options] <search> [file...]",
-	Short: "command line zeek processor",
-	Long:  "",
+	Usage: "zq [ options ] [ zql ] file [ file ... ]",
+	Short: "command line logs processor",
+	Long: `
+zq is a command-line tool for processing logs.  It applies boolean logic
+to filter each log value, optionally computes analytics and transformations,
+and writes the output to one or more files or standard output.
+
+The input and output formats are either specified explicitly or derived from
+file name extensions.  Supported input formats include ZSON (.zson), JSON (.json),
+NDJSON (.ndjson), and Zeek log format (.log).  Supported output formats include
+all the input formats along with text and tabular formats.
+
+zq must be run with at least one input file specified.  As with awk, standard input
+can be specified with a "-" in the place of the file name.  Output is sent to
+standard output unless a -o or -d argument is provided, in which case output is
+sent to the indicated file comforming to the type implied by the extension (unless
+-f explicitly indicates the output type).
+
+After the options, the query may be specified as a
+single argument conforming with ZQL syntax, i.e., it should be quoted as
+a single string in the shell.
+If the first argument is a path to a valid file rather than a ZQL query,
+then the ZQL expression is assumed to be "*", i.e., match and output all
+of the input.  If the first argument is both valid ZQL and an existing file,
+then the file overrides.
+
+Further details and examples for the matching and analytics syntax are described at
+http://github.com/mccanne/pkg/zql/TBD.
+`,
 	New: func(parent charm.Command, flags *flag.FlagSet) (charm.Command, error) {
 		return New(flags)
 	},
@@ -86,16 +112,36 @@ func (c *Command) compile(p ast.Proc, reader zson.Reader) (*proc.MuxOutput, erro
 	return proc.NewMuxOutput(ctx, leaves), nil
 }
 
+func fileExists(path string) bool {
+	if path == "-" {
+		return true
+	}
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
+}
+
 func (c *Command) Run(args []string) error {
 	if len(args) == 0 {
 		return Zq.Exec(c, []string{"help"})
 	}
-
-	query, err := zql.ParseProc(args[0])
-	if err != nil {
-		return fmt.Errorf("parse error: %s", err)
+	paths := args
+	var query ast.Proc
+	var err error
+	if fileExists(args[0]) {
+		query, err = zql.ParseProc("*")
+		if err != nil {
+			return err
+		}
+	} else {
+		paths = args[1:]
+		query, err = zql.ParseProc(args[0])
+		if err != nil {
+			return fmt.Errorf("parse error: %s", err)
+		}
 	}
-	paths := args[1:]
 	var reader zson.Reader
 	if len(paths) > 0 {
 		if reader, err = c.loadFiles(paths); err != nil {
@@ -136,6 +182,10 @@ func extension(format string) string {
 }
 
 func (c *Command) loadFile(path string) (zson.Reader, error) {
+	if path == "-" {
+		//XXX TBD: use input format flag and/or peeker
+		return zsio.LookupReader("zeek", os.Stdin, c.dt), nil
+	}
 	info, err := os.Stat(path)
 	if err != nil {
 		return nil, err
