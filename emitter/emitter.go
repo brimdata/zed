@@ -2,6 +2,7 @@ package emitter
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"time"
 
@@ -12,8 +13,8 @@ import (
 )
 
 type Emitter struct {
-	writer     zson.WriteCloser
-	warningsFd *os.File
+	writer   zson.WriteCloser
+	warnings io.Writer
 }
 
 func NewEmitter(w zson.WriteCloser) *Emitter {
@@ -22,8 +23,8 @@ func NewEmitter(w zson.WriteCloser) *Emitter {
 	}
 }
 
-func (e *Emitter) SetWarningsFD(f *os.File) {
-	e.warningsFd = f
+func (e *Emitter) SetWarningsWriter(w io.Writer) {
+	e.warnings = w
 }
 
 func (e *Emitter) send(cid int, arr zson.Batch) error {
@@ -41,7 +42,7 @@ func (e *Emitter) send(cid int, arr zson.Batch) error {
 }
 
 func (e *Emitter) writeWarnings(msg string) error {
-	_, err := fmt.Fprintln(e.warningsFd, msg)
+	_, err := fmt.Fprintln(e.warnings, msg)
 	if err != nil {
 		return err
 	}
