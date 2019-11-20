@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/mccanne/charm"
 	"github.com/mccanne/zq/ast"
@@ -193,11 +194,20 @@ func (c *Command) loadFile(path string) (zson.Reader, error) {
 	if info.IsDir() {
 		return nil, errInvalidFile("is a directory")
 	}
+	// XXX this should go away soon once we have functionality to peek at the
+	// stream.
+	var reader string
+	switch ext := filepath.Ext(path); ext {
+	case ".ndjson":
+		reader = "ndjson"
+	default:
+		reader = "zeek"
+	}
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
-	return zsio.LookupReader("zeek", f, c.dt), nil
+	return zsio.LookupReader(reader, f, c.dt), nil
 }
 
 func (c *Command) errorf(format string, args ...interface{}) {

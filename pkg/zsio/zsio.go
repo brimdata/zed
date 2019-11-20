@@ -38,9 +38,9 @@ func LookupReader(format string, r io.Reader, table *resolver.Table) zson.Reader
 	switch format {
 	case "zson", "zeek":
 		return NewReader(r, table)
+	case "ndjson":
+		return ndjson.NewReader(r, table)
 		/* XXX not yet
-		case "ndjson":
-			return ndjson.NewReader(r, table)
 		case "json":
 			return json.NewReader(r, table)
 				case "text":

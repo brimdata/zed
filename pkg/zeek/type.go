@@ -132,6 +132,11 @@ func LookupType(in string) (Type, error) {
 	return typ, err
 }
 
+// LookupVectorType returns the VectorType for the provided innerType.
+func LookupVectorType(innerType Type) Type {
+	return addType(&TypeVector{innerType})
+}
+
 func parseType(in string) (string, Type, error) {
 	typeMapMutex.RLock()
 	t, ok := typeMap[strings.TrimSpace(in)]
