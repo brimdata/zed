@@ -72,7 +72,6 @@ type Command struct {
 	path       string
 	outputFile string
 	verbose    bool
-	reverse    bool
 	stats      bool
 	warnings   bool
 	showTypes  bool
@@ -88,7 +87,6 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.dir, "d", "", "directory for output data files")
 	f.StringVar(&c.outputFile, "o", "", "write data to output file")
 	f.BoolVar(&c.verbose, "v", false, "show verbose details")
-	f.BoolVar(&c.reverse, "R", false, "reverse search order (from oldest to newest)")
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
 	f.BoolVar(&c.warnings, "W", false, "display warnings on stderr")
 	f.BoolVar(&c.showTypes, "T", false, "display field types in text output")
@@ -102,7 +100,6 @@ func (c *Command) compile(p ast.Proc, reader zson.Reader) (*proc.MuxOutput, erro
 		Context:  context.Background(),
 		Resolver: resolver.NewTable(),
 		Logger:   zap.NewNop(),
-		Reverse:  c.reverse,
 		Warnings: make(chan string, 5),
 	}
 	scr := scanner.NewScanner(reader)
