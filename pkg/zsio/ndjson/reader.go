@@ -31,7 +31,7 @@ again:
 	if len(line) == 0 {
 		goto again
 	}
-	raw, typ, err := zjson.NewRawFromJSON(line)
+	raw, typ, err := zjson.NewRawAndType(line)
 	if err != nil {
 		return nil, err
 	}

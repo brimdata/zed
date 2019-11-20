@@ -198,10 +198,10 @@ func (c *Command) loadFile(path string) (zson.Reader, error) {
 	// stream.
 	var reader string
 	switch ext := filepath.Ext(path); ext {
-	default:
-		reader = "zeek"
 	case ".ndjson":
 		reader = "ndjson"
+	default:
+		reader = "zeek"
 	}
 	f, err := os.Open(path)
 	if err != nil {

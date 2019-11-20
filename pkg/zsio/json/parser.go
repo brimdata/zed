@@ -12,16 +12,16 @@ import (
 	"github.com/mccanne/zq/pkg/zval"
 )
 
-// NewRawFromJSON returns a new zson.Raw slice as well as an inferred zeek.Type
+// NewRawAndType returns a new zson.Raw slice as well as an inferred zeek.Type
 // from provided block of JSON. The function expects the input json to be an
 // object, otherwise an error is returned.
-func NewRawFromJSON(b []byte) (zson.Raw, zeek.Type, error) {
+func NewRawAndType(b []byte) (zson.Raw, zeek.Type, error) {
 	val, typ, _, err := jsonparser.Get(b)
 	if err != nil {
 		return nil, nil, err
 	}
 	if typ != jsonparser.Object {
-		return nil, nil, fmt.Errorf("expected json type to be Object got %v", typ)
+		return nil, nil, fmt.Errorf("expected JSON type to be Object but got %#v", typ)
 	}
 	values, ztyp, err := jsonParseObject(val)
 	if err != nil {
@@ -35,7 +35,6 @@ func NewRawFromJSON(b []byte) (zson.Raw, zeek.Type, error) {
 }
 
 func jsonParseObject(b []byte) ([][]byte, zeek.Type, error) {
-	type kv struct{ column string }
 	var columns []zeek.Column
 	var values [][]byte
 	err := jsonparser.ObjectEach(b, func(key []byte, value []byte, typ jsonparser.ValueType, offset int) error {
@@ -50,7 +49,7 @@ func jsonParseObject(b []byte) ([][]byte, zeek.Type, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	// sort fields lexigraphically ensuring maps with the same
+	// Sort fields lexigraphically ensuring maps with the same
 	// columns but different printed order get assigned the same descriptor.
 	sort.Slice(columns, func(i, j int) bool {
 		v := columns[i].Name < columns[j].Name
@@ -64,8 +63,6 @@ func jsonParseObject(b []byte) ([][]byte, zeek.Type, error) {
 
 func jsonParseValue(raw []byte, typ jsonparser.ValueType) ([]byte, zeek.Type, error) {
 	switch typ {
-	default:
-		return nil, nil, fmt.Errorf("unsupported type %v", typ)
 	case jsonparser.Array:
 		return jsonParseArray(raw)
 	case jsonparser.Object:
@@ -82,6 +79,8 @@ func jsonParseValue(raw []byte, typ jsonparser.ValueType) ([]byte, zeek.Type, er
 		return jsonParseString(nil)
 	case jsonparser.String:
 		return jsonParseString(raw)
+	default:
+		return nil, nil, fmt.Errorf("unsupported type %v", typ)
 	}
 }
 
