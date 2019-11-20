@@ -19,11 +19,11 @@ are lighter-weight and specified with a simple integer encoding that
 accompanies each data value.
 
 The ZSON design [is also motivated by](./rationale.md)
-and maintains backward compatibility with the original [Zeek ASCII TSV log format](https://docs.zeek.org/en/stable/examples/logs/).
+and maintains backward compatibility with the original [default Zeek log format](https://docs.zeek.org/en/stable/examples/logs/).
 
 ## ZSON format
 
-ZSON is a UTF-8 encoded stream of "lines" where each line is terminated by
+ZSON is a UTF-8 encoded stream of "lines" where each line is terminated by a
 newline.  Each line is either a directive or a value.
 
 Directives and values, in turn, come in two flavors: regular and legacy.
@@ -76,7 +76,7 @@ The descriptor directive is the only directive that begins with an ASCII decimal
 digit.
 
 For example, a directive that is a binding between descriptor `27`
-and a `record` comprised of fields
+and a `record` composed of fields
 "foo" of type `string` and "bar" of type `int` is expressed as follows:
 ```
 #27:record[foo:string,bar:int]
@@ -197,8 +197,11 @@ by a value encoding.  Here is a pseudo-grammar for value encodings:
         | <list> <elem> ;
 <terminal> := <char>*
 <char> := [^\n\\;[]] | <esc-sequence>
-<esc-sequence> := <JavaScript character escaping rules>
+<esc-sequence> := <JavaScript character escaping rules [1]>
 ```
+
+[1] - [JavaScript character escaping rules](https://tc39.es/ecma262/#prod-EscapeSequence)
+
 A value is encoded as a string of UTF-8 characters terminated
 by a semicolon (which must be escaped if it appears in the value) where
 composite values are contained in brackets as one or more such
@@ -233,7 +236,7 @@ using the JavaScript rules for escape syntax, i.e.,
 * `\ddd` for octal escapes,
 * `\xdd` for hex escapes,
 * `\udddd` for unicode escapes,
-* and the various single character escapes of JavaScript.
+* and the various [single character escapes of JavaScript](https://tc39.es/ecma262/#prod-SingleEscapeCharacter).
 
 Sequences of binary data can be embedded in values using these escapes but it is
 a semantic error for arbitrary binary data to be carried by any types except
@@ -276,9 +279,9 @@ In this example:
 * the first value is a `set` of one `string`
 * the second value is a `set` of two `string` values, `hello` and `world`,
 * the third value is an empty `set`, and
-* the fourth value is a `set` of one zero-length string.
+* the fourth value is a `set` containing one `string` of zero length.
 
-In this way, empty set and set of zero-length string can be distinguished.
+In this way, an empty `set` and `set` containing only a zero-length `string` can be distinguished.
 
 This scheme allows composites to be embedded in composites, e.g., a
 `record` inside of a `record` like this:
@@ -360,7 +363,7 @@ The special characters that must be escaped if they appear within a value are:
 * `#unset_field` (usually `-`) if it appears as a value not be interpreted as "unset",
 
 Similarly, a `set` with no values must be specified by the `#empty_field` string (usually `(empty)`)
-to distinguish it from a `set` with a single value that's a zero-length string, and this must be escaped if it
+to distinguish it from a `set` containing only a zero-length `string`, and this must be escaped if it
 is a single-element set with the value `(empty)`, i.e., escaped as `\x28empty)`.
 
 When processing legacy values, a column of type `string` named `_path` is
@@ -423,7 +426,7 @@ Type | Format
 `time` | unsigned dotted decimal notation of seconds (32-bit second, 32-bit nanosecond)
 `interval` | signed dotted decimal notation of seconds (32-bit second, 32-bit nanosecond)
 `port` | an integer string in `[0,65535]` with an optional suffix of `/udp` or `/tcp`
-`addr` | a string representing an IP address IPv4 or IPv6 form
+`addr` | a string representing an IP address in IPv4 or IPv6 form
 `subnet` | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291.
 `enum` | a string representing an enumeration value defined outside the scope of ZSON
 
