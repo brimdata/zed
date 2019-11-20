@@ -137,7 +137,10 @@ func NewRawAndTsFromZeekValues(d *Descriptor, tsCol int, vals [][]byte) (Raw, na
 	return raw, ts, nil
 }
 
-var ErrUnterminated = errors.New("zson parse error: unterminated container")
+var (
+	ErrUnterminated = errors.New("zson parse error: unterminated container")
+	ErrSyntax       = errors.New("zson syntax error")
+)
 
 func NewRawFromZSON(desc *Descriptor, zson []byte) (Raw, error) {
 	// XXX no validation on types from the descriptor, though we'll
@@ -148,13 +151,13 @@ func NewRawFromZSON(desc *Descriptor, zson []byte) (Raw, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(rest) != 1 || rest[0] != ';' {
-		return nil, ErrUnterminated
+	if len(rest) != 0 {
+		return nil, ErrSyntax
 	}
-
-	var raw Raw
+	// XXX the zval API makes this inefficient... we should rework this.
+	var raw []byte
 	for _, v := range vals {
-		raw = zval.AppendValue(raw, v)
+		raw = append(raw, v...)
 	}
 	return raw, nil
 }
@@ -182,7 +185,10 @@ func zsonParseContainer(b []byte) ([][]byte, []byte, error) {
 			return nil, nil, ErrUnterminated
 		}
 		if b[0] == rightbracket {
-			return vals, b[1:], nil
+			if len(b) < 2 || b[1] != semicolon {
+				return nil, nil, ErrUnterminated
+			}
+			return vals, b[2:], nil
 		}
 		field, rest, err := zsonParseField(b)
 		if err != nil {
@@ -210,7 +216,7 @@ func zsonParseField(b []byte) ([]byte, []byte, error) {
 		}
 		switch b[i] {
 		case semicolon:
-			return b[:i], b[i+1:], nil
+			return zval.AppendValue(nil, b[:i]), b[i+1:], nil
 		case backslash:
 			// XXX need to implement full escape parsing,
 			// for now just skip one character
@@ -218,4 +224,20 @@ func zsonParseField(b []byte) ([]byte, []byte, error) {
 		}
 		i += 1
 	}
+}
+
+func (r Raw) String() string {
+	s := ""
+	for it := zval.Iter(r); !it.Done(); {
+		v, container, err := it.Next()
+		if err != nil {
+			return err.Error()
+		}
+		if container {
+			s += "(" + Raw(v).String() + ")"
+		} else {
+			s += "(" + string(v) + ")"
+		}
+	}
+	return s
 }
