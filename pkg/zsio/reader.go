@@ -209,6 +209,7 @@ func (r *Reader) parseValue(line []byte) (*zson.Record, error) {
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("READ RAW", zson.Raw(raw).String())
 
 	record, err := zson.NewRecord(descriptor, nano.MinTs, raw), nil
 	if err != nil {

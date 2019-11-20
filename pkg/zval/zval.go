@@ -58,6 +58,34 @@ func AppendContainer(dst []byte, vals [][]byte) []byte {
 	return dst
 }
 
+/*
+func zvalLen(b []byte) int {
+	u64, n := Uvarint(b)
+	if n <= 0 {
+		return -1
+	}
+	if tagIsUnset(u64) {
+		return n
+	}
+	return n + tagLength(u64)
+}
+*/
+
+func AppendContainerZvals(dst []byte, zvals [][]byte) []byte {
+	if zvals == nil {
+		return AppendUvarint(dst, newTagUnset(true))
+	}
+	var n int
+	for _, v := range zvals {
+		n += len(v)
+	}
+	dst = AppendUvarint(dst, newTag(true, n))
+	for _, v := range zvals {
+		dst = append(dst, v...)
+	}
+	return dst
+}
+
 // AppendValue appends to dst the zval in val.
 func AppendValue(dst []byte, val []byte) []byte {
 	if val == nil {

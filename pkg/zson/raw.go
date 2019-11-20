@@ -143,23 +143,39 @@ var (
 )
 
 func NewRawFromZSON(desc *Descriptor, zson []byte) (Raw, error) {
+	fmt.Println("NEW RAW", string(zson))
 	// XXX no validation on types from the descriptor, though we'll
 	// want to add that to support eg the bytes type.
 	// if we did this, we could also get at the ts field without
 	// making a separate pass in the parser.
-	vals, rest, err := zsonParseContainer(zson)
+	container, rest, err := zsonParseContainer(zson)
 	if err != nil {
 		return nil, err
 	}
 	if len(rest) != 0 {
 		return nil, ErrSyntax
 	}
-	// XXX the zval API makes this inefficient... we should rework this.
-	var raw []byte
-	for _, v := range vals {
-		raw = append(raw, v...)
+	it := zval.Iter(container)
+	if it.Done() {
+		return nil, ErrSyntax
 	}
-	return raw, nil
+	v, isContainer, err := it.Next()
+	if err != nil {
+		return nil, err
+	}
+	if !isContainer {
+		return nil, ErrSyntax
+	}
+	return v, nil
+	/*
+		fmt.Println("TOP CONTAINER", container)
+		// XXX the zval API makes this inefficient... we should rework this.
+		/*var raw []byte
+		for k, v := range vals {
+			fmt.Println("RAW", k, Raw(raw).String())
+			raw = append(raw, v...)
+		}*/
+	//	return container, nil
 }
 
 const (
@@ -174,12 +190,12 @@ const (
 // If there is no error, the first two return values are:
 //  1. an array of zvals corresponding to the indivdiual elements
 //  2. the passed-in byte array advanced past all the data that was parsed.
-func zsonParseContainer(b []byte) ([][]byte, []byte, error) {
+func zsonParseContainer(b []byte) (Raw, []byte, error) {
 	// skip leftbracket
 	b = b[1:]
 
 	// XXX if we have the Type we can size this properly
-	vals := make([][]byte, 0)
+	zvals := make([][]byte, 0)
 	for {
 		if len(b) == 0 {
 			return nil, nil, ErrUnterminated
@@ -188,26 +204,29 @@ func zsonParseContainer(b []byte) ([][]byte, []byte, error) {
 			if len(b) < 2 || b[1] != semicolon {
 				return nil, nil, ErrUnterminated
 			}
-			return vals, b[2:], nil
+			container := Raw(zval.AppendContainerZvals(nil, zvals))
+			fmt.Println("PARSE-CONT-RET", container.String(), string(b[2:]))
+			return container, b[2:], nil
 		}
-		field, rest, err := zsonParseField(b)
+		zv, rest, err := zsonParseField(b)
 		if err != nil {
 			return nil, nil, err
 		}
-		vals = append(vals, field)
+		zvals = append(zvals, zv)
 		b = rest
 	}
 }
 
 // zsonParseField() parses the given bye array representing any value
 // in the zson format.
-func zsonParseField(b []byte) ([]byte, []byte, error) {
+func zsonParseField(b []byte) (Raw, []byte, error) {
 	if b[0] == leftbracket {
-		vals, rest, err := zsonParseContainer(b)
+		container, rest, err := zsonParseContainer(b)
 		if err != nil {
 			return nil, nil, err
 		}
-		return zval.AppendContainer(nil, vals), rest, nil
+		fmt.Println("PARSE-FIELD RET CONTAINER", Raw(container).String())
+		return container, rest, nil
 	}
 	i := 0
 	for {
@@ -216,7 +235,9 @@ func zsonParseField(b []byte) ([]byte, []byte, error) {
 		}
 		switch b[i] {
 		case semicolon:
-			return zval.AppendValue(nil, b[:i]), b[i+1:], nil
+			zv := zval.AppendValue(nil, b[:i])
+			fmt.Println("PARSE-FIELD RET FIELD", Raw(zv).String())
+			return zv, b[i+1:], nil
 		case backslash:
 			// XXX need to implement full escape parsing,
 			// for now just skip one character
@@ -224,6 +245,14 @@ func zsonParseField(b []byte) ([]byte, []byte, error) {
 		}
 		i += 1
 	}
+}
+
+func cString(vals [][]byte) string {
+	s := ""
+	for _, v := range vals {
+		s += Raw(v).String()
+	}
+	return s
 }
 
 func (r Raw) String() string {
