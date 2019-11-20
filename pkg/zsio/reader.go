@@ -45,21 +45,19 @@ type ReadStats struct {
 }
 
 type Reader struct {
-	scanner     *skim.Scanner
-	zeek        *zeek.Parser
-	stats       ReadStats
-	descriptors map[int]*zson.Descriptor
-	resolver    *resolver.Table
-	legacyVal   bool
+	scanner   *skim.Scanner
+	zeek      *zeek.Parser
+	stats     ReadStats
+	mapper    *resolver.Mapper
+	legacyVal bool
 }
 
 func NewReader(reader io.Reader, r *resolver.Table) *Reader {
 	buffer := make([]byte, ReadSize)
 	return &Reader{
-		scanner:     skim.NewScanner(reader, buffer, MaxLineSize),
-		zeek:        zeek.NewParser(r),
-		descriptors: make(map[int]*zson.Descriptor),
-		resolver:    r,
+		scanner: skim.NewScanner(reader, buffer, MaxLineSize),
+		zeek:    zeek.NewParser(r),
+		mapper:  resolver.NewMapper(r),
 	}
 }
 
@@ -134,9 +132,8 @@ func (r *Reader) parseDescriptor(line []byte) error {
 	if err != nil {
 		return err
 	}
-	_, ok := r.descriptors[id]
-	if ok {
-		//XXX this should be ok... need mapper
+	if r.mapper.Map(id) != nil {
+		//XXX this should be ok... decide on this and update spec
 		return ErrDescriptorExists
 	}
 	// XXX doesn't handle nested descriptors such as
@@ -151,8 +148,10 @@ func (r *Reader) parseDescriptor(line []byte) error {
 	if !ok {
 		return ErrBadValue // XXX?
 	}
-	//XXX TBD we need to use a mapper that is shared by all the readers
-	r.descriptors[id] = r.resolver.GetByValue(recordType)
+	if r.mapper.Enter(id, recordType) == nil {
+		// XXX this shouldn't happen
+		return ErrBadValue
+	}
 	return nil
 }
 
@@ -200,8 +199,8 @@ func (r *Reader) parseValue(line []byte) (*zson.Record, error) {
 		return nil, err
 	}
 
-	descriptor, ok := r.descriptors[id]
-	if !ok {
+	descriptor := r.mapper.Map(id)
+	if descriptor == nil {
 		return nil, ErrInvalidDesc
 	}
 
