@@ -6,6 +6,44 @@ import (
 	"github.com/mccanne/zq/pkg/zson"
 )
 
+// Cut transforms each input record into an output record containing only the
+// identified fields of the record.
+//
+//  cut <field-list>
+//
+// Required Arguments
+//
+// Required:
+//  <field-list>
+//
+// <field-list> is one or more comma-separated field names.
+//
+// Optional Arguments
+//
+// None
+//
+// Caveats
+//
+// The specified field names must exist in the input data.
+// If a non-existent field appears in the <field-list>,
+// the returned results will be empty.
+//
+// Example
+//
+// To return only the ts and uid columns of conn events:
+//  cat conn.log | zq "* | cut ts,uid"
+//
+// Output
+//  #separator \x09
+//  #set_separator	,
+//  #empty_field	(empty)
+//  #unset_field	-
+//  #fields	ts	uid
+//  #types	time	string
+//  1521911721.255387	C8Tful1TvM3Zf5x8fl
+//  1521911721.411148	CXWfTK3LRdiuQxBbM6
+//  1521911722.690601	CuKFds250kxFgkhh8f
+//  ...
 type Cut struct {
 	Base
 	fields     []string
