@@ -24,7 +24,7 @@ func TestTop(t *testing.T) {
 
 	ctx := proc.NewTestContext(nil)
 	src := proc.NewTestSource([]zson.Batch{fooBatch})
-	top := proc.NewTopProc(ctx, src, 3, []string{"foo"}, false)
+	top := proc.NewTop(ctx, src, 3, []string{"foo"}, false)
 	test := proc.NewProcTest(top, ctx)
 
 	res, err := test.Pull()

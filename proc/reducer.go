@@ -9,28 +9,28 @@ import (
 	"github.com/mccanne/zq/reducer/compile"
 )
 
-type ReducerProc struct {
+type Reducer struct {
 	Base
 	n        int
 	interval time.Duration
 	columns  compile.Row
 }
 
-func NewReducerProc(c *Context, parent Proc, params *ast.ReducerProc) Proc {
+func NewReducer(c *Context, parent Proc, params *ast.ReducerProc) Proc {
 	interval := time.Duration(params.UpdateInterval.Seconds) * time.Second
-	return &ReducerProc{
+	return &Reducer{
 		Base:     Base{Context: c, Parent: parent},
 		interval: interval,
 		columns:  compile.Row{Defs: params.Reducers},
 	}
 }
 
-func (r *ReducerProc) output() *zson.Array {
+func (r *Reducer) output() *zson.Array {
 	rec := r.columns.Result(r.Context.Resolver)
 	return zson.NewArray([]*zson.Record{rec}, nano.NewSpanTs(r.MinTs, r.MaxTs))
 }
 
-func (r *ReducerProc) Pull() (zson.Batch, error) {
+func (r *Reducer) Pull() (zson.Batch, error) {
 	start := time.Now()
 	for {
 		batch, err := r.Get()
@@ -55,7 +55,7 @@ func (r *ReducerProc) Pull() (zson.Batch, error) {
 	}
 }
 
-func (r *ReducerProc) consume(rec *zson.Record) {
+func (r *Reducer) consume(rec *zson.Record) {
 	r.n++
 	r.columns.Consume(rec)
 }

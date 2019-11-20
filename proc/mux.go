@@ -15,22 +15,22 @@ type MuxResult struct {
 type MuxOutput struct {
 	ctx      *Context
 	runners  int
-	muxProcs []*MuxProc
+	muxProcs []*Mux
 	once     sync.Once
 	in       chan MuxResult
 }
 
-type MuxProc struct {
+type Mux struct {
 	Base
 	ID  int
 	out chan<- MuxResult
 }
 
-func newMuxProc(c *Context, parent Proc, id int, out chan MuxResult) *MuxProc {
-	return &MuxProc{Base: Base{Context: c, Parent: parent}, ID: id, out: out}
+func newMux(c *Context, parent Proc, id int, out chan MuxResult) *Mux {
+	return &Mux{Base: Base{Context: c, Parent: parent}, ID: id, out: out}
 }
 
-func (m *MuxProc) run() {
+func (m *Mux) run() {
 	// This loop pulls batches from the parent and pushes them
 	// downstream to the multiplexing proc.  If the mux isn't ready,
 	// the out channel will block and this  goroutine will block until
@@ -52,7 +52,7 @@ func NewMuxOutput(ctx *Context, parents []Proc) *MuxOutput {
 	c := make(chan MuxResult, n)
 	mux := &MuxOutput{ctx: ctx, runners: n, in: c}
 	for id, parent := range parents {
-		mux.muxProcs = append(mux.muxProcs, newMuxProc(ctx, parent, id, c))
+		mux.muxProcs = append(mux.muxProcs, newMux(ctx, parent, id, c))
 	}
 	return mux
 }

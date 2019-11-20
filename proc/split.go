@@ -6,32 +6,32 @@ import (
 	"github.com/mccanne/zq/pkg/zson"
 )
 
-// SplitProc splits its input into multiple proc outputs.  Since procs run from the
+// Split splits its input into multiple proc outputs.  Since procs run from the
 // receiver backward via Pull(), SplitProc pulls data from upstream when all the
 // outputs are ready, then sends the data downstream.
 //
 // This scheme implements flow control since the SplitProc prevents any of
 // the downstream from running ahead, esentially running the parallel paths
 // at the rate of the slowest consumer.
-type SplitProc struct {
+type Split struct {
 	Base
 	once     sync.Once
 	n        int
 	requests chan (chan<- Result)
 }
 
-func NewSplitProc(c *Context, parent Proc) *SplitProc {
-	s := &SplitProc{Base: Base{Context: c, Parent: parent}}
+func NewSplit(c *Context, parent Proc) *Split {
+	s := &Split{Base: Base{Context: c, Parent: parent}}
 	s.requests = make(chan (chan<- Result))
 	return s
 }
 
-func (s *SplitProc) Add(p *SplitChannel) chan (chan<- Result) {
+func (s *Split) Add(p *SplitChannel) chan (chan<- Result) {
 	s.n++
 	return s.requests
 }
 
-func (s *SplitProc) gather(strip []chan<- Result) []chan<- Result {
+func (s *Split) gather(strip []chan<- Result) []chan<- Result {
 	flight := strip[:0]
 	for len(flight) < s.n {
 		ch := <-s.requests
@@ -44,7 +44,7 @@ func (s *SplitProc) gather(strip []chan<- Result) []chan<- Result {
 	return flight
 }
 
-func (s *SplitProc) run() {
+func (s *Split) run() {
 	// This loop is started by the first downstream SplitChannel as
 	// long as there are active downstream consumers.
 	// If the downstream proc isn't ready, it's request won't have arrived
@@ -65,7 +65,7 @@ func (s *SplitProc) run() {
 	s.Done()
 }
 
-func (s *SplitProc) send(flight []chan<- Result, result Result) {
+func (s *Split) send(flight []chan<- Result, result Result) {
 	for _, ch := range flight {
 		if result.Batch != nil {
 			result.Batch.Ref()
@@ -74,7 +74,7 @@ func (s *SplitProc) send(flight []chan<- Result, result Result) {
 	}
 }
 
-func (s *SplitProc) Pull() (zson.Batch, error) {
+func (s *Split) Pull() (zson.Batch, error) {
 	// never called
 	return nil, nil
 }
@@ -82,10 +82,10 @@ func (s *SplitProc) Pull() (zson.Batch, error) {
 type SplitChannel struct {
 	request chan chan<- Result
 	ch      chan Result
-	parent  *SplitProc
+	parent  *Split
 }
 
-func NewSplitChannel(parent *SplitProc) *SplitChannel {
+func NewSplitChannel(parent *Split) *SplitChannel {
 	s := &SplitChannel{
 		ch:     make(chan Result),
 		parent: parent,

@@ -28,8 +28,8 @@ func IsErrTooBig(err error) bool {
 
 const defaultGroupByLimit = 1000000
 
-// GroupByProc computes aggregations using a GroupByAggregator.
-type GroupByProc struct {
+// GroupBy computes aggregations using a GroupByAggregator.
+type GroupBy struct {
 	Base
 	timeBinned bool
 	interval   time.Duration
@@ -90,13 +90,13 @@ func NewGroupByAggregator(c *Context, params *ast.GroupByProc) *GroupByAggregato
 	}
 }
 
-func NewGroupByProc(c *Context, parent Proc, params *ast.GroupByProc) *GroupByProc {
+func NewGroupBy(c *Context, parent Proc, params *ast.GroupByProc) *GroupBy {
 	// XXX in a subsequent PR we will isolate ast params and pass in
 	// ast.GroupByParams
 	agg := NewGroupByAggregator(c, params)
 	timeBinned := params.Duration.Seconds > 0
 	interval := time.Duration(params.UpdateInterval.Seconds) * time.Second
-	return &GroupByProc{
+	return &GroupBy{
 		Base:       Base{Context: c, Parent: parent},
 		timeBinned: timeBinned,
 		interval:   interval,
@@ -104,7 +104,7 @@ func NewGroupByProc(c *Context, parent Proc, params *ast.GroupByProc) *GroupByPr
 	}
 }
 
-func (g *GroupByProc) Pull() (zson.Batch, error) {
+func (g *GroupBy) Pull() (zson.Batch, error) {
 	start := time.Now()
 	for {
 		batch, err := g.Get()

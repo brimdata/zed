@@ -10,18 +10,18 @@ import (
 	"go.uber.org/zap"
 )
 
-type UniqProc struct {
+type Uniq struct {
 	Base
 	cflag bool
 	count int
 	last  *zson.Record
 }
 
-func NewUniqProc(c *Context, parent Proc, cflag bool) *UniqProc {
-	return &UniqProc{Base: Base{Context: c, Parent: parent}, cflag: cflag}
+func NewUniq(c *Context, parent Proc, cflag bool) *Uniq {
+	return &Uniq{Base: Base{Context: c, Parent: parent}, cflag: cflag}
 }
 
-func (u *UniqProc) wrap(t *zson.Record) *zson.Record {
+func (u *Uniq) wrap(t *zson.Record) *zson.Record {
 	if u.cflag {
 		cols := []zeek.Column{{Name: "_uniq", Type: zeek.TypeCount}}
 		vals := []string{strconv.FormatInt(int64(u.count), 10)}
@@ -35,7 +35,7 @@ func (u *UniqProc) wrap(t *zson.Record) *zson.Record {
 	return t
 }
 
-func (u *UniqProc) appendUniq(out []*zson.Record, t *zson.Record) []*zson.Record {
+func (u *Uniq) appendUniq(out []*zson.Record, t *zson.Record) []*zson.Record {
 	if u.count == 0 {
 		u.last = t.Keep()
 		u.count = 1
@@ -52,7 +52,7 @@ func (u *UniqProc) appendUniq(out []*zson.Record, t *zson.Record) []*zson.Record
 
 // uniq is a little bit complicated because we have to check uniqueness
 // across records between calls to Pull.
-func (u *UniqProc) Pull() (zson.Batch, error) {
+func (u *Uniq) Pull() (zson.Batch, error) {
 	batch, err := u.Get()
 	if err != nil {
 		return nil, err
