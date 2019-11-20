@@ -21,10 +21,11 @@ func NewWriter(w io.WriteCloser) *Writer {
 	return &Writer{Writer: zson.Writer{w}}
 }
 
-func (z *Writer) Write(r *zson.Record) error {
-	if r.Descriptor != z.descriptor {
-		z.writeHeader(r)
-		z.descriptor = r.Descriptor
+func (w *Writer) Write(r *zson.Record) error {
+	path, _ := r.AccessString("_path")
+	if r.Descriptor != w.descriptor || path != w.path {
+		w.writeHeader(r, path)
+		w.descriptor = r.Descriptor
 	}
 	values, err := r.Strings()
 	if err != nil {
@@ -35,12 +36,11 @@ func (z *Writer) Write(r *zson.Record) error {
 		values = append(values[:i], values[i+1:]...)
 	}
 	out := strings.Join(values, "\t") + "\n"
-	_, err = z.Writer.Write([]byte(out))
+	_, err = w.Writer.Write([]byte(out))
 	return err
 }
 
-//XXX fix this to transmit just updates
-func (w *Writer) writeHeader(r *zson.Record) error {
+func (w *Writer) writeHeader(r *zson.Record, path string) error {
 	d := r.Descriptor
 	var s string
 	if w.separator != "\\x90" {
@@ -59,8 +59,11 @@ func (w *Writer) writeHeader(r *zson.Record) error {
 		w.unsetField = "-"
 		s += "#unset_field\t-\n"
 	}
-	if path, err := r.AccessString("_path"); err == nil && w.path != path {
+	if path != w.path {
 		w.path = path
+		if path == "" {
+			path = "-"
+		}
 		s += fmt.Sprintf("#path\t%s\n", path)
 	}
 	if d != w.descriptor {
