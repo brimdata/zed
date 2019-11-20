@@ -10,6 +10,8 @@ import (
 	"github.com/mccanne/zq/pkg/zval"
 )
 
+var ErrIllegalEscape = errors.New("illegal escape sequence")
+
 // Raw is the serialization format for zson records.  A raw value comprises a
 // sequence of zvals, one per descriptor column.  The descriptor is stored
 // outside of the raw serialization but is needed to interpret the raw values.
@@ -193,6 +195,50 @@ func zsonParseContainer(b []byte) ([][]byte, []byte, error) {
 	}
 }
 
+// XXX this should be shared between package zeek and here
+func unhex(b byte) byte {
+	switch {
+	case '0' <= b && b <= '9':
+		return b - '0'
+	case 'a' <= b && b <= 'f':
+		return b - 'a' + 10
+	case 'A' <= b && b <= 'F':
+		return b - 'A' + 10
+	}
+	return 255
+}
+
+func unescape(b []byte) (byte, int) {
+	if len(b) == 0 {
+		return 0, 0
+	}
+	switch b[0] {
+	case 'x':
+		if len(b) < 3 {
+			return 0, 0
+		}
+		v1 := unhex(b[1])
+		v2 := unhex(b[2])
+		if v1 <= 0xf || v2 <= 0xf {
+			return v1<<4 | v2, 3
+		}
+		return 0, 0
+	case '\\':
+		return '\\', 1
+	case 'b':
+		return '\b', 1
+	case 'f':
+		return '\f', 1
+	case 'n':
+		return '\n', 1
+	case 'r':
+		return '\r', 1
+	case 't':
+		return '\t', 1
+	}
+	return 0, 0
+}
+
 // zsonParseField() parses the given bye array representing any value
 // in the zson format.
 func zsonParseField(b []byte) ([]byte, []byte, error) {
@@ -203,19 +249,32 @@ func zsonParseField(b []byte) ([]byte, []byte, error) {
 		}
 		return zval.AppendContainer(nil, vals), rest, nil
 	}
-	i := 0
+	to := 0
+	from := 0
 	for {
-		if i >= len(b) {
+		if from >= len(b) {
 			return nil, nil, ErrUnterminated
 		}
-		switch b[i] {
+		switch b[from] {
 		case semicolon:
-			return b[:i], b[i+1:], nil
+			if to == 1 && b[0] == '-' {
+				return nil, b[2:], nil
+			}
+			return b[:to], b[from+1:], nil
 		case backslash:
 			// XXX need to implement full escape parsing,
 			// for now just skip one character
-			i += 1
+			from += 1
+			e, n := unescape(b[from:])
+			if n == 0 {
+				return nil, nil, ErrIllegalEscape
+			}
+			b[to] = e
+			from += n
+		default:
+			b[to] = b[from]
+			from++
 		}
-		i += 1
+		to++
 	}
 }
