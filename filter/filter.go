@@ -64,6 +64,133 @@ func SearchString(s string) Filter {
 	}
 }
 
+type ValResolver func(*zson.Record) (zeek.Type, []byte)
+
+// fieldop, arrayIndex, and fieldRead are helpers used internally
+// by CompileFieldExpr() below.
+type fieldop interface {
+	apply(zeek.Type, []byte) (zeek.Type, []byte)
+}
+
+type arrayIndex struct {
+	idx int64
+}
+func (ai *arrayIndex) apply(typ zeek.Type, val []byte) (zeek.Type, []byte) {
+	elType, elVal, err := zeek.VectorIndex(typ, val, ai.idx)
+	if err != nil {
+		return nil, nil
+	}
+	return elType, elVal
+}
+
+type fieldRead struct {
+	field string
+}
+func (fr *fieldRead) apply(typ zeek.Type, val []byte) (zeek.Type, []byte) {
+	recType, ok := typ.(*zeek.TypeRecord)
+	if !ok {
+		// field reference on non-record type
+		return nil, nil
+	}
+
+	// XXX searching the list of columns for every record is
+	// expensive, but we can receive records with different
+	// types so caching this isn't straightforward.
+	for n, col := range(recType.Columns) {
+		if col.Name == fr.field {
+			var v []byte
+			it := zval.Iter(val)
+			for i := 0; i <= n; i++ {
+				if it.Done() {
+					return nil, nil
+				}
+				var err error
+				v, _, err = it.Next()
+				if err != nil {
+					return nil, nil
+				}
+			}
+			return col.Type, v
+		}
+	}
+	// record doesn't have the named field
+	return nil, nil
+}
+
+// CompileFieldExpr() takes a FieldExpr AST (which represents either a
+// simple field reference like "fieldname" or something more complex
+// like "fieldname[0].subfield.subsubfield[3]") and compiles it into a
+// ValResolver -- a function that takes a zson.Record and extracts the
+// value to which the FieldExpr refers.  If the FieldExpr cannot be
+// compiled, this function returns an error.  If the resolver is given
+// a record for which the given expression cannot be evaluated (e.g.,
+// if the record doesn't have a requested field or an array index is
+// out of bounds), the resolver returns (nil, nil).
+func CompileFieldExpr(node ast.FieldExpr) (ValResolver, error) {
+	var ops []fieldop = make([]fieldop, 0)
+	var field string
+
+	// First collapse the AST to a simple array of fieldop
+	// objects so the actual resolver can run reasonably efficiently.
+outer:
+	for {
+		switch op := node.(type) {
+		case *ast.FieldRead:
+			field = op.Field
+			break outer
+		case *ast.FieldCall:
+			switch op.Fn {
+			// Len handled separately
+			case "Index":
+				idx, err := strconv.ParseInt(op.Param, 10, 64)
+				if err != nil {
+					return nil, err
+				}
+				ops = append([]fieldop{&arrayIndex{idx}}, ops...)
+				node = op.Field
+			case "RecordFieldRead":
+				ops = append([]fieldop{&fieldRead{op.Param}}, ops...)
+				node = op.Field
+			default:
+				return nil, fmt.Errorf("unknown FieldCall: %s", op.Fn)
+			}
+		default:
+			return nil, errors.New("filter AST unknown field op")
+		}
+	}
+
+	// Here's the actual resolver: grab the top-level field and then
+	// apply any additional operations.
+	return func(r *zson.Record) (zeek.Type, []byte) {
+		col, ok := r.Descriptor.LUT[field]
+		if !ok {
+			// original field doesn't exist
+			return nil, nil
+		}
+		typ := r.TypeOfColumn(col)
+		val := r.Slice(col)
+		for _, op := range(ops) {
+			typ, val = op.apply(typ, val)
+			if typ == nil {
+				return nil, nil
+			}
+		}
+		return typ, val
+	}, nil
+}
+
+func combine(res ValResolver, pred zeek.Predicate) Filter {
+	return func(r *zson.Record) bool {
+		typ, val := res(r)
+		if val == nil {
+			// field (or sub-field) doesn't exist in this record
+			return false
+
+		}
+		return pred(typ, val)
+	}
+}
+
 func CompileFieldCompare(node ast.CompareField, val zeek.Value) (Filter, error) {
 	// Treat len(field) specially since we're looking at a computed
 	// value rather than a field from a record.
@@ -83,49 +210,22 @@ func CompileFieldCompare(node ast.CompareField, val zeek.Value) (Filter, error) 
 			}
 			return comparison(int64(len))
 		}
-		return EvalField(op.Field, checklen), nil
+		resolver, err := CompileFieldExpr(op.Field)
+		if err != nil {
+			return nil, err
+		}
+		return combine(resolver, checklen), nil
 	}
 
 	comparison, err := val.Comparison(node.Comparator)
 	if err != nil {
 		return nil, err
 	}
-	switch op := node.Field.(type) {
-	case *ast.FieldRead:
-		return EvalField(op.Field, comparison), nil
-	case *ast.FieldCall:
-		switch op.Fn {
-		// Len handled above
-		case "Index":
-			idx, err := strconv.ParseInt(op.Param, 10, 64)
-			if err != nil {
-				return nil, err
-			}
-			checkidx := func(typ zeek.Type, val []byte) bool {
-				elType, elVal, err := zeek.VectorIndex(typ, val, idx)
-				if err != nil {
-					return false
-				}
-				return comparison(elType, elVal)
-			}
-			return EvalField(op.Field, checkidx), nil
-		default:
-			return nil, fmt.Errorf("unknown FieldCall: %s", op.Fn)
-		}
-	default:
-		return nil, errors.New("filter AST unknown field op")
+	resolver, err := CompileFieldExpr(node.Field)
+	if err != nil {
+		return nil, err
 	}
-}
-
-func EvalField(field string, eval zeek.Predicate) Filter {
-	return func(p *zson.Record) bool {
-		col, ok := p.Descriptor.LUT[field]
-		if !ok {
-			// field name doesn't exist in this record
-			return false
-		}
-		return eval(p.TypeOfColumn(col), p.Slice(col))
-	}
+	return combine(resolver, comparison), nil
 }
 
 func EvalAny(eval zeek.Predicate) Filter {
@@ -192,13 +292,13 @@ func Compile(node ast.BooleanExpr) (Filter, error) {
 		}
 
 		if v.Comparator == "in" {
-			fieldRead, ok := v.Field.(*ast.FieldRead)
-			if !ok {
-				return nil, errors.New("type mismatch for in comparison on computed value")
+			resolver, err := CompileFieldExpr(v.Field)
+			if err != nil {
+				return nil, err
 			}
 			eql, _ := z.Comparison("eql")
 			comparison := zeek.Contains(eql)
-			return EvalField(fieldRead.Field, comparison), nil
+			return combine(resolver, comparison), nil
 		}
 
 		return CompileFieldCompare(*v, z)

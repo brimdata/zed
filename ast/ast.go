@@ -122,9 +122,9 @@ type (
 	// e.g., len(some_set) or some_vector[1].
 	FieldCall struct {
 		Node
-		Fn    string `json:"fn"`
-		Field string `json:"field"`
-		Param string `json:"param"`
+		Fn    string    `json:"fn"`
+		Field FieldExpr `json:"field"`
+		Param string    `json:"param"`
 	}
 )
 

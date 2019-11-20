@@ -55,16 +55,32 @@
         return val.(*ast.TypedValue).Type
     }
 
-    func makeFieldRead(field interface{}) *ast.FieldRead {
-        return &ast.FieldRead{ast.Node{"FieldRead"}, field.(string)}
+    type FieldCallPlaceholder struct {
+        op    string
+        param string
     }
 
-    func makeFieldCall(fn, field, paramIn interface{}) *ast.FieldCall {
+    func makeFieldCall(fn, fieldIn, paramIn interface{}) interface{} {
         var param string
         if paramIn != nil {
             param = paramIn.(string)
         }
-        return &ast.FieldCall{ast.Node{"FieldCall"}, fn.(string), field.(string), param}
+        if fieldIn != nil {
+            return &ast.FieldCall{ast.Node{"FieldCall"}, fn.(string), *fieldIn.(*ast.FieldExpr), param}
+        }
+        return &FieldCallPlaceholder{fn.(string), param}
+    }
+
+    func chainFieldCalls(base, derefs interface{}) *ast.FieldExpr {
+        var ret ast.FieldExpr
+        ret = &ast.FieldRead{ast.Node{"FieldRead"}, base.(string)}
+        if derefs != nil {
+            for _, d := range(derefs.([]interface{})) {
+                call := d.(*FieldCallPlaceholder)
+                ret = &ast.FieldCall{ast.Node{"FieldCall"}, call.op, ret, call.param}
+            }
+        }
+        return &ret
     }
 
     func makeBooleanLiteral(val bool) *ast.BooleanLiteral {
@@ -73,9 +89,9 @@
 
     func makeCompareField(comparatorIn, fieldIn, valueIn interface{}) *ast.CompareField {
         comparator := comparatorIn.(string)
-        field := fieldIn.(ast.FieldExpr)
+        field := fieldIn.(*ast.FieldExpr)
         value := valueIn.(*ast.TypedValue)
-        return &ast.CompareField{ast.Node{"CompareField"}, comparator, field, *value}
+        return &ast.CompareField{ast.Node{"CompareField"}, comparator, *field, *value}
     }
 
     func makeCompareAny(comparatorIn, valueIn interface{}) *ast.CompareAny {
@@ -282,6 +298,7 @@
     }
 }
 #define RETURN(x) return x, nil
+#define NULL nil
 #define INIT_ASSIGN_VAR(x, var) x := var
 #define ARRAY(...) []interface{}{__VA_ARGS__}
 #define ARRAY_LEN(a) len(a.([]interface{}))
@@ -310,9 +327,16 @@
     function makeTypedValue(type, value) { return { type, value }; }
     function getValueType(v) { return v.type; }
 
-    function makeFieldRead(field) { return { op: "FieldRead", field }; }
     function makeFieldCall(fn, field, param) {
         return { op: "FieldCall", fn, field, param };
+    }
+    function chainFieldCalls(base, derefs) {
+        let ret = { op: "FieldRead", field: base };
+        for (let d of derefs) {
+            d.field = ret
+            ret = d
+        }
+        return ret
     }
 
     function makeBooleanLiteral(value) {
@@ -405,6 +429,7 @@
     }
 }
 #define RETURN(x) return x
+#define NULL null
 #define INIT_ASSIGN_VAR(x, var) let x = var
 #define ARRAY(...) [__VA_ARGS__]
 #define ARRAY_LEN(a) a.length
@@ -489,7 +514,7 @@ searchPred
   / v:searchValue _? inToken _? "*" {
       RETURN(makeCompareAny("in", v))
     }
-  / v:searchValue _? inToken _? f:fieldRead {
+  / v:searchValue _? inToken _? f:fieldReference {
       RETURN(makeCompareField("in", f, v))
     }
   / v:searchValue {
@@ -605,21 +630,21 @@ notToken = "not"
 fieldName = fieldNameStart fieldNameRest* { RETURN(TEXT) }
 
 fieldNameStart = [A-Za-z_$]
-fieldNameRest = fieldNameStart / [0-9.]
+fieldNameRest = fieldNameStart / [0-9]
 
-fieldRead
-  = field:fieldName {
-     RETURN(makeFieldRead(field))
-    }
+fieldReference
+ = base:fieldName derefs:(
+       "." field:fieldName    { RETURN(makeFieldCall("RecordFieldRead", NULL, field)) }
+     / "[" index:sinteger "]" { RETURN(makeFieldCall("Index", NULL, index)) }
+   )* {
+     RETURN(chainFieldCalls(base, derefs))
+   }
 
 fieldExpr
-  = op:fieldOp _? "(" _? field:fieldName _? ")" {
+  = op:fieldOp _? "(" _? field:fieldReference _? ")" {
       RETURN(makeFieldCall(op, field, nil))
     }
-  / field:fieldName "[" index:sinteger "]" {
-      RETURN(makeFieldCall("Index", field, index))
-    }
-  / fieldRead
+  / fieldReference
 
 fieldOp
   = "len"i { RETURN("Len") }
