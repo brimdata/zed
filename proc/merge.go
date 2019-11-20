@@ -8,13 +8,13 @@ import (
 	"github.com/mccanne/zq/pkg/zson"
 )
 
-// A MergeProc merges multiple upstream inputs into one output.
+// A Merge proc merges multiple upstream inputs into one output.
 //
 // Note: rather than a standalone Proc, we could also have integrated
 // merging behavior into proc.Base, which would simplify compilation a
 // little bit. But we already took the standalone route for SplitProc,
 // and this matches that.
-type MergeProc struct {
+type Merge struct {
 	Base
 	once    sync.Once
 	parents []*runnerProc
@@ -51,16 +51,16 @@ func (r *runnerProc) run() {
 	}
 }
 
-func NewMergeProc(c *Context, parents []Proc) *MergeProc {
+func NewMerge(c *Context, parents []Proc) *Merge {
 	var runners []*runnerProc
 	for _, parent := range parents {
 		runners = append(runners, newrunnerProc(c, parent))
 	}
-	p := MergeProc{Base: Base{Context: c, Parent: nil}, parents: runners}
+	p := Merge{Base: Base{Context: c, Parent: nil}, parents: runners}
 	return &p
 }
 
-func (m *MergeProc) Parents() []Proc {
+func (m *Merge) Parents() []Proc {
 	var pp []Proc
 	for _, runner := range m.parents {
 		pp = append(pp, runner.Parent)
@@ -68,7 +68,7 @@ func (m *MergeProc) Parents() []Proc {
 	return pp
 }
 
-func (m *MergeProc) reload(k int) {
+func (m *Merge) reload(k int) {
 	parent := m.parents[k]
 	result := <-parent.ch
 	err := result.Err
@@ -90,14 +90,14 @@ func (m *MergeProc) reload(k int) {
 
 // fill() initializes upstream data from each parent in our
 // per-parent merge buffers.
-func (m *MergeProc) fill() {
+func (m *Merge) fill() {
 	for i := range m.parents {
 		m.reload(i)
 	}
 }
 
 // Pull implements the merge logic for returning data from the upstreams.
-func (m *MergeProc) Pull() (zson.Batch, error) {
+func (m *Merge) Pull() (zson.Batch, error) {
 	m.once.Do(func() {
 		for _, m := range m.parents {
 			go m.run()
@@ -140,7 +140,7 @@ func (m *MergeProc) Pull() (zson.Batch, error) {
 	return res, nil
 }
 
-func (m *MergeProc) Done() {
+func (m *Merge) Done() {
 	for k, parent := range m.parents {
 		if parent != nil {
 			<-parent.ch

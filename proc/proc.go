@@ -106,43 +106,43 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 	}
 	switch v := node.(type) {
 	case *ast.ReducerProc:
-		return []Proc{NewReducerProc(c, parent, v)}, nil
+		return []Proc{NewReducer(c, parent, v)}, nil
 
 	case *ast.GroupByProc:
-		return []Proc{NewGroupByProc(c, parent, v)}, nil
+		return []Proc{NewGroupBy(c, parent, v)}, nil
 
 	case *ast.CutProc:
-		return []Proc{NewCutProc(c, parent, v.Fields)}, nil
+		return []Proc{NewCut(c, parent, v.Fields)}, nil
 
 	case *ast.SortProc:
-		return []Proc{NewSortProc(c, parent, v.Limit, v.Fields, v.SortDir)}, nil
+		return []Proc{NewSort(c, parent, v.Limit, v.Fields, v.SortDir)}, nil
 
 	case *ast.HeadProc:
 		limit := v.Count
 		if limit == 0 {
 			limit = 1
 		}
-		return []Proc{NewHeadProc(c, parent, limit)}, nil
+		return []Proc{NewHead(c, parent, limit)}, nil
 
 	case *ast.TailProc:
 		limit := v.Count
 		if limit == 0 {
 			limit = 1
 		}
-		return []Proc{NewTailProc(c, parent, limit)}, nil
+		return []Proc{NewTail(c, parent, limit)}, nil
 
 	case *ast.UniqProc:
-		return []Proc{NewUniqProc(c, parent, v.Cflag)}, nil
+		return []Proc{NewUniq(c, parent, v.Cflag)}, nil
 
 	case *ast.PassProc:
-		return []Proc{NewPassProc(c, parent)}, nil
+		return []Proc{NewPass(c, parent)}, nil
 
 	case *ast.FilterProc:
 		f, err := filter.Compile(v.Filter)
 		if err != nil {
 			return nil, err
 		}
-		return []Proc{NewFilterProc(c, parent, f)}, nil
+		return []Proc{NewFilter(c, parent, f)}, nil
 
 	case *ast.SequentialProc:
 		var parents []Proc
@@ -157,7 +157,7 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 			// in which case the output layer will mux
 			// into channels.
 			if len(parents) > 1 && k < n-1 {
-				parent = NewMergeProc(c, parents)
+				parent = NewMerge(c, parents)
 			} else {
 				parent = parents[0]
 			}
@@ -165,7 +165,7 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 		return parents, nil
 
 	case *ast.ParallelProc:
-		splitter := NewSplitProc(c, parent)
+		splitter := NewSplit(c, parent)
 		n := len(v.Procs)
 		var procs []Proc
 		for k := 0; k < n; k++ {

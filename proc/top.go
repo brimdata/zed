@@ -9,12 +9,12 @@ import (
 
 const defaultTopLimit = 100
 
-// TopProc is similar to proc.SortProc with a view key differences:
+// Top is similar to proc.Sort with a view key differences:
 // - It only sorts in descending order.
 // - It utilizes a MaxHeap, immediately discarding records that are not in
 // the top N of the sort.
 // - It has a hidden option (FlushEvery) to sort and emit on every batch.
-type TopProc struct {
+type Top struct {
 	Base
 	limit      int
 	fields     []string
@@ -24,11 +24,11 @@ type TopProc struct {
 	out        []*zson.Record
 }
 
-func NewTopProc(c *Context, parent Proc, limit int, fields []string, flushEvery bool) *TopProc {
+func NewTop(c *Context, parent Proc, limit int, fields []string, flushEvery bool) *Top {
 	if limit == 0 {
 		limit = defaultTopLimit
 	}
-	return &TopProc{
+	return &Top{
 		Base:       Base{Context: c, Parent: parent},
 		limit:      limit,
 		fields:     fields,
@@ -36,7 +36,7 @@ func NewTopProc(c *Context, parent Proc, limit int, fields []string, flushEvery 
 	}
 }
 
-func (s *TopProc) Pull() (zson.Batch, error) {
+func (s *Top) Pull() (zson.Batch, error) {
 	for {
 		batch, err := s.Get()
 		if err != nil {
@@ -55,7 +55,7 @@ func (s *TopProc) Pull() (zson.Batch, error) {
 	}
 }
 
-func (s *TopProc) consume(rec *zson.Record) {
+func (s *Top) consume(rec *zson.Record) {
 	if s.fields == nil {
 		s.fields = []string{guessSortField(rec)}
 	}
@@ -73,7 +73,7 @@ func (s *TopProc) consume(rec *zson.Record) {
 	}
 }
 
-func (s *TopProc) sorted() zson.Batch {
+func (s *Top) sorted() zson.Batch {
 	if s.records == nil {
 		return nil
 	}

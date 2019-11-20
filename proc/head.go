@@ -5,16 +5,16 @@ import (
 	"github.com/mccanne/zq/pkg/zson"
 )
 
-type HeadProc struct {
+type Head struct {
 	Base
 	limit, count int
 }
 
-func NewHeadProc(c *Context, parent Proc, limit int) *HeadProc {
-	return &HeadProc{Base{Context: c, Parent: parent}, limit, 0}
+func NewHead(c *Context, parent Proc, limit int) *Head {
+	return &Head{Base{Context: c, Parent: parent}, limit, 0}
 }
 
-func (h *HeadProc) Pull() (zson.Batch, error) {
+func (h *Head) Pull() (zson.Batch, error) {
 	remaining := h.limit - h.count
 	if remaining <= 0 {
 		return nil, nil

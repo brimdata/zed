@@ -8,8 +8,7 @@ import (
 	"github.com/mccanne/zq/pkg/zson"
 )
 
-// SortProc xxx
-type SortProc struct {
+type Sort struct {
 	Base
 	dir    int
 	limit  int
@@ -22,11 +21,11 @@ type SortProc struct {
 // The value can be overridden by setting the limit param on the SortProc.
 const defaultSortLimit = 1000000
 
-func NewSortProc(c *Context, parent Proc, limit int, fields []string, dir int) *SortProc {
+func NewSort(c *Context, parent Proc, limit int, fields []string, dir int) *Sort {
 	if limit == 0 {
 		limit = defaultSortLimit
 	}
-	return &SortProc{Base: Base{Context: c, Parent: parent}, dir: dir, limit: limit, fields: fields}
+	return &Sort{Base: Base{Context: c, Parent: parent}, dir: dir, limit: limit, fields: fields}
 }
 
 func firstOf(d *zson.Descriptor, which zeek.Type) string {
@@ -64,7 +63,7 @@ func guessSortField(rec *zson.Record) string {
 	return "ts"
 }
 
-func (s *SortProc) Pull() (zson.Batch, error) {
+func (s *Sort) Pull() (zson.Batch, error) {
 	for {
 		batch, err := s.Get()
 		if err != nil {
@@ -82,14 +81,14 @@ func (s *SortProc) Pull() (zson.Batch, error) {
 	}
 }
 
-func (s *SortProc) consume(batch zson.Batch) {
+func (s *Sort) consume(batch zson.Batch) {
 	//XXX this could be made more efficient
 	for k := 0; k < batch.Length(); k++ {
 		s.out = append(s.out, batch.Index(k).Keep())
 	}
 }
 
-func (s *SortProc) sort() zson.Batch {
+func (s *Sort) sort() zson.Batch {
 	out := s.out
 	if len(out) == 0 {
 		return nil

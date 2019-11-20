@@ -2,14 +2,14 @@ package proc
 
 import "github.com/mccanne/zq/pkg/zson"
 
-type PassProc struct {
+type Pass struct {
 	Base
 }
 
-func NewPassProc(c *Context, parent Proc) *PassProc {
-	return &PassProc{Base{Context: c, Parent: parent}}
+func NewPass(c *Context, parent Proc) *Pass {
+	return &Pass{Base{Context: c, Parent: parent}}
 }
 
-func (p *PassProc) Pull() (zson.Batch, error) {
+func (p *Pass) Pull() (zson.Batch, error) {
 	return p.Get()
 }

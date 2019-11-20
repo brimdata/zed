@@ -5,7 +5,7 @@ import (
 	"github.com/mccanne/zq/pkg/zson"
 )
 
-type TailProc struct {
+type Tail struct {
 	Base
 	limit int
 	count int
@@ -13,12 +13,12 @@ type TailProc struct {
 	q     []*zson.Record
 }
 
-func NewTailProc(c *Context, parent Proc, limit int) *TailProc {
+func NewTail(c *Context, parent Proc, limit int) *Tail {
 	q := make([]*zson.Record, limit)
-	return &TailProc{Base{Context: c, Parent: parent}, limit, 0, 0, q}
+	return &Tail{Base{Context: c, Parent: parent}, limit, 0, 0, q}
 }
 
-func (t *TailProc) tail() zson.Batch {
+func (t *Tail) tail() zson.Batch {
 	if t.count <= 0 {
 		return nil
 	}
@@ -32,7 +32,7 @@ func (t *TailProc) tail() zson.Batch {
 
 }
 
-func (t *TailProc) Pull() (zson.Batch, error) {
+func (t *Tail) Pull() (zson.Batch, error) {
 	for {
 		batch, err := t.Get()
 		if EOS(batch, err) {

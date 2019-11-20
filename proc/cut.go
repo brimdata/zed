@@ -6,21 +6,21 @@ import (
 	"github.com/mccanne/zq/pkg/zson"
 )
 
-type CutProc struct {
+type Cut struct {
 	Base
 	fields     []string
 	sawRecord  bool
 	seenFields uint64
 }
 
-func NewCutProc(c *Context, parent Proc, fields []string) *CutProc {
-	return &CutProc{Base: Base{Context: c, Parent: parent}, fields: fields}
+func NewCut(c *Context, parent Proc, fields []string) *Cut {
+	return &Cut{Base: Base{Context: c, Parent: parent}, fields: fields}
 }
 
 // Check the bitmap of fields that we've seen.  If a requested field
 // never appeared in the input, emit a warning about it.  This should be
 // called once when this proc reaches the end of the stream.
-func (c *CutProc) WarnUnseen() {
+func (c *Cut) WarnUnseen() {
 	if !c.sawRecord {
 		return
 	}
@@ -31,7 +31,7 @@ func (c *CutProc) WarnUnseen() {
 	}
 }
 
-func (c *CutProc) Pull() (zson.Batch, error) {
+func (c *Cut) Pull() (zson.Batch, error) {
 	batch, err := c.Get()
 	if EOS(batch, err) {
 		c.WarnUnseen()

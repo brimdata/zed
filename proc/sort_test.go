@@ -21,7 +21,7 @@ func TestSort(t *testing.T) {
 
 	ctx := proc.NewTestContext(nil)
 	src := proc.NewTestSource([]zson.Batch{fooBatch})
-	sort := proc.NewSortProc(ctx, src, 10000, []string{"foo"}, 1)
+	sort := proc.NewSort(ctx, src, 10000, []string{"foo"}, 1)
 	test := proc.NewProcTest(sort, ctx)
 
 	res, err := test.Pull()

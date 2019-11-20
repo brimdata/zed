@@ -5,16 +5,16 @@ import (
 	"github.com/mccanne/zq/pkg/zson"
 )
 
-type FilterProc struct {
+type Filter struct {
 	Base
 	filter.Filter
 }
 
-func NewFilterProc(c *Context, parent Proc, f filter.Filter) *FilterProc {
-	return &FilterProc{Base{Context: c, Parent: parent}, f}
+func NewFilter(c *Context, parent Proc, f filter.Filter) *Filter {
+	return &Filter{Base{Context: c, Parent: parent}, f}
 }
 
-func (f *FilterProc) Pull() (zson.Batch, error) {
+func (f *Filter) Pull() (zson.Batch, error) {
 	batch, err := f.Get()
 	if EOS(batch, err) {
 		return nil, err
