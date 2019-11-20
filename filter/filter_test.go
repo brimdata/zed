@@ -69,6 +69,7 @@ const zsonsrc = `
 #5:record[addrvec:vector[addr]]
 #6:record[nested:record[field:string]]
 #7:record[nested:vector[record[field:int]]]
+#8:record[nested:record[vec:vector[int]]]
 
 0:[[abc;xyz;];];
 1:[[abc;xyz;];];
@@ -79,6 +80,7 @@ const zsonsrc = `
 5:[[1.1.1.1;2.2.2.2;];];
 6:[[test;];];
 7:[[[1;];[2;];];];
+8:[[[1;2;3;];];];
 `
 
 func TestFilters(t *testing.T) {
@@ -87,7 +89,7 @@ func TestFilters(t *testing.T) {
 	ior := strings.NewReader(zsonsrc)
 	reader := zsio.LookupReader("zson", ior, resolver.NewTable())
 
-	nrecords := 9
+	nrecords := 10
 	records := make([]*zson.Record, 0, nrecords)
 	for {
 		rec, err := reader.Read()
@@ -136,6 +138,13 @@ func TestFilters(t *testing.T) {
 		{"nested[0].field = 2", records[8], false},
 		{"nested[2].field = 2", records[8], false},
 		{"nested.field = 2", records[8], false},
+
+		{"1 in nested.vec", records[9], true},
+		{"2 in nested.vec", records[9], true},
+		{"4 in nested.vec", records[9], false},
+		{"nested.vec[0] = 1", records[9], true},
+		{"nested.vec[1] = 1", records[9], false},
+		{"1 in nested", records[9], false},
 	}
 
 	for _, tt := range tests {

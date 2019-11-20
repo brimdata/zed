@@ -185,7 +185,6 @@ func combine(res ValResolver, pred zeek.Predicate) Filter {
 		if val == nil {
 			// field (or sub-field) doesn't exist in this record
 			return false
-
 		}
 		return pred(typ, val)
 	}
