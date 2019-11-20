@@ -1,0 +1,7 @@
+# @TEST-EXEC: zq -f ndjson "*" input.ndjson > output.ndjson
+# @TEST-EXEC: btest-diff output.ndjson
+@TEST-START-FILE input.ndjson
+{ "string1": "value1", "int1": 4, "bool1": true, "obj1": { "obj2": { "double1": 1.1 }}}
+{ "int1": 4, "bool1": true, "string2": "value2", "string1": "value2" }
+@TEST-END-FILE
+

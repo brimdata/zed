@@ -43,17 +43,17 @@ func (i *Iter) Next() ([]byte, bool, error) {
 }
 
 // AppendContainer appends to dst a zval container comprising the zvals in vals.
-func AppendContainer(dst []byte, vals [][]byte) []byte {
-	if vals == nil {
+func AppendContainer(dst []byte, zvals [][]byte) []byte {
+	if zvals == nil {
 		return AppendUvarint(dst, newTagUnset(true))
 	}
 	var n int
-	for _, v := range vals {
-		n += sizeBytes(v)
+	for _, v := range zvals {
+		n += len(v)
 	}
 	dst = AppendUvarint(dst, newTag(true, n))
-	for _, v := range vals {
-		dst = AppendValue(dst, v)
+	for _, v := range zvals {
+		dst = append(dst, v...)
 	}
 	return dst
 }

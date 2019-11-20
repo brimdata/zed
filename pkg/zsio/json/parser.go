@@ -23,15 +23,11 @@ func NewRawAndType(b []byte) (zson.Raw, zeek.Type, error) {
 	if typ != jsonparser.Object {
 		return nil, nil, fmt.Errorf("expected JSON type to be Object but got %#v", typ)
 	}
-	values, ztyp, err := jsonParseObject(val)
+	vals, ztyp, err := jsonParseObject(val)
 	if err != nil {
 		return nil, nil, err
 	}
-	var raw zson.Raw
-	for _, v := range values {
-		raw = zval.AppendValue(raw, v)
-	}
-	return raw, ztyp, nil
+	return bytes.Join(vals, nil), ztyp, err
 }
 
 func jsonParseObject(b []byte) ([][]byte, zeek.Type, error) {
@@ -90,27 +86,27 @@ func jsonParseBool(raw []byte) ([]byte, zeek.Type, error) {
 		return nil, nil, err
 	}
 	value := strconv.AppendBool(nil, b)
-	return value, zeek.TypeBool, err
+	return zval.AppendValue(nil, value), zeek.TypeBool, err
 }
 
 // XXX This needs to handle scientific notation... I think.
 func jsonParseNumber(b []byte) ([]byte, zeek.Type, error) {
-	if idx := bytes.IndexRune(b, '.'); idx == -1 {
-		return b, zeek.TypeInt, nil
+	if bytes.Contains(b, []byte{'.'}) {
+		return zval.AppendValue(nil, b), zeek.TypeDouble, nil
 	}
-	return b, zeek.TypeDouble, nil
+	return zval.AppendValue(nil, b), zeek.TypeInt, nil
 }
 
 // XXX do escaping guff
 func jsonParseString(b []byte) ([]byte, zeek.Type, error) {
-	return b, zeek.TypeString, nil
+	return zval.AppendValue(nil, b), zeek.TypeString, nil
 }
 
-func jsonParseArray(raw []byte) ([]byte, zeek.Type, error) {
+func jsonParseArray(b []byte) ([]byte, zeek.Type, error) {
 	var err error
 	var values [][]byte
 	var types []zeek.Type
-	jsonparser.ArrayEach(raw, func(el []byte, typ jsonparser.ValueType, offset int, elErr error) {
+	jsonparser.ArrayEach(b, func(el []byte, typ jsonparser.ValueType, offset int, elErr error) {
 		if err != nil {
 			return
 		}
