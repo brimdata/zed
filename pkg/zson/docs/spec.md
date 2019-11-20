@@ -196,7 +196,7 @@ by a value encoding.  Here is a pseudo-grammar for value encodings:
           <elem> ;
         | <list> <elem> ;
 <terminal> := <char>*
-<char> := [^\n\\;[]] | <esc-sequence>
+<char> := [^][;\n\\] | <esc-sequence>
 <esc-sequence> := <JavaScript character escaping rules [1]>
 ```
 
