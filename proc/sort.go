@@ -3,6 +3,7 @@ package proc
 import (
 	"fmt"
 
+	"github.com/mccanne/zq/expr"
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/zeek"
 	"github.com/mccanne/zq/pkg/zson"
@@ -12,7 +13,7 @@ type Sort struct {
 	Base
 	dir    int
 	limit  int
-	fields []string
+	fields []expr.FieldExprResolver
 	out    []*zson.Record
 }
 
@@ -21,7 +22,7 @@ type Sort struct {
 // The value can be overridden by setting the limit param on the SortProc.
 const defaultSortLimit = 1000000
 
-func NewSort(c *Context, parent Proc, limit int, fields []string, dir int) *Sort {
+func NewSort(c *Context, parent Proc, limit int, fields []expr.FieldExprResolver, dir int) *Sort {
 	if limit == 0 {
 		limit = defaultSortLimit
 	}
@@ -95,9 +96,17 @@ func (s *Sort) sort() zson.Batch {
 	}
 	s.out = nil
 	if s.fields == nil {
-		s.fields = []string{guessSortField(out[0])}
+		fld := guessSortField(out[0])
+		resolver := func(r *zson.Record) (zeek.Type, []byte) {
+			v, t, err := r.Access(fld)
+			if err != nil {
+				return nil, nil
+			}
+			return t, v
+		}
+		s.fields = []expr.FieldExprResolver{resolver}
 	}
-	sorter := zson.NewSortFn(s.dir, s.fields...)
-	zson.SortStable(out, sorter)
+	sorter := expr.NewSortFn(s.dir, s.fields...)
+	expr.SortStable(out, sorter)
 	return zson.NewArray(out, nano.NewSpanTs(s.MinTs, s.MaxTs))
 }

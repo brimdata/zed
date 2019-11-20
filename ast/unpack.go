@@ -61,7 +61,11 @@ func unpackProc(custom Unpacker, node joe.JSON) (Proc, error) {
 		}
 		return &ParallelProc{Procs: procs}, nil
 	case "SortProc":
-		return &SortProc{}, nil
+		fields, err := unpackFieldExprArray(node.Get("fields"))
+		if err != nil {
+			return nil, err
+		}
+		return &SortProc{Fields: fields}, nil
 	case "CutProc":
 		return &CutProc{}, nil
 	case "HeadProc":
@@ -81,7 +85,11 @@ func unpackProc(custom Unpacker, node joe.JSON) (Proc, error) {
 	case "GroupByProc":
 		return &GroupByProc{}, nil
 	case "TopProc":
-		return &TopProc{}, nil
+		fields, err := unpackFieldExprArray(node.Get("fields"))
+		if err != nil {
+			return nil, err
+		}
+		return &TopProc{Fields: fields}, nil
 	default:
 		return nil, fmt.Errorf("unknown proc op: %s", op)
 	}
@@ -140,7 +148,7 @@ func unpackBooleanExpr(node joe.JSON) (BooleanExpr, error) {
 		if child == joe.Undefined {
 			return nil, errors.New("CompareField missing field property")
 		}
-		field, err := unpackField(child)
+		field, err := unpackFieldExpr(child)
 		if err != nil {
 			return nil, err
 		}
@@ -153,14 +161,41 @@ func unpackBooleanExpr(node joe.JSON) (BooleanExpr, error) {
 	}
 }
 
-func unpackField(node joe.JSON) (FieldExpr, error) {
+func unpackFieldExprArray(node joe.JSON) ([]FieldExpr, error) {
+	if node == joe.Undefined {
+		return nil, nil
+	}
+	if !node.IsArray() {
+		return nil, errors.New("fields property should be an array")
+	}
+	n := node.Len()
+	fields := make([]FieldExpr, n)
+	for k := 0; k < n; k++ {
+		var err error
+		fields[k], err = unpackFieldExpr(node.Index(k))
+		if err != nil {
+			return nil, err
+		}
+	}
+	return fields, nil
+}
+
+func unpackFieldExpr(node joe.JSON) (FieldExpr, error) {
 	op, ok := node.Get("op").String()
 	if !ok {
 		return nil, errors.New("AST is missing op field")
 	}
 	switch op {
 	case "FieldCall":
-		return &FieldCall{}, nil
+		child := node.Get("field")
+		if child == joe.Undefined {
+			return nil, errors.New("FieldCall missing field property")
+		}
+		field, err := unpackFieldExpr(child)
+		if err != nil {
+			return nil, err
+		}
+		return &FieldCall{Field: field}, nil
 	case "FieldRead":
 		return &FieldRead{}, nil
 	default:

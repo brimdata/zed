@@ -31,8 +31,7 @@ type BooleanExpr interface {
 
 // FieldExpr is the interface implemented by expressions that reference fields.
 type FieldExpr interface {
-	fieldExprNode()
-	Copy() FieldExpr
+	Copy()                 FieldExpr
 }
 
 // A TypedValue is a string representation of a literal value where the
@@ -122,14 +121,11 @@ type (
 	// e.g., len(some_set) or some_vector[1].
 	FieldCall struct {
 		Node
-		Fn    string `json:"fn"`
-		Field string `json:"field"`
-		Param string `json:"param"`
+		Fn    string    `json:"fn"`
+		Field FieldExpr `json:"field"`
+		Param string    `json:"param"`
 	}
 )
-
-func (e *FieldRead) fieldExprNode() {}
-func (e *FieldCall) fieldExprNode() {}
 
 // ----------------------------------------------------------------------------
 // Procs
@@ -155,9 +151,9 @@ type (
 	// A SortProc node represents a proc that sorts records.
 	SortProc struct {
 		Node
-		Limit   int      `json:"limit,omitempty"`
-		Fields  []string `json:"fields"`
-		SortDir int      `json:"sortdir"`
+		Limit   int         `json:"limit,omitempty"`
+		Fields  []FieldExpr `json:"fields"`
+		SortDir int         `json:"sortdir"`
 	}
 	// A CutProc node represents a proc that removes fields from each
 	// input record where each removed field matches one of the named fields
@@ -231,9 +227,9 @@ type (
 	// - It has a hidden option (FlushEvery) to sort and emit on every batch.
 	TopProc struct {
 		Node
-		Limit  int      `json:"limit,omitempty"`
-		Fields []string `json:"fields,omitempty"`
-		Flush  bool     `json:"flush"`
+		Limit  int         `json:"limit,omitempty"`
+		Fields []FieldExpr `json:"fields,omitempty"`
+		Flush  bool        `json:"flush"`
 	}
 )
 

@@ -1,13 +1,14 @@
-package zson
+package expr
 
 import (
 	"bytes"
 	"sort"
 
 	"github.com/mccanne/zq/pkg/zeek"
+	"github.com/mccanne/zq/pkg/zson"
 )
 
-type SortFn func(a *Record, b *Record) int
+type SortFn func(a *zson.Record, b *zson.Record) int
 
 // Internal function that compares two values of compatible types.
 type comparefn func(a, b []byte) int
@@ -21,18 +22,18 @@ func rawcompare(a, b []byte, dir int) int {
 	}
 }
 
-func NewSortFn(dir int, fields ...string) SortFn {
+func NewSortFn(dir int, fields ...FieldExprResolver) SortFn {
 	sorters := make(map[*zeek.Type]comparefn)
-	return func(a *Record, b *Record) int {
-		for _, field := range fields {
-			vala, typea, erra := a.Access(field)
-			valb, typeb, errb := b.Access(field)
+	return func(a *zson.Record, b *zson.Record) int {
+		for _, resolver := range fields {
+			typea, vala := resolver(a)
+			typeb, valb := resolver(b)
 
-			// Errors indicate the field isn't present, sort
+			// Nil types indicate a field isn't present, sort
 			// these records last
-			if erra != nil && errb != nil { return 0 }
-			if erra != nil { return 1 }
-			if errb != nil { return -1 }
+			if typea == nil && typeb == nil { return 0 }
+			if typea == nil { return 1 }
+			if typeb == nil { return -1 }
 
 			// If values are of different types, just compare
 			// the string representation of the type
@@ -60,13 +61,13 @@ func NewSortFn(dir int, fields ...string) SortFn {
 }
 
 // SortStable performs a stable sort on the provided records.
-func SortStable(records []*Record, sorter SortFn) {
+func SortStable(records []*zson.Record, sorter SortFn) {
 	slice := &RecordSlice{records, sorter}
 	sort.Stable(slice)
 }
 
 type RecordSlice struct {
-	records []*Record
+	records []*zson.Record
 	sorter  SortFn
 }
 
@@ -87,7 +88,7 @@ func (s *RecordSlice) Less(i, j int) bool {
 
 // Push adds x as element Len(). Implements heap.Interface.
 func (s *RecordSlice) Push(r interface{}) {
-	s.records = append(s.records, r.(*Record))
+	s.records = append(s.records, r.(*zson.Record))
 }
 
 // Pop removes the first element in the array. Implements heap.Interface.
@@ -98,7 +99,7 @@ func (s *RecordSlice) Pop() interface{} {
 }
 
 // Index returns the ith record.
-func (s *RecordSlice) Index(i int) *Record {
+func (s *RecordSlice) Index(i int) *zson.Record {
 	return s.records[i]
 }
 

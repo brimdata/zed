@@ -100,7 +100,10 @@ var testCopyJSON = []byte(`
     },
     {
       "fields": [
-        "p"
+        {
+          "op": "FieldRead",
+          "field": "p"
+        }
       ],
       "op": "SortProc",
       "sortdir": -1
@@ -205,7 +208,10 @@ var testCopyJSONExpected = []byte(`
     },
     {
       "fields": [
-        "p"
+        {
+          "op": "FieldRead",
+          "field": "p"
+        }
       ],
       "op": "SortProc",
       "sortdir": 1

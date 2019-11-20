@@ -55,16 +55,32 @@
         return val.(*ast.TypedValue).Type
     }
 
-    func makeFieldRead(field interface{}) *ast.FieldRead {
-        return &ast.FieldRead{ast.Node{"FieldRead"}, field.(string)}
+    type FieldCallPlaceholder struct {
+        op    string
+        param string
     }
 
-    func makeFieldCall(fn, field, paramIn interface{}) *ast.FieldCall {
+    func makeFieldCall(fn, fieldIn, paramIn interface{}) interface{} {
         var param string
         if paramIn != nil {
             param = paramIn.(string)
         }
-        return &ast.FieldCall{ast.Node{"FieldCall"}, fn.(string), field.(string), param}
+        if fieldIn != nil {
+            return &ast.FieldCall{ast.Node{"FieldCall"}, fn.(string), fieldIn.(ast.FieldExpr), param}
+        }
+        return &FieldCallPlaceholder{fn.(string), param}
+    }
+
+    func chainFieldCalls(base, derefs interface{}) ast.FieldExpr {
+        var ret ast.FieldExpr
+        ret = &ast.FieldRead{ast.Node{"FieldRead"}, base.(string)}
+        if derefs != nil {
+            for _, d := range(derefs.([]interface{})) {
+                call := d.(*FieldCallPlaceholder)
+                ret = &ast.FieldCall{ast.Node{"FieldCall"}, call.op, ret, call.param}
+            }
+        }
+        return ret
     }
 
     func makeBooleanLiteral(val bool) *ast.BooleanLiteral {
@@ -137,8 +153,18 @@
         return ret
     }
 
+    func fieldExprArray(val interface{}) []ast.FieldExpr {
+        var ret []ast.FieldExpr
+        if val != nil {
+            for _, f := range(val.([]interface{})) {
+                ret = append(ret, f.(ast.FieldExpr))
+            }
+        }
+        return ret
+    }
+
     func makeSortProc(fieldsIn, dirIn, limitIn interface{}) *ast.SortProc {
-        fields := stringArray(fieldsIn)
+        fields := fieldExprArray(fieldsIn)
         sortdir := dirIn.(int)
         var limit int;
         if limitIn != nil {
@@ -147,15 +173,15 @@
         return &ast.SortProc{ast.Node{"SortProc"}, limit, fields, sortdir}
     }
 
-	func makeTopProc(fieldsIn, limitIn, flushIn interface{}) *ast.TopProc {
-        fields := stringArray(fieldsIn)
+    func makeTopProc(fieldsIn, limitIn, flushIn interface{}) *ast.TopProc {
+        fields := fieldExprArray(fieldsIn)
         var limit int;
         if limitIn != nil {
             limit = limitIn.(int)
         }
         flush := flushIn != nil
         return &ast.TopProc{ast.Node{"TopProc"}, limit, fields, flush}
-	}
+    }
 
     func makeCutProc(fieldsIn interface{}) *ast.CutProc {
         fields := stringArray(fieldsIn)
@@ -282,6 +308,7 @@
     }
 }
 #define RETURN(x) return x, nil
+#define NULL nil
 #define INIT_ASSIGN_VAR(x, var) x := var
 #define ARRAY(...) []interface{}{__VA_ARGS__}
 #define ARRAY_LEN(a) len(a.([]interface{}))
@@ -310,9 +337,16 @@
     function makeTypedValue(type, value) { return { type, value }; }
     function getValueType(v) { return v.type; }
 
-    function makeFieldRead(field) { return { op: "FieldRead", field }; }
     function makeFieldCall(fn, field, param) {
         return { op: "FieldCall", fn, field, param };
+    }
+    function chainFieldCalls(base, derefs) {
+        let ret = { op: "FieldRead", field: base };
+        for (let d of derefs) {
+            d.field = ret
+            ret = d
+        }
+        return ret
     }
 
     function makeBooleanLiteral(value) {
@@ -405,6 +439,7 @@
     }
 }
 #define RETURN(x) return x
+#define NULL null
 #define INIT_ASSIGN_VAR(x, var) let x = var
 #define ARRAY(...) [__VA_ARGS__]
 #define ARRAY_LEN(a) a.length
@@ -489,7 +524,7 @@ searchPred
   / v:searchValue _? inToken _? "*" {
       RETURN(makeCompareAny("in", v))
     }
-  / v:searchValue _? inToken _? f:fieldRead {
+  / v:searchValue _? inToken _? f:fieldReference {
       RETURN(makeCompareField("in", f, v))
     }
   / v:searchValue {
@@ -572,7 +607,7 @@ proc
     }
 
 groupBy
-  = "by"i _ list:fieldList { RETURN(list) }
+  = "by"i _ list:fieldNameList { RETURN(list) }
 
 everyDur
   = "every"i _ dur:duration { RETURN(dur) }
@@ -605,33 +640,42 @@ notToken = "not"
 fieldName = fieldNameStart fieldNameRest* { RETURN(TEXT) }
 
 fieldNameStart = [A-Za-z_$]
-fieldNameRest = fieldNameStart / [0-9.]
+fieldNameRest = fieldNameStart / [0-9]
 
-fieldRead
-  = field:fieldName {
-     RETURN(makeFieldRead(field))
-    }
+fieldReference
+ = base:fieldName derefs:(
+       "." field:fieldName    { RETURN(makeFieldCall("RecordFieldRead", NULL, field)) }
+     / "[" index:sinteger "]" { RETURN(makeFieldCall("Index", NULL, index)) }
+   )* {
+     RETURN(chainFieldCalls(base, derefs))
+   }
 
 fieldExpr
-  = op:fieldOp _? "(" _? field:fieldName _? ")" {
+  = op:fieldOp _? "(" _? field:fieldReference _? ")" {
       RETURN(makeFieldCall(op, field, nil))
     }
-  / field:fieldName "[" index:sinteger "]" {
-      RETURN(makeFieldCall("Index", field, index))
-    }
-  / fieldRead
+  / fieldReference
 
 fieldOp
   = "len"i { RETURN("Len") }
 
-fieldList
-  = first:fieldName rest:(_? "," _? fieldName)* {
+fieldExprList
+  = first:fieldExpr rest:(_? "," _? fieldExpr)* {
       INIT_ASSIGN_VAR(result, ARRAY(first))
 
       FOREACH(ASSERT_ARRAY(rest), r) {
         APPEND(result, ASSERT_ARRAY(r)[3])
       }
 
+      RETURN(result)
+  }
+
+fieldNameList
+  = first:fieldName rest:(_? "," _? fieldName)* {
+      INIT_ASSIGN_VAR(result, ARRAY(first))
+      FOREACH(ASSERT_ARRAY(rest), r) {
+        APPEND(result, ASSERT_ARRAY(r)[3])
+      }
       RETURN(result)
   }
 
@@ -717,19 +761,19 @@ simpleProc
   / uniq
 
 sort
-  = "sort"i rev:(_ "-r")? limit:procLimitArg?  _? !"-r" list:(fieldList)? {
+  = "sort"i rev:(_ "-r")? limit:procLimitArg?  _? !"-r" list:(fieldExprList)? {
     INIT_ASSIGN_VAR(sortdir, 1)
     IF(ISNOTNULL(rev)) { sortdir = -1 }
     RETURN(makeSortProc(list, sortdir, limit))
   }
-  / "sort"i limit:procLimitArg? rev:(_ "-r")? _? list:(fieldList)? {
+  / "sort"i limit:procLimitArg? rev:(_ "-r")? _? list:(fieldExprList)? {
     INIT_ASSIGN_VAR(sortdir, 1)
     IF(ISNOTNULL(rev)) { sortdir = -1 }
     RETURN(makeSortProc(list, sortdir, limit))
   }
 
 top
-  = "top"i limit:procLimitArg? flush:(_ "-flush")? _? list:(fieldList)? {
+  = "top"i limit:procLimitArg? flush:(_ "-flush")? _? list:(fieldExprList)? {
     RETURN(makeTopProc(list, limit, flush))
   }
 
@@ -737,7 +781,7 @@ procLimitArg
   = _ "-limit" _ limit:integer { RETURN(limit) }
 
 cut
-  = "cut"i _ list:fieldList { RETURN(makeCutProc(list)) }
+  = "cut"i _ list:fieldNameList { RETURN(makeCutProc(list)) }
 head
   = "head"i _ count:integer { RETURN(makeHeadProc(count)) }
   / "head"i { RETURN(makeHeadProc(1)) }

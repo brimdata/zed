@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/mccanne/zq/ast"
+	"github.com/mccanne/zq/expr"
 	"github.com/mccanne/zq/filter"
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/zson"
@@ -115,7 +116,18 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 		return []Proc{NewCut(c, parent, v.Fields)}, nil
 
 	case *ast.SortProc:
-		return []Proc{NewSort(c, parent, v.Limit, v.Fields, v.SortDir)}, nil
+		var fields []expr.FieldExprResolver
+		if v.Fields != nil {
+			fields = make([]expr.FieldExprResolver, 0, len(v.Fields))
+			for _, exp := range(v.Fields) {
+				res, err := expr.CompileFieldExpr(exp)
+				if err != nil {
+					return nil, err
+				}
+				fields = append(fields, res)
+			}
+		}
+		return []Proc{NewSort(c, parent, v.Limit, fields, v.SortDir)}, nil
 
 	case *ast.HeadProc:
 		limit := v.Count
@@ -145,7 +157,18 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 		return []Proc{NewFilter(c, parent, f)}, nil
 
 	case *ast.TopProc:
-		return []Proc{NewTop(c, parent, v.Limit, v.Fields, v.Flush)}, nil
+		var fields []expr.FieldExprResolver
+		if v.Fields != nil {
+			fields = make([]expr.FieldExprResolver, 0, len(v.Fields))
+			for _, exp := range(v.Fields) {
+				res, err := expr.CompileFieldExpr(exp)
+				if err != nil {
+					return nil, err
+				}
+				fields = append(fields, res)
+			}
+		}
+		return []Proc{NewTop(c, parent, v.Limit, fields, v.Flush)}, nil
 
 	case *ast.SequentialProc:
 		var parents []Proc
