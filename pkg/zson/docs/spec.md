@@ -140,10 +140,12 @@ Here is a pseudo-grammar for ZSON types:
 
 <column> := <id> : <type>
 
-<id> := <identifier as defined by JavaScript spec>
+<id> := <identifier as defined by JavaScript spec [1]>
 
 <descriptor> := 0 | [1-9][0-9]*
 ```
+
+[1] - [JavaScript identifier specification](https://tc39.es/ecma262/#prod-IdentifierName)
 
 A reference implementation of this type system is embedded in
 [zq/pkg/zeek](../../zeek).
@@ -426,7 +428,7 @@ Type | Format
 `time` | unsigned dotted decimal notation of seconds (32-bit second, 32-bit nanosecond)
 `interval` | signed dotted decimal notation of seconds (32-bit second, 32-bit nanosecond)
 `port` | an integer string in `[0,65535]` with an optional suffix of `/udp` or `/tcp`
-`addr` | a string representing an IP address in IPv4 or IPv6 form
+`addr` | a string representing an IP address in [IPv4 or IPv6 format](https://tools.ietf.org/html/draft-main-ipaddr-text-rep-02#section-3)
 `subnet` | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291.
 `enum` | a string representing an enumeration value defined outside the scope of ZSON
 
