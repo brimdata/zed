@@ -71,7 +71,7 @@ func AppendValue(dst []byte, val []byte) []byte {
 // the zval in val.
 func sizeBytes(val []byte) int {
 	// This really is correct even when val is nil.
-	return sizeUvarint(newTag(false, len(val)) + len(val)
+	return sizeUvarint(newTag(false, len(val))) + len(val)
 }
 
 // AppendUvarint is like encoding/binary.PutUvarint but appends to dst instead
