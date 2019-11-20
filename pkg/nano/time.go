@@ -111,9 +111,9 @@ func (t Ts) Sub(v int64) Ts {
 	return Ts(int64(t) - v)
 }
 
-// Subtract timestamp b from this timestamp to get a duration
-func (a Ts) SubTs(b Ts) int64 {
-	return int64(a - b)
+// SubTs returns the duration t-u.
+func (t Ts) SubTs(u Ts) int64 {
+	return int64(t - u)
 }
 
 // convert a golang time to a nano Ts

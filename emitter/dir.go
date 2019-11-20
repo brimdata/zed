@@ -86,16 +86,16 @@ func (d *Dir) lookupOutput(rec *zson.Record) (zson.WriteCloser, error) {
 // filename returns the name of the file for the specified path. This handles
 // the case of two tds one _path, adding a # in the filename for every _path that
 // has more than one td.
-func (p *Dir) filename(path string) string {
-	filename := p.prefix + path
-	if p.paths[path]++; p.paths[path] > 1 {
-		filename += fmt.Sprintf("-%d", p.paths[path])
+func (d *Dir) filename(path string) string {
+	filename := d.prefix + path
+	if d.paths[path]++; d.paths[path] > 1 {
+		filename += fmt.Sprintf("-%d", d.paths[path])
 	}
-	filename += p.ext
-	return filepath.Join(p.dir, filename)
+	filename += d.ext
+	return filepath.Join(d.dir, filename)
 }
 
-func (p *Dir) newFile(rec *zson.Record) (*os.File, string, error) {
+func (d *Dir) newFile(rec *zson.Record) (*os.File, string, error) {
 	// get path name from descriptor.  the td at column 0
 	// has already been stripped out.
 	i, ok := rec.Descriptor.ColumnOfField("_path")
@@ -103,7 +103,7 @@ func (p *Dir) newFile(rec *zson.Record) (*os.File, string, error) {
 		return nil, "", ErrNoPath
 	}
 	path := string(rec.Slice(i))
-	filename := p.filename(path)
+	filename := d.filename(path)
 	flags := os.O_WRONLY | os.O_CREATE
 	file, err := os.OpenFile(filename, flags, 0644)
 	if err != nil {
@@ -118,9 +118,9 @@ func (p *Dir) newFile(rec *zson.Record) (*os.File, string, error) {
 	return file, filename, nil
 }
 
-func (p *Dir) Close() error {
+func (d *Dir) Close() error {
 	var cerr error
-	for _, w := range p.writers {
+	for _, w := range d.writers {
 		if err := w.Close(); err != nil {
 			cerr = err
 		}

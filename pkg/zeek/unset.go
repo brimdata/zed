@@ -12,7 +12,7 @@ var compareUnset = map[string]func([]byte) bool{
 	"neql": func(val []byte) bool { return val != nil },
 }
 
-func (n *TypeOfUnset) String() string {
+func (t *TypeOfUnset) String() string {
 	return "none"
 }
 
@@ -23,21 +23,21 @@ func (t *TypeOfUnset) Parse(value []byte) (string, error) {
 func (t *TypeOfUnset) Format(value []byte) (interface{}, error) {
 	return "none", nil
 }
-func (n *TypeOfUnset) New(value []byte) (Value, error) {
+func (t *TypeOfUnset) New(value []byte) (Value, error) {
 	return &Unset{}, nil
 }
 
 type Unset struct{}
 
-func (n *Unset) String() string {
+func (u *Unset) String() string {
 	return "-"
 }
 
-func (n *Unset) Type() Type {
+func (u *Unset) Type() Type {
 	return TypeUnset
 }
 
-func (n *Unset) Comparison(op string) (Predicate, error) {
+func (u *Unset) Comparison(op string) (Predicate, error) {
 	compare, ok := compareUnset[op]
 	if !ok {
 		return nil, fmt.Errorf("unknown unset comparator: %s", op)
@@ -51,12 +51,12 @@ func (n *Unset) Comparison(op string) (Predicate, error) {
 	}, nil
 }
 
-func (n *Unset) Coerce(typ Type) Value {
+func (u *Unset) Coerce(typ Type) Value {
 	return nil
 }
 
-func (n *Unset) MarshalJSON() ([]byte, error) {
+func (u *Unset) MarshalJSON() ([]byte, error) {
 	return json.Marshal(nil)
 }
 
-func (n *Unset) Elements() ([]Value, bool) { return nil, false }
+func (u *Unset) Elements() ([]Value, bool) { return nil, false }

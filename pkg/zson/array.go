@@ -18,11 +18,11 @@ func NewArray(r []*Record, s nano.Span) *Array {
 	}
 }
 
-func (b *Array) Ref() {
+func (a *Array) Ref() {
 	// do nothing... let the GC reclaim it
 }
 
-func (b *Array) Unref() {
+func (a *Array) Unref() {
 	// do nothing... let the GC reclaim it
 }
 

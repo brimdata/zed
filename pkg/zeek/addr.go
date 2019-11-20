@@ -18,7 +18,7 @@ var compareAddr = map[string]func(net.IP, net.IP) bool{
 	"lte":  func(a, b net.IP) bool { return bytes.Compare(a, b) <= 0 },
 }
 
-func (a *TypeOfAddr) String() string {
+func (t *TypeOfAddr) String() string {
 	return "addr"
 }
 
