@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/mccanne/zq/pkg/bufwriter"
 	"github.com/mccanne/zq/pkg/zsio/zeek"
 	"github.com/mccanne/zq/pkg/zson"
 )
@@ -95,7 +96,7 @@ func (d *Dir) filename(path string) string {
 	return filepath.Join(d.dir, filename)
 }
 
-func (d *Dir) newFile(rec *zson.Record) (*os.File, string, error) {
+func (p *Dir) newFile(rec *zson.Record) (io.WriteCloser, string, error) {
 	// get path name from descriptor.  the td at column 0
 	// has already been stripped out.
 	i, ok := rec.Descriptor.ColumnOfField("_path")
@@ -115,7 +116,7 @@ func (d *Dir) newFile(rec *zson.Record) (*os.File, string, error) {
 		}
 		return nil, filename, err
 	}
-	return file, filename, nil
+	return bufwriter.New(file), filename, nil
 }
 
 func (d *Dir) Close() error {

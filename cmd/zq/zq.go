@@ -10,6 +10,7 @@ import (
 	"github.com/mccanne/charm"
 	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/emitter"
+	"github.com/mccanne/zq/pkg/bufwriter"
 	"github.com/mccanne/zq/pkg/zsio"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
@@ -238,7 +239,7 @@ func (c *Command) openOutput() (zson.WriteCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	writer := zsio.LookupWriter(c.format, file)
+	writer := zsio.LookupWriter(c.format, bufwriter.New(file))
 	if writer == nil {
 		return nil, fmt.Errorf("invalid format: %s", c.format)
 	}
