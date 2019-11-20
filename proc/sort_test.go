@@ -33,17 +33,15 @@ func parse(resolver *resolver.Table, src string) (*zson.Array, error) {
 // as the parameters to sort (XXX should just use the parser for this).
 // Parses zsonin, runs the resulting records through sort, then asserts
 // that the output matches zsonout.
-func testOne(t *testing.T, zsonin, zsonout string, limit int, fields []string, dir int) {
+func testOne(t *testing.T, zsonin, zsonout string, cmd string) {
 	resolver := resolver.NewTable()
 	recsin, err := parse(resolver, zsonin)
 	require.NoError(t, err)
 	recsout, err := parse(resolver, zsonout)
 	require.NoError(t, err)
 
-	ctx := proc.NewTestContext(nil)
-	src := proc.NewTestSource([]zson.Batch{recsin})
-	sort := proc.NewSort(ctx, src, limit, fields, dir)
-	test := proc.NewProcTest(sort, ctx)
+	test, err := proc.NewProcTestFromSource(cmd, resolver, []zson.Batch{recsin})
+	require.NoError(t, err)
 
 	result, err := test.Pull()
 	require.NoError(t, err)
@@ -177,34 +175,32 @@ const chooseOut3 = `
 `
 
 func TestSort(t *testing.T) {
-	fooCol := []string{"foo"}
-
 	// Test simple sorting of integers.
-	testOne(t, unsortedInts, ascendingInts, 1000, fooCol, 1)
+	testOne(t, unsortedInts, ascendingInts, "sort foo")
 
 	// Test sorting ints in reverse.
-	testOne(t, unsortedInts, descendingInts, 1000, fooCol, -1)
+	testOne(t, unsortedInts, descendingInts, "sort -r foo")
 
 	// Test sorting strings.
-	testOne(t, unsortedStrings, sortedStrings, 1000, fooCol, 1)
+	testOne(t, unsortedStrings, sortedStrings, "sort foo")
 
 	// Test sorting records that don't all have the requested field.
 	// XXX sort.Stable() is apparently re-ordering the nofoo records?
 	// const missingFields = nofoo + unsortedStrings
 	// const missingSorted = sortedStrings + nofoo
-	// testOne(t, missingFields, missingSorted, 1000, fooCol, 1)
+	// testOne(t, missingFields, missingSorted, "sort foo")
 
 	// Test sorting records with different types.
 	const mixedTypesIn = unsortedStrings + unsortedInts
 	const mixedTypesOut = ascendingInts + sortedStrings
-	testOne(t, mixedTypesIn, mixedTypesOut, 1000, fooCol, 1)
+	testOne(t, mixedTypesIn, mixedTypesOut, "sort foo")
 
 	// Test sorting on multiple fields.
-	testOne(t, multiIn, foobarOut, 1000, []string{"foo", "bar"}, 1)
-	testOne(t, multiIn, barfooOut, 1000, []string{"bar", "foo"}, 1)
+	testOne(t, multiIn, foobarOut, "sort foo, bar")
+	testOne(t, multiIn, barfooOut, "sort bar, foo")
 
 	// Test that choosing a field when none is provided works.
-	testOne(t, chooseIn1, chooseOut1, 1000, nil, 1)
-	testOne(t, chooseIn2, chooseOut2, 1000, nil, 1)
-	testOne(t, chooseIn3, chooseOut3, 1000, nil, 1)
+	testOne(t, chooseIn1, chooseOut1, "sort")
+	testOne(t, chooseIn2, chooseOut2, "sort")
+	testOne(t, chooseIn3, chooseOut3, "sort")
 }

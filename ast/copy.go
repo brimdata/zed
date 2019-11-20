@@ -51,8 +51,10 @@ func (p *GroupByProc) Copy() Proc {
 }
 
 func (p *SortProc) Copy() Proc {
-	fields := make([]string, len(p.Fields))
-	copy(fields, p.Fields)
+	fields := make([]FieldExpr, len(p.Fields))
+	for i, f := range(p.Fields) {
+		fields[i] = f.Copy()
+	}
 	return &SortProc{
 		Node:    Node{p.Op},
 		Fields:  fields,
@@ -61,10 +63,14 @@ func (p *SortProc) Copy() Proc {
 }
 
 func (t *TopProc) Copy() Proc {
+	fields := make([]FieldExpr, len(t.Fields))
+	for i, f := range(t.Fields) {
+		fields[i] = f.Copy()
+	}
 	return &TopProc{
 		Node:   Node{t.Op},
 		Limit:  t.Limit,
-		Fields: append([]string{}, t.Fields...),
+		Fields: fields,
 	}
 }
 

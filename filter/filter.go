@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"strconv"
 
 	"github.com/mccanne/zq/ast"
+	"github.com/mccanne/zq/expr"
 	"github.com/mccanne/zq/pkg/zeek"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zval"
@@ -64,6 +64,17 @@ func SearchString(s string) Filter {
 	}
 }
 
+func combine(res expr.FieldExprResolver, pred zeek.Predicate) Filter {
+	return func(r *zson.Record) bool {
+		typ, val := res(r)
+		if val == nil {
+			// field (or sub-field) doesn't exist in this record
+			return false
+		}
+		return pred(typ, val)
+	}
+}
+
 func CompileFieldCompare(node ast.CompareField, val zeek.Value) (Filter, error) {
 	// Treat len(field) specially since we're looking at a computed
 	// value rather than a field from a record.
@@ -83,49 +94,22 @@ func CompileFieldCompare(node ast.CompareField, val zeek.Value) (Filter, error) 
 			}
 			return comparison(int64(len))
 		}
-		return EvalField(op.Field, checklen), nil
+		resolver, err := expr.CompileFieldExpr(op.Field)
+		if err != nil {
+			return nil, err
+		}
+		return combine(resolver, checklen), nil
 	}
 
 	comparison, err := val.Comparison(node.Comparator)
 	if err != nil {
 		return nil, err
 	}
-	switch op := node.Field.(type) {
-	case *ast.FieldRead:
-		return EvalField(op.Field, comparison), nil
-	case *ast.FieldCall:
-		switch op.Fn {
-		// Len handled above
-		case "Index":
-			idx, err := strconv.ParseInt(op.Param, 10, 64)
-			if err != nil {
-				return nil, err
-			}
-			checkidx := func(typ zeek.Type, val []byte) bool {
-				elType, elVal, err := zeek.VectorIndex(typ, val, idx)
-				if err != nil {
-					return false
-				}
-				return comparison(elType, elVal)
-			}
-			return EvalField(op.Field, checkidx), nil
-		default:
-			return nil, fmt.Errorf("unknown FieldCall: %s", op.Fn)
-		}
-	default:
-		return nil, errors.New("filter AST unknown field op")
+	resolver, err := expr.CompileFieldExpr(node.Field)
+	if err != nil {
+		return nil, err
 	}
-}
-
-func EvalField(field string, eval zeek.Predicate) Filter {
-	return func(p *zson.Record) bool {
-		col, ok := p.Descriptor.LUT[field]
-		if !ok {
-			// field name doesn't exist in this record
-			return false
-		}
-		return eval(p.TypeOfColumn(col), p.Slice(col))
-	}
+	return combine(resolver, comparison), nil
 }
 
 func EvalAny(eval zeek.Predicate) Filter {
@@ -192,13 +176,13 @@ func Compile(node ast.BooleanExpr) (Filter, error) {
 		}
 
 		if v.Comparator == "in" {
-			fieldRead, ok := v.Field.(*ast.FieldRead)
-			if !ok {
-				return nil, errors.New("type mismatch for in comparison on computed value")
+			resolver, err := expr.CompileFieldExpr(v.Field)
+			if err != nil {
+				return nil, err
 			}
 			eql, _ := z.Comparison("eql")
 			comparison := zeek.Contains(eql)
-			return EvalField(fieldRead.Field, comparison), nil
+			return combine(resolver, comparison), nil
 		}
 
 		return CompileFieldCompare(*v, z)

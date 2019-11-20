@@ -3,7 +3,9 @@ package proc
 import (
 	"container/heap"
 
+	"github.com/mccanne/zq/expr"
 	"github.com/mccanne/zq/pkg/nano"
+	"github.com/mccanne/zq/pkg/zeek"
 	"github.com/mccanne/zq/pkg/zson"
 )
 
@@ -17,14 +19,14 @@ const defaultTopLimit = 100
 type Top struct {
 	Base
 	limit      int
-	fields     []string
-	records    *zson.RecordSlice
-	sorter     zson.SortFn
+	fields     []expr.FieldExprResolver
+	records    *expr.RecordSlice
+	sorter     expr.SortFn
 	flushEvery bool
 	out        []*zson.Record
 }
 
-func NewTop(c *Context, parent Proc, limit int, fields []string, flushEvery bool) *Top {
+func NewTop(c *Context, parent Proc, limit int, fields []expr.FieldExprResolver, flushEvery bool) *Top {
 	if limit == 0 {
 		limit = defaultTopLimit
 	}
@@ -57,12 +59,20 @@ func (s *Top) Pull() (zson.Batch, error) {
 
 func (s *Top) consume(rec *zson.Record) {
 	if s.fields == nil {
-		s.fields = []string{guessSortField(rec)}
+		fld := guessSortField(rec)
+		resolver := func(r *zson.Record) (zeek.Type, []byte) {
+			v, t, err := r.Access(fld)
+			if err != nil {
+				return nil, nil
+			}
+			return t, v
+		}
+		s.fields = []expr.FieldExprResolver{resolver}
 	}
 	if s.records == nil {
 		// 1 == MaxHeap
-		s.sorter = zson.NewSortFn(1, s.fields...)
-		s.records = zson.NewRecordSlice(s.sorter)
+		s.sorter = expr.NewSortFn(1, s.fields...)
+		s.records = expr.NewRecordSlice(s.sorter)
 		heap.Init(s.records)
 	}
 	if s.records.Len() < s.limit || s.sorter(s.records.Index(0), rec) < 0 {

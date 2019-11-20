@@ -23,10 +23,8 @@ func TestTop(t *testing.T) {
 	r5, _ := zson.NewRecordZeekStrings(fooDesc, "5")
 	fooBatch := zson.NewArray([]*zson.Record{r0, r1, r2, r3, r4, r5}, nano.MaxSpan)
 
-	ctx := proc.NewTestContext(nil)
-	src := proc.NewTestSource([]zson.Batch{fooBatch})
-	top := proc.NewTop(ctx, src, 3, []string{"foo"}, false)
-	test := proc.NewProcTest(top, ctx)
+	test, err := proc.NewProcTestFromSource("top -limit 3 foo", resolver, []zson.Batch{fooBatch})
+	require.NoError(t, err)
 
 	res, err := test.Pull()
 	require.NoError(t, err)
