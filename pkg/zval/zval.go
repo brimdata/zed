@@ -49,7 +49,12 @@ func AppendContainer(dst []byte, vals [][]byte) []byte {
 	}
 	var n int
 	for _, v := range vals {
-		n += sizeOfByteSlice(v)
+		//XXX this doesn't look like it could work right because we
+		// need to know whether the sub-zval is a container or a value,
+		// but in practice, the lengths are always the same because the
+		// variable length encoding of the size is not affected by the
+		// low bit of the tag encoding.
+		n += sizeOfValue(len(v))
 	}
 	dst = AppendUvarint(dst, containerTag(n))
 	for _, v := range vals {
@@ -65,13 +70,6 @@ func AppendValue(dst []byte, val []byte) []byte {
 	}
 	dst = AppendUvarint(dst, valueTag(len(val)))
 	return append(dst, val...)
-}
-
-// sizeOfByteSlice returns the number of bytes required by AppendValue to represent
-// the zval in val.
-func sizeOfByteSlice(val []byte) int {
-	// This really is correct even when val is nil.
-	return sizeOfUvarint(valueTag(len(val))) + len(val)
 }
 
 // AppendUvarint is like encoding/binary.PutUvarint but appends to dst instead
@@ -101,10 +99,14 @@ func Uvarint(buf []byte) (uint64, int) {
 	return binary.Uvarint(buf)
 }
 
+// sizeOfContainer returns the number of bytes required to represent
+// a container byte slice of the indicated length as a zval.
 func sizeOfContainer(length int) int {
 	return (sizeOfUvarint(containerTag(length))) + length
 }
 
+// sizeOfValue returns the number of bytes required to represent
+// a byte slice of the indicated length as a zval.
 func sizeOfValue(length int) int {
 	return int(sizeOfUvarint(valueTag(length))) + length
 }
