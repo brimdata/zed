@@ -31,6 +31,7 @@ type BatchReader interface {
 	Read() (Batch, error)
 }
 
+
 type BatchWriter interface {
 	Write(Batch) error
 }

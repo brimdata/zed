@@ -411,6 +411,12 @@ would be interpreted as the following zson record:
 record[id:record[orig_h:addr,orig_p:port,resp_h:addr,resp_p:port],message:string]
 ```
 
+When nested record are flattened in the legacy format in this manner,
+all sub-field of a nested record must appear consecutively in the
+`#fields` and `#types` directives.
+Additionally, only one level of nesting is valid.  In other words,
+flattened field names may contain a maximum of one dot (".") character.
+
 # Type Semantics
 
 Each string parsed from a value line is interpreted according to the

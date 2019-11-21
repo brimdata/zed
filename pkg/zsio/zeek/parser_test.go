@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/mccanne/zq/pkg/nano"
+	"github.com/mccanne/zq/pkg/zeek"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
 	"github.com/stretchr/testify/assert"
@@ -109,6 +110,85 @@ func TestLegacyZeekValid(t *testing.T) {
 	// XXX test overriding separator, setSeparator
 }
 
+func TestNestedRecords(t *testing.T) {
+	// Test the parser handling of nested records.  Note that the
+	// schema used here touches several edge cases:
+	//  - nested records separated with a regular field
+	//  - adjacent nested records (nest2, nest3)
+	//  - nested record as the final column
+	fields := []string{"a", "nest1.a", "nest1.b", "b", "nest2.y", "nest3.z"}
+	types := []string{"int", "int", "int", "int", "int", "int"}
+	vals := []string{"1", "2", "3", "4", "5", "6"}
+
+	parser := startLegacyTest(t, fields, types, "")
+	record, err := sendLegacyValues(parser, vals)
+	require.NoError(t, err)
+
+	// First check that the descriptor was created correctly
+	cols := record.Descriptor.Type.Columns
+	assert.Equal(t, 6, len(cols), "Descriptor has 5 columns")
+	assert.Equal(t, "_path", cols[0].Name, "Column 0 is _path")
+	assert.Equal(t, "a", cols[1].Name, "Column 1 is a")
+	assert.Equal(t, "nest1", cols[2].Name, "Column 2 is nest1")
+	nest1Type, ok := cols[2].Type.(*zeek.TypeRecord)
+	assert.True(t, ok, "Column nest1 is a record")
+	assert.Equal(t, 2, len(nest1Type.Columns), "nest1 has 2 columns")
+	assert.Equal(t, "a", nest1Type.Columns[0].Name, "First column in nest1 is a")
+	assert.Equal(t, "b", nest1Type.Columns[1].Name, "Second column in nest1 is b")
+	assert.Equal(t, "b", cols[3].Name, "Column 3 is b")
+	assert.Equal(t, "nest2", cols[4].Name, "Column 4 is nest2")
+	nest2Type, ok := cols[4].Type.(*zeek.TypeRecord)
+	assert.True(t, ok, "Columns nest2 is a record")
+	assert.Equal(t, 1, len(nest2Type.Columns), "nest2 has 1 column")
+	assert.Equal(t, "y", nest2Type.Columns[0].Name, "column in nest2 is y")
+	assert.Equal(t, "nest3", cols[5].Name, "Column 5 is nest3")
+	nest3Type, ok := cols[5].Type.(*zeek.TypeRecord)
+	assert.True(t, ok, "Column nest3 is a record")
+	assert.Equal(t, 1, len(nest3Type.Columns), "nest3 has 1 column")
+	assert.Equal(t, "z", nest3Type.Columns[0].Name, "column in nest3 is z")
+
+	v, err := record.AccessInt("a")
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), v, "Field a has value 1")
+
+	raw, typ, err := record.Access("nest1")
+	require.NoError(t, err)
+	assert.Equal(t, nest1Type, typ, "Got right type for field nest1")
+	subVals, err := nest1Type.Parse(raw)
+	require.NoError(t, err)
+	assert.Equal(t, 2, len(subVals), "nest1 has 2 elements")
+	i, ok := subVals[0].(*zeek.Int)
+	assert.True(t, ok, "field 0 in nest1 is int")
+	assert.Equal(t, int64(2), i.Native, "nest1.a is 2")
+	i, ok = subVals[1].(*zeek.Int)
+	assert.True(t, ok, "field 1 in nest1 is int")
+	assert.Equal(t, int64(3), i.Native, "nest1.b is 3")
+
+	v, err = record.AccessInt("b")
+	require.NoError(t, err)
+	assert.Equal(t, int64(4), v, "Field b has value 4")
+
+	raw, typ, err = record.Access("nest2")
+	require.NoError(t, err)
+	assert.Equal(t, nest2Type, typ, "Got right type for field nest2")
+	subVals, err = nest2Type.Parse(raw)
+	require.NoError(t, err)
+	assert.Equal(t, 1, len(subVals), "nest2 has 1 element")
+	i, ok = subVals[0].(*zeek.Int)
+	assert.True(t, ok, "field 0 in nest2 is int")
+	assert.Equal(t, int64(5), i.Native, "nest2.y is 5")
+	
+	raw, typ, err = record.Access("nest3")
+	require.NoError(t, err)
+	assert.Equal(t, nest3Type, typ, "Got right type for field nest3")
+	subVals, err = nest3Type.Parse(raw)
+	require.NoError(t, err)
+	assert.Equal(t, 1, len(subVals), "nest3 has 1 element")
+	i, ok = subVals[0].(*zeek.Int)
+	assert.True(t, ok, "field 0 in nest3 is int")
+	assert.Equal(t, int64(6), i.Native, "nest3.z is 6")
+}
+
 // Test things related to legacy zeek records that should cause the
 // parser to generate errors.
 func TestLegacyZeekInvalid(t *testing.T) {
@@ -149,7 +229,7 @@ func TestLegacyZeekInvalid(t *testing.T) {
 	// Test that the wrong number of values is an error
 	parser = startTest(t, append(standardHeaders, fh, th))
 	_, err = sendLegacyValues(parser, append(values, "extra"))
-	assertError(t, err, "got 7 values, expected 6", "wrong number of values")
+	assertError(t, err, "too many values", "wrong number of values")
 
 	// XXX check invalid types?
 }

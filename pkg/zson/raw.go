@@ -98,19 +98,67 @@ func NewRawAndTsFromJSON(d *Descriptor, tsCol int, data []byte) (Raw, nano.Ts, e
 	return raw, ts, nil
 }
 
-func NewRawAndTsFromZeekTSV(d *Descriptor, tsCol int, path []byte, data []byte) (Raw, nano.Ts, error) {
-	vals := make([][]byte, 0, 32) // Fixed length for stack allocation.
-	vals = append(vals, path)
+func NewRawAndTsFromZeekTSV(d *Descriptor, path []byte, data []byte) (Raw, nano.Ts, error) {
+	raw := make([]byte, 0)
+	columns := d.Type.Columns
+	col := 0
+	// XXX assert that columns[col].Name == "_path" ?
+	raw = appendZvalFromZeek(raw, columns[col].Type, path)
+	col++
+
+	var ts nano.Ts
 	const separator = '\t'
 	var start int
+	var nested [][]byte
+	handleVal := func(val []byte) error {
+		if col >= len(columns) {
+			return errors.New("too many values")
+		}
+
+		typ := columns[col].Type
+		recType, isRec := typ.(*zeek.TypeRecord)
+		if isRec {
+			if nested == nil {
+				nested = make([][]byte, 0)
+			}
+			nested = append(nested, val)
+			if len(nested) == len(recType.Columns) {
+				raw = zval.AppendContainer(raw, nested)
+				nested = nil
+				col++
+			}
+		} else {
+			if columns[col].Name == "ts" {
+				var err error
+				ts, err = nano.Parse(val)
+				if err != nil {
+					return err
+				}
+			}
+			raw = appendZvalFromZeek(raw, typ, val)
+			col++
+		}
+		return nil
+	}
+	
 	for i, c := range data {
 		if c == separator {
-			vals = append(vals, data[start:i])
+			err := handleVal(data[start:i])
+			if err != nil {
+				return nil, 0, err
+			}
 			start = i + 1
 		}
 	}
-	vals = append(vals, data[start:])
-	return NewRawAndTsFromZeekValues(d, tsCol, vals)
+	err := handleVal(data[start:])
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if col != len(d.Type.Columns) {
+		return nil, 0, errors.New("too few values")
+	}
+	return raw, ts, nil
 }
 
 func NewRawAndTsFromZeekValues(d *Descriptor, tsCol int, vals [][]byte) (Raw, nano.Ts, error) {
