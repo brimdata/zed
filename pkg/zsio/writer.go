@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zval"
@@ -84,19 +83,54 @@ func (w *Writer) writeValue(val []byte) error {
 	if val == nil {
 		return w.write("-;")
 	}
-	if err := w.write(zsonEscape(string(val))); err != nil {
+	if err := w.writeEscaped(val); err != nil {
 		return err
 	}
 	return w.write(";")
 }
 
-func zsonEscape(s string) string {
-	if s == "-" {
-		return "\\-"
-	}
+func (w *Writer) escape(c byte) error {
+	return w.write(fmt.Sprintf("\\x%02x", c))
+}
 
-	s = strings.ReplaceAll(s, "\\", "\\\\")
-	s = strings.ReplaceAll(s, ";", "\\;")
-	s = strings.ReplaceAll(s, "\n", "\\n")
-	return s
+func (w *Writer) writeEscaped(val []byte) error {
+	if len(val) == 0 {
+		return nil
+	}
+	if len(val) == 1 && val[0] == '-' {
+		return w.escape('-')
+	}
+	// We escape a bracket if it appears as the first byte of a value;
+	// we otherwise don't need to escape brackets.
+	if val[0] == '[' {
+		if err := w.escape('['); err != nil {
+			return err
+		}
+		val = val[1:]
+	}
+	off := 0
+	for off < len(val) {
+		c := val[off]
+		switch c {
+		case '\\', ';', '\n':
+			if off > 0 {
+				_, err := w.writer.Write(val[:off])
+				if err != nil {
+					return err
+				}
+			}
+			if err := w.escape(c); err != nil {
+				return err
+			}
+			val = val[off+1:]
+			off = 0
+		default:
+			off++
+		}
+	}
+	var err error
+	if len(val) > 0 {
+		_, err = w.writer.Write(val)
+	}
+	return err
 }
