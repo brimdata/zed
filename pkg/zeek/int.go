@@ -18,7 +18,7 @@ var compareInt = map[string]func(int64, int64) bool{
 	"lt":   func(a, b int64) bool { return a < b },
 	"lte":  func(a, b int64) bool { return a <= b }}
 
-func (i *TypeOfInt) String() string {
+func (t *TypeOfInt) String() string {
 	return "int"
 }
 

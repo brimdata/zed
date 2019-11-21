@@ -18,7 +18,7 @@ var compareFloat = map[string]func(float64, float64) bool{
 	"lt":   func(a, b float64) bool { return a < b },
 	"lte":  func(a, b float64) bool { return a <= b }}
 
-func (s *TypeOfDouble) String() string {
+func (t *TypeOfDouble) String() string {
 	return "double"
 }
 

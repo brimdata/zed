@@ -49,11 +49,11 @@ func (t *TypeOfBool) Format(value []byte) (interface{}, error) {
 	return t.Parse(value)
 }
 
-func (b *TypeOfBool) New(value []byte) (Value, error) {
+func (t *TypeOfBool) New(value []byte) (Value, error) {
 	if value == nil {
 		return &Unset{}, nil
 	}
-	v, err := b.Parse(value)
+	v, err := t.Parse(value)
 	if err != nil {
 		return nil, err
 	}

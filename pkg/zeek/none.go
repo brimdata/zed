@@ -7,7 +7,7 @@ import (
 
 type TypeOfNone struct{}
 
-func (n *TypeOfNone) String() string {
+func (t *TypeOfNone) String() string {
 	return "none"
 }
 
@@ -18,7 +18,7 @@ func (t *TypeOfNone) Parse(value []byte) (string, error) {
 func (t *TypeOfNone) Format(value []byte) (interface{}, error) {
 	return "none", nil
 }
-func (n *TypeOfNone) New(value []byte) (Value, error) {
+func (t *TypeOfNone) New(value []byte) (Value, error) {
 	return nil, errors.New("cannot call New() on TypeNone")
 }
 

@@ -89,32 +89,32 @@ func (r *Record) ZvalIter() zval.Iter {
 // Width returns the number of columns in the record.
 func (r *Record) Width() int { return len(r.Descriptor.Type.Columns) }
 
-func (t *Record) Keep() *Record {
-	if t.Stable {
-		return t
+func (r *Record) Keep() *Record {
+	if r.Stable {
+		return r
 	}
-	v := &Record{Ts: t.Ts, Descriptor: t.Descriptor, Stable: true}
-	v.Raw = make(Raw, len(t.Raw))
-	copy(v.Raw, t.Raw)
+	v := &Record{Ts: r.Ts, Descriptor: r.Descriptor, Stable: true}
+	v.Raw = make(Raw, len(r.Raw))
+	copy(v.Raw, r.Raw)
 	return v
 }
 
-func (t *Record) HasField(field string) bool {
-	_, ok := t.Descriptor.LUT[field]
+func (r *Record) HasField(field string) bool {
+	_, ok := r.Descriptor.LUT[field]
 	return ok
 }
 
-func (t *Record) Bytes() []byte {
-	if t.Raw == nil {
+func (r *Record) Bytes() []byte {
+	if r.Raw == nil {
 		panic("this shouldn't happen")
 	}
-	return t.Raw
+	return r.Raw
 }
 
-func (t *Record) Strings() ([]string, error) {
+func (r *Record) Strings() ([]string, error) {
 	var ss []string
-	it := t.ZvalIter()
-	for _, col := range t.Descriptor.Type.Columns {
+	it := r.ZvalIter()
+	for _, col := range r.Descriptor.Type.Columns {
 		val, _, err := it.Next()
 		if err != nil {
 			return nil, err
@@ -130,18 +130,18 @@ func (r *Record) ValueByColumn(col int) zeek.Value {
 	return v
 }
 
-func (t *Record) ValueByField(field string) zeek.Value {
+func (r *Record) ValueByField(field string) zeek.Value {
 	//XXX shouldn't ignore error
-	col, ok := t.ColumnOfField(field)
+	col, ok := r.ColumnOfField(field)
 	if ok {
-		return t.ValueByColumn(col)
+		return r.ValueByColumn(col)
 	}
 	return nil
 }
 
-func (t *Record) Slice(column int) []byte {
+func (r *Record) Slice(column int) []byte {
 	var val []byte
-	for i, it := 0, t.ZvalIter(); i <= column; i++ {
+	for i, it := 0, r.ZvalIter(); i <= column; i++ {
 		if it.Done() {
 			return nil
 		}
@@ -154,12 +154,12 @@ func (t *Record) Slice(column int) []byte {
 	return val
 }
 
-func (t *Record) String(column int) string {
-	return string(t.Slice(column))
+func (r *Record) String(column int) string {
+	return string(r.Slice(column))
 }
 
-func (t *Record) ColumnOfField(field string) (int, bool) {
-	return t.Descriptor.ColumnOfField(field)
+func (r *Record) ColumnOfField(field string) (int, bool) {
+	return r.Descriptor.ColumnOfField(field)
 }
 
 func (r *Record) TypeOfColumn(col int) zeek.Type {
@@ -174,8 +174,8 @@ func (r *Record) Access(field string) ([]byte, zeek.Type, error) {
 
 }
 
-func (t *Record) AccessString(field string) (string, error) {
-	b, typ, err := t.Access(field)
+func (r *Record) AccessString(field string) (string, error) {
+	b, typ, err := r.Access(field)
 	if err != nil {
 		return "", err
 	}
@@ -186,8 +186,8 @@ func (t *Record) AccessString(field string) (string, error) {
 	return typeString.Parse(b)
 }
 
-func (t *Record) AccessBool(field string) (bool, error) {
-	b, typ, err := t.Access(field)
+func (r *Record) AccessBool(field string) (bool, error) {
+	b, typ, err := r.Access(field)
 	if err != nil {
 		return false, err
 	}
@@ -198,8 +198,8 @@ func (t *Record) AccessBool(field string) (bool, error) {
 	return typeBool.Parse(b)
 }
 
-func (t *Record) AccessInt(field string) (int64, error) {
-	b, typ, err := t.Access(field)
+func (r *Record) AccessInt(field string) (int64, error) {
+	b, typ, err := r.Access(field)
 	if err != nil {
 		return 0, err
 	}
@@ -216,8 +216,8 @@ func (t *Record) AccessInt(field string) (int64, error) {
 	return 0, ErrTypeMismatch
 }
 
-func (t *Record) AccessDouble(field string) (float64, error) {
-	b, typ, err := t.Access(field)
+func (r *Record) AccessDouble(field string) (float64, error) {
+	b, typ, err := r.Access(field)
 	if err != nil {
 		return 0, err
 	}
@@ -228,8 +228,8 @@ func (t *Record) AccessDouble(field string) (float64, error) {
 	return typeDouble.Parse(b)
 }
 
-func (t *Record) AccessIP(field string) (net.IP, error) {
-	b, typ, err := t.Access(field)
+func (r *Record) AccessIP(field string) (net.IP, error) {
+	b, typ, err := r.Access(field)
 	if err != nil {
 		return nil, err
 	}
@@ -240,8 +240,8 @@ func (t *Record) AccessIP(field string) (net.IP, error) {
 	return typeAddr.Parse(b)
 }
 
-func (t *Record) AccessTime(field string) (nano.Ts, error) {
-	b, typ, err := t.Access(field)
+func (r *Record) AccessTime(field string) (nano.Ts, error) {
+	b, typ, err := r.Access(field)
 	if err != nil {
 		return 0, err
 	}
@@ -257,15 +257,15 @@ func (t *Record) AccessTime(field string) (nano.Ts, error) {
 // receiver's Buffer is reclaimed.  If dest's underlying array is large enough,
 // Cut uses it for the returned slice.  Otherwise, a new array is allocated.
 // Cut returns nil if any field is missing from the receiver.
-func (t *Record) Cut(fields []string, dest [][]byte) [][]byte {
+func (r *Record) Cut(fields []string, dest [][]byte) [][]byte {
 	if n := len(fields); cap(dest) < n {
 		dest = make([][]byte, n)
 	} else {
 		dest = dest[:n]
 	}
 	for k, field := range fields {
-		if col, ok := t.Descriptor.LUT[field]; ok {
-			dest[k] = t.Slice(col)
+		if col, ok := r.Descriptor.LUT[field]; ok {
+			dest[k] = r.Slice(col)
 		} else {
 			return nil
 		}
