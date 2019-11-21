@@ -112,19 +112,94 @@ func handleJSONTimestamp(data []byte) (nano.Ts, []byte, error) {
 	}
 }
 
-func NewRawAndTsFromZeekTSV(d *Descriptor, tsCol int, path []byte, data []byte) (zval.Encoding, nano.Ts, error) {
-	vals := make([][]byte, 0, 32) // Fixed length for stack allocation.
-	vals = append(vals, path)
+func NewRawAndTsFromZeekTSV(d *Descriptor, path []byte, data []byte) (zval.Encoding, nano.Ts, error) {
+	builder := zval.NewBuilder()
+	columns := d.Type.Columns
+	col := 0
+	// XXX assert that columns[col].Name == "_path" ?
+	builder.Append(path)
+	col++
+
+	var ts nano.Ts
 	const separator = '\t'
+	const setSeparator = ','
+	const emptyContainer = "(empty)"
 	var start int
+	nestedCol := 0
+	handleVal := func(val []byte) error {
+		if col >= len(columns) {
+			return errors.New("too many values")
+		}
+
+		typ := columns[col].Type
+		recType, isRec := typ.(*zeek.TypeRecord)
+		if isRec {
+			if nestedCol == 0 {
+				builder.Begin()
+			}
+			typ = recType.Columns[nestedCol].Type
+		} else if columns[col].Name == "ts" {
+			var err error
+			ts, err = nano.Parse(val)
+			if err != nil {
+				return err
+			}
+		}
+
+		if len(val) == 1 && val[0] == '-' {
+			builder.Append(nil)
+		} else {
+			switch typ.(type) {
+			case *zeek.TypeSet, *zeek.TypeVector:
+				builder.Begin()
+				if bytes.Compare(val, []byte(emptyContainer)) != 0 {
+					cstart := 0
+					for i, ch := range(val) {
+						if ch == setSeparator {
+							builder.Append(zeek.Unescape(val[cstart:i]))
+							cstart = i+1
+						}
+					}
+					builder.Append(zeek.Unescape(val[cstart:]))
+				}
+				builder.End()
+			default:
+				// regular (non-container) value
+				builder.Append(zeek.Unescape(val))
+			}
+		}
+
+		if isRec {
+			nestedCol++
+			if nestedCol == len(recType.Columns) {
+				builder.End()
+				nestedCol = 0
+				col++
+			}
+		} else {
+			col++
+		}
+		return nil
+	}
+
 	for i, c := range data {
 		if c == separator {
-			vals = append(vals, data[start:i])
+			err := handleVal(data[start:i])
+			if err != nil {
+				return nil, 0, err
+			}
 			start = i + 1
 		}
 	}
-	vals = append(vals, data[start:])
-	return NewRawAndTsFromZeekValues(d, tsCol, vals)
+	err := handleVal(data[start:])
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if col != len(d.Type.Columns) {
+		return nil, 0, errors.New("too few values")
+	}
+	return builder.Encode(), ts, nil
 }
 
 func NewRawAndTsFromZeekValues(d *Descriptor, tsCol int, vals [][]byte) (zval.Encoding, nano.Ts, error) {
