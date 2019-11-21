@@ -171,7 +171,9 @@ func (p *Parser) Parse(desc *Descriptor, zson []byte) (Raw, error) {
 		}
 		zson = rest
 	}
-	return builder.Encode(), nil
+	zv := builder.Encode()
+	//fmt.Println("ENCODE", Raw(zv).String())
+	return zv, nil
 }
 
 const (
@@ -215,6 +217,10 @@ func zsonParseField(builder *zval.Builder, b []byte) ([]byte, error) {
 	if b[0] == leftbracket {
 		return zsonParseContainer(builder, b)
 	}
+	if len(b) >= 2 && b[0] == '-' && b[1] == ';' {
+		builder.Append(nil)
+		return b[2:], nil
+	}
 	to := 0
 	from := 0
 	for {
@@ -223,10 +229,6 @@ func zsonParseField(builder *zval.Builder, b []byte) ([]byte, error) {
 		}
 		switch b[from] {
 		case semicolon:
-			if to == 1 && b[0] == '-' {
-				builder.Append(nil)
-				return b[2:], nil
-			}
 			builder.Append(b[:to])
 			return b[from+1:], nil
 		case backslash:
@@ -242,4 +244,20 @@ func zsonParseField(builder *zval.Builder, b []byte) ([]byte, error) {
 		}
 		to++
 	}
+}
+
+func (r Raw) String() string {
+	s := ""
+	for it := zval.Iter(r); !it.Done(); {
+		v, container, err := it.Next()
+		if err != nil {
+			return s + "Err: " + err.Error()
+		}
+		if container {
+			s += "[" + Raw(v).String() + "]"
+		} else {
+			s += "(" + string(v) + ")"
+		}
+	}
+	return s
 }

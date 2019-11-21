@@ -43,6 +43,10 @@ const zson3 = `
 #0:record[foo:set[string]]
 0:[[-;];];`
 
+const zson4 = `
+#0:record[foo:string]
+0:[\x2d;];`
+
 func TestZson(t *testing.T) {
 	identity(t, zson1)
 	identity(t, zson2)
