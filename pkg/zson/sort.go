@@ -91,6 +91,8 @@ func lookupSorter(r *Record, field string, dir int) SortFn {
 	switch typ.(type) {
 	default:
 		return func(*Record, *Record) int { return 1 }
+	case *zeek.TypeOfUnset:
+		return nil
 	case *zeek.TypeOfBool:
 		return func(a, b *Record) int {
 			va, err := a.AccessBool(field)

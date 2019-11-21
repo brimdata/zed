@@ -14,13 +14,14 @@ import (
 func TestTop(t *testing.T) {
 	resolver := resolver.NewTable()
 
-	fooDesc := resolver.GetByColumns([]zeek.Column{{"foo", zeek.TypeInt}})
+	fooDesc := resolver.GetByColumns([]zeek.Column{{"foo", zeek.TypeCount}})
+	r0, _ := zson.NewRecordZeekStrings(fooDesc, "-")
 	r1, _ := zson.NewRecordZeekStrings(fooDesc, "1")
 	r2, _ := zson.NewRecordZeekStrings(fooDesc, "2")
 	r3, _ := zson.NewRecordZeekStrings(fooDesc, "3")
 	r4, _ := zson.NewRecordZeekStrings(fooDesc, "4")
 	r5, _ := zson.NewRecordZeekStrings(fooDesc, "5")
-	fooBatch := zson.NewArray([]*zson.Record{r1, r2, r3, r4, r5}, nano.MaxSpan)
+	fooBatch := zson.NewArray([]*zson.Record{r0, r1, r2, r3, r4, r5}, nano.MaxSpan)
 
 	ctx := proc.NewTestContext(nil)
 	src := proc.NewTestSource([]zson.Batch{fooBatch})
