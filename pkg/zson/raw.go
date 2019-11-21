@@ -38,7 +38,8 @@ func NewRawFromZvals(d *Descriptor, vals [][]byte) (Raw, error) {
 // the underlying JSON values.  This slice follows the order of the descriptor
 // columns.  Second, it appends the descriptor ID and the values to a new
 // buffer.
-func NewRawAndTsFromJSON(d *Descriptor, tsCol int, data []byte) (Raw, nano.Ts, error) {
+func NewRawAndTsFromJSON(d *Descriptor, tsCol int, data []byte) (Raw, nano.Ts, int, error) {
+	var droppedFields int
 	type jsonVal struct {
 		val []byte
 		typ jsonparser.ValueType
@@ -52,11 +53,13 @@ func NewRawAndTsFromJSON(d *Descriptor, tsCol int, data []byte) (Raw, nano.Ts, e
 		if col, ok := d.ColumnOfField(string(key)); ok {
 			jsonVals[col] = jsonVal{val, typ}
 			n += len(val) + 1 // Estimate for zval and its length uvarint.
+		} else {
+			droppedFields++
 		}
 		return nil
 	}
 	if err := jsonparser.ObjectEach(data, callback); err != nil {
-		return nil, 0, err
+		return nil, 0, 0, err
 	}
 	raw := make([]byte, 0, n)
 	var ts nano.Ts
@@ -68,7 +71,7 @@ func NewRawAndTsFromJSON(d *Descriptor, tsCol int, data []byte) (Raw, nano.Ts, e
 			if err != nil {
 				ts, err = nano.ParseRFC3339Nano(val)
 				if err != nil {
-					return nil, 0, err
+					return nil, 0, 0, err
 				}
 			}
 		}
@@ -79,7 +82,7 @@ func NewRawAndTsFromJSON(d *Descriptor, tsCol int, data []byte) (Raw, nano.Ts, e
 				vals = append(vals, v)
 			}
 			if _, err := jsonparser.ArrayEach(val, callback); err != nil {
-				return nil, 0, err
+				return nil, 0, 0, err
 			}
 			raw = zval.AppendContainer(raw, vals)
 			continue
@@ -95,7 +98,7 @@ func NewRawAndTsFromJSON(d *Descriptor, tsCol int, data []byte) (Raw, nano.Ts, e
 		}
 		raw = zval.AppendValue(raw, val)
 	}
-	return raw, ts, nil
+	return raw, ts, droppedFields, nil
 }
 
 func NewRawAndTsFromZeekTSV(d *Descriptor, tsCol int, path []byte, data []byte) (Raw, nano.Ts, error) {
