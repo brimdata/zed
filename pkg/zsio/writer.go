@@ -1,7 +1,6 @@
 package zsio
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"strings"
@@ -11,24 +10,15 @@ import (
 )
 
 type Writer struct {
-	writer      *bufio.Writer
-	closer      io.Closer
+	io.WriteCloser
 	descriptors map[int]struct{}
 }
 
 func NewWriter(w io.WriteCloser) *Writer {
 	return &Writer{
-		writer:      bufio.NewWriter(w),
-		closer:      w,
+		WriteCloser: w,
 		descriptors: make(map[int]struct{}),
 	}
-}
-
-func (w *Writer) Close() error {
-	if err := w.writer.Flush(); err != nil {
-		return err
-	}
-	return w.closer.Close()
 }
 
 func (w *Writer) Write(r *zson.Record) error {
@@ -36,12 +26,12 @@ func (w *Writer) Write(r *zson.Record) error {
 	_, ok := w.descriptors[td]
 	if !ok {
 		w.descriptors[td] = struct{}{}
-		_, err := fmt.Fprintf(w.writer, "#%d:%s\n", td, r.Descriptor.Type)
+		_, err := fmt.Fprintf(w.WriteCloser, "#%d:%s\n", td, r.Descriptor.Type)
 		if err != nil {
 			return err
 		}
 	}
-	_, err := fmt.Fprintf(w.writer, "%d:", td)
+	_, err := fmt.Fprintf(w.WriteCloser, "%d:", td)
 	if err != nil {
 		return nil
 	}
@@ -52,7 +42,7 @@ func (w *Writer) Write(r *zson.Record) error {
 }
 
 func (w *Writer) write(s string) error {
-	_, err := w.writer.Write([]byte(s))
+	_, err := w.WriteCloser.Write([]byte(s))
 	return err
 }
 
