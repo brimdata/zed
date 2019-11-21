@@ -149,31 +149,77 @@ func (p *Parser) ParseDirective(line []byte) error {
 	return nil
 }
 
+// Unflatten() turns a set of columns from legacy zeek logs into
+// a zson-compatible format by creating nested records for any
+// dotted field names and adding a _path column if one is not already
+// present.  Note that according to the zson spec, all the fields for
+// a nested record must be adjacent which simplifies the logic here.
+func Unflatten(columns []zeek.Column, resolver *resolver.Table) (*zson.Descriptor, error) {
+	hasPath := false
+	cols := make([]zeek.Column, 0)
+	var nestedCols []zeek.Column
+	var nestedField string
+	for _, col := range(columns) {
+		// XXX could validate field names here...
+		if col.Name == "_path" {
+			hasPath = true
+		}
+
+		var fld string
+		dot := strings.IndexByte(col.Name, '.')
+		if dot >= 0 {
+			fld = col.Name[:dot]
+		}
+
+		// Check if we're entering or leaving a nested record.
+		if fld != nestedField {
+			if len(nestedField) > 0 {
+				// We've reached the end of a nested record.
+				recType := zeek.LookupTypeRecord(nestedCols)
+				newcol := zeek.Column{nestedField, recType}
+				cols = append(cols, newcol)
+			}
+
+			if len(fld) > 0 {
+				// We're entering a new nested record.
+				nestedCols = make([]zeek.Column, 0)
+			}
+			nestedField = fld
+		}
+
+		if len(fld) == 0 {
+			// Just a regular field.
+			cols = append(cols, col)
+		} else {
+			// Add to the nested record.
+			newcol := zeek.Column{col.Name[dot+1:], col.Type}
+			nestedCols = append(nestedCols, newcol)
+		}
+	}
+
+	// If we were in the midst of a nested record, make sure we
+	// account for it.
+	if len(nestedField) > 0 {
+		recType := zeek.LookupTypeRecord(nestedCols)
+		newcol := zeek.Column{nestedField, recType}
+		cols = append(cols, newcol)
+	}
+
+	if !hasPath {
+		pathcol := zeek.Column{Name: "_path", Type: zeek.TypeString}
+		cols = append([]zeek.Column{pathcol}, cols...)
+	}
+	return resolver.GetByColumns(cols), nil
+}
+
 func (p *Parser) lookup() (*zson.Descriptor, error) {
 	// add descriptor and _path, form the columns, and lookup the td
 	// in the space's descriptor table.
 	if len(p.columns) == 0 || p.needfields || p.needtypes {
 		return nil, ErrBadRecordDef
 	}
-	cols := p.columns
-	if !p.hasField("_path", nil) {
-		pathcol := zeek.Column{Name: "_path", Type: zeek.TypeString}
-		cols = append([]zeek.Column{pathcol}, cols...)
-	}
-	return p.resolver.GetByColumns(cols), nil
-}
 
-func (p *Parser) findField(name string, typ zeek.Type) int {
-	for i, c := range p.columns {
-		if name == c.Name && (typ == nil || c.Type == typ) {
-			return i
-		}
-	}
-	return -1
-}
-
-func (p *Parser) hasField(name string, typ zeek.Type) bool {
-	return p.findField(name, typ) >= 0
+	return Unflatten(p.columns, p.resolver)
 }
 
 func (p *Parser) ParseValue(line []byte) (*zson.Record, error) {
@@ -184,11 +230,7 @@ func (p *Parser) ParseValue(line []byte) (*zson.Record, error) {
 		}
 		p.descriptor = d
 	}
-	tsCol, ok := p.descriptor.ColumnOfField("ts")
-	if !ok {
-		tsCol = -1
-	}
-	raw, ts, err := zson.NewRawAndTsFromZeekTSV(p.descriptor, tsCol, []byte(p.path), line)
+	raw, ts, err := zson.NewRawAndTsFromZeekTSV(p.descriptor, []byte(p.path), line)
 	if err != nil {
 		return nil, err
 	}
