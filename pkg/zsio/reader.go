@@ -50,6 +50,7 @@ type Reader struct {
 	stats     ReadStats
 	mapper    *resolver.Mapper
 	legacyVal bool
+	parser    *zson.Parser
 }
 
 func NewReader(reader io.Reader, r *resolver.Table) *Reader {
@@ -58,6 +59,7 @@ func NewReader(reader io.Reader, r *resolver.Table) *Reader {
 		scanner: skim.NewScanner(reader, buffer, MaxLineSize),
 		zeek:    zeek.NewParser(r),
 		mapper:  resolver.NewMapper(r),
+		parser:  zson.NewParser(),
 	}
 }
 
@@ -204,7 +206,7 @@ func (r *Reader) parseValue(line []byte) (*zson.Record, error) {
 		return nil, ErrInvalidDesc
 	}
 
-	raw, err := zson.NewRawFromZSON(descriptor, rest)
+	raw, err := r.parser.Parse(descriptor, rest)
 	if err != nil {
 		return nil, err
 	}
