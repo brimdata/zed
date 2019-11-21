@@ -110,10 +110,16 @@ func TestLegacyZeekValid(t *testing.T) {
 	// XXX test overriding separator, setSeparator
 }
 
+func assertInt(t *testing.T, i int64, val zeek.Value, what string) {
+	iv, ok := val.(*zeek.Int)
+	assert.Truef(t, ok, "%s is type int", what)
+	assert.Equalf(t, i, iv.Native, "%s has value %d", what, i)
+}
+
 func TestNestedRecords(t *testing.T) {
-	// Test the parser handling of nested records.  Note that the
-	// schema used here touches several edge cases:
-	//  - nested records separated with a regular field
+	// Test the parser handling of nested records.
+	// The schema used here touches several edge cases:
+	//  - nested records separated by a regular field
 	//  - adjacent nested records (nest2, nest3)
 	//  - nested record as the final column
 	fields := []string{"a", "nest1.a", "nest1.b", "b", "nest2.y", "nest3.z"}
@@ -147,6 +153,7 @@ func TestNestedRecords(t *testing.T) {
 	assert.Equal(t, 1, len(nest3Type.Columns), "nest3 has 1 column")
 	assert.Equal(t, "z", nest3Type.Columns[0].Name, "column in nest3 is z")
 
+	// Now check the actual values
 	v, err := record.AccessInt("a")
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), v, "Field a has value 1")
@@ -157,12 +164,8 @@ func TestNestedRecords(t *testing.T) {
 	subVals, err := nest1Type.Parse(raw)
 	require.NoError(t, err)
 	assert.Equal(t, 2, len(subVals), "nest1 has 2 elements")
-	i, ok := subVals[0].(*zeek.Int)
-	assert.True(t, ok, "field 0 in nest1 is int")
-	assert.Equal(t, int64(2), i.Native, "nest1.a is 2")
-	i, ok = subVals[1].(*zeek.Int)
-	assert.True(t, ok, "field 1 in nest1 is int")
-	assert.Equal(t, int64(3), i.Native, "nest1.b is 3")
+	assertInt(t, 2, subVals[0], "nest1.a")
+	assertInt(t, 3, subVals[1], "nest1.b")
 
 	v, err = record.AccessInt("b")
 	require.NoError(t, err)
@@ -174,9 +177,7 @@ func TestNestedRecords(t *testing.T) {
 	subVals, err = nest2Type.Parse(raw)
 	require.NoError(t, err)
 	assert.Equal(t, 1, len(subVals), "nest2 has 1 element")
-	i, ok = subVals[0].(*zeek.Int)
-	assert.True(t, ok, "field 0 in nest2 is int")
-	assert.Equal(t, int64(5), i.Native, "nest2.y is 5")
+	assertInt(t, 5, subVals[0], "nest2.y")
 	
 	raw, typ, err = record.Access("nest3")
 	require.NoError(t, err)
@@ -184,9 +185,7 @@ func TestNestedRecords(t *testing.T) {
 	subVals, err = nest3Type.Parse(raw)
 	require.NoError(t, err)
 	assert.Equal(t, 1, len(subVals), "nest3 has 1 element")
-	i, ok = subVals[0].(*zeek.Int)
-	assert.True(t, ok, "field 0 in nest3 is int")
-	assert.Equal(t, int64(6), i.Native, "nest3.z is 6")
+	assertInt(t, 6, subVals[0], "nest3.z")
 }
 
 // Test things related to legacy zeek records that should cause the

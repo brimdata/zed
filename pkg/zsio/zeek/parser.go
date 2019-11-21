@@ -193,10 +193,10 @@ func (p *Parser) lookup() (*zson.Descriptor, error) {
 		}
 
 		if len(fld) == 0 {
-			// Just a regular field
+			// Just a regular field.
 			cols = append(cols, col)
 		} else {
-			// Add to the nested field
+			// Add to the nested record.
 			newcol := zeek.Column{col.Name[dot+1:], col.Type}
 			nestedCols = append(nestedCols, newcol)
 		}
