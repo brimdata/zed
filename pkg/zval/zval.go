@@ -49,11 +49,6 @@ func AppendContainer(dst []byte, vals [][]byte) []byte {
 	}
 	var n int
 	for _, v := range vals {
-		//XXX this doesn't look like it could work right because we
-		// need to know whether the sub-zval is a container or a value,
-		// but in practice, the lengths are always the same because the
-		// variable length encoding of the size is not affected by the
-		// low bit of the tag encoding.
 		n += sizeOfValue(len(v))
 	}
 	dst = AppendUvarint(dst, containerTag(n))
