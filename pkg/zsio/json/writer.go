@@ -2,37 +2,34 @@ package json
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"io"
 
 	"github.com/mccanne/zq/pkg/zson"
 )
 
-// JSON implements a Formatter for json output
-type JSON struct {
+// Writer implements a Formatter for json output
+type Writer struct {
 	io.WriteCloser
 	limit int
-	array []map[string]interface{}
+	array []*zson.Record
 }
 
-func NewWriter(w io.WriteCloser) *JSON {
-	return &JSON{WriteCloser: w, limit: 10000}
+func NewWriter(w io.WriteCloser) *Writer {
+	return &Writer{WriteCloser: w, limit: 10000}
 }
 
-func (p *JSON) Write(rec *zson.Record) error {
-	return errors.New("not yet implemented")
-	// XXX not yet...
+func (p *Writer) Write(rec *zson.Record) error {
 	// td from column 0 has been stripped out
-	// object := makeJSON(d, t)
-	// if len(p.array) >= p.limit {
-	// return ErrTooManyLines
-	// }
-	// p.array = append(p.array, object)
+	if len(p.array) >= p.limit {
+		return fmt.Errorf("too many lines")
+	}
+	p.array = append(p.array, rec)
 	return nil
 }
 
-func (p *JSON) Close() error {
-	out, err := json.Marshal(p.array)
+func (p *Writer) Close() error {
+	out, err := json.MarshalIndent(p.array, "", "    ")
 	if err != nil {
 		return err
 	}
