@@ -171,9 +171,7 @@ func (p *Parser) Parse(desc *Descriptor, zson []byte) (Raw, error) {
 		}
 		zson = rest
 	}
-	zv := builder.Encode()
-	//fmt.Println("ENCODE", Raw(zv).String())
-	return zv, nil
+	return builder.Encode(), nil
 }
 
 const (
