@@ -96,7 +96,7 @@ func (d *Dir) filename(path string) string {
 	return filepath.Join(d.dir, filename)
 }
 
-func (p *Dir) newFile(rec *zson.Record) (io.WriteCloser, string, error) {
+func (d *Dir) newFile(rec *zson.Record) (io.WriteCloser, string, error) {
 	// get path name from descriptor.  the td at column 0
 	// has already been stripped out.
 	i, ok := rec.Descriptor.ColumnOfField("_path")
