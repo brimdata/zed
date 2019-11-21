@@ -116,20 +116,20 @@ func NewProcTestFromSource(code string, resolver *resolver.Table, inRecords []zb
 	return &ProcTest{ctx, compiledProc, false}, nil
 }
 
-func (t *ProcTest) Pull() (zbuf.Batch, error) {
-	if t.eos {
+func (p *ProcTest) Pull() (zbuf.Batch, error) {
+	if p.eos {
 		return nil, errors.New("called Pull() after EOS")
 	}
 
-	b, err := t.compiledProc.Pull()
+	b, err := p.compiledProc.Pull()
 	if b == nil && err == nil {
-		t.eos = true
+		p.eos = true
 	}
 	return b, err
 }
 
-func (t *ProcTest) ExpectEOS() error {
-	b, err := t.Pull()
+func (p *ProcTest) ExpectEOS() error {
+	b, err := p.Pull()
 	if err != nil {
 		return err
 	}
@@ -139,8 +139,8 @@ func (t *ProcTest) ExpectEOS() error {
 	return nil
 }
 
-func (t *ProcTest) Expect(data zbuf.Batch) error {
-	b, err := t.Pull()
+func (p *ProcTest) Expect(data zbuf.Batch) error {
+	b, err := p.Pull()
 	if err != nil {
 		return err
 	}
@@ -168,9 +168,9 @@ func (t *ProcTest) Expect(data zbuf.Batch) error {
 	return nil
 }
 
-func (t *ProcTest) ExpectWarning(expected string) error {
+func (p *ProcTest) ExpectWarning(expected string) error {
 	select {
-	case warning := <-t.ctx.Warnings:
+	case warning := <-p.ctx.Warnings:
 		if warning == expected {
 			return nil
 		} else {
@@ -181,15 +181,15 @@ func (t *ProcTest) ExpectWarning(expected string) error {
 	}
 }
 
-func (t *ProcTest) Finish() error {
-	if !t.eos {
+func (p *ProcTest) Finish() error {
+	if !p.eos {
 		return errors.New("finished test before EOS")
 	}
 
 	// XXX warnings channel is never closed, just ensure there's
 	// nothing there...
 	select {
-	case warning := <-t.ctx.Warnings:
+	case warning := <-p.ctx.Warnings:
 		return fmt.Errorf("got unexpected warning \"%s\"", warning)
 	default:
 		return nil

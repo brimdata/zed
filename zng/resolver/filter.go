@@ -19,16 +19,16 @@ func NewFilter(f Predicate) *Filter {
 	return &Filter{Cache: Cache{}, filter: f}
 }
 
-func (c *Filter) Match(d *zbuf.Descriptor) bool {
+func (f *Filter) Match(d *zbuf.Descriptor) bool {
 	td := d.ID
-	v := c.lookup(td)
+	v := f.lookup(td)
 	if v == nil {
-		if c.filter(d) {
+		if f.filter(d) {
 			v = d
 		} else {
 			v = nomatch
 		}
-		c.enter(td, v)
+		f.enter(td, v)
 	}
 	return v != nomatch
 }

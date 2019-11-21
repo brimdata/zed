@@ -38,27 +38,27 @@ func NewTop(c *Context, parent Proc, limit int, fields []expr.FieldExprResolver,
 	}
 }
 
-func (s *Top) Pull() (zbuf.Batch, error) {
+func (t *Top) Pull() (zbuf.Batch, error) {
 	for {
-		batch, err := s.Get()
+		batch, err := t.Get()
 		if err != nil {
 			return nil, err
 		}
 		if batch == nil {
-			return s.sorted(), nil
+			return t.sorted(), nil
 		}
 		for k := 0; k < batch.Length(); k++ {
-			s.consume(batch.Index(k))
+			t.consume(batch.Index(k))
 		}
 		batch.Unref()
-		if s.flushEvery {
-			return s.sorted(), nil
+		if t.flushEvery {
+			return t.sorted(), nil
 		}
 	}
 }
 
-func (s *Top) consume(rec *zbuf.Record) {
-	if s.fields == nil {
+func (t *Top) consume(rec *zbuf.Record) {
+	if t.fields == nil {
 		fld := guessSortField(rec)
 		resolver := func(r *zbuf.Record) zng.TypedEncoding {
 			e, err := r.Access(fld)
@@ -67,31 +67,31 @@ func (s *Top) consume(rec *zbuf.Record) {
 			}
 			return e
 		}
-		s.fields = []expr.FieldExprResolver{resolver}
+		t.fields = []expr.FieldExprResolver{resolver}
 	}
-	if s.records == nil {
-		s.sorter = expr.NewSortFn(false, s.fields...)
-		s.records = expr.NewRecordSlice(s.sorter)
-		heap.Init(s.records)
+	if t.records == nil {
+		t.sorter = expr.NewSortFn(false, t.fields...)
+		t.records = expr.NewRecordSlice(t.sorter)
+		heap.Init(t.records)
 	}
-	if s.records.Len() < s.limit || s.sorter(s.records.Index(0), rec) < 0 {
-		heap.Push(s.records, rec.Keep())
+	if t.records.Len() < t.limit || t.sorter(t.records.Index(0), rec) < 0 {
+		heap.Push(t.records, rec.Keep())
 	}
-	if s.records.Len() > s.limit {
-		heap.Pop(s.records)
+	if t.records.Len() > t.limit {
+		heap.Pop(t.records)
 	}
 }
 
-func (s *Top) sorted() zbuf.Batch {
-	if s.records == nil {
+func (t *Top) sorted() zbuf.Batch {
+	if t.records == nil {
 		return nil
 	}
-	out := make([]*zbuf.Record, s.records.Len())
-	for i := s.records.Len() - 1; i >= 0; i-- {
-		rec := heap.Pop(s.records).(*zbuf.Record)
+	out := make([]*zbuf.Record, t.records.Len())
+	for i := t.records.Len() - 1; i >= 0; i-- {
+		rec := heap.Pop(t.records).(*zbuf.Record)
 		out[i] = rec
 	}
 	// clear records
-	s.records = nil
-	return zbuf.NewArray(out, nano.NewSpanTs(s.MinTs, s.MaxTs))
+	t.records = nil
+	return zbuf.NewArray(out, nano.NewSpanTs(t.MinTs, t.MaxTs))
 }
