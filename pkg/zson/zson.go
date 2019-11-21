@@ -1,6 +1,7 @@
 package zson
 
 import (
+	"context"
 	"io"
 
 	"github.com/mccanne/zq/pkg/nano"
@@ -47,4 +48,34 @@ type Batch interface {
 	Records() []*Record
 	//XXX span should go in here?
 	Span() nano.Span
+}
+
+func CopyWithContext(ctx context.Context, dst WriteCloser, src Reader) error {
+	var err error
+	for ctx.Err() == nil {
+		var rec *Record
+		rec, err = src.Read()
+		if err != nil || rec == nil {
+			break
+		}
+		err = dst.Write(rec)
+		if err != nil {
+			break
+		}
+	}
+	dstErr := dst.Close()
+	switch {
+	case err != nil:
+		return err
+	case dstErr != nil:
+		return dstErr
+	default:
+		return ctx.Err()
+	}
+}
+
+// Copy copies src to dst a la io.Copy.  The src reader is read from
+// while the dst writer is written to and closed.
+func Copy(dst WriteCloser, src Reader) error {
+	return CopyWithContext(context.Background(), dst, src)
 }
