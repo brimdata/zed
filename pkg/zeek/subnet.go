@@ -51,6 +51,9 @@ func (t *TypeOfSubnet) String() string {
 }
 
 func (t *TypeOfSubnet) Parse(value []byte) (*net.IPNet, error) {
+	if value == nil {
+		return nil, ErrUnset
+	}
 	_, subnet, err := net.ParseCIDR(ustring(value))
 	return subnet, err
 }

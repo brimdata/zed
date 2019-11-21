@@ -17,6 +17,9 @@ func (t *TypeOfPattern) String() string {
 }
 
 func (t *TypeOfPattern) Parse(value []byte) (*regexp.Regexp, error) {
+	if value == nil {
+		return nil, ErrUnset
+	}
 	return regexp.Compile(ustring(value))
 }
 

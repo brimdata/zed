@@ -12,6 +12,9 @@ func (t *TypeOfEnum) String() string {
 }
 
 func (t *TypeOfEnum) Parse(value []byte) (string, error) {
+	if value == nil {
+		return "", ErrUnset
+	}
 	return string(value), nil
 }
 

@@ -23,6 +23,9 @@ func (t *TypeOfDouble) String() string {
 }
 
 func (t *TypeOfDouble) Parse(value []byte) (float64, error) {
+	if value == nil {
+		return 0, ErrUnset
+	}
 	return UnsafeParseFloat64(value)
 }
 

@@ -23,6 +23,9 @@ func (t *TypeOfAddr) String() string {
 }
 
 func (t *TypeOfAddr) Parse(value []byte) (net.IP, error) {
+	if value == nil {
+		return nil, ErrUnset
+	}
 	return UnsafeParseAddr(value)
 }
 

@@ -50,6 +50,9 @@ func parseSetTypeBody(in string) (string, Type, error) {
 }
 
 func (t *TypeSet) Parse(b []byte) ([]Value, error) {
+	if b == nil {
+		return nil, ErrUnset
+	}
 	return parseContainer(t, t.innerType, b)
 }
 

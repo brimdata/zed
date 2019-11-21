@@ -20,6 +20,9 @@ func (t *TypeOfString) String() string {
 }
 
 func (t *TypeOfString) Parse(value []byte) (string, error) {
+	if value == nil {
+		return "", ErrUnset
+	}
 	return string(value), nil
 }
 

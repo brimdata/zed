@@ -39,6 +39,9 @@ type Vector struct {
 }
 
 func (t *TypeVector) Parse(b []byte) ([]Value, error) {
+	if b == nil {
+		return nil, ErrUnset
+	}
 	return parseContainer(t, t.typ, b)
 }
 

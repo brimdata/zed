@@ -14,6 +14,9 @@ func (t *TypeOfInterval) String() string {
 }
 
 func (t *TypeOfInterval) Parse(value []byte) (int64, error) {
+	if value == nil {
+		return 0, ErrUnset
+	}
 	return nano.ParseDuration(value)
 }
 

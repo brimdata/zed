@@ -14,6 +14,9 @@ func (t *TypeOfTime) String() string {
 }
 
 func (t *TypeOfTime) Parse(value []byte) (nano.Ts, error) {
+	if value == nil {
+		return 0, ErrUnset
+	}
 	return nano.Parse(value)
 }
 
