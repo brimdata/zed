@@ -144,6 +144,9 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 		}
 		return []Proc{NewFilter(c, parent, f)}, nil
 
+	case *ast.TopProc:
+		return []Proc{NewTop(c, parent, v.Limit, v.Fields, v.Flush)}, nil
+
 	case *ast.SequentialProc:
 		var parents []Proc
 		var err error
