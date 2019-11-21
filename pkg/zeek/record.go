@@ -86,6 +86,9 @@ func parseRecordTypeBody(in string) (string, Type, error) {
 }
 
 func (t *TypeRecord) Parse(b []byte) ([]Value, error) {
+	if b == nil {
+		return nil, ErrUnset
+	}
 	var vals []Value
 	for i, it := 0, zval.Iter(b); !it.Done(); i++ {
 		val, _, err := it.Next()

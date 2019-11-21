@@ -13,6 +13,9 @@ func (t *TypeOfCount) String() string {
 }
 
 func (t *TypeOfCount) Parse(value []byte) (uint64, error) {
+	if value == nil {
+		return 0, ErrUnset
+	}
 	return UnsafeParseUint64(value)
 }
 

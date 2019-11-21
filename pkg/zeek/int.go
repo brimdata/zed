@@ -23,6 +23,9 @@ func (t *TypeOfInt) String() string {
 }
 
 func (t *TypeOfInt) Parse(value []byte) (int64, error) {
+	if value == nil {
+		return 0, ErrUnset
+	}
 	return UnsafeParseInt64(value)
 }
 

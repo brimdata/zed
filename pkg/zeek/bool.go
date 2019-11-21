@@ -42,6 +42,9 @@ func (t *TypeOfBool) String() string {
 }
 
 func (t *TypeOfBool) Parse(value []byte) (bool, error) {
+	if value == nil {
+		return false, ErrUnset
+	}
 	return UnsafeParseBool(value)
 }
 

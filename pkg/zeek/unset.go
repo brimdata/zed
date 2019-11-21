@@ -2,8 +2,12 @@ package zeek
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 )
+
+// ErrUnset is returned in Type.Parse / Type.Format when the value is unset.
+var ErrUnset = errors.New("value is unset")
 
 type TypeOfUnset struct{}
 

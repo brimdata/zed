@@ -13,6 +13,9 @@ func (t *TypeOfPort) String() string {
 }
 
 func (t *TypeOfPort) Parse(value []byte) (uint32, error) {
+	if value == nil {
+		return 0, ErrUnset
+	}
 	return UnsafeParseUint32(value)
 }
 
