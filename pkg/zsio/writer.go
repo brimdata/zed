@@ -86,7 +86,7 @@ func (w *Writer) escape(c byte) error {
 	b[1] = 'x'
 	b[2] = hex[c>>4]
 	b[3] = hex[c&0xf]
-	_, err := w.writer.Write(b[:])
+	_, err := w.WriteCloser.Write(b[:])
 	return err
 }
 
@@ -111,7 +111,7 @@ func (w *Writer) writeEscaped(val []byte) error {
 		switch c {
 		case '\\', ';', '\n':
 			if off > 0 {
-				_, err := w.writer.Write(val[:off])
+				_, err := w.WriteCloser.Write(val[:off])
 				if err != nil {
 					return err
 				}
@@ -127,7 +127,7 @@ func (w *Writer) writeEscaped(val []byte) error {
 	}
 	var err error
 	if len(val) > 0 {
-		_, err = w.writer.Write(val)
+		_, err = w.WriteCloser.Write(val)
 	}
 	return err
 }
