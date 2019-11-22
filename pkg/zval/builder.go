@@ -76,7 +76,7 @@ func (b *Builder) measure(off int) int {
 	return off + 1
 }
 
-func (b *Builder) encode(dst []byte, off int) ([]byte, int) {
+func (b *Builder) encode(dst []byte, off int) (Encoding, int) {
 	node := &b.nodes[off]
 	dfs := node.dfs
 	if dfs == beginContainer {
@@ -104,7 +104,7 @@ func (b *Builder) encode(dst []byte, off int) ([]byte, int) {
 	return AppendValue(dst, b.leaves[dfs]), off + 1
 }
 
-func (b *Builder) Encode() []byte {
+func (b *Builder) Encode() Encoding {
 	off := 0
 	for off < len(b.nodes) {
 		next := b.measure(off)

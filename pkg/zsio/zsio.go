@@ -8,6 +8,7 @@ import (
 	"github.com/mccanne/zq/pkg/zsio/raw"
 	"github.com/mccanne/zq/pkg/zsio/table"
 	"github.com/mccanne/zq/pkg/zsio/zeek"
+	"github.com/mccanne/zq/pkg/zsio/zjson"
 	zsonio "github.com/mccanne/zq/pkg/zsio/zson"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
@@ -47,8 +48,11 @@ func LookupWriter(format string, w io.WriteCloser) *Writer {
 		f = zson.NopFlusher(ndjson.NewWriter(w))
 	case "json":
 		f = json.NewWriter(w)
+	case "zjson":
+		f = &flusher{zjson.NewWriter(w)}
+	// XXX not yet
 	//case "text":
-	//	return &flusher{text.NewWriter(w, c.showTypes, c.showFields, c.epochDates)}
+	//	return text.NewWriter(f, c.showTypes, c.showFields, c.epochDates)
 	case "table":
 		f = table.NewWriter(w)
 	case "raw":
@@ -66,6 +70,8 @@ func LookupReader(format string, r io.Reader, table *resolver.Table) zson.Reader
 		return zsonio.NewReader(r, table)
 	case "ndjson":
 		return ndjson.NewReader(r, table)
+	case "zjson":
+		return zjson.NewReader(r, table)
 		/* XXX not yet
 		case "json":
 			return json.NewReader(r, table)

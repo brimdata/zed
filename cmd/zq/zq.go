@@ -233,6 +233,8 @@ func (c *Command) loadFile(path string) (zson.Reader, error) {
 	// stream.
 	var reader string
 	switch ext := filepath.Ext(path); ext {
+	case ".zjson":
+		reader = "zjson"
 	case ".ndjson":
 		reader = "ndjson"
 	case ".raw":
