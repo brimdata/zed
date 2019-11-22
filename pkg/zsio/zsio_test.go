@@ -19,12 +19,12 @@ func assertError(t *testing.T, err error, pattern, what string) {
 func TestZsonDescriptors(t *testing.T) {
 	// Step 1 - Test a simple zson descriptor and corresponding value
 	zson := "#1:record[s:string,n:int]\n"
-	zson += "1:[foo;5;];\n"
+	zson += "1:[foo;5;]\n"
 	// Step 2 - Create a second descriptor of a different type
 	zson += "#2:record[a:addr,p:port]\n"
-	zson += "2:[10.5.5.5;443;];\n"
+	zson += "2:[10.5.5.5;443;]\n"
 	// Step 3 - can still use the first descriptor
-	zson += "1:[bar;100;];\n"
+	zson += "1:[bar;100;]\n"
 	// Step 4 - Test that referencing an invalid descriptor is an error.
 	zson += "100:[something;somethingelse;]\n"
 
@@ -69,8 +69,8 @@ func TestZsonDescriptors(t *testing.T) {
 	// Test various malformed zson:
 	def1 := "#1:record[s:string,n:int]\n"
 	zsons := []string{
-		def1 + "1:string;123;\n",   // missing brackets
-		def1 + "1:[string;123];\n", // missing semicolon
+		def1 + "1:string;123;\n",  // missing brackets
+		def1 + "1:[string;123]\n", // missing semicolon
 	}
 
 	for _, z := range zsons {

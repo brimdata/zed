@@ -163,10 +163,10 @@ func (p *Parser) Parse(desc *Descriptor, zson []byte) (Raw, error) {
 	builder := p.builder
 	builder.Reset()
 	n := len(zson)
-	if len(zson) < 3 || zson[0] != '[' || zson[n-1] != ';' || zson[n-2] != ']' {
+	if len(zson) < 2 || zson[0] != '[' || zson[n-1] != ']' {
 		return nil, ErrSyntax
 	}
-	zson = zson[1 : n-2]
+	zson = zson[1 : n-1]
 	for len(zson) > 0 {
 		rest, err := zsonParseField(builder, zson)
 		if err != nil {
@@ -199,10 +199,7 @@ func zsonParseContainer(builder *zval.Builder, b []byte) ([]byte, error) {
 		}
 		if b[0] == rightbracket {
 			builder.End()
-			if len(b) < 2 || b[1] != ';' {
-				return nil, ErrUnterminated
-			}
-			return b[2:], nil
+			return b[1:], nil
 		}
 		rest, err := zsonParseField(builder, b)
 		if err != nil {
