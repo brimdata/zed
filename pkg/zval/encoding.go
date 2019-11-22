@@ -12,38 +12,38 @@ package zval
 
 import (
 	"encoding/binary"
-	"fmt"
 )
 
-// Iter iterates over a sequence of zvals.
-type Iter []byte
+// Encoding is the serialized representation of zson values.
+type Encoding []byte
 
-// Done returns true if no zvals remain.
-func (i *Iter) Done() bool {
-	return len(*i) == 0
+func (e Encoding) Bytes() []byte {
+	return []byte(e)
 }
 
-// Next returns the next zval.  It returns an empty slice for an empty or
-// zero-length zval and nil for an unset zval.
-func (i *Iter) Next() ([]byte, bool, error) {
-	// Uvarint is zero for an unset zval; otherwise, it is the value's
-	// length plus one.
-	u64, n := Uvarint(*i)
-	if n <= 0 {
-		return nil, false, fmt.Errorf("bad uvarint: %d", n)
-	}
-	if tagIsUnset(u64) {
-		*i = (*i)[n:]
-		return nil, tagIsContainer(u64), nil
-	}
-	end := n + tagLength(u64)
-	val := (*i)[n:end]
-	*i = (*i)[end:]
-	return val, tagIsContainer(u64), nil
+func (e Encoding) Iter() Iter {
+	return Iter(e)
 }
 
-// AppendContainer appends to dst a zval container comprising the zvals in vals.
-func AppendContainer(dst []byte, vals [][]byte) []byte {
+func (e Encoding) String() string {
+	s := ""
+	for it := Iter(e); !it.Done(); {
+		v, container, err := it.Next()
+		if err != nil {
+			return s + "Err: " + err.Error()
+		}
+		if container {
+			s += "[" + v.String() + "]"
+		} else {
+			s += "(" + string(v.Bytes()) + ")"
+		}
+	}
+	return s
+}
+
+// AppendValue encodes each byte slice as a value Encoding, concatenates the
+// values as an aggregate, then encodes the aggregate as a container Encoding.
+func AppendContainer(dst Encoding, vals [][]byte) Encoding {
 	if vals == nil {
 		return AppendUvarint(dst, containerTagUnset)
 	}
@@ -58,8 +58,9 @@ func AppendContainer(dst []byte, vals [][]byte) []byte {
 	return dst
 }
 
-// AppendValue appends to dst the zval in val.
-func AppendValue(dst []byte, val []byte) []byte {
+// AppendValue encodes the byte slice as value Encoding, appends it
+// to dst, and returns appended Encoding.
+func AppendValue(dst Encoding, val []byte) Encoding {
 	if val == nil {
 		return AppendUvarint(dst, valueTagUnset)
 	}

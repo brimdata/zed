@@ -31,11 +31,14 @@ type Record struct {
 	Ts nano.Ts
 	*Descriptor
 	Stable bool
-	Raw    Raw
+	// Raw is the serialization format for zson records.  A raw value comprises a
+	// sequence of zvals, one per descriptor column.  The descriptor is stored
+	// outside of the raw serialization but is needed to interpret the raw values.
+	Raw zval.Encoding
 }
 
 // NewRecord creates a record from a timestamp and a raw value.
-func NewRecord(d *Descriptor, ts nano.Ts, raw Raw) *Record {
+func NewRecord(d *Descriptor, ts nano.Ts, raw zval.Encoding) *Record {
 	return &Record{
 		Ts:         ts,
 		Descriptor: d,
@@ -83,7 +86,7 @@ func NewRecordZeekStrings(d *Descriptor, ss ...string) (t *Record, err error) {
 
 // ZvalIter returns an iterator over the receiver's zvals.
 func (r *Record) ZvalIter() zval.Iter {
-	return r.Raw.ZvalIter()
+	return r.Raw.Iter()
 }
 
 // Width returns the number of columns in the record.
@@ -94,7 +97,7 @@ func (r *Record) Keep() *Record {
 		return r
 	}
 	v := &Record{Ts: r.Ts, Descriptor: r.Descriptor, Stable: true}
-	v.Raw = make(Raw, len(r.Raw))
+	v.Raw = make(zval.Encoding, len(r.Raw))
 	copy(v.Raw, r.Raw)
 	return v
 }

@@ -8,14 +8,13 @@ import (
 
 	"github.com/buger/jsonparser"
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zval"
 )
 
 // NewRawAndType returns a new zson.Raw slice as well as an inferred zeek.Type
 // from provided block of JSON. The function expects the input json to be an
 // object, otherwise an error is returned.
-func NewRawAndType(b []byte) (zson.Raw, zeek.Type, error) {
+func NewRawAndType(b []byte) (zval.Encoding, zeek.Type, error) {
 	val, typ, _, err := jsonparser.Get(b)
 	if err != nil {
 		return nil, nil, err
@@ -27,7 +26,7 @@ func NewRawAndType(b []byte) (zson.Raw, zeek.Type, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	var raw zson.Raw
+	var raw zval.Encoding
 	for _, v := range values {
 		raw = zval.AppendValue(raw, v)
 	}
