@@ -10,9 +10,17 @@ import (
 // for the space.
 var ErrLineTooLong = errors.New("line too long")
 
+type Stats struct {
+	Bytes       int `json:"bytes_read"`
+	Lines       int `json:"lines_read"`
+	BlankLines  int `json:"blank_lines"`
+	LineTooLong int `json:"line_too_long"`
+}
+
 // Scanner is like bufio.Scanner but it
 // it understands how to skip over and report lines that are too long.
 type Scanner struct {
+	Stats
 	reader io.Reader
 	buffer []byte
 	limit  int
@@ -23,7 +31,7 @@ type Scanner struct {
 const token = byte('\n')
 
 func NewScanner(r io.Reader, buffer []byte, limit int) *Scanner {
-	return &Scanner{r, buffer, limit, nil}
+	return &Scanner{Stats{}, r, buffer, limit, nil}
 }
 
 // grow the buffer and copy the data from the old buffer to
@@ -63,7 +71,6 @@ func (s *Scanner) more() error {
 // error if the underlying reader returns an error, except for EOF,
 // which is ignored since the caller will detect EOF on the next
 // call to Scan.
-//
 func (s *Scanner) Skip() (int, error) {
 	var nskip int
 	for {
@@ -120,9 +127,10 @@ func (s *Scanner) Peek() byte {
 // returned along with ErrLineTooLong.  In this case, Scan can be
 // subsequently called for the rest of the line, possibly with another
 // line too long error, and so on.  Skip can also be called to
-// easily skip over the rest of the line.  At EOF, nil is returned
+// easily skip over the rest of the line.  At EOF, nil is returned.
+// XXX If Scan is called directly instead of ScanLine, then Stats are
+// not properly tracked.
 // for the slice and io.EOF for the error.
-//
 func (s *Scanner) Scan() ([]byte, error) {
 	if err := s.check(); err != nil {
 		return nil, err
@@ -163,5 +171,38 @@ func (s *Scanner) Scan() ([]byte, error) {
 		if err := s.more(); err != nil {
 			return nil, err
 		}
+	}
+}
+
+// Scan returns the next line skipping blank lines and too-long lines
+// and accumulating statistics.
+func (s *Scanner) ScanLine() ([]byte, error) {
+	for {
+		line, err := s.Scan()
+		s.Bytes += len(line)
+		s.Lines++
+		if err == nil {
+			if line == nil {
+				return nil, nil
+			}
+			if len(line) <= 1 {
+				// blank line, keep going
+				s.BlankLines++
+				continue
+			}
+			return line, nil
+		}
+		if err == io.EOF {
+			return nil, nil
+		}
+		if err == ErrLineTooLong {
+			s.LineTooLong++
+			n, err := s.Skip()
+			s.Bytes += n
+			if err == nil {
+				continue
+			}
+		}
+		return nil, err
 	}
 }

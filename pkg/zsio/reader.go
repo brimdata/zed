@@ -36,12 +36,11 @@ func scanErr(err error, n int) error {
 }
 
 type ReadStats struct {
+	*skim.Stats
 	RecordsRead int `json:"records_read"`
-	BytesRead   int `json:"bytes_read"`
 	BadFormat   int `json:"bad_format"`
 	BadMetaData int `json:"bad_meta_data"`
 	ReadFailure int `json:"read_failure"`
-	LineTooLong int `json:"line_too_long"`
 }
 
 type Reader struct {
@@ -55,47 +54,23 @@ type Reader struct {
 
 func NewReader(reader io.Reader, r *resolver.Table) *Reader {
 	buffer := make([]byte, ReadSize)
+	scanner := skim.NewScanner(reader, buffer, MaxLineSize)
 	return &Reader{
-		scanner: skim.NewScanner(reader, buffer, MaxLineSize),
+		scanner: scanner,
+		stats:   ReadStats{Stats: &scanner.Stats},
 		zeek:    zeek.NewParser(r),
 		mapper:  resolver.NewMapper(r),
 		parser:  zson.NewParser(),
 	}
 }
 
-// getline returns the next line skipping blank lines and too-long lines
-// XXX for zq, we should probably return line-too-long error
-func (r *Reader) getline() ([]byte, error) {
-	for {
-		line, err := r.scanner.Scan()
-		if err == nil {
-			if line == nil {
-				return nil, nil
-			}
-			if len(line) <= 1 {
-				// blank line, keep going
-				continue
-			}
-			return line, nil
-		}
-		if err == io.EOF {
-			return nil, nil
-		}
-		if err == skim.ErrLineTooLong {
-			r.stats.LineTooLong++
-			_, err = r.scanner.Skip()
-			if err == nil {
-				continue
-			}
-		}
-		return nil, scanErr(err, r.stats.RecordsRead)
-	}
-}
-
 func (r *Reader) Read() (*zson.Record, error) {
 again:
-	line, err := r.getline()
+	line, err := r.scanner.ScanLine()
 	if line == nil {
+		if err != nil {
+			err = scanErr(err, r.stats.Lines)
+		}
 		return nil, err
 	}
 	// remove newline
@@ -111,7 +86,6 @@ again:
 	if err != nil {
 		return nil, err
 	}
-	r.stats.BytesRead += len(line)
 	r.stats.RecordsRead++
 	return rec, nil
 }
