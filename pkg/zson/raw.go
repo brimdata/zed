@@ -140,26 +140,41 @@ func NewRawAndTsFromZeekValues(d *Descriptor, tsCol int, vals [][]byte) (Raw, na
 	return raw, ts, nil
 }
 
-var ErrUnterminated = errors.New("zson parse error: unterminated container")
+var (
+	ErrUnterminated = errors.New("zson syntax error: unterminated container")
+	ErrSyntax       = errors.New("zson syntax error")
+)
 
-func NewRawFromZSON(desc *Descriptor, zson []byte) (Raw, error) {
+type Parser struct {
+	builder *zval.Builder
+}
+
+func NewParser() *Parser {
+	return &Parser{
+		builder: zval.NewBuilder(),
+	}
+}
+
+func (p *Parser) Parse(desc *Descriptor, zson []byte) (Raw, error) {
 	// XXX no validation on types from the descriptor, though we'll
 	// want to add that to support eg the bytes type.
 	// if we did this, we could also get at the ts field without
 	// making a separate pass in the parser.
-	vals, rest, err := zsonParseContainer(zson)
-	if err != nil {
-		return nil, err
+	builder := p.builder
+	builder.Reset()
+	n := len(zson)
+	if len(zson) < 3 || zson[0] != '[' || zson[n-1] != ';' || zson[n-2] != ']' {
+		return nil, ErrSyntax
 	}
-	if len(rest) != 1 || rest[0] != ';' {
-		return nil, ErrUnterminated
+	zson = zson[1 : n-2]
+	for len(zson) > 0 {
+		rest, err := zsonParseField(builder, zson)
+		if err != nil {
+			return nil, err
+		}
+		zson = rest
 	}
-
-	var raw Raw
-	for _, v := range vals {
-		raw = zval.AppendValue(raw, v)
-	}
-	return raw, nil
+	return builder.Encode(), nil
 }
 
 const (
@@ -174,51 +189,76 @@ const (
 // If there is no error, the first two return values are:
 //  1. an array of zvals corresponding to the indivdiual elements
 //  2. the passed-in byte array advanced past all the data that was parsed.
-func zsonParseContainer(b []byte) ([][]byte, []byte, error) {
+func zsonParseContainer(builder *zval.Builder, b []byte) ([]byte, error) {
+	builder.Begin()
 	// skip leftbracket
 	b = b[1:]
-
-	// XXX if we have the Type we can size this properly
-	vals := make([][]byte, 0)
 	for {
 		if len(b) == 0 {
-			return nil, nil, ErrUnterminated
+			return nil, ErrUnterminated
 		}
 		if b[0] == rightbracket {
-			return vals, b[1:], nil
+			builder.End()
+			if len(b) < 2 || b[1] != ';' {
+				return nil, ErrUnterminated
+			}
+			return b[2:], nil
 		}
-		field, rest, err := zsonParseField(b)
+		rest, err := zsonParseField(builder, b)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
-		vals = append(vals, field)
 		b = rest
 	}
 }
 
 // zsonParseField() parses the given bye array representing any value
 // in the zson format.
-func zsonParseField(b []byte) ([]byte, []byte, error) {
+func zsonParseField(builder *zval.Builder, b []byte) ([]byte, error) {
 	if b[0] == leftbracket {
-		vals, rest, err := zsonParseContainer(b)
-		if err != nil {
-			return nil, nil, err
-		}
-		return zval.AppendContainer(nil, vals), rest, nil
+		return zsonParseContainer(builder, b)
 	}
-	i := 0
+	if len(b) >= 2 && b[0] == '-' && b[1] == ';' {
+		builder.Append(nil)
+		return b[2:], nil
+	}
+	to := 0
+	from := 0
 	for {
-		if i >= len(b) {
-			return nil, nil, ErrUnterminated
+		if from >= len(b) {
+			return nil, ErrUnterminated
 		}
-		switch b[i] {
+		switch b[from] {
 		case semicolon:
-			return b[:i], b[i+1:], nil
+			builder.Append(b[:to])
+			return b[from+1:], nil
 		case backslash:
-			// XXX need to implement full escape parsing,
-			// for now just skip one character
-			i += 1
+			e, n := zeek.ParseEscape(b[from:])
+			if n == 0 {
+				panic("zeek.ParseEscape returned 0")
+			}
+			b[to] = e
+			from += n
+		default:
+			b[to] = b[from]
+			from++
 		}
-		i += 1
+		to++
 	}
+}
+
+func (r Raw) String() string {
+	s := ""
+	for it := zval.Iter(r); !it.Done(); {
+		v, container, err := it.Next()
+		if err != nil {
+			return s + "Err: " + err.Error()
+		}
+		if container {
+			s += "[" + Raw(v).String() + "]"
+		} else {
+			s += "(" + string(v) + ")"
+		}
+	}
+	return s
 }

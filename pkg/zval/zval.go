@@ -45,13 +45,13 @@ func (i *Iter) Next() ([]byte, bool, error) {
 // AppendContainer appends to dst a zval container comprising the zvals in vals.
 func AppendContainer(dst []byte, vals [][]byte) []byte {
 	if vals == nil {
-		return AppendUvarint(dst, newTagUnset(true))
+		return AppendUvarint(dst, containerTagUnset)
 	}
 	var n int
 	for _, v := range vals {
-		n += sizeBytes(v)
+		n += sizeOfValue(len(v))
 	}
-	dst = AppendUvarint(dst, newTag(true, n))
+	dst = AppendUvarint(dst, containerTag(n))
 	for _, v := range vals {
 		dst = AppendValue(dst, v)
 	}
@@ -61,17 +61,10 @@ func AppendContainer(dst []byte, vals [][]byte) []byte {
 // AppendValue appends to dst the zval in val.
 func AppendValue(dst []byte, val []byte) []byte {
 	if val == nil {
-		return AppendUvarint(dst, newTagUnset(false))
+		return AppendUvarint(dst, valueTagUnset)
 	}
-	dst = AppendUvarint(dst, newTag(false, len(val)))
+	dst = AppendUvarint(dst, valueTag(len(val)))
 	return append(dst, val...)
-}
-
-// sizeBytes returns the number of bytes required by AppendValue to represent
-// the zval in val.
-func sizeBytes(val []byte) int {
-	// This really is correct even when val is nil.
-	return sizeUvarint(newTag(false, len(val))) + len(val)
 }
 
 // AppendUvarint is like encoding/binary.PutUvarint but appends to dst instead
@@ -84,32 +77,47 @@ func AppendUvarint(dst []byte, u64 uint64) []byte {
 	return append(dst, byte(u64))
 }
 
+// sizeOfUvarint returns the number of bytes required by AppendUvarint to
+// represent u64.
+func sizeOfUvarint(u64 uint64) int {
+	n := 1
+	for u64 >= 0x80 {
+		n++
+		u64 >>= 7
+	}
+	return n
+}
+
 // Uvarint just calls binary.Uvarint.  It's here for symmetry with
 // AppendUvarint.
 func Uvarint(buf []byte) (uint64, int) {
 	return binary.Uvarint(buf)
 }
 
-// sizeUvarint returns the number of bytes required by AppendUvarint to
-// represent u64.
-func sizeUvarint(u64 uint64) int {
-	return len(AppendUvarint(make([]byte, 0, binary.MaxVarintLen64), u64))
+// sizeOfContainer returns the number of bytes required to represent
+// a container byte slice of the indicated length as a zval.
+func sizeOfContainer(length int) int {
+	return (sizeOfUvarint(containerTag(length))) + length
 }
 
-func newTag(container bool, length int) uint64 {
-	t := (uint64(length) + 1) << 1
-	if container {
-		t |= 1
-	}
-	return t
+// sizeOfValue returns the number of bytes required to represent
+// a byte slice of the indicated length as a zval.
+func sizeOfValue(length int) int {
+	return int(sizeOfUvarint(valueTag(length))) + length
 }
 
-func newTagUnset(container bool) uint64 {
-	if container {
-		return 1
-	}
-	return 0
+func containerTag(length int) uint64 {
+	return (uint64(length)+1)<<1 | 1
 }
+
+func valueTag(length int) uint64 {
+	return (uint64(length) + 1) << 1
+}
+
+const (
+	valueTagUnset     = 0
+	containerTagUnset = 1
+)
 
 func tagIsContainer(t uint64) bool {
 	return t&1 == 1

@@ -29,24 +29,30 @@ func Unescape(data []byte) []byte {
 		return data
 	}
 	var buf []byte
-	for i := 0; i < len(data); i++ {
+	i := 0
+	for i < len(data) {
 		c := data[i]
-		if c == '\\' {
-			switch {
-			case i+1 < len(data) && data[i+1] == '\\':
-				i++
-			case i+3 < len(data) && data[i+1] == 'x':
-				v1 := unhex(data[i+2])
-				v2 := unhex(data[i+3])
-				if v1 <= 0xf || v2 <= 0xf {
-					c = v1<<4 | v2
-					i += 3
-				}
-			}
+		if c == '\\' && len(data[i:]) >= 2 {
+			var n int
+			c, n = ParseEscape(data[i:])
+			i += n
+		} else {
+			i++
 		}
 		buf = append(buf, c)
 	}
 	return buf
+}
+
+func ParseEscape(data []byte) (byte, int) {
+	if len(data) >= 4 && data[1] == 'x' {
+		v1 := unhex(data[2])
+		v2 := unhex(data[3])
+		if v1 <= 0xf || v2 <= 0xf {
+			return v1<<4 | v2, 4
+		}
+	}
+	return data[1], 2
 }
 
 func unhex(b byte) byte {
