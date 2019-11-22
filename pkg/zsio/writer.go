@@ -90,7 +90,14 @@ func (w *Writer) writeValue(val []byte) error {
 }
 
 func (w *Writer) escape(c byte) error {
-	return w.write(fmt.Sprintf("\\x%02x", c))
+	const hex = "0123456789abcdef"
+	var b [4]byte
+	b[0] = '\\'
+	b[1] = 'x'
+	b[2] = hex[c>>4]
+	b[3] = hex[c&0xf]
+	_, err := w.writer.Write(b[:])
+	return err
 }
 
 func (w *Writer) writeEscaped(val []byte) error {
