@@ -3,6 +3,7 @@ module github.com/mccanne/zq
 go 1.13
 
 require (
+	github.com/axiomhq/hyperloglog v0.0.0-20191112132149-a4c4c47bc57f
 	github.com/buger/jsonparser v0.0.0-20191004114745-ee4c978eae7e
 	github.com/mccanne/charm v0.0.2
 	github.com/mccanne/joe v0.0.0-20181124064909-25770742c256
