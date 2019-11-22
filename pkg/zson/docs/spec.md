@@ -235,7 +235,7 @@ defined by a descriptor directive.
 ### Character Escape Rules
 
 Any character in a value line may be escaped from the ZSON formatting rules
-using the hext escape syntax, i.e., `\xdd`.
+using the hex escape syntax, i.e., `\xdd`.
 
 Sequences of binary data can be embedded in values using these escapes but it is
 a semantic error for arbitrary binary data to be carried by any types except
