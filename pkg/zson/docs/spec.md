@@ -189,14 +189,14 @@ declared `record` types:
 A regular value is encoded on a line as a type descriptor followed by `:` followed
 by a value encoding.  Here is a pseudo-grammar for value encodings:
 ```
-<line> := <descriptor> : <elem> ;
+<line> := <descriptor> : <elem>
 <elem> :=
-          <terminal>
+          <terminal> ;
         | [ <list> ]
         | [ ]
 <list> :=
-          <elem> ;
-        | <list> <elem> ;
+          <elem>
+        | <list> <elem>
 <terminal> := <char>*
 <char> := [^][;\n\\] | <esc-sequence>
 <esc-sequence> := <JavaScript character escaping rules [1]>
@@ -204,11 +204,12 @@ by a value encoding.  Here is a pseudo-grammar for value encodings:
 
 [1] - [JavaScript character escaping rules](https://tc39.es/ecma262/#prod-EscapeSequence)
 
-A value is encoded as a string of UTF-8 characters terminated
-by a semicolon (which must be escaped if it appears in the value) where
-composite values are contained in brackets as one or more such
-semicolon terminated strings.  Any escaped characters shall be processed
-and interpreted as their escaped value.
+A terminal value is encoded as a string of UTF-8 characters terminated
+by a semicolon (which must be escaped if it appears in the value).  A composite
+values is encoded as a left bracket followed by one or more values (terminal or
+composite) followed by a right bracket.
+Any escaped characters shall be processed and interpreted as their escaped value.
+
 
 Container values are encoded as
 * an open bracket,
@@ -234,21 +235,23 @@ defined by a descriptor directive.
 ### Character Escape Rules
 
 Any character in a value line may be escaped from the ZSON formatting rules
-using the JavaScript rules for escape syntax, i.e.,
-* `\ddd` for octal escapes,
-* `\xdd` for hex escapes,
-* `\udddd` for unicode escapes,
-* and the various [single character escapes of JavaScript](https://tc39.es/ecma262/#prod-SingleEscapeCharacter).
+using the hex escape syntax, i.e., `\xdd`.
 
 Sequences of binary data can be embedded in values using these escapes but it is
 a semantic error for arbitrary binary data to be carried by any types except
 `string` and `bytes` (see [Type Semantics](#type-semantics)).
 
-These special characters must be escaped if they appear within a value:
+These special characters must be hex escaped if they appear within a value:
 ```
 ; \n \\
 ```
-In addition, `-` must be escaped if representing the single ASCII byte equal to `-` as opposed to representing an unset value.
+And these characters must be escaped if they appear as the first character
+of a value:
+```
+[ ]
+```
+In addition, `-` must be escaped if representing the single ASCII byte equal
+to `-` as opposed to representing an unset value.
 
 ## Examples
 
@@ -258,8 +261,8 @@ two descriptors then uses them in three values:
 #1:string
 #2:record[a:string,b:string]
 1:hello, world;
-2:[hello;world;];
-1:this is a semicolon: \;;
+2:[hello;world;]
+1:this is a semicolon: \x3b;
 ```
 which represents a stream of the following three values:
 ```
@@ -272,10 +275,10 @@ The semicolon terminator is important.  Consider this ZSON depicting
 sets of strings:
 ```
 #3:set[string]
-3:[hello,world;];
-3:[hello;world;];
-3:[];
-3:[;];
+3:[hello,world;]
+3:[hello;world;]
+3:[]
+3:[;]
 ```
 In this example:
 * the first value is a `set` of one `string`
@@ -290,11 +293,11 @@ This scheme allows composites to be embedded in composites, e.g., a
 ```
 #4:record[compass:string,degree:double]
 #5:record[city:string,lat:4,long:4]
-5:[NYC;[NE;40.7128];[W;74.0060;];];
+5:[NYC;[NE;40.7128;][W;74.0060;]]
 ```
 An unset value indicates a field of a `record` that wasn't set by the encoder:
 ```
-5:[North Pole;[N;90];-;];
+5:[North Pole;[N;90;]-;]
 ```
 e.g., the North Pole has a latitude but no meaningful longitude.
 
