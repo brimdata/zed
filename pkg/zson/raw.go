@@ -10,23 +10,13 @@ import (
 	"github.com/mccanne/zq/pkg/zval"
 )
 
-// Raw is the serialization format for zson records.  A raw value comprises a
-// sequence of zvals, one per descriptor column.  The descriptor is stored
-// outside of the raw serialization but is needed to interpret the raw values.
-type Raw []byte
-
-// ZvalIter returns an iterator over the receiver's zvals.
-func (r Raw) ZvalIter() zval.Iter {
-	return zval.Iter(r)
-}
-
 // NewRawFromZvals builds a raw value from a descriptor and zvals.
-func NewRawFromZvals(d *Descriptor, vals [][]byte) (Raw, error) {
+func NewRawFromZvals(d *Descriptor, vals [][]byte) (zval.Encoding, error) {
 	if nv, nc := len(vals), len(d.Type.Columns); nv != nc {
 		return nil, fmt.Errorf("got %d values (%q), expected %d (%q)", nv, vals, nc, d.Type.Columns)
 
 	}
-	var raw Raw
+	var raw zval.Encoding
 	for _, val := range vals {
 		raw = zval.AppendValue(raw, val)
 	}
@@ -38,7 +28,7 @@ func NewRawFromZvals(d *Descriptor, vals [][]byte) (Raw, error) {
 // the underlying JSON values.  This slice follows the order of the descriptor
 // columns.  Second, it appends the descriptor ID and the values to a new
 // buffer.
-func NewRawAndTsFromJSON(d *Descriptor, tsCol int, data []byte) (Raw, nano.Ts, int, error) {
+func NewRawAndTsFromJSON(d *Descriptor, tsCol int, data []byte) (zval.Encoding, nano.Ts, int, error) {
 	var droppedFields int
 	type jsonVal struct {
 		val []byte
@@ -101,7 +91,7 @@ func NewRawAndTsFromJSON(d *Descriptor, tsCol int, data []byte) (Raw, nano.Ts, i
 	return raw, ts, droppedFields, nil
 }
 
-func NewRawAndTsFromZeekTSV(d *Descriptor, tsCol int, path []byte, data []byte) (Raw, nano.Ts, error) {
+func NewRawAndTsFromZeekTSV(d *Descriptor, tsCol int, path []byte, data []byte) (zval.Encoding, nano.Ts, error) {
 	vals := make([][]byte, 0, 32) // Fixed length for stack allocation.
 	vals = append(vals, path)
 	const separator = '\t'
@@ -116,7 +106,7 @@ func NewRawAndTsFromZeekTSV(d *Descriptor, tsCol int, path []byte, data []byte) 
 	return NewRawAndTsFromZeekValues(d, tsCol, vals)
 }
 
-func NewRawAndTsFromZeekValues(d *Descriptor, tsCol int, vals [][]byte) (Raw, nano.Ts, error) {
+func NewRawAndTsFromZeekValues(d *Descriptor, tsCol int, vals [][]byte) (zval.Encoding, nano.Ts, error) {
 	if nv, nc := len(vals), len(d.Type.Columns); nv != nc {
 		// Don't pass vals to fmt.Errorf or it will escape to the heap.
 		return nil, 0, fmt.Errorf("got %d values, expected %d", nv, nc)
@@ -155,7 +145,7 @@ func NewParser() *Parser {
 	}
 }
 
-func (p *Parser) Parse(desc *Descriptor, zson []byte) (Raw, error) {
+func (p *Parser) Parse(desc *Descriptor, zson []byte) (zval.Encoding, error) {
 	// XXX no validation on types from the descriptor, though we'll
 	// want to add that to support eg the bytes type.
 	// if we did this, we could also get at the ts field without
@@ -245,20 +235,4 @@ func zsonParseField(builder *zval.Builder, b []byte) ([]byte, error) {
 		}
 		to++
 	}
-}
-
-func (r Raw) String() string {
-	s := ""
-	for it := zval.Iter(r); !it.Done(); {
-		v, container, err := it.Next()
-		if err != nil {
-			return s + "Err: " + err.Error()
-		}
-		if container {
-			s += "[" + Raw(v).String() + "]"
-		} else {
-			s += "(" + string(v) + ")"
-		}
-	}
-	return s
 }
