@@ -9,6 +9,8 @@ import (
 	"github.com/mccanne/zq/pkg/zval"
 )
 
+var ErrColumnMismatch = errors.New("zson record mismatch between columns in type and columns in value")
+
 type TypeRecord struct {
 	Columns []Column
 	Key     string
@@ -118,6 +120,9 @@ func (t *TypeRecord) New(value []byte) (Value, error) {
 	v, err := t.Parse(value)
 	if err != nil {
 		return nil, err
+	}
+	if len(v) != len(t.Columns) {
+		return nil, ErrColumnMismatch
 	}
 	return &Record{typ: t, values: v}, nil
 }
