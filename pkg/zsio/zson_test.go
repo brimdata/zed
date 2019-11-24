@@ -45,7 +45,7 @@ func boomerang(t *testing.T, logs string) {
 
 	var out Output
 	rawSrc := raw.NewReader(bytes.NewReader(rawZson.Bytes()), resolver.NewTable())
-	zsonDst := zsonio.NewWriter(&out)
+	zsonDst := &flusher{zsonio.NewWriter(&out)}
 	err = zson.Copy(zsonDst, rawSrc)
 	if assert.NoError(t, err) {
 		assert.Equal(t, in, out.Bytes())
