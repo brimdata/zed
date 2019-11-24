@@ -47,7 +47,7 @@ func NewRecord(d *Descriptor, ts nano.Ts, raw zval.Encoding) *Record {
 	}
 }
 
-// NewTempRecord creates a record from a timestamp and a raw value
+// NewVolatileRecord creates a record from a timestamp and a raw value
 // marked volatile so that Keep() must be called to make it safe.
 // This is useful for readers that allocate records whose raw body points
 // into a reusable buffer allowing the scanner to filter these records
