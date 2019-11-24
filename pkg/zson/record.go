@@ -30,7 +30,7 @@ var (
 type Record struct {
 	Ts nano.Ts
 	*Descriptor
-	volatile bool
+	nonvolatile bool
 	// Raw is the serialization format for zson records.  A raw value comprises a
 	// sequence of zvals, one per descriptor column.  The descriptor is stored
 	// outside of the raw serialization but is needed to interpret the raw values.
@@ -40,10 +40,10 @@ type Record struct {
 // NewRecord creates a record from a timestamp and a raw value.
 func NewRecord(d *Descriptor, ts nano.Ts, raw zval.Encoding) *Record {
 	return &Record{
-		Ts:         ts,
-		Descriptor: d,
-		volatile:   false,
-		Raw:        raw,
+		Ts:          ts,
+		Descriptor:  d,
+		nonvolatile: true,
+		Raw:         raw,
 	}
 }
 
@@ -55,10 +55,10 @@ func NewRecord(d *Descriptor, ts nano.Ts, raw zval.Encoding) *Record {
 // matches a record, it will call Keep() to make a safe copy.
 func NewVolatileRecord(d *Descriptor, ts nano.Ts, raw zval.Encoding) *Record {
 	return &Record{
-		Ts:         ts,
-		Descriptor: d,
-		volatile:   true,
-		Raw:        raw,
+		Ts:          ts,
+		Descriptor:  d,
+		nonvolatile: false,
+		Raw:         raw,
 	}
 }
 
@@ -109,10 +109,10 @@ func (r *Record) ZvalIter() zval.Iter {
 func (r *Record) Width() int { return len(r.Descriptor.Type.Columns) }
 
 func (r *Record) Keep() *Record {
-	if !r.volatile {
+	if r.nonvolatile {
 		return r
 	}
-	v := &Record{Ts: r.Ts, Descriptor: r.Descriptor, volatile: false}
+	v := &Record{Ts: r.Ts, Descriptor: r.Descriptor, nonvolatile: true}
 	v.Raw = make(zval.Encoding, len(r.Raw))
 	copy(v.Raw, r.Raw)
 	return v
