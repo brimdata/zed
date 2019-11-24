@@ -15,6 +15,11 @@ type Writer interface {
 	Write(*Record) error
 }
 
+type WriteCloser interface {
+	Writer
+	io.Closer
+}
+
 type WriteFlusher interface {
 	Writer
 	Flush() error
@@ -61,25 +66,4 @@ func CopyWithContext(ctx context.Context, dst WriteFlusher, src Reader) error {
 // while the dst writer is written to and closed.
 func Copy(dst WriteFlusher, src Reader) error {
 	return CopyWithContext(context.Background(), dst, src)
-}
-
-type WriteCloser struct {
-	WriteFlusher
-	io.Closer
-}
-
-func NewWriteCloser(writer WriteFlusher, closer io.Closer) *WriteCloser {
-	return &WriteCloser{
-		WriteFlusher: writer,
-		Closer:       closer,
-	}
-}
-
-func (w *WriteCloser) Close() error {
-	err := w.Flush()
-	cerr := w.Closer.Close()
-	if err == nil {
-		err = cerr
-	}
-	return err
 }

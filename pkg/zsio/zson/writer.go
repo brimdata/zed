@@ -1,4 +1,4 @@
-package zsio
+package zson
 
 import (
 	"fmt"

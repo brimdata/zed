@@ -230,7 +230,7 @@ func (c *Command) loadFiles(paths []string) (zson.Reader, error) {
 	return scanner.NewCombiner(readers), nil
 }
 
-func (c *Command) openOutput() (emitter.Writer, error) {
+func (c *Command) openOutput() (zson.WriteCloser, error) {
 	if c.dir != "" {
 		ext := extension(c.format)
 		d, err := emitter.NewDir(c.dir, c.outputFile, ext, os.Stderr)

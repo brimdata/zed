@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/mccanne/zq/pkg/zsio"
 	"github.com/mccanne/zq/pkg/zson"
 )
 
@@ -24,7 +25,7 @@ type Dir struct {
 	prefix  string
 	ext     string
 	stderr  io.Writer
-	writers map[*zson.Descriptor]*zson.WriteCloser
+	writers map[*zson.Descriptor]*zsio.Writer
 	paths   map[string]int
 }
 
@@ -37,7 +38,7 @@ func NewDir(dir, prefix, ext string, stderr io.Writer) (*Dir, error) {
 		prefix:  prefix,
 		ext:     ext,
 		stderr:  stderr,
-		writers: make(map[*zson.Descriptor]*zson.WriteCloser),
+		writers: make(map[*zson.Descriptor]*zsio.Writer),
 		paths:   make(map[string]int),
 	}, nil
 }
@@ -54,7 +55,7 @@ func (d *Dir) Write(r *zson.Record) error {
 	return nil
 }
 
-func (d *Dir) lookupOutput(rec *zson.Record) (*zson.WriteCloser, error) {
+func (d *Dir) lookupOutput(rec *zson.Record) (*zsio.Writer, error) {
 	descriptor := rec.Descriptor
 	w, ok := d.writers[descriptor]
 	if ok {
@@ -92,7 +93,7 @@ func (d *Dir) filename(path string) string {
 	return filepath.Join(d.dir, filename)
 }
 
-func (d *Dir) newFile(rec *zson.Record) (*zson.WriteCloser, string, error) {
+func (d *Dir) newFile(rec *zson.Record) (*zsio.Writer, string, error) {
 	// get path name from descriptor.  the td at column 0
 	// has already been stripped out.
 	i, ok := rec.Descriptor.ColumnOfField("_path")

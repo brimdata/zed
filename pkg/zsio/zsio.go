@@ -8,10 +8,33 @@ import (
 	"github.com/mccanne/zq/pkg/zsio/raw"
 	"github.com/mccanne/zq/pkg/zsio/table"
 	"github.com/mccanne/zq/pkg/zsio/zeek"
+	zsonio "github.com/mccanne/zq/pkg/zsio/zson"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
 )
 
+type Writer struct {
+	zson.WriteFlusher
+	io.Closer
+}
+
+func NewWriter(writer zson.WriteFlusher, closer io.Closer) *Writer {
+	return &Writer{
+		WriteFlusher: writer,
+		Closer:       closer,
+	}
+}
+
+func (w *Writer) Close() error {
+	err := w.Flush()
+	cerr := w.Closer.Close()
+	if err == nil {
+		err = cerr
+	}
+	return err
+}
+
+// flusher wraps a zson.Writer that needs need flushing to create a zson.WriteFlusher
 type flusher struct {
 	zson.Writer
 }
@@ -20,30 +43,36 @@ func (f *flusher) Flush() error {
 	return nil
 }
 
-func LookupWriter(format string, w io.Writer) zson.WriteFlusher {
+func LookupWriter(format string, w io.WriteCloser) *Writer {
+	var f zson.WriteFlusher
 	switch format {
+	default:
+		return nil
 	case "zson":
-		return &flusher{Writer: NewWriter(w)}
+		f = &flusher{Writer: zsonio.NewWriter(w)}
 	case "zeek":
-		return &flusher{zeek.NewWriter(w)}
+		f = &flusher{zeek.NewWriter(w)}
 	case "ndjson":
-		return &flusher{ndjson.NewWriter(w)}
+		f = &flusher{ndjson.NewWriter(w)}
 	case "json":
-		return json.NewWriter(w)
+		f = json.NewWriter(w)
 	//case "text":
 	//	return &flusher{text.NewWriter(w, c.showTypes, c.showFields, c.epochDates)}
 	case "table":
-		return table.NewWriter(w)
+		f = table.NewWriter(w)
 	case "raw":
-		return &flusher{raw.NewWriter(w)}
+		f = &flusher{raw.NewWriter(w)}
 	}
-	return nil
+	return &Writer{
+		WriteFlusher: f,
+		Closer:       w,
+	}
 }
 
 func LookupReader(format string, r io.Reader, table *resolver.Table) zson.Reader {
 	switch format {
 	case "zson", "zeek":
-		return NewReader(r, table)
+		return zsonio.NewReader(r, table)
 	case "ndjson":
 		return ndjson.NewReader(r, table)
 		/* XXX not yet

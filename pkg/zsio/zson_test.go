@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	zsonio "github.com/mccanne/zq/pkg/zsio/zson"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
 	"github.com/stretchr/testify/assert"
@@ -22,9 +23,9 @@ func (o *Output) Close() error {
 
 func identity(t *testing.T, logs string) {
 	var out Output
-	dst := &flusher{NewWriter(&out)}
+	dst := &flusher{zsonio.NewWriter(&out)}
 	in := []byte(strings.TrimSpace(logs) + "\n")
-	src := NewReader(bytes.NewReader(in), resolver.NewTable())
+	src := zsonio.NewReader(bytes.NewReader(in), resolver.NewTable())
 	err := zson.Copy(dst, src)
 	if assert.NoError(t, err) {
 		assert.Equal(t, in, out.Bytes())
