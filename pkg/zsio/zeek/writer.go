@@ -12,13 +12,13 @@ import (
 var ErrDescriptorChanged = errors.New("descriptor changed")
 
 type Writer struct {
-	zson.Writer
+	io.Writer
 	header
 	descriptor *zson.Descriptor
 }
 
-func NewWriter(w io.WriteCloser) *Writer {
-	return &Writer{Writer: zson.Writer{w}}
+func NewWriter(w io.Writer) *Writer {
+	return &Writer{Writer: w}
 }
 
 func (w *Writer) Write(r *zson.Record) error {

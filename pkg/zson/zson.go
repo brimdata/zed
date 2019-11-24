@@ -11,31 +11,19 @@ type Reader interface {
 	Read() (*Record, error)
 }
 
-type WriteCloser interface {
+type Writer interface {
 	Write(*Record) error
-	Close() error
 }
 
-// Writer is a simple, embeddable object for zson writers who don't need
-// to do anything special at close.  Instead this object will just call the
-// Close method on the wrapped io.WriteCloser.
-type Writer struct {
-	io.WriteCloser
+type WriteCloser interface {
+	Writer
+	io.Closer
 }
 
-func (w *Writer) Close() error {
-	return w.WriteCloser.Close()
+type WriteFlusher interface {
+	Writer
+	Flush() error
 }
-
-/* XXX
-type BatchReader interface {
-	Read() (Batch, error)
-}
-
-type BatchWriter interface {
-	Write(Batch) error
-}
-*/
 
 // Batch is an inteface to a bundle of Records.
 // Batches can be shared across goroutines via reference counting and should be
@@ -50,7 +38,7 @@ type Batch interface {
 	Span() nano.Span
 }
 
-func CopyWithContext(ctx context.Context, dst WriteCloser, src Reader) error {
+func CopyWithContext(ctx context.Context, dst WriteFlusher, src Reader) error {
 	var err error
 	for ctx.Err() == nil {
 		var rec *Record
@@ -63,7 +51,7 @@ func CopyWithContext(ctx context.Context, dst WriteCloser, src Reader) error {
 			break
 		}
 	}
-	dstErr := dst.Close()
+	dstErr := dst.Flush()
 	switch {
 	case err != nil:
 		return err
@@ -76,6 +64,6 @@ func CopyWithContext(ctx context.Context, dst WriteCloser, src Reader) error {
 
 // Copy copies src to dst a la io.Copy.  The src reader is read from
 // while the dst writer is written to and closed.
-func Copy(dst WriteCloser, src Reader) error {
+func Copy(dst WriteFlusher, src Reader) error {
 	return CopyWithContext(context.Background(), dst, src)
 }

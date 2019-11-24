@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mccanne/zq/pkg/zsio/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,17 +19,17 @@ func assertError(t *testing.T, err error, pattern, what string) {
 // Test things related to parsing zson
 func TestZsonDescriptors(t *testing.T) {
 	// Step 1 - Test a simple zson descriptor and corresponding value
-	zson := "#1:record[s:string,n:int]\n"
-	zson += "1:[foo;5;]\n"
+	src := "#1:record[s:string,n:int]\n"
+	src += "1:[foo;5;]\n"
 	// Step 2 - Create a second descriptor of a different type
-	zson += "#2:record[a:addr,p:port]\n"
-	zson += "2:[10.5.5.5;443;]\n"
+	src += "#2:record[a:addr,p:port]\n"
+	src += "2:[10.5.5.5;443;]\n"
 	// Step 3 - can still use the first descriptor
-	zson += "1:[bar;100;]\n"
+	src += "1:[bar;100;]\n"
 	// Step 4 - Test that referencing an invalid descriptor is an error.
-	zson += "100:[something;somethingelse;]\n"
+	src += "100:[something;somethingelse;]\n"
 
-	r := NewReader(strings.NewReader(zson), resolver.NewTable())
+	r := zson.NewReader(strings.NewReader(src), resolver.NewTable())
 
 	// Check Step 1
 	record, err := r.Read()
@@ -74,23 +75,23 @@ func TestZsonDescriptors(t *testing.T) {
 	}
 
 	for _, z := range zsons {
-		r := NewReader(strings.NewReader(z), resolver.NewTable())
+		r := zson.NewReader(strings.NewReader(z), resolver.NewTable())
 		_, err = r.Read()
 		assert.Error(t, err, "zson parse error", "invalid zson")
 	}
 	// Can't use a descriptor of non-record type
-	r = NewReader(strings.NewReader("#3:string\n"), resolver.NewTable())
+	r = zson.NewReader(strings.NewReader("#3:string\n"), resolver.NewTable())
 	_, err = r.Read()
 	assertError(t, err, "bad value", "descriptor with non-record type")
 
 	// Descriptor with an invalid type is rejected
-	r = NewReader(strings.NewReader("#4:notatype\n"), resolver.NewTable())
+	r = zson.NewReader(strings.NewReader("#4:notatype\n"), resolver.NewTable())
 	_, err = r.Read()
 	assertError(t, err, "unknown type", "descriptor with invalid type")
 
 	// Trying to redefine a descriptor is an error XXX this should be ok
 	d := "#1:record[n:int]\n"
-	r = NewReader(strings.NewReader(d+d), resolver.NewTable())
+	r = zson.NewReader(strings.NewReader(d+d), resolver.NewTable())
 	_, err = r.Read()
 	assertError(t, err, "descriptor already exists", "redefining //descriptor")
 }

@@ -9,13 +9,13 @@ import (
 
 // Writer implements a Formatter for ndjson
 type Writer struct {
-	zson.Writer
+	io.Writer
 	encoder *json.Encoder
 }
 
-func NewWriter(w io.WriteCloser) *Writer {
+func NewWriter(w io.Writer) *Writer {
 	return &Writer{
-		Writer:  zson.Writer{w},
+		Writer:  w,
 		encoder: json.NewEncoder(w),
 	}
 }

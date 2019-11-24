@@ -8,11 +8,11 @@ import (
 )
 
 type Raw struct {
-	zson.Writer
+	io.Writer
 }
 
-func NewWriter(w io.WriteCloser) *Raw {
-	return &Raw{Writer: zson.Writer{w}}
+func NewWriter(w io.Writer) *Raw {
+	return &Raw{Writer: w}
 }
 
 func (r *Raw) WriteRaw(msg interface{}) error {

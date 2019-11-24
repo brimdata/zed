@@ -1,4 +1,4 @@
-package zsio
+package zson
 
 import (
 	"fmt"
@@ -9,13 +9,13 @@ import (
 )
 
 type Writer struct {
-	io.WriteCloser
+	io.Writer
 	descriptors map[int]struct{}
 }
 
-func NewWriter(w io.WriteCloser) *Writer {
+func NewWriter(w io.Writer) *Writer {
 	return &Writer{
-		WriteCloser: w,
+		Writer:      w,
 		descriptors: make(map[int]struct{}),
 	}
 }
@@ -25,12 +25,12 @@ func (w *Writer) Write(r *zson.Record) error {
 	_, ok := w.descriptors[td]
 	if !ok {
 		w.descriptors[td] = struct{}{}
-		_, err := fmt.Fprintf(w.WriteCloser, "#%d:%s\n", td, r.Descriptor.Type)
+		_, err := fmt.Fprintf(w.Writer, "#%d:%s\n", td, r.Descriptor.Type)
 		if err != nil {
 			return err
 		}
 	}
-	_, err := fmt.Fprintf(w.WriteCloser, "%d:", td)
+	_, err := fmt.Fprintf(w.Writer, "%d:", td)
 	if err != nil {
 		return nil
 	}
@@ -41,7 +41,7 @@ func (w *Writer) Write(r *zson.Record) error {
 }
 
 func (w *Writer) write(s string) error {
-	_, err := w.WriteCloser.Write([]byte(s))
+	_, err := w.Writer.Write([]byte(s))
 	return err
 }
 
@@ -86,7 +86,7 @@ func (w *Writer) escape(c byte) error {
 	b[1] = 'x'
 	b[2] = hex[c>>4]
 	b[3] = hex[c&0xf]
-	_, err := w.WriteCloser.Write(b[:])
+	_, err := w.Writer.Write(b[:])
 	return err
 }
 
@@ -111,7 +111,7 @@ func (w *Writer) writeEscaped(val []byte) error {
 		switch c {
 		case '\\', ';', '\n':
 			if off > 0 {
-				_, err := w.WriteCloser.Write(val[:off])
+				_, err := w.Writer.Write(val[:off])
 				if err != nil {
 					return err
 				}
@@ -127,7 +127,7 @@ func (w *Writer) writeEscaped(val []byte) error {
 	}
 	var err error
 	if len(val) > 0 {
-		_, err = w.WriteCloser.Write(val)
+		_, err = w.Writer.Write(val)
 	}
 	return err
 }
