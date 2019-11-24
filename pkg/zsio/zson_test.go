@@ -22,7 +22,7 @@ func (o *Output) Close() error {
 
 func identity(t *testing.T, logs string) {
 	var out Output
-	dst := NewWriter(&out)
+	dst := &flusher{NewWriter(&out)}
 	in := []byte(strings.TrimSpace(logs) + "\n")
 	src := NewReader(bytes.NewReader(in), resolver.NewTable())
 	err := zson.Copy(dst, src)

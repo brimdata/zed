@@ -17,7 +17,7 @@ import (
 var ErrTooManyLines = errors.New("too many lines for output table")
 
 type Table struct {
-	io.WriteCloser
+	io.Writer
 	table      *tabwriter.Writer
 	descriptor *zson.Descriptor
 	limit      int
@@ -25,9 +25,9 @@ type Table struct {
 	dlog       droppedTdLogger
 }
 
-func NewWriter(w io.WriteCloser) *Table {
+func NewWriter(w io.Writer) *Table {
 	writer := tabwriter.NewWriter(w, 0, 8, 1, ' ', 0)
-	return &Table{WriteCloser: w, table: writer, limit: 10000, dlog: droppedTdLogger{}}
+	return &Table{Writer: w, table: writer, limit: 10000, dlog: droppedTdLogger{}}
 }
 
 func (t *Table) writeHeader(d *zson.Descriptor) {
@@ -58,11 +58,8 @@ func (t *Table) Write(r *zson.Record) error {
 	return err
 }
 
-func (t *Table) Close() error {
-	if err := t.table.Flush(); err != nil {
-		return err
-	}
-	return t.WriteCloser.Close()
+func (t *Table) Flush() error {
+	return t.table.Flush()
 }
 
 // droppedTdLogger emits a new log line to stderr every time a new td is added.

@@ -10,7 +10,6 @@ import (
 	"github.com/mccanne/charm"
 	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/emitter"
-	"github.com/mccanne/zq/pkg/bufwriter"
 	"github.com/mccanne/zq/pkg/zsio"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
@@ -231,30 +230,18 @@ func (c *Command) loadFiles(paths []string) (zson.Reader, error) {
 	return scanner.NewCombiner(readers), nil
 }
 
-func (c *Command) openOutput() (zson.WriteCloser, error) {
+func (c *Command) openOutput() (emitter.Writer, error) {
 	if c.dir != "" {
-		return c.openOutputDir()
+		ext := extension(c.format)
+		d, err := emitter.NewDir(c.dir, c.outputFile, ext, os.Stderr)
+		if err != nil {
+			return nil, err
+		}
+		return d, nil
 	}
-	file, err := c.openOutputFile()
+	w, err := emitter.OpenOutputFile(c.format, c.outputFile)
 	if err != nil {
 		return nil, err
 	}
-	writer := zsio.LookupWriter(c.format, bufwriter.New(file))
-	if writer == nil {
-		return nil, fmt.Errorf("invalid format: %s", c.format)
-	}
-	return writer, nil
-}
-
-func (c *Command) openOutputFile() (*os.File, error) {
-	if c.outputFile == "" {
-		return os.Stdout, nil
-	}
-	flags := os.O_WRONLY | os.O_CREATE | os.O_EXCL
-	return os.OpenFile(c.outputFile, flags, 0600)
-}
-
-func (c *Command) openOutputDir() (*emitter.Dir, error) {
-	ext := extension(c.format)
-	return emitter.NewDir(c.dir, c.outputFile, ext, os.Stderr)
+	return w, nil
 }

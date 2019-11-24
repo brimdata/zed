@@ -12,24 +12,30 @@ import (
 	"github.com/mccanne/zq/pkg/zson/resolver"
 )
 
-func LookupWriter(format string, w io.WriteCloser) zson.WriteCloser {
+type flusher struct {
+	zson.Writer
+}
+
+func (f *flusher) Flush() error {
+	return nil
+}
+
+func LookupWriter(format string, w io.Writer) zson.WriteFlusher {
 	switch format {
 	case "zson":
-		return NewWriter(w)
+		return &flusher{Writer: NewWriter(w)}
 	case "zeek":
-		return zeek.NewWriter(w)
+		return &flusher{zeek.NewWriter(w)}
 	case "ndjson":
-		return ndjson.NewWriter(w)
+		return &flusher{ndjson.NewWriter(w)}
 	case "json":
 		return json.NewWriter(w)
-		/* XXX not yet
-		case "text":
-			return text.NewWriter(f, c.showTypes, c.showFields, c.epochDates)
-		*/
+	//case "text":
+	//	return &flusher{text.NewWriter(w, c.showTypes, c.showFields, c.epochDates)}
 	case "table":
 		return table.NewWriter(w)
 	case "raw":
-		return raw.NewWriter(w)
+		return &flusher{raw.NewWriter(w)}
 	}
 	return nil
 }

@@ -10,13 +10,13 @@ import (
 
 // JSON implements a Formatter for json output
 type JSON struct {
-	io.WriteCloser
+	io.Writer
 	limit int
 	array []map[string]interface{}
 }
 
-func NewWriter(w io.WriteCloser) *JSON {
-	return &JSON{WriteCloser: w, limit: 10000}
+func NewWriter(w io.Writer) *JSON {
+	return &JSON{Writer: w, limit: 10000}
 }
 
 func (p *JSON) Write(rec *zson.Record) error {
@@ -31,14 +31,11 @@ func (p *JSON) Write(rec *zson.Record) error {
 	return nil
 }
 
-func (p *JSON) Close() error {
+func (p *JSON) Flush() error {
 	out, err := json.Marshal(p.array)
 	if err != nil {
 		return err
 	}
-	_, err = p.WriteCloser.Write(out)
-	if err != nil {
-		return err
-	}
-	return p.WriteCloser.Close()
+	_, err = p.Writer.Write(out)
+	return err
 }

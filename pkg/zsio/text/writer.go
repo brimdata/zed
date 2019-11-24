@@ -3,7 +3,6 @@ package text
 import (
 	"fmt"
 	"io"
-	"os"
 	"strings"
 	"time"
 
@@ -12,14 +11,14 @@ import (
 )
 
 type Text struct {
-	io.WriteCloser
+	io.Writer
 	types  bool
 	fields bool
 	epoch  bool
 }
 
-func NewWriter(w io.WriteCloser, types, fields, epoch bool) *Text {
-	return &Text{WriteCloser: w, types: types, fields: fields, epoch: epoch}
+func NewWriter(w io.Writer, types, fields, epoch bool) *Text {
+	return &Text{Writer: w, types: types, fields: fields, epoch: epoch}
 }
 
 func (t *Text) Write(rec *zson.Record) error {
@@ -48,15 +47,6 @@ func (t *Text) Write(rec *zson.Record) error {
 		}
 	}
 	s := strings.Join(out, "\t")
-	_, err := fmt.Fprintf(t.WriteCloser, "%s\n", s)
+	_, err := fmt.Fprintf(t.Writer, "%s\n", s)
 	return err
-}
-
-func (t *Text) Close() error {
-	// need this check for the repl so we don't close Stdout
-	// XXX probably a better way to handle this
-	if t.WriteCloser != os.Stdout {
-		return t.WriteCloser.Close()
-	}
-	return nil
 }

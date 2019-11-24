@@ -13,11 +13,11 @@ import (
 )
 
 type Emitter struct {
-	writer   zson.WriteCloser
+	writer   zson.Writer
 	warnings io.Writer
 }
 
-func NewEmitter(w zson.WriteCloser) *Emitter {
+func NewEmitter(w zson.Writer) *Emitter {
 	return &Emitter{
 		writer: w,
 	}
