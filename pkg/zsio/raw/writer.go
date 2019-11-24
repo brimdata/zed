@@ -1,31 +1,45 @@
 package raw
 
 import (
-	"encoding/json"
 	"io"
 
 	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zson/resolver"
 )
 
-type Raw struct {
+type Writer struct {
 	io.Writer
+	tracker *resolver.Tracker
 }
 
-func NewWriter(w io.Writer) *Raw {
-	return &Raw{Writer: w}
-}
-
-func (r *Raw) WriteRaw(msg interface{}) error {
-	out, err := json.Marshal(msg)
-	if err != nil {
-		return err
+func NewWriter(w io.Writer) *Writer {
+	return &Writer{
+		Writer: w,
+		tracker:     resolver.NewTracker(),
 	}
-	out = append(out, byte('\n'))
-	_, err = r.Writer.Write(out)
-	return err
 }
 
-//XXX ?
-func (r *Raw) Write(rec *zson.Record) error {
-	return nil
+func (w *Writer) WriteValue(ch int, r *zson.Record) error {
+	id := r.Descriptor.ID
+	if !w.tracker.Seen(id) {
+		b := []byte(r.Descriptor.Type.String())
+		if err := w.encode(TypeDescriptor, 0, id, b); err != nil {
+			return err
+		}
+	}
+	return w.encode(TypeValue, ch, id, r.Raw)
+}
+
+func (w *Writer) Write(r *zson.Record) error {
+	return w.WriteValue(0, r)
+}
+
+func (w *Writer) WriteComment(b []byte) error {
+	return w.encode(TypeComment, 0, 0, b)
+}
+
+func (w *Writer) encode(typ, ch, id int, b []byte) error {
+	writeHeader(w.Writer, typ, ch, id, len(b))
+	_, err := w.Writer.Write(b)
+	return err
 }

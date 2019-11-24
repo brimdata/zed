@@ -6,6 +6,12 @@ import (
 	"github.com/mccanne/zq/pkg/zeek"
 )
 
+// MaxDescriptor is the largest descriptor ID allowed.  Since some tables
+// are sized based on the largest descriptor seen, very large descriptors
+// due to bugs etc could cause memory use problems.
+// XXX make this configurable
+const MaxDescriptor = 1000000
+
 // Resolver is an interface for looking up Descriptor objects from the descriptor id.
 type Resolver interface {
 	Lookup(td int) *Descriptor
