@@ -16,5 +16,6 @@ jobs:
     - name: Post PR closed event, if the close was a merge
       if: steps.vars.outputs.merged == 'true'
       run: |
-        cat $GITHUB_EVENT_PATH | jq '.pull_request | { "event_type": "zq-pr-merged", "client_payload": {body, "branch": .head.label, merge_commit_sha, number, title, url, "user": .user.login}}' > payload.json
+        cat $GITHUB_EVENT_PATH
+        cat $GITHUB_EVENT_PATH | jq '.pull_request | { "event_type": "zq-pr-merged", "client_payload": {body, "branch": .head.label, merge_commit_sha, number, title, "url": .html_url, "user": .user.login}}' > payload.json
         curl -XPOST -u "${{ secrets.PAT_USERNAME }}:${{ secrets.PAT_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json"  -H "Content-Type: application/json" https://api.github.com/repos/looky-cloud/boom/dispatches --data @payload.json
