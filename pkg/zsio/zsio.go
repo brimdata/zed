@@ -34,26 +34,17 @@ func (w *Writer) Close() error {
 	return err
 }
 
-// flusher wraps a zson.Writer that needs need flushing to create a zson.WriteFlusher
-type flusher struct {
-	zson.Writer
-}
-
-func (f *flusher) Flush() error {
-	return nil
-}
-
 func LookupWriter(format string, w io.WriteCloser) *Writer {
 	var f zson.WriteFlusher
 	switch format {
 	default:
 		return nil
 	case "zson":
-		f = &flusher{Writer: zsonio.NewWriter(w)}
+		f = zson.NopFlusher(zsonio.NewWriter(w))
 	case "zeek":
-		f = &flusher{zeek.NewWriter(w)}
+		f = zson.NopFlusher(zeek.NewWriter(w))
 	case "ndjson":
-		f = &flusher{ndjson.NewWriter(w)}
+		f = zson.NopFlusher(ndjson.NewWriter(w))
 	case "json":
 		f = json.NewWriter(w)
 	//case "text":
@@ -61,7 +52,7 @@ func LookupWriter(format string, w io.WriteCloser) *Writer {
 	case "table":
 		f = table.NewWriter(w)
 	case "raw":
-		f = &flusher{raw.NewWriter(w)}
+		f = zson.NopFlusher(raw.NewWriter(w))
 	}
 	return &Writer{
 		WriteFlusher: f,

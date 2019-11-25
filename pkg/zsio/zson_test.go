@@ -25,7 +25,7 @@ func (o *Output) Close() error {
 
 func identity(t *testing.T, logs string) {
 	var out Output
-	dst := &flusher{zsonio.NewWriter(&out)}
+	dst := zson.NopFlusher(zsonio.NewWriter(&out))
 	in := []byte(strings.TrimSpace(logs) + "\n")
 	src := zsonio.NewReader(bytes.NewReader(in), resolver.NewTable())
 	err := zson.Copy(dst, src)
@@ -39,13 +39,13 @@ func boomerang(t *testing.T, logs string) {
 	in := []byte(strings.TrimSpace(logs) + "\n")
 	zsonSrc := zsonio.NewReader(bytes.NewReader(in), resolver.NewTable())
 	var rawZson Output
-	rawDst := &flusher{raw.NewWriter(&rawZson)}
+	rawDst := zson.NopFlusher(raw.NewWriter(&rawZson))
 	err := zson.Copy(rawDst, zsonSrc)
 	require.NoError(t, err)
 
 	var out Output
 	rawSrc := raw.NewReader(bytes.NewReader(rawZson.Bytes()), resolver.NewTable())
-	zsonDst := &flusher{zsonio.NewWriter(&out)}
+	zsonDst := zson.NopFlusher(zsonio.NewWriter(&out))
 	err = zson.Copy(zsonDst, rawSrc)
 	if assert.NoError(t, err) {
 		assert.Equal(t, in, out.Bytes())

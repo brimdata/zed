@@ -33,6 +33,18 @@ type WriteFlusher interface {
 	Flush() error
 }
 
+type nopFlusher struct {
+	Writer
+}
+
+func (nopFlusher) Flush() error { return nil }
+
+// NopFlusher returns a WriteFlusher with a no-op Flush method wrapping
+// the provided Writer w.
+func NopFlusher(w Writer) WriteFlusher {
+	return nopFlusher{w}
+}
+
 // Batch is an inteface to a bundle of Records.
 // Batches can be shared across goroutines via reference counting and should be
 // copied on modification when the reference count is greater than 1.
