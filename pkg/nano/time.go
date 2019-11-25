@@ -159,6 +159,23 @@ func Parse(s []byte) (Ts, error) {
 	return Ts(v * scale), nil
 }
 
+// ParseMillis parses an unsigned integer representing milliseconds since the
+// Unix epoch.
+func ParseMillis(s []byte) (Ts, error) {
+	if len(s) == 0 {
+		return 0, fmt.Errorf("invalid time format: %s", string(s))
+	}
+	var v int64
+	for _, c := range s {
+		d := c - '0'
+		if d > 9 {
+			return 0, fmt.Errorf("invalid time format: %s", string(s))
+		}
+		v = v*10 + int64(d)
+	}
+	return Ts(v * 1_000_000), nil
+}
+
 // ParseRFC3339Nano parses a byte according to the time.RFC3339Nano
 // format into a Ts, returning an error if parsing failed.
 func ParseRFC3339Nano(s []byte) (Ts, error) {
