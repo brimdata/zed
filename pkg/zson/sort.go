@@ -9,24 +9,44 @@ import (
 
 type SortFn func(a *Record, b *Record) int
 
+// Internal function that compares two values of compatible types.
+type comparefn func(a, b []byte) int
+
+func rawcompare(a, b []byte, dir int) int {
+	v := bytes.Compare(a, b)
+	if v < 0 {
+		return -dir
+	} else {
+		return dir
+	}
+}
+
 func NewSortFn(dir int, fields ...string) SortFn {
-	sorters := make([]SortFn, len(fields))
+	sorters := make(map[*zeek.Type]comparefn)
 	return func(a *Record, b *Record) int {
-		for k, field := range fields {
-			sf := sorters[k]
-			if sf == nil {
-				sf = lookupSorter(a, field, dir)
+		for _, field := range fields {
+			vala, typea, erra := a.Access(field)
+			valb, typeb, errb := b.Access(field)
+
+			// Errors indicate the field isn't present, sort
+			// these records last
+			if erra != nil && errb != nil { return 0 }
+			if erra != nil { return 1 }
+			if errb != nil { return -1 }
+
+			// If values are of different types, just compare
+			// the string representation of the type
+			if !zeek.SameType(typea, typeb) {
+				return rawcompare([]byte(typea.String()), []byte(typeb.String()), dir)
 			}
-			if sf == nil {
-				// If we can't build a sorter, then
-				// the record doesn't have a field
-				// with the corresponding name, so
-				// we return equal causing these records
-				// to get sorted first.
-				return 0
+
+			sf, ok := sorters[&typea]
+			if !ok {
+				sf = lookupSorter(typea, dir)
+				sorters[&typea] = sf
 			}
-			sorters[k] = sf
-			v := sf(a, b)
+
+			v := sf(vala, valb)
 			// If the events don't match, then return the sort
 			// info.  Otherwise, they match and we continue on
 			// on in the loop to the secondary key, etc.
@@ -82,24 +102,19 @@ func (s *RecordSlice) Index(i int) *Record {
 	return s.records[i]
 }
 
-func lookupSorter(r *Record, field string, dir int) SortFn {
-	zv := r.ValueByField(field)
-	if zv == nil {
-		return nil
-	}
-	typ := zv.Type()
-	switch typ.(type) {
+func lookupSorter(typ zeek.Type, dir int) comparefn {
+	switch typ {
 	default:
-		return func(*Record, *Record) int { return 1 }
-	case *zeek.TypeOfUnset:
-		return nil
-	case *zeek.TypeOfBool:
-		return func(a, b *Record) int {
-			va, err := a.AccessBool(field)
+		return func(a, b []byte) int {
+			return rawcompare(a, b, dir)
+		}
+	case zeek.TypeBool:
+		return func(a, b []byte) int {
+			va, err := zeek.TypeBool.Parse(a)
 			if err != nil {
 				return -dir
 			}
-			vb, err := b.AccessBool(field)
+			vb, err := zeek.TypeBool.Parse(b)
 			if err != nil {
 				return dir
 			}
@@ -112,36 +127,22 @@ func lookupSorter(r *Record, field string, dir int) SortFn {
 			return -dir
 		}
 
-	case *zeek.TypeOfString, *zeek.TypeOfEnum:
-		return func(a, b *Record) int {
-			va, _, err := a.Access(field)
-			if err != nil {
-				return -dir
-			}
-			vb, _, err := b.Access(field)
-			if err != nil {
-				return dir
-			}
-			delta := bytes.Compare(va, vb)
-			if delta < 0 {
-				return -dir
-			} else if delta > 0 {
-				return dir
-			}
-			return 0
+	case zeek.TypeString, zeek.TypeEnum:
+		return func(a, b []byte) int {
+			return rawcompare(a, b, dir)
 		}
 
-		//XXX note zeek port type can have "/tcp" etc suffix according
-		// to docs but we've only encountered ints in data files.
-		// need to fix this.  XXX also we should break this sorts
-		// into the different types.
-	case *zeek.TypeOfPort, *zeek.TypeOfCount, *zeek.TypeOfInt:
-		return func(a, b *Record) int {
-			va, err := a.AccessInt(field)
+	//XXX note zeek port type can have "/tcp" etc suffix according
+	// to docs but we've only encountered ints in data files.
+	// need to fix this.  XXX also we should break this sorts
+	// into the different types.
+	case zeek.TypePort, zeek.TypeCount, zeek.TypeInt:
+		return func(a, b []byte) int {
+			va, err := zeek.TypeInt.Parse(a)
 			if err != nil {
 				return -dir
 			}
-			vb, err := b.AccessInt(field)
+			vb, err := zeek.TypeInt.Parse(b)
 			if err != nil {
 				return dir
 			}
@@ -153,31 +154,13 @@ func lookupSorter(r *Record, field string, dir int) SortFn {
 			return 0
 		}
 
-	case *zeek.TypeOfDouble:
-		return func(a, b *Record) int {
-			va, err := a.AccessDouble(field)
+	case zeek.TypeDouble:
+		return func(a, b []byte) int {
+			va, err := zeek.TypeDouble.Parse(a)
 			if err != nil {
 				return -dir
 			}
-			vb, err := b.AccessDouble(field)
-			if err != nil {
-				return dir
-			}
-			if va < vb {
-				return -dir
-			} else if va > vb {
-				return dir
-			}
-			return 0
-		}
-
-	case *zeek.TypeOfTime, *zeek.TypeOfInterval:
-		return func(a, b *Record) int {
-			va, err := a.AccessTime(field)
-			if err != nil {
-				return -dir
-			}
-			vb, err := b.AccessTime(field)
+			vb, err := zeek.TypeDouble.Parse(b)
 			if err != nil {
 				return dir
 			}
@@ -189,13 +172,31 @@ func lookupSorter(r *Record, field string, dir int) SortFn {
 			return 0
 		}
 
-	case *zeek.TypeOfAddr:
-		return func(a, b *Record) int {
-			va, err := a.AccessIP(field)
+	case zeek.TypeTime, zeek.TypeInterval:
+		return func(a, b []byte) int {
+			va, err := zeek.TypeTime.Parse(a)
 			if err != nil {
 				return -dir
 			}
-			vb, err := b.AccessIP(field)
+			vb, err := zeek.TypeTime.Parse(b)
+			if err != nil {
+				return dir
+			}
+			if va < vb {
+				return -dir
+			} else if va > vb {
+				return dir
+			}
+			return 0
+		}
+
+	case zeek.TypeAddr:
+		return func(a, b []byte) int {
+			va, err := zeek.TypeAddr.Parse(a)
+			if err != nil {
+				return -dir
+			}
+			vb, err := zeek.TypeAddr.Parse(b)
 			if err != nil {
 				return dir
 			}
