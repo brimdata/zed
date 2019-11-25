@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestObjectIn(t *testing.T) {
+func TestNDJSON(t *testing.T) {
 	type testcase struct {
 		name, input string
 	}
