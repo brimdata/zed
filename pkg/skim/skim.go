@@ -47,7 +47,7 @@ func (s *Scanner) grow() bool {
 		newsize = s.limit
 	}
 	s.buffer = make([]byte, newsize)
-	cc := copy(s.buffer, s.window)
+	cc := copy(s.buffer[:0], s.window)
 	s.window = s.buffer[0:cc]
 	return true
 }
@@ -55,7 +55,7 @@ func (s *Scanner) grow() bool {
 func (s *Scanner) more() error {
 	var cushion int
 	if s.window != nil {
-		cushion = copy(s.buffer, s.window)
+		cushion = copy(s.buffer[:0], s.window)
 	}
 	cc, err := s.reader.Read(s.buffer[cushion:])
 	if cc <= 0 {
@@ -169,6 +169,11 @@ func (s *Scanner) Scan() ([]byte, error) {
 			// through here to read more input
 		}
 		if err := s.more(); err != nil {
+			if err == io.EOF && len(s.window) > 0 {
+				result := s.window
+				s.window = nil
+				return result, nil
+			}
 			return nil, err
 		}
 	}
