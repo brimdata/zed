@@ -96,6 +96,11 @@ const sortedStrings = `
 1:[zzz;]
 `
 
+// A point that can be included with unsortedInts
+const unsetInt = `
+0:[-;]
+`
+
 // Some records that don't include the field "foo".  These are combined
 // with sets that include foo to test mixed records.
 const nofoo = `
@@ -187,6 +192,9 @@ func TestSort(t *testing.T) {
 
 	// Test sorting strings.
 	testOne(t, unsortedStrings, sortedStrings, 1000, fooCol, 1)
+
+	// Test that unset values are sorted to the end
+	testOne(t, unsortedInts + unsetInt, ascendingInts + unsetInt, 1000, fooCol, 1)
 
 	// Test sorting records that don't all have the requested field.
 	// XXX sort.Stable() is apparently re-ordering the nofoo records?

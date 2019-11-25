@@ -60,8 +60,7 @@ func (s *Top) consume(rec *zson.Record) {
 		s.fields = []string{guessSortField(rec)}
 	}
 	if s.records == nil {
-		// 1 == MaxHeap
-		s.sorter = zson.NewSortFn(1, s.fields...)
+		s.sorter = zson.NewSortFn(false, s.fields...)
 		s.records = zson.NewRecordSlice(s.sorter)
 		heap.Init(s.records)
 	}

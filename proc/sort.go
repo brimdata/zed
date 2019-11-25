@@ -97,7 +97,10 @@ func (s *Sort) sort() zson.Batch {
 	if s.fields == nil {
 		s.fields = []string{guessSortField(out[0])}
 	}
-	sorter := zson.NewSortFn(s.dir, s.fields...)
-	zson.SortStable(out, sorter)
+	sorter := zson.NewSortFn(true, s.fields...)
+	sortWithDir := func(a, b *zson.Record) int {
+		return s.dir * sorter(a, b)
+	}
+	zson.SortStable(out, sortWithDir)
 	return zson.NewArray(out, nano.NewSpanTs(s.MinTs, s.MaxTs))
 }
