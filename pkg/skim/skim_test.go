@@ -14,11 +14,11 @@ const (
 	MaxLineSize = 50 * 1024 * 1024
 )
 
-func makeNLines(size int) [][]byte {
+func makeLinesOfSize(size int) [][]byte {
 	var lines [][]byte
 	var count int
 	for {
-		l := fmt.Sprintf("Matt Nibecer is the man\tLorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque tincidunt turpis nunc, viverra viverra orci porta nec. Fusce imperdiet felis non bibendum aliquam. In hac habitasse platea dictumst. Aenean id fermentum mi, at sagittis lectus. Integer vel tempus neque, ac accumsan urna. Curabitur et aliquam ligula. Fusce tempus fringilla orci, a vestibulum elit. Sed accumsan vehicula lorem, et auctor est sagittis eget. Proin ut tellus non eros iaculis accumsan eget ut ipsum. Phasellus vulputate mauris sit amet semper eleifend. Vestibulum lacus nisl, laoreet eu nulla a, euismod pulvinar turpis. Maecenas vel volutpat odio. Morbi finibus, dolor sed ultricies sollicitudin, augue ex accumsan nisl, eget feugiat nunc ipsum id massa. Nulla rutrum augue ut elit ullamcorper, vitae euismod augue pharetra. Sed in enim nec eros tincidunt euismod. Donec ullamcorper finibus viverra. Morbi eros tellus, suscipit sed nibh eu, pharetra eleifend nibh\t%d", len(lines))
+		l := fmt.Sprintf("I love zeek data!\tLorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque tincidunt turpis nunc, viverra viverra orci porta nec. Fusce imperdiet felis non bibendum aliquam. In hac habitasse platea dictumst. Aenean id fermentum mi, at sagittis lectus. Integer vel tempus neque, ac accumsan urna. Curabitur et aliquam ligula. Fusce tempus fringilla orci, a vestibulum elit. Sed accumsan vehicula lorem, et auctor est sagittis eget. Proin ut tellus non eros iaculis accumsan eget ut ipsum. Phasellus vulputate mauris sit amet semper eleifend. Vestibulum lacus nisl, laoreet eu nulla a, euismod pulvinar turpis. Maecenas vel volutpat odio. Morbi finibus, dolor sed ultricies sollicitudin, augue ex accumsan nisl, eget feugiat nunc ipsum id massa. Nulla rutrum augue ut elit ullamcorper, vitae euismod augue pharetra. Sed in enim nec eros tincidunt euismod. Donec ullamcorper finibus viverra. Morbi eros tellus, suscipit sed nibh eu, pharetra eleifend nibh\t%d", len(lines))
 		count += len(l)
 		lines = append(lines, []byte(l))
 		if count > size {
@@ -29,7 +29,7 @@ func makeNLines(size int) [][]byte {
 }
 
 func TestSkim(t *testing.T) {
-	expected := makeNLines(MaxLineSize)
+	expected := makeLinesOfSize(MaxLineSize)
 	data := bytes.Join(expected, []byte("\n"))
 	buf := make([]byte, ReadSize)
 	scanner := skim.NewScanner(bytes.NewReader(data), buf, MaxLineSize)
