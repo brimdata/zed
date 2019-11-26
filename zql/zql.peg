@@ -649,6 +649,7 @@ fieldReducerOp
   / "max"i  { RETURN("Max") }
   / "first"i  { RETURN("First") }
   / "last"i  { RETURN("Last") }
+  / "countdistinct"i { RETURN("CountDistinct") }
 
 paddedFieldName = _? field:fieldName _? { RETURN(field) }
 

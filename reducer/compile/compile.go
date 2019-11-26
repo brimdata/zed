@@ -45,6 +45,11 @@ func Compile(params ast.Reducer, rec *zson.Record) (reducer.Interface, error) {
 			return nil, err
 		}
 		return reducer.NewAvg(name, fld), nil
+	case "CountDistinct":
+		if err := chkfield(fld); err != nil {
+			return nil, err
+		}
+		return reducer.NewCountDistinct(name, fld), nil
 	case "Sum", "Min", "Max":
 		if err := chkfield(fld); err != nil {
 			return nil, err
