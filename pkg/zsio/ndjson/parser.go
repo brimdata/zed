@@ -28,7 +28,7 @@ func NewParser() *Parser {
 // Parse returns a new zson.Raw slice as well as an inferred zeek.Type
 // from provided block of JSON. The function expects the input json to be an
 // object, otherwise an error is returned.
-func (p *Parser) Parse(b []byte) ([]byte, zeek.Type, error) {
+func (p *Parser) Parse(b []byte) (zval.Encoding, zeek.Type, error) {
 	val, typ, _, err := jsonparser.Get(b)
 	if err != nil {
 		return nil, nil, err
