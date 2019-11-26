@@ -115,7 +115,7 @@ func (t *TypeRecord) Format(value []byte) (interface{}, error) {
 
 func (t *TypeRecord) New(value []byte) (Value, error) {
 	if value == nil {
-		return &Unset{}, nil
+		return &Record{typ: t, values: []Value{}}, nil
 	}
 	v, err := t.Parse(value)
 	if err != nil {

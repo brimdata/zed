@@ -51,7 +51,7 @@ func (t *TypeVector) Format(value []byte) (interface{}, error) {
 
 func (t *TypeVector) New(value []byte) (Value, error) {
 	if value == nil {
-		return &Unset{}, nil
+		return &Vector{typ: t, values: []Value{}}, nil
 	}
 	v, err := t.Parse(value)
 	if err != nil {
