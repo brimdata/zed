@@ -62,7 +62,7 @@ func (t *TypeSet) Format(value []byte) (interface{}, error) {
 
 func (t *TypeSet) New(value []byte) (Value, error) {
 	if value == nil {
-		return &Unset{}, nil
+		return &Set{typ: t, values: []Value{}}, nil
 	}
 	v, err := t.Parse(value)
 	if err != nil {

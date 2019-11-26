@@ -3,7 +3,6 @@ package zsio
 import (
 	"io"
 
-	"github.com/mccanne/zq/pkg/zsio/json"
 	"github.com/mccanne/zq/pkg/zsio/ndjson"
 	"github.com/mccanne/zq/pkg/zsio/raw"
 	"github.com/mccanne/zq/pkg/zsio/table"
@@ -46,8 +45,6 @@ func LookupWriter(format string, w io.WriteCloser) *Writer {
 		f = zson.NopFlusher(zeek.NewWriter(w))
 	case "ndjson":
 		f = zson.NopFlusher(ndjson.NewWriter(w))
-	case "json":
-		f = json.NewWriter(w)
 	case "zjson":
 		f = zson.NopFlusher(zjson.NewWriter(w))
 	// XXX not yet
