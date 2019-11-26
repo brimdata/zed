@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mccanne/zq/pkg/skim"
 	"github.com/mccanne/zq/pkg/zsio/ndjson"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
@@ -38,6 +37,10 @@ func TestNDJSON(t *testing.T) {
 			name:  "null value",
 			input: `{ "null1": null }`,
 		},
+		{
+			name:  "empty array",
+			input: `{ "arr1": [] }`,
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -47,22 +50,11 @@ func TestNDJSON(t *testing.T) {
 }
 
 func runtestcase(t *testing.T, input string) {
-	var out output
+	var out bytes.Buffer
 	w := ndjson.NewWriter(&out)
 	r := ndjson.NewReader(strings.NewReader(input), resolver.NewTable())
 	require.NoError(t, zson.Copy(zson.NopFlusher(w), r))
 	NDJSONEq(t, input, out.String())
-}
-
-type output struct {
-	bytes.Buffer
-}
-
-func (o *output) Close() error { return nil }
-
-func newSkimmer(in string) *skim.Scanner {
-	buffer := make([]byte, ndjson.ReadSize)
-	return skim.NewScanner(strings.NewReader(in), buffer, ndjson.MaxLineSize)
 }
 
 func getLines(in string) ([]string, error) {

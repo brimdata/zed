@@ -2,6 +2,7 @@ package ndjson
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -10,6 +11,10 @@ import (
 	"github.com/mccanne/zq/pkg/zeek"
 	"github.com/mccanne/zq/pkg/zval"
 )
+
+// ErrMultiTypedVector signifies that json array was found with multiple types.
+// This is unsupported at this time. See zq#64.
+var ErrMultiTypedVector = errors.New("vectors with multiple types are not supported")
 
 type Parser struct {
 	builder *zval.Builder
@@ -109,19 +114,16 @@ func (p *Parser) jsonParseArray(raw []byte) (zeek.Type, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(types) == 0 {
+		return zeek.LookupVectorType(zeek.TypeString), nil
+	}
 	var vType zeek.Type
 	for _, t := range types {
 		if vType == nil {
 			vType = t
 		} else if vType != t {
-			vType = nil
-			break
+			return nil, ErrMultiTypedVector
 		}
-	}
-	// XXX zeek currently doesn't support sets with heterogeneous types so for
-	// now just convert values to strings
-	if vType == nil {
-		vType = zeek.TypeString
 	}
 	return zeek.LookupVectorType(vType), nil
 }
@@ -139,9 +141,6 @@ func (p *Parser) jsonParseBool(b []byte) (zeek.Type, error) {
 // XXX This needs to handle scientific notation... I think.
 func (p *Parser) jsonParseNumber(b []byte) (zeek.Type, error) {
 	p.builder.Append(b)
-	if idx := bytes.IndexRune(b, '.'); idx == -1 {
-		return zeek.TypeInt, nil
-	}
 	return zeek.TypeDouble, nil
 }
 

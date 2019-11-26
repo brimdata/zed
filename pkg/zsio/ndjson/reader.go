@@ -43,6 +43,10 @@ again:
 	}
 	raw, typ, err := r.parser.Parse(line)
 	if err != nil {
+		// XXX we should be incrementing a stats counter of skipped lines.
+		if err == ErrMultiTypedVector {
+			goto again
+		}
 		return nil, err
 	}
 	desc := r.resolver.GetByColumns(typ.(*zeek.TypeRecord).Columns)
