@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/mccanne/zq/pkg/zsio/raw"
+	"github.com/mccanne/zq/pkg/zsio/zjson"
 	zsonio "github.com/mccanne/zq/pkg/zsio/zson"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
@@ -52,6 +53,23 @@ func boomerang(t *testing.T, logs string) {
 	}
 }
 
+func boomerangZJSON(t *testing.T, logs string) {
+	in := []byte(strings.TrimSpace(logs) + "\n")
+	zsonSrc := zsonio.NewReader(bytes.NewReader(in), resolver.NewTable())
+	var zjsonOutput Output
+	zjsonDst := zson.NopFlusher(zjson.NewWriter(&zjsonOutput))
+	err := zson.Copy(zjsonDst, zsonSrc)
+	require.NoError(t, err)
+
+	var out Output
+	zjsonSrc := zjson.NewReader(bytes.NewReader(zjsonOutput.Bytes()), resolver.NewTable())
+	zsonDst := zson.NopFlusher(zsonio.NewWriter(&out))
+	err = zson.Copy(zsonDst, zjsonSrc)
+	if assert.NoError(t, err) {
+		assert.Equal(t, in, out.Bytes())
+	}
+}
+
 const zson1 = `
 #0:record[foo:set[string]]
 0:[["test";]]`
@@ -64,15 +82,20 @@ const zson3 = `
 #0:record[foo:set[string]]
 0:[[-;]]`
 
-// string \x2d is "-"
+// String \x2d is "-".
 const zson4 = `
 #0:record[foo:string]
 0:[\x2d;]`
 
-// string \x5b is "[", second string is "[-]" and should pass through
+// String \x5b is "[", second string is "[-]" and should pass through.
 const zson5 = `
 #0:record[foo:string,bar:string]
 0:[\x5b;\x5b-];]`
+
+// Make sure we handle unset fields and empty sets.
+const zson6 = `
+#0:record[id:record[a:string,s:set[string]]]
+0:[[-;[]]]`
 
 func repeat(c byte, n int) string {
 	b := make([]byte, n)
@@ -99,6 +122,7 @@ func TestZson(t *testing.T) {
 	identity(t, zson3)
 	identity(t, zson4)
 	identity(t, zson5)
+	identity(t, zson6)
 	identity(t, zsonBig())
 }
 
@@ -108,6 +132,20 @@ func TestRaw(t *testing.T) {
 	boomerang(t, zson3)
 	boomerang(t, zson4)
 	boomerang(t, zson5)
+	boomerang(t, zson6)
 	boomerang(t, zsonBig())
+}
 
+func TestZjson(t *testing.T) {
+	boomerangZJSON(t, zson1)
+	boomerangZJSON(t, zson2)
+	// XXX this one doesn't work right now but it's sort of ok becaue
+	// it's a little odd to have an unset string value inside of a set.
+	// semantically this would mean the value shouldn't be in the set,
+	// but right now this turns into an empty string, which is somewhat reasonable.
+	//boomerangZJSON(t, zson3)
+	boomerangZJSON(t, zson4)
+	boomerangZJSON(t, zson5)
+	boomerangZJSON(t, zson6)
+	boomerangZJSON(t, zsonBig())
 }

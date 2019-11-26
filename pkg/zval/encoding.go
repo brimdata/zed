@@ -12,6 +12,12 @@ package zval
 
 import (
 	"encoding/binary"
+	"errors"
+)
+
+var (
+	ErrNotContainer = errors.New("not a container")
+	ErrNotSingleton = errors.New("not a single container")
 )
 
 // Encoding is the serialized representation of zson values.
@@ -39,6 +45,25 @@ func (e Encoding) String() string {
 		}
 	}
 	return s
+}
+
+// Body returns the contents of an encoding that represents a container as
+// an encoding of the list of values.  If the encoding is not a container,
+// ErrNotContainer is returned.  If the encoding is not a single container,
+// ErrNotSingleton is returned.
+func (e Encoding) Body() (Encoding, error) {
+	it := Iter(e)
+	body, container, err := it.Next()
+	if err != nil {
+		return nil, err
+	}
+	if !container {
+		return nil, ErrNotContainer
+	}
+	if !it.Done() {
+		return nil, ErrNotSingleton
+	}
+	return body, nil
 }
 
 // AppendValue encodes each byte slice as a value Encoding, concatenates the
