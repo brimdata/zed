@@ -12,8 +12,8 @@ import (
 	"github.com/mccanne/zq/pkg/zval"
 )
 
-// ErrMultiTypedVector signifies that json array was found with multiple types.
-// This is unsupported at this time. See zq#64.
+// ErrMultiTypedVector signifies that a json array was found with multiple types.
+// Multiple-typed arrays are unsupported at this time. See zq#64.
 var ErrMultiTypedVector = errors.New("vectors with multiple types are not supported")
 
 type Parser struct {
@@ -25,8 +25,8 @@ func NewParser() *Parser {
 	return &Parser{builder: zval.NewBuilder()}
 }
 
-// Parse returns a new zson.Raw slice as well as an inferred zeek.Type
-// from provided block of JSON. The function expects the input json to be an
+// Parse returns a zson.Encoding slice as well as an inferred zeek.Type
+// from the provided JSON input. The function expects the input json to be an
 // object, otherwise an error is returned.
 func (p *Parser) Parse(b []byte) (zval.Encoding, zeek.Type, error) {
 	val, typ, _, err := jsonparser.Get(b)
