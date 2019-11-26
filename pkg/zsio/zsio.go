@@ -49,7 +49,7 @@ func LookupWriter(format string, w io.WriteCloser) *Writer {
 	case "json":
 		f = json.NewWriter(w)
 	case "zjson":
-		f = &flusher{zjson.NewWriter(w)}
+		f = zson.NopFlusher(zjson.NewWriter(w))
 	// XXX not yet
 	//case "text":
 	//	return text.NewWriter(f, c.showTypes, c.showFields, c.epochDates)
