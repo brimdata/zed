@@ -5918,7 +5918,7 @@ function peg$parse(input, options) {
           if (limit === null) { limit = undefined; }
           if (fields === null) { fields = undefined; }
           flush = !!flush
-          return { op: "SortProc", fields, limit, flush};
+          return { op: "TopProc", fields, limit, flush};
       }
 
       function makeCutProc(fields) { return { op: "CutProc", fields }; }
