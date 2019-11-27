@@ -58,7 +58,10 @@ func (s *Scanner) more() error {
 	}
 	cc, err := s.reader.Read(s.buffer[cushion:])
 	s.window = s.buffer[:cushion+cc]
-	return err
+	if cc <= 0 {
+		return err
+	}
+	return nil
 }
 
 // Skip discards all input up to and including the next newline or
