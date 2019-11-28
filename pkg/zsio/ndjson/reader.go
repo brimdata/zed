@@ -50,5 +50,5 @@ again:
 		return nil, err
 	}
 	desc := r.resolver.GetByColumns(typ.(*zeek.TypeRecord).Columns)
-	return zson.NewRecord(desc, 0, raw), nil
+	return zson.NewRecordCheck(desc, 0, raw)
 }

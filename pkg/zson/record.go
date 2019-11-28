@@ -18,7 +18,7 @@ var (
 
 	ErrCorruptColumns = errors.New("wrong number of columns in record value")
 
-	ErrTypeMismatch = errors.New("type retrieved does not match type requested")
+	ErrTypeMismatch = errors.New("type/value mismatch")
 )
 
 // A Record wraps a zeek.Record and can simultaneously represent its raw
@@ -46,6 +46,14 @@ func NewRecord(d *Descriptor, ts nano.Ts, raw zval.Encoding) *Record {
 		nonvolatile: true,
 		Raw:         raw,
 	}
+}
+
+func NewRecordCheck(d *Descriptor, ts nano.Ts, raw zval.Encoding) (*Record, error) {
+	r := NewRecord(d, ts, raw)
+	if !r.TypeCheck() {
+		return nil, ErrTypeMismatch
+	}
+	return r, nil
 }
 
 // NewControlRecord creates a control record from a byte slice.
@@ -94,7 +102,11 @@ func NewRecordZvals(d *Descriptor, vals ...[]byte) (t *Record, err error) {
 			return nil, err
 		}
 	}
-	return NewRecord(d, ts, raw), nil
+	r := NewRecord(d, ts, raw)
+	if !r.TypeCheck() {
+		return nil, ErrTypeMismatch
+	}
+	return r, nil
 }
 
 // NewRecordZeekStrings creates a record from Zeek UTF-8 strings.
@@ -111,7 +123,11 @@ func NewRecordZeekStrings(d *Descriptor, ss ...string) (t *Record, err error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewRecord(d, ts, raw), nil
+	r := NewRecord(d, ts, raw)
+	if !r.TypeCheck() {
+		return nil, ErrTypeMismatch
+	}
+	return r, nil
 }
 
 // ZvalIter returns an iterator over the receiver's zvals.
@@ -155,6 +171,34 @@ func (r *Record) Strings() ([]string, error) {
 		ss = append(ss, ZvalToZeekString(col.Type, val))
 	}
 	return ss, nil
+}
+
+// TypeCheck checks that the value coding in Raw is structurally consistent
+// with this value's descriptor.  It does not check that the actual leaf
+// values when parsed are type compatible with the leaf types.
+func (r *Record) TypeCheck() bool {
+	return checkRecord(r.Descriptor.Type, r.Raw)
+}
+
+func checkRecord(typ *zeek.TypeRecord, body zval.Encoding) bool {
+	it := zval.Iter(body)
+	for _, col := range typ.Columns {
+		body, container, err := it.Next()
+		if err != nil {
+			return false
+		}
+		switch v := col.Type.(type) {
+		case *zeek.TypeRecord:
+			return checkRecord(v, body)
+		case *zeek.TypeSet, *zeek.TypeVector:
+			return container
+		default:
+			if container {
+				return false
+			}
+		}
+	}
+	return it.Done()
 }
 
 func (r *Record) ValueByColumn(col int) zeek.Value {

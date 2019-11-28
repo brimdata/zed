@@ -118,7 +118,10 @@ func (r *Reader) parseValues(id int, values []interface{}) (*zson.Record, error)
 		//XXX need better error here... this won't make much sense
 		return nil, err
 	}
-	record := zson.NewRecord(descriptor, nano.MinTs, zv)
+	record, err := zson.NewRecordCheck(descriptor, nano.MinTs, zv)
+	if err != nil {
+		return nil, err
+	}
 	//XXX this should go in NewRecord?
 	ts, err := record.AccessTime("ts")
 	if err == nil {
