@@ -33,7 +33,7 @@ func (s *Scanner) Pull() (zson.Batch, error) {
 		if rec == nil {
 			break
 		}
-		if match != nil && !match(rec) {
+		if rec.IsControl() || (match != nil && !match(rec)) {
 			continue
 		}
 		if rec.Ts < minTs {

@@ -4,6 +4,7 @@ package zsio
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -148,4 +149,53 @@ func TestZjson(t *testing.T) {
 	boomerangZJSON(t, zson5)
 	boomerangZJSON(t, zson6)
 	boomerangZJSON(t, zsonBig())
+}
+
+const ctrl = `
+#!message1
+#0:record[id:record[a:string,s:set[string]]]
+#!message2
+0:[[-;[]]]
+#!message3
+#!message4`
+
+func TestCtrl(t *testing.T) {
+	// this tests reading of control via text zson,
+	// then writing of raw control, and reading back the result
+	in := []byte(strings.TrimSpace(ctrl) + "\n")
+	reader := bytes.NewReader(in)
+	r := zsonio.NewControlReader(reader, resolver.NewTable())
+
+	var rawZson Output
+	rawDst := zson.NopFlusher(raw.NewWriter(&rawZson))
+	err := zson.Copy(rawDst, r)
+	require.NoError(t, err)
+
+	rawReader := raw.NewControlReader(bytes.NewReader(rawZson.Bytes()), resolver.NewTable())
+
+	rec, err := rawReader.Read()
+	assert.NoError(t, err)
+	assert.True(t, rec.IsControl())
+	assert.Equal(t, rec.Raw.Bytes(), []byte("message1"))
+
+	rec, err = rawReader.Read()
+	assert.NoError(t, err)
+	assert.True(t, rec.IsControl())
+	assert.Equal(t, rec.Raw.Bytes(), []byte("message2"))
+
+	rec, err = rawReader.Read()
+	fmt.Println(string(rec.Raw.Bytes()))
+	assert.NoError(t, err)
+	assert.False(t, rec.IsControl())
+
+	rec, err = rawReader.Read()
+	assert.NoError(t, err)
+	assert.True(t, rec.IsControl())
+	assert.Equal(t, rec.Raw.Bytes(), []byte("message3"))
+
+	rec, err = rawReader.Read()
+	assert.NoError(t, err)
+	assert.True(t, rec.IsControl())
+	assert.Equal(t, rec.Raw.Bytes(), []byte("message4"))
+
 }

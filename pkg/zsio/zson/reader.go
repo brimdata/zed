@@ -49,6 +49,7 @@ type Reader struct {
 	stats     ReadStats
 	mapper    *resolver.Mapper
 	legacyVal bool
+	ctrl      bool
 	parser    *zson.Parser
 }
 
@@ -64,6 +65,12 @@ func NewReader(reader io.Reader, r *resolver.Table) *Reader {
 	}
 }
 
+func NewControlReader(reader io.Reader, t *resolver.Table) *Reader {
+	r := NewReader(reader, t)
+	r.ctrl = true
+	return r
+}
+
 func (r *Reader) Read() (*zson.Record, error) {
 again:
 	line, err := r.scanner.ScanLine()
@@ -76,9 +83,12 @@ again:
 	// remove newline
 	line = line[:len(line)-1]
 	if line[0] == '#' {
-		err = r.parseDirective(line)
+		b, err := r.parseDirective(line)
 		if err != nil {
 			return nil, err
+		}
+		if b != nil && r.ctrl {
+			return zson.NewControlRecord(b), nil
 		}
 		goto again
 	}
@@ -131,35 +141,35 @@ func (r *Reader) parseDescriptor(line []byte) error {
 	return nil
 }
 
-func (r *Reader) parseDirective(line []byte) error {
+func (r *Reader) parseDirective(line []byte) ([]byte, error) {
 	if len(line) == 0 {
-		return ErrBadFormat
+		return nil, ErrBadFormat
 	}
 	// skip '#'
 	line = line[1:]
 	if len(line) == 0 {
-		return ErrBadFormat
+		return nil, ErrBadFormat
 	}
 	if line[0] == '!' {
 		// comment
 		r.legacyVal = false
-		return nil
+		return line[1:], nil
 	}
 	if line[0] >= '0' && line[0] <= '9' {
 		r.legacyVal = false
-		return r.parseDescriptor(line)
+		return nil, r.parseDescriptor(line)
 	}
 	if bytes.HasPrefix(line, []byte("sort")) {
 		// #sort [+-]<field>,[+-]<field>,...
 		// XXX handle me
 		r.legacyVal = false
-		return nil
+		return nil, nil
 	}
 	if err := r.zeek.ParseDirective(line); err != nil {
-		return err
+		return nil, err
 	}
 	r.legacyVal = true
-	return nil
+	return nil, nil
 }
 
 func (r *Reader) parseValue(line []byte) (*zson.Record, error) {

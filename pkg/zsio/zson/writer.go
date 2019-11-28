@@ -21,6 +21,11 @@ func NewWriter(w io.Writer) *Writer {
 }
 
 func (w *Writer) Write(r *zson.Record) error {
+	if r.IsControl() {
+		_, err := fmt.Fprintf(w.Writer, "#!%s\n", string(r.Raw.Bytes()))
+		return err
+
+	}
 	td := r.Descriptor.ID
 	_, ok := w.descriptors[td]
 	if !ok {
