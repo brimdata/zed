@@ -21,7 +21,7 @@ func NewWriter(w io.Writer) *Writer {
 
 func (w *Writer) WriteValue(ch int, r *zson.Record) error {
 	if r.IsControl() {
-		return w.WriteControl(r.Raw)
+		return w.WriteControl(ch, r.Raw)
 	}
 	id := r.Descriptor.ID
 	if !w.tracker.Seen(id) {
@@ -34,11 +34,11 @@ func (w *Writer) WriteValue(ch int, r *zson.Record) error {
 }
 
 func (w *Writer) Write(r *zson.Record) error {
-	return w.WriteValue(0, r)
+	return w.WriteValue(int(r.Channel), r)
 }
 
-func (w *Writer) WriteControl(b []byte) error {
-	return w.encode(TypeControl, 0, 0, b)
+func (w *Writer) WriteControl(ch int, b []byte) error {
+	return w.encode(TypeControl, ch, 0, b)
 }
 
 func (w *Writer) encode(typ, ch, id int, b []byte) error {

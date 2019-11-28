@@ -34,7 +34,13 @@ func (w *Writer) Write(r *zson.Record) error {
 			return err
 		}
 	}
-	_, err := fmt.Fprintf(w.Writer, "%d:", td)
+	var err error
+	if r.Channel == 0 {
+		_, err = fmt.Fprintf(w.Writer, "%d:", td)
+
+	} else {
+		_, err = fmt.Fprintf(w.Writer, "%d.%d:", td, r.Channel)
+	}
 	if err != nil {
 		return nil
 	}

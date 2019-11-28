@@ -10,31 +10,39 @@ import (
 	"github.com/mccanne/zq/pkg/zson"
 )
 
-type Text struct {
-	io.Writer
-	types  bool
-	fields bool
-	epoch  bool
+type Config struct {
+	ShowTypes  bool
+	ShowFields bool
+	EpochDates bool
 }
 
-func NewWriter(w io.Writer, types, fields, epoch bool) *Text {
-	return &Text{Writer: w, types: types, fields: fields, epoch: epoch}
+type Text struct {
+	io.Writer
+	Config
+}
+
+func NewWriter(w io.Writer, c *Config) *Text {
+	writer := &Text{Writer: w}
+	if c != nil {
+		writer.Config = *c
+	}
+	return writer
 }
 
 func (t *Text) Write(rec *zson.Record) error {
 	var out []string
-	if t.fields || t.types || !t.epoch {
+	if t.ShowFields || t.ShowTypes || !t.EpochDates {
 		for k, col := range rec.Descriptor.Type.Columns {
 			var s string
 			v := string(rec.Slice(k))
-			if !t.epoch && col.Name == "ts" && col.Type == zeek.TypeTime {
+			if !t.EpochDates && col.Name == "ts" && col.Type == zeek.TypeTime {
 				ts := rec.ValueByColumn(k).(*zeek.Time).Native
 				v = ts.Time().UTC().Format(time.RFC3339Nano)
 			}
-			if t.fields {
+			if t.ShowFields {
 				s = col.Name + ":"
 			}
-			if t.types {
+			if t.ShowTypes {
 				s = s + col.Type.String() + ":"
 			}
 			out = append(out, s+v)

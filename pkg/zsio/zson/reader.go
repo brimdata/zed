@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/skim"
@@ -100,21 +101,35 @@ again:
 	return rec, nil
 }
 
-func parseLeadingInt(line []byte) (val int, rest []byte, err error) {
+func parseLeadingInt(line []byte) (int, uint16, []byte, error) {
 	i := bytes.IndexByte(line, byte(':'))
 	if i < 0 {
-		return -1, nil, ErrBadFormat
+		return -1, 0, nil, ErrBadFormat
 	}
-	v, err := strconv.ParseUint(string(line[:i]), 10, 32)
+	s := string(line[:i])
+	k := strings.IndexByte(s, '.')
+	var ch uint16
+	if k >= 0 {
+		v, err := strconv.ParseUint(s[k+1:], 10, 32)
+		if err != nil {
+			return -1, 0, nil, err
+		}
+		if v > 0xffff {
+			return -1, 0, nil, fmt.Errorf("channel out of range: %d", v)
+		}
+		s = s[:k]
+		ch = uint16(v)
+	}
+	v, err := strconv.ParseUint(s, 10, 32)
 	if err != nil {
-		return -1, nil, err
+		return -1, 0, nil, err
 	}
-	return int(v), line[i+1:], nil
+	return int(v), ch, line[i+1:], nil
 }
 
 func (r *Reader) parseDescriptor(line []byte) error {
 	// #int:type
-	id, rest, err := parseLeadingInt(line)
+	id, _, rest, err := parseLeadingInt(line)
 	if err != nil {
 		return err
 	}
@@ -180,7 +195,7 @@ func (r *Reader) parseValue(line []byte) (*zson.Record, error) {
 	// From the zson spec:
 	// A regular value is encoded on a line as type descriptor
 	// followed by ":" followed by a value encoding.
-	id, rest, err := parseLeadingInt(line)
+	id, ch, rest, err := parseLeadingInt(line)
 	if err != nil {
 		return nil, err
 	}
@@ -203,6 +218,7 @@ func (r *Reader) parseValue(line []byte) (*zson.Record, error) {
 	if err == nil {
 		record.Ts = ts
 	}
+	record.Channel = uint16(ch)
 	// Ignore errors, it just means the point doesn't have a ts field
 	return record, nil
 }

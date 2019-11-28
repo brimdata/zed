@@ -12,6 +12,7 @@ import (
 	"github.com/mccanne/zq/filter"
 	"github.com/mccanne/zq/pkg/zsio"
 	"github.com/mccanne/zq/pkg/zsio/detector"
+	"github.com/mccanne/zq/pkg/zsio/text"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
 	"github.com/mccanne/zq/proc"
@@ -82,9 +83,7 @@ type Command struct {
 	verbose    bool
 	stats      bool
 	warnings   bool
-	showTypes  bool
-	showFields bool
-	epochDates bool
+	text.Config
 }
 
 func New(f *flag.FlagSet) (charm.Command, error) {
@@ -97,9 +96,9 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.verbose, "v", false, "show verbose details")
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
 	f.BoolVar(&c.warnings, "W", false, "display warnings on stderr")
-	f.BoolVar(&c.showTypes, "T", false, "display field types in text output")
-	f.BoolVar(&c.showFields, "F", false, "display field names in text output")
-	f.BoolVar(&c.epochDates, "E", false, "display epoch timestamps in text output")
+	f.BoolVar(&c.ShowTypes, "T", false, "display field types in text output")
+	f.BoolVar(&c.ShowFields, "F", false, "display field names in text output")
+	f.BoolVar(&c.EpochDates, "E", false, "display epoch timestamps in text output")
 	return c, nil
 }
 
@@ -207,21 +206,6 @@ func (c *Command) Run(args []string) error {
 	return output.Run(mux)
 }
 
-func extension(format string) string {
-	switch format {
-	case "zeek":
-		return ".log"
-	case "zson":
-		return ".zson"
-	case "ndson":
-		return ".ndson"
-	case "raw":
-		return ".raw"
-	default:
-		return ".txt"
-	}
-}
-
 func (c *Command) loadFile(path string) (zson.Reader, error) {
 	var f *os.File
 	if path == "-" {
@@ -267,14 +251,13 @@ func (c *Command) loadFiles(paths []string) (zson.Reader, error) {
 
 func (c *Command) openOutput() (zson.WriteCloser, error) {
 	if c.dir != "" {
-		ext := extension(c.format)
-		d, err := emitter.NewDir(c.dir, c.outputFile, ext, os.Stderr)
+		d, err := emitter.NewDir(c.dir, c.outputFile, c.format, os.Stderr, &c.Config)
 		if err != nil {
 			return nil, err
 		}
 		return d, nil
 	}
-	w, err := emitter.OpenOutputFile(c.format, c.outputFile)
+	w, err := emitter.NewFile(c.outputFile, c.format, &c.Config)
 	if err != nil {
 		return nil, err
 	}

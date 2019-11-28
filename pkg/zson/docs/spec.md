@@ -187,9 +187,10 @@ declared `record` types:
 ## Regular Values
 
 A regular value is encoded on a line as a type descriptor followed by `:` followed
-by a value encoding.  Here is a pseudo-grammar for value encodings:
+by a value encoding.  The descriptor may include an option channel identifier via dotted
+notation.  Here is a pseudo-grammar for value encodings:
 ```
-<line> := <descriptor> : <elem>
+<line> := <descriptor>(.<ch>)? : <elem>
 <elem> :=
           <terminal> ;
         | [ <list> ]
@@ -203,6 +204,10 @@ by a value encoding.  Here is a pseudo-grammar for value encodings:
 ```
 
 [1] - [JavaScript character escaping rules](https://tc39.es/ecma262/#prod-EscapeSequence)
+
+A channel is a 16-bit integer used to indicate sub-streams of values within the zson stream.
+This is useful, for example, when analytics performs two or computations on the 
+same input data resulting in multiple output streams.
 
 A terminal value is encoded as a string of UTF-8 characters terminated
 by a semicolon (which must be escaped if it appears in the value).  A composite
@@ -262,7 +267,7 @@ two descriptors then uses them in three values:
 #2:record[a:string,b:string]
 1:hello, world;
 2:[hello;world;]
-1:this is a semicolon: \x3b;
+1.3:this is a semicolon: \x3b;
 ```
 which represents a stream of the following three values:
 ```
@@ -270,6 +275,7 @@ string("hello, world")
 record(a:"hello",b:"world")
 string("this is a semicolon: ;")
 ```
+The last value signals a channel identifier of 3.
 
 The semicolon terminator is important.  Consider this ZSON depicting
 sets of strings:

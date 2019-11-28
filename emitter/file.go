@@ -1,12 +1,12 @@
 package emitter
 
 import (
-	"fmt"
 	"io"
 	"os"
 
 	"github.com/mccanne/zq/pkg/bufwriter"
 	"github.com/mccanne/zq/pkg/zsio"
+	"github.com/mccanne/zq/pkg/zsio/text"
 )
 
 type noClose struct {
@@ -17,7 +17,7 @@ func (p *noClose) Close() error {
 	return nil
 }
 
-func OpenOutputFile(format, path string) (*zsio.Writer, error) {
+func NewFile(path, format string, tc *text.Config) (*zsio.Writer, error) {
 	var f io.WriteCloser
 	if path == "" {
 		// Don't close stdout in case we live inside something
@@ -35,9 +35,9 @@ func OpenOutputFile(format, path string) (*zsio.Writer, error) {
 	// On close, zsio.Writer.Close(), the zson WriteFlusher will be flushed
 	// then the bufwriter will closed (which will flush it's internal buffer
 	// then close the file)
-	w := zsio.LookupWriter(format, bufwriter.New(f))
+	w := zsio.LookupWriter(format, bufwriter.New(f), tc)
 	if w == nil {
-		return nil, fmt.Errorf("no such format: %s", format)
+		return nil, unknownFormat(format)
 	}
 	return w, nil
 }

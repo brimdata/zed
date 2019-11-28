@@ -61,10 +61,13 @@ again:
 		if err != nil {
 			return nil, err
 		}
+		rec.Channel = uint16(hdr.ch)
 		return rec, nil
 	case TypeControl:
 		if r.ctrl {
-			return zson.NewControlRecord(b), nil
+			rec := zson.NewControlRecord(b)
+			rec.Channel = uint16(hdr.ch)
+			return rec, nil
 		}
 		goto again
 	default:
