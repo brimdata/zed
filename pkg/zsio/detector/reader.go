@@ -1,7 +1,6 @@
 package detector
 
 import (
-	"bytes"
 	"errors"
 	"io"
 
@@ -16,28 +15,24 @@ import (
 var ErrUnknown = errors.New("input format not recognized")
 
 func NewReader(r io.Reader, n int, t *resolver.Table) (zson.Reader, error) {
-	peeker, err := NewPeeker(r, n)
-	if err != nil {
-		return nil, err
+	recorder := NewRecorder(r)
+	track := NewTrack(recorder)
+	if match(zsonio.NewReader(track, resolver.NewTable())) {
+		return zsonio.NewReader(recorder, t), nil
 	}
-	b := peeker.Peek()
-	head := bytes.NewReader(b)
-	if match(zsonio.NewReader(head, resolver.NewTable())) {
-		return zsonio.NewReader(peeker, t), nil
-	}
-	head.Reset(b)
+	track.Reset()
 	// zjson must come before ndjson since zjson is a subset of ndjson
-	if match(zjson.NewReader(head, resolver.NewTable())) {
-		return zjson.NewReader(peeker, t), nil
+	if match(zjson.NewReader(track, resolver.NewTable())) {
+		return zjson.NewReader(recorder, t), nil
 	}
-	head.Reset(b)
+	track.Reset()
 	// ndjson must come after zjson since zjson is a subset of ndjson
-	if match(ndjson.NewReader(head, resolver.NewTable())) {
-		return ndjson.NewReader(peeker, t), nil
+	if match(ndjson.NewReader(track, resolver.NewTable())) {
+		return ndjson.NewReader(recorder, t), nil
 	}
-	head.Reset(b)
-	if match(raw.NewReader(head, resolver.NewTable())) {
-		return raw.NewReader(peeker, t), nil
+	track.Reset()
+	if match(raw.NewReader(track, resolver.NewTable())) {
+		return raw.NewReader(recorder, t), nil
 	}
 	return nil, ErrUnknown
 }
