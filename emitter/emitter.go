@@ -3,10 +3,8 @@ package emitter
 import (
 	"fmt"
 	"io"
-	"os"
 	"time"
 
-	"github.com/mccanne/zq/pkg/zsio/table"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/proc"
 )
@@ -28,12 +26,7 @@ func (e *Emitter) SetWarningsWriter(w io.Writer) {
 
 func (e *Emitter) send(cid int, arr zson.Batch) error {
 	for _, r := range arr.Records() {
-		err := e.writer.Write(r)
-		if err == table.ErrTooManyLines {
-			fmt.Fprintln(os.Stderr, "output table too big")
-			os.Exit(1)
-		}
-		if err != nil {
+		if err := e.writer.Write(r); err != nil {
 			return err
 		}
 	}
