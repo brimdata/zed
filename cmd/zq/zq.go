@@ -87,8 +87,6 @@ type Command struct {
 	epochDates bool
 }
 
-const DetectorMaxRecordSize = 32 * 1024
-
 func New(f *flag.FlagSet) (charm.Command, error) {
 	cwd, _ := os.Getwd()
 	c := &Command{dt: resolver.NewTable()}
@@ -241,7 +239,7 @@ func (c *Command) loadFile(path string) (zson.Reader, error) {
 			return nil, err
 		}
 	}
-	return detector.NewReader(f, DetectorMaxRecordSize, c.dt)
+	return detector.NewReader(f, c.dt)
 }
 
 func (c *Command) errorf(format string, args ...interface{}) {

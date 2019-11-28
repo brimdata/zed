@@ -14,7 +14,7 @@ import (
 
 var ErrUnknown = errors.New("input format not recognized")
 
-func NewReader(r io.Reader, n int, t *resolver.Table) (zson.Reader, error) {
+func NewReader(r io.Reader, t *resolver.Table) (zson.Reader, error) {
 	recorder := NewRecorder(r)
 	track := NewTrack(recorder)
 	if match(zsonio.NewReader(track, resolver.NewTable())) {
