@@ -31,6 +31,7 @@ type Record struct {
 	Ts nano.Ts
 	*Descriptor
 	nonvolatile bool
+	ctrl        bool
 	// Raw is the serialization format for zson records.  A raw value comprises a
 	// sequence of zvals, one per descriptor column.  The descriptor is stored
 	// outside of the raw serialization but is needed to interpret the raw values.
@@ -45,6 +46,19 @@ func NewRecord(d *Descriptor, ts nano.Ts, raw zval.Encoding) *Record {
 		nonvolatile: true,
 		Raw:         raw,
 	}
+}
+
+// NewControlRecord creates a control record from a byte slice.
+func NewControlRecord(raw []byte) *Record {
+	return &Record{
+		nonvolatile: true,
+		ctrl:        true,
+		Raw:         raw,
+	}
+}
+
+func (r *Record) IsControl() bool {
+	return r.ctrl
 }
 
 // NewVolatileRecord creates a record from a timestamp and a raw value

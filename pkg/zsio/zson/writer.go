@@ -5,26 +5,30 @@ import (
 	"io"
 
 	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zson/resolver"
 	"github.com/mccanne/zq/pkg/zval"
 )
 
 type Writer struct {
 	io.Writer
-	descriptors map[int]struct{}
+	tracker *resolver.Tracker
 }
 
 func NewWriter(w io.Writer) *Writer {
 	return &Writer{
-		Writer:      w,
-		descriptors: make(map[int]struct{}),
+		Writer:  w,
+		tracker: resolver.NewTracker(),
 	}
 }
 
 func (w *Writer) Write(r *zson.Record) error {
+	if r.IsControl() {
+		_, err := fmt.Fprintf(w.Writer, "#!%s\n", string(r.Raw.Bytes()))
+		return err
+
+	}
 	td := r.Descriptor.ID
-	_, ok := w.descriptors[td]
-	if !ok {
-		w.descriptors[td] = struct{}{}
+	if !w.tracker.Seen(td) {
 		_, err := fmt.Fprintf(w.Writer, "#%d:%s\n", td, r.Descriptor.Type)
 		if err != nil {
 			return err

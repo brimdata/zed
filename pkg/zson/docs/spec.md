@@ -56,7 +56,7 @@ Regular directives have just three forms, each with a corresponding structure.
 |---------------|-------------------------------------|
 | Descriptor    | `#<int>:<type>`                     |
 | Ordering hint | `#sort [+-]<field>,[+-]<field>,...` |
-| Comment       | `#!<comment>`                       |
+| Control       | `#!<payload>`                       |
 
 ### Descriptor Directive
 
@@ -100,24 +100,24 @@ subsequent key for values that have previous keys of equal value.
 It is an error for any such values to appear that contradicts the most
 recent ordering directives.
 
-### Comment Directive
+### Control Directive
 
-The comment directive has the following structure:
+The control directive has the following structure:
 ```
-#!<comment-text>
+#!<control-text>
 ```
-Comments may be used informatively and shall be
+Control may be used informatively and shall be
 ignored by any data receivers.
-`<comment-text>` can be any UTF-8 string exclusive of newline.
-Comments are guaranteed to be preserved
+`<control-text>` can be any UTF-8 string exclusive of newline.
+Control payloads are guaranteed to be preserved
 in order within the stream and presented to higher layer components through
 any ZSON parsing API.  In this way, senders and receivers of ZSON can embed
-protocol directives as ZSON comments rather than defining additional
+protocol directives as ZSON control payloads rather than defining additional
 encapsulating protocols.  See the
 [zson-over-http](zson-over-http.md) protocol for an example.
 
-A comment directive may also be used to resume the interpretation of line values
-as regular values instead of legacy values (as there is no legacy comment directive).
+A control directive may also be used to resume the interpretation of line values
+as regular values instead of legacy values (as there is no legacy control directive).
 
 ### Type Grammar
 

@@ -14,12 +14,15 @@ type Writer struct {
 
 func NewWriter(w io.Writer) *Writer {
 	return &Writer{
-		Writer: w,
-		tracker:     resolver.NewTracker(),
+		Writer:  w,
+		tracker: resolver.NewTracker(),
 	}
 }
 
 func (w *Writer) WriteValue(ch int, r *zson.Record) error {
+	if r.IsControl() {
+		return w.WriteControl(r.Raw)
+	}
 	id := r.Descriptor.ID
 	if !w.tracker.Seen(id) {
 		b := []byte(r.Descriptor.Type.String())
@@ -34,8 +37,8 @@ func (w *Writer) Write(r *zson.Record) error {
 	return w.WriteValue(0, r)
 }
 
-func (w *Writer) WriteComment(b []byte) error {
-	return w.encode(TypeComment, 0, 0, b)
+func (w *Writer) WriteControl(b []byte) error {
+	return w.encode(TypeControl, 0, 0, b)
 }
 
 func (w *Writer) encode(typ, ch, id int, b []byte) error {

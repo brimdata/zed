@@ -23,7 +23,7 @@ import (
 const (
 	TypeDescriptor = iota
 	TypeValue
-	TypeComment
+	TypeControl
 )
 
 const (
@@ -55,7 +55,7 @@ func writeHeader(w io.Writer, typ, ch, id, length int) (int, error) {
 	if ch != 0 {
 		off += binary.PutUvarint(hdr[off:], uint64(ch))
 	}
-	if typ != TypeComment {
+	if typ != TypeControl {
 		off += binary.PutUvarint(hdr[off:], uint64(id))
 	}
 	off += binary.PutUvarint(hdr[off:], uint64(length))
@@ -82,7 +82,7 @@ func parseHeader(b []byte, h *header) (int, error) {
 	}
 	typ &= TypeMask
 	h.typ = typ
-	if typ != TypeComment {
+	if typ != TypeControl {
 		id, n := binary.Uvarint(b[off:])
 		if n <= 0 {
 			return 0, zson.ErrBadFormat

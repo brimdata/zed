@@ -1,6 +1,7 @@
 package raw
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/mccanne/zq/pkg/nano"
@@ -18,6 +19,7 @@ const (
 type Reader struct {
 	peeker *peeker.Reader
 	mapper *resolver.Mapper
+	ctrl   bool
 }
 
 func NewReader(reader io.Reader, r *resolver.Table) *Reader {
@@ -25,6 +27,12 @@ func NewReader(reader io.Reader, r *resolver.Table) *Reader {
 		peeker: peeker.NewReader(reader, ReadSize, MaxSize),
 		mapper: resolver.NewMapper(r),
 	}
+}
+
+func NewControlReader(reader io.Reader, t *resolver.Table) *Reader {
+	r := NewReader(reader, t)
+	r.ctrl = true
+	return r
 }
 
 func (r *Reader) Read() (*zson.Record, error) {
@@ -54,9 +62,13 @@ again:
 			return nil, err
 		}
 		return rec, nil
-	default:
-		// skip over control comments
+	case TypeControl:
+		if r.ctrl {
+			return zson.NewControlRecord(b), nil
+		}
 		goto again
+	default:
+		return nil, fmt.Errorf("unknown raw record type: %d", hdr.typ)
 	}
 
 }
