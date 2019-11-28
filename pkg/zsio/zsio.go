@@ -69,14 +69,6 @@ func LookupReader(format string, r io.Reader, table *resolver.Table) zson.Reader
 		return ndjson.NewReader(r, table)
 	case "zjson":
 		return zjson.NewReader(r, table)
-		/* XXX not yet
-		case "json":
-			return json.NewReader(r, table)
-				case "text":
-					return text.NewReader(f, c.showTypes, c.showFields, c.epochDates)
-
-			case "table":
-				return table.NewReader(r, table) */
 	case "raw":
 		return raw.NewReader(r, table)
 	}

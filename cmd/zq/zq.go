@@ -5,13 +5,13 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/mccanne/charm"
 	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/emitter"
 	"github.com/mccanne/zq/filter"
 	"github.com/mccanne/zq/pkg/zsio"
+	"github.com/mccanne/zq/pkg/zsio/detector"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
 	"github.com/mccanne/zq/proc"
@@ -35,16 +35,23 @@ zq is a command-line tool for processing logs.  It applies boolean logic
 to filter each log value, optionally computes analytics and transformations,
 and writes the output to one or more files or standard output.
 
-The input and output formats are either specified explicitly or derived from
-file name extensions.  Supported input formats include ZSON (.zson),
-NDJSON (.ndjson), and Zeek log format (.log).  Supported output formats include
-all the input formats along with text and tabular formats.
-
 zq must be run with at least one input file specified.  As with awk, standard input
 can be specified with a "-" in the place of the file name.  Output is sent to
 standard output unless a -o or -d argument is provided, in which case output is
 sent to the indicated file comforming to the type implied by the extension (unless
 -f explicitly indicates the output type).
+
+Supported input formats include ZSON (.zson), NDJSON (.ndjson), and
+the Zeek log format (.log).  Supported output formats include
+all the input formats along with text and tabular formats.
+
+The input file format is inferred from the data.  If multiple files are
+specified, each file format is determined independently so you can mix and
+match input types.  If multiple files are concatenated into a stream and
+presented as standard input, the files must all be of the same type as the
+beginning of stream will determine the format.
+
+The output format is, by default, zson but can be overridden with -f.
 
 After the options, the query may be specified as a
 single argument conforming with ZQL syntax, i.e., it should be quoted as
@@ -216,35 +223,23 @@ func extension(format string) string {
 }
 
 func (c *Command) loadFile(path string) (zson.Reader, error) {
+	var f *os.File
 	if path == "-" {
-		//XXX TBD: use input format flag and/or peeker
-		return zsio.LookupReader("zeek", os.Stdin, c.dt), nil
+		f = os.Stdin
+	} else {
+		info, err := os.Stat(path)
+		if err != nil {
+			return nil, err
+		}
+		if info.IsDir() {
+			return nil, errInvalidFile("is a directory")
+		}
+		f, err = os.Open(path)
+		if err != nil {
+			return nil, err
+		}
 	}
-	info, err := os.Stat(path)
-	if err != nil {
-		return nil, err
-	}
-	if info.IsDir() {
-		return nil, errInvalidFile("is a directory")
-	}
-	// XXX this should go away soon once we have functionality to peek at the
-	// stream.
-	var reader string
-	switch ext := filepath.Ext(path); ext {
-	case ".zjson":
-		reader = "zjson"
-	case ".ndjson":
-		reader = "ndjson"
-	case ".raw":
-		reader = "raw"
-	default:
-		reader = "zeek"
-	}
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	return zsio.LookupReader(reader, f, c.dt), nil
+	return detector.NewReader(f, c.dt)
 }
 
 func (c *Command) errorf(format string, args ...interface{}) {
