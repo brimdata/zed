@@ -62,7 +62,7 @@ again:
 			return nil, err
 		}
 		return rec, nil
-	case TypeComment:
+	case TypeControl:
 		if r.ctrl {
 			return zson.NewControlRecord(b), nil
 		}
