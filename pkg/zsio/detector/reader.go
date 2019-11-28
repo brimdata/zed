@@ -16,7 +16,7 @@ import (
 var ErrUnknown = errors.New("input format not recognized")
 
 func NewReader(r io.Reader, n int, t *resolver.Table) (zson.Reader, error) {
-	peeker, err := NewPeeker(r, 32*1024)
+	peeker, err := NewPeeker(r, n)
 	if err != nil {
 		return nil, err
 	}
