@@ -206,8 +206,9 @@ notation.  Here is a pseudo-grammar for value encodings:
 [1] - [JavaScript character escaping rules](https://tc39.es/ecma262/#prod-EscapeSequence)
 
 A channel is a 16-bit integer used to indicate sub-streams of values within the zson stream.
-This is useful, for example, when analytics performs two or computations on the 
-same input data resulting in multiple output streams.
+This is useful, for example, when analytics performs two or more computations on the
+same input data resulting in multiple result streams that are multiplexed onto a single 
+zson stream.
 
 A terminal value is encoded as a string of UTF-8 characters terminated
 by a semicolon (which must be escaped if it appears in the value).  A composite
