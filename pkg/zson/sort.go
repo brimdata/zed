@@ -14,9 +14,12 @@ type comparefn func(a, b []byte) int
 
 func rawcompare(a, b []byte, dir int) int {
 	v := bytes.Compare(a, b)
-	if v < 0 {
+	switch {
+	case v == 0:
+		return 0
+	case v < 0:
 		return -dir
-	} else {
+	default:
 		return dir
 	}
 }
