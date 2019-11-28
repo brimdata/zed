@@ -36,7 +36,7 @@ to filter each log value, optionally computes analytics and transformations,
 and writes the output to one or more files or standard output.
 
 The input and output formats are either specified explicitly or derived from
-file name extensions.  Supported input formats include ZSON (.zson), JSON (.json),
+file name extensions.  Supported input formats include ZSON (.zson),
 NDJSON (.ndjson), and Zeek log format (.log).  Supported output formats include
 all the input formats along with text and tabular formats.
 
@@ -83,7 +83,7 @@ type Command struct {
 func New(f *flag.FlagSet) (charm.Command, error) {
 	cwd, _ := os.Getwd()
 	c := &Command{dt: resolver.NewTable()}
-	f.StringVar(&c.format, "f", "zson", "format for output data [text,table,zeek,json,ndjson,raw,zson]")
+	f.StringVar(&c.format, "f", "zson", "format for output data [text,table,zeek,ndjson,raw,zson]")
 	f.StringVar(&c.path, "p", cwd, "path for input")
 	f.StringVar(&c.dir, "d", "", "directory for output data files")
 	f.StringVar(&c.outputFile, "o", "", "write data to output file")
@@ -208,8 +208,6 @@ func extension(format string) string {
 		return ".zson"
 	case "ndson":
 		return ".ndson"
-	case "json":
-		return ".json"
 	case "raw":
 		return ".raw"
 	default:
