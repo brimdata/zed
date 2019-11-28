@@ -12,9 +12,13 @@ jobs:
       run: |
         merged=$(cat $GITHUB_EVENT_PATH | jq '.pull_request.merged')
         echo "::set-output name=merged::$merged"
+
+        nopost=$(cat $GITHUB_EVENT_PATH | jq '[.pull_request.labels[] | select(.name=="no-post-action") ]| length')
+        echo "::set-output name=nopost::$nopost"
+
       id: vars
     - name: Post PR closed event, if the close was a merge
-      if: steps.vars.outputs.merged == 'true'
+      if: steps.vars.outputs.merged == 'true' && steps.vars.outputs.nopost != '1'
       run: |
         cat $GITHUB_EVENT_PATH
         cat $GITHUB_EVENT_PATH | jq '.pull_request | { "event_type": "zq-pr-merged", "client_payload": {body, "branch": .head.label, merge_commit_sha, number, title, "url": .html_url, "user": .user.login}}' > payload.json
