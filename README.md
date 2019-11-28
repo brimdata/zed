@@ -160,4 +160,4 @@ command, a new baseline will have to be generated. Here is how you do this:
 [doc-img]: https://godoc.org/github.com/mccanne/zq?status.svg
 [doc]: https://godoc.org/github.com/mccanne/zq
 [ci-img]: https://circleci.com/gh/mccanne/zq.svg?style=svg
-[ci]: https://circleci.com/gh/looky-cloud/boom
+[ci]: https://circleci.com/gh/mccanne/zq
