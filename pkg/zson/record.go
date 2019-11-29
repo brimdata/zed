@@ -32,6 +32,7 @@ type Record struct {
 	*Descriptor
 	nonvolatile bool
 	ctrl        bool
+	Channel     uint16
 	// Raw is the serialization format for zson records.  A raw value comprises a
 	// sequence of zvals, one per descriptor column.  The descriptor is stored
 	// outside of the raw serialization but is needed to interpret the raw values.
@@ -126,7 +127,7 @@ func (r *Record) Keep() *Record {
 	if r.nonvolatile {
 		return r
 	}
-	v := &Record{Ts: r.Ts, Descriptor: r.Descriptor, nonvolatile: true}
+	v := &Record{Ts: r.Ts, Descriptor: r.Descriptor, nonvolatile: true, Channel: r.Channel}
 	v.Raw = make(zval.Encoding, len(r.Raw))
 	copy(v.Raw, r.Raw)
 	return v

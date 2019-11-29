@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/mccanne/zq/pkg/zsio"
+	"github.com/mccanne/zq/pkg/zsio/text"
 	"github.com/mccanne/zq/pkg/zson"
 )
 
@@ -24,20 +25,28 @@ type Dir struct {
 	dir     string
 	prefix  string
 	ext     string
-	stderr  io.Writer
+	format  string
+	stderr  io.Writer // XXX use warnings channel
+	tc      *text.Config
 	writers map[*zson.Descriptor]*zsio.Writer
 	paths   map[string]int
 }
 
-func NewDir(dir, prefix, ext string, stderr io.Writer) (*Dir, error) {
+func NewDir(dir, prefix, format string, stderr io.Writer, tc *text.Config) (*Dir, error) {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return nil, err
+	}
+	e := zsio.Extension(format)
+	if e == "" {
+		return nil, unknownFormat(format)
 	}
 	return &Dir{
 		dir:     dir,
 		prefix:  prefix,
-		ext:     ext,
+		ext:     e,
+		format:  format,
 		stderr:  stderr,
+		tc:      tc,
 		writers: make(map[*zson.Descriptor]*zsio.Writer),
 		paths:   make(map[string]int),
 	}, nil
@@ -51,7 +60,7 @@ func (d *Dir) Write(r *zson.Record) error {
 	if out != nil {
 		return out.Write(r)
 	}
-	// this descriptor is blocked so drop the record
+	// The descriptor is blocked if file exists.  Drop the record.
 	return nil
 }
 
@@ -59,22 +68,16 @@ func (d *Dir) lookupOutput(rec *zson.Record) (*zsio.Writer, error) {
 	descriptor := rec.Descriptor
 	w, ok := d.writers[descriptor]
 	if ok {
-		if w == nil {
-			// avoid non-nil interface pointer to nil
-			return nil, nil
-		}
 		return w, nil
 	}
-	w, fname, err := d.newFile(rec)
-	if os.IsNotExist(err) {
-		//XXX fix Phil's error message
-		// warn that file exists
-		warning := fmt.Sprintf("%s: file exists (blocking writes to this file, but continuing)\n", fname)
-		d.stderr.Write([]byte(warning))
-		// block future writes to this descriptor since file exists
-		// XXX fix this since zeek writing now handles interleaved stuff
+	w, _, err := d.newFile(rec)
+	if err == ErrNoPath {
+		fmt.Fprintf(d.stderr, "warning: no path for descriptor %d (dropping all related records)", rec.Descriptor.ID)
+		// Block this descriptor.
 		d.writers[descriptor] = nil
-	} else if err != nil {
+		return nil, nil
+	}
+	if err != nil {
 		return nil, err
 	}
 	d.writers[descriptor] = w
@@ -102,14 +105,11 @@ func (d *Dir) newFile(rec *zson.Record) (*zsio.Writer, string, error) {
 	}
 	path := string(rec.Slice(i))
 	filename := d.filename(path)
-	w, err := OpenOutputFile("zeek", filename)
-	if err == os.ErrExist {
-		// The files exists and we're not going to overwrite it.
-		// Return nil for the file with no error indicating that
-		// we should track this path but block all such records.
-		return nil, filename, nil
+	w, err := NewFile(filename, d.format, d.tc)
+	if err != nil {
+		return nil, filename, err
 	}
-	return w, filename, nil
+	return w, filename, err
 }
 
 func (d *Dir) Close() error {

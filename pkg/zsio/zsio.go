@@ -6,6 +6,7 @@ import (
 	"github.com/mccanne/zq/pkg/zsio/ndjson"
 	"github.com/mccanne/zq/pkg/zsio/raw"
 	"github.com/mccanne/zq/pkg/zsio/table"
+	"github.com/mccanne/zq/pkg/zsio/text"
 	"github.com/mccanne/zq/pkg/zsio/zeek"
 	"github.com/mccanne/zq/pkg/zsio/zjson"
 	zsonio "github.com/mccanne/zq/pkg/zsio/zson"
@@ -34,7 +35,7 @@ func (w *Writer) Close() error {
 	return err
 }
 
-func LookupWriter(format string, w io.WriteCloser) *Writer {
+func LookupWriter(format string, w io.WriteCloser, tc *text.Config) *Writer {
 	var f zson.WriteFlusher
 	switch format {
 	default:
@@ -47,9 +48,8 @@ func LookupWriter(format string, w io.WriteCloser) *Writer {
 		f = zson.NopFlusher(ndjson.NewWriter(w))
 	case "zjson":
 		f = zson.NopFlusher(zjson.NewWriter(w))
-	// XXX not yet
-	//case "text":
-	//	return text.NewWriter(f, c.showTypes, c.showFields, c.epochDates)
+	case "text":
+		f = zson.NopFlusher(text.NewWriter(w, tc))
 	case "table":
 		f = table.NewWriter(w)
 	case "raw":
@@ -73,4 +73,25 @@ func LookupReader(format string, r io.Reader, table *resolver.Table) zson.Reader
 		return raw.NewReader(r, table)
 	}
 	return nil
+}
+
+func Extension(format string) string {
+	switch format {
+	case "zson":
+		return ".zson"
+	case "zeek":
+		return ".log"
+	case "ndjson":
+		return ".ndjson"
+	case "zjson":
+		return ".zjson"
+	case "text":
+		return ".txt"
+	case "table":
+		return ".tbl"
+	case "raw":
+		return ".raw"
+	default:
+		return ""
+	}
 }

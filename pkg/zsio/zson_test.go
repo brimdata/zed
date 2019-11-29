@@ -199,3 +199,36 @@ func TestCtrl(t *testing.T) {
 	assert.Equal(t, rec.Raw.Bytes(), []byte("message4"))
 
 }
+
+const channel = `
+#0:record[id:record[a:string,s:set[string]]]
+0:[[-;[]]]
+0.1:[[-;[]]]
+0.0:[[-;[]]]`
+
+func TestChannel(t *testing.T) {
+	// this tests reading of control via text zson,
+	// then writing of raw control, and reading back the result
+	in := []byte(strings.TrimSpace(channel) + "\n")
+	reader := bytes.NewReader(in)
+	r := zsonio.NewControlReader(reader, resolver.NewTable())
+
+	var rawZson Output
+	rawDst := zson.NopFlusher(raw.NewWriter(&rawZson))
+	err := zson.Copy(rawDst, r)
+	require.NoError(t, err)
+
+	rawReader := raw.NewControlReader(bytes.NewReader(rawZson.Bytes()), resolver.NewTable())
+
+	rec, err := rawReader.Read()
+	assert.NoError(t, err)
+	assert.Equal(t, rec.Channel, uint16(0))
+
+	rec, err = rawReader.Read()
+	assert.NoError(t, err)
+	assert.Equal(t, rec.Channel, uint16(1))
+
+	rec, err = rawReader.Read()
+	assert.NoError(t, err)
+	assert.Equal(t, rec.Channel, uint16(0))
+}
