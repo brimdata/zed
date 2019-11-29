@@ -1,7 +1,6 @@
 package compile
 
 import (
-	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/pkg/zeek"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
@@ -9,7 +8,7 @@ import (
 )
 
 type Row struct {
-	Defs     []ast.Reducer
+	Defs     []CompiledReducer
 	Reducers []reducer.Interface
 	n        int
 }
@@ -29,11 +28,9 @@ func (r *Row) Touch(rec *zson.Record) {
 		if r.Reducers[k] != nil {
 			continue
 		}
-		red, err := Compile(r.Defs[k], rec)
-		if err == nil {
-			r.Reducers[k] = red
-			r.n++
-		}
+		red := r.Defs[k].Instantiate()
+		r.Reducers[k] = red
+		r.n++
 	}
 }
 
@@ -57,7 +54,7 @@ func (r *Row) Result(table *resolver.Table) *zson.Record {
 	values := make([]string, n)
 	for k, red := range r.Reducers {
 		zv := reducer.Result(red)
-		columns[k] = zeek.Column{Name: r.Defs[k].Var, Type: zv.Type()}
+		columns[k] = zeek.Column{Name: r.Defs[k].Target(), Type: zv.Type()}
 		values[k] = zv.String()
 	}
 	d := table.GetByColumns(columns)

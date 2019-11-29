@@ -81,8 +81,14 @@ var testCopyJSON = []byte(`
         "type": "Duration"
       },
       "keys": [
-        "n",
-        "o"
+        {
+          "op": "FieldRead",
+          "field": "n"
+        },
+        {
+          "op": "FieldRead",
+          "field": "o"
+        }
       ],
       "op": "GroupByProc",
       "reducers": [
@@ -189,8 +195,14 @@ var testCopyJSONExpected = []byte(`
         "type": "Duration"
       },
       "keys": [
-        "n",
-        "p"
+        {
+          "op": "FieldRead",
+          "field": "n"
+        },
+        {
+          "op": "FieldRead",
+          "field": "p"
+        }
       ],
       "op": "GroupByProc",
       "reducers": [
@@ -235,7 +247,7 @@ func TestCopyAST(t *testing.T) {
 	copy.(*ast.SequentialProc).Procs[1].(*ast.CutProc).Fields[0] = "z"
 	copy.(*ast.SequentialProc).Procs[2].(*ast.GroupByProc).Duration.Seconds = 3600
 	copy.(*ast.SequentialProc).Procs[2].(*ast.GroupByProc).Reducers[0].Field = "k"
-	copy.(*ast.SequentialProc).Procs[2].(*ast.GroupByProc).Keys[1] = "p"
+	copy.(*ast.SequentialProc).Procs[2].(*ast.GroupByProc).Keys[1].(*ast.FieldRead).Field = "p"
 	copy.(*ast.SequentialProc).Procs[3].(*ast.SortProc).SortDir = 1
 	copy.(*ast.SequentialProc).Procs[4].(*ast.HeadProc).Count = 2
 	expectedProc, err := ast.UnpackProc(nil, testCopyJSONExpected)

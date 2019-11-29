@@ -6,20 +6,32 @@ import (
 	"github.com/mccanne/zq/pkg/zson"
 )
 
+type CountDistinctProto struct {
+	target string
+	field  string
+}
+
+func (cdp *CountDistinctProto) Target() string {
+	return cdp.target
+}
+
+func (cdp *CountDistinctProto) Instantiate() Interface {
+	return &CountDistinct{
+		Field:  cdp.field,
+		sketch: hyperloglog.New(),
+	}
+}
+
+func NewCountDistinctProto(target, field string) *CountDistinctProto {
+	return &CountDistinctProto{target, field}
+}
+
 // CountDistinct uses hyperloglog to approximate the count of unique values for
 // a field.
 type CountDistinct struct {
 	Reducer
 	Field  string
 	sketch *hyperloglog.Sketch
-}
-
-func NewCountDistinct(name, field string) *CountDistinct {
-	return &CountDistinct{
-		Reducer: New(name),
-		Field:   field,
-		sketch:  hyperloglog.New(),
-	}
 }
 
 func (c *CountDistinct) Consume(r *zson.Record) {

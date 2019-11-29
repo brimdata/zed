@@ -5,18 +5,28 @@ import (
 	"github.com/mccanne/zq/pkg/zson"
 )
 
+type AvgProto struct {
+	target string
+	field  string
+}
+
+func (ap *AvgProto) Target() string {
+	return ap.target
+}
+
+func (ap *AvgProto) Instantiate() Interface {
+	return &Avg{Field: ap.field}
+}
+
+func NewAvgProto(target, field string) *AvgProto {
+	return &AvgProto{target, field}
+}
+
 type Avg struct {
 	Reducer
 	Field string
 	sum   float64
 	count uint64
-}
-
-func NewAvg(name, field string) *Avg {
-	return &Avg{
-		Reducer: New(name),
-		Field:   field,
-	}
 }
 
 func (a *Avg) Consume(r *zson.Record) {

@@ -16,7 +16,6 @@ var (
 )
 
 type Interface interface {
-	Name() string
 	Consume(*zson.Record)
 	Result() zeek.Value
 }
@@ -35,14 +34,5 @@ type Stats struct {
 }
 
 type Reducer struct {
-	name string
 	Stats
-}
-
-func New(name string) Reducer {
-	return Reducer{name: name}
-}
-
-func (r *Reducer) Name() string {
-	return r.name
 }

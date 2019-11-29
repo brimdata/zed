@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/mccanne/zq/ast"
+	"github.com/mccanne/zq/expr"
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/zeek"
 	"github.com/mccanne/zq/pkg/zson"
@@ -14,6 +15,19 @@ import (
 	"github.com/mccanne/zq/reducer/compile"
 	"go.uber.org/zap"
 )
+
+type GroupByKey struct {
+	name     string
+	resolver expr.FieldExprResolver
+}
+
+type GroupByParams struct {
+	duration        ast.Duration
+	update_interval ast.Duration
+	limit           int
+	keys            []GroupByKey
+	reducers        []compile.CompiledReducer
+}
 
 type errTooBig int
 
@@ -27,6 +41,35 @@ func IsErrTooBig(err error) bool {
 }
 
 const defaultGroupByLimit = 1000000
+
+func CompileGroupBy(node *ast.GroupByProc) (*GroupByParams, error) {
+	keys := make([]GroupByKey, 0)
+	for _, key := range(node.Keys) {
+		resolver, err := expr.CompileFieldExpr(key)
+		if err != nil {
+			return nil, err
+		}
+		keys = append(keys, GroupByKey{
+			name:     groupKey(key),
+			resolver: resolver,
+		})
+	}
+	reducers := make([]compile.CompiledReducer, 0)
+	for _, reducer := range(node.Reducers) {
+		compiled, err := compile.Compile(reducer)
+		if err != nil {
+			return nil, err
+		}
+		reducers = append(reducers, compiled)
+	}
+	return &GroupByParams{
+		duration:        node.Duration,
+		update_interval: node.UpdateInterval,
+		limit:           node.Limit,
+		keys:            keys,
+		reducers:        reducers,
+	}, nil
+}
 
 // GroupBy computes aggregations using a GroupByAggregator.
 type GroupBy struct {
@@ -48,8 +91,8 @@ type GroupByAggregator struct {
 	consumeCutDest [][]byte // Reduces memory allocations in Consume.
 	consumeKeyBuf  []byte   // Reduces memory allocations in Consume.
 	dt             *resolver.Table
-	keys           []string
-	reducerDefs    []ast.Reducer
+	keys           []GroupByKey
+	reducerDefs    []compile.CompiledReducer
 	// For a regular group-by, tables has one entry with key 0.  For a
 	// time-binned group-by, tables has one entry per bin and is keyed by
 	// bin timestamp (so that a bin with span [ts, ts+timeBinDuration) has
@@ -67,21 +110,21 @@ type GroupByRow struct {
 	columns compile.Row
 }
 
-func NewGroupByAggregator(c *Context, params *ast.GroupByProc) *GroupByAggregator {
+func NewGroupByAggregator(c *Context, params GroupByParams) *GroupByAggregator {
 	//XXX we should change this AST format... left over from Looky
 	// convert second to nano second
-	dur := int64(params.Duration.Seconds) * 1000000000
+	dur := int64(params.duration.Seconds) * 1000000000
 	if dur < 0 {
 		panic("dur cannot be negative")
 	}
-	limit := params.Limit
+	limit := params.limit
 	if limit == 0 {
 		limit = defaultGroupByLimit
 	}
 	return &GroupByAggregator{
-		keys:            params.Keys,
+		keys:            params.keys,
 		dt:              c.Resolver,
-		reducerDefs:     params.Reducers,
+		reducerDefs:     params.reducers,
 		tables:          make(map[nano.Ts]map[string]*GroupByRow),
 		TimeBinDuration: dur,
 		reverse:         c.Reverse,
@@ -90,12 +133,12 @@ func NewGroupByAggregator(c *Context, params *ast.GroupByProc) *GroupByAggregato
 	}
 }
 
-func NewGroupBy(c *Context, parent Proc, params *ast.GroupByProc) *GroupBy {
+func NewGroupBy(c *Context, parent Proc, params GroupByParams) *GroupBy {
 	// XXX in a subsequent PR we will isolate ast params and pass in
 	// ast.GroupByParams
 	agg := NewGroupByAggregator(c, params)
-	timeBinned := params.Duration.Seconds > 0
-	interval := time.Duration(params.UpdateInterval.Seconds) * time.Second
+	timeBinned := params.duration.Seconds > 0
+	interval := time.Duration(params.update_interval.Seconds) * time.Second
 	return &GroupBy{
 		Base:       Base{Context: c, Parent: parent},
 		timeBinned: timeBinned,
@@ -151,8 +194,20 @@ func (g *GroupByAggregator) createRow(ts nano.Ts, kvals [][]byte) *GroupByRow {
 // successively passed to Consume are expected to have timestamps in
 // monotonically increasing or decreasing order determined by g.reverse.
 func (g *GroupByAggregator) Consume(r *zson.Record) error {
-	vals := r.Cut(g.keys, g.consumeCutDest)
+	// Extract the list of groupby expressions.  Re-use the array
+	// stored in consumeCutDest to avoid re-allocating on every record.
+	var vals [][]byte
+	if g.consumeCutDest != nil {
+		vals = g.consumeCutDest[:0]
+	}
+	for _, key := range(g.keys) {
+		_, v := key.resolver(r)
+		if v != nil {
+			vals = append(vals, v)
+		}
+	}
 	g.consumeCutDest = vals
+
 	if len(vals) != len(g.keys) {
 		// This record does not have all the group-by fields, so ignore
 		// it.  XXX Maybe we should include it with missing vals = nil.
@@ -167,10 +222,10 @@ func (g *GroupByAggregator) Consume(r *zson.Record) error {
 	// Otherwise, create a new row and create new probe state.
 	key := g.consumeKeyBuf[:0]
 	if len(vals) > 0 {
-		key = append(key, zson.ZvalToZeekString(g.keyCols[0].Type, vals[0])...)
+		key = append(key, zson.ZvalToZeekString(g.keyCols[0].Type, vals[0], false)...)
 		for i, v := range vals[1:] {
 			key = append(key, ':')
-			key = append(key, zson.ZvalToZeekString(g.keyCols[i+1].Type, v)...)
+			key = append(key, zson.ZvalToZeekString(g.keyCols[i+1].Type, v, false)...)
 		}
 	}
 	g.consumeKeyBuf = key
@@ -281,7 +336,7 @@ func (g *GroupByAggregator) lookupDescriptor(columns *compile.Row) *zson.Descrip
 	for k, red := range columns.Reducers {
 		z := reducer.Result(red)
 		keyCols[k] = zeek.Column{
-			Name: columns.Defs[k].Var,
+			Name: columns.Defs[k].Target(),
 			Type: z.Type(),
 		}
 	}
@@ -296,7 +351,6 @@ func (g *GroupByAggregator) initStaticCols(r *zson.Record) {
 	// might want to check subseuent records to make sure the types don't
 	// change and drop them if they do?  If so, we should have a new method
 	// that combines Cut/CutTypes.
-	keyTypes, _ := r.CutTypes(g.keys)
 	ncols := len(g.keys)
 	if g.TimeBinDuration > 0 {
 		ncols++
@@ -306,9 +360,9 @@ func (g *GroupByAggregator) initStaticCols(r *zson.Record) {
 		cols[0] = zeek.Column{Name: "ts", Type: zeek.TypeTime}
 	}
 	keycols := cols[len(cols)-len(g.keys):]
-	for k, name := range g.keys {
-		typ := keyTypes[k]
-		keycols[k] = zeek.Column{Name: name, Type: typ}
+	for i, key := range g.keys {
+		typ, _ := key.resolver(r)
+		keycols[i] = zeek.Column{Name: key.name, Type: typ}
 	}
 	g.keyCols = keycols
 	g.staticCols = cols

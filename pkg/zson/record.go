@@ -149,11 +149,11 @@ func (r *Record) Strings() ([]string, error) {
 	var ss []string
 	it := r.ZvalIter()
 	for _, col := range r.Descriptor.Type.Columns {
-		val, _, err := it.Next()
+		val, isContainer, err := it.Next()
 		if err != nil {
 			return nil, err
 		}
-		ss = append(ss, ZvalToZeekString(col.Type, val))
+		ss = append(ss, ZvalToZeekString(col.Type, val, isContainer))
 	}
 	return ss, nil
 }

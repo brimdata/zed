@@ -251,7 +251,7 @@
         limit = limitIn.(int)
       }
 
-      keys := stringArray(keysIn)
+      keys := fieldExprArray(keysIn)
       reducers := reducersArray(reducersIn)
 
       return &ast.GroupByProc{
@@ -607,7 +607,7 @@ proc
     }
 
 groupBy
-  = "by"i _ list:fieldNameList { RETURN(list) }
+  = "by"i _ list:fieldExprList { RETURN(list) }
 
 everyDur
   = "every"i _ dur:duration { RETURN(dur) }

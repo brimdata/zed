@@ -3,18 +3,15 @@ package field
 import (
 	"github.com/mccanne/zq/pkg/zeek"
 	"github.com/mccanne/zq/pkg/zson"
-	"github.com/mccanne/zq/reducer"
 	"github.com/mccanne/zq/streamfn"
 )
 
 type Time struct {
-	Field
 	fn *streamfn.Time
 }
 
-func NewTime(name, field, op string) reducer.Interface {
+func NewTimeStreamfn(op string) Streamfn {
 	return &Time{
-		Field: NewField(name, field),
 		fn:    streamfn.NewTime(op),
 	}
 }
@@ -23,15 +20,11 @@ func (t *Time) Result() zeek.Value {
 	return &zeek.Time{t.fn.State}
 }
 
-func (t *Time) Consume(r *zson.Record) {
-	v := t.lookup(r)
-	if v == nil {
-		return
-	}
+func (t *Time) Consume(v zeek.Value) error {
 	cv := zeek.CoerceToTime(v)
 	if cv == nil {
-		t.TypeMismatch++
-		return
+		return zson.ErrTypeMismatch
 	}
 	t.fn.Update(cv.Native)
+	return nil
 }
