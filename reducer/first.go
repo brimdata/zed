@@ -5,17 +5,27 @@ import (
 	"github.com/mccanne/zq/pkg/zson"
 )
 
+type FirstProto struct {
+	target string
+	field  string
+}
+
+func (fp *FirstProto) Target() string {
+	return fp.target
+}
+
+func (fp *FirstProto) Instantiate() Interface {
+	return &First{Field: fp.field}
+}
+
+func NewFirstProto(target, field string) *FirstProto {
+	return &FirstProto{target, field}
+}
+
 type First struct {
 	Reducer
 	Field  string
 	record *zson.Record
-}
-
-func NewFirst(name, field string) *First {
-	return &First{
-		Reducer: New(name),
-		Field:   field,
-	}
 }
 
 func (f *First) Consume(r *zson.Record) {

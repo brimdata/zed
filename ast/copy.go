@@ -40,8 +40,10 @@ func (p *ReducerProc) Copy() Proc {
 func (p *GroupByProc) Copy() Proc {
 	reducers := make([]Reducer, len(p.Reducers))
 	copy(reducers, p.Reducers)
-	keys := make([]string, len(p.Keys))
-	copy(keys, p.Keys)
+	keys := make([]FieldExpr, len(p.Keys))
+	for i, k := range(p.Keys) {
+		keys[i] = k.Copy()
+	}
 	return &GroupByProc{
 		Node:     Node{p.Op},
 		Duration: p.Duration,

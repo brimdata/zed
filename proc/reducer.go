@@ -9,6 +9,11 @@ import (
 	"github.com/mccanne/zq/reducer/compile"
 )
 
+type ReducerParams struct {
+	interval ast.Duration
+	reducers []compile.CompiledReducer
+}
+
 type Reducer struct {
 	Base
 	n        int
@@ -16,12 +21,12 @@ type Reducer struct {
 	columns  compile.Row
 }
 
-func NewReducer(c *Context, parent Proc, params *ast.ReducerProc) Proc {
-	interval := time.Duration(params.UpdateInterval.Seconds) * time.Second
+func NewReducer(c *Context, parent Proc, params ReducerParams) Proc {
+	interval := time.Duration(params.interval.Seconds) * time.Second
 	return &Reducer{
 		Base:     Base{Context: c, Parent: parent},
 		interval: interval,
-		columns:  compile.Row{Defs: params.Reducers},
+		columns:  compile.Row{Defs: params.reducers},
 	}
 }
 

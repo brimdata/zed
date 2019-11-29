@@ -44,8 +44,8 @@ func appendZvalFromZeek(dst []byte, typ zeek.Type, val []byte) []byte {
 
 // ZvalToZeekString returns a Zeek ASCII string representing the zval described
 // by typ and val.
-func ZvalToZeekString(typ zeek.Type, val []byte) string {
-	if val == nil {
+func ZvalToZeekString(typ zeek.Type, val []byte, isContainer bool) string {
+	if val == nil && !isContainer {
 		return "-"
 	}
 	var s string

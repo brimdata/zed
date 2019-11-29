@@ -5,17 +5,27 @@ import (
 	"github.com/mccanne/zq/pkg/zson"
 )
 
+type CountProto struct {
+	target string
+	field  string
+}
+
+func (cp *CountProto) Target() string {
+	return cp.target
+}
+
+func (cp *CountProto) Instantiate() Interface {
+	return &Count{Field: cp.field}
+}
+
+func NewCountProto(target, field string) *CountProto {
+	return &CountProto{target, field}
+}
+
 type Count struct {
 	Reducer
 	Field string
 	count uint64
-}
-
-func NewCount(name, field string) *Count {
-	return &Count{
-		Reducer: New(name),
-		Field:   field,
-	}
 }
 
 func (c *Count) Consume(r *zson.Record) {

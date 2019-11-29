@@ -83,7 +83,11 @@ func unpackProc(custom Unpacker, node joe.JSON) (Proc, error) {
 	case "ReducerProc":
 		return &ReducerProc{}, nil
 	case "GroupByProc":
-		return &GroupByProc{}, nil
+		keys, err := unpackFieldExprArray(node.Get("keys"))
+		if err != nil {
+			return nil, err
+		}
+		return &GroupByProc{Keys: keys}, nil
 	case "TopProc":
 		fields, err := unpackFieldExprArray(node.Get("fields"))
 		if err != nil {

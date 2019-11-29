@@ -10,6 +10,7 @@ import (
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
+	"github.com/mccanne/zq/reducer/compile"
 	"go.uber.org/zap"
 )
 
@@ -92,6 +93,21 @@ type Compiler interface {
 	Compile(ast.Proc, *Context, Proc) (Proc, error)
 }
 
+// Choose the name to use for a groupby key
+func groupKey(node ast.FieldExpr) string {
+	switch n := node.(type) {
+	case *ast.FieldRead:
+		return n.Field
+	case *ast.FieldCall:
+		if n.Fn == "RecordFieldRead" {
+			return n.Param
+		}
+		return groupKey(n.Field)
+	default:
+		panic("unknown FieldExpr type")
+	}
+}
+
 // CompileProc compiles an AST into a graph of Procs, and returns
 // the leaves.  A custom proc compiler can be included and it will be tried first
 // for each node encountered during the compilation.
@@ -107,10 +123,26 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 	}
 	switch v := node.(type) {
 	case *ast.ReducerProc:
-		return []Proc{NewReducer(c, parent, v)}, nil
+		reducers := make([]compile.CompiledReducer, 0)
+		for _, reducer := range(v.Reducers) {
+			compiled, err := compile.Compile(reducer)
+			if err != nil {
+				return nil, err
+			}
+			reducers = append(reducers, compiled)
+		}
+		params := ReducerParams{
+			interval: v.UpdateInterval,
+			reducers: reducers,
+		}
+		return []Proc{NewReducer(c, parent, params)}, nil
 
 	case *ast.GroupByProc:
-		return []Proc{NewGroupBy(c, parent, v)}, nil
+		params, err := CompileGroupBy(v)
+		if err != nil {
+			return nil, err
+		}
+		return []Proc{NewGroupBy(c, parent, *params)}, nil
 
 	case *ast.CutProc:
 		return []Proc{NewCut(c, parent, v.Fields)}, nil
