@@ -97,12 +97,12 @@ func (s *Sort) sort() zson.Batch {
 	s.out = nil
 	if s.fields == nil {
 		fld := guessSortField(out[0])
-		resolver := func(r *zson.Record) (zeek.Type, []byte) {
-			v, t, err := r.Access(fld)
+		resolver := func(r *zson.Record) zeek.TypedEncoding {
+			e, err := r.Access(fld)
 			if err != nil {
-				return nil, nil
+				return zeek.TypedEncoding{}
 			}
-			return t, v
+			return e
 		}
 		s.fields = []expr.FieldExprResolver{resolver}
 	}

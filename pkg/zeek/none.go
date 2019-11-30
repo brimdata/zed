@@ -3,6 +3,8 @@ package zeek
 import (
 	"encoding/json"
 	"errors"
+
+	"github.com/mccanne/zq/pkg/zval"
 )
 
 type TypeOfNone struct{}
@@ -26,6 +28,10 @@ type None struct{}
 
 func (n *None) String() string {
 	return "none"
+}
+
+func (n *None) Encode(dst zval.Encoding) zval.Encoding {
+	return zval.AppendValue(dst, []byte("none"))
 }
 
 func (n *None) Type() Type {

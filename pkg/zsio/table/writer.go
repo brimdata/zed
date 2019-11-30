@@ -47,7 +47,8 @@ func (t *Table) Write(r *zson.Record) error {
 		t.writeHeader(t.descriptor)
 		t.nline = 0
 	}
-	ss, err := r.Strings()
+	//XXX only works for zeek-oriented records right now (won't work for NDJSON nested records)
+	ss, err := r.ZeekStrings()
 	if err != nil {
 		return err
 	}

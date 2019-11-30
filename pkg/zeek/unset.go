@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
+	"github.com/mccanne/zq/pkg/zval"
 )
 
 // ErrUnset is returned in Type.Parse / Type.Format when the value is unset.
@@ -37,6 +39,10 @@ func (u *Unset) String() string {
 	return "-"
 }
 
+func (u *Unset) Encode(dst zval.Encoding) zval.Encoding {
+	return zval.AppendValue(dst, nil)
+}
+
 func (u *Unset) Type() Type {
 	return TypeUnset
 }
@@ -46,10 +52,10 @@ func (u *Unset) Comparison(op string) (Predicate, error) {
 	if !ok {
 		return nil, fmt.Errorf("unknown unset comparator: %s", op)
 	}
-	return func(typ Type, val []byte) bool {
-		switch typ.(type) {
+	return func(e TypedEncoding) bool {
+		switch e.Type.(type) {
 		case *TypeOfString, *TypeOfBool, *TypeOfCount, *TypeOfInt, *TypeOfDouble, *TypeOfTime, *TypeOfInterval, *TypeOfPort, *TypeOfAddr, *TypeOfSubnet, *TypeOfEnum, *TypeSet, *TypeVector:
-			return compare(val)
+			return compare(e.Body)
 		}
 		return false
 	}, nil

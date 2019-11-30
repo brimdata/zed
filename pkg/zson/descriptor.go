@@ -21,9 +21,10 @@ type Resolver interface {
 // a zeek record structure along with a map to efficiently find a
 // column index for a given field name.
 type Descriptor struct {
-	ID   int
-	Type *zeek.TypeRecord
-	LUT  map[string]int
+	ID    int
+	Type  *zeek.TypeRecord
+	LUT   map[string]int
+	TsCol int
 }
 
 // UnmarshalJSON satisfies the interface for json.Unmarshaler.
@@ -55,7 +56,7 @@ func (d *Descriptor) Key() string {
 }
 
 func NewDescriptor(typ *zeek.TypeRecord) *Descriptor {
-	d := &Descriptor{ID: -1, Type: typ}
+	d := &Descriptor{ID: -1, Type: typ, TsCol: -1}
 	d.createLUT()
 	return d
 }
@@ -64,5 +65,10 @@ func (d *Descriptor) createLUT() {
 	d.LUT = make(map[string]int)
 	for k, col := range d.Type.Columns {
 		d.LUT[col.Name] = k
+		if col.Name == "ts" {
+			if _, ok := col.Type.(*zeek.TypeOfTime); ok {
+				d.TsCol = k
+			}
+		}
 	}
 }

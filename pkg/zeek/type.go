@@ -31,7 +31,8 @@ var (
 type Type interface {
 	String() string
 	// New returns a Value of this Type by parsing the data in the bye slice
-	// and interpreting it as the native value of the zeek Value.
+	// and interpreting it as the native value of the zeek Value.  For sets
+	// and vectors, the byte slice is a zval.Encoding of the body of a container.
 	New([]byte) (Value, error)
 	// Format returns a native value as an empty interface by parsing the
 	// data in the byte slice as an instance of this Type.  This allows
@@ -182,14 +183,23 @@ func parseType(in string) (string, Type, error) {
 // If the passed-in type is a container, ContainedType() returns
 // the type of individual elements (and true for the second value).
 // Otherwise, returns nil, false.
-func ContainedType(typ Type) (Type, bool) {
+func ContainedType(typ Type) Type {
 	switch typ := typ.(type) {
 	case *TypeSet:
-		return typ.innerType, true
+		return typ.innerType
 	case *TypeVector:
-		return typ.typ, true
+		return typ.typ
 	default:
-		return nil, false
+		return nil
+	}
+}
+
+func IsContainerType(typ Type) bool {
+	switch typ.(type) {
+	case *TypeSet, *TypeVector, *TypeRecord:
+		return true
+	default:
+		return false
 	}
 }
 
@@ -206,22 +216,24 @@ func trimInnerTypes(typ string, raw string) string {
 // the original predicate is applied to each element.  The new precicate
 // returns true iff the predicate matched an element from the collection.
 func Contains(compare Predicate) Predicate {
-	return func(typ Type, val []byte) bool {
-		var elType Type
-		switch typ := typ.(type) {
+	return func(e TypedEncoding) bool {
+		var el TypedEncoding
+		switch typ := e.Type.(type) {
 		case *TypeSet:
-			elType = typ.innerType
+			el.Type = typ.innerType
 		case *TypeVector:
-			elType = typ.typ
+			el.Type = typ.typ
 		default:
 			return false
 		}
-		for it := zval.Iter(val); !it.Done(); {
-			val, _, err := it.Next()
+
+		for it := e.Iter(); !it.Done(); {
+			var err error
+			el.Body, _, err = it.Next()
 			if err != nil {
 				return false
 			}
-			if compare(elType, val) {
+			if compare(el) {
 				return true
 			}
 		}
@@ -229,14 +241,14 @@ func Contains(compare Predicate) Predicate {
 	}
 }
 
-func ContainerLength(typ Type, val []byte) (int, error) {
-	switch typ.(type) {
+func ContainerLength(e TypedEncoding) (int, error) {
+	switch e.Type.(type) {
 	case *TypeSet, *TypeVector:
-		if val == nil {
+		if e.Body == nil {
 			return -1, ErrLenUnset
 		}
 		var n int
-		for it := zval.Iter(val); !it.Done(); {
+		for it := e.Iter(); !it.Done(); {
 			if _, _, err := it.Next(); err != nil {
 				return -1, err
 			}
@@ -248,28 +260,43 @@ func ContainerLength(typ Type, val []byte) (int, error) {
 	}
 }
 
+func (e TypedEncoding) Iter() zval.Iter {
+	return zval.Iter(e.Body)
+}
+
+func (e TypedEncoding) String() string {
+	if IsContainerType(e.Type) {
+		return e.Body.String()
+	}
+	var b strings.Builder
+	b.WriteString("(")
+	b.WriteString(ustring(e.Body))
+	b.WriteString(")")
+	return b.String()
+}
+
 // If the passed-in element is a vector, attempt to get the idx'th
 // element, and return its type and raw representation.  Returns an
 // error if the passed-in element is not a vector or if idx is
 // outside the vector bounds.
-func VectorIndex(typ Type, val []byte, idx int64) (Type, []byte, error) {
-	vec, ok := typ.(*TypeVector)
+func (e TypedEncoding) VectorIndex(idx int64) (TypedEncoding, error) {
+	vec, ok := e.Type.(*TypeVector)
 	if !ok {
-		return nil, nil, ErrNotVector
+		return TypedEncoding{}, ErrNotVector
 	}
 	if idx < 0 {
-		return nil, nil, ErrIndex
+		return TypedEncoding{}, ErrIndex
 	}
-	for i, it := 0, zval.Iter(val); !it.Done(); i++ {
-		v, _, err := it.Next()
+	for i, it := 0, e.Iter(); !it.Done(); i++ {
+		zv, _, err := it.Next()
 		if err != nil {
-			return nil, nil, err
+			return TypedEncoding{}, err
 		}
 		if i == int(idx) {
-			return vec.typ, v, nil
+			return TypedEncoding{vec.typ, zv}, nil
 		}
 	}
-	return nil, nil, ErrIndex
+	return TypedEncoding{}, ErrIndex
 }
 
 // LookupTypeRecord returns a zeek.TypeRecord for the indicated columns.  If it

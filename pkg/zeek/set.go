@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
+	"github.com/mccanne/zq/pkg/zval"
 )
 
 type TypeSet struct {
@@ -85,6 +87,14 @@ func (s *Set) String() string {
 	}
 	d += "]"
 	return d
+}
+
+func (s *Set) Encode(dst zval.Encoding) zval.Encoding {
+	zv := make(zval.Encoding, 0)
+	for _, v := range s.values {
+		zv = v.Encode(zv)
+	}
+	return zval.AppendContainerValue(dst, zv)
 }
 
 func (s *Set) Type() Type {

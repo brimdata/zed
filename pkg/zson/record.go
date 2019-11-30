@@ -2,23 +2,11 @@ package zson
 
 import (
 	"encoding/json"
-	"errors"
 	"net"
 
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/zeek"
 	"github.com/mccanne/zq/pkg/zval"
-)
-
-// Errors...
-var (
-	ErrNoSuchField = errors.New("no such field")
-
-	ErrCorruptTd = errors.New("corrupt type descriptor")
-
-	ErrCorruptColumns = errors.New("wrong number of columns in record value")
-
-	ErrTypeMismatch = errors.New("type retrieved does not match type requested")
 )
 
 // A Record wraps a zeek.Record and can simultaneously represent its raw
@@ -39,7 +27,6 @@ type Record struct {
 	Raw zval.Encoding
 }
 
-// NewRecord creates a record from a timestamp and a raw value.
 func NewRecord(d *Descriptor, ts nano.Ts, raw zval.Encoding) *Record {
 	return &Record{
 		Ts:          ts,
@@ -47,6 +34,17 @@ func NewRecord(d *Descriptor, ts nano.Ts, raw zval.Encoding) *Record {
 		nonvolatile: true,
 		Raw:         raw,
 	}
+}
+
+func NewRecordNoTs(d *Descriptor, zv zval.Encoding) *Record {
+	r := NewRecord(d, 0, zv)
+	if d.TsCol >= 0 {
+		body := r.Slice(d.TsCol)
+		if body != nil {
+			r.Ts, _ = zeek.TypeTime.Parse(body)
+		}
+	}
+	return r
 }
 
 // NewControlRecord creates a control record from a byte slice.
@@ -82,8 +80,8 @@ func NewVolatileRecord(d *Descriptor, ts nano.Ts, raw zval.Encoding) *Record {
 // the record's timestamp.  If the descriptor has no field named ts, the
 // record's timestamp is zero.  NewRecordZvals returns an error if the number of
 // descriptor columns and zvals do not agree or if parsing the ts zval fails.
-func NewRecordZvals(d *Descriptor, vals ...[]byte) (t *Record, err error) {
-	raw, err := NewRawFromZvals(d, vals)
+func NewRecordZvals(d *Descriptor, vals ...zval.Encoding) (t *Record, err error) {
+	raw, err := EncodeZvals(d, vals)
 	if err != nil {
 		return nil, err
 	}
@@ -100,19 +98,15 @@ func NewRecordZvals(d *Descriptor, vals ...[]byte) (t *Record, err error) {
 
 // NewRecordZeekStrings creates a record from Zeek UTF-8 strings.
 func NewRecordZeekStrings(d *Descriptor, ss ...string) (t *Record, err error) {
-	tsCol, ok := d.ColumnOfField("ts")
-	if !ok {
-		tsCol = -1
-	}
 	vals := make([][]byte, 0, 32)
 	for _, s := range ss {
 		vals = append(vals, []byte(s))
 	}
-	raw, ts, err := NewRawAndTsFromZeekValues(d, tsCol, vals)
+	zv, ts, err := NewRawAndTsFromZeekValues(d, d.TsCol, vals)
 	if err != nil {
 		return nil, err
 	}
-	return NewRecord(d, ts, raw), nil
+	return NewRecord(d, ts, zv), nil
 }
 
 // ZvalIter returns an iterator over the receiver's zvals.
@@ -145,7 +139,10 @@ func (r *Record) Bytes() []byte {
 	return r.Raw
 }
 
-func (r *Record) Strings() ([]string, error) {
+// This returns the zeek strings for this record.  It works only for records
+// that can be represented as legacy zeek values.  XXX We need to not use this.
+// XXX change to Pretty for output writers?... except zeek?
+func (r *Record) ZeekStrings() ([]string, error) {
 	var ss []string
 	it := r.ZvalIter()
 	for _, col := range r.Descriptor.Type.Columns {
@@ -173,19 +170,26 @@ func (r *Record) ValueByField(field string) zeek.Value {
 	return nil
 }
 
-func (r *Record) Slice(column int) []byte {
-	var val []byte
-	for i, it := 0, r.ZvalIter(); i <= column; i++ {
+func (r *Record) Slice(column int) zval.Encoding {
+	var zv zval.Encoding
+	for i, it := 0, zval.Iter(r.Raw); i <= column; i++ {
 		if it.Done() {
 			return nil
 		}
 		var err error
-		val, _, err = it.Next()
+		zv, _, err = it.Next()
 		if err != nil {
 			return nil
 		}
 	}
-	return val
+	return zv
+}
+
+func (r *Record) TypedSlice(colno int) zeek.TypedEncoding {
+	return zeek.TypedEncoding{
+		Type: r.Descriptor.Type.Columns[colno].Type,
+		Body: r.Slice(colno),
+	}
 }
 
 func (r *Record) String(column int) string {
@@ -200,132 +204,92 @@ func (r *Record) TypeOfColumn(col int) zeek.Type {
 	return r.Descriptor.Type.Columns[col].Type
 }
 
-func (r *Record) Access(field string) ([]byte, zeek.Type, error) {
+func (r *Record) Access(field string) (zeek.TypedEncoding, error) {
 	if k, ok := r.Descriptor.LUT[field]; ok {
-		return r.Slice(k), r.Descriptor.Type.Columns[k].Type, nil
+		typ := r.Descriptor.Type.Columns[k].Type
+		v := r.Slice(k)
+		return zeek.TypedEncoding{typ, v}, nil
 	}
-	return nil, nil, ErrNoSuchField
+	return zeek.TypedEncoding{}, ErrNoSuchField
 
 }
 
 func (r *Record) AccessString(field string) (string, error) {
-	b, typ, err := r.Access(field)
+	e, err := r.Access(field)
 	if err != nil {
 		return "", err
 	}
-	typeString, ok := typ.(*zeek.TypeOfString)
+	typeString, ok := e.Type.(*zeek.TypeOfString)
 	if !ok {
 		return "", ErrTypeMismatch
 	}
-	return typeString.Parse(b)
+	return typeString.Parse(e.Body)
 }
 
 func (r *Record) AccessBool(field string) (bool, error) {
-	b, typ, err := r.Access(field)
+	e, err := r.Access(field)
 	if err != nil {
 		return false, err
 	}
-	typeBool, ok := typ.(*zeek.TypeOfBool)
+	typeBool, ok := e.Type.(*zeek.TypeOfBool)
 	if !ok {
 		return false, ErrTypeMismatch
 	}
-	return typeBool.Parse(b)
+	return typeBool.Parse(e.Body)
 }
 
 func (r *Record) AccessInt(field string) (int64, error) {
-	b, typ, err := r.Access(field)
+	e, err := r.Access(field)
 	if err != nil {
 		return 0, err
 	}
-	switch typ := typ.(type) {
+	switch typ := e.Type.(type) {
 	case *zeek.TypeOfInt:
-		return typ.Parse(b)
+		return typ.Parse(e.Body)
 	case *zeek.TypeOfCount:
-		v, err := typ.Parse(b)
+		v, err := typ.Parse(e.Body)
 		return int64(v), err
 	case *zeek.TypeOfPort:
-		v, err := typ.Parse(b)
+		v, err := typ.Parse(e.Body)
 		return int64(v), err
 	}
 	return 0, ErrTypeMismatch
 }
 
 func (r *Record) AccessDouble(field string) (float64, error) {
-	b, typ, err := r.Access(field)
+	e, err := r.Access(field)
 	if err != nil {
 		return 0, err
 	}
-	typeDouble, ok := typ.(*zeek.TypeOfDouble)
+	typeDouble, ok := e.Type.(*zeek.TypeOfDouble)
 	if !ok {
 		return 0, ErrTypeMismatch
 	}
-	return typeDouble.Parse(b)
+	return typeDouble.Parse(e.Body)
 }
 
 func (r *Record) AccessIP(field string) (net.IP, error) {
-	b, typ, err := r.Access(field)
+	e, err := r.Access(field)
 	if err != nil {
 		return nil, err
 	}
-	typeAddr, ok := typ.(*zeek.TypeOfAddr)
+	typeAddr, ok := e.Type.(*zeek.TypeOfAddr)
 	if !ok {
 		return nil, ErrTypeMismatch
 	}
-	return typeAddr.Parse(b)
+	return typeAddr.Parse(e.Body)
 }
 
 func (r *Record) AccessTime(field string) (nano.Ts, error) {
-	b, typ, err := r.Access(field)
+	e, err := r.Access(field)
 	if err != nil {
 		return 0, err
 	}
-	typeTime, ok := typ.(*zeek.TypeOfTime)
+	typeTime, ok := e.Type.(*zeek.TypeOfTime)
 	if !ok {
 		return 0, ErrTypeMismatch
 	}
-	return typeTime.Parse(b)
-}
-
-// Cut returns a slice of the receiver's raw values for the requested fields.
-// Note that the raw values must be copied if they will be used after the
-// receiver's Buffer is reclaimed.  If dest's underlying array is large enough,
-// Cut uses it for the returned slice.  Otherwise, a new array is allocated.
-// Cut returns nil if any field is missing from the receiver.
-func (r *Record) Cut(fields []string, dest [][]byte) [][]byte {
-	if n := len(fields); cap(dest) < n {
-		dest = make([][]byte, n)
-	} else {
-		dest = dest[:n]
-	}
-	for k, field := range fields {
-		if col, ok := r.Descriptor.LUT[field]; ok {
-			dest[k] = r.Slice(col)
-		} else {
-			return nil
-		}
-	}
-	return dest
-}
-
-// second return value is a bitmap of which fields were found
-// XXX will not work properly if cutting >64 columns
-func (r *Record) CutTypes(fields []string) ([]zeek.Type, uint64) {
-	var found uint64
-	valid := true
-	n := len(fields)
-	cut := make([]zeek.Type, n)
-	for k, field := range fields {
-		if col, ok := r.Descriptor.LUT[field]; ok {
-			cut[k] = r.Descriptor.Type.Columns[col].Type
-			found |= 1 << k
-		} else {
-			valid = false
-		}
-	}
-	if valid {
-		return cut, found
-	}
-	return nil, found
+	return typeTime.Parse(e.Body)
 }
 
 // MarshalJSON implements json.Marshaler.

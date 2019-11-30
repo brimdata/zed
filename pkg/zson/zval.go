@@ -18,7 +18,7 @@ func ZvalFromZeekString(typ zeek.Type, val string) ([]byte, error) {
 
 // appendZvalFromZeek appends to dst the zval for the Zeek UTF-8 value described
 // by typ and val.
-func appendZvalFromZeek(dst []byte, typ zeek.Type, val []byte) []byte {
+func appendZvalFromZeek(dst zval.Encoding, typ zeek.Type, val []byte) zval.Encoding {
 	const empty = "(empty)"
 	const setSeparator = ','
 	const unset = '-'
@@ -27,13 +27,13 @@ func appendZvalFromZeek(dst []byte, typ zeek.Type, val []byte) []byte {
 		if bytes.Equal(val, []byte{unset}) {
 			return zval.AppendContainer(dst, nil)
 		}
-		vals := [][]byte{} // [][]byte{} is the empty container.
+		zv := make([]byte, 0)
 		if !bytes.Equal(val, []byte(empty)) {
 			for _, v := range bytes.Split(val, []byte{setSeparator}) {
-				vals = append(vals, zeek.Unescape(v))
+				zv = zval.AppendValue(zv, zeek.Unescape(v))
 			}
 		}
-		return zval.AppendContainer(dst, vals)
+		return zval.Append(dst, zv, true)
 	default:
 		if bytes.Equal(val, []byte{unset}) {
 			return zval.AppendValue(dst, nil)

@@ -32,19 +32,35 @@ func (e Encoding) Iter() Iter {
 }
 
 func (e Encoding) String() string {
-	s := ""
+	b, err := e.build(nil)
+	if err != nil {
+		// This should happen only for bugs.  Return the error
+		// string will help with debugging.
+		return err.Error()
+	}
+	return string(b)
+}
+
+func (e Encoding) build(b []byte) ([]byte, error) {
 	for it := Iter(e); !it.Done(); {
 		v, container, err := it.Next()
 		if err != nil {
-			return s + "Err: " + err.Error()
+			return nil, err
 		}
 		if container {
-			s += "[" + v.String() + "]"
+			b = append(b, '[')
+			b, err = v.build(b)
+			if err != nil {
+				return nil, err
+			}
+			b = append(b, ']')
 		} else {
-			s += "(" + string(v.Bytes()) + ")"
+			b = append(b, '(')
+			b = append(b, v.Bytes()...)
+			b = append(b, ')')
 		}
 	}
-	return s
+	return b, nil
 }
 
 // Body returns the contents of an encoding that represents a container as
@@ -83,6 +99,17 @@ func AppendContainer(dst Encoding, vals [][]byte) Encoding {
 	return dst
 }
 
+// AppendContainerValue takes an Encoding that is encoded as a list of Encodings
+// and concatenates it as a container Encoding.
+func AppendContainerValue(dst Encoding, val Encoding) Encoding {
+	if val == nil {
+		return AppendUvarint(dst, containerTagUnset)
+	}
+	dst = AppendUvarint(dst, containerTag(len(val)))
+	dst = append(dst, val...)
+	return dst
+}
+
 // AppendValue encodes the byte slice as value Encoding, appends it
 // to dst, and returns appended Encoding.
 func AppendValue(dst Encoding, val []byte) Encoding {
@@ -91,6 +118,13 @@ func AppendValue(dst Encoding, val []byte) Encoding {
 	}
 	dst = AppendUvarint(dst, valueTag(len(val)))
 	return append(dst, val...)
+}
+
+func Append(dst Encoding, val []byte, container bool) Encoding {
+	if container {
+		return AppendContainerValue(dst, val)
+	}
+	return AppendValue(dst, val)
 }
 
 // AppendUvarint is like encoding/binary.PutUvarint but appends to dst instead
