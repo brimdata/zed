@@ -23,7 +23,7 @@ func rawcompare(a, b []byte, dir int) int {
 }
 
 func NewSortFn(dir int, fields ...FieldExprResolver) SortFn {
-	sorters := make(map[*zeek.Type]comparefn)
+	sorters := make(map[zeek.Type]comparefn)
 	return func(a *zson.Record, b *zson.Record) int {
 		for _, resolver := range fields {
 			typea, vala := resolver(a)
@@ -31,9 +31,15 @@ func NewSortFn(dir int, fields ...FieldExprResolver) SortFn {
 
 			// Nil types indicate a field isn't present, sort
 			// these records last
-			if typea == nil && typeb == nil { return 0 }
-			if typea == nil { return 1 }
-			if typeb == nil { return -1 }
+			if typea == nil && typeb == nil {
+				return 0
+			}
+			if typea == nil {
+				return 1
+			}
+			if typeb == nil {
+				return -1
+			}
 
 			// If values are of different types, just compare
 			// the string representation of the type
@@ -41,10 +47,10 @@ func NewSortFn(dir int, fields ...FieldExprResolver) SortFn {
 				return rawcompare([]byte(typea.String()), []byte(typeb.String()), dir)
 			}
 
-			sf, ok := sorters[&typea]
+			sf, ok := sorters[typea]
 			if !ok {
 				sf = lookupSorter(typea, dir)
-				sorters[&typea] = sf
+				sorters[typea] = sf
 			}
 
 			v := sf(vala, valb)
