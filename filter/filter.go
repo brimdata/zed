@@ -67,7 +67,7 @@ func SearchString(s string) Filter {
 func combine(res expr.FieldExprResolver, pred zeek.Predicate) Filter {
 	return func(r *zson.Record) bool {
 		typ, val := res(r)
-		if val == nil {
+		if typ == nil {
 			// field (or sub-field) doesn't exist in this record
 			return false
 		}
