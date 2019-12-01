@@ -12,7 +12,7 @@ type Interval struct {
 
 func NewIntervalStreamfn(op string) Streamfn {
 	return &Interval{
-		fn:    streamfn.NewInt64(op),
+		fn: streamfn.NewInt64(op),
 	}
 }
 

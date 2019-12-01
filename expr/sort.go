@@ -31,9 +31,15 @@ func NewSortFn(dir int, fields ...FieldExprResolver) SortFn {
 
 			// Nil types indicate a field isn't present, sort
 			// these records last
-			if typea == nil && typeb == nil { return 0 }
-			if typea == nil { return 1 }
-			if typeb == nil { return -1 }
+			if typea == nil && typeb == nil {
+				return 0
+			}
+			if typea == nil {
+				return 1
+			}
+			if typeb == nil {
+				return -1
+			}
 
 			// If values are of different types, just compare
 			// the string representation of the type

@@ -12,7 +12,7 @@ type Time struct {
 
 func NewTimeStreamfn(op string) Streamfn {
 	return &Time{
-		fn:    streamfn.NewTime(op),
+		fn: streamfn.NewTime(op),
 	}
 }
 

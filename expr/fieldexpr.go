@@ -31,6 +31,7 @@ type fieldop interface {
 type arrayIndex struct {
 	idx int64
 }
+
 func (ai *arrayIndex) apply(typ zeek.Type, val []byte) (zeek.Type, []byte) {
 	elType, elVal, err := zeek.VectorIndex(typ, val, ai.idx)
 	if err != nil {
@@ -42,6 +43,7 @@ func (ai *arrayIndex) apply(typ zeek.Type, val []byte) (zeek.Type, []byte) {
 type fieldRead struct {
 	field string
 }
+
 func (fr *fieldRead) apply(typ zeek.Type, val []byte) (zeek.Type, []byte) {
 	recType, ok := typ.(*zeek.TypeRecord)
 	if !ok {
@@ -52,7 +54,7 @@ func (fr *fieldRead) apply(typ zeek.Type, val []byte) (zeek.Type, []byte) {
 	// XXX searching the list of columns for every record is
 	// expensive, but we can receive records with different
 	// types so caching this isn't straightforward.
-	for n, col := range(recType.Columns) {
+	for n, col := range recType.Columns {
 		if col.Name == fr.field {
 			var v []byte
 			it := zval.Iter(val)
@@ -125,7 +127,7 @@ outer:
 		}
 		typ := r.TypeOfColumn(col)
 		val := r.Slice(col)
-		for _, op := range(ops) {
+		for _, op := range ops {
 			typ, val = op.apply(typ, val)
 			if typ == nil {
 				return nil, nil
@@ -134,4 +136,3 @@ outer:
 		return typ, val
 	}, nil
 }
-

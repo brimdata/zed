@@ -12,7 +12,7 @@ type Count struct {
 
 func NewCountStreamfn(op string) Streamfn {
 	return &Count{
-		fn:    streamfn.NewUint64(op),
+		fn: streamfn.NewUint64(op),
 	}
 }
 
@@ -28,4 +28,3 @@ func (i *Count) Consume(v zeek.Value) error {
 	i.fn.Update(uint64(cv.Native))
 	return nil
 }
-

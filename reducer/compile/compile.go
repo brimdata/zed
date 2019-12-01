@@ -15,7 +15,7 @@ var (
 )
 
 type CompiledReducer interface {
-	Target()      string  // The name of the field where results are stored.
+	Target() string // The name of the field where results are stored.
 	Instantiate() reducer.Interface
 }
 

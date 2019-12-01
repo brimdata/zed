@@ -154,10 +154,10 @@ func NewRawAndTsFromZeekTSV(d *Descriptor, path []byte, data []byte) (zval.Encod
 				builder.Begin()
 				if bytes.Compare(val, []byte(emptyContainer)) != 0 {
 					cstart := 0
-					for i, ch := range(val) {
+					for i, ch := range val {
 						if ch == setSeparator {
 							builder.Append(zeek.Unescape(val[cstart:i]))
-							cstart = i+1
+							cstart = i + 1
 						}
 					}
 					builder.Append(zeek.Unescape(val[cstart:]))

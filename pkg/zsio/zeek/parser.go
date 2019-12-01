@@ -159,7 +159,7 @@ func Unflatten(columns []zeek.Column, resolver *resolver.Table) (*zson.Descripto
 	cols := make([]zeek.Column, 0)
 	var nestedCols []zeek.Column
 	var nestedField string
-	for _, col := range(columns) {
+	for _, col := range columns {
 		// XXX could validate field names here...
 		if col.Name == "_path" {
 			hasPath = true

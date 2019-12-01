@@ -8,10 +8,10 @@ import (
 
 	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/filter"
-	"github.com/mccanne/zq/pkg/zson"
-	"github.com/mccanne/zq/zql"
 	"github.com/mccanne/zq/pkg/zsio"
+	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
+	"github.com/mccanne/zq/zql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -95,7 +95,7 @@ func TestFilters(t *testing.T) {
 		rec, err := reader.Read()
 		require.NoError(t, err)
 		if rec == nil {
-			break;
+			break
 		}
 		records = append(records, rec)
 	}
