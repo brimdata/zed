@@ -124,7 +124,7 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 	switch v := node.(type) {
 	case *ast.ReducerProc:
 		reducers := make([]compile.CompiledReducer, 0)
-		for _, reducer := range(v.Reducers) {
+		for _, reducer := range v.Reducers {
 			compiled, err := compile.Compile(reducer)
 			if err != nil {
 				return nil, err
@@ -151,7 +151,7 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 		var fields []expr.FieldExprResolver
 		if v.Fields != nil {
 			fields = make([]expr.FieldExprResolver, 0, len(v.Fields))
-			for _, exp := range(v.Fields) {
+			for _, exp := range v.Fields {
 				res, err := expr.CompileFieldExpr(exp)
 				if err != nil {
 					return nil, err
@@ -192,7 +192,7 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 		var fields []expr.FieldExprResolver
 		if v.Fields != nil {
 			fields = make([]expr.FieldExprResolver, 0, len(v.Fields))
-			for _, exp := range(v.Fields) {
+			for _, exp := range v.Fields {
 				res, err := expr.CompileFieldExpr(exp)
 				if err != nil {
 					return nil, err

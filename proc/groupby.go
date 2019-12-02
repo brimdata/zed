@@ -44,7 +44,7 @@ const defaultGroupByLimit = 1000000
 
 func CompileGroupBy(node *ast.GroupByProc) (*GroupByParams, error) {
 	keys := make([]GroupByKey, 0)
-	for _, key := range(node.Keys) {
+	for _, key := range node.Keys {
 		resolver, err := expr.CompileFieldExpr(key)
 		if err != nil {
 			return nil, err
@@ -55,7 +55,7 @@ func CompileGroupBy(node *ast.GroupByProc) (*GroupByParams, error) {
 		})
 	}
 	reducers := make([]compile.CompiledReducer, 0)
-	for _, reducer := range(node.Reducers) {
+	for _, reducer := range node.Reducers {
 		compiled, err := compile.Compile(reducer)
 		if err != nil {
 			return nil, err
@@ -200,7 +200,7 @@ func (g *GroupByAggregator) Consume(r *zson.Record) error {
 	if g.consumeCutDest != nil {
 		vals = g.consumeCutDest[:0]
 	}
-	for _, key := range(g.keys) {
+	for _, key := range g.keys {
 		_, v := key.resolver(r)
 		if v != nil {
 			vals = append(vals, v)

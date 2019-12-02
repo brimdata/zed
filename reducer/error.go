@@ -20,7 +20,7 @@ func NewError(def ast.Reducer, rec *zson.Record) *Error {
 		msg = def.Op + " applied to type " + v.Type().String()
 	}
 	return &Error{
-		msg:     msg,
+		msg: msg,
 	}
 }
 

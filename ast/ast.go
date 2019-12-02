@@ -31,7 +31,7 @@ type BooleanExpr interface {
 
 // FieldExpr is the interface implemented by expressions that reference fields.
 type FieldExpr interface {
-	Copy()                 FieldExpr
+	Copy() FieldExpr
 }
 
 // A TypedValue is a string representation of a literal value where the
@@ -214,11 +214,11 @@ type (
 	// be aggregated over. When absent, the runtime defaults to an appropriate value.
 	GroupByProc struct {
 		Node
-		Duration       Duration     `json:"duration"`
-		UpdateInterval Duration     `json:"update_interval"`
-		Limit          int          `json:"limit,omitempty"`
-		Keys           []FieldExpr  `json:"keys"`
-		Reducers       []Reducer    `json:"reducers"`
+		Duration       Duration    `json:"duration"`
+		UpdateInterval Duration    `json:"update_interval"`
+		Limit          int         `json:"limit,omitempty"`
+		Keys           []FieldExpr `json:"keys"`
+		Reducers       []Reducer   `json:"reducers"`
 	}
 	// TopProc is similar to proc.SortProc with a few key differences:
 	// - It only sorts in descending order.

@@ -12,7 +12,7 @@ type Int struct {
 
 func NewIntStreamfn(op string) Streamfn {
 	return &Int{
-		fn:    streamfn.NewInt64(op),
+		fn: streamfn.NewInt64(op),
 	}
 }
 

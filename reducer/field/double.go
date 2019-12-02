@@ -12,7 +12,7 @@ type Double struct {
 
 func NewDoubleStreamfn(op string) Streamfn {
 	return &Double{
-		fn:    streamfn.NewFloat64(op),
+		fn: streamfn.NewFloat64(op),
 	}
 }
 
@@ -28,4 +28,3 @@ func (i *Double) Consume(v zeek.Value) error {
 	i.fn.Update(cv.Native)
 	return nil
 }
-

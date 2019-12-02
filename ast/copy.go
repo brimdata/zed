@@ -41,7 +41,7 @@ func (p *GroupByProc) Copy() Proc {
 	reducers := make([]Reducer, len(p.Reducers))
 	copy(reducers, p.Reducers)
 	keys := make([]FieldExpr, len(p.Keys))
-	for i, k := range(p.Keys) {
+	for i, k := range p.Keys {
 		keys[i] = k.Copy()
 	}
 	return &GroupByProc{
@@ -54,7 +54,7 @@ func (p *GroupByProc) Copy() Proc {
 
 func (p *SortProc) Copy() Proc {
 	fields := make([]FieldExpr, len(p.Fields))
-	for i, f := range(p.Fields) {
+	for i, f := range p.Fields {
 		fields[i] = f.Copy()
 	}
 	return &SortProc{
@@ -66,7 +66,7 @@ func (p *SortProc) Copy() Proc {
 
 func (t *TopProc) Copy() Proc {
 	fields := make([]FieldExpr, len(t.Fields))
-	for i, f := range(t.Fields) {
+	for i, f := range t.Fields {
 		fields[i] = f.Copy()
 	}
 	return &TopProc{
