@@ -53,10 +53,9 @@ func (c *Cut) lookup(in *zson.Descriptor) *zson.Descriptor {
 func (c *Cut) cut(d *zson.Descriptor, in *zson.Record) (*zson.Record, error) {
 	var zv zval.Encoding
 	for _, column := range d.Type.Columns {
-		colno, ok := in.ColumnOfField(column.Name)
-		if !ok {
-			return nil, ErrNoField
-		}
+		// colno must exist for each field since the descriptor map
+		// entry is only created when all the fields exist.
+		colno, _ := in.ColumnOfField(column.Name)
 		zv = zval.Append(zv, in.Slice(colno), zeek.IsContainerType(column.Type))
 	}
 	return zson.NewRecordNoTs(d, zv), nil
