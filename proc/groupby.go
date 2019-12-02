@@ -343,11 +343,11 @@ func (g *GroupByAggregator) recordsForTable(table map[string]*GroupByRow) []*zso
 	sort.Strings(keys)
 	var recs []*zson.Record
 
-	// We make multiple passes over the table, one for each unique type
-	// vector or row keys, the in each pass we output as a batch all the
-	// records that have this unique type (i.e., the same descriptor).
-	// This allows variations in the type if the join-key to be tracked
-	// separately and output with their correct descriptor.
+	// We make multiple passes over the table, one for each unique type of
+	// vector or row keys, then in each pass we output as a batch all the
+	// records that have this unique type combo (i.e., the same descriptor).
+	// This allows variations in the type of the join-key to be tracked
+	// separately and thus generated each with their correct descriptor.
 	for _, typeCol := range g.typeCols {
 		for _, k := range keys {
 			row := table[k]
