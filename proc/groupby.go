@@ -183,7 +183,7 @@ func typeKey(rowkeys []zeek.TypedEncoding) string {
 	var b strings.Builder
 	for _, rowkey := range rowkeys {
 		b.WriteString(rowkey.Type.String())
-		b.WriteString(";")
+		b.WriteByte(';')
 	}
 	return b.String()
 }
@@ -228,7 +228,7 @@ func (g *GroupByAggregator) key(key []byte, rowkeys []zeek.TypedEncoding) ([]byt
 // monotonically increasing or decreasing order determined by g.reverse.
 func (g *GroupByAggregator) Consume(r *zson.Record) error {
 	// Extract the list of groupby expressions.  Re-use the array
-	// stored in consumeCutDest to avoid re-allocating on every record.
+	// stored in cacheRowKeys to avoid re-allocating on every record.
 	var rowkeys []zeek.TypedEncoding
 	if g.cacheRowKeys != nil {
 		rowkeys = g.cacheRowKeys[:0]
@@ -264,7 +264,6 @@ func (g *GroupByAggregator) Consume(r *zson.Record) error {
 		table = make(map[string]*GroupByRow)
 		g.tables[ts] = table
 	}
-	//XXX use unsafe here to avoid sending all the string keys to GC
 	row, ok := table[string(key)]
 	if !ok {
 		if len(table) >= g.limit {

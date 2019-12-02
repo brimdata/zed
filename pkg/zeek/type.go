@@ -270,7 +270,7 @@ func (e TypedEncoding) String() string {
 	}
 	var b strings.Builder
 	b.WriteString("(")
-	b.WriteString(ustring(e.Body))
+	b.Write(e.Body)
 	b.WriteString(")")
 	return b.String()
 }
