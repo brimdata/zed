@@ -32,6 +32,10 @@ type Dir struct {
 	paths   map[string]int
 }
 
+func unknownFormat(format string) error {
+	return fmt.Errorf("unknown output format: %s", format)
+}
+
 func NewDir(dir, prefix, format string, stderr io.Writer, tc *text.Config) (*Dir, error) {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return nil, err

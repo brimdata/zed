@@ -1,13 +1,13 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"os"
 
 	"github.com/mccanne/charm"
 	"github.com/mccanne/zq/ast"
+	"github.com/mccanne/zq/driver"
 	"github.com/mccanne/zq/emitter"
 	"github.com/mccanne/zq/filter"
 	"github.com/mccanne/zq/pkg/zsio"
@@ -18,7 +18,6 @@ import (
 	"github.com/mccanne/zq/proc"
 	"github.com/mccanne/zq/scanner"
 	"github.com/mccanne/zq/zql"
-	"go.uber.org/zap"
 )
 
 type errInvalidFile string
@@ -122,34 +121,24 @@ func liftFilter(p ast.Proc) (*ast.FilterProc, ast.Proc) {
 	return nil, nil
 }
 
-func (c *Command) compile(p ast.Proc, reader zson.Reader) (*proc.MuxOutput, error) {
-	ctx := &proc.Context{
-		Context:  context.Background(),
-		Resolver: resolver.NewTable(),
-		Logger:   zap.NewNop(),
-		Warnings: make(chan string, 5),
-	}
+func (c *Command) compile(program ast.Proc, reader zson.Reader) (*proc.MuxOutput, error) {
 	// Try to move the filter into the scanner so we can throw
 	// out unmatched records without copying their contents in the
 	// case of readers (like zsio raw.Reader) that create volatile
 	// records that are kepted by the scanner only if matched.
 	// For other readers, it certainly doesn't hurt to do this.
 	var f filter.Filter
-	filterProc, rest := liftFilter(p)
+	filterProc, rest := liftFilter(program)
 	if filterProc != nil {
 		var err error
 		f, err = filter.Compile(filterProc.Filter)
 		if err != nil {
 			return nil, err
 		}
-		p = rest
+		program = rest
 	}
-	scr := scanner.NewScanner(reader, f)
-	leaves, err := proc.CompileProc(nil, p, ctx, scr)
-	if err != nil {
-		return nil, err
-	}
-	return proc.NewMuxOutput(ctx, leaves), nil
+	input := scanner.NewScanner(reader, f)
+	return driver.Compile(program, input)
 }
 
 func fileExists(path string) bool {
@@ -198,11 +187,11 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer writer.Close()
-	output := emitter.NewEmitter(writer)
 	mux, err := c.compile(query, reader)
 	if err != nil {
 		return err
 	}
+	output := driver.New(writer)
 	return output.Run(mux)
 }
 

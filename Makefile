@@ -13,11 +13,11 @@ fmt:
 test-unit:
 	@go test -short ./...
 
-test-system: build
-	@$(MAKE) -C test
+test-system:
+	@go test -v github.com/mccanne/zq/tests
 
 build:
-	@mkdir -p dist 
+	@mkdir -p dist
 	@go build -o dist ./cmd/...
 
 install:
@@ -27,4 +27,3 @@ clean:
 	@rm -rf dist
 
 .PHONY: vet test-unit test-system clean build
-

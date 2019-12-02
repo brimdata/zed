@@ -47,14 +47,14 @@ jobs:
             - .
   system_test:
     docker:
-      - image: circleci/python:3.8-buster
+      - image: circleci/golang:1.13-buster
     steps:
       - log_date
       - attach_workspace:
           at: .
       - run:
           name: System Tests
-          command: 'make -C test'
+          command: 'make test-system'
 
 workflows:
   version: 2
@@ -62,6 +62,5 @@ workflows:
     jobs:
       - build
       - system_test:
-          requires: 
+          requires:
             - build
-

@@ -1,4 +1,4 @@
-package emitter
+package driver
 
 import (
 	"fmt"
@@ -9,49 +9,44 @@ import (
 	"github.com/mccanne/zq/proc"
 )
 
-type Emitter struct {
+type Driver struct {
 	writer   zson.Writer
 	warnings io.Writer
 }
 
-func NewEmitter(w zson.Writer) *Emitter {
-	return &Emitter{
+func New(w zson.Writer) *Driver {
+	return &Driver{
 		writer: w,
 	}
 }
 
-func unknownFormat(format string) error {
-	return fmt.Errorf("unknown output format: %s", format)
+func (d *Driver) SetWarnaingsWriter(w io.Writer) {
+	d.warnings = w
 }
 
-func (e *Emitter) SetWarnaingsWriter(w io.Writer) {
-	e.warnings = w
-}
-
-func (e *Emitter) Write(cid int, arr zson.Batch) error {
+func (d *Driver) Write(cid int, arr zson.Batch) error {
 	for _, r := range arr.Records() {
 		// for cid < 0, we keep the Channel that's already in
 		// the record
 		if cid >= 0 {
 			r.Channel = uint16(cid)
 		}
-		if err := e.writer.Write(r); err != nil {
+		if err := d.writer.Write(r); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (e *Emitter) WriteWarning(msg string) error {
-	_, err := fmt.Fprintln(e.warnings, msg)
+func (d *Driver) WriteWarning(msg string) error {
+	_, err := fmt.Fprintln(d.warnings, msg)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-//XXX this goes somewhere else
-func (e *Emitter) Run(out *proc.MuxOutput) error {
+func (d *Driver) Run(out *proc.MuxOutput) error {
 	for !out.Complete() {
 		res := out.Pull(time.After(time.Second * 10))
 		if res.Err == proc.ErrTimeout {
@@ -61,10 +56,10 @@ func (e *Emitter) Run(out *proc.MuxOutput) error {
 			return res.Err
 		}
 		if res.Warning != "" {
-			e.WriteWarning(res.Warning)
+			d.WriteWarning(res.Warning)
 		}
 		if res.Batch != nil {
-			if err := e.Write(res.ID, res.Batch); err != nil {
+			if err := d.Write(res.ID, res.Batch); err != nil {
 				return err
 			}
 		}

@@ -10,7 +10,7 @@ import (
 )
 
 type noClose struct {
-	io.WriteCloser
+	io.Writer
 }
 
 func (p *noClose) Close() error {
