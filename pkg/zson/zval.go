@@ -27,7 +27,7 @@ func appendZvalFromZeek(dst zval.Encoding, typ zeek.Type, val []byte) zval.Encod
 		if bytes.Equal(val, []byte{unset}) {
 			return zval.AppendContainer(dst, nil)
 		}
-		zv := make([]byte, 0)
+		zv := make(zval.Encoding, 0)
 		if !bytes.Equal(val, []byte(empty)) {
 			for _, v := range bytes.Split(val, []byte{setSeparator}) {
 				zv = zval.AppendValue(zv, zeek.Unescape(v))

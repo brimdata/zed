@@ -34,9 +34,7 @@ func (e Encoding) Iter() Iter {
 func (e Encoding) String() string {
 	b, err := e.build(nil)
 	if err != nil {
-		// This should happen only for bugs.  Return the error
-		// string will help with debugging.
-		return err.Error()
+		panic("zval encoding has bad format: " + err.Error())
 	}
 	return string(b)
 }
