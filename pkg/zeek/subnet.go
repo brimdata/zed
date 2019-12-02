@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+
+	"github.com/mccanne/zq/pkg/zval"
 )
 
 type TypeOfSubnet struct{}
@@ -80,6 +82,11 @@ func (s *Subnet) String() string {
 	return s.Native.String()
 }
 
+func (s *Subnet) Encode(dst zval.Encoding) zval.Encoding {
+	v := []byte(s.String())
+	return zval.AppendValue(dst, v)
+}
+
 func (s *Subnet) Type() Type {
 	return TypeSubnet
 }
@@ -97,8 +104,9 @@ func (s *Subnet) Comparison(op string) (Predicate, error) {
 		return nil, fmt.Errorf("unknown subnet comparator: %s", op)
 	}
 	pattern := s.Native
-	return func(typ Type, val []byte) bool {
-		switch typ.(type) {
+	return func(e TypedEncoding) bool {
+		val := e.Body
+		switch e.Type.(type) {
 		case *TypeOfAddr:
 			ip, err := TypeAddr.Parse(val)
 			if err == nil {

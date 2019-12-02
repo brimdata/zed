@@ -24,36 +24,36 @@ func rawcompare(a, b []byte, dir int) int {
 
 func NewSortFn(dir int, fields ...FieldExprResolver) SortFn {
 	sorters := make(map[zeek.Type]comparefn)
-	return func(a *zson.Record, b *zson.Record) int {
+	return func(ra *zson.Record, rb *zson.Record) int {
 		for _, resolver := range fields {
-			typea, vala := resolver(a)
-			typeb, valb := resolver(b)
+			a := resolver(ra)
+			b := resolver(rb)
 
 			// Nil types indicate a field isn't present, sort
 			// these records last
-			if typea == nil && typeb == nil {
+			if a.Type == nil && b.Type == nil {
 				return 0
 			}
-			if typea == nil {
+			if a.Type == nil {
 				return 1
 			}
-			if typeb == nil {
+			if b.Type == nil {
 				return -1
 			}
 
 			// If values are of different types, just compare
 			// the string representation of the type
-			if !zeek.SameType(typea, typeb) {
-				return rawcompare([]byte(typea.String()), []byte(typeb.String()), dir)
+			if !zeek.SameType(a.Type, b.Type) {
+				return rawcompare([]byte(a.Type.String()), []byte(b.Type.String()), dir)
 			}
 
-			sf, ok := sorters[typea]
+			sf, ok := sorters[a.Type]
 			if !ok {
-				sf = lookupSorter(typea, dir)
-				sorters[typea] = sf
+				sf = lookupSorter(a.Type, dir)
+				sorters[a.Type] = sf
 			}
 
-			v := sf(vala, valb)
+			v := sf(a.Body, b.Body)
 			// If the events don't match, then return the sort
 			// info.  Otherwise, they match and we continue on
 			// on in the loop to the secondary key, etc.

@@ -13,6 +13,10 @@ var (
 	ErrDescriptorInvalid = errors.New("zson descriptor out of range")
 	ErrBadValue          = errors.New("malformed zson value")
 	ErrBadFormat         = errors.New("malformed zson record")
+	ErrTypeMismatch      = errors.New("zson type/value mismatch")
+	ErrNoSuchField       = errors.New("no such field in zson record")
+	ErrCorruptTd         = errors.New("corrupt type descriptor")
+	ErrCorruptColumns    = errors.New("wrong number of columns in zson record value")
 )
 
 type Reader interface {

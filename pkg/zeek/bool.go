@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+
+	"github.com/mccanne/zq/pkg/zval"
 )
 
 type TypeOfBool struct{}
@@ -71,6 +73,11 @@ func (b *Bool) String() string {
 	return strconv.FormatBool(b.Native)
 }
 
+func (b *Bool) Encode(dst zval.Encoding) zval.Encoding {
+	v := []byte(b.String())
+	return zval.AppendValue(dst, v)
+}
+
 func (b *Bool) Type() Type {
 	return TypeBool
 }
@@ -84,12 +91,12 @@ func (b *Bool) Comparison(op string) (Predicate, error) {
 		return nil, fmt.Errorf("unknown bool comparator: %s", op)
 	}
 	pattern := b.Native
-	return func(typ Type, val []byte) bool {
-		typeBool, ok := typ.(*TypeOfBool)
+	return func(e TypedEncoding) bool {
+		typeBool, ok := e.Type.(*TypeOfBool)
 		if !ok {
 			return false
 		}
-		v, err := typeBool.Parse(val)
+		v, err := typeBool.Parse(e.Body)
 		if err != nil {
 			return false
 		}

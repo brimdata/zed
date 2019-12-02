@@ -11,8 +11,8 @@ import (
 	"github.com/mccanne/zq/pkg/zval"
 )
 
-// NewRawFromZvals builds a raw value from a descriptor and zvals.
-func NewRawFromZvals(d *Descriptor, vals [][]byte) (zval.Encoding, error) {
+// EncodeZvals builds a raw value from a descriptor and zvals.
+func EncodeZvals(d *Descriptor, vals []zval.Encoding) (zval.Encoding, error) {
 	if nv, nc := len(vals), len(d.Type.Columns); nv != nc {
 		return nil, fmt.Errorf("got %d values (%q), expected %d (%q)", nv, vals, nc, d.Type.Columns)
 

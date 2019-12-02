@@ -27,7 +27,7 @@ func (w *Writer) Write(r *zson.Record) error {
 		w.writeHeader(r, path)
 		w.descriptor = r.Descriptor
 	}
-	values, err := r.Strings()
+	values, err := r.ZeekStrings()
 	if err != nil {
 		return err
 	}

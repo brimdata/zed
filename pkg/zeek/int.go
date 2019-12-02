@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/mccanne/zq/pkg/nano"
+	"github.com/mccanne/zq/pkg/zval"
 )
 
 type TypeOfInt struct{}
@@ -52,6 +53,11 @@ func (i *Int) String() string {
 	return strconv.FormatInt(i.Native, 10)
 }
 
+func (i *Int) Encode(dst zval.Encoding) zval.Encoding {
+	v := []byte(i.String())
+	return zval.AppendValue(dst, v)
+}
+
 func (i *Int) Type() Type {
 	return TypeInt
 }
@@ -78,8 +84,9 @@ func (i *Int) Comparison(op string) (Predicate, error) {
 	}
 	pattern := i.Native
 	// many different zeek data types can be compared with integers
-	return func(typ Type, val []byte) bool {
-		switch typ := typ.(type) {
+	return func(e TypedEncoding) bool {
+		val := e.Body
+		switch typ := e.Type.(type) {
 		case *TypeOfInt, *TypeOfCount, *TypeOfPort:
 			// we can parse counts and ports as an integer
 			v, err := TypeInt.Parse(val)

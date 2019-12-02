@@ -13,11 +13,16 @@ var (
 	ErrTypeSyntax = errors.New("syntax error parsing type string")
 )
 
+type TypedEncoding struct {
+	Type Type
+	Body zval.Encoding
+}
+
 // A Predicate is a function that takes a Type and a byte slice, parses the
 // byte slice according the Type, and returns a boolean result based on the
 // typed value.  For example, each Value has a Comparison method that returns
 // a Predicate for comparing byte slices to that value.
-type Predicate func(typ Type, val []byte) bool
+type Predicate func(TypedEncoding) bool
 
 // Value is the interface that all zeek values implement.
 type Value interface {
@@ -43,6 +48,10 @@ type Value interface {
 	// the contained Values and true.  If this value is not a container,
 	// return an empty list and false.
 	Elements() ([]Value, bool)
+	// Encode appends the zval representation of this value to the passed in
+	// argument and returns the resulting zval.Encoding (which may or may not
+	// be the same underlying buffer, as with append(), depending on its capacity)
+	Encode(zval.Encoding) zval.Encoding
 }
 
 // Parse translates an ast.TypedValue into a zeek.Value.
@@ -73,4 +82,9 @@ func parseContainer(containerType Type, elementType Type, b []byte) ([]Value, er
 		vals = append(vals, v)
 	}
 	return vals, nil
+}
+
+func IsContainer(v Value) bool {
+	_, ok := v.Elements()
+	return ok
 }

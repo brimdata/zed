@@ -46,13 +46,8 @@ func runTest(filt string, record *zson.Record, expectedResult bool) error {
 	}
 
 	// Failure!  Try to assemble a useful error message.
-	var raw string
-	strs, err := record.Strings()
-	if err == nil {
-		raw = strings.Join(strs, ",")
-	} else {
-		raw = fmt.Sprintf("(unprintable point: %s)", err)
-	}
+	// Just use the zval pretty format of Raw.
+	raw := record.Raw.String()
 	if expectedResult {
 		return fmt.Errorf("Filter \"%s\" should have matched \"%s\"", filt, raw)
 	} else {
@@ -97,6 +92,7 @@ func TestFilters(t *testing.T) {
 		if rec == nil {
 			break
 		}
+		rec.Keep()
 		records = append(records, rec)
 	}
 

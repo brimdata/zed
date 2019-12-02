@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/mccanne/zq/pkg/nano"
+	"github.com/mccanne/zq/pkg/zval"
 )
 
 type TypeOfDouble struct{}
@@ -52,6 +53,11 @@ func (d *Double) String() string {
 	return strconv.FormatFloat(d.Native, 'g', -1, 64)
 }
 
+func (d *Double) Encode(dst zval.Encoding) zval.Encoding {
+	v := []byte(d.String())
+	return zval.AppendValue(dst, v)
+}
+
 func (d *Double) Type() Type {
 	return TypeDouble
 }
@@ -66,8 +72,9 @@ func (d *Double) Comparison(op string) (Predicate, error) {
 		return nil, fmt.Errorf("unknown double comparator: %s", op)
 	}
 	pattern := d.Native
-	return func(typ Type, val []byte) bool {
-		switch typ := typ.(type) {
+	return func(e TypedEncoding) bool {
+		val := e.Body
+		switch typ := e.Type.(type) {
 		// We allow comparison of float constant with integer-y
 		// fields and just use typeDouble to parse since it will do
 		// the right thing for integers.  XXX do we want to allow

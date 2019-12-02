@@ -3,6 +3,8 @@ package zeek
 import (
 	"fmt"
 	"regexp"
+
+	"github.com/mccanne/zq/pkg/zval"
 )
 
 type TypeOfPattern struct{}
@@ -46,6 +48,11 @@ func (p *Pattern) String() string {
 	return p.Native.String()
 }
 
+func (p *Pattern) Encode(dst zval.Encoding) zval.Encoding {
+	v := []byte(p.String())
+	return zval.AppendValue(dst, v)
+}
+
 func (p *Pattern) Type() Type {
 	return TypePattern
 }
@@ -59,10 +66,10 @@ func (p *Pattern) Comparison(op string) (Predicate, error) {
 		return nil, fmt.Errorf("unknown pattern comparator: %s", op)
 	}
 	re := p.Native
-	return func(typ Type, val []byte) bool {
-		switch typ.(type) {
+	return func(e TypedEncoding) bool {
+		switch e.Type.(type) {
 		case *TypeOfString, *TypeOfEnum:
-			return compare(re, val)
+			return compare(re, e.Body)
 		}
 		return false
 	}, nil

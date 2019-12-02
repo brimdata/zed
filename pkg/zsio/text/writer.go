@@ -49,7 +49,8 @@ func (t *Text) Write(rec *zson.Record) error {
 		}
 	} else {
 		var err error
-		out, err = rec.Strings()
+		//XXX only works for zeek-oriented records right now (won't work for NDJSON nested records)
+		out, err = rec.ZeekStrings()
 		if err != nil {
 			return err
 		}

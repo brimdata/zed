@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+
+	"github.com/mccanne/zq/pkg/zval"
 )
 
 type TypeOfPort struct{}
@@ -46,6 +48,11 @@ func (p *Port) Type() Type {
 	return TypePort
 }
 
+func (p *Port) Encode(dst zval.Encoding) zval.Encoding {
+	v := []byte(p.String())
+	return zval.AppendValue(dst, v)
+}
+
 // Comparison returns a Predicate that compares typed byte slices that must
 // be a port with the value's port value using a comparison based on op.
 // Integer fields are not coerced (nor are any other types) so they never
@@ -59,12 +66,12 @@ func (p *Port) Comparison(op string) (Predicate, error) {
 	// to the trouble of specifying a port match (e.g., ":80" vs "80") then
 	// we use strict typing here on the port comparison.
 	pattern := int64(p.Native)
-	return func(typ Type, val []byte) bool {
-		typePort, ok := typ.(*TypeOfPort)
+	return func(e TypedEncoding) bool {
+		typePort, ok := e.Type.(*TypeOfPort)
 		if !ok {
 			return false
 		}
-		v, err := typePort.Parse(val)
+		v, err := typePort.Parse(e.Body)
 		if err != nil {
 			return false
 		}

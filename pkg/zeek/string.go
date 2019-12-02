@@ -3,6 +3,8 @@ package zeek
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/mccanne/zq/pkg/zval"
 )
 
 type TypeOfString struct{}
@@ -45,6 +47,11 @@ func (s *String) String() string {
 	return s.Native
 }
 
+func (s *String) Encode(dst zval.Encoding) zval.Encoding {
+	v := []byte(s.Native)
+	return zval.AppendValue(dst, v)
+}
+
 func (s *String) Type() Type {
 	return TypeString
 }
@@ -58,10 +65,10 @@ func (s *String) Comparison(op string) (Predicate, error) {
 		return nil, fmt.Errorf("unknown string comparator: %s", op)
 	}
 	pattern := s.Native
-	return func(typ Type, val []byte) bool {
-		switch typ.(type) {
+	return func(e TypedEncoding) bool {
+		switch e.Type.(type) {
 		case *TypeOfString, *TypeOfEnum:
-			return compare(ustring(val), pattern)
+			return compare(ustring(e.Body), pattern)
 		}
 		return false
 	}, nil

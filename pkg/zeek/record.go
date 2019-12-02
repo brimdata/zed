@@ -144,6 +144,14 @@ func (r *Record) String() string {
 	return d
 }
 
+func (r *Record) Encode(dst zval.Encoding) zval.Encoding {
+	var zv zval.Encoding
+	for _, v := range r.values {
+		zv = v.Encode(zv)
+	}
+	return zval.AppendContainerValue(dst, zv)
+}
+
 func (r *Record) Type() Type {
 	return r.typ
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/mccanne/zq/pkg/nano"
+	"github.com/mccanne/zq/pkg/zval"
 )
 
 type TypeOfInterval struct{}
@@ -45,6 +46,11 @@ func (i *Interval) String() string {
 	// accuracy of a nano Duration. Such values cannot be represented by
 	// float64's without loss of the least significant digits of ns,
 	return nano.DurationString(i.Native)
+}
+
+func (i *Interval) Encode(dst zval.Encoding) zval.Encoding {
+	v := []byte(i.String())
+	return zval.AppendValue(dst, v)
 }
 
 func (i *Interval) Type() Type {

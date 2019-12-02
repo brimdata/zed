@@ -4,6 +4,7 @@ import (
 	"github.com/mccanne/zq/pkg/zeek"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
+	"github.com/mccanne/zq/pkg/zval"
 	"github.com/mccanne/zq/reducer"
 )
 
@@ -44,20 +45,15 @@ func (r *Row) Consume(rec *zson.Record) {
 }
 
 // Result creates a new record from the results of the reducers.
-// XXX this should use the forthcoming zson.Record fields "Values" and
-// not bother with making raw
 func (r *Row) Result(table *resolver.Table) *zson.Record {
 	n := len(r.Reducers)
 	columns := make([]zeek.Column, n)
-	//XXX fix this logic here.  we just need to add Value columns and the
-	//output layer will lookup descriptor, rebuild raw, insert _td (later PR)
-	values := make([]string, n)
+	var zv zval.Encoding
 	for k, red := range r.Reducers {
-		zv := reducer.Result(red)
-		columns[k] = zeek.Column{Name: r.Defs[k].Target(), Type: zv.Type()}
-		values[k] = zv.String()
+		val := reducer.Result(red)
+		columns[k] = zeek.Column{Name: r.Defs[k].Target(), Type: val.Type()}
+		zv = val.Encode(zv)
 	}
 	d := table.GetByColumns(columns)
-	rec, _ := zson.NewRecordZeekStrings(d, values...) //XXX
-	return rec
+	return zson.NewRecordNoTs(d, zv)
 }

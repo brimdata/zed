@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+
+	"github.com/mccanne/zq/pkg/zval"
 )
 
 type TypeOfAddr struct{}
@@ -56,6 +58,11 @@ func (a *Addr) Type() Type {
 	return TypeAddr
 }
 
+func (a *Addr) Encode(dst zval.Encoding) zval.Encoding {
+	b := []byte(a.Native.String())
+	return zval.AppendValue(dst, b)
+}
+
 // Comparison returns a Predicate that compares typed byte slices that must
 // be TypeAddr with the value's address using a comparison based on op.
 // Only equality operands are allowed.
@@ -65,12 +72,12 @@ func (a *Addr) Comparison(op string) (Predicate, error) {
 		return nil, fmt.Errorf("unknown addr comparator: %s", op)
 	}
 	pattern := a.Native
-	return func(typ Type, val []byte) bool {
-		typeAddr, ok := typ.(*TypeOfAddr)
+	return func(e TypedEncoding) bool {
+		typeAddr, ok := e.Type.(*TypeOfAddr)
 		if !ok {
 			return false
 		}
-		ip, err := typeAddr.Parse(val)
+		ip, err := typeAddr.Parse(e.Body)
 		if err != nil {
 			return false
 		}
