@@ -30,7 +30,7 @@ var (
 // of the underlying type.
 type Type interface {
 	String() string
-	// New returns a Value of this Type by parsing the data in the bye slice
+	// New returns a Value of this Type by parsing the data in the byte slice
 	// and interpreting it as the native value of the zeek Value.  For sets
 	// and vectors, the byte slice is a zval.Encoding of the body of a container.
 	New([]byte) (Value, error)

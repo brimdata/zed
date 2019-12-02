@@ -235,7 +235,7 @@ func (g *GroupByAggregator) Consume(r *zson.Record) error {
 	}
 	for _, key := range g.keys {
 		rowkey := key.resolver(r)
-		if rowkey.Body != nil {
+		if rowkey.Type != nil {
 			rowkeys = append(rowkeys, rowkey)
 		}
 	}
@@ -343,6 +343,11 @@ func (g *GroupByAggregator) recordsForTable(table map[string]*GroupByRow) []*zso
 	sort.Strings(keys)
 	var recs []*zson.Record
 
+	// We make multiple passes over the table, one for each unique type
+	// vector or row keys, the in each pass we output as a batch all the
+	// records that have this unique type (i.e., the same descriptor).
+	// This allows variations in the type if the join-key to be tracked
+	// separately and output with their correct descriptor.
 	for _, typeCol := range g.typeCols {
 		for _, k := range keys {
 			row := table[k]
@@ -351,7 +356,6 @@ func (g *GroupByAggregator) recordsForTable(table map[string]*GroupByRow) []*zso
 			}
 			var zv zval.Encoding
 			if g.TimeBinDuration > 0 {
-				panic("BAR")
 				zv = zval.AppendValue(zv, []byte(row.ts.StringFloat()))
 			}
 			for _, rowkey := range row.rowKeys {
@@ -373,19 +377,6 @@ func (g *GroupByAggregator) recordsForTable(table map[string]*GroupByRow) []*zso
 	return recs
 }
 
-// initialize the static columns, namely the td, ts (if time-binned), and key columns.
-func (g *GroupByAggregator) appendColumns(columns []zeek.Column, rowkeys []zeek.TypedEncoding, defs compile.Row) []zeek.Column {
-	// This is a little ugly.  We infer the types of the group-by keys by
-	// looking at the types if the keys of the first record we see.  XXX We
-	// might want to check subseuent records to make sure the types don't
-	// change and drop them if they do?  If so, we should have a new method
-	// that combines Cut/CutTypes.
-	for k, rowkey := range rowkeys {
-		name := g.reducerDefs[k].Target()
-		columns = append(columns, zeek.Column{Name: name, Type: rowkey.Type})
-	}
-	return columns
-}
 func (g *GroupByAggregator) lookupDescriptor(row *GroupByRow) *zson.Descriptor {
 	n := len(row.columns.Reducers) + len(row.rowKeys)
 	if g.TimeBinDuration > 0 {

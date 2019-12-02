@@ -48,7 +48,9 @@ type Value interface {
 	// the contained Values and true.  If this value is not a container,
 	// return an empty list and false.
 	Elements() ([]Value, bool)
-
+	// Encode appends the zval representation of this value to the passed in
+	// argument and returns the resulting zval.Encoding (which may or may not
+	// be the same underlying buffer, as with append(), depending on its capacity)
 	Encode(zval.Encoding) zval.Encoding
 }
 
