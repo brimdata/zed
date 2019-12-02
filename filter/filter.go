@@ -112,19 +112,42 @@ func CompileFieldCompare(node ast.CompareField, val zeek.Value) (Filter, error) 
 	return combine(resolver, comparison), nil
 }
 
-func EvalAny(eval zeek.Predicate) Filter {
-	return func(p *zson.Record) bool {
-		it := p.ZvalIter()
-		for _, c := range p.Type.Columns {
+func EvalAny(eval zeek.Predicate, recursive bool) Filter {
+	if !recursive {
+		return func(r *zson.Record) bool {
+			it := r.ZvalIter()
+			for _, c := range r.Type.Columns {
+				val, _, err := it.Next()
+				if err != nil {
+					return false
+				}
+				if eval(zeek.TypedEncoding{c.Type, val}) {
+					return true
+				}
+			}
+			return false
+		}
+	}
+
+	var fn func(v zval.Encoding, cols []zeek.Column) bool
+	fn = func(v zval.Encoding, cols []zeek.Column) bool {
+		it := zval.Iter(v)
+		for _, c := range cols {
 			val, _, err := it.Next()
 			if err != nil {
 				return false
 			}
-			if eval(zeek.TypedEncoding{c.Type, val}) {
+			recType, isRecord := c.Type.(*zeek.TypeRecord)
+			if isRecord && fn(val, recType.Columns) {
+				return true
+			} else if !isRecord && eval(zeek.TypedEncoding{c.Type, val}) {
 				return true
 			}
 		}
 		return false
+	}
+	return func(r *zson.Record) bool {
+		return fn(r.Raw, r.Descriptor.Type.Columns)
 	}
 }
 
@@ -196,14 +219,14 @@ func Compile(node ast.BooleanExpr) (Filter, error) {
 		if v.Comparator == "in" {
 			eql, _ := z.Comparison("eql")
 			comparison := zeek.Contains(eql)
-			return EvalAny(comparison), nil
+			return EvalAny(comparison, v.Recursive), nil
 		}
 
 		comparison, err := z.Comparison(v.Comparator)
 		if err != nil {
 			return nil, err
 		}
-		return EvalAny(comparison), nil
+		return EvalAny(comparison, v.Recursive), nil
 
 	default:
 		return nil, fmt.Errorf("Filter AST unknown type: %v", v)
