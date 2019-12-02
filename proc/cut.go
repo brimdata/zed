@@ -70,7 +70,7 @@ func (c *Cut) warn() {
 	msg := "not present in input"
 	if len(c.fields) > 1 {
 		plural = "s"
-		msg = "not present together in inout"
+		msg = "not present together in input"
 	}
 	c.Warnings <- fmt.Sprintf("Cut field%s %s %s", plural, flds, msg)
 }
