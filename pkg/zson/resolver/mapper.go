@@ -29,3 +29,7 @@ func (m *Mapper) Enter(td int, typ *zeek.TypeRecord) *zson.Descriptor {
 	}
 	return nil
 }
+
+func (m *Mapper) EnterDescriptor(td int, d *zson.Descriptor) {
+	m.enter(td, d)
+}
