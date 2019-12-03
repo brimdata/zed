@@ -190,17 +190,17 @@ func (g *GroupByAggregator) createRow(keyd *zson.Descriptor, ts nano.Ts, vals zv
 	}
 }
 
-func keysTypeRecord(d *zson.Descriptor, keys []GroupByKey) *zeek.TypeRecord {
+func keysTypeRecord(r *zson.Record, keys []GroupByKey) *zeek.TypeRecord {
 	cols := make([]zeek.Column, len(keys))
 	for k, key := range keys {
 		// XXX this needs to recurse the record to find the bottom
 		// column for group-by on record access, e.g., a.b.c should
 		// find the column for "c" by recursing descriptor.Type here
-		colno, ok := d.ColumnOfField(key.name)
-		if !ok {
+		keyVal := key.resolver(r)
+		if keyVal.Type == nil {
 			return nil
 		}
-		cols[k] = d.Type.Columns[colno]
+		cols[k] = zeek.Column{Type: keyVal.Type, Name: key.name}
 	}
 	return zeek.LookupTypeRecord(cols)
 }
@@ -227,7 +227,7 @@ func (g *GroupByAggregator) Consume(r *zson.Record) error {
 	keysDescriptor := g.keysMap.Map(r.Descriptor.ID)
 	if keysDescriptor == nil {
 		id := r.Descriptor.ID
-		recType := keysTypeRecord(r.Descriptor, g.keys)
+		recType := keysTypeRecord(r, g.keys)
 		if recType == nil {
 			g.keysMap.EnterDescriptor(id, blocked)
 			return nil
