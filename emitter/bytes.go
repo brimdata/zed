@@ -17,9 +17,6 @@ func (b *Bytes) Bytes() []byte {
 }
 
 func NewBytes(format string, tc *text.Config) (*Bytes, error) {
-	// On close, zsio.Writer.Close(), the zson WriteFlusher will be flushed
-	// then the bufwriter will closed (which will flush it's internal buffer
-	// then close the file)
 	b := &Bytes{}
 	b.Writer = zsio.LookupWriter(format, &noClose{&b.buf}, tc)
 	if b.Writer == nil {

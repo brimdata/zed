@@ -20,7 +20,7 @@ func New(w zson.Writer) *Driver {
 	}
 }
 
-func (d *Driver) SetWarnaingsWriter(w io.Writer) {
+func (d *Driver) SetWarningsWriter(w io.Writer) {
 	d.warnings = w
 }
 
