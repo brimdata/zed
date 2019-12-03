@@ -103,18 +103,6 @@ type GroupByAggregator struct {
 	limit           int
 }
 
-func keysTypeRecord(d *zson.Descriptor, keys []GroupByKey) *zeek.TypeRecord {
-	cols := make([]zeek.Column, len(keys))
-	for k, key := range keys {
-		colno, ok := d.ColumnOfField(key.name)
-		if !ok {
-			return nil
-		}
-		cols[k] = d.Type.Columns[colno]
-	}
-	return zeek.LookupTypeRecord(cols)
-}
-
 type GroupByRow struct {
 	keyd     *zson.Descriptor
 	keyvals  zval.Encoding
@@ -200,6 +188,21 @@ func (g *GroupByAggregator) createRow(keyd *zson.Descriptor, ts nano.Ts, vals zv
 		ts:       ts,
 		reducers: compile.Row{Defs: g.reducerDefs},
 	}
+}
+
+func keysTypeRecord(d *zson.Descriptor, keys []GroupByKey) *zeek.TypeRecord {
+	cols := make([]zeek.Column, len(keys))
+	for k, key := range keys {
+		// XXX this needs to recurse the record to find the bottom
+		// column for group-by on record access, e.g., a.b.c should
+		// find the column for "c" by recursing descriptor.Type here
+		colno, ok := d.ColumnOfField(key.name)
+		if !ok {
+			return nil
+		}
+		cols[k] = d.Type.Columns[colno]
+	}
+	return zeek.LookupTypeRecord(cols)
 }
 
 // XXX this could be made more efficient by using exporting zval.Encoding.build
@@ -350,13 +353,9 @@ func (g *GroupByAggregator) recordsForTable(table map[string]*GroupByRow) []*zso
 	for k := range table {
 		keys = append(keys, k)
 	}
-	sort.Strings(keys)
+	// This sort skips over the first 4 bytes which comprise the descriptor ID
+	sort.Slice(keys, func(i, j int) bool { return keys[i][4:] > keys[j][4:] })
 
-	// We make multiple passes over the table, one for each unique type of
-	// vector or row keys, then in each pass we output as a batch all the
-	// records that have this unique type combo (i.e., the same descriptor).
-	// This allows variations in the type of the join-key to be tracked
-	// separately and thus generated each with their correct descriptor.
 	n := len(g.keys) + len(g.reducerDefs)
 	if g.TimeBinDuration > 0 {
 		n++
