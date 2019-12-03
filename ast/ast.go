@@ -80,6 +80,7 @@ type (
 	CompareAny struct {
 		Node
 		Comparator string `json:"comparator"`
+		Recursive  bool   `json:"recursive"`
 		Value      TypedValue
 	}
 	// A CompareField node represents a comparison operator with a specific

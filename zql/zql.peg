@@ -94,10 +94,11 @@
         return &ast.CompareField{ast.Node{"CompareField"}, comparator, field, *value}
     }
 
-    func makeCompareAny(comparatorIn, valueIn interface{}) *ast.CompareAny {
+    func makeCompareAny(comparatorIn, recurseIn, valueIn interface{}) *ast.CompareAny {
         comparator := comparatorIn.(string)
+        recurse := recurseIn.(bool)
         value := valueIn.(*ast.TypedValue)
-        return &ast.CompareAny{ast.Node{"CompareAny"}, comparator, *value}
+        return &ast.CompareAny{ast.Node{"CompareAny"}, comparator, recurse, *value}
     }
 
     func makeLogicalNot(exprIn interface{}) *ast.LogicalNot {
@@ -357,8 +358,8 @@
         return { op: "CompareField", comparator, field, value };
     }
 
-    function makeCompareAny(comparator, value) {
-        return { op: "CompareAny", comparator, value };
+    function makeCompareAny(comparator, recursive, value) {
+        return { op: "CompareAny", comparator, recursive, value };
     }
 
     function makeLogicalNot(expr) { return { op: "LogicalNot", expr }; }
@@ -513,7 +514,10 @@ searchFactor
 
 searchPred
   = "*" _? fieldComparator:equalityToken _? v:searchValue {
-      RETURN(makeCompareAny(fieldComparator, v))
+      RETURN(makeCompareAny(fieldComparator, false, v))
+    }
+  / "**" _? fieldComparator:equalityToken _? v:searchValue {
+      RETURN(makeCompareAny(fieldComparator, true, v))
     }
   / "*" {
       RETURN(makeBooleanLiteral(true))
@@ -522,7 +526,7 @@ searchPred
       RETURN(makeCompareField(fieldComparator, f, v))
     }
   / v:searchValue _? inToken _? "*" {
-      RETURN(makeCompareAny("in", v))
+      RETURN(makeCompareAny("in", false, v))
     }
   / v:searchValue _? inToken _? f:fieldReference {
       RETURN(makeCompareField("in", f, v))
@@ -533,7 +537,7 @@ searchPred
         RETURN(ss)
       }
       ss = makeSearchString(makeTypedValue("string", TEXT))
-      RETURN(makeOrChain(ss, ARRAY(makeCompareAny("eql", v), makeCompareAny("in", v))))
+      RETURN(makeOrChain(ss, ARRAY(makeCompareAny("eql", true, v), makeCompareAny("in", true, v))))
     }
 
 searchValue

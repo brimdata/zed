@@ -134,6 +134,8 @@ func TestFilters(t *testing.T) {
 		{"nested.field = test", records[7], true},
 		{"bogus.field = test", records[7], false},
 		{"nested.bogus = test", records[7], false},
+		{"* = test", records[7], false},
+		{"** = test", records[7], true},
 
 		{"nested[0].field = 1", records[8], true},
 		{"nested[1].field = 2", records[8], true},
