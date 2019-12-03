@@ -362,7 +362,7 @@ func (g *GroupByAggregator) recordsForTable(table map[string]*GroupByRow) []*zso
 	}
 	// XXX get rid of [4:]
 	// This sort skips over the first 4 bytes which comprise the descriptor ID
-	sort.Slice(keys, func(i, j int) bool { return keys[i][4:] > keys[j][4:] })
+	sort.Slice(keys, func(i, j int) bool { return keys[i][0:] > keys[j][0:] })
 
 	n := len(g.keys) + len(g.reducerDefs)
 	if g.TimeBinDuration > 0 {
