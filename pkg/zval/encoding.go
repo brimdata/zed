@@ -32,14 +32,14 @@ func (e Encoding) Iter() Iter {
 }
 
 func (e Encoding) String() string {
-	b, err := e.build(nil)
+	b, err := e.Build(nil)
 	if err != nil {
 		panic("zval encoding has bad format: " + err.Error())
 	}
 	return string(b)
 }
 
-func (e Encoding) build(b []byte) ([]byte, error) {
+func (e Encoding) Build(b []byte) ([]byte, error) {
 	for it := Iter(e); !it.Done(); {
 		v, container, err := it.Next()
 		if err != nil {
@@ -47,7 +47,7 @@ func (e Encoding) build(b []byte) ([]byte, error) {
 		}
 		if container {
 			b = append(b, '[')
-			b, err = v.build(b)
+			b, err = v.Build(b)
 			if err != nil {
 				return nil, err
 			}
