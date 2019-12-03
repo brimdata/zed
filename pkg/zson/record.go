@@ -9,17 +9,6 @@ import (
 	"github.com/mccanne/zq/pkg/zval"
 )
 
-// Errors...
-var (
-	ErrNoSuchField = errors.New("no such field")
-
-	ErrCorruptTd = errors.New("corrupt type descriptor")
-
-	ErrCorruptColumns = errors.New("wrong number of columns in record value")
-
-	ErrTypeMismatch = errors.New("type/value mismatch")
-)
-
 // A Record wraps a zeek.Record and can simultaneously represent its raw
 // serialized zson form or its parsed zeek.Record form.  This duality lets us
 // parse raw logs and perform fast-path operations directly on the zson data
