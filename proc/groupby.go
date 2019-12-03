@@ -349,10 +349,22 @@ func typeMatch(typeCol []zeek.TypedEncoding, rowkeys []zeek.TypedEncoding) bool 
 // recordsForTable returns a slice of records with one record per table entry in a
 // deterministic but undefined order.
 func (g *GroupByAggregator) recordsForTable(table map[string]*GroupByRow) []*zson.Record {
+
+	// XXX get rid of this
+	oldtable := table
+	table = make(map[string]*GroupByRow)
+	for key, val := range oldtable {
+		zv := zval.Encoding(key[4:])
+		oldkey := zv.String()
+		table[oldkey] = val
+	}
+	// ^^^ get rid of this
+
 	var keys []string
 	for k := range table {
 		keys = append(keys, k)
 	}
+	// XXX get rid of [4:]
 	// This sort skips over the first 4 bytes which comprise the descriptor ID
 	sort.Slice(keys, func(i, j int) bool { return keys[i][4:] > keys[j][4:] })
 
