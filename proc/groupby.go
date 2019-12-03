@@ -345,12 +345,6 @@ func (g *GroupByAggregator) recordsForTable(table map[string]*GroupByRow) []*zso
 	}
 	sort.Strings(keys)
 
-	n := len(g.keys) + len(g.reducerDefs)
-	if g.TimeBinDuration > 0 {
-		n++
-	}
-	scratchCols := make([]zeek.Column, 0, n)
-
 	var recs []*zson.Record
 	for _, k := range keys {
 		row := table[k]
@@ -367,14 +361,24 @@ func (g *GroupByAggregator) recordsForTable(table map[string]*GroupByRow) []*zso
 			}
 			zv = v.Encode(zv)
 		}
-		d := g.lookupDescriptor(row, scratchCols)
+		d := g.lookupDescriptor(row)
 		r := zson.NewRecord(d, row.ts, zv)
 		recs = append(recs, r)
 	}
 	return recs
 }
 
-func (g *GroupByAggregator) lookupDescriptor(row *GroupByRow, cols []zeek.Column) *zson.Descriptor {
+func (g *GroupByAggregator) lookupDescriptor(row *GroupByRow) *zson.Descriptor {
+	// This is only done once per row at output time so generally not a
+	// bottleneck, but this could be optimized by keeping a cache of the
+	// descriptor since it is rare for there to be multiple descriptors
+	// or for it change from row to row.
+	n := len(g.keys) + len(g.reducerDefs)
+	if g.TimeBinDuration > 0 {
+		n++
+	}
+	cols := make([]zeek.Column, 0, n)
+
 	if g.TimeBinDuration > 0 {
 		cols = append(cols, zeek.Column{Name: "ts", Type: zeek.TypeTime})
 	}
