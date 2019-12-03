@@ -4,12 +4,14 @@ import (
 	"github.com/mccanne/zq/tests/test"
 )
 
-var Test = test.Detail{
-	Name:     "input",
-	Query:    "*",
-	Input:    input,
-	Format:   "zson",
-	Expected: expected,
+func init() {
+	test.Add(test.Detail{
+		Name:     "input",
+		Query:    "*",
+		Input:    input,
+		Format:   "zson",
+		Expected: expected,
+	})
 }
 
 const input = `

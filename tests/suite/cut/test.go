@@ -4,12 +4,14 @@ import (
 	"github.com/mccanne/zq/tests/test"
 )
 
-var Test = test.Detail{
-	Name:     "cut",
-	Query:    "* | cut foo",
-	Input:    input,
-	Format:   "table",
-	Expected: expected,
+func init() {
+	test.Add(test.Detail{
+		Name:     "cut",
+		Query:    "* | cut foo",
+		Input:    input,
+		Format:   "table",
+		Expected: expected,
+	})
 }
 
 const input = `

@@ -7,3 +7,9 @@ type Detail struct {
 	Format   string
 	Expected string
 }
+
+var Suite []Detail
+
+func Add(d Detail) {
+	Suite = append(Suite, d)
+}

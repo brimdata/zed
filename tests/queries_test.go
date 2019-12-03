@@ -54,7 +54,7 @@ func run(t test.Detail) (string, error) {
 
 func TestQueries(t *testing.T) {
 	t.Parallel()
-	for _, tst := range suite.Tests {
+	for _, tst := range suite.Tests() {
 		t.Run(tst.Name, func(t *testing.T) {
 			results, err := run(tst)
 			require.NoError(t, err)
