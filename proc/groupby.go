@@ -126,7 +126,7 @@ func NewGroupByAggregator(c *Context, params GroupByParams) *GroupByAggregator {
 		dt:          c.Resolver,
 		reducerDefs: params.reducers,
 		// keysMap maps an input descriptor to a descriptor
-		// representing the grou-by key columns.
+		// representing the group-by key columns.
 		keysMap:         resolver.NewMapper(resolver.NewTable()),
 		tables:          make(map[nano.Ts]map[string]*GroupByRow),
 		TimeBinDuration: dur,
