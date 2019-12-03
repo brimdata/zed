@@ -1,6 +1,7 @@
 package proc
 
 import (
+	"encoding/binary"
 	"fmt"
 	"sort"
 	"time"
@@ -205,13 +206,6 @@ func keysTypeRecord(r *zson.Record, keys []GroupByKey) *zeek.TypeRecord {
 	return zeek.LookupTypeRecord(cols)
 }
 
-func encodeInt(dst zval.Encoding, v int) {
-	dst[0] = byte(v >> 24)
-	dst[1] = byte(v >> 16)
-	dst[2] = byte(v >> 8)
-	dst[3] = byte(v)
-}
-
 var blocked = &zson.Descriptor{}
 
 // Consume takes a record and adds it to the aggregation. Records
@@ -253,7 +247,7 @@ func (g *GroupByAggregator) Consume(r *zson.Record) error {
 	} else {
 		keyBytes = make(zval.Encoding, 4, 128)
 	}
-	encodeInt(keyBytes, keysDescriptor.ID)
+	binary.BigEndian.PutUint32(keyBytes, uint32(keysDescriptor.ID))
 	for _, key := range g.keys {
 		keyVal := key.resolver(r)
 		if keyVal.Type != nil {
