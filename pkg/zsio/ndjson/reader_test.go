@@ -18,8 +18,8 @@ func TestNDJSON(t *testing.T) {
 	}
 	cases := []testcase{
 		{
-			name:  "single line",
-			input: `{ "string1": "value1", "int1": 1, "double1": 1.2, "bool1": false }`,
+			name:   "single line",
+			input:  `{ "string1": "value1", "int1": 1, "double1": 1.2, "bool1": false }`,
 			output: "",
 		},
 		{
@@ -37,18 +37,18 @@ func TestNDJSON(t *testing.T) {
 			output: "",
 		},
 		{
-			name:  "null value",
-			input: `{ "null1": null }`,
+			name:   "null value",
+			input:  `{ "null1": null }`,
 			output: "",
 		},
 		{
-			name:  "empty array",
-			input: `{ "arr1": [] }`,
+			name:   "empty array",
+			input:  `{ "arr1": [] }`,
 			output: "",
 		},
 		{
-			name: "legacy nested fields",
-			input: `{ "s": "foo", "nest.s": "bar", "nest.n": 5 }`,
+			name:   "legacy nested fields",
+			input:  `{ "s": "foo", "nest.s": "bar", "nest.n": 5 }`,
 			output: `{ "s": "foo", "nest": { "s": "bar", "n": 5 }}`,
 		},
 	}

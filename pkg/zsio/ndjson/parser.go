@@ -9,8 +9,8 @@ import (
 
 	"github.com/buger/jsonparser"
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zval"
 	zparse "github.com/mccanne/zq/pkg/zsio/zeek"
+	"github.com/mccanne/zq/pkg/zval"
 )
 
 // ErrMultiTypedVector signifies that a json array was found with multiple types.
@@ -99,7 +99,7 @@ func (p *Parser) jsonParseObject(b []byte) (zeek.Type, error) {
 			if nestedColno == len(recType.Columns) {
 				p.builder.End()
 				nestedColno = 0
-				colno += 1;
+				colno += 1
 			}
 		} else {
 			columns[colno].Type = ztyp
