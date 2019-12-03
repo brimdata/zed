@@ -205,10 +205,6 @@ func keysTypeRecord(r *zson.Record, keys []GroupByKey) *zeek.TypeRecord {
 	return zeek.LookupTypeRecord(cols)
 }
 
-// XXX this could be made more efficient by using exporting zval.Encoding.build
-// and using it rowkey.Body.Build() and do something smarter with the zeek type
-// strings... otherwise we are sending lots of strings to the GC on each record
-// defeating the purpose of g.cacheKey.
 func encodeInt(dst zval.Encoding, v int) {
 	dst[0] = byte(v >> 24)
 	dst[1] = byte(v >> 16)
