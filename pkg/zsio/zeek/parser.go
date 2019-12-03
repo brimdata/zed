@@ -154,7 +154,7 @@ func (p *Parser) ParseDirective(line []byte) error {
 // dotted field names and adding a _path column if one is not already
 // present.  Note that according to the zson spec, all the fields for
 // a nested record must be adjacent which simplifies the logic here.
-func Unflatten(columns []zeek.Column, resolver *resolver.Table) (*zson.Descriptor, error) {
+func Unflatten(columns []zeek.Column, addPath bool) ([]zeek.Column, error) {
 	hasPath := false
 	cols := make([]zeek.Column, 0)
 	var nestedCols []zeek.Column
@@ -205,11 +205,11 @@ func Unflatten(columns []zeek.Column, resolver *resolver.Table) (*zson.Descripto
 		cols = append(cols, newcol)
 	}
 
-	if !hasPath {
+	if addPath && !hasPath {
 		pathcol := zeek.Column{Name: "_path", Type: zeek.TypeString}
 		cols = append([]zeek.Column{pathcol}, cols...)
 	}
-	return resolver.GetByColumns(cols), nil
+	return cols, nil
 }
 
 func (p *Parser) lookup() (*zson.Descriptor, error) {
@@ -219,7 +219,11 @@ func (p *Parser) lookup() (*zson.Descriptor, error) {
 		return nil, ErrBadRecordDef
 	}
 
-	return Unflatten(p.columns, p.resolver)
+	cols, err := Unflatten(p.columns, true)
+	if err != nil {
+		return nil, err
+	}
+	return p.resolver.GetByColumns(cols), nil
 }
 
 func (p *Parser) ParseValue(line []byte) (*zson.Record, error) {

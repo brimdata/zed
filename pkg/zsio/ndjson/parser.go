@@ -9,6 +9,7 @@ import (
 
 	"github.com/buger/jsonparser"
 	"github.com/mccanne/zq/pkg/zeek"
+	zparse "github.com/mccanne/zq/pkg/zsio/zeek"
 	"github.com/mccanne/zq/pkg/zval"
 )
 
@@ -63,13 +64,47 @@ func (p *Parser) jsonParseObject(b []byte) (zeek.Type, error) {
 	sort.Slice(kvs, func(i, j int) bool {
 		return bytes.Compare(kvs[i].key, kvs[j].key) < 0
 	})
+
+	// Build the list of columns (without types yet) and then run them
+	// through Unflatten() to find nested records.
 	columns := make([]zeek.Column, len(kvs))
 	for i, kv := range kvs {
+		columns[i] = zeek.Column{Name: string(kv.key), Type: zeek.TypeUnset}
+	}
+	columns, err = zparse.Unflatten(columns, false)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse the actual values and fill in column types along the way,
+	// taking care to step into nested records as necessary.
+	colno := 0
+	nestedColno := 0
+	for _, kv := range kvs {
+		recType, isRecord := columns[colno].Type.(*zeek.TypeRecord)
+		if isRecord {
+			if nestedColno == 0 {
+				p.builder.Begin()
+			}
+		}
+
 		ztyp, err := p.jsonParseValue(kv.value, kv.typ)
 		if err != nil {
 			return nil, err
 		}
-		columns[i] = zeek.Column{Name: string(kv.key), Type: ztyp}
+
+		if isRecord {
+			recType.Columns[nestedColno].Type = ztyp
+			nestedColno += 1
+			if nestedColno == len(recType.Columns) {
+				p.builder.End()
+				nestedColno = 0
+				colno += 1
+			}
+		} else {
+			columns[colno].Type = ztyp
+			colno += 1
+		}
 	}
 	return &zeek.TypeRecord{Columns: columns}, nil
 }

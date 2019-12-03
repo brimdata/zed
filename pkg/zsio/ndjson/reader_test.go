@@ -14,12 +14,13 @@ import (
 
 func TestNDJSON(t *testing.T) {
 	type testcase struct {
-		name, input string
+		name, input, output string
 	}
 	cases := []testcase{
 		{
-			name:  "single line",
-			input: `{ "string1": "value1", "int1": 1, "double1": 1.2, "bool1": false }`,
+			name:   "single line",
+			input:  `{ "string1": "value1", "int1": 1, "double1": 1.2, "bool1": false }`,
+			output: "",
 		},
 		{
 			name: "skips empty lines",
@@ -27,34 +28,47 @@ func TestNDJSON(t *testing.T) {
 
 		{"string1": "value2", "int1": 2, "double1": 2.3, "bool1": true }
 		`,
+			output: "",
 		},
 		{
 			name: "nested containers",
 			input: `{ "obj1": { "obj2": { "double1": 1.1 } } }
 		{ "arr1": [ "string1", "string2", "string3" ] }`,
+			output: "",
 		},
 		{
-			name:  "null value",
-			input: `{ "null1": null }`,
+			name:   "null value",
+			input:  `{ "null1": null }`,
+			output: "",
 		},
 		{
-			name:  "empty array",
-			input: `{ "arr1": [] }`,
+			name:   "empty array",
+			input:  `{ "arr1": [] }`,
+			output: "",
+		},
+		{
+			name:   "legacy nested fields",
+			input:  `{ "s": "foo", "nest.s": "bar", "nest.n": 5 }`,
+			output: `{ "s": "foo", "nest": { "s": "bar", "n": 5 }}`,
 		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			runtestcase(t, c.input)
+			output := c.output
+			if len(output) == 0 {
+				output = c.input
+			}
+			runtestcase(t, c.input, output)
 		})
 	}
 }
 
-func runtestcase(t *testing.T, input string) {
+func runtestcase(t *testing.T, input, output string) {
 	var out bytes.Buffer
 	w := ndjson.NewWriter(&out)
 	r := ndjson.NewReader(strings.NewReader(input), resolver.NewTable())
 	require.NoError(t, zson.Copy(zson.NopFlusher(w), r))
-	NDJSONEq(t, input, out.String())
+	NDJSONEq(t, output, out.String())
 }
 
 func getLines(in string) ([]string, error) {
