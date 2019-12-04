@@ -82,7 +82,7 @@ again:
 		return nil, err
 	}
 	// remove newline
-	line = line[:len(line)-1]
+	line = bytes.TrimSpace(line)
 	if line[0] == '#' {
 		b, err := r.parseDirective(line)
 		if err != nil {
