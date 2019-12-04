@@ -56,6 +56,10 @@ func (w *Writer) write(s string) error {
 }
 
 func (w *Writer) writeContainer(val []byte) error {
+	if val == nil {
+		w.write("*;")
+		return nil
+	}
 	if err := w.write("["); err != nil {
 		return err
 	}
@@ -104,8 +108,11 @@ func (w *Writer) writeEscaped(val []byte) error {
 	if len(val) == 0 {
 		return nil
 	}
-	if len(val) == 1 && val[0] == '-' {
-		return w.escape('-')
+	if len(val) == 1 {
+		switch val[0] {
+		case '-', '*':
+			return w.escape(val[0])
+		}
 	}
 	// We escape a bracket if it appears as the first byte of a value;
 	// we otherwise don't need to escape brackets.

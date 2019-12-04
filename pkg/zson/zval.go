@@ -51,6 +51,9 @@ func ZvalToZeekString(typ zeek.Type, val []byte, isContainer bool) string {
 	var s string
 	switch typ.(type) {
 	case *zeek.TypeSet, *zeek.TypeVector:
+		if val == nil {
+			return "-"
+		}
 		if len(val) == 0 {
 			return "(empty)"
 		}

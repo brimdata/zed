@@ -2,6 +2,7 @@ package zjson
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 
 	"github.com/mccanne/zq/pkg/zeek"
@@ -43,16 +44,20 @@ func (w *Writer) Write(r *zson.Record) error {
 			return err
 		}
 	}
-	values, err := w.encodeContainer(r.Raw)
+	v, err := w.encodeContainer(r.Raw)
 	if err != nil {
 		return err
 	}
-	v := Record{
+	values, ok := v.([]interface{})
+	if !ok {
+		return errors.New("internal error: zson record body must be a container")
+	}
+	rec := Record{
 		Id:     id,
 		Type:   typ,
 		Values: values,
 	}
-	b, err := json.Marshal(&v)
+	b, err := json.Marshal(&rec)
 	if err != nil {
 		return err
 	}
@@ -68,9 +73,14 @@ func (w *Writer) write(s string) error {
 	return err
 }
 
-func (w *Writer) encodeContainer(val []byte) ([]interface{}, error) {
+func (w *Writer) encodeContainer(val []byte) (interface{}, error) {
+	if val == nil {
+		// unset containers map to JSON empty object
+		v := make(map[string]interface{})
+		return v, nil
+	}
 	// We start out with a slice that contains nothing instead of nil
-	// so that an empty set encodes to JSON empty array [].
+	// so that an empty containers encode to JSON empty array [].
 	body := make([]interface{}, 0)
 	if len(val) > 0 {
 		for it := zval.Iter(val); !it.Done(); {
