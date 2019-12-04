@@ -26,6 +26,25 @@ func LogicalNot(expr Filter) Filter {
 	return func(p *zson.Record) bool { return !expr(p) }
 }
 
+func searchContainer(zv zval.Encoding, pattern []byte) bool {
+	for it := zv.Iter(); !it.Done(); {
+		val, container, err := it.Next()
+		if err != nil {
+			return false
+		}
+		if container {
+			if searchContainer(val, pattern) {
+				return true
+			}
+		} else {
+			if bytes.Contains(val, pattern) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func SearchString(s string) Filter {
 	pattern := []byte(s)
 	return func(p *zson.Record) bool {
@@ -37,30 +56,7 @@ func SearchString(s string) Filter {
 		// If we have a hit, double check field by field in case the
 		// framing bytes give us a false positive.
 		// XXX we should refactor these iterators to make this tighter.
-		it := p.ZvalIter()
-		for _, c := range p.Type.Columns {
-			val, _, err := it.Next()
-			if err != nil {
-				return false
-			}
-			switch c.Type.(type) {
-			case *zeek.TypeSet, *zeek.TypeVector:
-				for it2 := zval.Iter(val); !it2.Done(); {
-					val2, _, err := it2.Next()
-					if err != nil {
-						return false
-					}
-					if bytes.Contains(val2, pattern) {
-						return true
-					}
-				}
-			default:
-				if bytes.Contains(val, pattern) {
-					return true
-				}
-			}
-		}
-		return false
+		return searchContainer(p.Raw, pattern)
 	}
 }
 
