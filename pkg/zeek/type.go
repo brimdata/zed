@@ -316,7 +316,14 @@ func LookupTypeRecord(columns []Column) *TypeRecord {
 	if ok {
 		return t.(*TypeRecord)
 	}
-	rec := &TypeRecord{Columns: columns, Key: s}
+	// Make a private copy of the columns to maintain the invariant
+	// that types are immutable and the columns can be retrieved from
+	// the type system and traversed without any data races.
+	private := make([]Column, len(columns))
+	for k, p := range columns {
+		private[k] = p
+	}
+	rec := &TypeRecord{Columns: private, Key: s}
 	typeMap[s] = rec
 	return rec
 }
