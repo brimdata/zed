@@ -54,8 +54,7 @@ func boomerang(t *testing.T, logs string) {
 }
 
 func boomerangZJSON(t *testing.T, logs string) {
-	in := []byte(strings.TrimSpace(logs) + "\n")
-	zsonSrc := zsonio.NewReader(bytes.NewReader(in), resolver.NewTable())
+	zsonSrc := zsonio.NewReader(strings.NewReader(logs), resolver.NewTable())
 	var zjsonOutput Output
 	zjsonDst := zson.NopFlusher(zjson.NewWriter(&zjsonOutput))
 	err := zson.Copy(zjsonDst, zsonSrc)
@@ -66,7 +65,7 @@ func boomerangZJSON(t *testing.T, logs string) {
 	zsonDst := zson.NopFlusher(zsonio.NewWriter(&out))
 	err = zson.Copy(zsonDst, zjsonSrc)
 	if assert.NoError(t, err) {
-		assert.Equal(t, in, out.Bytes())
+		assert.Equal(t, strings.TrimSpace(logs), strings.TrimSpace(out.String()))
 	}
 }
 
