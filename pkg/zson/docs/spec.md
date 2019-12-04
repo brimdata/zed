@@ -207,7 +207,7 @@ notation.  Here is a pseudo-grammar for value encodings:
 
 A channel is a 16-bit integer used to indicate sub-streams of values within the zson stream.
 This is useful, for example, when analytics performs two or more computations on the
-same input data resulting in multiple result streams that are multiplexed onto a single
+same input data resulting in multiple result streams that are multiplexed onto a single 
 zson stream.
 
 A terminal value is encoded as a string of UTF-8 characters terminated
@@ -222,12 +222,11 @@ Container values are encoded as
 * zero or more encoded values, and
 * a close bracket.
 
-A scalar value is specified as "unset" with the ascii character `-`.
-A container value is specified as "unset" with the ascii character `*`.
+Any value can be specified as "unset" with the ascii character `-`.
 This is typically used to represent columns of records where not all
 columns have been set in a given record value, though any type can be
 validly unset.  A value that is not to be interpreted as "unset"
-but is the single-character string `-` or `*`, must be escaped (e.g., `\-`).
+but is the single-character string `-`, must be escaped (e.g., `\-`).
 
 Note that this syntax can be scanned and parsed independent of the
 actual type definition indicated by the descriptor (unlike legacy values,
@@ -257,8 +256,8 @@ of a value:
 ```
 [ ]
 ```
-In addition, `-` and `*` must be escaped if representing the single ASCII byte equal
-to `-` or `*` as opposed to representing an unset value.
+In addition, `-` must be escaped if representing the single ASCII byte equal
+to `-` as opposed to representing an unset value.
 
 ## Examples
 
@@ -305,7 +304,7 @@ This scheme allows composites to be embedded in composites, e.g., a
 ```
 An unset value indicates a field of a `record` that wasn't set by the encoder:
 ```
-5:[North Pole;[N;90;]*;]
+5:[North Pole;[N;90;]-;]
 ```
 e.g., the North Pole has a latitude but no meaningful longitude.
 

@@ -57,7 +57,7 @@ func (w *Writer) write(s string) error {
 
 func (w *Writer) writeContainer(val []byte) error {
 	if val == nil {
-		w.write("*;")
+		w.write("-;")
 		return nil
 	}
 	if err := w.write("["); err != nil {
@@ -110,7 +110,7 @@ func (w *Writer) writeEscaped(val []byte) error {
 	}
 	if len(val) == 1 {
 		switch val[0] {
-		case '-', '*':
+		case '-':
 			return w.escape(val[0])
 		}
 	}
