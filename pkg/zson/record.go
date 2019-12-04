@@ -178,6 +178,18 @@ func (r *Record) TypeCheck() bool {
 	return checkRecord(r.Descriptor.Type, r.Raw)
 }
 
+// check a vector whose inner type is a record
+func checkVector(inner *zeek.TypeRecord, body zval.Encoding) bool {
+	it := zval.Iter(body)
+	for !it.Done() {
+		body, container, err := it.Next()
+		if err != nil || !container || !checkRecord(inner, body) {
+			return false
+		}
+	}
+	return true
+}
+
 func checkRecord(typ *zeek.TypeRecord, body zval.Encoding) bool {
 	it := zval.Iter(body)
 	for _, col := range typ.Columns {
@@ -187,8 +199,21 @@ func checkRecord(typ *zeek.TypeRecord, body zval.Encoding) bool {
 		}
 		switch v := col.Type.(type) {
 		case *zeek.TypeRecord:
+			if !container {
+				return false
+			}
 			return checkRecord(v, body)
-		case *zeek.TypeSet, *zeek.TypeVector:
+		case *zeek.TypeVector:
+			if !container {
+				return false
+			}
+			if inner, ok := zeek.ContainedType(v).(*zeek.TypeRecord); ok {
+				if !checkVector(inner, body) {
+					return false
+				}
+			}
+
+		case *zeek.TypeSet:
 			return container
 		default:
 			if container {
