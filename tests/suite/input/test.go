@@ -1,17 +1,15 @@
 package input
 
 import (
-	"github.com/mccanne/zq/tests/test"
+	"github.com/mccanne/zq/test"
 )
 
-func init() {
-	test.Add(test.Detail{
-		Name:     "input",
-		Query:    "*",
-		Input:    input,
-		Format:   "zson",
-		Expected: expected,
-	})
+var Internal = test.Internal{
+	Name:     "input",
+	Query:    "*",
+	Input:    test.Trim(input),
+	Format:   "zson",
+	Expected: test.Trim(expected),
 }
 
 const input = `
