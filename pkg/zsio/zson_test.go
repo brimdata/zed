@@ -135,6 +135,7 @@ func TestZson(t *testing.T) {
 	identity(t, zson5)
 	identity(t, zson6)
 	identity(t, zson7)
+	identity(t, zson8)
 	identity(t, zsonBig())
 }
 
@@ -146,6 +147,7 @@ func TestRaw(t *testing.T) {
 	boomerang(t, zson5)
 	boomerang(t, zson6)
 	boomerang(t, zson7)
+	boomerang(t, zson8)
 	boomerang(t, zsonBig())
 }
 
@@ -161,6 +163,7 @@ func TestZjson(t *testing.T) {
 	boomerangZJSON(t, zson5)
 	boomerangZJSON(t, zson6)
 	boomerangZJSON(t, zson7)
+	boomerangZJSON(t, zson8)
 	boomerangZJSON(t, zsonBig())
 }
 
