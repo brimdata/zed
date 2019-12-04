@@ -180,10 +180,9 @@ func parseType(in string) (string, Type, error) {
 
 // Utilities shared by compound types (ie, set and vector)
 
-// If the passed-in type is a container, ContainedType() returns
-// the type of individual elements (and true for the second value).
-// Otherwise, returns nil, false.
-func ContainedType(typ Type) Type {
+// InnerType returns the element type for set and vector types
+// or nil if the type is not a set or vector.
+func InnerType(typ Type) Type {
 	switch typ := typ.(type) {
 	case *TypeSet:
 		return typ.innerType
@@ -191,6 +190,23 @@ func ContainedType(typ Type) Type {
 		return typ.typ
 	default:
 		return nil
+	}
+}
+
+// ContainedType returns the inner type for set and vector types in the first
+// return value and the columns of its of type for record types in the second
+// return value.  ContainedType returns nil for both return values if the
+// type is not a set, vector, or record.
+func ContainedType(typ Type) (Type, []Column) {
+	switch typ := typ.(type) {
+	case *TypeSet:
+		return typ.innerType, nil
+	case *TypeVector:
+		return typ.typ, nil
+	case *TypeRecord:
+		return nil, typ.Columns
+	default:
+		return nil, nil
 	}
 }
 

@@ -100,7 +100,11 @@ func (r *Reader) enterDescriptor(id int, typ *zeek.TypeRecord) error {
 	return nil
 }
 
-func (r *Reader) parseValues(id int, values []interface{}) (*zson.Record, error) {
+func (r *Reader) parseValues(id int, v interface{}) (*zson.Record, error) {
+	values, ok := v.([]interface{})
+	if !ok {
+		return nil, errors.New("zjson record object must be an array")
+	}
 	descriptor := r.mapper.Map(id)
 	if descriptor == nil {
 		return nil, zson.ErrDescriptorInvalid
@@ -171,18 +175,27 @@ func decodeType(columns []interface{}) (string, error) {
 }
 
 func decodeContainer(builder *zval.Builder, body []interface{}) error {
-	//XXX check that begin and end does the right thing for an empty thing?
 	builder.Begin()
 	for _, column := range body {
 		// each column either a string value or an array of string values
 		if column == nil {
 			// this is an unset column
-			builder.Append(nil)
+			builder.AppendUnsetValue()
 			continue
 		}
 		s, ok := column.(string)
 		if ok {
 			builder.Append(zeek.Unescape([]byte(s)))
+			continue
+		}
+		unset, ok := column.(map[string]interface{})
+		if ok {
+			// the only allowed object is empty object representing
+			// an unset container
+			if len(unset) != 0 {
+				return errors.New("non-empty JSON object not allowed in zson array")
+			}
+			builder.AppendUnsetContainer()
 			continue
 		}
 		children, ok := column.([]interface{})

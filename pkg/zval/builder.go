@@ -3,6 +3,7 @@ package zval
 const (
 	beginContainer = -1
 	endContainer   = -2
+	unsetContainer = -3
 )
 
 type node struct {
@@ -42,6 +43,14 @@ func (b *Builder) End() {
 	b.nodes = append(b.nodes, node{dfs: endContainer})
 }
 
+func (b *Builder) AppendUnsetContainer() {
+	b.nodes = append(b.nodes, node{dfs: unsetContainer})
+}
+
+func (b *Builder) AppendUnsetValue() {
+	b.Append(nil)
+}
+
 func (b *Builder) Append(leaf []byte) {
 	k := len(b.leaves)
 	b.leaves = append(b.leaves, leaf)
@@ -70,6 +79,11 @@ func (b *Builder) measure(off int) int {
 	if dfs == endContainer {
 		return -1
 	}
+	if dfs == unsetContainer {
+		node.innerLen = 1
+		node.outerLen = 1
+		return off + 1
+	}
 	n := len(b.leaves[dfs])
 	node.innerLen = n
 	node.outerLen = sizeOfValue(n)
@@ -82,9 +96,6 @@ func (b *Builder) encode(dst []byte, off int) (Encoding, int) {
 	if dfs == beginContainer {
 		// skip over start token
 		off++
-		if b.nodes[off].dfs == endContainer {
-			return AppendUvarint(dst, containerTagUnset), off + 1
-		}
 		dst = AppendUvarint(dst, containerTag(node.innerLen))
 		for off < len(b.nodes) {
 			var next int
@@ -100,6 +111,9 @@ func (b *Builder) encode(dst []byte, off int) (Encoding, int) {
 	}
 	if dfs == endContainer {
 		return dst, -1
+	}
+	if dfs == unsetContainer {
+		return AppendContainerValue(dst, nil), off + 1
 	}
 	return AppendValue(dst, b.leaves[dfs]), off + 1
 }

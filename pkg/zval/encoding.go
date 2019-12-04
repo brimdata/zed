@@ -46,6 +46,12 @@ func (e Encoding) Build(b []byte) ([]byte, error) {
 			return nil, err
 		}
 		if container {
+			if v == nil {
+				b = append(b, '(')
+				b = append(b, '*')
+				b = append(b, ')')
+				continue
+			}
 			b = append(b, '[')
 			b, err = v.Build(b)
 			if err != nil {

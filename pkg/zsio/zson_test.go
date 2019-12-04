@@ -4,7 +4,6 @@ package zsio
 
 import (
 	"bytes"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -98,6 +97,17 @@ const zson6 = `
 #0:record[id:record[a:string,s:set[string]]]
 0:[[-;[]]]`
 
+// Make sure we handle unset sets.
+const zson7 = `
+#0:record[a:string,b:set[string],c:set[string],d:int]
+0:[foo;[]-;10;]`
+
+// recursive record with unset set and empty set
+const zson8 = `
+#0:record[id:record[a:string,s:set[string]]]
+0:[[-;[]]]
+0:[[-;-;]]`
+
 func repeat(c byte, n int) string {
 	b := make([]byte, n)
 	for k := 0; k < n; k++ {
@@ -124,6 +134,8 @@ func TestZson(t *testing.T) {
 	identity(t, zson4)
 	identity(t, zson5)
 	identity(t, zson6)
+	identity(t, zson7)
+	identity(t, zson8)
 	identity(t, zsonBig())
 }
 
@@ -134,6 +146,8 @@ func TestRaw(t *testing.T) {
 	boomerang(t, zson4)
 	boomerang(t, zson5)
 	boomerang(t, zson6)
+	boomerang(t, zson7)
+	boomerang(t, zson8)
 	boomerang(t, zsonBig())
 }
 
@@ -148,6 +162,8 @@ func TestZjson(t *testing.T) {
 	boomerangZJSON(t, zson4)
 	boomerangZJSON(t, zson5)
 	boomerangZJSON(t, zson6)
+	boomerangZJSON(t, zson7)
+	boomerangZJSON(t, zson8)
 	boomerangZJSON(t, zsonBig())
 }
 
@@ -184,7 +200,6 @@ func TestCtrl(t *testing.T) {
 	assert.Equal(t, rec.Raw.Bytes(), []byte("message2"))
 
 	rec, err = rawReader.Read()
-	fmt.Println(string(rec.Raw.Bytes()))
 	assert.NoError(t, err)
 	assert.False(t, rec.IsControl())
 
@@ -198,37 +213,4 @@ func TestCtrl(t *testing.T) {
 	assert.True(t, rec.IsControl())
 	assert.Equal(t, rec.Raw.Bytes(), []byte("message4"))
 
-}
-
-const channel = `
-#0:record[id:record[a:string,s:set[string]]]
-0:[[-;[]]]
-0.1:[[-;[]]]
-0.0:[[-;[]]]`
-
-func TestChannel(t *testing.T) {
-	// this tests reading of control via text zson,
-	// then writing of raw control, and reading back the result
-	in := []byte(strings.TrimSpace(channel) + "\n")
-	reader := bytes.NewReader(in)
-	r := zsonio.NewControlReader(reader, resolver.NewTable())
-
-	var rawZson Output
-	rawDst := zson.NopFlusher(raw.NewWriter(&rawZson))
-	err := zson.Copy(rawDst, r)
-	require.NoError(t, err)
-
-	rawReader := raw.NewControlReader(bytes.NewReader(rawZson.Bytes()), resolver.NewTable())
-
-	rec, err := rawReader.Read()
-	assert.NoError(t, err)
-	assert.Equal(t, rec.Channel, uint16(0))
-
-	rec, err = rawReader.Read()
-	assert.NoError(t, err)
-	assert.Equal(t, rec.Channel, uint16(1))
-
-	rec, err = rawReader.Read()
-	assert.NoError(t, err)
-	assert.Equal(t, rec.Channel, uint16(0))
 }

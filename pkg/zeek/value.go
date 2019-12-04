@@ -69,7 +69,9 @@ func Parse(v ast.TypedValue) (Value, error) {
 }
 
 func parseContainer(containerType Type, elementType Type, b []byte) ([]Value, error) {
-	var vals []Value
+	// We start out with a pointer instead of nil so that empty sets and vectors
+	// are properly encoded etc., e.g., by json.Marshal.
+	vals := make([]Value, 0)
 	for it := zval.Iter(b); !it.Done(); {
 		val, _, err := it.Next()
 		if err != nil {

@@ -56,6 +56,10 @@ func (w *Writer) write(s string) error {
 }
 
 func (w *Writer) writeContainer(val []byte) error {
+	if val == nil {
+		w.write("-;")
+		return nil
+	}
 	if err := w.write("["); err != nil {
 		return err
 	}
