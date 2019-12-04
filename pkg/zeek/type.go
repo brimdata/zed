@@ -180,8 +180,8 @@ func parseType(in string) (string, Type, error) {
 
 // Utilities shared by compound types (ie, set and vector)
 
-// InnerType returns the type of its elements for set and vector types
-// or nil if the type  is not a set or vector.
+// InnerType returns the element type for set and vector types
+// or nil if the type is not a set or vector.
 func InnerType(typ Type) Type {
 	switch typ := typ.(type) {
 	case *TypeSet:
@@ -193,9 +193,10 @@ func InnerType(typ Type) Type {
 	}
 }
 
-// ContainerType returns the inner type for set and vector types in the first
-// argument and the columns of its of type for record types in the second column.
-// Nil is return for both values if the type is not a set, vector, or record.
+// ContainedType returns the inner type for set and vector types in the first
+// return value and the columns of its of type for record types in the second
+// return value.  ContainedType returns nil for both return values if the
+// type is not a set, vector, or record.
 func ContainedType(typ Type) (Type, []Column) {
 	switch typ := typ.(type) {
 	case *TypeSet:
