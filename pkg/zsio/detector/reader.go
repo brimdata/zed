@@ -12,7 +12,7 @@ import (
 	"github.com/mccanne/zq/pkg/zson/resolver"
 )
 
-var ErrUnknown = errors.New("input format not recognized")
+var ErrUnknown = errors.New("malformed input")
 
 func NewReader(r io.Reader, t *resolver.Table) (zson.Reader, error) {
 	recorder := NewRecorder(r)

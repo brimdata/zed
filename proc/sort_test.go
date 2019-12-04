@@ -154,7 +154,7 @@ const chooseIn2 = `
 `
 
 const chooseOut2 = `
-#4:record[s:string,n:int,ts:time]
+#4:record[s:string,ts:time]
 4:[a;1574610096.000000;]
 4:[b;1574610095.000000;]
 4:[c;1574610094.000000;]
@@ -168,7 +168,7 @@ const chooseIn3 = `
 4:[b;b;]
 `
 const chooseOut3 = `
-#4:record[s:string]
+#4:record[s:string,s2:string]
 4:[a;c;]
 4:[b;b;]
 4:[c;a;]
