@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/buger/jsonparser"
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/zeek"
 	"github.com/mccanne/zq/pkg/zval"
@@ -24,98 +23,11 @@ func EncodeZvals(d *Descriptor, vals []zval.Encoding) (zval.Encoding, error) {
 	return raw, nil
 }
 
-// NewRawAndTsFromJSON builds a raw value from a descriptor and the JSON object
-// in data.  It works in two steps.  First, it constructs a slice of views onto
-// the underlying JSON values.  This slice follows the order of the descriptor
-// columns.  Second, it appends the descriptor ID and the values to a new
-// buffer.
-func NewRawAndTsFromJSON(d *Descriptor, tsCol int, data []byte) (zval.Encoding, nano.Ts, int, error) {
-	var droppedFields int
-	type jsonVal struct {
-		val []byte
-		typ jsonparser.ValueType
-	}
-	jsonVals := make([]jsonVal, 32) // Fixed size for stack allocation.
-	if len(d.Type.Columns) > 32 {
-		jsonVals = make([]jsonVal, len(d.Type.Columns))
-	}
-	n := 2 // Estimate for descriptor ID uvarint.
-	callback := func(key []byte, val []byte, typ jsonparser.ValueType, offset int) error {
-		if col, ok := d.ColumnOfField(string(key)); ok {
-			jsonVals[col] = jsonVal{val, typ}
-			n += len(val) + 1 // Estimate for zval and its length uvarint.
-		} else {
-			droppedFields++
-		}
-		return nil
-	}
-	if err := jsonparser.ObjectEach(data, callback); err != nil {
-		return nil, 0, 0, err
-	}
-	raw := make([]byte, 0, n)
-	var ts nano.Ts
-	for i := range d.Type.Columns {
-		val := jsonVals[i].val
-		if i == tsCol {
-			var err error
-			ts, val, err = handleJSONTimestamp(val)
-			if err != nil {
-				return nil, 0, 0, err
-			}
-		}
-		switch jsonVals[i].typ {
-		case jsonparser.Array:
-			vals := make([][]byte, 0, 8) // Fixed size for stack allocation.
-			callback := func(v []byte, typ jsonparser.ValueType, offset int, err error) {
-				vals = append(vals, v)
-			}
-			if _, err := jsonparser.ArrayEach(val, callback); err != nil {
-				return nil, 0, 0, err
-			}
-			raw = zval.AppendContainer(raw, vals)
-			continue
-		case jsonparser.Boolean:
-			val = []byte{'F'}
-			if val[0] == 't' {
-				val = []byte{'T'}
-			}
-		case jsonparser.Null:
-			val = nil
-		case jsonparser.String:
-			val = zeek.Unescape(val)
-		}
-		raw = zval.AppendValue(raw, val)
-	}
-	return raw, ts, droppedFields, nil
-}
-
-// handleJSONTimestamp interprets data as a timestamp and returns its value as
-// both a nano.Ts and the standard Zeek format (a decimal floating-point number
-// representing seconds since the Unix epoch).
-//
-// handleJSONTimestamp understands the three timestamp formats that Zeek's ASCII
-// log writer can produce when LogAscii::use_json is true.  These formats
-// correspond to the three possible values for LogAscii::json_timestamps:
-// JSON::TS_EPOCH, JSON::TS_ISO8601, and JSON::TS_MILLIS.  For descriptions, see
-// https://docs.zeek.org/en/stable/scripts/base/init-bare.zeek.html#type-JSON::TimestampFormat.
-func handleJSONTimestamp(data []byte) (nano.Ts, []byte, error) {
-	switch {
-	case bytes.Contains(data, []byte{'-'}): // JSON::TS_ISO8601
-		ts, err := nano.ParseRFC3339Nano(data)
-		return ts, []byte(ts.StringFloat()), err
-	case bytes.Contains(data, []byte{'.'}): // JSON::TS_EPOCH
-		ts, err := nano.Parse(data)
-		return ts, data, err
-	default: // JSON::TS_MILLIS
-		ts, err := nano.ParseMillis(data)
-		return ts, []byte(ts.StringFloat()), err
-	}
-}
-
 func NewRawAndTsFromZeekTSV(d *Descriptor, path []byte, data []byte) (zval.Encoding, nano.Ts, error) {
 	builder := zval.NewBuilder()
 	columns := d.Type.Columns
 	col := 0
+
 	// XXX assert that columns[col].Name == "_path" ?
 	builder.Append(path)
 	col++
