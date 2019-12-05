@@ -13,8 +13,8 @@ fmt:
 test-unit:
 	@go test -short ./...
 
-test-system:
-	@go test -v github.com/mccanne/zq/tests
+test-system: build
+	@go test -tags=system ./test
 
 build:
 	@mkdir -p dist

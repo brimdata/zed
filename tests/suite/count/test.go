@@ -1,17 +1,15 @@
 package count
 
 import (
-	"github.com/mccanne/zq/tests/test"
+	"github.com/mccanne/zq/test"
 )
 
-func init() {
-	test.Add(test.Detail{
-		Name:     "count",
-		Query:    "* | count()",
-		Input:    input,
-		Format:   "table",
-		Expected: expected,
-	})
+var Internal = test.Internal{
+	Name:     "count",
+	Query:    "* | count()",
+	Input:    test.Trim(input),
+	Format:   "table",
+	Expected: test.Trim(expected),
 }
 
 const input = `

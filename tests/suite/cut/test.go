@@ -1,17 +1,22 @@
 package cut
 
 import (
-	"github.com/mccanne/zq/tests/test"
+	"github.com/mccanne/zq/test"
 )
 
-func init() {
-	test.Add(test.Detail{
-		Name:     "cut",
-		Query:    "* | cut foo",
-		Input:    input,
-		Format:   "table",
-		Expected: expected,
-	})
+var Internal = test.Internal{
+	Name:     "cut",
+	Query:    "* | cut foo",
+	Input:    test.Trim(input),
+	Format:   "table",
+	Expected: test.Trim(expected),
+}
+
+var Exec = test.Exec{
+	Name:     "cut",
+	Command:  `zq -f table "* | cut foo" -`,
+	Input:    test.Trim(input),
+	Expected: test.Trim(expected),
 }
 
 const input = `

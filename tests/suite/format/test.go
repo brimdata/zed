@@ -1,17 +1,15 @@
 package format
 
 import (
-	"github.com/mccanne/zq/tests/test"
+	"github.com/mccanne/zq/test"
 )
 
-func init() {
-	test.Add(test.Detail{
-		Name:     "format",
-		Query:    "*",
-		Input:    input,
-		Format:   "ndjson",
-		Expected: expected,
-	})
+var Internal = test.Internal{
+	Name:     "format",
+	Query:    "*",
+	Input:    test.Trim(input),
+	Format:   "ndjson",
+	Expected: test.Trim(expected),
 }
 
 const input = `
