@@ -35,11 +35,11 @@ func (b *Builder) Reset() {
 	b.leaves = b.leaves[:0]
 }
 
-func (b *Builder) Begin() {
+func (b *Builder) BeginContainer() {
 	b.nodes = append(b.nodes, node{dfs: beginContainer})
 }
 
-func (b *Builder) End() {
+func (b *Builder) EndContainer() {
 	b.nodes = append(b.nodes, node{dfs: endContainer})
 }
 

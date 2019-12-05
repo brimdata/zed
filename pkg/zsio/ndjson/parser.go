@@ -84,7 +84,7 @@ func (p *Parser) jsonParseObject(b []byte) (zeek.Type, error) {
 		recType, isRecord := columns[colno].Type.(*zeek.TypeRecord)
 		if isRecord {
 			if nestedColno == 0 {
-				p.builder.Begin()
+				p.builder.BeginContainer()
 			}
 		}
 
@@ -97,7 +97,7 @@ func (p *Parser) jsonParseObject(b []byte) (zeek.Type, error) {
 			recType.Columns[nestedColno].Type = ztyp
 			nestedColno += 1
 			if nestedColno == len(recType.Columns) {
-				p.builder.End()
+				p.builder.EndContainer()
 				nestedColno = 0
 				colno += 1
 			}
@@ -112,12 +112,12 @@ func (p *Parser) jsonParseObject(b []byte) (zeek.Type, error) {
 func (p *Parser) jsonParseValue(raw []byte, typ jsonparser.ValueType) (zeek.Type, error) {
 	switch typ {
 	case jsonparser.Array:
-		p.builder.Begin()
-		defer p.builder.End()
+		p.builder.BeginContainer()
+		defer p.builder.EndContainer()
 		return p.jsonParseArray(raw)
 	case jsonparser.Object:
-		p.builder.Begin()
-		defer p.builder.End()
+		p.builder.BeginContainer()
+		defer p.builder.EndContainer()
 		return p.jsonParseObject(raw)
 	case jsonparser.Boolean:
 		return p.jsonParseBool(raw)

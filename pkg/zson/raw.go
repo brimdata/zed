@@ -135,7 +135,7 @@ func NewRawAndTsFromZeekTSV(d *Descriptor, path []byte, data []byte) (zval.Encod
 		recType, isRec := typ.(*zeek.TypeRecord)
 		if isRec {
 			if nestedCol == 0 {
-				builder.Begin()
+				builder.BeginContainer()
 			}
 			typ = recType.Columns[nestedCol].Type
 		} else if columns[col].Name == "ts" {
@@ -156,7 +156,7 @@ func NewRawAndTsFromZeekTSV(d *Descriptor, path []byte, data []byte) (zval.Encod
 		} else {
 			switch typ.(type) {
 			case *zeek.TypeSet, *zeek.TypeVector:
-				builder.Begin()
+				builder.BeginContainer()
 				if bytes.Compare(val, []byte(emptyContainer)) != 0 {
 					cstart := 0
 					for i, ch := range val {
@@ -167,7 +167,7 @@ func NewRawAndTsFromZeekTSV(d *Descriptor, path []byte, data []byte) (zval.Encod
 					}
 					builder.Append(zeek.Unescape(val[cstart:]))
 				}
-				builder.End()
+				builder.EndContainer()
 			default:
 				// regular (non-container) value
 				builder.Append(zeek.Unescape(val))
@@ -177,7 +177,7 @@ func NewRawAndTsFromZeekTSV(d *Descriptor, path []byte, data []byte) (zval.Encod
 		if isRec {
 			nestedCol++
 			if nestedCol == len(recType.Columns) {
-				builder.End()
+				builder.EndContainer()
 				nestedCol = 0
 				col++
 			}
@@ -275,7 +275,7 @@ const (
 //  1. an array of zvals corresponding to the indivdiual elements
 //  2. the passed-in byte array advanced past all the data that was parsed.
 func zsonParseContainer(builder *zval.Builder, typ zeek.Type, b []byte) ([]byte, error) {
-	builder.Begin()
+	builder.BeginContainer()
 	// skip leftbracket
 	b = b[1:]
 	childType, columns := zeek.ContainedType(typ)
@@ -285,7 +285,7 @@ func zsonParseContainer(builder *zval.Builder, typ zeek.Type, b []byte) ([]byte,
 			return nil, ErrUnterminated
 		}
 		if b[0] == rightbracket {
-			builder.End()
+			builder.EndContainer()
 			return b[1:], nil
 		}
 		if columns != nil {
