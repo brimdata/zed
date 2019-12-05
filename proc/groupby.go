@@ -52,7 +52,7 @@ func CompileGroupBy(node *ast.GroupByProc) (*GroupByParams, error) {
 			return nil, err
 		}
 		keys = append(keys, GroupByKey{
-			name:     groupKey(key),
+			name:     GroupKey(key),
 			resolver: resolver,
 		})
 	}
