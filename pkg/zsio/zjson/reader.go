@@ -175,7 +175,7 @@ func decodeType(columns []interface{}) (string, error) {
 }
 
 func decodeContainer(builder *zval.Builder, body []interface{}) error {
-	builder.Begin()
+	builder.BeginContainer()
 	for _, column := range body {
 		// each column either a string value or an array of string values
 		if column == nil {
@@ -206,6 +206,6 @@ func decodeContainer(builder *zval.Builder, body []interface{}) error {
 			return err
 		}
 	}
-	builder.End()
+	builder.EndContainer()
 	return nil
 }
