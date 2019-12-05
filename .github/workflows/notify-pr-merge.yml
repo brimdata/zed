@@ -21,5 +21,5 @@ jobs:
       if: steps.vars.outputs.merged == 'true' && steps.vars.outputs.nopost != '1'
       run: |
         cat $GITHUB_EVENT_PATH
-        cat $GITHUB_EVENT_PATH | jq '.pull_request | { "event_type": "zq-pr-merged", "client_payload": {body, "branch": .head.label, merge_commit_sha, number, title, "url": .html_url, "user": .user.login}}' > payload.json
+        cat $GITHUB_EVENT_PATH | jq '.pull_request | { "event_type": "zq-pr-merged", "client_payload": {body, "branch": .head.ref, merge_commit_sha, number, title, "url": .html_url, "user": .user.login}}' > payload.json
         curl -XPOST -u "${{ secrets.PAT_USERNAME }}:${{ secrets.PAT_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json"  -H "Content-Type: application/json" ${{ secrets.MERGE_EVENT_URL }} --data @payload.json
