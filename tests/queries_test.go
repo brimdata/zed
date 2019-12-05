@@ -1,3 +1,5 @@
+// +build system
+
 package tests
 
 import (

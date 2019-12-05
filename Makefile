@@ -14,7 +14,7 @@ test-unit:
 	@go test -short ./...
 
 test-system: build
-	@go test -v github.com/mccanne/zq/tests
+	@go test -tags=system ./test
 
 build:
 	@mkdir -p dist
