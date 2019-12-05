@@ -3,6 +3,7 @@ package resolver
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/mccanne/zq/pkg/zeek"
@@ -113,37 +114,26 @@ func (t *Table) newDescriptor(typ *zeek.TypeRecord, cols ...zeek.Column) *zson.D
 
 // AddColumns returns a new zson.Record with columns equal to the given
 // record along with new rightmost columns as indicated with the given values.
-// If any of the provided columns already exists in the specified value,
-// then the column and value is skipped and the original column is unchanged.
-// If all colunmns are already present in the given record, then that original
-// record is returned.
-//XXX this shoudl traverse over old zval and spice in the new vals
-func (t *Table) AddColumns(r *zson.Record, cols []zeek.Column, vals []string) (*zson.Record, error) {
-	var newCols []zeek.Column
-	var newVals []zval.Encoding
-	for i, c := range cols {
-		if !r.Descriptor.HasField(c.Name) {
-			v, err := zson.ZvalFromZeekString(c.Type, vals[i])
-			if err != nil {
-				return nil, err
-			}
-			newCols = append(newCols, c)
-			newVals = append(newVals, v)
+// If any of the newly provided columns already exists in the specified value,
+// an error is returned.
+func (t *Table) AddColumns(r *zson.Record, newCols []zeek.Column, vals []zeek.Value) (*zson.Record, error) {
+	oldCols := r.Descriptor.Type.Columns
+	outCols := make([]zeek.Column, len(oldCols), len(oldCols)+len(newCols))
+	copy(outCols, oldCols)
+	for _, c := range newCols {
+		if r.Descriptor.HasField(c.Name) {
+			return nil, fmt.Errorf("field already exists: %s", c.Name)
 		}
+		outCols = append(outCols, c)
 	}
-	if len(newCols) == 0 {
-		return r, nil
+	zv := make(zval.Encoding, len(r.Raw))
+	copy(zv, r.Raw)
+	for _, val := range vals {
+		zv = val.Encode(zv)
 	}
-	var oldVals []zval.Encoding
-	for it := r.ZvalIter(); !it.Done(); {
-		v, _, err := it.Next()
-		if err != nil {
-			return nil, err
-		}
-		oldVals = append(oldVals, v)
-	}
-	d := t.newDescriptor(r.Descriptor.Type, newCols...)
-	return zson.NewRecordZvals(d, append(oldVals, newVals...)...)
+	typ := zeek.LookupTypeRecord(outCols)
+	d := t.GetByValue(typ)
+	return zson.NewRecordNoTs(d, zv), nil
 }
 
 // Cache returns a cache of this table providing lockless lookups, but cannot
