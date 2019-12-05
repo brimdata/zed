@@ -14,7 +14,7 @@ type Exec struct {
 }
 
 func (e *Exec) Run() (string, error) {
-	cmd := exec.Command("sh", "-c", e.Command)
+	cmd := exec.Command("/bin/bash", "-c", "PATH=$PATH:$GOPATH/bin ; "+e.Command)
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout

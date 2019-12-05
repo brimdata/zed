@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestQueries(t *testing.T) {
+func TestInternal(t *testing.T) {
 	t.Parallel()
 	for _, d := range internals {
 		t.Run(d.Name, func(t *testing.T) {
@@ -16,11 +16,14 @@ func TestQueries(t *testing.T) {
 			assert.Exactly(t, d.Expected, results, "Wrong query results")
 		})
 	}
+}
+
+func TestCommands(t *testing.T) {
 	for _, cmd := range commands {
 		t.Run(cmd.Name, func(t *testing.T) {
 			results, err := cmd.Run()
 			require.NoError(t, err)
-			assert.Exactly(t, cmd.Expected, results, "Wrong query results")
+			assert.Exactly(t, cmd.Expected, results, "Wrong command results")
 		})
 	}
 }
