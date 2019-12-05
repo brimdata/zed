@@ -6,7 +6,7 @@ import (
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/zeek"
 	"github.com/mccanne/zq/pkg/zson"
-	"go.uber.org/zap"
+	"github.com/mccanne/zq/pkg/zson/lib"
 )
 
 type Uniq struct {
@@ -20,18 +20,11 @@ func NewUniq(c *Context, parent Proc, cflag bool) *Uniq {
 	return &Uniq{Base: Base{Context: c, Parent: parent}, cflag: cflag}
 }
 
-func (u *Uniq) wrap(t *zson.Record) *zson.Record {
+func (u *Uniq) wrap(r *zson.Record) *zson.Record {
 	if u.cflag {
-		cols := []zeek.Column{{Name: "_uniq", Type: zeek.TypeCount}}
-		vals := []zeek.Value{&zeek.Count{u.count}}
-		newR, err := u.Resolver.AddColumns(t, cols, vals)
-		if err != nil {
-			u.Logger.Error("AddColumns failed", zap.Error(err))
-			return t
-		}
-		return newR
+		r, _ = lib.Append(u.Resolver, r, "uniq_", &zeek.Count{u.count})
 	}
-	return t
+	return r
 }
 
 func (u *Uniq) appendUniq(out []*zson.Record, t *zson.Record) []*zson.Record {

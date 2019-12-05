@@ -2,6 +2,7 @@ package zson
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/mccanne/zq/pkg/zeek"
 )
@@ -71,4 +72,17 @@ func (d *Descriptor) createLUT() {
 			}
 		}
 	}
+}
+
+func (d *Descriptor) Extend(newCols []zeek.Column) (*zeek.TypeRecord, error) {
+	oldCols := d.Type.Columns
+	outCols := make([]zeek.Column, len(oldCols), len(oldCols)+len(newCols))
+	copy(outCols, oldCols)
+	for _, c := range newCols {
+		if d.HasField(c.Name) {
+			return nil, fmt.Errorf("field already exists: %s", c.Name)
+		}
+		outCols = append(outCols, c)
+	}
+	return zeek.LookupTypeRecord(outCols), nil
 }

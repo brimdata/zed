@@ -3,12 +3,10 @@ package resolver
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"sync"
 
 	"github.com/mccanne/zq/pkg/zeek"
 	"github.com/mccanne/zq/pkg/zson"
-	"github.com/mccanne/zq/pkg/zval"
 )
 
 var ErrExists = errors.New("descriptor exists with different type")
@@ -106,34 +104,12 @@ func (t *Table) GetByColumns(columns []zeek.Column) *zson.Descriptor {
 	return t.GetByValue(typ)
 }
 
-func (t *Table) newDescriptor(typ *zeek.TypeRecord, cols ...zeek.Column) *zson.Descriptor {
-	allcols := append(make([]zeek.Column, 0, len(typ.Columns)+len(cols)), typ.Columns...)
-	allcols = append(allcols, cols...)
-	return t.GetByValue(zeek.LookupTypeRecord(allcols))
-}
-
-// AddColumns returns a new zson.Record with columns equal to the given
-// record along with new rightmost columns as indicated with the given values.
-// If any of the newly provided columns already exists in the specified value,
-// an error is returned.
-func (t *Table) AddColumns(r *zson.Record, newCols []zeek.Column, vals []zeek.Value) (*zson.Record, error) {
-	oldCols := r.Descriptor.Type.Columns
-	outCols := make([]zeek.Column, len(oldCols), len(oldCols)+len(newCols))
-	copy(outCols, oldCols)
-	for _, c := range newCols {
-		if r.Descriptor.HasField(c.Name) {
-			return nil, fmt.Errorf("field already exists: %s", c.Name)
-		}
-		outCols = append(outCols, c)
+func (t *Table) Extend(d *zson.Descriptor, newCols []zeek.Column) (*zson.Descriptor, error) {
+	recType, err := d.Extend(newCols)
+	if err != nil {
+		return nil, err
 	}
-	zv := make(zval.Encoding, len(r.Raw))
-	copy(zv, r.Raw)
-	for _, val := range vals {
-		zv = val.Encode(zv)
-	}
-	typ := zeek.LookupTypeRecord(outCols)
-	d := t.GetByValue(typ)
-	return zson.NewRecordNoTs(d, zv), nil
+	return t.LookupByValue(recType), nil
 }
 
 // Cache returns a cache of this table providing lockless lookups, but cannot
