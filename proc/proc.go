@@ -94,7 +94,7 @@ type Compiler interface {
 }
 
 // Choose the name to use for a groupby key
-func groupKey(node ast.FieldExpr) string {
+func GroupKey(node ast.FieldExpr) string {
 	switch n := node.(type) {
 	case *ast.FieldRead:
 		return n.Field
@@ -102,7 +102,7 @@ func groupKey(node ast.FieldExpr) string {
 		if n.Fn == "RecordFieldRead" {
 			return n.Param
 		}
-		return groupKey(n.Field)
+		return GroupKey(n.Field)
 	default:
 		panic("unknown FieldExpr type")
 	}
