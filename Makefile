@@ -13,7 +13,7 @@ fmt:
 test-unit:
 	@go test -short ./...
 
-test-system:
+test-system: build
 	@go test -v github.com/mccanne/zq/tests
 
 build:
