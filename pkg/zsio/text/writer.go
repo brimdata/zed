@@ -33,11 +33,14 @@ func (t *Text) Write(rec *zson.Record) error {
 	var out []string
 	if t.ShowFields || t.ShowTypes || !t.EpochDates {
 		for k, col := range rec.Descriptor.Type.Columns {
-			var s string
-			v := string(rec.Slice(k))
+			var s, v string
 			if !t.EpochDates && col.Name == "ts" && col.Type == zeek.TypeTime {
 				ts := rec.ValueByColumn(k).(*zeek.Time).Native
 				v = ts.Time().UTC().Format(time.RFC3339Nano)
+			} else {
+				body := rec.Slice(k)
+				typ := col.Type
+				v = zson.ZvalToZeekString(typ, body, zeek.IsContainerType(typ))
 			}
 			if t.ShowFields {
 				s = col.Name + ":"
