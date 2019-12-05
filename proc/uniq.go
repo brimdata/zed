@@ -2,7 +2,6 @@ package proc
 
 import (
 	"bytes"
-	"strconv"
 
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/zeek"
@@ -13,7 +12,7 @@ import (
 type Uniq struct {
 	Base
 	cflag bool
-	count int
+	count uint64
 	last  *zson.Record
 }
 
@@ -24,7 +23,7 @@ func NewUniq(c *Context, parent Proc, cflag bool) *Uniq {
 func (u *Uniq) wrap(t *zson.Record) *zson.Record {
 	if u.cflag {
 		cols := []zeek.Column{{Name: "_uniq", Type: zeek.TypeCount}}
-		vals := []string{strconv.FormatInt(int64(u.count), 10)}
+		vals := []zeek.Value{&zeek.Count{u.count}}
 		newR, err := u.Resolver.AddColumns(t, cols, vals)
 		if err != nil {
 			u.Logger.Error("AddColumns failed", zap.Error(err))
