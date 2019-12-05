@@ -34,6 +34,10 @@ type arrayIndex struct {
 func (ai *arrayIndex) apply(e zeek.TypedEncoding) zeek.TypedEncoding {
 	el, err := e.VectorIndex(ai.idx)
 	if err != nil {
+		if err == zeek.ErrIndex {
+			typ := zeek.InnerType(e.Type)
+			return zeek.TypedEncoding{typ, nil}
+		}
 		return zeek.TypedEncoding{}
 	}
 	return el
