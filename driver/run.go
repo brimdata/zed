@@ -39,9 +39,11 @@ func (d *Driver) Write(cid int, arr zson.Batch) error {
 }
 
 func (d *Driver) WriteWarning(msg string) error {
-	_, err := fmt.Fprintln(d.warnings, msg)
-	if err != nil {
-		return err
+	if d.warnings != nil {
+		_, err := fmt.Fprintln(d.warnings, msg)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
