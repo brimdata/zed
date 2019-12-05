@@ -140,12 +140,18 @@ Here is a pseudo-grammar for ZSON types:
 
 <column> := <id> : <type>
 
-<id> := <identifier as defined by JavaScript spec [1]>
+<id> := <id_start> <id_continue>*
+
+<id_start> := [A-Za-z_$]
+
+<id_continue> := <id_start> | [0-9]
 
 <descriptor> := 0 | [1-9][0-9]*
 ```
 
-[1] - [JavaScript identifier specification](https://tc39.es/ecma262/#prod-IdentifierName)
+N.B.: The rules for columns names follow the same rules as
+[JavaScript identifiers](https://tc39.es/ecma262/#prod-IdentifierName)
+though they are limited to ASCII characters.
 
 A reference implementation of this type system is embedded in
 [zq/pkg/zeek](../../zeek).
