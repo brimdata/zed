@@ -132,7 +132,7 @@ func (t *Table) AddColumns(r *zson.Record, newCols []zeek.Column, vals []zeek.Va
 		zv = val.Encode(zv)
 	}
 	typ := zeek.LookupTypeRecord(outCols)
-	d := zson.NewDescriptor(typ)
+	d := t.GetByValue(typ)
 	return zson.NewRecordNoTs(d, zv), nil
 }
 
