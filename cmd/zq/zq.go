@@ -192,6 +192,9 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	output := driver.New(writer)
+	if c.warnings {
+		output.SetWarningsWriter(os.Stderr)
+	}
 	return output.Run(mux)
 }
 
