@@ -68,7 +68,7 @@ func (s *ShellTest) Read(name string) (string, error) {
 	return string(b), err
 }
 
-func (s *ShellTest) Run(root string) (string, string, error) {
+func (s *ShellTest) Run(root, pwd string) (string, string, error) {
 	var err error
 	f, err := s.Setup(root)
 	if err != nil {
@@ -76,7 +76,10 @@ func (s *ShellTest) Run(root string) (string, string, error) {
 	}
 	scriptName := f.Name()
 	// XXX this should be passed in from the environment using this package
-	src := "PATH=$PATH:$GOPATH/bin:$PWD/dist\n"
+	src := ""
+	if pwd != "" {
+		src += "PATH=$PATH:" + pwd + "\n"
+	}
 	src += "cd " + s.dir + "\n"
 	src += s.Script
 	_, err = f.Write([]byte(src))
@@ -87,6 +90,8 @@ func (s *ShellTest) Run(root string) (string, string, error) {
 	f.Close()
 	s.createInputFiles()
 	cmd := exec.Command("/bin/bash", scriptName)
+	cwd, _ := os.Getwd()
+	cmd.Env = []string{"PATH=" + filepath.Join(cwd, "dist")}
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
