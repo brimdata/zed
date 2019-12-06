@@ -14,7 +14,7 @@ test-unit:
 	@go test -short ./...
 
 test-system: build
-	@go test -v ./tests -args PATH=$(shell pwd)/dist
+	@go test -v -tags=system ./tests -args PATH=$(shell pwd)/dist
 
 build:
 	@mkdir -p dist

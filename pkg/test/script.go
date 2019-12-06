@@ -2,6 +2,7 @@ package test
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -22,8 +23,8 @@ type Shell struct {
 
 type ShellTest struct {
 	Shell
-	scriptFile *os.File
-	dir        string
+	scriptName string
+	subdir     string
 }
 
 func NewShellTest(s Shell) *ShellTest {
@@ -31,30 +32,45 @@ func NewShellTest(s Shell) *ShellTest {
 }
 
 // Setup creates a temp directory in the dir path provided.
-func (s *ShellTest) Setup(dir string) (*os.File, error) {
+func (s *ShellTest) Setup(dir, pwd string) error {
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		return nil, err
+		return err
 	}
-	d, err := ioutil.TempDir(dir, "test")
-	if err != nil {
-		return nil, err
+	s.subdir = filepath.Join(dir, s.Name)
+	// If a test dir is still around because a previous run failed (so cleanup
+	// deliberately didn't happen), clear out the old directory so it's fresh
+	// for a new test run.
+	os.RemoveAll(s.subdir)
+
+	if err := os.Mkdir(s.subdir, 0755); err != nil {
+		return err
 	}
-	f, err := ioutil.TempFile(dir, "test*.sh")
-	if err != nil {
-		return nil, err
+
+	script := ""
+	if pwd != "" {
+		script += "PATH=$PATH:" + pwd + "\n"
 	}
-	s.dir = d
-	return f, nil
+	script += "cd " + s.subdir + "\n"
+	script += s.Script
+
+	fmt.Println("SCRIPT", script)
+
+	s.scriptName = filepath.Join(s.subdir, s.Name+".sh")
+	if err := ioutil.WriteFile(s.scriptName, []byte(script), 0644); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *ShellTest) Cleanup() {
-	os.RemoveAll(s.dir)
+	os.Remove(s.scriptName)
+	os.RemoveAll(s.subdir)
 
 }
 
 func (s *ShellTest) createInputFiles() error {
 	for _, file := range s.Input {
-		path := filepath.Join(s.dir, file.Name)
+		path := filepath.Join(s.subdir, file.Name)
 		if err := ioutil.WriteFile(path, []byte(file.Data), 0644); err != nil {
 			return err
 		}
@@ -63,39 +79,26 @@ func (s *ShellTest) createInputFiles() error {
 }
 
 func (s *ShellTest) Read(name string) (string, error) {
-	path := filepath.Join(s.dir, name)
+	path := filepath.Join(s.subdir, name)
 	b, err := ioutil.ReadFile(path)
 	return string(b), err
 }
 
 func (s *ShellTest) Run(root, pwd string) (string, string, error) {
-	var err error
-	f, err := s.Setup(root)
-	if err != nil {
+	if err := s.Setup(root, pwd); err != nil {
 		return "", "", err
 	}
-	scriptName := f.Name()
-	// XXX this should be passed in from the environment using this package
-	src := ""
-	if pwd != "" {
-		src += "PATH=$PATH:" + pwd + "\n"
-	}
-	src += "cd " + s.dir + "\n"
-	src += s.Script
-	_, err = f.Write([]byte(src))
-	if err != nil {
-		f.Close()
-		return "", "", err
-	}
-	f.Close()
 	s.createInputFiles()
-	cmd := exec.Command("/bin/bash", scriptName)
+	cmd := exec.Command("/bin/bash", s.scriptName)
 	cwd, _ := os.Getwd()
 	cmd.Env = []string{"PATH=" + filepath.Join(cwd, "dist")}
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
-	err = cmd.Run()
-	return string(stdout.Bytes()), string(stderr.Bytes()), err
+	err := cmd.Run()
+	if err != nil {
+		err = fmt.Errorf("%s: (%s) failed with stderr: %s", s.scriptName, err, stderr.String())
+	}
+	return stdout.String(), stderr.String(), err
 }
