@@ -1,16 +1,15 @@
-// Package raw provides an API for reading and writing zson values and
-// directives in raw format.  The Reader and Writer types implement the
+// Package bzson provides an API for reading and writing zson values and
+// directives in binary zson format.  The Reader and Writer types implement the
 // the zson.Reader and zson.Writer interfaces.  Since these methods
-// read and write only zson.Records, but the raw format includes additional
+// read and write only zson.Records, but the bzson format includes additional
 // functionality, other methods are available to read/write zson comments
 // and include virtual channel numbers in the stream.  Virtual channels
 // provide a way to indicate which output of a flowgraph a result came from
-// when a flowgraph computes multiple output channels.  The raw values in
-// this zson value are either "string format" (represented either as UTF-8
-// strings with zeek escaping) or "machine format" (encoded in a architecture
+// when a flowgraph computes multiple output channels.  The bzson values in
+// this zson value (will be) are "machine format" (encoded in a architecture
 // independent binary format).  The vanilla zson.Reader and zson.Writer
 // implementations ignore comments and channels.
-package raw
+package bzson
 
 import (
 	"encoding/binary"
@@ -45,7 +44,7 @@ const minHeaderSize = 3
 func writeHeader(w io.Writer, typ, ch, id, length int) (int, error) {
 	var hdr [maxHeaderSize]byte
 	if ch != 0 && typ != TypeValue {
-		return 0, errors.New("raw encoding channel valid only with values")
+		return 0, errors.New("bzson encoding channel valid only with values")
 	}
 	if ch != 0 {
 		typ |= ChannelFlag
@@ -70,7 +69,7 @@ func parseHeader(b []byte, h *header) (int, error) {
 	typ := int(b[0])
 	off := 1
 	if typ&MachineFlag != 0 {
-		return 0, errors.New("machine-format raw zson not yet implemented")
+		return 0, errors.New("machine-format bzson not yet implemented")
 	}
 	if typ&ChannelFlag != 0 {
 		ch, n := binary.Uvarint(b[off:])

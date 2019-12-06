@@ -4,8 +4,8 @@ import (
 	"errors"
 	"io"
 
+	"github.com/mccanne/zq/pkg/zsio/bzson"
 	"github.com/mccanne/zq/pkg/zsio/ndjson"
-	"github.com/mccanne/zq/pkg/zsio/raw"
 	"github.com/mccanne/zq/pkg/zsio/zjson"
 	zsonio "github.com/mccanne/zq/pkg/zsio/zson"
 	"github.com/mccanne/zq/pkg/zson"
@@ -31,8 +31,8 @@ func NewReader(r io.Reader, t *resolver.Table) (zson.Reader, error) {
 		return ndjson.NewReader(recorder, t), nil
 	}
 	track.Reset()
-	if match(raw.NewReader(track, resolver.NewTable())) {
-		return raw.NewReader(recorder, t), nil
+	if match(bzson.NewReader(track, resolver.NewTable())) {
+		return bzson.NewReader(recorder, t), nil
 	}
 	return nil, ErrUnknown
 }
