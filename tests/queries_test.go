@@ -10,7 +10,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func systest(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping system test during unit test run")
+	}
+}
+
 func TestInternal(t *testing.T) {
+	systest(t)
 	t.Parallel()
 	for _, d := range internals {
 		t.Run(d.Name, func(t *testing.T) {
@@ -22,6 +29,7 @@ func TestInternal(t *testing.T) {
 }
 
 func TestCommands(t *testing.T) {
+	systest(t)
 	for _, cmd := range commands {
 		t.Run(cmd.Name, func(t *testing.T) {
 			results, err := cmd.Run()
@@ -32,6 +40,7 @@ func TestCommands(t *testing.T) {
 }
 
 func TestScripts(t *testing.T) {
+	systest(t)
 	for _, script := range scripts {
 		t.Run(script.Name, func(t *testing.T) {
 			var fail bool
