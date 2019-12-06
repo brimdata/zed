@@ -14,7 +14,7 @@ test-unit:
 	@go test -short ./...
 
 test-system: build
-	@go test -tags=system ./test
+	@go test -tags=system ./tests
 
 build:
 	@mkdir -p dist
