@@ -10,6 +10,7 @@ import (
 	"github.com/mccanne/zq/driver"
 	"github.com/mccanne/zq/emitter"
 	"github.com/mccanne/zq/filter"
+	"github.com/mccanne/zq/pkg/zsio"
 	"github.com/mccanne/zq/pkg/zsio/detector"
 	"github.com/mccanne/zq/pkg/zsio/text"
 	"github.com/mccanne/zq/pkg/zson"
@@ -213,19 +214,11 @@ func (c *Command) loadFile(path string) (zson.Reader, error) {
 		}
 	}
 
-	switch ext := c.ifmt; ext {
+	switch c.ifmt {
 	case "auto":
 		return detector.NewReader(f, c.dt)
-	case "ndjson":
-		return zsio.LookupReader("ndjson", f, c.dt), nil
-	case "raw":
-		return zsio.LookupReader("raw", f, c.dt), nil
-	case "zeek":
-		return zsio.LookupReader("zeek", f, c.dt), nil
-	case "zjson":
-		return zsio.LookupReader("zjson", f, c.dt), nil
-	case "zson":
-		return zsio.LookupReader("zson", f, c.dt), nil
+	case "ndjson", "raw", "zeek", "zjson", "zson":
+		return zsio.LookupReader(c.ifmt, f, c.dt), nil
 	default:
 		return nil, fmt.Errorf("unknown input format %s", c.ifmt)
 	}
