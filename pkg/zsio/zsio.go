@@ -3,8 +3,8 @@ package zsio
 import (
 	"io"
 
+	"github.com/mccanne/zq/pkg/zsio/bzson"
 	"github.com/mccanne/zq/pkg/zsio/ndjson"
-	"github.com/mccanne/zq/pkg/zsio/raw"
 	"github.com/mccanne/zq/pkg/zsio/table"
 	"github.com/mccanne/zq/pkg/zsio/text"
 	"github.com/mccanne/zq/pkg/zsio/zeek"
@@ -42,6 +42,8 @@ func LookupWriter(format string, w io.WriteCloser, tc *text.Config) *Writer {
 		return nil
 	case "zson":
 		f = zson.NopFlusher(zsonio.NewWriter(w))
+	case "bzson":
+		f = zson.NopFlusher(bzson.NewWriter(w))
 	case "zeek":
 		f = zson.NopFlusher(zeek.NewWriter(w))
 	case "ndjson":
@@ -52,8 +54,6 @@ func LookupWriter(format string, w io.WriteCloser, tc *text.Config) *Writer {
 		f = zson.NopFlusher(text.NewWriter(w, tc))
 	case "table":
 		f = table.NewWriter(w)
-	case "raw":
-		f = zson.NopFlusher(raw.NewWriter(w))
 	}
 	return &Writer{
 		WriteFlusher: f,
@@ -69,8 +69,8 @@ func LookupReader(format string, r io.Reader, table *resolver.Table) zson.Reader
 		return ndjson.NewReader(r, table)
 	case "zjson":
 		return zjson.NewReader(r, table)
-	case "raw":
-		return raw.NewReader(r, table)
+	case "bzson":
+		return bzson.NewReader(r, table)
 	}
 	return nil
 }
@@ -84,13 +84,13 @@ func Extension(format string) string {
 	case "ndjson":
 		return ".ndjson"
 	case "zjson":
-		return ".zjson"
+		return ".ndjson"
 	case "text":
 		return ".txt"
 	case "table":
 		return ".tbl"
-	case "raw":
-		return ".raw"
+	case "bzson":
+		return ".bzson"
 	default:
 		return ""
 	}

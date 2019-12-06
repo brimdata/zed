@@ -89,8 +89,8 @@ type Command struct {
 func New(f *flag.FlagSet) (charm.Command, error) {
 	cwd, _ := os.Getwd()
 	c := &Command{dt: resolver.NewTable()}
-	f.StringVar(&c.ifmt, "i", "auto", "format of input data [auto,ndjson,raw,zeek,zjson,zson]")
-	f.StringVar(&c.ofmt, "f", "zson", "format for output data [text,table,zeek,ndjson,raw,zson]")
+	f.StringVar(&c.ifmt, "i", "auto", "format of input data [auto,bzson,ndjson,zeek,zjson,zson]")
+	f.StringVar(&c.ofmt, "f", "zson", "format for output data [text,table,zeek,ndjson,bzson,zson]")
 	f.StringVar(&c.path, "p", cwd, "path for input")
 	f.StringVar(&c.dir, "d", "", "directory for output data files")
 	f.StringVar(&c.outputFile, "o", "", "write data to output file")

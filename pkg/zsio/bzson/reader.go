@@ -1,4 +1,4 @@
-package raw
+package bzson
 
 import (
 	"fmt"

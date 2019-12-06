@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mccanne/zq/pkg/zsio/raw"
+	"github.com/mccanne/zq/pkg/zsio/bzson"
 	"github.com/mccanne/zq/pkg/zsio/zjson"
 	zsonio "github.com/mccanne/zq/pkg/zsio/zson"
 	"github.com/mccanne/zq/pkg/zson"
@@ -35,17 +35,17 @@ func identity(t *testing.T, logs string) {
 	}
 }
 
-// Send logs to zson reader -> raw writer -> raw reader -> zson writer
+// Send logs to zson reader -> bzson writer -> bzson reader -> zson writer
 func boomerang(t *testing.T, logs string) {
 	in := []byte(strings.TrimSpace(logs) + "\n")
 	zsonSrc := zsonio.NewReader(bytes.NewReader(in), resolver.NewTable())
 	var rawZson Output
-	rawDst := zson.NopFlusher(raw.NewWriter(&rawZson))
+	rawDst := zson.NopFlusher(bzson.NewWriter(&rawZson))
 	err := zson.Copy(rawDst, zsonSrc)
 	require.NoError(t, err)
 
 	var out Output
-	rawSrc := raw.NewReader(bytes.NewReader(rawZson.Bytes()), resolver.NewTable())
+	rawSrc := bzson.NewReader(bytes.NewReader(rawZson.Bytes()), resolver.NewTable())
 	zsonDst := zson.NopFlusher(zsonio.NewWriter(&out))
 	err = zson.Copy(zsonDst, rawSrc)
 	if assert.NoError(t, err) {
@@ -182,11 +182,11 @@ func TestCtrl(t *testing.T) {
 	r := zsonio.NewControlReader(reader, resolver.NewTable())
 
 	var rawZson Output
-	rawDst := zson.NopFlusher(raw.NewWriter(&rawZson))
+	rawDst := zson.NopFlusher(bzson.NewWriter(&rawZson))
 	err := zson.Copy(rawDst, r)
 	require.NoError(t, err)
 
-	rawReader := raw.NewControlReader(bytes.NewReader(rawZson.Bytes()), resolver.NewTable())
+	rawReader := bzson.NewControlReader(bytes.NewReader(rawZson.Bytes()), resolver.NewTable())
 
 	rec, err := rawReader.Read()
 	assert.NoError(t, err)
