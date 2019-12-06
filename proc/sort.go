@@ -106,7 +106,10 @@ func (s *Sort) sort() zson.Batch {
 		}
 		s.fields = []expr.FieldExprResolver{resolver}
 	}
-	sorter := expr.NewSortFn(s.dir, s.fields...)
-	expr.SortStable(out, sorter)
+	sorter := expr.NewSortFn(true, s.fields...)
+	sortWithDir := func(a, b *zson.Record) int {
+		return s.dir * sorter(a, b)
+	}
+	expr.SortStable(out, sortWithDir)
 	return zson.NewArray(out, nano.NewSpanTs(s.MinTs, s.MaxTs))
 }

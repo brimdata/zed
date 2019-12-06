@@ -70,8 +70,7 @@ func (s *Top) consume(rec *zson.Record) {
 		s.fields = []expr.FieldExprResolver{resolver}
 	}
 	if s.records == nil {
-		// 1 == MaxHeap
-		s.sorter = expr.NewSortFn(1, s.fields...)
+		s.sorter = expr.NewSortFn(false, s.fields...)
 		s.records = expr.NewRecordSlice(s.sorter)
 		heap.Init(s.records)
 	}

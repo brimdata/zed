@@ -13,16 +13,25 @@ type SortFn func(a *zson.Record, b *zson.Record) int
 // Internal function that compares two values of compatible types.
 type comparefn func(a, b []byte) int
 
-func rawcompare(a, b []byte, dir int) int {
-	v := bytes.Compare(a, b)
-	if v < 0 {
-		return -dir
-	} else {
-		return dir
+func isUnset(val zeek.TypedEncoding) bool {
+	if val.Body == nil || zeek.SameType(val.Type, zeek.TypeNone) || zeek.SameType(val.Type, zeek.TypeUnset) {
+		return true
 	}
+	return false
 }
 
-func NewSortFn(dir int, fields ...FieldExprResolver) SortFn {
+// NewSortFn creates a function that compares a pair of Records
+// based on the provided ordered list of fields.
+// The returned function uses the same return conventions as standard
+// routines such as bytes.Compare() and strings.Compare(), so it may
+// be used with packages such as heap and sort.
+// A record in which one of the comparison fields is not present is
+// considered to be smaller than a record in which the field is present.
+// The handling of records in which a comparison field is unset is
+// governed by the unsetMax parameter.  If this parameter is true,
+// a record with unset is considered larger than a record with any other
+// value, and vice versa.
+func NewSortFn(unsetMax bool, fields ...FieldExprResolver) SortFn {
 	sorters := make(map[zeek.Type]comparefn)
 	return func(ra *zson.Record, rb *zson.Record) int {
 		for _, resolver := range fields {
@@ -30,26 +39,48 @@ func NewSortFn(dir int, fields ...FieldExprResolver) SortFn {
 			b := resolver(rb)
 
 			// Nil types indicate a field isn't present, sort
-			// these records last
+			// these records to the minimum value so they appear
+			// first in sort output.
 			if a.Type == nil && b.Type == nil {
 				return 0
 			}
 			if a.Type == nil {
-				return 1
+				return -1
 			}
 			if b.Type == nil {
-				return -1
+				return 1
+			}
+
+			// Handle unset according to unsetMax
+			unsetA := isUnset(a)
+			unsetB := isUnset(b)
+			if unsetA && unsetB {
+				return 0
+			}
+			if unsetA {
+				if unsetMax {
+					return 1
+				} else {
+					return -1
+				}
+			}
+			if unsetB {
+				if unsetMax {
+					return -1
+				} else {
+					return 1
+				}
 			}
 
 			// If values are of different types, just compare
 			// the string representation of the type
 			if !zeek.SameType(a.Type, b.Type) {
-				return rawcompare([]byte(a.Type.String()), []byte(b.Type.String()), dir)
+				return bytes.Compare([]byte(a.Type.String()), []byte(b.Type.String()))
 			}
 
 			sf, ok := sorters[a.Type]
 			if !ok {
-				sf = lookupSorter(a.Type, dir)
+				sf = lookupSorter(a.Type)
 				sorters[a.Type] = sf
 			}
 
@@ -109,34 +140,34 @@ func (s *RecordSlice) Index(i int) *zson.Record {
 	return s.records[i]
 }
 
-func lookupSorter(typ zeek.Type, dir int) comparefn {
+func lookupSorter(typ zeek.Type) comparefn {
 	switch typ {
 	default:
 		return func(a, b []byte) int {
-			return rawcompare(a, b, dir)
+			return bytes.Compare(a, b)
 		}
 	case zeek.TypeBool:
 		return func(a, b []byte) int {
 			va, err := zeek.TypeBool.Parse(a)
 			if err != nil {
-				return -dir
+				return -1
 			}
 			vb, err := zeek.TypeBool.Parse(b)
 			if err != nil {
-				return dir
+				return 1
 			}
 			if va == vb {
 				return 0
 			}
 			if va {
-				return dir
+				return 1
 			}
-			return -dir
+			return -1
 		}
 
 	case zeek.TypeString, zeek.TypeEnum:
 		return func(a, b []byte) int {
-			return rawcompare(a, b, dir)
+			return bytes.Compare(a, b)
 		}
 
 	//XXX note zeek port type can have "/tcp" etc suffix according
@@ -147,16 +178,16 @@ func lookupSorter(typ zeek.Type, dir int) comparefn {
 		return func(a, b []byte) int {
 			va, err := zeek.TypeInt.Parse(a)
 			if err != nil {
-				return -dir
+				return -1
 			}
 			vb, err := zeek.TypeInt.Parse(b)
 			if err != nil {
-				return dir
+				return 1
 			}
 			if va < vb {
-				return -dir
+				return -1
 			} else if va > vb {
-				return dir
+				return 1
 			}
 			return 0
 		}
@@ -165,16 +196,16 @@ func lookupSorter(typ zeek.Type, dir int) comparefn {
 		return func(a, b []byte) int {
 			va, err := zeek.TypeDouble.Parse(a)
 			if err != nil {
-				return -dir
+				return -1
 			}
 			vb, err := zeek.TypeDouble.Parse(b)
 			if err != nil {
-				return dir
+				return 1
 			}
 			if va < vb {
-				return -dir
+				return -1
 			} else if va > vb {
-				return dir
+				return 1
 			}
 			return 0
 		}
@@ -183,16 +214,16 @@ func lookupSorter(typ zeek.Type, dir int) comparefn {
 		return func(a, b []byte) int {
 			va, err := zeek.TypeTime.Parse(a)
 			if err != nil {
-				return -dir
+				return -1
 			}
 			vb, err := zeek.TypeTime.Parse(b)
 			if err != nil {
-				return dir
+				return 1
 			}
 			if va < vb {
-				return -dir
+				return -1
 			} else if va > vb {
-				return dir
+				return 1
 			}
 			return 0
 		}
@@ -201,13 +232,13 @@ func lookupSorter(typ zeek.Type, dir int) comparefn {
 		return func(a, b []byte) int {
 			va, err := zeek.TypeAddr.Parse(a)
 			if err != nil {
-				return -dir
+				return -1
 			}
 			vb, err := zeek.TypeAddr.Parse(b)
 			if err != nil {
-				return dir
+				return 1
 			}
-			return bytes.Compare(va.To16(), vb.To16()) * dir
+			return bytes.Compare(va.To16(), vb.To16())
 		}
 	}
 }
