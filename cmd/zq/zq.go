@@ -10,7 +10,6 @@ import (
 	"github.com/mccanne/zq/driver"
 	"github.com/mccanne/zq/emitter"
 	"github.com/mccanne/zq/filter"
-	"github.com/mccanne/zq/pkg/zsio"
 	"github.com/mccanne/zq/pkg/zsio/detector"
 	"github.com/mccanne/zq/pkg/zsio/text"
 	"github.com/mccanne/zq/pkg/zson"
@@ -166,21 +165,17 @@ func (c *Command) Run(args []string) error {
 		}
 	} else {
 		paths = args[1:]
+		if len(paths) == 0 {
+			return Zq.Exec(c, []string{"help"})
+		}
 		query, err = zql.ParseProc(args[0])
 		if err != nil {
 			return fmt.Errorf("parse error: %s", err)
 		}
 	}
 	var reader zson.Reader
-	if len(paths) > 0 {
-		if reader, err = c.loadFiles(paths); err != nil {
-			return err
-		}
-	} else {
-		// XXX lookup reader based on specified input type or just
-		// use a TBD zsio.Peeker to delay creation of the reader until it reads
-		// a few lines and infers the right type
-		reader = zsio.LookupReader("zeek", os.Stdin, c.dt)
+	if reader, err = c.loadFiles(paths); err != nil {
+		return err
 	}
 	writer, err := c.openOutput()
 	if err != nil {
