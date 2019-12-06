@@ -13,8 +13,12 @@ type Exec struct {
 	Expected string
 }
 
-func (e *Exec) Run() (string, error) {
-	cmd := exec.Command("/bin/bash", "-c", "PATH=$PATH:$GOPATH/bin ; "+e.Command)
+func (e *Exec) Run(path string) (string, error) {
+	src := e.Command
+	if path != "" {
+		src = "PATH=$PATH:" + path + " ; " + src
+	}
+	cmd := exec.Command("/bin/bash", "-c", src)
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
