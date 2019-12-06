@@ -74,7 +74,8 @@ func init() {
 
 type Command struct {
 	dt         *resolver.Table
-	format     string
+	ifmt       string
+	ofmt       string
 	dir        string
 	path       string
 	outputFile string
@@ -87,7 +88,8 @@ type Command struct {
 func New(f *flag.FlagSet) (charm.Command, error) {
 	cwd, _ := os.Getwd()
 	c := &Command{dt: resolver.NewTable()}
-	f.StringVar(&c.format, "f", "zson", "format for output data [text,table,zeek,ndjson,raw,zson]")
+	f.StringVar(&c.ifmt, "i", "auto", "format of input data [auto,ndjson,raw,zeek,zjson,zson]")
+	f.StringVar(&c.ofmt, "f", "zson", "format for output data [text,table,zeek,ndjson,raw,zson]")
 	f.StringVar(&c.path, "p", cwd, "path for input")
 	f.StringVar(&c.dir, "d", "", "directory for output data files")
 	f.StringVar(&c.outputFile, "o", "", "write data to output file")
@@ -210,7 +212,23 @@ func (c *Command) loadFile(path string) (zson.Reader, error) {
 			return nil, err
 		}
 	}
-	return detector.NewReader(f, c.dt)
+
+	switch ext := c.ifmt; ext {
+	case "auto":
+		return detector.NewReader(f, c.dt)
+	case "ndjson":
+		return zsio.LookupReader("ndjson", f, c.dt), nil
+	case "raw":
+		return zsio.LookupReader("raw", f, c.dt), nil
+	case "zeek":
+		return zsio.LookupReader("zeek", f, c.dt), nil
+	case "zjson":
+		return zsio.LookupReader("zjson", f, c.dt), nil
+	case "zson":
+		return zsio.LookupReader("zson", f, c.dt), nil
+	default:
+		return nil, fmt.Errorf("unknown input format %s", c.ifmt)
+	}
 }
 
 func (c *Command) errorf(format string, args ...interface{}) {
@@ -238,13 +256,13 @@ func (c *Command) loadFiles(paths []string) (zson.Reader, error) {
 
 func (c *Command) openOutput() (zson.WriteCloser, error) {
 	if c.dir != "" {
-		d, err := emitter.NewDir(c.dir, c.outputFile, c.format, os.Stderr, &c.Config)
+		d, err := emitter.NewDir(c.dir, c.outputFile, c.ofmt, os.Stderr, &c.Config)
 		if err != nil {
 			return nil, err
 		}
 		return d, nil
 	}
-	w, err := emitter.NewFile(c.outputFile, c.format, &c.Config)
+	w, err := emitter.NewFile(c.outputFile, c.ofmt, &c.Config)
 	if err != nil {
 		return nil, err
 	}
