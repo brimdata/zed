@@ -75,7 +75,8 @@ func (s *ShellTest) Run(root string) (string, string, error) {
 		return "", "", err
 	}
 	scriptName := f.Name()
-	src := "PATH=$PATH:$GOPATH/bin\n"
+	// XXX this should be passed in from the environment using this package
+	src := "PATH=$PATH:$GOPATH/bin:$PWD/dist\n"
 	src += "cd " + s.dir + "\n"
 	src += s.Script
 	_, err = f.Write([]byte(src))
