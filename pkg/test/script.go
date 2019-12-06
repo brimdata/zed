@@ -53,8 +53,6 @@ func (s *ShellTest) Setup(dir, pwd string) error {
 	script += "cd " + s.subdir + "\n"
 	script += s.Script
 
-	fmt.Println("SCRIPT", script)
-
 	s.scriptName = filepath.Join(s.subdir, s.Name+".sh")
 	if err := ioutil.WriteFile(s.scriptName, []byte(script), 0644); err != nil {
 		return err
