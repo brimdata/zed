@@ -217,7 +217,7 @@ func (c *Command) loadFile(path string) (zson.Reader, error) {
 	switch c.ifmt {
 	case "auto":
 		return detector.NewReader(f, c.dt)
-	case "ndjson", "raw", "zeek", "zjson", "zson":
+	case "ndjson", "bzson", "zeek", "zjson", "zson":
 		return zsio.LookupReader(c.ifmt, f, c.dt), nil
 	default:
 		return nil, fmt.Errorf("unknown input format %s", c.ifmt)
