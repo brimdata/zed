@@ -178,38 +178,25 @@ func TestCtrl(t *testing.T) {
 	// this tests reading of control via text zson,
 	// then writing of raw control, and reading back the result
 	in := []byte(strings.TrimSpace(ctrl) + "\n")
-	reader := bytes.NewReader(in)
-	r := zsonio.NewControlReader(reader, resolver.NewTable())
+	r := zsonio.NewReader(bytes.NewReader(in), resolver.NewTable())
 
-	var rawZson Output
-	rawDst := zson.NopFlusher(bzson.NewWriter(&rawZson))
-	err := zson.Copy(rawDst, r)
-	require.NoError(t, err)
-
-	rawReader := bzson.NewControlReader(bytes.NewReader(rawZson.Bytes()), resolver.NewTable())
-
-	rec, err := rawReader.Read()
+	_, body, err := r.ReadPayload()
 	assert.NoError(t, err)
-	assert.True(t, rec.IsControl())
-	assert.Equal(t, rec.Raw.Bytes(), []byte("message1"))
+	assert.Equal(t, body, []byte("message1"))
 
-	rec, err = rawReader.Read()
+	_, body, err = r.ReadPayload()
 	assert.NoError(t, err)
-	assert.True(t, rec.IsControl())
-	assert.Equal(t, rec.Raw.Bytes(), []byte("message2"))
+	assert.Equal(t, body, []byte("message2"))
 
-	rec, err = rawReader.Read()
+	_, body, err = r.ReadPayload()
 	assert.NoError(t, err)
-	assert.False(t, rec.IsControl())
+	assert.True(t, body == nil)
 
-	rec, err = rawReader.Read()
+	_, body, err = r.ReadPayload()
 	assert.NoError(t, err)
-	assert.True(t, rec.IsControl())
-	assert.Equal(t, rec.Raw.Bytes(), []byte("message3"))
+	assert.Equal(t, body, []byte("message3"))
 
-	rec, err = rawReader.Read()
+	_, body, err = r.ReadPayload()
 	assert.NoError(t, err)
-	assert.True(t, rec.IsControl())
-	assert.Equal(t, rec.Raw.Bytes(), []byte("message4"))
-
+	assert.Equal(t, body, []byte("message4"))
 }

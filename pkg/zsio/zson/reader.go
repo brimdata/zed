@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-	"strings"
 
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/skim"
@@ -50,7 +49,6 @@ type Reader struct {
 	stats     ReadStats
 	mapper    *resolver.Mapper
 	legacyVal bool
-	ctrl      bool
 	parser    *zson.Parser
 }
 
@@ -66,70 +64,64 @@ func NewReader(reader io.Reader, r *resolver.Table) *Reader {
 	}
 }
 
-func NewControlReader(reader io.Reader, t *resolver.Table) *Reader {
-	r := NewReader(reader, t)
-	r.ctrl = true
-	return r
+func (r *Reader) Read() (*zson.Record, error) {
+	for {
+		r, b, err := r.ReadPayload()
+		if b != nil {
+			if err != nil {
+				return nil, err
+			}
+			continue
+		}
+		return r, err
+	}
 }
 
-func (r *Reader) Read() (*zson.Record, error) {
+func (r *Reader) ReadPayload() (*zson.Record, []byte, error) {
 again:
 	line, err := r.scanner.ScanLine()
 	if line == nil {
 		if err != nil {
 			err = scanErr(err, r.stats.Lines)
 		}
-		return nil, err
+		return nil, nil, err
 	}
 	// remove newline
 	line = bytes.TrimSpace(line)
 	if line[0] == '#' {
 		b, err := r.parseDirective(line)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		if b != nil && r.ctrl {
-			return zson.NewControlRecord(b), nil
+		if b != nil {
+			return nil, b, nil
 		}
 		goto again
 	}
 	rec, err := r.parseValue(line)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	r.stats.RecordsRead++
-	return rec, nil
+	return rec, nil, nil
 }
 
-func parseLeadingInt(line []byte) (int, uint16, []byte, error) {
+func parseLeadingInt(line []byte) (int, []byte, error) {
 	i := bytes.IndexByte(line, byte(':'))
 	if i < 0 {
-		return -1, 0, nil, ErrBadFormat
+		return -1, nil, ErrBadFormat
 	}
 	s := string(line[:i])
-	k := strings.IndexByte(s, '.')
-	var ch uint16
-	if k >= 0 {
-		v, err := strconv.ParseUint(s[k+1:], 10, 32)
-		if err != nil {
-			return -1, 0, nil, err
-		}
-		if v > 0xffff {
-			return -1, 0, nil, fmt.Errorf("channel out of range: %d", v)
-		}
-		s = s[:k]
-		ch = uint16(v)
-	}
 	v, err := strconv.ParseUint(s, 10, 32)
 	if err != nil {
-		return -1, 0, nil, err
+		return -1, nil, err
 	}
-	return int(v), ch, line[i+1:], nil
+	return int(v), line[i+1:], nil
 }
 
 func (r *Reader) parseDescriptor(line []byte) error {
 	// #int:type
-	id, _, rest, err := parseLeadingInt(line)
+	id, rest, err := parseLeadingInt(line)
 	if err != nil {
 		return err
 	}
@@ -195,7 +187,7 @@ func (r *Reader) parseValue(line []byte) (*zson.Record, error) {
 	// From the zson spec:
 	// A regular value is encoded on a line as type descriptor
 	// followed by ":" followed by a value encoding.
-	id, ch, rest, err := parseLeadingInt(line)
+	id, rest, err := parseLeadingInt(line)
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +210,6 @@ func (r *Reader) parseValue(line []byte) (*zson.Record, error) {
 	if err == nil {
 		record.Ts = ts
 	}
-	record.Channel = uint16(ch)
 	// Ignore errors, it just means the point doesn't have a ts field
 	return record, nil
 }
