@@ -5,7 +5,7 @@ import (
 )
 
 var Test = test.Shell{
-	Name:   "dir-option",
+	Name:   "dir-option-zeek",
 	Script: `zq -f zeek -d out "*" in.zson`,
 	Input:  []test.File{test.File{"in.zson", test.Trim(input)}},
 	Expected: []test.File{
@@ -15,7 +15,7 @@ var Test = test.Shell{
 }
 
 var Test2 = test.Shell{
-	Name:   "dir-option",
+	Name:   "dir-option-zson",
 	Script: `zq -f zson -d out -o foo- "*" in.zson`,
 	Input:  []test.File{test.File{"in.zson", test.Trim(input)}},
 	Expected: []test.File{
