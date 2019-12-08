@@ -531,10 +531,11 @@ h16 = chars:hexdigit+ { RETURN(TEXT) }
 
 hexdigit = [0-9a-fA-F]
 
-boomWord "boomWord" = chars:boomWordPart+ { RETURN(TEXT) }
+boomWord "boomWord" = chars:boomWordPart+ { RETURN(joinChars(chars)) }
 
 boomWordPart
-  = !([\x00-\x1F\x5C(),!><=DQUOTE|SQUOTE;] / ws) .
+  = "\\" s:escapeSequence  { RETURN(s) }
+  / !([\x00-\x1F\x5C(),!><=DQUOTE|SQUOTE;] / ws) . { RETURN(TEXT) }
 
 quotedString
   = '"' v:doubleQuotedChar* '"' { RETURN(joinChars(v)) }
@@ -548,7 +549,10 @@ singleQuotedChar
   = !("'" / escapedChar) . { RETURN(TEXT) }
   / "\\" s:escapeSequence { RETURN(s) }
 
-escapeSequence = singleCharEscape / unicodeEscape
+escapeSequence
+  = "x" hexdigit hexdigit { RETURN("\\" + TEXT) }
+  / singleCharEscape
+  / unicodeEscape
 
 singleCharEscape
   = "'"

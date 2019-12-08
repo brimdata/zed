@@ -21,3 +21,6 @@ _path=conn id.resp_p=80
 count() | sort
 top -limit 1
 top -limit 1 -flush
+foo\tbar
+foo\x11bar
+foo\x11\bar

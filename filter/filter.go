@@ -46,7 +46,7 @@ func searchContainer(zv zval.Encoding, pattern []byte) bool {
 }
 
 func SearchString(s string) Filter {
-	pattern := []byte(s)
+	pattern := zeek.Unescape([]byte(s))
 	return func(p *zson.Record) bool {
 		// Go implements a very efficient string search algorithm so we
 		// use it here first to rule out misses on a substring match.
