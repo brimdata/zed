@@ -59,7 +59,7 @@ func (f *Flattener) Flatten(r *zson.Record) (*zson.Record, error) {
 		r.Descriptor = d
 		return r, nil
 	}
-	zv, err := recode(nil, r.Descriptor.Type, r.Raw)
+        zv, err := recode(nil, r.Descriptor.Type, r.Raw)
 	if err != nil {
 		return nil, err
 	}

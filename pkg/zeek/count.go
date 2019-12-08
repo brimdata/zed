@@ -33,23 +33,26 @@ func (t *TypeOfCount) New(value []byte) (Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Count{Native: v}, nil
+	return NewCount(v), nil
 }
 
-type Count struct {
-	Native uint64
+type Count uint64
+
+func NewCount(c uint64) *Count {
+	p := Count(c)
+	return &p
 }
 
-func (c *Count) String() string {
-	return strconv.FormatUint(c.Native, 10)
+func (c Count) String() string {
+	return strconv.FormatUint(uint64(c), 10)
 }
 
-func (c *Count) Encode(dst zval.Encoding) zval.Encoding {
+func (c Count) Encode(dst zval.Encoding) zval.Encoding {
 	v := []byte(c.String())
 	return zval.AppendValue(dst, v)
 }
 
-func (c *Count) Type() Type {
+func (c Count) Type() Type {
 	return TypeCount
 }
 
@@ -69,7 +72,7 @@ func (c *Count) Coerce(typ Type) Value {
 }
 
 func (c *Count) MarshalJSON() ([]byte, error) {
-	return json.Marshal(c.Native)
+	return json.Marshal((*uint64)(c))
 }
 
 func (c *Count) Elements() ([]Value, bool) { return nil, false }

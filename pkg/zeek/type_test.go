@@ -46,13 +46,13 @@ func TestZeek(t *testing.T) {
 		{zeek.TypePort, "80"},
 		{zeek.TypePort, "8080"},
 	}
-	err := run(vals, "lt", &zeek.Int{101}, []bool{true, false, true, true, true, false, false, true, false})
+	err := run(vals, "lt", zeek.NewInt(101), []bool{true, false, true, true, true, false, false, true, false})
 	require.NoError(t, err)
-	err = run(vals, "lte", &zeek.Int{101}, []bool{true, true, true, true, true, false, false, true, false})
+	err = run(vals, "lte", zeek.NewInt(101), []bool{true, true, true, true, true, false, false, true, false})
 	require.NoError(t, err)
-	err = run(vals, "lte", &zeek.Double{100.2}, []bool{true, false, true, true, false, false, false, true, false})
+	err = run(vals, "lte", zeek.NewDouble(100.2), []bool{true, false, true, true, false, false, false, true, false})
 	require.NoError(t, err)
-	err = run(vals, "gt", &zeek.Port{100}, []bool{false, false, false, false, false, false, false, false, true})
+	err = run(vals, "gt", zeek.NewPort(100), []bool{false, false, false, false, false, false, false, false, true})
 	require.NoError(t, err)
 	addr1, _ := zeek.TypeAddr.New([]byte("128.32.1.1"))
 	addr2, _ := zeek.TypeAddr.New([]byte("128.32.2.2"))

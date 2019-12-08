@@ -33,31 +33,34 @@ func (t *TypeOfTime) New(value []byte) (Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Time{Native: v}, nil
+	return NewTime(v), nil
 }
 
-type Time struct {
-	Native nano.Ts
+type Time nano.Ts
+
+func NewTime(ts nano.Ts) *Time {
+	t := Time(ts)
+	return &t
 }
 
-func (t *Time) String() string {
+func (t Time) String() string {
 	// This format of a fractional second is used by zeek in logs.
 	// It uses enough precision to fully represent the 64-bit ns
 	// accuracy of a nano.Ts.  Such values cannot be representd by
 	// float64's without loss of the least significant digits of ns,
-	return t.Native.StringFloat()
+	return nano.Ts(t).StringFloat()
 }
 
-func (t *Time) Encode(dst zval.Encoding) zval.Encoding {
+func (t Time) Encode(dst zval.Encoding) zval.Encoding {
 	v := []byte(t.String())
 	return zval.AppendValue(dst, v)
 }
 
-func (t *Time) Type() Type {
+func (t Time) Type() Type {
 	return TypeTime
 }
 
-func (t *Time) Comparison(op string) (Predicate, error) {
+func (t Time) Comparison(op string) (Predicate, error) {
 	// XXX we need to add time literals to zql before this matters
 	return nil, errors.New("time comparisons not yet implemented")
 }
@@ -74,21 +77,24 @@ func (t *Time) Coerce(typ Type) Value {
 // returns a new time value if the conversion is possible.  Int,
 // is converted as nanoseconds and Double is converted as seconds. If
 // the value cannot be coerced, then nil is returned.
-func CoerceToTime(in Value) *Time {
+func CoerceToTime(in Value, out *Time) bool {
 	switch v := in.(type) {
 	case *Time:
-		return v
+		*out = *v
+		return true
 	case *Int:
-		return &Time{nano.Ts(v.Native)}
+		*out = Time(*v)
+		return true
 	case *Double:
-		s := v.Native * 1000 * 1000 * 1000
-		return &Time{nano.Ts(s)}
+		s := *v * 1000 * 1000 * 1000
+		*out = Time(s)
+		return true
 	}
-	return nil
+	return false
 }
 
 func (t *Time) MarshalJSON() ([]byte, error) {
-	return json.Marshal(t.Native)
+	return json.Marshal((*nano.Ts)(t))
 }
 
 func (t *Time) Elements() ([]Value, bool) { return nil, false }

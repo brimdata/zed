@@ -36,35 +36,38 @@ func (t *TypeOfString) New(value []byte) (Value, error) {
 	if value == nil {
 		return &Unset{}, nil
 	}
-	return &String{Native: string(value)}, nil
+	return NewString(string(value)), nil
 }
 
-type String struct {
-	Native string
+type String string
+
+func NewString(s string) *String {
+	v := String(s)
+	return &v
 }
 
-func (s *String) String() string {
-	return s.Native
+func (s String) String() string {
+	return string(s)
 }
 
-func (s *String) Encode(dst zval.Encoding) zval.Encoding {
-	v := []byte(s.Native)
+func (s String) Encode(dst zval.Encoding) zval.Encoding {
+	v := []byte(s)
 	return zval.AppendValue(dst, v)
 }
 
-func (s *String) Type() Type {
+func (s String) Type() Type {
 	return TypeString
 }
 
 // Comparison returns a Predicate that compares typed byte slices that must
 // be a string or enum with the value's string value using a comparison
 // based on op.
-func (s *String) Comparison(op string) (Predicate, error) {
+func (s String) Comparison(op string) (Predicate, error) {
 	compare, ok := compareString[op]
 	if !ok {
 		return nil, fmt.Errorf("unknown string comparator: %s", op)
 	}
-	pattern := s.Native
+	pattern := string(s)
 	return func(e TypedEncoding) bool {
 		switch e.Type.(type) {
 		case *TypeOfString, *TypeOfEnum:
@@ -79,13 +82,13 @@ func (s *String) Coerce(typ Type) Value {
 	case *TypeOfString:
 		return s
 	case *TypeOfEnum:
-		return &Enum{s.Native}
+		return NewEnum(string(*s))
 	}
 	return nil
 }
 
 func (s *String) MarshalJSON() ([]byte, error) {
-	return json.Marshal(s.Native)
+	return json.Marshal((*string)(s))
 }
 
 func (s *String) Elements() ([]Value, bool) { return nil, false }

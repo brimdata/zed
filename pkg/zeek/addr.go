@@ -43,35 +43,38 @@ func (t *TypeOfAddr) New(value []byte) (Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Addr{Native: ip}, nil
+	return NewAddr(ip), nil
 }
 
-type Addr struct {
-	Native net.IP
+type Addr net.IP
+
+func NewAddr(a net.IP) *Addr {
+	p := Addr(a)
+	return &p
 }
 
-func (a *Addr) String() string {
-	return a.Native.String()
+func (a Addr) String() string {
+	return a.String()
 }
 
-func (a *Addr) Type() Type {
+func (a Addr) Type() Type {
 	return TypeAddr
 }
 
-func (a *Addr) Encode(dst zval.Encoding) zval.Encoding {
-	b := []byte(a.Native.String())
+func (a Addr) Encode(dst zval.Encoding) zval.Encoding {
+	b := []byte(a.String())
 	return zval.AppendValue(dst, b)
 }
 
 // Comparison returns a Predicate that compares typed byte slices that must
 // be TypeAddr with the value's address using a comparison based on op.
 // Only equality operands are allowed.
-func (a *Addr) Comparison(op string) (Predicate, error) {
+func (a Addr) Comparison(op string) (Predicate, error) {
 	compare, ok := compareAddr[op]
 	if !ok {
 		return nil, fmt.Errorf("unknown addr comparator: %s", op)
 	}
-	pattern := a.Native
+	pattern := net.IP(a)
 	return func(e TypedEncoding) bool {
 		typeAddr, ok := e.Type.(*TypeOfAddr)
 		if !ok {
@@ -85,7 +88,7 @@ func (a *Addr) Comparison(op string) (Predicate, error) {
 	}, nil
 }
 
-func (a *Addr) Coerce(typ Type) Value {
+func (a Addr) Coerce(typ Type) Value {
 	_, ok := typ.(*TypeOfAddr)
 	if ok {
 		return a
@@ -94,7 +97,7 @@ func (a *Addr) Coerce(typ Type) Value {
 }
 
 func (a *Addr) MarshalJSON() ([]byte, error) {
-	return json.Marshal(a.Native)
+	return json.Marshal((*net.IP)(a))
 }
 
-func (a *Addr) Elements() ([]Value, bool) { return nil, false }
+func (a Addr) Elements() ([]Value, bool) { return nil, false }

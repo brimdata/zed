@@ -33,22 +33,25 @@ func (t *TypeOfPort) New(value []byte) (Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Port{Native: uint32(v)}, nil
+	return NewPort(uint32(v)), nil
 }
 
-type Port struct {
-	Native uint32
+type Port uint32
+
+func NewPort(p uint32) *Port {
+	v := Port(p)
+	return &v
 }
 
-func (p *Port) String() string {
-	return strconv.FormatUint(uint64(p.Native), 10)
+func (p Port) String() string {
+	return strconv.FormatUint(uint64(p), 10)
 }
 
-func (p *Port) Type() Type {
+func (p Port) Type() Type {
 	return TypePort
 }
 
-func (p *Port) Encode(dst zval.Encoding) zval.Encoding {
+func (p Port) Encode(dst zval.Encoding) zval.Encoding {
 	v := []byte(p.String())
 	return zval.AppendValue(dst, v)
 }
@@ -57,7 +60,7 @@ func (p *Port) Encode(dst zval.Encoding) zval.Encoding {
 // be a port with the value's port value using a comparison based on op.
 // Integer fields are not coerced (nor are any other types) so they never
 // match the port literal here.
-func (p *Port) Comparison(op string) (Predicate, error) {
+func (p Port) Comparison(op string) (Predicate, error) {
 	compare, ok := compareInt[op]
 	if !ok {
 		return nil, fmt.Errorf("unknown port comparator: %s", op)
@@ -65,7 +68,7 @@ func (p *Port) Comparison(op string) (Predicate, error) {
 	// only a zeek port can be compared with a port type.  If the user went
 	// to the trouble of specifying a port match (e.g., ":80" vs "80") then
 	// we use strict typing here on the port comparison.
-	pattern := int64(p.Native)
+	pattern := int64(p)
 	return func(e TypedEncoding) bool {
 		typePort, ok := e.Type.(*TypeOfPort)
 		if !ok {
@@ -89,7 +92,7 @@ func (p *Port) Coerce(typ Type) Value {
 }
 
 func (p *Port) MarshalJSON() ([]byte, error) {
-	return json.Marshal(p.Native)
+	return json.Marshal(p)
 }
 
-func (p *Port) Elements() ([]Value, bool) { return nil, false }
+func (p Port) Elements() ([]Value, bool) { return nil, false }

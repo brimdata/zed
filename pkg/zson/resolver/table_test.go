@@ -15,7 +15,7 @@ func TestTableAddColumns(t *testing.T) {
 	r, err := zson.NewRecordZeekStrings(d, "S1")
 	require.NoError(t, err)
 	cols := []zeek.Column{{"ts", zeek.TypeTime}, {"s2", zeek.TypeString}}
-	r, err = tab.AddColumns(r, cols, []zeek.Value{&zeek.String{"123.456"}, &zeek.String{"S2"}})
+	r, err = tab.AddColumns(r, cols, []zeek.Value{zeek.NewString("123.456"), zeek.NewString("S2")})
 	require.NoError(t, err)
 	assert.EqualValues(t, 123456000000, r.Ts)
 	assert.EqualValues(t, "S1", r.Slice(0))

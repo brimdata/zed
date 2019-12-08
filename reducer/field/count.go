@@ -16,15 +16,16 @@ func NewCountStreamfn(op string) Streamfn {
 	}
 }
 
-func (i *Count) Result() zeek.Value {
-	return &zeek.Count{i.fn.State}
+func (c *Count) Result() zeek.Value {
+	return zeek.NewCount(c.fn.State)
 }
 
-func (i *Count) Consume(v zeek.Value) error {
-	cv := zeek.CoerceToInt(v) //XXX need CoerceToCount?
-	if cv == nil {
+func (c *Count) Consume(v zeek.Value) error {
+	var i zeek.Int
+	//XXX need CoerceToCount?
+	if !zeek.CoerceToInt(v, &i) {
 		return zson.ErrTypeMismatch
 	}
-	i.fn.Update(uint64(cv.Native))
+	c.fn.Update(uint64(i))
 	return nil
 }

@@ -48,5 +48,5 @@ func (a *Avg) Result() zeek.Value {
 	if a.count > 0 {
 		v = a.sum / float64(a.count)
 	}
-	return &zeek.Double{v}
+	return zeek.NewDouble(v)
 }

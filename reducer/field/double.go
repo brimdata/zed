@@ -17,14 +17,15 @@ func NewDoubleStreamfn(op string) Streamfn {
 }
 
 func (i *Double) Result() zeek.Value {
-	return &zeek.Double{i.fn.State}
+	return zeek.NewDouble(i.fn.State)
 }
 
 func (i *Double) Consume(v zeek.Value) error {
+	//XXX change this to use *zeek.Double
 	cv := zeek.CoerceToDouble(v)
 	if cv == nil {
 		return zson.ErrTypeMismatch
 	}
-	i.fn.Update(cv.Native)
+	i.fn.Update(float64(*cv))
 	return nil
 }

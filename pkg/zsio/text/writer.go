@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/zeek"
 	zk "github.com/mccanne/zq/pkg/zsio/zeek"
 	"github.com/mccanne/zq/pkg/zson"
@@ -44,8 +45,8 @@ func (t *Text) Write(rec *zson.Record) error {
 		for k, col := range rec.Descriptor.Type.Columns {
 			var s, v string
 			if !t.EpochDates && col.Name == "ts" && col.Type == zeek.TypeTime {
-				ts := rec.ValueByColumn(k).(*zeek.Time).Native
-				v = ts.Time().UTC().Format(time.RFC3339Nano)
+				ts := *rec.ValueByColumn(k).(*zeek.Time)
+				v = nano.Ts(ts).Time().UTC().Format(time.RFC3339Nano)
 			} else {
 				body := rec.Slice(k)
 				typ := col.Type

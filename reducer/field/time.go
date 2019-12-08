@@ -1,6 +1,7 @@
 package field
 
 import (
+	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/zeek"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/streamfn"
@@ -17,14 +18,14 @@ func NewTimeStreamfn(op string) Streamfn {
 }
 
 func (t *Time) Result() zeek.Value {
-	return &zeek.Time{t.fn.State}
+	return zeek.NewTime(t.fn.State)
 }
 
 func (t *Time) Consume(v zeek.Value) error {
-	cv := zeek.CoerceToTime(v)
-	if cv == nil {
+	var cv zeek.Time
+	if !zeek.CoerceToTime(v, &cv) {
 		return zson.ErrTypeMismatch
 	}
-	t.fn.Update(cv.Native)
+	t.fn.Update(nano.Ts(cv))
 	return nil
 }

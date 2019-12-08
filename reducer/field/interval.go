@@ -17,14 +17,14 @@ func NewIntervalStreamfn(op string) Streamfn {
 }
 
 func (i *Interval) Result() zeek.Value {
-	return &zeek.Interval{i.fn.State}
+	return zeek.NewInterval(i.fn.State)
 }
 
 func (i *Interval) Consume(v zeek.Value) error {
-	cv := zeek.CoerceToInterval(v)
-	if cv == nil {
+	var interval zeek.Interval
+	if !zeek.CoerceToInterval(v, &interval) {
 		return zson.ErrTypeMismatch
 	}
-	i.fn.Update(cv.Native)
+	i.fn.Update(int64(interval))
 	return nil
 }

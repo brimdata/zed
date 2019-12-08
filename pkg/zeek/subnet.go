@@ -71,15 +71,18 @@ func (t *TypeOfSubnet) New(value []byte) (Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Subnet{Native: subnet}, nil
+	return NewSubnet(subnet), nil
 }
 
-type Subnet struct {
-	Native *net.IPNet
+type Subnet net.IPNet
+
+func NewSubnet(s *net.IPNet) *Subnet {
+	v := Subnet(*s)
+	return &v
 }
 
 func (s *Subnet) String() string {
-	return s.Native.String()
+	return s.String()
 }
 
 func (s *Subnet) Encode(dst zval.Encoding) zval.Encoding {
@@ -103,7 +106,7 @@ func (s *Subnet) Comparison(op string) (Predicate, error) {
 	if !ok1 || !ok2 {
 		return nil, fmt.Errorf("unknown subnet comparator: %s", op)
 	}
-	pattern := s.Native
+	pattern := (*net.IPNet)(s)
 	return func(e TypedEncoding) bool {
 		val := e.Body
 		switch e.Type.(type) {
@@ -131,7 +134,7 @@ func (s *Subnet) Coerce(typ Type) Value {
 }
 
 func (s *Subnet) MarshalJSON() ([]byte, error) {
-	return json.Marshal(s.Native)
+	return json.Marshal((*net.IPNet)(s))
 }
 
 func (s *Subnet) Elements() ([]Value, bool) { return nil, false }

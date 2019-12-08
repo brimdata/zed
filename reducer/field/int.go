@@ -17,14 +17,14 @@ func NewIntStreamfn(op string) Streamfn {
 }
 
 func (i *Int) Result() zeek.Value {
-	return &zeek.Int{i.fn.State}
+	return zeek.NewInt(i.fn.State)
 }
 
 func (i *Int) Consume(v zeek.Value) error {
-	cv := zeek.CoerceToInt(v)
-	if cv == nil {
+	var k zeek.Int
+	if !zeek.CoerceToInt(v, &k) {
 		return zson.ErrTypeMismatch
 	}
-	i.fn.Update(cv.Native)
+	i.fn.Update(int64(k))
 	return nil
 }

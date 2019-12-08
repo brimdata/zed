@@ -38,5 +38,5 @@ func (c *Count) Consume(r *zson.Record) {
 }
 
 func (c *Count) Result() zeek.Value {
-	return &zeek.Count{c.count}
+	return zeek.NewCount(c.count)
 }
