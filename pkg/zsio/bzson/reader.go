@@ -19,7 +19,6 @@ const (
 type Reader struct {
 	peeker *peeker.Reader
 	mapper *resolver.Mapper
-	ctrl   bool
 }
 
 func NewReader(reader io.Reader, r *resolver.Table) *Reader {
@@ -29,13 +28,24 @@ func NewReader(reader io.Reader, r *resolver.Table) *Reader {
 	}
 }
 
-func NewControlReader(reader io.Reader, t *resolver.Table) *Reader {
-	r := NewReader(reader, t)
-	r.ctrl = true
-	return r
+func (r *Reader) Read() (*zson.Record, error) {
+	for {
+		r, b, err := r.ReadPayload()
+		if b != nil {
+			if err != nil {
+				return nil, err
+			}
+			continue
+		}
+		return r, err
+	}
 }
 
-func (r *Reader) Read() (*zson.Record, error) {
+// ReadPayload returns either data values as zson.Record or control payloads
+// as byte slices.  The record and byte slice are volatile so they must be
+// copied (via copy for byte slice or zson.Record.Keep()) before any subsequent
+// calls to Read or ReadPayload can be made.
+func (r *Reader) ReadPayload() (*zson.Record, []byte, error) {
 again:
 	var hdr header
 	err := r.decode(&hdr)
@@ -43,37 +53,30 @@ again:
 		if err == io.EOF {
 			err = nil
 		}
-		return nil, err
+		return nil, nil, err
 	}
 	b, err := r.peeker.Read(hdr.length)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	switch hdr.typ {
 	case TypeDescriptor:
 		err = r.parseDescriptor(hdr.id, b)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		goto again
 	case TypeValue:
 		rec, err := r.parseValue(hdr.id, b)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		rec.Channel = uint16(hdr.ch)
-		return rec, nil
+		return rec, nil, nil
 	case TypeControl:
-		if r.ctrl {
-			rec := zson.NewControlRecord(b)
-			rec.Channel = uint16(hdr.ch)
-			return rec, nil
-		}
-		goto again
+		return nil, b, nil
 	default:
-		return nil, fmt.Errorf("unknown raw record type: %d", hdr.typ)
+		return nil, nil, fmt.Errorf("unknown raw record type: %d", hdr.typ)
 	}
-
 }
 
 func (r *Reader) parseDescriptor(id int, b []byte) error {

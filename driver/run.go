@@ -26,11 +26,6 @@ func (d *Driver) SetWarningsWriter(w io.Writer) {
 
 func (d *Driver) Write(cid int, arr zson.Batch) error {
 	for _, r := range arr.Records() {
-		// for cid < 0, we keep the Channel that's already in
-		// the record
-		if cid >= 0 {
-			r.Channel = uint16(cid)
-		}
 		if err := d.writer.Write(r); err != nil {
 			return err
 		}

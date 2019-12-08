@@ -21,12 +21,12 @@ func NewWriter(w io.Writer) *Writer {
 	}
 }
 
-func (w *Writer) Write(r *zson.Record) error {
-	if r.IsControl() {
-		_, err := fmt.Fprintf(w.Writer, "#!%s\n", string(r.Raw.Bytes()))
-		return err
+func (w *Writer) WriteControl(b []byte) error {
+	_, err := fmt.Fprintf(w.Writer, "#!%s\n", string(b))
+	return err
+}
 
-	}
+func (w *Writer) Write(r *zson.Record) error {
 	td := r.Descriptor.ID
 	if !w.tracker.Seen(td) {
 		_, err := fmt.Fprintf(w.Writer, "#%d:%s\n", td, r.Descriptor.Type)
@@ -34,17 +34,11 @@ func (w *Writer) Write(r *zson.Record) error {
 			return err
 		}
 	}
-	var err error
-	if r.Channel == 0 {
-		_, err = fmt.Fprintf(w.Writer, "%d:", td)
-
-	} else {
-		_, err = fmt.Fprintf(w.Writer, "%d.%d:", td, r.Channel)
-	}
+	_, err := fmt.Fprintf(w.Writer, "%d:", td)
 	if err != nil {
 		return nil
 	}
-	if err := w.writeContainer(r.Raw); err != nil {
+	if err = w.writeContainer(r.Raw); err != nil {
 		return err
 	}
 	return w.write("\n")

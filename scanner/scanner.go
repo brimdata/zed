@@ -19,7 +19,7 @@ func NewScanner(reader zson.Reader, f filter.Filter) *Scanner {
 	}
 }
 
-const batchSize = 24
+const batchSize = 100
 
 func (s *Scanner) Pull() (zson.Batch, error) {
 	minTs, maxTs := nano.MaxTs, nano.MinTs
@@ -33,7 +33,7 @@ func (s *Scanner) Pull() (zson.Batch, error) {
 		if rec == nil {
 			break
 		}
-		if rec.IsControl() || (match != nil && !match(rec)) {
+		if match != nil && !match(rec) {
 			continue
 		}
 		if rec.Ts < minTs {
@@ -42,9 +42,10 @@ func (s *Scanner) Pull() (zson.Batch, error) {
 		if rec.Ts > maxTs {
 			maxTs = rec.Ts
 		}
-		// Use rec.Keep() to copy underlying buffer because call to next
+		// Copy the underlying buffer (if volatile) because call to next
 		// reader.Next() may overwrite said buffer.
-		arr = append(arr, rec.Keep())
+		rec.CopyBody()
+		arr = append(arr, rec)
 	}
 	if arr == nil {
 		return nil, nil

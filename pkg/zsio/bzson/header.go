@@ -27,13 +27,11 @@ const (
 
 const (
 	MachineFlag = 0x80
-	ChannelFlag = 0x40
 	TypeMask    = 0x3f
 )
 
 type header struct {
 	typ    int
-	ch     int
 	id     int
 	length int
 }
@@ -41,19 +39,10 @@ type header struct {
 const maxHeaderSize = 1 + 3*binary.MaxVarintLen64
 const minHeaderSize = 3
 
-func writeHeader(w io.Writer, typ, ch, id, length int) (int, error) {
+func writeHeader(w io.Writer, typ, id, length int) (int, error) {
 	var hdr [maxHeaderSize]byte
-	if ch != 0 && typ != TypeValue {
-		return 0, errors.New("bzson encoding channel valid only with values")
-	}
-	if ch != 0 {
-		typ |= ChannelFlag
-	}
 	hdr[0] = byte(typ)
 	off := 1
-	if ch != 0 {
-		off += binary.PutUvarint(hdr[off:], uint64(ch))
-	}
 	if typ != TypeControl {
 		off += binary.PutUvarint(hdr[off:], uint64(id))
 	}
@@ -70,14 +59,6 @@ func parseHeader(b []byte, h *header) (int, error) {
 	off := 1
 	if typ&MachineFlag != 0 {
 		return 0, errors.New("machine-format bzson not yet implemented")
-	}
-	if typ&ChannelFlag != 0 {
-		ch, n := binary.Uvarint(b[off:])
-		if n <= 0 {
-			return 0, zson.ErrBadFormat
-		}
-		off += n
-		h.ch = int(ch)
 	}
 	typ &= TypeMask
 	h.typ = typ
