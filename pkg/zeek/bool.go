@@ -62,35 +62,38 @@ func (t *TypeOfBool) New(value []byte) (Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Bool{Native: v}, nil
+	return NewBool(v), nil
 }
 
-type Bool struct {
-	Native bool
+type Bool bool
+
+func NewBool(b bool) *Bool {
+	p := Bool(b)
+	return &p
 }
 
-func (b *Bool) String() string {
-	return strconv.FormatBool(b.Native)
+func (b Bool) String() string {
+	return strconv.FormatBool(bool(b))
 }
 
-func (b *Bool) Encode(dst zval.Encoding) zval.Encoding {
+func (b Bool) Encode(dst zval.Encoding) zval.Encoding {
 	v := []byte(b.String())
 	return zval.AppendValue(dst, v)
 }
 
-func (b *Bool) Type() Type {
+func (b Bool) Type() Type {
 	return TypeBool
 }
 
 // Comparison returns a Predicate that compares typed byte slices that must
 // be a boolean or coercible to an integer.  In the later case, the integer
 // is converted to a boolean.
-func (b *Bool) Comparison(op string) (Predicate, error) {
+func (b Bool) Comparison(op string) (Predicate, error) {
 	compare, ok := compareBool[op]
 	if !ok {
 		return nil, fmt.Errorf("unknown bool comparator: %s", op)
 	}
-	pattern := b.Native
+	pattern := bool(b)
 	return func(e TypedEncoding) bool {
 		typeBool, ok := e.Type.(*TypeOfBool)
 		if !ok {
@@ -105,7 +108,7 @@ func (b *Bool) Comparison(op string) (Predicate, error) {
 	return nil, fmt.Errorf("bad comparator for boolean type: %s", op)
 }
 
-func (b *Bool) Coerce(typ Type) Value {
+func (b Bool) Coerce(typ Type) Value {
 	_, ok := typ.(*TypeOfBool)
 	if ok {
 		return b
@@ -114,7 +117,7 @@ func (b *Bool) Coerce(typ Type) Value {
 }
 
 func (b *Bool) MarshalJSON() ([]byte, error) {
-	return json.Marshal(b.Native)
+	return json.Marshal((*bool)(b))
 }
 
-func (b *Bool) Elements() ([]Value, bool) { return nil, false }
+func (b Bool) Elements() ([]Value, bool) { return nil, false }

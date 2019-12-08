@@ -30,11 +30,11 @@ func (n *None) String() string {
 	return "none"
 }
 
-func (n *None) Encode(dst zval.Encoding) zval.Encoding {
+func (n None) Encode(dst zval.Encoding) zval.Encoding {
 	return zval.AppendValue(dst, []byte("none"))
 }
 
-func (n *None) Type() Type {
+func (n None) Type() Type {
 	return TypeNone
 }
 
@@ -50,4 +50,4 @@ func (n *None) MarshalJSON() ([]byte, error) {
 	return json.Marshal(nil)
 }
 
-func (n *None) Elements() ([]Value, bool) { return nil, false }
+func (n None) Elements() ([]Value, bool) { return nil, false }

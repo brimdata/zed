@@ -34,18 +34,21 @@ func (t *TypeOfPattern) New(value []byte) (Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Pattern{Native: re}, nil
+	return NewPattern(re), nil
 }
 
 //XXX need to check if zeek regexp and go regexp are the same, though it
 // doesn't really matter because I don't think they appear in log files but
 // are rather used in zeek scripts
-type Pattern struct {
-	Native *regexp.Regexp
+type Pattern regexp.Regexp
+
+func NewPattern(r *regexp.Regexp) *Pattern {
+	p := Pattern(*r)
+	return &p
 }
 
 func (p *Pattern) String() string {
-	return p.Native.String()
+	return p.String()
 }
 
 func (p *Pattern) Encode(dst zval.Encoding) zval.Encoding {
@@ -65,7 +68,7 @@ func (p *Pattern) Comparison(op string) (Predicate, error) {
 	if !ok {
 		return nil, fmt.Errorf("unknown pattern comparator: %s", op)
 	}
-	re := p.Native
+	re := (*regexp.Regexp)(p)
 	return func(e TypedEncoding) bool {
 		switch e.Type.(type) {
 		case *TypeOfString, *TypeOfEnum:

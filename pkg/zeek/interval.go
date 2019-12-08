@@ -33,31 +33,34 @@ func (t *TypeOfInterval) New(value []byte) (Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Interval{Native: v}, nil
+	return NewInterval(v), nil
 }
 
-type Interval struct {
-	Native int64
+type Interval int64
+
+func NewInterval(i int64) *Interval {
+	p := Interval(i)
+	return &p
 }
 
-func (i *Interval) String() string {
+func (i Interval) String() string {
 	// This format of a fractional second is used by zeek in logs.
 	// It uses enough precision to fully represent the 64-bit ns
 	// accuracy of a nano Duration. Such values cannot be represented by
 	// float64's without loss of the least significant digits of ns,
-	return nano.DurationString(i.Native)
+	return nano.DurationString(int64(i))
 }
 
-func (i *Interval) Encode(dst zval.Encoding) zval.Encoding {
+func (i Interval) Encode(dst zval.Encoding) zval.Encoding {
 	v := []byte(i.String())
 	return zval.AppendValue(dst, v)
 }
 
-func (i *Interval) Type() Type {
+func (i Interval) Type() Type {
 	return TypeInterval
 }
 
-func (i *Interval) Comparison(op string) (Predicate, error) {
+func (i Interval) Comparison(op string) (Predicate, error) {
 	// XXX we need to add time/interval literals to zql before this matters
 	return nil, errors.New("interval comparisons not yet implemented")
 }
@@ -74,21 +77,24 @@ func (i *Interval) Coerce(typ Type) Value {
 // returns a new interval value if the conversion is possible.  Int,
 // is converted as nanoseconds and Double is converted as seconds. If
 // the value cannot be coerced, then nil is returned.
-func CoerceToInterval(in Value) *Interval {
+func CoerceToInterval(in Value, out *Interval) bool {
 	switch v := in.(type) {
 	case *Interval:
-		return v
+		*out = *v
+		return true
 	case *Int:
-		return &Interval{v.Native}
+		*out = Interval(int64(*v))
+		return true
 	case *Double:
-		s := v.Native * 1000 * 1000 * 1000
-		return &Interval{int64(s)}
+		s := *v * 1000 * 1000 * 1000
+		*out = Interval(int64(s))
+		return true
 	}
-	return nil
+	return false
 }
 
 func (i *Interval) MarshalJSON() ([]byte, error) {
-	return json.Marshal(i.Native)
+	return json.Marshal((*int64)(i))
 }
 
 func (i *Interval) Elements() ([]Value, bool) { return nil, false }

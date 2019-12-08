@@ -112,8 +112,9 @@ func TestLegacyZeekValid(t *testing.T) {
 
 func assertInt(t *testing.T, i int64, val zeek.Value, what string) {
 	iv, ok := val.(*zeek.Int)
+	actual := int64(*iv)
 	assert.Truef(t, ok, "%s is type int", what)
-	assert.Equalf(t, i, iv.Native, "%s has value %d", what, i)
+	assert.Equalf(t, i, actual, "%s has value %d", what, i)
 }
 
 func TestNestedRecords(t *testing.T) {

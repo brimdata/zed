@@ -23,7 +23,7 @@ func NewUniq(c *Context, parent Proc, cflag bool) *Uniq {
 func (u *Uniq) wrap(t *zson.Record) *zson.Record {
 	if u.cflag {
 		cols := []zeek.Column{{Name: "_uniq", Type: zeek.TypeCount}}
-		vals := []zeek.Value{&zeek.Count{u.count}}
+		vals := []zeek.Value{zeek.NewCount(u.count)}
 		newR, err := u.Resolver.AddColumns(t, cols, vals)
 		if err != nil {
 			u.Logger.Error("AddColumns failed", zap.Error(err))

@@ -35,19 +35,19 @@ func (t *TypeOfUnset) New(value []byte) (Value, error) {
 
 type Unset struct{}
 
-func (u *Unset) String() string {
+func (u Unset) String() string {
 	return "-"
 }
 
-func (u *Unset) Encode(dst zval.Encoding) zval.Encoding {
+func (u Unset) Encode(dst zval.Encoding) zval.Encoding {
 	return zval.AppendValue(dst, nil)
 }
 
-func (u *Unset) Type() Type {
+func (u Unset) Type() Type {
 	return TypeUnset
 }
 
-func (u *Unset) Comparison(op string) (Predicate, error) {
+func (u Unset) Comparison(op string) (Predicate, error) {
 	compare, ok := compareUnset[op]
 	if !ok {
 		return nil, fmt.Errorf("unknown unset comparator: %s", op)
@@ -69,4 +69,4 @@ func (u *Unset) MarshalJSON() ([]byte, error) {
 	return json.Marshal(nil)
 }
 
-func (u *Unset) Elements() ([]Value, bool) { return nil, false }
+func (u Unset) Elements() ([]Value, bool) { return nil, false }

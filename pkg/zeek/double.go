@@ -42,15 +42,18 @@ func (t *TypeOfDouble) New(value []byte) (Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Double{Native: v}, nil
+	return NewDouble(v), nil
 }
 
-type Double struct {
-	Native float64
+type Double float64
+
+func NewDouble(f float64) *Double {
+	d := Double(f)
+	return &d
 }
 
-func (d *Double) String() string {
-	return strconv.FormatFloat(d.Native, 'g', -1, 64)
+func (d Double) String() string {
+	return strconv.FormatFloat(float64(d), 'g', -1, 64)
 }
 
 func (d *Double) Encode(dst zval.Encoding) zval.Encoding {
@@ -66,12 +69,12 @@ func (d *Double) Type() Type {
 // be coercible to an double with the value's double value using a comparison
 // based on op.  Int, count, port, and double types can
 // all be converted to the integer value.  XXX there are some overflow issues here.
-func (d *Double) Comparison(op string) (Predicate, error) {
+func (d Double) Comparison(op string) (Predicate, error) {
 	compare, ok := compareFloat[op]
 	if !ok {
 		return nil, fmt.Errorf("unknown double comparator: %s", op)
 	}
-	pattern := d.Native
+	pattern := float64(d)
 	return func(e TypedEncoding) bool {
 		val := e.Body
 		switch typ := e.Type.(type) {
@@ -106,21 +109,27 @@ func (d *Double) Coerce(typ Type) Value {
 	case *TypeOfDouble:
 		return d
 	case *TypeOfInt:
-		return CoerceToInt(d)
-	case *TypeOfCount:
-		i := CoerceToInt(d)
-		if i != nil && i.Native >= 0 {
-			return &Count{uint64(i.Native)}
+		var i Int
+		if CoerceToInt(d, &i) {
+			return &i
 		}
+		return nil
+	case *TypeOfCount:
+		var i Int
+		if CoerceToInt(d, &i) && i >= 0 {
+			return NewCount(uint64(i))
+		}
+		return nil
+
 	case *TypeOfPort:
-		i := CoerceToInt(d)
-		if i != nil && i.Native >= 0 && i.Native < 65536 {
-			return &Port{uint32(i.Native)}
+		var i Int
+		if CoerceToInt(d, &i) && i >= 0 && i < 65536 {
+			return NewPort(uint32(i))
 		}
 	case *TypeOfTime:
-		return &Time{nano.Ts(d.Native * 1e9)}
+		return NewTime(nano.Ts(*d * 1e9))
 	case *TypeOfInterval:
-		return &Interval{int64(d.Native * 1e9)}
+		return NewInterval(int64(*d * 1e9))
 	}
 	return nil
 }
@@ -135,26 +144,26 @@ func CoerceToDouble(in Value) *Double {
 	case *Double:
 		return v
 	case *Int:
-		return &Double{float64(v.Native)}
+		return NewDouble(float64(*v))
 	case *Bool:
-		if v.Native {
-			return &Double{1}
+		if *v {
+			return NewDouble(1)
 		}
-		return &Double{0}
+		return NewDouble(0)
 	case *Count:
-		return &Double{float64(v.Native)}
+		return NewDouble(float64(*v))
 	case *Port:
-		return &Double{float64(v.Native)}
+		return NewDouble(float64(*v))
 	case *Time:
-		return &Double{float64(v.Native)}
+		return NewDouble(float64(*v))
 	case *Interval:
-		return &Double{float64(v.Native)}
+		return NewDouble(float64(*v))
 	}
 	return nil
 }
 
 func (d *Double) MarshalJSON() ([]byte, error) {
-	return json.Marshal(d.Native)
+	return json.Marshal((*float64)(d))
 }
 
-func (d *Double) Elements() ([]Value, bool) { return nil, false }
+func (d Double) Elements() ([]Value, bool) { return nil, false }
