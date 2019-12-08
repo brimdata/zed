@@ -7,19 +7,19 @@ import (
 
 	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zq"
 )
 
 // A FieldExprResolver is a compiled FieldExpr (where FieldExpr is the
 // abstract type representing various zql ast nodes).  This can be an
 // expression as simple as "fieldname" or something more complex such as
 // "len(vec[2].fieldname.subfieldname)".  A FieldExpr is compiled into a
-// function that takes a zson.Record as input, evaluates the given
+// function that takes a zq.Record as input, evaluates the given
 // expression against that record, and returns the resulting typed value.
 // If the expression can't be resolved (i.e., because some field
 // reference refers to a non-existent field, a vector index is out of
 // bounds, etc.), the resolver returns (nil, nil)
-type FieldExprResolver func(*zson.Record) zeek.TypedEncoding
+type FieldExprResolver func(*zq.Record) zeek.TypedEncoding
 
 // fieldop, arrayIndex, and fieldRead are helpers used internally
 // by CompileFieldExpr() below.
@@ -81,7 +81,7 @@ func (fr *fieldRead) apply(e zeek.TypedEncoding) zeek.TypedEncoding {
 // CompileFieldExpr() takes a FieldExpr AST (which represents either a
 // simple field reference like "fieldname" or something more complex
 // like "fieldname[0].subfield.subsubfield[3]") and compiles it into a
-// ValResolver -- a function that takes a zson.Record and extracts the
+// ValResolver -- a function that takes a zq.Record and extracts the
 // value to which the FieldExpr refers.  If the FieldExpr cannot be
 // compiled, this function returns an error.  If the resolver is given
 // a record for which the given expression cannot be evaluated (e.g.,
@@ -122,7 +122,7 @@ outer:
 
 	// Here's the actual resolver: grab the top-level field and then
 	// apply any additional operations.
-	return func(r *zson.Record) zeek.TypedEncoding {
+	return func(r *zq.Record) zeek.TypedEncoding {
 		col, ok := r.Descriptor.LUT[field]
 		if !ok {
 			// original field doesn't exist

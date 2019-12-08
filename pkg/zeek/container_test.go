@@ -8,7 +8,7 @@ import (
 	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/filter"
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zq"
 	"github.com/stretchr/testify/require"
 )
 
@@ -40,8 +40,8 @@ func runTest(valType string, valRaw string, containerType string, containerRaw s
 		return err
 	}
 	columns := []zeek.Column{{"f", containerTyp}}
-	d := zson.NewDescriptor(zeek.LookupTypeRecord(columns))
-	r, err := zson.NewRecordZeekStrings(d, containerRaw)
+	d := zq.NewDescriptor(zeek.LookupTypeRecord(columns))
+	r, err := zq.NewRecordZeekStrings(d, containerRaw)
 	if err != nil {
 		return err
 	}

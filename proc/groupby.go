@@ -10,8 +10,8 @@ import (
 	"github.com/mccanne/zq/expr"
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
-	"github.com/mccanne/zq/pkg/zson/resolver"
+	"github.com/mccanne/zq/pkg/zq"
+	"github.com/mccanne/zq/pkg/zq/resolver"
 	"github.com/mccanne/zq/pkg/zval"
 	"github.com/mccanne/zq/reducer"
 	"github.com/mccanne/zq/reducer/compile"
@@ -105,7 +105,7 @@ type GroupByAggregator struct {
 }
 
 type GroupByRow struct {
-	keyd     *zson.Descriptor
+	keyd     *zq.Descriptor
 	keyvals  zval.Encoding
 	ts       nano.Ts
 	reducers compile.Row
@@ -151,7 +151,7 @@ func NewGroupBy(c *Context, parent Proc, params GroupByParams) *GroupBy {
 	}
 }
 
-func (g *GroupBy) Pull() (zson.Batch, error) {
+func (g *GroupBy) Pull() (zq.Batch, error) {
 	start := time.Now()
 	for {
 		batch, err := g.Get()
@@ -179,7 +179,7 @@ func (g *GroupBy) Pull() (zson.Batch, error) {
 	}
 }
 
-func (g *GroupByAggregator) createRow(keyd *zson.Descriptor, ts nano.Ts, vals zval.Encoding) *GroupByRow {
+func (g *GroupByAggregator) createRow(keyd *zq.Descriptor, ts nano.Ts, vals zval.Encoding) *GroupByRow {
 	// Make a deep copy so the caller can reuse the underlying arrays.
 	v := make(zval.Encoding, len(vals))
 	copy(v, vals)
@@ -191,7 +191,7 @@ func (g *GroupByAggregator) createRow(keyd *zson.Descriptor, ts nano.Ts, vals zv
 	}
 }
 
-func keysTypeRecord(r *zson.Record, keys []GroupByKey) *zeek.TypeRecord {
+func keysTypeRecord(r *zq.Record, keys []GroupByKey) *zeek.TypeRecord {
 	cols := make([]zeek.Column, len(keys))
 	for k, key := range keys {
 		// Rcurse the record to find the bottom
@@ -206,12 +206,12 @@ func keysTypeRecord(r *zson.Record, keys []GroupByKey) *zeek.TypeRecord {
 	return zeek.LookupTypeRecord(cols)
 }
 
-var blocked = &zson.Descriptor{}
+var blocked = &zq.Descriptor{}
 
 // Consume takes a record and adds it to the aggregation. Records
 // successively passed to Consume are expected to have timestamps in
 // monotonically increasing or decreasing order determined by g.reverse.
-func (g *GroupByAggregator) Consume(r *zson.Record) error {
+func (g *GroupByAggregator) Consume(r *zq.Record) error {
 	// First check if we've seen this descriptor before and if not
 	// build an entry for it.
 	keysDescriptor := g.keysMap.Map(r.Descriptor.ID)
@@ -287,7 +287,7 @@ func (g *GroupByAggregator) Consume(r *zson.Record) error {
 // final (possibly incomplete) time bin.
 // If this is not a time-binned aggregation, a single call (with
 // eof=true) should be made after all records have been Consumed()'d.
-func (g *GroupByAggregator) Results(eof bool, minTs nano.Ts, maxTs nano.Ts) zson.Batch {
+func (g *GroupByAggregator) Results(eof bool, minTs nano.Ts, maxTs nano.Ts) zq.Batch {
 	var bins []nano.Ts
 	for b := range g.tables {
 		bins = append(bins, b)
@@ -297,7 +297,7 @@ func (g *GroupByAggregator) Results(eof bool, minTs nano.Ts, maxTs nano.Ts) zson
 	} else {
 		sort.Slice(bins, func(i, j int) bool { return bins[i] < bins[j] })
 	}
-	var recs []*zson.Record
+	var recs []*zq.Record
 	for _, b := range bins {
 		if g.TimeBinDuration > 0 && !eof {
 			// We're not yet at EOF, so for a reverse search, we haven't
@@ -321,7 +321,7 @@ func (g *GroupByAggregator) Results(eof bool, minTs nano.Ts, maxTs nano.Ts) zson
 		first, last = last, first
 	}
 	span := nano.NewSpanTs(first.Ts, last.Ts.Add(g.TimeBinDuration))
-	return zson.NewArray(recs, span)
+	return zq.NewArray(recs, span)
 }
 
 func typeMatch(typeCol []zeek.TypedEncoding, rowkeys []zeek.TypedEncoding) bool {
@@ -338,14 +338,14 @@ func typeMatch(typeCol []zeek.TypedEncoding, rowkeys []zeek.TypedEncoding) bool 
 
 // recordsForTable returns a slice of records with one record per table entry in a
 // deterministic but undefined order.
-func (g *GroupByAggregator) recordsForTable(table map[string]*GroupByRow) []*zson.Record {
+func (g *GroupByAggregator) recordsForTable(table map[string]*GroupByRow) []*zq.Record {
 	var keys []string
 	for k := range table {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
 
-	var recs []*zson.Record
+	var recs []*zq.Record
 	for _, k := range keys {
 		row := table[k]
 		var zv zval.Encoding
@@ -362,13 +362,13 @@ func (g *GroupByAggregator) recordsForTable(table map[string]*GroupByRow) []*zso
 			zv = v.Encode(zv)
 		}
 		d := g.lookupDescriptor(row)
-		r := zson.NewRecord(d, row.ts, zv)
+		r := zq.NewRecord(d, row.ts, zv)
 		recs = append(recs, r)
 	}
 	return recs
 }
 
-func (g *GroupByAggregator) lookupDescriptor(row *GroupByRow) *zson.Descriptor {
+func (g *GroupByAggregator) lookupDescriptor(row *GroupByRow) *zq.Descriptor {
 	// This is only done once per row at output time so generally not a
 	// bottleneck, but this could be optimized by keeping a cache of the
 	// descriptor since it is rare for there to be multiple descriptors

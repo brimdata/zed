@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/mccanne/zq/pkg/bufwriter"
-	"github.com/mccanne/zq/pkg/zsio"
-	"github.com/mccanne/zq/pkg/zsio/text"
+	"github.com/mccanne/zq/pkg/zio"
+	"github.com/mccanne/zq/pkg/zio/textio"
 )
 
 type noClose struct {
@@ -17,7 +17,7 @@ func (p *noClose) Close() error {
 	return nil
 }
 
-func NewFile(path, format string, tc *text.Config) (*zsio.Writer, error) {
+func NewFile(path, format string, tc *textio.Config) (*zio.Writer, error) {
 	var f io.WriteCloser
 	if path == "" {
 		// Don't close stdout in case we live inside something
@@ -32,10 +32,10 @@ func NewFile(path, format string, tc *text.Config) (*zsio.Writer, error) {
 		}
 		f = file
 	}
-	// On close, zsio.Writer.Close(), the zson WriteFlusher will be flushed
+	// On close, zio.Writer.Close(), the zson WriteFlusher will be flushed
 	// then the bufwriter will closed (which will flush it's internal buffer
 	// then close the file)
-	w := zsio.LookupWriter(format, bufwriter.New(f), tc)
+	w := zio.LookupWriter(format, bufwriter.New(f), tc)
 	if w == nil {
 		return nil, unknownFormat(format)
 	}

@@ -8,7 +8,7 @@ var Internal = test.Internal{
 	Name:     "input",
 	Query:    "*",
 	Input:    test.Trim(input),
-	Format:   "zson",
+	Format:   "zq",
 	Expected: test.Trim(expected),
 }
 

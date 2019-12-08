@@ -8,22 +8,22 @@ import (
 	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/expr"
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zq"
 	"github.com/mccanne/zq/pkg/zval"
 )
 
-type Filter func(*zson.Record) bool
+type Filter func(*zq.Record) bool
 
 func LogicalAnd(left, right Filter) Filter {
-	return func(p *zson.Record) bool { return left(p) && right(p) }
+	return func(p *zq.Record) bool { return left(p) && right(p) }
 }
 
 func LogicalOr(left, right Filter) Filter {
-	return func(p *zson.Record) bool { return left(p) || right(p) }
+	return func(p *zq.Record) bool { return left(p) || right(p) }
 }
 
 func LogicalNot(expr Filter) Filter {
-	return func(p *zson.Record) bool { return !expr(p) }
+	return func(p *zq.Record) bool { return !expr(p) }
 }
 
 func searchContainer(zv zval.Encoding, pattern []byte) bool {
@@ -47,7 +47,7 @@ func searchContainer(zv zval.Encoding, pattern []byte) bool {
 
 func SearchString(s string) Filter {
 	pattern := zeek.Unescape([]byte(s))
-	return func(p *zson.Record) bool {
+	return func(p *zq.Record) bool {
 		// Go implements a very efficient string search algorithm so we
 		// use it here first to rule out misses on a substring match.
 		if !bytes.Contains(p.Raw, pattern) {
@@ -61,7 +61,7 @@ func SearchString(s string) Filter {
 }
 
 func combine(res expr.FieldExprResolver, pred zeek.Predicate) Filter {
-	return func(r *zson.Record) bool {
+	return func(r *zq.Record) bool {
 		v := res(r)
 		if v.Type == nil {
 			// field (or sub-field) doesn't exist in this record
@@ -110,7 +110,7 @@ func CompileFieldCompare(node ast.CompareField, val zeek.Value) (Filter, error) 
 
 func EvalAny(eval zeek.Predicate, recursive bool) Filter {
 	if !recursive {
-		return func(r *zson.Record) bool {
+		return func(r *zq.Record) bool {
 			it := r.ZvalIter()
 			for _, c := range r.Type.Columns {
 				val, _, err := it.Next()
@@ -142,7 +142,7 @@ func EvalAny(eval zeek.Predicate, recursive bool) Filter {
 		}
 		return false
 	}
-	return func(r *zson.Record) bool {
+	return func(r *zq.Record) bool {
 		return fn(r.Raw, r.Descriptor.Type.Columns)
 	}
 }
@@ -179,7 +179,7 @@ func Compile(node ast.BooleanExpr) (Filter, error) {
 		return LogicalOr(left, right), nil
 
 	case *ast.BooleanLiteral:
-		return func(p *zson.Record) bool { return v.Value }, nil
+		return func(p *zq.Record) bool { return v.Value }, nil
 
 	case *ast.SearchString:
 		val := v.Value

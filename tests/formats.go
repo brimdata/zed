@@ -31,10 +31,10 @@ func match(subdir, name, direction string) *filespec {
 	switch ext {
 	case "log":
 		format = "zeek"
-	case "zson":
-		format = "zson"
-	case "bzson":
-		format = "bzson"
+	case "zq":
+		format = "zq"
+	case "bzq":
+		format = "bzq"
 	case "json":
 		format = "ndjson"
 	case "txt", "text":

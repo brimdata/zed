@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zq"
 )
 
 // A Merge proc merges multiple upstream inputs into one output.
@@ -18,7 +18,7 @@ type Merge struct {
 	Base
 	once    sync.Once
 	parents []*runnerProc
-	bufs    []zson.Batch
+	bufs    []zq.Batch
 	err     error
 }
 
@@ -97,12 +97,12 @@ func (m *Merge) fill() {
 }
 
 // Pull implements the merge logic for returning data from the upstreams.
-func (m *Merge) Pull() (zson.Batch, error) {
+func (m *Merge) Pull() (zq.Batch, error) {
 	m.once.Do(func() {
 		for _, m := range m.parents {
 			go m.run()
 		}
-		m.bufs = make([]zson.Batch, len(m.parents))
+		m.bufs = make([]zq.Batch, len(m.parents))
 		m.fill()
 	})
 	if m.err != nil {

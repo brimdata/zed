@@ -6,9 +6,9 @@ import (
 
 	"github.com/mccanne/zq/driver"
 	"github.com/mccanne/zq/emitter"
-	"github.com/mccanne/zq/pkg/zsio/detector"
-	"github.com/mccanne/zq/pkg/zson"
-	"github.com/mccanne/zq/pkg/zson/resolver"
+	"github.com/mccanne/zq/pkg/zio/detector"
+	"github.com/mccanne/zq/pkg/zq"
+	"github.com/mccanne/zq/pkg/zq/resolver"
 	"github.com/mccanne/zq/scanner"
 	"github.com/mccanne/zq/zql"
 )
@@ -25,7 +25,7 @@ func Trim(s string) string {
 	return strings.TrimSpace(s) + "\n"
 }
 
-func stringReader(input string, r *resolver.Table) (zson.Reader, error) {
+func stringReader(input string, r *resolver.Table) (zq.Reader, error) {
 	return detector.NewReader(strings.NewReader(input), r)
 }
 

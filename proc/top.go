@@ -6,7 +6,7 @@ import (
 	"github.com/mccanne/zq/expr"
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zq"
 )
 
 const defaultTopLimit = 100
@@ -23,7 +23,7 @@ type Top struct {
 	records    *expr.RecordSlice
 	sorter     expr.SortFn
 	flushEvery bool
-	out        []*zson.Record
+	out        []*zq.Record
 }
 
 func NewTop(c *Context, parent Proc, limit int, fields []expr.FieldExprResolver, flushEvery bool) *Top {
@@ -38,7 +38,7 @@ func NewTop(c *Context, parent Proc, limit int, fields []expr.FieldExprResolver,
 	}
 }
 
-func (s *Top) Pull() (zson.Batch, error) {
+func (s *Top) Pull() (zq.Batch, error) {
 	for {
 		batch, err := s.Get()
 		if err != nil {
@@ -57,10 +57,10 @@ func (s *Top) Pull() (zson.Batch, error) {
 	}
 }
 
-func (s *Top) consume(rec *zson.Record) {
+func (s *Top) consume(rec *zq.Record) {
 	if s.fields == nil {
 		fld := guessSortField(rec)
-		resolver := func(r *zson.Record) zeek.TypedEncoding {
+		resolver := func(r *zq.Record) zeek.TypedEncoding {
 			e, err := r.Access(fld)
 			if err != nil {
 				return zeek.TypedEncoding{}
@@ -82,16 +82,16 @@ func (s *Top) consume(rec *zson.Record) {
 	}
 }
 
-func (s *Top) sorted() zson.Batch {
+func (s *Top) sorted() zq.Batch {
 	if s.records == nil {
 		return nil
 	}
-	out := make([]*zson.Record, s.records.Len())
+	out := make([]*zq.Record, s.records.Len())
 	for i := s.records.Len() - 1; i >= 0; i-- {
-		rec := heap.Pop(s.records).(*zson.Record)
+		rec := heap.Pop(s.records).(*zq.Record)
 		out[i] = rec
 	}
 	// clear records
 	s.records = nil
-	return zson.NewArray(out, nano.NewSpanTs(s.MinTs, s.MaxTs))
+	return zq.NewArray(out, nano.NewSpanTs(s.MinTs, s.MaxTs))
 }

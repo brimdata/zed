@@ -3,7 +3,7 @@ package reducer
 import (
 	"github.com/axiomhq/hyperloglog"
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zq"
 )
 
 type CountDistinctProto struct {
@@ -34,7 +34,7 @@ type CountDistinct struct {
 	sketch *hyperloglog.Sketch
 }
 
-func (c *CountDistinct) Consume(r *zson.Record) {
+func (c *CountDistinct) Consume(r *zq.Record) {
 	i, ok := r.Descriptor.LUT[c.Field]
 	if !ok {
 		return

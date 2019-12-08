@@ -8,9 +8,9 @@ import (
 
 	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/filter"
-	"github.com/mccanne/zq/pkg/zsio"
-	"github.com/mccanne/zq/pkg/zson"
-	"github.com/mccanne/zq/pkg/zson/resolver"
+	"github.com/mccanne/zq/pkg/zio"
+	"github.com/mccanne/zq/pkg/zq"
+	"github.com/mccanne/zq/pkg/zq/resolver"
 	"github.com/mccanne/zq/zql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,7 +20,7 @@ import (
 // executing it against the given Record.  Returns an error if the filter
 // result does not match expectedResult (or for any other error such as
 // failure to parse or compile the filter)
-func runTest(filt string, record *zson.Record, expectedResult bool) error {
+func runTest(filt string, record *zq.Record, expectedResult bool) error {
 	// Parse the filter.  Any filter is a valid full zql query,
 	// it should parse to an AST with a top-level FilterProc node.
 	parsed, err := zql.Parse("", []byte(filt))
@@ -83,10 +83,10 @@ func TestFilters(t *testing.T) {
 	t.Parallel()
 
 	ior := strings.NewReader(zsonsrc)
-	reader := zsio.LookupReader("zson", ior, resolver.NewTable())
+	reader := zio.LookupReader("zq", ior, resolver.NewTable())
 
 	nrecords := 11
-	records := make([]*zson.Record, 0, nrecords)
+	records := make([]*zq.Record, 0, nrecords)
 	for {
 		rec, err := reader.Read()
 		require.NoError(t, err)
@@ -101,7 +101,7 @@ func TestFilters(t *testing.T) {
 
 	tests := []struct {
 		filter         string
-		record         *zson.Record
+		record         *zq.Record
 		expectedResult bool
 	}{
 		{"abc in stringset", records[0], true},

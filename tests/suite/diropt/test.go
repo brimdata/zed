@@ -6,8 +6,8 @@ import (
 
 var Test = test.Shell{
 	Name:   "dir-option-zeek",
-	Script: `zq -f zeek -d out "*" in.zson`,
-	Input:  []test.File{test.File{"in.zson", test.Trim(input)}},
+	Script: `zq -f zeek -d out "*" in.zq`,
+	Input:  []test.File{test.File{"in.zq", test.Trim(input)}},
 	Expected: []test.File{
 		test.File{"out/conn.log", test.Trim(conn)},
 		test.File{"out/dns.log", test.Trim(dns)},
@@ -16,11 +16,11 @@ var Test = test.Shell{
 
 var Test2 = test.Shell{
 	Name:   "dir-option-zson",
-	Script: `zq -f zson -d out -o foo- "*" in.zson`,
-	Input:  []test.File{test.File{"in.zson", test.Trim(input)}},
+	Script: `zq -f zq -d out -o foo- "*" in.zq`,
+	Input:  []test.File{test.File{"in.zq", test.Trim(input)}},
 	Expected: []test.File{
-		test.File{"out/foo-conn.zson", test.Trim(connZson)},
-		test.File{"out/foo-dns.zson", test.Trim(dnsZson)},
+		test.File{"out/foo-conn.zq", test.Trim(connZson)},
+		test.File{"out/foo-dns.zq", test.Trim(dnsZson)},
 	},
 }
 

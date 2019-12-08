@@ -5,8 +5,8 @@ import (
 
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
-	"github.com/mccanne/zq/pkg/zson/resolver"
+	"github.com/mccanne/zq/pkg/zq"
+	"github.com/mccanne/zq/pkg/zq/resolver"
 	"github.com/mccanne/zq/proc"
 	"github.com/stretchr/testify/require"
 )
@@ -19,42 +19,42 @@ func TestCut(t *testing.T) {
 	// just write the test inputs in zson and not have to create
 	// descriptors and records programatically...
 	fooDesc := resolver.GetByColumns([]zeek.Column{{"foo", zeek.TypeString}})
-	r1, err := zson.NewRecordZeekStrings(fooDesc, "foo1")
-	r2, err := zson.NewRecordZeekStrings(fooDesc, "foo2")
-	r3, err := zson.NewRecordZeekStrings(fooDesc, "foo3")
-	fooBatch := zson.NewArray([]*zson.Record{r1, r2, r3}, nano.MaxSpan)
+	r1, err := zq.NewRecordZeekStrings(fooDesc, "foo1")
+	r2, err := zq.NewRecordZeekStrings(fooDesc, "foo2")
+	r3, err := zq.NewRecordZeekStrings(fooDesc, "foo3")
+	fooBatch := zq.NewArray([]*zq.Record{r1, r2, r3}, nano.MaxSpan)
 
 	barDesc := resolver.GetByColumns([]zeek.Column{{"bar", zeek.TypeString}})
-	r1, err = zson.NewRecordZeekStrings(barDesc, "bar1")
-	r2, err = zson.NewRecordZeekStrings(barDesc, "bar2")
-	r3, err = zson.NewRecordZeekStrings(barDesc, "bar3")
-	barBatch := zson.NewArray([]*zson.Record{r1, r2, r3}, nano.MaxSpan)
+	r1, err = zq.NewRecordZeekStrings(barDesc, "bar1")
+	r2, err = zq.NewRecordZeekStrings(barDesc, "bar2")
+	r3, err = zq.NewRecordZeekStrings(barDesc, "bar3")
+	barBatch := zq.NewArray([]*zq.Record{r1, r2, r3}, nano.MaxSpan)
 
 	fooBarDesc := resolver.GetByColumns([]zeek.Column{
 		{"foo", zeek.TypeString},
 		{"bar", zeek.TypeString},
 	})
-	r1, err = zson.NewRecordZeekStrings(fooBarDesc, "foo1", "bar1")
-	r2, err = zson.NewRecordZeekStrings(fooBarDesc, "foo2", "bar2")
-	r3, err = zson.NewRecordZeekStrings(fooBarDesc, "foo3", "bar3")
-	fooBarBatch := zson.NewArray([]*zson.Record{r1, r2, r3}, nano.MaxSpan)
+	r1, err = zq.NewRecordZeekStrings(fooBarDesc, "foo1", "bar1")
+	r2, err = zq.NewRecordZeekStrings(fooBarDesc, "foo2", "bar2")
+	r3, err = zq.NewRecordZeekStrings(fooBarDesc, "foo3", "bar3")
+	fooBarBatch := zq.NewArray([]*zq.Record{r1, r2, r3}, nano.MaxSpan)
 
 	// test "cut foo" on records that only have field foo
-	pt, err := proc.NewProcTestFromSource("cut foo", resolver, []zson.Batch{fooBatch})
+	pt, err := proc.NewProcTestFromSource("cut foo", resolver, []zq.Batch{fooBatch})
 	require.NoError(t, err)
 	require.NoError(t, pt.Expect(fooBatch))
 	require.NoError(t, pt.ExpectEOS())
 	require.NoError(t, pt.Finish())
 
 	// test "cut foo" on records that have fields foo and bar
-	pt, err = proc.NewProcTestFromSource("cut foo", resolver, []zson.Batch{fooBarBatch})
+	pt, err = proc.NewProcTestFromSource("cut foo", resolver, []zq.Batch{fooBarBatch})
 	require.NoError(t, err)
 	require.NoError(t, pt.Expect(fooBatch))
 	require.NoError(t, pt.ExpectEOS())
 	require.NoError(t, pt.Finish())
 
 	// test "cut foo" on records that don't have field foo
-	pt, err = proc.NewProcTestFromSource("cut foo", resolver, []zson.Batch{barBatch})
+	pt, err = proc.NewProcTestFromSource("cut foo", resolver, []zq.Batch{barBatch})
 	require.NoError(t, err)
 	require.NoError(t, pt.ExpectEOS())
 	require.NoError(t, pt.ExpectWarning("Cut field foo not present in input"))
@@ -63,14 +63,14 @@ func TestCut(t *testing.T) {
 	// test "cut foo" on some fields with foo, some without
 	// Note there is no warning in this case since some of the input
 	// records have field "foo".
-	pt, err = proc.NewProcTestFromSource("cut foo", resolver, []zson.Batch{fooBatch, barBatch})
+	pt, err = proc.NewProcTestFromSource("cut foo", resolver, []zq.Batch{fooBatch, barBatch})
 	require.NoError(t, err)
 	require.NoError(t, pt.Expect(fooBatch))
 	require.NoError(t, pt.ExpectEOS())
 	require.NoError(t, pt.Finish())
 
 	// test cut on multiple fields.
-	pt, err = proc.NewProcTestFromSource("cut foo,bar", resolver, []zson.Batch{fooBarBatch})
+	pt, err = proc.NewProcTestFromSource("cut foo,bar", resolver, []zq.Batch{fooBarBatch})
 	require.NoError(t, err)
 	require.NoError(t, pt.Expect(fooBarBatch))
 	require.NoError(t, pt.ExpectEOS())

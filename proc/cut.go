@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zq"
 	"github.com/mccanne/zq/pkg/zval"
 )
 
@@ -15,7 +15,7 @@ var ErrNoField = errors.New("cut field not found")
 type Cut struct {
 	Base
 	fields   []string
-	cutmap   map[int]*zson.Descriptor
+	cutmap   map[int]*zq.Descriptor
 	nblocked int
 }
 
@@ -23,11 +23,11 @@ func NewCut(c *Context, parent Proc, fields []string) *Cut {
 	return &Cut{
 		Base:   Base{Context: c, Parent: parent},
 		fields: fields,
-		cutmap: make(map[int]*zson.Descriptor),
+		cutmap: make(map[int]*zq.Descriptor),
 	}
 }
 
-func (c *Cut) lookup(in *zson.Descriptor) *zson.Descriptor {
+func (c *Cut) lookup(in *zq.Descriptor) *zq.Descriptor {
 	d, ok := c.cutmap[in.ID]
 	if ok {
 		return d
@@ -50,7 +50,7 @@ func (c *Cut) lookup(in *zson.Descriptor) *zson.Descriptor {
 
 // CreateCut returns a new record value derived by keeping only the fields
 // specified by name in the fields slice.
-func (c *Cut) cut(d *zson.Descriptor, in *zson.Record) (*zson.Record, error) {
+func (c *Cut) cut(d *zq.Descriptor, in *zq.Record) (*zq.Record, error) {
 	var zv zval.Encoding
 	for _, column := range d.Type.Columns {
 		// colno must exist for each field since the descriptor map
@@ -58,7 +58,7 @@ func (c *Cut) cut(d *zson.Descriptor, in *zson.Record) (*zson.Record, error) {
 		colno, _ := in.ColumnOfField(column.Name)
 		zv = zval.Append(zv, in.Slice(colno), zeek.IsContainerType(column.Type))
 	}
-	return zson.NewRecordNoTs(d, zv), nil
+	return zq.NewRecordNoTs(d, zv), nil
 }
 
 func (c *Cut) warn() {
@@ -75,7 +75,7 @@ func (c *Cut) warn() {
 	c.Warnings <- fmt.Sprintf("Cut field%s %s %s", plural, flds, msg)
 }
 
-func (c *Cut) Pull() (zson.Batch, error) {
+func (c *Cut) Pull() (zq.Batch, error) {
 	batch, err := c.Get()
 	if EOS(batch, err) {
 		c.warn()
@@ -87,7 +87,7 @@ func (c *Cut) Pull() (zson.Batch, error) {
 	// If a field specified doesn't exist, we don't include that record.
 	// if the types change for the fields specified, we drop those records.
 	//
-	recs := make([]*zson.Record, 0, batch.Length())
+	recs := make([]*zq.Record, 0, batch.Length())
 	for k := 0; k < batch.Length(); k++ {
 		in := batch.Index(k)
 		d := c.lookup(in.Descriptor)
@@ -104,5 +104,5 @@ func (c *Cut) Pull() (zson.Batch, error) {
 		c.warn()
 		return nil, nil
 	}
-	return zson.NewArray(recs, batch.Span()), nil
+	return zq.NewArray(recs, batch.Span()), nil
 }
