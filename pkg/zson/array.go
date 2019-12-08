@@ -39,9 +39,21 @@ func (a *Array) Span() nano.Span {
 	return a.span
 }
 
+//XXX should change this to Record()
 func (a *Array) Index(k int) *Record {
 	if k < len(a.records) {
 		return a.records[k]
 	}
 	return nil
+}
+
+func (a *Array) Append(r *Record) {
+	s := nano.Span{Ts: r.Ts}
+	first := a.span == nano.Span{}
+	if first {
+		a.span = s
+	} else {
+		a.span = a.span.Union(s)
+	}
+	a.records = append(a.records, r)
 }
