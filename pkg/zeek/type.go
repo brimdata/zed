@@ -315,6 +315,24 @@ func (e TypedEncoding) VectorIndex(idx int64) (TypedEncoding, error) {
 	return TypedEncoding{}, ErrIndex
 }
 
+// Elements returns an array of TypedEncodings for the current container type.
+// Returns an error if the element is not a vector or set.
+func (e TypedEncoding) Elements() ([]TypedEncoding, error) {
+	innerType := InnerType(e.Type)
+	if innerType == nil {
+		return nil, ErrNotContainer
+	}
+	var elements []TypedEncoding
+	for it := e.Iter(); !it.Done(); {
+		zv, _, err := it.Next()
+		if err != nil {
+			return nil, err
+		}
+		elements = append(elements, TypedEncoding{innerType, zv})
+	}
+	return elements, nil
+}
+
 // LookupTypeRecord returns a zeek.TypeRecord for the indicated columns.  If it
 // already exists, the existent interface pointer is returned.  Otherwise,
 // it is created and returned.
