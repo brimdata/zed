@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/pkg/zeek"
@@ -137,4 +138,39 @@ outer:
 		}
 		return e
 	}, nil
+}
+
+func FieldExprString(node ast.FieldExpr) (string, error) {
+	b := &strings.Builder{}
+	if err := fieldExprString(b, node); err != nil {
+		return "", err
+	}
+	return b.String(), nil
+}
+
+func fieldExprString(b *strings.Builder, node ast.FieldExpr) error {
+	switch op := node.(type) {
+	case *ast.FieldRead:
+		b.WriteString(op.Field)
+	case *ast.FieldCall:
+		if err := fieldExprString(b, op.Field); err != nil {
+			return err
+		}
+		switch op.Fn {
+		// Len NOT handled separately
+		case "Index":
+			idx, err := strconv.ParseInt(op.Param, 10, 64)
+			if err != nil {
+				return err
+			}
+			b.WriteString(fmt.Sprintf("[%d]", idx))
+		case "RecordFieldRead":
+			b.WriteString(fmt.Sprintf(".%s", op.Param))
+		default:
+			return fmt.Errorf("unknown FieldCall: %s", op.Fn)
+		}
+	default:
+		return errors.New("filter AST unknown field op")
+	}
+	return nil
 }
