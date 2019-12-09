@@ -37,6 +37,10 @@ func match(subdir, name, direction string) *filespec {
 		format = "bzson"
 	case "json":
 		format = "ndjson"
+	case "txt", "text":
+		format = "text"
+	case "tbl", "table":
+		format = "table"
 	default:
 		return nil
 	}

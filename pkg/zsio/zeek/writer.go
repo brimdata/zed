@@ -21,7 +21,7 @@ type Writer struct {
 func NewWriter(w io.Writer) *Writer {
 	return &Writer{
 		Writer:    w,
-		flattener: NewFlatener(),
+		flattener: NewFlattener(),
 	}
 }
 

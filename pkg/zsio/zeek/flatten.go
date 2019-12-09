@@ -13,10 +13,38 @@ type Flattener struct {
 	mapper *resolver.Mapper
 }
 
-func NewFlatener() *Flattener {
+func NewFlattener() *Flattener {
 	return &Flattener{
 		mapper: resolver.NewMapper(resolver.NewTable()),
 	}
+}
+
+func recode(dst zval.Encoding, typ *zeek.TypeRecord, in zval.Encoding) (zval.Encoding, error) {
+	if in == nil {
+		for k := 0; k < len(typ.Columns); k++ {
+			dst = zval.Append(dst, nil, false)
+		}
+		return dst, nil
+	}
+	it := in.Iter()
+	colno := 0
+	for !it.Done() {
+		val, container, err := it.Next()
+		if err != nil {
+			return nil, err
+		}
+		col := typ.Columns[colno]
+		colno++
+		if childType, ok := col.Type.(*zeek.TypeRecord); ok {
+			dst, err = recode(dst, childType, val)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			dst = zval.Append(dst, val, container)
+		}
+	}
+	return dst, nil
 }
 
 func (f *Flattener) Flatten(r *zson.Record) (*zson.Record, error) {
@@ -31,29 +59,11 @@ func (f *Flattener) Flatten(r *zson.Record) (*zson.Record, error) {
 		r.Descriptor = d
 		return r, nil
 	}
-	// XXX this loop should build a native zval
-	var ss []string
-	it := r.ZvalIter()
-	for _, col := range r.Descriptor.Type.Columns {
-		val, isContainer, err := it.Next()
-		if err != nil {
-			return nil, err
-		}
-		recType, isRecord := col.Type.(*zeek.TypeRecord)
-		if isRecord {
-			it2 := zval.Iter(val)
-			for _, inner := range recType.Columns {
-				innerVal, isContainer, err := it2.Next()
-				if err != nil {
-					return nil, err
-				}
-				ss = append(ss, zson.ZvalToZeekString(inner.Type, innerVal, isContainer))
-			}
-		} else {
-			ss = append(ss, zson.ZvalToZeekString(col.Type, val, isContainer))
-		}
+	zv, err := recode(nil, r.Descriptor.Type, r.Raw)
+	if err != nil {
+		return nil, err
 	}
-	return zson.NewRecordZeekStrings(d, ss...)
+	return zson.NewRecordNoTs(d, zv), nil
 }
 
 // flattenColumns turns nested records into a series of columns of

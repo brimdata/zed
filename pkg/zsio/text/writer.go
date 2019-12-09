@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/mccanne/zq/pkg/zeek"
+	zk "github.com/mccanne/zq/pkg/zsio/zeek"
 	"github.com/mccanne/zq/pkg/zson"
 )
 
@@ -19,10 +20,14 @@ type Config struct {
 type Text struct {
 	io.Writer
 	Config
+	flattener *zk.Flattener
 }
 
 func NewWriter(w io.Writer, c *Config) *Text {
-	writer := &Text{Writer: w}
+	writer := &Text{
+		Writer:    w,
+		flattener: zk.NewFlattener(),
+	}
 	if c != nil {
 		writer.Config = *c
 	}
@@ -30,6 +35,10 @@ func NewWriter(w io.Writer, c *Config) *Text {
 }
 
 func (t *Text) Write(rec *zson.Record) error {
+	rec, err := t.flattener.Flatten(rec)
+	if err != nil {
+		return err
+	}
 	var out []string
 	if t.ShowFields || t.ShowTypes || !t.EpochDates {
 		for k, col := range rec.Descriptor.Type.Columns {
@@ -59,6 +68,6 @@ func (t *Text) Write(rec *zson.Record) error {
 		}
 	}
 	s := strings.Join(out, "\t")
-	_, err := fmt.Fprintf(t.Writer, "%s\n", s)
+	_, err = fmt.Fprintf(t.Writer, "%s\n", s)
 	return err
 }
