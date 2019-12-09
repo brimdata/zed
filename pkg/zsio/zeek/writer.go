@@ -14,14 +14,22 @@ var ErrDescriptorChanged = errors.New("descriptor changed")
 type Writer struct {
 	io.Writer
 	header
+	flattener  *Flattener
 	descriptor *zson.Descriptor
 }
 
 func NewWriter(w io.Writer) *Writer {
-	return &Writer{Writer: w}
+	return &Writer{
+		Writer:    w,
+		flattener: NewFlattener(),
+	}
 }
 
 func (w *Writer) Write(r *zson.Record) error {
+	r, err := w.flattener.Flatten(r)
+	if err != nil {
+		return err
+	}
 	path, _ := r.AccessString("_path")
 	if r.Descriptor != w.descriptor || path != w.path {
 		w.writeHeader(r, path)

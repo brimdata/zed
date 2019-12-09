@@ -6,11 +6,13 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/mccanne/zq/pkg/zsio/zeek"
 	"github.com/mccanne/zq/pkg/zson"
 )
 
 type Table struct {
 	io.Writer
+	flattener  *zeek.Flattener
 	table      *tabwriter.Writer
 	descriptor *zson.Descriptor
 	limit      int
@@ -19,7 +21,12 @@ type Table struct {
 
 func NewWriter(w io.Writer) *Table {
 	writer := tabwriter.NewWriter(w, 0, 8, 1, ' ', 0)
-	return &Table{Writer: w, table: writer, limit: 1000}
+	return &Table{
+		Writer:    w,
+		flattener: zeek.NewFlattener(),
+		table:     writer,
+		limit:     1000,
+	}
 }
 
 func (t *Table) writeHeader(d *zson.Descriptor) {
@@ -33,6 +40,10 @@ func (t *Table) writeHeader(d *zson.Descriptor) {
 }
 
 func (t *Table) Write(r *zson.Record) error {
+	r, err := t.flattener.Flatten(r)
+	if err != nil {
+		return err
+	}
 	if r.Descriptor != t.descriptor {
 		if t.descriptor != nil {
 			t.Flush()
