@@ -40,6 +40,10 @@ func (t *Table) writeHeader(d *zson.Descriptor) {
 }
 
 func (t *Table) Write(r *zson.Record) error {
+	r, err := t.flattener.Flatten(r)
+	if err != nil {
+		return err
+	}
 	if r.Descriptor != t.descriptor {
 		if t.descriptor != nil {
 			t.Flush()
