@@ -30,16 +30,17 @@ type Avg struct {
 }
 
 func (a *Avg) Consume(r *zson.Record) {
-	k, ok := r.ColumnOfField(a.Field)
-	if !ok {
+	v := r.ValueByField(a.Field)
+	if v == nil {
+		a.FieldNotFound++
 		return
 	}
-	v, err := zeek.UnsafeParseFloat64(r.Slice(k))
-	if err != nil {
+	var d zeek.Double
+	if !zeek.CoerceToDouble(v, &d) {
 		a.TypeMismatch++
 		return
 	}
-	a.sum += v
+	a.sum += float64(d)
 	a.count++
 }
 

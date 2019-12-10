@@ -24,22 +24,32 @@ func (t *TypeOfInt) String() string {
 	return "int"
 }
 
-func (t *TypeOfInt) Parse(value []byte) (int64, error) {
+func EncodeInt(i int64) zval.Encoding {
+	var b [8]byte
+	n := encodeInt(b[:], i)
+	return b[:n]
+}
+
+func DecodeInt(value []byte) (int64, error) {
 	if value == nil {
 		return 0, ErrUnset
 	}
-	return UnsafeParseInt64(value)
+	return decodeInt(value), nil
 }
 
-func (t *TypeOfInt) Format(value []byte) (interface{}, error) {
-	return t.Parse(value)
+func (t *TypeOfInt) Parse(in []byte) (zval.Encoding, error) {
+	i, err := UnsafeParseInt64(in)
+	if err != nil {
+		return nil, err
+	}
+	return EncodeInt(i), nil
 }
 
-func (t *TypeOfInt) New(value []byte) (Value, error) {
-	if value == nil {
+func (t *TypeOfInt) New(zv zval.Encoding) (Value, error) {
+	if zv == nil {
 		return &Unset{}, nil
 	}
-	v, err := t.Parse(value)
+	v, err := DecodeInt(zv)
 	if err != nil {
 		return nil, err
 	}
@@ -58,8 +68,7 @@ func (i Int) String() string {
 }
 
 func (i Int) Encode(dst zval.Encoding) zval.Encoding {
-	v := []byte(i.String())
-	return zval.AppendValue(dst, v)
+	return zval.AppendValue(dst, EncodeInt(int64(i)))
 }
 
 func (i Int) Type() Type {
@@ -90,25 +99,37 @@ func (i Int) Comparison(op string) (Predicate, error) {
 	// many different zeek data types can be compared with integers
 	return func(e TypedEncoding) bool {
 		val := e.Body
-		switch typ := e.Type.(type) {
-		case *TypeOfInt, *TypeOfCount, *TypeOfPort:
+		switch e.Type.(type) {
+		case *TypeOfInt:
 			// we can parse counts and ports as an integer
-			v, err := TypeInt.Parse(val)
+			v, err := DecodeInt(val)
 			if err == nil {
 				return CompareInt(v, pattern)
 			}
+		case *TypeOfCount:
+			// we can parse counts and ports as an integer
+			v, err := DecodeCount(val)
+			if err == nil {
+				return CompareInt(int64(v), pattern)
+			}
+		case *TypeOfPort:
+			// we can parse counts and ports as an integer
+			v, err := DecodePort(val)
+			if err == nil {
+				return CompareInt(int64(v), pattern)
+			}
 		case *TypeOfDouble:
-			v, err := typ.Parse(val)
+			v, err := DecodeDouble(val)
 			if err == nil {
 				return CompareFloat(v, float64(pattern))
 			}
 		case *TypeOfTime:
-			ts, err := typ.Parse(val)
+			ts, err := DecodeTime(val)
 			if err == nil {
 				return CompareInt(int64(ts), pattern)
 			}
 		case *TypeOfInterval:
-			v, err := typ.Parse(val)
+			v, err := DecodeInt(val)
 			if err == nil {
 				return CompareInt(int64(v), pattern)
 			}

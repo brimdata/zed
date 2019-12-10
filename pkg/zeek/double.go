@@ -1,8 +1,11 @@
 package zeek
 
 import (
+	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"math"
 	"strconv"
 
 	"github.com/mccanne/zq/pkg/nano"
@@ -23,26 +26,38 @@ func (t *TypeOfDouble) String() string {
 	return "double"
 }
 
-func (t *TypeOfDouble) Parse(value []byte) (float64, error) {
-	if value == nil {
-		return 0, ErrUnset
-	}
-	return UnsafeParseFloat64(value)
+func EncodeDouble(d float64) zval.Encoding {
+	bits := math.Float64bits(d)
+	var b [8]byte
+	binary.LittleEndian.PutUint64(b[:], bits)
+	return b[:]
 }
 
-func (t *TypeOfDouble) Format(value []byte) (interface{}, error) {
-	return t.Parse(value)
+func DecodeDouble(b []byte) (float64, error) {
+	if len(b) != 8 {
+		return 0, errors.New("byte encoding of double not 8 bytes")
+	}
+	bits := binary.LittleEndian.Uint64(b)
+	return math.Float64frombits(bits), nil
 }
 
-func (t *TypeOfDouble) New(value []byte) (Value, error) {
-	if value == nil {
-		return &Unset{}, nil
-	}
-	v, err := t.Parse(value)
+func (t *TypeOfDouble) Parse(in []byte) (zval.Encoding, error) {
+	d, err := UnsafeParseFloat64(in)
 	if err != nil {
 		return nil, err
 	}
-	return NewDouble(v), nil
+	return EncodeDouble(d), nil
+}
+
+func (t *TypeOfDouble) New(zv zval.Encoding) (Value, error) {
+	if zv == nil {
+		return &Unset{}, nil
+	}
+	f, err := DecodeDouble(zv)
+	if err != nil {
+		return nil, err
+	}
+	return NewDouble(f), nil
 }
 
 type Double float64
@@ -53,12 +68,11 @@ func NewDouble(f float64) *Double {
 }
 
 func (d Double) String() string {
-	return strconv.FormatFloat(float64(d), 'g', -1, 64)
+	return strconv.FormatFloat(float64(d), 'f', -1, 64)
 }
 
-func (d *Double) Encode(dst zval.Encoding) zval.Encoding {
-	v := []byte(d.String())
-	return zval.AppendValue(dst, v)
+func (d Double) Encode(dst zval.Encoding) zval.Encoding {
+	return zval.AppendValue(dst, EncodeDouble(float64(d)))
 }
 
 func (d *Double) Type() Type {
@@ -77,25 +91,41 @@ func (d Double) Comparison(op string) (Predicate, error) {
 	pattern := float64(d)
 	return func(e TypedEncoding) bool {
 		val := e.Body
-		switch typ := e.Type.(type) {
+		switch e.Type.(type) {
 		// We allow comparison of float constant with integer-y
 		// fields and just use typeDouble to parse since it will do
 		// the right thing for integers.  XXX do we want to allow
 		// integers that cause float64 overflow?  user can always
 		// use an integer constant instead of a float constant to
 		// compare with the integer-y field.
-		case *TypeOfDouble, *TypeOfInt, *TypeOfCount, *TypeOfPort:
-			v, err := TypeDouble.Parse(val)
+		case *TypeOfDouble:
+			v, err := DecodeDouble(val)
 			if err == nil {
 				return compare(v, pattern)
 			}
+		case *TypeOfInt:
+			v, err := DecodeInt(val)
+			if err == nil {
+				return compare(float64(v), pattern)
+			}
+		case *TypeOfCount:
+			v, err := DecodeCount(val)
+			if err == nil {
+				return compare(float64(v), pattern)
+			}
+		case *TypeOfPort:
+			v, err := DecodePort(val)
+			if err == nil {
+				return compare(float64(v), pattern)
+			}
+
 		case *TypeOfTime:
-			ts, err := typ.Parse(val)
+			ts, err := DecodeTime(val)
 			if err == nil {
 				return compare(float64(ts), pattern)
 			}
 		case *TypeOfInterval:
-			v, err := typ.Parse(val)
+			v, err := DecodeInt(val)
 			if err == nil {
 				return compare(float64(v), pattern)
 			}
@@ -139,27 +169,35 @@ func (d *Double) Coerce(typ Type) Value {
 // their nanosecond values.  If input interface is already a Double, then
 // it is returned as a *Double.  If the value cannot be coerced, then
 // nil is returned.
-func CoerceToDouble(in Value) *Double {
+func CoerceToDouble(in Value, out *Double) bool {
 	switch v := in.(type) {
 	case *Double:
-		return v
+		*out = *v
+		return true
 	case *Int:
-		return NewDouble(float64(*v))
+		*out = Double(float64(*v))
+		return true
 	case *Bool:
 		if *v {
-			return NewDouble(1)
+			*out = Double(1)
+		} else {
+			*out = Double(0)
 		}
-		return NewDouble(0)
+		return true
 	case *Count:
-		return NewDouble(float64(*v))
+		*out = Double(float64(*v))
+		return true
 	case *Port:
-		return NewDouble(float64(*v))
+		*out = Double(float64(*v))
+		return true
 	case *Time:
-		return NewDouble(float64(*v))
+		*out = Double(float64(*v))
+		return true
 	case *Interval:
-		return NewDouble(float64(*v))
+		*out = Double(float64(*v))
+		return true
 	}
-	return nil
+	return false
 }
 
 func (d *Double) MarshalJSON() ([]byte, error) {

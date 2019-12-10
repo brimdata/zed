@@ -22,10 +22,10 @@ func (i *Double) Result() zeek.Value {
 
 func (i *Double) Consume(v zeek.Value) error {
 	//XXX change this to use *zeek.Double
-	cv := zeek.CoerceToDouble(v)
-	if cv == nil {
+	var d zeek.Double
+	if !zeek.CoerceToDouble(v, &d) {
 		return zson.ErrTypeMismatch
 	}
-	i.fn.Update(float64(*cv))
+	i.fn.Update(float64(d))
 	return nil
 }

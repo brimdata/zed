@@ -68,21 +68,34 @@ func NewRawAndTsFromZeekTSV(builder *zval.Builder, d *Descriptor, path []byte, d
 		} else {
 			switch typ.(type) {
 			case *zeek.TypeSet, *zeek.TypeVector:
+				inner := zeek.InnerType(typ)
 				builder.BeginContainer()
 				if bytes.Compare(val, []byte(emptyContainer)) != 0 {
 					cstart := 0
 					for i, ch := range val {
 						if ch == setSeparator {
-							builder.Append(zeek.Unescape(val[cstart:i]))
+							zv, err := inner.Parse(zeek.Unescape(val[cstart:i]))
+							if err != nil {
+								return err
+							}
+							builder.Append(zv)
 							cstart = i + 1
 						}
 					}
-					builder.Append(zeek.Unescape(val[cstart:]))
+					zv, err := inner.Parse(zeek.Unescape(val[cstart:]))
+					if err != nil {
+						return err
+					}
+					builder.Append(zv)
 				}
 				builder.EndContainer()
 			default:
 				// regular (non-container) value
-				builder.Append(zeek.Unescape(val))
+				zv, err := typ.Parse(zeek.Unescape(val))
+				if err != nil {
+					return err
+				}
+				builder.Append(zv)
 			}
 		}
 
@@ -191,6 +204,9 @@ func zsonParseContainer(builder *zval.Builder, typ zeek.Type, b []byte) ([]byte,
 	// skip leftbracket
 	b = b[1:]
 	childType, columns := zeek.ContainedType(typ)
+	if childType == nil && columns == nil {
+		return nil, ErrSyntax
+	}
 	k := 0
 	for {
 		if len(b) == 0 {
@@ -237,7 +253,14 @@ func zsonParseField(builder *zval.Builder, typ zeek.Type, b []byte) ([]byte, err
 		}
 		switch b[from] {
 		case semicolon:
-			builder.Append(b[:to])
+			if zeek.IsContainerType(typ) {
+				return nil, ErrSyntax
+			}
+			zv, err := typ.Parse(zeek.Unescape(b[:to]))
+			if err != nil {
+				return nil, err
+			}
+			builder.Append(zv)
 			return b[from+1:], nil
 		case backslash:
 			e, n := zeek.ParseEscape(b[from:])

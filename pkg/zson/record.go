@@ -2,6 +2,8 @@ package zson
 
 import (
 	"encoding/json"
+	"errors"
+	"math"
 	"net"
 
 	"github.com/mccanne/zq/pkg/nano"
@@ -39,7 +41,7 @@ func NewRecordNoTs(d *Descriptor, zv zval.Encoding) *Record {
 	if d.TsCol >= 0 {
 		body := r.Slice(d.TsCol)
 		if body != nil {
-			r.Ts, _ = zeek.TypeTime.Parse(body)
+			r.Ts, _ = zeek.DecodeTime(body)
 		}
 	}
 	return r
@@ -89,7 +91,8 @@ func NewRecordZvals(d *Descriptor, vals ...zval.Encoding) (t *Record, err error)
 	var ts nano.Ts
 	if col, ok := d.ColumnOfField("ts"); ok {
 		var err error
-		ts, err = nano.Parse(vals[col])
+		//XXX this needs to call Decode
+		ts, err = zeek.DecodeTime(vals[col])
 		if err != nil {
 			return nil, err
 		}
@@ -305,6 +308,15 @@ func (r *Record) TypedSlice(colno int) zeek.TypedEncoding {
 	}
 }
 
+func (r *Record) Value(colno int) zeek.Value {
+	v := r.TypedSlice(colno)
+	val, err := v.Type.New(v.Body)
+	if err != nil {
+		return nil
+	}
+	return val
+}
+
 func (r *Record) String(column int) string {
 	return string(r.Slice(column))
 }
@@ -332,11 +344,10 @@ func (r *Record) AccessString(field string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	typeString, ok := e.Type.(*zeek.TypeOfString)
-	if !ok {
+	if _, ok := e.Type.(*zeek.TypeOfString); !ok {
 		return "", ErrTypeMismatch
 	}
-	return typeString.Parse(e.Body)
+	return zeek.DecodeString(e.Body)
 }
 
 func (r *Record) AccessBool(field string) (bool, error) {
@@ -344,11 +355,10 @@ func (r *Record) AccessBool(field string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	typeBool, ok := e.Type.(*zeek.TypeOfBool)
-	if !ok {
+	if _, ok := e.Type.(*zeek.TypeOfBool); !ok {
 		return false, ErrTypeMismatch
 	}
-	return typeBool.Parse(e.Body)
+	return zeek.DecodeBool(e.Body)
 }
 
 func (r *Record) AccessInt(field string) (int64, error) {
@@ -356,14 +366,17 @@ func (r *Record) AccessInt(field string) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	switch typ := e.Type.(type) {
+	switch e.Type.(type) {
 	case *zeek.TypeOfInt:
-		return typ.Parse(e.Body)
+		return zeek.DecodeInt(e.Body)
 	case *zeek.TypeOfCount:
-		v, err := typ.Parse(e.Body)
+		v, err := zeek.DecodeCount(e.Body)
+		if v > math.MaxInt64 {
+			return 0, errors.New("conversion from type count to int results in overflow")
+		}
 		return int64(v), err
 	case *zeek.TypeOfPort:
-		v, err := typ.Parse(e.Body)
+		v, err := zeek.DecodePort(e.Body)
 		return int64(v), err
 	}
 	return 0, ErrTypeMismatch
@@ -374,11 +387,10 @@ func (r *Record) AccessDouble(field string) (float64, error) {
 	if err != nil {
 		return 0, err
 	}
-	typeDouble, ok := e.Type.(*zeek.TypeOfDouble)
-	if !ok {
+	if _, ok := e.Type.(*zeek.TypeOfDouble); !ok {
 		return 0, ErrTypeMismatch
 	}
-	return typeDouble.Parse(e.Body)
+	return zeek.DecodeDouble(e.Body)
 }
 
 func (r *Record) AccessIP(field string) (net.IP, error) {
@@ -386,11 +398,10 @@ func (r *Record) AccessIP(field string) (net.IP, error) {
 	if err != nil {
 		return nil, err
 	}
-	typeAddr, ok := e.Type.(*zeek.TypeOfAddr)
-	if !ok {
+	if _, ok := e.Type.(*zeek.TypeOfAddr); !ok {
 		return nil, ErrTypeMismatch
 	}
-	return typeAddr.Parse(e.Body)
+	return zeek.DecodeAddr(e.Body)
 }
 
 func (r *Record) AccessTime(field string) (nano.Ts, error) {
@@ -398,16 +409,15 @@ func (r *Record) AccessTime(field string) (nano.Ts, error) {
 	if err != nil {
 		return 0, err
 	}
-	typeTime, ok := e.Type.(*zeek.TypeOfTime)
-	if !ok {
+	if _, ok := e.Type.(*zeek.TypeOfTime); !ok {
 		return 0, ErrTypeMismatch
 	}
-	return typeTime.Parse(e.Body)
+	return zeek.DecodeTime(e.Body)
 }
 
 // MarshalJSON implements json.Marshaler.
 func (r *Record) MarshalJSON() ([]byte, error) {
-	value, err := r.Descriptor.Type.New(r.ZvalIter())
+	value, err := r.Descriptor.Type.New(r.Raw)
 	if err != nil {
 		return nil, err
 	}

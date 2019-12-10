@@ -18,19 +18,27 @@ func (t *TypeOfPattern) String() string {
 	return "pattern"
 }
 
-func (t *TypeOfPattern) Parse(value []byte) (*regexp.Regexp, error) {
+func EncodePattern(v *regexp.Regexp) zval.Encoding {
+	return []byte(v.String())
+}
+
+func DecodePattern(value []byte) (*regexp.Regexp, error) {
 	if value == nil {
 		return nil, ErrUnset
 	}
 	return regexp.Compile(ustring(value))
 }
 
-func (t *TypeOfPattern) Format(value []byte) (interface{}, error) {
-	return t.Parse(value)
+func (t *TypeOfPattern) Parse(in []byte) (zval.Encoding, error) {
+	re, err := regexp.Compile(string(in))
+	if err != nil {
+		return nil, err
+	}
+	return EncodePattern(re), nil
 }
 
-func (t *TypeOfPattern) New(value []byte) (Value, error) {
-	re, err := regexp.Compile(string(value))
+func (t *TypeOfPattern) New(zv zval.Encoding) (Value, error) {
+	re, err := regexp.Compile(string(zv))
 	if err != nil {
 		return nil, err
 	}
@@ -52,8 +60,7 @@ func (p *Pattern) String() string {
 }
 
 func (p *Pattern) Encode(dst zval.Encoding) zval.Encoding {
-	v := []byte(p.String())
-	return zval.AppendValue(dst, v)
+	return zval.AppendValue(dst, EncodePattern((*regexp.Regexp)(p)))
 }
 
 func (p *Pattern) Type() Type {

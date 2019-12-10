@@ -38,7 +38,7 @@ func (l *Last) Consume(r *zson.Record) {
 func (l *Last) Result() zeek.Value {
 	r := l.record
 	if r == nil {
-		return &zeek.None{}
+		return &zeek.Unset{}
 	}
 	return r.ValueByField(l.Field)
 }

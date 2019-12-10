@@ -27,10 +27,12 @@ func appendZvalFromZeek(dst zval.Encoding, typ zeek.Type, val []byte) zval.Encod
 		if bytes.Equal(val, []byte{unset}) {
 			return zval.AppendContainer(dst, nil)
 		}
+		inner := zeek.InnerType(typ)
 		zv := make(zval.Encoding, 0)
 		if !bytes.Equal(val, []byte(empty)) {
 			for _, v := range bytes.Split(val, []byte{setSeparator}) {
-				zv = zval.AppendValue(zv, zeek.Unescape(v))
+				body, _ := inner.Parse(zeek.Unescape(v))
+				zv = zval.AppendValue(zv, body)
 			}
 		}
 		return zval.Append(dst, zv, true)
@@ -38,32 +40,39 @@ func appendZvalFromZeek(dst zval.Encoding, typ zeek.Type, val []byte) zval.Encod
 		if bytes.Equal(val, []byte{unset}) {
 			return zval.AppendValue(dst, nil)
 		}
-		return zval.AppendValue(dst, zeek.Unescape(val))
+		body, _ := typ.Parse(zeek.Unescape(val))
+		return zval.AppendValue(dst, body)
 	}
 }
 
 // ZvalToZeekString returns a Zeek ASCII string representing the zval described
 // by typ and val.
-func ZvalToZeekString(typ zeek.Type, val []byte, isContainer bool) string {
-	if val == nil {
+func ZvalToZeekString(typ zeek.Type, zv zval.Encoding, isContainer bool) string {
+	if zv == nil {
 		return "-"
 	}
 	var s string
 	switch typ.(type) {
 	case *zeek.TypeSet, *zeek.TypeVector:
-		if len(val) == 0 {
+		inner := zeek.InnerType(typ)
+		if len(zv) == 0 {
 			return "(empty)"
 		}
 		// XXX handle one value that equals "(empty)"
 		var b strings.Builder
-		it := zval.Iter(val)
+		it := zval.Iter(zv)
 		for {
 			v, _, err := it.Next()
 			if err != nil {
-				return zeek.Escape(val)
+				return "error in ZvalToZeekString"
 			}
+			val, err := inner.New(v)
+			if err != nil {
+				return "error in ZvalToZeekString"
+			}
+			fld := zeek.Escape([]byte(val.String()))
 			// Escape the set separator after ZeekEscape.
-			_, _ = b.WriteString(strings.ReplaceAll(zeek.Escape(v), ",", "\\x2c"))
+			_, _ = b.WriteString(strings.ReplaceAll(fld, ",", "\\x2c"))
 			if it.Done() {
 				break
 			}
@@ -71,7 +80,11 @@ func ZvalToZeekString(typ zeek.Type, val []byte, isContainer bool) string {
 		}
 		s = b.String()
 	default:
-		s = zeek.Escape(val)
+		val, err := typ.New(zv)
+		if err != nil {
+			return "error in ZvalToZeekString"
+		}
+		s = zeek.Escape([]byte(val.String()))
 	}
 	if s == "-" {
 		return "\\x2d"

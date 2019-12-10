@@ -14,26 +14,36 @@ func (t *TypeOfCount) String() string {
 	return "count"
 }
 
-func (t *TypeOfCount) Parse(value []byte) (uint64, error) {
+func EncodeCount(c uint64) zval.Encoding {
+	var b [8]byte
+	n := encodeUint(b[:], uint64(c))
+	return b[:n]
+}
+
+func DecodeCount(value []byte) (Count, error) {
 	if value == nil {
 		return 0, ErrUnset
 	}
-	return UnsafeParseUint64(value)
+	return Count(decodeUint(value)), nil
 }
 
-func (t *TypeOfCount) Format(value []byte) (interface{}, error) {
-	return t.Parse(value)
-}
-
-func (t *TypeOfCount) New(value []byte) (Value, error) {
-	if value == nil {
-		return &Unset{}, nil
-	}
-	v, err := t.Parse(value)
+func (t *TypeOfCount) Parse(in []byte) (zval.Encoding, error) {
+	c, err := UnsafeParseUint64(in)
 	if err != nil {
 		return nil, err
 	}
-	return NewCount(v), nil
+	return EncodeCount(c), nil
+}
+
+func (t *TypeOfCount) New(zv zval.Encoding) (Value, error) {
+	if zv == nil {
+		return &Unset{}, nil
+	}
+	v, err := DecodeCount(zv)
+	if err != nil {
+		return nil, err
+	}
+	return NewCount(uint64(v)), nil
 }
 
 type Count uint64
@@ -48,8 +58,7 @@ func (c Count) String() string {
 }
 
 func (c Count) Encode(dst zval.Encoding) zval.Encoding {
-	v := []byte(c.String())
-	return zval.AppendValue(dst, v)
+	return zval.AppendValue(dst, EncodeCount(uint64(c)))
 }
 
 func (c Count) Type() Type {

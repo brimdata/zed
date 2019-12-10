@@ -13,22 +13,26 @@ func (t *TypeOfEnum) String() string {
 	return "enum"
 }
 
-func (t *TypeOfEnum) Parse(value []byte) (string, error) {
+func EncodeEnum(e []byte) zval.Encoding {
+	return e
+}
+
+func DecodeEnum(value []byte) (string, error) {
 	if value == nil {
 		return "", ErrUnset
 	}
 	return string(value), nil
 }
 
-func (t *TypeOfEnum) Format(value []byte) (interface{}, error) {
-	return string(value), nil
+func (t *TypeOfEnum) Parse(in []byte) (zval.Encoding, error) {
+	return in, nil
 }
 
-func (t *TypeOfEnum) New(value []byte) (Value, error) {
-	if value == nil {
+func (t *TypeOfEnum) New(zv zval.Encoding) (Value, error) {
+	if zv == nil {
 		return &Unset{}, nil
 	}
-	return NewEnum(string(value)), nil
+	return NewEnum(string(zv)), nil
 }
 
 type Enum string
@@ -43,8 +47,7 @@ func (e Enum) String() string {
 }
 
 func (e Enum) Encode(dst zval.Encoding) zval.Encoding {
-	v := []byte(e.String())
-	return zval.AppendValue(dst, v)
+	return zval.AppendValue(dst, EncodeEnum([]byte(e)))
 }
 
 func (e Enum) Type() Type {

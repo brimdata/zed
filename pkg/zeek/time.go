@@ -14,26 +14,36 @@ func (t *TypeOfTime) String() string {
 	return "time"
 }
 
-func (t *TypeOfTime) Parse(value []byte) (nano.Ts, error) {
+func EncodeTime(t nano.Ts) zval.Encoding {
+	var b [8]byte
+	n := encodeInt(b[:], int64(t))
+	return b[:n]
+}
+
+func DecodeTime(value []byte) (nano.Ts, error) {
 	if value == nil {
 		return 0, ErrUnset
 	}
-	return nano.Parse(value)
+	return nano.Ts(decodeInt(value)), nil
 }
 
-func (t *TypeOfTime) Format(value []byte) (interface{}, error) {
-	return t.Parse(value)
-}
-
-func (t *TypeOfTime) New(value []byte) (Value, error) {
-	if value == nil {
-		return &Unset{}, nil
-	}
-	v, err := nano.Parse(value)
+func (t *TypeOfTime) Parse(in []byte) (zval.Encoding, error) {
+	ts, err := nano.Parse(in)
 	if err != nil {
 		return nil, err
 	}
-	return NewTime(v), nil
+	return EncodeTime(ts), nil
+}
+
+func (t *TypeOfTime) New(value zval.Encoding) (Value, error) {
+	if value == nil {
+		return &Unset{}, nil
+	}
+	ts, err := DecodeTime(value)
+	if err != nil {
+		return nil, err
+	}
+	return NewTime(ts), nil
 }
 
 type Time nano.Ts
@@ -52,8 +62,7 @@ func (t Time) String() string {
 }
 
 func (t Time) Encode(dst zval.Encoding) zval.Encoding {
-	v := []byte(t.String())
-	return zval.AppendValue(dst, v)
+	return zval.AppendValue(dst, EncodeTime(nano.Ts(t)))
 }
 
 func (t Time) Type() Type {

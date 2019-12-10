@@ -39,6 +39,22 @@ func (e Encoding) String() string {
 	return string(b)
 }
 
+const hex = "0123456789abcdef"
+
+func appendBytes(b, v []byte) []byte {
+	first := true
+	for _, c := range v {
+		if !first {
+			b = append(b, ' ')
+		} else {
+			first = false
+		}
+		b = append(b, hex[c>>4])
+		b = append(b, hex[c&0xf])
+	}
+	return b
+}
+
 func (e Encoding) Build(b []byte) ([]byte, error) {
 	for it := Iter(e); !it.Done(); {
 		v, container, err := it.Next()
@@ -60,7 +76,7 @@ func (e Encoding) Build(b []byte) ([]byte, error) {
 			b = append(b, ']')
 		} else {
 			b = append(b, '(')
-			b = append(b, v.Bytes()...)
+			b = appendBytes(b, v)
 			b = append(b, ')')
 		}
 	}

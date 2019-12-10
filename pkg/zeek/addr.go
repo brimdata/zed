@@ -3,6 +3,7 @@ package zeek
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 
@@ -24,22 +25,38 @@ func (t *TypeOfAddr) String() string {
 	return "addr"
 }
 
-func (t *TypeOfAddr) Parse(value []byte) (net.IP, error) {
+func EncodeAddr(a net.IP) zval.Encoding {
+	ip := a.To4()
+	if ip == nil {
+		ip = net.IP(a)
+	}
+	return []byte(ip)
+}
+
+func DecodeAddr(value []byte) (net.IP, error) {
 	if value == nil {
 		return nil, ErrUnset
 	}
-	return UnsafeParseAddr(value)
+	switch len(value) {
+	case 4, 16:
+		return net.IP(value), nil
+	}
+	return nil, errors.New("failure trying to decode IP address that is not 4 or 16 bytes long")
 }
 
-func (t *TypeOfAddr) Format(value []byte) (interface{}, error) {
-	return t.Parse(value)
+func (t *TypeOfAddr) Parse(in []byte) (zval.Encoding, error) {
+	ip, err := UnsafeParseAddr(in)
+	if err != nil {
+		return nil, err
+	}
+	return EncodeAddr(ip), nil
 }
 
-func (t *TypeOfAddr) New(value []byte) (Value, error) {
-	if value == nil {
+func (t *TypeOfAddr) New(zv zval.Encoding) (Value, error) {
+	if zv == nil {
 		return &Unset{}, nil
 	}
-	ip, err := t.Parse(value)
+	ip, err := DecodeAddr(zv)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +71,7 @@ func NewAddr(a net.IP) *Addr {
 }
 
 func (a Addr) String() string {
-	return a.String()
+	return (net.IP)(a).String()
 }
 
 func (a Addr) Type() Type {
@@ -62,8 +79,7 @@ func (a Addr) Type() Type {
 }
 
 func (a Addr) Encode(dst zval.Encoding) zval.Encoding {
-	b := []byte(a.String())
-	return zval.AppendValue(dst, b)
+	return zval.AppendValue(dst, EncodeAddr(net.IP(a)))
 }
 
 // Comparison returns a Predicate that compares typed byte slices that must
@@ -76,11 +92,10 @@ func (a Addr) Comparison(op string) (Predicate, error) {
 	}
 	pattern := net.IP(a)
 	return func(e TypedEncoding) bool {
-		typeAddr, ok := e.Type.(*TypeOfAddr)
-		if !ok {
+		if _, ok := e.Type.(*TypeOfAddr); !ok {
 			return false
 		}
-		ip, err := typeAddr.Parse(e.Body)
+		ip, err := DecodeAddr(e.Body)
 		if err != nil {
 			return false
 		}

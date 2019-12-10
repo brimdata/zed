@@ -46,7 +46,7 @@ func TestZsonDescriptors(t *testing.T) {
 	require.NoError(t, err)
 	a, err := record.AccessIP("a")
 	require.NoError(t, err)
-	expectAddr := net.ParseIP("10.5.5.5")
+	expectAddr := net.ParseIP("10.5.5.5").To4()
 	assert.Equal(t, expectAddr, a, "Parsed addr value properly")
 	n, err = record.AccessInt("p")
 	assert.Equal(t, 443, int(n), "Parsed port value properly")

@@ -3,6 +3,7 @@ package zeek
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 
@@ -52,22 +53,56 @@ func (t *TypeOfSubnet) String() string {
 	return "subnet"
 }
 
-func (t *TypeOfSubnet) Parse(value []byte) (*net.IPNet, error) {
+func EncodeSubnet(subnet *net.IPNet) zval.Encoding {
+	var b [32]byte
+	ip := subnet.IP.To4()
+	if ip != nil {
+		copy(b[:], ip)
+		// XXX not sure this works
+		copy(b[4:], subnet.Mask)
+		return b[:8]
+	}
+	copy(b[:], ip)
+	copy(b[16:], subnet.Mask)
+	return b[:]
+}
+
+func DecodeSubnet(value []byte) (*net.IPNet, error) {
 	if value == nil {
 		return nil, ErrUnset
 	}
-	_, subnet, err := net.ParseCIDR(ustring(value))
-	return subnet, err
+	switch len(value) {
+	case 8:
+		ip := net.IP(value[:4])
+		mask := net.IPMask(value[4:])
+		return &net.IPNet{
+			IP:   ip,
+			Mask: mask,
+		}, nil
+	case 32:
+		ip := net.IP(value[:16])
+		mask := net.IPMask(value[16:])
+		return &net.IPNet{
+			IP:   ip,
+			Mask: mask,
+		}, nil
+	}
+	return nil, errors.New("failure trying to decode IP subnet that is not 8 or 32 bytes long")
 }
 
-func (t *TypeOfSubnet) Format(value []byte) (interface{}, error) {
-	return t.Parse(value)
+func (t *TypeOfSubnet) Parse(in []byte) (zval.Encoding, error) {
+	_, subnet, err := net.ParseCIDR(string(in))
+	if err != nil {
+		return nil, err
+	}
+	return EncodeSubnet(subnet), nil
 }
-func (t *TypeOfSubnet) New(value []byte) (Value, error) {
-	if value == nil {
+
+func (t *TypeOfSubnet) New(zv zval.Encoding) (Value, error) {
+	if zv == nil {
 		return &Unset{}, nil
 	}
-	subnet, err := t.Parse(value)
+	subnet, err := DecodeSubnet(zv)
 	if err != nil {
 		return nil, err
 	}
@@ -86,8 +121,8 @@ func (s *Subnet) String() string {
 }
 
 func (s *Subnet) Encode(dst zval.Encoding) zval.Encoding {
-	v := []byte(s.String())
-	return zval.AppendValue(dst, v)
+	zv := EncodeSubnet((*net.IPNet)(s))
+	return zval.AppendValue(dst, zv)
 }
 
 func (s *Subnet) Type() Type {
@@ -111,12 +146,12 @@ func (s *Subnet) Comparison(op string) (Predicate, error) {
 		val := e.Body
 		switch e.Type.(type) {
 		case *TypeOfAddr:
-			ip, err := TypeAddr.Parse(val)
+			ip, err := DecodeAddr(val)
 			if err == nil {
 				return MatchSubnet(ip, pattern)
 			}
 		case *TypeOfSubnet:
-			subnet, err := TypeSubnet.Parse(val)
+			subnet, err := DecodeSubnet(val)
 			if err == nil {
 				return CompareSubnet(subnet, pattern)
 			}

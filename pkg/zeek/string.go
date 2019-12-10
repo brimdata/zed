@@ -21,22 +21,26 @@ func (t *TypeOfString) String() string {
 	return "string"
 }
 
-func (t *TypeOfString) Parse(value []byte) (string, error) {
+func EncodeString(s string) zval.Encoding {
+	return zval.Encoding(s)
+}
+
+func DecodeString(value []byte) (string, error) {
 	if value == nil {
 		return "", ErrUnset
 	}
 	return string(value), nil
 }
 
-func (t *TypeOfString) Format(value []byte) (interface{}, error) {
-	return string(value), nil
+func (t *TypeOfString) Parse(in []byte) (zval.Encoding, error) {
+	return in, nil
 }
 
-func (t *TypeOfString) New(value []byte) (Value, error) {
-	if value == nil {
+func (t *TypeOfString) New(zv zval.Encoding) (Value, error) {
+	if zv == nil {
 		return &Unset{}, nil
 	}
-	return NewString(string(value)), nil
+	return NewString(string(zv)), nil
 }
 
 type String string
@@ -91,4 +95,4 @@ func (s *String) MarshalJSON() ([]byte, error) {
 	return json.Marshal((*string)(s))
 }
 
-func (s *String) Elements() ([]Value, bool) { return nil, false }
+func (s String) Elements() ([]Value, bool) { return nil, false }

@@ -15,7 +15,10 @@ type TypedValue struct {
 
 func runVector(f zeek.Predicate, vals []TypedValue, results []bool) error {
 	for k, tv := range vals {
-		zv := []byte(tv.val)
+		zv, err := tv.typ.Parse([]byte(tv.val))
+		if err != nil {
+			return err
+		}
 		e := zeek.TypedEncoding{tv.typ, zv}
 		if f(e) != results[k] {
 			return fmt.Errorf("value '%s' of type %s at slot %d failed test", tv.val, tv.typ, k)
@@ -54,21 +57,21 @@ func TestZeek(t *testing.T) {
 	require.NoError(t, err)
 	err = run(vals, "gt", zeek.NewPort(100), []bool{false, false, false, false, false, false, false, false, true})
 	require.NoError(t, err)
-	addr1, _ := zeek.TypeAddr.New([]byte("128.32.1.1"))
-	addr2, _ := zeek.TypeAddr.New([]byte("128.32.2.2"))
+	addr1, _ := zeek.NewValue("addr", "128.32.1.1")
+	addr2, _ := zeek.NewValue("addr", "128.32.2.2")
 	err = run(vals, "eql", addr1, []bool{false, false, false, false, false, true, false, false, false})
 	require.NoError(t, err)
 	err = run(vals, "eql", addr2, []bool{false, false, false, false, false, false, false, false, false})
 	require.NoError(t, err)
-	subnet1, err := zeek.TypeSubnet.New([]byte("128.32.0.0/16"))
+	subnet1, err := zeek.NewValue("subnet", "128.32.0.0/16")
 	require.NoError(t, err)
 	err = run(vals, "eql", subnet1, []bool{false, false, false, false, false, true, false, false, false})
 	require.NoError(t, err)
 	err = run(vals, "eql", subnet1, []bool{false, false, false, false, false, true, false, false, false})
 	require.NoError(t, err)
-	subnet2, _ := zeek.TypeSubnet.New([]byte("128.32.1.0/24"))
+	subnet2, _ := zeek.NewValue("subnet", "128.32.1.0/24")
 	err = run(vals, "eql", subnet2, []bool{false, false, false, false, false, true, false, false, false})
-	subnet3, _ := zeek.TypeSubnet.New([]byte("128.32.2.0/24"))
+	subnet3, _ := zeek.NewValue("subnet", "128.32.2.0/24")
 	err = run(vals, "eql", subnet3, []bool{false, false, false, false, false, false, false, false, false})
 	require.NoError(t, err)
 }

@@ -22,14 +22,14 @@ func (t *TypeOfUnset) String() string {
 	return "none"
 }
 
-func (t *TypeOfUnset) Parse(value []byte) (string, error) {
-	return "none", nil
+func (t *TypeOfUnset) Parse(in []byte) (zval.Encoding, error) {
+	return nil, nil
 }
 
 func (t *TypeOfUnset) Format(value []byte) (interface{}, error) {
 	return "none", nil
 }
-func (t *TypeOfUnset) New(value []byte) (Value, error) {
+func (t *TypeOfUnset) New(value zval.Encoding) (Value, error) {
 	return &Unset{}, nil
 }
 

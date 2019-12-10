@@ -2,6 +2,7 @@ package zeek
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -14,26 +15,41 @@ func (t *TypeOfPort) String() string {
 	return "port"
 }
 
-func (t *TypeOfPort) Parse(value []byte) (uint32, error) {
-	if value == nil {
+func EncodePort(p uint32) zval.Encoding {
+	var b [2]byte
+	b[0] = byte(p >> 8)
+	b[1] = byte(p)
+	return b[:]
+}
+
+func DecodePort(b []byte) (uint32, error) {
+	if b == nil {
 		return 0, ErrUnset
 	}
-	return UnsafeParseUint32(value)
-}
+	if len(b) != 2 {
+		return 0, errors.New("port encoding must be 2 bytes")
 
-func (t *TypeOfPort) Format(value []byte) (interface{}, error) {
-	return t.Parse(value)
-}
-
-func (t *TypeOfPort) New(value []byte) (Value, error) {
-	if value == nil {
-		return &Unset{}, nil
 	}
-	v, err := t.Parse(value)
+	return uint32(b[0])<<8 | uint32(b[1]), nil
+}
+
+func (t *TypeOfPort) Parse(in []byte) (zval.Encoding, error) {
+	i, err := UnsafeParseUint32(in)
 	if err != nil {
 		return nil, err
 	}
-	return NewPort(uint32(v)), nil
+	return EncodePort(i), nil
+}
+
+func (t *TypeOfPort) New(zv zval.Encoding) (Value, error) {
+	if zv == nil {
+		return &Unset{}, nil
+	}
+	v, err := DecodePort(zv)
+	if err != nil {
+		return nil, err
+	}
+	return NewPort(v), nil
 }
 
 type Port uint32
@@ -52,8 +68,8 @@ func (p Port) Type() Type {
 }
 
 func (p Port) Encode(dst zval.Encoding) zval.Encoding {
-	v := []byte(p.String())
-	return zval.AppendValue(dst, v)
+	return zval.AppendValue(dst, EncodePort(uint32(p)))
+
 }
 
 // Comparison returns a Predicate that compares typed byte slices that must
@@ -70,11 +86,10 @@ func (p Port) Comparison(op string) (Predicate, error) {
 	// we use strict typing here on the port comparison.
 	pattern := int64(p)
 	return func(e TypedEncoding) bool {
-		typePort, ok := e.Type.(*TypeOfPort)
-		if !ok {
+		if _, ok := e.Type.(*TypeOfPort); !ok {
 			return false
 		}
-		v, err := typePort.Parse(e.Body)
+		v, err := DecodePort(e.Body)
 		if err != nil {
 			return false
 		}

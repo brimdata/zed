@@ -29,7 +29,7 @@ func (s *Stream) Transform(r *zson.Record) (*Record, error) {
 			return nil, err
 		}
 	}
-	v, err := encodeContainer(r.Raw)
+	v, err := encodeContainer(r.Descriptor.Type, r.Raw)
 	if err != nil {
 		return nil, err
 	}
@@ -44,12 +44,17 @@ func (s *Stream) Transform(r *zson.Record) (*Record, error) {
 	}, nil
 }
 
-func encodeContainer(val []byte) (interface{}, error) {
+func encodeContainer(typ zeek.Type, val []byte) (interface{}, error) {
 	if val == nil {
 		// unset containers map to JSON empty object
 		v := make(map[string]interface{})
 		return v, nil
 	}
+	childType, columns := zeek.ContainedType(typ)
+	if childType == nil && columns == nil {
+		return nil, zson.ErrSyntax
+	}
+	k := 0
 	// We start out with a slice that contains nothing instead of nil
 	// so that an empty containers encode to JSON empty array [].
 	body := make([]interface{}, 0)
@@ -59,8 +64,15 @@ func encodeContainer(val []byte) (interface{}, error) {
 			if err != nil {
 				return nil, err
 			}
+			if columns != nil {
+				if k >= len(columns) {
+					return nil, zson.ErrTypeMismatch
+				}
+				childType = columns[k].Type
+				k++
+			}
 			if container {
-				child, err := encodeContainer(v)
+				child, err := encodeContainer(childType, v)
 				if err != nil {
 					return nil, err
 				}
@@ -70,7 +82,11 @@ func encodeContainer(val []byte) (interface{}, error) {
 				// zeek.Escape() returns "" for nil
 				var fld interface{}
 				if v != nil {
-					fld = zeek.Escape(v)
+					fieldBytes, err := zeek.Format(childType, v)
+					if err != nil {
+						return nil, err
+					}
+					fld = string(fieldBytes)
 				}
 				body = append(body, fld)
 			}

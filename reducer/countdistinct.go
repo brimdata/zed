@@ -39,6 +39,7 @@ func (c *CountDistinct) Consume(r *zson.Record) {
 	if !ok {
 		return
 	}
+	//XXX this isn't right
 	v := r.Slice(i)
 	c.sketch.Insert(v)
 }

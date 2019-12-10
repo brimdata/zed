@@ -43,22 +43,37 @@ func (t *TypeOfBool) String() string {
 	return "bool"
 }
 
-func (t *TypeOfBool) Parse(value []byte) (bool, error) {
-	if value == nil {
+func EncodeBool(b bool) zval.Encoding {
+	var v [1]byte
+	if b {
+		v[0] = 1
+	}
+	return v[:]
+}
+
+func DecodeBool(zv zval.Encoding) (bool, error) {
+	if zv == nil {
 		return false, ErrUnset
 	}
-	return UnsafeParseBool(value)
+	if zv[0] != 0 {
+		return true, nil
+	}
+	return false, nil
 }
 
-func (t *TypeOfBool) Format(value []byte) (interface{}, error) {
-	return t.Parse(value)
+func (t *TypeOfBool) Parse(in []byte) (zval.Encoding, error) {
+	b, err := UnsafeParseBool(in)
+	if err != nil {
+		return nil, err
+	}
+	return EncodeBool(b), nil
 }
 
-func (t *TypeOfBool) New(value []byte) (Value, error) {
-	if value == nil {
+func (t *TypeOfBool) New(zv zval.Encoding) (Value, error) {
+	if zv == nil {
 		return &Unset{}, nil
 	}
-	v, err := t.Parse(value)
+	v, err := DecodeBool(zv)
 	if err != nil {
 		return nil, err
 	}
@@ -77,8 +92,7 @@ func (b Bool) String() string {
 }
 
 func (b Bool) Encode(dst zval.Encoding) zval.Encoding {
-	v := []byte(b.String())
-	return zval.AppendValue(dst, v)
+	return zval.AppendValue(dst, EncodeBool(bool(b)))
 }
 
 func (b Bool) Type() Type {
@@ -95,11 +109,10 @@ func (b Bool) Comparison(op string) (Predicate, error) {
 	}
 	pattern := bool(b)
 	return func(e TypedEncoding) bool {
-		typeBool, ok := e.Type.(*TypeOfBool)
-		if !ok {
+		if _, ok := e.Type.(*TypeOfBool); !ok {
 			return false
 		}
-		v, err := typeBool.Parse(e.Body)
+		v, err := DecodeBool(e.Body)
 		if err != nil {
 			return false
 		}

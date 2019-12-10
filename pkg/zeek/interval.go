@@ -14,22 +14,19 @@ func (t *TypeOfInterval) String() string {
 	return "interval"
 }
 
-func (t *TypeOfInterval) Parse(value []byte) (int64, error) {
-	if value == nil {
-		return 0, ErrUnset
+func (t *TypeOfInterval) Parse(in []byte) (zval.Encoding, error) {
+	dur, err := nano.ParseDuration(in)
+	if err != nil {
+		return nil, err
 	}
-	return nano.ParseDuration(value)
+	return EncodeInt(int64(dur)), nil
 }
 
-func (t *TypeOfInterval) Format(value []byte) (interface{}, error) {
-	return t.Parse(value)
-}
-
-func (t *TypeOfInterval) New(value []byte) (Value, error) {
-	if value == nil {
+func (t *TypeOfInterval) New(zv zval.Encoding) (Value, error) {
+	if zv == nil {
 		return &Unset{}, nil
 	}
-	v, err := nano.ParseDuration(value)
+	v, err := DecodeInt(zv)
 	if err != nil {
 		return nil, err
 	}
@@ -52,8 +49,7 @@ func (i Interval) String() string {
 }
 
 func (i Interval) Encode(dst zval.Encoding) zval.Encoding {
-	v := []byte(i.String())
-	return zval.AppendValue(dst, v)
+	return zval.AppendValue(dst, EncodeInt(int64(i)))
 }
 
 func (i Interval) Type() Type {
