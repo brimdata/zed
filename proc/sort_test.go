@@ -1,61 +1,10 @@
 package proc_test
 
 import (
-	"strings"
 	"testing"
 
-	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/pkg/zsio"
-	"github.com/mccanne/zq/pkg/zson"
-	"github.com/mccanne/zq/pkg/zson/resolver"
 	"github.com/mccanne/zq/proc"
-	"github.com/stretchr/testify/require"
 )
-
-func parse(resolver *resolver.Table, src string) (*zson.Array, error) {
-	reader := zsio.LookupReader("zson", strings.NewReader(src), resolver)
-	records := make([]*zson.Record, 0)
-	for {
-		rec, err := reader.Read()
-		if err != nil {
-			return nil, err
-		}
-		if rec == nil {
-			break
-		}
-		records = append(records, rec)
-	}
-
-	return zson.NewArray(records, nano.MaxSpan), nil
-}
-
-// testOne() runs one test of a sort proc with limit, fields, and dir
-// as the parameters to sort (XXX should just use the parser for this).
-// Parses zsonin, runs the resulting records through sort, then asserts
-// that the output matches zsonout.
-func testOne(t *testing.T, zsonin, zsonout string, cmd string) {
-	resolver := resolver.NewTable()
-	recsin, err := parse(resolver, zsonin)
-	require.NoError(t, err)
-	recsout, err := parse(resolver, zsonout)
-	require.NoError(t, err)
-
-	test, err := proc.NewProcTestFromSource(cmd, resolver, []zson.Batch{recsin})
-	require.NoError(t, err)
-
-	result, err := test.Pull()
-	require.NoError(t, err)
-	require.NoError(t, test.ExpectEOS())
-	require.NoError(t, test.Finish())
-
-	require.Equal(t, recsout.Length(), result.Length())
-	for i := 0; i < result.Length(); i++ {
-		r1 := recsout.Index(i)
-		r2 := result.Index(i)
-		// XXX could print something a lot pretter if/when this fails.
-		require.Equalf(t, r2.Raw, r1.Raw, "Expected record %d to match", i)
-	}
-}
 
 // Data sets for tests:
 const unsortedInts = `
@@ -181,16 +130,16 @@ const chooseOut3 = `
 
 func TestSort(t *testing.T) {
 	// Test simple sorting of integers.
-	testOne(t, unsortedInts, ascendingInts, "sort foo")
+	proc.TestOneProc(t, unsortedInts, ascendingInts, "sort foo")
 
 	// Test sorting ints in reverse.
-	testOne(t, unsortedInts, descendingInts, "sort -r foo")
+	proc.TestOneProc(t, unsortedInts, descendingInts, "sort -r foo")
 
 	// Test sorting strings.
-	testOne(t, unsortedStrings, sortedStrings, "sort foo")
+	proc.TestOneProc(t, unsortedStrings, sortedStrings, "sort foo")
 
 	// Test that unset values are sorted to the end
-	testOne(t, unsortedInts+unsetInt, ascendingInts+unsetInt, "sort foo")
+	proc.TestOneProc(t, unsortedInts+unsetInt, ascendingInts+unsetInt, "sort foo")
 
 	// Test sorting records that don't all have the requested field.
 	// XXX sort.Stable() is apparently re-ordering the nofoo records?
@@ -201,14 +150,14 @@ func TestSort(t *testing.T) {
 	// Test sorting records with different types.
 	const mixedTypesIn = unsortedStrings + unsortedInts
 	const mixedTypesOut = ascendingInts + sortedStrings
-	testOne(t, mixedTypesIn, mixedTypesOut, "sort foo")
+	proc.TestOneProc(t, mixedTypesIn, mixedTypesOut, "sort foo")
 
 	// Test sorting on multiple fields.
-	testOne(t, multiIn, foobarOut, "sort foo, bar")
-	testOne(t, multiIn, barfooOut, "sort bar, foo")
+	proc.TestOneProc(t, multiIn, foobarOut, "sort foo, bar")
+	proc.TestOneProc(t, multiIn, barfooOut, "sort bar, foo")
 
 	// Test that choosing a field when none is provided works.
-	testOne(t, chooseIn1, chooseOut1, "sort")
-	testOne(t, chooseIn2, chooseOut2, "sort")
-	testOne(t, chooseIn3, chooseOut3, "sort")
+	proc.TestOneProc(t, chooseIn1, chooseOut1, "sort")
+	proc.TestOneProc(t, chooseIn2, chooseOut2, "sort")
+	proc.TestOneProc(t, chooseIn3, chooseOut3, "sort")
 }

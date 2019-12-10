@@ -8,11 +8,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
+	"strings"
+	"testing"
 
 	"github.com/mccanne/zq/ast"
+	"github.com/mccanne/zq/pkg/nano"
+	"github.com/mccanne/zq/pkg/zsio"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
 	"github.com/mccanne/zq/zql"
+	"github.com/stretchr/testify/require"
 )
 
 func compileProc(code string, ctx *Context, parent Proc) (Proc, error) {
@@ -187,5 +193,78 @@ func (t *ProcTest) Finish() error {
 		return fmt.Errorf("got unexpected warning \"%s\"", warning)
 	default:
 		return nil
+	}
+}
+
+func parse(resolver *resolver.Table, src string) (*zson.Array, error) {
+	reader := zsio.LookupReader("zson", strings.NewReader(src), resolver)
+	records := make([]*zson.Record, 0)
+	for {
+		rec, err := reader.Read()
+		if err != nil {
+			return nil, err
+		}
+		if rec == nil {
+			break
+		}
+		records = append(records, rec)
+	}
+
+	return zson.NewArray(records, nano.MaxSpan), nil
+}
+
+// TestOneProc runs one test of a proc by compiling cmd as a proc, then
+// Parsing zsonin, running the resulting records through the proc, and
+// finally asserting that the output matches zsonout.
+func TestOneProc(t *testing.T, zsonin, zsonout string, cmd string) {
+	resolver := resolver.NewTable()
+	recsin, err := parse(resolver, zsonin)
+	require.NoError(t, err)
+	recsout, err := parse(resolver, zsonout)
+	require.NoError(t, err)
+
+	test, err := NewProcTestFromSource(cmd, resolver, []zson.Batch{recsin})
+	require.NoError(t, err)
+
+	result, err := test.Pull()
+	require.NoError(t, err)
+	require.NoError(t, test.ExpectEOS())
+	require.NoError(t, test.Finish())
+
+	require.Equal(t, recsout.Length(), result.Length(), "Got correct number of output records")
+	for i := 0; i < result.Length(); i++ {
+		r1 := recsout.Index(i)
+		r2 := result.Index(i)
+		// XXX could print something a lot pretter if/when this fails.
+		require.Equalf(t, r2.Raw, r1.Raw, "Expected record %d to match", i)
+	}
+}
+
+// TestOneProcUnsorted is similar to TestOneProc, except ordering of
+// records in the proc output is not important.  That is, the expected
+// output records must all be present, but they may appear in any order.
+func TestOneProcUnsorted(t *testing.T, zsonin, zsonout string, cmd string) {
+	resolver := resolver.NewTable()
+	recsin, err := parse(resolver, zsonin)
+	require.NoError(t, err)
+	recsout, err := parse(resolver, zsonout)
+	require.NoError(t, err)
+
+	test, err := NewProcTestFromSource(cmd, resolver, []zson.Batch{recsin})
+	require.NoError(t, err)
+
+	result, err := test.Pull()
+	require.NoError(t, err)
+	require.NoError(t, test.ExpectEOS())
+	require.NoError(t, test.Finish())
+
+	require.Equal(t, recsout.Length(), result.Length(), "Got correct number of output records")
+	res := result.Records()
+	sort.Slice(res, func(i, j int) bool { return bytes.Compare(res[i].Raw, res[j].Raw) > 0 })
+	expected := recsout.Records()
+	sort.Slice(expected, func(i, j int) bool { return bytes.Compare(expected[i].Raw, expected[j].Raw) > 0 })
+	for i := 0; i < len(res); i++ {
+		// XXX could print something a lot pretter if/when this fails.
+		require.Equalf(t, expected[i].Raw, res[i].Raw, "Expected record %d to match", i)
 	}
 }
