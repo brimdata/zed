@@ -8,6 +8,7 @@ import (
 	"github.com/mccanne/zq/pkg/zeek"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
+	"github.com/mccanne/zq/pkg/zval"
 )
 
 type header struct {
@@ -30,6 +31,7 @@ type Parser struct {
 	// descriptor is a lazily-allocated Descriptor corresponding
 	// to the contents of the #fields and #types directives.
 	descriptor *zson.Descriptor
+	builder    *zval.Builder
 }
 
 var (
@@ -41,6 +43,7 @@ func NewParser(r *resolver.Table) *Parser {
 	return &Parser{
 		header:   header{separator: " "},
 		resolver: r,
+		builder:  zval.NewBuilder(),
 	}
 }
 
@@ -236,7 +239,7 @@ func (p *Parser) ParseValue(line []byte) (*zson.Record, error) {
 	}
 	//XXX should store path as a byte slice so it doens't get compied
 	// each time here
-	zv, ts, err := zson.NewRawAndTsFromZeekTSV(p.descriptor, []byte(p.path), line)
+	zv, ts, err := zson.NewRawAndTsFromZeekTSV(p.builder, p.descriptor, []byte(p.path), line)
 	if err != nil {
 		return nil, err
 	}

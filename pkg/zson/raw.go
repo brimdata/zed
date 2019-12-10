@@ -23,8 +23,8 @@ func EncodeZvals(d *Descriptor, vals []zval.Encoding) (zval.Encoding, error) {
 	return raw, nil
 }
 
-func NewRawAndTsFromZeekTSV(d *Descriptor, path []byte, data []byte) (zval.Encoding, nano.Ts, error) {
-	builder := zval.NewBuilder()
+func NewRawAndTsFromZeekTSV(builder *zval.Builder, d *Descriptor, path []byte, data []byte) (zval.Encoding, nano.Ts, error) {
+	builder.Reset()
 	columns := d.Type.Columns
 	col := 0
 
