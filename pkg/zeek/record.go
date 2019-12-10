@@ -102,7 +102,7 @@ func (t *TypeRecord) Parse(b []byte) ([]Value, error) {
 		}
 		v, err := t.Columns[i].Type.New(val)
 		if err != nil {
-			return nil, fmt.Errorf("cannot parse record element %s", val)
+			return nil, fmt.Errorf("cannot parse record element %s: %w", val, err)
 		}
 		vals = append(vals, v)
 	}
