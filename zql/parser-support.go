@@ -186,7 +186,7 @@ func makeTopProc(fieldsIn, limitIn, flushIn interface{}) *ast.TopProc {
 }
 
 func makeCutProc(fieldsIn interface{}) *ast.CutProc {
-	fields := stringArray(fieldsIn)
+	fields := fieldExprArray(fieldsIn)
 	return &ast.CutProc{ast.Node{"CutProc"}, fields}
 }
 

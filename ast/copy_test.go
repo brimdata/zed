@@ -70,8 +70,14 @@ var testCopyJSON = []byte(`
     },
     {
       "fields": [
-        "d",
-        "e"
+        {
+          "op": "FieldRead",
+          "field": "d"
+        },
+        {
+          "op": "FieldRead",
+          "field": "e"
+        }
       ],
       "op": "CutProc"
     },
@@ -184,8 +190,14 @@ var testCopyJSONExpected = []byte(`
     },
     {
       "fields": [
-        "z",
-        "e"
+        {
+          "op": "FieldRead",
+          "field": "z"
+        },
+        {
+          "op": "FieldRead",
+          "field": "e"
+        }
       ],
       "op": "CutProc"
     },
@@ -244,7 +256,7 @@ func TestCopyAST(t *testing.T) {
 	copy := initialProc.Copy()
 	copy.(*ast.SequentialProc).Procs[0].(*ast.FilterProc).Filter.(*ast.LogicalAnd).Right.(*ast.LogicalOr).Right.(*ast.CompareField).Field.(*ast.FieldRead).Field = "d"
 	copy.(*ast.SequentialProc).Procs[0].(*ast.FilterProc).Filter.(*ast.LogicalAnd).Right.(*ast.LogicalOr).Right.(*ast.CompareField).Value.Value = "4"
-	copy.(*ast.SequentialProc).Procs[1].(*ast.CutProc).Fields[0] = "z"
+	copy.(*ast.SequentialProc).Procs[1].(*ast.CutProc).Fields[0].(*ast.FieldRead).Field = "z"
 	copy.(*ast.SequentialProc).Procs[2].(*ast.GroupByProc).Duration.Seconds = 3600
 	copy.(*ast.SequentialProc).Procs[2].(*ast.GroupByProc).Reducers[0].Field = "k"
 	copy.(*ast.SequentialProc).Procs[2].(*ast.GroupByProc).Keys[1].(*ast.FieldRead).Field = "p"
