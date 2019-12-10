@@ -61,6 +61,19 @@ const reducersOut = `
 0:[b;1;1;1;1;1;1;]
 `
 
+const arrayKeyIn = `
+#0:record[vec:vector[int],val:int]
+0:[-;2;]
+0:[[1;2;]2;]
+0:[[1;2;]3;]
+`
+
+const arrayKeyOut = `
+#0:record[vec:vector[int],val:int]
+0:[-;1;]
+0:[[1;2;]2;]
+`
+
 func TestGroupby(t *testing.T) {
 	// Test a simple groupby
 	proc.TestOneProcUnsorted(t, in, groupSingleOut, "count() by key1")
@@ -79,6 +92,9 @@ func TestGroupby(t *testing.T) {
 
 	// Test various reducers
 	proc.TestOneProcUnsorted(t, in, reducersOut, "first(n), last(n), sum(n), avg(n), min(n), max(n) by key1")
+
+	// Check out of bounds array indexes
+	proc.TestOneProcUnsorted(t, arrayKeyIn, arrayKeyOut, "count() by vec")
 
 	// XXX add coverage of time batching (every ..)
 }
