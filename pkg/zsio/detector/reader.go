@@ -38,6 +38,6 @@ func NewReader(r io.Reader, t *resolver.Table) (zson.Reader, error) {
 }
 
 func match(r zson.Reader) bool {
-	_, err := r.Read()
-	return err == nil
+	rec, err := r.Read()
+	return rec != nil && err == nil
 }
