@@ -1,9 +1,13 @@
 package proc_test
 
 import (
+	"strings"
 	"testing"
 
+	"github.com/mccanne/zq/pkg/test"
 	"github.com/mccanne/zq/proc"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // Data sets for tests:
@@ -15,7 +19,7 @@ const in = `
 `
 
 const groupSingleOut = `
-#0:record[key1:string,count:int]
+#0:record[key1:string,count:count]
 0:[a;2;]
 0:[b;1;]
 `
@@ -74,27 +78,87 @@ const arrayKeyOut = `
 0:[[1;2;]2;]
 `
 
-func TestGroupby(t *testing.T) {
+//XXX this should go in a shared package
+type suite []test.Internal
+
+func (s suite) runSystem(t *testing.T) {
+	t.Parallel()
+	for _, d := range s {
+		t.Run(d.Name, func(t *testing.T) {
+			results, err := d.Run()
+			require.NoError(t, err)
+			assert.Exactly(t, d.Expected, results, "Wrong query results")
+		})
+	}
+}
+
+func (s suite) runUnit(t *testing.T) {
+	t.Parallel()
+	for _, d := range s {
+		t.Run(d.Name, func(t *testing.T) {
+			results, err := d.Run()
+			//XXX hack... easy to fix
+			local := proc.Internal{
+				Name:     d.Name,
+				Input:    d.Input,
+				Query:    d.Query,
+				Expected: d.Expected,
+			}
+			proc.TestOneProcUnsorted(t, local)
+			require.NoError(t, err)
+			assert.Exactly(t, d.Expected, results, "Wrong query results")
+		})
+	}
+}
+
+func (s *suite) add(t test.Internal) {
+	*s = append(*s, t)
+}
+
+func New(name, input, output, cmd string) test.Internal {
+	output = strings.ReplaceAll(output, "\n\n", "\n")
+	return test.Internal{
+		Name:     name,
+		Query:    "* | " + cmd,
+		Input:    input,
+		Format:   "zson",
+		Expected: test.Trim(output),
+	}
+}
+
+func tests() suite {
+	s := suite{}
+
 	// Test a simple groupby
-	proc.TestOneProcUnsorted(t, in, groupSingleOut, "count() by key1")
+	s.add(New("simple", in, groupSingleOut, "count() by key1"))
 
 	// Test that unset key values work correctly
-	proc.TestOneProcUnsorted(t, in+unsetIn, groupSingleOut+unsetOut, "count() by key1")
+	s.add(New("unset-keys", in+unsetIn, groupSingleOut+unsetOut, "count() by key1"))
 
 	// Test grouping by multiple fields
-	proc.TestOneProcUnsorted(t, in, groupMultiOut, "count() by key1,key2")
+	s.add(New("multiple-fields", in, groupMultiOut, "count() by key1,key2"))
 
 	// Test that records missing groupby fields are ignored
-	proc.TestOneProcUnsorted(t, in+missingField, groupSingleOut, "count() by key1")
+	s.add(New("missing-fields", in+missingField, groupSingleOut, "count() by key1"))
 
 	// Test that input with different key types works correctly
-	proc.TestOneProcUnsorted(t, in+differentTypeIn, groupSingleOut+differentTypeOut, "count() by key1")
+	s.add(New("different-key-types", in+differentTypeIn, groupSingleOut+differentTypeOut, "count() by key1"))
 
 	// Test various reducers
-	proc.TestOneProcUnsorted(t, in, reducersOut, "first(n), last(n), sum(n), avg(n), min(n), max(n) by key1")
+	s.add(New("reducers", in, reducersOut, "first(n), last(n), sum(n), avg(n), min(n), max(n) by key1"))
 
 	// Check out of bounds array indexes
-	proc.TestOneProcUnsorted(t, arrayKeyIn, arrayKeyOut, "count() by vec")
+	s.add(New("array-out-of-bounds", arrayKeyIn, arrayKeyOut, "count() by vec"))
 
 	// XXX add coverage of time batching (every ..)
+
+	return s
+}
+
+func TestGroupbySystem(t *testing.T) {
+	tests().runSystem(t)
+}
+
+func TestGroupbyUnit(t *testing.T) {
+	tests().runUnit(t)
 }

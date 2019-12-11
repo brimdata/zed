@@ -1,7 +1,7 @@
 package proc
 
-// This file contains utilties for writing unit tests of procs,
-// it shouldn't include any actual product code.
+// This file contains utilties for writing unit tests of procs
+// XXX It should go in a test framework instead of dangling here.  TBD.
 
 import (
 	"bytes"
@@ -21,6 +21,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//xxx temporary hack around package test import loop (easy to fix)
+type Internal struct {
+	Name     string
+	Query    string
+	Input    string
+	Format   string
+	Expected string
+}
+
 func compileProc(code string, ctx *Context, parent Proc) (Proc, error) {
 	// XXX If we use a newer version of pigeon, we can just compile
 	// with "proc" as the terminal symbol.
@@ -28,8 +37,8 @@ func compileProc(code string, ctx *Context, parent Proc) (Proc, error) {
 	// A simple proc isn't a valid query, so make up a program with
 	// a wildcard filter and then pull out just the proc we care
 	// about below.
-	prog := fmt.Sprintf("* | %s", code)
-	parsed, err := zql.Parse("", []byte(prog))
+	//prog := fmt.Sprintf("* | %s", code)
+	parsed, err := zql.Parse("", []byte(code))
 	if err != nil {
 		return nil, err
 	}
@@ -243,14 +252,14 @@ func TestOneProc(t *testing.T, zsonin, zsonout string, cmd string) {
 // TestOneProcUnsorted is similar to TestOneProc, except ordering of
 // records in the proc output is not important.  That is, the expected
 // output records must all be present, but they may appear in any order.
-func TestOneProcUnsorted(t *testing.T, zsonin, zsonout string, cmd string) {
+func TestOneProcUnsorted(t *testing.T, tst Internal) {
 	resolver := resolver.NewTable()
-	recsin, err := parse(resolver, zsonin)
+	recsin, err := parse(resolver, tst.Input)
 	require.NoError(t, err)
-	recsout, err := parse(resolver, zsonout)
+	recsout, err := parse(resolver, tst.Expected)
 	require.NoError(t, err)
 
-	test, err := NewProcTestFromSource(cmd, resolver, []zson.Batch{recsin})
+	test, err := NewProcTestFromSource(tst.Query, resolver, []zson.Batch{recsin})
 	require.NoError(t, err)
 
 	result, err := test.Pull()
