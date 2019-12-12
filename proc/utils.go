@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func compileProc(code string, ctx *Context, parent Proc) (Proc, error) {
+func CompileTestProc(code string, ctx *Context, parent Proc) (Proc, error) {
 	// XXX If we use a newer version of pigeon, we can just compile
 	// with "proc" as the terminal symbol.
 	// But for now, we have to compile a complete flowgraph.
@@ -108,7 +108,7 @@ func NewTestContext(res *resolver.Table) *Context {
 func NewProcTestFromSource(code string, resolver *resolver.Table, inRecords []zson.Batch) (*ProcTest, error) {
 	ctx := NewTestContext(resolver)
 	src := TestSource{inRecords, 0}
-	compiledProc, err := compileProc(code, ctx, &src)
+	compiledProc, err := CompileTestProc(code, ctx, &src)
 	if err != nil {
 		return nil, err
 	}
