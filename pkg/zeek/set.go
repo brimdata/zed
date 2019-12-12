@@ -64,7 +64,7 @@ func (t *TypeSet) Parse(in []byte) (zval.Encoding, error) {
 
 func (t *TypeSet) New(zv zval.Encoding) (Value, error) {
 	if zv == nil {
-		return &Set{typ: t, values: []Value{}}, nil
+		return &Set{typ: t, values: nil}, nil
 	}
 	v, err := t.Decode(zv)
 	if err != nil {

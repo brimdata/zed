@@ -7,10 +7,42 @@ import (
 	"testing"
 
 	"github.com/mccanne/zq/pkg/zsio/ndjson"
+	zsonio "github.com/mccanne/zq/pkg/zsio/zson"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
 	"github.com/stretchr/testify/require"
 )
+
+func TestNDJSONWriter(t *testing.T) {
+	type testcase struct {
+		name, input, output string
+	}
+	cases := []testcase{
+		{
+			name: "null containers",
+			input: `#0:record[dns:vector[string],uri:vector[string],email:set[string],ip:vector[addr]]
+0:[[google.com;]-;-;-;]
+`,
+			output: `{"dns":["google.com"],"email":null,"ip":null,"uri":null}`,
+		},
+		{
+			name: "nested nulls",
+			input: `#0:record[san:record[dns:vector[string],uri:vector[string],email:set[string],ip:vector[addr]]]
+0:[[[google.com;]-;-;-;]]
+`,
+			output: `{"san":{"dns":["google.com"],"email":null,"ip":null,"uri":null}}`,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			var out bytes.Buffer
+			w := ndjson.NewWriter(&out)
+			r := zsonio.NewReader(strings.NewReader(c.input), resolver.NewTable())
+			require.NoError(t, zson.Copy(zson.NopFlusher(w), r))
+			NDJSONEq(t, c.output, out.String())
+		})
+	}
+}
 
 func TestNDJSON(t *testing.T) {
 	type testcase struct {
