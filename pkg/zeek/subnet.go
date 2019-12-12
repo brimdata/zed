@@ -67,21 +67,21 @@ func EncodeSubnet(subnet *net.IPNet) zval.Encoding {
 	return b[:]
 }
 
-func DecodeSubnet(value []byte) (*net.IPNet, error) {
-	if value == nil {
+func DecodeSubnet(zv zval.Encoding) (*net.IPNet, error) {
+	if zv == nil {
 		return nil, ErrUnset
 	}
-	switch len(value) {
+	switch len(zv) {
 	case 8:
-		ip := net.IP(value[:4])
-		mask := net.IPMask(value[4:])
+		ip := net.IP(zv[:4])
+		mask := net.IPMask(zv[4:])
 		return &net.IPNet{
 			IP:   ip,
 			Mask: mask,
 		}, nil
 	case 32:
-		ip := net.IP(value[:16])
-		mask := net.IPMask(value[16:])
+		ip := net.IP(zv[:16])
+		mask := net.IPMask(zv[16:])
 		return &net.IPNet{
 			IP:   ip,
 			Mask: mask,

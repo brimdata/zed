@@ -33,11 +33,11 @@ func EncodeDouble(d float64) zval.Encoding {
 	return b[:]
 }
 
-func DecodeDouble(b []byte) (float64, error) {
-	if len(b) != 8 {
+func DecodeDouble(zv zval.Encoding) (float64, error) {
+	if len(zv) != 8 {
 		return 0, errors.New("byte encoding of double not 8 bytes")
 	}
-	bits := binary.LittleEndian.Uint64(b)
+	bits := binary.LittleEndian.Uint64(zv)
 	return math.Float64frombits(bits), nil
 }
 

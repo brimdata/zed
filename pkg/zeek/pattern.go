@@ -22,11 +22,11 @@ func EncodePattern(v *regexp.Regexp) zval.Encoding {
 	return []byte(v.String())
 }
 
-func DecodePattern(value []byte) (*regexp.Regexp, error) {
-	if value == nil {
+func DecodePattern(zv zval.Encoding) (*regexp.Regexp, error) {
+	if zv == nil {
 		return nil, ErrUnset
 	}
-	return regexp.Compile(ustring(value))
+	return regexp.Compile(ustring(zv))
 }
 
 func (t *TypeOfPattern) Parse(in []byte) (zval.Encoding, error) {

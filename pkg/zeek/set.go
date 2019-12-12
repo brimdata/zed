@@ -51,11 +51,11 @@ func parseSetTypeBody(in string) (string, Type, error) {
 	}
 }
 
-func (t *TypeSet) Decode(b []byte) ([]Value, error) {
-	if b == nil {
+func (t *TypeSet) Decode(zv zval.Encoding) ([]Value, error) {
+	if zv == nil {
 		return nil, ErrUnset
 	}
-	return parseContainer(t, t.innerType, b)
+	return parseContainer(t, t.innerType, zv)
 }
 
 func (t *TypeSet) Parse(in []byte) (zval.Encoding, error) {

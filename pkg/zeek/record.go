@@ -87,12 +87,12 @@ func parseRecordTypeBody(in string) (string, Type, error) {
 	}
 }
 
-func (t *TypeRecord) Decode(b []byte) ([]Value, error) {
-	if b == nil {
+func (t *TypeRecord) Decode(zv zval.Encoding) ([]Value, error) {
+	if zv == nil {
 		return nil, ErrUnset
 	}
 	var vals []Value
-	for i, it := 0, zval.Iter(b); !it.Done(); i++ {
+	for i, it := 0, zval.Iter(zv); !it.Done(); i++ {
 		val, _, err := it.Next()
 		if err != nil {
 			return nil, err

@@ -30,16 +30,16 @@ func EncodeAddr(a net.IP) zval.Encoding {
 	if ip == nil {
 		ip = net.IP(a)
 	}
-	return []byte(ip)
+	return zval.Encoding(ip)
 }
 
-func DecodeAddr(value []byte) (net.IP, error) {
-	if value == nil {
+func DecodeAddr(zv zval.Encoding) (net.IP, error) {
+	if zv == nil {
 		return nil, ErrUnset
 	}
-	switch len(value) {
+	switch len(zv) {
 	case 4, 16:
-		return net.IP(value), nil
+		return net.IP(zv), nil
 	}
 	return nil, errors.New("failure trying to decode IP address that is not 4 or 16 bytes long")
 }
@@ -92,7 +92,7 @@ func (a Addr) Comparison(op string) (Predicate, error) {
 	}
 	pattern := net.IP(a)
 	return func(e TypedEncoding) bool {
-		if _, ok := e.Type.(*TypeOfAddr); !ok {
+		if e.Type != TypeAddr {
 			return false
 		}
 		ip, err := DecodeAddr(e.Body)

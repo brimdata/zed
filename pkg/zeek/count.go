@@ -20,11 +20,11 @@ func EncodeCount(c uint64) zval.Encoding {
 	return b[:n]
 }
 
-func DecodeCount(value []byte) (Count, error) {
-	if value == nil {
+func DecodeCount(zv zval.Encoding) (Count, error) {
+	if zv == nil {
 		return 0, ErrUnset
 	}
-	return Count(decodeUint(value)), nil
+	return Count(decodeUint(zv)), nil
 }
 
 func (t *TypeOfCount) Parse(in []byte) (zval.Encoding, error) {

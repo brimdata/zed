@@ -20,11 +20,11 @@ func EncodeTime(t nano.Ts) zval.Encoding {
 	return b[:n]
 }
 
-func DecodeTime(value []byte) (nano.Ts, error) {
-	if value == nil {
+func DecodeTime(zv zval.Encoding) (nano.Ts, error) {
+	if zv == nil {
 		return 0, ErrUnset
 	}
-	return nano.Ts(decodeInt(value)), nil
+	return nano.Ts(decodeInt(zv)), nil
 }
 
 func (t *TypeOfTime) Parse(in []byte) (zval.Encoding, error) {

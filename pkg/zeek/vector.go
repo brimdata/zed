@@ -40,15 +40,15 @@ type Vector struct {
 	values []Value
 }
 
-func (t *TypeVector) Decode(b []byte) ([]Value, error) {
-	if b == nil {
+func (t *TypeVector) Decode(zv zval.Encoding) ([]Value, error) {
+	if zv == nil {
 		return nil, ErrUnset
 	}
-	return parseContainer(t, t.typ, b)
+	return parseContainer(t, t.typ, zv)
 }
 
 func (t *TypeVector) Parse(in []byte) (zval.Encoding, error) {
-	panic("zeek.TypeSet.Parse shouldn't be called")
+	panic("zeek.TypeVector.Parse shouldn't be called")
 }
 
 func (t *TypeVector) New(zv zval.Encoding) (Value, error) {

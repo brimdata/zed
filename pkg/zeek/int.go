@@ -30,11 +30,11 @@ func EncodeInt(i int64) zval.Encoding {
 	return b[:n]
 }
 
-func DecodeInt(value []byte) (int64, error) {
-	if value == nil {
+func DecodeInt(zv zval.Encoding) (int64, error) {
+	if zv == nil {
 		return 0, ErrUnset
 	}
-	return decodeInt(value), nil
+	return decodeInt(zv), nil
 }
 
 func (t *TypeOfInt) Parse(in []byte) (zval.Encoding, error) {

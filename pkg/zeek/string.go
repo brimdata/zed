@@ -25,11 +25,11 @@ func EncodeString(s string) zval.Encoding {
 	return zval.Encoding(s)
 }
 
-func DecodeString(value []byte) (string, error) {
-	if value == nil {
+func DecodeString(zv zval.Encoding) (string, error) {
+	if zv == nil {
 		return "", ErrUnset
 	}
-	return string(value), nil
+	return string(zv), nil
 }
 
 func (t *TypeOfString) Parse(in []byte) (zval.Encoding, error) {

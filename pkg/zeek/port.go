@@ -22,15 +22,15 @@ func EncodePort(p uint32) zval.Encoding {
 	return b[:]
 }
 
-func DecodePort(b []byte) (uint32, error) {
-	if b == nil {
+func DecodePort(zv zval.Encoding) (uint32, error) {
+	if zv == nil {
 		return 0, ErrUnset
 	}
-	if len(b) != 2 {
+	if len(zv) != 2 {
 		return 0, errors.New("port encoding must be 2 bytes")
 
 	}
-	return uint32(b[0])<<8 | uint32(b[1]), nil
+	return uint32(zv[0])<<8 | uint32(zv[1]), nil
 }
 
 func (t *TypeOfPort) Parse(in []byte) (zval.Encoding, error) {

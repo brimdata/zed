@@ -17,11 +17,11 @@ func EncodeEnum(e []byte) zval.Encoding {
 	return e
 }
 
-func DecodeEnum(value []byte) (string, error) {
-	if value == nil {
+func DecodeEnum(zv zval.Encoding) (string, error) {
+	if zv == nil {
 		return "", ErrUnset
 	}
-	return string(value), nil
+	return string(zv), nil
 }
 
 func (t *TypeOfEnum) Parse(in []byte) (zval.Encoding, error) {
