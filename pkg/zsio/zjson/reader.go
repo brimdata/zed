@@ -184,7 +184,11 @@ func decodeContainer(builder *zval.Builder, typ zeek.Type, body []interface{}) e
 		// each column either a string value or an array of string values
 		if column == nil {
 			// this is an unset column
-			builder.AppendUnsetValue()
+			if zeek.IsContainerType(childType) || zeek.IsContainerType(columns[k].Type) {
+				builder.AppendUnsetContainer()
+			} else {
+				builder.AppendUnsetValue()
+			}
 			continue
 		}
 		if columns != nil {
@@ -203,16 +207,6 @@ func decodeContainer(builder *zval.Builder, typ zeek.Type, body []interface{}) e
 				return err
 			}
 			builder.Append(zv)
-			continue
-		}
-		unset, ok := column.(map[string]interface{})
-		if ok {
-			// the only allowed object is empty object representing
-			// an unset container
-			if len(unset) != 0 {
-				return errors.New("non-empty JSON object not allowed in zson array")
-			}
-			builder.AppendUnsetContainer()
 			continue
 		}
 		children, ok := column.([]interface{})
