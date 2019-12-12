@@ -213,6 +213,42 @@ func parse(resolver *resolver.Table, src string) (*zson.Array, error) {
 	return zson.NewArray(records, nano.MaxSpan), nil
 }
 
+// TestOneProcWithWarnings runs one test of a proc by compiling cmd as a proc,
+// then Parsing zsonin, running the resulting records through the proc, and
+// asserting that the output matches zsonout.  It also asserts that the
+// given warning(s) are emitted.
+func TestOneProcWithWarnings(t *testing.T, zsonin, zsonout string, warnings []string, cmd string) {
+	resolver := resolver.NewTable()
+	recsin, err := parse(resolver, zsonin)
+	require.NoError(t, err)
+	recsout, err := parse(resolver, zsonout)
+	require.NoError(t, err)
+
+	test, err := NewProcTestFromSource(cmd, resolver, []zson.Batch{recsin})
+	require.NoError(t, err)
+
+	var result zson.Batch
+	if recsout.Length() > 0 {
+		result, err = test.Pull()
+		require.NoError(t, err)
+	}
+	require.NoError(t, test.ExpectEOS())
+	for _, w := range warnings {
+		require.NoError(t, test.ExpectWarning(w))
+	}
+	require.NoError(t, test.Finish())
+
+	if recsout.Length() > 0 {
+		require.Equal(t, recsout.Length(), result.Length(), "Got correct number of output records")
+		for i := 0; i < result.Length(); i++ {
+			r1 := recsout.Index(i)
+			r2 := result.Index(i)
+			// XXX could print something a lot pretter if/when this fails.
+			require.Equalf(t, r2.Raw, r1.Raw, "Expected record %d to match", i)
+		}
+	}
+}
+
 // TestOneProc runs one test of a proc by compiling cmd as a proc, then
 // Parsing zsonin, running the resulting records through the proc, and
 // finally asserting that the output matches zsonout.
