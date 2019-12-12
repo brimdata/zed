@@ -30,15 +30,14 @@ var (
 // of the underlying type.
 type Type interface {
 	String() string
-	// New returns a Value of this Type by parsing the data in the byte slice
-	// and interpreting it as the native value of the zeek Value.  For sets
-	// and vectors, the byte slice is a zval.Encoding of the body of a container.
-	New([]byte) (Value, error)
-	// Format returns a native value as an empty interface by parsing the
-	// data in the byte slice as an instance of this Type.  This allows
-	// the creation of native values from a Type without having to allocate
-	// a zeek Value.
-	Format([]byte) (interface{}, error)
+	// New returns a Value of this Type with a value determined from the
+	// zval encoding.  For records, sets, and vectors, the zval is a container
+	// encoding of the of the body of values of that type.
+	New(zval.Encoding) (Value, error)
+	// Parse transforms a string represenation of the type to its zval
+	// encoding.  The string input is provided as a byte slice for efficiency
+	// given the common use cases in the system.
+	Parse([]byte) (zval.Encoding, error)
 }
 
 var (
@@ -54,7 +53,6 @@ var (
 	TypeAddr     = &TypeOfAddr{}
 	TypeSubnet   = &TypeOfSubnet{}
 	TypeEnum     = &TypeOfEnum{}
-	TypeNone     = &TypeOfNone{}
 	TypeUnset    = &TypeOfUnset{}
 )
 
@@ -74,7 +72,6 @@ var typeMap = map[string]Type{
 	"subnet":   TypeSubnet,
 	"enum":     TypeEnum,
 	"unset":    TypeUnset, // zql
-	"none":     TypeNone,
 }
 
 // SameType returns true if the two types are equal in that each interface
@@ -281,13 +278,22 @@ func (e TypedEncoding) Iter() zval.Iter {
 }
 
 func (e TypedEncoding) String() string {
-	if IsContainerType(e.Type) {
-		return e.Body.String()
+	v, err := e.Type.New(e.Body)
+	if err != nil {
+		return fmt.Sprintf("Err stringify type %s: %s", e.Type, err)
 	}
 	var b strings.Builder
-	b.WriteString("(")
-	b.Write(e.Body)
-	b.WriteString(")")
+	b.WriteString(e.Type.String())
+	b.WriteByte(':')
+	if IsContainerType(e.Type) {
+		b.WriteByte('[')
+		b.WriteString(v.String())
+		b.WriteByte(']')
+	} else {
+		b.WriteByte('(')
+		b.WriteString(v.String())
+		b.WriteByte(')')
+	}
 	return b.String()
 }
 
@@ -360,4 +366,30 @@ func LookupTypeRecord(columns []Column) *TypeRecord {
 	rec := &TypeRecord{Columns: private, Key: s}
 	typeMap[s] = rec
 	return rec
+}
+
+// NewValue creates a Value with the given type and value described
+// as simple strings.
+func NewValue(typ, val string) (Value, error) {
+	t, err := LookupType(typ)
+	if err != nil {
+		return nil, err
+	}
+	zv, err := t.Parse([]byte(val))
+	if err != nil {
+		return nil, err
+	}
+	return t.New(zv)
+}
+
+// Format tranforms a zval encoding with its type encoding to a
+// a human-readable (and zson text-compliant) string format
+// encoded as a byte slice.
+//XXX this could be more efficient
+func Format(typ Type, zv zval.Encoding) ([]byte, error) {
+	val, err := typ.New(zv)
+	if err != nil {
+		return nil, err
+	}
+	return []byte(Escape([]byte(val.String()))), nil
 }

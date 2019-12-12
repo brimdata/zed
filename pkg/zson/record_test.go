@@ -20,11 +20,12 @@ func TestNewRecordZeekStrings(t *testing.T) {
 	_, err = NewRecordZeekStrings(d, "some path", "123.456", "some data", "unexpected")
 	assert.EqualError(t, err, "got 4 values, expected 3")
 
-	r, err := NewRecordZeekStrings(d, "some path", "123.456", "some data")
+	r, err := NewRecordZeekStrings(d, "some path", "123.4567", "some data")
 	assert.NoError(t, err)
-	assert.EqualValues(t, 123456000000, r.Ts)
-	assert.EqualValues(t, "some path", r.Slice(0))
-	assert.EqualValues(t, "123.456", r.Slice(1))
+	assert.EqualValues(t, 123456700000, r.Ts)
+	s, _ := r.AccessString("_path")
+	assert.EqualValues(t, "some path", s)
+	assert.EqualValues(t, "123.456700000", r.Value(1).String())
 	assert.EqualValues(t, "some data", r.Slice(2))
 	assert.Nil(t, r.Slice(3))
 
@@ -32,7 +33,7 @@ func TestNewRecordZeekStrings(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 123456000000, r.Ts)
 	assert.EqualValues(t, "some path", r.Slice(0))
-	assert.EqualValues(t, "123.456", r.Slice(1))
+	assert.EqualValues(t, "123.456000000", r.Value(1).String())
 	assert.EqualValues(t, "", r.Slice(2))
 	assert.Nil(t, r.Slice(3))
 }
@@ -46,40 +47,12 @@ func zs(ss ...string) [][]byte {
 	return vals
 }
 
-func zvals(zvs ...zval.Encoding) []zval.Encoding {
-	var vals []zval.Encoding
-	for _, zv := range zvs {
-		vals = append(vals, zv)
+func res(v ...string) []string {
+	var out []string
+	for _, s := range v {
+		out = append(out, s)
 	}
-	return vals
-}
-
-func esc(s string) []byte {
-	return []byte(zeek.Escape([]byte(s)))
-
-}
-func z(s string) zval.Encoding {
-	return []byte(s)
-}
-
-func zc(ss ...string) zval.Encoding {
-	var zv zval.Encoding
-	for _, s := range ss {
-		zv = zval.AppendValue(zv, esc(s))
-	}
-	return zv
-}
-
-func zempty() zval.Encoding {
-	return make(zval.Encoding, 0)
-}
-
-func zunset() zval.Encoding {
-	return nil
-}
-
-func zunsetc() zval.Encoding {
-	return nil
+	return out
 }
 
 func encode(d *Descriptor, vals [][]byte) (zval.Encoding, error) {
@@ -103,7 +76,7 @@ func TestEncodeZeekStrings(t *testing.T) {
 	r := NewRecordNoTs(d, zv)
 	assert.EqualValues(t, 123456000000, r.Ts)
 	assert.EqualValues(t, "some path", r.Slice(0))
-	assert.EqualValues(t, "123.456", r.Slice(1))
+	assert.EqualValues(t, "123.456000000", r.Value(1).String())
 	assert.EqualValues(t, "some data", r.Slice(2))
 	assert.Nil(t, r.Slice(3))
 
@@ -112,7 +85,7 @@ func TestEncodeZeekStrings(t *testing.T) {
 	r = NewRecordNoTs(d, zv)
 	assert.EqualValues(t, 123456000000, r.Ts)
 	assert.EqualValues(t, "some path", r.Slice(0))
-	assert.EqualValues(t, "123.456", r.Slice(1))
+	assert.EqualValues(t, "123.456000000", r.Value(1).String())
 	assert.EqualValues(t, "", r.Slice(2))
 	assert.Nil(t, r.Slice(3))
 
@@ -121,7 +94,7 @@ func TestEncodeZeekStrings(t *testing.T) {
 	r = NewRecordNoTs(d, zv)
 	assert.EqualValues(t, 123456000000, r.Ts)
 	assert.EqualValues(t, "some path", r.Slice(0))
-	assert.EqualValues(t, "123.456", r.Slice(1))
+	assert.EqualValues(t, "123.456000000", r.Value(1).String())
 	assert.EqualValues(t, zval.Encoding(nil), r.Slice(2))
 	assert.Nil(t, r.Slice(3))
 
@@ -131,14 +104,15 @@ func TestEncodeZeekStrings(t *testing.T) {
 
 	cases := []struct {
 		input    [][]byte
-		expected []zval.Encoding
+		expected []string
 	}{
-		{zs("some path", "123.456", "-"), zvals(z("some path"), z("123.456"), zunsetc())},
-		{zs("some path", "123.456", "(empty)"), zvals(z("some path"), z("123.456"), zempty())},
+		//XXX last arg should be "-" instead of set[]
+		{zs("some path", "123.456", "-"), res("some path", "123.456000000", "set[]")},
+		{zs("some path", "123.456", "(empty)"), res("some path", "123.456000000", "set[]")},
 		// XXX this is an error
 		//{zs("some path", "123.456", ""), zvals(z("some path"), z("123.456"), z(xxx)},
-		{zs("some path", "123.456", "987"), zvals(z("some path"), z("123.456"), zc("987"))},
-		{zs("some path", "123.456", "987,65"), zvals(z("some path"), z("123.456"), zc("987", "65"))},
+		{zs("some path", "123.456", "987"), res("some path", "123.456000000", "set[987]")},
+		{zs("some path", "123.456", "987,65"), res("some path", "123.456000000", "set[987,65]")},
 	}
 	for i, c := range cases {
 		zv, err := encode(d, c.input)
@@ -146,7 +120,7 @@ func TestEncodeZeekStrings(t *testing.T) {
 		r := NewRecordNoTs(d, zv)
 		assert.EqualValues(t, 123456000000, r.Ts)
 		for j, e := range c.expected {
-			assert.EqualValues(t, e, r.Slice(j), "case %d, index: %d", i, j)
+			assert.EqualValues(t, e, r.Value(j).String(), "case %d, index: %d", i, j)
 		}
 	}
 }

@@ -3,6 +3,7 @@ package zeek
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 
@@ -24,60 +25,77 @@ func (t *TypeOfAddr) String() string {
 	return "addr"
 }
 
-func (t *TypeOfAddr) Parse(value []byte) (net.IP, error) {
-	if value == nil {
+func EncodeAddr(a net.IP) zval.Encoding {
+	ip := a.To4()
+	if ip == nil {
+		ip = net.IP(a)
+	}
+	return zval.Encoding(ip)
+}
+
+func DecodeAddr(zv zval.Encoding) (net.IP, error) {
+	if zv == nil {
 		return nil, ErrUnset
 	}
-	return UnsafeParseAddr(value)
-}
-
-func (t *TypeOfAddr) Format(value []byte) (interface{}, error) {
-	return t.Parse(value)
-}
-
-func (t *TypeOfAddr) New(value []byte) (Value, error) {
-	if value == nil {
-		return &Unset{}, nil
+	switch len(zv) {
+	case 4, 16:
+		return net.IP(zv), nil
 	}
-	ip, err := t.Parse(value)
+	return nil, errors.New("failure trying to decode IP address that is not 4 or 16 bytes long")
+}
+
+func (t *TypeOfAddr) Parse(in []byte) (zval.Encoding, error) {
+	ip, err := UnsafeParseAddr(in)
 	if err != nil {
 		return nil, err
 	}
-	return &Addr{Native: ip}, nil
+	return EncodeAddr(ip), nil
 }
 
-type Addr struct {
-	Native net.IP
+func (t *TypeOfAddr) New(zv zval.Encoding) (Value, error) {
+	if zv == nil {
+		return &Unset{}, nil
+	}
+	ip, err := DecodeAddr(zv)
+	if err != nil {
+		return nil, err
+	}
+	return NewAddr(ip), nil
 }
 
-func (a *Addr) String() string {
-	return a.Native.String()
+type Addr net.IP
+
+func NewAddr(a net.IP) *Addr {
+	p := Addr(a)
+	return &p
 }
 
-func (a *Addr) Type() Type {
+func (a Addr) String() string {
+	return (net.IP)(a).String()
+}
+
+func (a Addr) Type() Type {
 	return TypeAddr
 }
 
-func (a *Addr) Encode(dst zval.Encoding) zval.Encoding {
-	b := []byte(a.Native.String())
-	return zval.AppendValue(dst, b)
+func (a Addr) Encode(dst zval.Encoding) zval.Encoding {
+	return zval.AppendValue(dst, EncodeAddr(net.IP(a)))
 }
 
 // Comparison returns a Predicate that compares typed byte slices that must
 // be TypeAddr with the value's address using a comparison based on op.
 // Only equality operands are allowed.
-func (a *Addr) Comparison(op string) (Predicate, error) {
+func (a Addr) Comparison(op string) (Predicate, error) {
 	compare, ok := compareAddr[op]
 	if !ok {
 		return nil, fmt.Errorf("unknown addr comparator: %s", op)
 	}
-	pattern := a.Native
+	pattern := net.IP(a)
 	return func(e TypedEncoding) bool {
-		typeAddr, ok := e.Type.(*TypeOfAddr)
-		if !ok {
+		if e.Type != TypeAddr {
 			return false
 		}
-		ip, err := typeAddr.Parse(e.Body)
+		ip, err := DecodeAddr(e.Body)
 		if err != nil {
 			return false
 		}
@@ -85,7 +103,7 @@ func (a *Addr) Comparison(op string) (Predicate, error) {
 	}, nil
 }
 
-func (a *Addr) Coerce(typ Type) Value {
+func (a Addr) Coerce(typ Type) Value {
 	_, ok := typ.(*TypeOfAddr)
 	if ok {
 		return a
@@ -94,7 +112,7 @@ func (a *Addr) Coerce(typ Type) Value {
 }
 
 func (a *Addr) MarshalJSON() ([]byte, error) {
-	return json.Marshal(a.Native)
+	return json.Marshal((*net.IP)(a))
 }
 
-func (a *Addr) Elements() ([]Value, bool) { return nil, false }
+func (a Addr) Elements() ([]Value, bool) { return nil, false }

@@ -43,60 +43,76 @@ func (t *TypeOfBool) String() string {
 	return "bool"
 }
 
-func (t *TypeOfBool) Parse(value []byte) (bool, error) {
-	if value == nil {
+func EncodeBool(b bool) zval.Encoding {
+	var v [1]byte
+	if b {
+		v[0] = 1
+	}
+	return v[:]
+}
+
+func DecodeBool(zv zval.Encoding) (bool, error) {
+	if zv == nil {
 		return false, ErrUnset
 	}
-	return UnsafeParseBool(value)
-}
-
-func (t *TypeOfBool) Format(value []byte) (interface{}, error) {
-	return t.Parse(value)
-}
-
-func (t *TypeOfBool) New(value []byte) (Value, error) {
-	if value == nil {
-		return &Unset{}, nil
+	if zv[0] != 0 {
+		return true, nil
 	}
-	v, err := t.Parse(value)
+	return false, nil
+}
+
+func (t *TypeOfBool) Parse(in []byte) (zval.Encoding, error) {
+	b, err := UnsafeParseBool(in)
 	if err != nil {
 		return nil, err
 	}
-	return &Bool{Native: v}, nil
+	return EncodeBool(b), nil
 }
 
-type Bool struct {
-	Native bool
+func (t *TypeOfBool) New(zv zval.Encoding) (Value, error) {
+	if zv == nil {
+		return &Unset{}, nil
+	}
+	v, err := DecodeBool(zv)
+	if err != nil {
+		return nil, err
+	}
+	return NewBool(v), nil
 }
 
-func (b *Bool) String() string {
-	return strconv.FormatBool(b.Native)
+type Bool bool
+
+func NewBool(b bool) *Bool {
+	p := Bool(b)
+	return &p
 }
 
-func (b *Bool) Encode(dst zval.Encoding) zval.Encoding {
-	v := []byte(b.String())
-	return zval.AppendValue(dst, v)
+func (b Bool) String() string {
+	return strconv.FormatBool(bool(b))
 }
 
-func (b *Bool) Type() Type {
+func (b Bool) Encode(dst zval.Encoding) zval.Encoding {
+	return zval.AppendValue(dst, EncodeBool(bool(b)))
+}
+
+func (b Bool) Type() Type {
 	return TypeBool
 }
 
 // Comparison returns a Predicate that compares typed byte slices that must
 // be a boolean or coercible to an integer.  In the later case, the integer
 // is converted to a boolean.
-func (b *Bool) Comparison(op string) (Predicate, error) {
+func (b Bool) Comparison(op string) (Predicate, error) {
 	compare, ok := compareBool[op]
 	if !ok {
 		return nil, fmt.Errorf("unknown bool comparator: %s", op)
 	}
-	pattern := b.Native
+	pattern := bool(b)
 	return func(e TypedEncoding) bool {
-		typeBool, ok := e.Type.(*TypeOfBool)
-		if !ok {
+		if _, ok := e.Type.(*TypeOfBool); !ok {
 			return false
 		}
-		v, err := typeBool.Parse(e.Body)
+		v, err := DecodeBool(e.Body)
 		if err != nil {
 			return false
 		}
@@ -105,7 +121,7 @@ func (b *Bool) Comparison(op string) (Predicate, error) {
 	return nil, fmt.Errorf("bad comparator for boolean type: %s", op)
 }
 
-func (b *Bool) Coerce(typ Type) Value {
+func (b Bool) Coerce(typ Type) Value {
 	_, ok := typ.(*TypeOfBool)
 	if ok {
 		return b
@@ -114,7 +130,7 @@ func (b *Bool) Coerce(typ Type) Value {
 }
 
 func (b *Bool) MarshalJSON() ([]byte, error) {
-	return json.Marshal(b.Native)
+	return json.Marshal((*bool)(b))
 }
 
-func (b *Bool) Elements() ([]Value, bool) { return nil, false }
+func (b Bool) Elements() ([]Value, bool) { return nil, false }

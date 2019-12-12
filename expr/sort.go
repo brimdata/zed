@@ -14,7 +14,7 @@ type SortFn func(a *zson.Record, b *zson.Record) int
 type comparefn func(a, b []byte) int
 
 func isUnset(val zeek.TypedEncoding) bool {
-	if val.Body == nil || zeek.SameType(val.Type, zeek.TypeNone) || zeek.SameType(val.Type, zeek.TypeUnset) {
+	if val.Body == nil || zeek.SameType(val.Type, zeek.TypeUnset) {
 		return true
 	}
 	return false
@@ -148,11 +148,11 @@ func lookupSorter(typ zeek.Type) comparefn {
 		}
 	case zeek.TypeBool:
 		return func(a, b []byte) int {
-			va, err := zeek.TypeBool.Parse(a)
+			va, err := zeek.DecodeBool(a)
 			if err != nil {
 				return -1
 			}
-			vb, err := zeek.TypeBool.Parse(b)
+			vb, err := zeek.DecodeBool(b)
 			if err != nil {
 				return 1
 			}
@@ -174,13 +174,48 @@ func lookupSorter(typ zeek.Type) comparefn {
 	// to docs but we've only encountered ints in data files.
 	// need to fix this.  XXX also we should break this sorts
 	// into the different types.
-	case zeek.TypePort, zeek.TypeCount, zeek.TypeInt:
+	case zeek.TypeInt:
 		return func(a, b []byte) int {
-			va, err := zeek.TypeInt.Parse(a)
+			va, err := zeek.DecodeInt(a)
 			if err != nil {
 				return -1
 			}
-			vb, err := zeek.TypeInt.Parse(b)
+			vb, err := zeek.DecodeInt(b)
+			if err != nil {
+				return 1
+			}
+			if va < vb {
+				return -1
+			} else if va > vb {
+				return 1
+			}
+			return 0
+		}
+
+	case zeek.TypeCount:
+		return func(a, b []byte) int {
+			va, err := zeek.DecodeCount(a)
+			if err != nil {
+				return -1
+			}
+			vb, err := zeek.DecodeCount(b)
+			if err != nil {
+				return 1
+			}
+			if va < vb {
+				return -1
+			} else if va > vb {
+				return 1
+			}
+			return 0
+		}
+	case zeek.TypePort:
+		return func(a, b []byte) int {
+			va, err := zeek.DecodePort(a)
+			if err != nil {
+				return -1
+			}
+			vb, err := zeek.DecodePort(b)
 			if err != nil {
 				return 1
 			}
@@ -194,11 +229,11 @@ func lookupSorter(typ zeek.Type) comparefn {
 
 	case zeek.TypeDouble:
 		return func(a, b []byte) int {
-			va, err := zeek.TypeDouble.Parse(a)
+			va, err := zeek.DecodeDouble(a)
 			if err != nil {
 				return -1
 			}
-			vb, err := zeek.TypeDouble.Parse(b)
+			vb, err := zeek.DecodeDouble(b)
 			if err != nil {
 				return 1
 			}
@@ -212,11 +247,11 @@ func lookupSorter(typ zeek.Type) comparefn {
 
 	case zeek.TypeTime, zeek.TypeInterval:
 		return func(a, b []byte) int {
-			va, err := zeek.TypeTime.Parse(a)
+			va, err := zeek.DecodeTime(a)
 			if err != nil {
 				return -1
 			}
-			vb, err := zeek.TypeTime.Parse(b)
+			vb, err := zeek.DecodeTime(b)
 			if err != nil {
 				return 1
 			}
@@ -230,11 +265,11 @@ func lookupSorter(typ zeek.Type) comparefn {
 
 	case zeek.TypeAddr:
 		return func(a, b []byte) int {
-			va, err := zeek.TypeAddr.Parse(a)
+			va, err := zeek.DecodeAddr(a)
 			if err != nil {
 				return -1
 			}
-			vb, err := zeek.TypeAddr.Parse(b)
+			vb, err := zeek.DecodeAddr(b)
 			if err != nil {
 				return 1
 			}

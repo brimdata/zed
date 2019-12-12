@@ -3,6 +3,7 @@ package zeek
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"strconv"
 
 	"github.com/mccanne/zq/pkg/nano"
@@ -23,52 +24,64 @@ func (t *TypeOfInt) String() string {
 	return "int"
 }
 
-func (t *TypeOfInt) Parse(value []byte) (int64, error) {
-	if value == nil {
+func EncodeInt(i int64) zval.Encoding {
+	var b [8]byte
+	n := encodeInt(b[:], i)
+	return b[:n]
+}
+
+func DecodeInt(zv zval.Encoding) (int64, error) {
+	if zv == nil {
 		return 0, ErrUnset
 	}
-	return UnsafeParseInt64(value)
+	return decodeInt(zv), nil
 }
 
-func (t *TypeOfInt) Format(value []byte) (interface{}, error) {
-	return t.Parse(value)
-}
-
-func (t *TypeOfInt) New(value []byte) (Value, error) {
-	if value == nil {
-		return &Unset{}, nil
-	}
-	v, err := t.Parse(value)
+func (t *TypeOfInt) Parse(in []byte) (zval.Encoding, error) {
+	i, err := UnsafeParseInt64(in)
 	if err != nil {
 		return nil, err
 	}
-	return &Int{Native: v}, nil
+	return EncodeInt(i), nil
 }
 
-type Int struct {
-	Native int64
+func (t *TypeOfInt) New(zv zval.Encoding) (Value, error) {
+	if zv == nil {
+		return &Unset{}, nil
+	}
+	v, err := DecodeInt(zv)
+	if err != nil {
+		return nil, err
+	}
+	return NewInt(v), nil
 }
 
-func (i *Int) String() string {
-	return strconv.FormatInt(i.Native, 10)
+type Int int64
+
+func NewInt(i int64) *Int {
+	p := Int(i)
+	return &p
 }
 
-func (i *Int) Encode(dst zval.Encoding) zval.Encoding {
-	v := []byte(i.String())
-	return zval.AppendValue(dst, v)
+func (i Int) String() string {
+	return strconv.FormatInt(int64(i), 10)
 }
 
-func (i *Int) Type() Type {
+func (i Int) Encode(dst zval.Encoding) zval.Encoding {
+	return zval.AppendValue(dst, EncodeInt(int64(i)))
+}
+
+func (i Int) Type() Type {
 	return TypeInt
 }
 
-func (i *Int) NativeComparison(op string) (func(int64) bool, error) {
+func (i Int) NativeComparison(op string) (func(int64) bool, error) {
 	compare, ok := compareInt[op]
 	if !ok {
 		return nil, fmt.Errorf("unknown comparator: %s", op)
 	}
 	return func(val int64) bool {
-		return compare(val, i.Native)
+		return compare(val, int64(i))
 	}, nil
 }
 
@@ -76,35 +89,47 @@ func (i *Int) NativeComparison(op string) (func(int64) bool, error) {
 // be coercible to an integer with the value's integer value using a comparison
 // based on op.  Int, count, port, double, bool, time and interval types can
 // all be converted to the integer value.  XXX there are some overflow issues here.
-func (i *Int) Comparison(op string) (Predicate, error) {
+func (i Int) Comparison(op string) (Predicate, error) {
 	CompareInt, ok1 := compareInt[op]
 	CompareFloat, ok2 := compareFloat[op]
 	if !ok1 || !ok2 {
 		return nil, fmt.Errorf("unknown int comparator: %s", op)
 	}
-	pattern := i.Native
+	pattern := int64(i)
 	// many different zeek data types can be compared with integers
 	return func(e TypedEncoding) bool {
 		val := e.Body
-		switch typ := e.Type.(type) {
-		case *TypeOfInt, *TypeOfCount, *TypeOfPort:
+		switch e.Type.(type) {
+		case *TypeOfInt:
 			// we can parse counts and ports as an integer
-			v, err := TypeInt.Parse(val)
+			v, err := DecodeInt(val)
 			if err == nil {
 				return CompareInt(v, pattern)
 			}
+		case *TypeOfCount:
+			// we can parse counts and ports as an integer
+			v, err := DecodeCount(val)
+			if err == nil {
+				return CompareInt(int64(v), pattern)
+			}
+		case *TypeOfPort:
+			// we can parse counts and ports as an integer
+			v, err := DecodePort(val)
+			if err == nil {
+				return CompareInt(int64(v), pattern)
+			}
 		case *TypeOfDouble:
-			v, err := typ.Parse(val)
+			v, err := DecodeDouble(val)
 			if err == nil {
 				return CompareFloat(v, float64(pattern))
 			}
 		case *TypeOfTime:
-			ts, err := typ.Parse(val)
+			ts, err := DecodeTime(val)
 			if err == nil {
 				return CompareInt(int64(ts), pattern)
 			}
 		case *TypeOfInterval:
-			v, err := typ.Parse(val)
+			v, err := DecodeInt(val)
 			if err == nil {
 				return CompareInt(int64(v), pattern)
 			}
@@ -113,20 +138,20 @@ func (i *Int) Comparison(op string) (Predicate, error) {
 	}, nil
 }
 
-func (i *Int) Coerce(typ Type) Value {
+func (i Int) Coerce(typ Type) Value {
 	switch typ.(type) {
 	case *TypeOfDouble:
-		return &Double{float64(i.Native)}
+		return NewDouble(float64(i))
 	case *TypeOfInt:
 		return i
 	case *TypeOfCount:
-		return &Count{uint64(i.Native)}
+		return NewCount(uint64(i))
 	case *TypeOfPort:
-		return &Port{uint32(i.Native)}
+		return NewPort(uint32(i))
 	case *TypeOfTime:
-		return &Time{nano.Ts(i.Native)}
+		return NewTime(nano.Ts(i))
 	case *TypeOfInterval:
-		return &Interval{i.Native}
+		return NewInterval(int64(i))
 	}
 	return nil
 }
@@ -137,29 +162,40 @@ func (i *Int) Coerce(typ Type) Value {
 // double is an integer.  Time and Intervals are converted to an Int as
 // their nanosecond values.  If the value cannot be coerced, then nil is
 // returned.
-func CoerceToInt(in Value) *Int {
+func CoerceToInt(in Value, out *Int) bool {
 	switch v := in.(type) {
 	case *Int:
-		return v
+		*out = *v
+		return true
 	case *Count:
-		return &Int{int64(v.Native)}
+		u := uint64(*v)
+		// check for overflow
+		if u > math.MaxInt64 {
+			return false
+		}
+		*out = Int(int64(*v))
+		return true
 	case *Port:
-		return &Int{int64(v.Native)}
+		*out = Int(int64(*v))
+		return true
 	case *Double:
-		i := int64(v.Native)
-		if float64(i) == v.Native {
-			return &Int{i}
+		i := int64(*v)
+		if float64(i) == float64(*v) {
+			*out = Int(i)
+			return true
 		}
 	case *Time:
-		return &Int{int64(v.Native)}
+		*out = Int(int64(*v))
+		return true
 	case *Interval:
-		return &Int{int64(v.Native)}
+		*out = Int(*v)
+		return true
 	}
-	return nil
+	return false
 }
 
 func (i *Int) MarshalJSON() ([]byte, error) {
-	return json.Marshal(i.Native)
+	return json.Marshal((*int64)(i))
 }
 
-func (i *Int) Elements() ([]Value, bool) { return nil, false }
+func (i Int) Elements() ([]Value, bool) { return nil, false }

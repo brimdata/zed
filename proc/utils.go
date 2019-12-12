@@ -1,7 +1,7 @@
 package proc
 
-// This file contains utilties for writing unit tests of procs,
-// it shouldn't include any actual product code.
+// This file contains utilties for writing unit tests of procs
+// XXX It should go in a test framework instead of dangling here.  TBD.
 
 import (
 	"bytes"

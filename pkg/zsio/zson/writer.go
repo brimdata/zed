@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/mccanne/zq/pkg/zeek"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
 	"github.com/mccanne/zq/pkg/zval"
@@ -38,7 +39,7 @@ func (w *Writer) Write(r *zson.Record) error {
 	if err != nil {
 		return nil
 	}
-	if err = w.writeContainer(r.Raw); err != nil {
+	if err = w.writeContainer(r.Type, r.Raw); err != nil {
 		return err
 	}
 	return w.write("\n")
@@ -49,7 +50,7 @@ func (w *Writer) write(s string) error {
 	return err
 }
 
-func (w *Writer) writeContainer(val []byte) error {
+func (w *Writer) writeContainer(typ zeek.Type, val []byte) error {
 	if val == nil {
 		w.write("-;")
 		return nil
@@ -57,18 +58,30 @@ func (w *Writer) writeContainer(val []byte) error {
 	if err := w.write("["); err != nil {
 		return err
 	}
+	childType, columns := zeek.ContainedType(typ)
+	if childType == nil && columns == nil {
+		return zson.ErrSyntax
+	}
+	k := 0
 	if len(val) > 0 {
 		for it := zval.Iter(val); !it.Done(); {
 			v, container, err := it.Next()
 			if err != nil {
 				return err
 			}
+			if columns != nil {
+				if k >= len(columns) {
+					return zson.ErrTypeMismatch
+				}
+				childType = columns[k].Type
+				k++
+			}
 			if container {
-				if err := w.writeContainer(v); err != nil {
+				if err := w.writeContainer(childType, v); err != nil {
 					return err
 				}
 			} else {
-				if err := w.writeValue(v); err != nil {
+				if err := w.writeValue(childType, v); err != nil {
 					return err
 				}
 			}
@@ -77,11 +90,15 @@ func (w *Writer) writeContainer(val []byte) error {
 	return w.write("]")
 }
 
-func (w *Writer) writeValue(val []byte) error {
-	if val == nil {
+func (w *Writer) writeValue(typ zeek.Type, zv zval.Encoding) error {
+	if zv == nil {
 		return w.write("-;")
 	}
-	if err := w.writeEscaped(val); err != nil {
+	b, err := zeek.Format(typ, zv)
+	if err != nil {
+		return err
+	}
+	if err := w.writeEscaped(b); err != nil {
 		return err
 	}
 	return w.write(";")
@@ -117,7 +134,7 @@ func (w *Writer) writeEscaped(val []byte) error {
 	for off < len(val) {
 		c := val[off]
 		switch c {
-		case '\\', ';', '\n':
+		case ';':
 			if off > 0 {
 				_, err := w.Writer.Write(val[:off])
 				if err != nil {

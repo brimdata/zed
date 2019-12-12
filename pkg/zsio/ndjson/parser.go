@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"sort"
-	"strconv"
 
 	"github.com/buger/jsonparser"
 	"github.com/mccanne/zq/pkg/zeek"
@@ -168,14 +167,16 @@ func (p *Parser) jsonParseBool(b []byte) (zeek.Type, error) {
 	if err != nil {
 		return nil, err
 	}
-	val := strconv.AppendBool(p.scratch, boolean)
-	p.builder.Append(val)
+	p.builder.Append(zeek.EncodeBool(boolean))
 	return zeek.TypeBool, nil
 }
 
-// XXX This needs to handle scientific notation... I think.
 func (p *Parser) jsonParseNumber(b []byte) (zeek.Type, error) {
-	p.builder.Append(b)
+	d, err := zeek.UnsafeParseFloat64(b)
+	if err != nil {
+		return nil, err
+	}
+	p.builder.Append(zeek.EncodeDouble(d))
 	return zeek.TypeDouble, nil
 }
 

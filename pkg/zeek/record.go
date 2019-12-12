@@ -87,12 +87,12 @@ func parseRecordTypeBody(in string) (string, Type, error) {
 	}
 }
 
-func (t *TypeRecord) Parse(b []byte) ([]Value, error) {
-	if b == nil {
+func (t *TypeRecord) Decode(zv zval.Encoding) ([]Value, error) {
+	if zv == nil {
 		return nil, ErrUnset
 	}
 	var vals []Value
-	for i, it := 0, zval.Iter(b); !it.Done(); i++ {
+	for i, it := 0, zval.Iter(zv); !it.Done(); i++ {
 		val, _, err := it.Next()
 		if err != nil {
 			return nil, err
@@ -109,15 +109,15 @@ func (t *TypeRecord) Parse(b []byte) ([]Value, error) {
 	return vals, nil
 }
 
-func (t *TypeRecord) Format(value []byte) (interface{}, error) {
-	return t.Parse(value)
+func (t *TypeRecord) Parse(in []byte) (zval.Encoding, error) {
+	panic("record.Parse shouldn't be called")
 }
 
-func (t *TypeRecord) New(value []byte) (Value, error) {
-	if value == nil {
+func (t *TypeRecord) New(zv zval.Encoding) (Value, error) {
+	if zv == nil {
 		return &Record{typ: t, values: []Value{}}, nil
 	}
-	v, err := t.Parse(value)
+	v, err := t.Decode(zv)
 	if err != nil {
 		return nil, err
 	}

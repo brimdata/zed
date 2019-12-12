@@ -27,5 +27,5 @@ func NewError(def ast.Reducer, rec *zson.Record) *Error {
 func (e *Error) Consume(t *zson.Record) {}
 
 func (e *Error) Result() zeek.Value {
-	return &zeek.String{e.msg}
+	return zeek.NewString(e.msg)
 }

@@ -39,12 +39,13 @@ func (c *CountDistinct) Consume(r *zson.Record) {
 	if !ok {
 		return
 	}
+	//XXX this isn't right
 	v := r.Slice(i)
 	c.sketch.Insert(v)
 }
 
 func (c *CountDistinct) Result() zeek.Value {
-	return &zeek.Count{Native: c.sketch.Estimate()}
+	return zeek.NewCount(c.sketch.Estimate())
 }
 
 // Sketch returns the native structure used to compute the distinct count

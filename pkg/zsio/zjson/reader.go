@@ -112,7 +112,7 @@ func (r *Reader) parseValues(id int, v interface{}) (*zson.Record, error) {
 	// reset the builder and decode the body into the builder intermediate
 	// zson representation
 	r.builder.Reset()
-	err := decodeContainer(r.builder, values)
+	err := decodeContainer(r.builder, descriptor.Type, values)
 	if err != nil {
 		return nil, err
 	}
@@ -174,18 +174,35 @@ func decodeType(columns []interface{}) (string, error) {
 	return s + "]", nil
 }
 
-func decodeContainer(builder *zval.Builder, body []interface{}) error {
+func decodeContainer(builder *zval.Builder, typ zeek.Type, body []interface{}) error {
+	childType, columns := zeek.ContainedType(typ)
+	if childType == nil && columns == nil {
+		return zson.ErrSyntax
+	}
 	builder.BeginContainer()
-	for _, column := range body {
+	for k, column := range body {
 		// each column either a string value or an array of string values
 		if column == nil {
 			// this is an unset column
 			builder.AppendUnsetValue()
 			continue
 		}
+		if columns != nil {
+			if k >= len(columns) {
+				return zson.ErrTypeMismatch
+			}
+			childType = columns[k].Type
+		}
 		s, ok := column.(string)
 		if ok {
-			builder.Append(zeek.Unescape([]byte(s)))
+			if zeek.IsContainerType(childType) {
+				return zson.ErrSyntax
+			}
+			zv, err := childType.Parse(zeek.Unescape([]byte(s)))
+			if err != nil {
+				return err
+			}
+			builder.Append(zv)
 			continue
 		}
 		unset, ok := column.(map[string]interface{})
@@ -202,7 +219,7 @@ func decodeContainer(builder *zval.Builder, body []interface{}) error {
 		if !ok {
 			return errors.New("bad json for zjson value")
 		}
-		if err := decodeContainer(builder, children); err != nil {
+		if err := decodeContainer(builder, childType, children); err != nil {
 			return err
 		}
 	}

@@ -40,22 +40,22 @@ type Vector struct {
 	values []Value
 }
 
-func (t *TypeVector) Parse(b []byte) ([]Value, error) {
-	if b == nil {
+func (t *TypeVector) Decode(zv zval.Encoding) ([]Value, error) {
+	if zv == nil {
 		return nil, ErrUnset
 	}
-	return parseContainer(t, t.typ, b)
+	return parseContainer(t, t.typ, zv)
 }
 
-func (t *TypeVector) Format(value []byte) (interface{}, error) {
-	return t.Parse(value)
+func (t *TypeVector) Parse(in []byte) (zval.Encoding, error) {
+	panic("zeek.TypeVector.Parse shouldn't be called")
 }
 
-func (t *TypeVector) New(value []byte) (Value, error) {
-	if value == nil {
+func (t *TypeVector) New(zv zval.Encoding) (Value, error) {
+	if zv == nil {
 		return &Vector{typ: t, values: []Value{}}, nil
 	}
-	v, err := t.Parse(value)
+	v, err := t.Decode(zv)
 	if err != nil {
 		return nil, err
 	}

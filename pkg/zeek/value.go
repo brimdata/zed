@@ -65,7 +65,11 @@ func Parse(v ast.TypedValue) (Value, error) {
 	if t == TypePattern || t == TypeString {
 		return t.New(Unescape([]byte(v.Value)))
 	}
-	return t.New([]byte(v.Value))
+	zv, err := t.Parse([]byte(v.Value))
+	if err != nil {
+		return nil, err
+	}
+	return t.New(zv)
 }
 
 func parseContainer(containerType Type, elementType Type, b []byte) ([]Value, error) {

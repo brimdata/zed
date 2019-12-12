@@ -3,6 +3,7 @@ package zeek
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 
@@ -52,39 +53,79 @@ func (t *TypeOfSubnet) String() string {
 	return "subnet"
 }
 
-func (t *TypeOfSubnet) Parse(value []byte) (*net.IPNet, error) {
-	if value == nil {
-		return nil, ErrUnset
+func EncodeSubnet(subnet *net.IPNet) zval.Encoding {
+	var b [32]byte
+	ip := subnet.IP.To4()
+	if ip != nil {
+		copy(b[:], ip)
+		if len(subnet.Mask) == 16 {
+			copy(b[4:], subnet.Mask[12:])
+		} else {
+			copy(b[4:], subnet.Mask)
+		}
+		return b[:8]
 	}
-	_, subnet, err := net.ParseCIDR(ustring(value))
-	return subnet, err
+	copy(b[:], ip)
+	copy(b[16:], subnet.Mask)
+	return b[:]
 }
 
-func (t *TypeOfSubnet) Format(value []byte) (interface{}, error) {
-	return t.Parse(value)
-}
-func (t *TypeOfSubnet) New(value []byte) (Value, error) {
-	if value == nil {
-		return &Unset{}, nil
+func DecodeSubnet(zv zval.Encoding) (*net.IPNet, error) {
+	if zv == nil {
+		return nil, ErrUnset
 	}
-	subnet, err := t.Parse(value)
+	switch len(zv) {
+	case 8:
+		ip := net.IP(zv[:4])
+		mask := net.IPMask(zv[4:])
+		return &net.IPNet{
+			IP:   ip,
+			Mask: mask,
+		}, nil
+	case 32:
+		ip := net.IP(zv[:16])
+		mask := net.IPMask(zv[16:])
+		return &net.IPNet{
+			IP:   ip,
+			Mask: mask,
+		}, nil
+	}
+	return nil, errors.New("failure trying to decode IP subnet that is not 8 or 32 bytes long")
+}
+
+func (t *TypeOfSubnet) Parse(in []byte) (zval.Encoding, error) {
+	_, subnet, err := net.ParseCIDR(string(in))
 	if err != nil {
 		return nil, err
 	}
-	return &Subnet{Native: subnet}, nil
+	return EncodeSubnet(subnet), nil
 }
 
-type Subnet struct {
-	Native *net.IPNet
+func (t *TypeOfSubnet) New(zv zval.Encoding) (Value, error) {
+	if zv == nil {
+		return &Unset{}, nil
+	}
+	subnet, err := DecodeSubnet(zv)
+	if err != nil {
+		return nil, err
+	}
+	return NewSubnet(subnet), nil
+}
+
+type Subnet net.IPNet
+
+func NewSubnet(s *net.IPNet) *Subnet {
+	v := Subnet(*s)
+	return &v
 }
 
 func (s *Subnet) String() string {
-	return s.Native.String()
+	return s.String()
 }
 
 func (s *Subnet) Encode(dst zval.Encoding) zval.Encoding {
-	v := []byte(s.String())
-	return zval.AppendValue(dst, v)
+	zv := EncodeSubnet((*net.IPNet)(s))
+	return zval.AppendValue(dst, zv)
 }
 
 func (s *Subnet) Type() Type {
@@ -103,17 +144,17 @@ func (s *Subnet) Comparison(op string) (Predicate, error) {
 	if !ok1 || !ok2 {
 		return nil, fmt.Errorf("unknown subnet comparator: %s", op)
 	}
-	pattern := s.Native
+	pattern := (*net.IPNet)(s)
 	return func(e TypedEncoding) bool {
 		val := e.Body
 		switch e.Type.(type) {
 		case *TypeOfAddr:
-			ip, err := TypeAddr.Parse(val)
+			ip, err := DecodeAddr(val)
 			if err == nil {
 				return MatchSubnet(ip, pattern)
 			}
 		case *TypeOfSubnet:
-			subnet, err := TypeSubnet.Parse(val)
+			subnet, err := DecodeSubnet(val)
 			if err == nil {
 				return CompareSubnet(subnet, pattern)
 			}
@@ -131,7 +172,7 @@ func (s *Subnet) Coerce(typ Type) Value {
 }
 
 func (s *Subnet) MarshalJSON() ([]byte, error) {
-	return json.Marshal(s.Native)
+	return json.Marshal((*net.IPNet)(s))
 }
 
 func (s *Subnet) Elements() ([]Value, bool) { return nil, false }

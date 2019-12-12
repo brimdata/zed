@@ -51,22 +51,22 @@ func parseSetTypeBody(in string) (string, Type, error) {
 	}
 }
 
-func (t *TypeSet) Parse(b []byte) ([]Value, error) {
-	if b == nil {
+func (t *TypeSet) Decode(zv zval.Encoding) ([]Value, error) {
+	if zv == nil {
 		return nil, ErrUnset
 	}
-	return parseContainer(t, t.innerType, b)
+	return parseContainer(t, t.innerType, zv)
 }
 
-func (t *TypeSet) Format(value []byte) (interface{}, error) {
-	return t.Parse(value)
+func (t *TypeSet) Parse(in []byte) (zval.Encoding, error) {
+	panic("zeek.TypeSet.Parse shouldn't be called")
 }
 
-func (t *TypeSet) New(value []byte) (Value, error) {
-	if value == nil {
+func (t *TypeSet) New(zv zval.Encoding) (Value, error) {
+	if zv == nil {
 		return &Set{typ: t, values: []Value{}}, nil
 	}
-	v, err := t.Parse(value)
+	v, err := t.Decode(zv)
 	if err != nil {
 		return nil, err
 	}
