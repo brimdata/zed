@@ -20,6 +20,11 @@ import (
 	"github.com/mccanne/zq/zql"
 )
 
+// Version is set via the Go linker.
+var (
+	version = "unknown"
+)
+
 type errInvalidFile string
 
 func (reason errInvalidFile) Error() string {
@@ -74,15 +79,16 @@ func init() {
 }
 
 type Command struct {
-	dt         *resolver.Table
-	ifmt       string
-	ofmt       string
-	dir        string
-	path       string
-	outputFile string
-	verbose    bool
-	stats      bool
-	warnings   bool
+	dt          *resolver.Table
+	ifmt        string
+	ofmt        string
+	dir         string
+	path        string
+	outputFile  string
+	verbose     bool
+	stats       bool
+	warnings    bool
+	showVersion bool
 	text.Config
 }
 
@@ -100,6 +106,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.ShowTypes, "T", false, "display field types in text output")
 	f.BoolVar(&c.ShowFields, "F", false, "display field names in text output")
 	f.BoolVar(&c.EpochDates, "E", false, "display epoch timestamps in text output")
+	f.BoolVar(&c.showVersion, "version", false, "print version and exit")
 	return c, nil
 }
 
@@ -154,7 +161,15 @@ func fileExists(path string) bool {
 	return !info.IsDir()
 }
 
+func (c *Command) printVersion() error {
+	fmt.Fprintf(os.Stdout, "Version: %s\n", version)
+	return nil
+}
+
 func (c *Command) Run(args []string) error {
+	if c.showVersion {
+		return c.printVersion()
+	}
 	if len(args) == 0 {
 		return Zq.Exec(c, []string{"help"})
 	}
