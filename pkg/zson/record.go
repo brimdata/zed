@@ -91,7 +91,6 @@ func NewRecordZvals(d *Descriptor, vals ...zval.Encoding) (t *Record, err error)
 	var ts nano.Ts
 	if col, ok := d.ColumnOfField("ts"); ok {
 		var err error
-		//XXX this needs to call Decode
 		ts, err = zeek.DecodeTime(vals[col])
 		if err != nil {
 			return nil, err

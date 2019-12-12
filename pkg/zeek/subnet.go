@@ -58,8 +58,11 @@ func EncodeSubnet(subnet *net.IPNet) zval.Encoding {
 	ip := subnet.IP.To4()
 	if ip != nil {
 		copy(b[:], ip)
-		// XXX not sure this works
-		copy(b[4:], subnet.Mask)
+		if len(subnet.Mask) == 16 {
+			copy(b[4:], subnet.Mask[12:])
+		} else {
+			copy(b[4:], subnet.Mask)
+		}
 		return b[:8]
 	}
 	copy(b[:], ip)

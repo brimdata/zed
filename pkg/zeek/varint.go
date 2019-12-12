@@ -1,6 +1,8 @@
 package zeek
 
-// These functions are like varint but already know their size because
+import "math"
+
+// These functions are like varint but their size is known as
 // zval encoded it for them.
 
 func decodeUint(b []byte) uint64 {
@@ -27,7 +29,11 @@ func encodeUint(dst []byte, u64 uint64) int {
 func decodeInt(b []byte) int64 {
 	u64 := decodeUint(b)
 	if u64&1 != 0 {
-		return -int64(u64 >> 1)
+		u64 >>= 1
+		if u64 == 0 {
+			return math.MinInt64
+		}
+		return -int64(u64)
 	}
 	return int64(u64 >> 1)
 }
