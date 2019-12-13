@@ -138,3 +138,18 @@ outer:
 		return e
 	}, nil
 }
+
+func CompileFieldExprArray(nodes []ast.FieldExpr) ([]FieldExprResolver, error) {
+	var resolvers []FieldExprResolver
+	if nodes != nil {
+		resolvers = make([]FieldExprResolver, 0, len(nodes))
+		for _, exp := range nodes {
+			res, err := CompileFieldExpr(exp)
+			if err != nil {
+				return nil, err
+			}
+			resolvers = append(resolvers, res)
+		}
+	}
+	return resolvers, nil
+}

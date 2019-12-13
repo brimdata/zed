@@ -145,19 +145,16 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 		return []Proc{NewGroupBy(c, parent, *params)}, nil
 
 	case *ast.CutProc:
-		return []Proc{NewCut(c, parent, v.Fields)}, nil
+		cut, err := CompileCutProc(c, parent, v)
+		if err != nil {
+			return nil, err
+		}
+		return []Proc{cut}, nil
 
 	case *ast.SortProc:
-		var fields []expr.FieldExprResolver
-		if v.Fields != nil {
-			fields = make([]expr.FieldExprResolver, 0, len(v.Fields))
-			for _, exp := range v.Fields {
-				res, err := expr.CompileFieldExpr(exp)
-				if err != nil {
-					return nil, err
-				}
-				fields = append(fields, res)
-			}
+		fields, err := expr.CompileFieldExprArray(v.Fields)
+		if err != nil {
+			return nil, err
 		}
 		return []Proc{NewSort(c, parent, v.Limit, fields, v.SortDir)}, nil
 
@@ -189,16 +186,9 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 		return []Proc{NewFilter(c, parent, f)}, nil
 
 	case *ast.TopProc:
-		var fields []expr.FieldExprResolver
-		if v.Fields != nil {
-			fields = make([]expr.FieldExprResolver, 0, len(v.Fields))
-			for _, exp := range v.Fields {
-				res, err := expr.CompileFieldExpr(exp)
-				if err != nil {
-					return nil, err
-				}
-				fields = append(fields, res)
-			}
+		fields, err := expr.CompileFieldExprArray(v.Fields)
+		if err != nil {
+			return nil, err
 		}
 		return []Proc{NewTop(c, parent, v.Limit, fields, v.Flush)}, nil
 

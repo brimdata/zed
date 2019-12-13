@@ -20,8 +20,10 @@ func (p *ParallelProc) Copy() Proc {
 }
 
 func (p *CutProc) Copy() Proc {
-	fields := make([]string, len(p.Fields))
-	copy(fields, p.Fields)
+	fields := make([]FieldExpr, len(p.Fields))
+	for i, f := range p.Fields {
+		fields[i] = f.Copy()
+	}
 	return &CutProc{
 		Node:   Node{p.Op},
 		Fields: fields,
