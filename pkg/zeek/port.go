@@ -107,7 +107,7 @@ func (p *Port) Coerce(typ Type) Value {
 }
 
 func (p *Port) MarshalJSON() ([]byte, error) {
-	return json.Marshal(p)
+	return json.Marshal((*uint32)(p))
 }
 
 func (p Port) Elements() ([]Value, bool) { return nil, false }
