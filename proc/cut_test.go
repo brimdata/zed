@@ -55,7 +55,8 @@ func TestCut(t *testing.T) {
 func testNonAdjacentFields(t *testing.T, zql string) {
 	_, err := proc.CompileTestProc(zql, nil, nil)
 	require.Error(t, err, "cut with non-adjacent records failed")
-	require.Regexp(t, "All cut fields in record \\S+ must be adjacent", err.Error(), "error message for cutting non-adjacent fields is correct")
+	_, ok := err.(proc.ErrNonAdjacent)
+	require.True(t, ok, "cut with non-adjacent records failed with the proper error")
 }
 
 func TestNotAdjacentErrors(t *testing.T) {

@@ -14,6 +14,14 @@ import (
 
 var ErrNoField = errors.New("cut field not found")
 
+type ErrNonAdjacent struct {
+	record string
+}
+
+func (e ErrNonAdjacent) Error() string {
+	return fmt.Sprintf("All cut fields in record %s must be adjacent", e.record)
+}
+
 // fieldInfo encodes the structure of a particular "cut" invocation in a
 // format that enables the runtime processing to happen as efficiently
 // as possible.  When handling an input record, we build an output record
@@ -115,7 +123,7 @@ func CompileCutProc(c *Context, parent Proc, node *ast.CutProc) (*Cut, error) {
 				recname := strings.Join(record[:pos2+1], ".")
 				_, seen := seenRecords[recname]
 				if seen {
-					return nil, fmt.Errorf("All cut fields in record %s must be adjacent", recname)
+					return nil, ErrNonAdjacent{recname}
 				}
 				seenRecords[recname] = true
 				containerBegins = append(containerBegins, record[pos2])
@@ -169,16 +177,17 @@ func sameRecord(names1, names2 []string) bool {
 	return true
 }
 
-// CreateCut returns a new record value derived by keeping only the fields
-// specified by name in the fields slice.
-func (c *Cut) cut(in *zson.Record) (*zson.Record, error) {
+// cut returns a new record value derived by keeping only the fields
+// specified by name in the fields slice.  If the record can't be cut
+// (i.e., it doesn't have one of the specified fields), returns nil.
+func (c *Cut) cut(in *zson.Record) *zson.Record {
 	// Check if we already have an output descriptor for this
 	// input type
 	d, ok := c.cutmap[in.ID]
 	if ok && d == nil {
 		// One or more cut fields isn't present in this type of
 		// input record, drop it now.
-		return nil, nil
+		return nil
 	}
 
 	c.builder.Reset()
@@ -197,7 +206,7 @@ func (c *Cut) cut(in *zson.Record) (*zson.Record, error) {
 				// a field is missing... block this descriptor
 				c.cutmap[in.ID] = nil
 				c.nblocked++
-				return nil, nil
+				return nil
 			}
 			types = append(types, val.Type)
 		}
@@ -214,7 +223,7 @@ func (c *Cut) cut(in *zson.Record) (*zson.Record, error) {
 		c.cutmap[in.ID] = d
 	}
 
-	return zson.NewRecordNoTs(d, c.builder.Encode()), nil
+	return zson.NewRecordNoTs(d, c.builder.Encode())
 }
 
 // Using similar logic to the main loop inside cut(), allocate a
@@ -284,10 +293,7 @@ func (c *Cut) Pull() (zson.Batch, error) {
 	recs := make([]*zson.Record, 0, batch.Length())
 	for k := 0; k < batch.Length(); k++ {
 		in := batch.Index(k)
-		out, err := c.cut(in)
-		if err != nil {
-			return nil, err
-		}
+		out := c.cut(in)
 		if out != nil {
 			recs = append(recs, out)
 		}
