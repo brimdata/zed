@@ -33,9 +33,11 @@ func match(subdir, name, direction string) *filespec {
 		format = "zeek"
 	case "zson":
 		format = "zson"
+	case "zjson":
+		format = "zjson"
 	case "bzson":
 		format = "bzson"
-	case "json":
+	case "json", "ndjson":
 		format = "ndjson"
 	case "txt", "text":
 		format = "text"
