@@ -53,7 +53,7 @@ func (t *TypeVector) Parse(in []byte) (zval.Encoding, error) {
 
 func (t *TypeVector) New(zv zval.Encoding) (Value, error) {
 	if zv == nil {
-		return &Vector{typ: t, values: []Value{}}, nil
+		return &Vector{typ: t, values: nil}, nil
 	}
 	v, err := t.Decode(zv)
 	if err != nil {
