@@ -32,6 +32,20 @@ func TestNDJSONWriter(t *testing.T) {
 `,
 			output: `{"san":{"dns":["google.com"],"email":null,"ip":null,"uri":null}}`,
 		},
+		{
+			name: "empty containers",
+			input: `#0:record[dns:vector[string],uri:vector[string],email:set[string],ip:vector[addr]]
+0:[[google.com;][][]-;]
+`,
+			output: `{"dns":["google.com"],"uri":[], "email":[],"ip":null}`,
+		},
+		{
+			name: "nested empties",
+			input: `#0:record[san:record[dns:vector[string],uri:vector[string],email:set[string],ip:vector[addr]]]
+0:[[[google.com;][][]-;]]
+`,
+			output: `{"san":{"dns":["google.com"],"uri":[], "email":[],"ip":null}}`,
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
