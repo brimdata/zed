@@ -21,9 +21,7 @@ import (
 )
 
 // Version is set via the Go linker.
-var (
-	version = "unknown"
-)
+var version = "unknown"
 
 type errInvalidFile string
 
@@ -162,7 +160,7 @@ func fileExists(path string) bool {
 }
 
 func (c *Command) printVersion() error {
-	fmt.Fprintf(os.Stdout, "Version: %s\n", version)
+	fmt.Printf("Version: %s\n", version)
 	return nil
 }
 
