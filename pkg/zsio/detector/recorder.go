@@ -24,9 +24,6 @@ func NewRecorder(r io.Reader) *Recorder {
 }
 
 func (r *Recorder) ReadAt(off int, b []byte) (int, error) {
-	if r.eof {
-		return 0, io.EOF
-	}
 	for {
 		if off < len(r.buffer) {
 			window := r.buffer[off:]

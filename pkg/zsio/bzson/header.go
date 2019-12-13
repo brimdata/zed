@@ -30,6 +30,10 @@ const (
 	TypeMask    = 0x3f
 )
 
+var (
+	ErrBadHeader = errors.New("malformed bzson header")
+)
+
 type header struct {
 	typ    int
 	id     int
@@ -53,7 +57,7 @@ func writeHeader(w io.Writer, typ, id, length int) (int, error) {
 
 func parseHeader(b []byte, h *header) (int, error) {
 	if len(b) < 3 {
-		return 0, zson.ErrBadFormat
+		return 0, ErrBadHeader
 	}
 	typ := int(b[0])
 	off := 1
@@ -65,7 +69,7 @@ func parseHeader(b []byte, h *header) (int, error) {
 	if typ != TypeControl {
 		id, n := binary.Uvarint(b[off:])
 		if n <= 0 {
-			return 0, zson.ErrBadFormat
+			return 0, ErrBadHeader
 		}
 		if id > zson.MaxDescriptor {
 			return 0, zson.ErrDescriptorInvalid
@@ -75,7 +79,7 @@ func parseHeader(b []byte, h *header) (int, error) {
 	}
 	length, n := binary.Uvarint(b[off:])
 	if n <= 0 {
-		return 0, zson.ErrBadFormat
+		return 0, ErrBadHeader
 	}
 	off += n
 	h.length = int(length)
