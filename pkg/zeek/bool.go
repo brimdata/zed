@@ -1,7 +1,6 @@
 package zeek
 
 import (
-	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -127,10 +126,6 @@ func (b Bool) Coerce(typ Type) Value {
 		return b
 	}
 	return nil
-}
-
-func (b *Bool) MarshalJSON() ([]byte, error) {
-	return json.Marshal((*bool)(b))
 }
 
 func (b Bool) Elements() ([]Value, bool) { return nil, false }

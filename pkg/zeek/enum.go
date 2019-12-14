@@ -1,7 +1,6 @@
 package zeek
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/mccanne/zq/pkg/zval"
@@ -80,10 +79,6 @@ func (e *Enum) Coerce(typ Type) Value {
 		return e
 	}
 	return nil
-}
-
-func (e *Enum) MarshalJSON() ([]byte, error) {
-	return json.Marshal((*string)(e))
 }
 
 func (e *Enum) Elements() ([]Value, bool) { return nil, false }

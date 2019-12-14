@@ -2,7 +2,6 @@ package zeek
 
 import (
 	"encoding/binary"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -198,10 +197,6 @@ func CoerceToDouble(in Value, out *Double) bool {
 		return true
 	}
 	return false
-}
-
-func (d *Double) MarshalJSON() ([]byte, error) {
-	return json.Marshal((*float64)(d))
 }
 
 func (d Double) Elements() ([]Value, bool) { return nil, false }
