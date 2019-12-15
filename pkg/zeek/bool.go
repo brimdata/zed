@@ -3,7 +3,6 @@ package zeek
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 
 	"github.com/mccanne/zq/pkg/zval"
 )
@@ -88,7 +87,10 @@ func NewBool(b bool) *Bool {
 }
 
 func (b Bool) String() string {
-	return strconv.FormatBool(bool(b))
+	if b {
+		return "T"
+	}
+	return "F"
 }
 
 func (b Bool) Encode(dst zval.Encoding) zval.Encoding {
