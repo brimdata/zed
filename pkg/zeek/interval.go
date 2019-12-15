@@ -14,6 +14,19 @@ func (t *TypeOfInterval) String() string {
 	return "interval"
 }
 
+func EncodeInterval(t int64) zval.Encoding {
+	var b [8]byte
+	n := encodeInt(b[:], t)
+	return b[:n]
+}
+
+func DecodeInterval(zv zval.Encoding) (int64, error) {
+	if zv == nil {
+		return 0, ErrUnset
+	}
+	return int64(decodeInt(zv)), nil
+}
+
 func (t *TypeOfInterval) Parse(in []byte) (zval.Encoding, error) {
 	dur, err := nano.ParseDuration(in)
 	if err != nil {
