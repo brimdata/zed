@@ -350,7 +350,7 @@ func (g *GroupByAggregator) recordsForTable(table map[string]*GroupByRow) []*zso
 		row := table[k]
 		var zv zval.Encoding
 		if g.TimeBinDuration > 0 {
-			zv = zval.AppendValue(zv, []byte(row.ts.StringFloat()))
+			zv = zval.AppendValue(zv, zeek.EncodeTime(row.ts))
 		}
 		zv = append(zv, row.keyvals...)
 		for _, red := range row.reducers.Reducers {
