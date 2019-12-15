@@ -2,6 +2,7 @@ package nano
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"time"
@@ -135,10 +136,26 @@ func ParseTs(s string) (Ts, error) {
 }
 
 func Parse(s []byte) (Ts, error) {
-	var v, scale int64
+	i, err := parse(s)
+	if err != nil {
+		return 0, err
+	}
+	if i < 0 {
+		return 0, errors.New("time cannot be negative")
+	}
+	return Ts(i), nil
+}
+
+func parse(s []byte) (int64, error) {
+	var v, scale, sign int64
+	sign = 1
 	scale = 1000000000
+	k := 0
 	n := len(s)
-	for k := 0; k < n; k++ {
+	if s[0] == '-' {
+		sign, k = -1, 1
+	}
+	for ; k < n; k++ {
 		c := s[k]
 		if c != '.' && (c < '0' || c > '9') {
 			return 0, fmt.Errorf("invalid time format: %s", string(s))
@@ -156,7 +173,7 @@ func Parse(s []byte) (Ts, error) {
 		}
 		v = v*10 + int64(c-'0')
 	}
-	return Ts(v * scale), nil
+	return sign * v * scale, nil
 }
 
 // ParseMillis parses an unsigned integer representing milliseconds since the
@@ -187,8 +204,7 @@ func ParseRFC3339Nano(s []byte) (Ts, error) {
 }
 
 func ParseDuration(s []byte) (int64, error) {
-	ts, err := Parse(s)
-	return int64(ts), err
+	return parse(s)
 }
 
 // Max compares and returns the largest Ts.
