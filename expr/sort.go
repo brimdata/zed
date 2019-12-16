@@ -144,11 +144,11 @@ func (s *RecordSlice) Index(i int) *zson.Record {
 func lookupSorter(typ zeek.Type) comparefn {
 	// XXX record support easy to add here if we moved the creation of the
 	// field resolvers into this package.
-	if innerType := zeek.InnerType(typ); innerType != nil && false {
+	if innerType := zeek.InnerType(typ); innerType != nil {
 		return func(a, b zval.Encoding) int {
 			compare := lookupSorter(innerType)
 			ia := a.Iter()
-			ib := a.Iter()
+			ib := b.Iter()
 			for {
 				if ia.Done() {
 					if ib.Done() {
@@ -278,13 +278,31 @@ func lookupSorter(typ zeek.Type) comparefn {
 			return 0
 		}
 
-	case zeek.TypeTime, zeek.TypeInterval:
+	case zeek.TypeTime:
 		return func(a, b zval.Encoding) int {
 			va, err := zeek.DecodeTime(a)
 			if err != nil {
 				return -1
 			}
 			vb, err := zeek.DecodeTime(b)
+			if err != nil {
+				return 1
+			}
+			if va < vb {
+				return -1
+			} else if va > vb {
+				return 1
+			}
+			return 0
+		}
+
+	case zeek.TypeInterval:
+		return func(a, b zval.Encoding) int {
+			va, err := zeek.DecodeInterval(a)
+			if err != nil {
+				return -1
+			}
+			vb, err := zeek.DecodeInterval(b)
 			if err != nil {
 				return 1
 			}
