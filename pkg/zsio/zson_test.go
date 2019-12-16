@@ -104,6 +104,7 @@ const zson7 = `
 // recursive record with unset set and empty set
 const zson8 = `
 #0:record[id:record[a:string,s:set[string]]]
+0:[-;]
 0:[[-;[]]]
 0:[[-;-;]]`
 

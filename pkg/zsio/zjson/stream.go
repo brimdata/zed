@@ -46,9 +46,7 @@ func (s *Stream) Transform(r *zson.Record) (*Record, error) {
 
 func encodeContainer(typ zeek.Type, val []byte) (interface{}, error) {
 	if val == nil {
-		// unset containers map to JSON empty object
-		v := make(map[string]interface{})
-		return v, nil
+		return nil, nil
 	}
 	childType, columns := zeek.ContainedType(typ)
 	if childType == nil && columns == nil {
