@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -102,16 +103,10 @@ func (t Ts) Pretty() string {
 
 func (t Ts) StringFloat() string {
 	sec, ns := t.Split()
-	var s string
 	if ns == 0 {
-		s = strconv.FormatInt(sec, 10)
-	} else {
-		s = fmt.Sprintf("%d.%09d", sec, ns)
-		for n := len(s) - 1; n > 1 && s[n] == '0'; n-- {
-			s = s[:n]
-		}
+		return strconv.FormatInt(sec, 10)
 	}
-	return s
+	return strings.TrimRight(fmt.Sprintf("%d.%09d", sec, ns), "0")
 }
 
 func (t Ts) Add(v int64) Ts {
