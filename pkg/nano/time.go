@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strconv"
 	"time"
 )
 
@@ -101,7 +102,16 @@ func (t Ts) Pretty() string {
 
 func (t Ts) StringFloat() string {
 	sec, ns := t.Split()
-	return fmt.Sprintf("%d.%09d", sec, ns)
+	var s string
+	if ns == 0 {
+		s = strconv.FormatInt(sec, 10)
+	} else {
+		s = fmt.Sprintf("%d.%09d", sec, ns)
+		for n := len(s) - 1; n > 1 && s[n] == '0'; n-- {
+			s = s[:n]
+		}
+	}
+	return s
 }
 
 func (t Ts) Add(v int64) Ts {
@@ -235,8 +245,8 @@ func Duration(sec, ns int64) int64 {
 	return int64(sec)*1000000000 + int64(ns)
 }
 
+// A duration is more or less the same as a Ts except it is relative to 0
+// rather than epoch.
 func DurationString(dur int64) string {
-	sec := int64(dur / 1000000000)
-	ns := int64(dur) - sec*1000000000
-	return fmt.Sprintf("%d.%09d", sec, ns)
+	return Ts(dur).StringFloat()
 }

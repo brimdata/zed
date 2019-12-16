@@ -3,6 +3,7 @@ package zson
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 	"net"
 
@@ -160,20 +161,44 @@ func (r *Record) Bytes() []byte {
 	return r.Raw
 }
 
+func isHighPrecision(ns int64) bool {
+	return (ns/1000)*1000 != ns
+}
+
 // This returns the zeek strings for this record.  It works only for records
 // that can be represented as legacy zeek values.  XXX We need to not use this.
 // XXX change to Pretty for output writers?... except zeek?
-func (r *Record) ZeekStrings() ([]string, error) {
+func (r *Record) ZeekStrings(precision int) ([]string, bool, error) {
 	var ss []string
 	it := r.ZvalIter()
-	for _, col := range r.Descriptor.Type.Columns {
+	var changePrecision bool
+	for colno, col := range r.Descriptor.Type.Columns {
 		val, isContainer, err := it.Next()
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
-		ss = append(ss, ZvalToZeekString(col.Type, val, isContainer))
+		var field string
+		if precision >= 0 && col.Type == zeek.TypeTime {
+			ts, err := r.AccessTimeByColumn(colno)
+			if err != nil {
+				return nil, false, err
+			}
+			sec, ns := ts.Split()
+			if precision == 6 && isHighPrecision(ns) {
+				precision = 9
+				changePrecision = true
+			}
+			if precision == 6 {
+				field = fmt.Sprintf("%d.%06d", sec, ns/1000)
+			} else {
+				field = fmt.Sprintf("%d.%09d", sec, ns)
+			}
+		} else {
+			field = ZvalToZeekString(col.Type, val, isContainer)
+		}
+		ss = append(ss, field)
 	}
-	return ss, nil
+	return ss, changePrecision, nil
 }
 
 // TypeCheck checks that the value coding in Raw is structurally consistent
@@ -412,6 +437,14 @@ func (r *Record) AccessTime(field string) (nano.Ts, error) {
 		return 0, ErrTypeMismatch
 	}
 	return zeek.DecodeTime(e.Body)
+}
+
+func (r *Record) AccessTimeByColumn(colno int) (nano.Ts, error) {
+	zv := r.Slice(colno)
+	if zv == nil {
+		return 0, ErrTypeMismatch
+	}
+	return zeek.DecodeTime(zv)
 }
 
 // MarshalJSON implements json.Marshaler.
