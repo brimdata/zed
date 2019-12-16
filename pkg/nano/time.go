@@ -127,6 +127,12 @@ func TimeToTs(t time.Time) Ts {
 	return Ts(t.UnixNano())
 }
 
+func FloatToTs(v float64) Ts {
+	sec := math.Round(v)
+	ns := v - sec
+	return Ts(int64(sec)*1_000_000_000+int64(ns*1e9))
+}
+
 func Date(year int, month time.Month, day, hour, min, sec, nsec int) Ts {
 	t := time.Date(year, month, day, hour, min, sec, nsec, time.UTC)
 	return TimeToTs(t)
@@ -142,13 +148,20 @@ func ParseTs(s string) (Ts, error) {
 
 func Parse(s []byte) (Ts, error) {
 	i, err := parse(s)
+	ts := Ts(i)
 	if err != nil {
-		return 0, err
+		// slow path for timestamps in scientific notation
+		f, e := strconv.ParseFloat(string(s), 64)
+		if e == nil {
+			ts = FloatToTs(f)
+		} else {
+			return 0, err
+		}
 	}
-	if i < 0 {
+	if ts < 0 {
 		return 0, errors.New("time cannot be negative")
 	}
-	return Ts(i), nil
+	return ts, nil
 }
 
 func parse(s []byte) (int64, error) {
@@ -209,7 +222,16 @@ func ParseRFC3339Nano(s []byte) (Ts, error) {
 }
 
 func ParseDuration(s []byte) (int64, error) {
-	return parse(s)
+	d, err := parse(s)
+	if err == nil {
+		return d, nil
+	}
+	// slow path for durations in scientific notation
+	f, e := strconv.ParseFloat(string(s), 64)
+	if e != nil {
+		return 0, err
+	}
+	return int64(FloatToTs(f)), nil
 }
 
 // Max compares and returns the largest Ts.
