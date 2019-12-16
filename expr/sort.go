@@ -6,12 +6,13 @@ import (
 
 	"github.com/mccanne/zq/pkg/zeek"
 	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zval"
 )
 
 type SortFn func(a *zson.Record, b *zson.Record) int
 
 // Internal function that compares two values of compatible types.
-type comparefn func(a, b []byte) int
+type comparefn func(a, b zval.Encoding) int
 
 func isUnset(val zeek.TypedEncoding) bool {
 	if val.Body == nil || zeek.SameType(val.Type, zeek.TypeUnset) {
@@ -141,13 +142,45 @@ func (s *RecordSlice) Index(i int) *zson.Record {
 }
 
 func lookupSorter(typ zeek.Type) comparefn {
+	// XXX record support easy to add here if we moved the creation of the
+	// field resolvers into this package.
+	if innerType := zeek.InnerType(typ); innerType != nil && false {
+		return func(a, b zval.Encoding) int {
+			compare := lookupSorter(innerType)
+			ia := a.Iter()
+			ib := a.Iter()
+			for {
+				if ia.Done() {
+					if ib.Done() {
+						return 0
+					}
+					return -1
+				}
+				if ib.Done() {
+					return 1
+				}
+				va, container, err := ia.Next()
+				if container || err != nil {
+					return -1
+				}
+
+				vb, container, err := ib.Next()
+				if container || err != nil {
+					return 1
+				}
+				if v := compare(va, vb); v != 0 {
+					return v
+				}
+			}
+		}
+	}
 	switch typ {
 	default:
-		return func(a, b []byte) int {
+		return func(a, b zval.Encoding) int {
 			return bytes.Compare(a, b)
 		}
 	case zeek.TypeBool:
-		return func(a, b []byte) int {
+		return func(a, b zval.Encoding) int {
 			va, err := zeek.DecodeBool(a)
 			if err != nil {
 				return -1
@@ -166,7 +199,7 @@ func lookupSorter(typ zeek.Type) comparefn {
 		}
 
 	case zeek.TypeString, zeek.TypeEnum:
-		return func(a, b []byte) int {
+		return func(a, b zval.Encoding) int {
 			return bytes.Compare(a, b)
 		}
 
@@ -175,7 +208,7 @@ func lookupSorter(typ zeek.Type) comparefn {
 	// need to fix this.  XXX also we should break this sorts
 	// into the different types.
 	case zeek.TypeInt:
-		return func(a, b []byte) int {
+		return func(a, b zval.Encoding) int {
 			va, err := zeek.DecodeInt(a)
 			if err != nil {
 				return -1
@@ -193,7 +226,7 @@ func lookupSorter(typ zeek.Type) comparefn {
 		}
 
 	case zeek.TypeCount:
-		return func(a, b []byte) int {
+		return func(a, b zval.Encoding) int {
 			va, err := zeek.DecodeCount(a)
 			if err != nil {
 				return -1
@@ -210,7 +243,7 @@ func lookupSorter(typ zeek.Type) comparefn {
 			return 0
 		}
 	case zeek.TypePort:
-		return func(a, b []byte) int {
+		return func(a, b zval.Encoding) int {
 			va, err := zeek.DecodePort(a)
 			if err != nil {
 				return -1
@@ -228,7 +261,7 @@ func lookupSorter(typ zeek.Type) comparefn {
 		}
 
 	case zeek.TypeDouble:
-		return func(a, b []byte) int {
+		return func(a, b zval.Encoding) int {
 			va, err := zeek.DecodeDouble(a)
 			if err != nil {
 				return -1
@@ -246,7 +279,7 @@ func lookupSorter(typ zeek.Type) comparefn {
 		}
 
 	case zeek.TypeTime, zeek.TypeInterval:
-		return func(a, b []byte) int {
+		return func(a, b zval.Encoding) int {
 			va, err := zeek.DecodeTime(a)
 			if err != nil {
 				return -1
@@ -264,7 +297,7 @@ func lookupSorter(typ zeek.Type) comparefn {
 		}
 
 	case zeek.TypeAddr:
-		return func(a, b []byte) int {
+		return func(a, b zval.Encoding) int {
 			va, err := zeek.DecodeAddr(a)
 			if err != nil {
 				return -1
