@@ -7,6 +7,7 @@ import (
 	"github.com/mccanne/zq/tests/suite/diropt"
 	"github.com/mccanne/zq/tests/suite/format"
 	"github.com/mccanne/zq/tests/suite/input"
+	"github.com/mccanne/zq/tests/suite/sort"
 )
 
 var RootDir = "./test-root"
@@ -16,6 +17,8 @@ var internals = []test.Internal{
 	cut.Internal,
 	format.Internal,
 	input.Internal,
+	sort.Internal1,
+	sort.Internal2,
 }
 
 var commands = []test.Exec{
