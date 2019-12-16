@@ -178,18 +178,6 @@ Containers can be embedded in containers:
 record[v:vector[int],s:set[bool,string],r:record[x:double,y:double],s2:set[record[a:string,b:string]]
 ```
 
-Types can also refer to previously defined descriptors, e.g.,
-```
-#8:string
-#9:record[s:8]
-```
-Or more usefully, descriptor references can refer to previously
-declared `record` types:
-```
-#10:record[src:addr,srcport:port,dst:addr,dstport:port]
-#11:record[list:set[10],info:string]
-```
-
 ## Regular Values
 
 A regular value is encoded on a line as a type descriptor followed by `:` followed
@@ -298,23 +286,14 @@ This scheme allows composites to be embedded in composites, e.g., a
 `record` inside of a `record` like this:
 ```
 #4:record[compass:string,degree:double]
-#5:record[city:string,lat:4,long:4]
-5:[NYC;[NE;40.7128;][W;74.0060;]]
+#5:record[city:string,lat:record[compass:string,degree:double],long:record[compass:string,degree:double]]
+5:[NYC;[N;40.7128;][W;74.0060;]]
 ```
 An unset value indicates a field of a `record` that wasn't set by the encoder:
 ```
 5:[North Pole;[N;90;]-;]
 ```
 e.g., the North Pole has a latitude but no meaningful longitude.
-
-A `record` type can use shorthand notation as defined by
-the [type grammar](#type-grammer), where reference can be made
-to a previously defined `record` via its descriptor.  e.g., the `record`
-defined above could be defined as follows:
-```
-#4:record[a:string,b:double,c:string]
-#5:record[a:string,b:4,c:string]
-```
 
 ## Legacy Directives
 
