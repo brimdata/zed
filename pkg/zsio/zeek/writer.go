@@ -16,12 +16,14 @@ type Writer struct {
 	header
 	flattener  *Flattener
 	descriptor *zson.Descriptor
+	precision  int
 }
 
 func NewWriter(w io.Writer) *Writer {
 	return &Writer{
 		Writer:    w,
 		flattener: NewFlattener(),
+		precision: 6,
 	}
 }
 
@@ -35,9 +37,12 @@ func (w *Writer) Write(r *zson.Record) error {
 		w.writeHeader(r, path)
 		w.descriptor = r.Descriptor
 	}
-	values, err := r.ZeekStrings()
+	values, changePrecision, err := r.ZeekStrings(w.precision)
 	if err != nil {
 		return err
+	}
+	if changePrecision {
+		w.precision = 9
 	}
 	if i, ok := r.Descriptor.ColumnOfField("_path"); ok {
 		// delete _path column

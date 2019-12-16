@@ -17,6 +17,7 @@ type Table struct {
 	descriptor *zson.Descriptor
 	limit      int
 	nline      int
+	precision  int
 }
 
 func NewWriter(w io.Writer) *Table {
@@ -26,6 +27,7 @@ func NewWriter(w io.Writer) *Table {
 		flattener: zeek.NewFlattener(),
 		table:     writer,
 		limit:     1000,
+		precision: 6,
 	}
 }
 
@@ -59,9 +61,12 @@ func (t *Table) Write(r *zson.Record) error {
 		t.nline = 0
 	}
 	//XXX only works for zeek-oriented records right now (won't work for NDJSON nested records)
-	ss, err := r.ZeekStrings()
+	ss, changePrecision, err := r.ZeekStrings(t.precision)
 	if err != nil {
 		return err
+	}
+	if changePrecision {
+		t.precision = 9
 	}
 	t.nline++
 	_, err = fmt.Fprintf(t.table, "%s\n", strings.Join(ss, "\t"))

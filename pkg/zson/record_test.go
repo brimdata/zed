@@ -25,7 +25,7 @@ func TestNewRecordZeekStrings(t *testing.T) {
 	assert.EqualValues(t, 123456700000, r.Ts)
 	s, _ := r.AccessString("_path")
 	assert.EqualValues(t, "some path", s)
-	assert.EqualValues(t, "123.456700000", r.Value(1).String())
+	assert.EqualValues(t, "123.4567", r.Value(1).String())
 	assert.EqualValues(t, "some data", r.Slice(2))
 	assert.Nil(t, r.Slice(3))
 
@@ -33,7 +33,7 @@ func TestNewRecordZeekStrings(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 123456000000, r.Ts)
 	assert.EqualValues(t, "some path", r.Slice(0))
-	assert.EqualValues(t, "123.456000000", r.Value(1).String())
+	assert.EqualValues(t, "123.456", r.Value(1).String())
 	assert.EqualValues(t, "", r.Slice(2))
 	assert.Nil(t, r.Slice(3))
 }
@@ -76,7 +76,7 @@ func TestEncodeZeekStrings(t *testing.T) {
 	r := NewRecordNoTs(d, zv)
 	assert.EqualValues(t, 123456000000, r.Ts)
 	assert.EqualValues(t, "some path", r.Slice(0))
-	assert.EqualValues(t, "123.456000000", r.Value(1).String())
+	assert.EqualValues(t, "123.456", r.Value(1).String())
 	assert.EqualValues(t, "some data", r.Slice(2))
 	assert.Nil(t, r.Slice(3))
 
@@ -85,7 +85,7 @@ func TestEncodeZeekStrings(t *testing.T) {
 	r = NewRecordNoTs(d, zv)
 	assert.EqualValues(t, 123456000000, r.Ts)
 	assert.EqualValues(t, "some path", r.Slice(0))
-	assert.EqualValues(t, "123.456000000", r.Value(1).String())
+	assert.EqualValues(t, "123.456", r.Value(1).String())
 	assert.EqualValues(t, "", r.Slice(2))
 	assert.Nil(t, r.Slice(3))
 
@@ -94,7 +94,7 @@ func TestEncodeZeekStrings(t *testing.T) {
 	r = NewRecordNoTs(d, zv)
 	assert.EqualValues(t, 123456000000, r.Ts)
 	assert.EqualValues(t, "some path", r.Slice(0))
-	assert.EqualValues(t, "123.456000000", r.Value(1).String())
+	assert.EqualValues(t, "123.456", r.Value(1).String())
 	assert.EqualValues(t, zval.Encoding(nil), r.Slice(2))
 	assert.Nil(t, r.Slice(3))
 
@@ -107,12 +107,12 @@ func TestEncodeZeekStrings(t *testing.T) {
 		expected []string
 	}{
 		//XXX last arg should be "-" instead of set[]
-		{zs("some path", "123.456", "-"), res("some path", "123.456000000", "set[]")},
-		{zs("some path", "123.456", "(empty)"), res("some path", "123.456000000", "set[]")},
+		{zs("some path", "123.456", "-"), res("some path", "123.456", "set[]")},
+		{zs("some path", "123.456", "(empty)"), res("some path", "123.456", "set[]")},
 		// XXX this is an error
 		//{zs("some path", "123.456", ""), zvals(z("some path"), z("123.456"), z(xxx)},
-		{zs("some path", "123.456", "987"), res("some path", "123.456000000", "set[987]")},
-		{zs("some path", "123.456", "987,65"), res("some path", "123.456000000", "set[987,65]")},
+		{zs("some path", "123.456", "987"), res("some path", "123.456", "set[987]")},
+		{zs("some path", "123.456", "987,65"), res("some path", "123.456", "set[987,65]")},
 	}
 	for i, c := range cases {
 		zv, err := encode(d, c.input)

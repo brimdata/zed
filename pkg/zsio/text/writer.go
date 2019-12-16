@@ -22,12 +22,14 @@ type Text struct {
 	io.Writer
 	Config
 	flattener *zk.Flattener
+	precision int
 }
 
 func NewWriter(w io.Writer, c *Config) *Text {
 	writer := &Text{
 		Writer:    w,
 		flattener: zk.NewFlattener(),
+		precision: 6,
 	}
 	if c != nil {
 		writer.Config = *c
@@ -62,10 +64,13 @@ func (t *Text) Write(rec *zson.Record) error {
 		}
 	} else {
 		var err error
-		//XXX only works for zeek-oriented records right now (won't work for NDJSON nested records)
-		out, err = rec.ZeekStrings()
+		var changePrecision bool
+		out, changePrecision, err = rec.ZeekStrings(t.precision)
 		if err != nil {
 			return err
+		}
+		if changePrecision {
+			t.precision = 9
 		}
 	}
 	s := strings.Join(out, "\t")

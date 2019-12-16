@@ -1,0 +1,10 @@
+#separator \x09
+#set_separator	,
+#empty_field	(empty)
+#unset_field	-
+#path	conn
+#fields	ts	ts2
+#types	time	time
+1425565514.419939	1.000000
+1425565514.419939100	1.000000000
+1425565514.419939000	1.000000000
