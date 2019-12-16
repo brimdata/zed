@@ -178,18 +178,6 @@ Containers can be embedded in containers:
 record[v:vector[int],s:set[bool,string],r:record[x:double,y:double],s2:set[record[a:string,b:string]]
 ```
 
-Types can also refer to previously defined descriptors, e.g.,
-```
-#8:string
-#9:record[s:8]
-```
-Or more usefully, descriptor references can refer to previously
-declared `record` types:
-```
-#10:record[src:addr,srcport:port,dst:addr,dstport:port]
-#11:record[list:set[10],info:string]
-```
-
 ## Regular Values
 
 A regular value is encoded on a line as a type descriptor followed by `:` followed
