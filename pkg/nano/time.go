@@ -2,7 +2,6 @@ package nano
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math"
 	"strconv"
@@ -158,9 +157,6 @@ func Parse(s []byte) (Ts, error) {
 			return 0, err
 		}
 	}
-	if ts < 0 {
-		return 0, errors.New("time cannot be negative")
-	}
 	return ts, nil
 }
 
@@ -222,16 +218,8 @@ func ParseRFC3339Nano(s []byte) (Ts, error) {
 }
 
 func ParseDuration(s []byte) (int64, error) {
-	d, err := parse(s)
-	if err == nil {
-		return d, nil
-	}
-	// slow path for durations in scientific notation
-	f, e := strconv.ParseFloat(string(s), 64)
-	if e != nil {
-		return 0, err
-	}
-	return int64(FloatToTs(f)), nil
+	d, err := Parse(s)
+	return int64(d), err
 }
 
 // Max compares and returns the largest Ts.
