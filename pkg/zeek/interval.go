@@ -3,6 +3,8 @@ package zeek
 import (
 	"encoding/json"
 	"errors"
+	"strconv"
+	"time"
 
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/zval"
@@ -44,8 +46,8 @@ func (i Interval) String() string {
 	// This format of a fractional second is used by zeek in logs.
 	// It uses enough precision to fully represent the 64-bit ns
 	// accuracy of a nano Duration. Such values cannot be represented by
-	// float64's without loss of the least significant digits of ns,
-	return nano.DurationString(int64(i))
+	// float64's without loss of the least significant digits of ns.
+	return strconv.FormatFloat(time.Duration(i).Seconds(), 'f', 6, 64)
 }
 
 func (i Interval) Encode(dst zval.Encoding) zval.Encoding {

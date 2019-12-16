@@ -3,6 +3,8 @@ package zeek
 import (
 	"encoding/json"
 	"errors"
+	"strconv"
+	"time"
 
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/zval"
@@ -58,7 +60,7 @@ func (t Time) String() string {
 	// It uses enough precision to fully represent the 64-bit ns
 	// accuracy of a nano.Ts.  Such values cannot be representd by
 	// float64's without loss of the least significant digits of ns,
-	return nano.Ts(t).StringFloat()
+	return strconv.FormatFloat(time.Duration(t).Seconds(), 'f', 6, 64)
 }
 
 func (t Time) Encode(dst zval.Encoding) zval.Encoding {
