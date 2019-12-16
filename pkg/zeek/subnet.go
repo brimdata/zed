@@ -2,7 +2,6 @@ package zeek
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -169,10 +168,6 @@ func (s *Subnet) Coerce(typ Type) Value {
 		return s
 	}
 	return nil
-}
-
-func (s *Subnet) MarshalJSON() ([]byte, error) {
-	return json.Marshal((*net.IPNet)(s))
 }
 
 func (s *Subnet) Elements() ([]Value, bool) { return nil, false }

@@ -1,7 +1,6 @@
 package zeek
 
 import (
-	"encoding/json"
 	"fmt"
 	"math"
 	"strconv"
@@ -192,10 +191,6 @@ func CoerceToInt(in Value, out *Int) bool {
 		return true
 	}
 	return false
-}
-
-func (i *Int) MarshalJSON() ([]byte, error) {
-	return json.Marshal((*int64)(i))
 }
 
 func (i Int) Elements() ([]Value, bool) { return nil, false }
