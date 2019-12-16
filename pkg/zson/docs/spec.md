@@ -286,23 +286,14 @@ This scheme allows composites to be embedded in composites, e.g., a
 `record` inside of a `record` like this:
 ```
 #4:record[compass:string,degree:double]
-#5:record[city:string,lat:4,long:4]
-5:[NYC;[NE;40.7128;][W;74.0060;]]
+#5:record[city:string,lat:record[compass:string,degree:double],long:record[comparr:string,degree:double]]
+5:[NYC;[N;40.7128;][W;74.0060;]]
 ```
 An unset value indicates a field of a `record` that wasn't set by the encoder:
 ```
 5:[North Pole;[N;90;]-;]
 ```
 e.g., the North Pole has a latitude but no meaningful longitude.
-
-A `record` type can use shorthand notation as defined by
-the [type grammar](#type-grammer), where reference can be made
-to a previously defined `record` via its descriptor.  e.g., the `record`
-defined above could be defined as follows:
-```
-#4:record[a:string,b:double,c:string]
-#5:record[a:string,b:4,c:string]
-```
 
 ## Legacy Directives
 
