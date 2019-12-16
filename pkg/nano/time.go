@@ -130,7 +130,7 @@ func TimeToTs(t time.Time) Ts {
 func FloatToTs(v float64) Ts {
 	sec := math.Round(v)
 	ns := v - sec
-	return Ts(int64(sec)*1_000_000_000+int64(ns*1e9))
+	return Ts(int64(sec)*1_000_000_000 + int64(ns*1e9))
 }
 
 func Date(year int, month time.Month, day, hour, min, sec, nsec int) Ts {
