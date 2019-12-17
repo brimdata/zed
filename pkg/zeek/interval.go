@@ -51,6 +51,10 @@ func (i Interval) Encode(dst zval.Encoding) zval.Encoding {
 	return zval.AppendValue(dst, EncodeInt(int64(i)))
 }
 
+func DecodeInterval(zv zval.Encoding) (int64, error) {
+	return DecodeInt(zv)
+}
+
 func (i Interval) Type() Type {
 	return TypeInterval
 }
