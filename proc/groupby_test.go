@@ -84,6 +84,19 @@ const arrayKeyOut = `
 0:[[1;2;]2;]
 `
 
+const nestedKeyIn = `
+#0:record[rec:record[i:int,s:string],val:int]
+0:[[1;bleah;]1;]
+0:[[1;bleah;]2;]
+0:[[2;bleah;]3;]
+`
+
+const nestedKeyOut = `
+#0:record[rec:record[i:int],count:count]
+0:[[1;]2;]
+0:[[2;]1;]
+`
+
 //XXX this should go in a shared package
 type suite []test.Internal
 
@@ -136,6 +149,9 @@ func tests() suite {
 
 	// Check out of bounds array indexes
 	s.add(New("array-out-of-bounds", arrayKeyIn, arrayKeyOut, "count() by vec"))
+
+	// Check groupby key inside a record
+	s.add(New("key-in-record", nestedKeyIn, nestedKeyOut, "count() by rec.i"))
 
 	// XXX add coverage of time batching (every ..)
 

@@ -29,6 +29,7 @@ type GroupByParams struct {
 	limit           int
 	keys            []GroupByKey
 	reducers        []compile.CompiledReducer
+	builder         *ColumnBuilder
 }
 
 type errTooBig int
@@ -64,12 +65,17 @@ func CompileGroupBy(node *ast.GroupByProc) (*GroupByParams, error) {
 		}
 		reducers = append(reducers, compiled)
 	}
+	builder, err := NewColumnBuilder(node.Keys)
+	if err != nil {
+		return nil, err
+	}
 	return &GroupByParams{
 		duration:        node.Duration,
 		update_interval: node.UpdateInterval,
 		limit:           node.Limit,
 		keys:            keys,
 		reducers:        reducers,
+		builder:         builder,
 	}, nil
 }
 
@@ -93,6 +99,7 @@ type GroupByAggregator struct {
 	dt          *resolver.Table
 	keys        []GroupByKey
 	reducerDefs []compile.CompiledReducer
+	builder     *ColumnBuilder
 	// For a regular group-by, tables has one entry with key 0.  For a
 	// time-binned group-by, tables has one entry per bin and is keyed by
 	// bin timestamp (so that a bin with span [ts, ts+timeBinDuration) has
@@ -126,6 +133,7 @@ func NewGroupByAggregator(c *Context, params GroupByParams) *GroupByAggregator {
 		keys:        params.keys,
 		dt:          c.Resolver,
 		reducerDefs: params.reducers,
+		builder:     params.builder,
 		// keysMap maps an input descriptor to a descriptor
 		// representing the group-by key columns.
 		keysMap:         resolver.NewMapper(resolver.NewTable()),
@@ -194,9 +202,8 @@ func (g *GroupByAggregator) createRow(keyd *zson.Descriptor, ts nano.Ts, vals zv
 func keysTypeRecord(r *zson.Record, keys []GroupByKey) *zeek.TypeRecord {
 	cols := make([]zeek.Column, len(keys))
 	for k, key := range keys {
-		// Rcurse the record to find the bottom
-		// column for group-by on record access, e.g., a.b.c should
-		// find the column for "c".
+		// Recurse the record to find the bottom column for group-by
+		// on record access, e.g., a.b.c should find the column for "c".
 		keyVal := key.resolver(r)
 		if keyVal.Type == nil {
 			return nil
@@ -248,15 +255,16 @@ func (g *GroupByAggregator) Consume(r *zson.Record) error {
 		keyBytes = make(zval.Encoding, 4, 128)
 	}
 	binary.BigEndian.PutUint32(keyBytes, uint32(keysDescriptor.ID))
+	g.builder.Reset()
 	for _, key := range g.keys {
 		keyVal := key.resolver(r)
-		if keyVal.Type != nil {
-			keyBytes = zval.Append(keyBytes, keyVal.Body, zeek.IsContainerType(keyVal.Type))
-		} else {
-			// append an unset value
-			keyBytes = zval.AppendValue(keyBytes, nil)
-		}
+		g.builder.Append(keyVal.Body, zeek.IsContainerType(keyVal.Type))
 	}
+	zv, err := g.builder.Encode()
+	if err != nil {
+		// XXX internal error
+	}
+	keyBytes = append(keyBytes, zv...)
 	g.cacheKey = keyBytes
 
 	var ts nano.Ts
@@ -336,8 +344,8 @@ func typeMatch(typeCol []zeek.TypedEncoding, rowkeys []zeek.TypedEncoding) bool 
 	return true
 }
 
-// recordsForTable returns a slice of records with one record per table entry in a
-// deterministic but undefined order.
+// recordsForTable returns a slice of records with one record per table entry
+// in a deterministic but undefined order.
 func (g *GroupByAggregator) recordsForTable(table map[string]*GroupByRow) []*zson.Record {
 	var keys []string
 	for k := range table {
@@ -382,12 +390,11 @@ func (g *GroupByAggregator) lookupDescriptor(row *GroupByRow) *zson.Descriptor {
 	if g.TimeBinDuration > 0 {
 		cols = append(cols, zeek.Column{Name: "ts", Type: zeek.TypeTime})
 	}
+	types := make([]zeek.Type, len(row.keyd.Type.Columns))
 	for k, col := range row.keyd.Type.Columns {
-		cols = append(cols, zeek.Column{
-			Name: g.keys[k].name,
-			Type: col.Type,
-		})
+		types[k] = col.Type
 	}
+	cols = append(cols, g.builder.TypedColumns(types)...)
 	for k, red := range row.reducers.Reducers {
 		z := reducer.Result(red)
 		cols = append(cols, zeek.Column{
