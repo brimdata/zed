@@ -76,7 +76,7 @@ func (c *Cut) cut(in *zson.Record) *zson.Record {
 			}
 			types = append(types, val.Type)
 		}
-		c.builder.Append(val.Body)
+		c.builder.Append(val.Body, zeek.IsContainerType(val.Type))
 	}
 	if d == nil {
 		cols := c.builder.TypedColumns(types)

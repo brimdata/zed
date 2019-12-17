@@ -206,7 +206,7 @@ func decodeContainer(builder *zval.Builder, typ zeek.Type, body []interface{}) e
 			if err != nil {
 				return err
 			}
-			builder.Append(zv)
+			builder.Append(zv, false)
 			continue
 		}
 		children, ok := column.([]interface{})

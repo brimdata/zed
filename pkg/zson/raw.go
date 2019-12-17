@@ -29,7 +29,7 @@ func NewRawAndTsFromZeekTSV(builder *zval.Builder, d *Descriptor, path []byte, d
 	col := 0
 
 	// XXX assert that columns[col].Name == "_path" ?
-	builder.Append(path)
+	builder.Append(path, false)
 	col++
 
 	var ts nano.Ts
@@ -78,7 +78,7 @@ func NewRawAndTsFromZeekTSV(builder *zval.Builder, d *Descriptor, path []byte, d
 							if err != nil {
 								return err
 							}
-							builder.Append(zv)
+							builder.Append(zv, false)
 							cstart = i + 1
 						}
 					}
@@ -86,7 +86,7 @@ func NewRawAndTsFromZeekTSV(builder *zval.Builder, d *Descriptor, path []byte, d
 					if err != nil {
 						return err
 					}
-					builder.Append(zv)
+					builder.Append(zv, false)
 				}
 				builder.EndContainer()
 			default:
@@ -95,7 +95,7 @@ func NewRawAndTsFromZeekTSV(builder *zval.Builder, d *Descriptor, path []byte, d
 				if err != nil {
 					return err
 				}
-				builder.Append(zv)
+				builder.Append(zv, false)
 			}
 		}
 
@@ -260,7 +260,7 @@ func zsonParseField(builder *zval.Builder, typ zeek.Type, b []byte) ([]byte, err
 			if err != nil {
 				return nil, err
 			}
-			builder.Append(zv)
+			builder.Append(zv, false)
 			return b[from+1:], nil
 		case backslash:
 			e, n := zeek.ParseEscape(b[from:])

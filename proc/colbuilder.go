@@ -169,13 +169,13 @@ func (b *ColumnBuilder) Reset() {
 	b.curField = 0
 }
 
-func (b *ColumnBuilder) Append(leaf []byte) {
+func (b *ColumnBuilder) Append(leaf []byte, container bool) {
 	field := b.fields[b.curField]
 	b.curField++
 	for range field.containerBegins {
 		b.builder.BeginContainer()
 	}
-	b.builder.Append(leaf)
+	b.builder.Append(leaf, container)
 	for i := 0; i < field.containerEnds; i++ {
 		b.builder.EndContainer()
 	}
