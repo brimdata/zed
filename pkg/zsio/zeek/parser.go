@@ -121,6 +121,9 @@ func (p *Parser) ParseDirective(line []byte) error {
 			return badfield("path")
 		}
 		p.path = tokens[1]
+		if p.path == "-" {
+			p.path = ""
+		}
 	case "open":
 		if len(tokens) != 2 {
 			return badfield("open")
@@ -222,7 +225,7 @@ func (p *Parser) lookup() (*zson.Descriptor, error) {
 		return nil, ErrBadRecordDef
 	}
 
-	cols, err := Unflatten(p.columns, true)
+	cols, err := Unflatten(p.columns, p.path != "")
 	if err != nil {
 		return nil, err
 	}
@@ -237,9 +240,13 @@ func (p *Parser) ParseValue(line []byte) (*zson.Record, error) {
 		}
 		p.descriptor = d
 	}
-	//XXX should store path as a byte slice so it doens't get compied
-	// each time here
-	zv, ts, err := zson.NewRawAndTsFromZeekTSV(p.builder, p.descriptor, []byte(p.path), line)
+	var path []byte
+	if p.path != "" {
+		//XXX should store path as a byte slice so it doens't get copied
+		// each time here
+		path = []byte(p.path)
+	}
+	zv, ts, err := zson.NewRawAndTsFromZeekTSV(p.builder, p.descriptor, path, line)
 	if err != nil {
 		return nil, err
 	}

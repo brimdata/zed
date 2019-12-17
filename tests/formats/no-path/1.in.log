@@ -1,0 +1,9 @@
+#fields foo
+#types string
+😁
+#fields foo
+#path magic
+😁
+#fields foo
+#path -
+😁
