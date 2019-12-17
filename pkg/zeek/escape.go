@@ -2,7 +2,10 @@ package zeek
 
 import (
 	"bytes"
+	"unicode/utf8"
 )
+
+const hexdigits = "0123456789abcdef"
 
 // Escape returns a representation of data with \ replaced by \\ and with all
 // bytes outside the range from 0x20 through 0x7e replaced by a \xhh sequence.
@@ -14,11 +17,34 @@ func Escape(data []byte) string {
 		case c == '\\':
 			buf = append(buf, c, c)
 		case c < 0x20 || 0x7e < c:
-			const hexdigits = "0123456789abcdef"
 			buf = append(buf, '\\', 'x', hexdigits[c>>4], hexdigits[c&0xf])
 		default:
 			buf = append(buf, c)
 		}
+	}
+	return string(buf)
+}
+
+// EscapeUtf8 does the very same non-standard formatting of mixed-binary strings
+// that zeek does.  There is no way to disambiguate between random binary data
+// and a deliberate utf-8 string so it's left to the "presenation layer" to decide
+// how to format the data.  This would be remedied if a zeek string were a UTF-8
+// string and zeek had a bytes type to represent non-string data.
+func EscapeUtf8(data []byte) string {
+	var scratch [utf8.UTFMax]byte
+	var buf []byte
+	k := 0
+	for len(data) > 0 {
+		c := data[k]
+		r, _ := utf8.DecodeRune(data[k:])
+		if c < 0x20 || c == 0x7f || r == utf8.RuneError {
+			buf = append(buf, '\\', 'x', hexdigits[c>>4], hexdigits[c&0xf])
+			data = data[1:]
+			continue
+		}
+		n := utf8.EncodeRune(scratch[:], r)
+		buf = append(buf, scratch[:n]...)
+		data = data[n:]
 	}
 	return string(buf)
 }

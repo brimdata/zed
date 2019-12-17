@@ -8,6 +8,7 @@ import (
 	"github.com/mccanne/zq/tests/suite/format"
 	"github.com/mccanne/zq/tests/suite/input"
 	"github.com/mccanne/zq/tests/suite/sort"
+	"github.com/mccanne/zq/tests/suite/utf8"
 )
 
 var RootDir = "./test-root"
@@ -24,6 +25,7 @@ var internals = []test.Internal{
 
 var commands = []test.Exec{
 	cut.Exec,
+	utf8.Exec,
 }
 
 var scripts = []test.Shell{

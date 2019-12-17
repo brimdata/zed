@@ -168,7 +168,7 @@ func isHighPrecision(ns int64) bool {
 // This returns the zeek strings for this record.  It works only for records
 // that can be represented as legacy zeek values.  XXX We need to not use this.
 // XXX change to Pretty for output writers?... except zeek?
-func (r *Record) ZeekStrings(precision int) ([]string, bool, error) {
+func (r *Record) ZeekStrings(precision int, utf8 bool) ([]string, bool, error) {
 	var ss []string
 	it := r.ZvalIter()
 	var changePrecision bool
@@ -194,7 +194,7 @@ func (r *Record) ZeekStrings(precision int) ([]string, bool, error) {
 				field = fmt.Sprintf("%d.%09d", sec, ns)
 			}
 		} else {
-			field = ZvalToZeekString(col.Type, val, isContainer)
+			field = ZvalToZeekString(col.Type, val, isContainer, utf8)
 		}
 		ss = append(ss, field)
 	}

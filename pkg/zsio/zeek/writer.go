@@ -6,6 +6,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/mccanne/zq/pkg/zsio"
 	"github.com/mccanne/zq/pkg/zson"
 )
 
@@ -17,13 +18,15 @@ type Writer struct {
 	flattener  *Flattener
 	descriptor *zson.Descriptor
 	precision  int
+	zsio.Flags
 }
 
-func NewWriter(w io.Writer) *Writer {
+func NewWriter(w io.Writer, flags zsio.Flags) *Writer {
 	return &Writer{
 		Writer:    w,
 		flattener: NewFlattener(),
 		precision: 6,
+		Flags:     flags,
 	}
 }
 
@@ -37,7 +40,7 @@ func (w *Writer) Write(r *zson.Record) error {
 		w.writeHeader(r, path)
 		w.descriptor = r.Descriptor
 	}
-	values, changePrecision, err := r.ZeekStrings(w.precision)
+	values, changePrecision, err := r.ZeekStrings(w.precision, w.Utf8)
 	if err != nil {
 		return err
 	}

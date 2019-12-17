@@ -8,33 +8,25 @@ import (
 
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/zeek"
+	"github.com/mccanne/zq/pkg/zsio"
 	zk "github.com/mccanne/zq/pkg/zsio/zeek"
 	"github.com/mccanne/zq/pkg/zson"
 )
 
-type Config struct {
-	ShowTypes  bool
-	ShowFields bool
-	EpochDates bool
-}
-
 type Text struct {
 	io.Writer
-	Config
+	zsio.Flags
 	flattener *zk.Flattener
 	precision int
 }
 
-func NewWriter(w io.Writer, c *Config) *Text {
-	writer := &Text{
+func NewWriter(w io.Writer, flags zsio.Flags) *Text {
+	return &Text{
 		Writer:    w,
 		flattener: zk.NewFlattener(),
 		precision: 6,
+		Flags:     flags,
 	}
-	if c != nil {
-		writer.Config = *c
-	}
-	return writer
 }
 
 func (t *Text) Write(rec *zson.Record) error {
@@ -52,7 +44,7 @@ func (t *Text) Write(rec *zson.Record) error {
 			} else {
 				body := rec.Slice(k)
 				typ := col.Type
-				v = zson.ZvalToZeekString(typ, body, zeek.IsContainerType(typ))
+				v = zson.ZvalToZeekString(typ, body, zeek.IsContainerType(typ), t.Utf8)
 			}
 			if t.ShowFields {
 				s = col.Name + ":"
@@ -65,7 +57,7 @@ func (t *Text) Write(rec *zson.Record) error {
 	} else {
 		var err error
 		var changePrecision bool
-		out, changePrecision, err = rec.ZeekStrings(t.precision)
+		out, changePrecision, err = rec.ZeekStrings(t.precision, t.Utf8)
 		if err != nil {
 			return err
 		}

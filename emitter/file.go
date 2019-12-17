@@ -6,7 +6,7 @@ import (
 
 	"github.com/mccanne/zq/pkg/bufwriter"
 	"github.com/mccanne/zq/pkg/zsio"
-	"github.com/mccanne/zq/pkg/zsio/text"
+	"github.com/mccanne/zq/pkg/zsio/detector"
 )
 
 type noClose struct {
@@ -17,7 +17,7 @@ func (p *noClose) Close() error {
 	return nil
 }
 
-func NewFile(path, format string, tc *text.Config) (*zsio.Writer, error) {
+func NewFile(path, format string, flags *zsio.Flags) (*zsio.Writer, error) {
 	var f io.WriteCloser
 	if path == "" {
 		// Don't close stdout in case we live inside something
@@ -35,7 +35,7 @@ func NewFile(path, format string, tc *text.Config) (*zsio.Writer, error) {
 	// On close, zsio.Writer.Close(), the zson WriteFlusher will be flushed
 	// then the bufwriter will closed (which will flush it's internal buffer
 	// then close the file)
-	w := zsio.LookupWriter(format, bufwriter.New(f), tc)
+	w := detector.LookupWriter(format, bufwriter.New(f), flags)
 	if w == nil {
 		return nil, unknownFormat(format)
 	}
