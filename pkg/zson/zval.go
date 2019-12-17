@@ -47,7 +47,7 @@ func appendZvalFromZeek(dst zval.Encoding, typ zeek.Type, val []byte) zval.Encod
 
 func escape(s string, utf8 bool) string {
 	if utf8 {
-		return zeek.EscapeUtf8([]byte(s))
+		return zeek.EscapeUTF8([]byte(s))
 	} else {
 		return zeek.Escape([]byte(s))
 	}

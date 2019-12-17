@@ -25,28 +25,29 @@ func Escape(data []byte) string {
 	return string(buf)
 }
 
-// EscapeUtf8 does the very same non-standard formatting of mixed-binary strings
+// EscapeUTF8 does the same non-standard formatting of mixed-binary strings
 // that zeek does.  There is no way to disambiguate between random binary data
 // and a deliberate utf-8 string so it's left to the "presenation layer" to decide
 // how to format the data.  This would be remedied if a zeek string were a UTF-8
-// string and zeek had a bytes type to represent non-string data.
-func EscapeUtf8(data []byte) string {
-	var scratch [utf8.UTFMax]byte
-	var buf []byte
-	k := 0
+// string and zeek had a bytes type to represent non-string data.  It is documented
+// as on option in the zeek ascii writer here:
+// https://docs.zeek.org/en/stable/scripts/base/frameworks/logging/writers/ascii.zeek.html#id-LogAscii::enable_utf_8
+// It doesn't seem to be documented, but in one of the github issues, the zeek
+// json writer apparently alway allow UTF-8 code points through unescaped.
+func EscapeUTF8(data []byte) string {
+	var out []byte
 	for len(data) > 0 {
-		c := data[k]
-		r, _ := utf8.DecodeRune(data[k:])
+		c := data[0]
+		r, n := utf8.DecodeRune(data)
 		if c < 0x20 || c == 0x7f || r == utf8.RuneError {
-			buf = append(buf, '\\', 'x', hexdigits[c>>4], hexdigits[c&0xf])
+			out = append(out, '\\', 'x', hexdigits[c>>4], hexdigits[c&0xf])
 			data = data[1:]
 			continue
 		}
-		n := utf8.EncodeRune(scratch[:], r)
-		buf = append(buf, scratch[:n]...)
+		out = append(out, data[:n]...)
 		data = data[n:]
 	}
-	return string(buf)
+	return string(out)
 }
 
 // Unescape is the inverse of Escape.
