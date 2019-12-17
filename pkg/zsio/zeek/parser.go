@@ -240,10 +240,10 @@ func (p *Parser) ParseValue(line []byte) (*zson.Record, error) {
 		}
 		p.descriptor = d
 	}
-	//XXX should store path as a byte slice so it doens't get compied
-	// each time here
 	var path []byte
 	if p.path != "" {
+		//XXX should store path as a byte slice so it doens't get copied
+		// each time here
 		path = []byte(p.path)
 	}
 	zv, ts, err := zson.NewRawAndTsFromZeekTSV(p.builder, p.descriptor, path, line)
