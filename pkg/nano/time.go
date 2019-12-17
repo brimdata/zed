@@ -167,6 +167,9 @@ func parse(s []byte) (int64, error) {
 	k := 0
 	n := len(s)
 	if s[0] == '-' {
+		if n == 1 {
+			return 0, fmt.Errorf("invalid time format: %s", string(s))
+		}
 		sign, k = -1, 1
 	}
 	for ; k < n; k++ {
