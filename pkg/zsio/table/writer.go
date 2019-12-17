@@ -64,7 +64,7 @@ func (t *Table) Write(r *zson.Record) error {
 		t.nline = 0
 	}
 	//XXX only works for zeek-oriented records right now (won't work for NDJSON nested records)
-	ss, changePrecision, err := r.ZeekStrings(t.precision, t.Utf8)
+	ss, changePrecision, err := r.ZeekStrings(t.precision, t.UTF8)
 	if err != nil {
 		return err
 	}

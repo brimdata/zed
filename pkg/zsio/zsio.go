@@ -7,7 +7,7 @@ import (
 )
 
 type Flags struct {
-	Utf8       bool
+	UTF8       bool
 	ShowTypes  bool
 	ShowFields bool
 	EpochDates bool

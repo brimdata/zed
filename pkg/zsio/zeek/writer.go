@@ -40,7 +40,7 @@ func (w *Writer) Write(r *zson.Record) error {
 		w.writeHeader(r, path)
 		w.descriptor = r.Descriptor
 	}
-	values, changePrecision, err := r.ZeekStrings(w.precision, w.Utf8)
+	values, changePrecision, err := r.ZeekStrings(w.precision, w.UTF8)
 	if err != nil {
 		return err
 	}

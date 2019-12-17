@@ -103,7 +103,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.ShowTypes, "T", false, "display field types in text output")
 	f.BoolVar(&c.ShowFields, "F", false, "display field names in text output")
 	f.BoolVar(&c.EpochDates, "E", false, "display epoch timestamps in text output")
-	f.BoolVar(&c.Utf8, "U", false, "display zeek strings as UTF-8")
+	f.BoolVar(&c.UTF8, "U", false, "display zeek strings as UTF-8")
 	f.BoolVar(&c.showVersion, "version", false, "print version and exit")
 	return c, nil
 }

@@ -44,7 +44,7 @@ func (t *Text) Write(rec *zson.Record) error {
 			} else {
 				body := rec.Slice(k)
 				typ := col.Type
-				v = zson.ZvalToZeekString(typ, body, zeek.IsContainerType(typ), t.Utf8)
+				v = zson.ZvalToZeekString(typ, body, zeek.IsContainerType(typ), t.UTF8)
 			}
 			if t.ShowFields {
 				s = col.Name + ":"
@@ -57,7 +57,7 @@ func (t *Text) Write(rec *zson.Record) error {
 	} else {
 		var err error
 		var changePrecision bool
-		out, changePrecision, err = rec.ZeekStrings(t.precision, t.Utf8)
+		out, changePrecision, err = rec.ZeekStrings(t.precision, t.UTF8)
 		if err != nil {
 			return err
 		}
