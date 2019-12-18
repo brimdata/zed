@@ -3,13 +3,13 @@ package zval
 const (
 	beginContainer = -1
 	endContainer   = -2
-	unsetContainer = -3
 )
 
 type node struct {
-	innerLen int
-	outerLen int
-	dfs      int
+	innerLen  int
+	outerLen  int
+	dfs       int
+	container bool
 }
 
 // Builder implements an API for holding an intermediate representation
@@ -44,17 +44,17 @@ func (b *Builder) EndContainer() {
 }
 
 func (b *Builder) AppendUnsetContainer() {
-	b.nodes = append(b.nodes, node{dfs: unsetContainer})
+	b.Append(nil, true)
 }
 
 func (b *Builder) AppendUnsetValue() {
-	b.Append(nil)
+	b.Append(nil, false)
 }
 
-func (b *Builder) Append(leaf []byte) {
+func (b *Builder) Append(leaf []byte, container bool) {
 	k := len(b.leaves)
 	b.leaves = append(b.leaves, leaf)
-	b.nodes = append(b.nodes, node{dfs: k})
+	b.nodes = append(b.nodes, node{dfs: k, container: container})
 }
 
 func (b *Builder) measure(off int) int {
@@ -78,11 +78,6 @@ func (b *Builder) measure(off int) int {
 	}
 	if dfs == endContainer {
 		return -1
-	}
-	if dfs == unsetContainer {
-		node.innerLen = 1
-		node.outerLen = 1
-		return off + 1
 	}
 	n := len(b.leaves[dfs])
 	node.innerLen = n
@@ -112,8 +107,8 @@ func (b *Builder) encode(dst []byte, off int) (Encoding, int) {
 	if dfs == endContainer {
 		return dst, -1
 	}
-	if dfs == unsetContainer {
-		return AppendContainerValue(dst, nil), off + 1
+	if node.container {
+		return AppendContainerValue(dst, b.leaves[dfs]), off + 1
 	}
 	return AppendValue(dst, b.leaves[dfs]), off + 1
 }

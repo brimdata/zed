@@ -167,7 +167,7 @@ func (p *Parser) jsonParseBool(b []byte) (zeek.Type, error) {
 	if err != nil {
 		return nil, err
 	}
-	p.builder.Append(zeek.EncodeBool(boolean))
+	p.builder.Append(zeek.EncodeBool(boolean), false)
 	return zeek.TypeBool, nil
 }
 
@@ -176,11 +176,11 @@ func (p *Parser) jsonParseNumber(b []byte) (zeek.Type, error) {
 	if err != nil {
 		return nil, err
 	}
-	p.builder.Append(zeek.EncodeDouble(d))
+	p.builder.Append(zeek.EncodeDouble(d), false)
 	return zeek.TypeDouble, nil
 }
 
 func (p *Parser) jsonParseString(b []byte) (zeek.Type, error) {
-	p.builder.Append(zeek.Unescape(b))
+	p.builder.Append(zeek.Unescape(b), false)
 	return zeek.TypeString, nil
 }
