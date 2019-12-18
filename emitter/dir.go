@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/mccanne/zq/pkg/zsio"
+	"github.com/mccanne/zq/pkg/zio"
 	"github.com/mccanne/zq/pkg/zson"
 )
 
@@ -27,20 +27,20 @@ type Dir struct {
 	ext     string
 	format  string
 	stderr  io.Writer // XXX use warnings channel
-	flags   *zsio.Flags
-	writers map[*zson.Descriptor]*zsio.Writer
-	paths   map[string]*zsio.Writer
+	flags   *zio.Flags
+	writers map[*zson.Descriptor]*zio.Writer
+	paths   map[string]*zio.Writer
 }
 
 func unknownFormat(format string) error {
 	return fmt.Errorf("unknown output format: %s", format)
 }
 
-func NewDir(dir, prefix, format string, stderr io.Writer, flags *zsio.Flags) (*Dir, error) {
+func NewDir(dir, prefix, format string, stderr io.Writer, flags *zio.Flags) (*Dir, error) {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return nil, err
 	}
-	e := zsio.Extension(format)
+	e := zio.Extension(format)
 	if e == "" {
 		return nil, unknownFormat(format)
 	}
@@ -51,8 +51,8 @@ func NewDir(dir, prefix, format string, stderr io.Writer, flags *zsio.Flags) (*D
 		format:  format,
 		stderr:  stderr,
 		flags:   flags,
-		writers: make(map[*zson.Descriptor]*zsio.Writer),
-		paths:   make(map[string]*zsio.Writer),
+		writers: make(map[*zson.Descriptor]*zio.Writer),
+		paths:   make(map[string]*zio.Writer),
 	}, nil
 }
 
@@ -64,7 +64,7 @@ func (d *Dir) Write(r *zson.Record) error {
 	return out.Write(r)
 }
 
-func (d *Dir) lookupOutput(rec *zson.Record) (*zsio.Writer, error) {
+func (d *Dir) lookupOutput(rec *zson.Record) (*zio.Writer, error) {
 	descriptor := rec.Descriptor
 	w, ok := d.writers[descriptor]
 	if ok {
@@ -94,7 +94,7 @@ func (d *Dir) filename(r *zson.Record) (string, string) {
 	return filepath.Join(d.dir, name), path
 }
 
-func (d *Dir) newFile(rec *zson.Record) (*zsio.Writer, error) {
+func (d *Dir) newFile(rec *zson.Record) (*zio.Writer, error) {
 	filename, path := d.filename(rec)
 	if w, ok := d.paths[path]; ok {
 		return w, nil

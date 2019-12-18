@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/mccanne/zq/pkg/bufwriter"
-	"github.com/mccanne/zq/pkg/zsio"
-	"github.com/mccanne/zq/pkg/zsio/detector"
+	"github.com/mccanne/zq/pkg/zio"
+	"github.com/mccanne/zq/pkg/zio/detector"
 )
 
 type noClose struct {
@@ -17,7 +17,7 @@ func (p *noClose) Close() error {
 	return nil
 }
 
-func NewFile(path, format string, flags *zsio.Flags) (*zsio.Writer, error) {
+func NewFile(path, format string, flags *zio.Flags) (*zio.Writer, error) {
 	var f io.WriteCloser
 	if path == "" {
 		// Don't close stdout in case we live inside something
@@ -32,7 +32,7 @@ func NewFile(path, format string, flags *zsio.Flags) (*zsio.Writer, error) {
 		}
 		f = file
 	}
-	// On close, zsio.Writer.Close(), the zson WriteFlusher will be flushed
+	// On close, zio.Writer.Close(), the zson WriteFlusher will be flushed
 	// then the bufwriter will closed (which will flush it's internal buffer
 	// then close the file)
 	w := detector.LookupWriter(format, bufwriter.New(f), flags)

@@ -14,7 +14,7 @@ import (
 
 	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/pkg/zsio/detector"
+	"github.com/mccanne/zq/pkg/zio/detector"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
 	"github.com/mccanne/zq/zql"

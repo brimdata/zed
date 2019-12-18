@@ -6,7 +6,7 @@ import (
 
 	"github.com/mccanne/zq/driver"
 	"github.com/mccanne/zq/emitter"
-	"github.com/mccanne/zq/pkg/zsio/detector"
+	"github.com/mccanne/zq/pkg/zio/detector"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
 	"github.com/mccanne/zq/scanner"

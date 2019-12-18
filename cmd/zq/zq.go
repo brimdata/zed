@@ -10,8 +10,8 @@ import (
 	"github.com/mccanne/zq/driver"
 	"github.com/mccanne/zq/emitter"
 	"github.com/mccanne/zq/filter"
-	"github.com/mccanne/zq/pkg/zsio"
-	"github.com/mccanne/zq/pkg/zsio/detector"
+	"github.com/mccanne/zq/pkg/zio"
+	"github.com/mccanne/zq/pkg/zio/detector"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
 	"github.com/mccanne/zq/proc"
@@ -86,7 +86,7 @@ type Command struct {
 	stats       bool
 	warnings    bool
 	showVersion bool
-	zsio.Flags
+	zio.Flags
 }
 
 func New(f *flag.FlagSet) (charm.Command, error) {
@@ -131,7 +131,7 @@ func liftFilter(p ast.Proc) (*ast.FilterProc, ast.Proc) {
 func (c *Command) compile(program ast.Proc, reader zson.Reader) (*proc.MuxOutput, error) {
 	// Try to move the filter into the scanner so we can throw
 	// out unmatched records without copying their contents in the
-	// case of readers (like zsio raw.Reader) that create volatile
+	// case of readers (like zio raw.Reader) that create volatile
 	// records that are kepted by the scanner only if matched.
 	// For other readers, it certainly doesn't hurt to do this.
 	var f filter.Filter
