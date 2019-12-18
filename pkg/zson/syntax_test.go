@@ -4,13 +4,13 @@ import (
 	"strings"
 	"testing"
 
-	zsonio "github.com/mccanne/zq/pkg/zsio/zson"
+	"github.com/mccanne/zq/pkg/zio/zsonio"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
 	"github.com/stretchr/testify/require"
 )
 
-//zsonio "github.com/mccanne/zq/pkg/zsio/zson"
+//zsonio "github.com/mccanne/zq/pkg/zio/zson"
 const bad1 = `
 #0:record[_path:string,ts:time,uid:string,resp_ip_bytes:count,tunnel_parents:set[string]]
 0:[conn;1425565514.419939;CogZFI3py5JsFZGik;0;]`
