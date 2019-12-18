@@ -123,7 +123,9 @@ func NewColumnBuilder(exprs []ast.FieldExpr) (*ColumnBuilder, error) {
 		fname := names[len(names)-1]
 		fieldInfos = append(fieldInfos, fieldInfo{fname, fullname, containerBegins, 0})
 	}
-	fieldInfos[len(fieldInfos)-1].containerEnds = len(currentRecord)
+	if len(fieldInfos) > 0 {
+		fieldInfos[len(fieldInfos)-1].containerEnds = len(currentRecord)
+	}
 
 	return &ColumnBuilder{
 		fields:  fieldInfos,
