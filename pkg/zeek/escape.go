@@ -3,6 +3,7 @@ package zeek
 import (
 	"bytes"
 	"unicode/utf8"
+	"unsafe"
 )
 
 const hexdigits = "0123456789abcdef"
@@ -36,18 +37,16 @@ func Escape(data []byte) string {
 // json writer apparently alway allow UTF-8 code points through unescaped.
 func EscapeUTF8(data []byte) string {
 	var out []byte
-	for len(data) > 0 {
-		c := data[0]
-		r, n := utf8.DecodeRune(data)
-		if c < 0x20 || c == 0x7f || r == utf8.RuneError {
+	var start int
+	for i, r := range *(*string)(unsafe.Pointer(&data)) {
+		if r < 0x20 || r == 0x7f || r == utf8.RuneError {
+			out = append(out, data[start:i]...)
+			c := data[i]
 			out = append(out, '\\', 'x', hexdigits[c>>4], hexdigits[c&0xf])
-			data = data[1:]
-			continue
+			start = i + 1
 		}
-		out = append(out, data[:n]...)
-		data = data[n:]
 	}
-	return string(out)
+	return string(append(out, data[start:len(data)]...))
 }
 
 // Unescape is the inverse of Escape.
