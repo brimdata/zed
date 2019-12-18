@@ -9,7 +9,6 @@ import (
 	"strconv"
 
 	"github.com/mccanne/zq/pkg/zsio"
-	"github.com/mccanne/zq/pkg/zsio/text"
 	"github.com/mccanne/zq/pkg/zson"
 )
 
@@ -28,7 +27,7 @@ type Dir struct {
 	ext     string
 	format  string
 	stderr  io.Writer // XXX use warnings channel
-	tc      *text.Config
+	flags   *zsio.Flags
 	writers map[*zson.Descriptor]*zsio.Writer
 	paths   map[string]*zsio.Writer
 }
@@ -37,7 +36,7 @@ func unknownFormat(format string) error {
 	return fmt.Errorf("unknown output format: %s", format)
 }
 
-func NewDir(dir, prefix, format string, stderr io.Writer, tc *text.Config) (*Dir, error) {
+func NewDir(dir, prefix, format string, stderr io.Writer, flags *zsio.Flags) (*Dir, error) {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return nil, err
 	}
@@ -51,7 +50,7 @@ func NewDir(dir, prefix, format string, stderr io.Writer, tc *text.Config) (*Dir
 		ext:     e,
 		format:  format,
 		stderr:  stderr,
-		tc:      tc,
+		flags:   flags,
 		writers: make(map[*zson.Descriptor]*zsio.Writer),
 		paths:   make(map[string]*zsio.Writer),
 	}, nil
@@ -100,7 +99,7 @@ func (d *Dir) newFile(rec *zson.Record) (*zsio.Writer, error) {
 	if w, ok := d.paths[path]; ok {
 		return w, nil
 	}
-	w, err := NewFile(filename, d.format, d.tc)
+	w, err := NewFile(filename, d.format, d.flags)
 	if err != nil {
 		return nil, err
 	}

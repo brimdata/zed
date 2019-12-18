@@ -8,7 +8,7 @@ import (
 
 	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/filter"
-	"github.com/mccanne/zq/pkg/zsio"
+	"github.com/mccanne/zq/pkg/zsio/detector"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
 	"github.com/mccanne/zq/zql"
@@ -83,7 +83,7 @@ func TestFilters(t *testing.T) {
 	t.Parallel()
 
 	ior := strings.NewReader(zsonsrc)
-	reader := zsio.LookupReader("zson", ior, resolver.NewTable())
+	reader := detector.LookupReader("zson", ior, resolver.NewTable())
 
 	nrecords := 11
 	records := make([]*zson.Record, 0, nrecords)

@@ -4,7 +4,7 @@ import (
 	"bytes"
 
 	"github.com/mccanne/zq/pkg/zsio"
-	"github.com/mccanne/zq/pkg/zsio/text"
+	"github.com/mccanne/zq/pkg/zsio/detector"
 )
 
 type Bytes struct {
@@ -16,9 +16,9 @@ func (b *Bytes) Bytes() []byte {
 	return b.buf.Bytes()
 }
 
-func NewBytes(format string, tc *text.Config) (*Bytes, error) {
+func NewBytes(format string, flags *zsio.Flags) (*Bytes, error) {
 	b := &Bytes{}
-	b.Writer = zsio.LookupWriter(format, &noClose{&b.buf}, tc)
+	b.Writer = detector.LookupWriter(format, &noClose{&b.buf}, flags)
 	if b.Writer == nil {
 		return nil, unknownFormat(format)
 	}

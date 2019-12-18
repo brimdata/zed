@@ -1,4 +1,4 @@
-package zsio
+package zsio_test
 
 //  This is really a system test dressed up as a unit test.
 

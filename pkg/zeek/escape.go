@@ -2,7 +2,11 @@ package zeek
 
 import (
 	"bytes"
+	"unicode/utf8"
+	"unsafe"
 )
+
+const hexdigits = "0123456789abcdef"
 
 // Escape returns a representation of data with \ replaced by \\ and with all
 // bytes outside the range from 0x20 through 0x7e replaced by a \xhh sequence.
@@ -14,13 +18,35 @@ func Escape(data []byte) string {
 		case c == '\\':
 			buf = append(buf, c, c)
 		case c < 0x20 || 0x7e < c:
-			const hexdigits = "0123456789abcdef"
 			buf = append(buf, '\\', 'x', hexdigits[c>>4], hexdigits[c&0xf])
 		default:
 			buf = append(buf, c)
 		}
 	}
 	return string(buf)
+}
+
+// EscapeUTF8 does the same non-standard formatting of mixed-binary strings
+// that zeek does.  There is no way to disambiguate between random binary data
+// and a deliberate utf-8 string so it's left to the "presenation layer" to decide
+// how to format the data.  This would be remedied if a zeek string were a UTF-8
+// string and zeek had a bytes type to represent non-string data.  It is documented
+// as on option in the zeek ascii writer here:
+// https://docs.zeek.org/en/stable/scripts/base/frameworks/logging/writers/ascii.zeek.html#id-LogAscii::enable_utf_8
+// It doesn't seem to be documented, but in one of the github issues, the zeek
+// json writer apparently alway allow UTF-8 code points through unescaped.
+func EscapeUTF8(data []byte) string {
+	var out []byte
+	var start int
+	for i, r := range *(*string)(unsafe.Pointer(&data)) {
+		if r < 0x20 || r == 0x7f || r == utf8.RuneError {
+			out = append(out, data[start:i]...)
+			c := data[i]
+			out = append(out, '\\', 'x', hexdigits[c>>4], hexdigits[c&0xf])
+			start = i + 1
+		}
+	}
+	return string(append(out, data[start:len(data)]...))
 }
 
 // Unescape is the inverse of Escape.

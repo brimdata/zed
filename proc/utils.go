@@ -14,7 +14,7 @@ import (
 
 	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/pkg/zsio"
+	"github.com/mccanne/zq/pkg/zsio/detector"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
 	"github.com/mccanne/zq/zql"
@@ -197,7 +197,7 @@ func (t *ProcTest) Finish() error {
 }
 
 func parse(resolver *resolver.Table, src string) (*zson.Array, error) {
-	reader := zsio.LookupReader("zson", strings.NewReader(src), resolver)
+	reader := detector.LookupReader("zson", strings.NewReader(src), resolver)
 	records := make([]*zson.Record, 0)
 	for {
 		rec, err := reader.Read()

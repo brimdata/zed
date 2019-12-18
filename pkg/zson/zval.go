@@ -45,9 +45,16 @@ func appendZvalFromZeek(dst zval.Encoding, typ zeek.Type, val []byte) zval.Encod
 	}
 }
 
+func escape(s string, utf8 bool) string {
+	if utf8 {
+		return zeek.EscapeUTF8([]byte(s))
+	}
+	return zeek.Escape([]byte(s))
+}
+
 // ZvalToZeekString returns a Zeek ASCII string representing the zval described
 // by typ and val.
-func ZvalToZeekString(typ zeek.Type, zv zval.Encoding, isContainer bool) string {
+func ZvalToZeekString(typ zeek.Type, zv zval.Encoding, isContainer bool, utf8 bool) string {
 	if zv == nil {
 		return "-"
 	}
@@ -70,7 +77,7 @@ func ZvalToZeekString(typ zeek.Type, zv zval.Encoding, isContainer bool) string 
 			if err != nil {
 				return "error in ZvalToZeekString"
 			}
-			fld := zeek.Escape([]byte(val.String()))
+			fld := escape(val.String(), utf8)
 			// Escape the set separator after ZeekEscape.
 			_, _ = b.WriteString(strings.ReplaceAll(fld, ",", "\\x2c"))
 			if it.Done() {
@@ -84,7 +91,7 @@ func ZvalToZeekString(typ zeek.Type, zv zval.Encoding, isContainer bool) string 
 		if err != nil {
 			return "error in ZvalToZeekString"
 		}
-		s = zeek.Escape([]byte(val.String()))
+		s = escape(val.String(), utf8)
 	}
 	if s == "-" {
 		return "\\x2d"

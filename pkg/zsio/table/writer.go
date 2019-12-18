@@ -6,6 +6,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/mccanne/zq/pkg/zsio"
 	"github.com/mccanne/zq/pkg/zsio/zeek"
 	"github.com/mccanne/zq/pkg/zson"
 )
@@ -18,9 +19,10 @@ type Table struct {
 	limit      int
 	nline      int
 	precision  int
+	zsio.Flags
 }
 
-func NewWriter(w io.Writer) *Table {
+func NewWriter(w io.Writer, flags zsio.Flags) *Table {
 	writer := tabwriter.NewWriter(w, 0, 8, 1, ' ', 0)
 	return &Table{
 		Writer:    w,
@@ -28,6 +30,7 @@ func NewWriter(w io.Writer) *Table {
 		table:     writer,
 		limit:     1000,
 		precision: 6,
+		Flags:     flags,
 	}
 }
 
@@ -61,7 +64,7 @@ func (t *Table) Write(r *zson.Record) error {
 		t.nline = 0
 	}
 	//XXX only works for zeek-oriented records right now (won't work for NDJSON nested records)
-	ss, changePrecision, err := r.ZeekStrings(t.precision)
+	ss, changePrecision, err := r.ZeekStrings(t.precision, t.UTF8)
 	if err != nil {
 		return err
 	}

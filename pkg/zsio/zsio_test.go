@@ -1,4 +1,4 @@
-package zsio
+package zsio_test
 
 import (
 	"net"

@@ -12,7 +12,6 @@ import (
 	"github.com/mccanne/zq/filter"
 	"github.com/mccanne/zq/pkg/zsio"
 	"github.com/mccanne/zq/pkg/zsio/detector"
-	"github.com/mccanne/zq/pkg/zsio/text"
 	"github.com/mccanne/zq/pkg/zson"
 	"github.com/mccanne/zq/pkg/zson/resolver"
 	"github.com/mccanne/zq/proc"
@@ -87,7 +86,7 @@ type Command struct {
 	stats       bool
 	warnings    bool
 	showVersion bool
-	text.Config
+	zsio.Flags
 }
 
 func New(f *flag.FlagSet) (charm.Command, error) {
@@ -104,6 +103,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.ShowTypes, "T", false, "display field types in text output")
 	f.BoolVar(&c.ShowFields, "F", false, "display field names in text output")
 	f.BoolVar(&c.EpochDates, "E", false, "display epoch timestamps in text output")
+	f.BoolVar(&c.UTF8, "U", false, "display zeek strings as UTF-8")
 	f.BoolVar(&c.showVersion, "version", false, "print version and exit")
 	return c, nil
 }
@@ -231,7 +231,7 @@ func (c *Command) loadFile(path string) (zson.Reader, error) {
 	case "auto":
 		return detector.NewReader(f, c.dt)
 	case "ndjson", "bzson", "zeek", "zjson", "zson":
-		return zsio.LookupReader(c.ifmt, f, c.dt), nil
+		return detector.LookupReader(c.ifmt, f, c.dt), nil
 	default:
 		return nil, fmt.Errorf("unknown input format %s", c.ifmt)
 	}
@@ -262,13 +262,13 @@ func (c *Command) loadFiles(paths []string) (zson.Reader, error) {
 
 func (c *Command) openOutput() (zson.WriteCloser, error) {
 	if c.dir != "" {
-		d, err := emitter.NewDir(c.dir, c.outputFile, c.ofmt, os.Stderr, &c.Config)
+		d, err := emitter.NewDir(c.dir, c.outputFile, c.ofmt, os.Stderr, &c.Flags)
 		if err != nil {
 			return nil, err
 		}
 		return d, nil
 	}
-	w, err := emitter.NewFile(c.outputFile, c.ofmt, &c.Config)
+	w, err := emitter.NewFile(c.outputFile, c.ofmt, &c.Flags)
 	if err != nil {
 		return nil, err
 	}
