@@ -28,9 +28,13 @@ func NewRawAndTsFromZeekTSV(builder *zval.Builder, d *Descriptor, path []byte, d
 	columns := d.Type.Columns
 	col := 0
 
-	// XXX assert that columns[col].Name == "_path" ?
-	builder.Append(path, false)
-	col++
+	if path != nil {
+		if columns[0].Name != "_path" {
+			return nil, 0, errors.New("no _path in column 0")
+		}
+		builder.Append(path, false)
+		col++
+	}
 
 	var ts nano.Ts
 	const separator = '\t'
