@@ -93,7 +93,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	cwd, _ := os.Getwd()
 	c := &Command{dt: resolver.NewTable()}
 	f.StringVar(&c.ifmt, "i", "auto", "format of input data [auto,bzng,ndjson,zeek,zjson,zng]")
-	f.StringVar(&c.ofmt, "f", "zng", "format for output data [text,table,zeek,ndjson,bzng,zng]")
+	f.StringVar(&c.ofmt, "f", "zng", "format for output data [bzng,ndjson,table,text,zeek,zjson,zng]")
 	f.StringVar(&c.path, "p", cwd, "path for input")
 	f.StringVar(&c.dir, "d", "", "directory for output data files")
 	f.StringVar(&c.outputFile, "o", "", "write data to output file")
@@ -230,7 +230,7 @@ func (c *Command) loadFile(path string) (zng.Reader, error) {
 	switch c.ifmt {
 	case "auto":
 		return detector.NewReader(f, c.dt)
-	case "ndjson", "bzng", "zeek", "zjson", "zng":
+	case "bzng", "ndjson", "zeek", "zjson", "zng":
 		return detector.LookupReader(c.ifmt, f, c.dt), nil
 	default:
 		return nil, fmt.Errorf("unknown input format %s", c.ifmt)
