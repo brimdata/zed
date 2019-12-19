@@ -2,7 +2,7 @@ package field
 
 import (
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zng"
 	"github.com/mccanne/zq/reducer"
 )
 
@@ -43,12 +43,12 @@ func (fr *FieldReducer) Result() zeek.Value {
 	return fr.fn.Result()
 }
 
-func (fr *FieldReducer) Consume(r *zson.Record) {
+func (fr *FieldReducer) Consume(r *zng.Record) {
 	// XXX for now, we create a new zeek.Value everytime we operate on
 	// a field.  this could be made more efficient by having each typed
 	// reducer just parse the byte slice in the record without making a value...
-	// XXX then we have Values in the zson.Record, we would first check the
-	// Value element in the column--- this would all go in a new method of zson.Record
+	// XXX then we have Values in the zng.Record, we would first check the
+	// Value element in the column--- this would all go in a new method of zng.Record
 	val := r.ValueByField(fr.field)
 	if val == nil {
 		fr.FieldNotFound++
@@ -74,7 +74,7 @@ func (fr *FieldReducer) Consume(r *zson.Record) {
 	}
 
 	err := fr.fn.Consume(val)
-	if err == zson.ErrTypeMismatch {
+	if err == zng.ErrTypeMismatch {
 		fr.TypeMismatch++
 	}
 }

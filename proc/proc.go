@@ -8,13 +8,13 @@ import (
 	"github.com/mccanne/zq/expr"
 	"github.com/mccanne/zq/filter"
 	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/pkg/zson"
-	"github.com/mccanne/zq/pkg/zson/resolver"
+	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/pkg/zng/resolver"
 	"github.com/mccanne/zq/reducer/compile"
 	"go.uber.org/zap"
 )
 
-// Proc is the interface to objects that operate on Batches of zson.Records
+// Proc is the interface to objects that operate on Batches of zng.Records
 // and are arranged into a flowgraph to perform pattern matching and analytics.
 // A proc is generally single-threaded unless lengths are taken to implement
 // concurrency within a Proc.  The model is reciever-driven, stream-oriented
@@ -26,7 +26,7 @@ import (
 // of calls to Pull() and Done() cannot be done concurrently.  In short, never
 // call Done() concurrently to another goroutine calling Pull()
 type Proc interface {
-	Pull() (zson.Batch, error)
+	Pull() (zng.Batch, error)
 	Done()
 	Parents() []Proc
 }
@@ -34,7 +34,7 @@ type Proc interface {
 // Result is a convenient way to bundle the result of Proc.Pull() to
 // send over channels.
 type Result struct {
-	Batch zson.Batch
+	Batch zng.Batch
 	Err   error
 }
 
@@ -55,7 +55,7 @@ type Base struct {
 	MaxTs  nano.Ts // Largest Span.End() seen by Get.
 }
 
-func EOS(batch zson.Batch, err error) bool {
+func EOS(batch zng.Batch, err error) bool {
 	return batch == nil || err != nil
 }
 
@@ -72,7 +72,7 @@ func (b *Base) Parents() []Proc {
 	return []Proc{b.Parent}
 }
 
-func (b *Base) Get() (zson.Batch, error) {
+func (b *Base) Get() (zng.Batch, error) {
 	batch, err := b.Parent.Pull()
 	if err != nil {
 		return nil, err

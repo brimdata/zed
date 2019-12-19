@@ -5,7 +5,7 @@ import (
 
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zng"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -13,7 +13,7 @@ import (
 func TestTableAddColumns(t *testing.T) {
 	tab := NewTable()
 	d := tab.GetByColumns([]zeek.Column{{"s1", zeek.TypeString}})
-	r, err := zson.NewRecordZeekStrings(d, "S1")
+	r, err := zng.NewRecordZeekStrings(d, "S1")
 	require.NoError(t, err)
 	cols := []zeek.Column{{"ts", zeek.TypeTime}, {"s2", zeek.TypeString}}
 	ts, _ := nano.Parse([]byte("123.456"))

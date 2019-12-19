@@ -3,7 +3,7 @@ package zio
 import (
 	"io"
 
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zng"
 )
 
 type Flags struct {
@@ -14,11 +14,11 @@ type Flags struct {
 }
 
 type Writer struct {
-	zson.WriteFlusher
+	zng.WriteFlusher
 	io.Closer
 }
 
-func NewWriter(writer zson.WriteFlusher, closer io.Closer) *Writer {
+func NewWriter(writer zng.WriteFlusher, closer io.Closer) *Writer {
 	return &Writer{
 		WriteFlusher: writer,
 		Closer:       closer,
@@ -36,8 +36,8 @@ func (w *Writer) Close() error {
 
 func Extension(format string) string {
 	switch format {
-	case "zson":
-		return ".zson"
+	case "zng":
+		return ".zng"
 	case "zeek":
 		return ".log"
 	case "ndjson":
@@ -48,8 +48,8 @@ func Extension(format string) string {
 		return ".txt"
 	case "table":
 		return ".tbl"
-	case "bzson":
-		return ".bzson"
+	case "bzng":
+		return ".bzng"
 	default:
 		return ""
 	}

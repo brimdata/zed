@@ -5,7 +5,7 @@ import (
 
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zng"
 	"go.uber.org/zap"
 )
 
@@ -13,14 +13,14 @@ type Uniq struct {
 	Base
 	cflag bool
 	count uint64
-	last  *zson.Record
+	last  *zng.Record
 }
 
 func NewUniq(c *Context, parent Proc, cflag bool) *Uniq {
 	return &Uniq{Base: Base{Context: c, Parent: parent}, cflag: cflag}
 }
 
-func (u *Uniq) wrap(t *zson.Record) *zson.Record {
+func (u *Uniq) wrap(t *zng.Record) *zng.Record {
 	if u.cflag {
 		cols := []zeek.Column{{Name: "_uniq", Type: zeek.TypeCount}}
 		vals := []zeek.Value{zeek.NewCount(u.count)}
@@ -34,7 +34,7 @@ func (u *Uniq) wrap(t *zson.Record) *zson.Record {
 	return t
 }
 
-func (u *Uniq) appendUniq(out []*zson.Record, t *zson.Record) []*zson.Record {
+func (u *Uniq) appendUniq(out []*zng.Record, t *zng.Record) []*zng.Record {
 	if u.count == 0 {
 		u.last = t.Keep()
 		u.count = 1
@@ -51,7 +51,7 @@ func (u *Uniq) appendUniq(out []*zson.Record, t *zson.Record) []*zson.Record {
 
 // uniq is a little bit complicated because we have to check uniqueness
 // across records between calls to Pull.
-func (u *Uniq) Pull() (zson.Batch, error) {
+func (u *Uniq) Pull() (zng.Batch, error) {
 	batch, err := u.Get()
 	if err != nil {
 		return nil, err
@@ -63,12 +63,12 @@ func (u *Uniq) Pull() (zson.Batch, error) {
 		}
 		t := u.wrap(u.last)
 		u.last = nil
-		return zson.NewArray([]*zson.Record{t}, span), nil
+		return zng.NewArray([]*zng.Record{t}, span), nil
 	}
 	defer batch.Unref()
-	var out []*zson.Record
+	var out []*zng.Record
 	for k := 0; k < batch.Length(); k++ {
 		out = u.appendUniq(out, batch.Index(k))
 	}
-	return zson.NewArray(out, span), nil
+	return zng.NewArray(out, span), nil
 }

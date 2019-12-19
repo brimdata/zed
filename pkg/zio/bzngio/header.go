@@ -1,22 +1,22 @@
-// Package bzsonio provides an API for reading and writing zson values and
-// directives in binary zson format.  The Reader and Writer types implement the
-// the zson.Reader and zson.Writer interfaces.  Since these methods
-// read and write only zson.Records, but the bzson format includes additional
-// functionality, other methods are available to read/write zson comments
+// Package bzngio provides an API for reading and writing zng values and
+// directives in binary zng format.  The Reader and Writer types implement the
+// the zng.Reader and zng.Writer interfaces.  Since these methods
+// read and write only zng.Records, but the bzng format includes additional
+// functionality, other methods are available to read/write zng comments
 // and include virtual channel numbers in the stream.  Virtual channels
 // provide a way to indicate which output of a flowgraph a result came from
-// when a flowgraph computes multiple output channels.  The bzson values in
-// this zson value (will be) are "machine format" (encoded in a architecture
-// independent binary format).  The vanilla zson.Reader and zson.Writer
+// when a flowgraph computes multiple output channels.  The bzng values in
+// this zng value (will be) are "machine format" (encoded in a architecture
+// independent binary format).  The vanilla zng.Reader and zng.Writer
 // implementations ignore comments and channels.
-package bzsonio
+package bzngio
 
 import (
 	"encoding/binary"
 	"errors"
 	"io"
 
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zng"
 )
 
 const (
@@ -31,7 +31,7 @@ const (
 )
 
 var (
-	ErrBadHeader = errors.New("malformed bzson header")
+	ErrBadHeader = errors.New("malformed bzng header")
 )
 
 type header struct {
@@ -62,7 +62,7 @@ func parseHeader(b []byte, h *header) (int, error) {
 	typ := int(b[0])
 	off := 1
 	if typ&MachineFlag != 0 {
-		return 0, errors.New("machine-format bzson not yet implemented")
+		return 0, errors.New("machine-format bzng not yet implemented")
 	}
 	typ &= TypeMask
 	h.typ = typ
@@ -71,8 +71,8 @@ func parseHeader(b []byte, h *header) (int, error) {
 		if n <= 0 {
 			return 0, ErrBadHeader
 		}
-		if id > zson.MaxDescriptor {
-			return 0, zson.ErrDescriptorInvalid
+		if id > zng.MaxDescriptor {
+			return 0, zng.ErrDescriptorInvalid
 		}
 		off += n
 		h.id = int(id)

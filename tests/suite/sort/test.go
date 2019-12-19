@@ -8,7 +8,7 @@ var Internal1 = test.Internal{
 	Name:     "sort1",
 	Query:    "* | sort x",
 	Input:    test.Trim(in1),
-	Format:   "zson",
+	Format:   "zng",
 	Expected: test.Trim(out1),
 }
 
@@ -28,7 +28,7 @@ var Internal2 = test.Internal{
 	Name:     "sort2",
 	Query:    "* | sort x",
 	Input:    test.Trim(in2),
-	Format:   "zson",
+	Format:   "zng",
 	Expected: test.Trim(out2),
 }
 
@@ -108,6 +108,6 @@ var Internal3 = test.Internal{
 	Name:     "sort3",
 	Query:    "* | sort TTLs",
 	Input:    test.Trim(in3),
-	Format:   "zson",
+	Format:   "zng",
 	Expected: test.Trim(out3),
 }

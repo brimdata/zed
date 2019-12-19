@@ -4,21 +4,21 @@ import (
 	"errors"
 	"io"
 
-	"github.com/mccanne/zq/pkg/zio/bzsonio"
+	"github.com/mccanne/zq/pkg/zio/bzngio"
 	"github.com/mccanne/zq/pkg/zio/ndjsonio"
 	"github.com/mccanne/zq/pkg/zio/zjsonio"
-	"github.com/mccanne/zq/pkg/zio/zsonio"
-	"github.com/mccanne/zq/pkg/zson"
-	"github.com/mccanne/zq/pkg/zson/resolver"
+	"github.com/mccanne/zq/pkg/zio/zngio"
+	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/pkg/zng/resolver"
 )
 
 var ErrUnknown = errors.New("malformed input")
 
-func NewReader(r io.Reader, t *resolver.Table) (zson.Reader, error) {
+func NewReader(r io.Reader, t *resolver.Table) (zng.Reader, error) {
 	recorder := NewRecorder(r)
 	track := NewTrack(recorder)
-	if match(zsonio.NewReader(track, resolver.NewTable())) {
-		return zsonio.NewReader(recorder, t), nil
+	if match(zngio.NewReader(track, resolver.NewTable())) {
+		return zngio.NewReader(recorder, t), nil
 	}
 	track.Reset()
 	// zjson must come before ndjson since zjson is a subset of ndjson
@@ -31,13 +31,13 @@ func NewReader(r io.Reader, t *resolver.Table) (zson.Reader, error) {
 		return ndjsonio.NewReader(recorder, t), nil
 	}
 	track.Reset()
-	if match(bzsonio.NewReader(track, resolver.NewTable())) {
-		return bzsonio.NewReader(recorder, t), nil
+	if match(bzngio.NewReader(track, resolver.NewTable())) {
+		return bzngio.NewReader(recorder, t), nil
 	}
 	return nil, ErrUnknown
 }
 
-func match(r zson.Reader) bool {
+func match(r zng.Reader) bool {
 	rec, err := r.Read()
 	return rec != nil && err == nil
 }

@@ -1,4 +1,4 @@
-package zson
+package zng
 
 import (
 	"encoding/json"

@@ -3,7 +3,7 @@ package field
 import (
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zng"
 	"github.com/mccanne/zq/streamfn"
 )
 
@@ -24,7 +24,7 @@ func (t *Time) Result() zeek.Value {
 func (t *Time) Consume(v zeek.Value) error {
 	var cv zeek.Time
 	if !zeek.CoerceToTime(v, &cv) {
-		return zson.ErrTypeMismatch
+		return zng.ErrTypeMismatch
 	}
 	t.fn.Update(nano.Ts(cv))
 	return nil

@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mccanne/zq/pkg/zio/bzsonio"
+	"github.com/mccanne/zq/pkg/zio/bzngio"
 	"github.com/mccanne/zq/pkg/zio/zjsonio"
-	"github.com/mccanne/zq/pkg/zio/zsonio"
-	"github.com/mccanne/zq/pkg/zson"
-	"github.com/mccanne/zq/pkg/zson/resolver"
+	"github.com/mccanne/zq/pkg/zio/zngio"
+	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/pkg/zng/resolver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -26,83 +26,83 @@ func (o *Output) Close() error {
 
 func identity(t *testing.T, logs string) {
 	var out Output
-	dst := zson.NopFlusher(zsonio.NewWriter(&out))
+	dst := zng.NopFlusher(zngio.NewWriter(&out))
 	in := []byte(strings.TrimSpace(logs) + "\n")
-	src := zsonio.NewReader(bytes.NewReader(in), resolver.NewTable())
-	err := zson.Copy(dst, src)
+	src := zngio.NewReader(bytes.NewReader(in), resolver.NewTable())
+	err := zng.Copy(dst, src)
 	if assert.NoError(t, err) {
 		assert.Equal(t, in, out.Bytes())
 	}
 }
 
-// Send logs to zson reader -> bzson writer -> bzson reader -> zson writer
+// Send logs to zng reader -> bzng writer -> bzng reader -> zng writer
 func boomerang(t *testing.T, logs string) {
 	in := []byte(strings.TrimSpace(logs) + "\n")
-	zsonSrc := zsonio.NewReader(bytes.NewReader(in), resolver.NewTable())
-	var rawZson Output
-	rawDst := zson.NopFlusher(bzsonio.NewWriter(&rawZson))
-	err := zson.Copy(rawDst, zsonSrc)
+	zngSrc := zngio.NewReader(bytes.NewReader(in), resolver.NewTable())
+	var rawzng Output
+	rawDst := zng.NopFlusher(bzngio.NewWriter(&rawzng))
+	err := zng.Copy(rawDst, zngSrc)
 	require.NoError(t, err)
 
 	var out Output
-	rawSrc := bzsonio.NewReader(bytes.NewReader(rawZson.Bytes()), resolver.NewTable())
-	zsonDst := zson.NopFlusher(zsonio.NewWriter(&out))
-	err = zson.Copy(zsonDst, rawSrc)
+	rawSrc := bzngio.NewReader(bytes.NewReader(rawzng.Bytes()), resolver.NewTable())
+	zngDst := zng.NopFlusher(zngio.NewWriter(&out))
+	err = zng.Copy(zngDst, rawSrc)
 	if assert.NoError(t, err) {
 		assert.Equal(t, in, out.Bytes())
 	}
 }
 
 func boomerangZJSON(t *testing.T, logs string) {
-	zsonSrc := zsonio.NewReader(strings.NewReader(logs), resolver.NewTable())
+	zngSrc := zngio.NewReader(strings.NewReader(logs), resolver.NewTable())
 	var zjsonOutput Output
-	zjsonDst := zson.NopFlusher(zjsonio.NewWriter(&zjsonOutput))
-	err := zson.Copy(zjsonDst, zsonSrc)
+	zjsonDst := zng.NopFlusher(zjsonio.NewWriter(&zjsonOutput))
+	err := zng.Copy(zjsonDst, zngSrc)
 	require.NoError(t, err)
 
 	var out Output
 	zjsonSrc := zjsonio.NewReader(bytes.NewReader(zjsonOutput.Bytes()), resolver.NewTable())
-	zsonDst := zson.NopFlusher(zsonio.NewWriter(&out))
-	err = zson.Copy(zsonDst, zjsonSrc)
+	zngDst := zng.NopFlusher(zngio.NewWriter(&out))
+	err = zng.Copy(zngDst, zjsonSrc)
 	if assert.NoError(t, err) {
 		assert.Equal(t, strings.TrimSpace(logs), strings.TrimSpace(out.String()))
 	}
 }
 
-const zson1 = `
+const zng1 = `
 #0:record[foo:set[string]]
 0:[["test";]]`
 
-const zson2 = `
+const zng2 = `
 #0:record[foo:record[bar:string]]
 0:[[test;]]`
 
-const zson3 = `
+const zng3 = `
 #0:record[foo:set[string]]
 0:[[-;]]`
 
 // String \x2d is "-".
-const zson4 = `
+const zng4 = `
 #0:record[foo:string]
 0:[\x2d;]`
 
 // String \x5b is "[", second string is "[-]" and should pass through.
-const zson5 = `
+const zng5 = `
 #0:record[foo:string,bar:string]
 0:[\x5b;\x5b-];]`
 
 // Make sure we handle unset fields and empty sets.
-const zson6 = `
+const zng6 = `
 #0:record[id:record[a:string,s:set[string]]]
 0:[[-;[]]]`
 
 // Make sure we handle unset sets.
-const zson7 = `
+const zng7 = `
 #0:record[a:string,b:set[string],c:set[string],d:int]
 0:[foo;[]-;10;]`
 
 // recursive record with unset set and empty set
-const zson8 = `
+const zng8 = `
 #0:record[id:record[a:string,s:set[string]]]
 0:[-;]
 0:[[-;[]]]
@@ -117,7 +117,7 @@ func repeat(c byte, n int) string {
 }
 
 // generate some really big strings
-func zsonBig() string {
+func zngBig() string {
 	s := "#0:record[f0:string,f1:string,f2:string,f3:string]\n"
 	s += "0:["
 	s += repeat('a', 4) + ";"
@@ -127,44 +127,44 @@ func zsonBig() string {
 	return s
 }
 
-func TestZson(t *testing.T) {
-	identity(t, zson1)
-	identity(t, zson2)
-	identity(t, zson3)
-	identity(t, zson4)
-	identity(t, zson5)
-	identity(t, zson6)
-	identity(t, zson7)
-	identity(t, zson8)
-	identity(t, zsonBig())
+func TestZng(t *testing.T) {
+	identity(t, zng1)
+	identity(t, zng2)
+	identity(t, zng3)
+	identity(t, zng4)
+	identity(t, zng5)
+	identity(t, zng6)
+	identity(t, zng7)
+	identity(t, zng8)
+	identity(t, zngBig())
 }
 
 func TestRaw(t *testing.T) {
-	boomerang(t, zson1)
-	boomerang(t, zson2)
-	boomerang(t, zson3)
-	boomerang(t, zson4)
-	boomerang(t, zson5)
-	boomerang(t, zson6)
-	boomerang(t, zson7)
-	boomerang(t, zson8)
-	boomerang(t, zsonBig())
+	boomerang(t, zng1)
+	boomerang(t, zng2)
+	boomerang(t, zng3)
+	boomerang(t, zng4)
+	boomerang(t, zng5)
+	boomerang(t, zng6)
+	boomerang(t, zng7)
+	boomerang(t, zng8)
+	boomerang(t, zngBig())
 }
 
 func TestZjson(t *testing.T) {
-	boomerangZJSON(t, zson1)
-	boomerangZJSON(t, zson2)
+	boomerangZJSON(t, zng1)
+	boomerangZJSON(t, zng2)
 	// XXX this one doesn't work right now but it's sort of ok becaue
 	// it's a little odd to have an unset string value inside of a set.
 	// semantically this would mean the value shouldn't be in the set,
 	// but right now this turns into an empty string, which is somewhat reasonable.
-	//boomerangZJSON(t, zson3)
-	boomerangZJSON(t, zson4)
-	boomerangZJSON(t, zson5)
-	boomerangZJSON(t, zson6)
-	boomerangZJSON(t, zson7)
-	boomerangZJSON(t, zson8)
-	boomerangZJSON(t, zsonBig())
+	//boomerangZJSON(t, zng3)
+	boomerangZJSON(t, zng4)
+	boomerangZJSON(t, zng5)
+	boomerangZJSON(t, zng6)
+	boomerangZJSON(t, zng7)
+	boomerangZJSON(t, zng8)
+	boomerangZJSON(t, zngBig())
 }
 
 const ctrl = `
@@ -176,10 +176,10 @@ const ctrl = `
 #!message4`
 
 func TestCtrl(t *testing.T) {
-	// this tests reading of control via text zson,
+	// this tests reading of control via text zng,
 	// then writing of raw control, and reading back the result
 	in := []byte(strings.TrimSpace(ctrl) + "\n")
-	r := zsonio.NewReader(bytes.NewReader(in), resolver.NewTable())
+	r := zngio.NewReader(bytes.NewReader(in), resolver.NewTable())
 
 	_, body, err := r.ReadPayload()
 	assert.NoError(t, err)

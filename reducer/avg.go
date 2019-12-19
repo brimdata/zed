@@ -2,7 +2,7 @@ package reducer
 
 import (
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zng"
 )
 
 type AvgProto struct {
@@ -29,7 +29,7 @@ type Avg struct {
 	count uint64
 }
 
-func (a *Avg) Consume(r *zson.Record) {
+func (a *Avg) Consume(r *zng.Record) {
 	v := r.ValueByField(a.Field)
 	if v == nil {
 		a.FieldNotFound++

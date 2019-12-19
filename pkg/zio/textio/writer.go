@@ -10,7 +10,7 @@ import (
 	"github.com/mccanne/zq/pkg/zeek"
 	"github.com/mccanne/zq/pkg/zio"
 	"github.com/mccanne/zq/pkg/zio/zeekio"
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zng"
 )
 
 type Text struct {
@@ -29,7 +29,7 @@ func NewWriter(w io.Writer, flags zio.Flags) *Text {
 	}
 }
 
-func (t *Text) Write(rec *zson.Record) error {
+func (t *Text) Write(rec *zng.Record) error {
 	rec, err := t.flattener.Flatten(rec)
 	if err != nil {
 		return err
@@ -44,7 +44,7 @@ func (t *Text) Write(rec *zson.Record) error {
 			} else {
 				body := rec.Slice(k)
 				typ := col.Type
-				v = zson.ZvalToZeekString(typ, body, zeek.IsContainerType(typ), t.UTF8)
+				v = zng.ZvalToZeekString(typ, body, zeek.IsContainerType(typ), t.UTF8)
 			}
 			if t.ShowFields {
 				s = col.Name + ":"

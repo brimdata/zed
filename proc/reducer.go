@@ -5,7 +5,7 @@ import (
 
 	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zng"
 	"github.com/mccanne/zq/reducer/compile"
 )
 
@@ -30,12 +30,12 @@ func NewReducer(c *Context, parent Proc, params ReducerParams) Proc {
 	}
 }
 
-func (r *Reducer) output() *zson.Array {
+func (r *Reducer) output() *zng.Array {
 	rec := r.columns.Result(r.Context.Resolver)
-	return zson.NewArray([]*zson.Record{rec}, nano.NewSpanTs(r.MinTs, r.MaxTs))
+	return zng.NewArray([]*zng.Record{rec}, nano.NewSpanTs(r.MinTs, r.MaxTs))
 }
 
-func (r *Reducer) Pull() (zson.Batch, error) {
+func (r *Reducer) Pull() (zng.Batch, error) {
 	start := time.Now()
 	for {
 		batch, err := r.Get()
@@ -60,7 +60,7 @@ func (r *Reducer) Pull() (zson.Batch, error) {
 	}
 }
 
-func (r *Reducer) consume(rec *zson.Record) {
+func (r *Reducer) consume(rec *zng.Record) {
 	r.n++
 	r.columns.Consume(rec)
 }

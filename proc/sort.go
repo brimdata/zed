@@ -6,7 +6,7 @@ import (
 	"github.com/mccanne/zq/expr"
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zng"
 )
 
 type Sort struct {
@@ -14,7 +14,7 @@ type Sort struct {
 	dir    int
 	limit  int
 	fields []expr.FieldExprResolver
-	out    []*zson.Record
+	out    []*zng.Record
 }
 
 // defaultSortLimit is the default limit of the number of records that
@@ -29,7 +29,7 @@ func NewSort(c *Context, parent Proc, limit int, fields []expr.FieldExprResolver
 	return &Sort{Base: Base{Context: c, Parent: parent}, dir: dir, limit: limit, fields: fields}
 }
 
-func firstOf(d *zson.Descriptor, which zeek.Type) string {
+func firstOf(d *zng.Descriptor, which zeek.Type) string {
 	for _, col := range d.Type.Columns {
 		if zeek.SameType(col.Type, which) {
 			return col.Name
@@ -38,7 +38,7 @@ func firstOf(d *zson.Descriptor, which zeek.Type) string {
 	return ""
 }
 
-func firstNot(d *zson.Descriptor, which zeek.Type) string {
+func firstNot(d *zng.Descriptor, which zeek.Type) string {
 	for _, col := range d.Type.Columns {
 		if !zeek.SameType(col.Type, which) {
 			return col.Name
@@ -47,7 +47,7 @@ func firstNot(d *zson.Descriptor, which zeek.Type) string {
 	return ""
 }
 
-func guessSortField(rec *zson.Record) string {
+func guessSortField(rec *zng.Record) string {
 	d := rec.Descriptor
 	if fld := firstOf(d, zeek.TypeCount); fld != "" {
 		return fld
@@ -64,7 +64,7 @@ func guessSortField(rec *zson.Record) string {
 	return "ts"
 }
 
-func (s *Sort) Pull() (zson.Batch, error) {
+func (s *Sort) Pull() (zng.Batch, error) {
 	for {
 		batch, err := s.Get()
 		if err != nil {
@@ -82,14 +82,14 @@ func (s *Sort) Pull() (zson.Batch, error) {
 	}
 }
 
-func (s *Sort) consume(batch zson.Batch) {
+func (s *Sort) consume(batch zng.Batch) {
 	//XXX this could be made more efficient
 	for k := 0; k < batch.Length(); k++ {
 		s.out = append(s.out, batch.Index(k).Keep())
 	}
 }
 
-func (s *Sort) sort() zson.Batch {
+func (s *Sort) sort() zng.Batch {
 	out := s.out
 	if len(out) == 0 {
 		return nil
@@ -97,7 +97,7 @@ func (s *Sort) sort() zson.Batch {
 	s.out = nil
 	if s.fields == nil {
 		fld := guessSortField(out[0])
-		resolver := func(r *zson.Record) zeek.TypedEncoding {
+		resolver := func(r *zng.Record) zeek.TypedEncoding {
 			e, err := r.Access(fld)
 			if err != nil {
 				return zeek.TypedEncoding{}
@@ -107,9 +107,9 @@ func (s *Sort) sort() zson.Batch {
 		s.fields = []expr.FieldExprResolver{resolver}
 	}
 	sorter := expr.NewSortFn(true, s.fields...)
-	sortWithDir := func(a, b *zson.Record) int {
+	sortWithDir := func(a, b *zng.Record) int {
 		return s.dir * sorter(a, b)
 	}
 	expr.SortStable(out, sortWithDir)
-	return zson.NewArray(out, nano.NewSpanTs(s.MinTs, s.MaxTs))
+	return zng.NewArray(out, nano.NewSpanTs(s.MinTs, s.MaxTs))
 }

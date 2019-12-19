@@ -2,7 +2,7 @@ package field
 
 import (
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zng"
 	"github.com/mccanne/zq/streamfn"
 )
 
@@ -24,7 +24,7 @@ func (i *Double) Consume(v zeek.Value) error {
 	//XXX change this to use *zeek.Double
 	var d zeek.Double
 	if !zeek.CoerceToDouble(v, &d) {
-		return zson.ErrTypeMismatch
+		return zng.ErrTypeMismatch
 	}
 	i.fn.Update(float64(d))
 	return nil

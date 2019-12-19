@@ -1,4 +1,4 @@
-package zson
+package zng
 
 import (
 	"encoding/json"
@@ -13,8 +13,8 @@ import (
 )
 
 // A Record wraps a zeek.Record and can simultaneously represent its raw
-// serialized zson form or its parsed zeek.Record form.  This duality lets us
-// parse raw logs and perform fast-path operations directly on the zson data
+// serialized zng form or its parsed zeek.Record form.  This duality lets us
+// parse raw logs and perform fast-path operations directly on the zng data
 // without having to parse the entire record.  Thus, the same code that performs
 // operations on zeek data can work with either serialized data or native
 // zeek.Records by accessing data via the Record methods.
@@ -22,7 +22,7 @@ type Record struct {
 	Ts nano.Ts
 	*Descriptor
 	nonvolatile bool
-	// Raw is the serialization format for zson records.  A raw value comprises a
+	// Raw is the serialization format for zng records.  A raw value comprises a
 	// sequence of zvals, one per descriptor column.  The descriptor is stored
 	// outside of the raw serialization but is needed to interpret the raw values.
 	Raw zval.Encoding

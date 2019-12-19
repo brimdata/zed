@@ -121,7 +121,7 @@ func New(name, input, output, cmd string) test.Internal {
 		Name:     name,
 		Query:    "* | " + cmd,
 		Input:    input,
-		Format:   "zson",
+		Format:   "zng",
 		Expected: test.Trim(output),
 	}
 }

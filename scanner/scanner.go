@@ -3,16 +3,16 @@ package scanner
 import (
 	"github.com/mccanne/zq/filter"
 	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zng"
 	"github.com/mccanne/zq/proc"
 )
 
 type Scanner struct {
-	reader zson.Reader
+	reader zng.Reader
 	filter filter.Filter
 }
 
-func NewScanner(reader zson.Reader, f filter.Filter) *Scanner {
+func NewScanner(reader zng.Reader, f filter.Filter) *Scanner {
 	return &Scanner{
 		reader: reader,
 		filter: f,
@@ -21,9 +21,9 @@ func NewScanner(reader zson.Reader, f filter.Filter) *Scanner {
 
 const batchSize = 100
 
-func (s *Scanner) Pull() (zson.Batch, error) {
+func (s *Scanner) Pull() (zng.Batch, error) {
 	minTs, maxTs := nano.MaxTs, nano.MinTs
-	var arr []*zson.Record
+	var arr []*zng.Record
 	match := s.filter
 	for len(arr) < batchSize {
 		rec, err := s.reader.Read()
@@ -51,7 +51,7 @@ func (s *Scanner) Pull() (zson.Batch, error) {
 		return nil, nil
 	}
 	span := nano.NewSpanTs(minTs, maxTs)
-	return zson.NewArray(arr, span), nil
+	return zng.NewArray(arr, span), nil
 }
 
 // Done is required to implement proc.Proc interface. Ignore for now.

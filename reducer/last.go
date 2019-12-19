@@ -2,7 +2,7 @@ package reducer
 
 import (
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zng"
 )
 
 type LastProto struct {
@@ -25,10 +25,10 @@ func NewLastProto(target, field string) *LastProto {
 type Last struct {
 	Reducer
 	Field  string
-	record *zson.Record
+	record *zng.Record
 }
 
-func (l *Last) Consume(r *zson.Record) {
+func (l *Last) Consume(r *zng.Record) {
 	if _, ok := r.ColumnOfField(l.Field); !ok {
 		return
 	}

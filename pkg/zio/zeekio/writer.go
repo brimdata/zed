@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/mccanne/zq/pkg/zio"
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zng"
 )
 
 var ErrDescriptorChanged = errors.New("descriptor changed")
@@ -16,7 +16,7 @@ type Writer struct {
 	io.Writer
 	header
 	flattener  *Flattener
-	descriptor *zson.Descriptor
+	descriptor *zng.Descriptor
 	precision  int
 	zio.Flags
 }
@@ -30,7 +30,7 @@ func NewWriter(w io.Writer, flags zio.Flags) *Writer {
 	}
 }
 
-func (w *Writer) Write(r *zson.Record) error {
+func (w *Writer) Write(r *zng.Record) error {
 	r, err := w.flattener.Flatten(r)
 	if err != nil {
 		return err
@@ -56,7 +56,7 @@ func (w *Writer) Write(r *zson.Record) error {
 	return err
 }
 
-func (w *Writer) writeHeader(r *zson.Record, path string) error {
+func (w *Writer) writeHeader(r *zng.Record, path string) error {
 	d := r.Descriptor
 	var s string
 	if w.separator != "\\x90" {

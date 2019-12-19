@@ -4,8 +4,8 @@ import (
 	"errors"
 
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
-	"github.com/mccanne/zq/pkg/zson/resolver"
+	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/pkg/zng/resolver"
 	"github.com/mccanne/zq/pkg/zval"
 )
 
@@ -19,7 +19,7 @@ func NewStream() *Stream {
 	}
 }
 
-func (s *Stream) Transform(r *zson.Record) (*Record, error) {
+func (s *Stream) Transform(r *zng.Record) (*Record, error) {
 	id := r.Descriptor.ID
 	var typ []interface{}
 	if !s.tracker.Seen(id) {
@@ -35,7 +35,7 @@ func (s *Stream) Transform(r *zson.Record) (*Record, error) {
 	}
 	values, ok := v.([]interface{})
 	if !ok {
-		return nil, errors.New("internal error: zson record body must be a container")
+		return nil, errors.New("internal error: zng record body must be a container")
 	}
 	return &Record{
 		Id:     id,
@@ -50,7 +50,7 @@ func encodeContainer(typ zeek.Type, val []byte) (interface{}, error) {
 	}
 	childType, columns := zeek.ContainedType(typ)
 	if childType == nil && columns == nil {
-		return nil, zson.ErrSyntax
+		return nil, zng.ErrSyntax
 	}
 	k := 0
 	// We start out with a slice that contains nothing instead of nil
@@ -64,7 +64,7 @@ func encodeContainer(typ zeek.Type, val []byte) (interface{}, error) {
 			}
 			if columns != nil {
 				if k >= len(columns) {
-					return nil, zson.ErrTypeMismatch
+					return nil, zng.ErrTypeMismatch
 				}
 				childType = columns[k].Type
 				k++

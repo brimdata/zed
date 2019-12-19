@@ -1,7 +1,7 @@
 package resolver
 
 // Map is a table of descriptors respresented as a golang map.  Map implements
-// the zson.Resolver interface.
+// the zng.Resolver interface.
 type Tracker struct {
 	table map[int]struct{}
 }

@@ -1,4 +1,4 @@
-package zson
+package zng
 
 import (
 	"context"
@@ -9,14 +9,14 @@ import (
 )
 
 var (
-	ErrDescriptorExists  = errors.New("zson descriptor exists")
-	ErrDescriptorInvalid = errors.New("zson descriptor out of range")
-	ErrBadValue          = errors.New("malformed zson value")
-	ErrBadFormat         = errors.New("malformed zson record")
-	ErrTypeMismatch      = errors.New("zson type/value mismatch")
-	ErrNoSuchField       = errors.New("no such field in zson record")
+	ErrDescriptorExists  = errors.New("zng descriptor exists")
+	ErrDescriptorInvalid = errors.New("zng descriptor out of range")
+	ErrBadValue          = errors.New("malformed zng value")
+	ErrBadFormat         = errors.New("malformed zng record")
+	ErrTypeMismatch      = errors.New("zng type/value mismatch")
+	ErrNoSuchField       = errors.New("no such field in zng record")
 	ErrCorruptTd         = errors.New("corrupt type descriptor")
-	ErrCorruptColumns    = errors.New("wrong number of columns in zson record value")
+	ErrCorruptColumns    = errors.New("wrong number of columns in zng record value")
 )
 
 type Reader interface {
