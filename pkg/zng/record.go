@@ -341,8 +341,12 @@ func (r *Record) Value(colno int) zeek.Value {
 	return val
 }
 
-func (r *Record) String(column int) string {
-	return string(r.Slice(column))
+func (r *Record) StringOfColumn(colno int) string {
+	val := r.Value(colno)
+	if val != nil {
+		return ""
+	}
+	return val.String()
 }
 
 func (r *Record) ColumnOfField(field string) (int, bool) {
@@ -445,6 +449,14 @@ func (r *Record) AccessTimeByColumn(colno int) (nano.Ts, error) {
 		return 0, ErrTypeMismatch
 	}
 	return zeek.DecodeTime(zv)
+}
+
+func (r *Record) String() string {
+	value, err := r.Descriptor.Type.New(r.Raw)
+	if err != nil {
+		panic(err)
+	}
+	return value.String()
 }
 
 // MarshalJSON implements json.Marshaler.
