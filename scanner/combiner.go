@@ -1,24 +1,24 @@
 package scanner
 
 import (
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zng"
 )
 
 type Combiner struct {
-	readers []zson.Reader
-	hol     []*zson.Record
+	readers []zng.Reader
+	hol     []*zng.Record
 	done    []bool
 }
 
-func NewCombiner(readers []zson.Reader) *Combiner {
+func NewCombiner(readers []zng.Reader) *Combiner {
 	return &Combiner{
 		readers: readers,
-		hol:     make([]*zson.Record, len(readers)),
+		hol:     make([]*zng.Record, len(readers)),
 		done:    make([]bool, len(readers)),
 	}
 }
 
-func (c *Combiner) Read() (*zson.Record, error) {
+func (c *Combiner) Read() (*zng.Record, error) {
 	idx := -1
 	for k, l := range c.readers {
 		if c.done[k] {

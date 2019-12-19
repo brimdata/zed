@@ -32,7 +32,7 @@ func NewFile(path, format string, flags *zio.Flags) (*zio.Writer, error) {
 		}
 		f = file
 	}
-	// On close, zio.Writer.Close(), the zson WriteFlusher will be flushed
+	// On close, zio.Writer.Close(), the zng WriteFlusher will be flushed
 	// then the bufwriter will closed (which will flush it's internal buffer
 	// then close the file)
 	w := detector.LookupWriter(format, bufwriter.New(f), flags)

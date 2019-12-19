@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mccanne/zq/pkg/zio/zsonio"
-	"github.com/mccanne/zq/pkg/zson/resolver"
+	"github.com/mccanne/zq/pkg/zio/zngio"
+	"github.com/mccanne/zq/pkg/zng/resolver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -16,9 +16,9 @@ func assertError(t *testing.T, err error, pattern, what string) {
 	assert.Containsf(t, err.Error(), pattern, "error message for %s is as expected", what)
 }
 
-// Test things related to parsing zson
-func TestZsonDescriptors(t *testing.T) {
-	// Step 1 - Test a simple zson descriptor and corresponding value
+// Test things related to parsing zng
+func TestZngDescriptors(t *testing.T) {
+	// Step 1 - Test a simple zng descriptor and corresponding value
 	src := "#1:record[s:string,n:int]\n"
 	src += "1:[foo;5;]\n"
 	// Step 2 - Create a second descriptor of a different type
@@ -29,7 +29,7 @@ func TestZsonDescriptors(t *testing.T) {
 	// Step 4 - Test that referencing an invalid descriptor is an error.
 	src += "100:[something;somethingelse;]\n"
 
-	r := zsonio.NewReader(strings.NewReader(src), resolver.NewTable())
+	r := zngio.NewReader(strings.NewReader(src), resolver.NewTable())
 
 	// Check Step 1
 	record, err := r.Read()
@@ -67,31 +67,31 @@ func TestZsonDescriptors(t *testing.T) {
 	_, err = r.Read()
 	assert.Error(t, err, "invalid descriptor", "invalid descriptor")
 
-	// Test various malformed zson:
+	// Test various malformed zng:
 	def1 := "#1:record[s:string,n:int]\n"
-	zsons := []string{
+	zngs := []string{
 		def1 + "1:string;123;\n",  // missing brackets
 		def1 + "1:[string;123]\n", // missing semicolon
 	}
 
-	for _, z := range zsons {
-		r := zsonio.NewReader(strings.NewReader(z), resolver.NewTable())
+	for _, z := range zngs {
+		r := zngio.NewReader(strings.NewReader(z), resolver.NewTable())
 		_, err = r.Read()
-		assert.Error(t, err, "zson parse error", "invalid zson")
+		assert.Error(t, err, "zng parse error", "invalid zng")
 	}
 	// Can't use a descriptor of non-record type
-	r = zsonio.NewReader(strings.NewReader("#3:string\n"), resolver.NewTable())
+	r = zngio.NewReader(strings.NewReader("#3:string\n"), resolver.NewTable())
 	_, err = r.Read()
 	assertError(t, err, "bad value", "descriptor with non-record type")
 
 	// Descriptor with an invalid type is rejected
-	r = zsonio.NewReader(strings.NewReader("#4:notatype\n"), resolver.NewTable())
+	r = zngio.NewReader(strings.NewReader("#4:notatype\n"), resolver.NewTable())
 	_, err = r.Read()
 	assertError(t, err, "unknown type", "descriptor with invalid type")
 
 	// Trying to redefine a descriptor is an error XXX this should be ok
 	d := "#1:record[n:int]\n"
-	r = zsonio.NewReader(strings.NewReader(d+d), resolver.NewTable())
+	r = zngio.NewReader(strings.NewReader(d+d), resolver.NewTable())
 	_, err = r.Read()
 	assertError(t, err, "descriptor already exists", "redefining //descriptor")
 }

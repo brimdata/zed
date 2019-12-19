@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
-	"github.com/mccanne/zq/pkg/zson/resolver"
+	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/pkg/zng/resolver"
 	"github.com/mccanne/zq/pkg/zval"
 )
 
@@ -47,7 +47,7 @@ func recode(dst zval.Encoding, typ *zeek.TypeRecord, in zval.Encoding) (zval.Enc
 	return dst, nil
 }
 
-func (f *Flattener) Flatten(r *zson.Record) (*zson.Record, error) {
+func (f *Flattener) Flatten(r *zng.Record) (*zng.Record, error) {
 	id := r.Descriptor.ID
 	d := f.mapper.Map(id)
 	if d == nil {
@@ -63,7 +63,7 @@ func (f *Flattener) Flatten(r *zson.Record) (*zson.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zson.NewRecordNoTs(d, zv), nil
+	return zng.NewRecordNoTs(d, zv), nil
 }
 
 // flattenColumns turns nested records into a series of columns of

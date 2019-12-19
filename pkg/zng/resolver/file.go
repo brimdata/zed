@@ -7,7 +7,7 @@ import (
 )
 
 // A File manages the mapping between small-integer descriptor identifiers
-// and zson descriptor objects, which hold the binding between an identifier
+// and zng descriptor objects, which hold the binding between an identifier
 // and a zeek.TypeRecord.
 type File struct {
 	*Table

@@ -1,21 +1,21 @@
 package resolver
 
-import "github.com/mccanne/zq/pkg/zson"
+import "github.com/mccanne/zq/pkg/zng"
 
-// Cache wraps a zson.Resolver with an unsynchronized cache.
+// Cache wraps a zng.Resolver with an unsynchronized cache.
 // Cache hits incur none of the synchronization overhead of Table.Lookup.
 type Cache struct {
 	Slice
-	resolver zson.Resolver
+	resolver zng.Resolver
 }
 
 // NewCache returns a new Cache wrapping the resolver.
-func NewCache(r zson.Resolver) *Cache {
+func NewCache(r zng.Resolver) *Cache {
 	return &Cache{resolver: r}
 }
 
-// Lookup implements zson.Resolver interface.
-func (c *Cache) Lookup(td int) *zson.Descriptor {
+// Lookup implements zng.Resolver interface.
+func (c *Cache) Lookup(td int) *zng.Descriptor {
 	if d := c.lookup(td); d != nil {
 		return d
 	}

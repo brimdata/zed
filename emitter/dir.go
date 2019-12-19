@@ -9,11 +9,11 @@ import (
 	"strconv"
 
 	"github.com/mccanne/zq/pkg/zio"
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zng"
 )
 
 var (
-	ErrNoPath = errors.New("no _path field in zson record")
+	ErrNoPath = errors.New("no _path field in zng record")
 )
 
 // Dir implements the Writer interface and sends all log lines with the
@@ -28,7 +28,7 @@ type Dir struct {
 	format  string
 	stderr  io.Writer // XXX use warnings channel
 	flags   *zio.Flags
-	writers map[*zson.Descriptor]*zio.Writer
+	writers map[*zng.Descriptor]*zio.Writer
 	paths   map[string]*zio.Writer
 }
 
@@ -51,12 +51,12 @@ func NewDir(dir, prefix, format string, stderr io.Writer, flags *zio.Flags) (*Di
 		format:  format,
 		stderr:  stderr,
 		flags:   flags,
-		writers: make(map[*zson.Descriptor]*zio.Writer),
+		writers: make(map[*zng.Descriptor]*zio.Writer),
 		paths:   make(map[string]*zio.Writer),
 	}, nil
 }
 
-func (d *Dir) Write(r *zson.Record) error {
+func (d *Dir) Write(r *zng.Record) error {
 	out, err := d.lookupOutput(r)
 	if err != nil {
 		return err
@@ -64,7 +64,7 @@ func (d *Dir) Write(r *zson.Record) error {
 	return out.Write(r)
 }
 
-func (d *Dir) lookupOutput(rec *zson.Record) (*zio.Writer, error) {
+func (d *Dir) lookupOutput(rec *zng.Record) (*zio.Writer, error) {
 	descriptor := rec.Descriptor
 	w, ok := d.writers[descriptor]
 	if ok {
@@ -81,7 +81,7 @@ func (d *Dir) lookupOutput(rec *zson.Record) (*zio.Writer, error) {
 // filename returns the name of the file for the specified path. This handles
 // the case of two tds one _path, adding a # in the filename for every _path that
 // has more than one td.
-func (d *Dir) filename(r *zson.Record) (string, string) {
+func (d *Dir) filename(r *zng.Record) (string, string) {
 	colno, ok := r.Descriptor.ColumnOfField("_path")
 	var base, path string
 	if ok {
@@ -94,7 +94,7 @@ func (d *Dir) filename(r *zson.Record) (string, string) {
 	return filepath.Join(d.dir, name), path
 }
 
-func (d *Dir) newFile(rec *zson.Record) (*zio.Writer, error) {
+func (d *Dir) newFile(rec *zng.Record) (*zio.Writer, error) {
 	filename, path := d.filename(rec)
 	if w, ok := d.paths[path]; ok {
 		return w, nil

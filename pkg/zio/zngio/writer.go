@@ -1,12 +1,12 @@
-package zsonio
+package zngio
 
 import (
 	"fmt"
 	"io"
 
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
-	"github.com/mccanne/zq/pkg/zson/resolver"
+	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/pkg/zng/resolver"
 	"github.com/mccanne/zq/pkg/zval"
 )
 
@@ -27,7 +27,7 @@ func (w *Writer) WriteControl(b []byte) error {
 	return err
 }
 
-func (w *Writer) Write(r *zson.Record) error {
+func (w *Writer) Write(r *zng.Record) error {
 	td := r.Descriptor.ID
 	if !w.tracker.Seen(td) {
 		_, err := fmt.Fprintf(w.Writer, "#%d:%s\n", td, r.Descriptor.Type)
@@ -60,7 +60,7 @@ func (w *Writer) writeContainer(typ zeek.Type, val []byte) error {
 	}
 	childType, columns := zeek.ContainedType(typ)
 	if childType == nil && columns == nil {
-		return zson.ErrSyntax
+		return zng.ErrSyntax
 	}
 	k := 0
 	if len(val) > 0 {
@@ -71,7 +71,7 @@ func (w *Writer) writeContainer(typ zeek.Type, val []byte) error {
 			}
 			if columns != nil {
 				if k >= len(columns) {
-					return zson.ErrTypeMismatch
+					return zng.ErrTypeMismatch
 				}
 				childType = columns[k].Type
 				k++

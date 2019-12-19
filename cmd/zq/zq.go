@@ -12,8 +12,8 @@ import (
 	"github.com/mccanne/zq/filter"
 	"github.com/mccanne/zq/pkg/zio"
 	"github.com/mccanne/zq/pkg/zio/detector"
-	"github.com/mccanne/zq/pkg/zson"
-	"github.com/mccanne/zq/pkg/zson/resolver"
+	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/pkg/zng/resolver"
 	"github.com/mccanne/zq/proc"
 	"github.com/mccanne/zq/scanner"
 	"github.com/mccanne/zq/zql"
@@ -43,7 +43,7 @@ standard output unless a -o or -d argument is provided, in which case output is
 sent to the indicated file comforming to the type implied by the extension (unless
 -f explicitly indicates the output type).
 
-Supported input formats include ZSON (.zson), NDJSON (.ndjson), and
+Supported input formats include zng (.zng), NDJSON (.ndjson), and
 the Zeek log format (.log).  Supported output formats include
 all the input formats along with text and tabular formats.
 
@@ -53,7 +53,7 @@ match input types.  If multiple files are concatenated into a stream and
 presented as standard input, the files must all be of the same type as the
 beginning of stream will determine the format.
 
-The output format is, by default, zson but can be overridden with -f.
+The output format is, by default, zng but can be overridden with -f.
 
 After the options, the query may be specified as a
 single argument conforming with ZQL syntax, i.e., it should be quoted as
@@ -92,8 +92,8 @@ type Command struct {
 func New(f *flag.FlagSet) (charm.Command, error) {
 	cwd, _ := os.Getwd()
 	c := &Command{dt: resolver.NewTable()}
-	f.StringVar(&c.ifmt, "i", "auto", "format of input data [auto,bzson,ndjson,zeek,zjson,zson]")
-	f.StringVar(&c.ofmt, "f", "zson", "format for output data [text,table,zeek,ndjson,bzson,zson]")
+	f.StringVar(&c.ifmt, "i", "auto", "format of input data [auto,bzng,ndjson,zeek,zjson,zng]")
+	f.StringVar(&c.ofmt, "f", "zng", "format for output data [text,table,zeek,ndjson,bzng,zng]")
 	f.StringVar(&c.path, "p", cwd, "path for input")
 	f.StringVar(&c.dir, "d", "", "directory for output data files")
 	f.StringVar(&c.outputFile, "o", "", "write data to output file")
@@ -128,7 +128,7 @@ func liftFilter(p ast.Proc) (*ast.FilterProc, ast.Proc) {
 	return nil, nil
 }
 
-func (c *Command) compile(program ast.Proc, reader zson.Reader) (*proc.MuxOutput, error) {
+func (c *Command) compile(program ast.Proc, reader zng.Reader) (*proc.MuxOutput, error) {
 	// Try to move the filter into the scanner so we can throw
 	// out unmatched records without copying their contents in the
 	// case of readers (like zio raw.Reader) that create volatile
@@ -189,7 +189,7 @@ func (c *Command) Run(args []string) error {
 			return fmt.Errorf("parse error: %s", err)
 		}
 	}
-	var reader zson.Reader
+	var reader zng.Reader
 	if reader, err = c.loadFiles(paths); err != nil {
 		return err
 	}
@@ -209,7 +209,7 @@ func (c *Command) Run(args []string) error {
 	return output.Run(mux)
 }
 
-func (c *Command) loadFile(path string) (zson.Reader, error) {
+func (c *Command) loadFile(path string) (zng.Reader, error) {
 	var f *os.File
 	if path == "-" {
 		f = os.Stdin
@@ -230,7 +230,7 @@ func (c *Command) loadFile(path string) (zson.Reader, error) {
 	switch c.ifmt {
 	case "auto":
 		return detector.NewReader(f, c.dt)
-	case "ndjson", "bzson", "zeek", "zjson", "zson":
+	case "ndjson", "bzng", "zeek", "zjson", "zng":
 		return detector.LookupReader(c.ifmt, f, c.dt), nil
 	default:
 		return nil, fmt.Errorf("unknown input format %s", c.ifmt)
@@ -241,8 +241,8 @@ func (c *Command) errorf(format string, args ...interface{}) {
 	_, _ = fmt.Fprintf(os.Stderr, format, args...)
 }
 
-func (c *Command) loadFiles(paths []string) (zson.Reader, error) {
-	var readers []zson.Reader
+func (c *Command) loadFiles(paths []string) (zng.Reader, error) {
+	var readers []zng.Reader
 	for _, path := range paths {
 		r, err := c.loadFile(path)
 		if err != nil {
@@ -260,7 +260,7 @@ func (c *Command) loadFiles(paths []string) (zson.Reader, error) {
 	return scanner.NewCombiner(readers), nil
 }
 
-func (c *Command) openOutput() (zson.WriteCloser, error) {
+func (c *Command) openOutput() (zng.WriteCloser, error) {
 	if c.dir != "" {
 		d, err := emitter.NewDir(c.dir, c.outputFile, c.ofmt, os.Stderr, &c.Flags)
 		if err != nil {

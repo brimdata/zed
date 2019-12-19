@@ -2,7 +2,7 @@ package reducer
 
 import (
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zng"
 )
 
 type CountProto struct {
@@ -28,7 +28,7 @@ type Count struct {
 	count uint64
 }
 
-func (c *Count) Consume(r *zson.Record) {
+func (c *Count) Consume(r *zng.Record) {
 	if c.Field != "" {
 		if _, ok := r.ColumnOfField(c.Field); !ok {
 			return

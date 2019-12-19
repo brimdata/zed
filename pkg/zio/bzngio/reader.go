@@ -1,4 +1,4 @@
-package bzsonio
+package bzngio
 
 import (
 	"fmt"
@@ -7,8 +7,8 @@ import (
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/peeker"
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
-	"github.com/mccanne/zq/pkg/zson/resolver"
+	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/pkg/zng/resolver"
 )
 
 const (
@@ -28,7 +28,7 @@ func NewReader(reader io.Reader, r *resolver.Table) *Reader {
 	}
 }
 
-func (r *Reader) Read() (*zson.Record, error) {
+func (r *Reader) Read() (*zng.Record, error) {
 	for {
 		r, b, err := r.ReadPayload()
 		if b != nil {
@@ -41,11 +41,11 @@ func (r *Reader) Read() (*zson.Record, error) {
 	}
 }
 
-// ReadPayload returns either data values as zson.Record or control payloads
+// ReadPayload returns either data values as zng.Record or control payloads
 // as byte slices.  The record and byte slice are volatile so they must be
-// copied (via copy for byte slice or zson.Record.Keep()) before any subsequent
+// copied (via copy for byte slice or zng.Record.Keep()) before any subsequent
 // calls to Read or ReadPayload can be made.
-func (r *Reader) ReadPayload() (*zson.Record, []byte, error) {
+func (r *Reader) ReadPayload() (*zng.Record, []byte, error) {
 again:
 	var hdr header
 	err := r.decode(&hdr)
@@ -82,7 +82,7 @@ again:
 func (r *Reader) parseDescriptor(id int, b []byte) error {
 	if r.mapper.Map(id) != nil {
 		//XXX this should be ok... decide on this and update spec
-		return zson.ErrDescriptorExists
+		return zng.ErrDescriptorExists
 	}
 	typ, err := zeek.LookupType(string(b))
 	if err != nil {
@@ -90,23 +90,23 @@ func (r *Reader) parseDescriptor(id int, b []byte) error {
 	}
 	recordType, ok := typ.(*zeek.TypeRecord)
 	if !ok {
-		return zson.ErrBadValue
+		return zng.ErrBadValue
 	}
 	if r.mapper.Enter(id, recordType) == nil {
 		// XXX this shouldn't happen
-		return zson.ErrBadValue
+		return zng.ErrBadValue
 	}
 	return nil
 }
 
-func (r *Reader) parseValue(id int, b []byte) (*zson.Record, error) {
+func (r *Reader) parseValue(id int, b []byte) (*zng.Record, error) {
 	descriptor := r.mapper.Map(id)
 	if descriptor == nil {
-		return nil, zson.ErrDescriptorInvalid
+		return nil, zng.ErrDescriptorInvalid
 	}
-	record := zson.NewVolatileRecord(descriptor, nano.MinTs, b)
+	record := zng.NewVolatileRecord(descriptor, nano.MinTs, b)
 	if !record.TypeCheck() {
-		return nil, zson.ErrTypeMismatch
+		return nil, zng.ErrTypeMismatch
 	}
 	//XXX this should go in NewRecord?
 	ts, err := record.AccessTime("ts")

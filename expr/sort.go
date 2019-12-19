@@ -5,11 +5,11 @@ import (
 	"sort"
 
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zng"
 	"github.com/mccanne/zq/pkg/zval"
 )
 
-type SortFn func(a *zson.Record, b *zson.Record) int
+type SortFn func(a *zng.Record, b *zng.Record) int
 
 // Internal function that compares two values of compatible types.
 type comparefn func(a, b zval.Encoding) int
@@ -34,7 +34,7 @@ func isUnset(val zeek.TypedEncoding) bool {
 // value, and vice versa.
 func NewSortFn(unsetMax bool, fields ...FieldExprResolver) SortFn {
 	sorters := make(map[zeek.Type]comparefn)
-	return func(ra *zson.Record, rb *zson.Record) int {
+	return func(ra *zng.Record, rb *zng.Record) int {
 		for _, resolver := range fields {
 			a := resolver(ra)
 			b := resolver(rb)
@@ -99,13 +99,13 @@ func NewSortFn(unsetMax bool, fields ...FieldExprResolver) SortFn {
 }
 
 // SortStable performs a stable sort on the provided records.
-func SortStable(records []*zson.Record, sorter SortFn) {
+func SortStable(records []*zng.Record, sorter SortFn) {
 	slice := &RecordSlice{records, sorter}
 	sort.Stable(slice)
 }
 
 type RecordSlice struct {
-	records []*zson.Record
+	records []*zng.Record
 	sorter  SortFn
 }
 
@@ -126,7 +126,7 @@ func (s *RecordSlice) Less(i, j int) bool {
 
 // Push adds x as element Len(). Implements heap.Interface.
 func (s *RecordSlice) Push(r interface{}) {
-	s.records = append(s.records, r.(*zson.Record))
+	s.records = append(s.records, r.(*zng.Record))
 }
 
 // Pop removes the first element in the array. Implements heap.Interface.
@@ -137,7 +137,7 @@ func (s *RecordSlice) Pop() interface{} {
 }
 
 // Index returns the ith record.
-func (s *RecordSlice) Index(i int) *zson.Record {
+func (s *RecordSlice) Index(i int) *zng.Record {
 	return s.records[i]
 }
 

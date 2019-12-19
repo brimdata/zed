@@ -9,8 +9,8 @@ import (
 	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/filter"
 	"github.com/mccanne/zq/pkg/zio/detector"
-	"github.com/mccanne/zq/pkg/zson"
-	"github.com/mccanne/zq/pkg/zson/resolver"
+	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/pkg/zng/resolver"
 	"github.com/mccanne/zq/zql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,7 +20,7 @@ import (
 // executing it against the given Record.  Returns an error if the filter
 // result does not match expectedResult (or for any other error such as
 // failure to parse or compile the filter)
-func runTest(filt string, record *zson.Record, expectedResult bool) error {
+func runTest(filt string, record *zng.Record, expectedResult bool) error {
 	// Parse the filter.  Any filter is a valid full zql query,
 	// it should parse to an AST with a top-level FilterProc node.
 	parsed, err := zql.Parse("", []byte(filt))
@@ -55,7 +55,7 @@ func runTest(filt string, record *zson.Record, expectedResult bool) error {
 	}
 }
 
-const zsonsrc = `
+const zngsrc = `
 #0:record[stringset:set[string]]
 #1:record[stringvec:vector[string]]
 #2:record[intset:set[int]]
@@ -82,11 +82,11 @@ const zsonsrc = `
 func TestFilters(t *testing.T) {
 	t.Parallel()
 
-	ior := strings.NewReader(zsonsrc)
-	reader := detector.LookupReader("zson", ior, resolver.NewTable())
+	ior := strings.NewReader(zngsrc)
+	reader := detector.LookupReader("zng", ior, resolver.NewTable())
 
 	nrecords := 11
-	records := make([]*zson.Record, 0, nrecords)
+	records := make([]*zng.Record, 0, nrecords)
 	for {
 		rec, err := reader.Read()
 		require.NoError(t, err)
@@ -97,11 +97,11 @@ func TestFilters(t *testing.T) {
 		records = append(records, rec)
 	}
 
-	assert.Equal(t, nrecords, len(records), fmt.Sprintf("ZSON parsed read %d records", nrecords))
+	assert.Equal(t, nrecords, len(records), fmt.Sprintf("zng parsed read %d records", nrecords))
 
 	tests := []struct {
 		filter         string
-		record         *zson.Record
+		record         *zng.Record
 		expectedResult bool
 	}{
 		{"abc in stringset", records[0], true},
@@ -110,7 +110,7 @@ func TestFilters(t *testing.T) {
 
 		{"abc in stringvec", records[1], true},
 
-		// XXX this isn't working?  zson escaping...
+		// XXX this isn't working?  zng escaping...
 		// {"\"a;b\" in stringvec", records[2], true},
 		{"a in stringvec", records[2], false},
 		{"b in stringvec", records[2], false},

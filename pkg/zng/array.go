@@ -1,4 +1,4 @@
-package zson
+package zng
 
 import (
 	"github.com/mccanne/zq/pkg/nano"

@@ -7,8 +7,8 @@ import (
 
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
-	"github.com/mccanne/zq/pkg/zson/resolver"
+	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/pkg/zng/resolver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -64,7 +64,7 @@ func startLegacyTest(t *testing.T, fields, types []string, path string) *Parser 
 
 // sendLegacyValues() formats the array of values as a legacy zeek log line
 // and parses it.
-func sendLegacyValues(p *Parser, vals []string) (*zson.Record, error) {
+func sendLegacyValues(p *Parser, vals []string) (*zng.Record, error) {
 	return p.ParseValue([]byte(strings.Join(vals, "\t")))
 }
 

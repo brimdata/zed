@@ -2,8 +2,8 @@ package compile
 
 import (
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
-	"github.com/mccanne/zq/pkg/zson/resolver"
+	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/pkg/zng/resolver"
 	"github.com/mccanne/zq/pkg/zval"
 	"github.com/mccanne/zq/reducer"
 )
@@ -18,7 +18,7 @@ func (r *Row) Full() bool {
 	return r.n == len(r.Defs)
 }
 
-func (r *Row) Touch(rec *zson.Record) {
+func (r *Row) Touch(rec *zng.Record) {
 	if r.Full() {
 		return
 	}
@@ -35,7 +35,7 @@ func (r *Row) Touch(rec *zson.Record) {
 	}
 }
 
-func (r *Row) Consume(rec *zson.Record) {
+func (r *Row) Consume(rec *zng.Record) {
 	r.Touch(rec)
 	for _, red := range r.Reducers {
 		if red != nil {
@@ -45,7 +45,7 @@ func (r *Row) Consume(rec *zson.Record) {
 }
 
 // Result creates a new record from the results of the reducers.
-func (r *Row) Result(table *resolver.Table) *zson.Record {
+func (r *Row) Result(table *resolver.Table) *zng.Record {
 	n := len(r.Reducers)
 	columns := make([]zeek.Column, n)
 	var zv zval.Encoding
@@ -55,5 +55,5 @@ func (r *Row) Result(table *resolver.Table) *zson.Record {
 		zv = val.Encode(zv)
 	}
 	d := table.GetByColumns(columns)
-	return zson.NewRecordNoTs(d, zv)
+	return zng.NewRecordNoTs(d, zv)
 }

@@ -15,8 +15,8 @@ import (
 	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/zio/detector"
-	"github.com/mccanne/zq/pkg/zson"
-	"github.com/mccanne/zq/pkg/zson/resolver"
+	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/pkg/zng/resolver"
 	"github.com/mccanne/zq/zql"
 	"github.com/stretchr/testify/require"
 )
@@ -58,15 +58,15 @@ func CompileTestProc(code string, ctx *Context, parent Proc) (Proc, error) {
 // batches.  Used as the parent of a proc to be tested to control the
 // batches fed into the proc under test.
 type TestSource struct {
-	records []zson.Batch
+	records []zng.Batch
 	idx     int
 }
 
-func NewTestSource(batches []zson.Batch) *TestSource {
+func NewTestSource(batches []zng.Batch) *TestSource {
 	return &TestSource{records: batches}
 }
 
-func (t *TestSource) Pull() (zson.Batch, error) {
+func (t *TestSource) Pull() (zng.Batch, error) {
 	if t.idx >= len(t.records) {
 		return nil, nil
 	}
@@ -105,7 +105,7 @@ func NewTestContext(res *resolver.Table) *Context {
 	}
 }
 
-func NewProcTestFromSource(code string, resolver *resolver.Table, inRecords []zson.Batch) (*ProcTest, error) {
+func NewProcTestFromSource(code string, resolver *resolver.Table, inRecords []zng.Batch) (*ProcTest, error) {
 	ctx := NewTestContext(resolver)
 	src := TestSource{inRecords, 0}
 	compiledProc, err := CompileTestProc(code, ctx, &src)
@@ -116,7 +116,7 @@ func NewProcTestFromSource(code string, resolver *resolver.Table, inRecords []zs
 	return &ProcTest{ctx, compiledProc, false}, nil
 }
 
-func (t *ProcTest) Pull() (zson.Batch, error) {
+func (t *ProcTest) Pull() (zng.Batch, error) {
 	if t.eos {
 		return nil, errors.New("called Pull() after EOS")
 	}
@@ -139,7 +139,7 @@ func (t *ProcTest) ExpectEOS() error {
 	return nil
 }
 
-func (t *ProcTest) Expect(data zson.Batch) error {
+func (t *ProcTest) Expect(data zng.Batch) error {
 	b, err := t.Pull()
 	if err != nil {
 		return err
@@ -196,9 +196,9 @@ func (t *ProcTest) Finish() error {
 	}
 }
 
-func parse(resolver *resolver.Table, src string) (*zson.Array, error) {
-	reader := detector.LookupReader("zson", strings.NewReader(src), resolver)
-	records := make([]*zson.Record, 0)
+func parse(resolver *resolver.Table, src string) (*zng.Array, error) {
+	reader := detector.LookupReader("zng", strings.NewReader(src), resolver)
+	records := make([]*zng.Record, 0)
 	for {
 		rec, err := reader.Read()
 		if err != nil {
@@ -210,24 +210,24 @@ func parse(resolver *resolver.Table, src string) (*zson.Array, error) {
 		records = append(records, rec)
 	}
 
-	return zson.NewArray(records, nano.MaxSpan), nil
+	return zng.NewArray(records, nano.MaxSpan), nil
 }
 
 // TestOneProcWithWarnings runs one test of a proc by compiling cmd as a proc,
-// then Parsing zsonin, running the resulting records through the proc, and
-// asserting that the output matches zsonout.  It also asserts that the
+// then Parsing zngin, running the resulting records through the proc, and
+// asserting that the output matches zngout.  It also asserts that the
 // given warning(s) are emitted.
-func TestOneProcWithWarnings(t *testing.T, zsonin, zsonout string, warnings []string, cmd string) {
+func TestOneProcWithWarnings(t *testing.T, zngin, zngout string, warnings []string, cmd string) {
 	resolver := resolver.NewTable()
-	recsin, err := parse(resolver, zsonin)
+	recsin, err := parse(resolver, zngin)
 	require.NoError(t, err)
-	recsout, err := parse(resolver, zsonout)
-	require.NoError(t, err)
-
-	test, err := NewProcTestFromSource(cmd, resolver, []zson.Batch{recsin})
+	recsout, err := parse(resolver, zngout)
 	require.NoError(t, err)
 
-	var result zson.Batch
+	test, err := NewProcTestFromSource(cmd, resolver, []zng.Batch{recsin})
+	require.NoError(t, err)
+
+	var result zng.Batch
 	if recsout.Length() > 0 {
 		result, err = test.Pull()
 		require.NoError(t, err)
@@ -250,16 +250,16 @@ func TestOneProcWithWarnings(t *testing.T, zsonin, zsonout string, warnings []st
 }
 
 // TestOneProc runs one test of a proc by compiling cmd as a proc, then
-// Parsing zsonin, running the resulting records through the proc, and
-// finally asserting that the output matches zsonout.
-func TestOneProc(t *testing.T, zsonin, zsonout string, cmd string) {
+// Parsing zngin, running the resulting records through the proc, and
+// finally asserting that the output matches zngout.
+func TestOneProc(t *testing.T, zngin, zngout string, cmd string) {
 	resolver := resolver.NewTable()
-	recsin, err := parse(resolver, zsonin)
+	recsin, err := parse(resolver, zngin)
 	require.NoError(t, err)
-	recsout, err := parse(resolver, zsonout)
+	recsout, err := parse(resolver, zngout)
 	require.NoError(t, err)
 
-	test, err := NewProcTestFromSource(cmd, resolver, []zson.Batch{recsin})
+	test, err := NewProcTestFromSource(cmd, resolver, []zng.Batch{recsin})
 	require.NoError(t, err)
 
 	result, err := test.Pull()
@@ -279,14 +279,14 @@ func TestOneProc(t *testing.T, zsonin, zsonout string, cmd string) {
 // TestOneProcUnsorted is similar to TestOneProc, except ordering of
 // records in the proc output is not important.  That is, the expected
 // output records must all be present, but they may appear in any order.
-func TestOneProcUnsorted(t *testing.T, zsonin, zsonout string, cmd string) {
+func TestOneProcUnsorted(t *testing.T, zngin, zngout string, cmd string) {
 	resolver := resolver.NewTable()
-	recsin, err := parse(resolver, zsonin)
+	recsin, err := parse(resolver, zngin)
 	require.NoError(t, err)
-	recsout, err := parse(resolver, zsonout)
+	recsout, err := parse(resolver, zngout)
 	require.NoError(t, err)
 
-	test, err := NewProcTestFromSource(cmd, resolver, []zson.Batch{recsin})
+	test, err := NewProcTestFromSource(cmd, resolver, []zng.Batch{recsin})
 	require.NoError(t, err)
 
 	result, err := test.Pull()

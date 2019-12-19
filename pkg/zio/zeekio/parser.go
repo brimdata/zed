@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
-	"github.com/mccanne/zq/pkg/zson/resolver"
+	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/pkg/zng/resolver"
 	"github.com/mccanne/zq/pkg/zval"
 )
 
@@ -30,7 +30,7 @@ type Parser struct {
 	needtypes  bool
 	// descriptor is a lazily-allocated Descriptor corresponding
 	// to the contents of the #fields and #types directives.
-	descriptor *zson.Descriptor
+	descriptor *zng.Descriptor
 	builder    *zval.Builder
 }
 
@@ -156,9 +156,9 @@ func (p *Parser) ParseDirective(line []byte) error {
 }
 
 // Unflatten() turns a set of columns from legacy zeek logs into
-// a zson-compatible format by creating nested records for any
+// a zng-compatible format by creating nested records for any
 // dotted field names and adding a _path column if one is not already
-// present.  Note that according to the zson spec, all the fields for
+// present.  Note that according to the zng spec, all the fields for
 // a nested record must be adjacent which simplifies the logic here.
 func Unflatten(columns []zeek.Column, addPath bool) ([]zeek.Column, error) {
 	hasPath := false
@@ -218,7 +218,7 @@ func Unflatten(columns []zeek.Column, addPath bool) ([]zeek.Column, error) {
 	return cols, nil
 }
 
-func (p *Parser) lookup() (*zson.Descriptor, error) {
+func (p *Parser) lookup() (*zng.Descriptor, error) {
 	// add descriptor and _path, form the columns, and lookup the td
 	// in the space's descriptor table.
 	if len(p.columns) == 0 || p.needfields || p.needtypes {
@@ -232,7 +232,7 @@ func (p *Parser) lookup() (*zson.Descriptor, error) {
 	return p.resolver.GetByColumns(cols), nil
 }
 
-func (p *Parser) ParseValue(line []byte) (*zson.Record, error) {
+func (p *Parser) ParseValue(line []byte) (*zng.Record, error) {
 	if p.descriptor == nil {
 		d, err := p.lookup()
 		if err != nil {
@@ -246,9 +246,9 @@ func (p *Parser) ParseValue(line []byte) (*zson.Record, error) {
 		// each time here
 		path = []byte(p.path)
 	}
-	zv, ts, err := zson.NewRawAndTsFromZeekTSV(p.builder, p.descriptor, path, line)
+	zv, ts, err := zng.NewRawAndTsFromZeekTSV(p.builder, p.descriptor, path, line)
 	if err != nil {
 		return nil, err
 	}
-	return zson.NewRecord(p.descriptor, ts, zv), nil
+	return zng.NewRecord(p.descriptor, ts, zv), nil
 }

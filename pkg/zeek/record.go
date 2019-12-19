@@ -9,7 +9,7 @@ import (
 	"github.com/mccanne/zq/pkg/zval"
 )
 
-var ErrColumnMismatch = errors.New("zson record mismatch between columns in type and columns in value")
+var ErrColumnMismatch = errors.New("zng record mismatch between columns in type and columns in value")
 
 type TypeRecord struct {
 	Columns []Column

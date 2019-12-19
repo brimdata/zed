@@ -1,10 +1,10 @@
-package bzsonio
+package bzngio
 
 import (
 	"io"
 
-	"github.com/mccanne/zq/pkg/zson"
-	"github.com/mccanne/zq/pkg/zson/resolver"
+	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/pkg/zng/resolver"
 )
 
 type Writer struct {
@@ -19,7 +19,7 @@ func NewWriter(w io.Writer) *Writer {
 	}
 }
 
-func (w *Writer) Write(r *zson.Record) error {
+func (w *Writer) Write(r *zng.Record) error {
 	id := r.Descriptor.ID
 	if !w.tracker.Seen(id) {
 		b := []byte(r.Descriptor.Type.String())

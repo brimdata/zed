@@ -2,7 +2,7 @@ package field
 
 import (
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zng"
 	"github.com/mccanne/zq/streamfn"
 )
 
@@ -24,7 +24,7 @@ func (c *Count) Consume(v zeek.Value) error {
 	var i zeek.Int
 	//XXX need CoerceToCount?
 	if !zeek.CoerceToInt(v, &i) {
-		return zson.ErrTypeMismatch
+		return zng.ErrTypeMismatch
 	}
 	c.fn.Update(uint64(i))
 	return nil

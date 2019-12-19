@@ -6,8 +6,8 @@ import (
 
 	"github.com/mccanne/zq/pkg/skim"
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
-	"github.com/mccanne/zq/pkg/zson/resolver"
+	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/pkg/zng/resolver"
 )
 
 const (
@@ -30,7 +30,7 @@ func NewReader(reader io.Reader, r *resolver.Table) *Reader {
 	}
 }
 
-func (r *Reader) Read() (*zson.Record, error) {
+func (r *Reader) Read() (*zng.Record, error) {
 again:
 	line, err := r.scanner.ScanLine()
 	if line == nil {
@@ -50,5 +50,5 @@ again:
 		return nil, err
 	}
 	desc := r.resolver.GetByColumns(typ.(*zeek.TypeRecord).Columns)
-	return zson.NewRecordCheck(desc, 0, raw)
+	return zng.NewRecordCheck(desc, 0, raw)
 }

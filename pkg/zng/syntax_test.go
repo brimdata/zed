@@ -1,16 +1,16 @@
-package zson_test
+package zng_test
 
 import (
 	"strings"
 	"testing"
 
-	"github.com/mccanne/zq/pkg/zio/zsonio"
-	"github.com/mccanne/zq/pkg/zson"
-	"github.com/mccanne/zq/pkg/zson/resolver"
+	"github.com/mccanne/zq/pkg/zio/zngio"
+	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/pkg/zng/resolver"
 	"github.com/stretchr/testify/require"
 )
 
-//zsonio "github.com/mccanne/zq/pkg/zio/zson"
+//zngio "github.com/mccanne/zq/pkg/zio/zng"
 const bad1 = `
 #0:record[_path:string,ts:time,uid:string,resp_ip_bytes:count,tunnel_parents:set[string]]
 0:[conn;1425565514.419939;CogZFI3py5JsFZGik;0;]`
@@ -29,12 +29,12 @@ func cleanup(s string) string {
 	return s + "\n"
 }
 
-func reader(s string) zson.Reader {
+func reader(s string) zng.Reader {
 	r := strings.NewReader(cleanup(s))
-	return zsonio.NewReader(r, resolver.NewTable())
+	return zngio.NewReader(r, resolver.NewTable())
 }
 
-func TestZsonSyntax(t *testing.T) {
+func TestZngSyntax(t *testing.T) {
 	r := reader(bad1)
 	_, err := r.Read()
 	require.Error(t, err, "bad1 must have error")

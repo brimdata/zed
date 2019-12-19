@@ -2,7 +2,7 @@ package proc
 
 import (
 	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zng"
 )
 
 type Head struct {
@@ -14,7 +14,7 @@ func NewHead(c *Context, parent Proc, limit int) *Head {
 	return &Head{Base{Context: c, Parent: parent}, limit, 0}
 }
 
-func (h *Head) Pull() (zson.Batch, error) {
+func (h *Head) Pull() (zng.Batch, error) {
 	remaining := h.limit - h.count
 	if remaining <= 0 {
 		return nil, nil
@@ -34,11 +34,11 @@ func (h *Head) Pull() (zson.Batch, error) {
 	// This batch has more than the needed records.
 	// Create a new batch and copy only the needed records.
 	// Then signal to the upstream that we're done.
-	recs := make([]*zson.Record, remaining)
+	recs := make([]*zng.Record, remaining)
 	for k := 0; k < remaining; k++ {
 		recs[k] = batch.Index(k).Keep()
 	}
 	h.count = h.limit
 	h.Done()
-	return zson.NewArray(recs, nano.NewSpanTs(h.MinTs, h.MaxTs)), nil
+	return zng.NewArray(recs, nano.NewSpanTs(h.MinTs, h.MaxTs)), nil
 }

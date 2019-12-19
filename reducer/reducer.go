@@ -8,7 +8,7 @@ import (
 	"errors"
 
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zng"
 )
 
 var (
@@ -16,7 +16,7 @@ var (
 )
 
 type Interface interface {
-	Consume(*zson.Record)
+	Consume(*zng.Record)
 	Result() zeek.Value
 }
 

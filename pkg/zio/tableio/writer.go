@@ -8,14 +8,14 @@ import (
 
 	"github.com/mccanne/zq/pkg/zio"
 	"github.com/mccanne/zq/pkg/zio/zeekio"
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zng"
 )
 
 type Table struct {
 	io.Writer
 	flattener  *zeekio.Flattener
 	table      *tabwriter.Writer
-	descriptor *zson.Descriptor
+	descriptor *zng.Descriptor
 	limit      int
 	nline      int
 	precision  int
@@ -34,7 +34,7 @@ func NewWriter(w io.Writer, flags zio.Flags) *Table {
 	}
 }
 
-func (t *Table) writeHeader(d *zson.Descriptor) {
+func (t *Table) writeHeader(d *zng.Descriptor) {
 	// write out descriptor headers
 	columnNames := []string{}
 	for _, col := range d.Type.Columns {
@@ -44,7 +44,7 @@ func (t *Table) writeHeader(d *zson.Descriptor) {
 	fmt.Fprintln(t.table, strings.Join(columnNames, "\t"))
 }
 
-func (t *Table) Write(r *zson.Record) error {
+func (t *Table) Write(r *zng.Record) error {
 	r, err := t.flattener.Flatten(r)
 	if err != nil {
 		return err

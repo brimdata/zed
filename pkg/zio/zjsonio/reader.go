@@ -10,8 +10,8 @@ import (
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/skim"
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
-	"github.com/mccanne/zq/pkg/zson/resolver"
+	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/pkg/zng/resolver"
 	"github.com/mccanne/zq/pkg/zval"
 )
 
@@ -42,7 +42,7 @@ func NewReader(reader io.Reader, r *resolver.Table) *Reader {
 	}
 }
 
-func (r *Reader) Read() (*zson.Record, error) {
+func (r *Reader) Read() (*zng.Record, error) {
 	line, err := r.scanner.ScanLine()
 	if line == nil {
 		return nil, err
@@ -91,26 +91,26 @@ func LookupType(columns []interface{}) (*zeek.TypeRecord, error) {
 func (r *Reader) enterDescriptor(id int, typ *zeek.TypeRecord) error {
 	if r.mapper.Map(id) != nil {
 		//XXX this should be ok... decide on this and update spec
-		return zson.ErrDescriptorExists
+		return zng.ErrDescriptorExists
 	}
 	if r.mapper.Enter(id, typ) == nil {
 		// XXX this shouldn't happen
-		return zson.ErrBadValue
+		return zng.ErrBadValue
 	}
 	return nil
 }
 
-func (r *Reader) parseValues(id int, v interface{}) (*zson.Record, error) {
+func (r *Reader) parseValues(id int, v interface{}) (*zng.Record, error) {
 	values, ok := v.([]interface{})
 	if !ok {
 		return nil, errors.New("zjson record object must be an array")
 	}
 	descriptor := r.mapper.Map(id)
 	if descriptor == nil {
-		return nil, zson.ErrDescriptorInvalid
+		return nil, zng.ErrDescriptorInvalid
 	}
 	// reset the builder and decode the body into the builder intermediate
-	// zson representation
+	// zng representation
 	r.builder.Reset()
 	err := decodeContainer(r.builder, descriptor.Type, values)
 	if err != nil {
@@ -122,7 +122,7 @@ func (r *Reader) parseValues(id int, v interface{}) (*zson.Record, error) {
 		//XXX need better error here... this won't make much sense
 		return nil, err
 	}
-	record, err := zson.NewRecordCheck(descriptor, nano.MinTs, zv)
+	record, err := zng.NewRecordCheck(descriptor, nano.MinTs, zv)
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +177,7 @@ func decodeType(columns []interface{}) (string, error) {
 func decodeContainer(builder *zval.Builder, typ zeek.Type, body []interface{}) error {
 	childType, columns := zeek.ContainedType(typ)
 	if childType == nil && columns == nil {
-		return zson.ErrSyntax
+		return zng.ErrSyntax
 	}
 	builder.BeginContainer()
 	for k, column := range body {
@@ -193,14 +193,14 @@ func decodeContainer(builder *zval.Builder, typ zeek.Type, body []interface{}) e
 		}
 		if columns != nil {
 			if k >= len(columns) {
-				return zson.ErrTypeMismatch
+				return zng.ErrTypeMismatch
 			}
 			childType = columns[k].Type
 		}
 		s, ok := column.(string)
 		if ok {
 			if zeek.IsContainerType(childType) {
-				return zson.ErrSyntax
+				return zng.ErrSyntax
 			}
 			zv, err := childType.Parse(zeek.Unescape([]byte(s)))
 			if err != nil {

@@ -1,4 +1,4 @@
-// Package zval implements serialization and deserialzation for zson values.
+// Package zval implements serialization and deserialzation for zng values.
 //
 // Values of primitive type are represented by an unsigned integer tag and an
 // optional byte sequence.  A tag of zero indicates that the value is unset, and
@@ -20,7 +20,7 @@ var (
 	ErrNotSingleton = errors.New("not a single container")
 )
 
-// Encoding is the serialized representation of zson values.
+// Encoding is the serialized representation of zng values.
 type Encoding []byte
 
 func (e Encoding) Bytes() []byte {

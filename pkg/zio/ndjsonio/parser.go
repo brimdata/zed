@@ -25,7 +25,7 @@ func NewParser() *Parser {
 	return &Parser{builder: zval.NewBuilder()}
 }
 
-// Parse returns a zson.Encoding slice as well as an inferred zeek.Type
+// Parse returns a zng.Encoding slice as well as an inferred zeek.Type
 // from the provided JSON input. The function expects the input json to be an
 // object, otherwise an error is returned.
 func (p *Parser) Parse(b []byte) (zval.Encoding, zeek.Type, error) {

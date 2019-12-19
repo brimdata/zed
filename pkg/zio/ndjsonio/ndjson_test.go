@@ -7,9 +7,9 @@ import (
 	"testing"
 
 	"github.com/mccanne/zq/pkg/zio/ndjsonio"
-	"github.com/mccanne/zq/pkg/zio/zsonio"
-	"github.com/mccanne/zq/pkg/zson"
-	"github.com/mccanne/zq/pkg/zson/resolver"
+	"github.com/mccanne/zq/pkg/zio/zngio"
+	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/pkg/zng/resolver"
 	"github.com/stretchr/testify/require"
 )
 
@@ -51,8 +51,8 @@ func TestNDJSONWriter(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			var out bytes.Buffer
 			w := ndjsonio.NewWriter(&out)
-			r := zsonio.NewReader(strings.NewReader(c.input), resolver.NewTable())
-			require.NoError(t, zson.Copy(zson.NopFlusher(w), r))
+			r := zngio.NewReader(strings.NewReader(c.input), resolver.NewTable())
+			require.NoError(t, zng.Copy(zng.NopFlusher(w), r))
 			NDJSONEq(t, c.output, out.String())
 		})
 	}
@@ -113,7 +113,7 @@ func runtestcase(t *testing.T, input, output string) {
 	var out bytes.Buffer
 	w := ndjsonio.NewWriter(&out)
 	r := ndjsonio.NewReader(strings.NewReader(input), resolver.NewTable())
-	require.NoError(t, zson.Copy(zson.NopFlusher(w), r))
+	require.NoError(t, zng.Copy(zng.NopFlusher(w), r))
 	NDJSONEq(t, output, out.String())
 }
 

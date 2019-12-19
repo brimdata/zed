@@ -1,4 +1,4 @@
-package zson
+package zng
 
 import (
 	"bytes"
@@ -161,8 +161,8 @@ func NewRawAndTsFromZeekValues(d *Descriptor, tsCol int, vals [][]byte) (zval.En
 }
 
 var (
-	ErrUnterminated = errors.New("zson syntax error: unterminated container")
-	ErrSyntax       = errors.New("zson syntax error")
+	ErrUnterminated = errors.New("zng syntax error: unterminated container")
+	ErrSyntax       = errors.New("zng syntax error")
 )
 
 type Parser struct {
@@ -175,13 +175,13 @@ func NewParser() *Parser {
 	}
 }
 
-// Parse decodes a zson value in text format using the type information
+// Parse decodes a zng value in text format using the type information
 // in the descriptor.  Once parsed, the resulting zval.Encoding has
 // the nested data structure encoded independently of the data type.
-func (p *Parser) Parse(d *Descriptor, zson []byte) (zval.Encoding, error) {
+func (p *Parser) Parse(d *Descriptor, zng []byte) (zval.Encoding, error) {
 	builder := p.builder
 	builder.Reset()
-	rest, err := zsonParseContainer(builder, d.Type, zson)
+	rest, err := zngParseContainer(builder, d.Type, zng)
 	if err != nil {
 		return nil, err
 	}
@@ -198,12 +198,12 @@ const (
 	backslash    = byte('\\')
 )
 
-// zsonParseContainer() parses the given byte array representing a container
-// in the zson format.
+// zngParseContainer() parses the given byte array representing a container
+// in the zng format.
 // If there is no error, the first two return values are:
 //  1. an array of zvals corresponding to the indivdiual elements
 //  2. the passed-in byte array advanced past all the data that was parsed.
-func zsonParseContainer(builder *zval.Builder, typ zeek.Type, b []byte) ([]byte, error) {
+func zngParseContainer(builder *zval.Builder, typ zeek.Type, b []byte) ([]byte, error) {
 	builder.BeginContainer()
 	// skip leftbracket
 	b = b[1:]
@@ -227,7 +227,7 @@ func zsonParseContainer(builder *zval.Builder, typ zeek.Type, b []byte) ([]byte,
 			childType = columns[k].Type
 			k++
 		}
-		rest, err := zsonParseField(builder, childType, b)
+		rest, err := zngParseField(builder, childType, b)
 		if err != nil {
 			return nil, err
 		}
@@ -235,11 +235,11 @@ func zsonParseContainer(builder *zval.Builder, typ zeek.Type, b []byte) ([]byte,
 	}
 }
 
-// zsonParseField() parses the given bye array representing any value
-// in the zson format.
-func zsonParseField(builder *zval.Builder, typ zeek.Type, b []byte) ([]byte, error) {
+// zngParseField() parses the given bye array representing any value
+// in the zng format.
+func zngParseField(builder *zval.Builder, typ zeek.Type, b []byte) ([]byte, error) {
 	if b[0] == leftbracket {
-		return zsonParseContainer(builder, typ, b)
+		return zngParseContainer(builder, typ, b)
 	}
 	if len(b) >= 2 && b[0] == '-' && b[1] == ';' {
 		if zeek.IsContainerType(typ) {

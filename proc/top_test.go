@@ -5,8 +5,8 @@ import (
 
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
-	"github.com/mccanne/zq/pkg/zson/resolver"
+	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/pkg/zng/resolver"
 	"github.com/mccanne/zq/proc"
 	"github.com/stretchr/testify/require"
 )
@@ -15,15 +15,15 @@ func TestTop(t *testing.T) {
 	resolver := resolver.NewTable()
 
 	fooDesc := resolver.GetByColumns([]zeek.Column{{"foo", zeek.TypeCount}})
-	r0, _ := zson.NewRecordZeekStrings(fooDesc, "-")
-	r1, _ := zson.NewRecordZeekStrings(fooDesc, "1")
-	r2, _ := zson.NewRecordZeekStrings(fooDesc, "2")
-	r3, _ := zson.NewRecordZeekStrings(fooDesc, "3")
-	r4, _ := zson.NewRecordZeekStrings(fooDesc, "4")
-	r5, _ := zson.NewRecordZeekStrings(fooDesc, "5")
-	fooBatch := zson.NewArray([]*zson.Record{r0, r1, r2, r3, r4, r5}, nano.MaxSpan)
+	r0, _ := zng.NewRecordZeekStrings(fooDesc, "-")
+	r1, _ := zng.NewRecordZeekStrings(fooDesc, "1")
+	r2, _ := zng.NewRecordZeekStrings(fooDesc, "2")
+	r3, _ := zng.NewRecordZeekStrings(fooDesc, "3")
+	r4, _ := zng.NewRecordZeekStrings(fooDesc, "4")
+	r5, _ := zng.NewRecordZeekStrings(fooDesc, "5")
+	fooBatch := zng.NewArray([]*zng.Record{r0, r1, r2, r3, r4, r5}, nano.MaxSpan)
 
-	test, err := proc.NewProcTestFromSource("top -limit 3 foo", resolver, []zson.Batch{fooBatch})
+	test, err := proc.NewProcTestFromSource("top -limit 3 foo", resolver, []zng.Batch{fooBatch})
 	require.NoError(t, err)
 
 	res, err := test.Pull()

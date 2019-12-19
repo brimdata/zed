@@ -7,14 +7,14 @@ import (
 	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/expr"
 	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zson"
+	"github.com/mccanne/zq/pkg/zng"
 )
 
 type Cut struct {
 	Base
 	resolvers []expr.FieldExprResolver
 	builder   *ColumnBuilder
-	cutmap    map[int]*zson.Descriptor
+	cutmap    map[int]*zng.Descriptor
 	nblocked  int
 }
 
@@ -39,14 +39,14 @@ func CompileCutProc(c *Context, parent Proc, node *ast.CutProc) (*Cut, error) {
 		Base:      Base{Context: c, Parent: parent},
 		resolvers: resolvers,
 		builder:   builder,
-		cutmap:    make(map[int]*zson.Descriptor),
+		cutmap:    make(map[int]*zng.Descriptor),
 	}, nil
 }
 
 // cut returns a new record value derived by keeping only the fields
 // specified by name in the fields slice.  If the record can't be cut
 // (i.e., it doesn't have one of the specified fields), returns nil.
-func (c *Cut) cut(in *zson.Record) *zson.Record {
+func (c *Cut) cut(in *zng.Record) *zng.Record {
 	// Check if we already have an output descriptor for this
 	// input type
 	d, ok := c.cutmap[in.ID]
@@ -89,7 +89,7 @@ func (c *Cut) cut(in *zson.Record) *zson.Record {
 		// XXX internal error, what to do...
 		return nil
 	}
-	return zson.NewRecordNoTs(d, zv)
+	return zng.NewRecordNoTs(d, zv)
 }
 
 func (c *Cut) warn() {
@@ -106,7 +106,7 @@ func (c *Cut) warn() {
 	c.Warnings <- msg
 }
 
-func (c *Cut) Pull() (zson.Batch, error) {
+func (c *Cut) Pull() (zng.Batch, error) {
 	batch, err := c.Get()
 	if EOS(batch, err) {
 		c.warn()
@@ -118,7 +118,7 @@ func (c *Cut) Pull() (zson.Batch, error) {
 	// If a field specified doesn't exist, we don't include that record.
 	// if the types change for the fields specified, we drop those records.
 	//
-	recs := make([]*zson.Record, 0, batch.Length())
+	recs := make([]*zng.Record, 0, batch.Length())
 	for k := 0; k < batch.Length(); k++ {
 		in := batch.Index(k)
 		out := c.cut(in)
@@ -130,5 +130,5 @@ func (c *Cut) Pull() (zson.Batch, error) {
 		c.warn()
 		return nil, nil
 	}
-	return zson.NewArray(recs, batch.Span()), nil
+	return zng.NewArray(recs, batch.Span()), nil
 }

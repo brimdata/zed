@@ -1,6 +1,6 @@
 package proc
 
-import "github.com/mccanne/zq/pkg/zson"
+import "github.com/mccanne/zq/pkg/zng"
 
 type Pass struct {
 	Base
@@ -10,6 +10,6 @@ func NewPass(c *Context, parent Proc) *Pass {
 	return &Pass{Base{Context: c, Parent: parent}}
 }
 
-func (p *Pass) Pull() (zson.Batch, error) {
+func (p *Pass) Pull() (zng.Batch, error) {
 	return p.Get()
 }

@@ -383,7 +383,7 @@ func NewValue(typ, val string) (Value, error) {
 }
 
 // Format tranforms a zval encoding with its type encoding to a
-// a human-readable (and zson text-compliant) string format
+// a human-readable (and zng text-compliant) string format
 // encoded as a byte slice.
 //XXX this could be more efficient
 func Format(typ Type, zv zval.Encoding) ([]byte, error) {

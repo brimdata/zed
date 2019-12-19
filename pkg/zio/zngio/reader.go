@@ -1,4 +1,4 @@
-package zsonio
+package zngio
 
 import (
 	"bufio"
@@ -12,8 +12,8 @@ import (
 	"github.com/mccanne/zq/pkg/skim"
 	"github.com/mccanne/zq/pkg/zeek"
 	"github.com/mccanne/zq/pkg/zio/zeekio"
-	"github.com/mccanne/zq/pkg/zson"
-	"github.com/mccanne/zq/pkg/zson/resolver"
+	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/pkg/zng/resolver"
 )
 
 var (
@@ -49,7 +49,7 @@ type Reader struct {
 	stats     ReadStats
 	mapper    *resolver.Mapper
 	legacyVal bool
-	parser    *zson.Parser
+	parser    *zng.Parser
 }
 
 func NewReader(reader io.Reader, r *resolver.Table) *Reader {
@@ -60,11 +60,11 @@ func NewReader(reader io.Reader, r *resolver.Table) *Reader {
 		stats:   ReadStats{Stats: &scanner.Stats},
 		zeek:    zeekio.NewParser(r),
 		mapper:  resolver.NewMapper(r),
-		parser:  zson.NewParser(),
+		parser:  zng.NewParser(),
 	}
 }
 
-func (r *Reader) Read() (*zson.Record, error) {
+func (r *Reader) Read() (*zng.Record, error) {
 	for {
 		r, b, err := r.ReadPayload()
 		if b != nil {
@@ -77,7 +77,7 @@ func (r *Reader) Read() (*zson.Record, error) {
 	}
 }
 
-func (r *Reader) ReadPayload() (*zson.Record, []byte, error) {
+func (r *Reader) ReadPayload() (*zng.Record, []byte, error) {
 again:
 	line, err := r.scanner.ScanLine()
 	if line == nil {
@@ -179,12 +179,12 @@ func (r *Reader) parseDirective(line []byte) ([]byte, error) {
 	return nil, nil
 }
 
-func (r *Reader) parseValue(line []byte) (*zson.Record, error) {
+func (r *Reader) parseValue(line []byte) (*zng.Record, error) {
 	if r.legacyVal {
 		return r.zeek.ParseValue(line)
 	}
 
-	// From the zson spec:
+	// From the zng spec:
 	// A regular value is encoded on a line as type descriptor
 	// followed by ":" followed by a value encoding.
 	id, rest, err := parseLeadingInt(line)
@@ -202,7 +202,7 @@ func (r *Reader) parseValue(line []byte) (*zson.Record, error) {
 		return nil, err
 	}
 
-	record, err := zson.NewRecordCheck(descriptor, nano.MinTs, raw)
+	record, err := zng.NewRecordCheck(descriptor, nano.MinTs, raw)
 	if err != nil {
 		return nil, err
 	}
