@@ -172,14 +172,14 @@ func (r *Record) ZeekStrings(precision int, utf8 bool) ([]string, bool, error) {
 	var ss []string
 	it := r.ZvalIter()
 	var changePrecision bool
-	for colno, col := range r.Descriptor.Type.Columns {
+	for _, col := range r.Descriptor.Type.Columns {
 		val, isContainer, err := it.Next()
 		if err != nil {
 			return nil, false, err
 		}
 		var field string
-		if precision >= 0 && col.Type == zeek.TypeTime {
-			ts, err := r.AccessTimeByColumn(colno)
+		if precision >= 0 && col.Type == zeek.TypeTime && val != nil {
+			ts, err := zeek.DecodeTime(val)
 			if err != nil {
 				return nil, false, err
 			}

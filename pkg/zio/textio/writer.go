@@ -39,8 +39,16 @@ func (t *Text) Write(rec *zng.Record) error {
 		for k, col := range rec.Descriptor.Type.Columns {
 			var s, v string
 			if !t.EpochDates && col.Name == "ts" && col.Type == zeek.TypeTime {
-				ts := *rec.ValueByColumn(k).(*zeek.Time)
-				v = nano.Ts(ts).Time().UTC().Format(time.RFC3339Nano)
+				switch tsVal := rec.ValueByColumn(k).(type) {
+				case *zeek.Time:
+					ts := nano.Ts(*tsVal)
+					v = nano.Ts(ts).Time().UTC().Format(time.RFC3339Nano)
+				case *zeek.Unset:
+					v = tsVal.String()
+				default:
+					panic(fmt.Errorf("unexpected zeek.Value type %T for a time column", tsVal))
+				}
+
 			} else {
 				body := rec.Slice(k)
 				typ := col.Type
