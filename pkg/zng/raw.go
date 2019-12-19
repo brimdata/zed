@@ -23,20 +23,20 @@ func EncodeZvals(d *Descriptor, vals []zval.Encoding) (zval.Encoding, error) {
 	return raw, nil
 }
 
-func NewRawAndTsFromZeekTSV(builder *zval.Builder, d *Descriptor, path []byte, data []byte) (zval.Encoding, nano.Ts, error) {
+func NewRawAndTsFromZeekTSV(builder *zval.Builder, d *Descriptor, path []byte, data []byte) (zval.Encoding, zeek.Value, error) {
 	builder.Reset()
 	columns := d.Type.Columns
 	col := 0
-
+	var tsVal zeek.Value
+	tsVal = &zeek.Unset{}
 	if path != nil {
 		if columns[0].Name != "_path" {
-			return nil, 0, errors.New("no _path in column 0")
+			return nil, nil, errors.New("no _path in column 0")
 		}
 		builder.Append(path, false)
 		col++
 	}
 
-	var ts nano.Ts
 	const separator = '\t'
 	const setSeparator = ','
 	const emptyContainer = "(empty)"
@@ -54,12 +54,6 @@ func NewRawAndTsFromZeekTSV(builder *zval.Builder, d *Descriptor, path []byte, d
 				builder.BeginContainer()
 			}
 			typ = recType.Columns[nestedCol].Type
-		} else if columns[col].Name == "ts" {
-			var err error
-			ts, err = nano.Parse(val)
-			if err != nil {
-				return err
-			}
 		}
 
 		if len(val) == 1 && val[0] == '-' {
@@ -99,6 +93,13 @@ func NewRawAndTsFromZeekTSV(builder *zval.Builder, d *Descriptor, path []byte, d
 				if err != nil {
 					return err
 				}
+				if columns[col].Name == "ts" {
+					tt := zeek.TypeOfTime{}
+					tsVal, err = tt.New(zv)
+					if err != nil {
+						return err
+					}
+				}
 				builder.Append(zv, false)
 			}
 		}
@@ -120,20 +121,20 @@ func NewRawAndTsFromZeekTSV(builder *zval.Builder, d *Descriptor, path []byte, d
 		if c == separator {
 			err := handleVal(data[start:i])
 			if err != nil {
-				return nil, 0, err
+				return nil, nil, err
 			}
 			start = i + 1
 		}
 	}
 	err := handleVal(data[start:])
 	if err != nil {
-		return nil, 0, err
+		return nil, nil, err
 	}
 
 	if col != len(d.Type.Columns) {
-		return nil, 0, errors.New("too few values")
+		return nil, nil, errors.New("too few values")
 	}
-	return builder.Encode(), ts, nil
+	return builder.Encode(), tsVal, nil
 }
 
 func NewRawAndTsFromZeekValues(d *Descriptor, tsCol int, vals [][]byte) (zval.Encoding, nano.Ts, error) {

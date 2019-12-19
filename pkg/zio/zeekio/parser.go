@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/zeek"
 	"github.com/mccanne/zq/pkg/zng"
 	"github.com/mccanne/zq/pkg/zng/resolver"
@@ -246,9 +247,18 @@ func (p *Parser) ParseValue(line []byte) (*zng.Record, error) {
 		// each time here
 		path = []byte(p.path)
 	}
-	zv, ts, err := zng.NewRawAndTsFromZeekTSV(p.builder, p.descriptor, path, line)
+	zv, tsVal, err := zng.NewRawAndTsFromZeekTSV(p.builder, p.descriptor, path, line)
 	if err != nil {
 		return nil, err
+	}
+	var ts nano.Ts
+	switch tsVal := tsVal.(type) {
+	case *zeek.Time:
+		ts = nano.Ts(*tsVal)
+	case *zeek.Unset:
+		ts = 0
+	default:
+		panic("bad tsVal type returned from zng.NewRawAndTsFromZeekTSV")
 	}
 	return zng.NewRecord(p.descriptor, ts, zv), nil
 }
