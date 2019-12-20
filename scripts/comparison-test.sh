@@ -91,7 +91,6 @@ do
     ZCUT=${ZCUT_FIELDS[$n]}
     if [[ $ZCUT != "NONE" ]]; then
       echo "|\`zeek-cut\`|\`$ZCUT\`|zeek|zeek-cut|" | sed 's/\`\`//' | tr -d '\n' | tee -a "$MD"
-      set +xv
       ALL_TIMES=$( ($TIME cat "$DATA"/zeek/*.log | zeek-cut "$ZCUT" > /dev/null) 2>&1)
       echo "$ALL_TIMES" | tr '\n' ' ' | awk '{ print $2 "|" $4 "|" $6 "|" }' | tee -a "$MD"
     fi
