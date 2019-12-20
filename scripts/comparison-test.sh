@@ -1,7 +1,5 @@
 #!/bin/bash
-
-# The backticks in quotes are for markdown, not expansion.
-# shellcheck disable=SC2016
+# shellcheck disable=SC2016    # The backticks in quotes are for markdown, not expansion
 
 set -eo pipefail
 
@@ -101,7 +99,8 @@ do
     JQ=${JQ_FILTERS[$n]}
     JQFLAG=${JQFLAGS[$n]}
     echo -n "|\`jq\`|\`$JQFLAG \"${JQ//|/\\|}\"\`|ndjson|ndjson|" | tee -a "$MD"
-    ALL_TIMES=$( ($TIME jq "$JQFLAG" "$JQ" "$DATA"/zeek-ndjson/*.ndjson > /dev/null) 2>&1)
+    # shellcheck disable=SC2086      # For expanding JQFLAG
+    ALL_TIMES=$( ($TIME jq $JQFLAG "$JQ" "$DATA"/zeek-ndjson/*.ndjson > /dev/null) 2>&1)
     echo "$ALL_TIMES" | awk '{ print $1 "|" $3 "|" $5 "|" }' | tee -a "$MD"
 
     echo
