@@ -20,7 +20,7 @@
 
 ## Search all events
 
-The simplest possible ZQL search is a match against all events. This search is expressed in `zq` with the wildcard `*`. The response will be a ZSON-formatted dump of all events.
+The simplest possible ZQL search is a match against all events. This search is expressed in `zq` with the wildcard `*`. The response will be a ZNG-formatted dump of all events.
 
 #### Example:
 ```
