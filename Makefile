@@ -16,6 +16,9 @@ test-unit:
 test-system: build
 	@go test -v -tags=system ./tests -args PATH=$(shell pwd)/dist
 
+test-docs: build
+	@go test -v -tags=system,docs ./tests -run TestDocExamples -args PATH=$(shell pwd)/dist
+
 build:
 	@mkdir -p dist
 	@go build -ldflags='-s -X main.version=$(shell ./scripts/version.sh)' -o dist ./cmd/...
