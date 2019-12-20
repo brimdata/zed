@@ -3,14 +3,15 @@
 package tests
 
 import (
-	"os"
-	"strings"
+	"path/filepath"
 	"testing"
 
 	"github.com/mccanne/zq/pkg/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+const zqpath = "../dist"
 
 func TestInternal(t *testing.T) {
 	t.Parallel()
@@ -25,7 +26,6 @@ func TestInternal(t *testing.T) {
 
 func TestCommands(t *testing.T) {
 	t.Parallel()
-	path := findPath()
 	seen := make(map[string]struct{})
 	for _, cmd := range commands {
 		name := cmd.Name
@@ -34,25 +34,17 @@ func TestCommands(t *testing.T) {
 		}
 		seen[name] = struct{}{}
 		t.Run(name, func(t *testing.T) {
-			results, err := cmd.Run(path)
+			results, err := cmd.Run(zqpath)
 			require.NoError(t, err)
 			assert.Exactly(t, cmd.Expected, results, "Wrong command results")
 		})
 	}
 }
 
-func findPath() string {
-	for _, s := range os.Args {
-		if strings.HasPrefix(s, "PATH=") {
-			return s[5:]
-		}
-	}
-	return ""
-}
-
 func TestScripts(t *testing.T) {
 	t.Parallel()
-	path := findPath()
+	path, err := filepath.Abs(zqpath)
+	require.NoError(t, err)
 	for _, script := range scripts {
 		t.Run(script.Name, func(t *testing.T) {
 			var fail bool
@@ -84,13 +76,12 @@ func TestScripts(t *testing.T) {
 
 func TestFormats(t *testing.T) {
 	t.Parallel()
-	path := findPath()
 	formatTests, err := findTests("./formats")
 	require.NoError(t, err)
 	for _, cmd := range formatTests {
 		name := cmd.Name
 		t.Run(name, func(t *testing.T) {
-			results, err := cmd.Run(path)
+			results, err := cmd.Run(zqpath)
 			require.NoError(t, err)
 			assert.Exactly(t, cmd.Expected, results, "Wrong command results")
 		})
