@@ -105,6 +105,9 @@ func (t Ts) StringFloat() string {
 	if ns == 0 {
 		return strconv.FormatInt(sec, 10)
 	}
+	if ns < 0 {
+		ns = ns * -1
+	}
 	return strings.TrimRight(fmt.Sprintf("%d.%09d", sec, ns), "0")
 }
 
