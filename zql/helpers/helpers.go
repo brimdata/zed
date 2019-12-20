@@ -1,30 +1,15 @@
-package zql
+package helpers
 
 import (
 	"bytes"
-	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/mccanne/zq/ast"
 )
 
-// ParseProc() is an entry point for use from external go code,
-// mostly just a wrapper around Parse() that casts the return value.
-func ParseProc(query string) (ast.Proc, error) {
-	parsed, err := Parse("", []byte(query))
-	if err != nil {
-		return nil, err
-	}
-	ret, ok := parsed.(ast.Proc)
-	if !ok {
-		return nil, fmt.Errorf("parser generated a %T (expected ast.Proc)", parsed)
-	}
-	return ret, nil
-}
-
 // Helper to get a properly-typed slice of Procs from an interface{}.
-func procArray(val interface{}) []ast.Proc {
+func ProcArray(val interface{}) []ast.Proc {
 	var ret []ast.Proc
 	for _, v := range val.([]interface{}) {
 		ret = append(ret, v.(ast.Proc))
@@ -32,27 +17,27 @@ func procArray(val interface{}) []ast.Proc {
 	return ret
 }
 
-func makeSequentialProc(procsIn interface{}) ast.Proc {
-	procs := procArray(procsIn)
+func MakeSequentialProc(procsIn interface{}) ast.Proc {
+	procs := ProcArray(procsIn)
 	if len(procs) == 0 {
 		return procs[0]
 	}
 	return &ast.SequentialProc{ast.Node{"SequentialProc"}, procs}
 }
 
-func makeParallelProc(procsIn interface{}) ast.Proc {
-	procs := procArray(procsIn)
+func MakeParallelProc(procsIn interface{}) ast.Proc {
+	procs := ProcArray(procsIn)
 	if len(procs) == 0 {
 		return procs[0]
 	}
-	return &ast.ParallelProc{ast.Node{"ParallelProc"}, procArray(procsIn)}
+	return &ast.ParallelProc{ast.Node{"ParallelProc"}, ProcArray(procsIn)}
 }
 
-func makeTypedValue(typ string, val interface{}) *ast.TypedValue {
+func MakeTypedValue(typ string, val interface{}) *ast.TypedValue {
 	return &ast.TypedValue{typ, val.(string)}
 }
 
-func getValueType(val interface{}) string {
+func GetValueType(val interface{}) string {
 	return val.(*ast.TypedValue).Type
 }
 
@@ -61,7 +46,7 @@ type FieldCallPlaceholder struct {
 	param string
 }
 
-func makeFieldCall(fn, fieldIn, paramIn interface{}) interface{} {
+func MakeFieldCall(fn, fieldIn, paramIn interface{}) interface{} {
 	var param string
 	if paramIn != nil {
 		param = paramIn.(string)
@@ -72,7 +57,7 @@ func makeFieldCall(fn, fieldIn, paramIn interface{}) interface{} {
 	return &FieldCallPlaceholder{fn.(string), param}
 }
 
-func chainFieldCalls(base, derefs interface{}) ast.FieldExpr {
+func ChainFieldCalls(base, derefs interface{}) ast.FieldExpr {
 	var ret ast.FieldExpr
 	ret = &ast.FieldRead{ast.Node{"FieldRead"}, base.(string)}
 	if derefs != nil {
@@ -84,29 +69,29 @@ func chainFieldCalls(base, derefs interface{}) ast.FieldExpr {
 	return ret
 }
 
-func makeBooleanLiteral(val bool) *ast.BooleanLiteral {
+func MakeBooleanLiteral(val bool) *ast.BooleanLiteral {
 	return &ast.BooleanLiteral{ast.Node{"BooleanLiteral"}, val}
 }
 
-func makeCompareField(comparatorIn, fieldIn, valueIn interface{}) *ast.CompareField {
+func MakeCompareField(comparatorIn, fieldIn, valueIn interface{}) *ast.CompareField {
 	comparator := comparatorIn.(string)
 	field := fieldIn.(ast.FieldExpr)
 	value := valueIn.(*ast.TypedValue)
 	return &ast.CompareField{ast.Node{"CompareField"}, comparator, field, *value}
 }
 
-func makeCompareAny(comparatorIn, recurseIn, valueIn interface{}) *ast.CompareAny {
+func MakeCompareAny(comparatorIn, recurseIn, valueIn interface{}) *ast.CompareAny {
 	comparator := comparatorIn.(string)
 	recurse := recurseIn.(bool)
 	value := valueIn.(*ast.TypedValue)
 	return &ast.CompareAny{ast.Node{"CompareAny"}, comparator, recurse, *value}
 }
 
-func makeLogicalNot(exprIn interface{}) *ast.LogicalNot {
+func MakeLogicalNot(exprIn interface{}) *ast.LogicalNot {
 	return &ast.LogicalNot{ast.Node{"LogicalNot"}, exprIn.(ast.BooleanExpr)}
 }
 
-func makeOrChain(firstIn, restIn interface{}) ast.BooleanExpr {
+func MakeOrChain(firstIn, restIn interface{}) ast.BooleanExpr {
 	first := firstIn.(ast.BooleanExpr)
 	if restIn == nil {
 		return first
@@ -121,7 +106,7 @@ func makeOrChain(firstIn, restIn interface{}) ast.BooleanExpr {
 	return result
 }
 
-func makeAndChain(firstIn, restIn interface{}) ast.BooleanExpr {
+func MakeAndChain(firstIn, restIn interface{}) ast.BooleanExpr {
 	first := firstIn.(ast.BooleanExpr)
 	if restIn == nil {
 		return first
@@ -136,16 +121,16 @@ func makeAndChain(firstIn, restIn interface{}) ast.BooleanExpr {
 	return result
 }
 
-func makeSearchString(val interface{}) *ast.SearchString {
+func MakeSearchString(val interface{}) *ast.SearchString {
 	return &ast.SearchString{ast.Node{"SearchString"}, *(val.(*ast.TypedValue))}
 }
 
-func resetSearchStringType(val interface{}) {
+func ResetSearchStringType(val interface{}) {
 	val.(*ast.SearchString).Value.Type = "string"
 }
 
 // Helper to get a properly-typed slice of strings from an interface{}
-func stringArray(val interface{}) []string {
+func StringArray(val interface{}) []string {
 	var ret []string
 	if val != nil {
 		for _, v := range val.([]interface{}) {
@@ -155,7 +140,7 @@ func stringArray(val interface{}) []string {
 	return ret
 }
 
-func fieldExprArray(val interface{}) []ast.FieldExpr {
+func FieldExprArray(val interface{}) []ast.FieldExpr {
 	var ret []ast.FieldExpr
 	if val != nil {
 		for _, f := range val.([]interface{}) {
@@ -165,8 +150,8 @@ func fieldExprArray(val interface{}) []ast.FieldExpr {
 	return ret
 }
 
-func makeSortProc(fieldsIn, dirIn, limitIn interface{}) *ast.SortProc {
-	fields := fieldExprArray(fieldsIn)
+func MakeSortProc(fieldsIn, dirIn, limitIn interface{}) *ast.SortProc {
+	fields := FieldExprArray(fieldsIn)
 	sortdir := dirIn.(int)
 	var limit int
 	if limitIn != nil {
@@ -175,8 +160,8 @@ func makeSortProc(fieldsIn, dirIn, limitIn interface{}) *ast.SortProc {
 	return &ast.SortProc{ast.Node{"SortProc"}, limit, fields, sortdir}
 }
 
-func makeTopProc(fieldsIn, limitIn, flushIn interface{}) *ast.TopProc {
-	fields := fieldExprArray(fieldsIn)
+func MakeTopProc(fieldsIn, limitIn, flushIn interface{}) *ast.TopProc {
+	fields := FieldExprArray(fieldsIn)
 	var limit int
 	if limitIn != nil {
 		limit = limitIn.(int)
@@ -185,30 +170,30 @@ func makeTopProc(fieldsIn, limitIn, flushIn interface{}) *ast.TopProc {
 	return &ast.TopProc{ast.Node{"TopProc"}, limit, fields, flush}
 }
 
-func makeCutProc(fieldsIn interface{}) *ast.CutProc {
-	fields := fieldExprArray(fieldsIn)
+func MakeCutProc(fieldsIn interface{}) *ast.CutProc {
+	fields := FieldExprArray(fieldsIn)
 	return &ast.CutProc{ast.Node{"CutProc"}, fields}
 }
 
-func makeHeadProc(countIn interface{}) *ast.HeadProc {
+func MakeHeadProc(countIn interface{}) *ast.HeadProc {
 	count := countIn.(int)
 	return &ast.HeadProc{ast.Node{"HeadProc"}, count}
 }
 
-func makeTailProc(countIn interface{}) *ast.TailProc {
+func MakeTailProc(countIn interface{}) *ast.TailProc {
 	count := countIn.(int)
 	return &ast.TailProc{ast.Node{"TailProc"}, count}
 }
 
-func makeUniqProc(cflag bool) *ast.UniqProc {
+func MakeUniqProc(cflag bool) *ast.UniqProc {
 	return &ast.UniqProc{ast.Node{"UniqProc"}, cflag}
 }
 
-func makeFilterProc(expr interface{}) *ast.FilterProc {
+func MakeFilterProc(expr interface{}) *ast.FilterProc {
 	return &ast.FilterProc{ast.Node{"FilterProc"}, expr.(ast.BooleanExpr)}
 }
 
-func makeReducer(opIn, varIn, fieldIn interface{}) *ast.Reducer {
+func MakeReducer(opIn, varIn, fieldIn interface{}) *ast.Reducer {
 	var field string
 	if fieldIn != nil {
 		field = fieldIn.(string)
@@ -216,17 +201,17 @@ func makeReducer(opIn, varIn, fieldIn interface{}) *ast.Reducer {
 	return &ast.Reducer{ast.Node{opIn.(string)}, varIn.(string), field}
 }
 
-func overrideReducerVar(reducerIn, varIn interface{}) *ast.Reducer {
+func OverrideReducerVar(reducerIn, varIn interface{}) *ast.Reducer {
 	reducer := reducerIn.(*ast.Reducer)
 	reducer.Var = varIn.(string)
 	return reducer
 }
 
-func makeDuration(seconds interface{}) *ast.Duration {
+func MakeDuration(seconds interface{}) *ast.Duration {
 	return &ast.Duration{seconds.(int)}
 }
 
-func reducersArray(reducersIn interface{}) []ast.Reducer {
+func ReducersArray(reducersIn interface{}) []ast.Reducer {
 	arr := reducersIn.([]interface{})
 	ret := make([]ast.Reducer, len(arr))
 	for i, r := range arr {
@@ -235,14 +220,14 @@ func reducersArray(reducersIn interface{}) []ast.Reducer {
 	return ret
 }
 
-func makeReducerProc(reducers interface{}) *ast.ReducerProc {
+func MakeReducerProc(reducers interface{}) *ast.ReducerProc {
 	return &ast.ReducerProc{
 		Node:     ast.Node{"ReducerProc"},
-		Reducers: reducersArray(reducers),
+		Reducers: ReducersArray(reducers),
 	}
 }
 
-func makeGroupByProc(durationIn, limitIn, keysIn, reducersIn interface{}) *ast.GroupByProc {
+func MakeGroupByProc(durationIn, limitIn, keysIn, reducersIn interface{}) *ast.GroupByProc {
 	var duration ast.Duration
 	if durationIn != nil {
 		duration = *(durationIn.(*ast.Duration))
@@ -253,8 +238,8 @@ func makeGroupByProc(durationIn, limitIn, keysIn, reducersIn interface{}) *ast.G
 		limit = limitIn.(int)
 	}
 
-	keys := fieldExprArray(keysIn)
-	reducers := reducersArray(reducersIn)
+	keys := FieldExprArray(keysIn)
+	reducers := ReducersArray(reducersIn)
 
 	return &ast.GroupByProc{
 		Node:     ast.Node{"GroupByProc"},
@@ -265,7 +250,7 @@ func makeGroupByProc(durationIn, limitIn, keysIn, reducersIn interface{}) *ast.G
 	}
 }
 
-func joinChars(in interface{}) string {
+func JoinChars(in interface{}) string {
 	str := bytes.Buffer{}
 	for _, i := range in.([]interface{}) {
 		// handle joining bytes or strings
@@ -278,11 +263,11 @@ func joinChars(in interface{}) string {
 	return str.String()
 }
 
-func toLowerCase(in interface{}) interface{} {
+func ToLowerCase(in interface{}) interface{} {
 	return strings.ToLower(in.(string))
 }
 
-func parseInt(v interface{}) interface{} {
+func ParseInt(v interface{}) interface{} {
 	num := v.(string)
 	i, err := strconv.Atoi(num)
 	if err != nil {
@@ -292,7 +277,7 @@ func parseInt(v interface{}) interface{} {
 	return i
 }
 
-func parseFloat(v interface{}) interface{} {
+func ParseFloat(v interface{}) interface{} {
 	num := v.(string)
 	if f, err := strconv.ParseFloat(num, 10); err != nil {
 		return f

@@ -1,4 +1,6 @@
 export GO111MODULE=on
+GOIMPORTS=goimports
+PIGEON=pigeon
 
 vet:
 	@go vet -copylocks ./...
@@ -10,7 +12,7 @@ fmt:
 		exit 1; \
 	fi
 
-test-unit:
+test-unit: zql/zql.go js/zql.js
 	@go test -short ./...
 
 test-system: build
@@ -25,5 +27,19 @@ install:
 
 clean:
 	@rm -rf dist
+
+node_modules: package.json
+	@npm install
+
+zql: zql/zql.go js/zql.js
+
+zql/zql.go: zql/zql.peg
+	@cpp -DGO -E -P ./zql/zql.peg | $(PIGEON) -o $@
+	@$(GOIMPORTS) -w $@
+
+js/zql.js: node_modules zql/zql.peg
+	@cpp -E -P ./zql/zql.peg \
+		| npx pegjs -o $@ # \
+
 
 .PHONY: vet test-unit test-system clean build

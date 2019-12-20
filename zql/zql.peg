@@ -4,7 +4,10 @@
 #ifdef GO
 {
     package zql
-    import "github.com/mccanne/zq/reglob"
+	import (
+		"github.com/mccanne/zq/reglob"
+		h "github.com/mccanne/zq/zql/helpers"
+	)
 }
 #define RETURN(x) return x, nil
 #define NULL nil
@@ -23,7 +26,8 @@
 #define ASSERT_INT(i) i.(int)
 #else
 {
-#include "parser-support.js"
+	const h = require("./helpers")
+	const reglob = require("./reglob")
 }
 #define RETURN(x) return x
 #define NULL null
@@ -47,18 +51,18 @@ start = _? ast:boomCommand _? EOF { RETURN(ast) }
 
 boomCommand
   = procs:procChain {
-      INIT_ASSIGN_VAR(filt, makeFilterProc(makeBooleanLiteral(true)))
-      RETURN(makeSequentialProc(PREPEND(filt, procs)))
+      INIT_ASSIGN_VAR(filt, h.MakeFilterProc(h.MakeBooleanLiteral(true)))
+      RETURN(h.MakeSequentialProc(PREPEND(filt, procs)))
     }
   / s:search _? rest:chainedProc* {
       if(ARRAY_LEN(rest) == 0) {
           RETURN(s)
       } else {
-          RETURN(makeSequentialProc(PREPEND(s, rest)))
+          RETURN(h.MakeSequentialProc(PREPEND(s, rest)))
       }
     }
   / s:search {
-      RETURN(makeSequentialProc(ARRAY(s)))
+      RETURN(h.MakeSequentialProc(ARRAY(s)))
     }
 
 procChain
@@ -74,94 +78,94 @@ chainedProc = _? "|" _? p:proc { RETURN(p) }
 
 search
   = expr:searchExpr {
-      RETURN(makeFilterProc(expr))
+      RETURN(h.MakeFilterProc(expr))
     }
 
 searchExpr
   = first:searchTerm rest:oredSearchTerm* {
-      RETURN(makeOrChain(first, rest))
+      RETURN(h.MakeOrChain(first, rest))
     }
 
 oredSearchTerm = _ orToken _ t:searchTerm { RETURN(t) }
 
 searchTerm
   = first:searchFactor rest:andedSearchTerm* {
-      RETURN(makeAndChain(first, rest))
+      RETURN(h.MakeAndChain(first, rest))
     }
 
 andedSearchTerm = _ (andToken _)? f:searchFactor { RETURN(f) }
 
 searchFactor
   = (notToken _ / "!" _?) e:searchExpr {
-      RETURN(makeLogicalNot(e))
+      RETURN(h.MakeLogicalNot(e))
     }
   / !("-") s:searchPred { RETURN(s) }
   / "(" _? expr:searchExpr _? ")" { RETURN(expr) }
 
 searchPred
   = "*" _? fieldComparator:equalityToken _? v:searchValue {
-      RETURN(makeCompareAny(fieldComparator, false, v))
+      RETURN(h.MakeCompareAny(fieldComparator, false, v))
     }
   / "**" _? fieldComparator:equalityToken _? v:searchValue {
-      RETURN(makeCompareAny(fieldComparator, true, v))
+      RETURN(h.MakeCompareAny(fieldComparator, true, v))
     }
   / "*" {
-      RETURN(makeBooleanLiteral(true))
+      RETURN(h.MakeBooleanLiteral(true))
     }
   / f:fieldExpr _? fieldComparator:equalityToken _? v:searchValue {
-      RETURN(makeCompareField(fieldComparator, f, v))
+      RETURN(h.MakeCompareField(fieldComparator, f, v))
     }
   / v:searchValue _? inToken _? "*" {
-      RETURN(makeCompareAny("in", false, v))
+      RETURN(h.MakeCompareAny("in", false, v))
     }
   / v:searchValue _? inToken _? f:fieldReference {
-      RETURN(makeCompareField("in", f, v))
+      RETURN(h.MakeCompareField("in", f, v))
     }
   / v:searchValue {
-      INIT_ASSIGN_VAR(ss, makeSearchString(v))
-      IF(getValueType(v) == "string") {
+      INIT_ASSIGN_VAR(ss, h.MakeSearchString(v))
+      IF(h.GetValueType(v) == "string") {
         RETURN(ss)
       }
-      ss = makeSearchString(makeTypedValue("string", TEXT))
-      RETURN(makeOrChain(ss, ARRAY(makeCompareAny("eql", true, v), makeCompareAny("in", true, v))))
+      ss = h.MakeSearchString(h.MakeTypedValue("string", TEXT))
+      RETURN(h.MakeOrChain(ss, ARRAY(h.MakeCompareAny("eql", true, v), h.MakeCompareAny("in", true, v))))
     }
 
 searchValue
   = v:quotedString {
-      RETURN(makeTypedValue("string", v))
+      RETURN(h.MakeTypedValue("string", v))
     }
   / v:reString {
-      RETURN(makeTypedValue("regexp", v))
+      RETURN(h.MakeTypedValue("regexp", v))
     }
   / v:port {
-      RETURN(makeTypedValue("port", v))
+      RETURN(h.MakeTypedValue("port", v))
   }
   / v:ip6subnet {
-      RETURN(makeTypedValue("subnet", v))
+      RETURN(h.MakeTypedValue("subnet", v))
     }
   / v:ip6addr {
-      RETURN(makeTypedValue("addr", v))
+      RETURN(h.MakeTypedValue("addr", v))
     }
   / v:subnet {
-      RETURN(makeTypedValue("subnet", v))
+      RETURN(h.MakeTypedValue("subnet", v))
     }
   / v:addr {
-      RETURN(makeTypedValue("addr", v))
+      RETURN(h.MakeTypedValue("addr", v))
     }
   / v:sdouble {
-      RETURN(makeTypedValue("double", v))
+      RETURN(h.MakeTypedValue("double", v))
     }
   / v:sinteger !boomWord {
-      RETURN(makeTypedValue("int", v))
+      RETURN(h.MakeTypedValue("int", v))
     }
   / !(searchKeywords _) v:booleanLiteral { RETURN(v) }
   / !(searchKeywords _) v:unsetLiteral { RETURN(v) }
   / !(searchKeywords _) v:boomWord {
       IF(reglob.IsGlobby(ASSERT_STRING(v)) || ASSERT_STRING(v) == "*") {
          INIT_ASSIGN_VAR(re, reglob.Reglob(ASSERT_STRING(v)))
-         RETURN(makeTypedValue("regexp", re))
+         RETURN(h.MakeTypedValue("regexp", re))
       }
-      RETURN(makeTypedValue("string", v))
+      RETURN(h.MakeTypedValue("string", v))
     }
 
 searchKeywords
@@ -170,24 +174,24 @@ searchKeywords
   / inToken
 
 booleanLiteral
-  = "true"           { RETURN(makeTypedValue("bool", "true")) }
-  / "false"          { RETURN(makeTypedValue("bool", "false")) }
+  = "true"           { RETURN(h.MakeTypedValue("bool", "true")) }
+  / "false"          { RETURN(h.MakeTypedValue("bool", "false")) }
 
 unsetLiteral
-  = "nil"           { RETURN(makeTypedValue("unset", "")) }
+  = "nil"           { RETURN(h.MakeTypedValue("unset", "")) }
 
 procList
   = first:procChain rest:parallelChain* {
-      INIT_ASSIGN_VAR(fp, makeSequentialProc(first))
+      INIT_ASSIGN_VAR(fp, h.MakeSequentialProc(first))
       IF(ISNOTNULL(rest)) {
-        RETURN(makeParallelProc(PREPEND(fp, rest)))
+        RETURN(h.MakeParallelProc(PREPEND(fp, rest)))
       } else {
         RETURN(fp)
       }
     }
 
 parallelChain
-  = _? ";" _? ch:procChain { RETURN(makeSequentialProc(ch)) }
+  = _? ";" _? ch:procChain { RETURN(h.MakeSequentialProc(ch)) }
 
 proc
   = simpleProc
@@ -234,15 +238,15 @@ fieldNameRest = fieldNameStart / [0-9]
 
 fieldReference
  = base:fieldName derefs:(
-       "." field:fieldName    { RETURN(makeFieldCall("RecordFieldRead", NULL, field)) }
-     / "[" index:sinteger "]" { RETURN(makeFieldCall("Index", NULL, index)) }
+       "." field:fieldName    { RETURN(h.MakeFieldCall("RecordFieldRead", NULL, field)) }
+     / "[" index:sinteger "]" { RETURN(h.MakeFieldCall("Index", NULL, index)) }
    )* {
-     RETURN(chainFieldCalls(base, derefs))
+     RETURN(h.ChainFieldCalls(base, derefs))
    }
 
 fieldExpr
   = op:fieldOp _? "(" _? field:fieldReference _? ")" {
-      RETURN(makeFieldCall(op, field, nil))
+      RETURN(h.MakeFieldCall(op, field, nil))
     }
   / fieldReference
 
@@ -261,8 +265,8 @@ fieldExprList
   }
 
 fieldRefDotOnly
-  = base:fieldName refs:("." field:fieldName { RETURN(makeFieldCall("RecordFieldRead", NULL, field)) } )* {
-    RETURN(chainFieldCalls(base, refs))
+  = base:fieldName refs:("." field:fieldName { RETURN(h.MakeFieldCall("RecordFieldRead", NULL, field)) } )* {
+    RETURN(h.ChainFieldCalls(base, refs))
   }
 
 fieldRefDotOnlyList
@@ -303,17 +307,17 @@ paddedFieldName = _? field:fieldName _? { RETURN(field) }
 
 countReducer
   = op:countOp _? "(" field:paddedFieldName?  _? ")" {
-    RETURN(makeReducer(op, "count", field))
+    RETURN(h.MakeReducer(op, "count", field))
   }
 
 fieldReducer
   = op:fieldReducerOp _? "(" _? field:fieldName  _? ")" {
-    RETURN(makeReducer(op, toLowerCase(op), field))
+    RETURN(h.MakeReducer(op, h.ToLowerCase(op), field))
   }
 
 reducerProc
   = every:(everyDur _)? reducers:reducerList keys:(_ groupBy)? limit:procLimitArg? {
-    if ISNOTNULL(OR(keys, every)) {
+    if ISNOTNULL(h.OR(keys, every)) {
       if ISNOTNULL(keys) {
         keys = ASSERT_ARRAY(keys)[1]
       } else {
@@ -324,10 +328,10 @@ reducerProc
         every = ASSERT_ARRAY(every)[0]
       }
 
-      RETURN(makeGroupByProc(every, limit, keys, reducers))
+      RETURN(h.MakeGroupByProc(every, limit, keys, reducers))
     }
 
-    RETURN(makeReducerProc(reducers))
+    RETURN(h.MakeReducerProc(reducers))
   }
 
 asClause
@@ -335,10 +339,10 @@ asClause
 
 reducerExpr
   = field:fieldName _? "=" _? f:reducer {
-    RETURN(overrideReducerVar(f, field))
+    RETURN(h.OverrideReducerVar(f, field))
   }
   / f:reducer _ field:asClause {
-    RETURN(overrideReducerVar(f, field))
+    RETURN(h.OverrideReducerVar(f, field))
   }
   / reducer
 
@@ -368,41 +372,41 @@ sort
   = "sort"i rev:(_ "-r")? limit:procLimitArg?  _? !"-r" list:(fieldExprList)? {
     INIT_ASSIGN_VAR(sortdir, 1)
     IF(ISNOTNULL(rev)) { sortdir = -1 }
-    RETURN(makeSortProc(list, sortdir, limit))
+    RETURN(h.MakeSortProc(list, sortdir, limit))
   }
   / "sort"i limit:procLimitArg? rev:(_ "-r")? _? list:(fieldExprList)? {
     INIT_ASSIGN_VAR(sortdir, 1)
     IF(ISNOTNULL(rev)) { sortdir = -1 }
-    RETURN(makeSortProc(list, sortdir, limit))
+    RETURN(h.MakeSortProc(list, sortdir, limit))
   }
 
 top
   = "top"i limit:procLimitArg? flush:(_ "-flush")? _? list:(fieldExprList)? {
-    RETURN(makeTopProc(list, limit, flush))
+    RETURN(h.MakeTopProc(list, limit, flush))
   }
 
 procLimitArg
   = _ "-limit" _ limit:integer { RETURN(limit) }
 
 cut
-  = "cut"i _ list:fieldRefDotOnlyList { RETURN(makeCutProc(list)) }
+  = "cut"i _ list:fieldRefDotOnlyList { RETURN(h.MakeCutProc(list)) }
 head
-  = "head"i _ count:integer { RETURN(makeHeadProc(count)) }
-  / "head"i { RETURN(makeHeadProc(1)) }
+  = "head"i _ count:integer { RETURN(h.MakeHeadProc(count)) }
+  / "head"i { RETURN(h.MakeHeadProc(1)) }
 tail
-  = "tail"i _ count:integer { RETURN(makeTailProc(count)) }
-  / "tail"i { RETURN(makeTailProc(1)) }
+  = "tail"i _ count:integer { RETURN(h.MakeTailProc(count)) }
+  / "tail"i { RETURN(h.MakeTailProc(1)) }
 
 filter
   = "filter"i _ expr:searchExpr {
-      RETURN(makeFilterProc(expr))
+      RETURN(h.MakeFilterProc(expr))
     }
 uniq
   = "uniq"i _ "-c" {
-      RETURN(makeUniqProc(true))
+      RETURN(h.MakeUniqProc(true))
     }
   / "uniq"i {
-      RETURN(makeUniqProc(false))
+      RETURN(h.MakeUniqProc(false))
     }
 
 duration
@@ -438,23 +442,23 @@ day_abbrev = "days"/"day"/"d"
 week_abbrev = "weeks"/"week"/"wks"/"wk"/"w"
 
 seconds
-  = "second" { RETURN(makeDuration(1)) }
-  / num:number _? sec_abbrev { RETURN(makeDuration(num)) }
+  = "second" { RETURN(h.MakeDuration(1)) }
+  / num:number _? sec_abbrev { RETURN(h.MakeDuration(num)) }
 
 minutes
-  = "minute" { RETURN(makeDuration(60)) }
-  / num:number _? min_abbrev { RETURN(makeDuration(ASSERT_INT(num)*60)) }
+  = "minute" { RETURN(h.MakeDuration(60)) }
+  / num:number _? min_abbrev { RETURN(h.MakeDuration(ASSERT_INT(num)*60)) }
 
 hours
-  = "hour" { RETURN(makeDuration(3600)) }
-  / num:number _? hour_abbrev { RETURN(makeDuration(ASSERT_INT(num)*3600)) }
+  = "hour" { RETURN(h.MakeDuration(3600)) }
+  / num:number _? hour_abbrev { RETURN(h.MakeDuration(ASSERT_INT(num)*3600)) }
 
 days
-  = "day" { RETURN(makeDuration(3600*24)) }
-  / num:number _? day_abbrev { RETURN(makeDuration(ASSERT_INT(num)*3600*24)) }
+  = "day" { RETURN(h.MakeDuration(3600*24)) }
+  / num:number _? day_abbrev { RETURN(h.MakeDuration(ASSERT_INT(num)*3600*24)) }
 
 weeks
-  = num:number _? week_abbrev { RETURN(makeDuration(ASSERT_INT(num)*3600*24*7)) }
+  = num:number _? week_abbrev { RETURN(h.MakeDuration(ASSERT_INT(num)*3600*24*7)) }
 
 number = integer
 
@@ -470,16 +474,16 @@ port
 // will catch any errors when translating the filter
 ip6addr
   = a:(h_prepend)+ b:ip6tail {
-      RETURN(joinChars(a) + ASSERT_STRING(b))
+      RETURN(h.JoinChars(a) + ASSERT_STRING(b))
     }
   / a:h16 b:(h_append)* "::" d:(h_prepend)* e:ip6tail {
-      RETURN(ASSERT_STRING(a) + joinChars(b) + "::" + joinChars(d) + ASSERT_STRING(e))
+      RETURN(ASSERT_STRING(a) + h.JoinChars(b) + "::" + h.JoinChars(d) + ASSERT_STRING(e))
     }
   / "::" a:(h_prepend)* b:ip6tail {
-      RETURN("::" + joinChars(a) + ASSERT_STRING(b))
+      RETURN("::" + h.JoinChars(a) + ASSERT_STRING(b))
     }
   / a:h16 b:(h_append)* "::" {
-      RETURN(ASSERT_STRING(a) + joinChars(b) + "::")
+      RETURN(ASSERT_STRING(a) + h.JoinChars(b) + "::")
     }
   / "::" {
       RETURN("::")
@@ -510,7 +514,7 @@ ip6subnet
 
 integer
   = s:sinteger {
-    RETURN(parseInt(s))
+    RETURN(h.ParseInt(s))
   }
 
 sinteger
@@ -520,7 +524,7 @@ sinteger
 
 double
   = s:sdouble {
-      RETURN(parseFloat(s))
+      RETURN(h.ParseFloat(s))
   }
 
 sdouble
@@ -545,15 +549,15 @@ h16 = chars:hexdigit+ { RETURN(TEXT) }
 
 hexdigit = [0-9a-fA-F]
 
-boomWord "boomWord" = chars:boomWordPart+ { RETURN(joinChars(chars)) }
+boomWord "boomWord" = chars:boomWordPart+ { RETURN(h.JoinChars(chars)) }
 
 boomWordPart
   = "\\" s:escapeSequence  { RETURN(s) }
   / !([\x00-\x1F\x5C(),!><=DQUOTE|SQUOTE;] / ws) . { RETURN(TEXT) }
 
 quotedString
-  = '"' v:doubleQuotedChar* '"' { RETURN(joinChars(v)) }
-  / "'" v:singleQuotedChar* "'" { RETURN(joinChars(v)) }
+  = '"' v:doubleQuotedChar* '"' { RETURN(h.JoinChars(v)) }
+  / "'" v:singleQuotedChar* "'" { RETURN(h.JoinChars(v)) }
 
 doubleQuotedChar
   = !('"' / escapedChar) . { RETURN(TEXT) }

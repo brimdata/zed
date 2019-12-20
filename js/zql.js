@@ -143,18 +143,18 @@ function peg$parse(input, options) {
 
       peg$c0 = function(ast) { return ast },
       peg$c1 = function(procs) {
-            let filt =  makeFilterProc(makeBooleanLiteral(true))
-            return makeSequentialProc([filt, ... procs])
+            let filt =  h.MakeFilterProc(h.MakeBooleanLiteral(true))
+            return h.MakeSequentialProc([filt, ... procs])
           },
       peg$c2 = function(s, rest) {
             if(rest.length == 0) {
                 return s
             } else {
-                return makeSequentialProc([s, ... rest])
+                return h.MakeSequentialProc([s, ... rest])
             }
           },
       peg$c3 = function(s) {
-            return makeSequentialProc([s])
+            return h.MakeSequentialProc([s])
           },
       peg$c4 = function(first, rest) {
             if ((rest)) {
@@ -167,20 +167,20 @@ function peg$parse(input, options) {
       peg$c6 = peg$literalExpectation("|", false),
       peg$c7 = function(p) { return p },
       peg$c8 = function(expr) {
-            return makeFilterProc(expr)
+            return h.MakeFilterProc(expr)
           },
       peg$c9 = function(first, rest) {
-            return makeOrChain(first, rest)
+            return h.MakeOrChain(first, rest)
           },
       peg$c10 = function(t) { return t },
       peg$c11 = function(first, rest) {
-            return makeAndChain(first, rest)
+            return h.MakeAndChain(first, rest)
           },
       peg$c12 = function(f) { return f },
       peg$c13 = "!",
       peg$c14 = peg$literalExpectation("!", false),
       peg$c15 = function(e) {
-            return makeLogicalNot(e)
+            return h.MakeLogicalNot(e)
           },
       peg$c16 = "-",
       peg$c17 = peg$literalExpectation("-", false),
@@ -193,82 +193,82 @@ function peg$parse(input, options) {
       peg$c24 = "*",
       peg$c25 = peg$literalExpectation("*", false),
       peg$c26 = function(fieldComparator, v) {
-            return makeCompareAny(fieldComparator, false, v)
+            return h.MakeCompareAny(fieldComparator, false, v)
           },
       peg$c27 = "**",
       peg$c28 = peg$literalExpectation("**", false),
       peg$c29 = function(fieldComparator, v) {
-            return makeCompareAny(fieldComparator, true, v)
+            return h.MakeCompareAny(fieldComparator, true, v)
           },
       peg$c30 = function() {
-            return makeBooleanLiteral(true)
+            return h.MakeBooleanLiteral(true)
           },
       peg$c31 = function(f, fieldComparator, v) {
-            return makeCompareField(fieldComparator, f, v)
+            return h.MakeCompareField(fieldComparator, f, v)
           },
       peg$c32 = function(v) {
-            return makeCompareAny("in", false, v)
+            return h.MakeCompareAny("in", false, v)
           },
       peg$c33 = function(v, f) {
-            return makeCompareField("in", f, v)
+            return h.MakeCompareField("in", f, v)
           },
       peg$c34 = function(v) {
-            let ss =  makeSearchString(v)
-            if (getValueType(v) == "string") {
+            let ss =  h.MakeSearchString(v)
+            if (h.GetValueType(v) == "string") {
               return ss
             }
-            ss = makeSearchString(makeTypedValue("string", text()))
-            return makeOrChain(ss, [makeCompareAny("eql", true, v), makeCompareAny("in", true, v)])
+            ss = h.MakeSearchString(h.MakeTypedValue("string", text()))
+            return h.MakeOrChain(ss, [h.MakeCompareAny("eql", true, v), h.MakeCompareAny("in", true, v)])
           },
       peg$c35 = function(v) {
-            return makeTypedValue("string", v)
+            return h.MakeTypedValue("string", v)
           },
       peg$c36 = function(v) {
-            return makeTypedValue("regexp", v)
+            return h.MakeTypedValue("regexp", v)
           },
       peg$c37 = function(v) {
-            return makeTypedValue("port", v)
+            return h.MakeTypedValue("port", v)
         },
       peg$c38 = function(v) {
-            return makeTypedValue("subnet", v)
+            return h.MakeTypedValue("subnet", v)
           },
       peg$c39 = function(v) {
-            return makeTypedValue("addr", v)
+            return h.MakeTypedValue("addr", v)
           },
       peg$c40 = function(v) {
-            return makeTypedValue("double", v)
+            return h.MakeTypedValue("double", v)
           },
       peg$c41 = function(v) {
-            return makeTypedValue("int", v)
+            return h.MakeTypedValue("int", v)
           },
       peg$c42 = function(v) { return v },
       peg$c43 = function(v) {
             if (reglob.IsGlobby(v) || v == "*") {
                let re =  reglob.Reglob(v)
-               return makeTypedValue("regexp", re)
+               return h.MakeTypedValue("regexp", re)
             }
-            return makeTypedValue("string", v)
+            return h.MakeTypedValue("string", v)
           },
       peg$c44 = "true",
       peg$c45 = peg$literalExpectation("true", false),
-      peg$c46 = function() { return makeTypedValue("bool", "true") },
+      peg$c46 = function() { return h.MakeTypedValue("bool", "true") },
       peg$c47 = "false",
       peg$c48 = peg$literalExpectation("false", false),
-      peg$c49 = function() { return makeTypedValue("bool", "false") },
+      peg$c49 = function() { return h.MakeTypedValue("bool", "false") },
       peg$c50 = "nil",
       peg$c51 = peg$literalExpectation("nil", false),
-      peg$c52 = function() { return makeTypedValue("unset", "") },
+      peg$c52 = function() { return h.MakeTypedValue("unset", "") },
       peg$c53 = function(first, rest) {
-            let fp =  makeSequentialProc(first)
+            let fp =  h.MakeSequentialProc(first)
             if ((rest)) {
-              return makeParallelProc([fp, ... rest])
+              return h.MakeParallelProc([fp, ... rest])
             } else {
               return fp
             }
           },
       peg$c54 = ";",
       peg$c55 = peg$literalExpectation(";", false),
-      peg$c56 = function(ch) { return makeSequentialProc(ch) },
+      peg$c56 = function(ch) { return h.MakeSequentialProc(ch) },
       peg$c57 = function(proc) {
             return proc
           },
@@ -333,17 +333,17 @@ function peg$parse(input, options) {
       peg$c116 = peg$classExpectation([["0", "9"]], false, false),
       peg$c117 = ".",
       peg$c118 = peg$literalExpectation(".", false),
-      peg$c119 = function(base, field) { return makeFieldCall("RecordFieldRead", null, field) },
+      peg$c119 = function(base, field) { return h.MakeFieldCall("RecordFieldRead", null, field) },
       peg$c120 = "[",
       peg$c121 = peg$literalExpectation("[", false),
       peg$c122 = "]",
       peg$c123 = peg$literalExpectation("]", false),
-      peg$c124 = function(base, index) { return makeFieldCall("Index", null, index) },
+      peg$c124 = function(base, index) { return h.MakeFieldCall("Index", null, index) },
       peg$c125 = function(base, derefs) {
-           return chainFieldCalls(base, derefs)
+           return h.ChainFieldCalls(base, derefs)
          },
       peg$c126 = function(op, field) {
-            return makeFieldCall(op, field, nil)
+            return h.MakeFieldCall(op, field, nil)
           },
       peg$c127 = "len",
       peg$c128 = peg$literalExpectation("len", true),
@@ -360,7 +360,7 @@ function peg$parse(input, options) {
             return result
         },
       peg$c133 = function(base, refs) {
-          return chainFieldCalls(base, refs)
+          return h.ChainFieldCalls(base, refs)
         },
       peg$c134 = function(first, ref) { return ref },
       peg$c135 = function(first, rest) {
@@ -413,13 +413,13 @@ function peg$parse(input, options) {
       peg$c170 = function() { return "CountDistinct" },
       peg$c171 = function(field) { return field },
       peg$c172 = function(op, field) {
-          return makeReducer(op, "count", field)
+          return h.MakeReducer(op, "count", field)
         },
       peg$c173 = function(op, field) {
-          return makeReducer(op, toLowerCase(op), field)
+          return h.MakeReducer(op, h.ToLowerCase(op), field)
         },
       peg$c174 = function(every, reducers, keys, limit) {
-          if (OR(keys, every)) {
+          if (h.OR(keys, every)) {
             if (keys) {
               keys = keys[1]
             } else {
@@ -430,18 +430,18 @@ function peg$parse(input, options) {
               every = every[0]
             }
 
-            return makeGroupByProc(every, limit, keys, reducers)
+            return h.MakeGroupByProc(every, limit, keys, reducers)
           }
 
-          return makeReducerProc(reducers)
+          return h.MakeReducerProc(reducers)
         },
       peg$c175 = "as",
       peg$c176 = peg$literalExpectation("as", true),
       peg$c177 = function(field, f) {
-          return overrideReducerVar(f, field)
+          return h.OverrideReducerVar(f, field)
         },
       peg$c178 = function(f, field) {
-          return overrideReducerVar(f, field)
+          return h.OverrideReducerVar(f, field)
         },
       peg$c179 = function(first, rest) {
             let result =  [first]
@@ -457,34 +457,34 @@ function peg$parse(input, options) {
       peg$c184 = function(rev, limit, list) {
           let sortdir =  1
           if ((rev)) { sortdir = -1 }
-          return makeSortProc(list, sortdir, limit)
+          return h.MakeSortProc(list, sortdir, limit)
         },
       peg$c185 = function(limit, rev, list) {
           let sortdir =  1
           if ((rev)) { sortdir = -1 }
-          return makeSortProc(list, sortdir, limit)
+          return h.MakeSortProc(list, sortdir, limit)
         },
       peg$c186 = "top",
       peg$c187 = peg$literalExpectation("top", true),
       peg$c188 = "-flush",
       peg$c189 = peg$literalExpectation("-flush", false),
       peg$c190 = function(limit, flush, list) {
-          return makeTopProc(list, limit, flush)
+          return h.MakeTopProc(list, limit, flush)
         },
       peg$c191 = "-limit",
       peg$c192 = peg$literalExpectation("-limit", false),
       peg$c193 = function(limit) { return limit },
       peg$c194 = "cut",
       peg$c195 = peg$literalExpectation("cut", true),
-      peg$c196 = function(list) { return makeCutProc(list) },
+      peg$c196 = function(list) { return h.MakeCutProc(list) },
       peg$c197 = "head",
       peg$c198 = peg$literalExpectation("head", true),
-      peg$c199 = function(count) { return makeHeadProc(count) },
-      peg$c200 = function() { return makeHeadProc(1) },
+      peg$c199 = function(count) { return h.MakeHeadProc(count) },
+      peg$c200 = function() { return h.MakeHeadProc(1) },
       peg$c201 = "tail",
       peg$c202 = peg$literalExpectation("tail", true),
-      peg$c203 = function(count) { return makeTailProc(count) },
-      peg$c204 = function() { return makeTailProc(1) },
+      peg$c203 = function(count) { return h.MakeTailProc(count) },
+      peg$c204 = function() { return h.MakeTailProc(1) },
       peg$c205 = "filter",
       peg$c206 = peg$literalExpectation("filter", true),
       peg$c207 = "uniq",
@@ -492,10 +492,10 @@ function peg$parse(input, options) {
       peg$c209 = "-c",
       peg$c210 = peg$literalExpectation("-c", false),
       peg$c211 = function() {
-            return makeUniqProc(true)
+            return h.MakeUniqProc(true)
           },
       peg$c212 = function() {
-            return makeUniqProc(false)
+            return h.MakeUniqProc(false)
           },
       peg$c213 = "seconds",
       peg$c214 = peg$literalExpectation("seconds", false),
@@ -542,31 +542,31 @@ function peg$parse(input, options) {
       peg$c255 = peg$literalExpectation("wk", false),
       peg$c256 = "w",
       peg$c257 = peg$literalExpectation("w", false),
-      peg$c258 = function() { return makeDuration(1) },
-      peg$c259 = function(num) { return makeDuration(num) },
-      peg$c260 = function() { return makeDuration(60) },
-      peg$c261 = function(num) { return makeDuration(num*60) },
-      peg$c262 = function() { return makeDuration(3600) },
-      peg$c263 = function(num) { return makeDuration(num*3600) },
-      peg$c264 = function() { return makeDuration(3600*24) },
-      peg$c265 = function(num) { return makeDuration(num*3600*24) },
-      peg$c266 = function(num) { return makeDuration(num*3600*24*7) },
+      peg$c258 = function() { return h.MakeDuration(1) },
+      peg$c259 = function(num) { return h.MakeDuration(num) },
+      peg$c260 = function() { return h.MakeDuration(60) },
+      peg$c261 = function(num) { return h.MakeDuration(num*60) },
+      peg$c262 = function() { return h.MakeDuration(3600) },
+      peg$c263 = function(num) { return h.MakeDuration(num*3600) },
+      peg$c264 = function() { return h.MakeDuration(3600*24) },
+      peg$c265 = function(num) { return h.MakeDuration(num*3600*24) },
+      peg$c266 = function(num) { return h.MakeDuration(num*3600*24*7) },
       peg$c267 = function(a) { return text() },
       peg$c268 = ":",
       peg$c269 = peg$literalExpectation(":", false),
       peg$c270 = function(a, b) {
-            return joinChars(a) + b
+            return h.JoinChars(a) + b
           },
       peg$c271 = "::",
       peg$c272 = peg$literalExpectation("::", false),
       peg$c273 = function(a, b, d, e) {
-            return a + joinChars(b) + "::" + joinChars(d) + e
+            return a + h.JoinChars(b) + "::" + h.JoinChars(d) + e
           },
       peg$c274 = function(a, b) {
-            return "::" + joinChars(a) + b
+            return "::" + h.JoinChars(a) + b
           },
       peg$c275 = function(a, b) {
-            return a + joinChars(b) + "::"
+            return a + h.JoinChars(b) + "::"
           },
       peg$c276 = function() {
             return "::"
@@ -585,13 +585,13 @@ function peg$parse(input, options) {
             return a + "/" + m;
           },
       peg$c286 = function(s) {
-          return parseInt(s)
+          return h.ParseInt(s)
         },
       peg$c287 = function(chars) {
           return text()
         },
       peg$c288 = function(s) {
-            return parseFloat(s)
+            return h.ParseFloat(s)
         },
       peg$c289 = function() {
             return text()
@@ -608,7 +608,7 @@ function peg$parse(input, options) {
       peg$c299 = /^[0-9a-fA-F]/,
       peg$c300 = peg$classExpectation([["0", "9"], ["a", "f"], ["A", "F"]], false, false),
       peg$c301 = peg$otherExpectation("boomWord"),
-      peg$c302 = function(chars) { return joinChars(chars) },
+      peg$c302 = function(chars) { return h.JoinChars(chars) },
       peg$c303 = "\\",
       peg$c304 = peg$literalExpectation("\\", false),
       peg$c305 = /^[\0-\x1F\\(),!><="|';]/,
@@ -616,7 +616,7 @@ function peg$parse(input, options) {
       peg$c307 = peg$anyExpectation(),
       peg$c308 = "\"",
       peg$c309 = peg$literalExpectation("\"", false),
-      peg$c310 = function(v) { return joinChars(v) },
+      peg$c310 = function(v) { return h.JoinChars(v) },
       peg$c311 = "'",
       peg$c312 = peg$literalExpectation("'", false),
       peg$c313 = "x",
@@ -6345,121 +6345,8 @@ function peg$parse(input, options) {
   }
 
 
-
-  let reglob = require("../reglob/reglob")
-
-    function makeSequentialProc(procs) {
-      return { op: "SequentialProc", procs };
-    }
-
-  function makeParallelProc(procs) {
-    return { op: "ParallelProc", procs };
-  }
-
-  function makeTypedValue(type, value) { return { type, value }; }
-  function getValueType(v) { return v.type; }
-
-  function makeFieldCall(fn, field, param) {
-    return { op: "FieldCall", fn, field, param };
-  }
-  function chainFieldCalls(base, derefs) {
-    let ret = { op: "FieldRead", field: base };
-    for (let d of derefs) {
-      d.field = ret
-      ret = d
-    }
-    return ret
-  }
-
-  function makeBooleanLiteral(value) {
-    return { op: "BooleanLiteral", value };
-  }
-
-  function makeCompareField(comparator, field, value) {
-    return { op: "CompareField", comparator, field, value };
-  }
-
-  function makeCompareAny(comparator, recursive, value) {
-    return { op: "CompareAny", comparator, recursive, value };
-  }
-
-  function makeLogicalNot(expr) { return { op: "LogicalNot", expr }; }
-
-  function makeChain(first, rest, op) {
-    if (!rest || rest.length == 0) {
-      return first;
-    }
-    let result = first;
-    for (let term of rest) {
-      result = { op, left: result, right: term };
-    }
-    return result;
-  }
-
-  function makeOrChain(first, rest) {
-    return makeChain(first, rest, "LogicalOr");
-  }
-  function makeAndChain(first, rest) {
-    return makeChain(first, rest, "LogicalAnd");
-  }
-
-  function makeSearchString(value) {
-    return { op: "SearchString", value };
-  }
-  function resetSearchStringType(v) {
-    v.type = "string";
-  }
-
-  function makeSortProc(fields, sortdir, limit) {
-    if (limit === null) { limit = undefined; }
-    return { op: "SortProc", fields, sortdir, limit };
-  }
-
-  function makeTopProc(fields, limit, flush) {
-    if (limit === null) { limit = undefined; }
-    if (fields === null) { fields = undefined; }
-    flush = !!flush
-    return { op: "TopProc", fields, limit, flush};
-  }
-
-  function makeCutProc(fields) { return { op: "CutProc", fields }; }
-  function makeHeadProc(count) { return { op: "HeadProc", count }; }
-  function makeTailProc(count) { return { op: "TailProc", count }; }
-  function makeUniqProc(cflag) { return { op: "TailProc", cflag }; }
-  function makeFilterProc(filter) { return { op: "FilterProc", filter }; }
-  function makeReducer(op, var_, field) {
-    if (field === null) { field = undefined; }
-    return { op, var: var_, field };
-  }
-  function overrideReducerVar(reducer, v) {
-    reducer.var = v;
-    return reducer;
-  }
-
-  function makeDuration(seconds) {
-    return {type: "Duration", seconds};
-  }
-
-  function makeReducerProc(reducers) {
-    return { op: "ReducerProc", reducers };
-  }
-  function makeGroupByProc(duration, limit, keys, reducers) {
-    if (limit === null) { limit = undefined; }
-    return { op: "GroupByProc", keys, reducers, duration, limit };
-  }
-
-  function joinChars(chars) {
-    return chars.join("");
-  }
-
-  function toLowerCase(str) {
-    return str.toLowerCase();
-  }
-
-  function OR(a, b) {
-    return a || b
-  }
-
+  	const h = require("./helpers")
+  	const reglob = require("./reglob")
 
 
   peg$result = peg$startRuleFunction();
