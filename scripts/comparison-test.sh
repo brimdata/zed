@@ -81,7 +81,7 @@ do
     echo "|**<br>Tool**|**<br>Arguments**|**Input<br>Format**|**Output<br>Format**|**<br>Real**|**<br>User**|**<br>Sys**|" | tee -a "$MD"
     echo "|:----------:|:---------------:|:-----------------:|:------------------:|-----------:|-----------:|----------:|" | tee -a "$MD"
     for INPUT in zeek bzng ndjson ; do          # Also zng, pending bug fix
-      for OUTPUT in zeek bzng zng ndjson ; do   # Also zng, pending bug fix
+      for OUTPUT in zeek bzng zng ndjson ; do
         echo -n "|\`zq\`|\`$zql\`|$INPUT|$OUTPUT|" | tee -a "$MD"
         ALL_TIMES=$( ($TIME zq -i "$INPUT" -f "$OUTPUT" "$zql" $DATA/$INPUT/* > /dev/null) 2>&1)
         echo "$ALL_TIMES" | tr '\n' ' ' | awk '{ print $2 "|" $4 "|" $6 "|" }' | tee -a "$MD"
