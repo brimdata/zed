@@ -25,5 +25,5 @@ func (e *Exec) Run(path string) (string, error) {
 	cmd.Stderr = &stderr
 	cmd.Stdin = strings.NewReader(e.Input)
 	err := cmd.Run()
-	return string(stdout.Bytes()), err
+	return stdout.String(), err
 }

@@ -49,6 +49,7 @@ func TestZngDescriptors(t *testing.T) {
 	expectAddr := net.ParseIP("10.5.5.5").To4()
 	assert.Equal(t, expectAddr, a, "Parsed addr value properly")
 	n, err = record.AccessInt("p")
+	require.NoError(t, err)
 	assert.Equal(t, 443, int(n), "Parsed port value properly")
 
 	// Check Step 3
