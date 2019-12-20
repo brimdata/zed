@@ -56,7 +56,8 @@ func NewPattern(r *regexp.Regexp) *Pattern {
 }
 
 func (p *Pattern) String() string {
-	return p.String()
+	re := regexp.Regexp(*p)
+	return re.String()
 }
 
 func (p *Pattern) Encode(dst zval.Encoding) zval.Encoding {

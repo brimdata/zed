@@ -71,6 +71,7 @@ func TestZeek(t *testing.T) {
 	require.NoError(t, err)
 	subnet2, _ := zeek.NewValue("subnet", "128.32.1.0/24")
 	err = run(vals, "eql", subnet2, []bool{false, false, false, false, false, true, false, false, false})
+	require.NoError(t, err)
 	subnet3, _ := zeek.NewValue("subnet", "128.32.2.0/24")
 	err = run(vals, "eql", subnet3, []bool{false, false, false, false, false, false, false, false, false})
 	require.NoError(t, err)

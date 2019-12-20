@@ -119,7 +119,8 @@ func NewSubnet(s *net.IPNet) *Subnet {
 }
 
 func (s *Subnet) String() string {
-	return s.String()
+	ipnet := net.IPNet(*s)
+	return ipnet.String()
 }
 
 func (s *Subnet) Encode(dst zval.Encoding) zval.Encoding {
