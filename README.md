@@ -1,7 +1,7 @@
 # `zq` [![CI][ci-img]][ci] [![GoDoc][doc-img]][doc]
 
-`zq` is a command-line tool for processing
-[Zeek](https://www.zeek.org) logs.  If you are familiar with
+`zq` is a command-line tool that's useful for searching and analyzing logs;
+particularly [Zeek](https://www.zeek.org) logs.  If you are familiar with
 [`zeek-cut`](https://github.com/zeek/zeek-aux/tree/master/zeek-cut),
 you can think of `zq` as `zeek-cut` on steroids.  (If you missed
 [the name change](https://blog.zeek.org/2018/10/renaming-bro-project_11.html),
@@ -11,9 +11,10 @@ Zeek was formerly known as "Bro".)
 * an [execution engine](proc) for log pattern search and analytics,
 * a [query language](pkg/zql/README.md) that compiles into a program that runs on
 the execution engine, and
-* an open specification for structured logs, called [ZSON](pkg/zson/docs/spec.md).
+* an open specification for structured logs, called [ZNG](pkg/zson/docs/spec.md).<br>
+(**Note**: The ZNG format is in Alpha and subject to change.)
 
-`zq` takes Zeek/ZSON logs as input and filters, transforms, and performs
+`zq` takes Zeek/ZNG logs as input and filters, transforms, and performs
 analytics using the
 [zq query language](pkg/zql/README.md),
 producing a log stream as its output.
@@ -51,7 +52,7 @@ zq "* | cut ts,id.orig_h,id.orig_p" conn.log
 The "`*`" tells `zq` to match every line, which is sent to the `cut` processor
 using the UNIX-like pipe syntax.
 
-The default output is a ZSON file.  If you want just the tab-separated lines
+The default output is a ZNG file.  If you want just the tab-separated lines
 like `zeek-cut`, you can specify text output:
 ```
 zq -f text "* | cut ts,id.orig_h,id.orig_p" conn.log
@@ -70,11 +71,11 @@ zq "orig_bytes > 10000 | count()" conn.log
 zq "* | avg(orig_bytes)" conn.log
 ```
 
-The [ZSON specification](pkg/zson/docs/spec.md) describes the significance of the
+The [ZNG specification](pkg/zson/docs/spec.md) describes the significance of the
 `_path` field.  By leveraging this, diverse Zeek logs can be combined into a single
 file.
 ```
-zq "*" *.log > all.zson
+zq "*" *.log > all.zng
 ```
 
 ## Development
