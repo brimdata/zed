@@ -33,7 +33,7 @@ As there are many results to sift through, here's a few key summary take-aways:
 |`zq`|`*`|ndjson|bzng|27.20|43.48|2.84|
 |`zq`|`*`|ndjson|zng|30.08|65.00|3.22|
 |`zq`|`*`|ndjson|ndjson|61.15|118.48|5.94|
-|`zeek-cut`|``|zeek|zeek-cut|0.26|0.00|0.22|
+|`zeek-cut`||zeek|zeek-cut|0.26|0.00|0.22|
 |`jq`|`-c "."`|ndjson|ndjson|38.41|38.01|0.33|
 
 ### Extract the field `ts`
