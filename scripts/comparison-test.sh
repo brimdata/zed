@@ -14,8 +14,8 @@ else
   git clone "$DATA_REPO"
 fi
 find "$DATA" -name \*.gz -exec gunzip -f {} \;
-ln -sfh zeek-default "$DATA/zeek"
-ln -sfh zeek-ndjson "$DATA/ndjson"
+ln -sfn zeek-default "$DATA/zeek"
+ln -sfn zeek-ndjson "$DATA/ndjson"
 
 TIME=$(command -v time)
 
@@ -39,7 +39,7 @@ declare -a DESCRIPTIONS=(
     'Extract the field `ts`'
     'Count all events'
     'Count all events, grouped by the field `id.orig_h`'
-    'Output all events containing that have field `id.resp_h` set to `52.85.83.116`'
+    'Output all events with the field `id.resp_h` set to `52.85.83.116`'
 )
 
 declare -a ZQL_QUERIES=(
@@ -77,7 +77,7 @@ do
     DESC=${DESCRIPTIONS[$n]}
     MD=${MARKDOWNS[$n]}
     zql=${ZQL_QUERIES[$n]}
-    echo -e "#### $DESC\n" | tee "$MD"
+    echo -e "### $DESC\n" | tee "$MD"
     echo "|**<br>Tool**|**<br>Arguments**|**Input<br>Format**|**Output<br>Format**|**<br>Real**|**<br>User**|**<br>Sys**|" | tee -a "$MD"
     echo "|:----------:|:---------------:|:-----------------:|:------------------:|-----------:|-----------:|----------:|" | tee -a "$MD"
     for INPUT in zeek bzng ndjson ; do          # Also zng, pending bug fix
@@ -103,5 +103,5 @@ do
     ALL_TIMES=$( ($TIME jq $JQFLAG "$JQ" "$DATA"/zeek-ndjson/*.ndjson > /dev/null) 2>&1)
     echo "$ALL_TIMES" | awk '{ print $1 "|" $3 "|" $5 "|" }' | tee -a "$MD"
 
-    echo
+    echo -e "\n\n"
 done
