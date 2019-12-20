@@ -17,7 +17,7 @@ find "$DATA" -name \*.gz -exec gunzip -f {} \;
 ln -sfn zeek-default "$DATA/zeek"
 ln -sfn zeek-ndjson "$DATA/ndjson"
 
-TIME=$(command -v time)
+TIME="$(command -v time) -p"
 
 for CMD in zq jq zeek-cut; do
   if ! [[ $(type -P "$CMD") ]]; then
@@ -84,7 +84,7 @@ do
       for OUTPUT in zeek bzng zng ndjson ; do   # Also zng, pending bug fix
         echo -n "|\`zq\`|\`$zql\`|$INPUT|$OUTPUT|" | tee -a "$MD"
         ALL_TIMES=$( ($TIME zq -i "$INPUT" -f "$OUTPUT" "$zql" $DATA/$INPUT/* > /dev/null) 2>&1)
-        echo "$ALL_TIMES" | awk '{ print $1 "|" $3 "|" $5 "|" }' | tee -a "$MD"
+        echo "$ALL_TIMES" | tr '\n' ' ' | awk '{ print $2 "|" $4 "|" $6 "|" }' | tee -a "$MD"
       done
     done
 
@@ -93,7 +93,7 @@ do
       echo "|\`zeek-cut\`|\`$ZCUT\`|zeek|zeek-cut|" | sed 's/\`\`//' | tr -d '\n' | tee -a "$MD"
       set +xv
       ALL_TIMES=$( ($TIME cat "$DATA"/zeek/*.log | zeek-cut "$ZCUT" > /dev/null) 2>&1)
-      echo "$ALL_TIMES" | awk '{ print $1 "|" $3 "|" $5 "|" }' | tee -a "$MD"
+      echo "$ALL_TIMES" | tr '\n' ' ' | awk '{ print $2 "|" $4 "|" $6 "|" }' | tee -a "$MD"
     fi
 
     JQ=${JQ_FILTERS[$n]}
@@ -101,7 +101,7 @@ do
     echo -n "|\`jq\`|\`$JQFLAG \"${JQ//|/\\|}\"\`|ndjson|ndjson|" | tee -a "$MD"
     # shellcheck disable=SC2086      # For expanding JQFLAG
     ALL_TIMES=$( ($TIME jq $JQFLAG "$JQ" "$DATA"/zeek-ndjson/*.ndjson > /dev/null) 2>&1)
-    echo "$ALL_TIMES" | awk '{ print $1 "|" $3 "|" $5 "|" }' | tee -a "$MD"
+    echo "$ALL_TIMES" | tr '\n' ' ' | awk '{ print $2 "|" $4 "|" $6 "|" }' | tee -a "$MD"
 
-    echo -e "\n\n"
+    echo | tee -a "$MD"
 done
