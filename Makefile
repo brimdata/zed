@@ -12,10 +12,10 @@ fmt:
 		exit 1; \
 	fi
 
-test-unit: zql/zql.go js/zql.js
+test-unit: zql
 	@go test -short ./...
 
-test-system: build
+test-system: zql build
 	@go test -v -tags=system ./tests -args PATH=$(shell pwd)/dist
 
 build:
@@ -27,9 +27,7 @@ install:
 
 clean:
 	@rm -rf dist
-
-node_modules: package.json
-	@npm install
+	@rm -rf node_modules
 
 zql: zql/zql.go js/zql.js
 
@@ -41,5 +39,7 @@ js/zql.js: node_modules zql/zql.peg
 	@cpp -E -P ./zql/zql.peg \
 		| npx pegjs -o $@ # \
 
+node_modules: package.json
+	@npm install
 
 .PHONY: vet test-unit test-system clean build
