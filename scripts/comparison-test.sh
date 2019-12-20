@@ -1,4 +1,8 @@
 #!/bin/bash
+
+# The backticks in quotes are for markdown, not expansion.
+# shellcheck disable=SC2016
+
 set -eo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -15,30 +19,24 @@ find "$DATA" -name \*.gz -exec gunzip -f {} \;
 ln -sfh zeek-default "$DATA/zeek"
 ln -sfh zeek-ndjson "$DATA/ndjson"
 
-ZEEK_LOGS="$DATA/zeek-default/*.log"
-ZNG_LOGS="$DATA/zng/*.zng"
-BZNG_LOGS="$DATA/bzng/*.bzng"
-NDJSON_LOGS="$DATA/zeek-ndjson/*.ndjson"
+TIME=$(command -v time)
 
-TIME=$(which time)
-
-for CMD in time zq jq zeek-cut; do
+for CMD in zq jq zeek-cut; do
   if ! [[ $(type -P "$CMD") ]]; then
-    echo "$CMD not found in PATH. Exiting."
+    echo "$CMD not found in PATH"
     exit 1
   fi
 done
 
-
-declare -a markdowns=(
-    '../performance/01_all_unmodified.md'
-    '../performance/02_cut_ts.md'
-    '../performance/03_count_all.md'
-    '../performance/04_count_by_id_orig_h.md'
-    '../performance/05_only_id_resp_h.md'
+declare -a MARKDOWNS=(
+    '01_all_unmodified.md'
+    '02_cut_ts.md'
+    '03_count_all.md'
+    '04_count_by_id_orig_h.md'
+    '05_only_id_resp_h.md'
 )
 
-declare -a descriptions=(
+declare -a DESCRIPTIONS=(
     'Output all events unmodified'
     'Extract the field `ts`'
     'Count all events'
@@ -46,7 +44,7 @@ declare -a descriptions=(
     'Output all events containing that have field `id.resp_h` set to `52.85.83.116`'
 )
 
-declare -a zqls=(
+declare -a ZQL_QUERIES=(
     '*'
     'cut ts'
     'count()'
@@ -54,21 +52,21 @@ declare -a zqls=(
     'id.resp_h=52.85.83.116'
 )
 
-declare -a jqs=(
+declare -a JQ_FILTERS=(
     '.'
     '. | { ts }'
     '. | length'
     'group_by(."id.orig_h")[] | length as $l | .[0] | .count = $l | {count,"id.orig_h"}'
     '. | select(.["id.resp_h"]=="52.85.83.116")'
 )
-declare -a jqflags=(
+declare -a JQFLAGS=(
     '-c'
     '-c'
     '-c -s'
     '-c -s'
     '-c'
 )
-declare -a zcuts=(
+declare -a ZCUT_FIELDS=(
     ''
     'ts'
     'NONE'
@@ -76,36 +74,35 @@ declare -a zcuts=(
     'NONE'
 )
 
-for (( n=0; n<"${#zqls[@]}"; n++ ))
+for (( n=0; n<"${#ZQL_QUERIES[@]}"; n++ ))
 do
-    desc=${descriptions[$n]}
-    MD=${markdowns[$n]}
-    zql=${zqls[$n]}
-    echo -e "#### $desc\n" | tee "$MD"
+    DESC=${DESCRIPTIONS[$n]}
+    MD=${MARKDOWNS[$n]}
+    zql=${ZQL_QUERIES[$n]}
+    echo -e "#### $DESC\n" | tee "$MD"
     echo "|**<br>Tool**|**<br>Arguments**|**Input<br>Format**|**Output<br>Format**|**<br>Real**|**<br>User**|**<br>Sys**|" | tee -a "$MD"
     echo "|:----------:|:---------------:|:-----------------:|:------------------:|-----------:|-----------:|----------:|" | tee -a "$MD"
-    for INPUT in bzng ; do   # zeek bzng zng ndjson
-      for OUTPUT in bzng; do
+    for INPUT in zeek bzng ndjson ; do          # Also zng, pending bug fix
+      for OUTPUT in zeek bzng zng ndjson ; do   # Also zng, pending bug fix
         echo -n "|\`zq\`|\`$zql\`|$INPUT|$OUTPUT|" | tee -a "$MD"
-        ALL_TIMES=$(($TIME zq -i "$INPUT" -f "$OUTPUT" "$zql" $DATA/$INPUT/* > /dev/null) 2>&1)
-        echo $ALL_TIMES | awk '{ print $1 "|" $3 "|" $5 "|" }' | tee -a "$MD"
+        ALL_TIMES=$( ($TIME zq -i "$INPUT" -f "$OUTPUT" "$zql" $DATA/$INPUT/* > /dev/null) 2>&1)
+        echo "$ALL_TIMES" | awk '{ print $1 "|" $3 "|" $5 "|" }' | tee -a "$MD"
       done
     done
 
-    zcut=${zcuts[$n]}
-    if [[ $zcut != "NONE" ]]; then
-      echo "|\`zeek-cut\`|\`$zcut\`|zeek|zeek-cut|" | sed 's/\`\`//' | tr -d '\n' | tee -a "$MD"
-      ALL_TIMES=$(($TIME cat $ZEEK_LOGS | zeek-cut $zcut > /dev/null) 2>&1)
-      echo $ALL_TIMES | awk '{ print $1 "|" $3 "|" $5 "|" }' | tee -a "$MD"
+    ZCUT=${ZCUT_FIELDS[$n]}
+    if [[ $ZCUT != "NONE" ]]; then
+      echo "|\`zeek-cut\`|\`$ZCUT\`|zeek|zeek-cut|" | sed 's/\`\`//' | tr -d '\n' | tee -a "$MD"
+      set +xv
+      ALL_TIMES=$( ($TIME cat "$DATA"/zeek/*.log | zeek-cut "$ZCUT" > /dev/null) 2>&1)
+      echo "$ALL_TIMES" | awk '{ print $1 "|" $3 "|" $5 "|" }' | tee -a "$MD"
     fi
 
-    jq=${jqs[$n]}
-    jqflag=${jqflags[$n]}
-    echo -n "|\`jq\`|\`$jqflag \"${jq//|/\\|}\"\`|ndjson|ndjson|" | tee -a "$MD"
-    ALL_TIMES=$(($TIME jq $jqflag "$jq" $NDJSON_LOGS > /dev/null) 2>&1)
-    echo $ALL_TIMES | awk '{ print $1 "|" $3 "|" $5 "|" }' | tee -a "$MD"
+    JQ=${JQ_FILTERS[$n]}
+    JQFLAG=${JQFLAGS[$n]}
+    echo -n "|\`jq\`|\`$JQFLAG \"${JQ//|/\\|}\"\`|ndjson|ndjson|" | tee -a "$MD"
+    ALL_TIMES=$( ($TIME jq "$JQFLAG" "$JQ" "$DATA"/zeek-ndjson/*.ndjson > /dev/null) 2>&1)
+    echo "$ALL_TIMES" | awk '{ print $1 "|" $3 "|" $5 "|" }' | tee -a "$MD"
 
     echo
 done
-
-
