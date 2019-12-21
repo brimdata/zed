@@ -163,11 +163,9 @@ func (d *Double) Coerce(typ Type) Value {
 	return nil
 }
 
-// CoerceToDouble attempts to convert a value to a double and returns a new
-// double value.  Time and Intervals are converted to an Int as
-// their nanosecond values.  If input interface is already a Double, then
-// it is returned as a *Double.  If the value cannot be coerced, then
-// nil is returned.
+// CoerceToDouble attempts to convert a value to a double. The
+// resulting coerced value is written to out, and true is returned. If
+// the value cannot be coerced, then false is returned.
 func CoerceToDouble(in Value, out *Double) bool {
 	switch v := in.(type) {
 	case *Double:

@@ -72,10 +72,10 @@ func (i *Interval) Coerce(typ Type) Value {
 	return nil
 }
 
-// CoerceToInterval attempts to convert a value to an interval and
-// returns a new interval value if the conversion is possible.  Int,
-// is converted as nanoseconds and Double is converted as seconds. If
-// the value cannot be coerced, then nil is returned.
+// CoerceToInterval attempts to convert a value to an interval.  Int
+// is converted as nanoseconds and Double is converted as seconds. The
+// resulting coerced value is written to out, and true is returned. If
+// the value cannot be coerced, then false is returned.
 func CoerceToInterval(in Value, out *Interval) bool {
 	switch v := in.(type) {
 	case *Interval:
