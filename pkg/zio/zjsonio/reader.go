@@ -1,7 +1,6 @@
 package zjsonio
 
 import (
-	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -20,13 +19,6 @@ const (
 	MaxLineSize = 50 * 1024 * 1024
 )
 
-func scanErr(err error, n int) error {
-	if err == bufio.ErrTooLong {
-		return fmt.Errorf("max line size exceeded at line %d", n)
-	}
-	return fmt.Errorf("error encountered after %d lines: %s", n, err)
-}
-
 type Reader struct {
 	scanner *skim.Scanner
 	mapper  *resolver.Mapper
@@ -43,30 +35,37 @@ func NewReader(reader io.Reader, r *resolver.Table) *Reader {
 }
 
 func (r *Reader) Read() (*zng.Record, error) {
+	e := func(err error) error {
+		if err == nil {
+			return err
+		}
+		return fmt.Errorf("line %d: %w", r.scanner.Stats.Lines, err)
+	}
+
 	line, err := r.scanner.ScanLine()
 	if line == nil {
-		return nil, err
+		return nil, e(err)
 	}
 	// remove newline
 	line = line[:len(line)-1]
 	var v Record
 	err = json.Unmarshal(line, &v)
 	if err != nil {
-		return nil, err
+		return nil, e(err)
 	}
 	if v.Type != nil {
 		recType, err := LookupType(v.Type)
 		if err != nil {
-			return nil, err
+			return nil, e(err)
 		}
 		err = r.enterDescriptor(v.Id, recType)
 		if err != nil {
-			return nil, err
+			return nil, e(err)
 		}
 	}
 	rec, err := r.parseValues(v.Id, v.Values)
 	if err != nil {
-		return nil, err
+		return nil, e(err)
 	}
 	return rec, nil
 }

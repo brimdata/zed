@@ -227,14 +227,14 @@ func (c *Command) loadFile(path string) (zng.Reader, error) {
 		}
 	}
 
-	switch c.ifmt {
-	case "auto":
+	if c.ifmt == "auto" {
 		return detector.NewReader(f, c.dt)
-	case "bzng", "ndjson", "zeek", "zjson", "zng":
-		return detector.LookupReader(c.ifmt, f, c.dt), nil
-	default:
+	}
+	r := detector.LookupReader(c.ifmt, f, c.dt)
+	if r == nil {
 		return nil, fmt.Errorf("unknown input format %s", c.ifmt)
 	}
+	return r, nil
 }
 
 func (c *Command) errorf(format string, args ...interface{}) {
@@ -242,7 +242,7 @@ func (c *Command) errorf(format string, args ...interface{}) {
 }
 
 func (c *Command) loadFiles(paths []string) (zng.Reader, error) {
-	var readers []zng.Reader
+	var readers []scanner.Reader
 	for _, path := range paths {
 		r, err := c.loadFile(path)
 		if err != nil {
@@ -252,7 +252,7 @@ func (c *Command) loadFiles(paths []string) (zng.Reader, error) {
 			}
 			return nil, err
 		}
-		readers = append(readers, r)
+		readers = append(readers, scanner.Reader{r, path})
 	}
 	if len(readers) == 1 {
 		return readers[0], nil

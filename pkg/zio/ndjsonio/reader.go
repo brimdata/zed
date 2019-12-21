@@ -2,6 +2,7 @@ package ndjsonio
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 
 	"github.com/mccanne/zq/pkg/skim"
@@ -47,7 +48,7 @@ again:
 		if err == ErrMultiTypedVector {
 			goto again
 		}
-		return nil, err
+		return nil, fmt.Errorf("line %d: %w", r.scanner.Stats.Lines, err)
 	}
 	desc := r.resolver.GetByColumns(typ.(*zeek.TypeRecord).Columns)
 	return zng.NewRecordCheck(desc, 0, raw)
