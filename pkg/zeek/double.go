@@ -121,12 +121,12 @@ func (d Double) Comparison(op string) (Predicate, error) {
 		case *TypeOfTime:
 			ts, err := DecodeTime(val)
 			if err == nil {
-				return compare(float64(ts), pattern)
+				return compare(float64(ts)/1e9, pattern)
 			}
 		case *TypeOfInterval:
 			v, err := DecodeInt(val)
 			if err == nil {
-				return compare(float64(v), pattern)
+				return compare(float64(v)/1e9, pattern)
 			}
 		}
 		return false
@@ -190,10 +190,10 @@ func CoerceToDouble(in Value, out *Double) bool {
 		*out = Double(float64(*v))
 		return true
 	case *Time:
-		*out = Double(float64(*v))
+		*out = Double(float64(*v) / 1e9)
 		return true
 	case *Interval:
-		*out = Double(float64(*v))
+		*out = Double(float64(*v) / 1e9)
 		return true
 	}
 	return false
