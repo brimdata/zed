@@ -20,7 +20,7 @@ type filespec struct {
 
 func match(subdir, name, direction string) (*filespec, error) {
 	components := strings.Split(name, ".")
-	if len(components) != 3 {
+	if !(len(components) == 3 || len(components) == 4) {
 		//XXX warning
 		return nil, nil
 	}

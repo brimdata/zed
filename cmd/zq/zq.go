@@ -226,15 +226,15 @@ func (c *Command) loadFile(path string) (zng.Reader, error) {
 			return nil, err
 		}
 	}
-
+	r := detector.GzipReader(f)
 	if c.ifmt == "auto" {
-		return detector.NewReader(f, c.dt)
+		return detector.NewReader(r, c.dt)
 	}
-	r := detector.LookupReader(c.ifmt, f, c.dt)
-	if r == nil {
+	zr := detector.LookupReader(c.ifmt, r, c.dt)
+	if zr == nil {
 		return nil, fmt.Errorf("unknown input format %s", c.ifmt)
 	}
-	return r, nil
+	return zr, nil
 }
 
 func (c *Command) errorf(format string, args ...interface{}) {
