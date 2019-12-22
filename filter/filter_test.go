@@ -158,7 +158,9 @@ func TestFilters(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		err := runTest(tt.filter, tt.record, tt.expectedResult)
-		require.NoError(t, err)
+		t.Run(tt.filter, func(t *testing.T) {
+			err := runTest(tt.filter, tt.record, tt.expectedResult)
+			require.NoError(t, err)
+		})
 	}
 }
