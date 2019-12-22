@@ -66,6 +66,7 @@ const zngsrc = `
 #7:record[nested:vector[record[field:int]]]
 #8:record[nested:record[vec:vector[int]]]
 #9:record[s:string]
+#10:record[ts:time]
 0:[[abc;xyz;]]
 1:[[abc;xyz;]]
 1:[[a\;b;xyz;]]
@@ -77,6 +78,7 @@ const zngsrc = `
 7:[[[1;][2;]]]
 8:[[[1;2;3;]]]
 9:[begin\x01\x02\xffend;]
+10:[1.001;]
 `
 
 func TestFilters(t *testing.T) {
@@ -85,7 +87,7 @@ func TestFilters(t *testing.T) {
 	ior := strings.NewReader(zngsrc)
 	reader := detector.LookupReader("zng", ior, resolver.NewTable())
 
-	nrecords := 11
+	nrecords := 12
 	records := make([]*zng.Record, 0, nrecords)
 	for {
 		rec, err := reader.Read()
@@ -155,6 +157,14 @@ func TestFilters(t *testing.T) {
 		{"s=begin", records[10], false},
 		{"begin\\x01\\x02\\xffend", records[10], true},
 		{"s=begin\\x01\\x02\\xffend", records[10], true},
+
+		{"ts<2", records[11], false},
+		{"ts=1001000000", records[11], true},
+		{"ts<1002000000", records[11], true},
+
+		{"ts=1.001", records[11], true},
+		{"ts<1.002", records[11], true},
+		{"ts<2.0", records[11], true},
 	}
 
 	for _, tt := range tests {
