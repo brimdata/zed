@@ -68,6 +68,20 @@ func TestNotAdjacentErrors(t *testing.T) {
 	testNonAdjacentFields(t, "cut t.rec.sub1,t.other,t.rec.sub2")
 }
 
+// Test that illegal cut operations fail at compile time with a
+// reasonable error message.
+func testDuplicateFields(t *testing.T, zql string) {
+	_, err := proc.CompileTestProc(zql, nil, nil)
+	require.Error(t, err, "cut with duplicate records did not fail")
+	ok := errors.Is(err, proc.ErrDuplicateFields)
+	require.True(t, ok, "cut with duplicate records failed with wrong error")
+}
+
+func TestDuplicateFieldErrors(t *testing.T) {
+	testDuplicateFields(t, "cut rec,other,rec")
+	testDuplicateFields(t, "cut rec.sub1,rec.sub1")
+}
+
 // More data sets
 const nestedIn1 = `
 #0:record[rec:record[foo:string,bar:string]]

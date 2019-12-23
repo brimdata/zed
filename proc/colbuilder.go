@@ -24,6 +24,20 @@ func (e errNonAdjacent) Unwrap() error {
 	return ErrNonAdjacent
 }
 
+var ErrDuplicateFields = errors.New("duplicate fields")
+
+type errDuplicateFields struct {
+	field string
+}
+
+func (e errDuplicateFields) Error() string {
+	return fmt.Sprintf("field %s is repeated", e.field)
+}
+
+func (e errDuplicateFields) Unwrap() error {
+	return ErrDuplicateFields
+}
+
 // fieldInfo encodes the structure of a particular proc that writes a
 // sequence of fields, which may potentially be inside nested records.
 // This encoding enables the runtime processing to happen as efficiently
@@ -127,6 +141,11 @@ func NewColumnBuilder(exprs []ast.FieldExpr) (*ColumnBuilder, error) {
 		}
 		fullname := strings.Join(names, ".")
 		fname := names[len(names)-1]
+		for _, fi := range fieldInfos {
+			if fullname == fi.fullname {
+				return nil, errDuplicateFields{fullname}
+			}
+		}
 		fieldInfos = append(fieldInfos, fieldInfo{fname, fullname, containerBegins, 0})
 	}
 	if len(fieldInfos) > 0 {
