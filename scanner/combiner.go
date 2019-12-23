@@ -1,16 +1,23 @@
 package scanner
 
 import (
+	"fmt"
+
 	"github.com/mccanne/zq/pkg/zng"
 )
 
+type Reader struct {
+	zng.Reader
+	Name string
+}
+
 type Combiner struct {
-	readers []zng.Reader
+	readers []Reader
 	hol     []*zng.Record
 	done    []bool
 }
 
-func NewCombiner(readers []zng.Reader) *Combiner {
+func NewCombiner(readers []Reader) *Combiner {
 	return &Combiner{
 		readers: readers,
 		hol:     make([]*zng.Record, len(readers)),
@@ -27,7 +34,7 @@ func (c *Combiner) Read() (*zng.Record, error) {
 		if c.hol[k] == nil {
 			tup, err := l.Read()
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("%s: %w", c.readers[k].Name, err)
 			}
 			if tup == nil {
 				c.done[k] = true

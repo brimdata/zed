@@ -66,14 +66,17 @@ func NewReader(reader io.Reader, r *resolver.Table) *Reader {
 
 func (r *Reader) Read() (*zng.Record, error) {
 	for {
-		r, b, err := r.ReadPayload()
+		rec, b, err := r.ReadPayload()
 		if b != nil {
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("line %d: %w", r.stats.Lines, err)
 			}
 			continue
 		}
-		return r, err
+		if err != nil {
+			err = fmt.Errorf("line %d: %w", r.stats.Lines, err)
+		}
+		return rec, err
 	}
 }
 
