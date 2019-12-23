@@ -36,4 +36,15 @@ func TestStringFloat(t *testing.T) {
 	assert.Equal(t, "-60.000000001", ts.StringFloat())
 	ts = nano.Ts((time.Minute + 10) * -1)
 	assert.Equal(t, "-60.00000001", ts.StringFloat())
+	ts = nano.Ts((time.Minute) * -1)
+	assert.Equal(t, "-60", ts.StringFloat())
+	ts = nano.Ts((time.Millisecond * 100) * -1)
+	assert.Equal(t, "-0.1", ts.StringFloat())
+}
+
+func TestAppendFloat(t *testing.T) {
+	ts := nano.Ts((time.Minute) * -1)
+	assert.Equal(t, "-60.000000", string(ts.AppendFloat(nil, 6)))
+	ts = nano.Ts((time.Minute + time.Millisecond))
+	assert.Equal(t, "60.001000000", string(ts.AppendFloat(nil, 9)))
 }
