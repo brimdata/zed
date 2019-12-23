@@ -85,7 +85,7 @@ func CoerceToInterval(in Value, out *Interval) bool {
 		*out = Interval(int64(*v))
 		return true
 	case *Double:
-		s := *v * 1000_000_000
+		s := *v * 1e9
 		*out = Interval(int64(s))
 		return true
 	}

@@ -94,7 +94,7 @@ func CoerceToTime(in Value, out *Time) bool {
 		*out = Time(*v)
 		return true
 	case *Double:
-		s := *v * 1000 * 1000 * 1000
+		s := *v * 1e9
 		*out = Time(s)
 		return true
 	}
