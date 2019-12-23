@@ -29,11 +29,11 @@ type Cut struct {
 func CompileCutProc(c *Context, parent Proc, node *ast.CutProc) (*Cut, error) {
 	resolvers, err := expr.CompileFieldExprArray(node.Fields)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("compiling cut: %w", err)
 	}
 	builder, err := NewColumnBuilder(node.Fields)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("compiling cut: %w", err)
 	}
 	return &Cut{
 		Base:      Base{Context: c, Parent: parent},

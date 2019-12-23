@@ -10,12 +10,32 @@ import (
 	"github.com/mccanne/zq/pkg/zval"
 )
 
-type ErrNonAdjacent struct {
+var ErrNonAdjacent = errors.New("non adjacent fields")
+
+type errNonAdjacent struct {
 	record string
 }
 
-func (e ErrNonAdjacent) Error() string {
+func (e errNonAdjacent) Error() string {
 	return fmt.Sprintf("fields in record %s must be adjacent", e.record)
+}
+
+func (e errNonAdjacent) Unwrap() error {
+	return ErrNonAdjacent
+}
+
+var ErrDuplicateFields = errors.New("duplicate fields")
+
+type errDuplicateFields struct {
+	field string
+}
+
+func (e errDuplicateFields) Error() string {
+	return fmt.Sprintf("field %s is repeated", e.field)
+}
+
+func (e errDuplicateFields) Unwrap() error {
+	return ErrDuplicateFields
 }
 
 // fieldInfo encodes the structure of a particular proc that writes a
@@ -41,10 +61,10 @@ func (e ErrNonAdjacent) Error() string {
 // 10. builder.EndContainer()    // for "y"
 //
 // This is encoded into the following fieldInfo objects:
-//  {name: "a", containerBegins: [], containerEnds: 0}         // step 1
-//  {name: "c", containerBegins: ["b"], containerEnds: 0}      // steps 2-3
-//  {name: "d", containerBegins: [], containerEnds: 1     }    // steps 4-5
-//  {name: "z", containerBegins: ["x", "y"], containerEnds: 2} // steps 6-10
+//  {name: "a", fullname: "a", containerBegins: [], containerEnds: 0}         // step 1
+//  {name: "c", fullname: "b.c", containerBegins: ["b"], containerEnds: 0}      // steps 2-3
+//  {name: "d", fullname: "b.d", containerBegins: [], containerEnds: 1     }    // steps 4-5
+//  {name: "z", fullname: "x.y.z", containerBegins: ["x", "y"], containerEnds: 2} // steps 6-10
 type fieldInfo struct {
 	name            string
 	fullname        string
@@ -112,7 +132,7 @@ func NewColumnBuilder(exprs []ast.FieldExpr) (*ColumnBuilder, error) {
 				recname := strings.Join(record[:pos2+1], ".")
 				_, seen := seenRecords[recname]
 				if seen {
-					return nil, ErrNonAdjacent{recname}
+					return nil, errNonAdjacent{recname}
 				}
 				seenRecords[recname] = true
 				containerBegins = append(containerBegins, record[pos2])
@@ -121,6 +141,11 @@ func NewColumnBuilder(exprs []ast.FieldExpr) (*ColumnBuilder, error) {
 		}
 		fullname := strings.Join(names, ".")
 		fname := names[len(names)-1]
+		for _, fi := range fieldInfos {
+			if fullname == fi.fullname {
+				return nil, errDuplicateFields{fullname}
+			}
+		}
 		fieldInfos = append(fieldInfos, fieldInfo{fname, fullname, containerBegins, 0})
 	}
 	if len(fieldInfos) > 0 {

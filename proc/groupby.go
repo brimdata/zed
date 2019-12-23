@@ -50,7 +50,7 @@ func CompileGroupBy(node *ast.GroupByProc) (*GroupByParams, error) {
 	for _, key := range node.Keys {
 		resolver, err := expr.CompileFieldExpr(key)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("compiling groupby: %w", err)
 		}
 		keys = append(keys, GroupByKey{
 			name:     GroupKey(key),
@@ -67,7 +67,7 @@ func CompileGroupBy(node *ast.GroupByProc) (*GroupByParams, error) {
 	}
 	builder, err := NewColumnBuilder(node.Keys)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("compiling groupby: %w", err)
 	}
 	return &GroupByParams{
 		duration:        node.Duration,
