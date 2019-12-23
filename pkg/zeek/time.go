@@ -81,10 +81,10 @@ func (t *Time) Coerce(typ Type) Value {
 	return nil
 }
 
-// CoerceToTime attempts to convert a value to a time and
-// returns a new time value if the conversion is possible.  Int,
-// is converted as nanoseconds and Double is converted as seconds. If
-// the value cannot be coerced, then nil is returned.
+// CoerceToTime attempts to convert a value to a time. Int is
+// converted as nanoseconds and Double is converted as seconds. The
+// resulting coerced value is written to out, and true is returned. If
+// the value cannot be coerced, then false is returned.
 func CoerceToTime(in Value, out *Time) bool {
 	switch v := in.(type) {
 	case *Time:

@@ -155,12 +155,12 @@ func (i Int) Coerce(typ Type) Value {
 	return nil
 }
 
-// CoerceToInt attempts to convert a value to an integer and returns a new
-// integer value.  Int, Count, and Port can are all translated to an Int
-// with the same native value while a Double is converted only if the
-// double is an integer.  Time and Intervals are converted to an Int as
-// their nanosecond values.  If the value cannot be coerced, then nil is
-// returned.
+// CoerceToInt attempts to convert a value to an integer.  Int, Count,
+// and Port can are all translated to an Int with the same native
+// value while a Double is converted only if the double is an integer.
+// Time and Intervals are converted to an Int as their nanosecond
+// values. The resulting coerced value is written to out, and true is
+// returned. If the value cannot be coerced, then false is returned.
 func CoerceToInt(in Value, out *Int) bool {
 	switch v := in.(type) {
 	case *Int:
