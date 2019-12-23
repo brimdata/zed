@@ -3,6 +3,8 @@ package proc_test
 import (
 	"testing"
 
+	"errors"
+
 	"github.com/mccanne/zq/proc"
 	"github.com/stretchr/testify/require"
 )
@@ -54,9 +56,9 @@ func TestCut(t *testing.T) {
 // reasonable error message.
 func testNonAdjacentFields(t *testing.T, zql string) {
 	_, err := proc.CompileTestProc(zql, nil, nil)
-	require.Error(t, err, "cut with non-adjacent records failed")
-	_, ok := err.(proc.ErrNonAdjacent)
-	require.True(t, ok, "cut with non-adjacent records failed with the proper error")
+	require.Error(t, err, "cut with non-adjacent records did not fail")
+	ok := errors.Is(err, proc.ErrNonAdjacent)
+	require.True(t, ok, "cut with non-adjacent records failed with the wrong error")
 }
 
 func TestNotAdjacentErrors(t *testing.T) {

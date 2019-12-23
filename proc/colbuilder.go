@@ -10,12 +10,18 @@ import (
 	"github.com/mccanne/zq/pkg/zval"
 )
 
-type ErrNonAdjacent struct {
+var ErrNonAdjacent = errors.New("non adjacent fields")
+
+type errNonAdjacent struct {
 	record string
 }
 
-func (e ErrNonAdjacent) Error() string {
+func (e errNonAdjacent) Error() string {
 	return fmt.Sprintf("fields in record %s must be adjacent", e.record)
+}
+
+func (e errNonAdjacent) Unwrap() error {
+	return ErrNonAdjacent
 }
 
 // fieldInfo encodes the structure of a particular proc that writes a
@@ -112,7 +118,7 @@ func NewColumnBuilder(exprs []ast.FieldExpr) (*ColumnBuilder, error) {
 				recname := strings.Join(record[:pos2+1], ".")
 				_, seen := seenRecords[recname]
 				if seen {
-					return nil, ErrNonAdjacent{recname}
+					return nil, errNonAdjacent{recname}
 				}
 				seenRecords[recname] = true
 				containerBegins = append(containerBegins, record[pos2])

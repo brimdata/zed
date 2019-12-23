@@ -154,7 +154,7 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 	case *ast.SortProc:
 		fields, err := expr.CompileFieldExprArray(v.Fields)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("compiling sort: %w", err)
 		}
 		return []Proc{NewSort(c, parent, v.Limit, fields, v.SortDir)}, nil
 
@@ -181,14 +181,14 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 	case *ast.FilterProc:
 		f, err := filter.Compile(v.Filter)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("compiling filter: %w", err)
 		}
 		return []Proc{NewFilter(c, parent, f)}, nil
 
 	case *ast.TopProc:
 		fields, err := expr.CompileFieldExprArray(v.Fields)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("compiling top: %w", err)
 		}
 		return []Proc{NewTop(c, parent, v.Limit, fields, v.Flush)}, nil
 
