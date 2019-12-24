@@ -13,7 +13,7 @@ As there are many results to sift through, here's a few key summary take-aways:
 
 * The numerous input/output formats in `zq` are helpful for fitting into your legacy pipelines. However, BZNG performs the best of all `zq`-compatible formats, due to its binary/optimized nature. If you have logs in a non-BZNG format and expect to query them many times, a one-time pass through `zq` to convert them to BZNG format will save you significant time.
 
-* Particularly when working in BZNG format & when simple analytics (counting, gropuing) are in play, `zq` can significantly outperform `jq`. That said, `zq` does not (yet) include the full set of mathematical/other operations available in `jq`. If there's glaring functional omisssions that are limiting your use of `zq`, we welcome [contributions](../README.md#contributing).
+* Particularly when working in BZNG format & when simple analytics (counting, grouping) are in play, `zq` can significantly outperform `jq`. That said, `zq` does not (yet) include the full set of mathematical/other operations available in `jq`. If there's glaring functional omisssions that are limiting your use of `zq`, we welcome [contributions](../README.md#contributing).
 
 # Results
 
