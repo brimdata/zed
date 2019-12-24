@@ -1,10 +1,12 @@
 # ZNG Specification
 
+> NOTE: This specification is a work in progress and is in "ALPHA".
+> Zq's implementation of ZNG is not up to date with this latest description.
+
 ZNG is a format for structured data values, ideally suited for streams
 of heterogeneously typed records.  ZNG has both a text form simply called "ZNG",
 comprised of a sequence of newline-delimited UTF-8 strings,
-as well as a binary form called "BZNG", which is based on machine-readable data types
-inspired by [Protobufs](https://developers.google.com/protocol-buffers).
+as well as a binary form called "BZNG".
 
 ZNG is richly typed and thinner on the wire than JSON.
 Like [newline-delimited JSON (NDJSON)](http://ndjson.org/),
@@ -17,7 +19,7 @@ a more structured approach like
 ZNG is type rich and embeds all type/schema in the stream while having a
 binary serialization format that allows "lazy parsing" of fields such that
 only the fields of interest in a stream need to be extracted and parsed.
-Unlike Avro and Protobufs,
+Unlike Avro,
 ZNG embeds type information in the data stream and admits efficient
 multiplexing of heterogenous data types by including with each data value
 a simple integer identifier to reference its type.
@@ -38,43 +40,55 @@ a particular data value is specified by its "type code", which is an
 integer identifier representing either a built-in type or
 or a composite type definition occurring previously in the stream.
 
+A type alias can specify a name for any type, e.g., the zeek log type "count"
+can be aliased to ZNG type "uint64".
+
 ZNG is designed for efficient use as a protocol for streaming values between
 end systems and thus allows control messages to carry arbitrary data payloads as
 signaling from a higher-layer protocol that is embedded in the ZNG stream.
 
-The ZNG type system comprises the standard set
-of types like integers, floating point,
+The ZNG type system comprises the standard set of types like integers, floating point,
 strings, byte arrays, etc as well as composite types build from the
 standard types including records, arrays, and sets.
 
-For example, a ZNG stream representing the single string "hello world" conceptually
+For example, a ZNG stream representing the single string "hello world"
 looks like this:
 ```
-type 9 = string
-value[9]: hello, world
+9:hello, world
 ```
-Here the type code is the integer "9" represents a string type, and the data value
-"hello, world" refers to this type code.
+Here the type code is the integer "9" represents the string type, and the data
+value "hello, world" is an instance of string.
 
 ZNG gets more interesting when data types are interleaved in the stream.
 For example,
 ```
-type 9 = string
-value[9]: hello, world
-type 4 = int32
-value[4]: 42
-value[9]: there's a fly in my soup!
-value[9]: no, there isn't.
-value[4]: 3
+9:hello, world
+4:42
+9:there's a fly in my soup!
+9:no, there isn't.
+4:3
 ```
+where type code 4 represents an integer.  This encoding represents the string of
+values:
+```
+"hello, world"
+42
+"there's a fly in my soup!"
+"no, there isn't.""
+3
+```
+
 Often, ZNG streams are comprised as a sequence of records, which works well to provide
-an efficient representation of structured logs.  For example, logs from the
-open-source zeek system, might look like this
+an efficient representation of structured logs.  In this case, a new type code is
+needed to define the schema for each distinct record.  To define a new
+type, the "#" syntax is used.  For example,
+logs from the open-source zeek system might look like this
 ```
-type 23 = record[_path:string,ts:time,uid:string,id:record[orig_h:ip,orig_p:port,resp_h:addr,resp_p:port]...
-type 24 = record[_path:string,ts:time,uid:string,id:record[orig_h:ip,orig_p:port,resp_h:addr,resp_p:port]...
-value[23]: conn;1425565514.419939;CogZFI3py5JsFZGik;[192.168.1.1:;80/tcp;192.168.1.2;8080;]...
-value[24]: dns;1425565514.419987;CogZFI3py5JsFZGik;[192.168.1.1:;5353/udp;192.168.1.2;5353;]...
+#23:ip=addr
+#24:record[_path:string,ts:time,uid:string,id:record[orig_h:addr,orig_p:port,resp_h:addr,resp_p:port]...
+#25:record[_path:string,ts:time,uid:string,id:record[orig_h:addr,orig_p:port,resp_h:addr,resp_p:port]...
+24:conn;1425565514.419939;CogZFI3py5JsFZGik;[192.168.1.1:;80/tcp;192.168.1.2;8080;]...
+25:dns;1425565514.419987;CogZFI3py5JsFZGik;[192.168.1.1:;5353/udp;192.168.1.2;5353;]...
 ```
 Note that the value encoding need not refer to the field names and types as that is
 completely captured by the type code.  Values merely encode the value
@@ -82,7 +96,12 @@ information consistent with the referenced type code.
 
 ## ZNG Binary Format (BZNG)
 
-In BZNG, the data model defined above is serialized into a stream of bytes.
+The ZNG text format is defined in terms of the binary format BZNG.  So before
+going into those details, the BZNG format is defined.
+
+The BZNG binary format is based on machine-readable data types and was
+inspired by [Protol Buffers](https://developers.google.com/protocol-buffers).
+The data model described above is serialized into a stream of bytes.
 The byte stream encodes a sequence of messages.
 
 Each message is prefixed with a single-byte header code.  The upper bit of
