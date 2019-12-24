@@ -23,6 +23,12 @@ producing a log stream as its output.
 
 We don't yet distribute pre-built binaries, so to install `zq`, you must
 clone the repo and compile the source.
+
+If you don't have Go installed,
+download it from the [Go downloads page](https://golang.org/dl/) and install it.
+If you're new to Go, remember to set GOPATH.  A common convention is to create ~/go
+and point GOPATH at $HOME/go.
+
 To install the binaries in `$GOPATH/bin`, grab this repo and
 execute a good old-fashioned `make install`:
 
@@ -42,7 +48,10 @@ zq help
 
 ### Examples
 
-Here are a few examples.
+Here are a few examples based on a very simple "conn" log from Zeek, conn.log,
+located in this directory.  See the
+[zq-sample-data repo](https://github.com/mccanne/zq-sample-data ) for more
+test data and examples.
 
 To cut the columns of a Zeek "conn" log like
 `zeek-cut` does, run:
