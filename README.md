@@ -78,6 +78,30 @@ file.
 zq "*" *.log > all.zng
 ```
 
+### Comparisons
+
+Revisiting the `cut` example shown above:
+
+```
+zq -f text "* | cut ts,id.orig_h,id.orig_p" conn.log
+```
+
+This is functionally equivalent to the `zeek-cut` command-line:
+
+```
+zeek-cut ts id.orig_h id.orig_p < conn.log
+```
+
+If your Zeek events are stored as JSON and you are accustomed to querying with `jq`,
+the equivalent would be:
+
+```
+jq -c '. | { ts, "id.orig_h", "id.orig_p" }' conn.ndjson
+```
+
+Comparisons of other simple operations and their relative performance are described
+at the [performance](performance/README.md) page.
+
 ## Development
 
 `zq` is a [Go module](https://github.com/golang/go/wiki/Modules), so
