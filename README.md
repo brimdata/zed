@@ -48,7 +48,7 @@ zq help
 
 ### Examples
 
-Here are a few examples based on a very simple "conn" log from Zeek, conn.log,
+Here are a few examples based on a very simple "conn" log from Zeek (`[conn.log](conn.log)`),
 located in this directory.  See the
 [zq-sample-data repo](https://github.com/mccanne/zq-sample-data ) for more
 test data and examples.
