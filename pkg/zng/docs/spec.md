@@ -1,10 +1,14 @@
 # ZNG Specification
 
-> NOTE: This specification is a work in progress and is in "ALPHA".
-> Zq's implementation of ZNG is not up to date with this latest description.
+> Note: This specification is ALPHA and a work in progress.
+> Zq's implementation of ZNG is not yet up to date with this latest description.
 
 ZNG is a format for structured data values, ideally suited for streams
-of heterogeneously typed records.  ZNG has both a text form simply called "ZNG",
+of heterogeneously typed records, e.g., structured logs, where filtering and
+analytics may be applied to a stream in parts without having to fully deserialize
+every value.
+
+ZNG has both a text form simply called "ZNG",
 comprised of a sequence of newline-delimited UTF-8 strings,
 as well as a binary form called "BZNG".
 
@@ -12,52 +16,57 @@ ZNG is richly typed and thinner on the wire than JSON.
 Like [newline-delimited JSON (NDJSON)](http://ndjson.org/),
 the ZNG text format represents a sequence of data objects
 that can be parsed line by line.
-
 ZNG strikes a balance between the narrowly typed but flexible NDJSON format and
 a more structured approach like
 [Apache Avro](https://avro.apache.org).
-ZNG is type rich and embeds all type/schema in the stream while having a
+
+ZNG is type rich and embeds all type information in the stream while having a
 binary serialization format that allows "lazy parsing" of fields such that
-only the fields of interest in a stream need to be extracted and parsed.
-Unlike Avro,
-ZNG embeds type information in the data stream and admits efficient
-multiplexing of heterogenous data types by including with each data value
-a simple integer identifier to reference its type.
+only the fields of interest in a stream need to be deserialized and interpreted.
+Unlike Avro, ZNG embeds type information in the data stream and thereby admits
+an efficient multiplexing of heterogenous data types by prepending to each
+data value a simple integer identifier to reference its type.   
+
+ZNG requires no external schema definitions as its type system
+constructs schemas on the fly from within the stream using composable,
+dynamic type definitions.  Given this, there is no need for
+a schema registry service, though ZNG can be readily adapted to systems like
+[Apache Kafka](https://kafka.apache.org/) which utilize such registries,
+by having a connector translate the schemas implied in the
+ZNG stream into registered schemas and vice versa.
 
 ZNG is a superset of JSON in that any JSON input
 can be mapped onto ZNG and recovered by decoding
 that ZNG back into JSON.
 
-The ZNG design [is also motivated by](./rationale.md)
-and maintains compatibility with the original
-[default Zeek log format](https://docs.zeek.org/en/stable/examples/logs/).
+> TBD: ZNG is also interchangeable with Avro...
 
-## The ZNG data model
+The ZNG design [was motivated by](./zeek-compat.md)
+and is compatible with the
+[Zeek log format](https://docs.zeek.org/en/stable/examples/logs/).
+As far as we know, the Zeek log format pioneered the concept of
+embedding the schema of the log lines within the log file itself using
+meta-records, and ZNG merely modernizes this original approach.
 
-ZNG encodes a sequence of one or more typed data values comprising a stream.
+## 1. The ZNG data model
+
+ZNG encodes a sequence of one or more typed data values to comprise a stream.
 The stream of values is interleaved with control messages
-that provide type definitions for the data values.  The type of
+that provide type definitions and other metadata.  The type of
 a particular data value is specified by its "type code", which is an
 integer identifier representing either a built-in type or
-or a composite type definition occurring previously in the stream.
-
-A type alias can specify a name for any type, e.g., the Zeek log type "count"
-can be aliased to ZNG type "uint64".
-
-ZNG is designed for efficient use as a protocol for streaming values between
-end systems and thus allows control messages to carry arbitrary data payloads as
-signaling from a higher-layer protocol that is embedded in the ZNG stream.
+a dynamic type definition that occurred previously in the stream.
 
 The ZNG type system comprises the standard set of scalar types like integers,
-floating point, strings, byte arrays, etc. as well as composite types build
-from the standard types including records, arrays, and sets.
+floating point, strings, byte arrays, etc. as well as composite types
+like records, arrays, and sets arranged from the scalar types.
 
 For example, a ZNG stream representing the single string "hello world"
 looks like this:
 ```
 9:hello, world
 ```
-Here the type code is the integer "9" representing the string type, and the data
+Here, the type code is the integer "9" representing the string type and the data
 value "hello, world" is an instance of string.
 
 ZNG gets more interesting when data types are interleaved in the stream.
@@ -75,17 +84,16 @@ values:
 "hello, world"
 42
 "there's a fly in my soup!"
-"no, there isn't.""
+"no, there isn't."
 3
 ```
-
-Often, ZNG streams are comprised as a sequence of records, which works well to provide
+ZNG streams are often comprised as a sequence of records, which works well to provide
 an efficient representation of structured logs.  In this case, a new type code is
 needed to define the schema for each distinct record.  To define a new
 type, the "#" syntax is used.  For example,
 logs from the open-source Zeek system might look like this
 ```
-#23:ip=addr
+#alias:addr=ip
 #24:record[_path:string,ts:time,uid:string,id:record[orig_h:addr,orig_p:port,resp_h:addr,resp_p:port]...
 #25:record[_path:string,ts:time,uid:string,id:record[orig_h:addr,orig_p:port,resp_h:addr,resp_p:port]...
 24:conn;1425565514.419939;CogZFI3py5JsFZGik;[192.168.1.1:;80/tcp;192.168.1.2;8080;]...
@@ -95,31 +103,39 @@ Note that the value encoding need not refer to the field names and types as that
 completely captured by the type code.  Values merely encode the value
 information consistent with the referenced type code.
 
-## ZNG Binary Format (BZNG)
+## 2. ZNG Binary Format (BZNG)
 
-The ZNG text format is defined in terms of the binary format BZNG.  So before
-going into those details, the BZNG format is defined.
+The BZNG binary format is based on machine-readable data types with an
+encoding methodology inspired by
+[Protocol Buffers](https://developers.google.com/protocol-buffers).
 
-The BZNG binary format is based on machine-readable data types and was
-inspired by [Protol Buffers](https://developers.google.com/protocol-buffers).
-The data model described above is serialized into a stream of bytes.
-The byte stream encodes a sequence of messages.
+A BZNG stream comprises a sequence of interleaved control messages and value messages
+that are serialized into a stream of bytes.
 
 Each message is prefixed with a single-byte header code.  The upper bit of
 the header code indicates whether the message is a control message (1)
-or a value (0).
+or a value message (0).
 
-In the case of control message, the lower 7 bits define the control type.
-The first three control types are reserved:
-* control type 0 is a "type definition" or "typedef",
-* control type 1 is a "type alias", and
-* control type 2 is "sort ordering hint".
+### 2.1 Control Messages
 
-All other control codes are available to higher-layer protocols for carrying
+The lower 7 bits of a control header byte define the control code.
+Control codes 0 through 4 are reserved for BZNG:
+
+| Code | Message Type      |
+|------|-------------------|
+|  `0` | record definition |
+|  `1` | array definition  |
+|  `2` | set definition    |
+|  `3` | type alias        |
+|  `4` | ordering hint     |
+
+All other control codes are available to higher-layer protocols to carry
 application-specific payloads embedded in the ZNG stream.
 
-Application-specific payloads may be used informatively and shall be
-ignored by any data receivers.  The message can be any UTF-8 string.
+Any such application-specific payloads not known by
+by a ZNG data receiver shall be ignored.
+
+The body of an application-specific control message is any UTF-8 string.
 These payloads are guaranteed to be preserved
 in order within the stream and presented to higher layer components through
 any ZNG streaming API.  In this way, senders and receivers of ZNG can embed
@@ -127,146 +143,174 @@ protocol directives as ZNG control payloads rather than defining additional
 encapsulating protocols.  See the
 [zng-over-http](zng-over-http.md) protocol for an example.
 
-### BZNG Types
+### 2.1.1 Typedefs
 
-Following a header byte of 0x80 is a "type definition" (typedef) that binds
+Following a header byte of 0x80-0x83 is a "typedef".  A typedef binds
 "the next available" integer type code to a type encoding.  Type codes
 begin at the value 23 and increase by one for each typedef. These bindings
 are scoped to the stream in which the typedef occurs.
 
-Type codes for the "scalar types" are predefined as follows:
+Type codes for the "scalar types" need not be defined with typedefs and
+are predefined as follows:
 
-| Type     | Code |
-|----------|------|
-| bool     |   0  |
-| byte     |   1  |
-| int16    |   2  |
-| uint16   |   3  |
-| int32    |   4  |
-| uint32   |   5  |
-| int64    |   6  |
-| uint64   |   7  |
-| float64  |   8  |
-| string   |   9  |
-| bytes    |  10  |
-| bstring  |  11  |
-| enum     |  12  |
-| ip       |  13  |
-| port     |  14  |
-| net      |  15  |
-| time     |  16  |
-| duration |  17  |
-| any      |  18  |
-
-#### BZNG typedef
-
-A typedef defines a new composite type (i.e., record, array, or set)
-from the composite type code plus the composite type-specific encoding of the
-new type.
-
-The composite type codes are:
-
-| Type     | Code |
-|----------|------|
-| record   |   0  |
-| array    |   1  |
-| set      |   2  |
-
-Note that the composite type codes overlap with the scalar type codes because their
-uses never overlap.  Composite type codes can only appear at the beginning of
-a typedef.  Thus, the space of referenceable type codes in a given stream is
-the union of the scalar type codes and the type codes created with typedefs.
+| Type       | Code | Type       | Code |
+|------------|------|------------|------|
+| `bool`     |   0  | `bytes`    |  10  |
+| `byte`     |   1  | `bstring`  |  11  |
+| `int16`    |   2  | `enum`     |  12  |
+| `uint16`   |   3  | `ip`       |  13  |
+| `int32`    |   4  | `port`     |  14  |
+| `uint32`   |   5  | `net`      |  15  |
+| `int64`    |   6  | `time`     |  16  |
+| `uint64`   |   7  | `duration` |  17  |
+| `float64`  |   8  | `any`      |  18  |
+| `string`   |   9  |            |      |
 
 A typedef is encoded as a single byte indicating the composite type code following by
 the type encoding.  This creates a binding between the implied type code
 (i.e., 23 plus the count of all previous typedefs in the stream) and the new
 type definition.
 
-A "uvarint" is an unsigned integer encoded according to the protobuf specification.
+The type code is encoded as a `uvarint`, an encoding used throughout the BZNG format.
 
-#### Record Type Encoding
+> Inspired by Protocol Buffers,
+> a `uvarint` is an unsigned, variable-length integer encoded as a sequence of
+> bytes consisting of N-1 bytes with bit 7 clear and the Nth byte with bit 7 set,
+> whose value is the base-128 number composed of the digits defined by the lower
+> 7 bits of each byte from least-significant digit (byte 0) to
+> most-significant digit (byte N-1).
 
+#### 2.1.1.1 Record Typedef
+
+A record typedef creates a new type code equal to the next stream type code
+with the following structure:
+```
+----------------------------------------------------------
+|0x80|<nfields>|<field1><typecode1><field2><typecode2>...|
+----------------------------------------------------------
+```
 Record types consist of an ordered set of columns where each column consists of
 a name and a typed value.  Unlike JSON, the ordering of the columns is significant
 and must be preserved through any APIs that consume, process, and emit ZNG records.
 
-A record type is encoded as a count of fields followed by the field definitions,
-where a field definition is a field name followed by a type code.
+A record type is encoded as a count of fields, i.e., `<nfields>` from above,
+followed by the field definitions,
+where a field definition is a field name followed by a type code, i.e.,
+`<field1>` followed by `<typecode1>` etc. as indicated above.
 
 The field names in a record must be unique.
 
-The count of fields is encoded as a uvarint.
+The `<nfields>` is encoded as a `uvarint`.
 
 The field name is encoded as a UTF-8 string defining a "ZNG identifier"
 The UTF-8 string
-is further encoded as a "counted string", which is uvarint encoding
+is further encoded as a "counted string", which is `uvarint` encoding
 of the length of the string followed by that many bytes of UTF-8 encoded
 string data.
-
-```
-------------------------------------------------------------------
-|0x80|0x00|<num-fields>|<field1><typecode1><field2><typecode2>...|
-------------------------------------------------------------------
-```
 
 N.B.: The rules for ZNG identifiers follow the same rules as
 [JavaScript identifiers](https://tc39.es/ecma262/#prod-IdentifierName).
 
-The type code follows the field name and is encoded as a uvarint.
+The type code follows the field name and is encoded as a `uvarint`.
 
 A record may contain zero columns.
 
-#### Array Type Encoding
+#### 2.1.1.2 Array Typedef
 
 An array type is encoded as simply the type code of the elements of
-the array encoded as a uvarint.
-
+the array encoded as a `uvarint`:
 ```
------------------------
-|0x80|0x01|<type-code>|
------------------------
-```
-
-#### Set Type Encoding
-
-A set type is encoded as simply the type code of the elements of
-the array encoded as a uvarint.
-
-```
------------------------
-|0x80|0x02|<type-code>|
------------------------
+------------------
+|0x81|<type-code>|
+------------------
 ```
 
+#### 2.1.1.3 Set Typedef
 
-XXX we need to get a handle on Zeek multi-typed sets and define an
-encoding for this...
-
-### BZNG Values
-
-Following a header byte with bit 7 zero is a "typed value"
-with a modified uvarint encoding of the type code.
-
-A "typed value" is encoded as a uvarint encoding the length of the
-variable length type code plus the length of the value,
-followed by a uvarint representing the type code and the
-remaining N bytes of value.  N is calculated by subtracting
-the length of the type code from the counted-length value encoding.
-The type code indicates how the value should be decoded and interpreted
-given its predetermined length N.
-
-For a modified type code, the uppermost bit of the first byte of the uvarint
-isn't used be used so only the lower 7 bits of the first byte of the
-encoding are used in the otherwise standard protobuf uvarint definition.
-(* this needs more explanation)
-
+A set type is encoded as a concatenation of the type codes that comprise
+the elements of the set where each type code is encoded as a `uvarint`:
 ```
-----------------------------------------
-|<modified-uvarint>|<type-code>|<value>|
-----------------------------------------
+----------------------------------
+|0x82|<type-code1><type-code2>...|
+----------------------------------
 ```
 
-A typed value of length N is interpreted as follows:
+#### 2.1.1.4 Alias Typedef
+
+A type alias defines a new type code that binds a new type name
+to a previously existing type code.  This is useful for systems like Zeek,
+where there are customary type names that are well-known to users of the
+Zeek system and are easily mapped onto a BZNG type having a different name.
+By encoding the aliases in the format, there is no need to configure mapping
+information across different systems using the format as the type aliases
+are communicated to the consumer of a BZNG stream.
+
+A type alias is encoded as follows:
+```
+------------------------
+|0x83|<name><type-code>|
+------------------------
+```
+where `<name>` is an identifier representing the new type name with a new type code
+allocated as the next available type code in the stream that refers to the
+existing type code ``<type-code>``.  ``<type-code>`` is encoded as a `uvarint` and `<name>`
+is encoded as a `uvarint` representing the length of the name in bytes,
+followed by that many bytes of UTF-8 string.
+
+### 2.1.2 Ordering Hint
+
+An ordering hint provides a means to indicate that data in the stream
+is sorted a certain way.
+
+The hint is encoded as follows:
+```
+---------------------------------------
+|0x84|<len>|[+-]<field>,[+-]<field>,...
+---------------------------------------
+```
+where the payload of the message is a length-counted UTF-8 string.
+`<len>` is a `uvarint` indicating the length in bytes of the UTF-8 string
+describing the ordering hint.
+
+In the hint string, `[+-]` indicates either `+` or `-` and `<field>` refers
+to the top-level field name in a record of any subsequent record value encountered
+from thereon in the stream with the field names specified.
+The hint guarantees that all subsequent value lines will
+appear sorted in the file or stream, in ascending order in the case of `+` and
+descending order in the case of `-`, according to the field provided.
+If more than one sort
+field is provided, then the values are guaranteed to be sorted by each
+subsequent key for values that have previous keys of equal value.
+
+It is an error for any such values to appear that contradicts the most
+recent ordering directives.
+
+### 2.2 BZNG Value Messages
+
+Following a header byte with bit 7 zero is a `typed value`
+with a `uvarint7` encoding its length.
+
+> A `uvarint7` is the same as a `uvarint` except only 7 bits instead of 8
+> are available in the first byte.  Its value is equal to the lower 6-bits if bit 6
+> of the first byte is 1; otherwise it is that value plus the value of the
+> subsequent `uvarint` times 64.
+
+A `typed value` is encoded as either a `uvarint7` (in a top-level value message)
+or `uvarint` (for any other values)
+encoding the length in bytes of the type code and value followed by
+the body of the typed value comprising that many bytes.
+Within the body of the typed value,
+the type code is encoded as a `uvarint` and the value is encoded
+as a byte array whose length is equal to the body length less the
+length in bytes of the type code.
+```
+--------------------------
+|uvarint7|type-code|value|
+--------------------------
+```
+
+A typed value with a `value` of length N and the type indicated
+is interpreted as follows:
 
 | Type     | N        |              Value                           |
 |----------|----------|----------------------------------------------|
@@ -289,8 +333,16 @@ A typed value of length N is interpreted as follows:
 | duration | 8        |  8 bytes of signed nanoseconds duration      |
 | any      | variable |  <uvarint type code><value as defined here>  |
 
-All multi-byte sequences are machine words are serialized in
+All multi-byte sequences representing machine words are serialized in
 little-endian format.
+
+> Note: The bstring type is an unusual type representing a hybrid type
+> mixing a UTF-8 string with embedded binary data.   This type is
+> useful in systems like Zeek where data is pulled off the network
+> while expecting a string, but there can be embedded binary data due to
+> bugs, malicious attacks, etc.  It is up to the receiver to determine
+with out-of-band information or inference whether the data is ultimately
+> arbitrary binary data or a valid UTF-8 string.
 
 Array, set, and record types are variable length and are encoded
 as a sequence of elements:
@@ -324,7 +376,7 @@ The tag is defined as
 ```
 2*(N+1) + the composite bit
 ```
-and is encoded as a uvarint.
+and is encoded as a `uvarint`.
 
 For example, tag value 0 is an unset scalar value and tag value 1
 is an unset composite value.  Tag value 2 is a length zero scalar value,
@@ -334,14 +386,14 @@ in the context of type code 0.
 
 Following the tag encoding is the value encoded in N bytes as described above.
 
-## ZNG Text Format (ZNG)
+## 3. ZNG Text Format
 
 The ZNG text format is a human-readable form that follows directly from the BZNG
 binary format.  A stream of control messages and values messages is represented
 as a sequence of UTF-8 lines each terminated by a newline.  Any newlines embedded
-in values are escaped via "\n".
+in values must be escaped, i.e., via `\n`.
 
-A line that begins with "#" a control message.
+A line that begins with `#` a control message.
 
 Any line that begins with a decimal integer and has the form
 ```
@@ -349,25 +401,13 @@ Any line that begins with a decimal integer and has the form
 ```
 is a value.
 
-A typedef control message has the form
-```
-#<type encoding>
-```
-i.e., there is a single "#" character followed by a type encoding establishing
-a binding between the "next available" type code and the type defined by the
-encoding.  For readability, the type code may be included in the typedef
-with the following syntax:
-```
-#<integer>:<type encoding>
-```
-In this case, the integer type code must match the next implied type code.
-This form is useful for test cases, debugging etc.
+### 3.1 ZNG Control Messages
 
-All other control messages have the form
+Except for typedefs, all control messages have the form
 ```
 #!<control code>:<payload>
 ```
-where <control code> is a decimal integer in the range 1-127 and <payload>
+where <control code> is a decimal integer in the range 5-127 and <payload>
 is any UTF-8 string with escaped newlines.
 
 Any line beginning that does not conform with the syntax described here
@@ -375,82 +415,76 @@ is an error.
 When errors are encountered parsing ZNG, an implementation should return a
 corresponding error and allow ZNG parsing to proceed if desired.
 
-### ZNG Ordering Hint
+### 3.1.1 ZNG Typedefs
 
-The ordering directive has the following structure:
+A typedef control message has the form
 ```
-#!1:[+-]<field>,[+-]<field>,...
+#<type encoding>
 ```
-where `[+-]` indicates either `+` or `-` and `<field>` refers to the top-level
-field name in a record of any subsequent regular or legacy value.
-This directive guarantees that all subsequent value lines will
-appear sorted in the file or stream, in ascending order in the case of `+` and
-descending order in the case of `-`, according to the field provided.
-If more than one sort
-field is provided, then the values are guaranteed to be sorted by each
-subsequent key for values that have previous keys of equal value.
+i.e., there is a single `#` character followed by a type encoding establishing
+a binding between the "next available" type code and the type defined by the
+encoding.  For readability, the type code may be included in the typedef
+with the following syntax:
+```
+#<integer>:<type encoding>
+```
+In this case, the integer type code must match the next implied type code.
+This form is useful for human-readable display, test cases, debugging etc.
 
-It is an error for any such values to appear that contradicts the most
-recent ordering directives.
-
-### ZNG Typedefs
-
-A text type encoding has one of three forms that corresponds directly with the
-binary type encoding, a format each for:
-* record,
-* array, and
-* set.
-
-#### Record Type Encoding
+#### 3.1.1.1 Record Typedef
 
 A record type has the following syntax:
 ```
-record[name1:code1,name2:code2,...]
+#record[name1:code1,name2:code2,...]
 ```
-where name1, name2, ... are field names as defined by the BZNG record type definitions
-and code1, code2, ... are textual type codes.  A textual type code can be either the name
-of a scalar type code from the type code table (e.g., "int64", "time", etc) or a
+or
+```
+#<type-code>:record[name1:code1,name2:code2,...]
+```
+where `name1`, `name2`, ... are field names as defined by the BZNG record type definitions
+and `code1`, `code2`, ... are textual type codes.  A textual type code can be either the name
+of a scalar type code from the type code table (e.g., "int64", "time", etc), an name that
+is a previously defined alias, or a
 string decimal integer referring to said table or created with a typedef that appeared
 earlier in the ZNG data stream.
 
-#### Array Type Encoding
+#### 3.1.1.2 Array Typedef
 
 An array type has the following syntax:
 ```
-array[code]
+#array[<code>]
 ```
-where code is a text type code defined above.
+or
+```
+#<type-code>:array[<code>]
+```
+where `<code>` is a text-format type code as defined above.
 
-#### Set Type Encoding
+#### 3.1.1.3 Set Typedef
 
-An set type has the following syntax:
+A set type has the following syntax:
 ```
-set[code]
+#<type-code>:set[<code>]
 ```
-where code is a text type code defined above.
+where `<code>` is a text type code as defined above.
 
-XXX we need to handle multi-typed sets
+#### 3.1.1.4 Alias Typedef
 
-#### Typedef Examples
-Scalar types look like this and do not need typedefs:
+An alias typedef has the following structure:
 ```
-bool
-string
-int
+#alias:<type-name>=<code>
 ```
-Composite types look like this and do need typedefs:
+where `<code>` is a text type code as defined above and
+`<type-name>` is an identifier with semantics as defined in Section 2.1.1.4.
+
+### 3.1.2 Ordering Hint
+
+An ordering hint has the following structure:
 ```
-#23:vector[int]
-#24:set[bool,string]
-#25:record[x:double,y:double]
+#order:[+-]<field>,[+-]<field>,...
 ```
-Composite types can be embedded in other composite types by reference
-an earlier-defined type code:
-```
-#26:record[a:string,b:string,c:23]
-#27:set[26]
-#28:record[v:23,s:24,r:25,s2:27]
-```
+where the string present after the colon has the same semantics as
+those described in Section 2.1.2.
 
 ### Type Grammar
 
@@ -487,11 +521,13 @@ A reference implementation of this type system is embedded in
 [zq/pkg/zeek](../../zeek).
 
 
-### ZNG Values
+### 3.2 ZNG Value Messages
 
-A ZNG textual value is encoded on a line as typed value, i.e.,
-an integer type code followed by `:` followed
-by a value encoding.  Here is a pseudo-grammar for value encodings:
+A ZNG value is encoded on a line as typed value, which is encoded
+an integer type code is followed by `:`, which is in turn followed
+by a value encoding.
+
+Here is a pseudo-grammar for typed values:
 ```
 <typed-value> := <typecode> : <elem>
 <elem> :=
@@ -529,29 +565,29 @@ validly unset.  A value that is not to be interpreted as "unset"
 but is the single-character string `-`, must be escaped (e.g., `\-`).
 
 Note that this syntax can be scanned and parsed independent of the
-actual type definition indicated by the descriptor (unlike legacy values,
-which parse set and vector values differently).  It is a semantic error
+actual type definition indicated by the descriptor.  It is a semantic error
 if the parsed value does not match the indicated type in terms of number and
 sub-structure of value elements present and their interpretation as a valid
 string of the specified type.
 
-It is an error for a value to include a descriptor that has not been previously
-defined by a descriptor directive.
+It is an error for a value to reference a type code that has not been previously
+defined by a typedef scoped to the stream in which the value appears.
 
-### Character Escape Rules
+#### 3.2.1 Character Escape Rules
 
-Any character in a value line may be escaped from the ZSON formatting rules
+Any character in a `bstring` value may be escaped from the ZSON formatting rules
 using the hex escape syntax, i.e., `\xhh` where h is a hexadecimal digit.
+This allows binary data that does not conform to a valid UTF-8 character encoding
+to be embedded in the `bstring` data type.
 
-Sequences of binary data can be embedded in values using these escapes but it is
-a semantic error for arbitrary binary data to be carried by any types except
-`string` and `bytes` (see [Type Semantics](#type-semantics)).
-
-These special characters must be hex escaped if they appear within a value:
+These special characters must be hex escaped if they appear within a `bstring`
+or a string type:
 ```
 ; \n \\
 ```
-And these characters must be escaped if they appear as the first character
+These characters are invalid in all other data types.
+
+Likewise, these characters must be escaped if they appear as the first character
 of a value:
 ```
 [ ]
@@ -559,7 +595,7 @@ of a value:
 In addition, `-` must be escaped if representing the single ASCII byte equal
 to `-` as opposed to representing an unset value.
 
-## Value Syntax
+#### 3.2.2 Value Syntax
 
 Each UTF-string field parsed from a value line is interpreted according to the
 type descriptor of the line.
@@ -586,13 +622,30 @@ Type | Format
 `duration` | signed dotted decimal notation of seconds
 `any` | integer type code and colon followed by a value as defined here
 
-* Note: A `bstring` can embed binary data using escapes.  It's up to the receiver to determine
-with out-of-band information whether the data is ultimately arbitrary binary data or
-a valid UTF-8 string.
+## 4. Examples
 
-## Examples
+Here are some simple examples to get the gist of the ZNG text format.
 
-Here is a simple example to get the gist of this encoding.  This ZNG defines
+Scalar types look like this and do not need typedefs:
+```
+bool
+string
+int
+```
+Composite types look like this and do need typedefs:
+```
+#23:vector[int]
+#24:set[bool,string]
+#25:record[x:double,y:double]
+```
+Composite types can be embedded in other composite types by reference
+an earlier-defined type code:
+```
+#26:record[a:string,b:string,c:23]
+#27:set[26]
+#28:record[v:23,s:24,r:25,s2:27]
+```
+This ZNG defines
 a the first implied type code (23) and references the string type code (9):
 using them in three values:
 ```
@@ -638,9 +691,7 @@ An unset value indicates a field of a `record` that wasn't set by the encoder:
 ```
 e.g., the North Pole has a latitude but no meaningful longitude.
 
-
-
-## Related Links
+## 5. Related Links
 
 * [Zeek ASCII logging](https://docs.zeek.org/en/stable/examples/logs/)
 * [Binary logging in Zeek](https://www.zeek.org/development/projects/binary-logging.html)
