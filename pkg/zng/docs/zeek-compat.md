@@ -131,7 +131,7 @@ would be interpreted as the following ZNG `record`:
 record[id:record[orig_h:addr,orig_p:port,resp_h:addr,resp_p:port],message:string]
 ```
 
-When nested record are flattened in the legacy format in this manner,
+When nested records are flattened in the legacy format in this manner,
 all sub-fields of a nested record must appear consecutively in the
 `#fields` and `#types` directives.
 Additionally, only one level of nesting is valid.  In other words,

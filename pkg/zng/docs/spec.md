@@ -29,7 +29,8 @@ can be mapped onto ZNG and recovered by decoding
 that ZNG back into JSON.
 
 The ZNG design [is also motivated by](./rationale.md)
-and maintains backward compatibility with the original [default Zeek log format](https://docs.zeek.org/en/stable/examples/logs/).
+and maintains compatibility with the original
+[default Zeek log format](https://docs.zeek.org/en/stable/examples/logs/).
 
 ## The ZNG data model
 
@@ -40,23 +41,23 @@ a particular data value is specified by its "type code", which is an
 integer identifier representing either a built-in type or
 or a composite type definition occurring previously in the stream.
 
-A type alias can specify a name for any type, e.g., the zeek log type "count"
+A type alias can specify a name for any type, e.g., the Zeek log type "count"
 can be aliased to ZNG type "uint64".
 
 ZNG is designed for efficient use as a protocol for streaming values between
 end systems and thus allows control messages to carry arbitrary data payloads as
 signaling from a higher-layer protocol that is embedded in the ZNG stream.
 
-The ZNG type system comprises the standard set of types like integers, floating point,
-strings, byte arrays, etc as well as composite types build from the
-standard types including records, arrays, and sets.
+The ZNG type system comprises the standard set of scalar types like integers,
+floating point, strings, byte arrays, etc. as well as composite types build
+from the standard types including records, arrays, and sets.
 
 For example, a ZNG stream representing the single string "hello world"
 looks like this:
 ```
 9:hello, world
 ```
-Here the type code is the integer "9" represents the string type, and the data
+Here the type code is the integer "9" representing the string type, and the data
 value "hello, world" is an instance of string.
 
 ZNG gets more interesting when data types are interleaved in the stream.
@@ -82,7 +83,7 @@ Often, ZNG streams are comprised as a sequence of records, which works well to p
 an efficient representation of structured logs.  In this case, a new type code is
 needed to define the schema for each distinct record.  To define a new
 type, the "#" syntax is used.  For example,
-logs from the open-source zeek system might look like this
+logs from the open-source Zeek system might look like this
 ```
 #23:ip=addr
 #24:record[_path:string,ts:time,uid:string,id:record[orig_h:addr,orig_p:port,resp_h:addr,resp_p:port]...
@@ -109,15 +110,17 @@ the header code indicates whether the message is a control message (1)
 or a value (0).
 
 In the case of control message, the lower 7 bits define the control type.
-Control type 0 is a "type definition" or typedef described below.
+The first three control types are reserved:
+* control type 0 is a "type definition" or "typedef",
+* control type 1 is a "type alias", and
+* control type 2 is "sort ordering hint".
 
-Control code 1 is reserved for the ordering hint.  All other control codes
-are available to higher-layer protocols for carrying protocol-specific payloads
-embedded in the ZNG stream.
+All other control codes are available to higher-layer protocols for carrying
+application-specific payloads embedded in the ZNG stream.
 
-Control messages may be used informatively and shall be
+Application-specific payloads may be used informatively and shall be
 ignored by any data receivers.  The message can be any UTF-8 string.
-Control payloads are guaranteed to be preserved
+These payloads are guaranteed to be preserved
 in order within the stream and presented to higher layer components through
 any ZNG streaming API.  In this way, senders and receivers of ZNG can embed
 protocol directives as ZNG control payloads rather than defining additional
@@ -128,7 +131,7 @@ encapsulating protocols.  See the
 
 Following a header byte of 0x80 is a "type definition" (typedef) that binds
 "the next available" integer type code to a type encoding.  Type codes
-begin at the value 23 and increase by one for each typedef. This bindings
+begin at the value 23 and increase by one for each typedef. These bindings
 are scoped to the stream in which the typedef occurs.
 
 Type codes for the "scalar types" are predefined as follows:
@@ -194,10 +197,10 @@ The field names in a record must be unique.
 
 The count of fields is encoded as a uvarint.
 
-The field name is encoded as a UTF8 string defining a "ZNG identifier"
-The UTF8 string
+The field name is encoded as a UTF-8 string defining a "ZNG identifier"
+The UTF-8 string
 is further encoded as a "counted string", which is uvarint encoding
-of the length of the string followed by that many bytes of UTF8 encoded
+of the length of the string followed by that many bytes of UTF-8 encoded
 string data.
 
 ```
@@ -211,10 +214,7 @@ N.B.: The rules for ZNG identifiers follow the same rules as
 
 The type code follows the field name and is encoded as a uvarint.
 
-A record may contain zero columns, in which case the only legal value
-for such a type is unset (see below).  An unset record with zero columns
-corresponds to a JSON empty object when translating ZNG to JSON and
-vice versa.
+A record may contain zero columns.
 
 #### Array Type Encoding
 
@@ -239,7 +239,7 @@ the array encoded as a uvarint.
 ```
 
 
-XXX we need to get a handle on zeek multi-typed sets and define an
+XXX we need to get a handle on Zeek multi-typed sets and define an
 encoding for this...
 
 ### BZNG Values
@@ -285,8 +285,8 @@ A typed value of length N is interpreted as follows:
 | enum     | variable |  UTF-8 bytes of enum string                  |
 | ip       | 4 or 16  |  4 or 16 bytes of IP address                 |
 | net      | 8 or 32  |  8 or 32 bytes of IP prefix and subnet mask  |
-| time     | 4        |  4 bytes of signed nanoseconds from epoch    |
-| duration | 4        |  4 bytes of signed nanoseconds duration      |
+| time     | 8        |  8 bytes of signed nanoseconds from epoch    |
+| duration | 8        |  8 bytes of signed nanoseconds duration      |
 | any      | variable |  <uvarint type code><value as defined here>  |
 
 All multi-byte sequences are machine words are serialized in
@@ -582,8 +582,8 @@ Type | Format
 `enum` | a string representing an enumeration value defined outside the scope of ZNG
 `ip` | a string representing an IP address in [IPv4 or IPv6 format](https://tools.ietf.org/html/draft-main-ipaddr-text-rep-02#section-3)
 `net` | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291.
-`time` | unsigned dotted decimal notation of seconds (32-bit second, 32-bit nanosecond)
-`duration` | signed dotted decimal notation of seconds (32-bit second, 32-bit nanosecond)
+`time` | signed dotted decimal notation of seconds
+`duration` | signed dotted decimal notation of seconds
 `any` | integer type code and colon followed by a value as defined here
 
 * Note: A `bstring` can embed binary data using escapes.  It's up to the receiver to determine
