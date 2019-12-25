@@ -51,7 +51,7 @@ zq help
 Here are a few examples based on a very simple "conn" log from Zeek (`[conn.log](conn.log)`),
 located in this directory.  See the
 [zq-sample-data repo](https://github.com/mccanne/zq-sample-data ) for more
-test data and examples.
+test data, which is used in the examples in the [query language documentation](https://github.com/mccanne/zq/blob/master/pkg/zql/README.md).
 
 To cut the columns of a Zeek "conn" log like
 `zeek-cut` does, run:
