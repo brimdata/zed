@@ -50,8 +50,8 @@ func NewRecordNoTs(d *Descriptor, zv zval.Encoding) *Record {
 
 func NewRecordCheck(d *Descriptor, ts nano.Ts, raw zval.Encoding) (*Record, error) {
 	r := NewRecord(d, ts, raw)
-	if !r.TypeCheck() {
-		return nil, ErrTypeMismatch
+	if err := r.TypeCheck(); err != nil {
+		return nil, err
 	}
 	return r, nil
 }
@@ -98,8 +98,8 @@ func NewRecordZvals(d *Descriptor, vals ...zval.Encoding) (t *Record, err error)
 		}
 	}
 	r := NewRecord(d, ts, raw)
-	if !r.TypeCheck() {
-		return nil, ErrTypeMismatch
+	if err := r.TypeCheck(); err != nil {
+		return nil, err
 	}
 	return r, nil
 }
@@ -115,8 +115,8 @@ func NewRecordZeekStrings(d *Descriptor, ss ...string) (t *Record, err error) {
 		return nil, err
 	}
 	r := NewRecord(d, ts, zv)
-	if !r.TypeCheck() {
-		return nil, ErrTypeMismatch
+	if err := r.TypeCheck(); err != nil {
+		return nil, err
 	}
 	return r, nil
 }
@@ -204,95 +204,122 @@ func (r *Record) ZeekStrings(precision int, utf8 bool) ([]string, bool, error) {
 // TypeCheck checks that the value coding in Raw is structurally consistent
 // with this value's descriptor.  It does not check that the actual leaf
 // values when parsed are type compatible with the leaf types.
-func (r *Record) TypeCheck() bool {
+func (r *Record) TypeCheck() error {
 	return checkRecord(r.Descriptor.Type, r.Raw)
 }
 
-// check a vector whose inner type is a record
-func checkVector(typ *zeek.TypeVector, body zval.Encoding) bool {
+var (
+	ErrMissingField = errors.New("record missing a field")
+	ErrExtraField   = errors.New("record with extra field")
+	ErrNotContainer = errors.New("scalar where container was expected")
+	ErrNotScalar    = errors.New("container where scaler was expected")
+)
+
+func checkVector(typ *zeek.TypeVector, body zval.Encoding) error {
 	if body == nil {
-		return true
+		return nil
 	}
 	inner := zeek.InnerType(typ)
-	if inner == nil {
-		return false
-	}
 	it := zval.Iter(body)
 	for !it.Done() {
 		body, container, err := it.Next()
 		if err != nil {
-			return false
+			return err
 		}
 		switch v := inner.(type) {
 		case *zeek.TypeRecord:
-			if !container || !checkRecord(v, body) {
-				return false
+			if !container {
+				return &RecordTypeError{Name: "<vector element>", Type: v.String(), Err: ErrNotContainer}
+			}
+			if err := checkRecord(v, body); err != nil {
+				return err
 			}
 		case *zeek.TypeVector:
-			if !container || !checkVector(v, body) {
-				return false
+			if !container {
+				return &RecordTypeError{Name: "<vector element>", Type: v.String(), Err: ErrNotContainer}
+			}
+			if err := checkVector(v, body); err != nil {
+				return err
 			}
 		case *zeek.TypeSet:
-			if !container || !checkSet(v, body) {
-				return false
+			if !container {
+				return &RecordTypeError{Name: "<vector element>", Type: v.String(), Err: ErrNotContainer}
+			}
+			if err := checkSet(v, body); err != nil {
+				return err
 			}
 		default:
 			if container {
-				return false
+				return &RecordTypeError{Name: "<vector element>", Type: v.String(), Err: ErrNotScalar}
 			}
 		}
 	}
-	return true
+	return nil
 }
 
-func checkSet(typ *zeek.TypeSet, body zval.Encoding) bool {
+func checkSet(typ *zeek.TypeSet, body zval.Encoding) error {
 	if body == nil {
-		return true
+		return nil
 	}
 	inner := zeek.InnerType(typ)
 	if zeek.IsContainerType(inner) {
-		return false
+		return &RecordTypeError{Name: "<set>", Type: typ.String(), Err: ErrNotScalar}
 	}
 	it := zval.Iter(body)
 	for !it.Done() {
 		_, container, err := it.Next()
-		if err != nil || container {
-			return false
+		if err != nil {
+			return err
+		}
+		if container {
+			return &RecordTypeError{Name: "<set element>", Type: typ.String(), Err: ErrNotScalar}
 		}
 	}
-	return true
+	return nil
 }
 
-func checkRecord(typ *zeek.TypeRecord, body zval.Encoding) bool {
+func checkRecord(typ *zeek.TypeRecord, body zval.Encoding) error {
 	if body == nil {
-		return true
+		return nil
 	}
 	it := zval.Iter(body)
 	for _, col := range typ.Columns {
+		if it.Done() {
+			return &RecordTypeError{Name: col.Name, Type: col.Type.String(), Err: ErrMissingField}
+		}
 		body, container, err := it.Next()
 		if err != nil {
-			return false
+			return err
 		}
 		switch v := col.Type.(type) {
 		case *zeek.TypeRecord:
-			if !container || !checkRecord(v, body) {
-				return false
+			if !container {
+				return &RecordTypeError{Name: col.Name, Type: col.Type.String(), Err: ErrNotContainer}
+			}
+			if err := checkRecord(v, body); err != nil {
+				return err
 			}
 		case *zeek.TypeVector:
-			if !container || !checkVector(v, body) {
-				return false
+			if !container {
+				return &RecordTypeError{Name: col.Name, Type: col.Type.String(), Err: ErrNotContainer}
+			}
+			if err := checkVector(v, body); err != nil {
+				return err
 			}
 		case *zeek.TypeSet:
-			if !container || !checkSet(v, body) {
-				return false
+			if !container {
+				return &RecordTypeError{Name: col.Name, Type: col.Type.String(), Err: ErrNotContainer}
+			}
+			if err := checkSet(v, body); err != nil {
+				return err
 			}
 		default:
 			if container {
-				return false
+				return &RecordTypeError{Name: col.Name, Type: col.Type.String(), Err: ErrNotScalar}
 			}
 		}
 	}
-	return true
+	return nil
 }
 
 func (r *Record) ValueByColumn(col int) zeek.Value {

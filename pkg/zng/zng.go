@@ -13,11 +13,20 @@ var (
 	ErrDescriptorInvalid = errors.New("zng descriptor out of range")
 	ErrBadValue          = errors.New("malformed zng value")
 	ErrBadFormat         = errors.New("malformed zng record")
-	ErrTypeMismatch      = errors.New("zng type/value mismatch")
+	ErrTypeMismatch      = errors.New("type/value mismatch")
 	ErrNoSuchField       = errors.New("no such field in zng record")
 	ErrCorruptTd         = errors.New("corrupt type descriptor")
 	ErrCorruptColumns    = errors.New("wrong number of columns in zng record value")
 )
+
+type RecordTypeError struct {
+	Name string
+	Type string
+	Err  error
+}
+
+func (r *RecordTypeError) Error() string { return r.Name + " (" + r.Type + "): " + r.Err.Error() }
+func (r *RecordTypeError) Unwrap() error { return r.Err }
 
 type Reader interface {
 	Read() (*Record, error)

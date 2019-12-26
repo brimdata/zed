@@ -105,8 +105,8 @@ func (r *Reader) parseValue(id int, b []byte) (*zng.Record, error) {
 		return nil, zng.ErrDescriptorInvalid
 	}
 	record := zng.NewVolatileRecord(descriptor, nano.MinTs, b)
-	if !record.TypeCheck() {
-		return nil, zng.ErrTypeMismatch
+	if err := record.TypeCheck(); err != nil {
+		return nil, err
 	}
 	//XXX this should go in NewRecord?
 	ts, err := record.AccessTime("ts")
