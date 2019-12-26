@@ -64,7 +64,7 @@ func encodeContainer(typ zeek.Type, val []byte) (interface{}, error) {
 			}
 			if columns != nil {
 				if k >= len(columns) {
-					return nil, zng.ErrTypeMismatch
+					return nil, &zng.RecordTypeError{Name: "<record>", Type: typ.String(), Err: zng.ErrExtraField}
 				}
 				childType = columns[k].Type
 				k++

@@ -71,7 +71,7 @@ func (w *Writer) writeContainer(typ zeek.Type, val []byte) error {
 			}
 			if columns != nil {
 				if k >= len(columns) {
-					return zng.ErrTypeMismatch
+					return &zng.RecordTypeError{Name: "<record>", Type: typ.String(), Err: zng.ErrExtraField}
 				}
 				childType = columns[k].Type
 				k++

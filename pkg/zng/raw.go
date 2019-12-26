@@ -223,7 +223,7 @@ func zngParseContainer(builder *zval.Builder, typ zeek.Type, b []byte) ([]byte, 
 		}
 		if columns != nil {
 			if k >= len(columns) {
-				return nil, ErrTypeMismatch
+				return nil, &RecordTypeError{Name: "<record>", Type: typ.String(), Err: ErrExtraField}
 			}
 			childType = columns[k].Type
 			k++

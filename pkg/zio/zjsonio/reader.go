@@ -192,7 +192,7 @@ func decodeContainer(builder *zval.Builder, typ zeek.Type, body []interface{}) e
 		}
 		if columns != nil {
 			if k >= len(columns) {
-				return zng.ErrTypeMismatch
+				return &zng.RecordTypeError{Name: "<record>", Type: typ.String(), Err: zng.ErrExtraField}
 			}
 			childType = columns[k].Type
 		}
