@@ -18,6 +18,7 @@ var internals = []test.Internal{
 	cut.Internal,
 	format.Internal,
 	input.Internal,
+	input.DuplicateFields,
 	sort.Internal1,
 	sort.Internal2,
 	sort.Internal3,

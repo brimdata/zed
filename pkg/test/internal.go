@@ -14,11 +14,12 @@ import (
 )
 
 type Internal struct {
-	Name     string
-	Query    string
-	Input    string
-	Format   string
-	Expected string
+	Name        string
+	Query       string
+	Input       string
+	Format      string
+	Expected    string
+	ExpectedErr error
 }
 
 func Trim(s string) string {

@@ -9,8 +9,9 @@ import (
 )
 
 var (
-	ErrNotNumber  = errors.New("not a number")
-	ErrTypeSyntax = errors.New("syntax error parsing type string")
+	ErrNotNumber       = errors.New("not a number")
+	ErrTypeSyntax      = errors.New("syntax error parsing type string")
+	ErrDuplicateFields = errors.New("duplicate fields in record type")
 )
 
 type TypedEncoding struct {

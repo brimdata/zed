@@ -2,6 +2,7 @@ package input
 
 import (
 	"github.com/mccanne/zq/pkg/test"
+	"github.com/mccanne/zq/pkg/zeek"
 )
 
 var Internal = test.Internal{
@@ -25,3 +26,18 @@ const expected = `
 0:[T;4;value2;value2;]
 #1:record[obj1:record[null1:string]]
 1:[[-;]]`
+
+const inputDuplicateFields = `
+#0:record[foo:record[foo:string,bar:string]]
+0:[["1";"2";]]
+#1:record[foo:record[foo:string,foo:string]]
+1:[["1";"2";]]
+`
+
+var DuplicateFields = test.Internal{
+	Name:        "duplicatefields",
+	Query:       "*",
+	Input:       test.Trim(inputDuplicateFields),
+	Format:      "zng",
+	ExpectedErr: zeek.ErrDuplicateFields,
+}
