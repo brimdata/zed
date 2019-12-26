@@ -212,7 +212,7 @@ var (
 	ErrMissingField = errors.New("record missing a field")
 	ErrExtraField   = errors.New("record with extra field")
 	ErrNotContainer = errors.New("scalar where container was expected")
-	ErrNotScalar    = errors.New("container where scaler was expected")
+	ErrNotScalar    = errors.New("container where scalar was expected")
 )
 
 func checkVector(typ *zeek.TypeVector, body zval.Encoding) error {
