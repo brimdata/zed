@@ -73,6 +73,11 @@ func parseRecordTypeBody(in string) (string, Type, error) {
 		if err != nil {
 			return "", nil, err
 		}
+		for _, c := range columns {
+			if col.Name == c.Name {
+				return "", nil, ErrDuplicateFields
+			}
+		}
 		columns = append(columns, col)
 		rest, ok = match(rest, ",")
 		if ok {

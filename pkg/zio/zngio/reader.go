@@ -132,9 +132,6 @@ func (r *Reader) parseDescriptor(line []byte) error {
 		//XXX this should be ok... decide on this and update spec
 		return ErrDescriptorExists
 	}
-	// XXX doesn't handle nested descriptors such as
-	// #1:record[foo:int]
-	// #2:record[foos:vector[1]]
 	typ, err := zeek.LookupType(string(rest))
 	if err != nil {
 		return err
