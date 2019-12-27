@@ -142,7 +142,7 @@ func NewColumnBuilder(exprs []ast.FieldExpr) (*ColumnBuilder, error) {
 		fullname := strings.Join(names, ".")
 		fname := names[len(names)-1]
 		for _, fi := range fieldInfos {
-			if fullname == fi.fullname {
+			if strings.Index(fullname, fi.fullname) == 0 || strings.Index(fi.fullname, fullname) == 0 {
 				return nil, errDuplicateFields{fullname}
 			}
 		}

@@ -80,6 +80,8 @@ func testDuplicateFields(t *testing.T, zql string) {
 func TestDuplicateFieldErrors(t *testing.T) {
 	testDuplicateFields(t, "cut rec,other,rec")
 	testDuplicateFields(t, "cut rec.sub1,rec.sub1")
+	testDuplicateFields(t, "cut rec.sub,rec.sub.sub")
+	testDuplicateFields(t, "cut rec.sub.sub,rec.sub")
 }
 
 // More data sets
