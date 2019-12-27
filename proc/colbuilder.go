@@ -141,10 +141,8 @@ func NewColumnBuilder(exprs []ast.FieldExpr) (*ColumnBuilder, error) {
 		}
 		fullname := strings.Join(names, ".")
 		fname := names[len(names)-1]
-		for _, fi := range fieldInfos {
-			if strings.Index(fullname, fi.fullname) == 0 || strings.Index(fi.fullname, fullname) == 0 {
-				return nil, errDuplicateFields{fullname}
-			}
+		if isIn(fullname, fieldInfos) {
+			return nil, errDuplicateFields{fullname}
 		}
 		fieldInfos = append(fieldInfos, fieldInfo{fname, fullname, containerBegins, 0})
 	}
@@ -156,6 +154,32 @@ func NewColumnBuilder(exprs []ast.FieldExpr) (*ColumnBuilder, error) {
 		fields:  fieldInfos,
 		builder: zval.NewBuilder(),
 	}, nil
+}
+
+// check if fieldname is "in" one of the fields in fis, or if
+// one of fis is "in" fieldname, where "in" means "equal or is a suffix of".
+func isIn(fieldname string, fis []fieldInfo) bool {
+	// check if fieldname is "in" one of fis
+	splits := strings.Split(fieldname, ".")
+	for i := range splits {
+		sub := strings.Join(splits[:i+1], ".")
+		for _, fi := range fis {
+			if sub == fi.fullname {
+				return true
+			}
+		}
+	}
+	// check if one of fis is "in" fieldname
+	for _, fi := range fis {
+		splits := strings.Split(fi.fullname, ".")
+		for i := range splits {
+			prefix := strings.Join(splits[:i+1], ".")
+			if prefix == fieldname {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // Split an ast.FieldExpr representing a chain of record field references
