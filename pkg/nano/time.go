@@ -120,7 +120,7 @@ func (t Ts) AppendFloat(dst []byte, precision int) []byte {
 	dst = strconv.AppendInt(dst, sec, 10)
 	if ns > 0 || precision > 0 {
 		n := len(dst)
-		dst = strconv.AppendFloat(dst, float64(ns)/1e9, 'f', precision, 32)
+		dst = strconv.AppendFloat(dst, float64(ns)/1e9, 'f', precision, 64)
 		// Remove the first '0'. This is a little hacky but the alternative is
 		// implementing this ourselves. Something to avoid given:
 		// https://golang.org/src/math/big/ftoa.go?s=2522:2583#L53
