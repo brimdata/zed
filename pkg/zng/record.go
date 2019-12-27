@@ -3,7 +3,6 @@ package zng
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"math"
 	"net"
 
@@ -161,7 +160,8 @@ func (r *Record) Bytes() []byte {
 	return r.Raw
 }
 
-func isHighPrecision(ns int64) bool {
+func isHighPrecision(ts nano.Ts) bool {
+	_, ns := ts.Split()
 	return (ns/1000)*1000 != ns
 }
 
@@ -183,16 +183,11 @@ func (r *Record) ZeekStrings(precision int, utf8 bool) ([]string, bool, error) {
 			if err != nil {
 				return nil, false, err
 			}
-			sec, ns := ts.Split()
-			if precision == 6 && isHighPrecision(ns) {
+			if precision == 6 && isHighPrecision(ts) {
 				precision = 9
 				changePrecision = true
 			}
-			if precision == 6 {
-				field = fmt.Sprintf("%d.%06d", sec, ns/1000)
-			} else {
-				field = fmt.Sprintf("%d.%09d", sec, ns)
-			}
+			field = string(ts.AppendFloat(nil, precision))
 		} else {
 			field = ZvalToZeekString(col.Type, val, isContainer, utf8)
 		}

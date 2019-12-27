@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -101,11 +100,33 @@ func (t Ts) Pretty() string {
 }
 
 func (t Ts) StringFloat() string {
+	return string(t.AppendFloat(nil, -1))
+}
+
+func (t Ts) AppendFloat(dst []byte, precision int) []byte {
 	sec, ns := t.Split()
-	if ns == 0 {
-		return strconv.FormatInt(sec, 10)
+	var negative bool
+	if sec < 0 {
+		sec = sec * -1
+		negative = true
 	}
-	return strings.TrimRight(fmt.Sprintf("%d.%09d", sec, ns), "0")
+	if ns < 0 {
+		ns = ns * -1
+		negative = true
+	}
+	if negative {
+		dst = append(dst, '-')
+	}
+	dst = strconv.AppendInt(dst, sec, 10)
+	if ns > 0 || precision > 0 {
+		n := len(dst)
+		dst = strconv.AppendFloat(dst, float64(ns)/1e9, 'f', precision, 64)
+		// Remove the first '0'. This is a little hacky but the alternative is
+		// implementing this ourselves. Something to avoid given:
+		// https://golang.org/src/math/big/ftoa.go?s=2522:2583#L53
+		dst = append(dst[:n], dst[n+1:]...)
+	}
+	return dst
 }
 
 func (t Ts) Add(v int64) Ts {
