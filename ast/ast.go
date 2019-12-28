@@ -87,9 +87,9 @@ type (
 	// field in a record.
 	CompareField struct {
 		Node
-		Comparator string    `json:"comparator"`
-		Field      FieldExpr `json:"field"`
-		Value      TypedValue
+		Comparator string     `json:"comparator"`
+		Field      FieldExpr  `json:"field"`
+		Value      TypedValue `json:"value"`
 	}
 )
 
@@ -229,7 +229,7 @@ type (
 
 //XXX TBD: chance to nano.Duration
 type Duration struct {
-	Seconds int
+	Seconds int `json:"seconds"`
 }
 
 type DurationNode struct {

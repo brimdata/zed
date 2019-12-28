@@ -26,7 +26,7 @@ var testCopyJSON = []byte(`
               "op": "FieldRead",
               "field": "a"
             },
-            "Value": {
+            "value": {
               "type": "int",
               "value": "1"
             }
@@ -37,7 +37,7 @@ var testCopyJSON = []byte(`
               "op": "CompareAny",
               "comparator": "search",
               "recursive": true,
-              "Value": {
+              "value": {
                 "type": "string",
                 "value": "foo"
               }
@@ -46,7 +46,7 @@ var testCopyJSON = []byte(`
               "op": "CompareAny",
               "comparator": "searchin",
               "recursive": true,
-              "Value": {
+              "value": {
                 "type": "string",
                 "value": "foo"
               }
@@ -62,7 +62,7 @@ var testCopyJSON = []byte(`
               "op": "FieldRead",
               "field": "b"
             },
-            "Value": {
+            "value": {
               "type": "int",
               "value": "2"
             }
@@ -74,7 +74,7 @@ var testCopyJSON = []byte(`
               "op": "FieldRead",
               "field": "c"
             },
-            "Value": {
+            "value": {
               "type": "int",
               "value": "3"
             }
@@ -98,10 +98,10 @@ var testCopyJSON = []byte(`
     {
       "op": "GroupByProc",
       "duration": {
-        "Seconds": 86400
+        "seconds": 86400
       },
       "update_interval": {
-        "Seconds": 0
+        "seconds": 0
       },
       "keys": [
         {
@@ -161,7 +161,7 @@ var testCopyJSONExpected = []byte(`
               "op": "FieldRead",
               "field": "a"
             },
-            "Value": {
+            "value": {
               "type": "int",
               "value": "1"
             }
@@ -172,7 +172,7 @@ var testCopyJSONExpected = []byte(`
               "op": "CompareAny",
               "comparator": "search",
               "recursive": true,
-              "Value": {
+              "value": {
                 "type": "string",
                 "value": "foo"
               }
@@ -181,7 +181,7 @@ var testCopyJSONExpected = []byte(`
               "op": "CompareAny",
               "comparator": "searchin",
               "recursive": true,
-              "Value": {
+              "value": {
                 "type": "string",
                 "value": "foo"
               }
@@ -197,7 +197,7 @@ var testCopyJSONExpected = []byte(`
               "op": "FieldRead",
               "field": "b"
             },
-            "Value": {
+            "value": {
               "type": "int",
               "value": "2"
             }
@@ -209,7 +209,7 @@ var testCopyJSONExpected = []byte(`
               "op": "FieldRead",
               "field": "d"
             },
-            "Value": {
+            "value": {
               "type": "int",
               "value": "4"
             }
@@ -233,10 +233,10 @@ var testCopyJSONExpected = []byte(`
     {
       "op": "GroupByProc",
       "duration": {
-        "Seconds": 3600
+        "seconds": 3600
       },
       "update_interval": {
-        "Seconds": 0
+        "seconds": 0
       },
       "keys": [
         {
