@@ -80,6 +80,14 @@ func testDuplicateFields(t *testing.T, zql string) {
 func TestDuplicateFieldErrors(t *testing.T) {
 	testDuplicateFields(t, "cut rec,other,rec")
 	testDuplicateFields(t, "cut rec.sub1,rec.sub1")
+	testDuplicateFields(t, "cut rec.sub,rec.sub.sub")
+	testDuplicateFields(t, "cut rec.sub.sub,rec.sub")
+
+	_, err := proc.CompileTestProc("cut a,ab", nil, nil)
+	require.NoError(t, err)
+
+	_, err = proc.CompileTestProc("cut ab,a", nil, nil)
+	require.NoError(t, err)
 }
 
 // More data sets
