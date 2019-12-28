@@ -14,61 +14,76 @@ var testCopyJSON = []byte(`
   "op": "SequentialProc",
   "procs": [
     {
+      "op": "FilterProc",
       "filter": {
+        "op": "LogicalAnd",
         "left": {
+          "op": "LogicalAnd",
           "left": {
+            "op": "CompareField",
             "comparator": "eql",
             "field": {
               "op": "FieldRead",
               "field": "a"
             },
-            "op": "CompareField",
             "value": {
               "type": "int",
               "value": "1"
             }
           },
-          "op": "LogicalAnd",
           "right": {
-            "op": "SearchString",
-            "value": {
-              "type": "string",
-              "value": "foo"
+            "op": "LogicalOr",
+            "left": {
+              "op": "CompareAny",
+              "comparator": "search",
+              "recursive": true,
+              "value": {
+                "type": "string",
+                "value": "foo"
+              }
+            },
+            "right": {
+              "op": "CompareAny",
+              "comparator": "searchin",
+              "recursive": true,
+              "value": {
+                "type": "string",
+                "value": "foo"
+              }
             }
           }
         },
-        "op": "LogicalAnd",
         "right": {
+          "op": "LogicalOr",
           "left": {
+            "op": "CompareField",
             "comparator": "eql",
             "field": {
               "op": "FieldRead",
               "field": "b"
             },
-            "op": "CompareField",
             "value": {
               "type": "int",
               "value": "2"
             }
           },
-          "op": "LogicalOr",
           "right": {
+            "op": "CompareField",
             "comparator": "eql",
             "field": {
               "op": "FieldRead",
               "field": "c"
             },
-            "op": "CompareField",
             "value": {
               "type": "int",
               "value": "3"
             }
           }
         }
-      },
-      "op": "FilterProc"
+      }
     },
     {
+      "op": "CutProc",
       "fields": [
         {
           "op": "FieldRead",
@@ -78,13 +93,15 @@ var testCopyJSON = []byte(`
           "op": "FieldRead",
           "field": "e"
         }
-      ],
-      "op": "CutProc"
+      ]
     },
     {
+      "op": "GroupByProc",
       "duration": {
-        "seconds": 86400,
-        "type": "Duration"
+        "seconds": 86400
+      },
+      "update_interval": {
+        "seconds": 0
       },
       "keys": [
         {
@@ -96,99 +113,112 @@ var testCopyJSON = []byte(`
           "field": "o"
         }
       ],
-      "op": "GroupByProc",
       "reducers": [
         {
-          "field": "j",
           "op": "Sum",
-          "var": "j"
+          "var": "j",
+          "field": "j"
         },
         {
-          "field": "l",
           "op": "Min",
-          "var": "m"
+          "var": "m",
+          "field": "l"
         }
       ]
     },
     {
+      "op": "SortProc",
       "fields": [
         {
           "op": "FieldRead",
           "field": "p"
         }
       ],
-      "op": "SortProc",
       "sortdir": -1
     },
     {
-      "count": 1,
-      "op": "HeadProc"
+      "op": "HeadProc",
+      "count": 1
     }
   ]
-}
-`)
+}`)
 
-// boom ast 'a=1 foo (b=2 or d=4) | cut z, e | every hour sum(k) as j, min(l) as m by n, p | sort   p | head 2' | pbcopy
+// boom ast 'a=1 foo (b=2 or d=4) | cut z, e | every hour sum(k) as j, min(l) as m by n, p | sort   p | head 2' | jq .proc | pbcopy
 var testCopyJSONExpected = []byte(`
 {
   "op": "SequentialProc",
   "procs": [
     {
+      "op": "FilterProc",
       "filter": {
+        "op": "LogicalAnd",
         "left": {
+          "op": "LogicalAnd",
           "left": {
+            "op": "CompareField",
             "comparator": "eql",
             "field": {
               "op": "FieldRead",
               "field": "a"
             },
-            "op": "CompareField",
             "value": {
               "type": "int",
               "value": "1"
             }
           },
-          "op": "LogicalAnd",
           "right": {
-            "op": "SearchString",
-            "value": {
-              "type": "string",
-              "value": "foo"
+            "op": "LogicalOr",
+            "left": {
+              "op": "CompareAny",
+              "comparator": "search",
+              "recursive": true,
+              "value": {
+                "type": "string",
+                "value": "foo"
+              }
+            },
+            "right": {
+              "op": "CompareAny",
+              "comparator": "searchin",
+              "recursive": true,
+              "value": {
+                "type": "string",
+                "value": "foo"
+              }
             }
           }
         },
-        "op": "LogicalAnd",
         "right": {
+          "op": "LogicalOr",
           "left": {
+            "op": "CompareField",
             "comparator": "eql",
             "field": {
               "op": "FieldRead",
               "field": "b"
             },
-            "op": "CompareField",
             "value": {
               "type": "int",
               "value": "2"
             }
           },
-          "op": "LogicalOr",
           "right": {
+            "op": "CompareField",
             "comparator": "eql",
             "field": {
               "op": "FieldRead",
               "field": "d"
             },
-            "op": "CompareField",
             "value": {
               "type": "int",
               "value": "4"
             }
           }
         }
-      },
-      "op": "FilterProc"
+      }
     },
     {
+      "op": "CutProc",
       "fields": [
         {
           "op": "FieldRead",
@@ -198,13 +228,15 @@ var testCopyJSONExpected = []byte(`
           "op": "FieldRead",
           "field": "e"
         }
-      ],
-      "op": "CutProc"
+      ]
     },
     {
+      "op": "GroupByProc",
       "duration": {
-        "seconds": 3600,
-        "type": "Duration"
+        "seconds": 3600
+      },
+      "update_interval": {
+        "seconds": 0
       },
       "keys": [
         {
@@ -216,33 +248,32 @@ var testCopyJSONExpected = []byte(`
           "field": "p"
         }
       ],
-      "op": "GroupByProc",
       "reducers": [
         {
-          "field": "k",
           "op": "Sum",
-          "var": "j"
+          "var": "j",
+          "field": "k"
         },
         {
-          "field": "l",
           "op": "Min",
-          "var": "m"
+          "var": "m",
+          "field": "l"
         }
       ]
     },
     {
+      "op": "SortProc",
       "fields": [
         {
           "op": "FieldRead",
           "field": "p"
         }
       ],
-      "op": "SortProc",
       "sortdir": 1
     },
     {
-      "count": 2,
-      "op": "HeadProc"
+      "op": "HeadProc",
+      "count": 2
     }
   ]
 }

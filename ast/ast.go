@@ -87,15 +87,9 @@ type (
 	// field in a record.
 	CompareField struct {
 		Node
-		Comparator string    `json:"comparator"`
-		Field      FieldExpr `json:"field"`
-		Value      TypedValue
-	}
-	// A SearchString node represents a string match against the raw
-	// record info.
-	SearchString struct {
-		Node
-		Value TypedValue `json:"value"`
+		Comparator string     `json:"comparator"`
+		Field      FieldExpr  `json:"field"`
+		Value      TypedValue `json:"value"`
 	}
 )
 
@@ -108,7 +102,6 @@ func (e *LogicalNot) booleanExprNode()     {}
 func (e *BooleanLiteral) booleanExprNode() {}
 func (e *CompareAny) booleanExprNode()     {}
 func (e *CompareField) booleanExprNode()   {}
-func (e *SearchString) booleanExprNode()   {}
 
 // A FieldExpr is any expression that refers to a field.
 type (
@@ -236,7 +229,7 @@ type (
 
 //XXX TBD: chance to nano.Duration
 type Duration struct {
-	Seconds int
+	Seconds int `json:"seconds"`
 }
 
 type DurationNode struct {

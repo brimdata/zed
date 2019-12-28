@@ -55,12 +55,6 @@ function makeAndChain(first, rest) {
   return makeChain(first, rest, "LogicalAnd");
 }
 
-function makeSearchString(value) {
-  return { op: "SearchString", value };
-}
-function resetSearchStringType(v) {
-  v.type = "string";
-}
 
 function makeSortProc(fields, sortdir, limit) {
   if (limit === null) { limit = undefined; }

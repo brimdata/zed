@@ -213,12 +213,12 @@ function peg$parse(input, options) {
             return makeCompareField("in", f, v)
           },
       peg$c34 = function(v) {
-            let ss =  makeSearchString(v)
+            let ss =  makeCompareAny("search", true, v)
             if (getValueType(v) == "string") {
-              return ss
+              return makeOrChain(ss, [makeCompareAny("searchin", true, v)])
             }
-            ss = makeSearchString(makeTypedValue("string", text()))
-            return makeOrChain(ss, [makeCompareAny("eql", true, v), makeCompareAny("in", true, v)])
+            ss = makeCompareAny("search", true, makeTypedValue("string", text()))
+            return makeOrChain(ss, [makeCompareAny("searchin", true, makeTypedValue("string", text())), makeCompareAny("eql", true, v), makeCompareAny("in", true, v)])
           },
       peg$c35 = function(v) {
             return makeTypedValue("string", v)
@@ -6403,12 +6403,6 @@ function peg$parse(input, options) {
     return makeChain(first, rest, "LogicalAnd");
   }
 
-  function makeSearchString(value) {
-    return { op: "SearchString", value };
-  }
-  function resetSearchStringType(v) {
-    v.type = "string";
-  }
 
   function makeSortProc(fields, sortdir, limit) {
     if (limit === null) { limit = undefined; }

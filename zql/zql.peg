@@ -118,12 +118,12 @@ searchPred
       RETURN(makeCompareField("in", f, v))
     }
   / v:searchValue {
-      INIT_ASSIGN_VAR(ss, makeSearchString(v))
+      INIT_ASSIGN_VAR(ss, makeCompareAny("search", true, v))
       IF(getValueType(v) == "string") {
-        RETURN(ss)
+        RETURN(makeOrChain(ss, ARRAY(makeCompareAny("searchin", true, v))))
       }
-      ss = makeSearchString(makeTypedValue("string", TEXT))
-      RETURN(makeOrChain(ss, ARRAY(makeCompareAny("eql", true, v), makeCompareAny("in", true, v))))
+      ss = makeCompareAny("search", true, makeTypedValue("string", TEXT))
+      RETURN(makeOrChain(ss, ARRAY(makeCompareAny("searchin", true, makeTypedValue("string", TEXT)), makeCompareAny("eql", true, v), makeCompareAny("in", true, v))))
     }
 
 searchValue

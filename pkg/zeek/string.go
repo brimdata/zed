@@ -2,6 +2,7 @@ package zeek
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/mccanne/zq/pkg/zval"
 )
@@ -9,12 +10,14 @@ import (
 type TypeOfString struct{}
 
 var compareString = map[string]func(string, string) bool{
-	"eql":  func(a, b string) bool { return a == b },
-	"neql": func(a, b string) bool { return a != b },
-	"gt":   func(a, b string) bool { return a > b },
-	"gte":  func(a, b string) bool { return a >= b },
-	"lt":   func(a, b string) bool { return a < b },
-	"lte":  func(a, b string) bool { return a <= b }}
+	"eql":    func(a, b string) bool { return a == b },
+	"neql":   func(a, b string) bool { return a != b },
+	"gt":     func(a, b string) bool { return a > b },
+	"gte":    func(a, b string) bool { return a >= b },
+	"lt":     func(a, b string) bool { return a < b },
+	"lte":    func(a, b string) bool { return a <= b },
+	"search": func(a, b string) bool { return strings.Contains(a, b) },
+}
 
 func (t *TypeOfString) String() string {
 	return "string"
