@@ -161,8 +161,6 @@ func unpackBooleanExpr(node joe.JSON) (BooleanExpr, error) {
 			return nil, err
 		}
 		return &CompareField{Field: field}, nil
-	case "SearchString":
-		return &SearchString{}, nil
 
 	default:
 		return nil, fmt.Errorf("unknown op: %s", op)

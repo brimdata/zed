@@ -147,11 +147,6 @@ func (p *CompareField) Copy() BooleanExpr {
 	}
 }
 
-func (p *SearchString) Copy() BooleanExpr {
-	copy := *p
-	return &copy
-}
-
 func (p *FieldRead) Copy() FieldExpr {
 	copy := *p
 	return &copy

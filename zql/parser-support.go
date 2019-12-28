@@ -136,14 +136,6 @@ func makeAndChain(firstIn, restIn interface{}) ast.BooleanExpr {
 	return result
 }
 
-func makeSearchString(val interface{}) *ast.SearchString {
-	return &ast.SearchString{ast.Node{"SearchString"}, *(val.(*ast.TypedValue))}
-}
-
-func resetSearchStringType(val interface{}) {
-	val.(*ast.SearchString).Value.Type = "string"
-}
-
 // Helper to get a properly-typed slice of strings from an interface{}
 func stringArray(val interface{}) []string {
 	var ret []string

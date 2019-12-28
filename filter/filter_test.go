@@ -67,6 +67,7 @@ const zngsrc = `
 #8:record[nested:record[vec:vector[int]]]
 #9:record[s:string]
 #10:record[ts:time]
+#11:record[s:string,srec:record[svec:vector[string]]]
 0:[[abc;xyz;]]
 1:[[abc;xyz;]]
 1:[[a\;b;xyz;]]
@@ -79,6 +80,7 @@ const zngsrc = `
 8:[[[1;2;3;]]]
 9:[begin\x01\x02\xffend;]
 10:[1.001;]
+11:[hello;[[world;worldz;1.1.1.1;]]]
 `
 
 func TestFilters(t *testing.T) {
@@ -87,7 +89,7 @@ func TestFilters(t *testing.T) {
 	ior := strings.NewReader(zngsrc)
 	reader := detector.LookupReader("zng", ior, resolver.NewTable())
 
-	nrecords := 12
+	nrecords := 13
 	records := make([]*zng.Record, 0, nrecords)
 	for {
 		rec, err := reader.Read()
@@ -152,6 +154,7 @@ func TestFilters(t *testing.T) {
 		{"nested.vec[0] = 1", records[9], true},
 		{"nested.vec[1] = 1", records[9], false},
 		{"1 in nested", records[9], false},
+		{"1", records[9], true},
 
 		{"begin", records[10], true},
 		{"s=begin", records[10], false},
@@ -161,10 +164,15 @@ func TestFilters(t *testing.T) {
 		{"ts<2", records[11], false},
 		{"ts=1001000000", records[11], true},
 		{"ts<1002000000", records[11], true},
+		{"T", records[11], false}, // 0x54 matches binary encoding of 1.001 but naked string search shouldn't
 
 		{"ts=1.001", records[11], true},
 		{"ts<1.002", records[11], true},
 		{"ts<2.0", records[11], true},
+
+		{"hello", records[12], true},
+		{"worldz", records[12], true},
+		{"1.1.1.1", records[12], true},
 	}
 
 	for _, tt := range tests {

@@ -1,7 +1,6 @@
 package filter
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 
@@ -24,40 +23,6 @@ func LogicalOr(left, right Filter) Filter {
 
 func LogicalNot(expr Filter) Filter {
 	return func(p *zng.Record) bool { return !expr(p) }
-}
-
-func searchContainer(zv zval.Encoding, pattern []byte) bool {
-	for it := zv.Iter(); !it.Done(); {
-		val, container, err := it.Next()
-		if err != nil {
-			return false
-		}
-		if container {
-			if searchContainer(val, pattern) {
-				return true
-			}
-		} else {
-			if bytes.Contains(val, pattern) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func SearchString(s string) Filter {
-	pattern := zeek.Unescape([]byte(s))
-	return func(p *zng.Record) bool {
-		// Go implements a very efficient string search algorithm so we
-		// use it here first to rule out misses on a substring match.
-		if !bytes.Contains(p.Raw, pattern) {
-			return false
-		}
-		// If we have a hit, double check field by field in case the
-		// framing bytes give us a false positive.
-		// XXX we should refactor these iterators to make this tighter.
-		return searchContainer(p.Raw, pattern)
-	}
 }
 
 func combine(res expr.FieldExprResolver, pred zeek.Predicate) Filter {
@@ -181,13 +146,6 @@ func Compile(node ast.BooleanExpr) (Filter, error) {
 	case *ast.BooleanLiteral:
 		return func(p *zng.Record) bool { return v.Value }, nil
 
-	case *ast.SearchString:
-		val := v.Value
-		if val.Type != "string" {
-			return nil, errors.New("SearchString value must be of type string")
-		}
-		return SearchString(val.Value), nil
-
 	case *ast.CompareField:
 		z, err := zeek.Parse(v.Value)
 		if err != nil {
@@ -215,6 +173,11 @@ func Compile(node ast.BooleanExpr) (Filter, error) {
 		if v.Comparator == "in" {
 			eql, _ := z.Comparison("eql")
 			comparison := zeek.Contains(eql)
+			return EvalAny(comparison, v.Recursive), nil
+		}
+		if v.Comparator == "searchin" {
+			search, _ := z.Comparison("search")
+			comparison := zeek.Contains(search)
 			return EvalAny(comparison, v.Recursive), nil
 		}
 

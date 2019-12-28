@@ -91,12 +91,6 @@ type (
 		Field      FieldExpr `json:"field"`
 		Value      TypedValue
 	}
-	// A SearchString node represents a string match against the raw
-	// record info.
-	SearchString struct {
-		Node
-		Value TypedValue `json:"value"`
-	}
 )
 
 // booleanEpxrNode() ensures that only boolean expression nodes can be
@@ -108,7 +102,6 @@ func (e *LogicalNot) booleanExprNode()     {}
 func (e *BooleanLiteral) booleanExprNode() {}
 func (e *CompareAny) booleanExprNode()     {}
 func (e *CompareField) booleanExprNode()   {}
-func (e *SearchString) booleanExprNode()   {}
 
 // A FieldExpr is any expression that refers to a field.
 type (
