@@ -1,3 +1,0 @@
-# zson design rationale
-
-TBD
