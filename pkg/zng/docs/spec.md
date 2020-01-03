@@ -24,7 +24,7 @@ ZNG is type rich and embeds all type information in the stream while having a
 binary serialization format that allows "lazy parsing" of fields such that
 only the fields of interest in a stream need to be deserialized and interpreted.
 Unlike Avro, ZNG embeds type information in the data stream and thereby admits
-an efficient multiplexing of heterogenous data types by prepending to each
+an efficient multiplexing of heterogeneous data types by prepending to each
 data value a simple integer identifier to reference its type.   
 
 ZNG requires no external schema definitions as its type system
@@ -78,7 +78,7 @@ For example,
 9:no, there isn't.
 4:3
 ```
-where type code 4 represents an integer.  This encoding represents the string of
+where type code 4 represents an integer.  This encoding represents the sequence of
 values:
 ```
 "hello, world"
@@ -95,9 +95,9 @@ logs from the open-source Zeek system might look like this
 ```
 #alias:addr=ip
 #24:record[_path:string,ts:time,uid:string,id:record[orig_h:addr,orig_p:port,resp_h:addr,resp_p:port]...
-#25:record[_path:string,ts:time,uid:string,id:record[orig_h:addr,orig_p:port,resp_h:addr,resp_p:port]...
-24:conn;1425565514.419939;CogZFI3py5JsFZGik;[192.168.1.1:;80/tcp;192.168.1.2;8080;]...
-25:dns;1425565514.419987;CogZFI3py5JsFZGik;[192.168.1.1:;5353/udp;192.168.1.2;5353;]...
+#25:record[_path:string,ts:time,fuid:string,tx_hosts:set[addr]...
+24:[conn;1425565514.419939;CogZFI3py5JsFZGik;[192.168.1.1:;80/tcp;192.168.1.2;8080;]...
+25:[files;1425565514.419987;Fj8sRF1gdneMHN700d;[52.218.49.89;52.218.48.169;]...
 ```
 Note that the value encoding need not refer to the field names and types as that is
 completely captured by the type code.  Values merely encode the value
@@ -153,18 +153,38 @@ are scoped to the stream in which the typedef occurs.
 Type codes for the "scalar types" need not be defined with typedefs and
 are predefined as follows:
 
-| Type       | Code | Type       | Code |
-|------------|------|------------|------|
-| `bool`     |   0  | `bytes`    |  10  |
-| `byte`     |   1  | `bstring`  |  11  |
-| `int16`    |   2  | `enum`     |  12  |
-| `uint16`   |   3  | `ip`       |  13  |
-| `int32`    |   4  | `port`     |  14  |
-| `uint32`   |   5  | `net`      |  15  |
-| `int64`    |   6  | `time`     |  16  |
-| `uint64`   |   7  | `duration` |  17  |
-| `float64`  |   8  | `any`      |  18  |
-| `string`   |   9  |            |      |
+<table>
+<tr><td>
+
+| Type       | Code |
+|------------|------|
+| `bool`     |   0  |
+| `byte`     |   1  |
+| `int16`    |   2  |
+| `uint16`   |   3  |
+| `int32`    |   4  |
+| `uint32`   |   5  |
+| `int64`    |   6  |
+| `uint64`   |   7  |
+| `float64`  |   8  |
+| `string`   |   9  |
+
+</td><td>
+
+| Type       | Code |
+|------------|------|
+| `bytes`    |  10  |
+| `bstring`  |  11  |
+| `enum`     |  12  |
+| `ip`       |  13  |
+| `port`     |  14  |
+| `net`      |  15  |
+| `time`     |  16  |
+| `duration` |  17  |
+| `any`      |  18  |
+| &nbsp;     |      |
+
+</td></tr> </table>
 
 A typedef is encoded as a single byte indicating the composite type code following by
 the type encoding.  This creates a binding between the implied type code
@@ -242,7 +262,7 @@ to a previously existing type code.  This is useful for systems like Zeek,
 where there are customary type names that are well-known to users of the
 Zeek system and are easily mapped onto a BZNG type having a different name.
 By encoding the aliases in the format, there is no need to configure mapping
-information across different systems using the format as the type aliases
+information across different systems using the format, as the type aliases
 are communicated to the consumer of a BZNG stream.
 
 A type alias is encoded as follows:
@@ -312,26 +332,26 @@ length in bytes of the type code.
 A typed value with a `value` of length N and the type indicated
 is interpreted as follows:
 
-| Type     | N        |              Value                           |
-|----------|----------|----------------------------------------------|
-| bool     | 1        |  one byte 0 (false) or 1 (true)              |
-| byte     | 1        |  the byte                                    |
-| int16    | variable |  signed int of length N                      |
-| uint16   | variable |  unsigned int of length N                    |
-| int32    | variable |  signed int of length N                      |
-| uint32   | variable |  unsigned int of length N                    |
-| int64    | variable |  signed int of length N                      |
-| uint64   | variable |  unsigned int of length N                    |
-| float64  | 8        |  8 bytes of IEEE 64-bit format               |
-| string   | variable |  UTF-8 byte sequence of string               |
-| bytes    | variable |  bytes of value                              |
-| bstring  | variable |  UTF-8 byte sequence with \x escapes         |
-| enum     | variable |  UTF-8 bytes of enum string                  |
-| ip       | 4 or 16  |  4 or 16 bytes of IP address                 |
-| net      | 8 or 32  |  8 or 32 bytes of IP prefix and subnet mask  |
-| time     | 8        |  8 bytes of signed nanoseconds from epoch    |
-| duration | 8        |  8 bytes of signed nanoseconds duration      |
-| any      | variable |  <uvarint type code><value as defined here>  |
+| Type       | N        |              Value                           |
+|------------|----------|----------------------------------------------|
+| `bool`     | 1        |  one byte 0 (false) or 1 (true)              |
+| `byte`     | 1        |  the byte                                    |
+| `int16`    | variable |  signed int of length N                      |
+| `uint16`   | variable |  unsigned int of length N                    |
+| `int32`    | variable |  signed int of length N                      |
+| `uint32`   | variable |  unsigned int of length N                    |
+| `int64`    | variable |  signed int of length N                      |
+| `uint64`   | variable |  unsigned int of length N                    |
+| `float64`  | 8        |  8 bytes of IEEE 64-bit format               |
+| `string`   | variable |  UTF-8 byte sequence of string               |
+| `bytes`    | variable |  bytes of value                              |
+| `bstring`  | variable |  UTF-8 byte sequence with `\x` escapes       |
+| `enum `    | variable |  UTF-8 bytes of enum string                  |
+| `ip`       | 4 or 16  |  4 or 16 bytes of IP address                 |
+| `net`      | 8 or 32  |  8 or 32 bytes of IP prefix and subnet mask  |
+| `time`     | 8        |  8 bytes of signed nanoseconds from epoch    |
+| `duration` | 8        |  8 bytes of signed nanoseconds duration      |
+| `any`      | variable |  <uvarint type code><value as defined here>  |
 
 All multi-byte sequences representing machine words are serialized in
 little-endian format.
@@ -349,9 +369,9 @@ as a sequence of elements:
 
 | Type     |          Value            |
 |----------|---------------------------|
-| array    | concatenation of elements |
-| set      | concatenation of elements |
-| record   | concatenation of elements |
+| `array`  | concatenation of elements |
+| `set`    | concatenation of elements |
+| `record` | concatenation of elements |
 
 Since N, the byte length of
 this sequence is known, there is no need to encode a count of the
@@ -393,7 +413,7 @@ binary format.  A stream of control messages and values messages is represented
 as a sequence of UTF-8 lines each terminated by a newline.  Any newlines embedded
 in values must be escaped, i.e., via `\n`.
 
-A line that begins with `#` a control message.
+A line that begins with `#` is a control message.
 
 Any line that begins with a decimal integer and has the form
 ```
@@ -407,7 +427,7 @@ Except for typedefs, all control messages have the form
 ```
 #!<control code>:<payload>
 ```
-where <control code> is a decimal integer in the range 5-127 and <payload>
+where `<control code>` is a decimal integer in the range 5-127 and `<payload>`
 is any UTF-8 string with escaped newlines.
 
 Any line beginning that does not conform with the syntax described here
@@ -443,7 +463,7 @@ or
 ```
 where `name1`, `name2`, ... are field names as defined by the BZNG record type definitions
 and `code1`, `code2`, ... are textual type codes.  A textual type code can be either the name
-of a scalar type code from the type code table (e.g., "int64", "time", etc), an name that
+of a scalar type code from the type code table (e.g., `int64`, `time`, etc), a name that
 is a previously defined alias, or a
 string decimal integer referring to said table or created with a typedef that appeared
 earlier in the ZNG data stream.
@@ -523,8 +543,8 @@ A reference implementation of this type system is embedded in
 
 ### 3.2 ZNG Value Messages
 
-A ZNG value is encoded on a line as typed value, which is encoded
-an integer type code is followed by `:`, which is in turn followed
+A ZNG value is encoded on a line as typed value, which is encoded as
+an integer type code followed by `:`, which is in turn followed
 by a value encoding.
 
 Here is a pseudo-grammar for typed values:
@@ -551,14 +571,14 @@ composite) followed by a right bracket.
 Any escaped characters shall be processed and interpreted as their escaped value.
 
 Note that a terminal encoding of a typed value is accepted by this grammar, i.e.,
-a <terminal> can have the form <typecode>:<elem> for values of type "any".
+a `<terminal>` can have the form `<typecode>:<elem>` for values of type `any`.
 
 Composite values are encoded as
 * an open bracket,
 * zero or more encoded values terminated with semicolon, and
 * a close bracket.
 
-Any value can be specified as "unset" with the ascii character `-`.
+Any value can be specified as "unset" with the ASCII character `-`.
 This is typically used to represent columns of records where not all
 columns have been set in a given record value, though any type can be
 validly unset.  A value that is not to be interpreted as "unset"
@@ -575,13 +595,13 @@ defined by a typedef scoped to the stream in which the value appears.
 
 #### 3.2.1 Character Escape Rules
 
-Any character in a `bstring` value may be escaped from the ZSON formatting rules
-using the hex escape syntax, i.e., `\xhh` where h is a hexadecimal digit.
+Any character in a `bstring` value may be escaped from the ZNG formatting rules
+using the hex escape syntax, i.e., `\xhh` where `h` is a hexadecimal digit.
 This allows binary data that does not conform to a valid UTF-8 character encoding
 to be embedded in the `bstring` data type.
 
 These special characters must be hex escaped if they appear within a `bstring`
-or a string type:
+or a `string` type:
 ```
 ; \n \\
 ```
@@ -603,7 +623,7 @@ The formats for each type is as follows:
 
 Type | Format
 ---- | ------
-`bool` | a single characeter `T` or `F`
+`bool` | a single character `T` or `F`
 `byte` | two-characters of hexadecimal digit
 `int16` | decimal string representation of any signed, 16-bit integer
 `uint16` | decimal string representation of any unsigned, 16-bit integer
@@ -614,7 +634,7 @@ Type | Format
 `float64` | a decimal representation of a 64-bit IEEE floating point literal as defined in JavaScript
 `string` | a UTF-8 string
 `bytes` | a sequence of bytes encoded as base64
-`bstring` | a UTF-8 string with \x escapes of non-UTF binary data
+`bstring` | a UTF-8 string with `\x` escapes of non-UTF binary data
 `enum` | a string representing an enumeration value defined outside the scope of ZNG
 `ip` | a string representing an IP address in [IPv4 or IPv6 format](https://tools.ietf.org/html/draft-main-ipaddr-text-rep-02#section-3)
 `net` | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291.
@@ -638,7 +658,7 @@ Composite types look like this and do need typedefs:
 #24:set[bool,string]
 #25:record[x:double,y:double]
 ```
-Composite types can be embedded in other composite types by reference
+Composite types can be embedded in other composite types by referencing
 an earlier-defined type code:
 ```
 #26:record[a:string,b:string,c:23]
@@ -646,7 +666,7 @@ an earlier-defined type code:
 #28:record[v:23,s:24,r:25,s2:27]
 ```
 This ZNG defines
-a the first implied type code (23) and references the string type code (9):
+the first implied type code (23) and references the string type code (9),
 using them in three values:
 ```
 #23:record[a:string,b:string]
