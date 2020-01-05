@@ -70,7 +70,7 @@ func (p *Parser) jsonParseObject(b []byte) (zeek.Type, error) {
 	for i, kv := range kvs {
 		columns[i] = zeek.Column{Name: string(kv.key), Type: zeek.TypeUnset}
 	}
-	columns, err = zeekio.Unflatten(columns, false)
+	columns, _, err = zeekio.Unflatten(columns, false)
 	if err != nil {
 		return nil, err
 	}
