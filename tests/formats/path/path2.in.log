@@ -1,0 +1,8 @@
+#separator \x09
+#set_separator	,
+#empty_field	(empty)
+#unset_field	-
+#path	conn
+#fields	_path	foo
+#types	string	string
+notconn	yes

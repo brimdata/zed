@@ -29,6 +29,7 @@ type Parser struct {
 	unknown    int // Count of unknown directives
 	needfields bool
 	needtypes  bool
+	addpath    bool
 	// descriptor is a lazily-allocated Descriptor corresponding
 	// to the contents of the #fields and #types directives.
 	descriptor *zng.Descriptor
@@ -161,7 +162,7 @@ func (p *Parser) ParseDirective(line []byte) error {
 // dotted field names and adding a _path column if one is not already
 // present.  Note that according to the zng spec, all the fields for
 // a nested record must be adjacent which simplifies the logic here.
-func Unflatten(columns []zeek.Column, addPath bool) ([]zeek.Column, error) {
+func Unflatten(columns []zeek.Column, addPath bool) ([]zeek.Column, bool) {
 	hasPath := false
 	cols := make([]zeek.Column, 0)
 	var nestedCols []zeek.Column
@@ -212,37 +213,37 @@ func Unflatten(columns []zeek.Column, addPath bool) ([]zeek.Column, error) {
 		cols = append(cols, newcol)
 	}
 
+	var needpath bool
 	if addPath && !hasPath {
 		pathcol := zeek.Column{Name: "_path", Type: zeek.TypeString}
 		cols = append([]zeek.Column{pathcol}, cols...)
+		needpath = true
 	}
-	return cols, nil
+	return cols, needpath
 }
 
-func (p *Parser) lookup() (*zng.Descriptor, error) {
+func (p *Parser) setDescriptor() error {
 	// add descriptor and _path, form the columns, and lookup the td
 	// in the space's descriptor table.
 	if len(p.columns) == 0 || p.needfields || p.needtypes {
-		return nil, ErrBadRecordDef
+		return ErrBadRecordDef
 	}
 
-	cols, err := Unflatten(p.columns, p.path != "")
-	if err != nil {
-		return nil, err
-	}
-	return p.resolver.GetByColumns(cols), nil
+	cols, addpath := Unflatten(p.columns, p.path != "")
+	p.descriptor = p.resolver.GetByColumns(cols)
+	p.addpath = addpath
+	return nil
 }
 
 func (p *Parser) ParseValue(line []byte) (*zng.Record, error) {
 	if p.descriptor == nil {
-		d, err := p.lookup()
+		err := p.setDescriptor()
 		if err != nil {
 			return nil, err
 		}
-		p.descriptor = d
 	}
 	var path []byte
-	if p.path != "" {
+	if p.path != "" && p.addpath {
 		//XXX should store path as a byte slice so it doens't get copied
 		// each time here
 		path = []byte(p.path)
