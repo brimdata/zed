@@ -11,7 +11,7 @@ Zeek was formerly known as "Bro".)
 * an [execution engine](proc) for log pattern search and analytics,
 * a [query language](pkg/zql/README.md) that compiles into a program that runs on
 the execution engine, and
-* an open specification for structured logs, called [ZNG](pkg/zng/docs/spec.md).<br>
+* an open specification for structured logs, called [ZNG](pkg/zng/docs/README.md).<br>
 (**Note**: The ZNG format is in Alpha and subject to change.)
 
 `zq` takes Zeek/ZNG logs as input and filters, transforms, and performs
