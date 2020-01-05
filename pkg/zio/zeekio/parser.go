@@ -29,7 +29,7 @@ type Parser struct {
 	unknown    int // Count of unknown directives
 	needfields bool
 	needtypes  bool
-	needpath   bool
+	addpath    bool
 	// descriptor is a lazily-allocated Descriptor corresponding
 	// to the contents of the #fields and #types directives.
 	descriptor *zng.Descriptor
@@ -162,7 +162,7 @@ func (p *Parser) ParseDirective(line []byte) error {
 // dotted field names and adding a _path column if one is not already
 // present.  Note that according to the zng spec, all the fields for
 // a nested record must be adjacent which simplifies the logic here.
-func Unflatten(columns []zeek.Column, addPath bool) ([]zeek.Column, bool, error) {
+func Unflatten(columns []zeek.Column, addPath bool) ([]zeek.Column, bool) {
 	hasPath := false
 	cols := make([]zeek.Column, 0)
 	var nestedCols []zeek.Column
@@ -219,7 +219,7 @@ func Unflatten(columns []zeek.Column, addPath bool) ([]zeek.Column, bool, error)
 		cols = append([]zeek.Column{pathcol}, cols...)
 		needpath = true
 	}
-	return cols, needpath, nil
+	return cols, needpath
 }
 
 func (p *Parser) setDescriptor() error {
@@ -229,12 +229,9 @@ func (p *Parser) setDescriptor() error {
 		return ErrBadRecordDef
 	}
 
-	cols, needpath, err := Unflatten(p.columns, p.path != "")
-	if err != nil {
-		return err
-	}
+	cols, addpath := Unflatten(p.columns, p.path != "")
 	p.descriptor = p.resolver.GetByColumns(cols)
-	p.needpath = needpath
+	p.addpath = addpath
 	return nil
 }
 
@@ -246,7 +243,7 @@ func (p *Parser) ParseValue(line []byte) (*zng.Record, error) {
 		}
 	}
 	var path []byte
-	if p.path != "" && p.needpath {
+	if p.path != "" && p.addpath {
 		//XXX should store path as a byte slice so it doens't get copied
 		// each time here
 		path = []byte(p.path)
