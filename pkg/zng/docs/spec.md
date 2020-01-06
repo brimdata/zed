@@ -66,10 +66,11 @@ looks like this:
 ```
 9:hello, world
 ```
-Here, the type code is the integer "9" representing the string type and the data
-value "hello, world" is an instance of string.
+Here, the type code is the integer "9" representing the string type
+(defined in [Typedefs](#typedefs)) and the data value "hello, world"
+is an instance of string.
 
-ZNG gets more interesting when data types are interleaved in the stream.
+ZNG gets more interesting when different data types are interleaved in the stream.
 For example,
 ```
 9:hello, world
@@ -143,7 +144,7 @@ protocol directives as ZNG control payloads rather than defining additional
 encapsulating protocols.  See the
 [zng-over-http](zng-over-http.md) protocol for an example.
 
-### 2.1.1 Typedefs
+### <a name="typedefs"> 2.1.1 Typedefs
 
 Following a header byte of 0x80-0x83 is a "typedef".  A typedef binds
 "the next available" integer type code to a type encoding.  Type codes
