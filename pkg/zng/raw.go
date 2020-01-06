@@ -213,7 +213,7 @@ func zngParseContainer(builder *zval.Builder, typ zeek.Type, b []byte) ([]byte, 
 	b = b[1:]
 	childType, columns := zeek.ContainedType(typ)
 	if childType == nil && columns == nil {
-		return nil, ErrSyntax
+		return nil, ErrNotScalar
 	}
 	k := 0
 	for {
@@ -262,7 +262,7 @@ func zngParseField(builder *zval.Builder, typ zeek.Type, b []byte) ([]byte, erro
 		switch b[from] {
 		case semicolon:
 			if zeek.IsContainerType(typ) {
-				return nil, ErrSyntax
+				return nil, ErrNotContainer
 			}
 			zv, err := typ.Parse(zeek.Unescape(b[:to]))
 			if err != nil {

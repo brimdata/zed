@@ -5,11 +5,11 @@ import (
 )
 
 var Internal1 = test.Internal{
-	Name:     "sort1",
-	Query:    "* | sort x",
-	Input:    test.Trim(in1),
-	Format:   "zng",
-	Expected: test.Trim(out1),
+	Name:         "sort1",
+	Query:        "* | sort x",
+	Input:        test.Trim(in1),
+	OutputFormat: "zng",
+	Expected:     test.Trim(out1),
 }
 
 const in1 = `
@@ -25,11 +25,11 @@ const out1 = `
 `
 
 var Internal2 = test.Internal{
-	Name:     "sort2",
-	Query:    "* | sort x",
-	Input:    test.Trim(in2),
-	Format:   "zng",
-	Expected: test.Trim(out2),
+	Name:         "sort2",
+	Query:        "* | sort x",
+	Input:        test.Trim(in2),
+	OutputFormat: "zng",
+	Expected:     test.Trim(out2),
 }
 
 const in2 = `
@@ -105,9 +105,9 @@ const out3 = `
 `
 
 var Internal3 = test.Internal{
-	Name:     "sort3",
-	Query:    "* | sort TTLs",
-	Input:    test.Trim(in3),
-	Format:   "zng",
-	Expected: test.Trim(out3),
+	Name:         "sort3",
+	Query:        "* | sort TTLs",
+	Input:        test.Trim(in3),
+	OutputFormat: "zng",
+	Expected:     test.Trim(out3),
 }
