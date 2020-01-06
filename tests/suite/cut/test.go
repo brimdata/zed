@@ -5,11 +5,11 @@ import (
 )
 
 var Internal = test.Internal{
-	Name:     "cut",
-	Query:    "* | cut foo",
-	Input:    test.Trim(input),
-	Format:   "table",
-	Expected: test.Trim(expected),
+	Name:         "cut",
+	Query:        "* | cut foo",
+	Input:        test.Trim(input),
+	OutputFormat: "table",
+	Expected:     test.Trim(expected),
 }
 
 var Exec = test.Exec{

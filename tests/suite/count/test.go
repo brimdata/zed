@@ -5,11 +5,11 @@ import (
 )
 
 var Internal = test.Internal{
-	Name:     "count",
-	Query:    "* | count()",
-	Input:    test.Trim(input),
-	Format:   "table",
-	Expected: test.Trim(expected),
+	Name:         "count",
+	Query:        "* | count()",
+	Input:        test.Trim(input),
+	OutputFormat: "table",
+	Expected:     test.Trim(expected),
 }
 
 const input = `

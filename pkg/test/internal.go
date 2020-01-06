@@ -14,20 +14,36 @@ import (
 )
 
 type Internal struct {
-	Name        string
-	Query       string
-	Input       string
-	Format      string
-	Expected    string
-	ExpectedErr error
+	Name         string
+	Query        string
+	Input        string
+	InputFormat  string // defaults to "auto", like zq
+	OutputFormat string // defaults to "zng", like zq
+	Expected     string
+	ExpectedErr  error
 }
 
 func Trim(s string) string {
 	return strings.TrimSpace(s) + "\n"
 }
 
-func stringReader(input string, r *resolver.Table) (zng.Reader, error) {
-	return detector.NewReader(strings.NewReader(input), r)
+func stringReader(input string, ifmt string, r *resolver.Table) (zng.Reader, error) {
+	if ifmt == "" {
+		return detector.NewReader(strings.NewReader(input), r)
+	}
+	zr := detector.LookupReader(ifmt, strings.NewReader(input), r)
+	if zr == nil {
+		return nil, fmt.Errorf("unknown input format %s", ifmt)
+	}
+	return zr, nil
+}
+
+func newEmitter(ofmt string) (*emitter.Bytes, error) {
+	if ofmt == "" {
+		ofmt = "zng"
+	}
+	// XXX text format options not supported and passed in as nil
+	return emitter.NewBytes(ofmt, nil)
 }
 
 func (i *Internal) Run() (string, error) {
@@ -35,7 +51,7 @@ func (i *Internal) Run() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("parse error: %s (%s)", err, i.Query)
 	}
-	reader, err := stringReader(i.Input, resolver.NewTable())
+	reader, err := stringReader(i.Input, i.InputFormat, resolver.NewTable())
 	if err != nil {
 		return "", err
 	}
@@ -43,8 +59,7 @@ func (i *Internal) Run() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// XXX text format options not supported and passed in as nil
-	output, err := emitter.NewBytes(i.Format, nil)
+	output, err := newEmitter(i.OutputFormat)
 	if err != nil {
 		return "", err
 	}

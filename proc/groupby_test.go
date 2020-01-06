@@ -118,11 +118,11 @@ func (s *suite) add(t test.Internal) {
 func New(name, input, output, cmd string) test.Internal {
 	output = strings.ReplaceAll(output, "\n\n", "\n")
 	return test.Internal{
-		Name:     name,
-		Query:    "* | " + cmd,
-		Input:    input,
-		Format:   "zng",
-		Expected: test.Trim(output),
+		Name:         name,
+		Query:        "* | " + cmd,
+		Input:        input,
+		OutputFormat: "zng",
+		Expected:     test.Trim(output),
 	}
 }
 

@@ -5,11 +5,11 @@ import (
 )
 
 var Internal = test.Internal{
-	Name:     "format",
-	Query:    "*",
-	Input:    test.Trim(input),
-	Format:   "ndjson",
-	Expected: test.Trim(expected),
+	Name:         "format",
+	Query:        "*",
+	Input:        test.Trim(input),
+	OutputFormat: "ndjson",
+	Expected:     test.Trim(expected),
 }
 
 const input = `

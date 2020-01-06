@@ -6,11 +6,11 @@ import (
 )
 
 var Internal = test.Internal{
-	Name:     "input",
-	Query:    "*",
-	Input:    test.Trim(input),
-	Format:   "zng",
-	Expected: test.Trim(expected),
+	Name:         "input",
+	Query:        "*",
+	Input:        test.Trim(input),
+	OutputFormat: "zng",
+	Expected:     test.Trim(expected),
 }
 
 const input = `
