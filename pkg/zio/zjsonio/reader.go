@@ -176,7 +176,7 @@ func decodeType(columns []interface{}) (string, error) {
 func decodeContainer(builder *zval.Builder, typ zeek.Type, body []interface{}) error {
 	childType, columns := zeek.ContainedType(typ)
 	if childType == nil && columns == nil {
-		return zng.ErrSyntax
+		return zng.ErrNotScalar
 	}
 	builder.BeginContainer()
 	for k, column := range body {
@@ -199,7 +199,7 @@ func decodeContainer(builder *zval.Builder, typ zeek.Type, body []interface{}) e
 		s, ok := column.(string)
 		if ok {
 			if zeek.IsContainerType(childType) {
-				return zng.ErrSyntax
+				return zng.ErrNotContainer
 			}
 			zv, err := childType.Parse(zeek.Unescape([]byte(s)))
 			if err != nil {
