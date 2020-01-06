@@ -182,6 +182,9 @@ func NewParser() *Parser {
 func (p *Parser) Parse(d *Descriptor, zng []byte) (zval.Encoding, error) {
 	builder := p.builder
 	builder.Reset()
+	if zng[0] != leftbracket {
+		return nil, ErrSyntax
+	}
 	rest, err := zngParseContainer(builder, d.Type, zng)
 	if err != nil {
 		return nil, err
