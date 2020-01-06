@@ -5,6 +5,7 @@ import (
 	"github.com/mccanne/zq/tests/suite/count"
 	"github.com/mccanne/zq/tests/suite/cut"
 	"github.com/mccanne/zq/tests/suite/diropt"
+	"github.com/mccanne/zq/tests/suite/errors"
 	"github.com/mccanne/zq/tests/suite/format"
 	"github.com/mccanne/zq/tests/suite/input"
 	"github.com/mccanne/zq/tests/suite/sort"
@@ -18,7 +19,13 @@ var internals = []test.Internal{
 	cut.Internal,
 	format.Internal,
 	input.Internal,
-	input.DuplicateFields,
+	errors.DuplicateFields,
+	errors.ErrNotScalar,
+	errors.ErrNotScalarZJSON,
+	errors.ErrNotContainer,
+	errors.ErrNotContainerZJSON,
+	errors.ErrMissingField,
+	errors.ErrExtraField,
 	sort.Internal1,
 	sort.Internal2,
 	sort.Internal3,
