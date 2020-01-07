@@ -47,10 +47,10 @@ func (s *Top) Pull() (zng.Batch, error) {
 		if batch == nil {
 			return s.sorted(), nil
 		}
-		defer batch.Unref()
 		for k := 0; k < batch.Length(); k++ {
 			s.consume(batch.Index(k))
 		}
+		batch.Unref()
 		if s.flushEvery {
 			return s.sorted(), nil
 		}
