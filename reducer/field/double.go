@@ -1,9 +1,9 @@
 package field
 
 import (
-	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zng"
 	"github.com/mccanne/zq/streamfn"
+	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zng"
 )
 
 type Double struct {
@@ -16,15 +16,15 @@ func NewDoubleStreamfn(op string) Streamfn {
 	}
 }
 
-func (i *Double) Result() zeek.Value {
-	return zeek.NewDouble(i.fn.State)
+func (i *Double) Result() zng.Value {
+	return zng.NewDouble(i.fn.State)
 }
 
-func (i *Double) Consume(v zeek.Value) error {
-	//XXX change this to use *zeek.Double
-	var d zeek.Double
-	if !zeek.CoerceToDouble(v, &d) {
-		return zng.ErrTypeMismatch
+func (i *Double) Consume(v zng.Value) error {
+	//XXX change this to use *zng.Double
+	var d zng.Double
+	if !zng.CoerceToDouble(v, &d) {
+		return zbuf.ErrTypeMismatch
 	}
 	i.fn.Update(float64(d))
 	return nil

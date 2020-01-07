@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/mccanne/zq/ast"
-	"github.com/mccanne/zq/pkg/zng/resolver"
 	"github.com/mccanne/zq/proc"
+	"github.com/mccanne/zq/zng/resolver"
 	"go.uber.org/zap"
 )
 

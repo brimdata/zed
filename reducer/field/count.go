@@ -1,9 +1,9 @@
 package field
 
 import (
-	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zng"
 	"github.com/mccanne/zq/streamfn"
+	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zng"
 )
 
 type Count struct {
@@ -16,15 +16,15 @@ func NewCountStreamfn(op string) Streamfn {
 	}
 }
 
-func (c *Count) Result() zeek.Value {
-	return zeek.NewCount(c.fn.State)
+func (c *Count) Result() zng.Value {
+	return zng.NewCount(c.fn.State)
 }
 
-func (c *Count) Consume(v zeek.Value) error {
-	var i zeek.Int
+func (c *Count) Consume(v zng.Value) error {
+	var i zng.Int
 	//XXX need CoerceToCount?
-	if !zeek.CoerceToInt(v, &i) {
-		return zng.ErrTypeMismatch
+	if !zng.CoerceToInt(v, &i) {
+		return zbuf.ErrTypeMismatch
 	}
 	c.fn.Update(uint64(i))
 	return nil

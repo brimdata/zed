@@ -1,14 +1,14 @@
 package field
 
 import (
-	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zng"
 	"github.com/mccanne/zq/reducer"
+	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zng"
 )
 
 type Streamfn interface {
-	Result() zeek.Value
-	Consume(zeek.Value) error
+	Result() zng.Value
+	Consume(zng.Value) error
 }
 
 type FieldProto struct {
@@ -36,19 +36,19 @@ type FieldReducer struct {
 	fn    Streamfn
 }
 
-func (fr *FieldReducer) Result() zeek.Value {
+func (fr *FieldReducer) Result() zng.Value {
 	if fr.fn == nil {
-		return &zeek.Unset{}
+		return &zng.Unset{}
 	}
 	return fr.fn.Result()
 }
 
-func (fr *FieldReducer) Consume(r *zng.Record) {
-	// XXX for now, we create a new zeek.Value everytime we operate on
+func (fr *FieldReducer) Consume(r *zbuf.Record) {
+	// XXX for now, we create a new zng.Value everytime we operate on
 	// a field.  this could be made more efficient by having each typed
 	// reducer just parse the byte slice in the record without making a value...
-	// XXX then we have Values in the zng.Record, we would first check the
-	// Value element in the column--- this would all go in a new method of zng.Record
+	// XXX then we have Values in the zbuf.Record, we would first check the
+	// Value element in the column--- this would all go in a new method of zbuf.Record
 	val := r.ValueByField(fr.field)
 	if val == nil {
 		fr.FieldNotFound++
@@ -57,15 +57,15 @@ func (fr *FieldReducer) Consume(r *zng.Record) {
 
 	if fr.fn == nil {
 		switch val.Type().(type) {
-		case *zeek.TypeOfInt:
+		case *zng.TypeOfInt:
 			fr.fn = NewIntStreamfn(fr.op)
-		case *zeek.TypeOfCount:
+		case *zng.TypeOfCount:
 			fr.fn = NewCountStreamfn(fr.op)
-		case *zeek.TypeOfDouble:
+		case *zng.TypeOfDouble:
 			fr.fn = NewDoubleStreamfn(fr.op)
-		case *zeek.TypeOfInterval:
+		case *zng.TypeOfInterval:
 			fr.fn = NewIntervalStreamfn(fr.op)
-		case *zeek.TypeOfTime:
+		case *zng.TypeOfTime:
 			fr.fn = NewTimeStreamfn(fr.op)
 		default:
 			fr.TypeMismatch++
@@ -74,7 +74,7 @@ func (fr *FieldReducer) Consume(r *zng.Record) {
 	}
 
 	err := fr.fn.Consume(val)
-	if err == zng.ErrTypeMismatch {
+	if err == zbuf.ErrTypeMismatch {
 		fr.TypeMismatch++
 	}
 }

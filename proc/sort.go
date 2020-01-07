@@ -5,8 +5,8 @@ import (
 
 	"github.com/mccanne/zq/expr"
 	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zng"
 )
 
 type Sort struct {
@@ -14,7 +14,7 @@ type Sort struct {
 	dir    int
 	limit  int
 	fields []expr.FieldExprResolver
-	out    []*zng.Record
+	out    []*zbuf.Record
 }
 
 // defaultSortLimit is the default limit of the number of records that
@@ -29,42 +29,42 @@ func NewSort(c *Context, parent Proc, limit int, fields []expr.FieldExprResolver
 	return &Sort{Base: Base{Context: c, Parent: parent}, dir: dir, limit: limit, fields: fields}
 }
 
-func firstOf(d *zng.Descriptor, which zeek.Type) string {
+func firstOf(d *zbuf.Descriptor, which zng.Type) string {
 	for _, col := range d.Type.Columns {
-		if zeek.SameType(col.Type, which) {
+		if zng.SameType(col.Type, which) {
 			return col.Name
 		}
 	}
 	return ""
 }
 
-func firstNot(d *zng.Descriptor, which zeek.Type) string {
+func firstNot(d *zbuf.Descriptor, which zng.Type) string {
 	for _, col := range d.Type.Columns {
-		if !zeek.SameType(col.Type, which) {
+		if !zng.SameType(col.Type, which) {
 			return col.Name
 		}
 	}
 	return ""
 }
 
-func guessSortField(rec *zng.Record) string {
+func guessSortField(rec *zbuf.Record) string {
 	d := rec.Descriptor
-	if fld := firstOf(d, zeek.TypeCount); fld != "" {
+	if fld := firstOf(d, zng.TypeCount); fld != "" {
 		return fld
 	}
-	if fld := firstOf(d, zeek.TypeInt); fld != "" {
+	if fld := firstOf(d, zng.TypeInt); fld != "" {
 		return fld
 	}
-	if fld := firstOf(d, zeek.TypeDouble); fld != "" {
+	if fld := firstOf(d, zng.TypeDouble); fld != "" {
 		return fld
 	}
-	if fld := firstNot(d, zeek.TypeTime); fld != "" {
+	if fld := firstNot(d, zng.TypeTime); fld != "" {
 		return fld
 	}
 	return "ts"
 }
 
-func (s *Sort) Pull() (zng.Batch, error) {
+func (s *Sort) Pull() (zbuf.Batch, error) {
 	for {
 		batch, err := s.Get()
 		if err != nil {
@@ -82,14 +82,14 @@ func (s *Sort) Pull() (zng.Batch, error) {
 	}
 }
 
-func (s *Sort) consume(batch zng.Batch) {
+func (s *Sort) consume(batch zbuf.Batch) {
 	//XXX this could be made more efficient
 	for k := 0; k < batch.Length(); k++ {
 		s.out = append(s.out, batch.Index(k).Keep())
 	}
 }
 
-func (s *Sort) sort() zng.Batch {
+func (s *Sort) sort() zbuf.Batch {
 	out := s.out
 	if len(out) == 0 {
 		return nil
@@ -97,19 +97,19 @@ func (s *Sort) sort() zng.Batch {
 	s.out = nil
 	if s.fields == nil {
 		fld := guessSortField(out[0])
-		resolver := func(r *zng.Record) zeek.TypedEncoding {
+		resolver := func(r *zbuf.Record) zng.TypedEncoding {
 			e, err := r.Access(fld)
 			if err != nil {
-				return zeek.TypedEncoding{}
+				return zng.TypedEncoding{}
 			}
 			return e
 		}
 		s.fields = []expr.FieldExprResolver{resolver}
 	}
 	sorter := expr.NewSortFn(true, s.fields...)
-	sortWithDir := func(a, b *zng.Record) int {
+	sortWithDir := func(a, b *zbuf.Record) int {
 		return s.dir * sorter(a, b)
 	}
 	expr.SortStable(out, sortWithDir)
-	return zng.NewArray(out, nano.NewSpanTs(s.MinTs, s.MaxTs))
+	return zbuf.NewArray(out, nano.NewSpanTs(s.MinTs, s.MaxTs))
 }

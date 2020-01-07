@@ -5,16 +5,16 @@ import (
 	"io"
 	"time"
 
-	"github.com/mccanne/zq/pkg/zng"
 	"github.com/mccanne/zq/proc"
+	"github.com/mccanne/zq/zbuf"
 )
 
 type Driver struct {
-	writer   zng.Writer
+	writer   zbuf.Writer
 	warnings io.Writer
 }
 
-func New(w zng.Writer) *Driver {
+func New(w zbuf.Writer) *Driver {
 	return &Driver{
 		writer: w,
 	}
@@ -24,7 +24,7 @@ func (d *Driver) SetWarningsWriter(w io.Writer) {
 	d.warnings = w
 }
 
-func (d *Driver) Write(cid int, arr zng.Batch) error {
+func (d *Driver) Write(cid int, arr zbuf.Batch) error {
 	for _, r := range arr.Records() {
 		if err := d.writer.Write(r); err != nil {
 			return err

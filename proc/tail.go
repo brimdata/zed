@@ -2,7 +2,7 @@ package proc
 
 import (
 	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/zbuf"
 )
 
 type Tail struct {
@@ -10,29 +10,29 @@ type Tail struct {
 	limit int
 	count int
 	off   int
-	q     []*zng.Record
+	q     []*zbuf.Record
 }
 
 func NewTail(c *Context, parent Proc, limit int) *Tail {
-	q := make([]*zng.Record, limit)
+	q := make([]*zbuf.Record, limit)
 	return &Tail{Base{Context: c, Parent: parent}, limit, 0, 0, q}
 }
 
-func (t *Tail) tail() zng.Batch {
+func (t *Tail) tail() zbuf.Batch {
 	if t.count <= 0 {
 		return nil
 	}
-	out := make([]*zng.Record, t.limit)
+	out := make([]*zbuf.Record, t.limit)
 	for k := 0; k < t.limit; k++ {
 		out[k] = t.q[(t.off+k)%t.limit]
 	}
 	t.off = 0
 	t.count = 0
-	return zng.NewArray(out, nano.NewSpanTs(t.MinTs, t.MaxTs))
+	return zbuf.NewArray(out, nano.NewSpanTs(t.MinTs, t.MaxTs))
 
 }
 
-func (t *Tail) Pull() (zng.Batch, error) {
+func (t *Tail) Pull() (zbuf.Batch, error) {
 	for {
 		batch, err := t.Get()
 		if EOS(batch, err) {

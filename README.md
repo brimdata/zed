@@ -9,14 +9,14 @@ Zeek was formerly known as "Bro".)
 
 `zq` is comprised of
 * an [execution engine](proc) for log pattern search and analytics,
-* a [query language](pkg/zql/README.md) that compiles into a program that runs on
+* a [query language](zql/docs/README.md) that compiles into a program that runs on
 the execution engine, and
-* an open specification for structured logs, called [ZNG](pkg/zng/docs/README.md).<br>
+* an open specification for structured logs, called [ZNG](zng/docs/README.md).<br>
 (**Note**: The ZNG format is in Alpha and subject to change.)
 
 `zq` takes Zeek/ZNG logs as input and filters, transforms, and performs
 analytics using the
-[zq query language](pkg/zql/README.md),
+[zq query language](zql/docs/README.md),
 producing a log stream as its output.
 
 ## Install
@@ -44,7 +44,7 @@ For `zq` command usage, see the built-in help by running
 zq help
 ```
 `zq` program syntax and semantics are documented in the
-[query language README](pkg/zql/README.md)
+[query language README](zql/docs/README.md)
 
 ### Examples
 
@@ -52,7 +52,7 @@ Here are a few examples based on a very simple "conn" log from Zeek [(conn.log)]
 located in this directory.  See the
 [zq-sample-data repo](https://github.com/mccanne/zq-sample-data ) for more
 test data, which is used in the examples in the
-[query language documentation](https://github.com/mccanne/zq/blob/master/pkg/zql/README.md).
+[query language documentation](zql/docs/README.md).
 
 To cut the columns of a Zeek "conn" log like `zeek-cut` does, run:
 ```
@@ -86,7 +86,7 @@ zq "orig_bytes > 10000 | count()" conn.log
 zq "avg(orig_bytes)" conn.log
 ```
 
-The [ZNG specification](pkg/zng/docs/spec.md) describes the significance of the
+The [ZNG specification](zng/docs/spec.md) describes the significance of the
 `_path` field.  By leveraging this, diverse Zeek logs can be combined into a single
 file.
 ```

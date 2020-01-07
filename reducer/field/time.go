@@ -2,9 +2,9 @@ package field
 
 import (
 	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zng"
 	"github.com/mccanne/zq/streamfn"
+	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zng"
 )
 
 type Time struct {
@@ -17,14 +17,14 @@ func NewTimeStreamfn(op string) Streamfn {
 	}
 }
 
-func (t *Time) Result() zeek.Value {
-	return zeek.NewTime(t.fn.State)
+func (t *Time) Result() zng.Value {
+	return zng.NewTime(t.fn.State)
 }
 
-func (t *Time) Consume(v zeek.Value) error {
-	var cv zeek.Time
-	if !zeek.CoerceToTime(v, &cv) {
-		return zng.ErrTypeMismatch
+func (t *Time) Consume(v zng.Value) error {
+	var cv zng.Time
+	if !zng.CoerceToTime(v, &cv) {
+		return zbuf.ErrTypeMismatch
 	}
 	t.fn.Update(nano.Ts(cv))
 	return nil

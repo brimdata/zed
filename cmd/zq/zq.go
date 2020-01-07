@@ -10,12 +10,12 @@ import (
 	"github.com/mccanne/zq/driver"
 	"github.com/mccanne/zq/emitter"
 	"github.com/mccanne/zq/filter"
-	"github.com/mccanne/zq/pkg/zio"
-	"github.com/mccanne/zq/pkg/zio/detector"
-	"github.com/mccanne/zq/pkg/zng"
-	"github.com/mccanne/zq/pkg/zng/resolver"
 	"github.com/mccanne/zq/proc"
 	"github.com/mccanne/zq/scanner"
+	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zio"
+	"github.com/mccanne/zq/zio/detector"
+	"github.com/mccanne/zq/zng/resolver"
 	"github.com/mccanne/zq/zql"
 )
 
@@ -128,7 +128,7 @@ func liftFilter(p ast.Proc) (*ast.FilterProc, ast.Proc) {
 	return nil, nil
 }
 
-func (c *Command) compile(program ast.Proc, reader zng.Reader) (*proc.MuxOutput, error) {
+func (c *Command) compile(program ast.Proc, reader zbuf.Reader) (*proc.MuxOutput, error) {
 	// Try to move the filter into the scanner so we can throw
 	// out unmatched records without copying their contents in the
 	// case of readers (like zio raw.Reader) that create volatile
@@ -189,7 +189,7 @@ func (c *Command) Run(args []string) error {
 			return fmt.Errorf("parse error: %s", err)
 		}
 	}
-	var reader zng.Reader
+	var reader zbuf.Reader
 	if reader, err = c.loadFiles(paths); err != nil {
 		return err
 	}
@@ -209,7 +209,7 @@ func (c *Command) Run(args []string) error {
 	return output.Run(mux)
 }
 
-func (c *Command) loadFile(path string) (zng.Reader, error) {
+func (c *Command) loadFile(path string) (zbuf.Reader, error) {
 	var f *os.File
 	if path == "-" {
 		f = os.Stdin
@@ -241,7 +241,7 @@ func (c *Command) errorf(format string, args ...interface{}) {
 	_, _ = fmt.Fprintf(os.Stderr, format, args...)
 }
 
-func (c *Command) loadFiles(paths []string) (zng.Reader, error) {
+func (c *Command) loadFiles(paths []string) (zbuf.Reader, error) {
 	var readers []scanner.Reader
 	for _, path := range paths {
 		r, err := c.loadFile(path)
@@ -260,7 +260,7 @@ func (c *Command) loadFiles(paths []string) (zng.Reader, error) {
 	return scanner.NewCombiner(readers), nil
 }
 
-func (c *Command) openOutput() (zng.WriteCloser, error) {
+func (c *Command) openOutput() (zbuf.WriteCloser, error) {
 	if c.dir != "" {
 		d, err := emitter.NewDir(c.dir, c.outputFile, c.ofmt, os.Stderr, &c.Flags)
 		if err != nil {

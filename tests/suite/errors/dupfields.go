@@ -2,7 +2,7 @@ package errors
 
 import (
 	"github.com/mccanne/zq/pkg/test"
-	"github.com/mccanne/zq/pkg/zeek"
+	"github.com/mccanne/zq/zng"
 )
 
 const inputDuplicateFields = `
@@ -17,5 +17,5 @@ var DuplicateFields = test.Internal{
 	Query:        "*",
 	Input:        test.Trim(inputDuplicateFields),
 	OutputFormat: "zng",
-	ExpectedErr:  zeek.ErrDuplicateFields,
+	ExpectedErr:  zng.ErrDuplicateFields,
 }

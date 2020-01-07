@@ -3,29 +3,29 @@ package scanner
 import (
 	"fmt"
 
-	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/zbuf"
 )
 
 type Reader struct {
-	zng.Reader
+	zbuf.Reader
 	Name string
 }
 
 type Combiner struct {
 	readers []Reader
-	hol     []*zng.Record
+	hol     []*zbuf.Record
 	done    []bool
 }
 
 func NewCombiner(readers []Reader) *Combiner {
 	return &Combiner{
 		readers: readers,
-		hol:     make([]*zng.Record, len(readers)),
+		hol:     make([]*zbuf.Record, len(readers)),
 		done:    make([]bool, len(readers)),
 	}
 }
 
-func (c *Combiner) Read() (*zng.Record, error) {
+func (c *Combiner) Read() (*zbuf.Record, error) {
 	idx := -1
 	for k, l := range c.readers {
 		if c.done[k] {

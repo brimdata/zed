@@ -1,9 +1,9 @@
 package field
 
 import (
-	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zng"
 	"github.com/mccanne/zq/streamfn"
+	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zng"
 )
 
 type Int struct {
@@ -16,14 +16,14 @@ func NewIntStreamfn(op string) Streamfn {
 	}
 }
 
-func (i *Int) Result() zeek.Value {
-	return zeek.NewInt(i.fn.State)
+func (i *Int) Result() zng.Value {
+	return zng.NewInt(i.fn.State)
 }
 
-func (i *Int) Consume(v zeek.Value) error {
-	var k zeek.Int
-	if !zeek.CoerceToInt(v, &k) {
-		return zng.ErrTypeMismatch
+func (i *Int) Consume(v zng.Value) error {
+	var k zng.Int
+	if !zng.CoerceToInt(v, &k) {
+		return zbuf.ErrTypeMismatch
 	}
 	i.fn.Update(int64(k))
 	return nil

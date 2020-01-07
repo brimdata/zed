@@ -7,8 +7,8 @@ package reducer
 import (
 	"errors"
 
-	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zng"
 )
 
 var (
@@ -16,14 +16,14 @@ var (
 )
 
 type Interface interface {
-	Consume(*zng.Record)
-	Result() zeek.Value
+	Consume(*zbuf.Record)
+	Result() zng.Value
 }
 
-// Result returns the Interface's result or a zeek.Unset value if r is nil.
-func Result(r Interface) zeek.Value {
+// Result returns the Interface's result or a zng.Unset value if r is nil.
+func Result(r Interface) zng.Value {
 	if r == nil {
-		return &zeek.Unset{}
+		return &zng.Unset{}
 	}
 	return r.Result()
 }

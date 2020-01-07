@@ -1,8 +1,8 @@
 package reducer
 
 import (
-	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zng"
 )
 
 type FirstProto struct {
@@ -25,10 +25,10 @@ func NewFirstProto(target, field string) *FirstProto {
 type First struct {
 	Reducer
 	Field  string
-	record *zng.Record
+	record *zbuf.Record
 }
 
-func (f *First) Consume(r *zng.Record) {
+func (f *First) Consume(r *zbuf.Record) {
 	if f.record != nil {
 		return
 	}
@@ -38,10 +38,10 @@ func (f *First) Consume(r *zng.Record) {
 	f.record = r
 }
 
-func (f *First) Result() zeek.Value {
+func (f *First) Result() zng.Value {
 	t := f.record
 	if t == nil {
-		return &zeek.Unset{}
+		return &zng.Unset{}
 	}
 	return t.ValueByField(f.Field)
 }

@@ -1,11 +1,11 @@
 package compile
 
 import (
-	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zng"
-	"github.com/mccanne/zq/pkg/zng/resolver"
-	"github.com/mccanne/zq/pkg/zval"
 	"github.com/mccanne/zq/reducer"
+	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zcode"
+	"github.com/mccanne/zq/zng"
+	"github.com/mccanne/zq/zng/resolver"
 )
 
 type Row struct {
@@ -18,7 +18,7 @@ func (r *Row) Full() bool {
 	return r.n == len(r.Defs)
 }
 
-func (r *Row) Touch(rec *zng.Record) {
+func (r *Row) Touch(rec *zbuf.Record) {
 	if r.Full() {
 		return
 	}
@@ -35,7 +35,7 @@ func (r *Row) Touch(rec *zng.Record) {
 	}
 }
 
-func (r *Row) Consume(rec *zng.Record) {
+func (r *Row) Consume(rec *zbuf.Record) {
 	r.Touch(rec)
 	for _, red := range r.Reducers {
 		if red != nil {
@@ -45,15 +45,15 @@ func (r *Row) Consume(rec *zng.Record) {
 }
 
 // Result creates a new record from the results of the reducers.
-func (r *Row) Result(table *resolver.Table) *zng.Record {
+func (r *Row) Result(table *resolver.Table) *zbuf.Record {
 	n := len(r.Reducers)
-	columns := make([]zeek.Column, n)
-	var zv zval.Encoding
+	columns := make([]zng.Column, n)
+	var zv zcode.Bytes
 	for k, red := range r.Reducers {
 		val := reducer.Result(red)
-		columns[k] = zeek.Column{Name: r.Defs[k].Target(), Type: val.Type()}
+		columns[k] = zng.Column{Name: r.Defs[k].Target(), Type: val.Type()}
 		zv = val.Encode(zv)
 	}
 	d := table.GetByColumns(columns)
-	return zng.NewRecordNoTs(d, zv)
+	return zbuf.NewRecordNoTs(d, zv)
 }

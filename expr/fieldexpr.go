@@ -6,39 +6,39 @@ import (
 	"strconv"
 
 	"github.com/mccanne/zq/ast"
-	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zng"
 )
 
 // A FieldExprResolver is a compiled FieldExpr (where FieldExpr is the
 // abstract type representing various zql ast nodes).  This can be an
 // expression as simple as "fieldname" or something more complex such as
 // "len(vec[2].fieldname.subfieldname)".  A FieldExpr is compiled into a
-// function that takes a zng.Record as input, evaluates the given
+// function that takes a zbuf.Record as input, evaluates the given
 // expression against that record, and returns the resulting typed value.
 // If the expression can't be resolved (i.e., because some field
 // reference refers to a non-existent field, a vector index is out of
 // bounds, etc.), the resolver returns (nil, nil)
-type FieldExprResolver func(*zng.Record) zeek.TypedEncoding
+type FieldExprResolver func(*zbuf.Record) zng.TypedEncoding
 
 // fieldop, arrayIndex, and fieldRead are helpers used internally
 // by CompileFieldExpr() below.
 type fieldop interface {
-	apply(zeek.TypedEncoding) zeek.TypedEncoding
+	apply(zng.TypedEncoding) zng.TypedEncoding
 }
 
 type arrayIndex struct {
 	idx int64
 }
 
-func (ai *arrayIndex) apply(e zeek.TypedEncoding) zeek.TypedEncoding {
+func (ai *arrayIndex) apply(e zng.TypedEncoding) zng.TypedEncoding {
 	el, err := e.VectorIndex(ai.idx)
 	if err != nil {
-		if err == zeek.ErrIndex {
-			typ := zeek.InnerType(e.Type)
-			return zeek.TypedEncoding{typ, nil}
+		if err == zng.ErrIndex {
+			typ := zng.InnerType(e.Type)
+			return zng.TypedEncoding{typ, nil}
 		}
-		return zeek.TypedEncoding{}
+		return zng.TypedEncoding{}
 	}
 	return el
 }
@@ -47,11 +47,11 @@ type fieldRead struct {
 	field string
 }
 
-func (fr *fieldRead) apply(e zeek.TypedEncoding) zeek.TypedEncoding {
-	recType, ok := e.Type.(*zeek.TypeRecord)
+func (fr *fieldRead) apply(e zng.TypedEncoding) zng.TypedEncoding {
+	recType, ok := e.Type.(*zng.TypeRecord)
 	if !ok {
 		// field reference on non-record type
-		return zeek.TypedEncoding{}
+		return zng.TypedEncoding{}
 	}
 
 	// XXX searching the list of columns for every record is
@@ -63,25 +63,25 @@ func (fr *fieldRead) apply(e zeek.TypedEncoding) zeek.TypedEncoding {
 			it := e.Iter()
 			for i := 0; i <= n; i++ {
 				if it.Done() {
-					return zeek.TypedEncoding{}
+					return zng.TypedEncoding{}
 				}
 				var err error
 				v, _, err = it.Next()
 				if err != nil {
-					return zeek.TypedEncoding{}
+					return zng.TypedEncoding{}
 				}
 			}
-			return zeek.TypedEncoding{col.Type, v}
+			return zng.TypedEncoding{col.Type, v}
 		}
 	}
 	// record doesn't have the named field
-	return zeek.TypedEncoding{}
+	return zng.TypedEncoding{}
 }
 
 // CompileFieldExpr() takes a FieldExpr AST (which represents either a
 // simple field reference like "fieldname" or something more complex
 // like "fieldname[0].subfield.subsubfield[3]") and compiles it into a
-// ValResolver -- a function that takes a zng.Record and extracts the
+// ValResolver -- a function that takes a zbuf.Record and extracts the
 // value to which the FieldExpr refers.  If the FieldExpr cannot be
 // compiled, this function returns an error.  If the resolver is given
 // a record for which the given expression cannot be evaluated (e.g.,
@@ -122,11 +122,11 @@ outer:
 
 	// Here's the actual resolver: grab the top-level field and then
 	// apply any additional operations.
-	return func(r *zng.Record) zeek.TypedEncoding {
+	return func(r *zbuf.Record) zng.TypedEncoding {
 		col, ok := r.Descriptor.LUT[field]
 		if !ok {
 			// original field doesn't exist
-			return zeek.TypedEncoding{}
+			return zng.TypedEncoding{}
 		}
 		e := r.TypedSlice(col)
 		for _, op := range ops {

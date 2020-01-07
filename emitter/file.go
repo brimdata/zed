@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/mccanne/zq/pkg/bufwriter"
-	"github.com/mccanne/zq/pkg/zio"
-	"github.com/mccanne/zq/pkg/zio/detector"
+	"github.com/mccanne/zq/zio"
+	"github.com/mccanne/zq/zio/detector"
 )
 
 type noClose struct {

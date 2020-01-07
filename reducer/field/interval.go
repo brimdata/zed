@@ -1,9 +1,9 @@
 package field
 
 import (
-	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zng"
 	"github.com/mccanne/zq/streamfn"
+	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zng"
 )
 
 type Interval struct {
@@ -16,14 +16,14 @@ func NewIntervalStreamfn(op string) Streamfn {
 	}
 }
 
-func (i *Interval) Result() zeek.Value {
-	return zeek.NewInterval(i.fn.State)
+func (i *Interval) Result() zng.Value {
+	return zng.NewInterval(i.fn.State)
 }
 
-func (i *Interval) Consume(v zeek.Value) error {
-	var interval zeek.Interval
-	if !zeek.CoerceToInterval(v, &interval) {
-		return zng.ErrTypeMismatch
+func (i *Interval) Consume(v zng.Value) error {
+	var interval zng.Interval
+	if !zng.CoerceToInterval(v, &interval) {
+		return zbuf.ErrTypeMismatch
 	}
 	i.fn.Update(int64(interval))
 	return nil
