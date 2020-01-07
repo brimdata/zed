@@ -24,3 +24,5 @@ top -limit 1 -flush
 foo\tbar
 foo\x11bar
 foo\x11\bar
+*
+*abc*
