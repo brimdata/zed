@@ -379,7 +379,7 @@ sort
   }
 
 top
-  = "top"i limit:procLimitArg? flush:(_ "-flush")? _? list:(fieldExprList)? {
+  = "top"i limit:(_ n:integer { RETURN(n)})? flush:(_ "-flush")? list:(_ f:fieldExprList { RETURN(f) })? {
     RETURN(makeTopProc(list, limit, flush))
   }
 

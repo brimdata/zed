@@ -23,7 +23,7 @@ func TestTop(t *testing.T) {
 	r5, _ := zng.NewRecordZeekStrings(fooDesc, "5")
 	fooBatch := zng.NewArray([]*zng.Record{r0, r1, r2, r3, r4, r5}, nano.MaxSpan)
 
-	test, err := proc.NewProcTestFromSource("top -limit 3 foo", resolver, []zng.Batch{fooBatch})
+	test, err := proc.NewProcTestFromSource("top 3 foo", resolver, []zng.Batch{fooBatch})
 	require.NoError(t, err)
 
 	res, err := test.Pull()

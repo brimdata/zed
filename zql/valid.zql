@@ -19,8 +19,8 @@ _path=conn id.resp_p=80
 * | sort -r -limit 1 a, b, c
 * | sort -limit 1 -r a, b, c
 count() | sort
-top -limit 1
-top -limit 1 -flush
+top 1
+top 1 -flush
 foo\tbar
 foo\x11bar
 foo\x11\bar
