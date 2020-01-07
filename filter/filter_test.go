@@ -66,7 +66,7 @@ const zngsrc = `
 #7:record[nested:vector[record[field:int]]]
 #8:record[nested:record[vec:vector[int]]]
 #9:record[s:string]
-#10:record[ts:time]
+#10:record[ts:time,ts2:time]
 #11:record[s:string,srec:record[svec:vector[string]]]
 0:[[abc;xyz;]]
 1:[[abc;xyz;]]
@@ -79,7 +79,7 @@ const zngsrc = `
 7:[[[1;][2;]]]
 8:[[[1;2;3;]]]
 9:[begin\x01\x02\xffend;]
-10:[1.001;]
+10:[1.001;1578411532.0;]
 11:[hello;[[world;worldz;1.1.1.1;]]]
 `
 
@@ -161,9 +161,8 @@ func TestFilters(t *testing.T) {
 		{"begin\\x01\\x02\\xffend", records[10], true},
 		{"s=begin\\x01\\x02\\xffend", records[10], true},
 
-		{"ts<2", records[11], false},
-		{"ts=1001000000", records[11], true},
-		{"ts<1002000000", records[11], true},
+		{"ts<2", records[11], true},
+		{"ts2=1578411532", records[11], true},
 		{"T", records[11], false}, // 0x54 matches binary encoding of 1.001 but naked string search shouldn't
 
 		{"ts=1.001", records[11], true},
