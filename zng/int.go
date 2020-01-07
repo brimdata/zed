@@ -125,12 +125,12 @@ func (i Int) Comparison(op string) (Predicate, error) {
 		case *TypeOfTime:
 			ts, err := DecodeTime(val)
 			if err == nil {
-				return CompareInt(int64(ts)/1e9, pattern)
+				return CompareInt(int64(ts), pattern*1e9)
 			}
 		case *TypeOfInterval:
 			v, err := DecodeInt(val)
 			if err == nil {
-				return CompareInt(int64(v)/1e9, pattern)
+				return CompareInt(int64(v), pattern*1e9)
 			}
 		}
 		return false
