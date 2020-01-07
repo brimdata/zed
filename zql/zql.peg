@@ -105,9 +105,6 @@ searchPred
   / "**" _? fieldComparator:equalityToken _? v:searchValue {
       RETURN(makeCompareAny(fieldComparator, true, v))
     }
-  / "*" {
-      RETURN(makeBooleanLiteral(true))
-    }
   / f:fieldExpr _? fieldComparator:equalityToken _? v:searchValue {
       RETURN(makeCompareField(fieldComparator, f, v))
     }
@@ -118,12 +115,17 @@ searchPred
       RETURN(makeCompareField("in", f, v))
     }
   / v:searchValue {
-      INIT_ASSIGN_VAR(ss, makeCompareAny("search", true, v))
       IF(getValueType(v) == "string") {
-        RETURN(makeOrChain(ss, ARRAY(makeCompareAny("searchin", true, v))))
+        RETURN(makeOrChain(makeCompareAny("search", true, v), ARRAY(makeCompareAny("searchin", true, v))))
       }
-      ss = makeCompareAny("search", true, makeTypedValue("string", TEXT))
-      RETURN(makeOrChain(ss, ARRAY(makeCompareAny("searchin", true, makeTypedValue("string", TEXT)), makeCompareAny("eql", true, v), makeCompareAny("in", true, v))))
+      IF(getValueType(v) == "regexp") {
+        IF(TEXT == "*") {
+          RETURN(makeBooleanLiteral(true))
+        }
+        RETURN(makeOrChain(makeCompareAny("eql", true, v), ARRAY(makeCompareAny("in", true, v))))
+      }
+
+      RETURN(makeOrChain(makeCompareAny("search", true, makeTypedValue("string", TEXT)), ARRAY(makeCompareAny("searchin", true, makeTypedValue("string", TEXT)), makeCompareAny("eql", true, v), makeCompareAny("in", true, v))))
     }
 
 searchValue
