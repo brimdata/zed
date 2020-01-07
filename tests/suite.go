@@ -18,6 +18,7 @@ var internals = []test.Internal{
 	count.Internal,
 	cut.Internal,
 	format.Internal,
+	format.JsonTypes,
 	input.Internal,
 	errors.DuplicateFields,
 	errors.ErrNotScalar,
