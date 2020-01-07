@@ -3,7 +3,7 @@ package proc
 import (
 	"sync"
 
-	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/zbuf"
 )
 
 // Split splits its input into multiple proc outputs.  Since procs run from the
@@ -74,7 +74,7 @@ func (s *Split) send(flight []chan<- Result, result Result) {
 	}
 }
 
-func (s *Split) Pull() (zng.Batch, error) {
+func (s *Split) Pull() (zbuf.Batch, error) {
 	// never called
 	return nil, nil
 }
@@ -98,7 +98,7 @@ func (s *SplitChannel) Parents() []Proc {
 	return []Proc{s.parent}
 }
 
-func (s *SplitChannel) Pull() (zng.Batch, error) {
+func (s *SplitChannel) Pull() (zbuf.Batch, error) {
 	s.parent.once.Do(func() {
 		go s.parent.run()
 	})

@@ -9,12 +9,12 @@ import (
 	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/expr"
 	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zng"
-	"github.com/mccanne/zq/pkg/zng/resolver"
-	"github.com/mccanne/zq/pkg/zval"
 	"github.com/mccanne/zq/reducer"
 	"github.com/mccanne/zq/reducer/compile"
+	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zcode"
+	"github.com/mccanne/zq/zng"
+	"github.com/mccanne/zq/zng/resolver"
 	"go.uber.org/zap"
 )
 
@@ -112,8 +112,8 @@ type GroupByAggregator struct {
 }
 
 type GroupByRow struct {
-	keyd     *zng.Descriptor
-	keyvals  zval.Encoding
+	keyd     *zbuf.Descriptor
+	keyvals  zcode.Bytes
 	ts       nano.Ts
 	reducers compile.Row
 }
@@ -159,7 +159,7 @@ func NewGroupBy(c *Context, parent Proc, params GroupByParams) *GroupBy {
 	}
 }
 
-func (g *GroupBy) Pull() (zng.Batch, error) {
+func (g *GroupBy) Pull() (zbuf.Batch, error) {
 	start := time.Now()
 	for {
 		batch, err := g.Get()
@@ -187,9 +187,9 @@ func (g *GroupBy) Pull() (zng.Batch, error) {
 	}
 }
 
-func (g *GroupByAggregator) createRow(keyd *zng.Descriptor, ts nano.Ts, vals zval.Encoding) *GroupByRow {
+func (g *GroupByAggregator) createRow(keyd *zbuf.Descriptor, ts nano.Ts, vals zcode.Bytes) *GroupByRow {
 	// Make a deep copy so the caller can reuse the underlying arrays.
-	v := make(zval.Encoding, len(vals))
+	v := make(zcode.Bytes, len(vals))
 	copy(v, vals)
 	return &GroupByRow{
 		keyd:     keyd,
@@ -199,8 +199,8 @@ func (g *GroupByAggregator) createRow(keyd *zng.Descriptor, ts nano.Ts, vals zva
 	}
 }
 
-func keysTypeRecord(r *zng.Record, keys []GroupByKey) *zeek.TypeRecord {
-	cols := make([]zeek.Column, len(keys))
+func keysTypeRecord(r *zbuf.Record, keys []GroupByKey) *zng.TypeRecord {
+	cols := make([]zng.Column, len(keys))
 	for k, key := range keys {
 		// Recurse the record to find the bottom column for group-by
 		// on record access, e.g., a.b.c should find the column for "c".
@@ -208,17 +208,17 @@ func keysTypeRecord(r *zng.Record, keys []GroupByKey) *zeek.TypeRecord {
 		if keyVal.Type == nil {
 			return nil
 		}
-		cols[k] = zeek.Column{Type: keyVal.Type, Name: key.name}
+		cols[k] = zng.Column{Type: keyVal.Type, Name: key.name}
 	}
-	return zeek.LookupTypeRecord(cols)
+	return zng.LookupTypeRecord(cols)
 }
 
-var blocked = &zng.Descriptor{}
+var blocked = &zbuf.Descriptor{}
 
 // Consume takes a record and adds it to the aggregation. Records
 // successively passed to Consume are expected to have timestamps in
 // monotonically increasing or decreasing order determined by g.reverse.
-func (g *GroupByAggregator) Consume(r *zng.Record) error {
+func (g *GroupByAggregator) Consume(r *zbuf.Record) error {
 	// First check if we've seen this descriptor before and if not
 	// build an entry for it.
 	keysDescriptor := g.keysMap.Map(r.Descriptor.ID)
@@ -248,17 +248,17 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 	// we can rely on just the key types (and input desciptor uniquely
 	// implying those types)
 
-	var keyBytes zval.Encoding
+	var keyBytes zcode.Bytes
 	if g.cacheKey != nil {
 		keyBytes = g.cacheKey[:4]
 	} else {
-		keyBytes = make(zval.Encoding, 4, 128)
+		keyBytes = make(zcode.Bytes, 4, 128)
 	}
 	binary.BigEndian.PutUint32(keyBytes, uint32(keysDescriptor.ID))
 	g.builder.Reset()
 	for _, key := range g.keys {
 		keyVal := key.resolver(r)
-		g.builder.Append(keyVal.Body, zeek.IsContainerType(keyVal.Type))
+		g.builder.Append(keyVal.Body, zng.IsContainerType(keyVal.Type))
 	}
 	zv, err := g.builder.Encode()
 	if err != nil {
@@ -295,7 +295,7 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 // final (possibly incomplete) time bin.
 // If this is not a time-binned aggregation, a single call (with
 // eof=true) should be made after all records have been Consumed()'d.
-func (g *GroupByAggregator) Results(eof bool, minTs nano.Ts, maxTs nano.Ts) zng.Batch {
+func (g *GroupByAggregator) Results(eof bool, minTs nano.Ts, maxTs nano.Ts) zbuf.Batch {
 	var bins []nano.Ts
 	for b := range g.tables {
 		bins = append(bins, b)
@@ -305,7 +305,7 @@ func (g *GroupByAggregator) Results(eof bool, minTs nano.Ts, maxTs nano.Ts) zng.
 	} else {
 		sort.Slice(bins, func(i, j int) bool { return bins[i] < bins[j] })
 	}
-	var recs []*zng.Record
+	var recs []*zbuf.Record
 	for _, b := range bins {
 		if g.TimeBinDuration > 0 && !eof {
 			// We're not yet at EOF, so for a reverse search, we haven't
@@ -329,10 +329,10 @@ func (g *GroupByAggregator) Results(eof bool, minTs nano.Ts, maxTs nano.Ts) zng.
 		first, last = last, first
 	}
 	span := nano.NewSpanTs(first.Ts, last.Ts.Add(g.TimeBinDuration))
-	return zng.NewArray(recs, span)
+	return zbuf.NewArray(recs, span)
 }
 
-func typeMatch(typeCol []zeek.TypedEncoding, rowkeys []zeek.TypedEncoding) bool {
+func typeMatch(typeCol []zng.TypedEncoding, rowkeys []zng.TypedEncoding) bool {
 	if len(typeCol) != len(rowkeys) {
 		return false
 	}
@@ -346,37 +346,37 @@ func typeMatch(typeCol []zeek.TypedEncoding, rowkeys []zeek.TypedEncoding) bool 
 
 // recordsForTable returns a slice of records with one record per table entry
 // in a deterministic but undefined order.
-func (g *GroupByAggregator) recordsForTable(table map[string]*GroupByRow) []*zng.Record {
+func (g *GroupByAggregator) recordsForTable(table map[string]*GroupByRow) []*zbuf.Record {
 	var keys []string
 	for k := range table {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
 
-	var recs []*zng.Record
+	var recs []*zbuf.Record
 	for _, k := range keys {
 		row := table[k]
-		var zv zval.Encoding
+		var zv zcode.Bytes
 		if g.TimeBinDuration > 0 {
-			zv = zval.AppendValue(zv, zeek.EncodeTime(row.ts))
+			zv = zcode.AppendValue(zv, zng.EncodeTime(row.ts))
 		}
 		zv = append(zv, row.keyvals...)
 		for _, red := range row.reducers.Reducers {
 			// a reducer value is never a container
 			v := reducer.Result(red)
-			if zeek.IsContainer(v) {
+			if zng.IsContainer(v) {
 				panic("internal bug: reducer result cannot be a container!")
 			}
 			zv = v.Encode(zv)
 		}
 		d := g.lookupDescriptor(row)
-		r := zng.NewRecord(d, row.ts, zv)
+		r := zbuf.NewRecord(d, row.ts, zv)
 		recs = append(recs, r)
 	}
 	return recs
 }
 
-func (g *GroupByAggregator) lookupDescriptor(row *GroupByRow) *zng.Descriptor {
+func (g *GroupByAggregator) lookupDescriptor(row *GroupByRow) *zbuf.Descriptor {
 	// This is only done once per row at output time so generally not a
 	// bottleneck, but this could be optimized by keeping a cache of the
 	// descriptor since it is rare for there to be multiple descriptors
@@ -385,19 +385,19 @@ func (g *GroupByAggregator) lookupDescriptor(row *GroupByRow) *zng.Descriptor {
 	if g.TimeBinDuration > 0 {
 		n++
 	}
-	cols := make([]zeek.Column, 0, n)
+	cols := make([]zng.Column, 0, n)
 
 	if g.TimeBinDuration > 0 {
-		cols = append(cols, zeek.Column{Name: "ts", Type: zeek.TypeTime})
+		cols = append(cols, zng.Column{Name: "ts", Type: zng.TypeTime})
 	}
-	types := make([]zeek.Type, len(row.keyd.Type.Columns))
+	types := make([]zng.Type, len(row.keyd.Type.Columns))
 	for k, col := range row.keyd.Type.Columns {
 		types[k] = col.Type
 	}
 	cols = append(cols, g.builder.TypedColumns(types)...)
 	for k, red := range row.reducers.Reducers {
 		z := reducer.Result(red)
-		cols = append(cols, zeek.Column{
+		cols = append(cols, zng.Column{
 			Name: row.reducers.Defs[k].Target(),
 			Type: z.Type(),
 		})

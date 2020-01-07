@@ -1,8 +1,8 @@
 package reducer
 
 import (
-	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zng"
 )
 
 type CountProto struct {
@@ -28,7 +28,7 @@ type Count struct {
 	count uint64
 }
 
-func (c *Count) Consume(r *zng.Record) {
+func (c *Count) Consume(r *zbuf.Record) {
 	if c.Field != "" {
 		if _, ok := r.ColumnOfField(c.Field); !ok {
 			return
@@ -37,6 +37,6 @@ func (c *Count) Consume(r *zng.Record) {
 	c.count++
 }
 
-func (c *Count) Result() zeek.Value {
-	return zeek.NewCount(c.count)
+func (c *Count) Result() zng.Value {
+	return zng.NewCount(c.count)
 }

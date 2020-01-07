@@ -2,8 +2,8 @@ package reducer
 
 import (
 	"github.com/axiomhq/hyperloglog"
-	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zng"
 )
 
 type CountDistinctProto struct {
@@ -34,7 +34,7 @@ type CountDistinct struct {
 	sketch *hyperloglog.Sketch
 }
 
-func (c *CountDistinct) Consume(r *zng.Record) {
+func (c *CountDistinct) Consume(r *zbuf.Record) {
 	i, ok := r.Descriptor.LUT[c.Field]
 	if !ok {
 		return
@@ -44,8 +44,8 @@ func (c *CountDistinct) Consume(r *zng.Record) {
 	c.sketch.Insert(v)
 }
 
-func (c *CountDistinct) Result() zeek.Value {
-	return zeek.NewCount(c.sketch.Estimate())
+func (c *CountDistinct) Result() zng.Value {
+	return zng.NewCount(c.sketch.Estimate())
 }
 
 // Sketch returns the native structure used to compute the distinct count

@@ -2,8 +2,8 @@ package reducer
 
 import (
 	"github.com/mccanne/zq/ast"
-	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zng"
 )
 
 type Error struct {
@@ -11,7 +11,7 @@ type Error struct {
 	msg string
 }
 
-func NewError(def ast.Reducer, rec *zng.Record) *Error {
+func NewError(def ast.Reducer, rec *zbuf.Record) *Error {
 	v := rec.ValueByField(def.Field)
 	var msg string
 	if v == nil {
@@ -24,8 +24,8 @@ func NewError(def ast.Reducer, rec *zng.Record) *Error {
 	}
 }
 
-func (e *Error) Consume(t *zng.Record) {}
+func (e *Error) Consume(t *zbuf.Record) {}
 
-func (e *Error) Result() zeek.Value {
-	return zeek.NewString(e.msg)
+func (e *Error) Result() zng.Value {
+	return zng.NewString(e.msg)
 }

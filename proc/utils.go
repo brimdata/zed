@@ -14,9 +14,9 @@ import (
 
 	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/pkg/zio/detector"
-	"github.com/mccanne/zq/pkg/zng"
-	"github.com/mccanne/zq/pkg/zng/resolver"
+	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zio/detector"
+	"github.com/mccanne/zq/zng/resolver"
 	"github.com/mccanne/zq/zql"
 	"github.com/stretchr/testify/require"
 )
@@ -58,15 +58,15 @@ func CompileTestProc(code string, ctx *Context, parent Proc) (Proc, error) {
 // batches.  Used as the parent of a proc to be tested to control the
 // batches fed into the proc under test.
 type TestSource struct {
-	records []zng.Batch
+	records []zbuf.Batch
 	idx     int
 }
 
-func NewTestSource(batches []zng.Batch) *TestSource {
+func NewTestSource(batches []zbuf.Batch) *TestSource {
 	return &TestSource{records: batches}
 }
 
-func (t *TestSource) Pull() (zng.Batch, error) {
+func (t *TestSource) Pull() (zbuf.Batch, error) {
 	if t.idx >= len(t.records) {
 		return nil, nil
 	}
@@ -105,7 +105,7 @@ func NewTestContext(res *resolver.Table) *Context {
 	}
 }
 
-func NewProcTestFromSource(code string, resolver *resolver.Table, inRecords []zng.Batch) (*ProcTest, error) {
+func NewProcTestFromSource(code string, resolver *resolver.Table, inRecords []zbuf.Batch) (*ProcTest, error) {
 	ctx := NewTestContext(resolver)
 	src := TestSource{inRecords, 0}
 	compiledProc, err := CompileTestProc(code, ctx, &src)
@@ -116,7 +116,7 @@ func NewProcTestFromSource(code string, resolver *resolver.Table, inRecords []zn
 	return &ProcTest{ctx, compiledProc, false}, nil
 }
 
-func (t *ProcTest) Pull() (zng.Batch, error) {
+func (t *ProcTest) Pull() (zbuf.Batch, error) {
 	if t.eos {
 		return nil, errors.New("called Pull() after EOS")
 	}
@@ -139,7 +139,7 @@ func (t *ProcTest) ExpectEOS() error {
 	return nil
 }
 
-func (t *ProcTest) Expect(data zng.Batch) error {
+func (t *ProcTest) Expect(data zbuf.Batch) error {
 	b, err := t.Pull()
 	if err != nil {
 		return err
@@ -196,9 +196,9 @@ func (t *ProcTest) Finish() error {
 	}
 }
 
-func parse(resolver *resolver.Table, src string) (*zng.Array, error) {
+func parse(resolver *resolver.Table, src string) (*zbuf.Array, error) {
 	reader := detector.LookupReader("zng", strings.NewReader(src), resolver)
-	records := make([]*zng.Record, 0)
+	records := make([]*zbuf.Record, 0)
 	for {
 		rec, err := reader.Read()
 		if err != nil {
@@ -210,7 +210,7 @@ func parse(resolver *resolver.Table, src string) (*zng.Array, error) {
 		records = append(records, rec)
 	}
 
-	return zng.NewArray(records, nano.MaxSpan), nil
+	return zbuf.NewArray(records, nano.MaxSpan), nil
 }
 
 // TestOneProcWithWarnings runs one test of a proc by compiling cmd as a proc,
@@ -224,10 +224,10 @@ func TestOneProcWithWarnings(t *testing.T, zngin, zngout string, warnings []stri
 	recsout, err := parse(resolver, zngout)
 	require.NoError(t, err)
 
-	test, err := NewProcTestFromSource(cmd, resolver, []zng.Batch{recsin})
+	test, err := NewProcTestFromSource(cmd, resolver, []zbuf.Batch{recsin})
 	require.NoError(t, err)
 
-	var result zng.Batch
+	var result zbuf.Batch
 	if recsout.Length() > 0 {
 		result, err = test.Pull()
 		require.NoError(t, err)
@@ -259,7 +259,7 @@ func TestOneProc(t *testing.T, zngin, zngout string, cmd string) {
 	recsout, err := parse(resolver, zngout)
 	require.NoError(t, err)
 
-	test, err := NewProcTestFromSource(cmd, resolver, []zng.Batch{recsin})
+	test, err := NewProcTestFromSource(cmd, resolver, []zbuf.Batch{recsin})
 	require.NoError(t, err)
 
 	result, err := test.Pull()
@@ -286,7 +286,7 @@ func TestOneProcUnsorted(t *testing.T, zngin, zngout string, cmd string) {
 	recsout, err := parse(resolver, zngout)
 	require.NoError(t, err)
 
-	test, err := NewProcTestFromSource(cmd, resolver, []zng.Batch{recsin})
+	test, err := NewProcTestFromSource(cmd, resolver, []zbuf.Batch{recsin})
 	require.NoError(t, err)
 
 	result, err := test.Pull()

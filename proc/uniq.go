@@ -4,8 +4,8 @@ import (
 	"bytes"
 
 	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zng"
 	"go.uber.org/zap"
 )
 
@@ -13,17 +13,17 @@ type Uniq struct {
 	Base
 	cflag bool
 	count uint64
-	last  *zng.Record
+	last  *zbuf.Record
 }
 
 func NewUniq(c *Context, parent Proc, cflag bool) *Uniq {
 	return &Uniq{Base: Base{Context: c, Parent: parent}, cflag: cflag}
 }
 
-func (u *Uniq) wrap(t *zng.Record) *zng.Record {
+func (u *Uniq) wrap(t *zbuf.Record) *zbuf.Record {
 	if u.cflag {
-		cols := []zeek.Column{{Name: "_uniq", Type: zeek.TypeCount}}
-		vals := []zeek.Value{zeek.NewCount(u.count)}
+		cols := []zng.Column{{Name: "_uniq", Type: zng.TypeCount}}
+		vals := []zng.Value{zng.NewCount(u.count)}
 		newR, err := u.Resolver.AddColumns(t, cols, vals)
 		if err != nil {
 			u.Logger.Error("AddColumns failed", zap.Error(err))
@@ -34,7 +34,7 @@ func (u *Uniq) wrap(t *zng.Record) *zng.Record {
 	return t
 }
 
-func (u *Uniq) appendUniq(out []*zng.Record, t *zng.Record) []*zng.Record {
+func (u *Uniq) appendUniq(out []*zbuf.Record, t *zbuf.Record) []*zbuf.Record {
 	if u.count == 0 {
 		u.last = t.Keep()
 		u.count = 1
@@ -51,7 +51,7 @@ func (u *Uniq) appendUniq(out []*zng.Record, t *zng.Record) []*zng.Record {
 
 // uniq is a little bit complicated because we have to check uniqueness
 // across records between calls to Pull.
-func (u *Uniq) Pull() (zng.Batch, error) {
+func (u *Uniq) Pull() (zbuf.Batch, error) {
 	batch, err := u.Get()
 	if err != nil {
 		return nil, err
@@ -63,12 +63,12 @@ func (u *Uniq) Pull() (zng.Batch, error) {
 		}
 		t := u.wrap(u.last)
 		u.last = nil
-		return zng.NewArray([]*zng.Record{t}, span), nil
+		return zbuf.NewArray([]*zbuf.Record{t}, span), nil
 	}
 	defer batch.Unref()
-	var out []*zng.Record
+	var out []*zbuf.Record
 	for k := 0; k < batch.Length(); k++ {
 		out = u.appendUniq(out, batch.Index(k))
 	}
-	return zng.NewArray(out, span), nil
+	return zbuf.NewArray(out, span), nil
 }

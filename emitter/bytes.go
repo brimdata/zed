@@ -3,8 +3,8 @@ package emitter
 import (
 	"bytes"
 
-	"github.com/mccanne/zq/pkg/zio"
-	"github.com/mccanne/zq/pkg/zio/detector"
+	"github.com/mccanne/zq/zio"
+	"github.com/mccanne/zq/zio/detector"
 )
 
 type Bytes struct {

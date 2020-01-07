@@ -4,18 +4,18 @@ import (
 	"bytes"
 	"sort"
 
-	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zng"
-	"github.com/mccanne/zq/pkg/zval"
+	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zcode"
+	"github.com/mccanne/zq/zng"
 )
 
-type SortFn func(a *zng.Record, b *zng.Record) int
+type SortFn func(a *zbuf.Record, b *zbuf.Record) int
 
 // Internal function that compares two values of compatible types.
-type comparefn func(a, b zval.Encoding) int
+type comparefn func(a, b zcode.Bytes) int
 
-func isUnset(val zeek.TypedEncoding) bool {
-	if val.Body == nil || zeek.SameType(val.Type, zeek.TypeUnset) {
+func isUnset(val zng.TypedEncoding) bool {
+	if val.Body == nil || zng.SameType(val.Type, zng.TypeUnset) {
 		return true
 	}
 	return false
@@ -33,8 +33,8 @@ func isUnset(val zeek.TypedEncoding) bool {
 // a record with unset is considered larger than a record with any other
 // value, and vice versa.
 func NewSortFn(unsetMax bool, fields ...FieldExprResolver) SortFn {
-	sorters := make(map[zeek.Type]comparefn)
-	return func(ra *zng.Record, rb *zng.Record) int {
+	sorters := make(map[zng.Type]comparefn)
+	return func(ra *zbuf.Record, rb *zbuf.Record) int {
 		for _, resolver := range fields {
 			a := resolver(ra)
 			b := resolver(rb)
@@ -75,7 +75,7 @@ func NewSortFn(unsetMax bool, fields ...FieldExprResolver) SortFn {
 
 			// If values are of different types, just compare
 			// the string representation of the type
-			if !zeek.SameType(a.Type, b.Type) {
+			if !zng.SameType(a.Type, b.Type) {
 				return bytes.Compare([]byte(a.Type.String()), []byte(b.Type.String()))
 			}
 
@@ -99,13 +99,13 @@ func NewSortFn(unsetMax bool, fields ...FieldExprResolver) SortFn {
 }
 
 // SortStable performs a stable sort on the provided records.
-func SortStable(records []*zng.Record, sorter SortFn) {
+func SortStable(records []*zbuf.Record, sorter SortFn) {
 	slice := &RecordSlice{records, sorter}
 	sort.Stable(slice)
 }
 
 type RecordSlice struct {
-	records []*zng.Record
+	records []*zbuf.Record
 	sorter  SortFn
 }
 
@@ -126,7 +126,7 @@ func (s *RecordSlice) Less(i, j int) bool {
 
 // Push adds x as element Len(). Implements heap.Interface.
 func (s *RecordSlice) Push(r interface{}) {
-	s.records = append(s.records, r.(*zng.Record))
+	s.records = append(s.records, r.(*zbuf.Record))
 }
 
 // Pop removes the first element in the array. Implements heap.Interface.
@@ -137,15 +137,15 @@ func (s *RecordSlice) Pop() interface{} {
 }
 
 // Index returns the ith record.
-func (s *RecordSlice) Index(i int) *zng.Record {
+func (s *RecordSlice) Index(i int) *zbuf.Record {
 	return s.records[i]
 }
 
-func lookupSorter(typ zeek.Type) comparefn {
+func lookupSorter(typ zng.Type) comparefn {
 	// XXX record support easy to add here if we moved the creation of the
 	// field resolvers into this package.
-	if innerType := zeek.InnerType(typ); innerType != nil {
-		return func(a, b zval.Encoding) int {
+	if innerType := zng.InnerType(typ); innerType != nil {
+		return func(a, b zcode.Bytes) int {
 			compare := lookupSorter(innerType)
 			ia := a.Iter()
 			ib := b.Iter()
@@ -176,16 +176,16 @@ func lookupSorter(typ zeek.Type) comparefn {
 	}
 	switch typ {
 	default:
-		return func(a, b zval.Encoding) int {
+		return func(a, b zcode.Bytes) int {
 			return bytes.Compare(a, b)
 		}
-	case zeek.TypeBool:
-		return func(a, b zval.Encoding) int {
-			va, err := zeek.DecodeBool(a)
+	case zng.TypeBool:
+		return func(a, b zcode.Bytes) int {
+			va, err := zng.DecodeBool(a)
 			if err != nil {
 				return -1
 			}
-			vb, err := zeek.DecodeBool(b)
+			vb, err := zng.DecodeBool(b)
 			if err != nil {
 				return 1
 			}
@@ -198,8 +198,8 @@ func lookupSorter(typ zeek.Type) comparefn {
 			return -1
 		}
 
-	case zeek.TypeString, zeek.TypeEnum:
-		return func(a, b zval.Encoding) int {
+	case zng.TypeString, zng.TypeEnum:
+		return func(a, b zcode.Bytes) int {
 			return bytes.Compare(a, b)
 		}
 
@@ -207,48 +207,13 @@ func lookupSorter(typ zeek.Type) comparefn {
 	// to docs but we've only encountered ints in data files.
 	// need to fix this.  XXX also we should break this sorts
 	// into the different types.
-	case zeek.TypeInt:
-		return func(a, b zval.Encoding) int {
-			va, err := zeek.DecodeInt(a)
+	case zng.TypeInt:
+		return func(a, b zcode.Bytes) int {
+			va, err := zng.DecodeInt(a)
 			if err != nil {
 				return -1
 			}
-			vb, err := zeek.DecodeInt(b)
-			if err != nil {
-				return 1
-			}
-			if va < vb {
-				return -1
-			} else if va > vb {
-				return 1
-			}
-			return 0
-		}
-
-	case zeek.TypeCount:
-		return func(a, b zval.Encoding) int {
-			va, err := zeek.DecodeCount(a)
-			if err != nil {
-				return -1
-			}
-			vb, err := zeek.DecodeCount(b)
-			if err != nil {
-				return 1
-			}
-			if va < vb {
-				return -1
-			} else if va > vb {
-				return 1
-			}
-			return 0
-		}
-	case zeek.TypePort:
-		return func(a, b zval.Encoding) int {
-			va, err := zeek.DecodePort(a)
-			if err != nil {
-				return -1
-			}
-			vb, err := zeek.DecodePort(b)
+			vb, err := zng.DecodeInt(b)
 			if err != nil {
 				return 1
 			}
@@ -260,13 +225,30 @@ func lookupSorter(typ zeek.Type) comparefn {
 			return 0
 		}
 
-	case zeek.TypeDouble:
-		return func(a, b zval.Encoding) int {
-			va, err := zeek.DecodeDouble(a)
+	case zng.TypeCount:
+		return func(a, b zcode.Bytes) int {
+			va, err := zng.DecodeCount(a)
 			if err != nil {
 				return -1
 			}
-			vb, err := zeek.DecodeDouble(b)
+			vb, err := zng.DecodeCount(b)
+			if err != nil {
+				return 1
+			}
+			if va < vb {
+				return -1
+			} else if va > vb {
+				return 1
+			}
+			return 0
+		}
+	case zng.TypePort:
+		return func(a, b zcode.Bytes) int {
+			va, err := zng.DecodePort(a)
+			if err != nil {
+				return -1
+			}
+			vb, err := zng.DecodePort(b)
 			if err != nil {
 				return 1
 			}
@@ -278,31 +260,13 @@ func lookupSorter(typ zeek.Type) comparefn {
 			return 0
 		}
 
-	case zeek.TypeTime:
-		return func(a, b zval.Encoding) int {
-			va, err := zeek.DecodeTime(a)
+	case zng.TypeDouble:
+		return func(a, b zcode.Bytes) int {
+			va, err := zng.DecodeDouble(a)
 			if err != nil {
 				return -1
 			}
-			vb, err := zeek.DecodeTime(b)
-			if err != nil {
-				return 1
-			}
-			if va < vb {
-				return -1
-			} else if va > vb {
-				return 1
-			}
-			return 0
-		}
-
-	case zeek.TypeInterval:
-		return func(a, b zval.Encoding) int {
-			va, err := zeek.DecodeInterval(a)
-			if err != nil {
-				return -1
-			}
-			vb, err := zeek.DecodeInterval(b)
+			vb, err := zng.DecodeDouble(b)
 			if err != nil {
 				return 1
 			}
@@ -314,13 +278,49 @@ func lookupSorter(typ zeek.Type) comparefn {
 			return 0
 		}
 
-	case zeek.TypeAddr:
-		return func(a, b zval.Encoding) int {
-			va, err := zeek.DecodeAddr(a)
+	case zng.TypeTime:
+		return func(a, b zcode.Bytes) int {
+			va, err := zng.DecodeTime(a)
 			if err != nil {
 				return -1
 			}
-			vb, err := zeek.DecodeAddr(b)
+			vb, err := zng.DecodeTime(b)
+			if err != nil {
+				return 1
+			}
+			if va < vb {
+				return -1
+			} else if va > vb {
+				return 1
+			}
+			return 0
+		}
+
+	case zng.TypeInterval:
+		return func(a, b zcode.Bytes) int {
+			va, err := zng.DecodeInterval(a)
+			if err != nil {
+				return -1
+			}
+			vb, err := zng.DecodeInterval(b)
+			if err != nil {
+				return 1
+			}
+			if va < vb {
+				return -1
+			} else if va > vb {
+				return 1
+			}
+			return 0
+		}
+
+	case zng.TypeAddr:
+		return func(a, b zcode.Bytes) int {
+			va, err := zng.DecodeAddr(a)
+			if err != nil {
+				return -1
+			}
+			vb, err := zng.DecodeAddr(b)
 			if err != nil {
 				return 1
 			}

@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/mccanne/zq/ast"
-	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zval"
+	"github.com/mccanne/zq/zcode"
+	"github.com/mccanne/zq/zng"
 )
 
 var ErrNonAdjacent = errors.New("non adjacent fields")
@@ -42,7 +42,7 @@ func (e errDuplicateFields) Unwrap() error {
 // sequence of fields, which may potentially be inside nested records.
 // This encoding enables the runtime processing to happen as efficiently
 // as possible.  When handling an input record, we build an output record
-// using a zval.Builder but when handling fields within nested records,
+// using a zcode.Builder but when handling fields within nested records,
 // calls to BeginContainer() and EndContainer() on the builder need to
 // happen at the right times to yield the proper output structure.
 // This is probably best illustrated with an example, consider the proc
@@ -74,7 +74,7 @@ type fieldInfo struct {
 
 type ColumnBuilder struct {
 	fields   []fieldInfo
-	builder  *zval.Builder
+	builder  *zcode.Builder
 	curField int
 }
 
@@ -102,7 +102,7 @@ func NewColumnBuilder(exprs []ast.FieldExpr) (*ColumnBuilder, error) {
 		record := names[:len(names)-1]
 		var containerBegins []string
 		if !sameRecord(record, currentRecord) {
-			// currentRecord is what nested record the zval.Builder
+			// currentRecord is what nested record the zcode.Builder
 			// is currently working on, record is the nested
 			// record for the current field.  First figure out
 			// what (if any) common parents are shared.
@@ -152,7 +152,7 @@ func NewColumnBuilder(exprs []ast.FieldExpr) (*ColumnBuilder, error) {
 
 	return &ColumnBuilder{
 		fields:  fieldInfos,
-		builder: zval.NewBuilder(),
+		builder: zcode.NewBuilder(),
 	}, nil
 }
 
@@ -232,7 +232,7 @@ func (b *ColumnBuilder) Append(leaf []byte, container bool) {
 	}
 }
 
-func (b *ColumnBuilder) Encode() (zval.Encoding, error) {
+func (b *ColumnBuilder) Encode() (zcode.Bytes, error) {
 	if b.curField != len(b.fields) {
 		return nil, errors.New("did not receive enough columns")
 	}
@@ -241,13 +241,13 @@ func (b *ColumnBuilder) Encode() (zval.Encoding, error) {
 
 // A ColumnBuilder understands the shape of a sequence of FieldExprs
 // (i.e., which columns are inside nested records) but not the types.
-// TypedColumns takes an array of zeek.Types for the individual fields
-// and constructs an array of zeek.Columns that reflects the fullly
+// TypedColumns takes an array of zng.Types for the individual fields
+// and constructs an array of zng.Columns that reflects the fullly
 // typed structure.  This is suitable for e.g. allocating a descriptor.
-func (b *ColumnBuilder) TypedColumns(types []zeek.Type) []zeek.Column {
+func (b *ColumnBuilder) TypedColumns(types []zng.Type) []zng.Column {
 	type rec struct {
 		name string
-		cols []zeek.Column
+		cols []zng.Column
 	}
 	current := &rec{"", nil}
 	stack := make([]*rec, 1)
@@ -259,14 +259,14 @@ func (b *ColumnBuilder) TypedColumns(types []zeek.Type) []zeek.Column {
 			stack = append(stack, current)
 		}
 
-		current.cols = append(current.cols, zeek.Column{Name: field.name, Type: types[i]})
+		current.cols = append(current.cols, zng.Column{Name: field.name, Type: types[i]})
 
 		for j := 0; j < field.containerEnds; j++ {
-			recType := zeek.LookupTypeRecord(current.cols)
+			recType := zng.LookupTypeRecord(current.cols)
 			slen := len(stack)
 			stack = stack[:slen-1]
 			cur := stack[slen-2]
-			cur.cols = append(cur.cols, zeek.Column{Name: current.name, Type: recType})
+			cur.cols = append(cur.cols, zng.Column{Name: current.name, Type: recType})
 			current = cur
 		}
 	}

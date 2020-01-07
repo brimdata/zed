@@ -6,27 +6,27 @@ import (
 
 	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/expr"
-	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zng"
-	"github.com/mccanne/zq/pkg/zval"
+	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zcode"
+	"github.com/mccanne/zq/zng"
 )
 
-type Filter func(*zng.Record) bool
+type Filter func(*zbuf.Record) bool
 
 func LogicalAnd(left, right Filter) Filter {
-	return func(p *zng.Record) bool { return left(p) && right(p) }
+	return func(p *zbuf.Record) bool { return left(p) && right(p) }
 }
 
 func LogicalOr(left, right Filter) Filter {
-	return func(p *zng.Record) bool { return left(p) || right(p) }
+	return func(p *zbuf.Record) bool { return left(p) || right(p) }
 }
 
 func LogicalNot(expr Filter) Filter {
-	return func(p *zng.Record) bool { return !expr(p) }
+	return func(p *zbuf.Record) bool { return !expr(p) }
 }
 
-func combine(res expr.FieldExprResolver, pred zeek.Predicate) Filter {
-	return func(r *zng.Record) bool {
+func combine(res expr.FieldExprResolver, pred zng.Predicate) Filter {
+	return func(r *zbuf.Record) bool {
 		v := res(r)
 		if v.Type == nil {
 			// field (or sub-field) doesn't exist in this record
@@ -36,11 +36,11 @@ func combine(res expr.FieldExprResolver, pred zeek.Predicate) Filter {
 	}
 }
 
-func CompileFieldCompare(node ast.CompareField, val zeek.Value) (Filter, error) {
+func CompileFieldCompare(node ast.CompareField, val zng.Value) (Filter, error) {
 	// Treat len(field) specially since we're looking at a computed
 	// value rather than a field from a record.
 	if op, ok := node.Field.(*ast.FieldCall); ok && op.Fn == "Len" {
-		i, ok := val.(*zeek.Int)
+		i, ok := val.(*zng.Int)
 		if !ok {
 			return nil, errors.New("cannot compare len() with non-integer")
 		}
@@ -48,8 +48,8 @@ func CompileFieldCompare(node ast.CompareField, val zeek.Value) (Filter, error) 
 		if err != nil {
 			return nil, err
 		}
-		checklen := func(e zeek.TypedEncoding) bool {
-			len, err := zeek.ContainerLength(e)
+		checklen := func(e zng.TypedEncoding) bool {
+			len, err := zng.ContainerLength(e)
 			if err != nil {
 				return false
 			}
@@ -73,16 +73,16 @@ func CompileFieldCompare(node ast.CompareField, val zeek.Value) (Filter, error) 
 	return combine(resolver, comparison), nil
 }
 
-func EvalAny(eval zeek.Predicate, recursive bool) Filter {
+func EvalAny(eval zng.Predicate, recursive bool) Filter {
 	if !recursive {
-		return func(r *zng.Record) bool {
+		return func(r *zbuf.Record) bool {
 			it := r.ZvalIter()
 			for _, c := range r.Type.Columns {
 				val, _, err := it.Next()
 				if err != nil {
 					return false
 				}
-				if eval(zeek.TypedEncoding{c.Type, val}) {
+				if eval(zng.TypedEncoding{c.Type, val}) {
 					return true
 				}
 			}
@@ -90,24 +90,24 @@ func EvalAny(eval zeek.Predicate, recursive bool) Filter {
 		}
 	}
 
-	var fn func(v zval.Encoding, cols []zeek.Column) bool
-	fn = func(v zval.Encoding, cols []zeek.Column) bool {
-		it := zval.Iter(v)
+	var fn func(v zcode.Bytes, cols []zng.Column) bool
+	fn = func(v zcode.Bytes, cols []zng.Column) bool {
+		it := zcode.Iter(v)
 		for _, c := range cols {
 			val, _, err := it.Next()
 			if err != nil {
 				return false
 			}
-			recType, isRecord := c.Type.(*zeek.TypeRecord)
+			recType, isRecord := c.Type.(*zng.TypeRecord)
 			if isRecord && fn(val, recType.Columns) {
 				return true
-			} else if !isRecord && eval(zeek.TypedEncoding{c.Type, val}) {
+			} else if !isRecord && eval(zng.TypedEncoding{c.Type, val}) {
 				return true
 			}
 		}
 		return false
 	}
-	return func(r *zng.Record) bool {
+	return func(r *zbuf.Record) bool {
 		return fn(r.Raw, r.Descriptor.Type.Columns)
 	}
 }
@@ -144,10 +144,10 @@ func Compile(node ast.BooleanExpr) (Filter, error) {
 		return LogicalOr(left, right), nil
 
 	case *ast.BooleanLiteral:
-		return func(p *zng.Record) bool { return v.Value }, nil
+		return func(p *zbuf.Record) bool { return v.Value }, nil
 
 	case *ast.CompareField:
-		z, err := zeek.Parse(v.Value)
+		z, err := zng.Parse(v.Value)
 		if err != nil {
 			return nil, err
 		}
@@ -158,26 +158,26 @@ func Compile(node ast.BooleanExpr) (Filter, error) {
 				return nil, err
 			}
 			eql, _ := z.Comparison("eql")
-			comparison := zeek.Contains(eql)
+			comparison := zng.Contains(eql)
 			return combine(resolver, comparison), nil
 		}
 
 		return CompileFieldCompare(*v, z)
 
 	case *ast.CompareAny:
-		z, err := zeek.Parse(v.Value)
+		z, err := zng.Parse(v.Value)
 		if err != nil {
 			return nil, err
 		}
 
 		if v.Comparator == "in" {
 			eql, _ := z.Comparison("eql")
-			comparison := zeek.Contains(eql)
+			comparison := zng.Contains(eql)
 			return EvalAny(comparison, v.Recursive), nil
 		}
 		if v.Comparator == "searchin" {
 			search, _ := z.Comparison("search")
-			comparison := zeek.Contains(search)
+			comparison := zng.Contains(search)
 			return EvalAny(comparison, v.Recursive), nil
 		}
 

@@ -6,10 +6,10 @@ import (
 
 	"github.com/mccanne/zq/driver"
 	"github.com/mccanne/zq/emitter"
-	"github.com/mccanne/zq/pkg/zio/detector"
-	"github.com/mccanne/zq/pkg/zng"
-	"github.com/mccanne/zq/pkg/zng/resolver"
 	"github.com/mccanne/zq/scanner"
+	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zio/detector"
+	"github.com/mccanne/zq/zng/resolver"
 	"github.com/mccanne/zq/zql"
 )
 
@@ -27,7 +27,7 @@ func Trim(s string) string {
 	return strings.TrimSpace(s) + "\n"
 }
 
-func stringReader(input string, ifmt string, r *resolver.Table) (zng.Reader, error) {
+func stringReader(input string, ifmt string, r *resolver.Table) (zbuf.Reader, error) {
 	if ifmt == "" {
 		return detector.NewReader(strings.NewReader(input), r)
 	}

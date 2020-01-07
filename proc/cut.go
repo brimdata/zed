@@ -6,15 +6,15 @@ import (
 
 	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/expr"
-	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zng"
 )
 
 type Cut struct {
 	Base
 	resolvers []expr.FieldExprResolver
 	builder   *ColumnBuilder
-	cutmap    map[int]*zng.Descriptor
+	cutmap    map[int]*zbuf.Descriptor
 	nblocked  int
 }
 
@@ -39,14 +39,14 @@ func CompileCutProc(c *Context, parent Proc, node *ast.CutProc) (*Cut, error) {
 		Base:      Base{Context: c, Parent: parent},
 		resolvers: resolvers,
 		builder:   builder,
-		cutmap:    make(map[int]*zng.Descriptor),
+		cutmap:    make(map[int]*zbuf.Descriptor),
 	}, nil
 }
 
 // cut returns a new record value derived by keeping only the fields
 // specified by name in the fields slice.  If the record can't be cut
 // (i.e., it doesn't have one of the specified fields), returns nil.
-func (c *Cut) cut(in *zng.Record) *zng.Record {
+func (c *Cut) cut(in *zbuf.Record) *zbuf.Record {
 	// Check if we already have an output descriptor for this
 	// input type
 	d, ok := c.cutmap[in.ID]
@@ -57,9 +57,9 @@ func (c *Cut) cut(in *zng.Record) *zng.Record {
 	}
 
 	c.builder.Reset()
-	var types []zeek.Type
+	var types []zng.Type
 	if d == nil {
-		types = make([]zeek.Type, 0, len(c.resolvers))
+		types = make([]zng.Type, 0, len(c.resolvers))
 	}
 	// Build the output record.  If we've already seen this input
 	// record type, we don't care about the types, but if we haven't
@@ -76,7 +76,7 @@ func (c *Cut) cut(in *zng.Record) *zng.Record {
 			}
 			types = append(types, val.Type)
 		}
-		c.builder.Append(val.Body, zeek.IsContainerType(val.Type))
+		c.builder.Append(val.Body, zng.IsContainerType(val.Type))
 	}
 	if d == nil {
 		cols := c.builder.TypedColumns(types)
@@ -89,7 +89,7 @@ func (c *Cut) cut(in *zng.Record) *zng.Record {
 		// XXX internal error, what to do...
 		return nil
 	}
-	return zng.NewRecordNoTs(d, zv)
+	return zbuf.NewRecordNoTs(d, zv)
 }
 
 func (c *Cut) warn() {
@@ -106,7 +106,7 @@ func (c *Cut) warn() {
 	c.Warnings <- msg
 }
 
-func (c *Cut) Pull() (zng.Batch, error) {
+func (c *Cut) Pull() (zbuf.Batch, error) {
 	batch, err := c.Get()
 	if EOS(batch, err) {
 		c.warn()
@@ -118,7 +118,7 @@ func (c *Cut) Pull() (zng.Batch, error) {
 	// If a field specified doesn't exist, we don't include that record.
 	// if the types change for the fields specified, we drop those records.
 	//
-	recs := make([]*zng.Record, 0, batch.Length())
+	recs := make([]*zbuf.Record, 0, batch.Length())
 	for k := 0; k < batch.Length(); k++ {
 		in := batch.Index(k)
 		out := c.cut(in)
@@ -130,5 +130,5 @@ func (c *Cut) Pull() (zng.Batch, error) {
 		c.warn()
 		return nil, nil
 	}
-	return zng.NewArray(recs, batch.Span()), nil
+	return zbuf.NewArray(recs, batch.Span()), nil
 }

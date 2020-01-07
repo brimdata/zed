@@ -1,8 +1,8 @@
 package reducer
 
 import (
-	"github.com/mccanne/zq/pkg/zeek"
-	"github.com/mccanne/zq/pkg/zng"
+	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zng"
 )
 
 type AvgProto struct {
@@ -29,14 +29,14 @@ type Avg struct {
 	count uint64
 }
 
-func (a *Avg) Consume(r *zng.Record) {
+func (a *Avg) Consume(r *zbuf.Record) {
 	v := r.ValueByField(a.Field)
 	if v == nil {
 		a.FieldNotFound++
 		return
 	}
-	var d zeek.Double
-	if !zeek.CoerceToDouble(v, &d) {
+	var d zng.Double
+	if !zng.CoerceToDouble(v, &d) {
 		a.TypeMismatch++
 		return
 	}
@@ -44,10 +44,10 @@ func (a *Avg) Consume(r *zng.Record) {
 	a.count++
 }
 
-func (a *Avg) Result() zeek.Value {
+func (a *Avg) Result() zng.Value {
 	var v float64
 	if a.count > 0 {
 		v = a.sum / float64(a.count)
 	}
-	return zeek.NewDouble(v)
+	return zng.NewDouble(v)
 }
