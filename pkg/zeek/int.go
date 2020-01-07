@@ -125,12 +125,12 @@ func (i Int) Comparison(op string) (Predicate, error) {
 		case *TypeOfTime:
 			ts, err := DecodeTime(val)
 			if err == nil {
-				return CompareInt(int64(ts), pattern)
+				return CompareInt(int64(ts)/1e9, pattern)
 			}
 		case *TypeOfInterval:
 			v, err := DecodeInt(val)
 			if err == nil {
-				return CompareInt(int64(v), pattern)
+				return CompareInt(int64(v)/1e9, pattern)
 			}
 		}
 		return false
@@ -148,9 +148,9 @@ func (i Int) Coerce(typ Type) Value {
 	case *TypeOfPort:
 		return NewPort(uint32(i))
 	case *TypeOfTime:
-		return NewTime(nano.Ts(i))
+		return NewTime(nano.Ts(i * 1e9))
 	case *TypeOfInterval:
-		return NewInterval(int64(i))
+		return NewInterval(int64(i * 1e9))
 	}
 	return nil
 }
