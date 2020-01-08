@@ -57,9 +57,9 @@ func parseString(in string) (string, error) {
 func TestUnicode(t *testing.T) {
 	result, err := parseString("Sacr\u00e9 bleu!")
 	assert.NoError(t, err, "Parse of string succeeded")
-	assert.Equal(t, result, "Sacré bleu!", "Unicode esacpe without brackets parsed correctly")
+	assert.Equal(t, result, "Sacré bleu!", "Unicode escape without brackets parsed correctly")
 
 	result, err = parseString("I love \\u{1F32E}s")
 	assert.NoError(t, err, "Parse of string succeeded")
-	assert.Equal(t, result, "I love 🌮s", "Unicode esacpe with brackets parsed correctly")
+	assert.Equal(t, result, "I love 🌮s", "Unicode escape with brackets parsed correctly")
 }
