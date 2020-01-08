@@ -81,6 +81,8 @@ const zngsrc = `
 9:[begin\x01\x02\xffend;]
 10:[1.001;1578411532;1578411533.01;]
 11:[hello;[[world;worldz;1.1.1.1;]]]
+9:[Buenos di\xcc\x81as sen\xcc\x83or;]
+9:[Buenos d\xc3\xadas se\xc3\xb1or;]
 `
 
 func TestFilters(t *testing.T) {
@@ -89,7 +91,7 @@ func TestFilters(t *testing.T) {
 	ior := strings.NewReader(zngsrc)
 	reader := detector.LookupReader("zng", ior, resolver.NewTable())
 
-	nrecords := 13
+	nrecords := 15
 	records := make([]*zbuf.Record, 0, nrecords)
 	for {
 		rec, err := reader.Read()
@@ -173,6 +175,16 @@ func TestFilters(t *testing.T) {
 		{"hello", records[12], true},
 		{"worldz", records[12], true},
 		{"1.1.1.1", records[12], true},
+
+		// Test unicode string comparison.  The two records used in
+		// these tests both have the string "Buenos días señor" but
+		// one uses combining characters (e.g., plain n plus combining
+		// tilde) and the other uses composed characters.  Test both
+		// strings against queries written with both formats.
+		{"s = \"Buenos di\\u{0301}as sen\\u{0303}or\"", records[13], true},
+		{"s = \"Buenos d\\u{ed}as se\\u{f1}or\"", records[13], true},
+		{"s = \"Buenos di\\u{0301}as sen\\u{0303}or\"", records[14], true},
+		{"s = \"Buenos d\\u{ed}as se\\u{f1}or\"", records[14], true},
 	}
 
 	for _, tt := range tests {

@@ -63,9 +63,6 @@ func Parse(v ast.TypedValue) (Value, error) {
 	if !ok {
 		return nil, fmt.Errorf("unsupported type %s in ast TypedValue", v.Type)
 	}
-	if t == TypePattern || t == TypeString {
-		return t.New(Unescape([]byte(v.Value)))
-	}
 	zv, err := t.Parse([]byte(v.Value))
 	if err != nil {
 		return nil, err
