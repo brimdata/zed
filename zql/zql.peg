@@ -582,7 +582,12 @@ singleCharEscape
   / "v" { RETURN("\v") }
 
 unicodeEscape
-  = "u" hexdigit hexdigit hexdigit hexdigit
+  = "u" chars:(hexdigit hexdigit hexdigit hexdigit) {
+      RETURN(makeUnicodeChar(chars))
+    }
+  / "u" "{" chars:(hexdigit hexdigit? hexdigit? hexdigit? hexdigit? hexdigit?) "}" {
+      RETURN(makeUnicodeChar(chars))
+    }
 
 reString
   = '/' v:reBody '/' { RETURN(v) }

@@ -4401,57 +4401,147 @@ var g = &grammar{
 		{
 			name: "unicodeEscape",
 			pos:  position{line: 550, col: 1, offset: 13281},
-			expr: &seqExpr{
+			expr: &choiceExpr{
 				pos: position{line: 551, col: 5, offset: 13299},
-				exprs: []interface{}{
-					&litMatcher{
-						pos:        position{line: 551, col: 5, offset: 13299},
-						val:        "u",
-						ignoreCase: false,
+				alternatives: []interface{}{
+					&actionExpr{
+						pos: position{line: 551, col: 5, offset: 13299},
+						run: (*parser).callonunicodeEscape2,
+						expr: &seqExpr{
+							pos: position{line: 551, col: 5, offset: 13299},
+							exprs: []interface{}{
+								&litMatcher{
+									pos:        position{line: 551, col: 5, offset: 13299},
+									val:        "u",
+									ignoreCase: false,
+								},
+								&labeledExpr{
+									pos:   position{line: 551, col: 9, offset: 13303},
+									label: "chars",
+									expr: &seqExpr{
+										pos: position{line: 551, col: 16, offset: 13310},
+										exprs: []interface{}{
+											&ruleRefExpr{
+												pos:  position{line: 551, col: 16, offset: 13310},
+												name: "hexdigit",
+											},
+											&ruleRefExpr{
+												pos:  position{line: 551, col: 25, offset: 13319},
+												name: "hexdigit",
+											},
+											&ruleRefExpr{
+												pos:  position{line: 551, col: 34, offset: 13328},
+												name: "hexdigit",
+											},
+											&ruleRefExpr{
+												pos:  position{line: 551, col: 43, offset: 13337},
+												name: "hexdigit",
+											},
+										},
+									},
+								},
+							},
+						},
 					},
-					&ruleRefExpr{
-						pos:  position{line: 551, col: 9, offset: 13303},
-						name: "hexdigit",
-					},
-					&ruleRefExpr{
-						pos:  position{line: 551, col: 18, offset: 13312},
-						name: "hexdigit",
-					},
-					&ruleRefExpr{
-						pos:  position{line: 551, col: 27, offset: 13321},
-						name: "hexdigit",
-					},
-					&ruleRefExpr{
-						pos:  position{line: 551, col: 36, offset: 13330},
-						name: "hexdigit",
+					&actionExpr{
+						pos: position{line: 554, col: 5, offset: 13400},
+						run: (*parser).callonunicodeEscape11,
+						expr: &seqExpr{
+							pos: position{line: 554, col: 5, offset: 13400},
+							exprs: []interface{}{
+								&litMatcher{
+									pos:        position{line: 554, col: 5, offset: 13400},
+									val:        "u",
+									ignoreCase: false,
+								},
+								&litMatcher{
+									pos:        position{line: 554, col: 9, offset: 13404},
+									val:        "{",
+									ignoreCase: false,
+								},
+								&labeledExpr{
+									pos:   position{line: 554, col: 13, offset: 13408},
+									label: "chars",
+									expr: &seqExpr{
+										pos: position{line: 554, col: 20, offset: 13415},
+										exprs: []interface{}{
+											&ruleRefExpr{
+												pos:  position{line: 554, col: 20, offset: 13415},
+												name: "hexdigit",
+											},
+											&zeroOrOneExpr{
+												pos: position{line: 554, col: 29, offset: 13424},
+												expr: &ruleRefExpr{
+													pos:  position{line: 554, col: 29, offset: 13424},
+													name: "hexdigit",
+												},
+											},
+											&zeroOrOneExpr{
+												pos: position{line: 554, col: 39, offset: 13434},
+												expr: &ruleRefExpr{
+													pos:  position{line: 554, col: 39, offset: 13434},
+													name: "hexdigit",
+												},
+											},
+											&zeroOrOneExpr{
+												pos: position{line: 554, col: 49, offset: 13444},
+												expr: &ruleRefExpr{
+													pos:  position{line: 554, col: 49, offset: 13444},
+													name: "hexdigit",
+												},
+											},
+											&zeroOrOneExpr{
+												pos: position{line: 554, col: 59, offset: 13454},
+												expr: &ruleRefExpr{
+													pos:  position{line: 554, col: 59, offset: 13454},
+													name: "hexdigit",
+												},
+											},
+											&zeroOrOneExpr{
+												pos: position{line: 554, col: 69, offset: 13464},
+												expr: &ruleRefExpr{
+													pos:  position{line: 554, col: 69, offset: 13464},
+													name: "hexdigit",
+												},
+											},
+										},
+									},
+								},
+								&litMatcher{
+									pos:        position{line: 554, col: 80, offset: 13475},
+									val:        "}",
+									ignoreCase: false,
+								},
+							},
+						},
 					},
 				},
 			},
 		},
 		{
 			name: "reString",
-			pos:  position{line: 553, col: 1, offset: 13340},
+			pos:  position{line: 558, col: 1, offset: 13529},
 			expr: &actionExpr{
-				pos: position{line: 554, col: 5, offset: 13353},
+				pos: position{line: 559, col: 5, offset: 13542},
 				run: (*parser).callonreString1,
 				expr: &seqExpr{
-					pos: position{line: 554, col: 5, offset: 13353},
+					pos: position{line: 559, col: 5, offset: 13542},
 					exprs: []interface{}{
 						&litMatcher{
-							pos:        position{line: 554, col: 5, offset: 13353},
+							pos:        position{line: 559, col: 5, offset: 13542},
 							val:        "/",
 							ignoreCase: false,
 						},
 						&labeledExpr{
-							pos:   position{line: 554, col: 9, offset: 13357},
+							pos:   position{line: 559, col: 9, offset: 13546},
 							label: "v",
 							expr: &ruleRefExpr{
-								pos:  position{line: 554, col: 11, offset: 13359},
+								pos:  position{line: 559, col: 11, offset: 13548},
 								name: "reBody",
 							},
 						},
 						&litMatcher{
-							pos:        position{line: 554, col: 18, offset: 13366},
+							pos:        position{line: 559, col: 18, offset: 13555},
 							val:        "/",
 							ignoreCase: false,
 						},
@@ -4461,24 +4551,24 @@ var g = &grammar{
 		},
 		{
 			name: "reBody",
-			pos:  position{line: 556, col: 1, offset: 13389},
+			pos:  position{line: 561, col: 1, offset: 13578},
 			expr: &actionExpr{
-				pos: position{line: 557, col: 5, offset: 13400},
+				pos: position{line: 562, col: 5, offset: 13589},
 				run: (*parser).callonreBody1,
 				expr: &oneOrMoreExpr{
-					pos: position{line: 557, col: 5, offset: 13400},
+					pos: position{line: 562, col: 5, offset: 13589},
 					expr: &choiceExpr{
-						pos: position{line: 557, col: 6, offset: 13401},
+						pos: position{line: 562, col: 6, offset: 13590},
 						alternatives: []interface{}{
 							&charClassMatcher{
-								pos:        position{line: 557, col: 6, offset: 13401},
+								pos:        position{line: 562, col: 6, offset: 13590},
 								val:        "[^/\\\\]",
 								chars:      []rune{'/', '\\'},
 								ignoreCase: false,
 								inverted:   true,
 							},
 							&litMatcher{
-								pos:        position{line: 557, col: 13, offset: 13408},
+								pos:        position{line: 562, col: 13, offset: 13597},
 								val:        "\\/",
 								ignoreCase: false,
 							},
@@ -4489,9 +4579,9 @@ var g = &grammar{
 		},
 		{
 			name: "escapedChar",
-			pos:  position{line: 559, col: 1, offset: 13448},
+			pos:  position{line: 564, col: 1, offset: 13637},
 			expr: &charClassMatcher{
-				pos:        position{line: 560, col: 5, offset: 13464},
+				pos:        position{line: 565, col: 5, offset: 13653},
 				val:        "[\\x00-\\x1f\\\\]",
 				chars:      []rune{'\\'},
 				ranges:     []rune{'\x00', '\x1f'},
@@ -4501,37 +4591,37 @@ var g = &grammar{
 		},
 		{
 			name: "ws",
-			pos:  position{line: 562, col: 1, offset: 13479},
+			pos:  position{line: 567, col: 1, offset: 13668},
 			expr: &choiceExpr{
-				pos: position{line: 563, col: 5, offset: 13486},
+				pos: position{line: 568, col: 5, offset: 13675},
 				alternatives: []interface{}{
 					&litMatcher{
-						pos:        position{line: 563, col: 5, offset: 13486},
+						pos:        position{line: 568, col: 5, offset: 13675},
 						val:        "\t",
 						ignoreCase: false,
 					},
 					&litMatcher{
-						pos:        position{line: 564, col: 5, offset: 13495},
+						pos:        position{line: 569, col: 5, offset: 13684},
 						val:        "\v",
 						ignoreCase: false,
 					},
 					&litMatcher{
-						pos:        position{line: 565, col: 5, offset: 13504},
+						pos:        position{line: 570, col: 5, offset: 13693},
 						val:        "\f",
 						ignoreCase: false,
 					},
 					&litMatcher{
-						pos:        position{line: 566, col: 5, offset: 13513},
+						pos:        position{line: 571, col: 5, offset: 13702},
 						val:        " ",
 						ignoreCase: false,
 					},
 					&litMatcher{
-						pos:        position{line: 567, col: 5, offset: 13521},
+						pos:        position{line: 572, col: 5, offset: 13710},
 						val:        "\u00a0",
 						ignoreCase: false,
 					},
 					&litMatcher{
-						pos:        position{line: 568, col: 5, offset: 13534},
+						pos:        position{line: 573, col: 5, offset: 13723},
 						val:        "\ufeff",
 						ignoreCase: false,
 					},
@@ -4541,22 +4631,22 @@ var g = &grammar{
 		{
 			name:        "_",
 			displayName: "\"whitespace\"",
-			pos:         position{line: 570, col: 1, offset: 13544},
+			pos:         position{line: 575, col: 1, offset: 13733},
 			expr: &oneOrMoreExpr{
-				pos: position{line: 570, col: 18, offset: 13561},
+				pos: position{line: 575, col: 18, offset: 13750},
 				expr: &ruleRefExpr{
-					pos:  position{line: 570, col: 18, offset: 13561},
+					pos:  position{line: 575, col: 18, offset: 13750},
 					name: "ws",
 				},
 			},
 		},
 		{
 			name: "EOF",
-			pos:  position{line: 572, col: 1, offset: 13566},
+			pos:  position{line: 577, col: 1, offset: 13755},
 			expr: &notExpr{
-				pos: position{line: 572, col: 7, offset: 13572},
+				pos: position{line: 577, col: 7, offset: 13761},
 				expr: &anyMatcher{
-					line: 572, col: 8, offset: 13573,
+					line: 577, col: 8, offset: 13762,
 				},
 			},
 		},
@@ -6055,6 +6145,28 @@ func (p *parser) callonsingleCharEscape15() (interface{}, error) {
 	stack := p.vstack[len(p.vstack)-1]
 	_ = stack
 	return p.cur.onsingleCharEscape15()
+}
+
+func (c *current) onunicodeEscape2(chars interface{}) (interface{}, error) {
+	return makeUnicodeChar(chars), nil
+
+}
+
+func (p *parser) callonunicodeEscape2() (interface{}, error) {
+	stack := p.vstack[len(p.vstack)-1]
+	_ = stack
+	return p.cur.onunicodeEscape2(stack["chars"])
+}
+
+func (c *current) onunicodeEscape11(chars interface{}) (interface{}, error) {
+	return makeUnicodeChar(chars), nil
+
+}
+
+func (p *parser) callonunicodeEscape11() (interface{}, error) {
+	stack := p.vstack[len(p.vstack)-1]
+	_ = stack
+	return p.cur.onunicodeEscape11(stack["chars"])
 }
 
 func (c *current) onreString1(v interface{}) (interface{}, error) {

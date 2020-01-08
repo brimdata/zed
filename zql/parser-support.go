@@ -300,3 +300,24 @@ func OR(a, b interface{}) interface{} {
 
 	return b
 }
+
+func makeUnicodeChar(chars interface{}) string {
+	var r rune
+	for _, char := range chars.([]interface{}) {
+		if char != nil {
+			var v byte
+			ch := char.([]byte)[0]
+			switch {
+			case ch >= '0' && ch <= '9':
+				v = ch - '0'
+			case ch >= 'a' && ch <= 'f':
+				v = ch - 'a' + 10
+			case ch >= 'A' && ch <= 'F':
+				v = ch - 'A' + 10
+			}
+			r = (16 * r) + rune(v)
+		}
+	}
+
+	return string(r)
+}
