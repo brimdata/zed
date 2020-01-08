@@ -63,5 +63,5 @@ curl -X POST "http://localhost:8080/logs" --data-binary @conn.bzng
 
 ## Reference Implementations
 
-* production client - [zson-http-plugin](https://github.com/looky-cloud/zson-http-plugin)
+* production client - [zeek-tsv-http-plugin](https://github.com/looky-cloud/zeek-tsv-http-plugin)
 * toy server - [zsond](https://github.com/mccanne/zsond)
