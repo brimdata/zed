@@ -2,9 +2,11 @@ package zql
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"testing"
 
+	"github.com/mccanne/zq/ast"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -29,4 +31,35 @@ func TestInvalid(t *testing.T) {
 		_, err := Parse("", line)
 		assert.Error(t, err, "zql: %q", line)
 	}
+}
+
+// parseString is a helper for testing string parsing.  It wraps the
+// given string in a simple zql query, parses it, and extracts the parsed
+// string from inside the AST.
+func parseString(in string) (string, error) {
+	code := fmt.Sprintf("s = \"%s\"", in)
+	tree, err := Parse("", []byte(code))
+	if err != nil {
+		return "", err
+	}
+	filt, ok := tree.(*ast.FilterProc)
+	if !ok {
+		return "", fmt.Errorf("Expected FilterProc got %T", tree)
+	}
+	comp, ok := filt.Filter.(*ast.CompareField)
+	if !ok {
+		return "", fmt.Errorf("Expected CompareField got %T", filt.Filter)
+	}
+	return comp.Value.Value, nil
+}
+
+// Test handling of unicode escapes in the parser
+func TestUnicode(t *testing.T) {
+	result, err := parseString("Sacr\u00e9 bleu!")
+	assert.NoError(t, err, "Parse of string succeeded")
+	assert.Equal(t, result, "Sacré bleu!", "Unicode esacpe without brackets parsed correctly")
+
+	result, err = parseString("I love \\u{1F32E}s")
+	assert.NoError(t, err, "Parse of string succeeded")
+	assert.Equal(t, result, "I love 🌮s", "Unicode esacpe with brackets parsed correctly")
 }
