@@ -181,10 +181,10 @@ func TestFilters(t *testing.T) {
 		// one uses combining characters (e.g., plain n plus combining
 		// tilde) and the other uses composed characters.  Test both
 		// strings against queries written with both formats.
-		{"s = \"Buenos di\\u{0301}as sen\\u{0303}or\"", records[13], true},
-		{"s = \"Buenos d\\u{ed}as se\\u{f1}or\"", records[13], true},
-		{"s = \"Buenos di\\u{0301}as sen\\u{0303}or\"", records[14], true},
-		{"s = \"Buenos d\\u{ed}as se\\u{f1}or\"", records[14], true},
+		{`s = "Buenos di\u{0301}as sen\u{0303}or"`, records[13], true},
+		{`s = "Buenos d\u{ed}as se\u{f1}or"`, records[13], true},
+		{`s = "Buenos di\u{0301}as sen\u{0303}or"`, records[14], true},
+		{`s = "Buenos d\u{ed}as se\u{f1}or"`, records[14], true},
 	}
 
 	for _, tt := range tests {
