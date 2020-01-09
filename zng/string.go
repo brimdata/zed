@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/mccanne/zq/zcode"
+	"golang.org/x/text/unicode/norm"
 )
 
 type TypeOfString struct{}
@@ -35,7 +36,8 @@ func DecodeString(zv zcode.Bytes) (string, error) {
 }
 
 func (t *TypeOfString) Parse(in []byte) (zcode.Bytes, error) {
-	return in, nil
+	normalized := norm.NFC.Bytes(Unescape(in))
+	return normalized, nil
 }
 
 func (t *TypeOfString) New(zv zcode.Bytes) (Value, error) {

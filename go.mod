@@ -10,4 +10,5 @@ require (
 	github.com/peterh/liner v1.1.0
 	github.com/stretchr/testify v1.4.0
 	go.uber.org/zap v1.12.0
+	golang.org/x/text v0.3.0
 )
