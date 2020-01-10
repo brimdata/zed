@@ -158,8 +158,8 @@ searchValue
     }
   / !(searchKeywords _) v:booleanLiteral { RETURN(v) }
   / !(searchKeywords _) v:unsetLiteral { RETURN(v) }
-  / !(searchKeywords _) v:boomWord {
-      IF(reglob.IsGlobby(ASSERT_STRING(v)) || ASSERT_STRING(v) == "*") {
+  / !((searchKeywords) _) v:boomWord {
+      IF(reglob.IsGlobby(ASSERT_STRING(v))) {
          INIT_ASSIGN_VAR(re, reglob.Reglob(ASSERT_STRING(v)))
          RETURN(makeLiteral("regexp", re))
       }
@@ -580,6 +580,8 @@ singleCharEscape
   / "r" { RETURN("\r") }
   / "t" { RETURN("\t") }
   / "v" { RETURN("\v") }
+  / "=" { RETURN("=") }
+  / "*" { RETURN("\\*") }
 
 unicodeEscape
   = "u" chars:(hexdigit hexdigit hexdigit hexdigit) {
