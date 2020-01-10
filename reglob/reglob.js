@@ -86,6 +86,13 @@ function Reglob(glob, opts) {
       reStr += "\\" + c;
       break;
 
+    case '\\':
+      i++
+      let escCh = str[i]
+      if (escCh == '*') { reStr += '\\'; }
+      if (escCh !== undefined) { reStr += escCh; }
+      break;
+
     case "*":
       // Move over all consecutive "*"'s.
       // Also store the previous and next characters

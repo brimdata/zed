@@ -70,6 +70,15 @@ func Reglob(glob string) string {
 			}
 			reStr += "\\" + string(c)
 
+		case '\\':
+			if len(str) > i+1 {
+				i++
+				if str[i] == '*' {
+					reStr += "\\"
+				}
+				reStr += string(str[i])
+			}
+
 		case '*':
 			// Move over all consecutive "*""s.
 			// Also store the previous and next characters
@@ -121,6 +130,10 @@ func Reglob(glob string) string {
 	return reStr
 }
 
+// XXX this isn't foolproof, it will return true for a string with only
+// an escaped asterisk.  It also includes ? which is only interpreted by
+// Reglob() if "extended" is true which it can never be.  And it doesn't
+// check for any of the other extended syntax.  Bleah.
 func IsGlobby(s string) bool {
 	if strings.Contains(s, "*") || strings.Contains(s, "?") {
 		return true
