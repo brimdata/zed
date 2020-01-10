@@ -54,34 +54,34 @@ function Reglob(glob, opts) {
     case "?":
       if (extended) {
         reStr += ".";
-      break;
+        break;
       }
 
     case "[":
     case "]":
       if (extended) {
         reStr += c;
-      break;
+        break;
       }
 
     case "{":
       if (extended) {
         inGroup = true;
-      reStr += "(";
-      break;
+        reStr += "(";
+        break;
       }
 
     case "}":
       if (extended) {
         inGroup = false;
-      reStr += ")";
-      break;
+        reStr += ")";
+        break;
       }
 
     case ",":
       if (inGroup) {
         reStr += "|";
-      break;
+        break;
       }
       reStr += "\\" + c;
       break;
@@ -133,13 +133,13 @@ function Reglob(glob, opts) {
 
 
 function IsGlobby(s) {
-    if (s.indexOf("*") >= 0 || s.indexOf("?") >= 0) {
-        return true;
-    }
-    return false
+  if (s.indexOf("*") >= 0 || s.indexOf("?") >= 0) {
+    return true;
+  }
+  return false
 }
 
 module.exports = {
-    Reglob,
-    IsGlobby,
+  Reglob,
+  IsGlobby,
 }
