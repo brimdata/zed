@@ -4,6 +4,7 @@ import (
 	"github.com/mccanne/zq/streamfn"
 	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zng"
+	"github.com/mccanne/zq/zx"
 )
 
 type Count struct {
@@ -21,11 +22,10 @@ func (c *Count) Result() zng.Value {
 }
 
 func (c *Count) Consume(v zng.Value) error {
-	var i zng.Int
-	//XXX need CoerceToCount?
-	if !zng.CoerceToInt(v, &i) {
-		return zbuf.ErrTypeMismatch
+	//XXX need CoerceToUint64
+	if i, ok := zx.CoerceToInt(v); ok {
+		c.fn.Update(uint64(i))
+		return nil
 	}
-	c.fn.Update(uint64(i))
-	return nil
+	return zbuf.ErrTypeMismatch
 }

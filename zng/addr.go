@@ -1,10 +1,7 @@
 package zng
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"net"
 
 	"github.com/mccanne/zq/zcode"
@@ -12,17 +9,8 @@ import (
 
 type TypeOfAddr struct{}
 
-var compareAddr = map[string]func(net.IP, net.IP) bool{
-	"eql":  func(a, b net.IP) bool { return a.Equal(b) },
-	"neql": func(a, b net.IP) bool { return !a.Equal(b) },
-	"gt":   func(a, b net.IP) bool { return bytes.Compare(a, b) > 0 },
-	"gte":  func(a, b net.IP) bool { return bytes.Compare(a, b) >= 0 },
-	"lt":   func(a, b net.IP) bool { return bytes.Compare(a, b) < 0 },
-	"lte":  func(a, b net.IP) bool { return bytes.Compare(a, b) <= 0 },
-}
-
-func (t *TypeOfAddr) String() string {
-	return "addr"
+func NewAddr(a net.IP) Value {
+	return Value{TypeAddr, EncodeAddr(a)}
 }
 
 func EncodeAddr(a net.IP) zcode.Bytes {
@@ -52,67 +40,22 @@ func (t *TypeOfAddr) Parse(in []byte) (zcode.Bytes, error) {
 	return EncodeAddr(ip), nil
 }
 
-func (t *TypeOfAddr) New(zv zcode.Bytes) (Value, error) {
-	if zv == nil {
-		return &Unset{}, nil
+func (t *TypeOfAddr) String() string {
+	return "addr"
+}
+
+func (t *TypeOfAddr) StringOf(zv zcode.Bytes) string {
+	ip, err := DecodeAddr(zv)
+	if err != nil {
+		return badZng(err, t, zv)
 	}
+	return ip.String()
+}
+
+func (t *TypeOfAddr) Marshal(zv zcode.Bytes) (interface{}, error) {
 	ip, err := DecodeAddr(zv)
 	if err != nil {
 		return nil, err
 	}
-	return NewAddr(ip), nil
+	return ip.String(), nil
 }
-
-type Addr net.IP
-
-func NewAddr(a net.IP) *Addr {
-	p := Addr(a)
-	return &p
-}
-
-func (a Addr) String() string {
-	return (net.IP)(a).String()
-}
-
-func (a Addr) Type() Type {
-	return TypeAddr
-}
-
-func (a Addr) Encode(dst zcode.Bytes) zcode.Bytes {
-	return zcode.AppendValue(dst, EncodeAddr(net.IP(a)))
-}
-
-// Comparison returns a Predicate that compares typed byte slices that must
-// be TypeAddr with the value's address using a comparison based on op.
-// Only equality operands are allowed.
-func (a Addr) Comparison(op string) (Predicate, error) {
-	compare, ok := compareAddr[op]
-	if !ok {
-		return nil, fmt.Errorf("unknown addr comparator: %s", op)
-	}
-	pattern := net.IP(a)
-	return func(e TypedEncoding) bool {
-		if e.Type != TypeAddr {
-			return false
-		}
-		ip, err := DecodeAddr(e.Body)
-		if err != nil {
-			return false
-		}
-		return compare(ip, pattern)
-	}, nil
-}
-
-func (a Addr) Coerce(typ Type) Value {
-	_, ok := typ.(*TypeOfAddr)
-	if ok {
-		return a
-	}
-	return nil
-}
-
-func (a Addr) MarshalJSON() ([]byte, error) {
-	return json.Marshal(a.String())
-}
-
-func (a Addr) Elements() ([]Value, bool) { return nil, false }

@@ -14,6 +14,10 @@ func ustring(b []byte) string {
 	return *(*string)(unsafe.Pointer(&b))
 }
 
+func UnsafeString(b []byte) string {
+	return ustring(b)
+}
+
 func UnsafeParseBool(b []byte) (bool, error) {
 	return strconv.ParseBool(ustring(b))
 }

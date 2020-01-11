@@ -48,12 +48,12 @@ func makeParallelProc(procsIn interface{}) ast.Proc {
 	return &ast.ParallelProc{ast.Node{"ParallelProc"}, procArray(procsIn)}
 }
 
-func makeTypedValue(typ string, val interface{}) *ast.TypedValue {
-	return &ast.TypedValue{typ, val.(string)}
+func makeLiteral(typ string, val interface{}) *ast.Literal {
+	return &ast.Literal{typ, val.(string)}
 }
 
 func getValueType(val interface{}) string {
-	return val.(*ast.TypedValue).Type
+	return val.(*ast.Literal).Type
 }
 
 type FieldCallPlaceholder struct {
@@ -91,14 +91,14 @@ func makeBooleanLiteral(val bool) *ast.BooleanLiteral {
 func makeCompareField(comparatorIn, fieldIn, valueIn interface{}) *ast.CompareField {
 	comparator := comparatorIn.(string)
 	field := fieldIn.(ast.FieldExpr)
-	value := valueIn.(*ast.TypedValue)
+	value := valueIn.(*ast.Literal)
 	return &ast.CompareField{ast.Node{"CompareField"}, comparator, field, *value}
 }
 
 func makeCompareAny(comparatorIn, recurseIn, valueIn interface{}) *ast.CompareAny {
 	comparator := comparatorIn.(string)
 	recurse := recurseIn.(bool)
-	value := valueIn.(*ast.TypedValue)
+	value := valueIn.(*ast.Literal)
 	return &ast.CompareAny{ast.Node{"CompareAny"}, comparator, recurse, *value}
 }
 

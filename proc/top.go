@@ -60,10 +60,10 @@ func (s *Top) Pull() (zbuf.Batch, error) {
 func (s *Top) consume(rec *zbuf.Record) {
 	if s.fields == nil {
 		fld := guessSortField(rec)
-		resolver := func(r *zbuf.Record) zng.TypedEncoding {
+		resolver := func(r *zbuf.Record) zng.Value {
 			e, err := r.Access(fld)
 			if err != nil {
-				return zng.TypedEncoding{}
+				return zng.Value{}
 			}
 			return e
 		}

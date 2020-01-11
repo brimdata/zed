@@ -34,14 +34,12 @@ type FieldExpr interface {
 	Copy() FieldExpr
 }
 
-// A TypedValue is a string representation of a literal value where the
-// type field indicated the underlying data type (of the set of all supported
-// boom data types, derived from the zeek type system and not to be confused with
+// Literal is a string representation of a literal value where the
+// type field indicates the underlying data type (of the set of all supported
+// zng data types, derived from the zng type system and not to be confused with
 // the native Go types) and value is a string representation of that value that
 // must conform to the provided type.
-// XXX these should be broken out into different native Go types but for now
-// we'll keep them as strings.
-type TypedValue struct {
+type Literal struct {
 	Type  string `json:"type"`
 	Value string `json:"value"`
 }
@@ -81,15 +79,15 @@ type (
 		Node
 		Comparator string `json:"comparator"`
 		Recursive  bool   `json:"recursive"`
-		Value      TypedValue
+		Value      Literal
 	}
 	// A CompareField node represents a comparison operator with a specific
 	// field in a record.
 	CompareField struct {
 		Node
-		Comparator string     `json:"comparator"`
-		Field      FieldExpr  `json:"field"`
-		Value      TypedValue `json:"value"`
+		Comparator string    `json:"comparator"`
+		Field      FieldExpr `json:"field"`
+		Value      Literal   `json:"value"`
 	}
 )
 

@@ -19,26 +19,26 @@ import (
 // If the expression can't be resolved (i.e., because some field
 // reference refers to a non-existent field, a vector index is out of
 // bounds, etc.), the resolver returns (nil, nil)
-type FieldExprResolver func(*zbuf.Record) zng.TypedEncoding
+type FieldExprResolver func(*zbuf.Record) zng.Value
 
 // fieldop, arrayIndex, and fieldRead are helpers used internally
 // by CompileFieldExpr() below.
 type fieldop interface {
-	apply(zng.TypedEncoding) zng.TypedEncoding
+	apply(zng.Value) zng.Value
 }
 
 type arrayIndex struct {
 	idx int64
 }
 
-func (ai *arrayIndex) apply(e zng.TypedEncoding) zng.TypedEncoding {
+func (ai *arrayIndex) apply(e zng.Value) zng.Value {
 	el, err := e.VectorIndex(ai.idx)
 	if err != nil {
 		if err == zng.ErrIndex {
 			typ := zng.InnerType(e.Type)
-			return zng.TypedEncoding{typ, nil}
+			return zng.Value{typ, nil}
 		}
-		return zng.TypedEncoding{}
+		return zng.Value{}
 	}
 	return el
 }
@@ -47,11 +47,11 @@ type fieldRead struct {
 	field string
 }
 
-func (fr *fieldRead) apply(e zng.TypedEncoding) zng.TypedEncoding {
+func (fr *fieldRead) apply(e zng.Value) zng.Value {
 	recType, ok := e.Type.(*zng.TypeRecord)
 	if !ok {
 		// field reference on non-record type
-		return zng.TypedEncoding{}
+		return zng.Value{}
 	}
 
 	// XXX searching the list of columns for every record is
@@ -63,19 +63,19 @@ func (fr *fieldRead) apply(e zng.TypedEncoding) zng.TypedEncoding {
 			it := e.Iter()
 			for i := 0; i <= n; i++ {
 				if it.Done() {
-					return zng.TypedEncoding{}
+					return zng.Value{}
 				}
 				var err error
 				v, _, err = it.Next()
 				if err != nil {
-					return zng.TypedEncoding{}
+					return zng.Value{}
 				}
 			}
-			return zng.TypedEncoding{col.Type, v}
+			return zng.Value{col.Type, v}
 		}
 	}
 	// record doesn't have the named field
-	return zng.TypedEncoding{}
+	return zng.Value{}
 }
 
 // CompileFieldExpr() takes a FieldExpr AST (which represents either a
@@ -122,13 +122,13 @@ outer:
 
 	// Here's the actual resolver: grab the top-level field and then
 	// apply any additional operations.
-	return func(r *zbuf.Record) zng.TypedEncoding {
+	return func(r *zbuf.Record) zng.Value {
 		col, ok := r.Descriptor.LUT[field]
 		if !ok {
 			// original field doesn't exist
-			return zng.TypedEncoding{}
+			return zng.Value{}
 		}
-		e := r.TypedSlice(col)
+		e := r.Value(col)
 		for _, op := range ops {
 			e = op.apply(e)
 			if e.Type == nil {

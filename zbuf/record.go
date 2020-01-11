@@ -1,7 +1,6 @@
 package zbuf
 
 import (
-	"encoding/json"
 	"errors"
 	"math"
 	"net"
@@ -39,8 +38,8 @@ func NewRecord(d *Descriptor, ts nano.Ts, raw zcode.Bytes) *Record {
 func NewRecordNoTs(d *Descriptor, zv zcode.Bytes) *Record {
 	r := NewRecord(d, 0, zv)
 	if d.TsCol >= 0 {
-		body := r.Slice(d.TsCol)
-		if body != nil {
+		body, err := r.Slice(d.TsCol)
+		if err == nil {
 			r.Ts, _ = zng.DecodeTime(body)
 		}
 	}
@@ -317,58 +316,40 @@ func checkRecord(typ *zng.TypeRecord, body zcode.Bytes) error {
 	return nil
 }
 
-func (r *Record) ValueByColumn(col int) zng.Value {
-	//XXX shouldn't ignore error
-	v, _ := r.Descriptor.Type.Columns[col].Type.New(r.Slice(col))
-	return v
-}
-
-func (r *Record) ValueByField(field string) zng.Value {
-	//XXX shouldn't ignore error
-	col, ok := r.ColumnOfField(field)
-	if ok {
-		return r.ValueByColumn(col)
-	}
-	return nil
-}
-
-func (r *Record) Slice(column int) zcode.Bytes {
+// Slice returns the encoded zcode.Bytes corresponding to the indicated
+// column or an error if a problem was encountered.  If the encoded bytes
+// result is nil without error, then that columnn is unset in this record value.
+func (r *Record) Slice(column int) (zcode.Bytes, error) {
 	var zv zcode.Bytes
 	for i, it := 0, zcode.Iter(r.Raw); i <= column; i++ {
 		if it.Done() {
-			return nil
+			return nil, ErrNoSuchColumn
 		}
 		var err error
 		zv, _, err = it.Next()
 		if err != nil {
-			return nil
+			return nil, err
 		}
 	}
-	return zv
+	return zv, nil
 }
 
-func (r *Record) TypedSlice(colno int) zng.TypedEncoding {
-	return zng.TypedEncoding{
-		Type: r.Descriptor.Type.Columns[colno].Type,
-		Body: r.Slice(colno),
-	}
-}
-
-func (r *Record) Value(colno int) zng.Value {
-	v := r.TypedSlice(colno)
-	val, err := v.Type.New(v.Body)
+// Value returns the indicated column as a zng.Value.  If the column doesn't
+// exist or another error occurs, the nil Value is returned.
+func (r *Record) Value(col int) zng.Value {
+	zv, err := r.Slice(col)
 	if err != nil {
-		return nil
+		return zng.Value{}
 	}
-	return val
+	return zng.Value{r.Descriptor.Type.Columns[col].Type, zv}
 }
 
-func (r *Record) StringOfColumn(colno int) string {
-	val := r.Value(colno)
-	if val != nil {
-		return ""
+func (r *Record) ValueByField(field string) (zng.Value, error) {
+	col, ok := r.ColumnOfField(field)
+	if !ok {
+		return zng.Value{}, ErrNoSuchField
 	}
-	return val.String()
+	return r.Value(col), nil
 }
 
 func (r *Record) ColumnOfField(field string) (int, bool) {
@@ -379,100 +360,99 @@ func (r *Record) TypeOfColumn(col int) zng.Type {
 	return r.Descriptor.Type.Columns[col].Type
 }
 
-func (r *Record) Access(field string) (zng.TypedEncoding, error) {
-	if k, ok := r.Descriptor.LUT[field]; ok {
-		typ := r.Descriptor.Type.Columns[k].Type
-		v := r.Slice(k)
-		return zng.TypedEncoding{typ, v}, nil
+func (r *Record) Access(field string) (zng.Value, error) {
+	col, ok := r.ColumnOfField(field)
+	if !ok {
+		return zng.Value{}, ErrNoSuchField
 	}
-	return zng.TypedEncoding{}, ErrNoSuchField
-
+	return r.Value(col), nil
 }
 
 func (r *Record) AccessString(field string) (string, error) {
-	e, err := r.Access(field)
+	v, err := r.Access(field)
 	if err != nil {
 		return "", err
 	}
-	if _, ok := e.Type.(*zng.TypeOfString); !ok {
+	if _, ok := v.Type.(*zng.TypeOfString); !ok {
 		return "", ErrTypeMismatch
 	}
-	return zng.DecodeString(e.Body)
+	return zng.DecodeString(v.Bytes)
 }
 
 func (r *Record) AccessBool(field string) (bool, error) {
-	e, err := r.Access(field)
+	v, err := r.Access(field)
 	if err != nil {
 		return false, err
 	}
-	if _, ok := e.Type.(*zng.TypeOfBool); !ok {
+	if _, ok := v.Type.(*zng.TypeOfBool); !ok {
 		return false, ErrTypeMismatch
 	}
-	return zng.DecodeBool(e.Body)
+	return zng.DecodeBool(v.Bytes)
 }
 
 func (r *Record) AccessInt(field string) (int64, error) {
-	e, err := r.Access(field)
+	v, err := r.Access(field)
 	if err != nil {
 		return 0, err
 	}
-	switch e.Type.(type) {
+	switch v.Type.(type) {
 	case *zng.TypeOfInt:
-		return zng.DecodeInt(e.Body)
+		return zng.DecodeInt(v.Bytes)
 	case *zng.TypeOfCount:
-		v, err := zng.DecodeCount(e.Body)
+		v, err := zng.DecodeCount(v.Bytes)
 		if v > math.MaxInt64 {
 			return 0, errors.New("conversion from type count to int results in overflow")
 		}
 		return int64(v), err
 	case *zng.TypeOfPort:
-		v, err := zng.DecodePort(e.Body)
+		v, err := zng.DecodePort(v.Bytes)
 		return int64(v), err
 	}
 	return 0, ErrTypeMismatch
 }
 
 func (r *Record) AccessDouble(field string) (float64, error) {
-	e, err := r.Access(field)
+	v, err := r.Access(field)
 	if err != nil {
 		return 0, err
 	}
-	if _, ok := e.Type.(*zng.TypeOfDouble); !ok {
+	if _, ok := v.Type.(*zng.TypeOfDouble); !ok {
 		return 0, ErrTypeMismatch
 	}
-	return zng.DecodeDouble(e.Body)
+	return zng.DecodeDouble(v.Bytes)
 }
 
 func (r *Record) AccessIP(field string) (net.IP, error) {
-	e, err := r.Access(field)
+	v, err := r.Access(field)
 	if err != nil {
 		return nil, err
 	}
-	if _, ok := e.Type.(*zng.TypeOfAddr); !ok {
+	if _, ok := v.Type.(*zng.TypeOfAddr); !ok {
 		return nil, ErrTypeMismatch
 	}
-	return zng.DecodeAddr(e.Body)
+	return zng.DecodeAddr(v.Bytes)
 }
 
 func (r *Record) AccessTime(field string) (nano.Ts, error) {
-	e, err := r.Access(field)
+	v, err := r.Access(field)
 	if err != nil {
 		return 0, err
 	}
-	if _, ok := e.Type.(*zng.TypeOfTime); !ok {
+	if _, ok := v.Type.(*zng.TypeOfTime); !ok {
 		return 0, ErrTypeMismatch
 	}
-	return zng.DecodeTime(e.Body)
+	return zng.DecodeTime(v.Bytes)
 }
 
 func (r *Record) AccessTimeByColumn(colno int) (nano.Ts, error) {
-	zv := r.Slice(colno)
-	if zv == nil {
-		return 0, ErrTypeMismatch
+	zv, err := r.Slice(colno)
+	if err != nil {
+		return 0, err
 	}
 	return zng.DecodeTime(zv)
 }
 
+/*
 func (r *Record) String() string {
 	value, err := r.Descriptor.Type.New(r.Raw)
 	if err != nil {
@@ -480,16 +460,15 @@ func (r *Record) String() string {
 	}
 	return value.String()
 }
+*/
 
 // MarshalJSON implements json.Marshaler.
 func (r *Record) MarshalJSON() ([]byte, error) {
-	value, err := r.Descriptor.Type.New(r.Raw)
-	if err != nil {
-		return nil, err
-	}
-	return json.Marshal(value)
+	// XXX zbuf.Record will get merged in with zng.Record
+	return zng.Value{r.Descriptor.Type, r.Raw}.MarshalJSON()
 }
 
+//XXX
 func Descriptors(recs []*Record) []*Descriptor {
 	m := make(map[int]*Descriptor)
 	for _, r := range recs {

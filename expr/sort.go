@@ -14,13 +14,6 @@ type SortFn func(a *zbuf.Record, b *zbuf.Record) int
 // Internal function that compares two values of compatible types.
 type comparefn func(a, b zcode.Bytes) int
 
-func isUnset(val zng.TypedEncoding) bool {
-	if val.Body == nil || zng.SameType(val.Type, zng.TypeUnset) {
-		return true
-	}
-	return false
-}
-
 // NewSortFn creates a function that compares a pair of Records
 // based on the provided ordered list of fields.
 // The returned function uses the same return conventions as standard
@@ -39,22 +32,24 @@ func NewSortFn(unsetMax bool, fields ...FieldExprResolver) SortFn {
 			a := resolver(ra)
 			b := resolver(rb)
 
-			// Nil types indicate a field isn't present, sort
+			// Nil indicates a field isn't present, sort
 			// these records to the minimum value so they appear
 			// first in sort output.
-			if a.Type == nil && b.Type == nil {
+			nilA := a.IsNil()
+			nilB := b.IsNil()
+			if nilA && nilB {
 				return 0
 			}
-			if a.Type == nil {
+			if nilA {
 				return -1
 			}
-			if b.Type == nil {
+			if nilB {
 				return 1
 			}
 
 			// Handle unset according to unsetMax
-			unsetA := isUnset(a)
-			unsetB := isUnset(b)
+			unsetA := a.IsUnset()
+			unsetB := b.IsUnset()
 			if unsetA && unsetB {
 				return 0
 			}
@@ -85,7 +80,7 @@ func NewSortFn(unsetMax bool, fields ...FieldExprResolver) SortFn {
 				sorters[a.Type] = sf
 			}
 
-			v := sf(a.Body, b.Body)
+			v := sf(a.Bytes, b.Bytes)
 			// If the events don't match, then return the sort
 			// info.  Otherwise, they match and we continue on
 			// on in the loop to the secondary key, etc.

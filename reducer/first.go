@@ -41,7 +41,8 @@ func (f *First) Consume(r *zbuf.Record) {
 func (f *First) Result() zng.Value {
 	t := f.record
 	if t == nil {
-		return &zng.Unset{}
+		return zng.Value{}
 	}
-	return t.ValueByField(f.Field)
+	v, _ := t.ValueByField(f.Field)
+	return v
 }

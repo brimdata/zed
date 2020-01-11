@@ -23,5 +23,6 @@ func TestTableAddColumns(t *testing.T) {
 	assert.EqualValues(t, "S1", r.Value(0).String())
 	assert.EqualValues(t, "123.456", r.Value(1).String())
 	assert.EqualValues(t, "S2", r.Value(2).String())
-	assert.Nil(t, r.Slice(4))
+	zv, _ := r.Slice(4)
+	assert.Nil(t, zv)
 }
