@@ -19,7 +19,7 @@ func TestZvalToZeekString(t *testing.T) {
 		{zng.TypeString, []byte("-"), "\\x2d"},
 		{
 			zng.LookupVectorType(zng.TypeString),
-			zcode.AppendValue(zcode.AppendValue(nil, []byte("-")), nil),
+			zcode.AppendPrimitive(zcode.AppendPrimitive(nil, []byte("-")), nil),
 			"\\x2d,-",
 		},
 	}

@@ -115,8 +115,7 @@ func (r *Reader) parseValues(id int, v interface{}) (*zbuf.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	raw := r.builder.Encode()
-	zv, err := raw.Body()
+	zv, err := r.builder.Bytes().ContainerBody()
 	if err != nil {
 		//XXX need better error here... this won't make much sense
 		return nil, err
@@ -184,9 +183,9 @@ func decodeContainer(builder *zcode.Builder, typ zng.Type, body []interface{}) e
 		if column == nil {
 			// this is an unset column
 			if zng.IsContainerType(childType) || zng.IsContainerType(columns[k].Type) {
-				builder.AppendUnsetContainer()
+				builder.AppendContainer(nil)
 			} else {
-				builder.AppendUnsetValue()
+				builder.AppendPrimitive(nil)
 			}
 			continue
 		}
@@ -205,7 +204,7 @@ func decodeContainer(builder *zcode.Builder, typ zng.Type, body []interface{}) e
 			if err != nil {
 				return err
 			}
-			builder.Append(zv, false)
+			builder.AppendPrimitive(zv)
 			continue
 		}
 		children, ok := column.([]interface{})

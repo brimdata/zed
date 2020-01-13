@@ -106,9 +106,9 @@ func (v Value) Format() []byte {
 // be the same underlying buffer, as with append(), depending on its capacity)
 func (v Value) Encode(dst zcode.Bytes) zcode.Bytes {
 	if IsContainerType(v.Type) {
-		return zcode.AppendContainerValue(dst, v.Bytes)
+		return zcode.AppendContainer(dst, v.Bytes)
 	}
-	return zcode.AppendValue(dst, v.Bytes)
+	return zcode.AppendPrimitive(dst, v.Bytes)
 }
 
 func (v Value) Iter() zcode.Iter {

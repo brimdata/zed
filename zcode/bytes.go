@@ -1,13 +1,12 @@
-// Package zcode implements serialization and deserialzation for zng values.
+// Package zcode implements serialization and deserialzation for ZNG values.
 //
 // Values of primitive type are represented by an unsigned integer tag and an
-// optional byte sequence.  A tag of zero indicates that the value is unset, and
-// no byte sequence follows.  A nonzero tag indicates that the value is set, and
-// the value itself follows as a byte sequence of length tag-1.
+// optional byte-sequence body.  A tag of zero indicates that the value is
+// unset, and no body follows.  A nonzero tag indicates that the value is set,
+// and the value itself follows as a body of length tag-1.
 //
 // Values of container type (record, set, or vector) are represented similarly,
-// with the byte sequence containing a sequence of zero or more serialized
-// values.
+// with the body containing a sequence of zero or more serialized values.
 package zcode
 
 import (
@@ -20,21 +19,19 @@ var (
 	ErrNotSingleton = errors.New("not a single container")
 )
 
-// Bytes is the serialized representation of zng values.
+// Bytes is the serialized representation of a sequence of ZNG values.
 type Bytes []byte
 
-func (e Bytes) Bytes() []byte {
-	return []byte(e)
-}
-
+// Iter returns an Iter for the receiver.
 func (e Bytes) Iter() Iter {
 	return Iter(e)
 }
 
+// String returns a string representation of the receiver.
 func (e Bytes) String() string {
-	b, err := e.Build(nil)
+	b, err := e.build(nil)
 	if err != nil {
-		panic("zval encoding has bad format: " + err.Error())
+		panic("zcode encoding has bad format: " + err.Error())
 	}
 	return string(b)
 }
@@ -55,7 +52,7 @@ func appendBytes(b, v []byte) []byte {
 	return b
 }
 
-func (e Bytes) Build(b []byte) ([]byte, error) {
+func (e Bytes) build(b []byte) ([]byte, error) {
 	for it := Iter(e); !it.Done(); {
 		v, container, err := it.Next()
 		if err != nil {
@@ -69,7 +66,7 @@ func (e Bytes) Build(b []byte) ([]byte, error) {
 				continue
 			}
 			b = append(b, '[')
-			b, err = v.Build(b)
+			b, err = v.build(b)
 			if err != nil {
 				return nil, err
 			}
@@ -83,11 +80,10 @@ func (e Bytes) Build(b []byte) ([]byte, error) {
 	return b, nil
 }
 
-// Body returns the contents of an encoding that represents a container as
-// an encoding of the list of values.  If the encoding is not a container,
-// ErrNotContainer is returned.  If the encoding is not a single container,
-// ErrNotSingleton is returned.
-func (e Bytes) Body() (Bytes, error) {
+// ContainerBody returns the body of the receiver, which must hold a single
+// container.  If the receiver is not a container, ErrNotContainer is returned.
+// If the receiver is not a single container, ErrNotSingleton is returned.
+func (e Bytes) ContainerBody() (Bytes, error) {
 	it := Iter(e)
 	body, container, err := it.Next()
 	if err != nil {
@@ -102,54 +98,30 @@ func (e Bytes) Body() (Bytes, error) {
 	return body, nil
 }
 
-// AppendValue encodes each byte slice as a Bytes value, concatenates the
-// values as an aggregate, then encodes the aggregate as a Bytes container.
-func AppendContainer(dst Bytes, vals [][]byte) Bytes {
-	if vals == nil {
-		return AppendUvarint(dst, containerTagUnset)
-	}
-	var n int
-	for _, v := range vals {
-		n += sizeOfValue(len(v))
-	}
-	dst = AppendUvarint(dst, containerTag(n))
-	for _, v := range vals {
-		dst = AppendValue(dst, v)
-	}
-	return dst
-}
-
-// AppendContainerValue takes a Bytes that is encoded as a list of Bytes
-// and concatenates it as a container Bytes.
-func AppendContainerValue(dst Bytes, val Bytes) Bytes {
+// AppendContainer appends val to dst as a container value and returns the
+// extended buffer.
+func AppendContainer(dst Bytes, val Bytes) Bytes {
 	if val == nil {
-		return AppendUvarint(dst, containerTagUnset)
+		return appendUvarint(dst, containerTagUnset)
 	}
-	dst = AppendUvarint(dst, containerTag(len(val)))
+	dst = appendUvarint(dst, containerTag(len(val)))
 	dst = append(dst, val...)
 	return dst
 }
 
-// AppendValue encodes the byte slice as a value Bytes, appends it
-// to dst, and returns appended Bytes.
-func AppendValue(dst Bytes, val []byte) Bytes {
+// AppendPrimitive appends val to dst as a primitive value and returns the
+// extended buffer.
+func AppendPrimitive(dst Bytes, val []byte) Bytes {
 	if val == nil {
-		return AppendUvarint(dst, valueTagUnset)
+		return appendUvarint(dst, primitiveTagUnset)
 	}
-	dst = AppendUvarint(dst, valueTag(len(val)))
+	dst = appendUvarint(dst, primitiveTag(len(val)))
 	return append(dst, val...)
 }
 
-func Append(dst Bytes, val []byte, container bool) Bytes {
-	if container {
-		return AppendContainerValue(dst, val)
-	}
-	return AppendValue(dst, val)
-}
-
-// AppendUvarint is like encoding/binary.PutUvarint but appends to dst instead
+// appendUvarint is like encoding/binary.PutUvarint but appends to dst instead
 // of writing into it.
-func AppendUvarint(dst []byte, u64 uint64) []byte {
+func appendUvarint(dst []byte, u64 uint64) []byte {
 	for u64 >= 0x80 {
 		dst = append(dst, byte(u64)|0x80)
 		u64 >>= 7
@@ -157,7 +129,7 @@ func AppendUvarint(dst []byte, u64 uint64) []byte {
 	return append(dst, byte(u64))
 }
 
-// sizeOfUvarint returns the number of bytes required by AppendUvarint to
+// sizeOfUvarint returns the number of bytes required by appendUvarint to
 // represent u64.
 func sizeOfUvarint(u64 uint64) int {
 	n := 1
@@ -168,34 +140,22 @@ func sizeOfUvarint(u64 uint64) int {
 	return n
 }
 
-// Uvarint just calls binary.Uvarint.  It's here for symmetry with
-// AppendUvarint.
-func Uvarint(buf []byte) (uint64, int) {
+// uvarint just calls binary.Uvarint.  It's here for symmetry with
+// appendUvarint.
+func uvarint(buf []byte) (uint64, int) {
 	return binary.Uvarint(buf)
-}
-
-// sizeOfContainer returns the number of bytes required to represent
-// a container byte slice of the indicated length as a zval.
-func sizeOfContainer(length int) int {
-	return (sizeOfUvarint(containerTag(length))) + length
-}
-
-// sizeOfValue returns the number of bytes required to represent
-// a byte slice of the indicated length as a zval.
-func sizeOfValue(length int) int {
-	return int(sizeOfUvarint(valueTag(length))) + length
 }
 
 func containerTag(length int) uint64 {
 	return (uint64(length)+1)<<1 | 1
 }
 
-func valueTag(length int) uint64 {
+func primitiveTag(length int) uint64 {
 	return (uint64(length) + 1) << 1
 }
 
 const (
-	valueTagUnset     = 0
+	primitiveTagUnset = 0
 	containerTagUnset = 1
 )
 

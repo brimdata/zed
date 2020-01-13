@@ -358,7 +358,7 @@ func (g *GroupByAggregator) recordsForTable(table map[string]*GroupByRow) []*zbu
 		row := table[k]
 		var zv zcode.Bytes
 		if g.TimeBinDuration > 0 {
-			zv = zcode.AppendValue(zv, zng.EncodeTime(row.ts))
+			zv = zcode.AppendPrimitive(zv, zng.EncodeTime(row.ts))
 		}
 		zv = append(zv, row.keyvals...)
 		for _, red := range row.reducers.Reducers {

@@ -22,32 +22,27 @@ var appendCases = [][][]byte{
 
 func TestAppendContainer(t *testing.T) {
 	for _, c := range appendCases {
-		buf := AppendContainer(nil, c)
+		var buf []byte
+		for _, val := range c {
+			buf = AppendContainer(buf, val)
+		}
 		it := Iter(buf)
-		assert.False(t, it.Done())
-		{
+		for _, expected := range c {
+			assert.False(t, it.Done())
 			val, container, err := it.Next()
 			assert.NoError(t, err)
 			assert.True(t, container)
-			containerIt := Iter(val)
-			for _, expected := range c {
-				assert.False(t, containerIt.Done())
-				val, container, err := containerIt.Next()
-				assert.NoError(t, err)
-				assert.False(t, container)
-				assert.Exactly(t, expected, val.Bytes())
-			}
-			assert.True(t, containerIt.Done())
+			assert.Exactly(t, expected, []byte(val))
 		}
 		assert.True(t, it.Done())
 	}
 }
 
-func TestAppendValue(t *testing.T) {
+func TestAppendPrimitive(t *testing.T) {
 	for _, c := range appendCases {
 		var buf []byte
 		for _, val := range c {
-			buf = AppendValue(buf, val)
+			buf = AppendPrimitive(buf, val)
 		}
 		it := Iter(buf)
 		for _, expected := range c {
@@ -55,7 +50,7 @@ func TestAppendValue(t *testing.T) {
 			val, container, err := it.Next()
 			assert.NoError(t, err)
 			assert.False(t, container)
-			assert.Exactly(t, expected, val.Bytes())
+			assert.Exactly(t, expected, []byte(val))
 		}
 		assert.True(t, it.Done())
 	}
@@ -86,16 +81,16 @@ func TestUvarint(t *testing.T) {
 		math.MaxUint64,
 	}
 	for _, c := range cases {
-		buf := AppendUvarint(nil, c)
-		u64, n := Uvarint(buf)
+		buf := appendUvarint(nil, c)
+		u64, n := uvarint(buf)
 		require.Len(t, buf, n, "case: %d", c)
 		require.Exactly(t, c, u64, "case: %d", c)
 
-		buf = AppendUvarint(buf, c)
-		u64, n = Uvarint(buf)
+		buf = appendUvarint(buf, c)
+		u64, n = uvarint(buf)
 		require.Len(t, buf, n*2, "case: %d", c)
 		require.Exactly(t, c, u64, "case: %d", c)
-		u64, n = Uvarint(buf[n:])
+		u64, n = uvarint(buf[n:])
 		require.Len(t, buf, n*2, "case: %d", c)
 		require.Exactly(t, c, u64, "case: %d", c)
 	}

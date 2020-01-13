@@ -4,20 +4,21 @@ import (
 	"fmt"
 )
 
-// Iter iterates over a sequence of encoded Bytes.
+// Iter iterates over the sequence of values encoded in Bytes.
 type Iter Bytes
 
-// Done returns true if no zvals remain.
+// Done returns true if no values remain.
 func (i *Iter) Done() bool {
 	return len(*i) == 0
 }
 
-// Next returns the next value as a Bytes type.  It returns an empty slice for
-// an empty or zero-length value and nil for an unset value.
+// Next returns the body of the next value along with a boolean that is true if
+// the value is a container.  It returns an empty slice for an empty or
+// zero-length value and nil for an unset value.
 func (i *Iter) Next() (Bytes, bool, error) {
-	// Uvarint is zero for an unset value; otherwise, it is the value's
+	// The tag is zero for an unset value; otherwise, it is the value's
 	// length plus one.
-	u64, n := Uvarint(*i)
+	u64, n := uvarint(*i)
 	if n <= 0 {
 		return nil, false, fmt.Errorf("bad uvarint: %d", n)
 	}

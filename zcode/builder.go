@@ -30,8 +30,8 @@ func (b *Builder) BeginContainer() {
 	b.containers = append(b.containers, len(b.bytes))
 }
 
-// EndContainer closes the most recently opened container.  It panics if there
-// is no open container.
+// EndContainer closes the most recently opened container.  It panics if the
+// receiver has no open container.
 func (b *Builder) EndContainer() {
 	// Pop the container body offset off the stack.
 	bodyOff := b.containers[len(b.containers)-1]
@@ -49,25 +49,19 @@ func (b *Builder) EndContainer() {
 	}
 }
 
-// AppendUnsetContainer appends an unset container.
-func (b *Builder) AppendUnsetContainer() {
-	b.Append(nil, true)
+// AppendContainer appends val as a container value.
+func (b *Builder) AppendContainer(val []byte) {
+	b.bytes = AppendContainer(b.bytes, val)
 }
 
-// AppendUnsetContainer appends an unset value.
-func (b *Builder) AppendUnsetValue() {
-	b.Append(nil, false)
+// AppendPrimitive appends val as a primitive value.
+func (b *Builder) AppendPrimitive(val []byte) {
+	b.bytes = AppendPrimitive(b.bytes, val)
 }
 
-// Append appends leaf as a container if the container boolean is true or as a
-// value otherwise.
-func (b *Builder) Append(leaf []byte, container bool) {
-	b.bytes = Append(b.bytes, leaf, container)
-}
-
-// Encode returns the constructed value.  It panics if the Builder has an open
+// Bytes returns the constructed value.  It panics if the receiver has an open
 // container.
-func (b *Builder) Encode() Bytes {
+func (b *Builder) Bytes() Bytes {
 	if len(b.containers) > 0 {
 		panic("open container")
 	}
