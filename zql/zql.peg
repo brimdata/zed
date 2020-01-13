@@ -367,16 +367,15 @@ simpleProc
   / uniq
 
 sort
-  = "sort"i rev:(_ "-r")? limit:procLimitArg?  _? !"-r" list:(fieldExprList)? {
-    INIT_ASSIGN_VAR(sortdir, 1)
-    IF(ISNOTNULL(rev)) { sortdir = -1 }
-    RETURN(makeSortProc(list, sortdir, limit))
+  = "sort"i args:sortArgs list:(_ l:fieldExprList { RETURN(l) })? {
+    return makeSortProc(args, list)
   }
-  / "sort"i limit:procLimitArg? rev:(_ "-r")? _? list:(fieldExprList)? {
-    INIT_ASSIGN_VAR(sortdir, 1)
-    IF(ISNOTNULL(rev)) { sortdir = -1 }
-    RETURN(makeSortProc(list, sortdir, limit))
-  }
+
+sortArgs = (_ a:sortArg { RETURN(a) })*
+
+sortArg
+  = "-limit" _ limit:sinteger { RETURN(makeArg("limit", limit)) }
+  / "-r" { RETURN(makeArg("r", NULL)) }
 
 top
   = "top"i limit:(_ n:integer { RETURN(n)})? flush:(_ "-flush")? list:(_ f:fieldExprList { RETURN(f) })? {
