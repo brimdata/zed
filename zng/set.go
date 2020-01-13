@@ -94,7 +94,7 @@ func (s *Set) Encode(dst zcode.Bytes) zcode.Bytes {
 	for _, v := range s.values {
 		zv = v.Encode(zv)
 	}
-	return zcode.AppendContainerValue(dst, zv)
+	return zcode.AppendContainer(dst, zv)
 }
 
 func (s *Set) Type() Type {

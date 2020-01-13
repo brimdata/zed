@@ -79,7 +79,7 @@ func (a Addr) Type() Type {
 }
 
 func (a Addr) Encode(dst zcode.Bytes) zcode.Bytes {
-	return zcode.AppendValue(dst, EncodeAddr(net.IP(a)))
+	return zcode.AppendSimple(dst, EncodeAddr(net.IP(a)))
 }
 
 // Comparison returns a Predicate that compares typed byte slices that must

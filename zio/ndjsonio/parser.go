@@ -41,7 +41,7 @@ func (p *Parser) Parse(b []byte) (zcode.Bytes, zng.Type, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	return p.builder.Encode(), ztyp, nil
+	return p.builder.Bytes(), ztyp, nil
 }
 
 func (p *Parser) jsonParseObject(b []byte) (zng.Type, error) {
@@ -164,7 +164,7 @@ func (p *Parser) jsonParseBool(b []byte) (zng.Type, error) {
 	if err != nil {
 		return nil, err
 	}
-	p.builder.Append(zng.EncodeBool(boolean), false)
+	p.builder.AppendSimple(zng.EncodeBool(boolean))
 	return zng.TypeBool, nil
 }
 
@@ -173,11 +173,11 @@ func (p *Parser) jsonParseNumber(b []byte) (zng.Type, error) {
 	if err != nil {
 		return nil, err
 	}
-	p.builder.Append(zng.EncodeDouble(d), false)
+	p.builder.AppendSimple(zng.EncodeDouble(d))
 	return zng.TypeDouble, nil
 }
 
 func (p *Parser) jsonParseString(b []byte) (zng.Type, error) {
-	p.builder.Append(zng.Unescape(b), false)
+	p.builder.AppendSimple(zng.Unescape(b))
 	return zng.TypeString, nil
 }

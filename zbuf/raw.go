@@ -18,7 +18,7 @@ func EncodeZvals(d *Descriptor, vals []zcode.Bytes) (zcode.Bytes, error) {
 	}
 	var raw zcode.Bytes
 	for _, val := range vals {
-		raw = zcode.AppendValue(raw, val)
+		raw = zcode.AppendSimple(raw, val)
 	}
 	return raw, nil
 }
@@ -33,7 +33,7 @@ func NewRawAndTsFromZeekTSV(builder *zcode.Builder, d *Descriptor, path []byte, 
 		if columns[0].Name != "_path" {
 			return nil, nil, errors.New("no _path in column 0")
 		}
-		builder.Append(path, false)
+		builder.AppendSimple(path)
 		col++
 	}
 
@@ -59,9 +59,9 @@ func NewRawAndTsFromZeekTSV(builder *zcode.Builder, d *Descriptor, path []byte, 
 		if len(val) == 1 && val[0] == '-' {
 			switch typ.(type) {
 			case *zng.TypeSet, *zng.TypeVector:
-				builder.AppendUnsetContainer()
+				builder.AppendContainer(nil)
 			default:
-				builder.AppendUnsetValue()
+				builder.AppendSimple(nil)
 			}
 		} else {
 			switch typ.(type) {
@@ -76,7 +76,7 @@ func NewRawAndTsFromZeekTSV(builder *zcode.Builder, d *Descriptor, path []byte, 
 							if err != nil {
 								return err
 							}
-							builder.Append(zv, false)
+							builder.AppendSimple(zv)
 							cstart = i + 1
 						}
 					}
@@ -84,7 +84,7 @@ func NewRawAndTsFromZeekTSV(builder *zcode.Builder, d *Descriptor, path []byte, 
 					if err != nil {
 						return err
 					}
-					builder.Append(zv, false)
+					builder.AppendSimple(zv)
 				}
 				builder.EndContainer()
 			default:
@@ -100,7 +100,7 @@ func NewRawAndTsFromZeekTSV(builder *zcode.Builder, d *Descriptor, path []byte, 
 						return err
 					}
 				}
-				builder.Append(zv, false)
+				builder.AppendSimple(zv)
 			}
 		}
 
@@ -134,7 +134,7 @@ func NewRawAndTsFromZeekTSV(builder *zcode.Builder, d *Descriptor, path []byte, 
 	if col != len(d.Type.Columns) {
 		return nil, nil, errors.New("too few values")
 	}
-	return builder.Encode(), tsVal, nil
+	return builder.Bytes(), tsVal, nil
 }
 
 func NewRawAndTsFromZeekValues(d *Descriptor, tsCol int, vals [][]byte) (zcode.Bytes, nano.Ts, error) {
@@ -192,7 +192,7 @@ func (p *Parser) Parse(d *Descriptor, zng []byte) (zcode.Bytes, error) {
 	if len(rest) > 0 {
 		return nil, ErrSyntax
 	}
-	return builder.Encode().Body()
+	return builder.Bytes().ContainerBody()
 }
 
 const (
@@ -247,9 +247,9 @@ func zngParseField(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, erro
 	}
 	if len(b) >= 2 && b[0] == '-' && b[1] == ';' {
 		if zng.IsContainerType(typ) {
-			builder.AppendUnsetContainer()
+			builder.AppendContainer(nil)
 		} else {
-			builder.AppendUnsetValue()
+			builder.AppendSimple(nil)
 		}
 		return b[2:], nil
 	}
@@ -268,7 +268,7 @@ func zngParseField(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, erro
 			if err != nil {
 				return nil, err
 			}
-			builder.Append(zv, false)
+			builder.AppendSimple(zv)
 			return b[from+1:], nil
 		case backslash:
 			e, n := zng.ParseEscape(b[from:])

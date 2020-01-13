@@ -71,7 +71,7 @@ func (d Double) String() string {
 }
 
 func (d Double) Encode(dst zcode.Bytes) zcode.Bytes {
-	return zcode.AppendValue(dst, EncodeDouble(float64(d)))
+	return zcode.AppendSimple(dst, EncodeDouble(float64(d)))
 }
 
 func (d *Double) Type() Type {

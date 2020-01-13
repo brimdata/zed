@@ -93,7 +93,7 @@ func (b Bool) String() string {
 }
 
 func (b Bool) Encode(dst zcode.Bytes) zcode.Bytes {
-	return zcode.AppendValue(dst, EncodeBool(bool(b)))
+	return zcode.AppendSimple(dst, EncodeBool(bool(b)))
 }
 
 func (b Bool) Type() Type {

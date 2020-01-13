@@ -57,7 +57,7 @@ func (c Count) String() string {
 }
 
 func (c Count) Encode(dst zcode.Bytes) zcode.Bytes {
-	return zcode.AppendValue(dst, EncodeCount(uint64(c)))
+	return zcode.AppendSimple(dst, EncodeCount(uint64(c)))
 }
 
 func (c Count) Type() Type {

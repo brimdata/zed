@@ -46,7 +46,7 @@ func (e Enum) String() string {
 }
 
 func (e Enum) Encode(dst zcode.Bytes) zcode.Bytes {
-	return zcode.AppendValue(dst, EncodeEnum([]byte(e)))
+	return zcode.AppendSimple(dst, EncodeEnum([]byte(e)))
 }
 
 func (e Enum) Type() Type {

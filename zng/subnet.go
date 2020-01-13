@@ -125,7 +125,7 @@ func (s *Subnet) String() string {
 
 func (s *Subnet) Encode(dst zcode.Bytes) zcode.Bytes {
 	zv := EncodeSubnet((*net.IPNet)(s))
-	return zcode.AppendValue(dst, zv)
+	return zcode.AppendSimple(dst, zv)
 }
 
 func (s *Subnet) Type() Type {

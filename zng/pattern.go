@@ -61,7 +61,7 @@ func (p *Pattern) String() string {
 }
 
 func (p *Pattern) Encode(dst zcode.Bytes) zcode.Bytes {
-	return zcode.AppendValue(dst, EncodePattern((*regexp.Regexp)(p)))
+	return zcode.AppendSimple(dst, EncodePattern((*regexp.Regexp)(p)))
 }
 
 func (p *Pattern) Type() Type {

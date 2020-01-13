@@ -60,7 +60,7 @@ func (s String) String() string {
 
 func (s String) Encode(dst zcode.Bytes) zcode.Bytes {
 	v := []byte(s)
-	return zcode.AppendValue(dst, v)
+	return zcode.AppendSimple(dst, v)
 }
 
 func (s String) Type() Type {

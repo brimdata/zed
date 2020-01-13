@@ -61,7 +61,7 @@ func (t Time) String() string {
 }
 
 func (t Time) Encode(dst zcode.Bytes) zcode.Bytes {
-	return zcode.AppendValue(dst, EncodeTime(nano.Ts(t)))
+	return zcode.AppendSimple(dst, EncodeTime(nano.Ts(t)))
 }
 
 func (t Time) Type() Type {

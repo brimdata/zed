@@ -67,7 +67,7 @@ func (p Port) Type() Type {
 }
 
 func (p Port) Encode(dst zcode.Bytes) zcode.Bytes {
-	return zcode.AppendValue(dst, EncodePort(uint32(p)))
+	return zcode.AppendSimple(dst, EncodePort(uint32(p)))
 
 }
 

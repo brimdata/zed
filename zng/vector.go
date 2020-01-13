@@ -78,7 +78,7 @@ func (v *Vector) Encode(dst zcode.Bytes) zcode.Bytes {
 	for _, val := range v.values {
 		zv = val.Encode(zv)
 	}
-	return zcode.AppendContainerValue(dst, zv)
+	return zcode.AppendContainer(dst, zv)
 }
 
 func (v *Vector) Type() Type {

@@ -154,7 +154,7 @@ func (r *Record) Encode(dst zcode.Bytes) zcode.Bytes {
 	for _, v := range r.values {
 		zv = v.Encode(zv)
 	}
-	return zcode.AppendContainerValue(dst, zv)
+	return zcode.AppendContainer(dst, zv)
 }
 
 func (r *Record) Type() Type {

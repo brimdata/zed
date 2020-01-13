@@ -32,16 +32,16 @@ func appendZvalFromZeek(dst zcode.Bytes, typ zng.Type, val []byte) zcode.Bytes {
 		if !bytes.Equal(val, []byte(empty)) {
 			for _, v := range bytes.Split(val, []byte{setSeparator}) {
 				body, _ := inner.Parse(zng.Unescape(v))
-				zv = zcode.AppendValue(zv, body)
+				zv = zcode.AppendSimple(zv, body)
 			}
 		}
-		return zcode.Append(dst, zv, true)
+		return zcode.AppendContainer(dst, zv)
 	default:
 		if bytes.Equal(val, []byte{unset}) {
-			return zcode.AppendValue(dst, nil)
+			return zcode.AppendSimple(dst, nil)
 		}
 		body, _ := typ.Parse(zng.Unescape(val))
-		return zcode.AppendValue(dst, body)
+		return zcode.AppendSimple(dst, body)
 	}
 }
 

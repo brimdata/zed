@@ -67,7 +67,7 @@ func (i Int) String() string {
 }
 
 func (i Int) Encode(dst zcode.Bytes) zcode.Bytes {
-	return zcode.AppendValue(dst, EncodeInt(int64(i)))
+	return zcode.AppendSimple(dst, EncodeInt(int64(i)))
 }
 
 func (i Int) Type() Type {

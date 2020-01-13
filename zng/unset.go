@@ -40,7 +40,7 @@ func (u Unset) String() string {
 }
 
 func (u Unset) Encode(dst zcode.Bytes) zcode.Bytes {
-	return zcode.AppendValue(dst, nil)
+	return zcode.AppendSimple(dst, nil)
 }
 
 func (u Unset) Type() Type {

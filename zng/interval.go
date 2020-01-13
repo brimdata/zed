@@ -48,7 +48,7 @@ func (i Interval) String() string {
 }
 
 func (i Interval) Encode(dst zcode.Bytes) zcode.Bytes {
-	return zcode.AppendValue(dst, EncodeInt(int64(i)))
+	return zcode.AppendSimple(dst, EncodeInt(int64(i)))
 }
 
 func DecodeInterval(zv zcode.Bytes) (int64, error) {
