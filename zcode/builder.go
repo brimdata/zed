@@ -24,7 +24,7 @@ func (b *Builder) Reset() {
 // BeginContainer opens a new container.
 func (b *Builder) BeginContainer() {
 	// Allocate one byte for the container tag.  When EndContainer writes
-	// the tag, it arrange for additional space if required.
+	// the tag, it will arrange for additional space if required.
 	b.bytes = append(b.bytes, 0)
 	// Push the offset of the container body onto the stack.
 	b.containers = append(b.containers, len(b.bytes))
