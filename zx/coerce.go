@@ -127,6 +127,41 @@ func CoerceToInterval(in zng.Value) (int64, bool) {
 	return out, true
 }
 
+func CoerceToPort(in zng.Value) (uint32, bool) {
+	var out uint32
+	var err error
+	body := in.Bytes
+	switch in.Type.(type) {
+	default:
+		return 0, false
+	case *zng.TypeOfInt:
+		var v int64
+		v, err = zng.DecodeInt(body)
+		out = uint32(v)
+	case *zng.TypeOfCount:
+		var v uint64
+		v, err = zng.DecodeCount(body)
+		// check for overflow
+		if v > math.MaxInt64 {
+			return 0, false
+		}
+		out = uint32(v)
+	case *zng.TypeOfPort:
+		out, err = zng.DecodePort(body)
+	case *zng.TypeOfDouble:
+		var v float64
+		v, err = zng.DecodeDouble(body)
+		out = uint32(v)
+		if float64(out) != v {
+			return 0, false
+		}
+	}
+	if err != nil {
+		return 0, false
+	}
+	return out, true
+}
+
 // CoerceToTime attempts to convert a value to a time. Int and Double
 // are converted as seconds. The resulting coerced value is written to
 // out, and true is returned. If the value cannot be coerced, then
@@ -177,6 +212,10 @@ func Coerce(v zng.Value, to zng.Type) (zng.Value, bool) {
 	case *zng.TypeOfInterval:
 		if i, ok := CoerceToInterval(v); ok {
 			return zng.NewInterval(i), true
+		}
+	case *zng.TypeOfPort:
+		if p, ok := CoerceToPort(v); ok {
+			return zng.NewPort(p), true
 		}
 	case *zng.TypeOfTime:
 		if i, ok := CoerceToTime(v); ok {
