@@ -207,7 +207,7 @@ func makeArg(nameIn, valIn interface{}) *ProcArg {
 }
 
 func makeSortProc(argsIn, fieldsIn interface{}) (*ast.SortProc, error) {
-	params, err := parseArgs([]string{"r", "limit"}, argsIn)
+	params, err := parseArgs([]string{"r", "limit", "nulls"}, argsIn)
 	if err != nil {
 		return nil, err
 	}
@@ -219,8 +219,12 @@ func makeSortProc(argsIn, fieldsIn interface{}) (*ast.SortProc, error) {
 	if params[1].Present {
 		limit = parseInt(params[1].Value).(int)
 	}
+	nullsfirst := false
+	if params[2].Value == "first" {
+		nullsfirst = true
+	}
 	fields := fieldExprArray(fieldsIn)
-	return &ast.SortProc{ast.Node{"SortProc"}, limit, fields, sortdir}, nil
+	return &ast.SortProc{ast.Node{"SortProc"}, limit, fields, sortdir, nullsfirst}, nil
 }
 
 func makeTopProc(fieldsIn, limitIn, flushIn interface{}) *ast.TopProc {

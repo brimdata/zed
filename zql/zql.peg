@@ -376,6 +376,7 @@ sortArgs = (_ a:sortArg { RETURN(a) })*
 sortArg
   = "-limit" _ limit:sinteger { RETURN(makeArg("limit", limit)) }
   / "-r" { RETURN(makeArg("r", NULL)) }
+  / "-nulls" _ where:(("first" / "last") { RETURN(TEXT) } ) { RETURN(makeArg("nulls", where)) }
 
 top
   = "top"i limit:(_ n:integer { RETURN(n)})? flush:(_ "-flush")? list:(_ f:fieldExprList { RETURN(f) })? {

@@ -69,8 +69,9 @@ function makeSortProc(args, fields) {
   }
 
   let sortdir = argsMap.has("r") ? -1 : 1;
-  let limit = argsMap.get("limit")
-  return { op: "SortProc", fields, sortdir, limit };
+  let limit = argsMap.get("limit");
+  let nullsfirst = (argsMap.get("nulls") === "first");
+  return { op: "SortProc", fields, sortdir, limit, nullsfirst };
 }
 
 function makeTopProc(fields, limit, flush) {
