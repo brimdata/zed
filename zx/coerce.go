@@ -33,7 +33,7 @@ func CoerceToDouble(in zng.Value) (float64, bool) {
 		v, err = zng.DecodeCount(in.Bytes)
 		out = float64(v)
 	case *zng.TypeOfPort:
-		var v uint32
+		var v uint16
 		v, err = zng.DecodePort(in.Bytes)
 		out = float64(v)
 	case *zng.TypeOfTime:
@@ -75,7 +75,7 @@ func CoerceToInt(in zng.Value) (int64, bool) {
 		}
 		out = int64(v)
 	case *zng.TypeOfPort:
-		var v uint32
+		var v uint16
 		v, err = zng.DecodePort(body)
 		out = int64(v)
 	case *zng.TypeOfDouble:

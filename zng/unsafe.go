@@ -42,6 +42,11 @@ func UnsafeParseFloat64(b []byte) (float64, error) {
 	return strconv.ParseFloat(ustring(b), 10)
 }
 
+func UnsafeParseUint16(b []byte) (uint16, error) {
+	v, err := strconv.ParseUint(ustring(b), 10, 16)
+	return uint16(v), err
+}
+
 func UnsafeParseUint32(b []byte) (uint32, error) {
 	v, err := strconv.ParseUint(ustring(b), 10, 32)
 	return uint32(v), err

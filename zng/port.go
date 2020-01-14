@@ -9,18 +9,18 @@ import (
 
 type TypeOfPort struct{}
 
-func NewPort(p uint32) Value {
+func NewPort(p uint16) Value {
 	return Value{TypePort, EncodePort(p)}
 }
 
-func EncodePort(p uint32) zcode.Bytes {
+func EncodePort(p uint16) zcode.Bytes {
 	var b [2]byte
-	b[0] = byte(p >> 8)
-	b[1] = byte(p)
+	b[0] = byte(p)
+	b[1] = byte(p >> 8)
 	return b[:]
 }
 
-func DecodePort(zv zcode.Bytes) (uint32, error) {
+func DecodePort(zv zcode.Bytes) (uint16, error) {
 	if zv == nil {
 		return 0, ErrUnset
 	}
@@ -28,11 +28,11 @@ func DecodePort(zv zcode.Bytes) (uint32, error) {
 		return 0, errors.New("port encoding must be 2 bytes")
 
 	}
-	return uint32(zv[0])<<8 | uint32(zv[1]), nil
+	return uint16(zv[0]) | uint16(zv[1])<<8, nil
 }
 
 func (t *TypeOfPort) Parse(in []byte) (zcode.Bytes, error) {
-	i, err := UnsafeParseUint32(in)
+	i, err := UnsafeParseUint16(in)
 	if err != nil {
 		return nil, err
 	}
