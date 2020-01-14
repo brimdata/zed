@@ -38,7 +38,7 @@ type FieldReducer struct {
 
 func (fr *FieldReducer) Result() zng.Value {
 	if fr.fn == nil {
-		return &zng.Unset{}
+		return zng.Value{}
 	}
 	return fr.fn.Result()
 }
@@ -49,14 +49,14 @@ func (fr *FieldReducer) Consume(r *zbuf.Record) {
 	// reducer just parse the byte slice in the record without making a value...
 	// XXX then we have Values in the zbuf.Record, we would first check the
 	// Value element in the column--- this would all go in a new method of zbuf.Record
-	val := r.ValueByField(fr.field)
-	if val == nil {
+	val, err := r.ValueByField(fr.field)
+	if err != nil {
 		fr.FieldNotFound++
 		return
 	}
 
 	if fr.fn == nil {
-		switch val.Type().(type) {
+		switch val.Type.(type) {
 		case *zng.TypeOfInt:
 			fr.fn = NewIntStreamfn(fr.op)
 		case *zng.TypeOfCount:
@@ -73,7 +73,7 @@ func (fr *FieldReducer) Consume(r *zbuf.Record) {
 		}
 	}
 
-	err := fr.fn.Consume(val)
+	err = fr.fn.Consume(val)
 	if err == zbuf.ErrTypeMismatch {
 		fr.TypeMismatch++
 	}

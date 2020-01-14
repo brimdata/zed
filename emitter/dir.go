@@ -82,10 +82,9 @@ func (d *Dir) lookupOutput(rec *zbuf.Record) (*zio.Writer, error) {
 // the case of two tds one _path, adding a # in the filename for every _path that
 // has more than one td.
 func (d *Dir) filename(r *zbuf.Record) (string, string) {
-	colno, ok := r.Descriptor.ColumnOfField("_path")
-	var base, path string
-	if ok {
-		base = string(r.Slice(colno))
+	var path string
+	base, err := r.AccessString("_path")
+	if err == nil {
 		path = base
 	} else {
 		base = strconv.Itoa(r.Descriptor.ID)

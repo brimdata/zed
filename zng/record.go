@@ -96,6 +96,7 @@ func parseRecordTypeBody(in string) (string, Type, error) {
 	}
 }
 
+//XXX we shouldn't need this... tests are using it
 func (t *TypeRecord) Decode(zv zcode.Bytes) ([]Value, error) {
 	if zv == nil {
 		return nil, ErrUnset
@@ -109,10 +110,7 @@ func (t *TypeRecord) Decode(zv zcode.Bytes) ([]Value, error) {
 		if i >= len(t.Columns) {
 			return nil, fmt.Errorf("too many values for record element %s", val)
 		}
-		v, err := t.Columns[i].Type.New(val)
-		if err != nil {
-			return nil, fmt.Errorf("cannot parse record element %s: %w", val, err)
-		}
+		v := Value{t.Columns[i].Type, val}
 		vals = append(vals, v)
 	}
 	return vals, nil
@@ -122,67 +120,33 @@ func (t *TypeRecord) Parse(in []byte) (zcode.Bytes, error) {
 	panic("record.Parse shouldn't be called")
 }
 
-func (t *TypeRecord) New(zv zcode.Bytes) (Value, error) {
-	if zv == nil {
-		return &Record{typ: t, values: []Value{}}, nil
-	}
-	v, err := t.Decode(zv)
-	if err != nil {
-		return nil, err
-	}
-	if len(v) != len(t.Columns) {
-		return nil, ErrColumnMismatch
-	}
-	return &Record{typ: t, values: v}, nil
-}
-
-type Record struct {
-	typ    *TypeRecord
-	values []Value
-}
-
-func (r *Record) String() string {
-	//XXX this should just be the values no?  need to change set and vector too
+func (t *TypeRecord) StringOf(zv zcode.Bytes) string {
 	d := "record["
 	comma := ""
-	for _, item := range r.values {
-		d += comma + item.String()
+	it := zv.Iter()
+	for _, col := range t.Columns {
+		zv, _, err := it.Next()
+		if err != nil {
+			//XXX shouldn't happen
+			d += "ERR"
+			break
+		}
+		d += comma + Value{col.Type, zv}.String()
 		comma = ","
 	}
 	d += "]"
 	return d
 }
 
-func (r *Record) Encode(dst zcode.Bytes) zcode.Bytes {
-	var zv zcode.Bytes
-	for _, v := range r.values {
-		zv = v.Encode(zv)
-	}
-	return zcode.AppendContainerValue(dst, zv)
-}
-
-func (r *Record) Type() Type {
-	return r.typ
-}
-
-func (r *Record) Comparison(op string) (Predicate, error) {
-	return nil, errors.New("no support yet for record comparison")
-}
-
-func (r *Record) Coerce(typ Type) Value {
-	_, ok := typ.(*TypeRecord)
-	if ok {
-		return r
-	}
-	return nil
-}
-
-func (r *Record) MarshalJSON() ([]byte, error) {
+func (t *TypeRecord) Marshal(zv zcode.Bytes) (interface{}, error) {
 	m := make(map[string]Value)
-	for i, col := range r.typ.Columns {
-		m[col.Name] = r.values[i]
+	it := zv.Iter()
+	for _, col := range t.Columns {
+		zv, _, err := it.Next()
+		if err != nil {
+			return nil, err
+		}
+		m[col.Name] = Value{col.Type, zv}
 	}
-	return json.Marshal(m)
+	return m, nil
 }
-
-func (r *Record) Elements() ([]Value, bool) { return r.values, true }

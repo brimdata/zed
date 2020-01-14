@@ -27,11 +27,10 @@ func NewRawAndTsFromZeekTSV(builder *zcode.Builder, d *Descriptor, path []byte, 
 	builder.Reset()
 	columns := d.Type.Columns
 	col := 0
-	var tsVal zng.Value
-	tsVal = &zng.Unset{}
+	tsVal := zng.Value{}
 	if path != nil {
 		if columns[0].Name != "_path" {
-			return nil, nil, errors.New("no _path in column 0")
+			return nil, zng.Value{}, errors.New("no _path in column 0")
 		}
 		builder.Append(path, false)
 		col++
@@ -93,12 +92,14 @@ func NewRawAndTsFromZeekTSV(builder *zcode.Builder, d *Descriptor, path []byte, 
 				if err != nil {
 					return err
 				}
+				//XXX pulling out ts field should be done outside
+				// of this routine... this is severe bit rot
 				if columns[col].Name == "ts" {
-					tt := zng.TypeOfTime{}
-					tsVal, err = tt.New(zv)
+					_, err := zng.DecodeTime(zv)
 					if err != nil {
 						return err
 					}
+					tsVal = zng.Value{zng.TypeTime, zv}
 				}
 				builder.Append(zv, false)
 			}
@@ -121,18 +122,18 @@ func NewRawAndTsFromZeekTSV(builder *zcode.Builder, d *Descriptor, path []byte, 
 		if c == separator {
 			err := handleVal(data[start:i])
 			if err != nil {
-				return nil, nil, err
+				return nil, zng.Value{}, err
 			}
 			start = i + 1
 		}
 	}
 	err := handleVal(data[start:])
 	if err != nil {
-		return nil, nil, err
+		return nil, zng.Value{}, err
 	}
 
 	if col != len(d.Type.Columns) {
-		return nil, nil, errors.New("too few values")
+		return nil, zng.Value{}, errors.New("too few values")
 	}
 	return builder.Encode(), tsVal, nil
 }

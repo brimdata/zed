@@ -3,6 +3,7 @@ package reducer
 import (
 	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zng"
+	"github.com/mccanne/zq/zx"
 )
 
 type AvgProto struct {
@@ -30,13 +31,13 @@ type Avg struct {
 }
 
 func (a *Avg) Consume(r *zbuf.Record) {
-	v := r.ValueByField(a.Field)
-	if v == nil {
+	v, err := r.ValueByField(a.Field)
+	if err != nil {
 		a.FieldNotFound++
 		return
 	}
-	var d zng.Double
-	if !zng.CoerceToDouble(v, &d) {
+	d, ok := zx.CoerceToDouble(v)
+	if !ok {
 		a.TypeMismatch++
 		return
 	}

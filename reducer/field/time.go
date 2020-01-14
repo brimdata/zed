@@ -1,10 +1,10 @@
 package field
 
 import (
-	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/streamfn"
 	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zng"
+	"github.com/mccanne/zq/zx"
 )
 
 type Time struct {
@@ -22,10 +22,9 @@ func (t *Time) Result() zng.Value {
 }
 
 func (t *Time) Consume(v zng.Value) error {
-	var cv zng.Time
-	if !zng.CoerceToTime(v, &cv) {
-		return zbuf.ErrTypeMismatch
+	if ts, ok := zx.CoerceToTime(v); ok {
+		t.fn.Update(ts)
+		return nil
 	}
-	t.fn.Update(nano.Ts(cv))
-	return nil
+	return zbuf.ErrTypeMismatch
 }

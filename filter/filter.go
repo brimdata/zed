@@ -1,7 +1,6 @@
 package filter
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/mccanne/zq/ast"
@@ -9,6 +8,7 @@ import (
 	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zcode"
 	"github.com/mccanne/zq/zng"
+	"github.com/mccanne/zq/zx"
 )
 
 type Filter func(*zbuf.Record) bool
@@ -25,7 +25,7 @@ func LogicalNot(expr Filter) Filter {
 	return func(p *zbuf.Record) bool { return !expr(p) }
 }
 
-func combine(res expr.FieldExprResolver, pred zng.Predicate) Filter {
+func combine(res expr.FieldExprResolver, pred zx.Predicate) Filter {
 	return func(r *zbuf.Record) bool {
 		v := res(r)
 		if v.Type == nil {
@@ -36,33 +36,26 @@ func combine(res expr.FieldExprResolver, pred zng.Predicate) Filter {
 	}
 }
 
-func CompileFieldCompare(node ast.CompareField, val zng.Value) (Filter, error) {
+func CompileFieldCompare(node *ast.CompareField) (Filter, error) {
+	literal := node.Value
 	// Treat len(field) specially since we're looking at a computed
 	// value rather than a field from a record.
+
+	// XXX we need to implement proper expressions
 	if op, ok := node.Field.(*ast.FieldCall); ok && op.Fn == "Len" {
-		i, ok := val.(*zng.Int)
-		if !ok {
-			return nil, errors.New("cannot compare len() with non-integer")
-		}
-		comparison, err := i.NativeComparison(node.Comparator)
+		i, err := zng.AsInt64(literal)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("cannot compare len() with non-integer: %s", err)
 		}
-		checklen := func(e zng.TypedEncoding) bool {
-			len, err := zng.ContainerLength(e)
-			if err != nil {
-				return false
-			}
-			return comparison(int64(len))
-		}
+		comparison, err := zx.CompareContainerLen(node.Comparator, i)
 		resolver, err := expr.CompileFieldExpr(op.Field)
 		if err != nil {
 			return nil, err
 		}
-		return combine(resolver, checklen), nil
+		return combine(resolver, comparison), nil
 	}
 
-	comparison, err := val.Comparison(node.Comparator)
+	comparison, err := zx.Comparison(node.Comparator, literal)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +66,7 @@ func CompileFieldCompare(node ast.CompareField, val zng.Value) (Filter, error) {
 	return combine(resolver, comparison), nil
 }
 
-func EvalAny(eval zng.Predicate, recursive bool) Filter {
+func EvalAny(eval zx.Predicate, recursive bool) Filter {
 	if !recursive {
 		return func(r *zbuf.Record) bool {
 			it := r.ZvalIter()
@@ -82,7 +75,7 @@ func EvalAny(eval zng.Predicate, recursive bool) Filter {
 				if err != nil {
 					return false
 				}
-				if eval(zng.TypedEncoding{c.Type, val}) {
+				if eval(zng.Value{c.Type, val}) {
 					return true
 				}
 			}
@@ -101,7 +94,7 @@ func EvalAny(eval zng.Predicate, recursive bool) Filter {
 			recType, isRecord := c.Type.(*zng.TypeRecord)
 			if isRecord && fn(val, recType.Columns) {
 				return true
-			} else if !isRecord && eval(zng.TypedEncoding{c.Type, val}) {
+			} else if !isRecord && eval(zng.Value{c.Type, val}) {
 				return true
 			}
 		}
@@ -147,41 +140,38 @@ func Compile(node ast.BooleanExpr) (Filter, error) {
 		return func(p *zbuf.Record) bool { return v.Value }, nil
 
 	case *ast.CompareField:
-		z, err := zng.Parse(v.Value)
-		if err != nil {
-			return nil, err
-		}
-
 		if v.Comparator == "in" {
 			resolver, err := expr.CompileFieldExpr(v.Field)
 			if err != nil {
 				return nil, err
 			}
-			eql, _ := z.Comparison("eql")
-			comparison := zng.Contains(eql)
+			eql, _ := zx.Comparison("eql", v.Value)
+			comparison := zx.Contains(eql)
 			return combine(resolver, comparison), nil
 		}
 
-		return CompileFieldCompare(*v, z)
+		return CompileFieldCompare(v)
 
 	case *ast.CompareAny:
-		z, err := zng.Parse(v.Value)
-		if err != nil {
-			return nil, err
-		}
-
 		if v.Comparator == "in" {
-			eql, _ := z.Comparison("eql")
-			comparison := zng.Contains(eql)
-			return EvalAny(comparison, v.Recursive), nil
+			compare, err := zx.Comparison("eql", v.Value)
+			if err != nil {
+				return nil, err
+			}
+			contains := zx.Contains(compare)
+			return EvalAny(contains, v.Recursive), nil
 		}
+		//XXX this is messed up
 		if v.Comparator == "searchin" {
-			search, _ := z.Comparison("search")
-			comparison := zng.Contains(search)
-			return EvalAny(comparison, v.Recursive), nil
+			search, err := zx.Comparison("search", v.Value)
+			if err != nil {
+				return nil, err
+			}
+			contains := zx.Contains(search)
+			return EvalAny(contains, v.Recursive), nil
 		}
 
-		comparison, err := z.Comparison(v.Comparator)
+		comparison, err := zx.Comparison(v.Comparator, v.Value)
 		if err != nil {
 			return nil, err
 		}

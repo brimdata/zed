@@ -38,7 +38,8 @@ func (l *Last) Consume(r *zbuf.Record) {
 func (l *Last) Result() zng.Value {
 	r := l.record
 	if r == nil {
-		return &zng.Unset{}
+		return zng.Value{}
 	}
-	return r.ValueByField(l.Field)
+	v, _ := r.ValueByField(l.Field)
+	return v
 }

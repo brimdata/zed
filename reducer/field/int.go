@@ -4,6 +4,7 @@ import (
 	"github.com/mccanne/zq/streamfn"
 	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zng"
+	"github.com/mccanne/zq/zx"
 )
 
 type Int struct {
@@ -21,10 +22,9 @@ func (i *Int) Result() zng.Value {
 }
 
 func (i *Int) Consume(v zng.Value) error {
-	var k zng.Int
-	if !zng.CoerceToInt(v, &k) {
-		return zbuf.ErrTypeMismatch
+	if k, ok := zx.CoerceToInt(v); ok {
+		i.fn.Update(k)
+		return nil
 	}
-	i.fn.Update(int64(k))
-	return nil
+	return zbuf.ErrTypeMismatch
 }

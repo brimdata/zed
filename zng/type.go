@@ -19,6 +19,7 @@ import (
 )
 
 var (
+	ErrUnset        = errors.New("value is unset")
 	ErrLenUnset     = errors.New("len(unset) is undefined")
 	ErrNotContainer = errors.New("argument to len() is not a container")
 	ErrNotVector    = errors.New("cannot index a non-vector")
@@ -30,10 +31,8 @@ var (
 // of the underlying type.
 type Type interface {
 	String() string
-	// New returns a Value of this Type with a value determined from the
-	// zval encoding.  For records, sets, and vectors, the zval is a container
-	// encoding of the of the body of values of that type.
-	New(zcode.Bytes) (Value, error)
+	StringOf(zcode.Bytes) string
+	Marshal(zcode.Bytes) (interface{}, error)
 	// Parse transforms a string represenation of the type to its zval
 	// encoding.  The string input is provided as a byte slice for efficiency
 	// given the common use cases in the system.
@@ -48,12 +47,10 @@ var (
 	TypeTime     = &TypeOfTime{}
 	TypeInterval = &TypeOfInterval{}
 	TypeString   = &TypeOfString{}
-	TypePattern  = &TypeOfPattern{}
 	TypePort     = &TypeOfPort{}
 	TypeAddr     = &TypeOfAddr{}
 	TypeSubnet   = &TypeOfSubnet{}
 	TypeEnum     = &TypeOfEnum{}
-	TypeUnset    = &TypeOfUnset{}
 )
 
 var typeMapMutex sync.RWMutex
@@ -65,13 +62,10 @@ var typeMap = map[string]Type{
 	"time":     TypeTime,
 	"interval": TypeInterval,
 	"string":   TypeString,
-	"pattern":  TypePattern,
-	"regexp":   TypePattern, // zql
 	"port":     TypePort,
 	"addr":     TypeAddr,
 	"subnet":   TypeSubnet,
 	"enum":     TypeEnum,
-	"unset":    TypeUnset, // zql
 }
 
 // SameType returns true if the two types are equal in that each interface
@@ -83,10 +77,7 @@ func SameType(t1, t2 Type) bool {
 	return t1 == t2
 }
 
-// addType adds a type to the type lookup map.  It is possible that there is
-// a race here when two threads try to create a new type at the same time,
-// so the first one wins.  This way there cannot be types that are the same
-// that have different pointers, so SameType will work correctly.
+// addType adds a type to the type lookup map.
 func addType(t Type) Type {
 	typeMapMutex.Lock()
 	defer typeMapMutex.Unlock()
@@ -132,7 +123,7 @@ func LookupType(in string) (Type, error) {
 
 // LookupVectorType returns the VectorType for the provided innerType.
 func LookupVectorType(innerType Type) Type {
-	return addType(&TypeVector{innerType})
+	return addType(&TypeVector{typ: innerType})
 }
 
 func parseType(in string) (string, Type, error) {
@@ -223,122 +214,6 @@ func trimInnerTypes(typ string, raw string) string {
 	return innerTypes
 }
 
-// Given a predicate for comparing individual elements, produce a new
-// predicate that implements the "in" comparison.  The new predicate looks
-// at the type of the value being compared, if it is a set or vector,
-// the original predicate is applied to each element.  The new precicate
-// returns true iff the predicate matched an element from the collection.
-func Contains(compare Predicate) Predicate {
-	return func(e TypedEncoding) bool {
-		var el TypedEncoding
-		switch typ := e.Type.(type) {
-		case *TypeSet:
-			el.Type = typ.innerType
-		case *TypeVector:
-			el.Type = typ.typ
-		default:
-			return false
-		}
-
-		for it := e.Iter(); !it.Done(); {
-			var err error
-			el.Body, _, err = it.Next()
-			if err != nil {
-				return false
-			}
-			if compare(el) {
-				return true
-			}
-		}
-		return false
-	}
-}
-
-func ContainerLength(e TypedEncoding) (int, error) {
-	switch e.Type.(type) {
-	case *TypeSet, *TypeVector:
-		if e.Body == nil {
-			return -1, ErrLenUnset
-		}
-		var n int
-		for it := e.Iter(); !it.Done(); {
-			if _, _, err := it.Next(); err != nil {
-				return -1, err
-			}
-			n++
-		}
-		return n, nil
-	default:
-		return -1, ErrNotContainer
-	}
-}
-
-func (e TypedEncoding) Iter() zcode.Iter {
-	return zcode.Iter(e.Body)
-}
-
-func (e TypedEncoding) String() string {
-	v, err := e.Type.New(e.Body)
-	if err != nil {
-		return fmt.Sprintf("Err stringify type %s: %s", e.Type, err)
-	}
-	var b strings.Builder
-	b.WriteString(e.Type.String())
-	b.WriteByte(':')
-	if IsContainerType(e.Type) {
-		b.WriteByte('[')
-		b.WriteString(v.String())
-		b.WriteByte(']')
-	} else {
-		b.WriteByte('(')
-		b.WriteString(v.String())
-		b.WriteByte(')')
-	}
-	return b.String()
-}
-
-// If the passed-in element is a vector, attempt to get the idx'th
-// element, and return its type and raw representation.  Returns an
-// error if the passed-in element is not a vector or if idx is
-// outside the vector bounds.
-func (e TypedEncoding) VectorIndex(idx int64) (TypedEncoding, error) {
-	vec, ok := e.Type.(*TypeVector)
-	if !ok {
-		return TypedEncoding{}, ErrNotVector
-	}
-	if idx < 0 {
-		return TypedEncoding{}, ErrIndex
-	}
-	for i, it := 0, e.Iter(); !it.Done(); i++ {
-		zv, _, err := it.Next()
-		if err != nil {
-			return TypedEncoding{}, err
-		}
-		if i == int(idx) {
-			return TypedEncoding{vec.typ, zv}, nil
-		}
-	}
-	return TypedEncoding{}, ErrIndex
-}
-
-// Elements returns an array of TypedEncodings for the current container type.
-// Returns an error if the element is not a vector or set.
-func (e TypedEncoding) Elements() ([]TypedEncoding, error) {
-	innerType := InnerType(e.Type)
-	if innerType == nil {
-		return nil, ErrNotContainer
-	}
-	var elements []TypedEncoding
-	for it := e.Iter(); !it.Done(); {
-		zv, _, err := it.Next()
-		if err != nil {
-			return nil, err
-		}
-		elements = append(elements, TypedEncoding{innerType, zv})
-	}
-	return elements, nil
-}
-
 // LookupTypeRecord returns a zeek.TypeRecord for the indicated columns.  If it
 // already exists, the existent interface pointer is returned.  Otherwise,
 // it is created and returned.
@@ -366,30 +241,4 @@ func LookupTypeRecord(columns []Column) *TypeRecord {
 	rec := &TypeRecord{Columns: private, Key: s}
 	typeMap[s] = rec
 	return rec
-}
-
-// NewValue creates a Value with the given type and value described
-// as simple strings.
-func NewValue(typ, val string) (Value, error) {
-	t, err := LookupType(typ)
-	if err != nil {
-		return nil, err
-	}
-	zv, err := t.Parse([]byte(val))
-	if err != nil {
-		return nil, err
-	}
-	return t.New(zv)
-}
-
-// Format tranforms a zval encoding with its type encoding to a
-// a human-readable (and zng text-compliant) string format
-// encoded as a byte slice.
-//XXX this could be more efficient
-func Format(typ Type, zv zcode.Bytes) ([]byte, error) {
-	val, err := typ.New(zv)
-	if err != nil {
-		return nil, err
-	}
-	return []byte(Escape([]byte(val.String()))), nil
 }

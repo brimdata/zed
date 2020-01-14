@@ -4876,7 +4876,7 @@ func (c *current) onsearchPred57(v interface{}) (interface{}, error) {
 		return makeOrChain(makeCompareAny("eql", true, v), []interface{}{makeCompareAny("in", true, v)}), nil
 	}
 
-	return makeOrChain(makeCompareAny("search", true, makeTypedValue("string", string(c.text))), []interface{}{makeCompareAny("searchin", true, makeTypedValue("string", string(c.text))), makeCompareAny("eql", true, v), makeCompareAny("in", true, v)}), nil
+	return makeOrChain(makeCompareAny("search", true, makeLiteral("string", string(c.text))), []interface{}{makeCompareAny("searchin", true, makeLiteral("string", string(c.text))), makeCompareAny("eql", true, v), makeCompareAny("in", true, v)}), nil
 
 }
 
@@ -4887,7 +4887,7 @@ func (p *parser) callonsearchPred57() (interface{}, error) {
 }
 
 func (c *current) onsearchValue2(v interface{}) (interface{}, error) {
-	return makeTypedValue("string", v), nil
+	return makeLiteral("string", v), nil
 
 }
 
@@ -4898,7 +4898,7 @@ func (p *parser) callonsearchValue2() (interface{}, error) {
 }
 
 func (c *current) onsearchValue5(v interface{}) (interface{}, error) {
-	return makeTypedValue("regexp", v), nil
+	return makeLiteral("regexp", v), nil
 
 }
 
@@ -4909,7 +4909,7 @@ func (p *parser) callonsearchValue5() (interface{}, error) {
 }
 
 func (c *current) onsearchValue8(v interface{}) (interface{}, error) {
-	return makeTypedValue("port", v), nil
+	return makeLiteral("port", v), nil
 
 }
 
@@ -4920,7 +4920,7 @@ func (p *parser) callonsearchValue8() (interface{}, error) {
 }
 
 func (c *current) onsearchValue11(v interface{}) (interface{}, error) {
-	return makeTypedValue("subnet", v), nil
+	return makeLiteral("subnet", v), nil
 
 }
 
@@ -4931,7 +4931,7 @@ func (p *parser) callonsearchValue11() (interface{}, error) {
 }
 
 func (c *current) onsearchValue14(v interface{}) (interface{}, error) {
-	return makeTypedValue("addr", v), nil
+	return makeLiteral("addr", v), nil
 
 }
 
@@ -4942,7 +4942,7 @@ func (p *parser) callonsearchValue14() (interface{}, error) {
 }
 
 func (c *current) onsearchValue17(v interface{}) (interface{}, error) {
-	return makeTypedValue("subnet", v), nil
+	return makeLiteral("subnet", v), nil
 
 }
 
@@ -4953,7 +4953,7 @@ func (p *parser) callonsearchValue17() (interface{}, error) {
 }
 
 func (c *current) onsearchValue20(v interface{}) (interface{}, error) {
-	return makeTypedValue("addr", v), nil
+	return makeLiteral("addr", v), nil
 
 }
 
@@ -4964,7 +4964,7 @@ func (p *parser) callonsearchValue20() (interface{}, error) {
 }
 
 func (c *current) onsearchValue23(v interface{}) (interface{}, error) {
-	return makeTypedValue("double", v), nil
+	return makeLiteral("double", v), nil
 
 }
 
@@ -4975,7 +4975,7 @@ func (p *parser) callonsearchValue23() (interface{}, error) {
 }
 
 func (c *current) onsearchValue26(v interface{}) (interface{}, error) {
-	return makeTypedValue("int", v), nil
+	return makeLiteral("int", v), nil
 
 }
 
@@ -5008,9 +5008,9 @@ func (p *parser) callonsearchValue40() (interface{}, error) {
 func (c *current) onsearchValue48(v interface{}) (interface{}, error) {
 	if reglob.IsGlobby(v.(string)) || v.(string) == "*" {
 		re := reglob.Reglob(v.(string))
-		return makeTypedValue("regexp", re), nil
+		return makeLiteral("regexp", re), nil
 	}
-	return makeTypedValue("string", v), nil
+	return makeLiteral("string", v), nil
 
 }
 
@@ -5021,7 +5021,7 @@ func (p *parser) callonsearchValue48() (interface{}, error) {
 }
 
 func (c *current) onbooleanLiteral2() (interface{}, error) {
-	return makeTypedValue("bool", "true"), nil
+	return makeLiteral("bool", "true"), nil
 }
 
 func (p *parser) callonbooleanLiteral2() (interface{}, error) {
@@ -5031,7 +5031,7 @@ func (p *parser) callonbooleanLiteral2() (interface{}, error) {
 }
 
 func (c *current) onbooleanLiteral4() (interface{}, error) {
-	return makeTypedValue("bool", "false"), nil
+	return makeLiteral("bool", "false"), nil
 }
 
 func (p *parser) callonbooleanLiteral4() (interface{}, error) {
@@ -5041,7 +5041,7 @@ func (p *parser) callonbooleanLiteral4() (interface{}, error) {
 }
 
 func (c *current) onunsetLiteral1() (interface{}, error) {
-	return makeTypedValue("unset", ""), nil
+	return makeLiteral("unset", ""), nil
 }
 
 func (p *parser) callonunsetLiteral1() (interface{}, error) {

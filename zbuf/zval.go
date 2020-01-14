@@ -73,11 +73,7 @@ func ZvalToZeekString(typ zng.Type, zv zcode.Bytes, isContainer bool, utf8 bool)
 			if err != nil {
 				return "error in ZvalToZeekString"
 			}
-			val, err := inner.New(v)
-			if err != nil {
-				return "error in ZvalToZeekString"
-			}
-			fld := escape(val.String(), utf8)
+			fld := escape(zng.Value{inner, v}.String(), utf8)
 			// Escape the set separator after ZeekEscape.
 			_, _ = b.WriteString(strings.ReplaceAll(fld, ",", "\\x2c"))
 			if it.Done() {
@@ -87,11 +83,7 @@ func ZvalToZeekString(typ zng.Type, zv zcode.Bytes, isContainer bool, utf8 bool)
 		}
 		s = b.String()
 	default:
-		val, err := typ.New(zv)
-		if err != nil {
-			return "error in ZvalToZeekString"
-		}
-		s = escape(val.String(), utf8)
+		s = escape(zng.Value{typ, zv}.String(), utf8)
 	}
 	if s == "-" {
 		return "\\x2d"

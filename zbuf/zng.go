@@ -15,6 +15,7 @@ var (
 	ErrBadFormat         = errors.New("malformed zng record")
 	ErrTypeMismatch      = errors.New("type/value mismatch")
 	ErrNoSuchField       = errors.New("no such field in zng record")
+	ErrNoSuchColumn      = errors.New("no such column in zng record")
 	ErrCorruptTd         = errors.New("corrupt type descriptor")
 	ErrCorruptColumns    = errors.New("wrong number of columns in zng record value")
 )

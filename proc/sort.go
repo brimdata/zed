@@ -97,10 +97,10 @@ func (s *Sort) sort() zbuf.Batch {
 	s.out = nil
 	if s.fields == nil {
 		fld := guessSortField(out[0])
-		resolver := func(r *zbuf.Record) zng.TypedEncoding {
+		resolver := func(r *zbuf.Record) zng.Value {
 			e, err := r.Access(fld)
 			if err != nil {
-				return zng.TypedEncoding{}
+				return zng.Value{}
 			}
 			return e
 		}

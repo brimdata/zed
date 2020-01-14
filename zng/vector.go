@@ -1,8 +1,6 @@
 package zng
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/mccanne/zq/zcode"
@@ -32,12 +30,7 @@ func parseVectorTypeBody(in string) (string, *TypeVector, error) {
 	if !ok {
 		return "", nil, ErrTypeSyntax
 	}
-	return rest, &TypeVector{typ}, nil
-}
-
-type Vector struct {
-	typ    *TypeVector
-	values []Value
+	return rest, &TypeVector{typ: typ}, nil
 }
 
 func (t *TypeVector) Decode(zv zcode.Bytes) ([]Value, error) {
@@ -51,54 +44,34 @@ func (t *TypeVector) Parse(in []byte) (zcode.Bytes, error) {
 	panic("zeek.TypeVector.Parse shouldn't be called")
 }
 
-func (t *TypeVector) New(zv zcode.Bytes) (Value, error) {
-	if zv == nil {
-		return &Vector{typ: t, values: nil}, nil
-	}
-	v, err := t.Decode(zv)
-	if err != nil {
-		return nil, err
-	}
-	return &Vector{typ: t, values: v}, nil
-}
-
-func (v *Vector) String() string {
+func (t *TypeVector) StringOf(zv zcode.Bytes) string {
 	s := "vector["
 	comma := ""
-	for _, item := range v.values {
-		s += comma + item.String()
+	it := zv.Iter()
+	for !it.Done() {
+		zv, container, err := it.Next()
+		if container || err != nil {
+			//XXX
+			s += "ERR"
+			break
+		}
+		s += comma + Value{t.typ, zv}.String()
 		comma = ","
 	}
 	s += "]"
 	return s
 }
 
-func (v *Vector) Encode(dst zcode.Bytes) zcode.Bytes {
-	zv := make(zcode.Bytes, 0)
-	for _, val := range v.values {
-		zv = val.Encode(zv)
+func (t *TypeVector) Marshal(zv zcode.Bytes) (interface{}, error) {
+	// start out with zero-length container so we get "[]" instead of nil
+	vals := make([]Value, 0)
+	it := zv.Iter()
+	for !it.Done() {
+		val, _, err := it.Next()
+		if err != nil {
+			return nil, err
+		}
+		vals = append(vals, Value{t.typ, val})
 	}
-	return zcode.AppendContainerValue(dst, zv)
+	return vals, nil
 }
-
-func (v *Vector) Type() Type {
-	return v.typ
-}
-
-func (v *Vector) Comparison(op string) (Predicate, error) {
-	return nil, errors.New("no support yet for vector comparison")
-}
-
-func (v *Vector) Coerce(typ Type) Value {
-	_, ok := typ.(*TypeVector)
-	if ok {
-		return v
-	}
-	return nil
-}
-
-func (v *Vector) MarshalJSON() ([]byte, error) {
-	return json.Marshal(v.values)
-}
-
-func (v *Vector) Elements() ([]Value, bool) { return v.values, true }

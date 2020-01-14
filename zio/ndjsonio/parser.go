@@ -44,6 +44,34 @@ func (p *Parser) Parse(b []byte) (zcode.Bytes, zng.Type, error) {
 	return p.builder.Encode(), ztyp, nil
 }
 
+type stubTypeOf struct{}
+
+var stubType = &stubTypeOf{}
+
+func (t *stubTypeOf) String() string {
+	return "none"
+}
+
+func (t *stubTypeOf) Parse(in []byte) (zcode.Bytes, error) {
+	return nil, nil
+}
+
+func (t *stubTypeOf) Format(value []byte) (interface{}, error) {
+	return "none", nil
+}
+
+func (t *stubTypeOf) StringOf(zv zcode.Bytes) string {
+	return "-"
+}
+
+func (t *stubTypeOf) Marshal(zv zcode.Bytes) (interface{}, error) {
+	return nil, nil
+}
+
+func (t *stubTypeOf) Coerce(zv zcode.Bytes, typ zng.Type) zcode.Bytes {
+	return nil
+}
+
 func (p *Parser) jsonParseObject(b []byte) (zng.Type, error) {
 	type kv struct {
 		key   []byte
@@ -68,7 +96,7 @@ func (p *Parser) jsonParseObject(b []byte) (zng.Type, error) {
 	// through Unflatten() to find nested records.
 	columns := make([]zng.Column, len(kvs))
 	for i, kv := range kvs {
-		columns[i] = zng.Column{Name: string(kv.key), Type: zng.TypeUnset}
+		columns[i] = zng.Column{Name: string(kv.key), Type: stubType}
 	}
 	columns, _ = zeekio.Unflatten(columns, false)
 

@@ -4,6 +4,7 @@ import (
 	"github.com/mccanne/zq/streamfn"
 	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zng"
+	"github.com/mccanne/zq/zx"
 )
 
 type Interval struct {
@@ -21,10 +22,9 @@ func (i *Interval) Result() zng.Value {
 }
 
 func (i *Interval) Consume(v zng.Value) error {
-	var interval zng.Interval
-	if !zng.CoerceToInterval(v, &interval) {
-		return zbuf.ErrTypeMismatch
+	if interval, ok := zx.CoerceToInterval(v); ok {
+		i.fn.Update(interval)
+		return nil
 	}
-	i.fn.Update(int64(interval))
-	return nil
+	return zbuf.ErrTypeMismatch
 }
