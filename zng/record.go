@@ -29,7 +29,11 @@ func (t TypeRecord) MarshalJSON() ([]byte, error) {
 }
 
 func (t *TypeRecord) UnmarshalJSON(data []byte) error {
-	return json.Unmarshal(data, &t.Columns)
+	if err := json.Unmarshal(data, &t.Columns); err != nil {
+		return err
+	}
+	t.Key = recordString(t.Columns)
+	return nil
 }
 
 func parseColumn(in string) (string, Column, error) {
