@@ -452,15 +452,9 @@ func (r *Record) AccessTimeByColumn(colno int) (nano.Ts, error) {
 	return zng.DecodeTime(zv)
 }
 
-/*
 func (r *Record) String() string {
-	value, err := r.Descriptor.Type.New(r.Raw)
-	if err != nil {
-		panic(err)
-	}
-	return value.String()
+	return zng.Value{r.Descriptor.Type, r.Raw}.String()
 }
-*/
 
 // MarshalJSON implements json.Marshaler.
 func (r *Record) MarshalJSON() ([]byte, error) {
