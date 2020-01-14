@@ -51,7 +51,7 @@ func (t *Text) Write(rec *zbuf.Record) error {
 				}
 			} else {
 				//XXX this should take value or be a value method
-				v = zbuf.ZvalToZeekString(value.Type, value.Bytes, zng.IsContainerType(value.Type), t.UTF8)
+				v = zbuf.ZvalToZeekString(value.Type, value.Bytes, t.UTF8)
 			}
 			if t.ShowFields {
 				s = col.Name + ":"
