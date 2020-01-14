@@ -148,7 +148,7 @@ func (p *Parser) jsonParseValue(raw []byte, typ jsonparser.ValueType) (zng.Type,
 	case jsonparser.Number:
 		return p.jsonParseNumber(raw)
 	case jsonparser.Null:
-		return p.jsonParseString(nil)
+		return p.jsonParseNull()
 	case jsonparser.String:
 		return p.jsonParseString(raw)
 	default:
@@ -206,6 +206,16 @@ func (p *Parser) jsonParseNumber(b []byte) (zng.Type, error) {
 }
 
 func (p *Parser) jsonParseString(b []byte) (zng.Type, error) {
-	p.builder.Append(zng.Unescape(b), false)
+	s, err := jsonparser.ParseString(b)
+	if err != nil {
+		return nil, err
+	}
+	p.builder.Append(zng.Unescape([]byte(s)), false)
+	return zng.TypeString, nil
+}
+
+func (p *Parser) jsonParseNull() (zng.Type, error) {
+	p.builder.Append(nil, false)
+	// XXX TypeString is no good but figuring out a better type is tricky
 	return zng.TypeString, nil
 }
