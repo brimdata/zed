@@ -106,12 +106,6 @@ func (t *Table) GetByColumns(columns []zng.Column) *zbuf.Descriptor {
 	return t.GetByValue(typ)
 }
 
-func (t *Table) newDescriptor(typ *zng.TypeRecord, cols ...zng.Column) *zbuf.Descriptor {
-	allcols := append(make([]zng.Column, 0, len(typ.Columns)+len(cols)), typ.Columns...)
-	allcols = append(allcols, cols...)
-	return t.GetByValue(zng.LookupTypeRecord(allcols))
-}
-
 // AddColumns returns a new zbuf.Record with columns equal to the given
 // record along with new rightmost columns as indicated with the given values.
 // If any of the newly provided columns already exists in the specified value,
