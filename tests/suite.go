@@ -8,6 +8,7 @@ import (
 	"github.com/mccanne/zq/tests/suite/errors"
 	"github.com/mccanne/zq/tests/suite/format"
 	"github.com/mccanne/zq/tests/suite/input"
+	"github.com/mccanne/zq/tests/suite/regexp"
 	"github.com/mccanne/zq/tests/suite/sort"
 	"github.com/mccanne/zq/tests/suite/utf8"
 )
@@ -27,6 +28,7 @@ var internals = []test.Internal{
 	errors.ErrNotContainerZJSON,
 	errors.ErrMissingField,
 	errors.ErrExtraField,
+	regexp.Internal,
 	sort.Internal1,
 	sort.Internal2,
 	sort.Internal3,
