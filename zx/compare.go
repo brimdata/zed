@@ -436,9 +436,6 @@ func Contains(compare Predicate) Predicate {
 // of this method as some types limit the operand to equality and
 // the various types handle coercion in different ways.
 func Comparison(op string, literal ast.Literal) (Predicate, error) {
-	if literal.Type == "unset" {
-		return CompareUnset(op)
-	}
 	if literal.Type == "regexp" {
 		return CompareRegexp(op, literal.Value)
 	}
@@ -449,6 +446,8 @@ func Comparison(op string, literal ast.Literal) (Predicate, error) {
 	switch v := v.(type) {
 	default:
 		return nil, fmt.Errorf("unknown type of constant: %s (%T)", literal.Type, v)
+	case nil:
+		return CompareUnset(op)
 	case net.IP:
 		return CompareIP(op, v)
 	case *net.IPNet:
