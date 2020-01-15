@@ -125,45 +125,45 @@ searchPred
         RETURN(makeOrChain(makeCompareAny("eql", true, v), ARRAY(makeCompareAny("in", true, v))))
       }
 
-      RETURN(makeOrChain(makeCompareAny("search", true, makeTypedValue("string", TEXT)), ARRAY(makeCompareAny("searchin", true, makeTypedValue("string", TEXT)), makeCompareAny("eql", true, v), makeCompareAny("in", true, v))))
+      RETURN(makeOrChain(makeCompareAny("search", true, makeLiteral("string", TEXT)), ARRAY(makeCompareAny("searchin", true, makeLiteral("string", TEXT)), makeCompareAny("eql", true, v), makeCompareAny("in", true, v))))
     }
 
 searchValue
   = v:quotedString {
-      RETURN(makeTypedValue("string", v))
+      RETURN(makeLiteral("string", v))
     }
   / v:reString {
-      RETURN(makeTypedValue("regexp", v))
+      RETURN(makeLiteral("regexp", v))
     }
   / v:port {
-      RETURN(makeTypedValue("port", v))
+      RETURN(makeLiteral("port", v))
   }
   / v:ip6subnet {
-      RETURN(makeTypedValue("subnet", v))
+      RETURN(makeLiteral("subnet", v))
     }
   / v:ip6addr {
-      RETURN(makeTypedValue("addr", v))
+      RETURN(makeLiteral("addr", v))
     }
   / v:subnet {
-      RETURN(makeTypedValue("subnet", v))
+      RETURN(makeLiteral("subnet", v))
     }
   / v:addr {
-      RETURN(makeTypedValue("addr", v))
+      RETURN(makeLiteral("addr", v))
     }
   / v:sdouble {
-      RETURN(makeTypedValue("double", v))
+      RETURN(makeLiteral("double", v))
     }
   / v:sinteger !boomWord {
-      RETURN(makeTypedValue("int", v))
+      RETURN(makeLiteral("int", v))
     }
   / !(searchKeywords _) v:booleanLiteral { RETURN(v) }
   / !(searchKeywords _) v:unsetLiteral { RETURN(v) }
   / !(searchKeywords _) v:boomWord {
       IF(reglob.IsGlobby(ASSERT_STRING(v)) || ASSERT_STRING(v) == "*") {
          INIT_ASSIGN_VAR(re, reglob.Reglob(ASSERT_STRING(v)))
-         RETURN(makeTypedValue("regexp", re))
+         RETURN(makeLiteral("regexp", re))
       }
-      RETURN(makeTypedValue("string", v))
+      RETURN(makeLiteral("string", v))
     }
 
 searchKeywords
@@ -172,11 +172,11 @@ searchKeywords
   / inToken
 
 booleanLiteral
-  = "true"           { RETURN(makeTypedValue("bool", "true")) }
-  / "false"          { RETURN(makeTypedValue("bool", "false")) }
+  = "true"           { RETURN(makeLiteral("bool", "true")) }
+  / "false"          { RETURN(makeLiteral("bool", "false")) }
 
 unsetLiteral
-  = "nil"           { RETURN(makeTypedValue("unset", "")) }
+  = "nil"           { RETURN(makeLiteral("unset", "")) }
 
 procList
   = first:procChain rest:parallelChain* {

@@ -220,46 +220,46 @@ function peg$parse(input, options) {
               return makeOrChain(makeCompareAny("eql", true, v), [makeCompareAny("in", true, v)])
             }
 
-            return makeOrChain(makeCompareAny("search", true, makeTypedValue("string", text())), [makeCompareAny("searchin", true, makeTypedValue("string", text())), makeCompareAny("eql", true, v), makeCompareAny("in", true, v)])
+            return makeOrChain(makeCompareAny("search", true, makeLiteral("string", text())), [makeCompareAny("searchin", true, makeLiteral("string", text())), makeCompareAny("eql", true, v), makeCompareAny("in", true, v)])
           },
       peg$c34 = function(v) {
-            return makeTypedValue("string", v)
+            return makeLiteral("string", v)
           },
       peg$c35 = function(v) {
-            return makeTypedValue("regexp", v)
+            return makeLiteral("regexp", v)
           },
       peg$c36 = function(v) {
-            return makeTypedValue("port", v)
+            return makeLiteral("port", v)
         },
       peg$c37 = function(v) {
-            return makeTypedValue("subnet", v)
+            return makeLiteral("subnet", v)
           },
       peg$c38 = function(v) {
-            return makeTypedValue("addr", v)
+            return makeLiteral("addr", v)
           },
       peg$c39 = function(v) {
-            return makeTypedValue("double", v)
+            return makeLiteral("double", v)
           },
       peg$c40 = function(v) {
-            return makeTypedValue("int", v)
+            return makeLiteral("int", v)
           },
       peg$c41 = function(v) { return v },
       peg$c42 = function(v) {
             if (reglob.IsGlobby(v) || v == "*") {
                let re =  reglob.Reglob(v)
-               return makeTypedValue("regexp", re)
+               return makeLiteral("regexp", re)
             }
-            return makeTypedValue("string", v)
+            return makeLiteral("string", v)
           },
       peg$c43 = "true",
       peg$c44 = peg$literalExpectation("true", false),
-      peg$c45 = function() { return makeTypedValue("bool", "true") },
+      peg$c45 = function() { return makeLiteral("bool", "true") },
       peg$c46 = "false",
       peg$c47 = peg$literalExpectation("false", false),
-      peg$c48 = function() { return makeTypedValue("bool", "false") },
+      peg$c48 = function() { return makeLiteral("bool", "false") },
       peg$c49 = "nil",
       peg$c50 = peg$literalExpectation("nil", false),
-      peg$c51 = function() { return makeTypedValue("unset", "") },
+      peg$c51 = function() { return makeLiteral("unset", "") },
       peg$c52 = function(first, rest) {
             let fp =  makeSequentialProc(first)
             if ((rest)) {
@@ -6508,7 +6508,7 @@ function peg$parse(input, options) {
     return { op: "ParallelProc", procs };
   }
 
-  function makeTypedValue(type, value) { return { type, value }; }
+  function makeLiteral(type, value) { return { type, value }; }
   function getValueType(v) { return v.type; }
 
   function makeFieldCall(fn, field, param) {
