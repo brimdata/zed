@@ -134,7 +134,7 @@ All other control codes are available to higher-layer protocols to carry
 application-specific payloads embedded in the ZNG stream.
 
 Any such application-specific payloads not known by
-by a ZNG data receiver shall be ignored.
+a ZNG data receiver shall be ignored.
 
 The body of an application-specific control message is any UTF-8 string.
 These payloads are guaranteed to be preserved
@@ -539,7 +539,7 @@ grammar describing the textual type encodings is:
 ```
 
 A reference implementation of this type system is embedded in
-[zq/pkg/zeek](../../zeek).
+[zq/zng](../).
 
 
 ### 3.2 ZNG Value Messages
