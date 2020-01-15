@@ -8,7 +8,7 @@ function makeParallelProc(procs) {
   return { op: "ParallelProc", procs };
 }
 
-function makeTypedValue(type, value) { return { type, value }; }
+function makeLiteral(type, value) { return { type, value }; }
 function getValueType(v) { return v.type; }
 
 function makeFieldCall(fn, field, param) {
