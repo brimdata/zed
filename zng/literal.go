@@ -26,12 +26,11 @@ func ParseLiteral(literal ast.Literal) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	if v.Type == nil {
-		return nil, nil
-	}
 	switch v.Type.(type) {
 	default:
 		return v.Type.Marshal(v.Bytes)
+	case nil:
+		return nil, nil
 	case *TypeOfAddr:
 		// marshal doesn't work for addr
 		return DecodeAddr(v.Bytes)
