@@ -162,42 +162,6 @@ type ProcArg struct {
 	Value string
 }
 
-type ProcParam struct {
-	Present bool
-	Value   string
-}
-
-// parseArgs normalizes a list of passed-in arguments.  It takes an ordered
-// list of argument names and matches them against an array of ProcArg
-// structs which can be in any order.  It returns an array of ProcParam
-// structs, corresponding to the entries in the names array that was passed
-// in.  If any argument is provided more than once, an error is returned.
-//
-// Note that this function does not filter out invalid arguments, that is
-// assumed to be handled in the grammar.
-func parseArgs(names []string, argsIn interface{}) ([]ProcParam, error) {
-	argsArray := argsIn.([]interface{})
-	args := make([]ProcArg, len(argsArray))
-	for i, a := range argsArray {
-		args[i] = *a.(*ProcArg)
-	}
-	ret := make([]ProcParam, len(names))
-	for i, name := range names {
-		found := false
-		for _, arg := range args {
-			if arg.Name == name {
-				if found {
-					return nil, fmt.Errorf("Duplicate argument -%s", name)
-				}
-				ret[i].Present = true
-				ret[i].Value = arg.Value
-				found = true
-			}
-		}
-	}
-	return ret, nil
-}
-
 func makeArg(nameIn, valIn interface{}) *ProcArg {
 	var val string
 	if valIn != nil {
@@ -207,20 +171,31 @@ func makeArg(nameIn, valIn interface{}) *ProcArg {
 }
 
 func makeSortProc(argsIn, fieldsIn interface{}) (*ast.SortProc, error) {
-	params, err := parseArgs([]string{"r", "limit", "nulls"}, argsIn)
-	if err != nil {
-		return nil, err
+	params := make(map[string]string)
+	argsArray := argsIn.([]interface{})
+	for _, a := range argsArray {
+		arg := *a.(*ProcArg)
+		_, have := params[arg.Name]
+		if have {
+			return nil, fmt.Errorf("Duplicate argument -%s", arg.Name)
+		}
+		params[arg.Name] = arg.Value
 	}
+
 	sortdir := 1
-	if params[0].Present {
+	_, haveR := params["r"]
+	if haveR {
 		sortdir = -1
 	}
+
 	var limit int
-	if params[1].Present {
-		limit = parseInt(params[1].Value).(int)
+	limitArg, haveLimit := params["limit"]
+	if haveLimit {
+		limit = parseInt(limitArg).(int)
 	}
 	nullsfirst := false
-	if params[2].Value == "first" {
+	nullsArg, _ := params["nulls"]
+	if nullsArg == "first" {
 		nullsfirst = true
 	}
 	fields := fieldExprArray(fieldsIn)
