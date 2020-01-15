@@ -97,6 +97,11 @@ func TestNDJSON(t *testing.T) {
 			input:  `{ "s": "foo", "nest.s": "bar", "nest.n": 5 }`,
 			output: `{ "s": "foo", "nest": { "s": "bar", "n": 5 }}`,
 		},
+		{
+			name:   "string with unicode escape",
+			input:  `{ "s": "Hello\u002c world!" }`,
+			output: `{ "s": "Hello, world!" }`,
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
