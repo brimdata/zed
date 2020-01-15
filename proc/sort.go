@@ -107,11 +107,11 @@ func (s *Sort) sort() zbuf.Batch {
 		}
 		s.fields = []expr.FieldExprResolver{resolver}
 	}
-	nilsMax := !s.nullsFirst
+	nullsMax := !s.nullsFirst
 	if s.dir < 0 {
-		nilsMax = !nilsMax
+		nullsMax = !nullsMax
 	}
-	sorter := expr.NewSortFn(nilsMax, s.fields...)
+	sorter := expr.NewSortFn(nullsMax, s.fields...)
 	sortWithDir := func(a, b *zbuf.Record) int {
 		return s.dir * sorter(a, b)
 	}
