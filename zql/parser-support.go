@@ -157,14 +157,49 @@ func fieldExprArray(val interface{}) []ast.FieldExpr {
 	return ret
 }
 
-func makeSortProc(fieldsIn, dirIn, limitIn interface{}) *ast.SortProc {
-	fields := fieldExprArray(fieldsIn)
-	sortdir := dirIn.(int)
-	var limit int
-	if limitIn != nil {
-		limit = limitIn.(int)
+type ProcArg struct {
+	Name  string
+	Value string
+}
+
+func makeArg(nameIn, valIn interface{}) *ProcArg {
+	var val string
+	if valIn != nil {
+		val = valIn.(string)
 	}
-	return &ast.SortProc{ast.Node{"SortProc"}, limit, fields, sortdir}
+	return &ProcArg{nameIn.(string), val}
+}
+
+func makeSortProc(argsIn, fieldsIn interface{}) (*ast.SortProc, error) {
+	params := make(map[string]string)
+	argsArray := argsIn.([]interface{})
+	for _, a := range argsArray {
+		arg := *a.(*ProcArg)
+		_, have := params[arg.Name]
+		if have {
+			return nil, fmt.Errorf("Duplicate argument -%s", arg.Name)
+		}
+		params[arg.Name] = arg.Value
+	}
+
+	sortdir := 1
+	_, haveR := params["r"]
+	if haveR {
+		sortdir = -1
+	}
+
+	var limit int
+	limitArg, haveLimit := params["limit"]
+	if haveLimit {
+		limit = parseInt(limitArg).(int)
+	}
+	nullsfirst := false
+	nullsArg, _ := params["nulls"]
+	if nullsArg == "first" {
+		nullsfirst = true
+	}
+	fields := fieldExprArray(fieldsIn)
+	return &ast.SortProc{ast.Node{"SortProc"}, limit, fields, sortdir, nullsfirst}, nil
 }
 
 func makeTopProc(fieldsIn, limitIn, flushIn interface{}) *ast.TopProc {

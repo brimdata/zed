@@ -156,7 +156,7 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 		if err != nil {
 			return nil, fmt.Errorf("compiling sort: %w", err)
 		}
-		return []Proc{NewSort(c, parent, v.Limit, fields, v.SortDir)}, nil
+		return []Proc{NewSort(c, parent, v.Limit, fields, v.SortDir, v.NullsFirst)}, nil
 
 	case *ast.HeadProc:
 		limit := v.Count

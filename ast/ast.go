@@ -143,9 +143,10 @@ type (
 	// A SortProc node represents a proc that sorts records.
 	SortProc struct {
 		Node
-		Limit   int         `json:"limit,omitempty"`
-		Fields  []FieldExpr `json:"fields"`
-		SortDir int         `json:"sortdir"`
+		Limit      int         `json:"limit,omitempty"`
+		Fields     []FieldExpr `json:"fields"`
+		SortDir    int         `json:"sortdir"`
+		NullsFirst bool        `json:"nullsfirst"`
 	}
 	// A CutProc node represents a proc that removes fields from each
 	// input record where each removed field matches one of the named fields

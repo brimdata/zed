@@ -55,10 +55,23 @@ function makeAndChain(first, rest) {
   return makeChain(first, rest, "LogicalAnd");
 }
 
+function makeArg(name, value) {
+  return {name, value};
+}
 
-function makeSortProc(fields, sortdir, limit) {
-  if (limit === null) { limit = undefined; }
-  return { op: "SortProc", fields, sortdir, limit };
+function makeSortProc(args, fields) {
+  let argsMap = new Map();
+  for (let arg of args) {
+    if (argsMap.has(arg.name)) {
+      throw new Error(`Duplicate argument -${arg.name}`);
+    }
+    argsMap.set(arg.name, arg.value);
+  }
+
+  let sortdir = argsMap.has("r") ? -1 : 1;
+  let limit = argsMap.get("limit");
+  let nullsfirst = (argsMap.get("nulls") === "first");
+  return { op: "SortProc", fields, sortdir, limit, nullsfirst };
 }
 
 function makeTopProc(fields, limit, flush) {

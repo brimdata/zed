@@ -32,6 +32,10 @@ var internals = []test.Internal{
 	sort.Internal1,
 	sort.Internal2,
 	sort.Internal3,
+	sort.Internal4_1,
+	sort.Internal4_2,
+	sort.Internal4_3,
+	sort.Internal4_4,
 }
 
 var commands = []test.Exec{
