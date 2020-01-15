@@ -54,11 +54,10 @@ func escape(s string, utf8 bool) string {
 
 // ZvalToZeekString returns a Zeek ASCII string representing the zval described
 // by typ and val.
-func ZvalToZeekString(typ zng.Type, zv zcode.Bytes, isContainer bool, utf8 bool) string {
+func ZvalToZeekString(typ zng.Type, zv zcode.Bytes, utf8 bool) string {
 	if zv == nil {
 		return "-"
 	}
-	var s string
 	switch typ.(type) {
 	case *zng.TypeSet, *zng.TypeVector:
 		inner := zng.InnerType(typ)
@@ -73,7 +72,7 @@ func ZvalToZeekString(typ zng.Type, zv zcode.Bytes, isContainer bool, utf8 bool)
 			if err != nil {
 				return "error in ZvalToZeekString"
 			}
-			fld := escape(zng.Value{inner, v}.String(), utf8)
+			fld := ZvalToZeekString(inner, v, utf8)
 			// Escape the set separator after ZeekEscape.
 			_, _ = b.WriteString(strings.ReplaceAll(fld, ",", "\\x2c"))
 			if it.Done() {
@@ -81,12 +80,13 @@ func ZvalToZeekString(typ zng.Type, zv zcode.Bytes, isContainer bool, utf8 bool)
 			}
 			_ = b.WriteByte(',')
 		}
-		s = b.String()
+		return b.String()
+	case *zng.TypeOfString:
+		if string(zv) == "-" {
+			return "\\x2d"
+		}
+		return escape(zng.Value{typ, zv}.String(), utf8)
 	default:
-		s = escape(zng.Value{typ, zv}.String(), utf8)
+		return escape(zng.Value{typ, zv}.String(), utf8)
 	}
-	if s == "-" {
-		return "\\x2d"
-	}
-	return s
 }

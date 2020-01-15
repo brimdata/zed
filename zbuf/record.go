@@ -172,7 +172,7 @@ func (r *Record) ZeekStrings(precision int, utf8 bool) ([]string, bool, error) {
 	it := r.ZvalIter()
 	var changePrecision bool
 	for _, col := range r.Descriptor.Type.Columns {
-		val, isContainer, err := it.Next()
+		val, _, err := it.Next()
 		if err != nil {
 			return nil, false, err
 		}
@@ -188,7 +188,7 @@ func (r *Record) ZeekStrings(precision int, utf8 bool) ([]string, bool, error) {
 			}
 			field = string(ts.AppendFloat(nil, precision))
 		} else {
-			field = ZvalToZeekString(col.Type, val, isContainer, utf8)
+			field = ZvalToZeekString(col.Type, val, utf8)
 		}
 		ss = append(ss, field)
 	}
