@@ -443,12 +443,11 @@ func Comparison(op string, literal ast.Literal) (Predicate, error) {
 	if err != nil {
 		return nil, err
 	}
-	if v == nil {
-		return CompareUnset(op)
-	}
 	switch v := v.(type) {
 	default:
 		return nil, fmt.Errorf("unknown type of constant: %s (%T)", literal.Type, v)
+	case nil:
+		return CompareUnset(op)
 	case net.IP:
 		return CompareIP(op, v)
 	case *net.IPNet:
