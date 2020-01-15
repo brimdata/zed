@@ -583,7 +583,7 @@ Any value can be specified as "unset" with the ASCII character `-`.
 This is typically used to represent columns of records where not all
 columns have been set in a given record value, though any type can be
 validly unset.  A value that is not to be interpreted as "unset"
-but is the single-character string `-`, must be escaped (e.g., `\-`).
+but is the single-character string `-`, must be escaped (e.g., `\x2d`).
 
 Note that this syntax can be scanned and parsed independent of the
 actual type definition indicated by the descriptor.  It is a semantic error
