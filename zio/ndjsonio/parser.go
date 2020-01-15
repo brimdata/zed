@@ -206,7 +206,7 @@ func (p *Parser) jsonParseNumber(b []byte) (zng.Type, error) {
 }
 
 func (p *Parser) jsonParseString(b []byte) (zng.Type, error) {
-	s, err := jsonparser.ParseString(b)
+	s, err := jsonparser.Unescape(b, nil)
 	if err != nil {
 		return nil, err
 	}
