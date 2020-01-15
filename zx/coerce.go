@@ -162,6 +162,17 @@ func CoerceToPort(in zng.Value) (uint32, bool) {
 	return out, true
 }
 
+func CoerceToEnum(in zng.Value) (string, bool) {
+	var enum string
+	switch in.Type.(type) {
+	default:
+		return "", false
+	case *zng.TypeOfString:
+		enum = string(in.Bytes)
+	}
+	return enum, true
+}
+
 // CoerceToTime attempts to convert a value to a time. Int and Double
 // are converted as seconds. The resulting coerced value is written to
 // out, and true is returned. If the value cannot be coerced, then
@@ -204,6 +215,10 @@ func Coerce(v zng.Value, to zng.Type) (zng.Value, bool) {
 	case *zng.TypeOfDouble:
 		if d, ok := CoerceToDouble(v); ok {
 			return zng.NewDouble(d), true
+		}
+	case *zng.TypeOfEnum:
+		if e, ok := CoerceToEnum(v); ok {
+			return zng.NewEnum(e), true
 		}
 	case *zng.TypeOfInt:
 		if i, ok := CoerceToInt(v); ok {
