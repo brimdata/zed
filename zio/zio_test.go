@@ -29,7 +29,7 @@ func TestZngDescriptors(t *testing.T) {
 	// Step 4 - Test that referencing an invalid descriptor is an error.
 	src += "100:[something;somethingelse;]\n"
 
-	r := zngio.NewReader(strings.NewReader(src), resolver.NewTable())
+	r := zngio.NewReader(strings.NewReader(src), resolver.NewContext())
 
 	// Check Step 1
 	record, err := r.Read()
@@ -76,23 +76,23 @@ func TestZngDescriptors(t *testing.T) {
 	}
 
 	for _, z := range zngs {
-		r := zngio.NewReader(strings.NewReader(z), resolver.NewTable())
+		r := zngio.NewReader(strings.NewReader(z), resolver.NewContext())
 		_, err = r.Read()
 		assert.Error(t, err, "zng parse error", "invalid zng")
 	}
 	// Can't use a descriptor of non-record type
-	r = zngio.NewReader(strings.NewReader("#3:string\n"), resolver.NewTable())
+	r = zngio.NewReader(strings.NewReader("#3:string\n"), resolver.NewContext())
 	_, err = r.Read()
-	assertError(t, err, "bad value", "descriptor with non-record type")
+	assertError(t, err, "malformed zng value", "descriptor with non-record type")
 
 	// Descriptor with an invalid type is rejected
-	r = zngio.NewReader(strings.NewReader("#4:notatype\n"), resolver.NewTable())
+	r = zngio.NewReader(strings.NewReader("#4:notatype\n"), resolver.NewContext())
 	_, err = r.Read()
 	assertError(t, err, "unknown type", "descriptor with invalid type")
 
 	// Trying to redefine a descriptor is an error XXX this should be ok
 	d := "#1:record[n:int]\n"
-	r = zngio.NewReader(strings.NewReader(d+d), resolver.NewTable())
+	r = zngio.NewReader(strings.NewReader(d+d), resolver.NewContext())
 	_, err = r.Read()
 	assertError(t, err, "descriptor already exists", "redefining //descriptor")
 }

@@ -3,6 +3,7 @@ package proc
 import (
 	"github.com/mccanne/zq/filter"
 	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zng"
 )
 
 type Filter struct {
@@ -21,7 +22,7 @@ func (f *Filter) Pull() (zbuf.Batch, error) {
 	}
 	defer batch.Unref()
 	// Now we'll a new batch with the (sub)set of reords that match.
-	out := make([]*zbuf.Record, 0, batch.Length())
+	out := make([]*zng.Record, 0, batch.Length())
 	for k := 0; k < batch.Length(); k++ {
 		r := batch.Index(k)
 		if f.Filter(r) {

@@ -1,8 +1,8 @@
 package resolver
 
-import "github.com/mccanne/zq/zbuf"
+import "github.com/mccanne/zq/zng"
 
-type Predicate func(*zbuf.Descriptor) bool
+type Predicate func(*zng.TypeRecord) bool
 
 // Predicate applies stateless predicate function to a descriptor
 // and caches the result.
@@ -11,7 +11,7 @@ type Filter struct {
 	filter Predicate
 }
 
-var nomatch = &zbuf.Descriptor{}
+var nomatch = &zng.TypeRecord{}
 
 // NewFilter returns a new Filter and uses the cache without the resolver
 // to remember the results.
@@ -19,7 +19,7 @@ func NewFilter(f Predicate) *Filter {
 	return &Filter{Cache: Cache{}, filter: f}
 }
 
-func (f *Filter) Match(d *zbuf.Descriptor) bool {
+func (f *Filter) Match(d *zng.TypeRecord) bool {
 	td := d.ID
 	v := f.lookup(td)
 	if v == nil {

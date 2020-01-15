@@ -3,7 +3,7 @@ package bzngio
 import (
 	"io"
 
-	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zng"
 	"github.com/mccanne/zq/zng/resolver"
 )
 
@@ -19,10 +19,10 @@ func NewWriter(w io.Writer) *Writer {
 	}
 }
 
-func (w *Writer) Write(r *zbuf.Record) error {
-	id := r.Descriptor.ID
+func (w *Writer) Write(r *zng.Record) error {
+	id := r.Type.ID
 	if !w.tracker.Seen(id) {
-		b := []byte(r.Descriptor.Type.String())
+		b := []byte(r.Type.String())
 		if err := w.encode(TypeDescriptor, id, b); err != nil {
 			return err
 		}

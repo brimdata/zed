@@ -2,39 +2,18 @@ package zbuf
 
 import (
 	"context"
-	"errors"
 	"io"
 
 	"github.com/mccanne/zq/pkg/nano"
+	"github.com/mccanne/zq/zng"
 )
-
-var (
-	ErrDescriptorExists  = errors.New("zng descriptor exists")
-	ErrDescriptorInvalid = errors.New("zng descriptor out of range")
-	ErrBadValue          = errors.New("malformed zng value")
-	ErrBadFormat         = errors.New("malformed zng record")
-	ErrTypeMismatch      = errors.New("type/value mismatch")
-	ErrNoSuchField       = errors.New("no such field in zng record")
-	ErrNoSuchColumn      = errors.New("no such column in zng record")
-	ErrCorruptTd         = errors.New("corrupt type descriptor")
-	ErrCorruptColumns    = errors.New("wrong number of columns in zng record value")
-)
-
-type RecordTypeError struct {
-	Name string
-	Type string
-	Err  error
-}
-
-func (r *RecordTypeError) Error() string { return r.Name + " (" + r.Type + "): " + r.Err.Error() }
-func (r *RecordTypeError) Unwrap() error { return r.Err }
 
 type Reader interface {
-	Read() (*Record, error)
+	Read() (*zng.Record, error)
 }
 
 type Writer interface {
-	Write(*Record) error
+	Write(*zng.Record) error
 }
 
 type WriteCloser interface {
@@ -65,9 +44,9 @@ func NopFlusher(w Writer) WriteFlusher {
 type Batch interface {
 	Ref()
 	Unref()
-	Index(int) *Record
+	Index(int) *zng.Record
 	Length() int
-	Records() []*Record
+	Records() []*zng.Record
 	//XXX span should go in here?
 	Span() nano.Span
 }
@@ -75,7 +54,7 @@ type Batch interface {
 func CopyWithContext(ctx context.Context, dst WriteFlusher, src Reader) error {
 	var err error
 	for ctx.Err() == nil {
-		var rec *Record
+		var rec *zng.Record
 		rec, err = src.Read()
 		if err != nil || rec == nil {
 			break

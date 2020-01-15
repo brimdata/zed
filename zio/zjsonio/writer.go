@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zng"
 )
 
 type Column struct {
@@ -30,7 +30,7 @@ func NewWriter(w io.Writer) *Writer {
 	}
 }
 
-func (w *Writer) Write(r *zbuf.Record) error {
+func (w *Writer) Write(r *zng.Record) error {
 	rec, err := w.stream.Transform(r)
 	if err != nil {
 		return err

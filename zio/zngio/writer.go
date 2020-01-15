@@ -7,18 +7,21 @@ import (
 	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zcode"
 	"github.com/mccanne/zq/zng"
-	"github.com/mccanne/zq/zng/resolver"
 )
 
 type Writer struct {
 	io.Writer
-	tracker *resolver.Tracker
+	// tracker keeps track of a mapping from internal BZNG type IDs for each
+	// new record encountered (i.e., which triggers a typedef) so that we
+	// generate the output in canonical form whereby the typedefs in the
+	// stream are numbered sequentially from 0.
+	tracker map[int]int
 }
 
 func NewWriter(w io.Writer) *Writer {
 	return &Writer{
 		Writer:  w,
-		tracker: resolver.NewTracker(),
+		tracker: make(map[int]int),
 	}
 }
 
@@ -27,19 +30,21 @@ func (w *Writer) WriteControl(b []byte) error {
 	return err
 }
 
-func (w *Writer) Write(r *zbuf.Record) error {
-	td := r.Descriptor.ID
-	if !w.tracker.Seen(td) {
-		_, err := fmt.Fprintf(w.Writer, "#%d:%s\n", td, r.Descriptor.Type)
+func (w *Writer) Write(r *zng.Record) error {
+	inId := r.Type.ID
+	outId, ok := w.tracker[inId]
+	if !ok {
+		outId = len(w.tracker)
+		w.tracker[inId] = outId
+		_, err := fmt.Fprintf(w.Writer, "#%d:%s\n", outId, r.Type)
 		if err != nil {
 			return err
 		}
 	}
-	_, err := fmt.Fprintf(w.Writer, "%d:", td)
+	_, err := fmt.Fprintf(w.Writer, "%d:", outId)
 	if err != nil {
 		return nil
 	}
-	//XXX zbuf.Record needs to become a zng.Value
 	if err = w.writeContainer(zng.Value{r.Type, r.Raw}); err != nil {
 		return err
 	}
@@ -72,7 +77,7 @@ func (w *Writer) writeContainer(parent zng.Value) error {
 			}
 			if columns != nil {
 				if k >= len(columns) {
-					return &zbuf.RecordTypeError{Name: "<record>", Type: parent.Type.String(), Err: zbuf.ErrExtraField}
+					return &zng.RecordTypeError{Name: "<record>", Type: parent.Type.String(), Err: zng.ErrExtraField}
 				}
 				childType = columns[k].Type
 				k++

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"strings"
 
+	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/zcode"
 	"github.com/mccanne/zq/zng"
 )
@@ -89,4 +90,84 @@ func ZvalToZeekString(typ zng.Type, zv zcode.Bytes, utf8 bool) string {
 	default:
 		return escape(zng.Value{typ, zv}.String(), utf8)
 	}
+}
+
+// NewRecordZvals creates a record from zvals.  If the descriptor has a field
+// named ts, NewRecordZvals parses the corresponding zval as a time for use as
+// the record's timestamp.  If the descriptor has no field named ts, the
+// record's timestamp is zero.  NewRecordZvals returns an error if the number of
+// descriptor columns and zvals do not agree or if parsing the ts zval fails.
+func NewRecordZvals(typ *zng.TypeRecord, vals ...zcode.Bytes) (t *zng.Record, err error) {
+	raw, err := EncodeZvals(typ, vals)
+	if err != nil {
+		return nil, err
+	}
+	var ts nano.Ts
+	if col, ok := typ.ColumnOfField("ts"); ok {
+		var err error
+		ts, err = zng.DecodeTime(vals[col])
+		if err != nil {
+			return nil, err
+		}
+	}
+	r := zng.NewRecord(typ, ts, raw)
+	if err := r.TypeCheck(); err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+// NewRecordZeekStrings creates a record from Zeek UTF-8 strings.
+func NewRecordZeekStrings(typ *zng.TypeRecord, ss ...string) (t *zng.Record, err error) {
+	vals := make([][]byte, 0, 32)
+	for _, s := range ss {
+		vals = append(vals, []byte(s))
+	}
+	zv, ts, err := NewRawAndTsFromZeekValues(typ, typ.TsCol, vals)
+	if err != nil {
+		return nil, err
+	}
+	r := zng.NewRecord(typ, ts, zv)
+	if err := r.TypeCheck(); err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+func isHighPrecision(ts nano.Ts) bool {
+	_, ns := ts.Split()
+	return (ns/1000)*1000 != ns
+}
+
+//XXX this goes somewhere else
+
+// This returns the zeek strings for this record.  It works only for records
+// that can be represented as legacy zeek values.  XXX We need to not use this.
+// XXX change to Pretty for output writers?... except zeek?
+func ZeekStrings(r *zng.Record, precision int, utf8 bool) ([]string, bool, error) {
+	var ss []string
+	it := r.ZvalIter()
+	var changePrecision bool
+	for _, col := range r.Type.Columns {
+		val, _, err := it.Next()
+		if err != nil {
+			return nil, false, err
+		}
+		var field string
+		if precision >= 0 && col.Type == zng.TypeTime && val != nil {
+			ts, err := zng.DecodeTime(val)
+			if err != nil {
+				return nil, false, err
+			}
+			if precision == 6 && isHighPrecision(ts) {
+				precision = 9
+				changePrecision = true
+			}
+			field = string(ts.AppendFloat(nil, precision))
+		} else {
+			field = ZvalToZeekString(col.Type, val, utf8)
+		}
+		ss = append(ss, field)
+	}
+	return ss, changePrecision, nil
 }

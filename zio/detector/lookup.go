@@ -45,16 +45,16 @@ func LookupWriter(format string, w io.WriteCloser, optionalFlags *zio.Flags) *zi
 	}
 }
 
-func LookupReader(format string, r io.Reader, table *resolver.Table) zbuf.Reader {
+func LookupReader(format string, r io.Reader, zctx *resolver.Context) zbuf.Reader {
 	switch format {
 	case "zng", "zeek":
-		return zngio.NewReader(r, table)
+		return zngio.NewReader(r, zctx)
 	case "ndjson":
-		return ndjsonio.NewReader(r, table)
+		return ndjsonio.NewReader(r, zctx)
 	case "zjson":
-		return zjsonio.NewReader(r, table)
+		return zjsonio.NewReader(r, zctx)
 	case "bzng":
-		return bzngio.NewReader(r, table)
+		return bzngio.NewReader(r, zctx)
 	}
 	return nil
 }

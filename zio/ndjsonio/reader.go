@@ -6,7 +6,6 @@ import (
 	"io"
 
 	"github.com/mccanne/zq/pkg/skim"
-	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zng"
 	"github.com/mccanne/zq/zng/resolver"
 )
@@ -17,21 +16,21 @@ const (
 )
 
 type Reader struct {
-	scanner  *skim.Scanner
-	parser   *Parser
-	resolver *resolver.Table
+	scanner *skim.Scanner
+	parser  *Parser
+	zctx    *resolver.Context
 }
 
-func NewReader(reader io.Reader, r *resolver.Table) *Reader {
+func NewReader(reader io.Reader, zctx *resolver.Context) *Reader {
 	buffer := make([]byte, ReadSize)
 	return &Reader{
-		scanner:  skim.NewScanner(reader, buffer, MaxLineSize),
-		parser:   NewParser(),
-		resolver: r,
+		scanner: skim.NewScanner(reader, buffer, MaxLineSize),
+		parser:  NewParser(zctx),
+		zctx:    zctx,
 	}
 }
 
-func (r *Reader) Read() (*zbuf.Record, error) {
+func (r *Reader) Read() (*zng.Record, error) {
 again:
 	line, err := r.scanner.ScanLine()
 	if line == nil {
@@ -50,6 +49,6 @@ again:
 		}
 		return nil, fmt.Errorf("line %d: %w", r.scanner.Stats.Lines, err)
 	}
-	desc := r.resolver.GetByColumns(typ.(*zng.TypeRecord).Columns)
-	return zbuf.NewRecordCheck(desc, 0, raw)
+	desc := r.zctx.LookupByColumns(typ.(*zng.TypeRecord).Columns)
+	return zng.NewRecordCheck(desc, 0, raw)
 }

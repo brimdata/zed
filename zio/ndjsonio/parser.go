@@ -10,6 +10,7 @@ import (
 	"github.com/mccanne/zq/zcode"
 	"github.com/mccanne/zq/zio/zeekio"
 	"github.com/mccanne/zq/zng"
+	"github.com/mccanne/zq/zng/resolver"
 )
 
 // ErrMultiTypedVector signifies that a json array was found with multiple types.
@@ -18,11 +19,15 @@ var ErrMultiTypedVector = errors.New("vectors with multiple types are not suppor
 
 type Parser struct {
 	builder *zcode.Builder
+	zctx    *resolver.Context
 	scratch []byte
 }
 
-func NewParser() *Parser {
-	return &Parser{builder: zcode.NewBuilder()}
+func NewParser(zctx *resolver.Context) *Parser {
+	return &Parser{
+		builder: zcode.NewBuilder(),
+		zctx:    zctx,
+	}
 }
 
 // Parse returns a zng.Encoding slice as well as an inferred zng.Type
@@ -96,9 +101,9 @@ func (p *Parser) jsonParseObject(b []byte) (zng.Type, error) {
 	// through Unflatten() to find nested records.
 	columns := make([]zng.Column, len(kvs))
 	for i, kv := range kvs {
-		columns[i] = zng.Column{Name: string(kv.key), Type: stubType}
+		columns[i] = zng.NewColumn(string(kv.key), stubType)
 	}
-	columns, _ = zeekio.Unflatten(columns, false)
+	columns, _ = zeekio.Unflatten(p.zctx, columns, false)
 
 	// Parse the actual values and fill in column types along the way,
 	// taking care to step into nested records as necessary.
@@ -174,17 +179,18 @@ func (p *Parser) jsonParseArray(raw []byte) (zng.Type, error) {
 		return nil, err
 	}
 	if len(types) == 0 {
-		return zng.LookupVectorType(zng.TypeString), nil
+		return p.zctx.LookupVectorType(zng.TypeString), nil
 	}
 	var vType zng.Type
 	for _, t := range types {
 		if vType == nil {
 			vType = t
 		} else if vType != t {
+			// XXX fix this with ZNG type any
 			return nil, ErrMultiTypedVector
 		}
 	}
-	return zng.LookupVectorType(vType), nil
+	return p.zctx.LookupVectorType(vType), nil
 }
 
 func (p *Parser) jsonParseBool(b []byte) (zng.Type, error) {

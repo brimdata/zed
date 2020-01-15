@@ -30,7 +30,7 @@ func cleanup(s string) string {
 
 func reader(s string) zbuf.Reader {
 	r := strings.NewReader(cleanup(s))
-	return zngio.NewReader(r, resolver.NewTable())
+	return zngio.NewReader(r, resolver.NewContext())
 }
 
 func TestZngSyntax(t *testing.T) {

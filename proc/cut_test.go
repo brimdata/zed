@@ -6,6 +6,7 @@ import (
 	"errors"
 
 	"github.com/mccanne/zq/proc"
+	"github.com/mccanne/zq/zng/resolver"
 	"github.com/stretchr/testify/require"
 )
 
@@ -52,10 +53,16 @@ func TestCut(t *testing.T) {
 	proc.TestOneProc(t, fooAndBar, fooAndBar, "cut foo,bar")
 }
 
+func ctx() *proc.Context {
+	return &proc.Context{
+		TypeContext: resolver.NewContext(),
+	}
+}
+
 // Test that illegal cut operations fail at compile time with a
 // reasonable error message.
 func testNonAdjacentFields(t *testing.T, zql string) {
-	_, err := proc.CompileTestProc(zql, nil, nil)
+	_, err := proc.CompileTestProc(zql, ctx(), nil)
 	require.Error(t, err, "cut with non-adjacent records did not fail")
 	ok := errors.Is(err, proc.ErrNonAdjacent)
 	require.True(t, ok, "cut with non-adjacent records failed with the wrong error")
@@ -71,7 +78,7 @@ func TestNotAdjacentErrors(t *testing.T) {
 // Test that illegal cut operations fail at compile time with a
 // reasonable error message.
 func testDuplicateFields(t *testing.T, zql string) {
-	_, err := proc.CompileTestProc(zql, nil, nil)
+	_, err := proc.CompileTestProc(zql, ctx(), nil)
 	require.Error(t, err, "cut with duplicate records did not fail")
 	ok := errors.Is(err, proc.ErrDuplicateFields)
 	require.True(t, ok, "cut with duplicate records failed with wrong error")
@@ -83,10 +90,10 @@ func TestDuplicateFieldErrors(t *testing.T) {
 	testDuplicateFields(t, "cut rec.sub,rec.sub.sub")
 	testDuplicateFields(t, "cut rec.sub.sub,rec.sub")
 
-	_, err := proc.CompileTestProc("cut a,ab", nil, nil)
+	_, err := proc.CompileTestProc("cut a,ab", ctx(), nil)
 	require.NoError(t, err)
 
-	_, err = proc.CompileTestProc("cut ab,a", nil, nil)
+	_, err = proc.CompileTestProc("cut ab,a", ctx(), nil)
 	require.NoError(t, err)
 }
 

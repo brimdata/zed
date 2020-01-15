@@ -1,7 +1,6 @@
 package reducer
 
 import (
-	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zng"
 )
 
@@ -28,7 +27,7 @@ type Count struct {
 	count uint64
 }
 
-func (c *Count) Consume(r *zbuf.Record) {
+func (c *Count) Consume(r *zng.Record) {
 	if c.Field != "" {
 		if _, ok := r.ColumnOfField(c.Field); !ok {
 			return

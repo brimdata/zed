@@ -2,7 +2,6 @@ package field
 
 import (
 	"github.com/mccanne/zq/reducer"
-	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zng"
 )
 
@@ -43,7 +42,7 @@ func (fr *FieldReducer) Result() zng.Value {
 	return fr.fn.Result()
 }
 
-func (fr *FieldReducer) Consume(r *zbuf.Record) {
+func (fr *FieldReducer) Consume(r *zng.Record) {
 	// XXX for now, we create a new zng.Value everytime we operate on
 	// a field.  this could be made more efficient by having each typed
 	// reducer just parse the byte slice in the record without making a value...
@@ -74,7 +73,7 @@ func (fr *FieldReducer) Consume(r *zbuf.Record) {
 	}
 
 	err = fr.fn.Consume(val)
-	if err == zbuf.ErrTypeMismatch {
+	if err == zng.ErrTypeMismatch {
 		fr.TypeMismatch++
 	}
 }

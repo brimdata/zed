@@ -2,7 +2,6 @@ package field
 
 import (
 	"github.com/mccanne/zq/streamfn"
-	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zng"
 	"github.com/mccanne/zq/zx"
 )
@@ -26,5 +25,5 @@ func (i *Interval) Consume(v zng.Value) error {
 		i.fn.Update(interval)
 		return nil
 	}
-	return zbuf.ErrTypeMismatch
+	return zng.ErrTypeMismatch
 }

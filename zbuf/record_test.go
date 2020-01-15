@@ -5,19 +5,21 @@ import (
 
 	"github.com/mccanne/zq/zcode"
 	"github.com/mccanne/zq/zng"
+	"github.com/mccanne/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func lookup(r *Record, col int) zcode.Bytes {
+func lookup(r *zng.Record, col int) zcode.Bytes {
 	zv, _ := r.Slice(col)
 	return zv
 }
 
 func TestNewRecordZeekStrings(t *testing.T) {
-	typ, err := zng.LookupType("record[_path:string,ts:time,data:string]")
+	zctx := resolver.NewContext()
+	typ, err := zctx.LookupByName("record[_path:string,ts:time,data:string]")
 	require.NoError(t, err)
-	d := NewDescriptor(typ.(*zng.TypeRecord))
+	d := typ.(*zng.TypeRecord)
 
 	_, err = NewRecordZeekStrings(d, "some path", "123.456")
 	assert.EqualError(t, err, "got 2 values, expected 3")
@@ -60,15 +62,16 @@ func res(v ...string) []string {
 	return out
 }
 
-func encode(d *Descriptor, vals [][]byte) (zcode.Bytes, error) {
-	zv, _, err := NewRawAndTsFromZeekValues(d, -1, vals)
+func encode(typ *zng.TypeRecord, vals [][]byte) (zcode.Bytes, error) {
+	zv, _, err := NewRawAndTsFromZeekValues(typ, -1, vals)
 	return zv, err
 }
 
 func TestEncodeZeekStrings(t *testing.T) {
-	typ, err := zng.LookupType("record[_path:string,ts:time,data:string]")
+	zctx := resolver.NewContext()
+	typ, err := zctx.LookupByName("record[_path:string,ts:time,data:string]")
 	require.NoError(t, err)
-	d := NewDescriptor(typ.(*zng.TypeRecord))
+	d := typ.(*zng.TypeRecord)
 
 	_, err = encode(d, zs("some path", "123.456"))
 	assert.EqualError(t, err, "got 2 values, expected 3")
@@ -78,7 +81,7 @@ func TestEncodeZeekStrings(t *testing.T) {
 
 	zv, err := encode(d, zs("some path", "123.456", "some data"))
 	assert.NoError(t, err)
-	r := NewRecordNoTs(d, zv)
+	r := zng.NewRecordNoTs(d, zv)
 	assert.EqualValues(t, 123456000000, r.Ts)
 	assert.EqualValues(t, "some path", lookup(r, 0))
 	assert.EqualValues(t, "123.456", r.Value(1).String())
@@ -87,7 +90,7 @@ func TestEncodeZeekStrings(t *testing.T) {
 
 	zv, err = encode(d, zs("some path", "123.456", ""))
 	assert.NoError(t, err)
-	r = NewRecordNoTs(d, zv)
+	r = zng.NewRecordNoTs(d, zv)
 	assert.EqualValues(t, 123456000000, r.Ts)
 	assert.EqualValues(t, "some path", lookup(r, 0))
 	assert.EqualValues(t, "123.456", r.Value(1).String())
@@ -96,16 +99,16 @@ func TestEncodeZeekStrings(t *testing.T) {
 
 	zv, err = encode(d, zs("some path", "123.456", "-"))
 	assert.NoError(t, err)
-	r = NewRecordNoTs(d, zv)
+	r = zng.NewRecordNoTs(d, zv)
 	assert.EqualValues(t, 123456000000, r.Ts)
 	assert.EqualValues(t, "some path", lookup(r, 0))
 	assert.EqualValues(t, "123.456", r.Value(1).String())
 	assert.EqualValues(t, zcode.Bytes(nil), lookup(r, 2))
 	assert.Nil(t, lookup(r, 3))
 
-	typ, err = zng.LookupType("record[_path:string,ts:time,data:set[int]]")
+	typ, err = zctx.LookupByName("record[_path:string,ts:time,data:set[int]]")
 	require.NoError(t, err)
-	d = NewDescriptor(typ.(*zng.TypeRecord))
+	d = typ.(*zng.TypeRecord)
 
 	cases := []struct {
 		input    [][]byte
@@ -121,7 +124,7 @@ func TestEncodeZeekStrings(t *testing.T) {
 	for i, c := range cases {
 		zv, err := encode(d, c.input)
 		assert.NoError(t, err)
-		r := NewRecordNoTs(d, zv)
+		r := zng.NewRecordNoTs(d, zv)
 		assert.EqualValues(t, 123456000000, r.Ts)
 		for j, e := range c.expected {
 			assert.EqualValues(t, e, r.Value(j).String(), "case %d, index: %d", i, j)

@@ -2,7 +2,7 @@ package errors
 
 import (
 	"github.com/mccanne/zq/pkg/test"
-	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zng"
 )
 
 const inputErrNotPrimitive = `
@@ -19,7 +19,7 @@ var ErrNotPrimitive = test.Internal{
 	Query:       "*",
 	Input:       test.Trim(inputErrNotPrimitive),
 	InputFormat: "zng",
-	ExpectedErr: zbuf.ErrNotPrimitive,
+	ExpectedErr: zng.ErrNotPrimitive,
 }
 
 const inputErrNotPrimitiveZJSON = `{"id":0,"type":[{"name":"a","type":"string"}],"values":[["1"]]}`
@@ -29,7 +29,7 @@ var ErrNotPrimitiveZJSON = test.Internal{
 	Query:       "*",
 	Input:       test.Trim(inputErrNotPrimitiveZJSON),
 	InputFormat: "zjson",
-	ExpectedErr: zbuf.ErrNotPrimitive,
+	ExpectedErr: zng.ErrNotPrimitive,
 }
 
 const inputErrNotContainer = `
@@ -42,7 +42,7 @@ var ErrNotContainer = test.Internal{
 	Query:       "*",
 	Input:       test.Trim(inputErrNotContainer),
 	InputFormat: "zng",
-	ExpectedErr: zbuf.ErrNotContainer,
+	ExpectedErr: zng.ErrNotContainer,
 }
 
 const inputErrNotContainerZJSON = `{"id":0,"type":[{"name":"a","type":[{"name":"b","type":"string"}]}],"values":["1"]}`
@@ -52,7 +52,7 @@ var ErrNotContainerZJSON = test.Internal{
 	Query:       "*",
 	Input:       test.Trim(inputErrNotContainerZJSON),
 	InputFormat: "zjson",
-	ExpectedErr: zbuf.ErrNotContainer,
+	ExpectedErr: zng.ErrNotContainer,
 }
 
 const inputErrExtraField = `
@@ -65,7 +65,7 @@ var ErrExtraField = test.Internal{
 	Query:       "*",
 	Input:       test.Trim(inputErrExtraField),
 	InputFormat: "zng",
-	ExpectedErr: zbuf.ErrExtraField,
+	ExpectedErr: zng.ErrExtraField,
 }
 
 const inputErrMissingField = `
@@ -78,5 +78,5 @@ var ErrMissingField = test.Internal{
 	Query:       "*",
 	Input:       test.Trim(inputErrMissingField),
 	InputFormat: "zng",
-	ExpectedErr: zbuf.ErrMissingField,
+	ExpectedErr: zng.ErrMissingField,
 }

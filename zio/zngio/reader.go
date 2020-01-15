@@ -52,19 +52,19 @@ type Reader struct {
 	parser    *zbuf.Parser
 }
 
-func NewReader(reader io.Reader, r *resolver.Table) *Reader {
+func NewReader(reader io.Reader, zctx *resolver.Context) *Reader {
 	buffer := make([]byte, ReadSize)
 	scanner := skim.NewScanner(reader, buffer, MaxLineSize)
 	return &Reader{
 		scanner: scanner,
 		stats:   ReadStats{Stats: &scanner.Stats},
-		zeek:    zeekio.NewParser(r),
-		mapper:  resolver.NewMapper(r),
+		zeek:    zeekio.NewParser(zctx),
+		mapper:  resolver.NewMapper(zctx),
 		parser:  zbuf.NewParser(),
 	}
 }
 
-func (r *Reader) Read() (*zbuf.Record, error) {
+func (r *Reader) Read() (*zng.Record, error) {
 	for {
 		rec, b, err := r.ReadPayload()
 		if b != nil {
@@ -80,7 +80,7 @@ func (r *Reader) Read() (*zbuf.Record, error) {
 	}
 }
 
-func (r *Reader) ReadPayload() (*zbuf.Record, []byte, error) {
+func (r *Reader) ReadPayload() (*zng.Record, []byte, error) {
 again:
 	line, err := r.scanner.ScanLine()
 	if line == nil {
@@ -132,20 +132,8 @@ func (r *Reader) parseDescriptor(line []byte) error {
 		//XXX this should be ok... decide on this and update spec
 		return ErrDescriptorExists
 	}
-	typ, err := zng.LookupType(string(rest))
-	if err != nil {
-		return err
-	}
-
-	recordType, ok := typ.(*zng.TypeRecord)
-	if !ok {
-		return ErrBadValue // XXX?
-	}
-	if r.mapper.Enter(id, recordType) == nil {
-		// XXX this shouldn't happen
-		return ErrBadValue
-	}
-	return nil
+	_, err = r.mapper.EnterByName(id, string(rest))
+	return err
 }
 
 func (r *Reader) parseDirective(line []byte) ([]byte, error) {
@@ -179,7 +167,7 @@ func (r *Reader) parseDirective(line []byte) ([]byte, error) {
 	return nil, nil
 }
 
-func (r *Reader) parseValue(line []byte) (*zbuf.Record, error) {
+func (r *Reader) parseValue(line []byte) (*zng.Record, error) {
 	if r.legacyVal {
 		return r.zeek.ParseValue(line)
 	}
@@ -202,7 +190,7 @@ func (r *Reader) parseValue(line []byte) (*zbuf.Record, error) {
 		return nil, err
 	}
 
-	record, err := zbuf.NewRecordCheck(descriptor, nano.MinTs, raw)
+	record, err := zng.NewRecordCheck(descriptor, nano.MinTs, raw)
 	if err != nil {
 		return nil, err
 	}

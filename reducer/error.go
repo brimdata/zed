@@ -2,7 +2,6 @@ package reducer
 
 import (
 	"github.com/mccanne/zq/ast"
-	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zng"
 )
 
@@ -11,7 +10,7 @@ type Error struct {
 	msg string
 }
 
-func NewError(def ast.Reducer, rec *zbuf.Record) *Error {
+func NewError(def ast.Reducer, rec *zng.Record) *Error {
 	v, err := rec.ValueByField(def.Field)
 	var msg string
 	if err != nil {
@@ -24,7 +23,7 @@ func NewError(def ast.Reducer, rec *zbuf.Record) *Error {
 	}
 }
 
-func (e *Error) Consume(t *zbuf.Record) {}
+func (e *Error) Consume(t *zng.Record) {}
 
 func (e *Error) Result() zng.Value {
 	return zng.NewString(e.msg)

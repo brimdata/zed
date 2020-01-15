@@ -42,10 +42,10 @@ type Result struct {
 // in which they are running.
 type Context struct {
 	context.Context
-	Resolver *resolver.Table
-	Logger   *zap.Logger
-	Reverse  bool
-	Warnings chan string
+	TypeContext *resolver.Context
+	Logger      *zap.Logger
+	Reverse     bool
+	Warnings    chan string
 }
 
 type Base struct {
@@ -138,7 +138,7 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 		return []Proc{NewReducer(c, parent, params)}, nil
 
 	case *ast.GroupByProc:
-		params, err := CompileGroupBy(v)
+		params, err := CompileGroupBy(v, c.TypeContext)
 		if err != nil {
 			return nil, err
 		}

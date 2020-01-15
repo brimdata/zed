@@ -19,17 +19,17 @@ func NewStream() *Stream {
 	}
 }
 
-func (s *Stream) Transform(r *zbuf.Record) (*Record, error) {
-	id := r.Descriptor.ID
+func (s *Stream) Transform(r *zng.Record) (*Record, error) {
+	id := r.Type.ID
 	var typ []interface{}
 	if !s.tracker.Seen(id) {
 		var err error
-		typ, err = encodeType(r.Descriptor.Type)
+		typ, err = encodeType(r.Type)
 		if err != nil {
 			return nil, err
 		}
 	}
-	v, err := encodeContainer(r.Descriptor.Type, r.Raw)
+	v, err := encodeContainer(r.Type, r.Raw)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func encodeContainer(typ zng.Type, val []byte) (interface{}, error) {
 			}
 			if columns != nil {
 				if k >= len(columns) {
-					return nil, &zbuf.RecordTypeError{Name: "<record>", Type: typ.String(), Err: zbuf.ErrExtraField}
+					return nil, &zng.RecordTypeError{Name: "<record>", Type: typ.String(), Err: zng.ErrExtraField}
 				}
 				childType = columns[k].Type
 				k++

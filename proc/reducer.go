@@ -7,6 +7,7 @@ import (
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/reducer/compile"
 	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zng"
 )
 
 type ReducerParams struct {
@@ -31,8 +32,8 @@ func NewReducer(c *Context, parent Proc, params ReducerParams) Proc {
 }
 
 func (r *Reducer) output() *zbuf.Array {
-	rec := r.columns.Result(r.Context.Resolver)
-	return zbuf.NewArray([]*zbuf.Record{rec}, nano.NewSpanTs(r.MinTs, r.MaxTs))
+	rec := r.columns.Result(r.Context.TypeContext)
+	return zbuf.NewArray([]*zng.Record{rec}, nano.NewSpanTs(r.MinTs, r.MaxTs))
 }
 
 func (r *Reducer) Pull() (zbuf.Batch, error) {
@@ -60,7 +61,7 @@ func (r *Reducer) Pull() (zbuf.Batch, error) {
 	}
 }
 
-func (r *Reducer) consume(rec *zbuf.Record) {
+func (r *Reducer) consume(rec *zng.Record) {
 	r.n++
 	r.columns.Consume(rec)
 }

@@ -3,7 +3,6 @@ package zeekio
 import (
 	"fmt"
 
-	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zcode"
 	"github.com/mccanne/zq/zng"
 	"github.com/mccanne/zq/zng/resolver"
@@ -15,7 +14,7 @@ type Flattener struct {
 
 func NewFlattener() *Flattener {
 	return &Flattener{
-		mapper: resolver.NewMapper(resolver.NewTable()),
+		mapper: resolver.NewMapper(resolver.NewContext()),
 	}
 }
 
@@ -51,23 +50,26 @@ func recode(dst zcode.Bytes, typ *zng.TypeRecord, in zcode.Bytes) (zcode.Bytes, 
 	return dst, nil
 }
 
-func (f *Flattener) Flatten(r *zbuf.Record) (*zbuf.Record, error) {
-	id := r.Descriptor.ID
-	d := f.mapper.Map(id)
-	if d == nil {
+func (f *Flattener) Flatten(r *zng.Record) (*zng.Record, error) {
+	id := r.Type.ID
+	outputType := f.mapper.Map(id)
+	if outputType == nil {
 		cols := flattenColumns(r.Type.Columns)
-		outRecord := zng.LookupTypeRecord(cols)
-		d = f.mapper.Enter(id, outRecord)
+		outputType = f.mapper.EnterByColumns(id, cols)
 	}
-	if d.Type == r.Descriptor.Type {
-		r.Descriptor = d
+	// Since we are mapping the input context to itself we can do a
+	// pointer comparison to see if the types are the same and there
+	// is no need to record.
+	if r.Type == outputType {
 		return r, nil
 	}
-	zv, err := recode(nil, r.Descriptor.Type, r.Raw)
+	zv, err := recode(nil, r.Type, r.Raw)
 	if err != nil {
 		return nil, err
 	}
-	return zbuf.NewRecordNoTs(d, zv), nil
+	out := zng.NewRecordNoTs(outputType, zv)
+	return out, nil
+
 }
 
 // flattenColumns turns nested records into a series of columns of
@@ -79,7 +81,7 @@ func flattenColumns(cols []zng.Column) []zng.Column {
 		if isRecord {
 			for _, inner := range recType.Columns {
 				name := fmt.Sprintf("%s.%s", c.Name, inner.Name)
-				ret = append(ret, zng.Column{name, inner.Type})
+				ret = append(ret, zng.NewColumn(name, inner.Type))
 			}
 		} else {
 			ret = append(ret, c)

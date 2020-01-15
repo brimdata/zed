@@ -2,7 +2,6 @@ package reducer
 
 import (
 	"github.com/axiomhq/hyperloglog"
-	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zng"
 )
 
@@ -34,13 +33,13 @@ type CountDistinct struct {
 	sketch *hyperloglog.Sketch
 }
 
-func (c *CountDistinct) Consume(r *zbuf.Record) {
-	i, ok := r.Descriptor.LUT[c.Field]
+func (c *CountDistinct) Consume(r *zng.Record) {
+	colno, ok := r.Type.ColumnOfField(c.Field)
 	if !ok {
 		return
 	}
 	//XXX this isn't right
-	v, _ := r.Slice(i)
+	v, _ := r.Slice(colno)
 	c.sketch.Insert(v)
 }
 

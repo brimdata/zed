@@ -45,7 +45,7 @@ func IsErrTooBig(err error) bool {
 
 const defaultGroupByLimit = 1000000
 
-func CompileGroupBy(node *ast.GroupByProc) (*GroupByParams, error) {
+func CompileGroupBy(node *ast.GroupByProc, zctx *resolver.Context) (*GroupByParams, error) {
 	keys := make([]GroupByKey, 0)
 	for _, key := range node.Keys {
 		resolver, err := expr.CompileFieldExpr(key)
@@ -65,7 +65,7 @@ func CompileGroupBy(node *ast.GroupByProc) (*GroupByParams, error) {
 		}
 		reducers = append(reducers, compiled)
 	}
-	builder, err := NewColumnBuilder(node.Keys)
+	builder, err := NewColumnBuilder(zctx, node.Keys)
 	if err != nil {
 		return nil, fmt.Errorf("compiling groupby: %w", err)
 	}
@@ -96,7 +96,8 @@ type GroupBy struct {
 type GroupByAggregator struct {
 	keysMap     *resolver.Mapper
 	cacheKey    []byte // Reduces memory allocations in Consume.
-	dt          *resolver.Table
+	zctx        *resolver.Context
+	kctx        *resolver.Context
 	keys        []GroupByKey
 	reducerDefs []compile.CompiledReducer
 	builder     *ColumnBuilder
@@ -112,7 +113,7 @@ type GroupByAggregator struct {
 }
 
 type GroupByRow struct {
-	keyd     *zbuf.Descriptor
+	keytype  *zng.TypeRecord
 	keyvals  zcode.Bytes
 	ts       nano.Ts
 	reducers compile.Row
@@ -129,14 +130,18 @@ func NewGroupByAggregator(c *Context, params GroupByParams) *GroupByAggregator {
 	if limit == 0 {
 		limit = defaultGroupByLimit
 	}
+	kctx := resolver.NewContext()
 	return &GroupByAggregator{
 		keys:        params.keys,
-		dt:          c.Resolver,
+		zctx:        c.TypeContext,
+		kctx:        kctx,
 		reducerDefs: params.reducers,
 		builder:     params.builder,
+		//XXX this needs review... the keysMap should land in the
+		// output type context, right?
 		// keysMap maps an input descriptor to a descriptor
 		// representing the group-by key columns.
-		keysMap:         resolver.NewMapper(resolver.NewTable()),
+		keysMap:         resolver.NewMapper(kctx),
 		tables:          make(map[nano.Ts]map[string]*GroupByRow),
 		TimeBinDuration: dur,
 		reverse:         c.Reverse,
@@ -187,19 +192,19 @@ func (g *GroupBy) Pull() (zbuf.Batch, error) {
 	}
 }
 
-func (g *GroupByAggregator) createRow(keyd *zbuf.Descriptor, ts nano.Ts, vals zcode.Bytes) *GroupByRow {
+func (g *GroupByAggregator) createRow(keytype *zng.TypeRecord, ts nano.Ts, vals zcode.Bytes) *GroupByRow {
 	// Make a deep copy so the caller can reuse the underlying arrays.
 	v := make(zcode.Bytes, len(vals))
 	copy(v, vals)
 	return &GroupByRow{
-		keyd:     keyd,
+		keytype:  keytype,
 		keyvals:  v,
 		ts:       ts,
 		reducers: compile.Row{Defs: g.reducerDefs},
 	}
 }
 
-func keysTypeRecord(r *zbuf.Record, keys []GroupByKey) *zng.TypeRecord {
+func keysTypeRecord(zctx *resolver.Context, r *zng.Record, keys []GroupByKey) *zng.TypeRecord {
 	cols := make([]zng.Column, len(keys))
 	for k, key := range keys {
 		// Recurse the record to find the bottom column for group-by
@@ -208,30 +213,30 @@ func keysTypeRecord(r *zbuf.Record, keys []GroupByKey) *zng.TypeRecord {
 		if keyVal.Type == nil {
 			return nil
 		}
-		cols[k] = zng.Column{Type: keyVal.Type, Name: key.name}
+		cols[k] = zng.NewColumn(key.name, keyVal.Type)
 	}
-	return zng.LookupTypeRecord(cols)
+	return zctx.LookupByColumns(cols)
 }
 
-var blocked = &zbuf.Descriptor{}
+var blocked = &zng.TypeRecord{}
 
 // Consume takes a record and adds it to the aggregation. Records
 // successively passed to Consume are expected to have timestamps in
 // monotonically increasing or decreasing order determined by g.reverse.
-func (g *GroupByAggregator) Consume(r *zbuf.Record) error {
+func (g *GroupByAggregator) Consume(r *zng.Record) error {
 	// First check if we've seen this descriptor before and if not
 	// build an entry for it.
-	keysDescriptor := g.keysMap.Map(r.Descriptor.ID)
-	if keysDescriptor == nil {
-		id := r.Descriptor.ID
-		recType := keysTypeRecord(r, g.keys)
+	keysType := g.keysMap.Map(r.Type.ID)
+	if keysType == nil {
+		id := r.Type.ID
+		recType := keysTypeRecord(g.kctx, r, g.keys)
 		if recType == nil {
 			g.keysMap.EnterDescriptor(id, blocked)
 			return nil
 		}
-		keysDescriptor = g.keysMap.Enter(id, recType)
+		keysType = g.keysMap.Enter(id, recType)
 	}
-	if keysDescriptor == blocked {
+	if keysType == blocked {
 		// block this descriptor since it doesn't have all the group-by keys
 		return nil
 	}
@@ -254,7 +259,7 @@ func (g *GroupByAggregator) Consume(r *zbuf.Record) error {
 	} else {
 		keyBytes = make(zcode.Bytes, 4, 128)
 	}
-	binary.BigEndian.PutUint32(keyBytes, uint32(keysDescriptor.ID))
+	binary.BigEndian.PutUint32(keyBytes, uint32(keysType.ID))
 	g.builder.Reset()
 	for _, key := range g.keys {
 		keyVal := key.resolver(r)
@@ -281,7 +286,7 @@ func (g *GroupByAggregator) Consume(r *zbuf.Record) error {
 		if len(table) >= g.limit {
 			return errTooBig(g.limit)
 		}
-		row = g.createRow(keysDescriptor, ts, keyBytes[4:])
+		row = g.createRow(keysType, ts, keyBytes[4:])
 		table[string(keyBytes)] = row
 	}
 	row.reducers.Consume(r)
@@ -305,7 +310,7 @@ func (g *GroupByAggregator) Results(eof bool, minTs nano.Ts, maxTs nano.Ts) zbuf
 	} else {
 		sort.Slice(bins, func(i, j int) bool { return bins[i] < bins[j] })
 	}
-	var recs []*zbuf.Record
+	var recs []*zng.Record
 	for _, b := range bins {
 		if g.TimeBinDuration > 0 && !eof {
 			// We're not yet at EOF, so for a reverse search, we haven't
@@ -346,14 +351,14 @@ func typeMatch(typeCol []zng.Value, rowkeys []zng.Value) bool {
 
 // recordsForTable returns a slice of records with one record per table entry
 // in a deterministic but undefined order.
-func (g *GroupByAggregator) recordsForTable(table map[string]*GroupByRow) []*zbuf.Record {
+func (g *GroupByAggregator) recordsForTable(table map[string]*GroupByRow) []*zng.Record {
 	var keys []string
 	for k := range table {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
 
-	var recs []*zbuf.Record
+	var recs []*zng.Record
 	for _, k := range keys {
 		row := table[k]
 		var zv zcode.Bytes
@@ -369,14 +374,14 @@ func (g *GroupByAggregator) recordsForTable(table map[string]*GroupByRow) []*zbu
 			}
 			zv = v.Encode(zv)
 		}
-		d := g.lookupDescriptor(row)
-		r := zbuf.NewRecord(d, row.ts, zv)
+		typ := g.lookupRowType(row)
+		r := zng.NewRecord(typ, row.ts, zv)
 		recs = append(recs, r)
 	}
 	return recs
 }
 
-func (g *GroupByAggregator) lookupDescriptor(row *GroupByRow) *zbuf.Descriptor {
+func (g *GroupByAggregator) lookupRowType(row *GroupByRow) *zng.TypeRecord {
 	// This is only done once per row at output time so generally not a
 	// bottleneck, but this could be optimized by keeping a cache of the
 	// descriptor since it is rare for there to be multiple descriptors
@@ -388,20 +393,17 @@ func (g *GroupByAggregator) lookupDescriptor(row *GroupByRow) *zbuf.Descriptor {
 	cols := make([]zng.Column, 0, n)
 
 	if g.TimeBinDuration > 0 {
-		cols = append(cols, zng.Column{Name: "ts", Type: zng.TypeTime})
+		cols = append(cols, zng.NewColumn("ts", zng.TypeTime))
 	}
-	types := make([]zng.Type, len(row.keyd.Type.Columns))
-	for k, col := range row.keyd.Type.Columns {
+	types := make([]zng.Type, len(row.keytype.Columns))
+	for k, col := range row.keytype.Columns {
 		types[k] = col.Type
 	}
 	cols = append(cols, g.builder.TypedColumns(types)...)
 	for k, red := range row.reducers.Reducers {
 		z := reducer.Result(red)
-		cols = append(cols, zng.Column{
-			Name: row.reducers.Defs[k].Target(),
-			Type: z.Type,
-		})
+		cols = append(cols, zng.NewColumn(row.reducers.Defs[k].Target(), z.Type))
 	}
 	// This could be more efficient but it's only done during group-by output...
-	return g.dt.GetByColumns(cols)
+	return g.zctx.LookupByColumns(cols)
 }

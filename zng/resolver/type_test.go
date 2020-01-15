@@ -1,4 +1,4 @@
-package zng_test
+package resolver_test
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/zng"
+	"github.com/mccanne/zq/zng/resolver"
 	"github.com/mccanne/zq/zx"
 	"github.com/stretchr/testify/require"
 )
@@ -15,8 +16,9 @@ func val(t, v string) ast.Literal {
 }
 
 func runVector(f zx.Predicate, vals []ast.Literal, expected []bool) error {
+	ctx := resolver.NewContext()
 	for k, c := range vals {
-		typ, err := zng.LookupType(c.Type)
+		typ, err := ctx.LookupByName(c.Type)
 		if err != nil {
 			return err
 		}

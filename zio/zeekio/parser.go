@@ -25,14 +25,14 @@ type header struct {
 
 type Parser struct {
 	header
-	resolver   *resolver.Table
+	zctx       *resolver.Context
 	unknown    int // Count of unknown directives
 	needfields bool
 	needtypes  bool
 	addpath    bool
 	// descriptor is a lazily-allocated Descriptor corresponding
 	// to the contents of the #fields and #types directives.
-	descriptor *zbuf.Descriptor
+	descriptor *zng.TypeRecord
 	builder    *zcode.Builder
 }
 
@@ -41,11 +41,11 @@ var (
 	ErrBadEscape    = errors.New("bad escape sequence") //XXX
 )
 
-func NewParser(r *resolver.Table) *Parser {
+func NewParser(r *resolver.Context) *Parser {
 	return &Parser{
-		header:   header{separator: " "},
-		resolver: r,
-		builder:  zcode.NewBuilder(),
+		header:  header{separator: " "},
+		zctx:    r,
+		builder: zcode.NewBuilder(),
 	}
 }
 
@@ -73,7 +73,7 @@ func (p *Parser) parseTypes(types []string) error {
 		p.needfields = true
 	}
 	for k, name := range types {
-		typ, err := zng.LookupType(name)
+		typ, err := p.zctx.LookupByName(name)
 		if err != nil {
 			return err
 		}
@@ -162,7 +162,7 @@ func (p *Parser) ParseDirective(line []byte) error {
 // dotted field names and adding a _path column if one is not already
 // present.  Note that according to the zng spec, all the fields for
 // a nested record must be adjacent which simplifies the logic here.
-func Unflatten(columns []zng.Column, addPath bool) ([]zng.Column, bool) {
+func Unflatten(zctx *resolver.Context, columns []zng.Column, addPath bool) ([]zng.Column, bool) {
 	hasPath := false
 	cols := make([]zng.Column, 0)
 	var nestedCols []zng.Column
@@ -183,8 +183,8 @@ func Unflatten(columns []zng.Column, addPath bool) ([]zng.Column, bool) {
 		if fld != nestedField {
 			if len(nestedField) > 0 {
 				// We've reached the end of a nested record.
-				recType := zng.LookupTypeRecord(nestedCols)
-				newcol := zng.Column{nestedField, recType}
+				recType := zctx.LookupByColumns(nestedCols)
+				newcol := zng.NewColumn(nestedField, recType)
 				cols = append(cols, newcol)
 			}
 
@@ -200,7 +200,7 @@ func Unflatten(columns []zng.Column, addPath bool) ([]zng.Column, bool) {
 			cols = append(cols, col)
 		} else {
 			// Add to the nested record.
-			newcol := zng.Column{col.Name[dot+1:], col.Type}
+			newcol := zng.NewColumn(col.Name[dot+1:], col.Type)
 			nestedCols = append(nestedCols, newcol)
 		}
 	}
@@ -208,14 +208,14 @@ func Unflatten(columns []zng.Column, addPath bool) ([]zng.Column, bool) {
 	// If we were in the midst of a nested record, make sure we
 	// account for it.
 	if len(nestedField) > 0 {
-		recType := zng.LookupTypeRecord(nestedCols)
-		newcol := zng.Column{nestedField, recType}
+		recType := zctx.LookupByColumns(nestedCols)
+		newcol := zng.NewColumn(nestedField, recType)
 		cols = append(cols, newcol)
 	}
 
 	var needpath bool
 	if addPath && !hasPath {
-		pathcol := zng.Column{Name: "_path", Type: zng.TypeString}
+		pathcol := zng.NewColumn("_path", zng.TypeString)
 		cols = append([]zng.Column{pathcol}, cols...)
 		needpath = true
 	}
@@ -229,13 +229,13 @@ func (p *Parser) setDescriptor() error {
 		return ErrBadRecordDef
 	}
 
-	cols, addpath := Unflatten(p.columns, p.path != "")
-	p.descriptor = p.resolver.GetByColumns(cols)
+	cols, addpath := Unflatten(p.zctx, p.columns, p.path != "")
+	p.descriptor = p.zctx.LookupByColumns(cols)
 	p.addpath = addpath
 	return nil
 }
 
-func (p *Parser) ParseValue(line []byte) (*zbuf.Record, error) {
+func (p *Parser) ParseValue(line []byte) (*zng.Record, error) {
 	if p.descriptor == nil {
 		err := p.setDescriptor()
 		if err != nil {
@@ -257,5 +257,5 @@ func (p *Parser) ParseValue(line []byte) (*zbuf.Record, error) {
 	if _, ok := tsVal.Type.(*zng.TypeOfTime); ok {
 		ts, _ = zng.DecodeTime(tsVal.Bytes)
 	}
-	return zbuf.NewRecord(p.descriptor, ts, zv), nil
+	return zng.NewRecord(p.descriptor, ts, zv), nil
 }

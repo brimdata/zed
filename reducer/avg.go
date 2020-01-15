@@ -1,7 +1,6 @@
 package reducer
 
 import (
-	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zng"
 	"github.com/mccanne/zq/zx"
 )
@@ -30,7 +29,7 @@ type Avg struct {
 	count uint64
 }
 
-func (a *Avg) Consume(r *zbuf.Record) {
+func (a *Avg) Consume(r *zng.Record) {
 	v, err := r.ValueByField(a.Field)
 	if err != nil {
 		a.FieldNotFound++

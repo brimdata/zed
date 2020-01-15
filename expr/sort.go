@@ -4,12 +4,11 @@ import (
 	"bytes"
 	"sort"
 
-	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zcode"
 	"github.com/mccanne/zq/zng"
 )
 
-type SortFn func(a *zbuf.Record, b *zbuf.Record) int
+type SortFn func(a *zng.Record, b *zng.Record) int
 
 // Internal function that compares two values of compatible types.
 type comparefn func(a, b zcode.Bytes) int
@@ -30,7 +29,7 @@ func isNull(val zng.Value) bool {
 // other value, and vice versa.
 func NewSortFn(nullsMax bool, fields ...FieldExprResolver) SortFn {
 	sorters := make(map[zng.Type]comparefn)
-	return func(ra *zbuf.Record, rb *zbuf.Record) int {
+	return func(ra *zng.Record, rb *zng.Record) int {
 		for _, resolver := range fields {
 			a := resolver(ra)
 			b := resolver(rb)
@@ -82,13 +81,13 @@ func NewSortFn(nullsMax bool, fields ...FieldExprResolver) SortFn {
 }
 
 // SortStable performs a stable sort on the provided records.
-func SortStable(records []*zbuf.Record, sorter SortFn) {
+func SortStable(records []*zng.Record, sorter SortFn) {
 	slice := &RecordSlice{records, sorter}
 	sort.Stable(slice)
 }
 
 type RecordSlice struct {
-	records []*zbuf.Record
+	records []*zng.Record
 	sorter  SortFn
 }
 
@@ -109,7 +108,7 @@ func (r *RecordSlice) Less(i, j int) bool {
 
 // Push adds x as element Len(). Implements heap.Interface.
 func (r *RecordSlice) Push(rec interface{}) {
-	r.records = append(r.records, rec.(*zbuf.Record))
+	r.records = append(r.records, rec.(*zng.Record))
 }
 
 // Pop removes the first element in the array. Implements heap.Interface.
@@ -120,7 +119,7 @@ func (r *RecordSlice) Pop() interface{} {
 }
 
 // Index returns the ith record.
-func (r *RecordSlice) Index(i int) *zbuf.Record {
+func (r *RecordSlice) Index(i int) *zng.Record {
 	return r.records[i]
 }
 

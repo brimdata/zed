@@ -29,14 +29,14 @@ func NewWriter(w io.Writer, flags zio.Flags) *Text {
 	}
 }
 
-func (t *Text) Write(rec *zbuf.Record) error {
+func (t *Text) Write(rec *zng.Record) error {
 	rec, err := t.flattener.Flatten(rec)
 	if err != nil {
 		return err
 	}
 	var out []string
 	if t.ShowFields || t.ShowTypes || !t.EpochDates {
-		for k, col := range rec.Descriptor.Type.Columns {
+		for k, col := range rec.Type.Columns {
 			var s, v string
 			value := rec.Value(k)
 			if !t.EpochDates && col.Name == "ts" && col.Type == zng.TypeTime {
@@ -64,7 +64,7 @@ func (t *Text) Write(rec *zbuf.Record) error {
 	} else {
 		var err error
 		var changePrecision bool
-		out, changePrecision, err = rec.ZeekStrings(t.precision, t.UTF8)
+		out, changePrecision, err = zbuf.ZeekStrings(rec, t.precision, t.UTF8)
 		if err != nil {
 			return err
 		}

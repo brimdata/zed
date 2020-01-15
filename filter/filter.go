@@ -5,28 +5,27 @@ import (
 
 	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/expr"
-	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zcode"
 	"github.com/mccanne/zq/zng"
 	"github.com/mccanne/zq/zx"
 )
 
-type Filter func(*zbuf.Record) bool
+type Filter func(*zng.Record) bool
 
 func LogicalAnd(left, right Filter) Filter {
-	return func(p *zbuf.Record) bool { return left(p) && right(p) }
+	return func(p *zng.Record) bool { return left(p) && right(p) }
 }
 
 func LogicalOr(left, right Filter) Filter {
-	return func(p *zbuf.Record) bool { return left(p) || right(p) }
+	return func(p *zng.Record) bool { return left(p) || right(p) }
 }
 
 func LogicalNot(expr Filter) Filter {
-	return func(p *zbuf.Record) bool { return !expr(p) }
+	return func(p *zng.Record) bool { return !expr(p) }
 }
 
 func combine(res expr.FieldExprResolver, pred zx.Predicate) Filter {
-	return func(r *zbuf.Record) bool {
+	return func(r *zng.Record) bool {
 		v := res(r)
 		if v.Type == nil {
 			// field (or sub-field) doesn't exist in this record
@@ -68,7 +67,7 @@ func CompileFieldCompare(node *ast.CompareField) (Filter, error) {
 
 func EvalAny(eval zx.Predicate, recursive bool) Filter {
 	if !recursive {
-		return func(r *zbuf.Record) bool {
+		return func(r *zng.Record) bool {
 			it := r.ZvalIter()
 			for _, c := range r.Type.Columns {
 				val, _, err := it.Next()
@@ -100,8 +99,8 @@ func EvalAny(eval zx.Predicate, recursive bool) Filter {
 		}
 		return false
 	}
-	return func(r *zbuf.Record) bool {
-		return fn(r.Raw, r.Descriptor.Type.Columns)
+	return func(r *zng.Record) bool {
+		return fn(r.Raw, r.Type.Columns)
 	}
 }
 
@@ -137,7 +136,7 @@ func Compile(node ast.BooleanExpr) (Filter, error) {
 		return LogicalOr(left, right), nil
 
 	case *ast.BooleanLiteral:
-		return func(p *zbuf.Record) bool { return v.Value }, nil
+		return func(*zng.Record) bool { return v.Value }, nil
 
 	case *ast.CompareField:
 		if v.Comparator == "in" {

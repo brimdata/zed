@@ -12,18 +12,18 @@ import (
 )
 
 func TestTop(t *testing.T) {
-	resolver := resolver.NewTable()
+	zctx := resolver.NewContext()
 
-	fooDesc := resolver.GetByColumns([]zng.Column{{"foo", zng.TypeCount}})
+	fooDesc := zctx.LookupByColumns([]zng.Column{zng.NewColumn("foo", zng.TypeCount)})
 	r0, _ := zbuf.NewRecordZeekStrings(fooDesc, "-")
 	r1, _ := zbuf.NewRecordZeekStrings(fooDesc, "1")
 	r2, _ := zbuf.NewRecordZeekStrings(fooDesc, "2")
 	r3, _ := zbuf.NewRecordZeekStrings(fooDesc, "3")
 	r4, _ := zbuf.NewRecordZeekStrings(fooDesc, "4")
 	r5, _ := zbuf.NewRecordZeekStrings(fooDesc, "5")
-	fooBatch := zbuf.NewArray([]*zbuf.Record{r0, r1, r2, r3, r4, r5}, nano.MaxSpan)
+	fooBatch := zbuf.NewArray([]*zng.Record{r0, r1, r2, r3, r4, r5}, nano.MaxSpan)
 
-	test, err := proc.NewProcTestFromSource("top 3 foo", resolver, []zbuf.Batch{fooBatch})
+	test, err := proc.NewProcTestFromSource("top 3 foo", zctx, []zbuf.Batch{fooBatch})
 	require.NoError(t, err)
 
 	res, err := test.Pull()

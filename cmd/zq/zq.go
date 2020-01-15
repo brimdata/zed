@@ -76,7 +76,7 @@ func init() {
 }
 
 type Command struct {
-	dt          *resolver.Table
+	zctx        *resolver.Context
 	ifmt        string
 	ofmt        string
 	dir         string
@@ -91,7 +91,7 @@ type Command struct {
 
 func New(f *flag.FlagSet) (charm.Command, error) {
 	cwd, _ := os.Getwd()
-	c := &Command{dt: resolver.NewTable()}
+	c := &Command{zctx: resolver.NewContext()}
 	f.StringVar(&c.ifmt, "i", "auto", "format of input data [auto,bzng,ndjson,zeek,zjson,zng]")
 	f.StringVar(&c.ofmt, "f", "zng", "format for output data [bzng,ndjson,table,text,zeek,zjson,zng]")
 	f.StringVar(&c.path, "p", cwd, "path for input")
@@ -228,9 +228,9 @@ func (c *Command) loadFile(path string) (zbuf.Reader, error) {
 	}
 	r := detector.GzipReader(f)
 	if c.ifmt == "auto" {
-		return detector.NewReader(r, c.dt)
+		return detector.NewReader(r, c.zctx)
 	}
-	zr := detector.LookupReader(c.ifmt, r, c.dt)
+	zr := detector.LookupReader(c.ifmt, r, c.zctx)
 	if zr == nil {
 		return nil, fmt.Errorf("unknown input format %s", c.ifmt)
 	}
