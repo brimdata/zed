@@ -246,7 +246,7 @@ When working with named fields, the data type of the field comes becomes signifi
 
 1. To match successfully, the value entered must be comparable to the data type of the named field. For instance, since `id.resp_h` is typically an `addr`-type field, an attempted field/value match `id.resp_h=10.150.0.999` will return an error, since this is not valid IP address syntax.
 
-2.  The correct operator must be chosen based on whether the field is simple or compound.  For example, `id.resp_h=10.150.0.85` will match in our sample data because `id.resp_h` is a simple `addr` type. However, to check if the same IP had been a transmitting host in a `files` event, the syntax `10.150.0.85 in tx_hosts` would be used because `tx_hosts` is a `set[addr]` type.
+2.  The correct operator must be chosen based on whether the field type is primitive or container.  For example, `id.resp_h=10.150.0.85` will match in our sample data because `id.resp_h` is a primitive type, `addr`. However, to check if the same IP had been a transmitting host in a `files` event, the syntax `10.150.0.85 in tx_hosts` would be used because `tx_hosts` is a container type, `set[addr]`.
 
 See the [Data Types](./data-types/README.md) page for more details on types and the operators for working with them.
 
@@ -342,7 +342,7 @@ conn   1521911730.540003 CLevxl1MBUbcgovw49 10.10.18.2   57332     10.150.0.85 4
 ...
 ```
 
-Similarly, the following search will only match when the value appears in a compound field of type `set[addr]` or `vector[addr]`, such as `tx_hosts` in this case.
+Similarly, the following search will only match when the value appears in a container field of type `set[addr]` or `vector[addr]`, such as `tx_hosts` in this case.
 
 #### Example:
 ```

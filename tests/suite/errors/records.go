@@ -5,31 +5,31 @@ import (
 	"github.com/mccanne/zq/zbuf"
 )
 
-const inputErrNotScalar = `
+const inputErrNotPrimitive = `
 #0:record[a:string]
 0:[[1;]]
 `
 
-// Container/scalar type checks are done while parsing, so
-// ErrNotScalar and ErrNotContainer get dual zng and zjson tests. The
+// Primitive/container type checks are done while parsing, so
+// ErrNotPrimitive and ErrNotContainer get dual zng and zjson tests. The
 // other type checks are done after parsing and dont the dual tests.
 
-var ErrNotScalar = test.Internal{
-	Name:        "container where scalar expected",
+var ErrNotPrimitive = test.Internal{
+	Name:        "container where primitive expected",
 	Query:       "*",
-	Input:       test.Trim(inputErrNotScalar),
+	Input:       test.Trim(inputErrNotPrimitive),
 	InputFormat: "zng",
-	ExpectedErr: zbuf.ErrNotScalar,
+	ExpectedErr: zbuf.ErrNotPrimitive,
 }
 
-const inputErrNotScalarZJSON = `{"id":0,"type":[{"name":"a","type":"string"}],"values":[["1"]]}`
+const inputErrNotPrimitiveZJSON = `{"id":0,"type":[{"name":"a","type":"string"}],"values":[["1"]]}`
 
-var ErrNotScalarZJSON = test.Internal{
-	Name:        "container where scalar expected (zjson)",
+var ErrNotPrimitiveZJSON = test.Internal{
+	Name:        "container where primitive expected (zjson)",
 	Query:       "*",
-	Input:       test.Trim(inputErrNotScalarZJSON),
+	Input:       test.Trim(inputErrNotPrimitiveZJSON),
 	InputFormat: "zjson",
-	ExpectedErr: zbuf.ErrNotScalar,
+	ExpectedErr: zbuf.ErrNotPrimitive,
 }
 
 const inputErrNotContainer = `
@@ -38,7 +38,7 @@ const inputErrNotContainer = `
 `
 
 var ErrNotContainer = test.Internal{
-	Name:        "scalar where container expected",
+	Name:        "primitive where container expected",
 	Query:       "*",
 	Input:       test.Trim(inputErrNotContainer),
 	InputFormat: "zng",
@@ -48,7 +48,7 @@ var ErrNotContainer = test.Internal{
 const inputErrNotContainerZJSON = `{"id":0,"type":[{"name":"a","type":[{"name":"b","type":"string"}]}],"values":["1"]}`
 
 var ErrNotContainerZJSON = test.Internal{
-	Name:        "scalar where container expected (zjson)",
+	Name:        "primitive where container expected (zjson)",
 	Query:       "*",
 	Input:       test.Trim(inputErrNotContainerZJSON),
 	InputFormat: "zjson",

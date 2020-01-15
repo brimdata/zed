@@ -15,7 +15,7 @@ import (
 // - change these comparisons to work in the zcode.Bytes domain
 // - add timer, interval comparisons when we add time, interval literals to the language
 // - add count comparisons when we add count literals to the language
-// - add set/vector/record comparisons when we add composite literals to the language
+// - add set/vector/record comparisons when we add container literals to the language
 
 // Predicate is a function that takes a Value and returns a boolean result
 // based on the typed value.
@@ -248,7 +248,7 @@ var compareString = map[string]func(string, string) bool{
 	"gte":  func(a, b string) bool { return a >= b },
 	"lt":   func(a, b string) bool { return a < b },
 	"lte":  func(a, b string) bool { return a <= b },
-	//XXX this doesn't belong here.  scalar comparison vs composite operator
+	//XXX this doesn't belong here.  primitive comparison vs container operator
 	"search": func(a, b string) bool { return strings.Contains(a, b) },
 }
 

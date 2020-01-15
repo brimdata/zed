@@ -205,8 +205,8 @@ func (r *Record) TypeCheck() error {
 var (
 	ErrMissingField = errors.New("record missing a field")
 	ErrExtraField   = errors.New("record with extra field")
-	ErrNotContainer = errors.New("scalar where container was expected")
-	ErrNotScalar    = errors.New("container where scalar was expected")
+	ErrNotContainer = errors.New("primitive where container was expected")
+	ErrNotPrimitive = errors.New("container where primitive was expected")
 )
 
 func checkVector(typ *zng.TypeVector, body zcode.Bytes) error {
@@ -244,7 +244,7 @@ func checkVector(typ *zng.TypeVector, body zcode.Bytes) error {
 			}
 		default:
 			if container {
-				return &RecordTypeError{Name: "<vector element>", Type: v.String(), Err: ErrNotScalar}
+				return &RecordTypeError{Name: "<vector element>", Type: v.String(), Err: ErrNotPrimitive}
 			}
 		}
 	}
@@ -257,7 +257,7 @@ func checkSet(typ *zng.TypeSet, body zcode.Bytes) error {
 	}
 	inner := zng.InnerType(typ)
 	if zng.IsContainerType(inner) {
-		return &RecordTypeError{Name: "<set>", Type: typ.String(), Err: ErrNotScalar}
+		return &RecordTypeError{Name: "<set>", Type: typ.String(), Err: ErrNotPrimitive}
 	}
 	it := zcode.Iter(body)
 	for !it.Done() {
@@ -266,7 +266,7 @@ func checkSet(typ *zng.TypeSet, body zcode.Bytes) error {
 			return err
 		}
 		if container {
-			return &RecordTypeError{Name: "<set element>", Type: typ.String(), Err: ErrNotScalar}
+			return &RecordTypeError{Name: "<set element>", Type: typ.String(), Err: ErrNotPrimitive}
 		}
 	}
 	return nil
@@ -309,7 +309,7 @@ func checkRecord(typ *zng.TypeRecord, body zcode.Bytes) error {
 			}
 		default:
 			if container {
-				return &RecordTypeError{Name: col.Name, Type: col.Type.String(), Err: ErrNotScalar}
+				return &RecordTypeError{Name: col.Name, Type: col.Type.String(), Err: ErrNotPrimitive}
 			}
 		}
 	}
