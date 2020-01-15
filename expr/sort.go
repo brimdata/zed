@@ -23,10 +23,11 @@ func isNull(val zng.Value) bool {
 // The returned function uses the same return conventions as standard
 // routines such as bytes.Compare() and strings.Compare(), so it may
 // be used with packages such as heap and sort.
-// The handling of records in which a comparison field is unset (or
-// not present) is governed by the nullsMax parameter.  If this parameter
-// is true, a record without a value unset is considered larger than a
-// record with any other value, and vice versa.
+// The handling of records in which a comparison field is unset or not
+// present (collectively refered to as fields in which the value is "null")
+// is governed by the nullsMax parameter.  If this parameter is true,
+// a record with a null value is considered larger than a record with any
+// other value, and vice versa.
 func NewSortFn(nullsMax bool, fields ...FieldExprResolver) SortFn {
 	sorters := make(map[zng.Type]comparefn)
 	return func(ra *zbuf.Record, rb *zbuf.Record) int {
