@@ -6,9 +6,7 @@
 #open	2020-01-14-19-11-57
 #fields	vector_int
 #types	vector[int]
--,123,456
 123,-,456
-123,456,-
 (empty)
 -
 #close	2020-01-14-20-00-00
