@@ -35,7 +35,7 @@ var EscapedEqual = test.Internal{
 }
 
 var EscapedAsterisk = test.Internal{
-	Name:         "Filter Escaped =",
+	Name:         "Filter Escaped *",
 	Query:        `A\=\*`,
 	Input:        test.Trim(in),
 	OutputFormat: "zng",
@@ -43,7 +43,7 @@ var EscapedAsterisk = test.Internal{
 }
 
 var UnescapedAsterisk = test.Internal{
-	Name:         "Filter Escaped =",
+	Name:         "Filter Unescaped *",
 	Query:        `A\=*`,
 	Input:        test.Trim(in),
 	OutputFormat: "zng",
