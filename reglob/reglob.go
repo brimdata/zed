@@ -135,8 +135,5 @@ func Reglob(glob string) string {
 // Reglob() if "extended" is true which it can never be.  And it doesn't
 // check for any of the other extended syntax.  Bleah.
 func IsGlobby(s string) bool {
-	if strings.Contains(s, "*") || strings.Contains(s, "?") {
-		return true
-	}
-	return false
+	return strings.Contains(s, "*") || strings.Contains(s, "?")
 }

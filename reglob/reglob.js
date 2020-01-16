@@ -140,10 +140,7 @@ function Reglob(glob, opts) {
 
 
 function IsGlobby(s) {
-  if (s.indexOf("*") >= 0 || s.indexOf("?") >= 0) {
-    return true;
-  }
-  return false
+  return (s.indexOf("*") >= 0 || s.indexOf("?") >= 0);
 }
 
 module.exports = {
