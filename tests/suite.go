@@ -6,6 +6,7 @@ import (
 	"github.com/mccanne/zq/tests/suite/cut"
 	"github.com/mccanne/zq/tests/suite/diropt"
 	"github.com/mccanne/zq/tests/suite/errors"
+	"github.com/mccanne/zq/tests/suite/filter"
 	"github.com/mccanne/zq/tests/suite/format"
 	"github.com/mccanne/zq/tests/suite/input"
 	"github.com/mccanne/zq/tests/suite/regexp"
@@ -29,6 +30,9 @@ var internals = []test.Internal{
 	errors.ErrMissingField,
 	errors.ErrExtraField,
 	regexp.Internal,
+	filter.EscapedEqual,
+	filter.EscapedAsterisk,
+	filter.UnescapedAsterisk,
 	sort.Internal1,
 	sort.Internal2,
 	sort.Internal3,

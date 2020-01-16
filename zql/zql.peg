@@ -43,9 +43,9 @@
 #endif
 
 
-start = _? ast:boomCommand _? EOF { RETURN(ast) }
+start = _? ast:query _? EOF { RETURN(ast) }
 
-boomCommand
+query
   = procs:procChain {
       INIT_ASSIGN_VAR(filt, makeFilterProc(makeBooleanLiteral(true)))
       RETURN(makeSequentialProc(PREPEND(filt, procs)))
@@ -153,13 +153,13 @@ searchValue
   / v:sdouble {
       RETURN(makeLiteral("double", v))
     }
-  / v:sinteger !boomWord {
+  / v:sinteger !searchWord {
       RETURN(makeLiteral("int", v))
     }
   / !(searchKeywords _) v:booleanLiteral { RETURN(v) }
   / !(searchKeywords _) v:unsetLiteral { RETURN(v) }
-  / !(searchKeywords _) v:boomWord {
-      IF(reglob.IsGlobby(ASSERT_STRING(v)) || ASSERT_STRING(v) == "*") {
+  / !((searchKeywords) _) v:searchWord {
+      IF(reglob.IsGlobby(ASSERT_STRING(v))) {
          INIT_ASSIGN_VAR(re, reglob.Reglob(ASSERT_STRING(v)))
          RETURN(makeLiteral("regexp", re))
       }
@@ -547,10 +547,11 @@ h16 = chars:hexdigit+ { RETURN(TEXT) }
 
 hexdigit = [0-9a-fA-F]
 
-boomWord "boomWord" = chars:boomWordPart+ { RETURN(joinChars(chars)) }
+searchWord
+  = chars:searchWordPart+ { RETURN(joinChars(chars)) }
 
-boomWordPart
-  = "\\" s:escapeSequence  { RETURN(s) }
+searchWordPart
+  = "\\" s:(escapeSequence / searchEscape)  { RETURN(s) }
   / !([\x00-\x1F\x5C(),!><=DQUOTE|SQUOTE;] / ws) . { RETURN(TEXT) }
 
 quotedString
@@ -580,6 +581,10 @@ singleCharEscape
   / "r" { RETURN("\r") }
   / "t" { RETURN("\t") }
   / "v" { RETURN("\v") }
+
+searchEscape
+  = "=" { RETURN("=") }
+  / "*" { RETURN("\\*") }
 
 unicodeEscape
   = "u" chars:(hexdigit hexdigit hexdigit hexdigit) {
