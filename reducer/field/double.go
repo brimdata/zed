@@ -4,6 +4,7 @@ import (
 	"github.com/mccanne/zq/streamfn"
 	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zng"
+	"github.com/mccanne/zq/zx"
 )
 
 type Double struct {
@@ -21,11 +22,10 @@ func (d *Double) Result() zng.Value {
 }
 
 func (d *Double) Consume(v zng.Value) error {
-	//XXX change this to use *zng.Double
-	var zd zng.Double
-	if !zng.CoerceToDouble(v, &zd) {
+	dd, ok := zx.CoerceToDouble(v)
+	if !ok {
 		return zbuf.ErrTypeMismatch
 	}
-	d.fn.Update(float64(zd))
+	d.fn.Update(dd)
 	return nil
 }

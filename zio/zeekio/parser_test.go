@@ -111,9 +111,10 @@ func TestLegacyZeekValid(t *testing.T) {
 }
 
 func assertInt(t *testing.T, i int64, val zng.Value, what string) {
-	iv, ok := val.(*zng.Int)
+	ok := val.Type == zng.TypeInt
 	assert.Truef(t, ok, "%s is type int", what)
-	assert.Equalf(t, i, int64(*iv), "%s has value %d", what, i)
+	v, _ := zng.DecodeInt(val.Bytes)
+	assert.Equalf(t, i, v, "%s has value %d", what, i)
 }
 
 func TestNestedRecords(t *testing.T) {
@@ -161,7 +162,7 @@ func TestNestedRecords(t *testing.T) {
 	e, err := record.Access("nest1")
 	require.NoError(t, err)
 	assert.Equal(t, nest1Type, e.Type, "Got right type for field nest1")
-	subVals, err := nest1Type.Decode(e.Body)
+	subVals, err := nest1Type.Decode(e.Bytes)
 	require.NoError(t, err)
 	assert.Equal(t, 2, len(subVals), "nest1 has 2 elements")
 	assertInt(t, 2, subVals[0], "nest1.a")
@@ -174,7 +175,7 @@ func TestNestedRecords(t *testing.T) {
 	e, err = record.Access("nest2")
 	require.NoError(t, err)
 	assert.Equal(t, nest2Type, e.Type, "Got right type for field nest2")
-	subVals, err = nest2Type.Decode(e.Body)
+	subVals, err = nest2Type.Decode(e.Bytes)
 	require.NoError(t, err)
 	assert.Equal(t, 1, len(subVals), "nest2 has 1 element")
 	assertInt(t, 5, subVals[0], "nest2.y")
@@ -182,7 +183,7 @@ func TestNestedRecords(t *testing.T) {
 	e, err = record.Access("nest3")
 	require.NoError(t, err)
 	assert.Equal(t, nest3Type, e.Type, "Got right type for field nest3")
-	subVals, err = nest3Type.Decode(e.Body)
+	subVals, err = nest3Type.Decode(e.Bytes)
 	require.NoError(t, err)
 	assert.Equal(t, 1, len(subVals), "nest3 has 1 element")
 	assertInt(t, 6, subVals[0], "nest3.z")

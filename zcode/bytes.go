@@ -1,6 +1,6 @@
 // Package zcode implements serialization and deserialzation for ZNG values.
 //
-// Values of simple type are represented by an unsigned integer tag and an
+// Values of primitive type are represented by an unsigned integer tag and an
 // optional byte-sequence body.  A tag of zero indicates that the value is
 // unset, and no body follows.  A nonzero tag indicates that the value is set,
 // and the value itself follows as a body of length tag-1.
@@ -23,68 +23,68 @@ var (
 type Bytes []byte
 
 // Iter returns an Iter for the receiver.
-func (b Bytes) Iter() Iter {
-	return Iter(b)
+func (e Bytes) Iter() Iter {
+	return Iter(e)
 }
 
 // String returns a string representation of the receiver.
-func (b Bytes) String() string {
-	buf, err := b.build(nil)
+func (e Bytes) String() string {
+	b, err := e.build(nil)
 	if err != nil {
 		panic("zcode encoding has bad format: " + err.Error())
 	}
-	return string(buf)
+	return string(b)
 }
 
 const hex = "0123456789abcdef"
 
-func appendBytes(dst, v []byte) []byte {
+func appendBytes(b, v []byte) []byte {
 	first := true
 	for _, c := range v {
 		if !first {
-			dst = append(dst, ' ')
+			b = append(b, ' ')
 		} else {
 			first = false
 		}
-		dst = append(dst, hex[c>>4])
-		dst = append(dst, hex[c&0xf])
+		b = append(b, hex[c>>4])
+		b = append(b, hex[c&0xf])
 	}
-	return dst
+	return b
 }
 
-func (b Bytes) build(dst []byte) ([]byte, error) {
-	for it := Iter(b); !it.Done(); {
+func (e Bytes) build(b []byte) ([]byte, error) {
+	for it := Iter(e); !it.Done(); {
 		v, container, err := it.Next()
 		if err != nil {
 			return nil, err
 		}
 		if container {
 			if v == nil {
-				dst = append(dst, '(')
-				dst = append(dst, '*')
-				dst = append(dst, ')')
+				b = append(b, '(')
+				b = append(b, '*')
+				b = append(b, ')')
 				continue
 			}
-			dst = append(dst, '[')
-			dst, err = v.build(dst)
+			b = append(b, '[')
+			b, err = v.build(b)
 			if err != nil {
 				return nil, err
 			}
-			dst = append(dst, ']')
+			b = append(b, ']')
 		} else {
-			dst = append(dst, '(')
-			dst = appendBytes(dst, v)
-			dst = append(dst, ')')
+			b = append(b, '(')
+			b = appendBytes(b, v)
+			b = append(b, ')')
 		}
 	}
-	return dst, nil
+	return b, nil
 }
 
 // ContainerBody returns the body of the receiver, which must hold a single
 // container.  If the receiver is not a container, ErrNotContainer is returned.
 // If the receiver is not a single container, ErrNotSingleton is returned.
-func (b Bytes) ContainerBody() (Bytes, error) {
-	it := Iter(b)
+func (e Bytes) ContainerBody() (Bytes, error) {
+	it := Iter(e)
 	body, container, err := it.Next()
 	if err != nil {
 		return nil, err
@@ -109,13 +109,13 @@ func AppendContainer(dst Bytes, val Bytes) Bytes {
 	return dst
 }
 
-// AppendSimple appends val to dst as a simple value and returns the extended
-// buffer.
-func AppendSimple(dst Bytes, val []byte) Bytes {
+// AppendPrimitive appends val to dst as a primitive value and returns the
+// extended buffer.
+func AppendPrimitive(dst Bytes, val []byte) Bytes {
 	if val == nil {
-		return appendUvarint(dst, simpleTagUnset)
+		return appendUvarint(dst, primitiveTagUnset)
 	}
-	dst = appendUvarint(dst, simpleTag(len(val)))
+	dst = appendUvarint(dst, primitiveTag(len(val)))
 	return append(dst, val...)
 }
 
@@ -150,12 +150,12 @@ func containerTag(length int) uint64 {
 	return (uint64(length)+1)<<1 | 1
 }
 
-func simpleTag(length int) uint64 {
+func primitiveTag(length int) uint64 {
 	return (uint64(length) + 1) << 1
 }
 
 const (
-	simpleTagUnset    = 0
+	primitiveTagUnset = 0
 	containerTagUnset = 1
 )
 

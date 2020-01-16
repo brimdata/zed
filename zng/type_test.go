@@ -4,31 +4,36 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/zng"
+	"github.com/mccanne/zq/zx"
 	"github.com/stretchr/testify/require"
 )
 
-type TypedValue struct {
-	typ zng.Type
-	val string
+func val(t, v string) ast.Literal {
+	return ast.Literal{t, v}
 }
 
-func runVector(f zng.Predicate, vals []TypedValue, results []bool) error {
-	for k, tv := range vals {
-		zv, err := tv.typ.Parse([]byte(tv.val))
+func runVector(f zx.Predicate, vals []ast.Literal, expected []bool) error {
+	for k, c := range vals {
+		typ, err := zng.LookupType(c.Type)
 		if err != nil {
 			return err
 		}
-		e := zng.TypedEncoding{tv.typ, zv}
-		if f(e) != results[k] {
-			return fmt.Errorf("value '%s' of type %s at slot %d failed test", tv.val, tv.typ, k)
+		zv, err := typ.Parse([]byte(c.Value))
+		if err != nil {
+			return err
+		}
+		value := zng.Value{typ, zv}
+		if f(value) != expected[k] {
+			return fmt.Errorf("value '%s' of type %s at slot %d failed test", c.Value, typ, k)
 		}
 	}
 	return nil
 }
 
-func run(vals []TypedValue, op string, v zng.Value, results []bool) error {
-	pred, err := v.Comparison(op)
+func run(vals []ast.Literal, op string, v ast.Literal, results []bool) error {
+	pred, err := zx.Comparison(op, v)
 	if err != nil {
 		return err
 	}
@@ -38,41 +43,35 @@ func run(vals []TypedValue, op string, v zng.Value, results []bool) error {
 func TestZeek(t *testing.T) {
 	t.Parallel()
 
-	vals := []TypedValue{
-		{zng.TypeInt, "100"},
-		{zng.TypeInt, "101"},
-		{zng.TypeDouble, "100"},
-		{zng.TypeDouble, "100.0"},
-		{zng.TypeDouble, "100.5"},
-		{zng.TypeAddr, "128.32.1.1"},
-		{zng.TypeString, "hello"},
-		{zng.TypePort, "80"},
-		{zng.TypePort, "8080"},
+	vals := []ast.Literal{
+		{"int", "100"},
+		{"int", "101"},
+		{"double", "100"},
+		{"double", "100.0"},
+		{"double", "100.5"},
+		{"addr", "128.32.1.1"},
+		{"string", "hello"},
+		{"port", "80"},
+		{"port", "8080"},
 	}
-	err := run(vals, "lt", zng.NewInt(101), []bool{true, false, true, true, true, false, false, true, false})
+	err := run(vals, "lt", val("int", "101"), []bool{true, false, true, true, true, false, false, true, false})
 	require.NoError(t, err)
-	err = run(vals, "lte", zng.NewInt(101), []bool{true, true, true, true, true, false, false, true, false})
+	err = run(vals, "lte", val("int", "101"), []bool{true, true, true, true, true, false, false, true, false})
 	require.NoError(t, err)
-	err = run(vals, "lte", zng.NewDouble(100.2), []bool{true, false, true, true, false, false, false, true, false})
+	err = run(vals, "lte", val("double", "100.2"), []bool{true, false, true, true, false, false, false, true, false})
 	require.NoError(t, err)
-	err = run(vals, "gt", zng.NewPort(100), []bool{false, false, false, false, false, false, false, false, true})
+	err = run(vals, "gt", val("port", "100"), []bool{false, false, false, false, false, false, false, false, true})
 	require.NoError(t, err)
-	addr1, _ := zng.NewValue("addr", "128.32.1.1")
-	addr2, _ := zng.NewValue("addr", "128.32.2.2")
-	err = run(vals, "eql", addr1, []bool{false, false, false, false, false, true, false, false, false})
+	err = run(vals, "eql", val("addr", "128.32.1.1"), []bool{false, false, false, false, false, true, false, false, false})
 	require.NoError(t, err)
-	err = run(vals, "eql", addr2, []bool{false, false, false, false, false, false, false, false, false})
+	err = run(vals, "eql", val("addr", "128.32.2.2"), []bool{false, false, false, false, false, false, false, false, false})
 	require.NoError(t, err)
-	subnet1, err := zng.NewValue("subnet", "128.32.0.0/16")
+	err = run(vals, "eql", val("subnet", "128.32.0.0/16"), []bool{false, false, false, false, false, true, false, false, false})
 	require.NoError(t, err)
-	err = run(vals, "eql", subnet1, []bool{false, false, false, false, false, true, false, false, false})
+	err = run(vals, "eql", val("subnet", "128.32.0.0/16"), []bool{false, false, false, false, false, true, false, false, false})
 	require.NoError(t, err)
-	err = run(vals, "eql", subnet1, []bool{false, false, false, false, false, true, false, false, false})
+	err = run(vals, "eql", val("subnet", "128.32.1.0/24"), []bool{false, false, false, false, false, true, false, false, false})
 	require.NoError(t, err)
-	subnet2, _ := zng.NewValue("subnet", "128.32.1.0/24")
-	err = run(vals, "eql", subnet2, []bool{false, false, false, false, false, true, false, false, false})
-	require.NoError(t, err)
-	subnet3, _ := zng.NewValue("subnet", "128.32.2.0/24")
-	err = run(vals, "eql", subnet3, []bool{false, false, false, false, false, false, false, false, false})
+	err = run(vals, "eql", val("subnet", "128.32.2.0/24"), []bool{false, false, false, false, false, false, false, false, false})
 	require.NoError(t, err)
 }

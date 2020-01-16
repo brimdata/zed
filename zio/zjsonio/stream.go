@@ -80,10 +80,7 @@ func encodeContainer(typ zng.Type, val []byte) (interface{}, error) {
 				// zng.Escape() returns "" for nil
 				var fld interface{}
 				if v != nil {
-					fieldBytes, err := zng.Format(childType, v)
-					if err != nil {
-						return nil, err
-					}
+					fieldBytes := zng.Value{childType, v}.Format()
 					fld = string(fieldBytes)
 				}
 				body = append(body, fld)

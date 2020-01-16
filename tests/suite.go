@@ -6,8 +6,10 @@ import (
 	"github.com/mccanne/zq/tests/suite/cut"
 	"github.com/mccanne/zq/tests/suite/diropt"
 	"github.com/mccanne/zq/tests/suite/errors"
+	"github.com/mccanne/zq/tests/suite/filter"
 	"github.com/mccanne/zq/tests/suite/format"
 	"github.com/mccanne/zq/tests/suite/input"
+	"github.com/mccanne/zq/tests/suite/regexp"
 	"github.com/mccanne/zq/tests/suite/sort"
 	"github.com/mccanne/zq/tests/suite/utf8"
 )
@@ -27,9 +29,17 @@ var internals = []test.Internal{
 	errors.ErrNotContainerZJSON,
 	errors.ErrMissingField,
 	errors.ErrExtraField,
+	regexp.Internal,
+	filter.EscapedEqual,
+	filter.EscapedAsterisk,
+	filter.UnescapedAsterisk,
 	sort.Internal1,
 	sort.Internal2,
 	sort.Internal3,
+	sort.Internal4_1,
+	sort.Internal4_2,
+	sort.Internal4_3,
+	sort.Internal4_4,
 }
 
 var commands = []test.Exec{

@@ -185,7 +185,7 @@ func decodeContainer(builder *zcode.Builder, typ zng.Type, body []interface{}) e
 			if zng.IsContainerType(childType) || zng.IsContainerType(columns[k].Type) {
 				builder.AppendContainer(nil)
 			} else {
-				builder.AppendSimple(nil)
+				builder.AppendPrimitive(nil)
 			}
 			continue
 		}
@@ -204,7 +204,7 @@ func decodeContainer(builder *zcode.Builder, typ zng.Type, body []interface{}) e
 			if err != nil {
 				return err
 			}
-			builder.AppendSimple(zv)
+			builder.AppendPrimitive(zv)
 			continue
 		}
 		children, ok := column.([]interface{})

@@ -43,9 +43,9 @@
 #endif
 
 
-start = _? ast:boomCommand _? EOF { RETURN(ast) }
+start = _? ast:query _? EOF { RETURN(ast) }
 
-boomCommand
+query
   = procs:procChain {
       INIT_ASSIGN_VAR(filt, makeFilterProc(makeBooleanLiteral(true)))
       RETURN(makeSequentialProc(PREPEND(filt, procs)))
@@ -125,45 +125,45 @@ searchPred
         RETURN(makeOrChain(makeCompareAny("eql", true, v), ARRAY(makeCompareAny("in", true, v))))
       }
 
-      RETURN(makeOrChain(makeCompareAny("search", true, makeTypedValue("string", TEXT)), ARRAY(makeCompareAny("searchin", true, makeTypedValue("string", TEXT)), makeCompareAny("eql", true, v), makeCompareAny("in", true, v))))
+      RETURN(makeOrChain(makeCompareAny("search", true, makeLiteral("string", TEXT)), ARRAY(makeCompareAny("searchin", true, makeLiteral("string", TEXT)), makeCompareAny("eql", true, v), makeCompareAny("in", true, v))))
     }
 
 searchValue
   = v:quotedString {
-      RETURN(makeTypedValue("string", v))
+      RETURN(makeLiteral("string", v))
     }
   / v:reString {
-      RETURN(makeTypedValue("regexp", v))
+      RETURN(makeLiteral("regexp", v))
     }
   / v:port {
-      RETURN(makeTypedValue("port", v))
+      RETURN(makeLiteral("port", v))
   }
   / v:ip6subnet {
-      RETURN(makeTypedValue("subnet", v))
+      RETURN(makeLiteral("subnet", v))
     }
   / v:ip6addr {
-      RETURN(makeTypedValue("addr", v))
+      RETURN(makeLiteral("addr", v))
     }
   / v:subnet {
-      RETURN(makeTypedValue("subnet", v))
+      RETURN(makeLiteral("subnet", v))
     }
   / v:addr {
-      RETURN(makeTypedValue("addr", v))
+      RETURN(makeLiteral("addr", v))
     }
   / v:sdouble {
-      RETURN(makeTypedValue("double", v))
+      RETURN(makeLiteral("double", v))
     }
-  / v:sinteger !boomWord {
-      RETURN(makeTypedValue("int", v))
+  / v:sinteger !searchWord {
+      RETURN(makeLiteral("int", v))
     }
   / !(searchKeywords _) v:booleanLiteral { RETURN(v) }
   / !(searchKeywords _) v:unsetLiteral { RETURN(v) }
-  / !(searchKeywords _) v:boomWord {
-      IF(reglob.IsGlobby(ASSERT_STRING(v)) || ASSERT_STRING(v) == "*") {
+  / !((searchKeywords) _) v:searchWord {
+      IF(reglob.IsGlobby(ASSERT_STRING(v))) {
          INIT_ASSIGN_VAR(re, reglob.Reglob(ASSERT_STRING(v)))
-         RETURN(makeTypedValue("regexp", re))
+         RETURN(makeLiteral("regexp", re))
       }
-      RETURN(makeTypedValue("string", v))
+      RETURN(makeLiteral("string", v))
     }
 
 searchKeywords
@@ -172,11 +172,11 @@ searchKeywords
   / inToken
 
 booleanLiteral
-  = "true"           { RETURN(makeTypedValue("bool", "true")) }
-  / "false"          { RETURN(makeTypedValue("bool", "false")) }
+  = "true"           { RETURN(makeLiteral("bool", "true")) }
+  / "false"          { RETURN(makeLiteral("bool", "false")) }
 
 unsetLiteral
-  = "nil"           { RETURN(makeTypedValue("unset", "")) }
+  = "nil"           { RETURN(makeLiteral("unset", "")) }
 
 procList
   = first:procChain rest:parallelChain* {
@@ -367,16 +367,16 @@ simpleProc
   / uniq
 
 sort
-  = "sort"i rev:(_ "-r")? limit:procLimitArg?  _? !"-r" list:(fieldExprList)? {
-    INIT_ASSIGN_VAR(sortdir, 1)
-    IF(ISNOTNULL(rev)) { sortdir = -1 }
-    RETURN(makeSortProc(list, sortdir, limit))
+  = "sort"i args:sortArgs list:(_ l:fieldExprList { RETURN(l) })? {
+    return makeSortProc(args, list)
   }
-  / "sort"i limit:procLimitArg? rev:(_ "-r")? _? list:(fieldExprList)? {
-    INIT_ASSIGN_VAR(sortdir, 1)
-    IF(ISNOTNULL(rev)) { sortdir = -1 }
-    RETURN(makeSortProc(list, sortdir, limit))
-  }
+
+sortArgs = (_ a:sortArg { RETURN(a) })*
+
+sortArg
+  = "-limit" _ limit:sinteger { RETURN(makeArg("limit", limit)) }
+  / "-r" { RETURN(makeArg("r", NULL)) }
+  / "-nulls" _ where:(("first" / "last") { RETURN(TEXT) } ) { RETURN(makeArg("nulls", where)) }
 
 top
   = "top"i limit:(_ n:integer { RETURN(n)})? flush:(_ "-flush")? list:(_ f:fieldExprList { RETURN(f) })? {
@@ -547,10 +547,11 @@ h16 = chars:hexdigit+ { RETURN(TEXT) }
 
 hexdigit = [0-9a-fA-F]
 
-boomWord "boomWord" = chars:boomWordPart+ { RETURN(joinChars(chars)) }
+searchWord
+  = chars:searchWordPart+ { RETURN(joinChars(chars)) }
 
-boomWordPart
-  = "\\" s:escapeSequence  { RETURN(s) }
+searchWordPart
+  = "\\" s:(escapeSequence / searchEscape)  { RETURN(s) }
   / !([\x00-\x1F\x5C(),!><=DQUOTE|SQUOTE;] / ws) . { RETURN(TEXT) }
 
 quotedString
@@ -580,6 +581,10 @@ singleCharEscape
   / "r" { RETURN("\r") }
   / "t" { RETURN("\t") }
   / "v" { RETURN("\v") }
+
+searchEscape
+  = "=" { RETURN("=") }
+  / "*" { RETURN("\\*") }
 
 unicodeEscape
   = "u" chars:(hexdigit hexdigit hexdigit hexdigit) {

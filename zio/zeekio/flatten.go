@@ -22,7 +22,7 @@ func NewFlattener() *Flattener {
 func recode(dst zcode.Bytes, typ *zng.TypeRecord, in zcode.Bytes) (zcode.Bytes, error) {
 	if in == nil {
 		for k := 0; k < len(typ.Columns); k++ {
-			dst = zcode.AppendSimple(dst, nil)
+			dst = zcode.AppendPrimitive(dst, nil)
 		}
 		return dst, nil
 	}
@@ -44,7 +44,7 @@ func recode(dst zcode.Bytes, typ *zng.TypeRecord, in zcode.Bytes) (zcode.Bytes, 
 			if container {
 				dst = zcode.AppendContainer(dst, val)
 			} else {
-				dst = zcode.AppendSimple(dst, val)
+				dst = zcode.AppendPrimitive(dst, val)
 			}
 		}
 	}

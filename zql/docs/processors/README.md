@@ -135,9 +135,9 @@ conn  1521911720.607695 CpjMvj2Cvj048u6bF1 10.164.94.120 39169     10.47.3.200 8
 |                           |                                                                           |
 | ------------------------- | ------------------------------------------------------------------------- |
 | **Description**           | Sort events based on the order of values in the specified named field(s). | 
-| **Syntax**                | `sort [-r] [-limit N] [field-list]`                                                  |
+| **Syntax**                | `sort [-r] [-limit N] [-nulls first\|last] [field-list]`                   |
 | **Required<br>arguments** | None                                                                      |
-| **Optional<br>arguments** | `[-r]`<br>If specified, results will be sorted in reverse order.<br><br>`[-limit N]`<br>The maximum number of events that may be sorted at once. If not specified, defaults to `1000000`. Note that increasing the `limit` to a very large value may cause high memory consumption.<br><br>`[field-list]`<br>One or more comma-separated field names by which to sort. Results will be sorted based on the values of the first field named in the list, then based on values in the second field named in the list, and so on.<br><br>If no field list is provided, sort will automatically pick a field by which to sort. The pick is done by examining the first result returned and finding the first field in left-to-right order of one of the following [data types](../data-types/README.md). If no fields of the first data type are found, the next is considered, and so on:<br>- `count`<br>- `int`<br>- `double`<br>If no fields of those types are found, sorting will be performed on the first field found in left-to-right order that is _not_ of the `time` data type. |
+| **Optional<br>arguments** | `[-r]`<br>If specified, results will be sorted in reverse order.<br><br>`[-limit N]`<br>The maximum number of events that may be sorted at once. If not specified, defaults to `1000000`. Note that increasing the `limit` to a very large value may cause high memory consumption.<br><br>`[-nulls first\|last]`<br>Specifies whether null values (i.e., values that are unset or that are not present at all in an incoming record) should be placed in the output.<br><br>`[field-list]`<br>One or more comma-separated field names by which to sort. Results will be sorted based on the values of the first field named in the list, then based on values in the second field named in the list, and so on.<br><br>If no field list is provided, sort will automatically pick a field by which to sort. The pick is done by examining the first result returned and finding the first field in left-to-right order of one of the following [data types](../data-types/README.md). If no fields of the first data type are found, the next is considered, and so on:<br>- `count`<br>- `int`<br>- `double`<br>If no fields of those types are found, sorting will be performed on the first field found in left-to-right order that is _not_ of the `time` data type. |
 | **Developer Docs**        | https://godoc.org/github.com/mccanne/zq/proc#Sort                         |
 
 #### Example #1:
@@ -145,7 +145,7 @@ conn  1521911720.607695 CpjMvj2Cvj048u6bF1 10.164.94.120 39169     10.47.3.200 8
 To sort `x509` events by `certificate.subject`:
 
 ```
-zq -f table '* | sort certificate.subject' x509.log
+zq -f table 'sort certificate.subject' x509.log
 ```
 
 #### Output:
@@ -168,7 +168,7 @@ x509  1521912590.364985 FXXOyHz8ZK5Fqyoi7  3                   068D4086AEB347299
 Now we'll sort `x509` events first by `certificate.subject`, then by the `id`. Compared to the previous example, note how this changes the order of some events that had the same `certificate.subject` value.
 
 ```
-zq -f table '* | sort certificate.subject,id' x509.log
+zq -f table 'sort certificate.subject,id' x509.log
 ```
 
 #### Output:
@@ -191,7 +191,7 @@ x509  1521912591.317347 FMITm2OyLT3OYnfq3  3                   068D4086AEB347299
 Here we'll find which originating IP addresses generated the most `conn` events using the `count()` [aggregate function](../aggregate-functions/README.md) and piping its output to a `sort` in reverse order. Note that even though we didn't list a field name as an explicit argument, the `sort` processor did what we wanted because it found a field of the `count` [data type](../data-types/README.md).
 
 ```
-zq -f table '* | count() by id.orig_h | sort -r' conn.log
+zq -f table 'count() by id.orig_h | sort -r' conn.log
 ```
 
 #### Output:
@@ -206,10 +206,40 @@ ID.ORIG_H                COUNT
 
 #### Example #4:
 
+In this example we count the number of times each distinct username appears in `http` records, but deliberately put the unset username at the front of the list:
+
+```
+zq -f table "count() by username | sort -nulls first username" http.log
+```
+
+#### Output:
+```
+USERNAME                     COUNT
+-                            65428
+' or '1=1                    4
+(empty)                      4
+-r nessus                    1
+3sadmin                      1
+6666                         4
+ADMIN                        1
+Admin                        1
+a a 1\x0anew 1234567890 root 1
+admin                        5
+comcomcom                    1
+piranha                      2
+q1ki9                        2
+root                         1
+servlet                      1
+support                      1
+```
+
+
+#### Example #5:
+
 Here we have more `conn` events than the defaults would let us sort, so we increase the limit.
 
 ```
-zq -f table '* | sort -limit 9999999 ts' conn.log
+zq -f table 'sort -limit 9999999 ts' conn.log
 ```
 
 #### Output:

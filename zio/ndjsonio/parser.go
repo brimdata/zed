@@ -44,6 +44,34 @@ func (p *Parser) Parse(b []byte) (zcode.Bytes, zng.Type, error) {
 	return p.builder.Bytes(), ztyp, nil
 }
 
+type stubTypeOf struct{}
+
+var stubType = &stubTypeOf{}
+
+func (t *stubTypeOf) String() string {
+	return "none"
+}
+
+func (t *stubTypeOf) Parse(in []byte) (zcode.Bytes, error) {
+	return nil, nil
+}
+
+func (t *stubTypeOf) Format(value []byte) (interface{}, error) {
+	return "none", nil
+}
+
+func (t *stubTypeOf) StringOf(zv zcode.Bytes) string {
+	return "-"
+}
+
+func (t *stubTypeOf) Marshal(zv zcode.Bytes) (interface{}, error) {
+	return nil, nil
+}
+
+func (t *stubTypeOf) Coerce(zv zcode.Bytes, typ zng.Type) zcode.Bytes {
+	return nil
+}
+
 func (p *Parser) jsonParseObject(b []byte) (zng.Type, error) {
 	type kv struct {
 		key   []byte
@@ -68,7 +96,7 @@ func (p *Parser) jsonParseObject(b []byte) (zng.Type, error) {
 	// through Unflatten() to find nested records.
 	columns := make([]zng.Column, len(kvs))
 	for i, kv := range kvs {
-		columns[i] = zng.Column{Name: string(kv.key), Type: zng.TypeUnset}
+		columns[i] = zng.Column{Name: string(kv.key), Type: stubType}
 	}
 	columns, _ = zeekio.Unflatten(columns, false)
 
@@ -120,7 +148,7 @@ func (p *Parser) jsonParseValue(raw []byte, typ jsonparser.ValueType) (zng.Type,
 	case jsonparser.Number:
 		return p.jsonParseNumber(raw)
 	case jsonparser.Null:
-		return p.jsonParseString(nil)
+		return p.jsonParseNull()
 	case jsonparser.String:
 		return p.jsonParseString(raw)
 	default:
@@ -164,7 +192,7 @@ func (p *Parser) jsonParseBool(b []byte) (zng.Type, error) {
 	if err != nil {
 		return nil, err
 	}
-	p.builder.AppendSimple(zng.EncodeBool(boolean))
+	p.builder.AppendPrimitive(zng.EncodeBool(boolean))
 	return zng.TypeBool, nil
 }
 
@@ -173,11 +201,21 @@ func (p *Parser) jsonParseNumber(b []byte) (zng.Type, error) {
 	if err != nil {
 		return nil, err
 	}
-	p.builder.AppendSimple(zng.EncodeDouble(d))
+	p.builder.AppendPrimitive(zng.EncodeDouble(d))
 	return zng.TypeDouble, nil
 }
 
 func (p *Parser) jsonParseString(b []byte) (zng.Type, error) {
-	p.builder.AppendSimple(zng.Unescape(b))
+	b, err := jsonparser.Unescape(b, nil)
+	if err != nil {
+		return nil, err
+	}
+	p.builder.AppendPrimitive(zng.Unescape(b))
+	return zng.TypeString, nil
+}
+
+func (p *Parser) jsonParseNull() (zng.Type, error) {
+	p.builder.AppendPrimitive(nil)
+	// XXX TypeString is no good but figuring out a better type is tricky
 	return zng.TypeString, nil
 }

@@ -26,7 +26,7 @@ func runTest(valType string, valRaw string, containerType string, containerRaw s
 	expr := &ast.CompareField{
 		Comparator: "in",
 		Field:      &ast.FieldRead{Field: "f"},
-		Value:      ast.TypedValue{Type: valType, Value: valRaw},
+		Value:      ast.Literal{Type: valType, Value: valRaw},
 	}
 
 	filt, err := filter.Compile(expr)

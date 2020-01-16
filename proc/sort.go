@@ -11,10 +11,11 @@ import (
 
 type Sort struct {
 	Base
-	dir    int
-	limit  int
-	fields []expr.FieldExprResolver
-	out    []*zbuf.Record
+	dir        int
+	limit      int
+	nullsFirst bool
+	fields     []expr.FieldExprResolver
+	out        []*zbuf.Record
 }
 
 // defaultSortLimit is the default limit of the number of records that
@@ -22,11 +23,11 @@ type Sort struct {
 // The value can be overridden by setting the limit param on the SortProc.
 const defaultSortLimit = 1000000
 
-func NewSort(c *Context, parent Proc, limit int, fields []expr.FieldExprResolver, dir int) *Sort {
+func NewSort(c *Context, parent Proc, limit int, fields []expr.FieldExprResolver, dir int, nullsFirst bool) *Sort {
 	if limit == 0 {
 		limit = defaultSortLimit
 	}
-	return &Sort{Base: Base{Context: c, Parent: parent}, dir: dir, limit: limit, fields: fields}
+	return &Sort{Base: Base{Context: c, Parent: parent}, dir: dir, limit: limit, nullsFirst: nullsFirst, fields: fields}
 }
 
 func firstOf(d *zbuf.Descriptor, which zng.Type) string {
@@ -97,16 +98,20 @@ func (s *Sort) sort() zbuf.Batch {
 	s.out = nil
 	if s.fields == nil {
 		fld := guessSortField(out[0])
-		resolver := func(r *zbuf.Record) zng.TypedEncoding {
+		resolver := func(r *zbuf.Record) zng.Value {
 			e, err := r.Access(fld)
 			if err != nil {
-				return zng.TypedEncoding{}
+				return zng.Value{}
 			}
 			return e
 		}
 		s.fields = []expr.FieldExprResolver{resolver}
 	}
-	sorter := expr.NewSortFn(true, s.fields...)
+	nullsMax := !s.nullsFirst
+	if s.dir < 0 {
+		nullsMax = !nullsMax
+	}
+	sorter := expr.NewSortFn(nullsMax, s.fields...)
 	sortWithDir := func(a, b *zbuf.Record) int {
 		return s.dir * sorter(a, b)
 	}

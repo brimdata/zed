@@ -57,9 +57,9 @@ a particular data value is specified by its "type code", which is an
 integer identifier representing either a built-in type or
 a dynamic type definition that occurred previously in the stream.
 
-The ZNG type system comprises the standard set of scalar types like integers,
-floating point, strings, byte arrays, etc. as well as composite types
-like records, arrays, and sets arranged from the scalar types.
+The ZNG type system comprises the standard set of primitive types like integers,
+floating point, strings, byte arrays, etc. as well as container types
+like records, arrays, and sets arranged from the primitive types.
 
 For example, a ZNG stream representing the single string "hello world"
 looks like this:
@@ -134,7 +134,7 @@ All other control codes are available to higher-layer protocols to carry
 application-specific payloads embedded in the ZNG stream.
 
 Any such application-specific payloads not known by
-by a ZNG data receiver shall be ignored.
+a ZNG data receiver shall be ignored.
 
 The body of an application-specific control message is any UTF-8 string.
 These payloads are guaranteed to be preserved
@@ -151,7 +151,7 @@ Following a header byte of 0x80-0x83 is a "typedef".  A typedef binds
 begin at the value 23 and increase by one for each typedef. These bindings
 are scoped to the stream in which the typedef occurs.
 
-Type codes for the "scalar types" need not be defined with typedefs and
+Type codes for the "primitive types" need not be defined with typedefs and
 are predefined as follows:
 
 <table>
@@ -187,7 +187,7 @@ are predefined as follows:
 
 </td></tr> </table>
 
-A typedef is encoded as a single byte indicating the composite type code following by
+A typedef is encoded as a single byte indicating the container type code following by
 the type encoding.  This creates a binding between the implied type code
 (i.e., 23 plus the count of all previous typedefs in the stream) and the new
 type definition.
@@ -377,31 +377,31 @@ as a sequence of elements:
 Since N, the byte length of
 this sequence is known, there is no need to encode a count of the
 elements present.  Also, since the type code is implied by the typedef
-of any composite type, each value is encoded without its type code,
+of any container type, each value is encoded without its type code,
 except for elements corresponding to type "any", which are encoded
 as a "typed value" (as defined above).
 
 The concatenation of elements is encoded as a sequence of "tag-counted" values.
 A tag carries both the length information of the corresponding value as well
-a "composite bit" to differentiate between scalar values and composite values
+a "container bit" to differentiate between primitive values and container values
 without having to refer to the implied type.  This admits an efficient implementation
-for traversing the values, inclusive of recursive traversal of composite values,
+for traversing the values, inclusive of recursive traversal of container values,
 whereby the inner loop need not consult and interpret the type code of each element.
 
 The tag encodes the length N of the value and indicates whether
-it is a scalar value or a composite value.
+it is a primitive value or a container value.
 The length is offset by 1 whereby length of 0 represents an unset value
 analogous to null in JSON.
-The composite bit is 1 for composite values and 0 for scalar values.
+The container bit is 1 for container values and 0 for primitive values.
 The tag is defined as
 ```
-2*(N+1) + the composite bit
+2*(N+1) + the container bit
 ```
 and is encoded as a `uvarint`.
 
-For example, tag value 0 is an unset scalar value and tag value 1
-is an unset composite value.  Tag value 2 is a length zero scalar value,
-e.g., it could represent empty string.  Tag 3 is a length 1 scalar value,
+For example, tag value 0 is an unset primitive value and tag value 1
+is an unset container value.  Tag value 2 is a length zero primitive value,
+e.g., it could represent empty string.  Tag 3 is a length 1 primitive value,
 e.g., it would represent the boolean "true" if followed by byte value 1
 in the context of type code 0.
 
@@ -464,7 +464,7 @@ or
 ```
 where `name1`, `name2`, ... are field names as defined by the BZNG record type definitions
 and `code1`, `code2`, ... are textual type codes.  A textual type code can be either the name
-of a scalar type code from the type code table (e.g., `int64`, `time`, etc), a name that
+of a primitive type code from the type code table (e.g., `int64`, `time`, etc), a name that
 is a previously defined alias, or a
 string decimal integer referring to said table or created with a typedef that appeared
 earlier in the ZNG data stream.
@@ -539,7 +539,7 @@ grammar describing the textual type encodings is:
 ```
 
 A reference implementation of this type system is embedded in
-[zq/pkg/zeek](../../zeek).
+[zq/zng](../).
 
 
 ### 3.2 ZNG Value Messages
@@ -566,15 +566,15 @@ Here is a pseudo-grammar for typed values:
 [1] - [JavaScript character escaping rules](https://tc39.es/ecma262/#prod-EscapeSequence)
 
 A terminal value is encoded as a string of UTF-8 characters terminated
-by a semicolon (which must be escaped if it appears in the value).  A composite
-values is encoded as a left bracket followed by one or more values (terminal or
-composite) followed by a right bracket.
+by a semicolon (which must be escaped if it appears in the value).  A container
+value is encoded as a left bracket followed by one or more values (terminal or
+container) followed by a right bracket.
 Any escaped characters shall be processed and interpreted as their escaped value.
 
 Note that a terminal encoding of a typed value is accepted by this grammar, i.e.,
 a `<terminal>` can have the form `<typecode>:<elem>` for values of type `any`.
 
-Composite values are encoded as
+Container values are encoded as
 * an open bracket,
 * zero or more encoded values terminated with semicolon, and
 * a close bracket.
@@ -583,7 +583,7 @@ Any value can be specified as "unset" with the ASCII character `-`.
 This is typically used to represent columns of records where not all
 columns have been set in a given record value, though any type can be
 validly unset.  A value that is not to be interpreted as "unset"
-but is the single-character string `-`, must be escaped (e.g., `\-`).
+but is the single-character string `-`, must be escaped (e.g., `\x2d`).
 
 Note that this syntax can be scanned and parsed independent of the
 actual type definition indicated by the descriptor.  It is a semantic error
@@ -647,19 +647,19 @@ Type | Format
 
 Here are some simple examples to get the gist of the ZNG text format.
 
-Scalar types look like this and do not need typedefs:
+Primitive types look like this and do not need typedefs:
 ```
 bool
 string
 int
 ```
-Composite types look like this and do need typedefs:
+Container types look like this and do need typedefs:
 ```
 #23:vector[int]
 #24:set[bool,string]
 #25:record[x:double,y:double]
 ```
-Composite types can be embedded in other composite types by referencing
+Container types can be embedded in other container types by referencing
 an earlier-defined type code:
 ```
 #26:record[a:string,b:string,c:23]
@@ -699,7 +699,7 @@ In this example:
 
 In this way, an empty `set` and a `set` containing only a zero-length `string` can be distinguished.
 
-This scheme allows composites to be embedded in composites, e.g., a
+This scheme allows containers to be embedded in containers, e.g., a
 `record` inside of a `record` like this:
 ```
 #25:record[compass:string,degree:double]

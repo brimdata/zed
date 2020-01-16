@@ -23,8 +23,7 @@ jobs:
     steps:
       - log_date
       - checkout
-      - restore_cache:
-          key: go-mod-v1-{{ checksum "go.sum" }}
+      - run: go mod download
       - run:
           name: Go vet
           command: 'make vet'
@@ -37,10 +36,6 @@ jobs:
       - run:
           name: Build
           command: 'make build'
-      - save_cache:
-          key: go-mod-v1-{{ checksum "go.sum" }}
-          paths:
-            - /go/pkg/mod
       - persist_to_workspace:
           root: .
           paths:

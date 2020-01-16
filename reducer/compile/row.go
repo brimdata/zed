@@ -51,7 +51,7 @@ func (r *Row) Result(table *resolver.Table) *zbuf.Record {
 	var zv zcode.Bytes
 	for k, red := range r.Reducers {
 		val := reducer.Result(red)
-		columns[k] = zng.Column{Name: r.Defs[k].Target(), Type: val.Type()}
+		columns[k] = zng.Column{Name: r.Defs[k].Target(), Type: val.Type}
 		zv = val.Encode(zv)
 	}
 	d := table.GetByColumns(columns)

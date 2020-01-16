@@ -18,7 +18,7 @@ func EncodeZvals(d *Descriptor, vals []zcode.Bytes) (zcode.Bytes, error) {
 	}
 	var raw zcode.Bytes
 	for _, val := range vals {
-		raw = zcode.AppendSimple(raw, val)
+		raw = zcode.AppendPrimitive(raw, val)
 	}
 	return raw, nil
 }
@@ -27,13 +27,12 @@ func NewRawAndTsFromZeekTSV(builder *zcode.Builder, d *Descriptor, path []byte, 
 	builder.Reset()
 	columns := d.Type.Columns
 	col := 0
-	var tsVal zng.Value
-	tsVal = &zng.Unset{}
+	tsVal := zng.Value{}
 	if path != nil {
 		if columns[0].Name != "_path" {
-			return nil, nil, errors.New("no _path in column 0")
+			return nil, zng.Value{}, errors.New("no _path in column 0")
 		}
-		builder.AppendSimple(path)
+		builder.AppendPrimitive(path)
 		col++
 	}
 
@@ -42,6 +41,19 @@ func NewRawAndTsFromZeekTSV(builder *zcode.Builder, d *Descriptor, path []byte, 
 	const emptyContainer = "(empty)"
 	var start int
 	nestedCol := 0
+	appendVal := func(val []byte, typ zng.Type) error {
+		if string(val) == "-" {
+			builder.AppendPrimitive(nil)
+			return nil
+		}
+		zv, err := typ.Parse(zng.Unescape(val))
+		if err != nil {
+			return err
+		}
+		builder.AppendPrimitive(zv)
+		return nil
+	}
+
 	handleVal := func(val []byte) error {
 		if col >= len(columns) {
 			return errors.New("too many values")
@@ -56,64 +68,57 @@ func NewRawAndTsFromZeekTSV(builder *zcode.Builder, d *Descriptor, path []byte, 
 			typ = recType.Columns[nestedCol].Type
 		}
 
-		if len(val) == 1 && val[0] == '-' {
-			switch typ.(type) {
-			case *zng.TypeSet, *zng.TypeVector:
+		switch typ.(type) {
+		case *zng.TypeSet, *zng.TypeVector:
+			if string(val) == "-" {
 				builder.AppendContainer(nil)
-			default:
-				builder.AppendSimple(nil)
+				break
 			}
-		} else {
-			switch typ.(type) {
-			case *zng.TypeSet, *zng.TypeVector:
-				inner := zng.InnerType(typ)
-				builder.BeginContainer()
-				if bytes.Compare(val, []byte(emptyContainer)) != 0 {
-					cstart := 0
-					for i, ch := range val {
-						if ch == setSeparator {
-							zv, err := inner.Parse(zng.Unescape(val[cstart:i]))
-							if err != nil {
-								return err
-							}
-							builder.AppendSimple(zv)
-							cstart = i + 1
-						}
-					}
-					zv, err := inner.Parse(zng.Unescape(val[cstart:]))
-					if err != nil {
+			inner := zng.InnerType(typ)
+			builder.BeginContainer()
+			if bytes.Equal(val, []byte(emptyContainer)) {
+				builder.EndContainer()
+				break
+			}
+			cstart := 0
+			for i, ch := range val {
+				if ch == setSeparator {
+					if err := appendVal(val[cstart:i], inner); err != nil {
 						return err
 					}
-					builder.AppendSimple(zv)
+					cstart = i + 1
 				}
-				builder.EndContainer()
-			default:
-				// regular (non-container) value
-				zv, err := typ.Parse(zng.Unescape(val))
+			}
+			if err := appendVal(val[cstart:], inner); err != nil {
+				return err
+			}
+			builder.EndContainer()
+		default:
+			if err := appendVal(val, typ); err != nil {
+				return err
+			}
+			//XXX pulling out ts field should be done outside
+			// of this routine... this is severe bit rot
+			if columns[col].Name == "ts" {
+				zv, _ := zng.TypeTime.Parse(zng.Unescape(val)) // error ok to ignore as we've already parsed this
+				_, err := zng.DecodeTime(zv)
 				if err != nil {
 					return err
 				}
-				if columns[col].Name == "ts" {
-					tt := zng.TypeOfTime{}
-					tsVal, err = tt.New(zv)
-					if err != nil {
-						return err
-					}
-				}
-				builder.AppendSimple(zv)
+				tsVal = zng.Value{zng.TypeTime, zv}
+
 			}
 		}
 
 		if isRec {
 			nestedCol++
-			if nestedCol == len(recType.Columns) {
-				builder.EndContainer()
-				nestedCol = 0
-				col++
+			if nestedCol != len(recType.Columns) {
+				return nil
 			}
-		} else {
-			col++
+			builder.EndContainer()
+			nestedCol = 0
 		}
+		col++
 		return nil
 	}
 
@@ -121,18 +126,18 @@ func NewRawAndTsFromZeekTSV(builder *zcode.Builder, d *Descriptor, path []byte, 
 		if c == separator {
 			err := handleVal(data[start:i])
 			if err != nil {
-				return nil, nil, err
+				return nil, zng.Value{}, err
 			}
 			start = i + 1
 		}
 	}
 	err := handleVal(data[start:])
 	if err != nil {
-		return nil, nil, err
+		return nil, zng.Value{}, err
 	}
 
 	if col != len(d.Type.Columns) {
-		return nil, nil, errors.New("too few values")
+		return nil, zng.Value{}, errors.New("too few values")
 	}
 	return builder.Bytes(), tsVal, nil
 }
@@ -249,7 +254,7 @@ func zngParseField(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, erro
 		if zng.IsContainerType(typ) {
 			builder.AppendContainer(nil)
 		} else {
-			builder.AppendSimple(nil)
+			builder.AppendPrimitive(nil)
 		}
 		return b[2:], nil
 	}
@@ -268,7 +273,7 @@ func zngParseField(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, erro
 			if err != nil {
 				return nil, err
 			}
-			builder.AppendSimple(zv)
+			builder.AppendPrimitive(zv)
 			return b[from+1:], nil
 		case backslash:
 			e, n := zng.ParseEscape(b[from:])

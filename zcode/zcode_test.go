@@ -38,11 +38,11 @@ func TestAppendContainer(t *testing.T) {
 	}
 }
 
-func TestAppendSimple(t *testing.T) {
+func TestAppendPrimitive(t *testing.T) {
 	for _, c := range appendCases {
 		var buf []byte
 		for _, val := range c {
-			buf = AppendSimple(buf, val)
+			buf = AppendPrimitive(buf, val)
 		}
 		it := Iter(buf)
 		for _, expected := range c {

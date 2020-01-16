@@ -38,21 +38,20 @@ func (t *Text) Write(rec *zbuf.Record) error {
 	if t.ShowFields || t.ShowTypes || !t.EpochDates {
 		for k, col := range rec.Descriptor.Type.Columns {
 			var s, v string
+			value := rec.Value(k)
 			if !t.EpochDates && col.Name == "ts" && col.Type == zng.TypeTime {
-				switch tsVal := rec.ValueByColumn(k).(type) {
-				case *zng.Time:
-					ts := nano.Ts(*tsVal)
+				if value.IsUnsetOrNil() {
+					v = "-"
+				} else {
+					ts, err := zng.DecodeTime(value.Bytes)
+					if err != nil {
+						return err
+					}
 					v = nano.Ts(ts).Time().UTC().Format(time.RFC3339Nano)
-				case *zng.Unset:
-					v = tsVal.String()
-				default:
-					panic(fmt.Errorf("unexpected zng.Value type %T for a time column", tsVal))
 				}
-
 			} else {
-				body := rec.Slice(k)
-				typ := col.Type
-				v = zbuf.ZvalToZeekString(typ, body, zng.IsContainerType(typ), t.UTF8)
+				//XXX this should take value or be a value method
+				v = zbuf.ZvalToZeekString(value.Type, value.Bytes, t.UTF8)
 			}
 			if t.ShowFields {
 				s = col.Name + ":"

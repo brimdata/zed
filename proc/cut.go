@@ -76,7 +76,7 @@ func (c *Cut) cut(in *zbuf.Record) *zbuf.Record {
 			}
 			types = append(types, val.Type)
 		}
-		c.builder.Append(val.Body, zng.IsContainerType(val.Type))
+		c.builder.Append(val.Bytes, val.IsContainer())
 	}
 	if d == nil {
 		cols := c.builder.TypedColumns(types)

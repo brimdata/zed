@@ -39,7 +39,8 @@ func (w *Writer) Write(r *zbuf.Record) error {
 	if err != nil {
 		return nil
 	}
-	if err = w.writeContainer(r.Type, r.Raw); err != nil {
+	//XXX zbuf.Record needs to become a zng.Value
+	if err = w.writeContainer(zng.Value{r.Type, r.Raw}); err != nil {
 		return err
 	}
 	return w.write("\n")
@@ -50,38 +51,39 @@ func (w *Writer) write(s string) error {
 	return err
 }
 
-func (w *Writer) writeContainer(typ zng.Type, val []byte) error {
-	if val == nil {
+func (w *Writer) writeContainer(parent zng.Value) error {
+	if parent.IsUnsetOrNil() {
 		w.write("-;")
 		return nil
 	}
 	if err := w.write("["); err != nil {
 		return err
 	}
-	childType, columns := zng.ContainedType(typ)
+	childType, columns := zng.ContainedType(parent.Type)
 	if childType == nil && columns == nil {
 		return zbuf.ErrSyntax
 	}
 	k := 0
-	if len(val) > 0 {
-		for it := zcode.Iter(val); !it.Done(); {
+	if len(parent.Bytes) > 0 {
+		for it := zcode.Iter(parent.Bytes); !it.Done(); {
 			v, container, err := it.Next()
 			if err != nil {
 				return err
 			}
 			if columns != nil {
 				if k >= len(columns) {
-					return &zbuf.RecordTypeError{Name: "<record>", Type: typ.String(), Err: zbuf.ErrExtraField}
+					return &zbuf.RecordTypeError{Name: "<record>", Type: parent.Type.String(), Err: zbuf.ErrExtraField}
 				}
 				childType = columns[k].Type
 				k++
 			}
+			value := zng.Value{childType, v}
 			if container {
-				if err := w.writeContainer(childType, v); err != nil {
+				if err := w.writeContainer(value); err != nil {
 					return err
 				}
 			} else {
-				if err := w.writeValue(childType, v); err != nil {
+				if err := w.writeValue(value); err != nil {
 					return err
 				}
 			}
@@ -90,15 +92,11 @@ func (w *Writer) writeContainer(typ zng.Type, val []byte) error {
 	return w.write("]")
 }
 
-func (w *Writer) writeValue(typ zng.Type, zv zcode.Bytes) error {
-	if zv == nil {
+func (w *Writer) writeValue(v zng.Value) error {
+	if v.IsUnsetOrNil() {
 		return w.write("-;")
 	}
-	b, err := zng.Format(typ, zv)
-	if err != nil {
-		return err
-	}
-	if err := w.writeEscaped(b); err != nil {
+	if err := w.writeEscaped(v.Format()); err != nil {
 		return err
 	}
 	return w.write(";")

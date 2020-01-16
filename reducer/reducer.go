@@ -23,7 +23,7 @@ type Interface interface {
 // Result returns the Interface's result or a zng.Unset value if r is nil.
 func Result(r Interface) zng.Value {
 	if r == nil {
-		return &zng.Unset{}
+		return zng.Value{}
 	}
 	return r.Result()
 }

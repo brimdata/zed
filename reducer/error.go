@@ -12,12 +12,12 @@ type Error struct {
 }
 
 func NewError(def ast.Reducer, rec *zbuf.Record) *Error {
-	v := rec.ValueByField(def.Field)
+	v, err := rec.ValueByField(def.Field)
 	var msg string
-	if v == nil {
+	if err != nil {
 		msg = def.Field + " not found"
 	} else {
-		msg = def.Op + " applied to type " + v.Type().String()
+		msg = def.Op + " applied to type " + v.Type.String()
 	}
 	return &Error{
 		msg: msg,

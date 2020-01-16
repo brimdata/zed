@@ -229,7 +229,7 @@ func (b *ColumnBuilder) Append(leaf []byte, container bool) {
 	if container {
 		b.builder.AppendContainer(leaf)
 	} else {
-		b.builder.AppendSimple(leaf)
+		b.builder.AppendPrimitive(leaf)
 	}
 	for i := 0; i < field.containerEnds; i++ {
 		b.builder.EndContainer()

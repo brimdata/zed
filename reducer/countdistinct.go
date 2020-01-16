@@ -40,7 +40,7 @@ func (c *CountDistinct) Consume(r *zbuf.Record) {
 		return
 	}
 	//XXX this isn't right
-	v := r.Slice(i)
+	v, _ := r.Slice(i)
 	c.sketch.Insert(v)
 }
 

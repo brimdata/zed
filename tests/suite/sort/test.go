@@ -111,3 +111,85 @@ var Internal3 = test.Internal{
 	OutputFormat: "zng",
 	Expected:     test.Trim(out3),
 }
+
+const in4 = `
+#0:record[s:string]
+#1:record[notS:string]
+0:[b;]
+0:[c;]
+0:[a;]
+0:[-;]
+1:[bleah;]
+`
+
+const out4_1 = `
+#0:record[s:string]
+0:[a;]
+0:[b;]
+0:[c;]
+#1:record[notS:string]
+1:[bleah;]
+0:[-;]
+`
+
+var Internal4_1 = test.Internal{
+	Name:         "sort4_1",
+	Query:        "sort -nulls last s",
+	Input:        test.Trim(in4),
+	OutputFormat: "zng",
+	Expected:     test.Trim(out4_1),
+}
+
+const out4_2 = `
+#1:record[notS:string]
+1:[bleah;]
+#0:record[s:string]
+0:[-;]
+0:[a;]
+0:[b;]
+0:[c;]
+`
+
+var Internal4_2 = test.Internal{
+	Name:         "sort4_2",
+	Query:        "sort -nulls first s",
+	Input:        test.Trim(in4),
+	OutputFormat: "zng",
+	Expected:     test.Trim(out4_2),
+}
+
+const out4_3 = `
+#0:record[s:string]
+0:[c;]
+0:[b;]
+0:[a;]
+#1:record[notS:string]
+1:[bleah;]
+0:[-;]
+`
+
+var Internal4_3 = test.Internal{
+	Name:         "sort4_3",
+	Query:        "sort -r -nulls last s",
+	Input:        test.Trim(in4),
+	OutputFormat: "zng",
+	Expected:     test.Trim(out4_3),
+}
+
+const out4_4 = `
+#1:record[notS:string]
+1:[bleah;]
+#0:record[s:string]
+0:[-;]
+0:[c;]
+0:[b;]
+0:[a;]
+`
+
+var Internal4_4 = test.Internal{
+	Name:         "sort4_4",
+	Query:        "sort -r -nulls first s",
+	Input:        test.Trim(in4),
+	OutputFormat: "zng",
+	Expected:     test.Trim(out4_4),
+}

@@ -1,8 +1,6 @@
 package zng
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/mccanne/zq/zcode"
@@ -47,7 +45,7 @@ func parseSetTypeBody(in string) (string, Type, error) {
 		if len(types) > 1 {
 			return "", nil, fmt.Errorf("sets with multiple type parameters")
 		}
-		return rest, &TypeSet{types[0]}, nil
+		return rest, &TypeSet{innerType: types[0]}, nil
 	}
 }
 
@@ -62,59 +60,34 @@ func (t *TypeSet) Parse(in []byte) (zcode.Bytes, error) {
 	panic("zeek.TypeSet.Parse shouldn't be called")
 }
 
-func (t *TypeSet) New(zv zcode.Bytes) (Value, error) {
-	if zv == nil {
-		return &Set{typ: t, values: nil}, nil
-	}
-	v, err := t.Decode(zv)
-	if err != nil {
-		return nil, err
-	}
-	return &Set{typ: t, values: v}, nil
-}
-
-type Set struct {
-	typ    *TypeSet
-	values []Value
-}
-
-func (s *Set) String() string {
+func (t *TypeSet) StringOf(zv zcode.Bytes) string {
 	d := "set["
 	comma := ""
-	for _, item := range s.values {
-		d += comma + item.String()
+	it := zv.Iter()
+	for !it.Done() {
+		val, container, err := it.Next()
+		if container || err != nil {
+			//XXX
+			d += "ERR"
+			break
+		}
+		d += comma + t.innerType.StringOf(val)
 		comma = ","
 	}
 	d += "]"
 	return d
 }
 
-func (s *Set) Encode(dst zcode.Bytes) zcode.Bytes {
-	zv := make(zcode.Bytes, 0)
-	for _, v := range s.values {
-		zv = v.Encode(zv)
+func (t *TypeSet) Marshal(zv zcode.Bytes) (interface{}, error) {
+	// start out with zero-length container so we get "[]" instead of nil
+	vals := make([]Value, 0)
+	it := zv.Iter()
+	for !it.Done() {
+		val, _, err := it.Next()
+		if err != nil {
+			return nil, err
+		}
+		vals = append(vals, Value{t.innerType, val})
 	}
-	return zcode.AppendContainer(dst, zv)
+	return vals, nil
 }
-
-func (s *Set) Type() Type {
-	return s.typ
-}
-
-func (s *Set) Comparison(op string) (Predicate, error) {
-	return nil, errors.New("no support yet for set comparison")
-}
-
-func (s *Set) Coerce(typ Type) Value {
-	_, ok := typ.(*TypeSet)
-	if ok {
-		return s
-	}
-	return nil
-}
-
-func (s *Set) MarshalJSON() ([]byte, error) {
-	return json.Marshal(s.values)
-}
-
-func (s *Set) Elements() ([]Value, bool) { return s.values, true }

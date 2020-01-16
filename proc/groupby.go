@@ -258,7 +258,7 @@ func (g *GroupByAggregator) Consume(r *zbuf.Record) error {
 	g.builder.Reset()
 	for _, key := range g.keys {
 		keyVal := key.resolver(r)
-		g.builder.Append(keyVal.Body, zng.IsContainerType(keyVal.Type))
+		g.builder.Append(keyVal.Bytes, keyVal.IsContainer())
 	}
 	zv, err := g.builder.Encode()
 	if err != nil {
@@ -332,7 +332,7 @@ func (g *GroupByAggregator) Results(eof bool, minTs nano.Ts, maxTs nano.Ts) zbuf
 	return zbuf.NewArray(recs, span)
 }
 
-func typeMatch(typeCol []zng.TypedEncoding, rowkeys []zng.TypedEncoding) bool {
+func typeMatch(typeCol []zng.Value, rowkeys []zng.Value) bool {
 	if len(typeCol) != len(rowkeys) {
 		return false
 	}
@@ -358,13 +358,13 @@ func (g *GroupByAggregator) recordsForTable(table map[string]*GroupByRow) []*zbu
 		row := table[k]
 		var zv zcode.Bytes
 		if g.TimeBinDuration > 0 {
-			zv = zcode.AppendSimple(zv, zng.EncodeTime(row.ts))
+			zv = zcode.AppendPrimitive(zv, zng.EncodeTime(row.ts))
 		}
 		zv = append(zv, row.keyvals...)
 		for _, red := range row.reducers.Reducers {
 			// a reducer value is never a container
 			v := reducer.Result(red)
-			if zng.IsContainer(v) {
+			if v.IsContainer() {
 				panic("internal bug: reducer result cannot be a container!")
 			}
 			zv = v.Encode(zv)
@@ -399,7 +399,7 @@ func (g *GroupByAggregator) lookupDescriptor(row *GroupByRow) *zbuf.Descriptor {
 		z := reducer.Result(red)
 		cols = append(cols, zng.Column{
 			Name: row.reducers.Defs[k].Target(),
-			Type: z.Type(),
+			Type: z.Type,
 		})
 	}
 	// This could be more efficient but it's only done during group-by output...

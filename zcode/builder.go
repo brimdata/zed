@@ -54,9 +54,9 @@ func (b *Builder) AppendContainer(val []byte) {
 	b.bytes = AppendContainer(b.bytes, val)
 }
 
-// AppendSimple appends val as a simple value.
-func (b *Builder) AppendSimple(val []byte) {
-	b.bytes = AppendSimple(b.bytes, val)
+// AppendPrimitive appends val as a primitive value.
+func (b *Builder) AppendPrimitive(val []byte) {
+	b.bytes = AppendPrimitive(b.bytes, val)
 }
 
 // Bytes returns the constructed value.  It panics if the receiver has an open

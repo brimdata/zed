@@ -252,14 +252,10 @@ func (p *Parser) ParseValue(line []byte) (*zbuf.Record, error) {
 	if err != nil {
 		return nil, err
 	}
+	// XXX just pull the ts out of the field instead of doing all this arg passing
 	var ts nano.Ts
-	switch tsVal := tsVal.(type) {
-	case *zng.Time:
-		ts = nano.Ts(*tsVal)
-	case *zng.Unset:
-		ts = 0
-	default:
-		panic("bad tsVal type returned from zbuf.NewRawAndTsFromZeekTSV")
+	if _, ok := tsVal.Type.(*zng.TypeOfTime); ok {
+		ts, _ = zng.DecodeTime(tsVal.Bytes)
 	}
 	return zbuf.NewRecord(p.descriptor, ts, zv), nil
 }
