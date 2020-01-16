@@ -104,8 +104,8 @@ func TestNDJSON(t *testing.T) {
 		},
 		// Test that unicode combining characters are properly
 		// normalized.  Note that in the input string, zq interprets
-		// the \u escapes, in the output string they are part of the
-		// go string literal and interpreted by the go compiler.
+		// the \u escapes, while in the output string they are part of
+		// the go string literal and interpreted by the go compiler.
 		{
 			name:   "string with unicode combining characters",
 			input:  `{ "s": "E\u0301l escribio\u0301 un caso de prueba"}`,
