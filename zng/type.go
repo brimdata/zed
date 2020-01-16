@@ -110,10 +110,10 @@ func parseWord(in string) (string, string) {
 }
 
 // LookupType returns the Type indicated by the zeek type string.  The type string
-// may be a simple type like int, double, time, etc or it may be a set
-// or a vector, which are recusively composed of other types.  The set and vector
+// may be a primitive type like int, double, time, etc. or it may be a container type
+// (record, set or vector), which is recusively composed of other types.  The set and vector
 // type definitions are encoded in the same fashion as zeek stores them as type field
-// in a zeek file header.  Each unique compound type object is created once and
+// in a zeek file header.  Each unique container type object is created once and
 // interned so that pointer comparison can be used to determine type equality.
 func LookupType(in string) (Type, error) {
 	//XXX check if rest has junk and flag an error?
@@ -166,7 +166,7 @@ func parseType(in string) (string, Type, error) {
 	return "", nil, fmt.Errorf("unknown type: %s", word)
 }
 
-// Utilities shared by compound types (ie, set and vector)
+// Utilities shared by container types (record, set and vector).
 
 // InnerType returns the element type for set and vector types
 // or nil if the type is not a set or vector.

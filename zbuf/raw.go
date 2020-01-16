@@ -218,7 +218,7 @@ func zngParseContainer(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, 
 	b = b[1:]
 	childType, columns := zng.ContainedType(typ)
 	if childType == nil && columns == nil {
-		return nil, ErrNotScalar
+		return nil, ErrNotPrimitive
 	}
 	k := 0
 	for {

@@ -175,7 +175,7 @@ func decodeType(columns []interface{}) (string, error) {
 func decodeContainer(builder *zcode.Builder, typ zng.Type, body []interface{}) error {
 	childType, columns := zng.ContainedType(typ)
 	if childType == nil && columns == nil {
-		return zbuf.ErrNotScalar
+		return zbuf.ErrNotPrimitive
 	}
 	builder.BeginContainer()
 	for k, column := range body {
