@@ -112,14 +112,13 @@ func NewRawAndTsFromZeekTSV(builder *zcode.Builder, d *Descriptor, path []byte, 
 
 		if isRec {
 			nestedCol++
-			if nestedCol == len(recType.Columns) {
-				builder.EndContainer()
-				nestedCol = 0
-				col++
+			if nestedCol != len(recType.Columns) {
+				return nil
 			}
-		} else {
-			col++
+			builder.EndContainer()
+			nestedCol = 0
 		}
+		col++
 		return nil
 	}
 
