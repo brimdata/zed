@@ -205,8 +205,8 @@ func (r *Record) TypeCheck() error {
 var (
 	ErrMissingField = errors.New("record missing a field")
 	ErrExtraField   = errors.New("record with extra field")
-	ErrNotContainer = errors.New("primitive where container was expected")
-	ErrNotPrimitive = errors.New("container where primitive was expected")
+	ErrNotContainer = errors.New("expected container type, got primitive")
+	ErrNotPrimitive = errors.New("expected primitive type, got container")
 )
 
 func checkVector(typ *zng.TypeVector, body zcode.Bytes) error {
