@@ -17,15 +17,15 @@ func NewDoubleStreamfn(op string) Streamfn {
 	}
 }
 
-func (i *Double) Result() zng.Value {
-	return zng.NewDouble(i.fn.State)
+func (d *Double) Result() zng.Value {
+	return zng.NewDouble(d.fn.State)
 }
 
-func (i *Double) Consume(v zng.Value) error {
-	d, ok := zx.CoerceToDouble(v)
+func (d *Double) Consume(v zng.Value) error {
+	dd, ok := zx.CoerceToDouble(v)
 	if !ok {
 		return zbuf.ErrTypeMismatch
 	}
-	i.fn.Update(float64(d))
+	d.fn.Update(dd)
 	return nil
 }

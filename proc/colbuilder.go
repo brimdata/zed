@@ -215,32 +215,32 @@ func sameRecord(names1, names2 []string) bool {
 	return true
 }
 
-func (b *ColumnBuilder) Reset() {
-	b.builder.Reset()
-	b.curField = 0
+func (c *ColumnBuilder) Reset() {
+	c.builder.Reset()
+	c.curField = 0
 }
 
-func (b *ColumnBuilder) Append(leaf []byte, container bool) {
-	field := b.fields[b.curField]
-	b.curField++
+func (c *ColumnBuilder) Append(leaf []byte, container bool) {
+	field := c.fields[c.curField]
+	c.curField++
 	for range field.containerBegins {
-		b.builder.BeginContainer()
+		c.builder.BeginContainer()
 	}
 	if container {
-		b.builder.AppendContainer(leaf)
+		c.builder.AppendContainer(leaf)
 	} else {
-		b.builder.AppendPrimitive(leaf)
+		c.builder.AppendPrimitive(leaf)
 	}
 	for i := 0; i < field.containerEnds; i++ {
-		b.builder.EndContainer()
+		c.builder.EndContainer()
 	}
 }
 
-func (b *ColumnBuilder) Encode() (zcode.Bytes, error) {
-	if b.curField != len(b.fields) {
+func (c *ColumnBuilder) Encode() (zcode.Bytes, error) {
+	if c.curField != len(c.fields) {
 		return nil, errors.New("did not receive enough columns")
 	}
-	return b.builder.Bytes(), nil
+	return c.builder.Bytes(), nil
 }
 
 // A ColumnBuilder understands the shape of a sequence of FieldExprs
@@ -248,7 +248,7 @@ func (b *ColumnBuilder) Encode() (zcode.Bytes, error) {
 // TypedColumns takes an array of zng.Types for the individual fields
 // and constructs an array of zng.Columns that reflects the fullly
 // typed structure.  This is suitable for e.g. allocating a descriptor.
-func (b *ColumnBuilder) TypedColumns(types []zng.Type) []zng.Column {
+func (c *ColumnBuilder) TypedColumns(types []zng.Type) []zng.Column {
 	type rec struct {
 		name string
 		cols []zng.Column
@@ -257,7 +257,7 @@ func (b *ColumnBuilder) TypedColumns(types []zng.Type) []zng.Column {
 	stack := make([]*rec, 1)
 	stack[0] = current
 
-	for i, field := range b.fields {
+	for i, field := range c.fields {
 		for _, name := range field.containerBegins {
 			current = &rec{name, nil}
 			stack = append(stack, current)

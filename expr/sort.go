@@ -97,31 +97,31 @@ func NewRecordSlice(sorter SortFn) *RecordSlice {
 }
 
 // Swap implements sort.Interface for *Record slices.
-func (s *RecordSlice) Len() int { return len(s.records) }
+func (r *RecordSlice) Len() int { return len(r.records) }
 
 // Swap implements sort.Interface for *Record slices.
-func (s *RecordSlice) Swap(i, j int) { s.records[i], s.records[j] = s.records[j], s.records[i] }
+func (r *RecordSlice) Swap(i, j int) { r.records[i], r.records[j] = r.records[j], r.records[i] }
 
 // Less implements sort.Interface for *Record slices.
-func (s *RecordSlice) Less(i, j int) bool {
-	return s.sorter(s.records[i], s.records[j]) <= 0
+func (r *RecordSlice) Less(i, j int) bool {
+	return r.sorter(r.records[i], r.records[j]) <= 0
 }
 
 // Push adds x as element Len(). Implements heap.Interface.
-func (s *RecordSlice) Push(r interface{}) {
-	s.records = append(s.records, r.(*zbuf.Record))
+func (r *RecordSlice) Push(rec interface{}) {
+	r.records = append(r.records, rec.(*zbuf.Record))
 }
 
 // Pop removes the first element in the array. Implements heap.Interface.
-func (s *RecordSlice) Pop() interface{} {
-	rec := s.records[len(s.records)-1]
-	s.records = s.records[:len(s.records)-1]
+func (r *RecordSlice) Pop() interface{} {
+	rec := r.records[len(r.records)-1]
+	r.records = r.records[:len(r.records)-1]
 	return rec
 }
 
 // Index returns the ith record.
-func (s *RecordSlice) Index(i int) *zbuf.Record {
-	return s.records[i]
+func (r *RecordSlice) Index(i int) *zbuf.Record {
+	return r.records[i]
 }
 
 func lookupSorter(typ zng.Type) comparefn {

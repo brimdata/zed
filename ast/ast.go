@@ -94,12 +94,12 @@ type (
 // booleanEpxrNode() ensures that only boolean expression nodes can be
 // assigned to a BooleanExpr.
 //
-func (e *LogicalAnd) booleanExprNode()     {}
-func (e *LogicalOr) booleanExprNode()      {}
-func (e *LogicalNot) booleanExprNode()     {}
-func (e *BooleanLiteral) booleanExprNode() {}
-func (e *CompareAny) booleanExprNode()     {}
-func (e *CompareField) booleanExprNode()   {}
+func (*LogicalAnd) booleanExprNode()     {}
+func (*LogicalOr) booleanExprNode()      {}
+func (*LogicalNot) booleanExprNode()     {}
+func (*BooleanLiteral) booleanExprNode() {}
+func (*CompareAny) booleanExprNode()     {}
+func (*CompareField) booleanExprNode()   {}
 
 // A FieldExpr is any expression that refers to a field.
 type (
@@ -246,18 +246,18 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 	return err
 }
 
-func (p *SequentialProc) ProcNode() {}
-func (p *ParallelProc) ProcNode()   {}
-func (p *SortProc) ProcNode()       {}
-func (p *CutProc) ProcNode()        {}
-func (p *HeadProc) ProcNode()       {}
-func (p *TailProc) ProcNode()       {}
-func (p *PassProc) ProcNode()       {}
-func (p *FilterProc) ProcNode()     {}
-func (p *UniqProc) ProcNode()       {}
-func (p *ReducerProc) ProcNode()    {}
-func (p *GroupByProc) ProcNode()    {}
-func (p *TopProc) ProcNode()        {}
+func (*SequentialProc) ProcNode() {}
+func (*ParallelProc) ProcNode()   {}
+func (*SortProc) ProcNode()       {}
+func (*CutProc) ProcNode()        {}
+func (*HeadProc) ProcNode()       {}
+func (*TailProc) ProcNode()       {}
+func (*PassProc) ProcNode()       {}
+func (*FilterProc) ProcNode()     {}
+func (*UniqProc) ProcNode()       {}
+func (*ReducerProc) ProcNode()    {}
+func (*GroupByProc) ProcNode()    {}
+func (*TopProc) ProcNode()        {}
 
 // A Reducer is an AST node that represents any of the boom reducers.  The Op
 // parameter indicates the specific reducer while the Field parameter indicates
