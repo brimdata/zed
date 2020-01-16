@@ -24,8 +24,8 @@ var version = "unknown"
 
 type errInvalidFile string
 
-func (reason errInvalidFile) Error() string {
-	return fmt.Sprintf("invalid file %s", string(reason))
+func (e errInvalidFile) Error() string {
+	return fmt.Sprintf("invalid file %s", e)
 }
 
 var Zq = &charm.Spec{

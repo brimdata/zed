@@ -13,7 +13,7 @@ type noClose struct {
 	io.Writer
 }
 
-func (p *noClose) Close() error {
+func (*noClose) Close() error {
 	return nil
 }
 
