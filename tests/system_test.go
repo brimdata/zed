@@ -23,6 +23,8 @@ func TestInternal(t *testing.T) {
 				require.NotNil(t, err, "expected an error")
 				is := errors.Is(err, d.ExpectedErr)
 				require.True(t, is, "not the expected error: %s", err)
+			} else {
+				assert.NoError(t, err)
 			}
 			assert.Exactly(t, d.Expected, results, "Wrong query results")
 		})
