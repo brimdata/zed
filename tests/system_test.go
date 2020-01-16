@@ -19,13 +19,7 @@ func TestInternal(t *testing.T) {
 	for _, d := range internals {
 		t.Run(d.Name, func(t *testing.T) {
 			results, err := d.Run()
-			if d.ExpectedErr != nil {
-				require.NotNil(t, err, "expected an error")
-				is := errors.Is(err, d.ExpectedErr)
-				require.True(t, is, "not the expected error: %s", err)
-			} else {
-				assert.NoError(t, err)
-			}
+			assert.True(t, errors.Is(err, d.ExpectedErr), "expected %v error, got %v", d.ExpectedErr, err)
 			assert.Exactly(t, d.Expected, results, "Wrong query results")
 		})
 	}
