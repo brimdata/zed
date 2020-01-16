@@ -226,7 +226,11 @@ func (b *ColumnBuilder) Append(leaf []byte, container bool) {
 	for range field.containerBegins {
 		b.builder.BeginContainer()
 	}
-	b.builder.Append(leaf, container)
+	if container {
+		b.builder.AppendContainer(leaf)
+	} else {
+		b.builder.AppendPrimitive(leaf)
+	}
 	for i := 0; i < field.containerEnds; i++ {
 		b.builder.EndContainer()
 	}
@@ -236,7 +240,7 @@ func (b *ColumnBuilder) Encode() (zcode.Bytes, error) {
 	if b.curField != len(b.fields) {
 		return nil, errors.New("did not receive enough columns")
 	}
-	return b.builder.Encode(), nil
+	return b.builder.Bytes(), nil
 }
 
 // A ColumnBuilder understands the shape of a sequence of FieldExprs
