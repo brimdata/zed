@@ -105,54 +105,54 @@ func (p *FilterProc) Copy() Proc {
 	}
 }
 
-func (p *LogicalAnd) Copy() BooleanExpr {
+func (b *LogicalAnd) Copy() BooleanExpr {
 	return &LogicalAnd{
-		Node:  Node{p.Op},
-		Left:  p.Left.Copy(),
-		Right: p.Right.Copy(),
+		Node:  Node{b.Op},
+		Left:  b.Left.Copy(),
+		Right: b.Right.Copy(),
 	}
 }
 
-func (p *LogicalOr) Copy() BooleanExpr {
+func (b *LogicalOr) Copy() BooleanExpr {
 	return &LogicalOr{
-		Node:  Node{p.Op},
-		Left:  p.Left.Copy(),
-		Right: p.Right.Copy(),
+		Node:  Node{b.Op},
+		Left:  b.Left.Copy(),
+		Right: b.Right.Copy(),
 	}
 }
 
-func (p *LogicalNot) Copy() BooleanExpr {
+func (b *LogicalNot) Copy() BooleanExpr {
 	return &LogicalNot{
-		Node: Node{p.Op},
-		Expr: p.Expr.Copy(),
+		Node: Node{b.Op},
+		Expr: b.Expr.Copy(),
 	}
 }
 
-func (p *BooleanLiteral) Copy() BooleanExpr {
-	copy := *p
+func (b *BooleanLiteral) Copy() BooleanExpr {
+	copy := *b
 	return &copy
 }
 
-func (p *CompareAny) Copy() BooleanExpr {
-	copy := *p
+func (b *CompareAny) Copy() BooleanExpr {
+	copy := *b
 	return &copy
 }
 
-func (p *CompareField) Copy() BooleanExpr {
+func (b *CompareField) Copy() BooleanExpr {
 	return &CompareField{
-		Node:       Node{p.Op},
-		Comparator: p.Comparator,
-		Field:      p.Field.Copy(),
-		Value:      p.Value,
+		Node:       Node{b.Op},
+		Comparator: b.Comparator,
+		Field:      b.Field.Copy(),
+		Value:      b.Value,
 	}
 }
 
-func (p *FieldRead) Copy() FieldExpr {
-	copy := *p
+func (f *FieldRead) Copy() FieldExpr {
+	copy := *f
 	return &copy
 }
 
-func (p *FieldCall) Copy() FieldExpr {
-	copy := *p
+func (f *FieldCall) Copy() FieldExpr {
+	copy := *f
 	return &copy
 }

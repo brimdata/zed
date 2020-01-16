@@ -23,17 +23,17 @@ var (
 type Bytes []byte
 
 // Iter returns an Iter for the receiver.
-func (e Bytes) Iter() Iter {
-	return Iter(e)
+func (b Bytes) Iter() Iter {
+	return Iter(b)
 }
 
 // String returns a string representation of the receiver.
-func (e Bytes) String() string {
-	b, err := e.build(nil)
+func (b Bytes) String() string {
+	buf, err := b.build(nil)
 	if err != nil {
 		panic("zcode encoding has bad format: " + err.Error())
 	}
-	return string(b)
+	return string(buf)
 }
 
 const hex = "0123456789abcdef"
@@ -52,39 +52,37 @@ func appendBytes(b, v []byte) []byte {
 	return b
 }
 
-func (e Bytes) build(b []byte) ([]byte, error) {
-	for it := Iter(e); !it.Done(); {
+func (b Bytes) build(dst []byte) ([]byte, error) {
+	for it := b.Iter(); !it.Done(); {
 		v, container, err := it.Next()
 		if err != nil {
 			return nil, err
 		}
 		if container {
 			if v == nil {
-				b = append(b, '(')
-				b = append(b, '*')
-				b = append(b, ')')
+				dst = append(dst, "(*)"...)
 				continue
 			}
-			b = append(b, '[')
-			b, err = v.build(b)
+			dst = append(dst, '[')
+			dst, err = v.build(dst)
 			if err != nil {
 				return nil, err
 			}
-			b = append(b, ']')
+			dst = append(dst, ']')
 		} else {
-			b = append(b, '(')
-			b = appendBytes(b, v)
-			b = append(b, ')')
+			dst = append(dst, '(')
+			dst = appendBytes(dst, v)
+			dst = append(dst, ')')
 		}
 	}
-	return b, nil
+	return dst, nil
 }
 
 // ContainerBody returns the body of the receiver, which must hold a single
 // container.  If the receiver is not a container, ErrNotContainer is returned.
 // If the receiver is not a single container, ErrNotSingleton is returned.
-func (e Bytes) ContainerBody() (Bytes, error) {
-	it := Iter(e)
+func (b Bytes) ContainerBody() (Bytes, error) {
+	it := b.Iter()
 	body, container, err := it.Next()
 	if err != nil {
 		return nil, err

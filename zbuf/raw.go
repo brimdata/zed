@@ -41,6 +41,19 @@ func NewRawAndTsFromZeekTSV(builder *zcode.Builder, d *Descriptor, path []byte, 
 	const emptyContainer = "(empty)"
 	var start int
 	nestedCol := 0
+	appendVal := func(val []byte, typ zng.Type) error {
+		if string(val) == "-" {
+			builder.AppendPrimitive(nil)
+			return nil
+		}
+		zv, err := typ.Parse(zng.Unescape(val))
+		if err != nil {
+			return err
+		}
+		builder.AppendPrimitive(zv)
+		return nil
+	}
+
 	handleVal := func(val []byte) error {
 		if col >= len(columns) {
 			return errors.New("too many values")
@@ -55,66 +68,57 @@ func NewRawAndTsFromZeekTSV(builder *zcode.Builder, d *Descriptor, path []byte, 
 			typ = recType.Columns[nestedCol].Type
 		}
 
-		if len(val) == 1 && val[0] == '-' {
-			switch typ.(type) {
-			case *zng.TypeSet, *zng.TypeVector:
+		switch typ.(type) {
+		case *zng.TypeSet, *zng.TypeVector:
+			if string(val) == "-" {
 				builder.AppendContainer(nil)
-			default:
-				builder.AppendPrimitive(nil)
+				break
 			}
-		} else {
-			switch typ.(type) {
-			case *zng.TypeSet, *zng.TypeVector:
-				inner := zng.InnerType(typ)
-				builder.BeginContainer()
-				if bytes.Compare(val, []byte(emptyContainer)) != 0 {
-					cstart := 0
-					for i, ch := range val {
-						if ch == setSeparator {
-							zv, err := inner.Parse(zng.Unescape(val[cstart:i]))
-							if err != nil {
-								return err
-							}
-							builder.AppendPrimitive(zv)
-							cstart = i + 1
-						}
-					}
-					zv, err := inner.Parse(zng.Unescape(val[cstart:]))
-					if err != nil {
+			inner := zng.InnerType(typ)
+			builder.BeginContainer()
+			if bytes.Equal(val, []byte(emptyContainer)) {
+				builder.EndContainer()
+				break
+			}
+			cstart := 0
+			for i, ch := range val {
+				if ch == setSeparator {
+					if err := appendVal(val[cstart:i], inner); err != nil {
 						return err
 					}
-					builder.AppendPrimitive(zv)
+					cstart = i + 1
 				}
-				builder.EndContainer()
-			default:
-				// regular (non-container) value
-				zv, err := typ.Parse(zng.Unescape(val))
+			}
+			if err := appendVal(val[cstart:], inner); err != nil {
+				return err
+			}
+			builder.EndContainer()
+		default:
+			if err := appendVal(val, typ); err != nil {
+				return err
+			}
+			//XXX pulling out ts field should be done outside
+			// of this routine... this is severe bit rot
+			if columns[col].Name == "ts" {
+				zv, _ := zng.TypeTime.Parse(zng.Unescape(val)) // error ok to ignore as we've already parsed this
+				_, err := zng.DecodeTime(zv)
 				if err != nil {
 					return err
 				}
-				//XXX pulling out ts field should be done outside
-				// of this routine... this is severe bit rot
-				if columns[col].Name == "ts" {
-					_, err := zng.DecodeTime(zv)
-					if err != nil {
-						return err
-					}
-					tsVal = zng.Value{zng.TypeTime, zv}
-				}
-				builder.AppendPrimitive(zv)
+				tsVal = zng.Value{zng.TypeTime, zv}
+
 			}
 		}
 
 		if isRec {
 			nestedCol++
-			if nestedCol == len(recType.Columns) {
-				builder.EndContainer()
-				nestedCol = 0
-				col++
+			if nestedCol != len(recType.Columns) {
+				return nil
 			}
-		} else {
-			col++
+			builder.EndContainer()
+			nestedCol = 0
 		}
+		col++
 		return nil
 	}
 

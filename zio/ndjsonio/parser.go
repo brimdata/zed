@@ -48,27 +48,27 @@ type stubTypeOf struct{}
 
 var stubType = &stubTypeOf{}
 
-func (t *stubTypeOf) String() string {
+func (*stubTypeOf) String() string {
 	return "none"
 }
 
-func (t *stubTypeOf) Parse(in []byte) (zcode.Bytes, error) {
+func (*stubTypeOf) Parse(in []byte) (zcode.Bytes, error) {
 	return nil, nil
 }
 
-func (t *stubTypeOf) Format(value []byte) (interface{}, error) {
+func (*stubTypeOf) Format(value []byte) (interface{}, error) {
 	return "none", nil
 }
 
-func (t *stubTypeOf) StringOf(zv zcode.Bytes) string {
+func (*stubTypeOf) StringOf(zv zcode.Bytes) string {
 	return "-"
 }
 
-func (t *stubTypeOf) Marshal(zv zcode.Bytes) (interface{}, error) {
+func (*stubTypeOf) Marshal(zv zcode.Bytes) (interface{}, error) {
 	return nil, nil
 }
 
-func (t *stubTypeOf) Coerce(zv zcode.Bytes, typ zng.Type) zcode.Bytes {
+func (*stubTypeOf) Coerce(zv zcode.Bytes, typ zng.Type) zcode.Bytes {
 	return nil
 }
 
