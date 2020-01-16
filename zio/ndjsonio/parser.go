@@ -210,7 +210,11 @@ func (p *Parser) jsonParseString(b []byte) (zng.Type, error) {
 	if err != nil {
 		return nil, err
 	}
-	p.builder.AppendPrimitive(zng.Unescape(b))
+	s, err := zng.TypeString.Parse(b)
+	if err != nil {
+		return nil, err
+	}
+	p.builder.AppendPrimitive(s)
 	return zng.TypeString, nil
 }
 
