@@ -257,9 +257,9 @@ function peg$parse(input, options) {
       peg$c46 = "false",
       peg$c47 = peg$literalExpectation("false", false),
       peg$c48 = function() { return makeLiteral("bool", "false") },
-      peg$c49 = "nil",
-      peg$c50 = peg$literalExpectation("nil", false),
-      peg$c51 = function() { return makeLiteral("unset", "") },
+      peg$c49 = "null",
+      peg$c50 = peg$literalExpectation("null", false),
+      peg$c51 = function() { return makeLiteral("null", "") },
       peg$c52 = function(first, rest) {
             let fp =  makeSequentialProc(first)
             if ((rest)) {
@@ -1685,7 +1685,7 @@ function peg$parse(input, options) {
                           s1 = peg$FAILED;
                         }
                         if (s1 !== peg$FAILED) {
-                          s2 = peg$parseunsetLiteral();
+                          s2 = peg$parsenullLiteral();
                           if (s2 !== peg$FAILED) {
                             peg$savedPos = s0;
                             s1 = peg$c41(s2);
@@ -1802,13 +1802,13 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseunsetLiteral() {
+  function peg$parsenullLiteral() {
     var s0, s1;
 
     s0 = peg$currPos;
-    if (input.substr(peg$currPos, 3) === peg$c49) {
+    if (input.substr(peg$currPos, 4) === peg$c49) {
       s1 = peg$c49;
-      peg$currPos += 3;
+      peg$currPos += 4;
     } else {
       s1 = peg$FAILED;
       if (peg$silentFails === 0) { peg$fail(peg$c50); }

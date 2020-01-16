@@ -157,7 +157,7 @@ searchValue
       RETURN(makeLiteral("int", v))
     }
   / !(searchKeywords _) v:booleanLiteral { RETURN(v) }
-  / !(searchKeywords _) v:unsetLiteral { RETURN(v) }
+  / !(searchKeywords _) v:nullLiteral { RETURN(v) }
   / !((searchKeywords) _) v:searchWord {
       IF(reglob.IsGlobby(ASSERT_STRING(v))) {
          INIT_ASSIGN_VAR(re, reglob.Reglob(ASSERT_STRING(v)))
@@ -175,8 +175,8 @@ booleanLiteral
   = "true"           { RETURN(makeLiteral("bool", "true")) }
   / "false"          { RETURN(makeLiteral("bool", "false")) }
 
-unsetLiteral
-  = "nil"           { RETURN(makeLiteral("unset", "")) }
+nullLiteral
+  = "null"           { RETURN(makeLiteral("null", "")) }
 
 procList
   = first:procChain rest:parallelChain* {
