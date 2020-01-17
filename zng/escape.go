@@ -2,6 +2,7 @@ package zng
 
 import (
 	"bytes"
+	"unicode"
 	"unicode/utf8"
 	"unsafe"
 )
@@ -28,18 +29,28 @@ func Escape(data []byte) string {
 
 // EscapeUTF8 does the same non-standard formatting of mixed-binary strings
 // that zeek does.  There is no way to disambiguate between random binary data
-// and a deliberate utf-8 string so it's left to the "presenation layer" to decide
-// how to format the data.  This would be remedied if a zeek string were a UTF-8
-// string and zeek had a bytes type to represent non-string data.  It is documented
-// as on option in the zeek ascii writer here:
+// and a deliberate utf-8 string so it's left to the "presenation layer" to
+// decide how to format the data.  This is not an issue for the ZNG types
+// "string" (which must always be valid UTF-8) and "bytes" (which is defined
+// to be an anonymous buffer of bytes and hence not treated as text).  But
+// data coming from legacy Zeek logs maps to the "bstring" type which is
+// treated as UTF-8 when possible but which may not always contain valid
+// UTF-8.
+//
+// For comparison, the enable_utf_8 option in the Zeek ascii writer governs
+// whether characters that are not printable ascii are escaped or are
+// interpreted as UTF-8:
 // https://docs.zeek.org/en/stable/scripts/base/frameworks/logging/writers/ascii.zeek.html#id-LogAscii::enable_utf_8
-// It doesn't seem to be documented, but in one of the github issues, the zeek
-// json writer apparently alway allow UTF-8 code points through unescaped.
-func EscapeUTF8(data []byte) string {
+// The Zeek JSON writer assumes UTF-8 encoding and does not escape valid UTF-8.
+//
+// This function is used to escape non-printable characters with \x syntax.
+// If invalidOnly is false, all non-printable characters are escaped.  If
+// invalidOnly is true, only bytes that cannot be decoded as UTF-8 are escaped.
+func EscapeUTF8(data []byte, invalidOnly bool) string {
 	var out []byte
 	var start int
 	for i, r := range *(*string)(unsafe.Pointer(&data)) {
-		if r < 0x20 || r == 0x7f || r == utf8.RuneError {
+		if !unicode.IsPrint(r) && (!invalidOnly || r == utf8.RuneError) {
 			out = append(out, data[start:i]...)
 			c := data[i]
 			out = append(out, '\\', 'x', hexdigits[c>>4], hexdigits[c&0xf])

@@ -21,6 +21,7 @@ var internals = []test.Internal{
 	cut.Internal,
 	format.Internal,
 	format.JsonTypes,
+	format.JsonString,
 	input.JSON,
 	input.Backslash,
 	errors.DuplicateFields,

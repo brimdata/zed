@@ -43,5 +43,5 @@ func (t *TypeOfString) StringOf(zv zcode.Bytes) string {
 
 func (t *TypeOfString) Marshal(zv zcode.Bytes) (interface{}, error) {
 	// XXX this should be done by ZNG bstring, not string
-	return EscapeUTF8(zv), nil
+	return EscapeUTF8(zv, true), nil
 }
