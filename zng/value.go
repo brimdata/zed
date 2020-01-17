@@ -36,7 +36,7 @@ func NewValue(typ, val string) (Value, error) {
 
 // Parse translates an Literal into a Value.
 func Parse(v ast.Literal) (Value, error) {
-	if v.Type == "unset" {
+	if v.Type == "null" {
 		return Value{}, nil
 	}
 	typeMapMutex.RLock()

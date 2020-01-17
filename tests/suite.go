@@ -34,6 +34,8 @@ var internals = []test.Internal{
 	filter.EscapedEqual,
 	filter.EscapedAsterisk,
 	filter.UnescapedAsterisk,
+	filter.NullWithNonexistentField,
+	filter.NullWithUnsetField,
 	sort.Internal1,
 	sort.Internal2,
 	sort.Internal3,

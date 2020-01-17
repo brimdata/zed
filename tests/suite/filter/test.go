@@ -8,6 +8,8 @@ const in = `
 #0:record[s:string]
 0:[A=B;]
 0:[A=*;]
+0:[-;]
+0:[;]
 `
 
 const out1 = `
@@ -48,4 +50,21 @@ var UnescapedAsterisk = test.Internal{
 	Input:        test.Trim(in),
 	OutputFormat: "zng",
 	Expected:     test.Trim(out3),
+}
+
+var NullWithNonexistentField = test.Internal{
+	Name:     "null with nonexistent field",
+	Query:    "not (t=null or t!=null)",
+	Input:    in,
+	Expected: test.Trim(in),
+}
+
+var NullWithUnsetField = test.Internal{
+	Name:  "null with unset field",
+	Query: "s=null",
+	Input: in,
+	Expected: test.Trim(`
+#0:record[s:string]
+0:[-;]
+`),
 }

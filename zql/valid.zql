@@ -26,3 +26,4 @@ foo\x11bar
 foo\x11\bar
 *
 *abc*
+field=null
