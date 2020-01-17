@@ -46,7 +46,7 @@ func NewRawAndTsFromZeekTSV(builder *zcode.Builder, d *Descriptor, path []byte, 
 			builder.AppendPrimitive(nil)
 			return nil
 		}
-		zv, err := typ.Parse(zng.Unescape(val))
+		zv, err := typ.Parse(val)
 		if err != nil {
 			return err
 		}
@@ -100,7 +100,7 @@ func NewRawAndTsFromZeekTSV(builder *zcode.Builder, d *Descriptor, path []byte, 
 			//XXX pulling out ts field should be done outside
 			// of this routine... this is severe bit rot
 			if columns[col].Name == "ts" {
-				zv, _ := zng.TypeTime.Parse(zng.Unescape(val)) // error ok to ignore as we've already parsed this
+				zv, _ := zng.TypeTime.Parse(val) // error ok to ignore as we've already parsed this
 				_, err := zng.DecodeTime(zv)
 				if err != nil {
 					return err
@@ -269,7 +269,7 @@ func zngParseField(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, erro
 			if zng.IsContainerType(typ) {
 				return nil, ErrNotContainer
 			}
-			zv, err := typ.Parse(zng.Unescape(b[:to]))
+			zv, err := typ.Parse(b[:to])
 			if err != nil {
 				return nil, err
 			}
