@@ -31,7 +31,7 @@ func appendZvalFromZeek(dst zcode.Bytes, typ zng.Type, val []byte) zcode.Bytes {
 		zv := make(zcode.Bytes, 0)
 		if !bytes.Equal(val, []byte(empty)) {
 			for _, v := range bytes.Split(val, []byte{setSeparator}) {
-				body, _ := inner.Parse(zng.Unescape(v))
+				body, _ := inner.Parse(v)
 				zv = zcode.AppendPrimitive(zv, body)
 			}
 		}
