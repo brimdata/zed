@@ -29,7 +29,7 @@ func Escape(data []byte) string {
 
 // EscapeUTF8 does the same non-standard formatting of mixed-binary strings
 // that zeek does.  There is no way to disambiguate between random binary data
-// and a deliberate utf-8 string so it's left to the "presenation layer" to
+// and a deliberate utf-8 string so it's left to the "presentation layer" to
 // decide how to format the data.  This is not an issue for the ZNG types
 // "string" (which must always be valid UTF-8) and "bytes" (which is defined
 // to be an anonymous buffer of bytes and hence not treated as text).  But
