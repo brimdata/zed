@@ -26,9 +26,9 @@ func CopyTypeRecord(id int, r *TypeRecord) *TypeRecord {
 	}
 }
 
-//XXX this should take ID as arg
 func NewTypeRecord(id int, columns []Column) *TypeRecord {
 	r := &TypeRecord{
+		ID:      id,
 		Columns: columns,
 		TsCol:   -1,
 		Key:     ColumnString("", columns, ""), //XXX
@@ -38,13 +38,11 @@ func NewTypeRecord(id int, columns []Column) *TypeRecord {
 }
 
 //XXX
-func RecordString(columns []Column) string {
+func TypeRecordString(columns []Column) string {
 	return ColumnString("record[", columns, "]")
 }
 
 func (t *TypeRecord) String() string {
-	// XXX this needs review
-	//return ColumnString("", t.Columns, "")
 	return ColumnString("record[", t.Columns, "]")
 }
 
@@ -58,13 +56,6 @@ func (t *TypeRecord) UnmarshalJSON(data []byte) error {
 	}
 	Typify(t.Context, t.Columns)
 	return nil
-}
-
-// FinishUnmarsal is called after the Column types have been filled in
-// by the type resolver.
-func (t *TypeRecord) FinishUnmarsal(data []byte) {
-	t.Key = RecordString(t.Columns)
-	t.createLUT()
 }
 
 //XXX we shouldn't need this... tests are using it

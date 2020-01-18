@@ -81,7 +81,7 @@ func (c *Context) UnmarshalJSON(in []byte) error {
 		case *zng.TypeRecord:
 			typ.ID = id
 			//XXX get rid of typ.Key?
-			typ.Key = zng.RecordString(typ.Columns)
+			typ.Key = zng.TypeRecordString(typ.Columns)
 			c.lut[typ.Key] = id
 			c.table[id] = typ
 		case *zng.TypeSet:
@@ -143,7 +143,7 @@ func (c *Context) Lookup(td int) *zng.TypeRecord {
 // same record pointer.  If the type doesn't exist, it's created, stored,
 // and returned.
 func (c *Context) LookupByColumns(columns []zng.Column) *zng.TypeRecord {
-	key := zng.RecordString(columns)
+	key := zng.TypeRecordString(columns)
 	c.mu.RLock()
 	id, ok := c.lut[key]
 	c.mu.RUnlock()
