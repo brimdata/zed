@@ -41,6 +41,10 @@ func (t *TypeOfInt) Parse(in []byte) (zcode.Bytes, error) {
 	return EncodeInt(i), nil
 }
 
+func (t *TypeOfInt) Id() int {
+	return IdInt64
+}
+
 func (t *TypeOfInt) String() string {
 	return "int"
 }

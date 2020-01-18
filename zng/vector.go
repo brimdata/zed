@@ -7,7 +7,13 @@ import (
 )
 
 type TypeVector struct {
+	Context
+	ID   int
 	Type Type
+}
+
+func (t *TypeVector) Id() int {
+	return t.ID
 }
 
 func (t *TypeVector) String() string {

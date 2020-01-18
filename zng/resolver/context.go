@@ -26,7 +26,8 @@ type Context struct {
 
 func NewContext() *Context {
 	c := &Context{
-		table: make([]zng.Type, 0),
+		//XXX hack... leave blanks for primitive types... will fix this later
+		table: make([]zng.Type, 23),
 		lut:   make(map[string]int),
 	}
 	c.caches.New = func() interface{} {
@@ -37,84 +38,162 @@ func NewContext() *Context {
 
 // Row is a structure used to organize the generic type table
 // into type-specific subcomponents by category name.
-type Row struct {
-	Category string      `json:"name"`
-	Type     interface{} `json:"type"`
+type Alias struct {
+	Name string
+	Id   int
+}
+
+const (
+	TypeDefRecord = 0x80
+	TypeDefArray  = 0x81
+	TypeDefSet    = 0x82
+	TypeDefAlias  = 0x83
+)
+
+// XXX for now, we marshal into this data structure to represent the entire
+// type table.  After we update the ZNG implementation to use typedefs, we
+// will write a context table as BZNG.
+type TypeDef struct {
+	Id      int
+	Code    int
+	Aliases []Alias
+}
+
+func setTypeDef(id int, t *zng.TypeSet) TypeDef {
+	return TypeDef{
+		Id:      id,
+		Code:    TypeDefSet,
+		Aliases: []Alias{Alias{"set", t.InnerType.Id()}},
+	}
+}
+
+func vectorTypeDef(id int, t *zng.TypeVector) TypeDef {
+	return TypeDef{
+		Id:      id,
+		Code:    TypeDefArray,
+		Aliases: []Alias{Alias{"array", t.Type.Id()}},
+	}
+}
+
+func recordTypeDef(id int, t *zng.TypeRecord) TypeDef {
+	var aliases []Alias
+	for _, col := range t.Columns {
+		aliases = append(aliases, Alias{col.Name, col.Type.Id()})
+	}
+	return TypeDef{
+		Id:      id,
+		Code:    TypeDefRecord,
+		Aliases: aliases,
+	}
+}
+
+func (c *Context) makeSetType(id int, aliases []Alias) (*zng.TypeSet, error) {
+	innerID := aliases[0].Id
+	typ, err := c.lookupType(innerID)
+	if err != nil {
+		return nil, err
+	}
+	return &zng.TypeSet{Context: c, ID: id, InnerType: typ}, nil
+}
+
+func (c *Context) makeVectorType(id int, aliases []Alias) (*zng.TypeVector, error) {
+	innerID := aliases[0].Id
+	typ, err := c.lookupType(innerID)
+	if err != nil {
+		return nil, err
+	}
+	return &zng.TypeVector{Context: c, ID: id, Type: typ}, nil
+}
+
+func (c *Context) makeRecordType(id int, aliases []Alias) (*zng.TypeRecord, error) {
+	var columns []zng.Column
+	for _, alias := range aliases {
+		innerID := alias.Id
+		typ, err := c.lookupType(innerID)
+		if err != nil {
+			return nil, err
+		}
+		columns = append(columns, zng.NewColumn(alias.Name, typ))
+	}
+	return zng.NewTypeRecord(id, columns), nil
+}
+
+func (c *Context) lookupType(id int) (zng.Type, error) {
+	if id < 0 || id >= len(c.table) {
+		return nil, fmt.Errorf("id %d out of range for table of size %d", id, len(c.table))
+	}
+	if id < 23 {
+		typ := zng.LookupPrimitiveById(id)
+		if typ == nil {
+			return nil, fmt.Errorf("id %d is unknown primitive", id)
+		}
+		return typ, nil
+	}
+	typ := c.table[id]
+	if typ == nil {
+		return nil, fmt.Errorf("no type found for id %d", id)
+	}
+	return typ, nil
 }
 
 func (c *Context) UnmarshalJSON(in []byte) error {
-	var rows []Row
+	c.table = nil
+	var defs []TypeDef
 	// First time, unmarhshal to get the category names.
-	if err := json.Unmarshal(in, &rows); err != nil {
+	if err := json.Unmarshal(in, &defs); err != nil {
 		return err
 	}
-	n := len(rows)
-	// Now fill in the generic interface{} field with the proper type.
-	for id := 0; id < n; id++ {
-		category := rows[id].Category
-		switch category {
-		default:
-			return fmt.Errorf("unknown type category: %s", category)
-		case "record":
-			rows[id].Type = &zng.TypeRecord{Context: c}
-		case "set":
-			rows[id].Type = &zng.TypeSet{}
-		case "vector":
-			rows[id].Type = &zng.TypeVector{}
-			//XXX TBD
-			//case "typedef":
-			//	rows[id].Type = &zng.TypeDef{}
+	maxid := 0
+	for _, def := range defs {
+		if maxid < def.Id {
+			maxid = def.Id
 		}
 	}
-	// This time, unpack the anonymous data type into a type-specific zng.Types.
-	if err := json.Unmarshal(in, &rows); err != nil {
-		return err
-	}
-	// Now fill in the generic interface{} field with the proper type and
-	// fill in the descriptor IDs.
-	c.table = make([]zng.Type, n)
-	c.lut = make(map[string]int)
-	for id := 0; id < n; id++ {
-		switch typ := rows[id].Type.(type) {
+	c.table = make([]zng.Type, maxid+1)
+	for _, def := range defs {
+		var err error
+		var typ zng.Type
+		id := def.Id
+		switch def.Code {
 		default:
-			panic("internal bug in reesolver.Context.UnmarshalJSON")
-		case *zng.TypeRecord:
-			typ.ID = id
-			//XXX get rid of typ.Key?
-			typ.Key = zng.TypeRecordString(typ.Columns)
-			c.lut[typ.Key] = id
-			c.table[id] = typ
-		case *zng.TypeSet:
-			c.lut[typ.String()] = id
-			c.table[id] = typ
-		case *zng.TypeVector:
-			c.lut[typ.String()] = id
-			c.table[id] = typ
-			//XXX TBD
-			//case *zng.TypeAlias:
+			return fmt.Errorf("unknown typedef code: 0x%02x", def.Code)
+		case TypeDefRecord:
+			typ, err = c.makeRecordType(id, def.Aliases)
+		case TypeDefSet:
+			typ, err = c.makeSetType(id, def.Aliases)
+		case TypeDefArray:
+			typ, err = c.makeVectorType(id, def.Aliases)
 		}
+		if err != nil {
+			return err
+		}
+		c.table[id] = typ
 	}
 	return nil
 }
 
 func (c *Context) marshalWithLock() ([]byte, error) {
+	var defs []TypeDef
 	n := len(c.table)
-	rows := make([]Row, n)
 	for id := 0; id < n; id++ {
 		typ := c.table[id]
-		rows[id].Type = typ
-		switch typ.(type) {
+		if typ == nil {
+			continue
+		}
+		var def TypeDef
+		switch typ := typ.(type) {
 		case *zng.TypeRecord:
-			rows[id].Category = "record"
+			def = recordTypeDef(id, typ)
 		case *zng.TypeSet:
-			rows[id].Category = "set"
+			def = setTypeDef(id, typ)
 		case *zng.TypeVector:
-			rows[id].Category = "vector"
+			def = vectorTypeDef(id, typ)
 		default:
 			return nil, fmt.Errorf("internal error: unknown type in context table: %T", typ)
 		}
+		defs = append(defs, def)
 	}
-	return json.MarshalIndent(rows, "", "\t")
+	return json.MarshalIndent(defs, "", "\t")
 }
 
 func (c *Context) MarshalJSON() ([]byte, error) {
@@ -163,19 +242,23 @@ func (c *Context) LookupByColumns(columns []zng.Column) *zng.TypeRecord {
 	for k, p := range columns {
 		private[k] = p
 	}
-	typ := zng.NewTypeRecord(id, private)
+	typ := zng.NewTypeRecord(-1, private)
 	c.addTypeWithLock(typ)
 	return typ
 }
 
-func (c *Context) addTypeWithLock(t zng.Type) {
-	key := t.String()
+func (c *Context) addTypeWithLock(typ zng.Type) {
+	key := typ.String()
 	id := len(c.table)
 	c.lut[key] = id
-	c.table = append(c.table, t)
-	//XXX
-	if rec, ok := t.(*zng.TypeRecord); ok {
-		rec.ID = id
+	c.table = append(c.table, typ)
+	switch typ := typ.(type) {
+	case *zng.TypeRecord:
+		typ.ID = id
+	case *zng.TypeVector:
+		typ.ID = id
+	case *zng.TypeSet:
+		typ.ID = id
 	}
 }
 

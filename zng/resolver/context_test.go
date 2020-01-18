@@ -1,6 +1,7 @@
 package resolver
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/mccanne/zq/pkg/nano"
@@ -10,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestTableAddColumns(t *testing.T) {
+func TestContextAddColumns(t *testing.T) {
 	ctx := NewContext()
 	d := ctx.LookupByColumns([]zng.Column{zng.NewColumn("s1", zng.TypeString)})
 	r, err := zbuf.NewRecordZeekStrings(d, "S1")
@@ -25,4 +26,20 @@ func TestTableAddColumns(t *testing.T) {
 	assert.EqualValues(t, "S2", r.Value(2).String())
 	zv, _ := r.Slice(4)
 	assert.Nil(t, zv)
+}
+
+func TestContextMarshaling(t *testing.T) {
+	ctx := NewContext()
+	ctx.LookupByName("record[a:set[string],b:int]]")
+	ctx.LookupByName("record[a:vector[record[a:int,b:int]],b:int]]")
+	b, err := json.Marshal(ctx)
+	require.NoError(t, err)
+	var newCtx *Context
+	err = json.Unmarshal(b, &newCtx)
+	require.NoError(t, err)
+	r1, err := ctx.LookupByName("record[a:int,b:int]")
+	require.NoError(t, err)
+	r2, err := ctx.LookupByName("record[a:int,b:int]")
+	require.NoError(t, err)
+	assert.EqualValues(t, r1.(*zng.TypeRecord).ID, r2.(*zng.TypeRecord).ID)
 }

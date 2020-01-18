@@ -1,7 +1,6 @@
 package zng
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/mccanne/zq/zcode"
@@ -42,20 +41,12 @@ func TypeRecordString(columns []Column) string {
 	return ColumnString("record[", columns, "]")
 }
 
+func (t *TypeRecord) Id() int {
+	return t.ID
+}
+
 func (t *TypeRecord) String() string {
 	return ColumnString("record[", t.Columns, "]")
-}
-
-func (t TypeRecord) MarshalJSON() ([]byte, error) {
-	return json.Marshal(t.Columns)
-}
-
-func (t *TypeRecord) UnmarshalJSON(data []byte) error {
-	if err := json.Unmarshal(data, &t.Columns); err != nil {
-		return err
-	}
-	Typify(t.Context, t.Columns)
-	return nil
 }
 
 //XXX we shouldn't need this... tests are using it

@@ -46,6 +46,7 @@ type Type interface {
 	// encoding.  The string input is provided as a byte slice for efficiency
 	// given the common use cases in the system.
 	Parse([]byte) (zcode.Bytes, error)
+	Id() int
 }
 
 var (
@@ -60,6 +61,28 @@ var (
 	TypeAddr     = &TypeOfAddr{}
 	TypeSubnet   = &TypeOfSubnet{}
 	TypeEnum     = &TypeOfEnum{}
+)
+
+const (
+	IdBool     = 0
+	IdByte     = 1
+	IdInt16    = 2
+	IdUint16   = 3
+	IdInt32    = 4
+	IdUint32   = 5
+	IdInt64    = 6
+	IdUint64   = 7
+	IdFloat64  = 8
+	IdString   = 9
+	IdBytes    = 10
+	IdBstring  = 11
+	IdEnum     = 12
+	IdIP       = 13
+	IdPort     = 14
+	IdNet      = 15
+	IdTime     = 16
+	IdDuration = 17
+	IdAny      = 18
 )
 
 func LookupPrimitive(name string) Type {
@@ -85,6 +108,34 @@ func LookupPrimitive(name string) Type {
 	case "subnet":
 		return TypeSubnet
 	case "enum":
+		return TypeEnum
+	}
+	return nil
+}
+
+func LookupPrimitiveById(id int) Type {
+	switch id {
+	case IdBool:
+		return TypeBool
+	case IdUint64:
+		return TypeCount
+	case IdInt64:
+		return TypeInt
+	case IdFloat64:
+		return TypeDouble
+	case IdTime:
+		return TypeTime
+	case IdDuration:
+		return TypeInterval
+	case IdBstring:
+		return TypeString
+	case IdPort:
+		return TypePort
+	case IdIP:
+		return TypeAddr
+	case IdNet:
+		return TypeSubnet
+	case IdEnum:
 		return TypeEnum
 	}
 	return nil

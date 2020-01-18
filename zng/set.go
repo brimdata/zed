@@ -7,13 +7,18 @@ import (
 )
 
 type TypeSet struct {
+	Context
+	ID        int
 	InnerType Type
+}
+
+func (t *TypeSet) Id() int {
+	return t.ID
 }
 
 func (t *TypeSet) String() string {
 	return fmt.Sprintf("set[%s]", t.InnerType)
 }
-
 func (t *TypeSet) Decode(zv zcode.Bytes) ([]Value, error) {
 	if zv == nil {
 		return nil, ErrUnset

@@ -40,6 +40,10 @@ func (t *TypeOfAddr) Parse(in []byte) (zcode.Bytes, error) {
 	return EncodeAddr(ip), nil
 }
 
+func (t *TypeOfAddr) Id() int {
+	return IdIP
+}
+
 func (t *TypeOfAddr) String() string {
 	return "addr"
 }
