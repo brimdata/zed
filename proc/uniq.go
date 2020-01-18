@@ -13,18 +13,18 @@ type Uniq struct {
 	Base
 	cflag bool
 	count uint64
-	last  *zbuf.Record
+	last  *zng.Record
 }
 
 func NewUniq(c *Context, parent Proc, cflag bool) *Uniq {
 	return &Uniq{Base: Base{Context: c, Parent: parent}, cflag: cflag}
 }
 
-func (u *Uniq) wrap(t *zbuf.Record) *zbuf.Record {
+func (u *Uniq) wrap(t *zng.Record) *zng.Record {
 	if u.cflag {
-		cols := []zng.Column{{Name: "_uniq", Type: zng.TypeCount}}
+		cols := []zng.Column{zng.NewColumn("_uniq", zng.TypeCount)}
 		vals := []zng.Value{zng.NewCount(u.count)}
-		newR, err := u.Resolver.AddColumns(t, cols, vals)
+		newR, err := u.TypeContext.AddColumns(t, cols, vals)
 		if err != nil {
 			u.Logger.Error("AddColumns failed", zap.Error(err))
 			return t
@@ -34,7 +34,7 @@ func (u *Uniq) wrap(t *zbuf.Record) *zbuf.Record {
 	return t
 }
 
-func (u *Uniq) appendUniq(out []*zbuf.Record, t *zbuf.Record) []*zbuf.Record {
+func (u *Uniq) appendUniq(out []*zng.Record, t *zng.Record) []*zng.Record {
 	if u.count == 0 {
 		u.last = t.Keep()
 		u.count = 1
@@ -63,10 +63,10 @@ func (u *Uniq) Pull() (zbuf.Batch, error) {
 		}
 		t := u.wrap(u.last)
 		u.last = nil
-		return zbuf.NewArray([]*zbuf.Record{t}, span), nil
+		return zbuf.NewArray([]*zng.Record{t}, span), nil
 	}
 	defer batch.Unref()
-	var out []*zbuf.Record
+	var out []*zng.Record
 	for k := 0; k < batch.Length(); k++ {
 		out = u.appendUniq(out, batch.Index(k))
 	}

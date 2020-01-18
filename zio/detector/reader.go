@@ -14,25 +14,25 @@ import (
 
 var ErrUnknown = errors.New("malformed input")
 
-func NewReader(r io.Reader, t *resolver.Table) (zbuf.Reader, error) {
+func NewReader(r io.Reader, zctx *resolver.Context) (zbuf.Reader, error) {
 	recorder := NewRecorder(r)
 	track := NewTrack(recorder)
-	if match(zngio.NewReader(track, resolver.NewTable())) {
-		return zngio.NewReader(recorder, t), nil
+	if match(zngio.NewReader(track, resolver.NewContext())) {
+		return zngio.NewReader(recorder, zctx), nil
 	}
 	track.Reset()
 	// zjson must come before ndjson since zjson is a subset of ndjson
-	if match(zjsonio.NewReader(track, resolver.NewTable())) {
-		return zjsonio.NewReader(recorder, t), nil
+	if match(zjsonio.NewReader(track, resolver.NewContext())) {
+		return zjsonio.NewReader(recorder, zctx), nil
 	}
 	track.Reset()
 	// ndjson must come after zjson since zjson is a subset of ndjson
-	if match(ndjsonio.NewReader(track, resolver.NewTable())) {
-		return ndjsonio.NewReader(recorder, t), nil
+	if match(ndjsonio.NewReader(track, resolver.NewContext())) {
+		return ndjsonio.NewReader(recorder, zctx), nil
 	}
 	track.Reset()
-	if match(bzngio.NewReader(track, resolver.NewTable())) {
-		return bzngio.NewReader(recorder, t), nil
+	if match(bzngio.NewReader(track, resolver.NewContext())) {
+		return bzngio.NewReader(recorder, zctx), nil
 	}
 	return nil, ErrUnknown
 }

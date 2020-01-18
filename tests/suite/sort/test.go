@@ -141,13 +141,13 @@ var Internal4_1 = test.Internal{
 }
 
 const out4_2 = `
-#1:record[notS:string]
-1:[bleah;]
-#0:record[s:string]
-0:[-;]
-0:[a;]
-0:[b;]
-0:[c;]
+#0:record[notS:string]
+0:[bleah;]
+#1:record[s:string]
+1:[-;]
+1:[a;]
+1:[b;]
+1:[c;]
 `
 
 var Internal4_2 = test.Internal{
@@ -177,13 +177,13 @@ var Internal4_3 = test.Internal{
 }
 
 const out4_4 = `
-#1:record[notS:string]
-1:[bleah;]
-#0:record[s:string]
-0:[-;]
-0:[c;]
-0:[b;]
-0:[a;]
+#0:record[notS:string]
+0:[bleah;]
+#1:record[s:string]
+1:[-;]
+1:[c;]
+1:[b;]
+1:[a;]
 `
 
 var Internal4_4 = test.Internal{

@@ -16,6 +16,7 @@ import (
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zio/detector"
+	"github.com/mccanne/zq/zng"
 	"github.com/mccanne/zq/zng/resolver"
 	"github.com/mccanne/zq/zql"
 	"github.com/stretchr/testify/require"
@@ -94,19 +95,19 @@ func NewProcTest(proc Proc, ctx *Context) *ProcTest {
 	return &ProcTest{ctx, proc, false}
 }
 
-func NewTestContext(res *resolver.Table) *Context {
-	if res == nil {
-		res = resolver.NewTable()
+func NewTestContext(zctx *resolver.Context) *Context {
+	if zctx == nil {
+		zctx = resolver.NewContext()
 	}
 	return &Context{
-		Context:  context.Background(),
-		Resolver: res,
-		Warnings: make(chan string, 5),
+		Context:     context.Background(),
+		TypeContext: zctx,
+		Warnings:    make(chan string, 5),
 	}
 }
 
-func NewProcTestFromSource(code string, resolver *resolver.Table, inRecords []zbuf.Batch) (*ProcTest, error) {
-	ctx := NewTestContext(resolver)
+func NewProcTestFromSource(code string, zctx *resolver.Context, inRecords []zbuf.Batch) (*ProcTest, error) {
+	ctx := NewTestContext(zctx)
 	src := TestSource{inRecords, 0}
 	compiledProc, err := CompileTestProc(code, ctx, &src)
 	if err != nil {
@@ -157,7 +158,7 @@ func (p *ProcTest) Expect(data zbuf.Batch) error {
 		received := b.Index(i)
 		expected := data.Index(i)
 
-		if received.Descriptor != expected.Descriptor {
+		if received.Type != expected.Type {
 			return fmt.Errorf("descriptor mismatch in record %d", i)
 		}
 		if bytes.Compare(received.Raw, expected.Raw) != 0 {
@@ -196,9 +197,9 @@ func (p *ProcTest) Finish() error {
 	}
 }
 
-func parse(resolver *resolver.Table, src string) (*zbuf.Array, error) {
-	reader := detector.LookupReader("zng", strings.NewReader(src), resolver)
-	records := make([]*zbuf.Record, 0)
+func parse(zctx *resolver.Context, src string) (*zbuf.Array, error) {
+	reader := detector.LookupReader("zng", strings.NewReader(src), zctx)
+	records := make([]*zng.Record, 0)
 	for {
 		rec, err := reader.Read()
 		if err != nil {
@@ -218,13 +219,13 @@ func parse(resolver *resolver.Table, src string) (*zbuf.Array, error) {
 // asserting that the output matches zngout.  It also asserts that the
 // given warning(s) are emitted.
 func TestOneProcWithWarnings(t *testing.T, zngin, zngout string, warnings []string, cmd string) {
-	resolver := resolver.NewTable()
-	recsin, err := parse(resolver, zngin)
+	zctx := resolver.NewContext()
+	recsin, err := parse(zctx, zngin)
 	require.NoError(t, err)
-	recsout, err := parse(resolver, zngout)
+	recsout, err := parse(zctx, zngout)
 	require.NoError(t, err)
 
-	test, err := NewProcTestFromSource(cmd, resolver, []zbuf.Batch{recsin})
+	test, err := NewProcTestFromSource(cmd, zctx, []zbuf.Batch{recsin})
 	require.NoError(t, err)
 
 	var result zbuf.Batch
@@ -253,7 +254,7 @@ func TestOneProcWithWarnings(t *testing.T, zngin, zngout string, warnings []stri
 // Parsing zngin, running the resulting records through the proc, and
 // finally asserting that the output matches zngout.
 func TestOneProc(t *testing.T, zngin, zngout string, cmd string) {
-	resolver := resolver.NewTable()
+	resolver := resolver.NewContext()
 	recsin, err := parse(resolver, zngin)
 	require.NoError(t, err)
 	recsout, err := parse(resolver, zngout)
@@ -280,7 +281,7 @@ func TestOneProc(t *testing.T, zngin, zngout string, cmd string) {
 // records in the proc output is not important.  That is, the expected
 // output records must all be present, but they may appear in any order.
 func TestOneProcUnsorted(t *testing.T, zngin, zngout string, cmd string) {
-	resolver := resolver.NewTable()
+	resolver := resolver.NewContext()
 	recsin, err := parse(resolver, zngin)
 	require.NoError(t, err)
 	recsout, err := parse(resolver, zngout)

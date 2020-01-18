@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/mccanne/zq/ast"
-	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zng"
 )
 
@@ -19,7 +18,7 @@ import (
 // If the expression can't be resolved (i.e., because some field
 // reference refers to a non-existent field, a vector index is out of
 // bounds, etc.), the resolver returns (nil, nil)
-type FieldExprResolver func(*zbuf.Record) zng.Value
+type FieldExprResolver func(*zng.Record) zng.Value
 
 // fieldop, arrayIndex, and fieldRead are helpers used internally
 // by CompileFieldExpr() below.
@@ -122,8 +121,8 @@ outer:
 
 	// Here's the actual resolver: grab the top-level field and then
 	// apply any additional operations.
-	return func(r *zbuf.Record) zng.Value {
-		col, ok := r.Descriptor.LUT[field]
+	return func(r *zng.Record) zng.Value {
+		col, ok := r.Type.LUT[field]
 		if !ok {
 			// original field doesn't exist
 			return zng.Value{}

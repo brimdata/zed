@@ -16,7 +16,7 @@ import (
 	"errors"
 	"io"
 
-	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zng"
 )
 
 const (
@@ -71,8 +71,10 @@ func parseHeader(b []byte, h *header) (int, error) {
 		if n <= 0 {
 			return 0, ErrBadHeader
 		}
-		if id > zbuf.MaxDescriptor {
-			return 0, zbuf.ErrDescriptorInvalid
+		// XXX this will go away with the update to the ZNG spec
+		const MaxDescriptor = 1000000
+		if id > MaxDescriptor {
+			return 0, zng.ErrDescriptorInvalid
 		}
 		off += n
 		h.id = int(id)

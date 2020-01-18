@@ -15,7 +15,7 @@ type Sort struct {
 	limit      int
 	nullsFirst bool
 	fields     []expr.FieldExprResolver
-	out        []*zbuf.Record
+	out        []*zng.Record
 }
 
 // defaultSortLimit is the default limit of the number of records that
@@ -30,8 +30,8 @@ func NewSort(c *Context, parent Proc, limit int, fields []expr.FieldExprResolver
 	return &Sort{Base: Base{Context: c, Parent: parent}, dir: dir, limit: limit, nullsFirst: nullsFirst, fields: fields}
 }
 
-func firstOf(d *zbuf.Descriptor, which zng.Type) string {
-	for _, col := range d.Type.Columns {
+func firstOf(typ *zng.TypeRecord, which zng.Type) string {
+	for _, col := range typ.Columns {
 		if zng.SameType(col.Type, which) {
 			return col.Name
 		}
@@ -39,8 +39,8 @@ func firstOf(d *zbuf.Descriptor, which zng.Type) string {
 	return ""
 }
 
-func firstNot(d *zbuf.Descriptor, which zng.Type) string {
-	for _, col := range d.Type.Columns {
+func firstNot(typ *zng.TypeRecord, which zng.Type) string {
+	for _, col := range typ.Columns {
 		if !zng.SameType(col.Type, which) {
 			return col.Name
 		}
@@ -48,18 +48,18 @@ func firstNot(d *zbuf.Descriptor, which zng.Type) string {
 	return ""
 }
 
-func guessSortField(rec *zbuf.Record) string {
-	d := rec.Descriptor
-	if fld := firstOf(d, zng.TypeCount); fld != "" {
+func guessSortField(rec *zng.Record) string {
+	typ := rec.Type
+	if fld := firstOf(typ, zng.TypeCount); fld != "" {
 		return fld
 	}
-	if fld := firstOf(d, zng.TypeInt); fld != "" {
+	if fld := firstOf(typ, zng.TypeInt); fld != "" {
 		return fld
 	}
-	if fld := firstOf(d, zng.TypeDouble); fld != "" {
+	if fld := firstOf(typ, zng.TypeDouble); fld != "" {
 		return fld
 	}
-	if fld := firstNot(d, zng.TypeTime); fld != "" {
+	if fld := firstNot(typ, zng.TypeTime); fld != "" {
 		return fld
 	}
 	return "ts"
@@ -98,7 +98,7 @@ func (s *Sort) sort() zbuf.Batch {
 	s.out = nil
 	if s.fields == nil {
 		fld := guessSortField(out[0])
-		resolver := func(r *zbuf.Record) zng.Value {
+		resolver := func(r *zng.Record) zng.Value {
 			e, err := r.Access(fld)
 			if err != nil {
 				return zng.Value{}
@@ -112,7 +112,7 @@ func (s *Sort) sort() zbuf.Batch {
 		nullsMax = !nullsMax
 	}
 	sorter := expr.NewSortFn(nullsMax, s.fields...)
-	sortWithDir := func(a, b *zbuf.Record) int {
+	sortWithDir := func(a, b *zng.Record) int {
 		return s.dir * sorter(a, b)
 	}
 	expr.SortStable(out, sortWithDir)

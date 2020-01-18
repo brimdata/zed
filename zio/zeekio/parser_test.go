@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zng"
 	"github.com/mccanne/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
@@ -35,7 +34,7 @@ func makeHeader(name string, rest []string) string {
 // directives, expecting them to all be parsed successfully.
 // A parser object ready for further testing is returned.
 func startTest(t *testing.T, headers []string) *Parser {
-	p := NewParser(resolver.NewTable())
+	p := NewParser(resolver.NewContext())
 	for _, h := range headers {
 		require.NoError(t, p.ParseDirective([]byte(h)))
 	}
@@ -64,7 +63,7 @@ func startLegacyTest(t *testing.T, fields, types []string, path string) *Parser 
 
 // sendLegacyValues() formats the array of values as a legacy zeek log line
 // and parses it.
-func sendLegacyValues(p *Parser, vals []string) (*zbuf.Record, error) {
+func sendLegacyValues(p *Parser, vals []string) (*zng.Record, error) {
 	return p.ParseValue([]byte(strings.Join(vals, "\t")))
 }
 
@@ -132,7 +131,7 @@ func TestNestedRecords(t *testing.T) {
 	require.NoError(t, err)
 
 	// First check that the descriptor was created correctly
-	cols := record.Descriptor.Type.Columns
+	cols := record.Type.Columns
 	assert.Equal(t, 5, len(cols), "Descriptor has 5 columns")
 	//assert.Equal(t, "_path", cols[0].Name, "Column 0 is _path")
 	assert.Equal(t, "a", cols[0].Name, "Column 0 is a")

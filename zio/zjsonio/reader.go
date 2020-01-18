@@ -8,7 +8,6 @@ import (
 
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/skim"
-	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zcode"
 	"github.com/mccanne/zq/zng"
 	"github.com/mccanne/zq/zng/resolver"
@@ -25,16 +24,16 @@ type Reader struct {
 	builder *zcode.Builder
 }
 
-func NewReader(reader io.Reader, r *resolver.Table) *Reader {
+func NewReader(reader io.Reader, zctx *resolver.Context) *Reader {
 	buffer := make([]byte, ReadSize)
 	return &Reader{
 		scanner: skim.NewScanner(reader, buffer, MaxLineSize),
-		mapper:  resolver.NewMapper(r),
+		mapper:  resolver.NewMapper(zctx),
 		builder: zcode.NewBuilder(),
 	}
 }
 
-func (r *Reader) Read() (*zbuf.Record, error) {
+func (r *Reader) Read() (*zng.Record, error) {
 	e := func(err error) error {
 		if err == nil {
 			return err
@@ -54,13 +53,13 @@ func (r *Reader) Read() (*zbuf.Record, error) {
 		return nil, e(err)
 	}
 	if v.Type != nil {
-		recType, err := LookupType(v.Type)
+		typeName, err := decodeType(v.Type)
 		if err != nil {
-			return nil, e(err)
+			return nil, err
 		}
-		err = r.enterDescriptor(v.Id, recType)
+		_, err = r.mapper.EnterByName(v.Id, typeName)
 		if err != nil {
-			return nil, e(err)
+			return nil, fmt.Errorf("unknown type: \"%s\"", typeName)
 		}
 	}
 	rec, err := r.parseValues(v.Id, v.Values)
@@ -70,48 +69,31 @@ func (r *Reader) Read() (*zbuf.Record, error) {
 	return rec, nil
 }
 
-func LookupType(columns []interface{}) (*zng.TypeRecord, error) {
-	typeName, err := decodeType(columns)
-	if err != nil {
-		return nil, err
-	}
-	typ, err := zng.LookupType(typeName)
-	if err != nil {
-		return nil, fmt.Errorf("unknown type: \"%s\"", typeName)
-	}
-	recType, ok := typ.(*zng.TypeRecord)
-	if !ok {
-		return nil, fmt.Errorf("zjson type not a record: \"%s\"", typeName)
-
-	}
-	return recType, nil
-}
-
 func (r *Reader) enterDescriptor(id int, typ *zng.TypeRecord) error {
 	if r.mapper.Map(id) != nil {
 		//XXX this should be ok... decide on this and update spec
-		return zbuf.ErrDescriptorExists
+		return zng.ErrDescriptorExists
 	}
 	if r.mapper.Enter(id, typ) == nil {
 		// XXX this shouldn't happen
-		return zbuf.ErrBadValue
+		return zng.ErrBadValue
 	}
 	return nil
 }
 
-func (r *Reader) parseValues(id int, v interface{}) (*zbuf.Record, error) {
+func (r *Reader) parseValues(id int, v interface{}) (*zng.Record, error) {
 	values, ok := v.([]interface{})
 	if !ok {
 		return nil, errors.New("zjson record object must be an array")
 	}
-	descriptor := r.mapper.Map(id)
-	if descriptor == nil {
-		return nil, zbuf.ErrDescriptorInvalid
+	typ := r.mapper.Map(id)
+	if typ == nil {
+		return nil, zng.ErrDescriptorInvalid
 	}
 	// reset the builder and decode the body into the builder intermediate
 	// zng representation
 	r.builder.Reset()
-	err := decodeContainer(r.builder, descriptor.Type, values)
+	err := decodeContainer(r.builder, typ, values)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +102,7 @@ func (r *Reader) parseValues(id int, v interface{}) (*zbuf.Record, error) {
 		//XXX need better error here... this won't make much sense
 		return nil, err
 	}
-	record, err := zbuf.NewRecordCheck(descriptor, nano.MinTs, zv)
+	record, err := zng.NewRecordCheck(typ, nano.MinTs, zv)
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +157,7 @@ func decodeType(columns []interface{}) (string, error) {
 func decodeContainer(builder *zcode.Builder, typ zng.Type, body []interface{}) error {
 	childType, columns := zng.ContainedType(typ)
 	if childType == nil && columns == nil {
-		return zbuf.ErrNotPrimitive
+		return zng.ErrNotPrimitive
 	}
 	builder.BeginContainer()
 	for k, column := range body {
@@ -191,14 +173,14 @@ func decodeContainer(builder *zcode.Builder, typ zng.Type, body []interface{}) e
 		}
 		if columns != nil {
 			if k >= len(columns) {
-				return &zbuf.RecordTypeError{Name: "<record>", Type: typ.String(), Err: zbuf.ErrExtraField}
+				return &zng.RecordTypeError{Name: "<record>", Type: typ.String(), Err: zng.ErrExtraField}
 			}
 			childType = columns[k].Type
 		}
 		s, ok := column.(string)
 		if ok {
 			if zng.IsContainerType(childType) {
-				return zbuf.ErrNotContainer
+				return zng.ErrNotContainer
 			}
 			zv, err := childType.Parse(zng.Unescape([]byte(s)))
 			if err != nil {

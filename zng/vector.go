@@ -7,37 +7,18 @@ import (
 )
 
 type TypeVector struct {
-	typ Type
+	Type Type
 }
 
 func (t *TypeVector) String() string {
-	return fmt.Sprintf("vector[%s]", t.typ)
-}
-
-// parse a vector body type of the form "[type]"
-func parseVectorTypeBody(in string) (string, *TypeVector, error) {
-	rest, ok := match(in, "[")
-	if !ok {
-		return "", nil, ErrTypeSyntax
-	}
-	var typ Type
-	var err error
-	rest, typ, err = parseType(rest)
-	if err != nil {
-		return "", nil, err
-	}
-	rest, ok = match(rest, "]")
-	if !ok {
-		return "", nil, ErrTypeSyntax
-	}
-	return rest, &TypeVector{typ: typ}, nil
+	return fmt.Sprintf("vector[%s]", t.Type)
 }
 
 func (t *TypeVector) Decode(zv zcode.Bytes) ([]Value, error) {
 	if zv == nil {
 		return nil, ErrUnset
 	}
-	return parseContainer(t, t.typ, zv)
+	return parseContainer(t, t.Type, zv)
 }
 
 func (t *TypeVector) Parse(in []byte) (zcode.Bytes, error) {
@@ -55,7 +36,7 @@ func (t *TypeVector) StringOf(zv zcode.Bytes) string {
 			s += "ERR"
 			break
 		}
-		s += comma + Value{t.typ, zv}.String()
+		s += comma + Value{t.Type, zv}.String()
 		comma = ","
 	}
 	s += "]"
@@ -71,7 +52,7 @@ func (t *TypeVector) Marshal(zv zcode.Bytes) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		vals = append(vals, Value{t.typ, val})
+		vals = append(vals, Value{t.Type, val})
 	}
 	return vals, nil
 }

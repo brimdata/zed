@@ -7,7 +7,6 @@ package reducer
 import (
 	"errors"
 
-	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zng"
 )
 
@@ -16,7 +15,7 @@ var (
 )
 
 type Interface interface {
-	Consume(*zbuf.Record)
+	Consume(*zng.Record)
 	Result() zng.Value
 }
 

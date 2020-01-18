@@ -23,7 +23,7 @@ type Top struct {
 	records    *expr.RecordSlice
 	sorter     expr.SortFn
 	flushEvery bool
-	out        []*zbuf.Record
+	out        []*zng.Record
 }
 
 func NewTop(c *Context, parent Proc, limit int, fields []expr.FieldExprResolver, flushEvery bool) *Top {
@@ -57,10 +57,10 @@ func (t *Top) Pull() (zbuf.Batch, error) {
 	}
 }
 
-func (t *Top) consume(rec *zbuf.Record) {
+func (t *Top) consume(rec *zng.Record) {
 	if t.fields == nil {
 		fld := guessSortField(rec)
-		resolver := func(r *zbuf.Record) zng.Value {
+		resolver := func(r *zng.Record) zng.Value {
 			e, err := r.Access(fld)
 			if err != nil {
 				return zng.Value{}
@@ -86,9 +86,9 @@ func (t *Top) sorted() zbuf.Batch {
 	if t.records == nil {
 		return nil
 	}
-	out := make([]*zbuf.Record, t.records.Len())
+	out := make([]*zng.Record, t.records.Len())
 	for i := t.records.Len() - 1; i >= 0; i-- {
-		rec := heap.Pop(t.records).(*zbuf.Record)
+		rec := heap.Pop(t.records).(*zng.Record)
 		out[i] = rec
 	}
 	// clear records

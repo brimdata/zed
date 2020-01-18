@@ -1,4 +1,4 @@
-package zng_test
+package resolver_test
 
 import (
 	"fmt"
@@ -9,6 +9,7 @@ import (
 	"github.com/mccanne/zq/filter"
 	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zng"
+	"github.com/mccanne/zq/zng/resolver"
 	"github.com/stretchr/testify/require"
 )
 
@@ -35,13 +36,14 @@ func runTest(valType string, valRaw string, containerType string, containerRaw s
 	}
 
 	// Mock up a record with a single column that holds the set.
-	containerTyp, err := zng.LookupType(containerType)
+	ctx := resolver.NewContext()
+	containerTyp, err := ctx.LookupByName(containerType)
 	if err != nil {
 		return err
 	}
-	columns := []zng.Column{{"f", containerTyp}}
-	d := zbuf.NewDescriptor(zng.LookupTypeRecord(columns))
-	r, err := zbuf.NewRecordZeekStrings(d, containerRaw)
+	columns := []zng.Column{zng.NewColumn("f", containerTyp)}
+	typ := ctx.LookupByColumns(columns)
+	r, err := zbuf.NewRecordZeekStrings(typ, containerRaw)
 	if err != nil {
 		return err
 	}
@@ -110,8 +112,9 @@ func TestContainers(t *testing.T) {
 
 		//XXX for records, just make sure they parse for now.
 		// there is no ast/filter support for them yet
+		ctx := resolver.NewContext()
 		containerType = recordType(tt.elementType, tt.containerLen)
-		parsedType, err := zng.LookupType(containerType)
+		parsedType, err := ctx.LookupByName(containerType)
 		require.NoError(t, err)
 		require.Exactly(t, containerType, parsedType.String())
 	}

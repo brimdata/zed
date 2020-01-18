@@ -11,9 +11,9 @@ import (
 )
 
 // EncodeZvals builds a raw value from a descriptor and zvals.
-func EncodeZvals(d *Descriptor, vals []zcode.Bytes) (zcode.Bytes, error) {
-	if nv, nc := len(vals), len(d.Type.Columns); nv != nc {
-		return nil, fmt.Errorf("got %d values (%q), expected %d (%q)", nv, vals, nc, d.Type.Columns)
+func EncodeZvals(typ *zng.TypeRecord, vals []zcode.Bytes) (zcode.Bytes, error) {
+	if nv, nc := len(vals), len(typ.Columns); nv != nc {
+		return nil, fmt.Errorf("got %d values (%q), expected %d (%q)", nv, vals, nc, typ.Columns)
 
 	}
 	var raw zcode.Bytes
@@ -23,9 +23,9 @@ func EncodeZvals(d *Descriptor, vals []zcode.Bytes) (zcode.Bytes, error) {
 	return raw, nil
 }
 
-func NewRawAndTsFromZeekTSV(builder *zcode.Builder, d *Descriptor, path []byte, data []byte) (zcode.Bytes, zng.Value, error) {
+func NewRawAndTsFromZeekTSV(builder *zcode.Builder, typ *zng.TypeRecord, path []byte, data []byte) (zcode.Bytes, zng.Value, error) {
 	builder.Reset()
-	columns := d.Type.Columns
+	columns := typ.Columns
 	col := 0
 	tsVal := zng.Value{}
 	if path != nil {
@@ -136,14 +136,14 @@ func NewRawAndTsFromZeekTSV(builder *zcode.Builder, d *Descriptor, path []byte, 
 		return nil, zng.Value{}, err
 	}
 
-	if col != len(d.Type.Columns) {
+	if col != len(typ.Columns) {
 		return nil, zng.Value{}, errors.New("too few values")
 	}
 	return builder.Bytes(), tsVal, nil
 }
 
-func NewRawAndTsFromZeekValues(d *Descriptor, tsCol int, vals [][]byte) (zcode.Bytes, nano.Ts, error) {
-	if nv, nc := len(vals), len(d.Type.Columns); nv != nc {
+func NewRawAndTsFromZeekValues(typ *zng.TypeRecord, tsCol int, vals [][]byte) (zcode.Bytes, nano.Ts, error) {
+	if nv, nc := len(vals), len(typ.Columns); nv != nc {
 		// Don't pass vals to fmt.Errorf or it will escape to the heap.
 		return nil, 0, fmt.Errorf("got %d values, expected %d", nv, nc)
 	}
@@ -161,7 +161,7 @@ func NewRawAndTsFromZeekValues(d *Descriptor, tsCol int, vals [][]byte) (zcode.B
 				return nil, 0, err
 			}
 		}
-		raw = appendZvalFromZeek(raw, d.Type.Columns[i].Type, val)
+		raw = appendZvalFromZeek(raw, typ.Columns[i].Type, val)
 	}
 	return raw, ts, nil
 }
@@ -184,13 +184,13 @@ func NewParser() *Parser {
 // Parse decodes a zng value in text format using the type information
 // in the descriptor.  Once parsed, the resulting zcode.Bytes has
 // the nested data structure encoded independently of the data type.
-func (p *Parser) Parse(d *Descriptor, zng []byte) (zcode.Bytes, error) {
+func (p *Parser) Parse(typ *zng.TypeRecord, zng []byte) (zcode.Bytes, error) {
 	builder := p.builder
 	builder.Reset()
 	if zng[0] != leftbracket {
 		return nil, ErrSyntax
 	}
-	rest, err := zngParseContainer(builder, d.Type, zng)
+	rest, err := zngParseContainer(builder, typ, zng)
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +218,7 @@ func zngParseContainer(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, 
 	b = b[1:]
 	childType, columns := zng.ContainedType(typ)
 	if childType == nil && columns == nil {
-		return nil, ErrNotPrimitive
+		return nil, zng.ErrNotPrimitive
 	}
 	k := 0
 	for {
@@ -231,7 +231,7 @@ func zngParseContainer(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, 
 		}
 		if columns != nil {
 			if k >= len(columns) {
-				return nil, &RecordTypeError{Name: "<record>", Type: typ.String(), Err: ErrExtraField}
+				return nil, &zng.RecordTypeError{Name: "<record>", Type: typ.String(), Err: zng.ErrExtraField}
 			}
 			childType = columns[k].Type
 			k++
@@ -267,7 +267,7 @@ func zngParseField(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, erro
 		switch b[from] {
 		case semicolon:
 			if zng.IsContainerType(typ) {
-				return nil, ErrNotContainer
+				return nil, zng.ErrNotContainer
 			}
 			zv, err := typ.Parse(b[:to])
 			if err != nil {

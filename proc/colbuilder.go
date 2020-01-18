@@ -8,6 +8,7 @@ import (
 	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/zcode"
 	"github.com/mccanne/zq/zng"
+	"github.com/mccanne/zq/zng/resolver"
 )
 
 var ErrNonAdjacent = errors.New("non adjacent fields")
@@ -75,6 +76,7 @@ type fieldInfo struct {
 type ColumnBuilder struct {
 	fields   []fieldInfo
 	builder  *zcode.Builder
+	zctx     *resolver.Context
 	curField int
 }
 
@@ -85,7 +87,7 @@ type ColumnBuilder struct {
 // so the output record can be constructed efficiently, though we don't
 // do this now since it might confuse users who expect to see output
 // fields in the order they specified.
-func NewColumnBuilder(exprs []ast.FieldExpr) (*ColumnBuilder, error) {
+func NewColumnBuilder(zctx *resolver.Context, exprs []ast.FieldExpr) (*ColumnBuilder, error) {
 	seenRecords := make(map[string]bool)
 	fieldInfos := make([]fieldInfo, 0, len(exprs))
 	var currentRecord []string
@@ -153,6 +155,7 @@ func NewColumnBuilder(exprs []ast.FieldExpr) (*ColumnBuilder, error) {
 	return &ColumnBuilder{
 		fields:  fieldInfos,
 		builder: zcode.NewBuilder(),
+		zctx:    zctx,
 	}, nil
 }
 
@@ -263,14 +266,14 @@ func (c *ColumnBuilder) TypedColumns(types []zng.Type) []zng.Column {
 			stack = append(stack, current)
 		}
 
-		current.cols = append(current.cols, zng.Column{Name: field.name, Type: types[i]})
+		current.cols = append(current.cols, zng.NewColumn(field.name, types[i]))
 
 		for j := 0; j < field.containerEnds; j++ {
-			recType := zng.LookupTypeRecord(current.cols)
+			recType := c.zctx.LookupByColumns(current.cols)
 			slen := len(stack)
 			stack = stack[:slen-1]
 			cur := stack[slen-2]
-			cur.cols = append(cur.cols, zng.Column{Name: current.name, Type: recType})
+			cur.cols = append(cur.cols, zng.NewColumn(current.name, recType))
 			current = cur
 		}
 	}

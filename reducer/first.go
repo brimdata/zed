@@ -1,7 +1,6 @@
 package reducer
 
 import (
-	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zng"
 )
 
@@ -25,10 +24,10 @@ func NewFirstProto(target, field string) *FirstProto {
 type First struct {
 	Reducer
 	Field  string
-	record *zbuf.Record
+	record *zng.Record
 }
 
-func (f *First) Consume(r *zbuf.Record) {
+func (f *First) Consume(r *zng.Record) {
 	if f.record != nil {
 		return
 	}

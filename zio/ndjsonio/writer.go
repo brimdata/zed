@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zng"
 )
 
 // Writer implements a Formatter for ndjson
@@ -20,6 +20,6 @@ func NewWriter(w io.Writer) *Writer {
 	}
 }
 
-func (w *Writer) Write(rec *zbuf.Record) error {
+func (w *Writer) Write(rec *zng.Record) error {
 	return w.encoder.Encode(rec)
 }

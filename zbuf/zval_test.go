@@ -5,10 +5,12 @@ import (
 
 	"github.com/mccanne/zq/zcode"
 	"github.com/mccanne/zq/zng"
+	"github.com/mccanne/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestZvalToZeekString(t *testing.T) {
+	zctx := resolver.NewContext()
 	cases := []struct {
 		typ      zng.Type
 		zv       zcode.Bytes
@@ -18,7 +20,7 @@ func TestZvalToZeekString(t *testing.T) {
 		{zng.TypeString, nil, "-"},
 		{zng.TypeString, []byte("-"), "\\x2d"},
 		{
-			zng.LookupVectorType(zng.TypeString),
+			zctx.LookupVectorType(zng.TypeString),
 			zcode.AppendPrimitive(zcode.AppendPrimitive(nil, []byte("-")), nil),
 			"\\x2d,-",
 		},

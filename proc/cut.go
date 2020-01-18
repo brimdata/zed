@@ -14,7 +14,7 @@ type Cut struct {
 	Base
 	resolvers []expr.FieldExprResolver
 	builder   *ColumnBuilder
-	cutmap    map[int]*zbuf.Descriptor
+	cutmap    map[int]*zng.TypeRecord
 	nblocked  int
 }
 
@@ -31,7 +31,7 @@ func CompileCutProc(c *Context, parent Proc, node *ast.CutProc) (*Cut, error) {
 	if err != nil {
 		return nil, fmt.Errorf("compiling cut: %w", err)
 	}
-	builder, err := NewColumnBuilder(node.Fields)
+	builder, err := NewColumnBuilder(c.TypeContext, node.Fields)
 	if err != nil {
 		return nil, fmt.Errorf("compiling cut: %w", err)
 	}
@@ -39,18 +39,18 @@ func CompileCutProc(c *Context, parent Proc, node *ast.CutProc) (*Cut, error) {
 		Base:      Base{Context: c, Parent: parent},
 		resolvers: resolvers,
 		builder:   builder,
-		cutmap:    make(map[int]*zbuf.Descriptor),
+		cutmap:    make(map[int]*zng.TypeRecord),
 	}, nil
 }
 
 // cut returns a new record value derived by keeping only the fields
 // specified by name in the fields slice.  If the record can't be cut
 // (i.e., it doesn't have one of the specified fields), returns nil.
-func (c *Cut) cut(in *zbuf.Record) *zbuf.Record {
+func (c *Cut) cut(in *zng.Record) *zng.Record {
 	// Check if we already have an output descriptor for this
 	// input type
-	d, ok := c.cutmap[in.ID]
-	if ok && d == nil {
+	typ, ok := c.cutmap[in.Type.ID]
+	if ok && typ == nil {
 		// One or more cut fields isn't present in this type of
 		// input record, drop it now.
 		return nil
@@ -58,7 +58,7 @@ func (c *Cut) cut(in *zbuf.Record) *zbuf.Record {
 
 	c.builder.Reset()
 	var types []zng.Type
-	if d == nil {
+	if typ == nil {
 		types = make([]zng.Type, 0, len(c.resolvers))
 	}
 	// Build the output record.  If we've already seen this input
@@ -67,10 +67,10 @@ func (c *Cut) cut(in *zbuf.Record) *zbuf.Record {
 	// descriptor.
 	for _, resolver := range c.resolvers {
 		val := resolver(in)
-		if d == nil {
+		if typ == nil {
 			if val.Type == nil {
 				// a field is missing... block this descriptor
-				c.cutmap[in.ID] = nil
+				c.cutmap[in.Type.ID] = nil
 				c.nblocked++
 				return nil
 			}
@@ -78,10 +78,10 @@ func (c *Cut) cut(in *zbuf.Record) *zbuf.Record {
 		}
 		c.builder.Append(val.Bytes, val.IsContainer())
 	}
-	if d == nil {
+	if typ == nil {
 		cols := c.builder.TypedColumns(types)
-		d = c.Resolver.GetByColumns(cols)
-		c.cutmap[in.ID] = d
+		typ = c.TypeContext.LookupByColumns(cols)
+		c.cutmap[in.Type.ID] = typ
 	}
 
 	zv, err := c.builder.Encode()
@@ -89,7 +89,7 @@ func (c *Cut) cut(in *zbuf.Record) *zbuf.Record {
 		// XXX internal error, what to do...
 		return nil
 	}
-	return zbuf.NewRecordNoTs(d, zv)
+	return zng.NewRecordNoTs(typ, zv)
 }
 
 func (c *Cut) warn() {
@@ -118,7 +118,7 @@ func (c *Cut) Pull() (zbuf.Batch, error) {
 	// If a field specified doesn't exist, we don't include that record.
 	// if the types change for the fields specified, we drop those records.
 	//
-	recs := make([]*zbuf.Record, 0, batch.Length())
+	recs := make([]*zng.Record, 0, batch.Length())
 	for k := 0; k < batch.Length(); k++ {
 		in := batch.Index(k)
 		out := c.cut(in)

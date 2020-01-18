@@ -3,6 +3,7 @@ package proc
 import (
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zng"
 )
 
 type Tail struct {
@@ -10,11 +11,11 @@ type Tail struct {
 	limit int
 	count int
 	off   int
-	q     []*zbuf.Record
+	q     []*zng.Record
 }
 
 func NewTail(c *Context, parent Proc, limit int) *Tail {
-	q := make([]*zbuf.Record, limit)
+	q := make([]*zng.Record, limit)
 	return &Tail{Base{Context: c, Parent: parent}, limit, 0, 0, q}
 }
 
@@ -22,7 +23,7 @@ func (t *Tail) tail() zbuf.Batch {
 	if t.count <= 0 {
 		return nil
 	}
-	out := make([]*zbuf.Record, t.limit)
+	out := make([]*zng.Record, t.limit)
 	for k := 0; k < t.limit; k++ {
 		out[k] = t.q[(t.off+k)%t.limit]
 	}

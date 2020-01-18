@@ -11,13 +11,13 @@ import (
 )
 
 func TestTableAddColumns(t *testing.T) {
-	tab := NewTable()
-	d := tab.GetByColumns([]zng.Column{{"s1", zng.TypeString}})
+	ctx := NewContext()
+	d := ctx.LookupByColumns([]zng.Column{zng.NewColumn("s1", zng.TypeString)})
 	r, err := zbuf.NewRecordZeekStrings(d, "S1")
 	require.NoError(t, err)
-	cols := []zng.Column{{"ts", zng.TypeTime}, {"s2", zng.TypeString}}
+	cols := []zng.Column{zng.NewColumn("ts", zng.TypeTime), zng.NewColumn("s2", zng.TypeString)}
 	ts, _ := nano.Parse([]byte("123.456"))
-	r, err = tab.AddColumns(r, cols, []zng.Value{zng.NewTime(ts), zng.NewString("S2")})
+	r, err = ctx.AddColumns(r, cols, []zng.Value{zng.NewTime(ts), zng.NewString("S2")})
 	require.NoError(t, err)
 	assert.EqualValues(t, 123456000000, r.Ts)
 	assert.EqualValues(t, "S1", r.Value(0).String())

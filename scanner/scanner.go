@@ -5,6 +5,7 @@ import (
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/proc"
 	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zng"
 )
 
 type Scanner struct {
@@ -23,7 +24,7 @@ const batchSize = 100
 
 func (s *Scanner) Pull() (zbuf.Batch, error) {
 	minTs, maxTs := nano.MaxTs, nano.MinTs
-	var arr []*zbuf.Record
+	var arr []*zng.Record
 	match := s.filter
 	for len(arr) < batchSize {
 		rec, err := s.reader.Read()

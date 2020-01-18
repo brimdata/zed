@@ -28,7 +28,7 @@ func identity(t *testing.T, logs string) {
 	var out Output
 	dst := zbuf.NopFlusher(zngio.NewWriter(&out))
 	in := []byte(strings.TrimSpace(logs) + "\n")
-	src := zngio.NewReader(bytes.NewReader(in), resolver.NewTable())
+	src := zngio.NewReader(bytes.NewReader(in), resolver.NewContext())
 	err := zbuf.Copy(dst, src)
 	if assert.NoError(t, err) {
 		assert.Equal(t, in, out.Bytes())
@@ -38,14 +38,14 @@ func identity(t *testing.T, logs string) {
 // Send logs to zng reader -> bzng writer -> bzng reader -> zng writer
 func boomerang(t *testing.T, logs string) {
 	in := []byte(strings.TrimSpace(logs) + "\n")
-	zngSrc := zngio.NewReader(bytes.NewReader(in), resolver.NewTable())
+	zngSrc := zngio.NewReader(bytes.NewReader(in), resolver.NewContext())
 	var rawzng Output
 	rawDst := zbuf.NopFlusher(bzngio.NewWriter(&rawzng))
 	err := zbuf.Copy(rawDst, zngSrc)
 	require.NoError(t, err)
 
 	var out Output
-	rawSrc := bzngio.NewReader(bytes.NewReader(rawzng.Bytes()), resolver.NewTable())
+	rawSrc := bzngio.NewReader(bytes.NewReader(rawzng.Bytes()), resolver.NewContext())
 	zngDst := zbuf.NopFlusher(zngio.NewWriter(&out))
 	err = zbuf.Copy(zngDst, rawSrc)
 	if assert.NoError(t, err) {
@@ -54,14 +54,14 @@ func boomerang(t *testing.T, logs string) {
 }
 
 func boomerangZJSON(t *testing.T, logs string) {
-	zngSrc := zngio.NewReader(strings.NewReader(logs), resolver.NewTable())
+	zngSrc := zngio.NewReader(strings.NewReader(logs), resolver.NewContext())
 	var zjsonOutput Output
 	zjsonDst := zbuf.NopFlusher(zjsonio.NewWriter(&zjsonOutput))
 	err := zbuf.Copy(zjsonDst, zngSrc)
 	require.NoError(t, err)
 
 	var out Output
-	zjsonSrc := zjsonio.NewReader(bytes.NewReader(zjsonOutput.Bytes()), resolver.NewTable())
+	zjsonSrc := zjsonio.NewReader(bytes.NewReader(zjsonOutput.Bytes()), resolver.NewContext())
 	zngDst := zbuf.NopFlusher(zngio.NewWriter(&out))
 	err = zbuf.Copy(zngDst, zjsonSrc)
 	if assert.NoError(t, err) {
@@ -179,7 +179,7 @@ func TestCtrl(t *testing.T) {
 	// this tests reading of control via text zng,
 	// then writing of raw control, and reading back the result
 	in := []byte(strings.TrimSpace(ctrl) + "\n")
-	r := zngio.NewReader(bytes.NewReader(in), resolver.NewTable())
+	r := zngio.NewReader(bytes.NewReader(in), resolver.NewContext())
 
 	_, body, err := r.ReadPayload()
 	assert.NoError(t, err)

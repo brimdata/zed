@@ -27,11 +27,11 @@ func Trim(s string) string {
 	return strings.TrimSpace(s) + "\n"
 }
 
-func stringReader(input string, ifmt string, r *resolver.Table) (zbuf.Reader, error) {
+func stringReader(input string, ifmt string, zctx *resolver.Context) (zbuf.Reader, error) {
 	if ifmt == "" {
-		return detector.NewReader(strings.NewReader(input), r)
+		return detector.NewReader(strings.NewReader(input), zctx)
 	}
-	zr := detector.LookupReader(ifmt, strings.NewReader(input), r)
+	zr := detector.LookupReader(ifmt, strings.NewReader(input), zctx)
 	if zr == nil {
 		return nil, fmt.Errorf("unknown input format %s", ifmt)
 	}
@@ -51,7 +51,7 @@ func (i *Internal) Run() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("parse error: %s (%s)", err, i.Query)
 	}
-	reader, err := stringReader(i.Input, i.InputFormat, resolver.NewTable())
+	reader, err := stringReader(i.Input, i.InputFormat, resolver.NewContext())
 	if err != nil {
 		return "", err
 	}

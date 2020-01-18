@@ -51,7 +51,7 @@ func TestNDJSONWriter(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			var out bytes.Buffer
 			w := ndjsonio.NewWriter(&out)
-			r := zngio.NewReader(strings.NewReader(c.input), resolver.NewTable())
+			r := zngio.NewReader(strings.NewReader(c.input), resolver.NewContext())
 			require.NoError(t, zbuf.Copy(zbuf.NopFlusher(w), r))
 			NDJSONEq(t, c.output, out.String())
 		})
@@ -126,7 +126,7 @@ func TestNDJSON(t *testing.T) {
 func runtestcase(t *testing.T, input, output string) {
 	var out bytes.Buffer
 	w := ndjsonio.NewWriter(&out)
-	r := ndjsonio.NewReader(strings.NewReader(input), resolver.NewTable())
+	r := ndjsonio.NewReader(strings.NewReader(input), resolver.NewContext())
 	require.NoError(t, zbuf.Copy(zbuf.NopFlusher(w), r))
 	NDJSONEq(t, output, out.String())
 }

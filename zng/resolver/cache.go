@@ -1,21 +1,23 @@
 package resolver
 
-import "github.com/mccanne/zq/zbuf"
+import (
+	"github.com/mccanne/zq/zng"
+)
 
-// Cache wraps a zbuf.Resolver with an unsynchronized cache.
+// Cache wraps a zng.Resolver with an unsynchronized cache.
 // Cache hits incur none of the synchronization overhead of Table.Lookup.
 type Cache struct {
 	Slice
-	resolver zbuf.Resolver
+	resolver zng.Resolver
 }
 
 // NewCache returns a new Cache wrapping the resolver.
-func NewCache(r zbuf.Resolver) *Cache {
+func NewCache(r zng.Resolver) *Cache {
 	return &Cache{resolver: r}
 }
 
-// Lookup implements zbuf.Resolver interface.
-func (c *Cache) Lookup(td int) *zbuf.Descriptor {
+// Lookup implements zng.Resolver interface.
+func (c *Cache) Lookup(td int) *zng.TypeRecord {
 	if d := c.lookup(td); d != nil {
 		return d
 	}
@@ -28,7 +30,7 @@ func (c *Cache) Lookup(td int) *zbuf.Descriptor {
 
 func (c *Cache) Release() {
 	switch p := c.resolver.(type) {
-	case *Table:
+	case *Context:
 		p.Release(c)
 	case *File:
 		p.Release(c)

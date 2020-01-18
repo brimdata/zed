@@ -10,7 +10,7 @@ import (
 // and zng descriptor objects, which hold the binding between an identifier
 // and a zeek.TypeRecord.
 type File struct {
-	*Table
+	*Context
 	path string
 	// we can use a count of elements on disk since is write only so
 	// it's dirty iff the count on disk != count in memory
@@ -20,7 +20,7 @@ type File struct {
 func NewFile(path string) *File {
 	// start out dirty (nstored=-1) so that an empty table will be saved
 	// so that space introspection works... sheesh
-	return &File{Table: NewTable(), path: path, nstored: -1}
+	return &File{Context: NewContext(), path: path, nstored: -1}
 }
 
 // Save writes this descriptor table to disk.

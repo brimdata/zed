@@ -2,7 +2,6 @@ package field
 
 import (
 	"github.com/mccanne/zq/streamfn"
-	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zng"
 	"github.com/mccanne/zq/zx"
 )
@@ -24,7 +23,7 @@ func (d *Double) Result() zng.Value {
 func (d *Double) Consume(v zng.Value) error {
 	dd, ok := zx.CoerceToDouble(v)
 	if !ok {
-		return zbuf.ErrTypeMismatch
+		return zng.ErrTypeMismatch
 	}
 	d.fn.Update(dd)
 	return nil

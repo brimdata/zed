@@ -6,7 +6,6 @@ import (
 
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/peeker"
-	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zng"
 	"github.com/mccanne/zq/zng/resolver"
 )
@@ -21,14 +20,14 @@ type Reader struct {
 	mapper *resolver.Mapper
 }
 
-func NewReader(reader io.Reader, r *resolver.Table) *Reader {
+func NewReader(reader io.Reader, ctx *resolver.Context) *Reader {
 	return &Reader{
 		peeker: peeker.NewReader(reader, ReadSize, MaxSize),
-		mapper: resolver.NewMapper(r),
+		mapper: resolver.NewMapper(ctx),
 	}
 }
 
-func (r *Reader) Read() (*zbuf.Record, error) {
+func (r *Reader) Read() (*zng.Record, error) {
 	for {
 		r, b, err := r.ReadPayload()
 		if b != nil {
@@ -45,7 +44,7 @@ func (r *Reader) Read() (*zbuf.Record, error) {
 // as byte slices.  The record and byte slice are volatile so they must be
 // copied (via copy for byte slice or zbuf.Record.Keep()) before any subsequent
 // calls to Read or ReadPayload can be made.
-func (r *Reader) ReadPayload() (*zbuf.Record, []byte, error) {
+func (r *Reader) ReadPayload() (*zng.Record, []byte, error) {
 again:
 	var hdr header
 	err := r.decode(&hdr)
@@ -82,29 +81,18 @@ again:
 func (r *Reader) parseDescriptor(id int, b []byte) error {
 	if r.mapper.Map(id) != nil {
 		//XXX this should be ok... decide on this and update spec
-		return zbuf.ErrDescriptorExists
+		return zng.ErrDescriptorExists
 	}
-	typ, err := zng.LookupType(string(b))
-	if err != nil {
-		return err
-	}
-	recordType, ok := typ.(*zng.TypeRecord)
-	if !ok {
-		return zbuf.ErrBadValue
-	}
-	if r.mapper.Enter(id, recordType) == nil {
-		// XXX this shouldn't happen
-		return zbuf.ErrBadValue
-	}
-	return nil
+	_, err := r.mapper.EnterByName(id, string(b))
+	return err
 }
 
-func (r *Reader) parseValue(id int, b []byte) (*zbuf.Record, error) {
+func (r *Reader) parseValue(id int, b []byte) (*zng.Record, error) {
 	descriptor := r.mapper.Map(id)
 	if descriptor == nil {
-		return nil, zbuf.ErrDescriptorInvalid
+		return nil, zng.ErrDescriptorInvalid
 	}
-	record := zbuf.NewVolatileRecord(descriptor, nano.MinTs, b)
+	record := zng.NewVolatileRecord(descriptor, nano.MinTs, b)
 	if err := record.TypeCheck(); err != nil {
 		return nil, err
 	}

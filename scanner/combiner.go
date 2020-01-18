@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/mccanne/zq/zbuf"
+	"github.com/mccanne/zq/zng"
 )
 
 type Reader struct {
@@ -13,19 +14,19 @@ type Reader struct {
 
 type Combiner struct {
 	readers []Reader
-	hol     []*zbuf.Record
+	hol     []*zng.Record
 	done    []bool
 }
 
 func NewCombiner(readers []Reader) *Combiner {
 	return &Combiner{
 		readers: readers,
-		hol:     make([]*zbuf.Record, len(readers)),
+		hol:     make([]*zng.Record, len(readers)),
 		done:    make([]bool, len(readers)),
 	}
 }
 
-func (c *Combiner) Read() (*zbuf.Record, error) {
+func (c *Combiner) Read() (*zng.Record, error) {
 	idx := -1
 	for k, l := range c.readers {
 		if c.done[k] {

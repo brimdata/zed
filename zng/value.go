@@ -20,29 +20,14 @@ type Value struct {
 	Bytes zcode.Bytes
 }
 
-// NewValue creates a Value with the given type and value described
-// as simple strings.
-func NewValue(typ, val string) (Value, error) {
-	t, err := LookupType(typ)
-	if err != nil {
-		return Value{}, err
-	}
-	zv, err := t.Parse([]byte(val))
-	if err != nil {
-		return Value{}, err
-	}
-	return Value{t, zv}, nil
-}
-
 // Parse translates an Literal into a Value.
+// This currently supports only primitive literals.
 func Parse(v ast.Literal) (Value, error) {
 	if v.Type == "null" {
 		return Value{}, nil
 	}
-	typeMapMutex.RLock()
-	t, ok := typeMap[v.Type]
-	typeMapMutex.RUnlock()
-	if !ok {
+	t := LookupPrimitive(v.Type)
+	if t == nil {
 		return Value{}, fmt.Errorf("unsupported type %s in ast.Literal", v.Type)
 	}
 	zv, err := t.Parse([]byte(v.Value))
@@ -136,7 +121,7 @@ func (v Value) VectorIndex(idx int64) (Value, error) {
 			return Value{}, err
 		}
 		if i == int(idx) {
-			return Value{vec.typ, zv}, nil
+			return Value{vec.Type, zv}, nil
 		}
 	}
 	return Value{}, ErrIndex

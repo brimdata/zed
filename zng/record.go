@@ -2,26 +2,48 @@ package zng
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/mccanne/zq/zcode"
 )
 
-var ErrColumnMismatch = errors.New("zng record mismatch between columns in type and columns in value")
-
 type TypeRecord struct {
+	Context
+	ID      int
 	Columns []Column
-	Key     string
+	LUT     map[string]int
+	TsCol   int
+	//XXX get rid of Key and use ID as context-unique type id
+	Key string
 }
 
-func recordString(columns []Column) string {
-	return columnList("record[", columns, "]")
+func CopyTypeRecord(id int, r *TypeRecord) *TypeRecord {
+	return &TypeRecord{
+		Columns: r.Columns,
+		LUT:     r.LUT,
+		TsCol:   r.TsCol,
+		Key:     r.Key,
+	}
+}
+
+func NewTypeRecord(id int, columns []Column) *TypeRecord {
+	r := &TypeRecord{
+		ID:      id,
+		Columns: columns,
+		TsCol:   -1,
+		Key:     ColumnString("", columns, ""), //XXX
+	}
+	r.createLUT()
+	return r
+}
+
+//XXX
+func TypeRecordString(columns []Column) string {
+	return ColumnString("record[", columns, "]")
 }
 
 func (t *TypeRecord) String() string {
-	return recordString(t.Columns)
+	return ColumnString("record[", t.Columns, "]")
 }
 
 func (t TypeRecord) MarshalJSON() ([]byte, error) {
@@ -32,68 +54,8 @@ func (t *TypeRecord) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &t.Columns); err != nil {
 		return err
 	}
-	t.Key = recordString(t.Columns)
+	Typify(t.Context, t.Columns)
 	return nil
-}
-
-func parseColumn(in string) (string, Column, error) {
-	in = strings.TrimSpace(in)
-	colon := strings.IndexByte(in, byte(':'))
-	if colon < 0 {
-		return "", Column{}, ErrTypeSyntax
-	}
-	//XXX should check if name is valid
-	name := strings.TrimSpace(in[:colon])
-	rest, typ, err := parseType(in[colon+1:])
-	if err != nil {
-		return "", Column{}, err
-	}
-	if typ == nil {
-		return "", Column{}, ErrTypeSyntax
-	}
-	return rest, Column{Name: name, Type: typ}, nil
-}
-
-func match(in, pattern string) (string, bool) {
-	in = strings.TrimSpace(in)
-	if strings.HasPrefix(in, pattern) {
-		return in[len(pattern):], true
-	}
-	return in, false
-}
-
-// parseRecordTypeBody parses a list of record columns of the form "[field:type,...]".
-func parseRecordTypeBody(in string) (string, Type, error) {
-	in, ok := match(in, "[")
-	if !ok {
-		return "", nil, ErrTypeSyntax
-	}
-	var columns []Column
-	for {
-		// at top of loop, we have to have a field def either because
-		// this is the first def or we found a comma and are expecting
-		// another one.
-		rest, col, err := parseColumn(in)
-		if err != nil {
-			return "", nil, err
-		}
-		for _, c := range columns {
-			if col.Name == c.Name {
-				return "", nil, ErrDuplicateFields
-			}
-		}
-		columns = append(columns, col)
-		rest, ok = match(rest, ",")
-		if ok {
-			in = rest
-			continue
-		}
-		rest, ok = match(rest, "]")
-		if ok {
-			return rest, LookupTypeRecord(columns), nil
-		}
-		return "", nil, ErrTypeSyntax
-	}
 }
 
 //XXX we shouldn't need this... tests are using it
@@ -149,4 +111,26 @@ func (t *TypeRecord) Marshal(zv zcode.Bytes) (interface{}, error) {
 		m[col.Name] = Value{col.Type, zv}
 	}
 	return m, nil
+}
+
+func (t *TypeRecord) ColumnOfField(field string) (int, bool) {
+	v, ok := t.LUT[field]
+	return v, ok
+}
+
+func (t *TypeRecord) HasField(field string) bool {
+	_, ok := t.LUT[field]
+	return ok
+}
+
+func (t *TypeRecord) createLUT() {
+	t.LUT = make(map[string]int)
+	for k, col := range t.Columns {
+		t.LUT[col.Name] = k
+		if col.Name == "ts" {
+			if _, ok := col.Type.(*TypeOfTime); ok {
+				t.TsCol = k
+			}
+		}
+	}
 }

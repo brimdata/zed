@@ -11,20 +11,29 @@ package zng
 
 import (
 	"errors"
-	"fmt"
 	"strings"
-	"sync"
 
 	"github.com/mccanne/zq/zcode"
 )
 
 var (
-	ErrUnset        = errors.New("value is unset")
-	ErrLenUnset     = errors.New("len(unset) is undefined")
-	ErrNotContainer = errors.New("argument to len() is not a container")
-	ErrNotVector    = errors.New("cannot index a non-vector")
-	ErrIndex        = errors.New("vector index out of bounds")
+	ErrUnset     = errors.New("value is unset")
+	ErrLenUnset  = errors.New("len(unset) is undefined")
+	ErrNotVector = errors.New("cannot index a non-vector")
+	ErrIndex     = errors.New("vector index out of bounds")
 )
+
+// Resolver is an interface for looking up Type objects from the type id.
+type Resolver interface {
+	//XXX TypeRecord for now
+	Lookup(int) *TypeRecord
+}
+
+// Context is an interface for looking up TypeRecord objects from a slice of Columns.
+type Context interface {
+	LookupByColumns([]Column) *TypeRecord
+	LookupByName(string) (Type, error)
+}
 
 // A Type is an interface presented by a zeek type.
 // Types can be used to infer type compatibility and create new values
@@ -53,19 +62,32 @@ var (
 	TypeEnum     = &TypeOfEnum{}
 )
 
-var typeMapMutex sync.RWMutex
-var typeMap = map[string]Type{
-	"bool":     TypeBool,
-	"count":    TypeCount,
-	"int":      TypeInt,
-	"double":   TypeDouble,
-	"time":     TypeTime,
-	"interval": TypeInterval,
-	"string":   TypeString,
-	"port":     TypePort,
-	"addr":     TypeAddr,
-	"subnet":   TypeSubnet,
-	"enum":     TypeEnum,
+func LookupPrimitive(name string) Type {
+	switch name {
+	case "bool":
+		return TypeBool
+	case "count":
+		return TypeCount
+	case "int":
+		return TypeInt
+	case "double":
+		return TypeDouble
+	case "time":
+		return TypeTime
+	case "interval":
+		return TypeInterval
+	case "string":
+		return TypeString
+	case "port":
+		return TypePort
+	case "addr":
+		return TypeAddr
+	case "subnet":
+		return TypeSubnet
+	case "enum":
+		return TypeEnum
+	}
+	return nil
 }
 
 // SameType returns true if the two types are equal in that each interface
@@ -77,105 +99,16 @@ func SameType(t1, t2 Type) bool {
 	return t1 == t2
 }
 
-// addType adds a type to the type lookup map.
-func addType(t Type) Type {
-	typeMapMutex.Lock()
-	defer typeMapMutex.Unlock()
-	key := t.String()
-	old, ok := typeMap[key]
-	if ok {
-		t = old
-	} else {
-		typeMap[key] = t
-	}
-	return t
-}
-
-func isIdChar(c byte) bool {
-	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '.'
-}
-
-func parseWord(in string) (string, string) {
-	in = strings.TrimSpace(in)
-	var off int
-	for ; off < len(in); off++ {
-		if !isIdChar(in[off]) {
-			break
-		}
-	}
-	if off == 0 {
-		return "", ""
-	}
-	return in[off:], in[:off]
-}
-
-// LookupType returns the Type indicated by the zeek type string.  The type string
-// may be a primitive type like int, double, time, etc. or it may be a container type
-// (record, set or vector), which is recusively composed of other types.  The set and vector
-// type definitions are encoded in the same fashion as zeek stores them as type field
-// in a zeek file header.  Each unique container type object is created once and
-// interned so that pointer comparison can be used to determine type equality.
-func LookupType(in string) (Type, error) {
-	//XXX check if rest has junk and flag an error?
-	_, typ, err := parseType(in)
-	return typ, err
-}
-
-// LookupVectorType returns the VectorType for the provided innerType.
-func LookupVectorType(innerType Type) Type {
-	return addType(&TypeVector{typ: innerType})
-}
-
-func parseType(in string) (string, Type, error) {
-	typeMapMutex.RLock()
-	t, ok := typeMap[strings.TrimSpace(in)]
-	typeMapMutex.RUnlock()
-	if ok {
-		return "", t, nil
-	}
-	rest, word := parseWord(in)
-	if word == "" {
-		return "", nil, fmt.Errorf("unknown type: %s", in)
-	}
-	typeMapMutex.RLock()
-	t, ok = typeMap[word]
-	typeMapMutex.RUnlock()
-	if ok {
-		return rest, t, nil
-	}
-	switch word {
-	case "set":
-		rest, t, err := parseSetTypeBody(rest)
-		if err != nil {
-			return "", nil, err
-		}
-		return rest, addType(t), nil
-	case "vector":
-		rest, t, err := parseVectorTypeBody(rest)
-		if err != nil {
-			return "", nil, err
-		}
-		return rest, addType(t), nil
-	case "record":
-		rest, t, err := parseRecordTypeBody(rest)
-		if err != nil {
-			return "", nil, err
-		}
-		return rest, addType(t), nil
-	}
-	return "", nil, fmt.Errorf("unknown type: %s", word)
-}
-
-// Utilities shared by container types (record, set and vector).
+// Utilities shared by compound types (ie, set and vector)
 
 // InnerType returns the element type for set and vector types
 // or nil if the type is not a set or vector.
 func InnerType(typ Type) Type {
 	switch typ := typ.(type) {
 	case *TypeSet:
-		return typ.innerType
+		return typ.InnerType
 	case *TypeVector:
-		return typ.typ
+		return typ.Type
 	default:
 		return nil
 	}
@@ -188,9 +121,9 @@ func InnerType(typ Type) Type {
 func ContainedType(typ Type) (Type, []Column) {
 	switch typ := typ.(type) {
 	case *TypeSet:
-		return typ.innerType, nil
+		return typ.InnerType, nil
 	case *TypeVector:
-		return typ.typ, nil
+		return typ.Type, nil
 	case *TypeRecord:
 		return nil, typ.Columns
 	default:
@@ -212,33 +145,4 @@ func trimInnerTypes(typ string, raw string) string {
 	innerTypes := strings.TrimPrefix(raw, typ+"[")
 	innerTypes = strings.TrimSuffix(innerTypes, "]")
 	return innerTypes
-}
-
-// LookupTypeRecord returns a zeek.TypeRecord for the indicated columns.  If it
-// already exists, the existent interface pointer is returned.  Otherwise,
-// it is created and returned.
-func LookupTypeRecord(columns []Column) *TypeRecord {
-	s := recordString(columns)
-	typeMapMutex.RLock()
-	t, ok := typeMap[s]
-	typeMapMutex.RUnlock()
-	if ok {
-		return t.(*TypeRecord)
-	}
-	typeMapMutex.Lock()
-	defer typeMapMutex.Unlock()
-	t, ok = typeMap[s]
-	if ok {
-		return t.(*TypeRecord)
-	}
-	// Make a private copy of the columns to maintain the invariant
-	// that types are immutable and the columns can be retrieved from
-	// the type system and traversed without any data races.
-	private := make([]Column, len(columns))
-	for k, p := range columns {
-		private[k] = p
-	}
-	rec := &TypeRecord{Columns: private, Key: s}
-	typeMap[s] = rec
-	return rec
 }

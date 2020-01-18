@@ -67,8 +67,8 @@ const connZng = `
 0:[conn;world;]`
 
 const dnsZng = `
-#1:record[_path:string,a:int]
-1:[dns;1;]
-1:[dns;2;]
-1:[dns;3;]
-1:[dns;4;]`
+#0:record[_path:string,a:int]
+0:[dns;1;]
+0:[dns;2;]
+0:[dns;3;]
+0:[dns;4;]`
