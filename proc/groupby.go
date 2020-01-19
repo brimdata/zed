@@ -87,6 +87,11 @@ type GroupBy struct {
 	agg        *GroupByAggregator
 }
 
+type keyRow struct {
+	id      int
+	columns []zng.Column
+}
+
 // GroupByAggregator performs the core aggregation computation for a
 // list of reducer generators. It handles both regular and time-binned
 // ("every") group-by operations.  Records are generated in a
@@ -94,9 +99,20 @@ type GroupBy struct {
 // by time-binning are partially ordered by timestamp coincident with
 // search direction.
 type GroupByAggregator struct {
-	keysMap     *resolver.Mapper
-	cacheKey    []byte // Reduces memory allocations in Consume.
-	zctx        *resolver.Context
+	// keyCols maps incoming type ID of the record's type to a set of columns
+	// for that record type where each column represents a key.  If the
+	// inbound record doesn't have all of the group-by keys, then it is
+	// blocked by setting the map entry to nil.  If there are no group-by
+	// keys, then the map is set to an empty slice.
+	keyCols  map[int]keyRow
+	cacheKey []byte // Reduces memory allocations in Consume.
+	// zctx is the type context of the running search.
+	zctx *resolver.Context
+	// kctx is a scratch type context used to generate unique
+	// type IDs for prepending to the entires for the key-value
+	// lookup table so that values with the same encoding but of
+	// different types do not collide.  No types from this context
+	// are ever referenced.
 	kctx        *resolver.Context
 	keys        []GroupByKey
 	reducerDefs []compile.CompiledReducer
@@ -113,7 +129,7 @@ type GroupByAggregator struct {
 }
 
 type GroupByRow struct {
-	keytype  *zng.TypeRecord
+	keycols  keyRow
 	keyvals  zcode.Bytes
 	ts       nano.Ts
 	reducers compile.Row
@@ -130,18 +146,13 @@ func NewGroupByAggregator(c *Context, params GroupByParams) *GroupByAggregator {
 	if limit == 0 {
 		limit = defaultGroupByLimit
 	}
-	kctx := resolver.NewContext()
 	return &GroupByAggregator{
-		keys:        params.keys,
-		zctx:        c.TypeContext,
-		kctx:        kctx,
-		reducerDefs: params.reducers,
-		builder:     params.builder,
-		//XXX this needs review... the keysMap should land in the
-		// output type context, right?
-		// keysMap maps an input descriptor to a descriptor
-		// representing the group-by key columns.
-		keysMap:         resolver.NewMapper(kctx),
+		keys:            params.keys,
+		zctx:            c.TypeContext,
+		kctx:            resolver.NewContext(),
+		reducerDefs:     params.reducers,
+		builder:         params.builder,
+		keyCols:         make(map[int]keyRow),
 		tables:          make(map[nano.Ts]map[string]*GroupByRow),
 		TimeBinDuration: dur,
 		reverse:         c.Reverse,
@@ -192,33 +203,40 @@ func (g *GroupBy) Pull() (zbuf.Batch, error) {
 	}
 }
 
-func (g *GroupByAggregator) createRow(keytype *zng.TypeRecord, ts nano.Ts, vals zcode.Bytes) *GroupByRow {
+func (g *GroupByAggregator) createRow(keyCols keyRow, ts nano.Ts, vals zcode.Bytes) *GroupByRow {
 	// Make a deep copy so the caller can reuse the underlying arrays.
 	v := make(zcode.Bytes, len(vals))
 	copy(v, vals)
 	return &GroupByRow{
-		keytype:  keytype,
+		keycols:  keyCols,
 		keyvals:  v,
 		ts:       ts,
 		reducers: compile.Row{Defs: g.reducerDefs},
 	}
 }
 
-func keysTypeRecord(zctx *resolver.Context, r *zng.Record, keys []GroupByKey) *zng.TypeRecord {
+func newKeyCols(kctx *resolver.Context, r *zng.Record, keys []GroupByKey) keyRow {
 	cols := make([]zng.Column, len(keys))
 	for k, key := range keys {
 		// Recurse the record to find the bottom column for group-by
 		// on record access, e.g., a.b.c should find the column for "c".
 		keyVal := key.resolver(r)
 		if keyVal.Type == nil {
-			return nil
+			return keyRow{}
 		}
 		cols[k] = zng.NewColumn(key.name, keyVal.Type)
 	}
-	return zctx.LookupByColumns(cols)
+	//
+	var id int
+	if len(cols) > 0 {
+		typ, err := kctx.LookupByName(zng.TypeRecordString(cols))
+		if err != nil {
+			return keyRow{}
+		}
+		id = typ.(*zng.TypeRecord).ID()
+	}
+	return keyRow{id, cols}
 }
-
-var blocked = &zng.TypeRecord{}
 
 // Consume takes a record and adds it to the aggregation. Records
 // successively passed to Consume are expected to have timestamps in
@@ -226,17 +244,13 @@ var blocked = &zng.TypeRecord{}
 func (g *GroupByAggregator) Consume(r *zng.Record) error {
 	// First check if we've seen this descriptor before and if not
 	// build an entry for it.
-	keysType := g.keysMap.Map(r.Type.ID())
-	if keysType == nil {
-		id := r.Type.ID()
-		recType := keysTypeRecord(g.kctx, r, g.keys)
-		if recType == nil {
-			g.keysMap.EnterDescriptor(id, blocked)
-			return nil
-		}
-		keysType = g.keysMap.Enter(id, recType)
+	id := r.Type.ID()
+	keyCols, ok := g.keyCols[id]
+	if !ok {
+		keyCols = newKeyCols(g.kctx, r, g.keys)
+		g.keyCols[id] = keyCols
 	}
-	if keysType == blocked {
+	if keyCols.columns == nil {
 		// block this descriptor since it doesn't have all the group-by keys
 		return nil
 	}
@@ -259,7 +273,7 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 	} else {
 		keyBytes = make(zcode.Bytes, 4, 128)
 	}
-	binary.BigEndian.PutUint32(keyBytes, uint32(keysType.ID()))
+	binary.BigEndian.PutUint32(keyBytes, uint32(keyCols.id))
 	g.builder.Reset()
 	for _, key := range g.keys {
 		keyVal := key.resolver(r)
@@ -286,7 +300,7 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 		if len(table) >= g.limit {
 			return errTooBig(g.limit)
 		}
-		row = g.createRow(keysType, ts, keyBytes[4:])
+		row = g.createRow(keyCols, ts, keyBytes[4:])
 		table[string(keyBytes)] = row
 	}
 	row.reducers.Consume(r)
@@ -395,8 +409,8 @@ func (g *GroupByAggregator) lookupRowType(row *GroupByRow) *zng.TypeRecord {
 	if g.TimeBinDuration > 0 {
 		cols = append(cols, zng.NewColumn("ts", zng.TypeTime))
 	}
-	types := make([]zng.Type, len(row.keytype.Columns))
-	for k, col := range row.keytype.Columns {
+	types := make([]zng.Type, len(row.keycols.columns))
+	for k, col := range row.keycols.columns {
 		types[k] = col.Type
 	}
 	cols = append(cols, g.builder.TypedColumns(types)...)
