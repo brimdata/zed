@@ -215,7 +215,7 @@ func (g *GroupByAggregator) createRow(keyCols keyRow, ts nano.Ts, vals zcode.Byt
 	}
 }
 
-func newKeyCols(kctx *resolver.Context, r *zng.Record, keys []GroupByKey) keyRow {
+func newKeyRow(kctx *resolver.Context, r *zng.Record, keys []GroupByKey) keyRow {
 	cols := make([]zng.Column, len(keys))
 	for k, key := range keys {
 		// Recurse the record to find the bottom column for group-by
@@ -226,7 +226,11 @@ func newKeyCols(kctx *resolver.Context, r *zng.Record, keys []GroupByKey) keyRow
 		}
 		cols[k] = zng.NewColumn(key.name, keyVal.Type)
 	}
-	//
+	// Lookup a unique ID by converting the columns too a record string
+	// and looking up the record by name in the scratch type context.
+	// This is called infrequently, just once for each unique input
+	// record type.  If there no keys, just use id zero since the
+	// type ID doesn't matter here.
 	var id int
 	if len(cols) > 0 {
 		typ, err := kctx.LookupByName(zng.TypeRecordString(cols))
@@ -247,7 +251,7 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 	id := r.Type.ID()
 	keyCols, ok := g.keyCols[id]
 	if !ok {
-		keyCols = newKeyCols(g.kctx, r, g.keys)
+		keyCols = newKeyRow(g.kctx, r, g.keys)
 		g.keyCols[id] = keyCols
 	}
 	if keyCols.columns == nil {
