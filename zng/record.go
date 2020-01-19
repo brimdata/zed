@@ -1,15 +1,13 @@
 package zng
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/mccanne/zq/zcode"
 )
 
 type TypeRecord struct {
-	Context
-	ID      int
+	id      int
 	Columns []Column
 	LUT     map[string]int
 	TsCol   int
@@ -28,7 +26,7 @@ func CopyTypeRecord(id int, r *TypeRecord) *TypeRecord {
 
 func NewTypeRecord(id int, columns []Column) *TypeRecord {
 	r := &TypeRecord{
-		ID:      id,
+		id:      id,
 		Columns: columns,
 		TsCol:   -1,
 		Key:     ColumnString("", columns, ""), //XXX
@@ -42,20 +40,17 @@ func TypeRecordString(columns []Column) string {
 	return ColumnString("record[", columns, "]")
 }
 
+func (t *TypeRecord) ID() int {
+	return t.id
+}
+
+//XXX get rid of this when we implement full ZNG
+func (t *TypeRecord) SetID(id int) {
+	t.id = id
+}
+
 func (t *TypeRecord) String() string {
 	return ColumnString("record[", t.Columns, "]")
-}
-
-func (t TypeRecord) MarshalJSON() ([]byte, error) {
-	return json.Marshal(t.Columns)
-}
-
-func (t *TypeRecord) UnmarshalJSON(data []byte) error {
-	if err := json.Unmarshal(data, &t.Columns); err != nil {
-		return err
-	}
-	Typify(t.Context, t.Columns)
-	return nil
 }
 
 //XXX we shouldn't need this... tests are using it

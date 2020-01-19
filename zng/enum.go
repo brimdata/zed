@@ -25,6 +25,10 @@ func (t *TypeOfEnum) Parse(in []byte) (zcode.Bytes, error) {
 	return in, nil
 }
 
+func (t *TypeOfEnum) ID() int {
+	return IdEnum
+}
+
 func (t *TypeOfEnum) String() string {
 	return "enum"
 }

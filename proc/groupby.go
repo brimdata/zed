@@ -226,9 +226,9 @@ var blocked = &zng.TypeRecord{}
 func (g *GroupByAggregator) Consume(r *zng.Record) error {
 	// First check if we've seen this descriptor before and if not
 	// build an entry for it.
-	keysType := g.keysMap.Map(r.Type.ID)
+	keysType := g.keysMap.Map(r.Type.ID())
 	if keysType == nil {
-		id := r.Type.ID
+		id := r.Type.ID()
 		recType := keysTypeRecord(g.kctx, r, g.keys)
 		if recType == nil {
 			g.keysMap.EnterDescriptor(id, blocked)
@@ -259,7 +259,7 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 	} else {
 		keyBytes = make(zcode.Bytes, 4, 128)
 	}
-	binary.BigEndian.PutUint32(keyBytes, uint32(keysType.ID))
+	binary.BigEndian.PutUint32(keyBytes, uint32(keysType.ID()))
 	g.builder.Reset()
 	for _, key := range g.keys {
 		keyVal := key.resolver(r)

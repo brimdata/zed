@@ -49,7 +49,7 @@ func CompileCutProc(c *Context, parent Proc, node *ast.CutProc) (*Cut, error) {
 func (c *Cut) cut(in *zng.Record) *zng.Record {
 	// Check if we already have an output descriptor for this
 	// input type
-	typ, ok := c.cutmap[in.Type.ID]
+	typ, ok := c.cutmap[in.Type.ID()]
 	if ok && typ == nil {
 		// One or more cut fields isn't present in this type of
 		// input record, drop it now.
@@ -70,7 +70,7 @@ func (c *Cut) cut(in *zng.Record) *zng.Record {
 		if typ == nil {
 			if val.Type == nil {
 				// a field is missing... block this descriptor
-				c.cutmap[in.Type.ID] = nil
+				c.cutmap[in.Type.ID()] = nil
 				c.nblocked++
 				return nil
 			}
@@ -81,7 +81,7 @@ func (c *Cut) cut(in *zng.Record) *zng.Record {
 	if typ == nil {
 		cols := c.builder.TypedColumns(types)
 		typ = c.TypeContext.LookupByColumns(cols)
-		c.cutmap[in.Type.ID] = typ
+		c.cutmap[in.Type.ID()] = typ
 	}
 
 	zv, err := c.builder.Encode()

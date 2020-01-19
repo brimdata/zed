@@ -20,7 +20,7 @@ func NewStream() *Stream {
 }
 
 func (s *Stream) Transform(r *zng.Record) (*Record, error) {
-	id := r.Type.ID
+	id := r.Type.ID()
 	var typ []interface{}
 	if !s.tracker.Seen(id) {
 		var err error

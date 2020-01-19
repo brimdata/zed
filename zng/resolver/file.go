@@ -23,7 +23,7 @@ func NewFile(path string) *File {
 	return &File{Context: NewContext(), path: path, nstored: -1}
 }
 
-// Save writes this descriptor table to disk.
+// Save writes this context table to disk.
 func (f *File) Save() error {
 	//XXX use jsonfile?  why 0755?
 	if err := os.MkdirAll(filepath.Dir(f.path), 0755); err != nil {

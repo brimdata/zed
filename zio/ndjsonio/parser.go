@@ -77,6 +77,10 @@ func (*stubTypeOf) Coerce(zv zcode.Bytes, typ zng.Type) zcode.Bytes {
 	return nil
 }
 
+func (*stubTypeOf) ID() int {
+	return -1
+}
+
 func (p *Parser) jsonParseObject(b []byte) (zng.Type, error) {
 	type kv struct {
 		key   []byte

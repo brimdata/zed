@@ -7,7 +7,21 @@ import (
 )
 
 type TypeVector struct {
+	id   int
 	Type Type
+}
+
+func NewTypeVector(id int, typ Type) *TypeVector {
+	return &TypeVector{id, typ}
+}
+
+func (t *TypeVector) ID() int {
+	return t.id
+}
+
+//XXX get rid of this when we implement full ZNG
+func (t *TypeVector) SetID(id int) {
+	t.id = id
 }
 
 func (t *TypeVector) String() string {

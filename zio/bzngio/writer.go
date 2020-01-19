@@ -20,7 +20,7 @@ func NewWriter(w io.Writer) *Writer {
 }
 
 func (w *Writer) Write(r *zng.Record) error {
-	id := r.Type.ID
+	id := r.Type.ID()
 	if !w.tracker.Seen(id) {
 		b := []byte(r.Type.String())
 		if err := w.encode(TypeDescriptor, id, b); err != nil {

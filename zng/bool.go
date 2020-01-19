@@ -36,6 +36,10 @@ func (t *TypeOfBool) Parse(in []byte) (zcode.Bytes, error) {
 	return EncodeBool(b), nil
 }
 
+func (t *TypeOfBool) ID() int {
+	return IdBool
+}
+
 func (t *TypeOfBool) String() string {
 	return "bool"
 }

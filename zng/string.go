@@ -27,6 +27,10 @@ func (t *TypeOfString) Parse(in []byte) (zcode.Bytes, error) {
 	return normalized, nil
 }
 
+func (t *TypeOfString) ID() int {
+	return IdBstring
+}
+
 func (t *TypeOfString) String() string {
 	return "string"
 }

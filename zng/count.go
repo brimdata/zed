@@ -33,6 +33,10 @@ func (t *TypeOfCount) Parse(in []byte) (zcode.Bytes, error) {
 	return EncodeCount(c), nil
 }
 
+func (t *TypeOfCount) ID() int {
+	return IdUint64
+}
+
 func (t *TypeOfCount) String() string {
 	return "count"
 }

@@ -39,6 +39,10 @@ func (t *TypeOfPort) Parse(in []byte) (zcode.Bytes, error) {
 	return EncodePort(i), nil
 }
 
+func (t *TypeOfPort) ID() int {
+	return IdPort
+}
+
 func (t *TypeOfPort) String() string {
 	return "port"
 }

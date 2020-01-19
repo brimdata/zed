@@ -32,6 +32,10 @@ func (t *TypeOfTime) Parse(in []byte) (zcode.Bytes, error) {
 	return EncodeTime(ts), nil
 }
 
+func (t *TypeOfTime) ID() int {
+	return IdTime
+}
+
 func (t *TypeOfTime) String() string {
 	return "time"
 }
