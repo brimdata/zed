@@ -93,7 +93,7 @@ func (c *Context) makeSetType(id int, aliases []Alias) (*zng.TypeSet, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &zng.TypeSet{Context: c, ID: id, InnerType: typ}, nil
+	return &zng.TypeSet{ID: id, InnerType: typ}, nil
 }
 
 func (c *Context) makeVectorType(id int, aliases []Alias) (*zng.TypeVector, error) {
@@ -102,7 +102,7 @@ func (c *Context) makeVectorType(id int, aliases []Alias) (*zng.TypeVector, erro
 	if err != nil {
 		return nil, err
 	}
-	return &zng.TypeVector{Context: c, ID: id, Type: typ}, nil
+	return &zng.TypeVector{ID: id, Type: typ}, nil
 }
 
 func (c *Context) makeRecordType(id int, aliases []Alias) (*zng.TypeRecord, error) {

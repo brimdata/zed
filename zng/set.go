@@ -7,7 +7,6 @@ import (
 )
 
 type TypeSet struct {
-	Context
 	ID        int
 	InnerType Type
 }

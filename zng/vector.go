@@ -7,7 +7,6 @@ import (
 )
 
 type TypeVector struct {
-	Context
 	ID   int
 	Type Type
 }

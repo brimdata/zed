@@ -7,7 +7,6 @@ import (
 )
 
 type TypeRecord struct {
-	Context
 	ID      int
 	Columns []Column
 	LUT     map[string]int
