@@ -46,7 +46,7 @@ type Type interface {
 	// encoding.  The string input is provided as a byte slice for efficiency
 	// given the common use cases in the system.
 	Parse([]byte) (zcode.Bytes, error)
-	Id() int
+	ID() int
 }
 
 var (

@@ -87,7 +87,7 @@ func (d *Dir) filename(r *zng.Record) (string, string) {
 	if err == nil {
 		path = base
 	} else {
-		base = strconv.Itoa(r.Type.ID)
+		base = strconv.Itoa(r.Type.ID())
 	}
 	name := d.prefix + base + d.ext
 	return filepath.Join(d.dir, name), path

@@ -77,7 +77,7 @@ func (*stubTypeOf) Coerce(zv zcode.Bytes, typ zng.Type) zcode.Bytes {
 	return nil
 }
 
-func (*stubTypeOf) Id() int {
+func (*stubTypeOf) ID() int {
 	return -1
 }
 

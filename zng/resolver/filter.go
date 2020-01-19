@@ -20,7 +20,7 @@ func NewFilter(f Predicate) *Filter {
 }
 
 func (f *Filter) Match(d *zng.TypeRecord) bool {
-	td := d.ID
+	td := d.ID()
 	v := f.lookup(td)
 	if v == nil {
 		if f.filter(d) {

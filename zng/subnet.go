@@ -61,7 +61,7 @@ func (t *TypeOfSubnet) Parse(in []byte) (zcode.Bytes, error) {
 	return EncodeSubnet(subnet), nil
 }
 
-func (t *TypeOfSubnet) Id() int {
+func (t *TypeOfSubnet) ID() int {
 	return IdNet
 }
 

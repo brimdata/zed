@@ -7,12 +7,21 @@ import (
 )
 
 type TypeSet struct {
-	ID        int
+	id        int
 	InnerType Type
 }
 
-func (t *TypeSet) Id() int {
-	return t.ID
+func NewTypeSet(id int, typ Type) *TypeSet {
+	return &TypeSet{id, typ}
+}
+
+func (t *TypeSet) ID() int {
+	return t.id
+}
+
+//XXX get rid of this when we implement full ZNG
+func (t *TypeSet) SetID(id int) {
+	t.id = id
 }
 
 func (t *TypeSet) String() string {

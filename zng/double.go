@@ -46,7 +46,7 @@ func (t *TypeOfDouble) Parse(in []byte) (zcode.Bytes, error) {
 	return EncodeDouble(d), nil
 }
 
-func (t *TypeOfDouble) Id() int {
+func (t *TypeOfDouble) ID() int {
 	return IdFloat64
 }
 

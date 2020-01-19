@@ -7,7 +7,7 @@ import (
 )
 
 type TypeRecord struct {
-	ID      int
+	id      int
 	Columns []Column
 	LUT     map[string]int
 	TsCol   int
@@ -26,7 +26,7 @@ func CopyTypeRecord(id int, r *TypeRecord) *TypeRecord {
 
 func NewTypeRecord(id int, columns []Column) *TypeRecord {
 	r := &TypeRecord{
-		ID:      id,
+		id:      id,
 		Columns: columns,
 		TsCol:   -1,
 		Key:     ColumnString("", columns, ""), //XXX
@@ -40,8 +40,13 @@ func TypeRecordString(columns []Column) string {
 	return ColumnString("record[", columns, "]")
 }
 
-func (t *TypeRecord) Id() int {
-	return t.ID
+func (t *TypeRecord) ID() int {
+	return t.id
+}
+
+//XXX get rid of this when we implement full ZNG
+func (t *TypeRecord) SetID(id int) {
+	t.id = id
 }
 
 func (t *TypeRecord) String() string {

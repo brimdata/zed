@@ -31,7 +31,7 @@ func (w *Writer) WriteControl(b []byte) error {
 }
 
 func (w *Writer) Write(r *zng.Record) error {
-	inId := r.Type.ID
+	inId := r.Type.ID()
 	outId, ok := w.tracker[inId]
 	if !ok {
 		outId = len(w.tracker)

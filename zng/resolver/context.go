@@ -63,7 +63,7 @@ func setTypeDef(id int, t *zng.TypeSet) TypeDef {
 	return TypeDef{
 		Id:      id,
 		Code:    TypeDefSet,
-		Aliases: []Alias{Alias{"set", t.InnerType.Id()}},
+		Aliases: []Alias{{"set", t.InnerType.ID()}},
 	}
 }
 
@@ -71,14 +71,14 @@ func vectorTypeDef(id int, t *zng.TypeVector) TypeDef {
 	return TypeDef{
 		Id:      id,
 		Code:    TypeDefArray,
-		Aliases: []Alias{Alias{"array", t.Type.Id()}},
+		Aliases: []Alias{{"array", t.Type.ID()}},
 	}
 }
 
 func recordTypeDef(id int, t *zng.TypeRecord) TypeDef {
 	var aliases []Alias
 	for _, col := range t.Columns {
-		aliases = append(aliases, Alias{col.Name, col.Type.Id()})
+		aliases = append(aliases, Alias{col.Name, col.Type.ID()})
 	}
 	return TypeDef{
 		Id:      id,
@@ -87,25 +87,23 @@ func recordTypeDef(id int, t *zng.TypeRecord) TypeDef {
 	}
 }
 
-func (c *Context) makeSetType(id int, aliases []Alias) (*zng.TypeSet, error) {
-	innerID := aliases[0].Id
-	typ, err := c.lookupType(innerID)
+func (c *Context) newSetType(id int, aliases []Alias) (*zng.TypeSet, error) {
+	typ, err := c.lookupType(aliases[0].Id)
 	if err != nil {
 		return nil, err
 	}
-	return &zng.TypeSet{ID: id, InnerType: typ}, nil
+	return zng.NewTypeSet(id, typ), nil
 }
 
-func (c *Context) makeVectorType(id int, aliases []Alias) (*zng.TypeVector, error) {
-	innerID := aliases[0].Id
-	typ, err := c.lookupType(innerID)
+func (c *Context) newVectorType(id int, aliases []Alias) (*zng.TypeVector, error) {
+	typ, err := c.lookupType(aliases[0].Id)
 	if err != nil {
 		return nil, err
 	}
-	return &zng.TypeVector{ID: id, Type: typ}, nil
+	return zng.NewTypeVector(id, typ), nil
 }
 
-func (c *Context) makeRecordType(id int, aliases []Alias) (*zng.TypeRecord, error) {
+func (c *Context) newRecordType(id int, aliases []Alias) (*zng.TypeRecord, error) {
 	var columns []zng.Column
 	for _, alias := range aliases {
 		innerID := alias.Id
@@ -158,11 +156,11 @@ func (c *Context) UnmarshalJSON(in []byte) error {
 		default:
 			return fmt.Errorf("unknown typedef code: 0x%02x", def.Code)
 		case TypeDefRecord:
-			typ, err = c.makeRecordType(id, def.Aliases)
+			typ, err = c.newRecordType(id, def.Aliases)
 		case TypeDefSet:
-			typ, err = c.makeSetType(id, def.Aliases)
+			typ, err = c.newSetType(id, def.Aliases)
 		case TypeDefArray:
-			typ, err = c.makeVectorType(id, def.Aliases)
+			typ, err = c.newVectorType(id, def.Aliases)
 		}
 		if err != nil {
 			return err
@@ -252,13 +250,14 @@ func (c *Context) addTypeWithLock(typ zng.Type) {
 	id := len(c.table)
 	c.lut[key] = id
 	c.table = append(c.table, typ)
+	// XXX we'll get rid of the switch when we implement full ZNG
 	switch typ := typ.(type) {
 	case *zng.TypeRecord:
-		typ.ID = id
+		typ.SetID(id)
 	case *zng.TypeVector:
-		typ.ID = id
+		typ.SetID(id)
 	case *zng.TypeSet:
-		typ.ID = id
+		typ.SetID(id)
 	}
 }
 

@@ -41,5 +41,5 @@ func TestContextMarshaling(t *testing.T) {
 	require.NoError(t, err)
 	r2, err := ctx.LookupByName("record[a:int,b:int]")
 	require.NoError(t, err)
-	assert.EqualValues(t, r1.(*zng.TypeRecord).ID, r2.(*zng.TypeRecord).ID)
+	assert.EqualValues(t, r1.ID(), r2.ID())
 }

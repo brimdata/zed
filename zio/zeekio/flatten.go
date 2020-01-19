@@ -51,7 +51,7 @@ func recode(dst zcode.Bytes, typ *zng.TypeRecord, in zcode.Bytes) (zcode.Bytes, 
 }
 
 func (f *Flattener) Flatten(r *zng.Record) (*zng.Record, error) {
-	id := r.Type.ID
+	id := r.Type.ID()
 	outputType := f.mapper.Map(id)
 	if outputType == nil {
 		cols := flattenColumns(r.Type.Columns)

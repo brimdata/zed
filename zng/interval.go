@@ -27,7 +27,7 @@ func (t *TypeOfInterval) Parse(in []byte) (zcode.Bytes, error) {
 	return EncodeInterval(int64(dur)), nil
 }
 
-func (t *TypeOfInterval) Id() int {
+func (t *TypeOfInterval) ID() int {
 	return IdDuration
 }
 
