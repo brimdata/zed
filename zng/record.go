@@ -50,7 +50,7 @@ func (t *TypeRecord) SetID(id int) {
 }
 
 func (t *TypeRecord) String() string {
-	return ColumnString("record[", t.Columns, "]")
+	return TypeRecordString(t.Columns)
 }
 
 //XXX we shouldn't need this... tests are using it

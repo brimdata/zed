@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -40,7 +41,7 @@ func NewContext() *Context {
 // into type-specific subcomponents by category name.
 type Alias struct {
 	Name string
-	Id   int
+	Id   TypeCode
 }
 
 const (
@@ -50,45 +51,119 @@ const (
 	TypeDefAlias  = 0x83
 )
 
+type TypeCode int
+type TypeDefCode int
+
+func (t TypeCode) MarshalJSON() ([]byte, error) {
+	var s string
+	if t < 23 {
+		typ := zng.LookupPrimitiveById(int(t))
+		if typ == nil {
+			panic("bad typecode in context")
+		}
+		s = typ.String()
+	} else {
+		s = strconv.Itoa(int(t))
+	}
+	return json.Marshal(s)
+}
+
+func (t *TypeCode) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err != nil {
+		return err
+	}
+	var id int
+	typ := zng.LookupPrimitive(s)
+	if typ != nil {
+		id = typ.ID()
+	} else if typ == nil {
+		var err error
+		id, err = strconv.Atoi(s)
+		if err != nil {
+			return err
+		}
+	}
+	*t = TypeCode(id)
+	return nil
+}
+
+func (t TypeDefCode) MarshalJSON() ([]byte, error) {
+	var s string
+	switch t {
+	case TypeDefRecord:
+		s = "TypeDefRecord"
+	case TypeDefArray:
+		s = "TypeDefArray"
+	case TypeDefSet:
+		s = "TypeDefSet"
+	case TypeDefAlias:
+		s = "TypeDefAlias"
+	default:
+		return nil, fmt.Errorf("no such typedef code: 0x%02x", int(t))
+	}
+	return json.Marshal(s)
+}
+
+func (t *TypeDefCode) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err != nil {
+		return err
+	}
+	switch s {
+	case "TypeDefRecord":
+		*t = TypeDefRecord
+	case "TypeDefArray":
+		*t = TypeDefArray
+	case "TypeDefSet":
+		*t = TypeDefSet
+	case "TypeDefAlias":
+		*t = TypeDefAlias
+	default:
+		return fmt.Errorf("no such typedef name: %s", s)
+	}
+	return nil
+}
+
 // XXX for now, we marshal into this data structure to represent the entire
 // type table.  After we update the ZNG implementation to use typedefs, we
 // will write a context table as BZNG.
 type TypeDef struct {
-	Id      int
-	Code    int
+	Id      TypeCode
+	Code    TypeDefCode
 	Aliases []Alias
 }
 
 func setTypeDef(id int, t *zng.TypeSet) TypeDef {
 	return TypeDef{
-		Id:      id,
+		Id:      TypeCode(id),
 		Code:    TypeDefSet,
-		Aliases: []Alias{{"set", t.InnerType.ID()}},
+		Aliases: []Alias{{"set", TypeCode(t.InnerType.ID())}},
 	}
 }
 
 func vectorTypeDef(id int, t *zng.TypeVector) TypeDef {
 	return TypeDef{
-		Id:      id,
+		Id:      TypeCode(id),
 		Code:    TypeDefArray,
-		Aliases: []Alias{{"array", t.Type.ID()}},
+		Aliases: []Alias{{"array", TypeCode(t.Type.ID())}},
 	}
 }
 
 func recordTypeDef(id int, t *zng.TypeRecord) TypeDef {
 	var aliases []Alias
 	for _, col := range t.Columns {
-		aliases = append(aliases, Alias{col.Name, col.Type.ID()})
+		aliases = append(aliases, Alias{col.Name, TypeCode(col.Type.ID())})
 	}
 	return TypeDef{
-		Id:      id,
+		Id:      TypeCode(id),
 		Code:    TypeDefRecord,
 		Aliases: aliases,
 	}
 }
 
 func (c *Context) newSetType(id int, aliases []Alias) (*zng.TypeSet, error) {
-	typ, err := c.lookupType(aliases[0].Id)
+	typ, err := c.lookupType(int(aliases[0].Id))
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +171,7 @@ func (c *Context) newSetType(id int, aliases []Alias) (*zng.TypeSet, error) {
 }
 
 func (c *Context) newVectorType(id int, aliases []Alias) (*zng.TypeVector, error) {
-	typ, err := c.lookupType(aliases[0].Id)
+	typ, err := c.lookupType(int(aliases[0].Id))
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +182,7 @@ func (c *Context) newRecordType(id int, aliases []Alias) (*zng.TypeRecord, error
 	var columns []zng.Column
 	for _, alias := range aliases {
 		innerID := alias.Id
-		typ, err := c.lookupType(innerID)
+		typ, err := c.lookupType(int(innerID))
 		if err != nil {
 			return nil, err
 		}
@@ -143,8 +218,8 @@ func (c *Context) UnmarshalJSON(in []byte) error {
 	}
 	maxid := 0
 	for _, def := range defs {
-		if maxid < def.Id {
-			maxid = def.Id
+		if maxid < int(def.Id) {
+			maxid = int(def.Id)
 		}
 	}
 	c.table = make([]zng.Type, maxid+1)
@@ -156,11 +231,11 @@ func (c *Context) UnmarshalJSON(in []byte) error {
 		default:
 			return fmt.Errorf("unknown typedef code: 0x%02x", def.Code)
 		case TypeDefRecord:
-			typ, err = c.newRecordType(id, def.Aliases)
+			typ, err = c.newRecordType(int(id), def.Aliases)
 		case TypeDefSet:
-			typ, err = c.newSetType(id, def.Aliases)
+			typ, err = c.newSetType(int(id), def.Aliases)
 		case TypeDefArray:
-			typ, err = c.newVectorType(id, def.Aliases)
+			typ, err = c.newVectorType(int(id), def.Aliases)
 		}
 		if err != nil {
 			return err
@@ -215,34 +290,39 @@ func (c *Context) Lookup(td int) *zng.TypeRecord {
 	return nil
 }
 
-// GetByValue returns a zng.TypeRecord within this context that binds with the
+//XXX columns must all be from this context.
+func (c *Context) lookupByColumns(columns []zng.Column) *zng.TypeRecord {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	typeString := zng.TypeRecordString(columns)
+	id, ok := c.lut[typeString]
+	if ok {
+		return c.table[id].(*zng.TypeRecord)
+	}
+	id = len(c.table)
+	typ := zng.NewTypeRecord(id, columns)
+	c.table = append(c.table, typ)
+	return typ
+}
+
+// LookupByColumns returns a zng.TypeRecord within this context that binds with the
 // indicated columns.  Subsequent calls with the same columns will return the
 // same record pointer.  If the type doesn't exist, it's created, stored,
-// and returned.
+// and returned.  columns may contain types from a different context, in which
+// case returned type as new columns that are all within this context.
 func (c *Context) LookupByColumns(columns []zng.Column) *zng.TypeRecord {
-	key := zng.TypeRecordString(columns)
+	typeString := zng.TypeRecordString(columns)
 	c.mu.RLock()
-	id, ok := c.lut[key]
+	id, ok := c.lut[typeString]
 	c.mu.RUnlock()
 	if ok {
 		return c.table[id].(*zng.TypeRecord)
 	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if id, ok := c.lut[key]; ok {
-		return c.table[id].(*zng.TypeRecord)
+	typ, err := c.LookupByName(typeString)
+	if err != nil {
+		panic("Context.LookupByColumns: " + err.Error() + ": " + typeString)
 	}
-	id = len(c.table)
-	// Make a private copy of the columns to maintain the invariant
-	// that types are immutable and the columns can be retrieved from
-	// the type system and traversed without any data races.
-	private := make([]zng.Column, len(columns))
-	for k, p := range columns {
-		private[k] = p
-	}
-	typ := zng.NewTypeRecord(-1, private)
-	c.addTypeWithLock(typ)
-	return typ
+	return typ.(*zng.TypeRecord)
 }
 
 func (c *Context) addTypeWithLock(typ zng.Type) {
@@ -430,7 +510,7 @@ func (c *Context) parseRecordTypeBody(in string) (string, zng.Type, error) {
 		}
 		rest, ok = match(rest, "]")
 		if ok {
-			return rest, c.LookupByColumns(columns), nil
+			return rest, c.lookupByColumns(columns), nil
 		}
 		return "", nil, zng.ErrTypeSyntax
 	}
