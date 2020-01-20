@@ -11,9 +11,10 @@ import (
 type Ts int64
 
 const (
-	Day   = int64(86400) * 1000000000
-	MinTs = Ts(0)
-	MaxTs = Ts(math.MaxInt64)
+	Day       = int64(86400) * 1000000000
+	MinTs     = Ts(0)
+	MaxTs     = Ts(math.MaxInt64)
+	maxMillis = MaxTs / 1000000
 )
 
 type jsonTs struct {
@@ -227,6 +228,9 @@ func ParseMillis(s []byte) (Ts, error) {
 			return 0, fmt.Errorf("invalid time format: %s", string(s))
 		}
 		v = v*10 + int64(d)
+	}
+	if Ts(v) > maxMillis {
+		return 0, fmt.Errorf("overflow in Millis time format: %s", string(s))
 	}
 	return Ts(v * 1_000_000), nil
 }

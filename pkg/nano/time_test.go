@@ -25,7 +25,7 @@ func TestParseMillis(t *testing.T) {
 		assert.Exactly(t, c.expectedTs, ts, "input: %q", c.input)
 	}
 
-	for _, input := range []string{"", " ", "+1", "-1", "a", "1.2"} {
+	for _, input := range []string{"", " ", "+1", "-1", "a", "1.2", "1579438676648060000"} {
 		_, err := nano.ParseMillis([]byte(input))
 		assert.Error(t, err, "input: %q", input)
 	}
