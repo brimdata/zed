@@ -1,11 +1,9 @@
 # `zq` [![CI][ci-img]][ci] [![GoDoc][doc-img]][doc]
 
-`zq` is a command-line tool that's useful for searching and analyzing logs;
+`zq` is a command-line tool for searching and analyzing logs;
 particularly [Zeek](https://www.zeek.org) logs.  If you are familiar with
 [`zeek-cut`](https://github.com/zeek/zeek-aux/tree/master/zeek-cut),
-you can think of `zq` as `zeek-cut` on steroids.  (If you missed
-[the name change](https://blog.zeek.org/2018/10/renaming-bro-project_11.html),
-Zeek was formerly known as "Bro".)
+you can think of `zq` as `zeek-cut` on steroids.  
 
 `zq` is comprised of
 * an [execution engine](proc) for log pattern search and analytics,
