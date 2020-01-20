@@ -22,16 +22,6 @@ func (lp *LastProto) Instantiate(recType *zng.TypeRecord) Interface {
 	return &Last{Field: lp.field, typ: typ}
 }
 
-func (lp *LastProto) ResultType(cols []zng.Column) zng.Type {
-	for _, c := range cols {
-		if c.Name == lp.target {
-			return c.Type
-		}
-	}
-	// XXX shouldn't happen?
-	panic("Can't compute result type for empty input stream")
-}
-
 func NewLastProto(target, field string) *LastProto {
 	return &LastProto{target, field}
 }
