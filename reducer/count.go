@@ -13,7 +13,7 @@ func (cp *CountProto) Target() string {
 	return cp.target
 }
 
-func (cp *CountProto) Instantiate() Interface {
+func (cp *CountProto) Instantiate(*zng.TypeRecord) Interface {
 	return &Count{Field: cp.field}
 }
 
@@ -38,4 +38,8 @@ func (c *Count) Consume(r *zng.Record) {
 
 func (c *Count) Result() zng.Value {
 	return zng.NewCount(c.count)
+}
+
+func (c *Count) ResultType() zng.Type {
+	return zng.TypeCount
 }

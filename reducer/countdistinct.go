@@ -14,7 +14,7 @@ func (cdp *CountDistinctProto) Target() string {
 	return cdp.target
 }
 
-func (cdp *CountDistinctProto) Instantiate() Interface {
+func (cdp *CountDistinctProto) Instantiate(*zng.TypeRecord) Interface {
 	return &CountDistinct{
 		Field:  cdp.field,
 		sketch: hyperloglog.New(),
@@ -52,4 +52,8 @@ func (c *CountDistinct) Result() zng.Value {
 // results with another CountDistinct reducer.
 func (c *CountDistinct) Sketch() *hyperloglog.Sketch {
 	return c.sketch
+}
+
+func (c *CountDistinct) ResultType() zng.Type {
+	return zng.TypeCount
 }

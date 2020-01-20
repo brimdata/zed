@@ -1,6 +1,7 @@
 package reducer
 
 import (
+	"fmt"
 	"github.com/mccanne/zq/zng"
 )
 
@@ -13,8 +14,12 @@ func (fp *FirstProto) Target() string {
 	return fp.target
 }
 
-func (fp *FirstProto) Instantiate() Interface {
-	return &First{Field: fp.field}
+func (fp *FirstProto) Instantiate(recType *zng.TypeRecord) Interface {
+	typ, ok := recType.TypeOfField(fp.field)
+	if !ok {
+		panic(fmt.Sprintf("instantiate first(%s) on type without field %s", fp.field, fp.field))
+	}
+	return &First{Field: fp.field, typ: typ}
 }
 
 func NewFirstProto(target, field string) *FirstProto {
@@ -24,6 +29,7 @@ func NewFirstProto(target, field string) *FirstProto {
 type First struct {
 	Reducer
 	Field  string
+	typ    zng.Type
 	record *zng.Record
 }
 
@@ -44,4 +50,8 @@ func (f *First) Result() zng.Value {
 	}
 	v, _ := t.ValueByField(f.Field)
 	return v
+}
+
+func (f *First) ResultType() zng.Type {
+	return f.typ
 }

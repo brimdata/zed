@@ -17,6 +17,7 @@ var (
 type Interface interface {
 	Consume(*zng.Record)
 	Result() zng.Value
+	ResultType() zng.Type
 }
 
 // Result returns the Interface's result or a zng.Unset value if r is nil.

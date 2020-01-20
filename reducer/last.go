@@ -1,6 +1,7 @@
 package reducer
 
 import (
+	"fmt"
 	"github.com/mccanne/zq/zng"
 )
 
@@ -13,8 +14,22 @@ func (lp *LastProto) Target() string {
 	return lp.target
 }
 
-func (lp *LastProto) Instantiate() Interface {
-	return &Last{Field: lp.field}
+func (lp *LastProto) Instantiate(recType *zng.TypeRecord) Interface {
+	typ, ok := recType.TypeOfField(lp.field)
+	if !ok {
+		panic(fmt.Sprintf("instantiate last(%s) on type without field %s", lp.field, lp.field))
+	}
+	return &Last{Field: lp.field, typ: typ}
+}
+
+func (lp *LastProto) ResultType(cols []zng.Column) zng.Type {
+	for _, c := range cols {
+		if c.Name == lp.target {
+			return c.Type
+		}
+	}
+	// XXX shouldn't happen?
+	panic("Can't compute result type for empty input stream")
 }
 
 func NewLastProto(target, field string) *LastProto {
@@ -24,6 +39,7 @@ func NewLastProto(target, field string) *LastProto {
 type Last struct {
 	Reducer
 	Field  string
+	typ    zng.Type
 	record *zng.Record
 }
 
@@ -41,4 +57,8 @@ func (l *Last) Result() zng.Value {
 	}
 	v, _ := r.ValueByField(l.Field)
 	return v
+}
+
+func (l *Last) ResultType() zng.Type {
+	return l.typ
 }

@@ -14,7 +14,7 @@ func (ap *AvgProto) Target() string {
 	return ap.target
 }
 
-func (ap *AvgProto) Instantiate() Interface {
+func (ap *AvgProto) Instantiate(*zng.TypeRecord) Interface {
 	return &Avg{Field: ap.field}
 }
 
@@ -50,4 +50,8 @@ func (a *Avg) Result() zng.Value {
 		v = a.sum / float64(a.count)
 	}
 	return zng.NewDouble(v)
+}
+
+func (a *Avg) ResultType() zng.Type {
+	return zng.TypeDouble
 }

@@ -1,6 +1,7 @@
 package field
 
 import (
+	"fmt"
 	"github.com/mccanne/zq/reducer"
 	"github.com/mccanne/zq/zng"
 )
@@ -20,8 +21,12 @@ func (fp *FieldProto) Target() string {
 	return fp.target
 }
 
-func (fp *FieldProto) Instantiate() reducer.Interface {
-	return &FieldReducer{op: fp.op, field: fp.field}
+func (fp *FieldProto) Instantiate(recType *zng.TypeRecord) reducer.Interface {
+	typ, ok := recType.TypeOfField(fp.field)
+	if !ok {
+		panic(fmt.Sprintf("instantiate %s(%s) on type without field %s", fp.op, fp.field, fp.field))
+	}
+	return &FieldReducer{op: fp.op, field: fp.field, typ: typ}
 }
 
 func NewFieldProto(target, field, op string) *FieldProto {
@@ -32,6 +37,7 @@ type FieldReducer struct {
 	reducer.Reducer
 	op    string
 	field string
+	typ   zng.Type
 	fn    Streamfn
 }
 
@@ -76,4 +82,8 @@ func (fr *FieldReducer) Consume(r *zng.Record) {
 	if err == zng.ErrTypeMismatch {
 		fr.TypeMismatch++
 	}
+}
+
+func (fr *FieldReducer) ResultType() zng.Type {
+	return fr.typ
 }

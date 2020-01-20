@@ -7,6 +7,7 @@ import (
 	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/reducer"
 	"github.com/mccanne/zq/reducer/field"
+	"github.com/mccanne/zq/zng"
 )
 
 var (
@@ -16,7 +17,7 @@ var (
 
 type CompiledReducer interface {
 	Target() string // The name of the field where results are stored.
-	Instantiate() reducer.Interface
+	Instantiate(*zng.TypeRecord) reducer.Interface
 }
 
 func Compile(params ast.Reducer) (CompiledReducer, error) {
