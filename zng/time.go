@@ -57,8 +57,5 @@ func (t *TypeOfTime) Marshal(zv zcode.Bytes) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	// XXX We cast to a float64 so times come out as JSON numbers
-	// in nanoseconds before/after epoch.  This loses some low precision
-	// of a full 64-bit nanosecond.
-	return float64(ts), nil
+	return ts.StringFloat(), nil
 }
