@@ -5,7 +5,7 @@ import "math"
 // These functions are like varint but their size is known as
 // zval encoded it for them.
 
-func decodeUint(b []byte) uint64 {
+func decodeUvarint(b []byte) uint64 {
 	n := len(b)
 	u64 := uint64(0)
 	for n > 0 {
@@ -16,7 +16,7 @@ func decodeUint(b []byte) uint64 {
 	return u64
 }
 
-func encodeUint(dst []byte, u64 uint64) int {
+func encodeUvarint(dst []byte, u64 uint64) int {
 	n := 0
 	for u64 != 0 {
 		dst[n] = byte(u64)
@@ -27,7 +27,7 @@ func encodeUint(dst []byte, u64 uint64) int {
 }
 
 func decodeInt(b []byte) int64 {
-	u64 := decodeUint(b)
+	u64 := decodeUvarint(b)
 	if u64&1 != 0 {
 		u64 >>= 1
 		if u64 == 0 {
@@ -45,5 +45,5 @@ func encodeInt(dst []byte, i int64) int {
 	} else {
 		u64 = uint64(-i)<<1 | 1
 	}
-	return encodeUint(dst, u64)
+	return encodeUvarint(dst, u64)
 }

@@ -14,7 +14,7 @@ func NewCount(c uint64) Value {
 
 func EncodeCount(c uint64) zcode.Bytes {
 	var b [8]byte
-	n := encodeUint(b[:], c)
+	n := encodeUvarint(b[:], c)
 	return b[:n]
 }
 
@@ -22,7 +22,7 @@ func DecodeCount(zv zcode.Bytes) (uint64, error) {
 	if zv == nil {
 		return 0, ErrUnset
 	}
-	return uint64(decodeUint(zv)), nil
+	return uint64(decodeUvarint(zv)), nil
 }
 
 func (t *TypeOfCount) Parse(in []byte) (zcode.Bytes, error) {

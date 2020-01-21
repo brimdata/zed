@@ -13,7 +13,7 @@ import (
 
 func TestContextAddColumns(t *testing.T) {
 	ctx := NewContext()
-	d := ctx.LookupByColumns([]zng.Column{zng.NewColumn("s1", zng.TypeString)})
+	d := ctx.LookupTypeRecord([]zng.Column{zng.NewColumn("s1", zng.TypeString)})
 	r, err := zbuf.NewRecordZeekStrings(d, "S1")
 	require.NoError(t, err)
 	cols := []zng.Column{zng.NewColumn("ts", zng.TypeTime), zng.NewColumn("s2", zng.TypeString)}

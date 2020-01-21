@@ -28,7 +28,7 @@ type Context struct {
 func NewContext() *Context {
 	c := &Context{
 		//XXX hack... leave blanks for primitive types... will fix this later
-		table: make([]zng.Type, 23),
+		table: make([]zng.Type, zng.IdTypeDef),
 		lut:   make(map[string]int),
 	}
 	c.caches.New = func() interface{} {
@@ -44,19 +44,12 @@ type Alias struct {
 	Id   TypeCode
 }
 
-const (
-	TypeDefRecord = 0x80
-	TypeDefArray  = 0x81
-	TypeDefSet    = 0x82
-	TypeDefAlias  = 0x83
-)
-
 type TypeCode int
 type TypeDefCode int
 
 func (t TypeCode) MarshalJSON() ([]byte, error) {
 	var s string
-	if t < 23 {
+	if t < zng.IdTypeDef {
 		typ := zng.LookupPrimitiveById(int(t))
 		if typ == nil {
 			panic("bad typecode in context")
@@ -91,13 +84,13 @@ func (t *TypeCode) UnmarshalJSON(b []byte) error {
 func (t TypeDefCode) MarshalJSON() ([]byte, error) {
 	var s string
 	switch t {
-	case TypeDefRecord:
+	case zng.TypeDefRecord:
 		s = "TypeDefRecord"
-	case TypeDefArray:
+	case zng.TypeDefArray:
 		s = "TypeDefArray"
-	case TypeDefSet:
+	case zng.TypeDefSet:
 		s = "TypeDefSet"
-	case TypeDefAlias:
+	case zng.TypeDefAlias:
 		s = "TypeDefAlias"
 	default:
 		return nil, fmt.Errorf("no such typedef code: 0x%02x", int(t))
@@ -112,13 +105,13 @@ func (t *TypeDefCode) UnmarshalJSON(b []byte) error {
 	}
 	switch s {
 	case "TypeDefRecord":
-		*t = TypeDefRecord
+		*t = zng.TypeDefRecord
 	case "TypeDefArray":
-		*t = TypeDefArray
+		*t = zng.TypeDefArray
 	case "TypeDefSet":
-		*t = TypeDefSet
+		*t = zng.TypeDefSet
 	case "TypeDefAlias":
-		*t = TypeDefAlias
+		*t = zng.TypeDefAlias
 	default:
 		return fmt.Errorf("no such typedef name: %s", s)
 	}
@@ -137,7 +130,7 @@ type TypeDef struct {
 func setTypeDef(id int, t *zng.TypeSet) TypeDef {
 	return TypeDef{
 		Id:      TypeCode(id),
-		Code:    TypeDefSet,
+		Code:    zng.TypeDefSet,
 		Aliases: []Alias{{"set", TypeCode(t.InnerType.ID())}},
 	}
 }
@@ -145,7 +138,7 @@ func setTypeDef(id int, t *zng.TypeSet) TypeDef {
 func vectorTypeDef(id int, t *zng.TypeVector) TypeDef {
 	return TypeDef{
 		Id:      TypeCode(id),
-		Code:    TypeDefArray,
+		Code:    zng.TypeDefArray,
 		Aliases: []Alias{{"array", TypeCode(t.Type.ID())}},
 	}
 }
@@ -157,13 +150,13 @@ func recordTypeDef(id int, t *zng.TypeRecord) TypeDef {
 	}
 	return TypeDef{
 		Id:      TypeCode(id),
-		Code:    TypeDefRecord,
+		Code:    zng.TypeDefRecord,
 		Aliases: aliases,
 	}
 }
 
 func (c *Context) newSetType(id int, aliases []Alias) (*zng.TypeSet, error) {
-	typ, err := c.lookupType(int(aliases[0].Id))
+	typ, err := c.lookupTypeWithLock(int(aliases[0].Id))
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +164,7 @@ func (c *Context) newSetType(id int, aliases []Alias) (*zng.TypeSet, error) {
 }
 
 func (c *Context) newVectorType(id int, aliases []Alias) (*zng.TypeVector, error) {
-	typ, err := c.lookupType(int(aliases[0].Id))
+	typ, err := c.lookupTypeWithLock(int(aliases[0].Id))
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +175,7 @@ func (c *Context) newRecordType(id int, aliases []Alias) (*zng.TypeRecord, error
 	var columns []zng.Column
 	for _, alias := range aliases {
 		innerID := alias.Id
-		typ, err := c.lookupType(int(innerID))
+		typ, err := c.lookupTypeWithLock(int(innerID))
 		if err != nil {
 			return nil, err
 		}
@@ -191,22 +184,25 @@ func (c *Context) newRecordType(id int, aliases []Alias) (*zng.TypeRecord, error
 	return zng.NewTypeRecord(id, columns), nil
 }
 
-func (c *Context) lookupType(id int) (zng.Type, error) {
+func (c *Context) LookupType(id int) (zng.Type, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.lookupTypeWithLock(id)
+}
+
+func (c *Context) lookupTypeWithLock(id int) (zng.Type, error) {
 	if id < 0 || id >= len(c.table) {
 		return nil, fmt.Errorf("id %d out of range for table of size %d", id, len(c.table))
 	}
-	if id < 23 {
+	if id < zng.IdTypeDef {
 		typ := zng.LookupPrimitiveById(id)
-		if typ == nil {
-			return nil, fmt.Errorf("id %d is unknown primitive", id)
+		if typ != nil {
+			return typ, nil
 		}
+	} else if typ := c.table[id]; typ != nil {
 		return typ, nil
 	}
-	typ := c.table[id]
-	if typ == nil {
-		return nil, fmt.Errorf("no type found for id %d", id)
-	}
-	return typ, nil
+	return nil, fmt.Errorf("no type found for id %d", id)
 }
 
 func (c *Context) UnmarshalJSON(in []byte) error {
@@ -230,11 +226,11 @@ func (c *Context) UnmarshalJSON(in []byte) error {
 		switch def.Code {
 		default:
 			return fmt.Errorf("unknown typedef code: 0x%02x", def.Code)
-		case TypeDefRecord:
+		case zng.TypeDefRecord:
 			typ, err = c.newRecordType(int(id), def.Aliases)
-		case TypeDefSet:
+		case zng.TypeDefSet:
 			typ, err = c.newSetType(int(id), def.Aliases)
-		case TypeDefArray:
+		case zng.TypeDefArray:
 			typ, err = c.newVectorType(int(id), def.Aliases)
 		}
 		if err != nil {
@@ -290,41 +286,6 @@ func (c *Context) Lookup(td int) *zng.TypeRecord {
 	return nil
 }
 
-//XXX columns must all be from this context.
-func (c *Context) lookupByColumns(columns []zng.Column) *zng.TypeRecord {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	typeString := zng.TypeRecordString(columns)
-	id, ok := c.lut[typeString]
-	if ok {
-		return c.table[id].(*zng.TypeRecord)
-	}
-	id = len(c.table)
-	typ := zng.NewTypeRecord(id, columns)
-	c.table = append(c.table, typ)
-	return typ
-}
-
-// LookupByColumns returns a zng.TypeRecord within this context that binds with the
-// indicated columns.  Subsequent calls with the same columns will return the
-// same record pointer.  If the type doesn't exist, it's created, stored,
-// and returned.  columns may contain types from a different context, in which
-// case returned type as new columns that are all within this context.
-func (c *Context) LookupByColumns(columns []zng.Column) *zng.TypeRecord {
-	typeString := zng.TypeRecordString(columns)
-	c.mu.RLock()
-	id, ok := c.lut[typeString]
-	c.mu.RUnlock()
-	if ok {
-		return c.table[id].(*zng.TypeRecord)
-	}
-	typ, err := c.LookupByName(typeString)
-	if err != nil {
-		panic("Context.LookupByColumns: " + err.Error() + ": " + typeString)
-	}
-	return typ.(*zng.TypeRecord)
-}
-
 func (c *Context) addTypeWithLock(typ zng.Type) {
 	key := typ.String()
 	id := len(c.table)
@@ -341,10 +302,10 @@ func (c *Context) addTypeWithLock(typ zng.Type) {
 	}
 }
 
-// addType adds a new type from a path that could race with another
+// AddType adds a new type from a path that could race with another
 // path creating the same type.  So we take the lock then check if the
 // type already exists and if not add it while locked.
-func (c *Context) addType(t zng.Type) zng.Type {
+func (c *Context) AddType(t zng.Type) zng.Type {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	key := t.String()
@@ -355,6 +316,59 @@ func (c *Context) addType(t zng.Type) zng.Type {
 		c.addTypeWithLock(t)
 	}
 	return t
+}
+
+// LookupTypeRecord returns a zng.TypeRecord within this context that binds with the
+// indicated columns.  Subsequent calls with the same columns will return the
+// same record pointer.  If the type doesn't exist, it's created, stored,
+// and returned.  Columns must contain types this same context.  If you want to
+// use columns from a different type context, use TranslateTypeRecord.
+func (c *Context) LookupTypeRecord(columns []zng.Column) *zng.TypeRecord {
+	recordKey := "r"
+	for _, col := range columns {
+		recordKey += fmt.Sprintf("%s:%d;", col.Name, col.Type.ID())
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	id, ok := c.lut[recordKey]
+	if ok {
+		return c.table[id].(*zng.TypeRecord)
+	}
+	id = len(c.table)
+	c.lut[recordKey] = id
+	typ := zng.NewTypeRecord(id, columns)
+	c.table = append(c.table, typ)
+	return typ
+}
+
+func (c *Context) LookupTypeSet(inner zng.Type) *zng.TypeSet {
+	setKey := fmt.Sprintf("s%d", inner.ID()) //XXX
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	id, ok := c.lut[setKey]
+	if ok {
+		return c.table[id].(*zng.TypeSet)
+	}
+	id = len(c.table)
+	c.lut[setKey] = id
+	typ := zng.NewTypeSet(id, inner)
+	c.table = append(c.table, typ)
+	return typ
+}
+
+func (c *Context) LookupTypeVector(inner zng.Type) *zng.TypeVector {
+	vectorKey := fmt.Sprintf("v%d", inner.ID()) //XXX
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	id, ok := c.lut[vectorKey]
+	if ok {
+		return c.table[id].(*zng.TypeVector)
+	}
+	id = len(c.table)
+	c.lut[vectorKey] = id
+	typ := zng.NewTypeVector(id, inner)
+	c.table = append(c.table, typ)
+	return typ
 }
 
 // AddColumns returns a new zbuf.Record with columns equal to the given
@@ -376,13 +390,13 @@ func (c *Context) AddColumns(r *zng.Record, newCols []zng.Column, vals []zng.Val
 	for _, val := range vals {
 		zv = val.Encode(zv)
 	}
-	typ := c.LookupByColumns(outCols)
+	typ := c.LookupTypeRecord(outCols)
 	return zng.NewRecordNoTs(typ, zv), nil
 }
 
-// XXX a value can only exist within a context... this should be a method on context
 // NewValue creates a Value with the given type and value described
-// as simple strings.
+// as simple strings.  The zng.Value's type is allocated in this
+// type context.
 func (c *Context) NewValue(typ, val string) (zng.Value, error) {
 	t := zng.LookupPrimitive(typ)
 	if t == nil {
@@ -413,7 +427,7 @@ func parseWord(in string) (string, string) {
 	return in[off:], in[:off]
 }
 
-// Parse returns the Type indicated by the zng type string.  The type string
+// LookupByName returns the Type indicated by the zng type string.  The type string
 // may be a simple type like int, double, time, etc or it may be a set
 // or a vector, which are recusively composed of other types.  The set and vector
 // type definitions are encoded in the same fashion as zeek stores them as type field
@@ -457,19 +471,19 @@ func (c *Context) parseType(in string) (string, zng.Type, error) {
 		if err != nil {
 			return "", nil, err
 		}
-		return rest, c.addType(t), nil
+		return rest, t, nil
 	case "vector":
 		rest, t, err := c.parseVectorTypeBody(rest)
 		if err != nil {
 			return "", nil, err
 		}
-		return rest, c.addType(t), nil
+		return rest, t, nil
 	case "record":
 		rest, t, err := c.parseRecordTypeBody(rest)
 		if err != nil {
 			return "", nil, err
 		}
-		return rest, c.addType(t), nil
+		return rest, t, nil
 	}
 	return "", nil, fmt.Errorf("unknown type: %s", word)
 }
@@ -510,7 +524,7 @@ func (c *Context) parseRecordTypeBody(in string) (string, zng.Type, error) {
 		}
 		rest, ok = match(rest, "]")
 		if ok {
-			return rest, c.lookupByColumns(columns), nil
+			return rest, c.LookupTypeRecord(columns), nil
 		}
 		return "", nil, zng.ErrTypeSyntax
 	}
@@ -565,7 +579,7 @@ func (c *Context) parseSetTypeBody(in string) (string, zng.Type, error) {
 		if len(types) > 1 {
 			return "", nil, fmt.Errorf("sets with multiple type parameters")
 		}
-		return rest, &zng.TypeSet{InnerType: types[0]}, nil
+		return rest, c.LookupTypeSet(types[0]), nil
 	}
 }
 
@@ -575,9 +589,9 @@ func (c *Context) parseVectorTypeBody(in string) (string, *zng.TypeVector, error
 	if !ok {
 		return "", nil, zng.ErrTypeSyntax
 	}
-	var typ zng.Type
+	var inner zng.Type
 	var err error
-	rest, typ, err = c.parseType(rest)
+	rest, inner, err = c.parseType(rest)
 	if err != nil {
 		return "", nil, err
 	}
@@ -585,13 +599,36 @@ func (c *Context) parseVectorTypeBody(in string) (string, *zng.TypeVector, error
 	if !ok {
 		return "", nil, zng.ErrTypeSyntax
 	}
-	return rest, &zng.TypeVector{Type: typ}, nil
+	return rest, c.LookupTypeVector(inner), nil
 }
 
-// LookupVectorType returns the VectorType for the provided innerType.
-func (c *Context) LookupVectorType(innerType zng.Type) zng.Type {
-	t, _ := c.LookupByName((&zng.TypeVector{Type: innerType}).String())
-	return t
+func (c *Context) TranslateType(ext zng.Type) zng.Type {
+	id := ext.ID()
+	if id < zng.IdTypeDef {
+		return ext
+	}
+	switch ext := ext.(type) {
+	default:
+		//XXX
+		panic(fmt.Sprintf("bzng cannot translate type: %s", ext))
+	case *zng.TypeRecord:
+		return c.TranslateTypeRecord(ext)
+	case *zng.TypeSet:
+		inner := c.TranslateType(ext.InnerType)
+		return c.LookupTypeSet(inner)
+	case *zng.TypeVector:
+		inner := c.TranslateType(ext.Type)
+		return c.LookupTypeVector(inner)
+	}
+}
+
+func (c *Context) TranslateTypeRecord(ext *zng.TypeRecord) *zng.TypeRecord {
+	var columns []zng.Column
+	for _, col := range ext.Columns {
+		child := c.TranslateType(col.Type)
+		columns = append(columns, zng.NewColumn(col.Name, child))
+	}
+	return c.LookupTypeRecord(columns)
 }
 
 // Cache returns a cache of this table providing lockless lookups, but cannot

@@ -42,7 +42,7 @@ func runTest(valType string, valRaw string, containerType string, containerRaw s
 		return err
 	}
 	columns := []zng.Column{zng.NewColumn("f", containerTyp)}
-	typ := ctx.LookupByColumns(columns)
+	typ := ctx.LookupTypeRecord(columns)
 	r, err := zbuf.NewRecordZeekStrings(typ, containerRaw)
 	if err != nil {
 		return err

@@ -10,6 +10,7 @@ import (
 	"github.com/mccanne/zq/zio"
 	"github.com/mccanne/zq/zio/zeekio"
 	"github.com/mccanne/zq/zng"
+	"github.com/mccanne/zq/zng/resolver"
 )
 
 type Table struct {
@@ -27,7 +28,7 @@ func NewWriter(w io.Writer, flags zio.Flags) *Table {
 	writer := tabwriter.NewWriter(w, 0, 8, 1, ' ', 0)
 	return &Table{
 		Writer:    w,
-		flattener: zeekio.NewFlattener(),
+		flattener: zeekio.NewFlattener(resolver.NewContext()),
 		table:     writer,
 		limit:     1000,
 		precision: 6,

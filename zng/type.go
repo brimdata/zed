@@ -29,12 +29,6 @@ type Resolver interface {
 	Lookup(int) *TypeRecord
 }
 
-// Context is an interface for looking up TypeRecord objects from a slice of Columns.
-type Context interface {
-	LookupByColumns([]Column) *TypeRecord
-	LookupByName(string) (Type, error)
-}
-
 // A Type is an interface presented by a zeek type.
 // Types can be used to infer type compatibility and create new values
 // of the underlying type.
@@ -84,6 +78,15 @@ const (
 	IdTime     = 16
 	IdDuration = 17
 	IdNull     = 18
+
+	IdTypeDef = 23
+)
+
+const (
+	TypeDefRecord = 0x80
+	TypeDefArray  = 0x81
+	TypeDefSet    = 0x82
+	TypeDefAlias  = 0x83
 )
 
 func LookupPrimitive(name string) Type {

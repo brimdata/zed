@@ -9,12 +9,21 @@ import (
 )
 
 type Flattener struct {
+	zctx   *resolver.Context
 	mapper *resolver.Mapper
 }
 
-func NewFlattener() *Flattener {
+// Flattener returns a flattener that transfomrs nested recods to flattened
+// records where the type context of the received records must match the
+// zctx parameter provided here.  Any new type descriptors that are created
+// to flatten types also uses zctx.
+func NewFlattener(zctx *resolver.Context) *Flattener {
 	return &Flattener{
-		mapper: resolver.NewMapper(resolver.NewContext()),
+		zctx: zctx,
+		// This mapper maps types back into the same context and gives
+		// us a convenient way to track type-ID to type-ID fo types that
+		// needs to be flattened.
+		mapper: resolver.NewMapper(zctx),
 	}
 }
 
@@ -52,22 +61,23 @@ func recode(dst zcode.Bytes, typ *zng.TypeRecord, in zcode.Bytes) (zcode.Bytes, 
 
 func (f *Flattener) Flatten(r *zng.Record) (*zng.Record, error) {
 	id := r.Type.ID()
-	outputType := f.mapper.Map(id)
-	if outputType == nil {
+	flatType := f.mapper.Map(id)
+	if flatType == nil {
 		cols := flattenColumns(r.Type.Columns)
-		outputType = f.mapper.EnterByColumns(id, cols)
+		flatType = f.zctx.LookupTypeRecord(cols)
+		f.mapper.EnterTypeRecord(id, flatType)
 	}
 	// Since we are mapping the input context to itself we can do a
 	// pointer comparison to see if the types are the same and there
 	// is no need to record.
-	if r.Type == outputType {
+	if r.Type == flatType {
 		return r, nil
 	}
 	zv, err := recode(nil, r.Type, r.Raw)
 	if err != nil {
 		return nil, err
 	}
-	out := zng.NewRecordNoTs(outputType, zv)
+	out := zng.NewRecordNoTs(flatType, zv)
 	return out, nil
 
 }

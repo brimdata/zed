@@ -30,7 +30,7 @@ func (t *Translator) Lookup(id int) *zng.TypeRecord {
 		if inputType == nil {
 			return nil
 		}
-		outputType = t.outputCtx.LookupByColumns(inputType.Columns)
+		outputType = t.outputCtx.TranslateTypeRecord(inputType)
 		t.enter(id, outputType)
 	}
 	return outputType

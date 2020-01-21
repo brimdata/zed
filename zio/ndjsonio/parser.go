@@ -151,7 +151,7 @@ func (p *Parser) jsonParseArray(raw []byte) (zng.Type, error) {
 		return nil, err
 	}
 	if len(types) == 0 {
-		return p.zctx.LookupVectorType(zng.TypeString), nil
+		return p.zctx.LookupTypeVector(zng.TypeString), nil
 	}
 	var vType zng.Type
 	for _, t := range types {
@@ -162,7 +162,7 @@ func (p *Parser) jsonParseArray(raw []byte) (zng.Type, error) {
 			return nil, ErrMultiTypedVector
 		}
 	}
-	return p.zctx.LookupVectorType(vType), nil
+	return p.zctx.LookupTypeVector(vType), nil
 }
 
 func (p *Parser) jsonParseBool(b []byte) (zng.Type, error) {
