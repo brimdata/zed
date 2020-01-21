@@ -48,5 +48,5 @@ func (t *TypeOfInterval) StringOf(zv zcode.Bytes) string {
 }
 
 func (t *TypeOfInterval) Marshal(zv zcode.Bytes) (interface{}, error) {
-	return DecodeInterval(zv)
+	return t.StringOf(zv), nil
 }

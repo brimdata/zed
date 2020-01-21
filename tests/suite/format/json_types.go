@@ -19,5 +19,5 @@ const jsonInput = `
 `
 
 const jsonExpected = `
-{"a":"10.1.1.1","a2":"fe80::eef4:bbff:fe51:89ec","b":true,"c":517,"d":3.14159,"e":"foo","i":18,"interval":60000000000,"p":443,"s":"Hello, world!","t":1578407783487000000}
+{"a":"10.1.1.1","a2":"fe80::eef4:bbff:fe51:89ec","b":true,"c":517,"d":3.14159,"e":"foo","i":18,"interval":"60","p":443,"s":"Hello, world!","t":"1578407783.487"}
 `
