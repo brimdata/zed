@@ -419,8 +419,8 @@ func (g *GroupByAggregator) lookupRowType(row *GroupByRow) *zng.TypeRecord {
 	}
 	cols = append(cols, g.builder.TypedColumns(types)...)
 	for k, red := range row.reducers.Reducers {
-		typ := red.ResultType()
-		cols = append(cols, zng.NewColumn(row.reducers.Defs[k].Target(), typ))
+		z := reducer.Result(red)
+		cols = append(cols, zng.NewColumn(row.reducers.Defs[k].Target(), z.Type))
 	}
 	// This could be more efficient but it's only done during group-by output...
 	return g.zctx.LookupByColumns(cols)

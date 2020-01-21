@@ -53,7 +53,3 @@ func (c *CountDistinct) Result() zng.Value {
 func (c *CountDistinct) Sketch() *hyperloglog.Sketch {
 	return c.sketch
 }
-
-func (c *CountDistinct) ResultType() zng.Type {
-	return zng.TypeCount
-}

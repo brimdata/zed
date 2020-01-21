@@ -43,12 +43,8 @@ func (l *Last) Consume(r *zng.Record) {
 func (l *Last) Result() zng.Value {
 	r := l.record
 	if r == nil {
-		return zng.Value{}
+		return zng.Value{l.typ, nil}
 	}
 	v, _ := r.ValueByField(l.Field)
 	return v
-}
-
-func (l *Last) ResultType() zng.Type {
-	return l.typ
 }

@@ -51,7 +51,3 @@ func (a *Avg) Result() zng.Value {
 	}
 	return zng.NewDouble(v)
 }
-
-func (a *Avg) ResultType() zng.Type {
-	return zng.TypeDouble
-}

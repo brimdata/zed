@@ -43,7 +43,7 @@ type FieldReducer struct {
 
 func (fr *FieldReducer) Result() zng.Value {
 	if fr.fn == nil {
-		return zng.Value{}
+		return zng.Value{fr.typ, nil}
 	}
 	return fr.fn.Result()
 }
@@ -82,8 +82,4 @@ func (fr *FieldReducer) Consume(r *zng.Record) {
 	if err == zng.ErrTypeMismatch {
 		fr.TypeMismatch++
 	}
-}
-
-func (fr *FieldReducer) ResultType() zng.Type {
-	return fr.typ
 }

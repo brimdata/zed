@@ -46,12 +46,8 @@ func (f *First) Consume(r *zng.Record) {
 func (f *First) Result() zng.Value {
 	t := f.record
 	if t == nil {
-		return zng.Value{}
+		return zng.Value{f.typ, nil}
 	}
 	v, _ := t.ValueByField(f.Field)
 	return v
-}
-
-func (f *First) ResultType() zng.Type {
-	return f.typ
 }

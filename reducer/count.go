@@ -39,7 +39,3 @@ func (c *Count) Consume(r *zng.Record) {
 func (c *Count) Result() zng.Value {
 	return zng.NewCount(c.count)
 }
-
-func (c *Count) ResultType() zng.Type {
-	return zng.TypeCount
-}
