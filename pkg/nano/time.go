@@ -188,6 +188,9 @@ func parse(s []byte) (int64, error) {
 	scale = 1000000000
 	k := 0
 	n := len(s)
+	if n == 0 {
+		return 0, fmt.Errorf("invalid time format: %s", string(s))
+	}
 	if s[0] == '-' {
 		if n == 1 {
 			return 0, fmt.Errorf("invalid time format: %s", string(s))
