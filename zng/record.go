@@ -113,6 +113,14 @@ func (t *TypeRecord) ColumnOfField(field string) (int, bool) {
 	return v, ok
 }
 
+func (t *TypeRecord) TypeOfField(field string) (Type, bool) {
+	n, ok := t.LUT[field]
+	if !ok {
+		return nil, false
+	}
+	return t.Columns[n].Type, true
+}
+
 func (t *TypeRecord) HasField(field string) bool {
 	_, ok := t.LUT[field]
 	return ok

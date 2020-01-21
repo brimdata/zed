@@ -13,7 +13,7 @@ func (cp *CountProto) Target() string {
 	return cp.target
 }
 
-func (cp *CountProto) Instantiate() Interface {
+func (cp *CountProto) Instantiate(*zng.TypeRecord) Interface {
 	return &Count{Field: cp.field}
 }
 

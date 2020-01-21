@@ -97,6 +97,30 @@ const nestedKeyOut = `
 0:[[2;]1;]
 `
 
+const nullIn = `
+#0:record[key:string,val:int]
+0:[key1;5;]
+0:[key2;-;]
+`
+
+const nullOut = `
+#0:record[key:string,sum:int]
+0:[key1;5;]
+0:[key2;0;]
+`
+
+const mixedIn = `
+#0:record[key:string,f:int]
+0:[k;5;]
+#1:record[key:string,f:string]
+1:[k;bleah;]
+`
+
+const mixedOut = `
+#0:record[key:string,first:int,last:string]
+0:[k;5;bleah;]
+`
+
 //XXX this should go in a shared package
 type suite []test.Internal
 
@@ -152,6 +176,12 @@ func tests() suite {
 
 	// Check groupby key inside a record
 	s.add(New("key-in-record", nestedKeyIn, nestedKeyOut, "count() by rec.i"))
+
+	// Test reducers with no non-null inputs
+	s.add(New("null-inputs", nullIn, nullOut, "sum(val) by key"))
+
+	// Test reducers with mixed-type inputs
+	s.add(New("mixed-inputs", mixedIn, mixedOut, "first(f), last(f) by key"))
 
 	// XXX add coverage of time batching (every ..)
 

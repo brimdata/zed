@@ -14,7 +14,7 @@ func (ap *AvgProto) Target() string {
 	return ap.target
 }
 
-func (ap *AvgProto) Instantiate() Interface {
+func (ap *AvgProto) Instantiate(*zng.TypeRecord) Interface {
 	return &Avg{Field: ap.field}
 }
 

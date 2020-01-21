@@ -1,6 +1,7 @@
 package reducer
 
 import (
+	"fmt"
 	"github.com/mccanne/zq/zng"
 )
 
@@ -13,8 +14,12 @@ func (lp *LastProto) Target() string {
 	return lp.target
 }
 
-func (lp *LastProto) Instantiate() Interface {
-	return &Last{Field: lp.field}
+func (lp *LastProto) Instantiate(recType *zng.TypeRecord) Interface {
+	typ, ok := recType.TypeOfField(lp.field)
+	if !ok {
+		panic(fmt.Sprintf("instantiate last(%s) on type without field %s", lp.field, lp.field))
+	}
+	return &Last{Field: lp.field, typ: typ}
 }
 
 func NewLastProto(target, field string) *LastProto {
@@ -24,6 +29,7 @@ func NewLastProto(target, field string) *LastProto {
 type Last struct {
 	Reducer
 	Field  string
+	typ    zng.Type
 	record *zng.Record
 }
 
@@ -37,7 +43,7 @@ func (l *Last) Consume(r *zng.Record) {
 func (l *Last) Result() zng.Value {
 	r := l.record
 	if r == nil {
-		return zng.Value{}
+		return zng.Value{l.typ, nil}
 	}
 	v, _ := r.ValueByField(l.Field)
 	return v
