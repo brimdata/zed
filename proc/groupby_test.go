@@ -109,6 +109,16 @@ const nullOut = `
 0:[key2;0;]
 `
 
+const notPresentIn = `
+#0:record[key:string]
+0:[key1;]
+`
+
+const notPresentOut = `
+#0:record[key:string,max:any,sum:any]
+0:[key1;-;-;]
+`
+
 const mixedIn = `
 #0:record[key:string,f:int]
 0:[k;5;]
@@ -177,8 +187,11 @@ func tests() suite {
 	// Check groupby key inside a record
 	s.add(New("key-in-record", nestedKeyIn, nestedKeyOut, "count() by rec.i"))
 
-	// Test reducers with no non-null inputs
+	// Test reducers with null inputs
 	s.add(New("null-inputs", nullIn, nullOut, "sum(val) by key"))
+
+	// Test reducers with missing operands
+	s.add(New("not-present", notPresentIn, notPresentOut, "max(val), sum(val) by key"))
 
 	// Test reducers with mixed-type inputs
 	s.add(New("mixed-inputs", mixedIn, mixedOut, "first(f), last(f) by key"))

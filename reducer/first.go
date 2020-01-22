@@ -1,7 +1,6 @@
 package reducer
 
 import (
-	"fmt"
 	"github.com/mccanne/zq/zng"
 )
 
@@ -17,7 +16,7 @@ func (fp *FirstProto) Target() string {
 func (fp *FirstProto) Instantiate(recType *zng.TypeRecord) Interface {
 	typ, ok := recType.TypeOfField(fp.field)
 	if !ok {
-		panic(fmt.Sprintf("instantiate first(%s) on type without field %s", fp.field, fp.field))
+		typ = zng.TypeAny
 	}
 	return &First{Field: fp.field, typ: typ}
 }
