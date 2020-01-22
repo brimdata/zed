@@ -61,6 +61,7 @@ var (
 	TypeAddr     = &TypeOfAddr{}
 	TypeSubnet   = &TypeOfSubnet{}
 	TypeEnum     = &TypeOfEnum{}
+	TypeAny      = &TypeOfAny{}
 )
 
 const (
@@ -109,6 +110,8 @@ func LookupPrimitive(name string) Type {
 		return TypeSubnet
 	case "enum":
 		return TypeEnum
+	case "any":
+		return TypeAny
 	}
 	return nil
 }
