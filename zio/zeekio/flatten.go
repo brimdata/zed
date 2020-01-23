@@ -13,7 +13,7 @@ type Flattener struct {
 	mapper *resolver.Mapper
 }
 
-// Flattener returns a flattener that transfomrs nested recods to flattened
+// Flattener returns a flattener that transfomrs nested records to flattened
 // records where the type context of the received records must match the
 // zctx parameter provided here.  Any new type descriptors that are created
 // to flatten types also uses zctx.

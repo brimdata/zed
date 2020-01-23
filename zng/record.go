@@ -18,7 +18,6 @@ func CopyTypeRecord(id int, r *TypeRecord) *TypeRecord {
 		Columns: r.Columns,
 		LUT:     r.LUT,
 		TsCol:   r.TsCol,
-		//Key:     r.Key,
 	}
 }
 

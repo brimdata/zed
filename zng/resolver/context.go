@@ -350,8 +350,9 @@ func (c *Context) AddType(t zng.Type) zng.Type {
 // LookupTypeRecord returns a zng.TypeRecord within this context that binds with the
 // indicated columns.  Subsequent calls with the same columns will return the
 // same record pointer.  If the type doesn't exist, it's created, stored,
-// and returned.  Columns must contain types this same context.  If you want to
-// use columns from a different type context, use TranslateTypeRecord.
+// and returned.  The closure of types within the columns must all be from
+// this type context.  If you want to use columns from a different type context,
+// use TranslateTypeRecord.
 func (c *Context) LookupTypeRecord(columns []zng.Column) *zng.TypeRecord {
 	key := recordKey(columns)
 	c.mu.Lock()
