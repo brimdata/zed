@@ -309,9 +309,9 @@ func typeKey(typ zng.Type) string {
 	case *zng.TypeRecord:
 		return recordKey(typ.Columns)
 	case *zng.TypeVector:
-		return arrayKey(typ)
+		return arrayKey(typ.Type)
 	case *zng.TypeSet:
-		return setKey(typ)
+		return setKey(typ.InnerType)
 	}
 }
 

@@ -8,12 +8,16 @@ import (
 )
 
 type Encoder struct {
-	table []zng.Type
-	zctx  *Context
+	table   []zng.Type
+	zctx    *Context
+	encoded map[int]struct{}
 }
 
 func NewEncoder() *Encoder {
-	return &Encoder{zctx: NewContext()}
+	return &Encoder{
+		zctx:    NewContext(),
+		encoded: make(map[int]struct{}),
+	}
 }
 
 func (e *Encoder) Lookup(external zng.Type) zng.Type {
@@ -31,6 +35,15 @@ func (e *Encoder) enter(id int, typ zng.Type) {
 		e.table = new
 	}
 	e.table[id] = typ
+}
+
+func (e *Encoder) isEncoded(typ zng.Type) bool {
+	id := typ.ID()
+	if _, ok := e.encoded[id]; ok {
+		return true
+	}
+	e.encoded[id] = struct{}{}
+	return false
 }
 
 // Encode takes a type from outside this context and constructs a type from
@@ -68,6 +81,9 @@ func (e *Encoder) encodeTypeRecord(dst []byte, ext *zng.TypeRecord) ([]byte, zng
 		columns = append(columns, zng.NewColumn(col.Name, child))
 	}
 	typ := e.zctx.LookupTypeRecord(columns)
+	if e.isEncoded(typ) {
+		return dst, typ
+	}
 	dst = append(dst, zng.TypeDefRecord)
 	dst = zcode.AppendUvarint(dst, uint64(len(columns)))
 	for _, col := range columns {
@@ -83,6 +99,9 @@ func (e *Encoder) encodeTypeSet(dst []byte, ext *zng.TypeSet) ([]byte, zng.Type)
 	var inner zng.Type
 	dst, inner = e.encodeType(dst, ext.InnerType)
 	typ := e.zctx.LookupTypeSet(inner)
+	if e.isEncoded(typ) {
+		return dst, typ
+	}
 	dst = append(dst, zng.TypeDefSet)
 	dst = zcode.AppendUvarint(dst, 1)
 	return zcode.AppendUvarint(dst, uint64(typ.InnerType.ID())), typ
@@ -92,6 +111,9 @@ func (e *Encoder) encodeTypeVector(dst []byte, ext *zng.TypeVector) ([]byte, zng
 	var inner zng.Type
 	dst, inner = e.encodeType(dst, ext.Type)
 	typ := e.zctx.LookupTypeVector(inner)
+	if e.isEncoded(typ) {
+		return dst, typ
+	}
 	dst = append(dst, zng.TypeDefArray)
 	return zcode.AppendUvarint(dst, uint64(typ.Type.ID())), typ
 }

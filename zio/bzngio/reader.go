@@ -187,11 +187,11 @@ func (r *Reader) readTypeVector() error {
 	if err != nil {
 		return zng.ErrBadFormat
 	}
-	typ, err := r.zctx.LookupType(int(id))
+	inner, err := r.zctx.LookupType(int(id))
 	if err != nil {
 		return err
 	}
-	r.zctx.AddType(&zng.TypeVector{Type: typ})
+	r.zctx.AddType(zng.NewTypeVector(-1, inner))
 	return nil
 }
 
