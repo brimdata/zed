@@ -93,7 +93,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	cwd, _ := os.Getwd()
 	c := &Command{zctx: resolver.NewContext()}
 	f.StringVar(&c.ifmt, "i", "auto", "format of input data [auto,bzng,ndjson,zeek,zjson,zng]")
-	f.StringVar(&c.ofmt, "f", "zng", "format for output data [bzng,ndjson,table,text,zeek,zjson,zng]")
+	f.StringVar(&c.ofmt, "f", "zng", "format for output data [bzng,ndjson,table,text,types,zeek,zjson,zng]")
 	f.StringVar(&c.path, "p", cwd, "path for input")
 	f.StringVar(&c.dir, "d", "", "directory for output data files")
 	f.StringVar(&c.outputFile, "o", "", "write data to output file")
@@ -188,6 +188,15 @@ func (c *Command) Run(args []string) error {
 		if err != nil {
 			return fmt.Errorf("parse error: %s", err)
 		}
+	}
+	if c.ofmt == "types" {
+		logger, err := emitter.NewTypeLogger(c.outputFile, c.verbose)
+		if err != nil {
+			return err
+		}
+		c.zctx.SetLogger(logger)
+		c.ofmt = "null"
+		defer logger.Close()
 	}
 	var reader zbuf.Reader
 	if reader, err = c.loadFiles(paths); err != nil {

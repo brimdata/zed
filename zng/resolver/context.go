@@ -14,6 +14,10 @@ import (
 
 var ErrExists = errors.New("descriptor exists with different type")
 
+type TypeLogger interface {
+	TypeDef(int, zng.Type)
+}
+
 // A Context manages the mapping between small-integer descriptor identifiers
 // and zng descriptor objects, which hold the binding between an identifier
 // and a zng.Type.  We use a map for the table to give us flexibility
@@ -23,6 +27,7 @@ type Context struct {
 	table  []zng.Type
 	lut    map[string]int
 	caches sync.Pool
+	logger TypeLogger
 }
 
 func NewContext() *Context {
@@ -184,6 +189,10 @@ func (c *Context) newRecordType(id int, aliases []Alias) (*zng.TypeRecord, error
 	return zng.NewTypeRecord(id, columns), nil
 }
 
+func (c *Context) SetLogger(logger TypeLogger) {
+	c.logger = logger
+}
+
 func (c *Context) LookupType(id int) (zng.Type, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -328,6 +337,9 @@ func (c *Context) addTypeWithLock(key string, typ zng.Type) {
 		typ.SetID(id)
 	case *zng.TypeSet:
 		typ.SetID(id)
+	}
+	if c.logger != nil {
+		c.logger.TypeDef(id, typ)
 	}
 }
 
