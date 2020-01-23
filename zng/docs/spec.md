@@ -602,7 +602,7 @@ This allows binary data that does not conform to a valid UTF-8 character encodin
 to be embedded in the `bstring` data type.
 
 These special characters must be hex escaped if they appear within a `bstring`
-or a `string` type:
+type:
 ```
 ; \n \\
 ```
@@ -618,7 +618,7 @@ to `-` as opposed to representing an unset value.
 
 > `\x` followed by anything other than two hexadecimal digits is not a valid
 > escape sequence. The behavior of an implementation that encounters such
-> invalid sequences in a `bstring` or `string` type is undefined.
+> invalid sequences in a `bstring` type is undefined.
 
 #### 3.2.2 Value Syntax
 
