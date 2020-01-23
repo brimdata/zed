@@ -410,7 +410,7 @@ Following the tag encoding is the value encoded in N bytes as described above.
 The ZNG text format is a human-readable form that follows directly from the BZNG
 binary format.  A stream of control messages and values messages is represented
 as a sequence of UTF-8 lines each terminated by a newline.  Any newlines embedded
-in values must be escaped, i.e., via `\n`.
+in values must be escaped, i.e., via `\x0a`.
 
 A line that begins with `#` is a control message.
 
@@ -597,7 +597,7 @@ This allows binary data that does not conform to a valid UTF-8 character encodin
 to be embedded in the `bstring` data type.
 
 These special characters must be hex escaped if they appear within a `bstring`
-or a `string` type:
+type:
 ```
 ; \n \\
 ```
@@ -610,6 +610,10 @@ of a value:
 ```
 In addition, `-` must be escaped if representing the single ASCII byte equal
 to `-` as opposed to representing an unset value.
+
+> `\x` followed by anything other than two hexadecimal digits is not a valid
+> escape sequence. The behavior of an implementation that encounters such
+> invalid sequences in a `bstring` type is undefined.
 
 #### 3.2.2 Value Syntax
 
