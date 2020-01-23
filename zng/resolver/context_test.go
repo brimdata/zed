@@ -28,6 +28,22 @@ func TestContextAddColumns(t *testing.T) {
 	assert.Nil(t, zv)
 }
 
+func TestDuplicates(t *testing.T) {
+	ctx := NewContext()
+	setType := ctx.LookupTypeSet(zng.TypeInt)
+	typ1 := ctx.LookupTypeRecord([]zng.Column{
+		zng.NewColumn("a", zng.TypeString),
+		zng.NewColumn("b", setType),
+	})
+	typ2, err := ctx.LookupByName("record[a:string,b:set[int]]")
+	require.NoError(t, err)
+	assert.EqualValues(t, typ1.ID(), typ2.ID())
+	assert.EqualValues(t, setType.ID(), typ2.(*zng.TypeRecord).Columns[1].Type.ID())
+	typ3, err := ctx.LookupByName("set[int]")
+	require.NoError(t, err)
+	assert.Equal(t, setType.ID(), typ3.ID())
+}
+
 func TestContextMarshaling(t *testing.T) {
 	ctx := NewContext()
 	ctx.LookupByName("record[a:set[string],b:int]]")
