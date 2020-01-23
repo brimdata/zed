@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"sync"
 
+	"github.com/mccanne/zq/pkg/sync"
 	"github.com/mccanne/zq/zcode"
 	"github.com/mccanne/zq/zng"
 )

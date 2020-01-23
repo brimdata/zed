@@ -2,9 +2,9 @@ package proc
 
 import (
 	"io"
-	"sync"
 
 	"github.com/mccanne/zq/pkg/nano"
+	"github.com/mccanne/zq/pkg/sync"
 	"github.com/mccanne/zq/zbuf"
 )
 

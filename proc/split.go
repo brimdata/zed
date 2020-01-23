@@ -1,8 +1,7 @@
 package proc
 
 import (
-	"sync"
-
+	"github.com/mccanne/zq/pkg/sync"
 	"github.com/mccanne/zq/zbuf"
 )
 

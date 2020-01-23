@@ -2,8 +2,9 @@ package proc
 
 import (
 	"errors"
-	"sync"
 	"time"
+
+	"github.com/mccanne/zq/pkg/sync"
 )
 
 type MuxResult struct {

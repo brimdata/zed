@@ -1,8 +1,7 @@
 package resolver
 
 import (
-	"sync"
-
+	"github.com/mccanne/zq/pkg/sync"
 	"github.com/mccanne/zq/zng"
 )
 
