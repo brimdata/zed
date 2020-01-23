@@ -333,26 +333,26 @@ length in bytes of the type code.
 A typed value with a `value` of length N and the type indicated
 is interpreted as follows:
 
-| Type       | N        |              Value                           |
-|------------|----------|----------------------------------------------|
-| `bool`     | 1        |  one byte 0 (false) or 1 (true)              |
-| `byte`     | 1        |  the byte                                    |
-| `int16`    | variable |  signed int of length N                      |
-| `uint16`   | variable |  unsigned int of length N                    |
-| `int32`    | variable |  signed int of length N                      |
-| `uint32`   | variable |  unsigned int of length N                    |
-| `int64`    | variable |  signed int of length N                      |
-| `uint64`   | variable |  unsigned int of length N                    |
-| `float64`  | 8        |  8 bytes of IEEE 64-bit format               |
-| `string`   | variable |  UTF-8 byte sequence of string               |
-| `bytes`    | variable |  bytes of value                              |
-| `bstring`  | variable |  UTF-8 byte sequence with `\x` escapes       |
-| `enum `    | variable |  UTF-8 bytes of enum string                  |
-| `ip`       | 4 or 16  |  4 or 16 bytes of IP address                 |
-| `net`      | 8 or 32  |  8 or 32 bytes of IP prefix and subnet mask  |
-| `time`     | 8        |  8 bytes of signed nanoseconds from epoch    |
-| `duration` | 8        |  8 bytes of signed nanoseconds duration      |
-| `null`     | 0        |  No value, always represents an unset value  |
+| Type       | N        |              Value                               |
+|------------|----------|--------------------------------------------------|
+| `bool`     | 1        |  one byte 0 (false) or 1 (true)                  |
+| `byte`     | 1        |  the byte                                        |
+| `int16`    | variable |  signed int of length N                          |
+| `uint16`   | variable |  unsigned int of length N                        |
+| `int32`    | variable |  signed int of length N                          |
+| `uint32`   | variable |  unsigned int of length N                        |
+| `int64`    | variable |  signed int of length N                          |
+| `uint64`   | variable |  unsigned int of length N                        |
+| `float64`  | 8        |  8 bytes of IEEE 64-bit format                   |
+| `string`   | variable |  UTF-8 byte sequence of string                   |
+| `bytes`    | variable |  bytes of value                                  |
+| `bstring`  | variable |  UTF-8 byte sequence with `\x` escapes           |
+| `enum `    | variable |  UTF-8 bytes of enum string                      |
+| `ip`       | 4 or 16  |  4 or 16 bytes of IP address                     |
+| `net`      | 8 or 32  |  8 or 32 bytes of IP prefix and subnet mask      |
+| `time`     | 8        |  8 bytes of signed nanoseconds from epoch        |
+| `duration` | 8        |  8 bytes of signed nanoseconds duration          |
+| `null`     | 0        |  No value, always represents an undefined value  |
 
 All multi-byte sequences representing machine words are serialized in
 little-endian format.
