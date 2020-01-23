@@ -286,13 +286,42 @@ func (c *Context) Lookup(td int) *zng.TypeRecord {
 	return nil
 }
 
-func (c *Context) addTypeWithLock(typ zng.Type) {
-	key := typ.String()
+func setKey(inner zng.Type) string {
+	return fmt.Sprintf("s%d", inner.ID())
+}
+
+func arrayKey(inner zng.Type) string {
+	return fmt.Sprintf("a%d", inner.ID())
+}
+
+func recordKey(columns []zng.Column) string {
+	key := "r"
+	for _, col := range columns {
+		key += fmt.Sprintf("%s:%d;", col.Name, col.Type.ID())
+	}
+	return key
+}
+
+func typeKey(typ zng.Type) string {
+	switch typ := typ.(type) {
+	default:
+		panic("unsupported type in typeKey")
+	case *zng.TypeRecord:
+		return recordKey(typ.Columns)
+	case *zng.TypeVector:
+		return arrayKey(typ)
+	case *zng.TypeSet:
+		return setKey(typ)
+	}
+}
+
+func (c *Context) addTypeWithLock(key string, typ zng.Type) {
 	id := len(c.table)
 	c.lut[key] = id
 	c.table = append(c.table, typ)
-	// XXX we'll get rid of the switch when we implement full ZNG
 	switch typ := typ.(type) {
+	default:
+		panic("unsupported type in addTypeWithLock")
 	case *zng.TypeRecord:
 		typ.SetID(id)
 	case *zng.TypeVector:
@@ -308,12 +337,12 @@ func (c *Context) addTypeWithLock(typ zng.Type) {
 func (c *Context) AddType(t zng.Type) zng.Type {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	key := t.String()
+	key := typeKey(t)
 	id, ok := c.lut[key]
 	if ok {
 		t = c.table[id]
 	} else {
-		c.addTypeWithLock(t)
+		c.addTypeWithLock(key, t)
 	}
 	return t
 }
@@ -324,50 +353,41 @@ func (c *Context) AddType(t zng.Type) zng.Type {
 // and returned.  Columns must contain types this same context.  If you want to
 // use columns from a different type context, use TranslateTypeRecord.
 func (c *Context) LookupTypeRecord(columns []zng.Column) *zng.TypeRecord {
-	recordKey := "r"
-	for _, col := range columns {
-		recordKey += fmt.Sprintf("%s:%d;", col.Name, col.Type.ID())
-	}
+	key := recordKey(columns)
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	id, ok := c.lut[recordKey]
+	id, ok := c.lut[key]
 	if ok {
 		return c.table[id].(*zng.TypeRecord)
 	}
-	id = len(c.table)
-	c.lut[recordKey] = id
-	typ := zng.NewTypeRecord(id, columns)
-	c.table = append(c.table, typ)
+	typ := zng.NewTypeRecord(-1, columns)
+	c.addTypeWithLock(key, typ)
 	return typ
 }
 
 func (c *Context) LookupTypeSet(inner zng.Type) *zng.TypeSet {
-	setKey := fmt.Sprintf("s%d", inner.ID()) //XXX
+	key := setKey(inner)
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	id, ok := c.lut[setKey]
+	id, ok := c.lut[key]
 	if ok {
 		return c.table[id].(*zng.TypeSet)
 	}
-	id = len(c.table)
-	c.lut[setKey] = id
-	typ := zng.NewTypeSet(id, inner)
-	c.table = append(c.table, typ)
+	typ := zng.NewTypeSet(-1, inner)
+	c.addTypeWithLock(key, typ)
 	return typ
 }
 
 func (c *Context) LookupTypeVector(inner zng.Type) *zng.TypeVector {
-	vectorKey := fmt.Sprintf("v%d", inner.ID()) //XXX
+	key := arrayKey(inner)
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	id, ok := c.lut[vectorKey]
+	id, ok := c.lut[key]
 	if ok {
 		return c.table[id].(*zng.TypeVector)
 	}
-	id = len(c.table)
-	c.lut[vectorKey] = id
-	typ := zng.NewTypeVector(id, inner)
-	c.table = append(c.table, typ)
+	typ := zng.NewTypeVector(-1, inner)
+	c.addTypeWithLock(key, typ)
 	return typ
 }
 
@@ -536,7 +556,7 @@ func (c *Context) parseColumn(in string) (string, zng.Column, error) {
 	if colon < 0 {
 		return "", zng.Column{}, zng.ErrTypeSyntax
 	}
-	//XXX should check if name is valid
+	//XXX should check if name is valid syntax?
 	name := strings.TrimSpace(in[:colon])
 	rest, typ, err := c.parseType(in[colon+1:])
 	if err != nil {
