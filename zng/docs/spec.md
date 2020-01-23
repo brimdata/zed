@@ -182,7 +182,7 @@ are predefined as follows:
 | `net`      |  15  |
 | `time`     |  16  |
 | `duration` |  17  |
-| `any`      |  18  |
+| `null`     |  18  |
 | &nbsp;     |      |
 
 </td></tr> </table>
@@ -333,26 +333,26 @@ length in bytes of the type code.
 A typed value with a `value` of length N and the type indicated
 is interpreted as follows:
 
-| Type       | N        |              Value                           |
-|------------|----------|----------------------------------------------|
-| `bool`     | 1        |  one byte 0 (false) or 1 (true)              |
-| `byte`     | 1        |  the byte                                    |
-| `int16`    | variable |  signed int of length N                      |
-| `uint16`   | variable |  unsigned int of length N                    |
-| `int32`    | variable |  signed int of length N                      |
-| `uint32`   | variable |  unsigned int of length N                    |
-| `int64`    | variable |  signed int of length N                      |
-| `uint64`   | variable |  unsigned int of length N                    |
-| `float64`  | 8        |  8 bytes of IEEE 64-bit format               |
-| `string`   | variable |  UTF-8 byte sequence of string               |
-| `bytes`    | variable |  bytes of value                              |
-| `bstring`  | variable |  UTF-8 byte sequence with `\x` escapes       |
-| `enum `    | variable |  UTF-8 bytes of enum string                  |
-| `ip`       | 4 or 16  |  4 or 16 bytes of IP address                 |
-| `net`      | 8 or 32  |  8 or 32 bytes of IP prefix and subnet mask  |
-| `time`     | 8        |  8 bytes of signed nanoseconds from epoch    |
-| `duration` | 8        |  8 bytes of signed nanoseconds duration      |
-| `any`      | variable |  <uvarint type code><value as defined here>  |
+| Type       | N        |              Value                               |
+|------------|----------|--------------------------------------------------|
+| `bool`     | 1        |  one byte 0 (false) or 1 (true)                  |
+| `byte`     | 1        |  the byte                                        |
+| `int16`    | variable |  signed int of length N                          |
+| `uint16`   | variable |  unsigned int of length N                        |
+| `int32`    | variable |  signed int of length N                          |
+| `uint32`   | variable |  unsigned int of length N                        |
+| `int64`    | variable |  signed int of length N                          |
+| `uint64`   | variable |  unsigned int of length N                        |
+| `float64`  | 8        |  8 bytes of IEEE 64-bit format                   |
+| `string`   | variable |  UTF-8 byte sequence of string                   |
+| `bytes`    | variable |  bytes of value                                  |
+| `bstring`  | variable |  UTF-8 byte sequence with `\x` escapes           |
+| `enum `    | variable |  UTF-8 bytes of enum string                      |
+| `ip`       | 4 or 16  |  4 or 16 bytes of IP address                     |
+| `net`      | 8 or 32  |  8 or 32 bytes of IP prefix and subnet mask      |
+| `time`     | 8        |  8 bytes of signed nanoseconds from epoch        |
+| `duration` | 8        |  8 bytes of signed nanoseconds duration          |
+| `null`     | 0        |  No value, always represents an undefined value  |
 
 All multi-byte sequences representing machine words are serialized in
 little-endian format.
@@ -377,9 +377,7 @@ as a sequence of elements:
 Since N, the byte length of
 this sequence is known, there is no need to encode a count of the
 elements present.  Also, since the type code is implied by the typedef
-of any container type, each value is encoded without its type code,
-except for elements corresponding to type "any", which are encoded
-as a "typed value" (as defined above).
+of any container type, each value is encoded without its type code.
 
 The concatenation of elements is encoded as a sequence of "tag-counted" values.
 A tag carries both the length information of the corresponding value as well
@@ -513,7 +511,7 @@ Given the above textual definitions and the undelying BZNG specification, a
 grammar describing the textual type encodings is:
 ```
 <stype> := bool | byte | int16 | uint16 | int32 | uint32 | int64 | uint64 | float64
-         | string | bytes | bstring | enum | ip | net | time | duration | any
+         | string | bytes | bstring | enum | ip | net | time | duration | null
          | <typecode>
 
 <ctype> :=  array [ <stype> ]
@@ -570,9 +568,6 @@ by a semicolon (which must be escaped if it appears in the value).  A container
 value is encoded as a left bracket followed by one or more values (terminal or
 container) followed by a right bracket.
 Any escaped characters shall be processed and interpreted as their escaped value.
-
-Note that a terminal encoding of a typed value is accepted by this grammar, i.e.,
-a `<terminal>` can have the form `<typecode>:<elem>` for values of type `any`.
 
 Container values are encoded as
 * an open bracket,
@@ -641,7 +636,7 @@ Type | Format
 `net` | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291.
 `time` | signed dotted decimal notation of seconds
 `duration` | signed dotted decimal notation of seconds
-`any` | integer type code and colon followed by a value as defined here
+`null` | must be the literal value -
 
 ## 4. Examples
 

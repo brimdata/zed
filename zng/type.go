@@ -61,6 +61,7 @@ var (
 	TypeAddr     = &TypeOfAddr{}
 	TypeSubnet   = &TypeOfSubnet{}
 	TypeEnum     = &TypeOfEnum{}
+	TypeNull     = &TypeOfNull{}
 )
 
 const (
@@ -82,7 +83,7 @@ const (
 	IdNet      = 15
 	IdTime     = 16
 	IdDuration = 17
-	IdAny      = 18
+	IdNull     = 18
 )
 
 func LookupPrimitive(name string) Type {
@@ -109,6 +110,8 @@ func LookupPrimitive(name string) Type {
 		return TypeSubnet
 	case "enum":
 		return TypeEnum
+	case "null":
+		return TypeNull
 	}
 	return nil
 }

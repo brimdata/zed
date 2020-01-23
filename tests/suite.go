@@ -30,6 +30,7 @@ var internals = []test.Internal{
 	errors.ErrNotContainerZJSON,
 	errors.ErrMissingField,
 	errors.ErrExtraField,
+	errors.TypeNull,
 	regexp.Internal,
 	filter.EscapedEqual,
 	filter.EscapedAsterisk,
