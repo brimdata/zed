@@ -38,7 +38,7 @@ func (w *Writer) Write(r *zng.Record) error {
 		return err
 	}
 	path, _ := r.AccessString("_path")
-	if r.Type != w.typ || path != w.path {
+	if r.Type != w.typ || path != w.Path {
 		w.writeHeader(r, path)
 		w.typ = r.Type
 	}
@@ -77,8 +77,8 @@ func (w *Writer) writeHeader(r *zng.Record, path string) error {
 		w.unsetField = "-"
 		s += "#unset_field\t-\n"
 	}
-	if path != w.path {
-		w.path = path
+	if path != w.Path {
+		w.Path = path
 		if path == "" {
 			path = "-"
 		}
