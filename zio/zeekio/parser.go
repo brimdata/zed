@@ -17,7 +17,7 @@ type header struct {
 	setSeparator string
 	emptyField   string
 	unsetField   string
-	path         string
+	Path         string
 	open         string
 	close        string
 	columns      []zng.Column
@@ -122,9 +122,9 @@ func (p *Parser) ParseDirective(line []byte) error {
 		if len(tokens) != 2 {
 			return badfield("path")
 		}
-		p.path = tokens[1]
-		if p.path == "-" {
-			p.path = ""
+		p.Path = tokens[1]
+		if p.Path == "-" {
+			p.Path = ""
 		}
 	case "open":
 		if len(tokens) != 2 {
@@ -157,11 +157,13 @@ func (p *Parser) ParseDirective(line []byte) error {
 	return nil
 }
 
-// Unflatten() turns a set of columns from legacy zeek logs into
-// a zng-compatible format by creating nested records for any
-// dotted field names and adding a _path column if one is not already
-// present.  Note that according to the zng spec, all the fields for
-// a nested record must be adjacent which simplifies the logic here.
+// Unflatten() turns a set of columns from legacy zeek logs into a
+// zng-compatible format by creating nested records for any dotted
+// field names. If addpath is true, a _path column is added if not
+// already present. The columns are returned as a slice along with a
+// bool indicating if a _path column was added.
+// Note that according to the zng spec, all the fields for a nested
+// record must be adjacent which simplifies the logic here.
 func Unflatten(zctx *resolver.Context, columns []zng.Column, addPath bool) ([]zng.Column, bool) {
 	hasPath := false
 	cols := make([]zng.Column, 0)
@@ -229,10 +231,25 @@ func (p *Parser) setDescriptor() error {
 		return ErrBadRecordDef
 	}
 
-	cols, addpath := Unflatten(p.zctx, p.columns, p.path != "")
+	cols, addpath := Unflatten(p.zctx, p.columns, p.Path != "")
 	p.descriptor = p.zctx.LookupTypeRecord(cols)
 	p.addpath = addpath
 	return nil
+}
+
+// Descriptor returns the current descriptor (from the most recently
+// seen #types and #fields lines) and a bool indicating whether _path
+// was added to the descriptor. If no descriptor is present, nil and
+// and false are returned.
+func (p *Parser) Descriptor() (*zng.TypeRecord, bool) {
+	if p.descriptor != nil {
+		return p.descriptor, p.addpath
+	}
+	if err := p.setDescriptor(); err != nil {
+		return nil, false
+	}
+	return p.descriptor, p.addpath
+
 }
 
 func (p *Parser) ParseValue(line []byte) (*zng.Record, error) {
@@ -243,10 +260,10 @@ func (p *Parser) ParseValue(line []byte) (*zng.Record, error) {
 		}
 	}
 	var path []byte
-	if p.path != "" && p.addpath {
+	if p.Path != "" && p.addpath {
 		//XXX should store path as a byte slice so it doens't get copied
 		// each time here
-		path = []byte(p.path)
+		path = []byte(p.Path)
 	}
 	zv, tsVal, err := zbuf.NewRawAndTsFromZeekTSV(p.builder, p.descriptor, path, line)
 	if err != nil {
