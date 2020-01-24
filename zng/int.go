@@ -22,7 +22,7 @@ func NewInt(i int64) Value {
 
 func EncodeInt(i int64) zcode.Bytes {
 	var b [8]byte
-	n := encodeInt(b[:], i)
+	n := zcode.EncodeCountedVarint(b[:], i)
 	return b[:n]
 }
 
@@ -30,7 +30,7 @@ func DecodeInt(zv zcode.Bytes) (int64, error) {
 	if zv == nil {
 		return 0, ErrUnset
 	}
-	return decodeInt(zv), nil
+	return zcode.DecodeCountedVarint(zv), nil
 }
 
 func (t *TypeOfInt) Parse(in []byte) (zcode.Bytes, error) {

@@ -13,16 +13,16 @@ type Flattener struct {
 	mapper *resolver.Mapper
 }
 
-// Flattener returns a flattener that transfomrs nested records to flattened
+// NewFlattener returns a flattener that transforms nested records to flattened
 // records where the type context of the received records must match the
 // zctx parameter provided here.  Any new type descriptors that are created
-// to flatten types also uses zctx.
+// to flatten types also use zctx.
 func NewFlattener(zctx *resolver.Context) *Flattener {
 	return &Flattener{
 		zctx: zctx,
 		// This mapper maps types back into the same context and gives
-		// us a convenient way to track type-ID to type-ID fo types that
-		// needs to be flattened.
+		// us a convenient way to track type-ID to type-ID for types that
+		// need to be flattened.
 		mapper: resolver.NewMapper(zctx),
 	}
 }
