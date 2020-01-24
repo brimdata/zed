@@ -1,6 +1,7 @@
 package resolver
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -48,4 +49,12 @@ func (f *File) Dirty() bool {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
 	return f.nstored != len(f.table)
+}
+
+func (f *File) UnmarshalJSON(in []byte) error {
+	if err := json.Unmarshal(in, f.Context); err != nil {
+		return err
+	}
+	f.nstored = len(f.table)
+	return nil
 }
