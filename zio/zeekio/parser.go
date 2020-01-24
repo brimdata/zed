@@ -1,7 +1,6 @@
 package zeekio
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -86,7 +85,6 @@ func (p *Parser) parseTypes(types []string) error {
 }
 
 func (p *Parser) ParseDirective(line []byte) error {
-	line = bytes.TrimSpace(line)
 	if line[0] == '#' {
 		line = line[1:]
 	}
