@@ -1,7 +1,17 @@
 # ZNG Specification
 
 > Note: This specification is ALPHA and a work in progress.
-> Zq's implementation of ZNG is not yet up to date with this latest description.
+> Zq's implementation of ZNG is tracking this spec and as it changes,
+> the zq output format is subject to change.  In this branch,
+> zq attempts to implement everything herein excepting:
+>
+> * the bytes type is not yet implemented,
+> * the union type is not yet implemented,
+> * type aliases are not yet implemented, and
+> * ordering hints are not generated or taken advantage of.
+>
+> Also, we are contemplating reducing the number of primitive types, e.g.,
+> the number of variations in integer types.
 
 ZNG is a format for structured data values, ideally suited for streams
 of heterogeneously typed records, e.g., structured logs, where filtering and
@@ -23,7 +33,7 @@ a more structured approach like
 ZNG is type rich and embeds all type information in the stream while having a
 binary serialization format that allows "lazy parsing" of fields such that
 only the fields of interest in a stream need to be deserialized and interpreted.
-Unlike Avro, ZNG embeds type information in the data stream and thereby admits
+Unlike Avro, ZNG embeds its schemas in the data stream and thereby admits
 an efficient multiplexing of heterogeneous data types by prepending to each
 data value a simple integer identifier to reference its type.   
 
@@ -39,8 +49,6 @@ ZNG is a superset of JSON in that any JSON input
 can be mapped onto ZNG and recovered by decoding
 that ZNG back into JSON.
 
-> TBD: ZNG is also interchangeable with Avro...
-
 The ZNG design [was motivated by](./zeek-compat.md)
 and is compatible with the
 [Zeek log format](https://docs.zeek.org/en/stable/examples/logs/).
@@ -53,9 +61,9 @@ meta-records, and ZNG merely modernizes this original approach.
 ZNG encodes a sequence of one or more typed data values to comprise a stream.
 The stream of values is interleaved with control messages
 that provide type definitions and other metadata.  The type of
-a particular data value is specified by its "type code", which is an
-integer identifier representing either a built-in type or
-a dynamic type definition that occurred previously in the stream.
+a particular data value is specified by its "type identifier", or type ID,
+which is an integer representing either a "primitive type" or a
+"container type".
 
 The ZNG type system comprises the standard set of primitive types like integers,
 floating point, strings, byte arrays, etc. as well as container types
@@ -66,7 +74,7 @@ looks like this:
 ```
 9:hello, world
 ```
-Here, the type code is the integer "9" representing the string type
+Here, the type ID is the integer "9" representing the string type
 (defined in [Typedefs](#typedefs)) and the data value "hello, world"
 is an instance of string.
 
@@ -107,7 +115,7 @@ information consistent with the referenced type code.
 ## 2. ZNG Binary Format (BZNG)
 
 The BZNG binary format is based on machine-readable data types with an
-encoding methodology inspired by
+encoding methodology inspired by Avro and
 [Protocol Buffers](https://developers.google.com/protocol-buffers).
 
 A BZNG stream comprises a sequence of interleaved control messages and value messages
@@ -120,15 +128,16 @@ or a value message (0).
 ### 2.1 Control Messages
 
 The lower 7 bits of a control header byte define the control code.
-Control codes 0 through 4 are reserved for BZNG:
+Control codes 0 through 5 are reserved for BZNG:
 
 | Code | Message Type      |
 |------|-------------------|
 |  `0` | record definition |
 |  `1` | array definition  |
 |  `2` | set definition    |
-|  `3` | type alias        |
-|  `4` | ordering hint     |
+|  `3` | union definition  |
+|  `4` | type alias        |
+|  `5` | ordering hint     |
 
 All other control codes are available to higher-layer protocols to carry
 application-specific payloads embedded in the ZNG stream.
@@ -144,7 +153,7 @@ protocol directives as ZNG control payloads rather than defining additional
 encapsulating protocols.  See the
 [zng-over-http](zng-over-http.md) protocol for an example.
 
-### <a name="typedefs"> 2.1.1 Typedefs
+### 2.1.1 Typedefs
 
 Following a header byte of 0x80-0x83 is a "typedef".  A typedef binds
 "the next available" integer type code to a type encoding.  Type codes
@@ -234,7 +243,7 @@ N.B.: The rules for ZNG identifiers follow the same rules as
 
 The type code follows the field name and is encoded as a `uvarint`.
 
-A record may contain zero columns.
+A record may not contain zero columns.
 
 #### 2.1.1.2 Array Typedef
 
@@ -249,17 +258,36 @@ the array encoded as a `uvarint`:
 #### 2.1.1.3 Set Typedef
 
 A set type is encoded as a concatenation of the type codes that comprise
-the elements of the set where each type code is encoded as a `uvarint`:
+the elements of the set where each type code and the number of types
+in the set are all encoded as a `uvarint`:
 ```
-----------------------------------
-|0x82|<type-code1><type-code2>...|
-----------------------------------
+------------------------------------------
+|0x82|<ntypes><type-code1><type-code2>...|
+------------------------------------------
 ```
 
-#### 2.1.1.4 Alias Typedef
+#### 2.1.1.4 Union Typedef
 
-A type alias defines a new type code that binds a new type name
-to a previously existing type code.  This is useful for systems like Zeek,
+A union typedef creates a new type ID equal to the next stream type ID
+with the following structure:
+```
+-----------------------------------------
+|0x83|<ntypes>|<type-id-1><type-id-2>...|
+-----------------------------------------
+```
+A union type consists of an ordered set of types
+encoded as a count of the number of types, i.e., `<ntypes>` from above,
+followed by the type IDs comprising the types of the union.
+The type Ids of a union must be unique.
+
+The `<ntypes>` and the type IDs are all encoded as `uvarint`.
+
+`<ntypes>` cannot be 0.
+
+#### 2.1.1.5 Alias Typedef
+
+A type alias defines a new type ID that binds a new type name
+to a previously existing type ID.  This is useful for systems like Zeek,
 where there are customary type names that are well-known to users of the
 Zeek system and are easily mapped onto a BZNG type having a different name.
 By encoding the aliases in the format, there is no need to configure mapping
@@ -268,13 +296,13 @@ are communicated to the consumer of a BZNG stream.
 
 A type alias is encoded as follows:
 ```
-------------------------
-|0x83|<name><type-code>|
-------------------------
+----------------------
+|0x84|<name><type-id>|
+----------------------
 ```
-where `<name>` is an identifier representing the new type name with a new type code
-allocated as the next available type code in the stream that refers to the
-existing type code ``<type-code>``.  ``<type-code>`` is encoded as a `uvarint` and `<name>`
+where `<name>` is an identifier representing the new type name with a new type ID
+allocated as the next available type ID in the stream that refers to the
+existing type ID ``<type-id>``.  ``<type-id>`` is encoded as a `uvarint` and `<name>`
 is encoded as a `uvarint` representing the length of the name in bytes,
 followed by that many bytes of UTF-8 string.
 
@@ -318,16 +346,16 @@ with a `uvarint7` encoding its length.
 
 A `typed value` is encoded as either a `uvarint7` (in a top-level value message)
 or `uvarint` (for any other values)
-encoding the length in bytes of the type code and value followed by
+encoding the length in bytes of the type ID and value followed by
 the body of the typed value comprising that many bytes.
 Within the body of the typed value,
-the type code is encoded as a `uvarint` and the value is encoded
+the type ID is encoded as a `uvarint` and the value is encoded
 as a byte array whose length is equal to the body length less the
-length in bytes of the type code.
+length in bytes of the type ID.
 ```
---------------------------
-|uvarint7|type-code|value|
---------------------------
+------------------------
+|uvarint7|type-id|value|
+------------------------
 ```
 
 A typed value with a `value` of length N and the type indicated
@@ -362,8 +390,15 @@ little-endian format.
 > useful in systems like Zeek where data is pulled off the network
 > while expecting a string, but there can be embedded binary data due to
 > bugs, malicious attacks, etc.  It is up to the receiver to determine
-with out-of-band information or inference whether the data is ultimately
+> with out-of-band information or inference whether the data is ultimately
 > arbitrary binary data or a valid UTF-8 string.
+
+A union value is encoded as the uvarint encoding of the index determining
+the type of the value in reference to the union type and a subsequent
+value encoded according to that type:
+```
+<union-index><type-specific-value>
+```
 
 Array, set, and record types are variable length and are encoded
 as a sequence of elements:
@@ -374,17 +409,17 @@ as a sequence of elements:
 | `set`    | concatenation of elements |
 | `record` | concatenation of elements |
 
-Since N, the byte length of
-this sequence is known, there is no need to encode a count of the
-elements present.  Also, since the type code is implied by the typedef
-of any container type, each value is encoded without its type code.
+Since N, the byte length of any of these container values is known,
+there is no need to encode a count of the
+elements present.  Also, since the type ID is implied by the typedef
+of any container type, each value is encoded without its type ID.
 
 The concatenation of elements is encoded as a sequence of "tag-counted" values.
 A tag carries both the length information of the corresponding value as well
 a "container bit" to differentiate between primitive values and container values
 without having to refer to the implied type.  This admits an efficient implementation
 for traversing the values, inclusive of recursive traversal of container values,
-whereby the inner loop need not consult and interpret the type code of each element.
+whereby the inner loop need not consult and interpret the type ID of each element.
 
 The tag encodes the length N of the value and indicates whether
 it is a primitive value or a container value.
@@ -399,120 +434,85 @@ and is encoded as a `uvarint`.
 
 For example, tag value 0 is an unset primitive value and tag value 1
 is an unset container value.  Tag value 2 is a length zero primitive value,
-e.g., it could represent empty string.  Tag 3 is a length 1 primitive value,
+e.g., it could represent empty string.  Tag value 3 is a length 1 primitive value,
 e.g., it would represent the boolean "true" if followed by byte value 1
-in the context of type code 0.
+in the context of type ID 0 (i.e., the type ID for boolean).
 
 Following the tag encoding is the value encoded in N bytes as described above.
 
 ## 3. ZNG Text Format
 
-The ZNG text format is a human-readable form that follows directly from the BZNG
-binary format.  A stream of control messages and values messages is represented
+The ZNG text format is a human-readable form that follows from the BZNG
+binary format.
+
+A stream of control messages and values messages is represented
 as a sequence of UTF-8 lines each terminated by a newline.  Any newlines embedded
 in values must be escaped, i.e., via `\x0a`.
 
-A line that begins with `#` is a control message.
-
-Any line that begins with a decimal integer and has the form
-```
-<integer>:<value text>
-```
-is a value.
+A line that begins with `#` is a control message and all other lines
+are values.
 
 ### 3.1 ZNG Control Messages
 
-Except for typedefs, all control messages have the form
-```
-#!<control code>:<payload>
-```
-where `<control code>` is a decimal integer in the range 5-127 and `<payload>`
-is any UTF-8 string with escaped newlines.
+ZNG control messages have one of four forms defined below.
 
-Any line beginning that does not conform with the syntax described here
+Any line beginning with `#` that does not conform with the syntax described here
 is an error.
 When errors are encountered parsing ZNG, an implementation should return a
 corresponding error and allow ZNG parsing to proceed if desired.
 
-### 3.1.1 ZNG Typedefs
+### 3.1.1 Type Binding
 
-A typedef control message has the form
+A type binding has the following form:
 ```
-#<type encoding>
+#<type-tag>:<type-string>
 ```
-i.e., there is a single `#` character followed by a type encoding establishing
-a binding between the "next available" type code and the type defined by the
-encoding.  For readability, the type code may be included in the typedef
-with the following syntax:
-```
-#<integer>:<type encoding>
-```
-In this case, the integer type code must match the next implied type code.
-This form is useful for human-readable display, test cases, debugging etc.
+Here, `<type-tag>` is a string decimal integer and `<type-string>`
+is a string defining a type according to the ZNG type syntax creates a binding
+between the indicated tag and the indicated type.
 
-#### 3.1.1.1 Record Typedef
+### 3.1.2 Type Alias
 
-A record type has the following syntax:
+A type alias has the following form:
 ```
-#record[name1:code1,name2:code2,...]
+#<type-name>:<type-string>
 ```
-or
-```
-#<type-code>:record[name1:code1,name2:code2,...]
-```
-where `name1`, `name2`, ... are field names as defined by the BZNG record type definitions
-and `code1`, `code2`, ... are textual type codes.  A textual type code can be either the name
-of a primitive type code from the type code table (e.g., `int64`, `time`, etc), a name that
-is a previously defined alias, or a
-string decimal integer referring to said table or created with a typedef that appeared
-earlier in the ZNG data stream.
-
-#### 3.1.1.2 Array Typedef
-
-An array type has the following syntax:
-```
-#array[<code>]
-```
-or
-```
-#<type-code>:array[<code>]
-```
-where `<code>` is a text-format type code as defined above.
-
-#### 3.1.1.3 Set Typedef
-
-A set type has the following syntax:
-```
-#<type-code>:set[<code>]
-```
-where `<code>` is a text type code as defined above.
-
-#### 3.1.1.4 Alias Typedef
-
-An alias typedef has the following structure:
-```
-#alias:<type-name>=<code>
-```
-where `<code>` is a text type code as defined above and
+Here, `<type-name>` is an identifier and `<type-string>`
+is a string defining a type according to the ZNG type syntax creates a binding
+between the indicated tag and the indicated type.
+This form defines an alias mapping the identifier to the indicated type.
 `<type-name>` is an identifier with semantics as defined in Section 2.1.1.4.
 
-### 3.1.2 Ordering Hint
+It is an error to define an alias that has the same name as a primitive type.
 
-An ordering hint has the following structure:
+If an alias appears that has the same name as a previously defined alias,
+then the new alias takes precedent for all subsequent values.
+
+### 3.1.3 Application-specific Payload
+
+An application-specific payload has the following form:
 ```
-#order:[+-]<field>,[+-]<field>,...
+#!<control code>:<payload>
+```
+Here, `<control code>` is a decimal integer in the range 6-127 and `<payload>`
+is any UTF-8 string with escaped newlines.
+
+### 3.1.4 Ordering Hint
+An ordering hint has the form:
+```
+#[+-]<field>,[+-]<field>,...
 ```
 where the string present after the colon has the same semantics as
 those described in Section 2.1.2.
 
 ### Type Grammar
 
-Given the above textual definitions and the undelying BZNG specification, a
+Given the above textual definitions and the underlying BZNG specification, a
 grammar describing the textual type encodings is:
 ```
 <stype> := bool | byte | int16 | uint16 | int32 | uint32 | int64 | uint64 | float64
          | string | bytes | bstring | enum | ip | net | time | duration | null
-         | <typecode>
+         | <alias-name>
 
 <ctype> :=  array [ <stype> ]
           | set [ <stype-list> ]
@@ -527,20 +527,19 @@ grammar describing the textual type encodings is:
 
 <column> := <id> : <stype>
 
+<alias-name> := <id>
+
 <id> := <id_start> <id_continue>*
 
 <id_start> := [A-Za-z_$]
 
 <id_continue> := <id_start> | [0-9]
-
-<typecode> := 0 | [1-9][0-9]*
 ```
 
 A reference implementation of this type system is embedded in
 [zq/zng](../).
 
-
-### 3.2 ZNG Value Messages
+### 3.2 ZNG Values
 
 A ZNG value is encoded on a line as typed value, which is encoded as
 an integer type code followed by `:`, which is in turn followed
@@ -548,7 +547,9 @@ by a value encoding.
 
 Here is a pseudo-grammar for typed values:
 ```
-<typed-value> := <typecode> : <elem>
+<typed-value> := <tag> : <elem>
+<tag> :=  0
+        | [1-9][0-9]*
 <elem> :=
           <terminal> ;
         | [ <list> ]
@@ -617,7 +618,7 @@ to `-` as opposed to representing an unset value.
 
 #### 3.2.2 Value Syntax
 
-Each UTF-string field parsed from a value line is interpreted according to the
+Each UTF-8 string field parsed from a value line is interpreted according to the
 type descriptor of the line.
 The formats for each type is as follows:
 
@@ -654,25 +655,25 @@ int
 ```
 Container types look like this and do need typedefs:
 ```
-#23:vector[int]
-#24:set[bool,string]
-#25:record[x:double,y:double]
+#0:vector[int]
+#1:set[bool,string]
+#2:record[x:double,y:double]
 ```
 Container types can be embedded in other container types by referencing
-an earlier-defined type code:
+an earlier-defined type alias:
 ```
-#26:record[a:string,b:string,c:23]
-#27:set[26]
-#28:record[v:23,s:24,r:25,s2:27]
+#REC:record[a:string,b:string,c:int]
+#SET:set[string]
+#99:record[v:REC,s:SET,r:REC,s2:SET]
 ```
-This ZNG defines
-the first implied type code (23) and references the string type code (9),
-using them in three values:
+This ZNG defines a tag for the primitive string type and defines a record
+and references the types accordingly in three values;
 ```
-#23:record[a:string,b:string]
-9:hello, world;
-23:[hello;world;]
-9:this is a semicolon: \x3b;
+#0:string
+#1:record[a:string,b:string]
+0:hello, world;
+1:[hello;world;]
+0:this is a semicolon: \x3b;
 ```
 which represents a stream of the following three values:
 ```
@@ -680,15 +681,17 @@ string("hello, world")
 record(a:"hello",b:"world")
 string("this is a semicolon: ;")
 ```
+Note that the tag integers occupy their own numeric space indepedent of
+any underlying BZNG type codes.
 
 The semicolon terminator is important.  Consider this ZNG depicting
 sets of strings:
 ```
-#24:set[string]
-24:[hello,world;]
-24:[hello;world;]
-24:[]
-24:[;]
+#0:set[string]
+0:[hello,world;]
+0:[hello;world;]
+0:[]
+0:[;]
 ```
 In this example:
 * the first value is a `set` of one `string`
@@ -701,8 +704,8 @@ In this way, an empty `set` and a `set` containing only a zero-length `string` c
 This scheme allows containers to be embedded in containers, e.g., a
 `record` inside of a `record` like this:
 ```
-#25:record[compass:string,degree:double]
-#26:record[city:string,lat:25,long:25]
+#LL:record[compass:string,degree:double]
+#26:record[city:string,lat:LL,long:LL]
 26:[NYC;[N;40.7128;][W;74.0060;]]
 ```
 An unset value indicates a field of a `record` that wasn't set by the encoder:
@@ -718,6 +721,6 @@ e.g., the North Pole has a latitude but no meaningful longitude.
 * [Hadoop sequence file](https://cwiki.apache.org/confluence/display/HADOOP2/SequenceFile)
 * [Avro](https://avro.apache.org)
 * [Parquet](https://en.wikipedia.org/wiki/Apache_Parquet)
-* [Protobufs](https://developers.google.com/protocol-buffers)
+* [Protocol Buffers](https://developers.google.com/protocol-buffers)
 * [MessagePack](https://msgpack.org/index.html)
 * [gNMI](https://github.com/openconfig/reference/tree/master/rpc/gnmi)
