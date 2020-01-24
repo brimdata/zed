@@ -11,6 +11,7 @@ import (
 	"github.com/mccanne/zq/zio"
 	"github.com/mccanne/zq/zio/zeekio"
 	"github.com/mccanne/zq/zng"
+	"github.com/mccanne/zq/zng/resolver"
 )
 
 type Text struct {
@@ -23,7 +24,7 @@ type Text struct {
 func NewWriter(w io.Writer, flags zio.Flags) *Text {
 	return &Text{
 		Writer:    w,
-		flattener: zeekio.NewFlattener(),
+		flattener: zeekio.NewFlattener(resolver.NewContext()),
 		precision: 6,
 		Flags:     flags,
 	}

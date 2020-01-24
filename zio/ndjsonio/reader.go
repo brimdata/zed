@@ -49,6 +49,6 @@ again:
 		}
 		return nil, fmt.Errorf("line %d: %w", r.scanner.Stats.Lines, err)
 	}
-	desc := r.zctx.LookupByColumns(typ.(*zng.TypeRecord).Columns)
-	return zng.NewRecordCheck(desc, 0, raw)
+	outType := r.zctx.LookupTypeRecord(typ.(*zng.TypeRecord).Columns)
+	return zng.NewRecordCheck(outType, 0, raw)
 }

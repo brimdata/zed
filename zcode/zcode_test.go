@@ -81,12 +81,12 @@ func TestUvarint(t *testing.T) {
 		math.MaxUint64,
 	}
 	for _, c := range cases {
-		buf := appendUvarint(nil, c)
+		buf := AppendUvarint(nil, c)
 		u64, n := uvarint(buf)
 		require.Len(t, buf, n, "case: %d", c)
 		require.Exactly(t, c, u64, "case: %d", c)
 
-		buf = appendUvarint(buf, c)
+		buf = AppendUvarint(buf, c)
 		u64, n = uvarint(buf)
 		require.Len(t, buf, n*2, "case: %d", c)
 		require.Exactly(t, c, u64, "case: %d", c)

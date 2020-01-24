@@ -53,6 +53,6 @@ func (r *Row) Result(zctx *resolver.Context) *zng.Record {
 		columns[k] = zng.NewColumn(r.Defs[k].Target(), val.Type)
 		zv = val.Encode(zv)
 	}
-	typ := zctx.LookupByColumns(columns)
+	typ := zctx.LookupTypeRecord(columns)
 	return zng.NewRecordNoTs(typ, zv)
 }

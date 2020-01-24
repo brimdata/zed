@@ -80,7 +80,7 @@ func (c *Cut) cut(in *zng.Record) *zng.Record {
 	}
 	if typ == nil {
 		cols := c.builder.TypedColumns(types)
-		typ = c.TypeContext.LookupByColumns(cols)
+		typ = c.TypeContext.LookupTypeRecord(cols)
 		c.cutmap[in.Type.ID()] = typ
 	}
 

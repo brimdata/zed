@@ -423,5 +423,5 @@ func (g *GroupByAggregator) lookupRowType(row *GroupByRow) *zng.TypeRecord {
 		cols = append(cols, zng.NewColumn(row.reducers.Defs[k].Target(), z.Type))
 	}
 	// This could be more efficient but it's only done during group-by output...
-	return g.zctx.LookupByColumns(cols)
+	return g.zctx.LookupTypeRecord(cols)
 }

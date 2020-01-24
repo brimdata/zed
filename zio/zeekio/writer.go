@@ -9,6 +9,7 @@ import (
 	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zio"
 	"github.com/mccanne/zq/zng"
+	"github.com/mccanne/zq/zng/resolver"
 )
 
 var ErrDescriptorChanged = errors.New("descriptor changed")
@@ -25,7 +26,7 @@ type Writer struct {
 func NewWriter(w io.Writer, flags zio.Flags) *Writer {
 	return &Writer{
 		Writer:    w,
-		flattener: NewFlattener(),
+		flattener: NewFlattener(resolver.NewContext()),
 		precision: 6,
 		Flags:     flags,
 	}

@@ -11,8 +11,6 @@ type TypeRecord struct {
 	Columns []Column
 	LUT     map[string]int
 	TsCol   int
-	//XXX get rid of Key and use ID as context-unique type id
-	Key string
 }
 
 func CopyTypeRecord(id int, r *TypeRecord) *TypeRecord {
@@ -20,7 +18,6 @@ func CopyTypeRecord(id int, r *TypeRecord) *TypeRecord {
 		Columns: r.Columns,
 		LUT:     r.LUT,
 		TsCol:   r.TsCol,
-		Key:     r.Key,
 	}
 }
 
@@ -29,13 +26,11 @@ func NewTypeRecord(id int, columns []Column) *TypeRecord {
 		id:      id,
 		Columns: columns,
 		TsCol:   -1,
-		Key:     ColumnString("", columns, ""), //XXX
 	}
 	r.createLUT()
 	return r
 }
 
-//XXX
 func TypeRecordString(columns []Column) string {
 	return ColumnString("record[", columns, "]")
 }
@@ -44,7 +39,6 @@ func (t *TypeRecord) ID() int {
 	return t.id
 }
 
-//XXX get rid of this when we implement full ZNG
 func (t *TypeRecord) SetID(id int) {
 	t.id = id
 }

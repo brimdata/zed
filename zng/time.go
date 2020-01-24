@@ -13,7 +13,7 @@ func NewTime(ts nano.Ts) Value {
 
 func EncodeTime(t nano.Ts) zcode.Bytes {
 	var b [8]byte
-	n := encodeInt(b[:], int64(t))
+	n := zcode.EncodeCountedVarint(b[:], int64(t))
 	return b[:n]
 }
 
@@ -21,7 +21,7 @@ func DecodeTime(zv zcode.Bytes) (nano.Ts, error) {
 	if zv == nil {
 		return 0, ErrUnset
 	}
-	return nano.Ts(decodeInt(zv)), nil
+	return nano.Ts(zcode.DecodeCountedVarint(zv)), nil
 }
 
 func (t *TypeOfTime) Parse(in []byte) (zcode.Bytes, error) {

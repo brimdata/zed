@@ -14,7 +14,7 @@ import (
 func TestTop(t *testing.T) {
 	zctx := resolver.NewContext()
 
-	fooDesc := zctx.LookupByColumns([]zng.Column{zng.NewColumn("foo", zng.TypeCount)})
+	fooDesc := zctx.LookupTypeRecord([]zng.Column{zng.NewColumn("foo", zng.TypeCount)})
 	r0, _ := zbuf.NewRecordZeekStrings(fooDesc, "-")
 	r1, _ := zbuf.NewRecordZeekStrings(fooDesc, "1")
 	r2, _ := zbuf.NewRecordZeekStrings(fooDesc, "2")

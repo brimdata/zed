@@ -100,9 +100,9 @@ func (b Bytes) ContainerBody() (Bytes, error) {
 // extended buffer.
 func AppendContainer(dst Bytes, val Bytes) Bytes {
 	if val == nil {
-		return appendUvarint(dst, containerTagUnset)
+		return AppendUvarint(dst, containerTagUnset)
 	}
-	dst = appendUvarint(dst, containerTag(len(val)))
+	dst = AppendUvarint(dst, containerTag(len(val)))
 	dst = append(dst, val...)
 	return dst
 }
@@ -111,15 +111,15 @@ func AppendContainer(dst Bytes, val Bytes) Bytes {
 // extended buffer.
 func AppendPrimitive(dst Bytes, val []byte) Bytes {
 	if val == nil {
-		return appendUvarint(dst, primitiveTagUnset)
+		return AppendUvarint(dst, primitiveTagUnset)
 	}
-	dst = appendUvarint(dst, primitiveTag(len(val)))
+	dst = AppendUvarint(dst, primitiveTag(len(val)))
 	return append(dst, val...)
 }
 
-// appendUvarint is like encoding/binary.PutUvarint but appends to dst instead
+// AppendUvarint is like encoding/binary.PutUvarint but appends to dst instead
 // of writing into it.
-func appendUvarint(dst []byte, u64 uint64) []byte {
+func AppendUvarint(dst []byte, u64 uint64) []byte {
 	for u64 >= 0x80 {
 		dst = append(dst, byte(u64)|0x80)
 		u64 >>= 7

@@ -69,18 +69,6 @@ func (r *Reader) Read() (*zng.Record, error) {
 	return rec, nil
 }
 
-func (r *Reader) enterDescriptor(id int, typ *zng.TypeRecord) error {
-	if r.mapper.Map(id) != nil {
-		//XXX this should be ok... decide on this and update spec
-		return zng.ErrDescriptorExists
-	}
-	if r.mapper.Enter(id, typ) == nil {
-		// XXX this shouldn't happen
-		return zng.ErrBadValue
-	}
-	return nil
-}
-
 func (r *Reader) parseValues(id int, v interface{}) (*zng.Record, error) {
 	values, ok := v.([]interface{})
 	if !ok {

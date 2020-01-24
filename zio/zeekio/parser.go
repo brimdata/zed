@@ -183,7 +183,7 @@ func Unflatten(zctx *resolver.Context, columns []zng.Column, addPath bool) ([]zn
 		if fld != nestedField {
 			if len(nestedField) > 0 {
 				// We've reached the end of a nested record.
-				recType := zctx.LookupByColumns(nestedCols)
+				recType := zctx.LookupTypeRecord(nestedCols)
 				newcol := zng.NewColumn(nestedField, recType)
 				cols = append(cols, newcol)
 			}
@@ -208,7 +208,7 @@ func Unflatten(zctx *resolver.Context, columns []zng.Column, addPath bool) ([]zn
 	// If we were in the midst of a nested record, make sure we
 	// account for it.
 	if len(nestedField) > 0 {
-		recType := zctx.LookupByColumns(nestedCols)
+		recType := zctx.LookupTypeRecord(nestedCols)
 		newcol := zng.NewColumn(nestedField, recType)
 		cols = append(cols, newcol)
 	}
@@ -230,7 +230,7 @@ func (p *Parser) setDescriptor() error {
 	}
 
 	cols, addpath := Unflatten(p.zctx, p.columns, p.path != "")
-	p.descriptor = p.zctx.LookupByColumns(cols)
+	p.descriptor = p.zctx.LookupTypeRecord(cols)
 	p.addpath = addpath
 	return nil
 }
