@@ -132,10 +132,15 @@ func (p *Parser) ParseDirective(line []byte) error {
 		}
 		p.open = tokens[1]
 	case "close":
-		if len(tokens) != 2 {
+		if len(tokens) > 2 {
 			return badfield("close")
 		}
-		p.close = tokens[1]
+		if len(tokens) == 1 {
+			p.close = ""
+		} else {
+			p.close = tokens[1]
+		}
+
 	case "fields":
 		if len(tokens) < 2 {
 			return badfield("fields")
