@@ -588,10 +588,12 @@ defined by a typedef scoped to the stream in which the value appears.
 Any Unicode code point may be represented in a `string` value using
 the same `\u` syntax as Javascript.  Specifically:
 * The sequence `\uhhhh` where each `h` is a hexadecimal digit represents
-  the Unicode code point corresponding to the given 4-digit (hexadecimal) number.
+  the Unicode code point corresponding to the given
+  4-digit (hexadecimal) number, or:
 * `\u{h*}` where there are from 1 to 6 hexadecimal digits inside the
   brackets represents the Unicode code point corresponding to the given
   hexadecimal number.
+
 `\u` followed by anything that does not conform to the above syntax
 is not a valid escape sequence.
 The behavior of an implementation that encounters such
