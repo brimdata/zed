@@ -442,12 +442,16 @@ Following the tag encoding is the value encoded in N bytes as described above.
 
 ## 3. ZNG Text Format
 
-The ZNG text format is a human-readable form that follows from the BZNG
-binary format.
+The ZNG text format is a human-readable form that follows directly from the BZNG
+binary format.  A ZNG file/stream is encoded with UTF-8.
+All subsequent references to characters and strings in this section refer to
+the Unicode code points that result when the stream is decoded.
+If a ZNG stream includes data that is not valid UTF-8, the stream is invalid.
 
 A stream of control messages and values messages is represented
-as a sequence of UTF-8 lines each terminated by a newline.  Any newlines embedded
-in values must be escaped, i.e., via `\x0a`.
+as a sequence of lines each terminated by a newline.
+Any newlines embedded in string-typed values must be escaped,
+i.e., via `\u{0a}` or `\x0a`.
 
 A line that begins with `#` is a control message and all other lines
 are values.
@@ -551,26 +555,15 @@ Here is a pseudo-grammar for typed values:
 <tag> :=  0
         | [1-9][0-9]*
 <elem> :=
-          <terminal> ;
-        | [ <list> ]
-        | [ ]
-<list> :=
-          <elem>
-        | <list> <elem>
+          <terminal>
+        | [ <list-elem>* ]
+<list-elem> := <elem> ;
 <terminal> := <char>*
-<char> := [^][;\n\\] | <esc-sequence>
-<esc-sequence> := <JavaScript character escaping rules [1]>
 ```
 
-[1] - [JavaScript character escaping rules](https://tc39.es/ecma262/#prod-EscapeSequence)
-
-A terminal value is encoded as a string of UTF-8 characters terminated
-by a semicolon (which must be escaped if it appears in the value).  A container
-value is encoded as a left bracket followed by one or more values (terminal or
-container) followed by a right bracket.
-Any escaped characters shall be processed and interpreted as their escaped value.
-
-Container values are encoded as
+A terminal value is encoded as a string of characters (encoded terminated
+by a semicolon (which must be escaped if it appears in a string-typed value).
+Container values (i.e., sets, vectors, or records) are encoded as
 * an open bracket,
 * zero or more encoded values terminated with semicolon, and
 * a close bracket.
@@ -592,13 +585,28 @@ defined by a typedef scoped to the stream in which the value appears.
 
 #### 3.2.1 Character Escape Rules
 
+Any Unicode code point may be represented in a `string` value using
+the same `\u` syntax as Javascript.  Specifically:
+* The sequence `\uhhhh` where each `h` is a hexadecimal digit represents
+  the Unicode code point corresponding to the given 4-digit (hexadecimal) number.
+* `\u{h*}` where there are from 1 to 6 hexadecimal digits inside the
+  brackets represents the Unicode code point corresponding to the given
+  hexadecimal number.
+`\u` followed by anything that does not conform to the above syntax
+is not a valid escape sequence.
+The behavior of an implementation that encounters such
+invalid sequences in a `string` type is undefined.
+
 Any character in a `bstring` value may be escaped from the ZNG formatting rules
 using the hex escape syntax, i.e., `\xhh` where `h` is a hexadecimal digit.
 This allows binary data that does not conform to a valid UTF-8 character encoding
 to be embedded in the `bstring` data type.
+`\x` followed by anything other than two hexadecimal digits is not a valid
+escape sequence. The behavior of an implementation that encounters such
+invalid sequences in a `bstring` type is undefined.
 
-These special characters must be hex escaped if they appear within a `bstring`
-type:
+These special characters must be hex escaped if they appear within a
+`string` or `bstring` type:
 ```
 ; \n \\
 ```
@@ -611,10 +619,6 @@ of a value:
 ```
 In addition, `-` must be escaped if representing the single ASCII byte equal
 to `-` as opposed to representing an unset value.
-
-> `\x` followed by anything other than two hexadecimal digits is not a valid
-> escape sequence. The behavior of an implementation that encounters such
-> invalid sequences in a `bstring` type is undefined.
 
 #### 3.2.2 Value Syntax
 
