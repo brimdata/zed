@@ -77,8 +77,7 @@ func (f *Flattener) Flatten(r *zng.Record) (*zng.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	out := zng.NewRecordNoTs(flatType, zv)
-	return out, nil
+	return zng.NewRecord(flatType, zv)
 
 }
 

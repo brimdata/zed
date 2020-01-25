@@ -110,7 +110,7 @@ func NewRecordZvals(typ *zng.TypeRecord, vals ...zcode.Bytes) (t *zng.Record, er
 			return nil, err
 		}
 	}
-	r := zng.NewRecord(typ, ts, raw)
+	r := zng.NewRecordTs(typ, ts, raw)
 	if err := r.TypeCheck(); err != nil {
 		return nil, err
 	}
@@ -127,7 +127,7 @@ func NewRecordZeekStrings(typ *zng.TypeRecord, ss ...string) (t *zng.Record, err
 	if err != nil {
 		return nil, err
 	}
-	r := zng.NewRecord(typ, ts, zv)
+	r := zng.NewRecordTs(typ, ts, zv)
 	if err := r.TypeCheck(); err != nil {
 		return nil, err
 	}

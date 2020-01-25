@@ -393,7 +393,7 @@ func (g *GroupByAggregator) recordsForTable(table map[string]*GroupByRow) []*zng
 			zv = v.Encode(zv)
 		}
 		typ := g.lookupRowType(row)
-		r := zng.NewRecord(typ, row.ts, zv)
+		r := zng.NewRecordTs(typ, row.ts, zv)
 		recs = append(recs, r)
 	}
 	return recs

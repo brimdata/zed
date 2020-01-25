@@ -54,5 +54,5 @@ func (r *Row) Result(zctx *resolver.Context) *zng.Record {
 		zv = val.Encode(zv)
 	}
 	typ := zctx.LookupTypeRecord(columns)
-	return zng.NewRecordNoTs(typ, zv)
+	return zng.NewRecordTs(typ, 0, zv)
 }

@@ -81,7 +81,8 @@ func TestEncodeZeekStrings(t *testing.T) {
 
 	zv, err := encode(d, zs("some path", "123.456", "some data"))
 	assert.NoError(t, err)
-	r := zng.NewRecordNoTs(d, zv)
+	r, err := zng.NewRecord(d, zv)
+	assert.NoError(t, err)
 	assert.EqualValues(t, 123456000000, r.Ts)
 	assert.EqualValues(t, "some path", lookup(r, 0))
 	assert.EqualValues(t, "123.456", r.Value(1).String())
@@ -90,7 +91,8 @@ func TestEncodeZeekStrings(t *testing.T) {
 
 	zv, err = encode(d, zs("some path", "123.456", ""))
 	assert.NoError(t, err)
-	r = zng.NewRecordNoTs(d, zv)
+	r, err = zng.NewRecord(d, zv)
+	assert.NoError(t, err)
 	assert.EqualValues(t, 123456000000, r.Ts)
 	assert.EqualValues(t, "some path", lookup(r, 0))
 	assert.EqualValues(t, "123.456", r.Value(1).String())
@@ -99,7 +101,8 @@ func TestEncodeZeekStrings(t *testing.T) {
 
 	zv, err = encode(d, zs("some path", "123.456", "-"))
 	assert.NoError(t, err)
-	r = zng.NewRecordNoTs(d, zv)
+	r, err = zng.NewRecord(d, zv)
+	assert.NoError(t, err)
 	assert.EqualValues(t, 123456000000, r.Ts)
 	assert.EqualValues(t, "some path", lookup(r, 0))
 	assert.EqualValues(t, "123.456", r.Value(1).String())
@@ -124,7 +127,8 @@ func TestEncodeZeekStrings(t *testing.T) {
 	for i, c := range cases {
 		zv, err := encode(d, c.input)
 		assert.NoError(t, err)
-		r := zng.NewRecordNoTs(d, zv)
+		r, err := zng.NewRecord(d, zv)
+		assert.NoError(t, err)
 		assert.EqualValues(t, 123456000000, r.Ts)
 		for j, e := range c.expected {
 			assert.EqualValues(t, e, r.Value(j).String(), "case %d, index: %d", i, j)
