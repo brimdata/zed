@@ -561,7 +561,7 @@ Here is a pseudo-grammar for typed values:
 <terminal> := <char>*
 ```
 
-A terminal value is encoded as a string of characters (encoded terminated
+A terminal value is encoded as a string of characters terminated
 by a semicolon (which must be escaped if it appears in a string-typed value).
 Container values (i.e., sets, vectors, or records) are encoded as
 * an open bracket,
@@ -607,7 +607,7 @@ to be embedded in the `bstring` data type.
 escape sequence. The behavior of an implementation that encounters such
 invalid sequences in a `bstring` type is undefined.
 
-These special characters must be hex escaped if they appear within a
+These special characters must be escaped if they appear within a
 `string` or `bstring` type:
 ```
 ; \n \\
