@@ -278,7 +278,7 @@ with the following structure:
 A union type consists of an ordered set of types
 encoded as a count of the number of types, i.e., `<ntypes>` from above,
 followed by the type IDs comprising the types of the union.
-The type Ids of a union must be unique.
+The type IDs of a union must be unique.
 
 The `<ntypes>` and the type IDs are all encoded as `uvarint`.
 
