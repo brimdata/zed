@@ -29,10 +29,7 @@ func (c *Cache) Lookup(td int) *zng.TypeRecord {
 }
 
 func (c *Cache) Release() {
-	switch p := c.resolver.(type) {
-	case *Context:
-		p.Release(c)
-	case *File:
+	if p, ok := c.resolver.(*Context); ok {
 		p.Release(c)
 	}
 }
