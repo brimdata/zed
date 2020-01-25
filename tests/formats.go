@@ -44,6 +44,8 @@ func match(subdir, name, direction string) (*filespec, error) {
 		format = "text"
 	case "tbl", "table":
 		format = "table"
+	case "types":
+		format = "types"
 	default:
 		return nil, fmt.Errorf("unknown extension %s (in %s)\n", ext, name)
 	}

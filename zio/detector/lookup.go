@@ -12,8 +12,15 @@ import (
 	"github.com/mccanne/zq/zio/zeekio"
 	"github.com/mccanne/zq/zio/zjsonio"
 	"github.com/mccanne/zq/zio/zngio"
+	"github.com/mccanne/zq/zng"
 	"github.com/mccanne/zq/zng/resolver"
 )
+
+type nullWriter struct{}
+
+func (*nullWriter) Write(*zng.Record) error {
+	return nil
+}
 
 func LookupWriter(format string, w io.WriteCloser, optionalFlags *zio.Flags) *zio.Writer {
 	var flags zio.Flags
@@ -24,6 +31,8 @@ func LookupWriter(format string, w io.WriteCloser, optionalFlags *zio.Flags) *zi
 	switch format {
 	default:
 		return nil
+	case "null":
+		f = zbuf.NopFlusher(&nullWriter{})
 	case "zng":
 		f = zbuf.NopFlusher(zngio.NewWriter(w))
 	case "bzng":

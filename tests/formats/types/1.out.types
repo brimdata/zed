@@ -1,0 +1,2 @@
+#23:record[b:string,c:int]
+#24:record[a:string,r:record[b:string,c:int]]
