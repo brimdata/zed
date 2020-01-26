@@ -22,16 +22,15 @@ import (
 	"github.com/mccanne/zq/zng/resolver"
 )
 
-// TypeFile manages the mapping between small-integer descriptor identifiers
-// and zng descriptor objects, which hold the binding between an identifier
-// and a zeek.TypeRecord.
+// TypeFile manages the backing store for a type context.
 type TypeFile struct {
 	mu sync.Mutex
 	*resolver.Context
 	path string
-	// we can use a count of elements on disk since is write only so
-	// it's dirty iff the count on disk != count in memory
-	nstored int
+	// We track the size of the context for the most recent save so
+	// if the actual size differs, we know the context is dirty and needs
+	// to be pushed to disk.
+	savedLen int
 }
 
 // NewTypeFile returns a new file-backed type context.  If the path indicated
@@ -76,7 +75,7 @@ func (t *TypeFile) Save() error {
 	}
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	if t.nstored == t.Len() {
+	if t.savedLen == t.Len() {
 		// someone else beat us here
 		return nil
 	}
@@ -85,14 +84,14 @@ func (t *TypeFile) Save() error {
 	// these updates should be quite rare compared to the volume of data
 	// pumped through the system.
 	data, n := t.Serialize()
-	t.nstored = n
+	t.savedLen = n
 	return ioutil.WriteFile(t.path, data, 0644)
 }
 
 func (t *TypeFile) Dirty() bool {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	return t.Len() != t.nstored
+	return t.Len() != t.savedLen
 }
 
 func ReadTypeContext(r io.Reader, zctx *resolver.Context) error {
