@@ -12,7 +12,6 @@
 package bzngio
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -34,53 +33,52 @@ type TypeFile struct {
 	nstored int
 }
 
-func NewTypeFile(path string) (*TypeFile, error) {
+func NewTypeFile(path string) *TypeFile {
 	// start out dirty (nstored=-1) so that an empty table will be saved
 	// so that space introspection works... sheesh
-	f := &TypeFile{
+	return &TypeFile{
 		Context: resolver.NewContext(),
 		path:    path,
 		nstored: -1,
 	}
-	info, err := os.Stat(path)
-	if os.IsNotExist(err) {
-		return f, nil
-	}
-	if info.IsDir() {
-		return nil, fmt.Errorf("context file cannot be a directory: %s", path)
-	}
-	err = f.Load(path)
-	return f, err
 }
 
-func (f *TypeFile) Load(path string) error {
-	file, err := os.Open(path)
+func (t *TypeFile) Load() error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	file, err := os.Open(t.path)
 	if err != nil {
 		return err
 	}
+	t.Context.Reset()
 	defer file.Close()
-	return ReadTypeContext(file, f.Context)
+	return ReadTypeContext(file, t.Context)
 }
 
 // Save writes this context table to disk.
-func (f *TypeFile) Save() error {
-	//XXX why 0755?
-	if err := os.MkdirAll(filepath.Dir(f.path), 0755); err != nil {
+func (t *TypeFile) Save() error {
+	if err := os.MkdirAll(filepath.Dir(t.path), 0755); err != nil {
 		return err
 	}
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	if f.nstored == f.Len() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if t.nstored == t.Len() {
 		// someone else beat us here
 		return nil
 	}
-	data, n := f.Serialize()
-	f.nstored = n
-	return ioutil.WriteFile(f.path, data, 0644)
+	// This could be improved where we don't re-encode the whole file
+	// each time we add a type and save the file, but depending on the use case,
+	// these updates should be quite rare compared to the volume of data
+	// pumped through the system.
+	data, n := t.Serialize()
+	t.nstored = n
+	return ioutil.WriteFile(t.path, data, 0644)
 }
 
-func (f *TypeFile) Dirty() bool {
-	return f.Len() != f.nstored
+func (t *TypeFile) Dirty() bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.Len() != t.nstored
 }
 
 func ReadTypeContext(r io.Reader, zctx *resolver.Context) error {

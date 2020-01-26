@@ -84,6 +84,10 @@ func (e *Encoder) encodeTypeRecord(dst []byte, ext *zng.TypeRecord) ([]byte, zng
 	if e.isEncoded(typ) {
 		return dst, typ
 	}
+	return serializeTypeRecord(dst, columns), typ
+}
+
+func serializeTypeRecord(dst []byte, columns []zng.Column) []byte {
 	dst = append(dst, zng.TypeDefRecord)
 	dst = zcode.AppendUvarint(dst, uint64(len(columns)))
 	for _, col := range columns {
@@ -92,7 +96,7 @@ func (e *Encoder) encodeTypeRecord(dst []byte, ext *zng.TypeRecord) ([]byte, zng
 		dst = append(dst, name...)
 		dst = zcode.AppendUvarint(dst, uint64(col.Type.ID()))
 	}
-	return dst, typ
+	return dst
 }
 
 func (e *Encoder) encodeTypeSet(dst []byte, ext *zng.TypeSet) ([]byte, zng.Type) {
@@ -102,9 +106,13 @@ func (e *Encoder) encodeTypeSet(dst []byte, ext *zng.TypeSet) ([]byte, zng.Type)
 	if e.isEncoded(typ) {
 		return dst, typ
 	}
+	return serializeTypeSet(dst, typ.InnerType), typ
+}
+
+func serializeTypeSet(dst []byte, inner zng.Type) []byte {
 	dst = append(dst, zng.TypeDefSet)
 	dst = zcode.AppendUvarint(dst, 1)
-	return zcode.AppendUvarint(dst, uint64(typ.InnerType.ID())), typ
+	return zcode.AppendUvarint(dst, uint64(inner.ID()))
 }
 
 func (e *Encoder) encodeTypeVector(dst []byte, ext *zng.TypeVector) ([]byte, zng.Type) {
@@ -114,6 +122,26 @@ func (e *Encoder) encodeTypeVector(dst []byte, ext *zng.TypeVector) ([]byte, zng
 	if e.isEncoded(typ) {
 		return dst, typ
 	}
+	return serializeTypeVector(dst, inner), typ
+}
+
+func serializeTypeVector(dst []byte, inner zng.Type) []byte {
 	dst = append(dst, zng.TypeDefArray)
-	return zcode.AppendUvarint(dst, uint64(typ.Type.ID())), typ
+	return zcode.AppendUvarint(dst, uint64(inner.ID()))
+}
+
+func serializeTypes(dst []byte, types []zng.Type) []byte {
+	for _, typ := range types {
+		switch typ := typ.(type) {
+		default:
+			panic(fmt.Sprintf("bzng cannot serialize type: %s", typ))
+		case *zng.TypeRecord:
+			dst = serializeTypeRecord(dst, typ.Columns)
+		case *zng.TypeSet:
+			dst = serializeTypeSet(dst, typ.InnerType)
+		case *zng.TypeVector:
+			dst = serializeTypeVector(dst, typ.Type)
+		}
+	}
+	return dst
 }

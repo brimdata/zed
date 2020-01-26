@@ -44,6 +44,10 @@ func (c *Context) SetLogger(logger TypeLogger) {
 	c.logger = logger
 }
 
+func (c *Context) Reset() {
+	c.table = c.table[:zng.IdTypeDef]
+}
+
 func (c *Context) Len() int {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -53,19 +57,8 @@ func (c *Context) Len() int {
 func (c *Context) Serialize() ([]byte, int) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	b := c.serializeWithLock()
+	b := serializeTypes(nil, c.table[zng.IdTypeDef:])
 	return b, len(c.table)
-}
-
-func (c *Context) serializeWithLock() []byte {
-	var out []byte
-	encoder := NewEncoder()
-	for _, typ := range c.table {
-		if typ != nil {
-			encoder.Encode(out, typ)
-		}
-	}
-	return out
 }
 
 func (c *Context) LookupType(id int) (zng.Type, error) {
