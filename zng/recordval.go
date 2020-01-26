@@ -51,7 +51,7 @@ type Record struct {
 	Raw zcode.Bytes
 }
 
-func NewRecord(typ *TypeRecord, ts nano.Ts, raw zcode.Bytes) *Record {
+func NewRecordTs(typ *TypeRecord, ts nano.Ts, raw zcode.Bytes) *Record {
 	return &Record{
 		Ts:          ts,
 		Type:        typ,
@@ -60,19 +60,26 @@ func NewRecord(typ *TypeRecord, ts nano.Ts, raw zcode.Bytes) *Record {
 	}
 }
 
-func NewRecordNoTs(typ *TypeRecord, zv zcode.Bytes) *Record {
-	r := NewRecord(typ, 0, zv)
-	if typ.TsCol >= 0 {
-		body, err := r.Slice(typ.TsCol)
-		if err == nil {
-			r.Ts, _ = DecodeTime(body)
+func NewRecord(typ *TypeRecord, zv zcode.Bytes) (*Record, error) {
+	r := NewRecordTs(typ, 0, zv)
+	if typ.TsCol == 0 {
+		return r, nil
+	}
+	body, err := r.Slice(typ.TsCol)
+	if err != nil {
+		return nil, err
+	}
+	if body != nil {
+		r.Ts, err = DecodeTime(body)
+		if err != nil {
+			return nil, err
 		}
 	}
-	return r
+	return r, nil
 }
 
 func NewRecordCheck(typ *TypeRecord, ts nano.Ts, raw zcode.Bytes) (*Record, error) {
-	r := NewRecord(typ, ts, raw)
+	r := NewRecordTs(typ, ts, raw)
 	if err := r.TypeCheck(); err != nil {
 		return nil, err
 	}

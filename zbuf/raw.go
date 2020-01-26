@@ -23,14 +23,13 @@ func EncodeZvals(typ *zng.TypeRecord, vals []zcode.Bytes) (zcode.Bytes, error) {
 	return raw, nil
 }
 
-func NewRawAndTsFromZeekTSV(builder *zcode.Builder, typ *zng.TypeRecord, path []byte, data []byte) (zcode.Bytes, zng.Value, error) {
+func NewRawFromZeekTSV(builder *zcode.Builder, typ *zng.TypeRecord, path []byte, data []byte) (zcode.Bytes, error) {
 	builder.Reset()
 	columns := typ.Columns
 	col := 0
-	tsVal := zng.Value{}
 	if path != nil {
 		if columns[0].Name != "_path" {
-			return nil, zng.Value{}, errors.New("no _path in column 0")
+			return nil, errors.New("no _path in column 0")
 		}
 		builder.AppendPrimitive(path)
 		col++
@@ -97,17 +96,6 @@ func NewRawAndTsFromZeekTSV(builder *zcode.Builder, typ *zng.TypeRecord, path []
 			if err := appendVal(val, typ); err != nil {
 				return err
 			}
-			//XXX pulling out ts field should be done outside
-			// of this routine... this is severe bit rot
-			if columns[col].Name == "ts" {
-				zv, _ := zng.TypeTime.Parse(val) // error ok to ignore as we've already parsed this
-				_, err := zng.DecodeTime(zv)
-				if err != nil {
-					return err
-				}
-				tsVal = zng.Value{zng.TypeTime, zv}
-
-			}
 		}
 
 		if isRec {
@@ -126,20 +114,20 @@ func NewRawAndTsFromZeekTSV(builder *zcode.Builder, typ *zng.TypeRecord, path []
 		if c == separator {
 			err := handleVal(data[start:i])
 			if err != nil {
-				return nil, zng.Value{}, err
+				return nil, err
 			}
 			start = i + 1
 		}
 	}
 	err := handleVal(data[start:])
 	if err != nil {
-		return nil, zng.Value{}, err
+		return nil, err
 	}
 
 	if col != len(typ.Columns) {
-		return nil, zng.Value{}, errors.New("too few values")
+		return nil, errors.New("too few values")
 	}
-	return builder.Bytes(), tsVal, nil
+	return builder.Bytes(), nil
 }
 
 func NewRawAndTsFromZeekValues(typ *zng.TypeRecord, tsCol int, vals [][]byte) (zcode.Bytes, nano.Ts, error) {

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zcode"
 	"github.com/mccanne/zq/zng"
@@ -270,14 +269,9 @@ func (p *Parser) ParseValue(line []byte) (*zng.Record, error) {
 		// each time here
 		path = []byte(p.Path)
 	}
-	zv, tsVal, err := zbuf.NewRawAndTsFromZeekTSV(p.builder, p.descriptor, path, line)
+	zv, err := zbuf.NewRawFromZeekTSV(p.builder, p.descriptor, path, line)
 	if err != nil {
 		return nil, err
 	}
-	// XXX just pull the ts out of the field instead of doing all this arg passing
-	var ts nano.Ts
-	if _, ok := tsVal.Type.(*zng.TypeOfTime); ok {
-		ts, _ = zng.DecodeTime(tsVal.Bytes)
-	}
-	return zng.NewRecord(p.descriptor, ts, zv), nil
+	return zng.NewRecord(p.descriptor, zv)
 }

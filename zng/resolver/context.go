@@ -226,7 +226,7 @@ func (c *Context) AddColumns(r *zng.Record, newCols []zng.Column, vals []zng.Val
 		zv = val.Encode(zv)
 	}
 	typ := c.LookupTypeRecord(outCols)
-	return zng.NewRecordNoTs(typ, zv), nil
+	return zng.NewRecord(typ, zv)
 }
 
 // NewValue creates a Value with the given type and value described

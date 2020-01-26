@@ -89,7 +89,13 @@ func (c *Cut) cut(in *zng.Record) *zng.Record {
 		// XXX internal error, what to do...
 		return nil
 	}
-	return zng.NewRecordNoTs(typ, zv)
+
+	r, err := zng.NewRecord(typ, zv)
+	if err != nil {
+		// records with invalid ts shouldn't get here
+		return nil
+	}
+	return r
 }
 
 func (c *Cut) warn() {
