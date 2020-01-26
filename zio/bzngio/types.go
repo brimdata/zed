@@ -12,6 +12,7 @@
 package bzngio
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -33,26 +34,39 @@ type TypeFile struct {
 	nstored int
 }
 
-func NewTypeFile(path string) *TypeFile {
-	// start out dirty (nstored=-1) so that an empty table will be saved
-	// so that space introspection works... sheesh
+// NewTypeFile returns a new file-backed type context.  If the path indicated
+// does not exist, then a zero-length file is created for that path.  If the
+// path exists, then the file is parsed and loaded into this type context.
+func NewTypeFile(path string) (*TypeFile, error) {
+	zctx := resolver.NewContext()
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		f, err := os.Create(path)
+		if err != nil {
+			return nil, err
+		}
+		if err = f.Close(); err != nil {
+			return nil, err
+		}
+	} else {
+		if info.IsDir() {
+			return nil, fmt.Errorf("type file cannot be a directory: %s", path)
+		}
+		file, err := os.Open(path)
+		if err != nil {
+			return nil, err
+		}
+		if err = ReadTypeContext(file, zctx); err != nil {
+			return nil, err
+		}
+		if err = file.Close(); err != nil {
+			return nil, err
+		}
+	}
 	return &TypeFile{
-		Context: resolver.NewContext(),
+		Context: zctx,
 		path:    path,
-		nstored: -1,
-	}
-}
-
-func (t *TypeFile) Load() error {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	file, err := os.Open(t.path)
-	if err != nil {
-		return err
-	}
-	t.Context.Reset()
-	defer file.Close()
-	return ReadTypeContext(file, t.Context)
+	}, nil
 }
 
 // Save writes this context table to disk.
