@@ -1,7 +1,6 @@
 package resolver
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/mccanne/zq/pkg/nano"
@@ -42,20 +41,4 @@ func TestDuplicates(t *testing.T) {
 	typ3, err := ctx.LookupByName("set[int]")
 	require.NoError(t, err)
 	assert.Equal(t, setType.ID(), typ3.ID())
-}
-
-func TestContextMarshaling(t *testing.T) {
-	ctx := NewContext()
-	ctx.LookupByName("record[a:set[string],b:int]]")
-	ctx.LookupByName("record[a:vector[record[a:int,b:int]],b:int]]")
-	b, err := json.Marshal(ctx)
-	require.NoError(t, err)
-	var newCtx *Context
-	err = json.Unmarshal(b, &newCtx)
-	require.NoError(t, err)
-	r1, err := ctx.LookupByName("record[a:int,b:int]")
-	require.NoError(t, err)
-	r2, err := ctx.LookupByName("record[a:int,b:int]")
-	require.NoError(t, err)
-	assert.EqualValues(t, r1.ID(), r2.ID())
 }

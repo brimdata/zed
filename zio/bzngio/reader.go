@@ -51,7 +51,7 @@ func (r *Reader) Read() (*zng.Record, error) {
 func (r *Reader) ReadPayload() (*zng.Record, []byte, error) {
 again:
 	b, err := r.peeker.Read(1)
-	if err == io.EOF {
+	if err == io.EOF || len(b) == 0 {
 		return nil, nil, nil
 	}
 	code := b[0]

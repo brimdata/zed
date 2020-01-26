@@ -1,10 +1,8 @@
 package resolver
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -42,155 +40,25 @@ func NewContext() *Context {
 	return c
 }
 
-// Row is a structure used to organize the generic type table
-// into type-specific subcomponents by category name.
-type Alias struct {
-	Name string
-	Id   TypeCode
-}
-
-type TypeCode int
-type TypeDefCode int
-
-func (t TypeCode) MarshalJSON() ([]byte, error) {
-	var s string
-	if t < zng.IdTypeDef {
-		typ := zng.LookupPrimitiveById(int(t))
-		if typ == nil {
-			panic("bad typecode in context")
-		}
-		s = typ.String()
-	} else {
-		s = strconv.Itoa(int(t))
-	}
-	return json.Marshal(s)
-}
-
-func (t *TypeCode) UnmarshalJSON(b []byte) error {
-	var s string
-	if err := json.Unmarshal(b, &s); err != nil {
-		return err
-	}
-	var id int
-	typ := zng.LookupPrimitive(s)
-	if typ != nil {
-		id = typ.ID()
-	} else if typ == nil {
-		var err error
-		id, err = strconv.Atoi(s)
-		if err != nil {
-			return err
-		}
-	}
-	*t = TypeCode(id)
-	return nil
-}
-
-func (t TypeDefCode) MarshalJSON() ([]byte, error) {
-	var s string
-	switch t {
-	case zng.TypeDefRecord:
-		s = "TypeDefRecord"
-	case zng.TypeDefArray:
-		s = "TypeDefArray"
-	case zng.TypeDefSet:
-		s = "TypeDefSet"
-	case zng.TypeDefAlias:
-		s = "TypeDefAlias"
-	default:
-		return nil, fmt.Errorf("no such typedef code: 0x%02x", int(t))
-	}
-	return json.Marshal(s)
-}
-
-func (t *TypeDefCode) UnmarshalJSON(b []byte) error {
-	var s string
-	if err := json.Unmarshal(b, &s); err != nil {
-		return err
-	}
-	switch s {
-	case "TypeDefRecord":
-		*t = zng.TypeDefRecord
-	case "TypeDefArray":
-		*t = zng.TypeDefArray
-	case "TypeDefSet":
-		*t = zng.TypeDefSet
-	case "TypeDefAlias":
-		*t = zng.TypeDefAlias
-	default:
-		return fmt.Errorf("no such typedef name: %s", s)
-	}
-	return nil
-}
-
-// XXX for now, we marshal into this data structure to represent the entire
-// type table.  After we update the ZNG implementation to use typedefs, we
-// will write a context table as BZNG.
-type TypeDef struct {
-	Id      TypeCode
-	Code    TypeDefCode
-	Aliases []Alias
-}
-
-func setTypeDef(id int, t *zng.TypeSet) TypeDef {
-	return TypeDef{
-		Id:      TypeCode(id),
-		Code:    zng.TypeDefSet,
-		Aliases: []Alias{{"set", TypeCode(t.InnerType.ID())}},
-	}
-}
-
-func vectorTypeDef(id int, t *zng.TypeVector) TypeDef {
-	return TypeDef{
-		Id:      TypeCode(id),
-		Code:    zng.TypeDefArray,
-		Aliases: []Alias{{"array", TypeCode(t.Type.ID())}},
-	}
-}
-
-func recordTypeDef(id int, t *zng.TypeRecord) TypeDef {
-	var aliases []Alias
-	for _, col := range t.Columns {
-		aliases = append(aliases, Alias{col.Name, TypeCode(col.Type.ID())})
-	}
-	return TypeDef{
-		Id:      TypeCode(id),
-		Code:    zng.TypeDefRecord,
-		Aliases: aliases,
-	}
-}
-
-func (c *Context) newSetType(id int, aliases []Alias) (*zng.TypeSet, error) {
-	typ, err := c.lookupTypeWithLock(int(aliases[0].Id))
-	if err != nil {
-		return nil, err
-	}
-	return zng.NewTypeSet(id, typ), nil
-}
-
-func (c *Context) newVectorType(id int, aliases []Alias) (*zng.TypeVector, error) {
-	typ, err := c.lookupTypeWithLock(int(aliases[0].Id))
-	if err != nil {
-		return nil, err
-	}
-	return zng.NewTypeVector(id, typ), nil
-}
-
-func (c *Context) newRecordType(id int, aliases []Alias) (*zng.TypeRecord, error) {
-	var columns []zng.Column
-	for _, alias := range aliases {
-		innerID := alias.Id
-		typ, err := c.lookupTypeWithLock(int(innerID))
-		if err != nil {
-			return nil, err
-		}
-		columns = append(columns, zng.NewColumn(alias.Name, typ))
-	}
-	return zng.NewTypeRecord(id, columns), nil
-}
-
 func (c *Context) SetLogger(logger TypeLogger) {
 	c.logger = logger
+}
+
+func (c *Context) Reset() {
+	c.table = c.table[:zng.IdTypeDef]
+}
+
+func (c *Context) Len() int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return len(c.table)
+}
+
+func (c *Context) Serialize() ([]byte, int) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	b := serializeTypes(nil, c.table[zng.IdTypeDef:])
+	return b, len(c.table)
 }
 
 func (c *Context) LookupType(id int) (zng.Type, error) {
@@ -212,72 +80,6 @@ func (c *Context) lookupTypeWithLock(id int) (zng.Type, error) {
 		return typ, nil
 	}
 	return nil, fmt.Errorf("no type found for id %d", id)
-}
-
-func (c *Context) UnmarshalJSON(in []byte) error {
-	c.table = nil
-	var defs []TypeDef
-	// First time, unmarhshal to get the category names.
-	if err := json.Unmarshal(in, &defs); err != nil {
-		return err
-	}
-	maxid := 0
-	for _, def := range defs {
-		if maxid < int(def.Id) {
-			maxid = int(def.Id)
-		}
-	}
-	c.table = make([]zng.Type, maxid+1)
-	for _, def := range defs {
-		var err error
-		var typ zng.Type
-		id := def.Id
-		switch def.Code {
-		default:
-			return fmt.Errorf("unknown typedef code: 0x%02x", def.Code)
-		case zng.TypeDefRecord:
-			typ, err = c.newRecordType(int(id), def.Aliases)
-		case zng.TypeDefSet:
-			typ, err = c.newSetType(int(id), def.Aliases)
-		case zng.TypeDefArray:
-			typ, err = c.newVectorType(int(id), def.Aliases)
-		}
-		if err != nil {
-			return err
-		}
-		c.table[id] = typ
-	}
-	return nil
-}
-
-func (c *Context) marshalWithLock() ([]byte, error) {
-	var defs []TypeDef
-	n := len(c.table)
-	for id := 0; id < n; id++ {
-		typ := c.table[id]
-		if typ == nil {
-			continue
-		}
-		var def TypeDef
-		switch typ := typ.(type) {
-		case *zng.TypeRecord:
-			def = recordTypeDef(id, typ)
-		case *zng.TypeSet:
-			def = setTypeDef(id, typ)
-		case *zng.TypeVector:
-			def = vectorTypeDef(id, typ)
-		default:
-			return nil, fmt.Errorf("internal error: unknown type in context table: %T", typ)
-		}
-		defs = append(defs, def)
-	}
-	return json.MarshalIndent(defs, "", "\t")
-}
-
-func (c *Context) MarshalJSON() ([]byte, error) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	return c.marshalWithLock()
 }
 
 func (c *Context) Lookup(td int) *zng.TypeRecord {
