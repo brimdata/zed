@@ -13,14 +13,6 @@ type TypeRecord struct {
 	TsCol   int // -1 if no time-typed "ts" field
 }
 
-func CopyTypeRecord(id int, r *TypeRecord) *TypeRecord {
-	return &TypeRecord{
-		Columns: r.Columns,
-		LUT:     r.LUT,
-		TsCol:   r.TsCol,
-	}
-}
-
 func NewTypeRecord(id int, columns []Column) *TypeRecord {
 	r := &TypeRecord{
 		id:      id,
