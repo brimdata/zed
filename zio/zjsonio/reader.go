@@ -20,7 +20,8 @@ const (
 
 type Reader struct {
 	scanner *skim.Scanner
-	mapper  *resolver.Mapper
+	zctx    *resolver.Context
+	mapper  map[int]*zng.TypeRecord
 	builder *zcode.Builder
 }
 
@@ -28,7 +29,8 @@ func NewReader(reader io.Reader, zctx *resolver.Context) *Reader {
 	buffer := make([]byte, ReadSize)
 	return &Reader{
 		scanner: skim.NewScanner(reader, buffer, MaxLineSize),
-		mapper:  resolver.NewMapper(zctx),
+		zctx:    zctx,
+		mapper:  make(map[int]*zng.TypeRecord),
 		builder: zcode.NewBuilder(),
 	}
 }
@@ -52,31 +54,39 @@ func (r *Reader) Read() (*zng.Record, error) {
 	if err != nil {
 		return nil, e(err)
 	}
-	if v.Type != nil {
+	var recType *zng.TypeRecord
+	if v.Type == nil {
+		var ok bool
+		recType, ok = r.mapper[v.Id]
+		if !ok {
+			return nil, fmt.Errorf("undefined type ID: %d", v.Id)
+		}
+	} else {
 		typeName, err := decodeType(v.Type)
 		if err != nil {
 			return nil, err
 		}
-		_, err = r.mapper.EnterByName(v.Id, typeName)
+		typ, err := r.zctx.LookupByName(typeName)
 		if err != nil {
 			return nil, fmt.Errorf("unknown type: \"%s\"", typeName)
 		}
+		var ok bool
+		recType, ok = typ.(*zng.TypeRecord)
+		if !ok {
+			return nil, fmt.Errorf("type not a record: \"%s\"", typeName)
+		}
 	}
-	rec, err := r.parseValues(v.Id, v.Values)
+	rec, err := r.parseValues(recType, v.Values)
 	if err != nil {
 		return nil, e(err)
 	}
 	return rec, nil
 }
 
-func (r *Reader) parseValues(id int, v interface{}) (*zng.Record, error) {
+func (r *Reader) parseValues(typ *zng.TypeRecord, v interface{}) (*zng.Record, error) {
 	values, ok := v.([]interface{})
 	if !ok {
 		return nil, errors.New("zjson record object must be an array")
-	}
-	typ := r.mapper.Map(id)
-	if typ == nil {
-		return nil, zng.ErrDescriptorInvalid
 	}
 	// reset the builder and decode the body into the builder intermediate
 	// zng representation
