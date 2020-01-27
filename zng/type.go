@@ -51,6 +51,7 @@ var (
 	TypeTime     = &TypeOfTime{}
 	TypeInterval = &TypeOfInterval{}
 	TypeString   = &TypeOfString{}
+	TypeBstring  = &TypeOfBstring{}
 	TypePort     = &TypeOfPort{}
 	TypeAddr     = &TypeOfAddr{}
 	TypeSubnet   = &TypeOfSubnet{}
@@ -105,6 +106,8 @@ func LookupPrimitive(name string) Type {
 		return TypeInterval
 	case "string":
 		return TypeString
+	case "bstring":
+		return TypeBstring
 	case "port":
 		return TypePort
 	case "addr":
@@ -133,8 +136,10 @@ func LookupPrimitiveById(id int) Type {
 		return TypeTime
 	case IdDuration:
 		return TypeInterval
-	case IdBstring:
+	case IdString:
 		return TypeString
+	case IdBstring:
+		return TypeBstring
 	case IdPort:
 		return TypePort
 	case IdIP:

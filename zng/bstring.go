@@ -5,37 +5,37 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
-type TypeOfString struct{}
+type TypeOfBstring struct{}
 
-func NewString(s string) Value {
-	return Value{TypeString, EncodeString(s)}
+func NewBstring(s string) Value {
+	return Value{TypeString, EncodeBstring(s)}
 }
 
-func EncodeString(s string) zcode.Bytes {
+func EncodeBstring(s string) zcode.Bytes {
 	return zcode.Bytes(s)
 }
 
-func DecodeString(zv zcode.Bytes) (string, error) {
+func DecodeBstring(zv zcode.Bytes) (string, error) {
 	if zv == nil {
 		return "", ErrUnset
 	}
 	return string(zv), nil
 }
 
-func (t *TypeOfString) Parse(in []byte) (zcode.Bytes, error) {
+func (t *TypeOfBstring) Parse(in []byte) (zcode.Bytes, error) {
 	normalized := norm.NFC.Bytes(Unescape(in))
 	return normalized, nil
 }
 
-func (t *TypeOfString) ID() int {
-	return IdString
+func (t *TypeOfBstring) ID() int {
+	return IdBstring
 }
 
-func (t *TypeOfString) String() string {
-	return "string"
+func (t *TypeOfBstring) String() string {
+	return "bstring"
 }
 
-func (t *TypeOfString) StringOf(zv zcode.Bytes) string {
+func (t *TypeOfBstring) StringOf(zv zcode.Bytes) string {
 	//XXX we need to rework this to conform with ZNG spec.
 	// for now, we are leaving binary data in the string here
 	// and leaving it up to the caller to escape as desired.
@@ -45,7 +45,7 @@ func (t *TypeOfString) StringOf(zv zcode.Bytes) string {
 	return string(zv)
 }
 
-func (t *TypeOfString) Marshal(zv zcode.Bytes) (interface{}, error) {
+func (t *TypeOfBstring) Marshal(zv zcode.Bytes) (interface{}, error) {
 	// XXX this should be done by ZNG bstring, not string
 	return EscapeUTF8(zv), nil
 }
