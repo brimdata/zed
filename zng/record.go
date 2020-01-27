@@ -10,7 +10,7 @@ type TypeRecord struct {
 	id      int
 	Columns []Column
 	LUT     map[string]int
-	TsCol   int
+	TsCol   int // -1 if no time-typed "ts" field
 }
 
 func CopyTypeRecord(id int, r *TypeRecord) *TypeRecord {

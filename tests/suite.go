@@ -11,6 +11,7 @@ import (
 	"github.com/mccanne/zq/tests/suite/input"
 	"github.com/mccanne/zq/tests/suite/regexp"
 	"github.com/mccanne/zq/tests/suite/sort"
+	"github.com/mccanne/zq/tests/suite/time"
 	"github.com/mccanne/zq/tests/suite/utf8"
 )
 
@@ -44,6 +45,7 @@ var internals = []test.Internal{
 	sort.Internal4_2,
 	sort.Internal4_3,
 	sort.Internal4_4,
+	time.Internal,
 }
 
 var commands = []test.Exec{
