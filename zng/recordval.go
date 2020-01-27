@@ -62,7 +62,7 @@ func NewRecordTs(typ *TypeRecord, ts nano.Ts, raw zcode.Bytes) *Record {
 
 func NewRecord(typ *TypeRecord, zv zcode.Bytes) (*Record, error) {
 	r := NewRecordTs(typ, 0, zv)
-	if typ.TsCol == 0 {
+	if typ.TsCol < 0 {
 		return r, nil
 	}
 	body, err := r.Slice(typ.TsCol)
