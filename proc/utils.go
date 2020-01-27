@@ -251,16 +251,32 @@ func TestOneProcWithWarnings(t *testing.T, zngin, zngout string, warnings []stri
 }
 
 // TestOneProc runs one test of a proc by compiling cmd as a proc, then
-// Parsing zngin, running the resulting records through the proc, and
-// finally asserting that the output matches zngout.
-func TestOneProc(t *testing.T, zngin, zngout string, cmd string) {
+// parsing zngin, running the resulting records through the proc, and
+// finally asserting that the output matches zngout.  Zngin may be a
+// string or a []string; for a []string, each string specifies a
+// separate zbuf.Batch for (*TestSource).Pull to return.
+func TestOneProc(t *testing.T, zngin interface{}, zngout string, cmd string) {
+	var zngins []string
+	switch zngin := zngin.(type) {
+	case string:
+		zngins = []string{zngin}
+	case []string:
+		zngins = zngin
+	default:
+		t.Fatalf("zngin is %T, expected string or []string", zngin)
+	}
+
 	resolver := resolver.NewContext()
-	recsin, err := parse(resolver, zngin)
-	require.NoError(t, err)
+	var recsin []zbuf.Batch
+	for _, zngin := range zngins {
+		recs, err := parse(resolver, zngin)
+		require.NoError(t, err)
+		recsin = append(recsin, recs)
+	}
 	recsout, err := parse(resolver, zngout)
 	require.NoError(t, err)
 
-	test, err := NewProcTestFromSource(cmd, resolver, []zbuf.Batch{recsin})
+	test, err := NewProcTestFromSource(cmd, resolver, recsin)
 	require.NoError(t, err)
 
 	result, err := test.Pull()

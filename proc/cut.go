@@ -113,28 +113,27 @@ func (c *Cut) warn() {
 }
 
 func (c *Cut) Pull() (zbuf.Batch, error) {
-	batch, err := c.Get()
-	if EOS(batch, err) {
-		c.warn()
-		return nil, err
-	}
-	defer batch.Unref()
-	//
-	// Make new records with only the fields specified.
-	// If a field specified doesn't exist, we don't include that record.
-	// if the types change for the fields specified, we drop those records.
-	//
-	recs := make([]*zng.Record, 0, batch.Length())
-	for k := 0; k < batch.Length(); k++ {
-		in := batch.Index(k)
-		out := c.cut(in)
-		if out != nil {
-			recs = append(recs, out)
+	for {
+		batch, err := c.Get()
+		if EOS(batch, err) {
+			c.warn()
+			return nil, err
+		}
+		// Make new records with only the fields specified.
+		// If a field specified doesn't exist, we don't include that record.
+		// If the types change for the fields specified, we drop those records.
+		recs := make([]*zng.Record, 0, batch.Length())
+		for k := 0; k < batch.Length(); k++ {
+			in := batch.Index(k)
+			out := c.cut(in)
+			if out != nil {
+				recs = append(recs, out)
+			}
+		}
+		span := batch.Span()
+		batch.Unref()
+		if len(recs) > 0 {
+			return zbuf.NewArray(recs, span), nil
 		}
 	}
-	if len(recs) == 0 {
-		c.warn()
-		return nil, nil
-	}
-	return zbuf.NewArray(recs, batch.Span()), nil
 }
