@@ -198,6 +198,6 @@ func (r *Reader) parseValue(line []byte) (*zng.Record, error) {
 	if err == nil {
 		record.Ts = ts
 	}
-	// Ignore errors, it just means the point doesn't have a ts field
+	// Ignore errors, it just means the point doesn't have a time-typed ts field
 	return record, nil
 }
