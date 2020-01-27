@@ -1,2 +1,2 @@
-#0:record[_path:string,foo:string]
+#0:record[_path:bstring,foo:bstring]
 0:[notconn;yes;]
