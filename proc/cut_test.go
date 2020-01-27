@@ -49,8 +49,10 @@ func TestCut(t *testing.T) {
 	// records have field "foo".
 	proc.TestOneProc(t, fooOnly+barOnly, fooOnly, "cut foo")
 	proc.TestOneProc(t, barOnly+fooOnly, fooOnly, "cut foo")
-	proc.TestOneProc(t, []string{fooOnly, barOnly}, fooOnly, "cut foo")
-	proc.TestOneProc(t, []string{barOnly, fooOnly}, fooOnly, "cut foo")
+
+	// same but with separate batches
+	proc.TestOneProcWithBatches(t, "cut foo", fooOnly, barOnly, fooOnly)
+	proc.TestOneProcWithBatches(t, "cut foo", barOnly, fooOnly, fooOnly)
 
 	// test cut on multiple fields.
 	proc.TestOneProc(t, fooAndBar, fooAndBar, "cut foo,bar")

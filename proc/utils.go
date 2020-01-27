@@ -251,32 +251,28 @@ func TestOneProcWithWarnings(t *testing.T, zngin, zngout string, warnings []stri
 }
 
 // TestOneProc runs one test of a proc by compiling cmd as a proc, then
-// parsing zngin, running the resulting records through the proc, and
-// finally asserting that the output matches zngout.  Zngin may be a
-// string or a []string; for a []string, each string specifies a
-// separate zbuf.Batch for (*TestSource).Pull to return.
-func TestOneProc(t *testing.T, zngin interface{}, zngout string, cmd string) {
-	var zngins []string
-	switch zngin := zngin.(type) {
-	case string:
-		zngins = []string{zngin}
-	case []string:
-		zngins = zngin
-	default:
-		t.Fatalf("zngin is %T, expected string or []string", zngin)
-	}
+// Parsing zngin, running the resulting records through the proc, and
+// finally asserting that the output matches zngout.
+func TestOneProc(t *testing.T, zngin, zngout string, cmd string) {
+	TestOneProcWithBatches(t, cmd, zngin, zngout)
+}
 
+// TestOneProcWithBatches runs one test of a proc by compiling cmd as a
+// proc, parsing each element of zngs into a batch of records, running
+// all but the last batch through the proc, and finally asserting that
+// the output matches the last batch.
+func TestOneProcWithBatches(t *testing.T, cmd string, zngs ...string) {
 	resolver := resolver.NewContext()
-	var recsin []zbuf.Batch
-	for _, zngin := range zngins {
-		recs, err := parse(resolver, zngin)
-		require.NoError(t, err)
-		recsin = append(recsin, recs)
+	var batches []zbuf.Batch
+	for _, s := range zngs {
+		b, err := parse(resolver, s)
+		require.NoError(t, err, s)
+		batches = append(batches, b)
 	}
-	recsout, err := parse(resolver, zngout)
-	require.NoError(t, err)
+	batchesin := batches[:len(batches)-1]
+	batchout := batches[len(batches)-1]
 
-	test, err := NewProcTestFromSource(cmd, resolver, recsin)
+	test, err := NewProcTestFromSource(cmd, resolver, batchesin)
 	require.NoError(t, err)
 
 	result, err := test.Pull()
@@ -284,9 +280,9 @@ func TestOneProc(t *testing.T, zngin interface{}, zngout string, cmd string) {
 	require.NoError(t, test.ExpectEOS())
 	require.NoError(t, test.Finish())
 
-	require.Equal(t, recsout.Length(), result.Length(), "Got correct number of output records")
+	require.Equal(t, batchout.Length(), result.Length(), "Got correct number of output records")
 	for i := 0; i < result.Length(); i++ {
-		r1 := recsout.Index(i)
+		r1 := batchout.Index(i)
 		r2 := result.Index(i)
 		// XXX could print something a lot pretter if/when this fails.
 		require.Equalf(t, r2.Raw, r1.Raw, "Expected record %d to match", i)
