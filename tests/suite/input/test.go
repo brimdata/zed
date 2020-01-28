@@ -39,7 +39,7 @@ co\\m
 `
 
 const backslashExpected = `
-#0:record[_path:string,my_str:string]
+#0:record[_path:string,my_str:bstring]
 0:[Backslash;co\\m;]
 `
 

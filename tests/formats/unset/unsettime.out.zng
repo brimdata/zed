@@ -1,2 +1,2 @@
-#0:record[_path:string,ts:time,uid:string]
+#0:record[_path:string,ts:time,uid:bstring]
 0:[p;-;e3ad37edfdf;]

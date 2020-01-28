@@ -52,6 +52,21 @@ func badfield(field string) error {
 	return fmt.Errorf("encountered bad header field %s parsing zeek log", field)
 }
 
+func zeekTypeToZng(typ string) string {
+	// As zng types diverge from zeek types, we'll probably want to
+	// re-do this but lets keep it simple for now.
+	switch typ {
+	case "string":
+		return "bstring"
+	case "set[string]":
+		return "set[bstring]"
+	case "vector[string]":
+		return "vector[bstring]"
+	default:
+		return typ
+	}
+}
+
 func (p *Parser) parseFields(fields []string) error {
 	if len(p.columns) != len(fields) {
 		p.columns = make([]zng.Column, len(fields))
@@ -72,7 +87,7 @@ func (p *Parser) parseTypes(types []string) error {
 		p.needfields = true
 	}
 	for k, name := range types {
-		typ, err := p.zctx.LookupByName(name)
+		typ, err := p.zctx.LookupByName(zeekTypeToZng(name))
 		if err != nil {
 			return err
 		}
