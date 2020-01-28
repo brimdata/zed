@@ -201,14 +201,12 @@ func CoerceToTime(in zng.Value) (nano.Ts, bool) {
 }
 
 func CoerceToString(in zng.Value) (string, bool) {
-	var s string
 	switch in.Type.(type) {
 	default:
 		return "", false
 	case *zng.TypeOfString, *zng.TypeOfBstring, *zng.TypeOfEnum:
-		s = string(in.Bytes)
+		return string(in.Bytes), true
 	}
-	return s, true
 }
 
 // TBD
