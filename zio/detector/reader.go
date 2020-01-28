@@ -38,6 +38,6 @@ func NewReader(r io.Reader, zctx *resolver.Context) (zbuf.Reader, error) {
 }
 
 func match(r zbuf.Reader) bool {
-	rec, err := r.Read()
-	return rec != nil && err == nil
+	_, err := r.Read()
+	return err == nil
 }
