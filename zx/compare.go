@@ -260,7 +260,7 @@ func CompareBstring(op string, pattern zng.Bstring) (Predicate, error) {
 	s := string(pattern)
 	return func(v zng.Value) bool {
 		switch v.Type.(type) {
-		case *zng.TypeOfString, *zng.TypeOfEnum:
+		case *zng.TypeOfBstring, *zng.TypeOfString, *zng.TypeOfEnum:
 			//XXX is this UTF safe?
 			return compare(zng.UnsafeString(v.Bytes), s)
 		}
