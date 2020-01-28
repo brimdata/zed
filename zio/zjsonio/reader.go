@@ -1,6 +1,7 @@
 package zjsonio
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -48,7 +49,7 @@ func (r *Reader) Read() (*zng.Record, error) {
 		return nil, e(err)
 	}
 	// remove newline
-	line = line[:len(line)-1]
+	line = bytes.TrimSpace(line)
 	var v Record
 	err = json.Unmarshal(line, &v)
 	if err != nil {
