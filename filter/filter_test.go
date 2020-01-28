@@ -68,6 +68,7 @@ const zngsrc = `
 #9:record[s:string]
 #10:record[ts:time,ts2:time,ts3:time]
 #11:record[s:string,srec:record[svec:vector[string]]]
+#12:record[s:bstring]
 0:[[abc;xyz;]]
 1:[[abc;xyz;]]
 1:[[a\;b;xyz;]]
@@ -83,6 +84,7 @@ const zngsrc = `
 11:[hello;[[world;worldz;1.1.1.1;]]]
 9:[Buenos di\xcc\x81as sen\xcc\x83or;]
 9:[Buenos d\xc3\xadas se\xc3\xb1or;]
+12:[hello;]
 `
 
 func TestFilters(t *testing.T) {
@@ -91,7 +93,7 @@ func TestFilters(t *testing.T) {
 	ior := strings.NewReader(zngsrc)
 	reader := detector.LookupReader("zng", ior, resolver.NewContext())
 
-	nrecords := 15
+	nrecords := 16
 	records := make([]*zng.Record, 0, nrecords)
 	for {
 		rec, err := reader.Read()
@@ -185,6 +187,9 @@ func TestFilters(t *testing.T) {
 		{`s = "Buenos d\u{ed}as se\u{f1}or"`, records[13], true},
 		{`s = "Buenos di\u{0301}as sen\u{0303}or"`, records[14], true},
 		{`s = "Buenos d\u{ed}as se\u{f1}or"`, records[14], true},
+
+		// Test coercion between string/bstring
+		{"s = hello", records[15], true},
 	}
 
 	for _, tt := range tests {
