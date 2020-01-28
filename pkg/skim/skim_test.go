@@ -49,3 +49,25 @@ func TestSkim(t *testing.T) {
 	}
 	require.Len(t, lines, len(expected))
 }
+
+func TestSkimNoNewLine(t *testing.T) {
+	data := []byte("line1\nline2")
+	buf := make([]byte, ReadSize)
+	scanner := skim.NewScanner(bytes.NewReader(data), buf, MaxLineSize)
+	line, err := scanner.ScanLine()
+	if err != nil {
+		t.Fatal(err)
+	}
+	require.Equal(t, "line1\n", string(line))
+
+	line, err = scanner.ScanLine()
+	if err != nil {
+		t.Fatal(err)
+	}
+	require.Equal(t, "line2", string(line))
+	line, err = scanner.ScanLine()
+	if err != nil {
+		t.Fatal(err)
+	}
+	require.Equal(t, []byte(nil), line)
+}
