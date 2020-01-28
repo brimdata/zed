@@ -5,8 +5,8 @@ import (
 )
 
 var Exec = test.Exec{
-	Name:     "error upstream",
-	Command:  `zat simple.zng | zq -`,
+	Name:     "empty input",
+	Command:  `echo "" | zq -`,
 	Input:    test.Trim(input),
 	Expected: "",
 }
