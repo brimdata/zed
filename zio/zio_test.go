@@ -83,7 +83,7 @@ func TestZngDescriptors(t *testing.T) {
 	// Can't use a descriptor of non-record type
 	r = zngio.NewReader(strings.NewReader("#3:string\n"), resolver.NewContext())
 	_, err = r.Read()
-	assertError(t, err, "malformed zng value", "descriptor with non-record type")
+	assertError(t, err, "not a record", "descriptor with non-record type")
 
 	// Descriptor with an invalid type is rejected
 	r = zngio.NewReader(strings.NewReader("#4:notatype\n"), resolver.NewContext())

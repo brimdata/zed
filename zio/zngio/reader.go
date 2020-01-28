@@ -136,11 +136,11 @@ func (r *Reader) parseDescriptor(line []byte) error {
 	}
 	typ, err := r.zctx.LookupByName(string(rest))
 	if err != nil {
-		return ErrBadFormat
+		return fmt.Errorf("unknown type parsing: \"%s\"", string(rest))
 	}
 	recType, ok := typ.(*zng.TypeRecord)
 	if !ok {
-		return fmt.Errorf("zng typedef a record: %s...", string(rest))
+		return fmt.Errorf("zng typedef not a record while parsing: \"%s\"", string(rest))
 	}
 	r.mapper[id] = recType
 	return nil
