@@ -118,17 +118,17 @@ func (s *Scanner) Peek() byte {
 	return s.window[0]
 }
 
-// Scan returns the next line of input as a byte slice or nil and
-// an error indicating the state of things.  The newline terminating
-// the line is returned in the slice.  When a line is encountered
-// that is larger than the max line size, then the partial line is
-// returned along with ErrLineTooLong.  In this case, Scan can be
-// subsequently called for the rest of the line, possibly with another
-// line too long error, and so on.  Skip can also be called to
-// easily skip over the rest of the line.  At EOF, nil is returned.
-// XXX If Scan is called directly instead of ScanLine, then Stats are
-// not properly tracked.
-// for the slice and io.EOF for the error.
+// Scan returns the next line of input as a byte slice or nil and an
+// error indicating the state of things.  The newline terminating the
+// line is returned in the slice, except in the case of a final line
+// without a newline.  When a line is encountered that is larger than
+// the max line size, then the partial line is returned along with
+// ErrLineTooLong.  In this case, Scan can be subsequently called for
+// the rest of the line, possibly with another line too long error,
+// and so on.  Skip can also be called to easily skip over the rest of
+// the line.  At EOF, nil is returned.  XXX If Scan is called directly
+// instead of ScanLine, then Stats are not properly tracked.  for the
+// slice and io.EOF for the error.
 func (s *Scanner) Scan() ([]byte, error) {
 	if err := s.check(); err != nil {
 		return nil, err
