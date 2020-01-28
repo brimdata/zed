@@ -19,15 +19,13 @@ const (
 
 type Reader struct {
 	peeker *peeker.Reader
-	mapper *resolver.Mapper
 	zctx   *resolver.Context
 }
 
 func NewReader(reader io.Reader, zctx *resolver.Context) *Reader {
 	return &Reader{
 		peeker: peeker.NewReader(reader, ReadSize, MaxSize),
-		mapper: resolver.NewMapper(zctx),
-		zctx:   resolver.NewContext(),
+		zctx:   zctx,
 	}
 }
 
@@ -58,11 +56,7 @@ again:
 	if code&0x80 != 0 {
 		switch code {
 		case zng.TypeDefRecord:
-			var typ *zng.TypeRecord
-			typ, err = r.readTypeRecord()
-			if err == nil {
-				r.mapper.Enter(typ.ID(), typ)
-			}
+			err = r.readTypeRecord()
 		case zng.TypeDefSet:
 			err = r.readTypeSet()
 		case zng.TypeDefArray:
@@ -143,23 +137,24 @@ func (r *Reader) readColumn() (zng.Column, error) {
 	return zng.NewColumn(name, typ), nil
 }
 
-func (r *Reader) readTypeRecord() (*zng.TypeRecord, error) {
+func (r *Reader) readTypeRecord() error {
 	ncol, err := r.readUvarint()
 	if err != nil {
-		return nil, zng.ErrBadFormat
+		return zng.ErrBadFormat
 	}
 	if ncol == 0 {
-		return nil, errors.New("type record: zero columns not allowed")
+		return errors.New("type record: zero columns not allowed")
 	}
 	var columns []zng.Column
 	for k := 0; k < int(ncol); k++ {
 		col, err := r.readColumn()
 		if err != nil {
-			return nil, err
+			return err
 		}
 		columns = append(columns, col)
 	}
-	return r.zctx.LookupTypeRecord(columns), nil
+	r.zctx.LookupTypeRecord(columns)
+	return nil
 }
 
 func (r *Reader) readTypeSet() error {
@@ -196,7 +191,7 @@ func (r *Reader) readTypeVector() error {
 }
 
 func (r *Reader) parseValue(id int, b []byte) (*zng.Record, error) {
-	typ := r.mapper.Map(id)
+	typ := r.zctx.Lookup(id)
 	if typ == nil {
 		return nil, zng.ErrDescriptorInvalid
 	}

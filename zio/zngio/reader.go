@@ -47,7 +47,8 @@ type Reader struct {
 	scanner   *skim.Scanner
 	zeek      *zeekio.Parser
 	stats     ReadStats
-	mapper    *resolver.Mapper
+	zctx      *resolver.Context
+	mapper    map[int]*zng.TypeRecord
 	legacyVal bool
 	parser    *zbuf.Parser
 }
@@ -59,7 +60,8 @@ func NewReader(reader io.Reader, zctx *resolver.Context) *Reader {
 		scanner: scanner,
 		stats:   ReadStats{Stats: &scanner.Stats},
 		zeek:    zeekio.NewParser(zctx),
-		mapper:  resolver.NewMapper(zctx),
+		zctx:    zctx,
+		mapper:  make(map[int]*zng.TypeRecord),
 		parser:  zbuf.NewParser(),
 	}
 }
@@ -128,12 +130,20 @@ func (r *Reader) parseDescriptor(line []byte) error {
 	if err != nil {
 		return err
 	}
-	if r.mapper.Map(id) != nil {
+	if _, ok := r.mapper[id]; ok {
 		//XXX this should be ok... decide on this and update spec
 		return ErrDescriptorExists
 	}
-	_, err = r.mapper.EnterByName(id, string(rest))
-	return err
+	typ, err := r.zctx.LookupByName(string(rest))
+	if err != nil {
+		return err
+	}
+	recType, ok := typ.(*zng.TypeRecord)
+	if !ok {
+		return fmt.Errorf("zng typedef not a record while parsing: \"%s\"", string(rest))
+	}
+	r.mapper[id] = recType
+	return nil
 }
 
 func (r *Reader) parseDirective(line []byte) ([]byte, error) {
@@ -180,17 +190,17 @@ func (r *Reader) parseValue(line []byte) (*zng.Record, error) {
 		return nil, err
 	}
 
-	descriptor := r.mapper.Map(id)
-	if descriptor == nil {
+	typ, ok := r.mapper[id]
+	if !ok {
 		return nil, ErrInvalidDesc
 	}
 
-	raw, err := r.parser.Parse(descriptor, rest)
+	raw, err := r.parser.Parse(typ, rest)
 	if err != nil {
 		return nil, err
 	}
 
-	record, err := zng.NewRecordCheck(descriptor, nano.MinTs, raw)
+	record, err := zng.NewRecordCheck(typ, nano.MinTs, raw)
 	if err != nil {
 		return nil, err
 	}
