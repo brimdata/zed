@@ -190,6 +190,10 @@ func TestFilters(t *testing.T) {
 
 		// Test coercion between string/bstring
 		{"s = hello", records[15], true},
+
+		// Smoke test for globs...
+		{"s = hell*", records[15], true},
+		{"s = ell*", records[15], false},
 	}
 
 	for _, tt := range tests {

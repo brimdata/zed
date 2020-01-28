@@ -282,7 +282,7 @@ func CompareRegexp(op, pattern string) (Predicate, error) {
 	case "eql":
 		return func(v zng.Value) bool {
 			switch v.Type.(type) {
-			case *zng.TypeOfString, *zng.TypeOfEnum:
+			case *zng.TypeOfString, *zng.TypeOfBstring, *zng.TypeOfEnum:
 				return re.Match(v.Bytes)
 			}
 			return false
@@ -290,7 +290,7 @@ func CompareRegexp(op, pattern string) (Predicate, error) {
 	case "neql":
 		return func(v zng.Value) bool {
 			switch v.Type.(type) {
-			case *zng.TypeOfString, *zng.TypeOfEnum:
+			case *zng.TypeOfString, *zng.TypeOfBstring, *zng.TypeOfEnum:
 				return !re.Match(v.Bytes)
 			}
 			return false
