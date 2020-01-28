@@ -311,10 +311,12 @@ func (r *Record) AccessString(field string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if _, ok := v.Type.(*TypeOfString); !ok {
+	switch v.Type.(type) {
+	case *TypeOfString, *TypeOfBstring:
+		return DecodeString(v.Bytes)
+	default:
 		return "", ErrTypeMismatch
 	}
-	return DecodeString(v.Bytes)
 }
 
 func (r *Record) AccessBool(field string) (bool, error) {
