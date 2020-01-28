@@ -35,6 +35,9 @@ func (a *Avg) Consume(r *zng.Record) {
 		a.FieldNotFound++
 		return
 	}
+	if v.Bytes == nil {
+		return
+	}
 	d, ok := zx.CoerceToDouble(v)
 	if !ok {
 		a.TypeMismatch++
@@ -45,9 +48,8 @@ func (a *Avg) Consume(r *zng.Record) {
 }
 
 func (a *Avg) Result() zng.Value {
-	var v float64
 	if a.count > 0 {
-		v = a.sum / float64(a.count)
+		return zng.NewDouble(a.sum / float64(a.count))
 	}
-	return zng.NewDouble(v)
+	return zng.Value{Type: zng.TypeDouble}
 }

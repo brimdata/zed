@@ -9,6 +9,7 @@ import (
 	"github.com/mccanne/zq/tests/suite/filter"
 	"github.com/mccanne/zq/tests/suite/format"
 	"github.com/mccanne/zq/tests/suite/input"
+	"github.com/mccanne/zq/tests/suite/reducer"
 	"github.com/mccanne/zq/tests/suite/regexp"
 	"github.com/mccanne/zq/tests/suite/sort"
 	"github.com/mccanne/zq/tests/suite/time"
@@ -38,6 +39,14 @@ var internals = []test.Internal{
 	filter.UnescapedAsterisk,
 	filter.NullWithNonexistentField,
 	filter.NullWithUnsetField,
+	reducer.UnsetAvg,
+	reducer.UnsetCountDistinct,
+	reducer.UnsetCount,
+	reducer.UnsetFirst,
+	reducer.UnsetLast,
+	reducer.UnsetMax,
+	reducer.UnsetMin,
+	reducer.UnsetSum,
 	sort.Internal1,
 	sort.Internal2,
 	sort.Internal3,

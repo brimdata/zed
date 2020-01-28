@@ -106,7 +106,7 @@ const nullIn = `
 const nullOut = `
 #0:record[key:string,sum:int]
 0:[key1;5;]
-0:[key2;0;]
+0:[key2;-;]
 `
 
 const notPresentIn = `
