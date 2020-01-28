@@ -48,6 +48,11 @@ func TestCut(t *testing.T) {
 	// Note there is no warning in this case since some of the input
 	// records have field "foo".
 	proc.TestOneProc(t, fooOnly+barOnly, fooOnly, "cut foo")
+	proc.TestOneProc(t, barOnly+fooOnly, fooOnly, "cut foo")
+
+	// same but with separate batches
+	proc.TestOneProcWithBatches(t, "cut foo", fooOnly, barOnly, fooOnly)
+	proc.TestOneProcWithBatches(t, "cut foo", barOnly, fooOnly, fooOnly)
 
 	// test cut on multiple fields.
 	proc.TestOneProc(t, fooAndBar, fooAndBar, "cut foo,bar")
