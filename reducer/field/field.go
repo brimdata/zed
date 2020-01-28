@@ -58,7 +58,9 @@ func (fr *FieldReducer) Consume(r *zng.Record) {
 		fr.FieldNotFound++
 		return
 	}
-
+	if val.Bytes == nil {
+		return
+	}
 	if fr.fn == nil {
 		switch val.Type.(type) {
 		case *zng.TypeOfInt:
@@ -76,9 +78,7 @@ func (fr *FieldReducer) Consume(r *zng.Record) {
 			return
 		}
 	}
-
-	err = fr.fn.Consume(val)
-	if err == zng.ErrTypeMismatch {
+	if fr.fn.Consume(val) == zng.ErrTypeMismatch {
 		fr.TypeMismatch++
 	}
 }
