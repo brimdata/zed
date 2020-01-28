@@ -6,12 +6,7 @@ import (
 
 var Exec = test.Exec{
 	Name:     "empty input",
-	Command:  `echo "" | zq -`,
-	Input:    test.Trim(input),
+	Command:  `zq -`,
+	Input:    "",
 	Expected: "",
 }
-
-const input = `
-#0:record[_path:string,ts:time]
-0:[conn;1425565514.419939;]
-`
