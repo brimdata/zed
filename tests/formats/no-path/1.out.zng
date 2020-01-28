@@ -1,5 +1,5 @@
 #0:record[foo:bstring]
-0:[\xf0\x9f\x98\x81;]
+0:[😁;]
 #1:record[_path:string,foo:bstring]
-1:[magic;\xf0\x9f\x98\x81;]
-0:[\xf0\x9f\x98\x81;]
+1:[magic;😁;]
+0:[😁;]

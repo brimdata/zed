@@ -20,15 +20,21 @@ type Writer struct {
 	flattener *Flattener
 	typ       *zng.TypeRecord
 	precision int
-	zio.Flags
+	format    zng.OutFmt
 }
 
 func NewWriter(w io.Writer, flags zio.Flags) *Writer {
+	var format zng.OutFmt
+	if flags.UTF8 {
+		format = zng.OUT_FORMAT_ZEEK
+	} else {
+		format = zng.OUT_FORMAT_ZEEK_ASCII
+	}
 	return &Writer{
 		Writer:    w,
 		flattener: NewFlattener(resolver.NewContext()),
 		precision: 6,
-		Flags:     flags,
+		format:    format,
 	}
 }
 
@@ -42,7 +48,7 @@ func (w *Writer) Write(r *zng.Record) error {
 		w.writeHeader(r, path)
 		w.typ = r.Type
 	}
-	values, changePrecision, err := zbuf.ZeekStrings(r, w.precision, w.UTF8)
+	values, changePrecision, err := zbuf.ZeekStrings(r, w.precision, w.format)
 	if err != nil {
 		return err
 	}

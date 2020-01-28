@@ -19,14 +19,22 @@ type Text struct {
 	zio.Flags
 	flattener *zeekio.Flattener
 	precision int
+	format    zng.OutFmt
 }
 
 func NewWriter(w io.Writer, flags zio.Flags) *Text {
+	var format zng.OutFmt
+	if flags.UTF8 {
+		format = zng.OUT_FORMAT_ZEEK
+	} else {
+		format = zng.OUT_FORMAT_ZEEK_ASCII
+	}
 	return &Text{
 		Writer:    w,
+		Flags:     flags,
 		flattener: zeekio.NewFlattener(resolver.NewContext()),
 		precision: 6,
-		Flags:     flags,
+		format:    format,
 	}
 }
 
@@ -51,8 +59,7 @@ func (t *Text) Write(rec *zng.Record) error {
 					v = nano.Ts(ts).Time().UTC().Format(time.RFC3339Nano)
 				}
 			} else {
-				//XXX this should take value or be a value method
-				v = zbuf.ZvalToZeekString(value.Type, value.Bytes, t.UTF8)
+				v = value.FormatAs(t.format)
 			}
 			if t.ShowFields {
 				s = col.Name + ":"
@@ -65,7 +72,7 @@ func (t *Text) Write(rec *zng.Record) error {
 	} else {
 		var err error
 		var changePrecision bool
-		out, changePrecision, err = zbuf.ZeekStrings(rec, t.precision, t.UTF8)
+		out, changePrecision, err = zbuf.ZeekStrings(rec, t.precision, t.format)
 		if err != nil {
 			return err
 		}

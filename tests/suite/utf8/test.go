@@ -12,7 +12,7 @@ var Exec = test.Exec{
 }
 
 const in1 = `
-#0:record[_path:string,foo:string]
+#0:record[_path:string,foo:bstring]
 0:[;\xf0\x9f\x98\x81;]
 0:[magic;\xf0\x9f\x98\x81;]
 0:[;foo\xf0\x9f\x98\x81bar\x00\x01baz;]

@@ -35,7 +35,7 @@ func (t *TypeOfInterval) String() string {
 	return "interval"
 }
 
-func (t *TypeOfInterval) StringOf(zv zcode.Bytes) string {
+func (t *TypeOfInterval) StringOf(zv zcode.Bytes, _ OutFmt) string {
 	i, err := DecodeInterval(zv)
 	if err != nil {
 		return badZng(err, t, zv)
@@ -48,5 +48,5 @@ func (t *TypeOfInterval) StringOf(zv zcode.Bytes) string {
 }
 
 func (t *TypeOfInterval) Marshal(zv zcode.Bytes) (interface{}, error) {
-	return t.StringOf(zv), nil
+	return t.StringOf(zv, OUT_FORMAT_UNESCAPED), nil
 }

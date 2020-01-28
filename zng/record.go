@@ -2,6 +2,7 @@ package zng
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/mccanne/zq/zcode"
 )
@@ -63,22 +64,38 @@ func (t *TypeRecord) Parse(in []byte) (zcode.Bytes, error) {
 	panic("record.Parse shouldn't be called")
 }
 
-func (t *TypeRecord) StringOf(zv zcode.Bytes) string {
-	d := "record["
-	comma := ""
+func (t *TypeRecord) StringOf(zv zcode.Bytes, fmt OutFmt) string {
+	var b strings.Builder
+	separator := byte(',')
+	switch fmt {
+	case OUT_FORMAT_ZNG:
+		b.WriteByte('[')
+		separator = ';'
+	case OUT_FORMAT_DEBUG:
+		b.WriteString("record[")
+	}
+
+	first := true
 	it := zv.Iter()
 	for _, col := range t.Columns {
-		zv, _, err := it.Next()
-		if err != nil {
-			//XXX shouldn't happen
-			d += "ERR"
+		val, container, err := it.Next()
+		if container || err != nil {
+			//XXX
+			b.WriteString("ERR")
 			break
 		}
-		d += comma + Value{col.Type, zv}.String()
-		comma = ","
+		if !first {
+			b.WriteByte(separator)
+			first = false
+		}
+		b.WriteString(col.Type.StringOf(val, fmt))
 	}
-	d += "]"
-	return d
+
+	switch fmt {
+	case OUT_FORMAT_ZNG, OUT_FORMAT_DEBUG:
+		b.WriteByte(']')
+	}
+	return b.String()
 }
 
 func (t *TypeRecord) Marshal(zv zcode.Bytes) (interface{}, error) {

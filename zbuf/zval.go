@@ -2,7 +2,6 @@ package zbuf
 
 import (
 	"bytes"
-	"strings"
 
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/zcode"
@@ -43,52 +42,6 @@ func appendZvalFromZeek(dst zcode.Bytes, typ zng.Type, val []byte) zcode.Bytes {
 		}
 		body, _ := typ.Parse(zng.Unescape(val))
 		return zcode.AppendPrimitive(dst, body)
-	}
-}
-
-func escape(s string, utf8 bool) string {
-	if utf8 {
-		return zng.EscapeUTF8([]byte(s))
-	}
-	return zng.Escape([]byte(s))
-}
-
-// ZvalToZeekString returns a Zeek ASCII string representing the zval described
-// by typ and val.
-func ZvalToZeekString(typ zng.Type, zv zcode.Bytes, utf8 bool) string {
-	if zv == nil {
-		return "-"
-	}
-	switch typ.(type) {
-	case *zng.TypeSet, *zng.TypeVector:
-		inner := zng.InnerType(typ)
-		if len(zv) == 0 {
-			return "(empty)"
-		}
-		// XXX handle one value that equals "(empty)"
-		var b strings.Builder
-		it := zcode.Iter(zv)
-		for {
-			v, _, err := it.Next()
-			if err != nil {
-				return "error in ZvalToZeekString"
-			}
-			fld := ZvalToZeekString(inner, v, utf8)
-			// Escape the set separator after ZeekEscape.
-			_, _ = b.WriteString(strings.ReplaceAll(fld, ",", "\\x2c"))
-			if it.Done() {
-				break
-			}
-			_ = b.WriteByte(',')
-		}
-		return b.String()
-	case *zng.TypeOfString:
-		if string(zv) == "-" {
-			return "\\x2d"
-		}
-		return escape(zng.Value{typ, zv}.String(), utf8)
-	default:
-		return escape(zng.Value{typ, zv}.String(), utf8)
 	}
 }
 
@@ -144,7 +97,7 @@ func isHighPrecision(ts nano.Ts) bool {
 // This returns the zeek strings for this record.  It works only for records
 // that can be represented as legacy zeek values.  XXX We need to not use this.
 // XXX change to Pretty for output writers?... except zeek?
-func ZeekStrings(r *zng.Record, precision int, utf8 bool) ([]string, bool, error) {
+func ZeekStrings(r *zng.Record, precision int, fmt zng.OutFmt) ([]string, bool, error) {
 	var ss []string
 	it := r.ZvalIter()
 	var changePrecision bool
@@ -154,7 +107,9 @@ func ZeekStrings(r *zng.Record, precision int, utf8 bool) ([]string, bool, error
 			return nil, false, err
 		}
 		var field string
-		if precision >= 0 && col.Type == zng.TypeTime && val != nil {
+		if val == nil {
+			field = "-"
+		} else if precision >= 0 && col.Type == zng.TypeTime {
 			ts, err := zng.DecodeTime(val)
 			if err != nil {
 				return nil, false, err
@@ -165,7 +120,7 @@ func ZeekStrings(r *zng.Record, precision int, utf8 bool) ([]string, bool, error
 			}
 			field = string(ts.AppendFloat(nil, precision))
 		} else {
-			field = ZvalToZeekString(col.Type, val, utf8)
+			field = col.Type.StringOf(val, fmt)
 		}
 		ss = append(ss, field)
 	}

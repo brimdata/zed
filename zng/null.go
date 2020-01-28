@@ -21,7 +21,7 @@ func (t *TypeOfNull) String() string {
 	return "null"
 }
 
-func (t *TypeOfNull) StringOf(zv zcode.Bytes) string {
+func (t *TypeOfNull) StringOf(zv zcode.Bytes, _ OutFmt) string {
 	return "-"
 }
 
