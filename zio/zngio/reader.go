@@ -136,7 +136,7 @@ func (r *Reader) parseDescriptor(line []byte) error {
 	}
 	typ, err := r.zctx.LookupByName(string(rest))
 	if err != nil {
-		return fmt.Errorf("unknown type parsing: \"%s\"", string(rest))
+		return err
 	}
 	recType, ok := typ.(*zng.TypeRecord)
 	if !ok {
