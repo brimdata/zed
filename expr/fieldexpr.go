@@ -16,7 +16,7 @@ import (
 // function that takes a zbuf.Record as input, evaluates the given
 // expression against that record, and returns the resulting typed value.
 // If the expression can't be resolved (i.e., because some field
-// reference refers to a non-existent field, a array index is out of
+// reference refers to a non-existent field, an array index is out of
 // bounds, etc.), the resolver returns (nil, nil)
 type FieldExprResolver func(*zng.Record) zng.Value
 
