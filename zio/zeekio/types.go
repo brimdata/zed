@@ -14,20 +14,21 @@ func zeekTypeToZng(typ string) string {
 	return strings.ReplaceAll(typ, "vector", "array")
 }
 
-type typeVector struct {
+type typeContainer struct {
+	label string
 	inner fmt.Stringer
 }
 
-func (v typeVector) String() string {
-	return fmt.Sprintf("vector[%s]", v.inner)
+func (v typeContainer) String() string {
+	return fmt.Sprintf("%s[%s]", v.label, v.inner.String())
 }
 
 func zngTypeToZeek(typ zng.Type) fmt.Stringer {
 	switch typ := typ.(type) {
 	case *zng.TypeArray:
-		return typeVector{
-			inner: zngTypeToZeek(typ.Type),
-		}
+		return typeContainer{"vector", zngTypeToZeek(typ.Type)}
+	case *zng.TypeSet:
+		return typeContainer{"set", zngTypeToZeek(typ.InnerType)}
 	}
 	switch typ {
 	case zng.TypeBstring:

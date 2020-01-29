@@ -34,13 +34,13 @@ func TestWriter(t *testing.T) {
 		)
 		runcase(t, zng, zeek)
 	})
-	t.Run("replaces-type-in-array", func(t *testing.T) {
-		zng := `#1:record[array:array[bstring]]
-1:[[test1;test2;test3;]]`
+	t.Run("replaces-type-in-containers", func(t *testing.T) {
+		zng := `#1:record[array:array[bstring],set:set[bstring],id:record[bstring:bstring]]
+1:[[test1;test2;test3;][test1;test2;][test4;]]`
 		zeek := zeekfile(
-			[]string{"array"},
-			[]string{"vector[string]"},
-			[]string{"test1,test2,test3"},
+			[]string{"array", "set", "id.bstring"},
+			[]string{"vector[string]", "set[string]", "string"},
+			[]string{"test1,test2,test3", "test1,test2", "test4"},
 		)
 		runcase(t, zng, zeek)
 	})
