@@ -128,7 +128,7 @@ func (v Value) ArrayIndex(idx int64) (Value, error) {
 }
 
 // Elements returns an array of Values for the given container type.
-// Returns an error if the element is not a array or set.
+// Returns an error if the element is not an array or set.
 func (v Value) Elements() ([]Value, error) {
 	innerType := InnerType(v.Type)
 	if innerType == nil {
