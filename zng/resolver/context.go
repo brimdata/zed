@@ -264,7 +264,7 @@ func parseWord(in string) (string, string) {
 
 // LookupByName returns the Type indicated by the zng type string.  The type string
 // may be a simple type like int, double, time, etc or it may be a set
-// or a array, which are recusively composed of other types.  The set and array
+// or an array, which are recusively composed of other types.  The set and array
 // type definitions are encoded in the same fashion as zeek stores them as type field
 // in a zeek file header.  Each unique compound type object is created once and
 // interned so that pointer comparison can be used to determine type equality.
