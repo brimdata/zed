@@ -1,37 +1,38 @@
 package reducer
 
 import (
+	"github.com/mccanne/zq/expr"
 	"github.com/mccanne/zq/zng"
 	"github.com/mccanne/zq/zx"
 )
 
 type AvgProto struct {
-	target string
-	field  string
+	target   string
+	resolver expr.FieldExprResolver
 }
 
 func (ap *AvgProto) Target() string {
 	return ap.target
 }
 
-func (ap *AvgProto) Instantiate(*zng.TypeRecord) Interface {
-	return &Avg{Field: ap.field}
+func (ap *AvgProto) Instantiate(*zng.Record) Interface {
+	return &Avg{Resolver: ap.resolver}
 }
 
-func NewAvgProto(target, field string) *AvgProto {
+func NewAvgProto(target string, field expr.FieldExprResolver) *AvgProto {
 	return &AvgProto{target, field}
 }
 
 type Avg struct {
 	Reducer
-	Field string
-	sum   float64
-	count uint64
+	Resolver expr.FieldExprResolver
+	sum      float64
+	count    uint64
 }
 
 func (a *Avg) Consume(r *zng.Record) {
-	v, err := r.ValueByField(a.Field)
-	if err != nil {
+	v := a.Resolver(r)
+	if v.Type == nil {
 		a.FieldNotFound++
 		return
 	}

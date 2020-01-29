@@ -117,12 +117,18 @@ var testCopyJSON = []byte(`
         {
           "op": "Sum",
           "var": "j",
-          "field": "j"
+          "field": {
+            "op": "FieldRead",
+            "field": "j"
+          }
         },
         {
           "op": "Min",
           "var": "m",
-          "field": "l"
+          "field": {
+            "op": "FieldRead",
+            "field": "l"
+          }
         }
       ]
     },
@@ -252,12 +258,18 @@ var testCopyJSONExpected = []byte(`
         {
           "op": "Sum",
           "var": "j",
-          "field": "k"
+          "field": {
+            "op": "FieldRead",
+            "field": "k"
+          }
         },
         {
           "op": "Min",
           "var": "m",
-          "field": "l"
+          "field": {
+            "op": "FieldRead",
+            "field": "l"
+          }
         }
       ]
     },
@@ -289,7 +301,7 @@ func TestCopyAST(t *testing.T) {
 	copy.(*ast.SequentialProc).Procs[0].(*ast.FilterProc).Filter.(*ast.LogicalAnd).Right.(*ast.LogicalOr).Right.(*ast.CompareField).Value.Value = "4"
 	copy.(*ast.SequentialProc).Procs[1].(*ast.CutProc).Fields[0].(*ast.FieldRead).Field = "z"
 	copy.(*ast.SequentialProc).Procs[2].(*ast.GroupByProc).Duration.Seconds = 3600
-	copy.(*ast.SequentialProc).Procs[2].(*ast.GroupByProc).Reducers[0].Field = "k"
+	copy.(*ast.SequentialProc).Procs[2].(*ast.GroupByProc).Reducers[0].Field.(*ast.FieldRead).Field = "k"
 	copy.(*ast.SequentialProc).Procs[2].(*ast.GroupByProc).Keys[1].(*ast.FieldRead).Field = "p"
 	copy.(*ast.SequentialProc).Procs[3].(*ast.SortProc).SortDir = 1
 	copy.(*ast.SequentialProc).Procs[4].(*ast.HeadProc).Count = 2

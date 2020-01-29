@@ -1,35 +1,36 @@
 package reducer
 
 import (
+	"github.com/mccanne/zq/expr"
 	"github.com/mccanne/zq/zng"
 )
 
 type CountProto struct {
-	target string
-	field  string
+	target   string
+	resolver expr.FieldExprResolver
 }
 
 func (cp *CountProto) Target() string {
 	return cp.target
 }
 
-func (cp *CountProto) Instantiate(*zng.TypeRecord) Interface {
-	return &Count{Field: cp.field}
+func (cp *CountProto) Instantiate(*zng.Record) Interface {
+	return &Count{Resolver: cp.resolver}
 }
 
-func NewCountProto(target, field string) *CountProto {
-	return &CountProto{target, field}
+func NewCountProto(target string, resolver expr.FieldExprResolver) *CountProto {
+	return &CountProto{target, resolver}
 }
 
 type Count struct {
 	Reducer
-	Field string
-	count uint64
+	Resolver expr.FieldExprResolver
+	count    uint64
 }
 
 func (c *Count) Consume(r *zng.Record) {
-	if c.Field != "" {
-		if _, ok := r.ColumnOfField(c.Field); !ok {
+	if c.Resolver != nil {
+		if v := c.Resolver(r); v.IsNil() {
 			return
 		}
 	}
