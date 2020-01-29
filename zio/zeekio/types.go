@@ -29,9 +29,7 @@ func zngTypeToZeek(typ zng.Type) fmt.Stringer {
 		return typeContainer{"vector", zngTypeToZeek(typ.Type)}
 	case *zng.TypeSet:
 		return typeContainer{"set", zngTypeToZeek(typ.InnerType)}
-	}
-	switch typ {
-	case zng.TypeBstring:
+	case *zng.TypeOfBstring:
 		return zng.TypeString
 	default:
 		return typ
