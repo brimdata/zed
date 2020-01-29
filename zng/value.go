@@ -105,7 +105,7 @@ func (v Value) Iter() zcode.Iter {
 
 // If the passed-in element is an array, attempt to get the idx'th
 // element, and return its type and raw representation.  Returns an
-// error if the passed-in element is not a array or if idx is
+// error if the passed-in element is not an array or if idx is
 // outside the array bounds.
 func (v Value) ArrayIndex(idx int64) (Value, error) {
 	vec, ok := v.Type.(*TypeArray)
