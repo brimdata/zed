@@ -58,19 +58,6 @@ func (w *Writer) Write(r *zng.Record) error {
 	return err
 }
 
-func zngTypeToZeek(typ string) string {
-	switch typ {
-	case "bstring":
-		return "string"
-	case "set[bstring]":
-		return "set[string]"
-	case "vector[bstring]":
-		return "vector[string]"
-	default:
-		return typ
-	}
-}
-
 func (w *Writer) writeHeader(r *zng.Record, path string) error {
 	d := r.Type
 	var s string

@@ -24,7 +24,7 @@ func appendZvalFromZeek(dst zcode.Bytes, typ zng.Type, val []byte) zcode.Bytes {
 	const setSeparator = ','
 	const unset = '-'
 	switch typ.(type) {
-	case *zng.TypeSet, *zng.TypeVector:
+	case *zng.TypeSet, *zng.TypeArray:
 		if bytes.Equal(val, []byte{unset}) {
 			return zcode.AppendContainer(dst, nil)
 		}
@@ -60,7 +60,7 @@ func ZvalToZeekString(typ zng.Type, zv zcode.Bytes, utf8 bool) string {
 		return "-"
 	}
 	switch typ.(type) {
-	case *zng.TypeSet, *zng.TypeVector:
+	case *zng.TypeSet, *zng.TypeArray:
 		inner := zng.InnerType(typ)
 		if len(zv) == 0 {
 			return "(empty)"

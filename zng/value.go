@@ -107,10 +107,10 @@ func (v Value) Iter() zcode.Iter {
 // element, and return its type and raw representation.  Returns an
 // error if the passed-in element is not a vector or if idx is
 // outside the vector bounds.
-func (v Value) VectorIndex(idx int64) (Value, error) {
-	vec, ok := v.Type.(*TypeVector)
+func (v Value) ArrayIndex(idx int64) (Value, error) {
+	vec, ok := v.Type.(*TypeArray)
 	if !ok {
-		return Value{}, ErrNotVector
+		return Value{}, ErrNotArray
 	}
 	if idx < 0 {
 		return Value{}, ErrIndex
@@ -147,7 +147,7 @@ func (v Value) Elements() ([]Value, error) {
 
 func (v Value) ContainerLength() (int, error) {
 	switch v.Type.(type) {
-	case *TypeSet, *TypeVector:
+	case *TypeSet, *TypeArray:
 		if v.Bytes == nil {
 			return -1, ErrLenUnset
 		}

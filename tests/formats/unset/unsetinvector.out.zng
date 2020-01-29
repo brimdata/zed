@@ -1,4 +1,4 @@
-#0:record[_path:string,vector_int:vector[int]]
+#0:record[_path:string,vector_int:array[int]]
 0:[VectorUnsets;[123;-;456;]]
 0:[VectorUnsets;[]]
 0:[VectorUnsets;-;]

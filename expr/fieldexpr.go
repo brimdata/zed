@@ -31,7 +31,7 @@ type arrayIndex struct {
 }
 
 func (ai *arrayIndex) apply(e zng.Value) zng.Value {
-	el, err := e.VectorIndex(ai.idx)
+	el, err := e.ArrayIndex(ai.idx)
 	if err != nil {
 		if err == zng.ErrIndex {
 			typ := zng.InnerType(e.Type)

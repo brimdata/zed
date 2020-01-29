@@ -68,7 +68,7 @@ func NewRawFromZeekTSV(builder *zcode.Builder, typ *zng.TypeRecord, path []byte,
 		}
 
 		switch typ.(type) {
-		case *zng.TypeSet, *zng.TypeVector:
+		case *zng.TypeSet, *zng.TypeArray:
 			if string(val) == "-" {
 				builder.AppendContainer(nil)
 				break

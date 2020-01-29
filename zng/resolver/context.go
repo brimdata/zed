@@ -119,7 +119,7 @@ func typeKey(typ zng.Type) string {
 		panic("unsupported type in typeKey")
 	case *zng.TypeRecord:
 		return recordKey(typ.Columns)
-	case *zng.TypeVector:
+	case *zng.TypeArray:
 		return arrayKey(typ.Type)
 	case *zng.TypeSet:
 		return setKey(typ.InnerType)
@@ -135,7 +135,7 @@ func (c *Context) addTypeWithLock(key string, typ zng.Type) {
 		panic("unsupported type in addTypeWithLock")
 	case *zng.TypeRecord:
 		typ.SetID(id)
-	case *zng.TypeVector:
+	case *zng.TypeArray:
 		typ.SetID(id)
 	case *zng.TypeSet:
 		typ.SetID(id)
@@ -193,15 +193,15 @@ func (c *Context) LookupTypeSet(inner zng.Type) *zng.TypeSet {
 	return typ
 }
 
-func (c *Context) LookupTypeVector(inner zng.Type) *zng.TypeVector {
+func (c *Context) LookupTypeArray(inner zng.Type) *zng.TypeArray {
 	key := arrayKey(inner)
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	id, ok := c.lut[key]
 	if ok {
-		return c.table[id].(*zng.TypeVector)
+		return c.table[id].(*zng.TypeArray)
 	}
-	typ := zng.NewTypeVector(-1, inner)
+	typ := zng.NewTypeArray(-1, inner)
 	c.addTypeWithLock(key, typ)
 	return typ
 }
@@ -307,8 +307,8 @@ func (c *Context) parseType(in string) (string, zng.Type, error) {
 			return "", nil, err
 		}
 		return rest, t, nil
-	case "vector":
-		rest, t, err := c.parseVectorTypeBody(rest)
+	case "array":
+		rest, t, err := c.parseArrayTypeBody(rest)
 		if err != nil {
 			return "", nil, err
 		}
@@ -419,7 +419,7 @@ func (c *Context) parseSetTypeBody(in string) (string, zng.Type, error) {
 }
 
 // parse a vector body type of the form "[type]"
-func (c *Context) parseVectorTypeBody(in string) (string, *zng.TypeVector, error) {
+func (c *Context) parseArrayTypeBody(in string) (string, *zng.TypeArray, error) {
 	rest, ok := match(in, "[")
 	if !ok {
 		return "", nil, zng.ErrTypeSyntax
@@ -434,7 +434,7 @@ func (c *Context) parseVectorTypeBody(in string) (string, *zng.TypeVector, error
 	if !ok {
 		return "", nil, zng.ErrTypeSyntax
 	}
-	return rest, c.LookupTypeVector(inner), nil
+	return rest, c.LookupTypeArray(inner), nil
 }
 
 func (c *Context) TranslateType(ext zng.Type) zng.Type {
@@ -451,9 +451,9 @@ func (c *Context) TranslateType(ext zng.Type) zng.Type {
 	case *zng.TypeSet:
 		inner := c.TranslateType(ext.InnerType)
 		return c.LookupTypeSet(inner)
-	case *zng.TypeVector:
+	case *zng.TypeArray:
 		inner := c.TranslateType(ext.Type)
-		return c.LookupTypeVector(inner)
+		return c.LookupTypeArray(inner)
 	}
 }
 

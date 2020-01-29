@@ -17,10 +17,10 @@ import (
 )
 
 var (
-	ErrUnset     = errors.New("value is unset")
-	ErrLenUnset  = errors.New("len(unset) is undefined")
-	ErrNotVector = errors.New("cannot index a non-vector")
-	ErrIndex     = errors.New("vector index out of bounds")
+	ErrUnset    = errors.New("value is unset")
+	ErrLenUnset = errors.New("len(unset) is undefined")
+	ErrNotArray = errors.New("cannot index a non-vector")
+	ErrIndex    = errors.New("vector index out of bounds")
 )
 
 // Resolver is an interface for looking up Type objects from the type id.
@@ -169,7 +169,7 @@ func InnerType(typ Type) Type {
 	switch typ := typ.(type) {
 	case *TypeSet:
 		return typ.InnerType
-	case *TypeVector:
+	case *TypeArray:
 		return typ.Type
 	default:
 		return nil
@@ -184,7 +184,7 @@ func ContainedType(typ Type) (Type, []Column) {
 	switch typ := typ.(type) {
 	case *TypeSet:
 		return typ.InnerType, nil
-	case *TypeVector:
+	case *TypeArray:
 		return typ.Type, nil
 	case *TypeRecord:
 		return nil, typ.Columns
@@ -195,7 +195,7 @@ func ContainedType(typ Type) (Type, []Column) {
 
 func IsContainerType(typ Type) bool {
 	switch typ.(type) {
-	case *TypeSet, *TypeVector, *TypeRecord:
+	case *TypeSet, *TypeArray, *TypeRecord:
 		return true
 	default:
 		return false

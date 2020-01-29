@@ -60,7 +60,7 @@ again:
 		case zng.TypeDefSet:
 			err = r.readTypeSet()
 		case zng.TypeDefArray:
-			err = r.readTypeVector()
+			err = r.readTypeArray()
 		default:
 			// XXX we should return the control code
 			len, err := r.readUvarint()
@@ -177,7 +177,7 @@ func (r *Reader) readTypeSet() error {
 	return nil
 }
 
-func (r *Reader) readTypeVector() error {
+func (r *Reader) readTypeArray() error {
 	id, err := r.readUvarint()
 	if err != nil {
 		return zng.ErrBadFormat
@@ -186,7 +186,7 @@ func (r *Reader) readTypeVector() error {
 	if err != nil {
 		return err
 	}
-	r.zctx.AddType(zng.NewTypeVector(-1, inner))
+	r.zctx.AddType(zng.NewTypeArray(-1, inner))
 	return nil
 }
 

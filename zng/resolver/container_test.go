@@ -106,7 +106,7 @@ func TestContainers(t *testing.T) {
 		err := runTest(tt.valType, tt.valRaw, containerType, tt.containerRaw, tt.expectedResult)
 		require.NoError(t, err)
 
-		containerType = fmt.Sprintf("vector[%s]", tt.elementType)
+		containerType = fmt.Sprintf("array[%s]", tt.elementType)
 		err = runTest(tt.valType, tt.valRaw, containerType, tt.containerRaw, tt.expectedResult)
 		require.NoError(t, err)
 
