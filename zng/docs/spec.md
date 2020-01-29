@@ -563,7 +563,7 @@ Here is a pseudo-grammar for typed values:
 
 A terminal value is encoded as a string of characters terminated
 by a semicolon (which must be escaped if it appears in a string-typed value).
-Container values (i.e., sets, vectors, or records) are encoded as
+Container values (i.e., sets, arrays, or records) are encoded as
 * an open bracket,
 * zero or more encoded values terminated with semicolon, and
 * a close bracket.
@@ -661,7 +661,7 @@ int
 ```
 Container types look like this and do need typedefs:
 ```
-#0:vector[int]
+#0:array[int]
 #1:set[bool,string]
 #2:record[x:double,y:double]
 ```

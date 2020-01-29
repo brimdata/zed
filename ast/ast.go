@@ -110,7 +110,7 @@ type (
 	}
 
 	// A FieldCall is an operation performed on the value in some field,
-	// e.g., len(some_set) or some_vector[1].
+	// e.g., len(some_set) or some_array[1].
 	FieldCall struct {
 		Node
 		Fn    string    `json:"fn"`

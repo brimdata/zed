@@ -72,14 +72,14 @@ const reducersOut = `
 `
 
 const arrayKeyIn = `
-#0:record[vec:vector[int],val:int]
+#0:record[arr:array[int],val:int]
 0:[-;2;]
 0:[[1;2;]2;]
 0:[[1;2;]3;]
 `
 
 const arrayKeyOut = `
-#0:record[vec:vector[int],count:count]
+#0:record[arr:array[int],count:count]
 0:[-;1;]
 0:[[1;2;]2;]
 `
@@ -182,7 +182,7 @@ func tests() suite {
 	s.add(New("reducers", in, reducersOut, "first(n), last(n), sum(n), avg(n), min(n), max(n) by key1"))
 
 	// Check out of bounds array indexes
-	s.add(New("array-out-of-bounds", arrayKeyIn, arrayKeyOut, "count() by vec"))
+	s.add(New("array-out-of-bounds", arrayKeyIn, arrayKeyOut, "count() by arr"))
 
 	// Check groupby key inside a record
 	s.add(New("key-in-record", nestedKeyIn, nestedKeyOut, "count() by rec.i"))

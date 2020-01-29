@@ -6,41 +6,41 @@ import (
 	"github.com/mccanne/zq/zcode"
 )
 
-type TypeVector struct {
+type TypeArray struct {
 	id   int
 	Type Type
 }
 
-func NewTypeVector(id int, typ Type) *TypeVector {
-	return &TypeVector{id, typ}
+func NewTypeArray(id int, typ Type) *TypeArray {
+	return &TypeArray{id, typ}
 }
 
-func (t *TypeVector) ID() int {
+func (t *TypeArray) ID() int {
 	return t.id
 }
 
 //XXX get rid of this when we implement full ZNG
-func (t *TypeVector) SetID(id int) {
+func (t *TypeArray) SetID(id int) {
 	t.id = id
 }
 
-func (t *TypeVector) String() string {
-	return fmt.Sprintf("vector[%s]", t.Type)
+func (t *TypeArray) String() string {
+	return fmt.Sprintf("array[%s]", t.Type)
 }
 
-func (t *TypeVector) Decode(zv zcode.Bytes) ([]Value, error) {
+func (t *TypeArray) Decode(zv zcode.Bytes) ([]Value, error) {
 	if zv == nil {
 		return nil, ErrUnset
 	}
 	return parseContainer(t, t.Type, zv)
 }
 
-func (t *TypeVector) Parse(in []byte) (zcode.Bytes, error) {
-	panic("zeek.TypeVector.Parse shouldn't be called")
+func (t *TypeArray) Parse(in []byte) (zcode.Bytes, error) {
+	panic("zeek.TypeArray.Parse shouldn't be called")
 }
 
-func (t *TypeVector) StringOf(zv zcode.Bytes) string {
-	s := "vector["
+func (t *TypeArray) StringOf(zv zcode.Bytes) string {
+	s := "array["
 	comma := ""
 	it := zv.Iter()
 	for !it.Done() {
@@ -57,7 +57,7 @@ func (t *TypeVector) StringOf(zv zcode.Bytes) string {
 	return s
 }
 
-func (t *TypeVector) Marshal(zv zcode.Bytes) (interface{}, error) {
+func (t *TypeArray) Marshal(zv zcode.Bytes) (interface{}, error) {
 	// start out with zero-length container so we get "[]" instead of nil
 	vals := make([]Value, 0)
 	it := zv.Iter()

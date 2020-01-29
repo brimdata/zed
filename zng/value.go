@@ -39,7 +39,7 @@ func Parse(v ast.Literal) (Value, error) {
 
 //XXX b should be zcode.Bytes
 func parseContainer(containerType Type, elementType Type, b []byte) ([]Value, error) {
-	// We start out with a pointer instead of nil so that empty sets and vectors
+	// We start out with a pointer instead of nil so that empty sets and arrays
 	// are properly encoded etc., e.g., by json.Marshal.
 	vals := make([]Value, 0)
 	for it := zcode.Iter(b); !it.Done(); {
@@ -103,14 +103,14 @@ func (v Value) Iter() zcode.Iter {
 	return zcode.Iter(v.Bytes)
 }
 
-// If the passed-in element is a vector, attempt to get the idx'th
+// If the passed-in element is an array, attempt to get the idx'th
 // element, and return its type and raw representation.  Returns an
-// error if the passed-in element is not a vector or if idx is
-// outside the vector bounds.
-func (v Value) VectorIndex(idx int64) (Value, error) {
-	vec, ok := v.Type.(*TypeVector)
+// error if the passed-in element is not an array or if idx is
+// outside the array bounds.
+func (v Value) ArrayIndex(idx int64) (Value, error) {
+	vec, ok := v.Type.(*TypeArray)
 	if !ok {
-		return Value{}, ErrNotVector
+		return Value{}, ErrNotArray
 	}
 	if idx < 0 {
 		return Value{}, ErrIndex
@@ -128,7 +128,7 @@ func (v Value) VectorIndex(idx int64) (Value, error) {
 }
 
 // Elements returns an array of Values for the given container type.
-// Returns an error if the element is not a vector or set.
+// Returns an error if the element is not an array or set.
 func (v Value) Elements() ([]Value, error) {
 	innerType := InnerType(v.Type)
 	if innerType == nil {
@@ -147,7 +147,7 @@ func (v Value) Elements() ([]Value, error) {
 
 func (v Value) ContainerLength() (int, error) {
 	switch v.Type.(type) {
-	case *TypeSet, *TypeVector:
+	case *TypeSet, *TypeArray:
 		if v.Bytes == nil {
 			return -1, ErrLenUnset
 		}

@@ -13,11 +13,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Execute one test of a filter on a container type (ie set or vector).
+// Execute one test of a filter on a container type (ie set or array).
 // Does the following:
 // 1. Compiles a filter that corresponds to a "value in field" query for
 //    the given value.
-// 2. Executes the filter against a set/vector with the given type and value.
+// 2. Executes the filter against a set/array with the given type and value.
 // 3. Checks the filter result against the expected result.
 //
 // Returns an error if #3 does not match (or for any other error), or
@@ -101,12 +101,12 @@ func TestContainers(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		// Run each test case against both set and vector
+		// Run each test case against both set and array
 		containerType := fmt.Sprintf("set[%s]", tt.elementType)
 		err := runTest(tt.valType, tt.valRaw, containerType, tt.containerRaw, tt.expectedResult)
 		require.NoError(t, err)
 
-		containerType = fmt.Sprintf("vector[%s]", tt.elementType)
+		containerType = fmt.Sprintf("array[%s]", tt.elementType)
 		err = runTest(tt.valType, tt.valRaw, containerType, tt.containerRaw, tt.expectedResult)
 		require.NoError(t, err)
 

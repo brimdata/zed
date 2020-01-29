@@ -15,7 +15,7 @@ import (
 // - change these comparisons to work in the zcode.Bytes domain
 // - add timer, interval comparisons when we add time, interval literals to the language
 // - add count comparisons when we add count literals to the language
-// - add set/vector/record comparisons when we add container literals to the language
+// - add set/array/record comparisons when we add container literals to the language
 
 // Predicate is a function that takes a Value and returns a boolean result
 // based on the typed value.
@@ -406,7 +406,7 @@ func CompareSubnet(op string, pattern *net.IPNet) (Predicate, error) {
 
 // Given a predicate for comparing individual elements, produce a new
 // predicate that implements the "in" comparison.  The new predicate looks
-// at the type of the value being compared, if it is a set or vector,
+// at the type of the value being compared, if it is a set or array,
 // the original predicate is applied to each element.  The new precicate
 // returns true iff the predicate matched an element from the collection.
 func Contains(compare Predicate) Predicate {
