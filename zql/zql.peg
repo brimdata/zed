@@ -224,10 +224,10 @@ types
 
 dash = "-" / "\u2014" / "\u2013" / "to"&(_)
 
-andToken = "and"
-orToken = "or"
-inToken = "in"
-notToken = "not"
+andToken = "and"i
+orToken = "or"i
+inToken = "in"i
+notToken = "not"i
 
 fieldName = fieldNameStart fieldNameRest* { RETURN(TEXT) }
 
