@@ -36,7 +36,7 @@ func (t *TypeArray) Decode(zv zcode.Bytes) ([]Value, error) {
 }
 
 func (t *TypeArray) Parse(in []byte) (zcode.Bytes, error) {
-	panic("zeek.TypeVector.Parse shouldn't be called")
+	panic("zeek.TypeArray.Parse shouldn't be called")
 }
 
 func (t *TypeArray) StringOf(zv zcode.Bytes) string {

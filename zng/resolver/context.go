@@ -264,7 +264,7 @@ func parseWord(in string) (string, string) {
 
 // LookupByName returns the Type indicated by the zng type string.  The type string
 // may be a simple type like int, double, time, etc or it may be a set
-// or a vector, which are recusively composed of other types.  The set and vector
+// or a array, which are recusively composed of other types.  The set and array
 // type definitions are encoded in the same fashion as zeek stores them as type field
 // in a zeek file header.  Each unique compound type object is created once and
 // interned so that pointer comparison can be used to determine type equality.
@@ -385,7 +385,7 @@ func (c *Context) parseColumn(in string) (string, zng.Column, error) {
 
 // parseSetTypeBody parses a set type body of the form "[type]" presuming the set
 // keyword is already matched.
-// The syntax "set[type1,type2,...]" for set-of-vectors is not supported.
+// The syntax "set[type1,type2,...]" for set-of-arrays is not supported.
 func (c *Context) parseSetTypeBody(in string) (string, zng.Type, error) {
 	rest, ok := match(in, "[")
 	if !ok {
@@ -418,7 +418,7 @@ func (c *Context) parseSetTypeBody(in string) (string, zng.Type, error) {
 	}
 }
 
-// parse a vector body type of the form "[type]"
+// parse a array body type of the form "[type]"
 func (c *Context) parseArrayTypeBody(in string) (string, *zng.TypeArray, error) {
 	rest, ok := match(in, "[")
 	if !ok {

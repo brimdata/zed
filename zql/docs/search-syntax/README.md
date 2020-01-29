@@ -342,7 +342,7 @@ conn   1521911730.540003 CLevxl1MBUbcgovw49 10.10.18.2   57332     10.150.0.85 4
 ...
 ```
 
-Similarly, the following search will only match when the value appears in a container field of type `set[addr]` or `vector[addr]`, such as `tx_hosts` in this case.
+Similarly, the following search will only match when the value appears in a container field of type `set[addr]` or `array[addr]`, such as `tx_hosts` in this case.
 
 #### Example:
 ```

@@ -5,7 +5,7 @@
 // unset, and no body follows.  A nonzero tag indicates that the value is set,
 // and the value itself follows as a body of length tag-1.
 //
-// Values of container type (record, set, or vector) are represented similarly,
+// Values of container type (record, set, or array) are represented similarly,
 // with the body containing a sequence of zero or more serialized values.
 package zcode
 

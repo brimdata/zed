@@ -89,12 +89,12 @@ produces this zson over json...
 ```
 #0:record[_path:string,ts:time,uid:string,id.orig_h:addr,id.orig_p:port,id.resp_h:addr,id.resp_p:port,proto:enum,service:string,duration:interval,orig_bytes:count,resp_bytes:count,conn_state:string,local_orig:bool,local_resp:bool,missed_bytes:count,history:string,orig_pkts:count,orig_ip_bytes:count,resp_pkts:count,resp_ip_bytes:count,tunnel_parents:set[string]]
 0:[conn;1425565514.419939;CogZFI3py5JsFZGik;fe80::eef4:bbff:fe51:89ec;5353;ff02::fb;5353;udp;dns;15.007272;2148;0;S0;F;F;0;D;14;2820;0;0;[]]
-#1:record[_path:string,ts:time,uid:string,id.orig_h:addr,id.orig_p:port,id.resp_h:addr,id.resp_p:port,proto:enum,trans_id:count,rtt:interval,query:string,qclass:count,qclass_name:string,qtype:count,qtype_name:string,rcode:count,rcode_name:string,AA:bool,TC:bool,RD:bool,RA:bool,Z:count,answers:vector[string],TTLs:vector[interval],rejected:bool]
+#1:record[_path:string,ts:time,uid:string,id.orig_h:addr,id.orig_p:port,id.resp_h:addr,id.resp_p:port,proto:enum,trans_id:count,rtt:interval,query:string,qclass:count,qclass_name:string,qtype:count,qtype_name:string,rcode:count,rcode_name:string,AA:bool,TC:bool,RD:bool,RA:bool,Z:count,answers:array[string],TTLs:array[interval],rejected:bool]
 1:[dns;1425565514.419939;CogZFI3py5JsFZGik;fe80::eef4:bbff:fe51:89ec;5353;ff02::fb;5353;udp;0;0.119484;_ipp._tcp.local;1;C_INTERNET;12;PTR;0;NOERROR;T;F;F;F;0;[_workstation._tcp.local;sniffer [ec:f4:bb:51:89:ec]._workstation._tcp.local;][4500.000000;4500.000000;]F;]
 0:[conn;1425565545.440378;CoJHyyAGilEHkRZJf;fe80::eef4:bbff:fe51:89ec;5353;ff02::fb;5353;udp;dns;-;-;-;S0;F;F;0;D;1;93;0;0;[]]
 ```
 
-## ZSON over JSON
+## ZNG over JSON
 
 The output below was produced by running
 ```
@@ -312,11 +312,11 @@ This is pretty-printed with jq, but would otherwise be newline-delimited JSON:
     },
     {
       "name": "answers",
-      "type": "vector[string]"
+      "type": "array[string]"
     },
     {
       "name": "TTLs",
-      "type": "vector[interval]"
+      "type": "array[interval]"
     },
     {
       "name": "rejected",

@@ -13,9 +13,9 @@ import (
 	"github.com/mccanne/zq/zng/resolver"
 )
 
-// ErrMultiTypedVector signifies that a json array was found with multiple types.
+// ErrMultiTypedArray signifies that a json array was found with multiple types.
 // Multiple-typed arrays are unsupported at this time. See zq#64.
-var ErrMultiTypedVector = errors.New("vectors with multiple types are not supported")
+var ErrMultiTypedArray = errors.New("arrays with multiple types are not supported")
 
 type Parser struct {
 	builder *zcode.Builder
@@ -159,7 +159,7 @@ func (p *Parser) jsonParseArray(raw []byte) (zng.Type, error) {
 			vType = t
 		} else if vType != t {
 			// XXX fix this with ZNG type any
-			return nil, ErrMultiTypedVector
+			return nil, ErrMultiTypedArray
 		}
 	}
 	return p.zctx.LookupTypeArray(vType), nil

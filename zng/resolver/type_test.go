@@ -15,7 +15,7 @@ func val(t, v string) ast.Literal {
 	return ast.Literal{t, v}
 }
 
-func runVector(f zx.Predicate, vals []ast.Literal, expected []bool) error {
+func runArray(f zx.Predicate, vals []ast.Literal, expected []bool) error {
 	ctx := resolver.NewContext()
 	for k, c := range vals {
 		typ, err := ctx.LookupByName(c.Type)
@@ -39,7 +39,7 @@ func run(vals []ast.Literal, op string, v ast.Literal, results []bool) error {
 	if err != nil {
 		return err
 	}
-	return runVector(pred, vals, results)
+	return runArray(pred, vals, results)
 }
 
 func TestZeek(t *testing.T) {

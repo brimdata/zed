@@ -161,28 +161,28 @@ func checkVector(typ *TypeArray, body zcode.Bytes) error {
 		switch v := inner.(type) {
 		case *TypeRecord:
 			if !container {
-				return &RecordTypeError{Name: "<vector element>", Type: v.String(), Err: ErrNotContainer}
+				return &RecordTypeError{Name: "<record element>", Type: v.String(), Err: ErrNotContainer}
 			}
 			if err := checkRecord(v, body); err != nil {
 				return err
 			}
 		case *TypeArray:
 			if !container {
-				return &RecordTypeError{Name: "<vector element>", Type: v.String(), Err: ErrNotContainer}
+				return &RecordTypeError{Name: "<array element>", Type: v.String(), Err: ErrNotContainer}
 			}
 			if err := checkVector(v, body); err != nil {
 				return err
 			}
 		case *TypeSet:
 			if !container {
-				return &RecordTypeError{Name: "<vector element>", Type: v.String(), Err: ErrNotContainer}
+				return &RecordTypeError{Name: "<set element>", Type: v.String(), Err: ErrNotContainer}
 			}
 			if err := checkSet(v, body); err != nil {
 				return err
 			}
 		default:
 			if container {
-				return &RecordTypeError{Name: "<vector element>", Type: v.String(), Err: ErrNotPrimitive}
+				return &RecordTypeError{Name: "<array element>", Type: v.String(), Err: ErrNotPrimitive}
 			}
 		}
 	}
