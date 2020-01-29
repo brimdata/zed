@@ -10,19 +10,19 @@ import (
 // centralize the logic about which characters are syntatically significant
 // in each output format and hence must be escaped.
 func ShouldEscape(r rune, fmt OutFmt, pos int) bool {
-	if fmt != OUT_FORMAT_UNESCAPED && r == '\\' {
+	if fmt != OutFormatUnescaped && r == '\\' {
 		return true
 	}
 
-	if fmt == OUT_FORMAT_ZNG && (r == '\\' || r == ';' || (pos == 0 && r == '[')) {
+	if fmt == OutFormatZNG && (r == ';' || (pos == 0 && r == '[')) {
 		return true
 	}
 
-	if (fmt == OUT_FORMAT_ZEEK || fmt == OUT_FORMAT_ZEEK_ASCII) && (r == '\\' || r == '\t' || r == ',') {
+	if (fmt == OutFormatZeek || fmt == OutFormatZeekAscii) && (r == '\t' || r == ',') {
 		return true
 	}
 
-	if fmt == OUT_FORMAT_ZEEK_ASCII && r > 0x7f {
+	if fmt == OutFormatZeekAscii && r > 0x7f {
 		return true
 	}
 	return false

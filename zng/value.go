@@ -71,19 +71,19 @@ func badZng(err error, t Type, zv zcode.Bytes) string {
 	return fmt.Sprintf("<ZNG-ERR type %s [%s]: %s>", t, zv, err)
 }
 
-func (v Value) FormatAs(fmt OutFmt) string {
+func (v Value) Format(fmt OutFmt) string {
 	if v.Bytes == nil {
 		return "-"
 	}
 	return v.Type.StringOf(v.Bytes, fmt)
 }
 
-// String implements the fmt.Stringer interfae and returns a
+// String implements the fmt.Stringer interface and returns a
 // human-readable string representation of the value.
 // This should only be used for logs, debugging, etc.  Any caller that
 // requires a specific output format should use FormatAs() instead.
 func (v Value) String() string {
-	return v.FormatAs(OUT_FORMAT_DEBUG)
+	return v.Format(OutFormatDebug)
 }
 
 // Encode appends the BZNG representation of this value to the passed in

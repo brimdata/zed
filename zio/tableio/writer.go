@@ -28,9 +28,9 @@ func NewWriter(w io.Writer, flags zio.Flags) *Table {
 	writer := tabwriter.NewWriter(w, 0, 8, 1, ' ', 0)
 	var format zng.OutFmt
 	if flags.UTF8 {
-		format = zng.OUT_FORMAT_ZEEK
+		format = zng.OutFormatZeek
 	} else {
-		format = zng.OUT_FORMAT_ZEEK_ASCII
+		format = zng.OutFormatZeekAscii
 	}
 	return &Table{
 		Writer:    w,

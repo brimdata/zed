@@ -40,25 +40,25 @@ func (t *TypeSet) Parse(in []byte) (zcode.Bytes, error) {
 }
 
 func (t *TypeSet) StringOf(zv zcode.Bytes, fmt OutFmt) string {
-	if len(zv) == 0 && fmt == OUT_FORMAT_ZEEK || fmt == OUT_FORMAT_ZEEK_ASCII {
+	if len(zv) == 0 && (fmt == OutFormatZeek || fmt == OutFormatZeekAscii) {
 		return "(empty)"
 	}
 
 	var b strings.Builder
 	separator := byte(',')
 	switch fmt {
-	case OUT_FORMAT_ZNG:
+	case OutFormatZNG:
 		b.WriteByte('[')
 		separator = ';'
-	case OUT_FORMAT_DEBUG:
+	case OutFormatDebug:
 		b.WriteString("set[")
 	}
 
 	first := true
 	it := zv.Iter()
 	for !it.Done() {
-		val, container, err := it.Next()
-		if container || err != nil {
+		val, _, err := it.Next()
+		if err != nil {
 			//XXX
 			b.WriteString("ERR")
 			break
@@ -72,7 +72,7 @@ func (t *TypeSet) StringOf(zv zcode.Bytes, fmt OutFmt) string {
 	}
 
 	switch fmt {
-	case OUT_FORMAT_ZNG, OUT_FORMAT_DEBUG:
+	case OutFormatZNG, OutFormatDebug:
 		b.WriteByte(']')
 	}
 	return b.String()

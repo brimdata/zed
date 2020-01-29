@@ -35,11 +35,11 @@ type Resolver interface {
 type OutFmt int
 
 const (
-	OUT_FORMAT_UNESCAPED = iota
-	OUT_FORMAT_ZNG
-	OUT_FORMAT_ZEEK
-	OUT_FORMAT_ZEEK_ASCII
-	OUT_FORMAT_DEBUG
+	OutFormatUnescaped = iota
+	OutFormatZNG
+	OutFormatZeek
+	OutFormatZeekAscii
+	OutFormatDebug
 )
 
 // A Type is an interface presented by a zeek type.

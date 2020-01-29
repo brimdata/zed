@@ -61,7 +61,7 @@ func (t *TypeOfString) StringOf(zv zcode.Bytes, ofmt OutFmt) string {
 	var start int
 	for i := 0; i < len(zv); {
 		r, l := utf8.DecodeRune(zv[i:])
-		if ofmt != OUT_FORMAT_UNESCAPED && r == '\\' {
+		if ofmt != OutFormatUnescaped && r == '\\' {
 			out = append(out, zv[start:i]...)
 			out = append(out, '\\', '\\')
 			i++
@@ -81,5 +81,5 @@ func (t *TypeOfString) StringOf(zv zcode.Bytes, ofmt OutFmt) string {
 }
 
 func (t *TypeOfString) Marshal(zv zcode.Bytes) (interface{}, error) {
-	return t.StringOf(zv, OUT_FORMAT_UNESCAPED), nil
+	return t.StringOf(zv, OutFormatUnescaped), nil
 }

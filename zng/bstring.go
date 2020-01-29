@@ -39,7 +39,7 @@ func (t *TypeOfBstring) String() string {
 }
 
 func (t *TypeOfBstring) Marshal(zv zcode.Bytes) (interface{}, error) {
-	return t.StringOf(zv, OUT_FORMAT_UNESCAPED), nil
+	return t.StringOf(zv, OutFormatUnescaped), nil
 }
 
 const hexdigits = "0123456789abcdef"
@@ -59,7 +59,7 @@ func (t *TypeOfBstring) StringOf(data zcode.Bytes, fmt OutFmt) string {
 	var start int
 	for i := 0; i < len(data); {
 		r, l := utf8.DecodeRune(data[i:])
-		if fmt != OUT_FORMAT_UNESCAPED && r == '\\' {
+		if fmt != OutFormatUnescaped && r == '\\' {
 			out = append(out, data[start:i]...)
 			out = append(out, '\\', '\\')
 			i++

@@ -26,9 +26,9 @@ type Writer struct {
 func NewWriter(w io.Writer, flags zio.Flags) *Writer {
 	var format zng.OutFmt
 	if flags.UTF8 {
-		format = zng.OUT_FORMAT_ZEEK
+		format = zng.OutFormatZeek
 	} else {
-		format = zng.OUT_FORMAT_ZEEK_ASCII
+		format = zng.OutFormatZeekAscii
 	}
 	return &Writer{
 		Writer:    w,

@@ -25,9 +25,9 @@ type Text struct {
 func NewWriter(w io.Writer, flags zio.Flags) *Text {
 	var format zng.OutFmt
 	if flags.UTF8 {
-		format = zng.OUT_FORMAT_ZEEK
+		format = zng.OutFormatZeek
 	} else {
-		format = zng.OUT_FORMAT_ZEEK_ASCII
+		format = zng.OutFormatZeekAscii
 	}
 	return &Text{
 		Writer:    w,
@@ -59,7 +59,7 @@ func (t *Text) Write(rec *zng.Record) error {
 					v = nano.Ts(ts).Time().UTC().Format(time.RFC3339Nano)
 				}
 			} else {
-				v = value.FormatAs(t.format)
+				v = value.Format(t.format)
 			}
 			if t.ShowFields {
 				s = col.Name + ":"

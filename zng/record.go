@@ -68,18 +68,18 @@ func (t *TypeRecord) StringOf(zv zcode.Bytes, fmt OutFmt) string {
 	var b strings.Builder
 	separator := byte(',')
 	switch fmt {
-	case OUT_FORMAT_ZNG:
+	case OutFormatZNG:
 		b.WriteByte('[')
 		separator = ';'
-	case OUT_FORMAT_DEBUG:
+	case OutFormatDebug:
 		b.WriteString("record[")
 	}
 
 	first := true
 	it := zv.Iter()
 	for _, col := range t.Columns {
-		val, container, err := it.Next()
-		if container || err != nil {
+		val, _, err := it.Next()
+		if err != nil {
 			//XXX
 			b.WriteString("ERR")
 			break
@@ -92,7 +92,7 @@ func (t *TypeRecord) StringOf(zv zcode.Bytes, fmt OutFmt) string {
 	}
 
 	switch fmt {
-	case OUT_FORMAT_ZNG, OUT_FORMAT_DEBUG:
+	case OutFormatZNG, OutFormatDebug:
 		b.WriteByte(']')
 	}
 	return b.String()

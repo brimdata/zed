@@ -28,7 +28,7 @@ func TestEscapes(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.expected, func(t *testing.T) {
 			v := zng.Value{tc.typ, tc.zv}
-			res := v.FormatAs(zng.OUT_FORMAT_ZEEK)
+			res := v.Format(zng.OutFormatZeek)
 			assert.Equal(t, tc.expected, res)
 		})
 	}
