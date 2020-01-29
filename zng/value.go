@@ -103,7 +103,7 @@ func (v Value) Iter() zcode.Iter {
 	return zcode.Iter(v.Bytes)
 }
 
-// If the passed-in element is a array, attempt to get the idx'th
+// If the passed-in element is an array, attempt to get the idx'th
 // element, and return its type and raw representation.  Returns an
 // error if the passed-in element is not a array or if idx is
 // outside the array bounds.
