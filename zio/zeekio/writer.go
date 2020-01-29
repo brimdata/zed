@@ -98,7 +98,7 @@ func (w *Writer) writeHeader(r *zng.Record, path string) error {
 			if col.Name == "_path" {
 				continue
 			}
-			s += fmt.Sprintf("\t%s", zngTypeToZeek(col.Type.String()))
+			s += fmt.Sprintf("\t%s", zngTypeToZeek(col.Type))
 		}
 		s += "\n"
 	}

@@ -1,7 +1,10 @@
 package zeekio
 
 import (
+	"fmt"
 	"strings"
+
+	"github.com/mccanne/zq/zng"
 )
 
 func zeekTypeToZng(typ string) string {
@@ -11,7 +14,25 @@ func zeekTypeToZng(typ string) string {
 	return strings.ReplaceAll(typ, "vector", "array")
 }
 
-func zngTypeToZeek(typ string) string {
-	typ = strings.ReplaceAll(typ, "bstring", "string")
-	return strings.ReplaceAll(typ, "array", "vector")
+type typeVector struct {
+	inner fmt.Stringer
+}
+
+func (v typeVector) String() string {
+	return fmt.Sprintf("vector[%s]", v.inner)
+}
+
+func zngTypeToZeek(typ zng.Type) fmt.Stringer {
+	switch typ := typ.(type) {
+	case *zng.TypeArray:
+		return typeVector{
+			inner: zngTypeToZeek(typ.Type),
+		}
+	}
+	switch typ {
+	case zng.TypeBstring:
+		return zng.TypeString
+	default:
+		return typ
+	}
 }
