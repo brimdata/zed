@@ -418,7 +418,7 @@ func (c *Context) parseSetTypeBody(in string) (string, zng.Type, error) {
 	}
 }
 
-// parse a array body type of the form "[type]"
+// parse an array body type of the form "[type]"
 func (c *Context) parseArrayTypeBody(in string) (string, *zng.TypeArray, error) {
 	rest, ok := match(in, "[")
 	if !ok {
