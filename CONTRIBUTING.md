@@ -8,7 +8,7 @@ fork the repo, or send us a pull request.
 watch the repo so you can follow and track our progress.
 
 In particular, we will be adding many more processors and aggregate functions.
-If you want a fun small project to help out, pick some functionality that is missing and
+If you want a fun, small project to help out, pick some functionality that is missing and
 add a processor in [zq/proc](proc) or an aggregate function in [zq/reducer](reducer).
 
 
