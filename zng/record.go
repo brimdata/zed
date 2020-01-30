@@ -64,7 +64,7 @@ func (t *TypeRecord) Parse(in []byte) (zcode.Bytes, error) {
 	panic("record.Parse shouldn't be called")
 }
 
-func (t *TypeRecord) StringOf(zv zcode.Bytes, fmt OutFmt) string {
+func (t *TypeRecord) StringOf(zv zcode.Bytes, fmt OutFmt, _ bool) string {
 	var b strings.Builder
 	separator := byte(',')
 	switch fmt {
@@ -92,7 +92,7 @@ func (t *TypeRecord) StringOf(zv zcode.Bytes, fmt OutFmt) string {
 		if val == nil {
 			b.WriteByte('-')
 		} else {
-			b.WriteString(col.Type.StringOf(val, fmt))
+			b.WriteString(col.Type.StringOf(val, fmt, false))
 		}
 	}
 

@@ -8,8 +8,10 @@ import (
 // in a value should be escaped for the given output format.  This function
 // does not account for unprintable characters, its main purpose is to
 // centralize the logic about which characters are syntatically significant
-// in each output format and hence must be escaped.
-func ShouldEscape(r rune, fmt OutFmt, pos int) bool {
+// in each output format and hence must be escaped.  The inContainer parameter
+// specifies whether this values is inside a set or vector (which is needed
+// to correctly implement  zeek log escaping rules).
+func ShouldEscape(r rune, fmt OutFmt, pos int, inContainer bool) bool {
 	if fmt != OutFormatUnescaped && r == '\\' {
 		return true
 	}
@@ -18,7 +20,7 @@ func ShouldEscape(r rune, fmt OutFmt, pos int) bool {
 		return true
 	}
 
-	if (fmt == OutFormatZeek || fmt == OutFormatZeekAscii) && (r == '\t' || r == ',') {
+	if (fmt == OutFormatZeek || fmt == OutFormatZeekAscii) && (r == '\t' || (r == ',' && inContainer)) {
 		return true
 	}
 

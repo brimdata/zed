@@ -120,7 +120,7 @@ func ZeekStrings(r *zng.Record, precision int, fmt zng.OutFmt) ([]string, bool, 
 			}
 			field = string(ts.AppendFloat(nil, precision))
 		} else {
-			field = col.Type.StringOf(val, fmt)
+			field = col.Type.StringOf(val, fmt, false)
 		}
 		ss = append(ss, field)
 	}

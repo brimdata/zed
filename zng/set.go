@@ -39,7 +39,7 @@ func (t *TypeSet) Parse(in []byte) (zcode.Bytes, error) {
 	panic("zeek.TypeSet.Parse shouldn't be called")
 }
 
-func (t *TypeSet) StringOf(zv zcode.Bytes, fmt OutFmt) string {
+func (t *TypeSet) StringOf(zv zcode.Bytes, fmt OutFmt, _ bool) string {
 	if len(zv) == 0 && (fmt == OutFormatZeek || fmt == OutFormatZeekAscii) {
 		return "(empty)"
 	}
@@ -68,7 +68,7 @@ func (t *TypeSet) StringOf(zv zcode.Bytes, fmt OutFmt) string {
 		} else {
 			b.WriteByte(separator)
 		}
-		b.WriteString(t.InnerType.StringOf(val, fmt))
+		b.WriteString(t.InnerType.StringOf(val, fmt, true))
 	}
 
 	switch fmt {

@@ -75,7 +75,7 @@ func (v Value) Format(fmt OutFmt) string {
 	if v.Bytes == nil {
 		return "-"
 	}
-	return v.Type.StringOf(v.Bytes, fmt)
+	return v.Type.StringOf(v.Bytes, fmt, false)
 }
 
 // String implements the fmt.Stringer interface and returns a

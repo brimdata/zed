@@ -54,7 +54,7 @@ func (t *TypeOfDouble) String() string {
 	return "double"
 }
 
-func (t *TypeOfDouble) StringOf(zv zcode.Bytes, _ OutFmt) string {
+func (t *TypeOfDouble) StringOf(zv zcode.Bytes, _ OutFmt, _ bool) string {
 	d, err := DecodeDouble(zv)
 	if err != nil {
 		return badZng(err, t, zv)
