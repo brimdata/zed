@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestEscapeAndUnescape(t *testing.T) {
+func TestUnescape(t *testing.T) {
 	cases := []struct {
 		unescaped string
 		escaped   string
@@ -17,18 +17,6 @@ func TestEscapeAndUnescape(t *testing.T) {
 		{"\a\b\f\n\r\t\v", `\x07\x08\x0c\x0a\x0d\x09\x0b`},
 		{"\x00\x19\x20\\\x7e\x7f\xff", "\\x00\\x19\x20\\\\\x7e\\x7f\\xff"},
 	}
-	/* XXX migrate me
-	for _, c := range cases {
-		in, expected := c.unescaped, c.escaped
-
-		actual := Escape([]byte(in))
-		require.Exactly(t, expected, actual, "case: %#v", c)
-
-		actual = Escape([]byte("prefix" + in + "suffix"))
-		expected = "prefix" + expected + "suffix"
-		require.Exactly(t, expected, actual, "case: %#v", c)
-	}
-	*/
 	for _, c := range cases {
 		in, expected := c.escaped, c.unescaped
 
@@ -53,18 +41,6 @@ func TestUnescapeUTF(t *testing.T) {
 		{"\x00\x19\x20\\\x7e\x7f\xff", "\\x00\\x19\x20\\\\\x7e\\x7f\\xff"},
 		{"\x00😁", `\x00\xf0\x9f\x98\x81`},
 	}
-	/* XXX migrate me
-	for _, c := range cases {
-		in, expected := c.unescaped, c.escaped
-
-		actual := Escape([]byte(in))
-		require.Exactly(t, expected, actual, "case: %#v", c)
-
-		actual = Escape([]byte("prefix" + in + "suffix"))
-		expected = "prefix" + expected + "suffix"
-		require.Exactly(t, expected, actual, "case: %#v", c)
-	}
-	*/
 	for _, c := range cases {
 		in, expected := c.escaped, c.unescaped
 

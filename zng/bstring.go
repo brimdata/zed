@@ -11,7 +11,7 @@ import (
 type TypeOfBstring struct{}
 
 func NewBstring(s string) Value {
-	return Value{TypeString, EncodeBstring(s)}
+	return Value{TypeBstring, EncodeBstring(s)}
 }
 
 func EncodeBstring(s string) zcode.Bytes {
