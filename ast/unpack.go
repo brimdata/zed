@@ -227,8 +227,12 @@ func unpackReducers(node joe.JSON) ([]Reducer, error) {
 	n := node.Len()
 	reducers := make([]Reducer, n)
 	for k := 0; k < n; k++ {
+		fld := node.Index(k).Get("field")
+		if fld == joe.Undefined {
+			continue
+		}
 		var err error
-		reducers[k].Field, err = unpackFieldExpr(node.Index(k).Get("field"))
+		reducers[k].Field, err = unpackFieldExpr(fld)
 		if err != nil {
 			return nil, err
 		}
