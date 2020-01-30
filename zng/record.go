@@ -84,11 +84,16 @@ func (t *TypeRecord) StringOf(zv zcode.Bytes, fmt OutFmt) string {
 			b.WriteString("ERR")
 			break
 		}
-		if !first {
-			b.WriteByte(separator)
+		if first {
 			first = false
+		} else {
+			b.WriteByte(separator)
 		}
-		b.WriteString(col.Type.StringOf(val, fmt))
+		if len(val) == 0 {
+			b.WriteByte('-')
+		} else {
+			b.WriteString(col.Type.StringOf(val, fmt))
+		}
 	}
 
 	switch fmt {

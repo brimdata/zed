@@ -23,6 +23,10 @@ func TestFormatting(t *testing.T) {
 	bstringVecType := zctx.LookupTypeArray(zng.TypeBstring)
 	setOfVectorsType := zctx.LookupTypeSet(bstringVecType)
 	vecOfVectorsType := zctx.LookupTypeArray(bstringVecType)
+	recType := zctx.LookupTypeRecord([]zng.Column{
+		{"b", zng.TypeBstring},
+		{"s", zng.TypeString},
+	})
 
 	type Expect struct {
 		fmt      zng.OutFmt
@@ -97,7 +101,7 @@ func TestFormatting(t *testing.T) {
 			},
 		},
 
-		// newlines and tabs are escaped in Zeek but not ZNG
+		// Newlines and tabs are escaped
 		{
 			zng.NewBstring("\n\t"),
 			[]Expect{
@@ -107,7 +111,7 @@ func TestFormatting(t *testing.T) {
 			},
 		},
 
-		// commas are escaped in Zeek but not ZNG
+		// Commas are escaped in Zeek but not ZNG
 		{
 			zng.NewBstring("a,b"),
 			[]Expect{
@@ -127,7 +131,7 @@ func TestFormatting(t *testing.T) {
 			},
 		},
 
-		// Square bracket in the middle of a value is not escaped
+		// Square bracket not at the start of a value is not escaped
 		{
 			zng.NewBstring("hello["),
 			[]Expect{
@@ -182,7 +186,7 @@ func TestFormatting(t *testing.T) {
 			},
 		},
 
-		// newlines and tabs are escaped in Zeek but not ZNG
+		// Newlines and tabs are escaped
 		{
 			zng.NewString("\n\t"),
 			[]Expect{
@@ -192,7 +196,7 @@ func TestFormatting(t *testing.T) {
 			},
 		},
 
-		// commas are escaped in Zeek but not ZNG
+		// Commas are escaped in Zeek but not ZNG
 		{
 			zng.NewString("a,b"),
 			[]Expect{
@@ -333,7 +337,31 @@ func TestFormatting(t *testing.T) {
 				makeContainer([]byte("-"), nil),
 			},
 			[]Expect{
-				{zng.OutFormatZeek, "\\x2d,-"},
+				{zng.OutFormatZeek, `\x2d,-`},
+				{zng.OutFormatZNG, `[\x2d;-]`},
+			},
+		},
+
+		//
+		// Test records
+		//
+
+		// Simple record
+		{
+			zng.Value{
+				recType,
+				makeContainer([]byte("foo"), []byte("bar")),
+			},
+			[]Expect{
+				{zng.OutFormatZNG, `[foo;bar]`},
+			},
+		},
+
+		// Record with nils
+		{
+			zng.Value{recType, makeContainer(nil, nil)},
+			[]Expect{
+				{zng.OutFormatZNG, `[-;-]`},
 			},
 		},
 	}
