@@ -157,22 +157,7 @@ make test-system
 
 ## Contributing
 
-`zq` is developed on GitHhub by its community. We welcome contributions.
-
-Feel free to
-[post an issue](https://github.com/mccanne/zq/issues),
-fork the repo, or send us a pull request.
-
-`zq` is early in its life cycle and will be expanding quickly.  Please star and/or
-watch the repo so you can follow and track our progress.
-
-In particular, we will be adding many more processors and aggregate functions.
-If you want a fun small project to help out, pick some functionality that is missing and
-add a processor in
-[zq/proc](proc)
-or an aggregate function in
-[zq/reducer](reducer).
-
+See the [contributing guide](CONTRIBUTING.md) on how you can help improve `zq`!
 
 [doc-img]: https://godoc.org/github.com/mccanne/zq?status.svg
 [doc]: https://godoc.org/github.com/mccanne/zq

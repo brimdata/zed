@@ -163,6 +163,8 @@ func (f *FieldCall) Copy() FieldExpr {
 
 func (r Reducer) Copy() Reducer {
 	copy := r
-	copy.Field = r.Field.Copy()
+	if r.Field != nil {
+		copy.Field = r.Field.Copy()
+	}
 	return copy
 }

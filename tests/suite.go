@@ -59,6 +59,7 @@ var internals = []test.Internal{
 
 var commands = []test.Exec{
 	cut.Exec,
+	errors.Exec,
 	utf8.Exec,
 }
 
