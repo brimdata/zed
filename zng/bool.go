@@ -44,7 +44,7 @@ func (t *TypeOfBool) String() string {
 	return "bool"
 }
 
-func (t *TypeOfBool) StringOf(zv zcode.Bytes) string {
+func (t *TypeOfBool) StringOf(zv zcode.Bytes, _ OutFmt) string {
 	b, err := DecodeBool(zv)
 	if err != nil {
 		return badZng(err, t, zv)

@@ -101,7 +101,7 @@ func (w *Writer) writeValue(v zng.Value) error {
 	if v.IsUnsetOrNil() {
 		return w.write("-;")
 	}
-	if err := w.writeEscaped(v.Format()); err != nil {
+	if err := w.writeEscaped([]byte(v.Format(zng.OutFormatZNG))); err != nil {
 		return err
 	}
 	return w.write(";")

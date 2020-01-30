@@ -2,6 +2,7 @@ package zng
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/mccanne/zq/zcode"
 )
@@ -39,22 +40,47 @@ func (t *TypeArray) Parse(in []byte) (zcode.Bytes, error) {
 	panic("zeek.TypeArray.Parse shouldn't be called")
 }
 
-func (t *TypeArray) StringOf(zv zcode.Bytes) string {
-	s := "array["
-	comma := ""
+func (t *TypeArray) StringOf(zv zcode.Bytes, fmt OutFmt) string {
+	if len(zv) == 0 && (fmt == OutFormatZeek || fmt == OutFormatZeekAscii) {
+		return "(empty)"
+	}
+
+	var b strings.Builder
+	separator := byte(',')
+	switch fmt {
+	case OutFormatZNG:
+		b.WriteByte('[')
+		separator = ';'
+	case OutFormatDebug:
+		b.WriteString("array[")
+	}
+
+	first := true
 	it := zv.Iter()
 	for !it.Done() {
-		zv, container, err := it.Next()
-		if container || err != nil {
+		val, _, err := it.Next()
+		if err != nil {
 			//XXX
-			s += "ERR"
+			b.WriteString("ERR")
 			break
 		}
-		s += comma + Value{t.Type, zv}.String()
-		comma = ","
+		if first {
+			first = false
+		} else {
+			b.WriteByte(separator)
+		}
+		if len(val) == 0 {
+			b.WriteByte('-')
+		} else {
+			b.WriteString(t.Type.StringOf(val, fmt))
+		}
 	}
-	s += "]"
-	return s
+
+	switch fmt {
+	case OutFormatZNG, OutFormatDebug:
+		b.WriteByte(']')
+	}
+	return b.String()
 }
 
 func (t *TypeArray) Marshal(zv zcode.Bytes) (interface{}, error) {

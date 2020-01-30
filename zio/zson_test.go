@@ -83,12 +83,12 @@ const zng3 = `
 
 // String \x2d is "-".
 const zng4 = `
-#0:record[foo:string]
+#0:record[foo:bstring]
 0:[\x2d;]`
 
 // String \x5b is "[", second string is "[-]" and should pass through.
 const zng5 = `
-#0:record[foo:string,bar:string]
+#0:record[foo:bstring,bar:bstring]
 0:[\x5b;\x5b-];]`
 
 // Make sure we handle unset fields and empty sets.

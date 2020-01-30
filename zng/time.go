@@ -40,7 +40,7 @@ func (t *TypeOfTime) String() string {
 	return "time"
 }
 
-func (t *TypeOfTime) StringOf(zv zcode.Bytes) string {
+func (t *TypeOfTime) StringOf(zv zcode.Bytes, _ OutFmt) string {
 	ts, err := DecodeTime(zv)
 	if err != nil {
 		return badZng(err, t, zv)

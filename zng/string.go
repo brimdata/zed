@@ -1,6 +1,12 @@
 package zng
 
 import (
+	"bytes"
+	"fmt"
+	"strconv"
+	"unicode"
+	"unicode/utf8"
+
 	"github.com/mccanne/zq/zcode"
 	"golang.org/x/text/unicode/norm"
 )
@@ -35,17 +41,45 @@ func (t *TypeOfString) String() string {
 	return "string"
 }
 
-func (t *TypeOfString) StringOf(zv zcode.Bytes) string {
-	//XXX we need to rework this to conform with ZNG spec.
-	// for now, we are leaving binary data in the string here
-	// and leaving it up to the caller to escape as desired.
-	// (at least when we change this to bsring).
-	// XXX need to make sure we don't double escape in zio
-	//return EscapeUTF8(zv)
-	return string(zv)
+func uescape(r rune) []byte {
+	code := strconv.FormatInt(int64(r), 16)
+	var s string
+	if len(code) == 4 {
+		s = fmt.Sprintf("\\u%s", code)
+	} else {
+		s = fmt.Sprintf("\\u{%s}", code)
+	}
+	return []byte(s)
+}
+
+func (t *TypeOfString) StringOf(zv zcode.Bytes, fmt OutFmt) string {
+	if bytes.Equal(zv, []byte{'-'}) {
+		return "\\u002d"
+	}
+
+	var out []byte
+	var start int
+	for i := 0; i < len(zv); {
+		r, l := utf8.DecodeRune(zv[i:])
+		if fmt != OutFormatUnescaped && r == '\\' {
+			out = append(out, zv[start:i]...)
+			out = append(out, '\\', '\\')
+			i++
+			start = i
+			continue
+		}
+		if !unicode.IsPrint(r) || ShouldEscape(r, fmt, i) {
+			out = append(out, zv[start:i]...)
+			out = append(out, uescape(r)...)
+			i += l
+			start = i
+		} else {
+			i += l
+		}
+	}
+	return string(append(out, zv[start:len(zv)]...))
 }
 
 func (t *TypeOfString) Marshal(zv zcode.Bytes) (interface{}, error) {
-	// XXX this should be done by ZNG bstring, not string
-	return EscapeUTF8(zv), nil
+	return t.StringOf(zv, OutFormatUnescaped), nil
 }

@@ -48,7 +48,7 @@ func (t *TypeOfAddr) String() string {
 	return "addr"
 }
 
-func (t *TypeOfAddr) StringOf(zv zcode.Bytes) string {
+func (t *TypeOfAddr) StringOf(zv zcode.Bytes, _ OutFmt) string {
 	ip, err := DecodeAddr(zv)
 	if err != nil {
 		return badZng(err, t, zv)

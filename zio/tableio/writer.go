@@ -21,18 +21,24 @@ type Table struct {
 	limit     int
 	nline     int
 	precision int
-	zio.Flags
+	format    zng.OutFmt
 }
 
 func NewWriter(w io.Writer, flags zio.Flags) *Table {
 	writer := tabwriter.NewWriter(w, 0, 8, 1, ' ', 0)
+	var format zng.OutFmt
+	if flags.UTF8 {
+		format = zng.OutFormatZeek
+	} else {
+		format = zng.OutFormatZeekAscii
+	}
 	return &Table{
 		Writer:    w,
 		flattener: zeekio.NewFlattener(resolver.NewContext()),
 		table:     writer,
 		limit:     1000,
 		precision: 6,
-		Flags:     flags,
+		format:    format,
 	}
 }
 
@@ -66,7 +72,7 @@ func (t *Table) Write(r *zng.Record) error {
 		t.nline = 0
 	}
 	//XXX only works for zeek-oriented records right now (won't work for NDJSON nested records)
-	ss, changePrecision, err := zbuf.ZeekStrings(r, t.precision, t.UTF8)
+	ss, changePrecision, err := zbuf.ZeekStrings(r, t.precision, t.format)
 	if err != nil {
 		return err
 	}

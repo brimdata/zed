@@ -2,6 +2,7 @@ package zng
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/mccanne/zq/zcode"
 )
@@ -38,22 +39,43 @@ func (t *TypeSet) Parse(in []byte) (zcode.Bytes, error) {
 	panic("zeek.TypeSet.Parse shouldn't be called")
 }
 
-func (t *TypeSet) StringOf(zv zcode.Bytes) string {
-	d := "set["
-	comma := ""
+func (t *TypeSet) StringOf(zv zcode.Bytes, fmt OutFmt) string {
+	if len(zv) == 0 && (fmt == OutFormatZeek || fmt == OutFormatZeekAscii) {
+		return "(empty)"
+	}
+
+	var b strings.Builder
+	separator := byte(',')
+	switch fmt {
+	case OutFormatZNG:
+		b.WriteByte('[')
+		separator = ';'
+	case OutFormatDebug:
+		b.WriteString("set[")
+	}
+
+	first := true
 	it := zv.Iter()
 	for !it.Done() {
-		val, container, err := it.Next()
-		if container || err != nil {
+		val, _, err := it.Next()
+		if err != nil {
 			//XXX
-			d += "ERR"
+			b.WriteString("ERR")
 			break
 		}
-		d += comma + t.InnerType.StringOf(val)
-		comma = ","
+		if first {
+			first = false
+		} else {
+			b.WriteByte(separator)
+		}
+		b.WriteString(t.InnerType.StringOf(val, fmt))
 	}
-	d += "]"
-	return d
+
+	switch fmt {
+	case OutFormatZNG, OutFormatDebug:
+		b.WriteByte(']')
+	}
+	return b.String()
 }
 
 func (t *TypeSet) Marshal(zv zcode.Bytes) (interface{}, error) {

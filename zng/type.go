@@ -29,16 +29,35 @@ type Resolver interface {
 	Lookup(int) *TypeRecord
 }
 
+// The fmt paramter passed to Type.StringOf() must be one of the following
+// values, these are used to inform the formatter how containers should be
+// encoded and what sort of escaping should be applied to string types.
+type OutFmt int
+
+const (
+	OutFormatUnescaped = iota
+	OutFormatZNG
+	OutFormatZeek
+	OutFormatZeekAscii
+	OutFormatDebug
+)
+
 // A Type is an interface presented by a zeek type.
 // Types can be used to infer type compatibility and create new values
 // of the underlying type.
 type Type interface {
+	// String returns the name of the type as defined in the ZNG spec.
 	String() string
-	StringOf(zcode.Bytes) string
+	// StringOf formats an arbitrary value of this type encoded as zcode.
+	// The fmt parameter controls output formatting.
+	StringOf(zv zcode.Bytes, fmt OutFmt) string
+	// Marshal is used from Value.MarshalJSON(), it should turn an
+	// arbitrary value of this type encoded as zcode into something
+	// suitable for passing to json.Marshal()
 	Marshal(zcode.Bytes) (interface{}, error)
-	// Parse transforms a string represenation of the type to its zval
-	// encoding.  The string input is provided as a byte slice for efficiency
-	// given the common use cases in the system.
+	// Parse transforms a string representation of the type to its zval
+	// encoding.  The string input is provided as a byte slice for
+	// efficiency given the common use cases in the system.
 	Parse([]byte) (zcode.Bytes, error)
 	ID() int
 }
