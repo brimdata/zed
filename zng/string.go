@@ -52,7 +52,7 @@ func uescape(r rune) []byte {
 	return []byte(s)
 }
 
-func (t *TypeOfString) StringOf(zv zcode.Bytes, ofmt OutFmt) string {
+func (t *TypeOfString) StringOf(zv zcode.Bytes, fmt OutFmt) string {
 	if bytes.Equal(zv, []byte{'-'}) {
 		return "\\u002d"
 	}
@@ -61,14 +61,14 @@ func (t *TypeOfString) StringOf(zv zcode.Bytes, ofmt OutFmt) string {
 	var start int
 	for i := 0; i < len(zv); {
 		r, l := utf8.DecodeRune(zv[i:])
-		if ofmt != OutFormatUnescaped && r == '\\' {
+		if fmt != OutFormatUnescaped && r == '\\' {
 			out = append(out, zv[start:i]...)
 			out = append(out, '\\', '\\')
 			i++
 			start = i
 			continue
 		}
-		if !unicode.IsPrint(r) || ShouldEscape(r, ofmt, i) {
+		if !unicode.IsPrint(r) || ShouldEscape(r, fmt, i) {
 			out = append(out, zv[start:i]...)
 			out = append(out, uescape(r)...)
 			i += l
