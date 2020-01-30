@@ -2,45 +2,41 @@ package reducer
 
 import (
 	"github.com/axiomhq/hyperloglog"
+	"github.com/mccanne/zq/expr"
 	"github.com/mccanne/zq/zng"
 )
 
 type CountDistinctProto struct {
-	target string
-	field  string
+	target   string
+	resolver expr.FieldExprResolver
 }
 
 func (cdp *CountDistinctProto) Target() string {
 	return cdp.target
 }
 
-func (cdp *CountDistinctProto) Instantiate(*zng.TypeRecord) Interface {
+func (cdp *CountDistinctProto) Instantiate(*zng.Record) Interface {
 	return &CountDistinct{
-		Field:  cdp.field,
-		sketch: hyperloglog.New(),
+		Resolver: cdp.resolver,
+		sketch:   hyperloglog.New(),
 	}
 }
 
-func NewCountDistinctProto(target, field string) *CountDistinctProto {
-	return &CountDistinctProto{target, field}
+func NewCountDistinctProto(target string, resolver expr.FieldExprResolver) *CountDistinctProto {
+	return &CountDistinctProto{target, resolver}
 }
 
 // CountDistinct uses hyperloglog to approximate the count of unique values for
 // a field.
 type CountDistinct struct {
 	Reducer
-	Field  string
-	sketch *hyperloglog.Sketch
+	Resolver expr.FieldExprResolver
+	sketch   *hyperloglog.Sketch
 }
 
 func (c *CountDistinct) Consume(r *zng.Record) {
-	colno, ok := r.Type.ColumnOfField(c.Field)
-	if !ok {
-		return
-	}
-	//XXX this isn't right
-	v, _ := r.Slice(colno)
-	c.sketch.Insert(v)
+	v := c.Resolver(r)
+	c.sketch.Insert(v.Bytes)
 }
 
 func (c *CountDistinct) Result() zng.Value {

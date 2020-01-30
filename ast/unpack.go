@@ -85,13 +85,21 @@ func unpackProc(custom Unpacker, node joe.JSON) (Proc, error) {
 	case "UniqProc":
 		return &UniqProc{}, nil
 	case "ReducerProc":
-		return &ReducerProc{}, nil
+		reducers, err := unpackReducers(node.Get("reducers"))
+		if err != nil {
+			return nil, err
+		}
+		return &ReducerProc{Reducers: reducers}, nil
 	case "GroupByProc":
 		keys, err := unpackFieldExprArray(node.Get("keys"))
 		if err != nil {
 			return nil, err
 		}
-		return &GroupByProc{Keys: keys}, nil
+		reducers, err := unpackReducers(node.Get("reducers"))
+		if err != nil {
+			return nil, err
+		}
+		return &GroupByProc{Keys: keys, Reducers: reducers}, nil
 	case "TopProc":
 		fields, err := unpackFieldExprArray(node.Get("fields"))
 		if err != nil {
@@ -207,6 +215,25 @@ func unpackFieldExpr(node joe.JSON) (FieldExpr, error) {
 	default:
 		return nil, fmt.Errorf("unknown op: %s", op)
 	}
+}
+
+func unpackReducers(node joe.JSON) ([]Reducer, error) {
+	if node == joe.Undefined {
+		return nil, nil
+	}
+	if !node.IsArray() {
+		return nil, errors.New("reducers property should be an array")
+	}
+	n := node.Len()
+	reducers := make([]Reducer, n)
+	for k := 0; k < n; k++ {
+		var err error
+		reducers[k].Field, err = unpackFieldExpr(node.Index(k).Get("field"))
+		if err != nil {
+			return nil, err
+		}
+	}
+	return reducers, nil
 }
 
 // UnpackProc transforms a JSON representation of a proc into an ast.Proc.

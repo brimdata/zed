@@ -1,6 +1,7 @@
 package field
 
 import (
+	"github.com/mccanne/zq/expr"
 	"github.com/mccanne/zq/reducer"
 	"github.com/mccanne/zq/zng"
 )
@@ -11,38 +12,38 @@ type Streamfn interface {
 }
 
 type FieldProto struct {
-	target string
-	op     string
-	field  string
+	target   string
+	op       string
+	resolver expr.FieldExprResolver
 }
 
 func (fp *FieldProto) Target() string {
 	return fp.target
 }
 
-func (fp *FieldProto) Instantiate(recType *zng.TypeRecord) reducer.Interface {
-	typ, ok := recType.TypeOfField(fp.field)
-	if !ok {
-		typ = zng.TypeNull
+func (fp *FieldProto) Instantiate(rec *zng.Record) reducer.Interface {
+	v := fp.resolver(rec)
+	if v.Type == nil {
+		v.Type = zng.TypeNull
 	}
-	return &FieldReducer{op: fp.op, field: fp.field, typ: typ}
+	return &FieldReducer{op: fp.op, resolver: fp.resolver, typ: v.Type}
 }
 
-func NewFieldProto(target, field, op string) *FieldProto {
-	return &FieldProto{target, op, field}
+func NewFieldProto(target string, resolver expr.FieldExprResolver, op string) *FieldProto {
+	return &FieldProto{target, op, resolver}
 }
 
 type FieldReducer struct {
 	reducer.Reducer
-	op    string
-	field string
-	typ   zng.Type
-	fn    Streamfn
+	op       string
+	resolver expr.FieldExprResolver
+	typ      zng.Type
+	fn       Streamfn
 }
 
 func (fr *FieldReducer) Result() zng.Value {
 	if fr.fn == nil {
-		return zng.Value{fr.typ, nil}
+		return zng.Value{Type: fr.typ, Bytes: nil}
 	}
 	return fr.fn.Result()
 }
@@ -53,8 +54,8 @@ func (fr *FieldReducer) Consume(r *zng.Record) {
 	// reducer just parse the byte slice in the record without making a value...
 	// XXX then we have Values in the zbuf.Record, we would first check the
 	// Value element in the column--- this would all go in a new method of zbuf.Record
-	val, err := r.ValueByField(fr.field)
-	if err != nil {
+	val := fr.resolver(r)
+	if val.Type == nil {
 		fr.FieldNotFound++
 		return
 	}

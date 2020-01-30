@@ -9,7 +9,9 @@ package ast
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 // A Node is shared by all the AST type nodes.  Currently, this contains the
 // op field, as every node type is defined by its op name.
@@ -265,6 +267,6 @@ func (*TopProc) ProcNode()        {}
 // The result is given the field name specified by the Var parameter.
 type Reducer struct {
 	Node
-	Var   string `json:"var"`
-	Field string `json:"field,omitempty"`
+	Var   string    `json:"var"`
+	Field FieldExpr `json:"field,omitempty"`
 }

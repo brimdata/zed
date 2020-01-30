@@ -1956,11 +1956,11 @@ var g = &grammar{
 			},
 		},
 		{
-			name: "paddedFieldName",
+			name: "paddedFieldExpr",
 			pos:  position{line: 270, col: 1, offset: 6939},
 			expr: &actionExpr{
 				pos: position{line: 270, col: 19, offset: 6957},
-				run: (*parser).callonpaddedFieldName1,
+				run: (*parser).callonpaddedFieldExpr1,
 				expr: &seqExpr{
 					pos: position{line: 270, col: 19, offset: 6957},
 					exprs: []interface{}{
@@ -1976,7 +1976,7 @@ var g = &grammar{
 							label: "field",
 							expr: &ruleRefExpr{
 								pos:  position{line: 270, col: 28, offset: 6966},
-								name: "fieldName",
+								name: "fieldExpr",
 							},
 						},
 						&zeroOrOneExpr{
@@ -2026,7 +2026,7 @@ var g = &grammar{
 								pos: position{line: 273, col: 29, offset: 7043},
 								expr: &ruleRefExpr{
 									pos:  position{line: 273, col: 29, offset: 7043},
-									name: "paddedFieldName",
+									name: "paddedFieldExpr",
 								},
 							},
 						},
@@ -2087,7 +2087,7 @@ var g = &grammar{
 							label: "field",
 							expr: &ruleRefExpr{
 								pos:  position{line: 278, col: 39, offset: 7174},
-								name: "fieldName",
+								name: "fieldExpr",
 							},
 						},
 						&zeroOrOneExpr{
@@ -2225,7 +2225,7 @@ var g = &grammar{
 									label: "field",
 									expr: &ruleRefExpr{
 										pos:  position{line: 305, col: 11, offset: 7767},
-										name: "fieldName",
+										name: "fieldExpr",
 									},
 								},
 								&zeroOrOneExpr{
@@ -5489,14 +5489,14 @@ func (p *parser) callonfieldReducerOp22() (interface{}, error) {
 	return p.cur.onfieldReducerOp22()
 }
 
-func (c *current) onpaddedFieldName1(field interface{}) (interface{}, error) {
+func (c *current) onpaddedFieldExpr1(field interface{}) (interface{}, error) {
 	return field, nil
 }
 
-func (p *parser) callonpaddedFieldName1() (interface{}, error) {
+func (p *parser) callonpaddedFieldExpr1() (interface{}, error) {
 	stack := p.vstack[len(p.vstack)-1]
 	_ = stack
-	return p.cur.onpaddedFieldName1(stack["field"])
+	return p.cur.onpaddedFieldExpr1(stack["field"])
 }
 
 func (c *current) oncountReducer1(op, field interface{}) (interface{}, error) {

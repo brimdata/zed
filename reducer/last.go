@@ -1,39 +1,40 @@
 package reducer
 
 import (
+	"github.com/mccanne/zq/expr"
 	"github.com/mccanne/zq/zng"
 )
 
 type LastProto struct {
-	target string
-	field  string
+	target   string
+	resolver expr.FieldExprResolver
 }
 
 func (lp *LastProto) Target() string {
 	return lp.target
 }
 
-func (lp *LastProto) Instantiate(recType *zng.TypeRecord) Interface {
-	typ, ok := recType.TypeOfField(lp.field)
-	if !ok {
-		typ = zng.TypeNull
+func (lp *LastProto) Instantiate(rec *zng.Record) Interface {
+	v := lp.resolver(rec)
+	if v.Type == nil {
+		v.Type = zng.TypeNull
 	}
-	return &Last{Field: lp.field, typ: typ}
+	return &Last{Resolver: lp.resolver, typ: v.Type}
 }
 
-func NewLastProto(target, field string) *LastProto {
-	return &LastProto{target, field}
+func NewLastProto(target string, resolver expr.FieldExprResolver) *LastProto {
+	return &LastProto{target, resolver}
 }
 
 type Last struct {
 	Reducer
-	Field  string
-	typ    zng.Type
-	record *zng.Record
+	Resolver expr.FieldExprResolver
+	typ      zng.Type
+	record   *zng.Record
 }
 
 func (l *Last) Consume(r *zng.Record) {
-	if _, ok := r.ColumnOfField(l.Field); !ok {
+	if v := l.Resolver(r); v.Type == nil {
 		return
 	}
 	l.record = r
@@ -42,8 +43,7 @@ func (l *Last) Consume(r *zng.Record) {
 func (l *Last) Result() zng.Value {
 	r := l.record
 	if r == nil {
-		return zng.Value{l.typ, nil}
+		return zng.Value{Type: l.typ, Bytes: nil}
 	}
-	v, _ := r.ValueByField(l.Field)
-	return v
+	return l.Resolver(r)
 }

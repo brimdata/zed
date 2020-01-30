@@ -236,9 +236,9 @@ func makeFilterProc(expr interface{}) *ast.FilterProc {
 }
 
 func makeReducer(opIn, varIn, fieldIn interface{}) *ast.Reducer {
-	var field string
+	var field ast.FieldExpr
 	if fieldIn != nil {
-		field = fieldIn.(string)
+		field = fieldIn.(ast.FieldExpr)
 	}
 	return &ast.Reducer{ast.Node{opIn.(string)}, varIn.(string), field}
 }

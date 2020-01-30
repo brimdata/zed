@@ -301,15 +301,15 @@ fieldReducerOp
   / "last"i  { RETURN("Last") }
   / "countdistinct"i { RETURN("CountDistinct") }
 
-paddedFieldName = _? field:fieldName _? { RETURN(field) }
+paddedFieldExpr = _? field:fieldExpr _? { RETURN(field) }
 
 countReducer
-  = op:countOp _? "(" field:paddedFieldName?  _? ")" {
+  = op:countOp _? "(" field:paddedFieldExpr?  _? ")" {
     RETURN(makeReducer(op, "count", field))
   }
 
 fieldReducer
-  = op:fieldReducerOp _? "(" _? field:fieldName  _? ")" {
+  = op:fieldReducerOp _? "(" _? field:fieldExpr  _? ")" {
     RETURN(makeReducer(op, toLowerCase(op), field))
   }
 
@@ -336,7 +336,7 @@ asClause
   = "as"i _ v:fieldName { RETURN(v) }
 
 reducerExpr
-  = field:fieldName _? "=" _? f:reducer {
+  = field:fieldExpr _? "=" _? f:reducer {
     RETURN(overrideReducerVar(f, field))
   }
   / f:reducer _ field:asClause {
