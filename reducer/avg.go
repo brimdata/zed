@@ -1,38 +1,42 @@
 package reducer
 
 import (
+	"github.com/mccanne/zq/expr"
 	"github.com/mccanne/zq/zng"
 	"github.com/mccanne/zq/zx"
 )
 
 type AvgProto struct {
-	target string
-	field  string
+	target   string
+	resolver expr.FieldExprResolver
 }
 
 func (ap *AvgProto) Target() string {
 	return ap.target
 }
 
-func (ap *AvgProto) Instantiate(*zng.TypeRecord) Interface {
-	return &Avg{Field: ap.field}
+func (ap *AvgProto) Instantiate(*zng.Record) Interface {
+	return &Avg{Resolver: ap.resolver}
 }
 
-func NewAvgProto(target, field string) *AvgProto {
+func NewAvgProto(target string, field expr.FieldExprResolver) *AvgProto {
 	return &AvgProto{target, field}
 }
 
 type Avg struct {
 	Reducer
-	Field string
-	sum   float64
-	count uint64
+	Resolver expr.FieldExprResolver
+	sum      float64
+	count    uint64
 }
 
 func (a *Avg) Consume(r *zng.Record) {
-	v, err := r.ValueByField(a.Field)
-	if err != nil {
+	v := a.Resolver(r)
+	if v.Type == nil {
 		a.FieldNotFound++
+		return
+	}
+	if v.Bytes == nil {
 		return
 	}
 	d, ok := zx.CoerceToDouble(v)
@@ -45,9 +49,8 @@ func (a *Avg) Consume(r *zng.Record) {
 }
 
 func (a *Avg) Result() zng.Value {
-	var v float64
 	if a.count > 0 {
-		v = a.sum / float64(a.count)
+		return zng.NewDouble(a.sum / float64(a.count))
 	}
-	return zng.NewDouble(v)
+	return zng.Value{Type: zng.TypeDouble}
 }

@@ -44,7 +44,7 @@ again:
 	raw, typ, err := r.parser.Parse(line)
 	if err != nil {
 		// XXX we should be incrementing a stats counter of skipped lines.
-		if err == ErrMultiTypedVector {
+		if err == ErrMultiTypedArray {
 			goto again
 		}
 		return nil, fmt.Errorf("line %d: %w", r.scanner.Stats.Lines, err)

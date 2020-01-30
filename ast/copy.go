@@ -32,7 +32,9 @@ func (p *CutProc) Copy() Proc {
 
 func (p *ReducerProc) Copy() Proc {
 	reducers := make([]Reducer, len(p.Reducers))
-	copy(reducers, p.Reducers)
+	for i, r := range p.Reducers {
+		reducers[i] = r.Copy()
+	}
 	return &ReducerProc{
 		Node:     Node{p.Op},
 		Reducers: reducers,
@@ -41,7 +43,9 @@ func (p *ReducerProc) Copy() Proc {
 
 func (p *GroupByProc) Copy() Proc {
 	reducers := make([]Reducer, len(p.Reducers))
-	copy(reducers, p.Reducers)
+	for i, r := range p.Reducers {
+		reducers[i] = r.Copy()
+	}
 	keys := make([]FieldExpr, len(p.Keys))
 	for i, k := range p.Keys {
 		keys[i] = k.Copy()
@@ -155,4 +159,10 @@ func (f *FieldRead) Copy() FieldExpr {
 func (f *FieldCall) Copy() FieldExpr {
 	copy := *f
 	return &copy
+}
+
+func (r Reducer) Copy() Reducer {
+	copy := r
+	copy.Field = r.Field.Copy()
+	return copy
 }

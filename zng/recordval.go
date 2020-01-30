@@ -147,7 +147,7 @@ func (r *Record) TypeCheck() error {
 	return checkRecord(r.Type, r.Raw)
 }
 
-func checkVector(typ *TypeVector, body zcode.Bytes) error {
+func checkVector(typ *TypeArray, body zcode.Bytes) error {
 	if body == nil {
 		return nil
 	}
@@ -161,28 +161,28 @@ func checkVector(typ *TypeVector, body zcode.Bytes) error {
 		switch v := inner.(type) {
 		case *TypeRecord:
 			if !container {
-				return &RecordTypeError{Name: "<vector element>", Type: v.String(), Err: ErrNotContainer}
+				return &RecordTypeError{Name: "<record element>", Type: v.String(), Err: ErrNotContainer}
 			}
 			if err := checkRecord(v, body); err != nil {
 				return err
 			}
-		case *TypeVector:
+		case *TypeArray:
 			if !container {
-				return &RecordTypeError{Name: "<vector element>", Type: v.String(), Err: ErrNotContainer}
+				return &RecordTypeError{Name: "<array element>", Type: v.String(), Err: ErrNotContainer}
 			}
 			if err := checkVector(v, body); err != nil {
 				return err
 			}
 		case *TypeSet:
 			if !container {
-				return &RecordTypeError{Name: "<vector element>", Type: v.String(), Err: ErrNotContainer}
+				return &RecordTypeError{Name: "<set element>", Type: v.String(), Err: ErrNotContainer}
 			}
 			if err := checkSet(v, body); err != nil {
 				return err
 			}
 		default:
 			if container {
-				return &RecordTypeError{Name: "<vector element>", Type: v.String(), Err: ErrNotPrimitive}
+				return &RecordTypeError{Name: "<array element>", Type: v.String(), Err: ErrNotPrimitive}
 			}
 		}
 	}
@@ -231,7 +231,7 @@ func checkRecord(typ *TypeRecord, body zcode.Bytes) error {
 			if err := checkRecord(v, body); err != nil {
 				return err
 			}
-		case *TypeVector:
+		case *TypeArray:
 			if !container {
 				return &RecordTypeError{Name: col.Name, Type: col.Type.String(), Err: ErrNotContainer}
 			}

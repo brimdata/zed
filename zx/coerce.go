@@ -167,7 +167,7 @@ func CoerceToEnum(in zng.Value) (string, bool) {
 	switch in.Type.(type) {
 	default:
 		return "", false
-	case *zng.TypeOfString:
+	case *zng.TypeOfString, *zng.TypeOfBstring:
 		enum = string(in.Bytes)
 	}
 	return enum, true
@@ -198,6 +198,15 @@ func CoerceToTime(in zng.Value) (nano.Ts, bool) {
 		return 0, false
 	}
 	return ts, true
+}
+
+func CoerceToString(in zng.Value) (string, bool) {
+	switch in.Type.(type) {
+	default:
+		return "", false
+	case *zng.TypeOfString, *zng.TypeOfBstring, *zng.TypeOfEnum:
+		return string(in.Bytes), true
+	}
 }
 
 // TBD
@@ -235,6 +244,14 @@ func Coerce(v zng.Value, to zng.Type) (zng.Value, bool) {
 	case *zng.TypeOfTime:
 		if i, ok := CoerceToTime(v); ok {
 			return zng.NewTime(i), true
+		}
+	case *zng.TypeOfString:
+		if s, ok := CoerceToString(v); ok {
+			return zng.NewString(s), true
+		}
+	case *zng.TypeOfBstring:
+		if s, ok := CoerceToString(v); ok {
+			return zng.NewBstring(s), true
 		}
 	}
 	return zng.Value{}, false

@@ -16,7 +16,7 @@ import (
 // function that takes a zbuf.Record as input, evaluates the given
 // expression against that record, and returns the resulting typed value.
 // If the expression can't be resolved (i.e., because some field
-// reference refers to a non-existent field, a vector index is out of
+// reference refers to a non-existent field, an array index is out of
 // bounds, etc.), the resolver returns (nil, nil)
 type FieldExprResolver func(*zng.Record) zng.Value
 
@@ -31,7 +31,7 @@ type arrayIndex struct {
 }
 
 func (ai *arrayIndex) apply(e zng.Value) zng.Value {
-	el, err := e.VectorIndex(ai.idx)
+	el, err := e.ArrayIndex(ai.idx)
 	if err != nil {
 		if err == zng.ErrIndex {
 			typ := zng.InnerType(e.Type)

@@ -51,8 +51,8 @@ func formatType(typ zng.Type) string {
 	switch typ := typ.(type) {
 	case *zng.TypeSet:
 		return fmt.Sprintf("%d:set[<%d>]", typ.ID(), typ.InnerType.ID())
-	case *zng.TypeVector:
-		return fmt.Sprintf("%d:vector[<%d>]", typ.ID(), typ.Type.ID())
+	case *zng.TypeArray:
+		return fmt.Sprintf("%d:array[<%d>]", typ.ID(), typ.Type.ID())
 	case *zng.TypeRecord:
 		s := fmt.Sprintf("%d:record[", typ.ID())
 		comma := ""

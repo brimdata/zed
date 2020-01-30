@@ -87,7 +87,7 @@ For example,
 9:no, there isn't.
 4:3
 ```
-where type code 4 represents an integer.  This encoding represents the sequence of
+where type ID 4 represents an integer.  This encoding represents the sequence of
 values:
 ```
 "hello, world"
@@ -97,7 +97,7 @@ values:
 3
 ```
 ZNG streams are often comprised as a sequence of records, which works well to provide
-an efficient representation of structured logs.  In this case, a new type code is
+an efficient representation of structured logs.  In this case, a new type ID is
 needed to define the schema for each distinct record.  To define a new
 type, the "#" syntax is used.  For example,
 logs from the open-source Zeek system might look like this
@@ -109,8 +109,8 @@ logs from the open-source Zeek system might look like this
 25:[files;1425565514.419987;Fj8sRF1gdneMHN700d;[52.218.49.89;52.218.48.169;]...
 ```
 Note that the value encoding need not refer to the field names and types as that is
-completely captured by the type code.  Values merely encode the value
-information consistent with the referenced type code.
+completely captured by the type ID.  Values merely encode the value
+information consistent with the referenced type ID.
 
 ## 2. ZNG Binary Format (BZNG)
 
@@ -156,17 +156,17 @@ encapsulating protocols.  See the
 ### 2.1.1 Typedefs
 
 Following a header byte of 0x80-0x83 is a "typedef".  A typedef binds
-"the next available" integer type code to a type encoding.  Type codes
+"the next available" integer type ID to a type encoding.  Type IDs
 begin at the value 23 and increase by one for each typedef. These bindings
 are scoped to the stream in which the typedef occurs.
 
-Type codes for the "primitive types" need not be defined with typedefs and
+Type IDs for the "primitive types" need not be defined with typedefs and
 are predefined as follows:
 
 <table>
 <tr><td>
 
-| Type       | Code |
+| Type       | ID |
 |------------|------|
 | `bool`     |   0  |
 | `byte`     |   1  |
@@ -181,7 +181,7 @@ are predefined as follows:
 
 </td><td>
 
-| Type       | Code |
+| Type       | ID |
 |------------|------|
 | `bytes`    |  10  |
 | `bstring`  |  11  |
@@ -196,12 +196,12 @@ are predefined as follows:
 
 </td></tr> </table>
 
-A typedef is encoded as a single byte indicating the container type code following by
-the type encoding.  This creates a binding between the implied type code
+A typedef is encoded as a single byte indicating the container type ID following by
+the type encoding.  This creates a binding between the implied type ID
 (i.e., 23 plus the count of all previous typedefs in the stream) and the new
 type definition.
 
-The type code is encoded as a `uvarint`, an encoding used throughout the BZNG format.
+The type ID is encoded as a `uvarint`, an encoding used throughout the BZNG format.
 
 > Inspired by Protocol Buffers,
 > a `uvarint` is an unsigned, variable-length integer encoded as a sequence of
@@ -212,11 +212,11 @@ The type code is encoded as a `uvarint`, an encoding used throughout the BZNG fo
 
 #### 2.1.1.1 Record Typedef
 
-A record typedef creates a new type code equal to the next stream type code
+A record typedef creates a new type ID equal to the next stream type ID
 with the following structure:
 ```
 ----------------------------------------------------------
-|0x80|<nfields>|<field1><typecode1><field2><typecode2>...|
+|0x80|<nfields>|<field1><type-id-1><field2><type-id-2>...|
 ----------------------------------------------------------
 ```
 Record types consist of an ordered set of columns where each column consists of
@@ -225,8 +225,8 @@ and must be preserved through any APIs that consume, process, and emit ZNG recor
 
 A record type is encoded as a count of fields, i.e., `<nfields>` from above,
 followed by the field definitions,
-where a field definition is a field name followed by a type code, i.e.,
-`<field1>` followed by `<typecode1>` etc. as indicated above.
+where a field definition is a field name followed by a type ID, i.e.,
+`<field1>` followed by `<type-id-1>` etc. as indicated above.
 
 The field names in a record must be unique.
 
@@ -241,7 +241,7 @@ string data.
 N.B.: The rules for ZNG identifiers follow the same rules as
 [JavaScript identifiers](https://tc39.es/ecma262/#prod-IdentifierName).
 
-The type code follows the field name and is encoded as a `uvarint`.
+The type ID follows the field name and is encoded as a `uvarint`.
 
 A record may not contain zero columns.
 
@@ -250,20 +250,20 @@ A record may not contain zero columns.
 An array type is encoded as simply the type code of the elements of
 the array encoded as a `uvarint`:
 ```
-------------------
-|0x81|<type-code>|
-------------------
+----------------
+|0x81|<type-id>|
+----------------
 ```
 
 #### 2.1.1.3 Set Typedef
 
-A set type is encoded as a concatenation of the type codes that comprise
-the elements of the set where each type code and the number of types
+A set type is encoded as a concatenation of the type IDs that comprise
+the elements of the set where each type ID and the number of types
 in the set are all encoded as a `uvarint`:
 ```
-------------------------------------------
-|0x82|<ntypes><type-code1><type-code2>...|
-------------------------------------------
+----------------------------------------
+|0x82|<ntypes><type-id-1><type-id-2>...|
+----------------------------------------
 ```
 
 #### 2.1.1.4 Union Typedef
@@ -563,7 +563,7 @@ Here is a pseudo-grammar for typed values:
 
 A terminal value is encoded as a string of characters terminated
 by a semicolon (which must be escaped if it appears in a string-typed value).
-Container values (i.e., sets, vectors, or records) are encoded as
+Container values (i.e., sets, arrays, or records) are encoded as
 * an open bracket,
 * zero or more encoded values terminated with semicolon, and
 * a close bracket.
@@ -580,7 +580,7 @@ if the parsed value does not match the indicated type in terms of number and
 sub-structure of value elements present and their interpretation as a valid
 string of the specified type.
 
-It is an error for a value to reference a type code that has not been previously
+It is an error for a value to reference a type ID that has not been previously
 defined by a typedef scoped to the stream in which the value appears.
 
 #### 3.2.1 Character Escape Rules
@@ -661,7 +661,7 @@ int
 ```
 Container types look like this and do need typedefs:
 ```
-#0:vector[int]
+#0:array[int]
 #1:set[bool,string]
 #2:record[x:double,y:double]
 ```
@@ -688,7 +688,7 @@ record(a:"hello",b:"world")
 string("this is a semicolon: ;")
 ```
 Note that the tag integers occupy their own numeric space indepedent of
-any underlying BZNG type codes.
+any underlying BZNG type IDs.
 
 The semicolon terminator is important.  Consider this ZNG depicting
 sets of strings:

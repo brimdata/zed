@@ -62,7 +62,7 @@ func TestZngDescriptors(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 100, int(n), "Parsed another int properly")
 
-	// XXX test other types, sets, vectors, etc.
+	// XXX test other types, sets, arrays, etc.
 
 	// Check Step 4 - Test that referencing an invalid descriptor is an error.
 	_, err = r.Read()

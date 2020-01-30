@@ -13,7 +13,7 @@ import (
 func TestContextSerialization(t *testing.T) {
 	ctx := resolver.NewContext()
 	ctx.LookupByName("record[a:set[string],b:int]]")
-	ctx.LookupByName("record[a:vector[record[a:int,b:int]],b:int]]")
+	ctx.LookupByName("record[a:array[record[a:int,b:int]],b:int]]")
 	b, _ := ctx.Serialize()
 	reader := bytes.NewReader(b)
 	newCtx := resolver.NewContext()
