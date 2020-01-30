@@ -20,9 +20,9 @@ func makeContainer(vals ...[]byte) zcode.Bytes {
 func TestFormatting(t *testing.T) {
 	zctx := resolver.NewContext()
 	bstringSetType := zctx.LookupTypeSet(zng.TypeBstring)
-	bstringVecType := zctx.LookupTypeVector(zng.TypeBstring)
+	bstringVecType := zctx.LookupTypeArray(zng.TypeBstring)
 	setOfVectorsType := zctx.LookupTypeSet(bstringVecType)
-	vecOfVectorsType := zctx.LookupTypeVector(bstringVecType)
+	vecOfVectorsType := zctx.LookupTypeArray(bstringVecType)
 
 	type Expect struct {
 		fmt      zng.OutFmt
