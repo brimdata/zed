@@ -89,7 +89,7 @@ func (t *TypeRecord) StringOf(zv zcode.Bytes, fmt OutFmt) string {
 		} else {
 			b.WriteByte(separator)
 		}
-		if len(val) == 0 {
+		if val == nil {
 			b.WriteByte('-')
 		} else {
 			b.WriteString(col.Type.StringOf(val, fmt))
@@ -97,7 +97,12 @@ func (t *TypeRecord) StringOf(zv zcode.Bytes, fmt OutFmt) string {
 	}
 
 	switch fmt {
-	case OutFormatZNG, OutFormatDebug:
+	case OutFormatZNG:
+		if !first {
+			b.WriteByte(';')
+		}
+		b.WriteByte(']')
+	case OutFormatDebug:
 		b.WriteByte(']')
 	}
 	return b.String()

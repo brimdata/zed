@@ -72,7 +72,12 @@ func (t *TypeSet) StringOf(zv zcode.Bytes, fmt OutFmt) string {
 	}
 
 	switch fmt {
-	case OutFormatZNG, OutFormatDebug:
+	case OutFormatZNG:
+		if !first {
+			b.WriteByte(';')
+		}
+		b.WriteByte(']')
+	case OutFormatDebug:
 		b.WriteByte(']')
 	}
 	return b.String()
