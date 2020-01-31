@@ -8,14 +8,6 @@ import (
 
 type TypeOfInt struct{}
 
-var compareInt = map[string]func(int64, int64) bool{
-	"eql":  func(a, b int64) bool { return a == b },
-	"neql": func(a, b int64) bool { return a != b },
-	"gt":   func(a, b int64) bool { return a > b },
-	"gte":  func(a, b int64) bool { return a >= b },
-	"lt":   func(a, b int64) bool { return a < b },
-	"lte":  func(a, b int64) bool { return a <= b }}
-
 func NewInt(i int64) Value {
 	return Value{TypeInt, EncodeInt(i)}
 }

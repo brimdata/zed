@@ -23,7 +23,6 @@ type Top struct {
 	records    *expr.RecordSlice
 	sorter     expr.SortFn
 	flushEvery bool
-	out        []*zng.Record
 }
 
 func NewTop(c *Context, parent Proc, limit int, fields []expr.FieldExprResolver, flushEvery bool) *Top {

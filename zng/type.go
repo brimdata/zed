@@ -11,7 +11,6 @@ package zng
 
 import (
 	"errors"
-	"strings"
 
 	"github.com/mccanne/zq/zcode"
 )
@@ -223,11 +222,4 @@ func IsContainerType(typ Type) bool {
 	default:
 		return false
 	}
-}
-
-func trimInnerTypes(typ string, raw string) string {
-	// XXX handle white space, "set [..."... ?
-	innerTypes := strings.TrimPrefix(raw, typ+"[")
-	innerTypes = strings.TrimSuffix(innerTypes, "]")
-	return innerTypes
 }

@@ -45,31 +45,6 @@ func appendZvalFromZeek(dst zcode.Bytes, typ zng.Type, val []byte) zcode.Bytes {
 	}
 }
 
-// NewRecordZvals creates a record from zvals.  If the descriptor has a field
-// named ts, NewRecordZvals parses the corresponding zval as a time for use as
-// the record's timestamp.  If the descriptor has no field named ts, the
-// record's timestamp is zero.  NewRecordZvals returns an error if the number of
-// descriptor columns and zvals do not agree or if parsing the ts zval fails.
-func NewRecordZvals(typ *zng.TypeRecord, vals ...zcode.Bytes) (t *zng.Record, err error) {
-	raw, err := EncodeZvals(typ, vals)
-	if err != nil {
-		return nil, err
-	}
-	var ts nano.Ts
-	if col, ok := typ.ColumnOfField("ts"); ok {
-		var err error
-		ts, err = zng.DecodeTime(vals[col])
-		if err != nil {
-			return nil, err
-		}
-	}
-	r := zng.NewRecordTs(typ, ts, raw)
-	if err := r.TypeCheck(); err != nil {
-		return nil, err
-	}
-	return r, nil
-}
-
 // NewRecordZeekStrings creates a record from Zeek UTF-8 strings.
 func NewRecordZeekStrings(typ *zng.TypeRecord, ss ...string) (t *zng.Record, err error) {
 	vals := make([][]byte, 0, 32)

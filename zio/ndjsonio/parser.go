@@ -20,7 +20,6 @@ var ErrMultiTypedArray = errors.New("arrays with multiple types are not supporte
 type Parser struct {
 	builder *zcode.Builder
 	zctx    *resolver.Context
-	scratch []byte
 }
 
 func NewParser(zctx *resolver.Context) *Parser {

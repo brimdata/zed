@@ -10,19 +10,6 @@ import (
 	"github.com/mccanne/zq/zng"
 )
 
-// EncodeZvals builds a raw value from a descriptor and zvals.
-func EncodeZvals(typ *zng.TypeRecord, vals []zcode.Bytes) (zcode.Bytes, error) {
-	if nv, nc := len(vals), len(typ.Columns); nv != nc {
-		return nil, fmt.Errorf("got %d values (%q), expected %d (%q)", nv, vals, nc, typ.Columns)
-
-	}
-	var raw zcode.Bytes
-	for _, val := range vals {
-		raw = zcode.AppendPrimitive(raw, val)
-	}
-	return raw, nil
-}
-
 func NewRawFromZeekTSV(builder *zcode.Builder, typ *zng.TypeRecord, path []byte, data []byte) (zcode.Bytes, error) {
 	builder.Reset()
 	columns := typ.Columns
