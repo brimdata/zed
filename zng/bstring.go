@@ -39,7 +39,7 @@ func (t *TypeOfBstring) String() string {
 }
 
 func (t *TypeOfBstring) Marshal(zv zcode.Bytes) (interface{}, error) {
-	return t.StringOf(zv, OutFormatUnescaped), nil
+	return t.StringOf(zv, OutFormatUnescaped, false), nil
 }
 
 const hexdigits = "0123456789abcdef"
@@ -50,7 +50,7 @@ const hexdigits = "0123456789abcdef"
 // In general, valid UTF-8 code points are passed through unmodified,
 // though for the ZEEK_ASCII output format, all non-ascii bytes are
 // escaped for compatibility with older versions of Zeek.
-func (t *TypeOfBstring) StringOf(data zcode.Bytes, fmt OutFmt) string {
+func (t *TypeOfBstring) StringOf(data zcode.Bytes, fmt OutFmt, inContainer bool) string {
 	if bytes.Equal(data, []byte{'-'}) {
 		return "\\x2d"
 	}
@@ -68,7 +68,7 @@ func (t *TypeOfBstring) StringOf(data zcode.Bytes, fmt OutFmt) string {
 		}
 		needEscape := r == utf8.RuneError || !unicode.IsPrint(r)
 		if !needEscape {
-			needEscape = ShouldEscape(r, fmt, i)
+			needEscape = ShouldEscape(r, fmt, i, inContainer)
 		}
 		if needEscape {
 			out = append(out, data[start:i]...)

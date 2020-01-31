@@ -47,7 +47,7 @@ func (t *TypeOfPort) String() string {
 	return "port"
 }
 
-func (t *TypeOfPort) StringOf(zv zcode.Bytes, _ OutFmt) string {
+func (t *TypeOfPort) StringOf(zv zcode.Bytes, _ OutFmt, _ bool) string {
 	p, err := DecodePort(zv)
 	if err != nil {
 		return badZng(err, t, zv)

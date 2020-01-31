@@ -49,7 +49,7 @@ func (t *TypeOfInt) String() string {
 	return "int"
 }
 
-func (t *TypeOfInt) StringOf(zv zcode.Bytes, _ OutFmt) string {
+func (t *TypeOfInt) StringOf(zv zcode.Bytes, _ OutFmt, _ bool) string {
 	i, err := DecodeInt(zv)
 	if err != nil {
 		return badZng(err, t, zv)

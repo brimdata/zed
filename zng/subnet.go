@@ -69,7 +69,7 @@ func (t *TypeOfSubnet) String() string {
 	return "subnet"
 }
 
-func (t *TypeOfSubnet) StringOf(zv zcode.Bytes, _ OutFmt) string {
+func (t *TypeOfSubnet) StringOf(zv zcode.Bytes, _ OutFmt, _ bool) string {
 	s, err := DecodeSubnet(zv)
 	if err != nil {
 		return badZng(err, t, zv)

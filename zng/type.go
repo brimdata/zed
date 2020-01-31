@@ -49,8 +49,10 @@ type Type interface {
 	// String returns the name of the type as defined in the ZNG spec.
 	String() string
 	// StringOf formats an arbitrary value of this type encoded as zcode.
-	// The fmt parameter controls output formatting.
-	StringOf(zv zcode.Bytes, fmt OutFmt) string
+	// The fmt parameter controls output formatting.  The inContainer
+	// parameter indicates if this value is inside a set or vector
+	// (which is needed to correctly implement  zeek log escaping rules).
+	StringOf(zv zcode.Bytes, fmt OutFmt, inContainer bool) string
 	// Marshal is used from Value.MarshalJSON(), it should turn an
 	// arbitrary value of this type encoded as zcode into something
 	// suitable for passing to json.Marshal()

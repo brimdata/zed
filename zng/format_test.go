@@ -111,12 +111,12 @@ func TestFormatting(t *testing.T) {
 			},
 		},
 
-		// Commas are escaped in Zeek but not ZNG
+		// Commas not inside a container are not escaped
 		{
 			zng.NewBstring("a,b"),
 			[]Expect{
-				{zng.OutFormatZeek, `a\x2cb`},
-				{zng.OutFormatZeekAscii, `a\x2cb`},
+				{zng.OutFormatZeek, `a,b`},
+				{zng.OutFormatZeekAscii, `a,b`},
 				{zng.OutFormatZNG, `a,b`},
 			},
 		},
@@ -196,12 +196,12 @@ func TestFormatting(t *testing.T) {
 			},
 		},
 
-		// Commas are escaped in Zeek but not ZNG
+		// Commas not inside a container are not escaped
 		{
 			zng.NewString("a,b"),
 			[]Expect{
-				{zng.OutFormatZeek, `a\u{2c}b`},
-				{zng.OutFormatZeekAscii, `a\u{2c}b`},
+				{zng.OutFormatZeek, `a,b`},
+				{zng.OutFormatZeekAscii, `a,b`},
 				{zng.OutFormatZNG, `a,b`},
 			},
 		},
@@ -259,7 +259,15 @@ func TestFormatting(t *testing.T) {
 			[]Expect{
 				{zng.OutFormatZeek, "abc,xyz"},
 				{zng.OutFormatZeekAscii, "abc,xyz"},
-				{zng.OutFormatZNG, "[abc;xyz]"},
+				{zng.OutFormatZNG, "[abc;xyz;]"},
+			},
+		},
+
+		// A comma inside a string inside a set is escaped in Zeek.
+		{
+			zng.Value{bstringSetType, makeContainer([]byte("a,b"))},
+			[]Expect{
+				{zng.OutFormatZeek, `a\x2cb`},
 			},
 		},
 
@@ -274,7 +282,7 @@ func TestFormatting(t *testing.T) {
 			},
 			[]Expect{
 				// not representable in zeek
-				{zng.OutFormatZNG, `[[a;b];[x;y]]`},
+				{zng.OutFormatZNG, `[[a;b;];[x;y;];]`},
 			},
 		},
 
@@ -311,7 +319,7 @@ func TestFormatting(t *testing.T) {
 			[]Expect{
 				{zng.OutFormatZeek, "abc,xyz"},
 				{zng.OutFormatZeekAscii, "abc,xyz"},
-				{zng.OutFormatZNG, "[abc;xyz]"},
+				{zng.OutFormatZNG, "[abc;xyz;]"},
 			},
 		},
 
@@ -326,7 +334,15 @@ func TestFormatting(t *testing.T) {
 			},
 			[]Expect{
 				// not representable in zeek
-				{zng.OutFormatZNG, `[[a;b];[x;y]]`},
+				{zng.OutFormatZNG, `[[a;b;];[x;y;];]`},
+			},
+		},
+
+		// A comma inside a string inside a vector is escaped in Zeek.
+		{
+			zng.Value{bstringVecType, makeContainer([]byte("a,b"))},
+			[]Expect{
+				{zng.OutFormatZeek, `a\x2cb`},
 			},
 		},
 
@@ -338,7 +354,16 @@ func TestFormatting(t *testing.T) {
 			},
 			[]Expect{
 				{zng.OutFormatZeek, `\x2d,-`},
-				{zng.OutFormatZNG, `[\x2d;-]`},
+				{zng.OutFormatZNG, `[\x2d;-;]`},
+			},
+		},
+
+		// vector containing empty string
+		{
+			zng.Value{bstringVecType, makeContainer([]byte{})},
+			[]Expect{
+				{zng.OutFormatZeek, ""},
+				{zng.OutFormatZNG, `[;]`},
 			},
 		},
 
@@ -353,7 +378,7 @@ func TestFormatting(t *testing.T) {
 				makeContainer([]byte("foo"), []byte("bar")),
 			},
 			[]Expect{
-				{zng.OutFormatZNG, `[foo;bar]`},
+				{zng.OutFormatZNG, `[foo;bar;]`},
 			},
 		},
 
@@ -361,7 +386,7 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.Value{recType, makeContainer(nil, nil)},
 			[]Expect{
-				{zng.OutFormatZNG, `[-;-]`},
+				{zng.OutFormatZNG, `[-;-;]`},
 			},
 		},
 	}

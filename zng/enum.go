@@ -33,7 +33,7 @@ func (t *TypeOfEnum) String() string {
 	return "enum"
 }
 
-func (t *TypeOfEnum) StringOf(zv zcode.Bytes, _ OutFmt) string {
+func (t *TypeOfEnum) StringOf(zv zcode.Bytes, _ OutFmt, _ bool) string {
 	e, err := DecodeEnum(zv)
 	if err != nil {
 		return badZng(err, t, zv)

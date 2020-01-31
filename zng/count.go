@@ -41,7 +41,7 @@ func (t *TypeOfCount) String() string {
 	return "count"
 }
 
-func (t *TypeOfCount) StringOf(zv zcode.Bytes, _ OutFmt) string {
+func (t *TypeOfCount) StringOf(zv zcode.Bytes, _ OutFmt, _ bool) string {
 	c, err := DecodeCount(zv)
 	if err != nil {
 		return badZng(err, t, zv)
