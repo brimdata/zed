@@ -1,5 +1,8 @@
 export GO111MODULE=on
 
+VERSION = $(shell git describe --tags --dirty)
+LDFLAGS := -s -X main.version=$(VERSION)
+
 vet:
 	@go vet -copylocks ./...
 
@@ -18,10 +21,10 @@ test-system: build
 
 build:
 	@mkdir -p dist
-	@go build -ldflags='-s -X main.version=$(shell ./scripts/version.sh)' -o dist ./cmd/...
+	@go build -ldflags='$(LDFLAGS)' -o dist ./cmd/...
 
 install:
-	@go install -ldflags='-s -X main.version=$(shell ./scripts/version.sh)' ./cmd/...
+	@go install -ldflags='$(LDFLAGS)' ./cmd/...
 
 clean:
 	@rm -rf dist
