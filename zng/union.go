@@ -28,7 +28,7 @@ func (t *TypeUnion) SetID(id int) {
 }
 
 func (t *TypeUnion) TypeIndex(index int) (Type, error) {
-	if index < 0 || index+1 > len(t.Types) {
+	if index < 0 || index >= len(t.Types) {
 		return nil, ErrUnionIndex
 	}
 	return t.Types[index], nil
@@ -56,7 +56,7 @@ func (t *TypeUnion) Parse(in []byte) (zcode.Bytes, error) {
 	if err != nil {
 		return nil, err
 	}
-	out := zcode.AppendUvarint(zcode.Bytes{}, uint64(index))
+	out := zcode.AppendUvarint(nil, uint64(index))
 	val, err := typ.Parse(in[c+1:])
 	if err != nil {
 		return nil, err
@@ -67,6 +67,10 @@ func (t *TypeUnion) Parse(in []byte) (zcode.Bytes, error) {
 
 func (t *TypeUnion) StringOf(zv zcode.Bytes, ofmt OutFmt, inContainer bool) string {
 	index, n := binary.Uvarint(zv)
+	if n < 0 {
+		// this follows set and record StringOfs. Like there, XXX.
+		return "ERR"
+	}
 	innerType, err := t.TypeIndex(int(index))
 	if err != nil {
 		return "ERR"
@@ -78,6 +82,9 @@ func (t *TypeUnion) StringOf(zv zcode.Bytes, ofmt OutFmt, inContainer bool) stri
 
 func (t *TypeUnion) Marshal(zv zcode.Bytes) (interface{}, error) {
 	index, n := binary.Uvarint(zv)
+	if n < 0 {
+		return nil, ErrBadValue
+	}
 	innerType, err := t.TypeIndex(int(index))
 	if err != nil {
 		return nil, err

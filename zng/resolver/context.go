@@ -417,12 +417,12 @@ func (c *Context) parseColumn(in string) (string, zng.Column, error) {
 
 // parseTypeList parses a type list of the form "[type1,type2,type3]".
 func (c *Context) parseTypeList(in string) (string, []zng.Type, error) {
-	var types []zng.Type
 	rest, ok := match(in, "[")
 	if !ok {
 		return "", nil, zng.ErrTypeSyntax
 	}
 	in = rest
+	var types []zng.Type
 	for {
 		// at top of loop, we have to have a field def either because
 		// this is the first def or we found a comma and are expecting

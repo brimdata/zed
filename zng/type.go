@@ -109,8 +109,8 @@ const (
 	TypeDefRecord = 0x80
 	TypeDefArray  = 0x81
 	TypeDefSet    = 0x82
-	TypeDefUnion  = 0x84
-	TypeDefAlias  = 0x83
+	TypeDefUnion  = 0x83
+	TypeDefAlias  = 0x84
 )
 
 func LookupPrimitive(name string) Type {
