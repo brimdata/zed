@@ -71,12 +71,11 @@ func Reglob(glob string) string {
 			reStr += "\\" + string(c)
 
 		case '\\':
-			if len(str) > i+1 {
+			if len(str) > i+1 && str[i+1] == '*' {
 				i++
-				if str[i] == '*' {
-					reStr += "\\"
-				}
-				reStr += string(str[i])
+				reStr += "\\*"
+			} else {
+				reStr += string(c)
 			}
 
 		case '*':

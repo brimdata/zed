@@ -87,10 +87,12 @@ function Reglob(glob, opts) {
       break;
 
     case '\\':
-      i++
-      let escCh = str[i]
-      if (escCh == '*') { reStr += '\\'; }
-      if (escCh !== undefined) { reStr += escCh; }
+      if (str[i+1] == '*') {
+        i++
+        reStr += '\\*';
+      } else {
+        reStr += c;
+      }
       break;
 
     case "*":

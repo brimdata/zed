@@ -4,22 +4,23 @@ import (
 	"testing"
 
 	"github.com/mccanne/zq/reglob"
+	"github.com/stretchr/testify/require"
 )
 
 func TestReglob(t *testing.T) {
 	expected := "^S.*$"
 	actual := reglob.Reglob("S*")
-
-	if actual != expected {
-		t.Fatalf("Expected '%s' to equal '%s'", actual, expected)
-	}
+	require.Equal(t, expected, actual)
 }
 
 func Test_SingleStar(t *testing.T) {
 	expected := "^.*$"
 	actual := reglob.Reglob("*")
+	require.Equal(t, expected, actual)
+}
 
-	if actual != expected {
-		t.Fatalf("Expected '%s' to equal '%s'", actual, expected)
-	}
+func TestBackslashes(t *testing.T) {
+	pattern := `\xaa\*\x55`
+	expected := `^\xaa\*\x55$`
+	require.Equal(t, expected, reglob.Reglob(pattern))
 }
