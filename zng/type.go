@@ -243,13 +243,6 @@ func AliasTypes(typ Type) []*TypeAlias {
 	return aliases
 }
 
-func Unalias(typ Type) Type {
-	if typ, ok := typ.(*TypeAlias); ok {
-		return Unalias(typ.Type)
-	}
-	return typ
-}
-
 func trimInnerTypes(typ string, raw string) string {
 	// XXX handle white space, "set [..."... ?
 	innerTypes := strings.TrimPrefix(raw, typ+"[")

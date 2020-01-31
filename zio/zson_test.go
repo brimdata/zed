@@ -151,6 +151,59 @@ func TestRaw(t *testing.T) {
 	boomerang(t, zngBig())
 }
 
+const ctrl = `
+#!message1
+#0:record[id:record[a:string,s:set[string]]]
+#!message2
+0:[[-;[]]]
+#!message3
+#!message4`
+
+func TestCtrl(t *testing.T) {
+	// this tests reading of control via text zng,
+	// then writing of raw control, and reading back the result
+	in := []byte(strings.TrimSpace(ctrl) + "\n")
+	r := zngio.NewReader(bytes.NewReader(in), resolver.NewContext())
+
+	_, body, err := r.ReadPayload()
+	assert.NoError(t, err)
+	assert.Equal(t, body, []byte("message1"))
+
+	_, body, err = r.ReadPayload()
+	assert.NoError(t, err)
+	assert.Equal(t, body, []byte("message2"))
+
+	_, body, err = r.ReadPayload()
+	assert.NoError(t, err)
+	assert.True(t, body == nil)
+
+	_, body, err = r.ReadPayload()
+	assert.NoError(t, err)
+	assert.Equal(t, body, []byte("message3"))
+
+	_, body, err = r.ReadPayload()
+	assert.NoError(t, err)
+	assert.Equal(t, body, []byte("message4"))
+}
+
+func TestZjson(t *testing.T) {
+	boomerangZJSON(t, zng1)
+	boomerangZJSON(t, zng2)
+	// XXX this one doesn't work right now but it's sort of ok becaue
+	// it's a little odd to have an unset string value inside of a set.
+	// semantically this would mean the value shouldn't be in the set,
+	// but right now this turns into an empty string, which is somewhat reasonable.
+	//boomerangZJSON(t, zng3)
+	boomerangZJSON(t, zng4)
+	boomerangZJSON(t, zng5)
+	boomerangZJSON(t, zng6)
+	boomerangZJSON(t, zng7)
+	// XXX need to fix bug in json reader where it always uses a primitive null
+	// even within a container type (like json array)
+	//boomerangZJSON(t, zng8)
+	boomerangZJSON(t, zngBig())
+}
+
 func TestRawAlias(t *testing.T) {
 	t.Run("simple", func(t *testing.T) {
 		boomerang(t, `
@@ -195,22 +248,4 @@ func TestRawAlias(t *testing.T) {
 #1:record[count:alias]
 1:[25;]`)
 	})
-}
-
-func TestZjson(t *testing.T) {
-	boomerangZJSON(t, zng1)
-	boomerangZJSON(t, zng2)
-	// XXX this one doesn't work right now but it's sort of ok becaue
-	// it's a little odd to have an unset string value inside of a set.
-	// semantically this would mean the value shouldn't be in the set,
-	// but right now this turns into an empty string, which is somewhat reasonable.
-	//boomerangZJSON(t, zng3)
-	boomerangZJSON(t, zng4)
-	boomerangZJSON(t, zng5)
-	boomerangZJSON(t, zng6)
-	boomerangZJSON(t, zng7)
-	// XXX need to fix bug in json reader where it always uses a primitive null
-	// even within a container type (like json array)
-	//boomerangZJSON(t, zng8)
-	boomerangZJSON(t, zngBig())
 }
