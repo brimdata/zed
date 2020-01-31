@@ -35,10 +35,6 @@ const unsetIn = `
 0:[-;-;4;]
 `
 
-const unsetOut = `
-0:[-;2;]
-`
-
 const groupSingleOut_unsetOut = `
 #0:record[key1:string,count:count]
 0:[-;2;]

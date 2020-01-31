@@ -136,17 +136,6 @@ func makeAndChain(firstIn, restIn interface{}) ast.BooleanExpr {
 	return result
 }
 
-// Helper to get a properly-typed slice of strings from an interface{}
-func stringArray(val interface{}) []string {
-	var ret []string
-	if val != nil {
-		for _, v := range val.([]interface{}) {
-			ret = append(ret, v.(string))
-		}
-	}
-	return ret
-}
-
 func fieldExprArray(val interface{}) []ast.FieldExpr {
 	var ret []ast.FieldExpr
 	if val != nil {

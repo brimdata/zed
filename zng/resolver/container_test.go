@@ -2,7 +2,6 @@ package resolver_test
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/mccanne/zq/ast"
@@ -59,10 +58,6 @@ func runTest(valType string, valRaw string, containerType string, containerRaw s
 	} else {
 		return fmt.Errorf("Should not have found %s in %s", valRaw, containerRaw)
 	}
-}
-
-func containerLen(val string) int {
-	return len(strings.Split(val, ","))
 }
 
 func recordType(typ string, n int) string {

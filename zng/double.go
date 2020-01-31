@@ -11,14 +11,6 @@ import (
 
 type TypeOfDouble struct{}
 
-var compareFloat = map[string]func(float64, float64) bool{
-	"eql":  func(a, b float64) bool { return a == b },
-	"neql": func(a, b float64) bool { return a != b },
-	"gt":   func(a, b float64) bool { return a > b },
-	"gte":  func(a, b float64) bool { return a >= b },
-	"lt":   func(a, b float64) bool { return a < b },
-	"lte":  func(a, b float64) bool { return a <= b }}
-
 func NewDouble(f float64) Value {
 	return Value{TypeDouble, EncodeDouble(f)}
 }

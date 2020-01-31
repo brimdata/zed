@@ -355,18 +355,6 @@ func (g *GroupByAggregator) Results(eof bool, minTs nano.Ts, maxTs nano.Ts) zbuf
 	return zbuf.NewArray(recs, span)
 }
 
-func typeMatch(typeCol []zng.Value, rowkeys []zng.Value) bool {
-	if len(typeCol) != len(rowkeys) {
-		return false
-	}
-	for k, rowkey := range rowkeys {
-		if rowkey.Type != typeCol[k].Type {
-			return false
-		}
-	}
-	return true
-}
-
 // recordsForTable returns a slice of records with one record per table entry
 // in a deterministic but undefined order.
 func (g *GroupByAggregator) recordsForTable(table map[string]*GroupByRow) []*zng.Record {
