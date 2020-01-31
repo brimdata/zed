@@ -113,6 +113,15 @@ func recordKey(columns []zng.Column) string {
 	return key
 }
 
+func unionKey(types []zng.Type) string {
+	key := "u"
+	key += fmt.Sprintf("%d", types[0].ID())
+	for _, t := range types[1:] {
+		key += fmt.Sprintf(",%d", t.ID())
+	}
+	return key
+}
+
 func typeKey(typ zng.Type) string {
 	switch typ := typ.(type) {
 	default:
@@ -123,6 +132,8 @@ func typeKey(typ zng.Type) string {
 		return arrayKey(typ.Type)
 	case *zng.TypeSet:
 		return setKey(typ.InnerType)
+	case *zng.TypeUnion:
+		return unionKey(typ.Types)
 	}
 }
 
@@ -138,6 +149,8 @@ func (c *Context) addTypeWithLock(key string, typ zng.Type) {
 	case *zng.TypeArray:
 		typ.SetID(id)
 	case *zng.TypeSet:
+		typ.SetID(id)
+	case *zng.TypeUnion:
 		typ.SetID(id)
 	}
 	if c.logger != nil {
@@ -202,6 +215,19 @@ func (c *Context) LookupTypeArray(inner zng.Type) *zng.TypeArray {
 		return c.table[id].(*zng.TypeArray)
 	}
 	typ := zng.NewTypeArray(-1, inner)
+	c.addTypeWithLock(key, typ)
+	return typ
+}
+
+func (c *Context) LookupTypeUnion(types []zng.Type) *zng.TypeUnion {
+	key := unionKey(types)
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	id, ok := c.lut[key]
+	if ok {
+		return c.table[id].(*zng.TypeUnion)
+	}
+	typ := zng.NewTypeUnion(-1, types)
 	c.addTypeWithLock(key, typ)
 	return typ
 }
@@ -319,6 +345,12 @@ func (c *Context) parseType(in string) (string, zng.Type, error) {
 			return "", nil, err
 		}
 		return rest, t, nil
+	case "union":
+		rest, t, err := c.parseUnionTypeBody(rest)
+		if err != nil {
+			return "", nil, err
+		}
+		return rest, t, nil
 	}
 	return "", nil, fmt.Errorf("unknown type: %s", word)
 }
@@ -383,16 +415,14 @@ func (c *Context) parseColumn(in string) (string, zng.Column, error) {
 	return rest, zng.NewColumn(name, typ), nil
 }
 
-// parseSetTypeBody parses a set type body of the form "[type]" presuming the set
-// keyword is already matched.
-// The syntax "set[type1,type2,...]" for set-of-arrays is not supported.
-func (c *Context) parseSetTypeBody(in string) (string, zng.Type, error) {
+// parseTypeList parses a type list of the form "[type1,type2,type3]".
+func (c *Context) parseTypeList(in string) (string, []zng.Type, error) {
+	var types []zng.Type
 	rest, ok := match(in, "[")
 	if !ok {
 		return "", nil, zng.ErrTypeSyntax
 	}
 	in = rest
-	var types []zng.Type
 	for {
 		// at top of loop, we have to have a field def either because
 		// this is the first def or we found a comma and are expecting
@@ -411,11 +441,32 @@ func (c *Context) parseSetTypeBody(in string) (string, zng.Type, error) {
 		if !ok {
 			return "", nil, zng.ErrTypeSyntax
 		}
-		if len(types) > 1 {
-			return "", nil, fmt.Errorf("sets with multiple type parameters")
-		}
-		return rest, c.LookupTypeSet(types[0]), nil
+		return rest, types, nil
 	}
+}
+
+// parseSetTypeBody parses a set type body of the form "[type]" presuming the set
+// keyword is already matched.
+// The syntax "set[type1,type2,...]" for multi-typed sets is not supported.
+func (c *Context) parseSetTypeBody(in string) (string, zng.Type, error) {
+	rest, types, err := c.parseTypeList(in)
+	if err != nil {
+		return "", nil, err
+	}
+	if len(types) > 1 {
+		return "", nil, fmt.Errorf("sets with multiple type parameters")
+	}
+	return rest, c.LookupTypeSet(types[0]), nil
+}
+
+// parseUnionTypeBody parses a set type body of the form
+// "[type1,type2,...]" presuming the union keyword is already matched.
+func (c *Context) parseUnionTypeBody(in string) (string, zng.Type, error) {
+	rest, types, err := c.parseTypeList(in)
+	if err != nil {
+		return "", nil, err
+	}
+	return rest, c.LookupTypeUnion(types), nil
 }
 
 // parse an array body type of the form "[type]"
@@ -454,6 +505,8 @@ func (c *Context) TranslateType(ext zng.Type) zng.Type {
 	case *zng.TypeArray:
 		inner := c.TranslateType(ext.Type)
 		return c.LookupTypeArray(inner)
+	case *zng.TypeUnion:
+		return c.TranslateTypeUnion(ext)
 	}
 }
 
@@ -464,6 +517,15 @@ func (c *Context) TranslateTypeRecord(ext *zng.TypeRecord) *zng.TypeRecord {
 		columns = append(columns, zng.NewColumn(col.Name, child))
 	}
 	return c.LookupTypeRecord(columns)
+}
+
+func (c *Context) TranslateTypeUnion(ext *zng.TypeUnion) *zng.TypeUnion {
+	var types []zng.Type
+	for _, t := range ext.Types {
+		translated := c.TranslateType(t)
+		types = append(types, translated)
+	}
+	return c.LookupTypeUnion(types)
 }
 
 // Cache returns a cache of this table providing lockless lookups, but cannot

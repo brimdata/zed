@@ -5,6 +5,10 @@
 // unset, and no body follows.  A nonzero tag indicates that the value is set,
 // and the value itself follows as a body of length tag-1.
 //
+// Values of union type are represented similarly, with the body
+// prefixed by an integer specifying the index determining the type of
+// the value in reference to the union type.
+//
 // Values of container type (record, set, or array) are represented similarly,
 // with the body containing a sequence of zero or more serialized values.
 package zcode
