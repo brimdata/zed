@@ -61,6 +61,8 @@ again:
 			err = r.readTypeSet()
 		case zng.TypeDefArray:
 			err = r.readTypeArray()
+		case zng.TypeDefUnion:
+			err = r.readTypeUnion()
 		default:
 			// XXX we should return the control code
 			len, err := r.readUvarint()
@@ -154,6 +156,30 @@ func (r *Reader) readTypeRecord() error {
 		columns = append(columns, col)
 	}
 	r.zctx.LookupTypeRecord(columns)
+	return nil
+}
+
+func (r *Reader) readTypeUnion() error {
+	ntyp, err := r.readUvarint()
+	if err != nil {
+		return zng.ErrBadFormat
+	}
+	if ntyp == 0 {
+		return errors.New("type union: zero columns not allowed")
+	}
+	var types []zng.Type
+	for k := 0; k < int(ntyp); k++ {
+		id, err := r.readUvarint()
+		if err != nil {
+			return zng.ErrBadFormat
+		}
+		typ, err := r.zctx.LookupType(int(id))
+		if err != nil {
+			return err
+		}
+		types = append(types, typ)
+	}
+	r.zctx.LookupTypeUnion(types)
 	return nil
 }
 

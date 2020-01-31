@@ -70,6 +70,8 @@ func (e *Encoder) encodeType(dst []byte, ext zng.Type) ([]byte, zng.Type) {
 		return e.encodeTypeSet(dst, ext)
 	case *zng.TypeArray:
 		return e.encodeTypeArray(dst, ext)
+	case *zng.TypeUnion:
+		return e.encodeTypeUnion(dst, ext)
 	}
 }
 
@@ -95,6 +97,28 @@ func serializeTypeRecord(dst []byte, columns []zng.Column) []byte {
 		dst = zcode.AppendUvarint(dst, uint64(len(name)))
 		dst = append(dst, name...)
 		dst = zcode.AppendUvarint(dst, uint64(col.Type.ID()))
+	}
+	return dst
+}
+
+func (e *Encoder) encodeTypeUnion(dst []byte, ext *zng.TypeUnion) ([]byte, zng.Type) {
+	var types []zng.Type
+	for _, t := range ext.Types {
+		dst, t = e.encodeType(dst, t)
+		types = append(types, t)
+	}
+	typ := e.zctx.LookupTypeUnion(types)
+	if e.isEncoded(typ) {
+		return dst, typ
+	}
+	return serializeTypeUnion(dst, types), typ
+}
+
+func serializeTypeUnion(dst []byte, types []zng.Type) []byte {
+	dst = append(dst, zng.TypeDefUnion)
+	dst = zcode.AppendUvarint(dst, uint64(len(types)))
+	for _, t := range types {
+		dst = zcode.AppendUvarint(dst, uint64(t.ID()))
 	}
 	return dst
 }
@@ -141,6 +165,8 @@ func serializeTypes(dst []byte, types []zng.Type) []byte {
 			dst = serializeTypeSet(dst, typ.InnerType)
 		case *zng.TypeArray:
 			dst = serializeTypeArray(dst, typ.Type)
+		case *zng.TypeUnion:
+			dst = serializeTypeUnion(dst, typ.Types)
 		}
 	}
 	return dst

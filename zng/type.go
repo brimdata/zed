@@ -17,10 +17,11 @@ import (
 )
 
 var (
-	ErrUnset    = errors.New("value is unset")
-	ErrLenUnset = errors.New("len(unset) is undefined")
-	ErrNotArray = errors.New("cannot index a non-array")
-	ErrIndex    = errors.New("array index out of bounds")
+	ErrUnset      = errors.New("value is unset")
+	ErrLenUnset   = errors.New("len(unset) is undefined")
+	ErrNotArray   = errors.New("cannot index a non-array")
+	ErrIndex      = errors.New("array index out of bounds")
+	ErrUnionIndex = errors.New("union index out of bounds")
 )
 
 // Resolver is an interface for looking up Type objects from the type id.
@@ -108,7 +109,8 @@ const (
 	TypeDefRecord = 0x80
 	TypeDefArray  = 0x81
 	TypeDefSet    = 0x82
-	TypeDefAlias  = 0x83
+	TypeDefUnion  = 0x83
+	TypeDefAlias  = 0x84
 )
 
 func LookupPrimitive(name string) Type {
