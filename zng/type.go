@@ -11,6 +11,7 @@ package zng
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/mccanne/zq/zcode"
 )
@@ -222,4 +223,36 @@ func IsContainerType(typ Type) bool {
 	default:
 		return false
 	}
+}
+
+func AliasTypes(typ Type) []*TypeAlias {
+	var aliases []*TypeAlias
+	switch typ := typ.(type) {
+	case *TypeSet:
+		aliases = AliasTypes(typ.InnerType)
+	case *TypeArray:
+		aliases = AliasTypes(typ.Type)
+	case *TypeRecord:
+		for _, col := range typ.Columns {
+			aliases = append(aliases, AliasTypes(col.Type)...)
+		}
+	case *TypeAlias:
+		aliases = append(aliases, AliasTypes(typ.Type)...)
+		aliases = append(aliases, typ)
+	}
+	return aliases
+}
+
+func Unalias(typ Type) Type {
+	if typ, ok := typ.(*TypeAlias); ok {
+		return Unalias(typ.Type)
+	}
+	return typ
+}
+
+func trimInnerTypes(typ string, raw string) string {
+	// XXX handle white space, "set [..."... ?
+	innerTypes := strings.TrimPrefix(raw, typ+"[")
+	innerTypes = strings.TrimSuffix(innerTypes, "]")
+	return innerTypes
 }

@@ -62,6 +62,7 @@ func (fr *FieldReducer) Consume(r *zng.Record) {
 	if val.Bytes == nil {
 		return
 	}
+	val = val.Unalias()
 	if fr.fn == nil {
 		switch val.Type.(type) {
 		case *zng.TypeOfInt:

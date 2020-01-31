@@ -175,3 +175,10 @@ func (v Value) IsUnset() bool {
 func (v Value) IsUnsetOrNil() bool {
 	return v.Bytes == nil
 }
+
+func (v Value) Unalias() Value {
+	if v.Type != nil {
+		v.Type = Unalias(v.Type)
+	}
+	return v
+}

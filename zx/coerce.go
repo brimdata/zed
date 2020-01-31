@@ -13,7 +13,8 @@ import (
 func CoerceToDouble(in zng.Value) (float64, bool) {
 	var out float64
 	var err error
-	switch in.Type.(type) {
+	typ := zng.Unalias(in.Type)
+	switch typ.(type) {
 	default:
 		return 0, false
 	case *zng.TypeOfDouble:
@@ -61,7 +62,8 @@ func CoerceToInt(in zng.Value) (int64, bool) {
 	var out int64
 	var err error
 	body := in.Bytes
-	switch in.Type.(type) {
+	typ := zng.Unalias(in.Type)
+	switch typ.(type) {
 	default:
 		return 0, false
 	case *zng.TypeOfInt:
@@ -107,7 +109,8 @@ func CoerceToInt(in zng.Value) (int64, bool) {
 func CoerceToInterval(in zng.Value) (int64, bool) {
 	var out int64
 	var err error
-	switch in.Type.(type) {
+	typ := zng.Unalias(in.Type)
+	switch typ.(type) {
 	default:
 		return 0, false
 	case *zng.TypeOfInterval:
@@ -131,7 +134,8 @@ func CoerceToPort(in zng.Value) (uint32, bool) {
 	var out uint32
 	var err error
 	body := in.Bytes
-	switch in.Type.(type) {
+	typ := zng.Unalias(in.Type)
+	switch typ.(type) {
 	default:
 		return 0, false
 	case *zng.TypeOfInt:
@@ -164,7 +168,8 @@ func CoerceToPort(in zng.Value) (uint32, bool) {
 
 func CoerceToEnum(in zng.Value) (string, bool) {
 	var enum string
-	switch in.Type.(type) {
+	typ := zng.Unalias(in.Type)
+	switch typ.(type) {
 	default:
 		return "", false
 	case *zng.TypeOfString, *zng.TypeOfBstring:
@@ -180,7 +185,8 @@ func CoerceToEnum(in zng.Value) (string, bool) {
 func CoerceToTime(in zng.Value) (nano.Ts, bool) {
 	var err error
 	var ts nano.Ts
-	switch in.Type.(type) {
+	typ := zng.Unalias(in.Type)
+	switch typ.(type) {
 	default:
 		return 0, false
 	case *zng.TypeOfTime:
@@ -201,7 +207,8 @@ func CoerceToTime(in zng.Value) (nano.Ts, bool) {
 }
 
 func CoerceToString(in zng.Value) (string, bool) {
-	switch in.Type.(type) {
+	typ := zng.Unalias(in.Type)
+	switch typ.(type) {
 	default:
 		return "", false
 	case *zng.TypeOfString, *zng.TypeOfBstring, *zng.TypeOfEnum:
@@ -216,6 +223,7 @@ func CoerceToString(in zng.Value) (string, bool) {
 // XXX this doesn't seem valid:  If the coercion cannot be
 // performed such that v.Coerce(t1).Coerce(v.Type).String() == v.String(),
 // then nil is returned.
+// XXX how to handle aliases here?
 func Coerce(v zng.Value, to zng.Type) (zng.Value, bool) {
 	if v.Type == to {
 		return v, true

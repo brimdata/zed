@@ -63,6 +63,8 @@ again:
 			err = r.readTypeArray()
 		case zng.TypeDefUnion:
 			err = r.readTypeUnion()
+		case zng.TypeDefAlias:
+			err = r.readTypeAlias()
 		default:
 			// XXX we should return the control code
 			len, err := r.readUvarint()
@@ -213,6 +215,28 @@ func (r *Reader) readTypeArray() error {
 		return err
 	}
 	r.zctx.AddType(zng.NewTypeArray(-1, inner))
+	return nil
+}
+
+func (r *Reader) readTypeAlias() error {
+	len, err := r.readUvarint()
+	if err != nil {
+		return zng.ErrBadFormat
+	}
+	b, err := r.peeker.Read(len)
+	if err != nil {
+		return zng.ErrBadFormat
+	}
+	name := string(b)
+	id, err := r.readUvarint()
+	if err != nil {
+		return zng.ErrBadFormat
+	}
+	inner, err := r.zctx.LookupType(int(id))
+	if err != nil {
+		return err
+	}
+	r.zctx.LookupTypeAlias(name, inner)
 	return nil
 }
 

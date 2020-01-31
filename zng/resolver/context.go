@@ -105,10 +105,18 @@ func arrayKey(inner zng.Type) string {
 	return fmt.Sprintf("a%d", inner.ID())
 }
 
+func aliasKey(name string) string {
+	return fmt.Sprintf("x%s", name)
+}
+
 func recordKey(columns []zng.Column) string {
 	key := "r"
 	for _, col := range columns {
-		key += fmt.Sprintf("%s:%d;", col.Name, col.Type.ID())
+		id := col.Type.ID()
+		if alias, ok := col.Type.(*zng.TypeAlias); ok {
+			id = alias.AliasID()
+		}
+		key += fmt.Sprintf("%s:%d;", col.Name, id)
 	}
 	return key
 }
@@ -126,6 +134,8 @@ func typeKey(typ zng.Type) string {
 	switch typ := typ.(type) {
 	default:
 		panic("unsupported type in typeKey")
+	case *zng.TypeAlias:
+		return aliasKey(typ.Name)
 	case *zng.TypeRecord:
 		return recordKey(typ.Columns)
 	case *zng.TypeArray:
@@ -144,6 +154,8 @@ func (c *Context) addTypeWithLock(key string, typ zng.Type) {
 	switch typ := typ.(type) {
 	default:
 		panic("unsupported type in addTypeWithLock")
+	case *zng.TypeAlias:
+		typ.SetID(id)
 	case *zng.TypeRecord:
 		typ.SetID(id)
 	case *zng.TypeArray:
@@ -221,13 +233,27 @@ func (c *Context) LookupTypeArray(inner zng.Type) *zng.TypeArray {
 
 func (c *Context) LookupTypeUnion(types []zng.Type) *zng.TypeUnion {
 	key := unionKey(types)
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	id, ok := c.lut[key]
 	if ok {
 		return c.table[id].(*zng.TypeUnion)
 	}
 	typ := zng.NewTypeUnion(-1, types)
+	c.addTypeWithLock(key, typ)
+	return typ
+}
+
+func (c *Context) LookupTypeAlias(name string, target zng.Type) *zng.TypeAlias {
+	key := aliasKey(name)
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	id, ok := c.lut[key]
+	if ok {
+		alias := c.table[id].(*zng.TypeAlias)
+		if zng.SameType(alias.Type, target) {
+			return alias
+		}
+	}
+	typ := zng.NewTypeAlias(-1, name, target)
 	c.addTypeWithLock(key, typ)
 	return typ
 }
@@ -352,6 +378,15 @@ func (c *Context) parseType(in string) (string, zng.Type, error) {
 		}
 		return rest, t, nil
 	}
+	c.mu.RLock()
+	// check alias
+	id, ok = c.lut[aliasKey(word)]
+	if ok {
+		typ := c.table[id]
+		c.mu.RUnlock()
+		return rest, typ, nil
+	}
+	c.mu.RUnlock()
 	return "", nil, fmt.Errorf("unknown type: %s", word)
 }
 

@@ -146,6 +146,20 @@ func (r *Reader) parseDescriptor(line []byte) error {
 	return nil
 }
 
+func (r *Reader) parseAlias(line []byte) error {
+	i := bytes.Index(line, []byte("="))
+	if i == -1 {
+		return ErrBadFormat
+	}
+	alias, rest := line[:i], line[i+1:]
+	typ, err := r.zctx.LookupByName(string(rest))
+	if err != nil {
+		return err
+	}
+	r.zctx.LookupTypeAlias(string(alias), typ)
+	return nil
+}
+
 func (r *Reader) parseDirective(line []byte) ([]byte, error) {
 	if len(line) == 0 {
 		return nil, ErrBadFormat
@@ -169,6 +183,10 @@ func (r *Reader) parseDirective(line []byte) ([]byte, error) {
 		// XXX handle me
 		r.legacyVal = false
 		return nil, nil
+	}
+	if (line[0] >= 'A' && line[0] <= 'Z') || (line[0] >= 'a' && line[0] <= 'z') {
+		r.legacyVal = false
+		return nil, r.parseAlias(line)
 	}
 	if err := r.zeek.ParseDirective(line); err != nil {
 		return nil, err

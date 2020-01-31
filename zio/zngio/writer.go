@@ -16,12 +16,16 @@ type Writer struct {
 	// generate the output in canonical form whereby the typedefs in the
 	// stream are numbered sequentially from 0.
 	tracker map[int]int
+	// aliases keeps track of whether an alias has been written to the stream
+	// on not.
+	aliases map[int]struct{}
 }
 
 func NewWriter(w io.Writer) *Writer {
 	return &Writer{
 		Writer:  w,
 		tracker: make(map[int]int),
+		aliases: make(map[int]struct{}),
 	}
 }
 
@@ -34,6 +38,9 @@ func (w *Writer) Write(r *zng.Record) error {
 	inId := r.Type.ID()
 	outId, ok := w.tracker[inId]
 	if !ok {
+		if err := w.writeAliases(r); err != nil {
+			return err
+		}
 		outId = len(w.tracker)
 		w.tracker[inId] = outId
 		_, err := fmt.Fprintf(w.Writer, "#%d:%s\n", outId, r.Type)
@@ -45,10 +52,25 @@ func (w *Writer) Write(r *zng.Record) error {
 	if err != nil {
 		return nil
 	}
-	if err = w.writeContainer(zng.Value{r.Type, r.Raw}); err != nil {
+	if err = w.writeContainer(zng.Value{Type: r.Type, Bytes: r.Raw}); err != nil {
 		return err
 	}
 	return w.write("\n")
+}
+
+func (w *Writer) writeAliases(r *zng.Record) error {
+	aliases := zng.AliasTypes(r.Type)
+	for _, alias := range aliases {
+		id := alias.AliasID()
+		if _, ok := w.aliases[id]; !ok {
+			w.aliases[id] = struct{}{}
+			_, err := fmt.Fprintf(w.Writer, "#%s=%s\n", alias.Name, alias.Type.String())
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (w *Writer) write(s string) error {
