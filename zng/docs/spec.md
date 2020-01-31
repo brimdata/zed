@@ -257,12 +257,13 @@ the array encoded as a `uvarint`:
 
 #### 2.1.1.3 Set Typedef
 
-A set type is encoded as simply the type code of the elements of
-the array encoded as a `uvarint`:
+A set type is encoded as a concatenation of the type IDs that comprise
+the elements of the set where each type ID and the number of types
+in the set are all encoded as a `uvarint`:
 ```
-----------------
-|0x82|<type-id>|
-----------------
+----------------------------------------
+|0x82|<ntypes><type-id-1><type-id-2>...|
+----------------------------------------
 ```
 
 #### 2.1.1.4 Union Typedef
@@ -518,7 +519,7 @@ grammar describing the textual type encodings is:
          | <alias-name>
 
 <ctype> :=  array [ <stype> ]
-          | set [ <stype> ]
+          | set [ <stype-list> ]
           | record [ <columns> ]
           | record [ ]
 
@@ -661,7 +662,7 @@ int
 Container types look like this and do need typedefs:
 ```
 #0:array[int]
-#1:set[bool]
+#1:set[bool,string]
 #2:record[x:double,y:double]
 ```
 Container types can be embedded in other container types by referencing
