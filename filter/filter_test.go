@@ -85,6 +85,7 @@ const zngsrc = `
 9:[Buenos di\xcc\x81as sen\xcc\x83or;]
 9:[Buenos d\xc3\xadas se\xc3\xb1or;]
 12:[hello;]
+0:[[a\;b;xyz;]]
 `
 
 func TestFilters(t *testing.T) {
@@ -93,7 +94,7 @@ func TestFilters(t *testing.T) {
 	ior := strings.NewReader(zngsrc)
 	reader := detector.LookupReader("zng", ior, resolver.NewContext())
 
-	nrecords := 16
+	nrecords := 17
 	records := make([]*zng.Record, 0, nrecords)
 	for {
 		rec, err := reader.Read()
@@ -113,21 +114,32 @@ func TestFilters(t *testing.T) {
 		expectedResult bool
 	}{
 		{"abc in stringset", records[0], true},
+		{"xyz in stringset", records[0], true},
 		{"ab in stringset", records[0], false},
 		{"abcd in stringset", records[0], false},
 
 		{"abc in stringvec", records[1], true},
+		{"xyz in stringvec", records[1], true},
+		{"ab in stringset", records[1], false},
+		{"abcd in stringset", records[1], false},
 
-		// XXX this isn't working?  zng escaping...
-		// {"\"a;b\" in stringvec", records[2], true},
+		{"\"a;b\" in stringset", records[16], true},
+		{"a in stringset", records[16], false},
+		{"b in stringset", records[16], false},
+		{"xyz in stringset", records[16], true},
+
+		{"\"a;b\" in stringvec", records[2], true},
 		{"a in stringvec", records[2], false},
 		{"b in stringvec", records[2], false},
 		{"xyz in stringvec", records[2], true},
 
 		{"2 in intset", records[3], true},
 		{"4 in intset", records[3], false},
+		{"abc in intset", records[3], false},
+
 		{"2 in intvec", records[4], true},
 		{"4 in intvec", records[4], false},
+		{"abc in intvec", records[4], false},
 
 		{"1.1.1.1 in addrset", records[5], true},
 		{"3.3.3.3 in addrset", records[5], false},
