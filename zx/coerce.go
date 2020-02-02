@@ -216,7 +216,6 @@ func CoerceToString(in zng.Value) (string, bool) {
 // XXX this doesn't seem valid:  If the coercion cannot be
 // performed such that v.Coerce(t1).Coerce(v.Type).String() == v.String(),
 // then nil is returned.
-// XXX how to handle aliases here?
 func Coerce(v zng.Value, to zng.Type) (zng.Value, bool) {
 	if v.Type == to {
 		return v, true
