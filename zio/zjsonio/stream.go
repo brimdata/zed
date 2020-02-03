@@ -11,23 +11,23 @@ import (
 
 type Stream struct {
 	tracker *resolver.Tracker
+	aliases map[int]*zng.TypeAlias
 }
 
 func NewStream() *Stream {
 	return &Stream{
 		tracker: resolver.NewTracker(),
+		aliases: make(map[int]*zng.TypeAlias),
 	}
 }
 
 func (s *Stream) Transform(r *zng.Record) (*Record, error) {
 	id := r.Type.ID()
 	var typ []interface{}
+	var aliases []Alias
 	if !s.tracker.Seen(id) {
-		var err error
-		typ, err = encodeType(r.Type)
-		if err != nil {
-			return nil, err
-		}
+		aliases = s.encodeAliases(r.Type)
+		typ = encodeType(r.Type)
 	}
 	v, err := encodeContainer(r.Type, r.Raw)
 	if err != nil {
@@ -38,9 +38,10 @@ func (s *Stream) Transform(r *zng.Record) (*Record, error) {
 		return nil, errors.New("internal error: zng record body must be a container")
 	}
 	return &Record{
-		Id:     id,
-		Type:   typ,
-		Values: values,
+		Id:      id,
+		Type:    typ,
+		Aliases: aliases,
+		Values:  values,
 	}, nil
 }
 
@@ -95,21 +96,29 @@ func encodeContainer(typ zng.Type, val []byte) (interface{}, error) {
 // a type parser.  Instead, we encode recursive record types as a nested set
 // of objects so a javascript client can easily call JSON.parse() and have
 // the record structure present in an easy-to-navigate nested object.
-func encodeType(typ *zng.TypeRecord) ([]interface{}, error) {
+func encodeType(typ *zng.TypeRecord) []interface{} {
 	var columns []interface{}
 	for _, c := range typ.Columns {
 		childRec, ok := c.Type.(*zng.TypeRecord)
 		var typ interface{}
 		if ok {
-			var err error
-			typ, err = encodeType(childRec)
-			if err != nil {
-				return nil, err
-			}
+			typ = encodeType(childRec)
 		} else {
 			typ = c.Type.String()
 		}
 		columns = append(columns, Column{Name: c.Name, Type: typ})
 	}
-	return columns, nil
+	return columns
+}
+
+func (s *Stream) encodeAliases(typ *zng.TypeRecord) []Alias {
+	var aliases []Alias
+	for _, alias := range zng.AliasTypes(typ) {
+		id := alias.AliasID()
+		if _, ok := s.aliases[id]; !ok {
+			aliases = append(aliases, Alias{Name: alias.Name, Type: alias.Type.String()})
+			s.aliases[id] = nil
+		}
+	}
+	return aliases
 }

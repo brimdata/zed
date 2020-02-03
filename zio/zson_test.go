@@ -204,48 +204,56 @@ func TestZjson(t *testing.T) {
 	boomerangZJSON(t, zngBig())
 }
 
-func TestRawAlias(t *testing.T) {
-	t.Run("simple", func(t *testing.T) {
-		boomerang(t, `
-#ip=addr
+func TestAlias(t *testing.T) {
+	const simple = `#ip=addr
 #0:record[foo:string,orig_h:ip]
-0:[bar;127.0.0.1;]`)
-	})
+0:[bar;127.0.0.1;]`
 
-	t.Run("wrapped-aliases", func(t *testing.T) {
-		boomerang(t, `
-#alias1=addr
+	const wrapped = `#alias1=addr
 #alias2=alias1
 #alias3=alias2
 #0:record[foo:string,orig_h:alias3]
-0:[bar;127.0.0.1;]`)
-	})
+0:[bar;127.0.0.1;]`
 
-	t.Run("alias-in-different-records", func(t *testing.T) {
-		boomerang(t, `
-#ip=addr
+	const multipleRecords = `#ip=addr
 #0:record[foo:string,orig_h:ip]
 0:[bar;127.0.0.1;]
 #1:record[foo:string,resp_h:ip]
-1:[bro;127.0.0.1;]`)
-	})
+1:[bro;127.0.0.1;]`
 
-	t.Run("same-primitive-different-records", func(t *testing.T) {
-		boomerang(t, `
-#ip=addr
-#0:record[foo:string,orig_h:ip]
-0:[bro;127.0.0.1;]
-#1:record[foo:string,orig_h:addr]
-1:[bar;127.0.0.1;]`)
-	})
-
-	t.Run("redefine-alias", func(t *testing.T) {
-		boomerang(t, `
-#alias=addr
+	const redefine = `#alias=addr
 #0:record[orig_h:alias]
 0:[127.0.0.1;]
 #alias=count
 #1:record[count:alias]
-1:[25;]`)
+1:[25;]`
+
+	t.Run("Bzng", func(t *testing.T) {
+		t.Run("simple", func(t *testing.T) {
+			boomerang(t, simple)
+		})
+		t.Run("wrapped-aliases", func(t *testing.T) {
+			boomerang(t, wrapped)
+		})
+		t.Run("alias-in-different-records", func(t *testing.T) {
+			boomerang(t, multipleRecords)
+		})
+		t.Run("redefine", func(t *testing.T) {
+			boomerang(t, redefine)
+		})
+	})
+	t.Run("ZJSON", func(t *testing.T) {
+		t.Run("simple", func(t *testing.T) {
+			boomerangZJSON(t, simple)
+		})
+		t.Run("wrapped-aliases", func(t *testing.T) {
+			boomerangZJSON(t, wrapped)
+		})
+		t.Run("alias-in-different-records", func(t *testing.T) {
+			boomerangZJSON(t, multipleRecords)
+		})
+		t.Run("redefine", func(t *testing.T) {
+			boomerangZJSON(t, redefine)
+		})
 	})
 }
