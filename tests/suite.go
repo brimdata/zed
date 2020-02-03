@@ -9,6 +9,7 @@ import (
 	"github.com/mccanne/zq/tests/suite/filter"
 	"github.com/mccanne/zq/tests/suite/format"
 	"github.com/mccanne/zq/tests/suite/input"
+	"github.com/mccanne/zq/tests/suite/ndjson"
 	"github.com/mccanne/zq/tests/suite/reducer"
 	"github.com/mccanne/zq/tests/suite/regexp"
 	"github.com/mccanne/zq/tests/suite/sort"
@@ -61,6 +62,7 @@ var commands = []test.Exec{
 	cut.Exec,
 	errors.Exec,
 	utf8.Exec,
+	ndjson.Exec,
 }
 
 var scripts = []test.Shell{
