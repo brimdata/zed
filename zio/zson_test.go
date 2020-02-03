@@ -71,7 +71,8 @@ func boomerangZJSON(t *testing.T, logs string) {
 
 const zng1 = `
 #0:record[foo:set[string]]
-0:[["test";]]`
+0:[["test";]]
+0:[["testtest";]]`
 
 const zng2 = `
 #0:record[foo:record[bar:string]]
