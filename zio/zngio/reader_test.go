@@ -83,21 +83,21 @@ func TestAlias(t *testing.T) {
 1:[25;]`)
 }
 
-// func TestAliasErr(t *testing.T) {
-// boomerangErr(t, "non-existent", errors.New("Hi"), `
-// #ip=doesnotexist
-// #0:record[foo:string,orig_h:ip]`)
+func TestAliasErr(t *testing.T) {
+	boomerangErr(t, "non-existent", `
+#ip=doesnotexist
+#0:record[foo:string,orig_h:ip]`, "unknown type: %s", "doesnotexist")
 
-// boomerangErr(t, "out-of-order", errors.New("Hi"), `
-// #alias3=alias2
-// #alias2=alias1
-// #alias1=addr
-// #0:record[foo:string,orig_h:alias3]`)
+	boomerangErr(t, "out-of-order", `
+#alias3=alias2
+#alias2=alias1
+#alias1=addr
+#0:record[foo:string,orig_h:alias3]`, "unknown type: %s", "alias2")
 
-// boomerangErr(t, "alias-preexisting", errors.New("Hi"), `
-// #interval=alias
-// #0:record[foo:string,dur:interval]`)
-// }
+	boomerangErr(t, "alias-preexisting", `
+#interval=alias
+#0:record[foo:string,dur:interval]`, "unknown type: %s", "alias")
+}
 
 type output struct {
 	bytes.Buffer
@@ -105,13 +105,13 @@ type output struct {
 
 func (o *output) Close() error { return nil }
 
-func boomerangErr(t *testing.T, name string, expectedErr error, logs string) {
+func boomerangErr(t *testing.T, name, logs, errorMsg string, errorArgs ...interface{}) {
 	t.Run(name, func(t *testing.T) {
 		in := []byte(strings.TrimSpace(logs) + "\n")
 		zngSrc := zngio.NewReader(bytes.NewReader(in), resolver.NewContext())
 		zngDst := zbuf.NopFlusher(zngio.NewWriter(&output{}))
 		err := zbuf.Copy(zngDst, zngSrc)
-		assert.Equal(t, expectedErr, err)
+		assert.Errorf(t, err, errorMsg, errorArgs...)
 	})
 }
 
