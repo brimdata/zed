@@ -73,6 +73,7 @@ func (r *Reader) Read() (*zng.Record, error) {
 		if !ok {
 			return nil, fmt.Errorf("type not a record: \"%s\"", typeName)
 		}
+		r.mapper[v.Id] = recType
 	}
 	rec, err := r.parseValues(recType, v.Values)
 	if err != nil {
