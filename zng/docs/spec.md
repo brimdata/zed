@@ -519,9 +519,11 @@ grammar describing the textual type encodings is:
          | <alias-name>
 
 <ctype> :=  array [ <stype> ]
-          | set [ <stype-list> ]
           | record [ <columns> ]
           | record [ ]
+          | union [ <stype-list> ]
+          | set [ <stype-list> ]
+
 
 <stype-list> :=    <stype>
                  | <stype-list> , <stype>
@@ -556,6 +558,7 @@ Here is a pseudo-grammar for typed values:
         | [1-9][0-9]*
 <elem> :=
           <terminal>
+          <tag> : <terminal>
         | [ <list-elem>* ]
 <list-elem> := <elem> ;
 <terminal> := <char>*
@@ -563,6 +566,8 @@ Here is a pseudo-grammar for typed values:
 
 A terminal value is encoded as a string of characters terminated
 by a semicolon (which must be escaped if it appears in a string-typed value).
+If the terminal value is of a union type, it is prefixed with the index value type in reference to the union type and a colon.
+
 Container values (i.e., sets, arrays, or records) are encoded as
 * an open bracket,
 * zero or more encoded values terminated with semicolon, and
