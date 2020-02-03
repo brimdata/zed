@@ -25,6 +25,8 @@ github.com/mccanne/charm v0.0.3-0.20191224190439-b05e1b7b1be3 h1:Sj9zugMeJDXrKpO
 github.com/mccanne/charm v0.0.3-0.20191224190439-b05e1b7b1be3/go.mod h1:R47PUgWIRA4UrwFWKI6vgAEWHXPYWUg3iAtyXB8yKNU=
 github.com/mccanne/joe v0.0.0-20181124064909-25770742c256 h1:pWqEkj5bKTW1WXgBrcoc0uZReflLquW7xu6EsAersRc=
 github.com/mccanne/joe v0.0.0-20181124064909-25770742c256/go.mod h1:ws78j95WzGWyQqUJksJu3Dly2hyMI1II7HVcY7DoHFg=
+github.com/mna/pigeon v1.0.0 h1:n46IoStjdzjaXuyBH53j9HZ8CVqGWpC7P5/v8dP4qEY=
+github.com/mna/pigeon v1.0.0/go.mod h1:Iym28+kJVnC1hfQvv5MUtI6AiFFzvQjHcvI4RFTG/04=
 github.com/peterh/liner v1.1.0 h1:f+aAedNJA6uk7+6rXsYBnhdo4Xux7ESLe+kcuVUF5os=
 github.com/peterh/liner v1.1.0/go.mod h1:CRroGNssyjTd/qIG2FyxByd2S8JEAZXBl4qUrZf8GS0=
 github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
