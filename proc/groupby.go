@@ -233,11 +233,8 @@ func newKeyRow(kctx *resolver.Context, r *zng.Record, keys []GroupByKey) keyRow 
 	// type ID doesn't matter here.
 	var id int
 	if len(cols) > 0 {
-		typ, err := kctx.LookupByName(zng.TypeRecordString(cols))
-		if err != nil {
-			return keyRow{}
-		}
-		id = typ.(*zng.TypeRecord).ID()
+		typ := kctx.LookupTypeRecord(cols)
+		id = typ.ID()
 	}
 	return keyRow{id, cols}
 }

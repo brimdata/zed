@@ -56,8 +56,10 @@ func LookupWriter(format string, w io.WriteCloser, optionalFlags *zio.Flags) *zi
 
 func LookupReader(format string, r io.Reader, zctx *resolver.Context) zbuf.Reader {
 	switch format {
-	case "zng", "zeek":
+	case "zng":
 		return zngio.NewReader(r, zctx)
+	case "zeek":
+		return zeekio.NewReader(r, zctx)
 	case "ndjson":
 		return ndjsonio.NewReader(r, zctx)
 	case "zjson":

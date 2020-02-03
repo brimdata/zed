@@ -7,6 +7,7 @@ import (
 	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zio/bzngio"
 	"github.com/mccanne/zq/zio/ndjsonio"
+	"github.com/mccanne/zq/zio/zeekio"
 	"github.com/mccanne/zq/zio/zjsonio"
 	"github.com/mccanne/zq/zio/zngio"
 	"github.com/mccanne/zq/zng/resolver"
@@ -19,6 +20,10 @@ func NewReader(r io.Reader, zctx *resolver.Context) (zbuf.Reader, error) {
 	track := NewTrack(recorder)
 	if match(zngio.NewReader(track, resolver.NewContext())) {
 		return zngio.NewReader(recorder, zctx), nil
+	}
+	track.Reset()
+	if match(zeekio.NewReader(track, resolver.NewContext())) {
+		return zeekio.NewReader(recorder, zctx), nil
 	}
 	track.Reset()
 	// zjson must come before ndjson since zjson is a subset of ndjson

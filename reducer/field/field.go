@@ -63,16 +63,16 @@ func (fr *FieldReducer) Consume(r *zng.Record) {
 		return
 	}
 	if fr.fn == nil {
-		switch val.Type.(type) {
-		case *zng.TypeOfInt:
+		switch val.Type.ID() {
+		case zng.IdInt64:
 			fr.fn = NewIntStreamfn(fr.op)
-		case *zng.TypeOfCount:
+		case zng.IdUint64:
 			fr.fn = NewCountStreamfn(fr.op)
-		case *zng.TypeOfDouble:
+		case zng.IdFloat64:
 			fr.fn = NewDoubleStreamfn(fr.op)
-		case *zng.TypeOfInterval:
+		case zng.IdDuration:
 			fr.fn = NewIntervalStreamfn(fr.op)
-		case *zng.TypeOfTime:
+		case zng.IdTime:
 			fr.fn = NewTimeStreamfn(fr.op)
 		default:
 			fr.TypeMismatch++

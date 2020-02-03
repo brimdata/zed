@@ -11,7 +11,6 @@ import (
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/skim"
 	"github.com/mccanne/zq/zbuf"
-	"github.com/mccanne/zq/zio/zeekio"
 	"github.com/mccanne/zq/zng"
 	"github.com/mccanne/zq/zng/resolver"
 )
@@ -41,16 +40,15 @@ type ReadStats struct {
 	BadFormat   int `json:"bad_format"`
 	BadMetaData int `json:"bad_meta_data"`
 	ReadFailure int `json:"read_failure"`
+	Unknown     int `json:"unknown"`
 }
 
 type Reader struct {
-	scanner   *skim.Scanner
-	zeek      *zeekio.Parser
-	stats     ReadStats
-	zctx      *resolver.Context
-	mapper    map[int]*zng.TypeRecord
-	legacyVal bool
-	parser    *zbuf.Parser
+	scanner *skim.Scanner
+	stats   ReadStats
+	zctx    *resolver.Context
+	mapper  map[int]*zng.TypeRecord
+	parser  *zbuf.Parser
 }
 
 func NewReader(reader io.Reader, zctx *resolver.Context) *Reader {
@@ -59,7 +57,6 @@ func NewReader(reader io.Reader, zctx *resolver.Context) *Reader {
 	return &Reader{
 		scanner: scanner,
 		stats:   ReadStats{Stats: &scanner.Stats},
-		zeek:    zeekio.NewParser(zctx),
 		zctx:    zctx,
 		mapper:  make(map[int]*zng.TypeRecord),
 		parser:  zbuf.NewParser(),
@@ -146,6 +143,20 @@ func (r *Reader) parseDescriptor(line []byte) error {
 	return nil
 }
 
+func (r *Reader) parseAlias(line []byte) error {
+	i := bytes.Index(line, []byte("="))
+	if i == -1 {
+		return ErrBadFormat
+	}
+	alias, rest := line[:i], line[i+1:]
+	typ, err := r.zctx.LookupByName(string(rest))
+	if err != nil {
+		return err
+	}
+	r.zctx.LookupTypeAlias(string(alias), typ)
+	return nil
+}
+
 func (r *Reader) parseDirective(line []byte) ([]byte, error) {
 	if len(line) == 0 {
 		return nil, ErrBadFormat
@@ -157,31 +168,25 @@ func (r *Reader) parseDirective(line []byte) ([]byte, error) {
 	}
 	if line[0] == '!' {
 		// comment
-		r.legacyVal = false
 		return line[1:], nil
 	}
 	if line[0] >= '0' && line[0] <= '9' {
-		r.legacyVal = false
 		return nil, r.parseDescriptor(line)
 	}
 	if bytes.HasPrefix(line, []byte("sort")) {
 		// #sort [+-]<field>,[+-]<field>,...
 		// XXX handle me
-		r.legacyVal = false
 		return nil, nil
 	}
-	if err := r.zeek.ParseDirective(line); err != nil {
-		return nil, err
+	if (line[0] >= 'A' && line[0] <= 'Z') || (line[0] >= 'a' && line[0] <= 'z') {
+		return nil, r.parseAlias(line)
 	}
-	r.legacyVal = true
+	// XXX return an error?
+	r.stats.Unknown++
 	return nil, nil
 }
 
 func (r *Reader) parseValue(line []byte) (*zng.Record, error) {
-	if r.legacyVal {
-		return r.zeek.ParseValue(line)
-	}
-
 	// From the zng spec:
 	// A regular value is encoded on a line as type descriptor
 	// followed by ":" followed by a value encoding.

@@ -7,7 +7,6 @@
 >
 > * the bytes type is not yet implemented,
 > * the union type is not yet implemented,
-> * type aliases are not yet implemented, and
 > * ordering hints are not generated or taken advantage of.
 >
 > Also, we are contemplating reducing the number of primitive types, e.g.,
@@ -102,7 +101,7 @@ needed to define the schema for each distinct record.  To define a new
 type, the "#" syntax is used.  For example,
 logs from the open-source Zeek system might look like this
 ```
-#alias:addr=ip
+#ip=addr
 #24:record[_path:string,ts:time,uid:string,id:record[orig_h:addr,orig_p:port,resp_h:addr,resp_p:port]...
 #25:record[_path:string,ts:time,fuid:string,tx_hosts:set[addr]...
 24:[conn;1425565514.419939;CogZFI3py5JsFZGik;[192.168.1.1:;80/tcp;192.168.1.2;8080;]...

@@ -60,6 +60,9 @@ func (r *Reader) Read() (*zng.Record, error) {
 			return nil, fmt.Errorf("undefined type ID: %d", v.Id)
 		}
 	} else {
+		if v.Aliases != nil {
+			r.parseAliases(v.Aliases)
+		}
 		typeName, err := decodeType(v.Type)
 		if err != nil {
 			return nil, err
@@ -109,6 +112,17 @@ func (r *Reader) parseValues(typ *zng.TypeRecord, v interface{}) (*zng.Record, e
 		record.Ts = ts
 	}
 	return record, nil
+}
+
+func (r *Reader) parseAliases(aliases []Alias) error {
+	for _, alias := range aliases {
+		typ, err := r.zctx.LookupByName(alias.Type)
+		if err != nil {
+			return fmt.Errorf("unknown type: \"%s\"", alias.Type)
+		}
+		r.zctx.LookupTypeAlias(alias.Name, typ)
+	}
+	return nil
 }
 
 // decode a nested JSON object into a zeek type string and return the string.

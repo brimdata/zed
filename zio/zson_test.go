@@ -152,24 +152,6 @@ func TestRaw(t *testing.T) {
 	boomerang(t, zngBig())
 }
 
-func TestZjson(t *testing.T) {
-	boomerangZJSON(t, zng1)
-	boomerangZJSON(t, zng2)
-	// XXX this one doesn't work right now but it's sort of ok becaue
-	// it's a little odd to have an unset string value inside of a set.
-	// semantically this would mean the value shouldn't be in the set,
-	// but right now this turns into an empty string, which is somewhat reasonable.
-	//boomerangZJSON(t, zng3)
-	boomerangZJSON(t, zng4)
-	boomerangZJSON(t, zng5)
-	boomerangZJSON(t, zng6)
-	boomerangZJSON(t, zng7)
-	// XXX need to fix bug in json reader where it always uses a primitive null
-	// even within a container type (like json array)
-	//boomerangZJSON(t, zng8)
-	boomerangZJSON(t, zngBig())
-}
-
 const ctrl = `
 #!message1
 #0:record[id:record[a:string,s:set[string]]]
@@ -203,4 +185,76 @@ func TestCtrl(t *testing.T) {
 	_, body, err = r.ReadPayload()
 	assert.NoError(t, err)
 	assert.Equal(t, body, []byte("message4"))
+}
+
+func TestZjson(t *testing.T) {
+	boomerangZJSON(t, zng1)
+	boomerangZJSON(t, zng2)
+	// XXX this one doesn't work right now but it's sort of ok becaue
+	// it's a little odd to have an unset string value inside of a set.
+	// semantically this would mean the value shouldn't be in the set,
+	// but right now this turns into an empty string, which is somewhat reasonable.
+	//boomerangZJSON(t, zng3)
+	boomerangZJSON(t, zng4)
+	boomerangZJSON(t, zng5)
+	boomerangZJSON(t, zng6)
+	boomerangZJSON(t, zng7)
+	// XXX need to fix bug in json reader where it always uses a primitive null
+	// even within a container type (like json array)
+	//boomerangZJSON(t, zng8)
+	boomerangZJSON(t, zngBig())
+}
+
+func TestAlias(t *testing.T) {
+	const simple = `#ip=addr
+#0:record[foo:string,orig_h:ip]
+0:[bar;127.0.0.1;]`
+
+	const wrapped = `#alias1=addr
+#alias2=alias1
+#alias3=alias2
+#0:record[foo:string,orig_h:alias3]
+0:[bar;127.0.0.1;]`
+
+	const multipleRecords = `#ip=addr
+#0:record[foo:string,orig_h:ip]
+0:[bar;127.0.0.1;]
+#1:record[foo:string,resp_h:ip]
+1:[bro;127.0.0.1;]`
+
+	const redefine = `#alias=addr
+#0:record[orig_h:alias]
+0:[127.0.0.1;]
+#alias=count
+#1:record[count:alias]
+1:[25;]`
+
+	t.Run("Bzng", func(t *testing.T) {
+		t.Run("simple", func(t *testing.T) {
+			boomerang(t, simple)
+		})
+		t.Run("wrapped-aliases", func(t *testing.T) {
+			boomerang(t, wrapped)
+		})
+		t.Run("alias-in-different-records", func(t *testing.T) {
+			boomerang(t, multipleRecords)
+		})
+		t.Run("redefine", func(t *testing.T) {
+			boomerang(t, redefine)
+		})
+	})
+	t.Run("ZJSON", func(t *testing.T) {
+		t.Run("simple", func(t *testing.T) {
+			boomerangZJSON(t, simple)
+		})
+		t.Run("wrapped-aliases", func(t *testing.T) {
+			boomerangZJSON(t, wrapped)
+		})
+		t.Run("alias-in-different-records", func(t *testing.T) {
+			boomerangZJSON(t, multipleRecords)
+		})
+		t.Run("redefine", func(t *testing.T) {
+			boomerangZJSON(t, redefine)
+		})
+	})
 }

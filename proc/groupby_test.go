@@ -127,6 +127,22 @@ const mixedOut = `
 0:[k;5;bleah;]
 `
 
+const aliasIn = `
+#ip=addr
+#0:record[host:ip]
+0:[127.0.0.1;]
+#1:record[host:addr]
+1:[127.0.0.1;]
+`
+
+const aliasOut = `
+#ip=addr
+#0:record[host:ip,count:count]
+0:[127.0.0.1;1;]
+#1:record[host:addr,count:count]
+1:[127.0.0.1;1;]
+`
+
 //XXX this should go in a shared package
 type suite []test.Internal
 
@@ -192,6 +208,7 @@ func tests() suite {
 	// Test reducers with mixed-type inputs
 	s.add(New("mixed-inputs", mixedIn, mixedOut, "first(f), last(f) by key"))
 
+	s.add(New("aliases", aliasIn, aliasOut, "count() by host"))
 	// XXX add coverage of time batching (every ..)
 
 	return s
