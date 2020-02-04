@@ -10,7 +10,6 @@ import (
 
 	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/pkg/skim"
-	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zng"
 	"github.com/mccanne/zq/zng/resolver"
 )
@@ -48,7 +47,7 @@ type Reader struct {
 	stats   ReadStats
 	zctx    *resolver.Context
 	mapper  map[int]*zng.TypeRecord
-	parser  *zbuf.Parser
+	parser  *Parser
 }
 
 func NewReader(reader io.Reader, zctx *resolver.Context) *Reader {
@@ -59,7 +58,7 @@ func NewReader(reader io.Reader, zctx *resolver.Context) *Reader {
 		stats:   ReadStats{Stats: &scanner.Stats},
 		zctx:    zctx,
 		mapper:  make(map[int]*zng.TypeRecord),
-		parser:  zbuf.NewParser(),
+		parser:  NewParser(),
 	}
 }
 

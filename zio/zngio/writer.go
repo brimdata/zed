@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zcode"
 	"github.com/mccanne/zq/zng"
 )
@@ -88,7 +87,7 @@ func (w *Writer) writeContainer(parent zng.Value) error {
 	}
 	childType, columns := zng.ContainedType(parent.Type)
 	if childType == nil && columns == nil {
-		return zbuf.ErrSyntax
+		return ErrSyntax
 	}
 	k := 0
 	if len(parent.Bytes) > 0 {
