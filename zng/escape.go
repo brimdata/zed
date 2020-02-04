@@ -30,8 +30,9 @@ func ShouldEscape(r rune, fmt OutFmt, pos int, inContainer bool) bool {
 	return false
 }
 
-// Unescape is the inverse of Escape.
-func Unescape(data []byte) []byte {
+// UnescapeBstring replaces all the escaped characters defined in the
+// for the zng spec for the bstring type with their unescaped equivalents.
+func UnescapeBstring(data []byte) []byte {
 	if bytes.IndexByte(data, '\\') < 0 {
 		return data
 	}
@@ -41,7 +42,7 @@ func Unescape(data []byte) []byte {
 		c := data[i]
 		if c == '\\' && len(data[i:]) >= 2 {
 			var n int
-			c, n = ParseEscape(data[i:])
+			c, n = parseBstringEscape(data[i:])
 			i += n
 		} else {
 			i++
@@ -51,7 +52,7 @@ func Unescape(data []byte) []byte {
 	return buf
 }
 
-func ParseEscape(data []byte) (byte, int) {
+func parseBstringEscape(data []byte) (byte, int) {
 	if len(data) >= 4 && data[1] == 'x' {
 		v1 := unhex(data[2])
 		v2 := unhex(data[3])
@@ -72,4 +73,11 @@ func unhex(b byte) byte {
 		return b - 'A' + 10
 	}
 	return 255
+}
+
+// UnescapeString replaces all the escaped characters defined in the
+// for the zng spec for the string type with their unescaped equivalents.
+func UnescapeString(data []byte) []byte {
+	// XXX implement me!
+	return data
 }

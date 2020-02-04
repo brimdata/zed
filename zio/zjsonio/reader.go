@@ -193,7 +193,7 @@ func decodeContainer(builder *zcode.Builder, typ zng.Type, body []interface{}) e
 			if zng.IsContainerType(childType) {
 				return zng.ErrNotContainer
 			}
-			zv, err := childType.Parse(zng.Unescape([]byte(s)))
+			zv, err := childType.Parse([]byte(s))
 			if err != nil {
 				return err
 			}

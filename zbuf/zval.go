@@ -8,14 +8,6 @@ import (
 	"github.com/mccanne/zq/zng"
 )
 
-// ZvalFromZeekString returns the zval for the Zeek UTF-8 value described by typ
-// and val.
-func ZvalFromZeekString(typ zng.Type, val string) ([]byte, error) {
-	it := zcode.Iter(appendZvalFromZeek(nil, typ, []byte(val)))
-	v, _, err := it.Next()
-	return v, err
-}
-
 // appendZvalFromZeek appends to dst the zval for the Zeek UTF-8 value described
 // by typ and val.
 func appendZvalFromZeek(dst zcode.Bytes, typ zng.Type, val []byte) zcode.Bytes {
@@ -40,7 +32,7 @@ func appendZvalFromZeek(dst zcode.Bytes, typ zng.Type, val []byte) zcode.Bytes {
 		if bytes.Equal(val, []byte{unset}) {
 			return zcode.AppendPrimitive(dst, nil)
 		}
-		body, _ := typ.Parse(zng.Unescape(val))
+		body, _ := typ.Parse(val)
 		return zcode.AppendPrimitive(dst, body)
 	}
 }

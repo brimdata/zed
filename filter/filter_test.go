@@ -56,8 +56,8 @@ func runTest(filt string, record *zng.Record, expectedResult bool) error {
 }
 
 const zngsrc = `
-#0:record[stringset:set[string]]
-#1:record[stringvec:array[string]]
+#0:record[stringset:set[bstring]]
+#1:record[stringvec:array[bstring]]
 #2:record[intset:set[int]]
 #3:record[intvec:array[int]]
 #4:record[addrset:set[addr]]
@@ -65,7 +65,7 @@ const zngsrc = `
 #6:record[nested:record[field:string]]
 #7:record[nested:array[record[field:int]]]
 #8:record[nested:record[vec:array[int]]]
-#9:record[s:string]
+#9:record[s:bstring]
 #10:record[ts:time,ts2:time,ts3:time]
 #11:record[s:string,srec:record[svec:array[string]]]
 #12:record[s:bstring]
