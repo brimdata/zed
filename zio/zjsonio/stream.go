@@ -8,8 +8,6 @@ import (
 	"github.com/mccanne/zq/zng/resolver"
 )
 
-var ErrInvalid = errors.New("invalid container")
-
 type Stream struct {
 	tracker *resolver.Tracker
 	aliases map[int]*zng.TypeAlias
@@ -52,7 +50,7 @@ func encodeContainer(typ zng.Type, val []byte) (interface{}, error) {
 	}
 	childType, columns := zng.ContainedType(typ)
 	if childType == nil && columns == nil {
-		return nil, ErrInvalid
+		return nil, errors.New("invalid container")
 	}
 	k := 0
 	// We start out with a slice that contains nothing instead of nil
