@@ -33,12 +33,12 @@ go mod edit -replace=github.com/org/repo=../repo
 
 Before any PRs are merged to master, all tests must pass.
 
-To run unit tests in your local repo, execute
+To run unit tests in your local repo, execute:
 ```
 make test-unit
 ```
 
-And to run system tests, execute
+And to run system tests, execute:
 ```
 make test-system
 ```
