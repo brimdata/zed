@@ -3,11 +3,12 @@ package zjsonio
 import (
 	"errors"
 
-	"github.com/mccanne/zq/zbuf"
 	"github.com/mccanne/zq/zcode"
 	"github.com/mccanne/zq/zng"
 	"github.com/mccanne/zq/zng/resolver"
 )
+
+var ErrInvalid = errors.New("invalid container")
 
 type Stream struct {
 	tracker *resolver.Tracker
@@ -51,7 +52,7 @@ func encodeContainer(typ zng.Type, val []byte) (interface{}, error) {
 	}
 	childType, columns := zng.ContainedType(typ)
 	if childType == nil && columns == nil {
-		return nil, zbuf.ErrSyntax
+		return nil, ErrInvalid
 	}
 	k := 0
 	// We start out with a slice that contains nothing instead of nil
