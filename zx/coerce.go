@@ -113,6 +113,10 @@ func CoerceToInterval(in zng.Value) (int64, bool) {
 	case zng.IdDuration:
 		out, err = zng.DecodeInterval(in.Bytes)
 	case zng.IdUint64:
+		var ui uint64
+		ui, err = zng.DecodeCount(in.Bytes)
+		out = 1_000_000_000 * int64(ui)
+	case zng.IdInt64:
 		out, err = zng.DecodeInt(in.Bytes)
 		out *= 1_000_000_000
 	case zng.IdFloat64:
