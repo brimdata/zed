@@ -1,3 +1,6 @@
 {
-  "name": "zq"
+    "name": "zq",
+    "dependencies": {
+        "pegjs": "^0.10.0"
+    }
 }
