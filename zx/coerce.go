@@ -113,9 +113,13 @@ func CoerceToInterval(in zng.Value) (int64, bool) {
 	case zng.IdDuration:
 		out, err = zng.DecodeInterval(in.Bytes)
 	case zng.IdUint64:
-		var ui uint64
-		ui, err = zng.DecodeCount(in.Bytes)
-		out = 1_000_000_000 * int64(ui)
+		var v uint64
+		v, err = zng.DecodeCount(in.Bytes)
+		// check for overflow
+		if v > math.MaxInt64 {
+			return 0, false
+		}
+		out = 1_000_000_000 * int64(v)
 	case zng.IdInt64:
 		out, err = zng.DecodeInt(in.Bytes)
 		out *= 1_000_000_000
@@ -193,6 +197,14 @@ func CoerceToTime(in zng.Value) (nano.Ts, bool) {
 		var v int64
 		v, err = zng.DecodeInt(in.Bytes)
 		ts = nano.Ts(v) * 1_000_000_000
+	case zng.IdUint64:
+		var v uint64
+		v, err = zng.DecodeCount(in.Bytes)
+		// check for overflow
+		if v > math.MaxInt64 {
+			return 0, false
+		}
+		ts = nano.Ts(v)
 	case zng.IdFloat64:
 		var v float64
 		v, err = zng.DecodeDouble(in.Bytes)

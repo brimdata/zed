@@ -9,18 +9,27 @@ import (
 )
 
 func TestCoerceDuration(t *testing.T) {
-	t.Run("Int", func(t *testing.T) {
-		val := int64(60)
-		expected := zng.NewInterval(val * 1e9)
-		interval, ok := zx.Coerce(zng.NewInt(val), zng.TypeInterval)
+	interval := zng.NewInterval(60 * 1e9)
+	runcase(t, "Int64", zng.NewInt(60), interval)
+	runcase(t, "Uint64", zng.NewCount(60), interval)
+	runcase(t, "Float64", zng.NewDouble(60), interval)
+	runcase(t, "Duration", zng.NewInterval(60*1e9), interval)
+
+	// can't coerce
+	notcase(t, "NotPort", zng.NewPort(60), zng.TypeInterval)
+}
+
+func runcase(t *testing.T, name string, in zng.Value, expected zng.Value) {
+	t.Run(name, func(t *testing.T) {
+		val, ok := zx.Coerce(in, expected.Type)
 		require.Equal(t, true, ok)
-		require.Equal(t, expected, interval)
+		require.Equal(t, expected, val)
 	})
-	t.Run("Uint", func(t *testing.T) {
-		val := uint64(60)
-		expected := zng.NewInterval(int64(val * 1e9))
-		interval, ok := zx.Coerce(zng.NewCount(val), zng.TypeInterval)
-		require.Equal(t, true, ok)
-		require.Equal(t, expected, interval)
+}
+
+func notcase(t *testing.T, name string, in zng.Value, typ zng.Type) {
+	t.Run(name, func(t *testing.T) {
+		_, ok := zx.Coerce(in, typ)
+		require.Equal(t, false, ok)
 	})
 }
