@@ -106,7 +106,7 @@ func (p *Parser) jsonParseObject(b []byte) (zng.Type, error) {
 			colno += 1
 		}
 	}
-	return &zng.TypeRecord{Columns: columns}, nil
+	return p.zctx.LookupTypeRecord(columns), nil
 }
 
 func (p *Parser) jsonParseValue(raw []byte, typ jsonparser.ValueType) (zng.Type, error) {
