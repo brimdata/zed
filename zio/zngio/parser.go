@@ -85,6 +85,19 @@ func zngParseContainer(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, 
 // zngParseField parses the given byte array representing any value
 // in the zng format.
 func zngParseField(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, error) {
+	var err error
+	var index int
+	if utyp, ok := typ.(*zng.TypeUnion); ok {
+		b, typ, index, err = utyp.SplitZng(b)
+		if err != nil {
+			return nil, err
+		}
+		builder.BeginContainer()
+		defer builder.EndContainer()
+		var a [8]byte
+		n := zcode.EncodeCountedVarint(a[:], int64(index))
+		builder.AppendPrimitive(a[:n])
+	}
 	if b[0] == leftbracket {
 		return zngParseContainer(builder, typ, b)
 	}

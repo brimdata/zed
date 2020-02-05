@@ -165,6 +165,34 @@ func decodeType(columns []interface{}) (string, error) {
 	return s + "]", nil
 }
 
+func decodeField(builder *zcode.Builder, typ zng.Type, s string) error {
+	var err error
+	var index int
+	b := []byte(s)
+	if zng.IsContainerType(typ) {
+		return zng.ErrNotContainer
+	}
+	if utyp, ok := typ.(*zng.TypeUnion); ok {
+		b, typ, index, err = utyp.SplitZng(b)
+		if err != nil {
+			return err
+		}
+		builder.BeginContainer()
+		defer builder.EndContainer()
+		var a [8]byte
+		n := zcode.EncodeCountedVarint(a[:], int64(index))
+		builder.AppendPrimitive(a[:n])
+	}
+
+	zv, err := typ.Parse(b)
+	if err != nil {
+		return err
+	}
+	builder.AppendPrimitive(zv)
+	return nil
+
+}
+
 func decodeContainer(builder *zcode.Builder, typ zng.Type, body []interface{}) error {
 	childType, columns := zng.ContainedType(typ)
 	if childType == nil && columns == nil {
@@ -190,14 +218,9 @@ func decodeContainer(builder *zcode.Builder, typ zng.Type, body []interface{}) e
 		}
 		s, ok := column.(string)
 		if ok {
-			if zng.IsContainerType(childType) {
-				return zng.ErrNotContainer
-			}
-			zv, err := childType.Parse([]byte(s))
-			if err != nil {
+			if err := decodeField(builder, childType, s); err != nil {
 				return err
 			}
-			builder.AppendPrimitive(zv)
 			continue
 		}
 		children, ok := column.([]interface{})

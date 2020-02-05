@@ -392,9 +392,10 @@ little-endian format.
 > with out-of-band information or inference whether the data is ultimately
 > arbitrary binary data or a valid UTF-8 string.
 
-A union value is encoded as the uvarint encoding of the index determining
-the type of the value in reference to the union type and a subsequent
-value encoded according to that type:
+A union value is encoded as a container with two elements. The first
+element is the uvarint encoding of the index determining the type of
+the value in reference to the union type, and the second element is
+the value encoded according to that type:
 ```
 <union-index><type-specific-value>
 ```

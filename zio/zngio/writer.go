@@ -3,6 +3,7 @@ package zngio
 import (
 	"fmt"
 	"io"
+	"strconv"
 
 	"github.com/mccanne/zq/zcode"
 	"github.com/mccanne/zq/zng"
@@ -77,10 +78,37 @@ func (w *Writer) write(s string) error {
 	return err
 }
 
+func (w *Writer) writeUnion(parent zng.Value) error {
+	utyp := parent.Type.(*zng.TypeUnion)
+	inner, index, v, err := utyp.SplitBzng(parent.Bytes)
+	if err != nil {
+		return err
+	}
+	s := strconv.FormatInt(index, 10) + ":"
+	if err = w.write(s); err != nil {
+		return err
+	}
+
+	value := zng.Value{inner, v}
+	if zng.IsContainerType(inner) {
+		if err := w.writeContainer(value); err != nil {
+			return err
+		}
+	} else {
+		if err := w.writeValue(value); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (w *Writer) writeContainer(parent zng.Value) error {
 	if parent.IsUnsetOrNil() {
 		w.write("-;")
 		return nil
+	}
+	if _, ok := parent.Type.(*zng.TypeUnion); ok {
+		return w.writeUnion(parent)
 	}
 	if err := w.write("["); err != nil {
 		return err
