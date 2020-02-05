@@ -8,12 +8,6 @@ import (
 	"github.com/mccanne/charm"
 )
 
-// These variables are populated via the Go linker.
-var (
-	Version    = "unknown"
-	ZqdVersion = "unknown"
-)
-
 var Zqd = &charm.Spec{
 	Name:  "zqd",
 	Usage: "zqd [global options] command [options] [arguments...]",
