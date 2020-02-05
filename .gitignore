@@ -1,2 +1,3 @@
 dist/
 tests/test-root
+zql/deps/
