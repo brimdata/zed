@@ -2,15 +2,14 @@ package space
 
 import (
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/mccanne/zq/pkg/nano"
 	"github.com/mccanne/zq/zio/detector"
-	"github.com/mccanne/zq/zng"
 	"github.com/mccanne/zq/zng/resolver"
 	"github.com/mccanne/zq/zqd/api"
 )
@@ -52,7 +51,9 @@ func spaceInfo(spaceName, path string) (*api.SpaceInfo, error) {
 		return nil, err
 	}
 	reader := detector.LookupReader("bzng", f, resolver.NewContext())
-	var first, last *zng.Record
+	minTs := nano.MaxTs
+	maxTs := nano.MinTs
+	var found bool
 	for {
 		rec, err := reader.Read()
 		if err != nil {
@@ -61,20 +62,24 @@ func spaceInfo(spaceName, path string) (*api.SpaceInfo, error) {
 		if rec == nil {
 			break
 		}
-		if first == nil {
-			first = rec
+		ts := rec.Ts
+		if ts < minTs {
+			minTs = ts
 		}
-		last = rec
+		if ts > maxTs {
+			maxTs = ts
+		}
+		found = true
 	}
-	if first == nil {
-		return nil, errors.New("empty space") //XXX
+	s := &api.SpaceInfo{
+		Name: spaceName,
+		Size: info.Size(),
 	}
-	return &api.SpaceInfo{
-		Name:    spaceName,
-		MinTime: &first.Ts,
-		MaxTime: &last.Ts,
-		Size:    info.Size(),
-	}, nil
+	if found {
+		s.MinTime = &minTs
+		s.MaxTime = &maxTs
+	}
+	return s, nil
 }
 
 func HandleInfo(w http.ResponseWriter, r *http.Request) {

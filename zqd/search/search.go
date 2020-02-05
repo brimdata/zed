@@ -76,7 +76,7 @@ func (d *driver) searchEnd(cid int, stats api.ScannerStats) error {
 	return d.output.SendControl(v)
 }
 
-func run(out *proc.MuxOutput, output Output) error {
+func run(out *proc.MuxOutput, output Output, span nano.Span) error {
 	//XXX scanner needs to track stats, for now send zeroes
 	var stats api.ScannerStats
 	d := &driver{
@@ -118,6 +118,9 @@ func run(out *proc.MuxOutput, output Output) error {
 				return d.abort(0, err)
 			}
 		} else {
+			if !span.Overlaps(chunk.Batch.Span()) {
+				continue
+			}
 			err := d.output.SendBatch(chunk.ID, chunk.Batch)
 			if err != nil {
 				return d.abort(0, err)
