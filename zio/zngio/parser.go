@@ -48,11 +48,8 @@ const (
 	backslash    = byte('\\')
 )
 
-// zngParseContainer() parses the given byte array representing a container
+// zngParseContainer parses the given byte array representing a container
 // in the zng format.
-// If there is no error, the first two return values are:
-//  1. an array of zvals corresponding to the indivdiual elements
-//  2. the passed-in byte array advanced past all the data that was parsed.
 func zngParseContainer(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, error) {
 	builder.BeginContainer()
 	// skip leftbracket
@@ -85,7 +82,7 @@ func zngParseContainer(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, 
 	}
 }
 
-// zngParseField() parses the given bye array representing any value
+// zngParseField parses the given byte array representing any value
 // in the zng format.
 func zngParseField(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, error) {
 	if b[0] == leftbracket {
@@ -99,34 +96,32 @@ func zngParseField(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, erro
 		}
 		return b[2:], nil
 	}
-	to := 0
-	from := 0
-	for {
-		if from >= len(b) {
-			return nil, ErrUnterminated
-		}
-		switch b[from] {
-		case semicolon:
-			if zng.IsContainerType(typ) {
-				return nil, zng.ErrNotContainer
-			}
-			zv, err := typ.Parse(b[:to])
-			if err != nil {
-				return nil, err
-			}
-			builder.AppendPrimitive(zv)
-			return b[from+1:], nil
-		case backslash:
-			e, n := zng.ParseEscape(b[from:])
-			if n == 0 {
-				panic("zng.ParseEscape returned 0")
-			}
-			b[to] = e
-			from += n
-		default:
-			b[to] = b[from]
-			from++
-		}
-		to++
+
+	if zng.IsContainerType(typ) {
+		return nil, zng.ErrNotContainer
 	}
+
+	// We don't actually need to handle escapes here, type.Parse()
+	// will take care of that.  The important thing is just figuring
+	// out the proper boundary between individual records (skipping
+	// over an escaped semicolon without being tricked by something
+	// like \\; which could be an escaped backslash followed by a
+	// real semicolon)
+	i := 0
+	for ; i < len(b); i++ {
+		if b[i] == semicolon {
+			break
+		}
+
+		if b[i] == backslash {
+			i++
+		}
+	}
+
+	zv, err := typ.Parse(b[:i])
+	if err != nil {
+		return nil, err
+	}
+	builder.AppendPrimitive(zv)
+	return b[i+1:], nil
 }

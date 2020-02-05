@@ -29,7 +29,7 @@ func DecodeString(zv zcode.Bytes) (string, error) {
 }
 
 func (t *TypeOfString) Parse(in []byte) (zcode.Bytes, error) {
-	normalized := norm.NFC.Bytes(Unescape(in))
+	normalized := norm.NFC.Bytes(UnescapeString(in))
 	return normalized, nil
 }
 

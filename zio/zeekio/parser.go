@@ -93,7 +93,8 @@ func (p *Parser) ParseDirective(line []byte) error {
 		if len(tokens) != 2 {
 			return badfield("separator")
 		}
-		p.separator = string(zng.Unescape([]byte(tokens[1])))
+		// zng.UnescapeBstring handles \x format escapes
+		p.separator = string(zng.UnescapeBstring([]byte(tokens[1])))
 	case "set_separator":
 		if len(tokens) != 2 {
 			return badfield("set_separator")

@@ -26,7 +26,7 @@ func DecodeBstring(zv zcode.Bytes) (string, error) {
 }
 
 func (t *TypeOfBstring) Parse(in []byte) (zcode.Bytes, error) {
-	normalized := norm.NFC.Bytes(Unescape(in))
+	normalized := norm.NFC.Bytes(UnescapeBstring(in))
 	return normalized, nil
 }
 
