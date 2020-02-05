@@ -12,6 +12,7 @@ import (
 
 	"github.com/mccanne/zq/ast"
 	"github.com/mccanne/zq/pkg/nano"
+	"github.com/mccanne/zq/scanner"
 	"github.com/mccanne/zq/zio/detector"
 	"github.com/mccanne/zq/zng/resolver"
 	"github.com/mccanne/zq/zqd/api"
@@ -100,9 +101,10 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer f.Close()
+	zngReader := detector.LookupReader("bzng", f, resolver.NewContext())
 	zctx := resolver.NewContext()
-	zngReader := detector.LookupReader("bzng", f, zctx)
-	mux, err := launch(r.Context(), query, zngReader, zctx)
+	mapper := scanner.NewMapper(zngReader, zctx)
+	mux, err := launch(r.Context(), query, mapper, zctx)
 	if err != nil {
 		httpError(w, err.Error(), http.StatusBadRequest)
 		return
