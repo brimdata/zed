@@ -271,9 +271,12 @@ func CompareBstring(op string, pattern zng.Bstring) (Predicate, error) {
 // RegexpComparison returns a Predicate that compares values that must
 // be a string or enum with the value's regular expression using a regex
 // match comparison based on equality or inequality based on op.
-func CompareRegexp(op, pattern string) (Predicate, error) {
-	re, err := regexp.Compile(pattern)
+func compareRegexp(op, pattern string) (Predicate, error) {
+	re, err := regexp.Compile(string(zng.UnescapeBstring([]byte(pattern))))
 	if err != nil {
+		if strings.Contains(err.Error(), "invalid UTF-8") {
+			err = fmt.Errorf("non UTF-8 sequence in regexp \"%s\"", pattern)
+		}
 		return nil, err
 	}
 	switch op {
@@ -437,7 +440,7 @@ func Contains(compare Predicate) Predicate {
 // the various types handle coercion in different ways.
 func Comparison(op string, literal ast.Literal) (Predicate, error) {
 	if literal.Type == "regexp" {
-		return CompareRegexp(op, literal.Value)
+		return compareRegexp(op, literal.Value)
 	}
 	v, err := zng.ParseLiteral(literal)
 	if err != nil {

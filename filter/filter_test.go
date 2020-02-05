@@ -16,25 +16,29 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func compileFilter(filt string) (filter.Filter, error) {
+	// Parse the filter.  Any filter is a valid full zql query,
+	// it should parse to an AST with a top-level FilterProc node.
+	parsed, err := zql.Parse("", []byte(filt))
+	if err != nil {
+		return nil, err
+	}
+
+	filtProc, ok := parsed.(*ast.FilterProc)
+	if !ok {
+		return nil, errors.New("expected FilterProc")
+	}
+
+	// Compile the filter...
+	return filter.Compile(filtProc.Filter)
+}
+
 // Execute one test of a filter by compiling the given filter and
 // executing it against the given Record.  Returns an error if the filter
 // result does not match expectedResult (or for any other error such as
 // failure to parse or compile the filter)
 func runTest(filt string, record *zng.Record, expectedResult bool) error {
-	// Parse the filter.  Any filter is a valid full zql query,
-	// it should parse to an AST with a top-level FilterProc node.
-	parsed, err := zql.Parse("", []byte(filt))
-	if err != nil {
-		return err
-	}
-
-	filtProc, ok := parsed.(*ast.FilterProc)
-	if !ok {
-		return errors.New("expected FilterProc")
-	}
-
-	// Compile the filter...
-	f, err := filter.Compile(filtProc.Filter)
+	f, err := compileFilter(filt)
 	if err != nil {
 		return err
 	}
@@ -176,6 +180,7 @@ func TestFilters(t *testing.T) {
 		{"s=begin", records[10], false},
 		{"begin\\x01\\x02\\xffend", records[10], true},
 		{"s=begin\\x01\\x02\\xffend", records[10], true},
+		{"s=*\\x01\\x02*", records[10], true},
 
 		{"ts<2", records[11], true},
 		{"ts2=1578411532", records[11], true},
@@ -214,4 +219,11 @@ func TestFilters(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
+}
+
+func TestBadFilter(t *testing.T) {
+	filter := `s = \xa8*`
+	_, err := compileFilter(filter)
+	assert.Error(t, err, "Received error for bad glob")
+	assert.Contains(t, err.Error(), "non UTF-8 sequence in regexp", "Received good error message for invalid UTF-8 in a regexp")
 }
