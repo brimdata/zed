@@ -32,7 +32,6 @@ func (t *TypeUnion) TypeIndex(index int) (Type, error) {
 		return nil, ErrUnionIndex
 	}
 	return t.Types[index], nil
-
 }
 
 func (t *TypeUnion) String() string {
@@ -64,11 +63,11 @@ func (t *TypeUnion) SplitBzng(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) 
 	if err != nil {
 		return nil, -1, nil, err
 	}
-	v, container, err = it.Next()
+	v, _, err = it.Next()
 	if err != nil {
 		return nil, -1, nil, err
 	}
-	if container {
+	if !it.Done() {
 		return nil, -1, nil, ErrBadValue
 	}
 	return inner, index, v, nil

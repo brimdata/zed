@@ -208,18 +208,48 @@ func checkUnion(typ *TypeUnion, body zcode.Bytes) error {
 	if container {
 		return ErrBadValue
 	}
-	// xxx use TypeUnion.Split?
 	index := zcode.DecodeCountedVarint(v)
-	_, err = typ.TypeIndex(int(index))
+	inner, err := typ.TypeIndex(int(index))
 	if err != nil {
 		return err
 	}
-	_, _, err = it.Next() // value
+	body, container, err = it.Next()
 	if err != nil {
 		return err
 	}
-	if !it.Done() {
-		return ErrBadValue
+	switch v := inner.(type) {
+	case *TypeRecord:
+		if !container {
+			return &RecordTypeError{Name: "<record element>", Type: v.String(), Err: ErrNotContainer}
+		}
+		if err := checkRecord(v, body); err != nil {
+			return err
+		}
+	case *TypeArray:
+		if !container {
+			return &RecordTypeError{Name: "<array element>", Type: v.String(), Err: ErrNotContainer}
+		}
+		if err := checkVector(v, body); err != nil {
+			return err
+		}
+	case *TypeSet:
+		if !container {
+			return &RecordTypeError{Name: "<set element>", Type: v.String(), Err: ErrNotContainer}
+		}
+		if err := checkSet(v, body); err != nil {
+			return err
+		}
+	case *TypeUnion:
+		if !container {
+			return &RecordTypeError{Name: "<union value>", Type: v.String(), Err: ErrNotContainer}
+		}
+		if err := checkUnion(v, body); err != nil {
+			return err
+		}
+	default:
+		if container {
+			return &RecordTypeError{Name: "<array element>", Type: v.String(), Err: ErrNotPrimitive}
+		}
 	}
 	return nil
 }

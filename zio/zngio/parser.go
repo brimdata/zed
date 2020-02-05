@@ -105,6 +105,7 @@ func zngParseField(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, erro
 		var a [8]byte
 		n := zcode.EncodeCountedVarint(a[:], int64(index))
 		builder.AppendPrimitive(a[:n])
+		return zngParseField(builder, typ, b)
 	}
 	if b[0] == leftbracket {
 		return zngParseContainer(builder, typ, b)

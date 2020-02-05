@@ -90,7 +90,7 @@ func (w *Writer) writeUnion(parent zng.Value) error {
 	}
 
 	value := zng.Value{inner, v}
-	if zng.IsContainerType(inner) {
+	if zng.IsContainerType(inner) || zng.IsUnionType(inner) {
 		if err := w.writeContainer(value); err != nil {
 			return err
 		}
