@@ -53,18 +53,19 @@ match input types.  If multiple files are concatenated into a stream and
 presented as standard input, the files must all be of the same type as the
 beginning of stream will determine the format.
 
-The output format is, by default, zng but can be overridden with -f.
+The output format is zng by default, but can be overridden with -f.
 
 After the options, the query may be specified as a
-single argument conforming with ZQL syntax, i.e., it should be quoted as
+single argument conforming with ZQL syntax; i.e., it should be quoted as
 a single string in the shell.
 If the first argument is a path to a valid file rather than a ZQL query,
 then the ZQL expression is assumed to be "*", i.e., match and output all
 of the input.  If the first argument is both valid ZQL and an existing file,
 then the file overrides.
 
-Further details and examples for the matching and analytics syntax are described at
-http://github.com/mccanne/pkg/zql/TBD.
+See the zq source repository for more information:
+
+https://github.com/brimsec/zq
 `,
 	New: func(parent charm.Command, flags *flag.FlagSet) (charm.Command, error) {
 		return New(flags)

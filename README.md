@@ -3,9 +3,10 @@
 `zq` is a command-line tool for searching and analyzing logs,
 particularly [Zeek](https://www.zeek.org) logs.  If you are familiar with
 [`zeek-cut`](https://github.com/zeek/zeek-aux/tree/master/zeek-cut),
-you can think of `zq` as `zeek-cut` on steroids.  
+you can think of `zq` as `zeek-cut` on steroids.
 
-`zq` is comprised of
+`zq` is comprised of:
+
 * an [execution engine](proc) for log pattern search and analytics,
 * a [query language](zql/docs/README.md) that compiles into a program that runs on
 the execution engine, and
@@ -23,12 +24,13 @@ We don't yet distribute pre-built binaries, so to install `zq`, you must
 clone the repo and compile the source.
 
 If you don't have Go installed,
-download it from the [Go downloads page](https://golang.org/dl/) and install it.
+download and install it from the [Go downloads page](https://golang.org/dl/).
+
 If you're new to Go, remember to set GOPATH.  A common convention is to create ~/go
 and point GOPATH at $HOME/go.
 
-To install the binaries in `$GOPATH/bin`, grab this repo and
-execute a good old-fashioned `make install`:
+To install the binaries in `$GOPATH/bin`, clone this repo and
+execute `make install`:
 
 ```
 git clone https://github.com/mccanne/zq
@@ -37,18 +39,18 @@ make install
 ```
 ## Usage
 
-For `zq` command usage, see the built-in help by running
+For `zq` command usage, see the built-in help by running:
 ```
 zq help
 ```
 `zq` program syntax and semantics are documented in the
-[query language README](zql/docs/README.md)
+[query language README](zql/docs/README.md).
 
 ### Examples
 
 Here are a few examples based on a very simple "conn" log from Zeek [(conn.log)](conn.log),
-located in this directory.  See the
-[zq-sample-data repo](https://github.com/mccanne/zq-sample-data ) for more
+located in this directory. See the
+[zq-sample-data repo](https://github.com/mccanne/zq-sample-data) for more
 test data, which is used in the examples in the
 [query language documentation](zql/docs/README.md).
 
@@ -59,7 +61,7 @@ zq "* | cut ts,id.orig_h,id.orig_p" conn.log
 The "`*`" tells `zq` to match every line, which is sent to the `cut` processor
 using the UNIX-like pipe syntax.
 
-When looking over everything like this, you can  omit the search pattern
+When looking over everything like this, you can omit the search pattern
 as a shorthand and simply type:
 ```
 zq "cut ts,id.orig_h,id.orig_p" conn.log
@@ -114,45 +116,6 @@ jq -c '. | { ts, "id.orig_h", "id.orig_p" }' conn.ndjson
 
 Comparisons of other simple operations and their relative performance are described
 at the [performance](performance/README.md) page.
-
-## Development
-
-`zq` is a [Go module](https://github.com/golang/go/wiki/Modules), so
-dependencies are specified in the [`go.mod` file](/go.mod) and managed
-automatically by commands like `go build` and `go test`.  No explicit
-fetch commands are necessary.  However, you must set the environment
-variable `GO111MODULE=on` if your repo is at
-`$GOPATH/src/github.com/mccanne/zq`.
-
-`zq` currently requires Go 1.13 or later, so make sure your install is up to date.
-
-When `go.mod` or its companion `go.sum` are modified during development, run
-`go mod tidy` and then commit the changes to both files.
-
-To use a local checkout of a dependency, use `go mod edit`:
-```
-go mod edit -replace=github.com/org/repo=../repo
-```
-
-Note that local checkouts must have a `go.mod` file, so it may be
-necessary to create a temporary one:
-```
-echo 'module github.com/org/repo' > ../repo/go.mod
-```
-
-### Testing
-
-Before any PRs are merged to master, all tests must pass.
-
-To run unit tests in your local repo, execute
-```
-make test-unit
-```
-
-And to run system tests, execute
-```
-make test-system
-```
 
 
 ## Contributing
