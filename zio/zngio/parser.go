@@ -87,6 +87,14 @@ func zngParseContainer(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, 
 func zngParseField(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, error) {
 	var err error
 	var index int
+	if len(b) >= 2 && b[0] == '-' && b[1] == ';' {
+		if zng.IsContainerType(typ) || zng.IsUnionType(typ) {
+			builder.AppendContainer(nil)
+		} else {
+			builder.AppendPrimitive(nil)
+		}
+		return b[2:], nil
+	}
 	if utyp, ok := typ.(*zng.TypeUnion); ok {
 		b, typ, index, err = utyp.SplitZng(b)
 		if err != nil {
@@ -101,15 +109,6 @@ func zngParseField(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, erro
 	if b[0] == leftbracket {
 		return zngParseContainer(builder, typ, b)
 	}
-	if len(b) >= 2 && b[0] == '-' && b[1] == ';' {
-		if zng.IsContainerType(typ) {
-			builder.AppendContainer(nil)
-		} else {
-			builder.AppendPrimitive(nil)
-		}
-		return b[2:], nil
-	}
-
 	if zng.IsContainerType(typ) {
 		return nil, zng.ErrNotContainer
 	}
@@ -125,7 +124,6 @@ func zngParseField(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, erro
 		if b[i] == semicolon {
 			break
 		}
-
 		if b[i] == backslash {
 			i++
 		}

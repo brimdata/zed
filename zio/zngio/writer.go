@@ -107,7 +107,7 @@ func (w *Writer) writeContainer(parent zng.Value) error {
 		w.write("-;")
 		return nil
 	}
-	if _, ok := parent.Type.(*zng.TypeUnion); ok {
+	if zng.IsUnionType(parent.Type) {
 		return w.writeUnion(parent)
 	}
 	if err := w.write("["); err != nil {

@@ -197,6 +197,9 @@ func checkVector(typ *TypeArray, body zcode.Bytes) error {
 }
 
 func checkUnion(typ *TypeUnion, body zcode.Bytes) error {
+	if len(body) == 0 {
+		return nil
+	}
 	it := zcode.Iter(body)
 	v, container, err := it.Next()
 	if err != nil {
