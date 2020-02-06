@@ -395,10 +395,7 @@ little-endian format.
 A union value is encoded as a container with two elements. The first
 element is the uvarint encoding of the index determining the type of
 the value in reference to the union type, and the second element is
-the value encoded according to that type:
-```
-<union-index><type-specific-value>
-```
+the value encoded according to that type.
 
 Array, set, and record types are variable length and are encoded
 as a sequence of elements:
@@ -566,7 +563,7 @@ Here is a pseudo-grammar for typed values:
 
 A terminal value is encoded as a string of characters terminated
 by a semicolon (which must be escaped if it appears in a string-typed value).
-If the terminal value is of a union type, it is prefixed with the index value type in reference to the union type and a colon.
+If the terminal value is of a union type, it is prefixed with the index of the value type in reference to the union type and a colon.
 
 Container values (i.e., sets, arrays, or records) are encoded as
 * an open bracket,
