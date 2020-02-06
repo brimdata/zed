@@ -10,7 +10,10 @@ import (
 	"github.com/mccanne/zq/zng"
 )
 
-var ErrExists = errors.New("descriptor exists with different type")
+var (
+	ErrExists        = errors.New("descriptor exists with different type")
+	ErrEmptyTypeList = errors.New("empty type list in set or union")
+)
 
 type TypeLogger interface {
 	TypeDef(int, zng.Type)
@@ -455,6 +458,9 @@ func (c *Context) parseTypeList(in string) (string, []zng.Type, error) {
 	rest, ok := match(in, "[")
 	if !ok {
 		return "", nil, zng.ErrTypeSyntax
+	}
+	if rest[0] == ']' {
+		return "", nil, ErrEmptyTypeList
 	}
 	in = rest
 	var types []zng.Type

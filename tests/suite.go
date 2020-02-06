@@ -33,6 +33,8 @@ var internals = []test.Internal{
 	errors.ErrMissingField,
 	errors.ErrExtraField,
 	errors.TypeNull,
+	errors.EmptySetType,
+	errors.EmptyUnionType,
 	regexp.Internal,
 	filter.EscapedEqual,
 	filter.EscapedAsterisk,
