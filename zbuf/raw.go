@@ -78,6 +78,9 @@ func NewRawFromZeekTSV(builder *zcode.Builder, typ *zng.TypeRecord, path []byte,
 			if err := appendVal(val[cstart:], inner); err != nil {
 				return err
 			}
+			if _, ok := typ.(*zng.TypeSet); ok {
+				builder.TransformContainer(zng.NormalizeSet)
+			}
 			builder.EndContainer()
 		default:
 			if err := appendVal(val, typ); err != nil {
