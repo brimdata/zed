@@ -103,7 +103,7 @@ func zngParseField(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, erro
 		builder.BeginContainer()
 		defer builder.EndContainer()
 		var a [8]byte
-		n := zcode.EncodeCountedVarint(a[:], int64(index))
+		n := zcode.EncodeCountedUvarint(a[:], uint64(index))
 		builder.AppendPrimitive(a[:n])
 		return zngParseField(builder, typ, b)
 	}

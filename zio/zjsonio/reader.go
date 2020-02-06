@@ -180,7 +180,7 @@ func decodeField(builder *zcode.Builder, typ zng.Type, s string) error {
 		builder.BeginContainer()
 		defer builder.EndContainer()
 		var a [8]byte
-		n := zcode.EncodeCountedVarint(a[:], int64(index))
+		n := zcode.EncodeCountedUvarint(a[:], uint64(index))
 		builder.AppendPrimitive(a[:n])
 	}
 

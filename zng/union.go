@@ -58,7 +58,7 @@ func (t *TypeUnion) SplitBzng(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) 
 	if container {
 		return nil, -1, nil, ErrBadValue
 	}
-	index := zcode.DecodeCountedVarint(v)
+	index := zcode.DecodeCountedUvarint(v)
 	inner, err := t.TypeIndex(int(index))
 	if err != nil {
 		return nil, -1, nil, err
@@ -70,7 +70,7 @@ func (t *TypeUnion) SplitBzng(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) 
 	if !it.Done() {
 		return nil, -1, nil, ErrBadValue
 	}
-	return inner, index, v, nil
+	return inner, int64(index), v, nil
 }
 
 // SplitZng takes a zng encoding of a value of the receiver's type and returns the

@@ -208,7 +208,7 @@ func checkUnion(typ *TypeUnion, body zcode.Bytes) error {
 	if container {
 		return ErrBadValue
 	}
-	index := zcode.DecodeCountedVarint(v)
+	index := zcode.DecodeCountedUvarint(v)
 	inner, err := typ.TypeIndex(int(index))
 	if err != nil {
 		return err
