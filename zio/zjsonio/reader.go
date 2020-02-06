@@ -173,7 +173,7 @@ func decodeField(builder *zcode.Builder, typ zng.Type, s string) error {
 		return zng.ErrNotContainer
 	}
 	if utyp, ok := typ.(*zng.TypeUnion); ok {
-		b, typ, index, err = utyp.SplitZng(b)
+		typ, index, b, err = utyp.SplitZng(b)
 		if err != nil {
 			return err
 		}

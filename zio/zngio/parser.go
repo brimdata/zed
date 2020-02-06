@@ -96,7 +96,7 @@ func zngParseField(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, erro
 		return b[2:], nil
 	}
 	if utyp, ok := typ.(*zng.TypeUnion); ok {
-		b, typ, index, err = utyp.SplitZng(b)
+		typ, index, b, err = utyp.SplitZng(b)
 		if err != nil {
 			return nil, err
 		}

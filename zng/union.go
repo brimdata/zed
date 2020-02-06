@@ -76,20 +76,20 @@ func (t *TypeUnion) SplitBzng(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) 
 // SplitZng takes a zng encoding of a value of the receiver's type and returns the
 // concrete type of the value, its index into the union type, and the concrete value
 // encoding.
-func (t *TypeUnion) SplitZng(in []byte) ([]byte, Type, int, error) {
+func (t *TypeUnion) SplitZng(in []byte) (Type, int, []byte, error) {
 	c := bytes.Index(in, []byte{':'})
 	if c < 0 {
-		return nil, nil, -1, ErrBadValue
+		return nil, -1, nil, ErrBadValue
 	}
 	index, err := strconv.Atoi(string(in[0:c]))
 	if err != nil {
-		return nil, nil, -1, err
+		return nil, -1, nil, err
 	}
 	typ, err := t.TypeIndex(index)
 	if err != nil {
-		return nil, nil, -1, err
+		return nil, -1, nil, err
 	}
-	return in[c+1:], typ, index, nil
+	return typ, index, in[c+1:], nil
 }
 
 func (t *TypeUnion) StringOf(zv zcode.Bytes, ofmt OutFmt, inContainer bool) string {
