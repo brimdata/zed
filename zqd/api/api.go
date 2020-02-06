@@ -65,10 +65,12 @@ type ScannerStats struct {
 }
 
 type SpaceInfo struct {
-	Name    string   `json:"name"`
-	MinTime *nano.Ts `json:"min_time,omitempty"`
-	MaxTime *nano.Ts `json:"max_time,omitempty"`
-	Size    int64    `json:"size" unit:"bytes"`
+	Name          string   `json:"name"`
+	MinTime       *nano.Ts `json:"min_time,omitempty"`
+	MaxTime       *nano.Ts `json:"max_time,omitempty"`
+	Size          int64    `json:"size" unit:"bytes"`
+	PacketSupport bool     `json:"packet_support"`
+	PacketSize    int64    `json:"packet_size" unit:"bytes"`
 }
 
 type StatusResponse struct {

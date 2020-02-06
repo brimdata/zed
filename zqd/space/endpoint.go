@@ -12,6 +12,7 @@ import (
 	"github.com/mccanne/zq/zio/detector"
 	"github.com/mccanne/zq/zng/resolver"
 	"github.com/mccanne/zq/zqd/api"
+	"github.com/mccanne/zq/zqd/pcap"
 )
 
 func HandleList(w http.ResponseWriter, r *http.Request) {
@@ -72,8 +73,9 @@ func spaceInfo(spaceName, path string) (*api.SpaceInfo, error) {
 		found = true
 	}
 	s := &api.SpaceInfo{
-		Name: spaceName,
-		Size: info.Size(),
+		Name:          spaceName,
+		Size:          info.Size(),
+		PacketSupport: pcap.HasPcaps(spaceName),
 	}
 	if found {
 		s.MinTime = &minTs
@@ -82,13 +84,28 @@ func spaceInfo(spaceName, path string) (*api.SpaceInfo, error) {
 	return s, nil
 }
 
+func parseSpace(path string) (string, string) {
+	//XXX need to sanitize this path
+	spaceName := strings.Replace(path, "/space/", "", 1)
+	if spaceName == "" {
+		return "", ""
+	}
+	if strings.HasSuffix(spaceName, "/packet") {
+		return "", spaceName[:len(spaceName)-7]
+	}
+	return spaceName, ""
+}
+
 func HandleInfo(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "bad method", http.StatusBadRequest)
 		return
 	}
-	//XXX need to sanitize spaceName
-	spaceName := strings.Replace(r.URL.Path, "/space/", "", 1)
+	spaceName, pcapSpace := parseSpace(r.URL.Path)
+	if pcapSpace != "" {
+		pcap.HandleGet(w, r, pcapSpace)
+		return
+	}
 	root := "."
 	path := filepath.Join(root, spaceName, "all.bzng")
 	// XXX this is slow.  can easily cache result rather than scanning
