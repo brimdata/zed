@@ -73,12 +73,12 @@ TS                UID
 
 An alternative syntax for our [`and` operator example](#../search-syntax/README.md#and):
 
-```
-zq -f table '* | filter www.*cdn*.com _path=ssl' *.log
+```zq-command
+zq -f table '* | filter www.*cdn*.com _path=ssl' *.log.gz
 ```
 
 #### Output:
-```
+```zq-output
 _PATH TS                UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H    ID.RESP_P VERSION CIPHER                                CURVE     SERVER_NAME       RESUMED LAST_ALERT NEXT_PROTOCOL ESTABLISHED CERT_CHAIN_FUIDS                                                            CLIENT_CERT_CHAIN_FUIDS SUBJECT            ISSUER                                  CLIENT_SUBJECT CLIENT_ISSUER VALIDATION_STATUS
 ssl   1521912180.244457 CUG0fiQAzL4rNWxai  10.47.2.100 36150     52.85.83.228 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 secp256r1 www.herokucdn.com F       -          h2            T           FXKmyTbr7HlvyL1h8,FADhCTvkq1ILFnD3j,FoVjYR16c3UIuXj4xk,FmiRYe1P53KOolQeVi   (empty)                 CN=*.herokucdn.com CN=Amazon,OU=Server CA 1B,O=Amazon,C=US -              -             ok
 ssl   1521912240.189735 CSbGJs3jOeB6glWLJj 10.47.7.154 27137     52.85.83.215 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 secp256r1 www.herokucdn.com F       -          h2            T           FuW2cZ3leE606wXSia,Fu5kzi1BUwnF0bSCsd,FyTViI32zPvCmNXgSi,FwV6ff3JGj4NZcVPE4 (empty)                 CN=*.herokucdn.com CN=Amazon,OU=Server CA 1B,O=Amazon,C=US -              -             ok
@@ -100,26 +100,26 @@ ssl   1521912240.189735 CSbGJs3jOeB6glWLJj 10.47.7.154 27137     52.85.83.215 44
 
 To see the first `dns` event:
 
-```
-zq -f table '* | head' dns.log
+```zq-command
+zq -f table '* | head' dns.log.gz
 ```
 
 #### Output:
-```
-_PATH TS                UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO TRANS_ID RTT      QUERY          QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS                        TTLS                     REJECTED
-dns   1521911720.865716 C2zK5f13SbCtKcyiW5 10.47.1.100 41772     10.0.0.100 53        udp   36329    0.000870 ise.wrccdc.org 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 ise.wrccdc.cpp.edu,134.71.3.16 2230.000000,41830.000000 F
+```zq-output
+_PATH TS                UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO TRANS_ID RTT     QUERY          QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS                        TTLS       REJECTED
+dns   1521911720.865716 C2zK5f13SbCtKcyiW5 10.47.1.100 41772     10.0.0.100 53        udp   36329    0.00087 ise.wrccdc.org 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 ise.wrccdc.cpp.edu,134.71.3.16 2230,41830 F
 ```
 
 #### Example #2:
 
 To see the first five `conn` events with activity on port `80`:
 
-```
-zq -f table ':80 | head 5' conn.log
+```zq-command
+zq -f table ':80 | head 5' conn.log.gz
 ```
 
 #### Output:
-```
+```zq-output
 _PATH TS                UID                ID.ORIG_H     ID.ORIG_P ID.RESP_H   ID.RESP_P PROTO SERVICE DURATION ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY   ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
 conn  1521911720.602122 C4RZ6d4r5mJHlSYFI6 10.164.94.120 33299     10.47.3.200 80        tcp   -       0.003077 0          235        RSTO       -          -          0            ^dtfAR    4         208           4         678           -
 conn  1521911720.606178 CnKmhv4RfyAZ3fVc8b 10.164.94.120 36125     10.47.3.200 80        tcp   -       0.000002 0          0          RSTOS0     -          -          0            R         2         104           0         0             -
@@ -145,7 +145,7 @@ conn  1521911720.607695 CpjMvj2Cvj048u6bF1 10.164.94.120 39169     10.47.3.200 8
 To sort `x509` events by `certificate.subject`:
 
 ```
-zq -f table 'sort certificate.subject' x509.log
+zq -f table 'sort certificate.subject' x509.log.gz
 ```
 
 #### Output:
@@ -208,29 +208,20 @@ ID.ORIG_H                COUNT
 
 In this example we count the number of times each distinct username appears in `http` records, but deliberately put the unset username at the front of the list:
 
-```
-zq -f table "count() by username | sort -nulls first username" http.log
+```zq-command
+zq -f table 'count() by username | sort -nulls first username' http.log.gz
 ```
 
 #### Output:
-```
-USERNAME                     COUNT
--                            65428
-' or '1=1                    4
-(empty)                      4
--r nessus                    1
-3sadmin                      1
-6666                         4
-ADMIN                        1
-Admin                        1
-a a 1\x0anew 1234567890 root 1
-admin                        5
-comcomcom                    1
-piranha                      2
-q1ki9                        2
-root                         1
-servlet                      1
-support                      1
+```zq-output
+USERNAME     COUNT
+-            139175
+M32318       4854
+agloop       1
+cbucket      1
+mteavee      1
+poompaloompa 1
+wwonka       1
 ```
 
 
@@ -269,12 +260,12 @@ conn  1521911720.601314 CL31Wl4WQoDATEz5Z8 10.164.94.120  34261     10.47.8.208 
 
 To see the last `dns` event:
 
-```
-zq -f table '* | tail' dns.log
+```zq-command
+zq -f table '* | tail' dns.log.gz
 ```
 
 #### Output:
-```
+```zq-output
 _PATH TS                UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H ID.RESP_P PROTO TRANS_ID RTT QUERY           QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS TTLS REJECTED
 dns   1521912990.151237 C0ybvu4HG3yWv6H5cb 172.31.255.5 60878     10.0.0.1  53        udp   36243    -   talk.google.com 1      C_INTERNET  1     A          -     -          F  F  T  F  0 -       -    F
 ```
@@ -283,12 +274,12 @@ dns   1521912990.151237 C0ybvu4HG3yWv6H5cb 172.31.255.5 60878     10.0.0.1  53  
 
 To see the last five `conn` events with activity on port `80`:
 
-```
-zq -f table ':80 | tail 5' conn.log
+```zq-command
+zq -f table ':80 | tail 5' conn.log.gz
 ```
 
 #### Output:
-```
+```zq-output
 _PATH TS                UID                ID.ORIG_H      ID.ORIG_P ID.RESP_H    ID.RESP_P PROTO SERVICE DURATION  ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY    ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
 conn  1521912803.087149 CqPl942ft1MCpuNQgk 10.218.221.240 63812     10.47.2.20   80        tcp   -       15.607782 0          0          S1         -          -          0            Sh         2         88            10        440           -
 conn  1521912985.557756 CKCuBO2N2sY6m8qkv6 10.128.0.247   30549     10.47.22.65  80        tcp   http    0.006639  334        271        SF         -          -          0            ShADTftFa  10        1092          6         806           -

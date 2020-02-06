@@ -10,6 +10,7 @@ require (
 	github.com/mccanne/joe v0.0.0-20181124064909-25770742c256
 	github.com/peterh/liner v1.1.0
 	github.com/stretchr/testify v1.4.0
+	github.com/yuin/goldmark v1.1.22
 	go.uber.org/zap v1.12.0
 	golang.org/x/text v0.3.0
 )
