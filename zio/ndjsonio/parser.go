@@ -1,8 +1,9 @@
+// Package ndjsonio parses ndjson records, inferring a zng type for each
+// record and then parsing it into a zng value of that type.
 package ndjsonio
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"sort"
 
@@ -13,19 +14,13 @@ import (
 	"github.com/buger/jsonparser"
 )
 
-// ErrMultiTypedArray signifies that a json array was found with multiple types.
-// Multiple-typed arrays are unsupported at this time. See zq#64.
-var ErrMultiTypedArray = errors.New("arrays with multiple types are not supported")
-
 type Parser struct {
-	builder *zcode.Builder
-	zctx    *resolver.Context
+	zctx *resolver.Context
 }
 
 func NewParser(zctx *resolver.Context) *Parser {
 	return &Parser{
-		builder: zcode.NewBuilder(),
-		zctx:    zctx,
+		zctx: zctx,
 	}
 }
 
@@ -38,17 +33,16 @@ func (p *Parser) Parse(b []byte) (zcode.Bytes, zng.Type, error) {
 		return nil, nil, err
 	}
 	if typ != jsonparser.Object {
-		return nil, nil, fmt.Errorf("expected JSON type to be Object but got %#v", typ)
+		return nil, nil, fmt.Errorf("expected JSON type to be Object but got %s", typ)
 	}
-	p.builder.Reset()
-	ztyp, err := p.jsonParseObject(val)
+	zv, err := p.jsonParseObject(val)
 	if err != nil {
 		return nil, nil, err
 	}
-	return p.builder.Bytes(), ztyp, nil
+	return zv.Bytes, zv.Type, nil
 }
 
-func (p *Parser) jsonParseObject(b []byte) (zng.Type, error) {
+func (p *Parser) jsonParseObject(b []byte) (zng.Value, error) {
 	type kv struct {
 		key   []byte
 		value []byte
@@ -60,7 +54,7 @@ func (p *Parser) jsonParseObject(b []byte) (zng.Type, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return zng.Value{}, err
 	}
 	// Sort fields lexigraphically ensuring maps with the same
 	// columns but different printed order get assigned the same descriptor.
@@ -80,44 +74,44 @@ func (p *Parser) jsonParseObject(b []byte) (zng.Type, error) {
 	// taking care to step into nested records as necessary.
 	colno := 0
 	nestedColno := 0
+	var vals, nestedVals []zng.Value
 	for _, kv := range kvs {
+		val, err := p.jsonParseValue(kv.value, kv.typ)
+		if err != nil {
+			return zng.Value{}, err
+		}
+
 		recType, isRecord := columns[colno].Type.(*zng.TypeRecord)
 		if isRecord {
-			if nestedColno == 0 {
-				p.builder.BeginContainer()
-			}
-		}
-
-		ztyp, err := p.jsonParseValue(kv.value, kv.typ)
-		if err != nil {
-			return nil, err
+			nestedVals = append(nestedVals, val)
+		} else {
+			vals = append(vals, val)
 		}
 
 		if isRecord {
-			recType.Columns[nestedColno].Type = ztyp
+			recType.Columns[nestedColno].Type = val.Type
 			nestedColno += 1
 			if nestedColno == len(recType.Columns) {
-				p.builder.EndContainer()
+				vals = append(vals, zng.Value{recType, encodeContainer(nestedVals)})
+				nestedVals = []zng.Value{}
 				nestedColno = 0
 				colno += 1
 			}
 		} else {
-			columns[colno].Type = ztyp
+			columns[colno].Type = val.Type
 			colno += 1
 		}
 	}
-	return p.zctx.LookupTypeRecord(columns), nil
+
+	typ := p.zctx.LookupTypeRecord(columns)
+	return zng.Value{typ, encodeContainer(vals)}, nil
 }
 
-func (p *Parser) jsonParseValue(raw []byte, typ jsonparser.ValueType) (zng.Type, error) {
+func (p *Parser) jsonParseValue(raw []byte, typ jsonparser.ValueType) (zng.Value, error) {
 	switch typ {
 	case jsonparser.Array:
-		p.builder.BeginContainer()
-		defer p.builder.EndContainer()
 		return p.jsonParseArray(raw)
 	case jsonparser.Object:
-		p.builder.BeginContainer()
-		defer p.builder.EndContainer()
 		return p.jsonParseObject(raw)
 	case jsonparser.Boolean:
 		return p.jsonParseBool(raw)
@@ -128,75 +122,121 @@ func (p *Parser) jsonParseValue(raw []byte, typ jsonparser.ValueType) (zng.Type,
 	case jsonparser.String:
 		return p.jsonParseString(raw)
 	default:
-		return nil, fmt.Errorf("unsupported type %v", typ)
+		return zng.Value{}, fmt.Errorf("unsupported type %v", typ)
 	}
 }
 
-func (p *Parser) jsonParseArray(raw []byte) (zng.Type, error) {
+func typeIndex(typs []zng.Type, typ zng.Type) int {
+	for i := range typs {
+		if typ == typs[i] {
+			return i
+		}
+	}
+	return -1
+}
+
+func (p *Parser) unionType(vals []zng.Value) *zng.TypeUnion {
+	var typs []zng.Type
+	for i := range vals {
+		if index := typeIndex(typs, vals[i].Type); index == -1 {
+			typs = append(typs, vals[i].Type)
+		}
+	}
+	if len(typs) <= 1 {
+		return nil
+	}
+	return p.zctx.LookupTypeUnion(typs)
+}
+
+func encodeUnionArray(typ *zng.TypeUnion, vals []zng.Value) zcode.Bytes {
+	var a [8]byte
+	b := zcode.Bytes{}
+	for i := range vals {
+		ub := zcode.Bytes{}
+		index := typeIndex(typ.Types, vals[i].Type)
+		n := zcode.EncodeCountedUvarint(a[:], uint64(index))
+		ub = zcode.AppendPrimitive(ub, a[:n])
+		if zng.IsContainerType(vals[i].Type) {
+			ub = zcode.AppendContainer(ub, vals[i].Bytes)
+		} else {
+			ub = zcode.AppendPrimitive(ub, vals[i].Bytes)
+		}
+		b = zcode.AppendContainer(b, ub)
+	}
+	return b
+}
+
+func encodeContainer(vals []zng.Value) zcode.Bytes {
+	b := zcode.Bytes{}
+	for i := range vals {
+		if zng.IsContainerType(vals[i].Type) {
+			b = zcode.AppendContainer(b, vals[i].Bytes)
+		} else {
+			b = zcode.AppendPrimitive(b, vals[i].Bytes)
+		}
+	}
+	return b
+}
+
+func (p *Parser) jsonParseArray(raw []byte) (zng.Value, error) {
 	var err error
-	var types []zng.Type
+	var vals []zng.Value
 	jsonparser.ArrayEach(raw, func(el []byte, typ jsonparser.ValueType, offset int, elErr error) {
+		if elErr != nil {
+			err = elErr
+			return
+		}
+		val, err := p.jsonParseValue(el, typ)
 		if err != nil {
 			return
 		}
-		if elErr != nil {
-			err = elErr
-		}
-		var ztyp zng.Type
-		ztyp, err = p.jsonParseValue(el, typ)
-		types = append(types, ztyp)
+		vals = append(vals, val)
 	})
 	if err != nil {
-		return nil, err
+		return zng.Value{}, err
 	}
-	if len(types) == 0 {
-		return p.zctx.LookupTypeArray(zng.TypeString), nil
+	union := p.unionType(vals)
+	if union != nil {
+		typ := p.zctx.LookupTypeArray(union)
+		return zng.Value{typ, encodeUnionArray(union, vals)}, nil
 	}
-	var vType zng.Type
-	for _, t := range types {
-		if vType == nil {
-			vType = t
-		} else if vType != t {
-			// XXX fix this with ZNG type any
-			return nil, ErrMultiTypedArray
-		}
+	var typ zng.Type
+	if len(vals) == 0 {
+		typ = p.zctx.LookupTypeArray(zng.TypeString)
+	} else {
+		typ = p.zctx.LookupTypeArray(vals[0].Type)
 	}
-	return p.zctx.LookupTypeArray(vType), nil
+	return zng.Value{typ, encodeContainer(vals)}, nil
 }
 
-func (p *Parser) jsonParseBool(b []byte) (zng.Type, error) {
+func (p *Parser) jsonParseBool(b []byte) (zng.Value, error) {
 	boolean, err := jsonparser.GetBoolean(b)
 	if err != nil {
-		return nil, err
+		return zng.Value{}, err
 	}
-	p.builder.AppendPrimitive(zng.EncodeBool(boolean))
-	return zng.TypeBool, nil
+	return zng.NewBool(boolean), nil
 }
 
-func (p *Parser) jsonParseNumber(b []byte) (zng.Type, error) {
+func (p *Parser) jsonParseNumber(b []byte) (zng.Value, error) {
 	d, err := zng.UnsafeParseFloat64(b)
 	if err != nil {
-		return nil, err
+		return zng.Value{}, err
 	}
-	p.builder.AppendPrimitive(zng.EncodeDouble(d))
-	return zng.TypeDouble, nil
+	return zng.NewDouble(d), nil
 }
 
-func (p *Parser) jsonParseString(b []byte) (zng.Type, error) {
+func (p *Parser) jsonParseString(b []byte) (zng.Value, error) {
 	b, err := jsonparser.Unescape(b, nil)
 	if err != nil {
-		return nil, err
+		return zng.Value{}, err
 	}
 	s, err := zng.TypeString.Parse(b)
 	if err != nil {
-		return nil, err
+		return zng.Value{}, err
 	}
-	p.builder.AppendPrimitive(s)
-	return zng.TypeString, nil
+	return zng.Value{zng.TypeString, s}, nil
 }
 
-func (p *Parser) jsonParseNull() (zng.Type, error) {
-	p.builder.AppendPrimitive(nil)
-	// XXX TypeString is no good but figuring out a better type is tricky
-	return zng.TypeString, nil
+func (p *Parser) jsonParseNull() (zng.Value, error) {
+	return zng.Value{zng.TypeString, nil}, nil
 }
