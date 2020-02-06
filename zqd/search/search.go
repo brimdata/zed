@@ -76,7 +76,7 @@ func (d *driver) searchEnd(cid int, stats api.ScannerStats) error {
 	return d.output.SendControl(v)
 }
 
-func run(out *proc.MuxOutput, output Output, span nano.Span) error {
+func run(out *proc.MuxOutput, output Output) error {
 	//XXX scanner needs to track stats, for now send zeroes
 	var stats api.ScannerStats
 	d := &driver{
@@ -118,9 +118,6 @@ func run(out *proc.MuxOutput, output Output, span nano.Span) error {
 				return d.abort(0, err)
 			}
 		} else {
-			if !span.Overlaps(chunk.Batch.Span()) {
-				continue
-			}
 			err := d.output.SendBatch(chunk.ID, chunk.Batch)
 			if err != nil {
 				return d.abort(0, err)
@@ -152,7 +149,7 @@ func liftFilter(p ast.Proc) (*ast.FilterProc, ast.Proc) {
 }
 
 // from zq main - move to shared place
-func compile(ctx *proc.Context, program ast.Proc, reader zbuf.Reader) (*proc.MuxOutput, error) {
+func compile(ctx *proc.Context, program ast.Proc, reader zbuf.Reader, span nano.Span) (*proc.MuxOutput, error) {
 	// Try to move the filter into the scanner so we can throw
 	// out unmatched records without copying their contents in the
 	// case of readers (like zio raw.Reader) that create volatile
@@ -169,6 +166,7 @@ func compile(ctx *proc.Context, program ast.Proc, reader zbuf.Reader) (*proc.Mux
 		program = rest
 	}
 	input := scanner.NewScanner(reader, f)
+	input.SetSpan(span)
 	leaves, err := proc.CompileProc(nil, program, ctx, input)
 	if err != nil {
 		return nil, err
@@ -188,5 +186,5 @@ func launch(ctx context.Context, query *Query, reader zbuf.Reader, zctx *resolve
 		Reverse:     query.Dir < 0,
 		Warnings:    make(chan string, 5),
 	}
-	return compile(procCtx, query.Proc, reader)
+	return compile(procCtx, query.Proc, reader, query.Span)
 }

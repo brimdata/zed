@@ -121,10 +121,10 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 			httpError(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		err = run(mux, s, query.Span)
+		err = run(mux, s)
 	case "bzng":
 		s := newBzngOutput(r, w)
-		err = run(mux, s, query.Span)
+		err = run(mux, s)
 	}
 	if err != nil {
 		httpError(w, err.Error(), http.StatusBadRequest)

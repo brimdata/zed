@@ -11,6 +11,7 @@ import (
 type Scanner struct {
 	reader zbuf.Reader
 	filter filter.Filter
+	span   nano.Span
 }
 
 func NewScanner(reader zbuf.Reader, f filter.Filter) *Scanner {
@@ -18,6 +19,10 @@ func NewScanner(reader zbuf.Reader, f filter.Filter) *Scanner {
 		reader: reader,
 		filter: f,
 	}
+}
+
+func (s *Scanner) SetSpan(span nano.Span) {
+	s.span = span
 }
 
 const batchSize = 100
@@ -35,6 +40,9 @@ func (s *Scanner) Pull() (zbuf.Batch, error) {
 			break
 		}
 		if match != nil && !match(rec) {
+			continue
+		}
+		if s.span.Dur != 0 && !s.span.Contains(rec.Ts) {
 			continue
 		}
 		if rec.Ts < minTs {
