@@ -1,0 +1,5 @@
+#0:record[a:union[string,array[int],array[string],union[string,int]]]
+0:[0:"hello";]
+0:[1:[1;2;]]
+0:[2:["a";"b";]]
+0:[3:1:123;]
