@@ -63,7 +63,7 @@ func parseBstringEscape(data []byte) (byte, int) {
 		return data[1], 2
 	}
 
-	// Not a valid escape sequence, just lleave it alone.
+	// Not a valid escape sequence, just leave it alone.
 	return data[0], 1
 }
 
