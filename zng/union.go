@@ -32,7 +32,6 @@ func (t *TypeUnion) TypeIndex(index int) (Type, error) {
 		return nil, ErrUnionIndex
 	}
 	return t.Types[index], nil
-
 }
 
 func (t *TypeUnion) String() string {
@@ -44,25 +43,53 @@ func (t *TypeUnion) String() string {
 }
 
 func (t *TypeUnion) Parse(in []byte) (zcode.Bytes, error) {
+	panic("TypeUnion.Parse shouldn't be called")
+}
+
+// SplitBzng takes a bzng encoding of a value of the receiver's union type and
+// returns the concrete type of the value, its index into the union
+// type, and the value encoding.
+func (t *TypeUnion) SplitBzng(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) {
+	it := zcode.Iter(zv)
+	v, container, err := it.Next()
+	if err != nil {
+		return nil, -1, nil, err
+	}
+	if container {
+		return nil, -1, nil, ErrBadValue
+	}
+	index := zcode.DecodeCountedUvarint(v)
+	inner, err := t.TypeIndex(int(index))
+	if err != nil {
+		return nil, -1, nil, err
+	}
+	v, _, err = it.Next()
+	if err != nil {
+		return nil, -1, nil, err
+	}
+	if !it.Done() {
+		return nil, -1, nil, ErrBadValue
+	}
+	return inner, int64(index), v, nil
+}
+
+// SplitZng takes a zng encoding of a value of the receiver's type and returns the
+// concrete type of the value, its index into the union type, and the value
+// encoding.
+func (t *TypeUnion) SplitZng(in []byte) (Type, int, []byte, error) {
 	c := bytes.Index(in, []byte{':'})
 	if c < 0 {
-		return nil, ErrBadValue
+		return nil, -1, nil, ErrBadValue
 	}
 	index, err := strconv.Atoi(string(in[0:c]))
 	if err != nil {
-		return nil, err
+		return nil, -1, nil, err
 	}
 	typ, err := t.TypeIndex(index)
 	if err != nil {
-		return nil, err
+		return nil, -1, nil, err
 	}
-	out := zcode.AppendUvarint(nil, uint64(index))
-	val, err := typ.Parse(in[c+1:])
-	if err != nil {
-		return nil, err
-	}
-	out = append(out, val...)
-	return out, nil
+	return typ, index, in[c+1:], nil
 }
 
 func (t *TypeUnion) StringOf(zv zcode.Bytes, ofmt OutFmt, inContainer bool) string {
@@ -81,14 +108,9 @@ func (t *TypeUnion) StringOf(zv zcode.Bytes, ofmt OutFmt, inContainer bool) stri
 }
 
 func (t *TypeUnion) Marshal(zv zcode.Bytes) (interface{}, error) {
-	index, n := binary.Uvarint(zv)
-	if n < 0 {
-		return nil, ErrBadValue
-	}
-	innerType, err := t.TypeIndex(int(index))
+	inner, _, zv, err := t.SplitBzng(zv)
 	if err != nil {
 		return nil, err
 	}
-	zv = zv[n:]
-	return innerType.Marshal(zv)
+	return inner.Marshal(zv)
 }

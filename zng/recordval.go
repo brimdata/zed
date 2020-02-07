@@ -180,10 +180,75 @@ func checkVector(typ *TypeArray, body zcode.Bytes) error {
 			if err := checkSet(v, body); err != nil {
 				return err
 			}
+		case *TypeUnion:
+			if !container {
+				return &RecordTypeError{Name: "<union value>", Type: v.String(), Err: ErrNotContainer}
+			}
+			if err := checkUnion(v, body); err != nil {
+				return err
+			}
 		default:
 			if container {
 				return &RecordTypeError{Name: "<array element>", Type: v.String(), Err: ErrNotPrimitive}
 			}
+		}
+	}
+	return nil
+}
+
+func checkUnion(typ *TypeUnion, body zcode.Bytes) error {
+	if len(body) == 0 {
+		return nil
+	}
+	it := zcode.Iter(body)
+	v, container, err := it.Next()
+	if err != nil {
+		return err
+	}
+	if container {
+		return ErrBadValue
+	}
+	index := zcode.DecodeCountedUvarint(v)
+	inner, err := typ.TypeIndex(int(index))
+	if err != nil {
+		return err
+	}
+	body, container, err = it.Next()
+	if err != nil {
+		return err
+	}
+	switch v := inner.(type) {
+	case *TypeRecord:
+		if !container {
+			return &RecordTypeError{Name: "<record element>", Type: v.String(), Err: ErrNotContainer}
+		}
+		if err := checkRecord(v, body); err != nil {
+			return err
+		}
+	case *TypeArray:
+		if !container {
+			return &RecordTypeError{Name: "<array element>", Type: v.String(), Err: ErrNotContainer}
+		}
+		if err := checkVector(v, body); err != nil {
+			return err
+		}
+	case *TypeSet:
+		if !container {
+			return &RecordTypeError{Name: "<set element>", Type: v.String(), Err: ErrNotContainer}
+		}
+		if err := checkSet(v, body); err != nil {
+			return err
+		}
+	case *TypeUnion:
+		if !container {
+			return &RecordTypeError{Name: "<union value>", Type: v.String(), Err: ErrNotContainer}
+		}
+		if err := checkUnion(v, body); err != nil {
+			return err
+		}
+	default:
+		if container {
+			return &RecordTypeError{Name: "<array element>", Type: v.String(), Err: ErrNotPrimitive}
 		}
 	}
 	return nil
@@ -243,6 +308,13 @@ func checkRecord(typ *TypeRecord, body zcode.Bytes) error {
 				return &RecordTypeError{Name: col.Name, Type: col.Type.String(), Err: ErrNotContainer}
 			}
 			if err := checkSet(v, body); err != nil {
+				return err
+			}
+		case *TypeUnion:
+			if !container {
+				return &RecordTypeError{Name: col.Name, Type: col.Type.String(), Err: ErrNotContainer}
+			}
+			if err := checkUnion(v, body); err != nil {
 				return err
 			}
 		default:

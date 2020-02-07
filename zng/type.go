@@ -216,9 +216,14 @@ func ContainedType(typ Type) (Type, []Column) {
 	}
 }
 
+func IsUnionType(typ Type) bool {
+	_, ok := typ.(*TypeUnion)
+	return ok
+}
+
 func IsContainerType(typ Type) bool {
 	switch typ.(type) {
-	case *TypeSet, *TypeArray, *TypeRecord:
+	case *TypeSet, *TypeArray, *TypeRecord, *TypeUnion:
 		return true
 	default:
 		return false
