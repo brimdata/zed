@@ -608,12 +608,13 @@ to be embedded in the `bstring` data type.
 `\x` followed by anything other than two hexadecimal digits is not a valid
 escape sequence. The behavior of an implementation that encounters such
 invalid sequences in a `bstring` type is undefined.
+Additionally, the backslash character itself (U+3B) may be represented
+by a sequence of two consecutive backslash characters.  In other words,
+the bstrings `\\` and `\x3b` are equivalent and both represent a single
+backslash character.
 
 These special characters must be escaped if they appear within a
-`string` or `bstring` type:
-```
-; \n \\
-```
+`string` or `bstring` type: `;`, `\`, newline (Unicode U+0A).
 These characters are invalid in all other data types.
 
 Likewise, these characters must be escaped if they appear as the first character
