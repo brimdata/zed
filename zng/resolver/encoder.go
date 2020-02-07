@@ -3,8 +3,8 @@ package resolver
 import (
 	"fmt"
 
-	"github.com/mccanne/zq/zcode"
-	"github.com/mccanne/zq/zng"
+	"github.com/brimsec/zq/zcode"
+	"github.com/brimsec/zq/zng"
 )
 
 type Encoder struct {

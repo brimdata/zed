@@ -3,10 +3,10 @@ package search
 import (
 	"net/http"
 
-	"github.com/mccanne/zq/zbuf"
-	"github.com/mccanne/zq/zio/zjsonio"
-	"github.com/mccanne/zq/zng"
-	"github.com/mccanne/zq/zqd/api"
+	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio/zjsonio"
+	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zqd/api"
 )
 
 type JSON struct {

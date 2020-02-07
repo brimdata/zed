@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/mccanne/zq/zio/bzngio"
-	"github.com/mccanne/zq/zng/resolver"
+	"github.com/brimsec/zq/zio/bzngio"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

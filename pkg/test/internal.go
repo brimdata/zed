@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mccanne/zq/driver"
-	"github.com/mccanne/zq/emitter"
-	"github.com/mccanne/zq/scanner"
-	"github.com/mccanne/zq/zbuf"
-	"github.com/mccanne/zq/zio/detector"
-	"github.com/mccanne/zq/zng/resolver"
-	"github.com/mccanne/zq/zql"
+	"github.com/brimsec/zq/driver"
+	"github.com/brimsec/zq/emitter"
+	"github.com/brimsec/zq/scanner"
+	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio/detector"
+	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zql"
 )
 
 type Internal struct {

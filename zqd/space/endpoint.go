@@ -8,11 +8,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/zio/detector"
-	"github.com/mccanne/zq/zng/resolver"
-	"github.com/mccanne/zq/zqd/api"
-	"github.com/mccanne/zq/zqd/pcap"
+	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zio/detector"
+	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zqd/api"
+	"github.com/brimsec/zq/zqd/pcap"
 )
 
 func HandleList(w http.ResponseWriter, r *http.Request) {

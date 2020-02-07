@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/mccanne/zq/pkg/nano"
+	"github.com/brimsec/zq/pkg/nano"
 )
 
 type file struct {

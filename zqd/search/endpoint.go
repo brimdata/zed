@@ -10,12 +10,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/mccanne/zq/ast"
-	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/scanner"
-	"github.com/mccanne/zq/zio/detector"
-	"github.com/mccanne/zq/zng/resolver"
-	"github.com/mccanne/zq/zqd/api"
+	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/scanner"
+	"github.com/brimsec/zq/zio/detector"
+	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zqd/api"
 )
 
 // This mtu is pretty small but it keeps the JSON object size below 64kb or so

@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/pkg/peeker"
-	"github.com/mccanne/zq/zng"
-	"github.com/mccanne/zq/zng/resolver"
+	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/pkg/peeker"
+	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 )
 
 const (

@@ -6,8 +6,8 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/mccanne/zq/pkg/bufwriter"
-	"github.com/mccanne/zq/zng"
+	"github.com/brimsec/zq/pkg/bufwriter"
+	"github.com/brimsec/zq/zng"
 )
 
 type TypeLogger struct {

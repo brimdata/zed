@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/brimsec/zq/zcode"
+	"github.com/brimsec/zq/zio/zeekio"
+	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/buger/jsonparser"
-	"github.com/mccanne/zq/zcode"
-	"github.com/mccanne/zq/zio/zeekio"
-	"github.com/mccanne/zq/zng"
-	"github.com/mccanne/zq/zng/resolver"
 )
 
 // ErrMultiTypedArray signifies that a json array was found with multiple types.

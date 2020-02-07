@@ -6,12 +6,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mccanne/zq/ast"
-	"github.com/mccanne/zq/filter"
-	"github.com/mccanne/zq/zio/detector"
-	"github.com/mccanne/zq/zng"
-	"github.com/mccanne/zq/zng/resolver"
-	"github.com/mccanne/zq/zql"
+	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/filter"
+	"github.com/brimsec/zq/zio/detector"
+	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/zng"
-	"github.com/mccanne/zq/zng/resolver"
+	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -1,9 +1,9 @@
 package proc
 
 import (
-	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/zbuf"
-	"github.com/mccanne/zq/zng"
+	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zng"
 )
 
 type Head struct {

@@ -4,8 +4,8 @@ import (
 	"context"
 	"io"
 
-	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/zng"
+	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zng"
 )
 
 type Reader interface {

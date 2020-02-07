@@ -1,6 +1,6 @@
 package reducer
 
-import "github.com/mccanne/zq/pkg/test"
+import "github.com/brimsec/zq/pkg/test"
 
 const unset = `
 #0:record[x:count]

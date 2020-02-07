@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mccanne/zq/pkg/test"
+	"github.com/brimsec/zq/pkg/test"
 )
 
 type filespec struct {

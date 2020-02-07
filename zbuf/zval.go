@@ -3,9 +3,9 @@ package zbuf
 import (
 	"bytes"
 
-	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/zcode"
-	"github.com/mccanne/zq/zng"
+	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zcode"
+	"github.com/brimsec/zq/zng"
 )
 
 // appendZvalFromZeek appends to dst the zval for the Zeek UTF-8 value described

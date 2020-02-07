@@ -3,9 +3,9 @@ package driver
 import (
 	"context"
 
-	"github.com/mccanne/zq/ast"
-	"github.com/mccanne/zq/proc"
-	"github.com/mccanne/zq/zng/resolver"
+	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/zng/resolver"
 	"go.uber.org/zap"
 )
 

@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/mccanne/zq/ast"
-	"github.com/mccanne/zq/zng"
-	"github.com/mccanne/zq/zng/resolver"
-	"github.com/mccanne/zq/zx"
+	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zx"
 	"github.com/stretchr/testify/require"
 )
 

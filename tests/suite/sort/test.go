@@ -1,7 +1,7 @@
 package sort
 
 import (
-	"github.com/mccanne/zq/pkg/test"
+	"github.com/brimsec/zq/pkg/test"
 )
 
 var Internal1 = test.Internal{

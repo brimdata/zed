@@ -4,7 +4,7 @@
 #ifdef GO
 {
     package zql
-    import "github.com/mccanne/zq/reglob"
+    import "github.com/brimsec/zq/reglob"
 }
 #define RETURN(x) return x, nil
 #define NULL nil

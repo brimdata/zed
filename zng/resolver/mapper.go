@@ -1,7 +1,7 @@
 package resolver
 
 import (
-	"github.com/mccanne/zq/zng"
+	"github.com/brimsec/zq/zng"
 )
 
 type Mapper struct {

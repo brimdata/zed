@@ -3,7 +3,7 @@ package proc_test
 import (
 	"testing"
 
-	"github.com/mccanne/zq/proc"
+	"github.com/brimsec/zq/proc"
 )
 
 func TestTop(t *testing.T) {

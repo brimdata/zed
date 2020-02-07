@@ -1,8 +1,8 @@
 package reducer
 
 import (
-	"github.com/mccanne/zq/expr"
-	"github.com/mccanne/zq/zng"
+	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/zng"
 )
 
 type LastProto struct {

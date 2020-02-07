@@ -1,6 +1,6 @@
 package proc
 
-import "github.com/mccanne/zq/zbuf"
+import "github.com/brimsec/zq/zbuf"
 
 type Pass struct {
 	Base

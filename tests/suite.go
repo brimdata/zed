@@ -1,19 +1,19 @@
 package tests
 
 import (
-	"github.com/mccanne/zq/pkg/test"
-	"github.com/mccanne/zq/tests/suite/count"
-	"github.com/mccanne/zq/tests/suite/cut"
-	"github.com/mccanne/zq/tests/suite/diropt"
-	"github.com/mccanne/zq/tests/suite/errors"
-	"github.com/mccanne/zq/tests/suite/filter"
-	"github.com/mccanne/zq/tests/suite/format"
-	"github.com/mccanne/zq/tests/suite/input"
-	"github.com/mccanne/zq/tests/suite/reducer"
-	"github.com/mccanne/zq/tests/suite/regexp"
-	"github.com/mccanne/zq/tests/suite/sort"
-	"github.com/mccanne/zq/tests/suite/time"
-	"github.com/mccanne/zq/tests/suite/utf8"
+	"github.com/brimsec/zq/pkg/test"
+	"github.com/brimsec/zq/tests/suite/count"
+	"github.com/brimsec/zq/tests/suite/cut"
+	"github.com/brimsec/zq/tests/suite/diropt"
+	"github.com/brimsec/zq/tests/suite/errors"
+	"github.com/brimsec/zq/tests/suite/filter"
+	"github.com/brimsec/zq/tests/suite/format"
+	"github.com/brimsec/zq/tests/suite/input"
+	"github.com/brimsec/zq/tests/suite/reducer"
+	"github.com/brimsec/zq/tests/suite/regexp"
+	"github.com/brimsec/zq/tests/suite/sort"
+	"github.com/brimsec/zq/tests/suite/time"
+	"github.com/brimsec/zq/tests/suite/utf8"
 )
 
 var RootDir = "./test-root"

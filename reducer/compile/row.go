@@ -1,10 +1,10 @@
 package compile
 
 import (
-	"github.com/mccanne/zq/reducer"
-	"github.com/mccanne/zq/zcode"
-	"github.com/mccanne/zq/zng"
-	"github.com/mccanne/zq/zng/resolver"
+	"github.com/brimsec/zq/reducer"
+	"github.com/brimsec/zq/zcode"
+	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 )
 
 type Row struct {

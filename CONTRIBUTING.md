@@ -1,7 +1,7 @@
 # Contributing
 
 Thank you for contributing to `zq`! Feel free to
-[post an issue](https://github.com/mccanne/zq/issues),
+[post an issue](https://github.com/brimsec/zq/issues),
 fork the repo, or send us a pull request.
 
 `zq` is early in its life cycle and will be expanding quickly.  Please star and/or
@@ -19,7 +19,7 @@ Dependencies are specified in the [`go.mod` file](/go.mod) and managed
 automatically by commands like `go build` and `go test`.  No explicit
 fetch commands are necessary.  However, you must set the environment
 variable `GO111MODULE=on` if your repo is at
-`$GOPATH/src/github.com/mccanne/zq`.
+`$GOPATH/src/github.com/brimsec/zq`.
 
 When `go.mod` or its companion `go.sum` are modified during development, run
 `go mod tidy` and then commit the changes to both files.

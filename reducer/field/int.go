@@ -1,9 +1,9 @@
 package field
 
 import (
-	"github.com/mccanne/zq/streamfn"
-	"github.com/mccanne/zq/zng"
-	"github.com/mccanne/zq/zx"
+	"github.com/brimsec/zq/streamfn"
+	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zx"
 )
 
 type Int struct {

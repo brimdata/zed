@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/mccanne/zq/zbuf"
-	"github.com/mccanne/zq/zio/bzngio"
+	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio/bzngio"
 )
 
 // bzngOutput writes bzng encodings directly to the client via

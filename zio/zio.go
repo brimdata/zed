@@ -3,7 +3,7 @@ package zio
 import (
 	"io"
 
-	"github.com/mccanne/zq/zbuf"
+	"github.com/brimsec/zq/zbuf"
 )
 
 type Flags struct {

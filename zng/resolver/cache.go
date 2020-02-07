@@ -1,7 +1,7 @@
 package resolver
 
 import (
-	"github.com/mccanne/zq/zng"
+	"github.com/brimsec/zq/zng"
 )
 
 // Cache wraps a zng.Resolver with an unsynchronized cache.

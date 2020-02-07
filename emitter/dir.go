@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/mccanne/zq/zio"
-	"github.com/mccanne/zq/zng"
+	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zng"
 )
 
 var (

@@ -3,7 +3,7 @@ package proc
 import (
 	"sync"
 
-	"github.com/mccanne/zq/zbuf"
+	"github.com/brimsec/zq/zbuf"
 )
 
 // Split splits its input into multiple proc outputs.  Since procs run from the

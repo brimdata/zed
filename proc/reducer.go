@@ -3,11 +3,11 @@ package proc
 import (
 	"time"
 
-	"github.com/mccanne/zq/ast"
-	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/reducer/compile"
-	"github.com/mccanne/zq/zbuf"
-	"github.com/mccanne/zq/zng"
+	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/reducer/compile"
+	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zng"
 )
 
 type ReducerParams struct {

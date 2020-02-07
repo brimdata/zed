@@ -1,7 +1,7 @@
 package zng
 
 import (
-	"github.com/mccanne/zq/zcode"
+	"github.com/brimsec/zq/zcode"
 )
 
 type TypeOfBool struct{}

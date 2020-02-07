@@ -1,7 +1,7 @@
 package utf8
 
 import (
-	"github.com/mccanne/zq/pkg/test"
+	"github.com/brimsec/zq/pkg/test"
 )
 
 var Exec = test.Exec{

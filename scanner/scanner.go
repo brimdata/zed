@@ -1,11 +1,11 @@
 package scanner
 
 import (
-	"github.com/mccanne/zq/filter"
-	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/proc"
-	"github.com/mccanne/zq/zbuf"
-	"github.com/mccanne/zq/zng"
+	"github.com/brimsec/zq/filter"
+	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zng"
 )
 
 type Scanner struct {

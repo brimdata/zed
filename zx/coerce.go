@@ -3,8 +3,8 @@ package zx
 import (
 	"math"
 
-	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/zng"
+	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zng"
 )
 
 // CoerceToDouble attempts to convert a value to a double. The

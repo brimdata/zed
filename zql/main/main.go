@@ -9,7 +9,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/mccanne/zq/zql"
+	"github.com/brimsec/zq/zql"
 	"github.com/peterh/liner"
 )
 

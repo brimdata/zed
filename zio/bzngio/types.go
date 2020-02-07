@@ -19,7 +19,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/mccanne/zq/zng/resolver"
+	"github.com/brimsec/zq/zng/resolver"
 )
 
 // TypeFile manages the backing store for a type context.

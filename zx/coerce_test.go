@@ -3,8 +3,8 @@ package zx_test
 import (
 	"testing"
 
-	"github.com/mccanne/zq/zng"
-	"github.com/mccanne/zq/zx"
+	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zx"
 	"github.com/stretchr/testify/require"
 )
 

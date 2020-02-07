@@ -3,7 +3,7 @@ package streamfn
 import (
 	"math"
 
-	"github.com/mccanne/zq/pkg/nano"
+	"github.com/brimsec/zq/pkg/nano"
 )
 
 type Time struct {
