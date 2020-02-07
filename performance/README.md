@@ -4,7 +4,7 @@ The tables below provide a summary of simple operations and how `zq`
 performs at them relative to `zeek-cut` and `jq`. All operations were performed
 on a Google Cloud `n1-standard-8` VM (8 vCPUs, 30 GB memory) with the logs
 stored on a local SSD. The [`comparison-test.sh`](../scripts/comparison-test.sh)
-script (which uses the [zq-sample-data](https://github.com/mccanne/zq-sample-data))
+script (which uses the [zq-sample-data](https://github.com/brimsec/zq-sample-data))
 was used to generate the results.
 
 As there are many results to sift through, here's a few key summary take-aways:
