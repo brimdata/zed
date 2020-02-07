@@ -225,5 +225,5 @@ func TestBadFilter(t *testing.T) {
 	filter := `s = \xa8*`
 	_, err := compileFilter(filter)
 	assert.Error(t, err, "Received error for bad glob")
-	assert.Contains(t, err.Error(), "non UTF-8 sequence in regexp", "Received good error message for invalid UTF-8 in a regexp")
+	assert.Contains(t, err.Error(), "invalid UTF-8", "Received good error message for invalid UTF-8 in a regexp")
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"regexp"
+	"regexp/syntax"
 	"strings"
 
 	"github.com/mccanne/zq/ast"
@@ -274,8 +275,8 @@ func CompareBstring(op string, pattern zng.Bstring) (Predicate, error) {
 func compareRegexp(op, pattern string) (Predicate, error) {
 	re, err := regexp.Compile(string(zng.UnescapeBstring([]byte(pattern))))
 	if err != nil {
-		if strings.Contains(err.Error(), "invalid UTF-8") {
-			err = fmt.Errorf("non UTF-8 sequence in regexp \"%s\"", pattern)
+		if syntaxErr, ok := err.(*syntax.Error); ok {
+			syntaxErr.Expr = pattern
 		}
 		return nil, err
 	}
