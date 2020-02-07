@@ -7,7 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR" || exit 1
 
 DATA="zq-sample-data"
-DATA_REPO="https://github.com/mccanne/zq-sample-data.git"
+DATA_REPO="https://github.com/brimsec/zq-sample-data.git"
 if [ -d "$DATA" ]; then
   (cd "$DATA"&& git pull) || exit 1
 else

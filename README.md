@@ -50,7 +50,7 @@ zq help
 
 Here are a few examples based on a very simple "conn" log from Zeek [(conn.log)](conn.log),
 located in this directory. See the
-[zq-sample-data repo](https://github.com/mccanne/zq-sample-data) for more
+[zq-sample-data repo](https://github.com/brimsec/zq-sample-data) for more
 test data, which is used in the examples in the
 [query language documentation](zql/docs/README.md).
 
