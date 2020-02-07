@@ -3,9 +3,9 @@ package listen
 import (
 	"flag"
 
+	"github.com/brimsec/zq/cmd/zqd/root"
+	"github.com/brimsec/zq/zqd"
 	"github.com/mccanne/charm"
-	"github.com/mccanne/zq/cmd/zqd/root"
-	"github.com/mccanne/zq/zqd"
 )
 
 var Listen = &charm.Spec{

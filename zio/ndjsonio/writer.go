@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/mccanne/zq/zng"
+	"github.com/brimsec/zq/zng"
 )
 
 // Writer implements a Formatter for ndjson

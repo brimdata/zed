@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mccanne/zq/ast"
-	"github.com/mccanne/zq/expr"
-	"github.com/mccanne/zq/zbuf"
-	"github.com/mccanne/zq/zng"
+	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zng"
 )
 
 type Cut struct {

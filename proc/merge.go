@@ -4,8 +4,8 @@ import (
 	"io"
 	"sync"
 
-	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/zbuf"
+	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zbuf"
 )
 
 // A Merge proc merges multiple upstream inputs into one output.

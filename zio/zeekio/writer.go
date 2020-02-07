@@ -6,10 +6,10 @@ import (
 	"io"
 	"strings"
 
-	"github.com/mccanne/zq/zbuf"
-	"github.com/mccanne/zq/zio"
-	"github.com/mccanne/zq/zng"
-	"github.com/mccanne/zq/zng/resolver"
+	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 )
 
 var ErrDescriptorChanged = errors.New("descriptor changed")

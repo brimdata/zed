@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/mccanne/zq/ast"
-	"github.com/mccanne/zq/zcode"
+	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/zcode"
 )
 
 var (

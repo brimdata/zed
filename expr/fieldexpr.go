@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/mccanne/zq/ast"
-	"github.com/mccanne/zq/zng"
+	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/zng"
 )
 
 // A FieldExprResolver is a compiled FieldExpr (where FieldExpr is the

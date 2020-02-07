@@ -3,7 +3,7 @@ package nano_test
 import (
 	"testing"
 
-	"github.com/mccanne/zq/pkg/nano"
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/stretchr/testify/assert"
 )
 

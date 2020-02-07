@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mccanne/zq/ast"
+	"github.com/brimsec/zq/ast"
 )
 
 // ParseProc() is an entry point for use from external go code,

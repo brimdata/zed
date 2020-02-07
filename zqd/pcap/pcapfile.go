@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/mccanne/zq/pkg/nano"
+	"github.com/brimsec/zq/pkg/nano"
 )
 
 // ParseFileName parses the given .pcap filename and returns the starting

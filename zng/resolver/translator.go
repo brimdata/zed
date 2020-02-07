@@ -3,7 +3,7 @@ package resolver
 import (
 	"sync"
 
-	"github.com/mccanne/zq/zng"
+	"github.com/brimsec/zq/zng"
 )
 
 type Translator struct {

@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"sort"
 
-	"github.com/mccanne/zq/zcode"
-	"github.com/mccanne/zq/zng"
+	"github.com/brimsec/zq/zcode"
+	"github.com/brimsec/zq/zng"
 )
 
 type SortFn func(a *zng.Record, b *zng.Record) int

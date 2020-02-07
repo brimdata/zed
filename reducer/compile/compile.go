@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/mccanne/zq/ast"
-	"github.com/mccanne/zq/expr"
-	"github.com/mccanne/zq/reducer"
-	"github.com/mccanne/zq/reducer/field"
-	"github.com/mccanne/zq/zng"
+	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/reducer"
+	"github.com/brimsec/zq/reducer/field"
+	"github.com/brimsec/zq/zng"
 )
 
 var (

@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mccanne/zq/zbuf"
-	"github.com/mccanne/zq/zio/zngio"
-	"github.com/mccanne/zq/zng/resolver"
+	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/require"
 )
 

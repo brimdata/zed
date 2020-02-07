@@ -1,4 +1,4 @@
-module github.com/mccanne/zq
+module github.com/brimsec/zq
 
 go 1.13
 

@@ -3,7 +3,7 @@ package zng
 import (
 	"errors"
 
-	"github.com/mccanne/zq/ast"
+	"github.com/brimsec/zq/ast"
 )
 
 func AsInt64(literal ast.Literal) (int64, error) {

@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mccanne/zq/zcode"
+	"github.com/brimsec/zq/zcode"
 )
 
 type TypeUnion struct {

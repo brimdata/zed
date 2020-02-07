@@ -1,7 +1,7 @@
 package format
 
 import (
-	"github.com/mccanne/zq/pkg/test"
+	"github.com/brimsec/zq/pkg/test"
 )
 
 var JsonTypes = test.Internal{

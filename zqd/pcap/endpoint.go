@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/mccanne/zq/pkg/nano"
+	"github.com/brimsec/zq/pkg/nano"
 )
 
 // PacketSearch are the query string args to the packet endpoint when searching

@@ -3,7 +3,7 @@ package zng
 import (
 	"strconv"
 
-	"github.com/mccanne/zq/zcode"
+	"github.com/brimsec/zq/zcode"
 )
 
 type TypeOfCount struct{}

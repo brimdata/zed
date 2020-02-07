@@ -6,12 +6,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/zbuf"
-	"github.com/mccanne/zq/zio"
-	"github.com/mccanne/zq/zio/zeekio"
-	"github.com/mccanne/zq/zng"
-	"github.com/mccanne/zq/zng/resolver"
+	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zio/zeekio"
+	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 )
 
 type Text struct {

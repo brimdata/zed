@@ -3,8 +3,8 @@ package api
 import (
 	"encoding/json"
 
-	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/zio/zjsonio"
+	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zio/zjsonio"
 )
 
 type Error struct {

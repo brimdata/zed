@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mccanne/zq/ast"
-	"github.com/mccanne/zq/expr"
-	"github.com/mccanne/zq/filter"
-	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/reducer/compile"
-	"github.com/mccanne/zq/zbuf"
-	"github.com/mccanne/zq/zng/resolver"
+	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/filter"
+	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/reducer/compile"
+	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zng/resolver"
 	"go.uber.org/zap"
 )
 

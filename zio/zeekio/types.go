@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mccanne/zq/zng"
+	"github.com/brimsec/zq/zng"
 )
 
 func zeekTypeToZng(typ string) string {

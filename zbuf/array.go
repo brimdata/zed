@@ -1,8 +1,8 @@
 package zbuf
 
 import (
-	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/zng"
+	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zng"
 )
 
 // Array is a slice of of records that implements the Batch interface.

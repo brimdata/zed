@@ -7,7 +7,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/mccanne/zq/zcode"
+	"github.com/brimsec/zq/zcode"
 	"golang.org/x/text/unicode/norm"
 )
 

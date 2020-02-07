@@ -2,10 +2,11 @@ package zng
 
 import (
 	"bytes"
-	"github.com/mccanne/zq/zcode"
-	"golang.org/x/text/unicode/norm"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/brimsec/zq/zcode"
+	"golang.org/x/text/unicode/norm"
 )
 
 type TypeOfBstring struct{}

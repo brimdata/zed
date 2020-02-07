@@ -8,8 +8,8 @@ import (
 	"regexp/syntax"
 	"strings"
 
-	"github.com/mccanne/zq/ast"
-	"github.com/mccanne/zq/zng"
+	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/zng"
 )
 
 //XXX TBD:

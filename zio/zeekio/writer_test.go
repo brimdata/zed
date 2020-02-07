@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mccanne/zq/zio"
-	"github.com/mccanne/zq/zio/zeekio"
-	"github.com/mccanne/zq/zio/zngio"
-	"github.com/mccanne/zq/zng/resolver"
+	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zio/zeekio"
+	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/require"
 )
 

@@ -2,7 +2,8 @@ package zng
 
 import (
 	"errors"
-	"github.com/mccanne/zq/zcode"
+
+	"github.com/brimsec/zq/zcode"
 )
 
 var ErrInstantiateNull = errors.New("cannot instantiate type null")

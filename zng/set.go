@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mccanne/zq/zcode"
+	"github.com/brimsec/zq/zcode"
 )
 
 type TypeSet struct {

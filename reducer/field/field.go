@@ -1,9 +1,9 @@
 package field
 
 import (
-	"github.com/mccanne/zq/expr"
-	"github.com/mccanne/zq/reducer"
-	"github.com/mccanne/zq/zng"
+	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/reducer"
+	"github.com/brimsec/zq/zng"
 )
 
 type Streamfn interface {

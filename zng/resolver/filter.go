@@ -1,6 +1,6 @@
 package resolver
 
-import "github.com/mccanne/zq/zng"
+import "github.com/brimsec/zq/zng"
 
 type Predicate func(*zng.TypeRecord) bool
 

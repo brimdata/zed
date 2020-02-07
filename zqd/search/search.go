@@ -7,14 +7,14 @@ import (
 	"errors"
 	"time"
 
-	"github.com/mccanne/zq/ast"
-	"github.com/mccanne/zq/filter"
-	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/proc"
-	"github.com/mccanne/zq/scanner"
-	"github.com/mccanne/zq/zbuf"
-	"github.com/mccanne/zq/zng/resolver"
-	"github.com/mccanne/zq/zqd/api"
+	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/filter"
+	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/scanner"
+	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zqd/api"
 	"go.uber.org/zap"
 )
 

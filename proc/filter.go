@@ -1,9 +1,9 @@
 package proc
 
 import (
-	"github.com/mccanne/zq/filter"
-	"github.com/mccanne/zq/zbuf"
-	"github.com/mccanne/zq/zng"
+	"github.com/brimsec/zq/filter"
+	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zng"
 )
 
 type Filter struct {

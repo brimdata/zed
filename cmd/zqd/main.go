@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	_ "github.com/mccanne/zq/cmd/zqd/listen"
-	"github.com/mccanne/zq/cmd/zqd/root"
-	"github.com/mccanne/zq/zqd"
+	_ "github.com/brimsec/zq/cmd/zqd/listen"
+	root "github.com/brimsec/zq/cmd/zqd/root"
+	"github.com/brimsec/zq/zqd"
 )
 
 // Version is set via the Go linker.

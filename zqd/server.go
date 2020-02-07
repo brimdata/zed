@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/mccanne/zq/zqd/search"
-	"github.com/mccanne/zq/zqd/space"
+	"github.com/brimsec/zq/zqd/search"
+	"github.com/brimsec/zq/zqd/space"
 )
 
 type VersionMessage struct {

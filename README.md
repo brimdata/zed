@@ -33,7 +33,7 @@ To install the binaries in `$GOPATH/bin`, clone this repo and
 execute `make install`:
 
 ```
-git clone https://github.com/mccanne/zq
+git clone https://github.com/brimsec/zq
 cd zq
 make install
 ```
@@ -122,7 +122,7 @@ at the [performance](performance/README.md) page.
 
 See the [contributing guide](CONTRIBUTING.md) on how you can help improve `zq`!
 
-[doc-img]: https://godoc.org/github.com/mccanne/zq?status.svg
-[doc]: https://godoc.org/github.com/mccanne/zq
-[ci-img]: https://circleci.com/gh/mccanne/zq.svg?style=svg
-[ci]: https://circleci.com/gh/mccanne/zq
+[doc-img]: https://godoc.org/github.com/brimsec/zq?status.svg
+[doc]: https://godoc.org/github.com/brimsec/zq
+[ci-img]: https://circleci.com/gh/brimsec/zq.svg?style=svg
+[ci]: https://circleci.com/gh/brimsec/zq

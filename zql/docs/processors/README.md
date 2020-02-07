@@ -24,7 +24,7 @@ The following available processors are documented in detail below:
 | **Required<br>arguments** | `<field-list>`<br>One or more comma-separated field names.  |
 | **Optional<br>arguments** | None                                                        |
 | **Caveats**               | The specified field names must exist in the input data. If a non-existent field appears in the `<field-list>`, the returned results will be empty. |
-| **Developer Docs**        | https://godoc.org/github.com/mccanne/zq/proc#Cut            |
+| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc#Cut            |
 
 #### Example:
 
@@ -53,7 +53,7 @@ TS                UID
 | **Syntax**                | `filter <search-expression>`                                          |
 | **Required<br>arguments** | `<search-expression>`<br>Any valid expression in ZQL [search syntax](../search-syntax/README.md) |
 | **Optional<br>arguments** | None                                                                  |
-| **Developer Docs**        | https://godoc.org/github.com/mccanne/zq/proc#Filter                   |
+| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc#Filter                   |
 
 #### Example #1:
 
@@ -94,7 +94,7 @@ ssl   1521912240.189735 CSbGJs3jOeB6glWLJj 10.47.7.154 27137     52.85.83.215 44
 | **Syntax**                | `head [N]`                                                            |
 | **Required<br>arguments** | None. If no arguments are specified, only the first event is returned.| 
 | **Optional<br>arguments** | `[N]`<br>An integer specifying the number of results to return. If not specified, defaults to `1`. |
-| **Developer Docs**        | https://godoc.org/github.com/mccanne/zq/proc#Head                     |
+| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc#Head                     |
 
 #### Example #1:
 
@@ -138,7 +138,7 @@ conn  1521911720.607695 CpjMvj2Cvj048u6bF1 10.164.94.120 39169     10.47.3.200 8
 | **Syntax**                | `sort [-r] [-limit N] [-nulls first\|last] [field-list]`                   |
 | **Required<br>arguments** | None                                                                      |
 | **Optional<br>arguments** | `[-r]`<br>If specified, results will be sorted in reverse order.<br><br>`[-limit N]`<br>The maximum number of events that may be sorted at once. If not specified, defaults to `1000000`. Note that increasing the `limit` to a very large value may cause high memory consumption.<br><br>`[-nulls first\|last]`<br>Specifies whether null values (i.e., values that are unset or that are not present at all in an incoming record) should be placed in the output.<br><br>`[field-list]`<br>One or more comma-separated field names by which to sort. Results will be sorted based on the values of the first field named in the list, then based on values in the second field named in the list, and so on.<br><br>If no field list is provided, sort will automatically pick a field by which to sort. The pick is done by examining the first result returned and finding the first field in left-to-right order of one of the following [data types](../data-types/README.md). If no fields of the first data type are found, the next is considered, and so on:<br>- `count`<br>- `int`<br>- `double`<br>If no fields of those types are found, sorting will be performed on the first field found in left-to-right order that is _not_ of the `time` data type. |
-| **Developer Docs**        | https://godoc.org/github.com/mccanne/zq/proc#Sort                         |
+| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc#Sort                         |
 
 #### Example #1:
 
@@ -263,7 +263,7 @@ conn  1521911720.601314 CL31Wl4WQoDATEz5Z8 10.164.94.120  34261     10.47.8.208 
 | **Syntax**                | `tail [N]`                                                            |
 | **Required<br>arguments** | None. If no arguments are specified, only the last event is returned. | 
 | **Optional<br>arguments** | `[N]`<br>An integer specifying the number of results to return. If not specified, defaults to `1`. |
-| **Developer Docs**        | https://godoc.org/github.com/mccanne/zq/proc#Tail                     |
+| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc#Tail                     |
 
 #### Example #1:
 
@@ -307,7 +307,7 @@ conn  1521912988.752765 COICgc1FXHKteyFy67 10.0.0.227     61314     10.47.5.58  
 | **Syntax**                | `uniq [-c]`                                                           |
 | **Required<br>arguments** | None                                                                  | 
 | **Optional<br>arguments** | `[-c]`<br>For each unique value shown, include a numeric count of how many times it appeared. |
-| **Developer Docs**        | https://godoc.org/github.com/mccanne/zq/proc#Uniq                     |
+| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc#Uniq                     |
 
 #### Example:
 

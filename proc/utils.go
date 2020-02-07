@@ -12,13 +12,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mccanne/zq/ast"
-	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/zbuf"
-	"github.com/mccanne/zq/zio/detector"
-	"github.com/mccanne/zq/zng"
-	"github.com/mccanne/zq/zng/resolver"
-	"github.com/mccanne/zq/zql"
+	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio/detector"
+	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/require"
 )
 

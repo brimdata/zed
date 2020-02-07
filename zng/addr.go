@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net"
 
-	"github.com/mccanne/zq/zcode"
+	"github.com/brimsec/zq/zcode"
 )
 
 type TypeOfAddr struct{}

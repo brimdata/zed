@@ -1,8 +1,8 @@
 package zng
 
 import (
-	"github.com/mccanne/zq/pkg/nano"
-	"github.com/mccanne/zq/zcode"
+	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zcode"
 )
 
 type TypeOfTime struct{}

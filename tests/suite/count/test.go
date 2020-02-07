@@ -1,7 +1,7 @@
 package count
 
 import (
-	"github.com/mccanne/zq/pkg/test"
+	"github.com/brimsec/zq/pkg/test"
 )
 
 var Internal = test.Internal{

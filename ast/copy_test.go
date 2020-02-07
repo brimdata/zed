@@ -3,7 +3,7 @@ package ast_test
 import (
 	"testing"
 
-	"github.com/mccanne/zq/ast"
+	"github.com/brimsec/zq/ast"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

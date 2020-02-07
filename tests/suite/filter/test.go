@@ -1,7 +1,7 @@
 package filter
 
 import (
-	"github.com/mccanne/zq/pkg/test"
+	"github.com/brimsec/zq/pkg/test"
 )
 
 const in = `

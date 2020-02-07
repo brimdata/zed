@@ -7,7 +7,7 @@ package reducer
 import (
 	"errors"
 
-	"github.com/mccanne/zq/zng"
+	"github.com/brimsec/zq/zng"
 )
 
 var (

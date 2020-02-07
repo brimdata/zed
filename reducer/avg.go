@@ -1,9 +1,9 @@
 package reducer
 
 import (
-	"github.com/mccanne/zq/expr"
-	"github.com/mccanne/zq/zng"
-	"github.com/mccanne/zq/zx"
+	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zx"
 )
 
 type AvgProto struct {

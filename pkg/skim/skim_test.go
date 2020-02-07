@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/mccanne/zq/pkg/skim"
+	"github.com/brimsec/zq/pkg/skim"
 	"github.com/stretchr/testify/require"
 )
 

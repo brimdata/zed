@@ -3,9 +3,9 @@ package scanner
 import (
 	"fmt"
 
-	"github.com/mccanne/zq/zbuf"
-	"github.com/mccanne/zq/zng"
-	"github.com/mccanne/zq/zng/resolver"
+	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 )
 
 type Reader struct {

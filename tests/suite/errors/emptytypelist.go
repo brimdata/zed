@@ -1,8 +1,8 @@
 package errors
 
 import (
-	"github.com/mccanne/zq/pkg/test"
-	"github.com/mccanne/zq/zng/resolver"
+	"github.com/brimsec/zq/pkg/test"
+	"github.com/brimsec/zq/zng/resolver"
 )
 
 const inputEmptyUnionType = `

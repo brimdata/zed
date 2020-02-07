@@ -3,17 +3,17 @@ package detector
 import (
 	"io"
 
-	"github.com/mccanne/zq/zbuf"
-	"github.com/mccanne/zq/zio"
-	"github.com/mccanne/zq/zio/bzngio"
-	"github.com/mccanne/zq/zio/ndjsonio"
-	"github.com/mccanne/zq/zio/tableio"
-	"github.com/mccanne/zq/zio/textio"
-	"github.com/mccanne/zq/zio/zeekio"
-	"github.com/mccanne/zq/zio/zjsonio"
-	"github.com/mccanne/zq/zio/zngio"
-	"github.com/mccanne/zq/zng"
-	"github.com/mccanne/zq/zng/resolver"
+	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zio/bzngio"
+	"github.com/brimsec/zq/zio/ndjsonio"
+	"github.com/brimsec/zq/zio/tableio"
+	"github.com/brimsec/zq/zio/textio"
+	"github.com/brimsec/zq/zio/zeekio"
+	"github.com/brimsec/zq/zio/zjsonio"
+	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 )
 
 type nullWriter struct{}

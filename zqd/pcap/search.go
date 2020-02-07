@@ -9,10 +9,10 @@ import (
 	"net"
 	"os"
 
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcapgo"
-	"github.com/mccanne/zq/pkg/nano"
 )
 
 var (

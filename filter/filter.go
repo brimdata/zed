@@ -3,11 +3,11 @@ package filter
 import (
 	"fmt"
 
-	"github.com/mccanne/zq/ast"
-	"github.com/mccanne/zq/expr"
-	"github.com/mccanne/zq/zcode"
-	"github.com/mccanne/zq/zng"
-	"github.com/mccanne/zq/zx"
+	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/zcode"
+	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zx"
 )
 
 type Filter func(*zng.Record) bool

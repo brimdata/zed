@@ -5,8 +5,8 @@ import (
 	"io"
 	"time"
 
-	"github.com/mccanne/zq/proc"
-	"github.com/mccanne/zq/zbuf"
+	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/zbuf"
 )
 
 type Driver struct {
