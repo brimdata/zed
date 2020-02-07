@@ -63,14 +63,13 @@ func encodeUnion(typ *zng.TypeUnion, v []byte) (interface{}, error) {
 	}
 	body = append(body, strconv.Itoa(int(index)))
 
-	if zng.IsContainerType(inner) {
-		fld, err = encodeContainer(inner, v)
+	if utyp, ok := (inner).(*zng.TypeUnion); ok {
+		fld, err = encodeUnion(utyp, v)
 		if err != nil {
 			return nil, err
 		}
-
-	} else if utyp, ok := (inner).(*zng.TypeUnion); ok {
-		fld, err = encodeUnion(utyp, v)
+	} else if zng.IsContainerType(inner) {
+		fld, err = encodeContainer(inner, v)
 		if err != nil {
 			return nil, err
 		}
@@ -123,16 +122,7 @@ func encodeContainer(typ zng.Type, val []byte) (interface{}, error) {
 				childType = columns[k].Type
 				k++
 			}
-			if zng.IsContainerType(childType) {
-				if !container {
-					return nil, zng.ErrBadValue
-				}
-				child, err := encodeContainer(childType, v)
-				if err != nil {
-					return nil, err
-				}
-				body = append(body, child)
-			} else if utyp, ok := (childType).(*zng.TypeUnion); ok {
+			if utyp, ok := (childType).(*zng.TypeUnion); ok {
 				if !container {
 					return nil, zng.ErrBadValue
 				}
@@ -141,6 +131,15 @@ func encodeContainer(typ zng.Type, val []byte) (interface{}, error) {
 					return nil, err
 				}
 				body = append(body, fld)
+			} else if zng.IsContainerType(childType) {
+				if !container {
+					return nil, zng.ErrBadValue
+				}
+				child, err := encodeContainer(childType, v)
+				if err != nil {
+					return nil, err
+				}
+				body = append(body, child)
 			} else {
 				if container {
 					return nil, zng.ErrBadValue

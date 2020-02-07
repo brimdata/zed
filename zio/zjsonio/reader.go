@@ -200,7 +200,11 @@ func decodeUnion(builder *zcode.Builder, typ *zng.TypeUnion, body interface{}) e
 	var a [8]byte
 	n := zcode.EncodeCountedUvarint(a[:], uint64(index))
 	builder.AppendPrimitive(a[:n])
-	if zng.IsContainerType(inner) {
+	if utyp, ok := inner.(*zng.TypeUnion); ok {
+		if err = decodeUnion(builder, utyp, tuple[1]); err != nil {
+			return err
+		}
+	} else if zng.IsContainerType(inner) {
 		children, ok := tuple[1].([]interface{})
 		if !ok {
 			return errors.New("bad json for zjson value")
@@ -208,10 +212,7 @@ func decodeUnion(builder *zcode.Builder, typ *zng.TypeUnion, body interface{}) e
 		if err := decodeContainer(builder, inner, children); err != nil {
 			return err
 		}
-	} else if utyp, ok := inner.(*zng.TypeUnion); ok {
-		if err = decodeUnion(builder, utyp, tuple[1]); err != nil {
-			return err
-		}
+
 	} else {
 		s, ok := tuple[1].(string)
 		if !ok {
@@ -235,8 +236,7 @@ func decodeContainer(builder *zcode.Builder, typ zng.Type, body []interface{}) e
 		// each column either a string value or an array of string values
 		if column == nil {
 			// this is an unset column
-			if zng.IsContainerType(childType) || zng.IsUnionType(childType) ||
-				zng.IsContainerType(columns[k].Type) || zng.IsUnionType(columns[k].Type) {
+			if zng.IsContainerType(childType) || zng.IsContainerType(columns[k].Type) {
 				builder.AppendContainer(nil)
 			} else {
 				builder.AppendPrimitive(nil)
