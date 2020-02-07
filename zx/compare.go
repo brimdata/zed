@@ -268,7 +268,7 @@ func CompareBstring(op string, pattern zng.Bstring) (Predicate, error) {
 	}, nil
 }
 
-// RegexpComparison returns a Predicate that compares values that must
+// compareRegexp returns a Predicate that compares values that must
 // be a string or enum with the value's regular expression using a regex
 // match comparison based on equality or inequality based on op.
 func compareRegexp(op, pattern string) (Predicate, error) {
