@@ -59,8 +59,12 @@ func parseBstringEscape(data []byte) (byte, int) {
 		if v1 <= 0xf || v2 <= 0xf {
 			return v1<<4 | v2, 4
 		}
+	} else if len(data) >= 2 && data[1] == '\\' {
+		return data[1], 2
 	}
-	return data[1], 2
+
+	// Not a valid escape sequence, just lleave it alone.
+	return data[0], 1
 }
 
 func unhex(b byte) byte {

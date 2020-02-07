@@ -75,7 +75,7 @@ const zngsrc = `
 #12:record[s:bstring]
 0:[[abc;xyz;]]
 1:[[abc;xyz;]]
-1:[[a\;b;xyz;]]
+1:[[a\x3bb;xyz;]]
 2:[[1;2;3;]]
 3:[[1;2;3;]]
 4:[[1.1.1.1;2.2.2.2;]]
@@ -89,7 +89,7 @@ const zngsrc = `
 9:[Buenos di\xcc\x81as sen\xcc\x83or;]
 9:[Buenos d\xc3\xadas se\xc3\xb1or;]
 12:[hello;]
-0:[[a\;b;xyz;]]
+0:[[a\x3bb;xyz;]]
 `
 
 func TestFilters(t *testing.T) {
