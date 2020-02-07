@@ -46,9 +46,9 @@ func (t *TypeUnion) Parse(in []byte) (zcode.Bytes, error) {
 	panic("TypeUnion.Parse shouldn't be called")
 }
 
-// SplitBzng takes a bzng encoding of a value of the receiver's type and
+// SplitBzng takes a bzng encoding of a value of the receiver's union type and
 // returns the concrete type of the value, its index into the union
-// type, and the concrete value encoding.
+// type, and the value encoding.
 func (t *TypeUnion) SplitBzng(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) {
 	it := zcode.Iter(zv)
 	v, container, err := it.Next()
@@ -74,7 +74,7 @@ func (t *TypeUnion) SplitBzng(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) 
 }
 
 // SplitZng takes a zng encoding of a value of the receiver's type and returns the
-// concrete type of the value, its index into the union type, and the concrete value
+// concrete type of the value, its index into the union type, and the value
 // encoding.
 func (t *TypeUnion) SplitZng(in []byte) (Type, int, []byte, error) {
 	c := bytes.Index(in, []byte{':'})

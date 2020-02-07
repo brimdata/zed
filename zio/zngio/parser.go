@@ -88,7 +88,7 @@ func zngParseField(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, erro
 	var err error
 	var index int
 	if len(b) >= 2 && b[0] == '-' && b[1] == ';' {
-		if zng.IsContainerType(typ) || zng.IsUnionType(typ) {
+		if zng.IsContainerType(typ) {
 			builder.AppendContainer(nil)
 		} else {
 			builder.AppendPrimitive(nil)

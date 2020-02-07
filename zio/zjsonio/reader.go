@@ -169,7 +169,7 @@ func decodeField(builder *zcode.Builder, typ zng.Type, s string) error {
 	var err error
 	var index int
 	b := []byte(s)
-	if zng.IsContainerType(typ) {
+	if zng.IsContainerType(typ) && !zng.IsUnionType(typ) {
 		return zng.ErrNotContainer
 	}
 	if utyp, ok := typ.(*zng.TypeUnion); ok {

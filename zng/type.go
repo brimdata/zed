@@ -223,7 +223,7 @@ func IsUnionType(typ Type) bool {
 
 func IsContainerType(typ Type) bool {
 	switch typ.(type) {
-	case *TypeSet, *TypeArray, *TypeRecord:
+	case *TypeSet, *TypeArray, *TypeRecord, *TypeUnion:
 		return true
 	default:
 		return false
