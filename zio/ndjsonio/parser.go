@@ -104,8 +104,14 @@ func (p *Parser) jsonInferObject(b []byte) (zng.Type, typeInfo, error) {
 	// taking care to step into nested records as necessary.
 	colno := 0
 	nestedColno := 0
+	var nestedTi map[string]interface{}
 	for _, kv := range kvs {
 		recType, isRecord := columns[colno].Type.(*zng.TypeRecord)
+
+		if isRecord && nestedColno == 0 {
+			nestedTi = make(map[string]interface{})
+			ti[columns[colno].Name] = nestedTi
+		}
 		var ztyp zng.Type
 		var err error
 		var valti typeInfo
@@ -115,6 +121,7 @@ func (p *Parser) jsonInferObject(b []byte) (zng.Type, typeInfo, error) {
 		}
 		if isRecord {
 			recType.Columns[nestedColno].Type = ztyp
+			nestedTi[recType.Columns[nestedColno].Name] = valti
 			nestedColno += 1
 			if nestedColno == len(recType.Columns) {
 				nestedColno = 0
@@ -222,28 +229,26 @@ func (p *Parser) jsonParseObject(b []byte, ti typeInfo) error {
 	colno := 0
 	nestedColno := 0
 	timap := ti.(map[string]interface{})
+	outerTi := timap
 	for _, kv := range kvs {
 		recType, isRecord := columns[colno].Type.(*zng.TypeRecord)
-		if isRecord {
-			if nestedColno == 0 {
-				p.builder.BeginContainer()
-			}
+		if isRecord && nestedColno == 0 {
+			timap = timap[columns[colno].Name].(map[string]interface{})
+			p.builder.BeginContainer()
 		}
-		var ztyp zng.Type
-		err := p.jsonParseValue(kv.value, kv.typ, timap[string(kv.key)])
+		err := p.jsonParseValue(kv.value, kv.typ, timap[columns[colno].Name])
 		if err != nil {
 			return err
 		}
 		if isRecord {
-			recType.Columns[nestedColno].Type = ztyp
 			nestedColno += 1
 			if nestedColno == len(recType.Columns) {
+				timap = outerTi
 				p.builder.EndContainer()
 				nestedColno = 0
 				colno += 1
 			}
 		} else {
-			columns[colno].Type = ztyp
 			colno += 1
 		}
 	}

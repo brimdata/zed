@@ -8,3 +8,5 @@
 2:[[0:foo;1:[1;2;]]]
 #3:record[d:array[union[string,bool,array[union[string,double]],record[dd:array[union[string,double]]]]]]
 3:[[0:foo;1:F;2:[0:foo;1:2;]3:[[0:foo;1:2;]]]]
+#4:record[f:array[union[string,bool,array[union[string,double]],record[d:record[d:array[union[string,double]]]]]]]
+4:[[0:foo;1:F;2:[0:foo;1:2;]3:[[[0:foo;1:2;]]]]]

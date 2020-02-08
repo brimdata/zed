@@ -4,3 +4,4 @@
 {"b":["bar", null, 200]}
 {"c":["foo", [1, 2]]}
 {"d":["foo", false, ["foo", 2], {"dd": ["foo", 2, bool]}]}
+{"f":["foo", false, ["foo", 2], {"d.d": ["foo", 2, bool]}]}
