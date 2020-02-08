@@ -48,39 +48,25 @@ func (s *Stream) Transform(r *zng.Record) (*Record, error) {
 func encodeUnion(typ *zng.TypeUnion, v []byte) (interface{}, error) {
 	// encode nil val as JSON null since
 	// zng.Escape() returns "" for nil
-	var fld interface{}
 	if v == nil {
-		return fld, nil
+		return nil, nil
 	}
-
-	// We start out with a slice that contains nothing instead of nil
-	// so that an empty containers encode to JSON empty array [].
-	body := make([]interface{}, 0)
-
 	inner, index, v, err := typ.SplitBzng(v)
 	if err != nil {
 		return nil, err
 	}
-	body = append(body, strconv.Itoa(int(index)))
-
+	var fld interface{}
 	if utyp, ok := (inner).(*zng.TypeUnion); ok {
 		fld, err = encodeUnion(utyp, v)
-		if err != nil {
-			return nil, err
-		}
 	} else if zng.IsContainerType(inner) {
 		fld, err = encodeContainer(inner, v)
-		if err != nil {
-			return nil, err
-		}
 	} else {
 		fld, err = encodePrimitive(inner, v)
-		if err != nil {
-			return nil, err
-		}
 	}
-	body = append(body, fld)
-	return body, nil
+	if err != nil {
+		return nil, err
+	}
+	return []interface{}{strconv.Itoa(int(index)), fld}, nil
 }
 
 func encodePrimitive(typ zng.Type, v []byte) (interface{}, error) {
