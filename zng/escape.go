@@ -2,6 +2,7 @@ package zng
 
 import (
 	"bytes"
+	"regexp"
 )
 
 // ShouldEscape determines if the given code point at the given position
@@ -75,9 +76,32 @@ func unhex(b byte) byte {
 	return 255
 }
 
+func replaceStringEscape(in string) string {
+	var r rune
+	i := 2
+	if in[i] == '{' {
+		i++
+	}
+	for ; i < len(in) && in[i] != '}'; i++ {
+		r <<= 4
+		r |= rune(unhex(in[i]))
+	}
+	return string(r)
+}
+
+const patternStr = `\\u([0-9A-Fa-f]{4}|\{[0-9A-Fa-f]{1,6}\})`
+
+var pattern *regexp.Regexp
+
 // UnescapeString replaces all the escaped characters defined in the
 // for the zng spec for the string type with their unescaped equivalents.
 func UnescapeString(data []byte) []byte {
-	// XXX implement me!
-	return data
+	if pattern == nil {
+		var err error
+		pattern, err = regexp.Compile(patternStr)
+		if err != nil {
+			panic(err)
+		}
+	}
+	return []byte(pattern.ReplaceAllStringFunc(string(data), replaceStringEscape))
 }
