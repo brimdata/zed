@@ -126,3 +126,7 @@ See the [contributing guide](CONTRIBUTING.md) on how you can help improve `zq`!
 [doc]: https://godoc.org/github.com/brimsec/zq
 [ci-img]: https://circleci.com/gh/brimsec/zq.svg?style=svg
 [ci]: https://circleci.com/gh/brimsec/zq
+
+## Join the Community
+
+Join our [Public Slack](https://join.slack.com/t/brimsec/shared_invite/enQtOTMwMDczODg2ODgyLTk1NTdjOTQxNmI0OGYwOThiYzNlNDc5OWI5NjczZDljNDdmZGZjNGI3NTNiOWRiNzJkMzg4OTEwZWM0Y2NiYWQ) workspace for announcements, Q&A, and to trade tips!
