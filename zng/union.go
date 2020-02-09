@@ -112,5 +112,5 @@ func (t *TypeUnion) Marshal(zv zcode.Bytes) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	return inner.Marshal(zv)
+	return Value{inner, zv}, nil
 }
