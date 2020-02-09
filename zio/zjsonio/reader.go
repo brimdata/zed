@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/skim"
@@ -166,31 +167,63 @@ func decodeType(columns []interface{}) (string, error) {
 }
 
 func decodeField(builder *zcode.Builder, typ zng.Type, s string) error {
-	var err error
-	var index int
 	b := []byte(s)
 	if zng.IsContainerType(typ) && !zng.IsUnionType(typ) {
 		return zng.ErrNotContainer
 	}
-	if utyp, ok := typ.(*zng.TypeUnion); ok {
-		typ, index, b, err = utyp.SplitZng(b)
-		if err != nil {
-			return err
-		}
-		builder.BeginContainer()
-		defer builder.EndContainer()
-		var a [8]byte
-		n := zcode.EncodeCountedUvarint(a[:], uint64(index))
-		builder.AppendPrimitive(a[:n])
-	}
-
 	zv, err := typ.Parse(b)
 	if err != nil {
 		return err
 	}
 	builder.AppendPrimitive(zv)
 	return nil
+}
 
+func decodeUnion(builder *zcode.Builder, typ *zng.TypeUnion, body interface{}) error {
+	builder.BeginContainer()
+	tuple, ok := body.([]interface{})
+	if !ok || len(tuple) != 2 {
+		return errors.New("bad json for zjson union value")
+	}
+	istr, ok := tuple[0].(string)
+	if !ok {
+		return errors.New("bad type index for zjson union value ")
+	}
+	index, err := strconv.Atoi(istr)
+	if err != nil {
+		return fmt.Errorf("bad type index for zjson union value: %w", err)
+	}
+	inner, err := typ.TypeIndex(index)
+	if err != nil {
+		return fmt.Errorf("bad type index for zjson union value: %w", err)
+	}
+	var a [8]byte
+	n := zcode.EncodeCountedUvarint(a[:], uint64(index))
+	builder.AppendPrimitive(a[:n])
+	if utyp, ok := inner.(*zng.TypeUnion); ok {
+		if err = decodeUnion(builder, utyp, tuple[1]); err != nil {
+			return err
+		}
+	} else if zng.IsContainerType(inner) {
+		children, ok := tuple[1].([]interface{})
+		if !ok {
+			return errors.New("bad json for zjson value")
+		}
+		if err := decodeContainer(builder, inner, children); err != nil {
+			return err
+		}
+
+	} else {
+		s, ok := tuple[1].(string)
+		if !ok {
+			return errors.New("bad json for zjson value")
+		}
+		if err := decodeField(builder, inner, s); err != nil {
+			return err
+		}
+	}
+	builder.EndContainer()
+	return nil
 }
 
 func decodeContainer(builder *zcode.Builder, typ zng.Type, body []interface{}) error {
@@ -219,6 +252,12 @@ func decodeContainer(builder *zcode.Builder, typ zng.Type, body []interface{}) e
 		s, ok := column.(string)
 		if ok {
 			if err := decodeField(builder, childType, s); err != nil {
+				return err
+			}
+			continue
+		}
+		if utyp, ok := childType.(*zng.TypeUnion); ok {
+			if err := decodeUnion(builder, utyp, column); err != nil {
 				return err
 			}
 			continue

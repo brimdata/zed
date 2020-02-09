@@ -2,6 +2,7 @@ package zjsonio
 
 import (
 	"errors"
+	"strconv"
 
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
@@ -44,6 +45,44 @@ func (s *Stream) Transform(r *zng.Record) (*Record, error) {
 	}, nil
 }
 
+func encodeUnion(typ *zng.TypeUnion, v []byte) (interface{}, error) {
+	// encode nil val as JSON null since
+	// zng.Escape() returns "" for nil
+	if v == nil {
+		return nil, nil
+	}
+	inner, index, v, err := typ.SplitBzng(v)
+	if err != nil {
+		return nil, err
+	}
+	var fld interface{}
+	if utyp, ok := (inner).(*zng.TypeUnion); ok {
+		fld, err = encodeUnion(utyp, v)
+	} else if zng.IsContainerType(inner) {
+		fld, err = encodeContainer(inner, v)
+	} else {
+		fld, err = encodePrimitive(inner, v)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return []interface{}{strconv.Itoa(int(index)), fld}, nil
+}
+
+func encodePrimitive(typ zng.Type, v []byte) (interface{}, error) {
+	// encode nil val as JSON null since
+	// zng.Escape() returns "" for nil
+	var fld interface{}
+	if v == nil {
+		return fld, nil
+	}
+
+	fieldBytes := zng.Value{typ, v}.Format(zng.OutFormatUnescaped)
+	fld = string(fieldBytes)
+
+	return fld, nil
+}
+
 func encodeContainer(typ zng.Type, val []byte) (interface{}, error) {
 	if val == nil {
 		return nil, nil
@@ -69,19 +108,31 @@ func encodeContainer(typ zng.Type, val []byte) (interface{}, error) {
 				childType = columns[k].Type
 				k++
 			}
-			if container {
+			if utyp, ok := (childType).(*zng.TypeUnion); ok {
+				if !container {
+					return nil, zng.ErrBadValue
+				}
+				fld, err := encodeUnion(utyp, v)
+				if err != nil {
+					return nil, err
+				}
+				body = append(body, fld)
+			} else if zng.IsContainerType(childType) {
+				if !container {
+					return nil, zng.ErrBadValue
+				}
 				child, err := encodeContainer(childType, v)
 				if err != nil {
 					return nil, err
 				}
 				body = append(body, child)
 			} else {
-				// encode nil val as JSON null since
-				// zng.Escape() returns "" for nil
-				var fld interface{}
-				if v != nil {
-					fieldBytes := zng.Value{childType, v}.Format(zng.OutFormatUnescaped)
-					fld = string(fieldBytes)
+				if container {
+					return nil, zng.ErrBadValue
+				}
+				fld, err := encodePrimitive(childType, v)
+				if err != nil {
+					return nil, err
 				}
 				body = append(body, fld)
 			}
