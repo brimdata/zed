@@ -14,6 +14,7 @@ import (
 	"github.com/brimsec/zq/tests/suite/sort"
 	"github.com/brimsec/zq/tests/suite/time"
 	"github.com/brimsec/zq/tests/suite/utf8"
+	"github.com/brimsec/zq/tests/suite/zeek"
 )
 
 var RootDir = "./test-root"
@@ -57,6 +58,7 @@ var internals = []test.Internal{
 	sort.Internal4_3,
 	sort.Internal4_4,
 	time.Internal,
+	zeek.Test,
 }
 
 var commands = []test.Exec{
