@@ -248,7 +248,7 @@ func checkUnion(typ *TypeUnion, body zcode.Bytes) error {
 		}
 	default:
 		if container {
-			return &RecordTypeError{Name: "<array element>", Type: v.String(), Err: ErrNotPrimitive}
+			return &RecordTypeError{Name: "<union value>", Type: v.String(), Err: ErrNotPrimitive}
 		}
 	}
 	return nil
