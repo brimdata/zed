@@ -2,7 +2,6 @@ package zng
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"strconv"
 	"strings"
@@ -92,19 +91,15 @@ func (t *TypeUnion) SplitZng(in []byte) (Type, int, []byte, error) {
 	return typ, index, in[c+1:], nil
 }
 
-func (t *TypeUnion) StringOf(zv zcode.Bytes, ofmt OutFmt, inContainer bool) string {
-	index, n := binary.Uvarint(zv)
-	if n < 0 {
+func (t *TypeUnion) StringOf(zv zcode.Bytes, ofmt OutFmt, _ bool) string {
+	typ, index, iv, err := t.SplitBzng(zv)
+	if err != nil {
 		// this follows set and record StringOfs. Like there, XXX.
 		return "ERR"
 	}
-	innerType, err := t.TypeIndex(int(index))
-	if err != nil {
-		return "ERR"
-	}
-	zv = zv[n:]
-	s := strconv.FormatUint(index, 10) + ":"
-	return s + innerType.StringOf(zv, ofmt, false)
+
+	s := strconv.FormatInt(index, 10) + ":"
+	return s + typ.StringOf(iv, ofmt, false)
 }
 
 func (t *TypeUnion) Marshal(zv zcode.Bytes) (interface{}, error) {
