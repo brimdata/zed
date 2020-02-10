@@ -76,7 +76,7 @@ func unhex(b byte) byte {
 	return 255
 }
 
-func replaceStringEscape(in string) string {
+func replaceStringEscape(in []byte) []byte {
 	var r rune
 	i := 2
 	if in[i] == '{' {
@@ -86,22 +86,19 @@ func replaceStringEscape(in string) string {
 		r <<= 4
 		r |= rune(unhex(in[i]))
 	}
-	return string(r)
+	return []byte(string(r))
 }
 
-const patternStr = `\\u([0-9A-Fa-f]{4}|\{[0-9A-Fa-f]{1,6}\})`
-
-var pattern *regexp.Regexp
+var pattern = regexp.MustCompile(`\\u([0-9A-Fa-f]{4}|\{[0-9A-Fa-f]{1,6}\})`)
 
 // UnescapeString replaces all the escaped characters defined in the
 // for the zng spec for the string type with their unescaped equivalents.
 func UnescapeString(data []byte) []byte {
-	if pattern == nil {
-		var err error
-		pattern, err = regexp.Compile(patternStr)
-		if err != nil {
-			panic(err)
-		}
+	r := pattern.ReplaceAllFunc(data, replaceStringEscape)
+	// ReplaceAllFunc() returns nil when data is an empty string but the
+	// difference is meaningful inside zng...
+	if r == nil {
+		return data
 	}
-	return []byte(pattern.ReplaceAllStringFunc(string(data), replaceStringEscape))
+	return r
 }
