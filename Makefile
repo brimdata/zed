@@ -1,7 +1,7 @@
 export GO111MODULE=on
 
 VERSION = $(shell git describe --tags --dirty)
-LDFLAGS := -s -X main.version=$(VERSION)
+LDFLAGS = -s -X main.version=$(VERSION)
 
 vet:
 	@go vet -copylocks ./...
