@@ -123,7 +123,7 @@ at the [performance](performance/README.md) page.
 See the [contributing guide](CONTRIBUTING.md) on how you can help improve `zq`!
 
 [doc-img]: https://godoc.org/github.com/brimsec/zq?status.svg
-[doc]: https://godoc.org/github.com/brimsec/zq
+[doc]: https://pkg.go.dev/github.com/brimsec/zq?tab=overview
 [ci-img]: https://circleci.com/gh/brimsec/zq.svg?style=svg
 [ci]: https://circleci.com/gh/brimsec/zq
 
