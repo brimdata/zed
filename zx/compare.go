@@ -398,8 +398,8 @@ func CompareSubnet(op string, pattern *net.IPNet) (Predicate, error) {
 			if err == nil {
 				return match(ip, pattern)
 			}
-		case *zng.TypeOfSubnet:
-			subnet, err := zng.DecodeSubnet(val)
+		case *zng.TypeOfNet:
+			subnet, err := zng.DecodeNet(val)
 			if err == nil {
 				return compare(subnet, pattern)
 			}

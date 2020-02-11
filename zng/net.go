@@ -7,13 +7,13 @@ import (
 	"github.com/brimsec/zq/zcode"
 )
 
-type TypeOfSubnet struct{}
+type TypeOfNet struct{}
 
-func NewSubnet(s *net.IPNet) Value {
-	return Value{TypeSubnet, EncodeSubnet(s)}
+func NewNet(s *net.IPNet) Value {
+	return Value{TypeNet, EncodeNet(s)}
 }
 
-func EncodeSubnet(subnet *net.IPNet) zcode.Bytes {
+func EncodeNet(subnet *net.IPNet) zcode.Bytes {
 	var b [32]byte
 	ip := subnet.IP.To4()
 	if ip != nil {
@@ -30,7 +30,7 @@ func EncodeSubnet(subnet *net.IPNet) zcode.Bytes {
 	return b[:]
 }
 
-func DecodeSubnet(zv zcode.Bytes) (*net.IPNet, error) {
+func DecodeNet(zv zcode.Bytes) (*net.IPNet, error) {
 	if zv == nil {
 		return nil, ErrUnset
 	}
@@ -53,24 +53,24 @@ func DecodeSubnet(zv zcode.Bytes) (*net.IPNet, error) {
 	return nil, errors.New("failure trying to decode IP subnet that is not 8 or 32 bytes long")
 }
 
-func (t *TypeOfSubnet) Parse(in []byte) (zcode.Bytes, error) {
+func (t *TypeOfNet) Parse(in []byte) (zcode.Bytes, error) {
 	_, subnet, err := net.ParseCIDR(string(in))
 	if err != nil {
 		return nil, err
 	}
-	return EncodeSubnet(subnet), nil
+	return EncodeNet(subnet), nil
 }
 
-func (t *TypeOfSubnet) ID() int {
+func (t *TypeOfNet) ID() int {
 	return IdNet
 }
 
-func (t *TypeOfSubnet) String() string {
-	return "subnet"
+func (t *TypeOfNet) String() string {
+	return "net"
 }
 
-func (t *TypeOfSubnet) StringOf(zv zcode.Bytes, _ OutFmt, _ bool) string {
-	s, err := DecodeSubnet(zv)
+func (t *TypeOfNet) StringOf(zv zcode.Bytes, _ OutFmt, _ bool) string {
+	s, err := DecodeNet(zv)
 	if err != nil {
 		return badZng(err, t, zv)
 	}
@@ -78,8 +78,8 @@ func (t *TypeOfSubnet) StringOf(zv zcode.Bytes, _ OutFmt, _ bool) string {
 	return ipnet.String()
 }
 
-func (t *TypeOfSubnet) Marshal(zv zcode.Bytes) (interface{}, error) {
-	s, err := DecodeSubnet(zv)
+func (t *TypeOfNet) Marshal(zv zcode.Bytes) (interface{}, error) {
+	s, err := DecodeNet(zv)
 	if err != nil {
 		return nil, err
 	}
