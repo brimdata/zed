@@ -29,6 +29,7 @@ func zeekTypeToZng(typ string) string {
 	typ = strings.ReplaceAll(typ, "double", "float64")
 	typ = strings.ReplaceAll(typ, "addr", "ip")
 	typ = strings.ReplaceAll(typ, "subnet", "net")
+	typ = strings.ReplaceAll(typ, "interval", "duration")
 	typ = strings.ReplaceAll(typ, "enum", "zenum")
 	typ = strings.ReplaceAll(typ, "vector", "array")
 	return typ
@@ -46,6 +47,8 @@ func zngTypeToZeek(typ zng.Type) string {
 		return "addr"
 	case *zng.TypeOfNet:
 		return "subnet"
+	case *zng.TypeOfDuration:
+		return "interval"
 	case *zng.TypeOfBstring:
 		return "string"
 	case *zng.TypeAlias:

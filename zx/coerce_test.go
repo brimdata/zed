@@ -9,14 +9,14 @@ import (
 )
 
 func TestCoerceDuration(t *testing.T) {
-	interval := zng.NewInterval(60 * 1e9)
+	interval := zng.NewDuration(60 * 1e9)
 	runcase(t, "Int64", zng.NewInt(60), interval)
 	runcase(t, "Uint64", zng.NewCount(60), interval)
 	runcase(t, "Float64", zng.NewFloat64(60), interval)
-	runcase(t, "Duration", zng.NewInterval(60*1e9), interval)
+	runcase(t, "Duration", zng.NewDuration(60*1e9), interval)
 
 	// can't coerce
-	notcase(t, "NotPort", zng.NewPort(60), zng.TypeInterval)
+	notcase(t, "NotPort", zng.NewPort(60), zng.TypeDuration)
 }
 
 func runcase(t *testing.T, name string, in zng.Value, expected zng.Value) {

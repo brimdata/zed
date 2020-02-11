@@ -42,7 +42,7 @@ func CoerceToFloat64(in zng.Value) (float64, bool) {
 		out = float64(v) / 1e9
 	case zng.IdDuration:
 		var v int64
-		v, err = zng.DecodeInterval(in.Bytes)
+		v, err = zng.DecodeDuration(in.Bytes)
 		out = float64(v) / 1e9
 	}
 	if err != nil {
@@ -91,7 +91,7 @@ func CoerceToInt(in zng.Value) (int64, bool) {
 		out = int64(v / 1e9)
 	case zng.IdDuration:
 		var v int64
-		v, err = zng.DecodeInterval(body)
+		v, err = zng.DecodeDuration(body)
 		out = int64(v / 1e9)
 	}
 	if err != nil {
@@ -100,18 +100,18 @@ func CoerceToInt(in zng.Value) (int64, bool) {
 	return out, true
 }
 
-// CoerceToInterval attempts to convert a value to an interval.  Int
+// CoerceToDuration attempts to convert a value to a duration.  Int
 // and Double are converted as seconds. The resulting coerced value is
 // written to out, and true is returned. If the value cannot be
 // coerced, then false is returned.
-func CoerceToInterval(in zng.Value) (int64, bool) {
+func CoerceToDuration(in zng.Value) (int64, bool) {
 	var out int64
 	var err error
 	switch in.Type.ID() {
 	default:
 		return 0, false
 	case zng.IdDuration:
-		out, err = zng.DecodeInterval(in.Bytes)
+		out, err = zng.DecodeDuration(in.Bytes)
 	case zng.IdUint64:
 		var v uint64
 		v, err = zng.DecodeCount(in.Bytes)
@@ -250,8 +250,8 @@ func Coerce(v zng.Value, to zng.Type) (zng.Value, bool) {
 			return zng.NewInt(i), true
 		}
 	case zng.IdDuration:
-		if i, ok := CoerceToInterval(v); ok {
-			return zng.NewInterval(i), true
+		if i, ok := CoerceToDuration(v); ok {
+			return zng.NewDuration(i), true
 		}
 	case zng.IdPort:
 		if p, ok := CoerceToPort(v); ok {

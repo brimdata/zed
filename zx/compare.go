@@ -133,7 +133,7 @@ func CompareInt64(op string, pattern int64) (Predicate, error) {
 			if err == nil {
 				return CompareInt(int64(ts), pattern*1e9)
 			}
-		case *zng.TypeOfInterval:
+		case *zng.TypeOfDuration:
 			v, err := zng.DecodeInt(zv)
 			if err == nil {
 				return CompareInt(int64(v), pattern*1e9)
@@ -232,8 +232,8 @@ func CompareFloat64(op string, pattern float64) (Predicate, error) {
 			if err == nil {
 				return compare(float64(ts)/1e9, pattern)
 			}
-		case *zng.TypeOfInterval:
-			v, err := zng.DecodeInterval(zv)
+		case *zng.TypeOfDuration:
+			v, err := zng.DecodeDuration(zv)
 			if err == nil {
 				return compare(float64(v)/1e9, pattern)
 			}

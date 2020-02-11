@@ -1,4 +1,4 @@
-#0:record[_path:string,ts:time,d:interval]
+#0:record[_path:string,ts:time,d:duration]
 0:[conn;1e9;1e9;]
 0:[conn;-1;-1;]
 0:[conn;-1.0;1.0;]

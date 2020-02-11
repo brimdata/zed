@@ -12,7 +12,7 @@ const unset = `
 #2:record[x:int]
 2:[-;]
 
-#3:record[x:interval]
+#3:record[x:duration]
 3:[-;]
 
 #4:record[x:time]
