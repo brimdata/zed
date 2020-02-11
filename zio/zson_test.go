@@ -222,13 +222,6 @@ func TestAlias(t *testing.T) {
 #1:record[foo:string,resp_h:ip]
 1:[bro;127.0.0.1;]`
 
-	const redefine = `#alias=addr
-#0:record[orig_h:alias]
-0:[127.0.0.1;]
-#alias=count
-#1:record[count:alias]
-1:[25;]`
-
 	t.Run("Bzng", func(t *testing.T) {
 		t.Run("simple", func(t *testing.T) {
 			boomerang(t, simple)
@@ -238,9 +231,6 @@ func TestAlias(t *testing.T) {
 		})
 		t.Run("alias-in-different-records", func(t *testing.T) {
 			boomerang(t, multipleRecords)
-		})
-		t.Run("redefine", func(t *testing.T) {
-			boomerang(t, redefine)
 		})
 	})
 	t.Run("ZJSON", func(t *testing.T) {
@@ -252,9 +242,6 @@ func TestAlias(t *testing.T) {
 		})
 		t.Run("alias-in-different-records", func(t *testing.T) {
 			boomerangZJSON(t, multipleRecords)
-		})
-		t.Run("redefine", func(t *testing.T) {
-			boomerangZJSON(t, redefine)
 		})
 	})
 }

@@ -48,16 +48,18 @@ func (e *Encoder) isEncoded(id int) bool {
 // Encode takes a type from outside this context and constructs a type from
 // inside this context and emits ZNG typedefs for any type needed to construct
 // the new type into the buffer provided.
-func (e *Encoder) Encode(dst []byte, external zng.Type) ([]byte, zng.Type) {
-	dst, typ := e.encodeType(dst, external)
-	e.enter(external.ID(), typ)
-	return dst, typ
+func (e *Encoder) Encode(dst []byte, external zng.Type) ([]byte, zng.Type, error) {
+	dst, typ, err := e.encodeType(dst, external)
+	if err != nil {
+		e.enter(external.ID(), typ)
+	}
+	return dst, typ, err
 }
 
-func (e *Encoder) encodeType(dst []byte, ext zng.Type) ([]byte, zng.Type) {
+func (e *Encoder) encodeType(dst []byte, ext zng.Type) ([]byte, zng.Type, error) {
 	id := ext.ID()
 	if _, alias := ext.(*zng.TypeAlias); id < zng.IdTypeDef && !alias {
-		return dst, ext
+		return dst, ext, nil
 	}
 	switch ext := ext.(type) {
 	default:
@@ -76,18 +78,22 @@ func (e *Encoder) encodeType(dst []byte, ext zng.Type) ([]byte, zng.Type) {
 	}
 }
 
-func (e *Encoder) encodeTypeRecord(dst []byte, ext *zng.TypeRecord) ([]byte, zng.Type) {
+func (e *Encoder) encodeTypeRecord(dst []byte, ext *zng.TypeRecord) ([]byte, zng.Type, error) {
 	var columns []zng.Column
 	for _, col := range ext.Columns {
 		var child zng.Type
-		dst, child = e.encodeType(dst, col.Type)
+		var err error
+		dst, child, err = e.encodeType(dst, col.Type)
+		if err != nil {
+			return nil, nil, err
+		}
 		columns = append(columns, zng.NewColumn(col.Name, child))
 	}
 	typ := e.zctx.LookupTypeRecord(columns)
 	if e.isEncoded(typ.ID()) {
-		return dst, typ
+		return dst, typ, nil
 	}
-	return serializeTypeRecord(dst, columns), typ
+	return serializeTypeRecord(dst, columns), typ, nil
 }
 
 func serializeTypeRecord(dst []byte, columns []zng.Column) []byte {
@@ -106,17 +112,21 @@ func serializeTypeRecord(dst []byte, columns []zng.Column) []byte {
 	return dst
 }
 
-func (e *Encoder) encodeTypeUnion(dst []byte, ext *zng.TypeUnion) ([]byte, zng.Type) {
+func (e *Encoder) encodeTypeUnion(dst []byte, ext *zng.TypeUnion) ([]byte, zng.Type, error) {
 	var types []zng.Type
 	for _, t := range ext.Types {
-		dst, t = e.encodeType(dst, t)
+		var err error
+		dst, t, err = e.encodeType(dst, t)
+		if err != nil {
+			return nil, nil, err
+		}
 		types = append(types, t)
 	}
 	typ := e.zctx.LookupTypeUnion(types)
 	if e.isEncoded(typ.ID()) {
-		return dst, typ
+		return dst, typ, nil
 	}
-	return serializeTypeUnion(dst, types), typ
+	return serializeTypeUnion(dst, types), typ, nil
 }
 
 func serializeTypeUnion(dst []byte, types []zng.Type) []byte {
@@ -128,14 +138,18 @@ func serializeTypeUnion(dst []byte, types []zng.Type) []byte {
 	return dst
 }
 
-func (e *Encoder) encodeTypeSet(dst []byte, ext *zng.TypeSet) ([]byte, zng.Type) {
+func (e *Encoder) encodeTypeSet(dst []byte, ext *zng.TypeSet) ([]byte, zng.Type, error) {
 	var inner zng.Type
-	dst, inner = e.encodeType(dst, ext.InnerType)
+	var err error
+	dst, inner, err = e.encodeType(dst, ext.InnerType)
+	if err != nil {
+		return nil, nil, err
+	}
 	typ := e.zctx.LookupTypeSet(inner)
 	if e.isEncoded(typ.ID()) {
-		return dst, typ
+		return dst, typ, nil
 	}
-	return serializeTypeSet(dst, typ.InnerType), typ
+	return serializeTypeSet(dst, typ.InnerType), typ, nil
 }
 
 func serializeTypeSet(dst []byte, inner zng.Type) []byte {
@@ -144,14 +158,18 @@ func serializeTypeSet(dst []byte, inner zng.Type) []byte {
 	return zcode.AppendUvarint(dst, uint64(inner.ID()))
 }
 
-func (e *Encoder) encodeTypeArray(dst []byte, ext *zng.TypeArray) ([]byte, zng.Type) {
+func (e *Encoder) encodeTypeArray(dst []byte, ext *zng.TypeArray) ([]byte, zng.Type, error) {
 	var inner zng.Type
-	dst, inner = e.encodeType(dst, ext.Type)
+	var err error
+	dst, inner, err = e.encodeType(dst, ext.Type)
+	if err != nil {
+		return nil, nil, err
+	}
 	typ := e.zctx.LookupTypeArray(inner)
 	if e.isEncoded(typ.ID()) {
-		return dst, typ
+		return dst, typ, nil
 	}
-	return serializeTypeArray(dst, inner), typ
+	return serializeTypeArray(dst, inner), typ, nil
 }
 
 func serializeTypeArray(dst []byte, inner zng.Type) []byte {
@@ -179,14 +197,21 @@ func serializeTypes(dst []byte, types []zng.Type) []byte {
 	return dst
 }
 
-func (e *Encoder) encodeTypeAlias(dst []byte, ext *zng.TypeAlias) ([]byte, zng.Type) {
+func (e *Encoder) encodeTypeAlias(dst []byte, ext *zng.TypeAlias) ([]byte, zng.Type, error) {
 	var inner zng.Type
-	dst, inner = e.encodeType(dst, ext.Type)
-	typ := e.zctx.LookupTypeAlias(ext.Name, inner)
-	if e.isEncoded(typ.AliasID()) {
-		return dst, typ
+	var err error
+	dst, inner, err = e.encodeType(dst, ext.Type)
+	if err != nil {
+		return nil, nil, err
 	}
-	return serializeTypeAlias(dst, typ), typ
+	typ, err := e.zctx.LookupTypeAlias(ext.Name, inner)
+	if err != nil {
+		return nil, nil, err
+	}
+	if e.isEncoded(typ.AliasID()) {
+		return dst, typ, nil
+	}
+	return serializeTypeAlias(dst, typ), typ, nil
 }
 
 func serializeTypeAlias(dst []byte, alias *zng.TypeAlias) []byte {

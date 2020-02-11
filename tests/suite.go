@@ -36,6 +36,7 @@ var internals = []test.Internal{
 	errors.TypeNull,
 	errors.EmptySetType,
 	errors.EmptyUnionType,
+	errors.RedefineAlias,
 	regexp.Internal,
 	filter.EscapedEqual,
 	filter.EscapedAsterisk,

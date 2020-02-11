@@ -73,14 +73,6 @@ func TestAlias(t *testing.T) {
 0:[bro;127.0.0.1;]
 #1:record[foo:string,orig_h:addr]
 1:[bar;127.0.0.1;]`)
-
-	boomerang(t, "redefine-alias", `
-#alias=addr
-#0:record[orig_h:alias]
-0:[127.0.0.1;]
-#alias=count
-#1:record[count:alias]
-1:[25;]`)
 }
 
 func TestAliasErr(t *testing.T) {

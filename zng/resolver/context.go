@@ -13,6 +13,7 @@ import (
 var (
 	ErrExists        = errors.New("descriptor exists with different type")
 	ErrEmptyTypeList = errors.New("empty type list in set or union")
+	ErrAliasExists   = errors.New("alias exists with different type")
 )
 
 type TypeLogger interface {
@@ -245,7 +246,7 @@ func (c *Context) LookupTypeUnion(types []zng.Type) *zng.TypeUnion {
 	return typ
 }
 
-func (c *Context) LookupTypeAlias(name string, target zng.Type) *zng.TypeAlias {
+func (c *Context) LookupTypeAlias(name string, target zng.Type) (*zng.TypeAlias, error) {
 	key := aliasKey(name)
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -253,12 +254,14 @@ func (c *Context) LookupTypeAlias(name string, target zng.Type) *zng.TypeAlias {
 	if ok {
 		alias := c.table[id].(*zng.TypeAlias)
 		if zng.SameType(alias.Type, target) {
-			return alias
+			return alias, nil
+		} else {
+			return nil, ErrAliasExists
 		}
 	}
 	typ := zng.NewTypeAlias(-1, name, target)
 	c.addTypeWithLock(key, typ)
-	return typ
+	return typ, nil
 }
 
 // AddColumns returns a new zbuf.Record with columns equal to the given

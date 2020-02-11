@@ -152,7 +152,10 @@ func (r *Reader) parseAlias(line []byte) error {
 	if err != nil {
 		return err
 	}
-	r.zctx.LookupTypeAlias(string(alias), typ)
+	_, err = r.zctx.LookupTypeAlias(string(alias), typ)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

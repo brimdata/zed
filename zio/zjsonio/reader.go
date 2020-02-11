@@ -121,7 +121,10 @@ func (r *Reader) parseAliases(aliases []Alias) error {
 		if err != nil {
 			return fmt.Errorf("unknown type: \"%s\"", alias.Type)
 		}
-		r.zctx.LookupTypeAlias(alias.Name, typ)
+		_, err = r.zctx.LookupTypeAlias(alias.Name, typ)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
