@@ -27,9 +27,13 @@ func (w *Writer) Write(r *zng.Record) error {
 	typ := w.encoder.Lookup(r.Type)
 	if typ == nil {
 		var b []byte
-		b, typ = w.encoder.Encode(w.buffer[:0], r.Type)
+		var err error
+		b, typ, err = w.encoder.Encode(w.buffer[:0], r.Type)
+		if err != nil {
+			return err
+		}
 		w.buffer = b
-		_, err := w.Writer.Write(b)
+		_, err = w.Writer.Write(b)
 		if err != nil {
 			return err
 		}

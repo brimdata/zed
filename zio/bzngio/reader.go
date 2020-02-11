@@ -236,7 +236,10 @@ func (r *Reader) readTypeAlias() error {
 	if err != nil {
 		return err
 	}
-	r.zctx.LookupTypeAlias(name, inner)
+	_, err = r.zctx.LookupTypeAlias(name, inner)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

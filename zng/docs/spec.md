@@ -485,9 +485,8 @@ This form defines an alias mapping the identifier to the indicated type.
 `<type-name>` is an identifier with semantics as defined in Section 2.1.1.4.
 
 It is an error to define an alias that has the same name as a primitive type.
-
-If an alias appears that has the same name as a previously defined alias,
-then the new alias takes precedent for all subsequent values.
+It is also an error to redefine a previously defined alias with a
+type that differs from the original definition.
 
 ### 3.1.3 Application-specific Payload
 
