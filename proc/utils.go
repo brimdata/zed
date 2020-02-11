@@ -198,7 +198,10 @@ func (p *ProcTest) Finish() error {
 }
 
 func parse(zctx *resolver.Context, src string) (*zbuf.Array, error) {
-	reader := detector.LookupReader("zng", strings.NewReader(src), zctx)
+	reader, err := detector.LookupReader("zng", strings.NewReader(src), zctx)
+	if err != nil {
+		return nil, err
+	}
 	records := make([]*zng.Record, 0)
 	for {
 		rec, err := reader.Read()

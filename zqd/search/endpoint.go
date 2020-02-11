@@ -101,7 +101,11 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer f.Close()
-	zngReader := detector.LookupReader("bzng", f, resolver.NewContext())
+	zngReader, err := detector.LookupReader("bzng", f, resolver.NewContext())
+	if err != nil {
+		httpError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	zctx := resolver.NewContext()
 	mapper := scanner.NewMapper(zngReader, zctx)
 	mux, err := launch(r.Context(), query, mapper, zctx)

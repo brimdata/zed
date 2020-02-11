@@ -31,7 +31,10 @@ func stringReader(input string, ifmt string, zctx *resolver.Context) (zbuf.Reade
 	if ifmt == "" {
 		return detector.NewReader(strings.NewReader(input), zctx)
 	}
-	zr := detector.LookupReader(ifmt, strings.NewReader(input), zctx)
+	zr, err := detector.LookupReader(ifmt, strings.NewReader(input), zctx)
+	if err != nil {
+		return nil, err
+	}
 	if zr == nil {
 		return nil, fmt.Errorf("unknown input format %s", ifmt)
 	}

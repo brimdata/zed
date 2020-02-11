@@ -240,7 +240,10 @@ func (c *Command) loadFile(path string) (zbuf.Reader, error) {
 	if c.ifmt == "auto" {
 		return detector.NewReader(r, c.zctx)
 	}
-	zr := detector.LookupReader(c.ifmt, r, c.zctx)
+	zr, err := detector.LookupReader(c.ifmt, r, c.zctx)
+	if err != nil {
+		return nil, err
+	}
 	if zr == nil {
 		return nil, fmt.Errorf("unknown input format %s", c.ifmt)
 	}
