@@ -1,4 +1,4 @@
-#0:record[_path:string,ts:time,d:double]
+#0:record[_path:string,ts:time,d:float64]
 0:[a;10;1;]
 #1:record[_path:string,ts:time,d:int]
 1:[b;11;1;]

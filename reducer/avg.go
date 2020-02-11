@@ -39,7 +39,7 @@ func (a *Avg) Consume(r *zng.Record) {
 	if v.Bytes == nil {
 		return
 	}
-	d, ok := zx.CoerceToDouble(v)
+	d, ok := zx.CoerceToFloat64(v)
 	if !ok {
 		a.TypeMismatch++
 		return
@@ -50,7 +50,7 @@ func (a *Avg) Consume(r *zng.Record) {
 
 func (a *Avg) Result() zng.Value {
 	if a.count > 0 {
-		return zng.NewDouble(a.sum / float64(a.count))
+		return zng.NewFloat64(a.sum / float64(a.count))
 	}
-	return zng.Value{Type: zng.TypeDouble}
+	return zng.Value{Type: zng.TypeFloat64}
 }

@@ -238,7 +238,7 @@ function peg$parse(input, options) {
             return makeLiteral("addr", v)
           },
       peg$c39 = function(v) {
-            return makeLiteral("double", v)
+            return makeLiteral("float64", v)
           },
       peg$c40 = function(v) {
             return makeLiteral("int", v)

@@ -242,13 +242,13 @@ func lookupSorter(typ zng.Type) comparefn {
 			return 0
 		}
 
-	case zng.TypeDouble:
+	case zng.TypeFloat64:
 		return func(a, b zcode.Bytes) int {
-			va, err := zng.DecodeDouble(a)
+			va, err := zng.DecodeFloat64(a)
 			if err != nil {
 				return -1
 			}
-			vb, err := zng.DecodeDouble(b)
+			vb, err := zng.DecodeFloat64(b)
 			if err != nil {
 				return 1
 			}

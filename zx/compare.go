@@ -123,8 +123,8 @@ func CompareInt64(op string, pattern int64) (Predicate, error) {
 			if err == nil {
 				return CompareInt(int64(v), pattern)
 			}
-		case *zng.TypeOfDouble:
-			v, err := zng.DecodeDouble(zv)
+		case *zng.TypeOfFloat64:
+			v, err := zng.DecodeFloat64(zv)
 			if err == nil {
 				return CompareFloat(v, float64(pattern))
 			}
@@ -206,8 +206,8 @@ func CompareFloat64(op string, pattern float64) (Predicate, error) {
 		// integers that cause float64 overflow?  user can always
 		// use an integer constant instead of a float constant to
 		// compare with the integer-y field.
-		case *zng.TypeOfDouble:
-			v, err := zng.DecodeDouble(zv)
+		case *zng.TypeOfFloat64:
+			v, err := zng.DecodeFloat64(zv)
 			if err == nil {
 				return compare(v, pattern)
 			}

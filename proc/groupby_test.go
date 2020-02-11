@@ -62,7 +62,7 @@ const differentTypeOut = `
 `
 
 const reducersOut = `
-#0:record[key1:string,first:int,last:int,sum:int,avg:double,min:int,max:int]
+#0:record[key1:string,first:int,last:int,sum:int,avg:float64,min:int,max:int]
 0:[a;1;2;3;1.5;1;2;]
 0:[b;1;1;1;1;1;1;]
 `

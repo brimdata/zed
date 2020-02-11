@@ -151,7 +151,7 @@ searchValue
       RETURN(makeLiteral("addr", v))
     }
   / v:sdouble {
-      RETURN(makeLiteral("double", v))
+      RETURN(makeLiteral("float64", v))
     }
   / v:sinteger !searchWord {
       RETURN(makeLiteral("int", v))

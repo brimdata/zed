@@ -56,7 +56,7 @@ func guessSortField(rec *zng.Record) string {
 	if fld := firstOf(typ, zng.TypeInt); fld != "" {
 		return fld
 	}
-	if fld := firstOf(typ, zng.TypeDouble); fld != "" {
+	if fld := firstOf(typ, zng.TypeFloat64); fld != "" {
 		return fld
 	}
 	if fld := firstNot(typ, zng.TypeTime); fld != "" {

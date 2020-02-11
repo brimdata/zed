@@ -222,7 +222,7 @@ func (p *Parser) jsonParseNumber(b []byte) (zng.Value, error) {
 	if err != nil {
 		return zng.Value{}, err
 	}
-	return zng.NewDouble(d), nil
+	return zng.NewFloat64(d), nil
 }
 
 func (p *Parser) jsonParseString(b []byte) (zng.Value, error) {

@@ -6,7 +6,7 @@ const unset = `
 #0:record[x:count]
 0:[-;]
 
-#1:record[x:double]
+#1:record[x:float64]
 1:[-;]
 
 #2:record[x:int]
@@ -24,7 +24,7 @@ var UnsetAvg = test.Internal{
 	Query: "avg(x)",
 	Input: test.Trim(unset),
 	Expected: test.Trim(`
-#0:record[avg:double]
+#0:record[avg:float64]
 0:[-;]
 `),
 }

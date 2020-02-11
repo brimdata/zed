@@ -10,18 +10,18 @@ type Double struct {
 	fn *streamfn.Float64
 }
 
-func NewDoubleStreamfn(op string) Streamfn {
+func NewFloat64Streamfn(op string) Streamfn {
 	return &Double{
 		fn: streamfn.NewFloat64(op),
 	}
 }
 
 func (d *Double) Result() zng.Value {
-	return zng.NewDouble(d.fn.State)
+	return zng.NewFloat64(d.fn.State)
 }
 
 func (d *Double) Consume(v zng.Value) error {
-	dd, ok := zx.CoerceToDouble(v)
+	dd, ok := zx.CoerceToFloat64(v)
 	if !ok {
 		return zng.ErrTypeMismatch
 	}

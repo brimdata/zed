@@ -48,9 +48,9 @@ func TestZeek(t *testing.T) {
 	vals := []ast.Literal{
 		{"int", "100"},
 		{"int", "101"},
-		{"double", "100"},
-		{"double", "100.0"},
-		{"double", "100.5"},
+		{"float64", "100"},
+		{"float64", "100.0"},
+		{"float64", "100.5"},
 		{"addr", "128.32.1.1"},
 		{"string", "hello"},
 		{"port", "80"},
@@ -60,7 +60,7 @@ func TestZeek(t *testing.T) {
 	require.NoError(t, err)
 	err = run(vals, "lte", val("int", "101"), []bool{true, true, true, true, true, false, false, true, false})
 	require.NoError(t, err)
-	err = run(vals, "lte", val("double", "100.2"), []bool{true, false, true, true, false, false, false, true, false})
+	err = run(vals, "lte", val("float64", "100.2"), []bool{true, false, true, true, false, false, false, true, false})
 	require.NoError(t, err)
 	err = run(vals, "gt", val("port", "100"), []bool{false, false, false, false, false, false, false, false, true})
 	require.NoError(t, err)

@@ -69,7 +69,7 @@ var (
 	TypeBool     = &TypeOfBool{}
 	TypeCount    = &TypeOfCount{}
 	TypeInt      = &TypeOfInt{}
-	TypeDouble   = &TypeOfDouble{}
+	TypeFloat64  = &TypeOfFloat64{}
 	TypeTime     = &TypeOfTime{}
 	TypeInterval = &TypeOfInterval{}
 	TypeString   = &TypeOfString{}
@@ -121,8 +121,8 @@ func LookupPrimitive(name string) Type {
 		return TypeCount
 	case "int":
 		return TypeInt
-	case "double":
-		return TypeDouble
+	case "float64":
+		return TypeFloat64
 	case "time":
 		return TypeTime
 	case "interval":
@@ -154,7 +154,7 @@ func LookupPrimitiveById(id int) Type {
 	case IdInt64:
 		return TypeInt
 	case IdFloat64:
-		return TypeDouble
+		return TypeFloat64
 	case IdTime:
 		return TypeTime
 	case IdDuration:
