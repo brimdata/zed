@@ -14,7 +14,7 @@ var JsonTypes = test.Internal{
 
 // This test covers serializing all the different zng types to json.
 const jsonInput = `
-#0:record[a:addr,a2:addr,b:bool,c:count,e:enum,f:float64,i:int,interval:interval,p:port,s:string,t:time]
+#0:record[a:ip,a2:ip,b:bool,c:count,e:enum,f:float64,i:int,interval:interval,p:port,s:string,t:time]
 0:[10.1.1.1;fe80::eef4:bbff:fe51:89ec;t;517;foo;3.14159;18;60.0;443;Hello, world!;1578407783.487;]
 `
 

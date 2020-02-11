@@ -22,7 +22,7 @@ func UnsafeParseBool(b []byte) (bool, error) {
 	return strconv.ParseBool(ustring(b))
 }
 
-func UnsafeParseAddr(b []byte) (net.IP, error) {
+func UnsafeParseIP(b []byte) (net.IP, error) {
 	ip := net.ParseIP(ustring(b))
 	if ip == nil {
 		return nil, fmt.Errorf("bad addr value field %v", b)

@@ -20,28 +20,28 @@ func TestNDJSONWriter(t *testing.T) {
 	cases := []testcase{
 		{
 			name: "null containers",
-			input: `#0:record[dns:array[string],uri:array[string],email:set[string],ip:array[addr]]
+			input: `#0:record[dns:array[string],uri:array[string],email:set[string],ip:array[ip]]
 0:[[google.com;]-;-;-;]
 `,
 			output: `{"dns":["google.com"],"email":null,"ip":null,"uri":null}`,
 		},
 		{
 			name: "nested nulls",
-			input: `#0:record[san:record[dns:array[string],uri:array[string],email:set[string],ip:array[addr]]]
+			input: `#0:record[san:record[dns:array[string],uri:array[string],email:set[string],ip:array[ip]]]
 0:[[[google.com;]-;-;-;]]
 `,
 			output: `{"san":{"dns":["google.com"],"email":null,"ip":null,"uri":null}}`,
 		},
 		{
 			name: "empty containers",
-			input: `#0:record[dns:array[string],uri:array[string],email:set[string],ip:array[addr]]
+			input: `#0:record[dns:array[string],uri:array[string],email:set[string],ip:array[ip]]
 0:[[google.com;][][]-;]
 `,
 			output: `{"dns":["google.com"],"uri":[], "email":[],"ip":null}`,
 		},
 		{
 			name: "nested empties",
-			input: `#0:record[san:record[dns:array[string],uri:array[string],email:set[string],ip:array[addr]]]
+			input: `#0:record[san:record[dns:array[string],uri:array[string],email:set[string],ip:array[ip]]]
 0:[[[google.com;][][]-;]]
 `,
 			output: `{"san":{"dns":["google.com"],"uri":[], "email":[],"ip":null}}`,

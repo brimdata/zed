@@ -49,29 +49,29 @@ func TestCtrl(t *testing.T) {
 
 func TestAlias(t *testing.T) {
 	boomerang(t, "simple", `
-#ip=addr
-#0:record[foo:string,orig_h:ip]
+#ipaddr=ip
+#0:record[foo:string,orig_h:ipaddr]
 0:[bar;127.0.0.1;]`)
 
 	boomerang(t, "wrapped-aliases", `
-#alias1=addr
+#alias1=ip
 #alias2=alias1
 #alias3=alias2
 #0:record[foo:string,orig_h:alias3]
 0:[bar;127.0.0.1;]`)
 
 	boomerang(t, "alias-in-different-records", `
-#ip=addr
-#0:record[foo:string,orig_h:ip]
+#ipaddr=ip
+#0:record[foo:string,orig_h:ipaddr]
 0:[bar;127.0.0.1;]
-#1:record[foo:string,resp_h:ip]
+#1:record[foo:string,resp_h:ipaddr]
 1:[bro;127.0.0.1;]`)
 
 	boomerang(t, "same-primitive-different-records", `
-#ip=addr
-#0:record[foo:string,orig_h:ip]
+#ipaddr=ip
+#0:record[foo:string,orig_h:ipaddr]
 0:[bro;127.0.0.1;]
-#1:record[foo:string,orig_h:addr]
+#1:record[foo:string,orig_h:ip]
 1:[bar;127.0.0.1;]`)
 }
 
@@ -83,7 +83,7 @@ func TestAliasErr(t *testing.T) {
 	boomerangErr(t, "out-of-order", `
 #alias3=alias2
 #alias2=alias1
-#alias1=addr
+#alias1=ip
 #0:record[foo:string,orig_h:alias3]`, "unknown type: %s", "alias2")
 
 	boomerangErr(t, "alias-preexisting", `

@@ -177,10 +177,10 @@ func CompareIP(op string, pattern net.IP) (Predicate, error) {
 		return nil, fmt.Errorf("unknown addr comparator: %s", op)
 	}
 	return func(v zng.Value) bool {
-		if v.Type != zng.TypeAddr {
+		if v.Type != zng.TypeIP {
 			return false
 		}
-		ip, err := zng.DecodeAddr(v.Bytes)
+		ip, err := zng.DecodeIP(v.Bytes)
 		if err != nil {
 			return false
 		}
@@ -393,8 +393,8 @@ func CompareSubnet(op string, pattern *net.IPNet) (Predicate, error) {
 	return func(v zng.Value) bool {
 		val := v.Bytes
 		switch v.Type.(type) {
-		case *zng.TypeOfAddr:
-			ip, err := zng.DecodeAddr(val)
+		case *zng.TypeOfIP:
+			ip, err := zng.DecodeIP(val)
 			if err == nil {
 				return match(ip, pattern)
 			}

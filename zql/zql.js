@@ -235,7 +235,7 @@ function peg$parse(input, options) {
             return makeLiteral("subnet", v)
           },
       peg$c38 = function(v) {
-            return makeLiteral("addr", v)
+            return makeLiteral("ip", v)
           },
       peg$c39 = function(v) {
             return makeLiteral("float64", v)

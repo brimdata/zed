@@ -142,13 +142,13 @@ searchValue
       RETURN(makeLiteral("subnet", v))
     }
   / v:ip6addr {
-      RETURN(makeLiteral("addr", v))
+      RETURN(makeLiteral("ip", v))
     }
   / v:subnet {
       RETURN(makeLiteral("subnet", v))
     }
   / v:addr {
-      RETURN(makeLiteral("addr", v))
+      RETURN(makeLiteral("ip", v))
     }
   / v:sdouble {
       RETURN(makeLiteral("float64", v))

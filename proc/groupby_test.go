@@ -49,14 +49,14 @@ const missingField = `
 `
 
 const differentTypeIn = `
-#1:record[key1:addr,n:int]
+#1:record[key1:ip,n:int]
 1:[10.0.0.1;1;]
 1:[10.0.0.2;1;]
 1:[10.0.0.1;1;]
 `
 
 const differentTypeOut = `
-#1:record[key1:addr,count:count]
+#1:record[key1:ip,count:count]
 1:[10.0.0.1;2;]
 1:[10.0.0.2;1;]
 `
@@ -128,18 +128,18 @@ const mixedOut = `
 `
 
 const aliasIn = `
-#ip=addr
-#0:record[host:ip]
+#ipaddr=ip
+#0:record[host:ipaddr]
 0:[127.0.0.1;]
-#1:record[host:addr]
+#1:record[host:ip]
 1:[127.0.0.1;]
 `
 
 const aliasOut = `
-#ip=addr
-#0:record[host:ip,count:count]
+#ipaddr=ip
+#0:record[host:ipaddr,count:count]
 0:[127.0.0.1;1;]
-#1:record[host:addr,count:count]
+#1:record[host:ip,count:count]
 1:[127.0.0.1;1;]
 `
 

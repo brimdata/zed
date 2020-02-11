@@ -75,7 +75,7 @@ var (
 	TypeString   = &TypeOfString{}
 	TypeBstring  = &TypeOfBstring{}
 	TypePort     = &TypeOfPort{}
-	TypeAddr     = &TypeOfAddr{}
+	TypeIP       = &TypeOfIP{}
 	TypeSubnet   = &TypeOfSubnet{}
 	TypeEnum     = &TypeOfEnum{}
 	TypeNull     = &TypeOfNull{}
@@ -133,8 +133,8 @@ func LookupPrimitive(name string) Type {
 		return TypeBstring
 	case "port":
 		return TypePort
-	case "addr":
-		return TypeAddr
+	case "ip":
+		return TypeIP
 	case "subnet":
 		return TypeSubnet
 	case "enum":
@@ -166,7 +166,7 @@ func LookupPrimitiveById(id int) Type {
 	case IdPort:
 		return TypePort
 	case IdIP:
-		return TypeAddr
+		return TypeIP
 	case IdNet:
 		return TypeSubnet
 	case IdEnum:

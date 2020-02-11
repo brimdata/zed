@@ -296,13 +296,13 @@ func lookupSorter(typ zng.Type) comparefn {
 			return 0
 		}
 
-	case zng.TypeAddr:
+	case zng.TypeIP:
 		return func(a, b zcode.Bytes) int {
-			va, err := zng.DecodeAddr(a)
+			va, err := zng.DecodeIP(a)
 			if err != nil {
 				return -1
 			}
-			vb, err := zng.DecodeAddr(b)
+			vb, err := zng.DecodeIP(b)
 			if err != nil {
 				return 1
 			}

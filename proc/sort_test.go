@@ -129,15 +129,15 @@ const chooseOut3 = `
 `
 
 const sortAliasIn = `
-#0:record[host:addr]
+#0:record[host:ip]
 0:[127.0.0.2;]
-#ip=addr
-#1:record[host:ip]
+#ipaddr=ip
+#1:record[host:ipaddr]
 1:[127.0.0.1;]
 `
 
 const sortAliasOut = `
-#0:record[host:addr]
+#0:record[host:ip]
 0:[127.0.0.2;]
 0:[127.0.0.1;]
 `

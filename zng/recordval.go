@@ -428,10 +428,10 @@ func (r *Record) AccessIP(field string) (net.IP, error) {
 	if err != nil {
 		return nil, err
 	}
-	if _, ok := v.Type.(*TypeOfAddr); !ok {
+	if _, ok := v.Type.(*TypeOfIP); !ok {
 		return nil, ErrTypeMismatch
 	}
-	return DecodeAddr(v.Bytes)
+	return DecodeIP(v.Bytes)
 }
 
 func (r *Record) AccessTime(field string) (nano.Ts, error) {
