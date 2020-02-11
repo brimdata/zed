@@ -23,17 +23,17 @@ type Reader struct {
 	zctx    *resolver.Context
 }
 
-func NewReader(reader io.Reader, zctx *resolver.Context) *Reader {
-	// XXX LookupTypeAlias() needs to be fallible in case this alias
-	// already exists.  Which means that NewReader() also needs to
-	// be fallible, ugh.
-	_ = zctx.LookupTypeAlias("zenum", zng.TypeString)
+func NewReader(reader io.Reader, zctx *resolver.Context) (*Reader, error) {
+	_, err := zctx.LookupTypeAlias("zenum", zng.TypeString)
+	if err != nil {
+		return nil, err
+	}
 
 	buffer := make([]byte, ReadSize)
 	return &Reader{
 		scanner: skim.NewScanner(reader, buffer, MaxLineSize),
 		parser:  NewParser(zctx),
-	}
+	}, nil
 }
 
 func (r *Reader) Read() (*zng.Record, error) {

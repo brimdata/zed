@@ -22,8 +22,16 @@ func NewReader(r io.Reader, zctx *resolver.Context) (zbuf.Reader, error) {
 		return zngio.NewReader(recorder, zctx), nil
 	}
 	track.Reset()
-	if match(zeekio.NewReader(track, resolver.NewContext())) {
-		return zeekio.NewReader(recorder, zctx), nil
+	zr, err := zeekio.NewReader(track, resolver.NewContext())
+	if err != nil {
+		return nil, err
+	}
+	if match(zr) {
+		zr, err = zeekio.NewReader(recorder, zctx)
+		if err != nil {
+			return nil, err
+		}
+		return zr, nil
 	}
 	track.Reset()
 	// zjson must come before ndjson since zjson is a subset of ndjson

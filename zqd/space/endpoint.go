@@ -51,7 +51,10 @@ func spaceInfo(spaceName, path string) (*api.SpaceInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	reader := detector.LookupReader("bzng", f, resolver.NewContext())
+	reader, err := detector.LookupReader("bzng", f, resolver.NewContext())
+	if err != nil {
+		return nil, err
+	}
 	minTs := nano.MaxTs
 	maxTs := nano.MinTs
 	var found bool

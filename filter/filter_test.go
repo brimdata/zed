@@ -96,7 +96,8 @@ func TestFilters(t *testing.T) {
 	t.Parallel()
 
 	ior := strings.NewReader(zngsrc)
-	reader := detector.LookupReader("zng", ior, resolver.NewContext())
+	reader, err := detector.LookupReader("zng", ior, resolver.NewContext())
+	require.NoError(t, err)
 
 	nrecords := 17
 	records := make([]*zng.Record, 0, nrecords)
