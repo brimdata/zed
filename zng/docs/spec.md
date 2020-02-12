@@ -7,7 +7,8 @@
 >
 > * the bytes type is not yet implemented,
 > * the union type is not yet implemented,
-> * ordering hints are not generated or taken advantage of.
+> * ordering hints are not generated or taken advantage of,
+> * it is not yet possible to validate enums against a set of allowed values.
 >
 > Also, we are contemplating reducing the number of primitive types, e.g.,
 > the number of variations in integer types.
