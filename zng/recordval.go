@@ -408,7 +408,10 @@ func (r *Record) AccessInt(field string) (int64, error) {
 		return 0, err
 	}
 	switch v.Type.(type) {
-	case *TypeOfInt:
+	case *TypeOfByte:
+		b, err := DecodeByte(v.Bytes)
+		return int64(b), err
+	case *TypeOfInt16, *TypeOfInt32, *TypeOfInt64:
 		return DecodeInt(v.Bytes)
 	case *TypeOfCount:
 		v, err := DecodeCount(v.Bytes)
@@ -418,6 +421,9 @@ func (r *Record) AccessInt(field string) (int64, error) {
 		return int64(v), err
 	case *TypeOfPort:
 		v, err := DecodePort(v.Bytes)
+		return int64(v), err
+	case *TypeOfUint16, *TypeOfUint32:
+		v, err := DecodeUint(v.Bytes)
 		return int64(v), err
 	}
 	return 0, ErrTypeMismatch

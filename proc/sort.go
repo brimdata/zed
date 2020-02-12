@@ -30,10 +30,12 @@ func NewSort(c *Context, parent Proc, limit int, fields []expr.FieldExprResolver
 	return &Sort{Base: Base{Context: c, Parent: parent}, dir: dir, limit: limit, nullsFirst: nullsFirst, fields: fields}
 }
 
-func firstOf(typ *zng.TypeRecord, which zng.Type) string {
+func firstOf(typ *zng.TypeRecord, which []zng.Type) string {
 	for _, col := range typ.Columns {
-		if zng.SameType(col.Type, which) {
-			return col.Name
+		for _, t := range which {
+			if zng.SameType(col.Type, t) {
+				return col.Name
+			}
 		}
 	}
 	return ""
@@ -48,15 +50,21 @@ func firstNot(typ *zng.TypeRecord, which zng.Type) string {
 	return ""
 }
 
+var intTypes = []zng.Type{
+	zng.TypeInt16,
+	zng.TypeUint16,
+	zng.TypeInt32,
+	zng.TypeUint32,
+	zng.TypeInt64,
+	zng.TypeUint64,
+}
+
 func guessSortField(rec *zng.Record) string {
 	typ := rec.Type
-	if fld := firstOf(typ, zng.TypeCount); fld != "" {
+	if fld := firstOf(typ, intTypes); fld != "" {
 		return fld
 	}
-	if fld := firstOf(typ, zng.TypeInt); fld != "" {
-		return fld
-	}
-	if fld := firstOf(typ, zng.TypeFloat64); fld != "" {
+	if fld := firstOf(typ, []zng.Type{zng.TypeFloat64}); fld != "" {
 		return fld
 	}
 	if fld := firstNot(typ, zng.TypeTime); fld != "" {

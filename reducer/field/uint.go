@@ -6,27 +6,27 @@ import (
 	"github.com/brimsec/zq/zx"
 )
 
-type Count struct {
+type Uint struct {
 	fn *streamfn.Uint64
 }
 
-func NewCountStreamfn(op string) Streamfn {
-	return &Count{
+func NewUintStreamfn(op string) Streamfn {
+	return &Uint{
 		fn: streamfn.NewUint64(op),
 	}
 }
 
-func (c *Count) Result() zng.Value {
-	return zng.NewCount(c.fn.State)
+func (u *Uint) Result() zng.Value {
+	return zng.NewUint64(u.fn.State)
 }
 
-func (c *Count) Consume(v zng.Value) error {
+func (u *Uint) Consume(v zng.Value) error {
 	if v, ok := zx.CoerceToUint(v, zng.TypeUint64); ok {
 		i, err := zng.DecodeUint(v.Bytes)
 		if err != nil {
 			return zng.ErrBadValue
 		}
-		c.fn.Update(i)
+		u.fn.Update(i)
 		return nil
 	}
 	return zng.ErrTypeMismatch

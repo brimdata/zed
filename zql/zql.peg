@@ -154,7 +154,7 @@ searchValue
       RETURN(makeLiteral("float64", v))
     }
   / v:sinteger !searchWord {
-      RETURN(makeLiteral("int", v))
+      RETURN(makeLiteral("int64", v))
     }
   / !(searchKeywords _) v:booleanLiteral { RETURN(v) }
   / !(searchKeywords _) v:nullLiteral { RETURN(v) }

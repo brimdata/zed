@@ -20,8 +20,8 @@ func DecodeCountedUvarint(b []byte) uint64 {
 	return u64
 }
 
-func EncodeCountedUvarint(dst []byte, u64 uint64) int {
-	n := 0
+func EncodeCountedUvarint(dst []byte, u64 uint64) uint {
+	var n uint
 	for u64 != 0 {
 		dst[n] = byte(u64)
 		u64 >>= 8
@@ -42,7 +42,7 @@ func DecodeCountedVarint(b []byte) int64 {
 	return int64(u64 >> 1)
 }
 
-func EncodeCountedVarint(dst []byte, i int64) int {
+func EncodeCountedVarint(dst []byte, i int64) uint {
 	var u64 uint64
 	if i >= 0 {
 		u64 = uint64(i) << 1

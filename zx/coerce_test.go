@@ -10,8 +10,7 @@ import (
 
 func TestCoerceDuration(t *testing.T) {
 	interval := zng.NewDuration(60 * 1e9)
-	runcase(t, "Int64", zng.NewInt(60), interval)
-	runcase(t, "Uint64", zng.NewCount(60), interval)
+	runcase(t, "Uint64", zng.NewUint64(60), interval)
 	runcase(t, "Float64", zng.NewFloat64(60), interval)
 	runcase(t, "Duration", zng.NewDuration(60*1e9), interval)
 

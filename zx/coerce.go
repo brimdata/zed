@@ -1,6 +1,7 @@
 package zx
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/brimsec/zq/pkg/nano"
@@ -18,9 +19,17 @@ func CoerceToFloat64(in zng.Value) (float64, bool) {
 		return 0, false
 	case zng.IdFloat64:
 		out, err = zng.DecodeFloat64(in.Bytes)
-	case zng.IdInt64:
+	case zng.IdByte:
+		var b byte
+		b, err = zng.DecodeByte(in.Bytes)
+		out = float64(b)
+	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
 		var v int64
 		v, err = zng.DecodeInt(in.Bytes)
+		out = float64(v)
+	case zng.IdUint16, zng.IdUint32, zng.IdUint64:
+		var v uint64
+		v, err = zng.DecodeUint(in.Bytes)
 		out = float64(v)
 	case zng.IdBool:
 		var v bool
@@ -28,10 +37,6 @@ func CoerceToFloat64(in zng.Value) (float64, bool) {
 		if v {
 			out = 1
 		}
-	case zng.IdUint64:
-		var v uint64
-		v, err = zng.DecodeCount(in.Bytes)
-		out = float64(v)
 	case zng.IdPort:
 		var v uint32
 		v, err = zng.DecodePort(in.Bytes)
@@ -51,53 +56,145 @@ func CoerceToFloat64(in zng.Value) (float64, bool) {
 	return out, true
 }
 
-// CoerceToInt attempts to convert a value to an integer.  Int, Count,
-// and Port can are all translated to an Int with the same native
-// value while a Double is converted only if the double is an integer.
+// CoerceToInt and CoerceToUint attempt to convert a value to the given
+// integer type.  Integer types (byte, int*, uint*) can be coerced
+// to another integer type if the value is in range.  float64 may
+// be coerced to an integer type only if the value is equivalent.
 // Time and Intervals are converted to an Int as their nanosecond
-// values. The resulting coerced value is written to out, and true is
-// returned. If the value cannot be coerced, then false is returned.
-func CoerceToInt(in zng.Value) (int64, bool) {
-	var out int64
+// values.
+func CoerceToInt(in zng.Value, typ zng.Type) (zng.Value, bool) {
+	var i int64
 	var err error
-	body := in.Bytes
-	switch in.Type.ID() {
-	default:
-		return 0, false
-	case zng.IdInt64:
-		out, err = zng.DecodeInt(body)
-	case zng.IdUint64:
-		var v uint64
-		v, err = zng.DecodeCount(body)
-		// check for overflow
-		if v > math.MaxInt64 {
-			return 0, false
-		}
-		out = int64(v)
-	case zng.IdPort:
-		var v uint32
-		v, err = zng.DecodePort(body)
-		out = int64(v)
-	case zng.IdFloat64:
+
+	switch in.Type.(type) {
+	case *zng.TypeOfFloat64:
 		var v float64
-		v, err = zng.DecodeFloat64(body)
-		out = int64(v)
-		if float64(out) != v {
-			return 0, false
+		v, err = zng.DecodeFloat64(in.Bytes)
+		i = int64(v)
+		if float64(i) != v {
+			return zng.Value{}, false
 		}
-	case zng.IdTime:
+	case *zng.TypeOfTime:
 		var v nano.Ts
-		v, err = zng.DecodeTime(body)
-		out = int64(v / 1e9)
-	case zng.IdDuration:
+		v, err = zng.DecodeTime(in.Bytes)
+		i = int64(v / 1e9)
+	case *zng.TypeOfDuration:
 		var v int64
-		v, err = zng.DecodeDuration(body)
-		out = int64(v / 1e9)
+		v, err = zng.DecodeDuration(in.Bytes)
+		i = int64(v / 1e9)
+	case *zng.TypeOfByte:
+		var b byte
+		b, err = zng.DecodeByte(in.Bytes)
+		if err != nil {
+			return zng.Value{}, false
+		}
+		i = int64(b)
+	case *zng.TypeOfInt16, *zng.TypeOfInt32, *zng.TypeOfInt64:
+		i, err = zng.DecodeInt(in.Bytes)
+		if err != nil {
+			return zng.Value{}, false
+		}
+	case *zng.TypeOfUint16, *zng.TypeOfUint32, *zng.TypeOfUint64:
+		u, err := zng.DecodeUint(in.Bytes)
+		if err != nil {
+			return zng.Value{}, false
+		}
+		// Further checking on the desired type happens below but
+		// first make sure this fits in a signed int64 type.
+		if u > math.MaxInt64 {
+			return zng.Value{}, false
+		}
+		i = int64(u)
+	default:
+		// can't be cast to integer
+		return zng.Value{}, false
 	}
-	if err != nil {
-		return 0, false
+
+	switch typ.(type) {
+	case *zng.TypeOfInt16:
+		if i < math.MinInt16 || i > math.MaxInt16 {
+			return zng.Value{}, false
+		}
+	case *zng.TypeOfInt32:
+		if i < math.MinInt32 || i > math.MaxInt32 {
+			return zng.Value{}, false
+		}
+	case *zng.TypeOfInt64:
+		// it already fits, no checking needed
+
+	default:
+		panic(fmt.Sprintf("Called CoerceToInt on non-integer type %s", typ))
 	}
-	return out, true
+
+	return zng.Value{typ, zng.EncodeInt(i)}, true
+}
+
+func CoerceToUint(in zng.Value, typ zng.Type) (zng.Value, bool) {
+	var i uint64
+	var err error
+
+	switch in.Type.(type) {
+	case *zng.TypeOfFloat64:
+		var v float64
+		v, err = zng.DecodeFloat64(in.Bytes)
+		i = uint64(v)
+		if float64(i) != v {
+			return zng.Value{}, false
+		}
+	case *zng.TypeOfTime:
+		var v nano.Ts
+		v, err = zng.DecodeTime(in.Bytes)
+		i = uint64(v / 1e9)
+	case *zng.TypeOfDuration:
+		var v int64
+		v, err = zng.DecodeDuration(in.Bytes)
+		i = uint64(v / 1e9)
+	case *zng.TypeOfByte:
+		var b byte
+		b, err = zng.DecodeByte(in.Bytes)
+		if err != nil {
+			return zng.Value{}, false
+		}
+		i = uint64(b)
+	case *zng.TypeOfInt16, *zng.TypeOfInt32, *zng.TypeOfInt64:
+		var si int64
+		si, err = zng.DecodeInt(in.Bytes)
+		if err != nil {
+			return zng.Value{}, false
+		}
+		// Further checking on the desired type happens below but
+		// first make sure the value isn't negative.
+		if si < 0 {
+			return zng.Value{}, false
+		}
+		i = uint64(si)
+	case *zng.TypeOfUint16, *zng.TypeOfUint32, *zng.TypeOfUint64:
+		i, err = zng.DecodeUint(in.Bytes)
+		if err != nil {
+			return zng.Value{}, false
+		}
+	default:
+		// can't be cast to integer
+		return zng.Value{}, false
+	}
+
+	switch typ.(type) {
+	case *zng.TypeOfUint16:
+		if i > math.MaxUint16 {
+			return zng.Value{}, false
+		}
+	case *zng.TypeOfUint32:
+		if i > math.MaxUint32 {
+			return zng.Value{}, false
+		}
+	case *zng.TypeOfUint64:
+		// it already fits, no checking needed
+
+	default:
+		panic(fmt.Sprintf("Called CoerceToInt on non-integer type %s", typ))
+	}
+
+	return zng.Value{typ, zng.EncodeUint(i)}, true
 }
 
 // CoerceToDuration attempts to convert a value to a duration.  Int
@@ -112,15 +209,15 @@ func CoerceToDuration(in zng.Value) (int64, bool) {
 		return 0, false
 	case zng.IdDuration:
 		out, err = zng.DecodeDuration(in.Bytes)
-	case zng.IdUint64:
+	case zng.IdUint16, zng.IdUint32, zng.IdUint64:
 		var v uint64
-		v, err = zng.DecodeCount(in.Bytes)
+		v, err = zng.DecodeUint(in.Bytes)
 		// check for overflow
 		if v > math.MaxInt64 {
 			return 0, false
 		}
 		out = 1_000_000_000 * int64(v)
-	case zng.IdInt64:
+	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
 		out, err = zng.DecodeInt(in.Bytes)
 		out *= 1_000_000_000
 	case zng.IdFloat64:
@@ -150,7 +247,7 @@ func CoerceToPort(in zng.Value) (uint32, bool) {
 		var v uint64
 		v, err = zng.DecodeCount(body)
 		// check for overflow
-		if v > math.MaxInt64 {
+		if v > math.MaxInt16 {
 			return 0, false
 		}
 		out = uint32(v)
@@ -193,13 +290,13 @@ func CoerceToTime(in zng.Value) (nano.Ts, bool) {
 		return 0, false
 	case zng.IdTime:
 		ts, err = zng.DecodeTime(in.Bytes)
-	case zng.IdInt64:
+	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
 		var v int64
 		v, err = zng.DecodeInt(in.Bytes)
 		ts = nano.Ts(v) * 1_000_000_000
-	case zng.IdUint64:
+	case zng.IdUint16, zng.IdUint32, zng.IdUint64:
 		var v uint64
-		v, err = zng.DecodeCount(in.Bytes)
+		v, err = zng.DecodeUint(in.Bytes)
 		// check for overflow
 		if v > math.MaxInt64 {
 			return 0, false
@@ -245,10 +342,10 @@ func Coerce(v zng.Value, to zng.Type) (zng.Value, bool) {
 		if e, ok := CoerceToEnum(v); ok {
 			return zng.NewEnum(e), true
 		}
-	case zng.IdInt64:
-		if i, ok := CoerceToInt(v); ok {
-			return zng.NewInt(i), true
-		}
+	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
+		return CoerceToInt(v, to)
+	case zng.IdUint16, zng.IdUint32, zng.IdUint64:
+		return CoerceToUint(v, to)
 	case zng.IdDuration:
 		if i, ok := CoerceToDuration(v); ok {
 			return zng.NewDuration(i), true

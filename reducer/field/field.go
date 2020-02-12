@@ -64,7 +64,7 @@ func (fr *FieldReducer) Consume(r *zng.Record) {
 	}
 	if fr.fn == nil {
 		switch val.Type.ID() {
-		case zng.IdInt64:
+		case zng.IdInt16, zng.IdUint16, zng.IdInt32, zng.IdUint32, zng.IdInt64:
 			fr.fn = NewIntStreamfn(fr.op)
 		case zng.IdUint64:
 			fr.fn = NewCountStreamfn(fr.op)
