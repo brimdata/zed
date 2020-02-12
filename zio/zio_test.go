@@ -22,7 +22,7 @@ func TestZngDescriptors(t *testing.T) {
 	src := "#1:record[s:string,n:int]\n"
 	src += "1:[foo;5;]\n"
 	// Step 2 - Create a second descriptor of a different type
-	src += "#2:record[a:addr,p:port]\n"
+	src += "#2:record[a:ip,p:port]\n"
 	src += "2:[10.5.5.5;443;]\n"
 	// Step 3 - can still use the first descriptor
 	src += "1:[bar;100;]\n"

@@ -123,8 +123,8 @@ func CompareInt64(op string, pattern int64) (Predicate, error) {
 			if err == nil {
 				return CompareInt(int64(v), pattern)
 			}
-		case *zng.TypeOfDouble:
-			v, err := zng.DecodeDouble(zv)
+		case *zng.TypeOfFloat64:
+			v, err := zng.DecodeFloat64(zv)
 			if err == nil {
 				return CompareFloat(v, float64(pattern))
 			}
@@ -133,7 +133,7 @@ func CompareInt64(op string, pattern int64) (Predicate, error) {
 			if err == nil {
 				return CompareInt(int64(ts), pattern*1e9)
 			}
-		case *zng.TypeOfInterval:
+		case *zng.TypeOfDuration:
 			v, err := zng.DecodeInt(zv)
 			if err == nil {
 				return CompareInt(int64(v), pattern*1e9)
@@ -177,10 +177,10 @@ func CompareIP(op string, pattern net.IP) (Predicate, error) {
 		return nil, fmt.Errorf("unknown addr comparator: %s", op)
 	}
 	return func(v zng.Value) bool {
-		if v.Type != zng.TypeAddr {
+		if v.Type != zng.TypeIP {
 			return false
 		}
-		ip, err := zng.DecodeAddr(v.Bytes)
+		ip, err := zng.DecodeIP(v.Bytes)
 		if err != nil {
 			return false
 		}
@@ -206,8 +206,8 @@ func CompareFloat64(op string, pattern float64) (Predicate, error) {
 		// integers that cause float64 overflow?  user can always
 		// use an integer constant instead of a float constant to
 		// compare with the integer-y field.
-		case *zng.TypeOfDouble:
-			v, err := zng.DecodeDouble(zv)
+		case *zng.TypeOfFloat64:
+			v, err := zng.DecodeFloat64(zv)
 			if err == nil {
 				return compare(v, pattern)
 			}
@@ -232,8 +232,8 @@ func CompareFloat64(op string, pattern float64) (Predicate, error) {
 			if err == nil {
 				return compare(float64(ts)/1e9, pattern)
 			}
-		case *zng.TypeOfInterval:
-			v, err := zng.DecodeInterval(zv)
+		case *zng.TypeOfDuration:
+			v, err := zng.DecodeDuration(zv)
 			if err == nil {
 				return compare(float64(v)/1e9, pattern)
 			}
@@ -393,13 +393,13 @@ func CompareSubnet(op string, pattern *net.IPNet) (Predicate, error) {
 	return func(v zng.Value) bool {
 		val := v.Bytes
 		switch v.Type.(type) {
-		case *zng.TypeOfAddr:
-			ip, err := zng.DecodeAddr(val)
+		case *zng.TypeOfIP:
+			ip, err := zng.DecodeIP(val)
 			if err == nil {
 				return match(ip, pattern)
 			}
-		case *zng.TypeOfSubnet:
-			subnet, err := zng.DecodeSubnet(val)
+		case *zng.TypeOfNet:
+			subnet, err := zng.DecodeNet(val)
 			if err == nil {
 				return compare(subnet, pattern)
 			}

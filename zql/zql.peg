@@ -139,19 +139,19 @@ searchValue
       RETURN(makeLiteral("port", v))
   }
   / v:ip6subnet {
-      RETURN(makeLiteral("subnet", v))
+      RETURN(makeLiteral("net", v))
     }
   / v:ip6addr {
-      RETURN(makeLiteral("addr", v))
+      RETURN(makeLiteral("ip", v))
     }
   / v:subnet {
-      RETURN(makeLiteral("subnet", v))
+      RETURN(makeLiteral("net", v))
     }
   / v:addr {
-      RETURN(makeLiteral("addr", v))
+      RETURN(makeLiteral("ip", v))
     }
   / v:sdouble {
-      RETURN(makeLiteral("double", v))
+      RETURN(makeLiteral("float64", v))
     }
   / v:sinteger !searchWord {
       RETURN(makeLiteral("int", v))

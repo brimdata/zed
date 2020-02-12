@@ -13,13 +13,13 @@ var Internal1 = test.Internal{
 }
 
 const in1 = `
-#0:record[x:set[addr]]
+#0:record[x:set[ip]]
 0:[[192.168.1.10;192.168.1.2;192.179.1.1;]]
 0:[[192.168.1.10;192.168.1.2;]]
 `
 
 const out1 = `
-#0:record[x:set[addr]]
+#0:record[x:set[ip]]
 0:[[192.168.1.10;192.168.1.2;]]
 0:[[192.168.1.10;192.168.1.2;192.179.1.1;]]
 `
@@ -33,19 +33,19 @@ var Internal2 = test.Internal{
 }
 
 const in2 = `
-#0:record[x:set[addr]]
+#0:record[x:set[ip]]
 0:[[192.168.1.10;192.168.1.2;]]
 0:[[192.168.1.10;192.168.0.2;]]
 `
 
 const out2 = `
-#0:record[x:set[addr]]
+#0:record[x:set[ip]]
 0:[[192.168.1.10;192.168.0.2;]]
 0:[[192.168.1.10;192.168.1.2;]]
 `
 
 const in3 = `
-#0:record[TTLs:array[interval],count:count]
+#0:record[TTLs:array[duration],count:count]
 0:[[0;]18;]
 0:[[0;0;]4;]
 0:[[0;0;0;]3;]
@@ -75,7 +75,7 @@ const in3 = `
 `
 
 const out3 = `
-#0:record[TTLs:array[interval],count:count]
+#0:record[TTLs:array[duration],count:count]
 0:[[0;]18;]
 0:[[0;0;]4;]
 0:[[0;0;0;]3;]

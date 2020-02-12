@@ -69,14 +69,14 @@ var (
 	TypeBool     = &TypeOfBool{}
 	TypeCount    = &TypeOfCount{}
 	TypeInt      = &TypeOfInt{}
-	TypeDouble   = &TypeOfDouble{}
+	TypeFloat64  = &TypeOfFloat64{}
 	TypeTime     = &TypeOfTime{}
-	TypeInterval = &TypeOfInterval{}
+	TypeDuration = &TypeOfDuration{}
 	TypeString   = &TypeOfString{}
 	TypeBstring  = &TypeOfBstring{}
 	TypePort     = &TypeOfPort{}
-	TypeAddr     = &TypeOfAddr{}
-	TypeSubnet   = &TypeOfSubnet{}
+	TypeIP       = &TypeOfIP{}
+	TypeNet      = &TypeOfNet{}
 	TypeEnum     = &TypeOfEnum{}
 	TypeNull     = &TypeOfNull{}
 )
@@ -121,22 +121,22 @@ func LookupPrimitive(name string) Type {
 		return TypeCount
 	case "int":
 		return TypeInt
-	case "double":
-		return TypeDouble
+	case "float64":
+		return TypeFloat64
 	case "time":
 		return TypeTime
-	case "interval":
-		return TypeInterval
+	case "duration":
+		return TypeDuration
 	case "string":
 		return TypeString
 	case "bstring":
 		return TypeBstring
 	case "port":
 		return TypePort
-	case "addr":
-		return TypeAddr
-	case "subnet":
-		return TypeSubnet
+	case "ip":
+		return TypeIP
+	case "net":
+		return TypeNet
 	case "enum":
 		return TypeEnum
 	case "null":
@@ -154,11 +154,11 @@ func LookupPrimitiveById(id int) Type {
 	case IdInt64:
 		return TypeInt
 	case IdFloat64:
-		return TypeDouble
+		return TypeFloat64
 	case IdTime:
 		return TypeTime
 	case IdDuration:
-		return TypeInterval
+		return TypeDuration
 	case IdString:
 		return TypeString
 	case IdBstring:
@@ -166,9 +166,9 @@ func LookupPrimitiveById(id int) Type {
 	case IdPort:
 		return TypePort
 	case IdIP:
-		return TypeAddr
+		return TypeIP
 	case IdNet:
-		return TypeSubnet
+		return TypeNet
 	case IdEnum:
 		return TypeEnum
 	}

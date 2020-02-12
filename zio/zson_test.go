@@ -206,20 +206,20 @@ func TestZjson(t *testing.T) {
 }
 
 func TestAlias(t *testing.T) {
-	const simple = `#ip=addr
-#0:record[foo:string,orig_h:ip]
+	const simple = `#ipaddr=ip
+#0:record[foo:string,orig_h:ipaddr]
 0:[bar;127.0.0.1;]`
 
-	const wrapped = `#alias1=addr
+	const wrapped = `#alias1=ip
 #alias2=alias1
 #alias3=alias2
 #0:record[foo:string,orig_h:alias3]
 0:[bar;127.0.0.1;]`
 
-	const multipleRecords = `#ip=addr
-#0:record[foo:string,orig_h:ip]
+	const multipleRecords = `#ipaddr=ip
+#0:record[foo:string,orig_h:ipaddr]
 0:[bar;127.0.0.1;]
-#1:record[foo:string,resp_h:ip]
+#1:record[foo:string,resp_h:ipaddr]
 1:[bro;127.0.0.1;]`
 
 	t.Run("Bzng", func(t *testing.T) {

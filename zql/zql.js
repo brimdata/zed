@@ -232,13 +232,13 @@ function peg$parse(input, options) {
             return makeLiteral("port", v)
         },
       peg$c37 = function(v) {
-            return makeLiteral("subnet", v)
+            return makeLiteral("net", v)
           },
       peg$c38 = function(v) {
-            return makeLiteral("addr", v)
+            return makeLiteral("ip", v)
           },
       peg$c39 = function(v) {
-            return makeLiteral("double", v)
+            return makeLiteral("float64", v)
           },
       peg$c40 = function(v) {
             return makeLiteral("int", v)

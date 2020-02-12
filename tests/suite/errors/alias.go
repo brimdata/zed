@@ -6,7 +6,7 @@ import (
 )
 
 const inputRedefineAlias = `
-#alias=addr
+#alias=ip
 #0:record[orig_h:alias]
 0:[127.0.0.1;]
 #alias=count

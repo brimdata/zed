@@ -101,9 +101,8 @@ needed to define the schema for each distinct record.  To define a new
 type, the "#" syntax is used.  For example,
 logs from the open-source Zeek system might look like this
 ```
-#ip=addr
-#24:record[_path:string,ts:time,uid:string,id:record[orig_h:addr,orig_p:port,resp_h:addr,resp_p:port]...
-#25:record[_path:string,ts:time,fuid:string,tx_hosts:set[addr]...
+#24:record[_path:string,ts:time,uid:string,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port]...
+#25:record[_path:string,ts:time,fuid:string,tx_hosts:set[ip]...
 24:[conn;1425565514.419939;CogZFI3py5JsFZGik;[192.168.1.1:;80/tcp;192.168.1.2;8080;]...
 25:[files;1425565514.419987;Fj8sRF1gdneMHN700d;[52.218.49.89;52.218.48.169;]...
 ```
@@ -665,7 +664,7 @@ Container types look like this and do need typedefs:
 ```
 #0:array[int]
 #1:set[bool,string]
-#2:record[x:double,y:double]
+#2:record[x:float64,y:float64]
 ```
 Container types can be embedded in other container types by referencing
 an earlier-defined type alias:
@@ -712,7 +711,7 @@ In this way, an empty `set` and a `set` containing only a zero-length `string` c
 This scheme allows containers to be embedded in containers, e.g., a
 `record` inside of a `record` like this:
 ```
-#LL:record[compass:string,degree:double]
+#LL:record[compass:string,degree:float64]
 #26:record[city:string,lat:LL,long:LL]
 26:[NYC;[N;40.7128;][W;74.0060;]]
 ```

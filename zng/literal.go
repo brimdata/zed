@@ -38,12 +38,12 @@ func ParseLiteral(literal ast.Literal) (interface{}, error) {
 		return v.Type.Marshal(v.Bytes)
 	case nil:
 		return nil, nil
-	case *TypeOfAddr:
+	case *TypeOfIP:
 		// marshal doesn't work for addr
-		return DecodeAddr(v.Bytes)
-	case *TypeOfSubnet:
+		return DecodeIP(v.Bytes)
+	case *TypeOfNet:
 		// marshal doesn't work for subnet
-		return DecodeSubnet(v.Bytes)
+		return DecodeNet(v.Bytes)
 	case *TypeOfBstring:
 		s, err := DecodeString(v.Bytes)
 		return Bstring(s), err

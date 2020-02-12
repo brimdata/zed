@@ -423,26 +423,15 @@ func (r *Record) AccessInt(field string) (int64, error) {
 	return 0, ErrTypeMismatch
 }
 
-func (r *Record) AccessDouble(field string) (float64, error) {
-	v, err := r.Access(field)
-	if err != nil {
-		return 0, err
-	}
-	if _, ok := v.Type.(*TypeOfDouble); !ok {
-		return 0, ErrTypeMismatch
-	}
-	return DecodeDouble(v.Bytes)
-}
-
 func (r *Record) AccessIP(field string) (net.IP, error) {
 	v, err := r.Access(field)
 	if err != nil {
 		return nil, err
 	}
-	if _, ok := v.Type.(*TypeOfAddr); !ok {
+	if _, ok := v.Type.(*TypeOfIP); !ok {
 		return nil, ErrTypeMismatch
 	}
-	return DecodeAddr(v.Bytes)
+	return DecodeIP(v.Bytes)
 }
 
 func (r *Record) AccessTime(field string) (nano.Ts, error) {

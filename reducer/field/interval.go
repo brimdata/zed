@@ -6,23 +6,23 @@ import (
 	"github.com/brimsec/zq/zx"
 )
 
-type Interval struct {
+type Duration struct {
 	fn *streamfn.Int64
 }
 
-func NewIntervalStreamfn(op string) Streamfn {
-	return &Interval{
+func NewDurationStreamfn(op string) Streamfn {
+	return &Duration{
 		fn: streamfn.NewInt64(op),
 	}
 }
 
-func (i *Interval) Result() zng.Value {
-	return zng.NewInterval(i.fn.State)
+func (d *Duration) Result() zng.Value {
+	return zng.NewDuration(d.fn.State)
 }
 
-func (i *Interval) Consume(v zng.Value) error {
-	if interval, ok := zx.CoerceToInterval(v); ok {
-		i.fn.Update(interval)
+func (d *Duration) Consume(v zng.Value) error {
+	if interval, ok := zx.CoerceToDuration(v); ok {
+		d.fn.Update(interval)
 		return nil
 	}
 	return zng.ErrTypeMismatch

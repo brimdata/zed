@@ -242,13 +242,13 @@ func lookupSorter(typ zng.Type) comparefn {
 			return 0
 		}
 
-	case zng.TypeDouble:
+	case zng.TypeFloat64:
 		return func(a, b zcode.Bytes) int {
-			va, err := zng.DecodeDouble(a)
+			va, err := zng.DecodeFloat64(a)
 			if err != nil {
 				return -1
 			}
-			vb, err := zng.DecodeDouble(b)
+			vb, err := zng.DecodeFloat64(b)
 			if err != nil {
 				return 1
 			}
@@ -278,13 +278,13 @@ func lookupSorter(typ zng.Type) comparefn {
 			return 0
 		}
 
-	case zng.TypeInterval:
+	case zng.TypeDuration:
 		return func(a, b zcode.Bytes) int {
-			va, err := zng.DecodeInterval(a)
+			va, err := zng.DecodeDuration(a)
 			if err != nil {
 				return -1
 			}
-			vb, err := zng.DecodeInterval(b)
+			vb, err := zng.DecodeDuration(b)
 			if err != nil {
 				return 1
 			}
@@ -296,13 +296,13 @@ func lookupSorter(typ zng.Type) comparefn {
 			return 0
 		}
 
-	case zng.TypeAddr:
+	case zng.TypeIP:
 		return func(a, b zcode.Bytes) int {
-			va, err := zng.DecodeAddr(a)
+			va, err := zng.DecodeIP(a)
 			if err != nil {
 				return -1
 			}
-			vb, err := zng.DecodeAddr(b)
+			vb, err := zng.DecodeIP(b)
 			if err != nil {
 				return 1
 			}

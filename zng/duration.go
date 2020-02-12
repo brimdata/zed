@@ -5,38 +5,38 @@ import (
 	"github.com/brimsec/zq/zcode"
 )
 
-type TypeOfInterval struct{}
+type TypeOfDuration struct{}
 
-func NewInterval(i int64) Value {
-	return Value{TypeInterval, EncodeInterval(i)}
+func NewDuration(i int64) Value {
+	return Value{TypeDuration, EncodeDuration(i)}
 }
 
-func EncodeInterval(i int64) zcode.Bytes {
+func EncodeDuration(i int64) zcode.Bytes {
 	return EncodeInt(i)
 }
 
-func DecodeInterval(zv zcode.Bytes) (int64, error) {
+func DecodeDuration(zv zcode.Bytes) (int64, error) {
 	return DecodeInt(zv)
 }
 
-func (t *TypeOfInterval) Parse(in []byte) (zcode.Bytes, error) {
+func (t *TypeOfDuration) Parse(in []byte) (zcode.Bytes, error) {
 	dur, err := nano.ParseDuration(in)
 	if err != nil {
 		return nil, err
 	}
-	return EncodeInterval(int64(dur)), nil
+	return EncodeDuration(int64(dur)), nil
 }
 
-func (t *TypeOfInterval) ID() int {
+func (t *TypeOfDuration) ID() int {
 	return IdDuration
 }
 
-func (t *TypeOfInterval) String() string {
-	return "interval"
+func (t *TypeOfDuration) String() string {
+	return "duration"
 }
 
-func (t *TypeOfInterval) StringOf(zv zcode.Bytes, _ OutFmt, _ bool) string {
-	i, err := DecodeInterval(zv)
+func (t *TypeOfDuration) StringOf(zv zcode.Bytes, _ OutFmt, _ bool) string {
+	i, err := DecodeDuration(zv)
 	if err != nil {
 		return badZng(err, t, zv)
 	}
@@ -47,6 +47,6 @@ func (t *TypeOfInterval) StringOf(zv zcode.Bytes, _ OutFmt, _ bool) string {
 	return nano.DurationString(i)
 }
 
-func (t *TypeOfInterval) Marshal(zv zcode.Bytes) (interface{}, error) {
+func (t *TypeOfDuration) Marshal(zv zcode.Bytes) (interface{}, error) {
 	return t.StringOf(zv, OutFormatUnescaped, false), nil
 }

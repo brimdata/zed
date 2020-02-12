@@ -69,9 +69,9 @@ func (fr *FieldReducer) Consume(r *zng.Record) {
 		case zng.IdUint64:
 			fr.fn = NewCountStreamfn(fr.op)
 		case zng.IdFloat64:
-			fr.fn = NewDoubleStreamfn(fr.op)
+			fr.fn = NewFloat64Streamfn(fr.op)
 		case zng.IdDuration:
-			fr.fn = NewIntervalStreamfn(fr.op)
+			fr.fn = NewDurationStreamfn(fr.op)
 		case zng.IdTime:
 			fr.fn = NewTimeStreamfn(fr.op)
 		default:
