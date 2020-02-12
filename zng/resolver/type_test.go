@@ -53,27 +53,23 @@ func TestZeek(t *testing.T) {
 		{"float64", "100.5"},
 		{"ip", "128.32.1.1"},
 		{"string", "hello"},
-		{"port", "80"},
-		{"port", "8080"},
 	}
-	err := run(vals, "lt", val("int32", "101"), []bool{true, false, true, true, true, false, false, true, false})
+	err := run(vals, "lt", val("int32", "101"), []bool{true, false, true, true, true, false, false})
 	require.NoError(t, err)
-	err = run(vals, "lte", val("int32", "101"), []bool{true, true, true, true, true, false, false, true, false})
+	err = run(vals, "lte", val("int32", "101"), []bool{true, true, true, true, true, false, false})
 	require.NoError(t, err)
-	err = run(vals, "lte", val("float64", "100.2"), []bool{true, false, true, true, false, false, false, true, false})
+	err = run(vals, "lte", val("float64", "100.2"), []bool{true, false, true, true, false, false, false})
 	require.NoError(t, err)
-	err = run(vals, "gt", val("port", "100"), []bool{false, false, false, false, false, false, false, false, true})
+	err = run(vals, "eql", val("ip", "128.32.1.1"), []bool{false, false, false, false, false, true, false})
 	require.NoError(t, err)
-	err = run(vals, "eql", val("ip", "128.32.1.1"), []bool{false, false, false, false, false, true, false, false, false})
+	err = run(vals, "eql", val("ip", "128.32.2.2"), []bool{false, false, false, false, false, false, false})
 	require.NoError(t, err)
-	err = run(vals, "eql", val("ip", "128.32.2.2"), []bool{false, false, false, false, false, false, false, false, false})
+	err = run(vals, "eql", val("net", "128.32.0.0/16"), []bool{false, false, false, false, false, true, false})
 	require.NoError(t, err)
-	err = run(vals, "eql", val("net", "128.32.0.0/16"), []bool{false, false, false, false, false, true, false, false, false})
+	err = run(vals, "eql", val("net", "128.32.0.0/16"), []bool{false, false, false, false, false, true, false})
 	require.NoError(t, err)
-	err = run(vals, "eql", val("net", "128.32.0.0/16"), []bool{false, false, false, false, false, true, false, false, false})
+	err = run(vals, "eql", val("net", "128.32.1.0/24"), []bool{false, false, false, false, false, true, false})
 	require.NoError(t, err)
-	err = run(vals, "eql", val("net", "128.32.1.0/24"), []bool{false, false, false, false, false, true, false, false, false})
-	require.NoError(t, err)
-	err = run(vals, "eql", val("net", "128.32.2.0/24"), []bool{false, false, false, false, false, false, false, false, false})
+	err = run(vals, "eql", val("net", "128.32.2.0/24"), []bool{false, false, false, false, false, false, false})
 	require.NoError(t, err)
 }

@@ -9,7 +9,7 @@ const inputRedefineAlias = `
 #alias=ip
 #0:record[orig_h:alias]
 0:[127.0.0.1;]
-#alias=count
+#alias=uint64
 #1:record[count:alias]
 1:[25;]
 `

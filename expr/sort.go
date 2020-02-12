@@ -180,7 +180,7 @@ func lookupSorter(typ zng.Type) comparefn {
 			return -1
 		}
 
-	case zng.TypeString, zng.TypeEnum:
+	case zng.TypeString:
 		return func(a, b zcode.Bytes) int {
 			return bytes.Compare(a, b)
 		}
@@ -210,41 +210,6 @@ func lookupSorter(typ zng.Type) comparefn {
 				return -1
 			}
 			vb, err := zng.DecodeUint(b)
-			if err != nil {
-				return 1
-			}
-			if va < vb {
-				return -1
-			} else if va > vb {
-				return 1
-			}
-			return 0
-		}
-
-	case zng.TypeCount:
-		return func(a, b zcode.Bytes) int {
-			va, err := zng.DecodeCount(a)
-			if err != nil {
-				return -1
-			}
-			vb, err := zng.DecodeCount(b)
-			if err != nil {
-				return 1
-			}
-			if va < vb {
-				return -1
-			} else if va > vb {
-				return 1
-			}
-			return 0
-		}
-	case zng.TypePort:
-		return func(a, b zcode.Bytes) int {
-			va, err := zng.DecodePort(a)
-			if err != nil {
-				return -1
-			}
-			vb, err := zng.DecodePort(b)
 			if err != nil {
 				return 1
 			}

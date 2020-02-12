@@ -37,10 +37,6 @@ func CoerceToFloat64(in zng.Value) (float64, bool) {
 		if v {
 			out = 1
 		}
-	case zng.IdPort:
-		var v uint32
-		v, err = zng.DecodePort(in.Bytes)
-		out = float64(v)
 	case zng.IdTime:
 		var v nano.Ts
 		v, err = zng.DecodeTime(in.Bytes)
@@ -209,15 +205,15 @@ func CoerceToDuration(in zng.Value) (int64, bool) {
 		return 0, false
 	case zng.IdDuration:
 		out, err = zng.DecodeDuration(in.Bytes)
-	case zng.IdUint64:
+	case zng.IdUint16, zng.IdUint32, zng.IdUint64:
 		var v uint64
-		v, err = zng.DecodeCount(in.Bytes)
+		v, err = zng.DecodeUint(in.Bytes)
 		// check for overflow
 		if v > math.MaxInt64 {
 			return 0, false
 		}
 		out = 1_000_000_000 * int64(v)
-	case zng.IdInt64:
+	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
 		out, err = zng.DecodeInt(in.Bytes)
 		out *= 1_000_000_000
 	case zng.IdFloat64:
@@ -232,52 +228,6 @@ func CoerceToDuration(in zng.Value) (int64, bool) {
 	return out, true
 }
 
-func CoerceToPort(in zng.Value) (uint32, bool) {
-	var out uint32
-	var err error
-	body := in.Bytes
-	switch in.Type.ID() {
-	default:
-		return 0, false
-	case zng.IdInt64:
-		var v int64
-		v, err = zng.DecodeInt(body)
-		out = uint32(v)
-	case zng.IdUint64:
-		var v uint64
-		v, err = zng.DecodeCount(body)
-		// check for overflow
-		if v > math.MaxInt64 {
-			return 0, false
-		}
-		out = uint32(v)
-	case zng.IdPort:
-		out, err = zng.DecodePort(body)
-	case zng.IdFloat64:
-		var v float64
-		v, err = zng.DecodeFloat64(body)
-		out = uint32(v)
-		if float64(out) != v {
-			return 0, false
-		}
-	}
-	if err != nil {
-		return 0, false
-	}
-	return out, true
-}
-
-func CoerceToEnum(in zng.Value) (string, bool) {
-	var enum string
-	switch in.Type.ID() {
-	default:
-		return "", false
-	case zng.IdString, zng.IdBstring:
-		enum = string(in.Bytes)
-	}
-	return enum, true
-}
-
 // CoerceToTime attempts to convert a value to a time. Int and Double
 // are converted as seconds. The resulting coerced value is written to
 // out, and true is returned. If the value cannot be coerced, then
@@ -290,13 +240,13 @@ func CoerceToTime(in zng.Value) (nano.Ts, bool) {
 		return 0, false
 	case zng.IdTime:
 		ts, err = zng.DecodeTime(in.Bytes)
-	case zng.IdInt64:
+	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
 		var v int64
 		v, err = zng.DecodeInt(in.Bytes)
 		ts = nano.Ts(v) * 1_000_000_000
-	case zng.IdUint64:
+	case zng.IdUint16, zng.IdUint32, zng.IdUint64:
 		var v uint64
-		v, err = zng.DecodeCount(in.Bytes)
+		v, err = zng.DecodeUint(in.Bytes)
 		// check for overflow
 		if v > math.MaxInt64 {
 			return 0, false
@@ -338,10 +288,6 @@ func Coerce(v zng.Value, to zng.Type) (zng.Value, bool) {
 		if d, ok := CoerceToFloat64(v); ok {
 			return zng.NewFloat64(d), true
 		}
-	case zng.IdEnum:
-		if e, ok := CoerceToEnum(v); ok {
-			return zng.NewEnum(e), true
-		}
 	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
 		return CoerceToInt(v, to)
 	case zng.IdUint16, zng.IdUint32, zng.IdUint64:
@@ -349,10 +295,6 @@ func Coerce(v zng.Value, to zng.Type) (zng.Value, bool) {
 	case zng.IdDuration:
 		if i, ok := CoerceToDuration(v); ok {
 			return zng.NewDuration(i), true
-		}
-	case zng.IdPort:
-		if p, ok := CoerceToPort(v); ok {
-			return zng.NewPort(p), true
 		}
 	case zng.IdTime:
 		if i, ok := CoerceToTime(v); ok {

@@ -45,7 +45,7 @@ const out2 = `
 `
 
 const in3 = `
-#0:record[TTLs:array[duration],count:count]
+#0:record[TTLs:array[duration],count:uint64]
 0:[[0;]18;]
 0:[[0;0;]4;]
 0:[[0;0;0;]3;]
@@ -75,7 +75,7 @@ const in3 = `
 `
 
 const out3 = `
-#0:record[TTLs:array[duration],count:count]
+#0:record[TTLs:array[duration],count:uint64]
 0:[[0;]18;]
 0:[[0;0;]4;]
 0:[[0;0;0;]3;]

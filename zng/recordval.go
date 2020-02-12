@@ -2,7 +2,6 @@ package zng
 
 import (
 	"errors"
-	"math"
 	"net"
 
 	"github.com/brimsec/zq/pkg/nano"
@@ -413,15 +412,10 @@ func (r *Record) AccessInt(field string) (int64, error) {
 		return int64(b), err
 	case *TypeOfInt16, *TypeOfInt32, *TypeOfInt64:
 		return DecodeInt(v.Bytes)
-	case *TypeOfCount:
-		v, err := DecodeCount(v.Bytes)
-		if v > math.MaxInt64 {
-			return 0, errors.New("conversion from type count to int results in overflow")
-		}
+	case *TypeOfUint16, *TypeOfUint32:
+		v, err := DecodeUint(v.Bytes)
 		return int64(v), err
-	case *TypeOfPort:
-		v, err := DecodePort(v.Bytes)
-		return int64(v), err
+		// Uint64 explicitly skipped since it may not fit in an int64
 	}
 	return 0, ErrTypeMismatch
 }

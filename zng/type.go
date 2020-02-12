@@ -82,11 +82,6 @@ var (
 	TypeTime     = &TypeOfTime{}
 	TypeDuration = &TypeOfDuration{}
 	TypeNull     = &TypeOfNull{}
-
-	// XXX kill me:
-	TypePort  = &TypeOfPort{}
-	TypeCount = &TypeOfCount{}
-	TypeEnum  = &TypeOfEnum{}
 )
 
 const (
@@ -155,14 +150,6 @@ func LookupPrimitive(name string) Type {
 		return TypeDuration
 	case "null":
 		return TypeNull
-
-		// XXX:
-	case "count":
-		return TypeCount
-	case "port":
-		return TypePort
-	case "enum":
-		return TypeEnum
 	}
 	return nil
 }
@@ -199,12 +186,6 @@ func LookupPrimitiveById(id int) Type {
 		return TypeTime
 	case IdDuration:
 		return TypeDuration
-
-		// XXX
-	case IdPort:
-		return TypePort
-	case IdEnum:
-		return TypeEnum
 	}
 	return nil
 }

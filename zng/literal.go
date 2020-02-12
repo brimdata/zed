@@ -4,10 +4,6 @@ import (
 	"github.com/brimsec/zq/ast"
 )
 
-//XXX
-type Port uint32
-type Bstring []byte
-
 func ParseLiteral(literal ast.Literal) (interface{}, error) {
 	// String literals inside zql are parsed as zng bstrings
 	// (since bstrings can represent a wider range of values,
@@ -33,10 +29,6 @@ func ParseLiteral(literal ast.Literal) (interface{}, error) {
 		return DecodeNet(v.Bytes)
 	case *TypeOfBstring:
 		s, err := DecodeString(v.Bytes)
-		return Bstring(s), err
-	case *TypeOfPort:
-		// return as a native Port
-		p, err := DecodePort(v.Bytes)
-		return Port(p), err
+		return s, err
 	}
 }

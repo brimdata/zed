@@ -120,18 +120,6 @@ func CompareInt64(op string, pattern int64) (Predicate, error) {
 			if err == nil && v <= math.MaxInt64 {
 				return CompareInt(int64(v), pattern)
 			}
-		case *zng.TypeOfCount:
-			// we can parse counts and ports as an integer
-			v, err := zng.DecodeCount(zv)
-			if err == nil {
-				return CompareInt(int64(v), pattern)
-			}
-		case *zng.TypeOfPort:
-			// we can parse counts and ports as an integer
-			v, err := zng.DecodePort(zv)
-			if err == nil {
-				return CompareInt(int64(v), pattern)
-			}
 		case *zng.TypeOfFloat64:
 			v, err := zng.DecodeFloat64(zv)
 			if err == nil {
@@ -270,17 +258,6 @@ func CompareFloat64(op string, pattern float64) (Predicate, error) {
 			if err == nil {
 				return compare(float64(v), pattern)
 			}
-		case *zng.TypeOfCount:
-			v, err := zng.DecodeCount(zv)
-			if err == nil {
-				return compare(float64(v), pattern)
-			}
-		case *zng.TypeOfPort:
-			v, err := zng.DecodePort(zv)
-			if err == nil {
-				return compare(float64(v), pattern)
-			}
-
 		case *zng.TypeOfTime:
 			ts, err := zng.DecodeTime(zv)
 			if err == nil {
@@ -307,17 +284,16 @@ var compareString = map[string]func(string, string) bool{
 	"search": func(a, b string) bool { return strings.Contains(a, b) },
 }
 
-func CompareBstring(op string, pattern zng.Bstring) (Predicate, error) {
+func CompareBstring(op string, pattern string) (Predicate, error) {
 	compare, ok := compareString[op]
 	if !ok {
 		return nil, fmt.Errorf("unknown string comparator: %s", op)
 	}
-	s := string(pattern)
 	return func(v zng.Value) bool {
 		switch v.Type.(type) {
-		case *zng.TypeOfBstring, *zng.TypeOfString, *zng.TypeOfEnum:
+		case *zng.TypeOfBstring, *zng.TypeOfString:
 			//XXX is this UTF safe?
-			return compare(zng.UnsafeString(v.Bytes), s)
+			return compare(zng.UnsafeString(v.Bytes), pattern)
 		}
 		return false
 	}, nil
@@ -340,7 +316,7 @@ func compareRegexp(op, pattern string) (Predicate, error) {
 	case "eql":
 		return func(v zng.Value) bool {
 			switch v.Type.(type) {
-			case *zng.TypeOfString, *zng.TypeOfBstring, *zng.TypeOfEnum:
+			case *zng.TypeOfString, *zng.TypeOfBstring:
 				return re.Match(v.Bytes)
 			}
 			return false
@@ -348,36 +324,12 @@ func compareRegexp(op, pattern string) (Predicate, error) {
 	case "neql":
 		return func(v zng.Value) bool {
 			switch v.Type.(type) {
-			case *zng.TypeOfString, *zng.TypeOfBstring, *zng.TypeOfEnum:
+			case *zng.TypeOfString, *zng.TypeOfBstring:
 				return !re.Match(v.Bytes)
 			}
 			return false
 		}, nil
 	}
-}
-
-// XXX Comparison returns a Predicate that compares typed byte slices that must
-// be a port with the value's port value using a comparison based on op.
-// Integer fields are not coerced (nor are any other types) so they never
-// match the port literal here.
-func ComparePort(op string, pattern uint32) (Predicate, error) {
-	compare, ok := compareInt[op]
-	if !ok {
-		return nil, fmt.Errorf("unknown port comparator: %s", op)
-	}
-	// only a zeek port can be compared with a port type.  If the user went
-	// to the trouble of specifying a port match (e.g., ":80" vs "80") then
-	// we use strict typing here on the port comparison.
-	return func(v zng.Value) bool {
-		if v.Type != zng.TypePort {
-			return false
-		}
-		p, err := zng.DecodePort(v.Bytes)
-		if err != nil {
-			return false
-		}
-		return compare(int64(p), int64(pattern))
-	}, nil
 }
 
 func CompareUnset(op string) (Predicate, error) {
@@ -514,10 +466,8 @@ func Comparison(op string, literal ast.Literal) (Predicate, error) {
 		return CompareBool(op, v)
 	case float64: //XXX
 		return CompareFloat64(op, v)
-	case zng.Bstring: //XXX
+	case string:
 		return CompareBstring(op, v)
-	case zng.Port:
-		return ComparePort(op, uint32(v))
 	case int64:
 		return CompareInt64(op, v)
 	case uint64:
