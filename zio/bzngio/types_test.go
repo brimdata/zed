@@ -19,7 +19,7 @@ func TestContextSerialization(t *testing.T) {
 	newCtx := resolver.NewContext()
 	err := bzngio.ReadTypeContext(reader, newCtx)
 	require.NoError(t, err)
-	r1, err := newCtx.LookupByName("record[a:int,b:int]")
+	r1, err := ctx.LookupByName("record[a:int,b:int]")
 	require.NoError(t, err)
 	r2, err := newCtx.LookupByName("record[a:int,b:int]")
 	require.NoError(t, err)
