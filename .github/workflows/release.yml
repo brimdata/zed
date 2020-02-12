@@ -1,0 +1,27 @@
+name: release assets
+on:
+  push:
+    tags:
+      - v*
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/setup-go@v1
+      with:
+        go-version: '1.13'
+    - uses: actions/checkout@v1
+    - name: run unit tests
+      run: make test-unit
+    - name: run system tests
+      run: make test-system
+    - name: create release assets
+      run: make create-release-assets
+    - name: upload release assets
+      uses: svenstaro/upload-release-action@1.1.0
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        tag: ${{ github.ref }}
+        file: dist/release/*
+        file_glob: true
+        overwrite: true

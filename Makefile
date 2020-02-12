@@ -26,7 +26,19 @@ build:
 install:
 	@go install -ldflags='$(LDFLAGS)' ./cmd/...
 
+create-release-assets:
+	for os in darwin linux windows; do \
+		zqdir=zq-$(VERSION).$${os}-amd64 ; \
+		rm -rf dist/$${zqdir} ; \
+		mkdir -p dist/$${zqdir} ; \
+		GOOS=$${os} GOARCH=amd64 go build -ldflags='$(LDFLAGS)' -o dist/$${zqdir} ./cmd/... ; \
+	done
+	rm -rf dist/release && mkdir -p dist/release
+	cd dist && for d in zq-$(VERSION)* ; do \
+		zip -r release/$${d}.zip $${d} ; \
+	done
+
 clean:
 	@rm -rf dist
 
-.PHONY: vet test-unit test-system clean build
+.PHONY: vet fmt test-unit test-system build install create-release-assets clean
