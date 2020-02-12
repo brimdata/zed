@@ -8,21 +8,21 @@ import (
 
 // Data sets for tests:
 const unsortedInts = `
-#0:record[foo:int]
+#0:record[foo:int32]
 0:[100;]
 0:[2;]
 0:[9100;]
 `
 
 const ascendingInts = `
-#0:record[foo:int]
+#0:record[foo:int32]
 0:[2;]
 0:[100;]
 0:[9100;]
 `
 
 const descendingInts = `
-#0:record[foo:int]
+#0:record[foo:int32]
 0:[9100;]
 0:[100;]
 0:[2;]
@@ -51,7 +51,7 @@ const unsetInt = `
 // Some records that don't include the field "foo".  These are combined
 // with sets that include foo to test mixed records.
 const nofoo = `
-#2:record[notfoo:int]
+#2:record[notfoo:int32]
 2:[1;]
 2:[2;]
 2:[3;]
@@ -59,7 +59,7 @@ const nofoo = `
 
 // Records for testing sorting on multiple fields.
 const multiIn = `
-#3:record[foo:int,bar:int]
+#3:record[foo:int32,bar:int32]
 3:[5;10;]
 3:[10;10;]
 3:[10;5;]
@@ -67,7 +67,7 @@ const multiIn = `
 `
 
 const foobarOut = `
-#3:record[foo:int,bar:int]
+#3:record[foo:int32,bar:int32]
 3:[5;5;]
 3:[5;10;]
 3:[10;5;]
@@ -75,7 +75,7 @@ const foobarOut = `
 `
 
 const barfooOut = `
-#3:record[foo:int,bar:int]
+#3:record[foo:int32,bar:int32]
 3:[5;5;]
 3:[10;5;]
 3:[5;10;]
@@ -86,14 +86,14 @@ const barfooOut = `
 // the field to sort on.
 // First case: prefer an int-valued field (n in this case)
 const chooseIn1 = `
-#4:record[s:string,n:int,ts:time]
+#4:record[s:string,n:int32,ts:time]
 4:[a;300;1574610096.000000;]
 4:[b;100;1574610095.000000;]
 4:[c;200;1574610094.000000;]
 `
 
 const chooseOut1 = `
-#4:record[s:string,n:int,ts:time]
+#4:record[s:string,n:int32,ts:time]
 4:[b;100;1574610095.000000;]
 4:[c;200;1574610094.000000;]
 4:[a;300;1574610096.000000;]

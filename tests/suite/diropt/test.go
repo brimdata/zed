@@ -26,7 +26,7 @@ var Test2 = test.Shell{
 
 const input = `
 #0:record[_path:string,a:string]
-#1:record[_path:string,a:int]
+#1:record[_path:string,a:int64]
 0:[conn;foo;]
 1:[dns;1;]
 1:[dns;2;]
@@ -67,7 +67,7 @@ const connZng = `
 0:[conn;world;]`
 
 const dnsZng = `
-#0:record[_path:string,a:int]
+#0:record[_path:string,a:int64]
 0:[dns;1;]
 0:[dns;2;]
 0:[dns;3;]

@@ -9,7 +9,7 @@ const unset = `
 #1:record[x:float64]
 1:[-;]
 
-#2:record[x:int]
+#2:record[x:int64]
 2:[-;]
 
 #3:record[x:duration]

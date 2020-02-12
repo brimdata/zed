@@ -17,12 +17,16 @@ func NewIntStreamfn(op string) Streamfn {
 }
 
 func (i *Int) Result() zng.Value {
-	return zng.NewInt(i.fn.State)
+	return zng.Value{zng.TypeInt64, zng.EncodeInt(i.fn.State)}
 }
 
 func (i *Int) Consume(v zng.Value) error {
-	if k, ok := zx.CoerceToInt(v); ok {
-		i.fn.Update(k)
+	if v, ok := zx.CoerceToInt(v, zng.TypeInt64); ok {
+		arg, err := zng.DecodeInt(v.Bytes)
+		if err != nil {
+			return zng.ErrBadValue
+		}
+		i.fn.Update(arg)
 		return nil
 	}
 	return zng.ErrTypeMismatch

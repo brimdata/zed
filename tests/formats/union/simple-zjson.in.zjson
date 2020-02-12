@@ -1,3 +1,3 @@
-{"id":24,"type":[{"name":"a","type":"union[int,string]"}],"values":[["1","asdfasdf"]]}
+{"id":24,"type":[{"name":"a","type":"union[int32,string]"}],"values":[["1","asdfasdf"]]}
 {"id":24,"values":[["0","1"]]}
 {"id":24,"values":[null]}

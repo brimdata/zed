@@ -21,9 +21,12 @@ func (c *Count) Result() zng.Value {
 }
 
 func (c *Count) Consume(v zng.Value) error {
-	//XXX need CoerceToUint64
-	if i, ok := zx.CoerceToInt(v); ok {
-		c.fn.Update(uint64(i))
+	if v, ok := zx.CoerceToUint(v, zng.TypeUint64); ok {
+		i, err := zng.DecodeUint(v.Bytes)
+		if err != nil {
+			return zng.ErrBadValue
+		}
+		c.fn.Update(i)
 		return nil
 	}
 	return zng.ErrTypeMismatch

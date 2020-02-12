@@ -109,8 +109,8 @@ func TestLegacyZeekValid(t *testing.T) {
 	// XXX test overriding separator, setSeparator
 }
 
-func assertInt(t *testing.T, i int64, val zng.Value, what string) {
-	ok := val.Type == zng.TypeInt
+func assertInt64(t *testing.T, i int64, val zng.Value, what string) {
+	ok := val.Type == zng.TypeInt64
 	assert.Truef(t, ok, "%s is type int", what)
 	v, _ := zng.DecodeInt(val.Bytes)
 	assert.Equalf(t, i, v, "%s has value %d", what, i)
@@ -164,8 +164,8 @@ func TestNestedRecords(t *testing.T) {
 	subVals, err := nest1Type.Decode(e.Bytes)
 	require.NoError(t, err)
 	assert.Equal(t, 2, len(subVals), "nest1 has 2 elements")
-	assertInt(t, 2, subVals[0], "nest1.a")
-	assertInt(t, 3, subVals[1], "nest1.b")
+	assertInt64(t, 2, subVals[0], "nest1.a")
+	assertInt64(t, 3, subVals[1], "nest1.b")
 
 	v, err = record.AccessInt("b")
 	require.NoError(t, err)
@@ -177,7 +177,7 @@ func TestNestedRecords(t *testing.T) {
 	subVals, err = nest2Type.Decode(e.Bytes)
 	require.NoError(t, err)
 	assert.Equal(t, 1, len(subVals), "nest2 has 1 element")
-	assertInt(t, 5, subVals[0], "nest2.y")
+	assertInt64(t, 5, subVals[0], "nest2.y")
 
 	e, err = record.Access("nest3")
 	require.NoError(t, err)
@@ -185,7 +185,7 @@ func TestNestedRecords(t *testing.T) {
 	subVals, err = nest3Type.Decode(e.Bytes)
 	require.NoError(t, err)
 	assert.Equal(t, 1, len(subVals), "nest3 has 1 element")
-	assertInt(t, 6, subVals[0], "nest3.z")
+	assertInt64(t, 6, subVals[0], "nest3.z")
 }
 
 // Test things related to legacy zeek records that should cause the

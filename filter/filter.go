@@ -1,6 +1,7 @@
 package filter
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/brimsec/zq/ast"
@@ -42,11 +43,22 @@ func CompileFieldCompare(node *ast.CompareField) (Filter, error) {
 
 	// XXX we need to implement proper expressions
 	if op, ok := node.Field.(*ast.FieldCall); ok && op.Fn == "Len" {
-		i, err := zng.AsInt64(literal)
+		v, err := zng.Parse(literal)
 		if err != nil {
-			return nil, fmt.Errorf("cannot compare len() with non-integer: %s", err)
+			return nil, err
+		}
+		v64, ok := zx.Coerce(v, zng.TypeInt64)
+		if !ok {
+			return nil, errors.New("cannot compare len() with non-integer")
+		}
+		i, err := zng.DecodeInt(v64.Bytes)
+		if err != nil {
+			return nil, err
 		}
 		comparison, err := zx.CompareContainerLen(node.Comparator, i)
+		if err != nil {
+			return nil, err
+		}
 		resolver, err := expr.CompileFieldExpr(op.Field)
 		if err != nil {
 			return nil, err

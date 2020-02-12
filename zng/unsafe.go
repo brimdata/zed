@@ -30,6 +30,31 @@ func UnsafeParseIP(b []byte) (net.IP, error) {
 	return ip, nil
 }
 
+func UnsafeParseUint8(b []byte) (uint8, error) {
+	i, err := strconv.ParseUint(ustring(b), 10, 8)
+	return uint8(i), err
+}
+
+func UnsafeParseInt16(b []byte) (uint16, error) {
+	i, err := strconv.ParseInt(ustring(b), 10, 16)
+	return uint16(i), err
+}
+
+func UnsafeParseUint16(b []byte) (uint16, error) {
+	i, err := strconv.ParseUint(ustring(b), 10, 16)
+	return uint16(i), err
+}
+
+func UnsafeParseInt32(b []byte) (uint32, error) {
+	v, err := strconv.ParseInt(ustring(b), 10, 32)
+	return uint32(v), err
+}
+
+func UnsafeParseUint32(b []byte) (uint32, error) {
+	v, err := strconv.ParseUint(ustring(b), 10, 32)
+	return uint32(v), err
+}
+
 func UnsafeParseInt64(b []byte) (int64, error) {
 	return strconv.ParseInt(ustring(b), 10, 64)
 }
@@ -40,9 +65,4 @@ func UnsafeParseUint64(b []byte) (uint64, error) {
 
 func UnsafeParseFloat64(b []byte) (float64, error) {
 	return strconv.ParseFloat(ustring(b), 10)
-}
-
-func UnsafeParseUint32(b []byte) (uint32, error) {
-	v, err := strconv.ParseUint(ustring(b), 10, 32)
-	return uint32(v), err
 }

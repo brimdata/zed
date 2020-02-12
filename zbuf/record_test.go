@@ -109,7 +109,7 @@ func TestEncodeZeekStrings(t *testing.T) {
 	assert.EqualValues(t, zcode.Bytes(nil), lookup(r, 2))
 	assert.Nil(t, lookup(r, 3))
 
-	typ, err = zctx.LookupByName("record[_path:string,ts:time,data:set[int]]")
+	typ, err = zctx.LookupByName("record[_path:string,ts:time,data:set[int32]]")
 	require.NoError(t, err)
 	d = typ.(*zng.TypeRecord)
 
