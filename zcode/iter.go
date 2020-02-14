@@ -33,7 +33,7 @@ func (i *Iter) Next() (Bytes, bool, error) {
 }
 
 // NextTagAndBody returns the next value as a slice containing the value's
-// undecoded tag followed by its body along with a boolean this is true if the
+// undecoded tag followed by its body along with a boolean that is true if the
 // value is a container.
 func (i *Iter) NextTagAndBody() (Bytes, bool, error) {
 	u64, n := uvarint(*i)
