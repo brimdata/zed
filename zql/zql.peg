@@ -222,8 +222,6 @@ types
   / "subnet"
   / "port"
 
-dash = "-" / "\u2014" / "\u2013" / "to"&(_)
-
 andToken = "and"i
 orToken = "or"i
 inToken = "in"i
@@ -237,7 +235,7 @@ fieldNameRest = fieldNameStart / [0-9]
 fieldReference
  = base:fieldName derefs:(
        "." field:fieldName    { RETURN(makeFieldCall("RecordFieldRead", NULL, field)) }
-     / "[" index:sinteger "]" { RETURN(makeFieldCall("Index", NULL, index)) }
+     / "[" index:suint "]" { RETURN(makeFieldCall("Index", NULL, index)) }
    )* {
      RETURN(chainFieldCalls(base, derefs))
    }
@@ -374,25 +372,25 @@ sort
 sortArgs = (_ a:sortArg { RETURN(a) })*
 
 sortArg
-  = "-limit" _ limit:sinteger { RETURN(makeArg("limit", limit)) }
+  = "-limit" _ limit:suint { RETURN(makeArg("limit", limit)) }
   / "-r" { RETURN(makeArg("r", NULL)) }
   / "-nulls" _ where:(("first" / "last") { RETURN(TEXT) } ) { RETURN(makeArg("nulls", where)) }
 
 top
-  = "top"i limit:(_ n:integer { RETURN(n)})? flush:(_ "-flush")? list:(_ f:fieldExprList { RETURN(f) })? {
+  = "top"i limit:(_ n:unsignedInteger { RETURN(n)})? flush:(_ "-flush")? list:(_ f:fieldExprList { RETURN(f) })? {
     RETURN(makeTopProc(list, limit, flush))
   }
 
 procLimitArg
-  = _ "-limit" _ limit:integer { RETURN(limit) }
+  = _ "-limit" _ limit:unsignedInteger { RETURN(limit) }
 
 cut
   = "cut"i _ list:fieldRefDotOnlyList { RETURN(makeCutProc(list)) }
 head
-  = "head"i _ count:integer { RETURN(makeHeadProc(count)) }
+  = "head"i _ count:unsignedInteger { RETURN(makeHeadProc(count)) }
   / "head"i { RETURN(makeHeadProc(1)) }
 tail
-  = "tail"i _ count:integer { RETURN(makeTailProc(count)) }
+  = "tail"i _ count:unsignedInteger { RETURN(makeTailProc(count)) }
   / "tail"i { RETURN(makeTailProc(1)) }
 
 filter
@@ -458,15 +456,15 @@ days
 weeks
   = num:number _? week_abbrev { RETURN(makeDuration(ASSERT_INT(num)*3600*24*7)) }
 
-number = integer
+number = unsignedInteger
 
 
 //XXX what about mac addrs?
 addr
-  = a:(integer "." integer "." integer "." integer) { RETURN(TEXT) }
+  = a:(unsignedInteger "." unsignedInteger "." unsignedInteger "." unsignedInteger) { RETURN(TEXT) }
 
 port
-  = ":" v:sinteger { RETURN(v) }
+  = ":" v:suint { RETURN(v) }
 
 // this matches a superset of legal syntax for ip6 addresses but the compiler
 // will catch any errors when translating the filter
@@ -496,29 +494,31 @@ h_prepend = v:h16 ":" { RETURN(ASSERT_STRING(v) + ":") }
 
 sub_addr
   = addr
-  / a:(integer "." integer "." integer ) { RETURN(TEXT + ".0") }
-  / a:(integer "." integer ) { RETURN(TEXT + ".0.0") }
-  / a:integer { RETURN(TEXT + ".0.0.0") }
+  / a:(unsignedInteger "." unsignedInteger "." unsignedInteger ) { RETURN(TEXT + ".0") }
+  / a:(unsignedInteger "." unsignedInteger ) { RETURN(TEXT + ".0.0") }
+  / a:unsignedInteger { RETURN(TEXT + ".0.0.0") }
 
 subnet
-  = a:sub_addr '/' m:integer {
+  = a:sub_addr '/' m:unsignedInteger {
       RETURN(ASSERT_STRING(a) + "/" + TOSTRING(m));
     }
 
 ip6subnet
-  = a:ip6addr '/' m:integer {
+  = a:ip6addr '/' m:unsignedInteger {
       RETURN(ASSERT_STRING(a) + "/" + ASSERT_STRING(m));
     }
 
+unsignedInteger
+  = s:suint { RETURN(parseInt(s)) }
+
+suint
+  = [0-9]+ { RETURN(TEXT) }
+
 integer
-  = s:sinteger {
-    RETURN(parseInt(s))
-  }
+  = s:sinteger { RETURN(parseInt(s)) }
 
 sinteger
-  = chars:[0-9]+ {
-    RETURN(TEXT)
-  }
+  = [+-]? suint { RETURN(TEXT) }
 
 double
   = s:sdouble {
@@ -539,9 +539,7 @@ doubleInteger
 
 doubleDigit = [0-9]
 
-signedInteger = [+-]? doubleDigit+
-
-exponentPart = "e"i signedInteger
+exponentPart = "e"i sinteger
 
 h16 = chars:hexdigit+ { RETURN(TEXT) }
 
