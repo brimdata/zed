@@ -4,12 +4,13 @@ PEGJS = $(deps)/bin/pegjs
 PIGEON = $(deps)/bin/pigeon
 GOIMPORTS = $(deps)/bin/goimports
 
-PEGJS_VERSION = $(shell test -x $(PEGJS) && $(PEGJS) --version)
-PEGJS_EXPECTED = 0.10.0
-PIGEON_VERSION = $(shell test -d $(deps) && cd $(deps); go list -m github.com/mna/pigeon || echo "")
-PIGEON_EXPECTED = v1.0.1-20190520151103-9fec3898cef8
-GOIMPORTS_VERSION = $(shell test -d $(deps) && cd $(deps); go list -m golang.org/x/tools || echo "")
-GOIMPORTS_EXPECTED = v0.0.0-20200204192400-7124308813f3
+PEGJS_VERSION = 0.10.0
+PIGEON_VERSION = v1.0.1-0.20190520151103-9fec3898cef8
+GOIMPORTS_VERSION = v0.0.0-20200204192400-7124308813f3
+
+PEGJS_INSTALLED = $(shell test -x $(PEGJS) && $(PEGJS) --version)
+PIGEON_INSTALLED = $(shell test -d $(deps) && (cd $(deps); go list -m -f {{.Version}} github.com/mna/pigeon || echo ""))
+GOIMPORTS_INSTALLED = $(shell test -d $(deps) && (cd $(deps); go list -m -f {{.Version}} golang.org/x/tools || echo ""))
 
 all: zql.go zql.js
 
@@ -17,19 +18,20 @@ run: all
 	go run ./main
 
 $(PEGJS):
-ifeq (,$(findstring $(PEGJS_EXPECTED),$(PEGJS_VERSION)))
+ifneq ($(PEGJS_VERSION),$(PEGJS_INSTALLED))
 	mkdir -p $(deps)
-	npm install --global --prefix $(deps) pegjs@0.10.0
+	npm install --global --prefix $(deps) pegjs@$(PEGJS_VERSION)
 endif
 
 GODEPS :=
-ifeq (,$(findstring $(PIGEON_EXPECTED),$(PIGEON_VERSION)))
-  GODEPS += github.com/mna/pigeon@v1.0.1-0.20190520151103-9fec3898cef8
+ifneq ($(PIGEON_VERSION),$(PIGEON_INSTALLED))
+  GODEPS += github.com/mna/pigeon@$(PIGEON_VERSION)
 endif
-ifeq (,$(findstring $(GOIMPORTS_EXPECTED),$(GOIMPORTS_VERSION)))
-  GODEPS += golang.org/x/tools/cmd/goimports@v0.0.0-20200204192400-7124308813f3
+ifneq ($(GOIMPORTS_VERSION),$(GOIMPORTS_INSTALLED))
+  GODEPS += golang.org/x/tools/cmd/goimports@$(GOIMPORTS_VERSION)
 endif
 
+.PHONY: $(PIGEON) $(GOIMPORTS)
 $(PIGEON) $(GOIMPORTS):
 ifneq (,$(GODEPS))
 	mkdir -p $(deps)
