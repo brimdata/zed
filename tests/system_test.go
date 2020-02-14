@@ -4,6 +4,7 @@ package tests
 
 import (
 	"errors"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -85,6 +86,22 @@ func TestFormats(t *testing.T) {
 			results, err := cmd.Run(zqpath)
 			require.NoError(t, err)
 			assert.Exactly(t, cmd.Expected, results, "Wrong command results")
+		})
+	}
+}
+
+func TestMarkdownExamples(t *testing.T) {
+	t.Parallel()
+	alltests, err := ZQExampleTestCases()
+	require.Equal(t, nil, err, "error loading test cases: %v", err)
+	for _, exampletest := range alltests {
+		exampletest := exampletest
+		t.Run(exampletest.Name, func(t *testing.T) {
+			t.Parallel()
+			c := exec.Command(exampletest.Command[0], exampletest.Command[1:]...)
+			cmdOutput, err := c.CombinedOutput()
+			require.Equal(t, nil, err, "error running command %v: %v", exampletest.Command, err)
+			assert.Equal(t, exampletest.Expected, string(cmdOutput), "output mismatch with command %v", exampletest.Command)
 		})
 	}
 }

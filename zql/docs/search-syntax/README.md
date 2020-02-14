@@ -229,13 +229,13 @@ Regexps are a detailed topic all their own. For details, reference the [document
 The search result can be narrowed to include only events that contain a certain value in a particular named field. For example, the following search will only match events containing the field called `uid` where it is set to the precise value `ChhAfsfyuz4n2hFMe`.
 
 #### Example:
-```
-zq -f table 'uid=ChhAfsfyuz4n2hFMe' *.log
+```zq-command
+zq -f table 'uid=ChhAfsfyuz4n2hFMe' *.log.gz
 ```
 
 #### Output:
 
-```
+```zq-output
 _PATH TS                UID               ID.ORIG_H    ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO SERVICE DURATION ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
 conn  1521912990.158539 ChhAfsfyuz4n2hFMe 10.239.34.35 56602     10.47.6.51 873       tcp   -       0.000004 0          0          S0         -          -          0            S       2         88            0         0             -
 ```
@@ -255,8 +255,10 @@ See the [Data Types](./data-types/README.md) page for more details on types and 
 An important distinction is that a "bare" field/value match is treated as an _exact_ match. If we take one of the results from our [bare word value match](#bare-word) example and attempt to look for `Widgits`, but only on a field named `certificate.subject`, there will be no matches. This is because `Widgits` only happens to appear as a _substring_ of `certificate.subject` fields in our sample data.
 
 #### Example:
+```zq-command
+zq -f table 'certificate.subject=Widgits' *.log.gz         # Produces no output
 ```
-zq -f table 'certificate.subject=Widgits' *.log         # Produces no output
+```zq-output
 ```
 
 To achieve this with a field/value match, we can use [glob wildcards](#glob-wildcards).
@@ -286,12 +288,12 @@ In addition to testing for equality via `=`, other common comparison operators `
 For example, the following search finds connections that have transferred many bytes.
 
 #### Example: 
-```
-zq -f table 'orig_bytes > 1000000' *.log
+```zq-command
+zq -f table 'orig_bytes > 1000000' *.log.gz
 ```
 
 #### Output:
-```
+```zq-output
 _PATH TS                UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H    ID.RESP_P PROTO SERVICE DURATION    ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY          ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
 conn  1521912315.208232 CVimRo24ubbKqFvNu7 172.30.255.1 11        10.128.0.207 0         icmp  -       100.721937  1647088    0          OTH        -          -          0            -                44136     2882896       0         0             -
 conn  1521911720.630818 CO0MhB2NCc08xWaly8 10.47.1.154  49814     134.71.3.17  443       tcp   -       1269.512465 1618740    12880888   OTH        -          -          0            ^dtADTatTtTtTtT  110169    7594230       111445    29872050      -
@@ -303,17 +305,17 @@ conn  1521912785.415532 Cy3R5w2pfv8oSEpa2j 10.47.8.19   49376     10.128.0.214 4
 The same operators also work when comparing characters in `string`-type values, such as this search that finds DNS requests that were issued for hostnames at the high end of the alphabet.
 
 #### Example:
-```
-zq -f table 'query > zippy' *.log
+```zq-command
+zq -f table 'query > zippy' *.log.gz
 ```
 
 #### Output:
-```
-_PATH TS                UID               ID.ORIG_H  ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO TRANS_ID RTT      QUERY                                                    QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS                                                                TTLS                            REJECTED
-dns   1521912609.841740 Csx7ymPvWeqIOHPi6 10.47.1.1  59144     10.10.1.1  53        udp   53970    0.001694 zn_9nquvazst1xipkt-cbs.siteintercept.qualtrics.com       1      C_INTERNET  1     A          0     NOERROR    F  F  T  F  0 0.0.0.0                                                                0.000000                        F
-dns   1521912609.841742 Csx7ymPvWeqIOHPi6 10.47.1.1  59144     10.10.1.1  53        udp   53970    0.001697 zn_9nquvazst1xipkt-cbs.siteintercept.qualtrics.com       1      C_INTERNET  1     A          0     NOERROR    F  F  T  F  0 0.0.0.0                                                                0.000000                        F
-dns   1521912892.637234 CN9X7Y36SH6faoh8t 10.47.8.10 58340     10.0.0.100 53        udp   43239    0.019491 zn_0pxrmhobblncaad-hpsupport.siteintercept.qualtrics.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 cloud.qualtrics.com.edgekey.net,e3672.ksd.akamaiedge.net,23.55.215.198 3600.000000,17.000000,20.000000 F
-dns   1521912892.637238 CN9X7Y36SH6faoh8t 10.47.8.10 58340     10.0.0.100 53        udp   43239    0.019493 zn_0pxrmhobblncaad-hpsupport.siteintercept.qualtrics.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 cloud.qualtrics.com.edgekey.net,e3672.ksd.akamaiedge.net,23.55.215.198 3600.000000,17.000000,20.000000 F
+```zq-output
+_PATH TS                UID               ID.ORIG_H  ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO TRANS_ID RTT      QUERY                                                    QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS                                                                TTLS       REJECTED
+dns   1521912609.841740 Csx7ymPvWeqIOHPi6 10.47.1.1  59144     10.10.1.1  53        udp   53970    0.001694 zn_9nquvazst1xipkt-cbs.siteintercept.qualtrics.com       1      C_INTERNET  1     A          0     NOERROR    F  F  T  F  0 0.0.0.0                                                                0          F
+dns   1521912609.841742 Csx7ymPvWeqIOHPi6 10.47.1.1  59144     10.10.1.1  53        udp   53970    0.001697 zn_9nquvazst1xipkt-cbs.siteintercept.qualtrics.com       1      C_INTERNET  1     A          0     NOERROR    F  F  T  F  0 0.0.0.0                                                                0          F
+dns   1521912892.637234 CN9X7Y36SH6faoh8t 10.47.8.10 58340     10.0.0.100 53        udp   43239    0.019491 zn_0pxrmhobblncaad-hpsupport.siteintercept.qualtrics.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 cloud.qualtrics.com.edgekey.net,e3672.ksd.akamaiedge.net,23.55.215.198 3600,17,20 F
+dns   1521912892.637238 CN9X7Y36SH6faoh8t 10.47.8.10 58340     10.0.0.100 53        udp   43239    0.019493 zn_0pxrmhobblncaad-hpsupport.siteintercept.qualtrics.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 cloud.qualtrics.com.edgekey.net,e3672.ksd.akamaiedge.net,23.55.215.198 3600,17,20 F
 ```
 
 ### Wildcard Field Names
@@ -378,12 +380,12 @@ If you enter multiple [value match](#value-match) or [field/value match](#fieldv
 For example, when introducing [glob wildcard](#glob-wildcards), we performed a search for `www.*cdn*.com` that returned mostly `dns` events along with a couple `ssl` events. You could quickly isolate just the the SSL events by leveraging this implicit `and`.
 
 #### Example:
-```
-zq -f table 'www.*cdn*.com _path=ssl' *.log
+```zq-command
+zq -f table 'www.*cdn*.com _path=ssl' *.log.gz
 ```
 
 #### Output:
-```
+```zq-output
 _PATH TS                UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H    ID.RESP_P VERSION CIPHER                                CURVE     SERVER_NAME       RESUMED LAST_ALERT NEXT_PROTOCOL ESTABLISHED CERT_CHAIN_FUIDS                                                            CLIENT_CERT_CHAIN_FUIDS SUBJECT            ISSUER                                  CLIENT_SUBJECT CLIENT_ISSUER VALIDATION_STATUS
 ssl   1521912180.244457 CUG0fiQAzL4rNWxai  10.47.2.100 36150     52.85.83.228 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 secp256r1 www.herokucdn.com F       -          h2            T           FXKmyTbr7HlvyL1h8,FADhCTvkq1ILFnD3j,FoVjYR16c3UIuXj4xk,FmiRYe1P53KOolQeVi   (empty)                 CN=*.herokucdn.com CN=Amazon,OU=Server CA 1B,O=Amazon,C=US -              -             ok
 ssl   1521912240.189735 CSbGJs3jOeB6glWLJj 10.47.7.154 27137     52.85.83.215 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 secp256r1 www.herokucdn.com F       -          h2            T           FuW2cZ3leE606wXSia,Fu5kzi1BUwnF0bSCsd,FyTViI32zPvCmNXgSi,FwV6ff3JGj4NZcVPE4 (empty)                 CN=*.herokucdn.com CN=Amazon,OU=Server CA 1B,O=Amazon,C=US -              -             ok

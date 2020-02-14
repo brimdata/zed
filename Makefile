@@ -13,10 +13,17 @@ fmt:
 		exit 1; \
 	fi
 
+SAMPLEDATA:=zq-sample-data/README.md
+
+$(SAMPLEDATA):
+	git clone --depth=1 https://github.com/brimsec/zq-sample-data $(@D)
+
+sampledata: $(SAMPLEDATA)
+
 test-unit:
 	@go test -short ./...
 
-test-system: build
+test-system: build $(SAMPLEDATA)
 	@go test -v -tags=system ./tests -args PATH=$(shell pwd)/dist
 
 build:
@@ -41,4 +48,4 @@ create-release-assets:
 clean:
 	@rm -rf dist
 
-.PHONY: vet fmt test-unit test-system build install create-release-assets clean
+.PHONY: vet fmt sampledata test-unit test-system build install create-release-assets clean
