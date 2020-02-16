@@ -180,7 +180,7 @@ func lookupSorter(typ zng.Type) comparefn {
 			return -1
 		}
 
-	case zng.TypeString, zng.TypeEnum:
+	case zng.TypeString:
 		return func(a, b zcode.Bytes) int {
 			return bytes.Compare(a, b)
 		}
