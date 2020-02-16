@@ -125,14 +125,8 @@ func CompareInt64(op string, pattern int64) (Predicate, error) {
 			if err == nil && v <= math.MaxInt64 {
 				return CompareInt(int64(v), pattern)
 			}
-		case *zng.TypeOfCount:
-			// we can parse counts and ports as an integer
-			v, err := zng.DecodeCount(zv)
-			if err == nil {
-				return CompareInt(int64(v), pattern)
-			}
 		case *zng.TypeOfPort:
-			// we can parse counts and ports as an integer
+			// we can parse ports as an integer
 			v, err := zng.DecodePort(zv)
 			if err == nil {
 				return CompareInt(int64(v), pattern)
@@ -272,11 +266,6 @@ func CompareFloat64(op string, pattern float64) (Predicate, error) {
 			}
 		case *zng.TypeOfUint16, *zng.TypeOfUint32, *zng.TypeOfUint64:
 			v, err := zng.DecodeUint(zv)
-			if err == nil {
-				return compare(float64(v), pattern)
-			}
-		case *zng.TypeOfCount:
-			v, err := zng.DecodeCount(zv)
 			if err == nil {
 				return compare(float64(v), pattern)
 			}

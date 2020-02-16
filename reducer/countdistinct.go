@@ -40,7 +40,7 @@ func (c *CountDistinct) Consume(r *zng.Record) {
 }
 
 func (c *CountDistinct) Result() zng.Value {
-	return zng.NewCount(c.sketch.Estimate())
+	return zng.NewUint64(c.sketch.Estimate())
 }
 
 // Sketch returns the native structure used to compute the distinct count

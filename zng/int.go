@@ -6,6 +6,10 @@ import (
 	"github.com/brimsec/zq/zcode"
 )
 
+func NewUint64(v uint64) Value {
+	return Value{TypeUint64, EncodeUint(v)}
+}
+
 func EncodeByte(b byte) zcode.Bytes {
 	return []byte{b}
 }

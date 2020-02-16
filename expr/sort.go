@@ -221,24 +221,6 @@ func lookupSorter(typ zng.Type) comparefn {
 			return 0
 		}
 
-	case zng.TypeCount:
-		return func(a, b zcode.Bytes) int {
-			va, err := zng.DecodeCount(a)
-			if err != nil {
-				return -1
-			}
-			vb, err := zng.DecodeCount(b)
-			if err != nil {
-				return 1
-			}
-			if va < vb {
-				return -1
-			} else if va > vb {
-				return 1
-			}
-			return 0
-		}
-
 	//XXX note zeek port type can have "/tcp" etc suffix according
 	// to docs but we've only encountered ints in data files.
 	// need to fix this.  XXX also we should break this sorts

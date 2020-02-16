@@ -25,5 +25,5 @@ const input = `
 `
 
 const expected = `
-#0:record[ts:time,count:count]
+#0:record[ts:time,count:uint64]
 0:[1425513600;1;]`

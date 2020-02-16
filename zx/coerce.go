@@ -245,7 +245,7 @@ func CoerceToPort(in zng.Value) (uint32, bool) {
 		out = uint32(v)
 	case zng.IdUint64:
 		var v uint64
-		v, err = zng.DecodeCount(body)
+		v, err = zng.DecodeUint(body)
 		// check for overflow
 		if v > math.MaxInt16 {
 			return 0, false

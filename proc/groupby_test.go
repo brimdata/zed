@@ -18,13 +18,13 @@ const in = `
 `
 
 const groupSingleOut = `
-#0:record[key1:string,count:count]
+#0:record[key1:string,count:uint64]
 0:[a;2;]
 0:[b;1;]
 `
 
 const groupMultiOut = `
-#0:record[key1:string,key2:string,count:count]
+#0:record[key1:string,key2:string,count:uint64]
 0:[a;x;1;]
 0:[a;y;1;]
 0:[b;z;1;]
@@ -36,7 +36,7 @@ const unsetIn = `
 `
 
 const groupSingleOut_unsetOut = `
-#0:record[key1:string,count:count]
+#0:record[key1:string,count:uint64]
 0:[-;2;]
 0:[a;2;]
 0:[b;1;]
@@ -56,7 +56,7 @@ const differentTypeIn = `
 `
 
 const differentTypeOut = `
-#1:record[key1:ip,count:count]
+#1:record[key1:ip,count:uint64]
 1:[10.0.0.1;2;]
 1:[10.0.0.2;1;]
 `
@@ -75,7 +75,7 @@ const arrayKeyIn = `
 `
 
 const arrayKeyOut = `
-#0:record[arr:array[int32],count:count]
+#0:record[arr:array[int32],count:uint64]
 0:[-;1;]
 0:[[1;2;]2;]
 `
@@ -88,7 +88,7 @@ const nestedKeyIn = `
 `
 
 const nestedKeyOut = `
-#0:record[rec:record[i:int32],count:count]
+#0:record[rec:record[i:int32],count:uint64]
 0:[[1;]2;]
 0:[[2;]1;]
 `
@@ -137,9 +137,9 @@ const aliasIn = `
 
 const aliasOut = `
 #ipaddr=ip
-#0:record[host:ipaddr,count:count]
+#0:record[host:ipaddr,count:uint64]
 0:[127.0.0.1;1;]
-#1:record[host:ip,count:count]
+#1:record[host:ip,count:uint64]
 1:[127.0.0.1;1;]
 `
 

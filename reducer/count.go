@@ -38,5 +38,5 @@ func (c *Count) Consume(r *zng.Record) {
 }
 
 func (c *Count) Result() zng.Value {
-	return zng.NewCount(c.count)
+	return zng.NewUint64(c.count)
 }

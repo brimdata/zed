@@ -85,8 +85,7 @@ var (
 	TypeNull     = &TypeOfNull{}
 
 	// XXX kill me:
-	TypeCount = &TypeOfCount{}
-	TypeEnum  = &TypeOfEnum{}
+	TypeEnum = &TypeOfEnum{}
 )
 
 const (
@@ -159,8 +158,6 @@ func LookupPrimitive(name string) Type {
 		return TypeNull
 
 		// XXX:
-	case "count":
-		return TypeCount
 	case "enum":
 		return TypeEnum
 	}
