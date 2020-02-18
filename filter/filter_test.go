@@ -74,6 +74,8 @@ const zngsrc = `
 #11:record[s:string,srec:record[svec:array[string]]]
 #12:record[s:bstring]
 #13:record[b:byte,i16:int16,u16:uint16,i32:int32,u32:uint32,i64:int64,u64:uint64]
+#myint=int32
+#14:record[i:myint]
 0:[[abc;xyz;]]
 1:[[abc;xyz;]]
 1:[[a\x3bb;xyz;]]
@@ -93,6 +95,7 @@ const zngsrc = `
 0:[[a\x3bb;xyz;]]
 13:[0;-32768;0;-2147483648;0;-9223372036854775808;0;]
 13:[255;32767;65535;2147483647;4294967295;9223372036854775807;18446744073709551615;]
+14:[100;]
 `
 
 func TestFilters(t *testing.T) {
@@ -102,7 +105,7 @@ func TestFilters(t *testing.T) {
 	reader, err := detector.LookupReader("zng", ior, resolver.NewContext())
 	require.NoError(t, err)
 
-	nrecords := 19
+	nrecords := 20
 	records := make([]*zng.Record, 0, nrecords)
 	for {
 		rec, err := reader.Read()
@@ -260,6 +263,11 @@ func TestFilters(t *testing.T) {
 		{"i64 = 9223372036854775807", records[18], true},
 		// can't represent large unsigned 64 bit values in zql...
 		// {"u64 = 18446744073709551615", records[18], true},
+
+		// Test comparisons with an aliased type
+		{"i = 100", records[19], true},
+		{"i > 0", records[19], true},
+		{"i < 50", records[19], false},
 	}
 
 	for _, tt := range tests {

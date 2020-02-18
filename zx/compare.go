@@ -61,7 +61,7 @@ func CompareBool(op string, pattern bool) (Predicate, error) {
 		return nil, fmt.Errorf("unknown bool comparator: %s", op)
 	}
 	return func(v zng.Value) bool {
-		if v.Type != zng.TypeBool {
+		if v.Type.ID() != zng.IdBool {
 			return false
 		}
 		b, err := zng.DecodeBool(v.Bytes)
@@ -109,39 +109,39 @@ func CompareInt64(op string, pattern int64) (Predicate, error) {
 	// many different zeek data types can be compared with integers
 	return func(val zng.Value) bool {
 		zv := val.Bytes
-		switch val.Type.(type) {
-		case *zng.TypeOfByte:
+		switch val.Type.ID() {
+		case zng.IdByte:
 			v, err := zng.DecodeByte(zv)
 			if err == nil {
 				return CompareInt(int64(v), pattern)
 			}
-		case *zng.TypeOfInt16, *zng.TypeOfInt32, *zng.TypeOfInt64:
+		case zng.IdInt16, zng.IdInt32, zng.IdInt64:
 			v, err := zng.DecodeInt(zv)
 			if err == nil {
 				return CompareInt(v, pattern)
 			}
-		case *zng.TypeOfUint16, *zng.TypeOfUint32, *zng.TypeOfUint64:
+		case zng.IdUint16, zng.IdUint32, zng.IdUint64:
 			v, err := zng.DecodeUint(zv)
 			if err == nil && v <= math.MaxInt64 {
 				return CompareInt(int64(v), pattern)
 			}
-		case *zng.TypeOfPort:
+		case zng.IdPort:
 			// we can parse ports as an integer
 			v, err := zng.DecodePort(zv)
 			if err == nil {
 				return CompareInt(int64(v), pattern)
 			}
-		case *zng.TypeOfFloat64:
+		case zng.IdFloat64:
 			v, err := zng.DecodeFloat64(zv)
 			if err == nil {
 				return CompareFloat(v, float64(pattern))
 			}
-		case *zng.TypeOfTime:
+		case zng.IdTime:
 			ts, err := zng.DecodeTime(zv)
 			if err == nil {
 				return CompareInt(int64(ts), pattern*1e9)
 			}
-		case *zng.TypeOfDuration:
+		case zng.IdDuration:
 			v, err := zng.DecodeInt(zv)
 			if err == nil {
 				return CompareInt(int64(v), pattern*1e9)
@@ -160,28 +160,28 @@ func CompareUint64(op string, pattern uint64) (Predicate, error) {
 	// many different zeek data types can be compared with integers
 	return func(val zng.Value) bool {
 		zv := val.Bytes
-		switch val.Type.(type) {
-		case *zng.TypeOfInt16, *zng.TypeOfInt32, *zng.TypeOfInt64:
+		switch val.Type.ID() {
+		case zng.IdInt16, zng.IdInt32, zng.IdInt64:
 			v, err := zng.DecodeInt(zv)
 			if err == nil && v > 0 {
 				return CompareUint(uint64(v), pattern)
 			}
-		case *zng.TypeOfUint16, *zng.TypeOfUint32, *zng.TypeOfUint64:
+		case zng.IdUint16, zng.IdUint32, zng.IdUint64:
 			v, err := zng.DecodeUint(zv)
 			if err == nil {
 				return CompareUint(v, pattern)
 			}
-		case *zng.TypeOfFloat64:
+		case zng.IdFloat64:
 			v, err := zng.DecodeFloat64(zv)
 			if err == nil {
 				return CompareFloat(v, float64(pattern))
 			}
-		case *zng.TypeOfTime:
+		case zng.IdTime:
 			ts, err := zng.DecodeTime(zv)
 			if err == nil {
 				return CompareUint(uint64(ts), pattern*1e9)
 			}
-		case *zng.TypeOfDuration:
+		case zng.IdDuration:
 			v, err := zng.DecodeInt(zv)
 			if err == nil {
 				return CompareUint(uint64(v), pattern*1e9)
@@ -225,7 +225,7 @@ func CompareIP(op string, pattern net.IP) (Predicate, error) {
 		return nil, fmt.Errorf("unknown addr comparator: %s", op)
 	}
 	return func(v zng.Value) bool {
-		if v.Type != zng.TypeIP {
+		if v.Type.ID() != zng.IdIP {
 			return false
 		}
 		ip, err := zng.DecodeIP(v.Bytes)
@@ -247,40 +247,40 @@ func CompareFloat64(op string, pattern float64) (Predicate, error) {
 	}
 	return func(val zng.Value) bool {
 		zv := val.Bytes
-		switch val.Type.(type) {
+		switch val.Type.ID() {
 		// We allow comparison of float constant with integer-y
 		// fields and just use typeDouble to parse since it will do
 		// the right thing for integers.  XXX do we want to allow
 		// integers that cause float64 overflow?  user can always
 		// use an integer constant instead of a float constant to
 		// compare with the integer-y field.
-		case *zng.TypeOfFloat64:
+		case zng.IdFloat64:
 			v, err := zng.DecodeFloat64(zv)
 			if err == nil {
 				return compare(v, pattern)
 			}
-		case *zng.TypeOfInt16, *zng.TypeOfInt32, *zng.TypeOfInt64:
+		case zng.IdInt16, zng.IdInt32, zng.IdInt64:
 			v, err := zng.DecodeInt(zv)
 			if err == nil {
 				return compare(float64(v), pattern)
 			}
-		case *zng.TypeOfUint16, *zng.TypeOfUint32, *zng.TypeOfUint64:
+		case zng.IdUint16, zng.IdUint32, zng.IdUint64:
 			v, err := zng.DecodeUint(zv)
 			if err == nil {
 				return compare(float64(v), pattern)
 			}
-		case *zng.TypeOfPort:
+		case zng.IdPort:
 			v, err := zng.DecodePort(zv)
 			if err == nil {
 				return compare(float64(v), pattern)
 			}
 
-		case *zng.TypeOfTime:
+		case zng.IdTime:
 			ts, err := zng.DecodeTime(zv)
 			if err == nil {
 				return compare(float64(ts)/1e9, pattern)
 			}
-		case *zng.TypeOfDuration:
+		case zng.IdDuration:
 			v, err := zng.DecodeDuration(zv)
 			if err == nil {
 				return compare(float64(v)/1e9, pattern)
@@ -308,9 +308,8 @@ func CompareBstring(op string, pattern zng.Bstring) (Predicate, error) {
 	}
 	s := string(pattern)
 	return func(v zng.Value) bool {
-		switch v.Type.(type) {
-		case *zng.TypeOfBstring, *zng.TypeOfString, *zng.TypeOfEnum:
-			//XXX is this UTF safe?
+		switch v.Type.ID() {
+		case zng.IdBstring, zng.IdString, zng.IdEnum:
 			return compare(zng.UnsafeString(v.Bytes), s)
 		}
 		return false
@@ -333,16 +332,16 @@ func compareRegexp(op, pattern string) (Predicate, error) {
 		return nil, fmt.Errorf("unknown pattern comparator: %s", op)
 	case "eql":
 		return func(v zng.Value) bool {
-			switch v.Type.(type) {
-			case *zng.TypeOfString, *zng.TypeOfBstring, *zng.TypeOfEnum:
+			switch v.Type.ID() {
+			case zng.IdString, zng.IdBstring, zng.IdEnum:
 				return re.Match(v.Bytes)
 			}
 			return false
 		}, nil
 	case "neql":
 		return func(v zng.Value) bool {
-			switch v.Type.(type) {
-			case *zng.TypeOfString, *zng.TypeOfBstring, *zng.TypeOfEnum:
+			switch v.Type.ID() {
+			case zng.IdString, zng.IdBstring, zng.IdEnum:
 				return !re.Match(v.Bytes)
 			}
 			return false
@@ -363,7 +362,7 @@ func ComparePort(op string, pattern uint32) (Predicate, error) {
 	// to the trouble of specifying a port match (e.g., ":80" vs "80") then
 	// we use strict typing here on the port comparison.
 	return func(v zng.Value) bool {
-		if v.Type != zng.TypePort {
+		if v.Type.ID() != zng.IdPort {
 			return false
 		}
 		p, err := zng.DecodePort(v.Bytes)
@@ -440,13 +439,13 @@ func CompareSubnet(op string, pattern *net.IPNet) (Predicate, error) {
 	}
 	return func(v zng.Value) bool {
 		val := v.Bytes
-		switch v.Type.(type) {
-		case *zng.TypeOfIP:
+		switch v.Type.ID() {
+		case zng.IdIP:
 			ip, err := zng.DecodeIP(val)
 			if err == nil {
 				return match(ip, pattern)
 			}
-		case *zng.TypeOfNet:
+		case zng.IdNet:
 			subnet, err := zng.DecodeNet(val)
 			if err == nil {
 				return compare(subnet, pattern)
