@@ -62,17 +62,18 @@ func runTest(filt string, record *zng.Record, expectedResult bool) error {
 const zngsrc = `
 #0:record[stringset:set[bstring]]
 #1:record[stringvec:array[bstring]]
-#2:record[intset:set[int]]
-#3:record[intvec:array[int]]
+#2:record[intset:set[int32]]
+#3:record[intvec:array[int32]]
 #4:record[addrset:set[ip]]
 #5:record[addrvec:array[ip]]
 #6:record[nested:record[field:string]]
-#7:record[nested:array[record[field:int]]]
-#8:record[nested:record[vec:array[int]]]
+#7:record[nested:array[record[field:int32]]]
+#8:record[nested:record[vec:array[int32]]]
 #9:record[s:bstring]
 #10:record[ts:time,ts2:time,ts3:time]
 #11:record[s:string,srec:record[svec:array[string]]]
 #12:record[s:bstring]
+#13:record[b:byte,i16:int16,u16:uint16,i32:int32,u32:uint32,i64:int64,u64:uint64]
 0:[[abc;xyz;]]
 1:[[abc;xyz;]]
 1:[[a\x3bb;xyz;]]
@@ -90,6 +91,8 @@ const zngsrc = `
 9:[Buenos d\xc3\xadas se\xc3\xb1or;]
 12:[hello;]
 0:[[a\x3bb;xyz;]]
+13:[0;-32768;0;-2147483648;0;-9223372036854775808;0;]
+13:[255;32767;65535;2147483647;4294967295;9223372036854775807;18446744073709551615;]
 `
 
 func TestFilters(t *testing.T) {
@@ -99,7 +102,7 @@ func TestFilters(t *testing.T) {
 	reader, err := detector.LookupReader("zng", ior, resolver.NewContext())
 	require.NoError(t, err)
 
-	nrecords := 17
+	nrecords := 19
 	records := make([]*zng.Record, 0, nrecords)
 	for {
 		rec, err := reader.Read()
@@ -212,6 +215,51 @@ func TestFilters(t *testing.T) {
 		// Smoke test for globs...
 		{"s = hell*", records[15], true},
 		{"s = ell*", records[15], false},
+
+		// Test integer conditions.  These are really testing 2 things:
+		// 1. that the full range of values are correctly parsed
+		// 2. since the r.h.s. of a zql filter expression is treated
+		//    as int64, test that coercion happens correctly.
+		{"b > -1", records[17], true},
+		{"b = 0", records[17], true},
+		{"b < 1", records[17], true},
+		{"b > 1", records[17], false},
+
+		{"i16 = -32768", records[17], true},
+		{"i16 < 0", records[17], true},
+		{"i16 > 0", records[17], false},
+
+		{"u16 > -1", records[17], true},
+		{"u16 = 0", records[17], true},
+		{"u16 < 1", records[17], true},
+		{"u16 > 1", records[17], false},
+
+		{"i32 = -2147483648", records[17], true},
+		{"i32 < 0", records[17], true},
+		{"i32 > 0", records[17], false},
+
+		{"u32 > -1", records[17], true},
+		{"u32 = 0", records[17], true},
+		{"u32 < 1", records[17], true},
+		{"u32 > 1", records[17], false},
+
+		{"i64 = -9223372036854775808", records[17], true},
+		{"i64 < 0", records[17], true},
+		{"i64 > 0", records[17], false},
+
+		{"u64 > -1", records[17], true},
+		{"u64 = 0", records[17], true},
+		{"u64 < 1", records[17], true},
+		{"u64 > 1", records[17], false},
+
+		{"b = 255", records[18], true},
+		{"i16 = 32767", records[18], true},
+		{"u16 = 65535", records[18], true},
+		{"i32 = 2147483647", records[18], true},
+		{"u32 = 4294967295", records[18], true},
+		{"i64 = 9223372036854775807", records[18], true},
+		// can't represent large unsigned 64 bit values in zql...
+		// {"u64 = 18446744073709551615", records[18], true},
 	}
 
 	for _, tt := range tests {

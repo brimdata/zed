@@ -67,18 +67,25 @@ type Type interface {
 
 var (
 	TypeBool     = &TypeOfBool{}
-	TypeCount    = &TypeOfCount{}
-	TypeInt      = &TypeOfInt{}
+	TypeByte     = &TypeOfByte{}
+	TypeInt16    = &TypeOfInt16{}
+	TypeUint16   = &TypeOfUint16{}
+	TypeInt32    = &TypeOfInt32{}
+	TypeUint32   = &TypeOfUint32{}
+	TypeInt64    = &TypeOfInt64{}
+	TypeUint64   = &TypeOfUint64{}
 	TypeFloat64  = &TypeOfFloat64{}
-	TypeTime     = &TypeOfTime{}
-	TypeDuration = &TypeOfDuration{}
 	TypeString   = &TypeOfString{}
 	TypeBstring  = &TypeOfBstring{}
-	TypePort     = &TypeOfPort{}
 	TypeIP       = &TypeOfIP{}
+	TypePort     = &TypeOfPort{}
 	TypeNet      = &TypeOfNet{}
-	TypeEnum     = &TypeOfEnum{}
+	TypeTime     = &TypeOfTime{}
+	TypeDuration = &TypeOfDuration{}
 	TypeNull     = &TypeOfNull{}
+
+	// XXX need to remove this
+	TypeEnum = &TypeOfEnum{}
 )
 
 const (
@@ -117,30 +124,42 @@ func LookupPrimitive(name string) Type {
 	switch name {
 	case "bool":
 		return TypeBool
-	case "count":
-		return TypeCount
-	case "int":
-		return TypeInt
+	case "byte":
+		return TypeByte
+	case "int16":
+		return TypeInt16
+	case "uint16":
+		return TypeUint16
+	case "int32":
+		return TypeInt32
+	case "uint32":
+		return TypeUint32
+	case "int64":
+		return TypeInt64
+	case "uint64":
+		return TypeUint64
 	case "float64":
 		return TypeFloat64
-	case "time":
-		return TypeTime
-	case "duration":
-		return TypeDuration
 	case "string":
 		return TypeString
 	case "bstring":
 		return TypeBstring
-	case "port":
-		return TypePort
 	case "ip":
 		return TypeIP
+	case "port":
+		return TypePort
 	case "net":
 		return TypeNet
-	case "enum":
-		return TypeEnum
+	case "time":
+		return TypeTime
+	case "duration":
+		return TypeDuration
 	case "null":
 		return TypeNull
+
+		// XXX:
+	case "enum":
+		return TypeEnum
 	}
 	return nil
 }
@@ -149,26 +168,38 @@ func LookupPrimitiveById(id int) Type {
 	switch id {
 	case IdBool:
 		return TypeBool
-	case IdUint64:
-		return TypeCount
+	case IdByte:
+		return TypeByte
+	case IdInt16:
+		return TypeInt16
+	case IdUint16:
+		return TypeUint16
+	case IdInt32:
+		return TypeInt32
+	case IdUint32:
+		return TypeUint32
 	case IdInt64:
-		return TypeInt
+		return TypeInt64
+	case IdUint64:
+		return TypeUint64
 	case IdFloat64:
 		return TypeFloat64
-	case IdTime:
-		return TypeTime
-	case IdDuration:
-		return TypeDuration
 	case IdString:
 		return TypeString
 	case IdBstring:
 		return TypeBstring
-	case IdPort:
-		return TypePort
 	case IdIP:
 		return TypeIP
+	case IdPort:
+		return TypePort
 	case IdNet:
 		return TypeNet
+	case IdTime:
+		return TypeTime
+	case IdDuration:
+		return TypeDuration
+
+		// XXX
 	case IdEnum:
 		return TypeEnum
 	}

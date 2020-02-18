@@ -3,13 +3,13 @@ package reducer
 import "github.com/brimsec/zq/pkg/test"
 
 const unset = `
-#0:record[x:count]
+#0:record[x:uint64]
 0:[-;]
 
 #1:record[x:float64]
 1:[-;]
 
-#2:record[x:int]
+#2:record[x:int64]
 2:[-;]
 
 #3:record[x:duration]
@@ -34,7 +34,7 @@ var UnsetCount = test.Internal{
 	Query: "count(x)",
 	Input: test.Trim(unset),
 	Expected: test.Trim(`
-#0:record[count:count]
+#0:record[count:uint64]
 0:[5;]
 `),
 }
@@ -44,7 +44,7 @@ var UnsetCountDistinct = test.Internal{
 	Query: "countdistinct(x)",
 	Input: test.Trim(unset),
 	Expected: test.Trim(`
-#0:record[countdistinct:count]
+#0:record[countdistinct:uint64]
 0:[1;]
 `),
 }
@@ -54,7 +54,7 @@ var UnsetFirst = test.Internal{
 	Query: "first(x)",
 	Input: test.Trim(unset),
 	Expected: test.Trim(`
-#0:record[first:count]
+#0:record[first:uint64]
 0:[-;]
 `),
 }
@@ -74,7 +74,7 @@ var UnsetMax = test.Internal{
 	Query: "max(x)",
 	Input: test.Trim(unset),
 	Expected: test.Trim(`
-#0:record[max:count]
+#0:record[max:uint64]
 0:[-;]
 `),
 }
@@ -84,7 +84,7 @@ var UnsetMin = test.Internal{
 	Query: "min(x)",
 	Input: test.Trim(unset),
 	Expected: test.Trim(`
-#0:record[min:count]
+#0:record[min:uint64]
 0:[-;]
 `),
 }
@@ -92,9 +92,8 @@ var UnsetMin = test.Internal{
 var UnsetSum = test.Internal{
 	Name:  "unset sum",
 	Query: "sum(x)",
-	Input: test.Trim(unset),
-	Expected: test.Trim(`
-#0:record[sum:count]
+	Input: test.Trim(unset), Expected: test.Trim(`
+#0:record[sum:uint64]
 0:[-;]
 `),
 }

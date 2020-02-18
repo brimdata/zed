@@ -408,12 +408,18 @@ func (r *Record) AccessInt(field string) (int64, error) {
 		return 0, err
 	}
 	switch v.Type.(type) {
-	case *TypeOfInt:
+	case *TypeOfByte:
+		b, err := DecodeByte(v.Bytes)
+		return int64(b), err
+	case *TypeOfInt16, *TypeOfInt32, *TypeOfInt64:
 		return DecodeInt(v.Bytes)
-	case *TypeOfCount:
-		v, err := DecodeCount(v.Bytes)
+	case *TypeOfUint16, *TypeOfUint32:
+		v, err := DecodeUint(v.Bytes)
+		return int64(v), err
+	case *TypeOfUint64:
+		v, err := DecodeUint(v.Bytes)
 		if v > math.MaxInt64 {
-			return 0, errors.New("conversion from type count to int results in overflow")
+			return 0, errors.New("conversion from uint64 to signed int results in overflow")
 		}
 		return int64(v), err
 	case *TypeOfPort:

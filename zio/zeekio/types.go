@@ -27,9 +27,11 @@ func zeekTypeToZng(typ string) string {
 	// re-do this but lets keep it simple for now.
 	typ = strings.ReplaceAll(typ, "string", "bstring")
 	typ = strings.ReplaceAll(typ, "double", "float64")
+	typ = strings.ReplaceAll(typ, "interval", "duration")
+	typ = strings.ReplaceAll(typ, "int", "int64")
+	typ = strings.ReplaceAll(typ, "count", "uint64")
 	typ = strings.ReplaceAll(typ, "addr", "ip")
 	typ = strings.ReplaceAll(typ, "subnet", "net")
-	typ = strings.ReplaceAll(typ, "interval", "duration")
 	typ = strings.ReplaceAll(typ, "enum", "zenum")
 	typ = strings.ReplaceAll(typ, "vector", "array")
 	return typ
@@ -41,6 +43,10 @@ func zngTypeToZeek(typ zng.Type) string {
 		return fmt.Sprintf("vector[%s]", zngTypeToZeek(typ.Type))
 	case *zng.TypeSet:
 		return fmt.Sprintf("set[%s]", zngTypeToZeek(typ.InnerType))
+	case *zng.TypeOfInt16, *zng.TypeOfInt32, *zng.TypeOfInt64, *zng.TypeOfUint16, *zng.TypeOfUint32:
+		return "int"
+	case *zng.TypeOfUint64:
+		return "count"
 	case *zng.TypeOfFloat64:
 		return "double"
 	case *zng.TypeOfIP:

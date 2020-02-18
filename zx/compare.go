@@ -3,6 +3,7 @@ package zx
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"net"
 	"regexp"
 	"regexp/syntax"
@@ -80,6 +81,14 @@ var compareInt = map[string]func(int64, int64) bool{
 	"lt":   func(a, b int64) bool { return a < b },
 	"lte":  func(a, b int64) bool { return a <= b }}
 
+var compareUint = map[string]func(uint64, uint64) bool{
+	"eql":  func(a, b uint64) bool { return a == b },
+	"neql": func(a, b uint64) bool { return a != b },
+	"gt":   func(a, b uint64) bool { return a > b },
+	"gte":  func(a, b uint64) bool { return a >= b },
+	"lt":   func(a, b uint64) bool { return a < b },
+	"lte":  func(a, b uint64) bool { return a <= b }}
+
 var compareFloat = map[string]func(float64, float64) bool{
 	"eql":  func(a, b float64) bool { return a == b },
 	"neql": func(a, b float64) bool { return a != b },
@@ -88,13 +97,9 @@ var compareFloat = map[string]func(float64, float64) bool{
 	"lt":   func(a, b float64) bool { return a < b },
 	"lte":  func(a, b float64) bool { return a <= b }}
 
-// XXX fix command
 // Return a predicate for comparing this value to one more typed
-// byte slices by calling the predicate function with a Type and
-// a byte slice.  Operand is one of "eql", "neql", "lt", "lte",
-// "gt", "gte".  See the comments of the various implementation
-// of this method as some types limit the operand to equality and
-// the various types handle coercion in different ways.
+// byte slices by calling the predicate function with a Value.
+// Operand is one of "eql", "neql", "lt", "lte", "gt", "gte".
 func CompareInt64(op string, pattern int64) (Predicate, error) {
 	CompareInt, ok1 := compareInt[op]
 	CompareFloat, ok2 := compareFloat[op]
@@ -105,20 +110,23 @@ func CompareInt64(op string, pattern int64) (Predicate, error) {
 	return func(val zng.Value) bool {
 		zv := val.Bytes
 		switch val.Type.(type) {
-		case *zng.TypeOfInt:
-			// we can parse counts and ports as an integer
+		case *zng.TypeOfByte:
+			v, err := zng.DecodeByte(zv)
+			if err == nil {
+				return CompareInt(int64(v), pattern)
+			}
+		case *zng.TypeOfInt16, *zng.TypeOfInt32, *zng.TypeOfInt64:
 			v, err := zng.DecodeInt(zv)
 			if err == nil {
 				return CompareInt(v, pattern)
 			}
-		case *zng.TypeOfCount:
-			// we can parse counts and ports as an integer
-			v, err := zng.DecodeCount(zv)
-			if err == nil {
+		case *zng.TypeOfUint16, *zng.TypeOfUint32, *zng.TypeOfUint64:
+			v, err := zng.DecodeUint(zv)
+			if err == nil && v <= math.MaxInt64 {
 				return CompareInt(int64(v), pattern)
 			}
 		case *zng.TypeOfPort:
-			// we can parse counts and ports as an integer
+			// we can parse ports as an integer
 			v, err := zng.DecodePort(zv)
 			if err == nil {
 				return CompareInt(int64(v), pattern)
@@ -137,6 +145,46 @@ func CompareInt64(op string, pattern int64) (Predicate, error) {
 			v, err := zng.DecodeInt(zv)
 			if err == nil {
 				return CompareInt(int64(v), pattern*1e9)
+			}
+		}
+		return false
+	}, nil
+}
+
+func CompareUint64(op string, pattern uint64) (Predicate, error) {
+	CompareUint, ok1 := compareUint[op]
+	CompareFloat, ok2 := compareFloat[op]
+	if !ok1 || !ok2 {
+		return nil, fmt.Errorf("unknown int comparator: %s", op)
+	}
+	// many different zeek data types can be compared with integers
+	return func(val zng.Value) bool {
+		zv := val.Bytes
+		switch val.Type.(type) {
+		case *zng.TypeOfInt16, *zng.TypeOfInt32, *zng.TypeOfInt64:
+			v, err := zng.DecodeInt(zv)
+			if err == nil && v > 0 {
+				return CompareUint(uint64(v), pattern)
+			}
+		case *zng.TypeOfUint16, *zng.TypeOfUint32, *zng.TypeOfUint64:
+			v, err := zng.DecodeUint(zv)
+			if err == nil {
+				return CompareUint(v, pattern)
+			}
+		case *zng.TypeOfFloat64:
+			v, err := zng.DecodeFloat64(zv)
+			if err == nil {
+				return CompareFloat(v, float64(pattern))
+			}
+		case *zng.TypeOfTime:
+			ts, err := zng.DecodeTime(zv)
+			if err == nil {
+				return CompareUint(uint64(ts), pattern*1e9)
+			}
+		case *zng.TypeOfDuration:
+			v, err := zng.DecodeInt(zv)
+			if err == nil {
+				return CompareUint(uint64(v), pattern*1e9)
 			}
 		}
 		return false
@@ -211,13 +259,13 @@ func CompareFloat64(op string, pattern float64) (Predicate, error) {
 			if err == nil {
 				return compare(v, pattern)
 			}
-		case *zng.TypeOfInt:
+		case *zng.TypeOfInt16, *zng.TypeOfInt32, *zng.TypeOfInt64:
 			v, err := zng.DecodeInt(zv)
 			if err == nil {
 				return compare(float64(v), pattern)
 			}
-		case *zng.TypeOfCount:
-			v, err := zng.DecodeCount(zv)
+		case *zng.TypeOfUint16, *zng.TypeOfUint32, *zng.TypeOfUint64:
+			v, err := zng.DecodeUint(zv)
 			if err == nil {
 				return compare(float64(v), pattern)
 			}
@@ -466,5 +514,7 @@ func Comparison(op string, literal ast.Literal) (Predicate, error) {
 		return ComparePort(op, uint32(v))
 	case int64:
 		return CompareInt64(op, v)
+	case uint64:
+		return CompareUint64(op, v)
 	}
 }

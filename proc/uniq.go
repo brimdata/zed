@@ -22,8 +22,8 @@ func NewUniq(c *Context, parent Proc, cflag bool) *Uniq {
 
 func (u *Uniq) wrap(t *zng.Record) *zng.Record {
 	if u.cflag {
-		cols := []zng.Column{zng.NewColumn("_uniq", zng.TypeCount)}
-		vals := []zng.Value{zng.NewCount(u.count)}
+		cols := []zng.Column{zng.NewColumn("_uniq", zng.TypeUint64)}
+		vals := []zng.Value{zng.NewUint64(u.count)}
 		newR, err := u.TypeContext.AddColumns(t, cols, vals)
 		if err != nil {
 			u.Logger.Error("AddColumns failed", zap.Error(err))

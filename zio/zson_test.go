@@ -99,8 +99,8 @@ const zng6 = `
 
 // Make sure we handle unset sets.
 const zng7 = `
-#0:record[a:string,b:set[string],c:set[string],d:int]
-0:[foo;[]-;10;]`
+#0:record[a:string,b:set[string],c:set[string]]
+0:[foo;[]-;]`
 
 // recursive record with unset set and empty set
 const zng8 = `

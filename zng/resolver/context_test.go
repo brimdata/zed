@@ -29,16 +29,16 @@ func TestContextAddColumns(t *testing.T) {
 
 func TestDuplicates(t *testing.T) {
 	ctx := NewContext()
-	setType := ctx.LookupTypeSet(zng.TypeInt)
+	setType := ctx.LookupTypeSet(zng.TypeInt32)
 	typ1 := ctx.LookupTypeRecord([]zng.Column{
 		zng.NewColumn("a", zng.TypeString),
 		zng.NewColumn("b", setType),
 	})
-	typ2, err := ctx.LookupByName("record[a:string,b:set[int]]")
+	typ2, err := ctx.LookupByName("record[a:string,b:set[int32]]")
 	require.NoError(t, err)
 	assert.EqualValues(t, typ1.ID(), typ2.ID())
 	assert.EqualValues(t, setType.ID(), typ2.(*zng.TypeRecord).Columns[1].Type.ID())
-	typ3, err := ctx.LookupByName("set[int]")
+	typ3, err := ctx.LookupByName("set[int32]")
 	require.NoError(t, err)
 	assert.Equal(t, setType.ID(), typ3.ID())
 }

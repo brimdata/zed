@@ -185,11 +185,7 @@ func lookupSorter(typ zng.Type) comparefn {
 			return bytes.Compare(a, b)
 		}
 
-	//XXX note zeek port type can have "/tcp" etc suffix according
-	// to docs but we've only encountered ints in data files.
-	// need to fix this.  XXX also we should break this sorts
-	// into the different types.
-	case zng.TypeInt:
+	case zng.TypeInt16, zng.TypeInt32, zng.TypeInt64:
 		return func(a, b zcode.Bytes) int {
 			va, err := zng.DecodeInt(a)
 			if err != nil {
@@ -207,13 +203,13 @@ func lookupSorter(typ zng.Type) comparefn {
 			return 0
 		}
 
-	case zng.TypeCount:
+	case zng.TypeUint16, zng.TypeUint32, zng.TypeUint64:
 		return func(a, b zcode.Bytes) int {
-			va, err := zng.DecodeCount(a)
+			va, err := zng.DecodeUint(a)
 			if err != nil {
 				return -1
 			}
-			vb, err := zng.DecodeCount(b)
+			vb, err := zng.DecodeUint(b)
 			if err != nil {
 				return 1
 			}
@@ -224,6 +220,11 @@ func lookupSorter(typ zng.Type) comparefn {
 			}
 			return 0
 		}
+
+	//XXX note zeek port type can have "/tcp" etc suffix according
+	// to docs but we've only encountered ints in data files.
+	// need to fix this.  XXX also we should break this sorts
+	// into the different types.
 	case zng.TypePort:
 		return func(a, b zcode.Bytes) int {
 			va, err := zng.DecodePort(a)

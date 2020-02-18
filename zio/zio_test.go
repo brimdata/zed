@@ -19,7 +19,7 @@ func assertError(t *testing.T, err error, pattern, what string) {
 // Test things related to parsing zng
 func TestZngDescriptors(t *testing.T) {
 	// Step 1 - Test a simple zng descriptor and corresponding value
-	src := "#1:record[s:string,n:int]\n"
+	src := "#1:record[s:string,n:int32]\n"
 	src += "1:[foo;5;]\n"
 	// Step 2 - Create a second descriptor of a different type
 	src += "#2:record[a:ip,p:port]\n"
@@ -69,7 +69,7 @@ func TestZngDescriptors(t *testing.T) {
 	assert.Error(t, err, "invalid descriptor", "invalid descriptor")
 
 	// Test various malformed zng:
-	def1 := "#1:record[s:string,n:int]\n"
+	def1 := "#1:record[s:string,n:int32]\n"
 	zngs := []string{
 		def1 + "1:string;123;\n",  // missing brackets
 		def1 + "1:[string;123]\n", // missing semicolon
@@ -91,7 +91,7 @@ func TestZngDescriptors(t *testing.T) {
 	assertError(t, err, "unknown type", "descriptor with invalid type")
 
 	// Trying to redefine a descriptor is an error XXX this should be ok
-	d := "#1:record[n:int]\n"
+	d := "#1:record[n:int32]\n"
 	r = zngio.NewReader(strings.NewReader(d+d), resolver.NewContext())
 	_, err = r.Read()
 	assertError(t, err, "descriptor already exists", "redefining //descriptor")

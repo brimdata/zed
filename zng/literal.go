@@ -1,21 +1,8 @@
 package zng
 
 import (
-	"errors"
-
 	"github.com/brimsec/zq/ast"
 )
-
-func AsInt64(literal ast.Literal) (int64, error) {
-	v, err := Parse(literal)
-	if err != nil {
-		return 0, err
-	}
-	if v.Type != TypeInt {
-		return 0, errors.New("constant not of type int64")
-	}
-	return DecodeInt(v.Bytes)
-}
 
 //XXX
 type Port uint32

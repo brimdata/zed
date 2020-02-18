@@ -15,7 +15,7 @@ import (
 
 func TestWriter(t *testing.T) {
 	t.Run("replaces-array", func(t *testing.T) {
-		zng := `#1:record[array:array[int]]
+		zng := `#1:record[array:array[int64]]
 1:[[1;2;3;]]`
 		zeek := zeekfile(
 			[]string{"array"},
