@@ -2,10 +2,13 @@ package listen
 
 import (
 	"flag"
+	"net"
+	"net/http"
 
 	"github.com/brimsec/zq/cmd/zqd/root"
 	"github.com/brimsec/zq/zqd"
 	"github.com/mccanne/charm"
+	"go.uber.org/zap"
 )
 
 var Listen = &charm.Spec{
@@ -34,5 +37,30 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	return zqd.Run(c.listenAddr)
+	logger := newLogger()
+	handler := zqd.NewHandler()
+	ln, err := net.Listen("tcp", c.listenAddr)
+	if err != nil {
+		return err
+	}
+	logger.Info("Listening", zap.String("addr", ln.Addr().String()))
+	return http.Serve(ln, handler)
+}
+
+func newLogger() *zap.Logger {
+	encoder := zap.NewProductionEncoderConfig()
+	encoder.CallerKey = ""
+	c := zap.Config{
+		Level:            zap.NewAtomicLevelAt(zap.DebugLevel),
+		Development:      false,
+		Encoding:         "json",
+		EncoderConfig:    encoder,
+		OutputPaths:      []string{"stdout"},
+		ErrorOutputPaths: []string{"stderr"},
+	}
+	l, err := c.Build()
+	if err != nil {
+		panic(err)
+	}
+	return l
 }
