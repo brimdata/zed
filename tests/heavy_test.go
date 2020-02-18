@@ -3,7 +3,6 @@
 package tests
 
 import (
-	"os/exec"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,10 +17,9 @@ func TestMarkdownExamples(t *testing.T) {
 		exampletest := exampletest
 		t.Run(exampletest.Name, func(t *testing.T) {
 			t.Parallel()
-			c := exec.Command(exampletest.Command[0], exampletest.Command[1:]...)
-			cmdOutput, err := c.CombinedOutput()
+			cmdOutput, err := exampletest.Run()
 			require.Equal(t, nil, err, "error running command %v: %v", exampletest.Command, err)
-			assert.Equal(t, exampletest.Expected, string(cmdOutput), "output mismatch with command %v", exampletest.Command)
+			assert.Equal(t, exampletest.Expected, cmdOutput, "output mismatch with command %v", exampletest.Command)
 		})
 	}
 }
