@@ -84,7 +84,7 @@ var (
 	TypeDuration = &TypeOfDuration{}
 	TypeNull     = &TypeOfNull{}
 
-	// XXX kill me:
+	// XXX need to remove this
 	TypeEnum = &TypeOfEnum{}
 )
 

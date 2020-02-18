@@ -66,35 +66,35 @@ func CoerceToInt(in zng.Value, typ zng.Type) (zng.Value, bool) {
 	var i int64
 	var err error
 
-	switch in.Type.(type) {
-	case *zng.TypeOfFloat64:
+	switch in.Type.ID() {
+	case zng.IdFloat64:
 		var v float64
 		v, err = zng.DecodeFloat64(in.Bytes)
 		i = int64(v)
 		if float64(i) != v {
 			return zng.Value{}, false
 		}
-	case *zng.TypeOfTime:
+	case zng.IdTime:
 		var v nano.Ts
 		v, err = zng.DecodeTime(in.Bytes)
 		i = int64(v / 1e9)
-	case *zng.TypeOfDuration:
+	case zng.IdDuration:
 		var v int64
 		v, err = zng.DecodeDuration(in.Bytes)
 		i = int64(v / 1e9)
-	case *zng.TypeOfByte:
+	case zng.IdByte:
 		var b byte
 		b, err = zng.DecodeByte(in.Bytes)
 		if err != nil {
 			return zng.Value{}, false
 		}
 		i = int64(b)
-	case *zng.TypeOfInt16, *zng.TypeOfInt32, *zng.TypeOfInt64:
+	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
 		i, err = zng.DecodeInt(in.Bytes)
 		if err != nil {
 			return zng.Value{}, false
 		}
-	case *zng.TypeOfUint16, *zng.TypeOfUint32, *zng.TypeOfUint64:
+	case zng.IdUint16, zng.IdUint32, zng.IdUint64:
 		u, err := zng.DecodeUint(in.Bytes)
 		if err != nil {
 			return zng.Value{}, false
@@ -110,16 +110,16 @@ func CoerceToInt(in zng.Value, typ zng.Type) (zng.Value, bool) {
 		return zng.Value{}, false
 	}
 
-	switch typ.(type) {
-	case *zng.TypeOfInt16:
+	switch typ.ID() {
+	case zng.IdInt16:
 		if i < math.MinInt16 || i > math.MaxInt16 {
 			return zng.Value{}, false
 		}
-	case *zng.TypeOfInt32:
+	case zng.IdInt32:
 		if i < math.MinInt32 || i > math.MaxInt32 {
 			return zng.Value{}, false
 		}
-	case *zng.TypeOfInt64:
+	case zng.IdInt64:
 		// it already fits, no checking needed
 
 	default:
@@ -133,30 +133,30 @@ func CoerceToUint(in zng.Value, typ zng.Type) (zng.Value, bool) {
 	var i uint64
 	var err error
 
-	switch in.Type.(type) {
-	case *zng.TypeOfFloat64:
+	switch in.Type.ID() {
+	case zng.IdFloat64:
 		var v float64
 		v, err = zng.DecodeFloat64(in.Bytes)
 		i = uint64(v)
 		if float64(i) != v {
 			return zng.Value{}, false
 		}
-	case *zng.TypeOfTime:
+	case zng.IdTime:
 		var v nano.Ts
 		v, err = zng.DecodeTime(in.Bytes)
 		i = uint64(v / 1e9)
-	case *zng.TypeOfDuration:
+	case zng.IdDuration:
 		var v int64
 		v, err = zng.DecodeDuration(in.Bytes)
 		i = uint64(v / 1e9)
-	case *zng.TypeOfByte:
+	case zng.IdByte:
 		var b byte
 		b, err = zng.DecodeByte(in.Bytes)
 		if err != nil {
 			return zng.Value{}, false
 		}
 		i = uint64(b)
-	case *zng.TypeOfInt16, *zng.TypeOfInt32, *zng.TypeOfInt64:
+	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
 		var si int64
 		si, err = zng.DecodeInt(in.Bytes)
 		if err != nil {
@@ -168,7 +168,7 @@ func CoerceToUint(in zng.Value, typ zng.Type) (zng.Value, bool) {
 			return zng.Value{}, false
 		}
 		i = uint64(si)
-	case *zng.TypeOfUint16, *zng.TypeOfUint32, *zng.TypeOfUint64:
+	case zng.IdUint16, zng.IdUint32, zng.IdUint64:
 		i, err = zng.DecodeUint(in.Bytes)
 		if err != nil {
 			return zng.Value{}, false
@@ -178,16 +178,16 @@ func CoerceToUint(in zng.Value, typ zng.Type) (zng.Value, bool) {
 		return zng.Value{}, false
 	}
 
-	switch typ.(type) {
-	case *zng.TypeOfUint16:
+	switch typ.ID() {
+	case zng.IdUint16:
 		if i > math.MaxUint16 {
 			return zng.Value{}, false
 		}
-	case *zng.TypeOfUint32:
+	case zng.IdUint32:
 		if i > math.MaxUint32 {
 			return zng.Value{}, false
 		}
-	case *zng.TypeOfUint64:
+	case zng.IdUint64:
 		// it already fits, no checking needed
 
 	default:
@@ -239,15 +239,19 @@ func CoerceToPort(in zng.Value) (uint32, bool) {
 	switch in.Type.ID() {
 	default:
 		return 0, false
-	case zng.IdInt64:
+	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
 		var v int64
 		v, err = zng.DecodeInt(body)
+		// check for overflow
+		if v < 0 || v > math.MaxUint16 {
+			return 0, false
+		}
 		out = uint32(v)
-	case zng.IdUint64:
+	case zng.IdUint16, zng.IdUint32, zng.IdUint64:
 		var v uint64
 		v, err = zng.DecodeUint(body)
 		// check for overflow
-		if v > math.MaxInt16 {
+		if v > math.MaxUint16 {
 			return 0, false
 		}
 		out = uint32(v)
