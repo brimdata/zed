@@ -45,14 +45,14 @@ func (s *JSON) SendBatch(cid int, set zbuf.Batch) error {
 		if frag > s.mtu {
 			frag = s.mtu
 		}
-		records, err := s.formatRecords(records[0:frag])
+		formatted, err := s.formatRecords(records[0:frag])
 		if err != nil {
 			return err
 		}
 		v := &api.SearchRecords{
 			Type:      "SearchRecords",
 			ChannelID: cid,
-			Records:   records,
+			Records:   formatted,
 		}
 		err = s.pipe.Send(v)
 		if err != nil {
