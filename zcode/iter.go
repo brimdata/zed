@@ -31,3 +31,19 @@ func (i *Iter) Next() (Bytes, bool, error) {
 	*i = (*i)[end:]
 	return Bytes(val), tagIsContainer(u64), nil
 }
+
+// NextTagAndBody returns the next value as a slice containing the value's
+// undecoded tag followed by its body along with a boolean that is true if the
+// value is a container.
+func (i *Iter) NextTagAndBody() (Bytes, bool, error) {
+	u64, n := uvarint(*i)
+	if n <= 0 {
+		return nil, false, fmt.Errorf("bad uvarint: %d", n)
+	}
+	if !tagIsUnset(u64) {
+		n += tagLength(u64)
+	}
+	val := (*i)[:n]
+	*i = (*i)[n:]
+	return Bytes(val), tagIsContainer(u64), nil
+}

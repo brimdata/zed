@@ -399,13 +399,13 @@ the value encoded according to that type.
 Array, set, and record types are variable length and are encoded
 as a sequence of elements:
 
-| Type     |          Value            |
-|----------|---------------------------|
-| `array`  | concatenation of elements |
-| `set`    | concatenation of elements |
-| `record` | concatenation of elements |
+| Type     |          Value                       |
+|----------|--------------------------------------|
+| `array`  | concatenation of elements            |
+| `set`    | normalized concatenation of elements |
+| `record` | concatenation of elements            |
 
-Since N, the byte length of any of these container values is known,
+Since N, the byte length of any of these container values, is known,
 there is no need to encode a count of the
 elements present.  Also, since the type ID is implied by the typedef
 of any container type, each value is encoded without its type ID.
@@ -435,6 +435,10 @@ e.g., it would represent the boolean "true" if followed by byte value 1
 in the context of type ID 0 (i.e., the type ID for boolean).
 
 Following the tag encoding is the value encoded in N bytes as described above.
+
+For sets, the concatenation of elements must be normalized so that the
+sequence of bytes encoding each element's tag-counted value is
+lexicographically greater than that of the preceding element.
 
 ## 3. ZNG Text Format
 

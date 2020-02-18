@@ -1,6 +1,7 @@
 package zng
 
 import (
+	"bytes"
 	"errors"
 	"math"
 	"net"
@@ -263,14 +264,26 @@ func checkSet(typ *TypeSet, body zcode.Bytes) error {
 		return &RecordTypeError{Name: "<set>", Type: typ.String(), Err: ErrNotPrimitive}
 	}
 	it := zcode.Iter(body)
+	var prev zcode.Bytes
 	for !it.Done() {
-		_, container, err := it.Next()
+		tagAndBody, container, err := it.NextTagAndBody()
 		if err != nil {
 			return err
 		}
 		if container {
 			return &RecordTypeError{Name: "<set element>", Type: typ.String(), Err: ErrNotPrimitive}
 		}
+		if prev != nil {
+			switch bytes.Compare(prev, tagAndBody) {
+			case 0:
+				err := errors.New("duplicate element")
+				return &RecordTypeError{Name: "<set element>", Type: typ.String(), Err: err}
+			case 1:
+				err := errors.New("elements not sorted")
+				return &RecordTypeError{Name: "<set element>", Type: typ.String(), Err: err}
+			}
+		}
+		prev = tagAndBody
 	}
 	return nil
 }

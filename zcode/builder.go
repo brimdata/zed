@@ -49,6 +49,15 @@ func (b *Builder) EndContainer() {
 	}
 }
 
+// TransformContainer calls transform, passing it the body of the most recently
+// opened container and replacing the original body with the return value.  It
+// panics if the receiver has no open container.
+func (b *Builder) TransformContainer(transform func(Bytes) Bytes) {
+	bodyOff := b.containers[len(b.containers)-1]
+	body := transform(b.bytes[bodyOff:])
+	b.bytes = append(b.bytes[:bodyOff], body...)
+}
+
 // AppendContainer appends val as a container value.
 func (b *Builder) AppendContainer(val []byte) {
 	b.bytes = AppendContainer(b.bytes, val)

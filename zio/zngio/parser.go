@@ -64,6 +64,9 @@ func zngParseContainer(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, 
 			return nil, ErrUnterminated
 		}
 		if b[0] == rightbracket {
+			if _, ok := typ.(*zng.TypeSet); ok {
+				builder.TransformContainer(zng.NormalizeSet)
+			}
 			builder.EndContainer()
 			return b[1:], nil
 		}

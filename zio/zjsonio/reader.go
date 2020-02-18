@@ -273,6 +273,9 @@ func decodeContainer(builder *zcode.Builder, typ zng.Type, body []interface{}) e
 			return err
 		}
 	}
+	if _, ok := typ.(*zng.TypeSet); ok {
+		builder.TransformContainer(zng.NormalizeSet)
+	}
 	builder.EndContainer()
 	return nil
 }

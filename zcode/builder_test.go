@@ -77,6 +77,30 @@ func TestBuilder(t *testing.T) {
 		b := NewBuilder()
 		require.Panics(t, func() { b.EndContainer() })
 	})
+	t.Run("TransformContainer/empty", func(t *testing.T) {
+		b := NewBuilder()
+		b.BeginContainer()
+		b.TransformContainer(func(body Bytes) Bytes { return AppendPrimitive(nil, v1) })
+		b.EndContainer()
+		expected := AppendContainer(nil, AppendPrimitive(nil, v1))
+		require.Exactly(t, expected, b.Bytes())
+	})
+	t.Run("TransformContainer/nonempty", func(t *testing.T) {
+		b := NewBuilder()
+		b.BeginContainer()
+		b.AppendPrimitive(v1)
+		b.AppendPrimitive(v2)
+		b.TransformContainer(func(body Bytes) Bytes { return AppendPrimitive(nil, v2) })
+		b.EndContainer()
+		expected := AppendContainer(nil, AppendPrimitive(nil, v2))
+		require.Exactly(t, expected, b.Bytes())
+	})
+	t.Run("TransformContainer/panic", func(t *testing.T) {
+		b := NewBuilder()
+		require.Panics(t, func() {
+			b.TransformContainer(func(body Bytes) Bytes { return nil })
+		})
+	})
 	t.Run("Reset", func(t *testing.T) {
 		b := NewBuilder()
 		b.AppendPrimitive([]byte("1"))

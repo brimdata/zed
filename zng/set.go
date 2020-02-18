@@ -1,7 +1,9 @@
 package zng
 
 import (
+	"bytes"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/brimsec/zq/zcode"
@@ -95,4 +97,34 @@ func (t *TypeSet) Marshal(zv zcode.Bytes) (interface{}, error) {
 		vals = append(vals, Value{t.InnerType, val})
 	}
 	return vals, nil
+}
+
+// NormalizeSet interprets zv as a set body and returns an equivalent set body
+// that is normalized according to the BZNG specification (i.e., each element's
+// tag-counted value is lexicographically greater than that of the preceding
+// element).
+func NormalizeSet(zv zcode.Bytes) zcode.Bytes {
+	elements := make([]zcode.Bytes, 0, 8)
+	for it := zv.Iter(); !it.Done(); {
+		elem, _, err := it.NextTagAndBody()
+		if err != nil {
+			panic(err)
+		}
+		elements = append(elements, elem)
+	}
+	if len(elements) < 2 {
+		return zv
+	}
+	sort.Slice(elements, func(i, j int) bool {
+		return bytes.Compare(elements[i], elements[j]) == -1
+	})
+	norm := make(zcode.Bytes, 0, len(zv))
+	norm = append(norm, elements[0]...)
+	for i := 1; i < len(elements); i++ {
+		// Skip duplicates.
+		if !bytes.Equal(elements[i], elements[i-1]) {
+			norm = append(norm, elements[i]...)
+		}
+	}
+	return norm
 }
