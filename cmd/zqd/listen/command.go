@@ -48,16 +48,9 @@ func (c *Command) Run(args []string) error {
 }
 
 func newLogger() *zap.Logger {
-	encoder := zap.NewProductionEncoderConfig()
-	encoder.CallerKey = ""
-	c := zap.Config{
-		Level:            zap.NewAtomicLevelAt(zap.DebugLevel),
-		Development:      false,
-		Encoding:         "json",
-		EncoderConfig:    encoder,
-		OutputPaths:      []string{"stdout"},
-		ErrorOutputPaths: []string{"stderr"},
-	}
+	c := zap.NewProductionConfig()
+	c.Sampling = nil
+	c.EncoderConfig.CallerKey = ""
 	l, err := c.Build()
 	if err != nil {
 		panic(err)
