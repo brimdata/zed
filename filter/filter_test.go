@@ -59,223 +59,313 @@ func runTest(filt string, record *zng.Record, expectedResult bool) error {
 	}
 }
 
-const zngsrc = `
-#0:record[stringset:set[bstring]]
-#1:record[stringvec:array[bstring]]
-#2:record[intset:set[int32]]
-#3:record[intvec:array[int32]]
-#4:record[addrset:set[ip]]
-#5:record[addrvec:array[ip]]
-#6:record[nested:record[field:string]]
-#7:record[nested:array[record[field:int32]]]
-#8:record[nested:record[vec:array[int32]]]
-#9:record[s:bstring]
-#10:record[ts:time,ts2:time,ts3:time]
-#11:record[s:string,srec:record[svec:array[string]]]
-#12:record[s:bstring]
-#13:record[b:byte,i16:int16,u16:uint16,i32:int32,u32:uint32,i64:int64,u64:uint64]
-#myint=int32
-#14:record[i:myint]
-0:[[abc;xyz;]]
-1:[[abc;xyz;]]
-1:[[a\x3bb;xyz;]]
-2:[[1;2;3;]]
-3:[[1;2;3;]]
-4:[[1.1.1.1;2.2.2.2;]]
-5:[[1.1.1.1;2.2.2.2;]]
-6:[[test;]]
-7:[[[1;][2;]]]
-8:[[[1;2;3;]]]
-9:[begin\x01\x02\xffend;]
-10:[1.001;1578411532;1578411533.01;]
-11:[hello;[[world;worldz;1.1.1.1;]]]
-9:[Buenos di\xcc\x81as sen\xcc\x83or;]
-9:[Buenos d\xc3\xadas se\xc3\xb1or;]
-12:[hello;]
-0:[[a\x3bb;xyz;]]
-13:[0;-32768;0;-2147483648;0;-9223372036854775808;0;]
-13:[255;32767;65535;2147483647;4294967295;9223372036854775807;18446744073709551615;]
-14:[100;]
-`
+func parseOneRecord(zngsrc string) (*zng.Record, error) {
+	ior := strings.NewReader(zngsrc)
+	reader, err := detector.LookupReader("zng", ior, resolver.NewContext())
+	if err != nil {
+		return nil, err
+	}
+
+	rec, err := reader.Read()
+	if err != nil {
+		return nil, err
+	}
+	if rec == nil {
+		return nil, errors.New("expected to read one record")
+	}
+	rec.Keep()
+
+	rec2, err := reader.Read()
+	if err != nil {
+		return nil, err
+	}
+	if rec2 != nil {
+		return nil, errors.New("got more than one record")
+	}
+	return rec, nil
+}
+
+type testcase struct {
+	filter         string
+	expectedResult bool
+}
+
+func runCases(t *testing.T, record *zng.Record, cases []testcase) {
+	for _, tt := range cases {
+		t.Run(tt.filter, func(t *testing.T) {
+			err := runTest(tt.filter, record, tt.expectedResult)
+			require.NoError(t, err)
+		})
+	}
+}
 
 func TestFilters(t *testing.T) {
 	t.Parallel()
 
-	ior := strings.NewReader(zngsrc)
-	reader, err := detector.LookupReader("zng", ior, resolver.NewContext())
+	// Test set membership with "in"
+	record, err := parseOneRecord(`#0:record[stringset:set[bstring]]
+0:[[abc;xyz;]]`)
 	require.NoError(t, err)
+	runCases(t, record, []testcase{
+		{"abc in stringset", true},
+		{"xyz in stringset", true},
+		{"ab in stringset", false},
+		{"abcd in stringset", false},
+	})
 
-	nrecords := 20
-	records := make([]*zng.Record, 0, nrecords)
-	for {
-		rec, err := reader.Read()
-		require.NoError(t, err)
-		if rec == nil {
-			break
-		}
-		rec.Keep()
-		records = append(records, rec)
-	}
+	// Test escaped bstrings inside a set
+	record, err = parseOneRecord(`#0:record[stringset:set[bstring]]
+0:[[a\x3bb;xyz;]]`)
+	require.NoError(t, err)
+	runCases(t, record, []testcase{
+		{"\"a;b\" in stringset", true},
+		{"a in stringset", false},
+		{"b in stringset", false},
+		{"xyz in stringset", true},
+	})
 
-	assert.Equal(t, nrecords, len(records), fmt.Sprintf("zng parsed read %d records", nrecords))
+	// Test array membership with "in"
+	record, err = parseOneRecord(`#0:record[stringvec:array[bstring]]
+0:[[abc;xyz;]]`)
+	require.NoError(t, err)
+	runCases(t, record, []testcase{
+		{"abc in stringvec", true},
+		{"xyz in stringvec", true},
+		{"ab in stringvec", false},
+		{"abcd in stringvec", false},
+	})
 
-	tests := []struct {
-		filter         string
-		record         *zng.Record
-		expectedResult bool
-	}{
-		{"abc in stringset", records[0], true},
-		{"xyz in stringset", records[0], true},
-		{"ab in stringset", records[0], false},
-		{"abcd in stringset", records[0], false},
+	// Test escaped bstrings inside an array
+	record, err = parseOneRecord(`#0:record[stringvec:array[bstring]]
+0:[[a\x3bb;xyz;]]`)
+	require.NoError(t, err)
+	runCases(t, record, []testcase{
+		{"\"a;b\" in stringvec", true},
+		{"a in stringvec", false},
+		{"b in stringvec", false},
+		{"xyz in stringvec", true},
+	})
 
-		{"abc in stringvec", records[1], true},
-		{"xyz in stringvec", records[1], true},
-		{"ab in stringset", records[1], false},
-		{"abcd in stringset", records[1], false},
+	// Test membership in set of integers
+	record, err = parseOneRecord(`#0:record[intset:set[int32]]
+0:[[1;2;3;]]`)
+	require.NoError(t, err)
+	runCases(t, record, []testcase{
+		{"2 in intset", true},
+		{"4 in intset", false},
+		{"abc in intset", false},
+	})
 
-		{"\"a;b\" in stringset", records[16], true},
-		{"a in stringset", records[16], false},
-		{"b in stringset", records[16], false},
-		{"xyz in stringset", records[16], true},
+	// Test membership in array of integers
+	record, err = parseOneRecord(`#0:record[intvec:array[int32]]
+0:[[1;2;3;]]`)
+	require.NoError(t, err)
+	runCases(t, record, []testcase{
+		{"2 in intvec", true},
+		{"4 in intvec", false},
+		{"abc in intvec", false},
+	})
 
-		{"\"a;b\" in stringvec", records[2], true},
-		{"a in stringvec", records[2], false},
-		{"b in stringvec", records[2], false},
-		{"xyz in stringvec", records[2], true},
+	// Test membership in set of ip addresses
+	record, err = parseOneRecord(`#0:record[addrset:set[ip]]
+0:[[1.1.1.1;2.2.2.2;]]`)
+	require.NoError(t, err)
+	runCases(t, record, []testcase{
+		{"1.1.1.1 in addrset", true},
+		{"3.3.3.3 in addrset", false},
+	})
 
-		{"2 in intset", records[3], true},
-		{"4 in intset", records[3], false},
-		{"abc in intset", records[3], false},
+	// Test membership and len() on array of ip addresses
+	record, err = parseOneRecord(`#0:record[addrvec:array[ip]]
+0:[[1.1.1.1;2.2.2.2;]]`)
+	require.NoError(t, err)
+	runCases(t, record, []testcase{
+		{"1.1.1.1 in addrvec", true},
+		{"3.3.3.3 in addrvec", false},
+		{"len(addrvec) = 2", true},
+		{"len(addrvec) = 3", false},
+		{"len(addrvec) > 1", true},
+		{"len(addrvec) >= 2", true},
+		{"len(addrvec) < 5", true},
+		{"len(addrvec) <= 2", true},
+	})
 
-		{"2 in intvec", records[4], true},
-		{"4 in intvec", records[4], false},
-		{"abc in intvec", records[4], false},
+	// Test comparing fields in nested records
+	record, err = parseOneRecord(`#0:record[nested:record[field:string]]
+0:[[test;]]`)
+	require.NoError(t, err)
+	runCases(t, record, []testcase{
+		{"nested.field = test", true},
+		{"bogus.field = test", false},
+		{"nested.bogus = test", false},
+		{"* = test", false},
+		{"** = test", true},
+	})
 
-		{"1.1.1.1 in addrset", records[5], true},
-		{"3.3.3.3 in addrset", records[5], false},
-		{"1.1.1.1 in addrvec", records[6], true},
-		{"3.3.3.3 in addrvec", records[6], false},
-		{"len(addrvec) = 2", records[6], true},
-		{"len(addrvec) = 3", records[6], false},
-		{"len(addrvec) > 1", records[6], true},
-		{"len(addrvec) >= 2", records[6], true},
-		{"len(addrvec) < 5", records[6], true},
-		{"len(addrvec) <= 2", records[6], true},
+	// Test array of records
+	record, err = parseOneRecord(`#0:record[nested:array[record[field:int32]]]
+0:[[[1;][2;]]]`)
+	require.NoError(t, err)
+	runCases(t, record, []testcase{
+		{"nested[0].field = 1", true},
+		{"nested[1].field = 2", true},
+		{"nested[0].field = 2", false},
+		{"nested[2].field = 2", false},
+		{"nested.field = 2", false},
+	})
 
-		{"nested.field = test", records[7], true},
-		{"bogus.field = test", records[7], false},
-		{"nested.bogus = test", records[7], false},
-		{"* = test", records[7], false},
-		{"** = test", records[7], true},
+	// Test array inside a record
+	record, err = parseOneRecord(`#0:record[nested:record[vec:array[int32]]]
+0:[[[1;2;3;]]]`)
+	require.NoError(t, err)
+	runCases(t, record, []testcase{
+		{"1 in nested.vec", true},
+		{"2 in nested.vec", true},
+		{"4 in nested.vec", false},
+		{"nested.vec[0] = 1", true},
+		{"nested.vec[1] = 1", false},
+		{"1 in nested", false},
+		{"1", true},
+	})
 
-		{"nested[0].field = 1", records[8], true},
-		{"nested[1].field = 2", records[8], true},
-		{"nested[0].field = 2", records[8], false},
-		{"nested[2].field = 2", records[8], false},
-		{"nested.field = 2", records[8], false},
+	// Test escaped chars in a bstring
+	record, err = parseOneRecord(`#0:record[s:bstring]
+0:[begin\x01\x02\xffend;]`)
+	require.NoError(t, err)
+	runCases(t, record, []testcase{
+		{"begin", true},
+		{"s=begin", false},
+		{"begin\\x01\\x02\\xffend", true},
+		{"s=begin\\x01\\x02\\xffend", true},
+		{"s=*\\x01\\x02*", true},
+	})
 
-		{"1 in nested.vec", records[9], true},
-		{"2 in nested.vec", records[9], true},
-		{"4 in nested.vec", records[9], false},
-		{"nested.vec[0] = 1", records[9], true},
-		{"nested.vec[1] = 1", records[9], false},
-		{"1 in nested", records[9], false},
-		{"1", records[9], true},
+	// Test unicode string comparison.  The following two records
+	// both have the string "Buenos días señor" but one uses
+	// combining characters (e.g., plain n plus combining
+	// tilde) and the other uses composed characters.  Test both
+	// strings against queries written with both formats.
+	record, err = parseOneRecord(`#0:record[s:bstring]
+0:[Buenos di\xcc\x81as sen\xcc\x83or;]`)
+	require.NoError(t, err)
+	runCases(t, record, []testcase{
+		{`s = "Buenos di\u{0301}as sen\u{0303}or"`, true},
+		{`s = "Buenos d\u{ed}as se\u{f1}or"`, true},
+	})
+	record, err = parseOneRecord(`#0:record[s:bstring]
+0:[Buenos d\xc3\xadas se\xc3\xb1or;]`)
+	require.NoError(t, err)
+	runCases(t, record, []testcase{
+		{`s = "Buenos di\u{0301}as sen\u{0303}or"`, true},
+		{`s = "Buenos d\u{ed}as se\u{f1}or"`, true},
+	})
 
-		{"begin", records[10], true},
-		{"s=begin", records[10], false},
-		{"begin\\x01\\x02\\xffend", records[10], true},
-		{"s=begin\\x01\\x02\\xffend", records[10], true},
-		{"s=*\\x01\\x02*", records[10], true},
+	// Test searching inside containers
+	record, err = parseOneRecord(`#0:record[s:string,srec:record[svec:array[string]]]
+0:[hello;[[world;worldz;1.1.1.1;]]]`)
+	require.NoError(t, err)
+	runCases(t, record, []testcase{
+		{"hello", true},
+		{"worldz", true},
+		{"1.1.1.1", true},
+	})
 
-		{"ts<2", records[11], true},
-		{"ts2=1578411532", records[11], true},
-		{"ts3=1578411533", records[11], false},
-		{"T", records[11], false}, // 0x54 matches binary encoding of 1.001 but naked string search shouldn't
+	// Test time coercion
+	record, err = parseOneRecord(`#0:record[ts:time,ts2:time,ts3:time]
+0:[1.001;1578411532;1578411533.01;]`)
+	require.NoError(t, err)
+	runCases(t, record, []testcase{
+		{"ts<2", true},
+		{"ts=1.001", true},
+		{"ts<1.002", true},
+		{"ts<2.0", true},
+		{"ts2=1578411532", true},
+		{"ts3=1578411533", false},
+		// The ASCII value of 'T' (0x54) is present inside the binary
+		// encoding of 1.001.  But naked string search should not match.
+		{"T", false},
+	})
 
-		{"ts=1.001", records[11], true},
-		{"ts<1.002", records[11], true},
-		{"ts<2.0", records[11], true},
+	// Test integer conditions.  These are really testing 2 things:
+	// 1. that the full range of values are correctly parsed
+	// 2. since the r.h.s. of a zql filter expression is treated
+	//    as int64, test that coercion happens correctly.
+	record, err = parseOneRecord(`#0:record[b:byte,i16:int16,u16:uint16,i32:int32,u32:uint32,i64:int64,u64:uint64]
+0:[0;-32768;0;-2147483648;0;-9223372036854775808;0;]
+`)
+	require.NoError(t, err)
+	runCases(t, record, []testcase{
+		{"b > -1", true},
+		{"b = 0", true},
+		{"b < 1", true},
+		{"b > 1", false},
 
-		{"hello", records[12], true},
-		{"worldz", records[12], true},
-		{"1.1.1.1", records[12], true},
+		{"i16 = -32768", true},
+		{"i16 < 0", true},
+		{"i16 > 0", false},
 
-		// Test unicode string comparison.  The two records used in
-		// these tests both have the string "Buenos días señor" but
-		// one uses combining characters (e.g., plain n plus combining
-		// tilde) and the other uses composed characters.  Test both
-		// strings against queries written with both formats.
-		{`s = "Buenos di\u{0301}as sen\u{0303}or"`, records[13], true},
-		{`s = "Buenos d\u{ed}as se\u{f1}or"`, records[13], true},
-		{`s = "Buenos di\u{0301}as sen\u{0303}or"`, records[14], true},
-		{`s = "Buenos d\u{ed}as se\u{f1}or"`, records[14], true},
+		{"u16 > -1", true},
+		{"u16 = 0", true},
+		{"u16 < 1", true},
+		{"u16 > 1", false},
 
-		// Test coercion between string/bstring
-		{"s = hello", records[15], true},
+		{"i32 = -2147483648", true},
+		{"i32 < 0", true},
+		{"i32 > 0", false},
 
-		// Smoke test for globs...
-		{"s = hell*", records[15], true},
-		{"s = ell*", records[15], false},
+		{"u32 > -1", true},
+		{"u32 = 0", true},
+		{"u32 < 1", true},
+		{"u32 > 1", false},
 
-		// Test integer conditions.  These are really testing 2 things:
-		// 1. that the full range of values are correctly parsed
-		// 2. since the r.h.s. of a zql filter expression is treated
-		//    as int64, test that coercion happens correctly.
-		{"b > -1", records[17], true},
-		{"b = 0", records[17], true},
-		{"b < 1", records[17], true},
-		{"b > 1", records[17], false},
+		{"i64 = -9223372036854775808", true},
+		{"i64 < 0", true},
+		{"i64 > 0", false},
 
-		{"i16 = -32768", records[17], true},
-		{"i16 < 0", records[17], true},
-		{"i16 > 0", records[17], false},
+		{"u64 > -1", true},
+		{"u64 = 0", true},
+		{"u64 < 1", true},
+		{"u64 > 1", false},
+	})
 
-		{"u16 > -1", records[17], true},
-		{"u16 = 0", records[17], true},
-		{"u16 < 1", records[17], true},
-		{"u16 > 1", records[17], false},
-
-		{"i32 = -2147483648", records[17], true},
-		{"i32 < 0", records[17], true},
-		{"i32 > 0", records[17], false},
-
-		{"u32 > -1", records[17], true},
-		{"u32 = 0", records[17], true},
-		{"u32 < 1", records[17], true},
-		{"u32 > 1", records[17], false},
-
-		{"i64 = -9223372036854775808", records[17], true},
-		{"i64 < 0", records[17], true},
-		{"i64 > 0", records[17], false},
-
-		{"u64 > -1", records[17], true},
-		{"u64 = 0", records[17], true},
-		{"u64 < 1", records[17], true},
-		{"u64 > 1", records[17], false},
-
-		{"b = 255", records[18], true},
-		{"i16 = 32767", records[18], true},
-		{"u16 = 65535", records[18], true},
-		{"i32 = 2147483647", records[18], true},
-		{"u32 = 4294967295", records[18], true},
-		{"i64 = 9223372036854775807", records[18], true},
+	record, err = parseOneRecord(`#0:record[b:byte,i16:int16,u16:uint16,i32:int32,u32:uint32,i64:int64,u64:uint64]
+0:[255;32767;65535;2147483647;4294967295;9223372036854775807;18446744073709551615;]
+`)
+	require.NoError(t, err)
+	runCases(t, record, []testcase{
+		{"b = 255", true},
+		{"i16 = 32767", true},
+		{"u16 = 65535", true},
+		{"i32 = 2147483647", true},
+		{"u32 = 4294967295", true},
+		{"i64 = 9223372036854775807", true},
 		// can't represent large unsigned 64 bit values in zql...
-		// {"u64 = 18446744073709551615", records[18], true},
+		// {"u64 = 18446744073709551615", true},
+	})
 
-		// Test comparisons with an aliased type
-		{"i = 100", records[19], true},
-		{"i > 0", records[19], true},
-		{"i < 50", records[19], false},
-	}
+	// Test comparisons with an aliased type
+	record, err = parseOneRecord(`#myint=int32
+#0:record[i:myint]
+0:[100;]`)
+	require.NoError(t, err)
+	runCases(t, record, []testcase{
+		{"i = 100", true},
+		{"i > 0", true},
+		{"i < 50", false},
+	})
 
-	for _, tt := range tests {
-		t.Run(tt.filter, func(t *testing.T) {
-			err := runTest(tt.filter, tt.record, tt.expectedResult)
-			require.NoError(t, err)
-		})
-	}
+	// Test coercion from string to bstring
+	record, err = parseOneRecord(`#0:record[s:bstring]
+0:[hello;]
+`)
+	require.NoError(t, err)
+	runCases(t, record, []testcase{
+		{"s = hello", true},
+
+		// Also smoke test that globs work...
+		{"s = hell*", true},
+		{"s = ell*", false},
+	})
 }
 
 func TestBadFilter(t *testing.T) {
