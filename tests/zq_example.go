@@ -56,9 +56,10 @@ A zq-output fenced code block MAY be multiple lines. zq-output MUST be verbatim
 from the actual zq output.
 
 zq-output MAY contain an optional marker to support record truncation. The
-marker is denoted by "head:N" where N is a positive integer representing the
-number of lines to show. The marker MAY contain an ellipsis via three dots
-"..." at the end to imply to readers the continuation of records not shown.
+marker is denoted by "head:N" where N MUST be a non-negative integer
+representing the number of lines to show. The marker MAY contain an ellipsis
+via three dots "..." at the end to imply to readers the continuation of records
+not shown.
 
 Example:
 
@@ -69,6 +70,9 @@ dhcp  2
 dns   1
 ...
 ```
+
+If head is malformed or N is invalid, fall back to verification against all
+records.
 */
 
 import (
@@ -98,7 +102,7 @@ const (
 type ZQExampleInfo struct {
 	command         *ast.FencedCodeBlock
 	output          *ast.FencedCodeBlock
-	outputLineCount uint8
+	outputLineCount int
 }
 
 // ZQExampleTest holds a ZQ example as a testcase found from mardown, derived
@@ -107,7 +111,7 @@ type ZQExampleTest struct {
 	Name            string
 	Command         []string
 	Expected        string
-	OutputLineCount uint8
+	OutputLineCount int
 }
 
 // Run runs a zq command and returns its output.
@@ -121,7 +125,7 @@ func (t *ZQExampleTest) Run() (string, error) {
 		return string(b.Bytes()), err
 	}
 	scanner := bufio.NewScanner(&b)
-	i := uint8(0)
+	i := 0
 	var s string
 	for scanner.Scan() {
 		if i == t.OutputLineCount {
@@ -138,8 +142,8 @@ func (t *ZQExampleTest) Run() (string, error) {
 
 // ZQOutputLineCount returns the number of lines against which zq-output should
 // be verified.
-func ZQOutputLineCount(fcb *ast.FencedCodeBlock, source []byte) uint8 {
-	count := uint8(fcb.Lines().Len())
+func ZQOutputLineCount(fcb *ast.FencedCodeBlock, source []byte) int {
+	count := fcb.Lines().Len()
 	if fcb.Info == nil {
 		return count
 	}
@@ -147,11 +151,11 @@ func ZQOutputLineCount(fcb *ast.FencedCodeBlock, source []byte) uint8 {
 	if len(info) != 2 {
 		return count
 	}
-	customCount, err := strconv.ParseUint(info[1], 10, 8)
-	if err != nil {
+	customCount, err := strconv.Atoi(info[1])
+	if err != nil || customCount < 0 {
 		return count
 	}
-	return uint8(customCount)
+	return customCount
 }
 
 // CollectExamples returns a zq-command / zq-output pairs from a single
