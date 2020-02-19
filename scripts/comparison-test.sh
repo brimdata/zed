@@ -11,7 +11,7 @@ DATA_REPO="https://github.com/brimsec/zq-sample-data.git"
 if [ -d "$DATA" ]; then
   (cd "$DATA"&& git pull) || exit 1
 else
-  git clone "$DATA_REPO"
+  git clone --depth=1 "$DATA_REPO"
 fi
 find "$DATA" -name \*.gz -exec gunzip -f {} \;
 ln -sfn zeek-default "$DATA/zeek"
