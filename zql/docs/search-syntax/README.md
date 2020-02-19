@@ -30,7 +30,7 @@ zq '*' conn.log.gz
 #### Output:
 ```zq-output head:6
 #zenum=string
-#0:record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],proto:zenum,service:bstring,duration:duration,orig_bytes:count,resp_bytes:count,conn_state:bstring,local_orig:bool,local_resp:bool,missed_bytes:count,history:bstring,orig_pkts:count,orig_ip_bytes:count,resp_pkts:count,resp_ip_bytes:count,tunnel_parents:set[bstring]]
+#0:record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],proto:zenum,service:bstring,duration:duration,orig_bytes:uint64,resp_bytes:uint64,conn_state:bstring,local_orig:bool,local_resp:bool,missed_bytes:uint64,history:bstring,orig_pkts:uint64,orig_ip_bytes:uint64,resp_pkts:uint64,resp_ip_bytes:uint64,tunnel_parents:set[bstring]]
 0:[conn;1521911721.255387;C8Tful1TvM3Zf5x8fl;[10.164.94.120;39681;10.47.3.155;3389;]tcp;-;0.004266;97;19;RSTR;-;-;0;ShADTdtr;10;730;6;342;-;]
 0:[conn;1521911721.411148;CXWfTK3LRdiuQxBbM6;[10.47.25.80;50817;10.128.0.218;23189;]tcp;-;0.000486;0;0;REJ;-;-;0;Sr;2;104;2;80;-;]
 0:[conn;1521911721.926018;CM59GGQhNEoKONb5i;[10.47.25.80;50817;10.128.0.218;23189;]tcp;-;0.000538;0;0;REJ;-;-;0;Sr;2;104;2;80;-;]
@@ -63,7 +63,7 @@ zq 'count() by _path' *.log.gz  # Shorthand for: zq '* | count() by _path' *.log
 
 #### Output:
 ```zq-output head:4
-#0:record[_path:string,count:count]
+#0:record[_path:string,count:uint64]
 0:[pe;21;]
 0:[dns;53615;]
 0:[dpd;25;]
@@ -96,7 +96,7 @@ conn  1521911727.167552 CsSFJyH4ucFtpmhqa  10.10.18.2   57331     10.150.0.85 44
 _PATH TS                UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H   ID.RESP_P VERSION CIPHER                                CURVE  SERVER_NAME RESUMED LAST_ALERT NEXT_PROTOCOL ESTABLISHED CERT_CHAIN_FUIDS   CLIENT_CERT_CHAIN_FUIDS SUBJECT                                                      ISSUER                                                       CLIENT_SUBJECT CLIENT_ISSUER VALIDATION_STATUS
 ssl   1521911732.513518 Ckwqsn2ZSiVGtyiFO5 10.47.24.186 55782     10.150.0.85 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 x25519 -           F       -          h2            T           FZW30y2Nwc9i0qmdvg (empty)                 CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU -              -             self signed certificate
 _PATH TS                FUID               TX_HOSTS    RX_HOSTS     CONN_UIDS          SOURCE DEPTH ANALYZERS     MIME_TYPE                    FILENAME DURATION LOCAL_ORIG IS_ORIG SEEN_BYTES TOTAL_BYTES MISSING_BYTES OVERFLOW_BYTES TIMEDOUT PARENT_FUID MD5                              SHA1                                     SHA256 EXTRACTED EXTRACTED_CUTOFF EXTRACTED_SIZE
-files 1521911732.519299 FZW30y2Nwc9i0qmdvg 10.150.0.85 10.47.24.186 Ckwqsn2ZSiVGtyiFO5 SSL    0     SHA1,MD5,X509 application/x-x509-user-cert -        0        -          F       909        -           0             0              F        -           9fb39c2b34d22a7ba507dedb4e155101 d95fcbd453c842d6b432e5ec74a720c700c50393 -      -         -                -
+files 1521911732.519299 FZW30y2Nwc9i0qmdvg 10.150.0.85 10.47.24.186 Ckwqsn2ZSiVGtyiFO5 SSL    0     MD5,SHA1,X509 application/x-x509-user-cert -        0        -          F       909        -           0             0              F        -           9fb39c2b34d22a7ba507dedb4e155101 d95fcbd453c842d6b432e5ec74a720c700c50393 -      -         -                -
 _PATH TS                ID                 CERTIFICATE.VERSION CERTIFICATE.SERIAL CERTIFICATE.SUBJECT                                          CERTIFICATE.ISSUER                                           CERTIFICATE.NOT_VALID_BEFORE CERTIFICATE.NOT_VALID_AFTER CERTIFICATE.KEY_ALG CERTIFICATE.SIG_ALG     CERTIFICATE.KEY_TYPE CERTIFICATE.KEY_LENGTH CERTIFICATE.EXPONENT CERTIFICATE.CURVE SAN.DNS SAN.URI SAN.EMAIL SAN.IP BASIC_CONSTRAINTS.CA BASIC_CONSTRAINTS.PATH_LEN
 x509  1521911732.519299 FZW30y2Nwc9i0qmdvg 3                   C5F8CDF3FFCBBF2D   CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU 1521728557.000000            2385642000.000000           rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 -       -       -         -      T                    -
 ...
@@ -346,10 +346,10 @@ zq -f table '10.150.0.85 in *' *.log.gz
 #### Output:
 ```zq-output head:5
 _PATH TS                FUID               TX_HOSTS    RX_HOSTS     CONN_UIDS          SOURCE DEPTH ANALYZERS     MIME_TYPE                    FILENAME DURATION LOCAL_ORIG IS_ORIG SEEN_BYTES TOTAL_BYTES MISSING_BYTES OVERFLOW_BYTES TIMEDOUT PARENT_FUID MD5                              SHA1                                     SHA256 EXTRACTED EXTRACTED_CUTOFF EXTRACTED_SIZE
-files 1521911732.519299 FZW30y2Nwc9i0qmdvg 10.150.0.85 10.47.24.186 Ckwqsn2ZSiVGtyiFO5 SSL    0     SHA1,MD5,X509 application/x-x509-user-cert -        0        -          F       909        -           0             0              F        -           9fb39c2b34d22a7ba507dedb4e155101 d95fcbd453c842d6b432e5ec74a720c700c50393 -      -         -                -
-files 1521911742.635094 Fo9ltu1O8DGE0KAgC  10.150.0.85 10.47.8.10   CqwJmZ2Lzd42fuvg4k SSL    0     SHA1,MD5,X509 application/x-x509-user-cert -        0        -          F       909        -           0             0              F        -           9fb39c2b34d22a7ba507dedb4e155101 d95fcbd453c842d6b432e5ec74a720c700c50393 -      -         -                -
-files 1521911746.548292 F7oQQK1qo9HfmlN048 10.150.0.85 10.47.27.186 CvTTHG2M6xPqDMDLB7 SSL    0     SHA1,MD5,X509 application/x-x509-user-cert -        0        -          F       909        -           0             0              F        -           9fb39c2b34d22a7ba507dedb4e155101 d95fcbd453c842d6b432e5ec74a720c700c50393 -      -         -                -
-files 1521911747.493786 FdBWBA3eODh6nHFt82 10.150.0.85 10.10.18.2   ChpfSB4FWhg3xHI3yb SSL    0     SHA1,MD5,X509 application/x-x509-user-cert -        0        -          F       909        -           0             0              F        -           9fb39c2b34d22a7ba507dedb4e155101 d95fcbd453c842d6b432e5ec74a720c700c50393 -      -         -                -
+files 1521911732.519299 FZW30y2Nwc9i0qmdvg 10.150.0.85 10.47.24.186 Ckwqsn2ZSiVGtyiFO5 SSL    0     MD5,SHA1,X509 application/x-x509-user-cert -        0        -          F       909        -           0             0              F        -           9fb39c2b34d22a7ba507dedb4e155101 d95fcbd453c842d6b432e5ec74a720c700c50393 -      -         -                -
+files 1521911742.635094 Fo9ltu1O8DGE0KAgC  10.150.0.85 10.47.8.10   CqwJmZ2Lzd42fuvg4k SSL    0     MD5,SHA1,X509 application/x-x509-user-cert -        0        -          F       909        -           0             0              F        -           9fb39c2b34d22a7ba507dedb4e155101 d95fcbd453c842d6b432e5ec74a720c700c50393 -      -         -                -
+files 1521911746.548292 F7oQQK1qo9HfmlN048 10.150.0.85 10.47.27.186 CvTTHG2M6xPqDMDLB7 SSL    0     MD5,SHA1,X509 application/x-x509-user-cert -        0        -          F       909        -           0             0              F        -           9fb39c2b34d22a7ba507dedb4e155101 d95fcbd453c842d6b432e5ec74a720c700c50393 -      -         -                -
+files 1521911747.493786 FdBWBA3eODh6nHFt82 10.150.0.85 10.10.18.2   ChpfSB4FWhg3xHI3yb SSL    0     MD5,SHA1,X509 application/x-x509-user-cert -        0        -          F       909        -           0             0              F        -           9fb39c2b34d22a7ba507dedb4e155101 d95fcbd453c842d6b432e5ec74a720c700c50393 -      -         -                -
 ...
 ```
 
