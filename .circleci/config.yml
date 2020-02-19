@@ -50,6 +50,9 @@ jobs:
       - run:
           name: System Tests
           command: 'make test-system'
+      - run:
+          name: Heavy Tests
+          command: 'make test-heavy'
 
 workflows:
   version: 2

@@ -23,8 +23,11 @@ sampledata: $(SAMPLEDATA)
 test-unit:
 	@go test -short ./...
 
-test-system: build $(SAMPLEDATA)
+test-system: build
 	@go test -v -tags=system ./tests -args PATH=$(shell pwd)/dist
+
+test-heavy: build $(SAMPLEDATA)
+	@go test -v -tags=heavy ./tests
 
 build:
 	@mkdir -p dist
