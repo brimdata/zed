@@ -6,14 +6,7 @@ set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR" || exit 1
 
-DATA="zq-sample-data"
-DATA_REPO="https://github.com/brimsec/zq-sample-data.git"
-if [ -d "$DATA" ]; then
-  (cd "$DATA"&& git pull) || exit 1
-else
-  git clone --depth=1 "$DATA_REPO"
-fi
-find "$DATA" -name \*.gz -exec gunzip -f {} \;
+DATA="../zq-sample-data"
 ln -sfn zeek-default "$DATA/zeek"
 ln -sfn zeek-ndjson "$DATA/ndjson"
 
