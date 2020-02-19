@@ -29,6 +29,9 @@ test-system: build
 test-heavy: build $(SAMPLEDATA)
 	@go test -v -tags=heavy ./tests
 
+perf-compare: build $(SAMPLEDATA)
+	scripts/comparison-test.sh
+
 build:
 	@mkdir -p dist
 	@go build -ldflags='$(LDFLAGS)' -o dist ./cmd/...
