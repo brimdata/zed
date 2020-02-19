@@ -16,22 +16,20 @@ type VersionMessage struct {
 // This struct filled in by main from linker setting version strings.
 var Version VersionMessage
 
-func Run(port string) error {
-	http.HandleFunc("/search", func(w http.ResponseWriter, r *http.Request) {
+func NewHandler() http.Handler {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/search", func(w http.ResponseWriter, r *http.Request) {
 		search.Handle(w, r)
 	})
-	http.HandleFunc("/space", func(w http.ResponseWriter, r *http.Request) {
-		space.HandleList(w, r)
-	})
-	http.HandleFunc("/space/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/space/", func(w http.ResponseWriter, r *http.Request) {
 		space.HandleInfo(w, r)
 	})
-	http.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok"))
 	})
-	http.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(&Version)
 	})
-	return http.ListenAndServe(port, nil)
+	return mux
 }
