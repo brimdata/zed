@@ -62,6 +62,12 @@ type Type interface {
 	// encoding.  The string input is provided as a byte slice for
 	// efficiency given the common use cases in the system.
 	Parse([]byte) (zcode.Bytes, error)
+	// ID returns a unique (per resolver.Context) identifier that
+	// represents this type.  For an aliased type, this identifier
+	// represents the actual underlying type and not the alias itself.
+	// Callers that care about the underlying type of a zng.Value for
+	// example should prefer to use this instead of using the go
+	// .(type) operator on a zng.Type instance.
 	ID() int
 }
 
