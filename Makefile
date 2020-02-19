@@ -29,6 +29,9 @@ test-system: build
 test-heavy: build $(SAMPLEDATA)
 	@go test -v -tags=heavy ./tests
 
+perf-compare: build $(SAMPLEDATA)
+	scripts/comparison-test.sh
+
 build:
 	@mkdir -p dist
 	@go build -ldflags='$(LDFLAGS)' -o dist ./cmd/...
@@ -51,4 +54,4 @@ create-release-assets:
 clean:
 	@rm -rf dist
 
-.PHONY: vet fmt sampledata test-unit test-system test-heavy build install create-release-assets clean
+.PHONY: vet fmt sampledata test-unit test-system test-heavy perf-compare build install create-release-assets clean
