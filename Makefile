@@ -51,4 +51,4 @@ create-release-assets:
 clean:
 	@rm -rf dist
 
-.PHONY: vet fmt sampledata test-unit test-system build install create-release-assets clean
+.PHONY: vet fmt sampledata test-unit test-system test-heavy build install create-release-assets clean
