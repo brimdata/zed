@@ -103,7 +103,8 @@ func TestFilters(t *testing.T) {
 	t.Parallel()
 
 	// Test set membership with "in"
-	record, err := parseOneRecord(`#0:record[stringset:set[bstring]]
+	record, err := parseOneRecord(`
+#0:record[stringset:set[bstring]]
 0:[[abc;xyz;]]`)
 	require.NoError(t, err)
 	runCases(t, record, []testcase{
@@ -125,7 +126,8 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test array membership with "in"
-	record, err = parseOneRecord(`#0:record[stringvec:array[bstring]]
+	record, err = parseOneRecord(`
+#0:record[stringvec:array[bstring]]
 0:[[abc;xyz;]]`)
 	require.NoError(t, err)
 	runCases(t, record, []testcase{
@@ -136,7 +138,8 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test escaped bstrings inside an array
-	record, err = parseOneRecord(`#0:record[stringvec:array[bstring]]
+	record, err = parseOneRecord(`
+#0:record[stringvec:array[bstring]]
 0:[[a\x3bb;xyz;]]`)
 	require.NoError(t, err)
 	runCases(t, record, []testcase{
@@ -147,7 +150,8 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test membership in set of integers
-	record, err = parseOneRecord(`#0:record[intset:set[int32]]
+	record, err = parseOneRecord(`
+#0:record[intset:set[int32]]
 0:[[1;2;3;]]`)
 	require.NoError(t, err)
 	runCases(t, record, []testcase{
@@ -157,7 +161,8 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test membership in array of integers
-	record, err = parseOneRecord(`#0:record[intvec:array[int32]]
+	record, err = parseOneRecord(`
+#0:record[intvec:array[int32]]
 0:[[1;2;3;]]`)
 	require.NoError(t, err)
 	runCases(t, record, []testcase{
@@ -167,7 +172,8 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test membership in set of ip addresses
-	record, err = parseOneRecord(`#0:record[addrset:set[ip]]
+	record, err = parseOneRecord(`
+#0:record[addrset:set[ip]]
 0:[[1.1.1.1;2.2.2.2;]]`)
 	require.NoError(t, err)
 	runCases(t, record, []testcase{
@@ -176,7 +182,8 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test membership and len() on array of ip addresses
-	record, err = parseOneRecord(`#0:record[addrvec:array[ip]]
+	record, err = parseOneRecord(`
+#0:record[addrvec:array[ip]]
 0:[[1.1.1.1;2.2.2.2;]]`)
 	require.NoError(t, err)
 	runCases(t, record, []testcase{
@@ -191,7 +198,8 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test comparing fields in nested records
-	record, err = parseOneRecord(`#0:record[nested:record[field:string]]
+	record, err = parseOneRecord(`
+#0:record[nested:record[field:string]]
 0:[[test;]]`)
 	require.NoError(t, err)
 	runCases(t, record, []testcase{
@@ -203,7 +211,8 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test array of records
-	record, err = parseOneRecord(`#0:record[nested:array[record[field:int32]]]
+	record, err = parseOneRecord(`
+#0:record[nested:array[record[field:int32]]]
 0:[[[1;][2;]]]`)
 	require.NoError(t, err)
 	runCases(t, record, []testcase{
@@ -215,7 +224,8 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test array inside a record
-	record, err = parseOneRecord(`#0:record[nested:record[vec:array[int32]]]
+	record, err = parseOneRecord(`
+#0:record[nested:record[vec:array[int32]]]
 0:[[[1;2;3;]]]`)
 	require.NoError(t, err)
 	runCases(t, record, []testcase{
@@ -229,7 +239,8 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test escaped chars in a bstring
-	record, err = parseOneRecord(`#0:record[s:bstring]
+	record, err = parseOneRecord(`
+#0:record[s:bstring]
 0:[begin\x01\x02\xffend;]`)
 	require.NoError(t, err)
 	runCases(t, record, []testcase{
@@ -245,14 +256,16 @@ func TestFilters(t *testing.T) {
 	// combining characters (e.g., plain n plus combining
 	// tilde) and the other uses composed characters.  Test both
 	// strings against queries written with both formats.
-	record, err = parseOneRecord(`#0:record[s:bstring]
+	record, err = parseOneRecord(`
+#0:record[s:bstring]
 0:[Buenos di\xcc\x81as sen\xcc\x83or;]`)
 	require.NoError(t, err)
 	runCases(t, record, []testcase{
 		{`s = "Buenos di\u{0301}as sen\u{0303}or"`, true},
 		{`s = "Buenos d\u{ed}as se\u{f1}or"`, true},
 	})
-	record, err = parseOneRecord(`#0:record[s:bstring]
+	record, err = parseOneRecord(`
+#0:record[s:bstring]
 0:[Buenos d\xc3\xadas se\xc3\xb1or;]`)
 	require.NoError(t, err)
 	runCases(t, record, []testcase{
@@ -261,7 +274,8 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test searching inside containers
-	record, err = parseOneRecord(`#0:record[s:string,srec:record[svec:array[string]]]
+	record, err = parseOneRecord(`
+#0:record[s:string,srec:record[svec:array[string]]]
 0:[hello;[[world;worldz;1.1.1.1;]]]`)
 	require.NoError(t, err)
 	runCases(t, record, []testcase{
@@ -271,7 +285,8 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test time coercion
-	record, err = parseOneRecord(`#0:record[ts:time,ts2:time,ts3:time]
+	record, err = parseOneRecord(`
+#0:record[ts:time,ts2:time,ts3:time]
 0:[1.001;1578411532;1578411533.01;]`)
 	require.NoError(t, err)
 	runCases(t, record, []testcase{
@@ -290,7 +305,8 @@ func TestFilters(t *testing.T) {
 	// 1. that the full range of values are correctly parsed
 	// 2. since the r.h.s. of a zql filter expression is treated
 	//    as int64, test that coercion happens correctly.
-	record, err = parseOneRecord(`#0:record[b:byte,i16:int16,u16:uint16,i32:int32,u32:uint32,i64:int64,u64:uint64]
+	record, err = parseOneRecord(`
+#0:record[b:byte,i16:int16,u16:uint16,i32:int32,u32:uint32,i64:int64,u64:uint64]
 0:[0;-32768;0;-2147483648;0;-9223372036854775808;0;]
 `)
 	require.NoError(t, err)
@@ -328,7 +344,8 @@ func TestFilters(t *testing.T) {
 		{"u64 > 1", false},
 	})
 
-	record, err = parseOneRecord(`#0:record[b:byte,i16:int16,u16:uint16,i32:int32,u32:uint32,i64:int64,u64:uint64]
+	record, err = parseOneRecord(`
+#0:record[b:byte,i16:int16,u16:uint16,i32:int32,u32:uint32,i64:int64,u64:uint64]
 0:[255;32767;65535;2147483647;4294967295;9223372036854775807;18446744073709551615;]
 `)
 	require.NoError(t, err)
@@ -344,7 +361,8 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test comparisons with an aliased type
-	record, err = parseOneRecord(`#myint=int32
+	record, err = parseOneRecord(`
+#myint=int32
 #0:record[i:myint]
 0:[100;]`)
 	require.NoError(t, err)
@@ -355,7 +373,8 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test coercion from string to bstring
-	record, err = parseOneRecord(`#0:record[s:bstring]
+	record, err = parseOneRecord(`
+#0:record[s:bstring]
 0:[hello;]
 `)
 	require.NoError(t, err)
