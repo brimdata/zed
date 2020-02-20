@@ -219,6 +219,11 @@ func CompareFloat64(op string, pattern float64) (Predicate, error) {
 			if err == nil {
 				return compare(v, pattern)
 			}
+		case zng.IdByte:
+			v, err := zng.DecodeByte(zv)
+			if err == nil {
+				return compare(float64(v), pattern)
+			}
 		case zng.IdInt16, zng.IdInt32, zng.IdInt64:
 			v, err := zng.DecodeInt(zv)
 			if err == nil {
