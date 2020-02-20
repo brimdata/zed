@@ -36,17 +36,6 @@ jobs:
       - run:
           name: Build
           command: 'make build'
-      - persist_to_workspace:
-          root: .
-          paths:
-            - .
-  system_test:
-    docker:
-      - image: circleci/golang:1.13-buster
-    steps:
-      - log_date
-      - attach_workspace:
-          at: .
       - run:
           name: System Tests
           command: 'make test-system'
@@ -59,6 +48,3 @@ workflows:
   main:
     jobs:
       - build
-      - system_test:
-          requires:
-            - build
