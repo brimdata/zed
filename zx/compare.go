@@ -309,7 +309,7 @@ func CompareBstring(op string, pattern zng.Bstring) (Predicate, error) {
 	s := string(pattern)
 	return func(v zng.Value) bool {
 		switch v.Type.ID() {
-		case zng.IdBstring, zng.IdString, zng.IdEnum:
+		case zng.IdBstring, zng.IdString:
 			return compare(zng.UnsafeString(v.Bytes), s)
 		}
 		return false
@@ -333,7 +333,7 @@ func compareRegexp(op, pattern string) (Predicate, error) {
 	case "eql":
 		return func(v zng.Value) bool {
 			switch v.Type.ID() {
-			case zng.IdString, zng.IdBstring, zng.IdEnum:
+			case zng.IdString, zng.IdBstring:
 				return re.Match(v.Bytes)
 			}
 			return false
@@ -341,7 +341,7 @@ func compareRegexp(op, pattern string) (Predicate, error) {
 	case "neql":
 		return func(v zng.Value) bool {
 			switch v.Type.ID() {
-			case zng.IdString, zng.IdBstring, zng.IdEnum:
+			case zng.IdString, zng.IdBstring:
 				return !re.Match(v.Bytes)
 			}
 			return false

@@ -89,9 +89,6 @@ var (
 	TypeTime     = &TypeOfTime{}
 	TypeDuration = &TypeOfDuration{}
 	TypeNull     = &TypeOfNull{}
-
-	// XXX need to remove this
-	TypeEnum = &TypeOfEnum{}
 )
 
 const (
@@ -162,10 +159,6 @@ func LookupPrimitive(name string) Type {
 		return TypeDuration
 	case "null":
 		return TypeNull
-
-		// XXX:
-	case "enum":
-		return TypeEnum
 	}
 	return nil
 }
@@ -204,10 +197,6 @@ func LookupPrimitiveById(id int) Type {
 		return TypeTime
 	case IdDuration:
 		return TypeDuration
-
-		// XXX
-	case IdEnum:
-		return TypeEnum
 	}
 	return nil
 }
