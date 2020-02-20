@@ -3,6 +3,7 @@ package zqdtest
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -40,14 +41,14 @@ func WriteToSpace(t *testing.T, space, src string) {
 }
 
 func NewRequest(method, url string, body interface{}) *http.Request {
-	var buf *bytes.Buffer
+	var rw io.ReadWriter
 	if body != nil {
-		buf = bytes.NewBuffer(nil)
-		if err := json.NewEncoder(buf).Encode(body); err != nil {
+		rw = bytes.NewBuffer(nil)
+		if err := json.NewEncoder(rw).Encode(body); err != nil {
 			panic(err)
 		}
 	}
-	return httptest.NewRequest(method, url, buf)
+	return httptest.NewRequest(method, url, rw)
 }
 
 func ExecRequest(h http.Handler, r *http.Request) *http.Response {
