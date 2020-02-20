@@ -1,7 +1,7 @@
 ## v0.2.0
 
 * Per-platform binaries will be available as Github release assets.
-* Documentation examples can be verified via `make test-heavy`.
+* zql examples under zql/docs are now verified via `make test-heavy`.
 * Negative integers and floats are accepted in zql expressions.
 * Internal integer types now match the ZNG specification.
 * Fixed comparisons of aliased types.
