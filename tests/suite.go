@@ -58,6 +58,7 @@ var internals = []test.Internal{
 	sort.Internal4_2,
 	sort.Internal4_3,
 	sort.Internal4_4,
+	sort.SortAlias,
 	time.Internal,
 	zeek.Test,
 }
