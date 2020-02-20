@@ -11,7 +11,14 @@ import (
 	"sync"
 
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zqd/api"
+	"github.com/gorilla/mux"
 )
+
+func AddRoutes(router *mux.Router) {
+	router = router.UseEncodedPath() // Allow url encoded spaces
+	router.HandleFunc("/space/{space}/packet/", HandleGet).Methods("GET")
+}
 
 // PacketSearch are the query string args to the packet endpoint when searching
 // for packets within a connection 5-tuple.
@@ -109,9 +116,10 @@ func genConn(url *url.URL) (*Connection, error) {
 
 // GetPackets is an endpoint that returns the packets for a given conn_id as a
 // pcap file.
-func HandleGet(w http.ResponseWriter, r *http.Request, spaceName string) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "bad method", http.StatusBadRequest)
+func HandleGet(w http.ResponseWriter, r *http.Request) {
+	spaceName, err := api.ExtractSpace(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	store, err := getPcapStore(spaceName)
@@ -145,8 +153,8 @@ func isDir(path string) bool {
 	return info.IsDir()
 }
 
-func HasPcaps(spaceName string) bool {
-	dirPath := filepath.Join(".", spaceName, "packets")
+func HasPcaps(spacePath string) bool {
+	dirPath := filepath.Join(spacePath, "packets")
 	return isDir(dirPath)
 }
 

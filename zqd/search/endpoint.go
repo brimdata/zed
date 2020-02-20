@@ -16,7 +16,12 @@ import (
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
+	"github.com/gorilla/mux"
 )
+
+func AddRoutes(router *mux.Router) {
+	router.HandleFunc("/search/", Handle).Methods("POST")
+}
 
 // This mtu is pretty small but it keeps the JSON object size below 64kb or so
 // so the recevier can do reasonable, interactive streaming updates.
@@ -84,17 +89,15 @@ func httpError(w http.ResponseWriter, msg string, code int) {
 }
 
 func Handle(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "bad method", http.StatusBadRequest)
-		return
-	}
 	query, err := parseSearchRequest(r.Body)
 	if err != nil {
 		httpError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	//logger.Debug("parseSearchRequest", zap.Stringer("query", query))
-	dataPath := filepath.Join(".", query.Space, "all.bzng") //XXX need root dir param
+	//XXX We do not support root dir param right now. If query.Space is an
+	// absolute path we will ignore the root dir param. For now relative paths
+	// will be resolved from cwd.
+	dataPath := filepath.Join(query.Space, "all.bzng")
 	f, err := os.Open(dataPath)
 	if err != nil {
 		httpError(w, "no such space: "+query.Space, http.StatusNotFound)

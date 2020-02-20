@@ -2,52 +2,30 @@ package space
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/pcap"
+	"github.com/gorilla/mux"
 )
 
-func HandleList(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "bad method", http.StatusBadRequest)
-		return
-	}
-	root := "."
-	info, err := ioutil.ReadDir(root)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	var spaces []string
-	for _, subdir := range info {
-		if !subdir.IsDir() {
-			continue
-		}
-		dataFile := filepath.Join(root, subdir.Name(), "all.bzng")
-		s, err := os.Stat(dataFile)
-		if err != nil || s.IsDir() {
-			continue
-		}
-		spaces = append(spaces, subdir.Name())
-	}
-	w.Header().Add("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(spaces)
+func AddRoutes(router *mux.Router) {
+	router = router.UseEncodedPath() // Allow url encoded spaces
+	router.HandleFunc("/space/{space}/", HandleInfo).Methods("GET")
 }
 
-func spaceInfo(spaceName, path string) (*api.SpaceInfo, error) {
-	info, err := os.Stat(path)
+func spaceInfo(path string) (*api.SpaceInfo, error) {
+	bzngFile := filepath.Join(path, "all.bzng")
+	info, err := os.Stat(bzngFile)
 	if err != nil {
 		return nil, err
 	}
-	f, err := os.Open(path)
+	f, err := os.Open(bzngFile)
 	if err != nil {
 		return nil, err
 	}
@@ -76,9 +54,9 @@ func spaceInfo(spaceName, path string) (*api.SpaceInfo, error) {
 		found = true
 	}
 	s := &api.SpaceInfo{
-		Name:          spaceName,
+		Name:          path,
 		Size:          info.Size(),
-		PacketSupport: pcap.HasPcaps(spaceName),
+		PacketSupport: pcap.HasPcaps(path),
 	}
 	if found {
 		s.MinTime = &minTs
@@ -87,33 +65,15 @@ func spaceInfo(spaceName, path string) (*api.SpaceInfo, error) {
 	return s, nil
 }
 
-func parseSpace(path string) (string, string) {
-	//XXX need to sanitize this path
-	spaceName := strings.Replace(path, "/space/", "", 1)
-	if spaceName == "" {
-		return "", ""
-	}
-	if strings.HasSuffix(spaceName, "/packet") {
-		return "", spaceName[:len(spaceName)-7]
-	}
-	return spaceName, ""
-}
-
 func HandleInfo(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "bad method", http.StatusBadRequest)
+	space, err := api.ExtractSpace(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	spaceName, pcapSpace := parseSpace(r.URL.Path)
-	if pcapSpace != "" {
-		pcap.HandleGet(w, r, pcapSpace)
-		return
-	}
-	root := "."
-	path := filepath.Join(root, spaceName, "all.bzng")
 	// XXX this is slow.  can easily cache result rather than scanning
 	// whole file each time.
-	info, err := spaceInfo(spaceName, path)
+	info, err := spaceInfo(space)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

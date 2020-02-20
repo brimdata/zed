@@ -2,10 +2,25 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
+	"net/http"
+	"net/url"
 
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zio/zjsonio"
+	"github.com/gorilla/mux"
 )
+
+// ExtractSpace returns the unescaped space from the path of a request.
+// XXX is this in the right package?
+func ExtractSpace(r *http.Request) (string, error) {
+	v := mux.Vars(r)
+	space, ok := v["space"]
+	if !ok {
+		return "", errors.New("no space found")
+	}
+	return url.PathUnescape(space)
+}
 
 type Error struct {
 	Type    string      `json:"type"`
