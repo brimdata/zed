@@ -1,0 +1,11 @@
+zql: not (t=null or t!=null)
+
+input: &input |
+  #0:record[s:string]
+  0:[A=B;]
+  0:[A=*;]
+  0:[-;]
+  0:[;]
+
+output: *input
+

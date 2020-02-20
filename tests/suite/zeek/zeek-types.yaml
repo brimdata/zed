@@ -1,0 +1,19 @@
+# Test that Zeek types that get special handling for compatibility with
+# the ZNG type system are handled correctly (i.e., that the Zeek types
+# are preserved on a pass through zq).
+
+zql: '*'
+
+input: &input |
+  #separator \x09
+  #set_separator	,
+  #empty_field	(empty)
+  #unset_field	-
+  #path	conn
+  #fields	s	e	vi	vs
+  #types	string	enum	vector[int]	vector[string]
+  foo	bar	1,2,3	a,b,c
+
+output-format: zeek
+
+output: *input

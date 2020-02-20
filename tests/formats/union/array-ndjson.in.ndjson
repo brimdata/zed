@@ -1,7 +1,0 @@
-{"a":["foo",1]}
-{"a":["foofoo", 2]}
-{"b":["bar", 100, 200]}
-{"b":["bar", null, 200]}
-{"c":["foo", [1, 2]]}
-{"d":["foo", false, ["foo", 2], {"dd": ["foo", 2, bool]}]}
-{"f":["foo", false, ["foo", 2], {"d.d": ["foo", 2, bool]}]}

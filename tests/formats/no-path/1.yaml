@@ -1,0 +1,19 @@
+zql: '*'
+
+input: |
+  #fields foo
+  #types string
+  😁
+  #fields foo
+  #path magic
+  😁
+  #fields foo
+  #path -
+  😁
+
+output: |
+  #0:record[foo:bstring]
+  0:[😁;]
+  #1:record[_path:string,foo:bstring]
+  1:[magic;😁;]
+  0:[😁;]

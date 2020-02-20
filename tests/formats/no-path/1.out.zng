@@ -1,5 +1,0 @@
-#0:record[foo:bstring]
-0:[😁;]
-#1:record[_path:string,foo:bstring]
-1:[magic;😁;]
-0:[😁;]

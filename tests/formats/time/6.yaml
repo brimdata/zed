@@ -1,0 +1,18 @@
+zql: '*'
+
+input: |
+  #0:record[_path:string,ts:time,d:duration]
+  0:[conn;1e9;1e9;]
+  0:[conn;1;-1;]
+  0:[conn;1.0;1.0;]
+  0:[conn;1.123e8;1.123e8;]
+  0:[conn;1e-8;1e-8;]
+
+output-format: ndjson
+
+output: |
+  {"_path":"conn","d":"1000000000","ts":"1000000000"}
+  {"_path":"conn","d":"-1","ts":"1"}
+  {"_path":"conn","d":"1","ts":"1"}
+  {"_path":"conn","d":"112300000","ts":"112300000"}
+  {"_path":"conn","d":"0.00000001","ts":"0.00000001"}

@@ -1,0 +1,12 @@
+zql: '*'
+
+input: !!binary |
+  gQaBCYMCCQaDBAkXGBmAAQFhGhsKFQIQImhlbGxvIhsIEQQBCwQCBAQbDBkEAhMIImEiCC
+  JiIhsIEQQDCwQBBPY=
+
+output: |
+  #0:record[a:union[string,array[int64],array[string],union[string,int64]]]
+  0:[0:"hello";]
+  0:[1:[1;2;]]
+  0:[2:["a";"b";]]
+  0:[3:1:123;]

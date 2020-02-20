@@ -1,3 +1,0 @@
-#0:record[a:string,r:record[b:string,c:int32]]
-0:[hello;[there;1;]]
-0:[foox;[there;2;]]

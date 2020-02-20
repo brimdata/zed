@@ -1,0 +1,16 @@
+zql: every 1d count()
+
+# This log is path-less in order to make "ts" the first column and
+# that verify we handle this case correctly.
+input: |
+  #separator \x09
+  #set_separator	,
+  #empty_field	(empty)
+  #unset_field	-
+  #fields	ts
+  #types	time
+  1425565514.419939
+
+output: |
+  #0:record[ts:time,count:uint64]
+  0:[1425513600;1;]

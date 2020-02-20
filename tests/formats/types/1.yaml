@@ -1,0 +1,12 @@
+zql: '*'
+
+input: |
+  #0:record[a:string,r:record[b:string,c:int32]]
+  0:[hello;[there;1;]]
+  0:[foox;[there;2;]]
+
+output-format: types
+
+output: |
+  #23:record[b:string,c:int32]
+  #24:record[a:string,r:record[b:string,c:int32]]

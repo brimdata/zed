@@ -1,0 +1,14 @@
+zql: foo*
+
+input: |
+  #0:record[a:string,b:string]
+  0:[hello;there;]
+  0:[foox;there;]
+  0:[hello;foox;]
+  0:[;foo;]
+
+output: |
+  #0:record[a:string,b:string]
+  0:[foox;there;]
+  0:[hello;foox;]
+  0:[;foo;]
