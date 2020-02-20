@@ -71,6 +71,18 @@ block 4
 ~~~
 `,
 			items: 2},
+		markdownunittest{
+			name: "headed output",
+			markdown: `
+~~~zq-command
+block 1
+~~~
+~~~zq-output head:1
+block 2
+block 2 continued
+~~~
+`,
+			items: 1},
 	}
 	for _, testcase := range tests {
 		testcase := testcase

@@ -30,12 +30,12 @@ The following available processors are documented in detail below:
 
 To return only the `ts` and `uid` columns of `conn` events:
 
-```
-zq -f table '* | cut ts,uid' conn.log
+```zq-command
+zq -f table '* | cut ts,uid' conn.log.gz
 ```
 
 #### Output:
-```
+```zq-output head:4
 TS                UID
 1521911721.255387 C8Tful1TvM3Zf5x8fl
 1521911721.411148 CXWfTK3LRdiuQxBbM6
@@ -59,12 +59,12 @@ TS                UID
 
 To further trim the data returned in our [`cut`](#cut) example:
 
-```
-zq -f table '* | cut ts,uid | filter uid=CXWfTK3LRdiuQxBbM6' conn.log
+```zq-command
+zq -f table '* | cut ts,uid | filter uid=CXWfTK3LRdiuQxBbM6' conn.log.gz
 ```
 
 #### Output:
-```
+```zq-output
 TS                UID
 1521911721.411148 CXWfTK3LRdiuQxBbM6
 ```
@@ -144,12 +144,12 @@ conn  1521911720.607695 CpjMvj2Cvj048u6bF1 10.164.94.120 39169     10.47.3.200 8
 
 To sort `x509` events by `certificate.subject`:
 
-```
+```zq-command
 zq -f table 'sort certificate.subject' x509.log.gz
 ```
 
 #### Output:
-```
+```zq-output head:10
 _PATH TS                ID                 CERTIFICATE.VERSION CERTIFICATE.SERIAL                     CERTIFICATE.SUBJECT                                                                               CERTIFICATE.ISSUER                                                                                                                                       CERTIFICATE.NOT_VALID_BEFORE CERTIFICATE.NOT_VALID_AFTER CERTIFICATE.KEY_ALG CERTIFICATE.SIG_ALG     CERTIFICATE.KEY_TYPE CERTIFICATE.KEY_LENGTH CERTIFICATE.EXPONENT CERTIFICATE.CURVE SAN.DNS                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      SAN.URI SAN.EMAIL SAN.IP BASIC_CONSTRAINTS.CA BASIC_CONSTRAINTS.PATH_LEN
 x509  1521912578.233315 Fn2Gkp2Qd434JylJX9 3                   CB11D05B561B4BB1                       C=/C=US/ST=HI/O=Goldner and Sons/OU=1080p/CN=goldner.sons.net/emailAddress=1080p@goldner.sons.net C=/C=US/ST=HI/O=Goldner and Sons/OU=1080p/CN=goldner.sons.net/emailAddress=1080p@goldner.sons.net                                                        1462788542.000000            1525860542.000000           rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 -                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            -       -         -      T                    -
 x509  1521911928.524679 F6WWPk3ajsHLrmNFdb 3                   031489479BCD9C116EA7B6162E5E68E6       CN=*.adnxs.com,O=AppNexus\\, Inc.,L=New York,ST=New York,C=US                                     CN=DigiCert ECC Secure Server CA,O=DigiCert Inc,C=US                                                                                                     1516867200.000000            1548446400.000000           id-ecPublicKey      ecdsa-with-SHA256       ecdsa                256                    -                    prime256v1        *.adnxs.com,adnxs.com                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        -       -         -      F                    -
@@ -167,12 +167,12 @@ x509  1521912590.364985 FXXOyHz8ZK5Fqyoi7  3                   068D4086AEB347299
 
 Now we'll sort `x509` events first by `certificate.subject`, then by the `id`. Compared to the previous example, note how this changes the order of some events that had the same `certificate.subject` value.
 
-```
-zq -f table 'sort certificate.subject,id' x509.log
+```zq-command
+zq -f table 'sort certificate.subject,id' x509.log.gz
 ```
 
 #### Output:
-```
+```zq-output head:10
 _PATH TS                ID                 CERTIFICATE.VERSION CERTIFICATE.SERIAL                     CERTIFICATE.SUBJECT                                                                               CERTIFICATE.ISSUER                                                                                                                                       CERTIFICATE.NOT_VALID_BEFORE CERTIFICATE.NOT_VALID_AFTER CERTIFICATE.KEY_ALG CERTIFICATE.SIG_ALG     CERTIFICATE.KEY_TYPE CERTIFICATE.KEY_LENGTH CERTIFICATE.EXPONENT CERTIFICATE.CURVE SAN.DNS                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      SAN.URI SAN.EMAIL SAN.IP BASIC_CONSTRAINTS.CA BASIC_CONSTRAINTS.PATH_LEN
 x509  1521912578.233315 Fn2Gkp2Qd434JylJX9 3                   CB11D05B561B4BB1                       C=/C=US/ST=HI/O=Goldner and Sons/OU=1080p/CN=goldner.sons.net/emailAddress=1080p@goldner.sons.net C=/C=US/ST=HI/O=Goldner and Sons/OU=1080p/CN=goldner.sons.net/emailAddress=1080p@goldner.sons.net                                                        1462788542.000000            1525860542.000000           rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 -                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            -       -         -      T                    -
 x509  1521911928.524679 F6WWPk3ajsHLrmNFdb 3                   031489479BCD9C116EA7B6162E5E68E6       CN=*.adnxs.com,O=AppNexus\\, Inc.,L=New York,ST=New York,C=US                                     CN=DigiCert ECC Secure Server CA,O=DigiCert Inc,C=US                                                                                                     1516867200.000000            1548446400.000000           id-ecPublicKey      ecdsa-with-SHA256       ecdsa                256                    -                    prime256v1        *.adnxs.com,adnxs.com                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        -       -         -      F                    -
@@ -190,12 +190,12 @@ x509  1521912591.317347 FMITm2OyLT3OYnfq3  3                   068D4086AEB347299
 
 Here we'll find which originating IP addresses generated the most `conn` events using the `count()` [aggregate function](../aggregate-functions/README.md) and piping its output to a `sort` in reverse order. Note that even though we didn't list a field name as an explicit argument, the `sort` processor did what we wanted because it found a field of the `count` [data type](../data-types/README.md).
 
-```
-zq -f table 'count() by id.orig_h | sort -r' conn.log
+```zq-command
+zq -f table 'count() by id.orig_h | sort -r' conn.log.gz
 ```
 
 #### Output:
-```
+```zq-output head:5
 ID.ORIG_H                COUNT
 10.174.251.215           279014
 10.47.24.81              162237
@@ -229,13 +229,13 @@ wwonka       1
 
 Here we have more `conn` events than the defaults would let us sort, so we increase the limit.
 
-```
-zq -f table 'sort -limit 9999999 ts' conn.log
+```zq-command
+zq -f table 'sort -limit 9999999 ts' conn.log.gz
 ```
 
 #### Output:
 
-```
+```zq-output head:5
 _PATH TS                UID                ID.ORIG_H      ID.ORIG_P ID.RESP_H      ID.RESP_P PROTO SERVICE  DURATION    ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY          ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
 conn  1521911720.600725 C1zOivgBT6dBmknqk  10.47.1.152    49562     23.217.103.245 80        tcp   -        9.698493    0          90453565   SF         -          -          0            ^dtAttttFf       57490     2358856       123713    185470730     -
 conn  1521911720.600800 CfbnHCmClhWXY99ui  10.128.0.207   13        10.47.19.254   14        icmp  -        0.001278    336        0          OTH        -          -          0            -                28        1120          0         0             -
@@ -304,14 +304,14 @@ conn  1521912988.752765 COICgc1FXHKteyFy67 10.0.0.227     61314     10.47.5.58  
 
 To see a count of the top issuers of X.509 certificates:
 
-```
-zq -f table '* | cut certificate.issuer | sort | uniq -c | sort -r' x509.log
+```zq-command
+zq -f table '* | cut certificate.issuer | sort | uniq -c | sort -r' x509.log.gz
 ```
 
 #### Output:
-```
-CERTIFICATE.ISSUER                             _UNIQ
-O=VMware Installer                             1761
-CN=Snozberry                                   1108
+```zq-output head:3
+CERTIFICATE.ISSUER                                                                                                                                       _UNIQ
+O=VMware Installer                                                                                                                                       1761
+CN=Snozberry                                                                                                                                             1108
 ...
 ```

@@ -6,7 +6,6 @@ https://github.com/brimsec/zq-sample-data/zeek-default, and compare results in
 docs with results produced.
 
 In separate patches:
-- Deal with examples that need head
 - Find files as opposed to hard-coding them
 
 Use markers in markdown fenced code blocks to denote either a zq command or
@@ -56,40 +55,32 @@ line. Everything including and after the first # is stripped away.
 A zq-output fenced code block MAY be multiple lines. zq-output MUST be verbatim
 from the actual zq output.
 
-TODO: Support doc authors' desire to request and receive head(1) semantics
-without including head as a proc. Related, also support ellipsis on the last
-line to allow a doc author to convey continuation of records not shown. The
-CommonMark spec allows this. Github supports the CommonMark spec, and goldmark
-passes all CommonMark tests.
+zq-output MAY contain an optional marker to support record truncation. The
+marker is denoted by "head:N" where N MUST be a non-negative integer
+representing the number of lines to show. The marker MAY contain an ellipsis
+via three dots "..." at the end to imply to readers the continuation of records
+not shown.
 
-Proposed syntax Example:
+Example:
 
-```zq-command head:10
-zq -f table "* | count() by query" dns.log.gz
-```
-```zq-output
-QUERY                                                     COUNT
--                                                         2
-goo                                                       20
-t.co                                                      8
-tmsc                                                      70
-da.gd                                                     4
-local                                                     12
-bit.ly                                                    10
-goo.gl                                                    4
-(empty)                                                   12
+```zq-output head:4
+_PATH COUNT
+conn  3
+dhcp  2
+dns   1
 ...
 ```
-... and the result still be correct. There are actually over 1000 lines when
-actually running this command.
 
-See https://gist.github.com/mikesbrown/f77cb939a43f80f2e019afba212c8c05 for how
-Github shows these.
+If head is malformed or N is invalid, fall back to verification against all
+records.
 */
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"io/ioutil"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -102,28 +93,75 @@ import (
 type ZQExampleBlockType string
 
 const (
-	ZQCommand ZQExampleBlockType = "zq-command"
-	ZQOutput  ZQExampleBlockType = "zq-output"
+	ZQCommand    ZQExampleBlockType = "zq-command"
+	ZQOutput     ZQExampleBlockType = "zq-output"
+	ZQOutputHead string             = "head:"
 )
 
-// ZQExamplePair holds a ZQ example as found in markdown.
-type ZQExamplePair struct {
-	command *ast.FencedCodeBlock
-	output  *ast.FencedCodeBlock
+// ZQExampleInfo holds a ZQ example as found in markdown.
+type ZQExampleInfo struct {
+	command         *ast.FencedCodeBlock
+	output          *ast.FencedCodeBlock
+	outputLineCount int
 }
 
 // ZQExampleTest holds a ZQ example as a testcase found from mardown, derived
-// from a ZQExamplePair.
+// from a ZQExampleInfo.
 type ZQExampleTest struct {
-	Name     string
-	Command  []string
-	Expected string
+	Name            string
+	Command         []string
+	Expected        string
+	OutputLineCount int
+}
+
+// Run runs a zq command and returns its output.
+func (t *ZQExampleTest) Run() (string, error) {
+	c := exec.Command(t.Command[0], t.Command[1:]...)
+	var b bytes.Buffer
+	c.Stdout = &b
+	c.Stderr = &b
+	err := c.Run()
+	if err != nil {
+		return string(b.Bytes()), err
+	}
+	scanner := bufio.NewScanner(&b)
+	i := 0
+	var s string
+	for scanner.Scan() {
+		if i == t.OutputLineCount {
+			break
+		}
+		s += scanner.Text() + "\n"
+		i++
+	}
+	if err := scanner.Err(); err != nil {
+		return s, err
+	}
+	return s, nil
+}
+
+// ZQOutputLineCount returns the number of lines against which zq-output should
+// be verified.
+func ZQOutputLineCount(fcb *ast.FencedCodeBlock, source []byte) int {
+	count := fcb.Lines().Len()
+	if fcb.Info == nil {
+		return count
+	}
+	info := strings.Split(string(fcb.Info.Segment.Value(source)), ZQOutputHead)
+	if len(info) != 2 {
+		return count
+	}
+	customCount, err := strconv.Atoi(info[1])
+	if err != nil || customCount < 0 {
+		return count
+	}
+	return customCount
 }
 
 // CollectExamples returns a zq-command / zq-output pairs from a single
 // markdown source after parsing it as a goldmark AST.
-func CollectExamples(node ast.Node, source []byte) ([]ZQExamplePair, error) {
-	var examples []ZQExamplePair
+func CollectExamples(node ast.Node, source []byte) ([]ZQExampleInfo, error) {
+	var examples []ZQExampleInfo
 	var command *ast.FencedCodeBlock
 
 	err := ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
@@ -153,7 +191,8 @@ func CollectExamples(node ast.Node, source []byte) ([]ZQExamplePair, error) {
 				return ast.WalkStop,
 					fmt.Errorf("%s without a preceeding %s", bt, ZQCommand)
 			}
-			examples = append(examples, ZQExamplePair{command, fcb})
+			outputLineCount := ZQOutputLineCount(fcb, source)
+			examples = append(examples, ZQExampleInfo{command, fcb, outputLineCount})
 			command = nil
 			// A fenced code block need not specify an info string, or it
 			// could be arbitrary. The default case is to ignore everything
@@ -225,7 +264,7 @@ func QualifyCommand(command string) ([]string, error) {
 // in a file.
 func TestcasesFromFile(filename string) ([]ZQExampleTest, error) {
 	var tests []ZQExampleTest
-	var examples []ZQExamplePair
+	var examples []ZQExampleInfo
 	absfilename, err := filepath.Abs(filename)
 	if err != nil {
 		return nil, err
@@ -264,7 +303,7 @@ func TestcasesFromFile(filename string) ([]ZQExampleTest, error) {
 
 		output := strings.TrimSuffix(BlockString(example.output, source), "...\n")
 
-		tests = append(tests, ZQExampleTest{testname, command, output})
+		tests = append(tests, ZQExampleTest{testname, command, output, example.outputLineCount})
 	}
 	return tests, nil
 }
