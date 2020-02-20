@@ -526,10 +526,10 @@ double
   }
 
 sdouble
-  = doubleInteger+ "." doubleDigit+ exponentPart? {
+  = "-"? doubleInteger+ "." doubleDigit+ exponentPart? {
       RETURN(TEXT)
     }
-  / "." doubleDigit+ exponentPart? {
+  / "-"? "." doubleDigit+ exponentPart? {
       RETURN(TEXT)
     }
 
