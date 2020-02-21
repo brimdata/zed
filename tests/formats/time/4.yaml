@@ -1,0 +1,25 @@
+zql: '*'
+
+input: |
+  #0:record[_path:string,ts:time,d:duration]
+  0:[conn;1e9;1e9;]
+  0:[conn;1;-1;]
+  0:[conn;1.0;1.0;]
+  0:[conn;1.123e8;1.123e8;]
+  0:[conn;1e-8;1e-8;]
+
+output-format: zeek
+
+output: |
+  #separator \x09
+  #set_separator	,
+  #empty_field	(empty)
+  #unset_field	-
+  #path	conn
+  #fields	ts	d
+  #types	time	interval
+  1000000000.000000	1000000000
+  1.000000	-1
+  1.000000	1
+  112300000.000000	112300000
+  0.000000010	0.00000001

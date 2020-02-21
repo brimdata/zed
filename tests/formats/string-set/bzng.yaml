@@ -1,0 +1,13 @@
+zql: '*'
+
+input: !!binary ggELgAEBZhcYAQEYAQMYAgUAGAULCGR1cBgFCwRhBHoYBQsEYQR6GAoVAARhBHoIZHVw
+
+output: |
+  #0:record[f:set[bstring]]
+  0:[-;]
+  0:[[]]
+  0:[[-;]]
+  0:[[dup;]]
+  0:[[a;z;]]
+  0:[[a;z;]]
+  0:[[-;a;z;dup;]]

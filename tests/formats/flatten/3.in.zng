@@ -1,2 +1,0 @@
-#0:record[_path:string,ts:time,uid:string,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port]]
-0:[conn;1425565514.419939;CogZFI3py5JsFZGik;-;]

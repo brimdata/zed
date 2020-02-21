@@ -1,0 +1,8 @@
+zql: '*'
+
+input: !!binary gwIGCYEXgAEBYRgZEiUZBAESYXNkZmFzZGYBCQIEyBkBAQ==
+
+output: |
+  #0:record[a:array[union[int64,string]]]
+  0:[[1:asdfasdf;-;0:100;]]
+  0:[-;]

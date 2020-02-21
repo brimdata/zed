@@ -1,0 +1,20 @@
+zql: '*'
+
+input: |
+  #separator \x09
+  #empty_field	(empty)
+  #unset_field	-
+  #path	a
+  #fields	ts	d
+  #types	time	double
+  10.0	1.0
+  #path	b
+  #fields	ts	d
+  #types	time	int
+  11.0	1
+
+output: |
+  #0:record[_path:string,ts:time,d:float64]
+  0:[a;10;1;]
+  #1:record[_path:string,ts:time,d:int64]
+  1:[b;11;1;]

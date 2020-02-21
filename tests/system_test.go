@@ -74,17 +74,3 @@ func TestScripts(t *testing.T) {
 		})
 	}
 }
-
-func TestFormats(t *testing.T) {
-	t.Parallel()
-	formatTests, err := findTests("./formats")
-	require.NoError(t, err)
-	for _, cmd := range formatTests {
-		name := cmd.Name
-		t.Run(name, func(t *testing.T) {
-			results, err := cmd.Run(zqpath)
-			require.NoError(t, err)
-			assert.Exactly(t, cmd.Expected, results, "Wrong command results")
-		})
-	}
-}

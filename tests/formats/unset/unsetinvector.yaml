@@ -1,0 +1,21 @@
+zql: '*'
+
+input: |
+  #separator \x09
+  #set_separator	,
+  #empty_field	(empty)
+  #unset_field	-
+  #path	ArrayUnsets
+  #open	2020-01-14-19-11-57
+  #fields	vector_int
+  #types	vector[int]
+  123,-,456
+  (empty)
+  -
+  #close	2020-01-14-20-00-00
+
+output: |
+  #0:record[_path:string,vector_int:array[int64]]
+  0:[ArrayUnsets;[123;-;456;]]
+  0:[ArrayUnsets;[]]
+  0:[ArrayUnsets;-;]

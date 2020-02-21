@@ -1,0 +1,27 @@
+zql: '*'
+
+input: |
+  #separator \x09
+  #set_separator	,
+  #empty_field	(empty)
+  #unset_field	-
+  #fields	f
+  #types	set[string]
+  -
+  (empty)
+
+  dup,dup
+  ,
+  a,z
+  z,a
+  -,z,a,,dup,dup
+
+output: |
+  #0:record[f:set[bstring]]
+  0:[-;]
+  0:[[]]
+  0:[[dup;]]
+  0:[[;]]
+  0:[[a;z;]]
+  0:[[a;z;]]
+  0:[[-;;a;z;dup;]]

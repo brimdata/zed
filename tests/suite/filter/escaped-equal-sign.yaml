@@ -1,0 +1,12 @@
+zql: A\=B
+
+input: |
+  #0:record[s:string]
+  0:[A=B;]
+  0:[A=*;]
+  0:[-;]
+  0:[;]
+
+output: |
+  #0:record[s:string]
+  0:[A=B;]

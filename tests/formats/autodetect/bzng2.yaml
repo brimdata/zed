@@ -1,0 +1,17 @@
+zql: '*'
+
+input: |
+  #0:record[_path:string,ts:time,uid:string,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],version:string,cipher:string,curve:string,server_name:string,resumed:bool,last_alert:string,next_protocol:string,established:bool,cert_chain_fuids:array[string],client_cert_chain_fuids:array[string],subject:string,issuer:string,client_subject:string,client_issuer:string,validation_status:string]
+  0:[ssl;1490385563.053424;CfEBop2hbfJYpjG5Hd;[10.10.7.90;51913;54.230.87.24;443;]TLSv12;TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256;-;choices.truste.com;T;-;http/1.1;T;-;-;-;-;-;-;-;]
+
+output-format: bzng
+
+output: !!binary |
+  gAQGb3JpZ19oDQZvcmlnX3AOBnJlc3BfaA0GcmVzcF9wDoEJgBMFX3BhdGgJAnRzEAN1aW
+  QJAmlkFwd2ZXJzaW9uCQZjaXBoZXIJBWN1cnZlCQtzZXJ2ZXJfbmFtZQkHcmVzdW1lZAAK
+  bGFzdF9hbGVydAkNbmV4dF9wcm90b2NvbAkLZXN0YWJsaXNoZWQAEGNlcnRfY2hhaW5fZn
+  VpZHMYF2NsaWVudF9jZXJ0X2NoYWluX2Z1aWRzGAdzdWJqZWN0CQZpc3N1ZXIJDmNsaWVu
+  dF9zdWJqZWN0CQ1jbGllbnRfaXNzdWVyCRF2YWxpZGF0aW9uX3N0YXR1cwkZhwEIc3NsEg
+  D7VuCL010pJkNmRUJvcDJoYmZKWXBqRzVIZCMKCgoHWgbKyQo25lcYBgG7DlRMU3YxMkxU
+  TFNfRUNESEVfUlNBX1dJVEhfQUVTXzEyOF9HQ01fU0hBMjU2ACZjaG9pY2VzLnRydXN0ZS
+  5jb20EAQASaHR0cC8xLjEEAQEBAAAAAAA=

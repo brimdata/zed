@@ -1,0 +1,15 @@
+zql: '*'
+
+input: |
+  #separator \x09
+  #set_separator	,
+  #empty_field	(empty)
+  #unset_field	-
+  #path	Backslash
+  #fields	my_str
+  #types	string
+  co\\m
+
+output: |
+  #0:record[_path:string,my_str:bstring]
+  0:[Backslash;co\\m;]
