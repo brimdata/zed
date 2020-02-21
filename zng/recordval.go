@@ -152,7 +152,7 @@ func checkVector(typ *TypeArray, body zcode.Bytes) error {
 	if body == nil {
 		return nil
 	}
-	inner := InnerType(typ)
+	inner := InnerType(AliasedType(typ))
 	it := zcode.Iter(body)
 	for !it.Done() {
 		body, container, err := it.Next()
@@ -218,7 +218,7 @@ func checkUnion(typ *TypeUnion, body zcode.Bytes) error {
 	if err != nil {
 		return err
 	}
-	switch v := inner.(type) {
+	switch v := AliasedType(inner).(type) {
 	case *TypeRecord:
 		if !container {
 			return &RecordTypeError{Name: "<record element>", Type: v.String(), Err: ErrNotContainer}
@@ -259,7 +259,7 @@ func checkSet(typ *TypeSet, body zcode.Bytes) error {
 	if body == nil {
 		return nil
 	}
-	inner := InnerType(typ)
+	inner := AliasedType(InnerType(typ))
 	if IsContainerType(inner) {
 		return &RecordTypeError{Name: "<set>", Type: typ.String(), Err: ErrNotPrimitive}
 	}
@@ -301,7 +301,7 @@ func checkRecord(typ *TypeRecord, body zcode.Bytes) error {
 		if err != nil {
 			return err
 		}
-		switch v := col.Type.(type) {
+		switch v := AliasedType(col.Type).(type) {
 		case *TypeRecord:
 			if !container {
 				return &RecordTypeError{Name: col.Name, Type: col.Type.String(), Err: ErrNotContainer}
