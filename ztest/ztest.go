@@ -146,7 +146,7 @@ type ZTest struct {
 	ZQL          string `yaml:"zql"`
 	Input        string `yaml:"input"`
 	OutputFormat string `yaml:"output-format,omitempty"`
-	Output       string `yaml:"output`
+	Output       string `yaml:"output"`
 }
 
 // FromYAMLFile loads a ZTest from the YAML file named filename.
