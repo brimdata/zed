@@ -33,7 +33,7 @@ func SearchEndpoint(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, fmt.Sprintf("unsupported output format: %s", format), http.StatusBadRequest)
 	}
-	// XXX This always returns bad request but should be able to status codes
+	// XXX This always returns bad request but should return status codes
 	// that reflect the nature of the returned error.
 	if err := search.Search(r.Context(), req, out); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
