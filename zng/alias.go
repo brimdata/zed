@@ -52,5 +52,4 @@ func AliasedType(typ Type) Type {
 		return AliasedType(alias.Type)
 	}
 	return typ
-
 }
