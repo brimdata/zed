@@ -45,3 +45,11 @@ func (t *TypeAlias) StringOf(zv zcode.Bytes, out OutFmt, b bool) string {
 func (t *TypeAlias) Marshal(zv zcode.Bytes) (interface{}, error) {
 	return t.Type.Marshal(zv)
 }
+
+func AliasedType(typ Type) Type {
+	alias, isAlias := typ.(*TypeAlias)
+	if isAlias {
+		return AliasedType(alias.Type)
+	}
+	return typ
+}

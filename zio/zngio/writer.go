@@ -79,7 +79,7 @@ func (w *Writer) write(s string) error {
 }
 
 func (w *Writer) writeUnion(parent zng.Value) error {
-	utyp := parent.Type.(*zng.TypeUnion)
+	utyp := zng.AliasedType(parent.Type).(*zng.TypeUnion)
 	inner, index, v, err := utyp.SplitBzng(parent.Bytes)
 	if err != nil {
 		return err
@@ -90,7 +90,7 @@ func (w *Writer) writeUnion(parent zng.Value) error {
 	}
 
 	value := zng.Value{inner, v}
-	if zng.IsContainerType(inner) {
+	if zng.IsContainerType(zng.AliasedType(inner)) {
 		if err := w.writeContainer(value); err != nil {
 			return err
 		}
@@ -107,13 +107,14 @@ func (w *Writer) writeContainer(parent zng.Value) error {
 		w.write("-;")
 		return nil
 	}
-	if _, ok := parent.Type.(*zng.TypeUnion); ok {
+	realType := zng.AliasedType(parent.Type)
+	if _, ok := realType.(*zng.TypeUnion); ok {
 		return w.writeUnion(parent)
 	}
 	if err := w.write("["); err != nil {
 		return err
 	}
-	childType, columns := zng.ContainedType(parent.Type)
+	childType, columns := zng.ContainedType(realType)
 	if childType == nil && columns == nil {
 		return ErrSyntax
 	}

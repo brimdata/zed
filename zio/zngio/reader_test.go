@@ -73,6 +73,21 @@ func TestAlias(t *testing.T) {
 0:[bro;127.0.0.1;]
 #1:record[foo:string,orig_h:ip]
 1:[bar;127.0.0.1;]`)
+
+	boomerang(t, "alias to record", `
+#rec=record[s:string]
+#0:record[r:rec]
+0:[[hello;]]`)
+
+	boomerang(t, "alias to array", `
+#arr=array[int32]
+#0:record[a:arr]
+0:[[1;2;3;]]`)
+
+	boomerang(t, "alias to set", `
+#ss=set[string]
+#0:record[s:ss]
+0:[[a;b;c;]]`)
 }
 
 func TestAliasErr(t *testing.T) {

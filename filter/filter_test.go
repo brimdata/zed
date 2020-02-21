@@ -303,8 +303,10 @@ func TestFilters(t *testing.T) {
 
 	// Test integer conditions.  These are really testing 2 things:
 	// 1. that the full range of values are correctly parsed
-	// 2. since the r.h.s. of a zql filter expression is treated
-	//    as int64, test that coercion happens correctly.
+	// 2. that coercion to int64 works properly (in all the filters
+	//    with integers on the RHS)
+	// 3. that coercion to float64 works properly (in the filters
+	//    with floats on the RHS)
 	record, err = parseOneRecord(`
 #0:record[b:byte,i16:int16,u16:uint16,i32:int32,u32:uint32,i64:int64,u64:uint64]
 0:[0;-32768;0;-2147483648;0;-9223372036854775808;0;]
@@ -315,33 +317,51 @@ func TestFilters(t *testing.T) {
 		{"b = 0", true},
 		{"b < 1", true},
 		{"b > 1", false},
+		{"b = 0.0", true},
+		{"b < 0.5", true},
 
 		{"i16 = -32768", true},
 		{"i16 < 0", true},
 		{"i16 > 0", false},
+		{"i16 = -32768.0", true},
+		{"i16 < 0.0", true},
 
 		{"u16 > -1", true},
 		{"u16 = 0", true},
 		{"u16 < 1", true},
 		{"u16 > 1", false},
+		{"u16 = 0.0", true},
+		{"u16 < 0.5", true},
 
 		{"i32 = -2147483648", true},
 		{"i32 < 0", true},
 		{"i32 > 0", false},
+		{"i32 = -2147483648.0", true},
+		{"i32 < 0.5", true},
 
 		{"u32 > -1", true},
 		{"u32 = 0", true},
 		{"u32 < 1", true},
 		{"u32 > 1", false},
+		{"u32 = 0.0", true},
+		{"u32 < 0.5", true},
 
 		{"i64 = -9223372036854775808", true},
 		{"i64 < 0", true},
 		{"i64 > 0", false},
+		{"i64 < 0.0", true},
+		// MinInt64 can't be represented precisely as a float64
 
 		{"u64 > -1", true},
 		{"u64 = 0", true},
 		{"u64 < 1", true},
 		{"u64 > 1", false},
+		{"u64 = 0.0", true},
+		{"u64 < 0.5", true},
+
+		// Can't coerce an integer to a port
+		{"u16 = :0", false},
+		{"u16 != :0", false},
 	})
 
 	record, err = parseOneRecord(`
@@ -360,16 +380,18 @@ func TestFilters(t *testing.T) {
 		// {"u64 = 18446744073709551615", true},
 	})
 
-	// Test comparisons with an aliased type
+	// Test comparisons with field of type port (can compare with
+	// a port literal or an integer literal)
 	record, err = parseOneRecord(`
-#myint=int32
-#0:record[i:myint]
-0:[100;]`)
+#0:record[p:port]
+0:[443;]
+`)
 	require.NoError(t, err)
 	runCases(t, record, []testcase{
-		{"i = 100", true},
-		{"i > 0", true},
-		{"i < 50", false},
+		{"p = :443", true},
+		{"p = 443", true},
+		{"p = 80", false},
+		{"p = :80", false},
 	})
 
 	// Test coercion from string to bstring
@@ -384,6 +406,34 @@ func TestFilters(t *testing.T) {
 		// Also smoke test that globs work...
 		{"s = hell*", true},
 		{"s = ell*", false},
+	})
+
+	// Test ip comparisons
+	record, err = parseOneRecord(`
+#0:record[a:ip]
+0:[192.168.1.50;]
+`)
+	require.NoError(t, err)
+	runCases(t, record, []testcase{
+		{"a = 192.168.1.50", true},
+		{"a = 50.1.168.192", false},
+		{"a != 50.1.168.192", true},
+		{"a = 192.168.0.0/16", true},
+		{"a != 192.168.0.0/16", false},
+		{"a = 10.0.0.0/16", false},
+		{"a != 10.0.0.0/16", true},
+	})
+
+	// Test comparisons with an aliased type
+	record, err = parseOneRecord(`
+#myint=int32
+#0:record[i:myint]
+0:[100;]`)
+	require.NoError(t, err)
+	runCases(t, record, []testcase{
+		{"i = 100", true},
+		{"i > 0", true},
+		{"i < 50", false},
 	})
 }
 

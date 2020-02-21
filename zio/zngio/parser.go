@@ -51,10 +51,11 @@ const (
 // zngParseContainer parses the given byte array representing a container
 // in the zng format.
 func zngParseContainer(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, error) {
+	realType := zng.AliasedType(typ)
 	builder.BeginContainer()
 	// skip leftbracket
 	b = b[1:]
-	childType, columns := zng.ContainedType(typ)
+	childType, columns := zng.ContainedType(realType)
 	if childType == nil && columns == nil {
 		return nil, zng.ErrNotPrimitive
 	}
@@ -64,7 +65,7 @@ func zngParseContainer(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, 
 			return nil, ErrUnterminated
 		}
 		if b[0] == rightbracket {
-			if _, ok := typ.(*zng.TypeSet); ok {
+			if _, ok := realType.(*zng.TypeSet); ok {
 				builder.TransformContainer(zng.NormalizeSet)
 			}
 			builder.EndContainer()
@@ -88,18 +89,20 @@ func zngParseContainer(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, 
 // zngParseField parses the given byte array representing any value
 // in the zng format.
 func zngParseField(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, error) {
+	realType := zng.AliasedType(typ)
 	var err error
 	var index int
 	if len(b) >= 2 && b[0] == '-' && b[1] == ';' {
-		if zng.IsContainerType(typ) {
+		if zng.IsContainerType(realType) {
 			builder.AppendContainer(nil)
 		} else {
 			builder.AppendPrimitive(nil)
 		}
 		return b[2:], nil
 	}
-	if utyp, ok := typ.(*zng.TypeUnion); ok {
-		typ, index, b, err = utyp.SplitZng(b)
+	if utyp, ok := realType.(*zng.TypeUnion); ok {
+		var childType zng.Type
+		childType, index, b, err = utyp.SplitZng(b)
 		if err != nil {
 			return nil, err
 		}
@@ -108,12 +111,12 @@ func zngParseField(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, erro
 		var a [8]byte
 		n := zcode.EncodeCountedUvarint(a[:], uint64(index))
 		builder.AppendPrimitive(a[:n])
-		return zngParseField(builder, typ, b)
+		return zngParseField(builder, childType, b)
 	}
 	if b[0] == leftbracket {
 		return zngParseContainer(builder, typ, b)
 	}
-	if zng.IsContainerType(typ) {
+	if zng.IsContainerType(realType) {
 		return nil, zng.ErrNotContainer
 	}
 
@@ -133,7 +136,7 @@ func zngParseField(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, erro
 		}
 	}
 
-	zv, err := typ.Parse(b[:i])
+	zv, err := realType.Parse(b[:i])
 	if err != nil {
 		return nil, err
 	}

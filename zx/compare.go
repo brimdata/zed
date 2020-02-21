@@ -151,46 +151,6 @@ func CompareInt64(op string, pattern int64) (Predicate, error) {
 	}, nil
 }
 
-func CompareUint64(op string, pattern uint64) (Predicate, error) {
-	CompareUint, ok1 := compareUint[op]
-	CompareFloat, ok2 := compareFloat[op]
-	if !ok1 || !ok2 {
-		return nil, fmt.Errorf("unknown int comparator: %s", op)
-	}
-	// many different zeek data types can be compared with integers
-	return func(val zng.Value) bool {
-		zv := val.Bytes
-		switch val.Type.ID() {
-		case zng.IdInt16, zng.IdInt32, zng.IdInt64:
-			v, err := zng.DecodeInt(zv)
-			if err == nil && v > 0 {
-				return CompareUint(uint64(v), pattern)
-			}
-		case zng.IdUint16, zng.IdUint32, zng.IdUint64:
-			v, err := zng.DecodeUint(zv)
-			if err == nil {
-				return CompareUint(v, pattern)
-			}
-		case zng.IdFloat64:
-			v, err := zng.DecodeFloat64(zv)
-			if err == nil {
-				return CompareFloat(v, float64(pattern))
-			}
-		case zng.IdTime:
-			ts, err := zng.DecodeTime(zv)
-			if err == nil {
-				return CompareUint(uint64(ts), pattern*1e9)
-			}
-		case zng.IdDuration:
-			v, err := zng.DecodeInt(zv)
-			if err == nil {
-				return CompareUint(uint64(v), pattern*1e9)
-			}
-		}
-		return false
-	}, nil
-}
-
 func CompareContainerLen(op string, len int64) (Predicate, error) {
 	compare, ok := compareInt[op]
 	if !ok {
@@ -258,6 +218,11 @@ func CompareFloat64(op string, pattern float64) (Predicate, error) {
 			v, err := zng.DecodeFloat64(zv)
 			if err == nil {
 				return compare(v, pattern)
+			}
+		case zng.IdByte:
+			v, err := zng.DecodeByte(zv)
+			if err == nil {
+				return compare(float64(v), pattern)
 			}
 		case zng.IdInt16, zng.IdInt32, zng.IdInt64:
 			v, err := zng.DecodeInt(zv)
@@ -513,7 +478,5 @@ func Comparison(op string, literal ast.Literal) (Predicate, error) {
 		return ComparePort(op, uint32(v))
 	case int64:
 		return CompareInt64(op, v)
-	case uint64:
-		return CompareUint64(op, v)
 	}
 }
