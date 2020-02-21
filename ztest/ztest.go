@@ -32,7 +32,7 @@
 //      2
 //
 // Ztest YAML files for a package should reside in a subdirectory named
-// testdata/ztest.  The package should also contain a file named ztest_test.go.
+// testdata/ztest.
 //
 //     pkg/
 //       pkg.go
@@ -42,20 +42,11 @@
 //           test-1.yaml
 //           test-2.yaml
 //           ...
-//       ztest_test.go
 //
 // Name YAML files descriptively since each ztest runs as a subtest
 // named for the file that defines it.
 //
-// ztest_test.go should contain a single Go test that calls Run.
-//
-//     package ztest_test
-//
-//     import (
-//             "testing"
-//
-//             "github.com/brimsec/zq/ztest"
-//     )
+// pkg_test.go should contain a Go test named TestZTest that calls Run.
 //
 //     func TestZTest(t *testing.T) { ztest.Run(t, "testdata/ztest") }
 //
