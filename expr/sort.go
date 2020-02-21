@@ -57,7 +57,7 @@ func NewSortFn(nullsMax bool, fields ...FieldExprResolver) SortFn {
 
 			// If values are of different types, just compare
 			// the native representation of the type
-			if !zng.SameType(a.Type, b.Type) {
+			if a.Type.ID() != b.Type.ID() {
 				return bytes.Compare([]byte(a.Type.String()), []byte(b.Type.String()))
 			}
 
@@ -156,12 +156,12 @@ func lookupSorter(typ zng.Type) comparefn {
 			}
 		}
 	}
-	switch typ {
+	switch typ.ID() {
 	default:
 		return func(a, b zcode.Bytes) int {
 			return bytes.Compare(a, b)
 		}
-	case zng.TypeBool:
+	case zng.IdBool:
 		return func(a, b zcode.Bytes) int {
 			va, err := zng.DecodeBool(a)
 			if err != nil {
@@ -180,12 +180,12 @@ func lookupSorter(typ zng.Type) comparefn {
 			return -1
 		}
 
-	case zng.TypeString:
+	case zng.IdString:
 		return func(a, b zcode.Bytes) int {
 			return bytes.Compare(a, b)
 		}
 
-	case zng.TypeInt16, zng.TypeInt32, zng.TypeInt64:
+	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
 		return func(a, b zcode.Bytes) int {
 			va, err := zng.DecodeInt(a)
 			if err != nil {
@@ -203,7 +203,7 @@ func lookupSorter(typ zng.Type) comparefn {
 			return 0
 		}
 
-	case zng.TypeUint16, zng.TypeUint32, zng.TypeUint64:
+	case zng.IdUint16, zng.IdUint32, zng.IdUint64:
 		return func(a, b zcode.Bytes) int {
 			va, err := zng.DecodeUint(a)
 			if err != nil {
@@ -225,7 +225,7 @@ func lookupSorter(typ zng.Type) comparefn {
 	// to docs but we've only encountered ints in data files.
 	// need to fix this.  XXX also we should break this sorts
 	// into the different types.
-	case zng.TypePort:
+	case zng.IdPort:
 		return func(a, b zcode.Bytes) int {
 			va, err := zng.DecodePort(a)
 			if err != nil {
@@ -243,7 +243,7 @@ func lookupSorter(typ zng.Type) comparefn {
 			return 0
 		}
 
-	case zng.TypeFloat64:
+	case zng.IdFloat64:
 		return func(a, b zcode.Bytes) int {
 			va, err := zng.DecodeFloat64(a)
 			if err != nil {
@@ -261,7 +261,7 @@ func lookupSorter(typ zng.Type) comparefn {
 			return 0
 		}
 
-	case zng.TypeTime:
+	case zng.IdTime:
 		return func(a, b zcode.Bytes) int {
 			va, err := zng.DecodeTime(a)
 			if err != nil {
@@ -279,7 +279,7 @@ func lookupSorter(typ zng.Type) comparefn {
 			return 0
 		}
 
-	case zng.TypeDuration:
+	case zng.IdDuration:
 		return func(a, b zcode.Bytes) int {
 			va, err := zng.DecodeDuration(a)
 			if err != nil {
@@ -297,7 +297,7 @@ func lookupSorter(typ zng.Type) comparefn {
 			return 0
 		}
 
-	case zng.TypeIP:
+	case zng.IdIP:
 		return func(a, b zcode.Bytes) int {
 			va, err := zng.DecodeIP(a)
 			if err != nil {

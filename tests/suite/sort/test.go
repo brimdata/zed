@@ -193,3 +193,27 @@ var Internal4_4 = test.Internal{
 	OutputFormat: "zng",
 	Expected:     test.Trim(out4_4),
 }
+
+const inAlias = `
+#0:record[host:ip]
+0:[127.0.0.2;]
+#ipaddr=ip
+#1:record[host:ipaddr]
+1:[127.0.0.1;]
+`
+
+const outAlias = `
+#ipaddr=ip
+#0:record[host:ipaddr]
+0:[127.0.0.1;]
+#1:record[host:ip]
+1:[127.0.0.2;]
+`
+
+var SortAlias = test.Internal{
+	Name:         "sort alias",
+	Query:        "sort host",
+	Input:        test.Trim(inAlias),
+	OutputFormat: "zng",
+	Expected:     test.Trim(outAlias),
+}

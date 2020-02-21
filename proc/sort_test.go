@@ -128,20 +128,6 @@ const chooseOut3 = `
 4:[c;a;]
 `
 
-const sortAliasIn = `
-#0:record[host:ip]
-0:[127.0.0.2;]
-#ipaddr=ip
-#1:record[host:ipaddr]
-1:[127.0.0.1;]
-`
-
-const sortAliasOut = `
-#0:record[host:ip]
-0:[127.0.0.2;]
-0:[127.0.0.1;]
-`
-
 func TestSort(t *testing.T) {
 	// Test simple sorting of integers.
 	proc.TestOneProc(t, unsortedInts, ascendingInts, "sort foo")
@@ -169,9 +155,6 @@ func TestSort(t *testing.T) {
 	// Test sorting on multiple fields.
 	proc.TestOneProc(t, multiIn, foobarOut, "sort foo, bar")
 	proc.TestOneProc(t, multiIn, barfooOut, "sort bar, foo")
-
-	// Test sorting on aliases.
-	proc.TestOneProc(t, sortAliasIn, sortAliasOut, "sort host")
 
 	// Test that choosing a field when none is provided works.
 	proc.TestOneProc(t, chooseIn1, chooseOut1, "sort")
