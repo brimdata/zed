@@ -26,9 +26,6 @@ import (
 const DefaultMTU = 100
 
 func Search(ctx context.Context, req api.SearchRequest, out Output) error {
-	//XXX We do not support root dir param right now. If query.Space is an
-	// absolute path we will ignore the root dir param. For now relative paths
-	// will be resolved from cwd.
 	if req.Span.Ts < 0 {
 		return errors.New("time span must have non-negative timestamp")
 	}
