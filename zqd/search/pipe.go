@@ -10,7 +10,6 @@ import (
 // to separate JSON objects using two newline characters as described in
 // https://github.com/eBay/jsonpipe
 type JSONPipe struct {
-	*http.Request
 	http.ResponseWriter
 	encoder   *json.Encoder
 	separator []byte
@@ -20,10 +19,8 @@ type JSONPipe struct {
 // the indicated request.  The Start should be called to initiate the pipe.
 // Then JSON objects are transmitted by calling the Send method one or more times.
 // The pipe is closed by calling the End method.
-func NewJSONPipe(r *http.Request, w http.ResponseWriter) *JSONPipe {
-	r.Header.Add("Content-Type", "application/x-ndjson")
+func NewJSONPipe(w http.ResponseWriter) *JSONPipe {
 	p := &JSONPipe{
-		Request:        r,
 		ResponseWriter: w,
 		encoder:        json.NewEncoder(w),
 		separator:      []byte("\n\n"),
@@ -40,9 +37,6 @@ func (p *JSONPipe) flush() {
 // underlying HTTP connection.  Returns an errorr and does not transmit the message
 // if the connection has already been set into an error state.
 func (p *JSONPipe) Send(payload interface{}) error {
-	if err := p.Context().Err(); err != nil {
-		return err
-	}
 	if err := p.encoder.Encode(payload); err != nil {
 		return err
 	}

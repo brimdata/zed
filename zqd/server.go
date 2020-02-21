@@ -4,9 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/brimsec/zq/zqd/pcap"
-	"github.com/brimsec/zq/zqd/search"
-	"github.com/brimsec/zq/zqd/space"
 	"github.com/gorilla/mux"
 )
 
@@ -20,9 +17,10 @@ var Version VersionMessage
 
 func NewHandler() http.Handler {
 	r := mux.NewRouter()
-	space.AddRoutes(r)
-	search.AddRoutes(r)
-	pcap.AddRoutes(r)
+	r = r.UseEncodedPath()
+	r.HandleFunc("/space/{space}/", SpaceInfoEndpoint).Methods("GET")
+	r.HandleFunc("/space/{space}/packet/", PacketSearchEndpoint).Methods("GET")
+	r.HandleFunc("/search/", SearchEndpoint).Methods("POST")
 	r.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(&Version)
