@@ -21,7 +21,14 @@ func NewHandler() http.Handler {
 	mux.HandleFunc("/search", func(w http.ResponseWriter, r *http.Request) {
 		search.Handle(w, r)
 	})
+	mux.HandleFunc("/space", func(w http.ResponseWriter, r *http.Request) {
+		space.HandleList(w, r)
+	})
 	mux.HandleFunc("/space/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.String() == "/space/" {
+			space.HandleList(w, r)
+			return
+		}
 		space.HandleInfo(w, r)
 	})
 	mux.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
