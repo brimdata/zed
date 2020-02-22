@@ -151,61 +151,8 @@ func (w *Writer) writeValue(v zng.Value) error {
 	if v.IsUnsetOrNil() {
 		return w.write("-;")
 	}
-	if err := w.writeEscaped([]byte(v.Format(zng.OutFormatZNG))); err != nil {
+	if err := w.write(v.Format(zng.OutFormatZNG)); err != nil {
 		return err
 	}
 	return w.write(";")
-}
-
-func (w *Writer) escape(c byte) error {
-	const hex = "0123456789abcdef"
-	var b [4]byte
-	b[0] = '\\'
-	b[1] = 'x'
-	b[2] = hex[c>>4]
-	b[3] = hex[c&0xf]
-	_, err := w.Writer.Write(b[:])
-	return err
-}
-
-func (w *Writer) writeEscaped(val []byte) error {
-	if len(val) == 0 {
-		return nil
-	}
-	if len(val) == 1 && val[0] == '-' {
-		return w.escape('-')
-	}
-	// We escape a bracket if it appears as the first byte of a value;
-	// we otherwise don't need to escape brackets.
-	if val[0] == '[' || val[0] == ']' {
-		if err := w.escape(val[0]); err != nil {
-			return err
-		}
-		val = val[1:]
-	}
-	off := 0
-	for off < len(val) {
-		c := val[off]
-		switch c {
-		case ';':
-			if off > 0 {
-				_, err := w.Writer.Write(val[:off])
-				if err != nil {
-					return err
-				}
-			}
-			if err := w.escape(c); err != nil {
-				return err
-			}
-			val = val[off+1:]
-			off = 0
-		default:
-			off++
-		}
-	}
-	var err error
-	if len(val) > 0 {
-		_, err = w.Writer.Write(val)
-	}
-	return err
 }
