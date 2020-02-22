@@ -12,7 +12,7 @@ import (
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
-	"github.com/brimsec/zq/zqd/pcap"
+	"github.com/brimsec/zq/zqd/pcapdemo"
 )
 
 func HandleList(w http.ResponseWriter, r *http.Request) {
@@ -78,7 +78,7 @@ func spaceInfo(spaceName, path string) (*api.SpaceInfo, error) {
 	s := &api.SpaceInfo{
 		Name:          spaceName,
 		Size:          info.Size(),
-		PacketSupport: pcap.HasPcaps(spaceName),
+		PacketSupport: pcapdemo.HasPcaps(spaceName),
 	}
 	if found {
 		s.MinTime = &minTs
@@ -106,7 +106,7 @@ func HandleInfo(w http.ResponseWriter, r *http.Request) {
 	}
 	spaceName, pcapSpace := parseSpace(r.URL.Path)
 	if pcapSpace != "" {
-		pcap.HandleGet(w, r, pcapSpace)
+		pcapdemo.HandleGet(w, r, pcapSpace)
 		return
 	}
 	root := "."
