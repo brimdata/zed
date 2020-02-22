@@ -127,7 +127,6 @@ func (c *Command) Run(args []string) error {
 		}
 		defer in.Close()
 	}
-	defer in.Close()
 	reader := io.Reader(in)
 	if c.indexFile != "" {
 		index, err := pcap.LoadIndex(c.indexFile)
