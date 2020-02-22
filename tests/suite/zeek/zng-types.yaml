@@ -1,0 +1,18 @@
+# Test that ZNG types are mapped into proper equivalent Zeek types.
+
+zql: '*'
+
+input: &input |
+  #0:record[b:byte,i16:int16,u16:uint16,i32:int32,u32:uint32,i64:int64,u64:uint64,a:ip,n:net,d:duration]
+  0:[0;0;0;0;0;0;0;10.1.2.3;10.0.0.0/8;1000;]
+
+output-format: zeek
+
+output: &output |
+  #separator \x09
+  #set_separator	,
+  #empty_field	(empty)
+  #unset_field	-
+  #fields	b	i16	u16	i32	u32	i64	u64	a	n	d
+  #types	int	int	int	int	int	int	count	addr	subnet	interval
+  0	0	0	0	0	0	0	10.1.2.3	10.0.0.0/8	1000
