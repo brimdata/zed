@@ -4,10 +4,8 @@ import (
 	"bufio"
 	"errors"
 	"flag"
-	"fmt"
 	"io"
 	"os"
-	"strconv"
 
 	"github.com/brimsec/zq/cmd/pcap/root"
 	"github.com/brimsec/zq/pcap"
@@ -79,11 +77,7 @@ func parseTime(s string, def nano.Ts) (nano.Ts, error) {
 	if s == "" {
 		return def, nil
 	}
-	v, err := strconv.Atoi(s)
-	if err != nil {
-		err = fmt.Errorf("time parameter must be integer nanosecond")
-	}
-	return nano.Ts(v), err
+	return nano.Parse([]byte(s))
 }
 
 func parseSpan(sfrom, sto string) (nano.Span, error) {
@@ -114,7 +108,6 @@ func (c *Command) Run(args []string) error {
 	} else if len(args) != 0 {
 		return errors.New("pcap slice: XXX")
 	}
-	//XXX TBD: ts is nanosecond integer.  allow other time syntax.
 	span, err := parseSpan(c.from, c.to)
 	if err != nil {
 		return err

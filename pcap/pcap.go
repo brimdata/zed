@@ -113,6 +113,12 @@ func (r *Reader) readHeader() error {
 	return nil
 }
 
+func (r *Reader) TsFromHeader(hdr []byte) nano.Ts {
+	ns := int64(r.byteOrder.Uint32(hdr[0:4])) * 1_000_000_000
+	ns += int64(r.byteOrder.Uint32(hdr[4:8])*r.nanoSecsFactor)
+	return nano.Ts(ns)
+}
+
 func (r *Reader) ReadBlock(span nano.Span) ([]byte, error) {
 	header := r.header
 	if header != nil {
@@ -137,8 +143,7 @@ again:
 		return nil, err
 	}
 	r.Offset += uint64(caplen + packetHeaderLen)
-	uts := time.Unix(int64(r.byteOrder.Uint32(hdr[0:4])), int64(r.byteOrder.Uint32(hdr[4:8])*r.nanoSecsFactor)).UTC()
-	ts := nano.TimeToTs(uts)
+	ts := r.TsFromHeader(hdr)
 	if !span.Contains(ts) {
 		goto again
 	}

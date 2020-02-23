@@ -17,7 +17,7 @@ var Index = &charm.Spec{
 	Usage: "index [options]",
 	Short: "creates time index files for pcaps for use by pcap slice",
 	Long: `
-The index sub-command creates a time index for a pcap file.  The pcap file is not
+The index command creates a time index for a pcap file.  The pcap file is not
 modified or copy.
 
 Roughly speaking, the index is a list of slots that represents
@@ -44,22 +44,23 @@ func init() {
 type Command struct {
 	*root.Command
 	limit      int
+	inputFile  string
 	outputFile string
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
+	f.StringVar(&c.inputFile, "r", "", "pcap file to index")
 	f.StringVar(&c.outputFile, "x", "-", "name of output file for the index or - for stdout")
 	f.IntVar(&c.limit, "n", 10000, "limit on index size")
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	if len(args) != 1 {
-		return errors.New("capindex: must be provide single pcap file as argument")
+	if len(args) != 0 || c.inputFile == "" {
+		return errors.New("pcap index: must be provide single pcap file as -r argument")
 	}
-	path := args[0]
-	index, err := pcap.CreateIndex(path, c.limit)
+	index, err := pcap.CreateIndex(c.inputFile, c.limit)
 	if err != nil {
 		return err
 	}
