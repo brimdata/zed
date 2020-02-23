@@ -115,7 +115,7 @@ func (r *Reader) readHeader() error {
 
 func (r *Reader) TsFromHeader(hdr []byte) nano.Ts {
 	ns := int64(r.byteOrder.Uint32(hdr[0:4])) * 1_000_000_000
-	ns += int64(r.byteOrder.Uint32(hdr[4:8])*r.nanoSecsFactor)
+	ns += int64(r.byteOrder.Uint32(hdr[4:8]) * r.nanoSecsFactor)
 	return nano.Ts(ns)
 }
 

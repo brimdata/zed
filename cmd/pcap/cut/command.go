@@ -102,11 +102,11 @@ func (c *Command) Run(args []string) error {
 	if len(cuts) == 0 {
 		return errors.New("no cuts provided")
 	}
-        n := max(cuts) + 1
-        if n > 500_000_000 {
-                //XXX
+	n := max(cuts) + 1
+	if n > 500_000_000 {
+		//XXX
 		return errors.New("cut too big to fit in memory")
-        }
+	}
 	in := os.Stdin
 	if c.inputFile != "-" {
 		var err error
@@ -131,38 +131,38 @@ func (c *Command) Run(args []string) error {
 		out = w
 	}
 
-        // XXX assumes legacy pcap format
-        reader, err := pcap.NewReader(in)
-        if err != nil {
-                return err
-        }
-        span := nano.NewSpanTs(0, nano.MaxTs)
-        hdr, err := reader.ReadBlock(span)
+	// XXX assumes legacy pcap format
+	reader, err := pcap.NewReader(in)
+	if err != nil {
+		return err
+	}
+	span := nano.NewSpanTs(0, nano.MaxTs)
+	hdr, err := reader.ReadBlock(span)
 	if err != nil {
 		return err
 	}
 	out.Write(hdr)
-        var pkts [][]byte
+	var pkts [][]byte
 	for len(pkts) < n {
 		block, err := reader.ReadBlock(span)
 		if err != nil {
 			if err == io.EOF {
-                                break
+				break
 			}
 			return err
 		}
 		if block == nil {
-                        return fmt.Errorf("cutting outside of pcap: only %d packets in the input", len(pkts))
+			return fmt.Errorf("cutting outside of pcap: only %d packets in the input", len(pkts))
 		}
-                pkt := make([]byte, len(block))
-                copy(pkt, block)
-                pkts = append(pkts, pkt)
+		pkt := make([]byte, len(block))
+		copy(pkt, block)
+		pkts = append(pkts, pkt)
 	}
-        for _, pos := range cuts {
-                _, err := out.Write(pkts[pos])
-                if err != nil {
-                        return err
-                }
-        }
+	for _, pos := range cuts {
+		_, err := out.Write(pkts[pos])
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
