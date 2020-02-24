@@ -1,11 +1,14 @@
 package zeekio
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/brimsec/zq/zng"
 )
+
+var ErrIncompatibleZeekType = errors.New("type cannot be represented in zeek format")
 
 // Compatibility between the Zeek and ZNG type systems has a few rough
 // edges.  Several types have to be rewritten before we get into ZNG:
@@ -37,32 +40,42 @@ func zeekTypeToZng(typ string) string {
 	return typ
 }
 
-func zngTypeToZeek(typ zng.Type) string {
+func zngTypeToZeek(typ zng.Type) (string, error) {
 	switch typ := typ.(type) {
 	case *zng.TypeArray:
-		return fmt.Sprintf("vector[%s]", zngTypeToZeek(typ.Type))
+		inner, err := zngTypeToZeek(typ.Type)
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("vector[%s]", inner), nil
 	case *zng.TypeSet:
-		return fmt.Sprintf("set[%s]", zngTypeToZeek(typ.InnerType))
-	case *zng.TypeOfInt16, *zng.TypeOfInt32, *zng.TypeOfInt64, *zng.TypeOfUint16, *zng.TypeOfUint32:
-		return "int"
+		inner, err := zngTypeToZeek(typ.InnerType)
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("set[%s]", inner), nil
+	case *zng.TypeOfByte, *zng.TypeOfInt16, *zng.TypeOfInt32, *zng.TypeOfInt64, *zng.TypeOfUint16, *zng.TypeOfUint32:
+		return "int", nil
 	case *zng.TypeOfUint64:
-		return "count"
+		return "count", nil
 	case *zng.TypeOfFloat64:
-		return "double"
+		return "double", nil
 	case *zng.TypeOfIP:
-		return "addr"
+		return "addr", nil
 	case *zng.TypeOfNet:
-		return "subnet"
+		return "subnet", nil
 	case *zng.TypeOfDuration:
-		return "interval"
+		return "interval", nil
 	case *zng.TypeOfBstring:
-		return "string"
+		return "string", nil
 	case *zng.TypeAlias:
 		if typ.Name == "zenum" {
-			return "enum"
+			return "enum", nil
 		}
-		return typ.String()
+		return zngTypeToZeek(typ.Type)
+	case *zng.TypeOfBool, *zng.TypeOfString, *zng.TypeOfPort, *zng.TypeOfTime:
+		return typ.String(), nil
 	default:
-		return typ.String()
+		return "", fmt.Errorf("type %s: %w", typ, ErrIncompatibleZeekType)
 	}
 }

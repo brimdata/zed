@@ -45,7 +45,10 @@ func (w *Writer) Write(r *zng.Record) error {
 	}
 	path, _ := r.AccessString("_path")
 	if r.Type != w.typ || path != w.Path {
-		w.writeHeader(r, path)
+		err = w.writeHeader(r, path)
+		if err != nil {
+			return err
+		}
 		w.typ = r.Type
 	}
 	values, changePrecision, err := zbuf.ZeekStrings(r, w.precision, w.format)
@@ -104,7 +107,11 @@ func (w *Writer) writeHeader(r *zng.Record, path string) error {
 			if col.Name == "_path" {
 				continue
 			}
-			s += fmt.Sprintf("\t%s", zngTypeToZeek(col.Type))
+			t, err := zngTypeToZeek(col.Type)
+			if err != nil {
+				return err
+			}
+			s += fmt.Sprintf("\t%s", t)
 		}
 		s += "\n"
 	}
