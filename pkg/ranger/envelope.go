@@ -1,3 +1,13 @@
+// Package ranger provides a way to take a function expressed as cartesian points,
+// downsample the points to a bounded number of bins by computing a range of the
+// points that represent the downsampled bins (called the Envelope), then querying
+// the Envelope with a range to find the smallest domain of X values that cover the
+// range queried.  A useful application of this is to index a very large file
+// comprised of chunks of data tagged say by time, then arrange the seek offsets
+// of the file as the X values and the time stamps as the Y values to determine
+// the min and max seek offsets into a file that will cover a given time range.
+// This is robust to out-of-order data chunks and performs best if the data
+// is mostly in order, but performs correctly for any data order.
 package ranger
 
 import (
