@@ -20,25 +20,36 @@ const (
 type Reader struct {
 	peeker *peeker.Reader
 	zctx   *resolver.Context
+	mapper *resolver.Mapper
 }
 
 func NewReader(reader io.Reader, zctx *resolver.Context) *Reader {
 	return &Reader{
 		peeker: peeker.NewReader(reader, ReadSize, MaxSize),
-		zctx:   zctx,
+		zctx:   resolver.NewContext(),
+		mapper: resolver.NewMapper(zctx),
 	}
 }
 
 func (r *Reader) Read() (*zng.Record, error) {
 	for {
-		r, b, err := r.ReadPayload()
+		rec, b, err := r.ReadPayload()
 		if b != nil {
 			if err != nil {
 				return nil, err
 			}
 			continue
 		}
-		return r, err
+		if rec == nil {
+			return nil, err
+		}
+		id := rec.Type.ID()
+		sharedType := r.mapper.Map(id)
+		if sharedType == nil {
+			sharedType = r.mapper.Enter(id, rec.Type)
+		}
+		rec.Type = sharedType
+		return rec, err
 	}
 }
 
