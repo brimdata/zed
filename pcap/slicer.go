@@ -55,6 +55,11 @@ func (s *Slicer) Read(b []byte) (int, error) {
 	return 0, io.EOF
 }
 
+type Slice struct {
+	Offset uint64
+	Length uint64
+}
+
 func (s Slice) Overlaps(x Slice) bool {
 	return x.Offset >= s.Offset && x.Offset < s.Offset+x.Length
 }

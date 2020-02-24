@@ -18,7 +18,7 @@ var Index = &charm.Spec{
 	Short: "creates time index files for pcaps for use by pcap slice",
 	Long: `
 The index command creates a time index for a pcap file.  The pcap file is not
-modified or copy.
+modified or copied.
 
 Roughly speaking, the index is a list of slots that represents
 a seek offset and time range covered by the packets starting at the offset

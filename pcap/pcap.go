@@ -1,3 +1,9 @@
+// The code in this source file is derived from
+// https://github.com/google/gopacket/blob/master/pcapgo/read.go
+// as of February 2020 and is covered by the copyright below.
+// The changes are covered by the copyright and license in the
+// LICENSE file in the root directory of this repository.
+
 // Copyright 2014 Damjan Cvetko. All rights reserved.
 //
 // Use of this source code is governed by a BSD-style license
@@ -22,7 +28,7 @@ import (
 // format.  See http://wiki.wireshark.org/Development/LibpcapFileFormat
 // for information on the file format.
 //
-// We currenty read v2.4 file format with nanosecond and microsecdond
+// We currenty read v2.4 file format with nanosecond and microsecond
 // timestamp resolution in little-endian and big-endian encoding.
 //
 // If the PCAP data is gzip compressed it is transparently uncompressed
@@ -225,7 +231,7 @@ func (r *Reader) SetSnaplen(newSnaplen uint32) {
 	r.snaplen = newSnaplen
 }
 
-// Reader formater
+// Reader formatter
 func (r *Reader) String() string {
 	return fmt.Sprintf("PcapFile  maj: %x min: %x snaplen: %d linktype: %s", r.versionMajor, r.versionMinor, r.snaplen, r.linkType)
 }

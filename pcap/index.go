@@ -20,11 +20,6 @@ type Section struct {
 	Index  ranger.Envelope
 }
 
-type Slice struct {
-	Offset uint64
-	Length uint64
-}
-
 // CreateIndex creates an index for a legacy pcap file.  If the file isn't
 // a legacy pcap file, an error is returned allowing the caller to try reading
 // the file as a legacy pcap then revert to nextgen pcap on error.

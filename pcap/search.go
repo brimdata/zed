@@ -29,6 +29,7 @@ type Search struct {
 // NewSearch creates a new search object.
 func NewSearch(span nano.Span, proto string, srcHost string, srcPort *uint16, dstHost string, dstPort *uint16) (*Search, error) {
 	switch proto {
+	// XXX TBD add support for icmp and other packet filters
 	//case "icmp", "tcp", "udp":
 	case "tcp", "udp":
 	default:
@@ -115,7 +116,7 @@ func (s *Search) Run(w io.Writer, r io.Reader) error {
 		block, err := pcap.ReadBlock(s.span)
 		if err != nil {
 			if err == io.EOF {
-				err = nil
+				break
 			}
 			return err
 		}
