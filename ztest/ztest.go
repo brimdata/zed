@@ -141,6 +141,8 @@ type ZTest struct {
 	Output       string `yaml:"output"`
 }
 
+// Inputs is an array of strings. Its only purpose is to support parsing of
+// both single string and array yaml values for the field ZTest.Input.
 type Inputs []string
 
 func (i *Inputs) UnmarshalYAML(value *yaml.Node) error {
@@ -180,8 +182,8 @@ func FromYAMLFile(filename string) (*ZTest, error) {
 	return &z, nil
 }
 
-// Run runs the query in ZQL over input and returns the output formatted
-// according to outputFormat.  input may be in any format recognized by "zq -i
+// Run runs the query in ZQL over inputs and returns the output formatted
+// according to outputFormat. inputs may be in any format recognized by "zq -i
 // auto" and maybe be gzip-compressed.  outputFormat may be any string accepted
 // by "zq -f".  If zq is empty, the query runs in the current process.  If zq is
 // not empty, it specifies a zq executable that will be used to run the query.
