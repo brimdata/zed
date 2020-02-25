@@ -1,15 +1,14 @@
-package pcap
+package pcapdemo
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
-	"sync"
 
+	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pkg/nano"
 )
 
@@ -43,7 +42,6 @@ func (ps *PacketSearch) ToQuery() url.Values {
 	if ps.DstPort != nil {
 		q.Add("dst_port", strconv.Itoa(int(*ps.DstPort)))
 	}
-
 	return q
 }
 
@@ -79,12 +77,10 @@ func (ps *PacketSearch) FromQuery(v url.Values) error {
 		sp := uint16(p)
 		ps.DstPort = &sp
 	}
-
 	span := nano.Span{
 		Ts:  nano.Unix(tsSec, tsNs),
 		Dur: nano.Duration(durSec, durNs),
 	}
-
 	ps.Span = span
 	ps.Proto = v.Get("proto")
 	ps.SrcHost = v.Get("src_host")
@@ -92,12 +88,12 @@ func (ps *PacketSearch) FromQuery(v url.Values) error {
 	return err
 }
 
-func genConn(url *url.URL) (*Connection, error) {
+func parse(url *url.URL) (*pcap.Search, error) {
 	search := &PacketSearch{}
 	if err := search.FromQuery(url.Query()); err != nil {
 		return nil, err
 	}
-	return NewConnection(
+	return pcap.NewSearch(
 		search.Span,
 		search.Proto,
 		search.SrcHost,
@@ -114,56 +110,58 @@ func HandleGet(w http.ResponseWriter, r *http.Request, spaceName string) {
 		http.Error(w, "bad method", http.StatusBadRequest)
 		return
 	}
-	store, err := getPcapStore(spaceName)
+	pcapPath, pcapIndexPath, err := pcapFiles(spaceName)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	conn, err := genConn(r.URL)
+	search, err := parse(r.URL)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	preader, err := Search(store, conn)
+	index, err := pcap.LoadIndex(pcapIndexPath)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	f, err := os.Open(pcapPath)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	defer f.Close()
+	slicer, err := pcap.NewSlicer(f, index, search.Span())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	w.Header().Set("Content-Type", "application/vnd.tcpdump.pcap")
-	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%s.pcap", conn.ID()))
-	_, err = io.Copy(w, preader)
+	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%s.pcap", search.ID()))
+	err = search.Run(w, slicer)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 }
 
-func isDir(path string) bool {
+func isFile(path string) bool {
 	info, err := os.Stat(path)
 	if err != nil {
 		return false
 	}
-	return info.IsDir()
+	return !info.IsDir()
 }
 
 func HasPcaps(spaceName string) bool {
-	dirPath := filepath.Join(".", spaceName, "packets")
-	return isDir(dirPath)
+	return isFile(filepath.Join(".", spaceName, "packets.idx.json"))
 }
 
-var pmap sync.Map
-
-func getPcapStore(spaceName string) (*Store, error) {
-	dirPath := filepath.Join(".", spaceName, "packets")
-	if !isDir(dirPath) {
-		return nil, fmt.Errorf("%s: space has no pcaps", spaceName)
+func pcapFiles(spaceName string) (string, string, error) {
+	//XXX demo placeholders
+	pcapPath := filepath.Join(".", spaceName, "packets.pcap")
+	indexPath := filepath.Join(".", spaceName, "packets.idx.json")
+	if !isFile(pcapPath) || !isFile(indexPath) {
+		return "", "", fmt.Errorf("%s: space has no pcaps", spaceName)
 	}
-	if s, ok := pmap.Load(spaceName); ok {
-		return s.(*Store), nil
-	}
-	s, err := NewStore(dirPath)
-	if err != nil {
-		return nil, err
-	}
-	pmap.Store(spaceName, s)
-	return s, nil
+	return pcapPath, indexPath, nil
 }

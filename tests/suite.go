@@ -4,6 +4,7 @@ import (
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/tests/suite/diropt"
 	"github.com/brimsec/zq/tests/suite/errors"
+	"github.com/brimsec/zq/tests/suite/pcap"
 	"github.com/brimsec/zq/tests/suite/utf8"
 )
 
@@ -37,4 +38,6 @@ var commands = []test.Exec{
 var scripts = []test.Shell{
 	diropt.Test,
 	diropt.Test2,
+	pcap.Test1,
+	pcap.Test2,
 }
