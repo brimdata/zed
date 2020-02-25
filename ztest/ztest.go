@@ -257,6 +257,7 @@ func tmpInputFiles(inputs []string) (string, []string, error) {
 		file := filepath.Join(dir, name)
 		err := ioutil.WriteFile(file, []byte(input), 0644)
 		if err != nil {
+			os.RemoveAll(dir)
 			return "", nil, err
 		}
 		files = append(files, file)
