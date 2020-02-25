@@ -96,6 +96,7 @@ func (t *TypeFile) Dirty() bool {
 
 func ReadTypeContext(r io.Reader, zctx *resolver.Context) error {
 	reader := NewReader(r, zctx)
+	reader.zctx = zctx
 	for {
 		rec, err := reader.Read()
 		if err != nil {
