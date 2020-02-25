@@ -11,8 +11,7 @@ import (
 	"strings"
 
 	"github.com/brimsec/zq/cmd/pcap/root"
-	"github.com/brimsec/zq/pcap"
-	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/pcap/pcapio"
 	"github.com/mccanne/charm"
 )
 
@@ -132,19 +131,18 @@ func (c *Command) Run(args []string) error {
 	}
 
 	// XXX assumes legacy pcap format
-	reader, err := pcap.NewReader(in)
+	reader, err := pcapio.NewPcapReader(in)
 	if err != nil {
 		return err
 	}
-	span := nano.NewSpanTs(0, nano.MaxTs)
-	hdr, err := reader.ReadBlock(span)
+	hdr, _, err := reader.Read()
 	if err != nil {
 		return err
 	}
 	out.Write(hdr)
 	var pkts [][]byte
 	for len(pkts) < n {
-		block, err := reader.ReadBlock(span)
+		block, _, err := reader.Read()
 		if err != nil {
 			if err == io.EOF {
 				break

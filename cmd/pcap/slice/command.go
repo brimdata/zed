@@ -18,7 +18,7 @@ var Slice = &charm.Spec{
 	Usage: "slice [options] [ ip:port ip:port ]",
 	Short: "extract a pcap using a time range and/or flow filter",
 	Long: `
-The slice sub-command takes an (optional) index file,
+The slice command takes an (optional) index file,
 an (optional) time range (specified with -from and -to), and
 an (optional) flow filter as arguments and produces
 an extracted pcap file.

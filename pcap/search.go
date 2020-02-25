@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 
+	"github.com/brimsec/zq/pcap/pcapio"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
@@ -16,7 +17,7 @@ var (
 	ErrNoPacketsFound = errors.New("no packets found")
 )
 
-//XXX bool true = TCP, else UDP, change this
+//XXX bool true = TCP, else UDP.  TBD change this
 type Predicate func(bool, Socket, Socket) bool
 
 // Search describes the parameters for a packet search over a pcap file.
@@ -55,6 +56,7 @@ func NewFlowSearch(span nano.Span, proto string, flow Flow) *Search {
 	if proto == "tcp" {
 		tcp = true
 	}
+	// XXX TBD: get rid of search id done this way
 	id := fmt.Sprintf("%s_%s_%s", span.Ts.StringFloat(), proto, flow)
 	return &Search{
 		span:    span,
@@ -95,15 +97,16 @@ func (s Search) ID() string {
 // XXX currently assumes legacy pcap is produced by the input reader
 // XXX need to handle searching over multiple pcap files
 func (s *Search) Run(w io.Writer, r io.Reader) error {
-	pcap, err := NewReader(r)
+	pcap, err := pcapio.NewPcapReader(r) // use pcapio.Reader interface
 	if err != nil {
 		return err
 	}
-	hdr, err := pcap.ReadBlock(s.span)
+	hdr, info, err := pcap.Read()
 	if err != nil {
 		return err
 	}
-	if len(hdr) != fileHeaderLen {
+	fileHeaderLen := 24 // XXX this will go away
+	if len(hdr) != fileHeaderLen || info.Type != pcapio.TypeSection {
 		return errors.New("bad pcap file")
 	}
 	w.Write(hdr)
@@ -113,7 +116,7 @@ func (s *Search) Run(w io.Writer, r io.Reader) error {
 	outerLayer := layers.LayerTypeEthernet
 	opts := gopacket.DecodeOptions{Lazy: true, NoCopy: true}
 	for {
-		block, err := pcap.ReadBlock(s.span)
+		block, info, err := pcap.Read()
 		if err != nil {
 			if err == io.EOF {
 				break
@@ -122,6 +125,9 @@ func (s *Search) Run(w io.Writer, r io.Reader) error {
 		}
 		if block == nil {
 			break
+		}
+		if !s.span.Contains(info.Ts) {
+			continue
 		}
 		if s.matcher == nil {
 			n++
@@ -133,6 +139,7 @@ func (s *Search) Run(w io.Writer, r io.Reader) error {
 
 		//XXX need to support other protocols like ICMP, etc
 
+		packetHeaderLen := 16 // XXX this will go away
 		pktBuf := block[packetHeaderLen:]
 		packet := gopacket.NewPacket(pktBuf, outerLayer, opts)
 		network := packet.NetworkLayer()

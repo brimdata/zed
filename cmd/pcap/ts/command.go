@@ -8,8 +8,7 @@ import (
 	"os"
 
 	"github.com/brimsec/zq/cmd/pcap/root"
-	"github.com/brimsec/zq/pcap"
-	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/pcap/pcapio"
 	"github.com/mccanne/charm"
 )
 
@@ -57,7 +56,7 @@ func (c *Command) Run(args []string) error {
 	// XXX assumes legacy pcap format
 	// TBD: use generic packet reader here once we have the interface
 	// and logic to chooose between NG and legacy
-	reader, err := pcap.NewReader(in)
+	reader, err := pcapio.NewPcapReader(in)
 	if err != nil {
 		return err
 	}
@@ -70,14 +69,13 @@ func (c *Command) Run(args []string) error {
 		}
 		defer out.Close()
 	}
-	span := nano.NewSpanTs(0, nano.MaxTs)
-	// skip header
-	_, err = reader.ReadBlock(span)
+	// skip header XXX need to handle general interface now
+	_, _, err = reader.Read()
 	if err != nil {
 		return err
 	}
 	for {
-		block, err := reader.ReadBlock(span)
+		block, info, err := reader.Read()
 		if err != nil {
 			if err == io.EOF {
 				break
@@ -87,8 +85,7 @@ func (c *Command) Run(args []string) error {
 		if block == nil {
 			break
 		}
-		ts := reader.TsFromHeader(block)
-		fmt.Fprintln(out, ts.StringFloat())
+		fmt.Fprintln(out, info.Ts.StringFloat())
 	}
 	return nil
 }
