@@ -187,13 +187,13 @@ func FromYAMLFile(filename string) (*ZTest, error) {
 // not empty, it specifies a zq executable that will be used to run the query.
 func run(zq, ZQL, outputFormat string, inputs ...string) (string, error) {
 	if zq != "" {
-		tmpdir, err := tmpInputFiles(inputs)
+		tmpdir, files, err := tmpInputFiles(inputs)
 		if err != nil {
 			return "", err
 		}
 		defer os.RemoveAll(tmpdir)
-		cmd := exec.Command(zq, "-f", outputFormat, ZQL, filepath.Join(tmpdir, "*"))
-		cmd.Dir = tmpdir
+		cmd := exec.Command(zq, "-f", outputFormat, ZQL)
+		cmd.Args = append(cmd.Args, files...)
 		out, err := cmd.CombinedOutput()
 		return string(out), err
 	}
@@ -244,10 +244,10 @@ func loadInputs(inputs []string, zctx *resolver.Context) (zbuf.Reader, error) {
 	return scanner.NewCombiner(readers), nil
 }
 
-func tmpInputFiles(inputs []string) (string, error) {
+func tmpInputFiles(inputs []string) (string, []string, error) {
 	dir, err := ioutil.TempDir("", "")
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	var files []string
 	for i, input := range inputs {
@@ -255,11 +255,11 @@ func tmpInputFiles(inputs []string) (string, error) {
 		file := filepath.Join(dir, name)
 		err := ioutil.WriteFile(file, []byte(input), 0644)
 		if err != nil {
-			return "", err
+			return "", nil, err
 		}
 		files = append(files, file)
 	}
-	return dir, nil
+	return dir, files, nil
 }
 
 type nopCloser struct{ io.Writer }
