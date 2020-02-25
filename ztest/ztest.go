@@ -70,6 +70,7 @@ import (
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/scanner"
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
@@ -83,7 +84,7 @@ import (
 func Run(t *testing.T, dirname string) {
 	zq := os.Getenv("ZTEST_ZQ")
 	if zq != "" {
-		if out, err := run(zq, "*", "", "null"); err != nil {
+		if out, err := run(zq, "*", ""); err != nil {
 			if out != "" {
 				out = fmt.Sprintf(" with output %q", out)
 			}
@@ -111,7 +112,7 @@ func Run(t *testing.T, dirname string) {
 			if err != nil {
 				t.Fatalf("%s: %s", filename, err)
 			}
-			out, err := run(zq, zt.ZQL, zt.Input, zt.OutputFormat)
+			out, err := run(zq, zt.ZQL, zt.OutputFormat, zt.Input...)
 			if err != nil {
 				if out != "" {
 					out = "\noutput:\n" + out
@@ -135,9 +136,28 @@ func Run(t *testing.T, dirname string) {
 // ZTest defines a ztest.
 type ZTest struct {
 	ZQL          string `yaml:"zql"`
-	Input        string `yaml:"input"`
+	Input        Inputs `yaml:"input"`
 	OutputFormat string `yaml:"output-format,omitempty"`
 	Output       string `yaml:"output"`
+}
+
+// Inputs is an array of strings. Its only purpose is to support parsing of
+// both single string and array yaml values for the field ZTest.Input.
+type Inputs []string
+
+func (i *Inputs) UnmarshalYAML(value *yaml.Node) error {
+	if value.Kind == yaml.SequenceNode {
+		var inputs []string
+		err := value.Decode(&inputs)
+		*i = inputs
+		return err
+	}
+	var input string
+	if err := value.Decode(&input); err != nil {
+		return err
+	}
+	*i = append(*i, input)
+	return nil
 }
 
 // FromYAMLFile loads a ZTest from the YAML file named filename.
@@ -162,15 +182,20 @@ func FromYAMLFile(filename string) (*ZTest, error) {
 	return &z, nil
 }
 
-// Run runs the query in ZQL over input and returns the output formatted
-// according to outputFormat.  input may be in any format recognized by "zq -i
+// Run runs the query in ZQL over inputs and returns the output formatted
+// according to outputFormat. inputs may be in any format recognized by "zq -i
 // auto" and maybe be gzip-compressed.  outputFormat may be any string accepted
 // by "zq -f".  If zq is empty, the query runs in the current process.  If zq is
 // not empty, it specifies a zq executable that will be used to run the query.
-func run(zq, ZQL, input, outputFormat string) (string, error) {
+func run(zq, ZQL, outputFormat string, inputs ...string) (string, error) {
 	if zq != "" {
-		cmd := exec.Command(zq, "-f", outputFormat, ZQL, "-")
-		cmd.Stdin = strings.NewReader(input)
+		tmpdir, files, err := tmpInputFiles(inputs)
+		if err != nil {
+			return "", err
+		}
+		defer os.RemoveAll(tmpdir)
+		cmd := exec.Command(zq, "-f", outputFormat, ZQL)
+		cmd.Args = append(cmd.Args, files...)
 		out, err := cmd.CombinedOutput()
 		return string(out), err
 	}
@@ -179,7 +204,7 @@ func run(zq, ZQL, input, outputFormat string) (string, error) {
 		return "", err
 	}
 	zctx := resolver.NewContext()
-	zr, err := detector.NewReader(detector.GzipReader(strings.NewReader(input)), zctx)
+	zr, err := loadInputs(inputs, zctx)
 	if err != nil {
 		return "", err
 	}
@@ -203,6 +228,41 @@ func run(zq, ZQL, input, outputFormat string) (string, error) {
 		err = err2
 	}
 	return buf.String(), err
+}
+
+func loadInputs(inputs []string, zctx *resolver.Context) (zbuf.Reader, error) {
+	var readers []scanner.Reader
+	for i, input := range inputs {
+		name := fmt.Sprintf("input%d", i+1)
+		zr, err := detector.NewReader(detector.GzipReader(strings.NewReader(input)), zctx)
+		if err != nil {
+			return nil, err
+		}
+		readers = append(readers, scanner.Reader{Reader: zr, Name: name})
+	}
+	if len(readers) == 1 {
+		return readers[0], nil
+	}
+	return scanner.NewCombiner(readers), nil
+}
+
+func tmpInputFiles(inputs []string) (string, []string, error) {
+	dir, err := ioutil.TempDir("", "")
+	if err != nil {
+		return "", nil, err
+	}
+	var files []string
+	for i, input := range inputs {
+		name := fmt.Sprintf("input%d", i+1)
+		file := filepath.Join(dir, name)
+		err := ioutil.WriteFile(file, []byte(input), 0644)
+		if err != nil {
+			os.RemoveAll(dir)
+			return "", nil, err
+		}
+		files = append(files, file)
+	}
+	return dir, files, nil
 }
 
 type nopCloser struct{ io.Writer }

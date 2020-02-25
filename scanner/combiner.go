@@ -5,7 +5,6 @@ import (
 
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
 )
 
 type Reader struct {
@@ -17,22 +16,14 @@ type Combiner struct {
 	readers []Reader
 	hol     []*zng.Record
 	done    []bool
-	mappers []*resolver.Mapper
 }
 
 func NewCombiner(readers []Reader) *Combiner {
-	c := &Combiner{
+	return &Combiner{
 		readers: readers,
 		hol:     make([]*zng.Record, len(readers)),
 		done:    make([]bool, len(readers)),
 	}
-	n := len(readers)
-	c.mappers = make([]*resolver.Mapper, n)
-	zctx := resolver.NewContext()
-	for k := 0; k < n; k++ {
-		c.mappers[k] = resolver.NewMapper(zctx)
-	}
-	return c
 }
 
 func (c *Combiner) Read() (*zng.Record, error) {
@@ -50,13 +41,6 @@ func (c *Combiner) Read() (*zng.Record, error) {
 				c.done[k] = true
 				continue
 			}
-			mapper := c.mappers[k]
-			id := tup.Type.ID()
-			sharedType := mapper.Map(id)
-			if sharedType == nil {
-				sharedType = mapper.Enter(id, tup.Type)
-			}
-			tup.Type = sharedType
 			c.hol[k] = tup
 		}
 		if idx == -1 || c.hol[k].Ts < c.hol[idx].Ts {
