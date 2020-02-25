@@ -42,8 +42,8 @@ If a flow filter is specified in the format "ip:port ip:port",
 along with a protocol ("tcp" or "udp" specified with -p), then only packets
 from that flow are matched.
 
-The time format for -from and -to is currently integer nanoseconds.  We will
-support more flexible time formats in the future.
+The time format for -from and -to is currently float seconds since 1970-01-01.
+We will support more flexible time formats in the future.
 `,
 	New: New,
 }
