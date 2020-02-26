@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/bzngio"
 	"github.com/brimsec/zq/zio/zngio"
@@ -25,22 +26,48 @@ import (
 )
 
 func TestSimpleSearch(t *testing.T) {
-	src := `#0:record[_path:string,ts:time,uid:bstring]
+	src := `
+#0:record[_path:string,ts:time,uid:bstring]
 0:[conn;1521911723.205187;CBrzd94qfowOqJwCHa;]
 0:[conn;1521911721.255387;C8Tful1TvM3Zf5x8fl;]
 `
 	space := "test"
-	root := createSpace(t, space, src)
+	root := createRoot(t)
 	defer os.RemoveAll(root)
-	require.Equal(t, src, execSearch(t, root, space, "*"))
+	createSpaceWithData(t, root, space, src)
+	require.Equal(t, test.Trim(src), execSearch(t, root, space, "*"))
+}
+
+func TestSpaceList(t *testing.T) {
+	root := createRoot(t)
+	defer os.RemoveAll(root)
+	sp1 := createSpace(t, root, "sp1")
+	sp2 := createSpace(t, root, "sp2")
+	sp3 := createSpace(t, root, "sp3")
+	sp4 := createSpace(t, root, "sp4")
+	// delete config.json from sp3
+	require.NoError(t, os.Remove(sp3.ConfigPath()))
+	expected := []string{
+		sp1.Name(),
+		sp2.Name(),
+		sp4.Name(),
+	}
+	body := httpSuccess(t, zqd.NewHandler(root), "GET", "http://localhost:9867/space/", nil)
+	var list []string
+	err := json.NewDecoder(body).Decode(&list)
+	require.NoError(t, err)
+	require.Equal(t, expected, list)
 }
 
 func TestSpaceInfo(t *testing.T) {
 	space := "test"
-	root := createSpace(t, space, `#0:record[_path:string,ts:time,uid:bstring]
+	src := `
+#0:record[_path:string,ts:time,uid:bstring]
 0:[conn;1521911723.205187;CBrzd94qfowOqJwCHa;]
-0:[conn;1521911721.255387;C8Tful1TvM3Zf5x8fl;]`)
+0:[conn;1521911721.255387;C8Tful1TvM3Zf5x8fl;]`
+	root := createRoot(t)
 	defer os.RemoveAll(root)
+	createSpaceWithData(t, root, space, src)
 	min := nano.Unix(1521911721, 255387000)
 	max := nano.Unix(1521911723, 205187000)
 	expected := api.SpaceInfo{
@@ -78,15 +105,23 @@ func execSearch(t *testing.T, root, space, prog string) string {
 	return buf.String()
 }
 
-// createSpace creates a new temp dir to house a space and writes the provided
-// zng source into said space.
-func createSpace(t *testing.T, spaceName, src string) string {
+func createRoot(t *testing.T) string {
 	dir, err := ioutil.TempDir("", t.Name())
 	require.NoError(t, err)
-	s, err := space.Create(dir, spaceName, "")
-	require.NoError(t, err)
-	writeToSpace(t, s, src)
 	return dir
+}
+
+func createSpace(t *testing.T, root, spaceName string) *space.Space {
+	s, err := space.Create(root, spaceName, "")
+	require.NoError(t, err)
+	return s
+}
+
+// createSpace initiates a new space in the provided root and writes the zng
+// source into said space.
+func createSpaceWithData(t *testing.T, root, spaceName, src string) {
+	sp := createSpace(t, root, spaceName)
+	writeToSpace(t, sp, src)
 }
 
 // writeToSpace writes the provided zng source in to the provided space

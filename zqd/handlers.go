@@ -128,7 +128,7 @@ func handleSpaceList(root string, w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		s, err := space.Open(root, subdir.Name())
-		if err != nil || s.HasFile("all.bzng") {
+		if err != nil {
 			continue
 		}
 		spaces = append(spaces, s.Name())

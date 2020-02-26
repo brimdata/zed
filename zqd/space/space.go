@@ -69,6 +69,10 @@ func (s Space) HasFile(file string) bool {
 	return !info.IsDir()
 }
 
+func (s Space) ConfigPath() string {
+	return filepath.Join(s.path, "config.json")
+}
+
 type config struct {
 	DataPath string `json:"data_path"`
 }
