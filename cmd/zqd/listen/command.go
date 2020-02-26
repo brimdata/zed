@@ -4,6 +4,7 @@ import (
 	"flag"
 	"net"
 	"net/http"
+	"os"
 
 	"github.com/brimsec/zq/cmd/zqd/root"
 	"github.com/brimsec/zq/zqd"
@@ -37,8 +38,12 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
 	logger := newLogger()
-	handler := zqd.NewHandler()
+	handler := zqd.NewHandler(cwd)
 	ln, err := net.Listen("tcp", c.listenAddr)
 	if err != nil {
 		return err
