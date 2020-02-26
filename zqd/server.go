@@ -4,8 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/brimsec/zq/zqd/search"
-	"github.com/brimsec/zq/zqd/space"
+	"github.com/gorilla/mux"
 )
 
 type VersionMessage struct {
@@ -16,27 +15,27 @@ type VersionMessage struct {
 // This struct filled in by main from linker setting version strings.
 var Version VersionMessage
 
-func NewHandler() http.Handler {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/search", func(w http.ResponseWriter, r *http.Request) {
-		search.Handle(w, r)
-	})
-	mux.HandleFunc("/space", func(w http.ResponseWriter, r *http.Request) {
-		space.HandleList(w, r)
-	})
-	mux.HandleFunc("/space/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.String() == "/space/" {
-			space.HandleList(w, r)
-			return
-		}
-		space.HandleInfo(w, r)
-	})
-	mux.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("ok"))
-	})
-	mux.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
+func NewHandler(root string) http.Handler {
+	r := mux.NewRouter()
+	r = r.UseEncodedPath()
+	r.Handle("/space/", wrapRoot(root, handleSpaceList)).Methods("GET")
+	r.Handle("/space/{space}/", wrapRoot(root, handleSpaceGet)).Methods("GET")
+	r.Handle("/space/{space}/packet/", wrapRoot(root, handlePacketSearch)).Methods("GET")
+	r.Handle("/search/", wrapRoot(root, handleSearch)).Methods("POST")
+	r.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(&Version)
 	})
-	return mux
+	r.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("ok"))
+	})
+	return r
+}
+
+type handlerFunc func(root string, w http.ResponseWriter, r *http.Request)
+
+func wrapRoot(root string, h handlerFunc) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h(root, w, r)
+	})
 }

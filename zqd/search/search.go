@@ -13,15 +13,77 @@ import (
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
+	"github.com/brimsec/zq/zqd/space"
 	"go.uber.org/zap"
 )
+
+// This mtu is pretty small but it keeps the JSON object size below 64kb or so
+// so the recevier can do reasonable, interactive streaming updates.
+const DefaultMTU = 100
+
+func Search(ctx context.Context, s *space.Space, req api.SearchRequest, out Output) error {
+	// XXX These validation checks should result in 400 level status codes and
+	// thus shouldn't occur here.
+	if req.Span.Ts < 0 {
+		return errors.New("time span must have non-negative timestamp")
+	}
+	if req.Span.Dur < 0 {
+		return errors.New("time span must have non-negative duration")
+	}
+	// XXX allow either direction even through we do forward only right now
+	if req.Dir != 1 && req.Dir != -1 {
+		return errors.New("time direction must be 1 or -1")
+	}
+	query, err := UnpackQuery(req)
+	f, err := s.OpenFile("all.bzng")
+	if err != nil {
+		return errors.New("no such space: " + query.Space)
+	}
+	defer f.Close()
+	zngReader, err := detector.LookupReader("bzng", f, resolver.NewContext())
+	if err != nil {
+		return err
+	}
+	zctx := resolver.NewContext()
+	mapper := scanner.NewMapper(zngReader, zctx)
+	mux, err := launch(ctx, query, mapper, zctx)
+	if err != nil {
+		return err
+	}
+	return run(mux, out)
+}
 
 type Output interface {
 	SendBatch(int, zbuf.Batch) error
 	SendControl(interface{}) error
 	End(interface{}) error
+}
+
+// A Query is the internal representation of search query describing a source
+// of tuples, a "search" applied to the tuples producing a set of matched
+// tuples, and a proc to the process the tuples
+type Query struct {
+	Space string
+	Dir   int
+	Span  nano.Span
+	Proc  ast.Proc
+}
+
+// UnpackQuery transforms a api.SearchRequest into a Query.
+func UnpackQuery(req api.SearchRequest) (*Query, error) {
+	proc, err := ast.UnpackProc(nil, req.Proc)
+	if err != nil {
+		return nil, err
+	}
+	return &Query{
+		Space: req.Space,
+		Dir:   req.Dir,
+		Span:  req.Span,
+		Proc:  proc,
+	}, nil
 }
 
 type driver struct {

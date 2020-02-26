@@ -8,34 +8,32 @@ import (
 	"github.com/brimsec/zq/zio/bzngio"
 )
 
-// bzngOutput writes bzng encodings directly to the client via
+// BzngOutput writes bzng encodings directly to the client via
 // binary data sent over http chunked encoding interleaved with json
 // protocol messages sent as zng comment payloads.  The simplicity of
 // this is a thing of beauty.
-type bzngOutput struct {
-	*http.Request
+type BzngOutput struct {
 	response http.ResponseWriter
 	writer   *bzngio.Writer
 }
 
-func newBzngOutput(req *http.Request, response http.ResponseWriter) *bzngOutput {
-	o := &bzngOutput{
-		Request:  req,
+func NewBzngOutput(response http.ResponseWriter) *BzngOutput {
+	o := &BzngOutput{
 		response: response,
 		writer:   bzngio.NewWriter(response),
 	}
 	return o
 }
 
-func (r *bzngOutput) flush() {
+func (r *BzngOutput) flush() {
 	r.response.(http.Flusher).Flush()
 }
 
-func (r *bzngOutput) Collect() interface{} {
+func (r *BzngOutput) Collect() interface{} {
 	return "TBD" //XXX
 }
 
-func (r *bzngOutput) SendBatch(cid int, batch zbuf.Batch) error {
+func (r *BzngOutput) SendBatch(cid int, batch zbuf.Batch) error {
 	for _, rec := range batch.Records() {
 		// XXX need to send channel id as control payload
 		if err := r.writer.Write(rec); err != nil {
@@ -47,11 +45,11 @@ func (r *bzngOutput) SendBatch(cid int, batch zbuf.Batch) error {
 	return nil
 }
 
-func (r *bzngOutput) End(ctrl interface{}) error {
+func (r *BzngOutput) End(ctrl interface{}) error {
 	return r.SendControl(ctrl)
 }
 
-func (r *bzngOutput) SendControl(ctrl interface{}) error {
+func (r *BzngOutput) SendControl(ctrl interface{}) error {
 	msg, err := json.Marshal(ctrl)
 	if err != nil {
 		//XXX need a better json error message
