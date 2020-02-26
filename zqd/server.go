@@ -18,10 +18,10 @@ var Version VersionMessage
 func NewHandler(root string) http.Handler {
 	r := mux.NewRouter()
 	r = r.UseEncodedPath()
-	r.Handle("/space/", wrapRoot(root, handleSpaceList)).Methods("GET")
-	r.Handle("/space/{space}/", wrapRoot(root, handleSpaceGet)).Methods("GET")
-	r.Handle("/space/{space}/packet/", wrapRoot(root, handlePacketSearch)).Methods("GET")
-	r.Handle("/search/", wrapRoot(root, handleSearch)).Methods("POST")
+	r.Handle("/space", wrapRoot(root, handleSpaceList)).Methods("GET")
+	r.Handle("/space/{space}", wrapRoot(root, handleSpaceGet)).Methods("GET")
+	r.Handle("/space/{space}/packet", wrapRoot(root, handlePacketSearch)).Methods("GET")
+	r.Handle("/search", wrapRoot(root, handleSearch)).Methods("POST")
 	r.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(&Version)
