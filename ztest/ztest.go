@@ -231,19 +231,19 @@ func run(zq, ZQL, outputFormat string, inputs ...string) (string, error) {
 }
 
 func loadInputs(inputs []string, zctx *resolver.Context) (zbuf.Reader, error) {
-	var readers []scanner.Reader
+	var readers []zbuf.Reader
 	for i, input := range inputs {
 		name := fmt.Sprintf("input%d", i+1)
 		zr, err := detector.NewReader(detector.GzipReader(strings.NewReader(input)), zctx)
 		if err != nil {
 			return nil, err
 		}
-		readers = append(readers, scanner.Reader{Reader: zr, Name: name})
+		readers = append(readers, zbuf.NamedReader(zr, name))
 	}
 	if len(readers) == 1 {
 		return readers[0], nil
 	}
-	return scanner.NewCombiner(readers), nil
+	return zbuf.NewCombiner(readers), nil
 }
 
 func tmpInputFiles(inputs []string) (string, []string, error) {

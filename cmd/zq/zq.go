@@ -255,7 +255,7 @@ func (c *Command) errorf(format string, args ...interface{}) {
 }
 
 func (c *Command) loadFiles(paths []string) (zbuf.Reader, error) {
-	var readers []scanner.Reader
+	var readers []zbuf.Reader
 	for _, path := range paths {
 		r, err := c.loadFile(path)
 		if err != nil {
@@ -265,12 +265,12 @@ func (c *Command) loadFiles(paths []string) (zbuf.Reader, error) {
 			}
 			return nil, err
 		}
-		readers = append(readers, scanner.Reader{r, path})
+		readers = append(readers, zbuf.NamedReader(r, path))
 	}
 	if len(readers) == 1 {
 		return readers[0], nil
 	}
-	return scanner.NewCombiner(readers), nil
+	return zbuf.NewCombiner(readers), nil
 }
 
 func (c *Command) openOutput() (zbuf.WriteCloser, error) {

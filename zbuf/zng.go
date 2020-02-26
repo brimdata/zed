@@ -2,6 +2,7 @@ package zbuf
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/brimsec/zq/pkg/nano"
@@ -36,6 +37,19 @@ func (nopFlusher) Flush() error { return nil }
 // the provided Writer w.
 func NopFlusher(w Writer) WriteFlusher {
 	return nopFlusher{w}
+}
+
+type namedReader struct {
+	Reader
+	name string
+}
+
+func (n namedReader) String() string {
+	return fmt.Sprintf("reader<%s>", n.name)
+}
+
+func NamedReader(r Reader, name string) Reader {
+	return namedReader{r, name}
 }
 
 // Batch is an inteface to a bundle of Records.

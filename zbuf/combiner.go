@@ -1,16 +1,10 @@
-package scanner
+package zbuf
 
 import (
 	"fmt"
 
-	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 )
-
-type Reader struct {
-	zbuf.Reader
-	Name string
-}
 
 type Combiner struct {
 	readers []Reader
@@ -35,7 +29,7 @@ func (c *Combiner) Read() (*zng.Record, error) {
 		if c.hol[k] == nil {
 			tup, err := l.Read()
 			if err != nil {
-				return nil, fmt.Errorf("%s: %w", c.readers[k].Name, err)
+				return nil, fmt.Errorf("%s: %w", c.readers[k], err)
 			}
 			if tup == nil {
 				c.done[k] = true
