@@ -52,7 +52,7 @@ func TestSpaceList(t *testing.T) {
 		sp2.Name(),
 		sp4.Name(),
 	}
-	body := httpSuccess(t, zqd.NewHandler(root), "GET", "http://localhost:9867/space/", nil)
+	body := httpSuccess(t, zqd.NewHandler(root), "GET", "http://localhost:9867/space", nil)
 	var list []string
 	err := json.NewDecoder(body).Decode(&list)
 	require.NoError(t, err)
@@ -77,7 +77,7 @@ func TestSpaceInfo(t *testing.T) {
 		Size:          88,
 		PacketSupport: false,
 	}
-	u := fmt.Sprintf("http://localhost:9867/space/%s/", space)
+	u := fmt.Sprintf("http://localhost:9867/space/%s", space)
 	body := httpSuccess(t, zqd.NewHandler(root), "GET", u, nil)
 	var info api.SpaceInfo
 	err := json.NewDecoder(body).Decode(&info)
@@ -97,7 +97,7 @@ func execSearch(t *testing.T, root, space, prog string) string {
 		Dir:   1,
 	}
 	// XXX Get rid of this format query param and use http headers instead.
-	body := httpSuccess(t, zqd.NewHandler(root), "POST", "http://localhost:9867/search/?format=bzng", s)
+	body := httpSuccess(t, zqd.NewHandler(root), "POST", "http://localhost:9867/search?format=bzng", s)
 	buf := bytes.NewBuffer(nil)
 	w := zngio.NewWriter(buf)
 	r := bzngio.NewReader(body, resolver.NewContext())
@@ -153,4 +153,16 @@ func httpSuccess(t *testing.T, h http.Handler, method, url string, body interfac
 		require.Equal(t, http.StatusOK, res.StatusCode, string(body))
 	}
 	return res.Body
+}
+
+func TestNoEndSlashSupport(t *testing.T) {
+	root := createRoot(t)
+	defer os.RemoveAll(root)
+
+	h := zqd.NewHandler(root)
+	r := httptest.NewRequest("GET", "http://localhost:9867/space/", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	res := w.Result()
+	require.Equal(t, 404, res.StatusCode)
 }
