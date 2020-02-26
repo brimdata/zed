@@ -38,6 +38,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
+	// XXX Add command line arg to specify DataDir, defaulting to cwd.
 	cwd, err := os.Getwd()
 	if err != nil {
 		return err
