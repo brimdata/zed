@@ -10,19 +10,17 @@ import (
 )
 
 type JSON struct {
-	*http.Request
 	pipe   *JSONPipe
 	stream *zjsonio.Stream
 	mtu    int
 }
 
-func newJSON(req *http.Request, resp http.ResponseWriter, mtu int) (*JSON, error) {
+func NewJSONOutput(resp http.ResponseWriter, mtu int) *JSON {
 	return &JSON{
-		Request: req,
-		pipe:    NewJSONPipe(req, resp),
-		stream:  zjsonio.NewStream(),
-		mtu:     mtu,
-	}, nil
+		pipe:   NewJSONPipe(resp),
+		stream: zjsonio.NewStream(),
+		mtu:    mtu,
+	}
 }
 
 func (s *JSON) formatRecords(records []*zng.Record) ([]zjsonio.Record, error) {
