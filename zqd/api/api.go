@@ -85,11 +85,7 @@ type SpacePostRequest struct {
 	DataDir string `json:"data_dir"`
 }
 
-type SpacePostResponse struct {
-	Name    string `json:"name"`
-	DataDir string `json:"data_dir"`
-}
-
+type SpacePostResponse SpacePostRequest
 // PacketSearch are the query string args to the packet endpoint when searching
 // for packets within a connection 5-tuple.
 type PacketSearch struct {
