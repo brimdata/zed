@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/brimsec/zq/pkg/file"
+	"github.com/brimsec/zq/pkg/fs"
 )
 
 var (
@@ -40,7 +40,7 @@ func Create(root, name, dataPath string) (*Space, error) {
 	if name == "" {
 		name = filepath.Base(dataPath)
 		var err error
-		name, err = file.UniquePath(root, name)
+		name, err = fs.UniquePath(root, name)
 		if err != nil {
 			return nil, err
 		}
