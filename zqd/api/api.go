@@ -86,6 +86,7 @@ type SpacePostRequest struct {
 }
 
 type SpacePostResponse SpacePostRequest
+
 // PacketSearch are the query string args to the packet endpoint when searching
 // for packets within a connection 5-tuple.
 type PacketSearch struct {
