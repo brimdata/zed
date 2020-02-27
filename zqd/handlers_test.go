@@ -103,13 +103,11 @@ func TestSpacePostDataDirOnly(t *testing.T) {
 		defer os.RemoveAll(tmp)
 		root := filepath.Join(tmp, "spaces")
 		require.NoError(t, os.Mkdir(root, 0755))
-		var datadir string
-		var expected api.SpacePostResponse
 		t.Run(name, func(t *testing.T) {
-			datadir, expected = cb(t, tmp, root)
+			datadir, expected := cb(t, tmp, root)
+			res := createSpace(t, root, "", datadir)
+			require.Equal(t, expected, res)
 		})
-		res := createSpace(t, root, "", datadir)
-		require.Equal(t, expected, res)
 	}
 	run("Simple", func(t *testing.T, tmp, root string) (string, api.SpacePostResponse) {
 		datadir := filepath.Join(tmp, "mypcap.brim")
