@@ -37,20 +37,20 @@ func Create(root, name, dataPath string) (*Space, error) {
 	if name == "" && dataPath == "" {
 		return nil, errors.New("must supply non-empty name or dataPath")
 	}
+	var path string
 	if name == "" {
-		name = filepath.Base(dataPath)
 		var err error
-		name, err = fs.UniquePath(root, name)
-		if err != nil {
+		if path, err = fs.UniqueDir(root, filepath.Base(dataPath)); err != nil {
 			return nil, err
 		}
-	}
-	path := filepath.Join(root, name)
-	if err := os.Mkdir(path, 0755); err != nil {
-		if os.IsExist(err) {
-			return nil, ErrSpaceExists
+	} else {
+		path = filepath.Join(root, name)
+		if err := os.Mkdir(path, 0700); err != nil {
+			if os.IsExist(err) {
+				return nil, ErrSpaceExists
+			}
+			return nil, err
 		}
-		return nil, err
 	}
 	if dataPath == "" {
 		dataPath = path
