@@ -6,14 +6,16 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/brimsec/zq/pkg/fs"
 )
 
 var (
 	ErrSpaceNotExist = errors.New("space does not exist")
+	ErrSpaceExists   = errors.New("space exists")
 )
 
 type Space struct {
-	name     string
 	path     string
 	dataPath string
 }
@@ -27,13 +29,28 @@ func Open(root, name string) (*Space, error) {
 		}
 		return nil, err
 	}
-	return &Space{name: name, path: path, dataPath: dataPath}, nil
+	return &Space{path: path, dataPath: dataPath}, nil
 }
 
 func Create(root, name, dataPath string) (*Space, error) {
-	path := filepath.Join(root, name)
-	if err := os.Mkdir(path, 0755); err != nil {
-		return nil, err
+	// XXX this should be validated before reaching here.
+	if name == "" && dataPath == "" {
+		return nil, errors.New("must supply non-empty name or dataPath")
+	}
+	var path string
+	if name == "" {
+		var err error
+		if path, err = fs.UniqueDir(root, filepath.Base(dataPath)); err != nil {
+			return nil, err
+		}
+	} else {
+		path = filepath.Join(root, name)
+		if err := os.Mkdir(path, 0700); err != nil {
+			if os.IsExist(err) {
+				return nil, ErrSpaceExists
+			}
+			return nil, err
+		}
 	}
 	if dataPath == "" {
 		dataPath = path
@@ -42,11 +59,11 @@ func Create(root, name, dataPath string) (*Space, error) {
 		os.RemoveAll(path)
 		return nil, err
 	}
-	return &Space{name, path, dataPath}, nil
+	return &Space{path, dataPath}, nil
 }
 
 func (s Space) Name() string {
-	return s.name
+	return filepath.Base(s.path)
 }
 
 func (s Space) DataPath(elem ...string) string {
