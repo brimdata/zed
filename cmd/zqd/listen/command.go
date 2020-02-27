@@ -4,7 +4,7 @@ import (
 	"flag"
 	"net"
 	"net/http"
-	"os"
+	"path/filepath"
 
 	"github.com/brimsec/zq/cmd/zqd/root"
 	"github.com/brimsec/zq/zqd"
@@ -29,27 +29,31 @@ func init() {
 type Command struct {
 	*root.Command
 	listenAddr string
+	dataDir    string
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.StringVar(&c.listenAddr, "l", ":9867", "[addr]:port to listen on")
+	f.StringVar(&c.dataDir, "datadir", ".", "data directory")
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	// XXX Add command line arg to specify DataDir, defaulting to cwd.
-	cwd, err := os.Getwd()
+	dataDir, err := filepath.Abs(c.dataDir)
 	if err != nil {
 		return err
 	}
 	logger := newLogger()
-	handler := zqd.NewHandler(cwd)
+	handler := zqd.NewHandler(dataDir)
 	ln, err := net.Listen("tcp", c.listenAddr)
 	if err != nil {
 		return err
 	}
-	logger.Info("Listening", zap.String("addr", ln.Addr().String()))
+	logger.Info("Listening",
+		zap.String("addr", ln.Addr().String()),
+		zap.String("datadir", dataDir),
+	)
 	return http.Serve(ln, handler)
 }
 
