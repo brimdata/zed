@@ -16,8 +16,9 @@ import (
 // modifying or copying the file.
 type Slicer struct {
 	slices []Slice
+	slice  Slice
 	file   *os.File
-	reader *io.SectionReader
+	eof    bool
 }
 
 func NewSlicer(file *os.File, index *Index, span nano.Span) (*Slicer, error) {
@@ -25,34 +26,43 @@ func NewSlicer(file *os.File, index *Index, span nano.Span) (*Slicer, error) {
 	if err != nil {
 		return nil, err
 	}
-	first := slices[0]
-	return &Slicer{
-		slices: slices[1:],
+	s := &Slicer{
+		slices: slices,
 		file:   file,
-		reader: first.NewReader(file),
-	}, nil
+	}
+	return s, s.next()
+}
+
+func (s *Slicer) next() error {
+	if len(s.slices) == 0 {
+		s.eof = true
+		return nil
+	}
+	s.slice = s.slices[0]
+	s.slices = s.slices[1:]
+	_, err := s.file.Seek(int64(s.slice.Offset), 0)
+	return err
 }
 
 func (s *Slicer) Read(b []byte) (int, error) {
-	for s.reader != nil {
-		n, err := s.reader.Read(b)
-		if n != 0 {
-			if err == io.EOF {
-				err = nil
-			}
-			return n, err
+	if s.eof {
+		return 0, io.EOF
+	}
+	p := b
+	if uint64(len(p)) > s.slice.Length {
+		p = p[:s.slice.Length]
+	}
+	n, err := s.file.Read(p)
+	if n != 0 {
+		if err == io.EOF {
+			err = nil
 		}
-		if err != io.EOF {
-			return 0, err
-		}
-		if len(s.slices) != 0 {
-			s.reader = s.slices[0].NewReader(s.file)
-			s.slices = s.slices[1:]
-		} else {
-			s.reader = nil
+		s.slice.Length -= uint64(n)
+		if s.slice.Length == 0 {
+			err = s.next()
 		}
 	}
-	return 0, io.EOF
+	return n, err
 }
 
 type Slice struct {
@@ -62,10 +72,6 @@ type Slice struct {
 
 func (s Slice) Overlaps(x Slice) bool {
 	return x.Offset >= s.Offset && x.Offset < s.Offset+x.Length
-}
-
-func (s Slice) NewReader(r io.ReaderAt) *io.SectionReader {
-	return io.NewSectionReader(r, int64(s.Offset), int64(s.Length))
 }
 
 // GenerateSlices takes an index and time span and generates a list of
