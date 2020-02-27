@@ -1,3 +1,9 @@
+## v0.3.0
+
+* zqd adds -datadir flag for space root directory.
+* zqd adds -version flag.
+* Add pcap command to interact with packet capture files.
+
 ## v0.2.0
 
 * Per-platform binaries will be available as Github release assets.
