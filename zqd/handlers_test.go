@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -32,14 +33,14 @@ func TestSimpleSearch(t *testing.T) {
 0:[conn;1521911721.255387;C8Tful1TvM3Zf5x8fl;]
 `
 	space := "test"
-	root := createRoot(t)
+	root := createTempDir(t)
 	defer os.RemoveAll(root)
 	createSpaceWithData(t, root, space, src)
 	require.Equal(t, test.Trim(src), execSearch(t, root, space, "*"))
 }
 
 func TestSpaceList(t *testing.T) {
-	root := createRoot(t)
+	root := createTempDir(t)
 	defer os.RemoveAll(root)
 	sp1 := createSpace(t, root, "sp1")
 	sp2 := createSpace(t, root, "sp2")
@@ -65,7 +66,7 @@ func TestSpaceInfo(t *testing.T) {
 #0:record[_path:string,ts:time,uid:bstring]
 0:[conn;1521911723.205187;CBrzd94qfowOqJwCHa;]
 0:[conn;1521911721.255387;C8Tful1TvM3Zf5x8fl;]`
-	root := createRoot(t)
+	root := createTempDir(t)
 	defer os.RemoveAll(root)
 	createSpaceWithData(t, root, space, src)
 	min := nano.Unix(1521911721, 255387000)
@@ -83,6 +84,57 @@ func TestSpaceInfo(t *testing.T) {
 	err := json.NewDecoder(body).Decode(&info)
 	require.NoError(t, err)
 	require.Equal(t, expected, info)
+}
+
+func TestSpacePostNameOnly(t *testing.T) {
+	root := createTempDir(t)
+	defer os.RemoveAll(root)
+	req := api.SpacePostRequest{Name: "test"}
+	expected := api.SpacePostResponse{
+		Name:    "test",
+		DataDir: filepath.Join(root, "test"),
+	}
+	res := api.SpacePostResponse{}
+	body := httpSuccess(t, zqd.NewHandler(root), "POST", "http://localhost:9867/space", req)
+	require.NoError(t, json.NewDecoder(body).Decode(&res))
+	require.Equal(t, expected, res)
+}
+
+func TestSpacePostDataDirOnly(t *testing.T) {
+	run := func(name string, cb func(t *testing.T, tmp, root string) (api.SpacePostRequest, api.SpacePostResponse)) {
+		tmp := createTempDir(t)
+		defer os.RemoveAll(tmp)
+		root := filepath.Join(tmp, "spaces")
+		require.NoError(t, os.Mkdir(root, 0755))
+		var req api.SpacePostRequest
+		var expected api.SpacePostResponse
+		t.Run(name, func(t *testing.T) {
+			req, expected = cb(t, tmp, root)
+		})
+		res := api.SpacePostResponse{}
+		body := httpSuccess(t, zqd.NewHandler(root), "POST", "http://localhost:9867/space", req)
+		require.NoError(t, json.NewDecoder(body).Decode(&res))
+		require.Equal(t, expected, res)
+	}
+	run("Simple", func(t *testing.T, tmp, root string) (api.SpacePostRequest, api.SpacePostResponse) {
+		datadir := filepath.Join(tmp, "mypcap.brim")
+		require.NoError(t, os.Mkdir(datadir, 0755))
+		req := api.SpacePostRequest{DataDir: datadir}
+		return req, api.SpacePostResponse{
+			Name:    "mypcap.brim",
+			DataDir: datadir,
+		}
+	})
+	run("DuplicateName", func(t *testing.T, tmp, root string) (api.SpacePostRequest, api.SpacePostResponse) {
+		createSpace(t, root, "mypcap.brim")
+		datadir := filepath.Join(tmp, "mypcap.brim")
+		require.NoError(t, os.Mkdir(datadir, 0755))
+		req := api.SpacePostRequest{DataDir: datadir}
+		return req, api.SpacePostResponse{
+			Name:    "mypcap_01.brim",
+			DataDir: datadir,
+		}
+	})
 }
 
 func execSearch(t *testing.T, root, space, prog string) string {
@@ -105,7 +157,7 @@ func execSearch(t *testing.T, root, space, prog string) string {
 	return buf.String()
 }
 
-func createRoot(t *testing.T) string {
+func createTempDir(t *testing.T) string {
 	dir, err := ioutil.TempDir("", t.Name())
 	require.NoError(t, err)
 	return dir
@@ -156,7 +208,7 @@ func httpSuccess(t *testing.T, h http.Handler, method, url string, body interfac
 }
 
 func TestNoEndSlashSupport(t *testing.T) {
-	root := createRoot(t)
+	root := createTempDir(t)
 	defer os.RemoveAll(root)
 
 	h := zqd.NewHandler(root)

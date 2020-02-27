@@ -206,6 +206,31 @@ func handleSpaceGet(root string, w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(info)
 }
 
+func handleSpacePost(root string, w http.ResponseWriter, r *http.Request) {
+	var req api.SpacePostRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	s, err := space.Create(root, req.Name, req.DataDir)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if err == space.ErrSpaceExists {
+			status = http.StatusBadRequest
+		}
+		http.Error(w, err.Error(), status)
+		return
+	}
+	res := api.SpacePostResponse{
+		Name:    s.Name(),
+		DataDir: s.DataPath(),
+	}
+	if err := json.NewEncoder(w).Encode(res); err != nil {
+		// XXX Add zap here.
+		log.Println("Error writing response", err)
+	}
+}
+
 // extractSpace returns the unescaped space from the path of a request.
 func extractSpace(r *http.Request) (string, error) {
 	v := mux.Vars(r)
