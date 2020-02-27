@@ -161,6 +161,12 @@ func (s Span) Contains(ts Ts) bool {
 	return ts >= s.Ts && ts < s.End()
 }
 
+// ContainsClose returns true if the timestamp is in the time interval including
+// the end of interval.
+func (s Span) ContainsClosed(ts Ts) bool {
+	return ts >= s.Ts && ts <= s.End()
+}
+
 // Covers returns true if the passed span is covered by s.
 func (s Span) Covers(covered Span) bool {
 	return s.Ts <= covered.Ts && s.End() >= covered.End()

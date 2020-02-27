@@ -150,7 +150,7 @@ again:
 	}
 	r.Offset += uint64(caplen + packetHeaderLen)
 	ts := r.TsFromHeader(hdr)
-	if !span.Contains(ts) {
+	if !span.ContainsClosed(ts) {
 		goto again
 	}
 	return pkt, nil
