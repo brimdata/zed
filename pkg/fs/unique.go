@@ -8,7 +8,7 @@ import (
 )
 
 // UniquePath determines a unique path given the desired name and parent
-// directory. For instanace of the desired path in /usr/mypath but such a path
+// directory. For instance if the desired path is /usr/mypath but such a path
 // already exists, the path /usr/mypath_01 is returned (and so on).
 // File extensions are respected and the unique number is appended before any
 // extensions (e.g. mypath.txt -> mypath_01.txt).
