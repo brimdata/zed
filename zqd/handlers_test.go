@@ -42,16 +42,16 @@ func TestSimpleSearch(t *testing.T) {
 func TestSpaceList(t *testing.T) {
 	root := createTempDir(t)
 	defer os.RemoveAll(root)
-	sp1 := createSpace(t, root, "sp1")
-	sp2 := createSpace(t, root, "sp2")
-	sp3 := createSpace(t, root, "sp3")
-	sp4 := createSpace(t, root, "sp4")
+	sp1 := createSpace(t, root, "sp1", "")
+	sp2 := createSpace(t, root, "sp2", "")
+	sp3 := createSpace(t, root, "sp3", "")
+	sp4 := createSpace(t, root, "sp4", "")
 	// delete config.json from sp3
-	require.NoError(t, os.Remove(sp3.ConfigPath()))
+	require.NoError(t, os.Remove(filepath.Join(root, sp3.Name, "config.json")))
 	expected := []string{
-		sp1.Name(),
-		sp2.Name(),
-		sp4.Name(),
+		sp1.Name,
+		sp2.Name,
+		sp4.Name,
 	}
 	body := httpSuccess(t, zqd.NewHandler(root), "GET", "http://localhost:9867/space", nil)
 	var list []string
@@ -89,48 +89,41 @@ func TestSpaceInfo(t *testing.T) {
 func TestSpacePostNameOnly(t *testing.T) {
 	root := createTempDir(t)
 	defer os.RemoveAll(root)
-	req := api.SpacePostRequest{Name: "test"}
 	expected := api.SpacePostResponse{
 		Name:    "test",
 		DataDir: filepath.Join(root, "test"),
 	}
-	res := api.SpacePostResponse{}
-	body := httpSuccess(t, zqd.NewHandler(root), "POST", "http://localhost:9867/space", req)
-	require.NoError(t, json.NewDecoder(body).Decode(&res))
+	res := createSpace(t, root, "test", "")
 	require.Equal(t, expected, res)
 }
 
 func TestSpacePostDataDirOnly(t *testing.T) {
-	run := func(name string, cb func(t *testing.T, tmp, root string) (api.SpacePostRequest, api.SpacePostResponse)) {
+	run := func(name string, cb func(t *testing.T, tmp, root string) (string, api.SpacePostResponse)) {
 		tmp := createTempDir(t)
 		defer os.RemoveAll(tmp)
 		root := filepath.Join(tmp, "spaces")
 		require.NoError(t, os.Mkdir(root, 0755))
-		var req api.SpacePostRequest
+		var datadir string
 		var expected api.SpacePostResponse
 		t.Run(name, func(t *testing.T) {
-			req, expected = cb(t, tmp, root)
+			datadir, expected = cb(t, tmp, root)
 		})
-		res := api.SpacePostResponse{}
-		body := httpSuccess(t, zqd.NewHandler(root), "POST", "http://localhost:9867/space", req)
-		require.NoError(t, json.NewDecoder(body).Decode(&res))
+		res := createSpace(t, root, "", datadir)
 		require.Equal(t, expected, res)
 	}
-	run("Simple", func(t *testing.T, tmp, root string) (api.SpacePostRequest, api.SpacePostResponse) {
+	run("Simple", func(t *testing.T, tmp, root string) (string, api.SpacePostResponse) {
 		datadir := filepath.Join(tmp, "mypcap.brim")
 		require.NoError(t, os.Mkdir(datadir, 0755))
-		req := api.SpacePostRequest{DataDir: datadir}
-		return req, api.SpacePostResponse{
+		return datadir, api.SpacePostResponse{
 			Name:    "mypcap.brim",
 			DataDir: datadir,
 		}
 	})
-	run("DuplicateName", func(t *testing.T, tmp, root string) (api.SpacePostRequest, api.SpacePostResponse) {
-		createSpace(t, root, "mypcap.brim")
+	run("DuplicateName", func(t *testing.T, tmp, root string) (string, api.SpacePostResponse) {
+		createSpace(t, root, "mypcap.brim", "")
 		datadir := filepath.Join(tmp, "mypcap.brim")
 		require.NoError(t, os.Mkdir(datadir, 0755))
-		req := api.SpacePostRequest{DataDir: datadir}
-		return req, api.SpacePostResponse{
+		return datadir, api.SpacePostResponse{
 			Name:    "mypcap_01.brim",
 			DataDir: datadir,
 		}
@@ -163,22 +156,29 @@ func createTempDir(t *testing.T) string {
 	return dir
 }
 
-func createSpace(t *testing.T, root, spaceName string) *space.Space {
-	s, err := space.Create(root, spaceName, "")
-	require.NoError(t, err)
-	return s
+func createSpace(t *testing.T, root, spaceName, datadir string) api.SpacePostResponse {
+	req := api.SpacePostRequest{
+		Name:    spaceName,
+		DataDir: datadir,
+	}
+	body := httpSuccess(t, zqd.NewHandler(root), "POST", "http://localhost:9867/space", req)
+	var res api.SpacePostResponse
+	require.NoError(t, json.NewDecoder(body).Decode(&res))
+	return res
 }
 
 // createSpace initiates a new space in the provided root and writes the zng
 // source into said space.
 func createSpaceWithData(t *testing.T, root, spaceName, src string) {
-	sp := createSpace(t, root, spaceName)
-	writeToSpace(t, sp, src)
+	res := createSpace(t, root, spaceName, "")
+	writeToSpace(t, root, res.Name, src)
 }
 
 // writeToSpace writes the provided zng source in to the provided space
 // directory.
-func writeToSpace(t *testing.T, s *space.Space, src string) {
+func writeToSpace(t *testing.T, root, spaceName, src string) {
+	s, err := space.Open(root, spaceName)
+	require.NoError(t, err)
 	f, err := s.CreateFile("all.bzng")
 	require.NoError(t, err)
 	defer f.Close()
