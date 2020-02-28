@@ -259,6 +259,7 @@ func handlePacketPost(root string, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	defer zr.Close()
 	zw := bzngio.NewWriter(bzngfile)
 	program := "_path != packet_filter | sort -limit 10000000 ts"
 	if err := search.Copy(r.Context(), zw, zr, program); err != nil {

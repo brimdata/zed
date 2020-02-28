@@ -91,8 +91,6 @@ func (s Space) ConfigPath() string {
 	return filepath.Join(s.path, "config.json")
 }
 
-// XXX Set's the path for space's pcap file and persists the new configuration
-// to disk.
 func (s *Space) SetPacketPath(pcapPath string) error {
 	s.conf.PacketPath = pcapPath
 	return s.conf.save(s.path)

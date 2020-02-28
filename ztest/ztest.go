@@ -231,14 +231,13 @@ func run(zq, ZQL, outputFormat string, inputs ...string) (string, error) {
 }
 
 func loadInputs(inputs []string, zctx *resolver.Context) (zbuf.Reader, error) {
-	var readers []scanner.Reader
-	for i, input := range inputs {
-		name := fmt.Sprintf("input%d", i+1)
+	var readers []zbuf.Reader
+	for _, input := range inputs {
 		zr, err := detector.NewReader(detector.GzipReader(strings.NewReader(input)), zctx)
 		if err != nil {
 			return nil, err
 		}
-		readers = append(readers, scanner.Reader{Reader: zr, Name: name})
+		readers = append(readers, zr)
 	}
 	if len(readers) == 1 {
 		return readers[0], nil

@@ -1,77 +1,12 @@
 package scanner
 
 import (
-	"errors"
 	"fmt"
-	"os"
+	"io"
 
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
 )
-
-type Reader struct {
-	zbuf.Reader
-	file *os.File
-}
-
-func (r *Reader) Read() (*zng.Record, error) {
-	rec, err := r.Reader.Read()
-	if err != nil {
-		r.file.Close()
-		return nil, err
-	}
-	if rec == nil {
-		r.file.Close()
-	}
-	return rec, nil
-}
-
-func (r *Reader) String() string {
-	return r.file.Name()
-}
-
-func OpenFile(zctx *resolver.Context, path string) (*Reader, error) {
-	var f *os.File
-	if path == "-" {
-		f = os.Stdin
-	} else {
-		info, err := os.Stat(path)
-		if err != nil {
-			return nil, err
-		}
-		if info.IsDir() {
-			return nil, errors.New("is a directory")
-		}
-		f, err = os.Open(path)
-		if err != nil {
-			return nil, err
-		}
-	}
-	r := detector.GzipReader(f)
-	zr, err := detector.NewReader(r, zctx)
-	if err != nil {
-		return nil, err
-	}
-	reader := &Reader{zr, f}
-	return reader, nil
-}
-
-func OpenFiles(zctx *resolver.Context, paths ...string) (zbuf.Reader, error) {
-	var readers []zbuf.Reader
-	for _, path := range paths {
-		reader, err := OpenFile(zctx, path)
-		if err != nil {
-			return nil, err
-		}
-		readers = append(readers, reader)
-	}
-	if len(readers) == 1 {
-		return readers[0], nil
-	}
-	return NewCombiner(readers), nil
-}
 
 type Combiner struct {
 	readers []zbuf.Reader
@@ -100,6 +35,9 @@ func (c *Combiner) Read() (*zng.Record, error) {
 			}
 			if tup == nil {
 				c.done[k] = true
+				if err := c.closeReader(l); err != nil {
+					return nil, err
+				}
 				continue
 			}
 			c.hol[k] = tup
@@ -114,4 +52,31 @@ func (c *Combiner) Read() (*zng.Record, error) {
 	tup := c.hol[idx]
 	c.hol[idx] = nil
 	return tup, nil
+}
+
+func (c *Combiner) closeReader(r zbuf.Reader) error {
+	if closer, ok := r.(io.Closer); ok {
+		if err := closer.Close(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Close closes any readers implmenting the io.Closer interface, if they haven't
+// already been closed.
+func (c *Combiner) Close() error {
+	var rerr error
+	for k, r := range c.readers {
+		if c.done[k] {
+			continue
+		}
+		c.done[k] = true
+		// Return only the first error, but closing everything else if there is
+		// an error.
+		if err := c.closeReader(r); err != nil && rerr != nil {
+			rerr = err
+		}
+	}
+	return rerr
 }
