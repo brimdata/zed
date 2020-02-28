@@ -9,17 +9,12 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-type Reader interface {
-	zbuf.Reader
-	Close() error
-}
-
-type fileReader struct {
+type File struct {
 	zbuf.Reader
 	file *os.File
 }
 
-func OpenFile(zctx *resolver.Context, path, ifmt string) (Reader, error) {
+func OpenFile(zctx *resolver.Context, path, ifmt string) (*File, error) {
 	info, err := os.Stat(path)
 	if err != nil {
 		return nil, err
@@ -41,13 +36,13 @@ func OpenFile(zctx *resolver.Context, path, ifmt string) (Reader, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &fileReader{zr, f}, nil
+	return &File{zr, f}, nil
 }
 
-func (r *fileReader) Close() error {
+func (r *File) Close() error {
 	return r.file.Close()
 }
 
-func (r *fileReader) String() string {
+func (r *File) String() string {
 	return r.file.Name()
 }

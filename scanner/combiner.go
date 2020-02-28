@@ -23,7 +23,7 @@ func NewCombiner(readers []zbuf.Reader) *Combiner {
 	}
 }
 
-func OpenFiles(zctx *resolver.Context, paths ...string) (Reader, error) {
+func OpenFiles(zctx *resolver.Context, paths ...string) (*Combiner, error) {
 	var readers []zbuf.Reader
 	for _, path := range paths {
 		reader, err := OpenFile(zctx, path, "auto")
@@ -31,9 +31,6 @@ func OpenFiles(zctx *resolver.Context, paths ...string) (Reader, error) {
 			return nil, err
 		}
 		readers = append(readers, reader)
-	}
-	if len(readers) == 1 {
-		return readers[0].(Reader), nil
 	}
 	return NewCombiner(readers), nil
 }
