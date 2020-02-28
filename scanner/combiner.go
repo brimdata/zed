@@ -80,7 +80,7 @@ func (c *Combiner) closeReader(r zbuf.Reader) error {
 // Close closes underlying zbuf.Readers implementing the io.Closer
 // interface if they haven't already been closed.
 func (c *Combiner) Close() error {
-	var rerr error
+	var err error
 	for k, r := range c.readers {
 		if c.done[k] {
 			continue
@@ -88,9 +88,9 @@ func (c *Combiner) Close() error {
 		c.done[k] = true
 		// Return only the first error, but closing everything else if there is
 		// an error.
-		if err := c.closeReader(r); err != nil && rerr != nil {
-			rerr = err
+		if e := c.closeReader(r); err == nil {
+			err = e
 		}
 	}
-	return rerr
+	return err
 }
