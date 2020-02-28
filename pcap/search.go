@@ -106,8 +106,6 @@ func (s *Search) Run(w io.Writer, r io.Reader) error {
 	if len(hdr) != fileHeaderLen {
 		return errors.New("bad pcap file")
 	}
-	w.Write(hdr)
-	var n int
 	//XXX the .LayerType() method is returning Unknown for some reason
 	//outerLayer := pcap.LinkType().LayerType()
 	outerLayer := layers.LayerTypeEthernet
@@ -124,7 +122,10 @@ func (s *Search) Run(w io.Writer, r io.Reader) error {
 			break
 		}
 		if s.matcher == nil {
-			n++
+			if hdr != nil {
+				w.Write(hdr)
+				hdr = nil
+			}
 			if _, err = w.Write(block); err != nil {
 				return err
 			}
@@ -160,13 +161,16 @@ func (s *Search) Run(w io.Writer, r io.Reader) error {
 			continue
 		}
 		if s.matcher(isTcp, Socket{src, srcPort}, Socket{dst, dstPort}) {
-			n++
+			if hdr != nil {
+				w.Write(hdr)
+				hdr = nil
+			}
 			if _, err = w.Write(block); err != nil {
 				return err
 			}
 		}
 	}
-	if n == 0 {
+	if hdr != nil {
 		return ErrNoPacketsFound
 	}
 	return nil
