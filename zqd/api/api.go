@@ -73,6 +73,7 @@ type SpaceInfo struct {
 	Size          int64    `json:"size" unit:"bytes"`
 	PacketSupport bool     `json:"packet_support"`
 	PacketSize    int64    `json:"packet_size" unit:"bytes"`
+	PacketPath    string   `json:"packet_path"`
 }
 
 type StatusResponse struct {
@@ -86,6 +87,10 @@ type SpacePostRequest struct {
 }
 
 type SpacePostResponse SpacePostRequest
+
+type PacketPostRequest struct {
+	Path string `json:"path"`
+}
 
 // PacketSearch are the query string args to the packet endpoint when searching
 // for packets within a connection 5-tuple.

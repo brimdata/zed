@@ -22,6 +22,7 @@ func NewHandler(root string) http.Handler {
 	r.Handle("/space", wrapRoot(root, handleSpacePost)).Methods("POST")
 	r.Handle("/space/{space}", wrapRoot(root, handleSpaceGet)).Methods("GET")
 	r.Handle("/space/{space}/packet", wrapRoot(root, handlePacketSearch)).Methods("GET")
+	r.Handle("/space/{space}/packet", wrapRoot(root, handlePacketPost)).Methods("POST")
 	r.Handle("/search", wrapRoot(root, handleSearch)).Methods("POST")
 	r.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "application/json")

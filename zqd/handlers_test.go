@@ -198,7 +198,7 @@ func httpSuccess(t *testing.T, h http.Handler, method, url string, body interfac
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
 	res := w.Result()
-	if res.StatusCode != http.StatusOK {
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
 		body, _ := ioutil.ReadAll(res.Body)
 		require.Equal(t, http.StatusOK, res.StatusCode, string(body))
 	}

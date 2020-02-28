@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/ast"
+	zdriver "github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/proc"
@@ -17,6 +18,7 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/space"
+	"github.com/brimsec/zq/zql"
 	"go.uber.org/zap"
 )
 
@@ -54,6 +56,25 @@ func Search(ctx context.Context, s *space.Space, req api.SearchRequest, out Outp
 		return err
 	}
 	return run(mux, out)
+}
+
+func Copy(ctx context.Context, w zbuf.Writer, r zbuf.Reader, prog string) error {
+	p, err := zql.ParseProc(prog)
+	if err != nil {
+		return err
+	}
+	procCtx := &proc.Context{
+		Context:     ctx,
+		TypeContext: resolver.NewContext(),
+		Logger:      zap.NewNop(),
+		Reverse:     false,
+	}
+	mux, err := compile(procCtx, p, r, nano.MaxSpan)
+	if err != nil {
+		return err
+	}
+	d := zdriver.New(w)
+	return d.Run(mux)
 }
 
 type Output interface {

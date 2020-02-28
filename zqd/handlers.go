@@ -2,19 +2,22 @@ package zqd
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/scanner"
+	"github.com/brimsec/zq/zio/bzngio"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/search"
 	"github.com/brimsec/zq/zqd/space"
+	"github.com/brimsec/zq/zqd/zeek"
 	"github.com/gorilla/mux"
 )
 
@@ -57,18 +60,8 @@ func handleSearch(root string, w http.ResponseWriter, r *http.Request) {
 }
 
 func handlePacketSearch(root string, w http.ResponseWriter, r *http.Request) {
-	spaceName, err := extractSpace(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	s, err := space.Open(root, spaceName)
-	if err != nil {
-		status := http.StatusInternalServerError
-		if err == space.ErrSpaceNotExist {
-			status = http.StatusNotFound
-		}
-		http.Error(w, err.Error(), status)
+	s := extractSpace(root, w, r)
+	if s == nil {
 		return
 	}
 	req := &api.PacketSearch{}
@@ -141,18 +134,8 @@ func handleSpaceList(root string, w http.ResponseWriter, r *http.Request) {
 }
 
 func handleSpaceGet(root string, w http.ResponseWriter, r *http.Request) {
-	spaceName, err := extractSpace(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	s, err := space.Open(root, spaceName)
-	if err != nil {
-		if err == space.ErrSpaceNotExist {
-			http.Error(w, err.Error(), http.StatusNotFound)
-		} else {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+	s := extractSpace(root, w, r)
+	if s == nil {
 		return
 	}
 	f, err := s.OpenFile("all.bzng")
@@ -194,9 +177,10 @@ func handleSpaceGet(root string, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	info := &api.SpaceInfo{
-		Name:          spaceName,
+		Name:          s.Name(),
 		Size:          stat.Size(),
 		PacketSupport: s.HasFile(pktIndexFile),
+		PacketPath:    s.PacketPath(),
 	}
 	if found {
 		info.MinTime = &minTs
@@ -231,12 +215,108 @@ func handleSpacePost(root string, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// extractSpace returns the unescaped space from the path of a request.
-func extractSpace(r *http.Request) (string, error) {
+func handlePacketPost(root string, w http.ResponseWriter, r *http.Request) {
+	s := extractSpace(root, w, r)
+	if s == nil {
+		return
+	}
+	var req api.PacketPostRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	pcapfile, err := os.Open(req.Path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			http.Error(w, err.Error(), http.StatusNotFound)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+	defer pcapfile.Close()
+	logdir := s.DataPath("zeeklogs.tmp")
+	if err := os.Mkdir(logdir, 0755); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer os.RemoveAll(logdir)
+	// create logs
+	logfiles, err := zeek.Logify(r.Context(), logdir, pcapfile)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// convert logs into sorted bzng
+	bzngfile, err := s.CreateFile("all.bzng")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer bzngfile.Close()
+	zr, err := scanner.OpenFiles(resolver.NewContext(), logfiles...)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	zw := bzngio.NewWriter(bzngfile)
+	program := "_path != packet_filter | sort -limit 10000000 ts"
+	if err := search.Copy(r.Context(), zw, zr, program); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// create pcap index
+	if _, err := pcapfile.Seek(0, 0); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	idx, err := pcap.CreateIndex(pcapfile, 10000)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	pcapIdx, err := s.CreateFile(pktIndexFile)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer pcapIdx.Close()
+	if err := json.NewEncoder(pcapIdx).Encode(idx); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// update space config
+	if err := s.SetPacketPath(req.Path); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func extractSpace(root string, w http.ResponseWriter, r *http.Request) *space.Space {
+	name := extractSpaceName(w, r)
+	if name == "" {
+		return nil
+	}
+	s, err := space.Open(root, name)
+	if err != nil {
+		if err == space.ErrSpaceNotExist {
+			http.Error(w, err.Error(), http.StatusNotFound)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return nil
+	}
+	return s
+}
+
+// extractSpaceName returns the unescaped space from the path of a request.
+func extractSpaceName(w http.ResponseWriter, r *http.Request) string {
 	v := mux.Vars(r)
 	space, ok := v["space"]
 	if !ok {
-		return "", errors.New("no space found")
+		http.Error(w, "no space name in path", http.StatusBadRequest)
+		return ""
 	}
-	return space, nil
+	return space
 }
