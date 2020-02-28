@@ -14,12 +14,12 @@ type Reader interface {
 	Close() error
 }
 
-type FileReader struct {
+type fileReader struct {
 	zbuf.Reader
 	file *os.File
 }
 
-func OpenFile(zctx *resolver.Context, path, ifmt string) (*FileReader, error) {
+func OpenFile(zctx *resolver.Context, path, ifmt string) (Reader, error) {
 	info, err := os.Stat(path)
 	if err != nil {
 		return nil, err
@@ -41,28 +41,13 @@ func OpenFile(zctx *resolver.Context, path, ifmt string) (*FileReader, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &FileReader{zr, f}, nil
+	return &fileReader{zr, f}, nil
 }
 
-func (r *FileReader) Close() error {
+func (r *fileReader) Close() error {
 	return r.file.Close()
 }
 
-func (r *FileReader) String() string {
+func (r *fileReader) String() string {
 	return r.file.Name()
-}
-
-func OpenFiles(zctx *resolver.Context, paths ...string) (Reader, error) {
-	var readers []zbuf.Reader
-	for _, path := range paths {
-		reader, err := OpenFile(zctx, path, "auto")
-		if err != nil {
-			return nil, err
-		}
-		readers = append(readers, reader)
-	}
-	if len(readers) == 1 {
-		return readers[0].(Reader), nil
-	}
-	return NewCombiner(readers), nil
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 )
 
 type Combiner struct {
@@ -20,6 +21,21 @@ func NewCombiner(readers []zbuf.Reader) *Combiner {
 		hol:     make([]*zng.Record, len(readers)),
 		done:    make([]bool, len(readers)),
 	}
+}
+
+func OpenFiles(zctx *resolver.Context, paths ...string) (Reader, error) {
+	var readers []zbuf.Reader
+	for _, path := range paths {
+		reader, err := OpenFile(zctx, path, "auto")
+		if err != nil {
+			return nil, err
+		}
+		readers = append(readers, reader)
+	}
+	if len(readers) == 1 {
+		return readers[0].(Reader), nil
+	}
+	return NewCombiner(readers), nil
 }
 
 func (c *Combiner) Read() (*zng.Record, error) {
