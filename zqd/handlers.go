@@ -105,7 +105,11 @@ func handlePacketSearch(root string, w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%s.pcap", search.ID()))
 	err = search.Run(w, slicer)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		if err == pcap.ErrNoPacketsFound {
+			http.Error(w, err.Error(), http.StatusNotFound)
+		} else {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
 	}
 }
 
