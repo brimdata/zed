@@ -257,8 +257,7 @@ func handlePacketPost(root string, w http.ResponseWriter, r *http.Request) {
 	// For the time being, this endpoint will overwrite any underlying data.
 	// In order to get rid errors on any concurrent searches on this space,
 	// write bzng to a temp file and rename on successful conversion.
-	tmpdatafile := "all.bzng.tmp"
-	bzngfile, err := s.CreateFile(tmpdatafile)
+	bzngfile, err := s.CreateFile("all.bzng.tmp")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -266,14 +265,18 @@ func handlePacketPost(root string, w http.ResponseWriter, r *http.Request) {
 	zw := bzngio.NewWriter(bzngfile)
 	program := "_path != packet_filter | sort -limit 10000000 ts"
 	if err := search.Copy(r.Context(), zw, zr, program); err != nil {
-		// If an error occurs here remove tmp file and make sure bzngfile is
-		// closed, less we start leaking file descriptors.
-		os.Remove(tmpdatafile)
+		// If an error occurs here close and remove tmp bzngfile, less we start
+		// leaking files and file descriptors.
 		bzngfile.Close()
+		os.Remove(bzngfile.Name())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if err := os.Rename(tmpdatafile, "all.bzng"); err != nil {
+	if err := bzngfile.Close(); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if err := os.Rename(bzngfile.Name(), s.DataPath("all.bzng")); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
