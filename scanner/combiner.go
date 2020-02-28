@@ -72,9 +72,7 @@ func (c *Combiner) Read() (*zng.Record, error) {
 
 func (c *Combiner) closeReader(r zbuf.Reader) error {
 	if closer, ok := r.(io.Closer); ok {
-		if err := closer.Close(); err != nil {
-			return err
-		}
+		return closer.Close()
 	}
 	return nil
 }
