@@ -219,53 +219,37 @@ func (c *Command) Run(args []string) error {
 	return output.Run(mux)
 }
 
-func (c *Command) loadFile(path string) (zbuf.Reader, error) {
-	var f *os.File
-	if path == "-" {
-		f = os.Stdin
-	} else {
-		info, err := os.Stat(path)
-		if err != nil {
-			return nil, err
-		}
-		if info.IsDir() {
-			return nil, errInvalidFile("is a directory")
-		}
-		f, err = os.Open(path)
-		if err != nil {
-			return nil, err
-		}
-	}
-	r := detector.GzipReader(f)
-	if c.ifmt == "auto" {
-		return detector.NewReader(r, c.zctx)
-	}
-	zr, err := detector.LookupReader(c.ifmt, r, c.zctx)
-	if err != nil {
-		return nil, err
-	}
-	if zr == nil {
-		return nil, fmt.Errorf("unknown input format %s", c.ifmt)
-	}
-	return zr, nil
-}
-
 func (c *Command) errorf(format string, args ...interface{}) {
 	_, _ = fmt.Fprintf(os.Stderr, format, args...)
 }
 
 func (c *Command) loadFiles(paths []string) (zbuf.Reader, error) {
-	var readers []scanner.Reader
+	var readers []zbuf.Reader
 	for _, path := range paths {
-		r, err := c.loadFile(path)
-		if err != nil {
-			if _, ok := err.(errInvalidFile); ok {
-				c.errorf("skipping file: %s\n", err)
-				continue
+		var zr zbuf.Reader
+		if path == "-" {
+			r := detector.GzipReader(os.Stdin)
+			var err error
+			if c.ifmt == "auto" {
+				zr, err = detector.NewReader(r, c.zctx)
+			} else {
+				zr, err = detector.LookupReader(c.ifmt, r, c.zctx)
 			}
-			return nil, err
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			var err error
+			zr, err = scanner.OpenFile(c.zctx, path, c.ifmt)
+			if err != nil {
+				if _, ok := err.(errInvalidFile); ok {
+					c.errorf("skipping file: %s\n", err)
+					continue
+				}
+				return nil, err
+			}
 		}
-		readers = append(readers, scanner.Reader{r, path})
+		readers = append(readers, zr)
 	}
 	if len(readers) == 1 {
 		return readers[0], nil

@@ -1,8 +1,8 @@
 package pcap
 
 import (
-	"fmt"
-	"os"
+	"errors"
+	"io"
 
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/ranger"
@@ -23,13 +23,8 @@ type Section struct {
 // CreateIndex creates an index for a legacy pcap file.  If the file isn't
 // a legacy pcap file, an error is returned allowing the caller to try reading
 // the file as a legacy pcap then revert to nextgen pcap on error.
-func CreateIndex(path string, limit int) (*Index, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	reader, err := NewReader(f)
+func CreateIndex(r io.Reader, limit int) (*Index, error) {
+	reader, err := NewReader(r)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +43,7 @@ func CreateIndex(path string, limit int) (*Index, error) {
 	}
 	n := len(offsets)
 	if n == 0 {
-		return nil, fmt.Errorf("%s: no packets found in pcap file", path)
+		return nil, errors.New("no packets found")
 	}
 	// legacy pcap file has just the file header at the start of the file
 	blocks := []Slice{{0, fileHeaderLen}}

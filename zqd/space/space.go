@@ -16,20 +16,20 @@ var (
 )
 
 type Space struct {
-	path     string
-	dataPath string
+	path string
+	conf config
 }
 
 func Open(root, name string) (*Space, error) {
 	path := filepath.Join(root, name)
-	dataPath, err := loadConfig(filepath.Join(root, name))
+	c, err := loadConfig(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, ErrSpaceNotExist
 		}
 		return nil, err
 	}
-	return &Space{path: path, dataPath: dataPath}, nil
+	return &Space{path, c}, nil
 }
 
 func Create(root, name, dataPath string) (*Space, error) {
@@ -55,11 +55,12 @@ func Create(root, name, dataPath string) (*Space, error) {
 	if dataPath == "" {
 		dataPath = path
 	}
-	if err := saveConfig(path, dataPath); err != nil {
+	c := config{DataPath: dataPath}
+	if err := c.save(path); err != nil {
 		os.RemoveAll(path)
 		return nil, err
 	}
-	return &Space{path, dataPath}, nil
+	return &Space{path, c}, nil
 }
 
 func (s Space) Name() string {
@@ -67,7 +68,7 @@ func (s Space) Name() string {
 }
 
 func (s Space) DataPath(elem ...string) string {
-	return filepath.Join(append([]string{s.dataPath}, elem...)...)
+	return filepath.Join(append([]string{s.conf.DataPath}, elem...)...)
 }
 
 func (s Space) OpenFile(file string) (*os.File, error) {
@@ -90,30 +91,39 @@ func (s Space) ConfigPath() string {
 	return filepath.Join(s.path, "config.json")
 }
 
-type config struct {
-	DataPath string `json:"data_path"`
+func (s *Space) SetPacketPath(pcapPath string) error {
+	s.conf.PacketPath = pcapPath
+	return s.conf.save(s.path)
 }
 
-// loadConfig loads the contents of config.json. Currently DataPath is the only
-// attribute in Config, so only return the DataPath field.
-func loadConfig(name string) (string, error) {
+func (s Space) PacketPath() string {
+	return s.conf.PacketPath
+}
+
+type config struct {
+	DataPath   string `json:"data_path"`
+	PacketPath string `json:"packet_path"`
+}
+
+// loadConfig loads the contents of config.json in a space's path.
+func loadConfig(name string) (config, error) {
+	var c config
 	b, err := ioutil.ReadFile(filepath.Join(name, "config.json"))
 	if err != nil {
-		return "", err
+		return c, err
 	}
-	c := config{}
 	if err := json.Unmarshal(b, &c); err != nil {
-		return "", err
+		return c, err
 	}
-	return c.DataPath, nil
+	return c, nil
 }
 
-func saveConfig(name, dataPath string) error {
-	path := filepath.Join(name, "config.json")
+func (c config) save(spacePath string) error {
+	path := filepath.Join(spacePath, "config.json")
 	f, err := os.Create(path)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	return json.NewEncoder(f).Encode(config{dataPath})
+	return json.NewEncoder(f).Encode(c)
 }
