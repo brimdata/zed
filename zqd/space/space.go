@@ -107,7 +107,7 @@ type config struct {
 
 // loadConfig loads the contents of config.json in a space's path.
 func loadConfig(name string) (config, error) {
-	c := config{}
+	var c config
 	b, err := ioutil.ReadFile(filepath.Join(name, "config.json"))
 	if err != nil {
 		return c, err
