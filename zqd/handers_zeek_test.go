@@ -56,7 +56,7 @@ func (s *PacketPostSuite) SetupTest() {
 	dir, err := ioutil.TempDir("", "PacketPostTest")
 	s.NoError(err)
 	s.root = dir
-	s.pcapfile = filepath.Join(".", "fixtures/test.pcap")
+	s.pcapfile = filepath.Join(".", "testdata/test.pcap")
 	createSpaceWithPcap(s.T(), s.root, s.space, s.pcapfile)
 }
 
