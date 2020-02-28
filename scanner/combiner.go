@@ -77,7 +77,7 @@ func (c *Combiner) closeReader(r zbuf.Reader) error {
 	return nil
 }
 
-// Close calls Close any underlying zbuf.Readers implementing the io.Closer
+// Close closes underlying zbuf.Readers implementing the io.Closer
 // interface if they haven't already been closed.
 func (c *Combiner) Close() error {
 	var rerr error
