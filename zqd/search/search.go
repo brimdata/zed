@@ -67,7 +67,6 @@ func Copy(ctx context.Context, w zbuf.Writer, r zbuf.Reader, prog string) error 
 		Context:     ctx,
 		TypeContext: resolver.NewContext(),
 		Logger:      zap.NewNop(),
-		Reverse:     false,
 	}
 	mux, err := compile(procCtx, p, r, nano.MaxSpan)
 	if err != nil {
