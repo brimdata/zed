@@ -21,6 +21,10 @@ type Flow struct {
 	S1 Socket
 }
 
+func NewFlow(src net.IP, srcPort int, dst net.IP, dstPort int) Flow {
+	return Flow{Socket{src, srcPort}, Socket{dst, dstPort}}
+}
+
 func (f Flow) String() string {
 	return f.S0.String() + "," + f.S1.String()
 }
