@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"flag"
+	"fmt"
 	"io"
 	"os"
 
@@ -147,7 +148,14 @@ func (c *Command) Run(args []string) error {
 	}
 	var search *pcap.Search
 	if filter {
-		search = pcap.NewFlowSearch(span, c.proto, flow)
+		switch c.proto {
+		default:
+			return fmt.Errorf("unknown protocol: %s", c.proto)
+		case "tcp":
+			search = pcap.NewTCPSearch(span, flow)
+		case "udp":
+			search = pcap.NewUDPSearch(span, flow)
+		}
 	} else {
 		search = pcap.NewRangeSearch(span)
 	}
