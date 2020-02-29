@@ -22,7 +22,6 @@ import (
 )
 
 const pktIndexFile = "packets.idx.json"
-const pcapFile = "packets.pcap"
 
 func handleSearch(root string, w http.ResponseWriter, r *http.Request) {
 	var req api.SearchRequest
@@ -68,7 +67,7 @@ func handlePacketSearch(root string, w http.ResponseWriter, r *http.Request) {
 	if err := req.FromQuery(r.URL.Query()); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
-	if !s.HasFile(pcapFile) || !s.HasFile(pktIndexFile) {
+	if s.PacketPath() == "" || !s.HasFile(pktIndexFile) {
 		http.Error(w, "space has no pcaps", http.StatusNotFound)
 		return
 	}
@@ -77,8 +76,7 @@ func handlePacketSearch(root string, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	// XXX pcapFile should be able to live outside space data path?
-	f, err := s.OpenFile(pcapFile)
+	f, err := os.Open(s.PacketPath())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
