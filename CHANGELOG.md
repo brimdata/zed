@@ -1,3 +1,8 @@
+## v0.4.0
+  
+* zqd adds an endpoint to create a new empty space via POST
+* zqd adds an endpoint to post packet captures that are indexed passed through Zeek
+
 ## v0.3.0
 
 * zqd adds -datadir flag for space root directory.
