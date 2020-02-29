@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"os"
 
@@ -58,6 +59,31 @@ func handleSearch(root string, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func parseIP(host string) (net.IP, error) {
+	ip := net.ParseIP(host)
+	var err error
+	if ip == nil {
+		err = fmt.Errorf("invalid ip: %s", host)
+	}
+	return ip, err
+}
+
+func parseFlow(srcHost string, srcPort *uint16, dstHost string, dstPort *uint16) (pcap.Flow, error) {
+	// convert ips
+	src, err := parseIP(srcHost)
+	if err != nil {
+		return pcap.Flow{}, err
+	}
+	dst, err := parseIP(dstHost)
+	if dst == nil {
+		return pcap.Flow{}, err
+	}
+	if srcPort == nil || dstPort == nil {
+		return pcap.Flow{}, fmt.Errorf("port(s) missing in pcap request")
+	}
+	return pcap.NewFlow(src, int(*srcPort), dst, int(*dstPort)), nil
+}
+
 func handlePacketSearch(root string, w http.ResponseWriter, r *http.Request) {
 	s := extractSpace(root, w, r)
 	if s == nil {
@@ -87,17 +113,36 @@ func handlePacketSearch(root string, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	search, err := pcap.NewSearch(
-		req.Span,
-		req.Proto,
-		req.SrcHost,
-		req.SrcPort,
-		req.DstHost,
-		req.DstPort,
-	)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	var search *pcap.Search
+	switch req.Proto {
+	default:
+		msg := fmt.Sprintf("unsupported proto type: %s", req.Proto)
+		http.Error(w, msg, http.StatusBadRequest)
 		return
+	case "tcp":
+		flow, err := parseFlow(req.SrcHost, req.SrcPort, req.DstHost, req.DstPort)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		search = pcap.NewTCPSearch(req.Span, flow)
+	case "udp":
+		flow, err := parseFlow(req.SrcHost, req.SrcPort, req.DstHost, req.DstPort)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		search = pcap.NewUDPSearch(req.Span, flow)
+	case "icmp":
+		src, err := parseIP(req.SrcHost)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+		dst, err := parseIP(req.DstHost)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+		search = pcap.NewICMPSearch(req.Span, src, dst)
 	}
 	w.Header().Set("Content-Type", "application/vnd.tcpdump.pcap")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%s.pcap", search.ID()))

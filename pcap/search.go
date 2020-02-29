@@ -16,50 +16,39 @@ var (
 	ErrNoPacketsFound = errors.New("no packets found")
 )
 
-//XXX bool true = TCP, else UDP, change this
-type Predicate func(bool, Socket, Socket) bool
+type PacketFilter func(gopacket.Packet) bool
 
 // Search describes the parameters for a packet search over a pcap file.
 type Search struct {
-	span    nano.Span
-	matcher Predicate
-	id      string
+	span   nano.Span
+	filter PacketFilter
+	id     string
 }
 
-// NewSearch creates a new search object.
-func NewSearch(span nano.Span, proto string, srcHost string, srcPort *uint16, dstHost string, dstPort *uint16) (*Search, error) {
-	switch proto {
-	// XXX TBD add support for icmp and other packet filters
-	//case "icmp", "tcp", "udp":
-	case "tcp", "udp":
-	default:
-		return nil, fmt.Errorf("unsupported proto type: %s", proto)
-	}
-	// convert ips
-	src := net.ParseIP(srcHost)
-	if src == nil {
-		return nil, fmt.Errorf("invalid ip: %s", srcHost)
-	}
-	dst := net.ParseIP(dstHost)
-	if dst == nil {
-		return nil, fmt.Errorf("invalid ip: %s", dstHost)
-	}
-	if srcPort == nil || dstPort == nil {
-		return nil, fmt.Errorf("%s connections must have src port and dst port", proto)
-	}
-	return NewFlowSearch(span, proto, Flow{Socket{src, int(*srcPort)}, Socket{dst, int(*dstPort)}}), nil
-}
-
-func NewFlowSearch(span nano.Span, proto string, flow Flow) *Search {
-	var tcp bool
-	if proto == "tcp" {
-		tcp = true
-	}
-	id := fmt.Sprintf("%s_%s_%s", span.Ts.StringFloat(), proto, flow)
+func NewTCPSearch(span nano.Span, flow Flow) *Search {
+	id := fmt.Sprintf("%s_tcp_%s", span.Ts.StringFloat(), flow)
 	return &Search{
-		span:    span,
-		matcher: makeMatcher(tcp, flow),
-		id:      id,
+		span:   span,
+		filter: genTCPFilter(flow),
+		id:     id,
+	}
+}
+
+func NewUDPSearch(span nano.Span, flow Flow) *Search {
+	id := fmt.Sprintf("%s_udp_%s", span.Ts.StringFloat(), flow)
+	return &Search{
+		span:   span,
+		filter: genUDPFilter(flow),
+		id:     id,
+	}
+}
+
+func NewICMPSearch(span nano.Span, src, dst net.IP) *Search {
+	id := fmt.Sprintf("icmp_%s_%s_%s", span.Ts.StringFloat(), src.String(), dst.String())
+	return &Search{
+		span:   span,
+		filter: genICMPFilter(src, dst),
+		id:     id,
 	}
 }
 
@@ -75,21 +64,74 @@ func (s Search) Span() nano.Span {
 	return s.span
 }
 
-func makeMatcher(tcp_ bool, flow Flow) Predicate {
-	match := func(s0, s1 Socket) bool {
+// ID returns an identifier for the search performed.
+func (s Search) ID() string {
+	return s.id
+}
+
+func matchIP(packet gopacket.Packet) (net.IP, net.IP) {
+	network := packet.NetworkLayer()
+	if ip, ok := network.(*layers.IPv4); ok {
+		return ip.SrcIP, ip.DstIP
+	} else if ip, ok := network.(*layers.IPv6); ok {
+		return ip.SrcIP, ip.DstIP
+	}
+	return nil, nil
+}
+
+func genFlowFilter(flow Flow) func(Socket, Socket) bool {
+	return func(s0, s1 Socket) bool {
 		return s0.IP.Equal(flow.S0.IP) && s1.IP.Equal(flow.S1.IP) && s0.Port == flow.S0.Port && s1.Port == flow.S1.Port
 	}
-	return func(tcp bool, src, dst Socket) bool {
-		if tcp != tcp_ {
+}
+
+func genTCPFilter(flow Flow) func(gopacket.Packet) bool {
+	match := genFlowFilter(flow)
+	return func(packet gopacket.Packet) bool {
+		srcIP, dstIP := matchIP(packet)
+		if srcIP == nil {
 			return false
 		}
+		transport := packet.TransportLayer()
+		tcp, ok := transport.(*layers.TCP)
+		if !ok {
+			return false
+		}
+		src := Socket{srcIP, int(tcp.SrcPort)}
+		dst := Socket{dstIP, int(tcp.DstPort)}
 		return match(src, dst) || match(dst, src)
 	}
 }
 
-// ID returns an identifier for the search performed.
-func (s Search) ID() string {
-	return s.id
+func genUDPFilter(flow Flow) func(gopacket.Packet) bool {
+	match := genFlowFilter(flow)
+	return func(packet gopacket.Packet) bool {
+		srcIP, dstIP := matchIP(packet)
+		if srcIP == nil {
+			return false
+		}
+		transport := packet.TransportLayer()
+		tcp, ok := transport.(*layers.UDP)
+		if !ok {
+			return false
+		}
+		src := Socket{srcIP, int(tcp.SrcPort)}
+		dst := Socket{dstIP, int(tcp.DstPort)}
+		return match(src, dst) || match(dst, src)
+	}
+}
+
+func genICMPFilter(src, dst net.IP) func(gopacket.Packet) bool {
+	return func(packet gopacket.Packet) bool {
+		if packet.LayerClass(layers.LayerClassIPControl) == nil {
+			return false
+		}
+		srcIP, dstIP := matchIP(packet)
+		if srcIP == nil {
+			return false
+		}
+		return (src.Equal(srcIP) && dst.Equal(dstIP)) || (src.Equal(dstIP) && dst.Equal(srcIP))
+	}
 }
 
 // XXX currently assumes legacy pcap is produced by the input reader
@@ -121,53 +163,17 @@ func (s *Search) Run(w io.Writer, r io.Reader) error {
 		if block == nil {
 			break
 		}
-		if s.matcher == nil {
-			if hdr != nil {
-				w.Write(hdr)
-				hdr = nil
-			}
-			if _, err = w.Write(block); err != nil {
-				return err
-			}
-			continue
-		}
-
-		//XXX need to support other protocols like ICMP, etc
-
 		pktBuf := block[packetHeaderLen:]
 		packet := gopacket.NewPacket(pktBuf, outerLayer, opts)
-		network := packet.NetworkLayer()
-		var src, dst net.IP
-		if ip, ok := network.(*layers.IPv4); ok {
-			src = ip.SrcIP
-			dst = ip.DstIP
-		} else if ip, ok := network.(*layers.IPv6); ok {
-			src = ip.SrcIP
-			dst = ip.DstIP
-		} else {
+		if s.filter != nil && !s.filter(packet) {
 			continue
 		}
-		isTcp := true
-		var srcPort, dstPort int
-		transport := packet.TransportLayer()
-		if tcp, ok := transport.(*layers.TCP); ok {
-			srcPort = int(tcp.SrcPort)
-			dstPort = int(tcp.DstPort)
-		} else if udp, ok := transport.(*layers.UDP); ok {
-			isTcp = false
-			srcPort = int(udp.SrcPort)
-			dstPort = int(udp.DstPort)
-		} else {
-			continue
+		if hdr != nil {
+			w.Write(hdr)
+			hdr = nil
 		}
-		if s.matcher(isTcp, Socket{src, srcPort}, Socket{dst, dstPort}) {
-			if hdr != nil {
-				w.Write(hdr)
-				hdr = nil
-			}
-			if _, err = w.Write(block); err != nil {
-				return err
-			}
+		if _, err = w.Write(block); err != nil {
+			return err
 		}
 	}
 	if hdr != nil {
