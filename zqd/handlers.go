@@ -22,7 +22,6 @@ import (
 )
 
 const pktIndexFile = "packets.idx.json"
-const pcapFile = "packets.pcap"
 
 func handleSearch(root string, w http.ResponseWriter, r *http.Request) {
 	var req api.SearchRequest
@@ -68,7 +67,7 @@ func handlePacketSearch(root string, w http.ResponseWriter, r *http.Request) {
 	if err := req.FromQuery(r.URL.Query()); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
-	if !s.HasFile(pcapFile) || !s.HasFile(pktIndexFile) {
+	if s.PacketPath() == "" || !s.HasFile(pktIndexFile) {
 		http.Error(w, "space has no pcaps", http.StatusNotFound)
 		return
 	}
@@ -77,8 +76,7 @@ func handlePacketSearch(root string, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	// XXX pcapFile should be able to live outside space data path?
-	f, err := s.OpenFile(pcapFile)
+	f, err := os.Open(s.PacketPath())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -267,7 +265,7 @@ func handlePacketPost(root string, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	zw := bzngio.NewWriter(bzngfile)
-	const program = "_path != packet_filter | sort -limit 10000000 ts"
+	const program = "_path != packet_filter | sort -limit 1000000000 -r ts"
 	if err := search.Copy(r.Context(), zw, zr, program); err != nil {
 		// If an error occurs here close and remove tmp bzngfile, lest we start
 		// leaking files and file descriptors.
