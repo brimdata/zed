@@ -8,7 +8,7 @@ import (
 )
 
 func Logify(ctx context.Context, dir string, pcap io.Reader) ([]string, error) {
-	cmd := exec.CommandContext(ctx, "zeek", "-C", "-r", "-")
+	cmd := exec.CommandContext(ctx, "zeek", "-C", "-r", "-", "local")
 	cmd.Stdin = pcap
 	cmd.Dir = dir
 	if err := cmd.Run(); err != nil {
