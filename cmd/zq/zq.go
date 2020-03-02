@@ -183,7 +183,7 @@ func (c *Command) Run(args []string) error {
 	} else {
 		paths = args[1:]
 		if len(paths) == 0 {
-			return Zq.Exec(c, []string{"help"})
+			return fmt.Errorf("file not found: %s", args[0])
 		}
 		query, err = zql.ParseProc(args[0])
 		if err != nil {

@@ -84,7 +84,7 @@ import (
 func Run(t *testing.T, dirname string) {
 	zq := os.Getenv("ZTEST_ZQ")
 	if zq != "" {
-		if out, err := run(zq, "*", ""); err != nil {
+		if out, err := run(zq, "help", ""); err != nil {
 			if out != "" {
 				out = fmt.Sprintf(" with output %q", out)
 			}
