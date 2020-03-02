@@ -69,14 +69,14 @@ func (s Search) ID() string {
 	return s.id
 }
 
-func matchIP(packet gopacket.Packet) (net.IP, net.IP) {
+func matchIP(packet gopacket.Packet) (net.IP, net.IP, bool) {
 	network := packet.NetworkLayer()
 	if ip, ok := network.(*layers.IPv4); ok {
-		return ip.SrcIP, ip.DstIP
+		return ip.SrcIP, ip.DstIP, true
 	} else if ip, ok := network.(*layers.IPv6); ok {
-		return ip.SrcIP, ip.DstIP
+		return ip.SrcIP, ip.DstIP, true
 	}
-	return nil, nil
+	return nil, nil, false
 }
 
 func genFlowFilter(flow Flow) func(Socket, Socket) bool {
@@ -85,11 +85,11 @@ func genFlowFilter(flow Flow) func(Socket, Socket) bool {
 	}
 }
 
-func genTCPFilter(flow Flow) func(gopacket.Packet) bool {
+func genTCPFilter(flow Flow) PacketFilter {
 	match := genFlowFilter(flow)
 	return func(packet gopacket.Packet) bool {
-		srcIP, dstIP := matchIP(packet)
-		if srcIP == nil {
+		srcIP, dstIP, ok := matchIP(packet)
+		if !ok {
 			return false
 		}
 		transport := packet.TransportLayer()
@@ -103,31 +103,31 @@ func genTCPFilter(flow Flow) func(gopacket.Packet) bool {
 	}
 }
 
-func genUDPFilter(flow Flow) func(gopacket.Packet) bool {
+func genUDPFilter(flow Flow) PacketFilter {
 	match := genFlowFilter(flow)
 	return func(packet gopacket.Packet) bool {
-		srcIP, dstIP := matchIP(packet)
-		if srcIP == nil {
-			return false
-		}
-		transport := packet.TransportLayer()
-		tcp, ok := transport.(*layers.UDP)
+		srcIP, dstIP, ok := matchIP(packet)
 		if !ok {
 			return false
 		}
-		src := Socket{srcIP, int(tcp.SrcPort)}
-		dst := Socket{dstIP, int(tcp.DstPort)}
+		transport := packet.TransportLayer()
+		udp, ok := transport.(*layers.UDP)
+		if !ok {
+			return false
+		}
+		src := Socket{srcIP, int(udp.SrcPort)}
+		dst := Socket{dstIP, int(udp.DstPort)}
 		return match(src, dst) || match(dst, src)
 	}
 }
 
-func genICMPFilter(src, dst net.IP) func(gopacket.Packet) bool {
+func genICMPFilter(src, dst net.IP) PacketFilter {
 	return func(packet gopacket.Packet) bool {
 		if packet.LayerClass(layers.LayerClassIPControl) == nil {
 			return false
 		}
-		srcIP, dstIP := matchIP(packet)
-		if srcIP == nil {
+		srcIP, dstIP, ok := matchIP(packet)
+		if !ok {
 			return false
 		}
 		return (src.Equal(srcIP) && dst.Equal(dstIP)) || (src.Equal(dstIP) && dst.Equal(srcIP))
