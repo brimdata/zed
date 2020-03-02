@@ -265,7 +265,7 @@ func handlePacketPost(root string, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	zw := bzngio.NewWriter(bzngfile)
-	const program = "_path != packet_filter | sort -limit 1000000000 -r ts"
+	const program = "_path != packet_filter _path != loaded_scripts | sort -limit 1000000000 -r ts"
 	if err := search.Copy(r.Context(), zw, zr, program); err != nil {
 		// If an error occurs here close and remove tmp bzngfile, lest we start
 		// leaking files and file descriptors.
