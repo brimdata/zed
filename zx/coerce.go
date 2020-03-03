@@ -70,6 +70,9 @@ func CoerceToInt(in zng.Value, typ zng.Type) (zng.Value, bool) {
 	case zng.IdFloat64:
 		var v float64
 		v, err = zng.DecodeFloat64(in.Bytes)
+		if err != nil {
+			return zng.Value{}, false
+		}
 		i = int64(v)
 		if float64(i) != v {
 			return zng.Value{}, false
@@ -77,10 +80,16 @@ func CoerceToInt(in zng.Value, typ zng.Type) (zng.Value, bool) {
 	case zng.IdTime:
 		var v nano.Ts
 		v, err = zng.DecodeTime(in.Bytes)
+		if err != nil {
+			return zng.Value{}, false
+		}
 		i = int64(v / 1e9)
 	case zng.IdDuration:
 		var v int64
 		v, err = zng.DecodeDuration(in.Bytes)
+		if err != nil {
+			return zng.Value{}, false
+		}
 		i = int64(v / 1e9)
 	case zng.IdByte:
 		var b byte
