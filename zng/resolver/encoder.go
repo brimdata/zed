@@ -50,9 +50,10 @@ func (e *Encoder) isEncoded(id int) bool {
 // the new type into the buffer provided.
 func (e *Encoder) Encode(dst []byte, external zng.Type) ([]byte, zng.Type, error) {
 	dst, typ, err := e.encodeType(dst, external)
-	if err == nil {
-		e.enter(external.ID(), typ)
+	if err != nil {
+		return nil, nil, err
 	}
+	e.enter(external.ID(), typ)
 	return dst, typ, err
 }
 
