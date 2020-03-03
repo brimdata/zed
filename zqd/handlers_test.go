@@ -128,6 +128,37 @@ func TestSpacePostDataDirOnly(t *testing.T) {
 	})
 }
 
+func TestSpaceDelete(t *testing.T) {
+	space := "myspace"
+	spaceUrl := fmt.Sprintf("http://localhost:9867/space/%s", space)
+	run := func(name string, cb func(t *testing.T, tmp, root string)) {
+		tmp := createTempDir(t)
+		defer os.RemoveAll(tmp)
+		root := filepath.Join(tmp, "spaces")
+		require.NoError(t, os.Mkdir(root, 0755))
+		t.Run(name, func(t *testing.T) {
+			cb(t, tmp, root)
+			// make sure no spaces exist
+			r := httpSuccess(t, zqd.NewHandler(root), "GET", "http://localhost:9867/space", nil)
+			body, err := ioutil.ReadAll(r)
+			require.NoError(t, err)
+			require.Equal(t, "[]\n", string(body))
+		})
+	}
+	run("Simple", func(t *testing.T, tmp, root string) {
+		createSpace(t, root, space, "")
+		httpSuccess(t, zqd.NewHandler(root), "DELETE", spaceUrl, nil)
+	})
+	run("DeletesOutsideDataDir", func(t *testing.T, tmp, root string) {
+		datadir := filepath.Join(tmp, "datadir")
+		createSpace(t, root, space, datadir)
+		httpSuccess(t, zqd.NewHandler(root), "DELETE", spaceUrl, nil)
+		_, err := os.Stat(datadir)
+		require.Error(t, err)
+		require.Truef(t, os.IsNotExist(err), "expected error to be os.IsNotExist, got %v", err)
+	})
+}
+
 func execSearch(t *testing.T, root, space, prog string) string {
 	parsed, err := zql.ParseProc(prog)
 	require.NoError(t, err)

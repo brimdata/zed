@@ -21,6 +21,7 @@ func NewHandler(root string) http.Handler {
 	r.Handle("/space", wrapRoot(root, handleSpaceList)).Methods("GET")
 	r.Handle("/space", wrapRoot(root, handleSpacePost)).Methods("POST")
 	r.Handle("/space/{space}", wrapRoot(root, handleSpaceGet)).Methods("GET")
+	r.Handle("/space/{space}", wrapRoot(root, handleSpaceDelete)).Methods("DELETE")
 	r.Handle("/space/{space}/packet", wrapRoot(root, handlePacketSearch)).Methods("GET")
 	r.Handle("/space/{space}/packet", wrapRoot(root, handlePacketPost)).Methods("POST")
 	r.Handle("/search", wrapRoot(root, handleSearch)).Methods("POST")
