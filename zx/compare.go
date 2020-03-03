@@ -81,14 +81,6 @@ var compareInt = map[string]func(int64, int64) bool{
 	"lt":   func(a, b int64) bool { return a < b },
 	"lte":  func(a, b int64) bool { return a <= b }}
 
-var compareUint = map[string]func(uint64, uint64) bool{
-	"eql":  func(a, b uint64) bool { return a == b },
-	"neql": func(a, b uint64) bool { return a != b },
-	"gt":   func(a, b uint64) bool { return a > b },
-	"gte":  func(a, b uint64) bool { return a >= b },
-	"lt":   func(a, b uint64) bool { return a < b },
-	"lte":  func(a, b uint64) bool { return a <= b }}
-
 var compareFloat = map[string]func(float64, float64) bool{
 	"eql":  func(a, b float64) bool { return a == b },
 	"neql": func(a, b float64) bool { return a != b },
