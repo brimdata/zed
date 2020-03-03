@@ -13,6 +13,15 @@ import (
 	"github.com/brimsec/zq/zng"
 )
 
+var opTokens = map[string]string{
+	"eql":  "=",
+	"neql": "!=",
+	"gt":   ">",
+	"gte":  ">=",
+	"lt":   "<",
+	"lte":  "<=",
+}
+
 //XXX TBD:
 // - change these comparisons to work in the zcode.Bytes domain
 // - add timer, interval comparisons when we add time, interval literals to the language
@@ -58,7 +67,7 @@ var compareBool = map[string]func(bool, bool) bool{
 func CompareBool(op string, pattern bool) (Predicate, error) {
 	compare, ok := compareBool[op]
 	if !ok {
-		return nil, fmt.Errorf("unknown bool comparator: %s", op)
+		return nil, fmt.Errorf("unknown bool comparator: %s", opTokens[op])
 	}
 	return func(v zng.Value) bool {
 		if v.Type.ID() != zng.IdBool {
@@ -70,7 +79,7 @@ func CompareBool(op string, pattern bool) (Predicate, error) {
 		}
 		return compare(b, pattern)
 	}, nil
-	return nil, fmt.Errorf("bad comparator for boolean type: %s", op)
+	return nil, fmt.Errorf("bad comparator for boolean type: %s", opTokens[op])
 }
 
 var compareInt = map[string]func(int64, int64) bool{
@@ -104,7 +113,7 @@ func CompareInt64(op string, pattern int64) (Predicate, error) {
 	CompareInt, ok1 := compareInt[op]
 	CompareFloat, ok2 := compareFloat[op]
 	if !ok1 || !ok2 {
-		return nil, fmt.Errorf("unknown int comparator: %s", op)
+		return nil, fmt.Errorf("unknown int comparator: %s", opTokens[op])
 	}
 	// many different zeek data types can be compared with integers
 	return func(val zng.Value) bool {
@@ -154,7 +163,7 @@ func CompareInt64(op string, pattern int64) (Predicate, error) {
 func CompareContainerLen(op string, len int64) (Predicate, error) {
 	compare, ok := compareInt[op]
 	if !ok {
-		return nil, fmt.Errorf("unknown length comparator: %s", op)
+		return nil, fmt.Errorf("unknown length comparator: %s", opTokens[op])
 	}
 	return func(v zng.Value) bool {
 		actual, err := v.ContainerLength()
@@ -182,7 +191,7 @@ var compareAddr = map[string]func(net.IP, net.IP) bool{
 func CompareIP(op string, pattern net.IP) (Predicate, error) {
 	compare, ok := compareAddr[op]
 	if !ok {
-		return nil, fmt.Errorf("unknown addr comparator: %s", op)
+		return nil, fmt.Errorf("unknown addr comparator: %s", opTokens[op])
 	}
 	return func(v zng.Value) bool {
 		if v.Type.ID() != zng.IdIP {
@@ -203,7 +212,7 @@ func CompareIP(op string, pattern net.IP) (Predicate, error) {
 func CompareFloat64(op string, pattern float64) (Predicate, error) {
 	compare, ok := compareFloat[op]
 	if !ok {
-		return nil, fmt.Errorf("unknown double comparator: %s", op)
+		return nil, fmt.Errorf("unknown double comparator: %s", opTokens[op])
 	}
 	return func(val zng.Value) bool {
 		zv := val.Bytes
@@ -269,7 +278,7 @@ var compareString = map[string]func(string, string) bool{
 func CompareBstring(op string, pattern zng.Bstring) (Predicate, error) {
 	compare, ok := compareString[op]
 	if !ok {
-		return nil, fmt.Errorf("unknown string comparator: %s", op)
+		return nil, fmt.Errorf("unknown string comparator: %s", opTokens[op])
 	}
 	s := string(pattern)
 	return func(v zng.Value) bool {
@@ -294,7 +303,7 @@ func compareRegexp(op, pattern string) (Predicate, error) {
 	}
 	switch op {
 	default:
-		return nil, fmt.Errorf("unknown pattern comparator: %s", op)
+		return nil, fmt.Errorf("unknown pattern comparator: %s", opTokens[op])
 	case "eql":
 		return func(v zng.Value) bool {
 			switch v.Type.ID() {
@@ -321,7 +330,7 @@ func compareRegexp(op, pattern string) (Predicate, error) {
 func ComparePort(op string, pattern uint32) (Predicate, error) {
 	compare, ok := compareInt[op]
 	if !ok {
-		return nil, fmt.Errorf("unknown port comparator: %s", op)
+		return nil, fmt.Errorf("unknown port comparator: %s", opTokens[op])
 	}
 	// only a zeek port can be compared with a port type.  If the user went
 	// to the trouble of specifying a port match (e.g., ":80" vs "80") then
@@ -341,7 +350,7 @@ func ComparePort(op string, pattern uint32) (Predicate, error) {
 func CompareUnset(op string) (Predicate, error) {
 	switch op {
 	default:
-		return nil, fmt.Errorf("unknown unset comparator: %s", op)
+		return nil, fmt.Errorf("unknown unset comparator: %s", opTokens[op])
 	case "eql":
 		return func(v zng.Value) bool {
 			return v.IsUnset()
@@ -400,7 +409,7 @@ func CompareSubnet(op string, pattern *net.IPNet) (Predicate, error) {
 	compare, ok1 := compareSubnet[op]
 	match, ok2 := matchSubnet[op]
 	if !ok1 || !ok2 {
-		return nil, fmt.Errorf("unknown subnet comparator: %s", op)
+		return nil, fmt.Errorf("unknown subnet comparator: %s", opTokens[op])
 	}
 	return func(v zng.Value) bool {
 		val := v.Bytes
