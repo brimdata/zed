@@ -17,6 +17,18 @@ type Error struct {
 	Info    interface{} `json:"info,omitempty"`
 }
 
+// Error implements the error interface so this structs can be passed around
+// as errors.  The error string is the JSON encoding of the Error struct
+// with indentation.
+func (e *Error) Error() string {
+	b, err := json.MarshalIndent(e, "", "\t")
+	if err != nil {
+		// this shouldn't happen
+		return e.Message
+	}
+	return string(b)
+}
+
 type TaskStart struct {
 	Type   string `json:"type"`
 	TaskID int64  `json:"task_id"`
@@ -92,6 +104,14 @@ type SpacePostResponse SpacePostRequest
 
 type PacketPostRequest struct {
 	Path string `json:"path"`
+}
+
+type PacketPostStatus struct {
+	Type           string  `json:"type"`
+	StartTime      nano.Ts `json:"start_time"`
+	UpdateTime     nano.Ts `json:"update_time"`
+	PacketSize     int64   `json:"packet_total_size" unit:"bytes"`
+	PacketReadSize int64   `json:"packet_read_size" unit:"bytes"`
 }
 
 // PacketSearch are the query string args to the packet endpoint when searching

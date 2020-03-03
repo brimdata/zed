@@ -1,4 +1,4 @@
-package search
+package api
 
 import (
 	"encoding/json"
@@ -23,7 +23,7 @@ func NewJSONPipe(w http.ResponseWriter) *JSONPipe {
 	p := &JSONPipe{
 		ResponseWriter: w,
 		encoder:        json.NewEncoder(w),
-		separator:      []byte("\n\n"),
+		separator:      sep,
 	}
 	return p
 }

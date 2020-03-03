@@ -10,14 +10,14 @@ import (
 )
 
 type JSON struct {
-	pipe   *JSONPipe
+	pipe   *api.JSONPipe
 	stream *zjsonio.Stream
 	mtu    int
 }
 
 func NewJSONOutput(resp http.ResponseWriter, mtu int) *JSON {
 	return &JSON{
-		pipe:   NewJSONPipe(resp),
+		pipe:   api.NewJSONPipe(resp),
 		stream: zjsonio.NewStream(),
 		mtu:    mtu,
 	}
