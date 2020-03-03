@@ -10,6 +10,8 @@ import (
 	"github.com/brimsec/zq/pkg/fs"
 )
 
+const configFile = "config.json"
+
 var (
 	ErrSpaceNotExist = errors.New("space does not exist")
 	ErrSpaceExists   = errors.New("space exists")
@@ -88,7 +90,7 @@ func (s Space) HasFile(file string) bool {
 }
 
 func (s Space) ConfigPath() string {
-	return filepath.Join(s.path, "config.json")
+	return filepath.Join(s.path, configFile)
 }
 
 func (s *Space) SetPacketPath(pcapPath string) error {
@@ -108,7 +110,7 @@ type config struct {
 // loadConfig loads the contents of config.json in a space's path.
 func loadConfig(name string) (config, error) {
 	var c config
-	b, err := ioutil.ReadFile(filepath.Join(name, "config.json"))
+	b, err := ioutil.ReadFile(filepath.Join(name, configFile))
 	if err != nil {
 		return c, err
 	}
@@ -119,11 +121,20 @@ func loadConfig(name string) (config, error) {
 }
 
 func (c config) save(spacePath string) error {
-	path := filepath.Join(spacePath, "config.json")
-	f, err := os.Create(path)
+	path := filepath.Join(spacePath, configFile)
+	tmppath := path + ".tmp"
+	f, err := os.Create(tmppath)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	return json.NewEncoder(f).Encode(c)
+	if err := json.NewEncoder(f).Encode(c); err != nil {
+		f.Close()
+		os.Remove(tmppath)
+		return err
+	}
+	if err = f.Close(); err != nil {
+		os.Remove(tmppath)
+		return err
+	}
+	return os.Rename(tmppath, path)
 }
