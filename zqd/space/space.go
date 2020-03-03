@@ -102,6 +102,15 @@ func (s Space) PacketPath() string {
 	return s.conf.PacketPath
 }
 
+// Delete removes the space's path and data dir (should the data dir be
+// different then the space's path).
+func (s Space) Delete() error {
+	if err := os.RemoveAll(s.path); err != nil {
+		return err
+	}
+	return os.RemoveAll(s.conf.DataPath)
+}
+
 type config struct {
 	DataPath   string `json:"data_path"`
 	PacketPath string `json:"packet_path"`

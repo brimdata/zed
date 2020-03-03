@@ -262,6 +262,18 @@ func handleSpacePost(root string, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func handleSpaceDelete(root string, w http.ResponseWriter, r *http.Request) {
+	s := extractSpace(root, w, r)
+	if s == nil {
+		return
+	}
+	if err := s.Delete(); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func handlePacketPost(root string, w http.ResponseWriter, r *http.Request) {
 	s := extractSpace(root, w, r)
 	if s == nil {
