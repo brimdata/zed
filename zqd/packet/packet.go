@@ -204,7 +204,7 @@ func (p *IngestProcess) writeData(ctx context.Context) error {
 		return err
 	}
 	zw := bzngio.NewWriter(bzngfile)
-	const program = "_path != packet_filter _path != loaded_scripts | sort -limit 10000000 ts"
+	const program = "sort -limit 10000000 ts"
 	if err := search.Copy(ctx, zw, zr, program); err != nil {
 		// If an error occurs here close and remove tmp bzngfile, lest we start
 		// leaking files and file descriptors.
@@ -219,7 +219,8 @@ func (p *IngestProcess) writeData(ctx context.Context) error {
 }
 
 func (p *IngestProcess) startZeek(ctx context.Context, dir string) (*exec.Cmd, io.WriteCloser, error) {
-	cmd := exec.CommandContext(ctx, "zeek", "-C", "-r", "-")
+	disable := `event zeek_init() { Log::disable_stream(PacketFilter::LOG); Log::disable_stream(LoadedScripts::LOG); }`
+	cmd := exec.CommandContext(ctx, "zeek", "-C", "-r", "-", "--exec", disable, "local")
 	cmd.Dir = dir
 	w, err := cmd.StdinPipe()
 	if err != nil {
