@@ -6,6 +6,7 @@ import (
 	"github.com/brimsec/zq/tests/suite/errors"
 	"github.com/brimsec/zq/tests/suite/pcap"
 	"github.com/brimsec/zq/tests/suite/utf8"
+	"github.com/brimsec/zq/tests/suite/zeek"
 )
 
 var RootDir = "./test-root"
@@ -22,6 +23,11 @@ var internals = []test.Internal{
 	errors.EmptySetType,
 	errors.EmptyUnionType,
 	errors.RedefineAlias,
+	zeek.UnionIncompat,
+	zeek.UnionInput,
+	zeek.RecordInput,
+	zeek.ComplexArrayIncompat,
+	zeek.ComplexArrayInput,
 }
 
 var commands = []test.Exec{

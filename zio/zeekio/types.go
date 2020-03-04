@@ -6,38 +6,50 @@ import (
 	"strings"
 
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 )
 
 var ErrIncompatibleZeekType = errors.New("type cannot be represented in zeek format")
 
-// Compatibility between the Zeek and ZNG type systems has a few rough
-// edges.  Several types have to be rewritten before we get into ZNG:
-//  - Zeek "vector" is ZNG "array", since this is a container and not
-//    a fully-specific type we have to rewrite it here.
-//  - Zeek "string" corresponds to ZNG "bstring".  Since "string" already
-//    exists in ZNG, we can't use an alias and just rewrite the name directly.
-//  - Zeek "enum" corresponds to ZNG "string".  There is a desire to
-//    eventually add "enum" to ZNG so we don't use an alias but rewrite
-//    "enum" to "zenum" which is aliased to "string" (using the alias lets
-//    us recover the original type when writing Zeek output.
-//
+// The functions defined in this file handle mappings between legacy
+// Zeek types and equivalent ZNG types.
 // The function zeekTypeToZng() is used when reading Zeek logs to rewrite
 // types before looking up the proper Zeek type.  zngTypeToZeek() is used
 // when writing Zeek logs, it should always be the inverse of zeekTypeToZng().
 
-func zeekTypeToZng(typ string) string {
+func isValidInputType(typ zng.Type) bool {
+	switch t := typ.(type) {
+	case *zng.TypeRecord, *zng.TypeUnion:
+		return false
+	case *zng.TypeSet:
+		return isValidInputType(t.InnerType)
+	case *zng.TypeArray:
+		return isValidInputType(t.Type)
+	default:
+		return true
+	}
+}
+
+func zeekTypeToZng(typstr string, zctx *resolver.Context) (zng.Type, error) {
 	// As zng types diverge from zeek types, we'll probably want to
 	// re-do this but lets keep it simple for now.
-	typ = strings.ReplaceAll(typ, "string", "bstring")
-	typ = strings.ReplaceAll(typ, "double", "float64")
-	typ = strings.ReplaceAll(typ, "interval", "duration")
-	typ = strings.ReplaceAll(typ, "int", "int64")
-	typ = strings.ReplaceAll(typ, "count", "uint64")
-	typ = strings.ReplaceAll(typ, "addr", "ip")
-	typ = strings.ReplaceAll(typ, "subnet", "net")
-	typ = strings.ReplaceAll(typ, "enum", "zenum")
-	typ = strings.ReplaceAll(typ, "vector", "array")
-	return typ
+	typstr = strings.ReplaceAll(typstr, "string", "bstring")
+	typstr = strings.ReplaceAll(typstr, "double", "float64")
+	typstr = strings.ReplaceAll(typstr, "interval", "duration")
+	typstr = strings.ReplaceAll(typstr, "int", "int64")
+	typstr = strings.ReplaceAll(typstr, "count", "uint64")
+	typstr = strings.ReplaceAll(typstr, "addr", "ip")
+	typstr = strings.ReplaceAll(typstr, "subnet", "net")
+	typstr = strings.ReplaceAll(typstr, "enum", "zenum")
+	typstr = strings.ReplaceAll(typstr, "vector", "array")
+	typ, err := zctx.LookupByName(typstr)
+	if err != nil {
+		return nil, err
+	}
+	if !isValidInputType(typ) {
+		return nil, ErrIncompatibleZeekType
+	}
+	return typ, nil
 }
 
 func zngTypeToZeek(typ zng.Type) (string, error) {

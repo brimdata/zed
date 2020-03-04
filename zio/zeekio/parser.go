@@ -72,7 +72,7 @@ func (p *Parser) parseTypes(types []string) error {
 		p.needfields = true
 	}
 	for k, name := range types {
-		typ, err := p.zctx.LookupByName(zeekTypeToZng(name))
+		typ, err := zeekTypeToZng(name, p.zctx)
 		if err != nil {
 			return err
 		}
