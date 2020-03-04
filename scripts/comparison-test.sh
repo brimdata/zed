@@ -12,6 +12,15 @@ ln -sfn zeek-ndjson "$DATA/ndjson"
 
 TIME="$(command -v time) -p"
 
+if [[ $(type -P "gzcat") ]]; then
+  ZCAT="gzcat"
+elif [[ $(type -P "zcat") ]]; then
+  ZCAT="zcat"
+else
+  echo "gzcat/zcat not found in PATH"
+  exit 1
+fi
+
 for CMD in zq jq zeek-cut; do
   if ! [[ $(type -P "$CMD") ]]; then
     echo "$CMD not found in PATH"
@@ -84,7 +93,7 @@ do
     ZCUT=${ZCUT_FIELDS[$n]}
     if [[ $ZCUT != "NONE" ]]; then
       echo "|\`zeek-cut\`|\`$ZCUT\`|zeek|zeek-cut|" | sed 's/\`\`//' | tr -d '\n' | tee -a "$MD"
-      ALL_TIMES=$( ($TIME cat "$DATA"/zeek/*.log | zeek-cut "$ZCUT" > /dev/null) 2>&1)
+      ALL_TIMES=$( ($TIME $ZCAT "$DATA"/zeek/* | zeek-cut "$ZCUT" > /dev/null) 2>&1)
       echo "$ALL_TIMES" | tr '\n' ' ' | awk '{ print $2 "|" $4 "|" $6 "|" }' | tee -a "$MD"
     fi
 
@@ -92,7 +101,7 @@ do
     JQFLAG=${JQFLAGS[$n]}
     echo -n "|\`jq\`|\`$JQFLAG \"${JQ//|/\\|}\"\`|ndjson|ndjson|" | tee -a "$MD"
     # shellcheck disable=SC2086      # For expanding JQFLAG
-    ALL_TIMES=$( ($TIME jq $JQFLAG "$JQ" "$DATA"/zeek-ndjson/*.ndjson > /dev/null) 2>&1)
+    ALL_TIMES=$( ($TIME $ZCAT "$DATA"/zeek-ndjson/* | jq $JQFLAG "$JQ" > /dev/null) 2>&1)
     echo "$ALL_TIMES" | tr '\n' ' ' | awk '{ print $2 "|" $4 "|" $6 "|" }' | tee -a "$MD"
 
     echo | tee -a "$MD"
