@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"strconv"
-	"strings"
 )
 
 type Socket struct {
@@ -30,17 +29,16 @@ func (f Flow) String() string {
 }
 
 func ParseSocket(s string) (Socket, error) {
-	pair := strings.Split(s, ":")
-	if len(pair) == 2 {
-		ip := net.ParseIP(pair[0])
+	if host, port, err := net.SplitHostPort(s); err == nil {
+		ip := net.ParseIP(host)
 		if ip != nil {
-			port, err := strconv.Atoi(pair[1])
+			port, err := strconv.Atoi(port)
 			if err == nil {
 				return Socket{ip, port}, nil
 			}
 		}
 	}
-	return Socket{}, fmt.Errorf("address spec must have form ip:port (%s)", s)
+	return Socket{}, fmt.Errorf("address spec must have form ip4:port or [ip6]:port (%s)", s)
 }
 
 func ParseFlow(h0, h1 string) (Flow, error) {

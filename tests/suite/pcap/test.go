@@ -35,12 +35,12 @@ var out1 = `
 1425567047.804914
 `
 
-// 80.239.174.91.443 > 192.168.0.51.33773
+// 80.239.174.91.443 (aka [::ffff:50ef:ae5b]:443) > 192.168.0.51.33773
 
 // test simple flow extraction
 var Test2 = test.Shell{
 	Name:   "pcap-command",
-	Script: `pcap slice -r in.pcap 80.239.174.91:443 192.168.0.51:33773 | pcap ts -w out2`,
+	Script: `pcap slice -r in.pcap [::ffff:50ef:ae5b]:443 192.168.0.51:33773 | pcap ts -w out2`,
 	Input:  []test.File{test.File{Name: "in.pcap"}},
 	Expected: []test.File{
 		test.File{"out2", test.Trim(out2)},
