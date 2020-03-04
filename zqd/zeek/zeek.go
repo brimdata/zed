@@ -8,7 +8,8 @@ import (
 )
 
 func Logify(ctx context.Context, dir string, pcap io.Reader) ([]string, error) {
-	cmd := exec.CommandContext(ctx, "zeek", "-C", "-r", "-", "local")
+	disable := `event zeek_init() { Log::disable_stream(PacketFilter::LOG); Log::disable_stream(LoadedScripts::LOG); }`
+	cmd := exec.CommandContext(ctx, "zeek", "-C", "-r", "-", "--exec", disable, "local")
 	cmd.Stdin = pcap
 	cmd.Dir = dir
 	if err := cmd.Run(); err != nil {
