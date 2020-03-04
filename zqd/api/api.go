@@ -2,6 +2,8 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
+	"net"
 	"net/url"
 	"strconv"
 
@@ -97,10 +99,10 @@ type PacketPostRequest struct {
 type PacketSearch struct {
 	Span    nano.Span
 	Proto   string `validate:"required"`
-	SrcHost string `validate:"required"`
-	SrcPort *uint16
-	DstHost string `validate:"required"`
-	DstPort *uint16
+	SrcHost net.IP `validate:"required"`
+	SrcPort uint16
+	DstHost net.IP `validate:"required"`
+	DstPort uint16
 }
 
 // ToQuery transforms a packet search into a url.Values.
@@ -114,13 +116,13 @@ func (ps *PacketSearch) ToQuery() url.Values {
 	q.Add("duration_sec", strconv.Itoa(dursec))
 	q.Add("duration_ns", strconv.Itoa(durns))
 	q.Add("proto", ps.Proto)
-	q.Add("src_host", ps.SrcHost)
-	q.Add("dst_host", ps.DstHost)
-	if ps.SrcPort != nil {
-		q.Add("src_port", strconv.Itoa(int(*ps.SrcPort)))
+	q.Add("src_host", ps.SrcHost.String())
+	q.Add("dst_host", ps.DstHost.String())
+	if ps.SrcPort != 0 {
+		q.Add("src_port", strconv.Itoa(int(ps.SrcPort)))
 	}
-	if ps.DstPort != nil {
-		q.Add("dst_port", strconv.Itoa(int(*ps.DstPort)))
+	if ps.DstPort != 0 {
+		q.Add("dst_port", strconv.Itoa(int(ps.DstPort)))
 	}
 
 	return q
@@ -147,26 +149,26 @@ func (ps *PacketSearch) FromQuery(v url.Values) error {
 		if err != nil {
 			return err
 		}
-		sp := uint16(p)
-		ps.SrcPort = &sp
+		ps.SrcPort = uint16(p)
 	}
 	if v.Get("dst_port") != "" {
 		p, err := strconv.ParseUint(v.Get("dst_port"), 10, 16)
 		if err != nil {
 			return err
 		}
-		sp := uint16(p)
-		ps.DstPort = &sp
+		ps.DstPort = uint16(p)
 	}
-
 	span := nano.Span{
 		Ts:  nano.Unix(tsSec, tsNs),
 		Dur: nano.Duration(durSec, durNs),
 	}
-
 	ps.Span = span
 	ps.Proto = v.Get("proto")
-	ps.SrcHost = v.Get("src_host")
-	ps.DstHost = v.Get("dst_host")
-	return err
+	if ps.SrcHost = net.ParseIP(v.Get("src_host")); ps.SrcHost == nil {
+		return fmt.Errorf("invalid ip: %s", ps.SrcHost)
+	}
+	if ps.DstHost = net.ParseIP(v.Get("dst_host")); ps.DstHost == nil {
+		return fmt.Errorf("invalid ip: %s", ps.DstHost)
+	}
+	return nil
 }
