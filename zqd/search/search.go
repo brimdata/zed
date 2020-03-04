@@ -40,6 +40,9 @@ func Search(ctx context.Context, s *space.Space, req api.SearchRequest, out Outp
 		return errors.New("time direction must be 1 or -1")
 	}
 	query, err := UnpackQuery(req)
+	if err != nil {
+		return err
+	}
 	f, err := s.OpenFile("all.bzng")
 	if err != nil {
 		return errors.New("no such space: " + query.Space)
@@ -235,7 +238,7 @@ func compile(ctx *proc.Context, program ast.Proc, reader zbuf.Reader, span nano.
 	// Try to move the filter into the scanner so we can throw
 	// out unmatched records without copying their contents in the
 	// case of readers (like zio raw.Reader) that create volatile
-	// records that are kepted by the scanner only if matched.
+	// records that are kept by the scanner only if matched.
 	// For other readers, it certainly doesn't hurt to do this.
 	var f filter.Filter
 	filterProc, rest := liftFilter(program)
