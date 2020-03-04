@@ -144,12 +144,13 @@ again:
 	if caplen > fullLength {
 		return nil, fmt.Errorf("capture length exceeds original packet length: %d > %d", caplen, fullLength)
 	}
+	// pull out timestamp before reading rest of packet as header can get clobbered
+	ts := r.TsFromHeader(hdr)
 	pkt, err := r.Reader.Read(caplen + packetHeaderLen)
 	if err != nil {
 		return nil, err
 	}
 	r.Offset += uint64(caplen + packetHeaderLen)
-	ts := r.TsFromHeader(hdr)
 	if !span.ContainsClosed(ts) {
 		goto again
 	}
