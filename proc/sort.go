@@ -82,12 +82,13 @@ func (s *Sort) Pull() (zbuf.Batch, error) {
 		if batch == nil {
 			return s.sort(), nil
 		}
-		defer batch.Unref()
 		if len(s.out)+batch.Length() > s.limit {
+			batch.Unref()
 			return nil, fmt.Errorf("sort limit hit (%d)", s.limit)
 		}
 		// XXX this should handle group-by every ... need to change how we do this
 		s.consume(batch)
+		batch.Unref()
 	}
 }
 
