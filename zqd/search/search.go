@@ -40,6 +40,9 @@ func Search(ctx context.Context, s *space.Space, req api.SearchRequest, out Outp
 		return errors.New("time direction must be 1 or -1")
 	}
 	query, err := UnpackQuery(req)
+	if err != nil {
+		return err
+	}
 	f, err := s.OpenFile("all.bzng")
 	if err != nil {
 		return errors.New("no such space: " + query.Space)
