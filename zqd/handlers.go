@@ -260,12 +260,19 @@ func handlePacketPost(root string, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ticker := time.NewTicker(time.Second * 2)
-	var done bool
-	var status api.PacketPostStatus
 	for {
-		done, status, err = proc.Status(ticker.C)
-		if err != nil {
-			break
+		var done bool
+		select {
+		case <-proc.Done():
+			done = true
+		case <-ticker.C:
+		}
+		status := api.PacketPostStatus{
+			Type:           "PacketPostStatus",
+			StartTime:      proc.StartTime,
+			UpdateTime:     nano.Now(),
+			PacketSize:     proc.PcapSize,
+			PacketReadSize: proc.PcapReadSize(),
 		}
 		if err := pipe.Send(status); err != nil {
 			// XXX This should be zap instead.

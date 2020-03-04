@@ -9,14 +9,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sync/atomic"
-	"time"
 
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zio/bzngio"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/search"
 	"github.com/brimsec/zq/zqd/space"
 	"gopkg.in/fsnotify.v1"
@@ -29,13 +27,15 @@ var (
 const IndexFile = "packets.idx.json"
 
 type IngestProcess struct {
+	StartTime nano.Ts
+	PcapSize  int64
+
 	space        *space.Space
 	pcapPath     string
-	pcapSize     int64
 	pcapReadSize int64
 	logdir       string
-	done         chan error
-	start        nano.Ts
+	done         chan struct{}
+	err          error
 }
 
 // IngestFile kicks of the process for ingesting a pcap file into a space.
@@ -55,17 +55,15 @@ func IngestFile(ctx context.Context, s *space.Space, pcap string) (*IngestProces
 		return nil, err
 	}
 	p := &IngestProcess{
-		space:    s,
-		pcapPath: pcap,
-		pcapSize: info.Size(),
-		logdir:   logdir,
-		done:     make(chan error),
-		start:    nano.Now(),
+		StartTime: nano.Now(),
+		PcapSize:  info.Size(),
+		space:     s,
+		pcapPath:  pcap,
+		logdir:    logdir,
+		done:      make(chan struct{}),
 	}
 	go func() {
-		if err := p.run(ctx); err != nil {
-			p.done <- err
-		}
+		p.err = p.run(ctx)
 		close(p.done)
 	}()
 	return p, p.awaitZeekLogs()
@@ -109,8 +107,8 @@ func (p *IngestProcess) awaitZeekLogs() error {
 	}
 	for {
 		select {
-		case err := <-p.done:
-			return err
+		case <-p.done:
+			return p.err
 		case event := <-w.Events:
 			if event.Op == fsnotify.Create && filepath.Ext(event.Name) == ".log" {
 				return nil
@@ -166,18 +164,23 @@ func (p *IngestProcess) slurp(ctx context.Context) (*pcap.Index, error) {
 	return index, nil
 }
 
-func (p *IngestProcess) Status(timeout <-chan time.Time) (done bool, res api.PacketPostStatus, err error) {
-	select {
-	case <-timeout:
-	case err = <-p.done:
-		done = true
-	}
-	res.Type = "PacketPostStatus"
-	res.PacketSize = p.pcapSize
-	res.PacketReadSize = atomic.LoadInt64(&p.pcapReadSize)
-	res.StartTime = p.start
-	res.UpdateTime = nano.Now()
-	return done, res, err
+// PcapReadSize returns the total size in bytes of data read from the underlying
+// pcap file.
+func (p *IngestProcess) PcapReadSize() int64 {
+	return atomic.LoadInt64(&p.pcapReadSize)
+}
+
+// Err returns the an error if an error occurred while the ingest process was
+// running. If the process is still running Err will wait for the process to
+// complete before returning.
+func (p *IngestProcess) Err() error {
+	<-p.done
+	return p.err
+}
+
+// Done returns a chan that emits when the ingest process is complete.
+func (p *IngestProcess) Done() <-chan struct{} {
+	return p.done
 }
 
 func (p *IngestProcess) writeData(ctx context.Context) error {
