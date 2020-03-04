@@ -30,7 +30,7 @@ type PacketPostSuite struct {
 func (s *PacketPostSuite) TestCount() {
 	expected := `
 #0:record[count:uint64]
-0:[2;]`
+0:[4;]`
 	res := execSearch(s.T(), s.root, s.space, "count()")
 	s.Equal(test.Trim(expected), res)
 }
