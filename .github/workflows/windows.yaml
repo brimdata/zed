@@ -1,0 +1,19 @@
+name: "windows-testing"
+
+on:
+  push:
+    branches:
+      - "windows-testing"
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/setup-go@v1
+        with:
+          go-version: '1.13'
+      - uses: actions/checkout@v1
+      - run: go test -short ./...
+      - run: mkdir dist -ea 0
+      - run: go build -o dist ./cmd/...
+      - run: go test -v -tags=system ./tests
