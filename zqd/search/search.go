@@ -61,7 +61,7 @@ func Search(ctx context.Context, s *space.Space, req api.SearchRequest, out Outp
 	return run(mux, out)
 }
 
-func Copy(ctx context.Context, w zbuf.Writer, r zbuf.Reader, prog string) error {
+func Copy(ctx context.Context, w []zbuf.Writer, r zbuf.Reader, prog string) error {
 	p, err := zql.ParseProc(prog)
 	if err != nil {
 		return err
@@ -75,7 +75,11 @@ func Copy(ctx context.Context, w zbuf.Writer, r zbuf.Reader, prog string) error 
 	if err != nil {
 		return err
 	}
-	d := zdriver.New(w)
+	if len(w) == 1 {
+		d := zdriver.New(w[0])
+		return d.Run(mux)
+	}
+	d := zdriver.NewDemuxed(w)
 	return d.Run(mux)
 }
 

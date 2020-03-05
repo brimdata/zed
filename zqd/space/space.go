@@ -8,9 +8,12 @@ import (
 	"path/filepath"
 
 	"github.com/brimsec/zq/pkg/fs"
+	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zqd/api"
 )
 
 const configFile = "config.json"
+const infoFile = "info.json"
 
 var (
 	ErrSpaceNotExist = errors.New("space does not exist")
@@ -69,6 +72,34 @@ func (s Space) Name() string {
 	return filepath.Base(s.path)
 }
 
+func (s Space) Info() (api.SpaceInfo, error) {
+	f, err := s.OpenFile("all.bzng")
+	if err != nil {
+		return api.SpaceInfo{}, err
+	}
+	stat, err := f.Stat()
+	if err != nil {
+		return api.SpaceInfo{}, err
+	}
+	spaceInfo := api.SpaceInfo{
+		Name:       s.Name(),
+		Size:       stat.Size(),
+		PacketPath: s.PacketPath(),
+	}
+	i, err := loadInfo(s.path)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return api.SpaceInfo{}, err
+		}
+		return spaceInfo, nil
+	}
+
+	spaceInfo.MinTime = &i.MinTime
+	spaceInfo.MaxTime = &i.MaxTime
+
+	return spaceInfo, nil
+}
+
 func (s Space) DataPath(elem ...string) string {
 	return filepath.Join(append([]string{s.conf.DataPath}, elem...)...)
 }
@@ -116,10 +147,28 @@ type config struct {
 	PacketPath string `json:"packet_path"`
 }
 
+type info struct {
+	MinTime nano.Ts `json:"min_time"`
+	MaxTime nano.Ts `json:"max_time"`
+}
+
+func (s Space) SetTimes(minTs, maxTs nano.Ts) error {
+	cur, err := loadInfo(s.path)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+		cur = info{nano.MaxTs, nano.MinTs}
+	}
+	cur.MinTime = nano.Min(cur.MinTime, minTs)
+	cur.MaxTime = nano.Max(cur.MaxTime, maxTs)
+	return cur.save(s.path)
+}
+
 // loadConfig loads the contents of config.json in a space's path.
-func loadConfig(name string) (config, error) {
+func loadConfig(spacePath string) (config, error) {
 	var c config
-	b, err := ioutil.ReadFile(filepath.Join(name, configFile))
+	b, err := ioutil.ReadFile(filepath.Join(spacePath, configFile))
 	if err != nil {
 		return c, err
 	}
@@ -137,6 +186,37 @@ func (c config) save(spacePath string) error {
 		return err
 	}
 	if err := json.NewEncoder(f).Encode(c); err != nil {
+		f.Close()
+		os.Remove(tmppath)
+		return err
+	}
+	if err = f.Close(); err != nil {
+		os.Remove(tmppath)
+		return err
+	}
+	return os.Rename(tmppath, path)
+}
+
+func loadInfo(spacePath string) (info, error) {
+	var i info
+	b, err := ioutil.ReadFile(filepath.Join(spacePath, infoFile))
+	if err != nil {
+		return info{}, err
+	}
+	if err := json.Unmarshal(b, &i); err != nil {
+		return i, err
+	}
+	return i, nil
+}
+
+func (i info) save(spacePath string) error {
+	path := filepath.Join(spacePath, infoFile)
+	tmppath := path + ".tmp"
+	f, err := os.Create(tmppath)
+	if err != nil {
+		return err
+	}
+	if err := json.NewEncoder(f).Encode(i); err != nil {
 		f.Close()
 		os.Remove(tmppath)
 		return err

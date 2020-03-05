@@ -13,7 +13,9 @@ import (
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/scanner"
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/bzngio"
+	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/search"
 	"github.com/brimsec/zq/zqd/space"
@@ -80,6 +82,7 @@ func IngestFile(ctx context.Context, s *space.Space, pcap, zeekExec string) (*In
 }
 
 func (p *IngestProcess) run(ctx context.Context) error {
+	var minTs, maxTs nano.Ts
 	idx, err := p.slurp(ctx)
 	if err != nil {
 		goto abort
@@ -90,7 +93,10 @@ func (p *IngestProcess) run(ctx context.Context) error {
 	if err = p.space.SetPacketPath(p.pcapPath); err != nil {
 		goto abort
 	}
-	if err = p.writeData(ctx); err != nil {
+	if minTs, maxTs, err = p.writeData(ctx); err != nil {
+		goto abort
+	}
+	if err = p.space.SetTimes(minTs, maxTs); err != nil {
 		goto abort
 	}
 	if err = os.RemoveAll(p.logdir); err != nil {
@@ -196,7 +202,16 @@ func (p *IngestProcess) Done() <-chan struct{} {
 	return p.done
 }
 
-func (p *IngestProcess) writeData(ctx context.Context) error {
+type recWriter struct {
+	r *zng.Record
+}
+
+func (rw *recWriter) Write(r *zng.Record) error {
+	rw.r = r
+	return nil
+}
+
+func (p *IngestProcess) writeData(ctx context.Context) (nano.Ts, nano.Ts, error) {
 	files, err := filepath.Glob(filepath.Join(p.logdir, "*.log"))
 	// Per filepath.Glob documentation the only possible error would be due to
 	// an invalid glob pattern. Ok to panic.
@@ -206,7 +221,7 @@ func (p *IngestProcess) writeData(ctx context.Context) error {
 	// convert logs into sorted bzng
 	zr, err := scanner.OpenFiles(resolver.NewContext(), files...)
 	if err != nil {
-		return err
+		return nano.Ts(0), nano.Ts(0), err
 	}
 	defer zr.Close()
 	// For the time being, this endpoint will overwrite any underlying data.
@@ -214,21 +229,28 @@ func (p *IngestProcess) writeData(ctx context.Context) error {
 	// write bzng to a temp file and rename on successful conversion.
 	bzngfile, err := p.space.CreateFile("all.bzng.tmp")
 	if err != nil {
-		return err
+		return nano.Ts(0), nano.Ts(0), err
 	}
 	zw := bzngio.NewWriter(bzngfile)
-	const program = "sort -limit 10000000 ts"
-	if err := search.Copy(ctx, zw, zr, program); err != nil {
+	const program = "sort -limit 10000000 ts | (filter *; head 1; tail 1)"
+	headW := recWriter{}
+	tailW := recWriter{}
+
+	if err := search.Copy(ctx, []zbuf.Writer{zw, &headW, &tailW}, zr, program); err != nil {
 		// If an error occurs here close and remove tmp bzngfile, lest we start
 		// leaking files and file descriptors.
 		bzngfile.Close()
 		os.Remove(bzngfile.Name())
-		return err
+		return nano.Ts(0), nano.Ts(0), err
 	}
+
+	minTs := headW.r.Ts
+	maxTs := tailW.r.Ts
+
 	if err := bzngfile.Close(); err != nil {
-		return err
+		return nano.Ts(0), nano.Ts(0), err
 	}
-	return os.Rename(bzngfile.Name(), p.space.DataPath("all.bzng"))
+	return minTs, maxTs, os.Rename(bzngfile.Name(), p.space.DataPath("all.bzng"))
 }
 
 func (p *IngestProcess) startZeek(ctx context.Context, dir string) (*exec.Cmd, io.WriteCloser, error) {
