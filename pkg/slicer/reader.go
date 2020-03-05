@@ -1,12 +1,8 @@
-// Package slicer provides a mechanism to read a single large file as
-// a sequence of smaller slices that are essentially extracted from the
-// large file on the fly to make the reader appear to produce a smaller file
-// comprised of the slices.
+// Package slicer provides an io.Reader that returns subsets of a file.
 package slicer
 
 import (
 	"io"
-	"os"
 )
 
 // Reader implements io.Reader reading the sliced regions provided to it from
@@ -15,14 +11,14 @@ import (
 type Reader struct {
 	slices []Slice
 	slice  Slice
-	file   *os.File
+	seeker io.ReadSeeker
 	eof    bool
 }
 
-func NewReader(file *os.File, slices []Slice) (*Reader, error) {
+func NewReader(seeker io.ReadSeeker, slices []Slice) (*Reader, error) {
 	r := &Reader{
 		slices: slices,
-		file:   file,
+		seeker: seeker,
 	}
 	return r, r.next()
 }
@@ -34,7 +30,7 @@ func (r *Reader) next() error {
 	}
 	r.slice = r.slices[0]
 	r.slices = r.slices[1:]
-	_, err := r.file.Seek(int64(r.slice.Offset), 0)
+	_, err := r.seeker.Seek(int64(r.slice.Offset), 0)
 	return err
 }
 
@@ -46,7 +42,7 @@ func (r *Reader) Read(b []byte) (int, error) {
 	if uint64(len(p)) > r.slice.Length {
 		p = p[:r.slice.Length]
 	}
-	n, err := r.file.Read(p)
+	n, err := r.seeker.Read(p)
 	if n != 0 {
 		if err == io.EOF {
 			err = nil
