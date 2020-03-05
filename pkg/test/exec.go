@@ -3,6 +3,7 @@ package test
 import (
 	"bytes"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -14,11 +15,16 @@ type Exec struct {
 }
 
 func (e *Exec) Run(path string) (string, error) {
-	src := e.Command
+	args := strings.Fields(e.Command)
 	if path != "" {
-		src = "PATH=" + path + ":$PATH " + src
+		abspath, err := filepath.Abs(path)
+		if err != nil {
+			return "", err
+		}
+		args[0] = filepath.Join(abspath, args[0])
 	}
-	cmd := exec.Command("/bin/bash", "-c", src)
+
+	cmd := exec.Command(args[0], args[1:]...)
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
