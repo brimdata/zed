@@ -72,7 +72,7 @@ func IngestFile(ctx context.Context, s *space.Space, pcap string) (*IngestProces
 func (p *IngestProcess) run(ctx context.Context) error {
 	idx, err := p.slurp(ctx)
 	if err != nil {
-		return err
+		goto abort
 	}
 	if err = p.writeIndexFile(idx); err != nil {
 		goto abort
@@ -210,7 +210,7 @@ func (p *IngestProcess) writeData(ctx context.Context) error {
 		// leaking files and file descriptors.
 		bzngfile.Close()
 		os.Remove(bzngfile.Name())
-		return nil
+		return err
 	}
 	if err := bzngfile.Close(); err != nil {
 		return err
