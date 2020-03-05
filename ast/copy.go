@@ -132,7 +132,7 @@ func (b *LogicalNot) Copy() BooleanExpr {
 	}
 }
 
-func (b *BooleanLiteral) Copy() BooleanExpr {
+func (b *MatchAll) Copy() BooleanExpr {
 	copy := *b
 	return &copy
 }

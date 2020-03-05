@@ -12,7 +12,7 @@ import (
 )
 
 func val(t, v string) ast.Literal {
-	return ast.Literal{t, v}
+	return ast.Literal{ast.Node{"Literal"}, t, v}
 }
 
 func runArray(f zx.Predicate, vals []ast.Literal, expected []bool) error {
@@ -46,15 +46,15 @@ func TestZeek(t *testing.T) {
 	t.Parallel()
 
 	vals := []ast.Literal{
-		{"int32", "100"},
-		{"int32", "101"},
-		{"float64", "100"},
-		{"float64", "100.0"},
-		{"float64", "100.5"},
-		{"ip", "128.32.1.1"},
-		{"string", "hello"},
-		{"port", "80"},
-		{"port", "8080"},
+		val("int32", "100"),
+		val("int32", "101"),
+		val("float64", "100"),
+		val("float64", "100.0"),
+		val("float64", "100.5"),
+		val("ip", "128.32.1.1"),
+		val("string", "hello"),
+		val("port", "80"),
+		val("port", "8080"),
 	}
 	err := run(vals, "lt", val("int32", "101"), []bool{true, false, true, true, true, false, false, true, false})
 	require.NoError(t, err)

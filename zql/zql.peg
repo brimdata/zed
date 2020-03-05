@@ -47,7 +47,7 @@ start = _? ast:query _? EOF { RETURN(ast) }
 
 query
   = procs:procChain {
-      INIT_ASSIGN_VAR(filt, makeFilterProc(makeBooleanLiteral(true)))
+      INIT_ASSIGN_VAR(filt, makeFilterProc(makeMatchAll()))
       RETURN(makeSequentialProc(PREPEND(filt, procs)))
     }
   / s:search _? rest:chainedProc* {
@@ -120,7 +120,7 @@ searchPred
       }
       IF(getValueType(v) == "regexp") {
         IF(TEXT == "*") {
-          RETURN(makeBooleanLiteral(true))
+          RETURN(makeMatchAll())
         }
         RETURN(makeOrChain(makeCompareAny("eql", true, v), ARRAY(makeCompareAny("in", true, v))))
       }

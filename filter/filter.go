@@ -147,8 +147,8 @@ func Compile(node ast.BooleanExpr) (Filter, error) {
 		}
 		return LogicalOr(left, right), nil
 
-	case *ast.BooleanLiteral:
-		return func(*zng.Record) bool { return v.Value }, nil
+	case *ast.MatchAll:
+		return func(*zng.Record) bool { return true }, nil
 
 	case *ast.CompareField:
 		if v.Comparator == "in" {

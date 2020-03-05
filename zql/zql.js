@@ -143,7 +143,7 @@ function peg$parse(input, options) {
 
       peg$c0 = function(ast) { return ast },
       peg$c1 = function(procs) {
-            let filt =  makeFilterProc(makeBooleanLiteral(true))
+            let filt =  makeFilterProc(makeMatchAll())
             return makeSequentialProc([filt, ... procs])
           },
       peg$c2 = function(s, rest) {
@@ -215,7 +215,7 @@ function peg$parse(input, options) {
             }
             if (getValueType(v) == "regexp") {
               if (text() == "*") {
-                return makeBooleanLiteral(true)
+                return makeMatchAll()
               }
               return makeOrChain(makeCompareAny("eql", true, v), [makeCompareAny("in", true, v)])
             }
@@ -6503,7 +6503,7 @@ function peg$parse(input, options) {
     return { op: "ParallelProc", procs };
   }
 
-  function makeLiteral(type, value) { return { type, value }; }
+  function makeLiteral(type, value) { return { op: "Literal", type, value }; }
   function getValueType(v) { return v.type; }
 
   function makeFieldCall(fn, field, param) {
@@ -6518,8 +6518,8 @@ function peg$parse(input, options) {
     return ret
   }
 
-  function makeBooleanLiteral(value) {
-    return { op: "BooleanLiteral", value };
+  function makeMatchAll() {
+    return { op: "MatchAll", value };
   }
 
   function makeCompareField(comparator, field, value) {

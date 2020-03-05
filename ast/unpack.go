@@ -155,8 +155,8 @@ func unpackBooleanExpr(node joe.JSON) (BooleanExpr, error) {
 			return nil, err
 		}
 		return &LogicalNot{Expr: child}, nil
-	case "BooleanLiteral":
-		return &BooleanLiteral{}, nil
+	case "MatchAll":
+		return &MatchAll{}, nil
 	case "CompareAny":
 		return &CompareAny{}, nil
 	case "CompareField":
