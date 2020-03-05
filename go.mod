@@ -5,6 +5,7 @@ go 1.13
 require (
 	github.com/axiomhq/hyperloglog v0.0.0-20191112132149-a4c4c47bc57f
 	github.com/buger/jsonparser v0.0.0-20191004114745-ee4c978eae7e
+	github.com/fsnotify/fsnotify v1.4.7 // indirect
 	github.com/google/gopacket v1.1.17
 	github.com/gorilla/mux v1.7.4
 	github.com/mccanne/charm v0.0.3-0.20191224190439-b05e1b7b1be3
@@ -15,5 +16,6 @@ require (
 	github.com/yuin/goldmark v1.1.22
 	go.uber.org/zap v1.12.0
 	golang.org/x/text v0.3.0
+	gopkg.in/fsnotify.v1 v1.4.7
 	gopkg.in/yaml.v3 v3.0.0-20200121175148-a6ecf24a6d71
 )

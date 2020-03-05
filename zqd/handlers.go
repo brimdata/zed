@@ -7,21 +7,21 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync/atomic"
+	"time"
 
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/scanner"
-	"github.com/brimsec/zq/zio/bzngio"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
+	"github.com/brimsec/zq/zqd/packet"
 	"github.com/brimsec/zq/zqd/search"
 	"github.com/brimsec/zq/zqd/space"
-	"github.com/brimsec/zq/zqd/zeek"
 	"github.com/gorilla/mux"
 )
 
-const pktIndexFile = "packets.idx.json"
+var taskCount int64
 
 func handleSearch(root string, w http.ResponseWriter, r *http.Request) {
 	var req api.SearchRequest
@@ -67,11 +67,11 @@ func handlePacketSearch(root string, w http.ResponseWriter, r *http.Request) {
 	if err := req.FromQuery(r.URL.Query()); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
-	if s.PacketPath() == "" || !s.HasFile(pktIndexFile) {
+	if s.PacketPath() == "" || !s.HasFile(packet.IndexFile) {
 		http.Error(w, "space has no pcaps", http.StatusNotFound)
 		return
 	}
-	index, err := pcap.LoadIndex(s.DataPath(pktIndexFile))
+	index, err := pcap.LoadIndex(s.DataPath(packet.IndexFile))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -184,7 +184,7 @@ func handleSpaceGet(root string, w http.ResponseWriter, r *http.Request) {
 	info := &api.SpaceInfo{
 		Name:          s.Name(),
 		Size:          stat.Size(),
-		PacketSupport: s.HasFile(pktIndexFile),
+		PacketSupport: s.HasFile(packet.IndexFile),
 		PacketPath:    s.PacketPath(),
 	}
 	if found {
@@ -205,7 +205,7 @@ func handleSpacePost(root string, w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		status := http.StatusInternalServerError
 		if err == space.ErrSpaceExists {
-			status = http.StatusBadRequest
+			status = http.StatusConflict
 		}
 		http.Error(w, err.Error(), status)
 		return
@@ -242,87 +242,61 @@ func handlePacketPost(root string, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	pcapfile, err := os.Open(req.Path)
+	proc, err := packet.IngestFile(r.Context(), s, req.Path)
 	if err != nil {
-		if os.IsNotExist(err) {
-			http.Error(w, err.Error(), http.StatusNotFound)
-		} else {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/ndjson")
+	w.Header().Set("Transfer-Encoding", "chunked")
+	w.WriteHeader(http.StatusCreated)
+	pipe := api.NewJSONPipe(w)
+	taskId := atomic.AddInt64(&taskCount, 1)
+	taskStart := api.TaskStart{Type: "TaskStart", TaskID: taskId}
+	if err = pipe.Send(taskStart); err != nil {
+		// Probably an error writing to socket, log error.
+		// XXX This should be zap instead.
+		log.Print(err)
+		return
+	}
+	ticker := time.NewTicker(time.Second * 2)
+	defer ticker.Stop()
+	for {
+		var done bool
+		select {
+		case <-proc.Done():
+			done = true
+		case <-ticker.C:
 		}
-		return
+		status := api.PacketPostStatus{
+			Type:           "PacketPostStatus",
+			StartTime:      proc.StartTime,
+			UpdateTime:     nano.Now(),
+			PacketSize:     proc.PcapSize,
+			PacketReadSize: proc.PcapReadSize(),
+		}
+		if err := pipe.Send(status); err != nil {
+			// XXX This should be zap instead.
+			log.Print(err)
+			return
+		}
+		if done {
+			break
+		}
 	}
-	defer pcapfile.Close()
-	logdir := s.DataPath(".tmp.zeeklogs")
-	if err := os.Mkdir(logdir, 0755); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer os.RemoveAll(logdir)
-	// create logs
-	logfiles, err := zeek.Logify(r.Context(), logdir, pcapfile)
+	taskEnd := api.TaskEnd{Type: "TaskEnd", TaskID: taskId}
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		var ok bool
+		taskEnd.Error, ok = err.(*api.Error)
+		if !ok {
+			taskEnd.Error = &api.Error{Type: "Error", Message: err.Error()}
+		}
+	}
+	if err = pipe.SendFinal(taskEnd); err != nil {
+		// XXX This should be zap instead.
+		log.Print(err)
 		return
 	}
-	// convert logs into sorted bzng
-	zr, err := scanner.OpenFiles(resolver.NewContext(), logfiles...)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer zr.Close()
-	// For the time being, this endpoint will overwrite any underlying data.
-	// In order to get rid errors on any concurrent searches on this space,
-	// write bzng to a temp file and rename on successful conversion.
-	bzngfile, err := s.CreateFile("all.bzng.tmp")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	zw := bzngio.NewWriter(bzngfile)
-	const program = "sort -limit 1000000000 -r ts"
-	if err := search.Copy(r.Context(), zw, zr, program); err != nil {
-		// If an error occurs here close and remove tmp bzngfile, lest we start
-		// leaking files and file descriptors.
-		bzngfile.Close()
-		os.Remove(bzngfile.Name())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if err := bzngfile.Close(); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if err := os.Rename(bzngfile.Name(), s.DataPath("all.bzng")); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	// create pcap index
-	if _, err := pcapfile.Seek(0, 0); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	idx, err := pcap.CreateIndex(pcapfile, 10000)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	pcapIdx, err := s.CreateFile(pktIndexFile)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer pcapIdx.Close()
-	if err := json.NewEncoder(pcapIdx).Encode(idx); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	// update space config
-	if err := s.SetPacketPath(req.Path); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
 }
 
 func extractSpace(root string, w http.ResponseWriter, r *http.Request) *space.Space {
