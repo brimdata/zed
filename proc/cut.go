@@ -27,7 +27,7 @@ type Cut struct {
 // do this now since it might confuse users who expect to see output
 // fields in the order they specified.
 func CompileCutProc(c *Context, parent Proc, node *ast.CutProc) (*Cut, error) {
-	resolvers, err := expr.CompileFieldExprArray(node.Fields)
+	resolvers, err := expr.CompileFieldExprs(node.Fields)
 	if err != nil {
 		return nil, fmt.Errorf("compiling cut: %w", err)
 	}
