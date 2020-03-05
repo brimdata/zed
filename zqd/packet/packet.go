@@ -219,7 +219,7 @@ func (p *IngestProcess) writeData(ctx context.Context) error {
 }
 
 func (p *IngestProcess) startZeek(ctx context.Context, dir string) (*exec.Cmd, io.WriteCloser, error) {
-	disable := `event zeek_init() { Log::disable_stream(PacketFilter::LOG); Log::disable_stream(LoadedScripts::LOG); }`
+	const disable = `event zeek_init() { Log::disable_stream(PacketFilter::LOG); Log::disable_stream(LoadedScripts::LOG); }`
 	cmd := exec.CommandContext(ctx, "zeek", "-C", "-r", "-", "--exec", disable, "local")
 	cmd.Dir = dir
 	w, err := cmd.StdinPipe()
