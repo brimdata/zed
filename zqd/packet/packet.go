@@ -233,8 +233,7 @@ func (p *IngestProcess) writeData(ctx context.Context) (nano.Ts, nano.Ts, error)
 	}
 	zw := bzngio.NewWriter(bzngfile)
 	const program = "sort -limit 10000000 ts | (filter *; head 1; tail 1)"
-	headW := recWriter{}
-	tailW := recWriter{}
+	var headW, tailW recWriter
 
 	if err := search.Copy(ctx, []zbuf.Writer{zw, &headW, &tailW}, zr, program); err != nil {
 		// If an error occurs here close and remove tmp bzngfile, lest we start

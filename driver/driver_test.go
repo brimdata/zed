@@ -23,7 +23,8 @@ func (c *counter) Write(*zng.Record) error {
 }
 
 func TestMuxDriver(t *testing.T) {
-	input := `#0:record[_path:string,ts:time]
+	input := `
+#0:record[_path:string,ts:time]
 0:[conn;1425565514.419939;]`
 
 	zctx := resolver.NewContext()
