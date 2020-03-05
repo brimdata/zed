@@ -1,12 +1,15 @@
 package pcap
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
+	"io/ioutil"
 	"sync"
 
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/ranger"
+	"github.com/brimsec/zq/pkg/slicer"
 )
 
 type Index struct {
@@ -17,7 +20,7 @@ type Index struct {
 // there is just one section at the beginning of the file.  For nextgen pcaps,
 // there can be multiple sections.
 type Section struct {
-	Blocks []Slice
+	Blocks []slicer.Slice
 	Index  ranger.Envelope
 }
 
@@ -47,7 +50,7 @@ func CreateIndex(r io.Reader, limit int) (*Index, error) {
 		return nil, errors.New("no packets found")
 	}
 	// legacy pcap file has just the file header at the start of the file
-	blocks := []Slice{{0, fileHeaderLen}}
+	blocks := []slicer.Slice{{0, fileHeaderLen}}
 	return &Index{
 		Sections: []Section{{
 			Blocks: blocks,
@@ -83,4 +86,14 @@ func (w *IndexWriter) Close() (*Index, error) {
 	w.WriteCloser.Close()
 	w.wg.Wait()
 	return w.idx, w.err
+}
+
+func LoadIndex(path string) (*Index, error) {
+	b, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var index *Index
+	err = json.Unmarshal(b, &index)
+	return index, err
 }
