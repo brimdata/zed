@@ -47,7 +47,7 @@ func TestMuxDriver(t *testing.T) {
 		flowgraph, err := Compile(query, scanner.NewScanner(reader, nil))
 		assert.NoError(t, err)
 		cs := []zbuf.Writer{&counter{}, &counter{}}
-		d := NewDemuxed(cs)
+		d := New(cs...)
 		err = d.Run(flowgraph)
 		assert.NoError(t, err)
 		assert.Equal(t, 1, cs[0].(*counter).n)
@@ -58,7 +58,7 @@ func TestMuxDriver(t *testing.T) {
 		flowgraph, err := Compile(query, nil)
 		assert.NoError(t, err)
 		cs := []zbuf.Writer{&counter{}, &counter{}, &counter{}}
-		d := NewDemuxed(cs)
+		d := New(cs...)
 		err = d.Run(flowgraph)
 		assert.Error(t, err)
 	})

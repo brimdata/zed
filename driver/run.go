@@ -12,19 +12,11 @@ import (
 type Driver struct {
 	writers  []zbuf.Writer
 	warnings io.Writer
-	demux    bool
 }
 
-func New(w zbuf.Writer) *Driver {
+func New(w ...zbuf.Writer) *Driver {
 	return &Driver{
-		writers: []zbuf.Writer{w},
-	}
-}
-
-func NewDemuxed(ws []zbuf.Writer) *Driver {
-	return &Driver{
-		writers: ws,
-		demux:   true,
+		writers: w,
 	}
 }
 
@@ -33,7 +25,7 @@ func (d *Driver) SetWarningsWriter(w io.Writer) {
 }
 
 func (d *Driver) Write(cid int, arr zbuf.Batch) error {
-	if !d.demux {
+	if len(d.writers) == 1 {
 		cid = 0
 	}
 	for _, r := range arr.Records() {
@@ -55,7 +47,7 @@ func (d *Driver) WriteWarning(msg string) error {
 }
 
 func (d *Driver) Run(out *proc.MuxOutput) error {
-	if d.demux && len(d.writers) != out.N() {
+	if len(d.writers) != 1 && len(d.writers) != out.N() {
 		return fmt.Errorf("Driver.Run(): Mismatched channels and writer counts")
 	}
 

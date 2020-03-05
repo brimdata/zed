@@ -79,7 +79,7 @@ func Copy(ctx context.Context, w []zbuf.Writer, r zbuf.Reader, prog string) erro
 		d := zdriver.New(w[0])
 		return d.Run(mux)
 	}
-	d := zdriver.NewDemuxed(w)
+	d := zdriver.New(w...)
 	return d.Run(mux)
 }
 
