@@ -17,8 +17,8 @@ type Error struct {
 	Info    interface{} `json:"info,omitempty"`
 }
 
-// Error implements the error interface so this structs can be passed around
-// as errors.  The error string is the JSON encoding of the Error struct
+// Error implements the error interface so this struct can be passed around
+// as an error.  The error string is the JSON encoding of the Error struct.
 // with indentation.
 func (e *Error) Error() string {
 	b, err := json.MarshalIndent(e, "", "\t")
