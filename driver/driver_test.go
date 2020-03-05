@@ -54,7 +54,7 @@ func TestMuxDriver(t *testing.T) {
 		assert.Equal(t, 1, cs[1].(*counter).n)
 	})
 
-	t.Run("Mismatched channels and writer counts", func(t *testing.T) {
+	t.Run("mismatched channels and writer counts", func(t *testing.T) {
 		flowgraph, err := Compile(query, nil)
 		assert.NoError(t, err)
 		cs := []zbuf.Writer{&counter{}, &counter{}, &counter{}}
