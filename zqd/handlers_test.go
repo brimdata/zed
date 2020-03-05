@@ -69,12 +69,11 @@ func TestSpaceInfo(t *testing.T) {
 	c := newCore(t)
 	defer os.RemoveAll(c.Root)
 	createSpaceWithData(t, c, space, src)
-	min := nano.Unix(1521911721, 255387000)
-	max := nano.Unix(1521911723, 205187000)
 	expected := api.SpaceInfo{
+		// MinTime and MaxTime are not present because the
+		// space is not populated via the regular pcap ingest
+		// process.
 		Name:          space,
-		MinTime:       &min,
-		MaxTime:       &max,
 		Size:          88,
 		PacketSupport: false,
 	}
