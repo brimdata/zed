@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-// unpack transforms a search result into a v2.SearchResult, v2.SearchStats, or v2.SearchEnd
+// unpack transforms a piped json stream into the appropriate api response
 // and returns it as an empty interface so that the caller can receive
 // a stream of objects, check their types, and process them accordingly
 func unpack(b []byte) (interface{}, error) {

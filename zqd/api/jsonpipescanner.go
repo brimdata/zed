@@ -10,8 +10,6 @@ var sep = []byte("\n\n")
 
 func NewJSONPipeScanner(r io.Reader) *bufio.Scanner {
 	s := bufio.NewScanner(r)
-	buf := make([]byte, 500*1024) //XXX
-	s.Buffer(buf, 10*1024*1024)
 	s.Split(splitJSONPipe)
 	return s
 }
