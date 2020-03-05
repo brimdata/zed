@@ -260,6 +260,7 @@ func handlePacketPost(root string, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ticker := time.NewTicker(time.Second * 2)
+	defer ticker.Stop()
 	for {
 		var done bool
 		select {
