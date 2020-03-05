@@ -7,7 +7,7 @@ import (
 
 // unpack transforms a piped json stream into the appropriate api response
 // and returns it as an empty interface so that the caller can receive
-// a stream of objects, check their types, and process them accordingly
+// a stream of objects, check their types, and process them accordingly.
 func unpack(b []byte) (interface{}, error) {
 	var v interface{}
 	err := json.Unmarshal(b, &v)
