@@ -36,6 +36,10 @@ type FieldExpr interface {
 	Copy() FieldExpr
 }
 
+type Expression interface {
+	exprNode()
+}
+
 // Literal is a string representation of a literal value where the
 // type field indicates the underlying data type (of the set of all supported
 // zng data types, derived from the zng type system and not to be confused with
@@ -120,6 +124,20 @@ type (
 		Param string    `json:"param"`
 	}
 )
+
+// A BinaryExpression is any expression of the form "operand operator operand"
+// including arithmetic (+, -, *, /), logical operators (and, or), and
+// comparisons (=, !=, <, <=, >, >=)
+type BinaryExpression struct {
+	Node
+	Operator string     `json:"operator"`
+	LHS      Expression `json:"lhs"`
+	RHS      Expression `json:"rhs"`
+}
+
+func (*BinaryExpression) exprNode() {}
+func (*Literal) exprNode()          {}
+func (*FieldRead) exprNode()        {}
 
 // ----------------------------------------------------------------------------
 // Procs

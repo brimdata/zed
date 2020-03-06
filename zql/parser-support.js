@@ -102,9 +102,18 @@ function makeDuration(seconds) {
 function makeReducerProc(reducers) {
   return { op: "ReducerProc", reducers };
 }
+
 function makeGroupByProc(duration, limit, keys, reducers) {
   if (limit === null) { limit = undefined; }
   return { op: "GroupByProc", keys, reducers, duration, limit };
+}
+
+function makeBinaryExprChain(first, rest) {
+  let ret = first
+  for (let part of rest) {
+    ret = { op: "BinaryExpr", operator: part[1], lhs: ret, rhs: part[3] };
+  }
+  return ret
 }
 
 function joinChars(chars) {

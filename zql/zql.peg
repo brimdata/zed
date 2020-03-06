@@ -129,35 +129,19 @@ searchPred
     }
 
 searchValue
-  = v:quotedString {
-      RETURN(makeLiteral("string", v))
-    }
-  / v:reString {
-      RETURN(makeLiteral("regexp", v))
-    }
-  / v:port {
-      RETURN(makeLiteral("port", v))
-  }
-  / v:ip6subnet {
-      RETURN(makeLiteral("net", v))
-    }
-  / v:ip6addr {
-      RETURN(makeLiteral("ip", v))
-    }
-  / v:subnet {
-      RETURN(makeLiteral("net", v))
-    }
-  / v:addr {
-      RETURN(makeLiteral("ip", v))
-    }
-  / v:sdouble {
-      RETURN(makeLiteral("float64", v))
-    }
-  / v:sinteger !searchWord {
-      RETURN(makeLiteral("int64", v))
-    }
-  / !(searchKeywords _) v:booleanLiteral { RETURN(v) }
-  / !(searchKeywords _) v:nullLiteral { RETURN(v) }
+  = StringLiteral
+  / RegexpLiteral
+  / PortLiteral
+  / SubnetLiteral
+  / AddressLiteral
+  / FloatLiteral
+
+  // Careful not to use IntegerLiteral unconditionally or it will consume
+  // the beginning of something like 1234abcd which is a valid search word
+  / i:IntegerLiteral !searchWord { RETURN(i) }
+
+  / !(searchKeywords _) v:BooleanLiteral { RETURN(v) }
+  / !(searchKeywords _) v:NullLiteral { RETURN(v) }
   / !((searchKeywords) _) v:searchWord {
       IF(reglob.IsGlobby(ASSERT_STRING(v))) {
          INIT_ASSIGN_VAR(re, reglob.Reglob(ASSERT_STRING(v)))
@@ -166,17 +150,58 @@ searchValue
       RETURN(makeLiteral("string", v))
     }
 
+StringLiteral
+  = v:quotedString {
+      RETURN(makeLiteral("string", v))
+    }
+
+RegexpLiteral
+  = v:reString {
+      RETURN(makeLiteral("regexp", v))
+    }
+
+PortLiteral
+  = v:port {
+      RETURN(makeLiteral("port", v))
+    }
+
+SubnetLiteral
+  = v:ip6subnet {
+      RETURN(makeLiteral("net", v))
+    }
+  / v:subnet {
+      RETURN(makeLiteral("net", v))
+    }
+
+AddressLiteral
+  = v:ip6addr {
+      RETURN(makeLiteral("ip", v))
+    }
+  / v:addr {
+      RETURN(makeLiteral("ip", v))
+    }
+
+FloatLiteral
+  = v:sdouble {
+      RETURN(makeLiteral("float64", v))
+    }
+
+IntegerLiteral
+  = v:sinteger {
+      RETURN(makeLiteral("int64", v))
+    }
+
+BooleanLiteral
+  = "true"           { RETURN(makeLiteral("bool", "true")) }
+  / "false"          { RETURN(makeLiteral("bool", "false")) }
+
+NullLiteral
+  = "null"           { RETURN(makeLiteral("null", "")) }
+
 searchKeywords
   = andToken
   / orToken
   / inToken
-
-booleanLiteral
-  = "true"           { RETURN(makeLiteral("bool", "true")) }
-  / "false"          { RETURN(makeLiteral("bool", "false")) }
-
-nullLiteral
-  = "null"           { RETURN(makeLiteral("null", "")) }
 
 procList
   = first:procChain rest:parallelChain* {
@@ -212,20 +237,10 @@ equalityToken
   / "<" { RETURN("lt") }
   / ">" { RETURN("gt") }
 
-types
-  = "bool"
-  / "int"
-  / "count"
-  / "double"
-  / "string"
-  / "addr"
-  / "subnet"
-  / "port"
-
-andToken = "and"i
-orToken = "or"i
-inToken = "in"i
-notToken = "not"i
+andToken = "and"i { RETURN(TEXT) }
+orToken = "or"i { RETURN(TEXT) }
+inToken = "in"i { RETURN(TEXT) }
+notToken = "not"i { RETURN(TEXT) }
 
 fieldName = fieldNameStart fieldNameRest* { RETURN(TEXT) }
 
@@ -242,7 +257,7 @@ fieldReference
 
 fieldExpr
   = op:fieldOp _? "(" _? field:fieldReference _? ")" {
-      RETURN(makeFieldCall(op, field, nil))
+      RETURN(makeFieldCall(op, field, NULL))
     }
   / fieldReference
 
@@ -404,6 +419,123 @@ uniq
   / "uniq"i {
       RETURN(makeUniqProc(false))
     }
+
+PrimaryExpression
+  = StringLiteral
+  / RegexpLiteral
+  / PortLiteral
+  / SubnetLiteral
+  / AddressLiteral
+  / FloatLiteral
+  / IntegerLiteral
+  / BooleanLiteral
+  / NullLiteral
+  / FieldReference
+  / "(" __ expr:Expression __ ")" { RETURN(expr) }
+
+FieldReference
+  = f:fieldName {
+      RETURN(chainFieldCalls(f, ARRAY()))
+    }
+
+//
+// Rules for parsing expressions.  Following standard practice, each
+// level of operator precedence has a rule that references the next
+// highest level of precedence.
+//
+
+Expression = LogicalORExpression
+
+LogicalORExpression
+  = first:LogicalANDExpression
+    rest:(__ orToken __ LogicalANDExpression)* {
+        RETURN(makeBinaryExprChain(first, rest))
+    }
+
+LogicalANDExpression
+  = first:EqualityCompareExpression
+    rest:(__ andToken __ EqualityCompareExpression)* {
+        RETURN(makeBinaryExprChain(first, rest))
+    }
+
+EqualityCompareExpression
+  = first:RelativeExpression
+    rest:(__ EqualityOperator __ RelativeExpression)* {
+        RETURN(makeBinaryExprChain(first, rest))
+    }
+
+EqualityOperator = ("=" / "!=") { RETURN(TEXT) }
+
+RelativeExpression
+  = first:AdditiveExpression
+    rest:(__ RelativeOperator __ AdditiveExpression)* {
+        RETURN(makeBinaryExprChain(first, rest))
+    }
+
+RelativeOperator = ("<" / "<=" / ">" / ">=") { RETURN(TEXT) }
+
+AdditiveExpression
+  = first:MultiplicativeExpression
+    rest:(__ AdditiveOperator __ MultiplicativeExpression)* {
+        RETURN(makeBinaryExprChain(first, rest))
+    }
+
+AdditiveOperator = ("+" / "-") { RETURN(TEXT) }
+
+MultiplicativeExpression
+  = first:NotExpression
+    rest:(__ op:MultiplicativeOperator __ operand:NotExpression)* {
+        RETURN(makeBinaryExprChain(first, rest))
+    }
+
+MultiplicativeOperator = ("*" / "/") { RETURN(TEXT) }
+
+NotExpression
+  = "!" __ e:CallExpression {
+        RETURN(makeLogicalNot(e))
+    }
+  / CallExpression
+
+
+#ifdef notyet
+
+CallExpression
+  = fn:FunctionName __ "(" __ args:ArgumentList __ ")" {
+        RETURN(XXX)
+    }
+  / DereferenceExpression
+
+FunctionName
+  = first:FunctionNameComponent
+    rest:("." n:FunctionNameComponent { RETURN(n) })* {
+        RETURN(XXX)
+    }
+
+FunctionNameComponent
+  = FunctionNameStart FunctionNameRest* { RETURN(TEXT) }
+
+FunctionNameStart = [A-Za-z]
+FunctionNameRest = FunctionNameStart / [0-9]
+
+ArgumentList
+  = first:Expression rest:(__ "," __ e:Expression { RETURN(e) })* {
+        RETURN(XXX)
+    }
+
+DereferenceExpression
+  = base:PrimaryExpression
+    derefs:(
+        __ "[" __ index:Expression __ "]" { RETURN(XXX) }
+      / __ "." __ field:fieldName { RETURN(XXX) }
+    )* {
+        RETURN(XXX)
+    }
+
+#else
+
+CallExpression = PrimaryExpression
+
+#endif
 
 duration
   = seconds
@@ -610,5 +742,6 @@ ws
   / "\uFEFF"
 
 _ "whitespace" = ws+
+__ = ws*
 
 EOF = !.
