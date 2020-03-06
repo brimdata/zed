@@ -138,7 +138,8 @@ outer:
 	}, nil
 }
 
-func CompileFieldExprArray(nodes []ast.FieldExpr) ([]FieldExprResolver, error) {
+// CompileFieldExprs calls CompileFieldExpr for each element of nodes.
+func CompileFieldExprs(nodes []ast.FieldExpr) ([]FieldExprResolver, error) {
 	var resolvers []FieldExprResolver
 	if nodes != nil {
 		resolvers = make([]FieldExprResolver, 0, len(nodes))
