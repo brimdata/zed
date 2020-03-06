@@ -87,7 +87,7 @@ func TestSpaceInfo(t *testing.T) {
 }
 
 func TestSpaceInfoNoData(t *testing.T) {
-	space := "test"
+	const space = "test"
 	root := createTempDir(t)
 	defer os.RemoveAll(root)
 	createSpace(t, root, space, "")
