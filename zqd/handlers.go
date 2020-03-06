@@ -143,53 +143,55 @@ func handleSpaceGet(c *Core, w http.ResponseWriter, r *http.Request) {
 	if s == nil {
 		return
 	}
-	f, err := s.OpenFile("all.bzng")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	info := &api.SpaceInfo{
+		Name:          s.Name(),
+		PacketSupport: s.HasFile(packet.IndexFile),
+		PacketPath:    s.PacketPath(),
 	}
-	defer f.Close()
-	// XXX This is slow. Can easily cache result rather than scanning
-	// whole file each time.
-	reader, err := detector.LookupReader("bzng", f, resolver.NewContext())
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	minTs := nano.MaxTs
-	maxTs := nano.MinTs
-	var found bool
-	for {
-		rec, err := reader.Read()
+	if s.HasFile("all.bzng") {
+		f, err := s.OpenFile("all.bzng")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		defer f.Close()
+		// XXX This is slow. Can easily cache result rather than scanning
+		// whole file each time.
+		reader, err := detector.LookupReader("bzng", f, resolver.NewContext())
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		if rec == nil {
-			break
+		minTs := nano.MaxTs
+		maxTs := nano.MinTs
+		var found bool
+		for {
+			rec, err := reader.Read()
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			if rec == nil {
+				break
+			}
+			ts := rec.Ts
+			if ts < minTs {
+				minTs = ts
+			}
+			if ts > maxTs {
+				maxTs = ts
+			}
+			found = true
 		}
-		ts := rec.Ts
-		if ts < minTs {
-			minTs = ts
+		stat, err := f.Stat()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
-		if ts > maxTs {
-			maxTs = ts
+		info.Size = stat.Size()
+		if found {
+			info.MinTime = &minTs
+			info.MaxTime = &maxTs
 		}
-		found = true
-	}
-	stat, err := f.Stat()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	info := &api.SpaceInfo{
-		Name:          s.Name(),
-		Size:          stat.Size(),
-		PacketSupport: s.HasFile(packet.IndexFile),
-		PacketPath:    s.PacketPath(),
-	}
-	if found {
-		info.MinTime = &minTs
-		info.MaxTime = &maxTs
 	}
 	w.Header().Add("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(info)

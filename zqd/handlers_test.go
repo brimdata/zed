@@ -86,6 +86,23 @@ func TestSpaceInfo(t *testing.T) {
 	require.Equal(t, expected, info)
 }
 
+func TestSpaceInfoNoData(t *testing.T) {
+	space := "test"
+	root := createTempDir(t)
+	defer os.RemoveAll(root)
+	createSpace(t, root, space, "")
+	u := fmt.Sprintf("http://localhost:9867/space/%s", space)
+	body := httpSuccess(t, zqd.NewHandler(root), "GET", u, nil)
+	expected := api.SpaceInfo{
+		Name:          space,
+		Size:          0,
+		PacketSupport: false,
+	}
+	var info api.SpaceInfo
+	require.NoError(t, json.NewDecoder(body).Decode(&info))
+	require.Equal(t, expected, info)
+}
+
 func TestSpacePostNameOnly(t *testing.T) {
 	c := newCore(t)
 	defer os.RemoveAll(c.Root)
