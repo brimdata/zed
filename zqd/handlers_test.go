@@ -88,11 +88,10 @@ func TestSpaceInfo(t *testing.T) {
 
 func TestSpaceInfoNoData(t *testing.T) {
 	const space = "test"
-	root := createTempDir(t)
-	defer os.RemoveAll(root)
-	createSpace(t, root, space, "")
+	c := newCore(t)
+	createSpace(t, c, space, "")
 	u := fmt.Sprintf("http://localhost:9867/space/%s", space)
-	body := httpSuccess(t, zqd.NewHandler(root), "GET", u, nil)
+	body := httpSuccess(t, zqd.NewHandler(c), "GET", u, nil)
 	expected := api.SpaceInfo{
 		Name:          space,
 		Size:          0,
