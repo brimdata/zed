@@ -36,13 +36,15 @@ type IngestProcess struct {
 	logdir       string
 	done         chan struct{}
 	err          error
+	zeekExec     string
 }
 
 // IngestFile kicks of the process for ingesting a pcap file into a space.
 // Should everything start out successfully, this will return a thread safe
 // IngestProcess instance once zeek log files have started to materialize in a tmp
-// directory.
-func IngestFile(ctx context.Context, s *space.Space, pcap string) (*IngestProcess, error) {
+// directory. If zeekExec is an empty string, this will attempt to resolve zeek
+// from $PATH.
+func IngestFile(ctx context.Context, s *space.Space, pcap, zeekExec string) (*IngestProcess, error) {
 	logdir := s.DataPath(".tmp.zeeklogs")
 	if err := os.Mkdir(logdir, 0700); err != nil {
 		if os.IsExist(err) {
@@ -54,6 +56,13 @@ func IngestFile(ctx context.Context, s *space.Space, pcap string) (*IngestProces
 	if err != nil {
 		return nil, err
 	}
+	if zeekExec == "" {
+		zeekExec = "zeek"
+	}
+	zeekExec, err = exec.LookPath(zeekExec)
+	if err != nil {
+		return nil, err
+	}
 	p := &IngestProcess{
 		StartTime: nano.Now(),
 		PcapSize:  info.Size(),
@@ -61,6 +70,7 @@ func IngestFile(ctx context.Context, s *space.Space, pcap string) (*IngestProces
 		pcapPath:  pcap,
 		logdir:    logdir,
 		done:      make(chan struct{}),
+		zeekExec:  zeekExec,
 	}
 	go func() {
 		p.err = p.run(ctx)
@@ -220,7 +230,7 @@ func (p *IngestProcess) writeData(ctx context.Context) error {
 
 func (p *IngestProcess) startZeek(ctx context.Context, dir string) (*exec.Cmd, io.WriteCloser, error) {
 	const disable = `event zeek_init() { Log::disable_stream(PacketFilter::LOG); Log::disable_stream(LoadedScripts::LOG); }`
-	cmd := exec.CommandContext(ctx, "zeek", "-C", "-r", "-", "--exec", disable, "local")
+	cmd := exec.CommandContext(ctx, p.zeekExec, "-C", "-r", "-", "--exec", disable, "local")
 	cmd.Dir = dir
 	w, err := cmd.StdinPipe()
 	if err != nil {

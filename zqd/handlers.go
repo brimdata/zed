@@ -23,13 +23,13 @@ import (
 
 var taskCount int64
 
-func handleSearch(root string, w http.ResponseWriter, r *http.Request) {
+func handleSearch(c Core, w http.ResponseWriter, r *http.Request) {
 	var req api.SearchRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	s, err := space.Open(root, req.Space)
+	s, err := space.Open(c.Root, req.Space)
 	if err != nil {
 		status := http.StatusInternalServerError
 		if err == space.ErrSpaceNotExist {
@@ -58,8 +58,8 @@ func handleSearch(root string, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handlePacketSearch(root string, w http.ResponseWriter, r *http.Request) {
-	s := extractSpace(root, w, r)
+func handlePacketSearch(c Core, w http.ResponseWriter, r *http.Request) {
+	s := extractSpace(c, w, r)
 	if s == nil {
 		return
 	}
@@ -114,8 +114,8 @@ func handlePacketSearch(root string, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handleSpaceList(root string, w http.ResponseWriter, r *http.Request) {
-	info, err := ioutil.ReadDir(root)
+func handleSpaceList(c Core, w http.ResponseWriter, r *http.Request) {
+	info, err := ioutil.ReadDir(c.Root)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -125,7 +125,7 @@ func handleSpaceList(root string, w http.ResponseWriter, r *http.Request) {
 		if !subdir.IsDir() {
 			continue
 		}
-		s, err := space.Open(root, subdir.Name())
+		s, err := space.Open(c.Root, subdir.Name())
 		if err != nil {
 			continue
 		}
@@ -138,8 +138,8 @@ func handleSpaceList(root string, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handleSpaceGet(root string, w http.ResponseWriter, r *http.Request) {
-	s := extractSpace(root, w, r)
+func handleSpaceGet(c Core, w http.ResponseWriter, r *http.Request) {
+	s := extractSpace(c, w, r)
 	if s == nil {
 		return
 	}
@@ -195,13 +195,13 @@ func handleSpaceGet(root string, w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(info)
 }
 
-func handleSpacePost(root string, w http.ResponseWriter, r *http.Request) {
+func handleSpacePost(c Core, w http.ResponseWriter, r *http.Request) {
 	var req api.SpacePostRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	s, err := space.Create(root, req.Name, req.DataDir)
+	s, err := space.Create(c.Root, req.Name, req.DataDir)
 	if err != nil {
 		status := http.StatusInternalServerError
 		if err == space.ErrSpaceExists {
@@ -220,8 +220,8 @@ func handleSpacePost(root string, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handleSpaceDelete(root string, w http.ResponseWriter, r *http.Request) {
-	s := extractSpace(root, w, r)
+func handleSpaceDelete(c Core, w http.ResponseWriter, r *http.Request) {
+	s := extractSpace(c, w, r)
 	if s == nil {
 		return
 	}
@@ -232,8 +232,8 @@ func handleSpaceDelete(root string, w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func handlePacketPost(root string, w http.ResponseWriter, r *http.Request) {
-	s := extractSpace(root, w, r)
+func handlePacketPost(c Core, w http.ResponseWriter, r *http.Request) {
+	s := extractSpace(c, w, r)
 	if s == nil {
 		return
 	}
@@ -242,7 +242,7 @@ func handlePacketPost(root string, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	proc, err := packet.IngestFile(r.Context(), s, req.Path)
+	proc, err := packet.IngestFile(r.Context(), s, req.Path, c.ZeekExec)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -299,12 +299,12 @@ func handlePacketPost(root string, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func extractSpace(root string, w http.ResponseWriter, r *http.Request) *space.Space {
+func extractSpace(c Core, w http.ResponseWriter, r *http.Request) *space.Space {
 	name := extractSpaceName(w, r)
 	if name == "" {
 		return nil
 	}
-	s, err := space.Open(root, name)
+	s, err := space.Open(c.Root, name)
 	if err != nil {
 		if err == space.ErrSpaceNotExist {
 			http.Error(w, err.Error(), http.StatusNotFound)

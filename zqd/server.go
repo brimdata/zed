@@ -7,6 +7,13 @@ import (
 	"github.com/gorilla/mux"
 )
 
+type Core struct {
+	Root string
+	// The exact path of the zeek executable. This is needed in the
+	// POST /space/:space/packet endpoint.
+	ZeekExec string
+}
+
 type VersionMessage struct {
 	Zqd string `json:"boomd"` //XXX boomd -> zqd
 	Zq  string `json:"zq"`
@@ -15,7 +22,7 @@ type VersionMessage struct {
 // This struct filled in by main from linker setting version strings.
 var Version VersionMessage
 
-func NewHandler(root string) http.Handler {
+func NewHandler(root Core) http.Handler {
 	r := mux.NewRouter()
 	r = r.UseEncodedPath()
 	r.Handle("/space", wrapRoot(root, handleSpaceList)).Methods("GET")
@@ -35,9 +42,9 @@ func NewHandler(root string) http.Handler {
 	return r
 }
 
-type handlerFunc func(root string, w http.ResponseWriter, r *http.Request)
+type handlerFunc func(root Core, w http.ResponseWriter, r *http.Request)
 
-func wrapRoot(root string, h handlerFunc) http.Handler {
+func wrapRoot(root Core, h handlerFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h(root, w, r)
 	})

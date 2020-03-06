@@ -25,7 +25,7 @@ func TestPacketPost(t *testing.T) {
 
 type PacketPostSuite struct {
 	suite.Suite
-	root     string
+	core     zqd.Core
 	space    string
 	pcapfile string
 	payloads []interface{}
@@ -35,19 +35,19 @@ func (s *PacketPostSuite) TestCount() {
 	expected := `
 #0:record[count:uint64]
 0:[4;]`
-	res := execSearch(s.T(), s.root, s.space, "count()")
+	res := execSearch(s.T(), s.core, s.space, "count()")
 	s.Equal(test.Trim(expected), res)
 }
 
 func (s *PacketPostSuite) TestNoPacketFilter() {
 	expected := ""
-	res := execSearch(s.T(), s.root, s.space, "_path = packet_filter | count()")
+	res := execSearch(s.T(), s.core, s.space, "_path = packet_filter | count()")
 	s.Equal(expected, res)
 }
 
 func (s *PacketPostSuite) TestSpaceInfo() {
 	u := fmt.Sprintf("http://localhost:9867/space/%s", s.space)
-	res := httpSuccess(s.T(), zqd.NewHandler(s.root), "GET", u, nil)
+	res := httpSuccess(s.T(), zqd.NewHandler(s.core), "GET", u, nil)
 	var info api.SpaceInfo
 	err := json.NewDecoder(res).Decode(&info)
 	s.NoError(err)
@@ -56,7 +56,7 @@ func (s *PacketPostSuite) TestSpaceInfo() {
 }
 
 func (s *PacketPostSuite) TestWritesIndexFile() {
-	stat, err := os.Stat(filepath.Join(s.root, s.space, packet.IndexFile))
+	stat, err := os.Stat(filepath.Join(s.core.Root, s.space, packet.IndexFile))
 	s.NoError(err)
 	s.NotNil(stat)
 }
@@ -75,20 +75,20 @@ func (s *PacketPostSuite) SetupTest() {
 	s.space = "test"
 	dir, err := ioutil.TempDir("", "PacketPostTest")
 	s.NoError(err)
-	s.root = dir
+	s.core.Root = dir
 	s.pcapfile = filepath.Join(".", "testdata/test.pcap")
-	s.payloads = createSpaceWithPcap(s.T(), s.root, s.space, s.pcapfile)
+	s.payloads = createSpaceWithPcap(s.T(), s.core, s.space, s.pcapfile)
 }
 
 func (s *PacketPostSuite) TearDownTest() {
-	os.RemoveAll(s.root)
+	os.RemoveAll(s.core.Root)
 }
 
-func createSpaceWithPcap(t *testing.T, root, spaceName, pcapfile string) []interface{} {
-	createSpace(t, root, spaceName, "")
+func createSpaceWithPcap(t *testing.T, core zqd.Core, spaceName, pcapfile string) []interface{} {
+	createSpace(t, core, spaceName, "")
 	req := api.PacketPostRequest{filepath.Join(".", pcapfile)}
 	u := fmt.Sprintf("http://localhost:9867/space/%s/packet", spaceName)
-	body := httpSuccess(t, zqd.NewHandler(root), "POST", u, req)
+	body := httpSuccess(t, zqd.NewHandler(core), "POST", u, req)
 	scanner := api.NewJSONPipeScanner(body)
 	_, cancel := context.WithCancel(context.Background())
 	stream := api.NewStream(scanner, cancel)

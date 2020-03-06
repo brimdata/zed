@@ -30,12 +30,14 @@ type Command struct {
 	*root.Command
 	listenAddr string
 	dataDir    string
+	zeekExec   string
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.StringVar(&c.listenAddr, "l", ":9867", "[addr]:port to listen on")
 	f.StringVar(&c.dataDir, "datadir", ".", "data directory")
+	f.StringVar(&c.zeekExec, "zeekpath", "", "path to the zeek executeable to use (defaults to zeek in $PATH)")
 	return c, nil
 }
 
@@ -45,7 +47,8 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	logger := newLogger()
-	handler := zqd.NewHandler(dataDir)
+	core := zqd.Core{Root: dataDir}
+	handler := zqd.NewHandler(core)
 	ln, err := net.Listen("tcp", c.listenAddr)
 	if err != nil {
 		return err
