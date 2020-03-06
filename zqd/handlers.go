@@ -141,12 +141,30 @@ func handleSpaceGet(c *Core, w http.ResponseWriter, r *http.Request) {
 	if s == nil {
 		return
 	}
-	info, err := s.Info()
+	f, err := s.OpenFile("all.bzng")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	info.PacketSupport = s.HasFile(packet.IndexFile)
+	defer f.Close()
+	stat, err := f.Stat()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	info := &api.SpaceInfo{
+		Name:          s.Name(),
+		Size:          stat.Size(),
+		PacketSupport: s.HasFile(packet.IndexFile),
+		PacketPath:    s.PacketPath(),
+	}
+	minTs, maxTs, err := s.GetTimes()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	info.MinTime = minTs
+	info.MaxTime = maxTs
 	w.Header().Add("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(info); err != nil {
 		// XXX Add zap here.

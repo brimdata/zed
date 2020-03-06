@@ -166,6 +166,17 @@ func (s Space) SetTimes(minTs, maxTs nano.Ts) error {
 	return cur.save(s.conf.DataPath)
 }
 
+func (s Space) GetTimes() (*nano.Ts, *nano.Ts, error) {
+	i, err := loadInfo(s.conf.DataPath)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return nil, nil, err
+		}
+		return nil, nil, nil
+	}
+	return &i.MinTime, &i.MaxTime, nil
+}
+
 // loadConfig loads the contents of config.json in a space's path.
 func loadConfig(spacePath string) (config, error) {
 	var c config
