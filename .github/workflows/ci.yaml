@@ -20,4 +20,5 @@ jobs:
       - run: make vet
       - run: make test-unit
       - run: make test-system
+      - run: make test-zeek
       - run: make test-heavy

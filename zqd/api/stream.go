@@ -29,13 +29,6 @@ func (s *Stream) Next() (interface{}, error) {
 			s.end()
 			return nil, err
 		}
-		end, ok := v.(*TaskEnd)
-		if ok {
-			if end.Error != nil {
-				err = end.Error
-				s.end()
-			}
-		}
 		return v, err
 	}
 	s.end()
