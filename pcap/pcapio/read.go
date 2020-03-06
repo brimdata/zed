@@ -24,7 +24,7 @@ import (
 	"github.com/google/gopacket/layers"
 )
 
-// Reader wraps an underlying io.Reader to read packet data in PCAP
+// PcapReader implements the Reader interface to read packet data in PCAP
 // format.  See http://wiki.wireshark.org/Development/LibpcapFileFormat
 // for information on the file format.
 //
@@ -59,16 +59,16 @@ const magicNanosecondsBigendian = 0x4D3CB2A1
 const magicGzip1 = 0x1f
 const magicGzip2 = 0x8b
 
-// NewReader returns a new reader object, for reading packet data from
+// NewPcapReader returns a new reader object, for reading packet data from
 // the given reader. The reader must be open and header data is
 // read from it at this point.
-// If the file format is not supported an error is returned
+// If the file format is not supported an error is returned.
 //
 //  // Create new reader:
 //  f, _ := os.Open("/tmp/file.pcap")
 //  defer f.Close()
 //  r, err := NewReader(f)
-//  data, ci, err := r.ReadPacketData()
+//  data, info, err := r.Read()
 func NewPcapReader(r io.Reader) (*PcapReader, error) {
 	reader := &PcapReader{
 		Reader: peeker.NewReader(r, 32*1024, 1024*1024),
@@ -154,27 +154,6 @@ func (r *PcapReader) Read() ([]byte, Info, error) {
 	}
 	r.offset += uint64(caplen + packetHeaderLen)
 	return pkt, Info{Type: TypePacket, Link: r.linkType, Ts: ts}, nil
-}
-
-// ReadPacketData reads next packet from file.
-// Returned buffer will be reused on next read.
-func (r *PcapReader) readPacketData() ([]byte, gopacket.CaptureInfo, error) {
-	ci, err := r.readPacketHeader()
-	if err != nil {
-		if err == io.EOF {
-			err = nil
-		}
-		return nil, ci, err
-	}
-	if ci.CaptureLength > int(r.snaplen) {
-		return nil, ci, fmt.Errorf("capture length exceeds snap length: %d > %d", ci.CaptureLength, r.snaplen)
-	}
-	if ci.CaptureLength > ci.Length {
-		return nil, ci, fmt.Errorf("capture length exceeds original packet length: %d > %d", ci.CaptureLength, ci.Length)
-	}
-	data, err := r.Reader.Read(ci.CaptureLength)
-	r.offset += uint64(ci.CaptureLength)
-	return data, ci, err
 }
 
 func (r *PcapReader) readPacketHeader() (gopacket.CaptureInfo, error) {
