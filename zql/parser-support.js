@@ -24,7 +24,7 @@ function chainFieldCalls(base, derefs) {
 }
 
 function makeMatchAll() {
-  return { op: "MatchAll", value };
+  return { op: "MatchAll" };
 }
 
 function makeCompareField(comparator, field, value) {
