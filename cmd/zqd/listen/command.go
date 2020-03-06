@@ -47,7 +47,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	logger := newLogger()
-	core := zqd.Core{Root: dataDir}
+	core := zqd.Core{Root: dataDir, ZeekExec: c.zeekExec}
 	handler := zqd.NewHandler(core)
 	ln, err := net.Listen("tcp", c.listenAddr)
 	if err != nil {
