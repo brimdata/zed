@@ -8,7 +8,7 @@ function makeParallelProc(procs) {
   return { op: "ParallelProc", procs };
 }
 
-function makeLiteral(type, value) { return { type, value }; }
+function makeLiteral(type, value) { return { op: "Literal", type, value }; }
 function getValueType(v) { return v.type; }
 
 function makeFieldCall(fn, field, param) {
@@ -23,8 +23,8 @@ function chainFieldCalls(base, derefs) {
   return ret
 }
 
-function makeBooleanLiteral(value) {
-  return { op: "BooleanLiteral", value };
+function makeMatchAll() {
+  return { op: "MatchAll", value };
 }
 
 function makeCompareField(comparator, field, value) {

@@ -42,6 +42,7 @@ type FieldExpr interface {
 // the native Go types) and value is a string representation of that value that
 // must conform to the provided type.
 type Literal struct {
+	Node
 	Type  string `json:"type"`
 	Value string `json:"value"`
 }
@@ -70,10 +71,9 @@ type (
 		Node
 		Expr BooleanExpr `json:"expr"`
 	}
-	// A BooleanLiteral node represents the constant true of false.
-	BooleanLiteral struct {
+	// A MatchAll node represents a filter that matches all records.
+	MatchAll struct {
 		Node
-		Value bool `json:"value"`
 	}
 	// A CompareAny node represents a comparison operator with all of
 	// the fields in a record.
@@ -96,12 +96,12 @@ type (
 // booleanEpxrNode() ensures that only boolean expression nodes can be
 // assigned to a BooleanExpr.
 //
-func (*LogicalAnd) booleanExprNode()     {}
-func (*LogicalOr) booleanExprNode()      {}
-func (*LogicalNot) booleanExprNode()     {}
-func (*BooleanLiteral) booleanExprNode() {}
-func (*CompareAny) booleanExprNode()     {}
-func (*CompareField) booleanExprNode()   {}
+func (*LogicalAnd) booleanExprNode()   {}
+func (*LogicalOr) booleanExprNode()    {}
+func (*LogicalNot) booleanExprNode()   {}
+func (*MatchAll) booleanExprNode()     {}
+func (*CompareAny) booleanExprNode()   {}
+func (*CompareField) booleanExprNode() {}
 
 // A FieldExpr is any expression that refers to a field.
 type (

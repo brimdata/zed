@@ -49,7 +49,7 @@ func makeParallelProc(procsIn interface{}) ast.Proc {
 }
 
 func makeLiteral(typ string, val interface{}) *ast.Literal {
-	return &ast.Literal{typ, val.(string)}
+	return &ast.Literal{ast.Node{"Literal"}, typ, val.(string)}
 }
 
 func getValueType(val interface{}) string {
@@ -84,8 +84,8 @@ func chainFieldCalls(base, derefs interface{}) ast.FieldExpr {
 	return ret
 }
 
-func makeBooleanLiteral(val bool) *ast.BooleanLiteral {
-	return &ast.BooleanLiteral{ast.Node{"BooleanLiteral"}, val}
+func makeMatchAll() *ast.MatchAll {
+	return &ast.MatchAll{ast.Node{"MatchAll"}}
 }
 
 func makeCompareField(comparatorIn, fieldIn, valueIn interface{}) *ast.CompareField {
