@@ -77,6 +77,7 @@ func (s Space) Info() (api.SpaceInfo, error) {
 	if err != nil {
 		return api.SpaceInfo{}, err
 	}
+	defer f.Close()
 	stat, err := f.Stat()
 	if err != nil {
 		return api.SpaceInfo{}, err
