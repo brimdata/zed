@@ -87,7 +87,7 @@ func (s Space) Info() (api.SpaceInfo, error) {
 		Size:       stat.Size(),
 		PacketPath: s.PacketPath(),
 	}
-	i, err := loadInfo(s.path)
+	i, err := loadInfo(s.conf.DataPath)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return api.SpaceInfo{}, err
@@ -154,7 +154,7 @@ type info struct {
 }
 
 func (s Space) SetTimes(minTs, maxTs nano.Ts) error {
-	cur, err := loadInfo(s.path)
+	cur, err := loadInfo(s.conf.DataPath)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return err
@@ -163,7 +163,7 @@ func (s Space) SetTimes(minTs, maxTs nano.Ts) error {
 	}
 	cur.MinTime = nano.Min(cur.MinTime, minTs)
 	cur.MaxTime = nano.Max(cur.MaxTime, maxTs)
-	return cur.save(s.path)
+	return cur.save(s.conf.DataPath)
 }
 
 // loadConfig loads the contents of config.json in a space's path.
@@ -198,9 +198,9 @@ func (c config) save(spacePath string) error {
 	return os.Rename(tmppath, path)
 }
 
-func loadInfo(spacePath string) (info, error) {
+func loadInfo(path string) (info, error) {
 	var i info
-	b, err := ioutil.ReadFile(filepath.Join(spacePath, infoFile))
+	b, err := ioutil.ReadFile(filepath.Join(path, infoFile))
 	if err != nil {
 		return info{}, err
 	}
@@ -210,8 +210,8 @@ func loadInfo(spacePath string) (info, error) {
 	return i, nil
 }
 
-func (i info) save(spacePath string) error {
-	path := filepath.Join(spacePath, infoFile)
+func (i info) save(path string) error {
+	path = filepath.Join(path, infoFile)
 	tmppath := path + ".tmp"
 	f, err := os.Create(tmppath)
 	if err != nil {
