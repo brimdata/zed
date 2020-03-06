@@ -7,14 +7,12 @@ import (
 	"io/ioutil"
 	"sync"
 
-	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/pcap/pcapio"
 	"github.com/brimsec/zq/pkg/ranger"
 	"github.com/brimsec/zq/pkg/slicer"
 )
 
-type Index struct {
-	Sections []Section
-}
+type Index []Section
 
 // Section indicates the seek offset of a pcap section.  For legacy pcaps,
 // there is just one section at the beginning of the file.  For nextgen pcaps,
@@ -24,37 +22,37 @@ type Section struct {
 	Index  ranger.Envelope
 }
 
-// CreateIndex creates an index for a legacy pcap file.  If the file isn't
-// a legacy pcap file, an error is returned allowing the caller to try reading
-// the file as a legacy pcap then revert to nextgen pcap on error.
-func CreateIndex(r io.Reader, limit int) (*Index, error) {
-	reader, err := NewReader(r)
+// CreateIndex creates an index for a pcap file.  If the file isn't
+// a pcap file, an error is returned.
+func CreateIndex(r io.Reader, limit int) (Index, error) {
+	reader, err := pcapio.NewPcapReader(r) // XXX TBD: lookup the right reader
 	if err != nil {
 		return nil, err
 	}
 	var offsets []ranger.Point
 	for {
-		off := reader.Offset
-		data, info, err := reader.ReadPacketData()
+		off := reader.Offset()
+		data, info, err := reader.Read()
 		if err != nil {
 			return nil, err
 		}
 		if data == nil {
 			break
 		}
-		ts := nano.TimeToTs(info.Timestamp)
-		offsets = append(offsets, ranger.Point{X: off, Y: uint64(ts)})
+		y := uint64(info.Ts)
+		offsets = append(offsets, ranger.Point{X: off, Y: y})
 	}
 	n := len(offsets)
 	if n == 0 {
 		return nil, errors.New("no packets found")
 	}
+	fileHeaderLen := uint64(24) // XXX this will go away in next PR
 	// legacy pcap file has just the file header at the start of the file
 	blocks := []slicer.Slice{{0, fileHeaderLen}}
-	return &Index{
-		Sections: []Section{{
+	return Index{
+		{
 			Blocks: blocks,
-			Index:  ranger.NewEnvelope(offsets, limit)},
+			Index:  ranger.NewEnvelope(offsets, limit),
 		},
 	}, nil
 }
@@ -62,7 +60,7 @@ func CreateIndex(r io.Reader, limit int) (*Index, error) {
 type IndexWriter struct {
 	io.WriteCloser
 	err error
-	idx *Index
+	idx Index
 	wg  sync.WaitGroup
 }
 
@@ -82,18 +80,18 @@ func NewIndexWriter(limit int) *IndexWriter {
 	return i
 }
 
-func (w *IndexWriter) Close() (*Index, error) {
+func (w *IndexWriter) Close() (Index, error) {
 	w.WriteCloser.Close()
 	w.wg.Wait()
 	return w.idx, w.err
 }
 
-func LoadIndex(path string) (*Index, error) {
+func LoadIndex(path string) (Index, error) {
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	var index *Index
+	var index Index
 	err = json.Unmarshal(b, &index)
 	return index, err
 }

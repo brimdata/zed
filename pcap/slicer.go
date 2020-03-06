@@ -9,7 +9,7 @@ import (
 	"github.com/brimsec/zq/pkg/slicer"
 )
 
-func NewSlicer(file *os.File, index *Index, span nano.Span) (*slicer.Reader, error) {
+func NewSlicer(file *os.File, index Index, span nano.Span) (*slicer.Reader, error) {
 	slices, err := GenerateSlices(index, span)
 	if err != nil {
 		return nil, err
@@ -22,9 +22,9 @@ func NewSlicer(file *os.File, index *Index, span nano.Span) (*slicer.Reader, err
 // underlying pcap file.  Extra packets may appear in the resulting stream
 // but all packets that fall within the time range will be produced, i.e.,
 // another layering of time filtering should be applied to resulting packets.
-func GenerateSlices(index *Index, span nano.Span) ([]slicer.Slice, error) {
+func GenerateSlices(index Index, span nano.Span) ([]slicer.Slice, error) {
 	var slices []slicer.Slice
-	for _, section := range index.Sections {
+	for _, section := range index {
 		pslice, err := FindPacketSlice(section.Index, span)
 		if err != nil {
 			return nil, err

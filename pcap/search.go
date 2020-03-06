@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 
+	"github.com/brimsec/zq/pcap/pcapio"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
@@ -137,15 +138,16 @@ func genICMPFilter(src, dst net.IP) PacketFilter {
 // XXX currently assumes legacy pcap is produced by the input reader
 // XXX need to handle searching over multiple pcap files
 func (s *Search) Run(w io.Writer, r io.Reader) error {
-	pcap, err := NewReader(r)
+	pcap, err := pcapio.NewPcapReader(r) // TBD: create generic pcap readnder (in next PR)
 	if err != nil {
 		return err
 	}
-	hdr, err := pcap.ReadBlock(s.span)
+	hdr, info, err := pcap.Read()
 	if err != nil {
 		return err
 	}
-	if len(hdr) != fileHeaderLen {
+	fileHeaderLen := 24 // XXX this will go away in next PR
+	if len(hdr) != fileHeaderLen || info.Type != pcapio.TypeSection {
 		return errors.New("bad pcap file")
 	}
 	//XXX the .LayerType() method is returning Unknown for some reason
@@ -153,7 +155,7 @@ func (s *Search) Run(w io.Writer, r io.Reader) error {
 	outerLayer := layers.LayerTypeEthernet
 	opts := gopacket.DecodeOptions{Lazy: true, NoCopy: true}
 	for {
-		block, err := pcap.ReadBlock(s.span)
+		block, info, err := pcap.Read()
 		if err != nil {
 			if err == io.EOF {
 				break
@@ -163,6 +165,10 @@ func (s *Search) Run(w io.Writer, r io.Reader) error {
 		if block == nil {
 			break
 		}
+		if !s.span.ContainsClosed(info.Ts) {
+			continue
+		}
+		packetHeaderLen := 16 // XXX this will go away
 		pktBuf := block[packetHeaderLen:]
 		packet := gopacket.NewPacket(pktBuf, outerLayer, opts)
 		if s.filter != nil && !s.filter(packet) {
