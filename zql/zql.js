@@ -6519,7 +6519,7 @@ function peg$parse(input, options) {
   }
 
   function makeMatchAll() {
-    return { op: "MatchAll", value };
+    return { op: "MatchAll" };
   }
 
   function makeCompareField(comparator, field, value) {
