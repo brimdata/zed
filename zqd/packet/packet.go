@@ -129,7 +129,7 @@ func (p *IngestProcess) awaitZeekLogs() error {
 	}
 }
 
-func (p *IngestProcess) writeIndexFile(idx *pcap.Index) error {
+func (p *IngestProcess) writeIndexFile(idx pcap.Index) error {
 	idxpath := p.space.DataPath(IndexFile)
 	tmppath := idxpath + ".tmp"
 	f, err := os.Create(tmppath)
@@ -144,7 +144,7 @@ func (p *IngestProcess) writeIndexFile(idx *pcap.Index) error {
 	return os.Rename(tmppath, idxpath)
 }
 
-func (p *IngestProcess) slurp(ctx context.Context) (*pcap.Index, error) {
+func (p *IngestProcess) slurp(ctx context.Context) (pcap.Index, error) {
 	pcapfile, err := os.Open(p.pcapPath)
 	if err != nil {
 		return nil, err
@@ -155,6 +155,9 @@ func (p *IngestProcess) slurp(ctx context.Context) (*pcap.Index, error) {
 		return nil, err
 	}
 	indexwriter := pcap.NewIndexWriter(10000)
+	// XXX this should be disentangled from the zeek process.
+	// the index is very fast to create and should be usable by
+	// brim whenever a progressive update is ready.
 	w := io.MultiWriter(zeekwriter, indexwriter, p)
 	if _, err := io.Copy(w, pcapfile); err != nil {
 		return nil, err
