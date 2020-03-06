@@ -23,7 +23,7 @@ import (
 
 var taskCount int64
 
-func handleSearch(c Core, w http.ResponseWriter, r *http.Request) {
+func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	var req api.SearchRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -58,7 +58,7 @@ func handleSearch(c Core, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handlePacketSearch(c Core, w http.ResponseWriter, r *http.Request) {
+func handlePacketSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	s := extractSpace(c, w, r)
 	if s == nil {
 		return
@@ -114,7 +114,7 @@ func handlePacketSearch(c Core, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handleSpaceList(c Core, w http.ResponseWriter, r *http.Request) {
+func handleSpaceList(c *Core, w http.ResponseWriter, r *http.Request) {
 	info, err := ioutil.ReadDir(c.Root)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -138,7 +138,7 @@ func handleSpaceList(c Core, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handleSpaceGet(c Core, w http.ResponseWriter, r *http.Request) {
+func handleSpaceGet(c *Core, w http.ResponseWriter, r *http.Request) {
 	s := extractSpace(c, w, r)
 	if s == nil {
 		return
@@ -195,7 +195,7 @@ func handleSpaceGet(c Core, w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(info)
 }
 
-func handleSpacePost(c Core, w http.ResponseWriter, r *http.Request) {
+func handleSpacePost(c *Core, w http.ResponseWriter, r *http.Request) {
 	var req api.SpacePostRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -220,7 +220,7 @@ func handleSpacePost(c Core, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handleSpaceDelete(c Core, w http.ResponseWriter, r *http.Request) {
+func handleSpaceDelete(c *Core, w http.ResponseWriter, r *http.Request) {
 	s := extractSpace(c, w, r)
 	if s == nil {
 		return
@@ -232,7 +232,7 @@ func handleSpaceDelete(c Core, w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func handlePacketPost(c Core, w http.ResponseWriter, r *http.Request) {
+func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	s := extractSpace(c, w, r)
 	if s == nil {
 		return
@@ -299,7 +299,7 @@ func handlePacketPost(c Core, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func extractSpace(c Core, w http.ResponseWriter, r *http.Request) *space.Space {
+func extractSpace(c *Core, w http.ResponseWriter, r *http.Request) *space.Space {
 	name := extractSpaceName(w, r)
 	if name == "" {
 		return nil

@@ -25,7 +25,7 @@ func TestPacketPost(t *testing.T) {
 
 type PacketPostSuite struct {
 	suite.Suite
-	core     zqd.Core
+	core     *zqd.Core
 	space    string
 	pcapfile string
 	payloads []interface{}
@@ -75,7 +75,7 @@ func (s *PacketPostSuite) SetupTest() {
 	s.space = "test"
 	dir, err := ioutil.TempDir("", "PacketPostTest")
 	s.NoError(err)
-	s.core.Root = dir
+	s.core = &zqd.Core{Root: dir}
 	s.pcapfile = filepath.Join(".", "testdata/test.pcap")
 	s.payloads = createSpaceWithPcap(s.T(), s.core, s.space, s.pcapfile)
 }
@@ -84,7 +84,7 @@ func (s *PacketPostSuite) TearDownTest() {
 	os.RemoveAll(s.core.Root)
 }
 
-func createSpaceWithPcap(t *testing.T, core zqd.Core, spaceName, pcapfile string) []interface{} {
+func createSpaceWithPcap(t *testing.T, core *zqd.Core, spaceName, pcapfile string) []interface{} {
 	createSpace(t, core, spaceName, "")
 	req := api.PacketPostRequest{filepath.Join(".", pcapfile)}
 	u := fmt.Sprintf("http://localhost:9867/space/%s/packet", spaceName)
