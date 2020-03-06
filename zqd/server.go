@@ -9,7 +9,8 @@ import (
 
 type Core struct {
 	Root string
-	// The exact path of the zeek executable. This is needed in the
+	// The exact path of the zeek executable. If this is an empty string zeek
+	// will be located from $PATH. This is needed in the
 	// POST /space/:space/packet endpoint.
 	ZeekExec string
 }

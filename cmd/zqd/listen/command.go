@@ -37,7 +37,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.StringVar(&c.listenAddr, "l", ":9867", "[addr]:port to listen on")
 	f.StringVar(&c.dataDir, "datadir", ".", "data directory")
-	f.StringVar(&c.zeekExec, "zeekpath", "", "path to the zeek executeable to use (defaults to zeek in $PATH)")
+	f.StringVar(&c.zeekExec, "zeekpath", "", "path to the zeek executable to use (defaults to zeek in $PATH)")
 	return c, nil
 }
 
