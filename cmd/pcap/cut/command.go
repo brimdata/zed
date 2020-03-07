@@ -130,19 +130,24 @@ func (c *Command) Run(args []string) error {
 		out = w
 	}
 
-	// XXX assumes legacy pcap format, will fix in next PR
-	reader, err := pcapio.NewPcapReader(in)
+	reader, err := pcapio.NewReader(in)
 	if err != nil {
 		return err
 	}
-	hdr, _, err := reader.Read()
-	if err != nil {
-		return err
+	for {
+		if err := cut(out, reader, cuts, n); err != nil {
+			if err == io.EOF {
+				err = nil
+			}
+			return err
+		}
 	}
-	out.Write(hdr)
+}
+
+func cut(w io.Writer, r pcapio.Reader, cuts []int, n int) error {
 	var pkts [][]byte
 	for len(pkts) < n {
-		block, _, err := reader.Read()
+		block, typ, err := r.Read()
 		if err != nil {
 			if err == io.EOF {
 				break
@@ -152,12 +157,22 @@ func (c *Command) Run(args []string) error {
 		if block == nil {
 			return fmt.Errorf("cutting outside of pcap: only %d packets in the input", len(pkts))
 		}
+		if typ != pcapio.TypePacket {
+			// copy any blocks that aren't packets
+			if _, err := w.Write(block); err != nil {
+				return err
+			}
+			continue
+		}
 		pkt := make([]byte, len(block))
 		copy(pkt, block)
 		pkts = append(pkts, pkt)
 	}
 	for _, pos := range cuts {
-		_, err := out.Write(pkts[pos])
+		if pos >= len(pkts) {
+			return fmt.Errorf("cutting outside of pcap: only %d packets in the input", len(pkts))
+		}
+		_, err := w.Write(pkts[pos])
 		if err != nil {
 			return err
 		}

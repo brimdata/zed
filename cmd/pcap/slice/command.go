@@ -10,6 +10,7 @@ import (
 
 	"github.com/brimsec/zq/cmd/pcap/root"
 	"github.com/brimsec/zq/pcap"
+	"github.com/brimsec/zq/pcap/pcapio"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/mccanne/charm"
 )
@@ -107,7 +108,7 @@ func (c *Command) Run(args []string) error {
 		}
 		filter = true
 	} else if len(args) != 0 {
-		return errors.New("pcap slice: XXX")
+		return errors.New("pcap slice: extraneous arguments on command line")
 	}
 	span, err := parseSpan(c.from, c.to)
 	if err != nil {
@@ -132,6 +133,10 @@ func (c *Command) Run(args []string) error {
 			return err
 		}
 		reader = io.Reader(slicer)
+	}
+	pcapReader, err := pcapio.NewReader(reader)
+	if err != nil {
+		return err
 	}
 	out := io.Writer(os.Stdout)
 	if c.outputFile != "-" {
@@ -161,5 +166,5 @@ func (c *Command) Run(args []string) error {
 	} else {
 		search = pcap.NewRangeSearch(span)
 	}
-	return search.Run(out, reader)
+	return search.Run(out, pcapReader)
 }

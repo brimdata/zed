@@ -10,6 +10,7 @@ import (
 
 	"github.com/brimsec/zq/cmd/pcap/root"
 	"github.com/brimsec/zq/pcap"
+	"github.com/brimsec/zq/pcap/pcapio"
 	"github.com/mccanne/charm"
 )
 
@@ -66,7 +67,11 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer f.Close()
-	index, err := pcap.CreateIndex(f, c.limit)
+	reader, err := pcapio.NewReader(f)
+	if err != nil {
+		return err
+	}
+	index, err := pcap.CreateIndex(reader, c.limit)
 	if err != nil {
 		return err
 	}

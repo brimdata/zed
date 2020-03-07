@@ -53,10 +53,7 @@ func (c *Command) Run(args []string) error {
 		}
 		defer in.Close()
 	}
-	// XXX assumes legacy pcap format
-	// TBD: use generic packet reader here once we have the interface
-	// and logic to chooose between NG and legacy
-	reader, err := pcapio.NewPcapReader(in)
+	reader, err := pcapio.NewReader(in)
 	if err != nil {
 		return err
 	}
@@ -69,13 +66,8 @@ func (c *Command) Run(args []string) error {
 		}
 		defer out.Close()
 	}
-	// skip header
-	_, _, err = reader.Read()
-	if err != nil {
-		return err
-	}
 	for {
-		block, info, err := reader.Read()
+		block, typ, err := reader.Read()
 		if err != nil {
 			if err == io.EOF {
 				break
@@ -85,7 +77,13 @@ func (c *Command) Run(args []string) error {
 		if block == nil {
 			break
 		}
-		fmt.Fprintln(out, info.Ts.StringFloat())
+		if typ == pcapio.TypePacket {
+			pkt, ts, _ := reader.Packet(block)
+			if pkt == nil {
+				return pcapio.ErrCorruptPcap
+			}
+			fmt.Fprintln(out, ts.StringFloat())
+		}
 	}
 	return nil
 }

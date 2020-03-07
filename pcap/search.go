@@ -137,25 +137,14 @@ func genICMPFilter(src, dst net.IP) PacketFilter {
 
 // XXX currently assumes legacy pcap is produced by the input reader
 // XXX need to handle searching over multiple pcap files
-func (s *Search) Run(w io.Writer, r io.Reader) error {
-	pcap, err := pcapio.NewPcapReader(r) // TBD: create generic pcap readnder (in next PR)
-	if err != nil {
-		return err
-	}
-	hdr, info, err := pcap.Read()
-	if err != nil {
-		return err
-	}
-	fileHeaderLen := 24 // XXX this will go away in next PR
-	if len(hdr) != fileHeaderLen || info.Type != pcapio.TypeSection {
-		return errors.New("bad pcap file")
-	}
+func (s *Search) Run(w io.Writer, r pcapio.Reader) error {
 	//XXX the .LayerType() method is returning Unknown for some reason
 	//outerLayer := pcap.LinkType().LayerType()
 	outerLayer := layers.LayerTypeEthernet
 	opts := gopacket.DecodeOptions{Lazy: true, NoCopy: true}
+	var npkt int
 	for {
-		block, info, err := pcap.Read()
+		block, typ, err := r.Read()
 		if err != nil {
 			if err == io.EOF {
 				break
@@ -165,24 +154,37 @@ func (s *Search) Run(w io.Writer, r io.Reader) error {
 		if block == nil {
 			break
 		}
-		if !s.span.ContainsClosed(info.Ts) {
+		// Write any blocks that aren't packets.  For pcap-ng, this has
+		// the effect of writing out all the sections in the underlying
+		// pcap, with empty sections where there a no matches.  This is a
+		// bit ugly but perfectly valid output.  We could clean this up
+		// by looking for sections headers, a buffering unnwritten sections
+		// until we get to the first packet and never writing the blocksa
+		// for sections that have no packets.
+		if typ != pcapio.TypePacket {
+			if _, err = w.Write(block); err != nil {
+				return err
+			}
 			continue
 		}
-		packetHeaderLen := 16 // XXX this will go away
-		pktBuf := block[packetHeaderLen:]
+		//XXX should use linkType here... need to debug
+		pktBuf, ts, _ := r.Packet(block)
+		if pktBuf == nil {
+			return pcapio.ErrCorruptPcap
+		}
+		if !s.span.ContainsClosed(ts) {
+			continue
+		}
 		packet := gopacket.NewPacket(pktBuf, outerLayer, opts)
 		if s.filter != nil && !s.filter(packet) {
 			continue
 		}
-		if hdr != nil {
-			w.Write(hdr)
-			hdr = nil
-		}
 		if _, err = w.Write(block); err != nil {
 			return err
 		}
+		npkt++
 	}
-	if hdr != nil {
+	if npkt == 0 {
 		return ErrNoPacketsFound
 	}
 	return nil
