@@ -12,8 +12,6 @@ import (
 
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/zio/detector"
-	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/packet"
 	"github.com/brimsec/zq/zqd/search"
@@ -148,53 +146,35 @@ func handleSpaceGet(c *Core, w http.ResponseWriter, r *http.Request) {
 		PacketSupport: s.HasFile(packet.IndexFile),
 		PacketPath:    s.PacketPath(),
 	}
+
 	if s.HasFile("all.bzng") {
+
 		f, err := s.OpenFile("all.bzng")
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-		defer f.Close()
-		// XXX This is slow. Can easily cache result rather than scanning
-		// whole file each time.
-		reader, err := detector.LookupReader("bzng", f, resolver.NewContext())
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		minTs := nano.MaxTs
-		maxTs := nano.MinTs
-		var found bool
-		for {
-			rec, err := reader.Read()
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			if rec == nil {
-				break
-			}
-			ts := rec.Ts
-			if ts < minTs {
-				minTs = ts
-			}
-			if ts > maxTs {
-				maxTs = ts
-			}
-			found = true
-		}
+		defer f.Close()
 		stat, err := f.Stat()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		info.Size = stat.Size()
-		if found {
-			info.MinTime = &minTs
-			info.MaxTime = &maxTs
+
+		minTs, maxTs, err := s.GetTimes()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
+		info.MinTime = minTs
+		info.MaxTime = maxTs
 	}
 	w.Header().Add("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(info)
+	if err := json.NewEncoder(w).Encode(info); err != nil {
+		// XXX Add zap here.
+		log.Println("Error writing response", err)
+	}
 }
 
 func handleSpacePost(c *Core, w http.ResponseWriter, r *http.Request) {

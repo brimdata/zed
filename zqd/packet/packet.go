@@ -13,7 +13,9 @@ import (
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/scanner"
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/bzngio"
+	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/search"
 	"github.com/brimsec/zq/zqd/space"
@@ -196,6 +198,15 @@ func (p *IngestProcess) Done() <-chan struct{} {
 	return p.done
 }
 
+type recWriter struct {
+	r *zng.Record
+}
+
+func (rw *recWriter) Write(r *zng.Record) error {
+	rw.r = r
+	return nil
+}
+
 func (p *IngestProcess) writeData(ctx context.Context) error {
 	files, err := filepath.Glob(filepath.Join(p.logdir, "*.log"))
 	// Per filepath.Glob documentation the only possible error would be due to
@@ -217,17 +228,27 @@ func (p *IngestProcess) writeData(ctx context.Context) error {
 		return err
 	}
 	zw := bzngio.NewWriter(bzngfile)
-	const program = "sort -limit 10000000 ts"
-	if err := search.Copy(ctx, zw, zr, program); err != nil {
+	const program = "sort -limit 10000000 ts | (filter *; head 1; tail 1)"
+	var headW, tailW recWriter
+
+	if err := search.Copy(ctx, []zbuf.Writer{zw, &headW, &tailW}, zr, program); err != nil {
 		// If an error occurs here close and remove tmp bzngfile, lest we start
 		// leaking files and file descriptors.
 		bzngfile.Close()
 		os.Remove(bzngfile.Name())
 		return err
 	}
+
+	minTs := headW.r.Ts
+	maxTs := tailW.r.Ts
+
 	if err := bzngfile.Close(); err != nil {
 		return err
 	}
+	if err = p.space.SetTimes(minTs, maxTs); err != nil {
+		return err
+	}
+
 	return os.Rename(bzngfile.Name(), p.space.DataPath("all.bzng"))
 }
 

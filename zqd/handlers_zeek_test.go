@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/zqd"
 	"github.com/brimsec/zq/zqd/api"
@@ -53,6 +54,8 @@ func (s *PacketPostSuite) TestSpaceInfo() {
 	s.NoError(err)
 	s.Equal(s.pcapfile, info.PacketPath)
 	s.True(info.PacketSupport)
+	s.Equal(nano.Ts(1501770877471635000), *info.MinTime)
+	s.Equal(nano.Ts(1501770880988247000), *info.MaxTime)
 }
 
 func (s *PacketPostSuite) TestWritesIndexFile() {

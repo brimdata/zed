@@ -61,6 +61,10 @@ func (m *MuxOutput) Complete() bool {
 	return m.runners <= 0
 }
 
+func (m *MuxOutput) N() int {
+	return len(m.muxProcs)
+}
+
 //XXX
 var ErrTimeout = errors.New("timeout")
 
