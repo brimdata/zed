@@ -82,7 +82,6 @@ func IngestFile(ctx context.Context, s *space.Space, pcap, zeekExec string) (*In
 }
 
 func (p *IngestProcess) run(ctx context.Context) error {
-	var minTs, maxTs nano.Ts
 	idx, err := p.slurp(ctx)
 	if err != nil {
 		goto abort
@@ -93,10 +92,7 @@ func (p *IngestProcess) run(ctx context.Context) error {
 	if err = p.space.SetPacketPath(p.pcapPath); err != nil {
 		goto abort
 	}
-	if minTs, maxTs, err = p.writeData(ctx); err != nil {
-		goto abort
-	}
-	if err = p.space.SetTimes(minTs, maxTs); err != nil {
+	if err = p.writeData(ctx); err != nil {
 		goto abort
 	}
 	if err = os.RemoveAll(p.logdir); err != nil {
@@ -211,7 +207,7 @@ func (rw *recWriter) Write(r *zng.Record) error {
 	return nil
 }
 
-func (p *IngestProcess) writeData(ctx context.Context) (nano.Ts, nano.Ts, error) {
+func (p *IngestProcess) writeData(ctx context.Context) error {
 	files, err := filepath.Glob(filepath.Join(p.logdir, "*.log"))
 	// Per filepath.Glob documentation the only possible error would be due to
 	// an invalid glob pattern. Ok to panic.
@@ -221,7 +217,7 @@ func (p *IngestProcess) writeData(ctx context.Context) (nano.Ts, nano.Ts, error)
 	// convert logs into sorted bzng
 	zr, err := scanner.OpenFiles(resolver.NewContext(), files...)
 	if err != nil {
-		return nano.Ts(0), nano.Ts(0), err
+		return err
 	}
 	defer zr.Close()
 	// For the time being, this endpoint will overwrite any underlying data.
@@ -229,7 +225,7 @@ func (p *IngestProcess) writeData(ctx context.Context) (nano.Ts, nano.Ts, error)
 	// write bzng to a temp file and rename on successful conversion.
 	bzngfile, err := p.space.CreateFile("all.bzng.tmp")
 	if err != nil {
-		return nano.Ts(0), nano.Ts(0), err
+		return err
 	}
 	zw := bzngio.NewWriter(bzngfile)
 	const program = "sort -limit 10000000 ts | (filter *; head 1; tail 1)"
@@ -240,16 +236,20 @@ func (p *IngestProcess) writeData(ctx context.Context) (nano.Ts, nano.Ts, error)
 		// leaking files and file descriptors.
 		bzngfile.Close()
 		os.Remove(bzngfile.Name())
-		return nano.Ts(0), nano.Ts(0), err
+		return err
 	}
 
 	minTs := headW.r.Ts
 	maxTs := tailW.r.Ts
 
 	if err := bzngfile.Close(); err != nil {
-		return nano.Ts(0), nano.Ts(0), err
+		return err
 	}
-	return minTs, maxTs, os.Rename(bzngfile.Name(), p.space.DataPath("all.bzng"))
+	if err = p.space.SetTimes(minTs, maxTs); err != nil {
+		return err
+	}
+
+	return os.Rename(bzngfile.Name(), p.space.DataPath("all.bzng"))
 }
 
 func (p *IngestProcess) startZeek(ctx context.Context, dir string) (*exec.Cmd, io.WriteCloser, error) {
