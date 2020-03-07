@@ -228,7 +228,7 @@ func (p *IngestProcess) writeData(ctx context.Context) error {
 		return err
 	}
 	zw := bzngio.NewWriter(bzngfile)
-	const program = "sort -limit 10000000 ts | (filter *; head 1; tail 1)"
+	const program = "sort -limit 10000000 -r ts | (filter *; head 1; tail 1)"
 	var headW, tailW recWriter
 
 	if err := search.Copy(ctx, []zbuf.Writer{zw, &headW, &tailW}, zr, program); err != nil {
@@ -239,8 +239,8 @@ func (p *IngestProcess) writeData(ctx context.Context) error {
 		return err
 	}
 
-	minTs := headW.r.Ts
-	maxTs := tailW.r.Ts
+	minTs := tailW.r.Ts
+	maxTs := headW.r.Ts
 
 	if err := bzngfile.Close(); err != nil {
 		return err
