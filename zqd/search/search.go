@@ -75,10 +75,6 @@ func Copy(ctx context.Context, w []zbuf.Writer, r zbuf.Reader, prog string) erro
 	if err != nil {
 		return err
 	}
-	if len(w) == 1 {
-		d := zdriver.New(w[0])
-		return d.Run(mux)
-	}
 	d := zdriver.New(w...)
 	return d.Run(mux)
 }
