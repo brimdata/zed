@@ -239,8 +239,8 @@ func (p *IngestProcess) writeData(ctx context.Context) error {
 		return err
 	}
 
-	minTs := headW.r.Ts
-	maxTs := tailW.r.Ts
+	minTs := tailW.r.Ts
+	maxTs := headW.r.Ts
 
 	if err := bzngfile.Close(); err != nil {
 		return err
