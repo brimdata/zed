@@ -141,30 +141,35 @@ func handleSpaceGet(c *Core, w http.ResponseWriter, r *http.Request) {
 	if s == nil {
 		return
 	}
-	f, err := s.OpenFile("all.bzng")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer f.Close()
-	stat, err := f.Stat()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
 	info := &api.SpaceInfo{
 		Name:          s.Name(),
-		Size:          stat.Size(),
 		PacketSupport: s.HasFile(packet.IndexFile),
 		PacketPath:    s.PacketPath(),
 	}
-	minTs, maxTs, err := s.GetTimes()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+
+	if s.HasFile("all.bzng") {
+
+		f, err := s.OpenFile("all.bzng")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer f.Close()
+		stat, err := f.Stat()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		info.Size = stat.Size()
+
+		minTs, maxTs, err := s.GetTimes()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		info.MinTime = minTs
+		info.MaxTime = maxTs
 	}
-	info.MinTime = minTs
-	info.MaxTime = maxTs
 	w.Header().Add("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(info); err != nil {
 		// XXX Add zap here.
