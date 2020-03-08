@@ -88,7 +88,7 @@ func (r *PcapReader) Packet(block []byte) ([]byte, nano.Ts, layers.LinkType) {
 		return nil, 0, 0
 	}
 	caplen := int(r.byteOrder.Uint32(block[8:12]))
-	if caplen + packetHeaderLen > len(block) {
+	if caplen+packetHeaderLen > len(block) {
 		return nil, 0, 0
 	}
 	ts := r.TsFromHeader(block)
