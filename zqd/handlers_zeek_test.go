@@ -68,7 +68,6 @@ func TestPacketPostSuccess(t *testing.T) {
 	t.Run("ResponseMessages", func(t *testing.T) {
 		info, err := os.Stat(p.pcapfile)
 		require.NoError(t, err)
-		require.Len(t, p.payloads, 3)
 		status := p.payloads[1].(*api.PacketPostStatus)
 		assert.Equal(t, status.Type, "PacketPostStatus")
 		assert.Equal(t, status.PacketSize, info.Size())
@@ -124,6 +123,15 @@ func TestPacketPostZeekFailAfterWrite(t *testing.T) {
 			},
 		}
 		require.Contains(t, p.payloads, expected)
+	})
+	t.Run("EmptySpaceInfo", func(t *testing.T) {
+		u := fmt.Sprintf("http://localhost:9867/space/%s", p.space)
+		var info api.SpaceInfo
+		httpJSONSuccess(t, zqd.NewHandler(p.core), "GET", u, nil, &info)
+		expected := api.SpaceInfo{
+			Name: p.space,
+		}
+		require.Equal(t, expected, info)
 	})
 }
 
