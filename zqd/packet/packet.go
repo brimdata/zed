@@ -19,7 +19,6 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/search"
 	"github.com/brimsec/zq/zqd/space"
-	"gopkg.in/fsnotify.v1"
 )
 
 var (
@@ -74,19 +73,20 @@ func IngestFile(ctx context.Context, s *space.Space, pcap, zeekExec string) (*In
 		done:      make(chan struct{}),
 		zeekExec:  zeekExec,
 	}
+	if err = p.indexPcap(ctx); err != nil {
+		os.Remove(p.space.DataPath(IndexFile))
+		return nil, err
+	}
 	go func() {
 		p.err = p.run(ctx)
 		close(p.done)
 	}()
-	return p, p.awaitZeekLogs()
+	return p, nil
 }
 
 func (p *IngestProcess) run(ctx context.Context) error {
-	idx, err := p.slurp(ctx)
-	if err != nil {
-		goto abort
-	}
-	if err = p.writeIndexFile(idx); err != nil {
+	var err error
+	if err := p.slurp(ctx); err != nil {
 		goto abort
 	}
 	if err = p.space.SetPacketPath(p.pcapPath); err != nil {
@@ -106,32 +106,20 @@ abort:
 	return err
 }
 
-// awaitZeekLogs waits for the first zeek logs to hit the file system. Should
-// an error occur before this happens, the error will be returned.
-func (p *IngestProcess) awaitZeekLogs() error {
-	w, err := fsnotify.NewWatcher()
+func (p *IngestProcess) indexPcap(ctx context.Context) error {
+	pcapfile, err := os.Open(p.pcapPath)
 	if err != nil {
 		return err
 	}
-	defer w.Close()
-	if err := w.Add(p.logdir); err != nil {
+	defer pcapfile.Close()
+	iw := pcap.NewIndexWriter(10000)
+	if _, err := io.Copy(iw, pcapfile); err != nil {
 		return err
 	}
-	for {
-		select {
-		case <-p.done:
-			return p.err
-		case event := <-w.Events:
-			if event.Op == fsnotify.Create && filepath.Ext(event.Name) == ".log" {
-				return nil
-			}
-		case err := <-w.Errors:
-			return err
-		}
+	idx, err := iw.Close()
+	if err != nil {
+		return err
 	}
-}
-
-func (p *IngestProcess) writeIndexFile(idx pcap.Index) error {
 	idxpath := p.space.DataPath(IndexFile)
 	tmppath := idxpath + ".tmp"
 	f, err := os.Create(tmppath)
@@ -146,37 +134,29 @@ func (p *IngestProcess) writeIndexFile(idx pcap.Index) error {
 	return os.Rename(tmppath, idxpath)
 }
 
-func (p *IngestProcess) slurp(ctx context.Context) (pcap.Index, error) {
+func (p *IngestProcess) slurp(ctx context.Context) error {
 	pcapfile, err := os.Open(p.pcapPath)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer pcapfile.Close()
 	zeekproc, zeekwriter, err := p.startZeek(ctx, p.logdir)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	indexwriter := pcap.NewIndexWriter(10000)
-	// XXX this should be disentangled from the zeek process.
-	// the index is very fast to create and should be usable by
-	// brim whenever a progressive update is ready.
-	w := io.MultiWriter(zeekwriter, indexwriter, p)
+	w := io.MultiWriter(zeekwriter, p)
 	if _, err := io.Copy(w, pcapfile); err != nil {
-		return nil, err
+		return err
 	}
 	// Now that all data has been copied over, close stdin for zeek process so
 	// process gracefully exits.
 	if err := zeekwriter.Close(); err != nil {
-		return nil, err
+		return err
 	}
 	if err := zeekproc.Wait(); err != nil {
-		return nil, err
+		return err
 	}
-	index, err := indexwriter.Close()
-	if err != nil {
-		return nil, err
-	}
-	return index, nil
+	return nil
 }
 
 // PcapReadSize returns the total size in bytes of data read from the underlying
