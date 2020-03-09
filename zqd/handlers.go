@@ -248,14 +248,23 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		select {
 		case <-proc.Done():
 			done = true
+		case <-proc.Snap():
 		case <-ticker.C:
 		}
+
+		var minTs, maxTs nano.Time
+		if minTs, maxTs, err = s.GetTimes(); err != nil {
+			break
+		}
+
 		status := api.PacketPostStatus{
 			Type:           "PacketPostStatus",
 			StartTime:      proc.StartTime,
 			UpdateTime:     nano.Now(),
 			PacketSize:     proc.PcapSize,
 			PacketReadSize: proc.PcapReadSize(),
+			MinTime:        minTs,
+			MaxTime:        maxTs,
 		}
 		if err := pipe.Send(status); err != nil {
 			// XXX This should be zap instead.
