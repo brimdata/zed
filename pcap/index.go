@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
-	"sync"
 
 	"github.com/brimsec/zq/pcap/pcapio"
 	"github.com/brimsec/zq/pkg/ranger"
@@ -56,36 +55,6 @@ func CreateIndex(r io.Reader, limit int) (Index, error) {
 		},
 	}, nil
 }
-
-type IndexWriter struct {
-	io.WriteCloser
-	err error
-	idx Index
-	wg  sync.WaitGroup
-}
-
-func (w *IndexWriter) run(r *io.PipeReader, limit int) {
-	w.idx, w.err = CreateIndex(r, limit)
-	if w.err != nil {
-		r.CloseWithError(w.err)
-	}
-	w.wg.Done()
-}
-
-func NewIndexWriter(limit int) *IndexWriter {
-	pr, pw := io.Pipe()
-	i := &IndexWriter{WriteCloser: pw}
-	i.wg.Add(1)
-	go i.run(pr, limit)
-	return i
-}
-
-func (w *IndexWriter) Close() (Index, error) {
-	w.WriteCloser.Close()
-	w.wg.Wait()
-	return w.idx, w.err
-}
-
 func LoadIndex(path string) (Index, error) {
 	b, err := ioutil.ReadFile(path)
 	if err != nil {

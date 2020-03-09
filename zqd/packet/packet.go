@@ -149,11 +149,7 @@ func (p *IngestProcess) indexPcap() error {
 		return err
 	}
 	defer pcapfile.Close()
-	iw := pcap.NewIndexWriter(10000)
-	if _, err := io.Copy(iw, pcapfile); err != nil {
-		return err
-	}
-	idx, err := iw.Close()
+	idx, err := pcap.CreateIndex(pcapfile, 10000)
 	if err != nil {
 		return err
 	}
