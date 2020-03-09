@@ -75,7 +75,7 @@ func IngestFile(ctx context.Context, s *space.Space, pcap, zeekExec string) (*In
 		snap:      make(chan struct{}),
 		zeekExec:  zeekExec,
 	}
-	if err = p.indexPcap(ctx); err != nil {
+	if err = p.indexPcap(); err != nil {
 		os.Remove(p.space.DataPath(IndexFile))
 		return nil, err
 	}
@@ -143,7 +143,7 @@ outer:
 	return nil
 }
 
-func (p *IngestProcess) indexPcap(ctx context.Context) error {
+func (p *IngestProcess) indexPcap() error {
 	pcapfile, err := os.Open(p.pcapPath)
 	if err != nil {
 		return err
