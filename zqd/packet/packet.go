@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sync/atomic"
+	"time"
 
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pkg/nano"
@@ -19,7 +20,6 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/search"
 	"github.com/brimsec/zq/zqd/space"
-	"gopkg.in/fsnotify.v1"
 )
 
 var (
@@ -36,7 +36,7 @@ type IngestProcess struct {
 	pcapPath     string
 	pcapReadSize int64
 	logdir       string
-	done         chan struct{}
+	done, snap   chan struct{}
 	err          error
 	zeekExec     string
 }
@@ -72,66 +72,87 @@ func IngestFile(ctx context.Context, s *space.Space, pcap, zeekExec string) (*In
 		pcapPath:  pcap,
 		logdir:    logdir,
 		done:      make(chan struct{}),
+		snap:      make(chan struct{}),
 		zeekExec:  zeekExec,
+	}
+	if err = p.indexPcap(); err != nil {
+		os.Remove(p.space.DataPath(IndexFile))
+		return nil, err
+	}
+	if err = p.space.SetPacketPath(p.pcapPath); err != nil {
+		os.Remove(p.space.DataPath(IndexFile))
+		return nil, err
 	}
 	go func() {
 		p.err = p.run(ctx)
 		close(p.done)
+		close(p.snap)
 	}()
-	return p, p.awaitZeekLogs()
+	return p, nil
 }
 
 func (p *IngestProcess) run(ctx context.Context) error {
-	idx, err := p.slurp(ctx)
-	if err != nil {
-		goto abort
-	}
-	if err = p.writeIndexFile(idx); err != nil {
-		goto abort
-	}
-	if err = p.space.SetPacketPath(p.pcapPath); err != nil {
-		goto abort
-	}
-	if err = p.writeData(ctx); err != nil {
-		goto abort
-	}
-	if err = os.RemoveAll(p.logdir); err != nil {
-		goto abort
-	}
-	return nil
-abort:
-	os.RemoveAll(p.logdir)
-	os.Remove(p.space.DataPath(IndexFile))
-	p.space.SetPacketPath("")
-	return err
-}
+	var slurpErr error
+	slurpDone := make(chan struct{})
+	go func() {
+		slurpErr = p.slurp(ctx)
+		close(slurpDone)
+	}()
 
-// awaitZeekLogs waits for the first zeek logs to hit the file system. Should
-// an error occur before this happens, the error will be returned.
-func (p *IngestProcess) awaitZeekLogs() error {
-	w, err := fsnotify.NewWatcher()
-	if err != nil {
-		return err
+	abort := func() {
+		os.RemoveAll(p.logdir)
+		os.Remove(p.space.DataPath(IndexFile))
+		p.space.SetPacketPath("")
 	}
-	defer w.Close()
-	if err := w.Add(p.logdir); err != nil {
-		return err
-	}
+
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+	start := time.Now()
+	next := time.Second
+outer:
 	for {
 		select {
-		case <-p.done:
-			return p.err
-		case event := <-w.Events:
-			if event.Op == fsnotify.Create && filepath.Ext(event.Name) == ".log" {
-				return nil
+		case <-slurpDone:
+			break outer
+		case t := <-ticker.C:
+			if t.After(start.Add(next)) {
+				if err := p.createSnapshot(ctx); err != nil {
+					abort()
+					return err
+				}
+				select {
+				case p.snap <- struct{}{}:
+				default:
+				}
+				next = 2 * next
 			}
-		case err := <-w.Errors:
-			return err
 		}
 	}
+	if slurpErr != nil {
+		abort()
+		return slurpErr
+	}
+	if err := p.createSnapshot(ctx); err != nil {
+		abort()
+		return err
+	}
+	if err := os.RemoveAll(p.logdir); err != nil {
+		abort()
+		return err
+	}
+	return nil
 }
 
-func (p *IngestProcess) writeIndexFile(idx pcap.Index) error {
+func (p *IngestProcess) indexPcap() error {
+	pcapfile, err := os.Open(p.pcapPath)
+	if err != nil {
+		return err
+	}
+	defer pcapfile.Close()
+	idx, err := pcap.CreateIndex(pcapfile, 10000)
+	if err != nil {
+		return err
+	}
 	idxpath := p.space.DataPath(IndexFile)
 	tmppath := idxpath + ".tmp"
 	f, err := os.Create(tmppath)
@@ -146,37 +167,29 @@ func (p *IngestProcess) writeIndexFile(idx pcap.Index) error {
 	return os.Rename(tmppath, idxpath)
 }
 
-func (p *IngestProcess) slurp(ctx context.Context) (pcap.Index, error) {
+func (p *IngestProcess) slurp(ctx context.Context) error {
 	pcapfile, err := os.Open(p.pcapPath)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer pcapfile.Close()
 	zeekproc, zeekwriter, err := p.startZeek(ctx, p.logdir)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	indexwriter := pcap.NewIndexWriter(10000)
-	// XXX this should be disentangled from the zeek process.
-	// the index is very fast to create and should be usable by
-	// brim whenever a progressive update is ready.
-	w := io.MultiWriter(zeekwriter, indexwriter, p)
+	w := io.MultiWriter(zeekwriter, p)
 	if _, err := io.Copy(w, pcapfile); err != nil {
-		return nil, err
+		return err
 	}
 	// Now that all data has been copied over, close stdin for zeek process so
 	// process gracefully exits.
 	if err := zeekwriter.Close(); err != nil {
-		return nil, err
+		return err
 	}
 	if err := zeekproc.Wait(); err != nil {
-		return nil, err
+		return err
 	}
-	index, err := indexwriter.Close()
-	if err != nil {
-		return nil, err
-	}
-	return index, nil
+	return nil
 }
 
 // PcapReadSize returns the total size in bytes of data read from the underlying
@@ -198,6 +211,12 @@ func (p *IngestProcess) Done() <-chan struct{} {
 	return p.done
 }
 
+// Snap returns a chan that emits every time a snapshot is made. It
+// should no longer be read from after Done() has emitted.
+func (p *IngestProcess) Snap() <-chan struct{} {
+	return p.snap
+}
+
 type recWriter struct {
 	r *zng.Record
 }
@@ -207,12 +226,15 @@ func (rw *recWriter) Write(r *zng.Record) error {
 	return nil
 }
 
-func (p *IngestProcess) writeData(ctx context.Context) error {
+func (p *IngestProcess) createSnapshot(ctx context.Context) error {
 	files, err := filepath.Glob(filepath.Join(p.logdir, "*.log"))
 	// Per filepath.Glob documentation the only possible error would be due to
 	// an invalid glob pattern. Ok to panic.
 	if err != nil {
 		panic(err)
+	}
+	if len(files) == 0 {
+		return nil
 	}
 	// convert logs into sorted bzng
 	zr, err := scanner.OpenFiles(resolver.NewContext(), files...)
@@ -238,17 +260,16 @@ func (p *IngestProcess) writeData(ctx context.Context) error {
 		os.Remove(bzngfile.Name())
 		return err
 	}
-
-	minTs := tailW.r.Ts
-	maxTs := headW.r.Ts
-
 	if err := bzngfile.Close(); err != nil {
 		return err
 	}
-	if err = p.space.SetTimes(minTs, maxTs); err != nil {
-		return err
+	if tailW.r != nil {
+		minTs := tailW.r.Ts
+		maxTs := headW.r.Ts
+		if err = p.space.SetTimes(minTs, maxTs); err != nil {
+			return err
+		}
 	}
-
 	return os.Rename(bzngfile.Name(), p.space.DataPath("all.bzng"))
 }
 

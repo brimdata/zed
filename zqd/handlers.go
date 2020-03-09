@@ -231,7 +231,7 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/ndjson")
 	w.Header().Set("Transfer-Encoding", "chunked")
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusAccepted)
 	pipe := api.NewJSONPipe(w)
 	taskId := atomic.AddInt64(&taskCount, 1)
 	taskStart := api.TaskStart{Type: "TaskStart", TaskID: taskId}
@@ -248,7 +248,13 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		select {
 		case <-proc.Done():
 			done = true
+		case <-proc.Snap():
 		case <-ticker.C:
+		}
+
+		var minTs, maxTs *nano.Ts
+		if minTs, maxTs, err = s.GetTimes(); err != nil {
+			break
 		}
 		status := api.PacketPostStatus{
 			Type:           "PacketPostStatus",
@@ -256,6 +262,8 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 			UpdateTime:     nano.Now(),
 			PacketSize:     proc.PcapSize,
 			PacketReadSize: proc.PcapReadSize(),
+			MinTime:        minTs,
+			MaxTime:        maxTs,
 		}
 		if err := pipe.Send(status); err != nil {
 			// XXX This should be zap instead.

@@ -107,11 +107,13 @@ type PacketPostRequest struct {
 }
 
 type PacketPostStatus struct {
-	Type           string  `json:"type"`
-	StartTime      nano.Ts `json:"start_time"`
-	UpdateTime     nano.Ts `json:"update_time"`
-	PacketSize     int64   `json:"packet_total_size" unit:"bytes"`
-	PacketReadSize int64   `json:"packet_read_size" unit:"bytes"`
+	Type           string   `json:"type"`
+	StartTime      nano.Ts  `json:"start_time"`
+	UpdateTime     nano.Ts  `json:"update_time"`
+	PacketSize     int64    `json:"packet_total_size" unit:"bytes"`
+	PacketReadSize int64    `json:"packet_read_size" unit:"bytes"`
+	MinTime        *nano.Ts `json:"min_time,omitempty"`
+	MaxTime        *nano.Ts `json:"max_time,omitempty"`
 }
 
 // PacketSearch are the query string args to the packet endpoint when searching
