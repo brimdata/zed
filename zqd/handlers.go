@@ -231,7 +231,7 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/ndjson")
 	w.Header().Set("Transfer-Encoding", "chunked")
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusAccepted)
 	pipe := api.NewJSONPipe(w)
 	taskId := atomic.AddInt64(&taskCount, 1)
 	taskStart := api.TaskStart{Type: "TaskStart", TaskID: taskId}
