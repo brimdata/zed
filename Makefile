@@ -67,7 +67,12 @@ create-release-assets:
 		zip -r release/$${d}.zip $${d} ; \
 	done
 
+# CI performs these actions individually since that looks nicer in the UI;
+# this is a shortcut so that a local dev can easily run everything.
+test-ci: fmt tidy vet test-unit test-system test-zeek test-heavy
+
 clean:
 	@rm -rf dist
 
-.PHONY: vet fmt tidy sampledata test-unit test-system test-heavy perf-compare build install create-release-assets clean
+.PHONY: fmt tidy vet test-unit test-system test-heavy sampledata test-ci
+.PHONY: perf-compare build install create-release-assets clean
