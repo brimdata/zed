@@ -46,7 +46,7 @@ func TestPacketPostSuccess(t *testing.T) {
 		assert.Equal(t, nano.Unix(1501770880, 988247000), *info.MaxTime)
 		// XXX Must use InDelta here because zeek's randomly generate uids can
 		// vary by 1 characater in size. Should probably be tested with the
-		// same seed set in zeek but for now just test individual fields.
+		// same seed set in zeek.
 		assert.InDelta(t, 1437, info.Size, 2)
 		assert.True(t, info.PacketSupport)
 		assert.Equal(t, p.pcapfile, info.PacketPath)
