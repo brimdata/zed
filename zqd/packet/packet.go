@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sync/atomic"
+	"time"
 
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pkg/nano"
@@ -77,6 +78,10 @@ func IngestFile(ctx context.Context, s *space.Space, pcap, zeekExec string) (*In
 		os.Remove(p.space.DataPath(IndexFile))
 		return nil, err
 	}
+	if err = p.space.SetPacketPath(p.pcapPath); err != nil {
+		os.Remove(p.space.DataPath(IndexFile))
+		return nil, err
+	}
 	go func() {
 		p.err = p.run(ctx)
 		close(p.done)
@@ -85,25 +90,51 @@ func IngestFile(ctx context.Context, s *space.Space, pcap, zeekExec string) (*In
 }
 
 func (p *IngestProcess) run(ctx context.Context) error {
-	var err error
-	if err := p.slurp(ctx); err != nil {
-		goto abort
+	var slurpErr error
+	slurpDone := make(chan struct{})
+	go func() {
+		slurpErr = p.slurp(ctx)
+		close(slurpDone)
+	}()
+
+	abort := func() {
+		os.RemoveAll(p.logdir)
+		os.Remove(p.space.DataPath(IndexFile))
+		p.space.SetPacketPath("")
 	}
-	if err = p.space.SetPacketPath(p.pcapPath); err != nil {
-		goto abort
+
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+	start := time.Now()
+	next := time.Second
+outer:
+	for {
+		select {
+		case <-slurpDone:
+			break outer
+		case t := <-ticker.C:
+			if t.After(start.Add(next)) {
+				if err := p.writeData(ctx); err != nil {
+					abort()
+					return err
+				}
+				next = 2 * next
+			}
+		}
 	}
-	if err = p.writeData(ctx); err != nil {
-		goto abort
+	if slurpErr != nil {
+		abort()
+		return slurpErr
 	}
-	if err = os.RemoveAll(p.logdir); err != nil {
-		goto abort
+	if err := p.writeData(ctx); err != nil {
+		abort()
+		return err
+	}
+	if err := os.RemoveAll(p.logdir); err != nil {
+		abort()
+		return err
 	}
 	return nil
-abort:
-	os.RemoveAll(p.logdir)
-	os.Remove(p.space.DataPath(IndexFile))
-	p.space.SetPacketPath("")
-	return err
 }
 
 func (p *IngestProcess) indexPcap(ctx context.Context) error {
@@ -218,17 +249,16 @@ func (p *IngestProcess) writeData(ctx context.Context) error {
 		os.Remove(bzngfile.Name())
 		return err
 	}
-
-	minTs := tailW.r.Ts
-	maxTs := headW.r.Ts
-
 	if err := bzngfile.Close(); err != nil {
 		return err
 	}
-	if err = p.space.SetTimes(minTs, maxTs); err != nil {
-		return err
+	if tailW.r != nil {
+		minTs := tailW.r.Ts
+		maxTs := headW.r.Ts
+		if err = p.space.SetTimes(minTs, maxTs); err != nil {
+			return err
+		}
 	}
-
 	return os.Rename(bzngfile.Name(), p.space.DataPath("all.bzng"))
 }
 
