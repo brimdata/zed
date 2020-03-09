@@ -90,7 +90,8 @@ func TestPacketPostZeekFailImmediate(t *testing.T) {
 				Message: "exit status 2",
 			},
 		}
-		require.Contains(t, p.payloads, expected)
+		last := p.payloads[len(p.payloads)-1]
+		require.Equal(t, expected, last)
 	})
 }
 
@@ -111,7 +112,8 @@ func TestPacketPostZeekFailAfterWrite(t *testing.T) {
 				Message: "exit status 1",
 			},
 		}
-		require.Contains(t, p.payloads, expected)
+		last := p.payloads[len(p.payloads)-1]
+		require.Equal(t, expected, last)
 	})
 	t.Run("EmptySpaceInfo", func(t *testing.T) {
 		u := fmt.Sprintf("http://localhost:9867/space/%s", p.space)
