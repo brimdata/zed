@@ -10,46 +10,161 @@ import (
 
 type ExpressionEvaluator func(*zng.Record) (zng.Value, error)
 
+var ErrNoSuchField = errors.New("field is not present")
 var ErrIncompatibleTypes = errors.New("incompatible types")
+
+type NativeValue struct {
+	typ   int
+	value interface{}
+}
+
+type NativeEvaluator func(*zng.Record) (NativeValue, error)
 
 // CompileExpr tries to compile the given Expression into a function
 // that evalutes the expression against a provided Record.  Returns an
 // error if compilation fails for any reason.
-//
-// XXX this implementation isn't particularly efficient with respect
-// to either memory use or runtime performance.  If we needed to optimize
-// this it should be simple to compile expressions to a simple stack-based
-// byte code that could evaluate expressions efficiently.
 func CompileExpr(node ast.Expression) (ExpressionEvaluator, error) {
+	ne, err := compileNative(node)
+	if err != nil {
+		return nil, err
+	}
+
+	return func(rec *zng.Record) (zng.Value, error) {
+		nv, err := ne(rec)
+		if err != nil {
+			return zng.Value{}, err
+		}
+
+		return nv.toZngValue()
+	}, nil
+}
+
+func toNativeValue(zv zng.Value) (NativeValue, error) {
+	switch zv.Type.ID() {
+	case zng.IdBool:
+		b, err := zng.DecodeBool(zv.Bytes)
+		if err != nil {
+			return NativeValue{}, err
+		}
+		return NativeValue{zng.IdBool, b}, nil
+
+	case zng.IdByte:
+		b, err := zng.DecodeByte(zv.Bytes)
+		if err != nil {
+			return NativeValue{}, err
+		}
+		return NativeValue{zng.IdByte, uint64(b)}, nil
+
+	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
+		v, err := zng.DecodeInt(zv.Bytes)
+		if err != nil {
+			return NativeValue{}, err
+		}
+		return NativeValue{zv.Type.ID(), v}, nil
+
+	case zng.IdUint16, zng.IdUint32, zng.IdUint64:
+		v, err := zng.DecodeUint(zv.Bytes)
+		if err != nil {
+			return NativeValue{}, err
+		}
+		return NativeValue{zv.Type.ID(), v}, nil
+
+	case zng.IdFloat64:
+		v, err := zng.DecodeFloat64(zv.Bytes)
+		if err != nil {
+			return NativeValue{}, err
+		}
+		return NativeValue{zv.Type.ID(), v}, nil
+
+	// XXX IdString, IdBstring, IdIP, IdPort, IdNet, IdTime, IdDuration
+
+	default:
+		return NativeValue{}, errors.New("unknown type")
+	}
+
+}
+
+func (v *NativeValue) toZngValue() (zng.Value, error) {
+	switch v.typ {
+	case zng.IdBool:
+		b := v.value.(bool)
+		return zng.Value{zng.TypeBool, zng.EncodeBool(b)}, nil
+
+	case zng.IdByte:
+		b := v.value.(uint64)
+		return zng.Value{zng.TypeByte, zng.EncodeByte(byte(b))}, nil
+
+	case zng.IdInt16:
+		i := v.value.(int64)
+		return zng.Value{zng.TypeInt16, zng.EncodeInt(i)}, nil
+
+	case zng.IdInt32:
+		i := v.value.(int64)
+		return zng.Value{zng.TypeInt32, zng.EncodeInt(i)}, nil
+
+	case zng.IdInt64:
+		i := v.value.(int64)
+		return zng.Value{zng.TypeInt64, zng.EncodeInt(i)}, nil
+
+	case zng.IdUint16:
+		i := v.value.(uint64)
+		return zng.Value{zng.TypeInt16, zng.EncodeUint(i)}, nil
+
+	case zng.IdUint32:
+		i := v.value.(uint64)
+		return zng.Value{zng.TypeInt32, zng.EncodeUint(i)}, nil
+
+	case zng.IdUint64:
+		i := v.value.(uint64)
+		return zng.Value{zng.TypeInt64, zng.EncodeUint(i)}, nil
+
+	case zng.IdFloat64:
+		f := v.value.(float64)
+		return zng.Value{zng.TypeFloat64, zng.EncodeFloat64(f)}, nil
+
+		// XXX IdString, IdBstring, IdIP, IdPort, IdNet, IdTime, IdDuration
+
+	default:
+		return zng.Value{}, errors.New("XXX")
+	}
+}
+
+func compileNative(node ast.Expression) (NativeEvaluator, error) {
 	switch n := node.(type) {
 	case *ast.Literal:
 		v, err := zng.Parse(*n)
 		if err != nil {
 			return nil, err
 		}
-		return func(*zng.Record) (zng.Value, error) { return v, nil }, nil
+		nv, err := toNativeValue(v)
+		if err != nil {
+			return nil, err
+		}
+		return func(*zng.Record) (NativeValue, error) { return nv, nil }, nil
 
 	case *ast.FieldRead:
 		fn, err := CompileFieldExpr(n)
 		if err != nil {
 			return nil, err
 		}
-		return func(r *zng.Record) (zng.Value, error) { return fn(r), nil }, nil
+		return func(r *zng.Record) (NativeValue, error) {
+			v := fn(r)
+			if v.Type == nil {
+				return NativeValue{}, ErrNoSuchField
+			}
+			return toNativeValue(v)
+		}, nil
 
 	case *ast.BinaryExpression:
 		switch n.Operator {
-		case "AND", "OR", "=", "!=":
-			return nil, errors.New("not implemented")
+		case "AND", "OR":
+			return compileLogical(*n)
+		case "=", "!=":
+			return compileCompareEquality(*n)
 		case "<", "<=", ">", ">=":
-			return nil, errors.New("not implemented")
-		case "+":
-			return CompileAddition(*n)
-		case "-":
-			return nil, errors.New("not implemented")
-		case "*":
-			return nil, errors.New("not implemented")
-		case "/":
-			return nil, errors.New("not implemented")
+			return compileCompareRelative(*n)
+		case "+", "-", "*", "/":
+			return compileArithmetic(*n)
 		default:
 			return nil, fmt.Errorf("invalid binary operator %s", n.Operator)
 		}
@@ -59,148 +174,375 @@ func CompileExpr(node ast.Expression) (ExpressionEvaluator, error) {
 	}
 }
 
-func intWidth(t zng.Type) uint {
-	switch t.ID() {
-	case zng.IdByte:
-		return 1
-	case zng.IdInt16, zng.IdUint16:
-		return 2
-	case zng.IdInt32, zng.IdUint32:
-		return 4
-	case zng.IdInt64, zng.IdUint64:
-		return 8
-	default:
-		return 0
-	}
-}
-
-// CompileAddition compiles an expression of the form "expr1 + expr2".
-// The complexity here all has to do with handling inputs of varying
-// types.
-func CompileAddition(node ast.BinaryExpression) (ExpressionEvaluator, error) {
-	lhsFunc, err := CompileExpr(node.LHS)
+func compileLogical(node ast.BinaryExpression) (NativeEvaluator, error) {
+	lhsFunc, err := compileNative(node.LHS)
 	if err != nil {
 		return nil, err
 	}
-	rhsFunc, err := CompileExpr(node.RHS)
+	rhsFunc, err := compileNative(node.RHS)
 	if err != nil {
 		return nil, err
 	}
-	return func(rec *zng.Record) (zng.Value, error) {
+	return func(rec *zng.Record) (NativeValue, error) {
 		lhs, err := lhsFunc(rec)
 		if err != nil {
-			return zng.Value{}, err
+			return NativeValue{}, err
+		}
+		if lhs.typ != zng.IdBool {
+			return NativeValue{}, ErrIncompatibleTypes
+		}
+
+		lv := lhs.value.(bool)
+		switch node.Operator {
+		case "AND":
+			if !lv {
+				return lhs, nil
+			}
+		case "OR":
+			if lv {
+				return lhs, nil
+			}
+		default:
+			panic("bad operator")
+		}
+
+		rhs, err := rhsFunc(rec)
+		if err != nil {
+			return NativeValue{}, err
+		}
+		if rhs.typ != zng.IdBool {
+			return NativeValue{}, ErrIncompatibleTypes
+		}
+
+		return NativeValue{zng.IdBool, rhs.value.(bool)}, nil
+	}, nil
+}
+
+func compileCompareEquality(node ast.BinaryExpression) (NativeEvaluator, error) {
+	lhsFunc, err := compileNative(node.LHS)
+	if err != nil {
+		return nil, err
+	}
+	rhsFunc, err := compileNative(node.RHS)
+	if err != nil {
+		return nil, err
+	}
+	return func(rec *zng.Record) (NativeValue, error) {
+		lhs, err := lhsFunc(rec)
+		if err != nil {
+			return NativeValue{}, err
 		}
 		rhs, err := rhsFunc(rec)
 		if err != nil {
-			return zng.Value{}, err
+			return NativeValue{}, err
 		}
 
-		switch lhs.Type.ID() {
-		case zng.IdUint16, zng.IdUint32, zng.IdUint64:
-			width := intWidth(lhs.Type)
-			var v uint64
+		// XXX comparisons between int and float?
 
-			switch rhs.Type.ID() {
-			case zng.IdByte:
-				var b byte
-				b, err = zng.DecodeByte(rhs.Bytes)
-				if err != nil {
-					return zng.Value{}, err
-				}
-				v = uint64(b)
+		var equal bool
+		switch lhs.typ {
+		case zng.IdBool:
+			if rhs.typ != zng.IdBool {
+				return NativeValue{}, ErrIncompatibleTypes
+			}
+			equal = lhs.value.(bool) == rhs.value.(bool)
 
-			case zng.IdUint16, zng.IdUint32, zng.IdUint64:
-				v, err = zng.DecodeUint(rhs.Bytes)
-				if err != nil {
-					return zng.Value{}, err
-				}
-				rhsWidth := intWidth(rhs.Type)
-				if rhsWidth > width {
-					width = rhsWidth
-				}
-
+		case zng.IdInt16, zng.IdInt32, zng.IdInt64:
+			var rv int64
+			switch rhs.typ {
+			case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
+				rv = int64(rhs.value.(uint64))
+			case zng.IdInt16, zng.IdInt32, zng.IdInt64:
+				rv = rhs.value.(int64)
 			default:
-				return zng.Value{}, ErrIncompatibleTypes
+				return NativeValue{}, ErrIncompatibleTypes
+			}
+			equal = lhs.value.(int64) == rv
+
+		case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
+			var rv uint64
+			switch rhs.typ {
+			case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
+				rv = rhs.value.(uint64)
+			case zng.IdInt16, zng.IdInt32, zng.IdInt64:
+				rv = uint64(rhs.value.(int64))
+			default:
+				return NativeValue{}, ErrIncompatibleTypes
+			}
+			equal = lhs.value.(uint64) == rv
+
+		case zng.IdFloat64:
+			if rhs.typ != zng.IdFloat64 {
+				return NativeValue{}, ErrIncompatibleTypes
+			}
+			equal = lhs.value.(float64) == rhs.value.(float64)
+
+			// XXX strings
+			// XXX ip, port, net
+			// XXX time, duration
+
+		default:
+			return NativeValue{}, ErrIncompatibleTypes
+		}
+
+		switch node.Operator {
+		case "=":
+			return NativeValue{zng.IdBool, equal}, nil
+		case "!=":
+			return NativeValue{zng.IdBool, !equal}, nil
+		default:
+			panic("bad operator")
+		}
+	}, nil
+}
+
+func compileCompareRelative(node ast.BinaryExpression) (NativeEvaluator, error) {
+	lhsFunc, err := compileNative(node.LHS)
+	if err != nil {
+		return nil, err
+	}
+	rhsFunc, err := compileNative(node.RHS)
+	if err != nil {
+		return nil, err
+	}
+	return func(rec *zng.Record) (NativeValue, error) {
+		lhs, err := lhsFunc(rec)
+		if err != nil {
+			return NativeValue{}, err
+		}
+		rhs, err := rhsFunc(rec)
+		if err != nil {
+			return NativeValue{}, err
+		}
+
+		// XXX comparisons between int and float?
+
+		// holds
+		//   <0 if lhs < rhs
+		//    0 if lhs == rhs
+		//   >0 if lhs > rhs
+		var result int
+		switch lhs.typ {
+		case zng.IdInt16, zng.IdInt32, zng.IdInt64:
+			var rv int64
+			switch rhs.typ {
+			case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
+				rv = int64(rhs.value.(uint64))
+			case zng.IdInt16, zng.IdInt32, zng.IdInt64:
+				rv = rhs.value.(int64)
+			default:
+				return NativeValue{}, ErrIncompatibleTypes
+			}
+			lv := lhs.value.(int64)
+			if lv < rv {
+				result = -1
+			} else if lv == rv {
+				result = 0
+			} else {
+				result = 1
 			}
 
-			var v2 uint64
-			v2, err = zng.DecodeUint(lhs.Bytes)
-			if err != nil {
-				return zng.Value{}, err
+		case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
+			var rv uint64
+			switch rhs.typ {
+			case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
+				rv = rhs.value.(uint64)
+			case zng.IdInt16, zng.IdInt32, zng.IdInt64:
+				rv = uint64(rhs.value.(int64))
+			default:
+				return NativeValue{}, ErrIncompatibleTypes
 			}
-			v += v2
+			lv := lhs.value.(uint64)
+			if lv < rv {
+				result = -1
+			} else if lv == rv {
+				result = 0
+			} else {
+				result = 1
+			}
 
-			switch width {
-			case 2:
-				out := uint16(v)
-				return zng.Value{zng.TypeUint16, zng.EncodeUint(uint64(out))}, nil
-			case 4:
-				out := uint32(v)
-				return zng.Value{zng.TypeUint32, zng.EncodeUint(uint64(out))}, nil
-			case 8:
-				return zng.Value{zng.TypeUint64, zng.EncodeUint(v)}, nil
+		case zng.IdFloat64:
+			if rhs.typ != zng.IdFloat64 {
+				return NativeValue{}, ErrIncompatibleTypes
+			}
+			lv := lhs.value.(float64)
+			rv := rhs.value.(float64)
+			if lv < rv {
+				result = -1
+			} else if lv == rv {
+				result = 0
+			} else {
+				result = 1
+			}
+
+			// XXX strings
+			// XXX ip, port, net
+			// XXX time, duration
+
+		default:
+			return NativeValue{}, ErrIncompatibleTypes
+		}
+
+		switch node.Operator {
+		case "<":
+			return NativeValue{zng.IdBool, result < 0}, nil
+		case "<=":
+			return NativeValue{zng.IdBool, result <= 0}, nil
+		case ">":
+			return NativeValue{zng.IdBool, result > 0}, nil
+		case ">=":
+			return NativeValue{zng.IdBool, result >= 0}, nil
+		default:
+			panic("bad operator")
+		}
+	}, nil
+}
+
+// compileArithmetic compiles an expression of the form "expr1 op expr2"
+// for the arithmetic operators +, -, *, /
+func compileArithmetic(node ast.BinaryExpression) (NativeEvaluator, error) {
+	lhsFunc, err := compileNative(node.LHS)
+	if err != nil {
+		return nil, err
+	}
+	rhsFunc, err := compileNative(node.RHS)
+	if err != nil {
+		return nil, err
+	}
+	return func(rec *zng.Record) (NativeValue, error) {
+		lhs, err := lhsFunc(rec)
+		if err != nil {
+			return NativeValue{}, err
+		}
+		rhs, err := rhsFunc(rec)
+		if err != nil {
+			return NativeValue{}, err
+		}
+
+		// XXX what about time, duration, port?
+		switch lhs.typ {
+		case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
+			v := lhs.value.(uint64)
+
+			switch rhs.typ {
+			case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
+				v2 := rhs.value.(uint64)
+				switch node.Operator {
+				case "+":
+					v += v2
+				case "-":
+					v -= v2
+				case "*":
+					v *= v2
+				case "/":
+					v /= v2
+				default:
+					panic("bad operator")
+				}
+				return NativeValue{zng.IdUint64, v}, nil
+
+			case zng.IdFloat64:
+				var r float64
+				v2 := rhs.value.(float64)
+				switch node.Operator {
+				case "+":
+					r = float64(v) + v2
+				case "-":
+					r = float64(v) - v2
+				case "*":
+					r = float64(v) * v2
+				case "/":
+					r = float64(v) / v2
+				default:
+					panic("bad operator")
+				}
+				return NativeValue{zng.IdFloat64, r}, nil
 
 			default:
-				panic("internal error in CompileAddition")
+				return NativeValue{}, ErrIncompatibleTypes
 			}
 
 		case zng.IdInt16, zng.IdInt32, zng.IdInt64:
-			width := intWidth(lhs.Type)
-			var v int64
+			v := lhs.value.(int64)
 
-			switch rhs.Type.ID() {
-			case zng.IdByte:
-				var b byte
-				b, err = zng.DecodeByte(rhs.Bytes)
-				if err != nil {
-					return zng.Value{}, err
+			switch rhs.typ {
+			case zng.IdInt16, zng.IdInt32, zng.IdInt64:
+				v2 := rhs.value.(int64)
+				switch node.Operator {
+				case "+":
+					v += v2
+				case "-":
+					v -= v2
+				case "*":
+					v *= v2
+				case "/":
+					v /= v2
+				default:
+					panic("bad operator")
 				}
-				v = int64(b)
+				return NativeValue{zng.IdInt64, v}, nil
+
+			case zng.IdFloat64:
+				var r float64
+				v2 := rhs.value.(float64)
+				switch node.Operator {
+				case "+":
+					r = float64(v) + v2
+				case "-":
+					r = float64(v) - v2
+				case "*":
+					r = float64(v) * v2
+				case "/":
+					r = float64(v) / v2
+				default:
+					panic("bad operator")
+				}
+				return NativeValue{zng.IdFloat64, r}, nil
+
+			default:
+				return NativeValue{}, ErrIncompatibleTypes
+			}
+
+		case zng.IdFloat64:
+			v := lhs.value.(float64)
+			var v2 float64
+
+			switch rhs.typ {
+			case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
+				v2 = float64(rhs.value.(uint64))
 
 			case zng.IdInt16, zng.IdInt32, zng.IdInt64:
-				v, err = zng.DecodeInt(rhs.Bytes)
-				if err != nil {
-					return zng.Value{}, err
-				}
-				rhsWidth := intWidth(rhs.Type)
-				if rhsWidth > width {
-					width = rhsWidth
-				}
+				v2 = float64(rhs.value.(int64))
+
+			case zng.IdFloat64:
+				v2 = rhs.value.(float64)
 
 			default:
-				return zng.Value{}, ErrIncompatibleTypes
+				return NativeValue{}, ErrIncompatibleTypes
+
 			}
 
-			var v2 int64
-			v2, err = zng.DecodeInt(lhs.Bytes)
-			if err != nil {
-				return zng.Value{}, err
-			}
-			v += v2
-
-			switch width {
-			case 2:
-				out := int16(v)
-				return zng.Value{zng.TypeInt16, zng.EncodeInt(int64(out))}, nil
-			case 4:
-				out := int32(v)
-				return zng.Value{zng.TypeInt32, zng.EncodeInt(int64(out))}, nil
-			case 8:
-				return zng.Value{zng.TypeInt64, zng.EncodeInt(v)}, nil
+			switch node.Operator {
+			case "+":
+				v += v2
+			case "-":
+				v -= v2
+			case "*":
+				v *= v2
+			case "/":
+				v /= v2
 			default:
-				panic("internal error in CompileAddition")
+				panic("bad operator")
 			}
+			return NativeValue{zng.IdFloat64, v}, nil
 
 			/*
-				XXX need to complete these
-				case zng.IdByte:
-				case zng.IdFloat:
 				case zng.IdString, zng.IdBstring:
+					// XXX only handle if node.operator == "+"
 			*/
 
 		default:
-			return zng.Value{}, ErrIncompatibleTypes
+			return NativeValue{}, ErrIncompatibleTypes
 		}
 	}, nil
 }
