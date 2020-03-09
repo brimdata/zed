@@ -237,6 +237,9 @@ func (p *IngestProcess) writeData(ctx context.Context) error {
 	if err != nil {
 		panic(err)
 	}
+	if len(files) == 0 {
+		return nil
+	}
 	// convert logs into sorted bzng
 	zr, err := scanner.OpenFiles(resolver.NewContext(), files...)
 	if err != nil {
