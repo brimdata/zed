@@ -275,7 +275,7 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	taskEnd := api.TaskEnd{Type: "TaskEnd", TaskID: taskId}
-	if err != nil {
+	if err := proc.Err(); err != nil {
 		var ok bool
 		taskEnd.Error, ok = err.(*api.Error)
 		if !ok {

@@ -249,7 +249,7 @@ func writeToSpace(t *testing.T, c *zqd.Core, spaceName, src string) {
 	require.NoError(t, zbuf.Copy(zbuf.NopFlusher(w), r))
 }
 
-func httpSuccess(t *testing.T, h http.Handler, method, url string, body interface{}) io.ReadCloser {
+func httpRequest(t *testing.T, h http.Handler, method, url string, body interface{}) *http.Response {
 	var rw io.ReadWriter
 	if body != nil {
 		rw = bytes.NewBuffer(nil)
@@ -260,10 +260,19 @@ func httpSuccess(t *testing.T, h http.Handler, method, url string, body interfac
 	r := httptest.NewRequest(method, url, rw)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
-	res := w.Result()
+	return w.Result()
+}
+
+func httpSuccess(t *testing.T, h http.Handler, method, url string, body interface{}) io.ReadCloser {
+	res := httpRequest(t, h, method, url, body)
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
 		body, _ := ioutil.ReadAll(res.Body)
 		require.Equal(t, http.StatusOK, res.StatusCode, string(body))
 	}
 	return res.Body
+}
+
+func httpJSONSuccess(t *testing.T, h http.Handler, method, url string, body interface{}, res interface{}) {
+	r := httpSuccess(t, h, method, url, body)
+	require.NoError(t, json.NewDecoder(r).Decode(res))
 }
