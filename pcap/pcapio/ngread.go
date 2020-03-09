@@ -27,24 +27,11 @@ import (
 
 var ErrCorruptPcap = errors.New("bad pcap file")
 
-// NgReaderOptions holds options for reading a pcapng file
-type NgReaderOptions struct {
-	// ErrorOnMismatchingLinkType enables returning an error if a packet with a link type not matching the first interface is encountered and WantMixedLinkType == false.
-	// If false packets those packets are just silently ignored, which is the libpcap behaviour.
-	ErrorOnMismatchingLinkType bool
-	// SkipUnknownVersion enables automatically skipping sections with an unknown version, which is recommended by the pcapng standard. Otherwise ErrVersionMismatch is returned.
-	SkipUnknownVersion bool
-	// StatisticsCallback is called when a interface statistics block is read. The interface id and the read statistics are provided.
-	StatisticsCallback func(int, NgInterfaceStatistics)
-}
-
-// DefaultNgReaderOptions provides sane defaults for a pcapng reader.
-var DefaultNgReaderOptions = NgReaderOptions{}
+const PacketBlockHeaderLen = 28
 
 // NgReader wraps an underlying bufio.NgReader to read packet data in pcapng.
 type NgReader struct {
 	*peeker.Reader
-	options       NgReaderOptions
 	ifaces        []NgInterface
 	currentOption ngOption
 	first         []byte
@@ -53,7 +40,8 @@ type NgReader struct {
 	offset        uint64
 }
 
-// NewNgReader initializes a new writer, reads the first section header, and if necessary according to the options the first interface.
+// NewNgReader initializes a new writer, reads the first section header,
+// and if necessary according to the options the first interface.
 func NewNgReader(r io.Reader) (*NgReader, error) {
 	ret := &NgReader{
 		Reader: peeker.NewReader(r, 32*1024, 1024*1024),
@@ -74,23 +62,41 @@ func NewNgReader(r io.Reader) (*NgReader, error) {
 	return ret, nil
 }
 
-func (r *NgReader) Packet(block []byte) ([]byte, nano.Ts, layers.LinkType) {
-	//XXX support only enhance packet blocks right now
-	if len(block) < 28 {
-		return nil, 0, 0
+func (r *NgReader) parsePacket(block []byte) ([]byte, int) {
+	if len(block) < PacketBlockHeaderLen {
+		return nil, 0
 	}
 	ifno := int(r.getUint32(block[8:12]))
 	if ifno >= len(r.ifaces) {
-		return nil, 0, 0
+		return nil, 0
 	}
-	t := time.Unix(r.convertTime(ifno, uint64(r.getUint32(block[12:16]))<<32|uint64(r.getUint32(block[16:20])))).UTC()
 	caplen := int(r.getUint32(block[20:24]))
-	//length := int(r.getUint32(block[24:28]))
-	packet := block[28:]
+	packet := block[PacketBlockHeaderLen:]
 	if len(packet) < caplen {
+		return nil, 0
+	}
+	return packet[:caplen], ifno
+}
+
+// Packet returns the captured portion of a packet from an enhanced packet
+// block return by Read() (i.e., with BlockTYpe equal to TypePacket) beginning
+// with the link-layer header.  It also extracts the capture timestamp and link
+// layer type and returns those values along with the packet.  If an error is
+// encountered, zero values are returned for the three values.  PCAP-NG simple
+// packet types aren't supported yet (we presume thiis type of trace is rare and
+// does not fit our use case here as these traces do not include capture timestamps
+// annd the point here is to pull our ranges of packets from a large pcap based
+// on timestamp).  We also do not support the original deprecated PCAP-NG packet
+// format but could add support if users request this (it would only be because
+// old pcaps with this deprecated format are sitting around).
+func (r *NgReader) Packet(block []byte) ([]byte, nano.Ts, layers.LinkType) {
+	packet, ifno := r.parsePacket(block)
+	if packet == nil {
 		return nil, 0, 0
 	}
-	return packet[:caplen], nano.TimeToTs(t), r.ifaces[ifno].LinkType
+	ts := uint64(r.getUint32(block[12:16]))<<32 | uint64(r.getUint32(block[16:20]))
+	t := time.Unix(r.convertTime(ifno, ts)).UTC()
+	return packet, nano.TimeToTs(t), r.ifaces[ifno].LinkType
 }
 
 func (r *NgReader) Offset() uint64 {
@@ -162,7 +168,8 @@ func (r *NgReader) parseSectionHeader(b []byte) error {
 	return nil
 }
 
-// readOption reads a single arbitrary option (type and value). If there is no space left for options and end of options is missing, it is faked.
+// parseOption parses and returns a single arbitrary option (type and value)
+// or returns an error if the option is not valid.
 func (r *NgReader) parseOption(b []byte) (ngOptionCode, []byte, error) {
 	code := ngOptionCode(r.getUint16(b[:2]))
 	length := r.getUint16(b[2:4])
@@ -173,7 +180,8 @@ func (r *NgReader) parseOption(b []byte) (ngOptionCode, []byte, error) {
 	return code, b[:length], nil
 }
 
-// readInterfaceDescriptor parses an interface descriptor, prepares timing calculation, and adds the interface details to the current list
+// readInterfaceDescriptor parses an interface descriptor, prepares timing
+// calculation, and adds the interface details to the current list.
 func (r *NgReader) parseInterfaceDescriptor(b []byte) error {
 	if len(b) < 20 {
 		return errors.New("bad interface descriptor block")
@@ -265,17 +273,8 @@ func (r *NgReader) Read() ([]byte, BlockType, error) {
 		r.offset += uint64(len(block))
 		switch typ {
 		case ngBlockTypeEnhancedPacket:
-			if len(block) < 28 {
-				return nil, 0, ErrCorruptPcap
-			}
-			ifno := int(r.getUint32(block[8:12]))
-			if ifno >= len(r.ifaces) {
-				return nil, 0, fmt.Errorf("Interface id %d not present in section (have only %d interfaces)", r.ci.InterfaceIndex, len(r.ifaces))
-			}
-			caplen := int(r.getUint32(block[20:24]))
-			//length := int(r.getUint32(block[24:28]))
-			packet := block[28:]
-			if len(packet) < caplen {
+			packet, _ := r.parsePacket(block)
+			if packet == nil {
 				return nil, 0, ErrCorruptPcap
 			}
 			return block, TypePacket, nil
@@ -308,10 +307,4 @@ func (r *NgReader) Interface(i int) (NgInterface, error) {
 // NInterfaces returns the current number of interfaces.
 func (r *NgReader) NInterfaces() int {
 	return len(r.ifaces)
-}
-
-// Resolution returns the timestamp resolution of acquired timestamps before scaling to NanosecondTimestampResolution.
-func (r *NgReader) Resolution() gopacket.TimestampResolution {
-	//XXX
-	return gopacket.TimestampResolution{}
 }
