@@ -44,22 +44,12 @@ func TestPacketPostSuccess(t *testing.T) {
 		assert.Equal(t, p.space, info.Name)
 		assert.Equal(t, nano.Unix(1501770877, 471635000), *info.MinTime)
 		assert.Equal(t, nano.Unix(1501770880, 988247000), *info.MaxTime)
+		// XXX Must use InDelta here because zeek's randomly generate uids can
+		// vary by 1 characater in size. Should probably be tested with the
+		// same seed set in zeek but for now just test individual fields.
 		assert.InDelta(t, 1437, info.Size, 2)
 		assert.True(t, info.PacketSupport)
 		assert.Equal(t, p.pcapfile, info.PacketPath)
-		// XXX Cannot test with full struct because zeek's randomly generate
-		// uids can vary by 1 characater in size. Should probably be tested with
-		// the same seed set in zeek but for now just test individual fields.
-		// expected := api.SpaceInfo{
-		// Name:          p.space,
-		// MaxTime:       &max,
-		// MinTime:       &min,
-		// Size:          1437,
-		// PacketSupport: true,
-		// PacketSize:    0, // XXX This is not supported right now. Fix this.
-		// PacketPath:    p.pcapfile,
-		// }
-		// assert.Equal(t, expected, info)
 	})
 	t.Run("PacketIndexExists", func(t *testing.T) {
 		require.FileExists(t, filepath.Join(p.core.Root, p.space, packet.IndexFile))
@@ -79,7 +69,7 @@ func TestPacketPostInvalidPcap(t *testing.T) {
 	defer p.cleanup()
 	t.Run("ErrorMessage", func(t *testing.T) {
 		// XXX Better error message here.
-		require.Equal(t, "Unknown magic 73696874\n", string(p.body))
+		require.Regexp(t, "^Unknown magic*", string(p.body))
 	})
 }
 
