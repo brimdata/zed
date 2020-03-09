@@ -26,7 +26,7 @@ var (
 )
 
 func TestPacketPostSuccess(t *testing.T) {
-	p := packetPost(t, zeekpath, "./testdata/valid.pcap", 201)
+	p := packetPost(t, zeekpath, "./testdata/valid.pcap", 202)
 	defer p.cleanup()
 	t.Run("DataReverseSorted", func(t *testing.T) {
 		expected := `
@@ -81,23 +81,13 @@ func TestPacketPostInvalidPcap(t *testing.T) {
 	defer p.cleanup()
 	t.Run("ErrorMessage", func(t *testing.T) {
 		// XXX Better error message here.
-		require.Equal(t, "exit status 1\n", string(p.body))
+		require.Equal(t, "Unknown magic 73696874\n", string(p.body))
 	})
 }
 
 func TestPacketPostZeekFailImmediate(t *testing.T) {
 	exec := filepath.Join(cwd, "testdata", "zeekstartfail.sh")
-	p := packetPost(t, exec, "./testdata/valid.pcap", 500)
-	defer p.cleanup()
-	t.Run("ErrorMessage", func(t *testing.T) {
-		// XXX Better error message here.
-		require.Equal(t, "exit status 2\n", string(p.body))
-	})
-}
-
-func TestPacketPostZeekFailAfterWrite(t *testing.T) {
-	exec := filepath.Join(cwd, "testdata", "zeekwritefail.sh")
-	p := packetPost(t, exec, "./testdata/valid.pcap", 201)
+	p := packetPost(t, exec, "./testdata/valid.pcap", 202)
 	defer p.cleanup()
 	t.Run("TaskEndError", func(t *testing.T) {
 		expected := &api.TaskEnd{
@@ -109,10 +99,30 @@ func TestPacketPostZeekFailAfterWrite(t *testing.T) {
 				Type: "Error",
 				// XXX This is not an informative failure message. Will fix in
 				// followup pr.
+				Message: "exit status 2",
+			},
+		}
+		require.Contains(t, p.payloads, expected)
+	})
+}
+
+func TestPacketPostZeekFailAfterWrite(t *testing.T) {
+	exec := filepath.Join(cwd, "testdata", "zeekwritefail.sh")
+	p := packetPost(t, exec, "./testdata/valid.pcap", 202)
+	defer p.cleanup()
+	t.Run("TaskEndError", func(t *testing.T) {
+		expected := &api.TaskEnd{
+			Type: "TaskEnd",
+			// XXX This is dependent on execution order. TaskID is global when
+			// should be attached to instance of core.
+			TaskID: 3,
+			Error: &api.Error{
+				Type: "Error",
+				// XXX This is not an informative failure message. Will fix in
+				// followup pr.
 				Message: "exit status 1",
 			},
 		}
-		require.Len(t, p.payloads, 3)
 		require.Contains(t, p.payloads, expected)
 	})
 }
@@ -152,7 +162,7 @@ func (r *packetPostResult) postPcap(t *testing.T, file string) {
 	body, err := ioutil.ReadAll(res.Body)
 	require.NoError(t, err)
 	r.body, r.statusCode = body, res.StatusCode
-	if r.statusCode == 201 {
+	if r.statusCode == 202 {
 		r.readPayloads(t)
 	}
 }
