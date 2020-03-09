@@ -252,11 +252,10 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		case <-ticker.C:
 		}
 
-		var minTs, maxTs nano.Time
+		var minTs, maxTs *nano.Ts
 		if minTs, maxTs, err = s.GetTimes(); err != nil {
 			break
 		}
-
 		status := api.PacketPostStatus{
 			Type:           "PacketPostStatus",
 			StartTime:      proc.StartTime,

@@ -36,7 +36,7 @@ type IngestProcess struct {
 	pcapPath     string
 	pcapReadSize int64
 	logdir       string
-	done         chan struct{}
+	done, snap   chan struct{}
 	err          error
 	zeekExec     string
 }
@@ -72,6 +72,7 @@ func IngestFile(ctx context.Context, s *space.Space, pcap, zeekExec string) (*In
 		pcapPath:  pcap,
 		logdir:    logdir,
 		done:      make(chan struct{}),
+		snap:      make(chan struct{}),
 		zeekExec:  zeekExec,
 	}
 	if err = p.indexPcap(ctx); err != nil {
@@ -85,6 +86,7 @@ func IngestFile(ctx context.Context, s *space.Space, pcap, zeekExec string) (*In
 	go func() {
 		p.err = p.run(ctx)
 		close(p.done)
+		close(p.snap)
 	}()
 	return p, nil
 }
@@ -117,6 +119,10 @@ outer:
 				if err := p.writeData(ctx); err != nil {
 					abort()
 					return err
+				}
+				select {
+				case p.snap <- struct{}{}:
+				default:
 				}
 				next = 2 * next
 			}
@@ -207,6 +213,12 @@ func (p *IngestProcess) Err() error {
 // Done returns a chan that emits when the ingest process is complete.
 func (p *IngestProcess) Done() <-chan struct{} {
 	return p.done
+}
+
+// Snap returns a chan that emits every time a snapshot is made. It
+// should no longer be read from after Done() has emitted.
+func (p *IngestProcess) Snap() <-chan struct{} {
+	return p.snap
 }
 
 type recWriter struct {
