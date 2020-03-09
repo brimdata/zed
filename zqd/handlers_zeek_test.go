@@ -127,12 +127,6 @@ func TestPacketPostZeekFailAfterWrite(t *testing.T) {
 }
 
 func packetPost(t *testing.T, zeekExec, pcapfile string, expectedStatus int) packetPostResult {
-	if zeekExec == "" {
-		zeekExec = zeekpath
-	}
-	if pcapfile == "" {
-		pcapfile = "./testdata/test.pcap"
-	}
 	dir, err := ioutil.TempDir("", "PacketPostTest")
 	require.NoError(t, err)
 	res := packetPostResult{
