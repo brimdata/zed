@@ -116,7 +116,7 @@ outer:
 			break outer
 		case t := <-ticker.C:
 			if t.After(start.Add(next)) {
-				if err := p.writeData(ctx); err != nil {
+				if err := p.createSnapshot(ctx); err != nil {
 					abort()
 					return err
 				}
@@ -132,7 +132,7 @@ outer:
 		abort()
 		return slurpErr
 	}
-	if err := p.writeData(ctx); err != nil {
+	if err := p.createSnapshot(ctx); err != nil {
 		abort()
 		return err
 	}
@@ -226,7 +226,7 @@ func (rw *recWriter) Write(r *zng.Record) error {
 	return nil
 }
 
-func (p *IngestProcess) writeData(ctx context.Context) error {
+func (p *IngestProcess) createSnapshot(ctx context.Context) error {
 	files, err := filepath.Glob(filepath.Join(p.logdir, "*.log"))
 	// Per filepath.Glob documentation the only possible error would be due to
 	// an invalid glob pattern. Ok to panic.
