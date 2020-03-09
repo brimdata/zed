@@ -22,7 +22,6 @@ import (
 
 var (
 	zeekpath = os.Getenv("ZEEK")
-	cwd      = getwd()
 )
 
 func TestPacketPostSuccess(t *testing.T) {
@@ -85,7 +84,7 @@ func TestPacketPostInvalidPcap(t *testing.T) {
 }
 
 func TestPacketPostZeekFailImmediate(t *testing.T) {
-	exec := filepath.Join(cwd, "testdata", "zeekstartfail.sh")
+	exec := abspath(t, filepath.Join("testdata", "zeekstartfail.sh"))
 	p := packetPost(t, exec, "./testdata/valid.pcap", 202)
 	defer p.cleanup()
 	t.Run("TaskEndError", func(t *testing.T) {
@@ -106,7 +105,7 @@ func TestPacketPostZeekFailImmediate(t *testing.T) {
 }
 
 func TestPacketPostZeekFailAfterWrite(t *testing.T) {
-	exec := filepath.Join(cwd, "testdata", "zeekwritefail.sh")
+	exec := abspath(t, filepath.Join("testdata", "zeekwritefail.sh"))
 	p := packetPost(t, exec, "./testdata/valid.pcap", 202)
 	defer p.cleanup()
 	t.Run("TaskEndError", func(t *testing.T) {
@@ -193,10 +192,8 @@ func (r *packetPostResult) cleanup() {
 	os.RemoveAll(r.core.Root)
 }
 
-func getwd() string {
-	cwd, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-	return cwd
+func abspath(t *testing.T, path string) string {
+	p, err := filepath.Abs(path)
+	require.NoError(t, err)
+	return p
 }
