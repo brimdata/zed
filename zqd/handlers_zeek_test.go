@@ -79,10 +79,8 @@ func TestPacketPostZeekFailImmediate(t *testing.T) {
 	defer p.cleanup()
 	t.Run("TaskEndError", func(t *testing.T) {
 		expected := &api.TaskEnd{
-			Type: "TaskEnd",
-			// XXX This is dependent on execution order. TaskID is global when
-			// should be attached to instance of core.
-			TaskID: 2,
+			Type:   "TaskEnd",
+			TaskID: 1,
 			Error: &api.Error{
 				Type: "Error",
 				// XXX This is not an informative failure message. Will fix in
@@ -101,10 +99,8 @@ func TestPacketPostZeekFailAfterWrite(t *testing.T) {
 	defer p.cleanup()
 	t.Run("TaskEndError", func(t *testing.T) {
 		expected := &api.TaskEnd{
-			Type: "TaskEnd",
-			// XXX This is dependent on execution order. TaskID is global when
-			// should be attached to instance of core.
-			TaskID: 3,
+			Type:   "TaskEnd",
+			TaskID: 1,
 			Error: &api.Error{
 				Type: "Error",
 				// XXX This is not an informative failure message. Will fix in
