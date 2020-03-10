@@ -69,7 +69,7 @@ func TestPacketPostInvalidPcap(t *testing.T) {
 	defer p.cleanup()
 	t.Run("ErrorMessage", func(t *testing.T) {
 		// XXX Better error message here.
-		require.Regexp(t, "^Unknown magic*", string(p.body))
+		require.Regexp(t, "^bad pcap file*", string(p.body))
 	})
 }
 
