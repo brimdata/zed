@@ -293,7 +293,7 @@ func (p *IngestProcess) startZeek(ctx context.Context, dir string) (*exec.Cmd, i
 	if err != nil {
 		return nil, nil, err
 	}
-	// capture stderr
+	// Capture stderr for error reporting.
 	cmd.Stderr = bytes.NewBuffer(nil)
 	return cmd, w, cmd.Start()
 }
