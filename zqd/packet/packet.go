@@ -108,6 +108,7 @@ func (p *IngestProcess) run(ctx context.Context) error {
 	abort := func() {
 		os.RemoveAll(p.logdir)
 		os.Remove(p.space.DataPath(IndexFile))
+		os.Remove(p.space.DataPath("all.bzng"))
 		p.space.SetPacketPath("")
 	}
 
