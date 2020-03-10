@@ -25,7 +25,7 @@ var (
 )
 
 func TestPacketPostSuccess(t *testing.T) {
-	p := packetPost(t, zeekpath, "./testdata/valid.pcap", 202)
+	p := packetPost(t, zeekpath, "./testdata/valid.pcap", 202, 0)
 	defer p.cleanup()
 	t.Run("DataReverseSorted", func(t *testing.T) {
 		expected := `
@@ -75,8 +75,19 @@ func TestPacketPostSuccess(t *testing.T) {
 	})
 }
 
+func TestPacketPostSortLimit(t *testing.T) {
+	p := packetPost(t, zeekpath, "./testdata/valid.pcap", 202, 1)
+	defer p.cleanup()
+	t.Run("TaskEndError", func(t *testing.T) {
+		taskEnd := p.payloads[len(p.payloads)-1].(*api.TaskEnd)
+		assert.Equal(t, "TaskEnd", taskEnd.Type)
+		assert.NotNil(t, taskEnd.Error)
+		assert.Regexp(t, "sort limit", taskEnd.Error.Message)
+	})
+}
+
 func TestPacketPostInvalidPcap(t *testing.T) {
-	p := packetPost(t, zeekpath, "./testdata/invalid.pcap", 400)
+	p := packetPost(t, zeekpath, "./testdata/invalid.pcap", 400, 0)
 	defer p.cleanup()
 	t.Run("ErrorMessage", func(t *testing.T) {
 		// XXX Better error message here.
@@ -86,7 +97,7 @@ func TestPacketPostInvalidPcap(t *testing.T) {
 
 func TestPacketPostZeekFailImmediate(t *testing.T) {
 	exec := abspath(t, filepath.Join("testdata", "zeekstartfail.sh"))
-	p := packetPost(t, exec, "./testdata/valid.pcap", 202)
+	p := packetPost(t, exec, "./testdata/valid.pcap", 202, 0)
 	defer p.cleanup()
 	t.Run("TaskEndError", func(t *testing.T) {
 		expected := &api.TaskEnd{
@@ -104,7 +115,7 @@ func TestPacketPostZeekFailImmediate(t *testing.T) {
 
 func TestPacketPostZeekFailAfterWrite(t *testing.T) {
 	exec := abspath(t, filepath.Join("testdata", "zeekwritefail.sh"))
-	p := packetPost(t, exec, "./testdata/valid.pcap", 202)
+	p := packetPost(t, exec, "./testdata/valid.pcap", 202, 0)
 	defer p.cleanup()
 	t.Run("TaskEndError", func(t *testing.T) {
 		expected := &api.TaskEnd{
@@ -131,13 +142,13 @@ func TestPacketPostZeekFailAfterWrite(t *testing.T) {
 
 func TestPacketPostZeekNotFound(t *testing.T) {
 	exec := abspath(t, filepath.Join("testdata", "zeekdoesnotexist.sh"))
-	p := packetPost(t, exec, "./testdata/valid.pcap", 500)
+	p := packetPost(t, exec, "./testdata/valid.pcap", 500, 0)
 	t.Run("ErrorMessage", func(t *testing.T) {
 		require.Regexp(t, "zeek not found", string(p.body))
 	})
 }
 
-func packetPost(t *testing.T, zeekExec, pcapfile string, expectedStatus int) packetPostResult {
+func packetPost(t *testing.T, zeekExec, pcapfile string, expectedStatus, sortLimit int) packetPostResult {
 	dir, err := ioutil.TempDir("", "PacketPostTest")
 	require.NoError(t, err)
 	res := packetPostResult{
@@ -145,7 +156,7 @@ func packetPost(t *testing.T, zeekExec, pcapfile string, expectedStatus int) pac
 		space:    "test",
 		pcapfile: pcapfile,
 	}
-	res.postPcap(t, pcapfile)
+	res.postPcap(t, pcapfile, sortLimit)
 	require.Equalf(t, expectedStatus, res.statusCode, "unexpected status code: %s", string(res.body))
 	return res
 }
@@ -159,10 +170,10 @@ type packetPostResult struct {
 	payloads   []interface{}
 }
 
-func (r *packetPostResult) postPcap(t *testing.T, file string) {
+func (r *packetPostResult) postPcap(t *testing.T, file string, sortLimit int) {
 	createSpace(t, r.core, r.space, "")
 	u := fmt.Sprintf("http://localhost:9867/space/%s/packet", r.space)
-	res := httpRequest(t, zqd.NewHandler(r.core), "POST", u, api.PacketPostRequest{r.pcapfile})
+	res := httpRequest(t, zqd.NewHandler(r.core), "POST", u, api.PacketPostRequest{r.pcapfile, sortLimit})
 	body, err := ioutil.ReadAll(res.Body)
 	require.NoError(t, err)
 	r.body, r.statusCode = body, res.StatusCode

@@ -9,6 +9,12 @@ import (
 	"github.com/brimsec/zq/zng"
 )
 
+type ErrSortLimitReached int
+
+func (e ErrSortLimitReached) Error() string {
+	return fmt.Sprintf("sort limit hit (%d)", e)
+}
+
 type Sort struct {
 	Base
 	dir        int
@@ -84,7 +90,7 @@ func (s *Sort) Pull() (zbuf.Batch, error) {
 		}
 		if len(s.out)+batch.Length() > s.limit {
 			batch.Unref()
-			return nil, fmt.Errorf("sort limit hit (%d)", s.limit)
+			return nil, ErrSortLimitReached(s.limit)
 		}
 		// XXX this should handle group-by every ... need to change how we do this
 		s.consume(batch)

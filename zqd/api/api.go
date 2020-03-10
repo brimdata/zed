@@ -104,6 +104,12 @@ type SpacePostResponse SpacePostRequest
 
 type PacketPostRequest struct {
 	Path string `json:"path"`
+	// SortLimit specifies the limit of logs in posted pcap to sort. Its
+	// existence in the request is only as a hook for testing (though users
+	// running zqd in high memory environments may want to push this higher).
+	// Eventually zqd will sort an unlimited amount of logs and this can be
+	// taken out.
+	SortLimit int `json:"sort_limit,omitempty"`
 }
 
 type PacketPostStatus struct {

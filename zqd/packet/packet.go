@@ -29,13 +29,17 @@ var (
 	ErrIngestProcessInFlight = errors.New("another ingest process is already in flight for this space")
 )
 
-const IndexFile = "packets.idx.json"
+const (
+	IndexFile        = "packets.idx.json"
+	DefaultSortLimit = 10000000
+)
 
 type IngestProcess struct {
 	StartTime nano.Ts
 	PcapSize  int64
 
 	space        *space.Space
+	sortLimit    int
 	pcapPath     string
 	pcapReadSize int64
 	logdir       string
@@ -49,13 +53,16 @@ type IngestProcess struct {
 // IngestProcess instance once zeek log files have started to materialize in a tmp
 // directory. If zeekExec is an empty string, this will attempt to resolve zeek
 // from $PATH.
-func IngestFile(ctx context.Context, s *space.Space, pcap, zeekExec string) (*IngestProcess, error) {
+func IngestFile(ctx context.Context, s *space.Space, pcap, zeekExec string, sortLimit int) (*IngestProcess, error) {
 	logdir := s.DataPath(".tmp.zeeklogs")
 	if err := os.Mkdir(logdir, 0700); err != nil {
 		if os.IsExist(err) {
 			return nil, ErrIngestProcessInFlight
 		}
 		return nil, err
+	}
+	if sortLimit == 0 {
+		sortLimit = DefaultSortLimit
 	}
 	info, err := os.Stat(pcap)
 	if err != nil {
@@ -80,6 +87,7 @@ func IngestFile(ctx context.Context, s *space.Space, pcap, zeekExec string) (*In
 		done:      make(chan struct{}),
 		snap:      make(chan struct{}),
 		zeekExec:  zeekExec,
+		sortLimit: sortLimit,
 	}
 	if err = p.indexPcap(); err != nil {
 		os.Remove(p.space.DataPath(IndexFile))
@@ -263,7 +271,7 @@ func (p *IngestProcess) createSnapshot(ctx context.Context) error {
 		return err
 	}
 	zw := bzngio.NewWriter(bzngfile)
-	const program = "sort -limit 10000000 -r ts | (filter *; head 1; tail 1)"
+	program := fmt.Sprintf("sort -limit %d -r ts | (filter *; head 1; tail 1)", p.sortLimit)
 	var headW, tailW recWriter
 
 	if err := search.Copy(ctx, []zbuf.Writer{zw, &headW, &tailW}, zr, program); err != nil {
