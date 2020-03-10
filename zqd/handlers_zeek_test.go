@@ -93,6 +93,15 @@ func TestPacketPostInvalidPcap(t *testing.T) {
 		// XXX Better error message here.
 		require.Regexp(t, "^bad pcap file*", string(p.body))
 	})
+	t.Run("EmptySpaceInfo", func(t *testing.T) {
+		u := fmt.Sprintf("http://localhost:9867/space/%s", p.space)
+		var info api.SpaceInfo
+		httpJSONSuccess(t, zqd.NewHandler(p.core), "GET", u, nil, &info)
+		expected := api.SpaceInfo{
+			Name: p.space,
+		}
+		require.Equal(t, expected, info)
+	})
 }
 
 func TestPacketPostZeekFailImmediate(t *testing.T) {
