@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"sync/atomic"
 	"time"
 
 	"github.com/brimsec/zq/pcap"
@@ -18,8 +17,6 @@ import (
 	"github.com/brimsec/zq/zqd/space"
 	"github.com/gorilla/mux"
 )
-
-var taskCount int64
 
 func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	var req api.SearchRequest
@@ -233,8 +230,8 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Transfer-Encoding", "chunked")
 	w.WriteHeader(http.StatusAccepted)
 	pipe := api.NewJSONPipe(w)
-	taskId := atomic.AddInt64(&taskCount, 1)
-	taskStart := api.TaskStart{Type: "TaskStart", TaskID: taskId}
+	taskID := c.getTaskID()
+	taskStart := api.TaskStart{Type: "TaskStart", TaskID: taskID}
 	if err = pipe.Send(taskStart); err != nil {
 		// Probably an error writing to socket, log error.
 		// XXX This should be zap instead.
@@ -274,7 +271,7 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	taskEnd := api.TaskEnd{Type: "TaskEnd", TaskID: taskId}
+	taskEnd := api.TaskEnd{Type: "TaskEnd", TaskID: taskID}
 	if err := proc.Err(); err != nil {
 		var ok bool
 		taskEnd.Error, ok = err.(*api.Error)

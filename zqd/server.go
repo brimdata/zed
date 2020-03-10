@@ -3,6 +3,7 @@ package zqd
 import (
 	"encoding/json"
 	"net/http"
+	"sync/atomic"
 
 	"github.com/gorilla/mux"
 )
@@ -12,7 +13,12 @@ type Core struct {
 	// The exact path of the zeek executable. If this is an empty string zeek
 	// will be located from $PATH. This is needed in the
 	// POST /space/:space/packet endpoint.
-	ZeekExec string
+	ZeekExec  string
+	taskCount int64
+}
+
+func (c *Core) getTaskID() int64 {
+	return atomic.AddInt64(&c.taskCount, 1)
 }
 
 type VersionMessage struct {
