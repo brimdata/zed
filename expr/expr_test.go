@@ -253,10 +253,12 @@ func TestCompareRelative(t *testing.T) {
 			testSuccessful(t, exp, record, zbool(true))
 
 			// a <= comparison that is false (because >)
-			exp = fmt.Sprintf("%sb <= %sa", record, zbool(false))
+			exp = fmt.Sprintf("%sb <= %sa", t1, t2)
+			testSuccessful(t, exp, record, zbool(false))
 
 			// a <= comparison that is true (because ==)
-			exp = fmt.Sprintf("%sa <= %sa", record, zbool(true))
+			exp = fmt.Sprintf("%sa <= %sa", t1, t2)
+			testSuccessful(t, exp, record, zbool(true))
 
 			// a > comparison that is true
 			exp = fmt.Sprintf("%sb > %sa", t1, t2)
@@ -280,7 +282,9 @@ func TestCompareRelative(t *testing.T) {
 		}
 	}
 
-	// XXX strings, port, ip, net, time, duration
+	// XXX strings
+
+	// XXX port, ip, net, time, duration
 }
 
 func TestArithmetic(t *testing.T) {

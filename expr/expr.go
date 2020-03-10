@@ -3,8 +3,10 @@ package expr
 import (
 	"errors"
 	"fmt"
+	"net"
 
 	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zng"
 )
 
@@ -90,7 +92,40 @@ func toNativeValue(zv zng.Value) (NativeValue, error) {
 		}
 		return NativeValue{zv.Type.ID(), s}, nil
 
-	// XXX IdIP, IdPort, IdNet, IdTime, IdDuration
+	case zng.IdIP:
+		a, err := zng.DecodeIP(zv.Bytes)
+		if err != nil {
+			return NativeValue{}, err
+		}
+		return NativeValue{zv.Type.ID(), a}, nil
+
+	case zng.IdPort:
+		p, err := zng.DecodePort(zv.Bytes)
+		if err != nil {
+			return NativeValue{}, err
+		}
+		return NativeValue{zv.Type.ID(), uint64(p)}, nil
+
+	case zng.IdNet:
+		n, err := zng.DecodeNet(zv.Bytes)
+		if err != nil {
+			return NativeValue{}, err
+		}
+		return NativeValue{zv.Type.ID(), n}, nil
+
+	case zng.IdTime:
+		t, err := zng.DecodeTime(zv.Bytes)
+		if err != nil {
+			return NativeValue{}, nil
+		}
+		return NativeValue{zv.Type.ID(), t}, nil
+
+	case zng.IdDuration:
+		d, err := zng.DecodeDuration(zv.Bytes)
+		if err != nil {
+			return NativeValue{}, nil
+		}
+		return NativeValue{zv.Type.ID(), d}, nil
 
 	default:
 		return NativeValue{}, fmt.Errorf("unknown type %d", zv.Type.ID())
@@ -144,7 +179,25 @@ func (v *NativeValue) toZngValue() (zng.Value, error) {
 		s := v.value.(string)
 		return zng.Value{zng.TypeBstring, zng.EncodeBstring(s)}, nil
 
-	// XXX IdIP, IdPort, IdNet, IdTime, IdDuration
+	case zng.IdIP:
+		i := v.value.(net.IP)
+		return zng.Value{zng.TypeIP, zng.EncodeIP(i)}, nil
+
+	case zng.IdPort:
+		p := v.value.(uint64)
+		return zng.Value{zng.TypePort, zng.EncodePort(uint32(p))}, nil
+
+	case zng.IdNet:
+		n := v.value.(*net.IPNet)
+		return zng.Value{zng.TypeNet, zng.EncodeNet(n)}, nil
+
+	case zng.IdTime:
+		t := v.value.(nano.Ts)
+		return zng.Value{zng.TypeTime, zng.EncodeTime(t)}, nil
+
+	case zng.IdDuration:
+		d := v.value.(int64)
+		return zng.Value{zng.TypeDuration, zng.EncodeDuration(d)}, nil
 
 	default:
 		return zng.Value{}, errors.New("XXX")
@@ -259,7 +312,7 @@ func compileCompareEquality(node ast.BinaryExpression) (NativeEvaluator, error) 
 			return NativeValue{}, err
 		}
 
-		// XXX comparisons between int and float?
+		// XXX comparisons between int/float/port/duration
 
 		var equal bool
 		switch lhs.typ {
@@ -281,12 +334,12 @@ func compileCompareEquality(node ast.BinaryExpression) (NativeEvaluator, error) 
 			}
 			equal = lhs.value.(int64) == rv
 
-		case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
+		case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64, zng.IdPort:
 			var rv uint64
 			switch rhs.typ {
 			case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
 				rv = rhs.value.(uint64)
-			case zng.IdInt16, zng.IdInt32, zng.IdInt64:
+			case zng.IdInt16, zng.IdInt32, zng.IdInt64, zng.IdPort:
 				rv = uint64(rhs.value.(int64))
 			default:
 				return NativeValue{}, ErrIncompatibleTypes
@@ -305,8 +358,30 @@ func compileCompareEquality(node ast.BinaryExpression) (NativeEvaluator, error) 
 			}
 			equal = lhs.value.(string) == rhs.value.(string)
 
-			// XXX ip, port, net
-			// XXX time, duration
+		case zng.IdIP:
+			if rhs.typ != zng.IdIP {
+				return NativeValue{}, ErrIncompatibleTypes
+			}
+			equal = lhs.value.(net.IP).Equal(rhs.value.(net.IP))
+
+		case zng.IdNet:
+			if rhs.typ != zng.IdNet {
+				return NativeValue{}, ErrIncompatibleTypes
+			}
+			// is there any other way to compare nets?
+			equal = lhs.value.(*net.IPNet).String() == rhs.value.(*net.IPNet).String()
+
+		case zng.IdTime:
+			if rhs.typ != zng.IdTime {
+				return NativeValue{}, ErrIncompatibleTypes
+			}
+			equal = lhs.value.(nano.Ts) == rhs.value.(nano.Ts)
+
+		case zng.IdDuration:
+			if rhs.typ != zng.IdDuration {
+				return NativeValue{}, ErrIncompatibleTypes
+			}
+			equal = lhs.value.(int64) == rhs.value.(int64)
 
 		default:
 			return NativeValue{}, ErrIncompatibleTypes
@@ -342,7 +417,7 @@ func compileCompareRelative(node ast.BinaryExpression) (NativeEvaluator, error) 
 			return NativeValue{}, err
 		}
 
-		// XXX comparisons between int and float?
+		// XXX comparisons between int/float/port/duration
 
 		// holds
 		//   <0 if lhs < rhs
@@ -369,7 +444,7 @@ func compileCompareRelative(node ast.BinaryExpression) (NativeEvaluator, error) 
 				result = 1
 			}
 
-		case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
+		case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64, zng.IdPort:
 			var rv uint64
 			switch rhs.typ {
 			case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
@@ -402,9 +477,47 @@ func compileCompareRelative(node ast.BinaryExpression) (NativeEvaluator, error) 
 				result = 1
 			}
 
-			// XXX strings
-			// XXX ip, port, net
-			// XXX time, duration
+		case zng.IdString, zng.IdBstring:
+			if rhs.typ != zng.IdString && rhs.typ != zng.IdBstring {
+				return NativeValue{}, ErrIncompatibleTypes
+			}
+			lv := lhs.value.(string)
+			rv := rhs.value.(string)
+			if lv < rv {
+				result = -1
+			} else if lv == rv {
+				result = 0
+			} else {
+				result = 1
+			}
+
+		case zng.IdTime:
+			if rhs.typ != zng.IdTime {
+				return NativeValue{}, ErrIncompatibleTypes
+			}
+			lv := lhs.value.(nano.Ts)
+			rv := rhs.value.(nano.Ts)
+			if lv < rv {
+				result = -1
+			} else if lv == rv {
+				result = 0
+			} else {
+				result = 1
+			}
+
+		case zng.IdDuration:
+			if rhs.typ != zng.IdDuration {
+				return NativeValue{}, ErrIncompatibleTypes
+			}
+			lv := lhs.value.(int64)
+			rv := rhs.value.(int64)
+			if lv < rv {
+				result = -1
+			} else if lv == rv {
+				result = 0
+			} else {
+				result = 1
+			}
 
 		default:
 			return NativeValue{}, ErrIncompatibleTypes
@@ -571,7 +684,11 @@ func compileArithmetic(node ast.BinaryExpression) (NativeEvaluator, error) {
 			}
 			return NativeValue{t, lhs.value.(string) + rhs.value.(string)}, nil
 
-		// XXX add time, duration, port?
+		case zng.IdTime:
+			if rhs.typ != zng.IdDuration || (node.Operator != "+" && node.Operator != "-") {
+				return NativeValue{}, ErrIncompatibleTypes
+			}
+			return NativeValue{zng.IdTime, lhs.value.(nano.Ts).Add(rhs.value.(int64))}, nil
 
 		default:
 			return NativeValue{}, ErrIncompatibleTypes
