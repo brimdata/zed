@@ -13,7 +13,11 @@ type Core struct {
 	// The exact path of the zeek executable. If this is an empty string zeek
 	// will be located from $PATH. This is needed in the
 	// POST /space/:space/packet endpoint.
-	ZeekExec  string
+	ZeekExec string
+	// SortLimit specifies the limit of logs in posted pcap to sort. Its
+	// existence is only as a hook for testing.  Eventually zqd will sort an
+	// unlimited amount of logs and this can be taken out.
+	SortLimit int
 	taskCount int64
 }
 
