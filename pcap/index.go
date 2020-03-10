@@ -21,8 +21,13 @@ type Section struct {
 	Index  ranger.Envelope
 }
 
-// CreateIndex creates an index for a pcap file.
-func CreateIndex(reader pcapio.Reader, limit int) (Index, error) {
+// CreateIndex creates an index for a pcap presented as an io.Reader.
+// The size parameter indicates how many bins the index should contain.
+func CreateIndex(r io.Reader, size int) (Index, error) {
+	reader, err := pcapio.NewReader(r)
+	if err != nil {
+		return nil, err
+	}
 	var offsets []ranger.Point
 	var index Index
 	var section *Section
@@ -63,7 +68,7 @@ func CreateIndex(reader pcapio.Reader, limit int) (Index, error) {
 				return nil, errors.New("packets found without section header")
 			}
 			if section != nil && offsets != nil {
-				section.Index = ranger.NewEnvelope(offsets, limit)
+				section.Index = ranger.NewEnvelope(offsets, size)
 				index = append(index, *section)
 			}
 			slice := slicer.Slice{
@@ -78,7 +83,7 @@ func CreateIndex(reader pcapio.Reader, limit int) (Index, error) {
 	}
 	// end last section
 	if section != nil && offsets != nil {
-		section.Index = ranger.NewEnvelope(offsets, limit)
+		section.Index = ranger.NewEnvelope(offsets, size)
 		index = append(index, *section)
 	}
 	if len(index) == 0 {

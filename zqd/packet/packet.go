@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/pcap"
-	"github.com/brimsec/zq/pcap/pcapio"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
@@ -150,11 +149,7 @@ func (p *IngestProcess) indexPcap() error {
 		return err
 	}
 	defer pcapfile.Close()
-	pcapreader, err := pcapio.NewReader(pcapfile)
-	if err != nil {
-		return err
-	}
-	idx, err := pcap.CreateIndex(pcapreader, 10000)
+	idx, err := pcap.CreateIndex(pcapfile, 10000)
 	if err != nil {
 		return err
 	}

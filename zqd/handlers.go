@@ -80,12 +80,12 @@ func handlePacketSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	defer f.Close()
 	slicer, err := pcap.NewSlicer(f, index, req.Span)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	pcapReader, err := pcapio.NewReader(slicer)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 

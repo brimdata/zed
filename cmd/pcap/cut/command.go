@@ -21,9 +21,15 @@ var Cut = &charm.Spec{
 	Short: "extract a pcap using index slices",
 	Long: `
 The cut command produces an output pcap from an input pcap by selecting
-the indicated packets from the input.  Each selected slice is expressed as
+the indicated packets from the input.  The input format is unmodified as
+the output is created by simply extracting verbatim the relevant ranges of
+the input pcap.
+
+Each selected slice is expressed as
 an index or index range, e.g., "10" is the packet 10 in the input (starting from 0),
 "3:5" is packets 3 and 4, "8:5" is packets 8, 7, and 6, and so forth.
+
+For pcap-ng input, the cuts are applied to each section.
 
 This command isn't all that useful in practice but is nice for creating
 test inputs for the slice and index commands.
