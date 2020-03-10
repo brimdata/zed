@@ -4,7 +4,7 @@ import (
 	"flag"
 	"net"
 	"net/http"
-	_ "net/http/pprof"
+	"net/http/pprof"
 	"path/filepath"
 
 	"github.com/brimsec/zq/cmd/zqd/root"
@@ -32,6 +32,7 @@ type Command struct {
 	listenAddr string
 	dataDir    string
 	zeekExec   string
+	pprof      bool
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -39,7 +40,19 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.listenAddr, "l", ":9867", "[addr]:port to listen on")
 	f.StringVar(&c.dataDir, "datadir", ".", "data directory")
 	f.StringVar(&c.zeekExec, "zeekpath", "", "path to the zeek executable to use (defaults to zeek in $PATH)")
+	f.BoolVar(&c.pprof, "pprof", false, "add pprof routes to api")
 	return c, nil
+}
+
+func (c *Command) pprofHandlers(h http.Handler) http.Handler {
+	mux := http.NewServeMux()
+	mux.Handle("/", h)
+	mux.HandleFunc("/debug/pprof/", pprof.Index)
+	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	return mux
 }
 
 func (c *Command) Run(args []string) error {
@@ -49,7 +62,10 @@ func (c *Command) Run(args []string) error {
 	}
 	logger := newLogger()
 	core := &zqd.Core{Root: dataDir, ZeekExec: c.zeekExec}
-	http.Handle("/", zqd.NewHandler(core))
+	h := zqd.NewHandler(core)
+	if c.pprof {
+		h = c.pprofHandlers(h)
+	}
 	ln, err := net.Listen("tcp", c.listenAddr)
 	if err != nil {
 		return err
@@ -57,8 +73,9 @@ func (c *Command) Run(args []string) error {
 	logger.Info("Listening",
 		zap.String("addr", ln.Addr().String()),
 		zap.String("datadir", dataDir),
+		zap.Bool("pprof_routes", c.pprof),
 	)
-	return http.Serve(ln, nil)
+	return http.Serve(ln, h)
 }
 
 func newLogger() *zap.Logger {
