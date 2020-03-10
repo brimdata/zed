@@ -55,12 +55,15 @@ func TestPacketPostSuccess(t *testing.T) {
 		require.FileExists(t, filepath.Join(p.core.Root, p.space, packet.IndexFile))
 	})
 	t.Run("ResponseMessages", func(t *testing.T) {
+	t.Run("StatusMessage", func(t *testing.T) {
 		info, err := os.Stat(p.pcapfile)
 		require.NoError(t, err)
 		status := p.payloads[1].(*api.PacketPostStatus)
 		assert.Equal(t, status.Type, "PacketPostStatus")
 		assert.Equal(t, status.PacketSize, info.Size())
 		assert.Equal(t, status.PacketReadSize, info.Size())
+		assert.Equal(t, nano.Unix(1501770877, 471635000), *status.MinTime)
+		assert.Equal(t, nano.Unix(1501770880, 988247000), *status.MaxTime)
 	})
 }
 
