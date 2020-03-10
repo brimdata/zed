@@ -81,6 +81,14 @@ func testSuccessful(t *testing.T, e string, record *zng.Record, expect zng.Value
 	})
 }
 
+func testError(t *testing.T, e string, record *zng.Record, expectErr error, description string) {
+	t.Run(description, func(t *testing.T) {
+		_, err := evaluate(e, record)
+		assert.Errorf(t, err, "got error when %s", description)
+		assert.Equalf(t, expectErr, err, "got correct error when %s", description)
+	})
+}
+
 func zbool(b bool) zng.Value {
 	return zng.Value{zng.TypeBool, zng.EncodeBool(b)}
 }
@@ -118,15 +126,15 @@ func TestPrimitives(t *testing.T) {
 	// Test simple literals
 	testSuccessful(t, "50", record, zint64(50))
 	testSuccessful(t, "3.14", record, zfloat64(3.14))
+	testSuccessful(t, `"boo"`, record, zstring("boo"))
 
 	// Test good field references
 	testSuccessful(t, "x", record, zint32(10))
 	testSuccessful(t, "f", record, zfloat64(2.5))
 	testSuccessful(t, "s", record, zstring("hello"))
 
-	// Test bad field references
-	_, err = evaluate("doesnexist", record)
-	assert.Error(t, err, expr.ErrNoSuchField, "referencing non-existent field gave the correct error")
+	// Test bad field reference
+	testError(t, "doesnexist", record, expr.ErrNoSuchField, "referencing non-existent field")
 }
 
 func TestLogical(t *testing.T) {
@@ -215,6 +223,7 @@ func TestCompareEquality(t *testing.T) {
 	// testSuccessful(t, "f = u32", record, zbool(false))
 	// testSuccessful(t, "f != u32", record, zbool(true))
 
+	// strings
 	testSuccessful(t, `s = "hello"`, record, zbool(true))
 	testSuccessful(t, `s != "hello"`, record, zbool(false))
 	testSuccessful(t, `s = "world"`, record, zbool(false))
@@ -226,7 +235,56 @@ func TestCompareEquality(t *testing.T) {
 	testSuccessful(t, "s = bs", record, zbool(false))
 	testSuccessful(t, "s != bs", record, zbool(true))
 
-	// XXX add ip, port, net, time, duration
+	// ip
+	testSuccessful(t, "i = 10.1.1.1", record, zbool(true))
+	testSuccessful(t, "i != 10.1.1.1", record, zbool(false))
+	testSuccessful(t, "i = 1.1.1.10", record, zbool(false))
+	testSuccessful(t, "i != 1.1.1.10", record, zbool(true))
+	testSuccessful(t, "i = i", record, zbool(true))
+
+	// port
+	testSuccessful(t, "p = 443", record, zbool(true))
+	testSuccessful(t, "p != 443", record, zbool(false))
+	testSuccessful(t, "p = u16", record, zbool(false))
+	testSuccessful(t, "p != u16", record, zbool(true))
+
+	// net
+	testSuccessful(t, "net = 10.1.0.0/16", record, zbool(true))
+	testSuccessful(t, "net != 10.1.0.0/16", record, zbool(false))
+	testSuccessful(t, "net = 10.1.0.0/24", record, zbool(false))
+	testSuccessful(t, "net != 10.1.0.0/24", record, zbool(true))
+
+	// Test comparisons between incompatible types
+	testError(t, "b = i32", record, expr.ErrIncompatibleTypes, "comparing bool vs integer")
+	testError(t, "b = s", record, expr.ErrIncompatibleTypes, "comparing bool vs string")
+	testError(t, "b = i", record, expr.ErrIncompatibleTypes, "comparing bool vs ip")
+	testError(t, "b = net", record, expr.ErrIncompatibleTypes, "comparing bool vs net")
+	testError(t, "b = p", record, expr.ErrIncompatibleTypes, "comparing bool vs port")
+	testError(t, "b = t", record, expr.ErrIncompatibleTypes, "comparing bool vs time")
+	testError(t, "b = d", record, expr.ErrIncompatibleTypes, "comparing bool vs duration")
+
+	testError(t, "i32 = s", record, expr.ErrIncompatibleTypes, "comparing integer vs string")
+	testError(t, "i32 = i", record, expr.ErrIncompatibleTypes, "comparing integer vs ip")
+	testError(t, "i32 = net", record, expr.ErrIncompatibleTypes, "comparing integer vs net")
+
+	testError(t, "s = i", record, expr.ErrIncompatibleTypes, "comparing string vs ip")
+	testError(t, "s = net", record, expr.ErrIncompatibleTypes, "comparing string vs net")
+	testError(t, "s = p", record, expr.ErrIncompatibleTypes, "comparing string vs port")
+	testError(t, "s = t", record, expr.ErrIncompatibleTypes, "comparing string vs time")
+	testError(t, "s = d", record, expr.ErrIncompatibleTypes, "comparing string vs duration")
+
+	testError(t, "i = net", record, expr.ErrIncompatibleTypes, "comparing ip vs net")
+	testError(t, "i = p", record, expr.ErrIncompatibleTypes, "comparing ip vs port")
+	testError(t, "i = t", record, expr.ErrIncompatibleTypes, "comparing ip vs time")
+	testError(t, "i = d", record, expr.ErrIncompatibleTypes, "comparing ip vs duration")
+
+	testError(t, "net = p", record, expr.ErrIncompatibleTypes, "comparing net vs port")
+	testError(t, "net = t", record, expr.ErrIncompatibleTypes, "comparing net vs time")
+	testError(t, "net = d", record, expr.ErrIncompatibleTypes, "comparing net vs duration")
+
+	testError(t, "p = t", record, expr.ErrIncompatibleTypes, "comparing port vs time")
+	testError(t, "p = d", record, expr.ErrIncompatibleTypes, "comparing port vs duration")
+	testError(t, "t = d", record, expr.ErrIncompatibleTypes, "comparing time vs duration")
 }
 
 func TestCompareRelative(t *testing.T) {
@@ -282,9 +340,47 @@ func TestCompareRelative(t *testing.T) {
 		}
 	}
 
-	// XXX strings
+	// strings
+	record, err = parseOneRecord(`
+#0:record[s:string,bs:bstring]
+0:[abc;def;]`)
+	require.NoError(t, err)
+
+	testSuccessful(t, `s < "brim"`, record, zbool(true))
+	testSuccessful(t, `s < "aaa"`, record, zbool(false))
+	testSuccessful(t, `s < "abc"`, record, zbool(false))
+
+	testSuccessful(t, `s > "brim"`, record, zbool(false))
+	testSuccessful(t, `s > "aaa"`, record, zbool(true))
+	testSuccessful(t, `s > "abc"`, record, zbool(false))
+
+	testSuccessful(t, `s <= "brim"`, record, zbool(true))
+	testSuccessful(t, `s <= "aaa"`, record, zbool(false))
+	testSuccessful(t, `s <= "abc"`, record, zbool(true))
+
+	testSuccessful(t, `s >= "brim"`, record, zbool(false))
+	testSuccessful(t, `s >= "aaa"`, record, zbool(true))
+	testSuccessful(t, `s >= "abc"`, record, zbool(true))
+
+	testSuccessful(t, `bs < "security"`, record, zbool(true))
+	testSuccessful(t, `bs < "aaa"`, record, zbool(false))
+	testSuccessful(t, `bs < "def"`, record, zbool(false))
+
+	testSuccessful(t, `bs > "security"`, record, zbool(false))
+	testSuccessful(t, `bs > "aaa"`, record, zbool(true))
+	testSuccessful(t, `bs > "def"`, record, zbool(false))
+
+	testSuccessful(t, `bs <= "security"`, record, zbool(true))
+	testSuccessful(t, `bs <= "aaa"`, record, zbool(false))
+	testSuccessful(t, `bs <= "def"`, record, zbool(true))
+
+	testSuccessful(t, `bs >= "security"`, record, zbool(false))
+	testSuccessful(t, `bs >= "aaa"`, record, zbool(true))
+	testSuccessful(t, `bs >= "def"`, record, zbool(true))
 
 	// XXX port, ip, net, time, duration
+
+	// XXX mismatched types
 }
 
 func TestArithmetic(t *testing.T) {
@@ -333,15 +429,11 @@ func TestArithmetic(t *testing.T) {
 	testSuccessful(t, "f/x", record, zfloat64(0.25))
 
 	// Test that addition fails on an unsupported type
-	_, err = evaluate("i + 1", record)
-	assert.Error(t, err, expr.ErrIncompatibleTypes, "adding incompatible types gave the correct error")
+	testError(t, "i + 1", record, expr.ErrIncompatibleTypes, "adding incompatible types")
+	testError(t, "x + i", record, expr.ErrIncompatibleTypes, "adding incompatible types")
+	testError(t, "f + i", record, expr.ErrIncompatibleTypes, "adding incompatible types")
 
-	_, err = evaluate("x + i", record)
-	assert.Error(t, err, expr.ErrIncompatibleTypes, "adding incompatible types gave the correct error")
-
-	_, err = evaluate("f + i", record)
-	assert.Error(t, err, expr.ErrIncompatibleTypes, "adding incompatible types gave the correct error")
-
+	// Test strings
 	record, err = parseOneRecord(`
 #0:record[s:string]
 0:[hello;]`)
@@ -351,12 +443,7 @@ func TestArithmetic(t *testing.T) {
 	testSuccessful(t, `s + " world"`, record, zstring("hello world"))
 
 	// Test string arithmetic other than + fails
-	_, err = evaluate(`s - " world"`, record)
-	assert.Error(t, err, expr.ErrIncompatibleTypes, "subtracting strings gave the correct error")
-
-	_, err = evaluate(`s * " world"`, record)
-	assert.Error(t, err, expr.ErrIncompatibleTypes, "multiplying strings gave the correct error")
-
-	_, err = evaluate(`s / " world"`, record)
-	assert.Error(t, err, expr.ErrIncompatibleTypes, "dividing strings gave the correct error")
+	testError(t, `s - " world"`, record, expr.ErrIncompatibleTypes, "subtracting strings")
+	testError(t, `s * " world"`, record, expr.ErrIncompatibleTypes, "multiplying strings")
+	testError(t, `s / " world"`, record, expr.ErrIncompatibleTypes, "dividing strings")
 }

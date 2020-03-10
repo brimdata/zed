@@ -22,25 +22,6 @@ type NativeValue struct {
 
 type NativeEvaluator func(*zng.Record) (NativeValue, error)
 
-// CompileExpr tries to compile the given Expression into a function
-// that evalutes the expression against a provided Record.  Returns an
-// error if compilation fails for any reason.
-func CompileExpr(node ast.Expression) (ExpressionEvaluator, error) {
-	ne, err := compileNative(node)
-	if err != nil {
-		return nil, err
-	}
-
-	return func(rec *zng.Record) (zng.Value, error) {
-		nv, err := ne(rec)
-		if err != nil {
-			return zng.Value{}, err
-		}
-
-		return nv.toZngValue()
-	}, nil
-}
-
 func toNativeValue(zv zng.Value) (NativeValue, error) {
 	switch zv.Type.ID() {
 	case zng.IdBool:
@@ -204,6 +185,25 @@ func (v *NativeValue) toZngValue() (zng.Value, error) {
 	}
 }
 
+// CompileExpr tries to compile the given Expression into a function
+// that evalutes the expression against a provided Record.  Returns an
+// error if compilation fails for any reason.
+func CompileExpr(node ast.Expression) (ExpressionEvaluator, error) {
+	ne, err := compileNative(node)
+	if err != nil {
+		return nil, err
+	}
+
+	return func(rec *zng.Record) (zng.Value, error) {
+		nv, err := ne(rec)
+		if err != nil {
+			return zng.Value{}, err
+		}
+
+		return nv.toZngValue()
+	}, nil
+}
+
 func compileNative(node ast.Expression) (NativeEvaluator, error) {
 	switch n := node.(type) {
 	case *ast.Literal:
@@ -231,15 +231,23 @@ func compileNative(node ast.Expression) (NativeEvaluator, error) {
 		}, nil
 
 	case *ast.BinaryExpression:
+		lhsFunc, err := compileNative(n.LHS)
+		if err != nil {
+			return nil, err
+		}
+		rhsFunc, err := compileNative(n.RHS)
+		if err != nil {
+			return nil, err
+		}
 		switch n.Operator {
 		case "AND", "OR":
-			return compileLogical(*n)
+			return compileLogical(lhsFunc, rhsFunc, n.Operator)
 		case "=", "!=":
-			return compileCompareEquality(*n)
+			return compileCompareEquality(lhsFunc, rhsFunc, n.Operator)
 		case "<", "<=", ">", ">=":
-			return compileCompareRelative(*n)
+			return compileCompareRelative(lhsFunc, rhsFunc, n.Operator)
 		case "+", "-", "*", "/":
-			return compileArithmetic(*n)
+			return compileArithmetic(lhsFunc, rhsFunc, n.Operator)
 		default:
 			return nil, fmt.Errorf("invalid binary operator %s", n.Operator)
 		}
@@ -249,15 +257,7 @@ func compileNative(node ast.Expression) (NativeEvaluator, error) {
 	}
 }
 
-func compileLogical(node ast.BinaryExpression) (NativeEvaluator, error) {
-	lhsFunc, err := compileNative(node.LHS)
-	if err != nil {
-		return nil, err
-	}
-	rhsFunc, err := compileNative(node.RHS)
-	if err != nil {
-		return nil, err
-	}
+func compileLogical(lhsFunc, rhsFunc NativeEvaluator, operator string) (NativeEvaluator, error) {
 	return func(rec *zng.Record) (NativeValue, error) {
 		lhs, err := lhsFunc(rec)
 		if err != nil {
@@ -268,7 +268,7 @@ func compileLogical(node ast.BinaryExpression) (NativeEvaluator, error) {
 		}
 
 		lv := lhs.value.(bool)
-		switch node.Operator {
+		switch operator {
 		case "AND":
 			if !lv {
 				return lhs, nil
@@ -293,15 +293,7 @@ func compileLogical(node ast.BinaryExpression) (NativeEvaluator, error) {
 	}, nil
 }
 
-func compileCompareEquality(node ast.BinaryExpression) (NativeEvaluator, error) {
-	lhsFunc, err := compileNative(node.LHS)
-	if err != nil {
-		return nil, err
-	}
-	rhsFunc, err := compileNative(node.RHS)
-	if err != nil {
-		return nil, err
-	}
+func compileCompareEquality(lhsFunc, rhsFunc NativeEvaluator, operator string) (NativeEvaluator, error) {
 	return func(rec *zng.Record) (NativeValue, error) {
 		lhs, err := lhsFunc(rec)
 		if err != nil {
@@ -387,7 +379,7 @@ func compileCompareEquality(node ast.BinaryExpression) (NativeEvaluator, error) 
 			return NativeValue{}, ErrIncompatibleTypes
 		}
 
-		switch node.Operator {
+		switch operator {
 		case "=":
 			return NativeValue{zng.IdBool, equal}, nil
 		case "!=":
@@ -398,15 +390,7 @@ func compileCompareEquality(node ast.BinaryExpression) (NativeEvaluator, error) 
 	}, nil
 }
 
-func compileCompareRelative(node ast.BinaryExpression) (NativeEvaluator, error) {
-	lhsFunc, err := compileNative(node.LHS)
-	if err != nil {
-		return nil, err
-	}
-	rhsFunc, err := compileNative(node.RHS)
-	if err != nil {
-		return nil, err
-	}
+func compileCompareRelative(lhsFunc, rhsFunc NativeEvaluator, operator string) (NativeEvaluator, error) {
 	return func(rec *zng.Record) (NativeValue, error) {
 		lhs, err := lhsFunc(rec)
 		if err != nil {
@@ -523,7 +507,7 @@ func compileCompareRelative(node ast.BinaryExpression) (NativeEvaluator, error) 
 			return NativeValue{}, ErrIncompatibleTypes
 		}
 
-		switch node.Operator {
+		switch operator {
 		case "<":
 			return NativeValue{zng.IdBool, result < 0}, nil
 		case "<=":
@@ -540,15 +524,7 @@ func compileCompareRelative(node ast.BinaryExpression) (NativeEvaluator, error) 
 
 // compileArithmetic compiles an expression of the form "expr1 op expr2"
 // for the arithmetic operators +, -, *, /
-func compileArithmetic(node ast.BinaryExpression) (NativeEvaluator, error) {
-	lhsFunc, err := compileNative(node.LHS)
-	if err != nil {
-		return nil, err
-	}
-	rhsFunc, err := compileNative(node.RHS)
-	if err != nil {
-		return nil, err
-	}
+func compileArithmetic(lhsFunc, rhsFunc NativeEvaluator, operator string) (NativeEvaluator, error) {
 	return func(rec *zng.Record) (NativeValue, error) {
 		lhs, err := lhsFunc(rec)
 		if err != nil {
@@ -566,7 +542,7 @@ func compileArithmetic(node ast.BinaryExpression) (NativeEvaluator, error) {
 			switch rhs.typ {
 			case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
 				v2 := rhs.value.(uint64)
-				switch node.Operator {
+				switch operator {
 				case "+":
 					v += v2
 				case "-":
@@ -583,7 +559,7 @@ func compileArithmetic(node ast.BinaryExpression) (NativeEvaluator, error) {
 			case zng.IdFloat64:
 				var r float64
 				v2 := rhs.value.(float64)
-				switch node.Operator {
+				switch operator {
 				case "+":
 					r = float64(v) + v2
 				case "-":
@@ -607,7 +583,7 @@ func compileArithmetic(node ast.BinaryExpression) (NativeEvaluator, error) {
 			switch rhs.typ {
 			case zng.IdInt16, zng.IdInt32, zng.IdInt64:
 				v2 := rhs.value.(int64)
-				switch node.Operator {
+				switch operator {
 				case "+":
 					v += v2
 				case "-":
@@ -624,7 +600,7 @@ func compileArithmetic(node ast.BinaryExpression) (NativeEvaluator, error) {
 			case zng.IdFloat64:
 				var r float64
 				v2 := rhs.value.(float64)
-				switch node.Operator {
+				switch operator {
 				case "+":
 					r = float64(v) + v2
 				case "-":
@@ -660,7 +636,7 @@ func compileArithmetic(node ast.BinaryExpression) (NativeEvaluator, error) {
 				return NativeValue{}, ErrIncompatibleTypes
 			}
 
-			switch node.Operator {
+			switch operator {
 			case "+":
 				v += v2
 			case "-":
@@ -675,7 +651,7 @@ func compileArithmetic(node ast.BinaryExpression) (NativeEvaluator, error) {
 			return NativeValue{zng.IdFloat64, v}, nil
 
 		case zng.IdString, zng.IdBstring:
-			if node.Operator != "+" {
+			if operator != "+" {
 				return NativeValue{}, ErrIncompatibleTypes
 			}
 			t := zng.IdBstring
@@ -685,7 +661,7 @@ func compileArithmetic(node ast.BinaryExpression) (NativeEvaluator, error) {
 			return NativeValue{t, lhs.value.(string) + rhs.value.(string)}, nil
 
 		case zng.IdTime:
-			if rhs.typ != zng.IdDuration || (node.Operator != "+" && node.Operator != "-") {
+			if rhs.typ != zng.IdDuration || (operator != "+" && operator != "-") {
 				return NativeValue{}, ErrIncompatibleTypes
 			}
 			return NativeValue{zng.IdTime, lhs.value.(nano.Ts).Add(rhs.value.(int64))}, nil
