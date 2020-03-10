@@ -4,6 +4,7 @@ import (
 	"flag"
 	"net"
 	"net/http"
+	_ "net/http/pprof"
 	"path/filepath"
 
 	"github.com/brimsec/zq/cmd/zqd/root"
@@ -48,7 +49,7 @@ func (c *Command) Run(args []string) error {
 	}
 	logger := newLogger()
 	core := &zqd.Core{Root: dataDir, ZeekExec: c.zeekExec}
-	handler := zqd.NewHandler(core)
+	http.Handle("/", zqd.NewHandler(core))
 	ln, err := net.Listen("tcp", c.listenAddr)
 	if err != nil {
 		return err
@@ -57,7 +58,7 @@ func (c *Command) Run(args []string) error {
 		zap.String("addr", ln.Addr().String()),
 		zap.String("datadir", dataDir),
 	)
-	return http.Serve(ln, handler)
+	return http.Serve(ln, nil)
 }
 
 func newLogger() *zap.Logger {
