@@ -76,7 +76,7 @@ func TestPacketPostSuccess(t *testing.T) {
 }
 
 func TestPacketPostInvalidPcap(t *testing.T) {
-	p := packetPost(t, zeekpath, "./testdata/invalid.pcap", 500)
+	p := packetPost(t, zeekpath, "./testdata/invalid.pcap", 400)
 	defer p.cleanup()
 	t.Run("ErrorMessage", func(t *testing.T) {
 		// XXX Better error message here.
