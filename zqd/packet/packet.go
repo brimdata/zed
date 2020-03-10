@@ -1,13 +1,16 @@
 package packet
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -63,7 +66,10 @@ func IngestFile(ctx context.Context, s *space.Space, pcap, zeekExec string) (*In
 	}
 	zeekExec, err = exec.LookPath(zeekExec)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, errors.New("zeek not found")
+		}
+		return nil, fmt.Errorf("error starting zeek: %w", err)
 	}
 	p := &IngestProcess{
 		StartTime: nano.Now(),
@@ -187,6 +193,12 @@ func (p *IngestProcess) slurp(ctx context.Context) error {
 		return err
 	}
 	if err := zeekproc.Wait(); err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			stderr := zeekproc.Stderr.(*bytes.Buffer).String()
+			stderr = strings.TrimSpace(stderr)
+			return fmt.Errorf("zeek exited with status %d: %s", exitErr.ExitCode(), stderr)
+		}
 		return err
 	}
 	return nil
@@ -281,6 +293,8 @@ func (p *IngestProcess) startZeek(ctx context.Context, dir string) (*exec.Cmd, i
 	if err != nil {
 		return nil, nil, err
 	}
+	// capture stderr
+	cmd.Stderr = bytes.NewBuffer(nil)
 	return cmd, w, cmd.Start()
 }
 

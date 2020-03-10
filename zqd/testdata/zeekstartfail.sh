@@ -1,2 +1,3 @@
 #!/usr/bin/env bash
-exit 2
+echo "failed to start" 1>&2
+exit 1

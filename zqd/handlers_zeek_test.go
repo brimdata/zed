@@ -82,10 +82,8 @@ func TestPacketPostZeekFailImmediate(t *testing.T) {
 			Type:   "TaskEnd",
 			TaskID: 1,
 			Error: &api.Error{
-				Type: "Error",
-				// XXX This is not an informative failure message. Will fix in
-				// followup pr.
-				Message: "exit status 2",
+				Type:    "Error",
+				Message: "zeek exited with status 1: failed to start",
 			},
 		}
 		last := p.payloads[len(p.payloads)-1]
@@ -102,10 +100,8 @@ func TestPacketPostZeekFailAfterWrite(t *testing.T) {
 			Type:   "TaskEnd",
 			TaskID: 1,
 			Error: &api.Error{
-				Type: "Error",
-				// XXX This is not an informative failure message. Will fix in
-				// followup pr.
-				Message: "exit status 1",
+				Type:    "Error",
+				Message: "zeek exited with status 1: exit after writing logs",
 			},
 		}
 		last := p.payloads[len(p.payloads)-1]
@@ -119,6 +115,14 @@ func TestPacketPostZeekFailAfterWrite(t *testing.T) {
 			Name: p.space,
 		}
 		require.Equal(t, expected, info)
+	})
+}
+
+func TestPacketPostZeekNotFound(t *testing.T) {
+	exec := abspath(t, filepath.Join("testdata", "zeekdoesnotexist.sh"))
+	p := packetPost(t, exec, "./testdata/valid.pcap", 500)
+	t.Run("ErrorMessage", func(t *testing.T) {
+		require.Regexp(t, "zeek not found", string(p.body))
 	})
 }
 
