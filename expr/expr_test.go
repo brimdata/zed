@@ -2,6 +2,7 @@ package expr_test
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -75,8 +76,8 @@ func testSuccessful(t *testing.T, e string, record *zng.Record, expect zng.Value
 		result, err := evaluate(e, record)
 		require.NoError(t, err)
 
-		assert.Equal(t, result.Type, expect.Type, "result type is correct")
-		assert.Equal(t, result.Bytes, expect.Bytes, "result value is correct")
+		assert.Equal(t, expect.Type, result.Type, "result type is correct")
+		assert.Equal(t, expect.Bytes, result.Bytes, "result value is correct")
 	})
 }
 
@@ -96,17 +97,22 @@ func zfloat64(f float64) zng.Value {
 	return zng.Value{zng.TypeFloat64, zng.EncodeFloat64(f)}
 }
 
+func zstring(s string) zng.Value {
+	return zng.Value{zng.TypeString, zng.EncodeString(s)}
+}
+
 func TestExpressions(t *testing.T) {
 	TestPrimitives(t)
 	TestLogical(t)
+	TestCompareEquality(t)
+	TestCompareRelative(t)
 	TestArithmetic(t)
-	// XXX test comparisons (equality + relative)
 }
 
 func TestPrimitives(t *testing.T) {
 	record, err := parseOneRecord(`
-#0:record[x:int32,f:float64,i:ip]
-0:[10;2.5;10.1.1.1;]`)
+#0:record[x:int32,f:float64,s:string]
+0:[10;2.5;hello;]`)
 	require.NoError(t, err)
 
 	// Test simple literals
@@ -116,10 +122,10 @@ func TestPrimitives(t *testing.T) {
 	// Test good field references
 	testSuccessful(t, "x", record, zint32(10))
 	testSuccessful(t, "f", record, zfloat64(2.5))
+	testSuccessful(t, "s", record, zstring("hello"))
 
 	// Test bad field references
 	_, err = evaluate("doesnexist", record)
-	assert.Error(t, err, "referencing non-existent field gave an error")
 	assert.Error(t, err, expr.ErrNoSuchField, "referencing non-existent field gave the correct error")
 }
 
@@ -138,12 +144,147 @@ func TestLogical(t *testing.T) {
 	testSuccessful(t, "t OR f", record, zbool(true))
 	testSuccessful(t, "f OR t", record, zbool(true))
 	testSuccessful(t, "f OR f", record, zbool(false))
+}
 
-	// XXX associativity?
+func TestCompareEquality(t *testing.T) {
+	record, err := parseOneRecord(`
+#0:record[b:bool,u8:byte,i16:int16,u16:uint16,i32:int32,u32:uint32,i64:int64,u64:uint64,f:float64,s:string,bs:bstring,i:ip,p:port,net:net,t:time,d:duration]
+0:[t;0;1;2;3;4;5;6;7.5;hello;world;10.1.1.1;443;10.1.0.0/16;1583794452;1000;]`)
+	require.NoError(t, err)
+
+	testSuccessful(t, "b = true", record, zbool(true))
+	testSuccessful(t, "b = false", record, zbool(false))
+	testSuccessful(t, "b != true", record, zbool(false))
+	testSuccessful(t, "b != false", record, zbool(true))
+
+	testSuccessful(t, "u8 = 0", record, zbool(true))
+	testSuccessful(t, "u8 = 1", record, zbool(false))
+	testSuccessful(t, "u8 != 0", record, zbool(false))
+	testSuccessful(t, "u8 != 1", record, zbool(true))
+	testSuccessful(t, "u8 = i16", record, zbool(false))
+	testSuccessful(t, "u8 != i16", record, zbool(true))
+
+	testSuccessful(t, "i16 = 1", record, zbool(true))
+	testSuccessful(t, "i16 = 2", record, zbool(false))
+	testSuccessful(t, "i16 != 1", record, zbool(false))
+	testSuccessful(t, "i16 != 2", record, zbool(true))
+	testSuccessful(t, "i16 = i32", record, zbool(false))
+	testSuccessful(t, "i16 != i32", record, zbool(true))
+
+	testSuccessful(t, "u16 = 2", record, zbool(true))
+	testSuccessful(t, "u16 = 3", record, zbool(false))
+	testSuccessful(t, "u16 != 2", record, zbool(false))
+	testSuccessful(t, "u16 != 3", record, zbool(true))
+	testSuccessful(t, "u16 = u32", record, zbool(false))
+	testSuccessful(t, "u16 != u32", record, zbool(true))
+
+	testSuccessful(t, "i32 = 3", record, zbool(true))
+	testSuccessful(t, "i32 = 4", record, zbool(false))
+	testSuccessful(t, "i32 != 3", record, zbool(false))
+	testSuccessful(t, "i32 != 4", record, zbool(true))
+	testSuccessful(t, "i32 = i64", record, zbool(false))
+	testSuccessful(t, "i32 != i64", record, zbool(true))
+
+	testSuccessful(t, "u32 = 4", record, zbool(true))
+	testSuccessful(t, "u32 = 5", record, zbool(false))
+	testSuccessful(t, "u32 != 4", record, zbool(false))
+	testSuccessful(t, "u32 != 5", record, zbool(true))
+	testSuccessful(t, "u32 = u64", record, zbool(false))
+	testSuccessful(t, "u32 != u64", record, zbool(true))
+
+	testSuccessful(t, "i64 = 5", record, zbool(true))
+	testSuccessful(t, "i64 = 6", record, zbool(false))
+	testSuccessful(t, "i64 != 5", record, zbool(false))
+	testSuccessful(t, "i64 != 6", record, zbool(true))
+	testSuccessful(t, "i64 = i32", record, zbool(false))
+	testSuccessful(t, "i64 != i32", record, zbool(true))
+
+	testSuccessful(t, "u64 = 6", record, zbool(true))
+	testSuccessful(t, "u64 = 7", record, zbool(false))
+	testSuccessful(t, "u64 != 6", record, zbool(false))
+	testSuccessful(t, "u64 != 7", record, zbool(true))
+	testSuccessful(t, "u64 = u32", record, zbool(false))
+	testSuccessful(t, "u64 != u32", record, zbool(true))
+
+	testSuccessful(t, "f = 7.5", record, zbool(true))
+	testSuccessful(t, "f = 6.5", record, zbool(false))
+	testSuccessful(t, "f != 7.5", record, zbool(false))
+	testSuccessful(t, "f != 6.5", record, zbool(true))
+
+	// XXX compare float/int
+	// testSuccessful(t, "f = u32", record, zbool(false))
+	// testSuccessful(t, "f != u32", record, zbool(true))
+
+	testSuccessful(t, `s = "hello"`, record, zbool(true))
+	testSuccessful(t, `s != "hello"`, record, zbool(false))
+	testSuccessful(t, `s = "world"`, record, zbool(false))
+	testSuccessful(t, `s != "world"`, record, zbool(true))
+	testSuccessful(t, `bs = "world"`, record, zbool(true))
+	testSuccessful(t, `bs != "world"`, record, zbool(false))
+	testSuccessful(t, `bs = "hello"`, record, zbool(false))
+	testSuccessful(t, `bs != "hello"`, record, zbool(true))
+	testSuccessful(t, "s = bs", record, zbool(false))
+	testSuccessful(t, "s != bs", record, zbool(true))
+
+	// XXX add ip, port, net, time, duration
+}
+
+func TestCompareRelative(t *testing.T) {
+	record, err := parseOneRecord(`
+#0:record[u8a:byte,u8b:byte,i16a:int16,i16b:int16,u16a:uint16,u16b:uint16,i32a:int32,i32b:int32,u32a:uint32,u32b:uint32,i64a:int64,i64b:int64,u64a:uint64,u64b:uint64]
+0:[1;2;1;2;1;2;1;2;1;2;1;2;1;2;]`)
+	require.NoError(t, err)
+
+	types := []string{"u8", "i16", "u16", "i32", "u32", "i64", "u64"}
+	for _, t1 := range types {
+		for _, t2 := range types {
+			// For every pair of types, test:
+
+			// a < comparison that is true
+			exp := fmt.Sprintf("%sa < %sb", t1, t2)
+			testSuccessful(t, exp, record, zbool(true))
+
+			// a < comparison that is false
+			exp = fmt.Sprintf("%sb < %sa", t1, t2)
+			testSuccessful(t, exp, record, zbool(false))
+
+			// a <= comparison that is true (becuase <)
+			exp = fmt.Sprintf("%sa <= %sb", t1, t2)
+			testSuccessful(t, exp, record, zbool(true))
+
+			// a <= comparison that is false (because >)
+			exp = fmt.Sprintf("%sb <= %sa", record, zbool(false))
+
+			// a <= comparison that is true (because ==)
+			exp = fmt.Sprintf("%sa <= %sa", record, zbool(true))
+
+			// a > comparison that is true
+			exp = fmt.Sprintf("%sb > %sa", t1, t2)
+			testSuccessful(t, exp, record, zbool(true))
+
+			// a > comparison that is false
+			exp = fmt.Sprintf("%sa > %sb", t1, t2)
+			testSuccessful(t, exp, record, zbool(false))
+
+			// a >= comparison that is true (because >)
+			exp = fmt.Sprintf("%sb >= %sa", t1, t2)
+			testSuccessful(t, exp, record, zbool(true))
+
+			// a >= comparison that is false (because <)
+			exp = fmt.Sprintf("%sa >= %sb", t1, t2)
+			testSuccessful(t, exp, record, zbool(false))
+
+			// a >= comparison that is true (because ==)
+			exp = fmt.Sprintf("%sa >= %sa", t1, t2)
+			testSuccessful(t, exp, record, zbool(true))
+		}
+	}
+
+	// XXX strings, port, ip, net, time, duration
 }
 
 func TestArithmetic(t *testing.T) {
-	// XXX should test all primitive int types
+	// XXX should test combinations between all primitive int types
 	record, err := parseOneRecord(`
 #0:record[x:int32,f:float64,i:ip]
 0:[10;2.5;10.1.1.1;]`)
@@ -189,14 +330,29 @@ func TestArithmetic(t *testing.T) {
 
 	// Test that addition fails on an unsupported type
 	_, err = evaluate("i + 1", record)
-	assert.Error(t, err, "adding incompatible types gave an error")
 	assert.Error(t, err, expr.ErrIncompatibleTypes, "adding incompatible types gave the correct error")
 
 	_, err = evaluate("x + i", record)
-	assert.Error(t, err, "adding incompatible types gave an error")
 	assert.Error(t, err, expr.ErrIncompatibleTypes, "adding incompatible types gave the correct error")
 
 	_, err = evaluate("f + i", record)
-	assert.Error(t, err, "adding incompatible types gave an error")
 	assert.Error(t, err, expr.ErrIncompatibleTypes, "adding incompatible types gave the correct error")
+
+	record, err = parseOneRecord(`
+#0:record[s:string]
+0:[hello;]`)
+	require.NoError(t, err)
+
+	// Test string concatenation
+	testSuccessful(t, `s + " world"`, record, zstring("hello world"))
+
+	// Test string arithmetic other than + fails
+	_, err = evaluate(`s - " world"`, record)
+	assert.Error(t, err, expr.ErrIncompatibleTypes, "subtracting strings gave the correct error")
+
+	_, err = evaluate(`s * " world"`, record)
+	assert.Error(t, err, expr.ErrIncompatibleTypes, "multiplying strings gave the correct error")
+
+	_, err = evaluate(`s / " world"`, record)
+	assert.Error(t, err, expr.ErrIncompatibleTypes, "dividing strings gave the correct error")
 }

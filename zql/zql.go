@@ -3227,22 +3227,22 @@ var g = &grammar{
 					alternatives: []interface{}{
 						&litMatcher{
 							pos:        position{line: 441, col: 21, offset: 11150},
-							val:        "<",
-							ignoreCase: false,
-						},
-						&litMatcher{
-							pos:        position{line: 441, col: 27, offset: 11156},
 							val:        "<=",
 							ignoreCase: false,
 						},
 						&litMatcher{
-							pos:        position{line: 441, col: 34, offset: 11163},
-							val:        ">",
+							pos:        position{line: 441, col: 28, offset: 11157},
+							val:        "<",
 							ignoreCase: false,
 						},
 						&litMatcher{
-							pos:        position{line: 441, col: 40, offset: 11169},
+							pos:        position{line: 441, col: 34, offset: 11163},
 							val:        ">=",
+							ignoreCase: false,
+						},
+						&litMatcher{
+							pos:        position{line: 441, col: 41, offset: 11170},
+							val:        ">",
 							ignoreCase: false,
 						},
 					},

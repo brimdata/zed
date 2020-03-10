@@ -472,7 +472,7 @@ RelativeExpression
         RETURN(makeBinaryExprChain(first, rest))
     }
 
-RelativeOperator = ("<" / "<=" / ">" / ">=") { RETURN(TEXT) }
+RelativeOperator = ("<=" / "<" / ">=" / ">") { RETURN(TEXT) }
 
 AdditiveExpression
   = first:MultiplicativeExpression

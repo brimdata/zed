@@ -76,10 +76,24 @@ func toNativeValue(zv zng.Value) (NativeValue, error) {
 		}
 		return NativeValue{zv.Type.ID(), v}, nil
 
-	// XXX IdString, IdBstring, IdIP, IdPort, IdNet, IdTime, IdDuration
+	case zng.IdString:
+		s, err := zng.DecodeString(zv.Bytes)
+		if err != nil {
+			return NativeValue{}, err
+		}
+		return NativeValue{zv.Type.ID(), s}, nil
+
+	case zng.IdBstring:
+		s, err := zng.DecodeBstring(zv.Bytes)
+		if err != nil {
+			return NativeValue{}, err
+		}
+		return NativeValue{zv.Type.ID(), s}, nil
+
+	// XXX IdIP, IdPort, IdNet, IdTime, IdDuration
 
 	default:
-		return NativeValue{}, errors.New("unknown type")
+		return NativeValue{}, fmt.Errorf("unknown type %d", zv.Type.ID())
 	}
 
 }
@@ -122,7 +136,15 @@ func (v *NativeValue) toZngValue() (zng.Value, error) {
 		f := v.value.(float64)
 		return zng.Value{zng.TypeFloat64, zng.EncodeFloat64(f)}, nil
 
-		// XXX IdString, IdBstring, IdIP, IdPort, IdNet, IdTime, IdDuration
+	case zng.IdString:
+		s := v.value.(string)
+		return zng.Value{zng.TypeString, zng.EncodeString(s)}, nil
+
+	case zng.IdBstring:
+		s := v.value.(string)
+		return zng.Value{zng.TypeBstring, zng.EncodeBstring(s)}, nil
+
+	// XXX IdIP, IdPort, IdNet, IdTime, IdDuration
 
 	default:
 		return zng.Value{}, errors.New("XXX")
@@ -277,7 +299,12 @@ func compileCompareEquality(node ast.BinaryExpression) (NativeEvaluator, error) 
 			}
 			equal = lhs.value.(float64) == rhs.value.(float64)
 
-			// XXX strings
+		case zng.IdString, zng.IdBstring:
+			if rhs.typ != zng.IdString && rhs.typ != zng.IdBstring {
+				return NativeValue{}, ErrIncompatibleTypes
+			}
+			equal = lhs.value.(string) == rhs.value.(string)
+
 			// XXX ip, port, net
 			// XXX time, duration
 
@@ -419,7 +446,6 @@ func compileArithmetic(node ast.BinaryExpression) (NativeEvaluator, error) {
 			return NativeValue{}, err
 		}
 
-		// XXX what about time, duration, port?
 		switch lhs.typ {
 		case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
 			v := lhs.value.(uint64)
@@ -519,7 +545,6 @@ func compileArithmetic(node ast.BinaryExpression) (NativeEvaluator, error) {
 
 			default:
 				return NativeValue{}, ErrIncompatibleTypes
-
 			}
 
 			switch node.Operator {
@@ -536,10 +561,17 @@ func compileArithmetic(node ast.BinaryExpression) (NativeEvaluator, error) {
 			}
 			return NativeValue{zng.IdFloat64, v}, nil
 
-			/*
-				case zng.IdString, zng.IdBstring:
-					// XXX only handle if node.operator == "+"
-			*/
+		case zng.IdString, zng.IdBstring:
+			if node.Operator != "+" {
+				return NativeValue{}, ErrIncompatibleTypes
+			}
+			t := zng.IdBstring
+			if lhs.typ == zng.IdString || rhs.typ == zng.IdString {
+				t = zng.IdString
+			}
+			return NativeValue{t, lhs.value.(string) + rhs.value.(string)}, nil
+
+		// XXX add time, duration, port?
 
 		default:
 			return NativeValue{}, ErrIncompatibleTypes
