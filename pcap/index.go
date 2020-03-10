@@ -21,40 +21,77 @@ type Section struct {
 	Index  ranger.Envelope
 }
 
-// CreateIndex creates an index for a pcap file.  If the file isn't
-// a pcap file, an error is returned.
-func CreateIndex(r io.Reader, limit int) (Index, error) {
-	reader, err := pcapio.NewPcapReader(r) // XXX TBD: lookup the right reader
+// CreateIndex creates an index for a pcap presented as an io.Reader.
+// The size parameter indicates how many bins the index should contain.
+func CreateIndex(r io.Reader, size int) (Index, error) {
+	reader, err := pcapio.NewReader(r)
 	if err != nil {
 		return nil, err
 	}
 	var offsets []ranger.Point
+	var index Index
+	var section *Section
 	for {
 		off := reader.Offset()
-		data, info, err := reader.Read()
+		block, typ, err := reader.Read()
 		if err != nil {
+			if err == io.EOF {
+				break
+			}
 			return nil, err
 		}
-		if data == nil {
+		if block == nil {
 			break
 		}
-		y := uint64(info.Ts)
-		offsets = append(offsets, ranger.Point{X: off, Y: y})
+		switch typ {
+		default:
+			if section == nil {
+				return nil, errors.New("missing section header")
+			}
+			slice := slicer.Slice{
+				Offset: off,
+				Length: uint64(len(block)),
+			}
+			section.Blocks = append(section.Blocks, slice)
+
+		case pcapio.TypePacket:
+			pkt, ts, _ := reader.Packet(block)
+			if pkt == nil {
+				return nil, pcapio.ErrCorruptPcap
+			}
+			y := uint64(ts)
+			offsets = append(offsets, ranger.Point{X: off, Y: y})
+
+		case pcapio.TypeSection:
+			// end previous section and start a new one
+			if section == nil && offsets != nil {
+				return nil, errors.New("packets found without section header")
+			}
+			if section != nil && offsets != nil {
+				section.Index = ranger.NewEnvelope(offsets, size)
+				index = append(index, *section)
+			}
+			slice := slicer.Slice{
+				Offset: 0,
+				Length: uint64(len(block)),
+			}
+			section = &Section{
+				Blocks: []slicer.Slice{slice},
+			}
+			offsets = nil
+		}
 	}
-	n := len(offsets)
-	if n == 0 {
-		return nil, errors.New("no packets found")
+	// end last section
+	if section != nil && offsets != nil {
+		section.Index = ranger.NewEnvelope(offsets, size)
+		index = append(index, *section)
 	}
-	fileHeaderLen := uint64(24) // XXX this will go away in next PR
-	// legacy pcap file has just the file header at the start of the file
-	blocks := []slicer.Slice{{0, fileHeaderLen}}
-	return Index{
-		{
-			Blocks: blocks,
-			Index:  ranger.NewEnvelope(offsets, limit),
-		},
-	}, nil
+	if len(index) == 0 {
+		return nil, ErrNoPacketsFound
+	}
+	return index, nil
 }
+
 func LoadIndex(path string) (Index, error) {
 	b, err := ioutil.ReadFile(path)
 	if err != nil {

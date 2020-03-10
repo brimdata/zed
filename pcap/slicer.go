@@ -1,7 +1,6 @@
 package pcap
 
 import (
-	"errors"
 	"os"
 
 	"github.com/brimsec/zq/pkg/nano"
@@ -41,9 +40,12 @@ func GenerateSlices(index Index, span nano.Span) ([]slicer.Slice, error) {
 
 func FindPacketSlice(e ranger.Envelope, span nano.Span) (slicer.Slice, error) {
 	if len(e) == 0 {
-		return slicer.Slice{}, errors.New("no packets")
+		return slicer.Slice{}, ErrNoPacketsFound
 	}
 	d := e.FindSmallestDomain(ranger.Range{uint64(span.Ts), uint64(span.End())})
-	//XXX check for empty domain.. though seems like this will do the right thing
+	gap := d.X1 - d.X0
+	if gap == 0 {
+		return slicer.Slice{}, ErrNoPacketsFound
+	}
 	return slicer.Slice{d.X0, d.X1 - d.X0}, nil
 }

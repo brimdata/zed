@@ -16,7 +16,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"time"
 
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/peeker"
@@ -59,6 +58,11 @@ const magicNanosecondsBigendian = 0x4D3CB2A1
 const magicGzip1 = 0x1f
 const magicGzip2 = 0x8b
 
+const (
+	fileHeaderLen   = 24
+	packetHeaderLen = 16
+)
+
 // NewPcapReader returns a new reader object, for reading packet data from
 // the given reader. The reader must be open and header data is
 // read from it at this point.
@@ -79,10 +83,18 @@ func NewPcapReader(r io.Reader) (*PcapReader, error) {
 	return reader, nil
 }
 
-const (
-	fileHeaderLen   = 24
-	packetHeaderLen = 16
-)
+func (r *PcapReader) Packet(block []byte) ([]byte, nano.Ts, layers.LinkType) {
+	if len(block) <= packetHeaderLen {
+		return nil, 0, 0
+	}
+	caplen := int(r.byteOrder.Uint32(block[8:12]))
+	if caplen+packetHeaderLen > len(block) {
+		return nil, 0, 0
+	}
+	ts := r.TsFromHeader(block)
+	pkt := block[packetHeaderLen:]
+	return pkt[:caplen], ts, r.linkType
+}
 
 func (r *PcapReader) readHeader() error {
 	hdr, err := r.Reader.Read(fileHeaderLen)
@@ -125,53 +137,34 @@ func (r *PcapReader) TsFromHeader(hdr []byte) nano.Ts {
 	return nano.Ts(ns)
 }
 
-func (r *PcapReader) Read() ([]byte, Info, error) {
+func (r *PcapReader) Read() ([]byte, BlockType, error) {
 	header := r.header
 	if header != nil {
 		r.header = nil
-		return header, Info{Type: TypeSection}, nil
+		return header, TypeSection, nil
 	}
 	hdr, err := r.Reader.Peek(packetHeaderLen)
 	if err != nil {
 		if err == io.EOF {
 			err = nil
 		}
-		return nil, Info{}, err
+		return nil, 0, err
 	}
 	caplen := int(r.byteOrder.Uint32(hdr[8:12]))
 	fullLength := int(r.byteOrder.Uint32(hdr[12:16]))
 	if caplen > int(r.snaplen) {
-		return nil, Info{}, fmt.Errorf("capture length exceeds snap length: %d > %d", caplen, r.snaplen)
+		return nil, 0, fmt.Errorf("capture length exceeds snap length: %d > %d", caplen, r.snaplen)
 	}
 	if caplen > fullLength {
-		return nil, Info{}, fmt.Errorf("capture length exceeds original packet length: %d > %d", caplen, fullLength)
+		return nil, 0, fmt.Errorf("capture length exceeds original packet length: %d > %d", caplen, fullLength)
 	}
-	// pull out timestamp before reading rest of packet as header can get clobbered
-	ts := r.TsFromHeader(hdr)
-	pkt, err := r.Reader.Read(caplen + packetHeaderLen)
+	n := caplen + packetHeaderLen
+	block, err := r.Reader.Read(n)
 	if err != nil {
-		return nil, Info{}, err
+		return nil, 0, err
 	}
-	r.offset += uint64(caplen + packetHeaderLen)
-	return pkt, Info{Type: TypePacket, Link: r.linkType, Ts: ts}, nil
-}
-
-func (r *PcapReader) readPacketHeader() (gopacket.CaptureInfo, error) {
-	var ci gopacket.CaptureInfo
-	hdr, err := r.Reader.Read(packetHeaderLen)
-	if err != nil {
-		return ci, err
-	}
-	r.offset += packetHeaderLen
-	ci.Timestamp = time.Unix(int64(r.byteOrder.Uint32(hdr[0:4])), int64(r.byteOrder.Uint32(hdr[4:8])*r.nanoSecsFactor)).UTC()
-	ci.CaptureLength = int(r.byteOrder.Uint32(hdr[8:12]))
-	ci.Length = int(r.byteOrder.Uint32(hdr[12:16]))
-	return ci, nil
-}
-
-// LinkType returns network, as a layers.LinkType.
-func (r *PcapReader) LinkType() layers.LinkType {
-	return r.linkType
+	r.offset += uint64(n)
+	return block, TypePacket, nil
 }
 
 // Snaplen returns the snapshot length of the capture file.

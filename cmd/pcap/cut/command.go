@@ -21,9 +21,15 @@ var Cut = &charm.Spec{
 	Short: "extract a pcap using index slices",
 	Long: `
 The cut command produces an output pcap from an input pcap by selecting
-the indicated packets from the input.  Each selected slice is expressed as
+the indicated packets from the input.  The input format is unmodified as
+the output is created by simply extracting verbatim the relevant ranges of
+the input pcap.
+
+Each selected slice is expressed as
 an index or index range, e.g., "10" is the packet 10 in the input (starting from 0),
 "3:5" is packets 3 and 4, "8:5" is packets 8, 7, and 6, and so forth.
+
+For pcap-ng input, the cuts are applied to each section.
 
 This command isn't all that useful in practice but is nice for creating
 test inputs for the slice and index commands.
@@ -130,19 +136,24 @@ func (c *Command) Run(args []string) error {
 		out = w
 	}
 
-	// XXX assumes legacy pcap format, will fix in next PR
-	reader, err := pcapio.NewPcapReader(in)
+	reader, err := pcapio.NewReader(in)
 	if err != nil {
 		return err
 	}
-	hdr, _, err := reader.Read()
-	if err != nil {
-		return err
+	for {
+		if err := cut(out, reader, cuts, n); err != nil {
+			if err == io.EOF {
+				err = nil
+			}
+			return err
+		}
 	}
-	out.Write(hdr)
+}
+
+func cut(w io.Writer, r pcapio.Reader, cuts []int, n int) error {
 	var pkts [][]byte
 	for len(pkts) < n {
-		block, _, err := reader.Read()
+		block, typ, err := r.Read()
 		if err != nil {
 			if err == io.EOF {
 				break
@@ -152,12 +163,22 @@ func (c *Command) Run(args []string) error {
 		if block == nil {
 			return fmt.Errorf("cutting outside of pcap: only %d packets in the input", len(pkts))
 		}
+		if typ != pcapio.TypePacket {
+			// copy any blocks that aren't packets
+			if _, err := w.Write(block); err != nil {
+				return err
+			}
+			continue
+		}
 		pkt := make([]byte, len(block))
 		copy(pkt, block)
 		pkts = append(pkts, pkt)
 	}
 	for _, pos := range cuts {
-		_, err := out.Write(pkts[pos])
+		if pos >= len(pkts) {
+			return fmt.Errorf("cutting outside of pcap: only %d packets in the input", len(pkts))
+		}
+		_, err := w.Write(pkts[pos])
 		if err != nil {
 			return err
 		}

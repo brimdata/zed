@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/pcap"
+	"github.com/brimsec/zq/pcap/pcapio"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/packet"
@@ -79,9 +80,15 @@ func handlePacketSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	defer f.Close()
 	slicer, err := pcap.NewSlicer(f, index, req.Span)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	pcapReader, err := pcapio.NewReader(slicer)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	var search *pcap.Search
 	switch req.Proto {
 	default:
@@ -99,7 +106,7 @@ func handlePacketSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/vnd.tcpdump.pcap")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%s.pcap", search.ID()))
-	err = search.Run(w, slicer)
+	err = search.Run(w, pcapReader)
 	if err != nil {
 		if err == pcap.ErrNoPacketsFound {
 			http.Error(w, err.Error(), http.StatusNotFound)

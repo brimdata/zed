@@ -46,4 +46,6 @@ var scripts = []test.Shell{
 	diropt.Test2,
 	pcap.Test1,
 	pcap.Test2,
+	pcap.Test3,
+	pcap.Test4,
 }
