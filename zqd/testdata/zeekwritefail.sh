@@ -20,5 +20,10 @@ cat <<EOF > conn.log
 1521911724.896854	CFzn9A3l9ppbMBVin3	10.164.94.120	40659	10.47.8.208	3389	tcp	-	0.011922	147	19	RSTR	-	-	0	ShADTdtr	10	830	6	342	-
 EOF
 
+# ugly static timeout to wait for a snapshot to be taken
+sleep 2.5
+
+
+
 echo "exit after writing logs" 1>&2
 exit 1
