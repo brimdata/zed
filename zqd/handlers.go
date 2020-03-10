@@ -2,6 +2,7 @@ package zqd
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -230,6 +231,10 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	proc, err := packet.IngestFile(r.Context(), s, req.Path, c.ZeekExec)
 	if err != nil {
+		if errors.Is(err, pcapio.ErrCorruptPcap) {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
