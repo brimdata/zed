@@ -1,3 +1,10 @@
+## v0.5.0
+
+* Support search queries during pcap ingestion.
+* Improved error reporting in zqd, especially during pcap ingestion.
+* Improved performance of space info api.
+* zqd supports ingesting pcapng formatted packet capture files.
+
 ## v0.4.0
   
 * zqd adds an endpoint to create a new empty space via post
