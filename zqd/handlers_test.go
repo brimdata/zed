@@ -39,6 +39,14 @@ func TestSimpleSearch(t *testing.T) {
 	require.Equal(t, test.Trim(src), execSearch(t, c, space, "*"))
 }
 
+func TestSearchEmptySpace(t *testing.T) {
+	space := "test"
+	c := newCore(t)
+	defer os.RemoveAll(c.Root)
+	createSpace(t, c, space, "")
+	require.Equal(t, "", execSearch(t, c, space, "*"))
+}
+
 func TestSpaceList(t *testing.T) {
 	c := newCore(t)
 	defer os.RemoveAll(c.Root)
