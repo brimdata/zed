@@ -5,6 +5,10 @@ package search
 import (
 	"context"
 	"errors"
+	"io"
+	"io/ioutil"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/brimsec/zq/ast"
@@ -43,9 +47,13 @@ func Search(ctx context.Context, s *space.Space, req api.SearchRequest, out Outp
 	if err != nil {
 		return err
 	}
-	f, err := s.OpenFile("all.bzng")
+	var f io.ReadCloser
+	f, err = s.OpenFile("all.bzng")
 	if err != nil {
-		return errors.New("no such space: " + query.Space)
+		if !os.IsNotExist(err) {
+			return err
+		}
+		f = ioutil.NopCloser(strings.NewReader(""))
 	}
 	defer f.Close()
 	zngReader, err := detector.LookupReader("bzng", f, resolver.NewContext())
