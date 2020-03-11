@@ -168,16 +168,25 @@ func (r *NgReader) parseSectionMagic(b []byte) error {
 	return nil
 }
 
-// parseOption parses and returns a single arbitrary option (type and value)
-// or returns an error if the option is not valid.
-func (r *NgReader) parseOption(b []byte) (ngOptionCode, []byte, error) {
+// parseOption parses and returns a single arbitrary option (type, value, and
+// actual length of option buffer) or returns an error if the option is not
+// valid.
+func (r *NgReader) readOption(b []byte) (ngOptionCode, []byte, int, error) {
 	code := ngOptionCode(r.getUint16(b[:2]))
+	if code == ngOptionCodeEndOfOptions {
+		return code, nil, 4, nil
+	}
 	length := r.getUint16(b[2:4])
 	b = b[4:]
 	if int(length) > len(b) {
-		return 0, nil, errors.New("bad option length")
+		return 0, nil, 0, errors.New("bad option length")
 	}
-	return code, b[:length], nil
+	// Determine padding. The option value field is always padded up to 32 bits.
+	padding := length % 4
+	if padding > 0 {
+		padding = 4 - padding
+	}
+	return code, b[:length], 4 + int(length+padding), nil
 }
 
 // readInterfaceDescriptor parses an interface descriptor, prepares timing
@@ -189,15 +198,14 @@ func (r *NgReader) parseInterfaceDescriptor(b []byte) error {
 	var intf NgInterface
 	intf.LinkType = layers.LinkType(r.getUint16(b[8:10]))
 	intf.SnapLength = r.getUint32(b[12:16])
-	b = b[16:]
 
 	// loop until we get to the 4-byte trailer length field
 	for len(b) > 4 {
-		code, body, err := r.parseOption(b)
+		code, body, length, err := r.readOption(b)
 		if err != nil {
 			return err
 		}
-		b = b[4+len(body):]
+		b = b[length:]
 		switch code {
 		case ngOptionCodeInterfaceName:
 			intf.Name = string(body)
