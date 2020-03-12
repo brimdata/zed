@@ -22,18 +22,15 @@ type Node struct {
 // Proc is the interface implemented by all AST processor nodes.
 type Proc interface {
 	ProcNode()
-	Copy() Proc
 }
 
 // BooleanExpr is the interface implement by all AST boolean expression nodes.
 type BooleanExpr interface {
 	booleanExprNode()
-	Copy() BooleanExpr
 }
 
 // FieldExpr is the interface implemented by expressions that reference fields.
 type FieldExpr interface {
-	Copy() FieldExpr
 }
 
 type Expression interface {
