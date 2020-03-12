@@ -13,8 +13,10 @@ import (
 	"github.com/peterh/liner"
 )
 
+var target = "start"
+
 func runGo(line string) error {
-	got, err := zql.Parse("", []byte(line))
+	got, err := zql.Parse("", []byte(line), zql.Entrypoint(target))
 	if err != nil {
 		return err
 	}
@@ -27,7 +29,7 @@ func runGo(line string) error {
 }
 
 func runJs(line string) error {
-	cmd := exec.Command("node", "./main/main.js")
+	cmd := exec.Command("node", "./main/main.js", "-e", target)
 	cmd.Stdin = strings.NewReader(line)
 	out, err := cmd.Output()
 	if err != nil {
@@ -38,7 +40,14 @@ func runJs(line string) error {
 	return nil
 }
 
+const targetCmd = "_target "
+
 func parse(line string) {
+	if strings.HasPrefix(line, targetCmd) {
+		target = line[len(targetCmd):]
+		return
+	}
+
 	if err := runGo(line); err != nil {
 		fmt.Println("go error:", err)
 	}
@@ -58,6 +67,7 @@ func iteractive() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		rl.AppendHistory(line)
 		parse(line)
 	}
 }
