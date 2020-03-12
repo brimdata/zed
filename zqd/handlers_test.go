@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -180,6 +181,22 @@ func TestSpaceDelete(t *testing.T) {
 		require.Error(t, err)
 		require.Truef(t, os.IsNotExist(err), "expected error to be os.IsNotExist, got %v", err)
 	})
+}
+
+func TestURLEncodingSupport(t *testing.T) {
+	c := newCore(t)
+	defer os.RemoveAll(c.Root)
+
+	rawSpace := "raw %<>space.brim"
+	encodedSpaceURL := fmt.Sprintf("http://localhost:9867/space/%s", url.PathEscape(rawSpace))
+
+	createSpace(t, c, rawSpace, "")
+
+	res := httpRequest(t, zqd.NewHandler(c), "GET", encodedSpaceURL, nil)
+	require.Equal(t, http.StatusOK, res.StatusCode)
+
+	res = httpRequest(t, zqd.NewHandler(c), "DELETE", encodedSpaceURL, nil)
+	require.Equal(t, http.StatusNoContent, res.StatusCode)
 }
 
 func TestNoEndSlashSupport(t *testing.T) {
