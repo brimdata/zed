@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"time"
 
@@ -300,12 +299,7 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 }
 
 func extractSpace(c *Core, w http.ResponseWriter, r *http.Request) *space.Space {
-	rawName := extractSpaceName(w, r)
-	name, err := url.PathUnescape(rawName)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return nil
-	}
+	name := extractSpaceName(w, r)
 	if name == "" {
 		return nil
 	}
