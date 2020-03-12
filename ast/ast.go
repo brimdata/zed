@@ -22,18 +22,19 @@ type Node struct {
 // Proc is the interface implemented by all AST processor nodes.
 type Proc interface {
 	ProcNode()
-	Copy() Proc
 }
 
 // BooleanExpr is the interface implement by all AST boolean expression nodes.
 type BooleanExpr interface {
 	booleanExprNode()
-	Copy() BooleanExpr
 }
 
 // FieldExpr is the interface implemented by expressions that reference fields.
 type FieldExpr interface {
-	Copy() FieldExpr
+}
+
+type Expression interface {
+	exprNode()
 }
 
 // Literal is a string representation of a literal value where the
@@ -120,6 +121,20 @@ type (
 		Param string    `json:"param"`
 	}
 )
+
+// A BinaryExpression is any expression of the form "operand operator operand"
+// including arithmetic (+, -, *, /), logical operators (and, or), and
+// comparisons (=, !=, <, <=, >, >=)
+type BinaryExpression struct {
+	Node
+	Operator string     `json:"operator"`
+	LHS      Expression `json:"lhs"`
+	RHS      Expression `json:"rhs"`
+}
+
+func (*BinaryExpression) exprNode() {}
+func (*Literal) exprNode()          {}
+func (*FieldRead) exprNode()        {}
 
 // ----------------------------------------------------------------------------
 // Procs

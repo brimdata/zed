@@ -281,6 +281,26 @@ func makeGroupByProc(durationIn, limitIn, keysIn, reducersIn interface{}) *ast.G
 	}
 }
 
+func makeBinaryExprChain(firstIn, restIn interface{}) ast.Expression {
+	first := firstIn.(ast.Expression)
+	if restIn == nil {
+		return first
+	}
+
+	result := first
+	rest := restIn.([]interface{})
+	for _, r := range rest {
+		params := r.([]interface{})
+		if len(params) != 4 {
+			panic("expected 4 item array")
+		}
+		op := params[1].(string)
+		term := params[3].(ast.Expression)
+		result = &ast.BinaryExpression{ast.Node{"BinaryExpr"}, op, result, term}
+	}
+	return result
+}
+
 func joinChars(in interface{}) string {
 	str := bytes.Buffer{}
 	for _, i := range in.([]interface{}) {
