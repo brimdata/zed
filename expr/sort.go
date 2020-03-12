@@ -103,7 +103,7 @@ func (r *RecordSlice) Swap(i, j int) { r.records[i], r.records[j] = r.records[j]
 
 // Less implements sort.Interface for *Record slices.
 func (r *RecordSlice) Less(i, j int) bool {
-	return r.sorter(r.records[i], r.records[j]) <= 0
+	return r.sorter(r.records[i], r.records[j]) < 0
 }
 
 // Push adds x as element Len(). Implements heap.Interface.
