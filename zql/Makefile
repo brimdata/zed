@@ -12,6 +12,8 @@ PEGJS_INSTALLED = $(shell test -x $(PEGJS) && $(PEGJS) --version)
 PIGEON_INSTALLED = $(shell test -d $(deps) && (cd $(deps); go list -m -f {{.Version}} github.com/mna/pigeon || echo ""))
 GOIMPORTS_INSTALLED = $(shell test -d $(deps) && (cd $(deps); go list -m -f {{.Version}} golang.org/x/tools || echo ""))
 
+PEGJS_ARGS = --allowed-start-rules start,Expression
+
 all: zql.go zql.js
 
 run: all
@@ -52,4 +54,4 @@ zql.go: $(PIGEON) $(GOIMPORTS)
 
 .PHONY: zql.js
 zql.js: $(PEGJS)
-	cpp -E -P zql.peg | $(PEGJS) -o $@
+	cpp -E -P zql.peg | $(PEGJS) $(PEGJS_ARGS) -o $@

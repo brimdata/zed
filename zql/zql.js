@@ -138,7 +138,7 @@ function peg$parse(input, options) {
 
   var peg$FAILED = {},
 
-      peg$startRuleFunctions = { start: peg$parsestart },
+      peg$startRuleFunctions = { start: peg$parsestart, Expression: peg$parseExpression },
       peg$startRuleFunction  = peg$parsestart,
 
       peg$c0 = function(ast) { return ast },
@@ -4290,6 +4290,14 @@ function peg$parse(input, options) {
       s1 = peg$c202(s1);
     }
     s0 = s1;
+
+    return s0;
+  }
+
+  function peg$parseExpression() {
+    var s0;
+
+    s0 = peg$parseLogicalORExpression();
 
     return s0;
   }
