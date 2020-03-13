@@ -8,6 +8,7 @@ import (
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 )
 
@@ -15,6 +16,7 @@ type ExpressionEvaluator func(*zng.Record) (zng.Value, error)
 
 var ErrNoSuchField = errors.New("field is not present")
 var ErrIncompatibleTypes = errors.New("incompatible types")
+var ErrIndexOutOfBounds = errors.New("array index out of bounds")
 
 type NativeValue struct {
 	typ   zng.Type
@@ -108,11 +110,18 @@ func toNativeValue(zv zng.Value) (NativeValue, error) {
 			return NativeValue{}, nil
 		}
 		return NativeValue{zv.Type, d}, nil
-
-	default:
-		return NativeValue{}, fmt.Errorf("unknown type %d", zv.Type.ID())
 	}
 
+	// Keep arrays, sets, and records in their zval encoded form.
+	// The purpose of NativeValue is to avoid encoding temporary
+	// values but since we can't construct these types in expressions,
+	// this just lets us lazily decode them.
+	switch zv.Type.(type) {
+	case *zng.TypeArray, *zng.TypeSet, *zng.TypeRecord:
+		return NativeValue{zv.Type, zv.Bytes}, nil
+	}
+
+	return NativeValue{}, fmt.Errorf("unknown type %d", zv.Type.ID())
 }
 
 func (v *NativeValue) toZngValue() (zng.Value, error) {
@@ -189,6 +198,15 @@ func (v *NativeValue) toZngValue() (zng.Value, error) {
 // CompileExpr tries to compile the given Expression into a function
 // that evalutes the expression against a provided Record.  Returns an
 // error if compilation fails for any reason.
+//
+// This is currently not particularly optimized -- it creates a bunch
+// of closures and every evaluation involves some allocations.
+// Eventually, we could optimize this by compiling a particular
+// Expression for a particular TypeRecord into a series of byte codes
+// that could be implemented by a simple stack-based evaluator much
+// more efficiently.  ZNG unions are a challenge for this approach, but
+// we could fail back to the "slow path" implemented here if an
+// expression ever touches a union.
 func CompileExpr(node ast.Expression) (ExpressionEvaluator, error) {
 	ne, err := compileNative(node)
 	if err != nil {
@@ -249,6 +267,10 @@ func compileNative(node ast.Expression) (NativeEvaluator, error) {
 			return compileCompareRelative(lhsFunc, rhsFunc, n.Operator)
 		case "+", "-", "*", "/":
 			return compileArithmetic(lhsFunc, rhsFunc, n.Operator)
+		case "[":
+			return compileArrayIndex(lhsFunc, rhsFunc, n.Operator)
+		case ".":
+			return compileFieldReference(lhsFunc, rhsFunc, n.Operator)
 		default:
 			return nil, fmt.Errorf("invalid binary operator %s", n.Operator)
 		}
@@ -799,5 +821,95 @@ func compileArithmetic(lhsFunc, rhsFunc NativeEvaluator, operator string) (Nativ
 		default:
 			return NativeValue{}, ErrIncompatibleTypes
 		}
+	}, nil
+}
+
+func getNthFromContainer(container zcode.Bytes, idx uint) (zcode.Bytes, error) {
+	iter := zcode.Iter(container)
+	var i uint = 0
+	for ; !iter.Done(); i++ {
+		zv, _, err := iter.Next()
+		if err != nil {
+			return nil, err
+		}
+		if i == idx {
+			return zv, nil
+		}
+	}
+	return nil, ErrIndexOutOfBounds
+}
+
+func compileArrayIndex(lhsFunc, rhsFunc NativeEvaluator, operator string) (NativeEvaluator, error) {
+	return func(rec *zng.Record) (NativeValue, error) {
+		lhs, err := lhsFunc(rec)
+		if err != nil {
+			return NativeValue{}, err
+		}
+
+		var aType *zng.TypeArray
+		var ok bool
+		if aType, ok = lhs.typ.(*zng.TypeArray); !ok {
+			return NativeValue{}, ErrIncompatibleTypes
+		}
+
+		rhs, err := rhsFunc(rec)
+		if err != nil {
+			return NativeValue{}, err
+		}
+
+		var idx uint
+		switch rhs.typ.ID() {
+		case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
+			idx = uint(rhs.value.(uint64))
+		case zng.IdInt16, zng.IdInt32, zng.IdInt64:
+			i := rhs.value.(int64)
+			if i < 0 {
+				return NativeValue{}, ErrIndexOutOfBounds
+			}
+			idx = uint(i)
+		default:
+			return NativeValue{}, ErrIncompatibleTypes
+		}
+
+		zv, err := getNthFromContainer(lhs.value.(zcode.Bytes), idx)
+		if err != nil {
+			return NativeValue{}, err
+		}
+		return toNativeValue(zng.Value{aType.Type, zv})
+	}, nil
+}
+
+func compileFieldReference(lhsFunc, rhsFunc NativeEvaluator, operator string) (NativeEvaluator, error) {
+	return func(rec *zng.Record) (NativeValue, error) {
+		lhs, err := lhsFunc(rec)
+		if err != nil {
+			return NativeValue{}, err
+		}
+
+		var rType *zng.TypeRecord
+		var ok bool
+		if rType, ok = lhs.typ.(*zng.TypeRecord); !ok {
+			return NativeValue{}, ErrIncompatibleTypes
+		}
+
+		rhs, err := rhsFunc(rec)
+		if err != nil {
+			return NativeValue{}, err
+		}
+
+		if rhs.typ.ID() != zng.IdString && rhs.typ.ID() != zng.IdBstring {
+			return NativeValue{}, ErrIncompatibleTypes
+		}
+
+		idx, ok := rType.ColumnOfField(rhs.value.(string))
+		if !ok {
+			return NativeValue{}, ErrNoSuchField
+		}
+
+		zv, err := getNthFromContainer(lhs.value.(zcode.Bytes), uint(idx))
+		if err != nil {
+			return NativeValue{}, err
+		}
+		return toNativeValue(zng.Value{rType.Columns[idx].Type, zv})
 	}, nil
 }
