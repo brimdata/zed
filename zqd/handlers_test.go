@@ -128,10 +128,7 @@ func TestSpacePostDataDirOnly(t *testing.T) {
 	run := func(name string, cb func(*testing.T, string, *zqd.Core) (string, api.SpacePostResponse)) {
 		tmp := createTempDir(t)
 		defer os.RemoveAll(tmp)
-		c := zqd.NewCore(zqd.Config{
-			Root:   filepath.Join(tmp, "spaces"),
-			Logger: zaptest.NewLogger(t),
-		})
+		c := newCoreAtDir(t, filepath.Join(tmp, "spaces"))
 		require.NoError(t, os.Mkdir(c.Root, 0755))
 		t.Run(name, func(t *testing.T) {
 			datadir, expected := cb(t, tmp, c)
@@ -272,6 +269,11 @@ func createTempDir(t *testing.T) string {
 }
 
 func newCore(t *testing.T) *zqd.Core {
+	root := createTempDir(t)
+	return newCoreAtDir(t, root)
+}
+
+func newCoreAtDir(t *testing.T, dir string) *zqd.Core {
 	root := createTempDir(t)
 	conf := zqd.Config{
 		Root:   root,
