@@ -38,7 +38,7 @@ func NewSortFn(nullsMax bool, fields ...FieldExprResolver) SortFn {
 			nullA := isNull(a)
 			nullB := isNull(b)
 			if nullA && nullB {
-				return 0
+				continue
 			}
 			if nullA {
 				if nullsMax {
