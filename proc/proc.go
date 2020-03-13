@@ -152,11 +152,11 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 		return []Proc{cut}, nil
 
 	case *ast.SortProc:
-		fields, err := expr.CompileFieldExprs(v.Fields)
+		sort, err := CompileSortProc(c, parent, v)
 		if err != nil {
 			return nil, fmt.Errorf("compiling sort: %w", err)
 		}
-		return []Proc{NewSort(c, parent, v.Limit, fields, v.SortDir, v.NullsFirst)}, nil
+		return []Proc{sort}, nil
 
 	case *ast.HeadProc:
 		limit := v.Count

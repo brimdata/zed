@@ -153,3 +153,24 @@ func CompileFieldExprs(nodes []ast.FieldExpr) ([]FieldExprResolver, error) {
 	}
 	return resolvers, nil
 }
+
+// FieldExprToString returns ZQL for the ast.FieldExpr in node.
+func FieldExprToString(node ast.FieldExpr) string {
+	switch node := node.(type) {
+	case *ast.FieldRead:
+		return node.Field
+	case *ast.FieldCall:
+		switch node.Fn {
+		case "Len":
+			return fmt.Sprintf("len(%s)", FieldExprToString(node.Field))
+		case "Index":
+			return fmt.Sprintf("%s[%s]", FieldExprToString(node.Field), node.Param)
+		case "RecordFieldRead":
+			return fmt.Sprintf("%s.%s", FieldExprToString(node.Field), node.Param)
+		default:
+			panic("unknown FieldCall Fn")
+		}
+	default:
+		panic("unknown FieldExpr type")
+	}
+}

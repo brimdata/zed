@@ -160,4 +160,7 @@ func TestSort(t *testing.T) {
 	proc.TestOneProc(t, chooseIn1, chooseOut1, "sort")
 	proc.TestOneProc(t, chooseIn2, chooseOut2, "sort")
 	proc.TestOneProc(t, chooseIn3, chooseOut3, "sort")
+
+	const warning = "Sort field bar not present in input"
+	proc.TestOneProcWithWarnings(t, unsortedInts, ascendingInts, []string{warning}, "sort foo, bar")
 }
