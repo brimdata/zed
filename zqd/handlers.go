@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"time"
@@ -18,6 +17,7 @@ import (
 	"github.com/brimsec/zq/zqd/search"
 	"github.com/brimsec/zq/zqd/space"
 	"github.com/gorilla/mux"
+	"go.uber.org/zap"
 )
 
 func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
@@ -136,8 +136,7 @@ func handleSpaceList(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(spaces); err != nil {
-		// XXX Add zap here.
-		log.Println("Error writing response", err)
+		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
 	}
 }
 
@@ -177,8 +176,7 @@ func handleSpaceGet(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Add("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(info); err != nil {
-		// XXX Add zap here.
-		log.Println("Error writing response", err)
+		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
 	}
 }
 
@@ -202,8 +200,7 @@ func handleSpacePost(c *Core, w http.ResponseWriter, r *http.Request) {
 		DataDir: s.DataPath(),
 	}
 	if err := json.NewEncoder(w).Encode(res); err != nil {
-		// XXX Add zap here.
-		log.Println("Error writing response", err)
+		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
 	}
 }
 
@@ -220,6 +217,7 @@ func handleSpaceDelete(c *Core, w http.ResponseWriter, r *http.Request) {
 }
 
 func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
+	logger := c.requestLogger(r)
 	s := extractSpace(c, w, r)
 	if s == nil {
 		return
@@ -245,9 +243,7 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	taskID := c.getTaskID()
 	taskStart := api.TaskStart{Type: "TaskStart", TaskID: taskID}
 	if err = pipe.Send(taskStart); err != nil {
-		// Probably an error writing to socket, log error.
-		// XXX This should be zap instead.
-		log.Print(err)
+		logger.Warn("Err sending payload", zap.Error(err))
 		return
 	}
 	ticker := time.NewTicker(time.Second * 2)
@@ -275,8 +271,7 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 			MaxTime:        maxTs,
 		}
 		if err := pipe.Send(status); err != nil {
-			// XXX This should be zap instead.
-			log.Print(err)
+			logger.Warn("Error sending payload", zap.Error(err))
 			return
 		}
 		if done {
@@ -292,8 +287,7 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if err = pipe.SendFinal(taskEnd); err != nil {
-		// XXX This should be zap instead.
-		log.Print(err)
+		logger.Warn("Error sending payload", zap.Error(err))
 		return
 	}
 }

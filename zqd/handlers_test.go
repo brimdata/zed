@@ -24,7 +24,10 @@ import (
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/space"
 	"github.com/brimsec/zq/zql"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest"
 )
 
 func TestSimpleSearch(t *testing.T) {
@@ -125,7 +128,10 @@ func TestSpacePostDataDirOnly(t *testing.T) {
 	run := func(name string, cb func(*testing.T, string, *zqd.Core) (string, api.SpacePostResponse)) {
 		tmp := createTempDir(t)
 		defer os.RemoveAll(tmp)
-		c := &zqd.Core{Root: filepath.Join(tmp, "spaces")}
+		c := zqd.NewCore(zqd.Config{
+			Root:   filepath.Join(tmp, "spaces"),
+			Logger: zaptest.NewLogger(t),
+		})
 		require.NoError(t, os.Mkdir(c.Root, 0755))
 		t.Run(name, func(t *testing.T) {
 			datadir, expected := cb(t, tmp, c)
@@ -158,7 +164,10 @@ func TestSpaceDelete(t *testing.T) {
 	run := func(name string, cb func(*testing.T, string, *zqd.Core)) {
 		tmp := createTempDir(t)
 		defer os.RemoveAll(tmp)
-		c := &zqd.Core{Root: filepath.Join(tmp, "spaces")}
+		c := zqd.NewCore(zqd.Config{
+			Root:   filepath.Join(tmp, "spaces"),
+			Logger: zaptest.NewLogger(t),
+		})
 		require.NoError(t, os.Mkdir(c.Root, 0755))
 		t.Run(name, func(t *testing.T) {
 			cb(t, tmp, c)
@@ -211,6 +220,28 @@ func TestNoEndSlashSupport(t *testing.T) {
 	require.Equal(t, 404, res.StatusCode)
 }
 
+func TestRequestID(t *testing.T) {
+	t.Run("GeneratesUniqueID", func(t *testing.T) {
+		c := newCore(t)
+		defer os.RemoveAll(c.Root)
+		h := zqd.NewHandler(c)
+		res1 := httpRequest(t, h, "GET", "http://localhost:9867/space", nil)
+		res2 := httpRequest(t, h, "GET", "http://localhost:9867/space", nil)
+		assert.Equal(t, "1", res1.Header.Get("X-Request-ID"))
+		assert.Equal(t, "2", res2.Header.Get("X-Request-ID"))
+	})
+	t.Run("PropagatesID", func(t *testing.T) {
+		c := newCore(t)
+		defer os.RemoveAll(c.Root)
+		requestID := "random-request-ID"
+		r := httptest.NewRequest("GET", "http://localhost:9867/space", nil)
+		r.Header.Add("X-Request-ID", requestID)
+		w := httptest.NewRecorder()
+		zqd.NewHandler(c).ServeHTTP(w, r)
+		require.Equal(t, requestID, w.Result().Header.Get("X-Request-ID"))
+	})
+}
+
 func execSearch(t *testing.T, c *zqd.Core, space, prog string) string {
 	parsed, err := zql.ParseProc(prog)
 	require.NoError(t, err)
@@ -232,14 +263,21 @@ func execSearch(t *testing.T, c *zqd.Core, space, prog string) string {
 }
 
 func createTempDir(t *testing.T) string {
-	dir, err := ioutil.TempDir("", t.Name())
+	// Replace filepath.Separator with '-' so it doesn't try to access dirs that
+	// don't exist.
+	name := strings.Replace(t.Name(), string(filepath.Separator), "-", -1)
+	dir, err := ioutil.TempDir("", name)
 	require.NoError(t, err)
 	return dir
 }
 
 func newCore(t *testing.T) *zqd.Core {
 	root := createTempDir(t)
-	return &zqd.Core{Root: root}
+	conf := zqd.Config{
+		Root:   root,
+		Logger: zaptest.NewLogger(t, zaptest.Level(zap.WarnLevel)),
+	}
+	return zqd.NewCore(conf)
 }
 
 func createSpace(t *testing.T, c *zqd.Core, spaceName, datadir string) api.SpacePostResponse {
