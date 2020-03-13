@@ -101,6 +101,10 @@ func zint64(v int64) zng.Value {
 	return zng.Value{zng.TypeInt64, zng.EncodeInt(v)}
 }
 
+func zuint64(v uint64) zng.Value {
+	return zng.Value{zng.TypeUint64, zng.EncodeUint(v)}
+}
+
 func zfloat64(f float64) zng.Value {
 	return zng.Value{zng.TypeFloat64, zng.EncodeFloat64(f)}
 }
@@ -155,10 +159,10 @@ func TestLogical(t *testing.T) {
 }
 
 func TestCompareNumbers(t *testing.T) {
-	var intTypes = []string{"byte", "int16", "uint16", "int32", "uint32", "int64", "uint64", "float64"}
+	var numericTypes = []string{"byte", "int16", "uint16", "int32", "uint32", "int64", "uint64", "float64"}
 	var intFields = []string{"u8", "i16", "u16", "i32", "u32", "i64", "u64"}
 
-	for _, typ := range intTypes {
+	for _, typ := range numericTypes {
 		// Make a test point with this type in a field called x plus
 		// one field of each other integer type
 		src := fmt.Sprintf(`
@@ -470,18 +474,49 @@ func TestArithmetic(t *testing.T) {
 	testSuccessful(t, "f / 1.25", record, zfloat64(2.0))
 	testSuccessful(t, "5.0 / f", record, zfloat64(2.0))
 
-	// Test arithmetic mixing float + int
-	testSuccessful(t, "f + 5", record, zfloat64(7.5))
-	testSuccessful(t, "5 + f", record, zfloat64(7.5))
-	testSuccessful(t, "f + x", record, zfloat64(12.5))
-	testSuccessful(t, "x + f", record, zfloat64(12.5))
-	testSuccessful(t, "x - f", record, zfloat64(7.5))
-	testSuccessful(t, "f - x", record, zfloat64(-7.5))
-	testSuccessful(t, "x*f", record, zfloat64(25.0))
-	testSuccessful(t, "f*x", record, zfloat64(25.0))
-	testSuccessful(t, "x/f", record, zfloat64(4.0))
-	testSuccessful(t, "f/x", record, zfloat64(0.25))
+	// Test arithmetic between integer types
+	iresult := func(t1, t2 string, v uint64) zng.Value {
+		if (t1[0] == 'u' || t1 == "byte") && (t2[0] == 'u' || t2 == "byte") {
+			return zuint64(v)
+		} else {
+			return zint64(int64(v))
+		}
+	}
 
+	var intTypes = []string{"byte", "int16", "uint16", "int32", "uint32", "int64", "uint64"}
+	for _, t1 := range intTypes {
+		for _, t2 := range intTypes {
+			record, err = parseOneRecord(fmt.Sprintf(`
+#0:record[a:%s,b:%s]
+0:[4;2;]`, t1, t2))
+			require.NoError(t, err)
+
+			testSuccessful(t, "a + b", record, iresult(t1, t2, 6))
+			testSuccessful(t, "b + a", record, iresult(t1, t2, 6))
+			testSuccessful(t, "a - b", record, iresult(t1, t2, 2))
+			testSuccessful(t, "a * b", record, iresult(t1, t2, 8))
+			testSuccessful(t, "b * a", record, iresult(t1, t2, 8))
+			testSuccessful(t, "a / b", record, iresult(t1, t2, 2))
+			testSuccessful(t, "b / a", record, iresult(t1, t2, 0))
+		}
+
+		// Test arithmetic mixing float + int
+		record, err = parseOneRecord(fmt.Sprintf(`
+#0:record[x:%s,f:float64]
+0:[10;2.5;]`, t1))
+		require.NoError(t, err)
+
+		testSuccessful(t, "f + 5", record, zfloat64(7.5))
+		testSuccessful(t, "5 + f", record, zfloat64(7.5))
+		testSuccessful(t, "f + x", record, zfloat64(12.5))
+		testSuccessful(t, "x + f", record, zfloat64(12.5))
+		testSuccessful(t, "x - f", record, zfloat64(7.5))
+		testSuccessful(t, "f - x", record, zfloat64(-7.5))
+		testSuccessful(t, "x*f", record, zfloat64(25.0))
+		testSuccessful(t, "f*x", record, zfloat64(25.0))
+		testSuccessful(t, "x/f", record, zfloat64(4.0))
+		testSuccessful(t, "f/x", record, zfloat64(0.25))
+	}
 	// Test string concatenation
 	testSuccessful(t, `"hello" + " world"`, record, zstring("hello world"))
 
