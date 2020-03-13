@@ -18,6 +18,8 @@ import (
 	"github.com/brimsec/zq/zqd/packet"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest"
 )
 
 var (
@@ -76,8 +78,7 @@ func TestPacketPostSuccess(t *testing.T) {
 }
 
 func TestPacketPostSortLimit(t *testing.T) {
-	c := &zqd.Core{SortLimit: 1}
-	p := packetPostWithCore(t, c, "./testdata/valid.pcap", 202)
+	p := packetPostWithConfig(t, zqd.Config{SortLimit: 1}, "./testdata/valid.pcap", 202)
 	defer p.cleanup()
 	t.Run("TaskEndError", func(t *testing.T) {
 		taskEnd := p.payloads[len(p.payloads)-1].(*api.TaskEnd)
@@ -107,7 +108,7 @@ func TestPacketPostInvalidPcap(t *testing.T) {
 
 func TestPacketPostZeekFailImmediate(t *testing.T) {
 	exec := abspath(t, filepath.Join("testdata", "zeekstartfail.sh"))
-	p := packetPostWithCore(t, &zqd.Core{ZeekExec: exec}, "./testdata/valid.pcap", 202)
+	p := packetPostWithConfig(t, zqd.Config{ZeekExec: exec}, "./testdata/valid.pcap", 202)
 	defer p.cleanup()
 	t.Run("TaskEndError", func(t *testing.T) {
 		expected := &api.TaskEnd{
@@ -125,7 +126,7 @@ func TestPacketPostZeekFailImmediate(t *testing.T) {
 
 func TestPacketPostZeekFailAfterWrite(t *testing.T) {
 	exec := abspath(t, filepath.Join("testdata", "zeekwritefail.sh"))
-	p := packetPostWithCore(t, &zqd.Core{ZeekExec: exec}, "./testdata/valid.pcap", 202)
+	p := packetPostWithConfig(t, zqd.Config{ZeekExec: exec}, "./testdata/valid.pcap", 202)
 	defer p.cleanup()
 	t.Run("TaskEndError", func(t *testing.T) {
 		expected := &api.TaskEnd{
@@ -152,18 +153,18 @@ func TestPacketPostZeekFailAfterWrite(t *testing.T) {
 
 func TestPacketPostZeekNotFound(t *testing.T) {
 	exec := abspath(t, filepath.Join("testdata", "zeekdoesnotexist.sh"))
-	p := packetPostWithCore(t, &zqd.Core{ZeekExec: exec}, "./testdata/valid.pcap", 500)
+	p := packetPostWithConfig(t, zqd.Config{ZeekExec: exec}, "./testdata/valid.pcap", 500)
 	t.Run("ErrorMessage", func(t *testing.T) {
 		require.Regexp(t, "zeek not found", string(p.body))
 	})
 }
 
 func packetPost(t *testing.T, pcapfile string, expectedStatus int) packetPostResult {
-	return packetPostWithCore(t, &zqd.Core{}, pcapfile, expectedStatus)
+	return packetPostWithConfig(t, zqd.Config{}, pcapfile, expectedStatus)
 }
 
-func packetPostWithCore(t *testing.T, c *zqd.Core, pcapfile string, expectedStatus int) packetPostResult {
-	setCoreRoot(t, c)
+func packetPostWithConfig(t *testing.T, conf zqd.Config, pcapfile string, expectedStatus int) packetPostResult {
+	c := setCoreRoot(t, conf)
 	res := packetPostResult{
 		core:     c,
 		space:    "test",
@@ -174,7 +175,7 @@ func packetPostWithCore(t *testing.T, c *zqd.Core, pcapfile string, expectedStat
 	return res
 }
 
-func setCoreRoot(t *testing.T, c *zqd.Core) {
+func setCoreRoot(t *testing.T, c zqd.Config) *zqd.Core {
 	if c.Root == "" {
 		dir, err := ioutil.TempDir("", "PacketPostTest")
 		require.NoError(t, err)
@@ -183,6 +184,10 @@ func setCoreRoot(t *testing.T, c *zqd.Core) {
 	if c.ZeekExec == "" {
 		c.ZeekExec = zeekpath
 	}
+	if c.Logger == nil {
+		c.Logger = zaptest.NewLogger(t, zaptest.Level(zap.WarnLevel))
+	}
+	return zqd.NewCore(c)
 }
 
 type packetPostResult struct {
