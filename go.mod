@@ -14,7 +14,6 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/yuin/goldmark v1.1.22
 	go.uber.org/zap v1.12.0
-	golang.org/x/sys v0.0.0-20200116001909-b77594299b42 // indirect
 	golang.org/x/text v0.3.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v3 v3.0.0-20200121175148-a6ecf24a6d71
