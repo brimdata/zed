@@ -139,15 +139,15 @@ func (v *NativeValue) toZngValue() (zng.Value, error) {
 
 	case zng.IdUint16:
 		i := v.value.(uint64)
-		return zng.Value{zng.TypeInt16, zng.EncodeUint(i)}, nil
+		return zng.Value{zng.TypeUint16, zng.EncodeUint(i)}, nil
 
 	case zng.IdUint32:
 		i := v.value.(uint64)
-		return zng.Value{zng.TypeInt32, zng.EncodeUint(i)}, nil
+		return zng.Value{zng.TypeUint32, zng.EncodeUint(i)}, nil
 
 	case zng.IdUint64:
 		i := v.value.(uint64)
-		return zng.Value{zng.TypeInt64, zng.EncodeUint(i)}, nil
+		return zng.Value{zng.TypeUint64, zng.EncodeUint(i)}, nil
 
 	case zng.IdFloat64:
 		f := v.value.(float64)
@@ -631,6 +631,25 @@ func compileArithmetic(lhsFunc, rhsFunc NativeEvaluator, operator string) (Nativ
 			v := lhs.value.(uint64)
 
 			switch rhs.typ {
+			case zng.IdInt16, zng.IdInt32, zng.IdInt64:
+				if v > math.MaxInt64 {
+					return NativeValue{}, ErrIncompatibleTypes
+				}
+				var r int64
+				switch operator {
+				case "+":
+					r = int64(v) + rhs.value.(int64)
+				case "-":
+					r = int64(v) - rhs.value.(int64)
+				case "*":
+					r = int64(v) * rhs.value.(int64)
+				case "/":
+					r = int64(v) / rhs.value.(int64)
+				default:
+					panic("bad operator")
+				}
+				return NativeValue{zng.IdInt64, r}, nil
+
 			case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
 				v2 := rhs.value.(uint64)
 				switch operator {
@@ -683,6 +702,25 @@ func compileArithmetic(lhsFunc, rhsFunc NativeEvaluator, operator string) (Nativ
 					v *= v2
 				case "/":
 					v /= v2
+				default:
+					panic("bad operator")
+				}
+				return NativeValue{zng.IdInt64, v}, nil
+
+			case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
+				ru := rhs.value.(uint64)
+				if ru > math.MaxInt64 {
+					return NativeValue{}, ErrIncompatibleTypes
+				}
+				switch operator {
+				case "+":
+					v += int64(ru)
+				case "-":
+					v -= int64(ru)
+				case "*":
+					v *= int64(ru)
+				case "/":
+					v /= int64(ru)
 				default:
 					panic("bad operator")
 				}
