@@ -72,7 +72,7 @@ func CreateIndex(r io.Reader, size int) (Index, error) {
 				index = append(index, *section)
 			}
 			slice := slicer.Slice{
-				Offset: 0,
+				Offset: off,
 				Length: uint64(len(block)),
 			}
 			section = &Section{
