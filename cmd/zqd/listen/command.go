@@ -26,13 +26,6 @@ The listen command launches a process to listen on the provided interface and
 	New: New,
 }
 
-// Example configfile
-// loggers:
-// - path: ./data/access.log
-//   name: "http.access"
-//   level: info
-//   mode: truncate
-
 func init() {
 	root.Zqd.Add(Listen)
 }
@@ -99,6 +92,13 @@ func pprofHandlers(h http.Handler) http.Handler {
 	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
 	return mux
 }
+
+// Example configfile
+// loggers:
+// - path: ./data/access.log
+//   name: "http.access"
+//   level: info
+//   mode: truncate
 
 func (c *Command) loadConfigFile() error {
 	if c.configfile == "" {
