@@ -1,0 +1,13 @@
+zql: sort x, y
+
+input: |
+  #0:record[x:int64,y:int64]
+  0:[-;2;]
+  0:[-;1;]
+  0:[-;3;]
+
+output: |
+  #0:record[x:int64,y:int64]
+  0:[-;1;]
+  0:[-;2;]
+  0:[-;3;]
