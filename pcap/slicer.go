@@ -25,13 +25,14 @@ func GenerateSlices(index Index, span nano.Span) ([]slicer.Slice, error) {
 	var slices []slicer.Slice
 	for _, section := range index {
 		pslice, err := FindPacketSlice(section.Index, span)
+		if err == ErrNoPacketsFound {
+			continue
+		}
 		if err != nil {
 			return nil, err
 		}
 		for _, slice := range section.Blocks {
-			if !pslice.Overlaps(slice) {
-				slices = append(slices, slice)
-			}
+			slices = append(slices, slice)
 		}
 		slices = append(slices, pslice)
 	}
