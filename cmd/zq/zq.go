@@ -85,7 +85,7 @@ type Command struct {
 	outputFile  string
 	verbose     bool
 	stats       bool
-	warnings    bool
+	quiet       bool
 	showVersion bool
 	zio.Flags
 }
@@ -100,7 +100,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.outputFile, "o", "", "write data to output file")
 	f.BoolVar(&c.verbose, "v", false, "show verbose details")
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
-	f.BoolVar(&c.warnings, "W", false, "display warnings on stderr")
+	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
 	f.BoolVar(&c.ShowTypes, "T", false, "display field types in text output")
 	f.BoolVar(&c.ShowFields, "F", false, "display field names in text output")
 	f.BoolVar(&c.EpochDates, "E", false, "display epoch timestamps in text output")
@@ -213,7 +213,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	output := driver.New(writer)
-	if c.warnings {
+	if !c.quiet {
 		output.SetWarningsWriter(os.Stderr)
 	}
 	return output.Run(mux)
