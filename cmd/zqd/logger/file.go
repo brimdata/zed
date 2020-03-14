@@ -57,13 +57,8 @@ func OpenFile(path string, mode FileMode) (zapcore.WriteSyncer, error) {
 
 func logrotate(path string, mode FileMode) (zapcore.WriteSyncer, error) {
 	// Make sure directory exists
-	dir, _ := filepath.Split(path)
-	info, err := os.Stat(dir)
-	if err != nil {
+	if _, err := os.Stat(filepath.Dir(path)) {
 		return nil, err
-	}
-	if !info.IsDir() {
-		return nil, errors.New("expected path directories to already exist")
 	}
 	// lumberjack.Logger is already safe for concurrent use, so we don't need to
 	// lock it.
