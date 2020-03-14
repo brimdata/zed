@@ -62,10 +62,8 @@ func TestSpaceList(t *testing.T) {
 		sp2.Name,
 		sp4.Name,
 	}
-	body := httpSuccess(t, zqd.NewHandler(c), "GET", "http://localhost:9867/space", nil)
 	var list []string
-	err := json.NewDecoder(body).Decode(&list)
-	require.NoError(t, err)
+	httpJSONSuccess(t, zqd.NewHandler(c), "GET", "http://localhost:9867/space", nil, &list)
 	require.Equal(t, expected, list)
 }
 
@@ -87,10 +85,8 @@ func TestSpaceInfo(t *testing.T) {
 		PacketSupport: false,
 	}
 	u := fmt.Sprintf("http://localhost:9867/space/%s", space)
-	body := httpSuccess(t, zqd.NewHandler(c), "GET", u, nil)
 	var info api.SpaceInfo
-	err := json.NewDecoder(body).Decode(&info)
-	require.NoError(t, err)
+	httpJSONSuccess(t, zqd.NewHandler(c), "GET", u, nil, &info)
 	require.Equal(t, expected, info)
 }
 
@@ -99,14 +95,13 @@ func TestSpaceInfoNoData(t *testing.T) {
 	c := newCore(t)
 	createSpace(t, c, space, "")
 	u := fmt.Sprintf("http://localhost:9867/space/%s", space)
-	body := httpSuccess(t, zqd.NewHandler(c), "GET", u, nil)
+	var info api.SpaceInfo
+	httpJSONSuccess(t, zqd.NewHandler(c), "GET", u, nil, &info)
 	expected := api.SpaceInfo{
 		Name:          space,
 		Size:          0,
 		PacketSupport: false,
 	}
-	var info api.SpaceInfo
-	require.NoError(t, json.NewDecoder(body).Decode(&info))
 	require.Equal(t, expected, info)
 }
 
@@ -163,20 +158,21 @@ func TestSpaceDelete(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			cb(t, tmp, c)
 			// make sure no spaces exist
-			r := httpSuccess(t, zqd.NewHandler(c), "GET", "http://localhost:9867/space", nil)
-			body, err := ioutil.ReadAll(r)
-			require.NoError(t, err)
-			require.Equal(t, "[]\n", string(body))
+			var list []string
+			httpJSONSuccess(t, zqd.NewHandler(c), "GET", "http://localhost:9867/space", nil, &list)
+			require.Equal(t, []string{}, list)
 		})
 	}
 	run("Simple", func(t *testing.T, tmp string, c *zqd.Core) {
 		createSpace(t, c, space, "")
-		httpSuccess(t, zqd.NewHandler(c), "DELETE", spaceUrl, nil)
+		r := httpRequest(t, zqd.NewHandler(c), "DELETE", spaceUrl, nil)
+		require.Equal(t, http.StatusNoContent, r.StatusCode)
 	})
 	run("DeletesOutsideDataDir", func(t *testing.T, tmp string, c *zqd.Core) {
 		datadir := filepath.Join(tmp, "datadir")
 		createSpace(t, c, space, datadir)
-		httpSuccess(t, zqd.NewHandler(c), "DELETE", spaceUrl, nil)
+		r := httpRequest(t, zqd.NewHandler(c), "DELETE", spaceUrl, nil)
+		require.Equal(t, http.StatusNoContent, r.StatusCode)
 		_, err := os.Stat(datadir)
 		require.Error(t, err)
 		require.Truef(t, os.IsNotExist(err), "expected error to be os.IsNotExist, got %v", err)
@@ -223,10 +219,12 @@ func execSearch(t *testing.T, c *zqd.Core, space, prog string) string {
 		Dir:   1,
 	}
 	// XXX Get rid of this format query param and use http headers instead.
-	body := httpSuccess(t, zqd.NewHandler(c), "POST", "http://localhost:9867/search?format=bzng", s)
+	res := httpRequest(t, zqd.NewHandler(c), "POST", "http://localhost:9867/search?format=bzng", s)
+	require.Equal(t, http.StatusOK, res.StatusCode)
+	require.Equal(t, "application/ndjson", res.Header.Get("Content-Type"))
 	buf := bytes.NewBuffer(nil)
 	w := zngio.NewWriter(buf)
-	r := bzngio.NewReader(body, resolver.NewContext())
+	r := bzngio.NewReader(res.Body, resolver.NewContext())
 	require.NoError(t, zbuf.Copy(zbuf.NopFlusher(w), r))
 	return buf.String()
 }
@@ -247,9 +245,8 @@ func createSpace(t *testing.T, c *zqd.Core, spaceName, datadir string) api.Space
 		Name:    spaceName,
 		DataDir: datadir,
 	}
-	body := httpSuccess(t, zqd.NewHandler(c), "POST", "http://localhost:9867/space", req)
 	var res api.SpacePostResponse
-	require.NoError(t, json.NewDecoder(body).Decode(&res))
+	httpJSONSuccess(t, zqd.NewHandler(c), "POST", "http://localhost:9867/space", req, &res)
 	return res
 }
 
@@ -288,16 +285,12 @@ func httpRequest(t *testing.T, h http.Handler, method, url string, body interfac
 	return w.Result()
 }
 
-func httpSuccess(t *testing.T, h http.Handler, method, url string, body interface{}) io.ReadCloser {
-	res := httpRequest(t, h, method, url, body)
-	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		body, _ := ioutil.ReadAll(res.Body)
-		require.Equal(t, http.StatusOK, res.StatusCode, string(body))
-	}
-	return res.Body
-}
-
 func httpJSONSuccess(t *testing.T, h http.Handler, method, url string, body interface{}, res interface{}) {
-	r := httpSuccess(t, h, method, url, body)
-	require.NoError(t, json.NewDecoder(r).Decode(res))
+	r := httpRequest(t, h, method, url, body)
+	if r.StatusCode < 200 || r.StatusCode >= 300 {
+		body, _ := ioutil.ReadAll(r.Body)
+		require.Equal(t, http.StatusOK, r.StatusCode, string(body))
+	}
+	require.Equal(t, "application/json", r.Header.Get("Content-Type"))
+	require.NoError(t, json.NewDecoder(r.Body).Decode(res))
 }
