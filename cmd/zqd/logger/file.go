@@ -40,8 +40,8 @@ const (
 
 func OpenFile(path string, mode FileMode) (zapcore.WriteSyncer, error) {
 	switch path {
-	case "stdin":
-		return zapcore.Lock(os.Stdin), nil
+	case "stdout":
+		return zapcore.Lock(os.Stdout), nil
 	case "stderr":
 		return zapcore.Lock(os.Stderr), nil
 	}
