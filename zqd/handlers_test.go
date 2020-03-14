@@ -262,7 +262,7 @@ func execSearch(t *testing.T, c *zqd.Core, space, prog string) string {
 func createTempDir(t *testing.T) string {
 	// Replace filepath.Separator with '-' so it doesn't try to access dirs that
 	// don't exist.
-	name := strings.Replace(t.Name(), string(filepath.Separator), "-", -1)
+	name := strings.ReplaceAll(t.Name(), string(filepath.Separator), "-")
 	dir, err := ioutil.TempDir("", name)
 	require.NoError(t, err)
 	return dir
