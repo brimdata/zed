@@ -274,9 +274,8 @@ func newCore(t *testing.T) *zqd.Core {
 }
 
 func newCoreAtDir(t *testing.T, dir string) *zqd.Core {
-	root := createTempDir(t)
 	conf := zqd.Config{
-		Root:   root,
+		Root:   dir,
 		Logger: zaptest.NewLogger(t, zaptest.Level(zap.WarnLevel)),
 	}
 	return zqd.NewCore(conf)

@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -57,7 +56,7 @@ func OpenFile(path string, mode FileMode) (zapcore.WriteSyncer, error) {
 
 func logrotate(path string, mode FileMode) (zapcore.WriteSyncer, error) {
 	// Make sure directory exists
-	if _, err := os.Stat(filepath.Dir(path)) {
+	if _, err := os.Stat(filepath.Dir(path)); err != nil {
 		return nil, err
 	}
 	// lumberjack.Logger is already safe for concurrent use, so we don't need to
