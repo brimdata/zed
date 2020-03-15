@@ -132,7 +132,14 @@ type BinaryExpression struct {
 	RHS      Expression `json:"rhs"`
 }
 
+type FunctionCall struct {
+	Node
+	Function string       `json:"function"`
+	Args     []Expression `json:"args"`
+}
+
 func (*BinaryExpression) exprNode() {}
+func (*FunctionCall) exprNode()     {}
 func (*Literal) exprNode()          {}
 func (*FieldRead) exprNode()        {}
 
