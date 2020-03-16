@@ -121,7 +121,7 @@ func toNativeValue(zv zng.Value) (NativeValue, error) {
 		return NativeValue{zv.Type, zv.Bytes}, nil
 	}
 
-	return NativeValue{}, fmt.Errorf("unknown type %d", zv.Type.ID())
+	return NativeValue{}, fmt.Errorf("unknown type %s", zv.Type)
 }
 
 func (v *NativeValue) toZngValue() (zng.Value, error) {
