@@ -138,9 +138,6 @@ func genICMPFilter(src, dst net.IP) PacketFilter {
 // XXX currently assumes legacy pcap is produced by the input reader
 // XXX need to handle searching over multiple pcap files
 func (s *Search) Run(w io.Writer, r pcapio.Reader) error {
-	//XXX the .LayerType() method is returning Unknown for some reason
-	//outerLayer := pcap.LinkType().LayerType()
-	outerLayer := layers.LayerTypeEthernet
 	opts := gopacket.DecodeOptions{Lazy: true, NoCopy: true}
 	var npkt int
 	for {
@@ -167,15 +164,14 @@ func (s *Search) Run(w io.Writer, r pcapio.Reader) error {
 			}
 			continue
 		}
-		//XXX should use linkType here... need to debug
-		pktBuf, ts, _ := r.Packet(block)
+		pktBuf, ts, linkType := r.Packet(block)
 		if pktBuf == nil {
 			return pcapio.ErrCorruptPcap
 		}
 		if !s.span.ContainsClosed(ts) {
 			continue
 		}
-		packet := gopacket.NewPacket(pktBuf, outerLayer, opts)
+		packet := gopacket.NewPacket(pktBuf, linkType, opts)
 		if s.filter != nil && !s.filter(packet) {
 			continue
 		}
