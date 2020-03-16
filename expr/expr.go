@@ -846,9 +846,8 @@ func compileArrayIndex(lhsFunc, rhsFunc NativeEvaluator, operator string) (Nativ
 			return NativeValue{}, err
 		}
 
-		var aType *zng.TypeArray
-		var ok bool
-		if aType, ok = lhs.typ.(*zng.TypeArray); !ok {
+		aType, ok := lhs.typ.(*zng.TypeArray)
+		if !ok {
 			return NativeValue{}, ErrIncompatibleTypes
 		}
 
