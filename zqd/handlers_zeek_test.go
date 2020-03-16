@@ -202,7 +202,10 @@ func (r *packetPostResult) postPcap(t *testing.T, file string) {
 	require.NoError(t, err)
 	r.body, r.statusCode = body, res.StatusCode
 	if r.statusCode == 202 {
+		require.Equal(t, "application/ndjson", res.Header.Get("Content-Type"))
 		r.readPayloads(t)
+	} else {
+		require.Equal(t, "text/plain; charset=utf-8", res.Header.Get("Content-Type"))
 	}
 }
 

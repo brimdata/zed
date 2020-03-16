@@ -49,6 +49,7 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	// XXX This always returns bad request but should return status codes
 	// that reflect the nature of the returned error.
+	w.Header().Set("Content-Type", "application/ndjson")
 	if err := search.Search(r.Context(), s, req, out); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -201,6 +202,7 @@ func handleSpacePost(c *Core, w http.ResponseWriter, r *http.Request) {
 		Name:    s.Name(),
 		DataDir: s.DataPath(),
 	}
+	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(res); err != nil {
 		// XXX Add zap here.
 		log.Println("Error writing response", err)
@@ -239,7 +241,6 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/ndjson")
-	w.Header().Set("Transfer-Encoding", "chunked")
 	w.WriteHeader(http.StatusAccepted)
 	pipe := api.NewJSONPipe(w)
 	taskID := c.getTaskID()
