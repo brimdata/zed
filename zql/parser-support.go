@@ -281,7 +281,9 @@ func makeGroupByProc(durationIn, limitIn, keysIn, reducersIn interface{}) *ast.G
 	}
 }
 
-// XXX explain me
+// Help for grammar rules that return the matched characters without
+// converting to string.  We should (eventually) clean up these
+// grammar rules so this isn't needed.
 func getString(s interface{}) string {
 	if r, ok := s.(string); ok {
 		return r
