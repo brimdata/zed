@@ -21,6 +21,12 @@ func init() {
 	}
 	Test3.Input[0].Data = string(ngData)
 	Test4.Input[0].Data = string(ngData)
+
+	loopbackData, err := ioutil.ReadFile("suite/pcap/loopback.pcap")
+	if err != nil {
+		panic(err.Error())
+	}
+	Test5.Input[0].Data = string(loopbackData)
 }
 
 // XXX note these tests don't test the pcap slice index file since there
@@ -75,5 +81,45 @@ var Test4 = test.Shell{
 	Input:  []test.File{test.File{Name: "ng.pcap"}},
 	Expected: []test.File{
 		test.File{"out2", test.Trim(out2)},
+	},
+}
+
+var out3 = `
+1584306020.727648
+1584306020.727793
+1584306020.727798
+1584306020.727823
+1584306020.727885
+1584306020.727896
+1584306020.728452
+1584306020.728487
+1584306020.730499
+1584306020.73051
+1584306020.730511
+1584306020.730517
+1584306020.730921
+1584306020.730931
+1584306028.07898
+1584306028.078995
+1584306028.079577
+1584306028.079603
+1584306030.033299
+1584306030.033316
+1584306030.033346
+1584306030.033348
+1584306030.033351
+1584306030.033377
+1584306031.477171
+1584306031.477181
+1584306031.50255
+1584306031.502586`
+
+// This test exercises the non-Ethernet link layer type ini loopback.pcap.
+var Test5 = test.Shell{
+	Name:   "pcap-loopback",
+	Script: `pcap slice -r loopback.pcap 127.0.0.1:53586 127.0.0.1:9867 | pcap ts -w out3`,
+	Input:  []test.File{test.File{Name: "loopback.pcap"}},
+	Expected: []test.File{
+		test.File{"out3", test.Trim(out3)},
 	},
 }
