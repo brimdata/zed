@@ -113,16 +113,6 @@ func zstring(s string) zng.Value {
 	return zng.Value{zng.TypeString, zng.EncodeString(s)}
 }
 
-func TestExpressions(t *testing.T) {
-	TestPrimitives(t)
-	TestLogical(t)
-	TestCompareNumbers(t)
-	TestCompareNonNumbers(t)
-	TestArithmetic(t)
-	TestArrayIndex(t)
-	TestFieldReference(t)
-}
-
 func TestPrimitives(t *testing.T) {
 	record, err := parseOneRecord(`
 #0:record[x:int32,f:float64,s:string]
