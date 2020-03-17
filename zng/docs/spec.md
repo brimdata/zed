@@ -255,14 +255,17 @@ the array encoded as a `uvarint`:
 
 #### 2.1.1.3 Set Typedef
 
-A set type is encoded as a concatenation of the type IDs that comprise
-the elements of the set where each type ID and the number of types
-in the set are all encoded as a `uvarint`:
+A set type is encoded as a type count followed by the type ID of the
+elements of the set, each encoded as a `<uvarint>`:
 ```
-----------------------------------------
-|0x82|<ntypes><type-id-1><type-id-2>...|
-----------------------------------------
+-------------------------
+|0x82|<ntypes>|<type-id>|
+-------------------------
 ```
+
+`<ntypes>` must be 1.
+
+`<type-id>` must be a primitive type ID.
 
 #### 2.1.1.4 Union Typedef
 
@@ -521,7 +524,7 @@ grammar describing the textual type encodings is:
           | record [ <columns> ]
           | record [ ]
           | union [ <stype-list> ]
-          | set [ <stype-list> ]
+          | set [ <stype> ]
 
 
 <stype-list> :=    <stype>
