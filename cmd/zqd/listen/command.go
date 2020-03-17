@@ -2,15 +2,18 @@ package listen
 
 import (
 	"flag"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/pprof"
 	"path/filepath"
 
+	"github.com/brimsec/zq/cmd/zqd/logger"
 	"github.com/brimsec/zq/cmd/zqd/root"
 	"github.com/brimsec/zq/zqd"
 	"github.com/mccanne/charm"
 	"go.uber.org/zap"
+	"gopkg.in/yaml.v3"
 )
 
 var Listen = &charm.Spec{
@@ -23,6 +26,15 @@ The listen command launches a process to listen on the provided interface and
 	New: New,
 }
 
+// defaultLogger ignores output from the access logger.
+var defaultLogger = []logger.Config{
+	{
+		Name:  "zqd",
+		Path:  "stderr",
+		Level: zap.InfoLevel,
+	},
+}
+
 func init() {
 	root.Zqd.Add(Listen)
 }
@@ -30,21 +42,56 @@ func init() {
 type Command struct {
 	*root.Command
 	listenAddr string
-	dataDir    string
-	zeekExec   string
+	conf       zqd.Config
 	pprof      bool
+	configfile string
+	loggerConf []logger.Config
+	devMode    bool
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.StringVar(&c.listenAddr, "l", ":9867", "[addr]:port to listen on")
-	f.StringVar(&c.dataDir, "datadir", ".", "data directory")
-	f.StringVar(&c.zeekExec, "zeekpath", "", "path to the zeek executable to use (defaults to zeek in $PATH)")
+	f.StringVar(&c.conf.Root, "datadir", ".", "data directory")
+	f.StringVar(&c.conf.ZeekExec, "zeekpath", "", "path to the zeek executable to use (defaults to zeek in $PATH)")
 	f.BoolVar(&c.pprof, "pprof", false, "add pprof routes to api")
+	f.StringVar(&c.configfile, "config", "", "path to a zqd config file")
+	f.BoolVar(&c.devMode, "dev", false, "runs zqd in development mode")
 	return c, nil
 }
 
-func (c *Command) pprofHandlers(h http.Handler) http.Handler {
+func (c *Command) Run(args []string) error {
+	var err error
+	c.conf.Root, err = filepath.Abs(c.conf.Root)
+	if err != nil {
+		return err
+	}
+	if err := c.loadConfigFile(); err != nil {
+		return err
+	}
+	logger, err := c.logger()
+	if err != nil {
+		return err
+	}
+	c.conf.Logger = logger.Named("zqd")
+	core := zqd.NewCore(c.conf)
+	h := zqd.NewHandlerWithLogger(core, logger)
+	if c.pprof {
+		h = pprofHandlers(h)
+	}
+	ln, err := net.Listen("tcp", c.listenAddr)
+	if err != nil {
+		return err
+	}
+	c.conf.Logger.Info("Listening",
+		zap.String("addr", ln.Addr().String()),
+		zap.String("datadir", c.conf.Root),
+		zap.Bool("pprof_routes", c.pprof),
+	)
+	return http.Serve(ln, h)
+}
+
+func pprofHandlers(h http.Handler) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("/", h)
 	mux.HandleFunc("/debug/pprof/", pprof.Index)
@@ -55,36 +102,45 @@ func (c *Command) pprofHandlers(h http.Handler) http.Handler {
 	return mux
 }
 
-func (c *Command) Run(args []string) error {
-	dataDir, err := filepath.Abs(c.dataDir)
+// Example configfile
+// loggers:
+// - path: ./data/access.log
+//   name: "http.access"
+//   level: info
+//   mode: truncate
+
+func (c *Command) loadConfigFile() error {
+	if c.configfile == "" {
+		return nil
+	}
+	// For now config file just has loggers.
+	conf := struct {
+		Loggers []logger.Config `yaml:"loggers"`
+	}{}
+	b, err := ioutil.ReadFile(c.configfile)
 	if err != nil {
 		return err
 	}
-	logger := newLogger()
-	core := &zqd.Core{Root: dataDir, ZeekExec: c.zeekExec}
-	h := zqd.NewHandler(core)
-	if c.pprof {
-		h = c.pprofHandlers(h)
-	}
-	ln, err := net.Listen("tcp", c.listenAddr)
-	if err != nil {
+	if err := yaml.Unmarshal(b, &conf); err != nil {
 		return err
 	}
-	logger.Info("Listening",
-		zap.String("addr", ln.Addr().String()),
-		zap.String("datadir", dataDir),
-		zap.Bool("pprof_routes", c.pprof),
-	)
-	return http.Serve(ln, h)
+	c.loggerConf = conf.Loggers
+	return err
 }
 
-func newLogger() *zap.Logger {
-	c := zap.NewProductionConfig()
-	c.Sampling = nil
-	c.EncoderConfig.CallerKey = ""
-	l, err := c.Build()
-	if err != nil {
-		panic(err)
+func (c *Command) logger() (*zap.Logger, error) {
+	if c.loggerConf == nil {
+		c.loggerConf = defaultLogger
 	}
-	return l
+	core, err := logger.New(c.loggerConf...)
+	if err != nil {
+		return nil, err
+	}
+	// If the development mode is on, calls to logger.DPanic will cause a panic
+	// whereas in production would result in an error.
+	var opts []zap.Option
+	if c.devMode {
+		opts = append(opts, zap.Development())
+	}
+	return zap.New(core, opts...), nil
 }
