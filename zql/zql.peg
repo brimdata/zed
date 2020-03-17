@@ -522,20 +522,20 @@ ArgumentList
         RETURN(XXX)
     }
 
+#else
+
+CallExpression = DereferenceExpression
+
+#endif
+
 DereferenceExpression
   = base:PrimaryExpression
     derefs:(
-        __ "[" __ index:Expression __ "]" { RETURN(XXX) }
-      / __ "." __ field:fieldName { RETURN(XXX) }
+        __ "[" __ index:Expression __ "]"
+      / __ "." __ (field:fieldName { RETURN(makeLiteral("string", TEXT)) })
     )* {
-        RETURN(XXX)
+        RETURN(makeBinaryExprChain(base, derefs))
     }
-
-#else
-
-CallExpression = PrimaryExpression
-
-#endif
 
 duration
   = seconds

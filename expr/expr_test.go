@@ -119,6 +119,8 @@ func TestExpressions(t *testing.T) {
 	TestCompareNumbers(t)
 	TestCompareNonNumbers(t)
 	TestArithmetic(t)
+	TestArrayIndex(t)
+	TestFieldReference(t)
 }
 
 func TestPrimitives(t *testing.T) {
@@ -529,4 +531,34 @@ func TestArithmetic(t *testing.T) {
 	testError(t, "10.1.1.1 + 1", record, expr.ErrIncompatibleTypes, "adding ip and integer")
 	testError(t, "10.1.1.1 + 3.14159", record, expr.ErrIncompatibleTypes, "adding ip and float")
 	testError(t, `10.1.1.1 + "foo"`, record, expr.ErrIncompatibleTypes, "adding ip and string")
+}
+
+func TestArrayIndex(t *testing.T) {
+	record, err := parseOneRecord(`
+#0:record[x:array[int64],i:uint16]
+0:[[1;2;3;]1;]`)
+	require.NoError(t, err)
+
+	testSuccessful(t, "x[0]", record, zint64(1))
+	testSuccessful(t, "x[1]", record, zint64(2))
+	testSuccessful(t, "x[2]", record, zint64(3))
+	testSuccessful(t, "x[i]", record, zint64(2))
+	testSuccessful(t, "i+1", record, zint64(2))
+	testSuccessful(t, "x[i+1]", record, zint64(3))
+
+	testError(t, "x[-1]", record, expr.ErrIndexOutOfBounds, "negative array index")
+	testError(t, "x[3]", record, expr.ErrIndexOutOfBounds, "array index too large")
+}
+
+func TestFieldReference(t *testing.T) {
+	record, err := parseOneRecord(`
+#0:record[rec:record[i:int32,s:string,f:float64]]
+0:[[5;boo;6.1;]]`)
+	require.NoError(t, err)
+
+	testSuccessful(t, "rec.i", record, zint32(5))
+	testSuccessful(t, "rec.s", record, zstring("boo"))
+	testSuccessful(t, "rec.f", record, zfloat64(6.1))
+
+	testError(t, "rec.no", record, expr.ErrNoSuchField, "referencing nonexistent field")
 }

@@ -281,6 +281,17 @@ func makeGroupByProc(durationIn, limitIn, keysIn, reducersIn interface{}) *ast.G
 	}
 }
 
+// Help for grammar rules that return the matched characters without
+// converting to string.  We should (eventually) clean up these
+// grammar rules so this isn't needed.
+func getString(s interface{}) string {
+	if r, ok := s.(string); ok {
+		return r
+	}
+	a := s.([]uint8)
+	return string(a)
+}
+
 func makeBinaryExprChain(firstIn, restIn interface{}) ast.Expression {
 	first := firstIn.(ast.Expression)
 	if restIn == nil {
@@ -291,10 +302,10 @@ func makeBinaryExprChain(firstIn, restIn interface{}) ast.Expression {
 	rest := restIn.([]interface{})
 	for _, r := range rest {
 		params := r.([]interface{})
-		if len(params) != 4 {
-			panic("expected 4 item array")
+		if len(params) < 4 {
+			panic("expected array with at least 4 items")
 		}
-		op := params[1].(string)
+		op := getString(params[1])
 		term := params[3].(ast.Expression)
 		result = &ast.BinaryExpression{ast.Node{"BinaryExpr"}, op, result, term}
 	}
