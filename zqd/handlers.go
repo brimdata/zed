@@ -243,7 +243,7 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	taskID := c.getTaskID()
 	taskStart := api.TaskStart{Type: "TaskStart", TaskID: taskID}
 	if err = pipe.Send(taskStart); err != nil {
-		logger.Warn("Err sending payload", zap.Error(err))
+		logger.Warn("Error sending payload", zap.Error(err))
 		return
 	}
 	ticker := time.NewTicker(time.Second * 2)
