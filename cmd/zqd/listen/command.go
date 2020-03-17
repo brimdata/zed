@@ -26,6 +26,15 @@ The listen command launches a process to listen on the provided interface and
 	New: New,
 }
 
+// defaultLogger ignores output from the access logger.
+var defaultLogger = []logger.Config{
+	{
+		Name:  "zqd",
+		Path:  "stderr",
+		Level: zap.InfoLevel,
+	},
+}
+
 func init() {
 	root.Zqd.Add(Listen)
 }
@@ -121,12 +130,7 @@ func (c *Command) loadConfigFile() error {
 
 func (c *Command) logger() (*zap.Logger, error) {
 	if c.loggerConf == nil {
-		c.loggerConf = []logger.Config{
-			{
-				Path:  "stderr",
-				Level: zap.InfoLevel,
-			},
-		}
+		c.loggerConf = defaultLogger
 	}
 	core, err := logger.New(c.loggerConf...)
 	if err != nil {
