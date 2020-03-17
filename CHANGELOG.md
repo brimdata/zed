@@ -1,3 +1,11 @@
+## v0.6.0
+
+* zq now displays warnings by default; the "-W" flag is removed, replaced by
+  the "-q" for quieting warnings.
+* Update license to reflect new corporate name.
+* Address ingest issues for some pcapng packet captures.
+* Address ingest issues for file or path names that required uri encoding.
+
 ## v0.5.0
 
 * Support search queries during pcap ingestion.
