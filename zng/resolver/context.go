@@ -49,6 +49,8 @@ func (c *Context) SetLogger(logger TypeLogger) {
 }
 
 func (c *Context) Reset() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.table = c.table[:zng.IdTypeDef]
 }
 
@@ -237,6 +239,8 @@ func (c *Context) LookupTypeArray(inner zng.Type) *zng.TypeArray {
 
 func (c *Context) LookupTypeUnion(types []zng.Type) *zng.TypeUnion {
 	key := unionKey(types)
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	id, ok := c.lut[key]
 	if ok {
 		return c.table[id].(*zng.TypeUnion)
