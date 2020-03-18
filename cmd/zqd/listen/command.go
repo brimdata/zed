@@ -1,6 +1,7 @@
 package listen
 
 import (
+	"errors"
 	"flag"
 	"io/ioutil"
 	"net"
@@ -11,6 +12,7 @@ import (
 	"github.com/brimsec/zq/cmd/zqd/logger"
 	"github.com/brimsec/zq/cmd/zqd/root"
 	"github.com/brimsec/zq/zqd"
+	"github.com/brimsec/zq/zqd/zeek"
 	"github.com/mccanne/charm"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
@@ -44,6 +46,7 @@ type Command struct {
 	listenAddr string
 	conf       zqd.Config
 	pprof      bool
+	zeekpath   string
 	configfile string
 	loggerConf []logger.Config
 	devMode    bool
@@ -53,7 +56,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.StringVar(&c.listenAddr, "l", ":9867", "[addr]:port to listen on")
 	f.StringVar(&c.conf.Root, "datadir", ".", "data directory")
-	f.StringVar(&c.conf.ZeekExec, "zeekpath", "", "path to the zeek executable to use (defaults to zeek in $PATH)")
+	f.StringVar(&c.zeekpath, "zeekpath", "", "path to the zeek executable to use (defaults to zeek in $PATH)")
 	f.BoolVar(&c.pprof, "pprof", false, "add pprof routes to api")
 	f.StringVar(&c.configfile, "config", "", "path to a zqd config file")
 	f.BoolVar(&c.devMode, "dev", false, "runs zqd in development mode")
@@ -74,6 +77,9 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	c.conf.Logger = logger.Named("zqd")
+	if err := c.loadzeek(); err != nil {
+		return err
+	}
 	core := zqd.NewCore(c.conf)
 	h := zqd.NewHandlerWithLogger(core, logger)
 	if c.pprof {
@@ -87,6 +93,7 @@ func (c *Command) Run(args []string) error {
 		zap.String("addr", ln.Addr().String()),
 		zap.String("datadir", c.conf.Root),
 		zap.Bool("pprof_routes", c.pprof),
+		zap.Bool("zeek_supported", core.HasZeek()),
 	)
 	return http.Serve(ln, h)
 }
@@ -126,6 +133,15 @@ func (c *Command) loadConfigFile() error {
 	}
 	c.loggerConf = conf.Loggers
 	return err
+}
+
+func (c *Command) loadzeek() error {
+	ln, err := zeek.LauncherFromPath(c.zeekpath)
+	if err != nil && !errors.Is(err, zeek.ErrNotFound) {
+		return err
+	}
+	c.conf.ZeekLauncher = ln
+	return nil
 }
 
 func (c *Command) logger() (*zap.Logger, error) {

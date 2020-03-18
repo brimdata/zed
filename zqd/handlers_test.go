@@ -2,6 +2,7 @@ package zqd_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -23,6 +24,7 @@ import (
 	"github.com/brimsec/zq/zqd"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/space"
+	"github.com/brimsec/zq/zqd/zeek"
 	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -156,10 +158,7 @@ func TestSpaceDelete(t *testing.T) {
 	run := func(name string, cb func(*testing.T, string, *zqd.Core)) {
 		tmp := createTempDir(t)
 		defer os.RemoveAll(tmp)
-		c := zqd.NewCore(zqd.Config{
-			Root:   filepath.Join(tmp, "spaces"),
-			Logger: zaptest.NewLogger(t),
-		})
+		c := newCoreAtDir(t, filepath.Join(tmp, "spaces"))
 		require.NoError(t, os.Mkdir(c.Root, 0755))
 		t.Run(name, func(t *testing.T) {
 			cb(t, tmp, c)
@@ -189,7 +188,7 @@ func TestURLEncodingSupport(t *testing.T) {
 	c := newCore(t)
 	defer os.RemoveAll(c.Root)
 
-	rawSpace := "raw %<>space.brim"
+	rawSpace := "raw %space.brim"
 	encodedSpaceURL := fmt.Sprintf("http://localhost:9867/space/%s", url.PathEscape(rawSpace))
 
 	createSpace(t, c, rawSpace, "")
@@ -235,6 +234,12 @@ func TestRequestID(t *testing.T) {
 	})
 }
 
+func nopZeekLauncher() zeek.Launcher {
+	return func(context.Context, io.Reader, string) (zeek.Process, error) {
+		return nil, nil
+	}
+}
+
 func execSearch(t *testing.T, c *zqd.Core, space, prog string) string {
 	parsed, err := zql.ParseProc(prog)
 	require.NoError(t, err)
@@ -260,7 +265,7 @@ func execSearch(t *testing.T, c *zqd.Core, space, prog string) string {
 func createTempDir(t *testing.T) string {
 	// Replace filepath.Separator with '-' so it doesn't try to access dirs that
 	// don't exist.
-	name := strings.ReplaceAll(t.Name(), string(filepath.Separator), "-")
+	name := strings.ReplaceAll(t.Name(), "/", "-")
 	dir, err := ioutil.TempDir("", name)
 	require.NoError(t, err)
 	return dir
@@ -273,8 +278,9 @@ func newCore(t *testing.T) *zqd.Core {
 
 func newCoreAtDir(t *testing.T, dir string) *zqd.Core {
 	conf := zqd.Config{
-		Root:   dir,
-		Logger: zaptest.NewLogger(t, zaptest.Level(zap.WarnLevel)),
+		Root:         dir,
+		Logger:       zaptest.NewLogger(t, zaptest.Level(zap.WarnLevel)),
+		ZeekLauncher: nopZeekLauncher(),
 	}
 	return zqd.NewCore(conf)
 }

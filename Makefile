@@ -2,8 +2,6 @@ export GO111MODULE=on
 
 VERSION = $(shell git describe --tags --dirty)
 LDFLAGS = -s -X main.version=$(VERSION)
-ZEEKTAG = v3.0.2-brim1
-ZEEKPATH = zeek-$(ZEEKTAG)
 
 vet:
 	@go vet -copylocks ./...
@@ -26,13 +24,6 @@ $(SAMPLEDATA):
 
 sampledata: $(SAMPLEDATA)
 
-bin/$(ZEEKPATH):
-	@mkdir -p bin
-	@curl -L -o bin/$(ZEEKPATH).zip \
-		https://github.com/brimsec/zeek/releases/download/$(ZEEKTAG)/zeek-$(ZEEKTAG).$$(go env GOOS)-$$(go env GOARCH).zip
-	@unzip -q bin/$(ZEEKPATH).zip -d bin \
-		&& mv bin/zeek bin/$(ZEEKPATH)
-
 test-unit:
 	@go test -short ./...
 
@@ -41,9 +32,6 @@ test-system: build
 
 test-heavy: build $(SAMPLEDATA)
 	@go test -v -tags=heavy ./tests
-
-test-zeek: bin/$(ZEEKPATH)
-	@ZEEK=$(CURDIR)/bin/$(ZEEKPATH)/zeek go test -v -run=PacketPost -tags=zeek ./zqd
 
 perf-compare: build $(SAMPLEDATA)
 	scripts/comparison-test.sh
@@ -69,7 +57,7 @@ create-release-assets:
 
 # CI performs these actions individually since that looks nicer in the UI;
 # this is a shortcut so that a local dev can easily run everything.
-test-ci: fmt tidy vet test-unit test-system test-zeek test-heavy
+test-ci: fmt tidy vet test-unit test-system test-heavy
 
 clean:
 	@rm -rf dist
