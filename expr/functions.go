@@ -56,6 +56,9 @@ func mathSqrt(args []NativeValue) (NativeValue, error) {
 
 	r := math.Sqrt(x)
 	if math.IsNaN(r) {
+		// For now we can't represent non-numeric values in a float64,
+		// we will revisit this but it has implications for file
+		// formats, zql, etc.
 		return NativeValue{}, fmt.Errorf("Math.sqrt: %w", ErrBadArgument)
 	}
 
