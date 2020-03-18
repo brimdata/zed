@@ -918,7 +918,7 @@ func compileFieldReference(lhsFunc, rhsFunc NativeEvaluator, operator string) (N
 }
 
 func compileFunctionCall(node ast.FunctionCall) (NativeEvaluator, error) {
-	fn := lookupFunction(node.Function)
+	fn := allFns[node.Function]
 	if fn == nil {
 		return nil, fmt.Errorf("%s: %w", node.Function, ErrNoSuchFunction)
 	}
@@ -943,6 +943,6 @@ func compileFunctionCall(node ast.FunctionCall) (NativeEvaluator, error) {
 			args = append(args, val)
 		}
 
-		return (*fn)(args)
+		return fn(args)
 	}, nil
 }

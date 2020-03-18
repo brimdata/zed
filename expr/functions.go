@@ -17,14 +17,6 @@ var allFns = map[string]Function{
 	"Math.sqrt": mathSqrt,
 }
 
-func lookupFunction(name string) *Function {
-	fn, ok := allFns[name]
-	if ok {
-		return &fn
-	}
-	return nil
-}
-
 func mathSqrt(args []NativeValue) (NativeValue, error) {
 	if len(args) < 1 || len(args) > 1 {
 		return NativeValue{}, fmt.Errorf("Math.sqrt: %w", ErrWrongArgc)
