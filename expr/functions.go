@@ -13,24 +13,12 @@ type Function func([]NativeValue) (NativeValue, error)
 var ErrWrongArgc = errors.New("wrong number of arguments")
 var ErrBadArgument = errors.New("bad argument")
 
-var allFns = []struct {
-	name string
-	fn   Function
-}{
-	{"Math.sqrt", mathSqrt},
+var allFns = map[string]Function{
+	"Math.sqrt": mathSqrt,
 }
 
-var allFnsMap map[string]Function
-var fnsInited = false
-
 func lookupFunction(name string) *Function {
-	if !fnsInited {
-		allFnsMap = make(map[string]Function)
-		for _, f := range allFns {
-			allFnsMap[f.name] = f.fn
-		}
-	}
-	fn, ok := allFnsMap[name]
+	fn, ok := allFns[name]
 	if ok {
 		return &fn
 	}
