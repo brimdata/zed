@@ -497,36 +497,23 @@ NotExpression
   / CallExpression
 
 
-#ifdef notyet
-
 CallExpression
-  = fn:FunctionName __ "(" __ args:ArgumentList __ ")" {
-        RETURN(XXX)
+  = fn:FunctionName __ "(" args:ArgumentList ")" {
+        RETURN(makeFunctionCall(fn, args))
     }
   / DereferenceExpression
 
 FunctionName
-  = first:FunctionNameComponent
-    rest:("." n:FunctionNameComponent { RETURN(n) })* {
-        RETURN(XXX)
-    }
-
-FunctionNameComponent
   = FunctionNameStart FunctionNameRest* { RETURN(TEXT) }
 
 FunctionNameStart = [A-Za-z]
-FunctionNameRest = FunctionNameStart / [0-9]
+FunctionNameRest = FunctionNameStart / [.0-9]
 
 ArgumentList
   = first:Expression rest:(__ "," __ e:Expression { RETURN(e) })* {
-        RETURN(XXX)
-    }
-
-#else
-
-CallExpression = DereferenceExpression
-
-#endif
+      RETURN(PREPEND(first, rest))
+  }
+  / __ { RETURN(ARRAY()) }
 
 DereferenceExpression
   = base:PrimaryExpression

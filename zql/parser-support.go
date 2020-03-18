@@ -312,6 +312,19 @@ func makeBinaryExprChain(firstIn, restIn interface{}) ast.Expression {
 	return result
 }
 
+func makeFunctionCall(fn, argsIn interface{}) ast.Expression {
+	argArray := argsIn.([]interface{})
+	args := make([]ast.Expression, len(argArray))
+	for i, a := range argArray {
+		args[i] = a.(ast.Expression)
+	}
+	return &ast.FunctionCall{
+		ast.Node{"FunctionCall"},
+		fn.(string),
+		args,
+	}
+}
+
 func joinChars(in interface{}) string {
 	str := bytes.Buffer{}
 	for _, i := range in.([]interface{}) {

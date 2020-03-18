@@ -17,6 +17,7 @@ type ExpressionEvaluator func(*zng.Record) (zng.Value, error)
 var ErrNoSuchField = errors.New("field is not present")
 var ErrIncompatibleTypes = errors.New("incompatible types")
 var ErrIndexOutOfBounds = errors.New("array index out of bounds")
+var ErrNoSuchFunction = errors.New("no such function")
 
 type NativeValue struct {
 	typ   zng.Type
@@ -274,6 +275,9 @@ func compileNative(node ast.Expression) (NativeEvaluator, error) {
 		default:
 			return nil, fmt.Errorf("invalid binary operator %s", n.Operator)
 		}
+
+	case *ast.FunctionCall:
+		return compileFunctionCall(*n)
 
 	default:
 		return nil, fmt.Errorf("invalid expression type %T", node)
@@ -910,5 +914,35 @@ func compileFieldReference(lhsFunc, rhsFunc NativeEvaluator, operator string) (N
 			return NativeValue{}, err
 		}
 		return toNativeValue(zng.Value{rType.Columns[idx].Type, zv})
+	}, nil
+}
+
+func compileFunctionCall(node ast.FunctionCall) (NativeEvaluator, error) {
+	fn := allFns[node.Function]
+	if fn == nil {
+		return nil, fmt.Errorf("%s: %w", node.Function, ErrNoSuchFunction)
+	}
+
+	nargs := len(node.Args)
+	exprs := make([]NativeEvaluator, nargs)
+	for i, expr := range node.Args {
+		eval, err := compileNative(expr)
+		if err != nil {
+			return nil, err
+		}
+		exprs[i] = eval
+	}
+
+	return func(r *zng.Record) (NativeValue, error) {
+		args := make([]NativeValue, 0, nargs)
+		for _, a := range exprs {
+			val, err := a(r)
+			if err != nil {
+				return NativeValue{}, err
+			}
+			args = append(args, val)
+		}
+
+		return fn(args)
 	}, nil
 }

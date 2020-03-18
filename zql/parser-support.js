@@ -116,6 +116,10 @@ function makeBinaryExprChain(first, rest) {
   return ret
 }
 
+function makeFunctionCall(fn, args) {
+  return { op: "FunctionCall", function: fn, args };
+}
+
 function joinChars(chars) {
   return chars.join("");
 }

@@ -85,7 +85,7 @@ func testError(t *testing.T, e string, record *zng.Record, expectErr error, desc
 	t.Run(description, func(t *testing.T) {
 		_, err := evaluate(e, record)
 		assert.Errorf(t, err, "got error when %s", description)
-		assert.Equalf(t, expectErr, err, "got correct error when %s", description)
+		assert.True(t, errors.Is(err, expectErr), "got correct error when %s", description)
 	})
 }
 
