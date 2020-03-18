@@ -11,21 +11,36 @@ import (
 	"strings"
 )
 
-var InitScript = `
+// ExecScript will be fed into a launched zeek process as the --exec option. The
+// default script disables the packet_filter and loaded scripts logs. These logs
+// are disabled because the emit either timeless logs or logs with timestamp
+// set to execution time rather than time of capture.
+var ExecScript = `
 event zeek_init() {
 	Log::disable_stream(PacketFilter::LOG);
 	Log::disable_stream(LoadedScripts::LOG);
 }`
 
+// ErrNotFound is returned from LauncherFromPath when the zeek executable is not
+// found.
 var ErrNotFound = errors.New("zeek not found")
 
+// Process is an interface for interacting running with a running zeek process.
 type Process interface {
-	Start() error
+	// Wait waits for a running process to exit, returning any errors that
+	// occur.
 	Wait() error
 }
 
+// Launcher is a function when fed a context, pcap reader stream, and a zeek
+// log output dir, will return a running zeek process. If there is an error
+// starting the Process, that error will be returned.
 type Launcher func(context.Context, io.Reader, string) (Process, error)
 
+// LauncherFromPath returns a Launcher instance that will initiate start zeek
+// processes using the provided path to a zeek executable. If an empty string
+// is provided, this will attempt to load zeek from $PATH. If zeek cannot be
+// found ErrNotFound is returned.
 func LauncherFromPath(zeekpath string) (Launcher, error) {
 	if zeekpath == "" {
 		zeekpath = "zeek"
@@ -38,8 +53,8 @@ func LauncherFromPath(zeekpath string) (Launcher, error) {
 		return nil, fmt.Errorf("zeek path error: %w", err)
 	}
 	return func(ctx context.Context, r io.Reader, dir string) (Process, error) {
-		p := NewExecProcess(ctx, r, zeekpath, dir)
-		return p, p.Start()
+		p := newExecProcess(ctx, r, zeekpath, dir)
+		return p, p.start()
 	}, nil
 }
 
@@ -47,8 +62,8 @@ type process struct {
 	cmd *exec.Cmd
 }
 
-func NewExecProcess(ctx context.Context, pcap io.Reader, zeekpath, outdir string) Process {
-	cmd := exec.CommandContext(ctx, zeekpath, "-C", "-r", "-", "--exec", InitScript, "local")
+func newExecProcess(ctx context.Context, pcap io.Reader, zeekpath, outdir string) *process {
+	cmd := exec.CommandContext(ctx, zeekpath, "-C", "-r", "-", "--exec", ExecScript, "local")
 	cmd.Dir = outdir
 	cmd.Stdin = pcap
 	// Capture stderr for error reporting.
@@ -67,7 +82,7 @@ func (p *process) wrapError(err error) error {
 	return err
 }
 
-func (p *process) Start() error {
+func (p *process) start() error {
 	return p.wrapError(p.cmd.Start())
 }
 

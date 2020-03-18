@@ -263,8 +263,9 @@ func execSearch(t *testing.T, c *zqd.Core, space, prog string) string {
 }
 
 func createTempDir(t *testing.T) string {
-	// Replace filepath.Separator with '-' so it doesn't try to access dirs that
-	// don't exist.
+	// Replace '/' with '-' so it doesn't try to access dirs that don't exist.
+	// Apparantly "/" in a filepath for windows still tries to create a
+	// directory; this solution works for windows as well.
 	name := strings.ReplaceAll(t.Name(), "/", "-")
 	dir, err := ioutil.TempDir("", name)
 	require.NoError(t, err)
