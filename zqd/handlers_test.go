@@ -2,7 +2,6 @@ package zqd_test
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -24,7 +23,6 @@ import (
 	"github.com/brimsec/zq/zqd"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/space"
-	"github.com/brimsec/zq/zqd/zeek"
 	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -234,12 +232,6 @@ func TestRequestID(t *testing.T) {
 	})
 }
 
-func nopZeekLauncher() zeek.Launcher {
-	return func(context.Context, io.Reader, string) (zeek.Process, error) {
-		return nil, nil
-	}
-}
-
 func execSearch(t *testing.T, c *zqd.Core, space, prog string) string {
 	parsed, err := zql.ParseProc(prog)
 	require.NoError(t, err)
@@ -279,9 +271,8 @@ func newCore(t *testing.T) *zqd.Core {
 
 func newCoreAtDir(t *testing.T, dir string) *zqd.Core {
 	conf := zqd.Config{
-		Root:         dir,
-		Logger:       zaptest.NewLogger(t, zaptest.Level(zap.WarnLevel)),
-		ZeekLauncher: nopZeekLauncher(),
+		Root:   dir,
+		Logger: zaptest.NewLogger(t, zaptest.Level(zap.WarnLevel)),
 	}
 	return zqd.NewCore(conf)
 }
