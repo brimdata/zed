@@ -34,11 +34,7 @@ func NewHandlerWithLogger(core *Core, logger *zap.Logger) http.Handler {
 	h.Handle("/space/{space}", handleSpaceGet).Methods("GET")
 	h.Handle("/space/{space}", handleSpaceDelete).Methods("DELETE")
 	h.Handle("/space/{space}/packet", handlePacketSearch).Methods("GET")
-	// Packet post endpoint is dependent on having zeek. If zeek is not
-	// supported disable endpoint.
-	if core.HasZeek() {
-		h.Handle("/space/{space}/packet", handlePacketPost).Methods("POST")
-	}
+	h.Handle("/space/{space}/packet", handlePacketPost).Methods("POST")
 	h.Handle("/search", handleSearch).Methods("POST")
 	h.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "application/json")

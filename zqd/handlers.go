@@ -219,6 +219,10 @@ func handleSpaceDelete(c *Core, w http.ResponseWriter, r *http.Request) {
 }
 
 func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
+	if !c.HasZeek() {
+		http.Error(w, "packet post not supported: zeek not found", http.StatusInternalServerError)
+		return
+	}
 	logger := c.requestLogger(r)
 	s := extractSpace(c, w, r)
 	if s == nil {
