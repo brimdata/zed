@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -258,7 +259,15 @@ func (p *IngestProcess) createSnapshot(ctx context.Context) error {
 		return nil
 	}
 	// convert logs into sorted bzng
-	zr, err := scanner.OpenFiles(resolver.NewContext(), files...)
+	var sortedFiles []string
+	for _, f := range files {
+		sorted, err := splitAndSort(ctx, f, p.sortLimit)
+		if err != nil {
+			return err
+		}
+		sortedFiles = append(sortedFiles, sorted...)
+	}
+	zr, err := scanner.OpenFiles(resolver.NewContext(), sortedFiles...)
 	if err != nil {
 		return err
 	}
@@ -271,9 +280,8 @@ func (p *IngestProcess) createSnapshot(ctx context.Context) error {
 		return err
 	}
 	zw := bzngio.NewWriter(bzngfile)
-	program := fmt.Sprintf("sort -limit %d -r ts | (filter *; head 1; tail 1)", p.sortLimit)
 	var headW, tailW recWriter
-
+	const program = "(filter *; head 1; tail 1)"
 	if err := search.Copy(ctx, []zbuf.Writer{zw, &headW, &tailW}, zr, program); err != nil {
 		// If an error occurs here close and remove tmp bzngfile, lest we start
 		// leaking files and file descriptors.
@@ -311,4 +319,76 @@ func (p *IngestProcess) Write(b []byte) (int, error) {
 	n := len(b)
 	atomic.AddInt64(&p.pcapReadSize, int64(n))
 	return n, nil
+}
+
+// splitAndSort splits records in filename into two BZNG files sorted by
+// increasing timestamp.  Records already in this order are written directly to
+// one file; other records are sorted in memory and written to the other file.
+// Names of the new files are returned in a slice.  An error is returned if more
+// than sortLimit records must be sorted in memory.
+func splitAndSort(ctx context.Context, filename string, sortLimit int) ([]string, error) {
+	zr, err := scanner.OpenFiles(resolver.NewContext(), filename)
+	if err != nil {
+		return nil, err
+	}
+	defer zr.Close()
+	f1, err := ioutil.TempFile(filepath.Dir(filename), filepath.Base(filename))
+	if err != nil {
+		return nil, err
+	}
+	defer f1.Close()
+	f2, err := ioutil.TempFile(filepath.Dir(filename), filepath.Base(filename))
+	if err != nil {
+		return nil, err
+	}
+	defer f2.Close()
+	alreadySorted := bzngio.NewWriter(f1)
+	notYetSorted := make(recordChannelReader)
+	errCh := make(chan error)
+	go func() {
+		program := fmt.Sprintf("sort -limit %d ts", sortLimit)
+		errCh <- search.Copy(ctx, []zbuf.Writer{bzngio.NewWriter(f2)}, notYetSorted, program)
+	}()
+	var cur nano.Ts
+	for {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		rec, err := zr.Read()
+		if err != nil {
+			return nil, err
+		}
+		if rec == nil {
+			break
+		}
+		if cur <= rec.Ts {
+			cur = rec.Ts
+			if err := alreadySorted.Write(rec); err != nil {
+				return nil, err
+			}
+		} else {
+			select {
+			case notYetSorted <- rec:
+			case <-ctx.Done():
+				return nil, err
+			}
+		}
+	}
+	close(notYetSorted)
+	if err := <-errCh; err != nil {
+		return nil, err
+	}
+	if err := f1.Close(); err != nil {
+		return nil, err
+	}
+	if err := f2.Close(); err != nil {
+		return nil, err
+	}
+	return []string{f1.Name(), f2.Name()}, err
+}
+
+type recordChannelReader chan *zng.Record
+
+func (z recordChannelReader) Read() (*zng.Record, error) {
+	return <-z, nil
 }
