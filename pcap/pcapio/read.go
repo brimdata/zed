@@ -103,7 +103,6 @@ func (r *PcapReader) readHeader() error {
 	}
 	r.header = make([]byte, fileHeaderLen)
 	copy(r.header, hdr)
-	r.offset += fileHeaderLen
 	if magic := binary.LittleEndian.Uint32(hdr[0:4]); magic == magicNanoseconds {
 		r.byteOrder = binary.LittleEndian
 		r.nanoSecsFactor = 1
@@ -141,6 +140,7 @@ func (r *PcapReader) Read() ([]byte, BlockType, error) {
 	header := r.header
 	if header != nil {
 		r.header = nil
+		r.offset += uint64(len(header))
 		return header, TypeSection, nil
 	}
 	hdr, err := r.Reader.Peek(packetHeaderLen)
