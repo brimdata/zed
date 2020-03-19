@@ -53,3 +53,8 @@ again:
 	}
 	return r.parser.ParseValue(line)
 }
+
+// Parser returns a pointer to the receiver's parser.
+func (r *Reader) Parser() *Parser {
+	return r.parser
+}

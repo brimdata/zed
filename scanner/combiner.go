@@ -13,6 +13,7 @@ type Combiner struct {
 	readers []zbuf.Reader
 	hol     []*zng.Record
 	done    []bool
+	reverse bool
 }
 
 func NewCombiner(readers []zbuf.Reader) *Combiner {
@@ -21,6 +22,15 @@ func NewCombiner(readers []zbuf.Reader) *Combiner {
 		hol:     make([]*zng.Record, len(readers)),
 		done:    make([]bool, len(readers)),
 	}
+}
+
+// NewReverseCombiner returns a pointer to a Combiner whose Read method examines
+// the next record from each reader and returns the one with the largest
+// timestamp.
+func NewReverseCombiner(readers []zbuf.Reader) *Combiner {
+	c := NewCombiner(readers)
+	c.reverse = true
+	return c
 }
 
 func OpenFiles(zctx *resolver.Context, paths ...string) (*Combiner, error) {
@@ -55,7 +65,9 @@ func (c *Combiner) Read() (*zng.Record, error) {
 			}
 			c.hol[k] = tup
 		}
-		if idx == -1 || c.hol[k].Ts < c.hol[idx].Ts {
+		if idx == -1 ||
+			(c.reverse && c.hol[k].Ts > c.hol[idx].Ts) ||
+			(!c.reverse && c.hol[k].Ts < c.hol[idx].Ts) {
 			idx = k
 		}
 	}

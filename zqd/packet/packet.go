@@ -19,7 +19,9 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/bzngio"
+	"github.com/brimsec/zq/zio/zeekio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/search"
@@ -259,18 +261,26 @@ func (p *IngestProcess) createSnapshot(ctx context.Context) error {
 		return nil
 	}
 	// convert logs into sorted bzng
-	var sortedFiles []string
-	for _, f := range files {
-		sorted, err := splitAndSort(ctx, f, p.sortLimit)
+	zctx := resolver.NewContext()
+	var reverseReaders []zbuf.Reader
+	for _, filename := range files {
+		f1, f2, err := splitAndSort(ctx, filename, p.sortLimit)
 		if err != nil {
 			return err
 		}
-		sortedFiles = append(sortedFiles, sorted...)
+		for _, f := range []*os.File{f1, f2} {
+			r, err := newReverseZeekReader(f, zctx)
+			switch err {
+			case nil:
+				reverseReaders = append(reverseReaders, r)
+			case io.EOF:
+				f.Close()
+			default:
+				return err
+			}
+		}
 	}
-	zr, err := scanner.OpenFiles(resolver.NewContext(), sortedFiles...)
-	if err != nil {
-		return err
-	}
+	zr := scanner.NewReverseCombiner(reverseReaders)
 	defer zr.Close()
 	// For the time being, this endpoint will overwrite any underlying data.
 	// In order to get rid errors on any concurrent searches on this space,
@@ -321,42 +331,42 @@ func (p *IngestProcess) Write(b []byte) (int, error) {
 	return n, nil
 }
 
-// splitAndSort splits records in filename into two BZNG files sorted by
+// splitAndSort splits records in filename into two Zeek files sorted by
 // increasing timestamp.  Records already in this order are written directly to
 // one file; other records are sorted in memory and written to the other file.
-// Names of the new files are returned in a slice.  An error is returned if more
-// than sortLimit records must be sorted in memory.
-func splitAndSort(ctx context.Context, filename string, sortLimit int) ([]string, error) {
+// Either returned file may be empty.  An error is returned if more than
+// sortLimit records must be sorted in memory.
+func splitAndSort(ctx context.Context, filename string, sortLimit int) (*os.File, *os.File, error) {
 	zr, err := scanner.OpenFiles(resolver.NewContext(), filename)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer zr.Close()
 	f1, err := ioutil.TempFile(filepath.Dir(filename), filepath.Base(filename))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	defer f1.Close()
 	f2, err := ioutil.TempFile(filepath.Dir(filename), filepath.Base(filename))
 	if err != nil {
-		return nil, err
+		return f1, nil, err
 	}
-	defer f2.Close()
-	alreadySorted := bzngio.NewWriter(f1)
+	flags := zio.Flags{UTF8: true}
+	alreadySorted := zeekio.NewWriter(f1, flags)
 	notYetSorted := make(recordChannelReader)
 	errCh := make(chan error)
 	go func() {
+		writers := []zbuf.Writer{zeekio.NewWriter(f2, flags)}
 		program := fmt.Sprintf("sort -limit %d ts", sortLimit)
-		errCh <- search.Copy(ctx, []zbuf.Writer{bzngio.NewWriter(f2)}, notYetSorted, program)
+		errCh <- search.Copy(ctx, writers, notYetSorted, program)
 	}()
 	var cur nano.Ts
 	for {
 		if err := ctx.Err(); err != nil {
-			return nil, err
+			return f1, f2, err
 		}
 		rec, err := zr.Read()
 		if err != nil {
-			return nil, err
+			return f1, f2, err
 		}
 		if rec == nil {
 			break
@@ -364,31 +374,25 @@ func splitAndSort(ctx context.Context, filename string, sortLimit int) ([]string
 		if cur <= rec.Ts {
 			cur = rec.Ts
 			if err := alreadySorted.Write(rec); err != nil {
-				return nil, err
+				return f1, f2, err
 			}
 		} else {
 			select {
 			case notYetSorted <- rec:
 			case <-ctx.Done():
-				return nil, err
+				return f1, f2, err
 			}
 		}
 	}
 	close(notYetSorted)
-	if err := <-errCh; err != nil {
-		return nil, err
-	}
-	if err := f1.Close(); err != nil {
-		return nil, err
-	}
-	if err := f2.Close(); err != nil {
-		return nil, err
-	}
-	return []string{f1.Name(), f2.Name()}, err
+	return f1, f2, <-errCh
 }
 
+// recordChannelReader is a channel implementing the zbuf.Reader interface.
+// Records sent to the channel are returned by the Read method.
 type recordChannelReader chan *zng.Record
 
+// Read returns the next record from the underlying channel.
 func (z recordChannelReader) Read() (*zng.Record, error) {
 	return <-z, nil
 }
