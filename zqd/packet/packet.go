@@ -19,7 +19,6 @@ import (
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/bzngio"
-	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/search"
 	"github.com/brimsec/zq/zqd/space"
@@ -241,15 +240,6 @@ func (p *IngestProcess) Done() <-chan struct{} {
 // should no longer be read from after Done() has emitted.
 func (p *IngestProcess) Snap() <-chan struct{} {
 	return p.snap
-}
-
-type recWriter struct {
-	r *zng.Record
-}
-
-func (rw *recWriter) Write(r *zng.Record) error {
-	rw.r = r
-	return nil
 }
 
 func (p *IngestProcess) createSnapshot(ctx context.Context) error {
