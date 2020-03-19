@@ -7,11 +7,28 @@ import (
 	"io/ioutil"
 
 	"github.com/brimsec/zq/pcap/pcapio"
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/ranger"
 	"github.com/brimsec/zq/pkg/slicer"
 )
 
 type Index []Section
+
+// Span returns the entire time span covered by the index.
+func (i Index) Span() nano.Span {
+	var span nano.Span
+	for _, s := range i {
+		for _, bin := range s.Index {
+			binspan := nano.NewSpanTs(nano.Ts(bin.Range.Y0), nano.Ts(bin.Range.Y1))
+			if span.Ts == 0 {
+				span = binspan
+				continue
+			}
+			span = span.Union(binspan)
+		}
+	}
+	return span
+}
 
 // Section indicates the seek offset of a pcap section.  For legacy pcaps,
 // there is just one section at the beginning of the file.  For nextgen pcaps,

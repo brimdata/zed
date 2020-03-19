@@ -19,7 +19,6 @@ import (
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/bzngio"
-	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/search"
 	"github.com/brimsec/zq/zqd/space"
@@ -179,6 +178,11 @@ func (p *IngestProcess) indexPcap() error {
 		return err
 	}
 	f.Close()
+	// grab span from index and use to generate space info min/max time.
+	span := idx.Span()
+	if err = p.space.SetTimes(span.Ts, span.End()); err != nil {
+		return err
+	}
 	return os.Rename(tmppath, idxpath)
 }
 
@@ -238,15 +242,6 @@ func (p *IngestProcess) Snap() <-chan struct{} {
 	return p.snap
 }
 
-type recWriter struct {
-	r *zng.Record
-}
-
-func (rw *recWriter) Write(r *zng.Record) error {
-	rw.r = r
-	return nil
-}
-
 func (p *IngestProcess) createSnapshot(ctx context.Context) error {
 	files, err := filepath.Glob(filepath.Join(p.logdir, "*.log"))
 	// Per filepath.Glob documentation the only possible error would be due to
@@ -271,10 +266,8 @@ func (p *IngestProcess) createSnapshot(ctx context.Context) error {
 		return err
 	}
 	zw := bzngio.NewWriter(bzngfile)
-	program := fmt.Sprintf("sort -limit %d -r ts | (filter *; head 1; tail 1)", p.sortLimit)
-	var headW, tailW recWriter
-
-	if err := search.Copy(ctx, []zbuf.Writer{zw, &headW, &tailW}, zr, program); err != nil {
+	program := fmt.Sprintf("sort -limit %d -r ts", p.sortLimit)
+	if err := search.Copy(ctx, []zbuf.Writer{zw}, zr, program); err != nil {
 		// If an error occurs here close and remove tmp bzngfile, lest we start
 		// leaking files and file descriptors.
 		bzngfile.Close()
@@ -283,13 +276,6 @@ func (p *IngestProcess) createSnapshot(ctx context.Context) error {
 	}
 	if err := bzngfile.Close(); err != nil {
 		return err
-	}
-	if tailW.r != nil {
-		minTs := tailW.r.Ts
-		maxTs := headW.r.Ts
-		if err = p.space.SetTimes(minTs, maxTs); err != nil {
-			return err
-		}
 	}
 	return os.Rename(bzngfile.Name(), p.space.DataPath("all.bzng"))
 }
