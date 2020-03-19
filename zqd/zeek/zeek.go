@@ -37,10 +37,10 @@ type Process interface {
 // starting the Process, that error will be returned.
 type Launcher func(context.Context, io.Reader, string) (Process, error)
 
-// LauncherFromPath returns a Launcher instance that will initiate start zeek
-// processes using the provided path to a zeek executable. If an empty string
-// is provided, this will attempt to load zeek from $PATH. If zeek cannot be
-// found ErrNotFound is returned.
+// LauncherFromPath returns a Launcher instance that will launch zeek processes
+// using the provided path to a zeek executable. If an empty string is provided,
+// this will attempt to load zeek from $PATH. If zeek cannot be found
+// ErrNotFound is returned.
 func LauncherFromPath(zeekpath string) (Launcher, error) {
 	if zeekpath == "" {
 		zeekpath = "zeek"
@@ -53,29 +53,30 @@ func LauncherFromPath(zeekpath string) (Launcher, error) {
 		return nil, fmt.Errorf("zeek path error: %w", err)
 	}
 	return func(ctx context.Context, r io.Reader, dir string) (Process, error) {
-		p := newExecProcess(ctx, r, zeekpath, dir)
+		p := newProcess(ctx, r, zeekpath, dir)
 		return p, p.start()
 	}, nil
 }
 
 type process struct {
-	cmd *exec.Cmd
+	cmd       *exec.Cmd
+	stderrBuf *bytes.Buffer
 }
 
 func newProcess(ctx context.Context, pcap io.Reader, zeekpath, outdir string) *process {
 	cmd := exec.CommandContext(ctx, zeekpath, "-C", "-r", "-", "--exec", ExecScript, "local")
 	cmd.Dir = outdir
 	cmd.Stdin = pcap
+	p := &process{cmd: cmd, stderrBuf: bytes.NewBuffer(nil)}
 	// Capture stderr for error reporting.
-	cmd.Stderr = bytes.NewBuffer(nil)
-	p := &process{cmd: cmd}
+	cmd.Stderr = p.stderrBuf
 	return p
 }
 
 func (p *process) wrapError(err error) error {
 	var exitErr *exec.ExitError
 	if errors.As(err, &exitErr) {
-		stderr := p.cmd.Stderr.(*bytes.Buffer).String()
+		stderr := p.stderrBuf.String()
 		stderr = strings.TrimSpace(stderr)
 		return fmt.Errorf("zeek exited with status %d: %s", exitErr.ExitCode(), stderr)
 	}
