@@ -7,6 +7,7 @@ The following available processors are documented in detail below:
 * [`cut`](#cut)
 * [`filter`](#filter)
 * [`head`](#head)
+* [`put`](#put)
 * [`sort`](#sort)
 * [`tail`](#tail)
 * [`uniq`](#uniq)
@@ -136,7 +137,7 @@ conn  1521911720.607695 CpjMvj2Cvj048u6bF1 10.164.94.120 39169     10.47.3.200 8
 | ------------------------- | ----------------------------------------------- |
 | **Description**           | Add/update fields based on the results of a computed expression |
 | **Syntax**                | `put <field> = <expression>`                    |
-| **Required arguments**    | `<field>` Field into which the computed value will be stored.<br>`<expression>`A valid ZQL expression (XXX citation needed) |
+| **Required arguments**    | `<field>` Field into which the computed value will be stored.<br>`<expression>` A valid ZQL expression (XXX citation needed) |
 | **Optional arguments**    | None |
 | **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc#Put |
 
