@@ -64,7 +64,7 @@ func (r *Reader) Read() (*zng.Record, error) {
 		if v.Aliases != nil {
 			r.parseAliases(v.Aliases)
 		}
-		typeName, err := decodeType(v.Type)
+		typeName, err := DecodeType(v.Type)
 		if err != nil {
 			return nil, err
 		}
@@ -130,7 +130,7 @@ func (r *Reader) parseAliases(aliases []Alias) error {
 }
 
 // decode a nested JSON object into a zeek type string and return the string.
-func decodeType(columns []interface{}) (string, error) {
+func DecodeType(columns []interface{}) (string, error) {
 	s := "record["
 	comma := ""
 	for _, o := range columns {
@@ -158,7 +158,7 @@ func decodeType(columns []interface{}) (string, error) {
 				return "", errors.New("zjson type field contains invalid type")
 			}
 			var err error
-			typeName, err = decodeType(childColumns)
+			typeName, err = DecodeType(childColumns)
 			if err != nil {
 				return "", err
 			}

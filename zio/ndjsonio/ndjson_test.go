@@ -126,7 +126,8 @@ func TestNDJSON(t *testing.T) {
 func runtestcase(t *testing.T, input, output string) {
 	var out bytes.Buffer
 	w := ndjsonio.NewWriter(&out)
-	r := ndjsonio.NewReader(strings.NewReader(input), resolver.NewContext())
+	r, err := ndjsonio.NewReader(strings.NewReader(input), resolver.NewContext())
+	require.NoError(t, err)
 	require.NoError(t, zbuf.Copy(zbuf.NopFlusher(w), r))
 	NDJSONEq(t, output, out.String())
 }
