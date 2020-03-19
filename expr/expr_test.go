@@ -133,6 +133,20 @@ func TestPrimitives(t *testing.T) {
 	testError(t, "doesnexist", record, expr.ErrNoSuchField, "referencing non-existent field")
 }
 
+func TestComplex(t *testing.T) {
+	// Test that an expression can evaluate to a complex type
+	record, err := parseOneRecord(`
+#0:record[r:record[s:string]]
+0:[[hello;]]`)
+	require.NoError(t, err)
+	result, err := evaluate("r", record)
+	require.NoError(t, err)
+	recType, ok := result.Type.(*zng.TypeRecord)
+	assert.True(t, ok, "result type is record")
+	assert.Equal(t, 1, len(recType.Columns), "result has one column")
+	assert.Equal(t, zng.TypeString, recType.Columns[0].Type, "result has string column")
+}
+
 func TestLogical(t *testing.T) {
 	record, err := parseOneRecord(`
 #0:record[t:bool,f:bool]

@@ -190,10 +190,15 @@ func (v *NativeValue) toZngValue() (zng.Value, error) {
 	case zng.IdDuration:
 		d := v.value.(int64)
 		return zng.Value{zng.TypeDuration, zng.EncodeDuration(d)}, nil
-
-	default:
-		return zng.Value{}, errors.New("unknown type")
 	}
+
+	// Arrays, sets, and records are just zval encoded.
+	switch v.typ.(type) {
+	case *zng.TypeArray, *zng.TypeSet, *zng.TypeRecord:
+		return zng.Value{v.typ, v.value.(zcode.Bytes)}, nil
+	}
+
+	return zng.Value{}, errors.New("unknown type")
 }
 
 // CompileExpr tries to compile the given Expression into a function
