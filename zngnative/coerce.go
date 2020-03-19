@@ -11,48 +11,26 @@ import (
 // resulting coerced value is written to out, and true is returned. If
 // the value cannot be coerced, then false is returned.
 func CoerceToFloat64(in zng.Value) (float64, bool) {
-	var out float64
-	var err error
-	switch in.Type.ID() {
-	default:
-		return 0, false
-	case zng.IdFloat64:
-		out, err = zng.DecodeFloat64(in.Bytes)
-	case zng.IdByte:
-		var b byte
-		b, err = zng.DecodeByte(in.Bytes)
-		out = float64(b)
-	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
-		var v int64
-		v, err = zng.DecodeInt(in.Bytes)
-		out = float64(v)
-	case zng.IdUint16, zng.IdUint32, zng.IdUint64:
-		var v uint64
-		v, err = zng.DecodeUint(in.Bytes)
-		out = float64(v)
-	case zng.IdBool:
-		var v bool
-		v, err = zng.DecodeBool(in.Bytes)
-		if v {
-			out = 1
-		}
-	case zng.IdPort:
-		var v uint32
-		v, err = zng.DecodePort(in.Bytes)
-		out = float64(v)
-	case zng.IdTime:
-		var v nano.Ts
-		v, err = zng.DecodeTime(in.Bytes)
-		out = float64(v) / 1e9
-	case zng.IdDuration:
-		var v int64
-		v, err = zng.DecodeDuration(in.Bytes)
-		out = float64(v) / 1e9
-	}
+	native, err := ToNativeValue(in)
 	if err != nil {
 		return 0, false
 	}
-	return out, true
+	return CoerceNativeToFloat64(native)
+}
+
+func CoerceNativeToFloat64(in NativeValue) (float64, bool) {
+	switch in.Type.ID() {
+	case zng.IdFloat64:
+		return in.Value.(float64), true
+	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
+		return float64(in.Value.(int64)), true
+	case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
+		return float64(in.Value.(uint64)), true
+	case zng.IdTime, zng.IdDuration:
+		return float64(in.Value.(int64)) / 1e9, true
+	default:
+		return 0, false
+	}
 }
 
 // CoerceToInt attempts to convert a value to a signed integer.
@@ -61,48 +39,29 @@ func CoerceToFloat64(in zng.Value) (float64, bool) {
 // A float64 may be coerced only if the value is equivalent.
 // Time and Intervals are converted as their nanosecond values.
 func CoerceToInt(in zng.Value) (int64, bool) {
+	native, err := ToNativeValue(in)
+	if err != nil {
+		return 0, false
+	}
+	return CoerceNativeToInt(native)
+}
+
+func CoerceNativeToInt(in NativeValue) (int64, bool) {
 	switch in.Type.ID() {
 	case zng.IdFloat64:
-		v, err := zng.DecodeFloat64(in.Bytes)
-		if err != nil {
-			return 0, false
-		}
-		i := int64(v)
-		if float64(i) != v {
+		f := in.Value.(float64)
+		i := int64(f)
+		if float64(i) != f {
 			return 0, false
 		}
 		return i, true
-	case zng.IdTime:
-		v, err := zng.DecodeTime(in.Bytes)
-		if err != nil {
-			return 0, false
-		}
-		return int64(v / 1e9), true
-	case zng.IdDuration:
-		v, err := zng.DecodeDuration(in.Bytes)
-		if err != nil {
-			return 0, false
-		}
-		return int64(v / 1e9), true
-	case zng.IdByte:
-		b, err := zng.DecodeByte(in.Bytes)
-		if err != nil {
-			return 0, false
-		}
-		return int64(b), true
+	case zng.IdTime, zng.IdDuration:
+		return int64(in.Value.(int64) / 1e9), true
 	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
-		i, err := zng.DecodeInt(in.Bytes)
-		if err != nil {
-			return 0, false
-		}
-		return i, true
-	case zng.IdUint16, zng.IdUint32, zng.IdUint64:
-		u, err := zng.DecodeUint(in.Bytes)
-		if err != nil {
-			return 0, false
-		}
-		// Further checking on the desired type happens below but
-		// first make sure this fits in a signed int64 type.
+		return in.Value.(int64), true
+	case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
+		u := in.Value.(uint64)
+		// Ensure this fits in a signed int64 type.
 		if u > math.MaxInt64 {
 			return 0, false
 		}
@@ -119,50 +78,32 @@ func CoerceToInt(in zng.Value) (int64, bool) {
 // A float64 may be coerced only if the value is equivalent.
 // Time and Intervals are converted as their nanosecond values.
 func CoerceToUint(in zng.Value) (uint64, bool) {
+	native, err := ToNativeValue(in)
+	if err != nil {
+		return 0, false
+	}
+	return CoerceNativeToUint(native)
+}
+
+func CoerceNativeToUint(in NativeValue) (uint64, bool) {
 	switch in.Type.ID() {
 	case zng.IdFloat64:
-		v, err := zng.DecodeFloat64(in.Bytes)
-		if err != nil {
-			return 0, false
-		}
-		i := uint64(v)
-		if float64(i) != v {
+		f := in.Value.(float64)
+		i := uint64(f)
+		if float64(i) != f {
 			return 0, false
 		}
 		return i, true
-	case zng.IdTime:
-		v, err := zng.DecodeTime(in.Bytes)
-		if err != nil {
-			return 0, false
-		}
-		return uint64(v / 1e9), true
-	case zng.IdDuration:
-		v, err := zng.DecodeDuration(in.Bytes)
-		if err != nil {
-			return 0, false
-		}
-		return uint64(v / 1e9), true
-	case zng.IdByte:
-		b, err := zng.DecodeByte(in.Bytes)
-		if err != nil {
-			return 0, false
-		}
-		return uint64(b), true
+	case zng.IdTime, zng.IdDuration:
+		return uint64(in.Value.(uint64) / 1e9), true
 	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
-		si, err := zng.DecodeInt(in.Bytes)
-		if err != nil {
-			return 0, false
-		}
+		si := in.Value.(int64)
 		if si < 0 {
 			return 0, false
 		}
 		return uint64(si), true
-	case zng.IdUint16, zng.IdUint32, zng.IdUint64:
-		i, err := zng.DecodeUint(in.Bytes)
-		if err != nil {
-			return 0, false
-		}
-		return i, true
+	case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
+		return in.Value.(uint64), true
 	default:
 		// can't be cast to unsigned integer
 		return 0, false
