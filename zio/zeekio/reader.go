@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimsec/zq/pkg/peeker"
 	"github.com/brimsec/zq/pkg/skim"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -18,9 +17,7 @@ const (
 
 type Reader struct {
 	scanner *skim.Scanner
-	peeker  *peeker.Reader
 	parser  *Parser
-	zctx    *resolver.Context
 }
 
 func NewReader(reader io.Reader, zctx *resolver.Context) (*Reader, error) {
