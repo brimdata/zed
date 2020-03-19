@@ -22,12 +22,6 @@ import (
 // Version is set via the Go linker.
 var version = "unknown"
 
-type errInvalidFile string
-
-func (e errInvalidFile) Error() string {
-	return fmt.Sprintf("invalid file %s", e)
-}
-
 var Zq = &charm.Spec{
 	Name:  "zq",
 	Usage: "zq [ options ] [ zql ] file [ file ... ]",
@@ -242,10 +236,6 @@ func (c *Command) loadFiles(paths []string) (zbuf.Reader, error) {
 			var err error
 			zr, err = scanner.OpenFile(c.zctx, path, c.ifmt)
 			if err != nil {
-				if _, ok := err.(errInvalidFile); ok {
-					c.errorf("skipping file: %s\n", err)
-					continue
-				}
 				return nil, err
 			}
 		}
