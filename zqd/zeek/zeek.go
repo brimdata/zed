@@ -62,7 +62,7 @@ type process struct {
 	cmd *exec.Cmd
 }
 
-func newExecProcess(ctx context.Context, pcap io.Reader, zeekpath, outdir string) *process {
+func newProcess(ctx context.Context, pcap io.Reader, zeekpath, outdir string) *process {
 	cmd := exec.CommandContext(ctx, zeekpath, "-C", "-r", "-", "--exec", ExecScript, "local")
 	cmd.Dir = outdir
 	cmd.Stdin = pcap
