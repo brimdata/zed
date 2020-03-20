@@ -70,7 +70,7 @@ func lookupTypeInfo(zctx *resolver.Context, desc *zng.TypeRecord, path string) *
 
 // findTypeInfo returns the typeInfo struct matching an input json
 // object.  If no match is found, an error is returned. If defaultPath
-// is non-zero, it is used as the default _path if the object has no
+// is not empty, it is used as the default _path if the object has no
 // such field. (we could at some point make this a bit more generic by
 // passing in a "defaultFieldValues" map... but not needed now).
 func findTypeInfo(zctx *resolver.Context, jobj []byte, tr typeRules, defaultPath string) (*typeInfo, error) {
