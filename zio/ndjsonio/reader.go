@@ -10,7 +10,6 @@ import (
 	"io"
 
 	"github.com/brimsec/zq/pkg/skim"
-	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zio/zjsonio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -105,30 +104,30 @@ func (r *Reader) SetTypeConfig(tc TypeConfig) error {
 	return nil
 }
 
-// Parse returns a zng.Encoding slice as well as an inferred zng.Type
-// from the provided JSON input. The function expects the input json to be an
-// object, otherwise an error is returned.
-func (r *Reader) Parse(b []byte) (zcode.Bytes, zng.Type, error) {
+// Parse returns a zng.Value from the provided JSON input. The
+// function expects the input json to be an object, otherwise an error
+// is returned.
+func (r *Reader) Parse(b []byte) (zng.Value, error) {
 	val, typ, _, err := jsonparser.Get(b)
 	if err != nil {
-		return nil, nil, err
+		return zng.Value{}, err
 	}
 	if typ != jsonparser.Object {
-		return nil, nil, fmt.Errorf("expected JSON type to be Object but got %s", typ)
+		return zng.Value{}, fmt.Errorf("expected JSON type to be Object but got %s", typ)
 	}
 	if r.typ != nil {
 		zv, err := r.typ.parseObject(val)
 		if err != nil {
-			return nil, nil, err
+			return zng.Value{}, err
 		}
-		return zv.Bytes, zv.Type, nil
+		return zv, nil
 	}
 
 	zv, err := r.inf.parseObject(val)
 	if err != nil {
-		return nil, nil, err
+		return zng.Value{}, err
 	}
-	return zv.Bytes, zv.Type, nil
+	return zv, nil
 }
 
 func (r *Reader) Read() (*zng.Record, error) {
@@ -142,10 +141,10 @@ again:
 	if len(line) == 0 {
 		goto again
 	}
-	raw, typ, err := r.Parse(line)
+	zv, err := r.Parse(line)
 	if err != nil {
 		return nil, fmt.Errorf("line %d: %w", r.scanner.Stats.Lines, err)
 	}
-	outType := r.zctx.LookupTypeRecord(typ.(*zng.TypeRecord).Columns)
-	return zng.NewRecordCheck(outType, 0, raw)
+	outType := r.zctx.LookupTypeRecord(zv.Type.(*zng.TypeRecord).Columns)
+	return zng.NewRecordCheck(outType, 0, zv.Bytes)
 }
