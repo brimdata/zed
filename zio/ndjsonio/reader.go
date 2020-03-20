@@ -100,7 +100,12 @@ func (r *Reader) SetTypeConfig(tc TypeConfig) error {
 		}
 		tr.descriptors[key] = recType
 	}
-	r.typ = &typeParser{zctx: r.zctx, tr: tr, stats: r.stats.typeStats}
+	r.typ = &typeParser{
+		zctx:          r.zctx,
+		tr:            tr,
+		stats:         r.stats.typeStats,
+		typeInfoCache: make(map[int]*typeInfo),
+	}
 	return nil
 }
 

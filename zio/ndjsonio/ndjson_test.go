@@ -192,6 +192,7 @@ func TestNewRawFromJSON(t *testing.T) {
 			ti := &typeInfo{
 				flatDesc:   typ,
 				descriptor: typ,
+				jsonVals:   make([]jsonVal, len(typ.Columns)),
 			}
 			raw, _, err := ti.newRawFromJSON([]byte(c.json))
 			require.NoError(t, err)

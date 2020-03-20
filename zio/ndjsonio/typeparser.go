@@ -26,10 +26,11 @@ type typeStats struct {
 }
 
 type typeParser struct {
-	zctx        *resolver.Context
-	tr          typeRules
-	defaultPath string
-	stats       *typeStats
+	zctx          *resolver.Context
+	tr            typeRules
+	defaultPath   string
+	stats         *typeStats
+	typeInfoCache map[int]*typeInfo
 }
 
 var (
@@ -47,6 +48,11 @@ type typeInfo struct {
 	descriptor *zng.TypeRecord
 	flatDesc   *zng.TypeRecord
 	path       []byte
+	jsonVals   []jsonVal
+}
+type jsonVal struct {
+	val []byte
+	typ jsonparser.ValueType
 }
 
 func getUnsafeDefault(data []byte, defaultValue string, key string) (string, error) {
@@ -64,48 +70,8 @@ func getUnsafeDefault(data []byte, defaultValue string, key string) (string, err
 func lookupTypeInfo(zctx *resolver.Context, desc *zng.TypeRecord, path string) *typeInfo {
 	flatCols := zeekio.FlattenColumns(desc.Columns)
 	flatDesc := zctx.LookupTypeRecord(flatCols)
-	info := typeInfo{desc, flatDesc, []byte(path)}
+	info := typeInfo{desc, flatDesc, []byte(path), make([]jsonVal, len(flatDesc.Columns))}
 	return &info
-}
-
-// findTypeInfo returns the typeInfo struct matching an input json
-// object.  If no match is found, an error is returned. If defaultPath
-// is not empty, it is used as the default _path if the object has no
-// such field. (we could at some point make this a bit more generic by
-// passing in a "defaultFieldValues" map... but not needed now).
-func findTypeInfo(zctx *resolver.Context, jobj []byte, tr typeRules, defaultPath string) (*typeInfo, error) {
-	var fieldName, fieldVal, path string
-	for _, r := range tr.rules {
-		// we keep track of the last field value we extracted
-		// to avoid re-parsing the json object many times to
-		// lift out the same field, as would be the case with
-		// a typical zeek typing config where all rules refer
-		// to the field "_path".
-		if fieldName != r.Name {
-			fieldName = r.Name
-			var err error
-			if r.Name == "_path" {
-				fieldVal, err = getUnsafeDefault(jobj, defaultPath, r.Name)
-				path = fieldVal
-			} else {
-				// jsonparser.Get will return the key even for
-				// some invalid json. For example Get('x{"a":
-				// "b"}', "a") returns "b". This is ok because
-				// these errors will later be caught by ObjectEach.
-				fieldVal, err = jsonparser.GetUnsafeString(jobj, r.Name)
-			}
-			if err != nil {
-				continue
-			}
-		}
-		if fieldVal == r.Value {
-			return lookupTypeInfo(zctx, tr.descriptors[r.Descriptor], path), nil
-		}
-	}
-	if path == "" {
-		return nil, ErrMissingPath
-	}
-	return nil, ErrDescriptorNotFound
 }
 
 // newRawFromJSON builds a raw value from a descriptor and the JSON object
@@ -115,18 +81,14 @@ func findTypeInfo(zctx *resolver.Context, jobj []byte, tr typeRules, defaultPath
 // records as necessary.
 func (info *typeInfo) newRawFromJSON(data []byte) (zcode.Bytes, int, error) {
 	var droppedFields int
-	type jsonVal struct {
-		val []byte
-		typ jsonparser.ValueType
-	}
-	jsonVals := make([]jsonVal, 32) // Fixed size for stack allocation.
-	if len(info.flatDesc.Columns) > 32 {
-		jsonVals = make([]jsonVal, len(info.flatDesc.Columns))
+
+	for i := range info.jsonVals {
+		info.jsonVals[i].typ = jsonparser.NotExist
 	}
 
 	// path is always the first field (typings config is validated
 	// for this, and inferred TDs are sorted with _path first).
-	jsonVals[0] = jsonVal{info.path, jsonparser.String}
+	info.jsonVals[0] = jsonVal{info.path, jsonparser.String}
 
 	var prefix []string
 
@@ -144,7 +106,7 @@ func (info *typeInfo) newRawFromJSON(data []byte) (zcode.Bytes, int, error) {
 		fullkey := strings.Join(append(prefix, skey), ".")
 
 		if col, ok := info.flatDesc.ColumnOfField(fullkey); ok {
-			jsonVals[col] = jsonVal{val, typ}
+			info.jsonVals[col] = jsonVal{val, typ}
 		} else {
 			droppedFields++
 		}
@@ -160,7 +122,7 @@ func (info *typeInfo) newRawFromJSON(data []byte) (zcode.Bytes, int, error) {
 	nestedColumns := info.descriptor.Columns
 	flatColumns := info.flatDesc.Columns
 	for i := range flatColumns {
-		val := jsonVals[i].val
+		val := info.jsonVals[i].val
 		if i == info.descriptor.TsCol {
 			ts, err := parseJSONTimestamp(val)
 			if err != nil {
@@ -176,7 +138,7 @@ func (info *typeInfo) newRawFromJSON(data []byte) (zcode.Bytes, int, error) {
 			builder.BeginContainer()
 		}
 
-		switch jsonVals[i].typ {
+		switch info.jsonVals[i].typ {
 		case jsonparser.Array:
 			builder.BeginContainer()
 			ztyp := zng.InnerType(flatColumns[i].Type)
@@ -226,6 +188,52 @@ func (info *typeInfo) newRawFromJSON(data []byte) (zcode.Bytes, int, error) {
 	return builder.Bytes(), droppedFields, nil
 }
 
+// findTypeInfo returns the typeInfo struct matching an input json
+// object.  If no match is found, an error is returned. If defaultPath
+// is not empty, it is used as the default _path if the object has no
+// such field. (we could at some point make this a bit more generic by
+// passing in a "defaultFieldValues" map... but not needed now).
+func (p *typeParser) findTypeInfo(zctx *resolver.Context, jobj []byte, tr typeRules, defaultPath string) (*typeInfo, error) {
+	var fieldName, fieldVal, path string
+	for _, r := range tr.rules {
+		// we keep track of the last field value we extracted
+		// to avoid re-parsing the json object many times to
+		// lift out the same field, as would be the case with
+		// a typical zeek typing config where all rules refer
+		// to the field "_path".
+		if fieldName != r.Name {
+			fieldName = r.Name
+			var err error
+			if r.Name == "_path" {
+				fieldVal, err = getUnsafeDefault(jobj, defaultPath, r.Name)
+				path = fieldVal
+			} else {
+				// jsonparser.Get will return the key even for
+				// some invalid json. For example Get('x{"a":
+				// "b"}', "a") returns "b". This is ok because
+				// these errors will later be caught by ObjectEach.
+				fieldVal, err = jsonparser.GetUnsafeString(jobj, r.Name)
+			}
+			if err != nil {
+				continue
+			}
+		}
+		if fieldVal == r.Value {
+			desc := tr.descriptors[r.Descriptor]
+			if ti, ok := p.typeInfoCache[desc.ID()]; ok {
+				return ti, nil
+			}
+			ti := lookupTypeInfo(zctx, desc, path)
+			p.typeInfoCache[desc.ID()] = ti
+			return ti, nil
+		}
+	}
+	if path == "" {
+		return nil, ErrMissingPath
+	}
+	return nil, ErrDescriptorNotFound
+}
+
 func (p *typeParser) parseObject(b []byte) (zng.Value, error) {
 
 	var lineNo int
@@ -237,10 +245,7 @@ func (p *typeParser) parseObject(b []byte) (zng.Value, error) {
 	}
 
 	lineNo++
-	// calling findTypeInfo for each line is costly and we
-	// could optimize for the common case where a
-	// single-type log is posted.
-	ti, err := findTypeInfo(p.zctx, b, p.tr, p.defaultPath)
+	ti, err := p.findTypeInfo(p.zctx, b, p.tr, p.defaultPath)
 	if err != nil {
 		switch err {
 		case ErrDescriptorNotFound:
