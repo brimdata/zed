@@ -5,6 +5,7 @@ package tests
 import (
 	"errors"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/brimsec/zq/pkg/test"
@@ -43,6 +44,9 @@ func TestCommands(t *testing.T) {
 }
 
 func TestScripts(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping on windows")
+	}
 	t.Parallel()
 	path, err := filepath.Abs(zqpath)
 	require.NoError(t, err)
