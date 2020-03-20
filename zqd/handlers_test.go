@@ -156,10 +156,7 @@ func TestSpaceDelete(t *testing.T) {
 	run := func(name string, cb func(*testing.T, string, *zqd.Core)) {
 		tmp := createTempDir(t)
 		defer os.RemoveAll(tmp)
-		c := zqd.NewCore(zqd.Config{
-			Root:   filepath.Join(tmp, "spaces"),
-			Logger: zaptest.NewLogger(t),
-		})
+		c := newCoreAtDir(t, filepath.Join(tmp, "spaces"))
 		require.NoError(t, os.Mkdir(c.Root, 0755))
 		t.Run(name, func(t *testing.T) {
 			cb(t, tmp, c)
@@ -189,7 +186,7 @@ func TestURLEncodingSupport(t *testing.T) {
 	c := newCore(t)
 	defer os.RemoveAll(c.Root)
 
-	rawSpace := "raw %<>space.brim"
+	rawSpace := "raw %space.brim"
 	encodedSpaceURL := fmt.Sprintf("http://localhost:9867/space/%s", url.PathEscape(rawSpace))
 
 	createSpace(t, c, rawSpace, "")
@@ -258,9 +255,10 @@ func execSearch(t *testing.T, c *zqd.Core, space, prog string) string {
 }
 
 func createTempDir(t *testing.T) string {
-	// Replace filepath.Separator with '-' so it doesn't try to access dirs that
-	// don't exist.
-	name := strings.ReplaceAll(t.Name(), string(filepath.Separator), "-")
+	// Replace '/' with '-' so it doesn't try to access dirs that don't exist.
+	// Apparantly "/" in a filepath for windows still tries to create a
+	// directory; this solution works for windows as well.
+	name := strings.ReplaceAll(t.Name(), "/", "-")
 	dir, err := ioutil.TempDir("", name)
 	require.NoError(t, err)
 	return dir

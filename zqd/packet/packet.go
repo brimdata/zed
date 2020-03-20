@@ -1,16 +1,14 @@
 package packet
 
 import (
-	"bytes"
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -22,6 +20,7 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/search"
 	"github.com/brimsec/zq/zqd/space"
+	"github.com/brimsec/zq/zqd/zeek"
 )
 
 var (
@@ -44,7 +43,7 @@ type IngestProcess struct {
 	logdir       string
 	done, snap   chan struct{}
 	err          error
-	zeekExec     string
+	zlauncher    zeek.Launcher
 }
 
 // IngestFile kicks of the process for ingesting a pcap file into a space.
@@ -52,7 +51,7 @@ type IngestProcess struct {
 // IngestProcess instance once zeek log files have started to materialize in a tmp
 // directory. If zeekExec is an empty string, this will attempt to resolve zeek
 // from $PATH.
-func IngestFile(ctx context.Context, s *space.Space, pcap, zeekExec string, sortLimit int) (*IngestProcess, error) {
+func IngestFile(ctx context.Context, s *space.Space, pcap string, zlauncher zeek.Launcher, sortLimit int) (*IngestProcess, error) {
 	logdir := s.DataPath(".tmp.zeeklogs")
 	if err := os.Mkdir(logdir, 0700); err != nil {
 		if os.IsExist(err) {
@@ -67,16 +66,6 @@ func IngestFile(ctx context.Context, s *space.Space, pcap, zeekExec string, sort
 	if err != nil {
 		return nil, err
 	}
-	if zeekExec == "" {
-		zeekExec = "zeek"
-	}
-	zeekExec, err = exec.LookPath(zeekExec)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return nil, errors.New("zeek not found")
-		}
-		return nil, fmt.Errorf("error starting zeek: %w", err)
-	}
 	p := &IngestProcess{
 		StartTime: nano.Now(),
 		PcapSize:  info.Size(),
@@ -85,7 +74,7 @@ func IngestFile(ctx context.Context, s *space.Space, pcap, zeekExec string, sort
 		logdir:    logdir,
 		done:      make(chan struct{}),
 		snap:      make(chan struct{}),
-		zeekExec:  zeekExec,
+		zlauncher: zlauncher,
 		sortLimit: sortLimit,
 	}
 	if err = p.indexPcap(); err != nil {
@@ -108,7 +97,7 @@ func (p *IngestProcess) run(ctx context.Context) error {
 	var slurpErr error
 	slurpDone := make(chan struct{})
 	go func() {
-		slurpErr = p.slurp(ctx)
+		slurpErr = p.runZeek(ctx)
 		close(slurpDone)
 	}()
 
@@ -186,35 +175,18 @@ func (p *IngestProcess) indexPcap() error {
 	return os.Rename(tmppath, idxpath)
 }
 
-func (p *IngestProcess) slurp(ctx context.Context) error {
+func (p *IngestProcess) runZeek(ctx context.Context) error {
 	pcapfile, err := os.Open(p.pcapPath)
 	if err != nil {
 		return err
 	}
 	defer pcapfile.Close()
-	zeekproc, zeekwriter, err := p.startZeek(ctx, p.logdir)
+	r := io.TeeReader(pcapfile, p)
+	zproc, err := p.zlauncher(ctx, bufio.NewReader(r), p.logdir)
 	if err != nil {
 		return err
 	}
-	w := io.MultiWriter(zeekwriter, p)
-	if _, err := io.Copy(w, pcapfile); err != nil {
-		return err
-	}
-	// Now that all data has been copied over, close stdin for zeek process so
-	// process gracefully exits.
-	if err := zeekwriter.Close(); err != nil {
-		return err
-	}
-	if err := zeekproc.Wait(); err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
-			stderr := zeekproc.Stderr.(*bytes.Buffer).String()
-			stderr = strings.TrimSpace(stderr)
-			return fmt.Errorf("zeek exited with status %d: %s", exitErr.ExitCode(), stderr)
-		}
-		return err
-	}
-	return nil
+	return zproc.Wait()
 }
 
 // PcapReadSize returns the total size in bytes of data read from the underlying
@@ -278,19 +250,6 @@ func (p *IngestProcess) createSnapshot(ctx context.Context) error {
 		return err
 	}
 	return os.Rename(bzngfile.Name(), p.space.DataPath("all.bzng"))
-}
-
-func (p *IngestProcess) startZeek(ctx context.Context, dir string) (*exec.Cmd, io.WriteCloser, error) {
-	const disable = `event zeek_init() { Log::disable_stream(PacketFilter::LOG); Log::disable_stream(LoadedScripts::LOG); }`
-	cmd := exec.CommandContext(ctx, p.zeekExec, "-C", "-r", "-", "--exec", disable, "local")
-	cmd.Dir = dir
-	w, err := cmd.StdinPipe()
-	if err != nil {
-		return nil, nil, err
-	}
-	// Capture stderr for error reporting.
-	cmd.Stderr = bytes.NewBuffer(nil)
-	return cmd, w, cmd.Start()
 }
 
 func (p *IngestProcess) Write(b []byte) (int, error) {

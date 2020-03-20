@@ -219,6 +219,10 @@ func handleSpaceDelete(c *Core, w http.ResponseWriter, r *http.Request) {
 }
 
 func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
+	if !c.HasZeek() {
+		http.Error(w, "packet post not supported: zeek not found", http.StatusInternalServerError)
+		return
+	}
 	logger := c.requestLogger(r)
 	s := extractSpace(c, w, r)
 	if s == nil {
@@ -229,7 +233,7 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	proc, err := packet.IngestFile(r.Context(), s, req.Path, c.ZeekExec, c.SortLimit)
+	proc, err := packet.IngestFile(r.Context(), s, req.Path, c.ZeekLauncher, c.SortLimit)
 	if err != nil {
 		if errors.Is(err, pcapio.ErrCorruptPcap) {
 			http.Error(w, err.Error(), http.StatusBadRequest)

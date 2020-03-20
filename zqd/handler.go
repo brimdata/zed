@@ -25,8 +25,8 @@ func NewHandler(root *Core) http.Handler {
 	return NewHandlerWithLogger(root, root.logger)
 }
 
-func NewHandlerWithLogger(root *Core, logger *zap.Logger) http.Handler {
-	h := handler{Router: mux.NewRouter(), core: root}
+func NewHandlerWithLogger(core *Core, logger *zap.Logger) http.Handler {
+	h := handler{Router: mux.NewRouter(), core: core}
 	h.Use(requestIDMiddleware())
 	h.Use(accessLogMiddleware(logger))
 	h.Use(panicCatchMiddleware(logger))

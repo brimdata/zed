@@ -5,10 +5,13 @@ package zqd_test
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/brimsec/zq/pkg/nano"
@@ -16,18 +19,27 @@ import (
 	"github.com/brimsec/zq/zqd"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/packet"
+	"github.com/brimsec/zq/zqd/zeek"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 )
 
-var (
-	zeekpath = os.Getenv("ZEEK")
-)
+var testZeekLogs = []string{
+	"./testdata/conn.log",
+	"./testdata/capture_loss.log",
+	"./testdata/http.log",
+	"./testdata/stats.log",
+}
 
 func TestPacketPostSuccess(t *testing.T) {
-	p := packetPost(t, "./testdata/valid.pcap", 202)
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping test for windows")
+	}
+	ln, err := zeek.LauncherFromPath(os.Getenv("ZEEK"))
+	require.NoError(t, err)
+	p := packetPost(t, "./testdata/valid.pcap", 202, ln)
 	defer p.cleanup()
 	t.Run("DataReverseSorted", func(t *testing.T) {
 		expected := `
@@ -78,7 +90,9 @@ func TestPacketPostSuccess(t *testing.T) {
 }
 
 func TestPacketPostSortLimit(t *testing.T) {
-	p := packetPostWithConfig(t, zqd.Config{SortLimit: 1}, "./testdata/valid.pcap", 202)
+	fn := writeLogsFn(testZeekLogs)
+	ln := testZeekLauncher(nil, fn)
+	p := packetPostWithConfig(t, zqd.Config{SortLimit: 1, ZeekLauncher: ln}, "./testdata/valid.pcap", 202)
 	defer p.cleanup()
 	t.Run("TaskEndError", func(t *testing.T) {
 		taskEnd := p.payloads[len(p.payloads)-1].(*api.TaskEnd)
@@ -89,7 +103,7 @@ func TestPacketPostSortLimit(t *testing.T) {
 }
 
 func TestPacketPostInvalidPcap(t *testing.T) {
-	p := packetPost(t, "./testdata/invalid.pcap", 400)
+	p := packetPost(t, "./testdata/invalid.pcap", 400, testZeekLauncher(nil, nil))
 	defer p.cleanup()
 	t.Run("ErrorMessage", func(t *testing.T) {
 		// XXX Better error message here.
@@ -107,8 +121,9 @@ func TestPacketPostInvalidPcap(t *testing.T) {
 }
 
 func TestPacketPostZeekFailImmediate(t *testing.T) {
-	exec := abspath(t, filepath.Join("testdata", "zeekstartfail.sh"))
-	p := packetPostWithConfig(t, zqd.Config{ZeekExec: exec}, "./testdata/valid.pcap", 202)
+	expectedErr := errors.New("zeek error: failed to start")
+	startFn := func(*testZeekProcess) error { return expectedErr }
+	p := packetPost(t, "./testdata/valid.pcap", 202, testZeekLauncher(startFn, nil))
 	defer p.cleanup()
 	t.Run("TaskEndError", func(t *testing.T) {
 		expected := &api.TaskEnd{
@@ -116,7 +131,7 @@ func TestPacketPostZeekFailImmediate(t *testing.T) {
 			TaskID: 1,
 			Error: &api.Error{
 				Type:    "Error",
-				Message: "zeek exited with status 1: failed to start",
+				Message: expectedErr.Error(),
 			},
 		}
 		last := p.payloads[len(p.payloads)-1]
@@ -125,8 +140,14 @@ func TestPacketPostZeekFailImmediate(t *testing.T) {
 }
 
 func TestPacketPostZeekFailAfterWrite(t *testing.T) {
-	exec := abspath(t, filepath.Join("testdata", "zeekwritefail.sh"))
-	p := packetPostWithConfig(t, zqd.Config{ZeekExec: exec}, "./testdata/valid.pcap", 202)
+	expectedErr := errors.New("zeek exited after write")
+	write := func(p *testZeekProcess) error {
+		if err := writeLogsFn(testZeekLogs)(p); err != nil {
+			return err
+		}
+		return expectedErr
+	}
+	p := packetPost(t, "./testdata/valid.pcap", 202, testZeekLauncher(nil, write))
 	defer p.cleanup()
 	t.Run("TaskEndError", func(t *testing.T) {
 		expected := &api.TaskEnd{
@@ -134,7 +155,7 @@ func TestPacketPostZeekFailAfterWrite(t *testing.T) {
 			TaskID: 1,
 			Error: &api.Error{
 				Type:    "Error",
-				Message: "zeek exited with status 1: exit after writing logs",
+				Message: expectedErr.Error(),
 			},
 		}
 		last := p.payloads[len(p.payloads)-1]
@@ -151,16 +172,8 @@ func TestPacketPostZeekFailAfterWrite(t *testing.T) {
 	})
 }
 
-func TestPacketPostZeekNotFound(t *testing.T) {
-	exec := abspath(t, filepath.Join("testdata", "zeekdoesnotexist.sh"))
-	p := packetPostWithConfig(t, zqd.Config{ZeekExec: exec}, "./testdata/valid.pcap", 500)
-	t.Run("ErrorMessage", func(t *testing.T) {
-		require.Regexp(t, "zeek not found", string(p.body))
-	})
-}
-
-func packetPost(t *testing.T, pcapfile string, expectedStatus int) packetPostResult {
-	return packetPostWithConfig(t, zqd.Config{}, pcapfile, expectedStatus)
+func packetPost(t *testing.T, pcapfile string, expectedStatus int, l zeek.Launcher) packetPostResult {
+	return packetPostWithConfig(t, zqd.Config{ZeekLauncher: l}, pcapfile, expectedStatus)
 }
 
 func packetPostWithConfig(t *testing.T, conf zqd.Config, pcapfile string, expectedStatus int) packetPostResult {
@@ -180,9 +193,6 @@ func setCoreRoot(t *testing.T, c zqd.Config) *zqd.Core {
 		dir, err := ioutil.TempDir("", "PacketPostTest")
 		require.NoError(t, err)
 		c.Root = dir
-	}
-	if c.ZeekExec == "" {
-		c.ZeekExec = zeekpath
 	}
 	if c.Logger == nil {
 		c.Logger = zaptest.NewLogger(t, zaptest.Level(zap.WarnLevel))
@@ -232,8 +242,63 @@ func (r *packetPostResult) cleanup() {
 	os.RemoveAll(r.core.Root)
 }
 
-func abspath(t *testing.T, path string) string {
-	p, err := filepath.Abs(path)
-	require.NoError(t, err)
-	return p
+func testZeekLauncher(start, wait procFn) zeek.Launcher {
+	return func(ctx context.Context, r io.Reader, dir string) (zeek.Process, error) {
+		p := &testZeekProcess{
+			ctx:    ctx,
+			reader: r,
+			wd:     dir,
+			wait:   wait,
+			start:  start,
+		}
+		return p, p.Start()
+	}
+}
+
+type procFn func(t *testZeekProcess) error
+
+type testZeekProcess struct {
+	ctx    context.Context
+	reader io.Reader
+	wd     string
+	start  procFn
+	wait   procFn
+}
+
+func (p *testZeekProcess) Start() error {
+	if p.start != nil {
+		return p.start(p)
+	}
+	return nil
+}
+
+func (p *testZeekProcess) Wait() error {
+	if p.wait != nil {
+		return p.wait(p)
+	}
+	return nil
+}
+
+func writeLogsFn(logs []string) procFn {
+	return func(t *testZeekProcess) error {
+		for _, log := range logs {
+			r, err := os.Open(log)
+			if err != nil {
+				return err
+			}
+			defer r.Close()
+			base := filepath.Base(r.Name())
+			w, err := os.Create(filepath.Join(t.wd, base))
+			if err != nil {
+				return err
+			}
+			defer w.Close()
+			if _, err = io.Copy(w, r); err != nil {
+				return err
+			}
+		}
+		// drain the reader
+		_, err := io.Copy(ioutil.Discard, t.reader)
+		return err
+	}
 }

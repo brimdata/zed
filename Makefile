@@ -33,6 +33,7 @@ bin/$(ZEEKPATH):
 	@unzip -q bin/$(ZEEKPATH).zip -d bin \
 		&& mv bin/zeek bin/$(ZEEKPATH)
 
+
 test-unit:
 	@go test -short ./...
 
