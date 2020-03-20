@@ -9,6 +9,7 @@ require (
 	github.com/gorilla/mux v1.7.4
 	github.com/gosuri/uilive v0.0.4
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
+	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/mccanne/charm v0.0.3-0.20191224190439-b05e1b7b1be3
 	github.com/mccanne/joe v0.0.0-20181124064909-25770742c256
 	github.com/peterh/liner v1.1.0
