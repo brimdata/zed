@@ -29,6 +29,7 @@ func NewHandlerWithLogger(root *Core, logger *zap.Logger) http.Handler {
 	h := handler{Router: mux.NewRouter(), core: root}
 	h.Use(requestIDMiddleware())
 	h.Use(accessLogMiddleware(logger))
+	h.Use(panicCatchMiddleware(logger))
 	h.Handle("/space", handleSpaceList).Methods("GET")
 	h.Handle("/space", handleSpacePost).Methods("POST")
 	h.Handle("/space/{space}", handleSpaceGet).Methods("GET")
