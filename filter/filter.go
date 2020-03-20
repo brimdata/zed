@@ -47,13 +47,9 @@ func CompileFieldCompare(node *ast.CompareField) (Filter, error) {
 		if err != nil {
 			return nil, err
 		}
-		v64, ok := zx.Coerce(v, zng.TypeInt64)
+		i, ok := zx.CoerceToInt(v)
 		if !ok {
 			return nil, errors.New("cannot compare len() with non-integer")
-		}
-		i, err := zng.DecodeInt(v64.Bytes)
-		if err != nil {
-			return nil, err
 		}
 		comparison, err := CompareContainerLen(node.Comparator, i)
 		if err != nil {

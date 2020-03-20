@@ -21,12 +21,8 @@ func (u *Uint) Result() zng.Value {
 }
 
 func (u *Uint) Consume(v zng.Value) error {
-	if v, ok := zx.CoerceToUint(v, zng.TypeUint64); ok {
-		i, err := zng.DecodeUint(v.Bytes)
-		if err != nil {
-			return zng.ErrBadValue
-		}
-		u.fn.Update(i)
+	if v, ok := zx.CoerceToUint(v); ok {
+		u.fn.Update(v)
 		return nil
 	}
 	return zng.ErrTypeMismatch
