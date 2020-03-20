@@ -54,16 +54,17 @@ func NewReader(reader io.Reader, zctx *resolver.Context) (*Reader, error) {
 // A Rule contains one or more matches and the name of a descriptor
 // key (in the companion Descriptors map).
 type Rule struct {
-	Match      map[string]string `json:"match"`
-	Descriptor string            `json:"descriptor"`
+	Name       string `json:"name"`
+	Value      string `json:"value"`
+	Descriptor string `json:"descriptor"`
 }
 
 // A TypeConfig contains a map of Descriptors, keyed by name, and a
 // list of rules defining which records should be mapped into which
 // descriptor.
 type TypeConfig struct {
-	Descriptors   map[string][]interface{} `json:"descriptors"`
-	MatchingRules []Rule                   `json:"matching_rules"`
+	Descriptors map[string][]interface{} `json:"descriptors"`
+	Rules       []Rule                   `json:"rules"`
 }
 
 // typeRules is used internally and is derived from TypeConfig by
@@ -82,7 +83,7 @@ type typeRules struct {
 func (r *Reader) SetTypeConfig(tc TypeConfig) error {
 	tr := typeRules{
 		descriptors: make(map[string]*zng.TypeRecord),
-		rules:       tc.MatchingRules,
+		rules:       tc.Rules,
 	}
 
 	for key, columns := range tc.Descriptors {

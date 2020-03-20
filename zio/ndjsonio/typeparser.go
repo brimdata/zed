@@ -76,40 +76,29 @@ func lookupTypeInfo(zctx *resolver.Context, desc *zng.TypeRecord, path string) *
 func findTypeInfo(zctx *resolver.Context, jobj []byte, tr typeRules, defaultPath string) (*typeInfo, error) {
 	var fieldName, fieldVal, path string
 	for _, r := range tr.rules {
-		if len(r.Match) != 1 {
-			// This will turn into a panic when we do validation upon loading json types
-			return nil, fmt.Errorf("Rule %v with length %d", r, len(r.Match))
-		}
-
-		var name, val string
-		for n, v := range r.Match {
-			name = n
-			val = v
-		}
-
 		// we keep track of the last field value we extracted
 		// to avoid re-parsing the json object many times to
 		// lift out the same field, as would be the case with
 		// a typical zeek typing config where all rules refer
 		// to the field "_path".
-		if fieldName != name {
-			fieldName = name
+		if fieldName != r.Name {
+			fieldName = r.Name
 			var err error
-			if name == "_path" {
-				fieldVal, err = getUnsafeDefault(jobj, defaultPath, name)
+			if r.Name == "_path" {
+				fieldVal, err = getUnsafeDefault(jobj, defaultPath, r.Name)
 				path = fieldVal
 			} else {
 				// jsonparser.Get will return the key even for
 				// some invalid json. For example Get('x{"a":
 				// "b"}', "a") returns "b". This is ok because
 				// these errors will later be caught by ObjectEach.
-				fieldVal, err = jsonparser.GetUnsafeString(jobj, name)
+				fieldVal, err = jsonparser.GetUnsafeString(jobj, r.Name)
 			}
 			if err != nil {
 				continue
 			}
 		}
-		if val == fieldVal {
+		if fieldVal == r.Value {
 			return lookupTypeInfo(zctx, tr.descriptors[r.Descriptor], path), nil
 		}
 	}
