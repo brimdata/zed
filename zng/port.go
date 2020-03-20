@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strconv"
 
+	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/zcode"
 )
 
@@ -32,7 +33,7 @@ func DecodePort(zv zcode.Bytes) (uint32, error) {
 }
 
 func (t *TypeOfPort) Parse(in []byte) (zcode.Bytes, error) {
-	i, err := UnsafeParseUint32(in)
+	i, err := byteconv.ParseUint32(in)
 	if err != nil {
 		return nil, err
 	}

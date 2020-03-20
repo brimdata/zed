@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zio/zeekio"
 	"github.com/brimsec/zq/zng"
@@ -218,7 +219,7 @@ func (p *Parser) jsonParseBool(b []byte) (zng.Value, error) {
 }
 
 func (p *Parser) jsonParseNumber(b []byte) (zng.Value, error) {
-	d, err := zng.UnsafeParseFloat64(b)
+	d, err := byteconv.ParseFloat64(b)
 	if err != nil {
 		return zng.Value{}, err
 	}

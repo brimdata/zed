@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net"
 
+	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/zcode"
 )
 
@@ -33,7 +34,7 @@ func DecodeIP(zv zcode.Bytes) (net.IP, error) {
 }
 
 func (t *TypeOfIP) Parse(in []byte) (zcode.Bytes, error) {
-	ip, err := UnsafeParseIP(in)
+	ip, err := byteconv.ParseIP(in)
 	if err != nil {
 		return nil, err
 	}
