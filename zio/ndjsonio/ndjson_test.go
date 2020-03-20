@@ -8,7 +8,9 @@ import (
 
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -152,5 +154,49 @@ func NDJSONEq(t *testing.T, expected string, actual string) {
 	require.Len(t, expectedLines, len(actualLines))
 	for i := range actualLines {
 		require.JSONEq(t, expectedLines[i], actualLines[i])
+	}
+}
+func TestNewRawFromJSON(t *testing.T) {
+	type testcase struct {
+		name, zng, json string
+	}
+	cases := []testcase{
+		{"LongDuration",
+			`#0:record[_path:string,ts:time,span:duration]
+0:[test;1573860644.637486;0.123456134;]`,
+			`{"_path": "test", "ts": "2019-11-15T23:30:44.637486Z", "span": 0.1234561341234234}`,
+		},
+		{"TsISO8601",
+			`#0:record[_path:string,b:bool,i:int64,s:set[bool],ts:time,v:array[int64]]
+0:[test;-;-;-;1573860644.637486;-;]`,
+			`{"_path": "test", "ts":"2019-11-15T23:30:44.637486Z"}`,
+		},
+		{"TsEpoch",
+			`#0:record[_path:string,ts:time]
+0:[test;1573860644.637486;]`,
+			`{"_path": "test", "ts":1573860644.637486}`,
+		},
+		{"TsMillis",
+			`#0:record[_path:string,ts:time]
+0:[test;1573860644.637000;]`,
+			`{"_path": "test", "ts":1573860644637}`,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			r := zngio.NewReader(strings.NewReader(c.zng), resolver.NewContext())
+			expected, err := r.Read()
+			require.NoError(t, err)
+			typ := expected.Type
+			ti := &typeInfo{
+				flatDesc:   typ,
+				descriptor: typ,
+			}
+			raw, _, err := ti.newRawFromJSON([]byte(c.json))
+			require.NoError(t, err)
+			rec := &zng.Record{Type: typ, Raw: raw}
+			assert.Equal(t, expected.String(), rec.String())
+		})
 	}
 }
