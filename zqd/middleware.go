@@ -2,6 +2,7 @@ package zqd
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 	"sync/atomic"
@@ -61,6 +62,25 @@ func accessLogMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 					zap.Int("status_code", recorder.statusCode),
 				)
 			}(time.Now())
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func panicCatchMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
+	logger = logger.Named("zqd")
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			defer func() {
+				r := recover()
+				if r == nil {
+					return
+				}
+				rstr := fmt.Sprint(r)
+				logger.Error("panic", zap.String("error", rstr))
+				http.Error(w, rstr, http.StatusInternalServerError)
+			}()
 
 			next.ServeHTTP(w, r)
 		})
