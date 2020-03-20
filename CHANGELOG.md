@@ -1,3 +1,9 @@
+## v0.7.0
+
+* Address ingest issues for packet captures in legacy pcap format.
+* Calculate and respond with packet capture time range at the start of ingest,
+  so that Brim can immediately display the space's time range.
+
 ## v0.6.0
 
 * zq now displays warnings by default; the "-W" flag is removed, replaced by
