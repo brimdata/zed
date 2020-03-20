@@ -284,7 +284,7 @@ func parseSimpleType(value []byte, typ zng.Type) ([]byte, error) {
 		return zng.EncodeTime(ts), nil
 	case zng.TypeDuration:
 		// cannot use nano.Parse because javascript floats values can have
-		// greater precision than 10e-9.
+		// greater precision than 1e-9.
 		f, err := strconv.ParseFloat(string(value), 10)
 		if err != nil {
 			return nil, err

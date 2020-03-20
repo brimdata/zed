@@ -212,21 +212,21 @@ func (c *Command) Run(args []string) error {
 		c.ofmt = "null"
 		defer logger.Close()
 	}
-	var tc *ndjsonio.TypeConfig
-	if c.jsonTypePath != "" {
-		if tc, err = c.loadJsonTypes(); err != nil {
-			return err
-		}
-	}
 
-	var readers []zbuf.Reader
-	if readers, err = c.inputReaders(paths); err != nil {
+	readers, err := c.inputReaders(paths)
+	if err != nil {
 		return err
 	}
-	for _, r := range readers {
-		if ndjr, ok := r.(*ndjsonio.Reader); ok && (tc != nil) {
-			if err = ndjr.SetTypeConfig(*tc); err != nil {
-				return err
+	if c.jsonTypePath != "" {
+		tc, err := c.loadJsonTypes()
+		if err != nil {
+			return err
+		}
+		for _, r := range readers {
+			if ndjr, ok := r.(*ndjsonio.Reader); ok {
+				if err := ndjr.SetTypeConfig(*tc); err != nil {
+					return err
+				}
 			}
 		}
 	}
