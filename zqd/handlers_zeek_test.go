@@ -1,3 +1,5 @@
+// +build zeek
+
 package zqd_test
 
 import (
@@ -9,6 +11,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/brimsec/zq/pkg/nano"
@@ -31,8 +34,12 @@ var testZeekLogs = []string{
 }
 
 func TestPacketPostSuccess(t *testing.T) {
-	fn := writeLogsFn(testZeekLogs)
-	p := packetPost(t, "./testdata/valid.pcap", 202, testZeekLauncher(nil, fn))
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping test for windows")
+	}
+	ln, err := zeek.LauncherFromPath(os.Getenv("ZEEK"))
+	require.NoError(t, err)
+	p := packetPost(t, "./testdata/valid.pcap", 202, ln)
 	defer p.cleanup()
 	t.Run("DataReverseSorted", func(t *testing.T) {
 		expected := `
