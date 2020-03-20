@@ -42,8 +42,6 @@ type Command struct {
 	reverse    bool
 	stats      bool
 	warnings   bool
-	nocache    bool
-	noindex    bool
 	wire       bool
 	zio.Flags
 	final *api.SearchStats
@@ -62,9 +60,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.ShowTypes, "T", false, "display field types in text output")
 	f.BoolVar(&c.ShowFields, "F", false, "display field names in text output")
 	f.BoolVar(&c.EpochDates, "E", false, "display epoch timestamps in text output")
-	f.BoolVar(&c.nocache, "C", false, "bypass the aggregations cache")
-	f.BoolVar(&c.noindex, "X", false, "search brute force without search index")
-	f.BoolVar(&c.wire, "w", false, "dump whats on the wire")
+	f.BoolVar(&c.wire, "w", false, "dump what's on the wire")
 	return c, nil
 }
 
