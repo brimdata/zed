@@ -7,6 +7,8 @@ require (
 	github.com/buger/jsonparser v0.0.0-20191004114745-ee4c978eae7e
 	github.com/google/gopacket v1.1.17
 	github.com/gorilla/mux v1.7.4
+	github.com/gosuri/uilive v0.0.4
+	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/mccanne/charm v0.0.3-0.20191224190439-b05e1b7b1be3
 	github.com/mccanne/joe v0.0.0-20181124064909-25770742c256
 	github.com/peterh/liner v1.1.0
@@ -14,6 +16,7 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/yuin/goldmark v1.1.22
 	go.uber.org/zap v1.12.0
+	golang.org/x/crypto v0.0.0-20190510104115-cbcb75029529
 	golang.org/x/text v0.3.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v3 v3.0.0-20200121175148-a6ecf24a6d71
