@@ -1,4 +1,4 @@
-package ndjsonio_test
+package ndjsonio
 
 import (
 	"bufio"
@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/require"
@@ -50,7 +49,7 @@ func TestNDJSONWriter(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			var out bytes.Buffer
-			w := ndjsonio.NewWriter(&out)
+			w := NewWriter(&out)
 			r := zngio.NewReader(strings.NewReader(c.input), resolver.NewContext())
 			require.NoError(t, zbuf.Copy(zbuf.NopFlusher(w), r))
 			NDJSONEq(t, c.output, out.String())
@@ -125,8 +124,8 @@ func TestNDJSON(t *testing.T) {
 
 func runtestcase(t *testing.T, input, output string) {
 	var out bytes.Buffer
-	w := ndjsonio.NewWriter(&out)
-	r, err := ndjsonio.NewReader(strings.NewReader(input), resolver.NewContext())
+	w := NewWriter(&out)
+	r, err := NewReader(strings.NewReader(input), resolver.NewContext())
 	require.NoError(t, err)
 	require.NoError(t, zbuf.Copy(zbuf.NopFlusher(w), r))
 	NDJSONEq(t, output, out.String())
