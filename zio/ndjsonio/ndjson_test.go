@@ -156,6 +156,7 @@ func NDJSONEq(t *testing.T, expected string, actual string) {
 		require.JSONEq(t, expectedLines[i], actualLines[i])
 	}
 }
+
 func TestNewRawFromJSON(t *testing.T) {
 	type testcase struct {
 		name, zng, json string

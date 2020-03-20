@@ -121,18 +121,9 @@ func (r *Reader) Parse(b []byte) (zng.Value, error) {
 		return zng.Value{}, fmt.Errorf("expected JSON type to be Object but got %s", typ)
 	}
 	if r.typ != nil {
-		zv, err := r.typ.parseObject(val)
-		if err != nil {
-			return zng.Value{}, err
-		}
-		return zv, nil
+		return r.typ.parseObject(val)
 	}
-
-	zv, err := r.inf.parseObject(val)
-	if err != nil {
-		return zng.Value{}, err
-	}
-	return zv, nil
+	return r.inf.parseObject(val)
 }
 
 func (r *Reader) Read() (*zng.Record, error) {
