@@ -1,4 +1,4 @@
-package zx
+package zngnative
 
 import (
 	"math"
@@ -60,10 +60,10 @@ func CoerceToFloat64(in zng.Value) (float64, bool) {
 // unsigned integers so long as they are not greater than MaxInt64.
 // A float64 may be coerced only if the value is equivalent.
 // Time and Intervals are converted as their nanosecond values.
-func CoerceToInt(in Value) (int64, bool) {
+func CoerceToInt(in zng.Value) (int64, bool) {
 	switch in.Type.ID() {
-	case IdFloat64:
-		v, err := DecodeFloat64(in.Bytes)
+	case zng.IdFloat64:
+		v, err := zng.DecodeFloat64(in.Bytes)
 		if err != nil {
 			return 0, false
 		}
@@ -72,32 +72,32 @@ func CoerceToInt(in Value) (int64, bool) {
 			return 0, false
 		}
 		return i, true
-	case IdTime:
-		v, err := DecodeTime(in.Bytes)
+	case zng.IdTime:
+		v, err := zng.DecodeTime(in.Bytes)
 		if err != nil {
 			return 0, false
 		}
 		return int64(v / 1e9), true
-	case IdDuration:
-		v, err := DecodeDuration(in.Bytes)
+	case zng.IdDuration:
+		v, err := zng.DecodeDuration(in.Bytes)
 		if err != nil {
 			return 0, false
 		}
 		return int64(v / 1e9), true
-	case IdByte:
-		b, err := DecodeByte(in.Bytes)
+	case zng.IdByte:
+		b, err := zng.DecodeByte(in.Bytes)
 		if err != nil {
 			return 0, false
 		}
 		return int64(b), true
-	case IdInt16, IdInt32, IdInt64:
-		i, err := DecodeInt(in.Bytes)
+	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
+		i, err := zng.DecodeInt(in.Bytes)
 		if err != nil {
 			return 0, false
 		}
 		return i, true
-	case IdUint16, IdUint32, IdUint64:
-		u, err := DecodeUint(in.Bytes)
+	case zng.IdUint16, zng.IdUint32, zng.IdUint64:
+		u, err := zng.DecodeUint(in.Bytes)
 		if err != nil {
 			return 0, false
 		}
@@ -118,10 +118,10 @@ func CoerceToInt(in Value) (int64, bool) {
 // signed integers so long as they are not negative.
 // A float64 may be coerced only if the value is equivalent.
 // Time and Intervals are converted as their nanosecond values.
-func CoerceToUint(in Value) (uint64, bool) {
+func CoerceToUint(in zng.Value) (uint64, bool) {
 	switch in.Type.ID() {
-	case IdFloat64:
-		v, err := DecodeFloat64(in.Bytes)
+	case zng.IdFloat64:
+		v, err := zng.DecodeFloat64(in.Bytes)
 		if err != nil {
 			return 0, false
 		}
@@ -130,26 +130,26 @@ func CoerceToUint(in Value) (uint64, bool) {
 			return 0, false
 		}
 		return i, true
-	case IdTime:
-		v, err := DecodeTime(in.Bytes)
+	case zng.IdTime:
+		v, err := zng.DecodeTime(in.Bytes)
 		if err != nil {
 			return 0, false
 		}
 		return uint64(v / 1e9), true
-	case IdDuration:
-		v, err := DecodeDuration(in.Bytes)
+	case zng.IdDuration:
+		v, err := zng.DecodeDuration(in.Bytes)
 		if err != nil {
 			return 0, false
 		}
 		return uint64(v / 1e9), true
-	case IdByte:
-		b, err := DecodeByte(in.Bytes)
+	case zng.IdByte:
+		b, err := zng.DecodeByte(in.Bytes)
 		if err != nil {
 			return 0, false
 		}
 		return uint64(b), true
-	case IdInt16, IdInt32, IdInt64:
-		si, err := DecodeInt(in.Bytes)
+	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
+		si, err := zng.DecodeInt(in.Bytes)
 		if err != nil {
 			return 0, false
 		}
@@ -157,8 +157,8 @@ func CoerceToUint(in Value) (uint64, bool) {
 			return 0, false
 		}
 		return uint64(si), true
-	case IdUint16, IdUint32, IdUint64:
-		i, err := DecodeUint(in.Bytes)
+	case zng.IdUint16, zng.IdUint32, zng.IdUint64:
+		i, err := zng.DecodeUint(in.Bytes)
 		if err != nil {
 			return 0, false
 		}

@@ -3,7 +3,7 @@ package field
 import (
 	"github.com/brimsec/zq/streamfn"
 	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zx"
+	"github.com/brimsec/zq/zngnative"
 )
 
 type Duration struct {
@@ -21,7 +21,7 @@ func (d *Duration) Result() zng.Value {
 }
 
 func (d *Duration) Consume(v zng.Value) error {
-	if interval, ok := zx.CoerceToDuration(v); ok {
+	if interval, ok := zngnative.CoerceToDuration(v); ok {
 		d.fn.Update(interval)
 		return nil
 	}

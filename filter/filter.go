@@ -8,7 +8,7 @@ import (
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zx"
+	"github.com/brimsec/zq/zngnative"
 )
 
 type Filter func(*zng.Record) bool
@@ -47,7 +47,7 @@ func CompileFieldCompare(node *ast.CompareField) (Filter, error) {
 		if err != nil {
 			return nil, err
 		}
-		i, ok := zx.CoerceToInt(v)
+		i, ok := zngnative.CoerceToInt(v)
 		if !ok {
 			return nil, errors.New("cannot compare len() with non-integer")
 		}

@@ -1,10 +1,10 @@
-package zx_test
+package zngnative_test
 
 import (
 	"testing"
 
 	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zx"
+	"github.com/brimsec/zq/zngnative"
 	"github.com/stretchr/testify/require"
 )
 
@@ -20,7 +20,7 @@ func TestCoerceDuration(t *testing.T) {
 
 func runcase(t *testing.T, name string, in zng.Value, expected int64) {
 	t.Run(name, func(t *testing.T) {
-		val, ok := zx.CoerceToDuration(in)
+		val, ok := zngnative.CoerceToDuration(in)
 		require.True(t, ok, "coercion succeeded")
 		require.Equal(t, expected, val, "coerced value is correct")
 	})
@@ -28,7 +28,7 @@ func runcase(t *testing.T, name string, in zng.Value, expected int64) {
 
 func notcase(t *testing.T, name string, in zng.Value) {
 	t.Run(name, func(t *testing.T) {
-		_, ok := zx.CoerceToDuration(in)
+		_, ok := zngnative.CoerceToDuration(in)
 		require.False(t, ok, "coercion should have failed")
 	})
 }

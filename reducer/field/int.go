@@ -3,7 +3,7 @@ package field
 import (
 	"github.com/brimsec/zq/streamfn"
 	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zx"
+	"github.com/brimsec/zq/zngnative"
 )
 
 type Int struct {
@@ -21,7 +21,7 @@ func (i *Int) Result() zng.Value {
 }
 
 func (i *Int) Consume(v zng.Value) error {
-	if v, ok := zx.CoerceToInt(v); ok {
+	if v, ok := zngnative.CoerceToInt(v); ok {
 		i.fn.Update(v)
 		return nil
 	}
