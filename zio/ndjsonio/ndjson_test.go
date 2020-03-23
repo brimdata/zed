@@ -248,42 +248,43 @@ func TestNDJSONTypeErrors(t *testing.T) {
 			true,
 		},
 		{
-			"Bad line number",
-			typeStats{BadFormat: 2, FirstBadLine: 2},
-			`{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http"}
-{"hiddents":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http"}
-{"hiddents":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http"}`,
+			"Extra field",
+			typeStats{IncompleteDescriptor: 2, FirstBadLine: 1},
+			`{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http", "extra_field": 1}
+{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http"}
+{"ts":"2017-03-24T19:59:24.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http", "extra_field": 1}`,
 			true,
 		},
 		{
-			"Extra field",
-			typeStats{IncompleteDescriptor: 1, FirstBadLine: 1},
-			`{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http", "extra_field": 1}`,
-			true,
+			"Bad line number",
+			typeStats{BadFormat: 1, FirstBadLine: 2},
+			`{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http"}
+{"hiddents":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http"}`,
+			false,
 		},
 		{
 			"Missing Ts",
 			typeStats{BadFormat: 1, FirstBadLine: 1},
 			`{"uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65", "_path": "http"}` + "\n",
-			true,
+			false,
 		},
 		{
 			"Negative Ts",
 			typeStats{BadFormat: 1, FirstBadLine: 1},
 			`{"ts":"-1579438676.648","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65", "_path": "http"}` + "\n",
-			true,
+			false,
 		},
 		{
 			"Missing _path",
 			typeStats{MissingPath: 1, FirstBadLine: 1},
 			`{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65"}` + "\n",
-			true,
+			false,
 		},
 		{
 			"Valid (inferred)",
 			typeStats{DescriptorNotFound: 1, FirstBadLine: 1},
 			`{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"inferred"}`,
-			true,
+			false,
 		},
 	}
 
@@ -298,8 +299,11 @@ func TestNDJSONTypeErrors(t *testing.T) {
 			require.NoError(t, err)
 
 			err = zbuf.Copy(zbuf.NopFlusher(w), r)
-			require.NoError(t, err)
-
+			if c.success {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+			}
 			require.Equal(t, c.result, *r.stats.typeStats)
 		})
 	}

@@ -77,8 +77,8 @@ type typeRules struct {
 // SetTypeConfig adds a TypeConfig to the reader. Its use is optional,
 // but if used, it should be called before records are processed.  In
 // the absence of a TypeConfig, records are all parsed with the
-// inferParser. If a TypeConfig is present, records are first parsed
-// with the typeParser, and if that fails, with the inferParser.
+// inferParser. If a TypeConfig is present, records are parsed
+// with the typeParser.
 func (r *Reader) SetTypeConfig(tc TypeConfig) error {
 	tr := typeRules{
 		descriptors: make(map[string]*zng.TypeRecord),
@@ -121,9 +121,7 @@ func (r *Reader) Parse(b []byte) (zng.Value, error) {
 		return zng.Value{}, fmt.Errorf("expected JSON type to be Object but got %s", typ)
 	}
 	if r.typ != nil {
-		if zv, err := r.typ.parseObject(val); err == nil {
-			return zv, nil
-		}
+		return r.typ.parseObject(val)
 	}
 	return r.inf.parseObject(val)
 }
