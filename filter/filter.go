@@ -25,7 +25,7 @@ func LogicalNot(expr Filter) Filter {
 	return func(p *zng.Record) bool { return !expr(p) }
 }
 
-func combine(res expr.FieldExprResolver, pred zx.Predicate) Filter {
+func combine(res expr.FieldExprResolver, pred Predicate) Filter {
 	return func(r *zng.Record) bool {
 		v := res(r)
 		if v.Type == nil {
@@ -55,7 +55,7 @@ func CompileFieldCompare(node *ast.CompareField) (Filter, error) {
 		if err != nil {
 			return nil, err
 		}
-		comparison, err := zx.CompareContainerLen(node.Comparator, i)
+		comparison, err := CompareContainerLen(node.Comparator, i)
 		if err != nil {
 			return nil, err
 		}
@@ -66,7 +66,7 @@ func CompileFieldCompare(node *ast.CompareField) (Filter, error) {
 		return combine(resolver, comparison), nil
 	}
 
-	comparison, err := zx.Comparison(node.Comparator, literal)
+	comparison, err := Comparison(node.Comparator, literal)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func CompileFieldCompare(node *ast.CompareField) (Filter, error) {
 	return combine(resolver, comparison), nil
 }
 
-func EvalAny(eval zx.Predicate, recursive bool) Filter {
+func EvalAny(eval Predicate, recursive bool) Filter {
 	if !recursive {
 		return func(r *zng.Record) bool {
 			it := r.ZvalIter()
@@ -156,8 +156,8 @@ func Compile(node ast.BooleanExpr) (Filter, error) {
 			if err != nil {
 				return nil, err
 			}
-			eql, _ := zx.Comparison("eql", v.Value)
-			comparison := zx.Contains(eql)
+			eql, _ := Comparison("eql", v.Value)
+			comparison := Contains(eql)
 			return combine(resolver, comparison), nil
 		}
 
@@ -165,24 +165,24 @@ func Compile(node ast.BooleanExpr) (Filter, error) {
 
 	case *ast.CompareAny:
 		if v.Comparator == "in" {
-			compare, err := zx.Comparison("eql", v.Value)
+			compare, err := Comparison("eql", v.Value)
 			if err != nil {
 				return nil, err
 			}
-			contains := zx.Contains(compare)
+			contains := Contains(compare)
 			return EvalAny(contains, v.Recursive), nil
 		}
 		//XXX this is messed up
 		if v.Comparator == "searchin" {
-			search, err := zx.Comparison("search", v.Value)
+			search, err := Comparison("search", v.Value)
 			if err != nil {
 				return nil, err
 			}
-			contains := zx.Contains(search)
+			contains := Contains(search)
 			return EvalAny(contains, v.Recursive), nil
 		}
 
-		comparison, err := zx.Comparison(v.Comparator, v.Value)
+		comparison, err := Comparison(v.Comparator, v.Value)
 		if err != nil {
 			return nil, err
 		}
