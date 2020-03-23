@@ -80,6 +80,7 @@ func TestPacketPostSuccess(t *testing.T) {
 		assert.Equal(t, status.Type, "PacketPostStatus")
 		assert.Equal(t, status.PacketSize, info.Size())
 		assert.Equal(t, status.PacketReadSize, info.Size())
+		assert.Equal(t, 1, status.SnapshotCount)
 		assert.Equal(t, nano.Unix(1501770877, 471635000), *status.MinTime)
 		assert.Equal(t, nano.Unix(1501770880, 988247000), *status.MaxTime)
 	})

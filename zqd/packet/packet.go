@@ -38,6 +38,7 @@ type IngestProcess struct {
 
 	space        *space.Space
 	sortLimit    int
+	snapshots    int32
 	pcapPath     string
 	pcapReadSize int64
 	logdir       string
@@ -208,6 +209,10 @@ func (p *IngestProcess) Done() <-chan struct{} {
 	return p.done
 }
 
+func (p *IngestProcess) SnapshotCount() int {
+	return int(atomic.LoadInt32(&p.snapshots))
+}
+
 // Snap returns a chan that emits every time a snapshot is made. It
 // should no longer be read from after Done() has emitted.
 func (p *IngestProcess) Snap() <-chan struct{} {
@@ -249,6 +254,7 @@ func (p *IngestProcess) createSnapshot(ctx context.Context) error {
 	if err := bzngfile.Close(); err != nil {
 		return err
 	}
+	atomic.AddInt32(&p.snapshots, 1)
 	return os.Rename(bzngfile.Name(), p.space.DataPath("all.bzng"))
 }
 
