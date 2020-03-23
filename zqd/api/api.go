@@ -112,6 +112,7 @@ type PacketPostStatus struct {
 	UpdateTime     nano.Ts  `json:"update_time"`
 	PacketSize     int64    `json:"packet_total_size" unit:"bytes"`
 	PacketReadSize int64    `json:"packet_read_size" unit:"bytes"`
+	SnapshotCount  int      `json:"snapshot_count"`
 	MinTime        *nano.Ts `json:"min_time,omitempty"`
 	MaxTime        *nano.Ts `json:"max_time,omitempty"`
 }

@@ -280,6 +280,7 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 			UpdateTime:     nano.Now(),
 			PacketSize:     proc.PcapSize,
 			PacketReadSize: proc.PcapReadSize(),
+			SnapshotCount:  proc.SnapshotCount(),
 			MinTime:        minTs,
 			MaxTime:        maxTs,
 		}
