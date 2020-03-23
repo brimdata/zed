@@ -40,8 +40,12 @@ func NewReader(r io.Reader, zctx *resolver.Context) (zbuf.Reader, error) {
 	}
 	track.Reset()
 	// ndjson must come after zjson since zjson is a subset of ndjson
-	if match(ndjsonio.NewReader(track, resolver.NewContext())) {
-		return ndjsonio.NewReader(recorder, zctx), nil
+	nr, err := ndjsonio.NewReader(track, resolver.NewContext())
+	if err != nil {
+		return nil, err
+	}
+	if match(nr) {
+		return ndjsonio.NewReader(recorder, zctx)
 	}
 	track.Reset()
 	if match(bzngio.NewReader(track, resolver.NewContext())) {

@@ -1,5 +1,3 @@
-// Package ndjsonio parses ndjson records, inferring a zng type for each
-// record and then parsing it into a zng value of that type.
 package ndjsonio
 
 import (
@@ -14,35 +12,11 @@ import (
 	"github.com/buger/jsonparser"
 )
 
-type Parser struct {
+type inferParser struct {
 	zctx *resolver.Context
 }
 
-func NewParser(zctx *resolver.Context) *Parser {
-	return &Parser{
-		zctx: zctx,
-	}
-}
-
-// Parse returns a zng.Encoding slice as well as an inferred zng.Type
-// from the provided JSON input. The function expects the input json to be an
-// object, otherwise an error is returned.
-func (p *Parser) Parse(b []byte) (zcode.Bytes, zng.Type, error) {
-	val, typ, _, err := jsonparser.Get(b)
-	if err != nil {
-		return nil, nil, err
-	}
-	if typ != jsonparser.Object {
-		return nil, nil, fmt.Errorf("expected JSON type to be Object but got %s", typ)
-	}
-	zv, err := p.jsonParseObject(val)
-	if err != nil {
-		return nil, nil, err
-	}
-	return zv.Bytes, zv.Type, nil
-}
-
-func (p *Parser) jsonParseObject(b []byte) (zng.Value, error) {
+func (p *inferParser) parseObject(b []byte) (zng.Value, error) {
 	type kv struct {
 		key   []byte
 		value []byte
@@ -76,7 +50,7 @@ func (p *Parser) jsonParseObject(b []byte) (zng.Value, error) {
 	nestedColno := 0
 	var vals, nestedVals []zng.Value
 	for _, kv := range kvs {
-		val, err := p.jsonParseValue(kv.value, kv.typ)
+		val, err := p.parseValue(kv.value, kv.typ)
 		if err != nil {
 			return zng.Value{}, err
 		}
@@ -107,20 +81,20 @@ func (p *Parser) jsonParseObject(b []byte) (zng.Value, error) {
 	return zng.Value{typ, encodeContainer(vals)}, nil
 }
 
-func (p *Parser) jsonParseValue(raw []byte, typ jsonparser.ValueType) (zng.Value, error) {
+func (p *inferParser) parseValue(raw []byte, typ jsonparser.ValueType) (zng.Value, error) {
 	switch typ {
 	case jsonparser.Array:
-		return p.jsonParseArray(raw)
+		return p.parseArray(raw)
 	case jsonparser.Object:
-		return p.jsonParseObject(raw)
+		return p.parseObject(raw)
 	case jsonparser.Boolean:
-		return p.jsonParseBool(raw)
+		return p.parseBool(raw)
 	case jsonparser.Number:
-		return p.jsonParseNumber(raw)
+		return p.parseNumber(raw)
 	case jsonparser.Null:
-		return p.jsonParseNull()
+		return p.parseNull()
 	case jsonparser.String:
-		return p.jsonParseString(raw)
+		return p.parseString(raw)
 	default:
 		return zng.Value{}, fmt.Errorf("unsupported type %v", typ)
 	}
@@ -135,7 +109,7 @@ func typeIndex(typs []zng.Type, typ zng.Type) int {
 	return -1
 }
 
-func (p *Parser) unionType(vals []zng.Value) *zng.TypeUnion {
+func (p *inferParser) unionType(vals []zng.Value) *zng.TypeUnion {
 	var typs []zng.Type
 	for i := range vals {
 		if index := typeIndex(typs, vals[i].Type); index == -1 {
@@ -178,7 +152,7 @@ func encodeContainer(vals []zng.Value) zcode.Bytes {
 	return b
 }
 
-func (p *Parser) jsonParseArray(raw []byte) (zng.Value, error) {
+func (p *inferParser) parseArray(raw []byte) (zng.Value, error) {
 	var err error
 	var vals []zng.Value
 	jsonparser.ArrayEach(raw, func(el []byte, typ jsonparser.ValueType, offset int, elErr error) {
@@ -186,7 +160,7 @@ func (p *Parser) jsonParseArray(raw []byte) (zng.Value, error) {
 			err = elErr
 			return
 		}
-		val, err := p.jsonParseValue(el, typ)
+		val, err := p.parseValue(el, typ)
 		if err != nil {
 			return
 		}
@@ -209,7 +183,7 @@ func (p *Parser) jsonParseArray(raw []byte) (zng.Value, error) {
 	return zng.Value{typ, encodeContainer(vals)}, nil
 }
 
-func (p *Parser) jsonParseBool(b []byte) (zng.Value, error) {
+func (p *inferParser) parseBool(b []byte) (zng.Value, error) {
 	boolean, err := jsonparser.GetBoolean(b)
 	if err != nil {
 		return zng.Value{}, err
@@ -217,7 +191,7 @@ func (p *Parser) jsonParseBool(b []byte) (zng.Value, error) {
 	return zng.NewBool(boolean), nil
 }
 
-func (p *Parser) jsonParseNumber(b []byte) (zng.Value, error) {
+func (p *inferParser) parseNumber(b []byte) (zng.Value, error) {
 	d, err := zng.UnsafeParseFloat64(b)
 	if err != nil {
 		return zng.Value{}, err
@@ -225,7 +199,7 @@ func (p *Parser) jsonParseNumber(b []byte) (zng.Value, error) {
 	return zng.NewFloat64(d), nil
 }
 
-func (p *Parser) jsonParseString(b []byte) (zng.Value, error) {
+func (p *inferParser) parseString(b []byte) (zng.Value, error) {
 	b, err := jsonparser.Unescape(b, nil)
 	if err != nil {
 		return zng.Value{}, err
@@ -237,6 +211,6 @@ func (p *Parser) jsonParseString(b []byte) (zng.Value, error) {
 	return zng.Value{zng.TypeString, s}, nil
 }
 
-func (p *Parser) jsonParseNull() (zng.Value, error) {
+func (p *inferParser) parseNull() (zng.Value, error) {
 	return zng.Value{zng.TypeString, nil}, nil
 }
