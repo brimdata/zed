@@ -16,13 +16,11 @@ import (
 )
 
 type typeStats struct {
-	BadFormat                int `json:"events_bad_format,omitempty"`
-	BadMetaData              int `json:"events_bad_meta_data,omitempty"`
-	LineTooLong              int `json:"events_line_too_long,omitempty"`
-	FirstBadLine             int `json:"events_first_bad_line,omitempty"`
-	JSONDescriptorNotFound   int `json:"events_json_descriptor_not_found,omitempty"`
-	JSONIncompleteDescriptor int `json:"events_json_incomplete_descriptor,omitempty"`
-	JSONMissingPath          int `json:"events_json_missing_path,omitempty"`
+	BadFormat            int
+	FirstBadLine         int
+	DescriptorNotFound   int
+	IncompleteDescriptor int
+	MissingPath          int
 }
 
 type typeParser struct {
@@ -253,9 +251,9 @@ func (p *typeParser) parseObject(b []byte) (zng.Value, error) {
 	if err != nil {
 		switch err {
 		case ErrDescriptorNotFound:
-			incr(&p.stats.JSONDescriptorNotFound)
+			incr(&p.stats.DescriptorNotFound)
 		case ErrMissingPath:
-			incr(&p.stats.JSONMissingPath)
+			incr(&p.stats.MissingPath)
 		default:
 			panic("unhandled error")
 		}
@@ -272,7 +270,7 @@ func (p *typeParser) parseObject(b []byte) (zng.Value, error) {
 		return zng.Value{}, ErrBadFormat
 	}
 	if dropped > 0 {
-		incr(&p.stats.JSONIncompleteDescriptor)
+		incr(&p.stats.IncompleteDescriptor)
 	}
 
 	return zng.Value{ti.descriptor, raw}, nil

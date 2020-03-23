@@ -257,7 +257,7 @@ func TestNDJSONTypeErrors(t *testing.T) {
 		},
 		{
 			"Extra field",
-			typeStats{JSONIncompleteDescriptor: 1, FirstBadLine: 1},
+			typeStats{IncompleteDescriptor: 1, FirstBadLine: 1},
 			`{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http", "extra_field": 1}`,
 			true,
 		},
@@ -275,13 +275,13 @@ func TestNDJSONTypeErrors(t *testing.T) {
 		},
 		{
 			"Missing _path",
-			typeStats{JSONMissingPath: 1, FirstBadLine: 1},
+			typeStats{MissingPath: 1, FirstBadLine: 1},
 			`{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65"}` + "\n",
 			true,
 		},
 		{
 			"Valid (inferred)",
-			typeStats{JSONDescriptorNotFound: 1, FirstBadLine: 1},
+			typeStats{DescriptorNotFound: 1, FirstBadLine: 1},
 			`{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"inferred"}`,
 			true,
 		},
