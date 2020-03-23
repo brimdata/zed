@@ -248,6 +248,12 @@ type (
 		Fields []FieldExpr `json:"fields,omitempty"`
 		Flush  bool        `json:"flush"`
 	}
+
+	PutProc struct {
+		Node
+		Target string     `json:"target"`
+		Expr   Expression `json:"expression"`
+	}
 )
 
 //XXX TBD: chance to nano.Duration
@@ -282,6 +288,7 @@ func (*UniqProc) ProcNode()       {}
 func (*ReducerProc) ProcNode()    {}
 func (*GroupByProc) ProcNode()    {}
 func (*TopProc) ProcNode()        {}
+func (*PutProc) ProcNode()        {}
 
 // A Reducer is an AST node that represents any of the boom reducers.  The Op
 // parameter indicates the specific reducer while the Field parameter indicates

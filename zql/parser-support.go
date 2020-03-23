@@ -224,6 +224,10 @@ func makeFilterProc(expr interface{}) *ast.FilterProc {
 	return &ast.FilterProc{ast.Node{"FilterProc"}, expr.(ast.BooleanExpr)}
 }
 
+func makePutProc(target, expr interface{}) *ast.PutProc {
+	return &ast.PutProc{ast.Node{"PutProc"}, target.(string), expr.(ast.Expression)}
+}
+
 func makeReducer(opIn, varIn, fieldIn interface{}) *ast.Reducer {
 	var field ast.FieldExpr
 	if fieldIn != nil {
