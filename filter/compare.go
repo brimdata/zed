@@ -1,4 +1,4 @@
-package zx
+package filter
 
 import (
 	"bytes"

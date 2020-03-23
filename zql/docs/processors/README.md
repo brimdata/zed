@@ -7,6 +7,7 @@ The following available processors are documented in detail below:
 * [`cut`](#cut)
 * [`filter`](#filter)
 * [`head`](#head)
+* [`put`](#put)
 * [`sort`](#sort)
 * [`tail`](#tail)
 * [`uniq`](#uniq)
@@ -126,6 +127,41 @@ conn  1521911720.606178 CnKmhv4RfyAZ3fVc8b 10.164.94.120 36125     10.47.3.200 8
 conn  1521911720.604325 C65IMkEAWNlE1f6L8  10.164.94.120 45941     10.47.3.200 80        tcp   -       0.002708 0          242        RSTO       -          -          0            ^dtfAR    4         208           4         692           -
 conn  1521911720.607031 CpQfkTi8xytq87HW2  10.164.94.120 36729     10.47.3.200 80        tcp   http    0.006238 325        263        RSTO       -          -          0            ShADTdftR 10        1186          6         854           -
 conn  1521911720.607695 CpjMvj2Cvj048u6bF1 10.164.94.120 39169     10.47.3.200 80        tcp   http    0.007139 315        241        RSTO       -          -          0            ShADTdtfR 10        1166          6         810           -
+```
+
+---
+
+## `put`
+
+|                           |                                                 |
+| ------------------------- | ----------------------------------------------- |
+| **Description**           | Add/update fields based on the results of a computed expression |
+| **Syntax**                | `put <field> = <expression>`                    |
+| **Required arguments**    | `<field>` Field into which the computed value will be stored.<br>`<expression>` A valid ZQL expression (XXX citation needed) |
+| **Optional arguments**    | None |
+| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc#Put |
+
+#### Example #1:
+
+Compute a `total_bytes` field in `conn` records:
+
+```zq-command
+zq -f table 'put total_bytes = orig_bytes + resp_bytes | top 10 total_bytes | cut id, orig_bytes, resp_bytes, total_bytes' conn.log.gz
+```
+
+#### Output:
+```zq-output
+ID.ORIG_H     ID.ORIG_P ID.RESP_H       ID.RESP_P ORIG_BYTES RESP_BYTES TOTAL_BYTES
+10.47.7.154   27300     52.216.132.61   443       859        1781771107 1781771966
+10.164.94.120 33691     10.47.3.200     80        355        1543916493 1543916848
+10.47.8.100   37110     128.101.240.215 80        16398      376626606  376643004
+10.47.3.151   11120     198.255.68.110  80        392        274063633  274064025
+10.47.1.155   56594     198.255.68.110  80        392        274063633  274064025
+10.47.5.155   40736     91.189.91.23    80        22706      141877415  141900121
+10.47.5.155   40726     91.189.91.23    80        23204      120752961  120776165
+10.47.8.100   37126     52.216.162.155  443       1213       105936976  105938189
+10.47.8.100   37127     52.216.162.155  443       1494       105936280  105937774
+10.47.5.155   40728     91.189.91.23    80        21396      98972170   98993566
 ```
 
 ---

@@ -1,4 +1,4 @@
-package ndjsonio_test
+package ndjsonio
 
 import (
 	"bufio"
@@ -7,9 +7,10 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -50,7 +51,7 @@ func TestNDJSONWriter(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			var out bytes.Buffer
-			w := ndjsonio.NewWriter(&out)
+			w := NewWriter(&out)
 			r := zngio.NewReader(strings.NewReader(c.input), resolver.NewContext())
 			require.NoError(t, zbuf.Copy(zbuf.NopFlusher(w), r))
 			NDJSONEq(t, c.output, out.String())
@@ -125,8 +126,9 @@ func TestNDJSON(t *testing.T) {
 
 func runtestcase(t *testing.T, input, output string) {
 	var out bytes.Buffer
-	w := ndjsonio.NewWriter(&out)
-	r := ndjsonio.NewReader(strings.NewReader(input), resolver.NewContext())
+	w := NewWriter(&out)
+	r, err := NewReader(strings.NewReader(input), resolver.NewContext())
+	require.NoError(t, err)
 	require.NoError(t, zbuf.Copy(zbuf.NopFlusher(w), r))
 	NDJSONEq(t, output, out.String())
 }
@@ -152,5 +154,157 @@ func NDJSONEq(t *testing.T, expected string, actual string) {
 	require.Len(t, expectedLines, len(actualLines))
 	for i := range actualLines {
 		require.JSONEq(t, expectedLines[i], actualLines[i])
+	}
+}
+
+func TestNewRawFromJSON(t *testing.T) {
+	type testcase struct {
+		name, zng, json string
+	}
+	cases := []testcase{
+		{"LongDuration",
+			`#0:record[_path:string,ts:time,span:duration]
+0:[test;1573860644.637486;0.123456134;]`,
+			`{"_path": "test", "ts": "2019-11-15T23:30:44.637486Z", "span": 0.1234561341234234}`,
+		},
+		{"TsISO8601",
+			`#0:record[_path:string,b:bool,i:int64,s:set[bool],ts:time,v:array[int64]]
+0:[test;-;-;-;1573860644.637486;-;]`,
+			`{"_path": "test", "ts":"2019-11-15T23:30:44.637486Z"}`,
+		},
+		{"TsEpoch",
+			`#0:record[_path:string,ts:time]
+0:[test;1573860644.637486;]`,
+			`{"_path": "test", "ts":1573860644.637486}`,
+		},
+		{"TsMillis",
+			`#0:record[_path:string,ts:time]
+0:[test;1573860644.637000;]`,
+			`{"_path": "test", "ts":1573860644637}`,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			r := zngio.NewReader(strings.NewReader(c.zng), resolver.NewContext())
+			expected, err := r.Read()
+			require.NoError(t, err)
+			typ := expected.Type
+			ti := &typeInfo{
+				flatDesc:   typ,
+				descriptor: typ,
+				jsonVals:   make([]jsonVal, len(typ.Columns)),
+			}
+			raw, _, err := ti.newRawFromJSON([]byte(c.json))
+			require.NoError(t, err)
+			rec := &zng.Record{Type: typ, Raw: raw}
+			assert.Equal(t, expected.String(), rec.String())
+		})
+	}
+}
+
+func TestNDJSONTypeErrors(t *testing.T) {
+	typeConfig := TypeConfig{
+		Descriptors: map[string][]interface{}{
+			"http_log": []interface{}{
+				map[string]interface{}{
+					"name": "_path",
+					"type": "string",
+				},
+				map[string]interface{}{
+					"name": "ts",
+					"type": "time",
+				},
+				map[string]interface{}{
+					"name": "uid",
+					"type": "bstring",
+				},
+				map[string]interface{}{
+					"name": "id",
+					"type": []interface{}{map[string]interface{}{
+						"name": "orig_h",
+						"type": "ip",
+					},
+					},
+				},
+			},
+		},
+		Rules: []Rule{
+			Rule{"_path", "http", "http_log"},
+		},
+	}
+
+	var cases = []struct {
+		name    string
+		result  typeStats
+		input   string
+		success bool
+	}{
+		{
+			"Valid",
+			typeStats{},
+			`{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http"}
+			{"uid":"CXY9a54W2dLZwzPXf1","ts":"2017-03-24T19:59:24.306076Z","id.orig_h":"10.10.7.65","_path":"http"}`,
+			true,
+		},
+		{
+			"Extra field",
+			typeStats{IncompleteDescriptor: 2, FirstBadLine: 1},
+			`{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http", "extra_field": 1}
+{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http"}
+{"ts":"2017-03-24T19:59:24.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http", "extra_field": 1}`,
+			true,
+		},
+		{
+			"Bad line number",
+			typeStats{BadFormat: 1, FirstBadLine: 2},
+			`{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http"}
+{"hiddents":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http"}`,
+			false,
+		},
+		{
+			"Missing Ts",
+			typeStats{BadFormat: 1, FirstBadLine: 1},
+			`{"uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65", "_path": "http"}` + "\n",
+			false,
+		},
+		{
+			"Negative Ts",
+			typeStats{BadFormat: 1, FirstBadLine: 1},
+			`{"ts":"-1579438676.648","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65", "_path": "http"}` + "\n",
+			false,
+		},
+		{
+			"Missing _path",
+			typeStats{MissingPath: 1, FirstBadLine: 1},
+			`{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65"}` + "\n",
+			false,
+		},
+		{
+			"Valid (inferred)",
+			typeStats{DescriptorNotFound: 1, FirstBadLine: 1},
+			`{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"inferred"}`,
+			false,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			var out bytes.Buffer
+			w := NewWriter(&out)
+			r, err := NewReader(strings.NewReader(c.input), resolver.NewContext())
+			require.NoError(t, err)
+
+			err = r.SetTypeConfig(typeConfig)
+			require.NoError(t, err)
+
+			err = zbuf.Copy(zbuf.NopFlusher(w), r)
+			if c.success {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+			}
+			require.Equal(t, c.result, *r.stats.typeStats)
+		})
 	}
 }

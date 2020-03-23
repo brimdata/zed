@@ -61,7 +61,7 @@ func LookupReader(format string, r io.Reader, zctx *resolver.Context) (zbuf.Read
 	case "zeek":
 		return zeekio.NewReader(r, zctx)
 	case "ndjson":
-		return ndjsonio.NewReader(r, zctx), nil
+		return ndjsonio.NewReader(r, zctx)
 	case "zjson":
 		return zjsonio.NewReader(r, zctx), nil
 	case "bzng":

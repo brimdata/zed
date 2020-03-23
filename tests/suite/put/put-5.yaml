@@ -1,0 +1,12 @@
+# Tests overwriting a record with a primitive value
+zql: put r = x
+
+input: |
+  #0:record[x:int32,r:record[s:string]]
+  0:[1;[hello;]]
+  0:[2;[world;]]
+
+output: |
+  #0:record[x:int32,r:int32]
+  0:[1;1;]
+  0:[2;2;]

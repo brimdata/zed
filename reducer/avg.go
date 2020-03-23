@@ -3,7 +3,7 @@ package reducer
 import (
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zx"
+	"github.com/brimsec/zq/zngnative"
 )
 
 type AvgProto struct {
@@ -39,7 +39,7 @@ func (a *Avg) Consume(r *zng.Record) {
 	if v.Bytes == nil {
 		return
 	}
-	d, ok := zx.CoerceToFloat64(v)
+	d, ok := zngnative.CoerceToFloat64(v)
 	if !ok {
 		a.TypeMismatch++
 		return

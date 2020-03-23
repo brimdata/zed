@@ -62,6 +62,7 @@ func TestPacketPostSuccess(t *testing.T) {
 		// vary by 1 characater in size. Should probably be tested with the
 		// same seed set in zeek.
 		assert.InDelta(t, 1437, info.Size, 2)
+		assert.Equal(t, int64(4224), info.PacketSize)
 		assert.True(t, info.PacketSupport)
 		assert.Equal(t, p.pcapfile, info.PacketPath)
 	})

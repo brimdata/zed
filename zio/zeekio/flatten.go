@@ -63,7 +63,7 @@ func (f *Flattener) Flatten(r *zng.Record) (*zng.Record, error) {
 	id := r.Type.ID()
 	flatType := f.mapper.Map(id)
 	if flatType == nil {
-		cols := flattenColumns(r.Type.Columns)
+		cols := FlattenColumns(r.Type.Columns)
 		flatType = f.zctx.LookupTypeRecord(cols)
 		f.mapper.EnterTypeRecord(id, flatType)
 	}
@@ -81,9 +81,9 @@ func (f *Flattener) Flatten(r *zng.Record) (*zng.Record, error) {
 
 }
 
-// flattenColumns turns nested records into a series of columns of
+// FlattenColumns turns nested records into a series of columns of
 // the form "outer.inner".  XXX It only works for one level of nesting.
-func flattenColumns(cols []zng.Column) []zng.Column {
+func FlattenColumns(cols []zng.Column) []zng.Column {
 	ret := make([]zng.Column, 0)
 	for _, c := range cols {
 		recType, isRecord := c.Type.(*zng.TypeRecord)

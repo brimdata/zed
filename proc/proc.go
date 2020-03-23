@@ -192,6 +192,13 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 		}
 		return []Proc{NewTop(c, parent, v.Limit, fields, v.Flush)}, nil
 
+	case *ast.PutProc:
+		put, err := CompilePutProc(c, parent, v)
+		if err != nil {
+			return nil, err
+		}
+		return []Proc{put}, nil
+
 	case *ast.SequentialProc:
 		var parents []Proc
 		var err error

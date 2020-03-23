@@ -378,6 +378,7 @@ simpleProc
   / tail
   / filter
   / uniq
+  / put
 
 sort
   = "sort"i args:sortArgs list:(_ l:fieldExprList { RETURN(l) })? {
@@ -418,6 +419,11 @@ uniq
     }
   / "uniq"i {
       RETURN(makeUniqProc(false))
+    }
+
+put
+  = "put"i _ f:fieldName __ "=" __ e:Expression {
+      RETURN(makePutProc(f, e))
     }
 
 PrimaryExpression

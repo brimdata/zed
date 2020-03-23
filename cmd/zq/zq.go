@@ -1,8 +1,11 @@
 package main
 
 import (
+	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"github.com/brimsec/zq/ast"
@@ -14,6 +17,7 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
+	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
 	"github.com/mccanne/charm"
@@ -71,16 +75,17 @@ func init() {
 }
 
 type Command struct {
-	zctx        *resolver.Context
-	ifmt        string
-	ofmt        string
-	dir         string
-	path        string
-	outputFile  string
-	verbose     bool
-	stats       bool
-	quiet       bool
-	showVersion bool
+	zctx         *resolver.Context
+	ifmt         string
+	ofmt         string
+	dir          string
+	path         string
+	jsonTypePath string
+	outputFile   string
+	verbose      bool
+	stats        bool
+	quiet        bool
+	showVersion  bool
 	zio.Flags
 }
 
@@ -92,6 +97,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.path, "p", cwd, "path for input")
 	f.StringVar(&c.dir, "d", "", "directory for output data files")
 	f.StringVar(&c.outputFile, "o", "", "write data to output file")
+	f.StringVar(&c.jsonTypePath, "j", "", "path to json types file")
 	f.BoolVar(&c.verbose, "v", false, "show verbose details")
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
 	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
@@ -159,6 +165,19 @@ func (c *Command) printVersion() error {
 	return nil
 }
 
+func (c *Command) loadJsonTypes() (*ndjsonio.TypeConfig, error) {
+	data, err := ioutil.ReadFile(c.jsonTypePath)
+	if err != nil {
+		return nil, err
+	}
+	var tc ndjsonio.TypeConfig
+	err = json.Unmarshal(data, &tc)
+	if err != nil {
+		return nil, fmt.Errorf("%s: unmarshaling error: %s", c.jsonTypePath, err)
+	}
+	return &tc, nil
+}
+
 func (c *Command) Run(args []string) error {
 	if c.showVersion {
 		return c.printVersion()
@@ -193,9 +212,30 @@ func (c *Command) Run(args []string) error {
 		c.ofmt = "null"
 		defer logger.Close()
 	}
-	var reader zbuf.Reader
-	if reader, err = c.loadFiles(paths); err != nil {
+
+	readers, err := c.inputReaders(paths)
+	if err != nil {
 		return err
+	}
+	if c.jsonTypePath != "" {
+		tc, err := c.loadJsonTypes()
+		if err != nil {
+			return err
+		}
+		for _, r := range readers {
+			if ndjr, ok := r.(*ndjsonio.Reader); ok {
+				if err := ndjr.SetTypeConfig(*tc); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	var reader zbuf.Reader
+	if len(readers) == 1 {
+		reader = readers[0]
+	} else {
+		reader = scanner.NewCombiner(readers)
 	}
 	writer, err := c.openOutput()
 	if err != nil {
@@ -217,34 +257,41 @@ func (c *Command) errorf(format string, args ...interface{}) {
 	_, _ = fmt.Fprintf(os.Stderr, format, args...)
 }
 
-func (c *Command) loadFiles(paths []string) (zbuf.Reader, error) {
+func (c *Command) inputReaders(paths []string) ([]zbuf.Reader, error) {
 	var readers []zbuf.Reader
 	for _, path := range paths {
 		var zr zbuf.Reader
+		var f *os.File
 		if path == "-" {
-			r := detector.GzipReader(os.Stdin)
+			f = os.Stdin
+		} else {
 			var err error
-			if c.ifmt == "auto" {
-				zr, err = detector.NewReader(r, c.zctx)
-			} else {
-				zr, err = detector.LookupReader(c.ifmt, r, c.zctx)
-			}
+			info, err := os.Stat(path)
 			if err != nil {
 				return nil, err
 			}
-		} else {
-			var err error
-			zr, err = scanner.OpenFile(c.zctx, path, c.ifmt)
+			if info.IsDir() {
+				return nil, errors.New("is a directory")
+			}
+			f, err = os.Open(path)
 			if err != nil {
 				return nil, err
 			}
 		}
+		r := detector.GzipReader(f)
+		var err error
+		if c.ifmt == "auto" {
+			zr, err = detector.NewReader(r, c.zctx)
+		} else {
+			zr, err = detector.LookupReader(c.ifmt, r, c.zctx)
+		}
+		if err != nil {
+			return nil, err
+		}
+
 		readers = append(readers, zr)
 	}
-	if len(readers) == 1 {
-		return readers[0], nil
-	}
-	return scanner.NewCombiner(readers), nil
+	return readers, nil
 }
 
 func (c *Command) openOutput() (zbuf.WriteCloser, error) {
