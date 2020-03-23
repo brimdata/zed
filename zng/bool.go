@@ -1,6 +1,7 @@
 package zng
 
 import (
+	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/zcode"
 )
 
@@ -29,7 +30,7 @@ func DecodeBool(zv zcode.Bytes) (bool, error) {
 }
 
 func (t *TypeOfBool) Parse(in []byte) (zcode.Bytes, error) {
-	b, err := UnsafeParseBool(in)
+	b, err := byteconv.ParseBool(in)
 	if err != nil {
 		return nil, err
 	}

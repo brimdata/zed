@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/zng"
 )
 
@@ -276,7 +277,7 @@ func CompareBstring(op string, pattern zng.Bstring) (Predicate, error) {
 	return func(v zng.Value) bool {
 		switch v.Type.ID() {
 		case zng.IdBstring, zng.IdString:
-			return compare(zng.UnsafeString(v.Bytes), s)
+			return compare(byteconv.UnsafeString(v.Bytes), s)
 		}
 		return false
 	}, nil

@@ -6,6 +6,7 @@ import (
 	"math"
 	"strconv"
 
+	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/zcode"
 )
 
@@ -31,7 +32,7 @@ func DecodeFloat64(zv zcode.Bytes) (float64, error) {
 }
 
 func (t *TypeOfFloat64) Parse(in []byte) (zcode.Bytes, error) {
-	d, err := UnsafeParseFloat64(in)
+	d, err := byteconv.ParseFloat64(in)
 	if err != nil {
 		return nil, err
 	}

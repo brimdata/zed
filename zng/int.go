@@ -3,6 +3,7 @@ package zng
 import (
 	"strconv"
 
+	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/zcode"
 )
 
@@ -74,7 +75,7 @@ func (t *TypeOfByte) String() string {
 }
 
 func (t *TypeOfByte) Parse(in []byte) (zcode.Bytes, error) {
-	b, err := UnsafeParseUint8(in)
+	b, err := byteconv.ParseUint8(in)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +105,7 @@ func (t *TypeOfInt16) String() string {
 }
 
 func (t *TypeOfInt16) Parse(in []byte) (zcode.Bytes, error) {
-	i, err := UnsafeParseInt16(in)
+	i, err := byteconv.ParseInt16(in)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +131,7 @@ func (t *TypeOfUint16) String() string {
 }
 
 func (t *TypeOfUint16) Parse(in []byte) (zcode.Bytes, error) {
-	i, err := UnsafeParseUint16(in)
+	i, err := byteconv.ParseUint16(in)
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +157,7 @@ func (t *TypeOfInt32) String() string {
 }
 
 func (t *TypeOfInt32) Parse(in []byte) (zcode.Bytes, error) {
-	i, err := UnsafeParseInt32(in)
+	i, err := byteconv.ParseInt32(in)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +183,7 @@ func (t *TypeOfUint32) String() string {
 }
 
 func (t *TypeOfUint32) Parse(in []byte) (zcode.Bytes, error) {
-	i, err := UnsafeParseUint32(in)
+	i, err := byteconv.ParseUint32(in)
 	if err != nil {
 		return nil, err
 	}
@@ -208,7 +209,7 @@ func (t *TypeOfInt64) String() string {
 }
 
 func (t *TypeOfInt64) Parse(in []byte) (zcode.Bytes, error) {
-	i, err := UnsafeParseInt64(in)
+	i, err := byteconv.ParseInt64(in)
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +235,7 @@ func (t *TypeOfUint64) String() string {
 }
 
 func (t *TypeOfUint64) Parse(in []byte) (zcode.Bytes, error) {
-	i, err := UnsafeParseUint64(in)
+	i, err := byteconv.ParseUint64(in)
 	if err != nil {
 		return nil, err
 	}
