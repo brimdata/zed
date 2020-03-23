@@ -50,22 +50,6 @@ func NewReader(reader io.Reader, zctx *resolver.Context) (*Reader, error) {
 	}, nil
 }
 
-// A Rule contains one or more matches and the name of a descriptor
-// key (in the companion Descriptors map).
-type Rule struct {
-	Name       string `json:"name"`
-	Value      string `json:"value"`
-	Descriptor string `json:"descriptor"`
-}
-
-// A TypeConfig contains a map of Descriptors, keyed by name, and a
-// list of rules defining which records should be mapped into which
-// descriptor.
-type TypeConfig struct {
-	Descriptors map[string][]interface{} `json:"descriptors"`
-	Rules       []Rule                   `json:"rules"`
-}
-
 // typeRules is used internally and is derived from TypeConfig by
 // converting its descriptors into *zng.TypeRecord s for use by the
 // ndjson typed parser.

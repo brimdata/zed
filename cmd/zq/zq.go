@@ -175,6 +175,9 @@ func (c *Command) loadJsonTypes() (*ndjsonio.TypeConfig, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s: unmarshaling error: %s", c.jsonTypePath, err)
 	}
+	if err = tc.Validate(); err != nil {
+		return nil, fmt.Errorf("%s: %s", c.jsonTypePath, err)
+	}
 	return &tc, nil
 }
 
