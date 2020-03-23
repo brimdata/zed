@@ -26,6 +26,7 @@ type typeStats struct {
 }
 
 type typeParser struct {
+	lineNo        int
 	zctx          *resolver.Context
 	tr            typeRules
 	defaultPath   string
@@ -124,6 +125,10 @@ func (info *typeInfo) newRawFromJSON(data []byte) (zcode.Bytes, int, error) {
 	for i := range flatColumns {
 		val := info.jsonVals[i].val
 		if i == info.descriptor.TsCol {
+			if info.jsonVals[i].typ != jsonparser.String && info.jsonVals[i].typ != jsonparser.Number {
+				return nil, 0, fmt.Errorf("invalid json type for ts: %s", info.jsonVals[i].typ)
+			}
+
 			ts, err := parseJSONTimestamp(val)
 			if err != nil {
 				return nil, 0, err
@@ -236,15 +241,14 @@ func (p *typeParser) findTypeInfo(zctx *resolver.Context, jobj []byte, tr typeRu
 
 func (p *typeParser) parseObject(b []byte) (zng.Value, error) {
 
-	var lineNo int
 	incr := func(stat *int) {
 		(*stat)++
 		if p.stats.FirstBadLine == 0 {
-			p.stats.FirstBadLine = lineNo
+			p.stats.FirstBadLine = p.lineNo
 		}
 	}
 
-	lineNo++
+	p.lineNo++
 	ti, err := p.findTypeInfo(p.zctx, b, p.tr, p.defaultPath)
 	if err != nil {
 		switch err {

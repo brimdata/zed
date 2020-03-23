@@ -202,3 +202,105 @@ func TestNewRawFromJSON(t *testing.T) {
 		})
 	}
 }
+
+func TestNDJSONTypeErrors(t *testing.T) {
+	typeConfig := TypeConfig{
+		Descriptors: map[string][]interface{}{
+			"http_log": []interface{}{
+				map[string]interface{}{
+					"name": "_path",
+					"type": "string",
+				},
+				map[string]interface{}{
+					"name": "ts",
+					"type": "time",
+				},
+				map[string]interface{}{
+					"name": "uid",
+					"type": "bstring",
+				},
+				map[string]interface{}{
+					"name": "id",
+					"type": []interface{}{map[string]interface{}{
+						"name": "orig_h",
+						"type": "ip",
+					},
+					},
+				},
+			},
+		},
+		Rules: []Rule{
+			Rule{"_path", "http", "http_log"},
+		},
+	}
+
+	var cases = []struct {
+		name    string
+		result  typeStats
+		input   string
+		success bool
+	}{
+		{
+			"Valid",
+			typeStats{},
+			`{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http"}
+			{"uid":"CXY9a54W2dLZwzPXf1","ts":"2017-03-24T19:59:24.306076Z","id.orig_h":"10.10.7.65","_path":"http"}`,
+			true,
+		},
+		{
+			"Bad line number",
+			typeStats{BadFormat: 2, FirstBadLine: 2},
+			`{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http"}
+{"hiddents":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http"}
+{"hiddents":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http"}`,
+			true,
+		},
+		{
+			"Extra field",
+			typeStats{JSONIncompleteDescriptor: 1, FirstBadLine: 1},
+			`{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http", "extra_field": 1}`,
+			true,
+		},
+		{
+			"Missing Ts",
+			typeStats{BadFormat: 1, FirstBadLine: 1},
+			`{"uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65", "_path": "http"}` + "\n",
+			true,
+		},
+		{
+			"Negative Ts",
+			typeStats{BadFormat: 1, FirstBadLine: 1},
+			`{"ts":"-1579438676.648","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65", "_path": "http"}` + "\n",
+			true,
+		},
+		{
+			"Missing _path",
+			typeStats{JSONMissingPath: 1, FirstBadLine: 1},
+			`{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65"}` + "\n",
+			true,
+		},
+		{
+			"Valid (inferred)",
+			typeStats{JSONDescriptorNotFound: 1, FirstBadLine: 1},
+			`{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"inferred"}`,
+			true,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			var out bytes.Buffer
+			w := NewWriter(&out)
+			r, err := NewReader(strings.NewReader(c.input), resolver.NewContext())
+			require.NoError(t, err)
+
+			err = r.SetTypeConfig(typeConfig)
+			require.NoError(t, err)
+
+			err = zbuf.Copy(zbuf.NopFlusher(w), r)
+			require.NoError(t, err)
+
+			require.Equal(t, c.result, *r.stats.typeStats)
+		})
+	}
+}
