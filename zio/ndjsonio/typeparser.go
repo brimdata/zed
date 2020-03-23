@@ -66,7 +66,7 @@ func getUnsafeDefault(data []byte, defaultValue string, key string) (string, err
 	return val, nil
 }
 
-func lookupTypeInfo(zctx *resolver.Context, desc *zng.TypeRecord, path string) *typeInfo {
+func newTypeInfo(zctx *resolver.Context, desc *zng.TypeRecord, path string) *typeInfo {
 	flatCols := zeekio.FlattenColumns(desc.Columns)
 	flatDesc := zctx.LookupTypeRecord(flatCols)
 	info := typeInfo{desc, flatDesc, []byte(path), make([]jsonVal, len(flatDesc.Columns))}
@@ -226,7 +226,7 @@ func (p *typeParser) findTypeInfo(zctx *resolver.Context, jobj []byte, tr typeRu
 			if ti, ok := p.typeInfoCache[desc.ID()]; ok {
 				return ti, nil
 			}
-			ti := lookupTypeInfo(zctx, desc, path)
+			ti := newTypeInfo(zctx, desc, path)
 			p.typeInfoCache[desc.ID()] = ti
 			return ti, nil
 		}
@@ -238,7 +238,6 @@ func (p *typeParser) findTypeInfo(zctx *resolver.Context, jobj []byte, tr typeRu
 }
 
 func (p *typeParser) parseObject(b []byte) (zng.Value, error) {
-
 	incr := func(stat *int) {
 		(*stat)++
 		if p.stats.FirstBadLine == 0 {
