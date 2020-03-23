@@ -10,6 +10,7 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zngnative"
 )
 
 type ExpressionEvaluator func(*zng.Record) (zng.Value, error)
@@ -19,187 +20,7 @@ var ErrIncompatibleTypes = errors.New("incompatible types")
 var ErrIndexOutOfBounds = errors.New("array index out of bounds")
 var ErrNoSuchFunction = errors.New("no such function")
 
-type NativeValue struct {
-	typ   zng.Type
-	value interface{}
-}
-
-type NativeEvaluator func(*zng.Record) (NativeValue, error)
-
-func toNativeValue(zv zng.Value) (NativeValue, error) {
-	switch zv.Type.ID() {
-	case zng.IdBool:
-		b, err := zng.DecodeBool(zv.Bytes)
-		if err != nil {
-			return NativeValue{}, err
-		}
-		return NativeValue{zng.TypeBool, b}, nil
-
-	case zng.IdByte:
-		b, err := zng.DecodeByte(zv.Bytes)
-		if err != nil {
-			return NativeValue{}, err
-		}
-		return NativeValue{zng.TypeByte, uint64(b)}, nil
-
-	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
-		v, err := zng.DecodeInt(zv.Bytes)
-		if err != nil {
-			return NativeValue{}, err
-		}
-		return NativeValue{zv.Type, v}, nil
-
-	case zng.IdUint16, zng.IdUint32, zng.IdUint64:
-		v, err := zng.DecodeUint(zv.Bytes)
-		if err != nil {
-			return NativeValue{}, err
-		}
-		return NativeValue{zv.Type, v}, nil
-
-	case zng.IdFloat64:
-		v, err := zng.DecodeFloat64(zv.Bytes)
-		if err != nil {
-			return NativeValue{}, err
-		}
-		return NativeValue{zv.Type, v}, nil
-
-	case zng.IdString:
-		s, err := zng.DecodeString(zv.Bytes)
-		if err != nil {
-			return NativeValue{}, err
-		}
-		return NativeValue{zv.Type, s}, nil
-
-	case zng.IdBstring:
-		s, err := zng.DecodeBstring(zv.Bytes)
-		if err != nil {
-			return NativeValue{}, err
-		}
-		return NativeValue{zv.Type, s}, nil
-
-	case zng.IdIP:
-		a, err := zng.DecodeIP(zv.Bytes)
-		if err != nil {
-			return NativeValue{}, err
-		}
-		return NativeValue{zv.Type, a}, nil
-
-	case zng.IdPort:
-		p, err := zng.DecodePort(zv.Bytes)
-		if err != nil {
-			return NativeValue{}, err
-		}
-		return NativeValue{zv.Type, uint64(p)}, nil
-
-	case zng.IdNet:
-		n, err := zng.DecodeNet(zv.Bytes)
-		if err != nil {
-			return NativeValue{}, err
-		}
-		return NativeValue{zv.Type, n}, nil
-
-	case zng.IdTime:
-		t, err := zng.DecodeTime(zv.Bytes)
-		if err != nil {
-			return NativeValue{}, nil
-		}
-		return NativeValue{zv.Type, int64(t)}, nil
-
-	case zng.IdDuration:
-		d, err := zng.DecodeDuration(zv.Bytes)
-		if err != nil {
-			return NativeValue{}, nil
-		}
-		return NativeValue{zv.Type, d}, nil
-	}
-
-	// Keep arrays, sets, and records in their zval encoded form.
-	// The purpose of NativeValue is to avoid encoding temporary
-	// values but since we can't construct these types in expressions,
-	// this just lets us lazily decode them.
-	switch zv.Type.(type) {
-	case *zng.TypeArray, *zng.TypeSet, *zng.TypeRecord:
-		return NativeValue{zv.Type, zv.Bytes}, nil
-	}
-
-	return NativeValue{}, fmt.Errorf("unknown type %s", zv.Type)
-}
-
-func (v *NativeValue) toZngValue() (zng.Value, error) {
-	switch v.typ.ID() {
-	case zng.IdBool:
-		b := v.value.(bool)
-		return zng.Value{zng.TypeBool, zng.EncodeBool(b)}, nil
-
-	case zng.IdByte:
-		b := v.value.(uint64)
-		return zng.Value{zng.TypeByte, zng.EncodeByte(byte(b))}, nil
-
-	case zng.IdInt16:
-		i := v.value.(int64)
-		return zng.Value{zng.TypeInt16, zng.EncodeInt(i)}, nil
-
-	case zng.IdInt32:
-		i := v.value.(int64)
-		return zng.Value{zng.TypeInt32, zng.EncodeInt(i)}, nil
-
-	case zng.IdInt64:
-		i := v.value.(int64)
-		return zng.Value{zng.TypeInt64, zng.EncodeInt(i)}, nil
-
-	case zng.IdUint16:
-		i := v.value.(uint64)
-		return zng.Value{zng.TypeUint16, zng.EncodeUint(i)}, nil
-
-	case zng.IdUint32:
-		i := v.value.(uint64)
-		return zng.Value{zng.TypeUint32, zng.EncodeUint(i)}, nil
-
-	case zng.IdUint64:
-		i := v.value.(uint64)
-		return zng.Value{zng.TypeUint64, zng.EncodeUint(i)}, nil
-
-	case zng.IdFloat64:
-		f := v.value.(float64)
-		return zng.Value{zng.TypeFloat64, zng.EncodeFloat64(f)}, nil
-
-	case zng.IdString:
-		s := v.value.(string)
-		return zng.Value{zng.TypeString, zng.EncodeString(s)}, nil
-
-	case zng.IdBstring:
-		s := v.value.(string)
-		return zng.Value{zng.TypeBstring, zng.EncodeBstring(s)}, nil
-
-	case zng.IdIP:
-		i := v.value.(net.IP)
-		return zng.Value{zng.TypeIP, zng.EncodeIP(i)}, nil
-
-	case zng.IdPort:
-		p := v.value.(uint64)
-		return zng.Value{zng.TypePort, zng.EncodePort(uint32(p))}, nil
-
-	case zng.IdNet:
-		n := v.value.(*net.IPNet)
-		return zng.Value{zng.TypeNet, zng.EncodeNet(n)}, nil
-
-	case zng.IdTime:
-		t := nano.Ts(v.value.(int64))
-		return zng.Value{zng.TypeTime, zng.EncodeTime(t)}, nil
-
-	case zng.IdDuration:
-		d := v.value.(int64)
-		return zng.Value{zng.TypeDuration, zng.EncodeDuration(d)}, nil
-	}
-
-	// Arrays, sets, and records are just zval encoded.
-	switch v.typ.(type) {
-	case *zng.TypeArray, *zng.TypeSet, *zng.TypeRecord:
-		return zng.Value{v.typ, v.value.(zcode.Bytes)}, nil
-	}
-
-	return zng.Value{}, errors.New("unknown type")
-}
+type NativeEvaluator func(*zng.Record) (zngnative.NativeValue, error)
 
 // CompileExpr tries to compile the given Expression into a function
 // that evalutes the expression against a provided Record.  Returns an
@@ -225,7 +46,7 @@ func CompileExpr(node ast.Expression) (ExpressionEvaluator, error) {
 			return zng.Value{}, err
 		}
 
-		return nv.toZngValue()
+		return nv.ToZngValue()
 	}, nil
 }
 
@@ -236,23 +57,23 @@ func compileNative(node ast.Expression) (NativeEvaluator, error) {
 		if err != nil {
 			return nil, err
 		}
-		nv, err := toNativeValue(v)
+		nv, err := zngnative.ToNativeValue(v)
 		if err != nil {
 			return nil, err
 		}
-		return func(*zng.Record) (NativeValue, error) { return nv, nil }, nil
+		return func(*zng.Record) (zngnative.NativeValue, error) { return nv, nil }, nil
 
 	case *ast.FieldRead:
 		fn, err := CompileFieldExpr(n)
 		if err != nil {
 			return nil, err
 		}
-		return func(r *zng.Record) (NativeValue, error) {
+		return func(r *zng.Record) (zngnative.NativeValue, error) {
 			v := fn(r)
 			if v.Type == nil {
-				return NativeValue{}, ErrNoSuchField
+				return zngnative.NativeValue{}, ErrNoSuchField
 			}
-			return toNativeValue(v)
+			return zngnative.ToNativeValue(v)
 		}, nil
 
 	case *ast.BinaryExpression:
@@ -290,16 +111,16 @@ func compileNative(node ast.Expression) (NativeEvaluator, error) {
 }
 
 func compileLogical(lhsFunc, rhsFunc NativeEvaluator, operator string) (NativeEvaluator, error) {
-	return func(rec *zng.Record) (NativeValue, error) {
+	return func(rec *zng.Record) (zngnative.NativeValue, error) {
 		lhs, err := lhsFunc(rec)
 		if err != nil {
-			return NativeValue{}, err
+			return zngnative.NativeValue{}, err
 		}
-		if lhs.typ.ID() != zng.IdBool {
-			return NativeValue{}, ErrIncompatibleTypes
+		if lhs.Type.ID() != zng.IdBool {
+			return zngnative.NativeValue{}, ErrIncompatibleTypes
 		}
 
-		lv := lhs.value.(bool)
+		lv := lhs.Value.(bool)
 		switch operator {
 		case "AND":
 			if !lv {
@@ -315,13 +136,13 @@ func compileLogical(lhsFunc, rhsFunc NativeEvaluator, operator string) (NativeEv
 
 		rhs, err := rhsFunc(rec)
 		if err != nil {
-			return NativeValue{}, err
+			return zngnative.NativeValue{}, err
 		}
-		if rhs.typ.ID() != zng.IdBool {
-			return NativeValue{}, ErrIncompatibleTypes
+		if rhs.Type.ID() != zng.IdBool {
+			return zngnative.NativeValue{}, ErrIncompatibleTypes
 		}
 
-		return NativeValue{zng.TypeBool, rhs.value.(bool)}, nil
+		return zngnative.NativeValue{zng.TypeBool, rhs.Value.(bool)}, nil
 	}, nil
 }
 
@@ -342,31 +163,31 @@ func floatToUint64(f float64) (uint64, bool) {
 }
 
 func compileCompareEquality(lhsFunc, rhsFunc NativeEvaluator, operator string) (NativeEvaluator, error) {
-	return func(rec *zng.Record) (NativeValue, error) {
+	return func(rec *zng.Record) (zngnative.NativeValue, error) {
 		lhs, err := lhsFunc(rec)
 		if err != nil {
-			return NativeValue{}, err
+			return zngnative.NativeValue{}, err
 		}
 		rhs, err := rhsFunc(rec)
 		if err != nil {
-			return NativeValue{}, err
+			return zngnative.NativeValue{}, err
 		}
 
 		var equal bool
-		switch lhs.typ.ID() {
+		switch lhs.Type.ID() {
 		case zng.IdBool:
-			if rhs.typ.ID() != zng.IdBool {
-				return NativeValue{}, ErrIncompatibleTypes
+			if rhs.Type.ID() != zng.IdBool {
+				return zngnative.NativeValue{}, ErrIncompatibleTypes
 			}
-			equal = lhs.value.(bool) == rhs.value.(bool)
+			equal = lhs.Value.(bool) == rhs.Value.(bool)
 
 		case zng.IdInt16, zng.IdInt32, zng.IdInt64, zng.IdTime, zng.IdDuration:
-			lv := lhs.value.(int64)
+			lv := lhs.Value.(int64)
 
-			switch rhs.typ.ID() {
+			switch rhs.Type.ID() {
 			case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64, zng.IdPort:
-				if (lhs.typ.ID() == zng.IdTime || lhs.typ.ID() == zng.IdDuration) && rhs.typ.ID() == zng.IdPort {
-					return NativeValue{}, ErrIncompatibleTypes
+				if (lhs.Type.ID() == zng.IdTime || lhs.Type.ID() == zng.IdDuration) && rhs.Type.ID() == zng.IdPort {
+					return zngnative.NativeValue{}, ErrIncompatibleTypes
 				}
 
 				// Comparing a signed to an unsigned value.
@@ -376,104 +197,104 @@ func compileCompareEquality(lhsFunc, rhsFunc NativeEvaluator, operator string) (
 				if lv < 0 {
 					equal = false
 				} else {
-					equal = lv == int64(rhs.value.(uint64))
+					equal = lv == int64(rhs.Value.(uint64))
 				}
 			case zng.IdInt16, zng.IdInt32, zng.IdInt64, zng.IdTime, zng.IdDuration:
-				if (lhs.typ.ID() == zng.IdTime && rhs.typ.ID() == zng.IdDuration) || (lhs.typ.ID() == zng.IdDuration && rhs.typ.ID() == zng.IdTime) {
-					return NativeValue{}, ErrIncompatibleTypes
+				if (lhs.Type.ID() == zng.IdTime && rhs.Type.ID() == zng.IdDuration) || (lhs.Type.ID() == zng.IdDuration && rhs.Type.ID() == zng.IdTime) {
+					return zngnative.NativeValue{}, ErrIncompatibleTypes
 				}
 
 				// Simple comparison of two signed values
-				equal = lv == rhs.value.(int64)
+				equal = lv == rhs.Value.(int64)
 			case zng.IdFloat64:
-				rv, ok := floatToInt64(rhs.value.(float64))
+				rv, ok := floatToInt64(rhs.Value.(float64))
 				if ok {
 					equal = lv == int64(rv)
 				} else {
 					equal = false
 				}
 			default:
-				return NativeValue{}, ErrIncompatibleTypes
+				return zngnative.NativeValue{}, ErrIncompatibleTypes
 			}
 
 		case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64, zng.IdPort:
-			lv := lhs.value.(uint64)
-			switch rhs.typ.ID() {
+			lv := lhs.Value.(uint64)
+			switch rhs.Type.ID() {
 			case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64, zng.IdPort:
 				// Simple comparison of two unsigned values
-				equal = lv == rhs.value.(uint64)
+				equal = lv == rhs.Value.(uint64)
 			case zng.IdInt16, zng.IdInt32, zng.IdInt64, zng.IdTime, zng.IdDuration:
-				if lhs.typ.ID() == zng.IdPort && (rhs.typ.ID() == zng.IdTime || rhs.typ.ID() == zng.IdDuration) {
-					return NativeValue{}, ErrIncompatibleTypes
+				if lhs.Type.ID() == zng.IdPort && (rhs.Type.ID() == zng.IdTime || rhs.Type.ID() == zng.IdDuration) {
+					return zngnative.NativeValue{}, ErrIncompatibleTypes
 				}
 				// Comparing a signed to an unsigned value.
 				// Need to be careful not to find false
 				// equality for two values with the same
 				// bitwise representation...
-				rsigned := rhs.value.(int64)
+				rsigned := rhs.Value.(int64)
 				if rsigned < 0 {
 					equal = false
 				} else {
 					equal = lv == uint64(rsigned)
 				}
 			case zng.IdFloat64:
-				rv, ok := floatToUint64(rhs.value.(float64))
+				rv, ok := floatToUint64(rhs.Value.(float64))
 				if ok {
 					equal = lv == uint64(rv)
 				} else {
 					equal = false
 				}
 			default:
-				return NativeValue{}, ErrIncompatibleTypes
+				return zngnative.NativeValue{}, ErrIncompatibleTypes
 			}
 
 		case zng.IdFloat64:
-			lv := lhs.value.(float64)
-			switch rhs.typ.ID() {
+			lv := lhs.Value.(float64)
+			switch rhs.Type.ID() {
 			case zng.IdInt16, zng.IdInt32, zng.IdInt64, zng.IdTime, zng.IdDuration:
 				var rv int64
-				if rhs.typ.ID() == zng.IdTime {
-					rv = int64(rhs.value.(int64))
+				if rhs.Type.ID() == zng.IdTime {
+					rv = int64(rhs.Value.(int64))
 				} else {
-					rv = rhs.value.(int64)
+					rv = rhs.Value.(int64)
 				}
 				equal = lv == float64(rv)
 			case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64, zng.IdPort:
-				equal = lv == float64(rhs.value.(uint64))
+				equal = lv == float64(rhs.Value.(uint64))
 			case zng.IdFloat64:
-				equal = lv == rhs.value.(float64)
+				equal = lv == rhs.Value.(float64)
 			default:
-				return NativeValue{}, ErrIncompatibleTypes
+				return zngnative.NativeValue{}, ErrIncompatibleTypes
 			}
 
 		case zng.IdString, zng.IdBstring:
-			if rhs.typ.ID() != zng.IdString && rhs.typ.ID() != zng.IdBstring {
-				return NativeValue{}, ErrIncompatibleTypes
+			if rhs.Type.ID() != zng.IdString && rhs.Type.ID() != zng.IdBstring {
+				return zngnative.NativeValue{}, ErrIncompatibleTypes
 			}
-			equal = lhs.value.(string) == rhs.value.(string)
+			equal = lhs.Value.(string) == rhs.Value.(string)
 
 		case zng.IdIP:
-			if rhs.typ.ID() != zng.IdIP {
-				return NativeValue{}, ErrIncompatibleTypes
+			if rhs.Type.ID() != zng.IdIP {
+				return zngnative.NativeValue{}, ErrIncompatibleTypes
 			}
-			equal = lhs.value.(net.IP).Equal(rhs.value.(net.IP))
+			equal = lhs.Value.(net.IP).Equal(rhs.Value.(net.IP))
 
 		case zng.IdNet:
-			if rhs.typ.ID() != zng.IdNet {
-				return NativeValue{}, ErrIncompatibleTypes
+			if rhs.Type.ID() != zng.IdNet {
+				return zngnative.NativeValue{}, ErrIncompatibleTypes
 			}
 			// is there any other way to compare nets?
-			equal = lhs.value.(*net.IPNet).String() == rhs.value.(*net.IPNet).String()
+			equal = lhs.Value.(*net.IPNet).String() == rhs.Value.(*net.IPNet).String()
 
 		default:
-			return NativeValue{}, ErrIncompatibleTypes
+			return zngnative.NativeValue{}, ErrIncompatibleTypes
 		}
 
 		switch operator {
 		case "=":
-			return NativeValue{zng.TypeBool, equal}, nil
+			return zngnative.NativeValue{zng.TypeBool, equal}, nil
 		case "!=":
-			return NativeValue{zng.TypeBool, !equal}, nil
+			return zngnative.NativeValue{zng.TypeBool, !equal}, nil
 		default:
 			panic("bad operator")
 		}
@@ -481,14 +302,14 @@ func compileCompareEquality(lhsFunc, rhsFunc NativeEvaluator, operator string) (
 }
 
 func compileCompareRelative(lhsFunc, rhsFunc NativeEvaluator, operator string) (NativeEvaluator, error) {
-	return func(rec *zng.Record) (NativeValue, error) {
+	return func(rec *zng.Record) (zngnative.NativeValue, error) {
 		lhs, err := lhsFunc(rec)
 		if err != nil {
-			return NativeValue{}, err
+			return zngnative.NativeValue{}, err
 		}
 		rhs, err := rhsFunc(rec)
 		if err != nil {
-			return NativeValue{}, err
+			return zngnative.NativeValue{}, err
 		}
 
 		// holds
@@ -496,19 +317,19 @@ func compileCompareRelative(lhsFunc, rhsFunc NativeEvaluator, operator string) (
 		//    0 if lhs == rhs
 		//   >0 if lhs > rhs
 		var result int
-		switch lhs.typ.ID() {
+		switch lhs.Type.ID() {
 		case zng.IdInt16, zng.IdInt32, zng.IdInt64, zng.IdTime, zng.IdDuration:
-			lv := lhs.value.(int64)
+			lv := lhs.Value.(int64)
 			var rv int64
 
-			switch rhs.typ.ID() {
+			switch rhs.Type.ID() {
 			case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64, zng.IdPort:
-				if (lhs.typ.ID() == zng.IdTime || lhs.typ.ID() == zng.IdDuration) && rhs.typ.ID() == zng.IdPort {
-					return NativeValue{}, ErrIncompatibleTypes
+				if (lhs.Type.ID() == zng.IdTime || lhs.Type.ID() == zng.IdDuration) && rhs.Type.ID() == zng.IdPort {
+					return zngnative.NativeValue{}, ErrIncompatibleTypes
 				}
 
 				// signed/unsigned comparison
-				runsigned := rhs.value.(uint64)
+				runsigned := rhs.Value.(uint64)
 				if lv < 0 {
 					result = -1
 					break
@@ -519,13 +340,13 @@ func compileCompareRelative(lhsFunc, rhsFunc NativeEvaluator, operator string) (
 				rv = int64(runsigned)
 
 			case zng.IdInt16, zng.IdInt32, zng.IdInt64, zng.IdTime, zng.IdDuration:
-				if (lhs.typ.ID() == zng.IdTime && rhs.typ.ID() == zng.IdDuration) || (lhs.typ.ID() == zng.IdDuration && rhs.typ.ID() == zng.IdTime) {
-					return NativeValue{}, ErrIncompatibleTypes
+				if (lhs.Type.ID() == zng.IdTime && rhs.Type.ID() == zng.IdDuration) || (lhs.Type.ID() == zng.IdDuration && rhs.Type.ID() == zng.IdTime) {
+					return zngnative.NativeValue{}, ErrIncompatibleTypes
 				}
-				rv = rhs.value.(int64)
+				rv = rhs.Value.(int64)
 			case zng.IdFloat64:
 				lf := float64(lv)
-				rf := rhs.value.(float64)
+				rf := rhs.Value.(float64)
 				if lf < rf {
 					result = -1
 				} else if lf == rf {
@@ -536,7 +357,7 @@ func compileCompareRelative(lhsFunc, rhsFunc NativeEvaluator, operator string) (
 				break
 
 			default:
-				return NativeValue{}, ErrIncompatibleTypes
+				return zngnative.NativeValue{}, ErrIncompatibleTypes
 			}
 			if lv < rv {
 				result = -1
@@ -547,17 +368,17 @@ func compileCompareRelative(lhsFunc, rhsFunc NativeEvaluator, operator string) (
 			}
 
 		case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64, zng.IdPort:
-			lv := lhs.value.(uint64)
+			lv := lhs.Value.(uint64)
 			var rv uint64
-			switch rhs.typ.ID() {
+			switch rhs.Type.ID() {
 			case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64, zng.IdPort:
-				rv = rhs.value.(uint64)
+				rv = rhs.Value.(uint64)
 
 			case zng.IdInt16, zng.IdInt32, zng.IdInt64, zng.IdTime, zng.IdDuration:
-				if lhs.typ.ID() == zng.IdPort && (rhs.typ.ID() == zng.IdTime || rhs.typ.ID() == zng.IdDuration) {
-					return NativeValue{}, ErrIncompatibleTypes
+				if lhs.Type.ID() == zng.IdPort && (rhs.Type.ID() == zng.IdTime || rhs.Type.ID() == zng.IdDuration) {
+					return zngnative.NativeValue{}, ErrIncompatibleTypes
 				}
-				rsigned := int64(rhs.value.(int64))
+				rsigned := int64(rhs.Value.(int64))
 				if rsigned < 0 {
 					result = 1
 					break
@@ -568,7 +389,7 @@ func compileCompareRelative(lhsFunc, rhsFunc NativeEvaluator, operator string) (
 				rv = uint64(rsigned)
 			case zng.IdFloat64:
 				lf := float64(lv)
-				rf := rhs.value.(float64)
+				rf := rhs.Value.(float64)
 				if lf < rf {
 					result = -1
 				} else if lf == rf {
@@ -579,7 +400,7 @@ func compileCompareRelative(lhsFunc, rhsFunc NativeEvaluator, operator string) (
 				break
 
 			default:
-				return NativeValue{}, ErrIncompatibleTypes
+				return zngnative.NativeValue{}, ErrIncompatibleTypes
 			}
 			if lv < rv {
 				result = -1
@@ -590,19 +411,19 @@ func compileCompareRelative(lhsFunc, rhsFunc NativeEvaluator, operator string) (
 			}
 
 		case zng.IdFloat64:
-			lv := lhs.value.(float64)
+			lv := lhs.Value.(float64)
 			var rv float64
-			switch rhs.typ.ID() {
+			switch rhs.Type.ID() {
 			case zng.IdInt16, zng.IdInt32, zng.IdInt64:
 				// XXX this can be lossy?
-				rv = float64(rhs.value.(int64))
+				rv = float64(rhs.Value.(int64))
 			case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
 				// XXX this can be lossy?
-				rv = float64(rhs.value.(uint64))
+				rv = float64(rhs.Value.(uint64))
 			case zng.IdFloat64:
-				rv = rhs.value.(float64)
+				rv = rhs.Value.(float64)
 			default:
-				return NativeValue{}, ErrIncompatibleTypes
+				return zngnative.NativeValue{}, ErrIncompatibleTypes
 			}
 			if lv < rv {
 				result = -1
@@ -613,11 +434,11 @@ func compileCompareRelative(lhsFunc, rhsFunc NativeEvaluator, operator string) (
 			}
 
 		case zng.IdString, zng.IdBstring:
-			if rhs.typ.ID() != zng.IdString && rhs.typ.ID() != zng.IdBstring {
-				return NativeValue{}, ErrIncompatibleTypes
+			if rhs.Type.ID() != zng.IdString && rhs.Type.ID() != zng.IdBstring {
+				return zngnative.NativeValue{}, ErrIncompatibleTypes
 			}
-			lv := lhs.value.(string)
-			rv := rhs.value.(string)
+			lv := lhs.Value.(string)
+			rv := rhs.Value.(string)
 			if lv < rv {
 				result = -1
 			} else if lv == rv {
@@ -626,18 +447,18 @@ func compileCompareRelative(lhsFunc, rhsFunc NativeEvaluator, operator string) (
 				result = 1
 			}
 		default:
-			return NativeValue{}, ErrIncompatibleTypes
+			return zngnative.NativeValue{}, ErrIncompatibleTypes
 		}
 
 		switch operator {
 		case "<":
-			return NativeValue{zng.TypeBool, result < 0}, nil
+			return zngnative.NativeValue{zng.TypeBool, result < 0}, nil
 		case "<=":
-			return NativeValue{zng.TypeBool, result <= 0}, nil
+			return zngnative.NativeValue{zng.TypeBool, result <= 0}, nil
 		case ">":
-			return NativeValue{zng.TypeBool, result > 0}, nil
+			return zngnative.NativeValue{zng.TypeBool, result > 0}, nil
 		case ">=":
-			return NativeValue{zng.TypeBool, result >= 0}, nil
+			return zngnative.NativeValue{zng.TypeBool, result >= 0}, nil
 		default:
 			panic("bad operator")
 		}
@@ -647,42 +468,42 @@ func compileCompareRelative(lhsFunc, rhsFunc NativeEvaluator, operator string) (
 // compileArithmetic compiles an expression of the form "expr1 op expr2"
 // for the arithmetic operators +, -, *, /
 func compileArithmetic(lhsFunc, rhsFunc NativeEvaluator, operator string) (NativeEvaluator, error) {
-	return func(rec *zng.Record) (NativeValue, error) {
+	return func(rec *zng.Record) (zngnative.NativeValue, error) {
 		lhs, err := lhsFunc(rec)
 		if err != nil {
-			return NativeValue{}, err
+			return zngnative.NativeValue{}, err
 		}
 		rhs, err := rhsFunc(rec)
 		if err != nil {
-			return NativeValue{}, err
+			return zngnative.NativeValue{}, err
 		}
 
-		switch lhs.typ.ID() {
+		switch lhs.Type.ID() {
 		case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
-			v := lhs.value.(uint64)
+			v := lhs.Value.(uint64)
 
-			switch rhs.typ.ID() {
+			switch rhs.Type.ID() {
 			case zng.IdInt16, zng.IdInt32, zng.IdInt64:
 				if v > math.MaxInt64 {
-					return NativeValue{}, ErrIncompatibleTypes
+					return zngnative.NativeValue{}, ErrIncompatibleTypes
 				}
 				var r int64
 				switch operator {
 				case "+":
-					r = int64(v) + rhs.value.(int64)
+					r = int64(v) + rhs.Value.(int64)
 				case "-":
-					r = int64(v) - rhs.value.(int64)
+					r = int64(v) - rhs.Value.(int64)
 				case "*":
-					r = int64(v) * rhs.value.(int64)
+					r = int64(v) * rhs.Value.(int64)
 				case "/":
-					r = int64(v) / rhs.value.(int64)
+					r = int64(v) / rhs.Value.(int64)
 				default:
 					panic("bad operator")
 				}
-				return NativeValue{zng.TypeInt64, r}, nil
+				return zngnative.NativeValue{zng.TypeInt64, r}, nil
 
 			case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
-				v2 := rhs.value.(uint64)
+				v2 := rhs.Value.(uint64)
 				switch operator {
 				case "+":
 					v += v2
@@ -695,11 +516,11 @@ func compileArithmetic(lhsFunc, rhsFunc NativeEvaluator, operator string) (Nativ
 				default:
 					panic("bad operator")
 				}
-				return NativeValue{zng.TypeUint64, v}, nil
+				return zngnative.NativeValue{zng.TypeUint64, v}, nil
 
 			case zng.IdFloat64:
 				var r float64
-				v2 := rhs.value.(float64)
+				v2 := rhs.Value.(float64)
 				switch operator {
 				case "+":
 					r = float64(v) + v2
@@ -712,18 +533,18 @@ func compileArithmetic(lhsFunc, rhsFunc NativeEvaluator, operator string) (Nativ
 				default:
 					panic("bad operator")
 				}
-				return NativeValue{zng.TypeFloat64, r}, nil
+				return zngnative.NativeValue{zng.TypeFloat64, r}, nil
 
 			default:
-				return NativeValue{}, ErrIncompatibleTypes
+				return zngnative.NativeValue{}, ErrIncompatibleTypes
 			}
 
 		case zng.IdInt16, zng.IdInt32, zng.IdInt64:
-			v := lhs.value.(int64)
+			v := lhs.Value.(int64)
 
-			switch rhs.typ.ID() {
+			switch rhs.Type.ID() {
 			case zng.IdInt16, zng.IdInt32, zng.IdInt64:
-				v2 := rhs.value.(int64)
+				v2 := rhs.Value.(int64)
 				switch operator {
 				case "+":
 					v += v2
@@ -736,12 +557,12 @@ func compileArithmetic(lhsFunc, rhsFunc NativeEvaluator, operator string) (Nativ
 				default:
 					panic("bad operator")
 				}
-				return NativeValue{zng.TypeInt64, v}, nil
+				return zngnative.NativeValue{zng.TypeInt64, v}, nil
 
 			case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
-				ru := rhs.value.(uint64)
+				ru := rhs.Value.(uint64)
 				if ru > math.MaxInt64 {
-					return NativeValue{}, ErrIncompatibleTypes
+					return zngnative.NativeValue{}, ErrIncompatibleTypes
 				}
 				switch operator {
 				case "+":
@@ -755,11 +576,11 @@ func compileArithmetic(lhsFunc, rhsFunc NativeEvaluator, operator string) (Nativ
 				default:
 					panic("bad operator")
 				}
-				return NativeValue{zng.TypeInt64, v}, nil
+				return zngnative.NativeValue{zng.TypeInt64, v}, nil
 
 			case zng.IdFloat64:
 				var r float64
-				v2 := rhs.value.(float64)
+				v2 := rhs.Value.(float64)
 				switch operator {
 				case "+":
 					r = float64(v) + v2
@@ -772,28 +593,28 @@ func compileArithmetic(lhsFunc, rhsFunc NativeEvaluator, operator string) (Nativ
 				default:
 					panic("bad operator")
 				}
-				return NativeValue{zng.TypeFloat64, r}, nil
+				return zngnative.NativeValue{zng.TypeFloat64, r}, nil
 
 			default:
-				return NativeValue{}, ErrIncompatibleTypes
+				return zngnative.NativeValue{}, ErrIncompatibleTypes
 			}
 
 		case zng.IdFloat64:
-			v := lhs.value.(float64)
+			v := lhs.Value.(float64)
 			var v2 float64
 
-			switch rhs.typ.ID() {
+			switch rhs.Type.ID() {
 			case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
-				v2 = float64(rhs.value.(uint64))
+				v2 = float64(rhs.Value.(uint64))
 
 			case zng.IdInt16, zng.IdInt32, zng.IdInt64:
-				v2 = float64(rhs.value.(int64))
+				v2 = float64(rhs.Value.(int64))
 
 			case zng.IdFloat64:
-				v2 = rhs.value.(float64)
+				v2 = rhs.Value.(float64)
 
 			default:
-				return NativeValue{}, ErrIncompatibleTypes
+				return zngnative.NativeValue{}, ErrIncompatibleTypes
 			}
 
 			switch operator {
@@ -808,27 +629,27 @@ func compileArithmetic(lhsFunc, rhsFunc NativeEvaluator, operator string) (Nativ
 			default:
 				panic("bad operator")
 			}
-			return NativeValue{zng.TypeFloat64, v}, nil
+			return zngnative.NativeValue{zng.TypeFloat64, v}, nil
 
 		case zng.IdString, zng.IdBstring:
 			if operator != "+" {
-				return NativeValue{}, ErrIncompatibleTypes
+				return zngnative.NativeValue{}, ErrIncompatibleTypes
 			}
 			var t zng.Type
 			t = zng.TypeBstring
-			if lhs.typ.ID() == zng.IdString || rhs.typ.ID() == zng.IdString {
+			if lhs.Type.ID() == zng.IdString || rhs.Type.ID() == zng.IdString {
 				t = zng.TypeString
 			}
-			return NativeValue{t, lhs.value.(string) + rhs.value.(string)}, nil
+			return zngnative.NativeValue{t, lhs.Value.(string) + rhs.Value.(string)}, nil
 
 		case zng.IdTime:
-			if rhs.typ.ID() != zng.IdDuration || (operator != "+" && operator != "-") {
-				return NativeValue{}, ErrIncompatibleTypes
+			if rhs.Type.ID() != zng.IdDuration || (operator != "+" && operator != "-") {
+				return zngnative.NativeValue{}, ErrIncompatibleTypes
 			}
-			return NativeValue{zng.TypeTime, lhs.value.(nano.Ts).Add(rhs.value.(int64))}, nil
+			return zngnative.NativeValue{zng.TypeTime, lhs.Value.(nano.Ts).Add(rhs.Value.(int64))}, nil
 
 		default:
-			return NativeValue{}, ErrIncompatibleTypes
+			return zngnative.NativeValue{}, ErrIncompatibleTypes
 		}
 	}, nil
 }
@@ -849,76 +670,76 @@ func getNthFromContainer(container zcode.Bytes, idx uint) (zcode.Bytes, error) {
 }
 
 func compileArrayIndex(lhsFunc, rhsFunc NativeEvaluator, operator string) (NativeEvaluator, error) {
-	return func(rec *zng.Record) (NativeValue, error) {
+	return func(rec *zng.Record) (zngnative.NativeValue, error) {
 		lhs, err := lhsFunc(rec)
 		if err != nil {
-			return NativeValue{}, err
+			return zngnative.NativeValue{}, err
 		}
 
-		aType, ok := lhs.typ.(*zng.TypeArray)
+		aType, ok := lhs.Type.(*zng.TypeArray)
 		if !ok {
-			return NativeValue{}, ErrIncompatibleTypes
+			return zngnative.NativeValue{}, ErrIncompatibleTypes
 		}
 
 		rhs, err := rhsFunc(rec)
 		if err != nil {
-			return NativeValue{}, err
+			return zngnative.NativeValue{}, err
 		}
 
 		var idx uint
-		switch rhs.typ.ID() {
+		switch rhs.Type.ID() {
 		case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
-			idx = uint(rhs.value.(uint64))
+			idx = uint(rhs.Value.(uint64))
 		case zng.IdInt16, zng.IdInt32, zng.IdInt64:
-			i := rhs.value.(int64)
+			i := rhs.Value.(int64)
 			if i < 0 {
-				return NativeValue{}, ErrIndexOutOfBounds
+				return zngnative.NativeValue{}, ErrIndexOutOfBounds
 			}
 			idx = uint(i)
 		default:
-			return NativeValue{}, ErrIncompatibleTypes
+			return zngnative.NativeValue{}, ErrIncompatibleTypes
 		}
 
-		zv, err := getNthFromContainer(lhs.value.(zcode.Bytes), idx)
+		zv, err := getNthFromContainer(lhs.Value.(zcode.Bytes), idx)
 		if err != nil {
-			return NativeValue{}, err
+			return zngnative.NativeValue{}, err
 		}
-		return toNativeValue(zng.Value{aType.Type, zv})
+		return zngnative.ToNativeValue(zng.Value{aType.Type, zv})
 	}, nil
 }
 
 func compileFieldReference(lhsFunc, rhsFunc NativeEvaluator, operator string) (NativeEvaluator, error) {
-	return func(rec *zng.Record) (NativeValue, error) {
+	return func(rec *zng.Record) (zngnative.NativeValue, error) {
 		lhs, err := lhsFunc(rec)
 		if err != nil {
-			return NativeValue{}, err
+			return zngnative.NativeValue{}, err
 		}
 
 		var rType *zng.TypeRecord
 		var ok bool
-		if rType, ok = lhs.typ.(*zng.TypeRecord); !ok {
-			return NativeValue{}, ErrIncompatibleTypes
+		if rType, ok = lhs.Type.(*zng.TypeRecord); !ok {
+			return zngnative.NativeValue{}, ErrIncompatibleTypes
 		}
 
 		rhs, err := rhsFunc(rec)
 		if err != nil {
-			return NativeValue{}, err
+			return zngnative.NativeValue{}, err
 		}
 
-		if rhs.typ.ID() != zng.IdString && rhs.typ.ID() != zng.IdBstring {
-			return NativeValue{}, ErrIncompatibleTypes
+		if rhs.Type.ID() != zng.IdString && rhs.Type.ID() != zng.IdBstring {
+			return zngnative.NativeValue{}, ErrIncompatibleTypes
 		}
 
-		idx, ok := rType.ColumnOfField(rhs.value.(string))
+		idx, ok := rType.ColumnOfField(rhs.Value.(string))
 		if !ok {
-			return NativeValue{}, ErrNoSuchField
+			return zngnative.NativeValue{}, ErrNoSuchField
 		}
 
-		zv, err := getNthFromContainer(lhs.value.(zcode.Bytes), uint(idx))
+		zv, err := getNthFromContainer(lhs.Value.(zcode.Bytes), uint(idx))
 		if err != nil {
-			return NativeValue{}, err
+			return zngnative.NativeValue{}, err
 		}
-		return toNativeValue(zng.Value{rType.Columns[idx].Type, zv})
+		return zngnative.ToNativeValue(zng.Value{rType.Columns[idx].Type, zv})
 	}, nil
 }
 
@@ -938,12 +759,12 @@ func compileFunctionCall(node ast.FunctionCall) (NativeEvaluator, error) {
 		exprs[i] = eval
 	}
 
-	return func(r *zng.Record) (NativeValue, error) {
-		args := make([]NativeValue, 0, nargs)
+	return func(r *zng.Record) (zngnative.NativeValue, error) {
+		args := make([]zngnative.NativeValue, 0, nargs)
 		for _, a := range exprs {
 			val, err := a(r)
 			if err != nil {
-				return NativeValue{}, err
+				return zngnative.NativeValue{}, err
 			}
 			args = append(args, val)
 		}

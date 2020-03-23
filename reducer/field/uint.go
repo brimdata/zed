@@ -3,7 +3,7 @@ package field
 import (
 	"github.com/brimsec/zq/streamfn"
 	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zx"
+	"github.com/brimsec/zq/zngnative"
 )
 
 type Uint struct {
@@ -21,12 +21,8 @@ func (u *Uint) Result() zng.Value {
 }
 
 func (u *Uint) Consume(v zng.Value) error {
-	if v, ok := zx.CoerceToUint(v, zng.TypeUint64); ok {
-		i, err := zng.DecodeUint(v.Bytes)
-		if err != nil {
-			return zng.ErrBadValue
-		}
-		u.fn.Update(i)
+	if v, ok := zngnative.CoerceToUint(v); ok {
+		u.fn.Update(v)
 		return nil
 	}
 	return zng.ErrTypeMismatch
