@@ -1,7 +1,9 @@
 package zqd
 
 import (
+	"context"
 	"net/http"
+	"sync"
 	"sync/atomic"
 
 	"github.com/brimsec/zq/zqd/zeek"
@@ -36,6 +38,19 @@ type Core struct {
 	SortLimit int
 	taskCount int64
 	logger    *zap.Logger
+
+	// ingestLock protects the ingests map and the deletePending
+	// field inside the ingestWaitState's.
+	ingestLock sync.Mutex
+	ingests    map[string]*ingestWaitState
+}
+
+type ingestWaitState struct {
+	deletePending int
+	// WaitGroup for active ingests
+	wg sync.WaitGroup
+	// closed to signal active ingest should terminate
+	cancelChan chan struct{}
 }
 
 func NewCore(conf Config) *Core {
@@ -48,6 +63,7 @@ func NewCore(conf Config) *Core {
 		ZeekLauncher: conf.ZeekLauncher,
 		SortLimit:    conf.SortLimit,
 		logger:       logger,
+		ingests:      make(map[string]*ingestWaitState),
 	}
 }
 
@@ -61,4 +77,66 @@ func (c *Core) requestLogger(r *http.Request) *zap.Logger {
 
 func (c *Core) getTaskID() int64 {
 	return atomic.AddInt64(&c.taskCount, 1)
+}
+
+func (c *Core) startSpaceIngest(ctx context.Context, space string) (context.Context, func(), bool) {
+	c.ingestLock.Lock()
+	defer c.ingestLock.Unlock()
+
+	iws, ok := c.ingests[space]
+	if !ok {
+		iws = &ingestWaitState{
+			cancelChan: make(chan struct{}, 0),
+		}
+		c.ingests[space] = iws
+	}
+	if iws.deletePending > 0 {
+		return ctx, func() {}, false
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	iws.wg.Add(1)
+	ingestDone := func() {
+		iws.wg.Done()
+		cancel()
+	}
+
+	go func() {
+		select {
+		case <-ctx.Done():
+		case <-iws.cancelChan:
+			cancel()
+		}
+	}()
+
+	return ctx, ingestDone, true
+}
+
+func (c *Core) startSpaceDelete(space string) func() {
+	c.ingestLock.Lock()
+
+	iws, ok := c.ingests[space]
+	if !ok {
+		iws = &ingestWaitState{
+			cancelChan: make(chan struct{}, 0),
+		}
+		c.ingests[space] = iws
+	}
+	if iws.deletePending == 0 {
+		close(iws.cancelChan)
+	}
+	iws.deletePending++
+
+	c.ingestLock.Unlock()
+
+	iws.wg.Wait()
+
+	return func() {
+		c.ingestLock.Lock()
+		defer c.ingestLock.Unlock()
+		iws.deletePending--
+		if iws.deletePending == 0 {
+			delete(c.ingests, space)
+		}
+	}
 }

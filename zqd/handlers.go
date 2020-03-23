@@ -220,6 +220,9 @@ func handleSpaceDelete(c *Core, w http.ResponseWriter, r *http.Request) {
 	if s == nil {
 		return
 	}
+	deleteDone := c.startSpaceDelete(s.Name())
+	defer deleteDone()
+
 	if err := s.Delete(); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -233,16 +236,26 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	logger := c.requestLogger(r)
+
 	s := extractSpace(c, w, r)
 	if s == nil {
 		return
 	}
+
+	ctx, ingestDone, ok := c.startSpaceIngest(r.Context(), s.Name())
+	if !ok {
+		http.Error(w, "space is awaiting deletion", http.StatusConflict)
+		return
+	}
+	defer ingestDone()
+
 	var req api.PacketPostRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	proc, err := ingest.Pcap(r.Context(), s, req.Path, c.ZeekLauncher, c.SortLimit)
+
+	proc, err := ingest.Pcap(ctx, s, req.Path, c.ZeekLauncher, c.SortLimit)
 	if err != nil {
 		if errors.Is(err, pcapio.ErrCorruptPcap) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
