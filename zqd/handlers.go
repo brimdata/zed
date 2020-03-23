@@ -151,9 +151,7 @@ func handleSpaceGet(c *Core, w http.ResponseWriter, r *http.Request) {
 		PacketSupport: s.HasFile(packet.IndexFile),
 		PacketPath:    s.PacketPath(),
 	}
-
 	if s.HasFile("all.bzng") {
-
 		f, err := s.OpenFile("all.bzng")
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -174,6 +172,16 @@ func handleSpaceGet(c *Core, w http.ResponseWriter, r *http.Request) {
 		}
 		info.MinTime = minTs
 		info.MaxTime = maxTs
+	}
+	if info.PacketPath != "" {
+		if pstat, err := os.Stat(info.PacketPath); err == nil {
+			info.PacketSize = pstat.Size()
+		} else if !os.IsNotExist(err) {
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
 	}
 	w.Header().Add("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(info); err != nil {
