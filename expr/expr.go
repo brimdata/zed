@@ -744,12 +744,19 @@ func compileFieldReference(lhsFunc, rhsFunc NativeEvaluator, operator string) (N
 }
 
 func compileFunctionCall(node ast.FunctionCall) (NativeEvaluator, error) {
-	fn := allFns[node.Function]
-	if fn == nil {
+	fn, ok := allFns[node.Function]
+	if !ok {
 		return nil, fmt.Errorf("%s: %w", node.Function, ErrNoSuchFunction)
 	}
 
 	nargs := len(node.Args)
+	if fn.minArgs >= 0 && nargs < fn.minArgs {
+		return nil, fmt.Errorf("%s: %w", node.Function, ErrTooFewArgs)
+	}
+	if fn.maxArgs >= 0 && nargs > fn.maxArgs {
+		return nil, fmt.Errorf("%s: %w", node.Function, ErrTooManyArgs)
+	}
+
 	exprs := make([]NativeEvaluator, nargs)
 	for i, expr := range node.Args {
 		eval, err := compileNative(expr)
@@ -769,6 +776,6 @@ func compileFunctionCall(node ast.FunctionCall) (NativeEvaluator, error) {
 			args = append(args, val)
 		}
 
-		return fn(args)
+		return fn.impl(args)
 	}, nil
 }
