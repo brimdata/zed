@@ -21,7 +21,7 @@ producing a log stream as its output.
 ## Install
 
 To install `zq`, you can
-clone the repo and compile the source.  For Windows and MacOS, there are pre-compiled binaries at [Brim](https://www.brimsecurity.com/download/).
+clone the repo and compile the source.  For Windows, MacOS, and Linux there are pre-compiled binary [releases](https://github.com/brimsec/zq/releases).
 
 If you don't have Go installed,
 download and install it from the [Go downloads page](https://golang.org/dl/).
