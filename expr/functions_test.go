@@ -21,8 +21,8 @@ func TestSqrt(t *testing.T) {
 	testSuccessful(t, "Math.sqrt(f)", record, zfloat64(2.5))
 	testSuccessful(t, "Math.sqrt(i)", record, zfloat64(3.0))
 
-	testError(t, "Math.sqrt()", record, expr.ErrWrongArgc, "sqrt with no args")
-	testError(t, "Math.sqrt(1, 2)", record, expr.ErrWrongArgc, "sqrt with too many args")
+	testError(t, "Math.sqrt()", record, expr.ErrTooFewArgs, "sqrt with no args")
+	testError(t, "Math.sqrt(1, 2)", record, expr.ErrTooManyArgs, "sqrt with too many args")
 	testError(t, "Math.sqrt(-1)", record, expr.ErrBadArgument, "sqrt of negative")
 }
 
@@ -41,8 +41,8 @@ func TestMinMax(t *testing.T) {
 	testSuccessful(t, "Math.max(3, 2, 1)", record, zint64(3))
 
 	// Fails with no arguments
-	testError(t, "Math.min()", record, expr.ErrWrongArgc, "min with no args")
-	testError(t, "Math.max()", record, expr.ErrWrongArgc, "max with no args")
+	testError(t, "Math.min()", record, expr.ErrTooFewArgs, "min with no args")
+	testError(t, "Math.max()", record, expr.ErrTooFewArgs, "max with no args")
 
 	// Mixed types work
 	testSuccessful(t, "Math.min(i, 2, 3)", record, zuint64(1))
