@@ -18,7 +18,7 @@ func CoerceToFloat64(in zng.Value) (float64, bool) {
 	return CoerceNativeToFloat64(native)
 }
 
-func CoerceNativeToFloat64(in NativeValue) (float64, bool) {
+func CoerceNativeToFloat64(in Value) (float64, bool) {
 	switch in.Type.ID() {
 	case zng.IdFloat64:
 		return in.Value.(float64), true
@@ -46,7 +46,7 @@ func CoerceToInt(in zng.Value) (int64, bool) {
 	return CoerceNativeToInt(native)
 }
 
-func CoerceNativeToInt(in NativeValue) (int64, bool) {
+func CoerceNativeToInt(in Value) (int64, bool) {
 	switch in.Type.ID() {
 	case zng.IdFloat64:
 		f := in.Value.(float64)
@@ -85,7 +85,7 @@ func CoerceToUint(in zng.Value) (uint64, bool) {
 	return CoerceNativeToUint(native)
 }
 
-func CoerceNativeToUint(in NativeValue) (uint64, bool) {
+func CoerceNativeToUint(in Value) (uint64, bool) {
 	switch in.Type.ID() {
 	case zng.IdFloat64:
 		f := in.Value.(float64)

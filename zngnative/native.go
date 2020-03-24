@@ -10,111 +10,111 @@ import (
 	"github.com/brimsec/zq/zng"
 )
 
-type NativeValue struct {
+type Value struct {
 	Type  zng.Type
 	Value interface{}
 }
 
-func ToNativeValue(zv zng.Value) (NativeValue, error) {
+func ToNativeValue(zv zng.Value) (Value, error) {
 	switch zv.Type.ID() {
 	case zng.IdBool:
 		b, err := zng.DecodeBool(zv.Bytes)
 		if err != nil {
-			return NativeValue{}, err
+			return Value{}, err
 		}
-		return NativeValue{zng.TypeBool, b}, nil
+		return Value{zng.TypeBool, b}, nil
 
 	case zng.IdByte:
 		b, err := zng.DecodeByte(zv.Bytes)
 		if err != nil {
-			return NativeValue{}, err
+			return Value{}, err
 		}
-		return NativeValue{zng.TypeByte, uint64(b)}, nil
+		return Value{zng.TypeByte, uint64(b)}, nil
 
 	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
 		v, err := zng.DecodeInt(zv.Bytes)
 		if err != nil {
-			return NativeValue{}, err
+			return Value{}, err
 		}
-		return NativeValue{zv.Type, v}, nil
+		return Value{zv.Type, v}, nil
 
 	case zng.IdUint16, zng.IdUint32, zng.IdUint64:
 		v, err := zng.DecodeUint(zv.Bytes)
 		if err != nil {
-			return NativeValue{}, err
+			return Value{}, err
 		}
-		return NativeValue{zv.Type, v}, nil
+		return Value{zv.Type, v}, nil
 
 	case zng.IdFloat64:
 		v, err := zng.DecodeFloat64(zv.Bytes)
 		if err != nil {
-			return NativeValue{}, err
+			return Value{}, err
 		}
-		return NativeValue{zv.Type, v}, nil
+		return Value{zv.Type, v}, nil
 
 	case zng.IdString:
 		s, err := zng.DecodeString(zv.Bytes)
 		if err != nil {
-			return NativeValue{}, err
+			return Value{}, err
 		}
-		return NativeValue{zv.Type, s}, nil
+		return Value{zv.Type, s}, nil
 
 	case zng.IdBstring:
 		s, err := zng.DecodeBstring(zv.Bytes)
 		if err != nil {
-			return NativeValue{}, err
+			return Value{}, err
 		}
-		return NativeValue{zv.Type, s}, nil
+		return Value{zv.Type, s}, nil
 
 	case zng.IdIP:
 		a, err := zng.DecodeIP(zv.Bytes)
 		if err != nil {
-			return NativeValue{}, err
+			return Value{}, err
 		}
-		return NativeValue{zv.Type, a}, nil
+		return Value{zv.Type, a}, nil
 
 	case zng.IdPort:
 		p, err := zng.DecodePort(zv.Bytes)
 		if err != nil {
-			return NativeValue{}, err
+			return Value{}, err
 		}
-		return NativeValue{zv.Type, uint64(p)}, nil
+		return Value{zv.Type, uint64(p)}, nil
 
 	case zng.IdNet:
 		n, err := zng.DecodeNet(zv.Bytes)
 		if err != nil {
-			return NativeValue{}, err
+			return Value{}, err
 		}
-		return NativeValue{zv.Type, n}, nil
+		return Value{zv.Type, n}, nil
 
 	case zng.IdTime:
 		t, err := zng.DecodeTime(zv.Bytes)
 		if err != nil {
-			return NativeValue{}, nil
+			return Value{}, nil
 		}
-		return NativeValue{zv.Type, int64(t)}, nil
+		return Value{zv.Type, int64(t)}, nil
 
 	case zng.IdDuration:
 		d, err := zng.DecodeDuration(zv.Bytes)
 		if err != nil {
-			return NativeValue{}, nil
+			return Value{}, nil
 		}
-		return NativeValue{zv.Type, d}, nil
+		return Value{zv.Type, d}, nil
 	}
 
 	// Keep arrays, sets, and records in their zval encoded form.
-	// The purpose of NativeValue is to avoid encoding temporary
+	// The purpose of Value is to avoid encoding temporary
 	// values but since we can't construct these types in expressions,
 	// this just lets us lazily decode them.
 	switch zv.Type.(type) {
 	case *zng.TypeArray, *zng.TypeSet, *zng.TypeRecord:
-		return NativeValue{zv.Type, zv.Bytes}, nil
+		return Value{zv.Type, zv.Bytes}, nil
 	}
 
-	return NativeValue{}, fmt.Errorf("unknown type %s", zv.Type)
+	return Value{}, fmt.Errorf("unknown type %s", zv.Type)
 }
 
-func (v *NativeValue) ToZngValue() (zng.Value, error) {
+func (v *Value) ToZngValue() (zng.Value, error) {
 	switch v.Type.ID() {
 	case zng.IdBool:
 		b := v.Value.(bool)

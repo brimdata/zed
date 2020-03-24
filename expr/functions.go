@@ -9,7 +9,7 @@ import (
 	"github.com/brimsec/zq/zngnative"
 )
 
-type Function func([]zngnative.NativeValue) (zngnative.NativeValue, error)
+type Function func([]zngnative.Value) (zngnative.Value, error)
 
 var ErrTooFewArgs = errors.New("too few arguments")
 var ErrTooManyArgs = errors.New("too many arguments")
@@ -25,7 +25,7 @@ var allFns = map[string]struct {
 	"Math.sqrt": {1, 1, mathSqrt},
 }
 
-func mathMax(args []zngnative.NativeValue) (zngnative.NativeValue, error) {
+func mathMax(args []zngnative.Value) (zngnative.Value, error) {
 	switch args[0].Type.ID() {
 	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
 		ret := args[0].Value.(int64)
@@ -35,7 +35,7 @@ func mathMax(args []zngnative.NativeValue) (zngnative.NativeValue, error) {
 				ret = v
 			}
 		}
-		return zngnative.NativeValue{zng.TypeInt64, ret}, nil
+		return zngnative.Value{zng.TypeInt64, ret}, nil
 
 	case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
 		ret := args[0].Value.(uint64)
@@ -45,7 +45,7 @@ func mathMax(args []zngnative.NativeValue) (zngnative.NativeValue, error) {
 				ret = v
 			}
 		}
-		return zngnative.NativeValue{zng.TypeUint64, ret}, nil
+		return zngnative.Value{zng.TypeUint64, ret}, nil
 
 	case zng.IdFloat64:
 		ret := args[0].Value.(float64)
@@ -55,14 +55,14 @@ func mathMax(args []zngnative.NativeValue) (zngnative.NativeValue, error) {
 				ret = v
 			}
 		}
-		return zngnative.NativeValue{zng.TypeFloat64, ret}, nil
+		return zngnative.Value{zng.TypeFloat64, ret}, nil
 
 	default:
-		return zngnative.NativeValue{}, fmt.Errorf("Math.max: %w", ErrBadArgument)
+		return zngnative.Value{}, fmt.Errorf("Math.max: %w", ErrBadArgument)
 	}
 }
 
-func mathMin(args []zngnative.NativeValue) (zngnative.NativeValue, error) {
+func mathMin(args []zngnative.Value) (zngnative.Value, error) {
 	switch args[0].Type.ID() {
 	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
 		ret := args[0].Value.(int64)
@@ -72,7 +72,7 @@ func mathMin(args []zngnative.NativeValue) (zngnative.NativeValue, error) {
 				ret = v
 			}
 		}
-		return zngnative.NativeValue{zng.TypeInt64, ret}, nil
+		return zngnative.Value{zng.TypeInt64, ret}, nil
 
 	case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
 		ret := args[0].Value.(uint64)
@@ -82,7 +82,7 @@ func mathMin(args []zngnative.NativeValue) (zngnative.NativeValue, error) {
 				ret = v
 			}
 		}
-		return zngnative.NativeValue{zng.TypeUint64, ret}, nil
+		return zngnative.Value{zng.TypeUint64, ret}, nil
 
 	case zng.IdFloat64:
 		ret := args[0].Value.(float64)
@@ -92,14 +92,14 @@ func mathMin(args []zngnative.NativeValue) (zngnative.NativeValue, error) {
 				ret = v
 			}
 		}
-		return zngnative.NativeValue{zng.TypeFloat64, ret}, nil
+		return zngnative.Value{zng.TypeFloat64, ret}, nil
 
 	default:
-		return zngnative.NativeValue{}, fmt.Errorf("Math.min: %w", ErrBadArgument)
+		return zngnative.Value{}, fmt.Errorf("Math.min: %w", ErrBadArgument)
 	}
 }
 
-func mathSqrt(args []zngnative.NativeValue) (zngnative.NativeValue, error) {
+func mathSqrt(args []zngnative.Value) (zngnative.Value, error) {
 	var x float64
 	switch args[0].Type.ID() {
 	case zng.IdFloat64:
@@ -109,7 +109,7 @@ func mathSqrt(args []zngnative.NativeValue) (zngnative.NativeValue, error) {
 	case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
 		x = float64(args[0].Value.(uint64))
 	default:
-		return zngnative.NativeValue{}, fmt.Errorf("Math.sqrt: %w", ErrBadArgument)
+		return zngnative.Value{}, fmt.Errorf("Math.sqrt: %w", ErrBadArgument)
 	}
 
 	r := math.Sqrt(x)
@@ -117,8 +117,8 @@ func mathSqrt(args []zngnative.NativeValue) (zngnative.NativeValue, error) {
 		// For now we can't represent non-numeric values in a float64,
 		// we will revisit this but it has implications for file
 		// formats, zql, etc.
-		return zngnative.NativeValue{}, fmt.Errorf("Math.sqrt: %w", ErrBadArgument)
+		return zngnative.Value{}, fmt.Errorf("Math.sqrt: %w", ErrBadArgument)
 	}
 
-	return zngnative.NativeValue{zng.TypeFloat64, r}, nil
+	return zngnative.Value{zng.TypeFloat64, r}, nil
 }
