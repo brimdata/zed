@@ -26,6 +26,13 @@ func TestTypeConfigValidate(t *testing.T) {
                                {
                                    "type": "time",
                                    "name": "ts"
+                               },
+                               {
+                                   "name": "id",
+                                   "type": {
+                                       "type": "ip",
+                                       "name": "orig_h"
+                                    }
                                }
                            ]
                        },
@@ -102,6 +109,82 @@ func TestTypeConfigValidate(t *testing.T) {
                                {
                                    "type": "time",
                                    "name": "ts"
+                               }
+                           ]
+                       },
+                       "rules": [
+                           {
+                               "name": "path",
+                               "value": "capture_loss",
+                               "descriptor": "capture_loss_log"
+                           }
+                       ]
+                   }
+                   `,
+			ok: false,
+		},
+		{
+			name: "Matching rule refers to absent field",
+			in: `
+                   {
+                       "descriptors": {
+                           "capture_loss_log": [
+                               {
+                                   "type": "string",
+                                   "name": "_path"
+                               },
+                               {
+                                   "type": "time",
+                                   "name": "ts"
+                               }
+                           ]
+                       },
+                       "rules": [
+                           {
+                               "name": "path",
+                               "value": "capture_loss",
+                               "descriptor": "capture_loss_log"
+                           }
+                       ]
+                   }
+                   `,
+			ok: false,
+		},
+		{
+			name: "Descriptor without _path in first column",
+			in: `
+                   {
+                       "descriptors": {
+                           "capture_loss_log": [
+                               {
+                                   "type": "time",
+                                   "name": "ts"
+                               }
+                           ]
+                       },
+                       "rules": [
+                           {
+                               "name": "path",
+                               "value": "capture_loss",
+                               "descriptor": "capture_loss_log"
+                           }
+                       ]
+                   }
+                   `,
+			ok: false,
+		},
+		{
+			name: "Descriptor with invalid structure",
+			in: `
+                   {
+                       "descriptors": {
+                           "capture_loss_log": [
+                               {
+                                   "type": "string",
+                                   "name": "_path"
+                               },
+                               {
+                                   "d": ["time","ts"]
                                }
                            ]
                        },

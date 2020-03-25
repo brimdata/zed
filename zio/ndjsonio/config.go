@@ -43,18 +43,18 @@ func (conf TypeConfig) Validate() error {
 
 	}
 	for name, desc := range conf.Descriptors {
-		col, ok := desc[0].(map[string]interface{})
-		if !ok {
-			return fmt.Errorf("descriptor %s has invalid structure", name)
-		}
-		if col["name"] != "_path" {
-			return fmt.Errorf("descriptor %s does not have _path as first column", name)
-		}
-		for _, d := range desc {
-			col := d.(map[string]interface{})
+		for i, d := range desc {
+			col, ok := d.(map[string]interface{})
+			if !ok {
+				return fmt.Errorf("descriptor %s has invalid structure in element %d", name, i)
+			}
 			if col["name"] == "ts" && col["type"] != "time" {
 				return fmt.Errorf("descriptor %s has field ts with wrong type %s", name, col["type"])
 			}
+		}
+		col := desc[0].(map[string]interface{})
+		if col["name"] != "_path" {
+			return fmt.Errorf("descriptor %s does not have _path as first column", name)
 		}
 	}
 	return nil
