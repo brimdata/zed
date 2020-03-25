@@ -125,3 +125,19 @@ func TestLogPow(t *testing.T) {
 	testError(t, "Math.pow(2, 3, r)", record, expr.ErrTooManyArgs, "pow() with too many args")
 	testError(t, "Math.pow(-1, 0.5)", record, expr.ErrBadArgument, "pow() with invalid arguments")
 }
+
+func TestMod(t *testing.T) {
+	record, err := parseOneRecord(`
+#0:record[u:uint64]
+0:[5;]`)
+	require.NoError(t, err)
+
+	testSuccessful(t, "Math.mod(5, 3)", record, zint64(2))
+	testSuccessful(t, "Math.mod(u, 3)", record, zuint64(2))
+	testSuccessful(t, "Math.mod(8, 5)", record, zint64(3))
+	testSuccessful(t, "Math.mod(8, u)", record, zint64(3))
+
+	testError(t, "Math.mod()", record, expr.ErrTooFewArgs, "mod() with no args")
+	testError(t, "Math.mod(1, 2, 3)", record, expr.ErrTooManyArgs, "mod() with too many args")
+	testError(t, "Math.mod(3.2, 2)", record, expr.ErrBadArgument, "mod() with float64 arg")
+}

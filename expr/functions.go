@@ -180,7 +180,7 @@ func mathMod(args []zngnative.Value) (zngnative.Value, error) {
 
 	case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
 		x := args[0].Value.(uint64)
-		return zngnative.Value{zng.TypeInt64, x % y}, nil
+		return zngnative.Value{zng.TypeUint64, x % y}, nil
 
 	default:
 		return err("Math.mod", ErrBadArgument)
