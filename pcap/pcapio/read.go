@@ -152,7 +152,7 @@ func (r *PcapReader) Read() ([]byte, BlockType, error) {
 	}
 	caplen := int(r.byteOrder.Uint32(hdr[8:12]))
 	fullLength := int(r.byteOrder.Uint32(hdr[12:16]))
-	if caplen > int(r.snaplen) {
+	if r.snaplen != 0 && caplen > int(r.snaplen) {
 		return nil, 0, fmt.Errorf("capture length exceeds snap length: %d > %d", caplen, r.snaplen)
 	}
 	if caplen > fullLength {
