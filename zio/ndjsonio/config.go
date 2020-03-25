@@ -53,7 +53,7 @@ func (conf TypeConfig) Validate() error {
 		for _, d := range desc {
 			col := d.(map[string]interface{})
 			if col["name"] == "ts" && col["type"] != "time" {
-				return fmt.Errorf("descriptor %s has field time with wrong type %s", name, col["type"])
+				return fmt.Errorf("descriptor %s has field ts with wrong type %s", name, col["type"])
 			}
 		}
 	}
