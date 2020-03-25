@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"regexp"
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
@@ -26,10 +27,15 @@ import (
 // Version is set via the Go linker.
 var version = "unknown"
 
+// x509.14:00:00-15:00:00.log.gz (open source zeek)
+// x509_20191101_14:00:00-15:00:00+0000.log.gz (corelight)
+const defaultJSONPathRegexp = `([a-zA-Z0-9_]+)(?:\.|_\d{8}_)\d\d:\d\d:\d\d\-\d\d:\d\d:\d\d(?:[+\-]\d{4})?\.log(?:$|\.gz)`
+
 var Zq = &charm.Spec{
-	Name:  "zq",
-	Usage: "zq [ options ] [ zql ] file [ file ... ]",
-	Short: "command line logs processor",
+	Name:        "zq",
+	Usage:       "zq [ options ] [ zql ] file [ file ... ]",
+	Short:       "command line logs processor",
+	HiddenFlags: "pathregexp",
 	Long: `
 zq is a command-line tool for processing logs.  It applies boolean logic
 to filter each log value, optionally computes analytics and transformations,
@@ -75,29 +81,35 @@ func init() {
 }
 
 type Command struct {
-	zctx         *resolver.Context
-	ifmt         string
-	ofmt         string
-	dir          string
-	path         string
-	jsonTypePath string
-	outputFile   string
-	verbose      bool
-	stats        bool
-	quiet        bool
-	showVersion  bool
+	zctx           *resolver.Context
+	ifmt           string
+	ofmt           string
+	dir            string
+	path           string
+	jsonTypePath   string
+	jsonPathRegexp string
+	jsonTypeConfig *ndjsonio.TypeConfig
+	outputFile     string
+	verbose        bool
+	stats          bool
+	quiet          bool
+	showVersion    bool
 	zio.Flags
 }
 
 func New(f *flag.FlagSet) (charm.Command, error) {
 	cwd, _ := os.Getwd()
 	c := &Command{zctx: resolver.NewContext()}
+
+	c.jsonPathRegexp = defaultJSONPathRegexp
+
 	f.StringVar(&c.ifmt, "i", "auto", "format of input data [auto,bzng,ndjson,zeek,zjson,zng]")
 	f.StringVar(&c.ofmt, "f", "zng", "format for output data [bzng,ndjson,table,text,types,zeek,zjson,zng]")
 	f.StringVar(&c.path, "p", cwd, "path for input")
 	f.StringVar(&c.dir, "d", "", "directory for output data files")
 	f.StringVar(&c.outputFile, "o", "", "write data to output file")
 	f.StringVar(&c.jsonTypePath, "j", "", "path to json types file")
+	f.StringVar(&c.jsonPathRegexp, "pathregexp", c.jsonPathRegexp, "regexp for extracting _path from json log name (when -inferpath=true)")
 	f.BoolVar(&c.verbose, "v", false, "show verbose details")
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
 	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
@@ -188,6 +200,16 @@ func (c *Command) Run(args []string) error {
 	if len(args) == 0 {
 		return Zq.Exec(c, []string{"help"})
 	}
+	if _, err := regexp.Compile(c.jsonPathRegexp); err != nil {
+		return err
+	}
+	if c.jsonTypePath != "" {
+		tc, err := c.loadJsonTypes()
+		if err != nil {
+			return err
+		}
+		c.jsonTypeConfig = tc
+	}
 	paths := args
 	var query ast.Proc
 	var err error
@@ -220,19 +242,6 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if c.jsonTypePath != "" {
-		tc, err := c.loadJsonTypes()
-		if err != nil {
-			return err
-		}
-		for _, r := range readers {
-			if ndjr, ok := r.(*ndjsonio.Reader); ok {
-				if err := ndjr.SetTypeConfig(*tc); err != nil {
-					return err
-				}
-			}
-		}
-	}
 
 	var reader zbuf.Reader
 	if len(readers) == 1 {
@@ -254,6 +263,19 @@ func (c *Command) Run(args []string) error {
 		output.SetWarningsWriter(os.Stderr)
 	}
 	return output.Run(mux)
+}
+
+func (c *Command) configureJSONTypeReader(ndjr *ndjsonio.Reader, filename string) error {
+	var path string
+	re := regexp.MustCompile(c.jsonPathRegexp)
+	match := re.FindStringSubmatch(filename)
+	if len(match) == 2 {
+		path = match[1]
+	}
+	if err := ndjr.ConfigureTypes(*c.jsonTypeConfig, path); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *Command) errorf(format string, args ...interface{}) {
@@ -291,7 +313,12 @@ func (c *Command) inputReaders(paths []string) ([]zbuf.Reader, error) {
 		if err != nil {
 			return nil, err
 		}
-
+		jr, ok := zr.(*ndjsonio.Reader)
+		if ok && c.jsonTypeConfig != nil {
+			if err = c.configureJSONTypeReader(jr, path); err != nil {
+				return nil, err
+			}
+		}
 		readers = append(readers, zr)
 	}
 	return readers, nil

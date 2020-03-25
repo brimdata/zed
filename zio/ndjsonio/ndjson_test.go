@@ -159,28 +159,46 @@ func NDJSONEq(t *testing.T, expected string, actual string) {
 
 func TestNewRawFromJSON(t *testing.T) {
 	type testcase struct {
-		name, zng, json string
+		name, zng, json, defaultPath string
 	}
 	cases := []testcase{
-		{"LongDuration",
-			`#0:record[_path:string,ts:time,span:duration]
+		{
+			name: "LongDuration",
+			zng: `#0:record[_path:string,ts:time,span:duration]
 0:[test;1573860644.637486;0.123456134;]`,
-			`{"_path": "test", "ts": "2019-11-15T23:30:44.637486Z", "span": 0.1234561341234234}`,
+			json: `{"_path": "test", "ts": "2019-11-15T23:30:44.637486Z", "span": 0.1234561341234234}`,
 		},
-		{"TsISO8601",
-			`#0:record[_path:string,b:bool,i:int64,s:set[bool],ts:time,v:array[int64]]
+		{
+			name: "TsISO8601",
+			zng: `#0:record[_path:string,b:bool,i:int64,s:set[bool],ts:time,v:array[int64]]
 0:[test;-;-;-;1573860644.637486;-;]`,
-			`{"_path": "test", "ts":"2019-11-15T23:30:44.637486Z"}`,
+			json: `{"_path": "test", "ts":"2019-11-15T23:30:44.637486Z"}`,
 		},
-		{"TsEpoch",
-			`#0:record[_path:string,ts:time]
+		{
+			name: "TsEpoch",
+			zng: `#0:record[_path:string,ts:time]
 0:[test;1573860644.637486;]`,
-			`{"_path": "test", "ts":1573860644.637486}`,
+			json: `{"_path": "test", "ts":1573860644.637486}`,
 		},
-		{"TsMillis",
-			`#0:record[_path:string,ts:time]
+		{
+			name: "TsMillis",
+			zng: `#0:record[_path:string,ts:time]
 0:[test;1573860644.637000;]`,
-			`{"_path": "test", "ts":1573860644637}`,
+			json: `{"_path": "test", "ts":1573860644637}`,
+		},
+		{
+			name: "defaultPath",
+			zng: `#0:record[_path:string,ts:time]
+0:[inferred;1573860644.637000;]`,
+			json:        `{"ts":1573860644637}`,
+			defaultPath: "inferred",
+		},
+		{
+			name: "defaultPath (unused)",
+			zng: `#0:record[_path:string,ts:time]
+0:[test;1573860644.637000;]`,
+			json:        `{"_path": "test", "ts":1573860644637}`,
+			defaultPath: "inferred",
 		},
 	}
 
@@ -194,6 +212,7 @@ func TestNewRawFromJSON(t *testing.T) {
 				flatDesc:   typ,
 				descriptor: typ,
 				jsonVals:   make([]jsonVal, len(typ.Columns)),
+				path:       []byte(c.defaultPath),
 			}
 			raw, _, err := ti.newRawFromJSON([]byte(c.json))
 			require.NoError(t, err)
@@ -235,56 +254,78 @@ func TestNDJSONTypeErrors(t *testing.T) {
 	}
 
 	var cases = []struct {
-		name    string
-		result  typeStats
-		input   string
-		success bool
+		name        string
+		result      typeStats
+		input       string
+		success     bool
+		defaultPath string
 	}{
 		{
-			"Valid",
-			typeStats{},
-			`{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http"}
+			name:   "Valid",
+			result: typeStats{},
+			input: `{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http"}
 			{"uid":"CXY9a54W2dLZwzPXf1","ts":"2017-03-24T19:59:24.306076Z","id.orig_h":"10.10.7.65","_path":"http"}`,
-			true,
+			success: true,
 		},
 		{
-			"Extra field",
-			typeStats{IncompleteDescriptor: 2, FirstBadLine: 1},
-			`{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http", "extra_field": 1}
+			name:   "Extra field",
+			result: typeStats{IncompleteDescriptor: 2, FirstBadLine: 1},
+			input: `{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http", "extra_field": 1}
 {"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http"}
 {"ts":"2017-03-24T19:59:24.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http", "extra_field": 1}`,
-			true,
+			success: true,
 		},
 		{
-			"Bad line number",
-			typeStats{BadFormat: 1, FirstBadLine: 2},
-			`{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http"}
+			name:   "Bad line number",
+			result: typeStats{BadFormat: 1, FirstBadLine: 2},
+			input: `{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http"}
 {"hiddents":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http"}`,
-			false,
+			success: false,
 		},
 		{
-			"Missing Ts",
-			typeStats{BadFormat: 1, FirstBadLine: 1},
-			`{"uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65", "_path": "http"}` + "\n",
-			false,
+			name:    "Missing Ts",
+			result:  typeStats{BadFormat: 1, FirstBadLine: 1},
+			input:   `{"uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65", "_path": "http"}` + "\n",
+			success: false,
 		},
 		{
-			"Negative Ts",
-			typeStats{BadFormat: 1, FirstBadLine: 1},
-			`{"ts":"-1579438676.648","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65", "_path": "http"}` + "\n",
-			false,
+			name:    "Negative Ts",
+			result:  typeStats{BadFormat: 1, FirstBadLine: 1},
+			input:   `{"ts":"-1579438676.648","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65", "_path": "http"}` + "\n",
+			success: false,
 		},
 		{
-			"Missing _path",
-			typeStats{MissingPath: 1, FirstBadLine: 1},
-			`{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65"}` + "\n",
-			false,
+			name:    "Valid (inferred)",
+			result:  typeStats{DescriptorNotFound: 1, FirstBadLine: 1},
+			input:   `{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"inferred"}`,
+			success: false,
 		},
 		{
-			"Valid (inferred)",
-			typeStats{DescriptorNotFound: 1, FirstBadLine: 1},
-			`{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"inferred"}`,
-			false,
+			name:    "Missing _path",
+			result:  typeStats{MissingPath: 1, FirstBadLine: 1},
+			input:   `{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65"}` + "\n",
+			success: false,
+		},
+		{
+			name:        "_path provided as defaultPath",
+			result:      typeStats{},
+			input:       `{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65"}` + "\n",
+			success:     true,
+			defaultPath: "http",
+		},
+		{
+			name:        "invalid _path provided as defaultPath",
+			result:      typeStats{DescriptorNotFound: 1, FirstBadLine: 1},
+			input:       `{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65"}` + "\n",
+			success:     false,
+			defaultPath: "nosuchpath",
+		},
+		{
+			name:        "invalid defaultPath doesn't override input _path",
+			result:      typeStats{},
+			input:       `{"_path": "http", "ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65"}` + "\n",
+			success:     true,
+			defaultPath: "nosuchpath",
 		},
 	}
 
@@ -295,7 +336,7 @@ func TestNDJSONTypeErrors(t *testing.T) {
 			r, err := NewReader(strings.NewReader(c.input), resolver.NewContext())
 			require.NoError(t, err)
 
-			err = r.SetTypeConfig(typeConfig)
+			err = r.ConfigureTypes(typeConfig, c.defaultPath)
 			require.NoError(t, err)
 
 			err = zbuf.Copy(zbuf.NopFlusher(w), r)
