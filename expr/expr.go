@@ -354,7 +354,6 @@ func compileCompareRelative(lhsFunc, rhsFunc NativeEvaluator, operator string) (
 				} else {
 					result = 1
 				}
-				break
 
 			default:
 				return zngnative.Value{}, ErrIncompatibleTypes
@@ -397,7 +396,6 @@ func compileCompareRelative(lhsFunc, rhsFunc NativeEvaluator, operator string) (
 				} else {
 					result = 1
 				}
-				break
 
 			default:
 				return zngnative.Value{}, ErrIncompatibleTypes
