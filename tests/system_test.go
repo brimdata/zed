@@ -5,6 +5,7 @@ package tests
 import (
 	"errors"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"testing"
 
@@ -53,8 +54,11 @@ func TestScripts(t *testing.T) {
 	for _, script := range scripts {
 		t.Run(script.Name, func(t *testing.T) {
 			shell := test.NewShellTest(script)
-			_, _, err := shell.Run(RootDir, path)
+			_, stderr, err := shell.Run(RootDir, path)
 			assert.NoError(t, err)
+			if script.ExpectedStderrRE != "" {
+				assert.Regexp(t, regexp.MustCompile(script.ExpectedStderrRE), stderr)
+			}
 			for _, file := range script.Expected {
 				actual, err := shell.Read(file.Name)
 				assert.NoError(t, err)

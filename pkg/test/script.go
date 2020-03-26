@@ -15,10 +15,11 @@ type File struct {
 }
 
 type Shell struct {
-	Name     string
-	Script   string
-	Input    []File
-	Expected []File
+	Name             string
+	Script           string
+	Input            []File
+	Expected         []File
+	ExpectedStderrRE string
 }
 
 type ShellTest struct {
