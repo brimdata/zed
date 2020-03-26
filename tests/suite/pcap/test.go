@@ -27,6 +27,13 @@ func init() {
 		panic(err.Error())
 	}
 	Test5.Input[0].Data = string(loopbackData)
+
+	// same as in.pcap but with snaplen = 0
+	zData, err := ioutil.ReadFile("suite/pcap/zero.pcap")
+	if err != nil {
+		panic(err.Error())
+	}
+	Test6.Input[0].Data = string(zData)
 }
 
 // XXX note these tests don't test the pcap slice index file since there
@@ -121,5 +128,15 @@ var Test5 = test.Shell{
 	Input:  []test.File{test.File{Name: "loopback.pcap"}},
 	Expected: []test.File{
 		test.File{"out3", test.Trim(out3)},
+	},
+}
+
+// same as Test1 but with zero.pcap which has snaplen=0
+var Test6 = test.Shell{
+	Name:   "pcap-snap-zero",
+	Script: `pcap slice -r zero.pcap -from 1425567047.804914 -to 1425567432.792482 | pcap ts -w out1`,
+	Input:  []test.File{test.File{Name: "zero.pcap"}},
+	Expected: []test.File{
+		test.File{"out1", test.Trim(out1)},
 	},
 }

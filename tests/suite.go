@@ -49,4 +49,5 @@ var scripts = []test.Shell{
 	pcap.Test3,
 	pcap.Test4,
 	pcap.Test5,
+	pcap.Test6,
 }
