@@ -82,6 +82,16 @@ func unpackProc(custom Unpacker, node joe.JSON) (Proc, error) {
 			return nil, err
 		}
 		return &FilterProc{Filter: filter}, nil
+	case "PutProc":
+		exprNode := node.Get("expression")
+		if exprNode == joe.Undefined {
+			return nil, errors.New("PutProc missing expression")
+		}
+		expr, err := unpackExpression(exprNode)
+		if err != nil {
+			return nil, err
+		}
+		return &PutProc{Expr: expr}, nil
 	case "UniqProc":
 		return &UniqProc{}, nil
 	case "ReducerProc":
@@ -108,6 +118,60 @@ func unpackProc(custom Unpacker, node joe.JSON) (Proc, error) {
 		return &TopProc{Fields: fields}, nil
 	default:
 		return nil, fmt.Errorf("unknown proc op: %s", op)
+	}
+}
+
+func unpackExpression(node joe.JSON) (Expression, error) {
+	op, ok := node.Get("op").String()
+	if !ok {
+		return nil, errors.New("Expression node missing op field")
+	}
+
+	switch op {
+	case "BinaryExpr":
+		lhsNode := node.Get("lhs")
+		if lhsNode == joe.Undefined {
+			return nil, errors.New("BinaryExpression missing lhs")
+		}
+		lhs, err := unpackExpression(lhsNode)
+		if err != nil {
+			return nil, err
+		}
+
+		rhsNode := node.Get("rhs")
+		if rhsNode == joe.Undefined {
+			return nil, errors.New("BinaryExpression missing rhs")
+		}
+		rhs, err := unpackExpression(rhsNode)
+		if err != nil {
+			return nil, err
+		}
+
+		return &BinaryExpression{LHS: lhs, RHS: rhs}, nil
+	case "FunctionCall":
+		argsNode := node.Get("args")
+		if argsNode == joe.Undefined {
+			return nil, errors.New("FunctionCall missing args")
+		}
+		if !argsNode.IsArray() {
+			return nil, errors.New("FunctionCall args property must be an array")
+		}
+		n := argsNode.Len()
+		args := make([]Expression, n)
+		for i := 0; i < n; i++ {
+			var err error
+			args[i], err = unpackExpression(argsNode.Index(i))
+			if err != nil {
+				return nil, err
+			}
+		}
+		return &FunctionCall{Args: args}, nil
+	case "Literal":
+		return &Literal{}, nil
+	case "FieldRead":
+		return &FieldRead{}, nil
+	default:
+		return nil, fmt.Errorf("unknown Expression op %s", op)
 	}
 }
 
