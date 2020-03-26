@@ -122,19 +122,17 @@ func (p *Put) put(in *zng.Record) *zng.Record {
 }
 
 func (p *Put) Pull() (zbuf.Batch, error) {
-	for {
-		batch, err := p.Get()
-		if EOS(batch, err) {
-			return nil, err
-		}
-
-		recs := make([]*zng.Record, 0, batch.Length())
-		for k := 0; k < batch.Length(); k++ {
-			in := batch.Index(k)
-			recs = append(recs, p.put(in))
-		}
-		span := batch.Span()
-		batch.Unref()
-		return zbuf.NewArray(recs, span), nil
+	batch, err := p.Get()
+	if EOS(batch, err) {
+		return nil, err
 	}
+
+	recs := make([]*zng.Record, 0, batch.Length())
+	for k := 0; k < batch.Length(); k++ {
+		in := batch.Index(k)
+		recs = append(recs, p.put(in))
+	}
+	span := batch.Span()
+	batch.Unref()
+	return zbuf.NewArray(recs, span), nil
 }
