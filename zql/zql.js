@@ -7874,6 +7874,7 @@ function peg$parse(input, options) {
   function makeTailProc(count) { return { op: "TailProc", count }; }
   function makeUniqProc(cflag) { return { op: "TailProc", cflag }; }
   function makeFilterProc(filter) { return { op: "FilterProc", filter }; }
+  function makePutProc(target, expression) { return { op: "PutProc", target, expression }; }
   function makeReducer(op, var_, field) {
     if (field === null) { field = undefined; }
     return { op, var: var_, field };
