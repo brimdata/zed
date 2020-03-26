@@ -64,6 +64,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -114,10 +115,18 @@ func Run(t *testing.T, dirname string) {
 			}
 			out, err := run(zq, zt.ZQL, zt.OutputFormat, zt.Input...)
 			if err != nil {
-				if out != "" {
-					out = "\noutput:\n" + out
+				if zt.errRegex != nil {
+					if !zt.errRegex.Match([]byte(err.Error())) {
+						t.Fatalf("%s: error doesn't match expected error regex: %s %s", filename, zt.ErrorRE, err.Error())
+					}
+				} else {
+					if out != "" {
+						out = "\noutput:\n" + out
+					}
+					t.Fatalf("%s: %s%s", filename, err, out)
 				}
-				t.Fatalf("%s: %s%s", filename, err, out)
+			} else if zt.errRegex != nil {
+				t.Fatalf("%s: no error when expecting error regex: %s", filename, zt.ErrorRE)
 			}
 			if out != zt.Output {
 				diff, _ := difflib.GetUnifiedDiffString(difflib.UnifiedDiff{
@@ -139,6 +148,8 @@ type ZTest struct {
 	Input        Inputs `yaml:"input"`
 	OutputFormat string `yaml:"output-format,omitempty"`
 	Output       string `yaml:"output"`
+	ErrorRE      string `yaml:"errorRE"`
+	errRegex     *regexp.Regexp
 }
 
 // Inputs is an array of strings. Its only purpose is to support parsing of
@@ -178,6 +189,12 @@ func FromYAMLFile(filename string) (*ZTest, error) {
 	}
 	if z.OutputFormat == "" {
 		z.OutputFormat = "zng"
+	}
+	if z.ErrorRE != "" {
+		z.errRegex, err = regexp.Compile(z.ErrorRE)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return &z, nil
 }
