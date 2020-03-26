@@ -39,6 +39,40 @@
         "type": "time"
       }
     ],
+    "capture_loss_log": [
+      {
+        "name": "_path",
+        "type": "string"
+      },
+      {
+        "name": "ts",
+        "type": "time"
+      },
+      {
+        "name": "ts_delta",
+        "type": "duration"
+      },
+      {
+        "name": "peer",
+        "type": "bstring"
+      },
+      {
+        "name": "gaps",
+        "type": "uint64"
+      },
+      {
+        "name": "acks",
+        "type": "uint64"
+      },
+      {
+        "name": "percent_lost",
+        "type": "float64"
+      },
+      {
+        "name": "_write_ts",
+        "type": "time"
+      }
+    ],
     "cluster_log": [
       {
         "name": "_path",
@@ -1112,6 +1146,102 @@
       },
       {
         "name": "server_cert_fuid",
+        "type": "bstring"
+      },
+      {
+        "name": "_write_ts",
+        "type": "time"
+      }
+    ],
+    "known_certs_log": [
+      {
+        "name": "_path",
+        "type": "string"
+      },
+      {
+        "name": "ts",
+        "type": "time"
+      },
+      {
+        "name": "host",
+        "type": "ip"
+      },
+      {
+        "name": "port_num",
+        "type": "port"
+      },
+      {
+        "name": "subject",
+        "type": "bstring"
+      },
+      {
+        "name": "issuer_subject",
+        "type": "bstring"
+      },
+      {
+        "name": "serial",
+        "type": "bstring"
+      },
+      {
+        "name": "_write_ts",
+        "type": "time"
+      }
+    ],
+    "known_hosts_log": [
+      {
+        "name": "_path",
+        "type": "string"
+      },
+      {
+        "name": "ts",
+        "type": "time"
+      },
+      {
+        "name": "host",
+        "type": "ip"
+      },
+      {
+        "name": "_write_ts",
+        "type": "time"
+      }
+    ],
+    "known_services_log": [
+      {
+        "name": "_path",
+        "type": "string"
+      },
+      {
+        "name": "ts",
+        "type": "time"
+      },
+      {
+        "name": "host",
+        "type": "ip"
+      },
+      {
+        "name": "port_num",
+        "type": "port"
+      },
+      {
+        "name": "port_proto",
+        "type": "zenum"
+      },
+      {
+        "name": "service",
+        "type": "set[bstring]"
+      },
+      {
+        "name": "_write_ts",
+        "type": "time"
+      }
+    ],
+    "loaded_scripts_log": [
+      {
+        "name": "_path",
+        "type": "string"
+      },
+      {
+        "name": "name",
         "type": "bstring"
       },
       {
@@ -2604,6 +2734,10 @@
         "type": "array[bstring]"
       },
       {
+        "name": "is_webmail",
+        "type": "bool"
+      },
+      {
         "name": "_write_ts",
         "type": "time"
       }
@@ -2914,6 +3048,31 @@
         "type": "bstring"
       },
       {
+        "name": "remote_location",
+        "type": [
+          {
+            "name": "country_code",
+            "type": "bstring"
+          },
+          {
+            "name": "region",
+            "type": "bstring"
+          },
+          {
+            "name": "city",
+            "type": "bstring"
+          },
+          {
+            "name": "latitude",
+            "type": "float64"
+          },
+          {
+            "name": "longitude",
+            "type": "float64"
+          }
+        ]
+      },
+      {
         "name": "_write_ts",
         "type": "time"
       }
@@ -3007,6 +3166,124 @@
       {
         "name": "client_issuer",
         "type": "bstring"
+      },
+      {
+        "name": "validation_status",
+        "type": "bstring"
+      },
+      {
+        "name": "_write_ts",
+        "type": "time"
+      }
+    ],
+    "stats_log": [
+      {
+        "name": "_path",
+        "type": "string"
+      },
+      {
+        "name": "ts",
+        "type": "time"
+      },
+      {
+        "name": "peer",
+        "type": "bstring"
+      },
+      {
+        "name": "mem",
+        "type": "uint64"
+      },
+      {
+        "name": "pkts_proc",
+        "type": "uint64"
+      },
+      {
+        "name": "bytes_recv",
+        "type": "uint64"
+      },
+      {
+        "name": "pkts_dropped",
+        "type": "uint64"
+      },
+      {
+        "name": "pkts_link",
+        "type": "uint64"
+      },
+      {
+        "name": "pkt_lag",
+        "type": "duration"
+      },
+      {
+        "name": "events_proc",
+        "type": "uint64"
+      },
+      {
+        "name": "events_queued",
+        "type": "uint64"
+      },
+      {
+        "name": "active_tcp_conns",
+        "type": "uint64"
+      },
+      {
+        "name": "active_udp_conns",
+        "type": "uint64"
+      },
+      {
+        "name": "active_icmp_conns",
+        "type": "uint64"
+      },
+      {
+        "name": "tcp_conns",
+        "type": "uint64"
+      },
+      {
+        "name": "udp_conns",
+        "type": "uint64"
+      },
+      {
+        "name": "icmp_conns",
+        "type": "uint64"
+      },
+      {
+        "name": "timers",
+        "type": "uint64"
+      },
+      {
+        "name": "active_timers",
+        "type": "uint64"
+      },
+      {
+        "name": "files",
+        "type": "uint64"
+      },
+      {
+        "name": "active_files",
+        "type": "uint64"
+      },
+      {
+        "name": "dns_requests",
+        "type": "uint64"
+      },
+      {
+        "name": "active_dns_requests",
+        "type": "uint64"
+      },
+      {
+        "name": "reassem_tcp_size",
+        "type": "uint64"
+      },
+      {
+        "name": "reassem_file_size",
+        "type": "uint64"
+      },
+      {
+        "name": "reassem_frag_size",
+        "type": "uint64"
+      },
+      {
+        "name": "reassem_unknown_size",
+        "type": "uint64"
       },
       {
         "name": "_write_ts",
@@ -3276,11 +3553,16 @@
       }
     ]
   },
-  "rules": [
+  "matching_rules": [
     {
       "descriptor": "broker_log",
       "name": "_path",
       "value": "broker"
+    },
+    {
+      "descriptor": "capture_loss_log",
+      "name": "_path",
+      "value": "capture_loss"
     },
     {
       "descriptor": "cluster_log",
@@ -3351,6 +3633,26 @@
       "descriptor": "kerberos_log",
       "name": "_path",
       "value": "kerberos"
+    },
+    {
+      "descriptor": "known_certs_log",
+      "name": "_path",
+      "value": "known_certs"
+    },
+    {
+      "descriptor": "known_hosts_log",
+      "name": "_path",
+      "value": "known_hosts"
+    },
+    {
+      "descriptor": "known_services_log",
+      "name": "_path",
+      "value": "known_services"
+    },
+    {
+      "descriptor": "loaded_scripts_log",
+      "name": "_path",
+      "value": "loaded_scripts"
     },
     {
       "descriptor": "modbus_log",
@@ -3476,6 +3778,11 @@
       "descriptor": "ssl_log",
       "name": "_path",
       "value": "ssl"
+    },
+    {
+      "descriptor": "stats_log",
+      "name": "_path",
+      "value": "stats"
     },
     {
       "descriptor": "syslog_log",
