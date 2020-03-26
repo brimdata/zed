@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"net"
+	"strconv"
 
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zngnative"
@@ -30,6 +32,10 @@ var allFns = map[string]struct {
 	"Math.round": {1, 1, mathRound},
 	"Math.pow":   {2, 2, mathPow},
 	"Math.sqrt":  {1, 1, mathSqrt},
+
+	"String.parseInt":   {1, 1, stringParseInt},
+	"String.parseFloat": {1, 1, stringParseFloat},
+	"String.parseIp":    {1, 1, stringParseIp},
 }
 
 func err(fn string, err error) (zngnative.Value, error) {
@@ -238,4 +244,49 @@ func mathSqrt(args []zngnative.Value) (zngnative.Value, error) {
 	}
 
 	return zngnative.Value{zng.TypeFloat64, r}, nil
+}
+
+func stringParseInt(args []zngnative.Value) (zngnative.Value, error) {
+	switch args[0].Type.ID() {
+	case zng.IdString, zng.IdBstring:
+		i, perr := strconv.ParseInt(args[0].Value.(string), 10, 64)
+		if perr != nil {
+			// Get rid of the strconv wrapping gunk to get the
+			// actual error message
+			e := perr.(*strconv.NumError)
+			return err("String.parseInt", e.Err)
+		}
+		return zngnative.Value{zng.TypeInt64, i}, nil
+	default:
+		return err("String.parseInt", ErrBadArgument)
+	}
+}
+
+func stringParseFloat(args []zngnative.Value) (zngnative.Value, error) {
+	switch args[0].Type.ID() {
+	case zng.IdString, zng.IdBstring:
+		f, perr := strconv.ParseFloat(args[0].Value.(string), 64)
+		if perr != nil {
+			// Get rid of the strconv wrapping gunk to get the
+			// actual error message
+			e := perr.(*strconv.NumError)
+			return err("String.parseFloat", e.Err)
+		}
+		return zngnative.Value{zng.TypeFloat64, f}, nil
+	default:
+		return err("String.parseFloat", ErrBadArgument)
+	}
+}
+
+func stringParseIp(args []zngnative.Value) (zngnative.Value, error) {
+	switch args[0].Type.ID() {
+	case zng.IdString, zng.IdBstring:
+		a := net.ParseIP(args[0].Value.(string))
+		if a == nil {
+			return err("String.parseIp", ErrBadArgument)
+		}
+		return zngnative.Value{zng.TypeIP, a}, nil
+	default:
+		return err("String.parseIp", ErrBadArgument)
+	}
 }

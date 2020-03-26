@@ -1,11 +1,19 @@
 package expr_test
 
 import (
+	"net"
+	"strconv"
 	"testing"
 
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/zng"
 	"github.com/stretchr/testify/require"
 )
+
+func zaddr(addr string) zng.Value {
+	parsed := net.ParseIP(addr)
+	return zng.Value{zng.TypeIP, zng.EncodeIP(parsed)}
+}
 
 func TestBadFunction(t *testing.T) {
 	testError(t, "notafunction()", nil, expr.ErrNoSuchFunction, "calling nonexistent function")
@@ -140,4 +148,27 @@ func TestMod(t *testing.T) {
 	testError(t, "Math.mod()", record, expr.ErrTooFewArgs, "mod() with no args")
 	testError(t, "Math.mod(1, 2, 3)", record, expr.ErrTooManyArgs, "mod() with too many args")
 	testError(t, "Math.mod(3.2, 2)", record, expr.ErrBadArgument, "mod() with float64 arg")
+}
+
+func TestStrParse(t *testing.T) {
+	record, err := parseOneRecord(`
+#0:record[u:uint64]
+0:[5;]`)
+	require.NoError(t, err)
+
+	testSuccessful(t, `String.parseInt("1")`, record, zint64(1))
+	testSuccessful(t, `String.parseInt("-1")`, record, zint64(-1))
+	testError(t, `String.parseInt()`, record, expr.ErrTooFewArgs, "parseInt() with no args")
+	testError(t, `String.parseInt("a", "b")`, record, expr.ErrTooManyArgs, "parseInt() with too many args")
+	testError(t, `String.parseInt("abc")`, record, strconv.ErrSyntax, "parseInt() with non-parseable string")
+
+	testSuccessful(t, `String.parseFloat("5.5")`, record, zfloat64(5.5))
+	testError(t, `String.parseFloat()`, record, expr.ErrTooFewArgs, "parseFloat() with no args")
+	testError(t, `String.parseFloat("a", "b")`, record, expr.ErrTooManyArgs, "parseFloat() with too many args")
+	testError(t, `String.parseFloat("abc")`, record, strconv.ErrSyntax, "parseFloat() with non-parseable string")
+
+	testSuccessful(t, `String.parseIp("1.2.3.4")`, record, zaddr("1.2.3.4"))
+	testError(t, `String.parseIp()`, record, expr.ErrTooFewArgs, "parseIp() with no args")
+	testError(t, `String.parseIp("a", "b")`, record, expr.ErrTooManyArgs, "parseIp() with too many args")
+	testError(t, `String.parseIp("abc")`, record, expr.ErrBadArgument, "parseIp() with non-parseable string")
 }
