@@ -160,6 +160,9 @@ func (info *typeInfo) newRawFromJSON(data []byte) (zcode.Bytes, int, error) {
 			if iterErr != nil {
 				return nil, 0, iterErr
 			}
+			if _, ok := flatColumns[i].Type.(*zng.TypeSet); ok {
+				builder.TransformContainer(zng.NormalizeSet)
+			}
 			builder.EndContainer()
 		case jsonparser.NotExist, jsonparser.Null:
 			switch flatColumns[i].Type.(type) {
