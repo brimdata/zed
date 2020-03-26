@@ -150,6 +150,28 @@ func TestMod(t *testing.T) {
 	testError(t, "Math.mod(3.2, 2)", record, expr.ErrBadArgument, "mod() with float64 arg")
 }
 
+func TestStrFormat(t *testing.T) {
+	record, err := parseOneRecord(`
+#0:record[u:uint64]
+0:[5;]`)
+	require.NoError(t, err)
+
+	testSuccessful(t, "String.floatToString(1.2)", record, zstring("1.2"))
+	testError(t, "String.floatToString()", record, expr.ErrTooFewArgs, "floatToString() with no args")
+	testError(t, "String.floatToString(1.2, 3.4)", record, expr.ErrTooManyArgs, "floatToString() with too many args")
+	testError(t, "String.floatToString(1)", record, expr.ErrBadArgument, "floatToString() with non-float arg")
+
+	testSuccessful(t, "String.intToString(5)", record, zstring("5"))
+	testError(t, "String.intToString()", record, expr.ErrTooFewArgs, "inttToString() with no args")
+	testError(t, "String.intToString(3, 4)", record, expr.ErrTooManyArgs, "intToString() with too many args")
+	testError(t, "String.intToString(1.5)", record, expr.ErrBadArgument, "intToString() with non-int arg")
+
+	testSuccessful(t, "String.ipToString(1.2.3.4)", record, zstring("1.2.3.4"))
+	testError(t, "String.ipToString()", record, expr.ErrTooFewArgs, "ipToString() with no args")
+	testError(t, "String.ipToString(1.2, 3.4)", record, expr.ErrTooManyArgs, "ipToString() with too many args")
+	testError(t, "String.ipToString(1)", record, expr.ErrBadArgument, "ipToString() with non-ip arg")
+}
+
 func TestStrParse(t *testing.T) {
 	record, err := parseOneRecord(`
 #0:record[u:uint64]
