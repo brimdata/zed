@@ -71,3 +71,48 @@ var TestInferPath = test.Shell{
 }
 
 const inputNoPath = `{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65"}`
+
+var TestSet = test.Shell{
+	Name:   "json-types-set",
+	Script: `zq -j types.json "*" in.ndjson > http.zng`,
+	Input: []test.File{
+		test.File{"in.ndjson", test.Trim(inputSet)},
+		test.File{"types.json", test.Trim(typesSet)},
+	},
+	Expected: []test.File{
+		test.File{"http.zng", test.Trim(zngSet)},
+	},
+}
+
+const inputSet = `{"ts":"2017-03-24T19:59:23.306076Z","uids":["b", "a"],"_path":"sets"}`
+
+const typesSet = `
+{
+  "descriptors": {
+    "sets_log": [
+      {
+        "name": "_path",
+        "type": "string"
+      },
+      {
+        "name": "ts",
+        "type": "time"
+      },
+      {
+        "name": "uids",
+        "type": "set[bstring]"
+      }
+      ]
+     },
+  "rules": [
+    {
+      "name": "_path",
+      "value": "sets",
+      "descriptor": "sets_log"
+    }
+  ]
+}`
+
+const zngSet = `
+#0:record[_path:string,ts:time,uids:set[bstring]]
+0:[sets;1490385563.306076;[a;b;]]`

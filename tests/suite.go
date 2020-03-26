@@ -47,6 +47,7 @@ var scripts = []test.Shell{
 	diropt.Test2,
 	jsontype.Test,
 	jsontype.TestInferPath,
+	jsontype.TestSet,
 	pcap.Test1,
 	pcap.Test2,
 	pcap.Test3,
