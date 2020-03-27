@@ -33,9 +33,12 @@ var allFns = map[string]struct {
 	"Math.pow":   {2, 2, mathPow},
 	"Math.sqrt":  {1, 1, mathSqrt},
 
-	"String.parseInt":   {1, 1, stringParseInt},
-	"String.parseFloat": {1, 1, stringParseFloat},
-	"String.parseIp":    {1, 1, stringParseIp},
+	"String.formatFloat": {1, 1, stringFormatFloat},
+	"String.formatInt":   {1, 1, stringFormatInt},
+	"String.formatIp":    {1, 1, stringFormatIp},
+	"String.parseFloat":  {1, 1, stringParseFloat},
+	"String.parseInt":    {1, 1, stringParseInt},
+	"String.parseIp":     {1, 1, stringParseIp},
 }
 
 func err(fn string, err error) (zngnative.Value, error) {
@@ -244,6 +247,35 @@ func mathSqrt(args []zngnative.Value) (zngnative.Value, error) {
 	}
 
 	return zngnative.Value{zng.TypeFloat64, r}, nil
+}
+
+func stringFormatFloat(args []zngnative.Value) (zngnative.Value, error) {
+	if args[0].Type.ID() != zng.IdFloat64 {
+		return err("string.floatToString", ErrBadArgument)
+	}
+	s := strconv.FormatFloat(args[0].Value.(float64), 'g', -1, 64)
+	return zngnative.Value{zng.TypeString, s}, nil
+}
+
+func stringFormatInt(args []zngnative.Value) (zngnative.Value, error) {
+	var s string
+	switch args[0].Type.ID() {
+	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
+		s = strconv.FormatInt(args[0].Value.(int64), 10)
+	case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
+		s = strconv.FormatUint(args[0].Value.(uint64), 10)
+	default:
+		return err("string.intToString", ErrBadArgument)
+	}
+	return zngnative.Value{zng.TypeString, s}, nil
+}
+
+func stringFormatIp(args []zngnative.Value) (zngnative.Value, error) {
+	if args[0].Type.ID() != zng.IdIP {
+		return err("string.ipToString", ErrBadArgument)
+	}
+	s := args[0].Value.(net.IP).String()
+	return zngnative.Value{zng.TypeString, s}, nil
 }
 
 func stringParseInt(args []zngnative.Value) (zngnative.Value, error) {
