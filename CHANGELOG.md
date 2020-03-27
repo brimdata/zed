@@ -1,6 +1,6 @@
 ## v0.8.0
 
-* zql: add the `put` proc that adds or updates fields using a computed
+* zql: add the `put` processor that adds or updates fields using a computed
   expression. (#437)
 * zql: add functions for use with put, like `Math.min`, `Math.max`, and others.
   (#453, #459, #461, #472)
