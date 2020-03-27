@@ -5,7 +5,7 @@
 * zql: add functions for use with put, like `Math.min`, `Math.max`, and others.
   (#453, #459, #461, #472)
 * zq: support reading ndjson with user supplied type information. (#441)
-* Fix an issue reading pcaps generated via NetScout. (#462)
+* Fix an issue with reading pcaps with snaplen=0. (#462)
 
 ## v0.7.0
 
