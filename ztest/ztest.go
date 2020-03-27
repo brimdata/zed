@@ -138,6 +138,16 @@ func Run(t *testing.T, dirname string) {
 				})
 				t.Fatalf("%s: expected and actual outputs differ:\n%s", filename, diff)
 			}
+			if err == nil && errout != zt.Warnings {
+				diff, _ := difflib.GetUnifiedDiffString(difflib.UnifiedDiff{
+					A:        difflib.SplitLines(zt.Warnings),
+					FromFile: "expected",
+					B:        difflib.SplitLines(errout),
+					ToFile:   "actual",
+					Context:  5,
+				})
+				t.Fatalf("%s: expected and actual warnings differ:\n%s", filename, diff)
+			}
 		})
 	}
 }
@@ -150,6 +160,7 @@ type ZTest struct {
 	Output       string `yaml:"output"`
 	ErrorRE      string `yaml:"errorRE"`
 	errRegex     *regexp.Regexp
+	Warnings     string `yaml:"warnings",omitempty"`
 }
 
 // Inputs is an array of strings. Its only purpose is to support parsing of
