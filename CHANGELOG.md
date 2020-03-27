@@ -1,3 +1,12 @@
+## v0.8.0
+
+* zql: add the `put` processor that adds or updates fields using a computed
+  expression. (#437)
+* zql: add functions for use with put, like `Math.min`, `Math.max`, and others.
+  (#453, #459, #461, #472)
+* zq: support reading ndjson with user supplied type information. (#441)
+* Fix an issue reading pcaps with snaplen=0. (#462)
+
 ## v0.7.0
 
 * Address ingest issues for packet captures in legacy pcap format.
