@@ -156,20 +156,20 @@ func TestStrFormat(t *testing.T) {
 0:[5;]`)
 	require.NoError(t, err)
 
-	testSuccessful(t, "String.floatToString(1.2)", record, zstring("1.2"))
-	testError(t, "String.floatToString()", record, expr.ErrTooFewArgs, "floatToString() with no args")
-	testError(t, "String.floatToString(1.2, 3.4)", record, expr.ErrTooManyArgs, "floatToString() with too many args")
-	testError(t, "String.floatToString(1)", record, expr.ErrBadArgument, "floatToString() with non-float arg")
+	testSuccessful(t, "String.formatFloat(1.2)", record, zstring("1.2"))
+	testError(t, "String.formatFloat()", record, expr.ErrTooFewArgs, "formatFloat() with no args")
+	testError(t, "String.formatFloat(1.2, 3.4)", record, expr.ErrTooManyArgs, "formatFloat() with too many args")
+	testError(t, "String.formatFloat(1)", record, expr.ErrBadArgument, "formatFloat() with non-float arg")
 
-	testSuccessful(t, "String.intToString(5)", record, zstring("5"))
-	testError(t, "String.intToString()", record, expr.ErrTooFewArgs, "inttToString() with no args")
-	testError(t, "String.intToString(3, 4)", record, expr.ErrTooManyArgs, "intToString() with too many args")
-	testError(t, "String.intToString(1.5)", record, expr.ErrBadArgument, "intToString() with non-int arg")
+	testSuccessful(t, "String.formatInt(5)", record, zstring("5"))
+	testError(t, "String.formatInt()", record, expr.ErrTooFewArgs, "formatInt() with no args")
+	testError(t, "String.formatInt(3, 4)", record, expr.ErrTooManyArgs, "formatInt() with too many args")
+	testError(t, "String.formatInt(1.5)", record, expr.ErrBadArgument, "formatInt() with non-int arg")
 
-	testSuccessful(t, "String.ipToString(1.2.3.4)", record, zstring("1.2.3.4"))
-	testError(t, "String.ipToString()", record, expr.ErrTooFewArgs, "ipToString() with no args")
-	testError(t, "String.ipToString(1.2, 3.4)", record, expr.ErrTooManyArgs, "ipToString() with too many args")
-	testError(t, "String.ipToString(1)", record, expr.ErrBadArgument, "ipToString() with non-ip arg")
+	testSuccessful(t, "String.formatIp(1.2.3.4)", record, zstring("1.2.3.4"))
+	testError(t, "String.formatIp()", record, expr.ErrTooFewArgs, "formatIp() with no args")
+	testError(t, "String.formatIp(1.2, 3.4)", record, expr.ErrTooManyArgs, "formatIp() with too many args")
+	testError(t, "String.formatIp(1)", record, expr.ErrBadArgument, "formatIp() with non-ip arg")
 }
 
 func TestStrParse(t *testing.T) {

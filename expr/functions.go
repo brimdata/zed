@@ -33,12 +33,12 @@ var allFns = map[string]struct {
 	"Math.pow":   {2, 2, mathPow},
 	"Math.sqrt":  {1, 1, mathSqrt},
 
-	"String.floatToString": {1, 1, stringFormatFloat},
-	"String.intToString":   {1, 1, stringFormatInt},
-	"String.ipToString":    {1, 1, stringFormatIp},
-	"String.parseFloat":    {1, 1, stringParseFloat},
-	"String.parseInt":      {1, 1, stringParseInt},
-	"String.parseIp":       {1, 1, stringParseIp},
+	"String.formatFloat": {1, 1, stringFormatFloat},
+	"String.formatInt":   {1, 1, stringFormatInt},
+	"String.formatIp":    {1, 1, stringFormatIp},
+	"String.parseFloat":  {1, 1, stringParseFloat},
+	"String.parseInt":    {1, 1, stringParseInt},
+	"String.parseIp":     {1, 1, stringParseIp},
 }
 
 func err(fn string, err error) (zngnative.Value, error) {
