@@ -41,8 +41,8 @@ var allFns = map[string]struct {
 	"String.parseInt":    {1, 1, stringParseInt},
 	"String.parseIp":     {1, 1, stringParseIp},
 	"String.replace":     {3, 3, stringReplace},
-	"String.tolower":     {1, 1, stringToLower},
-	"String.toupper":     {1, 1, stringToUpper},
+	"String.tolower":     {1, 1, stringTolower},
+	"String.toupper":     {1, 1, stringToupper},
 	"String.trim":        {1, 1, stringTrim},
 }
 
@@ -341,7 +341,7 @@ func stringReplace(args []zngnative.Value) (zngnative.Value, error) {
 	return zngnative.Value{zng.TypeString, s}, nil
 }
 
-func stringToLower(args []zngnative.Value) (zngnative.Value, error) {
+func stringTolower(args []zngnative.Value) (zngnative.Value, error) {
 	if !isString(args[0]) {
 		return err("String.tolower", ErrBadArgument)
 	}
@@ -349,7 +349,7 @@ func stringToLower(args []zngnative.Value) (zngnative.Value, error) {
 	return zngnative.Value{zng.TypeString, s}, nil
 }
 
-func stringToUpper(args []zngnative.Value) (zngnative.Value, error) {
+func stringToupper(args []zngnative.Value) (zngnative.Value, error) {
 	if !isString(args[0]) {
 		return err("String.toupper", ErrBadArgument)
 	}
