@@ -3553,7 +3553,7 @@
       }
     ]
   },
-  "matching_rules": [
+  "rules": [
     {
       "descriptor": "broker_log",
       "name": "_path",
