@@ -73,7 +73,11 @@ func compileNative(node ast.Expression) (NativeEvaluator, error) {
 			if v.Type == nil {
 				return zngnative.Value{}, ErrNoSuchField
 			}
-			return zngnative.ToNativeValue(v)
+			nv, err := zngnative.ToNativeValue(v)
+			if err != nil {
+				return zngnative.Value{}, fmt.Errorf("%s: %w", n.Field, err)
+			}
+			return nv, nil
 		}, nil
 
 	case *ast.BinaryExpression:
