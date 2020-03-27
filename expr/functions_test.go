@@ -206,13 +206,13 @@ func TestOtherStrFuncs(t *testing.T) {
 	testError(t, `String.replace("foo", "bar", "baz", "blort")`, record, expr.ErrTooManyArgs, "replace() with too many args")
 	testError(t, `String.replace("foo", "o", 5)`, record, expr.ErrBadArgument, "replace() with non-string arg")
 
-	testSuccessful(t, `String.tolower("BOO")`, record, zstring("boo"))
-	testError(t, `String.tolower()`, record, expr.ErrTooFewArgs, "tolower() with no args")
-	testError(t, `String.tolower("BOO", "HOO")`, record, expr.ErrTooManyArgs, "tolower() with too many args")
+	testSuccessful(t, `String.toLower("BOO")`, record, zstring("boo"))
+	testError(t, `String.toLower()`, record, expr.ErrTooFewArgs, "toLower() with no args")
+	testError(t, `String.toLower("BOO", "HOO")`, record, expr.ErrTooManyArgs, "toLower() with too many args")
 
-	testSuccessful(t, `String.toupper("boo")`, record, zstring("BOO"))
-	testError(t, `String.toupper()`, record, expr.ErrTooFewArgs, "toupper() with no args")
-	testError(t, `String.toupper("boo", "hoo")`, record, expr.ErrTooManyArgs, "toupper() with too many args")
+	testSuccessful(t, `String.toUpper("boo")`, record, zstring("BOO"))
+	testError(t, `String.toUpper()`, record, expr.ErrTooFewArgs, "toUpper() with no args")
+	testError(t, `String.toUpper("boo", "hoo")`, record, expr.ErrTooManyArgs, "toUpper() with too many args")
 
 	testSuccessful(t, `String.trim("  hi  there   ")`, record, zstring("hi  there"))
 	testError(t, `String.trim()`, record, expr.ErrTooFewArgs, "trim() with no args")
