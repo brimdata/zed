@@ -64,6 +64,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -84,7 +85,7 @@ import (
 func Run(t *testing.T, dirname string) {
 	zq := os.Getenv("ZTEST_ZQ")
 	if zq != "" {
-		if out, err := run(zq, "help", ""); err != nil {
+		if out, _, err := run(zq, "help", ""); err != nil {
 			if out != "" {
 				out = fmt.Sprintf(" with output %q", out)
 			}
@@ -112,12 +113,20 @@ func Run(t *testing.T, dirname string) {
 			if err != nil {
 				t.Fatalf("%s: %s", filename, err)
 			}
-			out, err := run(zq, zt.ZQL, zt.OutputFormat, zt.Input...)
+			out, errout, err := run(zq, zt.ZQL, zt.OutputFormat, zt.Input...)
 			if err != nil {
-				if out != "" {
-					out = "\noutput:\n" + out
+				if zt.errRegex != nil {
+					if !zt.errRegex.Match([]byte(errout)) {
+						t.Fatalf("%s: error doesn't match expected error regex: %s %s", filename, zt.ErrorRE, errout)
+					}
+				} else {
+					if out != "" {
+						out = "\noutput:\n" + out
+					}
+					t.Fatalf("%s: %s%s", filename, err, out)
 				}
-				t.Fatalf("%s: %s%s", filename, err, out)
+			} else if zt.errRegex != nil {
+				t.Fatalf("%s: no error when expecting error regex: %s", filename, zt.ErrorRE)
 			}
 			if out != zt.Output {
 				diff, _ := difflib.GetUnifiedDiffString(difflib.UnifiedDiff{
@@ -139,6 +148,8 @@ type ZTest struct {
 	Input        Inputs `yaml:"input"`
 	OutputFormat string `yaml:"output-format,omitempty"`
 	Output       string `yaml:"output"`
+	ErrorRE      string `yaml:"errorRE"`
+	errRegex     *regexp.Regexp
 }
 
 // Inputs is an array of strings. Its only purpose is to support parsing of
@@ -179,6 +190,12 @@ func FromYAMLFile(filename string) (*ZTest, error) {
 	if z.OutputFormat == "" {
 		z.OutputFormat = "zng"
 	}
+	if z.ErrorRE != "" {
+		z.errRegex, err = regexp.Compile(z.ErrorRE)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return &z, nil
 }
 
@@ -187,47 +204,56 @@ func FromYAMLFile(filename string) (*ZTest, error) {
 // auto" and maybe be gzip-compressed.  outputFormat may be any string accepted
 // by "zq -f".  If zq is empty, the query runs in the current process.  If zq is
 // not empty, it specifies a zq executable that will be used to run the query.
-func run(zq, ZQL, outputFormat string, inputs ...string) (string, error) {
+func run(zq, ZQL, outputFormat string, inputs ...string) (out string, warnOrError string, err error) {
+	var outbuf bytes.Buffer
+	var errbuf bytes.Buffer
 	if zq != "" {
 		tmpdir, files, err := tmpInputFiles(inputs)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 		defer os.RemoveAll(tmpdir)
 		cmd := exec.Command(zq, "-f", outputFormat, ZQL)
 		cmd.Args = append(cmd.Args, files...)
-		out, err := cmd.CombinedOutput()
-		return string(out), err
+		cmd.Stdout = &outbuf
+		cmd.Stderr = &errbuf
+		err = cmd.Run()
+		// If there was an error, errbuf could potentially hold both warnings
+		// and error messages, but that's not currently an issue with existing
+		// tests.
+		return string(outbuf.Bytes()), string(errbuf.Bytes()), err
 	}
 	proc, err := zql.ParseProc(ZQL)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	zctx := resolver.NewContext()
 	zr, err := loadInputs(inputs, zctx)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	var buf bytes.Buffer
 	if outputFormat == "types" {
 		outputFormat = "null"
-		zctx.SetLogger(&emitter.TypeLogger{WriteCloser: &nopCloser{&buf}})
+		zctx.SetLogger(&emitter.TypeLogger{WriteCloser: &nopCloser{&outbuf}})
 	}
 	muxOutput, err := driver.Compile(proc, scanner.NewScanner(zr, nil))
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	zw := detector.LookupWriter(outputFormat, &nopCloser{&buf}, nil)
+	zw := detector.LookupWriter(outputFormat, &nopCloser{&outbuf}, nil)
 	if zw == nil {
-		return "", fmt.Errorf("%s: unknown output format", outputFormat)
+		return "", "", fmt.Errorf("%s: unknown output format", outputFormat)
 	}
 	d := driver.New(zw)
-	d.SetWarningsWriter(&buf)
+	d.SetWarningsWriter(&errbuf)
 	err = d.Run(muxOutput)
 	if err2 := zw.Flush(); err == nil {
 		err = err2
 	}
-	return buf.String(), err
+	if err != nil {
+		return string(outbuf.Bytes()), err.Error(), err
+	}
+	return string(outbuf.Bytes()), string(errbuf.Bytes()), nil
 }
 
 func loadInputs(inputs []string, zctx *resolver.Context) (zbuf.Reader, error) {

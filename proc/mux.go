@@ -2,8 +2,11 @@ package proc
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	"time"
+
+	"github.com/brimsec/zq/zbuf"
 )
 
 type MuxResult struct {
@@ -30,6 +33,18 @@ func newMux(c *Context, parent Proc, id int, out chan MuxResult) *Mux {
 	return &Mux{Base: Base{Context: c, Parent: parent}, ID: id, out: out}
 }
 
+func (m *Mux) safeGet() (b zbuf.Batch, err error) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			return
+		}
+		err = fmt.Errorf("panic: %+v", r)
+	}()
+	b, err = m.Get()
+	return
+}
+
 func (m *Mux) run() {
 	// This loop pulls batches from the parent and pushes them
 	// downstream to the multiplexing proc.  If the mux isn't ready,
@@ -39,7 +54,7 @@ func (m *Mux) run() {
 	// we are flow-controlled here and do not build up large queues
 	// due to rate mismatch.
 	for {
-		batch, err := m.Get()
+		batch, err := m.safeGet()
 		m.out <- MuxResult{Result{batch, err}, m.ID, ""}
 		if EOS(batch, err) {
 			return
