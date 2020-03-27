@@ -55,9 +55,10 @@ func TestScripts(t *testing.T) {
 		t.Run(script.Name, func(t *testing.T) {
 			shell := test.NewShellTest(script)
 			_, stderr, err := shell.Run(RootDir, path)
-			assert.NoError(t, err)
 			if script.ExpectedStderrRE != "" {
 				assert.Regexp(t, regexp.MustCompile(script.ExpectedStderrRE), stderr)
+			} else {
+				assert.NoError(t, err)
 			}
 			for _, file := range script.Expected {
 				actual, err := shell.Read(file.Name)

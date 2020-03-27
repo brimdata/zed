@@ -49,7 +49,7 @@ func (c *Combiner) Read() (*zng.Record, error) {
 			if tup == nil {
 				c.done[k] = true
 				if err := c.closeReader(l); err != nil {
-					return nil, err
+					return nil, fmt.Errorf("%s: %w", c.readers[k], err)
 				}
 				continue
 			}
