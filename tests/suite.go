@@ -43,6 +43,7 @@ var commands = []test.Exec{
 }
 
 var scripts = []test.Shell{
+	errors.Combiner,
 	diropt.Test,
 	diropt.Test2,
 	jsontype.Test,

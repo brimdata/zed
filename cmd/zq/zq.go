@@ -282,6 +282,15 @@ func (c *Command) errorf(format string, args ...interface{}) {
 	_, _ = fmt.Fprintf(os.Stderr, format, args...)
 }
 
+type namedReader struct {
+	zbuf.Reader
+	name string
+}
+
+func (r namedReader) String() string {
+	return r.name
+}
+
 func (c *Command) inputReaders(paths []string) ([]zbuf.Reader, error) {
 	var readers []zbuf.Reader
 	for _, path := range paths {
@@ -319,7 +328,7 @@ func (c *Command) inputReaders(paths []string) ([]zbuf.Reader, error) {
 				return nil, err
 			}
 		}
-		readers = append(readers, zr)
+		readers = append(readers, namedReader{zr, path})
 	}
 	return readers, nil
 }
