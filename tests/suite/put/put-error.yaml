@@ -1,0 +1,16 @@
+# Tests that warnings are propagated and that we only warn once
+# for a given error.
+zql: put y = Math.sqrt(x)
+
+input: |
+  #0:record[x:int32]
+  0:[-1;]
+  0:[-2;]
+
+output: |
+  #0:record[x:int32]
+  0:[-1;]
+  0:[-2;]
+
+warnings: |
+  Math.sqrt: bad argument

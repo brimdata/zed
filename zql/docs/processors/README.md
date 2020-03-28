@@ -146,7 +146,7 @@ conn  1521911720.607695 CpjMvj2Cvj048u6bF1 10.164.94.120 39169     10.47.3.200 8
 Compute a `total_bytes` field in `conn` records:
 
 ```zq-command
-zq -f table 'put total_bytes = orig_bytes + resp_bytes | top 10 total_bytes | cut id, orig_bytes, resp_bytes, total_bytes' conn.log.gz
+zq -q -f table 'put total_bytes = orig_bytes + resp_bytes | top 10 total_bytes | cut id, orig_bytes, resp_bytes, total_bytes' conn.log.gz
 ```
 
 #### Output:

@@ -25,6 +25,7 @@ type Put struct {
 	target string
 	eval   expr.ExpressionEvaluator
 	outmap map[int]descinfo
+	warned map[string]struct{}
 }
 
 func CompilePutProc(c *Context, parent Proc, node *ast.PutProc) (*Put, error) {
@@ -38,12 +39,23 @@ func CompilePutProc(c *Context, parent Proc, node *ast.PutProc) (*Put, error) {
 		target: node.Target,
 		eval:   eval,
 		outmap: make(map[int]descinfo),
+		warned: make(map[string]struct{}),
 	}, nil
+}
+
+func (p *Put) maybeWarn(err error) {
+	s := err.Error()
+	_, alreadyWarned := p.warned[s]
+	if !alreadyWarned {
+		p.Warnings <- s
+		p.warned[s] = struct{}{}
+	}
 }
 
 func (p *Put) put(in *zng.Record) *zng.Record {
 	val, err := p.eval(in)
 	if err != nil {
+		p.maybeWarn(err)
 		return in
 	}
 
