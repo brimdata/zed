@@ -194,3 +194,27 @@ func TestStrParse(t *testing.T) {
 	testError(t, `String.parseIp("a", "b")`, record, expr.ErrTooManyArgs, "parseIp() with too many args")
 	testError(t, `String.parseIp("abc")`, record, expr.ErrBadArgument, "parseIp() with non-parseable string")
 }
+
+func TestOtherStrFuncs(t *testing.T) {
+	record, err := parseOneRecord(`
+#0:record[u:uint64]
+0:[5;]`)
+	require.NoError(t, err)
+
+	testSuccessful(t, `String.replace("bann", "n", "na")`, record, zstring("banana"))
+	testError(t, `String.replace("foo", "bar")`, record, expr.ErrTooFewArgs, "replace() with too few args")
+	testError(t, `String.replace("foo", "bar", "baz", "blort")`, record, expr.ErrTooManyArgs, "replace() with too many args")
+	testError(t, `String.replace("foo", "o", 5)`, record, expr.ErrBadArgument, "replace() with non-string arg")
+
+	testSuccessful(t, `String.toLower("BOO")`, record, zstring("boo"))
+	testError(t, `String.toLower()`, record, expr.ErrTooFewArgs, "toLower() with no args")
+	testError(t, `String.toLower("BOO", "HOO")`, record, expr.ErrTooManyArgs, "toLower() with too many args")
+
+	testSuccessful(t, `String.toUpper("boo")`, record, zstring("BOO"))
+	testError(t, `String.toUpper()`, record, expr.ErrTooFewArgs, "toUpper() with no args")
+	testError(t, `String.toUpper("boo", "hoo")`, record, expr.ErrTooManyArgs, "toUpper() with too many args")
+
+	testSuccessful(t, `String.trim("  hi  there   ")`, record, zstring("hi  there"))
+	testError(t, `String.trim()`, record, expr.ErrTooFewArgs, "trim() with no args")
+	testError(t, `String.trim("  hi  ", "  there  ")`, record, expr.ErrTooManyArgs, "trim() with too many args")
+}

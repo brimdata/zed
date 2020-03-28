@@ -6,6 +6,7 @@ import (
 	"math"
 	"net"
 	"strconv"
+	"strings"
 
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zngnative"
@@ -39,6 +40,10 @@ var allFns = map[string]struct {
 	"String.parseFloat":  {1, 1, stringParseFloat},
 	"String.parseInt":    {1, 1, stringParseInt},
 	"String.parseIp":     {1, 1, stringParseIp},
+	"String.replace":     {3, 3, stringReplace},
+	"String.toLower":     {1, 1, stringToLower},
+	"String.toUpper":     {1, 1, stringToUpper},
+	"String.trim":        {1, 1, stringTrim},
 }
 
 func err(fn string, err error) (zngnative.Value, error) {
@@ -321,4 +326,41 @@ func stringParseIp(args []zngnative.Value) (zngnative.Value, error) {
 	default:
 		return err("String.parseIp", ErrBadArgument)
 	}
+}
+
+func isString(v zngnative.Value) bool {
+	i := v.Type.ID()
+	return i == zng.IdString || i == zng.IdBstring
+}
+
+func stringReplace(args []zngnative.Value) (zngnative.Value, error) {
+	if !isString(args[0]) || !isString(args[1]) || !isString(args[2]) {
+		return err("String.replace", ErrBadArgument)
+	}
+	s := strings.ReplaceAll(args[0].Value.(string), args[1].Value.(string), args[2].Value.(string))
+	return zngnative.Value{zng.TypeString, s}, nil
+}
+
+func stringToLower(args []zngnative.Value) (zngnative.Value, error) {
+	if !isString(args[0]) {
+		return err("String.toLower", ErrBadArgument)
+	}
+	s := strings.ToLower(args[0].Value.(string))
+	return zngnative.Value{zng.TypeString, s}, nil
+}
+
+func stringToUpper(args []zngnative.Value) (zngnative.Value, error) {
+	if !isString(args[0]) {
+		return err("String.toUpper", ErrBadArgument)
+	}
+	s := strings.ToUpper(args[0].Value.(string))
+	return zngnative.Value{zng.TypeString, s}, nil
+}
+
+func stringTrim(args []zngnative.Value) (zngnative.Value, error) {
+	if !isString(args[0]) {
+		return err("String.trim", ErrBadArgument)
+	}
+	s := strings.TrimSpace(args[0].Value.(string))
+	return zngnative.Value{zng.TypeString, s}, nil
 }
