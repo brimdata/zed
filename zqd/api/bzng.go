@@ -30,33 +30,24 @@ func (r *BzngSearch) SetOnCtrl(cb func(interface{})) {
 func (r *BzngSearch) Read() (*zng.Record, error) {
 	for {
 		rec, b, err := r.reader.ReadPayload()
+		if err != nil || b == nil {
+			return rec, err
+		}
+		if !bytes.HasPrefix(b, []byte("json:")) {
+			// We expect only json control payloads.
+			// XXX should log error if something else,
+			// but just skip for now.
+			continue
+		}
+		ctrl, err := unpack(b[5:])
 		if err != nil {
 			return nil, err
 		}
-		if rec == nil && b == nil {
-			return nil, nil
+		if r.onctrl != nil {
+			r.onctrl(ctrl)
 		}
-		if b != nil {
-			if !bytes.HasPrefix(b, []byte("json:")) {
-				// We expect only json control payloads.
-				// XXX should log error if something else,
-				// but just skip for now.
-				continue
-			}
-			ctrl, err := unpack(b[5:])
-			if err != nil {
-				return nil, err
-			}
-			if r.onctrl != nil {
-				r.onctrl(ctrl)
-			}
-			if end, ok := ctrl.(*TaskEnd); ok {
-				if end.Error != nil {
-					return nil, end.Error
-				}
-			}
-			continue
+		if end, ok := ctrl.(*TaskEnd); ok && end.Error != nil {
+			return nil, end.Error
 		}
-		return rec, nil
 	}
 }
