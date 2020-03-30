@@ -116,3 +116,44 @@ const typesSet = `
 const zngSet = `
 #0:record[_path:string,ts:time,uids:set[bstring]]
 0:[sets;1490385563.306076;[a;b;]]`
+
+var TestNoTs = test.Shell{
+	Name:   "json-types-nots",
+	Script: `zq -j types.json "*" in.ndjson > out.zng`,
+	Input: []test.File{
+		test.File{"in.ndjson", test.Trim(inputNoTs)},
+		test.File{"types.json", test.Trim(typesNoTs)},
+	},
+	Expected: []test.File{
+		test.File{"out.zng", test.Trim(zngNoTs)},
+	},
+}
+
+const inputNoTs = `{"name": "foo","_path":"nots"}`
+
+const typesNoTs = `
+{
+  "descriptors": {
+    "nots_log": [
+      {
+        "name": "_path",
+        "type": "string"
+      },
+      {
+        "name": "name",
+        "type": "bstring"
+      }
+      ]
+     },
+  "rules": [
+    {
+      "name": "_path",
+      "value": "nots",
+      "descriptor": "nots_log"
+    }
+  ]
+}`
+
+const zngNoTs = `
+#0:record[_path:string,name:bstring]
+0:[nots;foo;]`
