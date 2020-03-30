@@ -19,7 +19,8 @@ import (
 
 const (
 	// DefaultPort zqd port to connect with.
-	DefaultPort = 9867
+	DefaultPort      = 9867
+	DefaultUserAgent = "zqd-client-golang"
 )
 
 var (
@@ -36,9 +37,9 @@ type Connection struct {
 func newConnection(client *resty.Client) *Connection {
 	client.SetError(Error{})
 	client.OnAfterResponse(checkError)
-	return &Connection{
-		client: client,
-	}
+	c := &Connection{client: client}
+	c.SetUserAgent(DefaultUserAgent)
+	return c
 }
 
 // NewConnection creates a new connection with the given useragent string
