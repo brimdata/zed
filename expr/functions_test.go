@@ -218,3 +218,18 @@ func TestOtherStrFuncs(t *testing.T) {
 	testError(t, `String.trim()`, record, expr.ErrTooFewArgs, "trim() with no args")
 	testError(t, `String.trim("  hi  ", "  there  ")`, record, expr.ErrTooManyArgs, "trim() with too many args")
 }
+
+func TestLen(t *testing.T) {
+	record, err := parseOneRecord(`
+#0:record[s:set[int32],a:array[int32]]
+0:[[1;2;3;][4;5;6;]]`)
+	require.NoError(t, err)
+
+	testSuccessful(t, `len("foo")`, record, zint64(3))
+	testSuccessful(t, "len(s)", record, zint64(3))
+	testSuccessful(t, "len(a)", record, zint64(3))
+
+	testError(t, "len()", record, expr.ErrTooFewArgs, "len() with no args")
+	testError(t, `len("foo", "bar")`, record, expr.ErrTooManyArgs, "len() with too many args")
+	testError(t, "len(5)", record, expr.ErrBadArgument, "len() with non string/container arg")
+}
