@@ -241,7 +241,7 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	proc, err := packet.IngestFile(r.Context(), s, req.Path, c.ZeekLauncher, c.SortLimit)
+	proc, err := ingest.Pcap(r.Context(), s, req.Path, c.ZeekLauncher, c.SortLimit)
 	if err != nil {
 		if errors.Is(err, pcapio.ErrCorruptPcap) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
