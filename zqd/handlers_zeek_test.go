@@ -186,7 +186,7 @@ func packetPost(t *testing.T, pcapfile string, l zeek.Launcher) packetPostResult
 func packetPostWithConfig(t *testing.T, conf zqd.Config, pcapfile string) packetPostResult {
 	c := setCoreRoot(t, conf)
 	ts := httptest.NewServer(zqd.NewHandler(c))
-	client, _ := api.NewConnectionTo("test", ts.URL)
+	client := api.NewConnectionTo(ts.URL)
 	res := packetPostResult{
 		core:     c,
 		srv:      ts,
