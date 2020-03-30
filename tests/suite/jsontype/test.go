@@ -118,7 +118,7 @@ const zngSet = `
 0:[sets;1490385563.306076;[a;b;]]`
 
 var TestNoTs = test.Shell{
-	Name:   "json-types-nots",
+	Name:   "json-types-no-ts",
 	Script: `zq -j types.json "*" in.ndjson > out.zng`,
 	Input: []test.File{
 		test.File{"in.ndjson", test.Trim(inputNoTs)},
