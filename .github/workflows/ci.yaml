@@ -27,7 +27,7 @@ jobs:
     steps:
       - uses: actions/setup-go@v1
         with:
-          go-version: '1.13'
+          go-version: '1.14'
       - uses: actions/checkout@v1
       - run: go test -short ./...
       - run: mkdir dist -ea 0
