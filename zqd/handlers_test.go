@@ -289,8 +289,7 @@ func newCoreAtDir(t *testing.T, dir string) (*zqd.Core, *api.Connection, func())
 	c := zqd.NewCore(conf)
 	h := zqd.NewHandler(c)
 	ts := httptest.NewServer(h)
-	client, _ := api.NewConnectionTo("test", ts.URL)
-	return c, client, func() {
+	return c, api.NewConnectionTo(ts.URL), func() {
 		os.RemoveAll(dir)
 		ts.Close()
 	}

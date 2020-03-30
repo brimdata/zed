@@ -33,10 +33,7 @@ type Connection struct {
 	client *resty.Client
 }
 
-func newConnection(useragent string, client *resty.Client) *Connection {
-	if useragent != "" {
-		client.SetHeader("User-Agent", useragent)
-	}
+func newConnection(client *resty.Client) *Connection {
 	client.SetError(Error{})
 	client.OnAfterResponse(checkError)
 	return &Connection{
@@ -46,28 +43,21 @@ func newConnection(useragent string, client *resty.Client) *Connection {
 
 // NewConnection creates a new connection with the given useragent string
 // and a base URL set up to talk to http://localhost:defaultport
-func NewConnection(useragent string) *Connection {
-	u, _ := url.Parse("http://localhost:" + strconv.Itoa(DefaultPort))
-	return NewConnectionToURL(useragent, u)
+func NewConnection() *Connection {
+	u := "http://localhost:" + strconv.Itoa(DefaultPort)
+	return NewConnectionTo(u)
 }
 
 // NewConnectionTo creates a new connection with the given useragent string
 // and a base URL derived from the hostURL argument.
-func NewConnectionTo(useragent string, hostURL string) (*Connection, error) {
-	url, err := url.Parse(hostURL)
-	if err != nil {
-		return nil, err
-	}
-	return NewConnectionToURL(useragent, url), nil
+func NewConnectionTo(hostURL string) *Connection {
+	client := resty.New()
+	client.HostURL = hostURL
+	return newConnection(client)
 }
 
-// NewConnectionToURL creates a new connection object with the given useragent string
-// and a base URL specified by the url argument.
-func NewConnectionToURL(useragent string, url *url.URL) *Connection {
-	client := resty.New()
-	client.HostURL = url.String()
-	c := newConnection(useragent, client)
-	return c
+func (c *Connection) SetUserAgent(useragent string) {
+	c.client.SetHeader("User-Agent", useragent)
 }
 
 func (c *Connection) Do(ctx context.Context, method, url string, body interface{}) (*resty.Response, error) {
