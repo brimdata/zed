@@ -119,19 +119,6 @@ func (c *Connection) SetURL(u string) {
 	c.client.SetHostURL(u)
 }
 
-type ErrorResponse struct {
-	*resty.Response
-	Err error
-}
-
-func (e *ErrorResponse) Unwrap() error {
-	return e.Err
-}
-
-func (e *ErrorResponse) Error() string {
-	return fmt.Sprintf("status code %d: %v", e.StatusCode(), e.Err)
-}
-
 func (c *Connection) Request(ctx context.Context) *resty.Request {
 	return c.client.R().SetContext(ctx)
 }
@@ -217,4 +204,17 @@ func (c *Connection) PostPacket(ctx context.Context, space string, payload Packe
 	}
 	jsonpipe := NewJSONPipeScanner(r)
 	return NewStream(jsonpipe), nil
+}
+
+type ErrorResponse struct {
+	*resty.Response
+	Err error
+}
+
+func (e *ErrorResponse) Unwrap() error {
+	return e.Err
+}
+
+func (e *ErrorResponse) Error() string {
+	return fmt.Sprintf("status code %d: %v", e.StatusCode(), e.Err)
 }
