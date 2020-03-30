@@ -23,6 +23,8 @@ var allFns = map[string]struct {
 	maxArgs int
 	impl    Function
 }{
+	"len": {1, 1, lenFn},
+
 	"Math.abs":   {1, 1, mathAbs},
 	"Math.ceil":  {1, 1, mathCeil},
 	"Math.floor": {1, 1, mathFloor},
@@ -48,6 +50,25 @@ var allFns = map[string]struct {
 
 func err(fn string, err error) (zngnative.Value, error) {
 	return zngnative.Value{}, fmt.Errorf("%s: %w", fn, err)
+}
+
+func lenFn(args []zngnative.Value) (zngnative.Value, error) {
+	switch zng.AliasedType(args[0].Type).(type) {
+	case *zng.TypeOfString, *zng.TypeOfBstring:
+		return zngnative.Value{zng.TypeInt64, int64(len(args[0].Value.(string)))}, nil
+	case *zng.TypeArray, *zng.TypeSet:
+		v, err := args[0].ToZngValue()
+		if err != nil {
+			return zngnative.Value{}, err
+		}
+		l, err := v.ContainerLength()
+		if err != nil {
+			return zngnative.Value{}, err
+		}
+		return zngnative.Value{zng.TypeInt64, int64(l)}, nil
+	default:
+		return err("len", ErrBadArgument)
+	}
 }
 
 func mathAbs(args []zngnative.Value) (zngnative.Value, error) {
