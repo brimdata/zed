@@ -9,7 +9,6 @@ import (
 	"github.com/brimsec/zq/pkg/sst"
 )
 
-//XXX this is a test searches for IP addresses
 func Find(dir string, pattern []byte) ([]string, error) {
 	nerr := 0
 	//XXX this should be parallelized with some locking presuming a little
@@ -47,6 +46,7 @@ func Find(dir string, pattern []byte) ([]string, error) {
 	return hits, err
 }
 
+//XXX for now we hard code search for IP address.
 func SearchFile(path string, pattern []byte) (bool, error) {
 	subdir := path + zarExt
 	sstName := "sst:type:ip" //XXX

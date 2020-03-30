@@ -17,8 +17,7 @@ var Merge = &charm.Spec{
 The merge command takes two or more sst files as input and presumes the
 values are roaring bitmaps.  It merges the input files into
 a new file, as specified by the -o argument, while preserving
-the lexicographic order of the keys and performing a bitwise OR of the roaring
-bitmap values.`,
+the lexicographic order of the keys and concatenating the values.`,
 	New: newMergeCommand,
 }
 
