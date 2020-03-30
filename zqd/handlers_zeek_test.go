@@ -67,7 +67,7 @@ func TestPacketPostSuccess(t *testing.T) {
 		assert.Equal(t, p.pcapfile, info.PacketPath)
 	})
 	t.Run("PacketIndexExists", func(t *testing.T) {
-		require.FileExists(t, filepath.Join(p.core.Root, p.space, ingest.IndexFile))
+		require.FileExists(t, filepath.Join(p.core.Root, p.space, ingest.PcapIndexFile))
 	})
 	t.Run("TaskStartMessage", func(t *testing.T) {
 		status := p.payloads[0].(*api.TaskStart)

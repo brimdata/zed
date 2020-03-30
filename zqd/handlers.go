@@ -65,11 +65,11 @@ func handlePacketSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	if err := req.FromQuery(r.URL.Query()); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
-	if s.PacketPath() == "" || !s.HasFile(ingest.IndexFile) {
+	if s.PacketPath() == "" || !s.HasFile(ingest.PcapIndexFile) {
 		http.Error(w, "space has no pcaps", http.StatusNotFound)
 		return
 	}
-	index, err := pcap.LoadIndex(s.DataPath(ingest.IndexFile))
+	index, err := pcap.LoadIndex(s.DataPath(ingest.PcapIndexFile))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -148,7 +148,7 @@ func handleSpaceGet(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	info := &api.SpaceInfo{
 		Name:          s.Name(),
-		PacketSupport: s.HasFile(ingest.IndexFile),
+		PacketSupport: s.HasFile(ingest.PcapIndexFile),
 		PacketPath:    s.PacketPath(),
 	}
 	if s.HasFile("all.bzng") {
