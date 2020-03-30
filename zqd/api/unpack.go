@@ -9,21 +9,15 @@ import (
 // and returns it as an empty interface so that the caller can receive
 // a stream of objects, check their types, and process them accordingly.
 func unpack(b []byte) (interface{}, error) {
-	var v interface{}
+	var v struct {
+		Type string `json:"type"`
+	}
 	err := json.Unmarshal(b, &v)
 	if err != nil {
 		return nil, err
 	}
-	object, ok := v.(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("bad json object: %s", string(b))
-	}
-	which, ok := object["type"]
-	if !ok {
-		return nil, fmt.Errorf("no type field in search result: %s", string(b))
-	}
 	var out interface{}
-	switch which {
+	switch v.Type {
 	case "TaskStart":
 		out = &TaskStart{}
 	case "TaskEnd":
@@ -38,8 +32,10 @@ func unpack(b []byte) (interface{}, error) {
 		out = &SearchEnd{}
 	case "PacketPostStatus":
 		out = &PacketPostStatus{}
+	case "":
+		return nil, fmt.Errorf("no type field in search result: %s", string(b))
 	default:
-		return nil, fmt.Errorf("unknown type in results stream: %s", which)
+		return nil, fmt.Errorf("unknown type in results stream: %s", v.Type)
 	}
 	err = json.Unmarshal(b, out)
 	if err != nil {

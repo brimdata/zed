@@ -20,7 +20,7 @@ type Error struct {
 // Error implements the error interface so this struct can be passed around
 // as an error.  The error string is the JSON encoding of the Error struct.
 // with indentation.
-func (e *Error) Error() string {
+func (e Error) Error() string {
 	b, err := json.MarshalIndent(e, "", "\t")
 	if err != nil {
 		// this shouldn't happen

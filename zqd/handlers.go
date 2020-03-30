@@ -46,6 +46,7 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		out = search.NewBzngOutput(w)
 	default:
 		http.Error(w, fmt.Sprintf("unsupported output format: %s", format), http.StatusBadRequest)
+		return
 	}
 	// XXX This always returns bad request but should return status codes
 	// that reflect the nature of the returned error.
