@@ -14,7 +14,7 @@ add a processor in [zq/proc](proc) or an aggregate function in [zq/reducer](redu
 
 ## Development
 
-`zq` requires Go 1.13 or later, and uses [Go modules](https://github.com/golang/go/wiki/Modules).
+`zq` requires Go 1.14 or later, and uses [Go modules](https://github.com/golang/go/wiki/Modules).
 Dependencies are specified in the [`go.mod` file](/go.mod) and managed
 automatically by commands like `go build` and `go test`.  No explicit
 fetch commands are necessary.  However, you must set the environment
