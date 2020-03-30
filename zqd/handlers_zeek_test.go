@@ -3,12 +3,13 @@
 package zqd_test
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -39,7 +40,7 @@ func TestPacketPostSuccess(t *testing.T) {
 	}
 	ln, err := zeek.LauncherFromPath(os.Getenv("ZEEK"))
 	require.NoError(t, err)
-	p := packetPost(t, "./testdata/valid.pcap", 202, ln)
+	p := packetPost(t, "./testdata/valid.pcap", ln)
 	defer p.cleanup()
 	t.Run("DataReverseSorted", func(t *testing.T) {
 		expected := `
@@ -48,7 +49,7 @@ func TestPacketPostSuccess(t *testing.T) {
 0:[1501770877.501001;]
 0:[1501770877.471635;]
 0:[1501770877.471635;]`
-		res := execSearch(t, p.core, p.space, "cut ts")
+		res := zngSearch(t, p.client, p.space, "cut ts")
 		assert.Equal(t, test.Trim(expected), res)
 	})
 	t.Run("SpaceInfo", func(t *testing.T) {
@@ -94,7 +95,7 @@ func TestPacketPostSuccess(t *testing.T) {
 func TestPacketPostSortLimit(t *testing.T) {
 	fn := writeLogsFn(testZeekLogs)
 	ln := testZeekLauncher(nil, fn)
-	p := packetPostWithConfig(t, zqd.Config{SortLimit: 1, ZeekLauncher: ln}, "./testdata/valid.pcap", 202)
+	p := packetPostWithConfig(t, zqd.Config{SortLimit: 1, ZeekLauncher: ln}, "./testdata/valid.pcap")
 	defer p.cleanup()
 	t.Run("TaskEndError", func(t *testing.T) {
 		taskEnd := p.payloads[len(p.payloads)-1].(*api.TaskEnd)
@@ -105,11 +106,17 @@ func TestPacketPostSortLimit(t *testing.T) {
 }
 
 func TestPacketPostInvalidPcap(t *testing.T) {
-	p := packetPost(t, "./testdata/invalid.pcap", 400, testZeekLauncher(nil, nil))
+	p := packetPost(t, "./testdata/invalid.pcap", testZeekLauncher(nil, nil))
 	defer p.cleanup()
-	t.Run("ErrorMessage", func(t *testing.T) {
+	t.Run("ErrorResponse", func(t *testing.T) {
+		require.Error(t, p.err)
+		var reserr *api.ErrorResponse
+		if !errors.As(p.err, &reserr) {
+			t.Fatalf("expected error to be for type *api.ErrorResponse, got %T", p.err)
+		}
+		assert.Equal(t, http.StatusBadRequest, reserr.StatusCode())
 		// XXX Better error message here.
-		require.Regexp(t, "^bad pcap file*", string(p.body))
+		require.Regexp(t, "^bad pcap file*", reserr.Err.Error())
 	})
 	t.Run("EmptySpaceInfo", func(t *testing.T) {
 		u := fmt.Sprintf("http://localhost:9867/space/%s", p.space)
@@ -125,7 +132,7 @@ func TestPacketPostInvalidPcap(t *testing.T) {
 func TestPacketPostZeekFailImmediate(t *testing.T) {
 	expectedErr := errors.New("zeek error: failed to start")
 	startFn := func(*testZeekProcess) error { return expectedErr }
-	p := packetPost(t, "./testdata/valid.pcap", 202, testZeekLauncher(startFn, nil))
+	p := packetPost(t, "./testdata/valid.pcap", testZeekLauncher(startFn, nil))
 	defer p.cleanup()
 	t.Run("TaskEndError", func(t *testing.T) {
 		expected := &api.TaskEnd{
@@ -149,7 +156,7 @@ func TestPacketPostZeekFailAfterWrite(t *testing.T) {
 		}
 		return expectedErr
 	}
-	p := packetPost(t, "./testdata/valid.pcap", 202, testZeekLauncher(nil, write))
+	p := packetPost(t, "./testdata/valid.pcap", testZeekLauncher(nil, write))
 	defer p.cleanup()
 	t.Run("TaskEndError", func(t *testing.T) {
 		expected := &api.TaskEnd{
@@ -174,19 +181,22 @@ func TestPacketPostZeekFailAfterWrite(t *testing.T) {
 	})
 }
 
-func packetPost(t *testing.T, pcapfile string, expectedStatus int, l zeek.Launcher) packetPostResult {
-	return packetPostWithConfig(t, zqd.Config{ZeekLauncher: l}, pcapfile, expectedStatus)
+func packetPost(t *testing.T, pcapfile string, l zeek.Launcher) packetPostResult {
+	return packetPostWithConfig(t, zqd.Config{ZeekLauncher: l}, pcapfile)
 }
 
-func packetPostWithConfig(t *testing.T, conf zqd.Config, pcapfile string, expectedStatus int) packetPostResult {
+func packetPostWithConfig(t *testing.T, conf zqd.Config, pcapfile string) packetPostResult {
 	c := setCoreRoot(t, conf)
+	ts := httptest.NewServer(zqd.NewHandler(c))
+	client := api.NewConnectionTo(ts.URL)
 	res := packetPostResult{
 		core:     c,
+		srv:      ts,
+		client:   client,
 		space:    "test",
 		pcapfile: pcapfile,
 	}
 	res.postPcap(t, pcapfile)
-	require.Equalf(t, expectedStatus, res.statusCode, "unexpected status code: %s", string(res.body))
 	return res
 }
 
@@ -203,33 +213,27 @@ func setCoreRoot(t *testing.T, c zqd.Config) *zqd.Core {
 }
 
 type packetPostResult struct {
-	core       *zqd.Core
-	space      string
-	statusCode int
-	pcapfile   string
-	body       []byte
-	payloads   []interface{}
+	core     *zqd.Core
+	client   *api.Connection
+	srv      *httptest.Server
+	space    string
+	pcapfile string
+	body     []byte
+	err      error
+	payloads []interface{}
 }
 
 func (r *packetPostResult) postPcap(t *testing.T, file string) {
-	createSpace(t, r.core, r.space, "")
-	u := fmt.Sprintf("http://localhost:9867/space/%s/packet", r.space)
-	res := httpRequest(t, zqd.NewHandler(r.core), "POST", u, api.PacketPostRequest{r.pcapfile})
-	body, err := ioutil.ReadAll(res.Body)
+	_, err := r.client.SpacePost(context.Background(), api.SpacePostRequest{Name: r.space})
 	require.NoError(t, err)
-	r.body, r.statusCode = body, res.StatusCode
-	if r.statusCode == 202 {
-		require.Equal(t, "application/ndjson", res.Header.Get("Content-Type"))
-		r.readPayloads(t)
-	} else {
-		require.Equal(t, "text/plain; charset=utf-8", res.Header.Get("Content-Type"))
+	var stream *api.Stream
+	stream, r.err = r.client.PostPacket(context.Background(), r.space, api.PacketPostRequest{r.pcapfile})
+	if r.err == nil {
+		r.readPayloads(t, stream)
 	}
 }
 
-func (r *packetPostResult) readPayloads(t *testing.T) {
-	scanner := api.NewJSONPipeScanner(bytes.NewReader(r.body))
-	_, cancel := context.WithCancel(context.Background())
-	stream := api.NewStream(scanner, cancel)
+func (r *packetPostResult) readPayloads(t *testing.T, stream *api.Stream) {
 	for {
 		i, err := stream.Next()
 		require.NoError(t, err)
@@ -242,6 +246,7 @@ func (r *packetPostResult) readPayloads(t *testing.T) {
 
 func (r *packetPostResult) cleanup() {
 	os.RemoveAll(r.core.Root)
+	r.srv.Close()
 }
 
 func testZeekLauncher(start, wait procFn) zeek.Launcher {

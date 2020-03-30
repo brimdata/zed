@@ -2,13 +2,12 @@ package zqd_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,34 +29,44 @@ import (
 	"go.uber.org/zap/zaptest"
 )
 
-func TestSimpleSearch(t *testing.T) {
+func TestSearch(t *testing.T) {
 	src := `
 #0:record[_path:string,ts:time,uid:bstring]
 0:[conn;1521911723.205187;CBrzd94qfowOqJwCHa;]
 0:[conn;1521911721.255387;C8Tful1TvM3Zf5x8fl;]
 `
-	space := "test"
-	c := newCore(t)
-	defer os.RemoveAll(c.Root)
-	createSpaceWithData(t, c, space, src)
-	require.Equal(t, test.Trim(src), execSearch(t, c, space, "*"))
+	core, client, done := newCore(t)
+	defer done()
+	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
+	require.NoError(t, err)
+	putSpaceData(t, core, sp.Name, src)
+	res := zngSearch(t, client, sp.Name, "*")
+	require.Equal(t, test.Trim(src), res)
 }
 
 func TestSearchEmptySpace(t *testing.T) {
 	space := "test"
-	c := newCore(t)
-	defer os.RemoveAll(c.Root)
-	createSpace(t, c, space, "")
-	require.Equal(t, "", execSearch(t, c, space, "*"))
+	ctx := context.Background()
+	_, client, done := newCore(t)
+	defer done()
+	_, err := client.SpacePost(ctx, api.SpacePostRequest{Name: space})
+	require.NoError(t, err)
+	res := zngSearch(t, client, space, "*")
+	require.Equal(t, "", res)
 }
 
 func TestSpaceList(t *testing.T) {
-	c := newCore(t)
-	defer os.RemoveAll(c.Root)
-	sp1 := createSpace(t, c, "sp1", "")
-	sp2 := createSpace(t, c, "sp2", "")
-	sp3 := createSpace(t, c, "sp3", "")
-	sp4 := createSpace(t, c, "sp4", "")
+	ctx := context.Background()
+	c, client, done := newCore(t)
+	defer done()
+	sp1, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "sp1"})
+	require.NoError(t, err)
+	sp2, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "sp2"})
+	require.NoError(t, err)
+	sp3, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "sp3"})
+	require.NoError(t, err)
+	sp4, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "sp4"})
+	require.NoError(t, err)
 	// delete config.json from sp3
 	require.NoError(t, os.Remove(filepath.Join(c.Root, sp3.Name, "config.json")))
 	expected := []string{
@@ -65,43 +74,45 @@ func TestSpaceList(t *testing.T) {
 		sp2.Name,
 		sp4.Name,
 	}
-	var list []string
-	httpJSONSuccess(t, zqd.NewHandler(c), "GET", "http://localhost:9867/space", nil, &list)
+	list, err := client.SpaceList(ctx)
+	require.NoError(t, err)
 	require.Equal(t, expected, list)
 }
 
 func TestSpaceInfo(t *testing.T) {
-	space := "test"
 	src := `
 #0:record[_path:string,ts:time,uid:bstring]
 0:[conn;1521911723.205187;CBrzd94qfowOqJwCHa;]
 0:[conn;1521911721.255387;C8Tful1TvM3Zf5x8fl;]`
-	c := newCore(t)
-	defer os.RemoveAll(c.Root)
-	createSpaceWithData(t, c, space, src)
-	expected := api.SpaceInfo{
+	ctx := context.Background()
+	c, client, done := newCore(t)
+	defer done()
+	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	require.NoError(t, err)
+	putSpaceData(t, c, sp.Name, src)
+	expected := &api.SpaceInfo{
 		// MinTime and MaxTime are not present because the
 		// space is not populated via the regular pcap ingest
 		// process.
-		Name:          space,
+		Name:          sp.Name,
 		Size:          88,
 		PacketSupport: false,
 	}
-	u := fmt.Sprintf("http://localhost:9867/space/%s", space)
-	var info api.SpaceInfo
-	httpJSONSuccess(t, zqd.NewHandler(c), "GET", u, nil, &info)
+	info, err := client.SpaceInfo(ctx, sp.Name)
+	require.NoError(t, err)
 	require.Equal(t, expected, info)
 }
 
 func TestSpaceInfoNoData(t *testing.T) {
-	const space = "test"
-	c := newCore(t)
-	createSpace(t, c, space, "")
-	u := fmt.Sprintf("http://localhost:9867/space/%s", space)
-	var info api.SpaceInfo
-	httpJSONSuccess(t, zqd.NewHandler(c), "GET", u, nil, &info)
-	expected := api.SpaceInfo{
-		Name:          space,
+	ctx := context.Background()
+	_, client, done := newCore(t)
+	defer done()
+	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	require.NoError(t, err)
+	info, err := client.SpaceInfo(ctx, sp.Name)
+	require.NoError(t, err)
+	expected := &api.SpaceInfo{
+		Name:          sp.Name,
 		Size:          0,
 		PacketSupport: false,
 	}
@@ -109,148 +120,148 @@ func TestSpaceInfoNoData(t *testing.T) {
 }
 
 func TestSpacePostNameOnly(t *testing.T) {
-	c := newCore(t)
-	defer os.RemoveAll(c.Root)
-	expected := api.SpacePostResponse{
+	ctx := context.Background()
+	c, client, done := newCore(t)
+	defer done()
+	expected := &api.SpacePostResponse{
 		Name:    "test",
 		DataDir: filepath.Join(c.Root, "test"),
 	}
-	res := createSpace(t, c, "test", "")
-	require.Equal(t, expected, res)
+	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	require.NoError(t, err)
+	require.Equal(t, expected, sp)
 }
 
-func TestSpacePostDataDirOnly(t *testing.T) {
-	run := func(name string, cb func(*testing.T, string, *zqd.Core) (string, api.SpacePostResponse)) {
-		tmp := createTempDir(t)
-		defer os.RemoveAll(tmp)
-		c := newCoreAtDir(t, filepath.Join(tmp, "spaces"))
-		require.NoError(t, os.Mkdir(c.Root, 0755))
-		t.Run(name, func(t *testing.T) {
-			datadir, expected := cb(t, tmp, c)
-			res := createSpace(t, c, "", datadir)
-			require.Equal(t, expected, res)
-		})
+func TestSpacePostDataDir(t *testing.T) {
+	ctx := context.Background()
+	tmp := createTempDir(t)
+	defer os.RemoveAll(tmp)
+	datadir := filepath.Join(tmp, "mypcap.brim")
+	expected := &api.SpacePostResponse{
+		Name:    "mypcap.brim",
+		DataDir: datadir,
 	}
-	run("Simple", func(t *testing.T, tmp string, c *zqd.Core) (string, api.SpacePostResponse) {
-		datadir := filepath.Join(tmp, "mypcap.brim")
-		require.NoError(t, os.Mkdir(datadir, 0755))
-		return datadir, api.SpacePostResponse{
-			Name:    "mypcap.brim",
-			DataDir: datadir,
-		}
-	})
-	run("DuplicateName", func(t *testing.T, tmp string, c *zqd.Core) (string, api.SpacePostResponse) {
-		createSpace(t, c, "mypcap.brim", "")
-		datadir := filepath.Join(tmp, "mypcap.brim")
-		require.NoError(t, os.Mkdir(datadir, 0755))
-		return datadir, api.SpacePostResponse{
-			Name:    "mypcap_01.brim",
-			DataDir: datadir,
-		}
-	})
+	_, client, done := newCoreAtDir(t, filepath.Join(tmp, "spaces"))
+	defer done()
+	sp, err := client.SpacePost(ctx, api.SpacePostRequest{DataDir: datadir})
+	require.NoError(t, err)
+	require.Equal(t, expected, sp)
+}
+
+func TestSpacePostDataDirDuplicate(t *testing.T) {
+	ctx := context.Background()
+	tmp1 := createTempDir(t)
+	defer os.RemoveAll(tmp1)
+	tmp2 := createTempDir(t)
+	defer os.RemoveAll(tmp2)
+	datadir1 := filepath.Join(tmp1, "mypcap.brim")
+	datadir2 := filepath.Join(tmp2, "mypcap.brim")
+	expected := &api.SpacePostResponse{
+		Name:    "mypcap_01.brim",
+		DataDir: datadir2,
+	}
+	_, client, done := newCoreAtDir(t, filepath.Join(tmp1, "spaces"))
+	defer done()
+	_, err := client.SpacePost(ctx, api.SpacePostRequest{DataDir: datadir1})
+	require.NoError(t, err)
+	sp2, err := client.SpacePost(ctx, api.SpacePostRequest{DataDir: datadir2})
+	require.NoError(t, err)
+	require.Equal(t, expected, sp2)
 }
 
 func TestSpaceDelete(t *testing.T) {
-	space := "myspace"
-	spaceUrl := fmt.Sprintf("http://localhost:9867/space/%s", space)
-	run := func(name string, cb func(*testing.T, string, *zqd.Core)) {
-		tmp := createTempDir(t)
-		defer os.RemoveAll(tmp)
-		c := newCoreAtDir(t, filepath.Join(tmp, "spaces"))
-		require.NoError(t, os.Mkdir(c.Root, 0755))
-		t.Run(name, func(t *testing.T) {
-			cb(t, tmp, c)
-			// make sure no spaces exist
-			var list []string
-			httpJSONSuccess(t, zqd.NewHandler(c), "GET", "http://localhost:9867/space", nil, &list)
-			require.Equal(t, []string{}, list)
-		})
-	}
-	run("Simple", func(t *testing.T, tmp string, c *zqd.Core) {
-		createSpace(t, c, space, "")
-		r := httpRequest(t, zqd.NewHandler(c), "DELETE", spaceUrl, nil)
-		require.Equal(t, http.StatusNoContent, r.StatusCode)
-	})
-	run("DeletesOutsideDataDir", func(t *testing.T, tmp string, c *zqd.Core) {
-		datadir := filepath.Join(tmp, "datadir")
-		createSpace(t, c, space, datadir)
-		r := httpRequest(t, zqd.NewHandler(c), "DELETE", spaceUrl, nil)
-		require.Equal(t, http.StatusNoContent, r.StatusCode)
-		_, err := os.Stat(datadir)
-		require.Error(t, err)
-		require.Truef(t, os.IsNotExist(err), "expected error to be os.IsNotExist, got %v", err)
-	})
+	ctx := context.Background()
+	_, client, done := newCore(t)
+	defer done()
+	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	require.NoError(t, err)
+	err = client.SpaceDelete(ctx, sp.Name)
+	require.NoError(t, err)
+	list, err := client.SpaceList(ctx)
+	require.NoError(t, err)
+	require.Equal(t, []string{}, list)
+}
+
+func TestSpaceDeleteDataDir(t *testing.T) {
+	ctx := context.Background()
+	tmp := createTempDir(t)
+	defer os.RemoveAll(tmp)
+	_, client, done := newCoreAtDir(t, filepath.Join(tmp, "spaces"))
+	defer done()
+	datadir := filepath.Join(tmp, "mypcap.brim")
+	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	require.NoError(t, err)
+	err = client.SpaceDelete(ctx, sp.Name)
+	require.NoError(t, err)
+	list, err := client.SpaceList(ctx)
+	require.NoError(t, err)
+	require.Equal(t, []string{}, list)
+	// ensure data dir has also been deleted
+	_, err = os.Stat(datadir)
+	require.Error(t, err)
+	require.Truef(t, os.IsNotExist(err), "expected error to be os.IsNotExist, got %v", err)
 }
 
 func TestURLEncodingSupport(t *testing.T) {
-	c := newCore(t)
-	defer os.RemoveAll(c.Root)
-
+	ctx := context.Background()
+	_, client, done := newCore(t)
+	defer done()
 	rawSpace := "raw %space.brim"
-	encodedSpaceURL := fmt.Sprintf("http://localhost:9867/space/%s", url.PathEscape(rawSpace))
-
-	createSpace(t, c, rawSpace, "")
-
-	res := httpRequest(t, zqd.NewHandler(c), "GET", encodedSpaceURL, nil)
-	require.Equal(t, http.StatusOK, res.StatusCode)
-
-	res = httpRequest(t, zqd.NewHandler(c), "DELETE", encodedSpaceURL, nil)
-	require.Equal(t, http.StatusNoContent, res.StatusCode)
+	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: rawSpace})
+	require.NoError(t, err)
+	require.Equal(t, rawSpace, sp.Name)
+	err = client.SpaceDelete(ctx, rawSpace)
+	require.NoError(t, err)
 }
 
 func TestNoEndSlashSupport(t *testing.T) {
-	c := newCore(t)
-	defer os.RemoveAll(c.Root)
-
-	h := zqd.NewHandler(c)
-	r := httptest.NewRequest("GET", "http://localhost:9867/space/", nil)
-	w := httptest.NewRecorder()
-	h.ServeHTTP(w, r)
-	res := w.Result()
-	require.Equal(t, 404, res.StatusCode)
+	_, client, done := newCore(t)
+	defer done()
+	_, err := client.Do(context.Background(), "GET", "/space/", nil)
+	require.Error(t, err)
+	require.Equal(t, 404, err.(*api.ErrorResponse).StatusCode())
 }
 
 func TestRequestID(t *testing.T) {
+	ctx := context.Background()
 	t.Run("GeneratesUniqueID", func(t *testing.T) {
-		c := newCore(t)
-		defer os.RemoveAll(c.Root)
-		h := zqd.NewHandler(c)
-		res1 := httpRequest(t, h, "GET", "http://localhost:9867/space", nil)
-		res2 := httpRequest(t, h, "GET", "http://localhost:9867/space", nil)
-		assert.Equal(t, "1", res1.Header.Get("X-Request-ID"))
-		assert.Equal(t, "2", res2.Header.Get("X-Request-ID"))
+		_, client, done := newCore(t)
+		defer done()
+		res1, err := client.Do(ctx, "GET", "/space", nil)
+		require.NoError(t, err)
+		res2, err := client.Do(ctx, "GET", "/space", nil)
+		require.NoError(t, err)
+		assert.Equal(t, "1", res1.Header().Get("X-Request-ID"))
+		assert.Equal(t, "2", res2.Header().Get("X-Request-ID"))
 	})
 	t.Run("PropagatesID", func(t *testing.T) {
-		c := newCore(t)
-		defer os.RemoveAll(c.Root)
+		_, client, done := newCore(t)
+		defer done()
 		requestID := "random-request-ID"
-		r := httptest.NewRequest("GET", "http://localhost:9867/space", nil)
-		r.Header.Add("X-Request-ID", requestID)
-		w := httptest.NewRecorder()
-		zqd.NewHandler(c).ServeHTTP(w, r)
-		require.Equal(t, requestID, w.Result().Header.Get("X-Request-ID"))
+		req := client.Request(context.Background())
+		req.SetHeader("X-Request-ID", requestID)
+		res, err := req.Execute("GET", "/space")
+		require.NoError(t, err)
+		require.Equal(t, requestID, res.Header().Get("X-Request-ID"))
 	})
 }
 
-func execSearch(t *testing.T, c *zqd.Core, space, prog string) string {
+func zngSearch(t *testing.T, client *api.Connection, space, prog string) string {
 	parsed, err := zql.ParseProc(prog)
 	require.NoError(t, err)
 	proc, err := json.Marshal(parsed)
 	require.NoError(t, err)
-	s := api.SearchRequest{
+	req := api.SearchRequest{
 		Space: space,
 		Proc:  proc,
 		Span:  nano.MaxSpan,
 		Dir:   1,
 	}
-	// XXX Get rid of this format query param and use http headers instead.
-	res := httpRequest(t, zqd.NewHandler(c), "POST", "http://localhost:9867/search?format=bzng", s)
-	require.Equal(t, http.StatusOK, res.StatusCode)
-	require.Equal(t, "application/ndjson", res.Header.Get("Content-Type"))
+	r, err := client.Search(context.Background(), req)
+	require.NoError(t, err)
 	buf := bytes.NewBuffer(nil)
-	w := zngio.NewWriter(buf)
-	r := bzngio.NewReader(res.Body, resolver.NewContext())
-	require.NoError(t, zbuf.Copy(zbuf.NopFlusher(w), r))
+	w := zbuf.NopFlusher(zngio.NewWriter(buf))
+	require.NoError(t, zbuf.Copy(w, r))
 	return buf.String()
 }
 
@@ -264,17 +275,24 @@ func createTempDir(t *testing.T) string {
 	return dir
 }
 
-func newCore(t *testing.T) *zqd.Core {
+func newCore(t *testing.T) (*zqd.Core, *api.Connection, func()) {
 	root := createTempDir(t)
 	return newCoreAtDir(t, root)
 }
 
-func newCoreAtDir(t *testing.T, dir string) *zqd.Core {
+func newCoreAtDir(t *testing.T, dir string) (*zqd.Core, *api.Connection, func()) {
 	conf := zqd.Config{
 		Root:   dir,
 		Logger: zaptest.NewLogger(t, zaptest.Level(zap.WarnLevel)),
 	}
-	return zqd.NewCore(conf)
+	require.NoError(t, os.MkdirAll(dir, 0755))
+	c := zqd.NewCore(conf)
+	h := zqd.NewHandler(c)
+	ts := httptest.NewServer(h)
+	return c, api.NewConnectionTo(ts.URL), func() {
+		os.RemoveAll(dir)
+		ts.Close()
+	}
 }
 
 func createSpace(t *testing.T, c *zqd.Core, spaceName, datadir string) api.SpacePostResponse {
@@ -287,16 +305,9 @@ func createSpace(t *testing.T, c *zqd.Core, spaceName, datadir string) api.Space
 	return res
 }
 
-// createSpace initiates a new space in the provided zqd.Core and writes the zng
-// source into said space.
-func createSpaceWithData(t *testing.T, c *zqd.Core, spaceName, src string) {
-	res := createSpace(t, c, spaceName, "")
-	writeToSpace(t, c, res.Name, src)
-}
-
-// writeToSpace writes the provided zng source in to the provided space
+// putSpaceData writes the provided zng source in to the provided space
 // directory.
-func writeToSpace(t *testing.T, c *zqd.Core, spaceName, src string) {
+func putSpaceData(t *testing.T, c *zqd.Core, spaceName, src string) {
 	s, err := space.Open(c.Root, spaceName)
 	require.NoError(t, err)
 	f, err := s.CreateFile("all.bzng")
