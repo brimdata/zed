@@ -11,8 +11,6 @@ import (
 
 type BzngSearch struct {
 	reader *bzngio.Reader
-	ctrl   interface{}
-	err    error
 	onctrl func(interface{})
 }
 
