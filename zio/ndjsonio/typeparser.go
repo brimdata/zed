@@ -261,10 +261,6 @@ func (p *typeParser) parseObject(b []byte) (zng.Value, error) {
 		}
 		return zng.Value{}, err
 	}
-	if ti.flatDesc.TsCol < 0 {
-		incr(&p.stats.BadFormat)
-		return zng.Value{}, ErrBadFormat
-	}
 
 	raw, dropped, err := ti.newRawFromJSON(b)
 	if err != nil {

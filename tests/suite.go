@@ -49,6 +49,7 @@ var scripts = []test.Shell{
 	jsontype.Test,
 	jsontype.TestInferPath,
 	jsontype.TestSet,
+	jsontype.TestNoTs,
 	pcap.Test1,
 	pcap.Test2,
 	pcap.Test3,
