@@ -1,4 +1,4 @@
-package packet
+package ingest
 
 import (
 	"bufio"
@@ -28,11 +28,11 @@ var (
 )
 
 const (
-	IndexFile        = "packets.idx.json"
+	PcapIndexFile    = "packets.idx.json"
 	DefaultSortLimit = 10000000
 )
 
-type IngestProcess struct {
+type Process struct {
 	StartTime nano.Ts
 	PcapSize  int64
 
@@ -47,12 +47,12 @@ type IngestProcess struct {
 	zlauncher    zeek.Launcher
 }
 
-// IngestFile kicks of the process for ingesting a pcap file into a space.
+// Pcap kicks of the process for ingesting a pcap file into a space.
 // Should everything start out successfully, this will return a thread safe
-// IngestProcess instance once zeek log files have started to materialize in a tmp
+// Process instance once zeek log files have started to materialize in a tmp
 // directory. If zeekExec is an empty string, this will attempt to resolve zeek
 // from $PATH.
-func IngestFile(ctx context.Context, s *space.Space, pcap string, zlauncher zeek.Launcher, sortLimit int) (*IngestProcess, error) {
+func Pcap(ctx context.Context, s *space.Space, pcap string, zlauncher zeek.Launcher, sortLimit int) (*Process, error) {
 	logdir := s.DataPath(".tmp.zeeklogs")
 	if err := os.Mkdir(logdir, 0700); err != nil {
 		if os.IsExist(err) {
@@ -67,7 +67,7 @@ func IngestFile(ctx context.Context, s *space.Space, pcap string, zlauncher zeek
 	if err != nil {
 		return nil, err
 	}
-	p := &IngestProcess{
+	p := &Process{
 		StartTime: nano.Now(),
 		PcapSize:  info.Size(),
 		space:     s,
@@ -79,11 +79,11 @@ func IngestFile(ctx context.Context, s *space.Space, pcap string, zlauncher zeek
 		sortLimit: sortLimit,
 	}
 	if err = p.indexPcap(); err != nil {
-		os.Remove(p.space.DataPath(IndexFile))
+		os.Remove(p.space.DataPath(PcapIndexFile))
 		return nil, err
 	}
 	if err = p.space.SetPacketPath(p.pcapPath); err != nil {
-		os.Remove(p.space.DataPath(IndexFile))
+		os.Remove(p.space.DataPath(PcapIndexFile))
 		return nil, err
 	}
 	go func() {
@@ -94,7 +94,7 @@ func IngestFile(ctx context.Context, s *space.Space, pcap string, zlauncher zeek
 	return p, nil
 }
 
-func (p *IngestProcess) run(ctx context.Context) error {
+func (p *Process) run(ctx context.Context) error {
 	var slurpErr error
 	slurpDone := make(chan struct{})
 	go func() {
@@ -104,7 +104,7 @@ func (p *IngestProcess) run(ctx context.Context) error {
 
 	abort := func() {
 		os.RemoveAll(p.logdir)
-		os.Remove(p.space.DataPath(IndexFile))
+		os.Remove(p.space.DataPath(PcapIndexFile))
 		os.Remove(p.space.DataPath("all.bzng"))
 		p.space.SetPacketPath("")
 	}
@@ -147,7 +147,7 @@ outer:
 	return nil
 }
 
-func (p *IngestProcess) indexPcap() error {
+func (p *Process) indexPcap() error {
 	pcapfile, err := os.Open(p.pcapPath)
 	if err != nil {
 		return err
@@ -157,7 +157,7 @@ func (p *IngestProcess) indexPcap() error {
 	if err != nil {
 		return err
 	}
-	idxpath := p.space.DataPath(IndexFile)
+	idxpath := p.space.DataPath(PcapIndexFile)
 	tmppath := idxpath + ".tmp"
 	f, err := os.Create(tmppath)
 	if err != nil {
@@ -176,7 +176,7 @@ func (p *IngestProcess) indexPcap() error {
 	return os.Rename(tmppath, idxpath)
 }
 
-func (p *IngestProcess) runZeek(ctx context.Context) error {
+func (p *Process) runZeek(ctx context.Context) error {
 	pcapfile, err := os.Open(p.pcapPath)
 	if err != nil {
 		return err
@@ -192,34 +192,34 @@ func (p *IngestProcess) runZeek(ctx context.Context) error {
 
 // PcapReadSize returns the total size in bytes of data read from the underlying
 // pcap file.
-func (p *IngestProcess) PcapReadSize() int64 {
+func (p *Process) PcapReadSize() int64 {
 	return atomic.LoadInt64(&p.pcapReadSize)
 }
 
 // Err returns the an error if an error occurred while the ingest process was
 // running. If the process is still running Err will wait for the process to
 // complete before returning.
-func (p *IngestProcess) Err() error {
+func (p *Process) Err() error {
 	<-p.done
 	return p.err
 }
 
 // Done returns a chan that emits when the ingest process is complete.
-func (p *IngestProcess) Done() <-chan struct{} {
+func (p *Process) Done() <-chan struct{} {
 	return p.done
 }
 
-func (p *IngestProcess) SnapshotCount() int {
+func (p *Process) SnapshotCount() int {
 	return int(atomic.LoadInt32(&p.snapshots))
 }
 
 // Snap returns a chan that emits every time a snapshot is made. It
 // should no longer be read from after Done() has emitted.
-func (p *IngestProcess) Snap() <-chan struct{} {
+func (p *Process) Snap() <-chan struct{} {
 	return p.snap
 }
 
-func (p *IngestProcess) createSnapshot(ctx context.Context) error {
+func (p *Process) createSnapshot(ctx context.Context) error {
 	files, err := filepath.Glob(filepath.Join(p.logdir, "*.log"))
 	// Per filepath.Glob documentation the only possible error would be due to
 	// an invalid glob pattern. Ok to panic.
@@ -258,7 +258,7 @@ func (p *IngestProcess) createSnapshot(ctx context.Context) error {
 	return os.Rename(bzngfile.Name(), p.space.DataPath("all.bzng"))
 }
 
-func (p *IngestProcess) Write(b []byte) (int, error) {
+func (p *Process) Write(b []byte) (int, error) {
 	n := len(b)
 	atomic.AddInt64(&p.pcapReadSize, int64(n))
 	return n, nil
