@@ -80,6 +80,9 @@ func compileNative(node ast.Expression) (NativeEvaluator, error) {
 			return nv, nil
 		}, nil
 
+	case *ast.UnaryExpression:
+		return compileUnary(*n)
+
 	case *ast.BinaryExpression:
 		lhsFunc, err := compileNative(n.LHS)
 		if err != nil {
@@ -115,6 +118,26 @@ func compileNative(node ast.Expression) (NativeEvaluator, error) {
 	default:
 		return nil, fmt.Errorf("invalid expression type %T", node)
 	}
+}
+
+func compileUnary(node ast.UnaryExpression) (NativeEvaluator, error) {
+	if node.Operator != "!" {
+		return nil, fmt.Errorf("unknown unary operator %s\n", node.Operator)
+	}
+	fn, err := compileNative(node.Operand)
+	if err != nil {
+		return nil, err
+	}
+	return func(rec *zng.Record) (zngnative.Value, error) {
+		val, err := fn(rec)
+		if err != nil {
+			return zngnative.Value{}, err
+		}
+		if val.Type.ID() != zng.IdBool {
+			return zngnative.Value{}, ErrIncompatibleTypes
+		}
+		return zngnative.Value{zng.TypeBool, !(val.Value.(bool))}, nil
+	}, nil
 }
 
 func compileLogical(lhsFunc, rhsFunc NativeEvaluator, operator string) (NativeEvaluator, error) {

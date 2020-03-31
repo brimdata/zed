@@ -162,6 +162,10 @@ func TestLogical(t *testing.T) {
 	testSuccessful(t, "t OR f", record, zbool(true))
 	testSuccessful(t, "f OR t", record, zbool(true))
 	testSuccessful(t, "f OR f", record, zbool(false))
+
+	testSuccessful(t, "!t", record, zbool(false))
+	testSuccessful(t, "!f", record, zbool(true))
+	testSuccessful(t, "!!f", record, zbool(false))
 }
 
 func TestCompareNumbers(t *testing.T) {

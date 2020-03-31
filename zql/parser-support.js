@@ -109,6 +109,10 @@ function makeGroupByProc(duration, limit, keys, reducers) {
   return { op: "GroupByProc", keys, reducers, duration, limit };
 }
 
+function makeUnaryExpr(operator, operand) {
+  return { op: "UnaryExpr", operator, operand };
+}
+
 function makeBinaryExprChain(first, rest) {
   let ret = first
   for (let part of rest) {
