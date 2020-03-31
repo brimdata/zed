@@ -566,3 +566,19 @@ func TestFieldReference(t *testing.T) {
 
 	testError(t, "rec.no", record, expr.ErrNoSuchField, "referencing nonexistent field")
 }
+
+func TestConditional(t *testing.T) {
+	record, err := parseOneRecord(`
+#0:record[x:int64]
+0:[1;]`)
+	require.NoError(t, err)
+
+	testSuccessful(t, `x = 0 ? "zero" : "not zero"`, record, zstring("not zero"))
+	testSuccessful(t, `x = 1 ? "one" : "not one"`, record, zstring("one"))
+	testError(t, `x ? "x" : "not x"`, record, expr.ErrIncompatibleTypes, "conditional with non-boolean condition")
+
+	// Ensure that the clause not evaluated doesn't generate errors
+	// (field y doesn't exist but it shouldn't be evaluated)
+	testSuccessful(t, "x = 0 ? y : x", record, zint64(1))
+	testSuccessful(t, "x != 0 ? x : y", record, zint64(1))
+}
