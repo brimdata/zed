@@ -450,7 +450,13 @@ FieldReference
 // highest level of precedence.
 //
 
-Expression = LogicalORExpression
+Expression = ConditionalExpression
+
+ConditionalExpression
+  = condition:LogicalORExpression __ "?" __ thenClause:Expression __ ":" __ elseClause:Expression {
+    RETURN(makeConditionalExpr(condition, thenClause, elseClause))
+  }
+  / LogicalORExpression
 
 LogicalORExpression
   = first:LogicalANDExpression

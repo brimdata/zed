@@ -148,6 +148,38 @@ func unpackExpression(node joe.JSON) (Expression, error) {
 		}
 
 		return &BinaryExpression{LHS: lhs, RHS: rhs}, nil
+	case "ConditionalExpr":
+		conditionNode := node.Get("condition")
+		if conditionNode == joe.Undefined {
+			return nil, errors.New("ConditionalExpr missing condition")
+		}
+		condition, err := unpackExpression(conditionNode)
+		if err != nil {
+			return nil, err
+		}
+
+		thenNode := node.Get("then")
+		if thenNode == joe.Undefined {
+			return nil, errors.New("ConditionalExpr missing then")
+		}
+		thenClause, err := unpackExpression(thenNode)
+		if err != nil {
+			return nil, err
+		}
+
+		elseNode := node.Get("else")
+		if elseNode == joe.Undefined {
+			return nil, errors.New("ConditionalExpr missing else")
+		}
+		elseClause, err := unpackExpression(elseNode)
+		if err != nil {
+			return nil, err
+		}
+		return &ConditionalExpression{
+			Condition: condition,
+			Then:      thenClause,
+			Else:      elseClause,
+		}, nil
 	case "FunctionCall":
 		argsNode := node.Get("args")
 		if argsNode == joe.Undefined {

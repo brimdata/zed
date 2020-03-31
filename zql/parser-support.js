@@ -117,6 +117,10 @@ function makeBinaryExprChain(first, rest) {
   return ret
 }
 
+function makeConditionalExpr(condition, thenClause, elseClause) {
+  return { op: "ConditionalExpr", condition, then: thenClause, else: elseClause };
+}
+
 function makeFunctionCall(fn, args) {
   return { op: "FunctionCall", function: fn, args };
 }

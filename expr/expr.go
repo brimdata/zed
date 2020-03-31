@@ -106,6 +106,9 @@ func compileNative(node ast.Expression) (NativeEvaluator, error) {
 			return nil, fmt.Errorf("invalid binary operator %s", n.Operator)
 		}
 
+	case *ast.ConditionalExpression:
+		return compileConditional(*n)
+
 	case *ast.FunctionCall:
 		return compileFunctionCall(*n)
 
@@ -779,5 +782,35 @@ func compileFunctionCall(node ast.FunctionCall) (NativeEvaluator, error) {
 		}
 
 		return fn.impl(args)
+	}, nil
+}
+
+func compileConditional(node ast.ConditionalExpression) (NativeEvaluator, error) {
+	conditionFunc, err := compileNative(node.Condition)
+	if err != nil {
+		return nil, err
+	}
+	thenFunc, err := compileNative(node.Then)
+	if err != nil {
+		return nil, err
+	}
+	elseFunc, err := compileNative(node.Else)
+	if err != nil {
+		return nil, err
+	}
+
+	return func(r *zng.Record) (zngnative.Value, error) {
+		condition, err := conditionFunc(r)
+		if err != nil {
+			return zngnative.Value{}, err
+		}
+		if condition.Type.ID() != zng.IdBool {
+			return zngnative.Value{}, ErrIncompatibleTypes
+		}
+		if condition.Value.(bool) {
+			return thenFunc(r)
+		} else {
+			return elseFunc(r)
+		}
 	}, nil
 }

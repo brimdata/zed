@@ -132,16 +132,24 @@ type BinaryExpression struct {
 	RHS      Expression `json:"rhs"`
 }
 
+type ConditionalExpression struct {
+	Node
+	Condition Expression `json:"condition"`
+	Then      Expression `json:"then"`
+	Else      Expression `json:"else"`
+}
+
 type FunctionCall struct {
 	Node
 	Function string       `json:"function"`
 	Args     []Expression `json:"args"`
 }
 
-func (*BinaryExpression) exprNode() {}
-func (*FunctionCall) exprNode()     {}
-func (*Literal) exprNode()          {}
-func (*FieldRead) exprNode()        {}
+func (*BinaryExpression) exprNode()      {}
+func (*ConditionalExpression) exprNode() {}
+func (*FunctionCall) exprNode()          {}
+func (*Literal) exprNode()               {}
+func (*FieldRead) exprNode()             {}
 
 // ----------------------------------------------------------------------------
 // Procs
