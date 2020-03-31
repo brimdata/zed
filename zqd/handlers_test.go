@@ -16,12 +16,9 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/bzngio"
 	"github.com/brimsec/zq/zio/zngio"
-	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd"
 	"github.com/brimsec/zq/zqd/api"
-	"github.com/brimsec/zq/zqd/space"
 	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,11 +32,11 @@ func TestSearch(t *testing.T) {
 0:[conn;1521911723.205187;CBrzd94qfowOqJwCHa;]
 0:[conn;1521911721.255387;C8Tful1TvM3Zf5x8fl;]
 `
-	core, client, done := newCore(t)
+	_, client, done := newCore(t)
 	defer done()
 	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	putSpaceData(t, core, sp.Name, src)
+	postSpaceData(t, client, sp.Name, src)
 	res := zngSearch(t, client, sp.Name, "*")
 	require.Equal(t, test.Trim(src), res)
 }
@@ -82,20 +79,20 @@ func TestSpaceList(t *testing.T) {
 func TestSpaceInfo(t *testing.T) {
 	src := `
 #0:record[_path:string,ts:time,uid:bstring]
-0:[conn;1521911723.205187;CBrzd94qfowOqJwCHa;]
-0:[conn;1521911721.255387;C8Tful1TvM3Zf5x8fl;]`
+0:[conn;1;CBrzd94qfowOqJwCHa;]
+0:[conn;2;C8Tful1TvM3Zf5x8fl;]`
 	ctx := context.Background()
-	c, client, done := newCore(t)
+	_, client, done := newCore(t)
 	defer done()
 	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	putSpaceData(t, c, sp.Name, src)
+	postSpaceData(t, client, sp.Name, src)
+	min, max := nano.Ts(1e9), nano.Ts(2e9)
 	expected := &api.SpaceInfo{
-		// MinTime and MaxTime are not present because the
-		// space is not populated via the regular pcap ingest
-		// process.
+		MinTime:       &min,
+		MaxTime:       &max,
 		Name:          sp.Name,
-		Size:          88,
+		Size:          80,
 		PacketSupport: false,
 	}
 	info, err := client.SpaceInfo(ctx, sp.Name)
@@ -305,18 +302,33 @@ func createSpace(t *testing.T, c *zqd.Core, spaceName, datadir string) api.Space
 	return res
 }
 
-// putSpaceData writes the provided zng source in to the provided space
+// postSpaceData POSTs the provided data source as a log in to the provided space
 // directory.
-func putSpaceData(t *testing.T, c *zqd.Core, spaceName, src string) {
-	s, err := space.Open(c.Root, spaceName)
+func postSpaceData(t *testing.T, c *api.Connection, spaceName, data string) *api.Stream {
+	pattern := strings.ReplaceAll(t.Name(), "/", "-")
+	f, err := ioutil.TempFile("", pattern)
 	require.NoError(t, err)
-	f, err := s.CreateFile("all.bzng")
-	require.NoError(t, err)
+	name := f.Name()
 	defer f.Close()
-	// write zng
-	w := bzngio.NewWriter(f)
-	r := zngio.NewReader(strings.NewReader(src), resolver.NewContext())
-	require.NoError(t, zbuf.Copy(zbuf.NopFlusher(w), r))
+	defer os.Remove(name)
+	_, err = f.WriteString(data)
+	require.NoError(t, err)
+	ctx := context.Background()
+	s, err := c.PostLogs(ctx, spaceName, api.LogPostRequest{[]string{name}})
+	require.NoError(t, err)
+	var payloads []interface{}
+	for {
+		p, err := s.Next()
+		require.NoError(t, err)
+		if p == nil {
+			break
+		}
+		payloads = append(payloads, p)
+	}
+	last := payloads[len(payloads)-1].(*api.TaskEnd)
+	assert.Equal(t, last.Type, "TaskEnd")
+	assert.Nil(t, last.Error)
+	return s
 }
 
 func httpRequest(t *testing.T, h http.Handler, method, url string, body interface{}) *http.Response {
