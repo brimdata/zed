@@ -7,6 +7,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zngnative"
@@ -36,6 +37,7 @@ var allFns = map[string]struct {
 	"Math.pow":   {2, 2, mathPow},
 	"Math.sqrt":  {1, 1, mathSqrt},
 
+	"String.byteLen":     {1, 1, stringByteLen},
 	"String.formatFloat": {1, 1, stringFormatFloat},
 	"String.formatInt":   {1, 1, stringFormatInt},
 	"String.formatIp":    {1, 1, stringFormatIp},
@@ -43,6 +45,7 @@ var allFns = map[string]struct {
 	"String.parseInt":    {1, 1, stringParseInt},
 	"String.parseIp":     {1, 1, stringParseIp},
 	"String.replace":     {3, 3, stringReplace},
+	"String.runeLen":     {1, 1, stringRuneLen},
 	"String.toLower":     {1, 1, stringToLower},
 	"String.toUpper":     {1, 1, stringToUpper},
 	"String.trim":        {1, 1, stringTrim},
@@ -54,8 +57,6 @@ func err(fn string, err error) (zngnative.Value, error) {
 
 func lenFn(args []zngnative.Value) (zngnative.Value, error) {
 	switch zng.AliasedType(args[0].Type).(type) {
-	case *zng.TypeOfString, *zng.TypeOfBstring:
-		return zngnative.Value{zng.TypeInt64, int64(len(args[0].Value.(string)))}, nil
 	case *zng.TypeArray, *zng.TypeSet:
 		v, err := args[0].ToZngValue()
 		if err != nil {
@@ -275,6 +276,17 @@ func mathSqrt(args []zngnative.Value) (zngnative.Value, error) {
 	return zngnative.Value{zng.TypeFloat64, r}, nil
 }
 
+func stringByteLen(args []zngnative.Value) (zngnative.Value, error) {
+	switch args[0].Type.ID() {
+	case zng.IdString, zng.IdBstring:
+		v := len(args[0].Value.(string))
+		return zngnative.Value{zng.TypeInt64, int64(v)}, nil
+	default:
+		return err("Strings.byteLen", ErrBadArgument)
+	}
+
+}
+
 func stringFormatFloat(args []zngnative.Value) (zngnative.Value, error) {
 	if args[0].Type.ID() != zng.IdFloat64 {
 		return err("string.floatToString", ErrBadArgument)
@@ -362,6 +374,16 @@ func stringReplace(args []zngnative.Value) (zngnative.Value, error) {
 	return zngnative.Value{zng.TypeString, s}, nil
 }
 
+func stringRuneLen(args []zngnative.Value) (zngnative.Value, error) {
+	switch args[0].Type.ID() {
+	case zng.IdString, zng.IdBstring:
+		v := utf8.RuneCountInString(args[0].Value.(string))
+		return zngnative.Value{zng.TypeInt64, int64(v)}, nil
+	default:
+		return err("Strings.byteLen", ErrBadArgument)
+	}
+
+}
 func stringToLower(args []zngnative.Value) (zngnative.Value, error) {
 	if !isString(args[0]) {
 		return err("String.toLower", ErrBadArgument)

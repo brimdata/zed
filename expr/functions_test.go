@@ -225,11 +225,26 @@ func TestLen(t *testing.T) {
 0:[[1;2;3;][4;5;6;]]`)
 	require.NoError(t, err)
 
-	testSuccessful(t, `len("foo")`, record, zint64(3))
 	testSuccessful(t, "len(s)", record, zint64(3))
 	testSuccessful(t, "len(a)", record, zint64(3))
 
 	testError(t, "len()", record, expr.ErrTooFewArgs, "len() with no args")
 	testError(t, `len("foo", "bar")`, record, expr.ErrTooManyArgs, "len() with too many args")
-	testError(t, "len(5)", record, expr.ErrBadArgument, "len() with non string/container arg")
+	testError(t, `len("foo")`, record, expr.ErrBadArgument, "len() with string arg")
+	testError(t, "len(5)", record, expr.ErrBadArgument, "len() with non-container arg")
+
+	record, err = parseOneRecord(`
+#0:record[s:string,bs:bstring,bs2:bstring]
+0:[🍺;\xf0\x9f\x8d\xba;\xba\x8d\x9f\xf0;]`)
+	require.NoError(t, err)
+
+	testSuccessful(t, `String.byteLen("foo")`, record, zint64(3))
+	testSuccessful(t, `String.byteLen(s)`, record, zint64(4))
+	testSuccessful(t, `String.byteLen(bs)`, record, zint64(4))
+	testSuccessful(t, `String.byteLen(bs2)`, record, zint64(4))
+
+	testSuccessful(t, `String.runeLen("foo")`, record, zint64(3))
+	testSuccessful(t, `String.runeLen(s)`, record, zint64(1))
+	testSuccessful(t, `String.runeLen(bs)`, record, zint64(1))
+	testSuccessful(t, `String.runeLen(bs2)`, record, zint64(4))
 }
