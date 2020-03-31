@@ -324,6 +324,15 @@ func makeBinaryExprChain(firstIn, restIn interface{}) ast.Expression {
 	return result
 }
 
+func makeConditionalExpr(condition, thenClause, elseClause interface{}) ast.Expression {
+	return &ast.ConditionalExpression{
+		ast.Node{"ConditionalExpr"},
+		condition.(ast.Expression),
+		thenClause.(ast.Expression),
+		elseClause.(ast.Expression),
+	}
+}
+
 func makeFunctionCall(fn, argsIn interface{}) ast.Expression {
 	argArray := argsIn.([]interface{})
 	args := make([]ast.Expression, len(argArray))
