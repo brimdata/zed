@@ -30,6 +30,7 @@ var (
 const (
 	PcapIndexFile    = "packets.idx.json"
 	DefaultSortLimit = 10000000
+	tmpIngestDir     = ".tmp.ingest"
 )
 
 type Process struct {
@@ -53,9 +54,10 @@ type Process struct {
 // directory. If zeekExec is an empty string, this will attempt to resolve zeek
 // from $PATH.
 func Pcap(ctx context.Context, s *space.Space, pcap string, zlauncher zeek.Launcher, sortLimit int) (*Process, error) {
-	logdir := s.DataPath(".tmp.zeeklogs")
+	logdir := s.DataPath(tmpIngestDir)
 	if err := os.Mkdir(logdir, 0700); err != nil {
 		if os.IsExist(err) {
+			// could be in use by pcap or log ingest
 			return nil, ErrIngestProcessInFlight
 		}
 		return nil, err

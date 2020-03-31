@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
@@ -15,7 +16,17 @@ import (
 )
 
 // Logs ingests the provided list of files into the provided space.
+// Like ingest.Pcap, this overwrites any existing data in the space.
 func Logs(ctx context.Context, s *space.Space, paths []string, sortLimit int) error {
+	ingestDir := s.DataPath(tmpIngestDir)
+	if err := os.Mkdir(ingestDir, 0700); err != nil {
+		// could be in use by pcap or log ingest
+		if os.IsExist(err) {
+			return ErrIngestProcessInFlight
+		}
+		return err
+	}
+	defer os.RemoveAll(ingestDir)
 	if sortLimit == 0 {
 		sortLimit = DefaultSortLimit
 	}
@@ -41,7 +52,7 @@ func ingestLogs(ctx context.Context, s *space.Space, paths []string, sortLimit i
 		return err
 	}
 	defer zr.Close()
-	bzngfile, err := s.CreateFile("all.bzng.tmp")
+	bzngfile, err := s.CreateFile(filepath.Join(tmpIngestDir, "all.bzng.tmp"))
 	if err != nil {
 		return err
 	}
