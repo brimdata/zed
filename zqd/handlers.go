@@ -307,6 +307,51 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {
+	logger := c.requestLogger(r)
+	s := extractSpace(c, w, r)
+	if s == nil {
+		return
+	}
+	var req api.LogPostRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if len(req.Paths) == 0 {
+		http.Error(w, "empty paths", http.StatusBadRequest)
+		return
+	}
+	var ingestErr error
+	done := make(chan struct{})
+	go func() {
+		ingestErr = ingest.Logs(r.Context(), s, req.Paths, c.SortLimit)
+		close(done)
+	}()
+
+	w.Header().Set("Content-Type", "application/ndjson")
+	w.WriteHeader(http.StatusAccepted)
+	pipe := api.NewJSONPipe(w)
+	taskStart := api.TaskStart{Type: "TaskStart"}
+	if err := pipe.Send(taskStart); err != nil {
+		logger.Warn("Error sending payload", zap.Error(err))
+		return
+	}
+	<-done
+	taskEnd := api.TaskEnd{Type: "TaskEnd"}
+	if ingestErr != nil {
+		var ok bool
+		taskEnd.Error, ok = ingestErr.(*api.Error)
+		if !ok {
+			taskEnd.Error = &api.Error{Type: "Error", Message: ingestErr.Error()}
+		}
+	}
+	if err := pipe.SendFinal(taskEnd); err != nil {
+		logger.Warn("Error sending payload", zap.Error(err))
+		return
+	}
+}
+
 func extractSpace(c *Core, w http.ResponseWriter, r *http.Request) *space.Space {
 	name := extractSpaceName(w, r)
 	if name == "" {
