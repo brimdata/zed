@@ -128,6 +128,16 @@ func unpackExpression(node joe.JSON) (Expression, error) {
 	}
 
 	switch op {
+	case "UnaryExpr":
+		operandNode := node.Get("operand")
+		if operandNode == joe.Undefined {
+			return nil, errors.New("UnaryExpression missing operand")
+		}
+		operand, err := unpackExpression(operandNode)
+		if err != nil {
+			return nil, err
+		}
+		return &UnaryExpression{Operand: operand}, nil
 	case "BinaryExpr":
 		lhsNode := node.Get("lhs")
 		if lhsNode == joe.Undefined {

@@ -499,7 +499,7 @@ function peg$parse(input, options) {
       peg$c209 = "/",
       peg$c210 = peg$literalExpectation("/", false),
       peg$c211 = function(e) {
-              return makeLogicalNot(e)
+              return makeUnaryExpr("!", e)
           },
       peg$c212 = function(fn, args) {
               return makeFunctionCall(fn, args)
@@ -5019,7 +5019,7 @@ function peg$parse(input, options) {
     if (s1 !== peg$FAILED) {
       s2 = peg$parse__();
       if (s2 !== peg$FAILED) {
-        s3 = peg$parseCallExpression();
+        s3 = peg$parseNotExpression();
         if (s3 !== peg$FAILED) {
           peg$savedPos = s0;
           s1 = peg$c211(s3);
@@ -7895,6 +7895,10 @@ function peg$parse(input, options) {
   function makeGroupByProc(duration, limit, keys, reducers) {
     if (limit === null) { limit = undefined; }
     return { op: "GroupByProc", keys, reducers, duration, limit };
+  }
+
+  function makeUnaryExpr(operator, operand) {
+    return { op: "UnaryExpr", operator, operand };
   }
 
   function makeBinaryExprChain(first, rest) {

@@ -497,8 +497,8 @@ MultiplicativeExpression
 MultiplicativeOperator = ("*" / "/") { RETURN(TEXT) }
 
 NotExpression
-  = "!" __ e:CallExpression {
-        RETURN(makeLogicalNot(e))
+  = "!" __ e:NotExpression {
+        RETURN(makeUnaryExpr("!", e))
     }
   / CallExpression
 

@@ -122,6 +122,12 @@ type (
 	}
 )
 
+type UnaryExpression struct {
+	Node
+	Operator string     `json:"operator"`
+	Operand  Expression `json:"operand"`
+}
+
 // A BinaryExpression is any expression of the form "operand operator operand"
 // including arithmetic (+, -, *, /), logical operators (and, or), and
 // comparisons (=, !=, <, <=, >, >=)
@@ -138,6 +144,7 @@ type FunctionCall struct {
 	Args     []Expression `json:"args"`
 }
 
+func (*UnaryExpression) exprNode()  {}
 func (*BinaryExpression) exprNode() {}
 func (*FunctionCall) exprNode()     {}
 func (*Literal) exprNode()          {}
