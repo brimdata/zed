@@ -2,6 +2,7 @@ package slice
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -166,5 +167,5 @@ func (c *Command) Run(args []string) error {
 	} else {
 		search = pcap.NewRangeSearch(span)
 	}
-	return search.Run(out, pcapReader)
+	return search.Run(context.TODO(), out, pcapReader)
 }

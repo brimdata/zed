@@ -1,6 +1,7 @@
 package pcap
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -137,10 +138,14 @@ func genICMPFilter(src, dst net.IP) PacketFilter {
 
 // XXX currently assumes legacy pcap is produced by the input reader
 // XXX need to handle searching over multiple pcap files
-func (s *Search) Run(w io.Writer, r pcapio.Reader) error {
+func (s *Search) Run(ctx context.Context, w io.Writer, r pcapio.Reader) error {
 	opts := gopacket.DecodeOptions{Lazy: true, NoCopy: true}
 	var npkt int
 	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
 		block, typ, err := r.Read()
 		if err != nil {
 			if err == io.EOF {

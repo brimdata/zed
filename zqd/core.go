@@ -39,17 +39,18 @@ type Core struct {
 	taskCount int64
 	logger    *zap.Logger
 
-	// ingestLock protects the ingests map and the deletePending
-	// field inside the ingestWaitState's.
-	ingestLock sync.Mutex
-	ingests    map[string]*ingestWaitState
+	// spaceOpsLock protects the spaceOps map and the currentOps and
+	// deletePending fields inside the spaceOpsState's.
+	spaceOpsLock sync.Mutex
+	spaceOps     map[string]*spaceOpsState
 }
 
-type ingestWaitState struct {
+type spaceOpsState struct {
+	currentOps    int
 	deletePending int
-	// WaitGroup for active ingests
+
 	wg sync.WaitGroup
-	// closed to signal active ingest should terminate
+	// closed to signal non-delete ops should terminate
 	cancelChan chan struct{}
 }
 
@@ -63,7 +64,7 @@ func NewCore(conf Config) *Core {
 		ZeekLauncher: conf.ZeekLauncher,
 		SortLimit:    conf.SortLimit,
 		logger:       logger,
-		ingests:      make(map[string]*ingestWaitState),
+		spaceOps:     make(map[string]*spaceOpsState),
 	}
 }
 
@@ -79,64 +80,79 @@ func (c *Core) getTaskID() int64 {
 	return atomic.AddInt64(&c.taskCount, 1)
 }
 
-func (c *Core) startSpaceIngest(ctx context.Context, space string) (context.Context, func(), bool) {
-	c.ingestLock.Lock()
-	defer c.ingestLock.Unlock()
+// startSpaceOp registers that an operation on a space is in progress.
+// If the space is pending deletion, the bool parameter returns false.
+// Otherwise, this returns a new context, and a done function that must
+// be called when the operation completes.
+func (c *Core) startSpaceOp(ctx context.Context, space string) (context.Context, func(), bool) {
+	c.spaceOpsLock.Lock()
+	defer c.spaceOpsLock.Unlock()
 
-	iws, ok := c.ingests[space]
+	state, ok := c.spaceOps[space]
 	if !ok {
-		iws = &ingestWaitState{
+		state = &spaceOpsState{
 			cancelChan: make(chan struct{}, 0),
 		}
-		c.ingests[space] = iws
+		c.spaceOps[space] = state
 	}
-	if iws.deletePending > 0 {
+	if state.deletePending > 0 {
 		return ctx, func() {}, false
 	}
+	state.currentOps++
+	state.wg.Add(1)
 
 	ctx, cancel := context.WithCancel(ctx)
-	iws.wg.Add(1)
-	ingestDone := func() {
-		iws.wg.Done()
-		cancel()
-	}
-
 	go func() {
 		select {
 		case <-ctx.Done():
-		case <-iws.cancelChan:
+		case <-state.cancelChan:
 			cancel()
 		}
 	}()
 
+	ingestDone := func() {
+		c.spaceOpsLock.Lock()
+		state.currentOps--
+		if state.currentOps == 0 && state.deletePending == 0 {
+			delete(c.spaceOps, space)
+		}
+		c.spaceOpsLock.Unlock()
+
+		state.wg.Done()
+		cancel()
+	}
+
 	return ctx, ingestDone, true
 }
 
-func (c *Core) startSpaceDelete(space string) func() {
-	c.ingestLock.Lock()
+// haltSpaceOpsForDelete signals any outstanding operations that registered with
+// startSpaceOp to halt and marks the space as pending delete. It returns a done
+// function that must be called when the delete operation completes.
+func (c *Core) haltSpaceOpsForDelete(space string) func() {
+	c.spaceOpsLock.Lock()
 
-	iws, ok := c.ingests[space]
+	state, ok := c.spaceOps[space]
 	if !ok {
-		iws = &ingestWaitState{
+		state = &spaceOpsState{
 			cancelChan: make(chan struct{}, 0),
 		}
-		c.ingests[space] = iws
+		c.spaceOps[space] = state
 	}
-	if iws.deletePending == 0 {
-		close(iws.cancelChan)
+	if state.deletePending == 0 {
+		close(state.cancelChan)
 	}
-	iws.deletePending++
+	state.deletePending++
 
-	c.ingestLock.Unlock()
+	c.spaceOpsLock.Unlock()
 
-	iws.wg.Wait()
+	state.wg.Wait()
 
 	return func() {
-		c.ingestLock.Lock()
-		defer c.ingestLock.Unlock()
-		iws.deletePending--
-		if iws.deletePending == 0 {
-			delete(c.ingests, space)
+		c.spaceOpsLock.Lock()
+		defer c.spaceOpsLock.Unlock()
+		state.deletePending--
+		if state.deletePending == 0 {
+			delete(c.spaceOps, space)
 		}
 	}
 }
