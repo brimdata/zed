@@ -12,8 +12,11 @@ import (
 	"github.com/brimsec/zq/zqd/api"
 )
 
-const configFile = "config.json"
-const infoFile = "info.json"
+const (
+	configFile  = "config.json"
+	infoFile    = "info.json"
+	AllBzngFile = "all.bzng"
+)
 
 var (
 	ErrSpaceNotExist = errors.New("space does not exist")
@@ -73,7 +76,7 @@ func (s Space) Name() string {
 }
 
 func (s Space) Info() (api.SpaceInfo, error) {
-	f, err := s.OpenFile("all.bzng")
+	f, err := s.OpenFile(AllBzngFile)
 	if err != nil {
 		return api.SpaceInfo{}, err
 	}

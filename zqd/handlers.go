@@ -152,8 +152,8 @@ func handleSpaceGet(c *Core, w http.ResponseWriter, r *http.Request) {
 		PacketSupport: s.HasFile(ingest.PcapIndexFile),
 		PacketPath:    s.PacketPath(),
 	}
-	if s.HasFile("all.bzng") {
-		f, err := s.OpenFile("all.bzng")
+	if s.HasFile(space.AllBzngFile) {
+		f, err := s.OpenFile(space.AllBzngFile)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

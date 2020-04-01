@@ -48,7 +48,7 @@ func Search(ctx context.Context, s *space.Space, req api.SearchRequest, out Outp
 		return err
 	}
 	var f io.ReadCloser
-	f, err = s.OpenFile("all.bzng")
+	f, err = s.OpenFile(space.AllBzngFile)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return err
