@@ -4,9 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io"
 	"io/ioutil"
-	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
@@ -292,16 +290,6 @@ func newCoreAtDir(t *testing.T, dir string) (*zqd.Core, *api.Connection, func())
 	}
 }
 
-func createSpace(t *testing.T, c *zqd.Core, spaceName, datadir string) api.SpacePostResponse {
-	req := api.SpacePostRequest{
-		Name:    spaceName,
-		DataDir: datadir,
-	}
-	var res api.SpacePostResponse
-	httpJSONSuccess(t, zqd.NewHandler(c), "POST", "http://localhost:9867/space", req, &res)
-	return res
-}
-
 // postSpaceData POSTs the provided data source as a log in to the provided space
 // directory.
 func postSpaceData(t *testing.T, c *api.Connection, spaceName, data string) *api.Stream {
@@ -329,28 +317,4 @@ func postSpaceData(t *testing.T, c *api.Connection, spaceName, data string) *api
 	assert.Equal(t, last.Type, "TaskEnd")
 	assert.Nil(t, last.Error)
 	return s
-}
-
-func httpRequest(t *testing.T, h http.Handler, method, url string, body interface{}) *http.Response {
-	var rw io.ReadWriter
-	if body != nil {
-		rw = bytes.NewBuffer(nil)
-		if err := json.NewEncoder(rw).Encode(body); err != nil {
-			panic(err)
-		}
-	}
-	r := httptest.NewRequest(method, url, rw)
-	w := httptest.NewRecorder()
-	h.ServeHTTP(w, r)
-	return w.Result()
-}
-
-func httpJSONSuccess(t *testing.T, h http.Handler, method, url string, body interface{}, res interface{}) {
-	r := httpRequest(t, h, method, url, body)
-	if r.StatusCode < 200 || r.StatusCode >= 300 {
-		body, _ := ioutil.ReadAll(r.Body)
-		require.Equal(t, http.StatusOK, r.StatusCode, string(body))
-	}
-	require.Equal(t, "application/json", r.Header.Get("Content-Type"))
-	require.NoError(t, json.NewDecoder(r.Body).Decode(res))
 }
