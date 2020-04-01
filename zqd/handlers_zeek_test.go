@@ -23,6 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest"
 )
 
@@ -182,8 +183,11 @@ func packetPost(t *testing.T, pcapfile string, l zeek.Launcher) packetPostResult
 }
 
 func packetPostWithConfig(t *testing.T, conf zqd.Config, pcapfile string) packetPostResult {
+	if conf.Logger == nil {
+		conf.Logger = zaptest.NewLogger(t, zaptest.Level(zapcore.WarnLevel))
+	}
 	c := setCoreRoot(t, conf)
-	ts := httptest.NewServer(zqd.NewHandler(c))
+	ts := httptest.NewServer(zqd.NewHandler(c, conf.Logger))
 	client := api.NewConnectionTo(ts.URL)
 	res := packetPostResult{
 		core:     c,

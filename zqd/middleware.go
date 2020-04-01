@@ -69,7 +69,6 @@ func accessLogMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 }
 
 func panicCatchMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
-	logger = logger.Named("zqd")
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
@@ -78,7 +77,7 @@ func panicCatchMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 					return
 				}
 				rstr := fmt.Sprint(r)
-				logger.Error("panic", zap.String("error", rstr))
+				logger.DPanic("panic", zap.String("error", rstr))
 				http.Error(w, rstr, http.StatusInternalServerError)
 			}()
 

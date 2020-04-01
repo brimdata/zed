@@ -29,11 +29,18 @@ The listen command launches a process to listen on the provided interface and
 }
 
 // defaultLogger ignores output from the access logger.
-var defaultLogger = []logger.Config{
-	{
-		Name:  "zqd",
-		Path:  "stderr",
-		Level: zap.InfoLevel,
+var defaultLogger = &logger.Config{
+	Type: logger.TypeWaterfall,
+	Children: []logger.Config{
+		{
+			Name:  "http.access",
+			Path:  "/dev/null",
+			Level: zap.InfoLevel,
+		},
+		{
+			Path:  "stderr",
+			Level: zap.InfoLevel,
+		},
 	},
 }
 
@@ -48,7 +55,8 @@ type Command struct {
 	pprof      bool
 	zeekpath   string
 	configfile string
-	loggerConf []logger.Config
+	loggerConf *logger.Config
+	logger     *zap.Logger
 	devMode    bool
 }
 
@@ -64,24 +72,16 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	var err error
-	c.conf.Root, err = filepath.Abs(c.conf.Root)
-	if err != nil {
-		return err
-	}
-	if err := c.loadConfigFile(); err != nil {
-		return err
-	}
-	logger, err := c.logger()
-	if err != nil {
-		return err
-	}
-	c.conf.Logger = logger.Named("zqd")
-	if err := c.loadzeek(); err != nil {
+	if err := c.init(); err != nil {
 		return err
 	}
 	core := zqd.NewCore(c.conf)
-	h := zqd.NewHandlerWithLogger(core, logger)
+	c.logger.Info("Starting",
+		zap.String("datadir", c.conf.Root),
+		zap.Bool("pprof_routes", c.pprof),
+		zap.Bool("zeek_supported", core.HasZeek()),
+	)
+	h := zqd.NewHandler(core, c.logger)
 	if c.pprof {
 		h = pprofHandlers(h)
 	}
@@ -89,13 +89,20 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	c.conf.Logger.Info("Listening",
-		zap.String("addr", ln.Addr().String()),
-		zap.String("datadir", c.conf.Root),
-		zap.Bool("pprof_routes", c.pprof),
-		zap.Bool("zeek_supported", core.HasZeek()),
-	)
+	c.logger.Info("Listening", zap.String("addr", ln.Addr().String()))
 	return http.Serve(ln, h)
+}
+
+func (c *Command) init() error {
+	var err error
+	c.conf.Root, err = filepath.Abs(c.conf.Root)
+	if err != nil {
+		return err
+	}
+	if err := c.loadLogger(); err != nil {
+		return err
+	}
+	return c.loadzeek()
 }
 
 func pprofHandlers(h http.Handler) http.Handler {
@@ -110,20 +117,22 @@ func pprofHandlers(h http.Handler) http.Handler {
 }
 
 // Example configfile
-// loggers:
-// - path: ./data/access.log
-//   name: "http.access"
-//   level: info
-//   mode: truncate
+// logger:
+//   type: waterfall
+//   children:
+//   - path: ./data/access.log
+//     name: "http.access"
+//     level: info
+//     mode: truncate
 
 func (c *Command) loadConfigFile() error {
 	if c.configfile == "" {
 		return nil
 	}
-	// For now config file just has loggers.
+	// For now config file just has logger.
 	conf := struct {
-		Loggers []logger.Config `yaml:"loggers"`
-	}{}
+		Logger *logger.Config `yaml:"logger"`
+	}{Logger: c.loggerConf}
 	b, err := ioutil.ReadFile(c.configfile)
 	if err != nil {
 		return err
@@ -131,7 +140,6 @@ func (c *Command) loadConfigFile() error {
 	if err := yaml.Unmarshal(b, &conf); err != nil {
 		return err
 	}
-	c.loggerConf = conf.Loggers
 	return err
 }
 
@@ -144,13 +152,13 @@ func (c *Command) loadzeek() error {
 	return nil
 }
 
-func (c *Command) logger() (*zap.Logger, error) {
+func (c *Command) loadLogger() error {
 	if c.loggerConf == nil {
 		c.loggerConf = defaultLogger
 	}
-	core, err := logger.New(c.loggerConf...)
+	core, err := logger.New(*c.loggerConf)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	// If the development mode is on, calls to logger.DPanic will cause a panic
 	// whereas in production would result in an error.
@@ -158,5 +166,7 @@ func (c *Command) logger() (*zap.Logger, error) {
 	if c.devMode {
 		opts = append(opts, zap.Development())
 	}
-	return zap.New(core, opts...), nil
+	c.logger = zap.New(core, opts...)
+	c.conf.Logger = c.logger
+	return nil
 }

@@ -1,8 +1,19 @@
 package logger
 
 import (
+	"fmt"
+	"io/ioutil"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+)
+
+type LoggerType string
+
+const (
+	TypeSink      LoggerType = "sink"
+	TypeWaterfall            = "waterfall"
+	TypeTee                  = "tee"
 )
 
 type Config struct {
@@ -12,9 +23,34 @@ type Config struct {
 	Mode  FileMode      `yaml:"mode,omitempty"`
 	Name  string        `yaml:"name"`
 	Level zapcore.Level `yaml:"level"`
+	// Type specifies how log entries are handled. If Type is Waterfall or Tee
+	// this will distribute log entries to child loggers; fields Mode, Name,
+	// and Level will be ignored. If the value is Sink or empty the Children
+	// field will be ignored.
+	Type LoggerType `yaml:"type,omitempty"`
+	// Specifies underlying children loggers. Only applicable when Type is
+	// TypeWaterfall or TypeTee.
+	Children []Config `yaml:"children,omitempty"`
 }
 
-func New(confs ...Config) (zapcore.Core, error) {
+func New(conf Config) (zapcore.Core, error) {
+	return newCore(conf)
+}
+
+func newCore(conf Config) (zapcore.Core, error) {
+	switch conf.Type {
+	case TypeSink, "":
+		return newSinkCore(conf)
+	case TypeWaterfall:
+		return newWaterfallCore(conf.Children...)
+	case TypeTee:
+		return newTeeCore(conf.Children...)
+	default:
+		return nil, fmt.Errorf("unsupported logger type: %s", conf.Type)
+	}
+}
+
+func newCores(confs ...Config) ([]zapcore.Core, error) {
 	var cores []zapcore.Core
 	for _, c := range confs {
 		core, err := newCore(c)
@@ -23,13 +59,29 @@ func New(confs ...Config) (zapcore.Core, error) {
 		}
 		cores = append(cores, core)
 	}
-	return zapcore.NewTee(cores...), nil
+	return cores, nil
 }
 
-func newCore(conf Config) (zapcore.Core, error) {
-	w, err := OpenFile(conf.Path, conf.Mode)
-	if err != nil {
-		return nil, err
+func newTeeCore(confs ...Config) (zapcore.Core, error) {
+	cores, err := newCores(confs...)
+	return zapcore.NewTee(cores...), err
+}
+
+func newWaterfallCore(conf ...Config) (zapcore.Core, error) {
+	cores, err := newCores(conf...)
+	return NewWaterfall(cores...), err
+}
+
+func newSinkCore(conf Config) (zapcore.Core, error) {
+	var w zapcore.WriteSyncer
+	if conf.Path == "/dev/null" {
+		w = zapcore.AddSync(ioutil.Discard)
+	} else {
+		var err error
+		w, err = OpenFile(conf.Path, conf.Mode)
+		if err != nil {
+			return nil, err
+		}
 	}
 	core := zapcore.NewCore(jsonEncoder(), w, conf.Level)
 	if conf.Name != "" {

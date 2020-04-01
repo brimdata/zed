@@ -21,11 +21,7 @@ func (h *handler) Handle(path string, f handlerFunc) *mux.Route {
 	})
 }
 
-func NewHandler(root *Core) http.Handler {
-	return NewHandlerWithLogger(root, root.logger)
-}
-
-func NewHandlerWithLogger(core *Core, logger *zap.Logger) http.Handler {
+func NewHandler(core *Core, logger *zap.Logger) http.Handler {
 	h := handler{Router: mux.NewRouter(), core: core}
 	h.Use(requestIDMiddleware())
 	h.Use(accessLogMiddleware(logger))
