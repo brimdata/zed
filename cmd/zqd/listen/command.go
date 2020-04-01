@@ -89,7 +89,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	c.logger.Info("Listening", zap.String("addr", ln.Addr().String()))
+	c.logger.Info("Listening", zap.Stringer("addr", ln.Addr()))
 	return http.Serve(ln, h)
 }
 
