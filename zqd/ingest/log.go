@@ -15,6 +15,8 @@ import (
 	"github.com/brimsec/zq/zqd/space"
 )
 
+const allBzngTmpFile = space.AllBzngFile + ".tmp"
+
 // Logs ingests the provided list of files into the provided space.
 // Like ingest.Pcap, this overwrites any existing data in the space.
 func Logs(ctx context.Context, s *space.Space, paths []string, sortLimit int) error {
@@ -31,7 +33,7 @@ func Logs(ctx context.Context, s *space.Space, paths []string, sortLimit int) er
 		sortLimit = DefaultSortLimit
 	}
 	if err := ingestLogs(ctx, s, paths, sortLimit); err != nil {
-		os.Remove(s.DataPath("all.bzng"))
+		os.Remove(s.DataPath(space.AllBzngFile))
 		return err
 	}
 	return nil
@@ -52,7 +54,7 @@ func ingestLogs(ctx context.Context, s *space.Space, paths []string, sortLimit i
 		return err
 	}
 	defer zr.Close()
-	bzngfile, err := s.CreateFile(filepath.Join(tmpIngestDir, "all.bzng.tmp"))
+	bzngfile, err := s.CreateFile(filepath.Join(tmpIngestDir, allBzngTmpFile))
 	if err != nil {
 		return err
 	}
@@ -74,5 +76,5 @@ func ingestLogs(ctx context.Context, s *space.Space, paths []string, sortLimit i
 			return err
 		}
 	}
-	return os.Rename(bzngfile.Name(), s.DataPath("all.bzng"))
+	return os.Rename(bzngfile.Name(), s.DataPath(space.AllBzngFile))
 }

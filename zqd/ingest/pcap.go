@@ -107,7 +107,7 @@ func (p *Process) run(ctx context.Context) error {
 	abort := func() {
 		os.RemoveAll(p.logdir)
 		os.Remove(p.space.DataPath(PcapIndexFile))
-		os.Remove(p.space.DataPath("all.bzng"))
+		os.Remove(p.space.DataPath(space.AllBzngFile))
 		p.space.SetPacketPath("")
 	}
 
@@ -240,7 +240,7 @@ func (p *Process) createSnapshot(ctx context.Context) error {
 	// For the time being, this endpoint will overwrite any underlying data.
 	// In order to get rid errors on any concurrent searches on this space,
 	// write bzng to a temp file and rename on successful conversion.
-	bzngfile, err := p.space.CreateFile("all.bzng.tmp")
+	bzngfile, err := p.space.CreateFile(allBzngTmpFile)
 	if err != nil {
 		return err
 	}
@@ -257,7 +257,7 @@ func (p *Process) createSnapshot(ctx context.Context) error {
 		return err
 	}
 	atomic.AddInt32(&p.snapshots, 1)
-	return os.Rename(bzngfile.Name(), p.space.DataPath("all.bzng"))
+	return os.Rename(bzngfile.Name(), p.space.DataPath(space.AllBzngFile))
 }
 
 func (p *Process) Write(b []byte) (int, error) {
