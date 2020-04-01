@@ -2,7 +2,6 @@ package logger
 
 import (
 	"fmt"
-	"io/ioutil"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -36,7 +35,7 @@ type Config struct {
 func NewCore(conf Config) (zapcore.Core, error) {
 	switch conf.Type {
 	case TypeFile, "":
-		return newSinkCore(conf)
+		return newFileCore(conf)
 	case TypeWaterfall:
 		return newWaterfallCore(conf.Children...)
 	case TypeTee:
@@ -68,16 +67,10 @@ func newWaterfallCore(conf ...Config) (zapcore.Core, error) {
 	return NewWaterfall(cores...), err
 }
 
-func newSinkCore(conf Config) (zapcore.Core, error) {
-	var w zapcore.WriteSyncer
-	if conf.Path == "/dev/null" {
-		w = zapcore.AddSync(ioutil.Discard)
-	} else {
-		var err error
-		w, err = OpenFile(conf.Path, conf.Mode)
-		if err != nil {
-			return nil, err
-		}
+func newFileCore(conf Config) (zapcore.Core, error) {
+	w, err := OpenFile(conf.Path, conf.Mode)
+	if err != nil {
+		return nil, err
 	}
 	core := zapcore.NewCore(jsonEncoder(), w, conf.Level)
 	if conf.Name != "" {
