@@ -7,12 +7,14 @@ import (
 	"net"
 	"net/http"
 	"net/http/pprof"
+	"os"
 	"path/filepath"
 
 	"github.com/brimsec/zq/cmd/zqd/logger"
 	"github.com/brimsec/zq/cmd/zqd/root"
 	"github.com/brimsec/zq/zqd"
 	"github.com/brimsec/zq/zqd/zeek"
+	"github.com/looky-cloud/boom/pkg/catcher"
 	"github.com/mccanne/charm"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
@@ -102,6 +104,10 @@ func (c *Command) init() error {
 	if err := c.loadLogger(); err != nil {
 		return err
 	}
+	c.catcher = catcher.NewSignalCatcher(os.Interrupt)
+	c.catcher.SetOnCaught(func(sig os.Signal) {
+		c.logger.Info("Received signal", zap.String("signal", sig.String()))
+	})
 	return c.loadzeek()
 }
 
