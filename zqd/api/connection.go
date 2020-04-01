@@ -192,12 +192,24 @@ func (c *Connection) Search(ctx context.Context, search SearchRequest) (Search, 
 	return NewBzngSearch(r), nil
 }
 
-func (c *Connection) PostPacket(ctx context.Context, space string, payload PacketPostRequest) (*Stream, error) {
+func (c *Connection) PacketPost(ctx context.Context, space string, payload PacketPostRequest) (*Stream, error) {
 	req := c.Request(ctx).
-		SetBody(payload).
-		SetHeader("format", "bzng")
+		SetBody(payload)
 	req.Method = http.MethodPost
 	req.URL = path.Join("/space", url.PathEscape(space), "packet")
+	r, err := c.stream(req)
+	if err != nil {
+		return nil, err
+	}
+	jsonpipe := NewJSONPipeScanner(r)
+	return NewStream(jsonpipe), nil
+}
+
+func (c *Connection) LogPost(ctx context.Context, space string, payload LogPostRequest) (*Stream, error) {
+	req := c.Request(ctx).
+		SetBody(payload)
+	req.Method = http.MethodPost
+	req.URL = path.Join("/space", url.PathEscape(space), "log")
 	r, err := c.stream(req)
 	if err != nil {
 		return nil, err
