@@ -322,11 +322,9 @@ func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "empty paths", http.StatusBadRequest)
 		return
 	}
-	var ingestErr error
-	done := make(chan struct{})
+	errCh := make(chan error)
 	go func() {
-		ingestErr = ingest.Logs(r.Context(), s, req.Paths, c.SortLimit)
-		close(done)
+		errCh <- ingest.Logs(r.Context(), s, req.Paths, c.SortLimit)
 	}()
 
 	w.Header().Set("Content-Type", "application/ndjson")
@@ -337,13 +335,12 @@ func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		logger.Warn("Error sending payload", zap.Error(err))
 		return
 	}
-	<-done
 	taskEnd := api.TaskEnd{Type: "TaskEnd"}
-	if ingestErr != nil {
+	if err := <-errCh; err != nil {
 		var ok bool
-		taskEnd.Error, ok = ingestErr.(*api.Error)
+		taskEnd.Error, ok = err.(*api.Error)
 		if !ok {
-			taskEnd.Error = &api.Error{Type: "Error", Message: ingestErr.Error()}
+			taskEnd.Error = &api.Error{Type: "Error", Message: err.Error()}
 		}
 	}
 	if err := pipe.SendFinal(taskEnd); err != nil {
