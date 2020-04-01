@@ -5,7 +5,6 @@ package zqd_test
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -53,9 +52,8 @@ func TestPacketPostSuccess(t *testing.T) {
 		assert.Equal(t, test.Trim(expected), res)
 	})
 	t.Run("SpaceInfo", func(t *testing.T) {
-		u := fmt.Sprintf("http://localhost:9867/space/%s", p.space)
-		var info api.SpaceInfo
-		httpJSONSuccess(t, zqd.NewHandler(p.core), "GET", u, nil, &info)
+		info, err := p.client.SpaceInfo(context.Background(), p.space)
+		assert.NoError(t, err)
 		assert.Equal(t, p.space, info.Name)
 		assert.Equal(t, nano.Unix(1501770877, 471635000), *info.MinTime)
 		assert.Equal(t, nano.Unix(1501770880, 988247000), *info.MaxTime)
@@ -119,13 +117,12 @@ func TestPacketPostInvalidPcap(t *testing.T) {
 		require.Regexp(t, "^bad pcap file*", reserr.Err.Error())
 	})
 	t.Run("EmptySpaceInfo", func(t *testing.T) {
-		u := fmt.Sprintf("http://localhost:9867/space/%s", p.space)
-		var info api.SpaceInfo
-		httpJSONSuccess(t, zqd.NewHandler(p.core), "GET", u, nil, &info)
+		info, err := p.client.SpaceInfo(context.Background(), p.space)
+		assert.NoError(t, err)
 		expected := api.SpaceInfo{
 			Name: p.space,
 		}
-		require.Equal(t, expected, info)
+		require.Equal(t, &expected, info)
 	})
 }
 
@@ -171,13 +168,12 @@ func TestPacketPostZeekFailAfterWrite(t *testing.T) {
 		require.Equal(t, expected, last)
 	})
 	t.Run("EmptySpaceInfo", func(t *testing.T) {
-		u := fmt.Sprintf("http://localhost:9867/space/%s", p.space)
-		var info api.SpaceInfo
-		httpJSONSuccess(t, zqd.NewHandler(p.core), "GET", u, nil, &info)
+		info, err := p.client.SpaceInfo(context.Background(), p.space)
+		assert.NoError(t, err)
 		expected := api.SpaceInfo{
 			Name: p.space,
 		}
-		require.Equal(t, expected, info)
+		require.Equal(t, &expected, info)
 	})
 }
 
