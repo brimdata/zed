@@ -452,6 +452,23 @@ func TestCompareNonNumbers(t *testing.T) {
 	testSuccessful(t, `bs >= "def"`, record, zbool(true))
 }
 
+func TestIn(t *testing.T) {
+	record, err := parseOneRecord(`
+#0:record[a:array[int32],s:set[int32]]
+0:[[1;2;3;][4;5;6;]]`)
+	require.NoError(t, err)
+
+	testSuccessful(t, "1 in a", record, zbool(true))
+	testSuccessful(t, "0 in a", record, zbool(false))
+
+	testSuccessful(t, "1 in s", record, zbool(false))
+	testSuccessful(t, "4 in s", record, zbool(true))
+
+	testError(t, `"boo" in a`, record, expr.ErrIncompatibleTypes, "in operator with mismatched type")
+	testError(t, `"boo" in s`, record, expr.ErrIncompatibleTypes, "in operator with mismatched type")
+	testError(t, "1 in 2", record, expr.ErrNotContainer, "in operator with non-container")
+}
+
 func TestArithmetic(t *testing.T) {
 	record, err := parseOneRecord(`
 #0:record[x:int32,f:float64]
