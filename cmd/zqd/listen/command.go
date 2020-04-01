@@ -1,16 +1,19 @@
 package listen
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"net/http/pprof"
+	"os"
+	"os/signal"
 	"path/filepath"
 
 	"github.com/brimsec/zq/cmd/zqd/logger"
 	"github.com/brimsec/zq/cmd/zqd/root"
+	"github.com/brimsec/zq/pkg/httpd"
 	"github.com/brimsec/zq/zqd"
 	"github.com/brimsec/zq/zqd/zeek"
 	"github.com/mccanne/charm"
@@ -85,12 +88,18 @@ func (c *Command) Run(args []string) error {
 	if c.pprof {
 		h = pprofHandlers(h)
 	}
-	ln, err := net.Listen("tcp", c.listenAddr)
-	if err != nil {
-		return err
-	}
-	c.logger.Info("Listening", zap.Stringer("addr", ln.Addr()))
-	return http.Serve(ln, h)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt)
+	go func() {
+		sig := <-ch
+		c.logger.Info("Signal received", zap.Stringer("signal", sig))
+		cancel()
+	}()
+	srv := httpd.New(c.listenAddr, h)
+	srv.SetLogger(c.logger.Named("httpd"))
+	return srv.Run(ctx)
 }
 
 func (c *Command) init() error {
