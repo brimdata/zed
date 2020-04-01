@@ -99,6 +99,9 @@ func (c *Command) init() error {
 	if err != nil {
 		return err
 	}
+	if err := c.loadConfigFile(); err != nil {
+		return err
+	}
 	if err := c.initLogger(); err != nil {
 		return err
 	}
@@ -129,15 +132,16 @@ func (c *Command) loadConfigFile() error {
 	if c.configfile == "" {
 		return nil
 	}
-	// For now config file just has logger.
-	conf := struct {
-		Logger *logger.Config `yaml:"logger"`
-	}{Logger: c.loggerConf}
+	conf := &struct {
+		Logger logger.Config `yaml:"logger"`
+	}{}
 	b, err := ioutil.ReadFile(c.configfile)
 	if err != nil {
 		return err
 	}
-	return yaml.Unmarshal(b, &conf)
+	err = yaml.Unmarshal(b, conf)
+	c.loggerConf = &conf.Logger
+	return err
 }
 
 func (c *Command) initZeek() error {

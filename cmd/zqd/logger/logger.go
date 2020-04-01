@@ -7,13 +7,13 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-type Type string
-
 const (
 	TypeFile      Type = "file"
 	TypeWaterfall      = "waterfall"
 	TypeTee            = "tee"
 )
+
+type Type string
 
 type Config struct {
 	Path string `yaml:"path"`
