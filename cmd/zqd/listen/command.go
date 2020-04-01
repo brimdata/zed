@@ -101,14 +101,14 @@ func (c *Command) init() error {
 	if err != nil {
 		return err
 	}
-	if err := c.loadLogger(); err != nil {
+	if err := c.initLogger(); err != nil {
 		return err
 	}
 	c.catcher = catcher.NewSignalCatcher(os.Interrupt)
 	c.catcher.SetOnCaught(func(sig os.Signal) {
 		c.logger.Info("Received signal", zap.String("signal", sig.String()))
 	})
-	return c.loadzeek()
+	return c.initZeek()
 }
 
 func pprofHandlers(h http.Handler) http.Handler {
@@ -143,13 +143,10 @@ func (c *Command) loadConfigFile() error {
 	if err != nil {
 		return err
 	}
-	if err := yaml.Unmarshal(b, &conf); err != nil {
-		return err
-	}
-	return err
+	return yaml.Unmarshal(b, &conf)
 }
 
-func (c *Command) loadzeek() error {
+func (c *Command) initZeek() error {
 	ln, err := zeek.LauncherFromPath(c.zeekpath)
 	if err != nil && !errors.Is(err, zeek.ErrNotFound) {
 		return err
@@ -158,11 +155,11 @@ func (c *Command) loadzeek() error {
 	return nil
 }
 
-func (c *Command) loadLogger() error {
+func (c *Command) initLogger() error {
 	if c.loggerConf == nil {
 		c.loggerConf = defaultLogger
 	}
-	core, err := logger.New(*c.loggerConf)
+	core, err := logger.NewCore(*c.loggerConf)
 	if err != nil {
 		return err
 	}

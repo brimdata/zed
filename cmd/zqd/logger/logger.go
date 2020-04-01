@@ -8,12 +8,12 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-type LoggerType string
+type Type string
 
 const (
-	TypeSink      LoggerType = "sink"
-	TypeWaterfall            = "waterfall"
-	TypeTee                  = "tee"
+	TypeFile      Type = "file"
+	TypeWaterfall      = "waterfall"
+	TypeTee            = "tee"
 )
 
 type Config struct {
@@ -27,19 +27,15 @@ type Config struct {
 	// this will distribute log entries to child loggers; fields Mode, Name,
 	// and Level will be ignored. If the value is Sink or empty the Children
 	// field will be ignored.
-	Type LoggerType `yaml:"type,omitempty"`
+	Type Type `yaml:"type,omitempty"`
 	// Specifies underlying children loggers. Only applicable when Type is
 	// TypeWaterfall or TypeTee.
 	Children []Config `yaml:"children,omitempty"`
 }
 
-func New(conf Config) (zapcore.Core, error) {
-	return newCore(conf)
-}
-
-func newCore(conf Config) (zapcore.Core, error) {
+func NewCore(conf Config) (zapcore.Core, error) {
 	switch conf.Type {
-	case TypeSink, "":
+	case TypeFile, "":
 		return newSinkCore(conf)
 	case TypeWaterfall:
 		return newWaterfallCore(conf.Children...)
@@ -53,7 +49,7 @@ func newCore(conf Config) (zapcore.Core, error) {
 func newCores(confs ...Config) ([]zapcore.Core, error) {
 	var cores []zapcore.Core
 	for _, c := range confs {
-		core, err := newCore(c)
+		core, err := NewCore(c)
 		if err != nil {
 			return nil, err
 		}

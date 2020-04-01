@@ -21,44 +21,44 @@ func NewWaterfall(cores ...zapcore.Core) zapcore.Core {
 	}
 }
 
-func (mc waterfallCore) With(fields []zapcore.Field) zapcore.Core {
-	clone := make(waterfallCore, len(mc))
-	for i := range mc {
-		clone[i] = mc[i].With(fields)
+func (w waterfallCore) With(fields []zapcore.Field) zapcore.Core {
+	clone := make(waterfallCore, len(w))
+	for i := range w {
+		clone[i] = w[i].With(fields)
 	}
 	return clone
 }
 
-func (mc waterfallCore) Enabled(lvl zapcore.Level) bool {
-	for i := range mc {
-		if mc[i].Enabled(lvl) {
+func (w waterfallCore) Enabled(lvl zapcore.Level) bool {
+	for i := range w {
+		if w[i].Enabled(lvl) {
 			return true
 		}
 	}
 	return false
 }
 
-func (mc waterfallCore) Check(ent zapcore.Entry, ce *zapcore.CheckedEntry) *zapcore.CheckedEntry {
-	for i := range mc {
-		if out := mc[i].Check(ent, nil); out != nil {
-			return ce.AddCore(ent, mc[i])
+func (w waterfallCore) Check(ent zapcore.Entry, ce *zapcore.CheckedEntry) *zapcore.CheckedEntry {
+	for i := range w {
+		if out := w[i].Check(ent, nil); out != nil {
+			return ce.AddCore(ent, w[i])
 		}
 	}
 	return ce
 }
 
-func (mc waterfallCore) Write(ent zapcore.Entry, fields []zapcore.Field) error {
+func (w waterfallCore) Write(ent zapcore.Entry, fields []zapcore.Field) error {
 	var err error
-	for i := range mc {
-		err = multierr.Append(err, mc[i].Write(ent, fields))
+	for i := range w {
+		err = multierr.Append(err, w[i].Write(ent, fields))
 	}
 	return err
 }
 
-func (mc waterfallCore) Sync() error {
+func (w waterfallCore) Sync() error {
 	var err error
-	for i := range mc {
-		err = multierr.Append(err, mc[i].Sync())
+	for i := range w {
+		err = multierr.Append(err, w[i].Sync())
 	}
 	return err
 }
