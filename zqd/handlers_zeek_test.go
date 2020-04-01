@@ -227,7 +227,7 @@ func (r *packetPostResult) postPcap(t *testing.T, file string) {
 	_, err := r.client.SpacePost(context.Background(), api.SpacePostRequest{Name: r.space})
 	require.NoError(t, err)
 	var stream *api.Stream
-	stream, r.err = r.client.PostPacket(context.Background(), r.space, api.PacketPostRequest{r.pcapfile})
+	stream, r.err = r.client.PacketPost(context.Background(), r.space, api.PacketPostRequest{r.pcapfile})
 	if r.err == nil {
 		r.readPayloads(t, stream)
 	}

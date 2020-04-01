@@ -314,7 +314,7 @@ func postSpaceData(t *testing.T, c *api.Connection, spaceName, data string) *api
 	_, err = f.WriteString(data)
 	require.NoError(t, err)
 	ctx := context.Background()
-	s, err := c.PostLogs(ctx, spaceName, api.LogPostRequest{[]string{name}})
+	s, err := c.LogPost(ctx, spaceName, api.LogPostRequest{[]string{name}})
 	require.NoError(t, err)
 	var payloads []interface{}
 	for {
