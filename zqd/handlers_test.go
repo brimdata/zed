@@ -273,7 +273,6 @@ func TestPostLogs(t *testing.T) {
 		taskend := payloads[len(payloads)-1].(*api.TaskEnd)
 		assert.Equal(t, taskend.Type, "TaskEnd")
 		assert.Nil(t, taskend.Error)
-
 	})
 	t.Run("Search", func(t *testing.T) {
 		res := zngSearch(t, client, spaceName, "*")
