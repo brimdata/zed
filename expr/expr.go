@@ -19,6 +19,7 @@ var ErrNoSuchField = errors.New("field is not present")
 var ErrIncompatibleTypes = errors.New("incompatible types")
 var ErrIndexOutOfBounds = errors.New("array index out of bounds")
 var ErrNoSuchFunction = errors.New("no such function")
+var ErrNotContainer = errors.New("cannot apply in to a non-container")
 
 type NativeEvaluator func(*zng.Record) (zngnative.Value, error)
 
@@ -95,6 +96,8 @@ func compileNative(node ast.Expression) (NativeEvaluator, error) {
 		switch n.Operator {
 		case "AND", "OR":
 			return compileLogical(lhsFunc, rhsFunc, n.Operator)
+		case "in":
+			return compileIn(lhsFunc, rhsFunc)
 		case "=", "!=":
 			return compileCompareEquality(lhsFunc, rhsFunc, n.Operator)
 		case "<", "<=", ">", ">=":
@@ -176,6 +179,48 @@ func compileLogical(lhsFunc, rhsFunc NativeEvaluator, operator string) (NativeEv
 	}, nil
 }
 
+func compileIn(lhsFunc, rhsFunc NativeEvaluator) (NativeEvaluator, error) {
+	return func(rec *zng.Record) (zngnative.Value, error) {
+		rhs, err := rhsFunc(rec)
+		if err != nil {
+			return zngnative.Value{}, err
+		}
+
+		typ := zng.InnerType(rhs.Type)
+		if typ == nil {
+			return zngnative.Value{}, ErrNotContainer
+		}
+
+		lhs, err := lhsFunc(rec)
+		if err != nil {
+			return zngnative.Value{}, err
+		}
+
+		iter := zcode.Iter(rhs.Value.(zcode.Bytes))
+		for {
+			if iter.Done() {
+				return zngnative.Value{zng.TypeBool, false}, nil
+			}
+
+			zv, _, err := iter.Next()
+			if err != nil {
+				return zngnative.Value{}, err
+			}
+			v, err := zngnative.ToNativeValue(zng.Value{typ, zv})
+			if err != nil {
+				return zngnative.Value{}, err
+			}
+			found, err := compare(lhs, v)
+			if err != nil {
+				return zngnative.Value{}, err
+			}
+			if found {
+				return zngnative.Value{zng.TypeBool, true}, nil
+			}
+		}
+	}, nil
+}
+
 func floatToInt64(f float64) (int64, bool) {
 	i := int64(f)
 	if float64(i) == f {
@@ -192,6 +237,124 @@ func floatToUint64(f float64) (uint64, bool) {
 	return 0, false
 }
 
+func compare(lhs, rhs zngnative.Value) (bool, error) {
+	switch lhs.Type.ID() {
+	case zng.IdBool:
+		if rhs.Type.ID() != zng.IdBool {
+			return false, ErrIncompatibleTypes
+		}
+		return lhs.Value.(bool) == rhs.Value.(bool), nil
+
+	case zng.IdInt16, zng.IdInt32, zng.IdInt64, zng.IdTime, zng.IdDuration:
+		lv := lhs.Value.(int64)
+
+		switch rhs.Type.ID() {
+		case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64, zng.IdPort:
+			if (lhs.Type.ID() == zng.IdTime || lhs.Type.ID() == zng.IdDuration) && rhs.Type.ID() == zng.IdPort {
+				return false, ErrIncompatibleTypes
+			}
+
+			// Comparing a signed to an unsigned value.
+			// Need to be careful not to find false
+			// equality for two values with the same
+			// bitwise representation...
+			if lv < 0 {
+				return false, nil
+			} else {
+				return lv == int64(rhs.Value.(uint64)), nil
+			}
+		case zng.IdInt16, zng.IdInt32, zng.IdInt64, zng.IdTime, zng.IdDuration:
+			if (lhs.Type.ID() == zng.IdTime && rhs.Type.ID() == zng.IdDuration) || (lhs.Type.ID() == zng.IdDuration && rhs.Type.ID() == zng.IdTime) {
+				return false, ErrIncompatibleTypes
+			}
+
+			// Simple comparison of two signed values
+			return lv == rhs.Value.(int64), nil
+		case zng.IdFloat64:
+			rv, ok := floatToInt64(rhs.Value.(float64))
+			if ok {
+				return lv == int64(rv), nil
+			} else {
+				return false, nil
+			}
+		default:
+			return false, ErrIncompatibleTypes
+		}
+
+	case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64, zng.IdPort:
+		lv := lhs.Value.(uint64)
+		switch rhs.Type.ID() {
+		case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64, zng.IdPort:
+			// Simple comparison of two unsigned values
+			return lv == rhs.Value.(uint64), nil
+		case zng.IdInt16, zng.IdInt32, zng.IdInt64, zng.IdTime, zng.IdDuration:
+			if lhs.Type.ID() == zng.IdPort && (rhs.Type.ID() == zng.IdTime || rhs.Type.ID() == zng.IdDuration) {
+				return false, ErrIncompatibleTypes
+			}
+			// Comparing a signed to an unsigned value.
+			// Need to be careful not to find false
+			// equality for two values with the same
+			// bitwise representation...
+			rsigned := rhs.Value.(int64)
+			if rsigned < 0 {
+				return false, nil
+			} else {
+				return lv == uint64(rsigned), nil
+			}
+		case zng.IdFloat64:
+			rv, ok := floatToUint64(rhs.Value.(float64))
+			if ok {
+				return lv == uint64(rv), nil
+			} else {
+				return false, nil
+			}
+		default:
+			return false, ErrIncompatibleTypes
+		}
+
+	case zng.IdFloat64:
+		lv := lhs.Value.(float64)
+		switch rhs.Type.ID() {
+		case zng.IdInt16, zng.IdInt32, zng.IdInt64, zng.IdTime, zng.IdDuration:
+			var rv int64
+			if rhs.Type.ID() == zng.IdTime {
+				rv = int64(rhs.Value.(int64))
+			} else {
+				rv = rhs.Value.(int64)
+			}
+			return lv == float64(rv), nil
+		case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64, zng.IdPort:
+			return lv == float64(rhs.Value.(uint64)), nil
+		case zng.IdFloat64:
+			return lv == rhs.Value.(float64), nil
+		default:
+			return false, ErrIncompatibleTypes
+		}
+
+	case zng.IdString, zng.IdBstring:
+		if rhs.Type.ID() != zng.IdString && rhs.Type.ID() != zng.IdBstring {
+			return false, ErrIncompatibleTypes
+		}
+		return lhs.Value.(string) == rhs.Value.(string), nil
+
+	case zng.IdIP:
+		if rhs.Type.ID() != zng.IdIP {
+			return false, ErrIncompatibleTypes
+		}
+		return lhs.Value.(net.IP).Equal(rhs.Value.(net.IP)), nil
+
+	case zng.IdNet:
+		if rhs.Type.ID() != zng.IdNet {
+			return false, ErrIncompatibleTypes
+		}
+		// is there any other way to compare nets?
+		return lhs.Value.(*net.IPNet).String() == rhs.Value.(*net.IPNet).String(), nil
+
+	default:
+		return false, ErrIncompatibleTypes
+	}
+}
+
 func compileCompareEquality(lhsFunc, rhsFunc NativeEvaluator, operator string) (NativeEvaluator, error) {
 	return func(rec *zng.Record) (zngnative.Value, error) {
 		lhs, err := lhsFunc(rec)
@@ -203,123 +366,10 @@ func compileCompareEquality(lhsFunc, rhsFunc NativeEvaluator, operator string) (
 			return zngnative.Value{}, err
 		}
 
-		var equal bool
-		switch lhs.Type.ID() {
-		case zng.IdBool:
-			if rhs.Type.ID() != zng.IdBool {
-				return zngnative.Value{}, ErrIncompatibleTypes
-			}
-			equal = lhs.Value.(bool) == rhs.Value.(bool)
-
-		case zng.IdInt16, zng.IdInt32, zng.IdInt64, zng.IdTime, zng.IdDuration:
-			lv := lhs.Value.(int64)
-
-			switch rhs.Type.ID() {
-			case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64, zng.IdPort:
-				if (lhs.Type.ID() == zng.IdTime || lhs.Type.ID() == zng.IdDuration) && rhs.Type.ID() == zng.IdPort {
-					return zngnative.Value{}, ErrIncompatibleTypes
-				}
-
-				// Comparing a signed to an unsigned value.
-				// Need to be careful not to find false
-				// equality for two values with the same
-				// bitwise representation...
-				if lv < 0 {
-					equal = false
-				} else {
-					equal = lv == int64(rhs.Value.(uint64))
-				}
-			case zng.IdInt16, zng.IdInt32, zng.IdInt64, zng.IdTime, zng.IdDuration:
-				if (lhs.Type.ID() == zng.IdTime && rhs.Type.ID() == zng.IdDuration) || (lhs.Type.ID() == zng.IdDuration && rhs.Type.ID() == zng.IdTime) {
-					return zngnative.Value{}, ErrIncompatibleTypes
-				}
-
-				// Simple comparison of two signed values
-				equal = lv == rhs.Value.(int64)
-			case zng.IdFloat64:
-				rv, ok := floatToInt64(rhs.Value.(float64))
-				if ok {
-					equal = lv == int64(rv)
-				} else {
-					equal = false
-				}
-			default:
-				return zngnative.Value{}, ErrIncompatibleTypes
-			}
-
-		case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64, zng.IdPort:
-			lv := lhs.Value.(uint64)
-			switch rhs.Type.ID() {
-			case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64, zng.IdPort:
-				// Simple comparison of two unsigned values
-				equal = lv == rhs.Value.(uint64)
-			case zng.IdInt16, zng.IdInt32, zng.IdInt64, zng.IdTime, zng.IdDuration:
-				if lhs.Type.ID() == zng.IdPort && (rhs.Type.ID() == zng.IdTime || rhs.Type.ID() == zng.IdDuration) {
-					return zngnative.Value{}, ErrIncompatibleTypes
-				}
-				// Comparing a signed to an unsigned value.
-				// Need to be careful not to find false
-				// equality for two values with the same
-				// bitwise representation...
-				rsigned := rhs.Value.(int64)
-				if rsigned < 0 {
-					equal = false
-				} else {
-					equal = lv == uint64(rsigned)
-				}
-			case zng.IdFloat64:
-				rv, ok := floatToUint64(rhs.Value.(float64))
-				if ok {
-					equal = lv == uint64(rv)
-				} else {
-					equal = false
-				}
-			default:
-				return zngnative.Value{}, ErrIncompatibleTypes
-			}
-
-		case zng.IdFloat64:
-			lv := lhs.Value.(float64)
-			switch rhs.Type.ID() {
-			case zng.IdInt16, zng.IdInt32, zng.IdInt64, zng.IdTime, zng.IdDuration:
-				var rv int64
-				if rhs.Type.ID() == zng.IdTime {
-					rv = int64(rhs.Value.(int64))
-				} else {
-					rv = rhs.Value.(int64)
-				}
-				equal = lv == float64(rv)
-			case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64, zng.IdPort:
-				equal = lv == float64(rhs.Value.(uint64))
-			case zng.IdFloat64:
-				equal = lv == rhs.Value.(float64)
-			default:
-				return zngnative.Value{}, ErrIncompatibleTypes
-			}
-
-		case zng.IdString, zng.IdBstring:
-			if rhs.Type.ID() != zng.IdString && rhs.Type.ID() != zng.IdBstring {
-				return zngnative.Value{}, ErrIncompatibleTypes
-			}
-			equal = lhs.Value.(string) == rhs.Value.(string)
-
-		case zng.IdIP:
-			if rhs.Type.ID() != zng.IdIP {
-				return zngnative.Value{}, ErrIncompatibleTypes
-			}
-			equal = lhs.Value.(net.IP).Equal(rhs.Value.(net.IP))
-
-		case zng.IdNet:
-			if rhs.Type.ID() != zng.IdNet {
-				return zngnative.Value{}, ErrIncompatibleTypes
-			}
-			// is there any other way to compare nets?
-			equal = lhs.Value.(*net.IPNet).String() == rhs.Value.(*net.IPNet).String()
-
-		default:
-			return zngnative.Value{}, ErrIncompatibleTypes
+		equal, err := compare(lhs, rhs)
+		if err != nil {
+			return zngnative.Value{}, err
 		}
-
 		switch operator {
 		case "=":
 			return zngnative.Value{zng.TypeBool, equal}, nil

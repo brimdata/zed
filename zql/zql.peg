@@ -476,7 +476,7 @@ EqualityCompareExpression
         RETURN(makeBinaryExprChain(first, rest))
     }
 
-EqualityOperator = ("=" / "!=") { RETURN(TEXT) }
+EqualityOperator = ("=" / "!=" / "in") { RETURN(TEXT) }
 
 RelativeExpression
   = first:AdditiveExpression
