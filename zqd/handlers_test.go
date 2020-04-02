@@ -14,6 +14,7 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zqd"
 	"github.com/brimsec/zq/zqd/api"
@@ -34,7 +35,7 @@ func TestSearch(t *testing.T) {
 	defer done()
 	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	postSpaceData(t, client, sp.Name, src)
+	_ = postSpaceLogs(t, client, sp.Name, []string{src})
 	res := zngSearch(t, client, sp.Name, "*")
 	require.Equal(t, test.Trim(src), res)
 }
@@ -84,7 +85,7 @@ func TestSpaceInfo(t *testing.T) {
 	defer done()
 	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	postSpaceData(t, client, sp.Name, src)
+	_ = postSpaceLogs(t, client, sp.Name, []string{src})
 	min, max := nano.Ts(1e9), nano.Ts(2e9)
 	expected := &api.SpaceInfo{
 		MinTime:       &min,
@@ -290,19 +291,27 @@ func newCoreAtDir(t *testing.T, dir string) (*zqd.Core, *api.Connection, func())
 	}
 }
 
-// postSpaceData POSTs the provided data source as a log in to the provided space
-// directory.
-func postSpaceData(t *testing.T, c *api.Connection, spaceName, data string) *api.Stream {
+func writeTempFile(t *testing.T, contents string) string {
 	pattern := strings.ReplaceAll(t.Name(), "/", "-")
 	f, err := ioutil.TempFile("", pattern)
 	require.NoError(t, err)
-	name := f.Name()
 	defer f.Close()
-	defer os.Remove(name)
-	_, err = f.WriteString(data)
+	_, err = f.WriteString(contents)
 	require.NoError(t, err)
+	return f.Name()
+}
+
+// postSpaceLogs POSTs the provided strings as logs in to the provided space, and returns a slice of any payloads that the server sent.
+func postSpaceLogs(t *testing.T, c *api.Connection, spaceName string, logs []string) []interface{} {
+	var filenames []string
+	for _, log := range logs {
+		name := writeTempFile(t, log)
+		filenames = append(filenames, name)
+		defer os.Remove(name)
+	}
+
 	ctx := context.Background()
-	s, err := c.LogPost(ctx, spaceName, api.LogPostRequest{[]string{name}})
+	s, err := c.LogPost(ctx, spaceName, api.LogPostRequest{filenames})
 	require.NoError(t, err)
 	var payloads []interface{}
 	for {
@@ -313,8 +322,69 @@ func postSpaceData(t *testing.T, c *api.Connection, spaceName, data string) *api
 		}
 		payloads = append(payloads, p)
 	}
-	last := payloads[len(payloads)-1].(*api.TaskEnd)
-	assert.Equal(t, last.Type, "TaskEnd")
-	assert.Nil(t, last.Error)
-	return s
+	return payloads
+}
+
+func TestPostLogs(t *testing.T) {
+	src1 := []string{
+		"#0:record[_path:string,ts:time,uid:bstring]",
+		"0:[conn;1;CBrzd94qfowOqJwCHa;]",
+	}
+	src2 := []string{
+		"#0:record[_path:string,ts:time,uid:bstring]",
+		"0:[conn;2;CBrzd94qfowOqJwCHa;]",
+	}
+	_, client, done := newCore(t)
+	defer done()
+	spaceName := "test"
+	t.Run("Space", func(t *testing.T) {
+		_, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: spaceName})
+		require.NoError(t, err)
+	})
+
+	t.Run("Post", func(t *testing.T) {
+		payloads := postSpaceLogs(t, client, spaceName, []string{strings.Join(src1, "\n"), strings.Join(src2, "\n")})
+		last := payloads[len(payloads)-1].(*api.TaskEnd)
+		assert.Equal(t, last.Type, "TaskEnd")
+		assert.Nil(t, last.Error)
+	})
+	t.Run("Search", func(t *testing.T) {
+		res := zngSearch(t, client, spaceName, "*")
+		expected := strings.Join(append(src2, src1[1]), "\n")
+		require.Equal(t, expected, strings.TrimSpace(res))
+	})
+	t.Run("SpaceInfo", func(t *testing.T) {
+		min, max := nano.Ts(1e9), nano.Ts(2e9)
+		expected := &api.SpaceInfo{
+			MinTime:       &min,
+			MaxTime:       &max,
+			Name:          spaceName,
+			Size:          80,
+			PacketSupport: false,
+		}
+		info, err := client.SpaceInfo(context.Background(), spaceName)
+		require.NoError(t, err)
+		require.Equal(t, expected, info)
+	})
+}
+
+func TestPostInvalidLogs(t *testing.T) {
+	src := []string{
+		"#0:record[_path:string,ts:time,uid:bstring",
+		"0:[conn;1;CBrzd94qfowOqJwCHa;]",
+	}
+	_, client, done := newCore(t)
+	defer done()
+	spaceName := "test"
+	t.Run("Space", func(t *testing.T) {
+		_, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: spaceName})
+		require.NoError(t, err)
+	})
+	t.Run("Post", func(t *testing.T) {
+		payloads := postSpaceLogs(t, client, spaceName, src)
+		last := payloads[len(payloads)-1].(*api.TaskEnd)
+		assert.Equal(t, last.Type, "TaskEnd")
+		assert.NotNil(t, last.Error)
+		assert.Equal(t, last.Error.Message, detector.ErrUnknown.Error())
+	})
 }
