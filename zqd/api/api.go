@@ -117,15 +117,15 @@ type PacketPostStatus struct {
 	MaxTime        *nano.Ts `json:"max_time,omitempty"`
 }
 
+type LogPostRequest struct {
+	Paths []string `json:"paths"`
+}
+
 type LogPostStatus struct {
 	Type    string   `json:"type"`
 	MinTime *nano.Ts `json:"min_time,omitempty"`
 	MaxTime *nano.Ts `json:"max_time,omitempty"`
 	Size    int64    `json:"size" unit:"bytes"`
-}
-
-type LogPostRequest struct {
-	Paths []string `json:"paths"`
 }
 
 // PacketSearch are the query string args to the packet endpoint when searching
