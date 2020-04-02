@@ -343,7 +343,29 @@ func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {
 			taskEnd.Error = &api.Error{Type: "Error", Message: err.Error()}
 		}
 	}
-	if err := pipe.SendFinal(taskEnd); err != nil {
+
+	defer func() {
+		if err := pipe.SendFinal(taskEnd); err != nil {
+			logger.Warn("Error sending payload", zap.Error(err))
+		}
+	}()
+
+	if taskEnd.Error != nil {
+		return
+	}
+	info, err := s.Info()
+	if err != nil {
+		logger.Warn("Error getting space info", zap.Error(err))
+		taskEnd.Error = &api.Error{Type: "Error", Message: err.Error()}
+		return
+	}
+	status := api.LogPostStatus{
+		Type:    "LogPostStatus",
+		MinTime: info.MinTime,
+		MaxTime: info.MaxTime,
+		Size:    info.Size,
+	}
+	if err := pipe.Send(status); err != nil {
 		logger.Warn("Error sending payload", zap.Error(err))
 		return
 	}

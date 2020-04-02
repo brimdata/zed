@@ -260,9 +260,20 @@ func TestPostLogs(t *testing.T) {
 	})
 	t.Run("Post", func(t *testing.T) {
 		payloads := postSpaceLogs(t, client, spaceName, strings.Join(src1, "\n"), strings.Join(src2, "\n"))
-		last := payloads[len(payloads)-1].(*api.TaskEnd)
-		assert.Equal(t, last.Type, "TaskEnd")
-		assert.Nil(t, last.Error)
+		status := payloads[len(payloads)-2].(*api.LogPostStatus)
+		min, max := nano.Ts(1e9), nano.Ts(2e9)
+		expected := &api.LogPostStatus{
+			Type:    "LogPostStatus",
+			MinTime: &min,
+			MaxTime: &max,
+			Size:    80,
+		}
+		require.Equal(t, expected, status)
+
+		taskend := payloads[len(payloads)-1].(*api.TaskEnd)
+		assert.Equal(t, taskend.Type, "TaskEnd")
+		assert.Nil(t, taskend.Error)
+
 	})
 	t.Run("Search", func(t *testing.T) {
 		res := zngSearch(t, client, spaceName, "*")
