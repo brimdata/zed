@@ -315,7 +315,7 @@ is sorted a certain way.
 The hint is encoded as follows:
 ```
 ---------------------------------------
-|0x84|<len>|[+-]<field>,[+-]<field>,...
+|0x85|<len>|[+-]<field>,[+-]<field>,...
 ---------------------------------------
 ```
 where the payload of the message is a length-counted UTF-8 string.
@@ -379,8 +379,8 @@ is interpreted as follows:
 | `enum `    | variable |  UTF-8 bytes of enum string                      |
 | `ip`       | 4 or 16  |  4 or 16 bytes of IP address                     |
 | `net`      | 8 or 32  |  8 or 32 bytes of IP prefix and subnet mask      |
-| `time`     | 8        |  8 bytes of signed nanoseconds from epoch        |
-| `duration` | 8        |  8 bytes of signed nanoseconds duration          |
+| `time`     | variable |  signed nanoseconds since epoch                  |
+| `duration` | variable |  signed nanoseconds duration                     |
 | `null`     | 0        |  No value, always represents an undefined value  |
 
 All multi-byte sequences representing machine words are serialized in
