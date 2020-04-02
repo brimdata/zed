@@ -367,7 +367,6 @@ func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	if err := pipe.Send(status); err != nil {
 		logger.Warn("Error sending payload", zap.Error(err))
-		return
 	}
 }
 
