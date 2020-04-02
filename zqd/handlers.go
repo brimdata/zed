@@ -233,7 +233,7 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	proc, err := ingest.Pcap(ctx, s, req.Path, c.ZeekLauncher, c.SortLimit)
+	proc, err := ingest.Pcap(ctx, s, req.Path, c.ZeekLauncher)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -319,7 +319,7 @@ func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 
 	pipe := api.NewJSONPipe(w)
-	err = ingest.Logs(ctx, pipe, s, req, c.SortLimit)
+	err = ingest.Logs(ctx, pipe, s, req)
 	if err != nil {
 		c.requestLogger(r).Warn("Error during log ingest", zap.Error(err))
 	}

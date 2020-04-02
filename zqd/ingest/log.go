@@ -28,7 +28,7 @@ const allZngTmpFile = space.AllZngFile + ".tmp"
 
 // Logs ingests the provided list of files into the provided space.
 // Like ingest.Pcap, this overwrites any existing data in the space.
-func Logs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api.LogPostRequest, sortLimit int) error {
+func Logs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api.LogPostRequest) error {
 	ingestDir := s.DataPath(tmpIngestDir)
 	if err := os.Mkdir(ingestDir, 0700); err != nil {
 		// could be in use by pcap or log ingest
@@ -38,15 +38,12 @@ func Logs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api.LogPo
 		return err
 	}
 	defer os.RemoveAll(ingestDir)
-	if sortLimit == 0 {
-		sortLimit = DefaultSortLimit
-	}
 
 	if err := pipe.Send(&api.TaskStart{"TaskStart", 0}); err != nil {
 		verr := &api.Error{Type: "INTERNAL", Message: err.Error()}
 		return pipe.SendFinal(&api.TaskEnd{"TaskEnd", 0, verr})
 	}
-	if err := ingestLogs(ctx, pipe, s, req, sortLimit); err != nil {
+	if err := ingestLogs(ctx, pipe, s, req); err != nil {
 		os.Remove(s.DataPath(space.AllZngFile))
 		verr := &api.Error{Type: "INTERNAL", Message: err.Error()}
 		return pipe.SendFinal(&api.TaskEnd{"TaskEnd", 0, verr})
@@ -67,7 +64,7 @@ func (rw *recWriter) Write(r *zng.Record) error {
 // x509_20191101_14:00:00-15:00:00+0000.log.gz (corelight)
 const DefaultJSONPathRegexp = `([a-zA-Z0-9_]+)(?:\.|_\d{8}_)\d\d:\d\d:\d\d\-\d\d:\d\d:\d\d(?:[+\-]\d{4})?\.log(?:$|\.gz)`
 
-func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api.LogPostRequest, sortLimit int) error {
+func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api.LogPostRequest) error {
 	zctx := resolver.NewContext()
 	var readers []zbuf.Reader
 	defer func() {
@@ -102,7 +99,7 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api
 		return err
 	}
 	zw := zngio.NewWriter(zngfile, zio.WriterFlags{StreamRecordsMax: s.StreamSize()})
-	program := fmt.Sprintf("sort -limit %d -r ts | (filter *; head 1; tail 1)", sortLimit)
+	const program = "sort -r ts | (filter *; head 1; tail 1)"
 	var headW, tailW recWriter
 
 	mux, err := compileLogIngest(ctx, s, readers, program, req.StopErr)

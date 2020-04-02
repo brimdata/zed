@@ -187,9 +187,9 @@ ID.ORIG_H     ID.ORIG_P ID.RESP_H       ID.RESP_P ORIG_BYTES RESP_BYTES TOTAL_BY
 |                           |                                                                           |
 | ------------------------- | ------------------------------------------------------------------------- |
 | **Description**           | Sort events based on the order of values in the specified named field(s). | 
-| **Syntax**                | `sort [-r] [-limit N] [-nulls first\|last] [field-list]`                   |
+| **Syntax**                | `sort [-r] [-limit MB] [-nulls first\|last] [field-list]`                 |
 | **Required<br>arguments** | None                                                                      |
-| **Optional<br>arguments** | `[-r]`<br>If specified, results will be sorted in reverse order.<br><br>`[-limit N]`<br>The maximum number of events that may be sorted at once. If not specified, defaults to `1000000`. Note that increasing the `limit` to a very large value may cause high memory consumption.<br><br>`[-nulls first\|last]`<br>Specifies whether null values (i.e., values that are unset or that are not present at all in an incoming record) should be placed in the output.<br><br>`[field-list]`<br>One or more comma-separated field names by which to sort. Results will be sorted based on the values of the first field named in the list, then based on values in the second field named in the list, and so on.<br><br>If no field list is provided, sort will automatically pick a field by which to sort. The pick is done by examining the first result returned and finding the first field in left-to-right order of one of the following [data types](../data-types/README.md). If no fields of the first data type are found, the next is considered, and so on:<br>- `count`<br>- `int`<br>- `double`<br>If no fields of those types are found, sorting will be performed on the first field found in left-to-right order that is _not_ of the `time` data type. |
+| **Optional<br>arguments** | `[-r]`<br>If specified, results will be sorted in reverse order.<br><br>`[-limit N]`<br>The maximum amount of RAM in megabytes that sorting will consume. If not specified, defaults to `128`.<br><br>`[-nulls first\|last]`<br>Specifies whether null values (i.e., values that are unset or that are not present at all in an incoming record) should be placed in the output.<br><br>`[field-list]`<br>One or more comma-separated field names by which to sort. Results will be sorted based on the values of the first field named in the list, then based on values in the second field named in the list, and so on.<br><br>If no field list is provided, sort will automatically pick a field by which to sort. The pick is done by examining the first result returned and finding the first field in left-to-right order of one of the following [data types](../data-types/README.md). If no fields of the first data type are found, the next is considered, and so on:<br>- `count`<br>- `int`<br>- `double`<br>If no fields of those types are found, sorting will be performed on the first field found in left-to-right order that is _not_ of the `time` data type. |
 | **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc#Sort                         |
 
 #### Example #1:
@@ -274,26 +274,6 @@ cbucket      1
 mteavee      1
 poompaloompa 1
 wwonka       1
-```
-
-
-#### Example #5:
-
-Here we have more `conn` events than the defaults would let us sort, so we increase the limit.
-
-```zq-command
-zq -f table 'sort -limit 9999999 ts' conn.log.gz
-```
-
-#### Output:
-
-```zq-output head:5
-_PATH TS                UID                ID.ORIG_H      ID.ORIG_P ID.RESP_H      ID.RESP_P PROTO SERVICE  DURATION    ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY          ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
-conn  1521911720.600725 C1zOivgBT6dBmknqk  10.47.1.152    49562     23.217.103.245 80        tcp   -        9.698493    0          90453565   SF         -          -          0            ^dtAttttFf       57490     2358856       123713    185470730     -
-conn  1521911720.600800 CfbnHCmClhWXY99ui  10.128.0.207   13        10.47.19.254   14        icmp  -        0.001278    336        0          OTH        -          -          0            -                28        1120          0         0             -
-conn  1521911720.601310 CD3zwQ1YDr4XiQzO1e 10.128.0.207   59777     10.47.28.6     443       tcp   -        0.000002    0          0          S0         -          -          0            S                2         88            0         0             -
-conn  1521911720.601314 CL31Wl4WQoDATEz5Z8 10.164.94.120  34261     10.47.8.208    3389      tcp   -        0.004093    128        19         RSTRH      -          -          0            ^dtADTr          4         464           4         222           -
-...
 ```
 
 ---

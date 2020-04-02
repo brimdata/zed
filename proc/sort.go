@@ -1,20 +1,25 @@
 package proc
 
 import (
+	"bufio"
+	"container/heap"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strconv"
+	"sync"
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 )
-
-type ErrSortLimitReached int
-
-func (e ErrSortLimitReached) Error() string {
-	return fmt.Sprintf("sort limit hit (%d)", e)
-}
 
 type Sort struct {
 	Base
@@ -22,32 +27,164 @@ type Sort struct {
 	limit      int
 	nullsFirst bool
 	fields     []ast.FieldExpr
-	resolvers  []expr.FieldExprResolver
-	out        []*zng.Record
-}
 
-// defaultSortLimit is the default limit of the number of records that
-// sort will process and, otherwise, return an error if this limit is exceeded.
-// The value can be overridden by setting the limit param on the SortProc.
-const defaultSortLimit = 1000000
+	fieldResolvers     []expr.FieldExprResolver
+	once               sync.Once
+	resultCh           chan Result
+	sortFn             expr.SortFn
+	unseenFieldTracker *unseenFieldTracker
+}
 
 func CompileSortProc(c *Context, parent Proc, node *ast.SortProc) (*Sort, error) {
 	limit := node.Limit
 	if limit == 0 {
-		limit = defaultSortLimit
+		limit = 128
 	}
-	resolvers, err := expr.CompileFieldExprs(node.Fields)
+	fieldResolvers, err := expr.CompileFieldExprs(node.Fields)
 	if err != nil {
 		return nil, err
 	}
 	return &Sort{
-		Base:       Base{Context: c, Parent: parent},
-		dir:        node.SortDir,
-		limit:      limit,
-		nullsFirst: node.NullsFirst,
-		fields:     node.Fields,
-		resolvers:  resolvers,
+		Base:               Base{Context: c, Parent: parent},
+		dir:                node.SortDir,
+		limit:              limit * 1024 * 1024,
+		nullsFirst:         node.NullsFirst,
+		fields:             node.Fields,
+		fieldResolvers:     fieldResolvers,
+		resultCh:           make(chan Result),
+		unseenFieldTracker: newUnseenFieldTracker(node.Fields, fieldResolvers),
 	}, nil
+}
+
+func (s *Sort) Pull() (zbuf.Batch, error) {
+	s.once.Do(func() { go s.sortLoop() })
+	r := <-s.resultCh
+	return r.Batch, r.Err
+}
+
+func (s *Sort) sortLoop() {
+	defer close(s.resultCh)
+	firstRunRecs, eof, err := s.recordsForOneRun()
+	if err != nil || len(firstRunRecs) == 0 {
+		s.sendResult(nil, err)
+		return
+	}
+	s.setSortFn(firstRunRecs[0])
+	if eof {
+		// Just one run so do an in-memory sort.
+		s.warnAboutUnseenFields()
+		expr.SortStable(firstRunRecs, s.sortFn)
+		array := zbuf.NewArray(firstRunRecs, nano.NewSpanTs(s.Base.MinTs, s.Base.MaxTs))
+		s.sendResult(array, nil)
+		return
+	}
+	// Multiple runs so do an external merge sort.
+	runManager, err := s.createRuns(firstRunRecs)
+	if err != nil {
+		s.sendResult(nil, err)
+		return
+	}
+	defer runManager.cleanup()
+	s.warnAboutUnseenFields()
+	for s.Context.Err() == nil {
+		// Reading from runManager merges the runs.
+		b, err := zbuf.ReadBatch(runManager, 100)
+		s.sendResult(b, err)
+		if b == nil || err != nil {
+			return
+		}
+	}
+}
+
+func (s *Sort) sendResult(b zbuf.Batch, err error) {
+	select {
+	case s.resultCh <- Result{Batch: b, Err: err}:
+	case <-s.Context.Done():
+	}
+}
+
+func (s *Sort) recordsForOneRun() ([]*zng.Record, bool, error) {
+	var nbytes int
+	var recs []*zng.Record
+	for {
+		batch, err := s.Get()
+		if err != nil {
+			return nil, false, err
+		}
+		if batch == nil {
+			return recs, true, nil
+		}
+		l := batch.Length()
+		for i := 0; i < l; i++ {
+			rec := batch.Index(i)
+			rec.CopyBody()
+			s.unseenFieldTracker.update(rec)
+			nbytes += len(rec.Raw)
+			recs = append(recs, rec)
+		}
+		batch.Unref()
+		if nbytes >= s.limit {
+			return recs, false, nil
+		}
+	}
+}
+
+func (s *Sort) createRuns(firstRunRecs []*zng.Record) (*runManager, error) {
+	rm, err := newRunManager(s.sortFn)
+	if err != nil {
+		return nil, err
+	}
+	if err := rm.createRun(firstRunRecs); err != nil {
+		rm.cleanup()
+		return nil, err
+	}
+	for {
+		recs, eof, err := s.recordsForOneRun()
+		if err != nil {
+			rm.cleanup()
+			return nil, err
+		}
+		if recs != nil {
+			if err := rm.createRun(recs); err != nil {
+				rm.cleanup()
+				return nil, err
+			}
+		}
+		if eof {
+			return rm, nil
+		}
+	}
+}
+
+func (s *Sort) warnAboutUnseenFields() {
+	for _, f := range s.unseenFieldTracker.unseen() {
+		s.Warnings <- fmt.Sprintf("Sort field %s not present in input", expr.FieldExprToString(f))
+	}
+}
+
+func (s *Sort) setSortFn(r *zng.Record) {
+	resolvers := s.fieldResolvers
+	if resolvers == nil {
+		fld := guessSortField(r)
+		resolver := func(r *zng.Record) zng.Value {
+			e, err := r.Access(fld)
+			if err != nil {
+				return zng.Value{}
+			}
+			return e
+		}
+		resolvers = []expr.FieldExprResolver{resolver}
+	}
+	nullsMax := !s.nullsFirst
+	if s.dir < 0 {
+		nullsMax = !nullsMax
+	}
+	sortFn := expr.NewSortFn(nullsMax, resolvers...)
+	if s.dir < 0 {
+		s.sortFn = func(a, b *zng.Record) int { return sortFn(b, a) }
+	} else {
+		s.sortFn = sortFn
+	}
 }
 
 func firstOf(typ *zng.TypeRecord, which []zng.Type) string {
@@ -93,85 +230,194 @@ func guessSortField(rec *zng.Record) string {
 	return "ts"
 }
 
-func (s *Sort) Pull() (zbuf.Batch, error) {
+// runManager manages runs (files of sorted records).
+type runManager struct {
+	runs       []*runFile
+	runIndices map[*runFile]int
+	sortFn     expr.SortFn
+	tempDir    string
+	zctx       *resolver.Context
+}
+
+// newRunManager creates a temporary directory.  Call cleanup to remove it.
+func newRunManager(sortFn expr.SortFn) (*runManager, error) {
+	tempDir, err := ioutil.TempDir("", "zq-sort-")
+	if err != nil {
+		return nil, err
+	}
+	return &runManager{
+		runIndices: make(map[*runFile]int),
+		sortFn:     sortFn,
+		tempDir:    tempDir,
+		zctx:       resolver.NewContext(),
+	}, nil
+}
+
+func (r *runManager) cleanup() {
+	for _, run := range r.runs {
+		run.closeAndRemove()
+	}
+	os.RemoveAll(r.tempDir)
+}
+
+// createRun creates a new run containing the records in recs.
+func (r *runManager) createRun(recs []*zng.Record) error {
+	expr.SortStable(recs, r.sortFn)
+	index := len(r.runIndices)
+	filename := filepath.Join(r.tempDir, strconv.Itoa(index))
+	runFile, err := newRunFile(filename, recs, r.zctx)
+	if err != nil {
+		return err
+	}
+	r.runIndices[runFile] = index
+	heap.Push(r, runFile)
+	return nil
+}
+
+// Read returns the smallest record (per Less) from among the next record in
+// each run.  It implements the merge operation for an external merge sort.
+func (r *runManager) Read() (*zng.Record, error) {
 	for {
-		batch, err := s.Get()
+		if r.Len() == 0 {
+			return nil, nil
+		}
+		rec, eof, err := r.runs[0].read()
 		if err != nil {
 			return nil, err
 		}
-		if batch == nil {
-			return s.sort(), nil
+		if eof {
+			r.runs[0].closeAndRemove()
+			heap.Pop(r)
+		} else {
+			heap.Fix(r, 0)
 		}
-		if len(s.out)+batch.Length() > s.limit {
-			batch.Unref()
-			return nil, ErrSortLimitReached(s.limit)
+		if rec != nil {
+			return rec, nil
 		}
-		// XXX this should handle group-by every ... need to change how we do this
-		s.consume(batch)
-		batch.Unref()
 	}
 }
 
-func (s *Sort) consume(batch zbuf.Batch) {
-	//XXX this could be made more efficient
-	for k := 0; k < batch.Length(); k++ {
-		s.out = append(s.out, batch.Index(k).Keep())
+func (r *runManager) Len() int { return len(r.runs) }
+
+func (r *runManager) Less(i, j int) bool {
+	v := r.sortFn(r.runs[i].nextRecord, r.runs[j].nextRecord)
+	switch {
+	case v < 0:
+		return true
+	case v == 0:
+		// Maintain stability.
+		return r.runIndices[r.runs[i]] < r.runIndices[r.runs[j]]
+	default:
+		return false
 	}
 }
 
-func (s *Sort) sort() zbuf.Batch {
-	out := s.out
-	if len(out) == 0 {
-		return nil
-	}
-	s.out = nil
-	if s.resolvers == nil {
-		fld := guessSortField(out[0])
-		resolver := func(r *zng.Record) zng.Value {
-			e, err := r.Access(fld)
-			if err != nil {
-				return zng.Value{}
-			}
-			return e
-		}
-		s.resolvers = []expr.FieldExprResolver{resolver}
-	} else {
-		s.warnAboutUnseenFields(out)
-	}
-	nullsMax := !s.nullsFirst
-	if s.dir < 0 {
-		nullsMax = !nullsMax
-	}
-	sorter := expr.NewSortFn(nullsMax, s.resolvers...)
-	sortWithDir := func(a, b *zng.Record) int {
-		return s.dir * sorter(a, b)
-	}
-	expr.SortStable(out, sortWithDir)
-	return zbuf.NewArray(out, nano.NewSpanTs(s.MinTs, s.MaxTs))
+func (r *runManager) Swap(i, j int) { r.runs[i], r.runs[j] = r.runs[j], r.runs[i] }
+
+func (r *runManager) Push(x interface{}) { r.runs = append(r.runs, x.(*runFile)) }
+
+func (r *runManager) Pop() interface{} {
+	x := r.runs[len(r.runs)-1]
+	r.runs = r.runs[:len(r.runs)-1]
+	return x
 }
 
-func (s *Sort) warnAboutUnseenFields(records []*zng.Record) {
-	unseenFields := make(map[ast.FieldExpr]expr.FieldExprResolver)
-	for i, r := range s.resolvers {
-		unseenFields[s.fields[i]] = r
+// runFile represents a run as as a readable file containing a sorted sequence
+// of records.
+type runFile struct {
+	file       *os.File
+	nextRecord *zng.Record
+	zr         zbuf.Reader
+}
+
+// newRunFile writes sorted to filename and returns a runFile that reads the
+// file using zctx.
+func newRunFile(filename string, sorted []*zng.Record, zctx *resolver.Context) (*runFile, error) {
+	f, err := os.Create(filename)
+	if err != nil {
+		return nil, err
 	}
-	sawType := make(map[*zng.TypeRecord]bool)
+	r := &runFile{file: f}
+	if err := writeZng(f, sorted); err != nil {
+		r.closeAndRemove()
+		return nil, err
+	}
+	if _, err := f.Seek(0, 0); err != nil {
+		r.closeAndRemove()
+		return nil, err
+	}
+	zr := zngio.NewReader(bufio.NewReader(f), zctx)
+	rec, err := zr.Read()
+	if err != nil {
+		r.closeAndRemove()
+		return nil, err
+	}
+	return &runFile{
+		file:       f,
+		nextRecord: rec,
+		zr:         zr,
+	}, nil
+}
+
+// closeAndRemove closes and removes the underlying file.
+func (r *runFile) closeAndRemove() {
+	r.file.Close()
+	os.Remove(r.file.Name())
+}
+
+// read returns the next record along with a boolean that is true at EOF.
+func (r *runFile) read() (*zng.Record, bool, error) {
+	rec := r.nextRecord
+	var err error
+	r.nextRecord, err = r.zr.Read()
+	eof := r.nextRecord == nil && err == nil
+	return rec, eof, err
+}
+
+// writeZng writes records to w as a zng stream.
+func writeZng(w io.Writer, records []*zng.Record) error {
+	bw := bufio.NewWriter(w)
+	zw := zngio.NewWriter(bw, zio.WriterFlags{})
 	for _, rec := range records {
-		if !sawType[rec.Type] {
-			sawType[rec.Type] = true
-			for field, res := range unseenFields {
-				if !res(rec).IsNil() {
-					delete(unseenFields, field)
-				}
-			}
-			if len(unseenFields) == 0 {
-				break
-			}
+		if err := zw.Write(rec); err != nil {
+			return err
 		}
 	}
-	for _, f := range s.fields {
-		if _, ok := unseenFields[f]; ok {
-			s.Warnings <- fmt.Sprintf("Sort field %s not present in input", expr.FieldExprToString(f))
+	return bw.Flush()
+}
+
+type unseenFieldTracker struct {
+	unseenFields map[ast.FieldExpr]expr.FieldExprResolver
+	seenTypes    map[*zng.TypeRecord]bool
+}
+
+func newUnseenFieldTracker(fields []ast.FieldExpr, resolvers []expr.FieldExprResolver) *unseenFieldTracker {
+	unseen := make(map[ast.FieldExpr]expr.FieldExprResolver)
+	for i, r := range resolvers {
+		unseen[fields[i]] = r
+	}
+	return &unseenFieldTracker{
+		unseenFields: unseen,
+		seenTypes:    make(map[*zng.TypeRecord]bool),
+	}
+}
+
+func (u *unseenFieldTracker) update(rec *zng.Record) {
+	if len(u.unseenFields) == 0 || u.seenTypes[rec.Type] {
+		return
+	}
+	u.seenTypes[rec.Type] = true
+	for field, fieldResolver := range u.unseenFields {
+		if !fieldResolver(rec).IsNil() {
+			delete(u.unseenFields, field)
 		}
 	}
+}
+
+func (u *unseenFieldTracker) unseen() []ast.FieldExpr {
+	var fields []ast.FieldExpr
+	for f := range u.unseenFields {
+		fields = append(fields, f)
+	}
+	return fields
 }

@@ -13,11 +13,7 @@ type Config struct {
 	Root string
 	// ZeekLauncher is the interface for launching zeek processes.
 	ZeekLauncher zeek.Launcher
-	// SortLimit specifies the limit of logs in posted pcap to sort. Its
-	// existence is only as a hook for testing.  Eventually zqd will sort an
-	// unlimited amount of logs and this can be taken out.
-	SortLimit int
-	Logger    *zap.Logger
+	Logger       *zap.Logger
 }
 
 type VersionMessage struct {
@@ -32,12 +28,8 @@ type Core struct {
 	Root         string
 	ZeekLauncher zeek.Launcher
 	spaces       *space.Manager
-	// SortLimit specifies the limit of logs in posted pcap to sort. Its
-	// existence is only as a hook for testing.  Eventually zqd will sort an
-	// unlimited amount of logs and this can be taken out.
-	SortLimit int
-	taskCount int64
-	logger    *zap.Logger
+	taskCount    int64
+	logger       *zap.Logger
 }
 
 func NewCore(conf Config) *Core {
@@ -49,7 +41,6 @@ func NewCore(conf Config) *Core {
 		Root:         conf.Root,
 		ZeekLauncher: conf.ZeekLauncher,
 		spaces:       space.NewManager(conf.Root, conf.Logger),
-		SortLimit:    conf.SortLimit,
 		logger:       logger,
 	}
 }
