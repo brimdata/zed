@@ -57,6 +57,7 @@ package ztest
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -67,6 +68,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
@@ -129,10 +131,18 @@ func Run(t *testing.T, dirname string) {
 				t.Fatalf("%s: no error when expecting error regex: %s", filename, zt.ErrorRE)
 			}
 			if out != zt.Output {
+				a := zt.Output
+				b := out
+
+				if !utf8.ValidString(a) {
+					a = encodeHex(a)
+					b = encodeHex(b)
+				}
+
 				diff, _ := difflib.GetUnifiedDiffString(difflib.UnifiedDiff{
-					A:        difflib.SplitLines(zt.Output),
+					A:        difflib.SplitLines(a),
 					FromFile: "expected",
-					B:        difflib.SplitLines(out),
+					B:        difflib.SplitLines(b),
 					ToFile:   "actual",
 					Context:  5,
 				})
@@ -182,6 +192,37 @@ func (i *Inputs) UnmarshalYAML(value *yaml.Node) error {
 	return nil
 }
 
+// Try to decode a yaml-friendly way of representing binary data in hex:
+// if the first line is the word HEX by itself then subsequent lines may
+// either by comments explaining the contents or a sequence of hex digits.
+func decodeHex(in string) (string, error) {
+	if !strings.HasPrefix(in, "HEX\n") {
+		return in, nil
+	}
+
+	var raw string
+	lines := strings.Split(in, "\n")[1:]
+	for _, line := range lines {
+		if len(line) == 0 || line[0] == '#' {
+			continue
+		}
+		raw += strings.ReplaceAll(line, " ", "")
+	}
+	out := make([]byte, hex.DecodedLen(len(raw)))
+	_, err := hex.Decode(out, []byte(raw))
+	if err != nil {
+		return "", err
+	}
+	return string(out), nil
+}
+
+func encodeHex(in string) string {
+	var buf bytes.Buffer
+	dumper := hex.Dumper(&buf)
+	dumper.Write([]byte(in))
+	return buf.String()
+}
+
 // FromYAMLFile loads a ZTest from the YAML file named filename.
 func FromYAMLFile(filename string) (*ZTest, error) {
 	buf, err := ioutil.ReadFile(filename)
@@ -197,6 +238,10 @@ func FromYAMLFile(filename string) (*ZTest, error) {
 	var v interface{}
 	if d.Decode(&v) != io.EOF {
 		return nil, errors.New("found multiple YAML documents or garbage after first document")
+	}
+	z.Output, err = decodeHex(z.Output)
+	if err != nil {
+		return nil, err
 	}
 	if z.OutputFormat == "" {
 		z.OutputFormat = "zng"
