@@ -1,6 +1,7 @@
 package zio
 
 import (
+	"flag"
 	"io"
 
 	"github.com/brimsec/zq/zbuf"
@@ -11,6 +12,14 @@ type Flags struct {
 	ShowTypes  bool
 	ShowFields bool
 	EpochDates bool
+}
+
+func (f *Flags) SetFlags(fs *flag.FlagSet) {
+	fs.BoolVar(&f.ShowTypes, "T", false, "display field types in text output")
+	fs.BoolVar(&f.ShowFields, "F", false, "display field names in text output")
+	fs.BoolVar(&f.EpochDates, "E", false, "display epoch timestamps in text output")
+	fs.BoolVar(&f.UTF8, "U", false, "display zeek strings as UTF-8")
+	fs.IntVar(&f.FrameSize, "b", 0, "BZNG frame size (0 for no frames)")
 }
 
 type Writer struct {

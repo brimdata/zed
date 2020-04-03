@@ -103,6 +103,9 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 
 	c.jsonPathRegexp = defaultJSONPathRegexp
 
+	// Flags added for writers are -T, -F, -E, -U, and -b
+	c.Flags.SetFlags(f)
+
 	f.StringVar(&c.ifmt, "i", "auto", "format of input data [auto,bzng,ndjson,zeek,zjson,zng]")
 	f.StringVar(&c.ofmt, "f", "zng", "format for output data [bzng,ndjson,table,text,types,zeek,zjson,zng]")
 	f.StringVar(&c.path, "p", cwd, "path for input")
@@ -113,10 +116,6 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.verbose, "v", false, "show verbose details")
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
 	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
-	f.BoolVar(&c.ShowTypes, "T", false, "display field types in text output")
-	f.BoolVar(&c.ShowFields, "F", false, "display field names in text output")
-	f.BoolVar(&c.EpochDates, "E", false, "display epoch timestamps in text output")
-	f.BoolVar(&c.UTF8, "U", false, "display zeek strings as UTF-8")
 	f.BoolVar(&c.showVersion, "version", false, "print version and exit")
 	return c, nil
 }
