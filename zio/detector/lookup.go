@@ -36,7 +36,7 @@ func LookupWriter(format string, w io.WriteCloser, optionalFlags *zio.Flags) *zi
 	case "zng":
 		f = zbuf.NopFlusher(zngio.NewWriter(w))
 	case "bzng":
-		f = zbuf.NopFlusher(bzngio.NewWriter(w))
+		f = bzngio.NewWriter(w, flags)
 	case "zeek":
 		f = zbuf.NopFlusher(zeekio.NewWriter(w, flags))
 	case "ndjson":

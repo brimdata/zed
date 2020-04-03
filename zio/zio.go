@@ -7,11 +7,14 @@ import (
 	"github.com/brimsec/zq/zbuf"
 )
 
+// This is clumsy, it has the union of the flags accepted by all
+// the different Writer classes.
 type Flags struct {
 	UTF8       bool
 	ShowTypes  bool
 	ShowFields bool
 	EpochDates bool
+	FrameSize  int
 }
 
 func (f *Flags) SetFlags(fs *flag.FlagSet) {

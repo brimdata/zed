@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/bzngio"
 )
 
@@ -20,7 +21,7 @@ type BzngOutput struct {
 func NewBzngOutput(response http.ResponseWriter) *BzngOutput {
 	o := &BzngOutput{
 		response: response,
-		writer:   bzngio.NewWriter(response),
+		writer:   bzngio.NewWriter(response, zio.Flags{}),
 	}
 	return o
 }

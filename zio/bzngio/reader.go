@@ -76,6 +76,8 @@ again:
 			err = r.readTypeUnion()
 		case zng.TypeDefAlias:
 			err = r.readTypeAlias()
+		case zng.FrameMarker:
+			err = r.readFrameMarker()
 		default:
 			// XXX we should return the control code
 			len, err := r.readUvarint()
@@ -250,6 +252,14 @@ func (r *Reader) readTypeAlias() error {
 	_, err = r.zctx.LookupTypeAlias(name, inner)
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func (r *Reader) readFrameMarker() error {
+	_, err := r.readUvarint()
+	if err != nil {
+		return zng.ErrBadFormat
 	}
 	return nil
 }
