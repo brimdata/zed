@@ -356,7 +356,7 @@ func newCoreAtDir(t *testing.T, dir string) (*zqd.Core, *api.Connection, func())
 	}
 	require.NoError(t, os.MkdirAll(dir, 0755))
 	c := zqd.NewCore(conf)
-	h := zqd.NewHandler(c)
+	h := zqd.NewHandler(c, conf.Logger)
 	ts := httptest.NewServer(h)
 	return c, api.NewConnectionTo(ts.URL), func() {
 		os.RemoveAll(dir)
