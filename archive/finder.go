@@ -1,7 +1,6 @@
 package archive
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,7 +9,6 @@ import (
 )
 
 func Find(dir string, pattern []byte) ([]string, error) {
-	nerr := 0
 	//XXX this should be parallelized with some locking presuming a little
 	// parallelism won't mess up the file system assumptions
 	var hits []string
@@ -31,11 +29,6 @@ func Find(dir string, pattern []byte) ([]string, error) {
 			hit, err := SearchFile(path, pattern)
 			if err != nil {
 				fmt.Printf("%s\n", err)
-				nerr++
-				if nerr > 10 {
-					//XXX
-					return errors.New("stopping after too many errors...")
-				}
 			}
 			if hit {
 				hits = append(hits, path)
