@@ -362,10 +362,10 @@ func TestDeleteDuringPacketPost(t *testing.T) {
 				taskEnd = te
 			}
 		}
-		if taskEnd == nil || taskEnd.Error.Message != "context canceled" {
-			return errors.New("missing or unexpected taskEnd error")
+		if taskEnd == nil {
+			return errors.New("no TaskEnd payload")
 		}
-		return nil
+		return *taskEnd.Error
 	}
 	go func() {
 		packetPostErr <- doPost()
@@ -375,7 +375,7 @@ func TestDeleteDuringPacketPost(t *testing.T) {
 	err = client.SpaceDelete(context.Background(), spaceName)
 	require.NoError(t, err)
 
-	require.NoError(t, <-packetPostErr)
+	require.Error(t, <-packetPostErr, "context canceled")
 }
 
 func zngSearch(t *testing.T, client *api.Connection, space, prog string) string {

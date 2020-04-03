@@ -84,7 +84,7 @@ func (c *Core) getTaskID() int64 {
 // If the space is pending deletion, the bool parameter returns false.
 // Otherwise, this returns a new context, and a done function that must
 // be called when the operation completes.
-func (c *Core) startSpaceOp(ctx context.Context, space string) (context.Context, func(), bool) {
+func (c *Core) startSpaceOp(ctx context.Context, space string) (context.Context, context.CancelFunc, bool) {
 	c.spaceOpsLock.Lock()
 	defer c.spaceOpsLock.Unlock()
 
@@ -132,7 +132,7 @@ func (c *Core) startSpaceOp(ctx context.Context, space string) (context.Context,
 // already pending deletion, the bool parameter returns false. Otherwise, it
 // returns a done function that must be called when the delete operation
 // completes.
-func (c *Core) haltSpaceOpsForDelete(space string) (func(), bool) {
+func (c *Core) haltSpaceOpsForDelete(space string) (context.CancelFunc, bool) {
 	c.spaceOpsLock.Lock()
 
 	state, ok := c.spaceOps[space]

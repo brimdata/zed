@@ -36,12 +36,12 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, opDone, ok := c.startSpaceOp(r.Context(), s.Name())
+	ctx, cancel, ok := c.startSpaceOp(r.Context(), s.Name())
 	if !ok {
 		http.Error(w, "space is awaiting deletion", http.StatusConflict)
 		return
 	}
-	defer opDone()
+	defer cancel()
 
 	var out search.Output
 	format := r.URL.Query().Get("format")
@@ -71,12 +71,12 @@ func handlePacketSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, opDone, ok := c.startSpaceOp(r.Context(), s.Name())
+	ctx, cancel, ok := c.startSpaceOp(r.Context(), s.Name())
 	if !ok {
 		http.Error(w, "space is awaiting deletion", http.StatusConflict)
 		return
 	}
-	defer opDone()
+	defer cancel()
 
 	req := &api.PacketSearch{}
 	if err := req.FromQuery(r.URL.Query()); err != nil {
@@ -164,12 +164,12 @@ func handleSpaceGet(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, opDone, ok := c.startSpaceOp(r.Context(), s.Name())
+	_, cancel, ok := c.startSpaceOp(r.Context(), s.Name())
 	if !ok {
 		http.Error(w, "space is awaiting deletion", http.StatusConflict)
 		return
 	}
-	defer opDone()
+	defer cancel()
 
 	info := &api.SpaceInfo{
 		Name:          s.Name(),
@@ -221,12 +221,12 @@ func handleSpacePost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, opDone, ok := c.startSpaceOp(r.Context(), req.Name)
+	_, cancel, ok := c.startSpaceOp(r.Context(), req.Name)
 	if !ok {
 		http.Error(w, "space is awaiting deletion", http.StatusConflict)
 		return
 	}
-	defer opDone()
+	defer cancel()
 
 	s, err := space.Create(c.Root, req.Name, req.DataDir)
 	if err != nil {
@@ -252,12 +252,12 @@ func handleSpaceDelete(c *Core, w http.ResponseWriter, r *http.Request) {
 	if s == nil {
 		return
 	}
-	deleteDone, ok := c.haltSpaceOpsForDelete(s.Name())
+	cancel, ok := c.haltSpaceOpsForDelete(s.Name())
 	if !ok {
 		http.Error(w, "space is awaiting deletion", http.StatusConflict)
 		return
 	}
-	defer deleteDone()
+	defer cancel()
 
 	if err := s.Delete(); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -278,12 +278,13 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, opDone, ok := c.startSpaceOp(r.Context(), s.Name())
+	ctx := r.Context()
+	ctx, cancel, ok := c.startSpaceOp(r.Context(), s.Name())
 	if !ok {
 		http.Error(w, "space is awaiting deletion", http.StatusConflict)
 		return
 	}
-	defer opDone()
+	defer cancel()
 
 	var req api.PacketPostRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -363,12 +364,12 @@ func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, opDone, ok := c.startSpaceOp(r.Context(), s.Name())
+	ctx, cancel, ok := c.startSpaceOp(r.Context(), s.Name())
 	if !ok {
 		http.Error(w, "space is awaiting deletion", http.StatusConflict)
 		return
 	}
-	defer opDone()
+	defer cancel()
 
 	var req api.LogPostRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
