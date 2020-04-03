@@ -11,8 +11,7 @@ output-format: bzng
 
 output-flags: -b 1
 
-output: |
-  HEX
+outputHex: |
   # new frame marker
   86 00
   # define a record with 3 columns
