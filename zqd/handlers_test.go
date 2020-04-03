@@ -4,11 +4,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
+	"io"
 	"io/ioutil"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/brimsec/zq/pkg/nano"
@@ -18,6 +21,7 @@ import (
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zqd"
 	"github.com/brimsec/zq/zqd/api"
+	"github.com/brimsec/zq/zqd/zeek"
 	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -315,6 +319,65 @@ func TestPostInvalidLogs(t *testing.T) {
 	})
 }
 
+func TestDeleteDuringPacketPost(t *testing.T) {
+	c, client, done := newCore(t)
+	defer done()
+
+	spaceName := "deleteDuringPacketPost"
+	pcapfile := "./testdata/valid.pcap"
+
+	_, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: spaceName})
+	require.NoError(t, err)
+
+	waitFn := func(tzp *testZeekProcess) error {
+		select {
+		case <-tzp.ctx.Done():
+		}
+		return tzp.ctx.Err()
+	}
+
+	c.ZeekLauncher = testZeekLauncher(nil, waitFn)
+
+	var wg sync.WaitGroup
+	packetPostErr := make(chan error)
+
+	wg.Add(1)
+	doPost := func() error {
+		stream, err := client.PacketPost(context.Background(), spaceName, api.PacketPostRequest{pcapfile})
+		if err != nil {
+			return err
+		}
+		wg.Done()
+
+		var taskEnd *api.TaskEnd
+		for {
+			i, err := stream.Next()
+			if err != nil {
+				return err
+			}
+			if i == nil {
+				break
+			}
+			if te, ok := i.(*api.TaskEnd); ok {
+				taskEnd = te
+			}
+		}
+		if taskEnd == nil {
+			return errors.New("no TaskEnd payload")
+		}
+		return *taskEnd.Error
+	}
+	go func() {
+		packetPostErr <- doPost()
+	}()
+
+	wg.Wait()
+	err = client.SpaceDelete(context.Background(), spaceName)
+	require.NoError(t, err)
+
+	require.Error(t, <-packetPostErr, "context canceled")
+}
+
 func zngSearch(t *testing.T, client *api.Connection, space, prog string) string {
 	parsed, err := zql.ParseProc(prog)
 	require.NoError(t, err)
@@ -396,4 +459,65 @@ func postSpaceLogs(t *testing.T, c *api.Connection, spaceName string, logs ...st
 		payloads = append(payloads, p)
 	}
 	return payloads
+}
+
+func testZeekLauncher(start, wait procFn) zeek.Launcher {
+	return func(ctx context.Context, r io.Reader, dir string) (zeek.Process, error) {
+		p := &testZeekProcess{
+			ctx:    ctx,
+			reader: r,
+			wd:     dir,
+			wait:   wait,
+			start:  start,
+		}
+		return p, p.Start()
+	}
+}
+
+type procFn func(t *testZeekProcess) error
+
+type testZeekProcess struct {
+	ctx    context.Context
+	reader io.Reader
+	wd     string
+	start  procFn
+	wait   procFn
+}
+
+func (p *testZeekProcess) Start() error {
+	if p.start != nil {
+		return p.start(p)
+	}
+	return nil
+}
+
+func (p *testZeekProcess) Wait() error {
+	if p.wait != nil {
+		return p.wait(p)
+	}
+	return nil
+}
+
+func writeLogsFn(logs []string) procFn {
+	return func(t *testZeekProcess) error {
+		for _, log := range logs {
+			r, err := os.Open(log)
+			if err != nil {
+				return err
+			}
+			defer r.Close()
+			base := filepath.Base(r.Name())
+			w, err := os.Create(filepath.Join(t.wd, base))
+			if err != nil {
+				return err
+			}
+			defer w.Close()
+			if _, err = io.Copy(w, r); err != nil {
+				return err
+			}
+		}
+		// drain the reader
+		_, err := io.Copy(ioutil.Discard, t.reader)
+		return err
+	}
 }

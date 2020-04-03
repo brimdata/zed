@@ -35,6 +35,14 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), status)
 		return
 	}
+
+	ctx, cancel, ok := c.startSpaceOp(r.Context(), s.Name())
+	if !ok {
+		http.Error(w, "space is awaiting deletion", http.StatusConflict)
+		return
+	}
+	defer cancel()
+
 	var out search.Output
 	format := r.URL.Query().Get("format")
 	switch format {
@@ -51,7 +59,7 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	// XXX This always returns bad request but should return status codes
 	// that reflect the nature of the returned error.
 	w.Header().Set("Content-Type", "application/ndjson")
-	if err := search.Search(r.Context(), s, req, out); err != nil {
+	if err := search.Search(ctx, s, req, out); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -62,6 +70,14 @@ func handlePacketSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	if s == nil {
 		return
 	}
+
+	ctx, cancel, ok := c.startSpaceOp(r.Context(), s.Name())
+	if !ok {
+		http.Error(w, "space is awaiting deletion", http.StatusConflict)
+		return
+	}
+	defer cancel()
+
 	req := &api.PacketSearch{}
 	if err := req.FromQuery(r.URL.Query()); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -109,7 +125,7 @@ func handlePacketSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/vnd.tcpdump.pcap")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%s.pcap", search.ID()))
-	err = search.Run(w, pcapReader)
+	err = search.Run(ctx, w, pcapReader)
 	if err != nil {
 		if err == pcap.ErrNoPacketsFound {
 			http.Error(w, err.Error(), http.StatusNotFound)
@@ -147,6 +163,14 @@ func handleSpaceGet(c *Core, w http.ResponseWriter, r *http.Request) {
 	if s == nil {
 		return
 	}
+
+	_, cancel, ok := c.startSpaceOp(r.Context(), s.Name())
+	if !ok {
+		http.Error(w, "space is awaiting deletion", http.StatusConflict)
+		return
+	}
+	defer cancel()
+
 	info := &api.SpaceInfo{
 		Name:          s.Name(),
 		PacketSupport: s.HasFile(ingest.PcapIndexFile),
@@ -196,6 +220,14 @@ func handleSpacePost(c *Core, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	_, cancel, ok := c.startSpaceOp(r.Context(), req.Name)
+	if !ok {
+		http.Error(w, "space is awaiting deletion", http.StatusConflict)
+		return
+	}
+	defer cancel()
+
 	s, err := space.Create(c.Root, req.Name, req.DataDir)
 	if err != nil {
 		status := http.StatusInternalServerError
@@ -220,6 +252,13 @@ func handleSpaceDelete(c *Core, w http.ResponseWriter, r *http.Request) {
 	if s == nil {
 		return
 	}
+	cancel, ok := c.haltSpaceOpsForDelete(s.Name())
+	if !ok {
+		http.Error(w, "space is awaiting deletion", http.StatusConflict)
+		return
+	}
+	defer cancel()
+
 	if err := s.Delete(); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -233,16 +272,27 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	logger := c.requestLogger(r)
+
 	s := extractSpace(c, w, r)
 	if s == nil {
 		return
 	}
+
+	ctx := r.Context()
+	ctx, cancel, ok := c.startSpaceOp(r.Context(), s.Name())
+	if !ok {
+		http.Error(w, "space is awaiting deletion", http.StatusConflict)
+		return
+	}
+	defer cancel()
+
 	var req api.PacketPostRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	proc, err := ingest.Pcap(r.Context(), s, req.Path, c.ZeekLauncher, c.SortLimit)
+
+	proc, err := ingest.Pcap(ctx, s, req.Path, c.ZeekLauncher, c.SortLimit)
 	if err != nil {
 		if errors.Is(err, pcapio.ErrCorruptPcap) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -313,6 +363,14 @@ func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	if s == nil {
 		return
 	}
+
+	ctx, cancel, ok := c.startSpaceOp(r.Context(), s.Name())
+	if !ok {
+		http.Error(w, "space is awaiting deletion", http.StatusConflict)
+		return
+	}
+	defer cancel()
+
 	var req api.LogPostRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -324,7 +382,7 @@ func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	errCh := make(chan error)
 	go func() {
-		errCh <- ingest.Logs(r.Context(), s, req.Paths, c.SortLimit)
+		errCh <- ingest.Logs(ctx, s, req.Paths, c.SortLimit)
 	}()
 
 	w.Header().Set("Content-Type", "application/ndjson")
