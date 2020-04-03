@@ -57,6 +57,7 @@ package ztest
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -67,6 +68,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
@@ -76,6 +78,7 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
 	"github.com/pmezard/go-difflib/difflib"
+	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
 
@@ -128,11 +131,21 @@ func Run(t *testing.T, dirname string) {
 			} else if zt.errRegex != nil {
 				t.Fatalf("%s: no error when expecting error regex: %s", filename, zt.ErrorRE)
 			}
-			if out != zt.Output {
+			expectedOut, oerr := zt.getOutput()
+			require.NoError(t, oerr)
+			if out != expectedOut {
+				a := expectedOut
+				b := out
+
+				if !utf8.ValidString(a) {
+					a = encodeHex(a)
+					b = encodeHex(b)
+				}
+
 				diff, _ := difflib.GetUnifiedDiffString(difflib.UnifiedDiff{
-					A:        difflib.SplitLines(zt.Output),
+					A:        difflib.SplitLines(a),
 					FromFile: "expected",
-					B:        difflib.SplitLines(out),
+					B:        difflib.SplitLines(b),
 					ToFile:   "actual",
 					Context:  5,
 				})
@@ -157,7 +170,8 @@ type ZTest struct {
 	ZQL          string `yaml:"zql"`
 	Input        Inputs `yaml:"input"`
 	OutputFormat string `yaml:"output-format,omitempty"`
-	Output       string `yaml:"output"`
+	Output       string `yaml:"output,omitempty"`
+	OutputHex    string `yaml:"outputHex,omitempty"`
 	ErrorRE      string `yaml:"errorRE"`
 	errRegex     *regexp.Regexp
 	Warnings     string `yaml:"warnings",omitempty"`
@@ -180,6 +194,47 @@ func (i *Inputs) UnmarshalYAML(value *yaml.Node) error {
 	}
 	*i = append(*i, input)
 	return nil
+}
+
+// Try to decode a yaml-friendly way of representing binary data in hex:
+// each line is either a comment explaining the contents (denoted with
+// a leading # character), or a sequence of hex digits.
+func decodeHex(in string) (string, error) {
+	var raw string
+	for _, line := range strings.Split(in, "\n") {
+		if len(line) == 0 || line[0] == '#' {
+			continue
+		}
+		raw += strings.ReplaceAll(line, " ", "")
+	}
+	out := make([]byte, hex.DecodedLen(len(raw)))
+	_, err := hex.Decode(out, []byte(raw))
+	if err != nil {
+		return "", err
+	}
+	return string(out), nil
+}
+
+func encodeHex(in string) string {
+	var buf bytes.Buffer
+	dumper := hex.Dumper(&buf)
+	dumper.Write([]byte(in))
+	return buf.String()
+}
+
+func (z *ZTest) getOutput() (string, error) {
+	outlen := len(z.Output)
+	hexlen := len(z.OutputHex)
+	if outlen > 0 && hexlen > 0 {
+		return "", errors.New("Cannot specify both output and outputHex")
+	}
+	if outlen == 0 && hexlen == 0 {
+		return "", nil
+	}
+	if outlen > 0 {
+		return z.Output, nil
+	}
+	return decodeHex(z.OutputHex)
 }
 
 // FromYAMLFile loads a ZTest from the YAML file named filename.
