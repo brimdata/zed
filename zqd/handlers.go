@@ -368,8 +368,8 @@ func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "space is awaiting deletion", http.StatusConflict)
 		return
 	}
-
 	defer opDone()
+
 	var req api.LogPostRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

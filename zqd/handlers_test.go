@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/brimsec/zq/pkg/nano"
@@ -313,6 +315,65 @@ func TestPostInvalidLogs(t *testing.T) {
 		assert.NotNil(t, last.Error)
 		assert.Equal(t, last.Error.Message, detector.ErrUnknown.Error())
 	})
+}
+
+func TestDeleteDuringPacketPost(t *testing.T) {
+	c, client, done := newCore(t)
+	defer done()
+
+	spaceName := "deleteDuringPacketPost"
+	pcapfile := "./testdata/valid.pcap"
+
+	_, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: spaceName})
+	require.NoError(t, err)
+
+	waitFn := func(tzp *testZeekProcess) error {
+		select {
+		case <-tzp.ctx.Done():
+		}
+		return tzp.ctx.Err()
+	}
+
+	c.ZeekLauncher = testZeekLauncher(nil, waitFn)
+
+	var wg sync.WaitGroup
+	packetPostErr := make(chan error)
+
+	wg.Add(1)
+	doPost := func() error {
+		stream, err := client.PacketPost(context.Background(), spaceName, api.PacketPostRequest{pcapfile})
+		if err != nil {
+			return err
+		}
+		wg.Done()
+
+		var taskEnd *api.TaskEnd
+		for {
+			i, err := stream.Next()
+			if err != nil {
+				return err
+			}
+			if i == nil {
+				break
+			}
+			if te, ok := i.(*api.TaskEnd); ok {
+				taskEnd = te
+			}
+		}
+		if taskEnd == nil || taskEnd.Error.Message != "context canceled" {
+			return errors.New("missing or unexpected taskEnd error")
+		}
+		return nil
+	}
+	go func() {
+		packetPostErr <- doPost()
+	}()
+
+	wg.Wait()
+	err = client.SpaceDelete(context.Background(), spaceName)
+	require.NoError(t, err)
+
+	require.NoError(t, <-packetPostErr)
 }
 
 func zngSearch(t *testing.T, client *api.Connection, space, prog string) string {
