@@ -57,8 +57,8 @@ func TestPacketPostSuccess(t *testing.T) {
 		assert.Equal(t, p.space, info.Name)
 		assert.Equal(t, nano.Unix(1501770877, 471635000), *info.MinTime)
 		assert.Equal(t, nano.Unix(1501770880, 988247000), *info.MaxTime)
-		// Must use InDelta here because zeek's randomly generate uids that
-		// can vary in size.
+		// Must use InDelta here because zeek randomly generates uids that
+		// vary in size.
 		assert.InDelta(t, 1437, info.Size, 10)
 		assert.Equal(t, int64(4224), info.PacketSize)
 		assert.True(t, info.PacketSupport)
