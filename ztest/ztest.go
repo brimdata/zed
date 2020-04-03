@@ -78,6 +78,7 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
 	"github.com/pmezard/go-difflib/difflib"
+	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
 
@@ -130,8 +131,10 @@ func Run(t *testing.T, dirname string) {
 			} else if zt.errRegex != nil {
 				t.Fatalf("%s: no error when expecting error regex: %s", filename, zt.ErrorRE)
 			}
-			if out != zt.Output {
-				a := zt.Output
+			expectedOut, oerr := zt.getOutput()
+			require.NoError(t, oerr)
+			if out != expectedOut {
+				a := expectedOut
 				b := out
 
 				if !utf8.ValidString(a) {
@@ -167,7 +170,8 @@ type ZTest struct {
 	ZQL          string `yaml:"zql"`
 	Input        Inputs `yaml:"input"`
 	OutputFormat string `yaml:"output-format,omitempty"`
-	Output       string `yaml:"output"`
+	Output       string `yaml:"output,omitempty"`
+	OutputHex    string `yaml:"outputHex,omitempty"`
 	ErrorRE      string `yaml:"errorRE"`
 	errRegex     *regexp.Regexp
 	Warnings     string `yaml:"warnings",omitempty"`
@@ -193,16 +197,11 @@ func (i *Inputs) UnmarshalYAML(value *yaml.Node) error {
 }
 
 // Try to decode a yaml-friendly way of representing binary data in hex:
-// if the first line is the word HEX by itself then subsequent lines may
-// either by comments explaining the contents or a sequence of hex digits.
+// each lines is either a comment explaining the contents (denoted with
+// a leading # character), or a sequence of hex digits.
 func decodeHex(in string) (string, error) {
-	if !strings.HasPrefix(in, "HEX\n") {
-		return in, nil
-	}
-
 	var raw string
-	lines := strings.Split(in, "\n")[1:]
-	for _, line := range lines {
+	for _, line := range strings.Split(in, "\n") {
 		if len(line) == 0 || line[0] == '#' {
 			continue
 		}
@@ -223,6 +222,21 @@ func encodeHex(in string) string {
 	return buf.String()
 }
 
+func (z *ZTest) getOutput() (string, error) {
+	outlen := len(z.Output)
+	hexlen := len(z.OutputHex)
+	if outlen > 0 && hexlen > 0 {
+		return "", errors.New("Cannot specify both output and outputHex")
+	}
+	if outlen == 0 && hexlen == 0 {
+		return "", nil
+	}
+	if outlen > 0 {
+		return z.Output, nil
+	}
+	return decodeHex(z.OutputHex)
+}
+
 // FromYAMLFile loads a ZTest from the YAML file named filename.
 func FromYAMLFile(filename string) (*ZTest, error) {
 	buf, err := ioutil.ReadFile(filename)
@@ -238,10 +252,6 @@ func FromYAMLFile(filename string) (*ZTest, error) {
 	var v interface{}
 	if d.Decode(&v) != io.EOF {
 		return nil, errors.New("found multiple YAML documents or garbage after first document")
-	}
-	z.Output, err = decodeHex(z.Output)
-	if err != nil {
-		return nil, err
 	}
 	if z.OutputFormat == "" {
 		z.OutputFormat = "zng"

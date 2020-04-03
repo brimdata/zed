@@ -7,8 +7,7 @@ input: |
 
 output-format: bzng
 
-output: |
-  HEX
+outputHex: |
   # define a record with 3 columns
   80 03
   # first column name is _path (len 5)
