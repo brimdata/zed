@@ -110,16 +110,6 @@ Note that the value encoding need not refer to the field names and types as that
 completely captured by the type ID.  Values merely encode the value
 information consistent with the referenced type ID.
 
-Since type definitions are carried in-band in a ZNG stream,
-the entire stream must generally be processed in-order to maintain
-accurate and complete information on types.
-To facilitate random access into large stored ZNG streams, a stream
-may also be optionally organized into a sequence of "frames",
-each of which has an independent type context and can thus be
-processed correctly without first processing the entire preceding stream.
-This benefit comes at the cost of some additional overhead --
-the space consumed by frame boundary markers and repeated type definitions.
-
 ## 2. ZNG Binary Format (BZNG)
 
 The BZNG binary format is based on machine-readable data types with an
@@ -348,9 +338,16 @@ recent ordering directives.
 
 ### 2.1.3 Frame Markers
 
-A frame marker divides a ZNG stream into a sequence of smaller frames
-which can be decoded indepenently.  It is left up to implementations to
-decide how frequently to use these markers.
+Since type definitions are carried in-band in a BZNG stream,
+the entire stream must generally be processed in-order to maintain
+accurate and complete information on types.
+To facilitate bi-directional reading and random access
+into large stored BZNG streams, a stream
+may also be optionally organized into a sequence of "frames",
+each of which has an independent type context and can thus be
+processed correctly without first processing the entire preceding stream.
+This benefit comes at the cost of some additional overhead --
+the space consumed by frame boundary markers and repeated type definitions.
 
 A frame marker is encoded as follows:
 ```
@@ -379,8 +376,12 @@ final marker and then use `<prevlen>` to find the last frame that holds
 records.  The contents of the each frame must be read in the order they
 appear in the stream.
 
-To process every individual record in a stream in reverse order,
+To process every individual record in a stored stream in reverse
+relative to the order they are stored,
 an implementation must buffer the contents of each frame in memory.
+Of course, this is only useful in conjunction with information about
+how the stored records are sorted, whether that is conveyed by in-band
+ordering hints (see previous section) or some other out-of-band information.
 It is up to individual implementations to choose an appropriate frame
 size to balance the tradeoff between this memory cost and
 the overhead of frame markers and repeated type definitions.
