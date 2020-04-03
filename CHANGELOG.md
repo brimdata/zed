@@ -4,9 +4,9 @@
 * zql: Add string functions (#475)
 * zql: Narrow the use of `len()` to only sets/vectors, introduce new functions for string length (#485)
 * zql: Add ternary conditional operator (#484)
-* zq: Add waterfall logger (#492)
-* zq: Make http shutdown more graceful (#500)
-* zq: Make space deletion cancel and await other operations (#451)
+* zqd: Add waterfall logger (#492)
+* zqd: Make http shutdown more graceful (#500)
+* zqd: Make space deletion cancel and await other operations (#451)
 
 ## v0.8.0
 
