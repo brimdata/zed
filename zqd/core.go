@@ -39,10 +39,10 @@ type Core struct {
 	taskCount int64
 	logger    *zap.Logger
 
-	// spaceOpsLock protects the spaceOps map and the active and
+	// spaceOpsMu protects the spaceOps map and the active and
 	// deletePending fields inside the spaceOpsState's.
-	spaceOpsLock sync.Mutex
-	spaceOps     map[string]*spaceOpsState
+	spaceOpsMu sync.Mutex
+	spaceOps   map[string]*spaceOpsState
 }
 
 type spaceOpsState struct {
@@ -85,8 +85,8 @@ func (c *Core) getTaskID() int64 {
 // Otherwise, this returns a new context, and a done function that must
 // be called when the operation completes.
 func (c *Core) startSpaceOp(ctx context.Context, space string) (context.Context, context.CancelFunc, bool) {
-	c.spaceOpsLock.Lock()
-	defer c.spaceOpsLock.Unlock()
+	c.spaceOpsMu.Lock()
+	defer c.spaceOpsMu.Unlock()
 
 	state, ok := c.spaceOps[space]
 	if !ok {
@@ -112,8 +112,8 @@ func (c *Core) startSpaceOp(ctx context.Context, space string) (context.Context,
 	}()
 
 	ingestDone := func() {
-		c.spaceOpsLock.Lock()
-		defer c.spaceOpsLock.Unlock()
+		c.spaceOpsMu.Lock()
+		defer c.spaceOpsMu.Unlock()
 
 		state.active--
 		if state.active == 0 {
@@ -133,7 +133,7 @@ func (c *Core) startSpaceOp(ctx context.Context, space string) (context.Context,
 // returns a done function that must be called when the delete operation
 // completes.
 func (c *Core) haltSpaceOpsForDelete(space string) (context.CancelFunc, bool) {
-	c.spaceOpsLock.Lock()
+	c.spaceOpsMu.Lock()
 
 	state, ok := c.spaceOps[space]
 	if !ok {
@@ -144,20 +144,20 @@ func (c *Core) haltSpaceOpsForDelete(space string) (context.CancelFunc, bool) {
 	}
 
 	if state.deletePending {
-		c.spaceOpsLock.Unlock()
+		c.spaceOpsMu.Unlock()
 		return func() {}, false
 	}
 
 	state.active++
 	state.deletePending = true
-	c.spaceOpsLock.Unlock()
+	c.spaceOpsMu.Unlock()
 
 	close(state.cancelChan)
 	state.wg.Wait()
 
 	return func() {
-		c.spaceOpsLock.Lock()
-		defer c.spaceOpsLock.Unlock()
+		c.spaceOpsMu.Lock()
+		defer c.spaceOpsMu.Unlock()
 
 		state.active--
 		if state.active == 0 {
