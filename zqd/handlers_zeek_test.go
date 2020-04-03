@@ -5,7 +5,6 @@ package zqd_test
 import (
 	"context"
 	"errors"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -243,65 +242,4 @@ func (r *packetPostResult) readPayloads(t *testing.T, stream *api.Stream) {
 func (r *packetPostResult) cleanup() {
 	os.RemoveAll(r.core.Root)
 	r.srv.Close()
-}
-
-func testZeekLauncher(start, wait procFn) zeek.Launcher {
-	return func(ctx context.Context, r io.Reader, dir string) (zeek.Process, error) {
-		p := &testZeekProcess{
-			ctx:    ctx,
-			reader: r,
-			wd:     dir,
-			wait:   wait,
-			start:  start,
-		}
-		return p, p.Start()
-	}
-}
-
-type procFn func(t *testZeekProcess) error
-
-type testZeekProcess struct {
-	ctx    context.Context
-	reader io.Reader
-	wd     string
-	start  procFn
-	wait   procFn
-}
-
-func (p *testZeekProcess) Start() error {
-	if p.start != nil {
-		return p.start(p)
-	}
-	return nil
-}
-
-func (p *testZeekProcess) Wait() error {
-	if p.wait != nil {
-		return p.wait(p)
-	}
-	return nil
-}
-
-func writeLogsFn(logs []string) procFn {
-	return func(t *testZeekProcess) error {
-		for _, log := range logs {
-			r, err := os.Open(log)
-			if err != nil {
-				return err
-			}
-			defer r.Close()
-			base := filepath.Base(r.Name())
-			w, err := os.Create(filepath.Join(t.wd, base))
-			if err != nil {
-				return err
-			}
-			defer w.Close()
-			if _, err = io.Copy(w, r); err != nil {
-				return err
-			}
-		}
-		// drain the reader
-		_, err := io.Copy(ioutil.Discard, t.reader)
-		return err
-	}
 }
