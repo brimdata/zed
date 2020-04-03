@@ -197,7 +197,7 @@ func (i *Inputs) UnmarshalYAML(value *yaml.Node) error {
 }
 
 // Try to decode a yaml-friendly way of representing binary data in hex:
-// each lines is either a comment explaining the contents (denoted with
+// each line is either a comment explaining the contents (denoted with
 // a leading # character), or a sequence of hex digits.
 func decodeHex(in string) (string, error) {
 	var raw string
