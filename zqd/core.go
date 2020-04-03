@@ -39,15 +39,15 @@ type Core struct {
 	taskCount int64
 	logger    *zap.Logger
 
-	// spaceOpsLock protects the spaceOps map and the currentOps and
+	// spaceOpsLock protects the spaceOps map and the active and
 	// deletePending fields inside the spaceOpsState's.
 	spaceOpsLock sync.Mutex
 	spaceOps     map[string]*spaceOpsState
 }
 
 type spaceOpsState struct {
-	currentOps    int
-	deletePending int
+	active        int
+	deletePending bool
 
 	wg sync.WaitGroup
 	// closed to signal non-delete ops should terminate
@@ -95,10 +95,11 @@ func (c *Core) startSpaceOp(ctx context.Context, space string) (context.Context,
 		}
 		c.spaceOps[space] = state
 	}
-	if state.deletePending > 0 {
+	if state.deletePending {
 		return ctx, func() {}, false
 	}
-	state.currentOps++
+
+	state.active++
 	state.wg.Add(1)
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -112,11 +113,12 @@ func (c *Core) startSpaceOp(ctx context.Context, space string) (context.Context,
 
 	ingestDone := func() {
 		c.spaceOpsLock.Lock()
-		state.currentOps--
-		if state.currentOps == 0 && state.deletePending == 0 {
+		defer c.spaceOpsLock.Unlock()
+
+		state.active--
+		if state.active == 0 {
 			delete(c.spaceOps, space)
 		}
-		c.spaceOpsLock.Unlock()
 
 		state.wg.Done()
 		cancel()
@@ -126,9 +128,11 @@ func (c *Core) startSpaceOp(ctx context.Context, space string) (context.Context,
 }
 
 // haltSpaceOpsForDelete signals any outstanding operations that registered with
-// startSpaceOp to halt and marks the space as pending delete. It returns a done
-// function that must be called when the delete operation completes.
-func (c *Core) haltSpaceOpsForDelete(space string) func() {
+// startSpaceOp to halt and marks the space as pending delete. If the space is
+// already pending deletion, the bool parameter returns false. Otherwise, it
+// returns a done function that must be called when the delete operation
+// completes.
+func (c *Core) haltSpaceOpsForDelete(space string) (func(), bool) {
 	c.spaceOpsLock.Lock()
 
 	state, ok := c.spaceOps[space]
@@ -138,21 +142,26 @@ func (c *Core) haltSpaceOpsForDelete(space string) func() {
 		}
 		c.spaceOps[space] = state
 	}
-	if state.deletePending == 0 {
-		close(state.cancelChan)
-	}
-	state.deletePending++
 
+	if state.deletePending {
+		c.spaceOpsLock.Unlock()
+		return func() {}, false
+	}
+
+	state.active++
+	state.deletePending = true
 	c.spaceOpsLock.Unlock()
 
+	close(state.cancelChan)
 	state.wg.Wait()
 
 	return func() {
 		c.spaceOpsLock.Lock()
 		defer c.spaceOpsLock.Unlock()
-		state.deletePending--
-		if state.deletePending == 0 {
+
+		state.active--
+		if state.active == 0 {
 			delete(c.spaceOps, space)
 		}
-	}
+	}, true
 }

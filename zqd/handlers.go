@@ -252,7 +252,11 @@ func handleSpaceDelete(c *Core, w http.ResponseWriter, r *http.Request) {
 	if s == nil {
 		return
 	}
-	deleteDone := c.haltSpaceOpsForDelete(s.Name())
+	deleteDone, ok := c.haltSpaceOpsForDelete(s.Name())
+	if !ok {
+		http.Error(w, "space is awaiting deletion", http.StatusConflict)
+		return
+	}
 	defer deleteDone()
 
 	if err := s.Delete(); err != nil {
