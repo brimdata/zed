@@ -157,3 +157,44 @@ const typesNoTs = `
 const zngNoTs = `
 #0:record[_path:string,name:bstring]
 0:[nots;foo;]`
+
+var TestTs = test.Shell{
+	Name:   "json-types-ts",
+	Script: `zq -j types.json "every 1d count()" in.ndjson > http.zng`,
+	Input: []test.File{
+		test.File{"in.ndjson", test.Trim(inputTs)},
+		test.File{"types.json", test.Trim(typesTs)},
+	},
+	Expected: []test.File{
+		test.File{"http.zng", test.Trim(zngTs)},
+	},
+}
+
+const inputTs = `{"ts":"2015-03-05T14:25:14.419939Z","_path":"ts"}`
+
+const typesTs = `
+{
+  "descriptors": {
+    "ts_log": [
+      {
+        "name": "_path",
+        "type": "string"
+      },
+      {
+        "name": "ts",
+        "type": "time"
+      }
+      ]
+     },
+  "rules": [
+    {
+      "name": "_path",
+      "value": "ts",
+      "descriptor": "ts_log"
+    }
+  ]
+}`
+
+const zngTs = `
+#0:record[ts:time,count:uint64]
+0:[1425513600;1;]`
