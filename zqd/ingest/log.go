@@ -3,6 +3,7 @@ package ingest
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -61,15 +62,19 @@ func configureJSONTypeReader(ndjr *ndjsonio.Reader, tc ndjsonio.TypeConfig, file
 	if len(match) == 2 {
 		path = match[1]
 	}
-	if err := ndjr.ConfigureTypes(tc, path); err != nil {
-		return err
-	}
-	return nil
+	return ndjr.ConfigureTypes(tc, path)
 }
 
 func ingestLogs(ctx context.Context, s *space.Space, paths []string, tc *ndjsonio.TypeConfig, sortLimit int) error {
 	zctx := resolver.NewContext()
 	var readers []zbuf.Reader
+	defer func() {
+		for _, r := range readers {
+			if closer, ok := r.(io.Closer); ok {
+				closer.Close()
+			}
+		}
+	}()
 	for _, path := range paths {
 		sf, err := scanner.OpenFile(zctx, path, "auto")
 		if err != nil {
@@ -84,7 +89,6 @@ func ingestLogs(ctx context.Context, s *space.Space, paths []string, tc *ndjsoni
 		readers = append(readers, sf)
 	}
 	reader := scanner.NewCombiner(readers)
-	defer reader.Close()
 
 	bzngfile, err := s.CreateFile(filepath.Join(tmpIngestDir, allBzngTmpFile))
 	if err != nil {
