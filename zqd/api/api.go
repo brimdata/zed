@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/zjsonio"
 )
 
@@ -118,7 +119,8 @@ type PacketPostStatus struct {
 }
 
 type LogPostRequest struct {
-	Paths []string `json:"paths"`
+	Paths          []string             `json:"paths"`
+	JSONTypeConfig *ndjsonio.TypeConfig `json:"json_type_config"`
 }
 
 type LogPostStatus struct {

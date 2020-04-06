@@ -20,16 +20,13 @@ import (
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zqd/ingest"
 	"github.com/brimsec/zq/zql"
 	"github.com/mccanne/charm"
 )
 
 // Version is set via the Go linker.
 var version = "unknown"
-
-// x509.14:00:00-15:00:00.log.gz (open source zeek)
-// x509_20191101_14:00:00-15:00:00+0000.log.gz (corelight)
-const defaultJSONPathRegexp = `([a-zA-Z0-9_]+)(?:\.|_\d{8}_)\d\d:\d\d:\d\d\-\d\d:\d\d:\d\d(?:[+\-]\d{4})?\.log(?:$|\.gz)`
 
 var Zq = &charm.Spec{
 	Name:        "zq",
@@ -101,7 +98,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	cwd, _ := os.Getwd()
 	c := &Command{zctx: resolver.NewContext()}
 
-	c.jsonPathRegexp = defaultJSONPathRegexp
+	c.jsonPathRegexp = ingest.DefaultJSONPathRegexp
 
 	f.StringVar(&c.ifmt, "i", "auto", "format of input data [auto,bzng,ndjson,zeek,zjson,zng]")
 	f.StringVar(&c.ofmt, "f", "zng", "format for output data [bzng,ndjson,table,text,types,zeek,zjson,zng]")
