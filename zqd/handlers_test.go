@@ -300,7 +300,7 @@ func TestPostZngLogs(t *testing.T) {
 }
 
 func TestPostNDJSONLogs(t *testing.T) {
-	src1 := `{"ts":"1000","uid":"CXY9a54W2dLZwzPXf1","_path":"http"}
+	const src1 = `{"ts":"1000","uid":"CXY9a54W2dLZwzPXf1","_path":"http"}
 {"ts":"2000","uid":"CXY9a54W2dLZwzPXf1","_path":"http"}`
 	tc := ndjsonio.TypeConfig{
 		Descriptors: map[string][]interface{}{
