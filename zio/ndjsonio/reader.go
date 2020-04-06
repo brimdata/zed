@@ -135,6 +135,5 @@ again:
 	if err := record.TypeCheck(); err != nil {
 		return nil, err
 	}
-	// Ignore error, which just means the point doesn't have a time-typed ts field
 	return record, nil
 }
