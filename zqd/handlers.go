@@ -382,7 +382,7 @@ func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	errCh := make(chan error)
 	go func() {
-		errCh <- ingest.Logs(ctx, s, req.Paths, c.SortLimit)
+		errCh <- ingest.Logs(ctx, s, req.Paths, req.JSONTypeConfig, c.SortLimit)
 	}()
 
 	w.Header().Set("Content-Type", "application/ndjson")

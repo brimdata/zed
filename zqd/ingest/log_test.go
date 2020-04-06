@@ -41,10 +41,10 @@ func TestLogsErrInFlight(t *testing.T) {
 	errCh1 := make(chan error)
 	errCh2 := make(chan error)
 	go func() {
-		errCh1 <- Logs(context.Background(), s, []string{f}, 10)
+		errCh1 <- Logs(context.Background(), s, []string{f}, nil, 10)
 	}()
 	go func() {
-		errCh2 <- Logs(context.Background(), s, []string{f}, 10)
+		errCh2 <- Logs(context.Background(), s, []string{f}, nil, 10)
 	}()
 	err1 := <-errCh1
 	err2 := <-errCh2
