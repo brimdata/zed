@@ -121,8 +121,7 @@ const (
 	TypeDefSet    = 0x82
 	TypeDefUnion  = 0x83
 	TypeDefAlias  = 0x84
-	// ordering hint = 0x85
-	FrameMarker = 0x86
+	FrameMarker   = 0x85
 )
 
 func LookupPrimitive(name string) Type {

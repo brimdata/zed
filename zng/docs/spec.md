@@ -135,8 +135,7 @@ Control codes 0 through 6 are reserved for BZNG:
 |  `2` | set definition    |
 |  `3` | union definition  |
 |  `4` | type alias        |
-|  `5` | ordering hint     |
-|  `6` | frame marker      |
+|  `5` | frame marker      |
 
 All other control codes are available to higher-layer protocols to carry
 application-specific payloads embedded in the ZNG stream.
@@ -308,84 +307,34 @@ existing type ID ``<type-id>``.  ``<type-id>`` is encoded as a `uvarint` and `<n
 is encoded as a `uvarint` representing the length of the name in bytes,
 followed by that many bytes of UTF-8 string.
 
-### 2.1.2 Ordering Hint
-
-An ordering hint provides a means to indicate that data in the stream
-is sorted a certain way.
-
-The hint is encoded as follows:
-```
----------------------------------------
-|0x85|<len>|[+-]<field>,[+-]<field>,...
----------------------------------------
-```
-where the payload of the message is a length-counted UTF-8 string.
-`<len>` is a `uvarint` indicating the length in bytes of the UTF-8 string
-describing the ordering hint.
-
-In the hint string, `[+-]` indicates either `+` or `-` and `<field>` refers
-to the top-level field name in a record of any subsequent record value encountered
-from thereon in the stream with the field names specified.
-The hint guarantees that all subsequent value lines will
-appear sorted in the file or stream, in ascending order in the case of `+` and
-descending order in the case of `-`, according to the field provided.
-If more than one sort
-field is provided, then the values are guaranteed to be sorted by each
-subsequent key for values that have previous keys of equal value.
-
-It is an error for any such values to appear that contradicts the most
-recent ordering directives.
-
-### 2.1.3 Frame Markers
+### 2.1.2 Frame Markers
 
 Since type definitions are carried in-band in a BZNG stream,
 the entire stream must generally be processed in-order to maintain
 accurate and complete information on types.
-To facilitate bi-directional reading and random access
+To facilitate random access
 into large stored BZNG streams, a stream
 may also be optionally organized into a sequence of "frames",
 each of which has an independent type context and can thus be
 processed correctly without first processing the entire preceding stream.
 This benefit comes at the cost of some additional overhead --
 the space consumed by frame boundary markers and repeated type definitions.
+Choosing an appropriate frame size that balances this overhead with the
+benefit of enabling random access is left up to implementations.
 
 A frame marker is encoded as follows:
 ```
-----------------
-|0x86|<prevlen>|
-----------------
+------
+|0x85|
+------
 ```
-where `<prevlen>` is a `uvarint` encoded count of the total number of
-bytes in the preceding frame.  After this marker, all previously read
+
+After this marker, all previously read
 typedefs are invalidated and the "next available type ID" is reset to
 the initial value of 23.  To represent subsequent records that use a
 previously defined type, the appropriate typedef control code must
 be re-emitted
 (and note that the typedef may now be assigned a different ID).
-
-The value of `<prevlen>` may be 0 for the first frame in a stream
-or if the length of the previous frame is unknown.  If it is non-zero
-then the contents of the stream at the point `<prevlen>` bytes before
-this marker must also be a frame marker.
-
-Implementations are encouraged to include the previous frame length
-as it allows a BZNG processor to read a large stored BZNG stream backward.
-To do this, a frame marker must be placed at the very end of the
-stream so that a reader may seek to the end of the stream and read the
-final marker and then use `<prevlen>` to find the last frame that holds
-records.  The contents of the each frame must be read in the order they
-appear in the stream.
-
-To process every individual record in a stored stream in reverse
-relative to the order they are stored,
-an implementation must buffer the contents of each frame in memory.
-Of course, this is only useful in conjunction with information about
-how the stored records are sorted, whether that is conveyed by in-band
-ordering hints (see previous section) or some other out-of-band information.
-It is up to individual implementations to choose an appropriate frame
-size to balance the tradeoff between this memory cost and
-the overhead of frame markers and repeated type definitions.
-
 
 ### 2.2 BZNG Value Messages
 

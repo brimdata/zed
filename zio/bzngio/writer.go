@@ -15,7 +15,6 @@ type Writer struct {
 	encoder      *resolver.Encoder
 	buffer       []byte
 	frameRecords int
-	frameBytes   int
 }
 
 func NewWriter(w io.Writer, flags zio.Flags) *Writer {
@@ -25,21 +24,15 @@ func NewWriter(w io.Writer, flags zio.Flags) *Writer {
 		encoder:      resolver.NewEncoder(),
 		buffer:       make([]byte, 0, 128),
 		frameRecords: -1,
-		frameBytes:   0,
 	}
 }
 
 func (w *Writer) NewFrame() error {
 	w.encoder.Reset()
-
-	var marker []byte
-	marker = append(marker, zng.FrameMarker)
-	marker = zcode.AppendUvarint(marker, uint64(w.frameBytes))
-	n, err := w.Writer.Write(marker)
-
 	w.frameRecords = 0
-	w.frameBytes = n
 
+	marker := []byte{zng.FrameMarker}
+	_, err := w.Writer.Write(marker)
 	return err
 }
 
@@ -58,11 +51,10 @@ func (w *Writer) Write(r *zng.Record) error {
 			return err
 		}
 		w.buffer = b
-		n, err := w.Writer.Write(b)
+		_, err = w.Writer.Write(b)
 		if err != nil {
 			return err
 		}
-		w.frameBytes += n
 	}
 	dst := w.buffer[:0]
 	id := typ.ID()
@@ -74,23 +66,14 @@ func (w *Writer) Write(r *zng.Record) error {
 		dst = zcode.AppendUvarint(dst, uint64(id>>6))
 	}
 	dst = zcode.AppendUvarint(dst, uint64(len(r.Raw)))
-	n, err := w.Writer.Write(dst)
+	_, err := w.Writer.Write(dst)
 	if err != nil {
 		return err
 	}
-	w.frameBytes += n
 
-	n, err = w.Writer.Write(r.Raw)
-	w.frameBytes += n
+	_, err = w.Writer.Write(r.Raw)
 	w.frameRecords++
 	return err
-}
-
-func (w *Writer) Flush() error {
-	if w.FrameSize > 0 {
-		return w.NewFrame()
-	}
-	return nil
 }
 
 func (w *Writer) WriteControl(b []byte) error {
@@ -98,12 +81,10 @@ func (w *Writer) WriteControl(b []byte) error {
 	//XXX 0xff for now.  need to pass through control codes?
 	dst = append(dst, 0xff)
 	dst = zcode.AppendUvarint(dst, uint64(len(b)))
-	n, err := w.Writer.Write(dst)
+	_, err := w.Writer.Write(dst)
 	if err != nil {
 		return err
 	}
-	w.frameBytes += n
-	n, err = w.Writer.Write(b)
-	w.frameBytes += n
+	_, err = w.Writer.Write(b)
 	return err
 }

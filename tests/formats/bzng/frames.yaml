@@ -1,4 +1,5 @@
-# XXX explain me
+# Test frame markers inserted into a bzng frame (including testing
+# that type definitions are repeated as needed).
 
 zql: '*'
 
@@ -13,7 +14,7 @@ output-flags: -b 1
 
 outputHex: |
   # new frame marker
-  86 00
+  85
   # define a record with 3 columns
   80 03
   # first column name is _path (len 5)
@@ -44,8 +45,8 @@ outputHex: |
   12
   # 8 bytes of float64 data representing 1.0
   00 00 00 00 00 00 f0 3f
-  # new frame marker, previous frame was a total of 37 (0x25) bytes
-  86 25
+  # new frame marker
+  85
   # new frame: repeat the record type definition
   80 03
   05 5f 70 61 74 68
@@ -62,5 +63,3 @@ outputHex: |
   0c 00 90 2f 50 09
   # third column, primitive value of 9 total bytes, float64 1.5
   12 00 00 00 00 00 00 f8 3f
-  # trailing frame marker denoting length (39 == 0x27 bytes) of last frame
-  86 27
