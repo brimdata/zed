@@ -128,13 +128,12 @@ again:
 		return nil, fmt.Errorf("line %d: %w", r.scanner.Stats.Lines, err)
 	}
 	outType := r.zctx.LookupTypeRecord(zv.Type.(*zng.TypeRecord).Columns)
-	record, err := zng.NewRecordCheck(outType, 0, zv.Bytes)
+	record, err := zng.NewRecord(outType, zv.Bytes)
 	if err != nil {
 		return nil, err
 	}
-	ts, err := record.AccessTime("ts")
-	if err == nil {
-		record.Ts = ts
+	if err := record.TypeCheck(); err != nil {
+		return nil, err
 	}
 	// Ignore error, which just means the point doesn't have a time-typed ts field
 	return record, nil
