@@ -56,8 +56,7 @@ const DefaultJSONPathRegexp = `([a-zA-Z0-9_]+)(?:\.|_\d{8}_)\d\d:\d\d:\d\d\-\d\d
 
 func configureJSONTypeReader(ndjr *ndjsonio.Reader, tc ndjsonio.TypeConfig, filename string) error {
 	var path string
-	re := regexp.MustCompile(DefaultJSONPathRegexp)
-	match := re.FindStringSubmatch(filename)
+	match := DefaultJSONPathRegexp.FindStringSubmatch(filename)
 	if len(match) == 2 {
 		path = match[1]
 	}
