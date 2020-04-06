@@ -52,7 +52,7 @@ func (rw *recWriter) Write(r *zng.Record) error {
 
 // x509.14:00:00-15:00:00.log.gz (open source zeek)
 // x509_20191101_14:00:00-15:00:00+0000.log.gz (corelight)
-const DefaultJSONPathRegexp = `([a-zA-Z0-9_]+)(?:\.|_\d{8}_)\d\d:\d\d:\d\d\-\d\d:\d\d:\d\d(?:[+\-]\d{4})?\.log(?:$|\.gz)`
+var DefaultJSONPathRegexp = regexp.MustCompile(`([a-zA-Z0-9_]+)(?:\.|_\d{8}_)\d\d:\d\d:\d\d\-\d\d:\d\d:\d\d(?:[+\-]\d{4})?\.log(?:$|\.gz)`)
 
 func configureJSONTypeReader(ndjr *ndjsonio.Reader, tc ndjsonio.TypeConfig, filename string) error {
 	var path string
