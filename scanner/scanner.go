@@ -29,7 +29,7 @@ const batchSize = 100
 
 // Pull implements Proc.Pull.
 func (s *Scanner) Pull() (zbuf.Batch, error) {
-	return zbuf.ReadBatch(s.reader, batchSize)
+	return zbuf.ReadBatch(s, batchSize)
 }
 
 // Read implements zbuf.Reader.Read.
