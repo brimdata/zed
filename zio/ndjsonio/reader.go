@@ -128,5 +128,12 @@ again:
 		return nil, fmt.Errorf("line %d: %w", r.scanner.Stats.Lines, err)
 	}
 	outType := r.zctx.LookupTypeRecord(zv.Type.(*zng.TypeRecord).Columns)
-	return zng.NewRecordCheck(outType, 0, zv.Bytes)
+	record, err := zng.NewRecord(outType, zv.Bytes)
+	if err != nil {
+		return nil, err
+	}
+	if err := record.TypeCheck(); err != nil {
+		return nil, err
+	}
+	return record, nil
 }
