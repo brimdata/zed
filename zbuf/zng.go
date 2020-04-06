@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zng"
 )
 
@@ -36,19 +35,6 @@ func (nopFlusher) Flush() error { return nil }
 // the provided Writer w.
 func NopFlusher(w Writer) WriteFlusher {
 	return nopFlusher{w}
-}
-
-// Batch is an inteface to a bundle of Records.
-// Batches can be shared across goroutines via reference counting and should be
-// copied on modification when the reference count is greater than 1.
-type Batch interface {
-	Ref()
-	Unref()
-	Index(int) *zng.Record
-	Length() int
-	Records() []*zng.Record
-	//XXX span should go in here?
-	Span() nano.Span
 }
 
 func CopyWithContext(ctx context.Context, dst WriteFlusher, src Reader) error {

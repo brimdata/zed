@@ -27,40 +27,27 @@ func (s *Scanner) SetSpan(span nano.Span) {
 
 const batchSize = 100
 
+// Pull implements Proc.Pull.
 func (s *Scanner) Pull() (zbuf.Batch, error) {
-	minTs, maxTs := nano.MaxTs, nano.MinTs
-	var arr []*zng.Record
-	match := s.filter
-	for len(arr) < batchSize {
+	return zbuf.ReadBatch(s.reader, batchSize)
+}
+
+// Read implements zbuf.Reader.Read.
+func (s *Scanner) Read() (*zng.Record, error) {
+	for {
 		rec, err := s.reader.Read()
-		if err != nil {
+		if err != nil || rec == nil {
 			return nil, err
 		}
-		if rec == nil {
-			break
-		}
-		if match != nil && !match(rec) {
+		if s.span.Dur != 0 && !s.span.Contains(rec.Ts) ||
+			s.filter != nil && !s.filter(rec) {
 			continue
 		}
-		if s.span.Dur != 0 && !s.span.Contains(rec.Ts) {
-			continue
-		}
-		if rec.Ts < minTs {
-			minTs = rec.Ts
-		}
-		if rec.Ts > maxTs {
-			maxTs = rec.Ts
-		}
-		// Copy the underlying buffer (if volatile) because call to next
+		// Copy the underlying buffer (if volatile) because next call to
 		// reader.Next() may overwrite said buffer.
 		rec.CopyBody()
-		arr = append(arr, rec)
+		return rec, nil
 	}
-	if arr == nil {
-		return nil, nil
-	}
-	span := nano.NewSpanTs(minTs, maxTs)
-	return zbuf.NewArray(arr, span), nil
 }
 
 // Done is required to implement proc.Proc interface. Ignore for now.
