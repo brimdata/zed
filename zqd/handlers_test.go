@@ -338,7 +338,7 @@ func TestPostNDJSONLogs(t *testing.T) {
 	})
 	t.Run("Search", func(t *testing.T) {
 		res := zngSearch(t, client, spaceName, "*")
-		expected := "#0:record[_path:string,ts:time,uid:bstring]\n0:[http;2;CXY9a54W2dLZwzPXf1;]\n0:[http;1;CXY9a54W2dLZwzPXf1;]"
+		const expected = "#0:record[_path:string,ts:time,uid:bstring]\n0:[http;2;CXY9a54W2dLZwzPXf1;]\n0:[http;1;CXY9a54W2dLZwzPXf1;]"
 		require.Equal(t, expected, strings.TrimSpace(res))
 	})
 	t.Run("SpaceInfo", func(t *testing.T) {
