@@ -325,7 +325,7 @@ func TestPostNDJSONLogs(t *testing.T) {
 	}
 	_, client, done := newCore(t)
 	defer done()
-	spaceName := "test"
+	const spaceName = "test"
 	t.Run("Space", func(t *testing.T) {
 		_, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: spaceName})
 		require.NoError(t, err)
