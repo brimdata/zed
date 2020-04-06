@@ -5,7 +5,7 @@ import (
 	"github.com/brimsec/zq/zng"
 )
 
-// Batch is an inteface to a bundle of records.
+// Batch is an interface to a bundle of records.
 // Batches can be shared across goroutines via reference counting and should be
 // copied on modification when the reference count is greater than 1.
 type Batch interface {
