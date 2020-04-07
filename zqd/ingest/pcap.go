@@ -16,6 +16,7 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/bzngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/search"
@@ -244,7 +245,7 @@ func (p *Process) createSnapshot(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	zw := bzngio.NewWriter(bzngfile)
+	zw := bzngio.NewWriter(bzngfile, zio.Flags{})
 	program := fmt.Sprintf("sort -limit %d -r ts", p.sortLimit)
 	if err := search.Copy(ctx, []zbuf.Writer{zw}, zr, program); err != nil {
 		// If an error occurs here close and remove tmp bzngfile, lest we start

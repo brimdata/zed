@@ -1,16 +1,28 @@
 package zio
 
 import (
+	"flag"
 	"io"
 
 	"github.com/brimsec/zq/zbuf"
 )
 
+// Flags has the union of the flags accepted by all the different
+// Writer implementations.
 type Flags struct {
 	UTF8       bool
 	ShowTypes  bool
 	ShowFields bool
 	EpochDates bool
+	FrameSize  int
+}
+
+func (f *Flags) SetFlags(fs *flag.FlagSet) {
+	fs.BoolVar(&f.ShowTypes, "T", false, "display field types in text output")
+	fs.BoolVar(&f.ShowFields, "F", false, "display field names in text output")
+	fs.BoolVar(&f.EpochDates, "E", false, "display epoch timestamps in text output")
+	fs.BoolVar(&f.UTF8, "U", false, "display zeek strings as UTF-8")
+	fs.IntVar(&f.FrameSize, "b", 0, "BZNG frame size (0 for no frames)")
 }
 
 type Writer struct {

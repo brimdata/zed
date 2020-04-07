@@ -135,7 +135,7 @@ Control codes 0 through 5 are reserved for BZNG:
 |  `2` | set definition    |
 |  `3` | union definition  |
 |  `4` | type alias        |
-|  `5` | ordering hint     |
+|  `5` | frame marker      |
 
 All other control codes are available to higher-layer protocols to carry
 application-specific payloads embedded in the ZNG stream.
@@ -307,33 +307,34 @@ existing type ID ``<type-id>``.  ``<type-id>`` is encoded as a `uvarint` and `<n
 is encoded as a `uvarint` representing the length of the name in bytes,
 followed by that many bytes of UTF-8 string.
 
-### 2.1.2 Ordering Hint
+### 2.1.2 Frame Markers
 
-An ordering hint provides a means to indicate that data in the stream
-is sorted a certain way.
+Since type definitions are carried in-band in a BZNG stream,
+the entire stream must generally be processed in-order to maintain
+accurate and complete information on types.
+To facilitate random access
+into large stored BZNG streams, a stream
+may also be optionally organized into a sequence of "frames",
+each of which has an independent type context and can thus be
+processed correctly without first processing the entire preceding stream.
+This benefit comes at the cost of some additional overhead --
+the space consumed by frame boundary markers and repeated type definitions.
+Choosing an appropriate frame size that balances this overhead with the
+benefit of enabling random access is left up to implementations.
 
-The hint is encoded as follows:
+A frame marker is encoded as follows:
 ```
----------------------------------------
-|0x85|<len>|[+-]<field>,[+-]<field>,...
----------------------------------------
+------
+|0x85|
+------
 ```
-where the payload of the message is a length-counted UTF-8 string.
-`<len>` is a `uvarint` indicating the length in bytes of the UTF-8 string
-describing the ordering hint.
 
-In the hint string, `[+-]` indicates either `+` or `-` and `<field>` refers
-to the top-level field name in a record of any subsequent record value encountered
-from thereon in the stream with the field names specified.
-The hint guarantees that all subsequent value lines will
-appear sorted in the file or stream, in ascending order in the case of `+` and
-descending order in the case of `-`, according to the field provided.
-If more than one sort
-field is provided, then the values are guaranteed to be sorted by each
-subsequent key for values that have previous keys of equal value.
-
-It is an error for any such values to appear that contradicts the most
-recent ordering directives.
+After this marker, all previously read
+typedefs are invalidated and the "next available type ID" is reset to
+the initial value of 23.  To represent subsequent records that use a
+previously defined type, the appropriate typedef control code must
+be re-emitted
+(and note that the typedef may now be assigned a different ID).
 
 ### 2.2 BZNG Value Messages
 
@@ -502,14 +503,6 @@ An application-specific payload has the following form:
 ```
 Here, `<control code>` is a decimal integer in the range 6-127 and `<payload>`
 is any UTF-8 string with escaped newlines.
-
-### 3.1.4 Ordering Hint
-An ordering hint has the form:
-```
-#[+-]<field>,[+-]<field>,...
-```
-where the string present after the colon has the same semantics as
-those described in Section 2.1.2.
 
 ### Type Grammar
 

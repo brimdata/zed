@@ -20,6 +20,11 @@ func NewEncoder() *Encoder {
 	}
 }
 
+func (e *Encoder) Reset() {
+	e.table = e.table[:0]
+	e.encoded = make(map[int]struct{})
+}
+
 func (e *Encoder) Lookup(external zng.Type) zng.Type {
 	id := external.ID()
 	if id >= 0 && id < len(e.table) {

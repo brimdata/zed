@@ -59,6 +59,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -74,6 +75,7 @@ import (
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
@@ -88,7 +90,7 @@ import (
 func Run(t *testing.T, dirname string) {
 	zq := os.Getenv("ZTEST_ZQ")
 	if zq != "" {
-		if out, _, err := run(zq, "help", ""); err != nil {
+		if out, _, err := run(zq, "help", "", ""); err != nil {
 			if out != "" {
 				out = fmt.Sprintf(" with output %q", out)
 			}
@@ -116,7 +118,7 @@ func Run(t *testing.T, dirname string) {
 			if err != nil {
 				t.Fatalf("%s: %s", filename, err)
 			}
-			out, errout, err := run(zq, zt.ZQL, zt.OutputFormat, zt.Input...)
+			out, errout, err := run(zq, zt.ZQL, zt.OutputFormat, zt.OutputFlags, zt.Input...)
 			if err != nil {
 				if zt.errRegex != nil {
 					if !zt.errRegex.Match([]byte(errout)) {
@@ -172,6 +174,7 @@ type ZTest struct {
 	OutputFormat string `yaml:"output-format,omitempty"`
 	Output       string `yaml:"output,omitempty"`
 	OutputHex    string `yaml:"outputHex,omitempty"`
+	OutputFlags  string `yaml:"output-flags,omitempty"`
 	ErrorRE      string `yaml:"errorRE"`
 	errRegex     *regexp.Regexp
 	Warnings     string `yaml:"warnings",omitempty"`
@@ -270,7 +273,7 @@ func FromYAMLFile(filename string) (*ZTest, error) {
 // auto" and maybe be gzip-compressed.  outputFormat may be any string accepted
 // by "zq -f".  If zq is empty, the query runs in the current process.  If zq is
 // not empty, it specifies a zq executable that will be used to run the query.
-func run(zq, ZQL, outputFormat string, inputs ...string) (out string, warnOrError string, err error) {
+func run(zq, ZQL, outputFormat, outputFlags string, inputs ...string) (out string, warnOrError string, err error) {
 	var outbuf bytes.Buffer
 	var errbuf bytes.Buffer
 	if zq != "" {
@@ -279,7 +282,12 @@ func run(zq, ZQL, outputFormat string, inputs ...string) (out string, warnOrErro
 			return "", "", err
 		}
 		defer os.RemoveAll(tmpdir)
-		cmd := exec.Command(zq, "-f", outputFormat, ZQL)
+		cmd := exec.Command(zq, "-f", outputFormat)
+		if len(outputFlags) > 0 {
+			flags := strings.Split(outputFlags, " ")
+			cmd.Args = append(cmd.Args, flags...)
+		}
+		cmd.Args = append(cmd.Args, ZQL)
 		cmd.Args = append(cmd.Args, files...)
 		cmd.Stdout = &outbuf
 		cmd.Stderr = &errbuf
@@ -306,7 +314,14 @@ func run(zq, ZQL, outputFormat string, inputs ...string) (out string, warnOrErro
 	if err != nil {
 		return "", "", err
 	}
-	zw := detector.LookupWriter(outputFormat, &nopCloser{&outbuf}, nil)
+	var flags flag.FlagSet
+	var zflags zio.Flags
+	zflags.SetFlags(&flags)
+	err = flags.Parse(strings.Split(outputFlags, " "))
+	if err != nil {
+		return "", "", err
+	}
+	zw := detector.LookupWriter(outputFormat, &nopCloser{&outbuf}, &zflags)
 	if zw == nil {
 		return "", "", fmt.Errorf("%s: unknown output format", outputFormat)
 	}

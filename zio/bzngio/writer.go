@@ -4,25 +4,43 @@ import (
 	"io"
 
 	"github.com/brimsec/zq/zcode"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
 type Writer struct {
 	io.Writer
-	encoder *resolver.Encoder
-	buffer  []byte
+	zio.Flags
+	encoder      *resolver.Encoder
+	buffer       []byte
+	frameRecords int
 }
 
-func NewWriter(w io.Writer) *Writer {
+func NewWriter(w io.Writer, flags zio.Flags) *Writer {
 	return &Writer{
-		Writer:  w,
-		encoder: resolver.NewEncoder(),
-		buffer:  make([]byte, 0, 128),
+		Writer:       w,
+		Flags:        flags,
+		encoder:      resolver.NewEncoder(),
+		buffer:       make([]byte, 0, 128),
+		frameRecords: -1,
 	}
 }
 
+func (w *Writer) StartNewFrame() error {
+	w.encoder.Reset()
+	w.frameRecords = 0
+
+	marker := []byte{zng.FrameMarker}
+	_, err := w.Writer.Write(marker)
+	return err
+}
+
 func (w *Writer) Write(r *zng.Record) error {
+	if w.FrameSize > 0 && (w.frameRecords < 0 || w.frameRecords >= w.FrameSize) {
+		w.StartNewFrame()
+	}
+
 	// First send any typedefs for unsent types.
 	typ := w.encoder.Lookup(r.Type)
 	if typ == nil {
@@ -52,7 +70,9 @@ func (w *Writer) Write(r *zng.Record) error {
 	if err != nil {
 		return err
 	}
+
 	_, err = w.Writer.Write(r.Raw)
+	w.frameRecords++
 	return err
 }
 

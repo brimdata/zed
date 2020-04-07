@@ -10,6 +10,7 @@ import (
 
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/bzngio"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zng"
@@ -94,7 +95,7 @@ func ingestLogs(ctx context.Context, s *space.Space, paths []string, tc *ndjsoni
 	if err != nil {
 		return err
 	}
-	zw := bzngio.NewWriter(bzngfile)
+	zw := bzngio.NewWriter(bzngfile, zio.Flags{})
 	program := fmt.Sprintf("sort -limit %d -r ts | (filter *; head 1; tail 1)", sortLimit)
 	var headW, tailW recWriter
 	if err := search.Copy(ctx, []zbuf.Writer{zw, &headW, &tailW}, reader, program); err != nil {

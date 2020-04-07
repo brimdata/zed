@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/bzngio"
 	"github.com/brimsec/zq/zio/zjsonio"
 	"github.com/brimsec/zq/zio/zngio"
@@ -40,7 +41,7 @@ func boomerang(t *testing.T, logs string) {
 	in := []byte(strings.TrimSpace(logs) + "\n")
 	zngSrc := zngio.NewReader(bytes.NewReader(in), resolver.NewContext())
 	var rawzng Output
-	rawDst := zbuf.NopFlusher(bzngio.NewWriter(&rawzng))
+	rawDst := zbuf.NopFlusher(bzngio.NewWriter(&rawzng, zio.Flags{}))
 	err := zbuf.Copy(rawDst, zngSrc)
 	require.NoError(t, err)
 

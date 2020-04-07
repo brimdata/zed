@@ -76,6 +76,8 @@ again:
 			err = r.readTypeUnion()
 		case zng.TypeDefAlias:
 			err = r.readTypeAlias()
+		case zng.FrameMarker:
+			r.zctx.Reset()
 		default:
 			// XXX we should return the control code
 			len, err := r.readUvarint()
