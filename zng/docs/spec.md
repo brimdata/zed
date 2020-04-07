@@ -504,14 +504,6 @@ An application-specific payload has the following form:
 Here, `<control code>` is a decimal integer in the range 6-127 and `<payload>`
 is any UTF-8 string with escaped newlines.
 
-### 3.1.4 Ordering Hint
-An ordering hint has the form:
-```
-#[+-]<field>,[+-]<field>,...
-```
-where the string present after the colon has the same semantics as
-those described in Section 2.1.2.
-
 ### Type Grammar
 
 Given the above textual definitions and the underlying BZNG specification, a
