@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/pprof"
@@ -14,6 +15,7 @@ import (
 	"github.com/brimsec/zq/cmd/zqd/logger"
 	"github.com/brimsec/zq/cmd/zqd/root"
 	"github.com/brimsec/zq/pkg/httpd"
+	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zqd"
 	"github.com/brimsec/zq/zqd/zeek"
 	"github.com/mccanne/charm"
@@ -136,13 +138,15 @@ func pprofHandlers(h http.Handler) http.Handler {
 //     name: "http.access"
 //     level: info
 //     mode: truncate
+// sortMemMaxBytes: 268432640
 
 func (c *Command) loadConfigFile() error {
 	if c.configfile == "" {
 		return nil
 	}
 	conf := &struct {
-		Logger logger.Config `yaml:"logger"`
+		Logger          logger.Config `yaml:"logger"`
+		SortMemMaxBytes *int          `yaml:"sortMemMaxBytes,omitempty"`
 	}{}
 	b, err := ioutil.ReadFile(c.configfile)
 	if err != nil {
@@ -150,6 +154,12 @@ func (c *Command) loadConfigFile() error {
 	}
 	err = yaml.Unmarshal(b, conf)
 	c.loggerConf = &conf.Logger
+	if v := conf.SortMemMaxBytes; v != nil {
+		if *v <= 0 {
+			return fmt.Errorf("%s: sortMemMaxBytes value must be greater than zero", c.configfile)
+		}
+		proc.SortMemMaxBytes = *v
+	}
 	return err
 }
 

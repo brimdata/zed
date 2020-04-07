@@ -191,18 +191,13 @@ func makeSortProc(argsIn, fieldsIn interface{}) (*ast.SortProc, error) {
 		sortdir = -1
 	}
 
-	var limit int
-	limitArg, haveLimit := params["limit"]
-	if haveLimit {
-		limit = parseInt(limitArg).(int)
-	}
 	nullsfirst := false
 	nullsArg, _ := params["nulls"]
 	if nullsArg == "first" {
 		nullsfirst = true
 	}
 	fields := fieldExprArray(fieldsIn)
-	return &ast.SortProc{ast.Node{"SortProc"}, limit, fields, sortdir, nullsfirst}, nil
+	return &ast.SortProc{ast.Node{"SortProc"}, fields, sortdir, nullsfirst}, nil
 }
 
 func makeTopProc(fieldsIn, limitIn, flushIn interface{}) *ast.TopProc {

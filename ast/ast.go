@@ -190,7 +190,6 @@ type (
 	// A SortProc node represents a proc that sorts records.
 	SortProc struct {
 		Node
-		Limit      int         `json:"limit,omitempty"`
 		Fields     []FieldExpr `json:"fields"`
 		SortDir    int         `json:"sortdir"`
 		NullsFirst bool        `json:"nullsfirst"`
