@@ -182,7 +182,16 @@ func Compile(node ast.BooleanExpr) (Filter, error) {
 		if err != nil {
 			return nil, err
 		}
-		return EvalAny(comparison, v.Recursive), nil
+		filter := EvalAny(comparison, v.Recursive)
+		if v.Comparator == "search" && v.Value.Type == "string" {
+			return func(r *zng.Record) bool {
+				if r.Type.HasField(v.Value.Value) {
+					return true
+				}
+				return filter(r)
+			}, nil
+		}
+		return filter, nil
 
 	default:
 		return nil, fmt.Errorf("Filter AST unknown type: %v", v)
