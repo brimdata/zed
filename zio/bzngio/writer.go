@@ -27,7 +27,7 @@ func NewWriter(w io.Writer, flags zio.Flags) *Writer {
 	}
 }
 
-func (w *Writer) NewFrame() error {
+func (w *Writer) StartNewFrame() error {
 	w.encoder.Reset()
 	w.frameRecords = 0
 
@@ -38,7 +38,7 @@ func (w *Writer) NewFrame() error {
 
 func (w *Writer) Write(r *zng.Record) error {
 	if w.FrameSize > 0 && (w.frameRecords < 0 || w.frameRecords >= w.FrameSize) {
-		w.NewFrame()
+		w.StartNewFrame()
 	}
 
 	// First send any typedefs for unsent types.

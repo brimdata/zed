@@ -126,7 +126,7 @@ or a value message (0).
 ### 2.1 Control Messages
 
 The lower 7 bits of a control header byte define the control code.
-Control codes 0 through 6 are reserved for BZNG:
+Control codes 0 through 5 are reserved for BZNG:
 
 | Code | Message Type      |
 |------|-------------------|

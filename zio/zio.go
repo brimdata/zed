@@ -7,8 +7,8 @@ import (
 	"github.com/brimsec/zq/zbuf"
 )
 
-// This is clumsy, it has the union of the flags accepted by all
-// the different Writer classes.
+// Flags has the union of the flags accepted by all the different
+// Writer implementations.
 type Flags struct {
 	UTF8       bool
 	ShowTypes  bool
