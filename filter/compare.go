@@ -270,7 +270,7 @@ func stringSearch(a, b string) bool {
 	end := alen - blen + 1
 	i := 0
 	for i < end {
-		if strings.EqualFold(a[i:blen], b) {
+		if strings.EqualFold(a[i:i+blen], b) {
 			return true
 		}
 		i++
