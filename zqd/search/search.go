@@ -29,6 +29,8 @@ import (
 // so the recevier can do reasonable, interactive streaming updates.
 const DefaultMTU = 100
 
+const DefaultStatsInterval = time.Millisecond * 500
+
 func Search(ctx context.Context, s *space.Space, req api.SearchRequest, out Output) error {
 	// XXX These validation checks should result in 400 level status codes and
 	// thus shouldn't occur here.
@@ -65,7 +67,16 @@ func Search(ctx context.Context, s *space.Space, req api.SearchRequest, out Outp
 	if err != nil {
 		return err
 	}
-	return run(mux, out)
+	d := &searchdriver{
+		output:    out,
+		startTime: nano.Now(),
+	}
+	d.start(0)
+	if err := run(mux, d, DefaultStatsInterval); err != nil {
+		d.abort(0, err)
+		return err
+	}
+	return d.end(0)
 }
 
 func Copy(ctx context.Context, w []zbuf.Writer, r zbuf.Reader, prog string) error {
@@ -111,28 +122,26 @@ func UnpackQuery(req api.SearchRequest) (*Query, error) {
 	}, nil
 }
 
-type driver struct {
+// searchdriver implements Driver
+type searchdriver struct {
 	output    Output
 	startTime nano.Ts
 }
 
-func (d *driver) start(id int64) error {
+func (d *searchdriver) start(id int64) error {
 	return d.output.SendControl(&api.TaskStart{"TaskStart", id})
 }
 
-func (d *driver) end(id int64) error {
+func (d *searchdriver) end(id int64) error {
 	return d.output.End(&api.TaskEnd{"TaskEnd", id, nil})
 }
 
-func (d *driver) abort(id int64, err error) error {
+func (d *searchdriver) abort(id int64, err error) error {
 	verr := &api.Error{Type: "INTERNAL", Message: err.Error()}
 	return d.output.SendControl(&api.TaskEnd{"TaskEnd", id, verr})
 }
 
-// send a stats update every 500 ms XXX
-const statsInterval = time.Millisecond * 500
-
-func (d *driver) sendWarning(warning string) error {
+func (d *searchdriver) Warn(warning string) error {
 	v := api.SearchWarnings{
 		Type:     "SearchWarnings",
 		Warnings: []string{warning},
@@ -140,7 +149,11 @@ func (d *driver) sendWarning(warning string) error {
 	return d.output.SendControl(v)
 }
 
-func (d *driver) sendStats(stats api.ScannerStats) error {
+func (d *searchdriver) Write(cid int, arr zbuf.Batch) error {
+	return d.output.SendBatch(cid, arr)
+}
+
+func (d *searchdriver) Stats(stats api.ScannerStats) error {
 	v := api.SearchStats{
 		Type:         "SearchStats",
 		StartTime:    d.startTime,
@@ -150,9 +163,8 @@ func (d *driver) sendStats(stats api.ScannerStats) error {
 	return d.output.SendControl(v)
 }
 
-func (d *driver) searchEnd(cid int, stats api.ScannerStats) error {
-	err := d.sendStats(stats)
-	if err != nil {
+func (d *searchdriver) ChannelEnd(cid int, stats api.ScannerStats) error {
+	if err := d.Stats(stats); err != nil {
 		return err
 	}
 	v := &api.SearchEnd{
@@ -161,57 +173,6 @@ func (d *driver) searchEnd(cid int, stats api.ScannerStats) error {
 		Reason:    "eof",
 	}
 	return d.output.SendControl(v)
-}
-
-func run(out *proc.MuxOutput, output Output) error {
-	//XXX scanner needs to track stats, for now send zeroes
-	var stats api.ScannerStats
-	d := &driver{
-		output:    output,
-		startTime: nano.Now(),
-	}
-	d.start(0)
-	ticker := time.NewTicker(statsInterval)
-	defer ticker.Stop()
-	for !out.Complete() {
-		chunk := out.Pull(ticker.C)
-		if chunk.Err != nil {
-			if chunk.Err == proc.ErrTimeout {
-				/* not yet
-				err := d.sendStats(out.Stats())
-				if err != nil {
-					return d.abort(0, err)
-				}
-				*/
-				continue
-			}
-			if chunk.Err == context.Canceled {
-				out.Drain()
-				return d.abort(0, errors.New("search job killed"))
-			}
-			return d.abort(0, chunk.Err)
-		}
-		if chunk.Warning != "" {
-			err := d.sendWarning(chunk.Warning)
-			if err != nil {
-				return d.abort(0, err)
-			}
-		}
-		if chunk.Batch == nil {
-			// a search is done on a channel.  we send stats and
-			// a done message for each channel that finishes
-			err := d.searchEnd(chunk.ID, stats)
-			if err != nil {
-				return d.abort(0, err)
-			}
-		} else {
-			err := d.output.SendBatch(chunk.ID, chunk.Batch)
-			if err != nil {
-				return d.abort(0, err)
-			}
-		}
-	}
-	return d.end(0)
 }
 
 func launch(ctx context.Context, query *Query, reader zbuf.Reader, zctx *resolver.Context) (*proc.MuxOutput, error) {
