@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/brimsec/zq/cmd/zar/root"
+	"github.com/brimsec/zq/pkg/bufwriter"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
@@ -39,14 +40,13 @@ type Command struct {
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
-	f.StringVar(&c.dir, "d", ".", "directory in which to chop files")
+	f.StringVar(&c.dir, "d", ".", "destination directory for chopped files")
 	f.IntVar(&c.size, "s", 500, "target size of chopped files in MB")
 	return c, nil
 }
 
 func tsDir(ts nano.Ts) string {
-	year, month, day := ts.Time().Date()
-	return fmt.Sprintf("%d%02d%02d", year, month, day)
+	return ts.Time().Format("20060102")
 }
 
 func (c *Command) Run(args []string) error {
@@ -66,19 +66,15 @@ func (c *Command) Run(args []string) error {
 		defer file.Close()
 	}
 	r := bzngio.NewReader(bufio.NewReader(file), resolver.NewContext())
-	var w *bufio.Writer
+	var w *bufwriter.Writer
 	var zw zbuf.Writer
-	var out *os.File
 	var n int
 	thresh := c.size * 1024 * 1024
 	for {
 		rec, err := r.Read()
 		if err != nil || rec == nil {
-			if out != nil {
-				if err := w.Flush(); err != nil {
-					return err
-				}
-				if err := out.Close(); err != nil {
+			if w != nil {
+				if err := w.Close(); err != nil {
 					return err
 				}
 			}
@@ -93,12 +89,12 @@ func (c *Command) Run(args []string) error {
 			path := filepath.Join(dir, ts.StringFloat()+".bzng")
 			//XXX for now just truncate any existing file.
 			// a future PR will do a split/merge.
-			out, err = os.OpenFile(path, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0644)
+			out, err := os.OpenFile(path, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0644)
 			if err != nil {
 				return err
 			}
 			fmt.Printf("writing %s\n", path)
-			w = bufio.NewWriter(out)
+			w = bufwriter.New(out)
 			zw = bzngio.NewWriter(w, zio.Flags{})
 		}
 		if err := zw.Write(rec); err != nil {
@@ -106,10 +102,7 @@ func (c *Command) Run(args []string) error {
 		}
 		n += len(rec.Raw)
 		if n >= thresh {
-			if err := w.Flush(); err != nil {
-				return err
-			}
-			if err := out.Close(); err != nil {
+			if err := w.Close(); err != nil {
 				return err
 			}
 			w = nil
