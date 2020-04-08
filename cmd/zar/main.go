@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	_ "github.com/brimsec/zq/cmd/zar/chop"
 	_ "github.com/brimsec/zq/cmd/zar/find"
 	_ "github.com/brimsec/zq/cmd/zar/index"
 	"github.com/brimsec/zq/cmd/zar/root"
