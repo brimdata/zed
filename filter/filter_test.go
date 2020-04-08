@@ -435,6 +435,15 @@ func TestFilters(t *testing.T) {
 		{"i > 0", true},
 		{"i < 50", false},
 	})
+
+	// Test searching for a field name
+	record, err = parseOneRecord(`
+#0:record[foo:string]
+0:[bleah;]`)
+	require.NoError(t, err)
+	runCases(t, record, []testcase{
+		{"foo", true},
+	})
 }
 
 func TestBadFilter(t *testing.T) {
