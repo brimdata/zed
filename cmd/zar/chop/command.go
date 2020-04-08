@@ -65,7 +65,7 @@ func (c *Command) Run(args []string) error {
 		}
 		defer file.Close()
 	}
-	r := bzngio.NewReader(file, resolver.NewContext())
+	r := bzngio.NewReader(bufio.NewReader(file), resolver.NewContext())
 	var w *bufio.Writer
 	var zw zbuf.Writer
 	var out *os.File
@@ -99,7 +99,7 @@ func (c *Command) Run(args []string) error {
 			}
 			fmt.Printf("writing %s\n", path)
 			w = bufio.NewWriter(out)
-			zw = bzngio.NewWriter(out, zio.Flags{})
+			zw = bzngio.NewWriter(w, zio.Flags{})
 		}
 		if err := zw.Write(rec); err != nil {
 			return err
