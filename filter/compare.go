@@ -257,6 +257,27 @@ func CompareFloat64(op string, pattern float64) (Predicate, error) {
 	}, nil
 }
 
+// stringSearch is like strings.Contains() but with case-insensitive
+// comparison.
+func stringSearch(a, b string) bool {
+	alen := len(a)
+	blen := len(b)
+
+	if blen > alen {
+		return false
+	}
+
+	end := alen - blen + 1
+	i := 0
+	for i < end {
+		if strings.EqualFold(a[i:i+blen], b) {
+			return true
+		}
+		i++
+	}
+	return false
+}
+
 var compareString = map[string]func(string, string) bool{
 	"eql":  func(a, b string) bool { return a == b },
 	"neql": func(a, b string) bool { return a != b },
@@ -265,7 +286,7 @@ var compareString = map[string]func(string, string) bool{
 	"lt":   func(a, b string) bool { return a < b },
 	"lte":  func(a, b string) bool { return a <= b },
 	//XXX this doesn't belong here.  primitive comparison vs container operator
-	"search": func(a, b string) bool { return strings.Contains(a, b) },
+	"search": stringSearch,
 }
 
 func CompareBstring(op string, pattern zng.Bstring) (Predicate, error) {

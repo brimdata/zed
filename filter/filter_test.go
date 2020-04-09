@@ -273,7 +273,8 @@ func TestFilters(t *testing.T) {
 		{`s = "Buenos d\u{ed}as se\u{f1}or"`, true},
 	})
 
-	// Test searching inside containers
+	// Test searching both fields and containers,
+	// also test case-insensitive search.
 	record, err = parseOneRecord(`
 #0:record[s:string,srec:record[svec:array[string]]]
 0:[hello;[[world;worldz;1.1.1.1;]]]`)
@@ -281,6 +282,8 @@ func TestFilters(t *testing.T) {
 	runCases(t, record, []testcase{
 		{"hello", true},
 		{"worldz", true},
+		{"HELLO", true},
+		{"WoRlDZ", true},
 		{"1.1.1.1", true},
 	})
 
