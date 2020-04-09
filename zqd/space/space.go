@@ -108,11 +108,7 @@ func (s Space) LogSize() (int64, error) {
 
 // PacketSize returns the size in bytes of the packet capture in the space.
 func (s Space) PacketSize() (int64, error) {
-	path := s.PacketPath()
-	if path == "" {
-		return 0, nil
-	}
-	return sizeof(path)
+	return sizeof(s.PacketPath())
 }
 
 func sizeof(path string) (int64, error) {
@@ -121,6 +117,7 @@ func sizeof(path string) (int64, error) {
 		if errors.Is(err, os.ErrNotExist) {
 			return 0, nil
 		}
+		return 0, err
 	}
 	return f.Size(), nil
 }
