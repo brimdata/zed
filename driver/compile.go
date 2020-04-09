@@ -13,11 +13,17 @@ import (
 	"go.uber.org/zap"
 )
 
-// Compile takes an AST, an input proc, and configuration parameters,
+// Compile takes an AST, an input reader, and configuration parameters,
 // and compiles it into a runnable flowgraph, returning a
 // proc.MuxOutput that which brings together all of the flowgraphs
 // tails, and is ready to be Pull()'d from.
-func Compile(ctx context.Context, program ast.Proc, input proc.Proc, reverse bool, logger *zap.Logger) (*proc.MuxOutput, error) {
+func Compile(ctx context.Context, program ast.Proc, reader zbuf.Reader, reverse bool, span nano.Span, logger *zap.Logger) (*proc.MuxOutput, error) {
+
+	filterAst, program := liftFilter(program)
+	input, err := inputProc(reader, filterAst, span)
+	if err != nil {
+		return nil, err
+	}
 	pctx := &proc.Context{
 		Context:     ctx,
 		TypeContext: resolver.NewContext(),
@@ -31,11 +37,11 @@ func Compile(ctx context.Context, program ast.Proc, input proc.Proc, reverse boo
 	return proc.NewMuxOutput(pctx, leaves), nil
 }
 
-// LiftFilter removes the filter at the head of the flowgraph AST, if
+// liftFilter removes the filter at the head of the flowgraph AST, if
 // one is present, and returns it and the modified flowgraph AST. If
 // the flowgraph does not start with a filter, it returns nil and the
 // unmodified flowgraph.
-func LiftFilter(p ast.Proc) (*ast.FilterProc, ast.Proc) {
+func liftFilter(p ast.Proc) (*ast.FilterProc, ast.Proc) {
 	if fp, ok := p.(*ast.FilterProc); ok {
 		pass := &ast.PassProc{
 			Node: ast.Node{"PassProc"},
@@ -55,10 +61,10 @@ func LiftFilter(p ast.Proc) (*ast.FilterProc, ast.Proc) {
 	return nil, p
 }
 
-// InputProc takes a Reader, optional Filter AST, and timespan, and
+// inputProc takes a Reader, optional Filter AST, and timespan, and
 // constructs an input proc that can be used as the head of a
 // flowgraph.
-func InputProc(reader zbuf.Reader, fltast *ast.FilterProc, span nano.Span) (proc.Proc, error) {
+func inputProc(reader zbuf.Reader, fltast *ast.FilterProc, span nano.Span) (proc.Proc, error) {
 	var f filter.Filter
 	if fltast != nil {
 		var err error

@@ -14,7 +14,6 @@ import (
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
@@ -119,20 +118,6 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	return c, nil
 }
 
-func (c *Command) compile(program ast.Proc, reader zbuf.Reader) (*proc.MuxOutput, error) {
-	// Try to move the filter into the scanner so we can throw
-	// out unmatched records without copying their contents in the
-	// case of readers (like zio raw.Reader) that create volatile
-	// records that are kepted by the scanner only if matched.
-	// For other readers, it certainly doesn't hurt to do this.
-	filterAst, program := driver.LiftFilter(program)
-	input, err := driver.InputProc(reader, filterAst, nano.MaxSpan)
-	if err != nil {
-		return nil, err
-	}
-	return driver.Compile(context.Background(), program, input, false, zap.NewNop())
-}
-
 func fileExists(path string) bool {
 	if path == "-" {
 		return true
@@ -226,7 +211,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer writer.Close()
-	mux, err := c.compile(query, reader)
+	mux, err := driver.Compile(context.Background(), query, reader, false, nano.MaxSpan, zap.NewNop())
 	if err != nil {
 		return err
 	}

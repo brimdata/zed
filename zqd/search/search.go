@@ -73,12 +73,7 @@ func Copy(ctx context.Context, w []zbuf.Writer, r zbuf.Reader, prog string) erro
 	if err != nil {
 		return err
 	}
-	filterAst, program := zdriver.LiftFilter(p)
-	input, err := zdriver.InputProc(r, filterAst, nano.MaxSpan)
-	if err != nil {
-		return nil
-	}
-	mux, err := zdriver.Compile(ctx, program, input, false, zap.NewNop())
+	mux, err := zdriver.Compile(ctx, p, r, false, nano.MaxSpan, zap.NewNop())
 	if err != nil {
 		return err
 	}
@@ -224,11 +219,6 @@ func launch(ctx context.Context, query *Query, reader zbuf.Reader, zctx *resolve
 	if span == (nano.Span{}) {
 		span = nano.MaxSpan
 	}
-	filterAst, program := zdriver.LiftFilter(query.Proc)
-	input, err := zdriver.InputProc(reader, filterAst, span)
-	if err != nil {
-		return nil, err
-	}
 	reverse := query.Dir < 0
-	return zdriver.Compile(context.Background(), program, input, reverse, zap.NewNop())
+	return zdriver.Compile(context.Background(), query.Proc, reader, reverse, span, zap.NewNop())
 }

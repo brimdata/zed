@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/zngio"
@@ -34,7 +35,7 @@ func TestMuxDriver(t *testing.T) {
 
 	t.Run("muxed into one writer", func(t *testing.T) {
 		reader := zngio.NewReader(strings.NewReader(input), zctx)
-		flowgraph, err := Compile(context.Background(), query, scanner.NewScanner(reader), false, nil)
+		flowgraph, err := Compile(context.Background(), query, scanner.NewScanner(reader), false, nano.MaxSpan, nil)
 		assert.NoError(t, err)
 		c := counter{}
 		d := New(&c)
@@ -45,7 +46,7 @@ func TestMuxDriver(t *testing.T) {
 
 	t.Run("muxed into individual writers", func(t *testing.T) {
 		reader := zngio.NewReader(strings.NewReader(input), zctx)
-		flowgraph, err := Compile(context.Background(), query, scanner.NewScanner(reader), false, nil)
+		flowgraph, err := Compile(context.Background(), query, scanner.NewScanner(reader), false, nano.MaxSpan, nil)
 		assert.NoError(t, err)
 		cs := []zbuf.Writer{&counter{}, &counter{}}
 		d := New(cs...)
@@ -56,7 +57,7 @@ func TestMuxDriver(t *testing.T) {
 	})
 
 	t.Run("mismatched channels and writer counts", func(t *testing.T) {
-		flowgraph, err := Compile(context.Background(), query, nil, false, nil)
+		flowgraph, err := Compile(context.Background(), query, nil, false, nano.MaxSpan, nil)
 		assert.NoError(t, err)
 		cs := []zbuf.Writer{&counter{}, &counter{}, &counter{}}
 		d := New(cs...)
