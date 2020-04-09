@@ -109,6 +109,7 @@ func (p *Process) run(ctx context.Context) error {
 		os.Remove(p.space.DataPath(PcapIndexFile))
 		os.Remove(p.space.DataPath(space.AllBzngFile))
 		p.space.SetPacketPath("")
+		p.space.UnsetTimes()
 	}
 
 	ticker := time.NewTicker(time.Second)
