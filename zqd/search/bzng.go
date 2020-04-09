@@ -13,6 +13,7 @@ import (
 // binary data sent over http chunked encoding interleaved with json
 // protocol messages sent as zng comment payloads.  The simplicity of
 // this is a thing of beauty.
+// Also, it implements the Output interface.
 type BzngOutput struct {
 	response http.ResponseWriter
 	writer   *bzngio.Writer
