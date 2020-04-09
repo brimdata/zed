@@ -1,16 +1,18 @@
 package test
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
-	"github.com/brimsec/zq/scanner"
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
+	"go.uber.org/zap"
 )
 
 type Internal struct {
@@ -58,7 +60,7 @@ func (i *Internal) Run() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	mux, err := driver.Compile(program, scanner.NewScanner(reader, nil))
+	mux, err := driver.Compile(context.Background(), program, reader, false, nano.MaxSpan, zap.NewNop())
 	if err != nil {
 		return "", err
 	}

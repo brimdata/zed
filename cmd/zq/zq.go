@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -12,8 +13,7 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
-	"github.com/brimsec/zq/filter"
-	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
@@ -23,6 +23,7 @@ import (
 	"github.com/brimsec/zq/zqd/ingest"
 	"github.com/brimsec/zq/zql"
 	"github.com/mccanne/charm"
+	"go.uber.org/zap"
 )
 
 // Version is set via the Go linker.
@@ -115,46 +116,6 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
 	f.BoolVar(&c.showVersion, "version", false, "print version and exit")
 	return c, nil
-}
-
-func liftFilter(p ast.Proc) (*ast.FilterProc, ast.Proc) {
-	if fp, ok := p.(*ast.FilterProc); ok {
-		pass := &ast.PassProc{
-			Node: ast.Node{"PassProc"},
-		}
-		return fp, pass
-	}
-	seq, ok := p.(*ast.SequentialProc)
-	if ok && len(seq.Procs) > 0 {
-		if fp, ok := seq.Procs[0].(*ast.FilterProc); ok {
-			rest := &ast.SequentialProc{
-				Node:  ast.Node{"SequentialProc"},
-				Procs: seq.Procs[1:],
-			}
-			return fp, rest
-		}
-	}
-	return nil, nil
-}
-
-func (c *Command) compile(program ast.Proc, reader zbuf.Reader) (*proc.MuxOutput, error) {
-	// Try to move the filter into the scanner so we can throw
-	// out unmatched records without copying their contents in the
-	// case of readers (like zio raw.Reader) that create volatile
-	// records that are kepted by the scanner only if matched.
-	// For other readers, it certainly doesn't hurt to do this.
-	var f filter.Filter
-	filterProc, rest := liftFilter(program)
-	if filterProc != nil {
-		var err error
-		f, err = filter.Compile(filterProc.Filter)
-		if err != nil {
-			return nil, err
-		}
-		program = rest
-	}
-	input := scanner.NewScanner(reader, f)
-	return driver.Compile(program, input)
 }
 
 func fileExists(path string) bool {
@@ -250,7 +211,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer writer.Close()
-	mux, err := c.compile(query, reader)
+	mux, err := driver.Compile(context.Background(), query, reader, false, nano.MaxSpan, zap.NewNop())
 	if err != nil {
 		return err
 	}

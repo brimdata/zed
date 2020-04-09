@@ -8,21 +8,19 @@ import (
 	"github.com/brimsec/zq/zng"
 )
 
+// Scanner implements the proc.Proc interface.
 type Scanner struct {
 	reader zbuf.Reader
 	filter filter.Filter
 	span   nano.Span
 }
 
-func NewScanner(reader zbuf.Reader, f filter.Filter) *Scanner {
+func NewScanner(reader zbuf.Reader, f filter.Filter, s nano.Span) *Scanner {
 	return &Scanner{
 		reader: reader,
 		filter: f,
+		span:   s,
 	}
-}
-
-func (s *Scanner) SetSpan(span nano.Span) {
-	s.span = span
 }
 
 const batchSize = 100
@@ -39,7 +37,7 @@ func (s *Scanner) Read() (*zng.Record, error) {
 		if err != nil || rec == nil {
 			return nil, err
 		}
-		if s.span.Dur != 0 && !s.span.Contains(rec.Ts) ||
+		if s.span != nano.MaxSpan && !s.span.Contains(rec.Ts) ||
 			s.filter != nil && !s.filter(rec) {
 			continue
 		}
