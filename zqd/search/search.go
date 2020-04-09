@@ -258,8 +258,7 @@ func compile(ctx *proc.Context, program ast.Proc, reader zbuf.Reader, span nano.
 		}
 		program = rest
 	}
-	input := scanner.NewScanner(reader, f)
-	input.SetSpan(span)
+	input := scanner.NewFilteredScanner(reader, f, span)
 	leaves, err := proc.CompileProc(nil, program, ctx, input)
 	if err != nil {
 		return nil, err

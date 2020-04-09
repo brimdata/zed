@@ -57,6 +57,7 @@ package ztest
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"errors"
 	"flag"
@@ -81,6 +82,7 @@ import (
 	"github.com/brimsec/zq/zql"
 	"github.com/pmezard/go-difflib/difflib"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
 
@@ -310,7 +312,7 @@ func run(zq, ZQL, outputFormat, outputFlags string, inputs ...string) (out strin
 		outputFormat = "null"
 		zctx.SetLogger(&emitter.TypeLogger{WriteCloser: &nopCloser{&outbuf}})
 	}
-	muxOutput, err := driver.Compile(proc, scanner.NewScanner(zr, nil))
+	muxOutput, err := driver.Compile(context.Background(), proc, scanner.NewScanner(zr), false, zap.NewNop())
 	if err != nil {
 		return "", "", err
 	}
