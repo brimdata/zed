@@ -13,7 +13,6 @@ import (
 
 	"github.com/brimsec/zq/ast"
 	zdriver "github.com/brimsec/zq/driver"
-	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/scanner"
@@ -74,12 +73,12 @@ func Copy(ctx context.Context, w []zbuf.Writer, r zbuf.Reader, prog string) erro
 	if err != nil {
 		return err
 	}
-	procCtx := &proc.Context{
-		Context:     ctx,
-		TypeContext: resolver.NewContext(),
-		Logger:      zap.NewNop(),
+	filterAst, program := zdriver.LiftFilter(p)
+	input, err := zdriver.InputProc(r, filterAst, nano.MaxSpan)
+	if err != nil {
+		return nil
 	}
-	mux, err := compile(procCtx, p, r, nano.MaxSpan)
+	mux, err := zdriver.Compile(ctx, program, input, false, zap.NewNop())
 	if err != nil {
 		return err
 	}
@@ -220,63 +219,16 @@ func run(out *proc.MuxOutput, output Output) error {
 	return d.end(0)
 }
 
-// from zq main - move to shared place
-func liftFilter(p ast.Proc) (*ast.FilterProc, ast.Proc) {
-	if fp, ok := p.(*ast.FilterProc); ok {
-		pass := &ast.PassProc{
-			Node: ast.Node{"PassProc"},
-		}
-		return fp, pass
-	}
-	seq, ok := p.(*ast.SequentialProc)
-	if ok && len(seq.Procs) > 0 {
-		if fp, ok := seq.Procs[0].(*ast.FilterProc); ok {
-			rest := &ast.SequentialProc{
-				Node:  ast.Node{"SequentialProc"},
-				Procs: seq.Procs[1:],
-			}
-			return fp, rest
-		}
-	}
-	return nil, nil
-}
-
-// from zq main - move to shared place
-func compile(ctx *proc.Context, program ast.Proc, reader zbuf.Reader, span nano.Span) (*proc.MuxOutput, error) {
-	// Try to move the filter into the scanner so we can throw
-	// out unmatched records without copying their contents in the
-	// case of readers (like zio raw.Reader) that create volatile
-	// records that are kept by the scanner only if matched.
-	// For other readers, it certainly doesn't hurt to do this.
-	var f filter.Filter
-	filterProc, rest := liftFilter(program)
-	if filterProc != nil {
-		var err error
-		f, err = filter.Compile(filterProc.Filter)
-		if err != nil {
-			return nil, err
-		}
-		program = rest
-	}
-	input := scanner.NewFilteredScanner(reader, f, span)
-	leaves, err := proc.CompileProc(nil, program, ctx, input)
-	if err != nil {
-		return nil, err
-	}
-	return proc.NewMuxOutput(ctx, leaves), nil
-}
-
 func launch(ctx context.Context, query *Query, reader zbuf.Reader, zctx *resolver.Context) (*proc.MuxOutput, error) {
 	span := query.Span
 	if span == (nano.Span{}) {
 		span = nano.MaxSpan
 	}
-	procCtx := &proc.Context{
-		Context:     ctx,
-		TypeContext: zctx,
-		Logger:      zap.NewNop(),
-		Reverse:     query.Dir < 0,
-		Warnings:    make(chan string, 5),
+	filterAst, program := zdriver.LiftFilter(query.Proc)
+	input, err := zdriver.InputProc(reader, filterAst, span)
+	if err != nil {
+		return nil, err
 	}
-	return compile(procCtx, query.Proc, reader, query.Span)
+	reverse := query.Dir < 0
+	return zdriver.Compile(context.Background(), program, input, reverse, zap.NewNop())
 }
