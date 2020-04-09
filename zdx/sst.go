@@ -1,34 +1,27 @@
-// Package sst provides an API for creating, merging, indexing, and querying sorted string
-// tables (SST), a la LSM trees, where an SST holds a sequence of key,value pairs
-// and the pairs are sorted by key.  The keys and the values are stored as
-// byte slices.
+// Package zdx provides an API for creating, merging, indexing, and querying zng
+// index files, a la SST in LSM trees, where a zdx file comprises a sequence of
+// key,value zng records and the records are sorted by key.
 //
 // A table always starts out in memory then is written to storage using
 // a Writer.  Tables can be combined with a Combiner.  They are merged in an
 // efficient LSM like fashion.
 //
 // A table on disk consists of the base table with zero or more index files.
-// These files are all named with the same path prefix, e.g., "sst", where the
-// base table is sst and the index files, if any, are sst.1, sst.2, sst.3,
-// and so forth.  The index files can always be recreated from the base table.
+// These files are all named with the same path prefix, e.g., "zdx", where the
+// base table is zdx and the b-tree files, if any, are zdx.1, zdx.2, zdx.3,
+// and so forth.  The b-tree files can always be recreated from the base table.
 //
-// A file constists of a sequence of frames, where each frame consists of a
-// frame header, indicating its length (on disk) and compression type, followed
-// by a possibly compressed body, where the body costs of a sequence of key, value
-// pairs.  Each key and each value is encoded as a 4-byte length and sequence of bytes
-// representing the key's string or the value's byte slice.  The body is compressed
-// according to the compression type.
+// Each zdx file is organized into a sequence of frames, where each frame is defined
+// by a zng type-reset marker.
 //
-// When an SST file has values of all the same length, the length is indicated
-// in the file header and omitted from each key-value pair.  XXX we could do
-// the same for the key, but haven't done so yet.
-//
-// An index file contains a key,value pair for each frame in the file below
+// Each b-tree zng file contains a key,value pair for each frame in the file below
 // in the hiearchy where the key is the first key found in that frame and
-// the value is the offset or the frame in the file below.  Each frame in an
+// the value is the offset or the frame in the file below.
+//
+// XXX ?  Each frame in an
 // index file is terminated with an end-of-frame key whose value is the
 // beginning key of the next frame.
-package sst
+package zdx
 
 import (
 	"bytes"
@@ -39,32 +32,17 @@ import (
 )
 
 var (
-	ErrCorruptFile = errors.New("corrupt SST file")
+	ErrCorruptFile = errors.New("corrupt zdx file")
 	ErrValueSize   = errors.New("bad value size")
-	ErrBadMagic    = errors.New("bad magic number in header of SST file")
-	ErrFileVersion = errors.New("unsupported version number in SST file")
+	ErrBadMagic    = errors.New("bad magic number in header of zdx file")
+	ErrFileVersion = errors.New("unsupported version number in zdx file")
 	ErrPairTooBig  = errors.New("length of a single key/value larger than frame")
 )
 
 const (
-	magic        = 0xfeed2019
+	// XXX should we encode this as a record at the start of the zng file?
 	versionMajor = 1
 	versionMinor = 0
-
-	// File header format is in big-endian format comprising:
-	// 4 bytes of magic
-	// one byte of major version
-	// one byte of minor version
-	// 4 bytes length of the values, when all the
-	//     values have the same size (in which case we don't need to encode
-	//     the value length with each value), or 0 for variable length values.
-	// 4 bytes length of the minimum frame size
-	FileHeaderLen = 14
-
-	// Frame header format is in big-endian format comprising:
-	// one byte of compression type
-	// 4 bytes length of the frame (in uncompressed bytes)
-	FrameHeaderLen = 5
 )
 
 type Pair struct {

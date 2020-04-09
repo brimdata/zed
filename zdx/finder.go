@@ -1,19 +1,20 @@
-package sst
+package zdx
 
 import (
 	"bytes"
 	"os"
 )
 
-// Finder looks up values in an SST file using the hierarchical index files.
+// Finder looks up values in an zdx file using the hierarchical index files.
 type Finder struct {
 	files []*FrameReader
 }
 
-// NewFinder returns an object that is used to lookup keys in an SST.
+// NewFinder returns an object that is used to lookup keys in a zdx.
 func NewFinder(path string) (*Finder, error) {
 	level := 0
 	f := &Finder{}
+	// Initialize a reader for each level in the b-tree hierarchy.
 	for {
 		r := NewFrameReader(path, level)
 		if err := r.Open(); err != nil {
@@ -37,12 +38,13 @@ func NewFinder(path string) (*Finder, error) {
 }
 
 func (f *Finder) Close() error {
+	var lastErr error
 	for _, r := range f.files {
 		if err := r.Close(); err != nil {
-			return err
+			lastErr = err
 		}
 	}
-	return nil
+	return lastErr
 }
 
 // find the largest key that is smaller than the input key and
@@ -90,7 +92,7 @@ func (f *Finder) Lookup(key []byte) ([]byte, error) {
 	// the process for that frame in the next index file till we get to the
 	// base file and we look for the exact key.
 	level := n - 1
-	off := int64(FileHeaderLen)
+	off := int64(0)
 	for level > 0 {
 		frame, err := f.files[level].ReadFrameAt(off)
 		if err != nil {

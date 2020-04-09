@@ -1,4 +1,4 @@
-package sst
+package zdx
 
 import (
 	"io"
@@ -36,35 +36,6 @@ func (r *reader) Open() error {
 		return err
 	}
 	return r.readFileHeader()
-}
-
-func (r *reader) readFileHeader() error {
-	var hdr [FileHeaderLen]byte
-	n, err := r.file.Read(hdr[:])
-	if err != nil {
-		return err
-	}
-	if n != FileHeaderLen {
-		return ErrCorruptFile
-	}
-	if decodeInt(hdr[0:4]) != magic {
-		return ErrBadMagic
-	}
-	if versionMajor != hdr[4] || versionMinor != hdr[5] {
-		return ErrFileVersion
-	}
-	r.valsize = decodeInt(hdr[6:10])
-	//XXX
-	if r.valsize > 10*1024*1024 {
-		return ErrCorruptFile
-	}
-	framesize := decodeInt(hdr[10:14])
-	//XXX
-	if framesize > 10*1024*1024 {
-		return ErrCorruptFile
-	}
-	r.frame = make([]byte, 0, framesize)
-	return nil
 }
 
 func (r *reader) Close() error {
