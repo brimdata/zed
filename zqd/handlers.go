@@ -171,42 +171,10 @@ func handleSpaceGet(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	defer cancel()
 
-	info := &api.SpaceInfo{
-		Name:          s.Name(),
-		PacketSupport: s.HasFile(ingest.PcapIndexFile),
-		PacketPath:    s.PacketPath(),
-	}
-	if s.HasFile(space.AllBzngFile) {
-		f, err := s.OpenFile(space.AllBzngFile)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		defer f.Close()
-		stat, err := f.Stat()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		info.Size = stat.Size()
-
-		minTs, maxTs, err := s.GetTimes()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		info.MinTime = minTs
-		info.MaxTime = maxTs
-	}
-	if info.PacketPath != "" {
-		if pstat, err := os.Stat(info.PacketPath); err == nil {
-			info.PacketSize = pstat.Size()
-		} else if !os.IsNotExist(err) {
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		}
+	info, err := s.Info()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	w.Header().Add("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(info); err != nil {

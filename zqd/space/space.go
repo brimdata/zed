@@ -76,32 +76,50 @@ func (s Space) Name() string {
 }
 
 func (s Space) Info() (api.SpaceInfo, error) {
-	f, err := s.OpenFile(AllBzngFile)
+	logsize, err := s.LogSize()
 	if err != nil {
 		return api.SpaceInfo{}, err
 	}
-	defer f.Close()
-	stat, err := f.Stat()
+	packetsize, err := s.PacketSize()
 	if err != nil {
 		return api.SpaceInfo{}, err
 	}
 	spaceInfo := api.SpaceInfo{
-		Name:       s.Name(),
-		Size:       stat.Size(),
-		PacketPath: s.PacketPath(),
+		Name:          s.Name(),
+		Size:          logsize,
+		PacketSupport: s.PacketPath() != "",
+		PacketPath:    s.PacketPath(),
+		PacketSize:    packetsize,
 	}
-	i, err := loadInfo(s.conf.DataPath)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return api.SpaceInfo{}, err
-		}
-		return spaceInfo, nil
+	i, err := loadInfoFile(s.conf.DataPath)
+	if err == nil {
+		spaceInfo.MinTime = &i.MinTime
+		spaceInfo.MaxTime = &i.MaxTime
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return api.SpaceInfo{}, err
 	}
-
-	spaceInfo.MinTime = &i.MinTime
-	spaceInfo.MaxTime = &i.MaxTime
-
 	return spaceInfo, nil
+}
+
+// LogSize returns the size in bytes of the logs in space.
+func (s Space) LogSize() (int64, error) {
+	return sizeof(s.DataPath(AllBzngFile))
+}
+
+// PacketSize returns the size in bytes of the packet capture in the space.
+func (s Space) PacketSize() (int64, error) {
+	return sizeof(s.PacketPath())
+}
+
+func sizeof(path string) (int64, error) {
+	f, err := os.Stat(path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return 0, nil
+		}
+		return 0, err
+	}
+	return f.Size(), nil
 }
 
 func (s Space) DataPath(elem ...string) string {
@@ -156,8 +174,16 @@ type info struct {
 	MaxTime nano.Ts `json:"max_time"`
 }
 
+// UnsetTimes nils out the cached time range value for the space.
+// XXX For right now this simply deletes the info file as nothing else is stored
+// there. When we get to brimsec/zq#541 the time range should be represented as
+// as a pointer to a nano.Span.
+func (s Space) UnsetTimes() error {
+	return os.Remove(s.DataPath(infoFile))
+}
+
 func (s Space) SetTimes(minTs, maxTs nano.Ts) error {
-	cur, err := loadInfo(s.conf.DataPath)
+	cur, err := loadInfoFile(s.conf.DataPath)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return err
@@ -170,7 +196,7 @@ func (s Space) SetTimes(minTs, maxTs nano.Ts) error {
 }
 
 func (s Space) GetTimes() (*nano.Ts, *nano.Ts, error) {
-	i, err := loadInfo(s.conf.DataPath)
+	i, err := loadInfoFile(s.conf.DataPath)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return nil, nil, err
@@ -212,7 +238,7 @@ func (c config) save(spacePath string) error {
 	return os.Rename(tmppath, path)
 }
 
-func loadInfo(path string) (info, error) {
+func loadInfoFile(path string) (info, error) {
 	var i info
 	b, err := ioutil.ReadFile(filepath.Join(path, infoFile))
 	if err != nil {
