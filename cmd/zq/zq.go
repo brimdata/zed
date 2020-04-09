@@ -123,7 +123,7 @@ func fileExists(path string) bool {
 		return true
 	}
 	info, err := os.Stat(path)
-	if os.IsNotExist(err) {
+	if err != nil {
 		return false
 	}
 	return !info.IsDir()
