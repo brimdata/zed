@@ -15,14 +15,7 @@ type Scanner struct {
 	span   nano.Span
 }
 
-func NewScanner(reader zbuf.Reader) *Scanner {
-	return &Scanner{
-		reader: reader,
-		span:   nano.MaxSpan,
-	}
-}
-
-func NewFilteredScanner(reader zbuf.Reader, f filter.Filter, s nano.Span) *Scanner {
+func NewScanner(reader zbuf.Reader, f filter.Filter, s nano.Span) *Scanner {
 	return &Scanner{
 		reader: reader,
 		filter: f,
@@ -44,7 +37,7 @@ func (s *Scanner) Read() (*zng.Record, error) {
 		if err != nil || rec == nil {
 			return nil, err
 		}
-		if !s.span.Contains(rec.Ts) ||
+		if s.span != nano.MaxSpan && !s.span.Contains(rec.Ts) ||
 			s.filter != nil && !s.filter(rec) {
 			continue
 		}

@@ -72,5 +72,5 @@ func inputProc(reader zbuf.Reader, fltast *ast.FilterProc, span nano.Span) (proc
 			return nil, err
 		}
 	}
-	return scanner.NewFilteredScanner(reader, f, span), nil
+	return scanner.NewScanner(reader, f, span), nil
 }
