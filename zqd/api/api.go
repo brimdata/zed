@@ -160,7 +160,6 @@ func (ps *PacketSearch) ToQuery() url.Values {
 	if ps.DstPort != 0 {
 		q.Add("dst_port", strconv.Itoa(int(ps.DstPort)))
 	}
-
 	return q
 }
 
@@ -200,6 +199,11 @@ func (ps *PacketSearch) FromQuery(v url.Values) error {
 	}
 	ps.Span = span
 	ps.Proto = v.Get("proto")
+	switch ps.Proto {
+	case "tcp", "udp", "icmp":
+	default:
+		return fmt.Errorf("unsupported proto: %s", ps.Proto)
+	}
 	if ps.SrcHost = net.ParseIP(v.Get("src_host")); ps.SrcHost == nil {
 		return fmt.Errorf("invalid ip: %s", ps.SrcHost)
 	}

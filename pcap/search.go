@@ -136,22 +136,63 @@ func genICMPFilter(src, dst net.IP) PacketFilter {
 	}
 }
 
-// XXX currently assumes legacy pcap is produced by the input reader
 // XXX need to handle searching over multiple pcap files
 func (s *Search) Run(ctx context.Context, w io.Writer, r pcapio.Reader) error {
+	reader := s.Reader(r)
+	_, err := reader.WriteToWithContext(ctx, w)
+	return err
+}
+
+type SearchReader struct {
+	*Search
+	reader pcapio.Reader
+	opts   gopacket.DecodeOptions
+	npkt   int
+}
+
+func (s *Search) Reader(r pcapio.Reader) *SearchReader {
 	opts := gopacket.DecodeOptions{Lazy: true, NoCopy: true}
-	var npkt int
+	return &SearchReader{Search: s, reader: r, opts: opts}
+}
+
+func (s *SearchReader) WriteToWithContext(ctx context.Context, w io.Writer) (n int64, err error) {
 	for {
 		if err := ctx.Err(); err != nil {
+			return n, err
+		}
+		block, err := s.next()
+		if err != nil {
+			return n, err
+		}
+		if block == nil {
+			return n, nil
+		}
+		if err := writeFull(w, block); err != nil {
+			return n, err
+		}
+		n += int64(len(block))
+	}
+}
+
+func writeFull(w io.Writer, p []byte) error {
+	for len(p) > 0 {
+		n, err := w.Write(p)
+		if err != nil {
 			return err
 		}
+		p = p[n:]
+	}
+	return nil
+}
 
-		block, typ, err := r.Read()
+func (s *SearchReader) next() ([]byte, error) {
+	for {
+		block, typ, err := s.reader.Read()
 		if err != nil {
 			if err == io.EOF {
 				break
 			}
-			return err
+			return nil, err
 		}
 		if block == nil {
 			break
@@ -164,29 +205,24 @@ func (s *Search) Run(ctx context.Context, w io.Writer, r pcapio.Reader) error {
 		// until we get to the first packet and never writing the blocksa
 		// for sections that have no packets.
 		if typ != pcapio.TypePacket {
-			if _, err = w.Write(block); err != nil {
-				return err
-			}
-			continue
+			return block, nil
 		}
-		pktBuf, ts, linkType := r.Packet(block)
+		pktBuf, ts, linkType := s.reader.Packet(block)
 		if pktBuf == nil {
-			return pcapio.ErrCorruptPcap
+			return nil, pcapio.ErrCorruptPcap
 		}
 		if !s.span.ContainsClosed(ts) {
 			continue
 		}
-		packet := gopacket.NewPacket(pktBuf, linkType, opts)
+		packet := gopacket.NewPacket(pktBuf, linkType, s.opts)
 		if s.filter != nil && !s.filter(packet) {
 			continue
 		}
-		if _, err = w.Write(block); err != nil {
-			return err
-		}
-		npkt++
+		s.npkt++
+		return block, nil
 	}
-	if npkt == 0 {
-		return ErrNoPacketsFound
+	if s.npkt == 0 {
+		return nil, ErrNoPacketsFound
 	}
-	return nil
+	return nil, nil
 }

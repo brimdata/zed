@@ -3,24 +3,30 @@ package space
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
+	"github.com/brimsec/zq/pcap"
+	"github.com/brimsec/zq/pcap/pcapio"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zqd/api"
 )
 
 const (
-	configFile  = "config.json"
-	infoFile    = "info.json"
-	AllBzngFile = "all.bzng"
+	PcapIndexFile = "packets.idx.json"
+	configFile    = "config.json"
+	infoFile      = "info.json"
+	AllBzngFile   = "all.bzng"
 )
 
 var (
-	ErrSpaceNotExist = errors.New("space does not exist")
-	ErrSpaceExists   = errors.New("space exists")
+	ErrSpaceNotExist       = errors.New("space does not exist")
+	ErrSpaceExists         = errors.New("space exists")
+	ErrPcapOpsNotSupported = errors.New("space does not support pcap operations")
 )
 
 type Space struct {
@@ -99,6 +105,47 @@ func (s Space) Info() (api.SpaceInfo, error) {
 		return api.SpaceInfo{}, err
 	}
 	return spaceInfo, nil
+}
+
+// PcapSearch returns a *pcap.SearchReader that streams all the packets meeting
+// the provided search request. If pcaps are not supported in this Space
+// ErrPcapOpsNotSupported is returned.
+func (s Space) PcapSearch(req api.PacketSearch) (*pcap.SearchReader, io.Closer, error) {
+	if s.PacketPath() == "" || !s.HasFile(PcapIndexFile) {
+		return nil, nil, ErrPcapOpsNotSupported
+	}
+	index, err := pcap.LoadIndex(s.DataPath(PcapIndexFile))
+	if err != nil {
+		return nil, nil, err
+	}
+	var search *pcap.Search
+	switch req.Proto {
+	case "tcp":
+		flow := pcap.NewFlow(req.SrcHost, int(req.SrcPort), req.DstHost, int(req.DstPort))
+		search = pcap.NewTCPSearch(req.Span, flow)
+	case "udp":
+		flow := pcap.NewFlow(req.SrcHost, int(req.SrcPort), req.DstHost, int(req.DstPort))
+		search = pcap.NewUDPSearch(req.Span, flow)
+	case "icmp":
+		search = pcap.NewICMPSearch(req.Span, req.SrcHost, req.DstHost)
+	default:
+		return nil, nil, fmt.Errorf("unsupported proto type: %s", req.Proto)
+	}
+	f, err := os.Open(s.PacketPath())
+	if err != nil {
+		return nil, nil, err
+	}
+	slicer, err := pcap.NewSlicer(f, index, req.Span)
+	if err != nil {
+		f.Close()
+		return nil, nil, err
+	}
+	pcapReader, err := pcapio.NewReader(slicer)
+	if err != nil {
+		f.Close()
+		return nil, nil, err
+	}
+	return search.Reader(pcapReader), f, nil
 }
 
 // LogSize returns the size in bytes of the logs in space.

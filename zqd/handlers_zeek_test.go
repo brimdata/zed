@@ -17,7 +17,7 @@ import (
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/zqd"
 	"github.com/brimsec/zq/zqd/api"
-	"github.com/brimsec/zq/zqd/ingest"
+	"github.com/brimsec/zq/zqd/space"
 	"github.com/brimsec/zq/zqd/zeek"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -65,7 +65,7 @@ func TestPacketPostSuccess(t *testing.T) {
 		assert.Equal(t, p.pcapfile, info.PacketPath)
 	})
 	t.Run("PacketIndexExists", func(t *testing.T) {
-		require.FileExists(t, filepath.Join(p.core.Root, p.space, ingest.PcapIndexFile))
+		require.FileExists(t, filepath.Join(p.core.Root, p.space, space.PcapIndexFile))
 	})
 	t.Run("TaskStartMessage", func(t *testing.T) {
 		status := p.payloads[0].(*api.TaskStart)
