@@ -56,14 +56,4 @@ func TestMuxDriver(t *testing.T) {
 		assert.Equal(t, 1, cs[0].(*counter).n)
 		assert.Equal(t, 1, cs[1].(*counter).n)
 	})
-
-	t.Run("mismatched channels and writer counts", func(t *testing.T) {
-		t.Skip()
-		flowgraph, err := Compile(context.Background(), query, nil, false, nano.MaxSpan, nil)
-		assert.NoError(t, err)
-		cs := []zbuf.Writer{&counter{}, &counter{}, &counter{}}
-		d := NewCLI(cs...)
-		err = Run(flowgraph, d, time.Second)
-		assert.Error(t, err)
-	})
 }

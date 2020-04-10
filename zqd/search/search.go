@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/ast"
-	"github.com/brimsec/zq/driver"
 	zdriver "github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/proc"
@@ -67,12 +66,12 @@ func Search(ctx context.Context, s *space.Space, req api.SearchRequest, out Outp
 	if err != nil {
 		return err
 	}
-	d := &searchdriver{
+	d := &driver{
 		output:    out,
 		startTime: nano.Now(),
 	}
 	d.start(0)
-	if err := driver.Run(mux, d, DefaultStatsInterval); err != nil {
+	if err := zdriver.Run(mux, d, DefaultStatsInterval); err != nil {
 		d.abort(0, err)
 		return err
 	}
@@ -109,26 +108,26 @@ func UnpackQuery(req api.SearchRequest) (*Query, error) {
 	}, nil
 }
 
-// searchdriver implements driver.Driver
-type searchdriver struct {
+// driver implements driver.Driver
+type driver struct {
 	output    Output
 	startTime nano.Ts
 }
 
-func (d *searchdriver) start(id int64) error {
+func (d *driver) start(id int64) error {
 	return d.output.SendControl(&api.TaskStart{"TaskStart", id})
 }
 
-func (d *searchdriver) end(id int64) error {
+func (d *driver) end(id int64) error {
 	return d.output.End(&api.TaskEnd{"TaskEnd", id, nil})
 }
 
-func (d *searchdriver) abort(id int64, err error) error {
+func (d *driver) abort(id int64, err error) error {
 	verr := &api.Error{Type: "INTERNAL", Message: err.Error()}
 	return d.output.SendControl(&api.TaskEnd{"TaskEnd", id, verr})
 }
 
-func (d *searchdriver) Warn(warning string) error {
+func (d *driver) Warn(warning string) error {
 	v := api.SearchWarnings{
 		Type:     "SearchWarnings",
 		Warnings: []string{warning},
@@ -136,11 +135,11 @@ func (d *searchdriver) Warn(warning string) error {
 	return d.output.SendControl(v)
 }
 
-func (d *searchdriver) Write(cid int, arr zbuf.Batch) error {
+func (d *driver) Write(cid int, arr zbuf.Batch) error {
 	return d.output.SendBatch(cid, arr)
 }
 
-func (d *searchdriver) Stats(stats api.ScannerStats) error {
+func (d *driver) Stats(stats api.ScannerStats) error {
 	v := api.SearchStats{
 		Type:         "SearchStats",
 		StartTime:    d.startTime,
@@ -150,7 +149,7 @@ func (d *searchdriver) Stats(stats api.ScannerStats) error {
 	return d.output.SendControl(v)
 }
 
-func (d *searchdriver) ChannelEnd(cid int, stats api.ScannerStats) error {
+func (d *driver) ChannelEnd(cid int, stats api.ScannerStats) error {
 	if err := d.Stats(stats); err != nil {
 		return err
 	}
