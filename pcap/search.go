@@ -8,6 +8,7 @@ import (
 	"net"
 
 	"github.com/brimsec/zq/pcap/pcapio"
+	"github.com/brimsec/zq/pkg/ctxio"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
@@ -136,22 +137,48 @@ func genICMPFilter(src, dst net.IP) PacketFilter {
 	}
 }
 
-// XXX currently assumes legacy pcap is produced by the input reader
 // XXX need to handle searching over multiple pcap files
 func (s *Search) Run(ctx context.Context, w io.Writer, r pcapio.Reader) error {
-	opts := gopacket.DecodeOptions{Lazy: true, NoCopy: true}
-	var npkt int
-	for {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
+	_, err := ctxio.Copy(ctx, w, s.Reader(r))
+	return err
+}
 
-		block, typ, err := r.Read()
+type SearchReader struct {
+	*Search
+	reader pcapio.Reader
+	opts   gopacket.DecodeOptions
+	npkt   int
+	buf    []byte
+}
+
+func (s *Search) Reader(r pcapio.Reader) *SearchReader {
+	opts := gopacket.DecodeOptions{Lazy: true, NoCopy: true}
+	return &SearchReader{Search: s, reader: r, opts: opts}
+}
+
+func (s *SearchReader) Read(p []byte) (n int, err error) {
+	if len(s.buf) == 0 {
+		s.buf, err = s.next()
+		if err != nil {
+			return 0, err
+		}
+		if len(s.buf) == 0 {
+			return 0, io.EOF
+		}
+	}
+	n = copy(p, s.buf)
+	s.buf = s.buf[n:]
+	return n, err
+}
+
+func (s *SearchReader) next() ([]byte, error) {
+	for {
+		block, typ, err := s.reader.Read()
 		if err != nil {
 			if err == io.EOF {
 				break
 			}
-			return err
+			return nil, err
 		}
 		if block == nil {
 			break
@@ -164,29 +191,24 @@ func (s *Search) Run(ctx context.Context, w io.Writer, r pcapio.Reader) error {
 		// until we get to the first packet and never writing the blocksa
 		// for sections that have no packets.
 		if typ != pcapio.TypePacket {
-			if _, err = w.Write(block); err != nil {
-				return err
-			}
-			continue
+			return block, nil
 		}
-		pktBuf, ts, linkType := r.Packet(block)
+		pktBuf, ts, linkType := s.reader.Packet(block)
 		if pktBuf == nil {
-			return pcapio.ErrCorruptPcap
+			return nil, pcapio.ErrCorruptPcap
 		}
 		if !s.span.ContainsClosed(ts) {
 			continue
 		}
-		packet := gopacket.NewPacket(pktBuf, linkType, opts)
+		packet := gopacket.NewPacket(pktBuf, linkType, s.opts)
 		if s.filter != nil && !s.filter(packet) {
 			continue
 		}
-		if _, err = w.Write(block); err != nil {
-			return err
-		}
-		npkt++
+		s.npkt++
+		return block, nil
 	}
-	if npkt == 0 {
-		return ErrNoPacketsFound
+	if s.npkt == 0 {
+		return nil, ErrNoPacketsFound
 	}
-	return nil
+	return nil, nil
 }

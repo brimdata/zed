@@ -29,7 +29,6 @@ var (
 )
 
 const (
-	PcapIndexFile    = "packets.idx.json"
 	DefaultSortLimit = 10000000
 	tmpIngestDir     = ".tmp.ingest"
 )
@@ -82,11 +81,11 @@ func Pcap(ctx context.Context, s *space.Space, pcap string, zlauncher zeek.Launc
 		sortLimit: sortLimit,
 	}
 	if err = p.indexPcap(); err != nil {
-		os.Remove(p.space.DataPath(PcapIndexFile))
+		os.Remove(p.space.DataPath(space.PcapIndexFile))
 		return nil, err
 	}
 	if err = p.space.SetPacketPath(p.pcapPath); err != nil {
-		os.Remove(p.space.DataPath(PcapIndexFile))
+		os.Remove(p.space.DataPath(space.PcapIndexFile))
 		return nil, err
 	}
 	go func() {
@@ -107,7 +106,7 @@ func (p *Process) run(ctx context.Context) error {
 
 	abort := func() {
 		os.RemoveAll(p.logdir)
-		os.Remove(p.space.DataPath(PcapIndexFile))
+		os.Remove(p.space.DataPath(space.PcapIndexFile))
 		os.Remove(p.space.DataPath(space.AllBzngFile))
 		p.space.SetPacketPath("")
 		p.space.UnsetTimes()
@@ -161,7 +160,7 @@ func (p *Process) indexPcap() error {
 	if err != nil {
 		return err
 	}
-	idxpath := p.space.DataPath(PcapIndexFile)
+	idxpath := p.space.DataPath(space.PcapIndexFile)
 	tmppath := idxpath + ".tmp"
 	f, err := os.Create(tmppath)
 	if err != nil {

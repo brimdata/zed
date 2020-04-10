@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pcap/pcapio"
+	"github.com/brimsec/zq/pkg/ctxio"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/ingest"
@@ -78,59 +78,25 @@ func handlePacketSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	defer cancel()
 
-	req := &api.PacketSearch{}
+	var req api.PacketSearch
 	if err := req.FromQuery(r.URL.Query()); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-	}
-	if s.PacketPath() == "" || !s.HasFile(ingest.PcapIndexFile) {
-		http.Error(w, "space has no pcaps", http.StatusNotFound)
 		return
 	}
-	index, err := pcap.LoadIndex(s.DataPath(ingest.PcapIndexFile))
+	reader, err := s.PcapSearch(req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	f, err := os.Open(s.PacketPath())
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer f.Close()
-	slicer, err := pcap.NewSlicer(f, index, req.Span)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	pcapReader, err := pcapio.NewReader(slicer)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	var search *pcap.Search
-	switch req.Proto {
-	default:
-		msg := fmt.Sprintf("unsupported proto type: %s", req.Proto)
-		http.Error(w, msg, http.StatusBadRequest)
-		return
-	case "tcp":
-		flow := pcap.NewFlow(req.SrcHost, int(req.SrcPort), req.DstHost, int(req.DstPort))
-		search = pcap.NewTCPSearch(req.Span, flow)
-	case "udp":
-		flow := pcap.NewFlow(req.SrcHost, int(req.SrcPort), req.DstHost, int(req.DstPort))
-		search = pcap.NewUDPSearch(req.Span, flow)
-	case "icmp":
-		search = pcap.NewICMPSearch(req.Span, req.SrcHost, req.DstHost)
-	}
+	defer reader.Close()
 	w.Header().Set("Content-Type", "application/vnd.tcpdump.pcap")
-	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%s.pcap", search.ID()))
-	err = search.Run(ctx, w, pcapReader)
+	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%s.pcap", reader.ID()))
+	_, err = ctxio.Copy(ctx, w, reader)
 	if err != nil {
 		if err == pcap.ErrNoPacketsFound {
 			http.Error(w, err.Error(), http.StatusNotFound)
 		} else {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	}
 }
