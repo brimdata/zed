@@ -108,7 +108,7 @@ func (s Space) Info() (api.SpaceInfo, error) {
 }
 
 // PcapSearch returns a *pcap.SearchReader that streams all the packets meeting
-// the provided search request. If pcaps are not supported in this Space
+// the provided search request. If pcaps are not supported in this Space,
 // ErrPcapOpsNotSupported is returned.
 func (s Space) PcapSearch(req api.PacketSearch) (*pcap.SearchReader, io.Closer, error) {
 	if s.PacketPath() == "" || !s.HasFile(PcapIndexFile) {
