@@ -5,17 +5,17 @@ import (
 	"flag"
 	"os"
 
-	"github.com/brimsec/zq/cmd/sst/root"
-	"github.com/brimsec/zq/pkg/sst"
+	"github.com/brimsec/zq/cmd/zdx/root"
+	"github.com/brimsec/zq/zdx"
 	"github.com/mccanne/charm"
 )
 
 var Create = &charm.Spec{
 	Name:  "create",
 	Usage: "create [-f framesize] [ -o file ] <key-value-file>",
-	Short: "generate an sst file from a tsv file",
+	Short: "generate an zdx file from a tsv file",
 	Long: `
-The create command generates an sst containing string keys and binary values.
+The create command generates an zdx containing string keys and binary values.
 Each line in the input file constists of key as a hex string optionally
 followed by a colon and a hex string the key's value.  A nil value is represented
 with no characters (i.e., string key, colon, then newline)`,
@@ -23,7 +23,7 @@ with no characters (i.e., string key, colon, then newline)`,
 }
 
 func init() {
-	root.Sst.Add(Create)
+	root.Zdx.Add(Create)
 }
 
 type CreateCommand struct {
@@ -35,8 +35,8 @@ type CreateCommand struct {
 
 func newCreateCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &CreateCommand{Command: parent.(*root.Command)}
-	f.IntVar(&c.framesize, "f", 32*1024, "minimum frame size used in SST file")
-	f.StringVar(&c.outputFile, "o", "sst", "output file name")
+	f.IntVar(&c.framesize, "f", 32*1024, "minimum frame size used in zdx file")
+	f.StringVar(&c.outputFile, "o", "zdx", "output file name")
 	return c, nil
 }
 
@@ -54,10 +54,10 @@ func (c *CreateCommand) Run(args []string) error {
 	if err := table.Scan(in); err != nil {
 		return err
 	}
-	writer, err := sst.NewWriter(c.outputFile, c.framesize, 0)
+	writer, err := zdx.NewWriter(c.outputFile, c.framesize, 0)
 	if err != nil {
 		return err
 	}
 	defer writer.Close()
-	return sst.Copy(writer, table)
+	return zdx.Copy(writer, table)
 }

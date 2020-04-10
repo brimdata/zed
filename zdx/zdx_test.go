@@ -1,4 +1,4 @@
-package sst_test
+package zdx_test
 
 import (
 	"bytes"
@@ -9,19 +9,19 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/brimsec/zq/pkg/sst"
+	"github.com/brimsec/zq/zdx"
 	"github.com/stretchr/testify/assert"
 )
 
 type entryStream struct {
-	entries []sst.Pair
+	entries []zdx.Pair
 	cursor  int
 }
 
 func newEntryStream(size int) *entryStream {
-	entries := make([]sst.Pair, size)
+	entries := make([]zdx.Pair, size)
 	for i := 0; i < size; i++ {
-		entries[i] = sst.Pair{[]byte(fmt.Sprintf("port:port:%d", i)), []byte(fmt.Sprintf("%d", i))}
+		entries[i] = zdx.Pair{[]byte(fmt.Sprintf("port:port:%d", i)), []byte(fmt.Sprintf("%d", i))}
 	}
 	sort.Slice(entries, func(i, j int) bool {
 		return bytes.Compare(entries[i].Key, entries[j].Key) < 0
@@ -42,28 +42,28 @@ func (s entryStream) Len() int {
 	return len(s.entries)
 }
 
-func (s *entryStream) Read() (sst.Pair, error) {
+func (s *entryStream) Read() (zdx.Pair, error) {
 	if s.cursor >= len(s.entries) {
-		return sst.Pair{}, nil
+		return zdx.Pair{}, nil
 	}
 	e := s.entries[s.cursor]
 	s.cursor++
 	return e, nil
 }
 
-func buildTestTable(t *testing.T, entries []sst.Pair) string {
+func buildTestTable(t *testing.T, entries []zdx.Pair) string {
 	dir, err := ioutil.TempDir("", "table_test")
 	if err != nil {
 		t.Error(err)
 	}
-	path := filepath.Join(dir, "sst")
+	path := filepath.Join(dir, "zdx")
 	stream := &entryStream{entries: entries}
-	writer, err := sst.NewWriter(path, 32*1024, 0)
+	writer, err := zdx.NewWriter(path, 32*1024, 0)
 	if err != nil {
 		t.Error(err)
 	}
 	defer writer.Close()
-	if err := sst.Copy(writer, stream); err != nil {
+	if err := zdx.Copy(writer, stream); err != nil {
 		t.Error(err)
 	}
 	return path
@@ -71,7 +71,7 @@ func buildTestTable(t *testing.T, entries []sst.Pair) string {
 
 /* XXX this goes in system tests?
 func TestReal(t *testing.T) {
-	tab, err := table.OpenTable("/Users/nibs/.boomd/wrccdc/2018/03/24/0/0/0/2i.sst")
+	tab, err := table.OpenTable("/Users/nibs/.boomd/wrccdc/2018/03/24/0/0/0/2i.zdx")
 	if err != nil {
 		t.Error(err)
 	}
@@ -81,7 +81,7 @@ func TestReal(t *testing.T) {
 }
 
 func TestRead(t *testing.T) {
-	tab, err := table.OpenTable("/Users/nibs/.boomd/wrccdc/2018/03/24/0/0/0/2i.sst")
+	tab, err := table.OpenTable("/Users/nibs/.boomd/wrccdc/2018/03/24/0/0/0/2i.zdx")
 	if err != nil {
 		t.Error(err)
 	}
@@ -96,8 +96,8 @@ func TestRead(t *testing.T) {
 }
 */
 
-func sixPairs() []sst.Pair {
-	return []sst.Pair{
+func sixPairs() []zdx.Pair {
+	return []zdx.Pair{
 		{[]byte("key1"), []byte("value1")},
 		{[]byte("key2"), []byte("value2")},
 		{[]byte("key3"), []byte("value3")},
@@ -111,7 +111,7 @@ func TestSearch(t *testing.T) {
 	entries := sixPairs()
 	path := buildTestTable(t, entries)
 	defer os.RemoveAll(path) // nolint:errcheck
-	finder, err := sst.NewFinder(path)
+	finder, err := zdx.NewFinder(path)
 	if err != nil {
 		t.Error(err)
 	}
@@ -126,7 +126,7 @@ func TestSearch(t *testing.T) {
 
 func TestPeeker(t *testing.T) {
 	stream := &entryStream{entries: sixPairs()}
-	peeker := sst.NewPeeker(stream)
+	peeker := zdx.NewPeeker(stream)
 	pair1, err := peeker.Peek()
 	if err != nil {
 		t.Error(err)
@@ -161,25 +161,25 @@ func TestPeeker(t *testing.T) {
 	}
 }
 
-func TestSST(t *testing.T) {
-	dir, err := ioutil.TempDir("", "sst_test")
+func TestZdx(t *testing.T) {
+	dir, err := ioutil.TempDir("", "zdx_test")
 	if err != nil {
 		t.Error(err)
 	}
 	const N = 5
 	defer os.RemoveAll(dir) //nolint:errcheck
-	path := filepath.Join(dir, "sst")
+	path := filepath.Join(dir, "zdx")
 	stream := newEntryStream(N)
 
-	writer, err := sst.NewWriter(path, 32*1024, 0)
+	writer, err := zdx.NewWriter(path, 32*1024, 0)
 	if err != nil {
 		t.Error(err)
 	}
-	if err := sst.Copy(writer, stream); err != nil {
+	if err := zdx.Copy(writer, stream); err != nil {
 		t.Error(err)
 	}
 	writer.Close()
-	reader := sst.NewReader(path)
+	reader := zdx.NewReader(path)
 	if err := reader.Open(); err != nil {
 		t.Error(err)
 	}
@@ -195,7 +195,7 @@ func TestSST(t *testing.T) {
 		}
 		n++
 	}
-	assert.Exactly(t, N, n, "number of pairs read from sst file doesn't match number written")
+	assert.Exactly(t, N, n, "number of pairs read from zdx file doesn't match number written")
 }
 
 /* not yet
@@ -208,7 +208,7 @@ func BenchmarkWrite(b *testing.B) {
 			b.Error(err)
 		}
 		defer os.RemoveAll(dir)
-		path := filepath.Join(dir, "table.sst")
+		path := filepath.Join(dir, "table.zdx")
 		if err := table.BuildTable(path, stream); err != nil {
 			b.Error(err)
 		}
@@ -226,7 +226,7 @@ func BenchmarkRead(b *testing.B) {
 		b.Error(err)
 	}
 	defer os.RemoveAll(dir)
-	path := filepath.Join(dir, "table.sst")
+	path := filepath.Join(dir, "table.zdx")
 	stream := newEntryStream(5 << 20)
 	if err := table.BuildTable(path, stream); err != nil {
 		b.Error(err)

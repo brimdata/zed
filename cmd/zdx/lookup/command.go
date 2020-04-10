@@ -6,23 +6,23 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimsec/zq/cmd/sst/root"
-	"github.com/brimsec/zq/pkg/sst"
+	"github.com/brimsec/zq/cmd/zdx/root"
+	"github.com/brimsec/zq/zdx"
 	"github.com/mccanne/charm"
 )
 
 var Lookup = &charm.Spec{
 	Name:  "lookup",
 	Usage: "lookup -k <key> <file>",
-	Short: "lookup a key in an sst file and print value as hex bytes",
+	Short: "lookup a key in an zdx file and print value as hex bytes",
 	Long: `
-The lookup command uses the index files of an sst hierarchy to locate the
-specified key in the base sst file and displays the value as bytes.`,
+The lookup command uses the index files of an zdx hierarchy to locate the
+specified key in the base zdx file and displays the value as bytes.`,
 	New: newLookupCommand,
 }
 
 func init() {
-	root.Sst.Add(Lookup)
+	root.Zdx.Add(Lookup)
 }
 
 type LookupCommand struct {
@@ -38,7 +38,7 @@ func newLookupCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, err
 
 func (c *LookupCommand) Run(args []string) error {
 	if len(args) != 1 {
-		return errors.New("sst dump: must be run with a single file argument")
+		return errors.New("zdx lookup: must be run with a single file argument")
 	}
 	path := args[0]
 	if c.key == "" {
@@ -48,7 +48,7 @@ func (c *LookupCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	finder, err := sst.NewFinder(path)
+	finder, err := zdx.NewFinder(path)
 	if err != nil {
 		return err
 	}

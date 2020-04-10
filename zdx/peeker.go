@@ -1,4 +1,4 @@
-package sst
+package zdx
 
 // Peeker wraps a Stream while adding a Peek method, which allows inspection
 // of the next item to be read without actually reading it.

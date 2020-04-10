@@ -3,8 +3,8 @@ package archive
 import (
 	"errors"
 
-	"github.com/brimsec/zq/pkg/sst"
 	"github.com/brimsec/zq/zcode"
+	"github.com/brimsec/zq/zdx"
 	"github.com/brimsec/zq/zng"
 )
 
@@ -12,7 +12,7 @@ var ErrSyntax = errors.New("syntax/format error encountered parsing zng data")
 
 type TypeIndexer struct {
 	Type  zng.Type
-	Table *sst.MemTable
+	Table *zdx.MemTable
 }
 
 // XXX we should create a field visitor pattern for a zng.Record/

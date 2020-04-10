@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/brimsec/zq/pkg/sst"
+	"github.com/brimsec/zq/zdx"
 )
 
 func Find(dir string, pattern []byte) ([]string, error) {
@@ -42,20 +42,20 @@ func Find(dir string, pattern []byte) ([]string, error) {
 //XXX for now we hard code search for IP address.
 func SearchFile(path string, pattern []byte) (bool, error) {
 	subdir := path + zarExt
-	sstName := "sst:type:ip" //XXX
-	sstPath := filepath.Join(subdir, sstName)
-	finder, err := sst.NewFinder(sstPath)
+	zdxName := "zdx:type:ip" //XXX
+	zdxPath := filepath.Join(subdir, zdxName)
+	finder, err := zdx.NewFinder(zdxPath)
 	if err != nil {
 		if err == os.ErrNotExist {
 			err = nil
 		} else {
-			err = fmt.Errorf("%s: %s", sstPath, err)
+			err = fmt.Errorf("%s: %s", zdxPath, err)
 		}
 		return false, err
 	}
 	v, err := finder.Lookup(pattern)
 	if err != nil {
-		err = fmt.Errorf("%s: %s", sstPath, err.Error())
+		err = fmt.Errorf("%s: %s", zdxPath, err.Error())
 	}
 	return v != nil, err
 }

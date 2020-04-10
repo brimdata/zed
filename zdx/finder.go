@@ -1,16 +1,16 @@
-package sst
+package zdx
 
 import (
 	"bytes"
 	"os"
 )
 
-// Finder looks up values in an SST file using the hierarchical index files.
+// Finder looks up values in a zdx using its hierarchical index files.
 type Finder struct {
 	files []*FrameReader
 }
 
-// NewFinder returns an object that is used to lookup keys in an SST.
+// NewFinder returns an object that is used to lookup keys in a zdx.
 func NewFinder(path string) (*Finder, error) {
 	level := 0
 	f := &Finder{}
@@ -101,8 +101,8 @@ func (f *Finder) Lookup(key []byte) ([]byte, error) {
 			return nil, err
 		}
 		if off == -1 {
-			// This key can't be in the sst since it is smaller than
-			// the smallest key in the sst's index files.
+			// This key can't be in the zdx since it is smaller than
+			// the smallest key in the zdx's index files.
 			return nil, nil
 		}
 		level -= 1

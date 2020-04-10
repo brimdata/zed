@@ -1,3 +1,5 @@
+// XXX This package cmment will get re-written in a subsequent PR.
+//
 // Package sst provides an API for creating, merging, indexing, and querying sorted string
 // tables (SST), a la LSM trees, where an SST holds a sequence of key,value pairs
 // and the pairs are sorted by key.  The keys and the values are stored as
@@ -28,7 +30,7 @@
 // the value is the offset or the frame in the file below.  Each frame in an
 // index file is terminated with an end-of-frame key whose value is the
 // beginning key of the next frame.
-package sst
+package zdx
 
 import (
 	"bytes"
@@ -39,10 +41,10 @@ import (
 )
 
 var (
-	ErrCorruptFile = errors.New("corrupt SST file")
+	ErrCorruptFile = errors.New("corrupt zdx file")
 	ErrValueSize   = errors.New("bad value size")
-	ErrBadMagic    = errors.New("bad magic number in header of SST file")
-	ErrFileVersion = errors.New("unsupported version number in SST file")
+	ErrBadMagic    = errors.New("bad magic number in header of zdx file")
+	ErrFileVersion = errors.New("unsupported version number in zdx file")
 	ErrPairTooBig  = errors.New("length of a single key/value larger than frame")
 )
 
@@ -72,6 +74,7 @@ type Pair struct {
 	Value []byte
 }
 
+// XXX comments will be updated in a subsequent PR
 // Stream is an interface to enumerate all the key/values from an SST.
 // A stream may be generated from an in-memory table, from a table on disk,
 // from a combiner that combines two or more such tables from memory and/or disk,
@@ -208,6 +211,7 @@ func FirstKey(frame []byte) []byte {
 	return decodeCounted(frame)
 }
 
+// XXX comments will be updated in a subsequent PR
 // DecodePair decodes a key and a value from the base sst file.
 // To do so, it decodes a counted key and a counted value and returns
 // the key and value byte slices as a Pair.  If the buffer is

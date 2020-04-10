@@ -6,17 +6,17 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimsec/zq/cmd/sst/root"
-	"github.com/brimsec/zq/pkg/sst"
+	"github.com/brimsec/zq/cmd/zdx/root"
+	"github.com/brimsec/zq/zdx"
 	"github.com/mccanne/charm"
 )
 
 var Dump = &charm.Spec{
 	Name:  "dump",
 	Usage: "dump [-l level] [-k key] <file>",
-	Short: "dump the contents of an sst index or file",
+	Short: "dump the contents of a zdx index or file",
 	Long: `
-The dump command prints out the keys and offsets of a frame in an sst file,
+The dump command prints out the keys and offsets of a frame in an zdx file,
 or the keys within a frame indicated by the key parameter as hex strings.
 If level is 0, then the key/value pairs are displayed.  If level is 1 or higher,
 then the index is displayed as a sequence of base keys and file offsets where
@@ -26,7 +26,7 @@ where that key is defined.`,
 }
 
 func init() {
-	root.Sst.Add(Dump)
+	root.Zdx.Add(Dump)
 }
 
 type DumpCommand struct {
@@ -36,12 +36,12 @@ type DumpCommand struct {
 
 func newDumpCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &DumpCommand{Command: parent.(*root.Command)}
-	f.IntVar(&c.level, "l", 0, "sst level to dump")
+	f.IntVar(&c.level, "l", 0, "zdx level to dump")
 	return c, nil
 }
 
 func (c *DumpCommand) dumpBase(path string) error {
-	reader := sst.NewReader(path)
+	reader := zdx.NewReader(path)
 	if err := reader.Open(); err != nil {
 		return err
 	}
@@ -60,7 +60,7 @@ func (c *DumpCommand) dumpBase(path string) error {
 }
 
 func (c *DumpCommand) dumpIndex(path string, level int) error {
-	reader := sst.NewIndexReader(path, level)
+	reader := zdx.NewIndexReader(path, level)
 	if err := reader.Open(); err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func (c *DumpCommand) dumpIndex(path string, level int) error {
 
 func (c *DumpCommand) Run(args []string) error {
 	if len(args) != 1 {
-		return errors.New("sst dump: must be run with a single file argument")
+		return errors.New("zdx dump: must be run with a single file argument")
 	}
 	path := args[0]
 	if c.level == 0 {
