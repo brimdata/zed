@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"os"
 	"regexp"
-	"time"
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
@@ -220,7 +219,7 @@ func (c *Command) Run(args []string) error {
 	if !c.quiet {
 		d.SetWarningsWriter(os.Stderr)
 	}
-	return driver.Run(mux, d, 100*time.Second)
+	return driver.Run(mux, d, 0)
 }
 
 func (c *Command) configureJSONTypeReader(ndjr *ndjsonio.Reader, filename string) error {
