@@ -6,17 +6,17 @@ import (
 	"os"
 	"time"
 
-	_ "github.com/brimsec/zq/cmd/sst/create"
-	_ "github.com/brimsec/zq/cmd/sst/dump"
-	_ "github.com/brimsec/zq/cmd/sst/lookup"
-	_ "github.com/brimsec/zq/cmd/sst/merge"
-	"github.com/brimsec/zq/cmd/sst/root"
+	_ "github.com/brimsec/zq/cmd/zdx/create"
+	_ "github.com/brimsec/zq/cmd/zdx/dump"
+	_ "github.com/brimsec/zq/cmd/zdx/lookup"
+	_ "github.com/brimsec/zq/cmd/zdx/merge"
+	"github.com/brimsec/zq/cmd/zdx/root"
 )
 
 func main() {
 	//XXX Seed
 	rand.Seed(time.Now().UTC().UnixNano())
-	_, err := root.Sst.ExecRoot(os.Args[1:])
+	_, err := root.Zdx.ExecRoot(os.Args[1:])
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)

@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/brimsec/zq/pkg/sst"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zdx"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -17,7 +17,7 @@ const zarExt = ".zar"
 
 // TBD
 type Indexer interface {
-	Create(*sst.Writer, zbuf.Reader)
+	Create(*zdx.Writer, zbuf.Reader)
 	//Search([]byte) bool
 }
 
@@ -56,12 +56,12 @@ func CreateIndexes(dir string) error {
 
 func IndexLogFile(path string) error {
 	subdir := path + zarExt
-	sstName := "sst:type:ip"
-	sstPath := filepath.Join(subdir, sstName)
+	zdxName := "zdx:type:ip"
+	zdxPath := filepath.Join(subdir, zdxName)
 	// XXX remove without warning, should have force flag
-	sst.Remove(sstPath)
+	zdx.Remove(zdxPath)
 
-	fmt.Printf("%s: indexing as %s\n", path, sstPath)
+	fmt.Printf("%s: indexing as %s\n", path, zdxPath)
 
 	file, err := os.Open(path)
 	if err != nil {
@@ -88,17 +88,17 @@ func IndexLogFile(path string) error {
 	}
 	framesize := 32 * 1024
 	//XXX for now specify value size of 0, which means variable, but we always
-	// write nil values.  we should change the implementation to allow key-only SSTs.
-	writer, err := sst.NewWriter(sstPath, framesize, 0)
+	// write nil values.  we should change the implementation to allow key-only zdx files.
+	writer, err := zdx.NewWriter(zdxPath, framesize, 0)
 	if err != nil {
 		return err
 	}
 	defer writer.Close()
-	return sst.Copy(writer, table)
+	return zdx.Copy(writer, table)
 }
 
-func indexTypeIP(reader zbuf.Reader) (*sst.MemTable, error) {
-	table := sst.NewMemTable()
+func indexTypeIP(reader zbuf.Reader) (*zdx.MemTable, error) {
+	table := zdx.NewMemTable()
 	indexer := &TypeIndexer{Type: zng.TypeIP, Table: table}
 	for {
 		rec, err := reader.Read()

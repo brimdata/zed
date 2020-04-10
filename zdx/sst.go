@@ -1,3 +1,5 @@
+// XXX This package cmment will get re-written in a subsequent PR.
+//
 // Package sst provides an API for creating, merging, indexing, and querying sorted string
 // tables (SST), a la LSM trees, where an SST holds a sequence of key,value pairs
 // and the pairs are sorted by key.  The keys and the values are stored as
@@ -28,7 +30,7 @@
 // the value is the offset or the frame in the file below.  Each frame in an
 // index file is terminated with an end-of-frame key whose value is the
 // beginning key of the next frame.
-package sst
+package zdx
 
 import (
 	"bytes"
@@ -39,10 +41,10 @@ import (
 )
 
 var (
-	ErrCorruptFile = errors.New("corrupt SST file")
+	ErrCorruptFile = errors.New("corrupt zdx file")
 	ErrValueSize   = errors.New("bad value size")
-	ErrBadMagic    = errors.New("bad magic number in header of SST file")
-	ErrFileVersion = errors.New("unsupported version number in SST file")
+	ErrBadMagic    = errors.New("bad magic number in header of zdx file")
+	ErrFileVersion = errors.New("unsupported version number in zdx file")
 	ErrPairTooBig  = errors.New("length of a single key/value larger than frame")
 )
 

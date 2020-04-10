@@ -1,23 +1,23 @@
-package sst_test
+package zdx_test
 
 import (
 	"testing"
 
-	"github.com/brimsec/zq/pkg/sst"
+	"github.com/brimsec/zq/zdx"
 	"github.com/stretchr/testify/assert"
 )
 
-func pair(key string) sst.Pair {
-	return sst.Pair{[]byte(key), []byte("value")}
+func pair(key string) zdx.Pair {
+	return zdx.Pair{[]byte(key), []byte("value")}
 }
 
-type streamtest []sst.Pair
+type streamtest []zdx.Pair
 
 func (s streamtest) Open() error  { return nil }
 func (s streamtest) Close() error { return nil }
 
-func (s *streamtest) Read() (sst.Pair, error) {
-	var pair sst.Pair
+func (s *streamtest) Read() (zdx.Pair, error) {
+	var pair zdx.Pair
 	slice := *s
 	if len(slice) > 0 {
 		pair = slice[0]
@@ -29,7 +29,7 @@ func (s *streamtest) Read() (sst.Pair, error) {
 func TestCombinerOrder(t *testing.T) {
 	s1 := &streamtest{pair("1"), pair("3"), pair("5")}
 	s2 := &streamtest{pair("2"), pair("4"), pair("6")}
-	c := sst.NewCombiner([]sst.Stream{s1, s2}, func(a, b []byte) []byte {
+	c := zdx.NewCombiner([]zdx.Stream{s1, s2}, func(a, b []byte) []byte {
 		return []byte("combined")
 	})
 	assert.NoError(t, c.Open())

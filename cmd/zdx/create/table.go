@@ -8,11 +8,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/brimsec/zq/pkg/sst"
+	"github.com/brimsec/zq/zdx"
 )
 
 // Table reads a TSV file with a key and value expressed as hex strings and
-// implements the sst.Reader interface to enumerate the key/value pairs found.
+// implements the zdx.Reader interface to enumerate the key/value pairs found.
 // If just a key without any integers is listed on a line, then an empty value
 // is assumed.
 type Table struct {
@@ -59,15 +59,15 @@ func (t *Table) parse(line string) error {
 	return nil
 }
 
-func (t *Table) Read() (sst.Pair, error) {
+func (t *Table) Read() (zdx.Pair, error) {
 	off := t.offset
 	if off >= len(t.keys) {
-		return sst.Pair{}, nil
+		return zdx.Pair{}, nil
 	}
 	key := t.keys[off]
 	t.offset = off + 1
 	// note value can be nil
-	return sst.Pair{[]byte(key), t.table[key]}, nil
+	return zdx.Pair{[]byte(key), t.table[key]}, nil
 }
 
 func (t *Table) Open() error {

@@ -6,20 +6,20 @@ import (
 	"github.com/mccanne/charm"
 )
 
-var Sst = &charm.Spec{
-	Name:  "sst",
-	Usage: "sst <command> [options] [arguments...]",
-	Short: "use sst to test/debug boom sst files",
+var Zdx = &charm.Spec{
+	Name:  "zdx",
+	Usage: "zdx <command> [options] [arguments...]",
+	Short: "use zdx to test/debug boom sst files",
 	Long: `
-sst is command-line utility useful for debugging the sst packaging and
-interrogating sst files that are corrected by a client of sst.`,
+zdx is command-line utility useful for debugging the zdx packaging and
+interrogating zdx files that are corrected by a client of zdx.`,
 	New: func(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 		return &Command{}, nil
 	},
 }
 
 func init() {
-	Sst.Add(charm.Help)
+	Zdx.Add(charm.Help)
 }
 
 type Command struct{}

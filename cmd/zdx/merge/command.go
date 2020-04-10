@@ -4,17 +4,17 @@ import (
 	"errors"
 	"flag"
 
-	"github.com/brimsec/zq/cmd/sst/root"
-	"github.com/brimsec/zq/pkg/sst"
+	"github.com/brimsec/zq/cmd/zdx/root"
+	"github.com/brimsec/zq/zdx"
 	"github.com/mccanne/charm"
 )
 
 var Merge = &charm.Spec{
 	Name:  "merge",
 	Usage: "merge [ -f framesize ] -o file file1, file2, ...  ",
-	Short: "merge two or sst files into the output file",
+	Short: "merge two or zdx files into the output file",
 	Long: `
-The merge command takes two or more sst files as input and presumes the
+The merge command takes two or more zdx files as input and presumes the
 values are roaring bitmaps.  It merges the input files into
 a new file, as specified by the -o argument, while preserving
 the lexicographic order of the keys and concatenating the values.`,
@@ -22,7 +22,7 @@ the lexicographic order of the keys and concatenating the values.`,
 }
 
 func init() {
-	root.Sst.Add(Merge)
+	root.Zdx.Add(Merge)
 }
 
 type MergeCommand struct {
@@ -33,7 +33,7 @@ type MergeCommand struct {
 
 func newMergeCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &MergeCommand{Command: parent.(*root.Command)}
-	f.IntVar(&c.framesize, "f", 32*1024, "minimum frame size used in the output sst file")
+	f.IntVar(&c.framesize, "f", 32*1024, "minimum frame size used in the output zdx file")
 	f.StringVar(&c.oflag, "o", "", "output file name")
 	return c, nil
 }
@@ -53,15 +53,15 @@ func (c *MergeCommand) Run(args []string) error {
 	if c.oflag == "" {
 		return errors.New("must specify output file with -o")
 	}
-	var files []sst.Stream
+	var files []zdx.Stream
 	for _, fname := range args {
-		files = append(files, sst.NewReader(fname))
+		files = append(files, zdx.NewReader(fname))
 	}
-	combiner := sst.NewCombiner(files, combine)
+	combiner := zdx.NewCombiner(files, combine)
 	defer combiner.Close()
-	writer, err := sst.NewWriter(c.oflag, c.framesize, 0)
+	writer, err := zdx.NewWriter(c.oflag, c.framesize, 0)
 	if err != nil {
 		return err
 	}
-	return sst.Copy(writer, combiner)
+	return zdx.Copy(writer, combiner)
 }
