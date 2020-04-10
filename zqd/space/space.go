@@ -7,11 +7,15 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pcap/pcapio"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio/bzngio"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
 )
 
@@ -29,8 +33,9 @@ var (
 )
 
 type Space struct {
-	path string
-	conf config
+	path  string
+	conf  config
+	index bzngio.Index
 }
 
 func Open(root, name string) (*Space, error) {
@@ -42,7 +47,7 @@ func Open(root, name string) (*Space, error) {
 		}
 		return nil, err
 	}
-	return &Space{path, c}, nil
+	return &Space{path, c, bzngio.NewIndex()}, nil
 }
 
 func Create(root, name, dataPath string) (*Space, error) {
@@ -73,7 +78,7 @@ func Create(root, name, dataPath string) (*Space, error) {
 		os.RemoveAll(path)
 		return nil, err
 	}
-	return &Space{path, c}, nil
+	return &Space{path, c, bzngio.NewIndex()}, nil
 }
 
 func (s Space) Name() string {
@@ -181,6 +186,21 @@ func sizeof(path string) (int64, error) {
 
 func (s Space) DataPath(elem ...string) string {
 	return filepath.Join(append([]string{s.conf.DataPath}, elem...)...)
+}
+
+func (s Space) OpenZng(span nano.Span) (zbuf.ReadCloser, error) {
+	zctx := resolver.NewContext()
+
+	f, err := os.Open(s.DataPath(AllBzngFile))
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return nil, err
+		}
+		r := bzngio.NewReader(strings.NewReader(""), zctx)
+		return zbuf.NopReadCloser(r), nil
+	} else {
+		return s.index.NewReader(f, zctx, span)
+	}
 }
 
 func (s Space) OpenFile(file string) (*os.File, error) {

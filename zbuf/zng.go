@@ -11,6 +11,11 @@ type Reader interface {
 	Read() (*zng.Record, error)
 }
 
+type ReadCloser interface {
+	Reader
+	io.Closer
+}
+
 type Writer interface {
 	Write(*zng.Record) error
 }
@@ -35,6 +40,16 @@ func (nopFlusher) Flush() error { return nil }
 // the provided Writer w.
 func NopFlusher(w Writer) WriteFlusher {
 	return nopFlusher{w}
+}
+
+type nopReadCloser struct {
+	Reader
+}
+
+func (nopReadCloser) Close() error { return nil }
+
+func NopReadCloser(r Reader) ReadCloser {
+	return nopReadCloser{r}
 }
 
 func CopyWithContext(ctx context.Context, dst WriteFlusher, src Reader) error {

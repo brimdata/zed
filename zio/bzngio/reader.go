@@ -46,17 +46,23 @@ func (r *Reader) Position() int64 {
 	return r.position
 }
 
-func (r *Reader) Read() (*zng.Record, error) {
+// Like Read() but also returns the offset of any frame markers
+// encountered while reading.
+func (r *Reader) ReadWithResets() (*zng.Record, uint64, error) {
+	var reset uint64
 	for {
 		rec, b, err := r.ReadPayload()
 		if b != nil {
 			if err != nil {
-				return nil, err
+				return nil, 0, err
+			}
+			if b[0] == zng.CtrlEOS {
+				reset = r.peeker.Position()
 			}
 			continue
 		}
 		if rec == nil {
-			return nil, err
+			return nil, 0, err
 		}
 		id := rec.Type.ID()
 		sharedType := r.mapper.Map(id)
@@ -64,8 +70,14 @@ func (r *Reader) Read() (*zng.Record, error) {
 			sharedType = r.mapper.Enter(id, rec.Type)
 		}
 		rec.Type = sharedType
-		return rec, err
+		return rec, reset, err
 	}
+
+}
+
+func (r *Reader) Read() (*zng.Record, error) {
+	rec, _, err := r.ReadWithResets()
+	return rec, err
 }
 
 // ReadPayload returns either data values as zbuf.Record or control payloads
@@ -93,6 +105,7 @@ again:
 			err = r.readTypeAlias()
 		case zng.CtrlEOS:
 			r.zctx.Reset()
+			return nil, b, nil
 		default:
 			// XXX we should return the control code
 			len, err := r.readUvarint()
