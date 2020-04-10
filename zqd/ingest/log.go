@@ -133,8 +133,7 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, paths [
 		MaxTime: info.MaxTime,
 		Size:    info.Size,
 	}
-	pipe.Send(status)
-	return nil
+	return pipe.Send(status)
 }
 
 func runLogIngest(ctx context.Context, s *space.Space, r zbuf.Reader, prog string, pipe *api.JSONPipe, w ...zbuf.Writer) error {

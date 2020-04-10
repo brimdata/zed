@@ -14,8 +14,8 @@ import (
 
 type Driver interface {
 	Warn(msg string) error
-	Write(int, zbuf.Batch) error
-	ChannelEnd(int, api.ScannerStats) error
+	Write(channelID int, batch zbuf.Batch) error
+	ChannelEnd(channelID int, batch api.ScannerStats) error
 	Stats(api.ScannerStats) error
 }
 
@@ -38,7 +38,6 @@ func Run(out *proc.MuxOutput, d Driver, statsInterval time.Duration) error {
 			}
 			if chunk.Err == context.Canceled {
 				out.Drain()
-				return errors.New("canceled")
 			}
 			return chunk.Err
 		}

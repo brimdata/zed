@@ -34,8 +34,5 @@ func (d *driver) Stats(stats api.ScannerStats) error {
 }
 
 func (d *driver) ChannelEnd(cid int, stats api.ScannerStats) error {
-	if err := d.Stats(stats); err != nil {
-		return err
-	}
-	return nil
+	return d.Stats(stats)
 }

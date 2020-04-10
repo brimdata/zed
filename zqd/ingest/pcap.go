@@ -280,6 +280,7 @@ func (p *Process) ingestLogs(ctx context.Context, w zbuf.Writer, r zbuf.Reader, 
 	}
 	return zdriver.Run(mux, d, search.DefaultStatsInterval)
 }
+
 func (p *Process) Write(b []byte) (int, error) {
 	n := len(b)
 	atomic.AddInt64(&p.pcapReadSize, int64(n))
