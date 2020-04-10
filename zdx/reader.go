@@ -3,16 +3,16 @@ package zdx
 import (
 	"io"
 	"os"
+
+	"github.com/mccanne/zq/pkg/zng"
 )
 
 type reader struct {
 	filename string
 	file     *os.File
-	frame    []byte
-	valsize  int
 }
 
-// Reader reads an SST file and implements the Stream interface.
+// Reader reads a zdx file and implements the zbuf.Reader interface.
 type Reader struct {
 	reader
 	in []byte
@@ -22,7 +22,7 @@ func (r *reader) init(path string, level int) {
 	r.filename = filename(path, level)
 }
 
-// NewReader returns a Reader ready to read an SST file.
+// NewReader returns a Reader ready to read zdx file.
 // Close() should be called when done.
 func NewReader(path string) *Reader {
 	r := &Reader{}
@@ -32,10 +32,8 @@ func NewReader(path string) *Reader {
 
 func (r *reader) Open() error {
 	var err error
-	if r.file, err = os.Open(r.filename); err != nil {
-		return err
-	}
-	return r.readFileHeader()
+	r.file, err = os.Open(r.filename)
+	return err
 }
 
 func (r *reader) Close() error {
@@ -44,35 +42,13 @@ func (r *reader) Close() error {
 	return err
 }
 
-func (r *Reader) readInt() (int, error) {
-	if len(r.in) < 4 {
-		return 0, ErrCorruptFile
-	}
-	v := decodeInt(r.in)
-	r.in = r.in[4:]
-	return v, nil
-}
-
-func (r *Reader) decode() ([]byte, error) {
-	n, err := r.readInt()
-	if err != nil {
-		return nil, err
-	}
-	if n > len(r.in) {
-		return nil, ErrCorruptFile
-	}
-	value := r.in[:n]
-	r.in = r.in[n:]
-	return value, nil
-}
-
-func (r *Reader) Read() (Pair, error) {
+func (r *Reader) Read() (zng.Record, error) {
 	if len(r.in) == 0 {
 		if err := r.readFrame(); err != nil {
 			if err == io.EOF {
-				return Pair{}, nil
+				return zng.Record{}, nil
 			}
-			return Pair{}, err
+			return zng.Record{}, err
 		}
 	}
 	key, err := r.decode()
@@ -95,31 +71,6 @@ func (r *reader) grow(target int) {
 		size *= 2
 	}
 	r.frame = make([]byte, 0, target)
-}
-
-func (r *Reader) readFrame() error {
-	var hdr [5]byte
-	hdr[0] = 0 // compression type XXX
-	n, err := r.file.Read(hdr[:])
-	if err != nil {
-		return err
-	}
-	if n < 5 {
-		return ErrCorruptFile
-	}
-	flen := decodeInt(hdr[1:])
-	if cap(r.frame) < flen {
-		r.grow(flen)
-	}
-	r.in = r.frame[:flen]
-	n, err = r.file.Read(r.in)
-	if err != nil {
-		return err
-	}
-	if n != flen {
-		return ErrCorruptFile
-	}
-	return nil
 }
 
 type FrameReader struct {
