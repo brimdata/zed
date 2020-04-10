@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -110,13 +109,13 @@ func (s Space) Info() (api.SpaceInfo, error) {
 // PcapSearch returns a *pcap.SearchReader that streams all the packets meeting
 // the provided search request. If pcaps are not supported in this Space,
 // ErrPcapOpsNotSupported is returned.
-func (s Space) PcapSearch(req api.PacketSearch) (io.ReadCloser, string, error) {
+func (s Space) PcapSearch(req api.PacketSearch) (*SearchReadCloser, error) {
 	if s.PacketPath() == "" || !s.HasFile(PcapIndexFile) {
-		return nil, "", ErrPcapOpsNotSupported
+		return nil, ErrPcapOpsNotSupported
 	}
 	index, err := pcap.LoadIndex(s.DataPath(PcapIndexFile))
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 	var search *pcap.Search
 	switch req.Proto {
@@ -129,27 +128,34 @@ func (s Space) PcapSearch(req api.PacketSearch) (io.ReadCloser, string, error) {
 	case "icmp":
 		search = pcap.NewICMPSearch(req.Span, req.SrcHost, req.DstHost)
 	default:
-		return nil, "", fmt.Errorf("unsupported proto type: %s", req.Proto)
+		return nil, fmt.Errorf("unsupported proto type: %s", req.Proto)
 	}
 	f, err := os.Open(s.PacketPath())
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 	slicer, err := pcap.NewSlicer(f, index, req.Span)
 	if err != nil {
 		f.Close()
-		return nil, "", err
+		return nil, err
 	}
 	pcapReader, err := pcapio.NewReader(slicer)
 	if err != nil {
 		f.Close()
-		return nil, "", err
+		return nil, err
 	}
 	r := search.Reader(pcapReader)
-	return struct {
-		io.Reader
-		io.Closer
-	}{r, f}, search.ID(), nil
+	return &SearchReadCloser{r, f}, nil
+
+}
+
+type SearchReadCloser struct {
+	*pcap.SearchReader
+	f *os.File
+}
+
+func (c *SearchReadCloser) Close() error {
+	return c.f.Close()
 }
 
 // LogSize returns the size in bytes of the logs in space.

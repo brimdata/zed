@@ -83,14 +83,14 @@ func handlePacketSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	reader, id, err := s.PcapSearch(req)
+	reader, err := s.PcapSearch(req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer reader.Close()
 	w.Header().Set("Content-Type", "application/vnd.tcpdump.pcap")
-	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%s.pcap", id))
+	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%s.pcap", reader.ID()))
 	_, err = ctxio.Copy(ctx, w, reader)
 	if err != nil {
 		if err == pcap.ErrNoPacketsFound {

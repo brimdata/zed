@@ -151,7 +151,7 @@ type SearchReader struct {
 	buf    []byte
 }
 
-func (s *Search) Reader(r pcapio.Reader) io.Reader {
+func (s *Search) Reader(r pcapio.Reader) *SearchReader {
 	opts := gopacket.DecodeOptions{Lazy: true, NoCopy: true}
 	return &SearchReader{Search: s, reader: r, opts: opts}
 }
@@ -160,7 +160,7 @@ func (s *SearchReader) Read(p []byte) (n int, err error) {
 	if len(s.buf) == 0 {
 		s.buf, err = s.next()
 		if err != nil {
-			return n, err
+			return 0, err
 		}
 		if len(s.buf) == 0 {
 			return 0, io.EOF
