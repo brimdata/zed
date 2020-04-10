@@ -13,16 +13,16 @@ type driver struct {
 	writers   []zbuf.Writer
 }
 
-func (d *driver) Write(cid int, arr zbuf.Batch) error {
+func (d *driver) Write(cid int, batch zbuf.Batch) error {
 	if len(d.writers) == 1 {
 		cid = 0
 	}
-	for _, r := range arr.Records() {
+	for _, r := range batch.Records() {
 		if err := d.writers[cid].Write(r); err != nil {
 			return err
 		}
 	}
-	arr.Unref()
+	batch.Unref()
 	return nil
 }
 

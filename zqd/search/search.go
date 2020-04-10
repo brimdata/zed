@@ -135,8 +135,8 @@ func (d *driver) Warn(warning string) error {
 	return d.output.SendControl(v)
 }
 
-func (d *driver) Write(cid int, arr zbuf.Batch) error {
-	return d.output.SendBatch(cid, arr)
+func (d *driver) Write(cid int, batch zbuf.Batch) error {
+	return d.output.SendBatch(cid, batch)
 }
 
 func (d *driver) Stats(stats api.ScannerStats) error {
