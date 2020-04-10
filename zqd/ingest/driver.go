@@ -6,7 +6,7 @@ import (
 	"github.com/brimsec/zq/zqd/api"
 )
 
-// driver implements search.Driver
+// driver implements driver.Driver
 type driver struct {
 	pipe      *api.JSONPipe
 	startTime nano.Ts

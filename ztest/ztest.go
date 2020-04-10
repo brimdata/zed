@@ -70,6 +70,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 	"unicode/utf8"
 
 	"github.com/brimsec/zq/driver"
@@ -328,9 +329,9 @@ func run(zq, ZQL, outputFormat, outputFlags string, inputs ...string) (out strin
 	if zw == nil {
 		return "", "", fmt.Errorf("%s: unknown output format", outputFormat)
 	}
-	d := driver.New(zw)
+	d := driver.NewCLI(zw)
 	d.SetWarningsWriter(&errbuf)
-	err = d.Run(muxOutput)
+	err = driver.Run(muxOutput, d, time.Second)
 	if err2 := zw.Flush(); err == nil {
 		err = err2
 	}

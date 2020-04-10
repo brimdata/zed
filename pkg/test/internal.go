@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
@@ -68,8 +69,8 @@ func (i *Internal) Run() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	runner := driver.New(output)
-	if err := runner.Run(mux); err != nil {
+	d := driver.NewCLI(output)
+	if err := driver.Run(mux, d, time.Second*1); err != nil {
 		return "", err
 	}
 	return string(output.Bytes()), nil

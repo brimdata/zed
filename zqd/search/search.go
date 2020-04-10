@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/driver"
 	zdriver "github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/proc"
@@ -21,7 +22,6 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/space"
-	"github.com/brimsec/zq/zql"
 	"go.uber.org/zap"
 )
 
@@ -72,24 +72,11 @@ func Search(ctx context.Context, s *space.Space, req api.SearchRequest, out Outp
 		startTime: nano.Now(),
 	}
 	d.start(0)
-	if err := Run(mux, d, DefaultStatsInterval); err != nil {
+	if err := driver.Run(mux, d, DefaultStatsInterval); err != nil {
 		d.abort(0, err)
 		return err
 	}
 	return d.end(0)
-}
-
-func Copy(ctx context.Context, w []zbuf.Writer, r zbuf.Reader, prog string) error {
-	p, err := zql.ParseProc(prog)
-	if err != nil {
-		return err
-	}
-	mux, err := zdriver.Compile(ctx, p, r, false, nano.MaxSpan, zap.NewNop())
-	if err != nil {
-		return err
-	}
-	d := zdriver.New(w...)
-	return d.Run(mux)
 }
 
 type Output interface {
@@ -122,7 +109,7 @@ func UnpackQuery(req api.SearchRequest) (*Query, error) {
 	}, nil
 }
 
-// searchdriver implements Driver
+// searchdriver implements driver.Driver
 type searchdriver struct {
 	output    Output
 	startTime nano.Ts

@@ -1,8 +1,10 @@
-package search
+package driver
 
 import (
 	"context"
 	"errors"
+	"fmt"
+	"io"
 	"time"
 
 	"github.com/brimsec/zq/proc"
@@ -59,3 +61,44 @@ func Run(out *proc.MuxOutput, d Driver, statsInterval time.Duration) error {
 	}
 	return nil
 }
+
+// CLI implements Driver
+type CLI struct {
+	writers  []zbuf.Writer
+	warnings io.Writer
+}
+
+func NewCLI(w ...zbuf.Writer) *CLI {
+	return &CLI{
+		writers: w,
+	}
+}
+
+func (d *CLI) SetWarningsWriter(w io.Writer) {
+	d.warnings = w
+}
+
+func (d *CLI) Write(cid int, arr zbuf.Batch) error {
+	if len(d.writers) == 1 {
+		cid = 0
+	}
+	for _, r := range arr.Records() {
+		if err := d.writers[cid].Write(r); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (d *CLI) Warn(msg string) error {
+	if d.warnings != nil {
+		_, err := fmt.Fprintln(d.warnings, msg)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (d *CLI) ChannelEnd(int, api.ScannerStats) error { return nil }
+func (d *CLI) Stats(api.ScannerStats) error           { return nil }

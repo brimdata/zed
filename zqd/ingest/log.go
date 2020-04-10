@@ -151,5 +151,5 @@ func runLogIngest(ctx context.Context, s *space.Space, r zbuf.Reader, prog strin
 		startTime: nano.Now(),
 		writers:   w,
 	}
-	return search.Run(mux, d, search.DefaultStatsInterval)
+	return zdriver.Run(mux, d, search.DefaultStatsInterval)
 }

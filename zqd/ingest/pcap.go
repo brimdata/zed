@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	zdriver "github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/scanner"
@@ -22,6 +23,8 @@ import (
 	"github.com/brimsec/zq/zqd/search"
 	"github.com/brimsec/zq/zqd/space"
 	"github.com/brimsec/zq/zqd/zeek"
+	"github.com/brimsec/zq/zql"
+	"go.uber.org/zap"
 )
 
 var (
@@ -248,7 +251,7 @@ func (p *Process) createSnapshot(ctx context.Context) error {
 	}
 	zw := bzngio.NewWriter(bzngfile, zio.Flags{})
 	program := fmt.Sprintf("sort -limit %d -r ts", p.sortLimit)
-	if err := search.Copy(ctx, []zbuf.Writer{zw}, zr, program); err != nil {
+	if err := p.ingestLogs(ctx, zw, zr, program); err != nil {
 		// If an error occurs here close and remove tmp bzngfile, lest we start
 		// leaking files and file descriptors.
 		bzngfile.Close()
@@ -262,6 +265,21 @@ func (p *Process) createSnapshot(ctx context.Context) error {
 	return os.Rename(bzngfile.Name(), p.space.DataPath(space.AllBzngFile))
 }
 
+func (p *Process) ingestLogs(ctx context.Context, w zbuf.Writer, r zbuf.Reader, prog string) error {
+	proc, err := zql.ParseProc(prog)
+	if err != nil {
+		return err
+	}
+	mux, err := zdriver.Compile(ctx, proc, r, false, nano.MaxSpan, zap.NewNop())
+	if err != nil {
+		return err
+	}
+	d := &driver{
+		startTime: nano.Now(),
+		writers:   []zbuf.Writer{w},
+	}
+	return zdriver.Run(mux, d, search.DefaultStatsInterval)
+}
 func (p *Process) Write(b []byte) (int, error) {
 	n := len(b)
 	atomic.AddInt64(&p.pcapReadSize, int64(n))
