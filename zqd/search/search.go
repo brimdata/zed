@@ -72,7 +72,7 @@ func Search(ctx context.Context, s *space.Space, req api.SearchRequest, out Outp
 		startTime: nano.Now(),
 	}
 	d.start(0)
-	if err := run(mux, d, DefaultStatsInterval); err != nil {
+	if err := Run(mux, d, DefaultStatsInterval); err != nil {
 		d.abort(0, err)
 		return err
 	}

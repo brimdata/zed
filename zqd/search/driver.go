@@ -10,14 +10,14 @@ import (
 	"github.com/brimsec/zq/zqd/api"
 )
 
-type driver interface {
+type Driver interface {
 	Warn(msg string) error
 	Write(int, zbuf.Batch) error
 	ChannelEnd(int, api.ScannerStats) error
 	Stats(api.ScannerStats) error
 }
 
-func run(out *proc.MuxOutput, d driver, statsInterval time.Duration) error {
+func Run(out *proc.MuxOutput, d Driver, statsInterval time.Duration) error {
 	//stats are zero at this point.
 	var stats api.ScannerStats
 	ticker := time.NewTicker(statsInterval)
