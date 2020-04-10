@@ -74,6 +74,7 @@ type Pair struct {
 	Value []byte
 }
 
+// XXX comments will be updated in a subsequent PR
 // Stream is an interface to enumerate all the key/values from an SST.
 // A stream may be generated from an in-memory table, from a table on disk,
 // from a combiner that combines two or more such tables from memory and/or disk,
@@ -210,6 +211,7 @@ func FirstKey(frame []byte) []byte {
 	return decodeCounted(frame)
 }
 
+// XXX comments will be updated in a subsequent PR
 // DecodePair decodes a key and a value from the base sst file.
 // To do so, it decodes a counted key and a counted value and returns
 // the key and value byte slices as a Pair.  If the buffer is

@@ -56,7 +56,7 @@ func buildTestTable(t *testing.T, entries []zdx.Pair) string {
 	if err != nil {
 		t.Error(err)
 	}
-	path := filepath.Join(dir, "sst")
+	path := filepath.Join(dir, "zdx")
 	stream := &entryStream{entries: entries}
 	writer, err := zdx.NewWriter(path, 32*1024, 0)
 	if err != nil {
@@ -71,7 +71,7 @@ func buildTestTable(t *testing.T, entries []zdx.Pair) string {
 
 /* XXX this goes in system tests?
 func TestReal(t *testing.T) {
-	tab, err := table.OpenTable("/Users/nibs/.boomd/wrccdc/2018/03/24/0/0/0/2i.sst")
+	tab, err := table.OpenTable("/Users/nibs/.boomd/wrccdc/2018/03/24/0/0/0/2i.zdx")
 	if err != nil {
 		t.Error(err)
 	}
@@ -81,7 +81,7 @@ func TestReal(t *testing.T) {
 }
 
 func TestRead(t *testing.T) {
-	tab, err := table.OpenTable("/Users/nibs/.boomd/wrccdc/2018/03/24/0/0/0/2i.sst")
+	tab, err := table.OpenTable("/Users/nibs/.boomd/wrccdc/2018/03/24/0/0/0/2i.zdx")
 	if err != nil {
 		t.Error(err)
 	}
@@ -161,14 +161,14 @@ func TestPeeker(t *testing.T) {
 	}
 }
 
-func TestSST(t *testing.T) {
-	dir, err := ioutil.TempDir("", "sst_test")
+func TestZdx(t *testing.T) {
+	dir, err := ioutil.TempDir("", "zdx_test")
 	if err != nil {
 		t.Error(err)
 	}
 	const N = 5
 	defer os.RemoveAll(dir) //nolint:errcheck
-	path := filepath.Join(dir, "sst")
+	path := filepath.Join(dir, "zdx")
 	stream := newEntryStream(N)
 
 	writer, err := zdx.NewWriter(path, 32*1024, 0)
@@ -195,7 +195,7 @@ func TestSST(t *testing.T) {
 		}
 		n++
 	}
-	assert.Exactly(t, N, n, "number of pairs read from sst file doesn't match number written")
+	assert.Exactly(t, N, n, "number of pairs read from zdx file doesn't match number written")
 }
 
 /* not yet
@@ -208,7 +208,7 @@ func BenchmarkWrite(b *testing.B) {
 			b.Error(err)
 		}
 		defer os.RemoveAll(dir)
-		path := filepath.Join(dir, "table.sst")
+		path := filepath.Join(dir, "table.zdx")
 		if err := table.BuildTable(path, stream); err != nil {
 			b.Error(err)
 		}
@@ -226,7 +226,7 @@ func BenchmarkRead(b *testing.B) {
 		b.Error(err)
 	}
 	defer os.RemoveAll(dir)
-	path := filepath.Join(dir, "table.sst")
+	path := filepath.Join(dir, "table.zdx")
 	stream := newEntryStream(5 << 20)
 	if err := table.BuildTable(path, stream); err != nil {
 		b.Error(err)
