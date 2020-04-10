@@ -77,7 +77,7 @@ func handlePacketSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	defer cancel()
 
-	req := api.PacketSearch{}
+	var req api.PacketSearch
 	if err := req.FromQuery(r.URL.Query()); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

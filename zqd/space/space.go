@@ -17,16 +17,16 @@ import (
 )
 
 const (
-	PcapIndexFile = "packets.idx.json"
+	AllBzngFile   = "all.bzng"
 	configFile    = "config.json"
 	infoFile      = "info.json"
-	AllBzngFile   = "all.bzng"
+	PcapIndexFile = "packets.idx.json"
 )
 
 var (
-	ErrSpaceNotExist       = errors.New("space does not exist")
-	ErrSpaceExists         = errors.New("space exists")
 	ErrPcapOpsNotSupported = errors.New("space does not support pcap operations")
+	ErrSpaceExists         = errors.New("space exists")
+	ErrSpaceNotExist       = errors.New("space does not exist")
 )
 
 type Space struct {

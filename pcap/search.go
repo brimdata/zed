@@ -138,8 +138,7 @@ func genICMPFilter(src, dst net.IP) PacketFilter {
 
 // XXX need to handle searching over multiple pcap files
 func (s *Search) Run(ctx context.Context, w io.Writer, r pcapio.Reader) error {
-	reader := s.Reader(r)
-	_, err := reader.WriteToWithContext(ctx, w)
+	_, err := s.Reader(r).WriteToWithContext(ctx, w)
 	return err
 }
 
