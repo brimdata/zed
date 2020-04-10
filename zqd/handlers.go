@@ -10,6 +10,7 @@ import (
 
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pcap/pcapio"
+	"github.com/brimsec/zq/pkg/ctxio"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/ingest"
@@ -82,15 +83,15 @@ func handlePacketSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	reader, closer, err := s.PcapSearch(req)
+	reader, id, err := s.PcapSearch(req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	defer closer.Close()
+	defer reader.Close()
 	w.Header().Set("Content-Type", "application/vnd.tcpdump.pcap")
-	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%s.pcap", reader.ID()))
-	_, err = reader.WriteToWithContext(ctx, w)
+	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%s.pcap", id))
+	_, err = ctxio.Copy(ctx, w, reader)
 	if err != nil {
 		if err == pcap.ErrNoPacketsFound {
 			http.Error(w, err.Error(), http.StatusNotFound)

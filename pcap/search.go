@@ -8,6 +8,7 @@ import (
 	"net"
 
 	"github.com/brimsec/zq/pcap/pcapio"
+	"github.com/brimsec/zq/pkg/ctxio"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
@@ -138,7 +139,7 @@ func genICMPFilter(src, dst net.IP) PacketFilter {
 
 // XXX need to handle searching over multiple pcap files
 func (s *Search) Run(ctx context.Context, w io.Writer, r pcapio.Reader) error {
-	_, err := s.Reader(r).WriteToWithContext(ctx, w)
+	_, err := ctxio.Copy(ctx, w, s.Reader(r))
 	return err
 }
 
@@ -147,41 +148,27 @@ type SearchReader struct {
 	reader pcapio.Reader
 	opts   gopacket.DecodeOptions
 	npkt   int
+	buf    []byte
 }
 
-func (s *Search) Reader(r pcapio.Reader) *SearchReader {
+func (s *Search) Reader(r pcapio.Reader) io.Reader {
 	opts := gopacket.DecodeOptions{Lazy: true, NoCopy: true}
 	return &SearchReader{Search: s, reader: r, opts: opts}
 }
 
-func (s *SearchReader) WriteToWithContext(ctx context.Context, w io.Writer) (n int64, err error) {
-	for {
-		if err := ctx.Err(); err != nil {
-			return n, err
-		}
-		block, err := s.next()
+func (s *SearchReader) Read(p []byte) (n int, err error) {
+	if len(s.buf) == 0 {
+		s.buf, err = s.next()
 		if err != nil {
 			return n, err
 		}
-		if block == nil {
-			return n, nil
+		if len(s.buf) == 0 {
+			return 0, io.EOF
 		}
-		if err := writeFull(w, block); err != nil {
-			return n, err
-		}
-		n += int64(len(block))
 	}
-}
-
-func writeFull(w io.Writer, p []byte) error {
-	for len(p) > 0 {
-		n, err := w.Write(p)
-		if err != nil {
-			return err
-		}
-		p = p[n:]
-	}
-	return nil
+	n = copy(p, s.buf)
+	s.buf = s.buf[n:]
+	return n, err
 }
 
 func (s *SearchReader) next() ([]byte, error) {
