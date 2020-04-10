@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/ast"
-	zdriver "github.com/brimsec/zq/driver"
+	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/scanner"
@@ -28,7 +28,7 @@ import (
 // so the recevier can do reasonable, interactive streaming updates.
 const DefaultMTU = 100
 
-const DefaultStatsInterval = time.Millisecond * 500
+const StatsInterval = time.Millisecond * 500
 
 func Search(ctx context.Context, s *space.Space, req api.SearchRequest, out Output) error {
 	// XXX These validation checks should result in 400 level status codes and
@@ -66,12 +66,12 @@ func Search(ctx context.Context, s *space.Space, req api.SearchRequest, out Outp
 	if err != nil {
 		return err
 	}
-	d := &driver{
+	d := &searchdriver{
 		output:    out,
 		startTime: nano.Now(),
 	}
 	d.start(0)
-	if err := zdriver.Run(mux, d, DefaultStatsInterval); err != nil {
+	if err := driver.Run(mux, d, StatsInterval); err != nil {
 		d.abort(0, err)
 		return err
 	}
@@ -108,26 +108,26 @@ func UnpackQuery(req api.SearchRequest) (*Query, error) {
 	}, nil
 }
 
-// driver implements driver.Driver
-type driver struct {
+// searchdriver implements driver.Driver
+type searchdriver struct {
 	output    Output
 	startTime nano.Ts
 }
 
-func (d *driver) start(id int64) error {
+func (d *searchdriver) start(id int64) error {
 	return d.output.SendControl(&api.TaskStart{"TaskStart", id})
 }
 
-func (d *driver) end(id int64) error {
+func (d *searchdriver) end(id int64) error {
 	return d.output.End(&api.TaskEnd{"TaskEnd", id, nil})
 }
 
-func (d *driver) abort(id int64, err error) error {
+func (d *searchdriver) abort(id int64, err error) error {
 	verr := &api.Error{Type: "INTERNAL", Message: err.Error()}
 	return d.output.SendControl(&api.TaskEnd{"TaskEnd", id, verr})
 }
 
-func (d *driver) Warn(warning string) error {
+func (d *searchdriver) Warn(warning string) error {
 	v := api.SearchWarnings{
 		Type:     "SearchWarnings",
 		Warnings: []string{warning},
@@ -135,11 +135,11 @@ func (d *driver) Warn(warning string) error {
 	return d.output.SendControl(v)
 }
 
-func (d *driver) Write(cid int, batch zbuf.Batch) error {
+func (d *searchdriver) Write(cid int, batch zbuf.Batch) error {
 	return d.output.SendBatch(cid, batch)
 }
 
-func (d *driver) Stats(stats api.ScannerStats) error {
+func (d *searchdriver) Stats(stats api.ScannerStats) error {
 	v := api.SearchStats{
 		Type:         "SearchStats",
 		StartTime:    d.startTime,
@@ -149,7 +149,7 @@ func (d *driver) Stats(stats api.ScannerStats) error {
 	return d.output.SendControl(v)
 }
 
-func (d *driver) ChannelEnd(cid int, stats api.ScannerStats) error {
+func (d *searchdriver) ChannelEnd(cid int, stats api.ScannerStats) error {
 	if err := d.Stats(stats); err != nil {
 		return err
 	}
@@ -167,5 +167,5 @@ func launch(ctx context.Context, query *Query, reader zbuf.Reader, zctx *resolve
 		span = nano.MaxSpan
 	}
 	reverse := query.Dir < 0
-	return zdriver.Compile(context.Background(), query.Proc, reader, reverse, span, zap.NewNop())
+	return driver.Compile(context.Background(), query.Proc, reader, reverse, span, zap.NewNop())
 }

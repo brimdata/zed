@@ -14,7 +14,7 @@ import (
 type Driver interface {
 	Warn(msg string) error
 	Write(channelID int, batch zbuf.Batch) error
-	ChannelEnd(channelID int, batch api.ScannerStats) error
+	ChannelEnd(channelID int, stats api.ScannerStats) error
 	Stats(api.ScannerStats) error
 }
 

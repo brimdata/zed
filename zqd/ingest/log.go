@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"regexp"
 
-	zdriver "github.com/brimsec/zq/driver"
+	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
@@ -42,7 +42,10 @@ func Logs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, paths []strin
 		sortLimit = DefaultSortLimit
 	}
 
-	pipe.Send(&api.TaskStart{"TaskStart", 0})
+	if err := pipe.Send(&api.TaskStart{"TaskStart", 0}); err != nil {
+		verr := &api.Error{Type: "INTERNAL", Message: err.Error()}
+		return pipe.SendFinal(&api.TaskEnd{"TaskEnd", 0, verr})
+	}
 	if err := ingestLogs(ctx, pipe, s, paths, tc, sortLimit); err != nil {
 		os.Remove(s.DataPath(space.AllBzngFile))
 		verr := &api.Error{Type: "INTERNAL", Message: err.Error()}
@@ -106,7 +109,7 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, paths [
 	zw := bzngio.NewWriter(bzngfile, zio.Flags{})
 	program := fmt.Sprintf("sort -limit %d -r ts | (filter *; head 1; tail 1)", sortLimit)
 	var headW, tailW recWriter
-	err = runLogIngest(ctx, s, reader, program, pipe, []zbuf.Writer{zw, &headW, &tailW}...)
+	err = runLogIngest(ctx, s, reader, program, pipe, zw, &headW, &tailW)
 	if err != nil {
 		bzngfile.Close()
 		os.Remove(bzngfile.Name())
@@ -120,7 +123,7 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, paths [
 			return err
 		}
 	}
-	if err = os.Rename(bzngfile.Name(), s.DataPath(space.AllBzngFile)); err != nil {
+	if err := os.Rename(bzngfile.Name(), s.DataPath(space.AllBzngFile)); err != nil {
 		return err
 	}
 	info, err := s.Info()
@@ -141,14 +144,14 @@ func runLogIngest(ctx context.Context, s *space.Space, r zbuf.Reader, prog strin
 	if err != nil {
 		return err
 	}
-	mux, err := zdriver.Compile(ctx, p, r, false, nano.MaxSpan, zap.NewNop())
+	mux, err := driver.Compile(ctx, p, r, false, nano.MaxSpan, zap.NewNop())
 	if err != nil {
 		return err
 	}
-	d := &driver{
+	d := &logdriver{
 		pipe:      pipe,
 		startTime: nano.Now(),
 		writers:   w,
 	}
-	return zdriver.Run(mux, d, search.DefaultStatsInterval)
+	return driver.Run(mux, d, search.StatsInterval)
 }

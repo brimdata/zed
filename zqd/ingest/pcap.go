@@ -12,7 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	zdriver "github.com/brimsec/zq/driver"
+	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/scanner"
@@ -270,15 +270,15 @@ func (p *Process) ingestLogs(ctx context.Context, w zbuf.Writer, r zbuf.Reader, 
 	if err != nil {
 		return err
 	}
-	mux, err := zdriver.Compile(ctx, proc, r, false, nano.MaxSpan, zap.NewNop())
+	mux, err := driver.Compile(ctx, proc, r, false, nano.MaxSpan, zap.NewNop())
 	if err != nil {
 		return err
 	}
-	d := &driver{
+	d := &logdriver{
 		startTime: nano.Now(),
 		writers:   []zbuf.Writer{w},
 	}
-	return zdriver.Run(mux, d, search.DefaultStatsInterval)
+	return driver.Run(mux, d, search.StatsInterval)
 }
 
 func (p *Process) Write(b []byte) (int, error) {

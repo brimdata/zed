@@ -6,14 +6,14 @@ import (
 	"github.com/brimsec/zq/zqd/api"
 )
 
-// driver implements driver.Driver
-type driver struct {
+// logdriver implements driver.Driver
+type logdriver struct {
 	pipe      *api.JSONPipe
 	startTime nano.Ts
 	writers   []zbuf.Writer
 }
 
-func (d *driver) Write(cid int, batch zbuf.Batch) error {
+func (d *logdriver) Write(cid int, batch zbuf.Batch) error {
 	if len(d.writers) == 1 {
 		cid = 0
 	}
@@ -26,13 +26,13 @@ func (d *driver) Write(cid int, batch zbuf.Batch) error {
 	return nil
 }
 
-func (d *driver) Warn(warning string) error {
+func (d *logdriver) Warn(warning string) error {
 	return nil
 }
-func (d *driver) Stats(stats api.ScannerStats) error {
+func (d *logdriver) Stats(stats api.ScannerStats) error {
 	return nil
 }
 
-func (d *driver) ChannelEnd(cid int, stats api.ScannerStats) error {
+func (d *logdriver) ChannelEnd(cid int, stats api.ScannerStats) error {
 	return d.Stats(stats)
 }
