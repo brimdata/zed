@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
+	zqe "github.com/brimsec/zq/errors"
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pcap/pcapio"
 	"github.com/brimsec/zq/pkg/fs"
@@ -23,9 +24,9 @@ const (
 )
 
 var (
-	ErrPcapOpsNotSupported = errors.New("space does not support pcap operations")
-	ErrSpaceExists         = errors.New("space exists")
-	ErrSpaceNotExist       = errors.New("space does not exist")
+	ErrPcapOpsNotSupported = zqe.E(zqe.Invalid, "space does not support pcap operations")
+	ErrSpaceExists         = zqe.E(zqe.Exists, "space exists")
+	ErrSpaceNotExist       = zqe.E(zqe.NotFound, "space does not exist")
 )
 
 type Space struct {

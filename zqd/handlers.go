@@ -8,8 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/brimsec/zq/pcap"
-	"github.com/brimsec/zq/pcap/pcapio"
+	zqe "github.com/brimsec/zq/errors"
 	"github.com/brimsec/zq/pkg/ctxio"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zqd/api"
@@ -20,25 +19,68 @@ import (
 	"go.uber.org/zap"
 )
 
-func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
-	var req api.SearchRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	s, err := space.Open(c.Root, req.Space)
-	if err != nil {
-		status := http.StatusInternalServerError
-		if err == space.ErrSpaceNotExist {
-			status = http.StatusNotFound
-		}
-		http.Error(w, err.Error(), status)
+func errorResponse(e error) (status int, ae *api.Error) {
+	status = http.StatusInternalServerError
+	ae = &api.Error{}
+
+	var ze *zqe.Error
+	if !errors.As(e, &ze) {
+		ae.Message = e.Error()
 		return
 	}
 
-	ctx, cancel, ok := c.startSpaceOp(r.Context(), s.Name())
-	if !ok {
-		http.Error(w, "space is awaiting deletion", http.StatusConflict)
+	switch ze.Kind {
+	case zqe.Invalid:
+		status = http.StatusBadRequest
+	case zqe.NotFound:
+		status = http.StatusNotFound
+	case zqe.Exists:
+		status = http.StatusBadRequest
+	case zqe.Conflict:
+		status = http.StatusConflict
+	}
+
+	ae.Type = ze.Kind.String()
+	ae.Message = ze.Message()
+	return
+}
+
+func respond(c *Core, w http.ResponseWriter, r *http.Request, status int, body interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(body); err != nil {
+		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
+	}
+}
+
+func respondError(c *Core, w http.ResponseWriter, r *http.Request, err error) {
+	status, ae := errorResponse(err)
+	respond(c, w, r, status, ae)
+}
+
+func request(c *Core, w http.ResponseWriter, r *http.Request, apiobj interface{}) bool {
+	if err := json.NewDecoder(r.Body).Decode(apiobj); err != nil {
+		respondError(c, w, r, zqe.E(zqe.Invalid, err))
+		return false
+	}
+	return true
+}
+
+func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
+	var req api.SearchRequest
+	if !request(c, w, r, &req) {
+		return
+	}
+
+	s, err := space.Open(c.Root, req.Space)
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+
+	ctx, cancel, err := c.startSpaceOp(r.Context(), s.Name())
+	if err != nil {
+		respondError(c, w, r, err)
 		return
 	}
 	defer cancel()
@@ -62,9 +104,11 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		// XXX Should write appropriate bzng content header.
 		out = search.NewBzngOutput(w)
 	default:
-		http.Error(w, fmt.Sprintf("unsupported output format: %s", format), http.StatusBadRequest)
+		respondError(c, w, r, zqe.E(zqe.Invalid, "unsupported format: %s", format))
 		return
 	}
+	// XXX This always returns bad request but should return status codes
+	// that reflect the nature of the returned error.
 	w.Header().Set("Content-Type", "application/ndjson")
 	if err = srch.Run(out); err != nil {
 		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
@@ -77,42 +121,40 @@ func handlePacketSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel, ok := c.startSpaceOp(r.Context(), s.Name())
-	if !ok {
-		http.Error(w, "space is awaiting deletion", http.StatusConflict)
+	ctx, cancel, err := c.startSpaceOp(r.Context(), s.Name())
+	if err != nil {
+		respondError(c, w, r, err)
 		return
 	}
 	defer cancel()
 
 	var req api.PacketSearch
 	if err := req.FromQuery(r.URL.Query()); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		respondError(c, w, r, zqe.E(zqe.Invalid, err))
 		return
 	}
 	reader, err := s.PcapSearch(req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		respondError(c, w, r, err)
 		return
 	}
 	defer reader.Close()
+	w.WriteHeader(http.StatusAccepted)
 	w.Header().Set("Content-Type", "application/vnd.tcpdump.pcap")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%s.pcap", reader.ID()))
 	_, err = ctxio.Copy(ctx, w, reader)
 	if err != nil {
-		if err == pcap.ErrNoPacketsFound {
-			http.Error(w, err.Error(), http.StatusNotFound)
-		} else {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		c.requestLogger(r).Error("Error writing packet response", zap.Error(err))
 	}
 }
 
 func handleSpaceList(c *Core, w http.ResponseWriter, r *http.Request) {
 	info, err := ioutil.ReadDir(c.Root)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		respondError(c, w, r, err)
 		return
 	}
+
 	spaces := []string{}
 	for _, subdir := range info {
 		if !subdir.IsDir() {
@@ -124,10 +166,8 @@ func handleSpaceList(c *Core, w http.ResponseWriter, r *http.Request) {
 		}
 		spaces = append(spaces, s.Name())
 	}
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(spaces); err != nil {
-		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
-	}
+
+	respond(c, w, r, http.StatusOK, spaces)
 }
 
 func handleSpaceGet(c *Core, w http.ResponseWriter, r *http.Request) {
@@ -136,55 +176,46 @@ func handleSpaceGet(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, cancel, ok := c.startSpaceOp(r.Context(), s.Name())
-	if !ok {
-		http.Error(w, "space is awaiting deletion", http.StatusConflict)
+	_, cancel, err := c.startSpaceOp(r.Context(), s.Name())
+	if err != nil {
+		respondError(c, w, r, err)
 		return
 	}
 	defer cancel()
 
 	info, err := s.Info()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		respondError(c, w, r, err)
 		return
 	}
-	w.Header().Add("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(info); err != nil {
-		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
-	}
+
+	respond(c, w, r, http.StatusOK, info)
 }
 
 func handleSpacePost(c *Core, w http.ResponseWriter, r *http.Request) {
 	var req api.SpacePostRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if !request(c, w, r, &req) {
 		return
 	}
 
-	_, cancel, ok := c.startSpaceOp(r.Context(), req.Name)
-	if !ok {
-		http.Error(w, "space is awaiting deletion", http.StatusConflict)
+	_, cancel, err := c.startSpaceOp(r.Context(), req.Name)
+	if err != nil {
+		respondError(c, w, r, err)
 		return
 	}
 	defer cancel()
 
 	s, err := space.Create(c.Root, req.Name, req.DataDir)
 	if err != nil {
-		status := http.StatusInternalServerError
-		if err == space.ErrSpaceExists {
-			status = http.StatusConflict
-		}
-		http.Error(w, err.Error(), status)
+		respondError(c, w, r, err)
 		return
 	}
+
 	res := api.SpacePostResponse{
 		Name:    s.Name(),
 		DataDir: s.DataPath(),
 	}
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(res); err != nil {
-		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
-	}
+	respond(c, w, r, http.StatusOK, res)
 }
 
 func handleSpaceDelete(c *Core, w http.ResponseWriter, r *http.Request) {
@@ -194,13 +225,13 @@ func handleSpaceDelete(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	cancel, ok := c.haltSpaceOpsForDelete(s.Name())
 	if !ok {
-		http.Error(w, "space is awaiting deletion", http.StatusConflict)
+		respondError(c, w, r, zqe.E(zqe.Conflict))
 		return
 	}
 	defer cancel()
 
 	if err := s.Delete(); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		respondError(c, w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -208,7 +239,7 @@ func handleSpaceDelete(c *Core, w http.ResponseWriter, r *http.Request) {
 
 func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	if !c.HasZeek() {
-		http.Error(w, "packet post not supported: zeek not found", http.StatusInternalServerError)
+		respondError(c, w, r, zqe.E(zqe.Invalid, "packet post not supported: zeek not found"))
 		return
 	}
 	logger := c.requestLogger(r)
@@ -219,26 +250,21 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	ctx, cancel, ok := c.startSpaceOp(r.Context(), s.Name())
-	if !ok {
-		http.Error(w, "space is awaiting deletion", http.StatusConflict)
+	ctx, cancel, err := c.startSpaceOp(r.Context(), s.Name())
+	if err != nil {
+		respondError(c, w, r, err)
 		return
 	}
 	defer cancel()
 
 	var req api.PacketPostRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if !request(c, w, r, &req) {
 		return
 	}
 
 	proc, err := ingest.Pcap(ctx, s, req.Path, c.ZeekLauncher, c.SortLimit)
 	if err != nil {
-		if errors.Is(err, pcapio.ErrCorruptPcap) {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		respondError(c, w, r, err)
 		return
 	}
 	w.Header().Set("Content-Type", "application/ndjson")
@@ -303,56 +329,42 @@ func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel, ok := c.startSpaceOp(r.Context(), s.Name())
-	if !ok {
-		http.Error(w, "space is awaiting deletion", http.StatusConflict)
+	ctx, cancel, err := c.startSpaceOp(r.Context(), s.Name())
+	if err != nil {
+		respondError(c, w, r, err)
 		return
 	}
 	defer cancel()
 
 	var req api.LogPostRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if !request(c, w, r, &req) {
 		return
 	}
 	if len(req.Paths) == 0 {
-		http.Error(w, "empty paths", http.StatusBadRequest)
+		respondError(c, w, r, zqe.E(zqe.Invalid, "empty paths"))
 		return
 	}
 	w.Header().Set("Content-Type", "application/ndjson")
 	w.WriteHeader(http.StatusAccepted)
 
 	pipe := api.NewJSONPipe(w)
-	err := ingest.Logs(ctx, pipe, s, req.Paths, req.JSONTypeConfig, c.SortLimit)
+	err = ingest.Logs(ctx, pipe, s, req.Paths, req.JSONTypeConfig, c.SortLimit)
 	if err != nil {
 		c.requestLogger(r).Warn("Error during log ingest", zap.Error(err))
 	}
 }
 
 func extractSpace(c *Core, w http.ResponseWriter, r *http.Request) *space.Space {
-	name := extractSpaceName(w, r)
-	if name == "" {
+	v := mux.Vars(r)
+	name, ok := v["space"]
+	if !ok {
+		respondError(c, w, r, zqe.E(zqe.Invalid, "no space name in path"))
 		return nil
 	}
 	s, err := space.Open(c.Root, name)
 	if err != nil {
-		if err == space.ErrSpaceNotExist {
-			http.Error(w, err.Error(), http.StatusNotFound)
-		} else {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		respondError(c, w, r, err)
 		return nil
 	}
 	return s
-}
-
-// extractSpaceName returns the unescaped space from the path of a request.
-func extractSpaceName(w http.ResponseWriter, r *http.Request) string {
-	v := mux.Vars(r)
-	space, ok := v["space"]
-	if !ok {
-		http.Error(w, "no space name in path", http.StatusBadRequest)
-		return ""
-	}
-	return space
 }

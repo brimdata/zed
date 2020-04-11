@@ -19,12 +19,13 @@ import (
 	"io"
 	"time"
 
+	zqe "github.com/brimsec/zq/errors"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/peeker"
 	"github.com/google/gopacket/layers"
 )
 
-var ErrCorruptPcap = errors.New("bad pcap file")
+var ErrCorruptPcap = zqe.E(zqe.Invalid, "bad pcap file")
 
 const PacketBlockHeaderLen = 28
 

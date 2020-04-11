@@ -95,11 +95,11 @@ func (c *Connection) stream(req *resty.Request) (io.ReadCloser, error) {
 	}
 	resErr := &ErrorResponse{Response: resp}
 	if resty.IsJSONType(resp.Header().Get("Content-Type")) {
-		var apierr *Error
-		if err := json.Unmarshal(body, apierr); err != nil {
+		var apierr Error
+		if err := json.Unmarshal(body, &apierr); err != nil {
 			return nil, err
 		}
-		resErr.Err = apierr
+		resErr.Err = &apierr
 	} else {
 		resErr.Err = errors.New(string(body))
 	}
