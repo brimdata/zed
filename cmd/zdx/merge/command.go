@@ -5,19 +5,23 @@ import (
 	"flag"
 
 	"github.com/brimsec/zq/cmd/zdx/root"
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zdx"
+	"github.com/brimsec/zq/zng"
 	"github.com/mccanne/charm"
 )
 
 var Merge = &charm.Spec{
 	Name:  "merge",
 	Usage: "merge [ -f framesize ] -o file file1, file2, ...  ",
-	Short: "merge two or zdx files into the output file",
+	Short: "merge two or moore zdx bundles into the output bundle",
 	Long: `
-The merge command takes two or more zdx files as input and presumes the
-values are roaring bitmaps.  It merges the input files into
-a new file, as specified by the -o argument, while preserving
-the lexicographic order of the keys and concatenating the values.`,
+The merge command takes two or more zdx bundles as input and
+merges the input bundles into a new output bundle,
+as specified by the -o argument, while preserving
+the lexicographic order of the keys.  When two merged records
+have the same value, the first one is preserved and the subsequent
+ones are discarded.`,
 	New: newMergeCommand,
 }
 
@@ -39,11 +43,11 @@ func newMergeCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, erro
 }
 
 // The combine function depends on the underlying data type but here as
-// an example, we simply contenate the values.
-func combine(a, b []byte) []byte {
-	out := make([]byte, 0, len(a)+len(b))
-	out = append(out, a...)
-	return append(out, b...)
+// an example, we simply take the first value of two records with the
+// same key and discard the other value(s).  This works fine when the
+// base layer is a key-only zdx.
+func combine(a, b *zng.Record) *zng.Record {
+	return a
 }
 
 func (c *MergeCommand) Run(args []string) error {
@@ -53,15 +57,20 @@ func (c *MergeCommand) Run(args []string) error {
 	if c.oflag == "" {
 		return errors.New("must specify output file with -o")
 	}
-	var files []zdx.Stream
+	var files []zbuf.Reader
 	for _, fname := range args {
-		files = append(files, zdx.NewReader(fname))
+		reader, err := zdx.NewReader(fname)
+		if err != nil {
+			return err
+		}
+		files = append(files, reader)
 	}
 	combiner := zdx.NewCombiner(files, combine)
 	defer combiner.Close()
-	writer, err := zdx.NewWriter(c.oflag, c.framesize, 0)
+	writer, err := zdx.NewWriter(c.oflag, c.framesize)
 	if err != nil {
 		return err
 	}
-	return zdx.Copy(writer, combiner)
+	defer writer.Close()
+	return zbuf.Copy(writer, combiner)
 }

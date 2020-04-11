@@ -6,64 +6,47 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"sort"
+	"strings"
 	"testing"
 
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zdx"
+	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-type entryStream struct {
-	entries []zdx.Pair
-	cursor  int
+// XXX add bigger test input with smaller frame size
+
+func newTextReader(logs string) *zngio.Reader {
+	return zngio.NewReader(strings.NewReader(logs), resolver.NewContext())
 }
 
-func newEntryStream(size int) *entryStream {
-	entries := make([]zdx.Pair, size)
+func newReader(size int) (*zngio.Reader, error) {
+	var lines []string
+	lines = append(lines, "#0:record[key:string,value:int32]")
 	for i := 0; i < size; i++ {
-		entries[i] = zdx.Pair{[]byte(fmt.Sprintf("port:port:%d", i)), []byte(fmt.Sprintf("%d", i))}
+		line := fmt.Sprintf("0:[port:port:%d;%d;]", i, i)
+		lines = append(lines, line)
 	}
-	sort.Slice(entries, func(i, j int) bool {
-		return bytes.Compare(entries[i].Key, entries[j].Key) < 0
-	})
-	return &entryStream{entries: entries}
+	return newTextReader(strings.Join(lines, "\n")), nil
 }
 
-func (s *entryStream) Open() error {
-	s.cursor = 0
-	return nil
-}
-
-func (s *entryStream) Close() error {
-	return nil
-}
-
-func (s entryStream) Len() int {
-	return len(s.entries)
-}
-
-func (s *entryStream) Read() (zdx.Pair, error) {
-	if s.cursor >= len(s.entries) {
-		return zdx.Pair{}, nil
-	}
-	e := s.entries[s.cursor]
-	s.cursor++
-	return e, nil
-}
-
-func buildTestTable(t *testing.T, entries []zdx.Pair) string {
+func buildTestTable(t *testing.T, zngText string) string {
 	dir, err := ioutil.TempDir("", "table_test")
 	if err != nil {
 		t.Error(err)
 	}
 	path := filepath.Join(dir, "zdx")
-	stream := &entryStream{entries: entries}
-	writer, err := zdx.NewWriter(path, 32*1024, 0)
+	reader := newTextReader(zngText)
+	writer, err := zdx.NewWriter(path, 32*1024)
 	if err != nil {
 		t.Error(err)
 	}
 	defer writer.Close()
-	if err := zdx.Copy(writer, stream); err != nil {
+	if err := zbuf.Copy(writer, reader); err != nil {
 		t.Error(err)
 	}
 	return path
@@ -96,30 +79,31 @@ func TestRead(t *testing.T) {
 }
 */
 
-func sixPairs() []zdx.Pair {
-	return []zdx.Pair{
-		{[]byte("key1"), []byte("value1")},
-		{[]byte("key2"), []byte("value2")},
-		{[]byte("key3"), []byte("value3")},
-		{[]byte("key4"), []byte("value4")},
-		{[]byte("key5"), []byte("value5")},
-		{[]byte("key6"), []byte("value6")},
-	}
-}
+const sixPairs = `
+#0:record[key:string,value:string]
+0:[key1;value1;]
+0:[key2;value2;]
+0:[key3;value3;]
+0:[key4;value4;]
+0:[key5;value5;]
+0:[key6;value6;]`
 
 func TestSearch(t *testing.T) {
-	entries := sixPairs()
-	path := buildTestTable(t, entries)
+	path := buildTestTable(t, sixPairs)
 	defer os.RemoveAll(path) // nolint:errcheck
-	finder, err := zdx.NewFinder(path)
+	finder := zdx.NewFinder(path)
+	_, err := finder.Open()
 	if err != nil {
 		t.Error(err)
 	}
-	value, err := finder.Lookup([]byte("key2"))
-	if err != nil {
-		t.Error(err)
-	}
-	if !bytes.Equal(value, []byte("value2")) {
+	key2 := zng.EncodeString("key2")
+	rec, err := finder.Lookup(key2)
+	require.NoError(t, err)
+	require.NotNil(t, rec)
+	value, err := rec.Slice(1)
+	require.NoError(t, err)
+	value2 := zng.EncodeString("value2")
+	if !bytes.Equal(value, value2) {
 		t.Error("key lookup failed")
 	}
 }
@@ -132,30 +116,23 @@ func TestZdx(t *testing.T) {
 	const N = 5
 	defer os.RemoveAll(dir) //nolint:errcheck
 	path := filepath.Join(dir, "zdx")
-	stream := newEntryStream(N)
-
-	writer, err := zdx.NewWriter(path, 32*1024, 0)
-	if err != nil {
-		t.Error(err)
-	}
-	if err := zdx.Copy(writer, stream); err != nil {
-		t.Error(err)
-	}
+	stream, err := newReader(N)
+	require.NoError(t, err)
+	writer, err := zdx.NewWriter(path, 32*1024)
+	require.NoError(t, err)
+	err = zbuf.Copy(writer, stream)
+	require.NoError(t, err)
 	writer.Close()
-	reader := zdx.NewReader(path)
-	if err := reader.Open(); err != nil {
-		t.Error(err)
-	}
+	reader, err := zdx.NewReader(path)
+	require.NoError(t, err)
 	defer reader.Close() //nolint:errcheck
 	n := 0
 	for {
-		pair, err := reader.Read()
-		if pair.Key == nil {
+		rec, err := reader.Read()
+		if rec == nil {
 			break
 		}
-		if err != nil {
-			t.Error(err)
-		}
+		require.NoError(t, err)
 		n++
 	}
 	assert.Exactly(t, N, n, "number of pairs read from zdx file doesn't match number written")

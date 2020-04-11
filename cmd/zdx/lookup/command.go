@@ -1,23 +1,26 @@
 package lookup
 
 import (
-	"encoding/hex"
 	"errors"
 	"flag"
 	"fmt"
 
 	"github.com/brimsec/zq/cmd/zdx/root"
+	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/zdx"
+	"github.com/brimsec/zq/zio"
 	"github.com/mccanne/charm"
 )
 
 var Lookup = &charm.Spec{
 	Name:  "lookup",
-	Usage: "lookup -k <key> <file>",
-	Short: "lookup a key in an zdx file and print value as hex bytes",
+	Usage: "lookup -k <key> <bundle>",
+	Short: "lookup a key in an zdx file and print value as zng record",
 	Long: `
-The lookup command uses the index files of an zdx hierarchy to locate the
-specified key in the base zdx file and displays the value as bytes.`,
+The lookup command locates the specified <key> in the base file oof the
+zdx <bundle> and displays the result as a zng record.
+The key argument specifies a value to lookup in the table and must be parseable
+as a zng type of the key that was originally indexed.`,
 	New: newLookupCommand,
 }
 
@@ -27,12 +30,16 @@ func init() {
 
 type LookupCommand struct {
 	*root.Command
-	key string
+	key        string
+	ofmt       string
+	outputFile string
 }
 
 func newLookupCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &LookupCommand{Command: parent.(*root.Command)}
 	f.StringVar(&c.key, "k", "", "key to search")
+	f.StringVar(&c.ofmt, "f", "zng", "format for output data [bzng,ndjson,table,text,types,zeek,zjson,zng]")
+	f.StringVar(&c.outputFile, "o", "", "write data to output file")
 	return c, nil
 }
 
@@ -44,23 +51,32 @@ func (c *LookupCommand) Run(args []string) error {
 	if c.key == "" {
 		return errors.New("must specify a key")
 	}
-	key, err := hex.DecodeString(c.key)
+	finder := zdx.NewFinder(path)
+	keyType, err := finder.Open()
 	if err != nil {
 		return err
 	}
-	finder, err := zdx.NewFinder(path)
-	if err != nil {
-		return err
+	if keyType == nil {
+		return fmt.Errorf("%s: index is empty", path)
 	}
 	defer finder.Close()
-	val, err := finder.Lookup(key)
+	// XXX Parse doesn't work yet for record values, but everything else
+	// is ready to go to use records and index keys
+	key, err := keyType.Parse([]byte(c.key))
 	if err != nil {
 		return err
 	}
-	if val == nil {
-		fmt.Println("not found")
-	} else {
-		fmt.Println(hex.EncodeToString(val))
+	rec, err := finder.Lookup(key)
+	if err != nil {
+		return err
 	}
-	return nil
+	if rec == nil {
+		return nil
+	}
+	writer, err := emitter.NewFile(c.outputFile, c.ofmt, &zio.Flags{})
+	if err != nil {
+		return err
+	}
+	defer writer.Close()
+	return writer.Write(rec)
 }

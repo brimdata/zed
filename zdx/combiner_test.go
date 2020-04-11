@@ -1,45 +1,46 @@
 package zdx_test
 
 import (
+	"strings"
 	"testing"
 
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zdx"
+	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func pair(key string) zdx.Pair {
-	return zdx.Pair{[]byte(key), []byte("value")}
-}
+const stream1 = `
+#0:record[key:string,value:string]
+0:[1;a;]
+0:[3;b;]
+0:[5;c;]`
 
-type streamtest []zdx.Pair
-
-func (s streamtest) Open() error  { return nil }
-func (s streamtest) Close() error { return nil }
-
-func (s *streamtest) Read() (zdx.Pair, error) {
-	var pair zdx.Pair
-	slice := *s
-	if len(slice) > 0 {
-		pair = slice[0]
-		*s = slice[1:]
-	}
-	return pair, nil
-}
+const stream2 = `
+#0:record[key:string,value:string]
+0:[2;d;]
+0:[4;e;]
+0:[6;f;]`
 
 func TestCombinerOrder(t *testing.T) {
-	s1 := &streamtest{pair("1"), pair("3"), pair("5")}
-	s2 := &streamtest{pair("2"), pair("4"), pair("6")}
-	c := zdx.NewCombiner([]zdx.Stream{s1, s2}, func(a, b []byte) []byte {
-		return []byte("combined")
+	zctx := resolver.NewContext()
+	s1 := zngio.NewReader(strings.NewReader(stream1), zctx)
+	s2 := zngio.NewReader(strings.NewReader(stream2), zctx)
+	c := zdx.NewCombiner([]zbuf.Reader{s1, s2}, func(a, b *zng.Record) *zng.Record {
+		return a
 	})
-	assert.NoError(t, c.Open())
 	var keys []string
 	for {
-		p, _ := c.Read()
-		if p.Key == nil {
+		rec, _ := c.Read()
+		if rec == nil {
 			break
 		}
-		keys = append(keys, string(p.Key))
+		key, err := rec.AccessString("key")
+		require.NoError(t, err)
+		keys = append(keys, key)
 	}
 	assert.Equal(t, []string{"1", "2", "3", "4", "5", "6"}, keys)
 }

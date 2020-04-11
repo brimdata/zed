@@ -4,11 +4,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
-	"github.com/brimsec/zq/zdx"
 )
 
-func Find(dir string, pattern []byte) ([]string, error) {
+// Find descends a directory hierarchy looking for the provided pattern
+// that is used by the rule to determine whether the pattern exists
+// in each index found that conforms with the rule.
+// XXX We currently allow only one pattern at a time though it might
+// be more efficient at large scale to allow multipe patterns that
+// are effectively OR-ed together so that there is locality of
+// access to the zdx files.
+func Find(dir string, rule Rule, pattern string) ([]string, error) {
 	//XXX this should be parallelized with some locking presuming a little
 	// parallelism won't mess up the file system assumptions
 	var hits []string
@@ -26,7 +31,7 @@ func Find(dir string, pattern []byte) ([]string, error) {
 			return nil
 		}
 		if filepath.Ext(name) == ".bzng" {
-			hit, err := SearchFile(path, pattern)
+			hit, err := Search(path, rule, pattern)
 			if err != nil {
 				fmt.Printf("%s\n", err)
 			}
@@ -39,23 +44,28 @@ func Find(dir string, pattern []byte) ([]string, error) {
 	return hits, err
 }
 
-//XXX for now we hard code search for IP address.
-func SearchFile(path string, pattern []byte) (bool, error) {
-	subdir := path + zarExt
-	zdxName := "zdx:type:ip" //XXX
-	zdxPath := filepath.Join(subdir, zdxName)
-	finder, err := zdx.NewFinder(zdxPath)
+func Search(path string, rule Rule, pattern string) (bool, error) {
+	subdir, err := archiveDir(path)
+	if err != nil {
+		return false, err
+	}
+	finder := rule.NewFinder(subdir)
+	keyType, err := finder.Open()
 	if err != nil {
 		if err == os.ErrNotExist {
 			err = nil
 		} else {
-			err = fmt.Errorf("%s: %s", zdxPath, err)
+			err = fmt.Errorf("%s: %s", finder.Path(), err)
 		}
 		return false, err
 	}
-	v, err := finder.Lookup(pattern)
+	keyBytes, err := keyType.Parse([]byte(pattern))
 	if err != nil {
-		err = fmt.Errorf("%s: %s", zdxPath, err.Error())
+		return false, fmt.Errorf("%s: %s", finder.Path(), err.Error())
 	}
-	return v != nil, err
+	rec, err := finder.Lookup(keyBytes)
+	if err != nil {
+		err = fmt.Errorf("%s: %s", finder.Path(), err.Error())
+	}
+	return rec != nil, err
 }
