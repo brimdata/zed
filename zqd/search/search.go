@@ -108,7 +108,7 @@ func UnpackQuery(req api.SearchRequest) (*Query, error) {
 	}, nil
 }
 
-// searchdriver implements driver.Driver
+// searchdriver implements driver.Driver.
 type searchdriver struct {
 	output    Output
 	startTime nano.Ts

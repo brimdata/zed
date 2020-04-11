@@ -9,7 +9,7 @@ import (
 	"github.com/brimsec/zq/zqd/api"
 )
 
-// JSON implements the Output interface
+// JSON implements the Output interface.
 type JSON struct {
 	pipe   *api.JSONPipe
 	stream *zjsonio.Stream

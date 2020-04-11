@@ -63,7 +63,7 @@ func Run(out *proc.MuxOutput, d Driver, statsInterval time.Duration) error {
 	return nil
 }
 
-// CLI implements Driver
+// CLI implements Driver.
 type CLI struct {
 	writers  []zbuf.Writer
 	warnings io.Writer
@@ -93,8 +93,7 @@ func (d *CLI) Write(cid int, batch zbuf.Batch) error {
 
 func (d *CLI) Warn(msg string) error {
 	if d.warnings != nil {
-		_, err := fmt.Fprintln(d.warnings, msg)
-		if err != nil {
+		if _, err := fmt.Fprintln(d.warnings, msg); err != nil {
 			return err
 		}
 	}

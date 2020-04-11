@@ -6,7 +6,7 @@ import (
 	"github.com/brimsec/zq/zqd/api"
 )
 
-// logdriver implements driver.Driver
+// logdriver implements driver.Driver.
 type logdriver struct {
 	pipe      *api.JSONPipe
 	startTime nano.Ts
