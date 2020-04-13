@@ -43,11 +43,10 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	defer cancel()
 
-	// XXX This always returns bad request but should return status codes
-	// that reflect the nature of the returned error.
-	w.Header().Set("Content-Type", "application/ndjson")
 	srch, err := search.NewSearch(ctx, s, req)
 	if err != nil {
+		// XXX This always returns bad request but should return status codes
+		// that reflect the nature of the returned error.
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -66,6 +65,7 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("unsupported output format: %s", format), http.StatusBadRequest)
 		return
 	}
+	w.Header().Set("Content-Type", "application/ndjson")
 	if err = srch.Run(out); err != nil {
 		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
 	}
