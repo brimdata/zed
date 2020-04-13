@@ -323,11 +323,11 @@ the space consumed by stream boundary markers and repeated type definitions.
 Choosing an appropriate stream size that balances this overhead with the
 benefit of enabling random access is left up to implementations.
 
-End-of-stream markers are also useful in the context of sending ZNG over kafka,
-as a receiver can easily resynchronization with a live kafka topic by
+End-of-stream markers are also useful in the context of sending ZNG over Kafka,
+as a receiver can easily resynchronization with a live Kafka topic by
 discarding incomplete messages until a message is found that is terminated
 by an end-of-stream marker (presuming the sender implementation aligns
-the end-of-stream markers with kafka messages.)
+the ZNG messages on Kafka message boundaries).
 
 A end-of-stream marker is encoded as follows:
 ```
