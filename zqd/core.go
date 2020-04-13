@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 
 	"github.com/brimsec/zq/zqd/zeek"
+	"github.com/brimsec/zq/zqe"
 	"go.uber.org/zap"
 )
 
@@ -84,7 +85,7 @@ func (c *Core) getTaskID() int64 {
 // If the space is pending deletion, the bool parameter returns false.
 // Otherwise, this returns a new context, and a done function that must
 // be called when the operation completes.
-func (c *Core) startSpaceOp(ctx context.Context, space string) (context.Context, context.CancelFunc, bool) {
+func (c *Core) startSpaceOp(ctx context.Context, space string) (context.Context, context.CancelFunc, error) {
 	c.spaceOpsMu.Lock()
 	defer c.spaceOpsMu.Unlock()
 
@@ -96,7 +97,7 @@ func (c *Core) startSpaceOp(ctx context.Context, space string) (context.Context,
 		c.spaceOps[space] = state
 	}
 	if state.deletePending {
-		return ctx, func() {}, false
+		return ctx, func() {}, zqe.E(zqe.Conflict, "space is pending deletion")
 	}
 
 	state.active++
@@ -124,7 +125,7 @@ func (c *Core) startSpaceOp(ctx context.Context, space string) (context.Context,
 		cancel()
 	}
 
-	return ctx, ingestDone, true
+	return ctx, ingestDone, nil
 }
 
 // haltSpaceOpsForDelete signals any outstanding operations that registered with

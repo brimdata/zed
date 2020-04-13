@@ -113,7 +113,7 @@ func TestPacketPostInvalidPcap(t *testing.T) {
 		}
 		assert.Equal(t, http.StatusBadRequest, reserr.StatusCode())
 		// XXX Better error message here.
-		require.Regexp(t, "^bad pcap file*", reserr.Err.Error())
+		require.Regexp(t, "bad pcap file", reserr.Err.Error())
 	})
 	t.Run("EmptySpaceInfo", func(t *testing.T) {
 		info, err := p.client.SpaceInfo(context.Background(), p.space)

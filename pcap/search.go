@@ -2,7 +2,6 @@ package pcap
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -10,13 +9,14 @@ import (
 	"github.com/brimsec/zq/pcap/pcapio"
 	"github.com/brimsec/zq/pkg/ctxio"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zqe"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 )
 
 var (
 	// ErrNoPacketsFound is an error indicating no packets have been found.
-	ErrNoPacketsFound = errors.New("no packets found")
+	ErrNoPacketsFound = zqe.E(zqe.NotFound, "no packets found")
 )
 
 type PacketFilter func(gopacket.Packet) bool

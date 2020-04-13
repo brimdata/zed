@@ -13,6 +13,7 @@ import (
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zqd/api"
+	"github.com/brimsec/zq/zqe"
 )
 
 const (
@@ -23,9 +24,9 @@ const (
 )
 
 var (
-	ErrPcapOpsNotSupported = errors.New("space does not support pcap operations")
-	ErrSpaceExists         = errors.New("space exists")
-	ErrSpaceNotExist       = errors.New("space does not exist")
+	ErrPcapOpsNotSupported = zqe.E(zqe.Invalid, "space does not support pcap operations")
+	ErrSpaceExists         = zqe.E(zqe.Exists, "space exists")
+	ErrSpaceNotExist       = zqe.E(zqe.NotFound, "space does not exist")
 )
 
 type Space struct {
