@@ -144,7 +144,6 @@ func (r *Reader) readUvarint() (int, error) {
 		return 0, zng.ErrBadFormat
 	}
 	_, err = r.read(n)
-	r.position += int64(n)
 	return int(v), err
 }
 

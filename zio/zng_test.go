@@ -246,3 +246,58 @@ func TestAlias(t *testing.T) {
 		})
 	})
 }
+
+const strm = `
+#0:record[key:ip]
+0:[1.2.3.4;]
+0:[::;]
+0:[1.39.61.22;]
+0:[1.149.119.73;]
+0:[1.160.203.191;]
+0:[2.12.27.251;]`
+
+func TestEOS(t *testing.T) {
+	in := []byte(strings.TrimSpace(strm) + "\n")
+	r := zngio.NewReader(bytes.NewReader(in), resolver.NewContext())
+	var out Output
+	writer := bzngio.NewWriter(&out, zio.Flags{StreamRecordsMax: 2})
+	w := zbuf.NopFlusher(writer)
+
+	// Copy the zng as bzng to out and record the position of the second record.
+	rec, err := r.Read()
+	require.NoError(t, err)
+	err = w.Write(rec)
+	require.NoError(t, err)
+	writePos := writer.Position()
+	rec, err = r.Read()
+	require.NoError(t, err)
+	err = w.Write(rec)
+	require.NoError(t, err)
+	// After two writes there is a valid sync point.
+	seekPoint := writer.Position()
+	seekRec, err := r.Read()
+	require.NoError(t, err)
+	err = w.Write(seekRec)
+	require.NoError(t, err)
+	err = zbuf.Copy(w, r)
+	require.NoError(t, err)
+
+	// Read back the bzng and make sure the streams are aligned after
+	// the first record.
+
+	r2 := bzngio.NewReader(bytes.NewReader(out.Buffer.Bytes()), resolver.NewContext())
+	_, err = r2.Read()
+	require.NoError(t, err)
+	readPos := r2.Position()
+	assert.Equal(t, writePos, readPos)
+
+	// Read back the bzng and make sure the streams are aligned after
+	// the first record.
+
+	s := bzngio.NewSeeker(bytes.NewReader(out.Buffer.Bytes()), resolver.NewContext(), 10000)
+	_, err = s.Seek(seekPoint)
+	require.NoError(t, err)
+	rec, err = s.Read()
+	require.NoError(t, err)
+	assert.Equal(t, seekRec.Raw, rec.Raw)
+}
