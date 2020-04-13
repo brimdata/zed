@@ -299,8 +299,16 @@ func TestFilters(t *testing.T) {
 		{"ts<2.0", true},
 		{"ts2=1578411532", true},
 		{"ts3=1578411533", false},
-		// The ASCII value of 'T' (0x54) is present inside the binary
-		// encoding of 1.001.  But naked string search should not match.
+	})
+
+	// Test that string search doesn't match non-string types:
+	// The ASCII value of 'T' (0x54) is present inside the binary
+	// encoding of 1.001.  But naked string search should not match.
+	record, err = parseOneRecord(`
+#0:record[f:float64]
+0:[1.001;]`)
+	require.NoError(t, err)
+	runCases(t, record, []testcase{
 		{"T", false},
 	})
 
@@ -441,11 +449,14 @@ func TestFilters(t *testing.T) {
 
 	// Test searching for a field name
 	record, err = parseOneRecord(`
-#0:record[foo:string]
-0:[bleah;]`)
+#0:record[foo:string,rec:record[sub:string]]
+0:[bleah;[meh;]]`)
 	require.NoError(t, err)
 	runCases(t, record, []testcase{
 		{"foo", true},
+		{"FOO", true},
+		{"sub", true},
+		{"rec.sub", true},
 	})
 }
 
