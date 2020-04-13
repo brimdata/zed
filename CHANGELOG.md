@@ -1,3 +1,10 @@
+## v0.10.0
+
+* zql: Let text searches match field names as well as values (#529)
+* zql: Fix an issue where ZQL queries exceeding 255 chars caused a crash (#543)
+* zql: Make searches case-insensitive by default (#536)
+* Fix an issue where the Zeek reader failed to read whitespace from the rightmost column (#552)
+
 ## v0.9.0
 
 * zql: Emit warnings from `put` processor (#477)
