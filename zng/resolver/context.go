@@ -52,6 +52,7 @@ func (c *Context) Reset() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.table = c.table[:zng.IdTypeDef]
+	c.lut = make(map[string]int)
 }
 
 func (c *Context) Len() int {
