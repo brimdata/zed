@@ -294,7 +294,7 @@ func TestEOS(t *testing.T) {
 	// Read back the bzng and make sure the streams are aligned after
 	// the first record.
 
-	s := bzngio.NewSeeker(bytes.NewReader(out.Buffer.Bytes()), resolver.NewContext(), 10000)
+	s := bzngio.NewSeeker(bytes.NewReader(out.Buffer.Bytes()), resolver.NewContext())
 	_, err = s.Seek(seekPoint)
 	require.NoError(t, err)
 	rec, err = s.Read()
