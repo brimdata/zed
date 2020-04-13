@@ -27,10 +27,10 @@ func NewWriter(w io.Writer, flags zio.Flags) *Writer {
 	}
 }
 
-func (w *Writer) write(b []byte) (int, error) {
+func (w *Writer) write(b []byte) error {
 	n, err := w.Writer.Write(b)
 	w.position += int64(n)
-	return n, err
+	return err
 }
 
 func (w *Writer) Position() int64 {
@@ -42,8 +42,7 @@ func (w *Writer) EndStream() error {
 	w.streamRecords = 0
 
 	marker := []byte{zng.CtrlEOS}
-	_, err := w.write(marker)
-	return err
+	return w.write(marker)
 }
 
 func (w *Writer) Write(r *zng.Record) error {
@@ -57,7 +56,7 @@ func (w *Writer) Write(r *zng.Record) error {
 			return err
 		}
 		w.buffer = b
-		_, err = w.write(b)
+		err = w.write(b)
 		if err != nil {
 			return err
 		}
@@ -72,12 +71,12 @@ func (w *Writer) Write(r *zng.Record) error {
 		dst = zcode.AppendUvarint(dst, uint64(id>>6))
 	}
 	dst = zcode.AppendUvarint(dst, uint64(len(r.Raw)))
-	_, err := w.write(dst)
+	err := w.write(dst)
 	if err != nil {
 		return err
 	}
 
-	_, err = w.write(r.Raw)
+	err = w.write(r.Raw)
 	w.streamRecords++
 	if w.StreamRecordsMax > 0 && w.streamRecords >= w.StreamRecordsMax {
 		w.EndStream()
@@ -91,12 +90,11 @@ func (w *Writer) WriteControl(b []byte) error {
 	//XXX 0xff for now.  need to pass through control codes?
 	dst = append(dst, 0xff)
 	dst = zcode.AppendUvarint(dst, uint64(len(b)))
-	_, err := w.write(dst)
+	err := w.write(dst)
 	if err != nil {
 		return err
 	}
-	_, err = w.write(b)
-	return err
+	return w.write(b)
 }
 
 func (w *Writer) Flush() error {
