@@ -1,4 +1,4 @@
-# `zq` [![CI][ci-img]][ci] [![GoDoc][doc-img]][doc]
+# `zq` [![Tests][tests-img]][tests] [![GoDoc][doc-img]][doc]
 
 `zq` is a command-line tool for searching and analyzing logs,
 particularly [Zeek](https://www.zeek.org) logs.  If you are familiar with
@@ -122,11 +122,12 @@ at the [performance](performance/README.md) page.
 
 See the [contributing guide](CONTRIBUTING.md) on how you can help improve `zq`!
 
-[doc-img]: https://godoc.org/github.com/brimsec/zq?status.svg
-[doc]: https://godoc.org/github.com/brimsec/zq
-[ci-img]: https://circleci.com/gh/brimsec/zq.svg?style=svg
-[ci]: https://circleci.com/gh/brimsec/zq
-
 ## Join the Community
 
 Join our [Public Slack](https://join.slack.com/t/brimsec/shared_invite/zt-cy34xoxg-hZiTKUT~1KdGjlaBIuUUdg) workspace for announcements, Q&A, and to trade tips!
+
+[doc-img]: https://godoc.org/github.com/brimsec/zq?status.svg
+[doc]: https://godoc.org/github.com/brimsec/zq
+[tests-img]: ![Tests](https://github.com/brimsec/zq/workflows/Tests/badge.svg)
+[tests]: https://github.com/brimsec/zq/workflows/Tests
+
