@@ -135,7 +135,7 @@ Control codes 0 through 5 are reserved for BZNG:
 |  `2` | set definition    |
 |  `3` | union definition  |
 |  `4` | type alias        |
-|  `5` | frame marker      |
+|  `5` | end-of-stream     |
 
 All other control codes are available to higher-layer protocols to carry
 application-specific payloads embedded in the ZNG stream.
@@ -307,22 +307,29 @@ existing type ID ``<type-id>``.  ``<type-id>`` is encoded as a `uvarint` and `<n
 is encoded as a `uvarint` representing the length of the name in bytes,
 followed by that many bytes of UTF-8 string.
 
-### 2.1.2 Frame Markers
+### 2.1.2 End-of-stream Markers
 
-Since type definitions are carried in-band in a BZNG stream,
-the entire stream must generally be processed in-order to maintain
-accurate and complete information on types.
-To facilitate random access
-into large stored BZNG streams, a stream
-may also be optionally organized into a sequence of "frames",
-each of which has an independent type context and can thus be
-processed correctly without first processing the entire preceding stream.
+A BZNG stream must be terminated by an end-of-stream marker.
+A new BZNG stream may begin immediately after an end-of-stream marker.
+Each such stream has its own, independent type context.
+
+In this way, the concatenation of BZNG streams (or BZNG files containing
+BZNG streams) results in a valid BZNG data sequence.
+
+For example, a large BZNG file can be arranged into multiple, smaller streams
+to facilitate random access at stream boundaries.
 This benefit comes at the cost of some additional overhead --
-the space consumed by frame boundary markers and repeated type definitions.
-Choosing an appropriate frame size that balances this overhead with the
+the space consumed by stream boundary markers and repeated type definitions.
+Choosing an appropriate stream size that balances this overhead with the
 benefit of enabling random access is left up to implementations.
 
-A frame marker is encoded as follows:
+End-of-stream markers are also useful in the context of sending ZNG over kafka,
+as a receiver can easily resynchronization with a live kafka topic by
+discarding incomplete messages until a message is found that is terminated
+by an end-of-stream marker (presuming the sender implementation aligns
+the end-of-stream markers with kafka messages.)
+
+A end-of-stream marker is encoded as follows:
 ```
 ------
 |0x85|

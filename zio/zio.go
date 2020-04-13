@@ -22,7 +22,7 @@ func (f *Flags) SetFlags(fs *flag.FlagSet) {
 	fs.BoolVar(&f.ShowFields, "F", false, "display field names in text output")
 	fs.BoolVar(&f.EpochDates, "E", false, "display epoch timestamps in text output")
 	fs.BoolVar(&f.UTF8, "U", false, "display zeek strings as UTF-8")
-	fs.IntVar(&f.FrameSize, "b", 0, "BZNG frame size in records (0 for no frames)")
+	fs.IntVar(&f.FrameSize, "b", 0, "limit for number of records in each BZNG stream(0 for no limit)")
 }
 
 type Writer struct {

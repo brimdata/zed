@@ -121,7 +121,7 @@ const (
 	TypeDefSet    = 0x82
 	TypeDefUnion  = 0x83
 	TypeDefAlias  = 0x84
-	FrameMarker   = 0x85
+	CtrlEOS       = 0x85
 )
 
 func LookupPrimitive(name string) Type {
