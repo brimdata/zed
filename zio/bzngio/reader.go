@@ -76,7 +76,7 @@ again:
 			err = r.readTypeUnion()
 		case zng.TypeDefAlias:
 			err = r.readTypeAlias()
-		case zng.FrameMarker:
+		case zng.CtrlEOS:
 			r.zctx.Reset()
 		default:
 			// XXX we should return the control code

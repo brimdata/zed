@@ -46,3 +46,5 @@ outputHex: |
   0c 00 90 2f 50 09
   # third column, primitive value of 9 total bytes, float64 1.5
   12 00 00 00 00 00 00 f8 3f
+  # end of stream
+  85

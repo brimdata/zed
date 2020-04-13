@@ -12,35 +12,30 @@ import (
 type Writer struct {
 	io.Writer
 	zio.Flags
-	encoder      *resolver.Encoder
-	buffer       []byte
-	frameRecords int
+	encoder       *resolver.Encoder
+	buffer        []byte
+	streamRecords int
 }
 
 func NewWriter(w io.Writer, flags zio.Flags) *Writer {
 	return &Writer{
-		Writer:       w,
-		Flags:        flags,
-		encoder:      resolver.NewEncoder(),
-		buffer:       make([]byte, 0, 128),
-		frameRecords: -1,
+		Writer:  w,
+		Flags:   flags,
+		encoder: resolver.NewEncoder(),
+		buffer:  make([]byte, 0, 128),
 	}
 }
 
-func (w *Writer) StartNewFrame() error {
+func (w *Writer) EndStream() error {
 	w.encoder.Reset()
-	w.frameRecords = 0
+	w.streamRecords = 0
 
-	marker := []byte{zng.FrameMarker}
+	marker := []byte{zng.CtrlEOS}
 	_, err := w.Writer.Write(marker)
 	return err
 }
 
 func (w *Writer) Write(r *zng.Record) error {
-	if w.FrameSize > 0 && (w.frameRecords < 0 || w.frameRecords >= w.FrameSize) {
-		w.StartNewFrame()
-	}
-
 	// First send any typedefs for unsent types.
 	typ := w.encoder.Lookup(r.Type)
 	if typ == nil {
@@ -72,7 +67,11 @@ func (w *Writer) Write(r *zng.Record) error {
 	}
 
 	_, err = w.Writer.Write(r.Raw)
-	w.frameRecords++
+	w.streamRecords++
+	if w.StreamRecordsMax > 0 && w.streamRecords >= w.StreamRecordsMax {
+		w.EndStream()
+	}
+
 	return err
 }
 
@@ -87,4 +86,11 @@ func (w *Writer) WriteControl(b []byte) error {
 	}
 	_, err = w.Writer.Write(b)
 	return err
+}
+
+func (w *Writer) Flush() error {
+	if w.streamRecords > 0 {
+		return w.EndStream()
+	}
+	return nil
 }
