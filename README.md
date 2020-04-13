@@ -128,6 +128,6 @@ Join our [Public Slack](https://join.slack.com/t/brimsec/shared_invite/zt-cy34xo
 
 [doc-img]: https://godoc.org/github.com/brimsec/zq?status.svg
 [doc]: https://godoc.org/github.com/brimsec/zq
-[tests-img]: ![Tests](https://github.com/brimsec/zq/workflows/Tests/badge.svg)
+[tests-img]: https://github.com/brimsec/zq/workflows/Tests/badge.svg
 [tests]: https://github.com/brimsec/zq/workflows/Tests
 
