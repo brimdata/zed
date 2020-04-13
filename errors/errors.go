@@ -1,3 +1,5 @@
+// Package zqe provides a mechanism to create or wrap errors with information
+// that will aid in reporting them to users and returning them to api callers.
 package zqe
 
 import (
@@ -6,6 +8,9 @@ import (
 	"runtime"
 )
 
+// A Kind represents a class of error. API layers will typically convert
+// these into a domain specific error representation; for example, an http
+// handler can convert these to http specific status codes.
 type Kind int
 
 const (
@@ -64,6 +69,9 @@ func (e *Error) Unwrap() error {
 	return e.Err
 }
 
+// Message returns just the Err.Error() string, if present, or the Kind
+// string description. The intent is to allow zqe users a way to avoid
+// embedding the Kind description as happens with Error().
 func (e *Error) Message() string {
 	if e.Err != nil {
 		return e.Err.Error()
@@ -74,6 +82,13 @@ func (e *Error) Message() string {
 	return "no error"
 }
 
+// Function E generates an error from any mix of:
+// - a Kind
+// - an existing error
+// - a string and optional formatting verbs, like fmt.Errorf (including support
+//	for the `%w` verb).
+//
+// The string & format verbs must be last in the arguments, if present.
 func E(args ...interface{}) error {
 	if len(args) == 0 {
 		panic("no args to errors.E")
