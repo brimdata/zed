@@ -106,7 +106,7 @@ func E(args ...interface{}) error {
 			return e
 		default:
 			_, file, line, _ := runtime.Caller(1)
-			return fmt.Errorf("unknown type %T value %v in errors.E call at %v:%v", arg, arg, file, line)
+			return fmt.Errorf("unknown type %T value %v in zqe.E call at %v:%v", arg, arg, file, line)
 		}
 	}
 
