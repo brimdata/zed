@@ -15,10 +15,10 @@ type Kind int
 
 const (
 	Other Kind = iota
+	Conflict
+	Exists
 	Invalid
 	NotFound
-	Exists
-	Conflict
 )
 
 func (k Kind) String() string {
