@@ -51,6 +51,9 @@ func (c *Context) SetLogger(logger TypeLogger) {
 func (c *Context) Reset() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	// Reset the table that maps type ID numbers to zng.TYpes and reset
+	// the lookup table that maps type strings to these locally scoped
+	// type ID number.
 	c.table = c.table[:zng.IdTypeDef]
 	c.lut = make(map[string]int)
 }

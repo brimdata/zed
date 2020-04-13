@@ -12,9 +12,9 @@ import (
 type Writer struct {
 	io.Writer
 	zio.Flags
-	encoder      *resolver.Encoder
-	buffer       []byte
-	frameRecords int
+	encoder       *resolver.Encoder
+	buffer        []byte
+	streamRecords int
 }
 
 func NewWriter(w io.Writer, flags zio.Flags) *Writer {
@@ -28,7 +28,7 @@ func NewWriter(w io.Writer, flags zio.Flags) *Writer {
 
 func (w *Writer) EndStream() error {
 	w.encoder.Reset()
-	w.frameRecords = 0
+	w.streamRecords = 0
 
 	marker := []byte{zng.CtrlEOS}
 	_, err := w.Writer.Write(marker)
@@ -67,8 +67,8 @@ func (w *Writer) Write(r *zng.Record) error {
 	}
 
 	_, err = w.Writer.Write(r.Raw)
-	w.frameRecords++
-	if w.FrameSize > 0 && w.frameRecords >= w.FrameSize {
+	w.streamRecords++
+	if w.StreamRecordsMax > 0 && w.streamRecords >= w.StreamRecordsMax {
 		w.EndStream()
 	}
 
@@ -89,7 +89,7 @@ func (w *Writer) WriteControl(b []byte) error {
 }
 
 func (w *Writer) Flush() error {
-	if w.frameRecords > 0 {
+	if w.streamRecords > 0 {
 		return w.EndStream()
 	}
 	return nil
