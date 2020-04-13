@@ -9,8 +9,8 @@ import (
 )
 
 // A Kind represents a class of error. API layers will typically convert
-// these into a domain specific error representation; for example, an http
-// handler can convert these to http specific status codes.
+// these into a domain specific error representation; for example, an HTTP
+// handler can convert these to HTTP status codes.
 type Kind int
 
 const (
