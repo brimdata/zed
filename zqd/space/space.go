@@ -1,6 +1,7 @@
 package space
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -114,7 +115,7 @@ func (s Space) Info() (api.SpaceInfo, error) {
 // PcapSearch returns a *pcap.SearchReader that streams all the packets meeting
 // the provided search request. If pcaps are not supported in this Space,
 // ErrPcapOpsNotSupported is returned.
-func (s Space) PcapSearch(req api.PacketSearch) (*SearchReadCloser, error) {
+func (s Space) PcapSearch(ctx context.Context, req api.PacketSearch) (*SearchReadCloser, error) {
 	if s.PacketPath() == "" || !s.HasFile(PcapIndexFile) {
 		return nil, ErrPcapOpsNotSupported
 	}
@@ -149,7 +150,11 @@ func (s Space) PcapSearch(req api.PacketSearch) (*SearchReadCloser, error) {
 		f.Close()
 		return nil, err
 	}
-	r := search.Reader(pcapReader)
+	r, err := search.Reader(ctx, pcapReader)
+	if err != nil {
+		f.Close()
+		return nil, err
+	}
 	return &SearchReadCloser{r, f}, nil
 
 }

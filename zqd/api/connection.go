@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/brimsec/zq/pcap/pcapio"
 	"github.com/go-resty/resty/v2"
 )
 
@@ -28,6 +29,8 @@ var (
 	ErrSpaceNotFound = errors.New("space not found")
 	// ErrSpaceExists returns when specified the space already exists.
 	ErrSpaceExists = errors.New("space exists")
+	// ErrNoPcapResultsFound returns when a pcap search yields no results
+	ErrNoPcapResultsFound = errors.New("no pcap results found for search")
 )
 
 type Connection struct {
@@ -203,6 +206,30 @@ func (c *Connection) PacketPost(ctx context.Context, space string, payload Packe
 	}
 	jsonpipe := NewJSONPipeScanner(r)
 	return NewStream(jsonpipe), nil
+}
+
+func (c *Connection) PcapSearch(ctx context.Context, space string, payload PacketSearch) (*PcapReadCloser, error) {
+	req := c.Request(ctx).
+		SetQueryParamsFromValues(payload.ToQuery())
+	req.Method = http.MethodGet
+	req.URL = path.Join("/space", url.PathEscape(space), "packet")
+	r, err := c.stream(req)
+	if err != nil {
+		if r, ok := err.(*ErrorResponse); ok && r.StatusCode() == http.StatusNotFound {
+			return nil, ErrNoPcapResultsFound
+		}
+		return nil, err
+	}
+	pr, err := pcapio.NewReader(r)
+	if err != nil {
+		return nil, err
+	}
+	return &PcapReadCloser{pr, r}, nil
+}
+
+type PcapReadCloser struct {
+	pcapio.Reader
+	io.Closer
 }
 
 func (c *Connection) LogPost(ctx context.Context, space string, payload LogPostRequest) (*Stream, error) {
