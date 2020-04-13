@@ -6,7 +6,6 @@ import (
 	"io"
 	"time"
 
-	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zqd/api"
 )
@@ -18,7 +17,7 @@ type Driver interface {
 	Stats(api.ScannerStats) error
 }
 
-func Run(out *proc.MuxOutput, d Driver, statsInterval time.Duration) error {
+func Run(out *MuxOutput, d Driver, statsInterval time.Duration) error {
 	//stats are zero at this point.
 	var stats api.ScannerStats
 	if statsInterval == 0 {
@@ -29,7 +28,7 @@ func Run(out *proc.MuxOutput, d Driver, statsInterval time.Duration) error {
 	for !out.Complete() {
 		chunk := out.Pull(ticker.C)
 		if chunk.Err != nil {
-			if chunk.Err == proc.ErrTimeout {
+			if chunk.Err == ErrTimeout {
 				/* not yet
 				err := d.sendStats(out.Stats())
 				if err != nil {
