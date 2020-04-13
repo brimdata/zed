@@ -28,6 +28,11 @@ func NewReader(reader io.Reader, size, max int) *Reader {
 	}
 }
 
+func (r *Reader) Reset() {
+	r.cursor = r.buffer[:0]
+	r.eof = false
+}
+
 func (r *Reader) fill(min int) error {
 	if min > r.limit {
 		return ErrBufferOverflow
