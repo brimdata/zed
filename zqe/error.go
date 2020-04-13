@@ -25,14 +25,14 @@ func (k Kind) String() string {
 	switch k {
 	case Other:
 		return "other error"
-	case Invalid:
-		return "invalid operation"
-	case NotFound:
-		return "item does not exist"
-	case Exists:
-		return "item already exists"
 	case Conflict:
 		return "conflict with pending operation"
+	case Invalid:
+		return "invalid operation"
+	case Exists:
+		return "item already exists"
+	case NotFound:
+		return "item does not exist"
 	}
 	return "unknown error kind"
 }
