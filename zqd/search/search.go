@@ -30,7 +30,7 @@ const DefaultMTU = 100
 const StatsInterval = time.Millisecond * 500
 
 type Search struct {
-	mux *proc.MuxOutput
+	mux *driver.MuxOutput
 	io.Closer
 }
 
