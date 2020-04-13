@@ -43,7 +43,7 @@ again:
 		return nil, nil
 	}
 	// remove newline
-	line = bytes.TrimSpace(line)
+	line = bytes.TrimSuffix(line, []byte("\n"))
 	if line[0] == '#' {
 
 		if err := r.parser.ParseDirective(line); err != nil {
