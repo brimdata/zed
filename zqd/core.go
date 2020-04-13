@@ -6,8 +6,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	zqe "github.com/brimsec/zq/errors"
 	"github.com/brimsec/zq/zqd/zeek"
+	"github.com/brimsec/zq/zqe"
 	"go.uber.org/zap"
 )
 

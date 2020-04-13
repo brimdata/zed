@@ -8,12 +8,12 @@ import (
 	"os"
 	"path/filepath"
 
-	zqe "github.com/brimsec/zq/errors"
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pcap/pcapio"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zqd/api"
+	"github.com/brimsec/zq/zqe"
 )
 
 const (

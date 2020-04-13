@@ -19,9 +19,9 @@ import (
 	"io"
 	"time"
 
-	zqe "github.com/brimsec/zq/errors"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/peeker"
+	"github.com/brimsec/zq/zqe"
 	"github.com/google/gopacket/layers"
 )
 

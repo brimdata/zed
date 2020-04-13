@@ -8,13 +8,13 @@ import (
 	"net/http"
 	"time"
 
-	zqe "github.com/brimsec/zq/errors"
 	"github.com/brimsec/zq/pkg/ctxio"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/ingest"
 	"github.com/brimsec/zq/zqd/search"
 	"github.com/brimsec/zq/zqd/space"
+	"github.com/brimsec/zq/zqe"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )

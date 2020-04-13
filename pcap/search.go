@@ -6,10 +6,10 @@ import (
 	"io"
 	"net"
 
-	zqe "github.com/brimsec/zq/errors"
 	"github.com/brimsec/zq/pcap/pcapio"
 	"github.com/brimsec/zq/pkg/ctxio"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zqe"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 )
