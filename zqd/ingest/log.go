@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"regexp"
 
+	"github.com/brimsec/zq/driver"
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
@@ -15,15 +17,18 @@ import (
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/search"
 	"github.com/brimsec/zq/zqd/space"
+	"github.com/brimsec/zq/zql"
+	"go.uber.org/zap"
 )
 
 const allBzngTmpFile = space.AllBzngFile + ".tmp"
 
 // Logs ingests the provided list of files into the provided space.
 // Like ingest.Pcap, this overwrites any existing data in the space.
-func Logs(ctx context.Context, s *space.Space, paths []string, tc *ndjsonio.TypeConfig, sortLimit int) error {
+func Logs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, paths []string, tc *ndjsonio.TypeConfig, sortLimit int) error {
 	ingestDir := s.DataPath(tmpIngestDir)
 	if err := os.Mkdir(ingestDir, 0700); err != nil {
 		// could be in use by pcap or log ingest
@@ -36,11 +41,17 @@ func Logs(ctx context.Context, s *space.Space, paths []string, tc *ndjsonio.Type
 	if sortLimit == 0 {
 		sortLimit = DefaultSortLimit
 	}
-	if err := ingestLogs(ctx, s, paths, tc, sortLimit); err != nil {
-		os.Remove(s.DataPath(space.AllBzngFile))
-		return err
+
+	if err := pipe.Send(&api.TaskStart{"TaskStart", 0}); err != nil {
+		verr := &api.Error{Type: "INTERNAL", Message: err.Error()}
+		return pipe.SendFinal(&api.TaskEnd{"TaskEnd", 0, verr})
 	}
-	return nil
+	if err := ingestLogs(ctx, pipe, s, paths, tc, sortLimit); err != nil {
+		os.Remove(s.DataPath(space.AllBzngFile))
+		verr := &api.Error{Type: "INTERNAL", Message: err.Error()}
+		return pipe.SendFinal(&api.TaskEnd{"TaskEnd", 0, verr})
+	}
+	return pipe.SendFinal(&api.TaskEnd{"TaskEnd", 0, nil})
 }
 
 type recWriter struct {
@@ -66,7 +77,7 @@ func configureJSONTypeReader(ndjr *ndjsonio.Reader, tc ndjsonio.TypeConfig, file
 	return ndjr.ConfigureTypes(tc, path)
 }
 
-func ingestLogs(ctx context.Context, s *space.Space, paths []string, tc *ndjsonio.TypeConfig, sortLimit int) error {
+func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, paths []string, tc *ndjsonio.TypeConfig, sortLimit int) error {
 	zctx := resolver.NewContext()
 	var readers []zbuf.Reader
 	defer func() {
@@ -98,7 +109,8 @@ func ingestLogs(ctx context.Context, s *space.Space, paths []string, tc *ndjsoni
 	zw := bzngio.NewWriter(bzngfile, zio.Flags{})
 	program := fmt.Sprintf("sort -limit %d -r ts | (filter *; head 1; tail 1)", sortLimit)
 	var headW, tailW recWriter
-	if err := search.Copy(ctx, []zbuf.Writer{zw, &headW, &tailW}, reader, program); err != nil {
+	err = runLogIngest(ctx, s, reader, program, pipe, zw, &headW, &tailW)
+	if err != nil {
 		bzngfile.Close()
 		os.Remove(bzngfile.Name())
 		return err
@@ -111,5 +123,35 @@ func ingestLogs(ctx context.Context, s *space.Space, paths []string, tc *ndjsoni
 			return err
 		}
 	}
-	return os.Rename(bzngfile.Name(), s.DataPath(space.AllBzngFile))
+	if err := os.Rename(bzngfile.Name(), s.DataPath(space.AllBzngFile)); err != nil {
+		return err
+	}
+	info, err := s.Info()
+	if err != nil {
+		return err
+	}
+	status := api.LogPostStatus{
+		Type:    "LogPostStatus",
+		MinTime: info.MinTime,
+		MaxTime: info.MaxTime,
+		Size:    info.Size,
+	}
+	return pipe.Send(status)
+}
+
+func runLogIngest(ctx context.Context, s *space.Space, r zbuf.Reader, prog string, pipe *api.JSONPipe, w ...zbuf.Writer) error {
+	p, err := zql.ParseProc(prog)
+	if err != nil {
+		return err
+	}
+	mux, err := driver.Compile(ctx, p, r, false, nano.MaxSpan, zap.NewNop())
+	if err != nil {
+		return err
+	}
+	d := &logdriver{
+		pipe:      pipe,
+		startTime: nano.Now(),
+		writers:   w,
+	}
+	return driver.Run(mux, d, search.StatsInterval)
 }

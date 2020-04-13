@@ -215,11 +215,11 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	output := driver.New(writer)
+	d := driver.NewCLI(writer)
 	if !c.quiet {
-		output.SetWarningsWriter(os.Stderr)
+		d.SetWarningsWriter(os.Stderr)
 	}
-	return output.Run(mux)
+	return driver.Run(mux, d, 0)
 }
 
 func (c *Command) configureJSONTypeReader(ndjr *ndjsonio.Reader, filename string) error {

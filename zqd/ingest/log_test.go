@@ -3,9 +3,11 @@ package ingest
 import (
 	"context"
 	"io/ioutil"
+	"net/http/httptest"
 	"os"
 	"testing"
 
+	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/space"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -41,10 +43,13 @@ func TestLogsErrInFlight(t *testing.T) {
 	errCh1 := make(chan error)
 	errCh2 := make(chan error)
 	go func() {
-		errCh1 <- Logs(context.Background(), s, []string{f}, nil, 10)
+		// xxx this test is now a false positive. to be updated before merging.
+		p := api.NewJSONPipe(httptest.NewRecorder())
+		errCh1 <- Logs(context.Background(), p, s, []string{f}, nil, 10)
 	}()
 	go func() {
-		errCh2 <- Logs(context.Background(), s, []string{f}, nil, 10)
+		p := api.NewJSONPipe(httptest.NewRecorder())
+		errCh2 <- Logs(context.Background(), p, s, []string{f}, nil, 10)
 	}()
 	err1 := <-errCh1
 	err2 := <-errCh2

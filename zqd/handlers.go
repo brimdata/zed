@@ -292,7 +292,6 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 }
 
 func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {
-	logger := c.requestLogger(r)
 	s := extractSpace(c, w, r)
 	if s == nil {
 		return
@@ -314,51 +313,13 @@ func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "empty paths", http.StatusBadRequest)
 		return
 	}
-	errCh := make(chan error)
-	go func() {
-		errCh <- ingest.Logs(ctx, s, req.Paths, req.JSONTypeConfig, c.SortLimit)
-	}()
-
 	w.Header().Set("Content-Type", "application/ndjson")
 	w.WriteHeader(http.StatusAccepted)
+
 	pipe := api.NewJSONPipe(w)
-	taskStart := api.TaskStart{Type: "TaskStart"}
-	if err := pipe.Send(taskStart); err != nil {
-		logger.Warn("Error sending payload", zap.Error(err))
-		return
-	}
-	taskEnd := api.TaskEnd{Type: "TaskEnd"}
-	if err := <-errCh; err != nil {
-		var ok bool
-		taskEnd.Error, ok = err.(*api.Error)
-		if !ok {
-			taskEnd.Error = &api.Error{Type: "Error", Message: err.Error()}
-		}
-	}
-
-	defer func() {
-		if err := pipe.SendFinal(taskEnd); err != nil {
-			logger.Warn("Error sending payload", zap.Error(err))
-		}
-	}()
-
-	if taskEnd.Error != nil {
-		return
-	}
-	info, err := s.Info()
+	err := ingest.Logs(ctx, pipe, s, req.Paths, req.JSONTypeConfig, c.SortLimit)
 	if err != nil {
-		logger.Warn("Error getting space info", zap.Error(err))
-		taskEnd.Error = &api.Error{Type: "Error", Message: err.Error()}
-		return
-	}
-	status := api.LogPostStatus{
-		Type:    "LogPostStatus",
-		MinTime: info.MinTime,
-		MaxTime: info.MaxTime,
-		Size:    info.Size,
-	}
-	if err := pipe.Send(status); err != nil {
-		logger.Warn("Error sending payload", zap.Error(err))
+		c.requestLogger(r).Warn("Error during log ingest", zap.Error(err))
 	}
 }
 

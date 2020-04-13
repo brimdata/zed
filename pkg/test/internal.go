@@ -68,8 +68,8 @@ func (i *Internal) Run() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	runner := driver.New(output)
-	if err := runner.Run(mux); err != nil {
+	d := driver.NewCLI(output)
+	if err := driver.Run(mux, d, 0); err != nil {
 		return "", err
 	}
 	return string(output.Bytes()), nil
