@@ -29,48 +29,56 @@ const DefaultMTU = 100
 
 const StatsInterval = time.Millisecond * 500
 
-func Search(ctx context.Context, s *space.Space, req api.SearchRequest, out Output) error {
-	// XXX These validation checks should result in 400 level status codes and
-	// thus shouldn't occur here.
+type Search struct {
+	mux *proc.MuxOutput
+	io.Closer
+}
+
+func NewSearch(ctx context.Context, s *space.Space, req api.SearchRequest) (*Search, error) {
 	if req.Span.Ts < 0 {
-		return errors.New("time span must have non-negative timestamp")
+		return nil, errors.New("time span must have non-negative timestamp")
 	}
 	if req.Span.Dur < 0 {
-		return errors.New("time span must have non-negative duration")
+		return nil, errors.New("time span must have non-negative duration")
 	}
 	// XXX allow either direction even through we do forward only right now
 	if req.Dir != 1 && req.Dir != -1 {
-		return errors.New("time direction must be 1 or -1")
+		return nil, errors.New("time direction must be 1 or -1")
 	}
 	query, err := UnpackQuery(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	var f io.ReadCloser
 	f, err = s.OpenFile(space.AllBzngFile)
 	if err != nil {
 		if !os.IsNotExist(err) {
-			return err
+			return nil, err
 		}
 		f = ioutil.NopCloser(strings.NewReader(""))
 	}
-	defer f.Close()
 	zngReader, err := detector.LookupReader("bzng", f, resolver.NewContext())
 	if err != nil {
-		return err
+		f.Close()
+		return nil, err
 	}
 	zctx := resolver.NewContext()
 	mapper := scanner.NewMapper(zngReader, zctx)
 	mux, err := launch(ctx, query, mapper, zctx)
 	if err != nil {
-		return err
+		f.Close()
+		return nil, err
 	}
+	return &Search{mux, f}, nil
+}
+
+func (s *Search) Run(output Output) error {
 	d := &searchdriver{
-		output:    out,
+		output:    output,
 		startTime: nano.Now(),
 	}
 	d.start(0)
-	if err := driver.Run(mux, d, StatsInterval); err != nil {
+	if err := driver.Run(s.mux, d, StatsInterval); err != nil {
 		d.abort(0, err)
 		return err
 	}

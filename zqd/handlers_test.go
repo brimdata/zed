@@ -56,6 +56,32 @@ func TestSearchEmptySpace(t *testing.T) {
 	require.Equal(t, "", res)
 }
 
+func TestSearchInvalidRequest(t *testing.T) {
+	src := `
+#0:record[_path:string,ts:time,uid:bstring]
+0:[conn;1521911723.205187;CBrzd94qfowOqJwCHa;]
+0:[conn;1521911721.255387;C8Tful1TvM3Zf5x8fl;]
+`
+	_, client, done := newCore(t)
+	defer done()
+	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
+	require.NoError(t, err)
+	_ = postSpaceLogs(t, client, sp.Name, nil, src)
+
+	parsed, err := zql.ParseProc("*")
+	require.NoError(t, err)
+	proc, err := json.Marshal(parsed)
+	require.NoError(t, err)
+	req := api.SearchRequest{
+		Space: "test",
+		Proc:  proc,
+		Span:  nano.MaxSpan,
+		Dir:   2,
+	}
+	_, err = client.Search(context.Background(), req)
+	require.Error(t, err)
+}
+
 func TestSpaceList(t *testing.T) {
 	ctx := context.Background()
 	c, client, done := newCore(t)
