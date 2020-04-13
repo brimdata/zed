@@ -14,7 +14,6 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/detector"
@@ -161,7 +160,7 @@ func (d *searchdriver) ChannelEnd(cid int, stats api.ScannerStats) error {
 	return d.output.SendControl(v)
 }
 
-func launch(ctx context.Context, query *Query, reader zbuf.Reader, zctx *resolver.Context) (*proc.MuxOutput, error) {
+func launch(ctx context.Context, query *Query, reader zbuf.Reader, zctx *resolver.Context) (*driver.MuxOutput, error) {
 	span := query.Span
 	if span == (nano.Span{}) {
 		span = nano.MaxSpan

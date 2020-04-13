@@ -17,7 +17,7 @@ import (
 // and compiles it into a runnable flowgraph, returning a
 // proc.MuxOutput that which brings together all of the flowgraphs
 // tails, and is ready to be Pull()'d from.
-func Compile(ctx context.Context, program ast.Proc, reader zbuf.Reader, reverse bool, span nano.Span, logger *zap.Logger) (*proc.MuxOutput, error) {
+func Compile(ctx context.Context, program ast.Proc, reader zbuf.Reader, reverse bool, span nano.Span, logger *zap.Logger) (*MuxOutput, error) {
 
 	filterAst, program := liftFilter(program)
 	input, err := inputProc(reader, filterAst, span)
@@ -34,7 +34,7 @@ func Compile(ctx context.Context, program ast.Proc, reader zbuf.Reader, reverse 
 	if err != nil {
 		return nil, err
 	}
-	return proc.NewMuxOutput(pctx, leaves), nil
+	return NewMuxOutput(pctx, leaves), nil
 }
 
 // liftFilter removes the filter at the head of the flowgraph AST, if

@@ -1,4 +1,4 @@
-package proc
+package driver
 
 import (
 	"errors"
@@ -6,17 +6,18 @@ import (
 	"sync"
 	"time"
 
+	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 )
 
 type MuxResult struct {
-	Result
+	proc.Result
 	ID      int
 	Warning string
 }
 
 type MuxOutput struct {
-	ctx      *Context
+	ctx      *proc.Context
 	runners  int
 	muxProcs []*Mux
 	once     sync.Once
@@ -24,13 +25,13 @@ type MuxOutput struct {
 }
 
 type Mux struct {
-	Base
+	proc.Base
 	ID  int
 	out chan<- MuxResult
 }
 
-func newMux(c *Context, parent Proc, id int, out chan MuxResult) *Mux {
-	return &Mux{Base: Base{Context: c, Parent: parent}, ID: id, out: out}
+func newMux(c *proc.Context, parent proc.Proc, id int, out chan MuxResult) *Mux {
+	return &Mux{Base: proc.Base{Context: c, Parent: parent}, ID: id, out: out}
 }
 
 func (m *Mux) safeGet() (b zbuf.Batch, err error) {
@@ -55,14 +56,14 @@ func (m *Mux) run() {
 	// due to rate mismatch.
 	for {
 		batch, err := m.safeGet()
-		m.out <- MuxResult{Result{batch, err}, m.ID, ""}
-		if EOS(batch, err) {
+		m.out <- MuxResult{proc.Result{batch, err}, m.ID, ""}
+		if proc.EOS(batch, err) {
 			return
 		}
 	}
 }
 
-func NewMuxOutput(ctx *Context, parents []Proc) *MuxOutput {
+func NewMuxOutput(ctx *proc.Context, parents []proc.Proc) *MuxOutput {
 	n := len(parents)
 	c := make(chan MuxResult, n)
 	mux := &MuxOutput{ctx: ctx, runners: n, in: c}
@@ -90,7 +91,7 @@ func (m *MuxOutput) Pull(timeout <-chan time.Time) MuxResult {
 		}
 	})
 	if m.Complete() {
-		return MuxResult{Result{}, -1, ""}
+		return MuxResult{proc.Result{}, -1, ""}
 	}
 	var result MuxResult
 	if timeout == nil {
@@ -98,14 +99,14 @@ func (m *MuxOutput) Pull(timeout <-chan time.Time) MuxResult {
 	} else {
 		select {
 		case <-timeout:
-			return MuxResult{Result{nil, ErrTimeout}, 0, ""}
+			return MuxResult{proc.Result{nil, ErrTimeout}, 0, ""}
 		case result = <-m.in:
 			// empty
 		case warning := <-m.ctx.Warnings:
-			return MuxResult{Result{}, 0, warning}
+			return MuxResult{proc.Result{}, 0, warning}
 		}
 	}
-	if EOS(result.Batch, result.Err) {
+	if proc.EOS(result.Batch, result.Err) {
 		m.runners--
 	}
 	return result
