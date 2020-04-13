@@ -300,4 +300,10 @@ func TestEOS(t *testing.T) {
 	rec, err = s.Read()
 	require.NoError(t, err)
 	assert.Equal(t, seekRec.Raw, rec.Raw)
+
+	r3 := bzngio.NewReader(bytes.NewReader(out.Buffer.Bytes()), resolver.NewContext())
+	rec, off, err := r3.SkipStream()
+	require.NoError(t, err)
+	require.NotNil(t, rec)
+	assert.Equal(t, off, seekPoint)
 }

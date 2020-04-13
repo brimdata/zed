@@ -22,6 +22,7 @@ type Reader struct {
 	zctx     *resolver.Context
 	mapper   *resolver.Mapper
 	position int64
+	sos      int64
 }
 
 func NewReader(reader io.Reader, zctx *resolver.Context) *Reader {
@@ -44,6 +45,19 @@ func (r *Reader) read(n int) ([]byte, error) {
 
 func (r *Reader) Position() int64 {
 	return r.position
+}
+
+// SkipStream skips over the records in the current stream and returns
+// the first record of the next stream and the start-of-stream position
+// of that record.
+func (r *Reader) SkipStream() (*zng.Record, int64, error) {
+	sos := r.sos
+	for {
+		rec, err := r.Read()
+		if err != nil || sos != r.sos || rec == nil {
+			return rec, r.sos, err
+		}
+	}
 }
 
 func (r *Reader) Read() (*zng.Record, error) {
@@ -93,6 +107,7 @@ again:
 			err = r.readTypeAlias()
 		case zng.CtrlEOS:
 			r.zctx.Reset()
+			r.sos = r.position
 		default:
 			// XXX we should return the control code
 			len, err := r.readUvarint()
