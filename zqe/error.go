@@ -3,9 +3,9 @@
 package zqe
 
 import (
-	"bytes"
 	"fmt"
 	"runtime"
+	"strings"
 )
 
 // A Kind represents a class of error. API layers will typically convert
@@ -42,7 +42,7 @@ type Error struct {
 	Err  error
 }
 
-func pad(b *bytes.Buffer, s string) {
+func pad(b *strings.Builder, s string) {
 	if b.Len() == 0 {
 		return
 	}
@@ -50,13 +50,12 @@ func pad(b *bytes.Buffer, s string) {
 }
 
 func (e *Error) Error() string {
-	b := &bytes.Buffer{}
+	b := strings.Builder{}
 	if e.Kind != Other {
-		pad(b, ": ")
 		b.WriteString(e.Kind.String())
 	}
 	if e.Err != nil {
-		pad(b, ": ")
+		pad(&b, ": ")
 		b.WriteString(e.Err.Error())
 	}
 	if b.Len() == 0 {
@@ -67,6 +66,13 @@ func (e *Error) Error() string {
 
 func (e *Error) Unwrap() error {
 	return e.Err
+}
+
+func (e *Error) Is(target error) bool {
+	if zt, ok := target.(*Error); ok {
+		return zt.Kind == e.Kind
+	}
+	return false
 }
 
 // Message returns just the Err.Error() string, if present, or the Kind

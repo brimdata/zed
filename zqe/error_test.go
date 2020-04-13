@@ -47,3 +47,12 @@ func TestE(t *testing.T) {
 	e9 := E(1)
 	require.Regexp(t, "unknown type.*error_test", e9.Error())
 }
+
+func TestIs(t *testing.T) {
+	require.True(t, errors.Is(E(Invalid), E(Invalid)))
+	require.False(t, errors.Is(E(Invalid), E(Conflict)))
+
+	e0 := errors.New("e0")
+	require.True(t, errors.Is(E(e0), e0))
+	require.True(t, errors.Is(E(Invalid, e0), e0))
+}

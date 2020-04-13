@@ -229,7 +229,6 @@ func (r *packetPostResult) postPcap(t *testing.T, file string) {
 	if r.err == nil {
 		r.readPayloads(t, stream)
 	}
-
 }
 
 func (r *packetPostResult) readPayloads(t *testing.T, stream *api.Stream) {
