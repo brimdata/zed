@@ -7,11 +7,15 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pcap/pcapio"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio/bzngio"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqe"
 )
@@ -182,6 +186,22 @@ func sizeof(path string) (int64, error) {
 
 func (s Space) DataPath(elem ...string) string {
 	return filepath.Join(append([]string{s.conf.DataPath}, elem...)...)
+}
+
+func (s Space) OpenZng(span nano.Span) (zbuf.ReadCloser, error) {
+	zctx := resolver.NewContext()
+
+	f, err := os.Open(s.DataPath(AllBzngFile))
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return nil, err
+		}
+		r := bzngio.NewReader(strings.NewReader(""), zctx)
+		return zbuf.NopReadCloser(r), nil
+	} else {
+		r := bzngio.NewReader(f, zctx)
+		return zbuf.NewReadCloser(r, f), nil
+	}
 }
 
 func (s Space) OpenFile(file string) (*os.File, error) {

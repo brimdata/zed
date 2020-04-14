@@ -6,9 +6,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"io/ioutil"
-	"os"
-	"strings"
 	"time"
 
 	"github.com/brimsec/zq/ast"
@@ -16,7 +13,6 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/space"
@@ -49,27 +45,19 @@ func NewSearch(ctx context.Context, s *space.Space, req api.SearchRequest) (*Sea
 	if err != nil {
 		return nil, err
 	}
-	var f io.ReadCloser
-	f, err = s.OpenFile(space.AllBzngFile)
+
+	zngReader, err := s.OpenZng(query.Span)
 	if err != nil {
-		if !os.IsNotExist(err) {
-			return nil, err
-		}
-		f = ioutil.NopCloser(strings.NewReader(""))
-	}
-	zngReader, err := detector.LookupReader("bzng", f, resolver.NewContext())
-	if err != nil {
-		f.Close()
 		return nil, err
 	}
 	zctx := resolver.NewContext()
 	mapper := scanner.NewMapper(zngReader, zctx)
 	mux, err := launch(ctx, query, mapper, zctx)
 	if err != nil {
-		f.Close()
+		zngReader.Close()
 		return nil, err
 	}
-	return &Search{mux, f}, nil
+	return &Search{mux, zngReader}, nil
 }
 
 func (s *Search) Run(output Output) error {
