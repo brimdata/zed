@@ -1,9 +1,9 @@
 package bzngio_test
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const bzng = `
+const zng = `
 #0:record[ts:time,value:int32]
 0:[1586886160;0;]
 0:[1586886161;1;]
@@ -29,7 +29,7 @@ const bzng = `
 0:[1586886169;9;]
 `
 
-// Parameters used for testing.  Note that in the bzng data above,
+// Parameters used for testing.  Note that in the zng data above,
 // indexed with a stream size of 2 records, this time span will straddle
 // 3 streams with only part of the first and last stream falling inside
 // the time range.
@@ -45,8 +45,7 @@ const endTime = "1586886166"
 // file (with streams of 2 records each and parts of 3 streams being
 // inside the time span, a total of 6 records should be read).
 func checkReader(t *testing.T, r bzngio.IndexReader, checkReads bool) {
-	expect := 3
-	for expect <= 6 {
+	for expect := 3; expect <= 6; expect++ {
 		rec, err := r.Read()
 		require.NoError(t, err)
 
@@ -54,7 +53,6 @@ func checkReader(t *testing.T, r bzngio.IndexReader, checkReads bool) {
 		require.NoError(t, err)
 
 		require.Equal(t, int64(expect), v, "Got expected record value")
-		expect++
 	}
 
 	rec, err := r.Read()
@@ -73,9 +71,9 @@ func TestBzngIndex(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	// create a test bzng file
-	reader := zngio.NewReader(strings.NewReader(bzng), resolver.NewContext())
-	fname := fmt.Sprintf("%s%c%s", dir, os.PathSeparator, "test.zng")
-	fp, err := os.OpenFile(fname, os.O_WRONLY|os.O_CREATE, 0666)
+	reader := zngio.NewReader(strings.NewReader(zng), resolver.NewContext())
+	fname := filepath.Join(dir, "test.zng")
+	fp, err := os.Create(fname)
 	require.NoError(t, err)
 
 	flags := zio.Flags{StreamRecordsMax: 2}
