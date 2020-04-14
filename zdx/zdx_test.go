@@ -124,43 +124,6 @@ func TestSearch(t *testing.T) {
 	}
 }
 
-func TestPeeker(t *testing.T) {
-	stream := &entryStream{entries: sixPairs()}
-	peeker := zdx.NewPeeker(stream)
-	pair1, err := peeker.Peek()
-	if err != nil {
-		t.Error(err)
-	}
-	pair2, err := peeker.Peek()
-	if err != nil {
-		t.Error(err)
-	}
-	if !pair1.Equal(pair2) {
-		t.Error("pair1 != pair2")
-	}
-	pair3, err := peeker.Read()
-	if err != nil {
-		t.Error(err)
-	}
-	if !pair1.Equal(pair3) {
-		t.Error("pair1 != pair3")
-	}
-	pair4, err := peeker.Peek()
-	if err != nil {
-		t.Error(err)
-	}
-	if pair3.Equal(pair4) {
-		t.Error("pair3 == pair4")
-	}
-	pair5, err := peeker.Read()
-	if err != nil {
-		t.Error(err)
-	}
-	if !pair4.Equal(pair5) {
-		t.Error("pair4 != pair5")
-	}
-}
-
 func TestZdx(t *testing.T) {
 	dir, err := ioutil.TempDir("", "zdx_test")
 	if err != nil {
