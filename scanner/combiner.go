@@ -48,9 +48,6 @@ func (c *Combiner) Read() (*zng.Record, error) {
 			}
 			if tup == nil {
 				c.done[k] = true
-				if err := c.closeReader(l); err != nil {
-					return nil, fmt.Errorf("%s: %w", c.readers[k], err)
-				}
 				continue
 			}
 			c.hol[k] = tup
@@ -79,9 +76,6 @@ func (c *Combiner) closeReader(r zbuf.Reader) error {
 func (c *Combiner) Close() error {
 	var err error
 	for k, r := range c.readers {
-		if c.done[k] {
-			continue
-		}
 		c.done[k] = true
 		// Return only the first error, but closing everything else if there is
 		// an error.
