@@ -48,12 +48,14 @@ func NewSearch(ctx context.Context, s *space.Space, req api.SearchRequest) (*Sea
 
 	zngReader, err := s.OpenZng(query.Span)
 	if err != nil {
+		f.Close()
 		return nil, err
 	}
 	zctx := resolver.NewContext()
 	mapper := scanner.NewMapper(zngReader, zctx)
 	mux, err := launch(ctx, query, mapper, zctx)
 	if err != nil {
+		f.Close()
 		return nil, err
 	}
 	return &Search{mux, zngReader}, nil
