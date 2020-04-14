@@ -136,7 +136,7 @@ func handlePacketSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	reader, err := s.PcapSearch(ctx, req)
 	if err == pcap.ErrNoPacketsFound {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		respondError(c, w, r, zqe.E(zqe.NotFound, err))
 		return
 	}
 	if err != nil {
