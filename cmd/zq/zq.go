@@ -6,6 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"regexp"
@@ -206,6 +207,12 @@ func (c *Command) Run(args []string) error {
 	} else {
 		reader = scanner.NewCombiner(readers)
 	}
+	defer func() {
+		if closer, ok := reader.(io.Closer); ok {
+			closer.Close()
+		}
+	}()
+
 	writer, err := c.openOutput()
 	if err != nil {
 		return err
