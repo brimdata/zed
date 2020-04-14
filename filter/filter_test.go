@@ -457,6 +457,7 @@ func TestFilters(t *testing.T) {
 		{"FOO", true},
 		{"sub", true},
 		{"rec.sub", true},
+		{"c.s", true},
 	})
 }
 
