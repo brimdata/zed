@@ -112,6 +112,39 @@ func EvalAny(eval Predicate, recursive bool) Filter {
 	}
 }
 
+// stringSearchRecord handles the special case of string searching -- it
+// matches both field names and values.
+func stringSearchRecord(val string, eval Predicate, recursive bool) Filter {
+	var match func(v zcode.Bytes, recType *zng.TypeRecord, prefix string) bool
+	match = func(v zcode.Bytes, recType *zng.TypeRecord, prefix string) bool {
+		it := v.Iter()
+		for _, c := range recType.Columns {
+			fullname := c.Name
+			if len(prefix) > 0 {
+				fullname = fmt.Sprintf("%s.%s", prefix, c.Name)
+			}
+			if stringSearch(fullname, val) {
+				return true
+			}
+
+			val, _, err := it.Next()
+			if err != nil {
+				return false
+			}
+			recType, isRecord := c.Type.(*zng.TypeRecord)
+			if isRecord && recursive && match(val, recType, fullname) {
+				return true
+			} else if !isRecord && eval(zng.Value{c.Type, val}) {
+				return true
+			}
+		}
+		return false
+	}
+	return func(r *zng.Record) bool {
+		return match(r.Raw, r.Type, "")
+	}
+}
+
 func Compile(node ast.BooleanExpr) (Filter, error) {
 	switch v := node.(type) {
 	case *ast.LogicalNot:
@@ -182,16 +215,10 @@ func Compile(node ast.BooleanExpr) (Filter, error) {
 		if err != nil {
 			return nil, err
 		}
-		filter := EvalAny(comparison, v.Recursive)
 		if v.Comparator == "search" && v.Value.Type == "string" {
-			return func(r *zng.Record) bool {
-				if r.Type.HasField(v.Value.Value) {
-					return true
-				}
-				return filter(r)
-			}, nil
+			return stringSearchRecord(v.Value.Value, comparison, v.Recursive), nil
 		}
-		return filter, nil
+		return EvalAny(comparison, v.Recursive), nil
 
 	default:
 		return nil, fmt.Errorf("Filter AST unknown type: %v", v)
