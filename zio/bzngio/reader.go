@@ -18,16 +18,45 @@ const (
 )
 
 type Reader struct {
-	peeker *peeker.Reader
-	zctx   *resolver.Context
-	mapper *resolver.Mapper
+	peeker   *peeker.Reader
+	zctx     *resolver.Context
+	mapper   *resolver.Mapper
+	position int64
+	sos      int64
 }
 
 func NewReader(reader io.Reader, zctx *resolver.Context) *Reader {
+	return NewReaderWithSize(reader, zctx, ReadSize)
+}
+
+func NewReaderWithSize(reader io.Reader, zctx *resolver.Context, size int) *Reader {
 	return &Reader{
-		peeker: peeker.NewReader(reader, ReadSize, MaxSize),
+		peeker: peeker.NewReader(reader, size, MaxSize),
 		zctx:   resolver.NewContext(),
 		mapper: resolver.NewMapper(zctx),
+	}
+}
+
+func (r *Reader) read(n int) ([]byte, error) {
+	b, err := r.peeker.Read(n)
+	r.position += int64(len(b))
+	return b, err
+}
+
+func (r *Reader) Position() int64 {
+	return r.position
+}
+
+// SkipStream skips over the records in the current stream and returns
+// the first record of the next stream and the start-of-stream position
+// of that record.
+func (r *Reader) SkipStream() (*zng.Record, int64, error) {
+	sos := r.sos
+	for {
+		rec, err := r.Read()
+		if err != nil || sos != r.sos || rec == nil {
+			return rec, r.sos, err
+		}
 	}
 }
 
@@ -59,7 +88,7 @@ func (r *Reader) Read() (*zng.Record, error) {
 // calls to Read or ReadPayload can be made.
 func (r *Reader) ReadPayload() (*zng.Record, []byte, error) {
 again:
-	b, err := r.peeker.Read(1)
+	b, err := r.read(1)
 	if err == io.EOF || len(b) == 0 {
 		return nil, nil, nil
 	}
@@ -78,13 +107,14 @@ again:
 			err = r.readTypeAlias()
 		case zng.CtrlEOS:
 			r.zctx.Reset()
+			r.sos = r.position
 		default:
 			// XXX we should return the control code
 			len, err := r.readUvarint()
 			if err != nil {
 				return nil, nil, zng.ErrBadFormat
 			}
-			b, err = r.peeker.Read(len)
+			b, err = r.read(len)
 			return nil, b, err
 		}
 		if err != nil {
@@ -108,7 +138,7 @@ again:
 	if err != nil {
 		return nil, nil, err
 	}
-	b, err = r.peeker.Read(int(len))
+	b, err = r.read(int(len))
 	if err != nil && err != io.EOF {
 		return nil, nil, zng.ErrBadFormat
 	}
@@ -128,7 +158,7 @@ func (r *Reader) readUvarint() (int, error) {
 	if n <= 0 {
 		return 0, zng.ErrBadFormat
 	}
-	_, err = r.peeker.Read(n)
+	_, err = r.read(n)
 	return int(v), err
 }
 
@@ -137,7 +167,7 @@ func (r *Reader) readColumn() (zng.Column, error) {
 	if err != nil {
 		return zng.Column{}, zng.ErrBadFormat
 	}
-	b, err := r.peeker.Read(len)
+	b, err := r.read(len)
 	if err != nil {
 		return zng.Column{}, zng.ErrBadFormat
 	}
@@ -236,7 +266,7 @@ func (r *Reader) readTypeAlias() error {
 	if err != nil {
 		return zng.ErrBadFormat
 	}
-	b, err := r.peeker.Read(len)
+	b, err := r.read(len)
 	if err != nil {
 		return zng.ErrBadFormat
 	}
