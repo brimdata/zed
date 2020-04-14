@@ -100,7 +100,7 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, paths [
 		}
 		readers = append(readers, sf)
 	}
-	reader := scanner.NewCombiner(readers)
+	reader := scanner.NewCombiner(readers, false)
 
 	bzngfile, err := s.CreateFile(filepath.Join(tmpIngestDir, allBzngTmpFile))
 	if err != nil {

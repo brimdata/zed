@@ -6,7 +6,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"regexp"
@@ -93,6 +92,7 @@ type Command struct {
 	stats          bool
 	quiet          bool
 	showVersion    bool
+	stopErr        bool
 	zio.Flags
 }
 
@@ -115,6 +115,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.verbose, "v", false, "show verbose details")
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
 	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
+	f.BoolVar(&c.stopErr, "e", true, "don't stop upon input errors")
 	f.BoolVar(&c.showVersion, "version", false, "print version and exit")
 	return c, nil
 }
@@ -196,22 +197,13 @@ func (c *Command) Run(args []string) error {
 		defer logger.Close()
 	}
 
-	readers, err := c.inputReaders(paths)
+	readers, err := c.inputReaders(paths, c.stopErr)
 	if err != nil {
 		return err
 	}
 
-	var reader zbuf.Reader
-	if len(readers) == 1 {
-		reader = readers[0]
-	} else {
-		reader = scanner.NewCombiner(readers)
-	}
-	defer func() {
-		if closer, ok := reader.(io.Closer); ok {
-			closer.Close()
-		}
-	}()
+	reader := scanner.NewCombiner(readers, c.stopErr)
+	defer reader.Close()
 
 	writer, err := c.openOutput()
 	if err != nil {
@@ -255,7 +247,7 @@ func (r namedReader) String() string {
 	return r.name
 }
 
-func (c *Command) inputReaders(paths []string) ([]zbuf.Reader, error) {
+func (c *Command) inputReaders(paths []string, stopErr bool) ([]zbuf.Reader, error) {
 	var readers []zbuf.Reader
 	for _, path := range paths {
 		var zr zbuf.Reader
@@ -284,7 +276,12 @@ func (c *Command) inputReaders(paths []string) ([]zbuf.Reader, error) {
 			zr, err = detector.LookupReader(c.ifmt, r, c.zctx)
 		}
 		if err != nil {
-			return nil, err
+			msg := fmt.Errorf("%s: %w", path, err)
+			if stopErr {
+				return nil, msg
+			}
+			c.errorf("%s\n", msg.Error())
+			continue
 		}
 		jr, ok := zr.(*ndjsonio.Reader)
 		if ok && c.jsonTypeConfig != nil {

@@ -10,13 +10,18 @@ import (
 
 // Scanner implements the proc.Proc interface.
 type Scanner struct {
+	c      *proc.Context
 	reader zbuf.Reader
 	filter filter.Filter
 	span   nano.Span
 }
 
-func NewScanner(reader zbuf.Reader, f filter.Filter, s nano.Span) *Scanner {
+func NewScanner(c *proc.Context, reader zbuf.Reader, f filter.Filter, s nano.Span) *Scanner {
+	if w, ok := reader.(interface{ SetWarningsChan(chan string) }); ok {
+		w.SetWarningsChan(c.Warnings)
+	}
 	return &Scanner{
+		c:      c,
 		reader: reader,
 		filter: f,
 		span:   s,

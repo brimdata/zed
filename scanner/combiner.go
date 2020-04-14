@@ -10,17 +10,32 @@ import (
 )
 
 type Combiner struct {
-	readers []zbuf.Reader
-	hol     []*zng.Record
-	done    []bool
+	readers  []zbuf.Reader
+	hol      []*zng.Record
+	done     []bool
+	warnings chan string
+	stopErr  bool
 }
 
-func NewCombiner(readers []zbuf.Reader) *Combiner {
+// NewCombiner returns a Combiner from a slice of readers. If stopErr
+// is true, the combiner stops reading from all readers after
+// encountering an error from any reader. Otherwise, it discards the
+// errored reader and keeps reading from the others.
+func NewCombiner(readers []zbuf.Reader, stopErr bool) *Combiner {
 	return &Combiner{
 		readers: readers,
 		hol:     make([]*zng.Record, len(readers)),
 		done:    make([]bool, len(readers)),
+		stopErr: stopErr,
 	}
+}
+
+// Set a warnings channel, similar to the one in proc.Context. If this
+// channel is set, read errors are sent on it as warnings and reading
+// from the remaining readers continues. Otherwise, a read error is
+// returned by Read().
+func (c *Combiner) SetWarningsChan(ch chan string) {
+	c.warnings = ch
 }
 
 func OpenFiles(zctx *resolver.Context, paths ...string) (*Combiner, error) {
@@ -32,7 +47,7 @@ func OpenFiles(zctx *resolver.Context, paths ...string) (*Combiner, error) {
 		}
 		readers = append(readers, reader)
 	}
-	return NewCombiner(readers), nil
+	return NewCombiner(readers, true), nil
 }
 
 func (c *Combiner) Read() (*zng.Record, error) {
@@ -44,7 +59,15 @@ func (c *Combiner) Read() (*zng.Record, error) {
 		if c.hol[k] == nil {
 			tup, err := l.Read()
 			if err != nil {
-				return nil, fmt.Errorf("%s: %w", c.readers[k], err)
+				msg := fmt.Errorf("%s: %w", c.readers[k], err)
+				if c.stopErr {
+					return nil, msg
+				}
+				c.done[k] = true
+				if c.warnings != nil {
+					c.warnings <- msg.Error()
+				}
+				continue
 			}
 			if tup == nil {
 				c.done[k] = true

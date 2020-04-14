@@ -20,15 +20,15 @@ import (
 func Compile(ctx context.Context, program ast.Proc, reader zbuf.Reader, reverse bool, span nano.Span, logger *zap.Logger) (*MuxOutput, error) {
 
 	filterAst, program := liftFilter(program)
-	input, err := inputProc(reader, filterAst, span)
-	if err != nil {
-		return nil, err
-	}
 	pctx := &proc.Context{
 		Context:     ctx,
 		TypeContext: resolver.NewContext(),
 		Logger:      logger,
 		Warnings:    make(chan string, 5),
+	}
+	input, err := inputProc(pctx, reader, filterAst, span)
+	if err != nil {
+		return nil, err
 	}
 	leaves, err := proc.CompileProc(nil, program, pctx, input)
 	if err != nil {
@@ -64,7 +64,7 @@ func liftFilter(p ast.Proc) (*ast.FilterProc, ast.Proc) {
 // inputProc takes a Reader, optional Filter AST, and timespan, and
 // constructs an input proc that can be used as the head of a
 // flowgraph.
-func inputProc(reader zbuf.Reader, fltast *ast.FilterProc, span nano.Span) (proc.Proc, error) {
+func inputProc(c *proc.Context, reader zbuf.Reader, fltast *ast.FilterProc, span nano.Span) (proc.Proc, error) {
 	var f filter.Filter
 	if fltast != nil {
 		var err error
@@ -72,5 +72,5 @@ func inputProc(reader zbuf.Reader, fltast *ast.FilterProc, span nano.Span) (proc
 			return nil, err
 		}
 	}
-	return scanner.NewScanner(reader, f, span), nil
+	return scanner.NewScanner(c, reader, f, span), nil
 }
