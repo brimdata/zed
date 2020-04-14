@@ -309,6 +309,11 @@ func run(zq, ZQL, outputFormat, outputFlags string, inputs ...string) (out strin
 	if err != nil {
 		return "", "", err
 	}
+	defer func() {
+		if closer, ok := zr.(io.Closer); ok {
+			closer.Close()
+		}
+	}()
 	if outputFormat == "types" {
 		outputFormat = "null"
 		zctx.SetLogger(&emitter.TypeLogger{WriteCloser: &nopCloser{&outbuf}})
