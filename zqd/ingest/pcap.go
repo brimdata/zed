@@ -248,7 +248,7 @@ func (p *Process) createSnapshot(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	zw := bzngio.NewWriter(bzngfile, zio.Flags{})
+	zw := bzngio.NewWriter(bzngfile, zio.Flags{StreamRecordsMax: p.space.StreamSize()})
 	program := fmt.Sprintf("sort -limit %d -r ts", p.sortLimit)
 	if err := p.ingestLogs(ctx, zw, zr, program); err != nil {
 		// If an error occurs here close and remove tmp bzngfile, lest we start

@@ -22,10 +22,11 @@ import (
 )
 
 const (
-	AllBzngFile   = "all.bzng"
-	configFile    = "config.json"
-	infoFile      = "info.json"
-	PcapIndexFile = "packets.idx.json"
+	AllBzngFile       = "all.bzng"
+	configFile        = "config.json"
+	infoFile          = "info.json"
+	PcapIndexFile     = "packets.idx.json"
+	defaultStreamSize = 5000
 )
 
 var (
@@ -35,8 +36,9 @@ var (
 )
 
 type Space struct {
-	path string
-	conf config
+	path  string
+	conf  config
+	index bzngio.Index
 }
 
 func Open(root, name string) (*Space, error) {
@@ -48,7 +50,7 @@ func Open(root, name string) (*Space, error) {
 		}
 		return nil, err
 	}
-	return &Space{path, c}, nil
+	return &Space{path, c, bzngio.NewIndex()}, nil
 }
 
 func Create(root, name, dataPath string) (*Space, error) {
@@ -74,12 +76,15 @@ func Create(root, name, dataPath string) (*Space, error) {
 	if dataPath == "" {
 		dataPath = path
 	}
-	c := config{DataPath: dataPath}
+	c := config{
+		DataPath:      dataPath,
+		ZngStreamSize: defaultStreamSize,
+	}
 	if err := c.save(path); err != nil {
 		os.RemoveAll(path)
 		return nil, err
 	}
-	return &Space{path, c}, nil
+	return &Space{path, c, bzngio.NewIndex()}, nil
 }
 
 func (s Space) Name() string {
@@ -204,8 +209,7 @@ func (s Space) OpenZng(span nano.Span) (zbuf.ReadCloser, error) {
 		r := bzngio.NewReader(strings.NewReader(""), zctx)
 		return zbuf.NopReadCloser(r), nil
 	} else {
-		r := bzngio.NewReader(f, zctx)
-		return zbuf.NewReadCloser(r, f), nil
+		return s.index.NewReader(f, zctx, span)
 	}
 }
 
@@ -238,6 +242,10 @@ func (s Space) PacketPath() string {
 	return s.conf.PacketPath
 }
 
+func (s Space) StreamSize() int {
+	return s.conf.ZngStreamSize
+}
+
 // Delete removes the space's path and data dir (should the data dir be
 // different then the space's path).
 func (s Space) Delete() error {
@@ -248,8 +256,9 @@ func (s Space) Delete() error {
 }
 
 type config struct {
-	DataPath   string `json:"data_path"`
-	PacketPath string `json:"packet_path"`
+	DataPath      string `json:"data_path"`
+	PacketPath    string `json:"packet_path"`
+	ZngStreamSize int    `json:"zng_stream_size"`
 }
 
 type info struct {
