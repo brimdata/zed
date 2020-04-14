@@ -139,7 +139,11 @@ func genICMPFilter(src, dst net.IP) PacketFilter {
 
 // XXX need to handle searching over multiple pcap files
 func (s *Search) Run(ctx context.Context, w io.Writer, r pcapio.Reader) error {
-	_, err := ctxio.Copy(ctx, w, s.Reader(r))
+	reader, err := s.Reader(ctx, r)
+	if err != nil {
+		return err
+	}
+	_, err = ctxio.Copy(ctx, w, reader)
 	return err
 }
 
@@ -147,38 +151,50 @@ type SearchReader struct {
 	*Search
 	reader pcapio.Reader
 	opts   gopacket.DecodeOptions
-	npkt   int
+	window []byte
 	buf    []byte
 }
 
-func (s *Search) Reader(r pcapio.Reader) *SearchReader {
+func (s *Search) Reader(ctx context.Context, r pcapio.Reader) (*SearchReader, error) {
 	opts := gopacket.DecodeOptions{Lazy: true, NoCopy: true}
-	return &SearchReader{Search: s, reader: r, opts: opts}
+	reader := &SearchReader{Search: s, reader: r, opts: opts}
+	err := reader.fill(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if len(reader.window) == 0 {
+		return nil, ErrNoPacketsFound
+	}
+	return reader, nil
 }
 
 func (s *SearchReader) Read(p []byte) (n int, err error) {
-	if len(s.buf) == 0 {
-		s.buf, err = s.next()
+	if len(s.window) == 0 {
+		err = s.fill(context.Background())
 		if err != nil {
 			return 0, err
 		}
-		if len(s.buf) == 0 {
+		if len(s.window) == 0 {
 			return 0, io.EOF
 		}
 	}
-	n = copy(p, s.buf)
-	s.buf = s.buf[n:]
+	n = copy(p, s.window)
+	s.window = s.window[n:]
 	return n, err
 }
 
-func (s *SearchReader) next() ([]byte, error) {
+func (s *SearchReader) fill(ctx context.Context) error {
+	s.buf = s.buf[:0]
 	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		block, typ, err := s.reader.Read()
 		if err != nil {
 			if err == io.EOF {
 				break
 			}
-			return nil, err
+			return err
 		}
 		if block == nil {
 			break
@@ -190,25 +206,27 @@ func (s *SearchReader) next() ([]byte, error) {
 		// by looking for sections headers, a buffering unnwritten sections
 		// until we get to the first packet and never writing the blocksa
 		// for sections that have no packets.
-		if typ != pcapio.TypePacket {
-			return block, nil
+		switch typ {
+		case pcapio.TypeSection:
+			s.buf = append(s.buf[:0], block...)
+		case pcapio.TypeInterface:
+			s.buf = append(s.buf, block...)
+		default:
+			pktBuf, ts, linkType := s.reader.Packet(block)
+			if pktBuf == nil {
+				return pcapio.ErrCorruptPcap
+			}
+			if !s.span.ContainsClosed(ts) {
+				continue
+			}
+			packet := gopacket.NewPacket(pktBuf, linkType, s.opts)
+			if s.filter != nil && !s.filter(packet) {
+				continue
+			}
+			s.buf = append(s.buf, block...)
+			s.window = s.buf[:]
+			return nil
 		}
-		pktBuf, ts, linkType := s.reader.Packet(block)
-		if pktBuf == nil {
-			return nil, pcapio.ErrCorruptPcap
-		}
-		if !s.span.ContainsClosed(ts) {
-			continue
-		}
-		packet := gopacket.NewPacket(pktBuf, linkType, s.opts)
-		if s.filter != nil && !s.filter(packet) {
-			continue
-		}
-		s.npkt++
-		return block, nil
 	}
-	if s.npkt == 0 {
-		return nil, ErrNoPacketsFound
-	}
-	return nil, nil
+	return nil
 }

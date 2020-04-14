@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pkg/ctxio"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zqd/api"
@@ -133,7 +134,11 @@ func handlePacketSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		respondError(c, w, r, zqe.E(zqe.Invalid, err))
 		return
 	}
-	reader, err := s.PcapSearch(req)
+	reader, err := s.PcapSearch(ctx, req)
+	if err == pcap.ErrNoPacketsFound {
+		respondError(c, w, r, zqe.E(zqe.NotFound, err))
+		return
+	}
 	if err != nil {
 		respondError(c, w, r, err)
 		return

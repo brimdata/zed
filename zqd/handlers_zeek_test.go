@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -87,6 +88,59 @@ func TestPacketPostSuccess(t *testing.T) {
 		assert.Equal(t, status.Type, "TaskEnd")
 		assert.Nil(t, status.Error)
 	})
+}
+
+func TestPacketPostSearch(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping test for windows")
+	}
+	ln, err := zeek.LauncherFromPath(os.Getenv("ZEEK"))
+	require.NoError(t, err)
+	p := packetPost(t, "./testdata/valid.pcap", ln)
+	defer p.cleanup()
+	t.Run("Success", func(t *testing.T) {
+		req := api.PacketSearch{
+			Span:    nano.Span{Ts: 1501770877471635000, Dur: 3485852000},
+			Proto:   "tcp",
+			SrcHost: net.ParseIP("192.168.0.5"),
+			SrcPort: 50798,
+			DstHost: net.ParseIP("54.148.114.85"),
+			DstPort: 80,
+		}
+		rc, err := p.client.PcapSearch(context.Background(), p.space, req)
+		require.NoError(t, err)
+		defer rc.Close()
+		// just make sure it's a valid pcap
+		for {
+			b, _, err := rc.Read()
+			require.NoError(t, err)
+			if b == nil {
+				return
+			}
+		}
+	})
+	t.Run("NotFound", func(t *testing.T) {
+		req := api.PacketSearch{
+			Span:    nano.Span{Ts: 1501770877471635000, Dur: 3485852000},
+			Proto:   "tcp",
+			SrcHost: net.ParseIP("192.168.0.5"),
+			SrcPort: 50760,
+			DstHost: net.ParseIP("54.148.114.85"),
+			DstPort: 80,
+		}
+		_, err := p.client.PcapSearch(context.Background(), p.space, req)
+		require.Equal(t, api.ErrNoPcapResultsFound, err)
+	})
+}
+
+func TestPcapSearchNotFound(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping test for windows")
+	}
+	ln, err := zeek.LauncherFromPath(os.Getenv("ZEEK"))
+	require.NoError(t, err)
+	p := packetPost(t, "./testdata/valid.pcap", ln)
+	defer p.cleanup()
 }
 
 func TestPacketPostSortLimit(t *testing.T) {
