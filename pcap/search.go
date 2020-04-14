@@ -151,7 +151,6 @@ type SearchReader struct {
 	*Search
 	reader pcapio.Reader
 	opts   gopacket.DecodeOptions
-	npkt   int
 	window []byte
 	buf    []byte
 }
