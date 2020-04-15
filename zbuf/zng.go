@@ -7,6 +7,13 @@ import (
 	"github.com/brimsec/zq/zng"
 )
 
+// Reader wraps the Read method.
+//
+// Read returns the next record and a nil error, a nil record and the next
+// error, or a nil record and nil error to indicate that no records remain.
+//
+// Read never returns a non-nil record and non-nil error together, and it never
+// returns io.EOF.
 type Reader interface {
 	Read() (*zng.Record, error)
 }
