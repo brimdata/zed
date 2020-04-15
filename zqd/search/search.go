@@ -123,9 +123,9 @@ func (d *searchdriver) abort(id int64, err error) error {
 }
 
 func (d *searchdriver) Warn(warning string) error {
-	v := api.SearchWarnings{
-		Type:     "SearchWarnings",
-		Warnings: []string{warning},
+	v := api.SearchWarning{
+		Type:    "SearchWarning",
+		Warning: warning,
 	}
 	return d.output.SendControl(v)
 }

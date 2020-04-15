@@ -333,12 +333,10 @@ func TestPostZngLogWarning(t *testing.T) {
 	require.NoError(t, err)
 
 	payloads := postSpaceLogs(t, client, spaceName, nil, false, strings.Join(src1, "\n"), strings.Join(src2, "\n"))
-	warn1 := payloads[1].(*api.LogPostWarnings)
-	warn2 := payloads[2].(*api.LogPostWarnings)
-	assert.Len(t, warn1.Warnings, 1)
-	assert.Len(t, warn2.Warnings, 1)
-	assert.True(t, strings.HasSuffix(warn1.Warnings[0], ": malformed input"))
-	assert.True(t, strings.HasSuffix(warn2.Warnings[0], ": line 3: bad format"))
+	warn1 := payloads[1].(*api.LogPostWarning)
+	warn2 := payloads[2].(*api.LogPostWarning)
+	assert.Regexp(t, ": malformed input$", warn1.Warning)
+	assert.Regexp(t, ": line 3: bad format$", warn2.Warning)
 
 	status := payloads[len(payloads)-2].(*api.LogPostStatus)
 	ts := nano.Ts(1e9)
@@ -436,12 +434,10 @@ func TestPostNDJSONLogWarning(t *testing.T) {
 	require.NoError(t, err)
 
 	payloads := postSpaceLogs(t, client, spaceName, &tc, false, src1, src2)
-	warn1 := payloads[1].(*api.LogPostWarnings)
-	warn2 := payloads[2].(*api.LogPostWarnings)
-	assert.Len(t, warn1.Warnings, 1)
-	assert.Len(t, warn2.Warnings, 1)
-	assert.True(t, strings.HasSuffix(warn1.Warnings[0], ": line 1: descriptor not found"))
-	assert.True(t, strings.HasSuffix(warn2.Warnings[0], ": line 2: descriptor not found"))
+	warn1 := payloads[1].(*api.LogPostWarning)
+	warn2 := payloads[2].(*api.LogPostWarning)
+	assert.Regexp(t, ": line 1: descriptor not found$", warn1.Warning)
+	assert.Regexp(t, ": line 2: descriptor not found$", warn2.Warning)
 
 	status := payloads[len(payloads)-2].(*api.LogPostStatus)
 	ts := nano.Ts(1e9)

@@ -46,9 +46,9 @@ type SearchRecords struct {
 	Records   []zjsonio.Record `json:"records"`
 }
 
-type SearchWarnings struct {
-	Type     string   `json:"type"`
-	Warnings []string `json:"warnings"`
+type SearchWarning struct {
+	Type    string `json:"type"`
+	Warning string `json:"warning"`
 }
 
 type SearchEnd struct {
@@ -116,9 +116,9 @@ type LogPostRequest struct {
 	JSONTypeConfig *ndjsonio.TypeConfig `json:"json_type_config"`
 }
 
-type LogPostWarnings struct {
-	Type     string   `json:"type"`
-	Warnings []string `json:"warnings"`
+type LogPostWarning struct {
+	Type    string `json:"type"`
+	Warning string `json:"warning"`
 }
 
 type LogPostStatus struct {

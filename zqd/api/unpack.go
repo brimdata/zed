@@ -24,8 +24,8 @@ func unpack(b []byte) (interface{}, error) {
 		out = &TaskEnd{}
 	case "SearchRecords":
 		out = &SearchRecords{}
-	case "SearchWarnings":
-		out = &SearchWarnings{}
+	case "SearchWarning":
+		out = &SearchWarning{}
 	case "SearchStats":
 		out = &SearchStats{}
 	case "SearchEnd":
@@ -34,8 +34,8 @@ func unpack(b []byte) (interface{}, error) {
 		out = &PacketPostStatus{}
 	case "LogPostStatus":
 		out = &LogPostStatus{}
-	case "LogPostWarnings":
-		out = &LogPostWarnings{}
+	case "LogPostWarning":
+		out = &LogPostWarning{}
 	case "":
 		return nil, fmt.Errorf("no type field in search result: %s", string(b))
 	default:
