@@ -140,14 +140,11 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	for {
-		if err := cut(out, reader, cuts, n); err != nil {
-			if err == io.EOF {
-				err = nil
-			}
-			return err
-		}
+	err = cut(out, reader, cuts, n)
+	if err == io.EOF {
+		err = nil
 	}
+	return err
 }
 
 func cut(w io.Writer, r pcapio.Reader, cuts []int, n int) error {
