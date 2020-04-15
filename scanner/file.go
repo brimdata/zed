@@ -63,7 +63,7 @@ type warningReader struct {
 func (w *warningReader) Read() (*zng.Record, error) {
 	rec, err := w.zr.Read()
 	if err != nil {
-		w.ch <- fmt.Sprintf("%s: %s", w.zr, err.Error())
+		w.ch <- fmt.Sprintf("%s: %s", w.zr, err)
 		return nil, nil
 	}
 	return rec, nil

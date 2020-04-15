@@ -282,11 +282,11 @@ func (c *Command) inputReaders(paths []string) ([]zbuf.Reader, error) {
 			zr, err = detector.LookupReader(c.ifmt, r, c.zctx)
 		}
 		if err != nil {
-			msg := fmt.Errorf("%s: %w", path, err)
+			err = fmt.Errorf("%s: %w", path, err)
 			if c.stopErr {
-				return nil, msg
+				return nil, err
 			}
-			c.errorf("%s\n", msg.Error())
+			c.errorf("%s\n", err)
 			continue
 		}
 		jr, ok := zr.(*ndjsonio.Reader)
