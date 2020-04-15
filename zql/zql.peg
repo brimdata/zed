@@ -122,10 +122,10 @@ searchPred
         IF(TEXT == "*") {
           RETURN(makeMatchAll())
         }
-        RETURN(makeOrChain(makeCompareAny("eql", true, v), ARRAY(makeCompareAny("in", true, v))))
+        RETURN(makeOrChain(makeCompareAny("=", true, v), ARRAY(makeCompareAny("in", true, v))))
       }
 
-      RETURN(makeOrChain(makeCompareAny("search", true, makeLiteral("string", TEXT)), ARRAY(makeCompareAny("searchin", true, makeLiteral("string", TEXT)), makeCompareAny("eql", true, v), makeCompareAny("in", true, v))))
+      RETURN(makeOrChain(makeCompareAny("search", true, makeLiteral("string", TEXT)), ARRAY(makeCompareAny("searchin", true, makeLiteral("string", TEXT)), makeCompareAny("=", true, v), makeCompareAny("in", true, v))))
     }
 
 searchValue
@@ -230,12 +230,7 @@ everyDur
   = "every"i _ dur:duration { RETURN(dur) }
 
 equalityToken
-  = "=" { RETURN("eql") }
-  / "!=" { RETURN("neql") }
-  / "<=" { RETURN("lte") }
-  / ">=" { RETURN("gte") }
-  / "<" { RETURN("lt") }
-  / ">" { RETURN("gt") }
+  = EqualityOperator / RelativeOperator
 
 andToken = "and"i { RETURN(TEXT) }
 orToken = "or"i { RETURN(TEXT) }
@@ -472,11 +467,15 @@ LogicalANDExpression
 
 EqualityCompareExpression
   = first:RelativeExpression
-    rest:(__ EqualityOperator __ RelativeExpression)* {
+    rest:(__ EqualityComparator __ RelativeExpression)* {
         RETURN(makeBinaryExprChain(first, rest))
     }
 
-EqualityOperator = ("=" / "!=" / "in") { RETURN(TEXT) }
+EqualityOperator = ("=" / "!=") { RETURN(TEXT) }
+
+EqualityComparator
+  = EqualityOperator
+  / "in" { RETURN(TEXT) }
 
 RelativeExpression
   = first:AdditiveExpression
