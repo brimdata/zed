@@ -350,7 +350,7 @@ func loadInputs(inputs []string, zctx *resolver.Context) (*scanner.Combiner, err
 		}
 		readers = append(readers, zr)
 	}
-	return scanner.NewCombiner(readers, true), nil
+	return scanner.NewCombiner(readers), nil
 }
 
 func tmpInputFiles(inputs []string) (string, []string, error) {

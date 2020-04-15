@@ -197,12 +197,18 @@ func (c *Command) Run(args []string) error {
 		defer logger.Close()
 	}
 
-	readers, err := c.inputReaders(paths, c.stopErr)
+	readers, err := c.inputReaders(paths)
 	if err != nil {
 		return err
 	}
 
-	reader := scanner.NewCombiner(readers, c.stopErr)
+	wch := make(chan string, 5)
+	if !c.stopErr {
+		for i, r := range readers {
+			readers[i] = scanner.WarningReader(r, wch)
+		}
+	}
+	reader := scanner.NewCombiner(readers)
 	defer reader.Close()
 
 	writer, err := c.openOutput()
@@ -210,7 +216,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer writer.Close()
-	mux, err := driver.Compile(context.Background(), query, reader, false, nano.MaxSpan, zap.NewNop())
+	mux, err := driver.CompileWarningsCh(context.Background(), query, reader, false, nano.MaxSpan, zap.NewNop(), wch)
 	if err != nil {
 		return err
 	}
@@ -276,11 +282,11 @@ func (c *Command) inputReaders(paths []string) ([]zbuf.Reader, error) {
 			zr, err = detector.LookupReader(c.ifmt, r, c.zctx)
 		}
 		if err != nil {
-			err = fmt.Errorf("%s: %w", path, err)
+			msg := fmt.Errorf("%s: %w", path, err)
 			if c.stopErr {
-				return nil, err
+				return nil, msg
 			}
-			c.errorf("%s\n", err)
+			c.errorf("%s\n", msg.Error())
 			continue
 		}
 		jr, ok := zr.(*ndjsonio.Reader)
