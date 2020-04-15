@@ -141,7 +141,7 @@ func newRangeReader(f *os.File, zctx *resolver.Context, index []mark, span nano.
 		off = mark.Offset
 	}
 	if off > 0 {
-		newoff, err := f.Seek(off, 0)
+		newoff, err := f.Seek(off, io.SeekStart)
 		if err != nil {
 			return nil, err
 		}
@@ -164,7 +164,7 @@ func (r *rangeReader) Read() (*zng.Record, error) {
 			return nil, err
 		}
 		r.nread++
-		if rec.Ts < r.start {
+		if rec != nil && rec.Ts < r.start {
 			continue
 		}
 		if rec != nil && rec.Ts > r.end {
