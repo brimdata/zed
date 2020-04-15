@@ -43,7 +43,6 @@ func TestLogsErrInFlight(t *testing.T) {
 	errCh1 := make(chan error)
 	errCh2 := make(chan error)
 	go func() {
-		// xxx this test is now a false positive. to be updated before merging.
 		p := api.NewJSONPipe(httptest.NewRecorder())
 		errCh1 <- Logs(context.Background(), p, s, []string{f}, nil, 10)
 	}()

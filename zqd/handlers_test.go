@@ -285,44 +285,36 @@ func TestPostZngLogs(t *testing.T) {
 	_, client, done := newCore(t)
 	defer done()
 	spaceName := "test"
-	t.Run("Space", func(t *testing.T) {
-		_, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: spaceName})
-		require.NoError(t, err)
-	})
-	t.Run("Post", func(t *testing.T) {
-		payloads := postSpaceLogs(t, client, spaceName, nil, strings.Join(src1, "\n"), strings.Join(src2, "\n"))
-		status := payloads[len(payloads)-2].(*api.LogPostStatus)
-		min, max := nano.Ts(1e9), nano.Ts(2e9)
-		expected := &api.LogPostStatus{
-			Type:    "LogPostStatus",
-			MinTime: &min,
-			MaxTime: &max,
-			Size:    80,
-		}
-		require.Equal(t, expected, status)
 
-		taskend := payloads[len(payloads)-1].(*api.TaskEnd)
-		assert.Equal(t, taskend.Type, "TaskEnd")
-		assert.Nil(t, taskend.Error)
-	})
-	t.Run("Search", func(t *testing.T) {
-		res := zngSearch(t, client, spaceName, "*")
-		expected := strings.Join(append(src2, src1[1]), "\n")
-		require.Equal(t, expected, strings.TrimSpace(res))
-	})
-	t.Run("SpaceInfo", func(t *testing.T) {
-		min, max := nano.Ts(1e9), nano.Ts(2e9)
-		expected := &api.SpaceInfo{
-			MinTime:       &min,
-			MaxTime:       &max,
-			Name:          spaceName,
-			Size:          80,
-			PacketSupport: false,
-		}
-		info, err := client.SpaceInfo(context.Background(), spaceName)
-		require.NoError(t, err)
-		require.Equal(t, expected, info)
-	})
+	_, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: spaceName})
+	require.NoError(t, err)
+
+	payloads := postSpaceLogs(t, client, spaceName, nil, strings.Join(src1, "\n"), strings.Join(src2, "\n"))
+	status := payloads[len(payloads)-2].(*api.LogPostStatus)
+	min, max := nano.Ts(1e9), nano.Ts(2e9)
+	require.Equal(t, &api.LogPostStatus{
+		Type:    "LogPostStatus",
+		MinTime: &min,
+		MaxTime: &max,
+		Size:    80,
+	}, status)
+
+	taskend := payloads[len(payloads)-1].(*api.TaskEnd)
+	assert.Equal(t, taskend.Type, "TaskEnd")
+	assert.Nil(t, taskend.Error)
+
+	res := zngSearch(t, client, spaceName, "*")
+	require.Equal(t, strings.Join(append(src2, src1[1]), "\n"), strings.TrimSpace(res))
+
+	info, err := client.SpaceInfo(context.Background(), spaceName)
+	require.NoError(t, err)
+	require.Equal(t, &api.SpaceInfo{
+		MinTime:       &min,
+		MaxTime:       &max,
+		Name:          spaceName,
+		Size:          80,
+		PacketSupport: false,
+	}, info)
 }
 
 func TestPostNDJSONLogs(t *testing.T) {
@@ -352,34 +344,29 @@ func TestPostNDJSONLogs(t *testing.T) {
 	_, client, done := newCore(t)
 	defer done()
 	const spaceName = "test"
-	t.Run("Space", func(t *testing.T) {
-		_, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: spaceName})
-		require.NoError(t, err)
-	})
-	t.Run("Post", func(t *testing.T) {
-		payloads := postSpaceLogs(t, client, spaceName, &tc, src1)
-		last := payloads[len(payloads)-1].(*api.TaskEnd)
-		assert.Equal(t, last.Type, "TaskEnd")
-		assert.Nil(t, last.Error)
-	})
-	t.Run("Search", func(t *testing.T) {
-		res := zngSearch(t, client, spaceName, "*")
-		const expected = "#0:record[_path:string,ts:time,uid:bstring]\n0:[http;2;CXY9a54W2dLZwzPXf1;]\n0:[http;1;CXY9a54W2dLZwzPXf1;]"
-		require.Equal(t, expected, strings.TrimSpace(res))
-	})
-	t.Run("SpaceInfo", func(t *testing.T) {
-		min, max := nano.Ts(1e9), nano.Ts(2e9)
-		expected := &api.SpaceInfo{
-			MinTime:       &min,
-			MaxTime:       &max,
-			Name:          spaceName,
-			Size:          80,
-			PacketSupport: false,
-		}
-		info, err := client.SpaceInfo(context.Background(), spaceName)
-		require.NoError(t, err)
-		require.Equal(t, expected, info)
-	})
+
+	_, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: spaceName})
+	require.NoError(t, err)
+
+	payloads := postSpaceLogs(t, client, spaceName, &tc, src1)
+	last := payloads[len(payloads)-1].(*api.TaskEnd)
+	assert.Equal(t, last.Type, "TaskEnd")
+	assert.Nil(t, last.Error)
+
+	res := zngSearch(t, client, spaceName, "*")
+	const expected = "#0:record[_path:string,ts:time,uid:bstring]\n0:[http;2;CXY9a54W2dLZwzPXf1;]\n0:[http;1;CXY9a54W2dLZwzPXf1;]"
+	require.Equal(t, expected, strings.TrimSpace(res))
+
+	min, max := nano.Ts(1e9), nano.Ts(2e9)
+	info, err := client.SpaceInfo(context.Background(), spaceName)
+	require.NoError(t, err)
+	require.Equal(t, &api.SpaceInfo{
+		MinTime:       &min,
+		MaxTime:       &max,
+		Name:          spaceName,
+		Size:          80,
+		PacketSupport: false,
+	}, info)
 }
 
 func TestPostInvalidLogs(t *testing.T) {
@@ -389,17 +376,15 @@ func TestPostInvalidLogs(t *testing.T) {
 	_, client, done := newCore(t)
 	defer done()
 	spaceName := "test"
-	t.Run("Space", func(t *testing.T) {
-		_, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: spaceName})
-		require.NoError(t, err)
-	})
-	t.Run("Post", func(t *testing.T) {
-		payloads := postSpaceLogs(t, client, spaceName, nil, src)
-		last := payloads[len(payloads)-1].(*api.TaskEnd)
-		assert.Equal(t, last.Type, "TaskEnd")
-		assert.NotNil(t, last.Error)
-		assert.Equal(t, last.Error.Message, detector.ErrUnknown.Error())
-	})
+
+	_, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: spaceName})
+	require.NoError(t, err)
+
+	payloads := postSpaceLogs(t, client, spaceName, nil, src)
+	last := payloads[len(payloads)-1].(*api.TaskEnd)
+	assert.Equal(t, last.Type, "TaskEnd")
+	assert.NotNil(t, last.Error)
+	assert.Equal(t, last.Error.Message, detector.ErrUnknown.Error())
 }
 
 func TestDeleteDuringPacketPost(t *testing.T) {
@@ -413,9 +398,7 @@ func TestDeleteDuringPacketPost(t *testing.T) {
 	require.NoError(t, err)
 
 	waitFn := func(tzp *testZeekProcess) error {
-		select {
-		case <-tzp.ctx.Done():
-		}
+		<-tzp.ctx.Done()
 		return tzp.ctx.Err()
 	}
 
