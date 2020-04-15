@@ -28,7 +28,7 @@ const allBzngTmpFile = space.AllBzngFile + ".tmp"
 
 // Logs ingests the provided list of files into the provided space.
 // Like ingest.Pcap, this overwrites any existing data in the space.
-func Logs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, paths []string, tc *ndjsonio.TypeConfig, sortLimit int) error {
+func Logs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api.LogPostRequest, sortLimit int) error {
 	ingestDir := s.DataPath(tmpIngestDir)
 	if err := os.Mkdir(ingestDir, 0700); err != nil {
 		// could be in use by pcap or log ingest
@@ -46,7 +46,7 @@ func Logs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, paths []strin
 		verr := &api.Error{Type: "INTERNAL", Message: err.Error()}
 		return pipe.SendFinal(&api.TaskEnd{"TaskEnd", 0, verr})
 	}
-	if err := ingestLogs(ctx, pipe, s, paths, tc, sortLimit); err != nil {
+	if err := ingestLogs(ctx, pipe, s, req, sortLimit); err != nil {
 		os.Remove(s.DataPath(space.AllBzngFile))
 		verr := &api.Error{Type: "INTERNAL", Message: err.Error()}
 		return pipe.SendFinal(&api.TaskEnd{"TaskEnd", 0, verr})
@@ -77,7 +77,7 @@ func configureJSONTypeReader(ndjr *ndjsonio.Reader, tc ndjsonio.TypeConfig, file
 	return ndjr.ConfigureTypes(tc, path)
 }
 
-func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, paths []string, tc *ndjsonio.TypeConfig, sortLimit int) error {
+func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api.LogPostRequest, sortLimit int) error {
 	zctx := resolver.NewContext()
 	var readers []zbuf.Reader
 	defer func() {
@@ -87,20 +87,26 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, paths [
 			}
 		}
 	}()
-	for _, path := range paths {
+	for _, path := range req.Paths {
 		sf, err := scanner.OpenFile(zctx, path, "auto")
 		if err != nil {
-			return err
+			if req.StopErr {
+				return err
+			}
+			pipe.Send(&api.LogPostWarning{
+				Type: "LogPostWarning",
+				Msg:  fmt.Sprintf("%s: %s", path, err.Error()),
+			})
+			continue
 		}
 		jr, ok := sf.Reader.(*ndjsonio.Reader)
-		if ok && tc != nil {
-			if err = configureJSONTypeReader(jr, *tc, path); err != nil {
+		if ok && req.JSONTypeConfig != nil {
+			if err = configureJSONTypeReader(jr, *req.JSONTypeConfig, path); err != nil {
 				return err
 			}
 		}
 		readers = append(readers, sf)
 	}
-	reader := scanner.NewCombiner(readers)
 
 	bzngfile, err := s.CreateFile(filepath.Join(tmpIngestDir, allBzngTmpFile))
 	if err != nil {
@@ -109,7 +115,17 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, paths [
 	zw := bzngio.NewWriter(bzngfile, zio.Flags{})
 	program := fmt.Sprintf("sort -limit %d -r ts | (filter *; head 1; tail 1)", sortLimit)
 	var headW, tailW recWriter
-	err = runLogIngest(ctx, s, reader, program, pipe, zw, &headW, &tailW)
+
+	mux, err := compileLogIngest(ctx, s, readers, program, req.StopErr)
+	if err != nil {
+		return err
+	}
+	d := &logdriver{
+		pipe:      pipe,
+		startTime: nano.Now(),
+		writers:   []zbuf.Writer{zw, &headW, &tailW},
+	}
+	err = driver.Run(mux, d, search.StatsInterval)
 	if err != nil {
 		bzngfile.Close()
 		os.Remove(bzngfile.Name())
@@ -139,19 +155,19 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, paths [
 	return pipe.Send(status)
 }
 
-func runLogIngest(ctx context.Context, s *space.Space, r zbuf.Reader, prog string, pipe *api.JSONPipe, w ...zbuf.Writer) error {
+func compileLogIngest(ctx context.Context, s *space.Space, rs []zbuf.Reader, prog string, stopErr bool) (*driver.MuxOutput, error) {
 	p, err := zql.ParseProc(prog)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	mux, err := driver.Compile(ctx, p, r, false, nano.MaxSpan, zap.NewNop())
-	if err != nil {
-		return err
+	if stopErr {
+		r := scanner.NewCombiner(rs)
+		return driver.Compile(ctx, p, r, false, nano.MaxSpan, zap.NewNop())
 	}
-	d := &logdriver{
-		pipe:      pipe,
-		startTime: nano.Now(),
-		writers:   w,
+	wch := make(chan string, 5)
+	for i, r := range rs {
+		rs[i] = scanner.WarningReader(r, wch)
 	}
-	return driver.Run(mux, d, search.StatsInterval)
+	r := scanner.NewCombiner(rs)
+	return driver.CompileWarningsCh(ctx, p, r, false, nano.MaxSpan, zap.NewNop(), wch)
 }

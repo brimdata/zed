@@ -40,7 +40,7 @@ func TestSearch(t *testing.T) {
 	defer done()
 	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	_ = postSpaceLogs(t, client, sp.Name, nil, src)
+	_ = postSpaceLogs(t, client, sp.Name, nil, false, src)
 	res := zngSearch(t, client, sp.Name, "*")
 	require.Equal(t, test.Trim(src), res)
 }
@@ -66,7 +66,7 @@ func TestSearchInvalidRequest(t *testing.T) {
 	defer done()
 	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	_ = postSpaceLogs(t, client, sp.Name, nil, src)
+	_ = postSpaceLogs(t, client, sp.Name, nil, false, src)
 
 	parsed, err := zql.ParseProc("*")
 	require.NoError(t, err)
@@ -116,7 +116,7 @@ func TestSpaceInfo(t *testing.T) {
 	defer done()
 	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	_ = postSpaceLogs(t, client, sp.Name, nil, src)
+	_ = postSpaceLogs(t, client, sp.Name, nil, false, src)
 	min, max := nano.Ts(1e9), nano.Ts(2e9)
 	expected := &api.SpaceInfo{
 		MinTime:       &min,
@@ -289,7 +289,7 @@ func TestPostZngLogs(t *testing.T) {
 	_, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: spaceName})
 	require.NoError(t, err)
 
-	payloads := postSpaceLogs(t, client, spaceName, nil, strings.Join(src1, "\n"), strings.Join(src2, "\n"))
+	payloads := postSpaceLogs(t, client, spaceName, nil, false, strings.Join(src1, "\n"), strings.Join(src2, "\n"))
 	status := payloads[len(payloads)-2].(*api.LogPostStatus)
 	min, max := nano.Ts(1e9), nano.Ts(2e9)
 	require.Equal(t, &api.LogPostStatus{
@@ -315,6 +315,42 @@ func TestPostZngLogs(t *testing.T) {
 		Size:          80,
 		PacketSupport: false,
 	}, info)
+}
+
+func TestPostZngLogWarning(t *testing.T) {
+	src1 := []string{
+		"undetectableformat",
+	}
+	src2 := []string{
+		"#0:record[_path:string,ts:time,uid:bstring]",
+		"0:[conn;1;CBrzd94qfowOqJwCHa;]",
+		"detectablebutbadline",
+	}
+	_, client, done := newCore(t)
+	defer done()
+	spaceName := "test"
+	_, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: spaceName})
+	require.NoError(t, err)
+
+	payloads := postSpaceLogs(t, client, spaceName, nil, false, strings.Join(src1, "\n"), strings.Join(src2, "\n"))
+	warn1 := payloads[1].(*api.LogPostWarning)
+	warn2 := payloads[2].(*api.LogPostWarning)
+	assert.True(t, strings.HasSuffix(warn1.Msg, ": malformed input"))
+	assert.True(t, strings.HasSuffix(warn2.Msg, ": line 3: bad format"))
+
+	status := payloads[len(payloads)-2].(*api.LogPostStatus)
+	ts := nano.Ts(1e9)
+	expected := &api.LogPostStatus{
+		Type:    "LogPostStatus",
+		MinTime: &ts,
+		MaxTime: &ts,
+		Size:    49,
+	}
+	require.Equal(t, expected, status)
+
+	taskend := payloads[len(payloads)-1].(*api.TaskEnd)
+	assert.Equal(t, taskend.Type, "TaskEnd")
+	assert.Nil(t, taskend.Error)
 }
 
 func TestPostNDJSONLogs(t *testing.T) {
@@ -348,7 +384,7 @@ func TestPostNDJSONLogs(t *testing.T) {
 	_, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: spaceName})
 	require.NoError(t, err)
 
-	payloads := postSpaceLogs(t, client, spaceName, &tc, src1)
+	payloads := postSpaceLogs(t, client, spaceName, &tc, false, src1)
 	last := payloads[len(payloads)-1].(*api.TaskEnd)
 	assert.Equal(t, last.Type, "TaskEnd")
 	assert.Nil(t, last.Error)
@@ -369,7 +405,56 @@ func TestPostNDJSONLogs(t *testing.T) {
 	}, info)
 }
 
-func TestPostInvalidLogs(t *testing.T) {
+func TestPostNDJSONLogWarning(t *testing.T) {
+	const src1 = `{"ts":"1000","_path":"nosuchpath"}
+{"ts":"2000","_path":"http"}`
+	const src2 = `{"ts":"1000","_path":"http"}
+{"ts":"2000","_path":"nosuchpath"}`
+	tc := ndjsonio.TypeConfig{
+		Descriptors: map[string][]interface{}{
+			"http_log": []interface{}{
+				map[string]interface{}{
+					"name": "_path",
+					"type": "string",
+				},
+				map[string]interface{}{
+					"name": "ts",
+					"type": "time",
+				},
+			},
+		},
+		Rules: []ndjsonio.Rule{
+			ndjsonio.Rule{"_path", "http", "http_log"},
+		},
+	}
+	_, client, done := newCore(t)
+	defer done()
+	const spaceName = "test"
+	_, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: spaceName})
+	require.NoError(t, err)
+
+	payloads := postSpaceLogs(t, client, spaceName, &tc, false, src1, src2)
+	warn1 := payloads[1].(*api.LogPostWarning)
+	warn2 := payloads[2].(*api.LogPostWarning)
+	assert.True(t, strings.HasSuffix(warn1.Msg, ": line 1: descriptor not found"))
+	assert.True(t, strings.HasSuffix(warn2.Msg, ": line 2: descriptor not found"))
+
+	status := payloads[len(payloads)-2].(*api.LogPostStatus)
+	ts := nano.Ts(1e9)
+	expected := &api.LogPostStatus{
+		Type:    "LogPostStatus",
+		MinTime: &ts,
+		MaxTime: &ts,
+		Size:    25,
+	}
+	require.Equal(t, expected, status)
+
+	taskend := payloads[len(payloads)-1].(*api.TaskEnd)
+	assert.Equal(t, taskend.Type, "TaskEnd")
+	assert.Nil(t, taskend.Error)
+}
+
+func TestPostLogStopErr(t *testing.T) {
 	src := `
 #0:record[_path:string,ts:time,uid:bstring
 0:[conn;1;CBrzd94qfowOqJwCHa;]`
@@ -380,10 +465,10 @@ func TestPostInvalidLogs(t *testing.T) {
 	_, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: spaceName})
 	require.NoError(t, err)
 
-	payloads := postSpaceLogs(t, client, spaceName, nil, src)
+	payloads := postSpaceLogs(t, client, spaceName, nil, true, src)
 	last := payloads[len(payloads)-1].(*api.TaskEnd)
 	assert.Equal(t, last.Type, "TaskEnd")
-	assert.NotNil(t, last.Error)
+	require.NotNil(t, last.Error)
 	assert.Equal(t, last.Error.Message, detector.ErrUnknown.Error())
 }
 
@@ -504,7 +589,7 @@ func writeTempFile(t *testing.T, contents string) string {
 }
 
 // postSpaceLogs POSTs the provided strings as logs in to the provided space, and returns a slice of any payloads that the server sent.
-func postSpaceLogs(t *testing.T, c *api.Connection, spaceName string, tc *ndjsonio.TypeConfig, logs ...string) []interface{} {
+func postSpaceLogs(t *testing.T, c *api.Connection, spaceName string, tc *ndjsonio.TypeConfig, stoperr bool, logs ...string) []interface{} {
 	var filenames []string
 	for _, log := range logs {
 		name := writeTempFile(t, log)
@@ -513,7 +598,7 @@ func postSpaceLogs(t *testing.T, c *api.Connection, spaceName string, tc *ndjson
 	}
 
 	ctx := context.Background()
-	s, err := c.LogPost(ctx, spaceName, api.LogPostRequest{Paths: filenames, JSONTypeConfig: tc})
+	s, err := c.LogPost(ctx, spaceName, api.LogPostRequest{Paths: filenames, JSONTypeConfig: tc, StopErr: stoperr})
 	require.NoError(t, err)
 	var payloads []interface{}
 	for {

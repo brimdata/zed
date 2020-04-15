@@ -353,7 +353,7 @@ func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 
 	pipe := api.NewJSONPipe(w)
-	err = ingest.Logs(ctx, pipe, s, req.Paths, req.JSONTypeConfig, c.SortLimit)
+	err = ingest.Logs(ctx, pipe, s, req, c.SortLimit)
 	if err != nil {
 		c.requestLogger(r).Warn("Error during log ingest", zap.Error(err))
 	}
