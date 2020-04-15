@@ -247,7 +247,7 @@ func (r namedReader) String() string {
 	return r.name
 }
 
-func (c *Command) inputReaders(paths []string, stopErr bool) ([]zbuf.Reader, error) {
+func (c *Command) inputReaders(paths []string) ([]zbuf.Reader, error) {
 	var readers []zbuf.Reader
 	for _, path := range paths {
 		var zr zbuf.Reader
@@ -277,7 +277,7 @@ func (c *Command) inputReaders(paths []string, stopErr bool) ([]zbuf.Reader, err
 		}
 		if err != nil {
 			err = fmt.Errorf("%s: %w", path, err)
-			if stopErr {
+			if c.stopErr {
 				return nil, err
 			}
 			c.errorf("%s\n", err)
