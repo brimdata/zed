@@ -413,9 +413,7 @@ func TestDeleteDuringPacketPost(t *testing.T) {
 	require.NoError(t, err)
 
 	waitFn := func(tzp *testZeekProcess) error {
-		select {
-		case <-tzp.ctx.Done():
-		}
+		<-tzp.ctx.Done()
 		return tzp.ctx.Err()
 	}
 
