@@ -1,7 +1,6 @@
 package zng_test
 
 import (
-	"bytes"
 	"net"
 	"strings"
 	"testing"
@@ -22,8 +21,7 @@ const builder = `
 2:[7;[3;]]`
 
 func TestBuilder(t *testing.T) {
-	in := []byte(strings.TrimSpace(builder) + "\n")
-	r := zngio.NewReader(bytes.NewReader(in), resolver.NewContext())
+	r := zngio.NewReader(strings.NewReader(builder), resolver.NewContext())
 	r0, _ := r.Read()
 	r1, _ := r.Read()
 	r2, _ := r.Read()
