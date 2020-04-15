@@ -112,7 +112,13 @@ type PacketPostStatus struct {
 
 type LogPostRequest struct {
 	Paths          []string             `json:"paths"`
+	StopErr        bool                 `json:"stop_err"`
 	JSONTypeConfig *ndjsonio.TypeConfig `json:"json_type_config"`
+}
+
+type LogPostWarnings struct {
+	Type     string   `json:"type"`
+	Warnings []string `json:"warnings"`
 }
 
 type LogPostStatus struct {

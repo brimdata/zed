@@ -27,7 +27,10 @@ func (d *logdriver) Write(cid int, batch zbuf.Batch) error {
 }
 
 func (d *logdriver) Warn(warning string) error {
-	return nil
+	return d.pipe.Send(&api.LogPostWarnings{
+		Type:     "LogPostWarnings",
+		Warnings: []string{warning},
+	})
 }
 func (d *logdriver) Stats(stats api.ScannerStats) error {
 	return nil

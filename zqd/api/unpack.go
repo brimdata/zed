@@ -34,6 +34,8 @@ func unpack(b []byte) (interface{}, error) {
 		out = &PacketPostStatus{}
 	case "LogPostStatus":
 		out = &LogPostStatus{}
+	case "LogPostWarnings":
+		out = &LogPostWarnings{}
 	case "":
 		return nil, fmt.Errorf("no type field in search result: %s", string(b))
 	default:
