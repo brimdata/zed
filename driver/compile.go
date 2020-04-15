@@ -18,6 +18,11 @@ import (
 // proc.MuxOutput that which brings together all of the flowgraphs
 // tails, and is ready to be Pull()'d from.
 func Compile(ctx context.Context, program ast.Proc, reader zbuf.Reader, reverse bool, span nano.Span, logger *zap.Logger) (*MuxOutput, error) {
+	ch := make(chan string, 5)
+	return CompileWarningsCh(ctx, program, reader, reverse, span, logger, ch)
+}
+
+func CompileWarningsCh(ctx context.Context, program ast.Proc, reader zbuf.Reader, reverse bool, span nano.Span, logger *zap.Logger, ch chan string) (*MuxOutput, error) {
 
 	filterAst, program := liftFilter(program)
 	input, err := inputProc(reader, filterAst, span)
@@ -28,7 +33,7 @@ func Compile(ctx context.Context, program ast.Proc, reader zbuf.Reader, reverse 
 		Context:     ctx,
 		TypeContext: resolver.NewContext(),
 		Logger:      logger,
-		Warnings:    make(chan string, 5),
+		Warnings:    ch,
 	}
 	leaves, err := proc.CompileProc(nil, program, pctx, input)
 	if err != nil {

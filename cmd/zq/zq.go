@@ -6,7 +6,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"regexp"
@@ -93,6 +92,7 @@ type Command struct {
 	stats          bool
 	quiet          bool
 	showVersion    bool
+	stopErr        bool
 	zio.Flags
 }
 
@@ -115,6 +115,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.verbose, "v", false, "show verbose details")
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
 	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
+	f.BoolVar(&c.stopErr, "e", true, "don't stop upon input errors")
 	f.BoolVar(&c.showVersion, "version", false, "print version and exit")
 	return c, nil
 }
@@ -201,24 +202,21 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 
-	var reader zbuf.Reader
-	if len(readers) == 1 {
-		reader = readers[0]
-	} else {
-		reader = scanner.NewCombiner(readers)
-	}
-	defer func() {
-		if closer, ok := reader.(io.Closer); ok {
-			closer.Close()
+	wch := make(chan string, 5)
+	if !c.stopErr {
+		for i, r := range readers {
+			readers[i] = scanner.WarningReader(r, wch)
 		}
-	}()
+	}
+	reader := scanner.NewCombiner(readers)
+	defer reader.Close()
 
 	writer, err := c.openOutput()
 	if err != nil {
 		return err
 	}
 	defer writer.Close()
-	mux, err := driver.Compile(context.Background(), query, reader, false, nano.MaxSpan, zap.NewNop())
+	mux, err := driver.CompileWarningsCh(context.Background(), query, reader, false, nano.MaxSpan, zap.NewNop(), wch)
 	if err != nil {
 		return err
 	}
@@ -284,7 +282,12 @@ func (c *Command) inputReaders(paths []string) ([]zbuf.Reader, error) {
 			zr, err = detector.LookupReader(c.ifmt, r, c.zctx)
 		}
 		if err != nil {
-			return nil, err
+			err = fmt.Errorf("%s: %w", path, err)
+			if c.stopErr {
+				return nil, err
+			}
+			c.errorf("%s\n", err)
+			continue
 		}
 		jr, ok := zr.(*ndjsonio.Reader)
 		if ok && c.jsonTypeConfig != nil {

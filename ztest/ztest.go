@@ -309,11 +309,7 @@ func run(zq, ZQL, outputFormat, outputFlags string, inputs ...string) (out strin
 	if err != nil {
 		return "", "", err
 	}
-	defer func() {
-		if closer, ok := zr.(io.Closer); ok {
-			closer.Close()
-		}
-	}()
+	defer zr.Close()
 	if outputFormat == "types" {
 		outputFormat = "null"
 		zctx.SetLogger(&emitter.TypeLogger{WriteCloser: &nopCloser{&outbuf}})
@@ -345,7 +341,7 @@ func run(zq, ZQL, outputFormat, outputFlags string, inputs ...string) (out strin
 	return string(outbuf.Bytes()), string(errbuf.Bytes()), nil
 }
 
-func loadInputs(inputs []string, zctx *resolver.Context) (zbuf.Reader, error) {
+func loadInputs(inputs []string, zctx *resolver.Context) (*scanner.Combiner, error) {
 	var readers []zbuf.Reader
 	for _, input := range inputs {
 		zr, err := detector.NewReader(detector.GzipReader(strings.NewReader(input)), zctx)
@@ -353,9 +349,6 @@ func loadInputs(inputs []string, zctx *resolver.Context) (zbuf.Reader, error) {
 			return nil, err
 		}
 		readers = append(readers, zr)
-	}
-	if len(readers) == 1 {
-		return readers[0], nil
 	}
 	return scanner.NewCombiner(readers), nil
 }

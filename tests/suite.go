@@ -44,6 +44,9 @@ var commands = []test.Exec{
 
 var scripts = []test.Shell{
 	errors.Combiner,
+	errors.StopErrStop,
+	errors.StopErrContinue,
+	errors.StopErrContinueMid,
 	diropt.Test,
 	diropt.Test2,
 	jsontype.Test,
