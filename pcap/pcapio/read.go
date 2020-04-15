@@ -151,13 +151,16 @@ func (r *PcapReader) Read() ([]byte, BlockType, error) {
 		return nil, 0, err
 	}
 	caplen := int(r.byteOrder.Uint32(hdr[8:12]))
-	fullLength := int(r.byteOrder.Uint32(hdr[12:16]))
 	if r.snaplen != 0 && caplen > int(r.snaplen) {
 		return nil, 0, fmt.Errorf("capture length exceeds snap length: %d > %d", caplen, r.snaplen)
 	}
-	if caplen > fullLength {
-		return nil, 0, fmt.Errorf("capture length exceeds original packet length: %d > %d", caplen, fullLength)
-	}
+	// Some pcaps have the bug that captures exceed the size of the actual packet.
+	// Wireshark seems to handle these ok, so instead of failing and raising
+	// an error, we should ignore this condition and pass the packet along.
+	//fullLength := int(r.byteOrder.Uint32(hdr[12:16]))
+	//if caplen > fullLength {
+	//	return nil, 0, fmt.Errorf("capture length exceeds original packet length: %d > %d", caplen, fullLength)
+	//}
 	n := caplen + packetHeaderLen
 	block, err := r.Reader.Read(n)
 	if err != nil {
