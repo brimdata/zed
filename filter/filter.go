@@ -185,7 +185,7 @@ func Compile(node ast.BooleanExpr) (Filter, error) {
 			if err != nil {
 				return nil, err
 			}
-			eql, _ := Comparison("eql", v.Value)
+			eql, _ := Comparison("=", v.Value)
 			comparison := Contains(eql)
 			return combine(resolver, comparison), nil
 		}
@@ -194,7 +194,7 @@ func Compile(node ast.BooleanExpr) (Filter, error) {
 
 	case *ast.CompareAny:
 		if v.Comparator == "in" {
-			compare, err := Comparison("eql", v.Value)
+			compare, err := Comparison("=", v.Value)
 			if err != nil {
 				return nil, err
 			}

@@ -14,15 +14,6 @@ import (
 	"github.com/brimsec/zq/zng"
 )
 
-var opTokens = map[string]string{
-	"eql":  "=",
-	"neql": "!=",
-	"gt":   ">",
-	"gte":  ">=",
-	"lt":   "<",
-	"lte":  "<=",
-}
-
 //XXX TBD:
 // - change these comparisons to work in the zcode.Bytes domain
 // - add timer, interval comparisons when we add time, interval literals to the language
@@ -34,27 +25,27 @@ var opTokens = map[string]string{
 type Predicate func(zng.Value) bool
 
 var compareBool = map[string]func(bool, bool) bool{
-	"eql":  func(a, b bool) bool { return a == b },
-	"neql": func(a, b bool) bool { return a != b },
-	"gt": func(a, b bool) bool {
+	"=":  func(a, b bool) bool { return a == b },
+	"!=": func(a, b bool) bool { return a != b },
+	">": func(a, b bool) bool {
 		if a {
 			return !b
 		}
 		return false
 	},
-	"gte": func(a, b bool) bool {
+	">=": func(a, b bool) bool {
 		if a {
 			return true
 		}
 		return !b
 	},
-	"lt": func(a, b bool) bool {
+	"<": func(a, b bool) bool {
 		if a {
 			return false
 		}
 		return b
 	},
-	"lte": func(a, b bool) bool {
+	"<=": func(a, b bool) bool {
 		if a {
 			return b
 		}
@@ -68,7 +59,7 @@ var compareBool = map[string]func(bool, bool) bool{
 func CompareBool(op string, pattern bool) (Predicate, error) {
 	compare, ok := compareBool[op]
 	if !ok {
-		return nil, fmt.Errorf("unknown bool comparator: %s", opTokens[op])
+		return nil, fmt.Errorf("unknown bool comparator: %s", op)
 	}
 	return func(v zng.Value) bool {
 		if v.Type.ID() != zng.IdBool {
@@ -80,33 +71,33 @@ func CompareBool(op string, pattern bool) (Predicate, error) {
 		}
 		return compare(b, pattern)
 	}, nil
-	return nil, fmt.Errorf("bad comparator for boolean type: %s", opTokens[op])
+	return nil, fmt.Errorf("bad comparator for boolean type: %s", op)
 }
 
 var compareInt = map[string]func(int64, int64) bool{
-	"eql":  func(a, b int64) bool { return a == b },
-	"neql": func(a, b int64) bool { return a != b },
-	"gt":   func(a, b int64) bool { return a > b },
-	"gte":  func(a, b int64) bool { return a >= b },
-	"lt":   func(a, b int64) bool { return a < b },
-	"lte":  func(a, b int64) bool { return a <= b }}
+	"=":  func(a, b int64) bool { return a == b },
+	"!=": func(a, b int64) bool { return a != b },
+	">":  func(a, b int64) bool { return a > b },
+	">=": func(a, b int64) bool { return a >= b },
+	"<":  func(a, b int64) bool { return a < b },
+	"<=": func(a, b int64) bool { return a <= b }}
 
 var compareFloat = map[string]func(float64, float64) bool{
-	"eql":  func(a, b float64) bool { return a == b },
-	"neql": func(a, b float64) bool { return a != b },
-	"gt":   func(a, b float64) bool { return a > b },
-	"gte":  func(a, b float64) bool { return a >= b },
-	"lt":   func(a, b float64) bool { return a < b },
-	"lte":  func(a, b float64) bool { return a <= b }}
+	"=":  func(a, b float64) bool { return a == b },
+	"!=": func(a, b float64) bool { return a != b },
+	">":  func(a, b float64) bool { return a > b },
+	">=": func(a, b float64) bool { return a >= b },
+	"<":  func(a, b float64) bool { return a < b },
+	"<=": func(a, b float64) bool { return a <= b }}
 
 // Return a predicate for comparing this value to one more typed
 // byte slices by calling the predicate function with a Value.
-// Operand is one of "eql", "neql", "lt", "lte", "gt", "gte".
+// Operand is one of "=", "!=", "<", "<=", ">", ">=".
 func CompareInt64(op string, pattern int64) (Predicate, error) {
 	CompareInt, ok1 := compareInt[op]
 	CompareFloat, ok2 := compareFloat[op]
 	if !ok1 || !ok2 {
-		return nil, fmt.Errorf("unknown int comparator: %s", opTokens[op])
+		return nil, fmt.Errorf("unknown int comparator: %s", op)
 	}
 	// many different zeek data types can be compared with integers
 	return func(val zng.Value) bool {
@@ -156,7 +147,7 @@ func CompareInt64(op string, pattern int64) (Predicate, error) {
 func CompareContainerLen(op string, len int64) (Predicate, error) {
 	compare, ok := compareInt[op]
 	if !ok {
-		return nil, fmt.Errorf("unknown length comparator: %s", opTokens[op])
+		return nil, fmt.Errorf("unknown length comparator: %s", op)
 	}
 	return func(v zng.Value) bool {
 		actual, err := v.ContainerLength()
@@ -170,12 +161,12 @@ func CompareContainerLen(op string, len int64) (Predicate, error) {
 //XXX should just do equality and we should compare in the encoded domain
 // and not make copies and have separate cases for len 4 and len 16
 var compareAddr = map[string]func(net.IP, net.IP) bool{
-	"eql":  func(a, b net.IP) bool { return a.Equal(b) },
-	"neql": func(a, b net.IP) bool { return !a.Equal(b) },
-	"gt":   func(a, b net.IP) bool { return bytes.Compare(a, b) > 0 },
-	"gte":  func(a, b net.IP) bool { return bytes.Compare(a, b) >= 0 },
-	"lt":   func(a, b net.IP) bool { return bytes.Compare(a, b) < 0 },
-	"lte":  func(a, b net.IP) bool { return bytes.Compare(a, b) <= 0 },
+	"=":  func(a, b net.IP) bool { return a.Equal(b) },
+	"!=": func(a, b net.IP) bool { return !a.Equal(b) },
+	">":  func(a, b net.IP) bool { return bytes.Compare(a, b) > 0 },
+	">=": func(a, b net.IP) bool { return bytes.Compare(a, b) >= 0 },
+	"<":  func(a, b net.IP) bool { return bytes.Compare(a, b) < 0 },
+	"<=": func(a, b net.IP) bool { return bytes.Compare(a, b) <= 0 },
 }
 
 // Comparison returns a Predicate that compares typed byte slices that must
@@ -184,7 +175,7 @@ var compareAddr = map[string]func(net.IP, net.IP) bool{
 func CompareIP(op string, pattern net.IP) (Predicate, error) {
 	compare, ok := compareAddr[op]
 	if !ok {
-		return nil, fmt.Errorf("unknown addr comparator: %s", opTokens[op])
+		return nil, fmt.Errorf("unknown addr comparator: %s", op)
 	}
 	return func(v zng.Value) bool {
 		if v.Type.ID() != zng.IdIP {
@@ -205,7 +196,7 @@ func CompareIP(op string, pattern net.IP) (Predicate, error) {
 func CompareFloat64(op string, pattern float64) (Predicate, error) {
 	compare, ok := compareFloat[op]
 	if !ok {
-		return nil, fmt.Errorf("unknown double comparator: %s", opTokens[op])
+		return nil, fmt.Errorf("unknown double comparator: %s", op)
 	}
 	return func(val zng.Value) bool {
 		zv := val.Bytes
@@ -279,12 +270,12 @@ func stringSearch(a, b string) bool {
 }
 
 var compareString = map[string]func(string, string) bool{
-	"eql":  func(a, b string) bool { return a == b },
-	"neql": func(a, b string) bool { return a != b },
-	"gt":   func(a, b string) bool { return a > b },
-	"gte":  func(a, b string) bool { return a >= b },
-	"lt":   func(a, b string) bool { return a < b },
-	"lte":  func(a, b string) bool { return a <= b },
+	"=":  func(a, b string) bool { return a == b },
+	"!=": func(a, b string) bool { return a != b },
+	">":  func(a, b string) bool { return a > b },
+	">=": func(a, b string) bool { return a >= b },
+	"<":  func(a, b string) bool { return a < b },
+	"<=": func(a, b string) bool { return a <= b },
 	//XXX this doesn't belong here.  primitive comparison vs container operator
 	"search": stringSearch,
 }
@@ -292,7 +283,7 @@ var compareString = map[string]func(string, string) bool{
 func CompareBstring(op string, pattern zng.Bstring) (Predicate, error) {
 	compare, ok := compareString[op]
 	if !ok {
-		return nil, fmt.Errorf("unknown string comparator: %s", opTokens[op])
+		return nil, fmt.Errorf("unknown string comparator: %s", op)
 	}
 	s := string(pattern)
 	return func(v zng.Value) bool {
@@ -317,8 +308,8 @@ func compareRegexp(op, pattern string) (Predicate, error) {
 	}
 	switch op {
 	default:
-		return nil, fmt.Errorf("unknown pattern comparator: %s", opTokens[op])
-	case "eql":
+		return nil, fmt.Errorf("unknown pattern comparator: %s", op)
+	case "=":
 		return func(v zng.Value) bool {
 			switch v.Type.ID() {
 			case zng.IdString, zng.IdBstring:
@@ -326,7 +317,7 @@ func compareRegexp(op, pattern string) (Predicate, error) {
 			}
 			return false
 		}, nil
-	case "neql":
+	case "!=":
 		return func(v zng.Value) bool {
 			switch v.Type.ID() {
 			case zng.IdString, zng.IdBstring:
@@ -344,7 +335,7 @@ func compareRegexp(op, pattern string) (Predicate, error) {
 func ComparePort(op string, pattern uint32) (Predicate, error) {
 	compare, ok := compareInt[op]
 	if !ok {
-		return nil, fmt.Errorf("unknown port comparator: %s", opTokens[op])
+		return nil, fmt.Errorf("unknown port comparator: %s", op)
 	}
 	// only a zeek port can be compared with a port type.  If the user went
 	// to the trouble of specifying a port match (e.g., ":80" vs "80") then
@@ -364,12 +355,12 @@ func ComparePort(op string, pattern uint32) (Predicate, error) {
 func CompareUnset(op string) (Predicate, error) {
 	switch op {
 	default:
-		return nil, fmt.Errorf("unknown unset comparator: %s", opTokens[op])
-	case "eql":
+		return nil, fmt.Errorf("unknown unset comparator: %s", op)
+	case "=":
 		return func(v zng.Value) bool {
 			return v.IsUnset()
 		}, nil
-	case "neql":
+	case "!=":
 		return func(v zng.Value) bool {
 			return !v.IsUnset()
 		}, nil
@@ -380,34 +371,34 @@ func CompareUnset(op string) (Predicate, error) {
 // go doesn't provide an easy way to compare masks so we do this
 // hacky thing and compare strings
 var compareSubnet = map[string]func(*net.IPNet, *net.IPNet) bool{
-	"eql":  func(a, b *net.IPNet) bool { return bytes.Equal(a.IP, b.IP) },
-	"neql": func(a, b *net.IPNet) bool { return bytes.Equal(a.IP, b.IP) },
-	"lt":   func(a, b *net.IPNet) bool { return bytes.Compare(a.IP, b.IP) < 0 },
-	"lte":  func(a, b *net.IPNet) bool { return bytes.Compare(a.IP, b.IP) <= 0 },
-	"gt":   func(a, b *net.IPNet) bool { return bytes.Compare(a.IP, b.IP) > 0 },
-	"gte":  func(a, b *net.IPNet) bool { return bytes.Compare(a.IP, b.IP) >= 0 },
+	"=":  func(a, b *net.IPNet) bool { return bytes.Equal(a.IP, b.IP) },
+	"!=": func(a, b *net.IPNet) bool { return bytes.Equal(a.IP, b.IP) },
+	"<":  func(a, b *net.IPNet) bool { return bytes.Compare(a.IP, b.IP) < 0 },
+	"<=": func(a, b *net.IPNet) bool { return bytes.Compare(a.IP, b.IP) <= 0 },
+	">":  func(a, b *net.IPNet) bool { return bytes.Compare(a.IP, b.IP) > 0 },
+	">=": func(a, b *net.IPNet) bool { return bytes.Compare(a.IP, b.IP) >= 0 },
 }
 
 var matchSubnet = map[string]func(net.IP, *net.IPNet) bool{
-	"eql": func(a net.IP, b *net.IPNet) bool {
+	"=": func(a net.IP, b *net.IPNet) bool {
 		return b.IP.Equal(a.Mask(b.Mask))
 	},
-	"neql": func(a net.IP, b *net.IPNet) bool {
+	"!=": func(a net.IP, b *net.IPNet) bool {
 		return !b.IP.Equal(a.Mask(b.Mask))
 	},
-	"lt": func(a net.IP, b *net.IPNet) bool {
+	"<": func(a net.IP, b *net.IPNet) bool {
 		net := a.Mask(b.Mask)
 		return bytes.Compare(net, b.IP) < 0
 	},
-	"lte": func(a net.IP, b *net.IPNet) bool {
+	"<=": func(a net.IP, b *net.IPNet) bool {
 		net := a.Mask(b.Mask)
 		return bytes.Compare(net, b.IP) <= 0
 	},
-	"gt": func(a net.IP, b *net.IPNet) bool {
+	">": func(a net.IP, b *net.IPNet) bool {
 		net := a.Mask(b.Mask)
 		return bytes.Compare(net, b.IP) > 0
 	},
-	"gte": func(a net.IP, b *net.IPNet) bool {
+	">=": func(a net.IP, b *net.IPNet) bool {
 		net := a.Mask(b.Mask)
 		return bytes.Compare(net, b.IP) >= 0
 	},
@@ -423,7 +414,7 @@ func CompareSubnet(op string, pattern *net.IPNet) (Predicate, error) {
 	compare, ok1 := compareSubnet[op]
 	match, ok2 := matchSubnet[op]
 	if !ok1 || !ok2 {
-		return nil, fmt.Errorf("unknown subnet comparator: %s", opTokens[op])
+		return nil, fmt.Errorf("unknown subnet comparator: %s", op)
 	}
 	return func(v zng.Value) bool {
 		val := v.Bytes
@@ -470,8 +461,8 @@ func Contains(compare Predicate) Predicate {
 }
 
 // Comparison returns a Predicate for comparing this value to other values.
-// The op argument is one of "eql", "neql", "lt", "lte",
-// "gt", "gte".  See the comments of the various type implementations
+// The op argument is one of "=", "!=", "<", "<=", ">", ">=".
+// See the comments of the various type implementations
 // of this method as some types limit the operand to equality and
 // the various types handle coercion in different ways.
 func Comparison(op string, literal ast.Literal) (Predicate, error) {
