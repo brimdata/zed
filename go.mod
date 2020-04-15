@@ -8,6 +8,7 @@ require (
 	github.com/go-resty/resty/v2 v2.2.0
 	github.com/google/gopacket v1.1.17
 	github.com/gorilla/mux v1.7.4
+	github.com/kr/pretty v0.1.0
 	github.com/mccanne/charm v0.0.3-0.20191224190439-b05e1b7b1be3
 	github.com/mccanne/joe v0.0.0-20181124064909-25770742c256
 	github.com/peterh/liner v1.1.0

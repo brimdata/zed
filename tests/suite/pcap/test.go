@@ -34,6 +34,13 @@ func init() {
 		panic(err.Error())
 	}
 	Test6.Input[0].Data = string(zData)
+
+	// same as in.pcap but with snaplen = 0
+	zData, err = ioutil.ReadFile("suite/pcap/bad-caplen.pcap")
+	if err != nil {
+		panic(err.Error())
+	}
+	Test7.Input[0].Data = string(zData)
 }
 
 // XXX note these tests don't test the pcap slice index file since there
@@ -138,5 +145,28 @@ var Test6 = test.Shell{
 	Input:  []test.File{test.File{Name: "zero.pcap"}},
 	Expected: []test.File{
 		test.File{"out1", test.Trim(out1)},
+	},
+}
+
+var Test6x = test.Shell{
+	Name:   "pcap-snap-zero",
+	Script: `pcap slice -r zero.pcap -from 1425567047.804914 -to 1425567432.792482 | pcap ts -w out1`,
+	Input:  []test.File{test.File{Name: "zero.pcap"}},
+	Expected: []test.File{
+		test.File{"out1", test.Trim(out1)},
+	},
+}
+
+var out7 = "1585183818.342834"
+
+// make sure we can read packets with a buggy caplen greater than the
+// original packet size.  bad-caplen.pcap was exdtracted fromo the pcap
+// in brim/issue https://github.com/brimsec/brim/issues/615
+var Test7 = test.Shell{
+	Name:   "pcap-bad-caplen",
+	Script: `pcap slice -r c.pcap | pcap ts -w out7`,
+	Input:  []test.File{test.File{Name: "c.pcap"}},
+	Expected: []test.File{
+		test.File{"out7", test.Trim(out7)},
 	},
 }
