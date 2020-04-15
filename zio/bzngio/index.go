@@ -43,7 +43,7 @@ func (i *Index) NewReader(f *os.File, zctx *resolver.Context, span nano.Span) (I
 	} else {
 		return &indexReader{
 			Reader: *NewReader(f, zctx),
-			closer: f,
+			Closer: f,
 			start:  span.Ts,
 			end:    span.End(),
 			parent: i,
@@ -54,7 +54,7 @@ func (i *Index) NewReader(f *os.File, zctx *resolver.Context, span nano.Span) (I
 // indexReader is a zbuf.Reader that also builds an index as it reads.
 type indexReader struct {
 	Reader
-	closer  io.Closer
+	io.Closer
 	start   nano.Ts
 	end     nano.Ts
 	parent  *Index
@@ -66,14 +66,14 @@ type indexReader struct {
 func (i *indexReader) Read() (*zng.Record, error) {
 	for {
 		rec, err := i.readOne()
+		if err != nil {
+			return nil, err
+		}
+
 		if rec == nil {
 			i.parent.index = i.marks
 			i.parent.indexReady = true
 			return nil, nil
-		}
-
-		if err != nil {
-			return nil, err
 		}
 
 		if rec.Ts < i.start {
@@ -110,10 +110,6 @@ func (i *indexReader) readOne() (*zng.Record, error) {
 	return rec, nil
 }
 
-func (i *indexReader) Close() error {
-	return i.closer.Close()
-}
-
 // this is only used for testing and only called on rangeReader
 func (i *indexReader) Reads() uint64 {
 	return 0
@@ -125,10 +121,10 @@ func (i *indexReader) Reads() uint64 {
 // to a smaller time range within the file.
 type rangeReader struct {
 	Reader
-	closer io.Closer
-	start  nano.Ts
-	end    nano.Ts
-	nread  uint64
+	io.Closer
+	start nano.Ts
+	end   nano.Ts
+	nread uint64
 }
 
 func newRangeReader(f *os.File, zctx *resolver.Context, index []mark, span nano.Span) (*rangeReader, error) {
@@ -151,7 +147,7 @@ func newRangeReader(f *os.File, zctx *resolver.Context, index []mark, span nano.
 	}
 	return &rangeReader{
 		Reader: *NewReader(f, zctx),
-		closer: f,
+		Closer: f,
 		start:  span.Ts,
 		end:    span.End(),
 	}, nil
@@ -172,10 +168,6 @@ func (r *rangeReader) Read() (*zng.Record, error) {
 		}
 		return rec, nil
 	}
-}
-
-func (r *rangeReader) Close() error {
-	return r.closer.Close()
 }
 
 func (r *rangeReader) Reads() uint64 {
