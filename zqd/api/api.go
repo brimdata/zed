@@ -116,9 +116,9 @@ type LogPostRequest struct {
 	JSONTypeConfig *ndjsonio.TypeConfig `json:"json_type_config"`
 }
 
-type LogPostWarning struct {
-	Type string `json:"type"`
-	Msg  string `json:"msg"`
+type LogPostWarnings struct {
+	Type     string   `json:"type"`
+	Warnings []string `json:"warnings"`
 }
 
 type LogPostStatus struct {

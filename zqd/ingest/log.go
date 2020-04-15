@@ -93,9 +93,9 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api
 			if req.StopErr {
 				return err
 			}
-			pipe.Send(&api.LogPostWarning{
-				Type: "LogPostWarning",
-				Msg:  fmt.Sprintf("%s: %s", path, err.Error()),
+			pipe.Send(&api.LogPostWarnings{
+				Type:     "LogPostWarnings",
+				Warnings: []string{fmt.Sprintf("%s: %s", path, err.Error())},
 			})
 			continue
 		}
