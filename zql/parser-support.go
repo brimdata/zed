@@ -52,10 +52,6 @@ func makeLiteral(typ string, val interface{}) *ast.Literal {
 	return &ast.Literal{ast.Node{"Literal"}, typ, val.(string)}
 }
 
-func getValueType(val interface{}) string {
-	return val.(*ast.Literal).Type
-}
-
 type FieldCallPlaceholder struct {
 	op    string
 	param string
