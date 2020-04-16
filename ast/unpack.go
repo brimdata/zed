@@ -243,6 +243,8 @@ func unpackBooleanExpr(node joe.JSON) (BooleanExpr, error) {
 		return nil, fmt.Errorf("AST is missing op field")
 	}
 	switch op {
+	case "Search":
+		return &Search{}, nil
 	case "LogicalAnd":
 		left, right, err := unpackChildren(node)
 		if err != nil {

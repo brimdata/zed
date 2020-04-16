@@ -210,17 +210,7 @@ function peg$parse(input, options) {
             return makeCompareField("in", f, v)
           },
       peg$c33 = function(v) {
-            if (getValueType(v) == "string") {
-              return makeOrChain(makeCompareAny("search", true, v), [makeCompareAny("searchin", true, v)])
-            }
-            if (getValueType(v) == "regexp") {
-              if (text() == "*") {
-                return makeMatchAll()
-              }
-              return makeOrChain(makeCompareAny("=", true, v), [makeCompareAny("in", true, v)])
-            }
-
-            return makeOrChain(makeCompareAny("search", true, makeLiteral("string", text())), [makeCompareAny("searchin", true, makeLiteral("string", text())), makeCompareAny("=", true, v), makeCompareAny("in", true, v)])
+            return makeSearch(v)
           },
       peg$c34 = function(i) { return i },
       peg$c35 = function(v) { return v },
@@ -7832,6 +7822,14 @@ function peg$parse(input, options) {
 
   function makeMatchAll() {
     return { op: "MatchAll" };
+  }
+
+  function makeSearch(value) {
+    // wildcard is a special case
+    if (value.type == "regexp" && value.value == "^.*$") {
+      return makeMatchAll();
+    }
+    return { op: "Search", value };
   }
 
   function makeCompareField(comparator, field, value) {

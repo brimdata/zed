@@ -115,17 +115,7 @@ searchPred
       RETURN(makeCompareField("in", f, v))
     }
   / v:searchValue {
-      IF(getValueType(v) == "string") {
-        RETURN(makeOrChain(makeCompareAny("search", true, v), ARRAY(makeCompareAny("searchin", true, v))))
-      }
-      IF(getValueType(v) == "regexp") {
-        IF(TEXT == "*") {
-          RETURN(makeMatchAll())
-        }
-        RETURN(makeOrChain(makeCompareAny("=", true, v), ARRAY(makeCompareAny("in", true, v))))
-      }
-
-      RETURN(makeOrChain(makeCompareAny("search", true, makeLiteral("string", TEXT)), ARRAY(makeCompareAny("searchin", true, makeLiteral("string", TEXT)), makeCompareAny("=", true, v), makeCompareAny("in", true, v))))
+      RETURN(makeSearch(v))
     }
 
 searchValue

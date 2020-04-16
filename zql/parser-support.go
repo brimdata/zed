@@ -88,6 +88,16 @@ func makeMatchAll() *ast.MatchAll {
 	return &ast.MatchAll{ast.Node{"MatchAll"}}
 }
 
+func makeSearch(v interface{}) ast.BooleanExpr {
+	lit := v.(*ast.Literal)
+
+	// wildcard is a special case...
+	if lit.Type == "regexp" && lit.Value == "^.*$" {
+		return makeMatchAll()
+	}
+	return &ast.Search{ast.Node{"Search"}, *lit}
+}
+
 func makeCompareField(comparatorIn, fieldIn, valueIn interface{}) *ast.CompareField {
 	comparator := comparatorIn.(string)
 	field := fieldIn.(ast.FieldExpr)
