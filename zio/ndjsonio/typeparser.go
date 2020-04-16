@@ -33,9 +33,10 @@ type typeParser struct {
 }
 
 var (
-	ErrDescriptorNotFound = errors.New("descriptor not found")
-	ErrMissingPath        = errors.New("missing path field")
-	ErrBadFormat          = errors.New("bad format")
+	ErrDescriptorNotFound   = errors.New("descriptor not found")
+	ErrMissingPath          = errors.New("missing path field")
+	ErrBadFormat            = errors.New("bad format")
+	ErrIncompleteDescriptor = errors.New("incomplete descriptor")
 )
 
 // Information about the correspondence between the flattened structure
@@ -269,6 +270,7 @@ func (p *typeParser) parseObject(b []byte) (zng.Value, error) {
 	}
 	if dropped > 0 {
 		incr(&p.stats.IncompleteDescriptor)
+		return zng.Value{}, ErrIncompleteDescriptor
 	}
 
 	return zng.Value{ti.descriptor, raw}, nil

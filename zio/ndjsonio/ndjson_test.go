@@ -269,11 +269,10 @@ func TestNDJSONTypeErrors(t *testing.T) {
 		},
 		{
 			name:   "Extra field",
-			result: typeStats{IncompleteDescriptor: 2, FirstBadLine: 1},
-			input: `{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http", "extra_field": 1}
-{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http"}
+			result: typeStats{IncompleteDescriptor: 1, FirstBadLine: 2},
+			input: `{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http"}
 {"ts":"2017-03-24T19:59:24.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http", "extra_field": 1}`,
-			success: true,
+			success: false,
 		},
 		{
 			name:   "Bad line number",
