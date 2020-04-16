@@ -22,11 +22,10 @@ import (
 )
 
 const (
-	AllBzngFile       = "all.bzng"
-	configFile        = "config.json"
-	infoFile          = "info.json"
-	PcapIndexFile     = "packets.idx.json"
-	defaultStreamSize = 5000
+	AllBzngFile   = "all.bzng"
+	configFile    = "config.json"
+	infoFile      = "info.json"
+	PcapIndexFile = "packets.idx.json"
 )
 
 var (
@@ -36,9 +35,8 @@ var (
 )
 
 type Space struct {
-	path  string
-	conf  config
-	index bzngio.TimeIndex
+	path string
+	conf config
 }
 
 func Open(root, name string) (*Space, error) {
@@ -50,7 +48,7 @@ func Open(root, name string) (*Space, error) {
 		}
 		return nil, err
 	}
-	return &Space{path, c, bzngio.NewTimeIndex()}, nil
+	return &Space{path, c}, nil
 }
 
 func Create(root, name, dataPath string) (*Space, error) {
@@ -76,15 +74,12 @@ func Create(root, name, dataPath string) (*Space, error) {
 	if dataPath == "" {
 		dataPath = path
 	}
-	c := config{
-		DataPath:      dataPath,
-		ZngStreamSize: defaultStreamSize,
-	}
+	c := config{DataPath: dataPath}
 	if err := c.save(path); err != nil {
 		os.RemoveAll(path)
 		return nil, err
 	}
-	return &Space{path, c, bzngio.NewTimeIndex()}, nil
+	return &Space{path, c}, nil
 }
 
 func (s Space) Name() string {
@@ -209,7 +204,8 @@ func (s Space) OpenZng(span nano.Span) (zbuf.ReadCloser, error) {
 		r := bzngio.NewReader(strings.NewReader(""), zctx)
 		return zbuf.NopReadCloser(r), nil
 	} else {
-		return s.index.NewReader(f, zctx, span)
+		r := bzngio.NewReader(f, zctx)
+		return zbuf.NewReadCloser(r, f), nil
 	}
 }
 
@@ -242,10 +238,6 @@ func (s Space) PacketPath() string {
 	return s.conf.PacketPath
 }
 
-func (s Space) StreamSize() int {
-	return s.conf.ZngStreamSize
-}
-
 // Delete removes the space's path and data dir (should the data dir be
 // different then the space's path).
 func (s Space) Delete() error {
@@ -256,9 +248,8 @@ func (s Space) Delete() error {
 }
 
 type config struct {
-	DataPath      string `json:"data_path"`
-	PacketPath    string `json:"packet_path"`
-	ZngStreamSize int    `json:"zng_stream_size"`
+	DataPath   string `json:"data_path"`
+	PacketPath string `json:"packet_path"`
 }
 
 type info struct {

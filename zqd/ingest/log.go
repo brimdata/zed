@@ -106,7 +106,7 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, paths [
 	if err != nil {
 		return err
 	}
-	zw := bzngio.NewWriter(bzngfile, zio.Flags{StreamRecordsMax: s.StreamSize()})
+	zw := bzngio.NewWriter(bzngfile, zio.Flags{})
 	program := fmt.Sprintf("sort -limit %d -r ts | (filter *; head 1; tail 1)", sortLimit)
 	var headW, tailW recWriter
 	err = runLogIngest(ctx, s, reader, program, pipe, zw, &headW, &tailW)
