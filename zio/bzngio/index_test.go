@@ -60,7 +60,9 @@ func checkReader(t *testing.T, r bzngio.IndexReader, checkReads bool) {
 	require.Nil(t, rec, "Reached eof after last record in time span")
 
 	if checkReads {
-		require.LessOrEqual(t, r.Reads(), uint64(6), "Indexed reader did not read the entire file")
+		rr, ok := r.(interface{ Reads() uint64 })
+		require.True(t, ok, "Can get read stats from index reader")
+		require.LessOrEqual(t, rr.Reads(), uint64(6), "Indexed reader did not read the entire file")
 	}
 }
 
@@ -90,7 +92,7 @@ func TestBzngIndex(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	index := bzngio.NewIndex()
+	index := bzngio.NewTimeIndex()
 
 	// Create a time span that hits parts of different streams
 	// from within the bzng file.

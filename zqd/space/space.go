@@ -38,7 +38,7 @@ var (
 type Space struct {
 	path  string
 	conf  config
-	index bzngio.Index
+	index bzngio.TimeIndex
 }
 
 func Open(root, name string) (*Space, error) {
@@ -50,7 +50,7 @@ func Open(root, name string) (*Space, error) {
 		}
 		return nil, err
 	}
-	return &Space{path, c, bzngio.NewIndex()}, nil
+	return &Space{path, c, bzngio.NewTimeIndex()}, nil
 }
 
 func Create(root, name, dataPath string) (*Space, error) {
@@ -84,7 +84,7 @@ func Create(root, name, dataPath string) (*Space, error) {
 		os.RemoveAll(path)
 		return nil, err
 	}
-	return &Space{path, c, bzngio.NewIndex()}, nil
+	return &Space{path, c, bzngio.NewTimeIndex()}, nil
 }
 
 func (s Space) Name() string {

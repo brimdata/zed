@@ -11,16 +11,13 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-type Index struct {
+type TimeIndex struct {
 	index      []mark
 	indexReady bool
 }
 
 type IndexReader interface {
 	zbuf.ReadCloser
-	// count of how many records were read from disk, currently just
-	// used for testing.
-	Reads() uint64
 }
 
 type mark struct {
@@ -33,22 +30,25 @@ type mark struct {
 // will return a reader that scans the entire file, building a time-based
 // index in the process, subsequent readers can use this index to read
 // only the relevant zng streams from the underlying file.
-func NewIndex() Index {
-	return Index{}
+func NewTimeIndex() TimeIndex {
+	return TimeIndex{}
 }
 
-func (i *Index) NewReader(f *os.File, zctx *resolver.Context, span nano.Span) (IndexReader, error) {
-	if i.indexReady {
-		return newRangeReader(f, zctx, i.index, span)
-	} else {
-		return &indexReader{
-			Reader: *NewReader(f, zctx),
-			Closer: f,
-			start:  span.Ts,
-			end:    span.End(),
-			parent: i,
-		}, nil
+// Create a new reader for the given zng file.  Only records with timestamps
+// that fall within the time range indicated by span will be emitted by
+// the returned Reader object.
+func (ti *TimeIndex) NewReader(f *os.File, zctx *resolver.Context, span nano.Span) (IndexReader, error) {
+	if ti.indexReady {
+		return newRangeReader(f, zctx, ti.index, span)
 	}
+
+	return &indexReader{
+		Reader: *NewReader(f, zctx),
+		Closer: f,
+		start:  span.Ts,
+		end:    span.End(),
+		parent: ti,
+	}, nil
 }
 
 // indexReader is a zbuf.Reader that also builds an index as it reads.
@@ -57,7 +57,7 @@ type indexReader struct {
 	io.Closer
 	start   nano.Ts
 	end     nano.Ts
-	parent  *Index
+	parent  *TimeIndex
 	marks   []mark
 	lastSOS int64
 	lastTs  nano.Ts
@@ -110,11 +110,6 @@ func (i *indexReader) readOne() (*zng.Record, error) {
 	return rec, nil
 }
 
-// this is only used for testing and only called on rangeReader
-func (i *indexReader) Reads() uint64 {
-	return 0
-}
-
 // rangeReader is a wrapper around bzngio.Reader that uses an in-memory
 // index to reduce the I/O needed to get matching records when reading a
 // large bzng file that includes sub-streams and a nano.Span that refers
@@ -129,7 +124,8 @@ type rangeReader struct {
 
 func newRangeReader(f *os.File, zctx *resolver.Context, index []mark, span nano.Span) (*rangeReader, error) {
 	var off int64
-	// XXX binary search
+	// Find the stream within the zng file that holds the start time.
+	// For a large index this could be optimized with a binary search.
 	for _, mark := range index {
 		if mark.Ts > span.Ts {
 			break
@@ -170,6 +166,7 @@ func (r *rangeReader) Read() (*zng.Record, error) {
 	}
 }
 
+// Used from tests
 func (r *rangeReader) Reads() uint64 {
 	return r.nread
 }
