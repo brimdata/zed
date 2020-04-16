@@ -1,4 +1,4 @@
-package bzngio_test
+package bzngio
 
 import (
 	"io/ioutil"
@@ -10,13 +10,12 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
-	"github.com/brimsec/zq/zio/bzngio"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/require"
 )
 
-const zng = `
+const zngData = `
 #0:record[ts:time,value:int32]
 0:[1586886160;0;]
 0:[1586886161;1;]
@@ -38,7 +37,7 @@ const startTime = "1586886163"
 const endTime = "1586886166"
 
 // The guts of the test.  r must be a reader allocated from a
-// bzngio.TimeIndex with the contents above and a time span delimited by
+// TimeIndex with the contents above and a time span delimited by
 // startTime and endTime as defined above.  First verifies that calling Read()
 // repeatedly gives just the records that fall within the requested time
 // span.  Then, if checkReads is true, verify that the total records read
@@ -61,9 +60,9 @@ func checkReader(t *testing.T, r zbuf.Reader, checkReads bool) {
 	require.Nil(t, rec, "Reached eof after last record in time span")
 
 	if checkReads {
-		rr, ok := r.(interface{ Reads() uint64 })
+		rr, ok := r.(*rangeReader)
 		require.True(t, ok, "Can get read stats from index reader")
-		require.LessOrEqual(t, rr.Reads(), uint64(6), "Indexed reader did not read the entire file")
+		require.LessOrEqual(t, rr.reads(), uint64(6), "Indexed reader did not read the entire file")
 	}
 }
 
@@ -74,13 +73,13 @@ func TestBzngIndex(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	// create a test bzng file
-	reader := zngio.NewReader(strings.NewReader(zng), resolver.NewContext())
+	reader := zngio.NewReader(strings.NewReader(zngData), resolver.NewContext())
 	fname := filepath.Join(dir, "test.zng")
 	fp, err := os.Create(fname)
 	require.NoError(t, err)
 
 	flags := zio.Flags{StreamRecordsMax: 2}
-	writer := bzngio.NewWriter(fp, flags)
+	writer := NewWriter(fp, flags)
 
 	for {
 		rec, err := reader.Read()
@@ -93,7 +92,7 @@ func TestBzngIndex(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	index := bzngio.NewTimeIndex()
+	index := NewTimeIndex()
 
 	// Create a time span that hits parts of different streams
 	// from within the bzng file.

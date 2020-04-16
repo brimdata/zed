@@ -163,6 +163,6 @@ func (r *rangeReader) Read() (*zng.Record, error) {
 }
 
 // Used from tests
-func (r *rangeReader) Reads() uint64 {
+func (r *rangeReader) reads() uint64 {
 	return r.nread
 }
