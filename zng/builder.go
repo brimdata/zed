@@ -9,6 +9,7 @@ import (
 type Builder struct {
 	zcode.Builder
 	Type *TypeRecord
+	rec  Record
 }
 
 func NewBuilder(typ *TypeRecord) *Builder {
@@ -26,7 +27,7 @@ func NewBuilder(typ *TypeRecord) *Builder {
 // primitive vs container insertions.  This could be the start of a whole package
 // that provides different ways to build zng.Records via, e.g., a marshal API,
 // auto-generated stubs, etc.
-func (b *Builder) Build(rec *Record, zvs ...zcode.Bytes) {
+func (b *Builder) Build(zvs ...zcode.Bytes) *Record {
 	b.Reset()
 	cols := b.Type.Columns
 	for k, zv := range zvs {
@@ -36,7 +37,14 @@ func (b *Builder) Build(rec *Record, zvs ...zcode.Bytes) {
 			b.AppendPrimitive(zv)
 		}
 	}
-	// XXX rec.Ts, rec.volatile?
-	rec.Type = b.Type
-	rec.Raw = b.Bytes()
+	// Note that t.rec.nonvolatile is false so anything downstream
+	// will have to copy the record and we can re-use the record value
+	// between subsequent calls.
+	b.rec.Type = b.Type
+	b.rec.Raw = b.Bytes()
+	// fill in the ts if there's a ts field
+	if b.Type.TsCol >= 0 {
+		b.rec.Ts, _ = b.rec.AccessTime("ts")
+	}
+	return &b.rec
 }

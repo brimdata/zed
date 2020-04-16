@@ -26,7 +26,6 @@ func TestBuilder(t *testing.T) {
 	r1, _ := r.Read()
 	r2, _ := r.Read()
 
-	var rec zng.Record
 	zctx := resolver.NewContext()
 
 	t0 := zctx.LookupTypeRecord([]zng.Column{
@@ -34,7 +33,7 @@ func TestBuilder(t *testing.T) {
 	})
 	b0 := zng.NewBuilder(t0)
 	ip := net.ParseIP("1.2.3.4")
-	b0.Build(&rec, zng.EncodeIP(ip))
+	rec := b0.Build(zng.EncodeIP(ip))
 	assert.Equal(t, r0.Raw, rec.Raw)
 
 	t1 := zctx.LookupTypeRecord([]zng.Column{
@@ -43,7 +42,7 @@ func TestBuilder(t *testing.T) {
 		{"c", zng.TypeInt64},
 	})
 	b1 := zng.NewBuilder(t1)
-	b1.Build(&rec, zng.EncodeInt(1), zng.EncodeInt(2), zng.EncodeInt(3))
+	rec = b1.Build(zng.EncodeInt(1), zng.EncodeInt(2), zng.EncodeInt(3))
 	assert.Equal(t, r1.Raw, rec.Raw)
 
 	t2 := zctx.LookupTypeRecord([]zng.Column{
@@ -61,6 +60,6 @@ func TestBuilder(t *testing.T) {
 	// easy way to do it all...
 	var rb zcode.Builder
 	rb.AppendPrimitive(zng.EncodeInt(3))
-	b2.Build(&rec, zng.EncodeInt(7), rb.Bytes())
+	rec = b2.Build(zng.EncodeInt(7), rb.Bytes())
 	assert.Equal(t, r2.Raw, rec.Raw)
 }
