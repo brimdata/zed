@@ -16,10 +16,6 @@ type TimeIndex struct {
 	indexReady bool
 }
 
-type IndexReader interface {
-	zbuf.ReadCloser
-}
-
 type mark struct {
 	Ts     nano.Ts
 	Offset int64
@@ -37,7 +33,7 @@ func NewTimeIndex() TimeIndex {
 // Create a new reader for the given zng file.  Only records with timestamps
 // that fall within the time range indicated by span will be emitted by
 // the returned Reader object.
-func (ti *TimeIndex) NewReader(f *os.File, zctx *resolver.Context, span nano.Span) (IndexReader, error) {
+func (ti *TimeIndex) NewReader(f *os.File, zctx *resolver.Context, span nano.Span) (zbuf.ReadCloser, error) {
 	if ti.indexReady {
 		return newRangeReader(f, zctx, ti.index, span)
 	}

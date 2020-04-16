@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/bzngio"
 	"github.com/brimsec/zq/zio/zngio"
@@ -36,15 +37,15 @@ const zng = `
 const startTime = "1586886163"
 const endTime = "1586886166"
 
-// The guts of the test.  r must be an IndexReader that is given a zng
-// file with the contents above and a time span delimited by startTime
-// and endTime as defined above.  First verifies that calling Read()
+// The guts of the test.  r must be a reader allocated from a
+// bzngio.TimeIndex with the contents above and a time span delimited by
+// startTime and endTime as defined above.  First verifies that calling Read()
 // repeatedly gives just the records that fall within the requested time
 // span.  Then, if checkReads is true, verify that the total records read
 // from disk is just enough to cover the time span, and not the entire
 // file (with streams of 2 records each and parts of 3 streams being
 // inside the time span, a total of 6 records should be read).
-func checkReader(t *testing.T, r bzngio.IndexReader, checkReads bool) {
+func checkReader(t *testing.T, r zbuf.Reader, checkReads bool) {
 	for expect := 3; expect <= 6; expect++ {
 		rec, err := r.Read()
 		require.NoError(t, err)
