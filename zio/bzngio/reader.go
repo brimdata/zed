@@ -80,6 +80,12 @@ func (r *Reader) Read() (*zng.Record, error) {
 		rec.Type = sharedType
 		return rec, err
 	}
+
+}
+
+// LastSOS returns the offset of the most recent Start-of-Stream
+func (r *Reader) LastSOS() int64 {
+	return r.sos
 }
 
 // ReadPayload returns either data values as zbuf.Record or control payloads
