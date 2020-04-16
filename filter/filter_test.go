@@ -285,6 +285,7 @@ func TestFilters(t *testing.T) {
 		{"HELLO", true},
 		{"WoRlDZ", true},
 		{"1.1.1.1", true},
+		{"wor*", true},
 	})
 
 	// Test time coercion
