@@ -210,7 +210,7 @@ function peg$parse(input, options) {
             return makeCompareField("in", f, v)
           },
       peg$c33 = function(v) {
-            return makeSearch(v)
+            return makeSearch(text(), v)
           },
       peg$c34 = function(i) { return i },
       peg$c35 = function(v) { return v },
@@ -7823,12 +7823,12 @@ function peg$parse(input, options) {
     return { op: "MatchAll" };
   }
 
-  function makeSearch(value) {
+  function makeSearch(text, value) {
     // wildcard is a special case
     if (value.type == "regexp" && value.value == "^.*$") {
       return makeMatchAll();
     }
-    return { op: "Search", value };
+    return { op: "Search", text, value };
   }
 
   function makeCompareField(comparator, field, value) {

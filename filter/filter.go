@@ -136,7 +136,7 @@ func compileSearch(node *ast.Search) (Filter, error) {
 		return searchRecordString(string(term)), nil
 	}
 
-	return searchRecordOther(node.Value)
+	return searchRecordOther(node.Text, node.Value)
 }
 
 // stringSearch is like strings.Contains() but with case-insensitive
@@ -169,7 +169,7 @@ func stringSearch(a, b string) bool {
 // field or inside any set or array.  It also matches a record if the string
 // representaton of the search value appears inside inside any string-valued
 // field (or inside any element of a set or array of strings).
-func searchRecordOther(searchval ast.Literal) (Filter, error) {
+func searchRecordOther(searchtext string, searchval ast.Literal) (Filter, error) {
 	typedCompare, err := Comparison("=", searchval)
 	if err != nil {
 		return nil, err
@@ -178,7 +178,7 @@ func searchRecordOther(searchval ast.Literal) (Filter, error) {
 		switch zv.Type.ID() {
 		case zng.IdBstring, zng.IdString:
 			s := byteconv.UnsafeString(zv.Bytes)
-			return stringSearch(s, searchval.Value)
+			return stringSearch(s, searchtext)
 		default:
 			return typedCompare(zv)
 		}

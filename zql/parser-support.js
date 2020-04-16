@@ -26,12 +26,12 @@ function makeMatchAll() {
   return { op: "MatchAll" };
 }
 
-function makeSearch(value) {
+function makeSearch(text, value) {
   // wildcard is a special case
   if (value.type == "regexp" && value.value == "^.*$") {
     return makeMatchAll();
   }
-  return { op: "Search", value };
+  return { op: "Search", text, value };
 }
 
 function makeCompareField(comparator, field, value) {

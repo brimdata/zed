@@ -115,7 +115,7 @@ searchPred
       RETURN(makeCompareField("in", f, v))
     }
   / v:searchValue {
-      RETURN(makeSearch(v))
+      RETURN(makeSearch(TEXT, v))
     }
 
 searchValue

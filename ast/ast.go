@@ -58,6 +58,7 @@ type (
 	// A search is a "naked" search term
 	Search struct {
 		Node
+		Text  string  `json:"text"`
 		Value Literal `json:"value"`
 	}
 

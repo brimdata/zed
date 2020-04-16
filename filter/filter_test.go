@@ -406,6 +406,16 @@ func TestFilters(t *testing.T) {
 		{"p = :80", false},
 	})
 
+	// Test that port searches don't match the port number in strings
+	record, err = parseOneRecord(`
+#0:record[s:string]
+0:[123456;]
+`)
+	require.NoError(t, err)
+	runCases(t, record, []testcase{
+		{":123", false},
+	})
+
 	// Test coercion from string to bstring
 	record, err = parseOneRecord(`
 #0:record[s:bstring]
