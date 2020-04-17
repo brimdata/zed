@@ -340,6 +340,15 @@ func (c *Context) LookupByName(in string) (zng.Type, error) {
 	return typ, err
 }
 
+// Localize takes a type from another context and creates and returns that
+// type in this context.
+func (c *Context) Localize(foreign zng.Type) zng.Type {
+	// there can't be an error here since the type string
+	// is generated internally
+	typ, _ := c.LookupByName(foreign.String())
+	return typ
+}
+
 func (c *Context) parseType(in string) (string, zng.Type, error) {
 	in = strings.TrimSpace(in)
 	c.mu.RLock()
