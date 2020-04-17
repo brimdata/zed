@@ -1,3 +1,6 @@
+## v0.11.1
+* zqd: Send HTTP status 200 for successful pcap search (#605)
+
 ## v0.11.0
 * zql: Improve string search matching on field names (#570)
 * pcap: Better handling of empty results (#572)
