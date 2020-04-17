@@ -266,7 +266,7 @@ To achieve this with a field/value match, we can use [glob wildcards](#glob-wild
 
 #### Example:
 ```zq-command
-zq -f table 'certificate.subject=*Widgits*' *.log.gz
+zq -f table 'certificate.subject=~*Widgits*' *.log.gz
 ```
 
 #### Output:
@@ -422,7 +422,7 @@ For example, suppose you've noticed that the vast majority of the sample Zeek ev
 
 #### Example:
 ```zq-command
-zq -f table 'not _path=/conn|dns|files|ssl|x509|http|weird/' *.log.gz
+zq -f table 'not _path=~/conn|dns|files|ssl|x509|http|weird/' *.log.gz
 ```
 
 #### Output:
