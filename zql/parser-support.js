@@ -28,7 +28,7 @@ function makeMatchAll() {
 
 function makeSearch(text, value) {
   // wildcard is a special case
-  if (value.type == "regexp" && value.value == "^.*$") {
+  if (text == "*") {
     return makeMatchAll();
   }
   return { op: "Search", text, value };
