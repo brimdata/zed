@@ -118,9 +118,11 @@ func Run(path string, rules []Rule) error {
 			}
 		}
 	}
+	// we make the framesize here larger than the writer framesize
+	// since the writer always writes a bit past the threshold
+	const framesize = 32 * 1024 * 2
 	// XXX this loop could be parallelized
 	for _, indexer := range indexers {
-		const framesize = 32 * 1024 // XXX
 		writer, err := zdx.NewWriter(indexer.Path(), framesize)
 		if err != nil {
 			return err
