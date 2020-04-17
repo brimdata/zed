@@ -33,6 +33,7 @@ func CompileWarningsCh(ctx context.Context, program ast.Proc, reader zbuf.Reader
 		Context:     ctx,
 		TypeContext: resolver.NewContext(),
 		Logger:      logger,
+		Reverse:     reverse,
 		Warnings:    ch,
 	}
 	leaves, err := proc.CompileProc(nil, program, pctx, input)
