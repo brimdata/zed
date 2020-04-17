@@ -45,6 +45,27 @@ func TestSearch(t *testing.T) {
 	require.Equal(t, test.Trim(src), res)
 }
 
+func TestGroupByReverse(t *testing.T) {
+	src := `
+#0:record[_path:string,ts:time,uid:bstring]
+0:[conn;1;CBrzd94qfowOqJwCHa;]
+0:[conn;1;C8Tful1TvM3Zf5x8fl;]
+0:[conn;2;C8Tful1TvM3Zf5x8fl;]
+`
+	counts := `
+#0:record[ts:time,count:uint64]
+0:[2;1;]
+0:[1;2;]
+`
+	_, client, done := newCore(t)
+	defer done()
+	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
+	require.NoError(t, err)
+	_ = postSpaceLogs(t, client, sp.Name, nil, false, src)
+	res := zngSearch(t, client, sp.Name, "every 1s count()")
+	require.Equal(t, test.Trim(counts), res)
+}
+
 func TestSearchEmptySpace(t *testing.T) {
 	space := "test"
 	ctx := context.Background()
@@ -538,7 +559,7 @@ func zngSearch(t *testing.T, client *api.Connection, space, prog string) string 
 		Space: space,
 		Proc:  proc,
 		Span:  nano.MaxSpan,
-		Dir:   1,
+		Dir:   -1,
 	}
 	r, err := client.Search(context.Background(), req)
 	require.NoError(t, err)
