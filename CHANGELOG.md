@@ -1,3 +1,10 @@
+## v0.11.0
+* zql: Improve string search matching on field names (#570)
+* pcap: Better handling of empty results (#572)
+* zq: Introduce `-e` flag to allow for continued reads during input errors (#577)
+* pcap: Allow reading of pcap files that have a capture length that exceeds the original length of the packet (#584)
+* zqd: Fix an issue that was causing the histogram to draw incorrectly in Brim app (#602)
+
 ## v0.10.0
 
 * zql: Let text searches match field names as well as values (#529)
