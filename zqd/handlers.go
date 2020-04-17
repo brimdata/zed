@@ -144,7 +144,6 @@ func handlePacketSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer reader.Close()
-	w.WriteHeader(http.StatusAccepted)
 	w.Header().Set("Content-Type", "application/vnd.tcpdump.pcap")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%s.pcap", reader.ID()))
 	_, err = ctxio.Copy(ctx, w, reader)
