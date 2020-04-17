@@ -45,7 +45,7 @@ func TestSearch(t *testing.T) {
 	require.Equal(t, test.Trim(src), res)
 }
 
-func TestSearchReverse(t *testing.T) {
+func TestGroupByReverse(t *testing.T) {
 	src := `
 #0:record[_path:string,ts:time,uid:bstring]
 0:[conn;1;CBrzd94qfowOqJwCHa;]
