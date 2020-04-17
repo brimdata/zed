@@ -74,7 +74,7 @@ func NewMuxOutput(ctx *proc.Context, parents []proc.Proc) *MuxOutput {
 }
 
 func (m *MuxOutput) Complete() bool {
-	return len(m.ctx.Warnings) == 0 && m.runners <= 0
+	return len(m.ctx.Warnings) == 0 && m.runners == 0
 }
 
 func (m *MuxOutput) N() int {
