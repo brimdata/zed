@@ -3,9 +3,11 @@ package filter
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zngnative"
@@ -112,9 +114,117 @@ func EvalAny(eval Predicate, recursive bool) Filter {
 	}
 }
 
-// stringSearchRecord handles the special case of string searching -- it
+func compileSearch(node *ast.Search) (Filter, error) {
+	if node.Value.Type == "regexp" {
+		match, err := Comparison("=", node.Value)
+		if err != nil {
+			return nil, err
+		}
+		contains := Contains(match)
+		pred := func(zv zng.Value) bool {
+			return match(zv) || contains(zv)
+		}
+
+		return EvalAny(pred, true), nil
+	}
+
+	if node.Value.Type == "string" {
+		term, err := zng.TypeBstring.Parse([]byte(node.Value.Value))
+		if err != nil {
+			return nil, err
+		}
+		return searchRecordString(string(term)), nil
+	}
+
+	return searchRecordOther(node.Text, node.Value)
+}
+
+// stringSearch is like strings.Contains() but with case-insensitive
+// comparison.
+func stringSearch(a, b string) bool {
+	alen := len(a)
+	blen := len(b)
+
+	if blen > alen {
+		return false
+	}
+
+	end := alen - blen + 1
+	i := 0
+	for i < end {
+		if strings.EqualFold(a[i:i+blen], b) {
+			return true
+		}
+		i++
+	}
+	return false
+}
+
+// XXX should factor out a common record visitor to share between
+// searchRecordString and searchRecordOther
+
+// searchRecordOther creates a filter that searches zng records for the
+// given value, which must be of a type other than (b)string.  The filter
+// matches a record that contains this value either as the value of any
+// field or inside any set or array.  It also matches a record if the string
+// representaton of the search value appears inside inside any string-valued
+// field (or inside any element of a set or array of strings).
+func searchRecordOther(searchtext string, searchval ast.Literal) (Filter, error) {
+	typedCompare, err := Comparison("=", searchval)
+	if err != nil {
+		return nil, err
+	}
+	compare := func(zv zng.Value) bool {
+		switch zv.Type.ID() {
+		case zng.IdBstring, zng.IdString:
+			s := byteconv.UnsafeString(zv.Bytes)
+			return stringSearch(s, searchtext)
+		default:
+			return typedCompare(zv)
+		}
+	}
+	contains := Contains(compare)
+
+	var match func(v zcode.Bytes, recType *zng.TypeRecord) bool
+	match = func(v zcode.Bytes, recType *zng.TypeRecord) bool {
+		it := v.Iter()
+		for _, c := range recType.Columns {
+			val, _, err := it.Next()
+			if err != nil {
+				return false
+			}
+			recType, isRecord := c.Type.(*zng.TypeRecord)
+			if isRecord && match(val, recType) {
+				return true
+			} else if !isRecord {
+				zv := zng.Value{c.Type, val}
+				if compare(zv) || contains(zv) {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	return func(r *zng.Record) bool {
+		return match(r.Raw, r.Type)
+	}, nil
+
+}
+
+// searchRecordString handles the special case of string searching -- it
 // matches both field names and values.
-func stringSearchRecord(val string, eval Predicate, recursive bool) Filter {
+func searchRecordString(term string) Filter {
+	search := func(zv zng.Value) bool {
+		switch zv.Type.ID() {
+		case zng.IdBstring, zng.IdString:
+			s := byteconv.UnsafeString(zv.Bytes)
+			return stringSearch(s, term)
+		default:
+			return false
+		}
+	}
+	searchContainer := Contains(search)
+
 	var match func(v zcode.Bytes, recType *zng.TypeRecord, prefix string) bool
 	match = func(v zcode.Bytes, recType *zng.TypeRecord, prefix string) bool {
 		it := v.Iter()
@@ -123,7 +233,7 @@ func stringSearchRecord(val string, eval Predicate, recursive bool) Filter {
 			if len(prefix) > 0 {
 				fullname = fmt.Sprintf("%s.%s", prefix, c.Name)
 			}
-			if stringSearch(fullname, val) {
+			if stringSearch(fullname, term) {
 				return true
 			}
 
@@ -132,10 +242,13 @@ func stringSearchRecord(val string, eval Predicate, recursive bool) Filter {
 				return false
 			}
 			recType, isRecord := c.Type.(*zng.TypeRecord)
-			if isRecord && recursive && match(val, recType, fullname) {
+			if isRecord && match(val, recType, fullname) {
 				return true
-			} else if !isRecord && eval(zng.Value{c.Type, val}) {
-				return true
+			} else if !isRecord {
+				zv := zng.Value{c.Type, val}
+				if search(zv) || searchContainer(zv) {
+					return true
+				}
 			}
 		}
 		return false
@@ -179,6 +292,9 @@ func Compile(node ast.BooleanExpr) (Filter, error) {
 	case *ast.MatchAll:
 		return func(*zng.Record) bool { return true }, nil
 
+	case *ast.Search:
+		return compileSearch(v)
+
 	case *ast.CompareField:
 		if v.Comparator == "in" {
 			resolver, err := expr.CompileFieldExpr(v.Field)
@@ -201,22 +317,9 @@ func Compile(node ast.BooleanExpr) (Filter, error) {
 			contains := Contains(compare)
 			return EvalAny(contains, v.Recursive), nil
 		}
-		//XXX this is messed up
-		if v.Comparator == "searchin" {
-			search, err := Comparison("search", v.Value)
-			if err != nil {
-				return nil, err
-			}
-			contains := Contains(search)
-			return EvalAny(contains, v.Recursive), nil
-		}
-
 		comparison, err := Comparison(v.Comparator, v.Value)
 		if err != nil {
 			return nil, err
-		}
-		if v.Comparator == "search" && v.Value.Type == "string" {
-			return stringSearchRecord(v.Value.Value, comparison, v.Recursive), nil
 		}
 		return EvalAny(comparison, v.Recursive), nil
 

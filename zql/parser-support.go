@@ -52,10 +52,6 @@ func makeLiteral(typ string, val interface{}) *ast.Literal {
 	return &ast.Literal{ast.Node{"Literal"}, typ, val.(string)}
 }
 
-func getValueType(val interface{}) string {
-	return val.(*ast.Literal).Type
-}
-
 type FieldCallPlaceholder struct {
 	op    string
 	param string
@@ -86,6 +82,16 @@ func chainFieldCalls(base, derefs interface{}) ast.FieldExpr {
 
 func makeMatchAll() *ast.MatchAll {
 	return &ast.MatchAll{ast.Node{"MatchAll"}}
+}
+
+func makeSearch(textIn, val interface{}) ast.BooleanExpr {
+	text := textIn.(string)
+	// wildcard is a special case...
+	if text == "*" {
+		return makeMatchAll()
+	}
+
+	return &ast.Search{ast.Node{"Search"}, text, *val.(*ast.Literal)}
 }
 
 func makeCompareField(comparatorIn, fieldIn, valueIn interface{}) *ast.CompareField {

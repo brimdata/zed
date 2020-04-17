@@ -55,6 +55,13 @@ type Literal struct {
 // or more of the following concrete expression nodes.
 //
 type (
+	// A search is a "naked" search term
+	Search struct {
+		Node
+		Text  string  `json:"text"`
+		Value Literal `json:"value"`
+	}
+
 	// A LogicalAnd node represents a logical and of two subexpressions.
 	LogicalAnd struct {
 		Node
@@ -97,6 +104,7 @@ type (
 // booleanEpxrNode() ensures that only boolean expression nodes can be
 // assigned to a BooleanExpr.
 //
+func (*Search) booleanExprNode()       {}
 func (*LogicalAnd) booleanExprNode()   {}
 func (*LogicalOr) booleanExprNode()    {}
 func (*LogicalNot) booleanExprNode()   {}

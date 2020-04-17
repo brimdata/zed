@@ -9,7 +9,6 @@ function makeParallelProc(procs) {
 }
 
 function makeLiteral(type, value) { return { op: "Literal", type, value }; }
-function getValueType(v) { return v.type; }
 
 function makeFieldCall(fn, field, param) {
   return { op: "FieldCall", fn, field, param };
@@ -25,6 +24,14 @@ function chainFieldCalls(base, derefs) {
 
 function makeMatchAll() {
   return { op: "MatchAll" };
+}
+
+function makeSearch(text, value) {
+  // wildcard is a special case
+  if (text == "*") {
+    return makeMatchAll();
+  }
+  return { op: "Search", text, value };
 }
 
 function makeCompareField(comparator, field, value) {
