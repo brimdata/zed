@@ -11,9 +11,6 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-//XXX careful about mismatch between writer thesh and reader frame size causing
-// a bit of a perf hit
-
 // Writer returns a zng writer that creates a zdx bundle,
 // comprising the base zng file along with its related b-tree files,
 // as zng records are consumed.  The records must all have the same
