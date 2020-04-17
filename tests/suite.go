@@ -2,7 +2,6 @@ package tests
 
 import (
 	"github.com/brimsec/zq/pkg/test"
-	"github.com/brimsec/zq/tests/suite/diropt"
 	"github.com/brimsec/zq/tests/suite/errors"
 	"github.com/brimsec/zq/tests/suite/jsontype"
 	"github.com/brimsec/zq/tests/suite/pcap"
@@ -47,14 +46,11 @@ var scripts = []test.Shell{
 	errors.StopErrStop,
 	errors.StopErrContinue,
 	errors.StopErrContinueMid,
-	diropt.Test,
-	diropt.Test2,
 	jsontype.Test,
 	jsontype.TestInferPath,
 	jsontype.TestSet,
 	jsontype.TestNoTs,
 	jsontype.TestTs,
-	pcap.Test1,
 	pcap.Test2,
 	pcap.Test3,
 	pcap.Test4,

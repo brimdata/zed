@@ -1,0 +1,41 @@
+script: zq -f zeek -d out "*" in.zng
+
+inputs:
+  - name: in.zng
+    data: |
+      #0:record[_path:string,a:string]
+      #1:record[_path:string,a:int64]
+      0:[conn;foo;]
+      1:[dns;1;]
+      1:[dns;2;]
+      1:[dns;3;]
+      0:[conn;hello;]
+      0:[conn;world;]
+      1:[dns;4;]
+
+outputs:
+  - name: out/conn.log
+    data: |
+      #separator \x09
+      #set_separator	,
+      #empty_field	(empty)
+      #unset_field	-
+      #path	conn
+      #fields	a
+      #types	string
+      foo
+      hello
+      world
+  - name: out/dns.log
+    data: |
+      #separator \x09
+      #set_separator	,
+      #empty_field	(empty)
+      #unset_field	-
+      #path	dns
+      #fields	a
+      #types	int
+      1
+      2
+      3
+      4
