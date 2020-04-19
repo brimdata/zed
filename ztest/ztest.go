@@ -113,6 +113,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -134,8 +135,9 @@ import (
 
 // Run runs the ztests in the directory named dirname.  For each file f.yaml in
 // the directory, Run calls FromYAMLFile to load a ztest and then runs it in
-// subtest named f.
-func Run(t *testing.T, dirname string) {
+// subtest named f.  bindir is a path to the executables that the script-mode
+// tests will run.
+func Run(t *testing.T, dirname, bindir string) {
 	zq := os.Getenv("ZTEST_ZQ")
 	if zq != "" {
 		if out, _, err := runzq(zq, "help", "", ""); err != nil {
@@ -167,7 +169,7 @@ func Run(t *testing.T, dirname string) {
 			if err != nil {
 				t.Fatalf("%s: %s", filename, err)
 			}
-			run(t, testname, dirname, filename, zq, zt)
+			run(t, testname, bindir, dirname, filename, zq, zt)
 		})
 	}
 }
@@ -376,12 +378,16 @@ func diffErr(expected, actual string) error {
 	return fmt.Errorf("expected and actual outputs differ:\n%s", diff)
 }
 
-func run(t *testing.T, testname, dirname, filename, zq string, zt *ZTest) {
+func run(t *testing.T, testname, bindir, dirname, filename, zq string, zt *ZTest) {
 	if err := zt.check(); err != nil {
 		t.Fatalf("%s: bad yaml format: %s", filename, err)
 	}
 	if zt.Script != "" {
-		err := runsh(testname, dirname, zt)
+		if runtime.GOOS == "windows" {
+			t.Skip("skipping on windows")
+		}
+		adir, _ := filepath.Abs(dirname)
+		err := runsh(testname, bindir, adir, zt)
 		if err != nil {
 			t.Fatalf("%s: %s", filename, err)
 		}
@@ -466,7 +472,7 @@ func checkData(files map[string][]byte, dir *Dir, stdout, stderr string) error {
 	return nil
 }
 
-func runsh(testname, dirname string, zt *ZTest) error {
+func runsh(testname, bindir, dirname string, zt *ZTest) error {
 	dir, err := NewDir(testname, dirname)
 	if err != nil {
 		return err
@@ -501,11 +507,7 @@ func runsh(testname, dirname string, zt *ZTest) error {
 			expectedPattern[f.Name] = re
 		}
 	}
-	binpath, err := filepath.Abs("../dist") //XXX
-	if err != nil {
-		return err
-	}
-	stdout, stderr, err := RunShell(dir, binpath, zt.Script)
+	stdout, stderr, err := RunShell(dir, bindir, zt.Script)
 	if err != nil {
 		// XXX If the err is an exit error, we ignore it and rely on
 		// tests that check stderr etc.  We could pull out the exit

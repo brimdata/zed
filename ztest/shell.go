@@ -8,12 +8,8 @@ import (
 func RunShell(dir *Dir, binpath, script string) (string, string, error) {
 	const shfile = "_run.sh"
 	cmd := exec.Command("/bin/bash", dir.Join(shfile))
-	src := ""
-	if binpath != "" {
-		src += "PATH=$PATH:" + binpath + "\n"
-	}
-	src += "cd " + dir.Path() + "\n"
-	src += script
+	cmd.Env = []string{"PATH=" + binpath}
+	src := "cd " + dir.Path() + "\n" + script
 	if err := dir.Write(shfile, []byte(src)); err != nil {
 		return "", "", err
 	}
