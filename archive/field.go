@@ -7,13 +7,13 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-// FieldIndexer builds (as a zbuf.Writer) and generates (as a zbuf.Reader)
-// a sorted set of zng.Records where each record is has one column called
-// "key" whose values are the unique values found in the zbuf.Writer stream
-// of records that contain the indicated field.  XXX It is currently an error
+// FieldIndexer implements the Indexer interface, building an index where each
+// record is has one column called "key" whose values are the unique values
+// found in the zbuf.Writer stream of records that contain the indicated field.
+// XXX It is currently an error
 // to try to index a field name that appears as different types.  This could
 // be pretty easily fixed by creating a new FieldIndexer for each type that is
-// found and and encodging each type name (with the field name) in the zdx
+// found and and encoding each type name (with the field name) in the zdx
 // bundle name (and adjusting the finder to look for any type variatioons).
 type FieldIndexer struct {
 	Common

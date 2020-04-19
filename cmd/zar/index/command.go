@@ -15,7 +15,7 @@ var Index = &charm.Spec{
 	Short: "create zdx index bundles for bzng files",
 	Long: `
 zar index descends the directory argument starting at dir and looks
-for bzng files.  Each bzng file fund is indexed according to the one or
+for bzng files.  Each bzng file found is indexed according to the one or
 more indexing rules provided.
 
 A pattern is either a field name or a ":" followed by a zng type name.

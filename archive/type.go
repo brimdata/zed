@@ -11,10 +11,11 @@ import (
 
 var ErrSyntax = errors.New("syntax/format error encountered parsing zng data")
 
-// TypeIndexer builds (as a zbuf.Writer) and generates (as a zbuf.Reader)
-// a sorted set of zng.Records where each record has one column called
-// "key" whose values are the unique values found in the zbuf.Writer stream
+// TypeIndexer implements the Indexer interface, building an index
+// where each record has one column called "key" whose values
+// are the unique values found in the zbuf.Writer stream
 // from any fields of the incoming records that have the indicated type.
+
 type TypeIndexer struct {
 	Common
 	Type zng.Type
