@@ -1,0 +1,38 @@
+script: |
+  zdx create -r in.zng -k s1
+
+inputs:
+  - name: in.zng
+    data: |
+      #0:record[s1:string,s2:ip,v:int64]
+      0:[a;10.0.0.1;50;]
+      0:[b;10.0.0.3;20;]
+      0:[e;10.0.0.5;10;]
+      0:[d;10.0.0.8;30;]
+      0:[c;10.0.0.4;60;]
+outputs:
+  - name: out/conn.log
+    data: |
+      #separator \x09
+      #set_separator	,
+      #empty_field	(empty)
+      #unset_field	-
+      #path	conn
+      #fields	a
+      #types	string
+      foo
+      hello
+      world
+  - name: out/dns.log
+    data: |
+      #separator \x09
+      #set_separator	,
+      #empty_field	(empty)
+      #unset_field	-
+      #path	dns
+      #fields	a
+      #types	int
+      1
+      2
+      3
+      4
