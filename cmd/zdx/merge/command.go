@@ -37,8 +37,8 @@ type MergeCommand struct {
 
 func newMergeCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &MergeCommand{Command: parent.(*root.Command)}
-	f.IntVar(&c.framesize, "f", 32*1024, "minimum frame size used in the output zdx file")
-	f.StringVar(&c.oflag, "o", "", "output file name")
+	f.IntVar(&c.framesize, "F", 32*1024, "minimum frame size used in the output zdx bundle")
+	f.StringVar(&c.oflag, "o", "", "name of output zdx bundle")
 	return c, nil
 }
 

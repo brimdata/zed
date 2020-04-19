@@ -12,6 +12,8 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zdx"
 	"github.com/brimsec/zq/zio/bzngio"
+	"github.com/brimsec/zq/zio/detector"
+	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
@@ -26,11 +28,11 @@ import (
 
 var Create = &charm.Spec{
 	Name:  "create",
-	Usage: "create [-f framesize] [ -o file ] [-value field] -key field bzng-file",
+	Usage: "create [-F framesize] [ -o file ] [-value field] -k field file [file ...]",
 	Short: "generate an zdx file from one or more zng files",
 	Long: `
 The create command generates an zdx bundle containing of keys and optional values
-from the input bzng file.  The required option f -k specifies the zng record
+from the input bzng file.  The required option -k specifies the zng record
 field name that comprises the set of keys added to the zdx.  If a value field is
 specified with -value, then that field specifies the values to include with each key.
 If a key appears more than once, the last value in the input takes precendence.
@@ -45,6 +47,7 @@ func init() {
 
 type CreateCommand struct {
 	*root.Command
+	ifmt       string
 	framesize  int
 	outputFile string
 	keyField   string
@@ -56,10 +59,11 @@ func newCreateCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, err
 	c := &CreateCommand{
 		Command: parent.(*root.Command),
 	}
-	f.IntVar(&c.framesize, "f", 32*1024, "minimum frame size used in zdx file")
+	f.StringVar(&c.ifmt, "i", "auto", "format of input data [auto,bzng,ndjson,zeek,zjson,zng]")
+	f.IntVar(&c.framesize, "F", 32*1024, "minimum frame size used in zdx file")
 	f.StringVar(&c.outputFile, "o", "zdx", "output zdx bundle name")
-	f.StringVar(&c.keyField, "k", "", "field name of keys ")
-	f.StringVar(&c.valField, "v", "", "field name of values ")
+	f.StringVar(&c.keyField, "k", "", "field name of keys (required)")
+	f.StringVar(&c.valField, "v", "", "field name of values (optional)")
 	f.BoolVar(&c.skip, "S", false, "skip all records except for the first of each stream")
 	return c, nil
 }
@@ -152,4 +156,55 @@ func (c *CreateCommand) Run(args []string) error {
 		}
 	}
 	return zbuf.Copy(writer, table)
+}
+
+// XXX copied, in part, from zq.  we should refact things a little here, share
+// this code, move some of it to zbuf, and clean up json config.  Maybe we should
+// have zio.ReaderFlags and WriterFlags instead of zio.Read and carry ifmt and
+// json mappings in the flags.
+func (c *CreateCommand) inputReaders(paths []string, zctx *resolver.Context) ([]zbuf.Reader, error) {
+	var readers []zbuf.Reader
+	for _, path := range paths {
+		var zr zbuf.Reader
+		var f *os.File
+		if path == "-" {
+			f = os.Stdin
+		} else {
+			var err error
+			info, err := os.Stat(path)
+			if err != nil {
+				return nil, err
+			}
+			if info.IsDir() {
+				return nil, errors.New("is a directory")
+			}
+			f, err = os.Open(path)
+			if err != nil {
+				return nil, err
+			}
+		}
+		r := detector.GzipReader(f)
+		var err error
+		if c.ifmt == "auto" {
+			zr, err = detector.NewReader(r, zctx)
+		} else {
+			zr, err = detector.LookupReader(c.ifmt, r, zctx)
+		}
+		if err != nil {
+			err = fmt.Errorf("%s: %w", path, err)
+			if c.stopErr {
+				return nil, err
+			}
+			fmt.Fprintln(os.Stderr, err.String())
+			continue
+		}
+		jr, ok := zr.(*ndjsonio.Reader)
+		if ok && c.jsonTypeConfig != nil {
+			if err = c.configureJSONTypeReader(jr, path); err != nil {
+				return nil, err
+			}
+		}
+		readers = append(readers, namedReader{zr, path})
+	}
+	return readers, nil
 }
