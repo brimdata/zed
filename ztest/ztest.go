@@ -1,7 +1,16 @@
-// Package ztest runs formulaic tests ("ztests") that apply a ZQL query to an
-// input and check for an expected output.
+// Package ztest runs formulaic tests ("ztests") that can be (1) run in-process
+// with the compiled-ini zq code base, (2) run as a sub-process using the zq
+// executable build artifact, or (3) run as a bash script running a sequence
+// of arbitrary shell commands invoking any of the build artifacts.  The
+// first two cases comprise the "ZQL test style" and the last case
+// comprises the "script test style".  Case (1) is easier to debug by
+// simply running "go test" compared replicating the test using "go run".
+// Script-style tests don't have this convenience.
 //
-// A ztest is defined in a YAML file.
+// In the ZQL style, ztest runs a ZQL query on an input and checks
+// for an expected output.
+//
+// A ZQL-style test is defined in a YAML file.
 //
 //    zql: count()
 //
@@ -94,10 +103,10 @@
 //
 //     func TestZTest(t *testing.T) { ztest.Run(t, "testdata/ztest") }
 //
-// If the ZTEST_ZQ environment variable is unset or empty and the test
-// is not a script test, Run runs ztests in the current process.
-// Otherwise, Run runs each ztest in a separate process using the zq executable
-// specified by ZTEST_ZQ.
+// If the ZTEST_BINDIR environment variable is unset or empty and the test
+// is not a script test, Run runs ztests in the current process and skips
+// the script tests.  Otherwise, Run runs each ztest in a separate process
+// using the zq executable in the directory specified by ZTEST_BINDIR.
 package ztest
 
 import (
@@ -137,14 +146,14 @@ import (
 // the directory, Run calls FromYAMLFile to load a ztest and then runs it in
 // subtest named f.  bindir is a path to the executables that the script-mode
 // tests will run.
-func Run(t *testing.T, dirname, bindir string) {
-	zq := os.Getenv("ZTEST_ZQ")
-	if zq != "" {
-		if out, _, err := runzq(zq, "help", "", ""); err != nil {
+func Run(t *testing.T, dirname string) {
+	bindir := os.Getenv("ZTEST_BINDIR")
+	if bindir != "" {
+		if out, _, err := runzq(bindir, "help", "", ""); err != nil {
 			if out != "" {
 				out = fmt.Sprintf(" with output %q", out)
 			}
-			t.Fatalf("bad ZTEST_ZQ value %s: %s%s", zq, err, out)
+			t.Fatalf("failed to exec zq in dir $ZTEST_BINDIR %s: %s%s", bindir, err, out)
 		}
 	}
 	fileinfos, err := ioutil.ReadDir(dirname)
@@ -169,17 +178,21 @@ func Run(t *testing.T, dirname, bindir string) {
 			if err != nil {
 				t.Fatalf("%s: %s", filename, err)
 			}
-			run(t, testname, bindir, dirname, filename, zq, zt)
+			run(t, testname, bindir, dirname, filename, zt)
 		})
 	}
 }
 
 type File struct {
-	// Name is the name of the file in which the test shell code runs.
+	// Name is the name of the file with respect to the directoy in which
+	// the test script runs.  For inputs, if no data source is specified,
+	// then name is also the name of a data file in the diectory containing
+	// the yaml test file, which is copied to the test script directory.
+	// Name can also be stdio (for inputs) or stdout or stderr (for outputs).
 	Name string `yaml:"name"`
 	// Data, Hex, and Source represents the different ways file data can
 	// be defined for this file.  Data is a string turned into the contents
-	// of the file, Hex is hex decded, and Source is a string representing
+	// of the file, Hex is hex decoded, and Source is a string representing
 	// the pathname of a file the repo that is read to comprise the data.
 	Data   string `yaml:"data,omitempty"`
 	Hex    string `yaml:"hex,omitempty"`
@@ -206,12 +219,7 @@ func (f *File) check() error {
 	return nil
 }
 
-type Regexp struct {
-	Pattern string
-	*regexp.Regexp
-}
-
-func (f *File) load(dir string) ([]byte, *Regexp, error) {
+func (f *File) load(dir string) ([]byte, *regexp.Regexp, error) {
 	if f.Data != "" {
 		return []byte(f.Data), nil, nil
 	}
@@ -225,7 +233,7 @@ func (f *File) load(dir string) ([]byte, *Regexp, error) {
 	}
 	if f.Re != "" {
 		re, err := regexp.Compile(f.Re)
-		return nil, &Regexp{Pattern: f.Re, Regexp: re}, err
+		return nil, re, err
 	}
 	b, err := ioutil.ReadFile(filepath.Join(dir, f.Name))
 	if err == nil {
@@ -378,13 +386,16 @@ func diffErr(expected, actual string) error {
 	return fmt.Errorf("expected and actual outputs differ:\n%s", diff)
 }
 
-func run(t *testing.T, testname, bindir, dirname, filename, zq string, zt *ZTest) {
+func run(t *testing.T, testname, bindir, dirname, filename string, zt *ZTest) {
 	if err := zt.check(); err != nil {
 		t.Fatalf("%s: bad yaml format: %s", filename, err)
 	}
 	if zt.Script != "" {
 		if runtime.GOOS == "windows" {
 			t.Skip("skipping on windows")
+		}
+		if bindir == "" {
+			t.Skip("skipping script test on in-process run")
 		}
 		adir, _ := filepath.Abs(dirname)
 		err := runsh(testname, bindir, adir, zt)
@@ -393,7 +404,7 @@ func run(t *testing.T, testname, bindir, dirname, filename, zq string, zt *ZTest
 		}
 		return
 	}
-	out, errout, err := runzq(zq, zt.ZQL, zt.OutputFormat, zt.OutputFlags, zt.Input...)
+	out, errout, err := runzq(bindir, zt.ZQL, zt.OutputFormat, zt.OutputFlags, zt.Input...)
 	if err != nil {
 		if zt.errRegex != nil {
 			if !zt.errRegex.Match([]byte(errout)) {
@@ -428,7 +439,7 @@ func run(t *testing.T, testname, bindir, dirname, filename, zq string, zt *ZTest
 	}
 }
 
-func checkPatterns(patterns map[string]*Regexp, dir *Dir, stdout, stderr string) error {
+func checkPatterns(patterns map[string]*regexp.Regexp, dir *Dir, stdout, stderr string) error {
 	for name, re := range patterns {
 		var body []byte
 		switch name {
@@ -443,8 +454,8 @@ func checkPatterns(patterns map[string]*Regexp, dir *Dir, stdout, stderr string)
 				return fmt.Errorf("%s: %s", name, err)
 			}
 		}
-		if !re.Regexp.Match(body) {
-			return fmt.Errorf("regex mismatch: %s %s", re.Pattern, string(body))
+		if !re.Match(body) {
+			return fmt.Errorf("regex mismatch: %s %s", re, string(body))
 		}
 	}
 	return nil
@@ -496,7 +507,7 @@ func runsh(testname, bindir, dirname string, zt *ZTest) error {
 		}
 	}
 	expectedData := make(map[string][]byte)
-	expectedPattern := make(map[string]*Regexp)
+	expectedPattern := make(map[string]*regexp.Regexp)
 	for _, f := range zt.Outputs {
 		b, re, err := f.load(dirname)
 		if err != nil {
@@ -533,12 +544,14 @@ func runsh(testname, bindir, dirname string, zt *ZTest) error {
 // runzq runs the query in ZQL over inputs and returns the output formatted
 // according to outputFormat. inputs may be in any format recognized by "zq -i
 // auto" and maybe be gzip-compressed.  outputFormat may be any string accepted
-// by "zq -f".  If zq is empty, the query runs in the current process.  If zq is
-// not empty, it specifies a zq executable that will be used to run the query.
-func runzq(zq, ZQL, outputFormat, outputFlags string, inputs ...string) (out string, warnOrError string, err error) {
+// by "zq -f".  If bindir is empty, the query runs in the current process.
+// If bindir is not empty, it specifies a zq path that will be used to run
+// the query.
+func runzq(bindir, ZQL, outputFormat, outputFlags string, inputs ...string) (out string, warnOrError string, err error) {
 	var outbuf bytes.Buffer
 	var errbuf bytes.Buffer
-	if zq != "" {
+	if bindir != "" {
+		zq := filepath.Join(bindir, "zq")
 		tmpdir, files, err := tmpInputFiles(inputs)
 		if err != nil {
 			return "", "", err

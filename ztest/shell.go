@@ -4,19 +4,20 @@ import (
 	"bytes"
 	"io"
 	"os/exec"
+	"runtime"
 )
 
-func RunShell(dir *Dir, binpath, script string, stdin io.Reader) (string, string, error) {
-	const shfile = "_run.sh"
-	cmd := exec.Command("/bin/bash", dir.Join(shfile))
-	cmd.Stdin = stdin
-	cmd.Env = []string{"PATH=" + binpath}
-	src := "cd " + dir.Path() + "\n" + script
-	if err := dir.Write(shfile, []byte(src)); err != nil {
-		return "", "", err
+func RunShell(dir *Dir, bindir, script string, stdin io.Reader) (string, string, error) {
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		cmd = exec.Command("cmd.exe", "/c", script)
+	} else {
+		cmd = exec.Command("bash", "-c", script)
 	}
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
+	cmd.Env = []string{"PATH=" + bindir}
+	cmd.Dir = dir.Path()
+	cmd.Stdin = stdin
+	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	err := cmd.Run()

@@ -1,5 +1,3 @@
-// +build system
-
 package tests
 
 import (
@@ -21,13 +19,12 @@ func TestZTest(t *testing.T) {
 		}
 		return err
 	})
-	bindir, _ := filepath.Abs("../dist")
 	require.NoError(t, err)
 	for d := range dirs {
 		d := d
 		t.Run(d, func(t *testing.T) {
 			t.Parallel()
-			ztest.Run(t, d, bindir)
+			ztest.Run(t, d)
 		})
 	}
 }
