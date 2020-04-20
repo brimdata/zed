@@ -14,6 +14,7 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/bzngio"
+	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -88,7 +89,7 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api
 		}
 	}()
 	for _, path := range req.Paths {
-		sf, err := scanner.OpenFile(zctx, path, &zio.ReaderFlags{Format: "auto"})
+		sf, err := detector.OpenFile(zctx, path, &zio.ReaderFlags{Format: "auto"})
 		if err != nil {
 			if req.StopErr {
 				return err
@@ -166,7 +167,7 @@ func compileLogIngest(ctx context.Context, s *space.Space, rs []zbuf.Reader, pro
 	}
 	wch := make(chan string, 5)
 	for i, r := range rs {
-		rs[i] = scanner.WarningReader(r, wch)
+		rs[i] = zbuf.NewWarningReader(r, wch)
 	}
 	r := scanner.NewCombiner(rs)
 	return driver.CompileWarningsCh(ctx, p, r, false, nano.MaxSpan, zap.NewNop(), wch)

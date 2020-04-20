@@ -205,7 +205,7 @@ func (c *Command) Run(args []string) error {
 	wch := make(chan string, 5)
 	if !c.stopErr {
 		for i, r := range readers {
-			readers[i] = scanner.WarningReader(r, wch)
+			readers[i] = zbuf.NewWarningReader(r, wch)
 		}
 	}
 	reader := scanner.NewCombiner(readers)
