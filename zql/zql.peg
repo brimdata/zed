@@ -4,7 +4,6 @@
 #ifdef GO
 {
     package zql
-    import "github.com/brimsec/zq/reglob"
 }
 #define RETURN(x) return x, nil
 #define NULL nil
@@ -114,11 +113,14 @@ searchPred
   / v:searchValue _? inToken _? f:fieldReference {
       RETURN(makeCompareField("in", f, v))
     }
-  / v:searchValue {
-      RETURN(makeSearch(TEXT, v))
+  / v:searchLiteral {
+      RETURN(makeSearch(TEXT, v, false))
+    }
+  / !((searchKeywords) _ ) v:searchWord {
+      RETURN(makeSearch(TEXT, makeLiteral("string", v), true))
     }
 
-searchValue
+searchLiteral
   = StringLiteral
   / RegexpLiteral
   / PortLiteral
@@ -132,11 +134,11 @@ searchValue
 
   / !(searchKeywords _) v:BooleanLiteral { RETURN(v) }
   / !(searchKeywords _) v:NullLiteral { RETURN(v) }
+
+
+searchValue
+  = searchLiteral
   / !((searchKeywords) _) v:searchWord {
-      IF(reglob.IsGlobby(ASSERT_STRING(v))) {
-         INIT_ASSIGN_VAR(re, reglob.Reglob(ASSERT_STRING(v)))
-         RETURN(makeLiteral("regexp", re))
-      }
       RETURN(makeLiteral("string", v))
     }
 
@@ -461,7 +463,7 @@ EqualityCompareExpression
         RETURN(makeBinaryExprChain(first, rest))
     }
 
-EqualityOperator = ("=" / "!=") { RETURN(TEXT) }
+EqualityOperator = ("=~" / "=" / "!=") { RETURN(TEXT) }
 
 EqualityComparator
   = EqualityOperator

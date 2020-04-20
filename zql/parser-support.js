@@ -26,10 +26,15 @@ function makeMatchAll() {
   return { op: "MatchAll" };
 }
 
-function makeSearch(text, value) {
-  // wildcard is a special case
-  if (text == "*") {
-    return makeMatchAll();
+function makeSearch(text, value, bareWord) {
+  // bare word searches can be anything (*), globs (anything else
+  // containing glob meta-characters), or just plain strings.
+  if (bareWord && value.type == "string") {
+    if (text == "*") {
+      return makeMatchAll();
+    } else if (reglob.IsGlobby(value.value)) {
+      value = makeLiteral("regexp", reglob.Reglob(value.value));
+    }
   }
   return { op: "Search", text, value };
 }

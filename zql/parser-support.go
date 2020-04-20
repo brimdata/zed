@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/reglob"
 )
 
 // ParseProc() is an entry point for use from external go code,
@@ -84,14 +85,21 @@ func makeMatchAll() *ast.MatchAll {
 	return &ast.MatchAll{ast.Node{"MatchAll"}}
 }
 
-func makeSearch(textIn, val interface{}) ast.BooleanExpr {
+func makeSearch(textIn, valIn interface{}, bareWord bool) ast.BooleanExpr {
 	text := textIn.(string)
-	// wildcard is a special case...
-	if text == "*" {
-		return makeMatchAll()
-	}
+	val := valIn.(*ast.Literal)
 
-	return &ast.Search{ast.Node{"Search"}, text, *val.(*ast.Literal)}
+	// bare word searches can be anything (*), globs (anything else
+	// containing glob meta-characters), or just plain strings.
+	if bareWord && val.Type == "string" {
+		if text == "*" {
+			return makeMatchAll()
+		} else if reglob.IsGlobby(val.Value) {
+			pattern := reglob.Reglob(val.Value)
+			val = &ast.Literal{ast.Node{"Literal"}, "regexp", pattern}
+		}
+	}
+	return &ast.Search{ast.Node{"Search"}, text, *val}
 }
 
 func makeCompareField(comparatorIn, fieldIn, valueIn interface{}) *ast.CompareField {

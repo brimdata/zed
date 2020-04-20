@@ -248,7 +248,8 @@ func TestFilters(t *testing.T) {
 		{"s=begin", false},
 		{"begin\\x01\\x02\\xffend", true},
 		{"s=begin\\x01\\x02\\xffend", true},
-		{"s=*\\x01\\x02*", true},
+		{"s=*\\x01\\x02*", false},
+		{"s=~*\\x01\\x02*", true},
 	})
 
 	// Test unicode string comparison.  The following two records
@@ -424,10 +425,12 @@ func TestFilters(t *testing.T) {
 	require.NoError(t, err)
 	runCases(t, record, []testcase{
 		{"s = hello", true},
+		{"s =~ hello", true},
 
 		// Also smoke test that globs work...
-		{"s = hell*", true},
-		{"s = ell*", false},
+		{"s = hell*", false},
+		{"s =~ hell*", true},
+		{"s =~ ell*", false},
 	})
 
 	// Test ip comparisons
@@ -440,10 +443,8 @@ func TestFilters(t *testing.T) {
 		{"a = 192.168.1.50", true},
 		{"a = 50.1.168.192", false},
 		{"a != 50.1.168.192", true},
-		{"a = 192.168.0.0/16", true},
-		{"a != 192.168.0.0/16", false},
-		{"a = 10.0.0.0/16", false},
-		{"a != 10.0.0.0/16", true},
+		{"a =~ 192.168.0.0/16", true},
+		{"a =~ 10.0.0.0/16", false},
 	})
 
 	// Test comparisons with an aliased type
@@ -473,7 +474,7 @@ func TestFilters(t *testing.T) {
 }
 
 func TestBadFilter(t *testing.T) {
-	filter := `s = \xa8*`
+	filter := `s =~ \xa8*`
 	_, err := compileFilter(filter)
 	assert.Error(t, err, "Received error for bad glob")
 	assert.Contains(t, err.Error(), "invalid UTF-8", "Received good error message for invalid UTF-8 in a regexp")
