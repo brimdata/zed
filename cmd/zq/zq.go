@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -256,32 +255,7 @@ func (r namedReader) String() string {
 func (c *Command) inputReaders(paths []string) ([]zbuf.Reader, error) {
 	var readers []zbuf.Reader
 	for _, path := range paths {
-		var zr zbuf.Reader
-		var f *os.File
-		if path == "-" {
-			f = os.Stdin
-		} else {
-			var err error
-			info, err := os.Stat(path)
-			if err != nil {
-				return nil, err
-			}
-			if info.IsDir() {
-				return nil, errors.New("is a directory")
-			}
-			f, err = os.Open(path)
-			if err != nil {
-				return nil, err
-			}
-		}
-		//XXX move this to zio/zbuf
-		r := detector.GzipReader(f)
-		var err error
-		if c.ReaderFlags.Format == "auto" {
-			zr, err = detector.NewReader(r, c.zctx)
-		} else {
-			zr, err = detector.LookupReader(r, c.zctx, &c.ReaderFlags)
-		}
+		file, err := detector.OpenFile(c.zctx, path, &c.ReaderFlags)
 		if err != nil {
 			err = fmt.Errorf("%s: %w", path, err)
 			if c.stopErr {
@@ -290,13 +264,15 @@ func (c *Command) inputReaders(paths []string) ([]zbuf.Reader, error) {
 			c.errorf("%s\n", err)
 			continue
 		}
-		jr, ok := zr.(*ndjsonio.Reader)
+		//XXX move this to zio
+		jr, ok := file.Reader.(*ndjsonio.Reader)
 		if ok && c.jsonTypeConfig != nil {
 			if err = c.configureJSONTypeReader(jr, path); err != nil {
 				return nil, err
 			}
 		}
-		readers = append(readers, namedReader{zr, path})
+		// wrap in a named reader so the reader implements Stringer
+		readers = append(readers, namedReader{file, path})
 	}
 	return readers, nil
 }

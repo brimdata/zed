@@ -10,16 +10,22 @@ import (
 )
 
 func OpenFile(zctx *resolver.Context, path string, flags *zio.ReaderFlags) (*zbuf.File, error) {
-	info, err := os.Stat(path)
-	if err != nil {
-		return nil, err
-	}
-	if info.IsDir() {
-		return nil, errors.New("is a directory")
-	}
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
+	var f *os.File
+	var err error
+	if path == "-" {
+		f = os.Stdin
+	} else {
+		info, err := os.Stat(path)
+		if err != nil {
+			return nil, err
+		}
+		if info.IsDir() {
+			return nil, errors.New("is a directory")
+		}
+		f, err = os.Open(path)
+		if err != nil {
+			return nil, err
+		}
 	}
 	r := GzipReader(f)
 	var zr zbuf.Reader
