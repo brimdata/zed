@@ -160,9 +160,6 @@ func stringSearch(a, b string) bool {
 	return false
 }
 
-// XXX should factor out a common record visitor to share between
-// searchRecordString and searchRecordOther
-
 // searchRecordOther creates a filter that searches zng records for the
 // given value, which must be of a type other than (b)string.  The filter
 // matches a record that contains this value either as the value of any
@@ -185,28 +182,18 @@ func searchRecordOther(searchtext string, searchval ast.Literal) (Filter, error)
 	}
 	contains := Contains(compare)
 
-	var match func(v zcode.Bytes, recType *zng.TypeRecord) bool
-	match = func(v zcode.Bytes, recType *zng.TypeRecord) bool {
-		it := v.Iter()
-		for _, c := range recType.Columns {
-			val, _, err := it.Next()
+	return func(r *zng.Record) bool {
+		iter := r.NewFieldIterator()
+		for !iter.Done() {
+			_, val, err := iter.Next()
 			if err != nil {
 				return false
 			}
-			recType, isRecord := c.Type.(*zng.TypeRecord)
-			if isRecord && match(val, recType) {
+			if compare(val) || contains(val) {
 				return true
-			} else if !isRecord {
-				zv := zng.Value{c.Type, val}
-				if compare(zv) || contains(zv) {
-					return true
-				}
 			}
 		}
 		return false
-	}
-	return func(r *zng.Record) bool {
-		return match(r.Raw, r.Type)
 	}, nil
 
 }
@@ -225,36 +212,18 @@ func searchRecordString(term string) Filter {
 	}
 	searchContainer := Contains(search)
 
-	var match func(v zcode.Bytes, recType *zng.TypeRecord, prefix string) bool
-	match = func(v zcode.Bytes, recType *zng.TypeRecord, prefix string) bool {
-		it := v.Iter()
-		for _, c := range recType.Columns {
-			fullname := c.Name
-			if len(prefix) > 0 {
-				fullname = fmt.Sprintf("%s.%s", prefix, c.Name)
-			}
-			if stringSearch(fullname, term) {
-				return true
-			}
-
-			val, _, err := it.Next()
+	return func(r *zng.Record) bool {
+		iter := r.NewFieldIterator()
+		for !iter.Done() {
+			name, val, err := iter.Next()
 			if err != nil {
 				return false
 			}
-			recType, isRecord := c.Type.(*zng.TypeRecord)
-			if isRecord && match(val, recType, fullname) {
+			if stringSearch(name, term) || search(val) || searchContainer(val) {
 				return true
-			} else if !isRecord {
-				zv := zng.Value{c.Type, val}
-				if search(zv) || searchContainer(zv) {
-					return true
-				}
 			}
 		}
 		return false
-	}
-	return func(r *zng.Record) bool {
-		return match(r.Raw, r.Type, "")
 	}
 }
 
