@@ -16,13 +16,13 @@ import (
 
 type Text struct {
 	io.Writer
-	zio.Flags
+	zio.WriterFlags
 	flattener *zeekio.Flattener
 	precision int
 	format    zng.OutFmt
 }
 
-func NewWriter(w io.Writer, flags zio.Flags) *Text {
+func NewWriter(w io.Writer, flags zio.WriterFlags) *Text {
 	var format zng.OutFmt
 	if flags.UTF8 {
 		format = zng.OutFormatZeek
@@ -30,11 +30,11 @@ func NewWriter(w io.Writer, flags zio.Flags) *Text {
 		format = zng.OutFormatZeekAscii
 	}
 	return &Text{
-		Writer:    w,
-		Flags:     flags,
-		flattener: zeekio.NewFlattener(resolver.NewContext()),
-		precision: 6,
-		format:    format,
+		Writer:      w,
+		WriterFlags: flags,
+		flattener:   zeekio.NewFlattener(resolver.NewContext()),
+		precision:   6,
+		format:      format,
 	}
 }
 

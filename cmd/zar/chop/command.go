@@ -95,7 +95,7 @@ func (c *Command) Run(args []string) error {
 			}
 			fmt.Printf("writing %s\n", path)
 			w = bufwriter.New(out)
-			zw = bzngio.NewWriter(w, zio.Flags{})
+			zw = bzngio.NewWriter(w, zio.WriterFlags{})
 		}
 		if err := zw.Write(rec); err != nil {
 			return err

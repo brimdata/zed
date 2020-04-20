@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -80,8 +79,6 @@ func init() {
 
 type Command struct {
 	zctx           *resolver.Context
-	ifmt           string
-	ofmt           string
 	dir            string
 	path           string
 	jsonTypePath   string
@@ -93,7 +90,8 @@ type Command struct {
 	quiet          bool
 	showVersion    bool
 	stopErr        bool
-	zio.Flags
+	ReaderFlags    zio.ReaderFlags
+	WriterFlags    zio.WriterFlags
 }
 
 func New(f *flag.FlagSet) (charm.Command, error) {
@@ -102,11 +100,12 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 
 	c.jsonPathRegexp = ingest.DefaultJSONPathRegexp
 
-	// Flags added for writers are -T, -F, -E, -U, and -b
-	c.Flags.SetFlags(f)
+	// Flags added for writers are -f, -T, -F, -E, -U, and -b
+	c.WriterFlags.SetFlags(f)
 
-	f.StringVar(&c.ifmt, "i", "auto", "format of input data [auto,bzng,ndjson,zeek,zjson,zng]")
-	f.StringVar(&c.ofmt, "f", "zng", "format for output data [bzng,ndjson,table,text,types,zeek,zjson,zng]")
+	// Flags added for readers are -i XXX json
+	c.ReaderFlags.SetFlags(f)
+
 	f.StringVar(&c.path, "p", cwd, "path for input")
 	f.StringVar(&c.dir, "d", "", "directory for output data files")
 	f.StringVar(&c.outputFile, "o", "", "write data to output file")
@@ -121,7 +120,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 }
 
 func fileExists(path string) bool {
-	if path == "-" {
+	if path == "" {
 		return true
 	}
 	info, err := os.Stat(path)
@@ -152,6 +151,20 @@ func (c *Command) loadJsonTypes() (*ndjsonio.TypeConfig, error) {
 	return &tc, nil
 }
 
+// squashDashes returns a new slice containing the strings from the input
+// slice but with "-" replaced with empty since detector.OpenFile expects
+// empty to imply stdin.
+func squashDashes(paths []string) []string {
+	var out []string
+	for _, path := range paths {
+		if path == "-" {
+			path = ""
+		}
+		out = append(out, path)
+	}
+	return out
+}
+
 func (c *Command) Run(args []string) error {
 	if c.showVersion {
 		return c.printVersion()
@@ -169,16 +182,16 @@ func (c *Command) Run(args []string) error {
 		}
 		c.jsonTypeConfig = tc
 	}
-	paths := args
+	paths := squashDashes(args)
 	var query ast.Proc
 	var err error
-	if fileExists(args[0]) {
+	if fileExists(paths[0]) {
 		query, err = zql.ParseProc("*")
 		if err != nil {
 			return err
 		}
 	} else {
-		paths = args[1:]
+		paths = paths[1:]
 		if len(paths) == 0 {
 			return fmt.Errorf("file not found: %s", args[0])
 		}
@@ -187,13 +200,13 @@ func (c *Command) Run(args []string) error {
 			return fmt.Errorf("parse error: %s", err)
 		}
 	}
-	if c.ofmt == "types" {
+	if c.WriterFlags.Format == "types" {
 		logger, err := emitter.NewTypeLogger(c.outputFile, c.verbose)
 		if err != nil {
 			return err
 		}
 		c.zctx.SetLogger(logger)
-		c.ofmt = "null"
+		c.WriterFlags.Format = "null"
 		defer logger.Close()
 	}
 
@@ -205,7 +218,7 @@ func (c *Command) Run(args []string) error {
 	wch := make(chan string, 5)
 	if !c.stopErr {
 		for i, r := range readers {
-			readers[i] = scanner.WarningReader(r, wch)
+			readers[i] = zbuf.NewWarningReader(r, wch)
 		}
 	}
 	reader := scanner.NewCombiner(readers)
@@ -256,31 +269,7 @@ func (r namedReader) String() string {
 func (c *Command) inputReaders(paths []string) ([]zbuf.Reader, error) {
 	var readers []zbuf.Reader
 	for _, path := range paths {
-		var zr zbuf.Reader
-		var f *os.File
-		if path == "-" {
-			f = os.Stdin
-		} else {
-			var err error
-			info, err := os.Stat(path)
-			if err != nil {
-				return nil, err
-			}
-			if info.IsDir() {
-				return nil, errors.New("is a directory")
-			}
-			f, err = os.Open(path)
-			if err != nil {
-				return nil, err
-			}
-		}
-		r := detector.GzipReader(f)
-		var err error
-		if c.ifmt == "auto" {
-			zr, err = detector.NewReader(r, c.zctx)
-		} else {
-			zr, err = detector.LookupReader(c.ifmt, r, c.zctx)
-		}
+		file, err := detector.OpenFile(c.zctx, path, &c.ReaderFlags)
 		if err != nil {
 			err = fmt.Errorf("%s: %w", path, err)
 			if c.stopErr {
@@ -289,26 +278,28 @@ func (c *Command) inputReaders(paths []string) ([]zbuf.Reader, error) {
 			c.errorf("%s\n", err)
 			continue
 		}
-		jr, ok := zr.(*ndjsonio.Reader)
+		//XXX move this to zio
+		jr, ok := file.Reader.(*ndjsonio.Reader)
 		if ok && c.jsonTypeConfig != nil {
 			if err = c.configureJSONTypeReader(jr, path); err != nil {
 				return nil, err
 			}
 		}
-		readers = append(readers, namedReader{zr, path})
+		// wrap in a named reader so the reader implements Stringer
+		readers = append(readers, namedReader{file, path})
 	}
 	return readers, nil
 }
 
 func (c *Command) openOutput() (zbuf.WriteCloser, error) {
 	if c.dir != "" {
-		d, err := emitter.NewDir(c.dir, c.outputFile, c.ofmt, os.Stderr, &c.Flags)
+		d, err := emitter.NewDir(c.dir, c.outputFile, os.Stderr, &c.WriterFlags)
 		if err != nil {
 			return nil, err
 		}
 		return d, nil
 	}
-	w, err := emitter.NewFile(c.outputFile, c.ofmt, &c.Flags)
+	w, err := emitter.NewFile(c.outputFile, &c.WriterFlags)
 	if err != nil {
 		return nil, err
 	}

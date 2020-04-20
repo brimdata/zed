@@ -23,7 +23,7 @@ type Writer struct {
 	format    zng.OutFmt
 }
 
-func NewWriter(w io.Writer, flags zio.Flags) *Writer {
+func NewWriter(w io.Writer, flags zio.WriterFlags) *Writer {
 	var format zng.OutFmt
 	if flags.UTF8 {
 		format = zng.OutFormatZeek

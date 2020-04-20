@@ -22,7 +22,7 @@ type BzngOutput struct {
 func NewBzngOutput(response http.ResponseWriter) *BzngOutput {
 	o := &BzngOutput{
 		response: response,
-		writer:   bzngio.NewWriter(response, zio.Flags{}),
+		writer:   bzngio.NewWriter(response, zio.WriterFlags{}),
 	}
 	return o
 }

@@ -24,7 +24,7 @@ type Table struct {
 	format    zng.OutFmt
 }
 
-func NewWriter(w io.Writer, flags zio.Flags) *Table {
+func NewWriter(w io.Writer, flags zio.WriterFlags) *Table {
 	writer := tabwriter.NewWriter(w, 0, 8, 1, ' ', 0)
 	var format zng.OutFmt
 	if flags.UTF8 {

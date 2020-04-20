@@ -318,14 +318,15 @@ func run(zq, ZQL, outputFormat, outputFlags string, inputs ...string) (out strin
 	if err != nil {
 		return "", "", err
 	}
+	var zflags zio.WriterFlags
 	var flags flag.FlagSet
-	var zflags zio.Flags
 	zflags.SetFlags(&flags)
 	err = flags.Parse(strings.Split(outputFlags, " "))
 	if err != nil {
 		return "", "", err
 	}
-	zw := detector.LookupWriter(outputFormat, &nopCloser{&outbuf}, &zflags)
+	zflags.Format = outputFormat
+	zw := detector.LookupWriter(&nopCloser{&outbuf}, &zflags)
 	if zw == nil {
 		return "", "", fmt.Errorf("%s: unknown output format", outputFormat)
 	}

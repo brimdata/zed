@@ -17,7 +17,7 @@ func (*noClose) Close() error {
 	return nil
 }
 
-func NewFile(path, format string, flags *zio.Flags) (*zio.Writer, error) {
+func NewFile(path string, flags *zio.WriterFlags) (*zio.Writer, error) {
 	var f io.WriteCloser
 	if path == "" {
 		// Don't close stdout in case we live inside something
@@ -35,9 +35,9 @@ func NewFile(path, format string, flags *zio.Flags) (*zio.Writer, error) {
 	// On close, zio.Writer.Close(), the zng WriteFlusher will be flushed
 	// then the bufwriter will closed (which will flush it's internal buffer
 	// then close the file)
-	w := detector.LookupWriter(format, bufwriter.New(f), flags)
+	w := detector.LookupWriter(bufwriter.New(f), flags)
 	if w == nil {
-		return nil, unknownFormat(format)
+		return nil, unknownFormat(flags.Format)
 	}
 	return w, nil
 }

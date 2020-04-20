@@ -5,6 +5,8 @@ import (
 	"io"
 
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
@@ -26,7 +28,7 @@ func NewCombiner(readers []zbuf.Reader) *Combiner {
 func OpenFiles(zctx *resolver.Context, paths ...string) (*Combiner, error) {
 	var readers []zbuf.Reader
 	for _, path := range paths {
-		reader, err := OpenFile(zctx, path, "auto")
+		reader, err := detector.OpenFile(zctx, path, &zio.ReaderFlags{Format: "auto"})
 		if err != nil {
 			return nil, err
 		}
