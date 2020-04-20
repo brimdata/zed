@@ -409,7 +409,7 @@ func TestPostNDJSONLogWarning(t *testing.T) {
 	const src1 = `{"ts":"1000","_path":"nosuchpath"}
 {"ts":"2000","_path":"http"}`
 	const src2 = `{"ts":"1000","_path":"http"}
-{"ts":"1000","_path":"http","extra": "foo"}`
+{"ts":"1000","_path":"http","extra":"foo"}`
 	tc := ndjsonio.TypeConfig{
 		Descriptors: map[string][]interface{}{
 			"http_log": []interface{}{
