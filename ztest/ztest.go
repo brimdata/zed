@@ -122,7 +122,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -391,9 +390,6 @@ func run(t *testing.T, testname, bindir, dirname, filename string, zt *ZTest) {
 		t.Fatalf("%s: bad yaml format: %s", filename, err)
 	}
 	if zt.Script != "" {
-		if runtime.GOOS == "windows" {
-			t.Skip("skipping on windows")
-		}
 		if bindir == "" {
 			t.Skip("skipping script test on in-process run")
 		}
