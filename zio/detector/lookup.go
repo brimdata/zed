@@ -23,20 +23,13 @@ func (*nullWriter) Write(*zng.Record) error {
 	return nil
 }
 
-func LookupWriter(w io.WriteCloser, optionalFlags *zio.WriterFlags) *zio.Writer {
-	if optionalFlags == nil {
-		panic("FLAGS SHOULDN'T BE OPTIONAL")
-	}
-	format := "zng"
-	var flags zio.WriterFlags
-	if optionalFlags != nil {
-		flags = *optionalFlags
-	}
-	if flags.Format != "" {
-		format = flags.Format
+func LookupWriter(w io.WriteCloser, wflags *zio.WriterFlags) *zio.Writer {
+	flags := *wflags
+	if flags.Format == "" {
+		flags.Format = "zng"
 	}
 	var f zbuf.WriteFlusher
-	switch format {
+	switch flags.Format {
 	default:
 		return nil
 	case "null":

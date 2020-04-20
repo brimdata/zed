@@ -120,7 +120,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 }
 
 func fileExists(path string) bool {
-	if path == "-" {
+	if path == "" {
 		return true
 	}
 	info, err := os.Stat(path)
@@ -151,6 +151,19 @@ func (c *Command) loadJsonTypes() (*ndjsonio.TypeConfig, error) {
 	return &tc, nil
 }
 
+// squashDashes returns  "-" to empty since detector.OpenFile
+// expects empty to imply stdin.
+func squashDashes(paths []string) []string {
+	var out []string
+	for _, path := range paths {
+		if path == "-" {
+			path = ""
+		}
+		out = append(out, path)
+	}
+	return out
+}
+
 func (c *Command) Run(args []string) error {
 	if c.showVersion {
 		return c.printVersion()
@@ -168,16 +181,16 @@ func (c *Command) Run(args []string) error {
 		}
 		c.jsonTypeConfig = tc
 	}
-	paths := args
+	paths := squashDashes(args)
 	var query ast.Proc
 	var err error
-	if fileExists(args[0]) {
+	if fileExists(paths[0]) {
 		query, err = zql.ParseProc("*")
 		if err != nil {
 			return err
 		}
 	} else {
-		paths = args[1:]
+		paths = paths[1:]
 		if len(paths) == 0 {
 			return fmt.Errorf("file not found: %s", args[0])
 		}

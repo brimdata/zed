@@ -9,10 +9,13 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
+// OpenFile creates and returns zbuf.File for the indicated path.  If the path is
+// a directory or can't otherwise be open as a file, then an error is returned.
+// If path is empty, then os.Stdin is used as the file.
 func OpenFile(zctx *resolver.Context, path string, flags *zio.ReaderFlags) (*zbuf.File, error) {
 	var f *os.File
 	var err error
-	if path == "-" {
+	if path == "" {
 		f = os.Stdin
 	} else {
 		info, err := os.Stat(path)
