@@ -430,7 +430,7 @@ func TestPostNDJSONLogWarning(t *testing.T) {
 	const src1 = `{"ts":"1000","_path":"nosuchpath"}
 {"ts":"2000","_path":"http"}`
 	const src2 = `{"ts":"1000","_path":"http"}
-{"ts":"2000","_path":"nosuchpath"}`
+{"ts":"1000","_path":"http","extra":"foo"}`
 	tc := ndjsonio.TypeConfig{
 		Descriptors: map[string][]interface{}{
 			"http_log": []interface{}{
@@ -458,7 +458,7 @@ func TestPostNDJSONLogWarning(t *testing.T) {
 	warn1 := payloads[1].(*api.LogPostWarning)
 	warn2 := payloads[2].(*api.LogPostWarning)
 	assert.Regexp(t, ": line 1: descriptor not found$", warn1.Warning)
-	assert.Regexp(t, ": line 2: descriptor not found$", warn2.Warning)
+	assert.Regexp(t, ": line 2: incomplete descriptor", warn2.Warning)
 
 	status := payloads[len(payloads)-2].(*api.LogPostStatus)
 	ts := nano.Ts(1e9)
