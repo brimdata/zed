@@ -10,11 +10,16 @@ import (
 // ReaderFlags has the union of the flags accepted by all the different
 // Reader implementations.
 type ReaderFlags struct {
-	Format string
+	Format     string
+	PathRegexp string
+	// This field is not so much as a flag as an option and needs to be
+	// set by the caller.
+	SchemaMap []byte
 }
 
-func (f *ReaderFlags) SetFlags(fs *flag.FlagSet) {
+func (f *ReaderFlags) SetFlags(fs *flag.FlagSet, pathRegexp string) {
 	fs.StringVar(&f.Format, "i", "auto", "format of input data [auto,bzng,ndjson,zeek,zjson,zng]")
+	fs.StringVar(&f.PathRegexp, "pathregexp", pathRegexp, "regexp for extracting _path from json log name (when -inferpath=true)")
 }
 
 // WriterFlags has the union of the flags accepted by all the different

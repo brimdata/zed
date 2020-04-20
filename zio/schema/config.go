@@ -1,4 +1,4 @@
-package ndjsonio
+package schema
 
 import (
 	"fmt"
@@ -12,10 +12,14 @@ type Rule struct {
 	Descriptor string `json:"descriptor"`
 }
 
+// XXX this is confusing as descriptor is a depricated term.
+// We might want to call this Schema instead of Descriptor because
+// we are solving the schema mapping problem here.
+
 // A TypeConfig contains a map of Descriptors, keyed by name, and a
 // list of rules defining which records should be mapped into which
 // descriptor.
-type TypeConfig struct {
+type Map struct {
 	Descriptors map[string][]interface{} `json:"descriptors"`
 	Rules       []Rule                   `json:"rules"`
 }
@@ -31,7 +35,7 @@ func hasField(name string, columns []interface{}) bool {
 }
 
 // Validate validates a typing config.
-func (conf TypeConfig) Validate() error {
+func (conf Map) Validate() error {
 	for _, rule := range conf.Rules {
 		d, ok := conf.Descriptors[rule.Descriptor]
 		if !ok {

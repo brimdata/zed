@@ -6,10 +6,14 @@ package ndjsonio
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
+	"regexp"
 
 	"github.com/brimsec/zq/pkg/skim"
+	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zio/schema"
 	"github.com/brimsec/zq/zio/zjsonio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -34,7 +38,7 @@ type Reader struct {
 	stats   ReadStats
 }
 
-func NewReader(reader io.Reader, zctx *resolver.Context) (*Reader, error) {
+func NewReader(reader io.Reader, zctx *resolver.Context, flags *zio.ReaderFlags) (*Reader, error) {
 	_, err := zctx.LookupTypeAlias("zenum", zng.TypeString)
 	if err != nil {
 		return nil, err
@@ -42,12 +46,33 @@ func NewReader(reader io.Reader, zctx *resolver.Context) (*Reader, error) {
 
 	buffer := make([]byte, ReadSize)
 	scanner := skim.NewScanner(reader, buffer, MaxLineSize)
-	return &Reader{
+	r := &Reader{
 		scanner: scanner,
 		stats:   ReadStats{Stats: &scanner.Stats, typeStats: &typeStats{}},
 		inf:     inferParser{zctx},
 		zctx:    zctx,
-	}, nil
+	}
+	if flags.SchemaMap != nil {
+		sm, err := loadSchemaMap(flags.SchemaMap)
+		if err != nil {
+			return nil, err
+		}
+		if err := r.SetSchemaMap(sm, ""); err != nil {
+			return nil, err
+		}
+	}
+	return r, nil
+}
+
+func (r *Reader) Configure(filename string, flags *zio.ReaderFlags) error {
+	var path string
+	//re := regexp.MustCompile(DefaultJSONPathRegexp)
+	re := regexp.MustCompile(flags.PathRegexp)
+	match := re.FindStringSubmatch(filename)
+	if len(match) == 2 {
+		path = match[1]
+	}
+	return r.ConfigureTypes(tc, path)
 }
 
 // typeRules is used internally and is derived from TypeConfig by
@@ -55,7 +80,7 @@ func NewReader(reader io.Reader, zctx *resolver.Context) (*Reader, error) {
 // ndjson typed parser.
 type typeRules struct {
 	descriptors map[string]*zng.TypeRecord
-	rules       []Rule
+	rules       []schema.Rule
 }
 
 // ConfigureTypes adds a TypeConfig to the reader. Its should be
@@ -64,7 +89,7 @@ type typeRules struct {
 // In the absence of a TypeConfig, records are all parsed with the
 // inferParser. If a TypeConfig is present, records are parsed
 // with the typeParser.
-func (r *Reader) ConfigureTypes(tc TypeConfig, defaultPath string) error {
+func (r *Reader) SetSchemaMap(tc *schema.Map, defaultPath string) error {
 	tr := typeRules{
 		descriptors: make(map[string]*zng.TypeRecord),
 		rules:       tc.Rules,
@@ -93,6 +118,18 @@ func (r *Reader) ConfigureTypes(tc TypeConfig, defaultPath string) error {
 		defaultPath:   defaultPath,
 	}
 	return nil
+}
+
+func loadSchemaMap(b []byte) (*schema.Map, error) {
+	var tc schema.Map
+	err := json.Unmarshal(b, &tc)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshaling error: %s", err)
+	}
+	if err = tc.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid schema map: %s", err)
+	}
+	return &tc, nil
 }
 
 // Parse returns a zng.Value from the provided JSON input. The

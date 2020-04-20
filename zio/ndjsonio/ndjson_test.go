@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio/schema"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -223,7 +224,7 @@ func TestNewRawFromJSON(t *testing.T) {
 }
 
 func TestNDJSONTypeErrors(t *testing.T) {
-	typeConfig := TypeConfig{
+	typeConfig := schema.Map{
 		Descriptors: map[string][]interface{}{
 			"http_log": []interface{}{
 				map[string]interface{}{
@@ -248,8 +249,8 @@ func TestNDJSONTypeErrors(t *testing.T) {
 				},
 			},
 		},
-		Rules: []Rule{
-			Rule{"_path", "http", "http_log"},
+		Rules: []schema.Rule{
+			{"_path", "http", "http_log"},
 		},
 	}
 

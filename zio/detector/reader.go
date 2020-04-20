@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/bzngio"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/zeekio"
@@ -15,7 +16,7 @@ import (
 
 var ErrUnknown = errors.New("malformed input")
 
-func NewReader(r io.Reader, zctx *resolver.Context) (zbuf.Reader, error) {
+func NewReader(r io.Reader, zctx *resolver.Context, flags *zio.ReaderFlags) (zbuf.Reader, error) {
 	recorder := NewRecorder(r)
 	track := NewTrack(recorder)
 	if match(zngio.NewReader(track, resolver.NewContext())) {

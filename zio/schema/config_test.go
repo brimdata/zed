@@ -1,4 +1,4 @@
-package ndjsonio
+package schema
 
 import (
 	"encoding/json"
@@ -203,7 +203,7 @@ func TestTypeConfigValidate(t *testing.T) {
 
 	for _, c := range testcases {
 		t.Run(c.name, func(t *testing.T) {
-			tc := TypeConfig{}
+			tc := Map{}
 			err := json.Unmarshal([]byte(c.in), &tc)
 			require.NoError(t, err)
 			err = tc.Validate()

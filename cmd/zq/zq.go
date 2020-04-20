@@ -78,39 +78,34 @@ func init() {
 }
 
 type Command struct {
-	zctx           *resolver.Context
-	dir            string
-	path           string
-	jsonTypePath   string
-	jsonPathRegexp string
-	jsonTypeConfig *ndjsonio.TypeConfig
-	outputFile     string
-	verbose        bool
-	stats          bool
-	quiet          bool
-	showVersion    bool
-	stopErr        bool
-	ReaderFlags    zio.ReaderFlags
-	WriterFlags    zio.WriterFlags
+	zctx         *resolver.Context
+	dir          string
+	path         string
+	jsonTypePath string
+	outputFile   string
+	verbose      bool
+	stats        bool
+	quiet        bool
+	showVersion  bool
+	stopErr      bool
+	ReaderFlags  zio.ReaderFlags
+	WriterFlags  zio.WriterFlags
 }
 
 func New(f *flag.FlagSet) (charm.Command, error) {
 	cwd, _ := os.Getwd()
 	c := &Command{zctx: resolver.NewContext()}
 
-	c.jsonPathRegexp = ingest.DefaultJSONPathRegexp
-
 	// Flags added for writers are -f, -T, -F, -E, -U, and -b
 	c.WriterFlags.SetFlags(f)
 
-	// Flags added for readers are -i XXX json
-	c.ReaderFlags.SetFlags(f)
+	// Flags added for readers are -i -pathregexp
+	c.ReaderFlags.SetFlags(f, ingest.DefaultJSONPathRegexp)
 
 	f.StringVar(&c.path, "p", cwd, "path for input")
 	f.StringVar(&c.dir, "d", "", "directory for output data files")
 	f.StringVar(&c.outputFile, "o", "", "write data to output file")
-	f.StringVar(&c.jsonTypePath, "j", "", "path to json types file")
-	f.StringVar(&c.jsonPathRegexp, "pathregexp", c.jsonPathRegexp, "regexp for extracting _path from json log name (when -inferpath=true)")
+	f.StringVar(&c.jsonTypePath, "j", "", "path to json types file (also known as schema maps)")
 	f.BoolVar(&c.verbose, "v", false, "show verbose details")
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
 	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
@@ -158,10 +153,10 @@ func (c *Command) Run(args []string) error {
 	if len(args) == 0 {
 		return Zq.Exec(c, []string{"help"})
 	}
-	if _, err := regexp.Compile(c.jsonPathRegexp); err != nil {
-		return err
-	}
 	if c.jsonTypePath != "" {
+		if _, err := regexp.Compile(c.jsonPathRegexp); err != nil {
+			return err
+		}
 		tc, err := c.loadJsonTypes()
 		if err != nil {
 			return err
@@ -224,19 +219,6 @@ func (c *Command) Run(args []string) error {
 		d.SetWarningsWriter(os.Stderr)
 	}
 	return driver.Run(mux, d, 0)
-}
-
-func (c *Command) configureJSONTypeReader(ndjr *ndjsonio.Reader, filename string) error {
-	var path string
-	re := regexp.MustCompile(c.jsonPathRegexp)
-	match := re.FindStringSubmatch(filename)
-	if len(match) == 2 {
-		path = match[1]
-	}
-	if err := ndjr.ConfigureTypes(*c.jsonTypeConfig, path); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (c *Command) errorf(format string, args ...interface{}) {
