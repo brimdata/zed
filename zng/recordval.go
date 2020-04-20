@@ -107,6 +107,15 @@ func (r *Record) ZvalIter() zcode.Iter {
 	return r.Raw.Iter()
 }
 
+func (r *Record) NewFieldIter() recordIter {
+	return recordIter{
+		stack: []iterInfo{iterInfo{
+			iter: r.ZvalIter(),
+			typ:  r.Type,
+		}},
+	}
+}
+
 func (r *Record) Keep() *Record {
 	if r.nonvolatile {
 		return r

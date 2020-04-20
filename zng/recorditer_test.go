@@ -25,7 +25,7 @@ func TestRecordIter(t *testing.T) {
 0:[[[hello;][1;2;3;][1.2.3.4;]]]`)
 	require.NoError(t, err)
 
-	it := rec.NewFieldIterator()
+	it := rec.NewFieldIter()
 	require.False(t, it.Done(), "iterator is not exhausted")
 
 	name, val, err := it.Next()
