@@ -89,6 +89,9 @@ again:
 	}
 	// remove newline
 	line = bytes.TrimSpace(line)
+	if len(line) == 0 {
+		return nil, nil, ErrBadFormat
+	}
 	if line[0] == '#' {
 		b, err := r.parseDirective(line)
 		if err != nil {
