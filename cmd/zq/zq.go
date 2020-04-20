@@ -151,8 +151,9 @@ func (c *Command) loadJsonTypes() (*ndjsonio.TypeConfig, error) {
 	return &tc, nil
 }
 
-// squashDashes returns  "-" to empty since detector.OpenFile
-// expects empty to imply stdin.
+// squashDashes returns a new slice containing the strings from the input
+// slice but with "-" replaced with empty since detector.OpenFile expects
+// empty to imply stdin.
 func squashDashes(paths []string) []string {
 	var out []string
 	for _, path := range paths {
