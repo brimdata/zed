@@ -9,8 +9,8 @@ import (
 // syntactic sugar for directory manipulations of a temp dir
 type Dir string
 
-func NewDir(name, parent string) (*Dir, error) {
-	path, err := ioutil.TempDir(parent, name)
+func NewDir(name string) (*Dir, error) {
+	path, err := ioutil.TempDir("", name)
 	if err != nil {
 		return nil, err
 	}

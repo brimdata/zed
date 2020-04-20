@@ -480,7 +480,7 @@ func checkData(files map[string][]byte, dir *Dir, stdout, stderr string) error {
 }
 
 func runsh(testname, bindir, dirname string, zt *ZTest) error {
-	dir, err := NewDir(testname, dirname)
+	dir, err := NewDir(testname)
 	if err != nil {
 		return err
 	}
