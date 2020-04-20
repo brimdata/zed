@@ -425,6 +425,7 @@ func TestFilters(t *testing.T) {
 	require.NoError(t, err)
 	runCases(t, record, []testcase{
 		{"s = hello", true},
+		{"s =~ hello", true},
 
 		// Also smoke test that globs work...
 		{"s = hell*", false},
