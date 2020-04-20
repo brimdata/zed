@@ -1,6 +1,7 @@
 package detector
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/brimsec/zq/zbuf"
@@ -22,10 +23,17 @@ func (*nullWriter) Write(*zng.Record) error {
 	return nil
 }
 
-func LookupWriter(format string, w io.WriteCloser, optionalFlags *zio.Flags) *zio.Writer {
-	var flags zio.Flags
+func LookupWriter(w io.WriteCloser, optionalFlags *zio.WriterFlags) *zio.Writer {
+	if optionalFlags == nil {
+		panic("FLAGS SHOULDN'T BE OPTIONAL")
+	}
+	format := "zng"
+	var flags zio.WriterFlags
 	if optionalFlags != nil {
 		flags = *optionalFlags
+	}
+	if flags.Format != "" {
+		format = flags.Format
 	}
 	var f zbuf.WriteFlusher
 	switch format {
@@ -54,8 +62,8 @@ func LookupWriter(format string, w io.WriteCloser, optionalFlags *zio.Flags) *zi
 	}
 }
 
-func LookupReader(format string, r io.Reader, zctx *resolver.Context) (zbuf.Reader, error) {
-	switch format {
+func LookupReader(r io.Reader, zctx *resolver.Context, flags *zio.ReaderFlags) (zbuf.Reader, error) {
+	switch flags.Format {
 	case "zng":
 		return zngio.NewReader(r, zctx), nil
 	case "zeek":
@@ -67,5 +75,5 @@ func LookupReader(format string, r io.Reader, zctx *resolver.Context) (zbuf.Read
 	case "bzng":
 		return bzngio.NewReader(r, zctx), nil
 	}
-	return nil, nil
+	return nil, fmt.Errorf("no such reader type: \"%s\"", flags.Format)
 }

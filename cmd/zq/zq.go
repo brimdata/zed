@@ -80,8 +80,6 @@ func init() {
 
 type Command struct {
 	zctx           *resolver.Context
-	ifmt           string
-	ofmt           string
 	dir            string
 	path           string
 	jsonTypePath   string
@@ -93,7 +91,8 @@ type Command struct {
 	quiet          bool
 	showVersion    bool
 	stopErr        bool
-	zio.Flags
+	ReaderFlags    zio.ReaderFlags
+	WriterFlags    zio.WriterFlags
 }
 
 func New(f *flag.FlagSet) (charm.Command, error) {
@@ -102,11 +101,12 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 
 	c.jsonPathRegexp = ingest.DefaultJSONPathRegexp
 
-	// Flags added for writers are -T, -F, -E, -U, and -b
-	c.Flags.SetFlags(f)
+	// Flags added for writers are -f, -T, -F, -E, -U, and -b
+	c.WriterFlags.SetFlags(f)
 
-	f.StringVar(&c.ifmt, "i", "auto", "format of input data [auto,bzng,ndjson,zeek,zjson,zng]")
-	f.StringVar(&c.ofmt, "f", "zng", "format for output data [bzng,ndjson,table,text,types,zeek,zjson,zng]")
+	// Flags added for readers are -i XXX json
+	c.ReaderFlags.SetFlags(f)
+
 	f.StringVar(&c.path, "p", cwd, "path for input")
 	f.StringVar(&c.dir, "d", "", "directory for output data files")
 	f.StringVar(&c.outputFile, "o", "", "write data to output file")
@@ -187,13 +187,13 @@ func (c *Command) Run(args []string) error {
 			return fmt.Errorf("parse error: %s", err)
 		}
 	}
-	if c.ofmt == "types" {
+	if c.WriterFlags.Format == "types" {
 		logger, err := emitter.NewTypeLogger(c.outputFile, c.verbose)
 		if err != nil {
 			return err
 		}
 		c.zctx.SetLogger(logger)
-		c.ofmt = "null"
+		c.WriterFlags.Format = "null"
 		defer logger.Close()
 	}
 
@@ -274,12 +274,13 @@ func (c *Command) inputReaders(paths []string) ([]zbuf.Reader, error) {
 				return nil, err
 			}
 		}
+		//XXX move this to zio/zbuf
 		r := detector.GzipReader(f)
 		var err error
-		if c.ifmt == "auto" {
+		if c.ReaderFlags.Format == "auto" {
 			zr, err = detector.NewReader(r, c.zctx)
 		} else {
-			zr, err = detector.LookupReader(c.ifmt, r, c.zctx)
+			zr, err = detector.LookupReader(r, c.zctx, &c.ReaderFlags)
 		}
 		if err != nil {
 			err = fmt.Errorf("%s: %w", path, err)
@@ -302,13 +303,13 @@ func (c *Command) inputReaders(paths []string) ([]zbuf.Reader, error) {
 
 func (c *Command) openOutput() (zbuf.WriteCloser, error) {
 	if c.dir != "" {
-		d, err := emitter.NewDir(c.dir, c.outputFile, c.ofmt, os.Stderr, &c.Flags)
+		d, err := emitter.NewDir(c.dir, c.outputFile, os.Stderr, &c.WriterFlags)
 		if err != nil {
 			return nil, err
 		}
 		return d, nil
 	}
-	w, err := emitter.NewFile(c.outputFile, c.ofmt, &c.Flags)
+	w, err := emitter.NewFile(c.outputFile, &c.WriterFlags)
 	if err != nil {
 		return nil, err
 	}

@@ -25,9 +25,8 @@ type Dir struct {
 	dir     string
 	prefix  string
 	ext     string
-	format  string
 	stderr  io.Writer // XXX use warnings channel
-	flags   *zio.Flags
+	flags   *zio.WriterFlags
 	writers map[*zng.TypeRecord]*zio.Writer
 	paths   map[string]*zio.Writer
 }
@@ -36,19 +35,18 @@ func unknownFormat(format string) error {
 	return fmt.Errorf("unknown output format: %s", format)
 }
 
-func NewDir(dir, prefix, format string, stderr io.Writer, flags *zio.Flags) (*Dir, error) {
+func NewDir(dir, prefix string, stderr io.Writer, flags *zio.WriterFlags) (*Dir, error) {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return nil, err
 	}
-	e := zio.Extension(format)
+	e := zio.Extension(flags.Format)
 	if e == "" {
-		return nil, unknownFormat(format)
+		return nil, unknownFormat(flags.Format)
 	}
 	return &Dir{
 		dir:     dir,
 		prefix:  prefix,
 		ext:     e,
-		format:  format,
 		stderr:  stderr,
 		flags:   flags,
 		writers: make(map[*zng.TypeRecord]*zio.Writer),
@@ -98,7 +96,7 @@ func (d *Dir) newFile(rec *zng.Record) (*zio.Writer, error) {
 	if w, ok := d.paths[path]; ok {
 		return w, nil
 	}
-	w, err := NewFile(filename, d.format, d.flags)
+	w, err := NewFile(filename, d.flags)
 	if err != nil {
 		return nil, err
 	}

@@ -16,11 +16,11 @@ func (b *Bytes) Bytes() []byte {
 	return b.buf.Bytes()
 }
 
-func NewBytes(format string, flags *zio.Flags) (*Bytes, error) {
+func NewBytes(flags *zio.WriterFlags) (*Bytes, error) {
 	b := &Bytes{}
-	b.Writer = detector.LookupWriter(format, &noClose{&b.buf}, flags)
+	b.Writer = detector.LookupWriter(&noClose{&b.buf}, flags)
 	if b.Writer == nil {
-		return nil, unknownFormat(format)
+		return nil, unknownFormat(flags.Format)
 	}
 	return b, nil
 }

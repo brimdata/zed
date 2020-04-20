@@ -9,6 +9,7 @@ import (
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
@@ -33,7 +34,7 @@ func stringReader(input string, ifmt string, zctx *resolver.Context) (zbuf.Reade
 	if ifmt == "" {
 		return detector.NewReader(strings.NewReader(input), zctx)
 	}
-	zr, err := detector.LookupReader(ifmt, strings.NewReader(input), zctx)
+	zr, err := detector.LookupReader(strings.NewReader(input), zctx, &zio.ReaderFlags{Format: ifmt})
 	if err != nil {
 		return nil, err
 	}
@@ -47,8 +48,8 @@ func newEmitter(ofmt string) (*emitter.Bytes, error) {
 	if ofmt == "" {
 		ofmt = "zng"
 	}
-	// XXX text format options not supported and passed in as nil
-	return emitter.NewBytes(ofmt, nil)
+	// XXX text format options not supported
+	return emitter.NewBytes(&zio.WriterFlags{Format: ofmt})
 }
 
 func (i *Internal) Run() (string, error) {

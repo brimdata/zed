@@ -41,7 +41,7 @@ func boomerang(t *testing.T, logs string) {
 	in := []byte(strings.TrimSpace(logs) + "\n")
 	zngSrc := zngio.NewReader(bytes.NewReader(in), resolver.NewContext())
 	var rawzng Output
-	rawDst := zbuf.NopFlusher(bzngio.NewWriter(&rawzng, zio.Flags{}))
+	rawDst := zbuf.NopFlusher(bzngio.NewWriter(&rawzng, zio.WriterFlags{}))
 	err := zbuf.Copy(rawDst, zngSrc)
 	require.NoError(t, err)
 
@@ -260,7 +260,7 @@ func TestEOS(t *testing.T) {
 	in := []byte(strings.TrimSpace(strm) + "\n")
 	r := zngio.NewReader(bytes.NewReader(in), resolver.NewContext())
 	var out Output
-	writer := bzngio.NewWriter(&out, zio.Flags{StreamRecordsMax: 2})
+	writer := bzngio.NewWriter(&out, zio.WriterFlags{StreamRecordsMax: 2})
 	w := zbuf.NopFlusher(writer)
 
 	// Copy the zng as bzng to out and record the position of the second record.

@@ -11,19 +11,19 @@ import (
 
 type Writer struct {
 	io.Writer
-	zio.Flags
-	encoder       *resolver.Encoder
-	buffer        []byte
-	streamRecords int
-	position      int64
+	encoder          *resolver.Encoder
+	buffer           []byte
+	streamRecords    int
+	streamRecordsMax int
+	position         int64
 }
 
-func NewWriter(w io.Writer, flags zio.Flags) *Writer {
+func NewWriter(w io.Writer, flags zio.WriterFlags) *Writer {
 	return &Writer{
-		Writer:  w,
-		Flags:   flags,
-		encoder: resolver.NewEncoder(),
-		buffer:  make([]byte, 0, 128),
+		Writer:           w,
+		encoder:          resolver.NewEncoder(),
+		buffer:           make([]byte, 0, 128),
+		streamRecordsMax: flags.StreamRecordsMax,
 	}
 }
 
@@ -78,7 +78,7 @@ func (w *Writer) Write(r *zng.Record) error {
 
 	err = w.write(r.Raw)
 	w.streamRecords++
-	if w.StreamRecordsMax > 0 && w.streamRecords >= w.StreamRecordsMax {
+	if w.streamRecordsMax > 0 && w.streamRecords >= w.streamRecordsMax {
 		w.EndStream()
 	}
 

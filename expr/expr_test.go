@@ -8,7 +8,7 @@ import (
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/zio/detector"
+	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
@@ -19,10 +19,7 @@ import (
 // XXX copied from filter_test.go where could we put a single copy of this?
 func parseOneRecord(zngsrc string) (*zng.Record, error) {
 	ior := strings.NewReader(zngsrc)
-	reader, err := detector.LookupReader("zng", ior, resolver.NewContext())
-	if err != nil {
-		return nil, err
-	}
+	reader := zngio.NewReader(ior, resolver.NewContext())
 
 	rec, err := reader.Read()
 	if err != nil {

@@ -7,9 +7,20 @@ import (
 	"github.com/brimsec/zq/zbuf"
 )
 
-// Flags has the union of the flags accepted by all the different
+// ReaderFlags has the union of the flags accepted by all the different
+// Reader implementations.
+type ReaderFlags struct {
+	Format string
+}
+
+func (f *ReaderFlags) SetFlags(fs *flag.FlagSet) {
+	fs.StringVar(&f.Format, "i", "auto", "format of input data [auto,bzng,ndjson,zeek,zjson,zng]")
+}
+
+// WriterFlags has the union of the flags accepted by all the different
 // Writer implementations.
-type Flags struct {
+type WriterFlags struct {
+	Format           string
 	UTF8             bool
 	ShowTypes        bool
 	ShowFields       bool
@@ -17,7 +28,8 @@ type Flags struct {
 	StreamRecordsMax int
 }
 
-func (f *Flags) SetFlags(fs *flag.FlagSet) {
+func (f *WriterFlags) SetFlags(fs *flag.FlagSet) {
+	fs.StringVar(&f.Format, "f", "zng", "format for output data [bzng,ndjson,table,text,types,zeek,zjson,zng]")
 	fs.BoolVar(&f.ShowTypes, "T", false, "display field types in text output")
 	fs.BoolVar(&f.ShowFields, "F", false, "display field names in text output")
 	fs.BoolVar(&f.EpochDates, "E", false, "display epoch timestamps in text output")

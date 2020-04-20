@@ -88,7 +88,7 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api
 		}
 	}()
 	for _, path := range req.Paths {
-		sf, err := scanner.OpenFile(zctx, path, "auto")
+		sf, err := scanner.OpenFile(zctx, path, &zio.ReaderFlags{Format: "auto"})
 		if err != nil {
 			if req.StopErr {
 				return err
@@ -112,7 +112,7 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api
 	if err != nil {
 		return err
 	}
-	zw := bzngio.NewWriter(bzngfile, zio.Flags{})
+	zw := bzngio.NewWriter(bzngfile, zio.WriterFlags{})
 	program := fmt.Sprintf("sort -limit %d -r ts | (filter *; head 1; tail 1)", sortLimit)
 	var headW, tailW recWriter
 

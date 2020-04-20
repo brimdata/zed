@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -16,7 +17,8 @@ type File struct {
 	file *os.File
 }
 
-func OpenFile(zctx *resolver.Context, path, ifmt string) (*File, error) {
+func OpenFile(zctx *resolver.Context, path string, flags *zio.ReaderFlags) (*File, error) {
+	// XXX move all this to zbuf/zio
 	info, err := os.Stat(path)
 	if err != nil {
 		return nil, err
@@ -30,10 +32,10 @@ func OpenFile(zctx *resolver.Context, path, ifmt string) (*File, error) {
 	}
 	r := detector.GzipReader(f)
 	var zr zbuf.Reader
-	if ifmt == "auto" {
+	if flags.Format == "auto" {
 		zr, err = detector.NewReader(r, zctx)
 	} else {
-		zr, err = detector.LookupReader(ifmt, r, zctx)
+		zr, err = detector.LookupReader(r, zctx, flags)
 	}
 	if err != nil {
 		return nil, err

@@ -78,7 +78,7 @@ func TestBzngIndex(t *testing.T) {
 	fp, err := os.Create(fname)
 	require.NoError(t, err)
 
-	flags := zio.Flags{StreamRecordsMax: 2}
+	flags := zio.WriterFlags{StreamRecordsMax: 2}
 	writer := NewWriter(fp, flags)
 
 	for {
