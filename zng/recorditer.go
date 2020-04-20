@@ -26,10 +26,8 @@ type recordIter struct {
 func (r *Record) NewFieldIterator() recordIter {
 	return recordIter{
 		stack: []iterInfo{iterInfo{
-			iter:     r.ZvalIter(),
-			typ:      r.Type,
-			offset:   0,
-			fullname: "",
+			iter: r.ZvalIter(),
+			typ:  r.Type,
 		}},
 	}
 }
