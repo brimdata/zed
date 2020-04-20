@@ -12,11 +12,6 @@ var (
 	ErrMismatch  = errors.New("mismatch between record type and value")
 )
 
-type RecordIter interface {
-	Done() bool
-	Next() (name string, value Value, err error)
-}
-
 type iterInfo struct {
 	iter     zcode.Iter
 	typ      *TypeRecord
@@ -28,8 +23,8 @@ type recordIter struct {
 	stack []iterInfo
 }
 
-func (r *Record) NewFieldIterator() RecordIter {
-	return &recordIter{
+func (r *Record) NewFieldIterator() recordIter {
+	return recordIter{
 		stack: []iterInfo{iterInfo{
 			iter:     r.ZvalIter(),
 			typ:      r.Type,
