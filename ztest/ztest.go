@@ -477,14 +477,16 @@ func runsh(testname, bindir, dirname string, zt *ZTest) error {
 	if err != nil {
 		return err
 	}
+	var stdin io.Reader
 	defer dir.RemoveAll()
 	for _, f := range zt.Inputs {
-		if f.Name == "stdin" {
-			return errors.New("cannot use stdin in a script test")
-		}
 		b, re, err := f.load(dirname)
 		if err != nil {
 			return err
+		}
+		if f.Name == "stdin" {
+			stdin = bytes.NewReader(b)
+			continue
 		}
 		if re != nil {
 			return fmt.Errorf("%s: cannot use a regexp pattern in an input", f.Name)
@@ -507,7 +509,7 @@ func runsh(testname, bindir, dirname string, zt *ZTest) error {
 			expectedPattern[f.Name] = re
 		}
 	}
-	stdout, stderr, err := RunShell(dir, bindir, zt.Script)
+	stdout, stderr, err := RunShell(dir, bindir, zt.Script, stdin)
 	if err != nil {
 		// XXX If the err is an exit error, we ignore it and rely on
 		// tests that check stderr etc.  We could pull out the exit
