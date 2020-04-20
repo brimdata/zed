@@ -29,12 +29,12 @@ var Create = &charm.Spec{
 	Usage: "create [-f framesize] [ -o file ] [-value field] -key field bzng-file",
 	Short: "generate an zdx file from one or more zng files",
 	Long: `
-The create command generates an zdx bundle containing of keys and optional values
-from the input bzng file.  The required option f -k specifies the zng record
-field name that comprises the set of keys added to the zdx.  If a value field is
-specified with -value, then that field specifies the values to include with each key.
-If a key appears more than once, the last value in the input takes precendence.
-It is an error for a value field is specified but not present in any record.
+The create command generates a zdx bundle containing keys and optional values
+from the input bzng file.  The required flag -k specifies the zng record
+field name that comprises the set of keys added to the zdx.  The optional
+flag -v specifies a field name whose value will be added alongside its key.
+If a key appears more than once, the last value in the input takes precedence.
+It is an error if a value field is specified but not present in any record.
 It is also an error if the key or value fields are not of uniform type.`,
 	New: newCreateCommand,
 }
@@ -66,7 +66,7 @@ func newCreateCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, err
 
 func (c *CreateCommand) Run(args []string) error {
 	if c.keyField == "" {
-		return errors.New("must specify a key field with -key")
+		return errors.New("must specify a key field with -k")
 	}
 	if len(args) != 1 {
 		return errors.New("must specify a single bzng input file containing keys and optional values")
@@ -94,7 +94,12 @@ func (c *CreateCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	defer writer.Close()
+	close := true
+	defer func() {
+		if close {
+			writer.Close()
+		}
+	}()
 	table := zdx.NewMemTable(zctx)
 	read := reader.Read
 	if c.skip {
@@ -151,5 +156,9 @@ func (c *CreateCommand) Run(args []string) error {
 			return err
 		}
 	}
-	return zbuf.Copy(writer, table)
+	close = false
+	if err := zbuf.Copy(writer, table); err != nil {
+		return err
+	}
+	return writer.Close()
 }

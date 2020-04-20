@@ -17,9 +17,9 @@ var Lookup = &charm.Spec{
 	Usage: "lookup -k <key> <bundle>",
 	Short: "lookup a key in an zdx file and print value as zng record",
 	Long: `
-The lookup command locates the specified <key> in the base file oof the
+The lookup command locates the specified <key> in the base file of the
 zdx <bundle> and displays the result as a zng record.
-The key argument specifies a value to lookup in the table and must be parseable
+The key argument specifies a value to look up in the table and must be parseable
 as a zng type of the key that was originally indexed.`,
 	New: newLookupCommand,
 }
@@ -77,6 +77,8 @@ func (c *LookupCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	defer writer.Close()
-	return writer.Write(rec)
+	if err := writer.Write(rec); err != nil {
+		return err
+	}
+	return writer.Close()
 }

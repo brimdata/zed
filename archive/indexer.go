@@ -41,14 +41,14 @@ func archiveDir(path string) (string, error) {
 
 // Indexer provides a means to index a zng file.  First, a stream of zng.Records
 // is written to the Indexer via zbuf.Writer, then the indexed records are read
-// as a stream via zbuf.Reader.   The index is managed as a zdx bundle.
+// as a stream via zbuf.Reader.  The index is managed as a zdx bundle.
 // XXX currently we are supporting just in-memory indexing but it would be
 // straightforward to extend this to spill in-memory tables then merge them
 // on close a la LSM.
 type Indexer interface {
-	Path() string
-	zbuf.Writer
 	zbuf.Reader
+	zbuf.Writer
+	Path() string
 }
 
 func IndexDirTree(dir string, rules []Rule) error {
@@ -91,7 +91,10 @@ func Run(path string, rules []Rule) error {
 	}
 	var indexers []Indexer
 	for _, rule := range rules {
-		indexer := rule.NewIndexer(subdir)
+		indexer, err := rule.NewIndexer(subdir)
+		if err != nil {
+			return err
+		}
 		indexers = append(indexers, indexer)
 		fmt.Printf("%s: creating index %s\n", path, indexer.Path())
 	}
@@ -113,8 +116,7 @@ func Run(path string, rules []Rule) error {
 			break
 		}
 		for _, indexer := range indexers {
-			err := indexer.Write(rec)
-			if err != nil {
+			if err := indexer.Write(rec); err != nil {
 				return err
 			}
 		}

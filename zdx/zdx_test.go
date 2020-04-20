@@ -45,8 +45,10 @@ func buildTestTable(t *testing.T, zngText string) string {
 	if err != nil {
 		t.Error(err)
 	}
-	defer writer.Close()
 	if err := zbuf.Copy(writer, reader); err != nil {
+		t.Error(err)
+	}
+	if err := writer.Close(); err != nil {
 		t.Error(err)
 	}
 	return path
@@ -122,7 +124,8 @@ func TestZdx(t *testing.T) {
 	require.NoError(t, err)
 	err = zbuf.Copy(writer, stream)
 	require.NoError(t, err)
-	writer.Close()
+	err = writer.Close()
+	require.NoError(t, err)
 	reader, err := zdx.NewReader(path)
 	require.NoError(t, err)
 	defer reader.Close() //nolint:errcheck

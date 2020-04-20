@@ -11,8 +11,7 @@ const (
 	FrameSize = 32 * 1024
 )
 
-// Reader implements zbuf.Reader and provides a way too scan zng zdx files as
-// well as seek to an offset and read from there.
+// Reader implements zbuf.Reader, io.ReadSeeker, and io.Closer.
 type Reader struct {
 	*bzngio.Seeker
 	file *os.File

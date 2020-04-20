@@ -2,6 +2,7 @@ package archive
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/brimsec/zq/expr"
@@ -10,10 +11,10 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-// Rule is a interface for creating pattern-specific indexers and finders
+// Rule is an interface for creating pattern-specific indexers and finders
 // dynamically as directories are encountered.
 type Rule interface {
-	NewIndexer(dir string) Indexer
+	NewIndexer(dir string) (Indexer, error)
 	NewFinder(dir string) *zdx.Finder
 }
 
@@ -41,11 +42,13 @@ func NewTypeRule(typeName string) (*TypeRule, error) {
 	}, nil
 }
 
-func (t *TypeRule) NewIndexer(dir string) Indexer {
+func (t *TypeRule) NewIndexer(dir string) (Indexer, error) {
 	zdxPath := filepath.Join(dir, typeZdxName(t.Type))
 	// XXX DANGER, remove without warning, should we have a force flag?
-	zdx.Remove(zdxPath)
-	return NewTypeIndexer(zdxPath, t.Type)
+	if err := zdx.Remove(zdxPath); err != nil && !os.IsNotExist(err) {
+		return nil, err
+	}
+	return NewTypeIndexer(zdxPath, t.Type), nil
 }
 
 func (t *TypeRule) NewFinder(dir string) *zdx.Finder {
@@ -72,11 +75,13 @@ func NewFieldRule(field string) (*FieldRule, error) {
 	}, nil
 }
 
-func (f *FieldRule) NewIndexer(dir string) Indexer {
+func (f *FieldRule) NewIndexer(dir string) (Indexer, error) {
 	zdxPath := filepath.Join(dir, fieldZdxName(f.field))
 	// XXX DANGER, remove without warning, should we have a force flag?
-	zdx.Remove(zdxPath)
-	return NewFieldIndexer(zdxPath, f.field, f.accessor)
+	if err := zdx.Remove(zdxPath); err != nil && !os.IsNotExist(err) {
+		return nil, err
+	}
+	return NewFieldIndexer(zdxPath, f.field, f.accessor), nil
 }
 
 func (f *FieldRule) NewFinder(dir string) *zdx.Finder {

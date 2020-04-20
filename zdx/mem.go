@@ -19,7 +19,6 @@ type MemTable struct {
 	offset  int
 	zctx    *resolver.Context
 	builder *zng.Builder
-	recBuf  zng.Record
 	keyType zng.Type
 	valType zng.Type
 }

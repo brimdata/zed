@@ -71,6 +71,8 @@ func (c *MergeCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	defer writer.Close()
-	return zbuf.Copy(writer, combiner)
+	if err := zbuf.Copy(writer, combiner); err != nil {
+		return err
+	}
+	return writer.Close()
 }

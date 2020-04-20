@@ -17,14 +17,14 @@ var ErrSyntax = errors.New("syntax/format error encountered parsing zng data")
 // from any fields of the incoming records that have the indicated type.
 
 type TypeIndexer struct {
-	Common
+	IndexerCommon
 	Type zng.Type
 }
 
 func NewTypeIndexer(path string, refType zng.Type) *TypeIndexer {
 	zctx := resolver.NewContext()
 	return &TypeIndexer{
-		Common: Common{
+		IndexerCommon: IndexerCommon{
 			path:     path,
 			MemTable: zdx.NewMemTable(zctx),
 		},

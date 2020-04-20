@@ -7,22 +7,22 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-// FieldIndexer implements the Indexer interface, building an index where each
-// record is has one column called "key" whose values are the unique values
+// FieldIndexer implements the Indexer interface, building an index
+// containing one column called "key" whose values are the unique values
 // found in the zbuf.Writer stream of records that contain the indicated field.
 // XXX It is currently an error
 // to try to index a field name that appears as different types.  This could
 // be pretty easily fixed by creating a new FieldIndexer for each type that is
 // found and and encoding each type name (with the field name) in the zdx
-// bundle name (and adjusting the finder to look for any type variatioons).
+// bundle name (and adjusting the finder to look for any type variations).
 type FieldIndexer struct {
-	Common
+	IndexerCommon
 	accessor expr.FieldExprResolver
 }
 
 func NewFieldIndexer(path, field string, accessor expr.FieldExprResolver) *FieldIndexer {
 	return &FieldIndexer{
-		Common: Common{
+		IndexerCommon: IndexerCommon{
 			path:     path,
 			MemTable: zdx.NewMemTable(resolver.NewContext()),
 		},

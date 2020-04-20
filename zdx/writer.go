@@ -11,7 +11,7 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-// Writer returns a zng writer that creates a zdx bundle,
+// Writer implements the zbuf.Writer interface. A Writer creates a zdx bundle,
 // comprising the base zng file along with its related b-tree files,
 // as zng records are consumed.  The records must all have the same
 // type and be comprised of two columns where the first column name is
@@ -72,7 +72,7 @@ func newWriter(path string, framesize, level int) (*Writer, error) {
 	}, nil
 }
 
-// Flush is here to implement zbuf.WriteFluser
+// Flush implements zbuf.WriteFlusher.
 func (w *Writer) Flush() error {
 	return w.writer.Flush()
 }

@@ -59,7 +59,7 @@ func (f *Finder) Open() (zng.Type, error) {
 	}
 	ncol := len(rec.Type.Columns)
 	if (ncol != 1 && ncol != 2) || rec.Type.Columns[0].Name != "key" {
-		return nil, fmt.Errorf("%s: not a zdx budnle", f.path)
+		return nil, fmt.Errorf("%s: not a zdx bundle", f.path)
 	}
 	keyType := rec.Type.Columns[0].Type
 	_, err = f.files[0].Seek(0)
@@ -87,6 +87,9 @@ func lookupOffset(reader zbuf.Reader, key zcode.Bytes) (int64, error) {
 	var lastOff int64 = -1
 	for {
 		rec, err := reader.Read()
+		if err != nil {
+			return -1, err
+		}
 		if rec == nil {
 			break
 		}
@@ -112,11 +115,10 @@ func lookupOffset(reader zbuf.Reader, key zcode.Bytes) (int64, error) {
 	return lastOff, nil
 }
 
-// lookupExact searches for an exact match of the given key compared to the
-// first columns of the records read from the reader.  If a match is found,
-// the returned boolean is true and, if a second column in the matched record
-// exists, the zng.Value of that column is returned.  If there is no match found,
-// then the boolean return value is false and the zng.Value is the zero value.
+// lookup searches for a match of the given key compared to the
+// first column of the records read from the reader.  If the boolean argument
+// "exact" is true, then only exact matches are returned.  Otherwise, the
+// record with the lagest key smaller than the key arrgument is returned.
 func lookup(reader zbuf.Reader, key zcode.Bytes, exact bool) (*zng.Record, error) {
 	var prev *zng.Record
 	for {
