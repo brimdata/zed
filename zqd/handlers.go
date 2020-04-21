@@ -22,7 +22,7 @@ import (
 
 func errorResponse(e error) (status int, ae *api.Error) {
 	status = http.StatusInternalServerError
-	ae = &api.Error{}
+	ae = &api.Error{Type: "Error"}
 
 	var ze *zqe.Error
 	if !errors.As(e, &ze) {
@@ -41,7 +41,7 @@ func errorResponse(e error) (status int, ae *api.Error) {
 		status = http.StatusConflict
 	}
 
-	ae.Type = ze.Kind.String()
+	ae.Kind = ze.Kind.String()
 	ae.Message = ze.Message()
 	return
 }
@@ -90,7 +90,7 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// XXX This always returns bad request but should return status codes
 		// that reflect the nature of the returned error.
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		respondError(c, w, r, err)
 		return
 	}
 	defer srch.Close()
@@ -253,7 +253,6 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := r.Context()
 	ctx, cancel, err := c.startSpaceOp(r.Context(), s.Name())
 	if err != nil {
 		respondError(c, w, r, err)
