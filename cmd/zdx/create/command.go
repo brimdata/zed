@@ -4,33 +4,28 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io"
-	"os"
 
 	"github.com/brimsec/zq/cmd/zdx/root"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zdx"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/bzngio"
+	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
 )
 
 // XXX TBD: allow zql expression to combine a same-key value stream
-// XXX TBD: right now, this command only takes bzng input but it should
-// handle anything zq can take (e.g., json with type configs)... it's easy
-// enough to run zq and pipe it to 'zdx create', but it would be nice to
-// re-factor zq's input machinery into a separate package so it can be
-// re-used here (and by zar).
 
 var Create = &charm.Spec{
 	Name:  "create",
-	Usage: "create [-f framesize] [ -o file ] [-value field] -key field bzng-file",
+	Usage: "create [-f framesize] [ -o file ] [-value field] -key field file",
 	Short: "generate an zdx file from one or more zng files",
 	Long: `
 The create command generates a zdx bundle containing keys and optional values
-from the input bzng file.  The required flag -k specifies the zng record
+from the input file.  The required flag -k specifies the zng record
 field name that comprises the set of keys added to the zdx.  The optional
 flag -v specifies a field name whose value will be added alongside its key.
 If a key appears more than once, the last value in the input takes precedence.
@@ -45,11 +40,12 @@ func init() {
 
 type CreateCommand struct {
 	*root.Command
-	framesize  int
-	outputFile string
-	keyField   string
-	valField   string
-	skip       bool
+	framesize   int
+	outputFile  string
+	keyField    string
+	valField    string
+	skip        bool
+	ReaderFlags zio.ReaderFlags
 }
 
 func newCreateCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -61,6 +57,8 @@ func newCreateCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, err
 	f.StringVar(&c.keyField, "k", "", "field name of keys ")
 	f.StringVar(&c.valField, "v", "", "field name of values ")
 	f.BoolVar(&c.skip, "S", false, "skip all records except for the first of each stream")
+	c.ReaderFlags.SetFlags(f)
+
 	return c, nil
 }
 
@@ -77,19 +75,14 @@ func (c *CreateCommand) Run(args []string) error {
 		readVal = expr.CompileFieldAccess(c.valField)
 	}
 	path := args[0]
-	var in io.Reader
 	if path == "-" {
-		in = os.Stdin
-	} else {
-		f, err := os.Open(path)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		in = f
+		path = "" // stdin... this will change
 	}
 	zctx := resolver.NewContext()
-	reader := bzngio.NewReader(in, zctx)
+	reader, err := detector.OpenFile(zctx, path, &c.ReaderFlags)
+	if err != nil {
+		return err
+	}
 	writer, err := zdx.NewWriter(c.outputFile, c.framesize)
 	if err != nil {
 		return err
@@ -103,6 +96,10 @@ func (c *CreateCommand) Run(args []string) error {
 	table := zdx.NewMemTable(zctx)
 	read := reader.Read
 	if c.skip {
+		reader, ok := reader.Reader.(*bzngio.Reader)
+		if !ok {
+			return errors.New("cannot use -S flag with non-bzng input")
+		}
 		// to skip, return the first record of each stream,
 		// meaning read the first one, then skip to the next
 		// sos for each subsequent read
@@ -130,7 +127,7 @@ func (c *CreateCommand) Run(args []string) error {
 		if k.Bytes == nil {
 			// The key field is unset.  Skip it.  Unless we want to
 			// index the notion of something that is unset, this is
-			// the right thing to odo.
+			// the right thing to do.
 			continue
 		}
 		if readVal == nil {
