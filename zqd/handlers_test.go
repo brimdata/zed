@@ -17,7 +17,6 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zqd"
@@ -356,7 +355,7 @@ func TestPostZngLogWarning(t *testing.T) {
 	payloads := postSpaceLogs(t, client, spaceName, nil, false, strings.Join(src1, "\n"), strings.Join(src2, "\n"))
 	warn1 := payloads[1].(*api.LogPostWarning)
 	warn2 := payloads[2].(*api.LogPostWarning)
-	assert.Regexp(t, ": malformed input$", warn1.Warning)
+	assert.Regexp(t, ": format detection error.*", warn1.Warning)
 	assert.Regexp(t, ": line 3: bad format$", warn2.Warning)
 
 	status := payloads[len(payloads)-2].(*api.LogPostStatus)
@@ -490,7 +489,7 @@ func TestPostLogStopErr(t *testing.T) {
 	last := payloads[len(payloads)-1].(*api.TaskEnd)
 	assert.Equal(t, last.Type, "TaskEnd")
 	require.NotNil(t, last.Error)
-	assert.Equal(t, last.Error.Message, detector.ErrUnknown.Error())
+	assert.Regexp(t, ": format detection error.*", last.Error.Message)
 }
 
 func TestDeleteDuringPacketPost(t *testing.T) {

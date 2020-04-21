@@ -14,7 +14,7 @@ var StopErrStop = test.Shell{
 	Expected: []test.File{
 		test.File{"res.zng", ""},
 	},
-	ExpectedStderrRE: "bad.zng.*: malformed input",
+	ExpectedStderrRE: "bad.zng: format detection error.*",
 }
 
 // one input has first bad line (detection fails)
@@ -28,7 +28,7 @@ var StopErrContinue = test.Shell{
 	Expected: []test.File{
 		test.File{"res.zng", test.Trim(good)},
 	},
-	ExpectedStderrRE: "bad.zng.*: malformed input",
+	ExpectedStderrRE: "bad.zng: format detection error.*",
 }
 
 const good = `#0:record[_path:string,ts:time]
