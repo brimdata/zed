@@ -41,7 +41,7 @@ func errorResponse(e error) (status int, ae *api.Error) {
 		status = http.StatusConflict
 	}
 
-	ae.ErrorType = ze.Kind.String()
+	ae.Kind = ze.Kind.String()
 	ae.Message = ze.Message()
 	return
 }
