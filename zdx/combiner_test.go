@@ -6,7 +6,7 @@ import (
 
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zdx"
-	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
@@ -27,8 +27,8 @@ const stream2 = `
 
 func TestCombinerOrder(t *testing.T) {
 	zctx := resolver.NewContext()
-	s1 := zngio.NewReader(strings.NewReader(stream1), zctx)
-	s2 := zngio.NewReader(strings.NewReader(stream2), zctx)
+	s1 := tzngio.NewReader(strings.NewReader(stream1), zctx)
+	s2 := tzngio.NewReader(strings.NewReader(stream2), zctx)
 	c := zdx.NewCombiner([]zbuf.Reader{s1, s2}, func(a, b *zng.Record) *zng.Record {
 		return a
 	})

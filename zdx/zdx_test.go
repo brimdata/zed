@@ -11,7 +11,7 @@ import (
 
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zdx"
-	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
@@ -20,11 +20,11 @@ import (
 
 // XXX add bigger test input with smaller frame size
 
-func newTextReader(logs string) *zngio.Reader {
-	return zngio.NewReader(strings.NewReader(logs), resolver.NewContext())
+func newTextReader(logs string) *tzngio.Reader {
+	return tzngio.NewReader(strings.NewReader(logs), resolver.NewContext())
 }
 
-func newReader(size int) (*zngio.Reader, error) {
+func newReader(size int) (*tzngio.Reader, error) {
 	var lines []string
 	lines = append(lines, "#0:record[key:string,value:int32]")
 	for i := 0; i < size; i++ {
