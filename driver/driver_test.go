@@ -9,7 +9,7 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
@@ -35,7 +35,7 @@ func TestMuxDriver(t *testing.T) {
 	assert.NoError(t, err)
 
 	t.Run("muxed into one writer", func(t *testing.T) {
-		reader := zngio.NewReader(strings.NewReader(input), zctx)
+		reader := tzngio.NewReader(strings.NewReader(input), zctx)
 		flowgraph, err := Compile(context.Background(), query, scanner.NewScanner(reader, nil, nano.MaxSpan), false, nano.MaxSpan, nil)
 		assert.NoError(t, err)
 		c := counter{}
@@ -46,7 +46,7 @@ func TestMuxDriver(t *testing.T) {
 	})
 
 	t.Run("muxed into individual writers", func(t *testing.T) {
-		reader := zngio.NewReader(strings.NewReader(input), zctx)
+		reader := tzngio.NewReader(strings.NewReader(input), zctx)
 		flowgraph, err := Compile(context.Background(), query, scanner.NewScanner(reader, nil, nano.MaxSpan), false, nano.MaxSpan, nil)
 		assert.NoError(t, err)
 		cs := []zbuf.Writer{&counter{}, &counter{}}

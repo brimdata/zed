@@ -25,7 +25,7 @@
 //
 // Input format is detected automatically and can be anything recognized by
 // "zq -i auto" (including optional gzip compression).  Output format defaults
-// to zng but can be set to anything accepted by "zq -f".
+// to tzng but can be set to anything accepted by "zq -f".
 //
 //    zql: count()
 //
@@ -51,7 +51,7 @@
 // defining the script, e.g.,
 //
 // inputs:
-//    - name: in1.zng
+//    - name: in1.tzng
 //      data: |
 //         #0:record[i:int64]
 //         0:[1;]
@@ -60,15 +60,15 @@
 //         #0:record[i:int64]
 //         0:[2;]
 // script: |
-//    zq -o out.zng in1.zng -
-//    zq -o count.zng "count()" out.zng
+//    zq -o out.tzng in1.tzng -
+//    zq -o count.tzng "count()" out.tzng
 // outputs:
-//    - name: out.zng
+//    - name: out.tzng
 //      data: |
 //         #0:record[i:int64]
 //         0:[1;]
 //         0:[2;]
-//    - name: count.zng
+//    - name: count.tzng
 //      data: |
 //         #0:record[count:uint64]
 //         0:[2;]
@@ -364,7 +364,7 @@ func FromYAMLFile(filename string) (*ZTest, error) {
 		return nil, errors.New("found multiple YAML documents or garbage after first document")
 	}
 	if z.OutputFormat == "" {
-		z.OutputFormat = "zng"
+		z.OutputFormat = "tzng"
 	}
 	if z.ErrorRE != "" {
 		z.errRegex, err = regexp.Compile(z.ErrorRE)

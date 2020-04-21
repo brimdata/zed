@@ -14,7 +14,7 @@ var EmptyUnionType = test.Internal{
 	Name:        "emptyuniontype",
 	Query:       "*",
 	Input:       test.Trim(inputEmptyUnionType),
-	InputFormat: "zng",
+	InputFormat: "tzng",
 	ExpectedErr: resolver.ErrEmptyTypeList,
 }
 
@@ -27,6 +27,6 @@ var EmptySetType = test.Internal{
 	Name:        "emptysettype",
 	Query:       "*",
 	Input:       test.Trim(inputEmptySetType),
-	InputFormat: "zng",
+	InputFormat: "tzng",
 	ExpectedErr: resolver.ErrEmptyTypeList,
 }

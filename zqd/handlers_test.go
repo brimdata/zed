@@ -19,7 +19,7 @@ import (
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/ndjsonio"
-	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zqd"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/zeek"
@@ -580,7 +580,7 @@ func zngSearch(t *testing.T, client *api.Connection, space, prog string) string 
 	r, err := client.Search(context.Background(), req)
 	require.NoError(t, err)
 	buf := bytes.NewBuffer(nil)
-	w := zbuf.NopFlusher(zngio.NewWriter(buf))
+	w := zbuf.NopFlusher(tzngio.NewWriter(buf))
 	require.NoError(t, zbuf.Copy(w, r))
 	return buf.String()
 }

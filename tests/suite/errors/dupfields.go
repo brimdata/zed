@@ -16,6 +16,6 @@ var DuplicateFields = test.Internal{
 	Name:         "duplicatefields",
 	Query:        "*",
 	Input:        test.Trim(inputDuplicateFields),
-	OutputFormat: "zng",
+	OutputFormat: "tzng",
 	ExpectedErr:  zng.ErrDuplicateFields,
 }

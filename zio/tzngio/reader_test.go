@@ -1,4 +1,4 @@
-package zngio_test
+package tzngio_test
 
 import (
 	"bytes"
@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,7 +24,7 @@ func TestCtrl(t *testing.T) {
 	// this tests reading of control via text zng,
 	// then writing of raw control, and reading back the result
 	in := []byte(strings.TrimSpace(ctrl) + "\n")
-	r := zngio.NewReader(bytes.NewReader(in), resolver.NewContext())
+	r := tzngio.NewReader(bytes.NewReader(in), resolver.NewContext())
 
 	_, body, err := r.ReadPayload()
 	assert.NoError(t, err)
@@ -115,8 +115,8 @@ func (o *output) Close() error { return nil }
 func boomerangErr(t *testing.T, name, logs, errorMsg string, errorArgs ...interface{}) {
 	t.Run(name, func(t *testing.T) {
 		in := []byte(strings.TrimSpace(logs) + "\n")
-		zngSrc := zngio.NewReader(bytes.NewReader(in), resolver.NewContext())
-		zngDst := zbuf.NopFlusher(zngio.NewWriter(&output{}))
+		zngSrc := tzngio.NewReader(bytes.NewReader(in), resolver.NewContext())
+		zngDst := zbuf.NopFlusher(tzngio.NewWriter(&output{}))
 		err := zbuf.Copy(zngDst, zngSrc)
 		assert.Errorf(t, err, errorMsg, errorArgs...)
 	})
@@ -127,8 +127,8 @@ func boomerang(t *testing.T, name, logs string) {
 	t.Run(name, func(t *testing.T) {
 		var out output
 		in := []byte(strings.TrimSpace(logs) + "\n")
-		zngSrc := zngio.NewReader(bytes.NewReader(in), resolver.NewContext())
-		zngDst := zbuf.NopFlusher(zngio.NewWriter(&out))
+		zngSrc := tzngio.NewReader(bytes.NewReader(in), resolver.NewContext())
+		zngDst := zbuf.NopFlusher(tzngio.NewWriter(&out))
 		err := zbuf.Copy(zngDst, zngSrc)
 		require.NoError(t, err)
 		assert.Equal(t, string(in), out.String())

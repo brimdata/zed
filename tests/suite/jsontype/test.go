@@ -6,13 +6,13 @@ import (
 
 var Test = test.Shell{
 	Name:   "json-types",
-	Script: `zq -j types.json "*" in.ndjson > http.zng`,
+	Script: `zq -j types.json "*" in.ndjson > http.tzng`,
 	Input: []test.File{
 		test.File{"in.ndjson", test.Trim(input)},
 		test.File{"types.json", test.Trim(types)},
 	},
 	Expected: []test.File{
-		test.File{"http.zng", test.Trim(httpZng)},
+		test.File{"http.tzng", test.Trim(httpTzng)},
 	},
 }
 
@@ -54,19 +54,19 @@ const types = `
   ]
 }`
 
-const httpZng = `
+const httpTzng = `
 #0:record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip]]
 0:[http;1490385563.306076;CXY9a54W2dLZwzPXf1;[10.10.7.65;]]`
 
 var TestInferPath = test.Shell{
 	Name:   "json-types-inferpath",
-	Script: `zq -j types.json "*" *.log > http.zng`,
+	Script: `zq -j types.json "*" *.log > http.tzng`,
 	Input: []test.File{
 		test.File{"http_20190830_08:00:00-09:00:00-0500.log", test.Trim(inputNoPath)},
 		test.File{"types.json", test.Trim(types)},
 	},
 	Expected: []test.File{
-		test.File{"http.zng", test.Trim(httpZng)},
+		test.File{"http.tzng", test.Trim(httpTzng)},
 	},
 }
 
@@ -74,13 +74,13 @@ const inputNoPath = `{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPX
 
 var TestSet = test.Shell{
 	Name:   "json-types-set",
-	Script: `zq -j types.json "*" in.ndjson > http.zng`,
+	Script: `zq -j types.json "*" in.ndjson > http.tzng`,
 	Input: []test.File{
 		test.File{"in.ndjson", test.Trim(inputSet)},
 		test.File{"types.json", test.Trim(typesSet)},
 	},
 	Expected: []test.File{
-		test.File{"http.zng", test.Trim(zngSet)},
+		test.File{"http.tzng", test.Trim(tzngSet)},
 	},
 }
 
@@ -113,19 +113,19 @@ const typesSet = `
   ]
 }`
 
-const zngSet = `
+const tzngSet = `
 #0:record[_path:string,ts:time,uids:set[bstring]]
 0:[sets;1490385563.306076;[a;b;]]`
 
 var TestNoTs = test.Shell{
 	Name:   "json-types-no-ts",
-	Script: `zq -j types.json "*" in.ndjson > out.zng`,
+	Script: `zq -j types.json "*" in.ndjson > out.tzng`,
 	Input: []test.File{
 		test.File{"in.ndjson", test.Trim(inputNoTs)},
 		test.File{"types.json", test.Trim(typesNoTs)},
 	},
 	Expected: []test.File{
-		test.File{"out.zng", test.Trim(zngNoTs)},
+		test.File{"out.tzng", test.Trim(tzngNoTs)},
 	},
 }
 
@@ -154,19 +154,19 @@ const typesNoTs = `
   ]
 }`
 
-const zngNoTs = `
+const tzngNoTs = `
 #0:record[_path:string,name:bstring]
 0:[nots;foo;]`
 
 var TestTs = test.Shell{
 	Name:   "json-types-ts",
-	Script: `zq -j types.json "every 1d count()" in.ndjson > http.zng`,
+	Script: `zq -j types.json "every 1d count()" in.ndjson > http.tzng`,
 	Input: []test.File{
 		test.File{"in.ndjson", test.Trim(inputTs)},
 		test.File{"types.json", test.Trim(typesTs)},
 	},
 	Expected: []test.File{
-		test.File{"http.zng", test.Trim(zngTs)},
+		test.File{"http.tzng", test.Trim(tzngTs)},
 	},
 }
 
@@ -195,6 +195,6 @@ const typesTs = `
   ]
 }`
 
-const zngTs = `
+const tzngTs = `
 #0:record[ts:time,count:uint64]
 0:[1425513600;1;]`

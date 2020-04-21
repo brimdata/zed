@@ -18,7 +18,7 @@ var ErrNotPrimitive = test.Internal{
 	Name:        "container where primitive expected",
 	Query:       "*",
 	Input:       test.Trim(inputErrNotPrimitive),
-	InputFormat: "zng",
+	InputFormat: "tzng",
 	ExpectedErr: zng.ErrNotPrimitive,
 }
 
@@ -41,7 +41,7 @@ var ErrNotContainer = test.Internal{
 	Name:        "primitive where container expected",
 	Query:       "*",
 	Input:       test.Trim(inputErrNotContainer),
-	InputFormat: "zng",
+	InputFormat: "tzng",
 	ExpectedErr: zng.ErrNotContainer,
 }
 
@@ -64,7 +64,7 @@ var ErrExtraField = test.Internal{
 	Name:        "extra field",
 	Query:       "*",
 	Input:       test.Trim(inputErrExtraField),
-	InputFormat: "zng",
+	InputFormat: "tzng",
 	ExpectedErr: zng.ErrExtraField,
 }
 
@@ -77,6 +77,6 @@ var ErrMissingField = test.Internal{
 	Name:        "missing field",
 	Query:       "*",
 	Input:       test.Trim(inputErrMissingField),
-	InputFormat: "zng",
+	InputFormat: "tzng",
 	ExpectedErr: zng.ErrMissingField,
 }

@@ -6,7 +6,7 @@ import (
 
 var Combiner = test.Shell{
 	Name:   "combiner-error-has-name",
-	Script: `zq -j types.json "*" *.ndjson > http.zng`,
+	Script: `zq -j types.json "*" *.ndjson > http.tzng`,
 	Input: []test.File{
 		test.File{"http.ndjson", test.Trim(http)},
 		test.File{"badpath.ndjson", test.Trim(badpath)},

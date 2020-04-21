@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
@@ -52,7 +52,7 @@ func TestNDJSONWriter(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			var out bytes.Buffer
 			w := NewWriter(&out)
-			r := zngio.NewReader(strings.NewReader(c.input), resolver.NewContext())
+			r := tzngio.NewReader(strings.NewReader(c.input), resolver.NewContext())
 			require.NoError(t, zbuf.Copy(zbuf.NopFlusher(w), r))
 			NDJSONEq(t, c.output, out.String())
 		})
@@ -159,43 +159,43 @@ func NDJSONEq(t *testing.T, expected string, actual string) {
 
 func TestNewRawFromJSON(t *testing.T) {
 	type testcase struct {
-		name, zng, json, defaultPath string
+		name, tzng, json, defaultPath string
 	}
 	cases := []testcase{
 		{
 			name: "LongDuration",
-			zng: `#0:record[_path:string,ts:time,span:duration]
+			tzng: `#0:record[_path:string,ts:time,span:duration]
 0:[test;1573860644.637486;0.123456134;]`,
 			json: `{"_path": "test", "ts": "2019-11-15T23:30:44.637486Z", "span": 0.1234561341234234}`,
 		},
 		{
 			name: "TsISO8601",
-			zng: `#0:record[_path:string,b:bool,i:int64,s:set[bool],ts:time,v:array[int64]]
+			tzng: `#0:record[_path:string,b:bool,i:int64,s:set[bool],ts:time,v:array[int64]]
 0:[test;-;-;-;1573860644.637486;-;]`,
 			json: `{"_path": "test", "ts":"2019-11-15T23:30:44.637486Z"}`,
 		},
 		{
 			name: "TsEpoch",
-			zng: `#0:record[_path:string,ts:time]
+			tzng: `#0:record[_path:string,ts:time]
 0:[test;1573860644.637486;]`,
 			json: `{"_path": "test", "ts":1573860644.637486}`,
 		},
 		{
 			name: "TsMillis",
-			zng: `#0:record[_path:string,ts:time]
+			tzng: `#0:record[_path:string,ts:time]
 0:[test;1573860644.637000;]`,
 			json: `{"_path": "test", "ts":1573860644637}`,
 		},
 		{
 			name: "defaultPath",
-			zng: `#0:record[_path:string,ts:time]
+			tzng: `#0:record[_path:string,ts:time]
 0:[inferred;1573860644.637000;]`,
 			json:        `{"ts":1573860644637}`,
 			defaultPath: "inferred",
 		},
 		{
 			name: "defaultPath (unused)",
-			zng: `#0:record[_path:string,ts:time]
+			tzng: `#0:record[_path:string,ts:time]
 0:[test;1573860644.637000;]`,
 			json:        `{"_path": "test", "ts":1573860644637}`,
 			defaultPath: "inferred",
@@ -204,7 +204,7 @@ func TestNewRawFromJSON(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			r := zngio.NewReader(strings.NewReader(c.zng), resolver.NewContext())
+			r := tzngio.NewReader(strings.NewReader(c.tzng), resolver.NewContext())
 			expected, err := r.Read()
 			require.NoError(t, err)
 			typ := expected.Type

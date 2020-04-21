@@ -10,9 +10,9 @@ import (
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/tableio"
 	"github.com/brimsec/zq/zio/textio"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zio/zeekio"
 	"github.com/brimsec/zq/zio/zjsonio"
-	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
@@ -26,7 +26,7 @@ func (*nullWriter) Write(*zng.Record) error {
 func LookupWriter(w io.WriteCloser, wflags *zio.WriterFlags) *zio.Writer {
 	flags := *wflags
 	if flags.Format == "" {
-		flags.Format = "zng"
+		flags.Format = "tzng"
 	}
 	var f zbuf.WriteFlusher
 	switch flags.Format {
@@ -35,7 +35,9 @@ func LookupWriter(w io.WriteCloser, wflags *zio.WriterFlags) *zio.Writer {
 	case "null":
 		f = zbuf.NopFlusher(&nullWriter{})
 	case "zng":
-		f = zbuf.NopFlusher(zngio.NewWriter(w))
+		panic("zng")
+	case "tzng":
+		f = zbuf.NopFlusher(tzngio.NewWriter(w))
 	case "bzng":
 		f = bzngio.NewWriter(w, flags)
 	case "zeek":
@@ -57,8 +59,8 @@ func LookupWriter(w io.WriteCloser, wflags *zio.WriterFlags) *zio.Writer {
 
 func LookupReader(r io.Reader, zctx *resolver.Context, flags *zio.ReaderFlags) (zbuf.Reader, error) {
 	switch flags.Format {
-	case "zng":
-		return zngio.NewReader(r, zctx), nil
+	case "tzng":
+		return tzngio.NewReader(r, zctx), nil
 	case "zeek":
 		return zeekio.NewReader(r, zctx)
 	case "ndjson":

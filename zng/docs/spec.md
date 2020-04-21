@@ -17,7 +17,7 @@ of heterogeneously typed records, e.g., structured logs, where filtering and
 analytics may be applied to a stream in parts without having to fully deserialize
 every value.
 
-ZNG has both a text form simply called "ZNG",
+ZNG has both a text form simply called "TZNG",
 comprised of a sequence of newline-delimited UTF-8 strings,
 as well as a binary form called "BZNG".
 
@@ -34,7 +34,7 @@ binary serialization format that allows "lazy parsing" of fields such that
 only the fields of interest in a stream need to be deserialized and interpreted.
 Unlike Avro, ZNG embeds its schemas in the data stream and thereby admits
 an efficient multiplexing of heterogeneous data types by prepending to each
-data value a simple integer identifier to reference its type.   
+data value a simple integer identifier to reference its type.
 
 ZNG requires no external schema definitions as its type system
 constructs schemas on the fly from within the stream using composable,
@@ -451,7 +451,7 @@ For sets, the concatenation of elements must be normalized so that the
 sequence of bytes encoding each element's tag-counted value is
 lexicographically greater than that of the preceding element.
 
-## 3. ZNG Text Format
+## 3. ZNG Text Format (TZNG)
 
 The ZNG text format is a human-readable form that follows directly from the BZNG
 binary format.  A ZNG file/stream is encoded with UTF-8.

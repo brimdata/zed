@@ -15,7 +15,7 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
@@ -198,7 +198,7 @@ func (p *ProcTest) Finish() error {
 }
 
 func parse(zctx *resolver.Context, src string) (*zbuf.Array, error) {
-	reader := zngio.NewReader(strings.NewReader(src), zctx)
+	reader := tzngio.NewReader(strings.NewReader(src), zctx)
 	records := make([]*zng.Record, 0)
 	for {
 		rec, err := reader.Read()
