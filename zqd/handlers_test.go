@@ -378,6 +378,7 @@ func TestPostZngLogWarning(t *testing.T) {
 func TestPostNDJSONLogs(t *testing.T) {
 	const src = `{"ts":"1000","uid":"CXY9a54W2dLZwzPXf1","_path":"http"}
 {"ts":"2000","uid":"CXY9a54W2dLZwzPXf1","_path":"http"}`
+	const expected = "#0:record[_path:string,ts:time,uid:bstring]\n0:[http;2;CXY9a54W2dLZwzPXf1;]\n0:[http;1;CXY9a54W2dLZwzPXf1;]"
 	tc := ndjsonio.TypeConfig{
 		Descriptors: map[string][]interface{}{
 			"http_log": []interface{}{
@@ -400,7 +401,7 @@ func TestPostNDJSONLogs(t *testing.T) {
 		},
 	}
 
-	test := func(t *testing.T, input string) {
+	test := func(input string) {
 		_, client, done := newCore(t)
 		defer done()
 		const spaceName = "test"
@@ -414,7 +415,6 @@ func TestPostNDJSONLogs(t *testing.T) {
 		assert.Nil(t, last.Error)
 
 		res := zngSearch(t, client, spaceName, "*")
-		const expected = "#0:record[_path:string,ts:time,uid:bstring]\n0:[http;2;CXY9a54W2dLZwzPXf1;]\n0:[http;1;CXY9a54W2dLZwzPXf1;]"
 		require.Equal(t, expected, strings.TrimSpace(res))
 
 		min, max := nano.Ts(1e9), nano.Ts(2e9)
@@ -429,7 +429,7 @@ func TestPostNDJSONLogs(t *testing.T) {
 		}, info)
 	}
 	t.Run("plain", func(t *testing.T) {
-		test(t, src)
+		test(src)
 	})
 	t.Run("gzipped", func(t *testing.T) {
 		var b strings.Builder
@@ -437,7 +437,7 @@ func TestPostNDJSONLogs(t *testing.T) {
 		_, err := w.Write([]byte(src))
 		require.NoError(t, err)
 		require.NoError(t, w.Close())
-		test(t, b.String())
+		test(b.String())
 	})
 }
 
