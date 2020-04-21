@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 
@@ -12,7 +12,7 @@ import (
 )
 
 func parseZng(s string) (*zng.Record, error) {
-	reader := zngio.NewReader(strings.NewReader(s), resolver.NewContext())
+	reader := tzngio.NewReader(strings.NewReader(s), resolver.NewContext())
 	return reader.Read()
 }
 
