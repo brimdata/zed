@@ -1,7 +1,16 @@
-// Package ztest runs formulaic tests ("ztests") that apply a ZQL query to an
-// input and check for an expected output.
+// Package ztest runs formulaic tests ("ztests") that can be (1) run in-process
+// with the compiled-ini zq code base, (2) run as a sub-process using the zq
+// executable build artifact, or (3) run as a bash script running a sequence
+// of arbitrary shell commands invoking any of the build artifacts.  The
+// first two cases comprise the "ZQL test style" and the last case
+// comprises the "script test style".  Case (1) is easier to debug by
+// simply running "go test" compared replicating the test using "go run".
+// Script-style tests don't have this convenience.
 //
-// A ztest is defined in a YAML file.
+// In the ZQL style, ztest runs a ZQL query on an input and checks
+// for an expected output.
+//
+// A ZQL-style test is defined in a YAML file.
 //
 //    zql: count()
 //
@@ -31,6 +40,50 @@
 //      COUNT
 //      2
 //
+// Alternatively, tests can be configured to run as shell scripts.
+// In this style of test, arbitrary bash scripts can run chaining together
+// any of zq/cmd tools in addition to zq.  Here, the yaml sets up a collection
+// of input files and stdin, the script runs, and the test driver compares expected
+// output files, stdout, and stderr with data in the yaml spec.  In this case,
+// instead of specifying, "zql", "input", "output", you specify the yaml arrays
+// "inputs" and "outputs" --- where each array element defines a file, stdin,
+// stdout, or stderr --- and a "script" that specifies a multi-line yaml string
+// defining the script, e.g.,
+//
+// inputs:
+//    - name: in1.zng
+//      data: |
+//         #0:record[i:int64]
+//         0:[1;]
+//    - name: stdin
+//      data: |
+//         #0:record[i:int64]
+//         0:[2;]
+// script: |
+//    zq -o out.zng in1.zng -
+//    zq -o count.zng "count()" out.zng
+// outputs:
+//    - name: out.zng
+//      data: |
+//         #0:record[i:int64]
+//         0:[1;]
+//         0:[2;]
+//    - name: count.zng
+//      data: |
+//         #0:record[count:uint64]
+//         0:[2;]
+//
+// Each input and output has a name.  For inputs, a file (source),
+// inlined data (data), or hexadecimal data (hex) may be specified.
+// If no data is specified, then a file of the same name as the
+// name field is looked for in the same directory as the yaml file.
+// The source spec is a file path relative to the directory of the
+// yaml file.  For outputs, expected output is defined in the same
+// fashion as the inputs though you can also specify a "regexp" string
+// instead of expected data.  If an output is named "stdout" or "stderr"
+// then the actual output is taken from the stdout or stderr of the
+// the shell script.
+//
 // Ztest YAML files for a package should reside in a subdirectory named
 // testdata/ztest.
 //
@@ -50,9 +103,10 @@
 //
 //     func TestZTest(t *testing.T) { ztest.Run(t, "testdata/ztest") }
 //
-// If the ZTEST_ZQ environment variable is unset or empty, Run runs ztests in
-// the current process.  Otherwise, Run run each ztest in a separate process
-// using the zq executable specified by ZTEST_ZQ.
+// If the ZTEST_BINDIR environment variable is unset or empty and the test
+// is not a script test, Run runs ztests in the current process and skips
+// the script tests.  Otherwise, Run runs each ztest in a separate process
+// using the zq executable in the directory specified by ZTEST_BINDIR.
 package ztest
 
 import (
@@ -68,6 +122,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -89,15 +144,16 @@ import (
 
 // Run runs the ztests in the directory named dirname.  For each file f.yaml in
 // the directory, Run calls FromYAMLFile to load a ztest and then runs it in
-// subtest named f.
+// subtest named f.  bindir is a path to the executables that the script-mode
+// tests will run.
 func Run(t *testing.T, dirname string) {
-	zq := os.Getenv("ZTEST_ZQ")
-	if zq != "" {
-		if out, _, err := run(zq, "help", "", ""); err != nil {
+	bindir := os.Getenv("ZTEST_BINDIR")
+	if bindir != "" {
+		if out, _, err := runzq(bindir, "help", "", ""); err != nil {
 			if out != "" {
 				out = fmt.Sprintf(" with output %q", out)
 			}
-			t.Fatalf("bad ZTEST_ZQ value %s: %s%s", zq, err, out)
+			t.Fatalf("failed to exec zq in dir $ZTEST_BINDIR %s: %s%s", bindir, err, out)
 		}
 	}
 	fileinfos, err := ioutil.ReadDir(dirname)
@@ -110,7 +166,8 @@ func Run(t *testing.T, dirname string) {
 		if !strings.HasSuffix(filename, dotyaml) {
 			continue
 		}
-		t.Run(strings.TrimSuffix(filename, dotyaml), func(t *testing.T) {
+		testname := strings.TrimSuffix(filename, dotyaml)
+		t.Run(testname, func(t *testing.T) {
 			t.Parallel()
 			// An absolute path in errors makes the offending file easier to find.
 			filename, err := filepath.Abs(filepath.Join(dirname, filename))
@@ -121,59 +178,77 @@ func Run(t *testing.T, dirname string) {
 			if err != nil {
 				t.Fatalf("%s: %s", filename, err)
 			}
-			out, errout, err := run(zq, zt.ZQL, zt.OutputFormat, zt.OutputFlags, zt.Input...)
-			if err != nil {
-				if zt.errRegex != nil {
-					if !zt.errRegex.Match([]byte(errout)) {
-						t.Fatalf("%s: error doesn't match expected error regex: %s %s", filename, zt.ErrorRE, errout)
-					}
-				} else {
-					if out != "" {
-						out = "\noutput:\n" + out
-					}
-					t.Fatalf("%s: %s%s", filename, err, out)
-				}
-			} else if zt.errRegex != nil {
-				t.Fatalf("%s: no error when expecting error regex: %s", filename, zt.ErrorRE)
-			}
-			expectedOut, oerr := zt.getOutput()
-			require.NoError(t, oerr)
-			if out != expectedOut {
-				a := expectedOut
-				b := out
-
-				if !utf8.ValidString(a) {
-					a = encodeHex(a)
-					b = encodeHex(b)
-				}
-
-				diff, _ := difflib.GetUnifiedDiffString(difflib.UnifiedDiff{
-					A:        difflib.SplitLines(a),
-					FromFile: "expected",
-					B:        difflib.SplitLines(b),
-					ToFile:   "actual",
-					Context:  5,
-				})
-				t.Fatalf("%s: expected and actual outputs differ:\n%s", filename, diff)
-			}
-			if err == nil && errout != zt.Warnings {
-				diff, _ := difflib.GetUnifiedDiffString(difflib.UnifiedDiff{
-					A:        difflib.SplitLines(zt.Warnings),
-					FromFile: "expected",
-					B:        difflib.SplitLines(errout),
-					ToFile:   "actual",
-					Context:  5,
-				})
-				t.Fatalf("%s: expected and actual warnings differ:\n%s", filename, diff)
-			}
+			run(t, testname, bindir, dirname, filename, zt)
 		})
 	}
 }
 
+type File struct {
+	// Name is the name of the file with respect to the directoy in which
+	// the test script runs.  For inputs, if no data source is specified,
+	// then name is also the name of a data file in the diectory containing
+	// the yaml test file, which is copied to the test script directory.
+	// Name can also be stdio (for inputs) or stdout or stderr (for outputs).
+	Name string `yaml:"name"`
+	// Data, Hex, and Source represents the different ways file data can
+	// be defined for this file.  Data is a string turned into the contents
+	// of the file, Hex is hex decoded, and Source is a string representing
+	// the pathname of a file the repo that is read to comprise the data.
+	Data   string `yaml:"data,omitempty"`
+	Hex    string `yaml:"hex,omitempty"`
+	Source string `yaml:"source,omitempty"`
+	// Re is a regular expression describing the contents of the file,
+	// which is only applicable to output files.
+	Re string `yaml:"regexp,omitempty"`
+}
+
+func (f *File) check() error {
+	cnt := 0
+	if f.Data != "" {
+		cnt++
+	}
+	if f.Hex != "" {
+		cnt++
+	}
+	if f.Source != "" {
+		cnt++
+	}
+	if cnt > 1 {
+		return fmt.Errorf("%s: must at most one of data, hex, or source", f.Name)
+	}
+	return nil
+}
+
+func (f *File) load(dir string) ([]byte, *regexp.Regexp, error) {
+	if f.Data != "" {
+		return []byte(f.Data), nil, nil
+	}
+	if f.Hex != "" {
+		s, err := decodeHex(f.Hex)
+		return []byte(s), nil, err
+	}
+	if f.Source != "" {
+		b, err := ioutil.ReadFile(filepath.Join(dir, f.Source))
+		return b, nil, err
+	}
+	if f.Re != "" {
+		re, err := regexp.Compile(f.Re)
+		return nil, re, err
+	}
+	b, err := ioutil.ReadFile(filepath.Join(dir, f.Name))
+	if err == nil {
+		return b, nil, nil
+	}
+	if os.IsNotExist(err) {
+		err = fmt.Errorf("%s: no data source", f.Name)
+	}
+	return nil, nil, err
+}
+
 // ZTest defines a ztest.
 type ZTest struct {
-	ZQL          string `yaml:"zql"`
-	Input        Inputs `yaml:"input"`
+	ZQL          string `yaml:"zql,omitempty"`
+	Input        Inputs `yaml:"input,omitempty"`
 	OutputFormat string `yaml:"output-format,omitempty"`
 	Output       string `yaml:"output,omitempty"`
 	OutputHex    string `yaml:"outputHex,omitempty"`
@@ -181,6 +256,35 @@ type ZTest struct {
 	ErrorRE      string `yaml:"errorRE"`
 	errRegex     *regexp.Regexp
 	Warnings     string `yaml:"warnings",omitempty"`
+	// shell mode params
+	Script  string `yaml:"script,omitempty"`
+	Inputs  []File `yaml:"inputs,omitempty"`
+	Outputs []File `yaml:"outputs,omitempty"`
+}
+
+func (z *ZTest) check() error {
+	if z.ZQL != "" {
+		if z.Input == nil {
+			return errors.New("input field missing in a zq test")
+		}
+	} else if z.Script != "" {
+		if z.Outputs == nil {
+			return errors.New("outputs field missing in a sh test")
+		}
+		for _, f := range z.Inputs {
+			if err := f.check(); err != nil {
+				return err
+			}
+		}
+		for _, f := range z.Outputs {
+			if err := f.check(); err != nil {
+				return err
+			}
+		}
+	} else {
+		return errors.New("either a zql field or script field must be present")
+	}
+	return nil
 }
 
 // Inputs is an array of strings. Its only purpose is to support parsing of
@@ -271,15 +375,186 @@ func FromYAMLFile(filename string) (*ZTest, error) {
 	return &z, nil
 }
 
-// Run runs the query in ZQL over inputs and returns the output formatted
+func diffErr(expected, actual string) error {
+	diff, _ := difflib.GetUnifiedDiffString(difflib.UnifiedDiff{
+		A:        difflib.SplitLines(expected),
+		FromFile: "expected",
+		B:        difflib.SplitLines(actual),
+		ToFile:   "actual",
+		Context:  5,
+	})
+	return fmt.Errorf("expected and actual outputs differ:\n%s", diff)
+}
+
+func run(t *testing.T, testname, bindir, dirname, filename string, zt *ZTest) {
+	if err := zt.check(); err != nil {
+		t.Fatalf("%s: bad yaml format: %s", filename, err)
+	}
+	if zt.Script != "" {
+		if runtime.GOOS == "windows" {
+			// XXX skip in windows until we figure out the best
+			// way to support script-driven tests across
+			// environments
+			t.Skip("skipping script test on Windows")
+		}
+		if bindir == "" {
+			t.Skip("skipping script test on in-process run")
+		}
+		adir, _ := filepath.Abs(dirname)
+		err := runsh(testname, bindir, adir, zt)
+		if err != nil {
+			t.Fatalf("%s: %s", filename, err)
+		}
+		return
+	}
+	out, errout, err := runzq(bindir, zt.ZQL, zt.OutputFormat, zt.OutputFlags, zt.Input...)
+	if err != nil {
+		if zt.errRegex != nil {
+			if !zt.errRegex.Match([]byte(errout)) {
+				t.Fatalf("%s: error doesn't match expected error regex: %s %s", filename, zt.ErrorRE, errout)
+			}
+		} else {
+			if out != "" {
+				out = "\noutput:\n" + out
+			}
+			t.Fatalf("%s: %s%s", filename, err, out)
+		}
+	} else if zt.errRegex != nil {
+		t.Fatalf("%s: no error when expecting error regex: %s", filename, zt.ErrorRE)
+	}
+	expectedOut, oerr := zt.getOutput()
+	require.NoError(t, oerr)
+	if out != expectedOut {
+		a := expectedOut
+		b := out
+
+		if !utf8.ValidString(a) {
+			a = encodeHex(a)
+			b = encodeHex(b)
+		}
+
+		err := diffErr(a, b)
+		t.Fatalf("%s: expected and actual outputs differ:\n%s", filename, err)
+	}
+	if err == nil && errout != zt.Warnings {
+		err := diffErr(zt.Warnings, errout)
+		t.Fatalf("%s: expected and actual warnings differ:\n%s", filename, err)
+	}
+}
+
+func checkPatterns(patterns map[string]*regexp.Regexp, dir *Dir, stdout, stderr string) error {
+	for name, re := range patterns {
+		var body []byte
+		switch name {
+		case "stdout":
+			body = []byte(stdout)
+		case "stderr":
+			body = []byte(stderr)
+		default:
+			var err error
+			body, err = dir.Read(name)
+			if err != nil {
+				return fmt.Errorf("%s: %s", name, err)
+			}
+		}
+		if !re.Match(body) {
+			return fmt.Errorf("regex mismatch: %s %s", re, string(body))
+		}
+	}
+	return nil
+}
+
+func checkData(files map[string][]byte, dir *Dir, stdout, stderr string) error {
+	for name, expected := range files {
+		var actual []byte
+		switch name {
+		case "stdout":
+			actual = []byte(stdout)
+		case "stderr":
+			actual = []byte(stderr)
+		default:
+			var err error
+			actual, err = dir.Read(name)
+			if err != nil {
+				return fmt.Errorf("%s: %s", name, err)
+			}
+		}
+		if !bytes.Equal(expected, actual) {
+			return diffErr(string(expected), string(actual))
+		}
+	}
+	return nil
+}
+
+func runsh(testname, bindir, dirname string, zt *ZTest) error {
+	dir, err := NewDir(testname)
+	if err != nil {
+		return err
+	}
+	var stdin io.Reader
+	defer dir.RemoveAll()
+	for _, f := range zt.Inputs {
+		b, re, err := f.load(dirname)
+		if err != nil {
+			return err
+		}
+		if f.Name == "stdin" {
+			stdin = bytes.NewReader(b)
+			continue
+		}
+		if re != nil {
+			return fmt.Errorf("%s: cannot use a regexp pattern in an input", f.Name)
+		}
+		if err := dir.Write(f.Name, b); err != nil {
+			return err
+		}
+	}
+	expectedData := make(map[string][]byte)
+	expectedPattern := make(map[string]*regexp.Regexp)
+	for _, f := range zt.Outputs {
+		b, re, err := f.load(dirname)
+		if err != nil {
+			return err
+		}
+		if b != nil {
+			expectedData[f.Name] = b
+		}
+		if re != nil {
+			expectedPattern[f.Name] = re
+		}
+	}
+	stdout, stderr, err := RunShell(dir, bindir, zt.Script, stdin)
+	if err != nil {
+		// XXX If the err is an exit error, we ignore it and rely on
+		// tests that check stderr etc.  We could pull out the exit
+		// status and test on this if we added a field for this to
+		// the ZTest struct.  I don't think it makes sense to comingle
+		// this condition with the stderr checks as in the other
+		// testing code path below.
+		if _, ok := err.(*exec.ExitError); !ok {
+			// Not an exit error from the test shell so there was
+			// a problem execing and runnning the shell command...
+			return err
+		}
+	}
+	err = checkPatterns(expectedPattern, dir, stdout, stderr)
+	if err != nil {
+		return err
+	}
+	return checkData(expectedData, dir, stdout, stderr)
+}
+
+// runzq runs the query in ZQL over inputs and returns the output formatted
 // according to outputFormat. inputs may be in any format recognized by "zq -i
 // auto" and maybe be gzip-compressed.  outputFormat may be any string accepted
-// by "zq -f".  If zq is empty, the query runs in the current process.  If zq is
-// not empty, it specifies a zq executable that will be used to run the query.
-func run(zq, ZQL, outputFormat, outputFlags string, inputs ...string) (out string, warnOrError string, err error) {
+// by "zq -f".  If bindir is empty, the query runs in the current process.
+// If bindir is not empty, it specifies a zq path that will be used to run
+// the query.
+func runzq(bindir, ZQL, outputFormat, outputFlags string, inputs ...string) (out string, warnOrError string, err error) {
 	var outbuf bytes.Buffer
 	var errbuf bytes.Buffer
-	if zq != "" {
+	if bindir != "" {
+		zq := filepath.Join(bindir, "zq")
 		tmpdir, files, err := tmpInputFiles(inputs)
 		if err != nil {
 			return "", "", err

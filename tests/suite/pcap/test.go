@@ -13,7 +13,6 @@ func init() {
 	if err != nil {
 		panic(err.Error())
 	}
-	Test1.Input[0].Data = string(pcapData)
 	Test2.Input[0].Data = string(pcapData)
 	ngData, err := ioutil.ReadFile("suite/pcap/ng.pcap")
 	if err != nil {
@@ -45,16 +44,6 @@ func init() {
 
 // XXX note these tests don't test the pcap slice index file since there
 // isn't a way yet to look at whether or not the index was used
-
-// test simple time range of odd-sorted pcap
-var Test1 = test.Shell{
-	Name:   "pcap-command",
-	Script: `pcap slice -r in.pcap -from 1425567047.804914 -to 1425567432.792482 | pcap ts -w out1`,
-	Input:  []test.File{test.File{Name: "in.pcap"}},
-	Expected: []test.File{
-		test.File{"out1", test.Trim(out1)},
-	},
-}
 
 var out1 = `
 1425567432.792481

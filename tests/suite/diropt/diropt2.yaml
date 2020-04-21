@@ -1,0 +1,29 @@
+script: zq -f zng -d out -o foo- "*" in.zng
+
+inputs:
+  - name: in.zng
+    data: |
+      #0:record[_path:string,a:string]
+      #1:record[_path:string,a:int64]
+      0:[conn;foo;]
+      1:[dns;1;]
+      1:[dns;2;]
+      1:[dns;3;]
+      0:[conn;hello;]
+      0:[conn;world;]
+      1:[dns;4;]
+
+outputs:
+  - name: out/foo-conn.zng
+    data: |
+      #0:record[_path:string,a:string]
+      0:[conn;foo;]
+      0:[conn;hello;]
+      0:[conn;world;]
+  - name: out/foo-dns.zng
+    data: |
+      #0:record[_path:string,a:int64]
+      0:[dns;1;]
+      0:[dns;2;]
+      0:[dns;3;]
+      0:[dns;4;]
