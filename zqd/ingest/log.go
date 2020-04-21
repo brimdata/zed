@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"regexp"
 
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/nano"
@@ -15,7 +14,6 @@ import (
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/bzngio"
 	"github.com/brimsec/zq/zio/detector"
-	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
@@ -68,16 +66,6 @@ func (rw *recWriter) Write(r *zng.Record) error {
 // x509_20191101_14:00:00-15:00:00+0000.log.gz (corelight)
 const DefaultJSONPathRegexp = `([a-zA-Z0-9_]+)(?:\.|_\d{8}_)\d\d:\d\d:\d\d\-\d\d:\d\d:\d\d(?:[+\-]\d{4})?\.log(?:$|\.gz)`
 
-func configureJSONTypeReader(ndjr *ndjsonio.Reader, tc ndjsonio.TypeConfig, filename string) error {
-	var path string
-	re := regexp.MustCompile(DefaultJSONPathRegexp)
-	match := re.FindStringSubmatch(filename)
-	if len(match) == 2 {
-		path = match[1]
-	}
-	return ndjr.ConfigureTypes(tc, path)
-}
-
 func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api.LogPostRequest, sortLimit int) error {
 	zctx := resolver.NewContext()
 	var readers []zbuf.Reader
@@ -88,8 +76,13 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api
 			}
 		}
 	}()
+	cfg := detector.OpenConfig{}
+	if req.JSONTypeConfig != nil {
+		cfg.JSONTypeConfig = req.JSONTypeConfig
+		cfg.JSONPathRegex = DefaultJSONPathRegexp
+	}
 	for _, path := range req.Paths {
-		sf, err := detector.OpenFile(zctx, path, &zio.ReaderFlags{Format: "auto"})
+		sf, err := detector.OpenFile(zctx, path, cfg)
 		if err != nil {
 			if req.StopErr {
 				return fmt.Errorf("%s: %w", path, err)
@@ -99,12 +92,6 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api
 				Warning: fmt.Sprintf("%s: %s", path, err),
 			})
 			continue
-		}
-		jr, ok := sf.Reader.(*ndjsonio.Reader)
-		if ok && req.JSONTypeConfig != nil {
-			if err = configureJSONTypeReader(jr, *req.JSONTypeConfig, path); err != nil {
-				return err
-			}
 		}
 		readers = append(readers, sf)
 	}

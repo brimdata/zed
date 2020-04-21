@@ -34,7 +34,7 @@ func stringReader(input string, ifmt string, zctx *resolver.Context) (zbuf.Reade
 	if ifmt == "" {
 		return detector.NewReader(strings.NewReader(input), zctx)
 	}
-	zr, err := detector.LookupReader(strings.NewReader(input), zctx, &zio.ReaderFlags{Format: ifmt})
+	zr, err := detector.LookupReader(strings.NewReader(input), zctx, ifmt)
 	if err != nil {
 		return nil, err
 	}

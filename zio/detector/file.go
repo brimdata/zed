@@ -3,19 +3,26 @@ package detector
 import (
 	"errors"
 	"os"
+	"regexp"
 
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
+type OpenConfig struct {
+	Format         string
+	DashStdin      bool
+	JSONTypeConfig *ndjsonio.TypeConfig
+	JSONPathRegex  string
+}
+
 // OpenFile creates and returns zbuf.File for the indicated path.  If the path is
 // a directory or can't otherwise be open as a file, then an error is returned.
-// If path is empty, then os.Stdin is used as the file.
-func OpenFile(zctx *resolver.Context, path string, flags *zio.ReaderFlags) (*zbuf.File, error) {
+func OpenFile(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, error) {
 	var f *os.File
 	var err error
-	if path == "" {
+	if cfg.DashStdin && path == "-" {
 		f = os.Stdin
 	} else {
 		info, err := os.Stat(path)
@@ -32,13 +39,30 @@ func OpenFile(zctx *resolver.Context, path string, flags *zio.ReaderFlags) (*zbu
 	}
 	r := GzipReader(f)
 	var zr zbuf.Reader
-	if flags.Format == "auto" {
+	if cfg.Format == "" || cfg.Format == "auto" {
 		zr, err = NewReader(r, zctx)
 	} else {
-		zr, err = LookupReader(r, zctx, flags)
+		zr, err = LookupReader(r, zctx, cfg.Format)
 	}
 	if err != nil {
 		return nil, err
 	}
+
+	if jr, ok := zr.(*ndjsonio.Reader); ok && cfg.JSONTypeConfig != nil {
+		if err = jsonConfig(cfg, jr, path); err != nil {
+			return nil, err
+		}
+	}
+
 	return zbuf.NewFile(zr, f), nil
+}
+
+func jsonConfig(cfg OpenConfig, jr *ndjsonio.Reader, filename string) error {
+	var path string
+	re := regexp.MustCompile(cfg.JSONPathRegex)
+	match := re.FindStringSubmatch(filename)
+	if len(match) == 2 {
+		path = match[1]
+	}
+	return jr.ConfigureTypes(*cfg.JSONTypeConfig, path)
 }
