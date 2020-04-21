@@ -2,6 +2,7 @@ package zqd_test
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"errors"
@@ -375,8 +376,9 @@ func TestPostZngLogWarning(t *testing.T) {
 }
 
 func TestPostNDJSONLogs(t *testing.T) {
-	const src1 = `{"ts":"1000","uid":"CXY9a54W2dLZwzPXf1","_path":"http"}
+	const src = `{"ts":"1000","uid":"CXY9a54W2dLZwzPXf1","_path":"http"}
 {"ts":"2000","uid":"CXY9a54W2dLZwzPXf1","_path":"http"}`
+	const expected = "#0:record[_path:string,ts:time,uid:bstring]\n0:[http;2;CXY9a54W2dLZwzPXf1;]\n0:[http;1;CXY9a54W2dLZwzPXf1;]"
 	tc := ndjsonio.TypeConfig{
 		Descriptors: map[string][]interface{}{
 			"http_log": []interface{}{
@@ -398,32 +400,45 @@ func TestPostNDJSONLogs(t *testing.T) {
 			ndjsonio.Rule{"_path", "http", "http_log"},
 		},
 	}
-	_, client, done := newCore(t)
-	defer done()
-	const spaceName = "test"
 
-	_, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: spaceName})
-	require.NoError(t, err)
+	test := func(input string) {
+		_, client, done := newCore(t)
+		defer done()
+		const spaceName = "test"
 
-	payloads := postSpaceLogs(t, client, spaceName, &tc, false, src1)
-	last := payloads[len(payloads)-1].(*api.TaskEnd)
-	assert.Equal(t, last.Type, "TaskEnd")
-	assert.Nil(t, last.Error)
+		_, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: spaceName})
+		require.NoError(t, err)
 
-	res := zngSearch(t, client, spaceName, "*")
-	const expected = "#0:record[_path:string,ts:time,uid:bstring]\n0:[http;2;CXY9a54W2dLZwzPXf1;]\n0:[http;1;CXY9a54W2dLZwzPXf1;]"
-	require.Equal(t, expected, strings.TrimSpace(res))
+		payloads := postSpaceLogs(t, client, spaceName, &tc, false, input)
+		last := payloads[len(payloads)-1].(*api.TaskEnd)
+		assert.Equal(t, last.Type, "TaskEnd")
+		assert.Nil(t, last.Error)
 
-	min, max := nano.Ts(1e9), nano.Ts(2e9)
-	info, err := client.SpaceInfo(context.Background(), spaceName)
-	require.NoError(t, err)
-	require.Equal(t, &api.SpaceInfo{
-		MinTime:       &min,
-		MaxTime:       &max,
-		Name:          spaceName,
-		Size:          80,
-		PacketSupport: false,
-	}, info)
+		res := zngSearch(t, client, spaceName, "*")
+		require.Equal(t, expected, strings.TrimSpace(res))
+
+		min, max := nano.Ts(1e9), nano.Ts(2e9)
+		info, err := client.SpaceInfo(context.Background(), spaceName)
+		require.NoError(t, err)
+		require.Equal(t, &api.SpaceInfo{
+			MinTime:       &min,
+			MaxTime:       &max,
+			Name:          spaceName,
+			Size:          80,
+			PacketSupport: false,
+		}, info)
+	}
+	t.Run("plain", func(t *testing.T) {
+		test(src)
+	})
+	t.Run("gzipped", func(t *testing.T) {
+		var b strings.Builder
+		w := gzip.NewWriter(&b)
+		_, err := w.Write([]byte(src))
+		require.NoError(t, err)
+		require.NoError(t, w.Close())
+		test(b.String())
+	})
 }
 
 func TestPostNDJSONLogWarning(t *testing.T) {
