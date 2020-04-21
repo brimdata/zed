@@ -183,7 +183,7 @@ func searchRecordOther(searchtext string, searchval ast.Literal) (Filter, error)
 	contains := Contains(compare)
 
 	return func(r *zng.Record) bool {
-		iter := r.NewFieldIter()
+		iter := r.FieldIter()
 		for !iter.Done() {
 			_, val, err := iter.Next()
 			if err != nil {
@@ -213,7 +213,7 @@ func searchRecordString(term string) Filter {
 	searchContainer := Contains(search)
 
 	return func(r *zng.Record) bool {
-		iter := r.NewFieldIter()
+		iter := r.FieldIter()
 		for !iter.Done() {
 			name, val, err := iter.Next()
 			if err != nil {
