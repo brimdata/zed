@@ -92,7 +92,7 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api
 		sf, err := detector.OpenFile(zctx, path, &zio.ReaderFlags{Format: "auto"})
 		if err != nil {
 			if req.StopErr {
-				return err
+				return fmt.Errorf("%s: %w", path, err)
 			}
 			pipe.Send(&api.LogPostWarning{
 				Type:    "LogPostWarning",

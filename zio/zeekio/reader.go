@@ -34,11 +34,18 @@ func NewReader(reader io.Reader, zctx *resolver.Context) (*Reader, error) {
 }
 
 func (r *Reader) Read() (*zng.Record, error) {
+	e := func(err error) error {
+		if err == nil {
+			return err
+		}
+		return fmt.Errorf("line %d: %w", r.scanner.Stats.Lines, err)
+	}
+
 again:
 	line, err := r.scanner.ScanLine()
 	if line == nil {
 		if err != nil {
-			return nil, fmt.Errorf("line %d: %w", r.scanner.Stats.Lines, err)
+			return nil, e(err)
 		}
 		return nil, nil
 	}
@@ -47,9 +54,13 @@ again:
 	if line[0] == '#' {
 
 		if err := r.parser.ParseDirective(line); err != nil {
-			return nil, err
+			return nil, e(err)
 		}
 		goto again
 	}
-	return r.parser.ParseValue(line)
+	rec, err := r.parser.ParseValue(line)
+	if err != nil {
+		return nil, e(err)
+	}
+	return rec, nil
 }
