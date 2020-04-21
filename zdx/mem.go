@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -15,7 +16,7 @@ import (
 // types of the columns depend upon the zng.Values entered into the table.
 type MemTable struct {
 	table   map[string]zcode.Bytes
-	keys    []string
+	keys    []zcode.Bytes
 	offset  int
 	zctx    *resolver.Context
 	builder *zng.Builder
@@ -45,7 +46,7 @@ func (t *MemTable) Read() (*zng.Record, error) {
 	t.offset = off + 1
 	zkey := zcode.Bytes(key)
 	if t.valType != nil {
-		return t.builder.Build(zkey, t.table[key]), nil
+		return t.builder.Build(zkey, t.table[string(key)]), nil
 	}
 	return t.builder.Build(zkey), nil
 }
@@ -57,13 +58,19 @@ func (t *MemTable) Size() int {
 func (t *MemTable) open() {
 	n := len(t.table)
 	if n > 0 {
-		t.keys = make([]string, n)
+		//XXX escaping to GC
+		t.keys = make([]zcode.Bytes, n)
 		k := 0
 		for key := range t.table {
-			t.keys[k] = key
+			t.keys[k] = []byte(key)
 			k++
 		}
-		sort.Strings(t.keys)
+		compare := expr.NewSortValFn(false)
+		sort.SliceStable(t.keys, func(a, b int) bool {
+			v0 := zng.Value{t.keyType, t.keys[a]}
+			v1 := zng.Value{t.keyType, t.keys[b]}
+			return compare(v0, v1) < 0
+		})
 	}
 	t.offset = 0
 	cols := []zng.Column{{"key", t.keyType}}
