@@ -39,6 +39,8 @@ type Space struct {
 	conf config
 }
 
+var indexes = make(map[string]bzngio.TimeIndex)
+
 func Open(root, name string) (*Space, error) {
 	path := filepath.Join(root, name)
 	c, err := loadConfig(path)
@@ -204,8 +206,12 @@ func (s Space) OpenZng(span nano.Span) (zbuf.ReadCloser, error) {
 		r := bzngio.NewReader(strings.NewReader(""), zctx)
 		return zbuf.NopReadCloser(r), nil
 	} else {
-		r := bzngio.NewReader(f, zctx)
-		return zbuf.NewReadCloser(r, f), nil
+		index, ok := indexes[s.path]
+		if !ok {
+			index := bzngio.NewTimeIndex()
+			indexes[s.path] = index
+		}
+		return index.NewReader(f, zctx, span)
 	}
 }
 
