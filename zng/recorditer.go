@@ -19,15 +19,15 @@ type iterInfo struct {
 	fullname string
 }
 
-type recordIter struct {
+type fieldIter struct {
 	stack []iterInfo
 }
 
-func (r *recordIter) Done() bool {
+func (r *fieldIter) Done() bool {
 	return len(r.stack) == 0
 }
 
-func (r *recordIter) Next() (name string, value Value, err error) {
+func (r *fieldIter) Next() (name string, value Value, err error) {
 	if len(r.stack) == 0 {
 		return "", Value{}, ErrExhausted
 	}

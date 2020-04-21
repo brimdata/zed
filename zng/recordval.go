@@ -107,8 +107,8 @@ func (r *Record) ZvalIter() zcode.Iter {
 	return r.Raw.Iter()
 }
 
-func (r *Record) FieldIter() recordIter {
-	return recordIter{
+func (r *Record) FieldIter() fieldIter {
+	return fieldIter{
 		stack: []iterInfo{iterInfo{
 			iter: r.ZvalIter(),
 			typ:  r.Type,
