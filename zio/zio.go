@@ -14,7 +14,7 @@ type ReaderFlags struct {
 }
 
 func (f *ReaderFlags) SetFlags(fs *flag.FlagSet) {
-	fs.StringVar(&f.Format, "i", "auto", "format of input data [auto,bzng,ndjson,zeek,zjson,zng]")
+	fs.StringVar(&f.Format, "i", "auto", "format of input data [auto,bzng,ndjson,zeek,zjson,tzng]")
 }
 
 // WriterFlags has the union of the flags accepted by all the different
@@ -29,7 +29,7 @@ type WriterFlags struct {
 }
 
 func (f *WriterFlags) SetFlags(fs *flag.FlagSet) {
-	fs.StringVar(&f.Format, "f", "zng", "format for output data [bzng,ndjson,table,text,types,zeek,zjson,zng]")
+	fs.StringVar(&f.Format, "f", "tzng", "format for output data [bzng,ndjson,table,text,types,zeek,zjson,tzng]")
 	fs.BoolVar(&f.ShowTypes, "T", false, "display field types in text output")
 	fs.BoolVar(&f.ShowFields, "F", false, "display field names in text output")
 	fs.BoolVar(&f.EpochDates, "E", false, "display epoch timestamps in text output")
@@ -60,8 +60,8 @@ func (w *Writer) Close() error {
 
 func Extension(format string) string {
 	switch format {
-	case "zng":
-		return ".zng"
+	case "tzng":
+		return ".tzng"
 	case "zeek":
 		return ".log"
 	case "ndjson":

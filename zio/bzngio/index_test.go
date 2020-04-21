@@ -10,7 +10,7 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
-	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/require"
 )
@@ -73,8 +73,8 @@ func TestBzngIndex(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	// create a test bzng file
-	reader := zngio.NewReader(strings.NewReader(zngData), resolver.NewContext())
-	fname := filepath.Join(dir, "test.zng")
+	reader := tzngio.NewReader(strings.NewReader(zngData), resolver.NewContext())
+	fname := filepath.Join(dir, "test.tzng")
 	fp, err := os.Create(fname)
 	require.NoError(t, err)
 

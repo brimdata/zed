@@ -13,7 +13,7 @@ const inputTypeNull = `
 var TypeNull = test.Internal{
 	Name:        "type null",
 	Query:       "*",
-	InputFormat: "zng",
+	InputFormat: "tzng",
 	Input:       test.Trim(inputTypeNull),
 	ExpectedErr: zng.ErrInstantiateNull,
 }

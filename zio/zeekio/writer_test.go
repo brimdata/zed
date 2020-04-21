@@ -7,48 +7,48 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zio/zeekio"
-	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/require"
 )
 
 func TestWriter(t *testing.T) {
 	t.Run("replaces-array", func(t *testing.T) {
-		zng := `#1:record[array:array[int64]]
+		tzng := `#1:record[array:array[int64]]
 1:[[1;2;3;]]`
 		zeek := zeekfile(
 			[]string{"array"},
 			[]string{"vector[int]"},
 			[]string{"1,2,3"},
 		)
-		runcase(t, zng, zeek)
+		runcase(t, tzng, zeek)
 	})
 	t.Run("replaces-bstring", func(t *testing.T) {
-		zng := `#1:record[bstring:bstring]
+		tzng := `#1:record[bstring:bstring]
 1:[test;]`
 		zeek := zeekfile(
 			[]string{"bstring"},
 			[]string{"string"},
 			[]string{"test"},
 		)
-		runcase(t, zng, zeek)
+		runcase(t, tzng, zeek)
 	})
 	t.Run("replaces-type-in-containers", func(t *testing.T) {
-		zng := `#1:record[array:array[bstring],set:set[bstring],id:record[bstring:bstring]]
+		tzng := `#1:record[array:array[bstring],set:set[bstring],id:record[bstring:bstring]]
 1:[[test1;test2;test3;][test1;test2;][test4;]]`
 		zeek := zeekfile(
 			[]string{"array", "set", "id.bstring"},
 			[]string{"vector[string]", "set[string]", "string"},
 			[]string{"test1,test2,test3", "test1,test2", "test4"},
 		)
-		runcase(t, zng, zeek)
+		runcase(t, tzng, zeek)
 	})
 }
 
-func runcase(t *testing.T, zng, expected string) {
+func runcase(t *testing.T, tzng, expected string) {
 	out := bytes.NewBuffer(nil)
-	r := zngio.NewReader(strings.NewReader(zng), resolver.NewContext())
+	r := tzngio.NewReader(strings.NewReader(tzng), resolver.NewContext())
 	rec, err := r.Read()
 	require.NoError(t, err)
 	w := zeekio.NewWriter(out, zio.WriterFlags{})

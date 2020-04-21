@@ -7,9 +7,9 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/bzngio"
 	"github.com/brimsec/zq/zio/ndjsonio"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zio/zeekio"
 	"github.com/brimsec/zq/zio/zjsonio"
-	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
 )
@@ -18,9 +18,9 @@ func NewReader(r io.Reader, zctx *resolver.Context) (zbuf.Reader, error) {
 	recorder := NewRecorder(r)
 	track := NewTrack(recorder)
 
-	zngErr := match(zngio.NewReader(track, resolver.NewContext()), "tzng")
+	zngErr := match(tzngio.NewReader(track, resolver.NewContext()), "tzng")
 	if zngErr == nil {
-		return zngio.NewReader(recorder, zctx), nil
+		return tzngio.NewReader(recorder, zctx), nil
 	}
 	track.Reset()
 

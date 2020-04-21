@@ -17,7 +17,7 @@ const inputRedefineAlias = `
 var RedefineAlias = test.Internal{
 	Name:        "redefine alias",
 	Query:       "*",
-	InputFormat: "zng",
+	InputFormat: "tzng",
 	Input:       test.Trim(inputRedefineAlias),
 	ExpectedErr: resolver.ErrAliasExists,
 }

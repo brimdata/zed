@@ -10,8 +10,8 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/bzngio"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zio/zjsonio"
-	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,84 +27,84 @@ func (o *Output) Close() error {
 
 func identity(t *testing.T, logs string) {
 	var out Output
-	dst := zbuf.NopFlusher(zngio.NewWriter(&out))
+	dst := zbuf.NopFlusher(tzngio.NewWriter(&out))
 	in := []byte(strings.TrimSpace(logs) + "\n")
-	src := zngio.NewReader(bytes.NewReader(in), resolver.NewContext())
+	src := tzngio.NewReader(bytes.NewReader(in), resolver.NewContext())
 	err := zbuf.Copy(dst, src)
 	if assert.NoError(t, err) {
 		assert.Equal(t, in, out.Bytes())
 	}
 }
 
-// Send logs to zng reader -> bzng writer -> bzng reader -> zng writer
+// Send logs to tzng reader -> bzng writer -> bzng reader -> tzng writer
 func boomerang(t *testing.T, logs string) {
 	in := []byte(strings.TrimSpace(logs) + "\n")
-	zngSrc := zngio.NewReader(bytes.NewReader(in), resolver.NewContext())
+	tzngSrc := tzngio.NewReader(bytes.NewReader(in), resolver.NewContext())
 	var rawzng Output
 	rawDst := zbuf.NopFlusher(bzngio.NewWriter(&rawzng, zio.WriterFlags{}))
-	err := zbuf.Copy(rawDst, zngSrc)
+	err := zbuf.Copy(rawDst, tzngSrc)
 	require.NoError(t, err)
 
 	var out Output
 	rawSrc := bzngio.NewReader(bytes.NewReader(rawzng.Bytes()), resolver.NewContext())
-	zngDst := zbuf.NopFlusher(zngio.NewWriter(&out))
-	err = zbuf.Copy(zngDst, rawSrc)
+	tzngDst := zbuf.NopFlusher(tzngio.NewWriter(&out))
+	err = zbuf.Copy(tzngDst, rawSrc)
 	if assert.NoError(t, err) {
 		assert.Equal(t, in, out.Bytes())
 	}
 }
 
 func boomerangZJSON(t *testing.T, logs string) {
-	zngSrc := zngio.NewReader(strings.NewReader(logs), resolver.NewContext())
+	tzngSrc := tzngio.NewReader(strings.NewReader(logs), resolver.NewContext())
 	var zjsonOutput Output
 	zjsonDst := zbuf.NopFlusher(zjsonio.NewWriter(&zjsonOutput))
-	err := zbuf.Copy(zjsonDst, zngSrc)
+	err := zbuf.Copy(zjsonDst, tzngSrc)
 	require.NoError(t, err)
 
 	var out Output
 	zjsonSrc := zjsonio.NewReader(bytes.NewReader(zjsonOutput.Bytes()), resolver.NewContext())
-	zngDst := zbuf.NopFlusher(zngio.NewWriter(&out))
-	err = zbuf.Copy(zngDst, zjsonSrc)
+	tzngDst := zbuf.NopFlusher(tzngio.NewWriter(&out))
+	err = zbuf.Copy(tzngDst, zjsonSrc)
 	if assert.NoError(t, err) {
 		assert.Equal(t, strings.TrimSpace(logs), strings.TrimSpace(out.String()))
 	}
 }
 
-const zng1 = `
+const tzng1 = `
 #0:record[foo:set[string]]
 0:[["test";]]
 0:[["testtest";]]`
 
-const zng2 = `
+const tzng2 = `
 #0:record[foo:record[bar:string]]
 0:[[test;]]`
 
-const zng3 = `
+const tzng3 = `
 #0:record[foo:set[string]]
 0:[[-;]]`
 
 // String \x2d is "-".
-const zng4 = `
+const tzng4 = `
 #0:record[foo:bstring]
 0:[\x2d;]`
 
 // String \x5b is "[", second string is "[-]" and should pass through.
-const zng5 = `
+const tzng5 = `
 #0:record[foo:bstring,bar:bstring]
 0:[\x5b;\x5b-];]`
 
 // Make sure we handle unset fields and empty sets.
-const zng6 = `
+const tzng6 = `
 #0:record[id:record[a:string,s:set[string]]]
 0:[[-;[]]]`
 
 // Make sure we handle unset sets.
-const zng7 = `
+const tzng7 = `
 #0:record[a:string,b:set[string],c:set[string]]
 0:[foo;[]-;]`
 
 // recursive record with unset set and empty set
-const zng8 = `
+const tzng8 = `
 #0:record[id:record[a:string,s:set[string]]]
 0:[-;]
 0:[[-;[]]]
@@ -119,7 +119,7 @@ func repeat(c byte, n int) string {
 }
 
 // generate some really big strings
-func zngBig() string {
+func tzngBig() string {
 	s := "#0:record[f0:string,f1:string,f2:string,f3:string]\n"
 	s += "0:["
 	s += repeat('a', 4) + ";"
@@ -129,28 +129,28 @@ func zngBig() string {
 	return s
 }
 
-func TestZng(t *testing.T) {
-	identity(t, zng1)
-	identity(t, zng2)
-	identity(t, zng3)
-	identity(t, zng4)
-	identity(t, zng5)
-	identity(t, zng6)
-	identity(t, zng7)
-	identity(t, zng8)
-	identity(t, zngBig())
+func TestTzng(t *testing.T) {
+	identity(t, tzng1)
+	identity(t, tzng2)
+	identity(t, tzng3)
+	identity(t, tzng4)
+	identity(t, tzng5)
+	identity(t, tzng6)
+	identity(t, tzng7)
+	identity(t, tzng8)
+	identity(t, tzngBig())
 }
 
 func TestRaw(t *testing.T) {
-	boomerang(t, zng1)
-	boomerang(t, zng2)
-	boomerang(t, zng3)
-	boomerang(t, zng4)
-	boomerang(t, zng5)
-	boomerang(t, zng6)
-	boomerang(t, zng7)
-	boomerang(t, zng8)
-	boomerang(t, zngBig())
+	boomerang(t, tzng1)
+	boomerang(t, tzng2)
+	boomerang(t, tzng3)
+	boomerang(t, tzng4)
+	boomerang(t, tzng5)
+	boomerang(t, tzng6)
+	boomerang(t, tzng7)
+	boomerang(t, tzng8)
+	boomerang(t, tzngBig())
 }
 
 const ctrl = `
@@ -165,7 +165,7 @@ func TestCtrl(t *testing.T) {
 	// this tests reading of control via text zng,
 	// then writing of raw control, and reading back the result
 	in := []byte(strings.TrimSpace(ctrl) + "\n")
-	r := zngio.NewReader(bytes.NewReader(in), resolver.NewContext())
+	r := tzngio.NewReader(bytes.NewReader(in), resolver.NewContext())
 
 	_, body, err := r.ReadPayload()
 	assert.NoError(t, err)
@@ -189,21 +189,21 @@ func TestCtrl(t *testing.T) {
 }
 
 func TestZjson(t *testing.T) {
-	boomerangZJSON(t, zng1)
-	boomerangZJSON(t, zng2)
+	boomerangZJSON(t, tzng1)
+	boomerangZJSON(t, tzng2)
 	// XXX this one doesn't work right now but it's sort of ok becaue
 	// it's a little odd to have an unset string value inside of a set.
 	// semantically this would mean the value shouldn't be in the set,
 	// but right now this turns into an empty string, which is somewhat reasonable.
-	//boomerangZJSON(t, zng3)
-	boomerangZJSON(t, zng4)
-	boomerangZJSON(t, zng5)
-	boomerangZJSON(t, zng6)
-	boomerangZJSON(t, zng7)
+	//boomerangZJSON(t, tzng3)
+	boomerangZJSON(t, tzng4)
+	boomerangZJSON(t, tzng5)
+	boomerangZJSON(t, tzng6)
+	boomerangZJSON(t, tzng7)
 	// XXX need to fix bug in json reader where it always uses a primitive null
 	// even within a container type (like json array)
-	//boomerangZJSON(t, zng8)
-	boomerangZJSON(t, zngBig())
+	//boomerangZJSON(t, tzng8)
+	boomerangZJSON(t, tzngBig())
 }
 
 func TestAlias(t *testing.T) {
@@ -258,7 +258,7 @@ const strm = `
 
 func TestEOS(t *testing.T) {
 	in := []byte(strings.TrimSpace(strm) + "\n")
-	r := zngio.NewReader(bytes.NewReader(in), resolver.NewContext())
+	r := tzngio.NewReader(bytes.NewReader(in), resolver.NewContext())
 	var out Output
 	writer := bzngio.NewWriter(&out, zio.WriterFlags{StreamRecordsMax: 2})
 	w := zbuf.NopFlusher(writer)

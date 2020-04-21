@@ -21,7 +21,7 @@ type Internal struct {
 	Query        string
 	Input        string
 	InputFormat  string // defaults to "auto", like zq
-	OutputFormat string // defaults to "zng", like zq
+	OutputFormat string // defaults to "tzng", like zq
 	Expected     string
 	ExpectedErr  error
 }
@@ -46,7 +46,7 @@ func stringReader(input string, ifmt string, zctx *resolver.Context) (zbuf.Reade
 
 func newEmitter(ofmt string) (*emitter.Bytes, error) {
 	if ofmt == "" {
-		ofmt = "zng"
+		ofmt = "tzng"
 	}
 	// XXX text format options not supported
 	return emitter.NewBytes(&zio.WriterFlags{Format: ofmt})
