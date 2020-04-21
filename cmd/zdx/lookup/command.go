@@ -30,16 +30,15 @@ func init() {
 
 type LookupCommand struct {
 	*root.Command
-	key        string
-	ofmt       string
-	outputFile string
+	key         string
+	outputFile  string
+	WriterFlags zio.WriterFlags
 }
 
 func newLookupCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &LookupCommand{Command: parent.(*root.Command)}
 	f.StringVar(&c.key, "k", "", "key to search")
-	f.StringVar(&c.ofmt, "f", "zng", "format for output data [bzng,ndjson,table,text,types,zeek,zjson,zng]")
-	f.StringVar(&c.outputFile, "o", "", "write data to output file")
+	c.WriterFlags.SetFlags(f)
 	return c, nil
 }
 
@@ -73,7 +72,7 @@ func (c *LookupCommand) Run(args []string) error {
 	if rec == nil {
 		return nil
 	}
-	writer, err := emitter.NewFile(c.outputFile, c.ofmt, &zio.Flags{})
+	writer, err := emitter.NewFile(c.outputFile, &c.WriterFlags)
 	if err != nil {
 		return err
 	}

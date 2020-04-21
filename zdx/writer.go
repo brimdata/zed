@@ -66,7 +66,7 @@ func newWriter(path string, framesize, level int) (*Writer, error) {
 		path:        path,
 		level:       level,
 		writer:      writer,
-		out:         bzngio.NewWriter(writer, zio.Flags{}),
+		out:         bzngio.NewWriter(writer, zio.WriterFlags{}),
 		frameThresh: framesize,
 		frameEnd:    int64(framesize),
 	}, nil
