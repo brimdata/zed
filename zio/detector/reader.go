@@ -18,9 +18,7 @@ func NewReader(r io.Reader, zctx *resolver.Context) (zbuf.Reader, error) {
 	recorder := NewRecorder(r)
 	track := NewTrack(recorder)
 
-	var zngErr, zeekErr, ndjsonErr, zjsonErr, bzngErr error
-
-	zngErr = match(zngio.NewReader(track, resolver.NewContext()), "tzng")
+	zngErr := match(zngio.NewReader(track, resolver.NewContext()), "tzng")
 	if zngErr == nil {
 		return zngio.NewReader(recorder, zctx), nil
 	}
@@ -30,14 +28,14 @@ func NewReader(r io.Reader, zctx *resolver.Context) (zbuf.Reader, error) {
 	if err != nil {
 		return nil, err
 	}
-	zeekErr = match(zr, "zeek")
+	zeekErr := match(zr, "zeek")
 	if zeekErr == nil {
 		return zeekio.NewReader(recorder, zctx)
 	}
 	track.Reset()
 
 	// zjson must come before ndjson since zjson is a subset of ndjson
-	zjsonErr = match(zjsonio.NewReader(track, resolver.NewContext()), "zjson")
+	zjsonErr := match(zjsonio.NewReader(track, resolver.NewContext()), "zjson")
 	if zjsonErr == nil {
 		return zjsonio.NewReader(recorder, zctx), nil
 	}
@@ -48,13 +46,13 @@ func NewReader(r io.Reader, zctx *resolver.Context) (zbuf.Reader, error) {
 	if err != nil {
 		return nil, err
 	}
-	ndjsonErr = match(nr, "ndjson")
+	ndjsonErr := match(nr, "ndjson")
 	if ndjsonErr == nil {
 		return ndjsonio.NewReader(recorder, zctx)
 	}
 	track.Reset()
 
-	bzngErr = match(bzngio.NewReader(track, resolver.NewContext()), "zng")
+	bzngErr := match(bzngio.NewReader(track, resolver.NewContext()), "zng")
 	if bzngErr == nil {
 		return bzngio.NewReader(recorder, zctx), nil
 	}
@@ -66,7 +64,6 @@ func joinErrs(errs []error) error {
 	for _, e := range errs {
 		s += "\n\t" + e.Error()
 	}
-	//	fmt.Println(s)
 	return zqe.E(s)
 }
 func match(r zbuf.Reader, name string) error {
