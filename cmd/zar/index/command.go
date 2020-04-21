@@ -19,7 +19,7 @@ for zng files.  Each zng file fund is indexed according to the one or
 more indexing rules provided.
 
 A pattern is either a field name or a ":" followed by a zng type name.
-For example, to index the all fields of type ports and the field id.orig_h,
+For example, to index the all fields of type port and the field id.orig_h,
 you would run
 
 	zar index -d /path/to/logs id.orig_h :port
