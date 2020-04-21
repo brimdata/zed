@@ -44,6 +44,7 @@ func TestRecordIter(t *testing.T) {
 	require.False(t, it.Done(), "iterator is not exhausted")
 
 	name, val, err = it.Next()
+	require.NoError(t, err)
 	require.Equal(t, "r1.r3.i", name, "got correct field name")
 	require.Equal(t, zng.TypeIP, val.Type, "got correct type for last field")
 	require.True(t, it.Done(), "iterator is exhausted after last field")
