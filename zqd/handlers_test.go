@@ -101,6 +101,8 @@ func TestSearchInvalidRequest(t *testing.T) {
 	}
 	_, err = client.Search(context.Background(), req)
 	require.Error(t, err)
+	errResp := err.(*api.ErrorResponse)
+	require.IsType(t, &api.Error{}, errResp.Err)
 }
 
 func TestSpaceList(t *testing.T) {

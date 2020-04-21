@@ -13,9 +13,10 @@ import (
 )
 
 type Error struct {
-	Type    string      `json:"type"`
-	Message string      `json:"error"`
-	Info    interface{} `json:"info,omitempty"`
+	Type      string      `json:"type"`
+	ErrorType string      `json:"error_type"`
+	Message   string      `json:"error"`
+	Info      interface{} `json:"info,omitempty"`
 }
 
 func (e Error) Error() string {
