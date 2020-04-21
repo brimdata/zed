@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"regexp"
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/reglob"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zngnative"
@@ -100,6 +102,8 @@ func compileNative(node ast.Expression) (NativeEvaluator, error) {
 			return compileIn(lhsFunc, rhsFunc)
 		case "=", "!=":
 			return compileCompareEquality(lhsFunc, rhsFunc, n.Operator)
+		case "=~":
+			return compilePatternMatch(lhsFunc, rhsFunc)
 		case "<", "<=", ">", ">=":
 			return compileCompareRelative(lhsFunc, rhsFunc, n.Operator)
 		case "+", "-", "*", "/":
@@ -377,6 +381,45 @@ func compileCompareEquality(lhsFunc, rhsFunc NativeEvaluator, operator string) (
 			return zngnative.Value{zng.TypeBool, !equal}, nil
 		default:
 			panic("bad operator")
+		}
+	}, nil
+}
+
+func compilePatternMatch(lhsFunc, rhsFunc NativeEvaluator) (NativeEvaluator, error) {
+	return func(rec *zng.Record) (zngnative.Value, error) {
+		lhs, err := lhsFunc(rec)
+		if err != nil {
+			return zngnative.Value{}, err
+		}
+
+		rhs, err := rhsFunc(rec)
+		if err != nil {
+			return zngnative.Value{}, err
+		}
+
+		switch rhs.Type.ID() {
+		case zng.IdString, zng.IdBstring:
+			if lhs.Type.ID() != zng.IdString && rhs.Type.ID() != zng.IdBstring {
+				return zngnative.Value{}, ErrIncompatibleTypes
+			}
+			pattern := reglob.Reglob(rhs.Value.(string))
+			result, err := regexp.MatchString(pattern, lhs.Value.(string))
+			if err != nil {
+				return zngnative.Value{}, fmt.Errorf("error comparing pattern: %w", err)
+			}
+			return zngnative.Value{zng.TypeBool, result}, nil
+
+		case zng.IdNet:
+			if lhs.Type.ID() != zng.IdIP {
+				return zngnative.Value{}, ErrIncompatibleTypes
+			}
+			addr := lhs.Value.(net.IP)
+			net := rhs.Value.(*net.IPNet)
+			result := net.IP.Equal(addr.Mask(net.Mask))
+			return zngnative.Value{zng.TypeBool, result}, nil
+
+		default:
+			return zngnative.Value{}, ErrIncompatibleTypes
 		}
 	}, nil
 }
