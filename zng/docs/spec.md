@@ -44,7 +44,7 @@ a schema registry service, though ZNG can be readily adapted to systems like
 by having a connector translate the schemas implied in the
 ZNG stream into registered schemas and vice versa.
 
-ZNG is a more expressive than JSON in that any JSON input
+ZNG is more expressive than JSON in that any JSON input
 can be mapped onto ZNG and recovered by decoding
 that ZNG back into JSON, but the converse is not true.
 
