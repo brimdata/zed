@@ -1,7 +1,6 @@
 package index
 
 import (
-	"bufio"
 	"errors"
 	"flag"
 	"fmt"
@@ -14,6 +13,7 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
 )
@@ -21,9 +21,14 @@ import (
 var Chop = &charm.Spec{
 	Name:  "chop",
 	Usage: "chop [options] file",
-	Short: "chop zng files into pieces",
+	Short: "chop log files into pieces",
 	Long: `
-	TBD
+The chop command provides a crude way to break up a zng file or stream
+into smaller chunks.  It takes as input zng data and cuts the stream
+into chunks where each chunk is created when the size threshold is exceeded,
+either in bytes (-b) or megabytes (-s).  The path of each chunk is a subdirectory
+in the specified directory (-d) where the subdirectory name is derived from the
+timestamp of the first zng record in that chunk.
 `,
 	New: New,
 }
@@ -34,14 +39,18 @@ func init() {
 
 type Command struct {
 	*root.Command
-	size int
-	dir  string
+	megaThresh  int
+	byteThresh  int
+	dir         string
+	ReaderFlags zio.ReaderFlags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.StringVar(&c.dir, "d", ".", "destination directory for chopped files")
-	f.IntVar(&c.size, "s", 500, "target size of chopped files in MB")
+	f.IntVar(&c.megaThresh, "s", 500, "target size of chopped files in MB")
+	f.IntVar(&c.byteThresh, "b", 0, "target size of chopped files in bytes (overrides -s)")
+	c.ReaderFlags.SetFlags(f)
 	return c, nil
 }
 
@@ -53,25 +62,24 @@ func (c *Command) Run(args []string) error {
 	if len(args) != 1 {
 		return errors.New("zar chop: exactly one input file must be specified (- for stdin)")
 	}
-	var file *os.File
-	filename := args[0]
-	if filename == "-" {
-		file = os.Stdin
-	} else {
-		var err error
-		file, err = os.Open(filename)
-		if err != nil {
-			return err
-		}
-		defer file.Close()
+	path := args[0]
+	if path == "-" {
+		path = "" // stdin... this will change
 	}
-	r := zngio.NewReader(bufio.NewReader(file), resolver.NewContext())
+	zctx := resolver.NewContext()
+	reader, err := detector.OpenFile(zctx, path, &c.ReaderFlags)
+	if err != nil {
+		return err
+	}
 	var w *bufwriter.Writer
 	var zw zbuf.Writer
 	var n int
-	thresh := c.size * 1024 * 1024
+	thresh := c.byteThresh
+	if thresh == 0 {
+		thresh = c.megaThresh * 1024 * 1024
+	}
 	for {
-		rec, err := r.Read()
+		rec, err := reader.Read()
 		if err != nil || rec == nil {
 			if w != nil {
 				if err := w.Close(); err != nil {
