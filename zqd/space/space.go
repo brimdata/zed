@@ -201,12 +201,22 @@ func (s Space) OpenZng(span nano.Span) (zbuf.ReadCloser, error) {
 		if !os.IsNotExist(err) {
 			return nil, err
 		}
-		r := zngio.NewReader(strings.NewReader(""), zctx)
-		return zbuf.NopReadCloser(r), nil
 	} else {
 		r := zngio.NewReader(f, zctx)
 		return zbuf.NewReadCloser(r, f), nil
 	}
+
+	bzngFile := strings.TrimSuffix(AllZngFile, filepath.Ext(AllZngFile)) + ".bzng"
+	f, err = os.Open(s.DataPath(bzngFile))
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return nil, err
+		}
+		r := zngio.NewReader(strings.NewReader(""), zctx)
+		return zbuf.NopReadCloser(r), nil
+	}
+	r := zngio.NewReader(f, zctx)
+	return zbuf.NewReadCloser(r, f), nil
 }
 
 func (s Space) OpenFile(file string) (*os.File, error) {
