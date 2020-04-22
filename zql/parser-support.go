@@ -215,9 +215,18 @@ func makeTopProc(fieldsIn, limitIn, flushIn interface{}) *ast.TopProc {
 	return &ast.TopProc{ast.Node{"TopProc"}, limit, fields, flush}
 }
 
-func makeCutProc(fieldsIn interface{}) *ast.CutProc {
+func makeCutProc(argsIn, fieldsIn interface{}) (*ast.CutProc, error) {
+	var complement bool
+	argsArray := argsIn.([]interface{})
+	if len(argsArray) > 1 {
+		return nil, fmt.Errorf("Duplicate argument -c")
+	}
+	if len(argsArray) == 1 {
+		complement = true
+	}
+
 	fields := fieldExprArray(fieldsIn)
-	return &ast.CutProc{ast.Node{"CutProc"}, fields}
+	return &ast.CutProc{ast.Node{"CutProc"}, complement, fields}, nil
 }
 
 func makeHeadProc(countIn interface{}) *ast.HeadProc {
