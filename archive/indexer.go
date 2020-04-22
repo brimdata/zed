@@ -51,7 +51,7 @@ type Indexer interface {
 	Path() string
 }
 
-func IndexDirTree(dir string, rules []Rule) error {
+func IndexDirTree(dir string, rules []Rule, progress chan string) error {
 	nerr := 0
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -84,7 +84,7 @@ func IndexDirTree(dir string, rules []Rule) error {
 	return err
 }
 
-func Run(path string, rules []Rule) error {
+func Run(path string, rules []Rule, progress chan string) error {
 	subdir, err := archiveDir(path)
 	if err != nil {
 		return err
@@ -96,7 +96,9 @@ func Run(path string, rules []Rule) error {
 			return err
 		}
 		indexers = append(indexers, indexer)
-		fmt.Printf("%s: creating index %s\n", path, indexer.Path())
+		if progress != nil {
+			progress <- fmt.Sprintf("%s: creating index %s", path, indexer.Path())
+		}
 	}
 	file, err := os.Open(path)
 	if err != nil {

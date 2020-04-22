@@ -1,0 +1,21 @@
+script: |
+  mkdir logs
+  zar chop -q -b 2500 -d ./logs babble.tzng
+  zar index -q -d ./logs v
+  zar find -d ./logs v=106
+  echo ===
+  zar find -d ./logs v=10600
+  echo ===
+
+inputs:
+  - name: babble.tzng
+    source: ../zdx/babble.tzng
+
+outputs:
+  - name: stdout
+    data: |
+      logs/20200421/1587512398.0689091.bzng
+      logs/20200421/1587513208.06466306.bzng
+      logs/20200422/1587517919.0642989.bzng
+      ===
+      ===

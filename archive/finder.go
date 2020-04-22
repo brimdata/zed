@@ -17,10 +17,9 @@ import (
 // be more efficient at large scale to allow multipe patterns that
 // are effectively OR-ed together so that there is locality of
 // access to the zdx files.
-func Find(dir string, rule Rule, pattern string) ([]string, error) {
+func Find(dir string, rule Rule, pattern string, hits chan string) error {
 	//XXX this should be parallelized with some locking presuming a little
 	// parallelism won't mess up the file system assumptions
-	var hits []string
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return fmt.Errorf("%q: %v", path, err)
@@ -40,13 +39,13 @@ func Find(dir string, rule Rule, pattern string) ([]string, error) {
 			if err != nil {
 				fmt.Printf("%s\n", err)
 			}
-			if hit {
-				hits = append(hits, path)
+			if hit && hits != nil {
+				hits <- path
 			}
 		}
 		return nil
 	})
-	return hits, err
+	return err
 }
 
 func Search(path string, rule Rule, pattern string) (bool, error) {

@@ -3,6 +3,7 @@ package index
 import (
 	"errors"
 	"flag"
+	"fmt"
 
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cmd/zar/root"
@@ -38,12 +39,14 @@ func init() {
 
 type Command struct {
 	*root.Command
-	dir string
+	dir   string
+	quiet bool
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.StringVar(&c.dir, "d", "", "directory to descend")
+	f.BoolVar(&c.quiet, "q", false, "don't print progress on stdout")
 	return c, nil
 }
 
@@ -62,5 +65,14 @@ func (c *Command) Run(args []string) error {
 		}
 		rules = append(rules, rule)
 	}
-	return archive.IndexDirTree(c.dir, rules)
+	var progress chan string
+	if !c.quiet {
+		progress := make(chan string)
+		go func() {
+			for line := range progress {
+				fmt.Println(line)
+			}
+		}()
+	}
+	return archive.IndexDirTree(c.dir, rules, progress)
 }

@@ -62,13 +62,11 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return errors.New("zar find: error parsing pattern: " + err.Error())
 	}
-	hits, err := archive.Find(c.dir, rule, pattern)
-	if err != nil {
-		return err
-	}
-	//XX we should stream the hits here instead of collecting them all up
-	for _, hit := range hits {
-		fmt.Println(hit)
-	}
-	return nil
+	hits := make(chan string)
+	go func() {
+		for hit := range hits {
+			fmt.Println(hit)
+		}
+	}()
+	return archive.Find(c.dir, rule, pattern, hits)
 }

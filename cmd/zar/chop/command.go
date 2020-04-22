@@ -42,6 +42,7 @@ type Command struct {
 	megaThresh  int
 	byteThresh  int
 	dir         string
+	quiet       bool
 	ReaderFlags zio.ReaderFlags
 }
 
@@ -50,6 +51,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.dir, "d", ".", "destination directory for chopped files")
 	f.IntVar(&c.megaThresh, "s", 500, "target size of chopped files in MB")
 	f.IntVar(&c.byteThresh, "b", 0, "target size of chopped files in bytes (overrides -s)")
+	f.BoolVar(&c.quiet, "q", false, "do not print progress updates to stdout")
 	c.ReaderFlags.SetFlags(f)
 	return c, nil
 }
@@ -101,7 +103,9 @@ func (c *Command) Run(args []string) error {
 			if err != nil {
 				return err
 			}
-			fmt.Printf("writing %s\n", path)
+			if !c.quiet {
+				fmt.Printf("writing %s\n", path)
+			}
 			w = bufwriter.New(out)
 			zw = zngio.NewWriter(w, zio.WriterFlags{})
 		}
