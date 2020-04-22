@@ -67,7 +67,7 @@ func (c *Command) Run(args []string) error {
 	}
 	var progress chan string
 	if !c.quiet {
-		progress := make(chan string)
+		progress = make(chan string)
 		go func() {
 			for line := range progress {
 				fmt.Println(line)
