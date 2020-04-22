@@ -11,7 +11,7 @@ import (
 
 type Writer struct {
 	io.Writer
-	// tracker keeps track of a mapping from internal BZNG type IDs for each
+	// tracker keeps track of a mapping from internal ZNG type IDs for each
 	// new record encountered (i.e., which triggers a typedef) so that we
 	// generate the output in canonical form whereby the typedefs in the
 	// stream are numbered sequentially from 0.
@@ -80,7 +80,7 @@ func (w *Writer) write(s string) error {
 
 func (w *Writer) writeUnion(parent zng.Value) error {
 	utyp := zng.AliasedType(parent.Type).(*zng.TypeUnion)
-	inner, index, v, err := utyp.SplitBzng(parent.Bytes)
+	inner, index, v, err := utyp.SplitZng(parent.Bytes)
 	if err != nil {
 		return err
 	}

@@ -13,7 +13,7 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
-	"github.com/brimsec/zq/zio/bzngio"
+	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
 )
@@ -21,7 +21,7 @@ import (
 var Chop = &charm.Spec{
 	Name:  "chop",
 	Usage: "chop [options] file",
-	Short: "chop bzng files into pieces",
+	Short: "chop zng files into pieces",
 	Long: `
 	TBD
 `,
@@ -65,7 +65,7 @@ func (c *Command) Run(args []string) error {
 		}
 		defer file.Close()
 	}
-	r := bzngio.NewReader(bufio.NewReader(file), resolver.NewContext())
+	r := zngio.NewReader(bufio.NewReader(file), resolver.NewContext())
 	var w *bufwriter.Writer
 	var zw zbuf.Writer
 	var n int
@@ -86,7 +86,7 @@ func (c *Command) Run(args []string) error {
 			if err := os.MkdirAll(dir, 0755); err != nil {
 				return err
 			}
-			path := filepath.Join(dir, ts.StringFloat()+".bzng")
+			path := filepath.Join(dir, ts.StringFloat()+".zng")
 			//XXX for now just truncate any existing file.
 			// a future PR will do a split/merge.
 			out, err := os.OpenFile(path, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0644)
@@ -95,7 +95,7 @@ func (c *Command) Run(args []string) error {
 			}
 			fmt.Printf("writing %s\n", path)
 			w = bufwriter.New(out)
-			zw = bzngio.NewWriter(w, zio.WriterFlags{})
+			zw = zngio.NewWriter(w, zio.WriterFlags{})
 		}
 		if err := zw.Write(rec); err != nil {
 			return err

@@ -6,7 +6,7 @@ import (
 
 var Exec = test.Exec{
 	Name:     "ndjson",
-	Command:  `zq -f bzng - | zq -i bzng -f ndjson -`,
+	Command:  `zq -f zng - | zq -i zng -f ndjson -`,
 	Input:    test.Trim(input),
 	Expected: test.Trim(expected),
 }

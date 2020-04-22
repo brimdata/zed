@@ -1,4 +1,4 @@
-package bzngio
+package zngio
 
 import (
 	"io/ioutil"
@@ -66,13 +66,13 @@ func checkReader(t *testing.T, r zbuf.Reader, checkReads bool) {
 	}
 }
 
-func TestBzngIndex(t *testing.T) {
+func TestZngIndex(t *testing.T) {
 	// get a scratch directory
 	dir, err := ioutil.TempDir("", "")
 	require.NoError(t, err)
 	defer os.RemoveAll(dir)
 
-	// create a test bzng file
+	// create a test zng file
 	reader := tzngio.NewReader(strings.NewReader(zngData), resolver.NewContext())
 	fname := filepath.Join(dir, "test.tzng")
 	fp, err := os.Create(fname)
@@ -95,7 +95,7 @@ func TestBzngIndex(t *testing.T) {
 	index := NewTimeIndex()
 
 	// Create a time span that hits parts of different streams
-	// from within the bzng file.
+	// from within the zng file.
 	start, err := nano.ParseTs(startTime)
 	require.NoError(t, err)
 	end, err := nano.ParseTs(endTime)

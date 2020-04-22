@@ -45,10 +45,10 @@ func (t *TypeUnion) Parse(in []byte) (zcode.Bytes, error) {
 	panic("TypeUnion.Parse shouldn't be called")
 }
 
-// SplitBzng takes a bzng encoding of a value of the receiver's union type and
+// SplitZng takes a zng encoding of a value of the receiver's union type and
 // returns the concrete type of the value, its index into the union
 // type, and the value encoding.
-func (t *TypeUnion) SplitBzng(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) {
+func (t *TypeUnion) SplitZng(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) {
 	it := zcode.Iter(zv)
 	v, container, err := it.Next()
 	if err != nil {
@@ -72,10 +72,10 @@ func (t *TypeUnion) SplitBzng(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) 
 	return inner, int64(index), v, nil
 }
 
-// SplitZng takes a zng encoding of a value of the receiver's type and returns the
+// SplitTzng takes a tzng encoding of a value of the receiver's type and returns the
 // concrete type of the value, its index into the union type, and the value
 // encoding.
-func (t *TypeUnion) SplitZng(in []byte) (Type, int, []byte, error) {
+func (t *TypeUnion) SplitTzng(in []byte) (Type, int, []byte, error) {
 	c := bytes.Index(in, []byte{':'})
 	if c < 0 {
 		return nil, -1, nil, ErrBadValue
@@ -92,7 +92,7 @@ func (t *TypeUnion) SplitZng(in []byte) (Type, int, []byte, error) {
 }
 
 func (t *TypeUnion) StringOf(zv zcode.Bytes, ofmt OutFmt, _ bool) string {
-	typ, index, iv, err := t.SplitBzng(zv)
+	typ, index, iv, err := t.SplitZng(zv)
 	if err != nil {
 		// this follows set and record StringOfs. Like there, XXX.
 		return "ERR"
@@ -103,7 +103,7 @@ func (t *TypeUnion) StringOf(zv zcode.Bytes, ofmt OutFmt, _ bool) string {
 }
 
 func (t *TypeUnion) Marshal(zv zcode.Bytes) (interface{}, error) {
-	inner, _, zv, err := t.SplitBzng(zv)
+	inner, _, zv, err := t.SplitZng(zv)
 	if err != nil {
 		return nil, err
 	}

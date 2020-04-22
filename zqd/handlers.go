@@ -101,9 +101,9 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	case "zjson", "json":
 		// XXX Should write appropriate ndjson content header.
 		out = search.NewJSONOutput(w, search.DefaultMTU)
-	case "bzng":
-		// XXX Should write appropriate bzng content header.
-		out = search.NewBzngOutput(w)
+	case "zng":
+		// XXX Should write appropriate zng content header.
+		out = search.NewZngOutput(w)
 	default:
 		respondError(c, w, r, zqe.E(zqe.Invalid, "unsupported format: %s", format))
 		return

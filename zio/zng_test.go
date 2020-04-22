@@ -9,9 +9,9 @@ import (
 
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
-	"github.com/brimsec/zq/zio/bzngio"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zio/zjsonio"
+	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -36,17 +36,17 @@ func identity(t *testing.T, logs string) {
 	}
 }
 
-// Send logs to tzng reader -> bzng writer -> bzng reader -> tzng writer
+// Send logs to tzng reader -> zng writer -> zng reader -> tzng writer
 func boomerang(t *testing.T, logs string) {
 	in := []byte(strings.TrimSpace(logs) + "\n")
 	tzngSrc := tzngio.NewReader(bytes.NewReader(in), resolver.NewContext())
 	var rawzng Output
-	rawDst := zbuf.NopFlusher(bzngio.NewWriter(&rawzng, zio.WriterFlags{}))
+	rawDst := zbuf.NopFlusher(zngio.NewWriter(&rawzng, zio.WriterFlags{}))
 	err := zbuf.Copy(rawDst, tzngSrc)
 	require.NoError(t, err)
 
 	var out Output
-	rawSrc := bzngio.NewReader(bytes.NewReader(rawzng.Bytes()), resolver.NewContext())
+	rawSrc := zngio.NewReader(bytes.NewReader(rawzng.Bytes()), resolver.NewContext())
 	tzngDst := zbuf.NopFlusher(tzngio.NewWriter(&out))
 	err = zbuf.Copy(tzngDst, rawSrc)
 	if assert.NoError(t, err) {
@@ -223,7 +223,7 @@ func TestAlias(t *testing.T) {
 #1:record[foo:string,resp_h:ipaddr]
 1:[bro;127.0.0.1;]`
 
-	t.Run("Bzng", func(t *testing.T) {
+	t.Run("Zng", func(t *testing.T) {
 		t.Run("simple", func(t *testing.T) {
 			boomerang(t, simple)
 		})
@@ -260,10 +260,10 @@ func TestEOS(t *testing.T) {
 	in := []byte(strings.TrimSpace(strm) + "\n")
 	r := tzngio.NewReader(bytes.NewReader(in), resolver.NewContext())
 	var out Output
-	writer := bzngio.NewWriter(&out, zio.WriterFlags{StreamRecordsMax: 2})
+	writer := zngio.NewWriter(&out, zio.WriterFlags{StreamRecordsMax: 2})
 	w := zbuf.NopFlusher(writer)
 
-	// Copy the zng as bzng to out and record the position of the second record.
+	// Copy the tzng as zng to out and record the position of the second record.
 	rec, err := r.Read()
 	require.NoError(t, err)
 	err = w.Write(rec)
@@ -282,26 +282,26 @@ func TestEOS(t *testing.T) {
 	err = zbuf.Copy(w, r)
 	require.NoError(t, err)
 
-	// Read back the bzng and make sure the streams are aligned after
+	// Read back the zng and make sure the streams are aligned after
 	// the first record.
 
-	r2 := bzngio.NewReader(bytes.NewReader(out.Buffer.Bytes()), resolver.NewContext())
+	r2 := zngio.NewReader(bytes.NewReader(out.Buffer.Bytes()), resolver.NewContext())
 	_, err = r2.Read()
 	require.NoError(t, err)
 	readPos := r2.Position()
 	assert.Equal(t, writePos, readPos)
 
-	// Read back the bzng and make sure the streams are aligned after
+	// Read back the zng and make sure the streams are aligned after
 	// the first record.
 
-	s := bzngio.NewSeeker(bytes.NewReader(out.Buffer.Bytes()), resolver.NewContext())
+	s := zngio.NewSeeker(bytes.NewReader(out.Buffer.Bytes()), resolver.NewContext())
 	_, err = s.Seek(seekPoint)
 	require.NoError(t, err)
 	rec, err = s.Read()
 	require.NoError(t, err)
 	assert.Equal(t, seekRec.Raw, rec.Raw)
 
-	r3 := bzngio.NewReader(bytes.NewReader(out.Buffer.Bytes()), resolver.NewContext())
+	r3 := zngio.NewReader(bytes.NewReader(out.Buffer.Bytes()), resolver.NewContext())
 	rec, off, err := r3.SkipStream()
 	require.NoError(t, err)
 	require.NotNil(t, rec)

@@ -557,7 +557,7 @@ func (c *Context) TranslateType(ext zng.Type) zng.Type {
 	switch ext := ext.(type) {
 	default:
 		//XXX
-		panic(fmt.Sprintf("bzng cannot translate type: %s", ext))
+		panic(fmt.Sprintf("zng cannot translate type: %s", ext))
 	case *zng.TypeRecord:
 		return c.TranslateTypeRecord(ext)
 	case *zng.TypeSet:

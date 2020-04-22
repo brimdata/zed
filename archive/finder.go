@@ -25,7 +25,7 @@ func Find(dir string, pattern []byte) ([]string, error) {
 			// descend...
 			return nil
 		}
-		if filepath.Ext(name) == ".bzng" {
+		if filepath.Ext(name) == ".zng" {
 			hit, err := SearchFile(path, pattern)
 			if err != nil {
 				fmt.Printf("%s\n", err)

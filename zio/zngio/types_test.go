@@ -1,10 +1,10 @@
-package bzngio_test
+package zngio_test
 
 import (
 	"bytes"
 	"testing"
 
-	"github.com/brimsec/zq/zio/bzngio"
+	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,7 +17,7 @@ func TestContextSerialization(t *testing.T) {
 	b, _ := ctx.Serialize()
 	reader := bytes.NewReader(b)
 	newCtx := resolver.NewContext()
-	err := bzngio.ReadTypeContext(reader, newCtx)
+	err := zngio.ReadTypeContext(reader, newCtx)
 	require.NoError(t, err)
 	r1, err := ctx.LookupByName("record[a:int32,b:int32]")
 	require.NoError(t, err)
