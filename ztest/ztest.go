@@ -194,9 +194,9 @@ type File struct {
 	// be defined for this file.  Data is a string turned into the contents
 	// of the file, Hex is hex decoded, and Source is a string representing
 	// the pathname of a file the repo that is read to comprise the data.
-	Data   string `yaml:"data,omitempty"`
-	Hex    string `yaml:"hex,omitempty"`
-	Source string `yaml:"source,omitempty"`
+	Data   *string `yaml:"data,omitempty"`
+	Hex    string  `yaml:"hex,omitempty"`
+	Source string  `yaml:"source,omitempty"`
 	// Re is a regular expression describing the contents of the file,
 	// which is only applicable to output files.
 	Re string `yaml:"regexp,omitempty"`
@@ -204,7 +204,7 @@ type File struct {
 
 func (f *File) check() error {
 	cnt := 0
-	if f.Data != "" {
+	if f.Data != nil {
 		cnt++
 	}
 	if f.Hex != "" {
@@ -220,8 +220,8 @@ func (f *File) check() error {
 }
 
 func (f *File) load(dir string) ([]byte, *regexp.Regexp, error) {
-	if f.Data != "" {
-		return []byte(f.Data), nil, nil
+	if f.Data != nil {
+		return []byte(*f.Data), nil, nil
 	}
 	if f.Hex != "" {
 		s, err := decodeHex(f.Hex)
