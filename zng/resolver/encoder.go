@@ -23,6 +23,7 @@ func NewEncoder() *Encoder {
 func (e *Encoder) Reset() {
 	e.table = e.table[:0]
 	e.encoded = make(map[int]struct{})
+	e.zctx.Reset()
 }
 
 func (e *Encoder) Lookup(external zng.Type) zng.Type {
