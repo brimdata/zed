@@ -34,11 +34,13 @@ type LookupCommand struct {
 	key         string
 	outputFile  string
 	WriterFlags zio.WriterFlags
+	closest     bool
 }
 
 func newLookupCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &LookupCommand{Command: parent.(*root.Command)}
 	f.StringVar(&c.key, "k", "", "key to search")
+	f.BoolVar(&c.closest, "c", false, "find closest insead of exact match")
 	c.WriterFlags.SetFlags(f)
 	return c, nil
 }
@@ -66,7 +68,12 @@ func (c *LookupCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	rec, err := finder.Lookup(zng.Value{keyType, key})
+	var rec *zng.Record
+	if c.closest {
+		rec, err = finder.LookupClosest(zng.Value{keyType, key})
+	} else {
+		rec, err = finder.Lookup(zng.Value{keyType, key})
+	}
 	if err != nil {
 		return err
 	}
