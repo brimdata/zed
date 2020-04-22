@@ -15,19 +15,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const zngData = `
-#0:record[ts:time,value:int32]
-0:[1586886160;0;]
-0:[1586886161;1;]
-0:[1586886162;2;]
-0:[1586886163;3;]
-0:[1586886164;4;]
-0:[1586886165;5;]
-0:[1586886166;6;]
-0:[1586886167;7;]
-0:[1586886168;8;]
-0:[1586886169;9;]
-`
+const zngHeader = "#0:record[ts:time,value:int32]"
+
+var zngRecords = []string{
+	"0:[1586886160;0;]",
+	"0:[1586886161;1;]",
+	"0:[1586886162;2;]",
+	"0:[1586886163;3;]",
+	"0:[1586886164;4;]",
+	"0:[1586886165;5;]",
+	"0:[1586886166;6;]",
+	"0:[1586886167;7;]",
+	"0:[1586886168;8;]",
+	"0:[1586886169;9;]",
+}
 
 // Parameters used for testing.  Note that in the zng data above,
 // indexed with a stream size of 2 records, this time span will straddle
@@ -44,11 +45,12 @@ const endTime = "1586886166"
 // from disk is just enough to cover the time span, and not the entire
 // file (with streams of 2 records each and parts of 3 streams being
 // inside the time span, a total of 6 records should be read).
-func checkReader(t *testing.T, r zbuf.Reader, checkReads bool) {
-	for expect := 3; expect <= 6; expect++ {
+func checkReader(t *testing.T, r zbuf.Reader, expected []int, checkReads bool) {
+	for _, expect := range expected {
 		rec, err := r.Read()
 		require.NoError(t, err)
 
+		require.NotNil(t, rec)
 		v, err := rec.AccessInt("value")
 		require.NoError(t, err)
 
@@ -67,60 +69,84 @@ func checkReader(t *testing.T, r zbuf.Reader, checkReads bool) {
 }
 
 func TestZngIndex(t *testing.T) {
+	// Create a time span that hits parts of different streams
+	// from within the bzng file.
+	start, err := nano.ParseTs(startTime)
+	require.NoError(t, err)
+	end, err := nano.ParseTs(endTime)
+
+	require.NoError(t, err)
+	span := nano.NewSpanTs(start, end)
+
+	dotest := func(zngData, fname string, expected []int) {
+		// create a test bzng file
+		reader := tzngio.NewReader(strings.NewReader(zngData), resolver.NewContext())
+		fp, err := os.Create(fname)
+		require.NoError(t, err)
+		defer func() {
+			_ = fp.Close()
+			_ = os.Remove(fname)
+		}()
+
+		flags := zio.WriterFlags{StreamRecordsMax: 2}
+		writer := NewWriter(fp, flags)
+
+		for {
+			rec, err := reader.Read()
+			require.NoError(t, err)
+			if rec == nil {
+				break
+			}
+
+			err = writer.Write(rec)
+			require.NoError(t, err)
+		}
+
+		index := NewTimeIndex()
+
+		// First time we read the file we don't have an index, but a
+		// search with a time span should still only return results
+		// from the span.
+		fp, err = os.Open(fname)
+		require.NoError(t, err)
+		ireader, err := index.NewReader(fp, resolver.NewContext(), span)
+		require.NoError(t, err)
+
+		checkReader(t, ireader, expected, false)
+		err = fp.Close()
+		require.NoError(t, err)
+
+		// Second time through, should get the same results, this time
+		// verify that we didn't read the whole file.
+		fp, err = os.Open(fname)
+		require.NoError(t, err)
+		ireader, err = index.NewReader(fp, resolver.NewContext(), span)
+		require.NoError(t, err)
+
+		checkReader(t, ireader, expected, true)
+		err = fp.Close()
+		require.NoError(t, err)
+	}
+
 	// get a scratch directory
 	dir, err := ioutil.TempDir("", "")
 	require.NoError(t, err)
 	defer os.RemoveAll(dir)
 
-	// create a test zng file
-	reader := tzngio.NewReader(strings.NewReader(zngData), resolver.NewContext())
-	fname := filepath.Join(dir, "test.tzng")
-	fp, err := os.Create(fname)
-	require.NoError(t, err)
+	// Test once with ascending timestamps
+	t.Run("IndexAscending", func(t *testing.T) {
+		fname := filepath.Join(dir, "ascend.zng")
+		zngsrc := zngHeader + "\n" + strings.Join(zngRecords, "\n")
+		dotest(zngsrc, fname, []int{3, 4, 5, 6})
+	})
 
-	flags := zio.WriterFlags{StreamRecordsMax: 2}
-	writer := NewWriter(fp, flags)
-
-	for {
-		rec, err := reader.Read()
-		require.NoError(t, err)
-		if rec == nil {
-			break
+	// And test again with descending timestamps
+	t.Run("IndexDescending", func(t *testing.T) {
+		fname := filepath.Join(dir, "descend.zng")
+		zngsrc := zngHeader + "\n"
+		for i := len(zngRecords) - 1; i >= 0; i-- {
+			zngsrc += zngRecords[i] + "\n"
 		}
-
-		err = writer.Write(rec)
-		require.NoError(t, err)
-	}
-
-	index := NewTimeIndex()
-
-	// Create a time span that hits parts of different streams
-	// from within the zng file.
-	start, err := nano.ParseTs(startTime)
-	require.NoError(t, err)
-	end, err := nano.ParseTs(endTime)
-	require.NoError(t, err)
-	span := nano.NewSpanTs(start, end)
-
-	// First time we read the file we don't have an index, but a search
-	// with a time span should still only return results from the span.
-	fp, err = os.Open(fname)
-	require.NoError(t, err)
-	ireader, err := index.NewReader(fp, resolver.NewContext(), span)
-	require.NoError(t, err)
-
-	checkReader(t, ireader, false)
-	err = fp.Close()
-	require.NoError(t, err)
-
-	// Second time through, should get the same results, this time
-	// ask checkReader() to verify that we didn't read the whole file.
-	fp, err = os.Open(fname)
-	require.NoError(t, err)
-	ireader, err = index.NewReader(fp, resolver.NewContext(), span)
-	require.NoError(t, err)
-
-	checkReader(t, ireader, true)
-	err = fp.Close()
-	require.NoError(t, err)
+		dotest(zngsrc, fname, []int{6, 5, 4, 3})
+	})
 }
