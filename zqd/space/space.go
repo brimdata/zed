@@ -189,8 +189,8 @@ func (m *Manager) List() []api.SpaceInfo {
 	return result
 }
 
-// startOp registers that an operation on this space is in progress.
-// If the space is pending deletion, the bool parameter returns false.
+// StartSpaceOp registers that an operation on this space is in progress.
+// If the space is pending deletion, an error is returned.
 // Otherwise, this returns a new context, and a done function that must
 // be called when the operation completes.
 func (s *Space) StartSpaceOp(ctx context.Context) (context.Context, context.CancelFunc, error) {
@@ -212,7 +212,7 @@ func (s *Space) StartSpaceOp(ctx context.Context) (context.Context, context.Canc
 		}
 	}()
 
-	ingestDone := func() {
+	done := func() {
 		s.opMutex.Lock()
 		defer s.opMutex.Unlock()
 
@@ -220,7 +220,7 @@ func (s *Space) StartSpaceOp(ctx context.Context) (context.Context, context.Canc
 		cancel()
 	}
 
-	return ctx, ingestDone, nil
+	return ctx, done, nil
 }
 
 func (s *Space) Name() string {
@@ -254,7 +254,7 @@ func (s *Space) Info() (api.SpaceInfo, error) {
 }
 
 // PcapSearch returns a *pcap.SearchReader that streams all the packets meeting
-// the provided search request. If pcaps are not supported in this *Space,
+// the provided search request. If pcaps are not supported in this Space,
 // ErrPcapOpsNotSupported is returned.
 func (s *Space) PcapSearch(ctx context.Context, req api.PacketSearch) (*SearchReadCloser, error) {
 	if s.PacketPath() == "" || !s.HasFile(PcapIndexFile) {
@@ -350,10 +350,6 @@ func (s *Space) OpenZng(span nano.Span) (zbuf.ReadCloser, error) {
 	}
 }
 
-func (s *Space) OpenFile(file string) (*os.File, error) {
-	return os.Open(s.DataPath(file))
-}
-
 func (s *Space) CreateFile(file string) (*os.File, error) {
 	return os.Create(s.DataPath(file))
 }
@@ -364,10 +360,6 @@ func (s *Space) HasFile(file string) bool {
 		return false
 	}
 	return !info.IsDir()
-}
-
-func (s *Space) ConfigPath() string {
-	return filepath.Join(s.path, configFile)
 }
 
 func (s *Space) SetPacketPath(pcapPath string) error {
@@ -381,6 +373,7 @@ func (s *Space) PacketPath() string {
 
 // Delete removes the space's path and data dir (should the data dir be
 // different then the space's path).
+// Don't call this directly, used Manager.Delete()
 func (s *Space) delete() error {
 	s.opMutex.Lock()
 
