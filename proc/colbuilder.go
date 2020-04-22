@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -87,16 +86,12 @@ type ColumnBuilder struct {
 // so the output record can be constructed efficiently, though we don't
 // do this now since it might confuse users who expect to see output
 // fields in the order they specified.
-func NewColumnBuilder(zctx *resolver.Context, exprs []ast.FieldExpr) (*ColumnBuilder, error) {
+func NewColumnBuilder(zctx *resolver.Context, fields []string) (*ColumnBuilder, error) {
 	seenRecords := make(map[string]bool)
-	fieldInfos := make([]fieldInfo, 0, len(exprs))
+	fieldInfos := make([]fieldInfo, 0, len(fields))
 	var currentRecord []string
-	for i, field := range exprs {
-		names, err := split(field)
-		if err != nil {
-			return nil, err
-		}
-
+	for i, field := range fields {
+		names := strings.Split(field, ".")
 		// Grab everything except the leaf field name and see if
 		// it has changed from the previous field.  If it hasn't,
 		// things are simple but if it has, we need to carefully
@@ -141,12 +136,11 @@ func NewColumnBuilder(zctx *resolver.Context, exprs []ast.FieldExpr) (*ColumnBui
 			}
 			currentRecord = record
 		}
-		fullname := strings.Join(names, ".")
 		fname := names[len(names)-1]
-		if isIn(fullname, fieldInfos) {
-			return nil, errDuplicateFields{fullname}
+		if isIn(field, fieldInfos) {
+			return nil, errDuplicateFields{field}
 		}
-		fieldInfos = append(fieldInfos, fieldInfo{fname, fullname, containerBegins, 0})
+		fieldInfos = append(fieldInfos, fieldInfo{fname, field, containerBegins, 0})
 	}
 	if len(fieldInfos) > 0 {
 		fieldInfos[len(fieldInfos)-1].containerEnds = len(currentRecord)
@@ -183,27 +177,6 @@ func isIn(fieldname string, fis []fieldInfo) bool {
 		}
 	}
 	return false
-}
-
-// Split an ast.FieldExpr representing a chain of record field references
-// into a list of strings representing the names.
-// E.g., "x.y.z" -> ["x", "y", "z"]
-func split(node ast.FieldExpr) ([]string, error) {
-	switch n := node.(type) {
-	case *ast.FieldRead:
-		return []string{n.Field}, nil
-	case *ast.FieldCall:
-		if n.Fn != "RecordFieldRead" {
-			return nil, fmt.Errorf("unexpected field op %s", n.Fn)
-		}
-		names, err := split(n.Field)
-		if err != nil {
-			return nil, err
-		}
-		return append(names, n.Param), nil
-	default:
-		return nil, fmt.Errorf("unexpected node type %T", node)
-	}
 }
 
 func sameRecord(names1, names2 []string) bool {

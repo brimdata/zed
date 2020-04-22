@@ -65,7 +65,11 @@ func CompileGroupBy(node *ast.GroupByProc, zctx *resolver.Context) (*GroupByPara
 		}
 		reducers = append(reducers, compiled)
 	}
-	builder, err := NewColumnBuilder(zctx, node.Keys)
+	var names []string
+	for _, name := range node.Keys {
+		names = append(names, expr.FieldExprToString(name))
+	}
+	builder, err := NewColumnBuilder(zctx, names)
 	if err != nil {
 		return nil, fmt.Errorf("compiling groupby: %w", err)
 	}

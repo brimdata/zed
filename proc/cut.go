@@ -31,7 +31,11 @@ func CompileCutProc(c *Context, parent Proc, node *ast.CutProc) (*Cut, error) {
 	if err != nil {
 		return nil, fmt.Errorf("compiling cut: %w", err)
 	}
-	builder, err := NewColumnBuilder(c.TypeContext, node.Fields)
+	var fields []string
+	for _, field := range node.Fields {
+		fields = append(fields, expr.FieldExprToString(field))
+	}
+	builder, err := NewColumnBuilder(c.TypeContext, fields)
 	if err != nil {
 		return nil, fmt.Errorf("compiling cut: %w", err)
 	}
