@@ -17,7 +17,7 @@ of heterogeneously typed records, e.g., structured logs, where filtering and
 analytics may be applied to a stream in parts without having to fully deserialize
 every value.
 
-ZNG has both a text form simply called "TZNG",
+ZNG has both a text form called "TZNG",
 comprised of a sequence of newline-delimited UTF-8 strings,
 as well as a binary form called "ZNG".
 
