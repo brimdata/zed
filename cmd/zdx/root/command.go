@@ -25,5 +25,8 @@ func init() {
 type Command struct{}
 
 func (c *Command) Run(args []string) error {
+	if len(args) == 0 {
+		return Zdx.Exec(c, []string{"help"})
+	}
 	return charm.ErrNoRun
 }
