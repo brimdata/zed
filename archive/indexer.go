@@ -66,7 +66,7 @@ func IndexDirTree(dir string, rules []Rule, progress chan<- string) error {
 		}
 		// XXX this should be a regex match to command-line pattern
 		if filepath.Ext(name) == ".zng" {
-			err = IndexLogFile(path)
+			err = run(path, rules, progress)
 			if err != nil {
 				fmt.Printf("%s: %s\n", path, err)
 				nerr++
@@ -103,7 +103,7 @@ func run(path string, rules []Rule, progress chan<- string) error {
 		return err
 	}
 	defer file.Close()
-	reader := bzngio.NewReader(file, resolver.NewContext())
+	reader := zngio.NewReader(file, resolver.NewContext())
 	// XXX This for-loop could be easily parallelized by having each writer
 	// live in its own go routine and sending the rec over a set of
 	// blocking channels (so we flow-control it).

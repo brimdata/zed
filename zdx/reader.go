@@ -3,7 +3,7 @@ package zdx
 import (
 	"os"
 
-	"github.com/brimsec/zq/zio/bzngio"
+	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
@@ -13,7 +13,7 @@ const (
 
 // Reader implements zbuf.Reader, io.ReadSeeker, and io.Closer.
 type Reader struct {
-	*bzngio.Seeker
+	zngio.Seeker
 	file *os.File
 }
 
@@ -31,9 +31,9 @@ func newReader(path string, level int) (*Reader, error) {
 	if err != nil {
 		return nil, err
 	}
-	seeker := bzngio.NewSeekerWithSize(f, resolver.NewContext(), FrameSize)
+	seeker := zngio.NewSeekerWithSize(f, resolver.NewContext(), FrameSize)
 	return &Reader{
-		Seeker: seeker,
+		Seeker: *seeker,
 		file:   f,
 	}, nil
 }

@@ -10,8 +10,8 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zdx"
 	"github.com/brimsec/zq/zio"
-	"github.com/brimsec/zq/zio/bzngio"
 	"github.com/brimsec/zq/zio/detector"
+	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
@@ -99,7 +99,7 @@ func (c *CreateCommand) Run(args []string) error {
 	table := zdx.NewMemTable(zctx)
 	read := reader.Read
 	if c.skip {
-		reader, ok := reader.Reader.(*bzngio.Reader)
+		reader, ok := reader.Reader.(*zngio.Reader)
 		if !ok {
 			return errors.New("cannot use -S flag with non-bzng input")
 		}

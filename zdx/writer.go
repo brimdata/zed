@@ -6,7 +6,7 @@ import (
 
 	"github.com/brimsec/zq/pkg/bufwriter"
 	"github.com/brimsec/zq/zio"
-	"github.com/brimsec/zq/zio/bzngio"
+	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
@@ -31,7 +31,7 @@ type Writer struct {
 	path        string
 	level       int
 	writer      *bufwriter.Writer
-	out         *bzngio.Writer
+	out         *zngio.Writer
 	parent      *Writer
 	frameThresh int
 	frameStart  int64
@@ -66,7 +66,7 @@ func newWriter(path string, framesize, level int) (*Writer, error) {
 		path:        path,
 		level:       level,
 		writer:      writer,
-		out:         bzngio.NewWriter(writer, zio.WriterFlags{}),
+		out:         zngio.NewWriter(writer, zio.WriterFlags{}),
 		frameThresh: framesize,
 		frameEnd:    int64(framesize),
 	}, nil

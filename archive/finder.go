@@ -33,9 +33,9 @@ func Find(dir string, rule Rule, pattern string, hits chan<- string) error {
 			// descend...
 			return nil
 		}
-		// XXX should be regex 
+		// XXX should be regex
 		if filepath.Ext(name) == ".zng" {
-			hit, err := SearchFile(path, pattern)
+			hit, err := Search(path, rule, pattern)
 			if err != nil {
 				fmt.Printf("%s\n", err)
 			}

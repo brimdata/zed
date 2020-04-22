@@ -1,6 +1,6 @@
 script: |
   # index ts every 10 records
-  zq -f bzng -b 10 babble.tzng | zdx create -S -o index -k ts -
+  zq -f zng -b 10 babble.tzng | zdx create -S -o index -k ts -
   # exact lookup for this particular ts
   zdx lookup -k 1587512531.06754599 index
   echo ===
