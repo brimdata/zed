@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pcap/pcapio"
@@ -34,59 +35,199 @@ var (
 	ErrSpaceNotExist       = zqe.E(zqe.NotFound, "space does not exist")
 )
 
+type Manager struct {
+	rootPath string
+	spaces   sync.Map
+}
+
 type Space struct {
 	path string
 	conf config
+
+	// state about operations in progress
+	opMutex       sync.Mutex
+	active        int
+	deletePending bool
+
+	wg sync.WaitGroup
+	// closed to signal non-delete ops should terminate
+	cancelChan chan struct{}
 }
 
-func Open(root, name string) (*Space, error) {
-	path := filepath.Join(root, name)
-	c, err := loadConfig(path)
+func NewManager(root string) *Manager {
+	mgr := &Manager{rootPath: root}
+
+	dirs, err := ioutil.ReadDir(root)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, ErrSpaceNotExist
-		}
-		return nil, err
+		// XXX log somewhere?
+		return mgr
 	}
-	return &Space{path, c}, nil
+
+	for _, dir := range dirs {
+		if !dir.IsDir() {
+			continue
+		}
+
+		path := filepath.Join(root, dir.Name())
+		config, err := loadConfig(path)
+		if err != nil {
+			// XXX log?
+			continue
+		}
+
+		space := Space{
+			path:       path,
+			conf:       config,
+			cancelChan: make(chan struct{}, 0),
+		}
+		mgr.spaces.Store(space.Name(), &space)
+	}
+
+	return mgr
 }
 
-func Create(root, name, dataPath string) (*Space, error) {
-	// XXX this should be validated before reaching here.
+func (m *Manager) Create(name, dataPath string) (api.SpacePostResponse, error) {
+	_, exists := m.spaces.Load(name)
+	if exists {
+		return api.SpacePostResponse{}, ErrSpaceExists
+	}
+
 	if name == "" && dataPath == "" {
-		return nil, errors.New("must supply non-empty name or dataPath")
+		return api.SpacePostResponse{}, errors.New("must supply non-empty name or dataPath")
 	}
 	var path string
 	if name == "" {
 		var err error
-		if path, err = fs.UniqueDir(root, filepath.Base(dataPath)); err != nil {
-			return nil, err
+		if path, err = fs.UniqueDir(m.rootPath, filepath.Base(dataPath)); err != nil {
+			return api.SpacePostResponse{}, err
 		}
+		name = filepath.Base(path)
 	} else {
-		path = filepath.Join(root, name)
+		path = filepath.Join(m.rootPath, name)
 		if err := os.Mkdir(path, 0700); err != nil {
 			if os.IsExist(err) {
-				return nil, ErrSpaceExists
+				return api.SpacePostResponse{}, ErrSpaceExists
 			}
-			return nil, err
+			return api.SpacePostResponse{}, err
 		}
-	}
-	if dataPath == "" {
 		dataPath = path
 	}
+
 	c := config{DataPath: dataPath}
 	if err := c.save(path); err != nil {
 		os.RemoveAll(path)
-		return nil, err
+		return api.SpacePostResponse{}, err
 	}
-	return &Space{path, c}, nil
+
+	space := Space{
+		path:       path,
+		conf:       c,
+		cancelChan: make(chan struct{}, 0),
+	}
+	m.spaces.Store(name, &space)
+	return api.SpacePostResponse{
+		Name:    name,
+		DataDir: dataPath,
+	}, nil
+
 }
 
-func (s Space) Name() string {
+func (m *Manager) Get(name string) (*Space, error) {
+	space, exists := m.spaces.Load(name)
+	if !exists {
+		return nil, ErrSpaceNotExist
+	}
+
+	typedSpace, ok := space.(*Space)
+	if !ok {
+		return nil, errors.New("internal error")
+	}
+	return typedSpace, nil
+}
+
+func (m *Manager) Delete(name string) error {
+	space, err := m.Get(name)
+	if err != nil {
+		return err
+	}
+
+	err = space.delete()
+	m.spaces.Delete(name)
+	return err
+}
+
+func (m *Manager) ListNames() []string {
+	result := []string{}
+	m.spaces.Range(func(n, _ interface{}) bool {
+		name, ok := n.(string)
+		if !ok {
+			// XXX log somewhere
+			return true
+		}
+		result = append(result, name)
+		return true
+	})
+	return result
+}
+
+func (m *Manager) List() []api.SpaceInfo {
+	result := []api.SpaceInfo{}
+	m.spaces.Range(func(_, s interface{}) bool {
+		space, ok := s.(*Space)
+		if !ok {
+			// XXX log this somewhere?
+			return true
+		}
+		info, err := space.Info()
+		if err != nil {
+			// XXX log ?
+			return true
+		}
+		result = append(result, info)
+		return true
+	})
+	return result
+}
+
+// startOp registers that an operation on this space is in progress.
+// If the space is pending deletion, the bool parameter returns false.
+// Otherwise, this returns a new context, and a done function that must
+// be called when the operation completes.
+func (s *Space) StartSpaceOp(ctx context.Context) (context.Context, context.CancelFunc, error) {
+	s.opMutex.Lock()
+	defer s.opMutex.Unlock()
+
+	if s.deletePending {
+		return ctx, func() {}, zqe.E(zqe.Conflict, "space is pending deletion")
+	}
+
+	s.wg.Add(1)
+
+	ctx, cancel := context.WithCancel(ctx)
+	go func() {
+		select {
+		case <-ctx.Done():
+		case <-s.cancelChan:
+			cancel()
+		}
+	}()
+
+	ingestDone := func() {
+		s.opMutex.Lock()
+		defer s.opMutex.Unlock()
+
+		s.wg.Done()
+		cancel()
+	}
+
+	return ctx, ingestDone, nil
+}
+
+func (s *Space) Name() string {
 	return filepath.Base(s.path)
 }
 
-func (s Space) Info() (api.SpaceInfo, error) {
+func (s *Space) Info() (api.SpaceInfo, error) {
 	logsize, err := s.LogSize()
 	if err != nil {
 		return api.SpaceInfo{}, err
@@ -113,9 +254,9 @@ func (s Space) Info() (api.SpaceInfo, error) {
 }
 
 // PcapSearch returns a *pcap.SearchReader that streams all the packets meeting
-// the provided search request. If pcaps are not supported in this Space,
+// the provided search request. If pcaps are not supported in this *Space,
 // ErrPcapOpsNotSupported is returned.
-func (s Space) PcapSearch(ctx context.Context, req api.PacketSearch) (*SearchReadCloser, error) {
+func (s *Space) PcapSearch(ctx context.Context, req api.PacketSearch) (*SearchReadCloser, error) {
 	if s.PacketPath() == "" || !s.HasFile(PcapIndexFile) {
 		return nil, ErrPcapOpsNotSupported
 	}
@@ -169,12 +310,12 @@ func (c *SearchReadCloser) Close() error {
 }
 
 // LogSize returns the size in bytes of the logs in space.
-func (s Space) LogSize() (int64, error) {
+func (s *Space) LogSize() (int64, error) {
 	return sizeof(s.DataPath(AllBzngFile))
 }
 
 // PacketSize returns the size in bytes of the packet capture in the space.
-func (s Space) PacketSize() (int64, error) {
+func (s *Space) PacketSize() (int64, error) {
 	return sizeof(s.PacketPath())
 }
 
@@ -189,11 +330,11 @@ func sizeof(path string) (int64, error) {
 	return f.Size(), nil
 }
 
-func (s Space) DataPath(elem ...string) string {
+func (s *Space) DataPath(elem ...string) string {
 	return filepath.Join(append([]string{s.conf.DataPath}, elem...)...)
 }
 
-func (s Space) OpenZng(span nano.Span) (zbuf.ReadCloser, error) {
+func (s *Space) OpenZng(span nano.Span) (zbuf.ReadCloser, error) {
 	zctx := resolver.NewContext()
 
 	f, err := os.Open(s.DataPath(AllBzngFile))
@@ -209,15 +350,15 @@ func (s Space) OpenZng(span nano.Span) (zbuf.ReadCloser, error) {
 	}
 }
 
-func (s Space) OpenFile(file string) (*os.File, error) {
+func (s *Space) OpenFile(file string) (*os.File, error) {
 	return os.Open(s.DataPath(file))
 }
 
-func (s Space) CreateFile(file string) (*os.File, error) {
+func (s *Space) CreateFile(file string) (*os.File, error) {
 	return os.Create(s.DataPath(file))
 }
 
-func (s Space) HasFile(file string) bool {
+func (s *Space) HasFile(file string) bool {
 	info, err := os.Stat(s.DataPath(file))
 	if err != nil {
 		return false
@@ -225,7 +366,7 @@ func (s Space) HasFile(file string) bool {
 	return !info.IsDir()
 }
 
-func (s Space) ConfigPath() string {
+func (s *Space) ConfigPath() string {
 	return filepath.Join(s.path, configFile)
 }
 
@@ -234,13 +375,26 @@ func (s *Space) SetPacketPath(pcapPath string) error {
 	return s.conf.save(s.path)
 }
 
-func (s Space) PacketPath() string {
+func (s *Space) PacketPath() string {
 	return s.conf.PacketPath
 }
 
 // Delete removes the space's path and data dir (should the data dir be
 // different then the space's path).
-func (s Space) Delete() error {
+func (s *Space) delete() error {
+	s.opMutex.Lock()
+
+	if s.deletePending {
+		s.opMutex.Unlock()
+		return zqe.E(zqe.Conflict, "space is pending deletion")
+	}
+
+	s.deletePending = true
+	s.opMutex.Unlock()
+
+	close(s.cancelChan)
+	s.wg.Wait()
+
 	if err := os.RemoveAll(s.path); err != nil {
 		return err
 	}
@@ -261,11 +415,11 @@ type info struct {
 // XXX For right now this simply deletes the info file as nothing else is stored
 // there. When we get to brimsec/zq#541 the time range should be represented as
 // as a pointer to a nano.Span.
-func (s Space) UnsetTimes() error {
+func (s *Space) UnsetTimes() error {
 	return os.Remove(s.DataPath(infoFile))
 }
 
-func (s Space) SetTimes(minTs, maxTs nano.Ts) error {
+func (s *Space) SetTimes(minTs, maxTs nano.Ts) error {
 	cur, err := loadInfoFile(s.conf.DataPath)
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -278,7 +432,7 @@ func (s Space) SetTimes(minTs, maxTs nano.Ts) error {
 	return cur.save(s.conf.DataPath)
 }
 
-func (s Space) GetTimes() (*nano.Ts, *nano.Ts, error) {
+func (s *Space) GetTimes() (*nano.Ts, *nano.Ts, error) {
 	i, err := loadInfoFile(s.conf.DataPath)
 	if err != nil {
 		if !os.IsNotExist(err) {

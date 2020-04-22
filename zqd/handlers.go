@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -73,13 +72,13 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s, err := space.Open(c.Root, req.Space)
+	s, err := c.spaces.Get(req.Space)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
 	}
 
-	ctx, cancel, err := c.startSpaceOp(r.Context(), s.Name())
+	ctx, cancel, err := s.StartSpaceOp(r.Context())
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -122,7 +121,7 @@ func handlePacketSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel, err := c.startSpaceOp(r.Context(), s.Name())
+	ctx, cancel, err := s.StartSpaceOp(r.Context())
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -153,24 +152,7 @@ func handlePacketSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 }
 
 func handleSpaceList(c *Core, w http.ResponseWriter, r *http.Request) {
-	info, err := ioutil.ReadDir(c.Root)
-	if err != nil {
-		respondError(c, w, r, err)
-		return
-	}
-
-	spaces := []string{}
-	for _, subdir := range info {
-		if !subdir.IsDir() {
-			continue
-		}
-		s, err := space.Open(c.Root, subdir.Name())
-		if err != nil {
-			continue
-		}
-		spaces = append(spaces, s.Name())
-	}
-
+	spaces := c.spaces.ListNames()
 	respond(c, w, r, http.StatusOK, spaces)
 }
 
@@ -180,7 +162,7 @@ func handleSpaceGet(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, cancel, err := c.startSpaceOp(r.Context(), s.Name())
+	_, cancel, err := s.StartSpaceOp(r.Context())
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -202,39 +184,25 @@ func handleSpacePost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, cancel, err := c.startSpaceOp(r.Context(), req.Name)
-	if err != nil {
-		respondError(c, w, r, err)
-		return
-	}
-	defer cancel()
-
-	s, err := space.Create(c.Root, req.Name, req.DataDir)
+	info, err := c.spaces.Create(req.Name, req.DataDir)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
 	}
 
-	res := api.SpacePostResponse{
-		Name:    s.Name(),
-		DataDir: s.DataPath(),
-	}
-	respond(c, w, r, http.StatusOK, res)
+	respond(c, w, r, http.StatusOK, info)
 }
 
 func handleSpaceDelete(c *Core, w http.ResponseWriter, r *http.Request) {
-	s := extractSpace(c, w, r)
-	if s == nil {
-		return
-	}
-	cancel, ok := c.haltSpaceOpsForDelete(s.Name())
+	v := mux.Vars(r)
+	name, ok := v["space"]
 	if !ok {
-		respondError(c, w, r, zqe.E(zqe.Conflict))
+		respondError(c, w, r, zqe.E(zqe.Invalid, "no space name in path"))
 		return
 	}
-	defer cancel()
 
-	if err := s.Delete(); err != nil {
+	err := c.spaces.Delete(name)
+	if err != nil {
 		respondError(c, w, r, err)
 		return
 	}
@@ -253,7 +221,7 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel, err := c.startSpaceOp(r.Context(), s.Name())
+	ctx, cancel, err := s.StartSpaceOp(r.Context())
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -332,7 +300,7 @@ func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel, err := c.startSpaceOp(r.Context(), s.Name())
+	ctx, cancel, err := s.StartSpaceOp(r.Context())
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -364,7 +332,7 @@ func extractSpace(c *Core, w http.ResponseWriter, r *http.Request) *space.Space 
 		respondError(c, w, r, zqe.E(zqe.Invalid, "no space name in path"))
 		return nil
 	}
-	s, err := space.Open(c.Root, name)
+	s, err := c.spaces.Get(name)
 	if err != nil {
 		respondError(c, w, r, err)
 		return nil
