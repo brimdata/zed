@@ -1,13 +1,13 @@
 script: |
   # index ts every 10 records
   zq -f bzng -b 10 babble.tzng | zdx create -S -o index -k ts -
-  # exact lookup for the this time
+  # exact lookup for this particular ts
   zdx lookup -k 1587512531.06754599 index
   echo ===
-  # exact lookup for the an absent time
+  # exact lookup for an absent ts
   zdx lookup -k 1587512531.06754600 index
   echo ===
-  # closest lookup for the the absent time
+  # closest lookup for the absent ts
   zdx lookup -c -k 1587512531.06754600 index
 
 inputs:
