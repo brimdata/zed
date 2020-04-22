@@ -163,10 +163,10 @@ func newRangeReader(f *os.File, zctx *resolver.Context, order Ordering, index []
 			if order == OrderAscending && mark.Ts > span.Ts {
 				break
 			}
-			off = mark.Offset
-			if order == OrderDescending && mark.Ts > span.Ts {
+			if order == OrderDescending && mark.Ts < span.End() {
 				break
 			}
+			off = mark.Offset
 		}
 	}
 
