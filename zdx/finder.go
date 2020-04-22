@@ -1,12 +1,12 @@
 package zdx
 
 import (
-	"bytes"
+	"errors"
 	"fmt"
 	"os"
 
+	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 )
 
@@ -83,8 +83,10 @@ func (f *Finder) Close() error {
 // in the record stream read from the reader, where key is the first column
 // of each record in the stream.  The second column in the record must be an
 // integer and that value is returned for the largest said key.
-func lookupOffset(reader zbuf.Reader, key zcode.Bytes) (int64, error) {
+func lookupOffset(reader zbuf.Reader, key zng.Value) (int64, error) {
 	var lastOff int64 = -1
+	// XXX this should be specialized for the known type
+	compare := expr.NewSortValFn(true)
 	for {
 		rec, err := reader.Read()
 		if err != nil {
@@ -96,11 +98,11 @@ func lookupOffset(reader zbuf.Reader, key zcode.Bytes) (int64, error) {
 		// Since we know that each record is a key in column 0 and
 		// and an int64 offset in column 1, we can pull the zcode.Bytes
 		// encoding out directly with Slice.
-		k, err := rec.Slice(0)
-		if err != nil {
-			return -1, err
+		k := rec.Value(0)
+		if k.Type == nil {
+			return -1, errors.New("key missing in index file")
 		}
-		if bytes.Compare(key, k) < 0 {
+		if compare(key, k) < 0 {
 			break
 		}
 		off, err := rec.Slice(1)
@@ -119,19 +121,22 @@ func lookupOffset(reader zbuf.Reader, key zcode.Bytes) (int64, error) {
 // first column of the records read from the reader.  If the boolean argument
 // "exact" is true, then only exact matches are returned.  Otherwise, the
 // record with the lagest key smaller than the key arrgument is returned.
-func lookup(reader zbuf.Reader, key zcode.Bytes, exact bool) (*zng.Record, error) {
+func lookup(reader zbuf.Reader, key zng.Value, exact bool) (*zng.Record, error) {
+	// XXX this should be specialized for the known type
+	compare := expr.NewSortValFn(true)
 	var prev *zng.Record
 	for {
 		rec, err := reader.Read()
 		if rec == nil {
 			return nil, err
 		}
-		k, err := rec.Slice(0)
-		if err != nil {
-			return nil, err
+		k := rec.Value(0)
+		if k.Type == nil {
+			return nil, errors.New("key missing from record")
 		}
-		if bytes.Compare(k, key) >= 0 {
-			if bytes.Equal(key, k) {
+		cmp := compare(k, key)
+		if cmp >= 0 {
+			if cmp == 0 {
 				return rec, nil
 			}
 			if exact {
@@ -144,7 +149,7 @@ func lookup(reader zbuf.Reader, key zcode.Bytes, exact bool) (*zng.Record, error
 	}
 }
 
-func (f *Finder) search(key zcode.Bytes) error {
+func (f *Finder) search(key zng.Value) error {
 	n := len(f.files)
 	if n == 0 {
 		return ErrCorruptFile
@@ -176,14 +181,14 @@ func (f *Finder) search(key zcode.Bytes) error {
 	return err
 }
 
-func (f *Finder) Lookup(key zcode.Bytes) (*zng.Record, error) {
+func (f *Finder) Lookup(key zng.Value) (*zng.Record, error) {
 	if err := f.search(key); err != nil {
 		return nil, err
 	}
 	return lookup(f.files[0], key, true)
 }
 
-func (f *Finder) LookupClosest(key zcode.Bytes) (*zng.Record, error) {
+func (f *Finder) LookupClosest(key zng.Value) (*zng.Record, error) {
 	if err := f.search(key); err != nil {
 		return nil, err
 	}

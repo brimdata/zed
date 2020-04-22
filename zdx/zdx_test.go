@@ -99,7 +99,7 @@ func TestSearch(t *testing.T) {
 		t.Error(err)
 	}
 	key2 := zng.EncodeString("key2")
-	rec, err := finder.Lookup(key2)
+	rec, err := finder.Lookup(zng.Value{zng.TypeString, key2})
 	require.NoError(t, err)
 	require.NotNil(t, rec)
 	value, err := rec.Slice(1)

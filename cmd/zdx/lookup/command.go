@@ -9,6 +9,7 @@ import (
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/zdx"
 	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zng"
 	"github.com/mccanne/charm"
 )
 
@@ -65,13 +66,14 @@ func (c *LookupCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	rec, err := finder.Lookup(key)
+	rec, err := finder.Lookup(zng.Value{keyType, key})
 	if err != nil {
 		return err
 	}
 	if rec == nil {
 		return nil
 	}
+
 	writer, err := emitter.NewFile(c.outputFile, &c.WriterFlags)
 	if err != nil {
 		return err
