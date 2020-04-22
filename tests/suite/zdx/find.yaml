@@ -1,9 +1,9 @@
 script: |
   zdx create -o index -k v babble.tzng
-  zdx lookup -f tzng -k 469 index
+  zdx lookup -k 469 index
   # 50 not in index
-  zdx lookup -f tzng -k 50 index
-  zdx lookup -f tzng -k 30 index
+  zdx lookup -k 50 index
+  zdx lookup -k 30 index
 
 inputs:
   - name: babble.tzng
@@ -14,4 +14,4 @@ outputs:
       #0:record[key:int64]
       0:[469;]
       #0:record[key:int64]
-      0:[30;]
+      0:[30;]x
