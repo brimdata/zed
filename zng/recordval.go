@@ -107,8 +107,14 @@ func (r *Record) ZvalIter() zcode.Iter {
 	return r.Raw.Iter()
 }
 
-// Width returns the number of columns in the record.
-func (r *Record) Width() int { return len(r.Type.Columns) }
+func (r *Record) FieldIter() fieldIter {
+	return fieldIter{
+		stack: []iterInfo{iterInfo{
+			iter: r.ZvalIter(),
+			typ:  r.Type,
+		}},
+	}
+}
 
 func (r *Record) Keep() *Record {
 	if r.nonvolatile {
