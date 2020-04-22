@@ -1,0 +1,24 @@
+script: |
+  # index ts every 10 records
+  zq -f bzng -b 10 babble.tzng | zdx create -S -o index -k ts -
+  # exact lookup for the this time
+  zdx lookup -k 1587512531.06754599 index
+  echo ===
+  # exact lookup for the an absent time
+  zdx lookup -k 1587512531.06754600 index
+  echo ===
+  # closest lookup for the the absent time
+  zdx lookup -c -k 1587512531.06754600 index
+
+inputs:
+  - name: babble.tzng
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[key:time]
+      0:[1587512531.06754599;]
+      ===
+      ===
+      #0:record[key:time]
+      0:[1587512531.06754599;]
