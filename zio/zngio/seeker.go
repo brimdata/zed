@@ -1,4 +1,4 @@
-package bzngio
+package zngio
 
 import (
 	"io"

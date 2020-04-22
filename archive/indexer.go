@@ -8,7 +8,7 @@ import (
 
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zdx"
-	"github.com/brimsec/zq/zio/bzngio"
+	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
@@ -37,7 +37,7 @@ func CreateIndexes(dir string) error {
 			// descend...
 			return nil
 		}
-		if filepath.Ext(name) == ".bzng" {
+		if filepath.Ext(name) == ".zng" {
 			err = IndexLogFile(path)
 			if err != nil {
 				fmt.Printf("%s: %s\n", path, err)
@@ -70,7 +70,7 @@ func IndexLogFile(path string) error {
 	defer file.Close()
 	// XXX should be able to index any kind of logs... find should take
 	// a regexp to match files and then use auto-detect or -i for input format
-	reader := bzngio.NewReader(file, resolver.NewContext())
+	reader := zngio.NewReader(file, resolver.NewContext())
 	table, err := indexTypeIP(reader)
 	if err != nil {
 		return err

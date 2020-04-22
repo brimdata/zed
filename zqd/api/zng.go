@@ -4,30 +4,30 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/brimsec/zq/zio/bzngio"
+	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-type BzngSearch struct {
-	reader *bzngio.Reader
+type ZngSearch struct {
+	reader *zngio.Reader
 	onctrl func(interface{})
 }
 
-func NewBzngSearch(body io.Reader) *BzngSearch {
-	return &BzngSearch{
-		reader: bzngio.NewReader(body, resolver.NewContext()),
+func NewZngSearch(body io.Reader) *ZngSearch {
+	return &ZngSearch{
+		reader: zngio.NewReader(body, resolver.NewContext()),
 	}
 }
 
 // SetOnCtrl registers a callback function that will be fired when a control
 // payload is found in the search stream. Not safe for concurrent use, this
 // should be set before the first read is called.
-func (r *BzngSearch) SetOnCtrl(cb func(interface{})) {
+func (r *ZngSearch) SetOnCtrl(cb func(interface{})) {
 	r.onctrl = cb
 }
 
-func (r *BzngSearch) Read() (*zng.Record, error) {
+func (r *ZngSearch) Read() (*zng.Record, error) {
 	for {
 		rec, b, err := r.reader.ReadPayload()
 		if err != nil || b == nil {

@@ -19,7 +19,7 @@ every value.
 
 ZNG has both a text form simply called "TZNG",
 comprised of a sequence of newline-delimited UTF-8 strings,
-as well as a binary form called "BZNG".
+as well as a binary form called "ZNG".
 
 ZNG is richly typed and thinner on the wire than JSON.
 Like [newline-delimited JSON (NDJSON)](http://ndjson.org/),
@@ -110,13 +110,13 @@ Note that the value encoding need not refer to the field names and types as that
 completely captured by the type ID.  Values merely encode the value
 information consistent with the referenced type ID.
 
-## 2. ZNG Binary Format (BZNG)
+## 2. ZNG Binary Format (ZNG)
 
-The BZNG binary format is based on machine-readable data types with an
+The ZNG binary format is based on machine-readable data types with an
 encoding methodology inspired by Avro and
 [Protocol Buffers](https://developers.google.com/protocol-buffers).
 
-A BZNG stream comprises a sequence of interleaved control messages and value messages
+A ZNG stream comprises a sequence of interleaved control messages and value messages
 that are serialized into a stream of bytes.
 
 Each message is prefixed with a single-byte header code.  The upper bit of
@@ -126,7 +126,7 @@ or a value message (0).
 ### 2.1 Control Messages
 
 The lower 7 bits of a control header byte define the control code.
-Control codes 0 through 5 are reserved for BZNG:
+Control codes 0 through 5 are reserved for ZNG:
 
 | Code | Message Type      |
 |------|-------------------|
@@ -199,7 +199,7 @@ the type encoding.  This creates a binding between the implied type ID
 (i.e., 23 plus the count of all previous typedefs in the stream) and the new
 type definition.
 
-The type ID is encoded as a `uvarint`, an encoding used throughout the BZNG format.
+The type ID is encoded as a `uvarint`, an encoding used throughout the ZNG format.
 
 > Inspired by Protocol Buffers,
 > a `uvarint` is an unsigned, variable-length integer encoded as a sequence of
@@ -290,10 +290,10 @@ The `<ntypes>` and the type IDs are all encoded as `uvarint`.
 A type alias defines a new type ID that binds a new type name
 to a previously existing type ID.  This is useful for systems like Zeek,
 where there are customary type names that are well-known to users of the
-Zeek system and are easily mapped onto a BZNG type having a different name.
+Zeek system and are easily mapped onto a ZNG type having a different name.
 By encoding the aliases in the format, there is no need to configure mapping
 information across different systems using the format, as the type aliases
-are communicated to the consumer of a BZNG stream.
+are communicated to the consumer of a ZNG stream.
 
 A type alias is encoded as follows:
 ```
@@ -309,14 +309,14 @@ followed by that many bytes of UTF-8 string.
 
 ### 2.1.2 End-of-stream Markers
 
-A BZNG stream must be terminated by an end-of-stream marker.
-A new BZNG stream may begin immediately after an end-of-stream marker.
+A ZNG stream must be terminated by an end-of-stream marker.
+A new ZNG stream may begin immediately after an end-of-stream marker.
 Each such stream has its own, independent type context.
 
-In this way, the concatenation of BZNG streams (or BZNG files containing
-BZNG streams) results in a valid BZNG data sequence.
+In this way, the concatenation of ZNG streams (or ZNG files containing
+ZNG streams) results in a valid ZNG data sequence.
 
-For example, a large BZNG file can be arranged into multiple, smaller streams
+For example, a large ZNG file can be arranged into multiple, smaller streams
 to facilitate random access at stream boundaries.
 This benefit comes at the cost of some additional overhead --
 the space consumed by stream boundary markers and repeated type definitions.
@@ -343,7 +343,7 @@ previously defined type, the appropriate typedef control code must
 be re-emitted
 (and note that the typedef may now be assigned a different ID).
 
-### 2.2 BZNG Value Messages
+### 2.2 ZNG Value Messages
 
 Following a header byte with bit 7 zero is a `typed value`
 with a `uvarint7` encoding its length.
@@ -453,7 +453,7 @@ lexicographically greater than that of the preceding element.
 
 ## 3. ZNG Text Format (TZNG)
 
-The ZNG text format is a human-readable form that follows directly from the BZNG
+The ZNG text format is a human-readable form that follows directly from the ZNG
 binary format.  A ZNG file/stream is encoded with UTF-8.
 All subsequent references to characters and strings in this section refer to
 the Unicode code points that result when the stream is decoded.
@@ -513,7 +513,7 @@ is any UTF-8 string with escaped newlines.
 
 ### Type Grammar
 
-Given the above textual definitions and the underlying BZNG specification, a
+Given the above textual definitions and the underlying ZNG specification, a
 grammar describing the textual type encodings is:
 ```
 <stype> := bool | byte | int16 | uint16 | int32 | uint32 | int64 | uint64 | float64
@@ -696,7 +696,7 @@ record(a:"hello",b:"world")
 string("this is a semicolon: ;")
 ```
 Note that the tag integers occupy their own numeric space indepedent of
-any underlying BZNG type IDs.
+any underlying ZNG type IDs.
 
 The semicolon terminator is important.  Consider this ZNG depicting
 sets of strings:

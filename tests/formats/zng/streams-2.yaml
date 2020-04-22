@@ -1,4 +1,4 @@
-# Test that type ids are not re-used across bzng streams.
+# Test that type ids are not re-used across zng streams.
 
 zql: '*'
 
@@ -9,7 +9,7 @@ input: |
   1:[1;]
   1:[2;]
 
-output-format: bzng
+output-format: zng
 
 output-flags: -b 2
 

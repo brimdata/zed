@@ -3,7 +3,7 @@ zql: '*'
 input: !!binary |
   gAEDa2V5DRcFCgAAAAAXESIAAAAAAAAAAAAAAAAAAAAAhYABA2tleQ0XBQoBJz0WhQ==
 
-output-format: bzng
+output-format: zng
 
 output-flags: -b 2
 

@@ -1,4 +1,4 @@
-package bzngio
+package zngio
 
 import (
 	"errors"
@@ -106,9 +106,9 @@ func (i *indexReader) readOne() (*zng.Record, error) {
 	return rec, nil
 }
 
-// rangeReader is a wrapper around bzngio.Reader that uses an in-memory
+// rangeReader is a wrapper around zngio.Reader that uses an in-memory
 // index to reduce the I/O needed to get matching records when reading a
-// large bzng file that includes sub-streams and a nano.Span that refers
+// large zng file that includes sub-streams and a nano.Span that refers
 // to a smaller time range within the file.
 type rangeReader struct {
 	Reader

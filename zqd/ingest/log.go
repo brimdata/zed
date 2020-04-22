@@ -12,8 +12,8 @@ import (
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
-	"github.com/brimsec/zq/zio/bzngio"
 	"github.com/brimsec/zq/zio/detector"
+	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
@@ -23,7 +23,7 @@ import (
 	"go.uber.org/zap"
 )
 
-const allBzngTmpFile = space.AllBzngFile + ".tmp"
+const allZngTmpFile = space.AllZngFile + ".tmp"
 
 // Logs ingests the provided list of files into the provided space.
 // Like ingest.Pcap, this overwrites any existing data in the space.
@@ -46,7 +46,7 @@ func Logs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api.LogPo
 		return pipe.SendFinal(&api.TaskEnd{"TaskEnd", 0, verr})
 	}
 	if err := ingestLogs(ctx, pipe, s, req, sortLimit); err != nil {
-		os.Remove(s.DataPath(space.AllBzngFile))
+		os.Remove(s.DataPath(space.AllZngFile))
 		verr := &api.Error{Type: "INTERNAL", Message: err.Error()}
 		return pipe.SendFinal(&api.TaskEnd{"TaskEnd", 0, verr})
 	}
@@ -96,11 +96,11 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api
 		readers = append(readers, sf)
 	}
 
-	bzngfile, err := s.CreateFile(filepath.Join(tmpIngestDir, allBzngTmpFile))
+	zngfile, err := s.CreateFile(filepath.Join(tmpIngestDir, allZngTmpFile))
 	if err != nil {
 		return err
 	}
-	zw := bzngio.NewWriter(bzngfile, zio.WriterFlags{})
+	zw := zngio.NewWriter(zngfile, zio.WriterFlags{})
 	program := fmt.Sprintf("sort -limit %d -r ts | (filter *; head 1; tail 1)", sortLimit)
 	var headW, tailW recWriter
 
@@ -115,11 +115,11 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api
 	}
 	err = driver.Run(mux, d, search.StatsInterval)
 	if err != nil {
-		bzngfile.Close()
-		os.Remove(bzngfile.Name())
+		zngfile.Close()
+		os.Remove(zngfile.Name())
 		return err
 	}
-	if err := bzngfile.Close(); err != nil {
+	if err := zngfile.Close(); err != nil {
 		return err
 	}
 	if tailW.r != nil {
@@ -127,7 +127,7 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api
 			return err
 		}
 	}
-	if err := os.Rename(bzngfile.Name(), s.DataPath(space.AllBzngFile)); err != nil {
+	if err := os.Rename(zngfile.Name(), s.DataPath(space.AllZngFile)); err != nil {
 		return err
 	}
 	info, err := s.Info()

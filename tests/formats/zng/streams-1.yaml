@@ -1,4 +1,4 @@
-# Test frame markers inserted into a bzng frame (including testing
+# Test frame markers inserted into a zng frame (including testing
 # that type definitions are repeated as needed).
 
 zql: '*'
@@ -8,7 +8,7 @@ input: |
   0:[a;10;1;]
   0:[xyz;20;1.5;]
 
-output-format: bzng
+output-format: zng
 
 output-flags: -b 1
 

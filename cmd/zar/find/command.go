@@ -16,7 +16,7 @@ var Find = &charm.Spec{
 	Usage: "find [-d dir] <ip>",
 	Short: "look through zar index files and displays matches",
 	Long: `
-"zar find" descends the directory given by the argument looking for bzng files that have
+"zar find" descends the directory given by the argument looking for zng files that have
 a corresponding zar index and if that index contains the <ip> argument,
 then the path of the zng file is printed.
 The current version supports only IP address, but this will soon change.

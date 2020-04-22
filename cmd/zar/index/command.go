@@ -12,12 +12,12 @@ import (
 var Index = &charm.Spec{
 	Name:  "index",
 	Usage: "index dir",
-	Short: "creates index files for bzng files",
+	Short: "creates index files for zng files",
 	Long: `
-zar find descends the directory argument looking for bzng files and creates an index
-file for IP addresses for each bzng file encountered.  An index is written to
-a sub-directory of the directory containing each encountered bzng file, where the
-name of the sub-directory is a concatenation of the bzng file name and the suffix
+zar find descends the directory argument looking for zng files and creates an index
+file for IP addresses for each zng file encountered.  An index is written to
+a sub-directory of the directory containing each encountered zng file, where the
+name of the sub-directory is a concatenation of the zng file name and the suffix
 ".zar".
 The current version supports only IP address, but this will soon change.
 `,
