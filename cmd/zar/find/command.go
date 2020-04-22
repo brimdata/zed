@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cmd/zar/root"
@@ -63,10 +64,16 @@ func (c *Command) Run(args []string) error {
 		return errors.New("zar find: error parsing pattern: " + err.Error())
 	}
 	hits := make(chan string)
+	var wg sync.WaitGroup
+	wg.Add(1)
 	go func() {
 		for hit := range hits {
 			fmt.Println(hit)
 		}
+		wg.Done()
 	}()
-	return archive.Find(c.dir, rule, pattern, hits)
+	err = archive.Find(c.dir, rule, pattern, hits)
+	close(hits)
+	wg.Wait()
+	return err
 }

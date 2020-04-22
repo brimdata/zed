@@ -17,7 +17,7 @@ import (
 // be more efficient at large scale to allow multipe patterns that
 // are effectively OR-ed together so that there is locality of
 // access to the zdx files.
-func Find(dir string, rule Rule, pattern string, hits chan string) error {
+func Find(dir string, rule Rule, pattern string, hits chan<- string) error {
 	//XXX this should be parallelized with some locking presuming a little
 	// parallelism won't mess up the file system assumptions
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {

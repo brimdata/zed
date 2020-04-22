@@ -31,10 +31,8 @@ func archiveDir(path string) (string, error) {
 	// with the ".zar" extension
 	subdir := path + zarExt
 	// make subdirectory for index if it doesn't exist
-	if err := os.Mkdir(subdir, 0755); err != nil {
-		if !os.IsExist(err) {
-			return "", err
-		}
+	if err := os.Mkdir(subdir, 0755); err != nil && !os.IsExist(err) {
+		return "", err
 	}
 	return subdir, nil
 }
@@ -51,7 +49,7 @@ type Indexer interface {
 	Path() string
 }
 
-func IndexDirTree(dir string, rules []Rule, progress chan string) error {
+func IndexDirTree(dir string, rules []Rule, progress chan<- string) error {
 	nerr := 0
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -84,7 +82,7 @@ func IndexDirTree(dir string, rules []Rule, progress chan string) error {
 	return err
 }
 
-func Run(path string, rules []Rule, progress chan string) error {
+func run(path string, rules []Rule, progress chan<- string) error {
 	subdir, err := archiveDir(path)
 	if err != nil {
 		return err

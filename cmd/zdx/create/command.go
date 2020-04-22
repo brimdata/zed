@@ -54,8 +54,8 @@ func newCreateCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, err
 	}
 	f.IntVar(&c.framesize, "f", 32*1024, "minimum frame size used in zdx file")
 	f.StringVar(&c.outputFile, "o", "zdx", "output zdx bundle name")
-	f.StringVar(&c.keyField, "k", "", "field name of keys ")
-	f.StringVar(&c.valField, "v", "", "field name of values ")
+	f.StringVar(&c.keyField, "k", "", "field name of keys")
+	f.StringVar(&c.valField, "v", "", "field name of values")
 	f.BoolVar(&c.skip, "S", false, "skip all records except for the first of each stream")
 	c.ReaderFlags.SetFlags(f)
 
@@ -152,13 +152,10 @@ func (c *CreateCommand) Run(args []string) error {
 				return err
 			}
 		}
-		if err != nil {
-			return err
-		}
 	}
-	close = false
 	if err := zbuf.Copy(writer, table); err != nil {
 		return err
 	}
+	close = false
 	return writer.Close()
 }

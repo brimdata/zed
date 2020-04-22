@@ -25,8 +25,8 @@ func NewTypeIndexer(path string, refType zng.Type) *TypeIndexer {
 	zctx := resolver.NewContext()
 	return &TypeIndexer{
 		IndexerCommon: IndexerCommon{
-			path:     path,
 			MemTable: zdx.NewMemTable(zctx),
+			path:     path,
 		},
 		Type: zctx.Localize(refType),
 	}

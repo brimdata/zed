@@ -23,8 +23,8 @@ type FieldIndexer struct {
 func NewFieldIndexer(path, field string, accessor expr.FieldExprResolver) *FieldIndexer {
 	return &FieldIndexer{
 		IndexerCommon: IndexerCommon{
-			path:     path,
 			MemTable: zdx.NewMemTable(resolver.NewContext()),
+			path:     path,
 		},
 		accessor: accessor,
 	}

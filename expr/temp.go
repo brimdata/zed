@@ -27,8 +27,8 @@ func CompileFieldAccess(s string) FieldExprResolver {
 			if !ok {
 				return zng.Value{}
 			}
-			body = slice(body, col)
-			if body == nil {
+			body, ok = slice(body, col)
+			if !ok {
 				return zng.Value{}
 			}
 			typ = recType.Columns[col].Type
@@ -37,17 +37,17 @@ func CompileFieldAccess(s string) FieldExprResolver {
 	}
 }
 
-func slice(body zcode.Bytes, column int) zcode.Bytes {
+func slice(body zcode.Bytes, column int) (zcode.Bytes, bool) {
 	var zv zcode.Bytes
 	for i, it := 0, zcode.Iter(body); i <= column; i++ {
 		if it.Done() {
-			return nil
+			return nil, false
 		}
 		var err error
 		zv, _, err = it.Next()
 		if err != nil {
-			return nil
+			return nil, false
 		}
 	}
-	return zv
+	return zv, true
 }

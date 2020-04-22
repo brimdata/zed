@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"sync"
 
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cmd/zar/root"
@@ -65,14 +66,22 @@ func (c *Command) Run(args []string) error {
 		}
 		rules = append(rules, rule)
 	}
+	var wg sync.WaitGroup
 	var progress chan string
 	if !c.quiet {
+		wg.Add(1)
 		progress = make(chan string)
 		go func() {
 			for line := range progress {
 				fmt.Println(line)
 			}
+			wg.Done()
 		}()
 	}
-	return archive.IndexDirTree(c.dir, rules, progress)
+	err := archive.IndexDirTree(c.dir, rules, progress)
+	if progress != nil {
+		close(progress)
+		wg.Wait()
+	}
+	return err
 }
