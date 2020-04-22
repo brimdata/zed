@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/brimsec/zq/zng"
 )
 
 // Find descends a directory hierarchy looking for index files that can
@@ -66,7 +68,7 @@ func Search(path string, rule Rule, pattern string) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", finder.Path(), err)
 	}
-	rec, err := finder.Lookup(keyBytes)
+	rec, err := finder.Lookup(zng.Value{keyType, keyBytes})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", finder.Path(), err)
 	}
