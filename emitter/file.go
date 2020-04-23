@@ -25,7 +25,7 @@ func NewFile(path string, flags *zio.WriterFlags) (*zio.Writer, error) {
 		f = &noClose{os.Stdout}
 	} else {
 		var err error
-		flags := os.O_WRONLY | os.O_CREATE
+		flags := os.O_WRONLY | os.O_CREATE | os.O_TRUNC
 		file, err := os.OpenFile(path, flags, 0600)
 		if err != nil {
 			return nil, err
