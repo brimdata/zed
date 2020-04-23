@@ -13,12 +13,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createTempSpace(t *testing.T) (string, *space.Space) {
-	root, err := ioutil.TempDir("", "test")
+func createTempSpace(t *testing.T, spaces *space.Manager) *space.Space {
+	_, err := spaces.Create(t.Name(), "")
 	require.NoError(t, err)
-	s, err := space.Create(root, t.Name(), "")
+
+	space, err := spaces.Get(t.Name())
 	require.NoError(t, err)
-	return root, s
+
+	return space
 }
 func writeTempFile(t *testing.T, data string) string {
 	f, err := ioutil.TempFile("", "testfile")
@@ -36,8 +38,13 @@ func TestLogsErrInFlight(t *testing.T) {
 0:[conn;1521911723.205187;CBrzd94qfowOqJwCHa;]
 0:[conn;1521911721.255387;C8Tful1TvM3Zf5x8fl;]
 `
-	root, s := createTempSpace(t)
+	root, err := ioutil.TempDir("", "test")
+	require.NoError(t, err)
 	defer os.RemoveAll(root)
+
+	spaces := space.NewManager(root, nil)
+	s := createTempSpace(t, spaces)
+
 	f := writeTempFile(t, src)
 
 	errCh1 := make(chan error)

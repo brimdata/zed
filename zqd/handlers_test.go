@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
@@ -106,26 +107,35 @@ func TestSearchInvalidRequest(t *testing.T) {
 }
 
 func TestSpaceList(t *testing.T) {
+	names := []string{"sp1", "sp2", "sp3", "sp4"}
+
 	ctx := context.Background()
 	c, client, done := newCore(t)
-	defer done()
-	sp1, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "sp1"})
-	require.NoError(t, err)
-	sp2, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "sp2"})
-	require.NoError(t, err)
-	sp3, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "sp3"})
-	require.NoError(t, err)
-	sp4, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "sp4"})
-	require.NoError(t, err)
-	// delete config.json from sp3
-	require.NoError(t, os.Remove(filepath.Join(c.Root, sp3.Name, "config.json")))
-	expected := []string{
-		sp1.Name,
-		sp2.Name,
-		sp4.Name,
+	{
+		defer done()
+
+		for _, n := range names {
+			_, err := client.SpacePost(ctx, api.SpacePostRequest{Name: n})
+			require.NoError(t, err)
+		}
+
+		list, err := client.SpaceList(ctx)
+		require.NoError(t, err)
+		sort.Strings(list)
+		require.Equal(t, names, list)
 	}
+
+	// Delete config.json from one space, then simulate a restart by
+	// creating a new Core pointing to the same root.
+	require.NoError(t, os.Remove(filepath.Join(c.Root, "sp3", "config.json")))
+	expected := []string{"sp1", "sp2", "sp4"}
+
+	c, client, done = newCoreAtDir(t, c.Root)
+	defer done()
+
 	list, err := client.SpaceList(ctx)
 	require.NoError(t, err)
+	sort.Strings(list)
 	require.Equal(t, expected, list)
 }
 
