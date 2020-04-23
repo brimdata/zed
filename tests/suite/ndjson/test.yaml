@@ -1,0 +1,11 @@
+script: zq -f zng - | zq -f ndjson -
+
+inputs:
+  - name: stdin
+    data: |
+      {"a": {"b": "1"}}
+
+outputs:
+  - name: stdout
+    data: |
+      {"a":{"b":"1"}}
