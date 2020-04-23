@@ -10,12 +10,19 @@ import (
 	"github.com/brimsec/zq/zng"
 )
 
-type Cut struct {
-	Base
+// A cutBuilder keeps the data structures needed for cutting one
+// particular type of input record.
+type cutBuilder struct {
 	resolvers []expr.FieldExprResolver
 	builder   *ColumnBuilder
-	cutmap    map[int]*zng.TypeRecord
-	nblocked  int
+	outType   *zng.TypeRecord
+}
+
+type Cut struct {
+	Base
+	complement  bool
+	cutBuilders map[int]*cutBuilder
+	fieldnames  []string
 }
 
 // XXX update me
@@ -27,74 +34,33 @@ type Cut struct {
 // do this now since it might confuse users who expect to see output
 // fields in the order they specified.
 func CompileCutProc(c *Context, parent Proc, node *ast.CutProc) (*Cut, error) {
-	resolvers, err := expr.CompileFieldExprs(node.Fields)
-	if err != nil {
-		return nil, fmt.Errorf("compiling cut: %w", err)
-	}
 	var fields []string
 	for _, field := range node.Fields {
 		fields = append(fields, expr.FieldExprToString(field))
 	}
-	builder, err := NewColumnBuilder(c.TypeContext, fields)
-	if err != nil {
-		return nil, fmt.Errorf("compiling cut: %w", err)
-	}
 	return &Cut{
-		Base:      Base{Context: c, Parent: parent},
-		resolvers: resolvers,
-		builder:   builder,
-		cutmap:    make(map[int]*zng.TypeRecord),
+		Base:        Base{Context: c, Parent: parent},
+		complement:  node.Complement,
+		cutBuilders: make(map[int]*cutBuilder),
+		fieldnames:  fields,
 	}, nil
 }
 
-// cut returns a new record value derived by keeping only the fields
-// specified by name in the fields slice.  If the record can't be cut
-// (i.e., it doesn't have one of the specified fields), returns nil.
-func (c *Cut) cut(in *zng.Record) *zng.Record {
-	// Check if we already have an output descriptor for this
-	// input type
-	typ, ok := c.cutmap[in.Type.ID()]
-	if ok && typ == nil {
-		// One or more cut fields isn't present in this type of
-		// input record, drop it now.
-		return nil
-	}
-
-	c.builder.Reset()
-	var types []zng.Type
-	if typ == nil {
-		types = make([]zng.Type, 0, len(c.resolvers))
-	}
-	// Build the output record.  If we've already seen this input
-	// record type, we don't care about the types, but if we haven't
-	// gather the types as well so we can construct the output
-	// descriptor.
-	for _, resolver := range c.resolvers {
+// cut returns a new record value from input record using the provided
+// cutBuilder, or nil if the record can't be cut.
+func (c *Cut) cut(cb *cutBuilder, in *zng.Record) *zng.Record {
+	cb.builder.Reset()
+	for _, resolver := range cb.resolvers {
 		val := resolver(in)
-		if typ == nil {
-			if val.Type == nil {
-				// a field is missing... block this descriptor
-				c.cutmap[in.Type.ID()] = nil
-				c.nblocked++
-				return nil
-			}
-			types = append(types, val.Type)
-		}
-		c.builder.Append(val.Bytes, val.IsContainer())
+		cb.builder.Append(val.Bytes, val.IsContainer())
 	}
-	if typ == nil {
-		cols := c.builder.TypedColumns(types)
-		typ = c.TypeContext.LookupTypeRecord(cols)
-		c.cutmap[in.Type.ID()] = typ
-	}
-
-	zv, err := c.builder.Encode()
+	zv, err := cb.builder.Encode()
 	if err != nil {
 		// XXX internal error, what to do...
 		return nil
 	}
 
-	r, err := zng.NewRecord(typ, zv)
+	r, err := zng.NewRecord(cb.outType, zv)
 	if err != nil {
 		// records with invalid ts shouldn't get here
 		return nil
@@ -102,25 +68,119 @@ func (c *Cut) cut(in *zng.Record) *zng.Record {
 	return r
 }
 
-func (c *Cut) warn() {
-	if len(c.cutmap) > c.nblocked {
+func (c *Cut) maybeWarn() {
+	if c.complement {
 		return
 	}
-	names := c.builder.FullNames()
+	for _, ci := range c.cutBuilders {
+		if ci != nil {
+			return
+		}
+	}
 	var msg string
-	if len(names) == 1 {
-		msg = fmt.Sprintf("Cut field %s not present in input", names[0])
+	if len(c.fieldnames) == 1 {
+		msg = fmt.Sprintf("Cut field %s not present in input", c.fieldnames[0])
 	} else {
-		msg = fmt.Sprintf("Cut fields %s not present together in input", strings.Join(names, ","))
+		msg = fmt.Sprintf("Cut fields %s not present together in input", strings.Join(c.fieldnames, ","))
 	}
 	c.Warnings <- msg
+}
+
+// complementBuilder creates a builder for the complement form of cut, where a
+// all fields not in a set are to be cut from a record and passed on.
+func (c *Cut) complementBuilder(r *zng.Record) (*cutBuilder, error) {
+	var resolvers []expr.FieldExprResolver
+	var outColTypes []zng.Type
+
+	iter := r.FieldIter()
+	var fields []string
+	for !iter.Done() {
+		name, _, err := iter.Next()
+		if err != nil {
+			return nil, err
+		}
+		if !fieldIn(c.fieldnames, name) {
+			fields = append(fields, name)
+			resolver := expr.CompileFieldAccess(name)
+			resolvers = append(resolvers, resolver)
+			val := resolver(r)
+			outColTypes = append(outColTypes, val.Type)
+		}
+	}
+	// if the set of cut -c fields is equal to the set of record
+	// fields, then there is no output for this input type.
+	if len(outColTypes) == 0 {
+		return nil, nil
+	}
+	builder, err := NewColumnBuilder(c.TypeContext, fields)
+	if err != nil {
+		return nil, err
+	}
+	cols := builder.TypedColumns(outColTypes)
+	outType := c.TypeContext.LookupTypeRecord(cols)
+	return &cutBuilder{resolvers, builder, outType}, nil
+}
+
+func fieldIn(set []string, cand string) bool {
+	splits := strings.Split(cand, ".")
+	for _, setel := range set {
+		for j := range splits {
+			prefix := strings.Join(splits[:j+1], ".")
+			if prefix == setel {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// setBuilder creates a builder for the regular form of cut, where a
+// set of fields are to be cut from a record and passed on.
+//
+// Note that unlike for the complement form, we don't strictly need a
+// different columnbuilder or set of resolvers per input type
+// here. (We do need a different outType). Since the number of
+// different input types is small wrt the number of input records, the
+// optimization consisting of having a single columnbuilder and
+// resolver set doesn't seem worth the added special casing.
+func (c *Cut) setBuilder(r *zng.Record) (*cutBuilder, error) {
+	var resolvers []expr.FieldExprResolver
+	var outColTypes []zng.Type
+
+	builder, err := NewColumnBuilder(c.TypeContext, c.fieldnames)
+	if err != nil {
+		return nil, err
+	}
+	for _, name := range c.fieldnames {
+		resolvers = append(resolvers, expr.CompileFieldAccess(name))
+	}
+
+	// Build up the output type. If any of the cut fields
+	// is absent, there is no output for this input type.
+	for _, resolver := range resolvers {
+		val := resolver(r)
+		if val.Type == nil {
+			return nil, nil
+		}
+		outColTypes = append(outColTypes, val.Type)
+	}
+	cols := builder.TypedColumns(outColTypes)
+	outType := c.TypeContext.LookupTypeRecord(cols)
+	return &cutBuilder{resolvers, builder, outType}, nil
+}
+
+func (c *Cut) builder(r *zng.Record) (*cutBuilder, error) {
+	if c.complement {
+		return c.complementBuilder(r)
+	}
+	return c.setBuilder(r)
 }
 
 func (c *Cut) Pull() (zbuf.Batch, error) {
 	for {
 		batch, err := c.Get()
 		if EOS(batch, err) {
-			c.warn()
+			c.maybeWarn()
 			return nil, err
 		}
 		// Make new records with only the fields specified.
@@ -129,7 +189,25 @@ func (c *Cut) Pull() (zbuf.Batch, error) {
 		recs := make([]*zng.Record, 0, batch.Length())
 		for k := 0; k < batch.Length(); k++ {
 			in := batch.Index(k)
-			out := c.cut(in)
+
+			var cb *cutBuilder
+			var ok bool
+			if cb, ok = c.cutBuilders[in.Type.ID()]; !ok {
+				cb, err = c.builder(in)
+				if err != nil {
+					return nil, err
+				}
+				c.cutBuilders[in.Type.ID()] = cb
+			}
+
+			if cb == nil {
+				// One or more cut fields isn't present in this type of
+				// input record, or the resulting record is empty (cut -c).
+				// Either way, we drop this input.
+				continue
+			}
+
+			out := c.cut(cb, in)
 			if out != nil {
 				recs = append(recs, out)
 			}

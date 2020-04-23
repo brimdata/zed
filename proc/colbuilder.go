@@ -255,11 +255,3 @@ func (c *ColumnBuilder) TypedColumns(types []zng.Type) []zng.Column {
 	}
 	return stack[0].cols
 }
-
-func (c *ColumnBuilder) FullNames() []string {
-	ret := make([]string, len(c.fields))
-	for i, field := range c.fields {
-		ret[i] = field.fullname
-	}
-	return ret
-}

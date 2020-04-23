@@ -33,6 +33,13 @@ const fooAndBar = `
 0:[foo3;bar3;]
 `
 
+const fooAndBarAndBlar = `
+#0:record[foo:string,bar:string,blar:string]
+0:[foo1;bar1;blar1;]
+0:[foo2;bar2;blar2;]
+0:[foo3;bar3;blar3;]
+`
+
 func TestCut(t *testing.T) {
 	// test "cut foo" on records that only have field foo
 	proc.TestOneProc(t, fooOnly, fooOnly, "cut foo")
@@ -56,6 +63,21 @@ func TestCut(t *testing.T) {
 
 	// test cut on multiple fields.
 	proc.TestOneProc(t, fooAndBar, fooAndBar, "cut foo,bar")
+}
+
+func TestCutComplement(t *testing.T) {
+	// test "cut foo" on records that only have field foo
+	proc.TestOneProc(t, fooOnly, fooOnly, "cut -c boo")
+
+	// test "cut foo" on records that have fields foo and bar
+	proc.TestOneProc(t, fooAndBar, barOnly, "cut -c foo")
+
+	// test "cut -c foo" on some fields with foo, some without
+	proc.TestOneProc(t, fooOnly+barOnly, barOnly, "cut -c foo")
+	proc.TestOneProc(t, barOnly+fooOnly, barOnly, "cut -c foo")
+
+	// test cut on multiple fields.
+	proc.TestOneProc(t, fooAndBarAndBlar, fooOnly, "cut -c bar,blar")
 }
 
 func ctx() *proc.Context {
@@ -130,6 +152,7 @@ const nestedOut2 = `
 // Test cutting fields inside nested records.
 func TestCutNested(t *testing.T) {
 	proc.TestOneProc(t, nestedIn1, nestedOut1, "cut rec.foo")
+	proc.TestOneProc(t, nestedIn1, nestedOut1, "cut -c rec.bar")
 	proc.TestOneProc(t, nestedIn1, nestedIn1, "cut rec.foo,rec.bar")
 	proc.TestOneProc(t, nestedIn2, nestedOut2, "cut rec1.sub1.foo,rec1.sub2.bar,rec2.foo,foo")
 }
