@@ -318,7 +318,7 @@ func (c *SearchReadCloser) Close() error {
 }
 
 // LogSize returns the size in bytes of the logs in space.
-func (s Space) LogSize() (int64, error) {
+func (s *Space) LogSize() (int64, error) {
 	return sizeof(s.DataPath(AllZngFile))
 }
 
