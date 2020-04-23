@@ -51,7 +51,7 @@ func encodeUnion(typ *zng.TypeUnion, v []byte) (interface{}, error) {
 	if v == nil {
 		return nil, nil
 	}
-	inner, index, v, err := typ.SplitBzng(v)
+	inner, index, v, err := typ.SplitZng(v)
 	if err != nil {
 		return nil, err
 	}

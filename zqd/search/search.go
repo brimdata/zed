@@ -1,5 +1,5 @@
 // Package search provides an implementation for launching zq searches and performing
-// analytics on bzng files stored in the server's root directory.
+// analytics on zng files stored in the server's root directory.
 package search
 
 import (

@@ -185,14 +185,14 @@ func (c *Connection) SpaceDelete(ctx context.Context, spaceName string) (err err
 func (c *Connection) Search(ctx context.Context, search SearchRequest) (Search, error) {
 	req := c.Request(ctx).
 		SetBody(search).
-		SetQueryParam("format", "bzng")
+		SetQueryParam("format", "zng")
 	req.Method = http.MethodPost
 	req.URL = "/search"
 	r, err := c.stream(req)
 	if err != nil {
 		return nil, err
 	}
-	return NewBzngSearch(r), nil
+	return NewZngSearch(r), nil
 }
 
 func (c *Connection) PacketPost(ctx context.Context, space string, payload PacketPostRequest) (*Stream, error) {

@@ -86,7 +86,7 @@ func (v Value) String() string {
 	return v.Format(OutFormatDebug)
 }
 
-// Encode appends the BZNG representation of this value to the passed in
+// Encode appends the ZNG representation of this value to the passed in
 // argument and returns the resulting zcode.Bytes (which may or may not
 // be the same underlying buffer, as with append(), depending on its capacity)
 func (v Value) Encode(dst zcode.Bytes) zcode.Bytes {

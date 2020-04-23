@@ -16,7 +16,7 @@ import (
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/bzngio"
+	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqe"
@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	AllBzngFile   = "all.bzng"
+	AllZngFile    = "all.zng"
 	configFile    = "config.json"
 	infoFile      = "info.json"
 	PcapIndexFile = "packets.idx.json"
@@ -318,8 +318,8 @@ func (c *SearchReadCloser) Close() error {
 }
 
 // LogSize returns the size in bytes of the logs in space.
-func (s *Space) LogSize() (int64, error) {
-	return sizeof(s.DataPath(AllBzngFile))
+func (s Space) LogSize() (int64, error) {
+	return sizeof(s.DataPath(AllZngFile))
 }
 
 // PacketSize returns the size in bytes of the packet capture in the space.
@@ -345,17 +345,27 @@ func (s *Space) DataPath(elem ...string) string {
 func (s *Space) OpenZng(span nano.Span) (zbuf.ReadCloser, error) {
 	zctx := resolver.NewContext()
 
-	f, err := os.Open(s.DataPath(AllBzngFile))
+	f, err := os.Open(s.DataPath(AllZngFile))
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return nil, err
 		}
-		r := bzngio.NewReader(strings.NewReader(""), zctx)
-		return zbuf.NopReadCloser(r), nil
 	} else {
-		r := bzngio.NewReader(f, zctx)
+		r := zngio.NewReader(f, zctx)
 		return zbuf.NewReadCloser(r, f), nil
 	}
+
+	bzngFile := strings.TrimSuffix(AllZngFile, filepath.Ext(AllZngFile)) + ".bzng"
+	f, err = os.Open(s.DataPath(bzngFile))
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return nil, err
+		}
+		r := zngio.NewReader(strings.NewReader(""), zctx)
+		return zbuf.NopReadCloser(r), nil
+	}
+	r := zngio.NewReader(f, zctx)
+	return zbuf.NewReadCloser(r, f), nil
 }
 
 func (s *Space) CreateFile(file string) (*os.File, error) {

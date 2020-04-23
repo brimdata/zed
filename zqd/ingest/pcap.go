@@ -18,7 +18,7 @@ import (
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
-	"github.com/brimsec/zq/zio/bzngio"
+	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/search"
 	"github.com/brimsec/zq/zqd/space"
@@ -110,7 +110,7 @@ func (p *Process) run(ctx context.Context) error {
 	abort := func() {
 		os.RemoveAll(p.logdir)
 		os.Remove(p.space.DataPath(space.PcapIndexFile))
-		os.Remove(p.space.DataPath(space.AllBzngFile))
+		os.Remove(p.space.DataPath(space.AllZngFile))
 		p.space.SetPacketPath("")
 		p.space.UnsetTimes()
 	}
@@ -235,7 +235,7 @@ func (p *Process) createSnapshot(ctx context.Context) error {
 	if len(files) == 0 {
 		return nil
 	}
-	// convert logs into sorted bzng
+	// convert logs into sorted zng
 	zr, err := scanner.OpenFiles(resolver.NewContext(), files...)
 	if err != nil {
 		return err
@@ -243,25 +243,25 @@ func (p *Process) createSnapshot(ctx context.Context) error {
 	defer zr.Close()
 	// For the time being, this endpoint will overwrite any underlying data.
 	// In order to get rid errors on any concurrent searches on this space,
-	// write bzng to a temp file and rename on successful conversion.
-	bzngfile, err := p.space.CreateFile(allBzngTmpFile)
+	// write zng to a temp file and rename on successful conversion.
+	zngfile, err := p.space.CreateFile(allZngTmpFile)
 	if err != nil {
 		return err
 	}
-	zw := bzngio.NewWriter(bzngfile, zio.WriterFlags{})
+	zw := zngio.NewWriter(zngfile, zio.WriterFlags{})
 	program := fmt.Sprintf("sort -limit %d -r ts", p.sortLimit)
 	if err := p.ingestLogs(ctx, zw, zr, program); err != nil {
-		// If an error occurs here close and remove tmp bzngfile, lest we start
+		// If an error occurs here close and remove tmp zngfile, lest we start
 		// leaking files and file descriptors.
-		bzngfile.Close()
-		os.Remove(bzngfile.Name())
+		zngfile.Close()
+		os.Remove(zngfile.Name())
 		return err
 	}
-	if err := bzngfile.Close(); err != nil {
+	if err := zngfile.Close(); err != nil {
 		return err
 	}
 	atomic.AddInt32(&p.snapshots, 1)
-	return os.Rename(bzngfile.Name(), p.space.DataPath(space.AllBzngFile))
+	return os.Rename(zngfile.Name(), p.space.DataPath(space.AllZngFile))
 }
 
 func (p *Process) ingestLogs(ctx context.Context, w zbuf.Writer, r zbuf.Reader, prog string) error {

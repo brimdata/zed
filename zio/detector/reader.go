@@ -5,11 +5,11 @@ import (
 	"io"
 
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/bzngio"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zio/zeekio"
 	"github.com/brimsec/zq/zio/zjsonio"
+	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
 )
@@ -18,8 +18,8 @@ func NewReader(r io.Reader, zctx *resolver.Context) (zbuf.Reader, error) {
 	recorder := NewRecorder(r)
 	track := NewTrack(recorder)
 
-	zngErr := match(tzngio.NewReader(track, resolver.NewContext()), "tzng")
-	if zngErr == nil {
+	tzngErr := match(tzngio.NewReader(track, resolver.NewContext()), "tzng")
+	if tzngErr == nil {
 		return tzngio.NewReader(recorder, zctx), nil
 	}
 	track.Reset()
@@ -52,11 +52,11 @@ func NewReader(r io.Reader, zctx *resolver.Context) (zbuf.Reader, error) {
 	}
 	track.Reset()
 
-	bzngErr := match(bzngio.NewReader(track, resolver.NewContext()), "zng")
-	if bzngErr == nil {
-		return bzngio.NewReader(recorder, zctx), nil
+	zngErr := match(zngio.NewReader(track, resolver.NewContext()), "zng")
+	if zngErr == nil {
+		return zngio.NewReader(recorder, zctx), nil
 	}
-	return nil, joinErrs([]error{zngErr, zeekErr, ndjsonErr, zjsonErr, bzngErr})
+	return nil, joinErrs([]error{tzngErr, zeekErr, ndjsonErr, zjsonErr, zngErr})
 }
 
 func joinErrs(errs []error) error {

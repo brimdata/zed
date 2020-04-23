@@ -37,28 +37,23 @@ func (r *Reducer) output() *zbuf.Array {
 }
 
 func (r *Reducer) Pull() (zbuf.Batch, error) {
-	start := time.Now()
-	for {
-		batch, err := r.Get()
-		if err != nil {
-			return nil, err
-		}
-		if batch == nil {
-			//XXX why does this crash if we take out this test?
-			if r.n == 0 {
-				return nil, nil
-			}
-			r.n = 0
-			return r.output(), nil
-		}
-		for k := 0; k < batch.Length(); k++ {
-			r.consume(batch.Index(k))
-		}
-		batch.Unref()
-		if r.interval > 0 && time.Since(start) >= r.interval {
-			return r.output(), nil
-		}
+	batch, err := r.Get()
+	if err != nil {
+		return nil, err
 	}
+	if batch == nil {
+		//XXX why does this crash if we take out this test?
+		if r.n == 0 {
+			return nil, nil
+		}
+		r.n = 0
+		return r.output(), nil
+	}
+	for k := 0; k < batch.Length(); k++ {
+		r.consume(batch.Index(k))
+	}
+	batch.Unref()
+	return zbuf.NewArray([]*zng.Record{}, batch.Span()), nil
 }
 
 func (r *Reducer) consume(rec *zng.Record) {

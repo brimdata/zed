@@ -6,13 +6,13 @@ import (
 
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
-	"github.com/brimsec/zq/zio/bzngio"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/tableio"
 	"github.com/brimsec/zq/zio/textio"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zio/zeekio"
 	"github.com/brimsec/zq/zio/zjsonio"
+	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
@@ -34,12 +34,10 @@ func LookupWriter(w io.WriteCloser, wflags *zio.WriterFlags) *zio.Writer {
 		return nil
 	case "null":
 		f = zbuf.NopFlusher(&nullWriter{})
-	case "zng":
-		panic("zng")
 	case "tzng":
 		f = zbuf.NopFlusher(tzngio.NewWriter(w))
-	case "bzng":
-		f = bzngio.NewWriter(w, flags)
+	case "zng":
+		f = zngio.NewWriter(w, flags)
 	case "zeek":
 		f = zbuf.NopFlusher(zeekio.NewWriter(w, flags))
 	case "ndjson":
@@ -67,8 +65,8 @@ func LookupReader(r io.Reader, zctx *resolver.Context, format string) (zbuf.Read
 		return ndjsonio.NewReader(r, zctx)
 	case "zjson":
 		return zjsonio.NewReader(r, zctx), nil
-	case "bzng":
-		return bzngio.NewReader(r, zctx), nil
+	case "zng":
+		return zngio.NewReader(r, zctx), nil
 	}
 	return nil, fmt.Errorf("no such reader type: \"%s\"", format)
 }

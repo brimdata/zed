@@ -1,0 +1,18 @@
+script: |
+  zq  "*" good.tzng bad.tzng > res.tzng
+
+inputs:
+  - name: good.tzng
+    data: |
+        #0:record[_path:string,ts:time]
+        0:[conn;1;]
+  - name: bad.tzng
+    data: |
+        #0:record[_path:string,ts:time]
+        1:[conn;1;]
+        0:[conn;1;]
+
+outputs:
+  - name: stderr
+    regexp: |
+      bad.tzng: format detection error.*
