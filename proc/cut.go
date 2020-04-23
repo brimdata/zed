@@ -39,13 +39,16 @@ func CompileCutProc(c *Context, parent Proc, node *ast.CutProc) (*Cut, error) {
 		fields = append(fields, expr.FieldExprToString(field))
 	}
 
+	// build these once at compile time for error checking.
 	_, err := expr.CompileFieldExprs(node.Fields)
 	if err != nil {
 		return nil, fmt.Errorf("compiling cut: %w", err)
 	}
-	_, err = NewColumnBuilder(c.TypeContext, fields)
-	if err != nil {
-		return nil, fmt.Errorf("compiling cut: %w", err)
+	if !node.Complement {
+		_, err = NewColumnBuilder(c.TypeContext, fields)
+		if err != nil {
+			return nil, fmt.Errorf("compiling cut: %w", err)
+		}
 	}
 
 	return &Cut{

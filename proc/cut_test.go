@@ -149,10 +149,17 @@ const nestedOut2 = `
 0:[[[foo1.2;][bar2.2;]][foo3.2;]outer2;]
 `
 
+const nestedOut2Complement = `
+#0:record[foo:string,rec2:record[foo:string]]
+0:[outer1;[foo3.1;]]
+0:[outer2;[foo3.2;]]
+`
+
 // Test cutting fields inside nested records.
 func TestCutNested(t *testing.T) {
 	proc.TestOneProc(t, nestedIn1, nestedOut1, "cut rec.foo")
 	proc.TestOneProc(t, nestedIn1, nestedOut1, "cut -c rec.bar")
 	proc.TestOneProc(t, nestedIn1, nestedIn1, "cut rec.foo,rec.bar")
 	proc.TestOneProc(t, nestedIn2, nestedOut2, "cut rec1.sub1.foo,rec1.sub2.bar,rec2.foo,foo")
+	proc.TestOneProc(t, nestedIn2, nestedOut2Complement, "cut -c rec1")
 }
