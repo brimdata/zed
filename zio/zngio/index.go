@@ -36,8 +36,8 @@ type mark struct {
 // will return a reader that scans the entire file, building a time-based
 // index in the process, subsequent readers can use this index to read
 // only the relevant zng streams from the underlying file.
-func NewTimeIndex() TimeIndex {
-	return TimeIndex{}
+func NewTimeIndex() *TimeIndex {
+	return &TimeIndex{}
 }
 
 // Create a new reader for the given zng file.  Only records with timestamps
