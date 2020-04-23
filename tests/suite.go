@@ -3,7 +3,6 @@ package tests
 import (
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/tests/suite/jsontype"
-	"github.com/brimsec/zq/tests/suite/pcap"
 	"github.com/brimsec/zq/tests/suite/zeek"
 )
 
@@ -23,10 +22,4 @@ var scripts = []test.Shell{
 	jsontype.TestSet,
 	jsontype.TestNoTs,
 	jsontype.TestTs,
-	pcap.Test2,
-	pcap.Test3,
-	pcap.Test4,
-	pcap.Test5,
-	pcap.Test6,
-	pcap.Test7,
 }
