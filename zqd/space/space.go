@@ -20,6 +20,7 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqe"
+	"go.uber.org/zap"
 )
 
 const (
@@ -38,6 +39,7 @@ var (
 type Manager struct {
 	rootPath string
 	spaces   sync.Map
+	logger   *zap.Logger
 }
 
 type Space struct {
@@ -54,12 +56,15 @@ type Space struct {
 	cancelChan chan struct{}
 }
 
-func NewManager(root string) *Manager {
-	mgr := &Manager{rootPath: root}
+func NewManager(root string, logger *zap.Logger) *Manager {
+	mgr := &Manager{
+		rootPath: root,
+		logger:   logger,
+	}
 
 	dirs, err := ioutil.ReadDir(root)
 	if err != nil {
-		// XXX log somewhere?
+
 		return mgr
 	}
 
@@ -71,7 +76,7 @@ func NewManager(root string) *Manager {
 		path := filepath.Join(root, dir.Name())
 		config, err := loadConfig(path)
 		if err != nil {
-			// XXX log?
+			logger.Error("Error loading config", zap.Error(err))
 			continue
 		}
 
@@ -86,29 +91,29 @@ func NewManager(root string) *Manager {
 	return mgr
 }
 
-func (m *Manager) Create(name, dataPath string) (api.SpacePostResponse, error) {
+func (m *Manager) Create(name, dataPath string) (*api.SpacePostResponse, error) {
 	_, exists := m.spaces.Load(name)
 	if exists {
-		return api.SpacePostResponse{}, ErrSpaceExists
+		return nil, ErrSpaceExists
 	}
 
 	if name == "" && dataPath == "" {
-		return api.SpacePostResponse{}, errors.New("must supply non-empty name or dataPath")
+		return nil, zqe.E(zqe.Invalid, "must supply non-empty name or dataPath")
 	}
 	var path string
 	if name == "" {
 		var err error
 		if path, err = fs.UniqueDir(m.rootPath, filepath.Base(dataPath)); err != nil {
-			return api.SpacePostResponse{}, err
+			return nil, err
 		}
 		name = filepath.Base(path)
 	} else {
 		path = filepath.Join(m.rootPath, name)
 		if err := os.Mkdir(path, 0700); err != nil {
 			if os.IsExist(err) {
-				return api.SpacePostResponse{}, ErrSpaceExists
+				return nil, ErrSpaceExists
 			}
-			return api.SpacePostResponse{}, err
+			return nil, err
 		}
 		dataPath = path
 	}
@@ -116,7 +121,7 @@ func (m *Manager) Create(name, dataPath string) (api.SpacePostResponse, error) {
 	c := config{DataPath: dataPath}
 	if err := c.save(path); err != nil {
 		os.RemoveAll(path)
-		return api.SpacePostResponse{}, err
+		return nil, err
 	}
 
 	space := Space{
@@ -125,7 +130,7 @@ func (m *Manager) Create(name, dataPath string) (api.SpacePostResponse, error) {
 		cancelChan: make(chan struct{}, 0),
 	}
 	m.spaces.Store(name, &space)
-	return api.SpacePostResponse{
+	return &api.SpacePostResponse{
 		Name:    name,
 		DataDir: dataPath,
 	}, nil
@@ -152,8 +157,12 @@ func (m *Manager) Delete(name string) error {
 	}
 
 	err = space.delete()
+	if err != nil {
+		return err
+	}
+
 	m.spaces.Delete(name)
-	return err
+	return nil
 }
 
 func (m *Manager) ListNames() []string {
@@ -161,7 +170,7 @@ func (m *Manager) ListNames() []string {
 	m.spaces.Range(func(n, _ interface{}) bool {
 		name, ok := n.(string)
 		if !ok {
-			// XXX log somewhere
+			m.logger.Error("non-string key in space table")
 			return true
 		}
 		result = append(result, name)
@@ -175,12 +184,12 @@ func (m *Manager) List() []api.SpaceInfo {
 	m.spaces.Range(func(_, s interface{}) bool {
 		space, ok := s.(*Space)
 		if !ok {
-			// XXX log this somewhere?
+			m.logger.Error("non-space value in space table")
 			return true
 		}
 		info, err := space.Info()
 		if err != nil {
-			// XXX log ?
+			m.logger.Error("error reading space info", zap.Error(err))
 			return true
 		}
 		result = append(result, info)

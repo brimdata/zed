@@ -48,7 +48,7 @@ func NewCore(conf Config) *Core {
 	return &Core{
 		Root:         conf.Root,
 		ZeekLauncher: conf.ZeekLauncher,
-		spaces:       space.NewManager(conf.Root),
+		spaces:       space.NewManager(conf.Root, conf.Logger),
 		SortLimit:    conf.SortLimit,
 		logger:       logger,
 	}

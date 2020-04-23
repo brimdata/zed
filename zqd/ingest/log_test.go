@@ -42,7 +42,7 @@ func TestLogsErrInFlight(t *testing.T) {
 	require.NoError(t, err)
 	defer os.RemoveAll(root)
 
-	spaces := space.NewManager(root)
+	spaces := space.NewManager(root, nil)
 	s := createTempSpace(t, spaces)
 
 	f := writeTempFile(t, src)
