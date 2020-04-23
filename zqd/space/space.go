@@ -38,7 +38,8 @@ var (
 
 type Manager struct {
 	rootPath string
-	spaces   sync.Map
+	mapLock  sync.Mutex
+	spaces   map[string]*Space
 	logger   *zap.Logger
 }
 
@@ -59,12 +60,12 @@ type Space struct {
 func NewManager(root string, logger *zap.Logger) *Manager {
 	mgr := &Manager{
 		rootPath: root,
+		spaces:   make(map[string]*Space),
 		logger:   logger,
 	}
 
 	dirs, err := ioutil.ReadDir(root)
 	if err != nil {
-
 		return mgr
 	}
 
@@ -85,17 +86,21 @@ func NewManager(root string, logger *zap.Logger) *Manager {
 			conf:       config,
 			cancelChan: make(chan struct{}, 0),
 		}
-		mgr.spaces.Store(space.Name(), &space)
+		mgr.spaces[space.Name()] = &space
 	}
 
 	return mgr
 }
 
 func (m *Manager) Create(name, dataPath string) (*api.SpacePostResponse, error) {
-	_, exists := m.spaces.Load(name)
+	m.mapLock.Lock()
+	_, exists := m.spaces[name]
 	if exists {
+		m.mapLock.Unlock()
 		return nil, ErrSpaceExists
 	}
+
+	defer m.mapLock.Unlock()
 
 	if name == "" && dataPath == "" {
 		return nil, zqe.E(zqe.Invalid, "must supply non-empty name or dataPath")
@@ -129,72 +134,66 @@ func (m *Manager) Create(name, dataPath string) (*api.SpacePostResponse, error) 
 		conf:       c,
 		cancelChan: make(chan struct{}, 0),
 	}
-	m.spaces.Store(name, &space)
+	m.spaces[name] = &space
 	return &api.SpacePostResponse{
 		Name:    name,
 		DataDir: dataPath,
 	}, nil
-
 }
 
 func (m *Manager) Get(name string) (*Space, error) {
-	space, exists := m.spaces.Load(name)
+	m.mapLock.Lock()
+	defer m.mapLock.Unlock()
+	space, exists := m.spaces[name]
 	if !exists {
 		return nil, ErrSpaceNotExist
 	}
 
-	typedSpace, ok := space.(*Space)
-	if !ok {
-		return nil, errors.New("internal error")
-	}
-	return typedSpace, nil
+	return space, nil
 }
 
 func (m *Manager) Delete(name string) error {
-	space, err := m.Get(name)
+	m.mapLock.Lock()
+	defer m.mapLock.Unlock()
+
+	space, exists := m.spaces[name]
+	if !exists {
+		return ErrSpaceNotExist
+	}
+
+	err := space.delete()
 	if err != nil {
 		return err
 	}
 
-	err = space.delete()
-	if err != nil {
-		return err
-	}
-
-	m.spaces.Delete(name)
+	delete(m.spaces, name)
 	return nil
 }
 
 func (m *Manager) ListNames() []string {
 	result := []string{}
-	m.spaces.Range(func(n, _ interface{}) bool {
-		name, ok := n.(string)
-		if !ok {
-			m.logger.Error("non-string key in space table")
-			return true
-		}
+
+	m.mapLock.Lock()
+	defer m.mapLock.Unlock()
+	for name := range m.spaces {
 		result = append(result, name)
-		return true
-	})
+	}
 	return result
 }
 
 func (m *Manager) List() []api.SpaceInfo {
 	result := []api.SpaceInfo{}
-	m.spaces.Range(func(_, s interface{}) bool {
-		space, ok := s.(*Space)
-		if !ok {
-			m.logger.Error("non-space value in space table")
-			return true
-		}
+
+	m.mapLock.Lock()
+	defer m.mapLock.Unlock()
+	for _, space := range m.spaces {
 		info, err := space.Info()
 		if err != nil {
 			m.logger.Error("error reading space info", zap.Error(err))
-			return true
+			continue
 		}
 		result = append(result, info)
-		return true
-	})
+	}
 	return result
 }
 
