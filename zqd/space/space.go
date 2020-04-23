@@ -24,10 +24,11 @@ import (
 )
 
 const (
-	AllZngFile    = "all.zng"
-	configFile    = "config.json"
-	infoFile      = "info.json"
-	PcapIndexFile = "packets.idx.json"
+	AllZngFile        = "all.zng"
+	configFile        = "config.json"
+	infoFile          = "info.json"
+	PcapIndexFile     = "packets.idx.json"
+	defaultStreamSize = 5000
 )
 
 var (
@@ -122,8 +123,10 @@ func (m *Manager) Create(name, dataPath string) (*api.SpacePostResponse, error) 
 		}
 		dataPath = path
 	}
-
-	c := config{DataPath: dataPath}
+	c := config{
+		DataPath:      dataPath,
+		ZngStreamSize: defaultStreamSize,
+	}
 	if err := c.save(path); err != nil {
 		os.RemoveAll(path)
 		return nil, err
@@ -389,6 +392,10 @@ func (s *Space) PacketPath() string {
 	return s.conf.PacketPath
 }
 
+func (s *Space) StreamSize() int {
+	return s.conf.ZngStreamSize
+}
+
 // Delete removes the space's path and data dir (should the data dir be
 // different then the space's path).
 // Don't call this directly, used Manager.Delete()
@@ -413,8 +420,9 @@ func (s *Space) delete() error {
 }
 
 type config struct {
-	DataPath   string `json:"data_path"`
-	PacketPath string `json:"packet_path"`
+	DataPath      string `json:"data_path"`
+	PacketPath    string `json:"packet_path"`
+	ZngStreamSize int    `json:"zng_stream_size"`
 }
 
 type info struct {
