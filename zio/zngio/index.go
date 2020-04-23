@@ -11,7 +11,17 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
+type Ordering int
+
+const (
+	OrderUnknown Ordering = iota
+	OrderAscending
+	OrderDescending
+	OrderUnsorted
+)
+
 type TimeIndex struct {
+	order      Ordering
 	index      []mark
 	indexReady bool
 }
@@ -35,7 +45,7 @@ func NewTimeIndex() TimeIndex {
 // the returned Reader object.
 func (ti *TimeIndex) NewReader(f *os.File, zctx *resolver.Context, span nano.Span) (zbuf.ReadCloser, error) {
 	if ti.indexReady {
-		return newRangeReader(f, zctx, ti.index, span)
+		return newRangeReader(f, zctx, ti.order, ti.index, span)
 	}
 
 	return &indexReader{
@@ -51,12 +61,14 @@ func (ti *TimeIndex) NewReader(f *os.File, zctx *resolver.Context, span nano.Spa
 type indexReader struct {
 	Reader
 	io.Closer
-	start   nano.Ts
-	end     nano.Ts
-	parent  *TimeIndex
-	marks   []mark
-	lastSOS int64
-	lastTs  nano.Ts
+	start         nano.Ts
+	end           nano.Ts
+	parent        *TimeIndex
+	order         Ordering
+	marks         []mark
+	lastSOS       int64
+	lastTs        nano.Ts
+	lastIndexedTs nano.Ts
 }
 
 func (i *indexReader) Read() (*zng.Record, error) {
@@ -67,6 +79,7 @@ func (i *indexReader) Read() (*zng.Record, error) {
 		}
 
 		if rec == nil {
+			i.parent.order = i.order
 			i.parent.index = i.marks
 			i.parent.indexReady = true
 			return nil, nil
@@ -93,12 +106,32 @@ func (i *indexReader) readOne() (*zng.Record, error) {
 		return nil, err
 	}
 
+	if i.lastTs != 0 {
+		switch i.order {
+		case OrderUnknown:
+			if rec.Ts > i.lastTs {
+				i.order = OrderAscending
+			} else if rec.Ts < i.lastTs {
+				i.order = OrderDescending
+			}
+		case OrderAscending:
+			if rec.Ts < i.lastTs {
+				i.order = OrderUnsorted
+			}
+		case OrderDescending:
+			if rec.Ts > i.lastTs {
+				i.order = OrderUnsorted
+			}
+		}
+	}
+	i.lastTs = rec.Ts
+
 	sos := i.Reader.LastSOS()
 	if sos != i.lastSOS {
 		i.lastSOS = sos
 		ts := rec.Ts
-		if ts > i.lastTs {
-			i.lastTs = ts
+		if ts != i.lastIndexedTs {
+			i.lastIndexedTs = ts
 			i.marks = append(i.marks, mark{ts, sos})
 		}
 	}
@@ -113,21 +146,30 @@ func (i *indexReader) readOne() (*zng.Record, error) {
 type rangeReader struct {
 	Reader
 	io.Closer
+	order Ordering
 	start nano.Ts
 	end   nano.Ts
 	nread uint64
 }
 
-func newRangeReader(f *os.File, zctx *resolver.Context, index []mark, span nano.Span) (*rangeReader, error) {
+func newRangeReader(f *os.File, zctx *resolver.Context, order Ordering, index []mark, span nano.Span) (*rangeReader, error) {
 	var off int64
-	// Find the stream within the zng file that holds the start time.
-	// For a large index this could be optimized with a binary search.
-	for _, mark := range index {
-		if mark.Ts > span.Ts {
-			break
+
+	if order == OrderAscending || order == OrderDescending {
+		// Find the stream within the zng file that holds the
+		// start time.  For a large index this could be optimized
+		// with a binary search.
+		for _, mark := range index {
+			if order == OrderAscending && mark.Ts > span.Ts {
+				break
+			}
+			if order == OrderDescending && mark.Ts < span.End() {
+				break
+			}
+			off = mark.Offset
 		}
-		off = mark.Offset
 	}
+
 	if off > 0 {
 		newoff, err := f.Seek(off, io.SeekStart)
 		if err != nil {
@@ -140,6 +182,7 @@ func newRangeReader(f *os.File, zctx *resolver.Context, index []mark, span nano.
 	return &rangeReader{
 		Reader: *NewReader(f, zctx),
 		Closer: f,
+		order:  order,
 		start:  span.Ts,
 		end:    span.End(),
 	}, nil
@@ -152,11 +195,23 @@ func (r *rangeReader) Read() (*zng.Record, error) {
 			return nil, err
 		}
 		r.nread++
-		if rec != nil && rec.Ts < r.start {
-			continue
-		}
-		if rec != nil && rec.Ts > r.end {
-			rec = nil
+		if rec != nil {
+			switch r.order {
+			case OrderAscending:
+				if rec.Ts < r.start {
+					continue
+				}
+				if rec.Ts > r.end {
+					rec = nil
+				}
+			case OrderDescending:
+				if rec.Ts > r.end {
+					continue
+				}
+				if rec.Ts < r.start {
+					rec = nil
+				}
+			}
 		}
 		return rec, nil
 	}
