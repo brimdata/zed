@@ -1,0 +1,13 @@
+script: |
+  zq null.tzng
+
+inputs:
+  - name: null.tzng
+    data: |
+        #0:record[foo:null]
+        0:[bleah;]
+
+outputs:
+  - name: stderr
+    regexp: |
+      cannot instantiate type null

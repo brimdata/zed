@@ -1,0 +1,37 @@
+script: |
+  zq -j types.json "*" *.ndjson > http.tzng
+
+inputs:
+  - name: http.ndjson
+    data: |
+      {"ts":"2017-03-24T19:59:23.306076Z","_path":"http"}
+  - name: badpath.ndjson
+    data: |
+      {"ts":"2017-03-24T19:59:23.306076Z","_path":"badpath"}
+  - name: types.json
+    data: |
+        {
+          "descriptors": {
+            "http_log": [
+              {
+                "name": "_path",
+                "type": "string"
+              },
+              {
+                "name": "ts",
+                "type": "time"
+              }
+              ]
+             },
+          "rules": [
+            {
+              "name": "_path",
+              "value": "http",
+              "descriptor": "http_log"
+            }
+          ]
+        }
+
+outputs:
+  - name: stderr
+    regexp: badpath.ndjson.*
