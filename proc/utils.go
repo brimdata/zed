@@ -285,7 +285,7 @@ func TestOneProcWithBatches(t *testing.T, cmd string, zngs ...string) {
 		r1 := batchout.Index(i)
 		r2 := result.Index(i)
 		// XXX could print something a lot pretter if/when this fails.
-		require.Equalf(t, r2.Raw, r1.Raw, "Expected record %d to match", i)
+		require.Equalf(t, string(r2.Raw), string(r1.Raw), "Expected record %d to match", i)
 	}
 }
 
