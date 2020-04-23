@@ -1,0 +1,11 @@
+script: zq -i zjson in.zjson
+
+inputs:
+  - name: in.zjson
+    data: |
+        {"id":0,"type":[{"name":"a","type":"string"}],"values":[["1"]]}
+
+outputs:
+  - name: stderr
+    regexp: |
+      expected primitive type, got container
