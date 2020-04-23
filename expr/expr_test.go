@@ -460,8 +460,16 @@ func TestPattern(t *testing.T) {
 	testSuccessful(t, `"abc" =~ "*bc"`, record, zbool(true))
 	testSuccessful(t, `"abc" =~ "x*"`, record, zbool(false))
 
+	testSuccessful(t, `"abc" !~ "abc"`, record, zbool(false))
+	testSuccessful(t, `"abc" !~ "a*"`, record, zbool(false))
+	testSuccessful(t, `"abc" !~ "*bc"`, record, zbool(false))
+	testSuccessful(t, `"abc" !~ "x*"`, record, zbool(true))
+
 	testSuccessful(t, "10.1.1.1 =~ 10.0.0.0/8", record, zbool(true))
 	testSuccessful(t, "10.1.1.1 =~ 192.168.0.0/16", record, zbool(false))
+
+	testSuccessful(t, "10.1.1.1 !~ 10.0.0.0/8", record, zbool(false))
+	testSuccessful(t, "10.1.1.1 !~ 192.168.0.0/16", record, zbool(true))
 }
 
 func TestIn(t *testing.T) {

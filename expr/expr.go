@@ -102,8 +102,8 @@ func compileNative(node ast.Expression) (NativeEvaluator, error) {
 			return compileIn(lhsFunc, rhsFunc)
 		case "=", "!=":
 			return compileCompareEquality(lhsFunc, rhsFunc, n.Operator)
-		case "=~":
-			return compilePatternMatch(lhsFunc, rhsFunc)
+		case "=~", "!~":
+			return compilePatternMatch(lhsFunc, rhsFunc, n.Operator)
 		case "<", "<=", ">", ">=":
 			return compileCompareRelative(lhsFunc, rhsFunc, n.Operator)
 		case "+", "-", "*", "/":
@@ -385,7 +385,7 @@ func compileCompareEquality(lhsFunc, rhsFunc NativeEvaluator, operator string) (
 	}, nil
 }
 
-func compilePatternMatch(lhsFunc, rhsFunc NativeEvaluator) (NativeEvaluator, error) {
+func compilePatternMatch(lhsFunc, rhsFunc NativeEvaluator, op string) (NativeEvaluator, error) {
 	return func(rec *zng.Record) (zngnative.Value, error) {
 		lhs, err := lhsFunc(rec)
 		if err != nil {
@@ -397,17 +397,17 @@ func compilePatternMatch(lhsFunc, rhsFunc NativeEvaluator) (NativeEvaluator, err
 			return zngnative.Value{}, err
 		}
 
+		var result bool
 		switch rhs.Type.ID() {
 		case zng.IdString, zng.IdBstring:
 			if lhs.Type.ID() != zng.IdString && rhs.Type.ID() != zng.IdBstring {
 				return zngnative.Value{}, ErrIncompatibleTypes
 			}
 			pattern := reglob.Reglob(rhs.Value.(string))
-			result, err := regexp.MatchString(pattern, lhs.Value.(string))
+			result, err = regexp.MatchString(pattern, lhs.Value.(string))
 			if err != nil {
 				return zngnative.Value{}, fmt.Errorf("error comparing pattern: %w", err)
 			}
-			return zngnative.Value{zng.TypeBool, result}, nil
 
 		case zng.IdNet:
 			if lhs.Type.ID() != zng.IdIP {
@@ -415,12 +415,16 @@ func compilePatternMatch(lhsFunc, rhsFunc NativeEvaluator) (NativeEvaluator, err
 			}
 			addr := lhs.Value.(net.IP)
 			net := rhs.Value.(*net.IPNet)
-			result := net.IP.Equal(addr.Mask(net.Mask))
-			return zngnative.Value{zng.TypeBool, result}, nil
+			result = net.IP.Equal(addr.Mask(net.Mask))
 
 		default:
 			return zngnative.Value{}, ErrIncompatibleTypes
 		}
+
+		if op == "!~" {
+			result = !result
+		}
+		return zngnative.Value{zng.TypeBool, result}, nil
 	}, nil
 }
 

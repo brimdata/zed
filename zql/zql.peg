@@ -463,7 +463,7 @@ EqualityCompareExpression
         RETURN(makeBinaryExprChain(first, rest))
     }
 
-EqualityOperator = ("=~" / "=" / "!=") { RETURN(TEXT) }
+EqualityOperator = ("=~" / "!~" / "=" / "!=") { RETURN(TEXT) }
 
 EqualityComparator
   = EqualityOperator
