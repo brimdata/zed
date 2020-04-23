@@ -38,6 +38,16 @@ func CompileCutProc(c *Context, parent Proc, node *ast.CutProc) (*Cut, error) {
 	for _, field := range node.Fields {
 		fields = append(fields, expr.FieldExprToString(field))
 	}
+
+	_, err := expr.CompileFieldExprs(node.Fields)
+	if err != nil {
+		return nil, fmt.Errorf("compiling cut: %w", err)
+	}
+	_, err = NewColumnBuilder(c.TypeContext, fields)
+	if err != nil {
+		return nil, fmt.Errorf("compiling cut: %w", err)
+	}
+
 	return &Cut{
 		Base:        Base{Context: c, Parent: parent},
 		complement:  node.Complement,
