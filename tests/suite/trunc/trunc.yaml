@@ -1,0 +1,21 @@
+script: |
+  zq -o out.tzng long.tzng
+  zq -o out.tzng short.tzng
+  zq out.tzng
+
+inputs:
+  - name: short.tzng
+    data: |
+      #0:record[a:string]
+      0:[hello;]
+  - name: long.tzng
+    data: |
+      #0:record[a:string]
+      0:[hello;]
+      0:[there;]
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[a:string]
+      0:[hello;]
