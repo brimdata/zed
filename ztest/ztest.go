@@ -582,7 +582,7 @@ func runzq(bindir, ZQL, outputFormat, outputFlags string, inputs ...string) (out
 	zctx := resolver.NewContext()
 	zr, err := loadInputs(inputs, zctx)
 	if err != nil {
-		return "", "", err
+		return "", err.Error(), err
 	}
 	defer zr.Close()
 	if outputFormat == "types" {

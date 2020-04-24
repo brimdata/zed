@@ -1,0 +1,7 @@
+zql: filter *
+
+input: |
+  #0:record[x:int32]
+  0:[1]
+
+errorRE: unterminated container
