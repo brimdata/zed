@@ -63,6 +63,11 @@ func Search(path string, rule Rule, pattern string) (bool, error) {
 		}
 		return false, err
 	}
+	defer finder.Close()
+	if keyType == nil {
+		// This happens when an index exists but is empty.
+		return false, nil
+	}
 	keyBytes, err := keyType.Parse([]byte(pattern))
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", finder.Path(), err)
