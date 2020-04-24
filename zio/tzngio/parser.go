@@ -135,6 +135,9 @@ func zngParseField(builder *zcode.Builder, typ zng.Type, b []byte) ([]byte, erro
 			i++
 		}
 	}
+	if i == len(b) {
+		return nil, ErrUnterminated
+	}
 
 	zv, err := realType.Parse(b[:i])
 	if err != nil {

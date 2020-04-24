@@ -1,0 +1,12 @@
+script: zq in.tzng
+
+inputs:
+  - name: in.tzng
+    data: |
+        #0:record[a:string]
+        0:[1]
+
+outputs:
+  - name: stderr
+    regexp: |
+      unterminated container
