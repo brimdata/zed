@@ -1,12 +1,12 @@
 # one input has first bad line (detection succeeds)
 script: |
-  zq -e=false  "*" midgood.tzng midbad.tzng > res.tzng
+  zq -t -e=false  "*" midgood.tzng midbad.tzng > res.tzng
 
 inputs:
   - name: midgood.tzng
     data: |
         #0:record[_path:string,ts:time]
-        0:[conn;1;]    
+        0:[conn;1;]
   - name: midbad.tzng
     data: |
         #0:record[_path:string,ts:time]

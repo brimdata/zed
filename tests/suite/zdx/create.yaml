@@ -1,6 +1,6 @@
 script: |
   zdx create -o index -k a in.zng
-  zq index.bzng
+  zq -t index.bzng
 
 inputs:
   - name: in.zng

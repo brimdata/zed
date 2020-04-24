@@ -1,14 +1,14 @@
 script: |
   # index ts every 10 records
-  zq -f zng -b 10 babble.tzng | zdx create -S -o index -k ts -
+  zq -b 10 babble.tzng | zdx create -S -o index -k ts -
   # exact lookup for this particular ts
-  zdx lookup -k 1587512531.06754599 index
+  zdx lookup -t -k 1587512531.06754599 index
   echo ===
   # exact lookup for an absent ts
-  zdx lookup -k 1587512531.06754600 index
+  zdx lookup -t -k 1587512531.06754600 index
   echo ===
   # closest lookup for the absent ts
-  zdx lookup -c -k 1587512531.06754600 index
+  zdx lookup -c -t -k 1587512531.06754600 index
 
 inputs:
   - name: babble.tzng

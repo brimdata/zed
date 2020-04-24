@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"os"
 
 	"github.com/brimsec/zq/cmd/zdx/root"
 	"github.com/brimsec/zq/emitter"
@@ -11,6 +12,7 @@ import (
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zng"
 	"github.com/mccanne/charm"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 var Lookup = &charm.Spec{
@@ -31,23 +33,37 @@ func init() {
 
 type LookupCommand struct {
 	*root.Command
-	key         string
-	outputFile  string
-	WriterFlags zio.WriterFlags
-	closest     bool
+	key          string
+	outputFile   string
+	WriterFlags  zio.WriterFlags
+	closest      bool
+	textShortcut bool
+	forceBinary  bool
 }
 
 func newLookupCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &LookupCommand{Command: parent.(*root.Command)}
 	f.StringVar(&c.key, "k", "", "key to search")
 	f.BoolVar(&c.closest, "c", false, "find closest insead of exact match")
+	f.BoolVar(&c.textShortcut, "t", false, "use format tzng independent of -f option")
+	f.BoolVar(&c.forceBinary, "B", false, "allow binary zng be sent to a terminal output")
 	c.WriterFlags.SetFlags(f)
 	return c, nil
+}
+
+func isTerminal(f *os.File) bool {
+	return terminal.IsTerminal(int(f.Fd()))
 }
 
 func (c *LookupCommand) Run(args []string) error {
 	if len(args) != 1 {
 		return errors.New("zdx lookup: must be run with a single file argument")
+	}
+	if c.textShortcut {
+		c.WriterFlags.Format = "tzng"
+	}
+	if c.WriterFlags.Format == "zng" && isTerminal(os.Stdout) && !c.forceBinary {
+		return errors.New("zq: writing binary zng data to terminal; override with -B or use -t for text.")
 	}
 	path := args[0]
 	if c.key == "" {
