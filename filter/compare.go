@@ -28,6 +28,7 @@ var compareBool = map[string]func(bool, bool) bool{
 	"=":  func(a, b bool) bool { return a == b },
 	"!=": func(a, b bool) bool { return a != b },
 	"=~": func(a, b bool) bool { return false },
+	"!~": func(a, b bool) bool { return false },
 	">": func(a, b bool) bool {
 		if a {
 			return !b
@@ -79,6 +80,7 @@ var compareInt = map[string]func(int64, int64) bool{
 	"=":  func(a, b int64) bool { return a == b },
 	"!=": func(a, b int64) bool { return a != b },
 	"=~": func(a, b int64) bool { return false },
+	"!~": func(a, b int64) bool { return false },
 	">":  func(a, b int64) bool { return a > b },
 	">=": func(a, b int64) bool { return a >= b },
 	"<":  func(a, b int64) bool { return a < b },
@@ -88,6 +90,7 @@ var compareFloat = map[string]func(float64, float64) bool{
 	"=":  func(a, b float64) bool { return a == b },
 	"!=": func(a, b float64) bool { return a != b },
 	"=~": func(a, b float64) bool { return false },
+	"!~": func(a, b float64) bool { return false },
 	">":  func(a, b float64) bool { return a > b },
 	">=": func(a, b float64) bool { return a >= b },
 	"<":  func(a, b float64) bool { return a < b },
@@ -167,6 +170,7 @@ var compareAddr = map[string]func(net.IP, net.IP) bool{
 	"=":  func(a, b net.IP) bool { return a.Equal(b) },
 	"!=": func(a, b net.IP) bool { return !a.Equal(b) },
 	"=~": func(a, b net.IP) bool { return false },
+	"!~": func(a, b net.IP) bool { return false },
 	">":  func(a, b net.IP) bool { return bytes.Compare(a, b) > 0 },
 	">=": func(a, b net.IP) bool { return bytes.Compare(a, b) >= 0 },
 	"<":  func(a, b net.IP) bool { return bytes.Compare(a, b) < 0 },
@@ -256,6 +260,7 @@ var compareString = map[string]func(string, string) bool{
 	"=":  func(a, b string) bool { return a == b },
 	"!=": func(a, b string) bool { return a != b },
 	"=~": func(a, b string) bool { return false },
+	"!~": func(a, b string) bool { return false },
 	">":  func(a, b string) bool { return a > b },
 	">=": func(a, b string) bool { return a >= b },
 	"<":  func(a, b string) bool { return a < b },
@@ -296,6 +301,14 @@ func compareRegexp(op, pattern string) (Predicate, error) {
 			switch v.Type.ID() {
 			case zng.IdString, zng.IdBstring:
 				return re.Match(v.Bytes)
+			}
+			return false
+		}, nil
+	case "!~":
+		return func(v zng.Value) bool {
+			switch v.Type.ID() {
+			case zng.IdString, zng.IdBstring:
+				return !re.Match(v.Bytes)
 			}
 			return false
 		}, nil
@@ -348,6 +361,7 @@ var compareSubnet = map[string]func(*net.IPNet, *net.IPNet) bool{
 	"=":  func(a, b *net.IPNet) bool { return bytes.Equal(a.IP, b.IP) },
 	"!=": func(a, b *net.IPNet) bool { return bytes.Equal(a.IP, b.IP) },
 	"=~": func(a, b *net.IPNet) bool { return false },
+	"!~": func(a, b *net.IPNet) bool { return false },
 	"<":  func(a, b *net.IPNet) bool { return bytes.Compare(a.IP, b.IP) < 0 },
 	"<=": func(a, b *net.IPNet) bool { return bytes.Compare(a.IP, b.IP) <= 0 },
 	">":  func(a, b *net.IPNet) bool { return bytes.Compare(a.IP, b.IP) > 0 },
@@ -359,6 +373,9 @@ var matchSubnet = map[string]func(net.IP, *net.IPNet) bool{
 	"!=": func(a net.IP, b *net.IPNet) bool { return false },
 	"=~": func(a net.IP, b *net.IPNet) bool {
 		return b.IP.Equal(a.Mask(b.Mask))
+	},
+	"!~": func(a net.IP, b *net.IPNet) bool {
+		return !b.IP.Equal(a.Mask(b.Mask))
 	},
 	"<": func(a net.IP, b *net.IPNet) bool {
 		net := a.Mask(b.Mask)
@@ -435,14 +452,14 @@ func Contains(compare Predicate) Predicate {
 }
 
 // Comparison returns a Predicate for comparing this value to other values.
-// The op argument is one of "=", "!=", "=~", "<", "<=", ">", ">=".
+// The op argument is one of "=", "!=", "=~", "!~", "<", "<=", ">", ">=".
 // See the comments of the various type implementations
 // of this method as some types limit the operand to equality and
 // the various types handle coercion in different ways.
 func Comparison(op string, literal ast.Literal) (Predicate, error) {
 	if literal.Type == "regexp" {
 		return compareRegexp(op, literal.Value)
-	} else if op == "=~" && literal.Type == "string" {
+	} else if (op == "=~" || op == "!~") && literal.Type == "string" {
 		pattern := reglob.Reglob(literal.Value)
 		return compareRegexp(op, pattern)
 	}

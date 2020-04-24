@@ -247,6 +247,7 @@ func TestFilters(t *testing.T) {
 		{"s=begin\\x01\\x02\\xffend", true},
 		{"s=*\\x01\\x02*", false},
 		{"s=~*\\x01\\x02*", true},
+		{"s!~*\\x01\\x02*", false},
 	})
 
 	// Test unicode string comparison.  The following two records
@@ -423,11 +424,14 @@ func TestFilters(t *testing.T) {
 	runCases(t, record, []testcase{
 		{"s = hello", true},
 		{"s =~ hello", true},
+		{"s !~ hello", false},
 
 		// Also smoke test that globs work...
 		{"s = hell*", false},
 		{"s =~ hell*", true},
 		{"s =~ ell*", false},
+		{"s !~ hell*", false},
+		{"s !~ ell*", true},
 	})
 
 	// Test ip comparisons
@@ -442,6 +446,8 @@ func TestFilters(t *testing.T) {
 		{"a != 50.1.168.192", true},
 		{"a =~ 192.168.0.0/16", true},
 		{"a =~ 10.0.0.0/16", false},
+		{"a !~ 192.168.0.0/16", false},
+		{"a !~ 10.0.0.0/16", true},
 	})
 
 	// Test comparisons with an aliased type
