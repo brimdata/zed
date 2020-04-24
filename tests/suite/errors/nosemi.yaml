@@ -1,12 +1,7 @@
-script: zq in.tzng
+zql: filter *
 
-inputs:
-  - name: in.tzng
-    data: |
-        #0:record[a:string]
-        0:[1]
+input: |
+  #0:record[x:int32]
+  0:[1]
 
-outputs:
-  - name: stderr
-    regexp: |
-      unterminated container
+errorRE: unterminated container
