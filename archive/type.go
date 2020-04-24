@@ -6,17 +6,38 @@ import (
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zdx"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 )
 
 var ErrSyntax = errors.New("syntax/format error encountered parsing zng data")
 
+// TypeIndexer implements the Indexer interface, building an index
+// where each record has one column called "key" whose values
+// are the unique values found in the zbuf.Writer stream
+// from any fields of the incoming records that have the indicated type.
+
 type TypeIndexer struct {
-	Type  zng.Type
-	Table *zdx.MemTable
+	IndexerCommon
+	Type zng.Type
 }
 
-// XXX we should create a field visitor pattern for a zng.Record/
-// for now this is copied from the type checking code in zng/recordval.go
+func NewTypeIndexer(path string, refType zng.Type) *TypeIndexer {
+	zctx := resolver.NewContext()
+	return &TypeIndexer{
+		IndexerCommon: IndexerCommon{
+			MemTable: zdx.NewMemTable(zctx),
+			path:     path,
+		},
+		Type: zctx.Localize(refType),
+	}
+}
+
+func (t *TypeIndexer) Write(rec *zng.Record) error {
+	return t.record(rec.Type, rec.Raw)
+}
+
+// XXX we should create a field visitor pattern for a zng.Record.
+// for now this pattern was cut & paste from the type checking code in zng/recordval.go
 
 func (t *TypeIndexer) vector(typ *zng.TypeArray, body zcode.Bytes) error {
 	if body == nil {
@@ -65,7 +86,7 @@ func (t *TypeIndexer) vector(typ *zng.TypeArray, body zcode.Bytes) error {
 			if container {
 				return ErrSyntax
 			}
-			t.value(body)
+			t.enter(body)
 		}
 	}
 	return nil
@@ -126,7 +147,7 @@ func (t *TypeIndexer) union(typ *zng.TypeUnion, body zcode.Bytes) error {
 			return ErrSyntax
 		}
 		if inner == t.Type {
-			t.value(body)
+			t.enter(body)
 		}
 	}
 	return nil
@@ -152,7 +173,7 @@ func (t *TypeIndexer) set(typ *zng.TypeSet, body zcode.Bytes) error {
 		if container {
 			return ErrSyntax
 		}
-		t.value(body)
+		t.enter(body)
 	}
 	return nil
 }
@@ -204,13 +225,13 @@ func (t *TypeIndexer) record(typ *zng.TypeRecord, body zcode.Bytes) error {
 				return ErrSyntax
 			}
 			if colType == t.Type {
-				t.value(body)
+				t.enter(body)
 			}
 		}
 	}
 	return nil
 }
 
-func (t *TypeIndexer) value(body zcode.Bytes) {
-	t.Table.Enter(string(body), nil)
+func (t *TypeIndexer) enter(body zcode.Bytes) {
+	t.MemTable.EnterKey(zng.Value{t.Type, body})
 }

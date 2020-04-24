@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,8 +16,8 @@ func assertError(t *testing.T, err error, pattern, what string) {
 	assert.Containsf(t, err.Error(), pattern, "error message for %s is as expected", what)
 }
 
-// Test things related to parsing zng
-func TestZngDescriptors(t *testing.T) {
+// Test things related to parsing tzng
+func TestTzngDescriptors(t *testing.T) {
 	// Step 1 - Test a simple zng descriptor and corresponding value
 	src := "#1:record[s:string,n:int32]\n"
 	src += "1:[foo;5;]\n"
@@ -29,7 +29,7 @@ func TestZngDescriptors(t *testing.T) {
 	// Step 4 - Test that referencing an invalid descriptor is an error.
 	src += "100:[something;somethingelse;]\n"
 
-	r := zngio.NewReader(strings.NewReader(src), resolver.NewContext())
+	r := tzngio.NewReader(strings.NewReader(src), resolver.NewContext())
 
 	// Check Step 1
 	record, err := r.Read()
@@ -76,23 +76,23 @@ func TestZngDescriptors(t *testing.T) {
 	}
 
 	for _, z := range zngs {
-		r := zngio.NewReader(strings.NewReader(z), resolver.NewContext())
+		r := tzngio.NewReader(strings.NewReader(z), resolver.NewContext())
 		_, err = r.Read()
-		assert.Error(t, err, "zng parse error", "invalid zng")
+		assert.Error(t, err, "tzng parse error", "invalid tzng")
 	}
 	// Can't use a descriptor of non-record type
-	r = zngio.NewReader(strings.NewReader("#3:string\n"), resolver.NewContext())
+	r = tzngio.NewReader(strings.NewReader("#3:string\n"), resolver.NewContext())
 	_, err = r.Read()
 	assertError(t, err, "not a record", "descriptor with non-record type")
 
 	// Descriptor with an invalid type is rejected
-	r = zngio.NewReader(strings.NewReader("#4:notatype\n"), resolver.NewContext())
+	r = tzngio.NewReader(strings.NewReader("#4:notatype\n"), resolver.NewContext())
 	_, err = r.Read()
 	assertError(t, err, "unknown type", "descriptor with invalid type")
 
 	// Trying to redefine a descriptor is an error XXX this should be ok
 	d := "#1:record[n:int32]\n"
-	r = zngio.NewReader(strings.NewReader(d+d), resolver.NewContext())
+	r = tzngio.NewReader(strings.NewReader(d+d), resolver.NewContext())
 	_, err = r.Read()
 	assertError(t, err, "descriptor already exists", "redefining //descriptor")
 }

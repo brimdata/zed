@@ -124,7 +124,7 @@ func (c *Command) Run(args []string) error {
 
 	out := io.Writer(os.Stdout)
 	if c.outputFile != "-" {
-		f, err := os.OpenFile(c.outputFile, os.O_RDWR|os.O_CREATE, 0644)
+		f, err := os.OpenFile(c.outputFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
 			return err
 		}

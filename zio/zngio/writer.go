@@ -1,158 +1,105 @@
 package zngio
 
 import (
-	"fmt"
 	"io"
-	"strconv"
 
 	"github.com/brimsec/zq/zcode"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 )
 
 type Writer struct {
 	io.Writer
-	// tracker keeps track of a mapping from internal BZNG type IDs for each
-	// new record encountered (i.e., which triggers a typedef) so that we
-	// generate the output in canonical form whereby the typedefs in the
-	// stream are numbered sequentially from 0.
-	tracker map[int]int
-	// aliases keeps track of whether an alias has been written to the stream
-	// on not.
-	aliases map[int]struct{}
+	encoder          *resolver.Encoder
+	buffer           []byte
+	streamRecords    int
+	streamRecordsMax int
+	position         int64
 }
 
-func NewWriter(w io.Writer) *Writer {
+func NewWriter(w io.Writer, flags zio.WriterFlags) *Writer {
 	return &Writer{
-		Writer:  w,
-		tracker: make(map[int]int),
-		aliases: make(map[int]struct{}),
+		Writer:           w,
+		encoder:          resolver.NewEncoder(),
+		buffer:           make([]byte, 0, 128),
+		streamRecordsMax: flags.StreamRecordsMax,
 	}
 }
 
-func (w *Writer) WriteControl(b []byte) error {
-	_, err := fmt.Fprintf(w.Writer, "#!%s\n", string(b))
+func (w *Writer) write(b []byte) error {
+	n, err := w.Writer.Write(b)
+	w.position += int64(n)
 	return err
 }
 
+func (w *Writer) Position() int64 {
+	return w.position
+}
+
+func (w *Writer) EndStream() error {
+	w.encoder.Reset()
+	w.streamRecords = 0
+
+	marker := []byte{zng.CtrlEOS}
+	return w.write(marker)
+}
+
 func (w *Writer) Write(r *zng.Record) error {
-	inId := r.Type.ID()
-	outId, ok := w.tracker[inId]
-	if !ok {
-		if err := w.writeAliases(r); err != nil {
+	// First send any typedefs for unsent types.
+	typ := w.encoder.Lookup(r.Type)
+	if typ == nil {
+		var b []byte
+		var err error
+		b, typ, err = w.encoder.Encode(w.buffer[:0], r.Type)
+		if err != nil {
 			return err
 		}
-		outId = len(w.tracker)
-		w.tracker[inId] = outId
-		_, err := fmt.Fprintf(w.Writer, "#%d:%s\n", outId, r.Type)
+		w.buffer = b
+		err = w.write(b)
 		if err != nil {
 			return err
 		}
 	}
-	_, err := fmt.Fprintf(w.Writer, "%d:", outId)
-	if err != nil {
-		return nil
+	dst := w.buffer[:0]
+	id := typ.ID()
+	// encode id as uvarint7
+	if id < 0x40 {
+		dst = append(dst, byte(id&0x3f))
+	} else {
+		dst = append(dst, byte(0x40|(id&0x3f)))
+		dst = zcode.AppendUvarint(dst, uint64(id>>6))
 	}
-	if err = w.writeContainer(zng.Value{Type: r.Type, Bytes: r.Raw}); err != nil {
+	dst = zcode.AppendUvarint(dst, uint64(len(r.Raw)))
+	err := w.write(dst)
+	if err != nil {
 		return err
 	}
-	return w.write("\n")
-}
 
-func (w *Writer) writeAliases(r *zng.Record) error {
-	aliases := zng.AliasTypes(r.Type)
-	for _, alias := range aliases {
-		id := alias.AliasID()
-		if _, ok := w.aliases[id]; !ok {
-			w.aliases[id] = struct{}{}
-			_, err := fmt.Fprintf(w.Writer, "#%s=%s\n", alias.Name, alias.Type.String())
-			if err != nil {
-				return err
-			}
-		}
+	err = w.write(r.Raw)
+	w.streamRecords++
+	if w.streamRecordsMax > 0 && w.streamRecords >= w.streamRecordsMax {
+		w.EndStream()
 	}
-	return nil
-}
 
-func (w *Writer) write(s string) error {
-	_, err := w.Writer.Write([]byte(s))
 	return err
 }
 
-func (w *Writer) writeUnion(parent zng.Value) error {
-	utyp := zng.AliasedType(parent.Type).(*zng.TypeUnion)
-	inner, index, v, err := utyp.SplitBzng(parent.Bytes)
+func (w *Writer) WriteControl(b []byte) error {
+	dst := w.buffer[:0]
+	//XXX 0xff for now.  need to pass through control codes?
+	dst = append(dst, 0xff)
+	dst = zcode.AppendUvarint(dst, uint64(len(b)))
+	err := w.write(dst)
 	if err != nil {
 		return err
 	}
-	s := strconv.FormatInt(index, 10) + ":"
-	if err = w.write(s); err != nil {
-		return err
-	}
+	return w.write(b)
+}
 
-	value := zng.Value{inner, v}
-	if zng.IsContainerType(zng.AliasedType(inner)) {
-		if err := w.writeContainer(value); err != nil {
-			return err
-		}
-	} else {
-		if err := w.writeValue(value); err != nil {
-			return err
-		}
+func (w *Writer) Flush() error {
+	if w.streamRecords > 0 {
+		return w.EndStream()
 	}
 	return nil
-}
-
-func (w *Writer) writeContainer(parent zng.Value) error {
-	if parent.IsUnsetOrNil() {
-		w.write("-;")
-		return nil
-	}
-	realType := zng.AliasedType(parent.Type)
-	if _, ok := realType.(*zng.TypeUnion); ok {
-		return w.writeUnion(parent)
-	}
-	if err := w.write("["); err != nil {
-		return err
-	}
-	childType, columns := zng.ContainedType(realType)
-	if childType == nil && columns == nil {
-		return ErrSyntax
-	}
-	k := 0
-	if len(parent.Bytes) > 0 {
-		for it := zcode.Iter(parent.Bytes); !it.Done(); {
-			v, container, err := it.Next()
-			if err != nil {
-				return err
-			}
-			if columns != nil {
-				if k >= len(columns) {
-					return &zng.RecordTypeError{Name: "<record>", Type: parent.Type.String(), Err: zng.ErrExtraField}
-				}
-				childType = columns[k].Type
-				k++
-			}
-			value := zng.Value{childType, v}
-			if container {
-				if err := w.writeContainer(value); err != nil {
-					return err
-				}
-			} else {
-				if err := w.writeValue(value); err != nil {
-					return err
-				}
-			}
-		}
-	}
-	return w.write("]")
-}
-
-func (w *Writer) writeValue(v zng.Value) error {
-	if v.IsUnsetOrNil() {
-		return w.write("-;")
-	}
-	if err := w.write(v.Format(zng.OutFormatZNG)); err != nil {
-		return err
-	}
-	return w.write(";")
 }

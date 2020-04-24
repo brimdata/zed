@@ -9,6 +9,7 @@ import (
 )
 
 type SortFn func(a *zng.Record, b *zng.Record) int
+type SortValFn func(a zng.Value, b zng.Value) int
 
 // Internal function that compares two values of compatible types.
 type comparefn func(a, b zcode.Bytes) int
@@ -74,6 +75,54 @@ func NewSortFn(nullsMax bool, fields ...FieldExprResolver) SortFn {
 			if v != 0 {
 				return v
 			}
+		}
+		// All the keys matched with equality.
+		return 0
+	}
+}
+
+func NewSortValFn(nullsMax bool) SortValFn {
+	sorters := make(map[zng.Type]comparefn)
+	return func(a zng.Value, b zng.Value) int {
+		// Handle nulls according to nullsMax
+		nullA := isNull(a)
+		nullB := isNull(b)
+		if nullA && nullB {
+			return 0
+		}
+		if nullA {
+			if nullsMax {
+				return 1
+			} else {
+				return -1
+			}
+		}
+		if nullB {
+			if nullsMax {
+				return -1
+			} else {
+				return 1
+			}
+		}
+
+		// If values are of different types, just compare
+		// the native representation of the type
+		if a.Type.ID() != b.Type.ID() {
+			return bytes.Compare([]byte(a.Type.String()), []byte(b.Type.String()))
+		}
+
+		sf, ok := sorters[a.Type]
+		if !ok {
+			sf = lookupSorter(a.Type)
+			sorters[a.Type] = sf
+		}
+
+		v := sf(a.Bytes, b.Bytes)
+		// If the events don't match, then return the sort
+		// info.  Otherwise, they match and we continue on
+		// on in the loop to the secondary key, etc.
+		if v != 0 {
+			return v
 		}
 		// All the keys matched with equality.
 		return 0

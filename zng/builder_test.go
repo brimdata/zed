@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/zcode"
-	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
@@ -21,7 +21,7 @@ const builder = `
 2:[7;[3;]]`
 
 func TestBuilder(t *testing.T) {
-	r := zngio.NewReader(strings.NewReader(builder), resolver.NewContext())
+	r := tzngio.NewReader(strings.NewReader(builder), resolver.NewContext())
 	r0, _ := r.Read()
 	r1, _ := r.Read()
 	r2, _ := r.Read()

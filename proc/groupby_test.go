@@ -167,7 +167,7 @@ func New(name, input, output, cmd string) test.Internal {
 		Name:         name,
 		Query:        "* | " + cmd,
 		Input:        input,
-		OutputFormat: "zng",
+		OutputFormat: "tzng",
 		Expected:     test.Trim(output),
 	}
 }

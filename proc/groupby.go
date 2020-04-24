@@ -65,7 +65,11 @@ func CompileGroupBy(node *ast.GroupByProc, zctx *resolver.Context) (*GroupByPara
 		}
 		reducers = append(reducers, compiled)
 	}
-	builder, err := NewColumnBuilder(zctx, node.Keys)
+	var names []string
+	for _, name := range node.Keys {
+		names = append(names, expr.FieldExprToString(name))
+	}
+	builder, err := NewColumnBuilder(zctx, names)
 	if err != nil {
 		return nil, fmt.Errorf("compiling groupby: %w", err)
 	}
@@ -176,31 +180,27 @@ func NewGroupBy(c *Context, parent Proc, params GroupByParams) *GroupBy {
 }
 
 func (g *GroupBy) Pull() (zbuf.Batch, error) {
-	start := time.Now()
-	for {
-		batch, err := g.Get()
+	batch, err := g.Get()
+	if err != nil {
+		return nil, err
+	}
+	if batch == nil {
+		return g.agg.Results(true, g.MinTs, g.MaxTs), nil
+	}
+	for k := 0; k < batch.Length(); k++ {
+		err := g.agg.Consume(batch.Index(k))
 		if err != nil {
+			batch.Unref()
 			return nil, err
 		}
-		if batch == nil {
-			return g.agg.Results(true, g.MinTs, g.MaxTs), nil
-		}
-		for k := 0; k < batch.Length(); k++ {
-			err := g.agg.Consume(batch.Index(k))
-			if err != nil {
-				batch.Unref()
-				return nil, err
-			}
-		}
-		batch.Unref()
-		if g.timeBinned {
-			if f := g.agg.Results(false, g.MinTs, g.MaxTs); f != nil {
-				return f, nil
-			}
-		} else if g.interval > 0 && time.Since(start) >= g.interval {
-			return g.agg.Results(false, g.MinTs, g.MaxTs), nil
+	}
+	batch.Unref()
+	if g.timeBinned {
+		if f := g.agg.Results(false, g.MinTs, g.MaxTs); f != nil {
+			return f, nil
 		}
 	}
+	return zbuf.NewArray([]*zng.Record{}, batch.Span()), nil
 }
 
 func (g *GroupByAggregator) createRow(keyCols keyRow, ts nano.Ts, vals zcode.Bytes) *GroupByRow {

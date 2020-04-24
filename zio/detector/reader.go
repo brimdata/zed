@@ -1,60 +1,75 @@
 package detector
 
 import (
-	"errors"
+	"fmt"
 	"io"
 
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/bzngio"
 	"github.com/brimsec/zq/zio/ndjsonio"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zio/zeekio"
 	"github.com/brimsec/zq/zio/zjsonio"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zqe"
 )
-
-var ErrUnknown = errors.New("malformed input")
 
 func NewReader(r io.Reader, zctx *resolver.Context) (zbuf.Reader, error) {
 	recorder := NewRecorder(r)
 	track := NewTrack(recorder)
-	if match(zngio.NewReader(track, resolver.NewContext())) {
-		return zngio.NewReader(recorder, zctx), nil
+
+	tzngErr := match(tzngio.NewReader(track, resolver.NewContext()), "tzng")
+	if tzngErr == nil {
+		return tzngio.NewReader(recorder, zctx), nil
 	}
 	track.Reset()
+
 	zr, err := zeekio.NewReader(track, resolver.NewContext())
 	if err != nil {
 		return nil, err
 	}
-	if match(zr) {
-		zr, err = zeekio.NewReader(recorder, zctx)
-		if err != nil {
-			return nil, err
-		}
-		return zr, nil
+	zeekErr := match(zr, "zeek")
+	if zeekErr == nil {
+		return zeekio.NewReader(recorder, zctx)
 	}
 	track.Reset()
+
 	// zjson must come before ndjson since zjson is a subset of ndjson
-	if match(zjsonio.NewReader(track, resolver.NewContext())) {
+	zjsonErr := match(zjsonio.NewReader(track, resolver.NewContext()), "zjson")
+	if zjsonErr == nil {
 		return zjsonio.NewReader(recorder, zctx), nil
 	}
 	track.Reset()
+
 	// ndjson must come after zjson since zjson is a subset of ndjson
 	nr, err := ndjsonio.NewReader(track, resolver.NewContext())
 	if err != nil {
 		return nil, err
 	}
-	if match(nr) {
+	ndjsonErr := match(nr, "ndjson")
+	if ndjsonErr == nil {
 		return ndjsonio.NewReader(recorder, zctx)
 	}
 	track.Reset()
-	if match(bzngio.NewReader(track, resolver.NewContext())) {
-		return bzngio.NewReader(recorder, zctx), nil
+
+	zngErr := match(zngio.NewReader(track, resolver.NewContext()), "zng")
+	if zngErr == nil {
+		return zngio.NewReader(recorder, zctx), nil
 	}
-	return nil, ErrUnknown
+	return nil, joinErrs([]error{tzngErr, zeekErr, ndjsonErr, zjsonErr, zngErr})
 }
 
-func match(r zbuf.Reader) bool {
+func joinErrs(errs []error) error {
+	s := "format detection error"
+	for _, e := range errs {
+		s += "\n\t" + e.Error()
+	}
+	return zqe.E(s)
+}
+func match(r zbuf.Reader, name string) error {
 	_, err := r.Read()
-	return err == nil
+	if err != nil {
+		return fmt.Errorf("%s: %s", name, err)
+	}
+	return nil
 }

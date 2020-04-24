@@ -90,7 +90,7 @@ The [ZNG specification](zng/docs/spec.md) describes the significance of the
 `_path` field.  By leveraging this, diverse Zeek logs can be combined into a single
 file.
 ```
-zq *.log > all.zng
+zq *.log > all.tzng
 ```
 
 ### Comparisons

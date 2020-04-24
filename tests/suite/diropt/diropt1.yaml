@@ -1,7 +1,7 @@
-script: zq -f zeek -d out "*" in.zng
+script: zq -f zeek -d out "*" in.tzng
 
 inputs:
-  - name: in.zng
+  - name: in.tzng
     data: |
       #0:record[_path:string,a:string]
       #1:record[_path:string,a:int64]

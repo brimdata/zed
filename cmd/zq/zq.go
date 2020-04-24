@@ -44,8 +44,8 @@ standard output unless a -o or -d argument is provided, in which case output is
 sent to the indicated file comforming to the type implied by the extension (unless
 -f explicitly indicates the output type).
 
-Supported input formats include zng (.zng), NDJSON (.ndjson), and
-the Zeek log format (.log).  Supported output formats include
+Supported input formats include binary and text zng, NDJSON, and
+the Zeek log format.  Supported output formats include
 all the input formats along with text and tabular formats.
 
 The input file format is inferred from the data.  If multiple files are
@@ -54,7 +54,7 @@ match input types.  If multiple files are concatenated into a stream and
 presented as standard input, the files must all be of the same type as the
 beginning of stream will determine the format.
 
-The output format is zng by default, but can be overridden with -f.
+The output format is text zng by default, but can be overridden with -f.
 
 After the options, the query may be specified as a
 single argument conforming with ZQL syntax; i.e., it should be quoted as
@@ -120,7 +120,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 }
 
 func fileExists(path string) bool {
-	if path == "" {
+	if path == "-" {
 		return true
 	}
 	info, err := os.Stat(path)
@@ -151,20 +151,6 @@ func (c *Command) loadJsonTypes() (*ndjsonio.TypeConfig, error) {
 	return &tc, nil
 }
 
-// squashDashes returns a new slice containing the strings from the input
-// slice but with "-" replaced with empty since detector.OpenFile expects
-// empty to imply stdin.
-func squashDashes(paths []string) []string {
-	var out []string
-	for _, path := range paths {
-		if path == "-" {
-			path = ""
-		}
-		out = append(out, path)
-	}
-	return out
-}
-
 func (c *Command) Run(args []string) error {
 	if c.showVersion {
 		return c.printVersion()
@@ -182,7 +168,7 @@ func (c *Command) Run(args []string) error {
 		}
 		c.jsonTypeConfig = tc
 	}
-	paths := squashDashes(args)
+	paths := args
 	var query ast.Proc
 	var err error
 	if fileExists(paths[0]) {
@@ -240,19 +226,6 @@ func (c *Command) Run(args []string) error {
 	return driver.Run(mux, d, 0)
 }
 
-func (c *Command) configureJSONTypeReader(ndjr *ndjsonio.Reader, filename string) error {
-	var path string
-	re := regexp.MustCompile(c.jsonPathRegexp)
-	match := re.FindStringSubmatch(filename)
-	if len(match) == 2 {
-		path = match[1]
-	}
-	if err := ndjr.ConfigureTypes(*c.jsonTypeConfig, path); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (c *Command) errorf(format string, args ...interface{}) {
 	_, _ = fmt.Fprintf(os.Stderr, format, args...)
 }
@@ -267,9 +240,15 @@ func (r namedReader) String() string {
 }
 
 func (c *Command) inputReaders(paths []string) ([]zbuf.Reader, error) {
+	cfg := detector.OpenConfig{
+		Format:         c.ReaderFlags.Format,
+		DashStdin:      true,
+		JSONTypeConfig: c.jsonTypeConfig,
+		JSONPathRegex:  c.jsonPathRegexp,
+	}
 	var readers []zbuf.Reader
 	for _, path := range paths {
-		file, err := detector.OpenFile(c.zctx, path, &c.ReaderFlags)
+		file, err := detector.OpenFile(c.zctx, path, cfg)
 		if err != nil {
 			err = fmt.Errorf("%s: %w", path, err)
 			if c.stopErr {
@@ -277,13 +256,6 @@ func (c *Command) inputReaders(paths []string) ([]zbuf.Reader, error) {
 			}
 			c.errorf("%s\n", err)
 			continue
-		}
-		//XXX move this to zio
-		jr, ok := file.Reader.(*ndjsonio.Reader)
-		if ok && c.jsonTypeConfig != nil {
-			if err = c.configureJSONTypeReader(jr, path); err != nil {
-				return nil, err
-			}
 		}
 		// wrap in a named reader so the reader implements Stringer
 		readers = append(readers, namedReader{file, path})

@@ -1,0 +1,11 @@
+script: zq -f zeek -
+
+inputs:
+  - name: stdin
+    data: |
+        #0:record[u:union[string,int32]]
+        0:[0:foo;]
+
+outputs:
+  - name: stderr
+    regexp: type cannot be represented in zeek format

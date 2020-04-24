@@ -93,7 +93,16 @@ function makeTopProc(fields, limit, flush) {
   return { op: "TopProc", fields, limit, flush};
 }
 
-function makeCutProc(fields) { return { op: "CutProc", fields }; }
+function makeCutProc(args, fields) {
+    let complement = false;
+    if (args.length > 1) {
+      throw new Error(`Duplicate argument -c`);
+    }
+    if (args.length == 1) {
+        complement = true;
+    }
+    return { op: "CutProc", complement, fields };
+}
 function makeHeadProc(count) { return { op: "HeadProc", count }; }
 function makeTailProc(count) { return { op: "TailProc", count }; }
 function makeUniqProc(cflag) { return { op: "TailProc", cflag }; }

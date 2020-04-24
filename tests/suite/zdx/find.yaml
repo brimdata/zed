@@ -1,0 +1,17 @@
+script: |
+  zdx create -o index -k v babble.tzng
+  zdx lookup -k 469 index
+  # 50 not in index
+  zdx lookup -k 50 index
+  zdx lookup -k 30 index
+
+inputs:
+  - name: babble.tzng
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[key:int64]
+      0:[469;]
+      #0:record[key:int64]
+      0:[30;]

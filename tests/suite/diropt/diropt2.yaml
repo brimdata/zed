@@ -1,7 +1,7 @@
-script: zq -f zng -d out -o foo- "*" in.zng
+script: zq -f tzng -d out -o foo- "*" in.tzng
 
 inputs:
-  - name: in.zng
+  - name: in.tzng
     data: |
       #0:record[_path:string,a:string]
       #1:record[_path:string,a:int64]
@@ -14,13 +14,13 @@ inputs:
       1:[dns;4;]
 
 outputs:
-  - name: out/foo-conn.zng
+  - name: out/foo-conn.tzng
     data: |
       #0:record[_path:string,a:string]
       0:[conn;foo;]
       0:[conn;hello;]
       0:[conn;world;]
-  - name: out/foo-dns.zng
+  - name: out/foo-dns.tzng
     data: |
       #0:record[_path:string,a:int64]
       0:[dns;1;]

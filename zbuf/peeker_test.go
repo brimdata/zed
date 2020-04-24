@@ -6,13 +6,13 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-func newTextReader(logs string) *zngio.Reader {
+func newTextReader(logs string) *tzngio.Reader {
 	logs = strings.TrimSpace(logs) + "\n"
-	return zngio.NewReader(strings.NewReader(logs), resolver.NewContext())
+	return tzngio.NewReader(strings.NewReader(logs), resolver.NewContext())
 }
 
 const input = `

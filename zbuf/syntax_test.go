@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/require"
 )
@@ -30,7 +30,7 @@ func cleanup(s string) string {
 
 func reader(s string) zbuf.Reader {
 	r := strings.NewReader(cleanup(s))
-	return zngio.NewReader(r, resolver.NewContext())
+	return tzngio.NewReader(r, resolver.NewContext())
 }
 
 func TestZngSyntax(t *testing.T) {

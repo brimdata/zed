@@ -200,7 +200,8 @@ type (
 	// sending each such modified record to its output in the order received.
 	CutProc struct {
 		Node
-		Fields []FieldExpr `json:"fields"`
+		Complement bool        `json:"complement"`
+		Fields     []FieldExpr `json:"fields"`
 	}
 	// A HeadProc node represents a proc that forwards the indicated number
 	// of records then terminates.

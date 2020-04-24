@@ -60,7 +60,7 @@ func (c *Command) Run(args []string) error {
 	out := os.Stdout
 	if c.outputFile != "-" {
 		var err error
-		out, err = os.OpenFile(c.outputFile, os.O_RDWR|os.O_CREATE, 0644)
+		out, err = os.OpenFile(c.outputFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
 			return err
 		}

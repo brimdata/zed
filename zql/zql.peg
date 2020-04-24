@@ -387,8 +387,10 @@ top
 procLimitArg
   = _ "-limit" _ limit:unsignedInteger { RETURN(limit) }
 
+cutArg = (_ "-c" { RETURN(makeArg("c", NULL)) })*
+
 cut
-  = "cut"i _ list:fieldRefDotOnlyList { RETURN(makeCutProc(list)) }
+  = "cut"i arg:cutArg _ list:fieldRefDotOnlyList {  return makeCutProc(arg, list) }
 head
   = "head"i _ count:unsignedInteger { RETURN(makeHeadProc(count)) }
   / "head"i { RETURN(makeHeadProc(1)) }

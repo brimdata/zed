@@ -57,8 +57,8 @@ generates responses and simply operates normally.
 Since a Zeek log is fully interchangeable with the ZNG format, Zeek files can be
 easily posted to a service like this using, e.g.,
 ```
-zq -f bzng cong.log > conn.bzng
-curl -X POST "http://localhost:8080/logs" --data-binary @conn.bzng
+zq -f zng cong.log > conn.zng
+curl -X POST "http://localhost:8080/logs" --data-binary @conn.zng
 ```
 
 ## Reference Implementations

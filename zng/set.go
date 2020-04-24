@@ -100,7 +100,7 @@ func (t *TypeSet) Marshal(zv zcode.Bytes) (interface{}, error) {
 }
 
 // NormalizeSet interprets zv as a set body and returns an equivalent set body
-// that is normalized according to the BZNG specification (i.e., each element's
+// that is normalized according to the ZNG specification (i.e., each element's
 // tag-counted value is lexicographically greater than that of the preceding
 // element).
 func NormalizeSet(zv zcode.Bytes) zcode.Bytes {

@@ -2,6 +2,7 @@ package zqd_test
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"errors"
@@ -10,6 +11,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
@@ -17,9 +19,8 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zio/ndjsonio"
-	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zqd"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/zeek"
@@ -101,29 +102,40 @@ func TestSearchInvalidRequest(t *testing.T) {
 	}
 	_, err = client.Search(context.Background(), req)
 	require.Error(t, err)
+	errResp := err.(*api.ErrorResponse)
+	require.IsType(t, &api.Error{}, errResp.Err)
 }
 
 func TestSpaceList(t *testing.T) {
+	names := []string{"sp1", "sp2", "sp3", "sp4"}
+
 	ctx := context.Background()
 	c, client, done := newCore(t)
-	defer done()
-	sp1, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "sp1"})
-	require.NoError(t, err)
-	sp2, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "sp2"})
-	require.NoError(t, err)
-	sp3, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "sp3"})
-	require.NoError(t, err)
-	sp4, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "sp4"})
-	require.NoError(t, err)
-	// delete config.json from sp3
-	require.NoError(t, os.Remove(filepath.Join(c.Root, sp3.Name, "config.json")))
-	expected := []string{
-		sp1.Name,
-		sp2.Name,
-		sp4.Name,
+	{
+		defer done()
+
+		for _, n := range names {
+			_, err := client.SpacePost(ctx, api.SpacePostRequest{Name: n})
+			require.NoError(t, err)
+		}
+
+		list, err := client.SpaceList(ctx)
+		require.NoError(t, err)
+		sort.Strings(list)
+		require.Equal(t, names, list)
 	}
+
+	// Delete config.json from one space, then simulate a restart by
+	// creating a new Core pointing to the same root.
+	require.NoError(t, os.Remove(filepath.Join(c.Root, "sp3", "config.json")))
+	expected := []string{"sp1", "sp2", "sp4"}
+
+	c, client, done = newCoreAtDir(t, c.Root)
+	defer done()
+
 	list, err := client.SpaceList(ctx)
 	require.NoError(t, err)
+	sort.Strings(list)
 	require.Equal(t, expected, list)
 }
 
@@ -356,7 +368,7 @@ func TestPostZngLogWarning(t *testing.T) {
 	payloads := postSpaceLogs(t, client, spaceName, nil, false, strings.Join(src1, "\n"), strings.Join(src2, "\n"))
 	warn1 := payloads[1].(*api.LogPostWarning)
 	warn2 := payloads[2].(*api.LogPostWarning)
-	assert.Regexp(t, ": malformed input$", warn1.Warning)
+	assert.Regexp(t, ": format detection error.*", warn1.Warning)
 	assert.Regexp(t, ": line 3: bad format$", warn2.Warning)
 
 	status := payloads[len(payloads)-2].(*api.LogPostStatus)
@@ -375,8 +387,9 @@ func TestPostZngLogWarning(t *testing.T) {
 }
 
 func TestPostNDJSONLogs(t *testing.T) {
-	const src1 = `{"ts":"1000","uid":"CXY9a54W2dLZwzPXf1","_path":"http"}
+	const src = `{"ts":"1000","uid":"CXY9a54W2dLZwzPXf1","_path":"http"}
 {"ts":"2000","uid":"CXY9a54W2dLZwzPXf1","_path":"http"}`
+	const expected = "#0:record[_path:string,ts:time,uid:bstring]\n0:[http;2;CXY9a54W2dLZwzPXf1;]\n0:[http;1;CXY9a54W2dLZwzPXf1;]"
 	tc := ndjsonio.TypeConfig{
 		Descriptors: map[string][]interface{}{
 			"http_log": []interface{}{
@@ -398,32 +411,45 @@ func TestPostNDJSONLogs(t *testing.T) {
 			ndjsonio.Rule{"_path", "http", "http_log"},
 		},
 	}
-	_, client, done := newCore(t)
-	defer done()
-	const spaceName = "test"
 
-	_, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: spaceName})
-	require.NoError(t, err)
+	test := func(input string) {
+		_, client, done := newCore(t)
+		defer done()
+		const spaceName = "test"
 
-	payloads := postSpaceLogs(t, client, spaceName, &tc, false, src1)
-	last := payloads[len(payloads)-1].(*api.TaskEnd)
-	assert.Equal(t, last.Type, "TaskEnd")
-	assert.Nil(t, last.Error)
+		_, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: spaceName})
+		require.NoError(t, err)
 
-	res := zngSearch(t, client, spaceName, "*")
-	const expected = "#0:record[_path:string,ts:time,uid:bstring]\n0:[http;2;CXY9a54W2dLZwzPXf1;]\n0:[http;1;CXY9a54W2dLZwzPXf1;]"
-	require.Equal(t, expected, strings.TrimSpace(res))
+		payloads := postSpaceLogs(t, client, spaceName, &tc, false, input)
+		last := payloads[len(payloads)-1].(*api.TaskEnd)
+		assert.Equal(t, last.Type, "TaskEnd")
+		assert.Nil(t, last.Error)
 
-	min, max := nano.Ts(1e9), nano.Ts(2e9)
-	info, err := client.SpaceInfo(context.Background(), spaceName)
-	require.NoError(t, err)
-	require.Equal(t, &api.SpaceInfo{
-		MinTime:       &min,
-		MaxTime:       &max,
-		Name:          spaceName,
-		Size:          80,
-		PacketSupport: false,
-	}, info)
+		res := zngSearch(t, client, spaceName, "*")
+		require.Equal(t, expected, strings.TrimSpace(res))
+
+		min, max := nano.Ts(1e9), nano.Ts(2e9)
+		info, err := client.SpaceInfo(context.Background(), spaceName)
+		require.NoError(t, err)
+		require.Equal(t, &api.SpaceInfo{
+			MinTime:       &min,
+			MaxTime:       &max,
+			Name:          spaceName,
+			Size:          80,
+			PacketSupport: false,
+		}, info)
+	}
+	t.Run("plain", func(t *testing.T) {
+		test(src)
+	})
+	t.Run("gzipped", func(t *testing.T) {
+		var b strings.Builder
+		w := gzip.NewWriter(&b)
+		_, err := w.Write([]byte(src))
+		require.NoError(t, err)
+		require.NoError(t, w.Close())
+		test(b.String())
+	})
 }
 
 func TestPostNDJSONLogWarning(t *testing.T) {
@@ -490,7 +516,7 @@ func TestPostLogStopErr(t *testing.T) {
 	last := payloads[len(payloads)-1].(*api.TaskEnd)
 	assert.Equal(t, last.Type, "TaskEnd")
 	require.NotNil(t, last.Error)
-	assert.Equal(t, last.Error.Message, detector.ErrUnknown.Error())
+	assert.Regexp(t, ": format detection error.*", last.Error.Message)
 }
 
 func TestDeleteDuringPacketPost(t *testing.T) {
@@ -564,7 +590,7 @@ func zngSearch(t *testing.T, client *api.Connection, space, prog string) string 
 	r, err := client.Search(context.Background(), req)
 	require.NoError(t, err)
 	buf := bytes.NewBuffer(nil)
-	w := zbuf.NopFlusher(zngio.NewWriter(buf))
+	w := zbuf.NopFlusher(tzngio.NewWriter(buf))
 	require.NoError(t, zbuf.Copy(w, r))
 	return buf.String()
 }

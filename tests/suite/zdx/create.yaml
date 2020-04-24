@@ -1,0 +1,15 @@
+script: |
+  zdx create -o index -k a in.zng
+  zq index.bzng
+
+inputs:
+  - name: in.zng
+    data: |
+      #0:record[a:string]
+      0:[hello;]
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[key:string]
+      0:[hello;]
