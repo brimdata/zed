@@ -29,7 +29,7 @@ type WriterFlags struct {
 }
 
 func (f *WriterFlags) SetFlags(fs *flag.FlagSet) {
-	fs.StringVar(&f.Format, "f", "tzng", "format for output data [zng,ndjson,table,text,types,zeek,zjson,tzng]")
+	fs.StringVar(&f.Format, "f", "zng", "format for output data [zng,ndjson,table,text,types,zeek,zjson,tzng]")
 	fs.BoolVar(&f.ShowTypes, "T", false, "display field types in text output")
 	fs.BoolVar(&f.ShowFields, "F", false, "display field names in text output")
 	fs.BoolVar(&f.EpochDates, "E", false, "display epoch timestamps in text output")

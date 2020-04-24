@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -23,6 +24,7 @@ import (
 	"github.com/brimsec/zq/zql"
 	"github.com/mccanne/charm"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 // Version is set via the Go linker.
@@ -90,6 +92,8 @@ type Command struct {
 	quiet          bool
 	showVersion    bool
 	stopErr        bool
+	forceBinary    bool
+	textShortcut   bool
 	ReaderFlags    zio.ReaderFlags
 	WriterFlags    zio.WriterFlags
 }
@@ -116,6 +120,8 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
 	f.BoolVar(&c.stopErr, "e", true, "don't stop upon input errors")
 	f.BoolVar(&c.showVersion, "version", false, "print version and exit")
+	f.BoolVar(&c.textShortcut, "t", false, "use format tzng independent of -f option")
+	f.BoolVar(&c.forceBinary, "B", false, "allow binary zng be sent to a terminal output")
 	return c, nil
 }
 
@@ -151,12 +157,22 @@ func (c *Command) loadJsonTypes() (*ndjsonio.TypeConfig, error) {
 	return &tc, nil
 }
 
+func isTerminal(f *os.File) bool {
+	return terminal.IsTerminal(int(f.Fd()))
+}
+
 func (c *Command) Run(args []string) error {
 	if c.showVersion {
 		return c.printVersion()
 	}
 	if len(args) == 0 {
 		return Zq.Exec(c, []string{"help"})
+	}
+	if c.textShortcut {
+		c.WriterFlags.Format = "tzng"
+	}
+	if c.WriterFlags.Format == "zng" && isTerminal(os.Stdout) && !c.forceBinary {
+		return errors.New("zq: writing binary zng data to terminal; override with -B or use -t for text.")
 	}
 	if _, err := regexp.Compile(c.jsonPathRegexp); err != nil {
 		return err

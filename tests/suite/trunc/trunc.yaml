@@ -1,7 +1,7 @@
 script: |
-  zq -o out.tzng long.tzng
-  zq -o out.tzng short.tzng
-  zq out.tzng
+  zq -t -o out.tzng long.tzng
+  zq -t -o out.tzng short.tzng
+  zq -t out.tzng
 
 inputs:
   - name: short.tzng
