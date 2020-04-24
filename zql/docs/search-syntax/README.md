@@ -24,7 +24,7 @@ The simplest possible ZQL search is a match against all events. This search is e
 
 #### Example:
 ```zq-command
-zq '*' conn.log.gz
+zq -t '*' conn.log.gz
 ```
 
 #### Output:
@@ -44,7 +44,7 @@ To start a ZQL pipeline with this default search, you can similarly leave out th
 
 #### Example #1:
 ```zq-command
-zq 'cut server_tree_name' ntlm.log.gz # Shorthand for: zq '* | cut server_tree_name' ntlm.log.gz
+zq -t 'cut server_tree_name' ntlm.log.gz # Shorthand for: zq '* | cut server_tree_name' ntlm.log.gz
 ```
 
 #### Output:
@@ -58,7 +58,7 @@ zq 'cut server_tree_name' ntlm.log.gz # Shorthand for: zq '* | cut server_tree_n
 
 #### Example #2:
 ```zq-command
-zq 'count() by _path' *.log.gz  # Shorthand for: zq '* | count() by _path' *.log.gz
+zq -t 'count() by _path' *.log.gz  # Shorthand for: zq '* | count() by _path' *.log.gz
 ```
 
 #### Output:
@@ -288,7 +288,7 @@ In addition to testing for equality via `=`, other common comparison operators `
 
 For example, the following search finds connections that have transferred many bytes.
 
-#### Example: 
+#### Example:
 ```zq-command
 zq -f table 'orig_bytes > 1000000' *.log.gz
 ```
