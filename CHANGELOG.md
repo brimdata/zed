@@ -1,3 +1,10 @@
+## v0.12.0
+* zql: Introduce `=~` and `!~` operators in filters for globs, regexps, and matching addresses against subnets (#604, #620)
+* zq: When input auto-detect fails, include each attempted format's error (#616)
+* zng: Binary format is now called "ZNG" and text format is called "TZNG" ("BZNG" has been retired) (#621, #630, #656)
+* zql: `cut` now has a `-c` option to show all fields _not_ in the provided list (#639, #655)
+* zq: Make `-f zng` (binary ZNG) the default `zq` output format, and introduce `-t` as shorthand for `-f tzng` (#654)
+
 ## v0.11.1
 * zqd: Send HTTP status 200 for successful pcap search (#605)
 
