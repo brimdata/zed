@@ -48,7 +48,7 @@ TS                UID
 To return all fields _other than_ the `_path` field and `id` record of `weird` events:
 
 ```zq-command
-zq -f table "cut -c _path,id" weird.log.gz
+zq -f table '* | cut -c _path,id' weird.log.gz
 ```
 
 #### Output:
