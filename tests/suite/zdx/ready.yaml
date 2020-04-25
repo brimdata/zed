@@ -1,0 +1,26 @@
+script: |
+  zdx create -x -f 30 -o index -
+  zq -t index.1.zng
+
+inputs:
+  - name: stdin
+    data: |
+        #0:record[key:string,val:int64]
+        0:[a;0;]
+        0:[b;1;]
+        0:[c;2;]
+        0:[d;3;]
+        0:[e;4;]
+        0:[f;3;]
+        0:[g;2;]
+        0:[h;1;]
+        0:[i;0;]
+        0:[j;-1;]
+
+outputs:
+  - name: stdout
+    data: |
+        #0:record[key:string,value:int64]
+        0:[a;0;]
+        0:[e;36;]
+        0:[h;67;]
