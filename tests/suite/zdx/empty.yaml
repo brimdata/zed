@@ -1,5 +1,5 @@
 script: |
-  echo "" > empty.zng
+  echo -n "" > empty.zng
   zdx lookup -t -k none empty
 
 outputs:
