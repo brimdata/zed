@@ -21,13 +21,12 @@ The following available processors are documented in detail below:
 |                           |                                                             |
 | ------------------------- | ----------------------------------------------------------- |
 | **Description**           | Return the data only from the specified named fields.       |
-| **Syntax**                | `cut <field-list>`                                          |
+| **Syntax**                | `cut [-c] <field-list>`                                     |
 | **Required<br>arguments** | `<field-list>`<br>One or more comma-separated field names.  |
-| **Optional<br>arguments** | None                                                        |
-| **Caveats**               | The specified field names must exist in the input data. If a non-existent field appears in the `<field-list>`, the returned results will be empty. |
+| **Optional<br>arguments** | `[-c]`<br>If specified, print all fields _other than_ those specified. |
 | **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc#Cut            |
 
-#### Example:
+#### Example #1:
 
 To return only the `ts` and `uid` columns of `conn` events:
 
@@ -41,6 +40,23 @@ TS                UID
 1521911721.255387 C8Tful1TvM3Zf5x8fl
 1521911721.411148 CXWfTK3LRdiuQxBbM6
 1521911721.926018 CM59GGQhNEoKONb5i
+...
+```
+
+#### Example #2:
+
+To return all fields _other than_ the `_path` field and `id` record of `weird` events:
+
+```zq-command
+zq -f table "cut -c _path,id" weird.log.gz
+```
+
+#### Output:
+```zq-output head:4
+TS                UID                NAME                             ADDL             NOTICE PEER
+1521911720.600843 C1zOivgBT6dBmknqk  TCP_ack_underflow_or_misorder    -                F      zeek
+1521911720.608108 -                  truncated_header                 -                F      zeek
+1521911720.610033 C45Ff03lESjMQQQej1 above_hole_data_without_any_acks -                F      zeek
 ...
 ```
 
