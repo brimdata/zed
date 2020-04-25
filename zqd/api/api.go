@@ -75,13 +75,12 @@ type ScannerStats struct {
 }
 
 type SpaceInfo struct {
-	Name          string   `json:"name"`
-	MinTime       *nano.Ts `json:"min_time,omitempty"`
-	MaxTime       *nano.Ts `json:"max_time,omitempty"`
-	Size          int64    `json:"size" unit:"bytes"`
-	PacketSupport bool     `json:"packet_support"`
-	PacketSize    int64    `json:"packet_size" unit:"bytes"`
-	PacketPath    string   `json:"packet_path"`
+	Name          string     `json:"name"`
+	Span          *nano.Span `json:"span,omitempty"`
+	Size          int64      `json:"size" unit:"bytes"`
+	PacketSupport bool       `json:"packet_support"`
+	PacketSize    int64      `json:"packet_size" unit:"bytes"`
+	PacketPath    string     `json:"packet_path"`
 }
 
 type StatusResponse struct {
@@ -101,14 +100,13 @@ type PacketPostRequest struct {
 }
 
 type PacketPostStatus struct {
-	Type           string   `json:"type"`
-	StartTime      nano.Ts  `json:"start_time"`
-	UpdateTime     nano.Ts  `json:"update_time"`
-	PacketSize     int64    `json:"packet_total_size" unit:"bytes"`
-	PacketReadSize int64    `json:"packet_read_size" unit:"bytes"`
-	SnapshotCount  int      `json:"snapshot_count"`
-	MinTime        *nano.Ts `json:"min_time,omitempty"`
-	MaxTime        *nano.Ts `json:"max_time,omitempty"`
+	Type           string     `json:"type"`
+	StartTime      nano.Ts    `json:"start_time"`
+	UpdateTime     nano.Ts    `json:"update_time"`
+	PacketSize     int64      `json:"packet_total_size" unit:"bytes"`
+	PacketReadSize int64      `json:"packet_read_size" unit:"bytes"`
+	SnapshotCount  int        `json:"snapshot_count"`
+	Span           *nano.Span `json:"span,omitempty"`
 }
 
 type LogPostRequest struct {
@@ -123,10 +121,9 @@ type LogPostWarning struct {
 }
 
 type LogPostStatus struct {
-	Type    string   `json:"type"`
-	MinTime *nano.Ts `json:"min_time,omitempty"`
-	MaxTime *nano.Ts `json:"max_time,omitempty"`
-	Size    int64    `json:"size" unit:"bytes"`
+	Type string     `json:"type"`
+	Span *nano.Span `json:"span,omitempty"`
+	Size int64      `json:"size" unit:"bytes"`
 }
 
 // PacketSearch are the query string args to the packet endpoint when searching

@@ -123,7 +123,9 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api
 		return err
 	}
 	if tailW.r != nil {
-		if err = s.SetTimes(tailW.r.Ts, headW.r.Ts); err != nil {
+		min := nano.Min(tailW.r.Ts, headW.r.Ts)
+		max := nano.Max(tailW.r.Ts, headW.r.Ts)
+		if err = s.SetSpan(nano.NewSpanTs(min, max)); err != nil {
 			return err
 		}
 	}
@@ -135,10 +137,9 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api
 		return err
 	}
 	status := api.LogPostStatus{
-		Type:    "LogPostStatus",
-		MinTime: info.MinTime,
-		MaxTime: info.MaxTime,
-		Size:    info.Size,
+		Type: "LogPostStatus",
+		Span: info.Span,
+		Size: info.Size,
 	}
 	return pipe.Send(status)
 }
