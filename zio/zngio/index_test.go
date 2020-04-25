@@ -70,7 +70,7 @@ func checkReader(t *testing.T, r zbuf.Reader, expected []int, checkReads bool) {
 
 func TestZngIndex(t *testing.T) {
 	// Create a time span that hits parts of different streams
-	// from within the bzng file.
+	// from within the zng file.
 	start, err := nano.ParseTs(startTime)
 	require.NoError(t, err)
 	end, err := nano.ParseTs(endTime)
@@ -79,7 +79,7 @@ func TestZngIndex(t *testing.T) {
 	span := nano.NewSpanTs(start, end)
 
 	dotest := func(zngData, fname string, expected []int) {
-		// create a test bzng file
+		// create a test zng file
 		reader := tzngio.NewReader(strings.NewReader(zngData), resolver.NewContext())
 		fp, err := os.Create(fname)
 		require.NoError(t, err)
