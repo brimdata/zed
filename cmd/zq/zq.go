@@ -118,7 +118,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.verbose, "v", false, "show verbose details")
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
 	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
-	f.BoolVar(&c.stopErr, "e", true, "don't stop upon input errors")
+	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
 	f.BoolVar(&c.showVersion, "version", false, "print version and exit")
 	f.BoolVar(&c.textShortcut, "t", false, "use format tzng independent of -f option")
 	f.BoolVar(&c.forceBinary, "B", false, "allow binary zng be sent to a terminal output")
