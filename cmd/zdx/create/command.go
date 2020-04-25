@@ -118,7 +118,7 @@ func (c *CreateCommand) buildTable(zctx *resolver.Context, file *zbuf.File) (*zd
 	if c.skip {
 		reader, ok := file.Reader.(*zngio.Reader)
 		if !ok {
-			return nil, errors.New("cannot use -S flag with non-zng
+			return nil, errors.New("cannot use -S flag with non-zng input")
 		}
 		// to skip, return the first record of each stream,
 		// meaning read the first one, then skip to the next
