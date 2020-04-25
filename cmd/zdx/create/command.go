@@ -45,6 +45,7 @@ type CreateCommand struct {
 	keyField    string
 	valField    string
 	skip        bool
+	inputReady  bool
 	ReaderFlags zio.ReaderFlags
 }
 
@@ -56,6 +57,7 @@ func newCreateCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, err
 	f.StringVar(&c.outputFile, "o", "zdx", "output zdx bundle name")
 	f.StringVar(&c.keyField, "k", "", "field name of keys")
 	f.StringVar(&c.valField, "v", "", "field name of values")
+	f.BoolVar(&c.inputReady, "x", false, "input file is already sorted keys (and optional values)")
 	f.BoolVar(&c.skip, "S", false, "skip all records except for the first of each stream")
 	c.ReaderFlags.SetFlags(f)
 
@@ -63,16 +65,11 @@ func newCreateCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, err
 }
 
 func (c *CreateCommand) Run(args []string) error {
-	if c.keyField == "" {
+	if !c.inputReady && c.keyField == "" {
 		return errors.New("must specify a key field with -k")
 	}
 	if len(args) != 1 {
 		return errors.New("must specify a single zng input file containing keys and optional values")
-	}
-	readKey := expr.CompileFieldAccess(c.keyField)
-	var readVal expr.FieldExprResolver
-	if c.valField != "" {
-		readVal = expr.CompileFieldAccess(c.valField)
 	}
 	path := args[0]
 	zctx := resolver.NewContext()
@@ -82,7 +79,7 @@ func (c *CreateCommand) Run(args []string) error {
 		//JSONTypeConfig: c.jsonTypeConfig,
 		//JSONPathRegex:  c.jsonPathRegexp,
 	}
-	reader, err := detector.OpenFile(zctx, path, cfg)
+	file, err := detector.OpenFile(zctx, path, cfg)
 	if err != nil {
 		return err
 	}
@@ -96,12 +93,32 @@ func (c *CreateCommand) Run(args []string) error {
 			writer.Close()
 		}
 	}()
+	reader := zbuf.Reader(file)
+	if !c.inputReady {
+		reader, err = c.buildTable(zctx, file)
+		if err != nil {
+			return err
+		}
+	}
+	if err := zbuf.Copy(writer, reader); err != nil {
+		return err
+	}
+	close = false
+	return writer.Close()
+}
+
+func (c *CreateCommand) buildTable(zctx *resolver.Context, file *zbuf.File) (*zdx.MemTable, error) {
+	readKey := expr.CompileFieldAccess(c.keyField)
+	var readVal expr.FieldExprResolver
+	if c.valField != "" {
+		readVal = expr.CompileFieldAccess(c.valField)
+	}
 	table := zdx.NewMemTable(zctx)
-	read := reader.Read
+	read := file.Read
 	if c.skip {
-		reader, ok := reader.Reader.(*zngio.Reader)
+		reader, ok := file.Reader.(*zngio.Reader)
 		if !ok {
-			return errors.New("cannot use -S flag with non-zng input")
+			return nil, errors.New("cannot use -S flag with non-zng input")
 		}
 		// to skip, return the first record of each stream,
 		// meaning read the first one, then skip to the next
@@ -117,7 +134,7 @@ func (c *CreateCommand) Run(args []string) error {
 	for {
 		rec, err := read()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if rec == nil {
 			break
@@ -135,27 +152,23 @@ func (c *CreateCommand) Run(args []string) error {
 		}
 		if readVal == nil {
 			if err := table.EnterKey(k); err != nil {
-				return err
+				return nil, err
 			}
 		} else {
 			v := readVal(rec)
 			if v.Type == nil {
 				// the key field exists but the value field
 				// doesn't, bail with an error
-				return fmt.Errorf("couldn't read value '%s' (%s)", c.valField, rec)
+				return nil, fmt.Errorf("couldn't read value '%s' (%s)", c.valField, rec)
 			}
 			// XXX here is where the table could be configured
 			// with a reducer to coalesce values that land
 			// on the same key.  right now, a new value
 			// will clobber the old one.
 			if err := table.EnterKeyVal(k, v); err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
-	if err := zbuf.Copy(writer, table); err != nil {
-		return err
-	}
-	close = false
-	return writer.Close()
+	return table, nil
 }
