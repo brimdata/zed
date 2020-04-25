@@ -108,6 +108,8 @@ func TestSearch(t *testing.T) {
 	if !bytes.Equal(value, value2) {
 		t.Error("key lookup failed")
 	}
+	err = finder.Close()
+	require.NoError(t, err)
 }
 
 func TestZdx(t *testing.T) {

@@ -74,10 +74,10 @@ func (c *LookupCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
+	defer finder.Close()
 	if keyType == nil {
 		return fmt.Errorf("%s: index is empty", path)
 	}
-	defer finder.Close()
 	// XXX Parse doesn't work yet for record values, but everything else
 	// is ready to go to use records and index keys
 	key, err := keyType.Parse([]byte(c.key))
