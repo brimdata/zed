@@ -1,7 +1,7 @@
 script: |
   zdx create -o index -k s babble.tzng
-  zq index.bzng > index.tzng
-  zq -o manual.tzng "count() by s | put key=s | cut key | sort key" babble.tzng
+  zq -t index.zng > index.tzng
+  zq -t -o manual.tzng "count() by s | put key=s | cut key | sort key" babble.tzng
   diff index.tzng manual.tzng
 
 inputs:
