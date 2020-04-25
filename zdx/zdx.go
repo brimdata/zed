@@ -3,9 +3,9 @@
 // key,value zng records and the records are sorted by key.
 //
 // A table on disk consists of the base table with zero or more b-tree files.
-// These files are all named with the same path prefix, e.g., "zdx.bzng", where the
-// base table is zdx.bzng and the b-tree index files, if any, are zdx.1.bzng,
-// zdx.2.bzng, and so forth.  The index files can always be reconstructed from
+// These files are all named with the same path prefix, e.g., "zdx.zng", where the
+// base table is zdx.zng and the b-tree index files, if any, are zdx.1.zng,
+// zdx.2.zng, and so forth.  The index files can always be reconstructed from
 // the base table.
 //
 // Typically when building such a table, a client starts out with the table
@@ -36,9 +36,9 @@ var (
 
 func filename(path string, level int) string {
 	if level == 0 {
-		return fmt.Sprintf("%s.bzng", path)
+		return fmt.Sprintf("%s.zng", path)
 	}
-	return fmt.Sprintf("%s.%d.bzng", path, level)
+	return fmt.Sprintf("%s.%d.zng", path, level)
 }
 
 func Remove(path string) error {
