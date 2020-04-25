@@ -67,7 +67,7 @@ func (c *CreateCommand) Run(args []string) error {
 		return errors.New("must specify a key field with -k")
 	}
 	if len(args) != 1 {
-		return errors.New("must specify a single bzng input file containing keys and optional values")
+		return errors.New("must specify a single zng input file containing keys and optional values")
 	}
 	readKey := expr.CompileFieldAccess(c.keyField)
 	var readVal expr.FieldExprResolver
@@ -101,7 +101,7 @@ func (c *CreateCommand) Run(args []string) error {
 	if c.skip {
 		reader, ok := reader.Reader.(*zngio.Reader)
 		if !ok {
-			return errors.New("cannot use -S flag with non-bzng input")
+			return errors.New("cannot use -S flag with non-zng input")
 		}
 		// to skip, return the first record of each stream,
 		// meaning read the first one, then skip to the next
