@@ -1,0 +1,8 @@
+script: |
+  echo -n "" > empty.zng
+  zdx lookup -t -k none empty
+
+outputs:
+  - name: stderr
+    regexp: |
+      empty: index is empty
