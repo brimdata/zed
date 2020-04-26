@@ -4,23 +4,23 @@ script: |
   echo -n > logs/f2.zng
   echo -n > logs/f3.ndjson
   zar mkdirs -d logs "*.zng"
-  find logs
+  find logs | sort
   echo ===
   zar rmdirs -d logs
-  find logs
+  find logs | sort
   echo ===
   zar mkdirs -d logs "*.ndjson"
-  find logs
+  find logs | sort
 
 outputs:
   - name: stdout
     data: |
       logs
       logs/f1.zng
-      logs/f2.zng
-      logs/f3.ndjson
-      logs/f2.zng.zar
       logs/f1.zng.zar
+      logs/f2.zng
+      logs/f2.zng.zar
+      logs/f3.ndjson
       ===
       logs
       logs/f1.zng
@@ -28,7 +28,7 @@ outputs:
       logs/f3.ndjson
       ===
       logs
+      logs/f1.zng
+      logs/f2.zng
+      logs/f3.ndjson
       logs/f3.ndjson.zar
-      logs/f1.zng
-      logs/f2.zng
-      logs/f3.ndjson
