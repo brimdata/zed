@@ -3,7 +3,6 @@ package archive
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/brimsec/zq/zng"
 )
@@ -17,46 +16,30 @@ import (
 // be more efficient at large scale to allow multipe patterns that
 // are effectively OR-ed together so that there is locality of
 // access to the zdx files.
-func Find(dir string, rule Rule, pattern string, hits chan<- string) error {
+func Find(dir string, rule Rule, pattern string, hits chan<- string, skipMissing bool) error {
 	//XXX this should be parallelized with some locking presuming a little
 	// parallelism won't mess up the file system assumptions
-	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+	return Walk(dir, func(zardir string) error {
+		hit, err := Search(zardir, rule, pattern, skipMissing)
 		if err != nil {
-			return fmt.Errorf("%q: %v", path, err)
+			return err
 		}
-		name := info.Name()
-		if info.IsDir() {
-			if filepath.Ext(name) == zarExt {
-				//XXX need to merge into or replace existing index
-				return filepath.SkipDir
-			}
-			// descend...
-			return nil
-		}
-		// XXX should be regex
-		if filepath.Ext(name) == ".zng" {
-			hit, err := Search(path, rule, pattern)
-			if err != nil {
-				fmt.Printf("%s\n", err)
-			}
-			if hit && hits != nil {
-				hits <- path
-			}
+		if hit && hits != nil {
+			hits <- ZarDirToLog(zardir)
 		}
 		return nil
 	})
-	return err
 }
 
-func Search(path string, rule Rule, pattern string) (bool, error) {
-	subdir, err := archiveDir(path)
-	if err != nil {
-		return false, err
-	}
-	finder := rule.NewFinder(subdir)
+func Search(zardir string, rule Rule, pattern string, skipMissing bool) (bool, error) {
+	finder := rule.NewFinder(zardir)
 	keyType, err := finder.Open()
 	if err != nil {
-		if err == os.ErrNotExist {
+		if err == os.ErrNotExist && skipMissing {
+			// No index for this rule.  Skip it if the skip boolean
+			// says it's ok.  Otherwise, we return ErrNotExist since
+			// the client was looking for something that wasn't indexed,
+			// and they probabl want to know.  T
 			err = nil
 		} else {
 			err = fmt.Errorf("%s: %w", finder.Path(), err)

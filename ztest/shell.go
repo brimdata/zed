@@ -14,7 +14,7 @@ func RunShell(dir *Dir, bindir, script string, stdin io.Reader) (string, string,
 	} else {
 		cmd = exec.Command("bash", "-c", script)
 	}
-	cmd.Env = []string{"PATH=" + bindir}
+	cmd.Env = []string{"PATH=/bin:/usr/bin:" + bindir}
 	cmd.Dir = dir.Path()
 	cmd.Stdin = stdin
 	var stdout, stderr bytes.Buffer

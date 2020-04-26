@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zdx"
@@ -26,17 +25,6 @@ func fieldZdxName(fieldname string) string {
 	return "zdx:field:" + fieldname
 }
 
-func archiveDir(path string) (string, error) {
-	//XXX for now the index directory is the name of the zng file
-	// with the ".zar" extension
-	subdir := path + zarExt
-	// make subdirectory for index if it doesn't exist
-	if err := os.Mkdir(subdir, 0755); err != nil && !os.IsExist(err) {
-		return "", err
-	}
-	return subdir, nil
-}
-
 // Indexer provides a means to index a zng file.  First, a stream of zng.Records
 // is written to the Indexer via zbuf.Writer, then the indexed records are read
 // as a stream via zbuf.Reader.  The index is managed as a zdx bundle.
@@ -51,54 +39,35 @@ type Indexer interface {
 
 func IndexDirTree(dir string, rules []Rule, progress chan<- string) error {
 	nerr := 0
-	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return fmt.Errorf("%q: %v", path, err)
-		}
-		name := info.Name()
-		if info.IsDir() {
-			if filepath.Ext(name) == zarExt {
-				//XXX need to merge into or replace existing index
-				return filepath.SkipDir
+	return Walk(dir, func(zardir string) error {
+		if err := run(zardir, rules, progress); err != nil {
+			if progress != nil {
+				progress <- fmt.Sprintf("%s: %s\n", zardir, err)
 			}
-			// descend...
-			return nil
-		}
-		// XXX this should be a regex match to command-line pattern
-		if filepath.Ext(name) == ".zng" {
-			err = run(path, rules, progress)
-			if err != nil {
-				fmt.Printf("%s: %s\n", path, err)
-				nerr++
-				if nerr > 10 {
-					//XXX
-					return errors.New("stopping after too many errors...")
-				}
+			nerr++
+			if nerr > 10 {
+				//XXX
+				return errors.New("stopping after too many errors...")
 			}
-			// drop through and continue
 		}
 		return nil
 	})
-	return err
 }
 
-func run(path string, rules []Rule, progress chan<- string) error {
-	subdir, err := archiveDir(path)
-	if err != nil {
-		return err
-	}
+func run(zardir string, rules []Rule, progress chan<- string) error {
+	logPath := ZarDirToLog(zardir)
 	var indexers []Indexer
 	for _, rule := range rules {
-		indexer, err := rule.NewIndexer(subdir)
+		indexer, err := rule.NewIndexer(zardir)
 		if err != nil {
 			return err
 		}
 		indexers = append(indexers, indexer)
 		if progress != nil {
-			progress <- fmt.Sprintf("%s: creating index %s", path, indexer.Path())
+			progress <- fmt.Sprintf("%s: creating index %s", logPath, indexer.Path())
 		}
 	}
-	file, err := os.Open(path)
+	file, err := os.Open(logPath)
 	if err != nil {
 		return err
 	}

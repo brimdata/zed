@@ -17,8 +17,9 @@ var Index = &charm.Spec{
 	Short: "create index files for zng files",
 	Long: `
 zar index descends the directory argument starting at dir and looks
-for zng files.  Each zng file fund is indexed according to the one or
-more indexing rules provided.
+for files with zar directories.  Each such file found is indexed according
+to the one or more indexing rules provided, and the resulting indexes
+are written to that file's zar directoryr.
 
 A pattern is either a field name or a ":" followed by a zng type name.
 For example, to index the all fields of type port and the field id.orig_h,
@@ -26,10 +27,7 @@ you would run
 
 	zar index -d /path/to/logs id.orig_h :port
 
-Each pattern results a separate zdx index file for each zng file found.  The zdx
-files for a given zng file are written to a sub-directory of the directory
-containing that file, where the name of the sub-directory is a concatenation
-of the zng file name and the suffix ".zar".
+Each pattern results a separate zdx index file for each log file found.
 `,
 	New: New,
 }
