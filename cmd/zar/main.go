@@ -7,6 +7,7 @@ import (
 	_ "github.com/brimsec/zq/cmd/zar/chop"
 	_ "github.com/brimsec/zq/cmd/zar/find"
 	_ "github.com/brimsec/zq/cmd/zar/index"
+	_ "github.com/brimsec/zq/cmd/zar/ls"
 	_ "github.com/brimsec/zq/cmd/zar/mkdirs"
 	_ "github.com/brimsec/zq/cmd/zar/rmdirs"
 	"github.com/brimsec/zq/cmd/zar/root"
