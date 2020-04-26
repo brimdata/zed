@@ -15,11 +15,29 @@ func IsZarDir(path string) bool {
 }
 
 func ZarDirToLog(path string) string {
-	return strings.TrimRight(path, zarExt)
+	return strings.TrimSuffix(path, zarExt)
 }
 
 func LogToZarDir(path string) string {
 	return path + zarExt
+}
+
+// Localize maps the provided slice of relative pathnames into
+// absolute path names relative to the given zardir and returns
+// the new pathnames as a slice.  The special name "_" is mapped
+// to the path of the log file that corresponds to this zardir.
+func Localize(zardir string, filenames []string) []string {
+	var out []string
+	for _, filename := range filenames {
+		var s string
+		if filename == "_" {
+			s = ZarDirToLog(zardir)
+		} else {
+			s = filepath.Join(zardir, filename)
+		}
+		out = append(out, s)
+	}
+	return out
 }
 
 // Walk descends a directory hierarchy looking for zar directories and
