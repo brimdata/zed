@@ -1,7 +1,7 @@
 script: |
   mkdir logs
   zar chop -q -b 2500 -d ./logs babble.tzng
-  zar mkdirs -d ./logs
+  zar mkdirs ./logs
   zar index -q -d ./logs v
   zar find -d ./logs v=106
   echo ===

@@ -3,13 +3,13 @@ script: |
   echo -n > logs/f1.zng
   echo -n > logs/f2.zng
   echo -n > logs/f3.ndjson
-  zar mkdirs -d logs "*.zng"
+  zar mkdirs -p "*.zng" logs
   find logs | sort
   echo ===
-  zar rmdirs -d logs
+  zar rmdirs logs
   find logs | sort
   echo ===
-  zar mkdirs -d logs "*.ndjson"
+  zar mkdirs -p "*.ndjson" logs
   find logs | sort
 
 outputs:

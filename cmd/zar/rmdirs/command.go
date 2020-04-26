@@ -28,19 +28,16 @@ func init() {
 
 type Command struct {
 	*root.Command
-	dir     string
-	pattern string
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
-	f.StringVar(&c.dir, "d", ".", "directory to descend")
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	if len(args) != 0 {
-		return errors.New("zar mkdirs: unknown arguments on command line")
+	if len(args) != 1 {
+		return errors.New("zar rmdirs: must specified top-level directory to walk and delete")
 	}
-	return archive.RmDirs(c.dir)
+	return archive.RmDirs(args[0])
 }
