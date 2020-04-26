@@ -12,11 +12,12 @@ import (
 
 var Ls = &charm.Spec{
 	Name:  "ls",
-	Usage: "ls [-d <dir>]",
+	Usage: "ls dir [dir ...]",
 	Short: "list the zar directories in an archive",
 	Long: `
-"zar ls" descends the directory given by the -d option and prints out
-the path of each zar directory.  TBD: In the future, this command could
+"zar ls" descends the one or more directories specified and prints out
+the path of each zar directory contained with those top-level directories.
+TBD: In the future, this command could
 display a detailed summary of the context each zar directory.
 `,
 	New: New,
@@ -28,8 +29,6 @@ func init() {
 
 type Command struct {
 	*root.Command
-	dir     string
-	pattern string
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
