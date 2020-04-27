@@ -239,7 +239,7 @@ func (c *Command) Run(args []string) error {
 	if !c.quiet {
 		d.SetWarningsWriter(os.Stderr)
 	}
-	return driver.Run(mux, d, 0)
+	return driver.Run(mux, d, nil)
 }
 
 func (c *Command) errorf(format string, args ...interface{}) {

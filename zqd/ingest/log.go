@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/nano"
@@ -113,7 +114,10 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api
 		startTime: nano.Now(),
 		writers:   []zbuf.Writer{zw, &headW, &tailW},
 	}
-	err = driver.Run(mux, d, search.StatsInterval)
+
+	statsTicker := time.NewTicker(search.StatsInterval)
+	defer statsTicker.Stop()
+	err = driver.Run(mux, d, statsTicker.C)
 	if err != nil {
 		zngfile.Close()
 		os.Remove(zngfile.Name())

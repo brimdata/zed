@@ -4,7 +4,6 @@ import (
 	"context"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/scanner"
@@ -40,7 +39,7 @@ func TestMuxDriver(t *testing.T) {
 		assert.NoError(t, err)
 		c := counter{}
 		d := NewCLI(&c)
-		err = Run(flowgraph, d, time.Second)
+		err = Run(flowgraph, d, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, 2, c.n)
 	})
@@ -51,7 +50,7 @@ func TestMuxDriver(t *testing.T) {
 		assert.NoError(t, err)
 		cs := []zbuf.Writer{&counter{}, &counter{}}
 		d := NewCLI(cs...)
-		err = Run(flowgraph, d, time.Second)
+		err = Run(flowgraph, d, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, 1, cs[0].(*counter).n)
 		assert.Equal(t, 1, cs[1].(*counter).n)

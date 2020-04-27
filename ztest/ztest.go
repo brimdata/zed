@@ -607,7 +607,7 @@ func runzq(bindir, ZQL, outputFormat, outputFlags string, inputs ...string) (out
 	}
 	d := driver.NewCLI(zw)
 	d.SetWarningsWriter(&errbuf)
-	err = driver.Run(muxOutput, d, 0)
+	err = driver.Run(muxOutput, d, nil)
 	if err2 := zw.Flush(); err == nil {
 		err = err2
 	}

@@ -17,16 +17,11 @@ type Driver interface {
 	Stats(api.ScannerStats) error
 }
 
-func Run(out *MuxOutput, d Driver, statsInterval time.Duration) error {
+func Run(out *MuxOutput, d Driver, statsTicker <-chan time.Time) error {
 	//stats are zero at this point.
 	var stats api.ScannerStats
-	if statsInterval == 0 {
-		statsInterval = time.Second * 10
-	}
-	ticker := time.NewTicker(statsInterval)
-	defer ticker.Stop()
 	for !out.Complete() {
-		chunk := out.Pull(ticker.C)
+		chunk := out.Pull(statsTicker)
 		if chunk.Err != nil {
 			if chunk.Err == ErrTimeout {
 				/* not yet
