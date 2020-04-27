@@ -94,18 +94,15 @@ func (m *MuxOutput) Pull(timeout <-chan time.Time) MuxResult {
 		return MuxResult{proc.Result{}, -1, ""}
 	}
 	var result MuxResult
-	if timeout == nil {
-		result = <-m.in
-	} else {
-		select {
-		case <-timeout:
-			return MuxResult{proc.Result{nil, ErrTimeout}, 0, ""}
-		case result = <-m.in:
-			// empty
-		case warning := <-m.ctx.Warnings:
-			return MuxResult{proc.Result{}, 0, warning}
-		}
+	select {
+	case <-timeout:
+		return MuxResult{proc.Result{nil, ErrTimeout}, 0, ""}
+	case result = <-m.in:
+		// empty
+	case warning := <-m.ctx.Warnings:
+		return MuxResult{proc.Result{}, 0, warning}
 	}
+
 	if proc.EOS(result.Batch, result.Err) {
 		m.runners--
 	}

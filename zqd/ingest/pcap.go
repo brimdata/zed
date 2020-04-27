@@ -277,7 +277,9 @@ func (p *Process) ingestLogs(ctx context.Context, w zbuf.Writer, r zbuf.Reader, 
 		startTime: nano.Now(),
 		writers:   []zbuf.Writer{w},
 	}
-	return driver.Run(mux, d, search.StatsInterval)
+	statsTicker := time.NewTicker(search.StatsInterval)
+	defer statsTicker.Stop()
+	return driver.Run(mux, d, statsTicker.C)
 }
 
 func (p *Process) Write(b []byte) (int, error) {

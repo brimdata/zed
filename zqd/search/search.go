@@ -66,7 +66,9 @@ func (s *Search) Run(output Output) error {
 		startTime: nano.Now(),
 	}
 	d.start(0)
-	if err := driver.Run(s.mux, d, StatsInterval); err != nil {
+	statsTicker := time.NewTicker(StatsInterval)
+	defer statsTicker.Stop()
+	if err := driver.Run(s.mux, d, statsTicker.C); err != nil {
 		d.abort(0, err)
 		return err
 	}
