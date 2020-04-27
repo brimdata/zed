@@ -22,7 +22,7 @@ const (
 )
 
 type TimeIndex struct {
-	lock       sync.Mutex
+	mu         sync.Mutex
 	order      Ordering
 	index      []mark
 	indexReady bool
@@ -46,8 +46,8 @@ func NewTimeIndex() *TimeIndex {
 // that fall within the time range indicated by span will be emitted by
 // the returned Reader object.
 func (ti *TimeIndex) NewReader(f *os.File, zctx *resolver.Context, span nano.Span) (zbuf.ReadCloser, error) {
-	ti.lock.Lock()
-	defer ti.lock.Unlock()
+	ti.mu.Lock()
+	defer ti.mu.Unlock()
 
 	if ti.indexReady {
 		return newRangeReader(f, zctx, ti.order, ti.index, span)
@@ -84,8 +84,8 @@ func (i *indexReader) Read() (*zng.Record, error) {
 		}
 
 		if rec == nil {
-			i.parent.lock.Lock()
-			defer i.parent.lock.Unlock()
+			i.parent.mu.Lock()
+			defer i.parent.mu.Unlock()
 			i.parent.order = i.order
 			i.parent.index = i.marks
 			i.parent.indexReady = true
