@@ -35,7 +35,7 @@ func (r *runnerProc) run() {
 	for {
 		batch, err := r.Get()
 		r.ch <- Result{batch, err}
-		if batch == nil && err == nil {
+		if EOS(batch, err) {
 			break
 		}
 	}
