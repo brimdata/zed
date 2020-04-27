@@ -616,14 +616,8 @@ ip6tail
 h_append = ":" v:h16 { RETURN(":" + ASSERT_STRING(v)) }
 h_prepend = v:h16 ":" { RETURN(ASSERT_STRING(v) + ":") }
 
-sub_addr
-  = addr
-  / a:(unsignedInteger "." unsignedInteger "." unsignedInteger ) { RETURN(TEXT + ".0") }
-  / a:(unsignedInteger "." unsignedInteger ) { RETURN(TEXT + ".0.0") }
-  / a:unsignedInteger { RETURN(TEXT + ".0.0.0") }
-
 subnet
-  = a:sub_addr '/' m:unsignedInteger {
+  = a:addr '/' m:unsignedInteger {
       RETURN(ASSERT_STRING(a) + "/" + TOSTRING(m));
     }
 
