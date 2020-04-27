@@ -39,7 +39,7 @@ func Search(zardir string, rule Rule, pattern string, skipMissing bool) (bool, e
 			// No index for this rule.  Skip it if the skip boolean
 			// says it's ok.  Otherwise, we return ErrNotExist since
 			// the client was looking for something that wasn't indexed,
-			// and they probabl want to know.  T
+			// and they would probably want to know.
 			err = nil
 		} else {
 			err = fmt.Errorf("%s: %w", finder.Path(), err)
