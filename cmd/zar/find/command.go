@@ -40,12 +40,14 @@ func init() {
 
 type Command struct {
 	*root.Command
-	dir string
+	dir         string
+	skipMissing bool
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.StringVar(&c.dir, "d", ".", "directory to descend")
+	f.BoolVar(&c.skipMissing, "Q", false, "skip errors caused by missing index files ")
 	return c, nil
 }
 
@@ -72,7 +74,7 @@ func (c *Command) Run(args []string) error {
 		}
 		wg.Done()
 	}()
-	err = archive.Find(c.dir, rule, pattern, hits)
+	err = archive.Find(c.dir, rule, pattern, hits, c.skipMissing)
 	close(hits)
 	wg.Wait()
 	return err

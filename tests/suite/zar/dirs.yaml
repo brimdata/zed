@@ -1,0 +1,34 @@
+script: |
+  mkdir logs
+  echo -n > logs/f1.zng
+  echo -n > logs/f2.zng
+  echo -n > logs/f3.ndjson
+  zar mkdirs -p "*.zng" logs
+  find logs | sort
+  echo ===
+  zar rmdirs logs
+  find logs | sort
+  echo ===
+  zar mkdirs -p "*.ndjson" logs
+  find logs | sort
+
+outputs:
+  - name: stdout
+    data: |
+      logs
+      logs/f1.zng
+      logs/f1.zng.zar
+      logs/f2.zng
+      logs/f2.zng.zar
+      logs/f3.ndjson
+      ===
+      logs
+      logs/f1.zng
+      logs/f2.zng
+      logs/f3.ndjson
+      ===
+      logs
+      logs/f1.zng
+      logs/f2.zng
+      logs/f3.ndjson
+      logs/f3.ndjson.zar
