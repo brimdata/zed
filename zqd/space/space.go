@@ -24,9 +24,10 @@ import (
 )
 
 const (
-	AllZngFile        = "all.zng"
-	configFile        = "config.json"
-	infoFile          = "info.json"
+	AllZngFile = "all.zng"
+	configFile = "config.json"
+	infoFile   = "info.json"
+	// XXX This should be named pcaps.idx.json. Once we have a system for migrations this should be done.
 	PcapIndexFile     = "packets.idx.json"
 	defaultStreamSize = 5000
 )
@@ -239,16 +240,16 @@ func (s *Space) Info() (api.SpaceInfo, error) {
 	if err != nil {
 		return api.SpaceInfo{}, err
 	}
-	packetsize, err := s.PacketSize()
+	pcapsize, err := s.PcapSize()
 	if err != nil {
 		return api.SpaceInfo{}, err
 	}
 	spaceInfo := api.SpaceInfo{
-		Name:          s.Name(),
-		Size:          logsize,
-		PacketSupport: s.PacketPath() != "",
-		PacketPath:    s.PacketPath(),
-		PacketSize:    packetsize,
+		Name:        s.Name(),
+		Size:        logsize,
+		PcapSupport: s.PcapPath() != "",
+		PcapPath:    s.PcapPath(),
+		PcapSize:    pcapsize,
 	}
 	i, err := loadInfoFile(s.conf.DataPath)
 	if err == nil {
@@ -263,8 +264,8 @@ func (s *Space) Info() (api.SpaceInfo, error) {
 // PcapSearch returns a *pcap.SearchReader that streams all the packets meeting
 // the provided search request. If pcaps are not supported in this Space,
 // ErrPcapOpsNotSupported is returned.
-func (s *Space) PcapSearch(ctx context.Context, req api.PacketSearch) (*SearchReadCloser, error) {
-	if s.PacketPath() == "" || !s.HasFile(PcapIndexFile) {
+func (s *Space) PcapSearch(ctx context.Context, req api.PcapSearch) (*SearchReadCloser, error) {
+	if s.PcapPath() == "" || !s.HasFile(PcapIndexFile) {
 		return nil, ErrPcapOpsNotSupported
 	}
 	index, err := pcap.LoadIndex(s.DataPath(PcapIndexFile))
@@ -284,7 +285,7 @@ func (s *Space) PcapSearch(ctx context.Context, req api.PacketSearch) (*SearchRe
 	default:
 		return nil, fmt.Errorf("unsupported proto type: %s", req.Proto)
 	}
-	f, err := os.Open(s.PacketPath())
+	f, err := os.Open(s.PcapPath())
 	if err != nil {
 		return nil, err
 	}
@@ -321,9 +322,9 @@ func (s *Space) LogSize() (int64, error) {
 	return sizeof(s.DataPath(AllZngFile))
 }
 
-// PacketSize returns the size in bytes of the packet capture in the space.
-func (s *Space) PacketSize() (int64, error) {
-	return sizeof(s.PacketPath())
+// PcapSize returns the size in bytes of the packet capture in the space.
+func (s *Space) PcapSize() (int64, error) {
+	return sizeof(s.PcapPath())
 }
 
 func sizeof(path string) (int64, error) {
@@ -377,13 +378,13 @@ func (s *Space) HasFile(file string) bool {
 	return !info.IsDir()
 }
 
-func (s *Space) SetPacketPath(pcapPath string) error {
-	s.conf.PacketPath = pcapPath
+func (s *Space) SetPcapPath(pcapPath string) error {
+	s.conf.PcapPath = pcapPath
 	return s.conf.save(s.path)
 }
 
-func (s *Space) PacketPath() string {
-	return s.conf.PacketPath
+func (s *Space) PcapPath() string {
+	return s.conf.PcapPath
 }
 
 func (s *Space) StreamSize() int {
@@ -414,8 +415,10 @@ func (s *Space) delete() error {
 }
 
 type config struct {
-	DataPath      string `json:"data_path"`
-	PacketPath    string `json:"packet_path"`
+	DataPath string `json:"data_path"`
+	// XXX PcapPath should be named pcap_path in json land. To avoid having to
+	// do a migration we'll keep this as-is for now.
+	PcapPath      string `json:"packet_path"`
 	ZngStreamSize int    `json:"zng_stream_size"`
 }
 

@@ -77,7 +77,7 @@ func Pcap(ctx context.Context, s *space.Space, pcap string, zlauncher zeek.Launc
 		os.Remove(p.space.DataPath(space.PcapIndexFile))
 		return nil, err
 	}
-	if err = p.space.SetPacketPath(p.pcapPath); err != nil {
+	if err = p.space.SetPcapPath(p.pcapPath); err != nil {
 		os.Remove(p.space.DataPath(space.PcapIndexFile))
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func (p *Process) run(ctx context.Context) error {
 		os.RemoveAll(p.logdir)
 		os.Remove(p.space.DataPath(space.PcapIndexFile))
 		os.Remove(p.space.DataPath(space.AllZngFile))
-		p.space.SetPacketPath("")
+		p.space.SetPcapPath("")
 		p.space.UnsetSpan()
 	}
 

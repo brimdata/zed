@@ -198,10 +198,10 @@ func TestSpaceInfo(t *testing.T) {
 	_ = postSpaceLogs(t, client, sp.Name, nil, false, src)
 	span := nano.Span{Ts: 1e9, Dur: 1e9 + 1}
 	expected := &api.SpaceInfo{
-		Span:          &span,
-		Name:          sp.Name,
-		Size:          80,
-		PacketSupport: false,
+		Span:        &span,
+		Name:        sp.Name,
+		Size:        80,
+		PcapSupport: false,
 	}
 	info, err := client.SpaceInfo(ctx, sp.Name)
 	require.NoError(t, err)
@@ -217,9 +217,9 @@ func TestSpaceInfoNoData(t *testing.T) {
 	info, err := client.SpaceInfo(ctx, sp.Name)
 	require.NoError(t, err)
 	expected := &api.SpaceInfo{
-		Name:          sp.Name,
-		Size:          0,
-		PacketSupport: false,
+		Name:        sp.Name,
+		Size:        0,
+		PcapSupport: false,
 	}
 	require.Equal(t, expected, info)
 }
@@ -401,10 +401,10 @@ func TestPostZngLogs(t *testing.T) {
 	info, err := client.SpaceInfo(context.Background(), spaceName)
 	require.NoError(t, err)
 	require.Equal(t, &api.SpaceInfo{
-		Span:          span,
-		Name:          spaceName,
-		Size:          80,
-		PacketSupport: false,
+		Span:        span,
+		Name:        spaceName,
+		Size:        80,
+		PcapSupport: false,
 	}, info)
 }
 
@@ -488,10 +488,10 @@ func TestPostNDJSONLogs(t *testing.T) {
 		info, err := client.SpaceInfo(context.Background(), spaceName)
 		require.NoError(t, err)
 		require.Equal(t, &api.SpaceInfo{
-			Span:          &span,
-			Name:          spaceName,
-			Size:          80,
-			PacketSupport: false,
+			Span:        &span,
+			Name:        spaceName,
+			Size:        80,
+			PcapSupport: false,
 		}, info)
 	}
 	t.Run("plain", func(t *testing.T) {
@@ -572,11 +572,11 @@ func TestPostLogStopErr(t *testing.T) {
 	assert.Regexp(t, ": format detection error.*", last.Error.Message)
 }
 
-func TestDeleteDuringPacketPost(t *testing.T) {
+func TestDeleteDuringPcapPost(t *testing.T) {
 	c, client, done := newCore(t)
 	defer done()
 
-	spaceName := "deleteDuringPacketPost"
+	spaceName := "deleteDuringPcapPost"
 	pcapfile := "./testdata/valid.pcap"
 
 	_, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: spaceName})
@@ -590,11 +590,11 @@ func TestDeleteDuringPacketPost(t *testing.T) {
 	c.ZeekLauncher = testZeekLauncher(nil, waitFn)
 
 	var wg sync.WaitGroup
-	packetPostErr := make(chan error)
+	pcapPostErr := make(chan error)
 
 	wg.Add(1)
 	doPost := func() error {
-		stream, err := client.PacketPost(context.Background(), spaceName, api.PacketPostRequest{pcapfile})
+		stream, err := client.PcapPost(context.Background(), spaceName, api.PcapPostRequest{pcapfile})
 		if err != nil {
 			return err
 		}
@@ -619,14 +619,14 @@ func TestDeleteDuringPacketPost(t *testing.T) {
 		return *taskEnd.Error
 	}
 	go func() {
-		packetPostErr <- doPost()
+		pcapPostErr <- doPost()
 	}()
 
 	wg.Wait()
 	err = client.SpaceDelete(context.Background(), spaceName)
 	require.NoError(t, err)
 
-	require.Error(t, <-packetPostErr, "context canceled")
+	require.Error(t, <-pcapPostErr, "context canceled")
 }
 
 // search runs the provided zql program as a search on the provided

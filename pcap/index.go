@@ -104,7 +104,7 @@ func CreateIndex(r io.Reader, size int) (Index, error) {
 		index = append(index, *section)
 	}
 	if len(index) == 0 {
-		return nil, ErrNoPacketsFound
+		return nil, ErrNoPcapsFound
 	}
 	return index, nil
 }

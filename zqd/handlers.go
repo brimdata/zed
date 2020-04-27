@@ -118,7 +118,7 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handlePacketSearch(c *Core, w http.ResponseWriter, r *http.Request) {
+func handlePcapSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	s := extractSpace(c, w, r)
 	if s == nil {
 		return
@@ -131,13 +131,13 @@ func handlePacketSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	defer cancel()
 
-	var req api.PacketSearch
+	var req api.PcapSearch
 	if err := req.FromQuery(r.URL.Query()); err != nil {
 		respondError(c, w, r, zqe.E(zqe.Invalid, err))
 		return
 	}
 	reader, err := s.PcapSearch(ctx, req)
-	if err == pcap.ErrNoPacketsFound {
+	if err == pcap.ErrNoPcapsFound {
 		respondError(c, w, r, zqe.E(zqe.NotFound, err))
 		return
 	}
@@ -212,7 +212,7 @@ func handleSpaceDelete(c *Core, w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
+func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	if !c.HasZeek() {
 		respondError(c, w, r, zqe.E(zqe.Invalid, "packet post not supported: zeek not found"))
 		return
@@ -231,7 +231,7 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	defer cancel()
 
-	var req api.PacketPostRequest
+	var req api.PcapPostRequest
 	if !request(c, w, r, &req) {
 		return
 	}
@@ -265,14 +265,14 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		if span, err = s.Span(); err != nil {
 			break
 		}
-		status := api.PacketPostStatus{
-			Type:           "PacketPostStatus",
-			StartTime:      proc.StartTime,
-			UpdateTime:     nano.Now(),
-			PacketSize:     proc.PcapSize,
-			PacketReadSize: proc.PcapReadSize(),
-			SnapshotCount:  proc.SnapshotCount(),
-			Span:           span,
+		status := api.PcapPostStatus{
+			Type:          "PcapPostStatus",
+			StartTime:     proc.StartTime,
+			UpdateTime:    nano.Now(),
+			PcapSize:      proc.PcapSize,
+			PcapReadSize:  proc.PcapReadSize(),
+			SnapshotCount: proc.SnapshotCount(),
+			Span:          span,
 		}
 		if err := pipe.Send(status); err != nil {
 			logger.Warn("Error sending payload", zap.Error(err))
