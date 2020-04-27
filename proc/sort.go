@@ -366,6 +366,9 @@ func (r *runFile) closeAndRemove() {
 // read returns the next record along with a boolean that is true at EOF.
 func (r *runFile) read() (*zng.Record, bool, error) {
 	rec := r.nextRecord
+	if rec != nil {
+		rec = rec.Keep()
+	}
 	var err error
 	r.nextRecord, err = r.zr.Read()
 	eof := r.nextRecord == nil && err == nil
