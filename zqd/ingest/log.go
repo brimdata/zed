@@ -125,7 +125,7 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api
 	if tailW.r != nil {
 		min := nano.Min(tailW.r.Ts, headW.r.Ts)
 		max := nano.Max(tailW.r.Ts, headW.r.Ts)
-		if err = s.SetSpan(nano.NewSpanTs(min, max)); err != nil {
+		if err = s.SetSpan(nano.NewSpanTs(min, max+1)); err != nil {
 			return err
 		}
 	}
