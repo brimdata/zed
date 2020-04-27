@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"sync"
 
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
@@ -21,6 +22,7 @@ const (
 )
 
 type TimeIndex struct {
+	mu         sync.Mutex
 	order      Ordering
 	index      []mark
 	indexReady bool
@@ -36,14 +38,17 @@ type mark struct {
 // will return a reader that scans the entire file, building a time-based
 // index in the process, subsequent readers can use this index to read
 // only the relevant zng streams from the underlying file.
-func NewTimeIndex() TimeIndex {
-	return TimeIndex{}
+func NewTimeIndex() *TimeIndex {
+	return &TimeIndex{}
 }
 
 // Create a new reader for the given zng file.  Only records with timestamps
 // that fall within the time range indicated by span will be emitted by
 // the returned Reader object.
 func (ti *TimeIndex) NewReader(f *os.File, zctx *resolver.Context, span nano.Span) (zbuf.ReadCloser, error) {
+	ti.mu.Lock()
+	defer ti.mu.Unlock()
+
 	if ti.indexReady {
 		return newRangeReader(f, zctx, ti.order, ti.index, span)
 	}
@@ -79,6 +84,8 @@ func (i *indexReader) Read() (*zng.Record, error) {
 		}
 
 		if rec == nil {
+			i.parent.mu.Lock()
+			defer i.parent.mu.Unlock()
 			i.parent.order = i.order
 			i.parent.index = i.marks
 			i.parent.indexReady = true

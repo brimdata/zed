@@ -101,7 +101,7 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api
 	if err != nil {
 		return err
 	}
-	zw := zngio.NewWriter(zngfile, zio.WriterFlags{})
+	zw := zngio.NewWriter(zngfile, zio.WriterFlags{StreamRecordsMax: s.StreamSize()})
 	program := fmt.Sprintf("sort -limit %d -r ts | (filter *; head 1; tail 1)", sortLimit)
 	var headW, tailW recWriter
 

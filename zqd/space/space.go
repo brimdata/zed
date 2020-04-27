@@ -24,10 +24,11 @@ import (
 )
 
 const (
-	AllZngFile    = "all.zng"
-	configFile    = "config.json"
-	infoFile      = "info.json"
-	PcapIndexFile = "packets.idx.json"
+	AllZngFile        = "all.zng"
+	configFile        = "config.json"
+	infoFile          = "info.json"
+	PcapIndexFile     = "packets.idx.json"
+	defaultStreamSize = 5000
 )
 
 var (
@@ -46,6 +47,8 @@ type Manager struct {
 type Space struct {
 	path string
 	conf config
+
+	index *zngio.TimeIndex
 
 	// state about operations in progress
 	opMutex       sync.Mutex
@@ -81,12 +84,8 @@ func NewManager(root string, logger *zap.Logger) *Manager {
 			continue
 		}
 
-		space := Space{
-			path:       path,
-			conf:       config,
-			cancelChan: make(chan struct{}, 0),
-		}
-		mgr.spaces[space.Name()] = &space
+		space := newSpace(path, config)
+		mgr.spaces[space.Name()] = space
 	}
 
 	return mgr
@@ -122,19 +121,16 @@ func (m *Manager) Create(name, dataPath string) (*api.SpacePostResponse, error) 
 		}
 		dataPath = path
 	}
-
-	c := config{DataPath: dataPath}
+	c := config{
+		DataPath:      dataPath,
+		ZngStreamSize: defaultStreamSize,
+	}
 	if err := c.save(path); err != nil {
 		os.RemoveAll(path)
 		return nil, err
 	}
 
-	space := Space{
-		path:       path,
-		conf:       c,
-		cancelChan: make(chan struct{}, 0),
-	}
-	m.spaces[name] = &space
+	m.spaces[name] = newSpace(path, c)
 	return &api.SpacePostResponse{
 		Name:    name,
 		DataDir: dataPath,
@@ -195,6 +191,15 @@ func (m *Manager) List() []api.SpaceInfo {
 		result = append(result, info)
 	}
 	return result
+}
+
+func newSpace(path string, conf config) *Space {
+	return &Space{
+		path:       path,
+		conf:       conf,
+		index:      zngio.NewTimeIndex(),
+		cancelChan: make(chan struct{}, 0),
+	}
 }
 
 // StartSpaceOp registers that an operation on this space is in progress.
@@ -350,22 +355,20 @@ func (s *Space) OpenZng(span nano.Span) (zbuf.ReadCloser, error) {
 		if !os.IsNotExist(err) {
 			return nil, err
 		}
-	} else {
-		r := zngio.NewReader(f, zctx)
-		return zbuf.NewReadCloser(r, f), nil
+
+		// Couldn't read all.zng, check for an old space with all.bzng
+		bzngFile := strings.TrimSuffix(AllZngFile, filepath.Ext(AllZngFile)) + ".bzng"
+		f, err = os.Open(s.DataPath(bzngFile))
+		if err != nil {
+			if !os.IsNotExist(err) {
+				return nil, err
+			}
+			r := zngio.NewReader(strings.NewReader(""), zctx)
+			return zbuf.NopReadCloser(r), nil
+		}
 	}
 
-	bzngFile := strings.TrimSuffix(AllZngFile, filepath.Ext(AllZngFile)) + ".bzng"
-	f, err = os.Open(s.DataPath(bzngFile))
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return nil, err
-		}
-		r := zngio.NewReader(strings.NewReader(""), zctx)
-		return zbuf.NopReadCloser(r), nil
-	}
-	r := zngio.NewReader(f, zctx)
-	return zbuf.NewReadCloser(r, f), nil
+	return s.index.NewReader(f, zctx, span)
 }
 
 func (s *Space) CreateFile(file string) (*os.File, error) {
@@ -387,6 +390,10 @@ func (s *Space) SetPacketPath(pcapPath string) error {
 
 func (s *Space) PacketPath() string {
 	return s.conf.PacketPath
+}
+
+func (s *Space) StreamSize() int {
+	return s.conf.ZngStreamSize
 }
 
 // Delete removes the space's path and data dir (should the data dir be
@@ -413,8 +420,9 @@ func (s *Space) delete() error {
 }
 
 type config struct {
-	DataPath   string `json:"data_path"`
-	PacketPath string `json:"packet_path"`
+	DataPath      string `json:"data_path"`
+	PacketPath    string `json:"packet_path"`
+	ZngStreamSize int    `json:"zng_stream_size"`
 }
 
 type info struct {
