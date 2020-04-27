@@ -11,7 +11,7 @@ import (
 
 var RmDirs = &charm.Spec{
 	Name:  "rmdirs",
-	Usage: "rmdirs [-d <dir>]",
+	Usage: "rmdirs <dir>",
 	Short: "walk a directory tree and remove zar directories",
 	Long: `
 "zar rmdirs" descends the directory given by the -d option looking for
