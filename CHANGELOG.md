@@ -1,3 +1,7 @@
+These entries focus on changes we think are relevant to users of Brim,
+zq, or pcap.  For all changes to zqd, its API, or to other components in the zq
+repo, check the git log.
+
 ## v0.12.0
 * zql: Introduce `=~` and `!~` operators in filters for globs, regexps, and matching addresses against subnets (#604, #620)
 * zq: When input auto-detect fails, include each attempted format's error (#616)
