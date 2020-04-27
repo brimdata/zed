@@ -150,7 +150,7 @@ func TestSpaceInfo(t *testing.T) {
 	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 	_ = postSpaceLogs(t, client, sp.Name, nil, false, src)
-	span := nano.Span{1e9, 1e9}
+	span := nano.Span{Ts: 1e9, Dur: 1e9 + 1}
 	expected := &api.SpaceInfo{
 		Span:          &span,
 		Name:          sp.Name,
@@ -323,7 +323,7 @@ func TestPostZngLogs(t *testing.T) {
 
 	payloads := postSpaceLogs(t, client, spaceName, nil, false, strings.Join(src1, "\n"), strings.Join(src2, "\n"))
 	status := payloads[len(payloads)-2].(*api.LogPostStatus)
-	span := &nano.Span{1e9, 1e9}
+	span := &nano.Span{Ts: 1e9, Dur: 1e9 + 1}
 	require.Equal(t, &api.LogPostStatus{
 		Type: "LogPostStatus",
 		Span: span,
@@ -369,7 +369,7 @@ func TestPostZngLogWarning(t *testing.T) {
 	assert.Regexp(t, ": line 3: bad format$", warn2.Warning)
 
 	status := payloads[len(payloads)-2].(*api.LogPostStatus)
-	span := &nano.Span{nano.Ts(1e9), 0}
+	span := &nano.Span{Ts: nano.Ts(1e9), Dur: 1}
 	expected := &api.LogPostStatus{
 		Type: "LogPostStatus",
 		Span: span,
@@ -424,7 +424,7 @@ func TestPostNDJSONLogs(t *testing.T) {
 		res := zngSearch(t, client, spaceName, "*")
 		require.Equal(t, expected, strings.TrimSpace(res))
 
-		span := nano.Span{1e9, 1e9}
+		span := nano.Span{Ts: 1e9, Dur: 1e9 + 1}
 		info, err := client.SpaceInfo(context.Background(), spaceName)
 		require.NoError(t, err)
 		require.Equal(t, &api.SpaceInfo{
@@ -482,7 +482,7 @@ func TestPostNDJSONLogWarning(t *testing.T) {
 	assert.Regexp(t, ": line 2: incomplete descriptor", warn2.Warning)
 
 	status := payloads[len(payloads)-2].(*api.LogPostStatus)
-	span := nano.Span{1e9, 0}
+	span := nano.Span{Ts: 1e9, Dur: 1}
 	expected := &api.LogPostStatus{
 		Type: "LogPostStatus",
 		Span: &span,

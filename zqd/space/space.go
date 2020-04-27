@@ -426,11 +426,8 @@ func (i info) Span() nano.Span {
 	return nano.NewSpanTs(i.MinTime, i.MaxTime)
 }
 
-// UnsetTimes nils out the cached time range value for the space.
-// XXX For right now this simply deletes the info file as nothing else is stored
-// there. When we get to brimsec/zq#541 the time range should be represented as
-// as a pointer to a nano.Span.
-func (s *Space) UnsetTimes() error {
+// UnsetSpan nils out the cached time span value for the space.
+func (s *Space) UnsetSpan() error {
 	return os.Remove(s.DataPath(infoFile))
 }
 
