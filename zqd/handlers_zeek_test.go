@@ -74,7 +74,8 @@ func TestPacketPostSuccess(t *testing.T) {
 	t.Run("StatusMessage", func(t *testing.T) {
 		info, err := os.Stat(p.pcapfile)
 		require.NoError(t, err)
-		status := p.payloads[1].(*api.PacketPostStatus)
+		plen := len(p.payloads)
+		status := p.payloads[plen-2].(*api.PacketPostStatus)
 		assert.Equal(t, status.Type, "PacketPostStatus")
 		assert.Equal(t, status.PacketSize, info.Size())
 		assert.Equal(t, status.PacketReadSize, info.Size())
