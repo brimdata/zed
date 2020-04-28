@@ -14,26 +14,36 @@ import (
 // and this matches that.
 type Merge struct {
 	Base
-	once    sync.Once
-	ch      <-chan Result
-	parents []*runnerProc
+	once     sync.Once
+	ch       <-chan Result
+	parents  []*runnerProc
+	nparents int
 }
 
 type runnerProc struct {
 	Base
-	ch chan<- Result
+	ch     chan<- Result
+	doneCh chan struct{}
 }
 
 func newrunnerProc(c *Context, parent Proc, ch chan<- Result) *runnerProc {
 	return &runnerProc{
-		Base: Base{Context: c, Parent: parent},
-		ch:   ch,
+		Base:   Base{Context: c, Parent: parent},
+		ch:     ch,
+		doneCh: make(chan struct{}, 1),
 	}
 }
 
 func (r *runnerProc) run() {
 	for {
 		batch, err := r.Get()
+		select {
+		case _ = <-r.doneCh:
+			r.Parent.Done()
+			break
+		default:
+		}
+
 		r.ch <- Result{batch, err}
 		if EOS(batch, err) {
 			break
@@ -48,9 +58,10 @@ func NewMerge(c *Context, parents []Proc) *Merge {
 		runners = append(runners, newrunnerProc(c, parent, ch))
 	}
 	p := Merge{
-		Base:    Base{Context: c, Parent: nil},
-		ch:      ch,
-		parents: runners,
+		Base:     Base{Context: c, Parent: nil},
+		ch:       ch,
+		parents:  runners,
+		nparents: len(parents),
 	}
 	return &p
 }
@@ -71,9 +82,30 @@ func (m *Merge) Pull() (zbuf.Batch, error) {
 		}
 	})
 
-	res, ok := <-m.ch
-	if !ok {
-		return nil, nil
+	for {
+		res, ok := <-m.ch
+		if !ok {
+			return nil, nil
+		}
+		if res.Err != nil {
+			m.Done()
+			return nil, res.Err
+		}
+
+		if !EOS(res.Batch, res.Err) {
+			return res.Batch, res.Err
+		}
+
+		m.nparents--
+		if m.nparents == 0 {
+			return nil, nil
+		}
 	}
-	return res.Batch, res.Err
+}
+
+func (m *Merge) Done() {
+	var done struct{}
+	for _, p := range m.parents {
+		p.doneCh <- done
+	}
 }
