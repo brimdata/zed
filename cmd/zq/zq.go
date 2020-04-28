@@ -174,7 +174,7 @@ func (c *Command) Run(args []string) error {
 	if c.textShortcut {
 		c.WriterFlags.Format = "tzng"
 	}
-	if c.WriterFlags.Format == "zng" && isTerminal(os.Stdout) && !c.forceBinary {
+	if c.outputFile == "" && c.WriterFlags.Format == "zng" && isTerminal(os.Stdout) && !c.forceBinary {
 		return errors.New("zq: writing binary zng data to terminal; override with -B or use -t for text.")
 	}
 	if _, err := regexp.Compile(c.jsonPathRegexp); err != nil {
