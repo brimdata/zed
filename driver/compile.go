@@ -25,7 +25,7 @@ func Compile(ctx context.Context, program ast.Proc, reader zbuf.Reader, reverse 
 func CompileWarningsCh(ctx context.Context, program ast.Proc, reader zbuf.Reader, reverse bool, span nano.Span, logger *zap.Logger, ch chan string) (*MuxOutput, error) {
 
 	filterAst, program := liftFilter(program)
-	input, err := inputProc(reader, filterAst, span)
+	scanner, err := inputProc(reader, filterAst, span)
 	if err != nil {
 		return nil, err
 	}
@@ -36,11 +36,11 @@ func CompileWarningsCh(ctx context.Context, program ast.Proc, reader zbuf.Reader
 		Reverse:     reverse,
 		Warnings:    ch,
 	}
-	leaves, err := proc.CompileProc(nil, program, pctx, input)
+	leaves, err := proc.CompileProc(nil, program, pctx, scanner)
 	if err != nil {
 		return nil, err
 	}
-	return NewMuxOutput(pctx, leaves), nil
+	return NewMuxOutput(pctx, leaves, scanner), nil
 }
 
 // liftFilter removes the filter at the head of the flowgraph AST, if
@@ -70,7 +70,7 @@ func liftFilter(p ast.Proc) (*ast.FilterProc, ast.Proc) {
 // inputProc takes a Reader, optional Filter AST, and timespan, and
 // constructs an input proc that can be used as the head of a
 // flowgraph.
-func inputProc(reader zbuf.Reader, fltast *ast.FilterProc, span nano.Span) (proc.Proc, error) {
+func inputProc(reader zbuf.Reader, fltast *ast.FilterProc, span nano.Span) (*scanner.Scanner, error) {
 	var f filter.Filter
 	if fltast != nil {
 		var err error

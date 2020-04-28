@@ -18,18 +18,13 @@ type Driver interface {
 }
 
 func Run(out *MuxOutput, d Driver, statsTickCh <-chan time.Time) error {
-	//stats are zero at this point.
-	var stats api.ScannerStats
 	for !out.Complete() {
 		chunk := out.Pull(statsTickCh)
 		if chunk.Err != nil {
 			if chunk.Err == ErrTimeout {
-				/* not yet
-				err := d.sendStats(out.Stats())
-				if err != nil {
-					return d.abort(0, err)
+				if err := d.Stats(out.Stats()); err != nil {
+					return err
 				}
-				*/
 				continue
 			}
 			if chunk.Err == context.Canceled {
@@ -45,7 +40,7 @@ func Run(out *MuxOutput, d Driver, statsTickCh <-chan time.Time) error {
 		if chunk.Batch == nil {
 			// One of the flowgraph tails is done.  We send stats and
 			// a done message for each channel that finishes
-			if err := d.ChannelEnd(chunk.ID, stats); err != nil {
+			if err := d.ChannelEnd(chunk.ID, out.Stats()); err != nil {
 				return err
 			}
 		} else {
