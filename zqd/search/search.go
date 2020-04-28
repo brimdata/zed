@@ -72,6 +72,10 @@ func (s *Search) Run(output Output) error {
 		d.abort(0, err)
 		return err
 	}
+	if err := d.Stats(s.mux.Stats()); err != nil {
+		d.abort(0, err)
+		return err
+	}
 	return d.end(0)
 }
 
@@ -146,10 +150,7 @@ func (d *searchdriver) Stats(stats api.ScannerStats) error {
 	return d.output.SendControl(v)
 }
 
-func (d *searchdriver) ChannelEnd(cid int, stats api.ScannerStats) error {
-	if err := d.Stats(stats); err != nil {
-		return err
-	}
+func (d *searchdriver) ChannelEnd(cid int) error {
 	v := &api.SearchEnd{
 		Type:      "SearchEnd",
 		ChannelID: cid,

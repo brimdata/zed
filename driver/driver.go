@@ -13,7 +13,7 @@ import (
 type Driver interface {
 	Warn(msg string) error
 	Write(channelID int, batch zbuf.Batch) error
-	ChannelEnd(channelID int, stats api.ScannerStats) error
+	ChannelEnd(channelID int) error
 	Stats(api.ScannerStats) error
 }
 
@@ -38,9 +38,8 @@ func Run(out *MuxOutput, d Driver, statsTickCh <-chan time.Time) error {
 			}
 		}
 		if chunk.Batch == nil {
-			// One of the flowgraph tails is done.  We send stats and
-			// a done message for each channel that finishes
-			if err := d.ChannelEnd(chunk.ID, out.Stats()); err != nil {
+			// One of the flowgraph tails is done.
+			if err := d.ChannelEnd(chunk.ID); err != nil {
 				return err
 			}
 		} else {
@@ -89,5 +88,5 @@ func (d *CLI) Warn(msg string) error {
 	return nil
 }
 
-func (d *CLI) ChannelEnd(int, api.ScannerStats) error { return nil }
-func (d *CLI) Stats(api.ScannerStats) error           { return nil }
+func (d *CLI) ChannelEnd(int) error         { return nil }
+func (d *CLI) Stats(api.ScannerStats) error { return nil }
