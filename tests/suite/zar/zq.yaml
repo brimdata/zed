@@ -1,0 +1,26 @@
+script: |
+  mkdir logs
+  zar chop -q -b 2500 -R ./logs babble.tzng
+  zar mkdirs ./logs
+  zar zq -R ./logs "count()" _ | zq -t "sum(count)" -
+  echo ===
+  zar zq -R ./logs -o count.zng "count()" _
+  zar zq -R ./logs count.zng | zq -t "sum(count)" -
+  echo ===
+  zq -t logs/20200421/1587511070.06294938.zng.zar/count.zng
+
+inputs:
+  - name: babble.tzng
+    source: ../zdx/babble.tzng
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[sum:uint64]
+      0:[1000;]
+      ===
+      #0:record[sum:uint64]
+      0:[1000;]
+      ===
+      #0:record[count:uint64]
+      0:[78;]
