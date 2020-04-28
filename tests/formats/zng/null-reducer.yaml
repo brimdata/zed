@@ -1,0 +1,14 @@
+script: |
+  zq "sum(a) by v" in.tzng | zq -t -
+
+inputs:
+  - name: in.tzng
+    data: |
+      #0:record[v:int64]
+      0:[10;]
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[v:int64,sum:null]
+      0:[10;-;]
