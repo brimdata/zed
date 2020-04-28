@@ -9,6 +9,7 @@ import (
 	_ "github.com/brimsec/zq/cmd/zar/index"
 	_ "github.com/brimsec/zq/cmd/zar/ls"
 	_ "github.com/brimsec/zq/cmd/zar/mkdirs"
+	_ "github.com/brimsec/zq/cmd/zar/rm"
 	_ "github.com/brimsec/zq/cmd/zar/rmdirs"
 	"github.com/brimsec/zq/cmd/zar/root"
 	_ "github.com/brimsec/zq/cmd/zar/zdx"
