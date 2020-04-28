@@ -24,14 +24,30 @@ func Find(dir string, rule Rule, pattern string, hits chan<- string, skipMissing
 		if err != nil {
 			return err
 		}
-		if hit && hits != nil {
+		if hit != nil && hits != nil {
 			hits <- ZarDirToLog(zardir)
 		}
 		return nil
 	})
 }
 
-func Search(zardir string, rule Rule, pattern string, skipMissing bool) (bool, error) {
+func FindZng(dir string, rule Rule, pattern string, hits chan<- *zng.Record, skipMissing bool) error {
+	//XXX this should be parallelized with some locking presuming a little
+	// parallelism won't mess up the file system assumptions
+	return Walk(dir, func(zardir string) error {
+		hit, err := Search(zardir, rule, pattern, skipMissing)
+		if err != nil {
+			return err
+		}
+		if hit != nil {
+			hit.Keep()
+			hits <- hit
+		}
+		return nil
+	})
+}
+
+func Search(zardir string, rule Rule, pattern string, skipMissing bool) (*zng.Record, error) {
 	finder := rule.NewFinder(zardir)
 	keyType, err := finder.Open()
 	if err != nil {
@@ -44,20 +60,20 @@ func Search(zardir string, rule Rule, pattern string, skipMissing bool) (bool, e
 		} else {
 			err = fmt.Errorf("%s: %w", finder.Path(), err)
 		}
-		return false, err
+		return nil, err
 	}
 	defer finder.Close()
 	if keyType == nil {
 		// This happens when an index exists but is empty.
-		return false, nil
+		return nil, nil
 	}
 	keyBytes, err := keyType.Parse([]byte(pattern))
 	if err != nil {
-		return false, fmt.Errorf("%s: %w", finder.Path(), err)
+		return nil, fmt.Errorf("%s: %w", finder.Path(), err)
 	}
 	rec, err := finder.Lookup(zng.Value{keyType, keyBytes})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", finder.Path(), err)
 	}
-	return rec != nil, err
+	return rec, err
 }

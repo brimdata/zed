@@ -88,3 +88,26 @@ func (f *FieldRule) NewFinder(dir string) *zdx.Finder {
 	zdxPath := filepath.Join(dir, fieldZdxName(f.field))
 	return zdx.NewFinder(zdxPath)
 }
+
+// StaticRule provides a means XXX to generate Indexers and Finders for a field-specific
+// rules.  Each FieldRule is configured with a field name and the new methods
+// create Indexers and Finders that operate on this field.
+type StaticRule struct {
+	indexName string
+}
+
+func NewStaticRule(name string) (*StaticRule, error) {
+	return &StaticRule{
+		indexName: name,
+	}, nil
+}
+
+func (s *StaticRule) NewIndexer(dir string) (Indexer, error) {
+	//XXX shouldn't be called
+	return nil, nil
+}
+
+func (s *StaticRule) NewFinder(dir string) *zdx.Finder {
+	zdxPath := filepath.Join(dir, s.indexName)
+	return zdx.NewFinder(zdxPath)
+}
