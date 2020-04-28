@@ -14,7 +14,7 @@ var RmDirs = &charm.Spec{
 	Usage: "rmdirs <dir>",
 	Short: "walk a directory tree and remove zar directories",
 	Long: `
-"zar rmdirs" descends the directory given by the -d option looking for
+"zar rmdirs" descends the provided directory looking for
 zar directories and removes them along with their contents.  WARNING:
 this is no prompting for the files and directories that will be removed
 so use carefully.

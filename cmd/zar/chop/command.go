@@ -27,7 +27,7 @@ The chop command provides a crude way to break up a zng file or stream
 into smaller chunks.  It takes as input zng data and cuts the stream
 into chunks where each chunk is created when the size threshold is exceeded,
 either in bytes (-b) or megabytes (-s).  The path of each chunk is a subdirectory
-in the specified directory (-d) where the subdirectory name is derived from the
+in the specified directory (-R or ZAR_ROOT) where the subdirectory name is derived from the
 timestamp of the first zng record in that chunk.
 `,
 	New: New,
@@ -41,14 +41,14 @@ type Command struct {
 	*root.Command
 	megaThresh  int
 	byteThresh  int
-	dir         string
+	root        string
 	quiet       bool
 	ReaderFlags zio.ReaderFlags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
-	f.StringVar(&c.dir, "d", ".", "destination directory for chopped files")
+	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive for chopped files")
 	f.IntVar(&c.megaThresh, "s", 500, "target size of chopped files in MB")
 	f.IntVar(&c.byteThresh, "b", 0, "target size of chopped files in bytes (overrides -s)")
 	f.BoolVar(&c.quiet, "q", false, "do not print progress updates to stdout")
@@ -95,7 +95,11 @@ func (c *Command) Run(args []string) error {
 		}
 		if w == nil {
 			ts := rec.Ts
-			dir := filepath.Join(c.dir, tsDir(ts))
+			rootDir := c.root
+			if rootDir == "" {
+				rootDir = "."
+			}
+			dir := filepath.Join(rootDir, tsDir(ts))
 			if err := os.MkdirAll(dir, 0755); err != nil {
 				return err
 			}
