@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 
@@ -14,22 +15,25 @@ import (
 
 var Find = &charm.Spec{
 	Name:  "find",
-	Usage: "find [-d <dir>] <pattern>",
+	Usage: "find [-R dir] pattern",
 	Short: "look through zar index files and displays matches",
 	Long: `
-"zar find" descends the directory given by the -d option looking for zng files
+"zar find" descends the directory given by the -R option looking for zng files
 that have a corresponding zar index conforming to the indicated <pattern>.
-The <pattern> argument has the form "field=value" (for field searches)
+The "pattern" argument has the form "field=value" (for field searches)
 or ":type=value" (for type searches).  For example, if type "ip" has been
 indexed then the IP 10.0.1.2 can be searched by saying
 
-	zar find -d /path/to/logs :ip=10.0.1.2
+	zar find -R /path/to/logs :ip=10.0.1.2
 
 Or if the field "uri" has been indexed, you might say
 
-	zar find -d /path/to/logs uri=/x/y/z
+	zar find -R /path/to/logs uri=/x/y/z
 
 The path of each zng file that matches the pattern is printed.
+
+If the root directory is not specified by either the ZAR_ROOT environemnt
+variable or the -R option, then the current directory is assumed.
 `,
 	New: New,
 }
@@ -40,13 +44,13 @@ func init() {
 
 type Command struct {
 	*root.Command
-	dir         string
+	root        string
 	skipMissing bool
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
-	f.StringVar(&c.dir, "d", ".", "directory to descend")
+	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive to walk")
 	f.BoolVar(&c.skipMissing, "Q", false, "skip errors caused by missing index files ")
 	return c, nil
 }
@@ -74,7 +78,11 @@ func (c *Command) Run(args []string) error {
 		}
 		wg.Done()
 	}()
-	err = archive.Find(c.dir, rule, pattern, hits, c.skipMissing)
+	rootDir := c.root
+	if rootDir == "" {
+		rootDir = "."
+	}
+	err = archive.Find(rootDir, rule, pattern, hits, c.skipMissing)
 	close(hits)
 	wg.Wait()
 	return err

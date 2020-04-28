@@ -1,11 +1,11 @@
 script: |
   mkdir logs
-  zar chop -q -b 2500 -d ./logs babble.tzng
+  zar chop -q -b 2500 -R ./logs babble.tzng
   zar mkdirs ./logs
-  zar index -q -d ./logs v
-  zar find -d ./logs v=106
+  zar index -q -R ./logs v
+  zar find -R ./logs v=106
   echo ===
-  zar find -d ./logs v=10600
+  zar find -R ./logs v=10600
   echo ===
 
 inputs:
