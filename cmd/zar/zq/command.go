@@ -30,8 +30,8 @@ import (
 
 var Zq = &charm.Spec{
 	Name:  "zq",
-	Usage: "zq [-R dir] [options]",
-	Short: "walk an archive and run zq logic",
+	Usage: "zq [-R dir] [options] [zql] file [file...]",
+	Short: "walk an archive and run zql queries",
 	Long: `
 "zar zq" descends the directory given by the -R option (or ZAR_ROOT env) looking for
 logs with zar directories and for each such directory found, it runs
@@ -77,11 +77,9 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive to walk")
 	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
-	// XXX f.StringVar(&c.dir, "d", "", "directory for output data files")
 	f.StringVar(&c.outputFile, "o", "", "write data to output file")
 	f.StringVar(&c.jsonTypePath, "j", "", "path to json types file")
 	f.StringVar(&c.jsonPathRegexp, "pathregexp", c.jsonPathRegexp, "regexp for extracting _path from json log name (when -inferpath=true)")
-	// XXX f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
 	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
 
 	// Flags added for writers are -f, -T, -F, -E, -U, and -b
@@ -158,7 +156,10 @@ func (c *Command) Run(args []string) error {
 			return err
 		}
 		if len(readers) == 0 {
-			// XXX silently skip if no file found
+			// skip and warn if no inputs found
+			if !c.quiet {
+				fmt.Fprintf(os.Stderr, "%s: no inputs files found\n", zardir)
+			}
 			return nil
 		}
 		wch := make(chan string, 5)
@@ -198,8 +199,10 @@ func (c *Command) inputReaders(zctx *resolver.Context, paths []string) ([]zbuf.R
 	for _, path := range paths {
 		file, err := detector.OpenFile(zctx, path, cfg)
 		if err != nil {
-			// XXX for zar zq siliently conotinue if file doesn't exist
 			if os.IsNotExist(err) {
+				if !c.quiet {
+					fmt.Fprintf(os.Stderr, "warning: %s not found\n", path)
+				}
 				continue
 			}
 			err = fmt.Errorf("%s: %w", path, err)
@@ -209,7 +212,8 @@ func (c *Command) inputReaders(zctx *resolver.Context, paths []string) ([]zbuf.R
 			fmt.Fprintf(os.Stderr, "%s\n", err)
 			continue
 		}
-		// wrap in a named reader so the reader implements Stringer
+		// wrap in a named reader so the reader implements Stringer,
+		// e.g., as used by scanner.Combiner
 		readers = append(readers, namedReader{file, path})
 	}
 	return readers, nil
