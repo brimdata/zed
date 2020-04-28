@@ -28,27 +28,32 @@ func TestBuilder(t *testing.T) {
 
 	zctx := resolver.NewContext()
 
-	t0 := zctx.LookupTypeRecord([]zng.Column{
+	t0, err := zctx.LookupTypeRecord([]zng.Column{
 		{"key", zng.TypeIP},
 	})
+	assert.NoError(t, err)
 	b0 := zng.NewBuilder(t0)
 	ip := net.ParseIP("1.2.3.4")
 	rec := b0.Build(zng.EncodeIP(ip))
 	assert.Equal(t, r0.Raw, rec.Raw)
 
-	t1 := zctx.LookupTypeRecord([]zng.Column{
+	t1, err := zctx.LookupTypeRecord([]zng.Column{
 		{"a", zng.TypeInt64},
 		{"b", zng.TypeInt64},
 		{"c", zng.TypeInt64},
 	})
+	assert.NoError(t, err)
 	b1 := zng.NewBuilder(t1)
 	rec = b1.Build(zng.EncodeInt(1), zng.EncodeInt(2), zng.EncodeInt(3))
 	assert.Equal(t, r1.Raw, rec.Raw)
 
-	t2 := zctx.LookupTypeRecord([]zng.Column{
+	subrec, err := zctx.LookupTypeRecord([]zng.Column{{"x", zng.TypeInt64}})
+	assert.NoError(t, err)
+	t2, err := zctx.LookupTypeRecord([]zng.Column{
 		{"a", zng.TypeInt64},
-		{"r", zctx.LookupTypeRecord([]zng.Column{{"x", zng.TypeInt64}})},
+		{"r", subrec},
 	})
+	assert.NoError(t, err)
 	b2 := zng.NewBuilder(t2)
 	// XXX this is where this package needs work
 	// the second column here is a container here and this is where it would

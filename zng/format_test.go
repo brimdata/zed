@@ -23,10 +23,11 @@ func TestFormatting(t *testing.T) {
 	bstringVecType := zctx.LookupTypeArray(zng.TypeBstring)
 	setOfVectorsType := zctx.LookupTypeSet(bstringVecType)
 	vecOfVectorsType := zctx.LookupTypeArray(bstringVecType)
-	recType := zctx.LookupTypeRecord([]zng.Column{
+	recType, err := zctx.LookupTypeRecord([]zng.Column{
 		{"b", zng.TypeBstring},
 		{"s", zng.TypeString},
 	})
+	assert.NoError(t, err)
 
 	type Expect struct {
 		fmt      zng.OutFmt

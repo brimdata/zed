@@ -82,8 +82,13 @@ func (p *Put) put(in *zng.Record) *zng.Record {
 			cols = append(cols, newcolumn)
 		}
 
+		typ, err := p.TypeContext.LookupTypeRecord(cols)
+		if err != nil {
+			p.maybeWarn(err)
+			return in
+		}
 		newinfo := descinfo{
-			outType:   p.TypeContext.LookupTypeRecord(cols),
+			outType:   typ,
 			valType:   val.Type,
 			position:  position,
 			container: val.IsContainer(),

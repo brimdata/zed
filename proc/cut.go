@@ -130,7 +130,10 @@ func (c *Cut) complementBuilder(r *zng.Record) (*cutBuilder, error) {
 		return nil, err
 	}
 	cols := builder.TypedColumns(outColTypes)
-	outType := c.TypeContext.LookupTypeRecord(cols)
+	outType, err := c.TypeContext.LookupTypeRecord(cols)
+	if err != nil {
+		return nil, err
+	}
 	return &cutBuilder{resolvers, builder, outType}, nil
 }
 
@@ -178,7 +181,10 @@ func (c *Cut) setBuilder(r *zng.Record) (*cutBuilder, error) {
 		outColTypes = append(outColTypes, val.Type)
 	}
 	cols := builder.TypedColumns(outColTypes)
-	outType := c.TypeContext.LookupTypeRecord(cols)
+	outType, err := c.TypeContext.LookupTypeRecord(cols)
+	if err != nil {
+		return nil, err
+	}
 	return &cutBuilder{resolvers, builder, outType}, nil
 }
 

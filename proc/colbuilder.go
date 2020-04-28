@@ -242,7 +242,9 @@ func (c *ColumnBuilder) TypedColumns(types []zng.Type) []zng.Column {
 		current.cols = append(current.cols, zng.NewColumn(field.name, types[i]))
 
 		for j := 0; j < field.containerEnds; j++ {
-			recType := c.zctx.LookupTypeRecord(current.cols)
+			// LookupTypeRecord() fails if there are duplicate
+			// fields but logic above already prevents this case.
+			recType, _ := c.zctx.LookupTypeRecord(current.cols)
 			slen := len(stack)
 			stack = stack[:slen-1]
 			cur := stack[slen-2]

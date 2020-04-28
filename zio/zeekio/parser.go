@@ -169,7 +169,7 @@ func (p *Parser) ParseDirective(line []byte) error {
 // bool indicating if a _path column was added.
 // Note that according to the zng spec, all the fields for a nested
 // record must be adjacent which simplifies the logic here.
-func Unflatten(zctx *resolver.Context, columns []zng.Column, addPath bool) ([]zng.Column, bool) {
+func Unflatten(zctx *resolver.Context, columns []zng.Column, addPath bool) ([]zng.Column, bool, error) {
 	hasPath := false
 	cols := make([]zng.Column, 0)
 	var nestedCols []zng.Column
@@ -190,7 +190,10 @@ func Unflatten(zctx *resolver.Context, columns []zng.Column, addPath bool) ([]zn
 		if fld != nestedField {
 			if len(nestedField) > 0 {
 				// We've reached the end of a nested record.
-				recType := zctx.LookupTypeRecord(nestedCols)
+				recType, err := zctx.LookupTypeRecord(nestedCols)
+				if err != nil {
+					return nil, false, err
+				}
 				newcol := zng.NewColumn(nestedField, recType)
 				cols = append(cols, newcol)
 			}
@@ -215,7 +218,10 @@ func Unflatten(zctx *resolver.Context, columns []zng.Column, addPath bool) ([]zn
 	// If we were in the midst of a nested record, make sure we
 	// account for it.
 	if len(nestedField) > 0 {
-		recType := zctx.LookupTypeRecord(nestedCols)
+		recType, err := zctx.LookupTypeRecord(nestedCols)
+		if err != nil {
+			return nil, false, err
+		}
 		newcol := zng.NewColumn(nestedField, recType)
 		cols = append(cols, newcol)
 	}
@@ -226,7 +232,7 @@ func Unflatten(zctx *resolver.Context, columns []zng.Column, addPath bool) ([]zn
 		cols = append([]zng.Column{pathcol}, cols...)
 		needpath = true
 	}
-	return cols, needpath
+	return cols, needpath, nil
 }
 
 func (p *Parser) setDescriptor() error {
@@ -236,8 +242,14 @@ func (p *Parser) setDescriptor() error {
 		return ErrBadRecordDef
 	}
 
-	cols, addpath := Unflatten(p.zctx, p.columns, p.Path != "")
-	p.descriptor = p.zctx.LookupTypeRecord(cols)
+	cols, addpath, err := Unflatten(p.zctx, p.columns, p.Path != "")
+	if err != nil {
+		return err
+	}
+	p.descriptor, err = p.zctx.LookupTypeRecord(cols)
+	if err != nil {
+		return err
+	}
 	p.addpath = addpath
 	return nil
 }
