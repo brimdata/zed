@@ -16,6 +16,7 @@ type Merge struct {
 	Base
 	once     sync.Once
 	ch       <-chan Result
+	doneCh   chan struct{}
 	parents  []*runnerProc
 	nparents int
 }
@@ -23,14 +24,14 @@ type Merge struct {
 type runnerProc struct {
 	Base
 	ch     chan<- Result
-	doneCh chan struct{}
+	doneCh <-chan struct{}
 }
 
-func newrunnerProc(c *Context, parent Proc, ch chan<- Result) *runnerProc {
+func newrunnerProc(c *Context, parent Proc, ch chan<- Result, doneCh <-chan struct{}) *runnerProc {
 	return &runnerProc{
 		Base:   Base{Context: c, Parent: parent},
 		ch:     ch,
-		doneCh: make(chan struct{}, 1),
+		doneCh: doneCh,
 	}
 }
 
@@ -53,13 +54,15 @@ func (r *runnerProc) run() {
 
 func NewMerge(c *Context, parents []Proc) *Merge {
 	ch := make(chan Result)
+	doneCh := make(chan struct{})
 	var runners []*runnerProc
 	for _, parent := range parents {
-		runners = append(runners, newrunnerProc(c, parent, ch))
+		runners = append(runners, newrunnerProc(c, parent, ch, doneCh))
 	}
 	p := Merge{
 		Base:     Base{Context: c, Parent: nil},
 		ch:       ch,
+		doneCh:   doneCh,
 		parents:  runners,
 		nparents: len(parents),
 	}
@@ -104,8 +107,5 @@ func (m *Merge) Pull() (zbuf.Batch, error) {
 }
 
 func (m *Merge) Done() {
-	var done struct{}
-	for _, p := range m.parents {
-		p.doneCh <- done
-	}
+	close(m.doneCh)
 }
