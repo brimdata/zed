@@ -49,6 +49,9 @@ type Writer struct {
 // provide keys in increasing lexicographic order.  Duplicate keys are not
 // allowed but will not be detected.  Close() must be called when done writing.
 func NewWriter(path string, framesize int) (*Writer, error) {
+	if framesize == 0 {
+		return nil, errors.New("zdx framesize cannot be zero")
+	}
 	return newWriter(path, framesize, 0)
 }
 

@@ -11,6 +11,7 @@ import (
 	_ "github.com/brimsec/zq/cmd/zar/mkdirs"
 	_ "github.com/brimsec/zq/cmd/zar/rmdirs"
 	"github.com/brimsec/zq/cmd/zar/root"
+	_ "github.com/brimsec/zq/cmd/zar/zdx"
 	_ "github.com/brimsec/zq/cmd/zar/zq"
 )
 
