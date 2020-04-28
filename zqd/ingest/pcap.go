@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -31,17 +30,13 @@ var (
 	ErrIngestProcessInFlight = errors.New("another ingest process is already in flight for this space")
 )
 
-const (
-	DefaultSortLimit = 10000000
-	tmpIngestDir     = ".tmp.ingest"
-)
+const tmpIngestDir = ".tmp.ingest"
 
 type Process struct {
 	StartTime nano.Ts
 	PcapSize  int64
 
 	space        *space.Space
-	sortLimit    int
 	snapshots    int32
 	pcapPath     string
 	pcapReadSize int64
@@ -56,7 +51,7 @@ type Process struct {
 // Process instance once zeek log files have started to materialize in a tmp
 // directory. If zeekExec is an empty string, this will attempt to resolve zeek
 // from $PATH.
-func Pcap(ctx context.Context, s *space.Space, pcap string, zlauncher zeek.Launcher, sortLimit int) (*Process, error) {
+func Pcap(ctx context.Context, s *space.Space, pcap string, zlauncher zeek.Launcher) (*Process, error) {
 	logdir := s.DataPath(tmpIngestDir)
 	if err := os.Mkdir(logdir, 0700); err != nil {
 		if os.IsExist(err) {
@@ -64,9 +59,6 @@ func Pcap(ctx context.Context, s *space.Space, pcap string, zlauncher zeek.Launc
 			return nil, ErrIngestProcessInFlight
 		}
 		return nil, err
-	}
-	if sortLimit == 0 {
-		sortLimit = DefaultSortLimit
 	}
 	info, err := os.Stat(pcap)
 	if err != nil {
@@ -81,7 +73,6 @@ func Pcap(ctx context.Context, s *space.Space, pcap string, zlauncher zeek.Launc
 		done:      make(chan struct{}),
 		snap:      make(chan struct{}),
 		zlauncher: zlauncher,
-		sortLimit: sortLimit,
 	}
 	if err = p.indexPcap(); err != nil {
 		os.Remove(p.space.DataPath(space.PcapIndexFile))
@@ -249,8 +240,7 @@ func (p *Process) createSnapshot(ctx context.Context) error {
 		return err
 	}
 	zw := zngio.NewWriter(zngfile, zio.WriterFlags{StreamRecordsMax: p.space.StreamSize()})
-	program := fmt.Sprintf("sort -limit %d -r ts", p.sortLimit)
-	if err := p.ingestLogs(ctx, zw, zr, program); err != nil {
+	if err := p.ingestLogs(ctx, zw, zr, "sort -r ts"); err != nil {
 		// If an error occurs here close and remove tmp zngfile, lest we start
 		// leaking files and file descriptors.
 		zngfile.Close()

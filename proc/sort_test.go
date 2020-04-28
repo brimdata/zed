@@ -1,9 +1,14 @@
 package proc_test
 
 import (
+	"fmt"
+	"math/rand"
+	"sort"
+	"strings"
 	"testing"
 
 	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/ztest"
 )
 
 // Data sets for tests:
@@ -163,4 +168,38 @@ func TestSort(t *testing.T) {
 
 	const warning = "Sort field bar not present in input"
 	proc.TestOneProcWithWarnings(t, unsortedInts, ascendingInts, []string{warning}, "sort foo, bar")
+}
+
+func TestSortExternal(t *testing.T) {
+	saved := proc.SortMemMaxBytes
+	proc.SortMemMaxBytes = 1024
+	defer func() {
+		proc.SortMemMaxBytes = saved
+	}()
+
+	makeTzng := func(ss []string) string {
+		var b strings.Builder
+		b.WriteString("#0:record[s:string]\n")
+		for _, s := range ss {
+			b.WriteString(fmt.Sprintf("0:[%s;]\n", s))
+		}
+		return b.String()
+	}
+
+	// Create enough strings to exceed 2 * proc.SortMemMaxBytes.
+	var n int
+	var ss []string
+	for n <= 2*proc.SortMemMaxBytes {
+		s := fmt.Sprintf("%016x", rand.Uint64())
+		n += len(s)
+		ss = append(ss, s)
+	}
+	input := makeTzng(ss)
+	sort.Strings(ss)
+	output := makeTzng(ss)
+	(&ztest.ZTest{
+		ZQL:    "sort s",
+		Input:  []string{input},
+		Output: output,
+	}).Run(t, "", "", "", "")
 }

@@ -82,8 +82,7 @@ function makeSortProc(args, fields) {
 
   let sortdir = argsMap.has("r") ? -1 : 1;
   let nullsfirst = (argsMap.get("nulls") === "first");
-  let limit = parseInt(argsMap.get("limit"));
-  return { op: "SortProc", fields, sortdir, limit, nullsfirst };
+  return { op: "SortProc", fields, sortdir, nullsfirst };
 }
 
 function makeTopProc(fields, limit, flush) {

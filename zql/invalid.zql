@@ -1,4 +1,3 @@
 * | count() by _path; count() by addr
-* | sort -limit 1 -limit
-* | sort -limit 1 -r -r,-r,-r
-* | sort -r -limit a a, b, c
+* | sort -r -r,-r,-r
+* | sort -r a a, b, c

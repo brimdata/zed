@@ -178,7 +178,7 @@ func Run(t *testing.T, dirname string) {
 			if err != nil {
 				t.Fatalf("%s: %s", filename, err)
 			}
-			run(t, testname, bindir, dirname, filename, zt)
+			zt.Run(t, testname, bindir, dirname, filename)
 		})
 	}
 }
@@ -386,11 +386,11 @@ func diffErr(expected, actual string) error {
 	return fmt.Errorf("expected and actual outputs differ:\n%s", diff)
 }
 
-func run(t *testing.T, testname, bindir, dirname, filename string, zt *ZTest) {
-	if err := zt.check(); err != nil {
+func (z *ZTest) Run(t *testing.T, testname, bindir, dirname, filename string) {
+	if err := z.check(); err != nil {
 		t.Fatalf("%s: bad yaml format: %s", filename, err)
 	}
-	if zt.Script != "" {
+	if z.Script != "" {
 		if runtime.GOOS == "windows" {
 			// XXX skip in windows until we figure out the best
 			// way to support script-driven tests across
@@ -401,17 +401,17 @@ func run(t *testing.T, testname, bindir, dirname, filename string, zt *ZTest) {
 			t.Skip("skipping script test on in-process run")
 		}
 		adir, _ := filepath.Abs(dirname)
-		err := runsh(testname, bindir, adir, zt)
+		err := runsh(testname, bindir, adir, z)
 		if err != nil {
 			t.Fatalf("%s: %s", filename, err)
 		}
 		return
 	}
-	out, errout, err := runzq(bindir, zt.ZQL, zt.OutputFormat, zt.OutputFlags, zt.Input...)
+	out, errout, err := runzq(bindir, z.ZQL, z.OutputFormat, z.OutputFlags, z.Input...)
 	if err != nil {
-		if zt.errRegex != nil {
-			if !zt.errRegex.Match([]byte(errout)) {
-				t.Fatalf("%s: error doesn't match expected error regex: %s %s", filename, zt.ErrorRE, errout)
+		if z.errRegex != nil {
+			if !z.errRegex.Match([]byte(errout)) {
+				t.Fatalf("%s: error doesn't match expected error regex: %s %s", filename, z.ErrorRE, errout)
 			}
 		} else {
 			if out != "" {
@@ -419,10 +419,10 @@ func run(t *testing.T, testname, bindir, dirname, filename string, zt *ZTest) {
 			}
 			t.Fatalf("%s: %s%s", filename, err, out)
 		}
-	} else if zt.errRegex != nil {
-		t.Fatalf("%s: no error when expecting error regex: %s", filename, zt.ErrorRE)
+	} else if z.errRegex != nil {
+		t.Fatalf("%s: no error when expecting error regex: %s", filename, z.ErrorRE)
 	}
-	expectedOut, oerr := zt.getOutput()
+	expectedOut, oerr := z.getOutput()
 	require.NoError(t, oerr)
 	if out != expectedOut {
 		a := expectedOut
@@ -436,8 +436,8 @@ func run(t *testing.T, testname, bindir, dirname, filename string, zt *ZTest) {
 		err := diffErr(a, b)
 		t.Fatalf("%s: expected and actual outputs differ:\n%s", filename, err)
 	}
-	if err == nil && errout != zt.Warnings {
-		err := diffErr(zt.Warnings, errout)
+	if err == nil && errout != z.Warnings {
+		err := diffErr(z.Warnings, errout)
 		t.Fatalf("%s: expected and actual warnings differ:\n%s", filename, err)
 	}
 }

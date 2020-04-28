@@ -141,19 +141,6 @@ func TestPcapSearchNotFound(t *testing.T) {
 	defer p.cleanup()
 }
 
-func TestPacketPostSortLimit(t *testing.T) {
-	fn := writeLogsFn(testZeekLogs)
-	ln := testZeekLauncher(nil, fn)
-	p := packetPostWithConfig(t, zqd.Config{SortLimit: 1, ZeekLauncher: ln}, "./testdata/valid.pcap")
-	defer p.cleanup()
-	t.Run("TaskEndError", func(t *testing.T) {
-		taskEnd := p.payloads[len(p.payloads)-1].(*api.TaskEnd)
-		assert.Equal(t, "TaskEnd", taskEnd.Type)
-		assert.NotNil(t, taskEnd.Error)
-		assert.Regexp(t, "sort limit", taskEnd.Error.Message)
-	})
-}
-
 func TestPacketPostInvalidPcap(t *testing.T) {
 	p := packetPost(t, "./testdata/invalid.pcap", testZeekLauncher(nil, nil))
 	defer p.cleanup()
