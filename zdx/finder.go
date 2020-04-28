@@ -12,8 +12,9 @@ import (
 
 // Finder looks up values in a zdx using its hierarchical index files.
 type Finder struct {
-	path  string
-	files []*Reader
+	path   string
+	keycol int
+	files  []*Reader
 }
 
 // NewFinder returns an object that is used to lookup keys in a zdx.
@@ -57,12 +58,13 @@ func (f *Finder) Open() (zng.Type, error) {
 		// index exists but is empty
 		return nil, nil
 	}
-	ncol := len(rec.Type.Columns)
-	if (ncol != 1 && ncol != 2) || rec.Type.Columns[0].Name != "key" {
-		return nil, fmt.Errorf("%s: not a zdx bundle", f.path)
+	val, err := rec.ValueByField("key")
+	if err != nil {
+		return nil, fmt.Errorf("%s: not a zdx index", f.path)
 	}
-	keyType := rec.Type.Columns[0].Type
+	keyType := val.Type
 	_, err = f.files[0].Seek(0)
+	f.keycol, _ = rec.Type.ColumnOfField("key")
 	return keyType, err
 }
 
@@ -118,10 +120,12 @@ func lookupOffset(reader zbuf.Reader, key zng.Value) (int64, error) {
 }
 
 // lookup searches for a match of the given key compared to the
-// first column of the records read from the reader.  If the boolean argument
+// key column of the records read from the reader.  If the boolean argument
 // "exact" is true, then only exact matches are returned.  Otherwise, the
 // record with the lagest key smaller than the key arrgument is returned.
-func lookup(reader zbuf.Reader, key zng.Value, exact bool) (*zng.Record, error) {
+// This is called only for the base layer of the index where the key field
+// can appear anywhere.
+func lookup(reader zbuf.Reader, key zng.Value, exact bool, keycol int) (*zng.Record, error) {
 	// XXX this should be specialized for the known type
 	compare := expr.NewSortValFn(true)
 	var prev *zng.Record
@@ -130,7 +134,7 @@ func lookup(reader zbuf.Reader, key zng.Value, exact bool) (*zng.Record, error) 
 		if rec == nil {
 			return nil, err
 		}
-		k := rec.Value(0)
+		k := rec.Value(keycol)
 		if k.Type == nil {
 			return nil, errors.New("key missing from record")
 		}
@@ -185,12 +189,12 @@ func (f *Finder) Lookup(key zng.Value) (*zng.Record, error) {
 	if err := f.search(key); err != nil {
 		return nil, err
 	}
-	return lookup(f.files[0], key, true)
+	return lookup(f.files[0], key, true, f.keycol)
 }
 
 func (f *Finder) LookupClosest(key zng.Value) (*zng.Record, error) {
 	if err := f.search(key); err != nil {
 		return nil, err
 	}
-	return lookup(f.files[0], key, false)
+	return lookup(f.files[0], key, false, f.keycol)
 }

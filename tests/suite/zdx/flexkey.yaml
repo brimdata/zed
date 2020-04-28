@@ -1,0 +1,26 @@
+script: |
+  zq -o tmp.zng "sum(v) by s | put key=s | sort key"  babble.tzng
+  # -x says input keys already sorted and don't create new base records
+  zdx create -o index -x tmp.zng
+  # 50 not in index
+  zq -t index.1.zng
+  echo ===
+  zdx lookup -t -k wailer-strick index
+  echo ===
+  zdx lookup -t -k Anatinacea-bestrew index
+
+inputs:
+  - name: babble.tzng
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[key:string,value:int64]
+      0:[Algedi-pigeonman;0;]
+      0:[protohydrogen-plesiomorphism;32770;]
+      ===
+      #0:record[s:string,sum:int64,key:string]
+      0:[wailer-strick;149;wailer-strick;]
+      ===
+      #0:record[s:string,sum:int64,key:string]
+      0:[Anatinacea-bestrew;339;Anatinacea-bestrew;]
