@@ -107,8 +107,8 @@ func (w *Writer) Write(rec *zng.Record) error {
 	// Remember the first key of a new frame. This happens at beginning
 	// of stream or when we end the current frame immediately above.
 	if w.frameKey == nil {
-		key := rec.Value(0)
-		if key.Type == nil {
+		key, err := rec.ValueByField("key")
+		if err != nil {
 			return ErrCorruptFile
 		}
 		// Copy the key value from the stream so we can write it to the
