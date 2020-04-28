@@ -55,6 +55,9 @@ func respond(c *Core, w http.ResponseWriter, r *http.Request, status int, body i
 
 func respondError(c *Core, w http.ResponseWriter, r *http.Request, err error) {
 	status, ae := errorResponse(err)
+	if status >= 500 {
+		c.requestLogger(r).Warn("Error", zap.Int("status", status), zap.Error(err))
+	}
 	respond(c, w, r, status, ae)
 }
 
