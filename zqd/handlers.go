@@ -258,8 +258,8 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		case <-ticker.C:
 		}
 
-		var minTs, maxTs *nano.Ts
-		if minTs, maxTs, err = s.GetTimes(); err != nil {
+		var span *nano.Span
+		if span, err = s.Span(); err != nil {
 			break
 		}
 		status := api.PacketPostStatus{
@@ -269,8 +269,7 @@ func handlePacketPost(c *Core, w http.ResponseWriter, r *http.Request) {
 			PacketSize:     proc.PcapSize,
 			PacketReadSize: proc.PcapReadSize(),
 			SnapshotCount:  proc.SnapshotCount(),
-			MinTime:        minTs,
-			MaxTime:        maxTs,
+			Span:           span,
 		}
 		if err := pipe.Send(status); err != nil {
 			logger.Warn("Error sending payload", zap.Error(err))

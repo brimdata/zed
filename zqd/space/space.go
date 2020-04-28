@@ -258,8 +258,8 @@ func (s *Space) Info() (api.SpaceInfo, error) {
 	}
 	i, err := loadInfoFile(s.conf.DataPath)
 	if err == nil {
-		spaceInfo.MinTime = &i.MinTime
-		spaceInfo.MaxTime = &i.MaxTime
+		span := i.Span()
+		spaceInfo.Span = &span
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return api.SpaceInfo{}, err
 	}
@@ -430,15 +430,16 @@ type info struct {
 	MaxTime nano.Ts `json:"max_time"`
 }
 
-// UnsetTimes nils out the cached time range value for the space.
-// XXX For right now this simply deletes the info file as nothing else is stored
-// there. When we get to brimsec/zq#541 the time range should be represented as
-// as a pointer to a nano.Span.
-func (s *Space) UnsetTimes() error {
+func (i info) Span() nano.Span {
+	return nano.NewSpanTs(i.MinTime, i.MaxTime)
+}
+
+// UnsetSpan nils out the cached time span value for the space.
+func (s *Space) UnsetSpan() error {
 	return os.Remove(s.DataPath(infoFile))
 }
 
-func (s *Space) SetTimes(minTs, maxTs nano.Ts) error {
+func (s *Space) SetSpan(span nano.Span) error {
 	cur, err := loadInfoFile(s.conf.DataPath)
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -446,20 +447,21 @@ func (s *Space) SetTimes(minTs, maxTs nano.Ts) error {
 		}
 		cur = info{nano.MaxTs, nano.MinTs}
 	}
-	cur.MinTime = nano.Min(cur.MinTime, minTs)
-	cur.MaxTime = nano.Max(cur.MaxTime, maxTs)
+	cur.MinTime = span.Ts
+	cur.MaxTime = span.End()
 	return cur.save(s.conf.DataPath)
 }
 
-func (s *Space) GetTimes() (*nano.Ts, *nano.Ts, error) {
+func (s *Space) Span() (*nano.Span, error) {
 	i, err := loadInfoFile(s.conf.DataPath)
 	if err != nil {
 		if !os.IsNotExist(err) {
-			return nil, nil, err
+			return nil, err
 		}
-		return nil, nil, nil
+		return nil, nil
 	}
-	return &i.MinTime, &i.MaxTime, nil
+	span := i.Span()
+	return &span, nil
 }
 
 // loadConfig loads the contents of config.json in a space's path.

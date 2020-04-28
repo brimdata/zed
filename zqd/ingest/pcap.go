@@ -112,7 +112,7 @@ func (p *Process) run(ctx context.Context) error {
 		os.Remove(p.space.DataPath(space.PcapIndexFile))
 		os.Remove(p.space.DataPath(space.AllZngFile))
 		p.space.SetPacketPath("")
-		p.space.UnsetTimes()
+		p.space.UnsetSpan()
 	}
 
 	ticker := time.NewTicker(time.Second)
@@ -176,7 +176,7 @@ func (p *Process) indexPcap() error {
 	f.Close()
 	// grab span from index and use to generate space info min/max time.
 	span := idx.Span()
-	if err = p.space.SetTimes(span.Ts, span.End()); err != nil {
+	if err = p.space.SetSpan(span); err != nil {
 		return err
 	}
 	return os.Rename(tmppath, idxpath)

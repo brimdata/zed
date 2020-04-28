@@ -150,10 +150,9 @@ func TestSpaceInfo(t *testing.T) {
 	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 	_ = postSpaceLogs(t, client, sp.Name, nil, false, src)
-	min, max := nano.Ts(1e9), nano.Ts(2e9)
+	span := nano.Span{Ts: 1e9, Dur: 1e9 + 1}
 	expected := &api.SpaceInfo{
-		MinTime:       &min,
-		MaxTime:       &max,
+		Span:          &span,
 		Name:          sp.Name,
 		Size:          80,
 		PacketSupport: false,
@@ -324,12 +323,11 @@ func TestPostZngLogs(t *testing.T) {
 
 	payloads := postSpaceLogs(t, client, spaceName, nil, false, strings.Join(src1, "\n"), strings.Join(src2, "\n"))
 	status := payloads[len(payloads)-2].(*api.LogPostStatus)
-	min, max := nano.Ts(1e9), nano.Ts(2e9)
+	span := &nano.Span{Ts: 1e9, Dur: 1e9 + 1}
 	require.Equal(t, &api.LogPostStatus{
-		Type:    "LogPostStatus",
-		MinTime: &min,
-		MaxTime: &max,
-		Size:    80,
+		Type: "LogPostStatus",
+		Span: span,
+		Size: 80,
 	}, status)
 
 	taskend := payloads[len(payloads)-1].(*api.TaskEnd)
@@ -342,8 +340,7 @@ func TestPostZngLogs(t *testing.T) {
 	info, err := client.SpaceInfo(context.Background(), spaceName)
 	require.NoError(t, err)
 	require.Equal(t, &api.SpaceInfo{
-		MinTime:       &min,
-		MaxTime:       &max,
+		Span:          span,
 		Name:          spaceName,
 		Size:          80,
 		PacketSupport: false,
@@ -372,12 +369,11 @@ func TestPostZngLogWarning(t *testing.T) {
 	assert.Regexp(t, ": line 3: bad format$", warn2.Warning)
 
 	status := payloads[len(payloads)-2].(*api.LogPostStatus)
-	ts := nano.Ts(1e9)
+	span := &nano.Span{Ts: nano.Ts(1e9), Dur: 1}
 	expected := &api.LogPostStatus{
-		Type:    "LogPostStatus",
-		MinTime: &ts,
-		MaxTime: &ts,
-		Size:    49,
+		Type: "LogPostStatus",
+		Span: span,
+		Size: 49,
 	}
 	require.Equal(t, expected, status)
 
@@ -428,12 +424,11 @@ func TestPostNDJSONLogs(t *testing.T) {
 		res := zngSearch(t, client, spaceName, "*")
 		require.Equal(t, expected, strings.TrimSpace(res))
 
-		min, max := nano.Ts(1e9), nano.Ts(2e9)
+		span := nano.Span{Ts: 1e9, Dur: 1e9 + 1}
 		info, err := client.SpaceInfo(context.Background(), spaceName)
 		require.NoError(t, err)
 		require.Equal(t, &api.SpaceInfo{
-			MinTime:       &min,
-			MaxTime:       &max,
+			Span:          &span,
 			Name:          spaceName,
 			Size:          80,
 			PacketSupport: false,
@@ -487,12 +482,11 @@ func TestPostNDJSONLogWarning(t *testing.T) {
 	assert.Regexp(t, ": line 2: incomplete descriptor", warn2.Warning)
 
 	status := payloads[len(payloads)-2].(*api.LogPostStatus)
-	ts := nano.Ts(1e9)
+	span := nano.Span{Ts: 1e9, Dur: 1}
 	expected := &api.LogPostStatus{
-		Type:    "LogPostStatus",
-		MinTime: &ts,
-		MaxTime: &ts,
-		Size:    25,
+		Type: "LogPostStatus",
+		Span: &span,
+		Size: 25,
 	}
 	require.Equal(t, expected, status)
 
