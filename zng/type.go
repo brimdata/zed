@@ -198,6 +198,8 @@ func LookupPrimitiveById(id int) Type {
 		return TypeTime
 	case IdDuration:
 		return TypeDuration
+	case IdNull:
+		return TypeNull
 	}
 	return nil
 }
