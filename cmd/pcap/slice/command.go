@@ -32,7 +32,7 @@ rather than generating a new file.  This means that certains stats (like
 interface packet drops between adjacent capture packets)
 are not accurate in the resulting output.
 That said, all of the actual packet data is accurate and explorable by a
-tool like wirehsark.
+tool like wireshark.
 
 If an index is provided with -x, then the packets that fall outside of
 the indexed time range are skipped without disk I/O, which dramatically speeds up the
