@@ -16,6 +16,7 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/space"
+	"github.com/brimsec/zq/zqe"
 	"go.uber.org/zap"
 )
 
@@ -37,9 +38,13 @@ func NewSearch(ctx context.Context, s *space.Space, req api.SearchRequest) (*Sea
 	if req.Span.Dur < 0 {
 		return nil, errors.New("time span must have non-negative duration")
 	}
-	// XXX allow either direction even through we do forward only right now
-	if req.Dir != 1 && req.Dir != -1 {
-		return nil, errors.New("time direction must be 1 or -1")
+	// XXX zqd only supports backwards searches, remove once this has been
+	// fixed.
+	if req.Dir == 1 {
+		return nil, zqe.E("forward facing searches not supported", zqe.Invalid)
+	}
+	if req.Dir != -1 {
+		return nil, zqe.E("time direction must be 1 or -1", zqe.Invalid)
 	}
 	query, err := UnpackQuery(req)
 	if err != nil {

@@ -78,7 +78,7 @@ func TestSearchEmptySpace(t *testing.T) {
 	require.Equal(t, "", res)
 }
 
-func TestSearchInvalidRequest(t *testing.T) {
+func TestSearchError(t *testing.T) {
 	src := `
 #0:record[_path:string,ts:time,uid:bstring]
 0:[conn;1521911723.205187;CBrzd94qfowOqJwCHa;]
@@ -94,16 +94,30 @@ func TestSearchInvalidRequest(t *testing.T) {
 	require.NoError(t, err)
 	proc, err := json.Marshal(parsed)
 	require.NoError(t, err)
-	req := api.SearchRequest{
-		Space: "test",
-		Proc:  proc,
-		Span:  nano.MaxSpan,
-		Dir:   2,
-	}
-	_, err = client.Search(context.Background(), req)
-	require.Error(t, err)
-	errResp := err.(*api.ErrorResponse)
-	require.IsType(t, &api.Error{}, errResp.Err)
+	t.Run("InvalidDir", func(t *testing.T) {
+		req := api.SearchRequest{
+			Space: "test",
+			Proc:  proc,
+			Span:  nano.MaxSpan,
+			Dir:   2,
+		}
+		_, err = client.Search(context.Background(), req)
+		require.Error(t, err)
+		errResp := err.(*api.ErrorResponse)
+		require.IsType(t, &api.Error{}, errResp.Err)
+	})
+	t.Run("ForwardSearchUnsupported", func(t *testing.T) {
+		req := api.SearchRequest{
+			Space: "test",
+			Proc:  proc,
+			Span:  nano.MaxSpan,
+			Dir:   1,
+		}
+		_, err = client.Search(context.Background(), req)
+		require.Error(t, err)
+		errResp := err.(*api.ErrorResponse)
+		require.IsType(t, &api.Error{}, errResp.Err)
+	})
 }
 
 func TestSpaceList(t *testing.T) {
