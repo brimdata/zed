@@ -61,9 +61,6 @@ func (c *Command) Run(args []string) error {
 }
 
 func fileExists(path string) bool {
-	if path == "-" {
-		return true
-	}
 	info, err := os.Stat(path)
 	if err != nil {
 		return false

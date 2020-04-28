@@ -9,6 +9,12 @@ script: |
   echo ===
   touch logs/20200421/1587508830.06852324.zng.zar/foo
   zar ls -R ./logs foo
+  echo ===
+  mkdir foo
+  mkdir foo/bar.zar
+  touch foo/bar.zar/x
+  touch foo/bar.zar/y
+  zar ls -R ./foo -l
 
 inputs:
   - name: babble.tzng
@@ -35,3 +41,7 @@ outputs:
       logs/20200422/1587518593.06673011.zng.zar
       ===
       logs/20200421/1587508830.06852324.zng.zar/foo
+      ===
+      foo/bar.zar
+      	x
+      	y
