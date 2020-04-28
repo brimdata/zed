@@ -1,10 +1,8 @@
 package proc
 
 import (
-	"io"
 	"sync"
 
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 )
 
@@ -16,47 +14,58 @@ import (
 // and this matches that.
 type Merge struct {
 	Base
-	once    sync.Once
-	parents []*runnerProc
-	bufs    []zbuf.Batch
-	err     error
+	once     sync.Once
+	ch       <-chan Result
+	doneCh   chan struct{}
+	parents  []*runnerProc
+	nparents int
 }
 
 type runnerProc struct {
 	Base
-	ch      chan Result
-	proceed chan struct{}
+	ch     chan<- Result
+	doneCh <-chan struct{}
 }
 
-func newrunnerProc(c *Context, parent Proc) *runnerProc {
+func newrunnerProc(c *Context, parent Proc, ch chan<- Result, doneCh <-chan struct{}) *runnerProc {
 	return &runnerProc{
-		Base:    Base{Context: c, Parent: parent},
-		ch:      make(chan Result),
-		proceed: make(chan struct{}),
+		Base:   Base{Context: c, Parent: parent},
+		ch:     ch,
+		doneCh: doneCh,
 	}
 }
 
 func (r *runnerProc) run() {
 	for {
 		batch, err := r.Get()
+		select {
+		case _ = <-r.doneCh:
+			r.Parent.Done()
+			break
+		default:
+		}
+
 		r.ch <- Result{batch, err}
-		_, ok := <-r.proceed
-		if !ok {
-			// The downstream MergeProc closed us down.
-			// Signal upstream that we're done and return
-			// out of this goroutine.
-			r.Done()
-			return
+		if EOS(batch, err) {
+			break
 		}
 	}
 }
 
 func NewMerge(c *Context, parents []Proc) *Merge {
+	ch := make(chan Result)
+	doneCh := make(chan struct{})
 	var runners []*runnerProc
 	for _, parent := range parents {
-		runners = append(runners, newrunnerProc(c, parent))
+		runners = append(runners, newrunnerProc(c, parent, ch, doneCh))
 	}
-	p := Merge{Base: Base{Context: c, Parent: nil}, parents: runners}
+	p := Merge{
+		Base:     Base{Context: c, Parent: nil},
+		ch:       ch,
+		doneCh:   doneCh,
+		parents:  runners,
+		nparents: len(parents),
+	}
 	return &p
 }
 
@@ -68,85 +77,35 @@ func (m *Merge) Parents() []Proc {
 	return pp
 }
 
-func (m *Merge) reload(k int) {
-	parent := m.parents[k]
-	result := <-parent.ch
-	err := result.Err
-	if err != nil && err != io.EOF {
-		// If any parent has an error, we set this error,
-		// which will cause the MergeProc to stop and return
-		// the error, and run the done protocol on all the parents.
-		m.err = err
-	}
-	buf := result.Batch
-	m.bufs[k] = buf
-	if buf == nil {
-		close(parent.proceed)
-		m.parents[k] = nil
-	} else {
-		parent.proceed <- struct{}{}
-	}
-}
-
-// fill() initializes upstream data from each parent in our
-// per-parent merge buffers.
-func (m *Merge) fill() {
-	for i := range m.parents {
-		m.reload(i)
-	}
-}
-
 // Pull implements the merge logic for returning data from the upstreams.
 func (m *Merge) Pull() (zbuf.Batch, error) {
 	m.once.Do(func() {
 		for _, m := range m.parents {
 			go m.run()
 		}
-		m.bufs = make([]zbuf.Batch, len(m.parents))
-		m.fill()
 	})
-	if m.err != nil {
-		m.Done()
-		return nil, m.err
-	}
-	oldest := nano.MaxTs
-	pick := -1
 
-	// For now our "merge" just pushes out the batch with the oldest
-	// timestamp at each round... this means that we may not
-	// sending out monotonically ordered tiemstamps. Proper
-	// time-ordered merging will come after Pull(span) is
-	// implemented.
-	for i, buf := range m.bufs {
-		if buf == nil {
-			continue
+	for {
+		res, ok := <-m.ch
+		if !ok {
+			return nil, nil
 		}
-		if buf.Span().Ts < oldest {
-			oldest = buf.Span().Ts
-			pick = i
+		if res.Err != nil {
+			m.Done()
+			return nil, res.Err
 		}
-	}
-	if pick == -1 {
-		m.Done()
-		return nil, nil
-	}
 
-	res := m.bufs[pick]
-	m.reload(pick)
-	if m.err != nil {
-		m.Done()
-		return nil, m.err
+		if !EOS(res.Batch, res.Err) {
+			return res.Batch, res.Err
+		}
+
+		m.nparents--
+		if m.nparents == 0 {
+			return nil, nil
+		}
 	}
-	return res, nil
 }
 
 func (m *Merge) Done() {
-	for k, parent := range m.parents {
-		if parent != nil {
-			<-parent.ch
-			close(parent.proceed)
-			m.parents[k] = nil
-			m.bufs[k] = nil
-		}
-	}
+	close(m.doneCh)
 }
