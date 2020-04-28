@@ -1,0 +1,20 @@
+
+script: |
+  mkdir logs
+  zar chop -q -b 2500 -R ./logs babble.tzng
+  zar mkdirs ./logs
+  # make an index by hand for each log containing a sum
+  zar zq -R ./logs -o tmp.zng "sum(v) by s | put key=s | sort key" _
+  # turn each custom key file into a b-tere index
+  zar zdx -R ./logs -f 500 -o index tmp.zng
+  zar find -R ./logs -o - -x index amphitheatral-televox | zq -t -
+
+inputs:
+  - name: babble.tzng
+    source: ../zdx/babble.tzng
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[s:string,sum:int64,key:string]
+      0:[amphitheatral-televox;251;amphitheatral-televox;]
