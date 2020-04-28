@@ -138,7 +138,7 @@ func pprofHandlers(h http.Handler) http.Handler {
 //     name: "http.access"
 //     level: info
 //     mode: truncate
-// sortMemMaxBytes: 268432640
+// sort_mem_max_bytes: 268432640
 
 func (c *Command) loadConfigFile() error {
 	if c.configfile == "" {
@@ -146,7 +146,7 @@ func (c *Command) loadConfigFile() error {
 	}
 	conf := &struct {
 		Logger          logger.Config `yaml:"logger"`
-		SortMemMaxBytes *int          `yaml:"sortMemMaxBytes,omitempty"`
+		SortMemMaxBytes *int          `yaml:"sort_mem_max_bytes,omitempty"`
 	}{}
 	b, err := ioutil.ReadFile(c.configfile)
 	if err != nil {
