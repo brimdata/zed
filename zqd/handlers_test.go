@@ -606,7 +606,7 @@ func TestDeleteDuringPacketPost(t *testing.T) {
 }
 
 // zngSearch runs the provided zql program as a search on the provided
-// space, returning a slice of control messages along with a strong
+// space, returning a slice of control messages along with a string
 // containing the tzng results.
 func zngSearch(t *testing.T, client *api.Connection, space, prog string) ([]interface{}, string) {
 	parsed, err := zql.ParseProc(prog)
