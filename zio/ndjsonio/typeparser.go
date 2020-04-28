@@ -67,11 +67,14 @@ func getUnsafeDefault(data []byte, defaultValue string, key string) (string, err
 	return val, nil
 }
 
-func newTypeInfo(zctx *resolver.Context, desc *zng.TypeRecord, path string) *typeInfo {
+func newTypeInfo(zctx *resolver.Context, desc *zng.TypeRecord, path string) (*typeInfo, error) {
 	flatCols := zeekio.FlattenColumns(desc.Columns)
-	flatDesc := zctx.LookupTypeRecord(flatCols)
+	flatDesc, err := zctx.LookupTypeRecord(flatCols)
+	if err != nil {
+		return nil, err
+	}
 	info := typeInfo{desc, flatDesc, []byte(path), make([]jsonVal, len(flatDesc.Columns))}
-	return &info
+	return &info, nil
 }
 
 // newRawFromJSON builds a raw value from a descriptor and the JSON object
@@ -230,7 +233,10 @@ func (p *typeParser) findTypeInfo(zctx *resolver.Context, jobj []byte, tr typeRu
 			if ti, ok := p.typeInfoCache[desc.ID()]; ok {
 				return ti, nil
 			}
-			ti := newTypeInfo(zctx, desc, path)
+			ti, err := newTypeInfo(zctx, desc, path)
+			if err != nil {
+				return nil, err
+			}
 			p.typeInfoCache[desc.ID()] = ti
 			return ti, nil
 		}

@@ -31,9 +31,12 @@ func NewReducer(c *Context, parent Proc, params ReducerParams) Proc {
 	}
 }
 
-func (r *Reducer) output() *zbuf.Array {
-	rec := r.columns.Result(r.Context.TypeContext)
-	return zbuf.NewArray([]*zng.Record{rec}, nano.NewSpanTs(r.MinTs, r.MaxTs))
+func (r *Reducer) output() (*zbuf.Array, error) {
+	rec, err := r.columns.Result(r.Context.TypeContext)
+	if err != nil {
+		return nil, err
+	}
+	return zbuf.NewArray([]*zng.Record{rec}, nano.NewSpanTs(r.MinTs, r.MaxTs)), nil
 }
 
 func (r *Reducer) Pull() (zbuf.Batch, error) {
@@ -47,7 +50,7 @@ func (r *Reducer) Pull() (zbuf.Batch, error) {
 			return nil, nil
 		}
 		r.n = 0
-		return r.output(), nil
+		return r.output()
 	}
 	for k := 0; k < batch.Length(); k++ {
 		r.consume(batch.Index(k))

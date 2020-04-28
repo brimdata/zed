@@ -1,0 +1,8 @@
+zql: count(), count()
+
+input: |
+  #0:record[x:int32]
+  0:[1;]
+  0:[2;]
+
+errorRE: duplicate column count

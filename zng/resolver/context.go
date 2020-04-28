@@ -202,17 +202,28 @@ func (c *Context) AddType(t zng.Type) zng.Type {
 // and returned.  The closure of types within the columns must all be from
 // this type context.  If you want to use columns from a different type context,
 // use TranslateTypeRecord.
-func (c *Context) LookupTypeRecord(columns []zng.Column) *zng.TypeRecord {
+func (c *Context) LookupTypeRecord(columns []zng.Column) (*zng.TypeRecord, error) {
+	// First check for duplicate columns
+	names := make(map[string]struct{})
+	var val struct{}
+	for _, col := range columns {
+		_, exists := names[col.Name]
+		if exists {
+			return nil, fmt.Errorf("duplicate column %s", col.Name)
+		}
+		names[col.Name] = val
+	}
+
 	key := recordKey(columns)
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	id, ok := c.lut[key]
 	if ok {
-		return c.table[id].(*zng.TypeRecord)
+		return c.table[id].(*zng.TypeRecord), nil
 	}
 	typ := zng.NewTypeRecord(-1, columns)
 	c.addTypeWithLock(key, typ)
-	return typ
+	return typ, nil
 }
 
 func (c *Context) LookupTypeSet(inner zng.Type) *zng.TypeSet {
@@ -291,7 +302,10 @@ func (c *Context) AddColumns(r *zng.Record, newCols []zng.Column, vals []zng.Val
 	for _, val := range vals {
 		zv = val.Encode(zv)
 	}
-	typ := c.LookupTypeRecord(outCols)
+	typ, err := c.LookupTypeRecord(outCols)
+	if err != nil {
+		return nil, err
+	}
 	return zng.NewRecord(typ, zv)
 }
 
@@ -448,10 +462,14 @@ func (c *Context) parseRecordTypeBody(in string) (string, zng.Type, error) {
 			continue
 		}
 		rest, ok = match(rest, "]")
-		if ok {
-			return rest, c.LookupTypeRecord(columns), nil
+		if !ok {
+			return "", nil, zng.ErrTypeSyntax
 		}
-		return "", nil, zng.ErrTypeSyntax
+		typ, err := c.LookupTypeRecord(columns)
+		if err != nil {
+			return "", nil, err
+		}
+		return rest, typ, nil
 	}
 }
 
@@ -577,7 +595,12 @@ func (c *Context) TranslateTypeRecord(ext *zng.TypeRecord) *zng.TypeRecord {
 		child := c.TranslateType(col.Type)
 		columns = append(columns, zng.NewColumn(col.Name, child))
 	}
-	return c.LookupTypeRecord(columns)
+
+	// LookupTypeRecord() fails if there are duplicate columns but
+	// since this comes from an already validated record, it should
+	// not fail
+	typ, _ := c.LookupTypeRecord(columns)
+	return typ
 }
 
 func (c *Context) TranslateTypeUnion(ext *zng.TypeUnion) *zng.TypeUnion {

@@ -150,7 +150,7 @@ func (w *Writer) writeIndexRecord(key *zng.Value, offset int64) error {
 			{"key", key.Type},
 			{"value", zng.TypeInt64},
 		}
-		w.recType = resolver.NewContext().LookupTypeRecord(cols)
+		w.recType, _ = resolver.NewContext().LookupTypeRecord(cols)
 		w.builder = zng.NewBuilder(w.recType)
 	}
 	if w.recType.Columns[0].Type != key.Type {

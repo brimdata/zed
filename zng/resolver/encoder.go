@@ -96,7 +96,10 @@ func (e *Encoder) encodeTypeRecord(dst []byte, ext *zng.TypeRecord) ([]byte, zng
 		}
 		columns = append(columns, zng.NewColumn(col.Name, child))
 	}
-	typ := e.zctx.LookupTypeRecord(columns)
+	typ, err := e.zctx.LookupTypeRecord(columns)
+	if err != nil {
+		return nil, nil, err
+	}
 	if e.isEncoded(typ.ID()) {
 		return dst, typ, nil
 	}
