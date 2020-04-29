@@ -17,7 +17,6 @@ type Scanner struct {
 	filter filter.Filter
 	span   nano.Span
 	stats  struct {
-		currentTs      int64
 		bytesRead      int64
 		bytesMatched   int64
 		recordsRead    int64

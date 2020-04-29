@@ -49,7 +49,7 @@ func TestPacketPostSuccess(t *testing.T) {
 0:[1501770877.501001;]
 0:[1501770877.471635;]
 0:[1501770877.471635;]`
-		_, res := zngSearch(t, p.client, p.space, "cut ts")
+		res := searchTzng(t, p.client, p.space, "cut ts")
 		assert.Equal(t, test.Trim(expected), res)
 	})
 	t.Run("SpaceInfo", func(t *testing.T) {
