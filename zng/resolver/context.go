@@ -209,7 +209,7 @@ func (c *Context) LookupTypeRecord(columns []zng.Column) (*zng.TypeRecord, error
 	for _, col := range columns {
 		_, exists := names[col.Name]
 		if exists {
-			return nil, fmt.Errorf("duplicate column %s", col.Name)
+			return nil, fmt.Errorf("duplicate field %s", col.Name)
 		}
 		names[col.Name] = val
 	}
@@ -457,11 +457,6 @@ func (c *Context) parseRecordTypeBody(in string) (string, zng.Type, error) {
 		rest, col, err := c.parseColumn(in)
 		if err != nil {
 			return "", nil, err
-		}
-		for _, c := range columns {
-			if col.Name == c.Name {
-				return "", nil, zng.ErrDuplicateFields
-			}
 		}
 		columns = append(columns, col)
 		rest, ok = match(rest, ",")

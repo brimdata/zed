@@ -13,4 +13,4 @@ inputs:
 outputs:
   - name: stderr
     regexp: |
-      duplicate fields in record type
+      duplicate field foo
