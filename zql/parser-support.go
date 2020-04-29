@@ -242,8 +242,16 @@ func makeFilterProc(expr interface{}) *ast.FilterProc {
 	return &ast.FilterProc{ast.Node{"FilterProc"}, expr.(ast.BooleanExpr)}
 }
 
-func makePutProc(target, expr interface{}) *ast.PutProc {
-	return &ast.PutProc{ast.Node{"PutProc"}, target.(string), expr.(ast.Expression)}
+func makePutClause(target, expr interface{}) ast.PutClause {
+	return ast.PutClause{target.(string), expr.(ast.Expression)}
+}
+
+func makePutProc(first, rest interface{}) *ast.PutProc {
+	clauses := []ast.PutClause{first.(ast.PutClause)}
+	for _, c := range rest.([]interface{}) {
+		clauses = append(clauses, c.(ast.PutClause))
+	}
+	return &ast.PutProc{ast.Node{"PutProc"}, clauses}
 }
 
 func makeReducer(opIn, varIn, fieldIn interface{}) *ast.Reducer {
