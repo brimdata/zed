@@ -185,7 +185,7 @@ func (g *GroupBy) Pull() (zbuf.Batch, error) {
 		return nil, err
 	}
 	if batch == nil {
-		return g.agg.Results(true, g.MinTs, g.MaxTs), nil
+		return g.agg.Results(true, g.MinTs, g.MaxTs)
 	}
 	for k := 0; k < batch.Length(); k++ {
 		err := g.agg.Consume(batch.Index(k))
@@ -196,7 +196,11 @@ func (g *GroupBy) Pull() (zbuf.Batch, error) {
 	}
 	batch.Unref()
 	if g.timeBinned {
-		if f := g.agg.Results(false, g.MinTs, g.MaxTs); f != nil {
+		f, err := g.agg.Results(false, g.MinTs, g.MaxTs)
+		if err != nil {
+			return nil, err
+		}
+		if f != nil {
 			return f, nil
 		}
 	}
@@ -215,14 +219,14 @@ func (g *GroupByAggregator) createRow(keyCols keyRow, ts nano.Ts, vals zcode.Byt
 	}
 }
 
-func newKeyRow(kctx *resolver.Context, r *zng.Record, keys []GroupByKey) keyRow {
+func newKeyRow(kctx *resolver.Context, r *zng.Record, keys []GroupByKey) (keyRow, error) {
 	cols := make([]zng.Column, len(keys))
 	for k, key := range keys {
 		// Recurse the record to find the bottom column for group-by
 		// on record access, e.g., a.b.c should find the column for "c".
 		keyVal := key.resolver(r)
 		if keyVal.Type == nil {
-			return keyRow{}
+			return keyRow{}, nil
 		}
 		cols[k] = zng.NewColumn(key.name, keyVal.Type)
 	}
@@ -233,10 +237,13 @@ func newKeyRow(kctx *resolver.Context, r *zng.Record, keys []GroupByKey) keyRow 
 	// type ID doesn't matter here.
 	var id int
 	if len(cols) > 0 {
-		typ := kctx.LookupTypeRecord(cols)
+		typ, err := kctx.LookupTypeRecord(cols)
+		if err != nil {
+			return keyRow{}, err
+		}
 		id = typ.ID()
 	}
-	return keyRow{id, cols}
+	return keyRow{id, cols}, nil
 }
 
 // Consume takes a record and adds it to the aggregation. Records
@@ -248,7 +255,11 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 	id := r.Type.ID()
 	keyCols, ok := g.keyCols[id]
 	if !ok {
-		keyCols = newKeyRow(g.kctx, r, g.keys)
+		var err error
+		keyCols, err = newKeyRow(g.kctx, r, g.keys)
+		if err != nil {
+			return err
+		}
 		g.keyCols[id] = keyCols
 	}
 	if keyCols.columns == nil {
@@ -315,7 +326,7 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 // final (possibly incomplete) time bin.
 // If this is not a time-binned aggregation, a single call (with
 // eof=true) should be made after all records have been Consumed()'d.
-func (g *GroupByAggregator) Results(eof bool, minTs nano.Ts, maxTs nano.Ts) zbuf.Batch {
+func (g *GroupByAggregator) Results(eof bool, minTs nano.Ts, maxTs nano.Ts) (zbuf.Batch, error) {
 	var bins []nano.Ts
 	for b := range g.tables {
 		bins = append(bins, b)
@@ -337,24 +348,28 @@ func (g *GroupByAggregator) Results(eof bool, minTs nano.Ts, maxTs nano.Ts) zbuf
 				continue
 			}
 		}
-		recs = append(recs, g.recordsForTable(g.tables[b])...)
+		newRecs, err := g.recordsForTable(g.tables[b])
+		if err != nil {
+			return nil, err
+		}
+		recs = append(recs, newRecs...)
 		delete(g.tables, b)
 	}
 	if len(recs) == 0 {
 		// Don't propagate empty batches.
-		return nil
+		return nil, nil
 	}
 	first, last := recs[0], recs[len(recs)-1]
 	if g.reverse {
 		first, last = last, first
 	}
 	span := nano.NewSpanTs(first.Ts, last.Ts.Add(g.TimeBinDuration))
-	return zbuf.NewArray(recs, span)
+	return zbuf.NewArray(recs, span), nil
 }
 
 // recordsForTable returns a slice of records with one record per table entry
 // in a deterministic but undefined order.
-func (g *GroupByAggregator) recordsForTable(table map[string]*GroupByRow) []*zng.Record {
+func (g *GroupByAggregator) recordsForTable(table map[string]*GroupByRow) ([]*zng.Record, error) {
 	var keys []string
 	for k := range table {
 		keys = append(keys, k)
@@ -377,14 +392,17 @@ func (g *GroupByAggregator) recordsForTable(table map[string]*GroupByRow) []*zng
 			}
 			zv = v.Encode(zv)
 		}
-		typ := g.lookupRowType(row)
+		typ, err := g.lookupRowType(row)
+		if err != nil {
+			return nil, err
+		}
 		r := zng.NewRecordTs(typ, row.ts, zv)
 		recs = append(recs, r)
 	}
-	return recs
+	return recs, nil
 }
 
-func (g *GroupByAggregator) lookupRowType(row *GroupByRow) *zng.TypeRecord {
+func (g *GroupByAggregator) lookupRowType(row *GroupByRow) (*zng.TypeRecord, error) {
 	// This is only done once per row at output time so generally not a
 	// bottleneck, but this could be optimized by keeping a cache of the
 	// descriptor since it is rare for there to be multiple descriptors

@@ -12,7 +12,8 @@ import (
 
 func TestContextAddColumns(t *testing.T) {
 	ctx := NewContext()
-	d := ctx.LookupTypeRecord([]zng.Column{zng.NewColumn("s1", zng.TypeString)})
+	d, err := ctx.LookupTypeRecord([]zng.Column{zng.NewColumn("s1", zng.TypeString)})
+	require.NoError(t, err)
 	r, err := zbuf.NewRecordZeekStrings(d, "S1")
 	require.NoError(t, err)
 	cols := []zng.Column{zng.NewColumn("ts", zng.TypeTime), zng.NewColumn("s2", zng.TypeString)}
@@ -30,10 +31,11 @@ func TestContextAddColumns(t *testing.T) {
 func TestDuplicates(t *testing.T) {
 	ctx := NewContext()
 	setType := ctx.LookupTypeSet(zng.TypeInt32)
-	typ1 := ctx.LookupTypeRecord([]zng.Column{
+	typ1, err := ctx.LookupTypeRecord([]zng.Column{
 		zng.NewColumn("a", zng.TypeString),
 		zng.NewColumn("b", setType),
 	})
+	require.NoError(t, err)
 	typ2, err := ctx.LookupByName("record[a:string,b:set[int32]]")
 	require.NoError(t, err)
 	assert.EqualValues(t, typ1.ID(), typ2.ID())

@@ -64,7 +64,11 @@ func (f *Flattener) Flatten(r *zng.Record) (*zng.Record, error) {
 	flatType := f.mapper.Map(id)
 	if flatType == nil {
 		cols := FlattenColumns(r.Type.Columns)
-		flatType = f.zctx.LookupTypeRecord(cols)
+		var err error
+		flatType, err = f.zctx.LookupTypeRecord(cols)
+		if err != nil {
+			return nil, err
+		}
 		f.mapper.EnterTypeRecord(id, flatType)
 	}
 	// Since we are mapping the input context to itself we can do a
@@ -78,7 +82,6 @@ func (f *Flattener) Flatten(r *zng.Record) (*zng.Record, error) {
 		return nil, err
 	}
 	return zng.NewRecord(flatType, zv)
-
 }
 
 // FlattenColumns turns nested records into a series of columns of

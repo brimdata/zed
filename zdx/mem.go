@@ -77,7 +77,8 @@ func (t *MemTable) open() {
 	if t.valType != nil {
 		cols = append(cols, zng.Column{"value", t.valType})
 	}
-	t.builder = zng.NewBuilder(t.zctx.LookupTypeRecord(cols))
+	typ := t.zctx.MustLookupTypeRecord(cols)
+	t.builder = zng.NewBuilder(typ)
 }
 
 func checkType(which string, before *zng.Type, after zng.Type) error {

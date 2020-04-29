@@ -43,7 +43,10 @@ func (p *inferParser) parseObject(b []byte) (zng.Value, error) {
 	for i, kv := range kvs {
 		columns[i] = zng.NewColumn(string(kv.key), zng.TypeString)
 	}
-	columns, _ = zeekio.Unflatten(p.zctx, columns, false)
+	columns, _, err = zeekio.Unflatten(p.zctx, columns, false)
+	if err != nil {
+		return zng.Value{}, err
+	}
 
 	// Parse the actual values and fill in column types along the way,
 	// taking care to step into nested records as necessary.
@@ -78,7 +81,10 @@ func (p *inferParser) parseObject(b []byte) (zng.Value, error) {
 		}
 	}
 
-	typ := p.zctx.LookupTypeRecord(columns)
+	typ, err := p.zctx.LookupTypeRecord(columns)
+	if err != nil {
+		return zng.Value{}, err
+	}
 	return zng.Value{typ, encodeContainer(vals)}, nil
 }
 

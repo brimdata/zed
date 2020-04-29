@@ -44,7 +44,7 @@ func (r *Row) Consume(rec *zng.Record) {
 }
 
 // Result creates a new record from the results of the reducers.
-func (r *Row) Result(zctx *resolver.Context) *zng.Record {
+func (r *Row) Result(zctx *resolver.Context) (*zng.Record, error) {
 	n := len(r.Reducers)
 	columns := make([]zng.Column, n)
 	var zv zcode.Bytes
@@ -53,6 +53,9 @@ func (r *Row) Result(zctx *resolver.Context) *zng.Record {
 		columns[k] = zng.NewColumn(r.Defs[k].Target(), val.Type)
 		zv = val.Encode(zv)
 	}
-	typ := zctx.LookupTypeRecord(columns)
-	return zng.NewRecordTs(typ, 0, zv)
+	typ, err := zctx.LookupTypeRecord(columns)
+	if err != nil {
+		return nil, err
+	}
+	return zng.NewRecordTs(typ, 0, zv), nil
 }
