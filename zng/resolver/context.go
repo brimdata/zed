@@ -207,8 +207,8 @@ func (c *Context) LookupTypeRecord(columns []zng.Column) (*zng.TypeRecord, error
 	names := make(map[string]struct{})
 	var val struct{}
 	for _, col := range columns {
-		_, exists := names[col.Name]
-		if exists {
+		_, ok := names[col.Name]
+		if ok {
 			return nil, fmt.Errorf("duplicate field %s", col.Name)
 		}
 		names[col.Name] = val
@@ -599,11 +599,7 @@ func (c *Context) TranslateTypeRecord(ext *zng.TypeRecord) *zng.TypeRecord {
 		columns = append(columns, zng.NewColumn(col.Name, child))
 	}
 
-	// LookupTypeRecord() fails if there are duplicate columns but
-	// since this comes from an already validated record, it should
-	// not fail
-	typ, _ := c.LookupTypeRecord(columns)
-	return typ
+	return c.MustLookupTypeRecord(columns)
 }
 
 func (c *Context) TranslateTypeUnion(ext *zng.TypeUnion) *zng.TypeUnion {
