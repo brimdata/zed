@@ -36,6 +36,6 @@ func (d *logdriver) Stats(stats api.ScannerStats) error {
 	return nil
 }
 
-func (d *logdriver) ChannelEnd(cid int, stats api.ScannerStats) error {
-	return d.Stats(stats)
+func (d *logdriver) ChannelEnd(cid int) error {
+	return nil
 }

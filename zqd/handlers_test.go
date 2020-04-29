@@ -42,8 +42,37 @@ func TestSearch(t *testing.T) {
 	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 	_ = postSpaceLogs(t, client, sp.Name, nil, false, src)
-	res := zngSearch(t, client, sp.Name, "*")
+	res := searchTzng(t, client, sp.Name, "*")
 	require.Equal(t, test.Trim(src), res)
+}
+
+func TestSearchStats(t *testing.T) {
+	src := `
+#0:record[_path:string,ts:time]
+0:[a;1;]
+0:[b;1;]
+`
+	_, client, done := newCore(t)
+	defer done()
+	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
+	require.NoError(t, err)
+	_ = postSpaceLogs(t, client, sp.Name, nil, false, src)
+	_, msgs := search(t, client, sp.Name, "_path != b")
+	var stats *api.SearchStats
+	for i := len(msgs) - 1; i >= 0; i-- {
+		if s, ok := msgs[i].(*api.SearchStats); ok {
+			stats = s
+			break
+		}
+	}
+	require.NotNil(t, stats)
+	assert.Equal(t, stats.Type, "SearchStats")
+	assert.Equal(t, stats.ScannerStats, api.ScannerStats{
+		BytesRead:      14,
+		BytesMatched:   7,
+		RecordsRead:    2,
+		RecordsMatched: 1,
+	})
 }
 
 func TestGroupByReverse(t *testing.T) {
@@ -63,7 +92,7 @@ func TestGroupByReverse(t *testing.T) {
 	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 	_ = postSpaceLogs(t, client, sp.Name, nil, false, src)
-	res := zngSearch(t, client, sp.Name, "every 1s count()")
+	res := searchTzng(t, client, sp.Name, "every 1s count()")
 	require.Equal(t, test.Trim(counts), res)
 }
 
@@ -74,7 +103,7 @@ func TestSearchEmptySpace(t *testing.T) {
 	defer done()
 	_, err := client.SpacePost(ctx, api.SpacePostRequest{Name: space})
 	require.NoError(t, err)
-	res := zngSearch(t, client, space, "*")
+	res := searchTzng(t, client, space, "*")
 	require.Equal(t, "", res)
 }
 
@@ -334,7 +363,7 @@ func TestPostZngLogs(t *testing.T) {
 	assert.Equal(t, taskend.Type, "TaskEnd")
 	assert.Nil(t, taskend.Error)
 
-	res := zngSearch(t, client, spaceName, "*")
+	res := searchTzng(t, client, spaceName, "*")
 	require.Equal(t, strings.Join(append(src2, src1[1]), "\n"), strings.TrimSpace(res))
 
 	info, err := client.SpaceInfo(context.Background(), spaceName)
@@ -421,7 +450,7 @@ func TestPostNDJSONLogs(t *testing.T) {
 		assert.Equal(t, last.Type, "TaskEnd")
 		assert.Nil(t, last.Error)
 
-		res := zngSearch(t, client, spaceName, "*")
+		res := searchTzng(t, client, spaceName, "*")
 		require.Equal(t, expected, strings.TrimSpace(res))
 
 		span := nano.Span{Ts: 1e9, Dur: 1e9 + 1}
@@ -570,7 +599,10 @@ func TestDeleteDuringPacketPost(t *testing.T) {
 	require.Error(t, <-packetPostErr, "context canceled")
 }
 
-func zngSearch(t *testing.T, client *api.Connection, space, prog string) string {
+// search runs the provided zql program as a search on the provided
+// space, returning the tzng results along with a slice of all control
+// messages that were received.
+func search(t *testing.T, client *api.Connection, space, prog string) (string, []interface{}) {
 	parsed, err := zql.ParseProc(prog)
 	require.NoError(t, err)
 	proc, err := json.Marshal(parsed)
@@ -585,8 +617,17 @@ func zngSearch(t *testing.T, client *api.Connection, space, prog string) string 
 	require.NoError(t, err)
 	buf := bytes.NewBuffer(nil)
 	w := zbuf.NopFlusher(tzngio.NewWriter(buf))
+	var msgs []interface{}
+	r.SetOnCtrl(func(i interface{}) {
+		msgs = append(msgs, i)
+	})
 	require.NoError(t, zbuf.Copy(w, r))
-	return buf.String()
+	return buf.String(), msgs
+}
+
+func searchTzng(t *testing.T, client *api.Connection, space, prog string) string {
+	tzng, _ := search(t, client, space, prog)
+	return tzng
 }
 
 func createTempDir(t *testing.T) string {

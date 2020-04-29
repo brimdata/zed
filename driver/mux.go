@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zqd/api"
 )
 
 type MuxResult struct {
@@ -22,6 +24,7 @@ type MuxOutput struct {
 	muxProcs []*Mux
 	once     sync.Once
 	in       chan MuxResult
+	scanner  *scanner.Scanner
 }
 
 type Mux struct {
@@ -63,14 +66,21 @@ func (m *Mux) run() {
 	}
 }
 
-func NewMuxOutput(ctx *proc.Context, parents []proc.Proc) *MuxOutput {
+func NewMuxOutput(ctx *proc.Context, parents []proc.Proc, scanner *scanner.Scanner) *MuxOutput {
 	n := len(parents)
 	c := make(chan MuxResult, n)
-	mux := &MuxOutput{ctx: ctx, runners: n, in: c}
+	mux := &MuxOutput{ctx: ctx, runners: n, in: c, scanner: scanner}
 	for id, parent := range parents {
 		mux.muxProcs = append(mux.muxProcs, newMux(ctx, parent, id, c))
 	}
 	return mux
+}
+
+func (m *MuxOutput) Stats() api.ScannerStats {
+	if m.scanner == nil {
+		return api.ScannerStats{}
+	}
+	return m.scanner.Stats()
 }
 
 func (m *MuxOutput) Complete() bool {

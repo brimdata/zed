@@ -13,23 +13,18 @@ import (
 type Driver interface {
 	Warn(msg string) error
 	Write(channelID int, batch zbuf.Batch) error
-	ChannelEnd(channelID int, stats api.ScannerStats) error
+	ChannelEnd(channelID int) error
 	Stats(api.ScannerStats) error
 }
 
 func Run(out *MuxOutput, d Driver, statsTickCh <-chan time.Time) error {
-	//stats are zero at this point.
-	var stats api.ScannerStats
 	for !out.Complete() {
 		chunk := out.Pull(statsTickCh)
 		if chunk.Err != nil {
 			if chunk.Err == ErrTimeout {
-				/* not yet
-				err := d.sendStats(out.Stats())
-				if err != nil {
-					return d.abort(0, err)
+				if err := d.Stats(out.Stats()); err != nil {
+					return err
 				}
-				*/
 				continue
 			}
 			if chunk.Err == context.Canceled {
@@ -43,9 +38,8 @@ func Run(out *MuxOutput, d Driver, statsTickCh <-chan time.Time) error {
 			}
 		}
 		if chunk.Batch == nil {
-			// One of the flowgraph tails is done.  We send stats and
-			// a done message for each channel that finishes
-			if err := d.ChannelEnd(chunk.ID, stats); err != nil {
+			// One of the flowgraph tails is done.
+			if err := d.ChannelEnd(chunk.ID); err != nil {
 				return err
 			}
 		} else {
@@ -94,5 +88,5 @@ func (d *CLI) Warn(msg string) error {
 	return nil
 }
 
-func (d *CLI) ChannelEnd(int, api.ScannerStats) error { return nil }
-func (d *CLI) Stats(api.ScannerStats) error           { return nil }
+func (d *CLI) ChannelEnd(int) error         { return nil }
+func (d *CLI) Stats(api.ScannerStats) error { return nil }

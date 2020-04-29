@@ -66,12 +66,10 @@ type SearchStats struct {
 }
 
 type ScannerStats struct {
-	CurrentTs       nano.Ts `json:"current_ts"`
-	BytesRead       int64   `json:"bytes_read"`
-	BytesMatched    int64   `json:"bytes_matched"`
-	RecordsRead     int64   `json:"records_read"`
-	RecordsMatched  int64   `json:"records_matched"`
-	RecordsReceived int64   `json:"records_received"`
+	BytesRead      int64 `json:"bytes_read"`
+	BytesMatched   int64 `json:"bytes_matched"`
+	RecordsRead    int64 `json:"records_read"`
+	RecordsMatched int64 `json:"records_matched"`
 }
 
 type SpaceInfo struct {
