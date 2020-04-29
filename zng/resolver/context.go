@@ -226,6 +226,14 @@ func (c *Context) LookupTypeRecord(columns []zng.Column) (*zng.TypeRecord, error
 	return typ, nil
 }
 
+func (c *Context) MustLookupTypeRecord(columns []zng.Column) *zng.TypeRecord {
+	r, err := c.LookupTypeRecord(columns)
+	if err != nil {
+		panic(err)
+	}
+	return r
+}
+
 func (c *Context) LookupTypeSet(inner zng.Type) *zng.TypeSet {
 	key := setKey(inner)
 	c.mu.Lock()

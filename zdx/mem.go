@@ -77,7 +77,7 @@ func (t *MemTable) open() {
 	if t.valType != nil {
 		cols = append(cols, zng.Column{"value", t.valType})
 	}
-	typ, _ := t.zctx.LookupTypeRecord(cols)
+	typ := t.zctx.MustLookupTypeRecord(cols)
 	t.builder = zng.NewBuilder(typ)
 }
 
