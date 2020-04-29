@@ -1,0 +1,30 @@
+script: |
+  mkdir foo
+  mkdir foo/a.zar
+  mkdir foo/b.zar
+  touch foo/a.zar/x
+  touch foo/a.zar/y
+  touch foo/b.zar/y
+  zar ls -R ./foo x
+  zar ls -R ./foo y
+  echo ===
+  zar rm -R ./foo y
+  echo ===
+  zar ls -R ./foo x
+  zar ls -R ./foo y
+
+inputs:
+  - name: babble.tzng
+    source: ../zdx/babble.tzng
+
+outputs:
+  - name: stdout
+    data: |
+      foo/a.zar/x
+      foo/a.zar/y
+      foo/b.zar/y
+      ===
+      foo/a.zar/y: removed
+      foo/b.zar/y: removed
+      ===
+      foo/a.zar/x
