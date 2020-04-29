@@ -1,6 +1,8 @@
 package proc
 
 import (
+	"sort"
+
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/zbuf"
@@ -12,9 +14,14 @@ import (
 // For a given input descriptor + computed type for the put expression
 // includes the descriptor for output records (outType) plus information
 // about where (position) and how (container) to write the computed value
-// into the output record.
+// into the output record for each clause.
 type descinfo struct {
-	outType   *zng.TypeRecord
+	typ    *zng.TypeRecord
+	fields []fieldinfo
+	order  []int
+}
+
+type fieldinfo struct {
 	valType   zng.Type
 	position  int
 	container bool
@@ -22,24 +29,35 @@ type descinfo struct {
 
 type Put struct {
 	Base
-	target string
-	eval   expr.ExpressionEvaluator
+	clauses []clause
+	// vals is a fixed array to avoid re-allocating for every record
+	vals   []zng.Value
 	outmap map[int]descinfo
 	warned map[string]struct{}
 }
 
+type clause struct {
+	target string
+	eval   expr.ExpressionEvaluator
+}
+
 func CompilePutProc(c *Context, parent Proc, node *ast.PutProc) (*Put, error) {
-	eval, err := expr.CompileExpr(node.Expr)
-	if err != nil {
-		return nil, err
+	clauses := make([]clause, len(node.Clauses))
+	for k, cl := range node.Clauses {
+		var err error
+		clauses[k].target = cl.Target
+		clauses[k].eval, err = expr.CompileExpr(cl.Expr)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &Put{
-		Base:   Base{Context: c, Parent: parent},
-		target: node.Target,
-		eval:   eval,
-		outmap: make(map[int]descinfo),
-		warned: make(map[string]struct{}),
+		Base:    Base{Context: c, Parent: parent},
+		clauses: clauses,
+		vals:    make([]zng.Value, len(node.Clauses)),
+		outmap:  make(map[int]descinfo),
+		warned:  make(map[string]struct{}),
 	}, nil
 }
 
@@ -53,33 +71,51 @@ func (p *Put) maybeWarn(err error) {
 }
 
 func (p *Put) put(in *zng.Record) *zng.Record {
-	val, err := p.eval(in)
-	if err != nil {
-		p.maybeWarn(err)
-		return in
+	// Figure out the output descriptor.  If we don't have one for
+	// this input descriptor or if any values have different types,
+	// we'll need to recompute it below.
+	descInfo, haveDescriptor := p.outmap[in.Type.ID()]
+
+	for k, cl := range p.clauses {
+		var err error
+		p.vals[k], err = cl.eval(in)
+		if err != nil {
+			p.maybeWarn(err)
+			return in
+		}
+
+		if haveDescriptor && p.vals[k].Type != descInfo.fields[k].valType {
+			haveDescriptor = false
+		}
 	}
 
 	// Figure out the output descriptor.  We cache it in outmap
 	// but if we haven't seen this input descriptor before or if
 	// the computed type of the expression has changed, recompute it.
-	info, ok := p.outmap[in.Type.ID()]
-	if !ok || info.valType != val.Type {
+	if !haveDescriptor {
 		origCols := len(in.Type.Columns)
-		cols := make([]zng.Column, origCols, origCols+1)
+		cols := make([]zng.Column, origCols, origCols+len(p.clauses))
 		for i, c := range in.Type.Columns {
 			cols[i] = c
 		}
-		newcolumn := zng.Column{
-			Name: p.target,
-			Type: val.Type,
-		}
 
-		position, hasCol := in.Type.ColumnOfField(p.target)
-		if hasCol {
-			cols[position] = newcolumn
-		} else {
-			position = -1
-			cols = append(cols, newcolumn)
+		fields := make([]fieldinfo, len(p.clauses))
+		for k, cl := range p.clauses {
+			newcolumn := zng.Column{
+				Name: cl.target,
+				Type: p.vals[k].Type,
+			}
+
+			position, hasCol := in.Type.ColumnOfField(cl.target)
+			if hasCol {
+				cols[position] = newcolumn
+			} else {
+				position = -1
+				cols = append(cols, newcolumn)
+			}
+			fields[k].valType = p.vals[k].Type
+			fields[k].position = position
+			fields[k].container = p.vals[k].IsContainer()
 		}
 
 		typ, err := p.TypeContext.LookupTypeRecord(cols)
@@ -87,35 +123,70 @@ func (p *Put) put(in *zng.Record) *zng.Record {
 			p.maybeWarn(err)
 			return in
 		}
+
+		// Compute the order in which to write fields (i.e., if
+		// we're overriding existing fields, write them in the
+		// order they appear in the output record).
+		order := make([]int, len(p.clauses))
+		for k := range order {
+			order[k] = k
+		}
+		sort.Slice(order, func(a, b int) bool {
+			if fields[a].position == -1 {
+				return false
+			}
+			if fields[b].position == -1 {
+				return true
+			}
+			return fields[a].position < fields[b].position
+		})
+
 		newinfo := descinfo{
-			outType:   typ,
-			valType:   val.Type,
-			position:  position,
-			container: val.IsContainer(),
+			typ:    typ,
+			fields: fields,
+			order:  order,
 		}
 
 		p.outmap[in.Type.ID()] = newinfo
-		info = newinfo
+		descInfo = newinfo
 	}
 
 	// Build the new output value
 	var bytes zcode.Bytes
-	if info.position == -1 {
-		if info.container {
-			bytes = zcode.AppendContainer(in.Raw, val.Bytes)
-		} else {
-			bytes = zcode.AppendPrimitive(in.Raw, val.Bytes)
-		}
+	i := 0
+	if descInfo.fields[descInfo.order[i]].position == -1 {
+		// all fields are being appended...
+		bytes = in.Raw
 	} else {
+		// we're overwriting one or more fields.  descInfo.order
+		// has the column numbers we need, sorted.
+		origCols := len(in.Type.Columns)
 		iter := in.ZvalIter()
-		for i := range info.outType.Columns {
+		vali := descInfo.order[i]
+		nextcol := descInfo.fields[vali].position
+		for col := range descInfo.typ.Columns {
+			if col == origCols {
+				break
+			}
 			item, isContainer, err := iter.Next()
 			if err != nil {
 				panic(err)
 			}
-			if i == info.position {
-				item = val.Bytes
-				isContainer = info.container
+			if col == nextcol {
+				item = p.vals[vali].Bytes
+				isContainer = descInfo.fields[vali].container
+
+				// Advance to the next column we need to
+				// overwrite.  If we're done overwriting
+				// columns, just set nextcol to -1 so this
+				// loop finishes copying existing fields.
+				i++
+				if i < len(descInfo.fields) {
+					vali = descInfo.order[i]
+					nextcol = descInfo.fields[vali].position
+				} else {
+					nextcol = -1
+				}
 			}
 
 			if isContainer {
@@ -126,7 +197,18 @@ func (p *Put) put(in *zng.Record) *zng.Record {
 		}
 	}
 
-	out, err := zng.NewRecord(info.outType, bytes)
+	// any remaining fields are to be appended
+	for i < len(descInfo.fields) {
+		vali := descInfo.order[i]
+		i++
+		if descInfo.fields[vali].container {
+			bytes = zcode.AppendContainer(bytes, p.vals[vali].Bytes)
+		} else {
+			bytes = zcode.AppendPrimitive(bytes, p.vals[vali].Bytes)
+		}
+	}
+
+	out, err := zng.NewRecord(descInfo.typ, bytes)
 	if err != nil {
 		// NewRecord fails if the descriptor has a ts field but
 		// the value can't be extracted or parsed.  Since the input
