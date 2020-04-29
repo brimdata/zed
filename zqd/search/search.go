@@ -44,7 +44,7 @@ func NewSearch(ctx context.Context, s *space.Space, req api.SearchRequest) (*Sea
 		return nil, zqe.E(zqe.Invalid, "forward facing searches not supported")
 	}
 	if req.Dir != -1 {
-		return nil, zqe.E("time direction must be 1 or -1", zqe.Invalid)
+		return nil, zqe.E(zqe.Invalid, "time direction must be 1 or -1")
 	}
 	query, err := UnpackQuery(req)
 	if err != nil {
