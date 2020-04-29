@@ -104,6 +104,11 @@ searchPred
   / "**" _? fieldComparator:equalityToken _? v:searchValue {
       RETURN(makeCompareAny(fieldComparator, true, v))
     }
+  // XXX this is a bug workaround until we resolve the ambiguity between
+  // expressions and subnet literals
+  / v:SubnetLiteral {
+      RETURN(makeSearch(TEXT, v, false))
+    }
   / f:fieldExpr _? fieldComparator:equalityToken _? v:searchValue {
       RETURN(makeCompareField(fieldComparator, f, v))
     }
