@@ -410,8 +410,13 @@ uniq
     }
 
 put
-  = "put"i _ f:fieldName __ "=" __ e:Expression {
-      RETURN(makePutProc(f, e))
+  = "put"i _ first:PutClause rest:(__ "," __ cl:PutClause { RETURN(cl) })* {
+      RETURN(makePutProc(first, rest))
+    }
+
+PutClause
+  = f:fieldName __ "=" __ e:Expression {
+      RETURN(makePutClause(f, e))
     }
 
 PrimaryExpression
