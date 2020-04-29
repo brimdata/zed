@@ -1,0 +1,12 @@
+# Test overwriting multiple fields out of order
+zql: put b=a, a=b
+
+input: |
+  #0:record[a:int32,b:int32]
+  0:[1;2;]
+  0:[3;4;]
+
+output: |
+  #0:record[a:int32,b:int32]
+  0:[2;1;]
+  0:[4;3;]
