@@ -8,6 +8,7 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
@@ -104,7 +105,8 @@ func TestSearchError(t *testing.T) {
 		_, err = client.Search(context.Background(), req)
 		require.Error(t, err)
 		errResp := err.(*api.ErrorResponse)
-		require.IsType(t, &api.Error{}, errResp.Err)
+		assert.Equal(t, http.StatusBadRequest, errResp.StatusCode())
+		assert.IsType(t, &api.Error{}, errResp.Err)
 	})
 	t.Run("ForwardSearchUnsupported", func(t *testing.T) {
 		req := api.SearchRequest{
@@ -116,7 +118,8 @@ func TestSearchError(t *testing.T) {
 		_, err = client.Search(context.Background(), req)
 		require.Error(t, err)
 		errResp := err.(*api.ErrorResponse)
-		require.IsType(t, &api.Error{}, errResp.Err)
+		assert.Equal(t, http.StatusBadRequest, errResp.StatusCode())
+		assert.IsType(t, &api.Error{}, errResp.Err)
 	})
 }
 
