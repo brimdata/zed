@@ -1,6 +1,6 @@
 export GO111MODULE=on
 
-VERSION = $(shell git describe --tags --dirty)
+VERSION = $(shell git describe --tags --dirty --always)
 LDFLAGS = -s -X main.version=$(VERSION)
 ZEEKTAG = v3.0.2-brim1
 ZEEKPATH = zeek-$(ZEEKTAG)
