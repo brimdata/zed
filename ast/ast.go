@@ -31,6 +31,7 @@ type BooleanExpr interface {
 
 // FieldExpr is the interface implemented by expressions that reference fields.
 type FieldExpr interface {
+	fieldExprNode()
 }
 
 type Expression interface {
@@ -129,6 +130,9 @@ type (
 		Param string    `json:"param"`
 	}
 )
+
+func (*FieldRead) fieldExprNode() {}
+func (*FieldCall) fieldExprNode() {}
 
 type UnaryExpression struct {
 	Node
