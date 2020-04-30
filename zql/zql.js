@@ -308,9 +308,7 @@ function peg$parse(input, options) {
 
             return result
         },
-      peg$c93 = function(base, refs) {
-          return chainFieldCalls(base, refs)
-        },
+      peg$c93 = function(base, refs) { return text() },
       peg$c94 = function(first, ref) { return ref },
       peg$c95 = function(first, rest) {
         let result =  [first]
@@ -2082,7 +2080,7 @@ function peg$parse(input, options) {
     if (s1 !== peg$FAILED) {
       s2 = peg$parse_();
       if (s2 !== peg$FAILED) {
-        s3 = peg$parsefieldExprList();
+        s3 = peg$parsefieldRefDotOnlyList();
         if (s3 !== peg$FAILED) {
           peg$savedPos = s0;
           s1 = peg$c60(s3);
@@ -2649,8 +2647,7 @@ function peg$parse(input, options) {
       if (s4 !== peg$FAILED) {
         s5 = peg$parsefieldName();
         if (s5 !== peg$FAILED) {
-          peg$savedPos = s3;
-          s4 = peg$c79(s1, s5);
+          s4 = [s4, s5];
           s3 = s4;
         } else {
           peg$currPos = s3;
@@ -2673,8 +2670,7 @@ function peg$parse(input, options) {
         if (s4 !== peg$FAILED) {
           s5 = peg$parsefieldName();
           if (s5 !== peg$FAILED) {
-            peg$savedPos = s3;
-            s4 = peg$c79(s1, s5);
+            s4 = [s4, s5];
             s3 = s4;
           } else {
             peg$currPos = s3;

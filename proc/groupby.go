@@ -48,13 +48,9 @@ const defaultGroupByLimit = 1000000
 func CompileGroupBy(node *ast.GroupByProc, zctx *resolver.Context) (*GroupByParams, error) {
 	keys := make([]GroupByKey, 0)
 	for _, key := range node.Keys {
-		resolver, err := expr.CompileFieldExpr(key)
-		if err != nil {
-			return nil, fmt.Errorf("compiling groupby: %w", err)
-		}
 		keys = append(keys, GroupByKey{
-			name:     GroupKey(key),
-			resolver: resolver,
+			name:     key,
+			resolver: expr.CompileFieldAccess(key),
 		})
 	}
 	reducers := make([]compile.CompiledReducer, 0)
@@ -65,11 +61,7 @@ func CompileGroupBy(node *ast.GroupByProc, zctx *resolver.Context) (*GroupByPara
 		}
 		reducers = append(reducers, compiled)
 	}
-	var names []string
-	for _, name := range node.Keys {
-		names = append(names, expr.FieldExprToString(name))
-	}
-	builder, err := NewColumnBuilder(zctx, names)
+	builder, err := NewColumnBuilder(zctx, node.Keys)
 	if err != nil {
 		return nil, fmt.Errorf("compiling groupby: %w", err)
 	}

@@ -160,6 +160,15 @@ func fieldExprArray(val interface{}) []ast.FieldExpr {
 	return ret
 }
 
+func stringArray(val interface{}) []string {
+	array := val.([]interface{})
+	strings := make([]string, len(array))
+	for i, s := range array {
+		strings[i] = s.(string)
+	}
+	return strings
+}
+
 type ProcArg struct {
 	Name  string
 	Value string
@@ -220,7 +229,7 @@ func makeCutProc(argsIn, fieldsIn interface{}) (*ast.CutProc, error) {
 		complement = true
 	}
 
-	fields := fieldExprArray(fieldsIn)
+	fields := stringArray(fieldsIn)
 	return &ast.CutProc{ast.Node{"CutProc"}, complement, fields}, nil
 }
 
@@ -291,7 +300,7 @@ func makeGroupByProc(durationIn, limitIn, keysIn, reducersIn interface{}) *ast.G
 		limit = limitIn.(int)
 	}
 
-	keys := fieldExprArray(keysIn)
+	keys := stringArray(keysIn)
 	reducers := reducersArray(reducersIn)
 
 	return &ast.GroupByProc{

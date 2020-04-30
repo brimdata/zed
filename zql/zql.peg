@@ -216,7 +216,7 @@ proc
     }
 
 groupBy
-  = "by"i _ list:fieldExprList { RETURN(list) }
+  = "by"i _ list:fieldRefDotOnlyList { RETURN(list) }
 
 everyDur
   = "every"i _ dur:duration { RETURN(dur) }
@@ -263,9 +263,7 @@ fieldExprList
   }
 
 fieldRefDotOnly
-  = base:fieldName refs:("." field:fieldName { RETURN(makeFieldCall("RecordFieldRead", NULL, field)) } )* {
-    RETURN(chainFieldCalls(base, refs))
-  }
+  = base:fieldName refs:("." field:fieldName)* { RETURN(TEXT) }
 
 fieldRefDotOnlyList
   = first:fieldRefDotOnly rest:(_? "," _? ref:fieldRefDotOnly { RETURN(ref) })* {
