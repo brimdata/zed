@@ -400,7 +400,7 @@ func compilePatternMatch(lhsFunc, rhsFunc NativeEvaluator, op string) (NativeEva
 		var result bool
 		switch rhs.Type.ID() {
 		case zng.IdString, zng.IdBstring:
-			if lhs.Type.ID() != zng.IdString && rhs.Type.ID() != zng.IdBstring {
+			if lhs.Type.ID() != zng.IdString && lhs.Type.ID() != zng.IdBstring {
 				return zngnative.Value{}, ErrIncompatibleTypes
 			}
 			pattern := reglob.Reglob(rhs.Value.(string))
