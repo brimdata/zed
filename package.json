@@ -1,4 +1,14 @@
 {
   "name": "zq",
-  "version": "0.13.0-dev"
+  "version": "0.13.0-dev",
+  "scripts": {
+      "prepack": "go build -o dist ./cmd/..."
+  },
+  "files": [
+      "dist/**",
+      "**/*.js"
+  ],
+  "directories": {
+      "bin": "dist"
+  }
 }
