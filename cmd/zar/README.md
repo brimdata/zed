@@ -19,7 +19,7 @@ svn checkout https://github.com/brimsec/zq-sample-data/trunk/zng
 ```
 Or, you can clone the whole data repo using git and symlink the zng dir:
 ```
-git clone https://github.com/brimsec/zq-sample-data.git
+git clone --depth=1 https://github.com/brimsec/zq-sample-data.git
 ln -s zq-sample-data/zng
 ```
 
