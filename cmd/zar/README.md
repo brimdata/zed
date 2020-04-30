@@ -186,7 +186,7 @@ this key, we'll compute the number of times that value appeared for each zeek
 log type.  To do this, we'll run "zar zq" in a way that leaves
 these results behind in each zar directory:
 ```
-zar zq -o groupby.zng "count(), sum(orig_bytes) as bytes by _path, id.orig_h" _
+zar zq -o groupby.zng "count() by _path, id.orig_h" _
 ```
 You can run ls to see the files are indeed there:
 ```
@@ -198,6 +198,7 @@ and make sure the file is sorted by key:
 ```
 zar zq -o keys.zng "put key=id.orig_h | cut -c id | sort key" groupby.zng
 ```
+(ignore "value is unset" messages... we need to fix this)
 
 Run ls again and you'll see everything is there
 ```
