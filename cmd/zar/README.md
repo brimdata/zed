@@ -30,8 +30,9 @@ easier to run all the commands by setting an environment variable pointing
 to the root of the logs tree.
 ```
 mkdir ./logs
-setenv ZAR_ROOT `pwd`/logs
+set ZAR_ROOT=`pwd`/logs
 ```
+
 Now let's in ingest the data using "zar chop".  We are working on more
 sophisticated ways to ingest data, but for now zar chop just chops its input
 into chunks of approximately equal size.  Zar chop expects its input to be
