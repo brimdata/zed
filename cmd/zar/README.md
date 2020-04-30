@@ -12,10 +12,15 @@ We'll use the test data here:
 ```
 https://github.com/brimsec/zq-sample-data/tree/master/zng
 ```
-You can clone the repo or copy just this directory into your current
-directory using subversion:
+You can copy the just zng data directory needed for this demo
+into your current directory using subversion:
 ```
 svn checkout https://github.com/brimsec/zq-sample-data/trunk/zng
+```
+Or, you can clone the whole data repo using git and symlink the zng dir:
+```
+https://github.com/brimsec/zq-sample-data.git
+ln -s zq-sample-data/zng
 ```
 
 ## ingesting the data
@@ -37,6 +42,7 @@ fairly small (175MB) and you can always try it out on larger data sets:
 ```
 zq zng/*.gz | zar chop -s 25 -
 ```
+
 
 ## initializing the archive
 
@@ -198,6 +204,7 @@ and make sure the file is sorted by key:
 ```
 zar zq -o keys.zng "put key=id.orig_h | cut -c id | sort key" groupby.zng
 ```
+
 (ignore "value is unset" messages... we need to fix this)
 
 Run ls again and you'll see everything is there
