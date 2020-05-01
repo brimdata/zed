@@ -14,9 +14,9 @@ import (
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/space"
@@ -226,7 +226,7 @@ func (p *Process) createSnapshot(ctx context.Context) error {
 		return nil
 	}
 	// convert logs into sorted zng
-	zr, err := scanner.OpenFiles(resolver.NewContext(), files...)
+	zr, err := detector.OpenFiles(resolver.NewContext(), files...)
 	if err != nil {
 		return err
 	}

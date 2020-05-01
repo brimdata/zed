@@ -10,7 +10,6 @@ import (
 
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
@@ -199,13 +198,13 @@ func compileLogIngest(ctx context.Context, s *space.Space, rs []zbuf.Reader, pro
 		return nil, err
 	}
 	if stopErr {
-		r := scanner.NewCombiner(rs)
+		r := zbuf.NewCombiner(rs)
 		return driver.Compile(ctx, p, r, false, nano.MaxSpan, zap.NewNop())
 	}
 	wch := make(chan string, 5)
 	for i, r := range rs {
 		rs[i] = zbuf.NewWarningReader(r, wch)
 	}
-	r := scanner.NewCombiner(rs)
+	r := zbuf.NewCombiner(rs)
 	return driver.CompileWarningsCh(ctx, p, r, false, nano.MaxSpan, zap.NewNop(), wch)
 }

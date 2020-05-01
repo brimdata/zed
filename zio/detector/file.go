@@ -63,6 +63,18 @@ func OpenFromNamedReadCloser(zctx *resolver.Context, rc io.ReadCloser, path stri
 	return zbuf.NewFile(zr, rc, path), nil
 }
 
+func OpenFiles(zctx *resolver.Context, paths ...string) (*zbuf.Combiner, error) {
+	var readers []zbuf.Reader
+	for _, path := range paths {
+		reader, err := OpenFile(zctx, path, OpenConfig{})
+		if err != nil {
+			return nil, err
+		}
+		readers = append(readers, reader)
+	}
+	return zbuf.NewCombiner(readers), nil
+}
+
 func jsonConfig(cfg OpenConfig, jr *ndjsonio.Reader, filename string) error {
 	var path string
 	re := regexp.MustCompile(cfg.JSONPathRegex)

@@ -11,7 +11,6 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
@@ -56,7 +55,7 @@ func NewSearch(ctx context.Context, s *space.Space, req api.SearchRequest) (*Sea
 		return nil, err
 	}
 	zctx := resolver.NewContext()
-	mapper := scanner.NewMapper(zngReader, zctx)
+	mapper := zbuf.NewMapper(zngReader, zctx)
 	mux, err := launch(ctx, query, mapper, zctx)
 	if err != nil {
 		zngReader.Close()

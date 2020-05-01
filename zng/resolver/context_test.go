@@ -1,4 +1,4 @@
-package resolver
+package resolver_test
 
 import (
 	"testing"
@@ -6,12 +6,13 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestContextAddColumns(t *testing.T) {
-	ctx := NewContext()
+	ctx := resolver.NewContext()
 	d, err := ctx.LookupTypeRecord([]zng.Column{zng.NewColumn("s1", zng.TypeString)})
 	require.NoError(t, err)
 	r, err := zbuf.NewRecordZeekStrings(d, "S1")
@@ -29,7 +30,7 @@ func TestContextAddColumns(t *testing.T) {
 }
 
 func TestDuplicates(t *testing.T) {
-	ctx := NewContext()
+	ctx := resolver.NewContext()
 	setType := ctx.LookupTypeSet(zng.TypeInt32)
 	typ1, err := ctx.LookupTypeRecord([]zng.Column{
 		zng.NewColumn("a", zng.TypeString),
