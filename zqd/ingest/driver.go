@@ -66,6 +66,7 @@ func (s *simpledriver) Write(_ int, batch zbuf.Batch) error {
 func (s *simpledriver) Warn(warning string) error {
 	return nil
 }
+
 func (s *simpledriver) Stats(stats api.ScannerStats) error {
 	return nil
 }

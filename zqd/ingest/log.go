@@ -126,6 +126,7 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api
 		return err
 	}
 	if err := zngfile.Close(); err != nil {
+		os.Remove(zngfile.Name())
 		return err
 	}
 	if tailW.r != nil {
@@ -140,16 +141,10 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api
 		os.Remove(zngfile.Name())
 		return err
 	}
-	info, err := s.Info()
-	if err != nil {
-		return err
-	}
 	return pipe.Send(&api.LogPostStatus{
 		Type:         "LogPostStatus",
-		Span:         info.Span,
-		Size:         info.Size,
 		LogTotalSize: d.totalSize,
-		LogReadSize:  d.lastReadSize,
+		LogReadSize:  mux.Stats().BytesRead,
 	})
 }
 

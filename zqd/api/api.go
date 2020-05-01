@@ -119,11 +119,9 @@ type LogPostWarning struct {
 }
 
 type LogPostStatus struct {
-	Type         string     `json:"type"`
-	Span         *nano.Span `json:"span,omitempty"`
-	Size         int64      `json:"size" unit:"bytes"`
-	LogTotalSize int64      `json:"log_total_size" unit:"bytes"`
-	LogReadSize  int64      `json:"log_read_size" unit:"bytes"`
+	Type         string `json:"type"`
+	LogTotalSize int64  `json:"log_total_size" unit:"bytes"`
+	LogReadSize  int64  `json:"log_read_size" unit:"bytes"`
 }
 
 // PacketSearch are the query string args to the packet endpoint when searching
