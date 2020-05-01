@@ -283,6 +283,7 @@ func (p *Parser) ParseValue(line []byte) (*zng.Record, error) {
 		// each time here
 		path = []byte(p.Path)
 	}
+	p.builder.Reset()
 	zv, err := zbuf.NewRawFromZeekTSV(p.builder, p.descriptor, path, line)
 	if err != nil {
 		return nil, err

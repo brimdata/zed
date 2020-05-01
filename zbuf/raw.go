@@ -11,22 +11,42 @@ import (
 )
 
 func NewRawFromZeekTSV(builder *zcode.Builder, typ *zng.TypeRecord, path []byte, data []byte) (zcode.Bytes, error) {
-	builder.Reset()
 	columns := typ.Columns
-	col := 0
 	if path != nil {
 		if columns[0].Name != "_path" {
 			return nil, errors.New("no _path in column 0")
 		}
+		columns = columns[1:]
 		builder.AppendPrimitive(path)
-		col++
 	}
+	var fields [][]byte
+	var start int
 
 	const separator = '\t'
+
+	for i, c := range data {
+		if c == separator {
+			fields = append(fields, data[start:i])
+			start = i + 1
+		}
+	}
+	fields = append(fields, data[start:])
+
+	fields, err := appendRecordFromZeekTSV(builder, columns, fields)
+	if err != nil {
+		return nil, err
+	}
+	if len(fields) != 0 {
+		return nil, errors.New("too many values")
+	}
+
+	return builder.Bytes(), nil
+}
+
+func appendRecordFromZeekTSV(builder *zcode.Builder, columns []zng.Column, fields [][]byte) ([][]byte, error) {
 	const setSeparator = ','
 	const emptyContainer = "(empty)"
-	var start int
-	nestedCol := 0
+
 	appendVal := func(val []byte, typ zng.Type) error {
 		if string(val) == "-" {
 			builder.AppendPrimitive(nil)
@@ -40,20 +60,7 @@ func NewRawFromZeekTSV(builder *zcode.Builder, typ *zng.TypeRecord, path []byte,
 		return nil
 	}
 
-	handleVal := func(val []byte) error {
-		if col >= len(columns) {
-			return errors.New("too many values")
-		}
-
-		typ := columns[col].Type
-		recType, isRec := typ.(*zng.TypeRecord)
-		if isRec {
-			if nestedCol == 0 {
-				builder.BeginContainer()
-			}
-			typ = recType.Columns[nestedCol].Type
-		}
-
+	handleVal := func(val []byte, typ zng.Type) error {
 		switch typ.(type) {
 		case *zng.TypeSet, *zng.TypeArray:
 			if string(val) == "-" {
@@ -87,37 +94,33 @@ func NewRawFromZeekTSV(builder *zcode.Builder, typ *zng.TypeRecord, path []byte,
 				return err
 			}
 		}
-
-		if isRec {
-			nestedCol++
-			if nestedCol != len(recType.Columns) {
-				return nil
-			}
-			builder.EndContainer()
-			nestedCol = 0
-		}
-		col++
 		return nil
 	}
 
-	for i, c := range data {
-		if c == separator {
-			err := handleVal(data[start:i])
-			if err != nil {
+	c := 0
+	for c < len(columns) {
+		if len(fields) == 0 {
+			return nil, errors.New("too few values")
+		}
+
+		typ := columns[c].Type
+		if recType, isRec := typ.(*zng.TypeRecord); isRec {
+			builder.BeginContainer()
+			var err error
+			if fields, err = appendRecordFromZeekTSV(builder, recType.Columns, fields); err != nil {
 				return nil, err
 			}
-			start = i + 1
+			builder.EndContainer()
+		} else {
+			if err := handleVal(fields[0], typ); err != nil {
+				return nil, err
+			}
+			fields = fields[1:]
 		}
-	}
-	err := handleVal(data[start:])
-	if err != nil {
-		return nil, err
+		c++
 	}
 
-	if col != len(typ.Columns) {
-		return nil, errors.New("too few values")
-	}
-	return builder.Bytes(), nil
+	return fields, nil
 }
 
 func NewRawAndTsFromZeekValues(typ *zng.TypeRecord, tsCol int, vals [][]byte) (zcode.Bytes, nano.Ts, error) {
