@@ -106,19 +106,14 @@ func (m *Manager) Create(name, dataPath string) (*api.SpacePostResponse, error) 
 	}
 	var path string
 	if name == "" {
-		var err error
-		if path, err = fs.UniqueDir(m.rootPath, filepath.Base(dataPath)); err != nil {
-			return nil, err
-		}
-		name = filepath.Base(path)
-	} else {
-		path = filepath.Join(m.rootPath, name)
-		if err := os.Mkdir(path, 0700); err != nil {
-			if os.IsExist(err) {
-				return nil, ErrSpaceExists
-			}
-			return nil, err
-		}
+		name = filepath.Base(dataPath)
+	}
+	path, err := fs.UniqueDir(m.rootPath, name)
+	if err != nil {
+		return nil, err
+	}
+	name = filepath.Base(path)
+	if dataPath == "" {
 		dataPath = path
 	}
 	c := config{
