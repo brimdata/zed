@@ -53,7 +53,10 @@ func (s *Scanner) Stats() api.ScannerStats {
 
 // Read implements zbuf.Reader.Read.
 func (s *Scanner) Read() (*zng.Record, error) {
-	for s.ctx.Err() == nil {
+	for {
+		if err := s.ctx.Err(); err != nil {
+			return nil, err
+		}
 		rec, err := s.reader.Read()
 		if err != nil || rec == nil {
 			return nil, err
@@ -71,7 +74,6 @@ func (s *Scanner) Read() (*zng.Record, error) {
 		rec.CopyBody()
 		return rec, nil
 	}
-	return nil, nil
 }
 
 // Done is required to implement proc.Proc interface. Ignore for now.

@@ -108,14 +108,12 @@ func (s *SplitChannel) Pull() (zbuf.Batch, error) {
 	if s.ch == nil {
 		return nil, nil
 	}
-	// Send SplitProc a request, then read the result.  If context is
-	// canceled, we send a nil request to let SplitProc know we're done,
-	// which will cause it to exit when it sees that all of us SplitChannels
-	// are gone.  We don't want both SplitProc and SplitChannel listening
-	// on context canceled as that could lead to deadlock.
+	// Send SplitProc a request, then read the result. On EOS we send a nil
+	// request to let SplitProc know we're done, which will cause it to exit
+	// when it sees that all of us SplitChannels are gone.
 	s.request <- s.ch
 	result := <-s.ch
-	if result.Batch == nil && result.Err == nil {
+	if EOS(result.Batch, result.Err) {
 		s.Done()
 	}
 	return result.Batch, result.Err
