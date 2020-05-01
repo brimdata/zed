@@ -373,7 +373,7 @@ func TestPostZngLogs(t *testing.T) {
 	require.Equal(t, &api.LogPostStatus{
 		Type:         "LogPostStatus",
 		LogTotalSize: 148,
-		LogReadSize:  58,
+		LogReadSize:  148,
 	}, status)
 
 	taskend := payloads[len(payloads)-1].(*api.TaskEnd)
@@ -418,7 +418,7 @@ func TestPostZngLogWarning(t *testing.T) {
 	expected := &api.LogPostStatus{
 		Type:         "LogPostStatus",
 		LogTotalSize: 95,
-		LogReadSize:  29,
+		LogReadSize:  95,
 	}
 	require.Equal(t, expected, status)
 
@@ -530,7 +530,7 @@ func TestPostNDJSONLogWarning(t *testing.T) {
 	expected := &api.LogPostStatus{
 		Type:         "LogPostStatus",
 		LogTotalSize: 134,
-		LogReadSize:  10,
+		LogReadSize:  134,
 	}
 	require.Equal(t, expected, status)
 

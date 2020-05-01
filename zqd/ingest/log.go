@@ -20,6 +20,7 @@ import (
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/search"
 	"github.com/brimsec/zq/zqd/space"
+	"github.com/brimsec/zq/zqe"
 	"github.com/brimsec/zq/zql"
 	"go.uber.org/zap"
 )
@@ -64,6 +65,36 @@ func (rw *recWriter) Write(r *zng.Record) error {
 // x509_20191101_14:00:00-15:00:00+0000.log.gz (corelight)
 const DefaultJSONPathRegexp = `([a-zA-Z0-9_]+)(?:\.|_\d{8}_)\d\d:\d\d:\d\d\-\d\d:\d\d:\d\d(?:[+\-]\d{4})?\.log(?:$|\.gz)`
 
+type readCounter struct {
+	f     *os.File
+	nread int64
+}
+
+func (rc *readCounter) Read(p []byte) (int, error) {
+	n, err := rc.f.Read(p)
+	rc.nread += int64(n)
+	return n, err
+}
+
+func (rc *readCounter) Close() error {
+	return rc.f.Close()
+}
+
+func openIncomingLog(path string) (*readCounter, int64, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, 0, err
+	}
+	if info.IsDir() {
+		return nil, 0, zqe.E(zqe.Invalid, "path is a directory")
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, 0, err
+	}
+	return &readCounter{f: f}, info.Size(), nil
+}
+
 func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api.LogPostRequest) error {
 	zctx := resolver.NewContext()
 	var readers []zbuf.Reader
@@ -80,8 +111,13 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api
 		cfg.JSONPathRegex = DefaultJSONPathRegexp
 	}
 	var totalSize int64
+	var readCounters []*readCounter
 	for _, path := range req.Paths {
-		sf, err := detector.OpenFile(zctx, path, cfg)
+		rc, size, err := openIncomingLog(path)
+		if err != nil {
+			return err
+		}
+		sf, err := detector.OpenFromNamedReadCloser(zctx, rc, path, cfg)
 		if err != nil {
 			if req.StopErr {
 				return fmt.Errorf("%s: %w", path, err)
@@ -92,10 +128,18 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api
 			})
 			continue
 		}
-		if info, err := os.Stat(path); err == nil {
-			totalSize += info.Size()
-		}
+
+		totalSize += size
+		readCounters = append(readCounters, rc)
 		readers = append(readers, sf)
+	}
+
+	logBytesRead := func() int64 {
+		var n int64
+		for i := range readCounters {
+			n += readCounters[i].nread
+		}
+		return n
 	}
 
 	zngfile, err := s.CreateFile(filepath.Join(tmpIngestDir, allZngTmpFile))
@@ -111,10 +155,11 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api
 		return err
 	}
 	d := &logdriver{
-		pipe:      pipe,
-		startTime: nano.Now(),
-		totalSize: totalSize,
-		writers:   []zbuf.Writer{zw, &headW, &tailW},
+		pipe:         pipe,
+		startTime:    nano.Now(),
+		totalSize:    totalSize,
+		logBytesRead: logBytesRead,
+		writers:      []zbuf.Writer{zw, &headW, &tailW},
 	}
 
 	statsTicker := time.NewTicker(search.StatsInterval)
@@ -144,7 +189,7 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api
 	return pipe.Send(&api.LogPostStatus{
 		Type:         "LogPostStatus",
 		LogTotalSize: d.totalSize,
-		LogReadSize:  mux.Stats().BytesRead,
+		LogReadSize:  logBytesRead(),
 	})
 }
 

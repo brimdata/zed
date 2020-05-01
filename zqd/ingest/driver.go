@@ -11,7 +11,7 @@ type logdriver struct {
 	pipe         *api.JSONPipe
 	startTime    nano.Ts
 	totalSize    int64
-	lastReadSize int64
+	logBytesRead func() int64
 	writers      []zbuf.Writer
 }
 
@@ -36,11 +36,10 @@ func (d *logdriver) Warn(warning string) error {
 }
 
 func (d *logdriver) Stats(stats api.ScannerStats) error {
-	d.lastReadSize = stats.BytesRead
 	return d.pipe.Send(&api.LogPostStatus{
 		Type:         "LogPostStatus",
 		LogTotalSize: d.totalSize,
-		LogReadSize:  d.lastReadSize,
+		LogReadSize:  d.logBytesRead(),
 	})
 }
 
