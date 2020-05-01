@@ -136,13 +136,12 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api
 			return err
 		}
 	}
-	if err = os.Rename(zngfile.Name(), s.DataPath(space.AllZngFile)); err != nil {
+	if err := os.Rename(zngfile.Name(), s.DataPath(space.AllZngFile)); err != nil {
 		os.Remove(zngfile.Name())
 		return err
 	}
 	info, err := s.Info()
 	if err != nil {
-		os.Remove(zngfile.Name())
 		return err
 	}
 	return pipe.Send(&api.LogPostStatus{
