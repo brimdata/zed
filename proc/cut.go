@@ -61,7 +61,7 @@ func CompileCutProc(c *Context, parent Proc, node *ast.CutProc) (*Cut, error) {
 
 // cut returns a new record value from input record using the provided
 // cutBuilder, or nil if the record can't be cut.
-func (c *Cut) cut(cb *cutBuilder, in *zng.Record) *zng.Record {
+func (cb *cutBuilder) cut(in *zng.Record) *zng.Record {
 	cb.builder.Reset()
 	for _, resolver := range cb.resolvers {
 		val := resolver(in)
@@ -226,7 +226,7 @@ func (c *Cut) Pull() (zbuf.Batch, error) {
 				continue
 			}
 
-			out := c.cut(cb, in)
+			out := cb.cut(in)
 			if out != nil {
 				recs = append(recs, out)
 			}
