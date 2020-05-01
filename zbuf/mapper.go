@@ -1,17 +1,16 @@
-package scanner
+package zbuf
 
 import (
-	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
 type Mapper struct {
-	zbuf.Reader
+	Reader
 	mapper *resolver.Mapper
 }
 
-func NewMapper(reader zbuf.Reader, zctx *resolver.Context) *Mapper {
+func NewMapper(reader Reader, zctx *resolver.Context) *Mapper {
 	return &Mapper{
 		Reader: reader,
 		mapper: resolver.NewMapper(zctx),

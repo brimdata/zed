@@ -57,6 +57,18 @@ func OpenFile(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, 
 	return zbuf.NewFile(zr, f), nil
 }
 
+func OpenFiles(zctx *resolver.Context, paths ...string) (*zbuf.Combiner, error) {
+	var readers []zbuf.Reader
+	for _, path := range paths {
+		reader, err := OpenFile(zctx, path, OpenConfig{})
+		if err != nil {
+			return nil, err
+		}
+		readers = append(readers, reader)
+	}
+	return zbuf.NewCombiner(readers), nil
+}
+
 func jsonConfig(cfg OpenConfig, jr *ndjsonio.Reader, filename string) error {
 	var path string
 	re := regexp.MustCompile(cfg.JSONPathRegex)

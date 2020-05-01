@@ -130,7 +130,6 @@ import (
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
@@ -617,7 +616,7 @@ func runzq(bindir, ZQL, outputFormat, outputFlags string, inputs ...string) (out
 	return string(outbuf.Bytes()), string(errbuf.Bytes()), nil
 }
 
-func loadInputs(inputs []string, zctx *resolver.Context) (*scanner.Combiner, error) {
+func loadInputs(inputs []string, zctx *resolver.Context) (*zbuf.Combiner, error) {
 	var readers []zbuf.Reader
 	for _, input := range inputs {
 		zr, err := detector.NewReader(detector.GzipReader(strings.NewReader(input)), zctx)
@@ -626,7 +625,7 @@ func loadInputs(inputs []string, zctx *resolver.Context) (*scanner.Combiner, err
 		}
 		readers = append(readers, zr)
 	}
-	return scanner.NewCombiner(readers), nil
+	return zbuf.NewCombiner(readers), nil
 }
 
 func tmpInputFiles(inputs []string) (string, []string, error) {
