@@ -371,9 +371,9 @@ func TestPostZngLogs(t *testing.T) {
 	status := payloads[len(payloads)-2].(*api.LogPostStatus)
 	span := &nano.Span{Ts: 1e9, Dur: 1e9 + 1}
 	require.Equal(t, &api.LogPostStatus{
-		Type: "LogPostStatus",
-		Span: span,
-		Size: 80,
+		Type:         "LogPostStatus",
+		LogTotalSize: 148,
+		LogReadSize:  148,
 	}, status)
 
 	taskend := payloads[len(payloads)-1].(*api.TaskEnd)
@@ -415,11 +415,10 @@ func TestPostZngLogWarning(t *testing.T) {
 	assert.Regexp(t, ": line 3: bad format$", warn2.Warning)
 
 	status := payloads[len(payloads)-2].(*api.LogPostStatus)
-	span := &nano.Span{Ts: nano.Ts(1e9), Dur: 1}
 	expected := &api.LogPostStatus{
-		Type: "LogPostStatus",
-		Span: span,
-		Size: 49,
+		Type:         "LogPostStatus",
+		LogTotalSize: 95,
+		LogReadSize:  95,
 	}
 	require.Equal(t, expected, status)
 
@@ -528,11 +527,10 @@ func TestPostNDJSONLogWarning(t *testing.T) {
 	assert.Regexp(t, ": line 2: incomplete descriptor", warn2.Warning)
 
 	status := payloads[len(payloads)-2].(*api.LogPostStatus)
-	span := nano.Span{Ts: 1e9, Dur: 1}
 	expected := &api.LogPostStatus{
-		Type: "LogPostStatus",
-		Span: &span,
-		Size: 25,
+		Type:         "LogPostStatus",
+		LogTotalSize: 134,
+		LogReadSize:  134,
 	}
 	require.Equal(t, expected, status)
 

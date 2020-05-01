@@ -8,9 +8,11 @@ import (
 
 // logdriver implements driver.Driver.
 type logdriver struct {
-	pipe      *api.JSONPipe
-	startTime nano.Ts
-	writers   []zbuf.Writer
+	pipe         *api.JSONPipe
+	startTime    nano.Ts
+	totalSize    int64
+	logBytesRead func() int64
+	writers      []zbuf.Writer
 }
 
 func (d *logdriver) Write(cid int, batch zbuf.Batch) error {
@@ -32,10 +34,42 @@ func (d *logdriver) Warn(warning string) error {
 		Warning: warning,
 	})
 }
+
 func (d *logdriver) Stats(stats api.ScannerStats) error {
-	return nil
+	return d.pipe.Send(&api.LogPostStatus{
+		Type:         "LogPostStatus",
+		LogTotalSize: d.totalSize,
+		LogReadSize:  d.logBytesRead(),
+	})
 }
 
 func (d *logdriver) ChannelEnd(cid int) error {
+	return nil
+}
+
+// simpledriver implements driver.Driver.
+type simpledriver struct {
+	w zbuf.Writer
+}
+
+func (s *simpledriver) Write(_ int, batch zbuf.Batch) error {
+	for _, r := range batch.Records() {
+		if err := s.w.Write(r); err != nil {
+			return err
+		}
+	}
+	batch.Unref()
+	return nil
+}
+
+func (s *simpledriver) Warn(warning string) error {
+	return nil
+}
+
+func (s *simpledriver) Stats(stats api.ScannerStats) error {
+	return nil
+}
+
+func (s *simpledriver) ChannelEnd(cid int) error {
 	return nil
 }
