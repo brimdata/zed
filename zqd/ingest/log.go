@@ -79,6 +79,7 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api
 		cfg.JSONTypeConfig = req.JSONTypeConfig
 		cfg.JSONPathRegex = DefaultJSONPathRegexp
 	}
+	var totalSize int64
 	for _, path := range req.Paths {
 		sf, err := detector.OpenFile(zctx, path, cfg)
 		if err != nil {
@@ -90,6 +91,9 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api
 				Warning: fmt.Sprintf("%s: %s", path, err),
 			})
 			continue
+		}
+		if info, err := os.Stat(path); err == nil {
+			totalSize += info.Size()
 		}
 		readers = append(readers, sf)
 	}
@@ -109,6 +113,7 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api
 	d := &logdriver{
 		pipe:      pipe,
 		startTime: nano.Now(),
+		totalSize: totalSize,
 		writers:   []zbuf.Writer{zw, &headW, &tailW},
 	}
 
@@ -127,22 +132,26 @@ func ingestLogs(ctx context.Context, pipe *api.JSONPipe, s *space.Space, req api
 		min := nano.Min(tailW.r.Ts, headW.r.Ts)
 		max := nano.Max(tailW.r.Ts, headW.r.Ts)
 		if err = s.SetSpan(nano.NewSpanTs(min, max+1)); err != nil {
+			os.Remove(zngfile.Name())
 			return err
 		}
 	}
-	if err := os.Rename(zngfile.Name(), s.DataPath(space.AllZngFile)); err != nil {
+	if err = os.Rename(zngfile.Name(), s.DataPath(space.AllZngFile)); err != nil {
+		os.Remove(zngfile.Name())
 		return err
 	}
 	info, err := s.Info()
 	if err != nil {
+		os.Remove(zngfile.Name())
 		return err
 	}
-	status := api.LogPostStatus{
-		Type: "LogPostStatus",
-		Span: info.Span,
-		Size: info.Size,
-	}
-	return pipe.Send(status)
+	return pipe.Send(&api.LogPostStatus{
+		Type:         "LogPostStatus",
+		Span:         info.Span,
+		Size:         info.Size,
+		LogTotalSize: d.totalSize,
+		LogReadSize:  d.lastReadSize,
+	})
 }
 
 func compileLogIngest(ctx context.Context, s *space.Space, rs []zbuf.Reader, prog string, stopErr bool) (*driver.MuxOutput, error) {

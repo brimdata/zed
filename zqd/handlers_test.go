@@ -371,9 +371,10 @@ func TestPostZngLogs(t *testing.T) {
 	status := payloads[len(payloads)-2].(*api.LogPostStatus)
 	span := &nano.Span{Ts: 1e9, Dur: 1e9 + 1}
 	require.Equal(t, &api.LogPostStatus{
-		Type: "LogPostStatus",
-		Span: span,
-		Size: 80,
+		Type:         "LogPostStatus",
+		Span:         span,
+		Size:         80,
+		LogTotalSize: 148,
 	}, status)
 
 	taskend := payloads[len(payloads)-1].(*api.TaskEnd)
@@ -417,9 +418,10 @@ func TestPostZngLogWarning(t *testing.T) {
 	status := payloads[len(payloads)-2].(*api.LogPostStatus)
 	span := &nano.Span{Ts: nano.Ts(1e9), Dur: 1}
 	expected := &api.LogPostStatus{
-		Type: "LogPostStatus",
-		Span: span,
-		Size: 49,
+		Type:         "LogPostStatus",
+		Span:         span,
+		Size:         49,
+		LogTotalSize: 95,
 	}
 	require.Equal(t, expected, status)
 
@@ -530,9 +532,10 @@ func TestPostNDJSONLogWarning(t *testing.T) {
 	status := payloads[len(payloads)-2].(*api.LogPostStatus)
 	span := nano.Span{Ts: 1e9, Dur: 1}
 	expected := &api.LogPostStatus{
-		Type: "LogPostStatus",
-		Span: &span,
-		Size: 25,
+		Type:         "LogPostStatus",
+		Span:         &span,
+		Size:         25,
+		LogTotalSize: 134,
 	}
 	require.Equal(t, expected, status)
 

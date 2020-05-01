@@ -19,7 +19,6 @@ import (
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zqd/search"
 	"github.com/brimsec/zq/zqd/space"
 	"github.com/brimsec/zq/zqd/zeek"
 	"github.com/brimsec/zq/zql"
@@ -263,13 +262,8 @@ func (p *Process) ingestLogs(ctx context.Context, w zbuf.Writer, r zbuf.Reader, 
 	if err != nil {
 		return err
 	}
-	d := &logdriver{
-		startTime: nano.Now(),
-		writers:   []zbuf.Writer{w},
-	}
-	statsTicker := time.NewTicker(search.StatsInterval)
-	defer statsTicker.Stop()
-	return driver.Run(mux, d, statsTicker.C)
+	d := &simpledriver{w}
+	return driver.Run(mux, d, nil)
 }
 
 func (p *Process) Write(b []byte) (int, error) {
