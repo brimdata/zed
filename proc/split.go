@@ -54,8 +54,11 @@ func (s *Split) run() {
 	// the upstream path and a reference-counted batch is transmitted to
 	// each requesting entity.
 	strip := make([]chan<- Result, 0, s.n)
-	for s.n > 0 {
+	for {
 		flight := s.gather(strip)
+		if s.n == 0 {
+			break
+		}
 		batch, err := s.Get()
 		s.send(flight, Result{batch, err})
 		if batch != nil {
@@ -110,19 +113,12 @@ func (s *SplitChannel) Pull() (zbuf.Batch, error) {
 	// which will cause it to exit when it sees that all of us SplitChannels
 	// are gone.  We don't want both SplitProc and SplitChannel listening
 	// on context canceled as that could lead to deadlock.
-	var err error
 	s.request <- s.ch
-	select {
-	case result := <-s.ch:
-		if result.Batch == nil && result.Err == nil {
-			s.Done()
-		}
-		return result.Batch, result.Err
-	case <-s.parent.Context.Done():
-		err = s.parent.Context.Err()
+	result := <-s.ch
+	if result.Batch == nil && result.Err == nil {
+		s.Done()
 	}
-	s.Done()
-	return nil, err
+	return result.Batch, result.Err
 }
 
 func (s *SplitChannel) Done() {
