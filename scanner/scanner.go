@@ -1,6 +1,7 @@
 package scanner
 
 import (
+	"context"
 	"sync/atomic"
 
 	"github.com/brimsec/zq/filter"
@@ -16,6 +17,7 @@ type Scanner struct {
 	reader zbuf.Reader
 	filter filter.Filter
 	span   nano.Span
+	ctx    context.Context
 	stats  struct {
 		bytesRead      int64
 		bytesMatched   int64
@@ -24,11 +26,12 @@ type Scanner struct {
 	}
 }
 
-func NewScanner(reader zbuf.Reader, f filter.Filter, s nano.Span) *Scanner {
+func NewScanner(ctx context.Context, reader zbuf.Reader, f filter.Filter, s nano.Span) *Scanner {
 	return &Scanner{
 		reader: reader,
 		filter: f,
 		span:   s,
+		ctx:    ctx,
 	}
 }
 
@@ -51,6 +54,9 @@ func (s *Scanner) Stats() api.ScannerStats {
 // Read implements zbuf.Reader.Read.
 func (s *Scanner) Read() (*zng.Record, error) {
 	for {
+		if err := s.ctx.Err(); err != nil {
+			return nil, err
+		}
 		rec, err := s.reader.Read()
 		if err != nil || rec == nil {
 			return nil, err
