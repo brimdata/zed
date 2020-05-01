@@ -93,12 +93,6 @@ func NewManager(root string, logger *zap.Logger) *Manager {
 
 func (m *Manager) Create(name, dataPath string) (*api.SpacePostResponse, error) {
 	m.mapLock.Lock()
-	_, exists := m.spaces[name]
-	if exists {
-		m.mapLock.Unlock()
-		return nil, ErrSpaceExists
-	}
-
 	defer m.mapLock.Unlock()
 
 	if name == "" && dataPath == "" {
