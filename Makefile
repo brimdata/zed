@@ -73,7 +73,7 @@ create-release-assets:
 test-ci: fmt tidy vet test-unit test-system test-zeek test-heavy
 
 clean:
-	@rm -rf dist
+	@rm -rf dist/*
 
 .PHONY: fmt tidy vet test-unit test-system test-heavy sampledata test-ci
 .PHONY: perf-compare build install create-release-assets clean
