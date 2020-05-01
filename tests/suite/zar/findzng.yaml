@@ -5,9 +5,9 @@ script: |
   zar mkdirs ./logs
   # make an index by hand for each log containing a sum
   zar zq -R ./logs -o tmp.zng "sum(v) by s | put key=s | sort key" _
-  # turn each custom key file into a b-tere index
+  # turn each custom key file into a b-tree index
   zar zdx -R ./logs -f 500 -o index tmp.zng
-  zar find -R ./logs -o - -x index amphitheatral-televox | zq -t -
+  zar find -R ./logs -o - -x index -z amphitheatral-televox | zq -t -
 
 inputs:
   - name: babble.tzng
@@ -16,5 +16,6 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      #0:record[s:string,sum:int64,key:string]
-      0:[amphitheatral-televox;251;amphitheatral-televox;]
+      #zfile=string
+      #0:record[s:string,sum:int64,key:string,_log:zfile]
+      0:[amphitheatral-televox;251;amphitheatral-televox;logs/20200421/1587513208.06466306.zng;]

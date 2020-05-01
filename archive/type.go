@@ -27,6 +27,7 @@ func NewTypeIndexer(path string, refType zng.Type) *TypeIndexer {
 		IndexerCommon: IndexerCommon{
 			MemTable: zdx.NewMemTable(zctx),
 			path:     path,
+			zctx:     zctx,
 		},
 		Type: zctx.Localize(refType),
 	}
@@ -233,5 +234,8 @@ func (t *TypeIndexer) record(typ *zng.TypeRecord, body zcode.Bytes) error {
 }
 
 func (t *TypeIndexer) enter(body zcode.Bytes) {
-	t.MemTable.EnterKey(zng.Value{t.Type, body})
+	// skip over unset values
+	if body != nil {
+		t.MemTable.EnterKey(zng.Value{t.Type, body})
+	}
 }

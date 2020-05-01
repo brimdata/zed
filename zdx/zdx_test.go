@@ -41,7 +41,7 @@ func buildTestTable(t *testing.T, zngText string) string {
 	}
 	path := filepath.Join(dir, "zdx")
 	reader := newTextReader(zngText)
-	writer, err := zdx.NewWriter(path, 32*1024)
+	writer, err := zdx.NewWriter(resolver.NewContext(), path, nil, 32*1024)
 	if err != nil {
 		t.Error(err)
 	}
@@ -93,13 +93,15 @@ const sixPairs = `
 func TestSearch(t *testing.T) {
 	path := buildTestTable(t, sixPairs)
 	defer os.RemoveAll(path) // nolint:errcheck
-	finder := zdx.NewFinder(path)
-	_, err := finder.Open()
+	zctx := resolver.NewContext()
+	finder := zdx.NewFinder(zctx, path)
+	err := finder.Open()
 	if err != nil {
 		t.Error(err)
 	}
-	key2 := zng.EncodeString("key2")
-	rec, err := finder.Lookup(zng.Value{zng.TypeString, key2})
+	keyRec, err := zng.NewBuilder(finder.Keys()).Parse("key2")
+	require.NoError(t, err)
+	rec, err := finder.Lookup(keyRec)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
 	value, err := rec.Slice(1)
@@ -122,13 +124,14 @@ func TestZdx(t *testing.T) {
 	path := filepath.Join(dir, "zdx")
 	stream, err := newReader(N)
 	require.NoError(t, err)
-	writer, err := zdx.NewWriter(path, 32*1024)
+	zctx := resolver.NewContext()
+	writer, err := zdx.NewWriter(zctx, path, nil, 32*1024)
 	require.NoError(t, err)
 	err = zbuf.Copy(writer, stream)
 	require.NoError(t, err)
 	err = writer.Close()
 	require.NoError(t, err)
-	reader, err := zdx.NewReader(path)
+	reader, err := zdx.NewReader(zctx, path)
 	require.NoError(t, err)
 	defer reader.Close() //nolint:errcheck
 	n := 0
@@ -140,7 +143,9 @@ func TestZdx(t *testing.T) {
 		require.NoError(t, err)
 		n++
 	}
-	assert.Exactly(t, N, n, "number of pairs read from zdx file doesn't match number written")
+	// XXX subtract one for the header record... these tests will change
+	// when the hierachy of files is collapsed into a single file
+	assert.Exactly(t, N, n-1, "number of pairs read from zdx file doesn't match number written")
 }
 
 /* not yet

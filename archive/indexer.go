@@ -6,7 +6,6 @@ import (
 
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zdx"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -23,18 +22,6 @@ func typeZdxName(t zng.Type) string {
 
 func fieldZdxName(fieldname string) string {
 	return "zdx:field:" + fieldname
-}
-
-// Indexer provides a means to index a zng file.  First, a stream of zng.Records
-// is written to the Indexer via zbuf.Writer, then the indexed records are read
-// as a stream via zbuf.Reader.  The index is managed as a zdx bundle.
-// XXX currently we are supporting just in-memory indexing but it would be
-// straightforward to extend this to spill in-memory tables then merge them
-// on close a la LSM.
-type Indexer interface {
-	zbuf.Reader
-	zbuf.Writer
-	Path() string
 }
 
 func IndexDirTree(dir string, rules []Rule, progress chan<- string) error {
@@ -56,15 +43,16 @@ func IndexDirTree(dir string, rules []Rule, progress chan<- string) error {
 
 func run(zardir string, rules []Rule, progress chan<- string) error {
 	logPath := ZarDirToLog(zardir)
-	var indexers []Indexer
+	var writers []zbuf.WriteCloser
 	for _, rule := range rules {
-		indexer, err := rule.NewIndexer(zardir)
+		w, err := rule.NewIndexer(zardir)
 		if err != nil {
 			return err
 		}
-		indexers = append(indexers, indexer)
+		writers = append(writers, w)
 		if progress != nil {
-			progress <- fmt.Sprintf("%s: creating index %s", logPath, indexer.Path())
+			//XXX
+			progress <- fmt.Sprintf("%s: creating index", logPath)
 		}
 	}
 	file, err := fs.Open(logPath)
@@ -84,28 +72,21 @@ func run(zardir string, rules []Rule, progress chan<- string) error {
 		if rec == nil {
 			break
 		}
-		for _, indexer := range indexers {
-			if err := indexer.Write(rec); err != nil {
+		for _, w := range writers {
+			if err := w.Write(rec); err != nil {
 				return err
 			}
 		}
 	}
-	// we make the framesize here larger than the writer framesize
-	// since the writer always writes a bit past the threshold
-	const framesize = 32 * 1024 * 2
-	// XXX this loop could be parallelized
-	for _, indexer := range indexers {
-		writer, err := zdx.NewWriter(indexer.Path(), framesize)
-		if err != nil {
-			return err
-		}
-		if err := zbuf.Copy(writer, indexer); err != nil {
-			writer.Close()
-			return err
-		}
-		if err := writer.Close(); err != nil {
-			return err
+	var lastErr error
+	// XXX this loop could be parallelized.. the close on the index writers
+	// dump the in-memory table to disk.  Also, we should use a zql proc
+	// graph to do this work instead of the in-memory map once we have
+	// group-by spills working.
+	for _, w := range writers {
+		if err := w.Close(); err != nil {
+			lastErr = err
 		}
 	}
-	return nil
+	return lastErr
 }

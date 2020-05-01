@@ -1,56 +1,79 @@
 package archive
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 
+	"github.com/brimsec/zq/zdx"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 )
 
-// Find descends a directory hierarchy looking for index files that can
-// resolve the provided rule.  For each such index found, the rule is used to
-// see if the pattern is in the index.  If the pattern is in the index,
-// then the path name of the file corresponding to that index is included in
-// the slice of strings comprising the return value.
+// Find descends a directory hierarchy looking for index files to search and
+// for each such index, it looks up the given pattern.  If the pattern matches,
+// a zng.Record of that row in the index is streamed to the hits channel.
+// If multiple rows match, they are streamed in the order encountered in the index.
+// Multiple records can match for a multi-key search where one or more keys are
+// unspecified, implying a "don't care" condition for the unspecified sub-key(s).
+// If skipMissing is true, then log files that do not have the indicated index
+// are silently skipped; otherwise, an error is returned for the missing index file
+// and the search is terminated.  If pathField is non-zero, then a column is added
+// to each returned zng.Record with the path of the log file relating that hit
+// where the column name is given by the pathField argument.  If the passed-in
+// ctx is canceled, the search will terminate with error context.Canceled.
 // XXX We currently allow only one pattern at a time though it might
 // be more efficient at large scale to allow multipe patterns that
 // are effectively OR-ed together so that there is locality of
 // access to the zdx files.
-func Find(dir string, rule Rule, pattern string, hits chan<- string, skipMissing bool) error {
-	//XXX this should be parallelized with some locking presuming a little
-	// parallelism won't mess up the file system assumptions
-	return Walk(dir, func(zardir string) error {
-		hit, err := Search(zardir, rule, pattern, skipMissing)
+func Find(ctx context.Context, rootDir, indexName string, pattern []string, hits chan<- *zng.Record, pathField string, skipMissing bool) error {
+	//XXX this can be parallelized fairly easily since the search results are
+	// share the same type context allowing the zng.Records to easily comprise
+	// a single stream
+	zctx := resolver.NewContext()
+	var pathCol []zng.Column
+	if pathField != "" {
+		// Create a type alias called "zfile" that the client will
+		// understand as the pathname of a zng file, e.g., available
+		// as a new space via zqd.
+		typ, err := zctx.LookupTypeAlias("zfile", zng.TypeString)
 		if err != nil {
 			return err
 		}
-		if hit != nil && hits != nil {
-			hits <- ZarDirToLog(zardir)
-		}
-		return nil
-	})
-}
-
-func FindZng(dir string, rule Rule, pattern string, hits chan<- *zng.Record, skipMissing bool) error {
-	//XXX this should be parallelized with some locking presuming a little
-	// parallelism won't mess up the file system assumptions
-	return Walk(dir, func(zardir string) error {
-		hit, err := Search(zardir, rule, pattern, skipMissing)
-		if err != nil {
-			return err
-		}
-		if hit != nil {
-			hit.Keep()
+		pathCol = []zng.Column{{pathField, typ}}
+	}
+	ctx, cancel := context.WithCancel(ctx)
+	return Walk(rootDir, func(zardir string) error {
+		path := filepath.Join(zardir, indexName)
+		searchHits := make(chan *zng.Record)
+		var err error
+		go func() {
+			err = search(ctx, zctx, searchHits, path, pattern, skipMissing)
+			close(searchHits)
+		}()
+		logPath := ZarDirToLog(zardir)
+		for hit := range searchHits {
+			if pathCol != nil {
+				val := zng.Value{pathCol[0].Type, zng.EncodeString(logPath)}
+				hit, err = zctx.AddColumns(hit, pathCol, []zng.Value{val})
+				if err != nil {
+					cancel()
+					for _ = range searchHits {
+						// let search unravel
+					}
+					return err
+				}
+			}
 			hits <- hit
 		}
-		return nil
+		return err
 	})
 }
 
-func Search(zardir string, rule Rule, pattern string, skipMissing bool) (*zng.Record, error) {
-	finder := rule.NewFinder(zardir)
-	keyType, err := finder.Open()
-	if err != nil {
+func search(ctx context.Context, zctx *resolver.Context, hits chan<- *zng.Record, path string, pattern []string, skipMissing bool) error {
+	finder := zdx.NewFinder(zctx, path)
+	if err := finder.Open(); err != nil {
 		if err == os.ErrNotExist && skipMissing {
 			// No index for this rule.  Skip it if the skip boolean
 			// says it's ok.  Otherwise, we return ErrNotExist since
@@ -60,20 +83,16 @@ func Search(zardir string, rule Rule, pattern string, skipMissing bool) (*zng.Re
 		} else {
 			err = fmt.Errorf("%s: %w", finder.Path(), err)
 		}
-		return nil, err
+		return err
 	}
 	defer finder.Close()
-	if keyType == nil {
-		// This happens when an index exists but is empty.
-		return nil, nil
-	}
-	keyBytes, err := keyType.Parse([]byte(pattern))
+	keys, err := finder.ParseKeys(pattern)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", finder.Path(), err)
+		return fmt.Errorf("%s: %w", finder.Path(), err)
 	}
-	rec, err := finder.Lookup(zng.Value{keyType, keyBytes})
+	err = finder.LookupAll(ctx, hits, keys)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", finder.Path(), err)
 	}
-	return rec, err
+	return err
 }

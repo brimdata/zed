@@ -1,9 +1,9 @@
 script: |
-  zdx create -o index -k a in.zng
+  zdx create -o index -k a in.tzng
   zq -t index.zng
 
 inputs:
-  - name: in.zng
+  - name: in.tzng
     data: |
       #0:record[a:string]
       0:[hello;]
@@ -11,5 +11,7 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      #0:record[key:string]
-      0:[hello;]
+      #0:record[magic:string,version:string,child_field:string,keys:record[key:string]]
+      0:[zdx;0.2;_btree_child;-;]
+      #1:record[key:string]
+      1:[hello;]

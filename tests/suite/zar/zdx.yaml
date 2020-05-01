@@ -31,12 +31,12 @@ outputs:
       logs/20200422/1587517144.06969796.zng.zar/index.1.zng
       logs/20200422/1587517919.0642989.zng.zar/index.1.zng
       ===
-      #0:record[key:string,value:int64]
+      #0:record[key:string,_btree_child:int64]
       0:[Auriga-teat;0;]
-      0:[amphitheatral-televox;520;]
-      0:[coulee-fraze;1021;]
-      0:[immanency-sarcastical;1566;]
-      0:[operculum-junctional;2097;]
-      0:[regulate-monopodium;2630;]
-      0:[stinkstone-canonize;3130;]
-      0:[willowbiter-Greekish;3638;]
+      0:[algesthesis-unkindred;539;]
+      0:[colonopexy-ketonimin;1042;]
+      0:[gangliac-cuspule;1548;]
+      0:[nephratonia-subdeltoid;2074;]
+      0:[ratiocinant-unmoaned;2610;]
+      0:[sniggoringly-craniography;3142;]
+      0:[veridically-coelenterate;3651;]

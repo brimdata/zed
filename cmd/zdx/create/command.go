@@ -3,7 +3,6 @@ package create
 import (
 	"errors"
 	"flag"
-	"fmt"
 
 	"github.com/brimsec/zq/cmd/zdx/root"
 	"github.com/brimsec/zq/expr"
@@ -11,52 +10,44 @@ import (
 	"github.com/brimsec/zq/zdx"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
-	"github.com/brimsec/zq/zio/zngio"
-	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
 )
 
-// XXX TBD: allow zql expression to combine a same-key value stream
-
 var Create = &charm.Spec{
 	Name:  "create",
-	Usage: "create [-f framesize] [ -o file ] [-value field] -key field file",
-	Short: "generate an zdx file from one or more zng files",
+	Usage: "create [-f framesize] [ -o file ] -k field file",
+	Short: "create a key-only zdx index from a zng file",
 	Long: `
-The create command generates a zdx bundle containing keys and optional values
-from the input file.  The required flag -k specifies the zng record
-field name that comprises the set of keys added to the zdx.  The optional
-flag -v specifies a field name whose value will be added alongside its key.
+The create command generates a key-only zdx index comprising the values from the
+input taken from the field specified by -k.  The output index will have a base layer
+with search key called "key".
 If a key appears more than once, the last value in the input takes precedence.
-It is an error if a value field is specified but not present in any record.
-It is also an error if the key or value fields are not of uniform type.`,
-	New: newCreateCommand,
+It is an error if the key fields are not of uniform type.`,
+	New: newCommand,
 }
 
 func init() {
 	root.Zdx.Add(Create)
 }
 
-type CreateCommand struct {
+type Command struct {
 	*root.Command
 	framesize   int
 	outputFile  string
 	keyField    string
-	valField    string
 	skip        bool
 	inputReady  bool
 	ReaderFlags zio.ReaderFlags
 }
 
-func newCreateCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &CreateCommand{
+func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
+	c := &Command{
 		Command: parent.(*root.Command),
 	}
 	f.IntVar(&c.framesize, "f", 32*1024, "minimum frame size used in zdx file")
 	f.StringVar(&c.outputFile, "o", "zdx", "output zdx bundle name")
-	f.StringVar(&c.keyField, "k", "", "field name of keys")
-	f.StringVar(&c.valField, "v", "", "field name of values")
+	f.StringVar(&c.keyField, "k", "", "field name of search keys")
 	f.BoolVar(&c.inputReady, "x", false, "input file is already sorted keys (and optional values)")
 	f.BoolVar(&c.skip, "S", false, "skip all records except for the first of each stream")
 	c.ReaderFlags.SetFlags(f)
@@ -64,12 +55,15 @@ func newCreateCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, err
 	return c, nil
 }
 
-func (c *CreateCommand) Run(args []string) error {
-	if !c.inputReady && c.keyField == "" {
-		return errors.New("must specify a key field with -k")
+func (c *Command) Run(args []string) error {
+	if c.keyField == "" {
+		return errors.New("must specify at least one key field with -k")
 	}
+	//XXX no reason to limit this... we will fix this when we refactor
+	// the code here to use zql/proc instead fo the hash table (after we
+	// have spillable group-bys)
 	if len(args) != 1 {
-		return errors.New("must specify a single zng input file containing keys and optional values")
+		return errors.New("must specify a single zng input file containing the indicated keys")
 	}
 	path := args[0]
 	zctx := resolver.NewContext()
@@ -83,7 +77,7 @@ func (c *CreateCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	writer, err := zdx.NewWriter(c.outputFile, c.framesize)
+	writer, err := zdx.NewWriter(zctx, c.outputFile, nil, c.framesize)
 	if err != nil {
 		return err
 	}
@@ -93,12 +87,9 @@ func (c *CreateCommand) Run(args []string) error {
 			writer.Close()
 		}
 	}()
-	reader := zbuf.Reader(file)
-	if !c.inputReady {
-		reader, err = c.buildTable(zctx, file)
-		if err != nil {
-			return err
-		}
+	reader, err := c.buildTable(zctx, file)
+	if err != nil {
+		return err
 	}
 	if err := zbuf.Copy(writer, reader); err != nil {
 		return err
@@ -107,32 +98,11 @@ func (c *CreateCommand) Run(args []string) error {
 	return writer.Close()
 }
 
-func (c *CreateCommand) buildTable(zctx *resolver.Context, file *zbuf.File) (*zdx.MemTable, error) {
+func (c *Command) buildTable(zctx *resolver.Context, reader zbuf.Reader) (*zdx.MemTable, error) {
 	readKey := expr.CompileFieldAccess(c.keyField)
-	var readVal expr.FieldExprResolver
-	if c.valField != "" {
-		readVal = expr.CompileFieldAccess(c.valField)
-	}
 	table := zdx.NewMemTable(zctx)
-	read := file.Read
-	if c.skip {
-		reader, ok := file.Reader.(*zngio.Reader)
-		if !ok {
-			return nil, errors.New("cannot use -S flag with non-zng input")
-		}
-		// to skip, return the first record of each stream,
-		// meaning read the first one, then skip to the next
-		// sos for each subsequent read
-		read = func() (*zng.Record, error) {
-			if reader.Position() == 0 {
-				return reader.Read()
-			}
-			rec, _, err := reader.SkipStream()
-			return rec, err
-		}
-	}
 	for {
-		rec, err := read()
+		rec, err := reader.Read()
 		if err != nil {
 			return nil, err
 		}
@@ -150,24 +120,8 @@ func (c *CreateCommand) buildTable(zctx *resolver.Context, file *zbuf.File) (*zd
 			// the right thing to do.
 			continue
 		}
-		if readVal == nil {
-			if err := table.EnterKey(k); err != nil {
-				return nil, err
-			}
-		} else {
-			v := readVal(rec)
-			if v.Type == nil {
-				// the key field exists but the value field
-				// doesn't, bail with an error
-				return nil, fmt.Errorf("couldn't read value '%s' (%s)", c.valField, rec)
-			}
-			// XXX here is where the table could be configured
-			// with a reducer to coalesce values that land
-			// on the same key.  right now, a new value
-			// will clobber the old one.
-			if err := table.EnterKeyVal(k, v); err != nil {
-				return nil, err
-			}
+		if err := table.EnterKey(k); err != nil {
+			return nil, err
 		}
 	}
 	return table, nil

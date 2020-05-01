@@ -1,29 +1,35 @@
 package lookup
 
 import (
+	"context"
 	"errors"
 	"flag"
-	"fmt"
 	"os"
+	"strings"
 
 	"github.com/brimsec/zq/cmd/zdx/root"
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/zdx"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
 var Lookup = &charm.Spec{
 	Name:  "lookup",
-	Usage: "lookup -k <key> <bundle>",
+	Usage: "lookup -k key[,key...] index",
 	Short: "lookup a key in an zdx file and print value as zng record",
 	Long: `
-The lookup command locates the specified <key> in the base file of the
-zdx <bundle> and displays the result as a zng record.
-The key argument specifies a value to look up in the table and must be parseable
-as a zng type of the key that was originally indexed.`,
+The lookup command locates the specified key(s) in the base layer of the
+zdx index and displays the result as a zng record.
+If the index has multiple keys, then multiple records may be returned for
+all the records that match the supplied keys.
+Each key argument specifies a value to look up in the table and must be parseable
+as a zng type of the key that was originally indexed where the keys refer to the leaf
+values in left-to-awrite order of the keys represented as a record, inclusive
+of any nested records.`,
 	New: newLookupCommand,
 }
 
@@ -33,7 +39,7 @@ func init() {
 
 type LookupCommand struct {
 	*root.Command
-	key          string
+	keys         string
 	outputFile   string
 	WriterFlags  zio.WriterFlags
 	closest      bool
@@ -43,7 +49,7 @@ type LookupCommand struct {
 
 func newLookupCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &LookupCommand{Command: parent.(*root.Command)}
-	f.StringVar(&c.key, "k", "", "key to search")
+	f.StringVar(&c.keys, "k", "", "key(s) to search")
 	f.BoolVar(&c.closest, "c", false, "find closest insead of exact match")
 	f.BoolVar(&c.textShortcut, "t", false, "use format tzng independent of -f option")
 	f.BoolVar(&c.forceBinary, "B", false, "allow binary zng be sent to a terminal output")
@@ -66,43 +72,46 @@ func (c *LookupCommand) Run(args []string) error {
 		return errors.New("zq: writing binary zng data to terminal; override with -B or use -t for text.")
 	}
 	path := args[0]
-	if c.key == "" {
-		return errors.New("must specify a key")
+	if c.keys == "" {
+		return errors.New("must specify one or more comma-separated keys")
 	}
-	finder := zdx.NewFinder(path)
-	keyType, err := finder.Open()
-	if err != nil {
+	finder := zdx.NewFinder(resolver.NewContext(), path)
+	if err := finder.Open(); err != nil {
 		return err
 	}
 	defer finder.Close()
-	if keyType == nil {
-		return fmt.Errorf("%s: index is empty", path)
-	}
-	// XXX Parse doesn't work yet for record values, but everything else
-	// is ready to go to use records and index keys
-	key, err := keyType.Parse([]byte(c.key))
+	keys, err := finder.ParseKeys(strings.Split(c.keys, ","))
 	if err != nil {
 		return err
 	}
-	var rec *zng.Record
-	if c.closest {
-		rec, err = finder.LookupClosest(zng.Value{keyType, key})
-	} else {
-		rec, err = finder.Lookup(zng.Value{keyType, key})
-	}
-	if err != nil {
-		return err
-	}
-	if rec == nil {
-		return nil
-	}
-
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	hits := make(chan *zng.Record)
+	var searchErr error
+	go func() {
+		if c.closest {
+			var rec *zng.Record
+			rec, searchErr = finder.LookupClosest(keys)
+			if rec != nil {
+				hits <- rec
+			}
+		} else {
+			searchErr = finder.LookupAll(ctx, hits, keys)
+		}
+		close(hits)
+	}()
 	writer, err := emitter.NewFile(c.outputFile, &c.WriterFlags)
 	if err != nil {
 		return err
 	}
-	if err := writer.Write(rec); err != nil {
-		return err
+	for hit := range hits {
+		if err = writer.Write(hit); err != nil {
+			return err
+		}
 	}
-	return writer.Close()
+	err = writer.Close()
+	if searchErr != nil {
+		err = searchErr
+	}
+	return err
 }

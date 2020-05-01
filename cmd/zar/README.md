@@ -120,9 +120,6 @@ If you want to see one, just look at it with zq, e.g.
 ```
 zq -t $ZAR_ROOT/20180324/1521912191.526264.zng.zar/zdx:type:ip.zng
 ```
-(BTW, you might see an invalid zng value in the index as
-there's currently a bug causing this.
-Will be fixed soon but the indexer ignores it and this doesn't affect the correctness here.)
 
 Now if you run "zar find", it will efficiently look through all the index files
 instead of the logs and run much faster...
@@ -168,19 +165,25 @@ Let's say instead of searching for what log chunk a value is in, we want to
 actually pull out the zng records that comprise the index.  The syntax
 is kind of clunky and we're working to clean it up but you can say...
 ```
-zar find -o - -x zdx:type:ip 10.47.21.138 | zq -t -
+zar find -z -o - -x zdx:type:ip 10.47.21.138 | zq -t -
 ```
+where `-z` says to produce zng output instead of a path listing,
 and you'll get this...
 ```
-#0:record[key:ip]
-0:[10.47.21.138;]
-0:[10.47.21.138;]
-0:[10.47.21.138;]
-0:[10.47.21.138;]
+#zfile=string
+#0:record[key:ip,_log:zfile]
+0:[10.47.21.138;/Users/mccanne/repo/logs/20180324/1521911720.600725.zng;]
+0:[10.47.21.138;/Users/mccanne/repo/logs/20180324/1521911867.742821.zng;]
+0:[10.47.21.138;/Users/mccanne/repo/logs/20180324/1521912191.526264.zng;]
+0:[10.47.21.138;/Users/mccanne/repo/logs/20180324/1521912390.147127.zng;]
 ```
-Hmm, not very useful.   Clearly that value was present in four of the indexes,
-but I don't know anything else.
-What if we put other information in the index alongside each key?
+The find command adds a column called "_log" (which can be disabled
+or customized to a different field name) so you can see where the
+search hits came from even when they are combined into a zng stream.
+The type field of the path is alias --- a sort of logical type ---
+where a client can infer the type "zfile" refers to a zng data file.
+
+But, what if we wanted to oput other information in the index alongside each key?
 Then maybe we can do interesting with that extra info.
 
 ## custom indexes
@@ -233,35 +236,50 @@ zar ls custom.zng
 ```
 I can see what's in it now:
 ```
-zq -f table $ZAR_ROOT/20180324/1521912191.526264.zng.zar/custom.zng | head -5
+zq -f table $ZAR_ROOT/20180324/1521912191.526264.zng.zar/custom.zng | head -10
 ```
-You can see the IPs, counts, byte sums, and _path strings.
+Along with a header describing the zdx layout,
+you can see the IPs, counts, and _path strings.
 
 ### zar find with custom index
 
 And now I can go back to my example from before and use "zar find" on the custom
 index:
 ```
-zar find -o - -x custom 10.164.94.120 | zq -t -
+zar find -z -o - -x custom 10.164.94.120 | zq -t -
 ```
 Now we're talking!  And if I take the results and do a little more math to
 aggregate the aggregations, I get this:
 ```
-zar find -o - -x custom 10.164.94.120 | zq -f table "sum(count) as count by _path" -
+zar find -z -o - -x custom 10.164.94.120 | zq -f table "sum(count) as count by _path" -
 ```
 And you get
 ```
-_PATH COUNT
-dns   8
-dpd   8
-rdp   208
-conn  136
+_PATH       COUNT
+dns         8
+dpd         24
+ftp         93
+rdp         4116
+rfb         3
+ssh         1
+ssl         9538
+conn        26726
+http        13485
+ntlm        80
+smtp        1178
+weird       316
+notice      35
+dce_rpc     2
+smb_files   1
+smb_mapping 65
 ```
 We can compute this aggregation now for any IP in the micro-index
-without reading any of the original log files!  Pretty cool.
-
-(TBD: count=sum(count) syntax not working right now, also reducers that don't
-find fields insert null, then null input deletes the row on the next aggregation)
+without reading any of the original log files!  You'll get the same
+output from this...
+```
+zq "id.orig_h=10.164.94.120" ../zng/*.gz | zq -f table "count() by _path" -
+```
+But using zar with the custom indexes is MUCH faster.  Pretty cool.
 
 ## Map-reduce
 
