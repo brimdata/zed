@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -284,7 +283,7 @@ func (p *Parser) ParseValue(line []byte) (*zng.Record, error) {
 		path = []byte(p.Path)
 	}
 	p.builder.Reset()
-	zv, err := zbuf.NewRawFromZeekTSV(p.builder, p.descriptor, path, line)
+	zv, err := buildRecordFromZeekTSV(p.builder, p.descriptor, path, line)
 	if err != nil {
 		return nil, err
 	}
