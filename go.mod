@@ -16,6 +16,7 @@ require (
 	github.com/peterh/liner v1.1.0
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/stretchr/testify v1.5.1
+	github.com/xitongsys/parquet-go v1.5.1
 	github.com/yuin/goldmark v1.1.27
 	go.uber.org/multierr v1.5.0
 	go.uber.org/zap v1.15.0
