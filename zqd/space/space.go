@@ -120,7 +120,6 @@ func (m *Manager) Create(name, dataPath string) (*api.SpacePostResponse, error) 
 	}
 
 	if _, exists := m.spaces[name]; exists {
-		m.mapLock.Unlock()
 		m.logger.Error("created duplicate space name", zap.String("name", name))
 		return nil, errors.New("created duplicate space name (this should not happen)")
 	}
