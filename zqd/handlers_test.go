@@ -237,6 +237,21 @@ func TestSpacePostNameOnly(t *testing.T) {
 	require.Equal(t, expected, sp)
 }
 
+func TestSpacePostDuplicateName(t *testing.T) {
+	ctx := context.Background()
+	c, client, done := newCore(t)
+	defer done()
+	expected := &api.SpacePostResponse{
+		Name:    "test_01",
+		DataDir: filepath.Join(c.Root, "test_01"),
+	}
+	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	require.NoError(t, err)
+	sp, err = client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	require.NoError(t, err)
+	require.Equal(t, expected, sp)
+}
+
 func TestSpacePostDataDir(t *testing.T) {
 	ctx := context.Background()
 	tmp := createTempDir(t)
