@@ -104,7 +104,7 @@ package:
 }
 ```
 
-To appreicate the importance of correct data typing, it helps to compare this
+To appreciate the importance of correct data typing, it helps to compare this
 event with how it's described when output in Zeek's default TSV log format.
 Here the schema is defined in a pair of headers at the top of the log.
 
@@ -311,7 +311,7 @@ Skipping openflow log as it has records nested within records
 ```
 
 (Note: The "Skipping openflow..." message is due to known issue [#15](https://github.com/brimsec/zeek/issues/15)
-that should be soon addressed. It does not affect this example.)
+It does not affect this example. If you have logs with multiple levels of nesting, please let us know and/or comment on the issue.)
 
 We can compare it to our original type definition to confirm we see the
 expected modifications. The top set of differences describes the additional
@@ -393,7 +393,7 @@ COUNT
 # Older versions of Zeek/Bro
 
 Since the `types.json` provided here is based on Zeek v3.1.2, you may wonder
-if it's appropriate to use it if you're running an older verison of Zeek.
+if it's appropriate to use it if you're running an older version of Zeek.
 While we've not tested with every version, we expect this should generally
 work fine. In terms of the default outputs from Zeek, what we've observed is
 that typically _more_ log types and additional fields appear in newer
