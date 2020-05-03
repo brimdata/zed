@@ -134,7 +134,7 @@ match.
 Cut fields ts,id.orig_h not present together in input
 ```
 
-Because we didn't apply a typing definition, here `zq` was performing _type_
+Because we didn't apply a typing definition (via the `-j` flag), here `zq` was performing _type_
 _inference_, assigning data types that match JSON's limited types. We can see
 this more clearly by having `zq` print an event back out in Zeek format after
 inferring data types:
