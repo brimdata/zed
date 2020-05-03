@@ -103,7 +103,7 @@ package:
 }
 ```
 
-To appreicate the importance of correct data typing, it helps to compare this
+To appreciate the importance of correct data typing, it helps to compare this
 event with how it's described when output in Zeek's default TSV log format.
 Here the schema is defined in a pair of headers at the top of the log.
 
