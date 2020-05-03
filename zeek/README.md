@@ -392,7 +392,7 @@ COUNT
 # Older versions of Zeek/Bro
 
 Since the `types.json` provided here is based on Zeek v3.1.2, you may wonder
-if it's appropriate to use it if you're running an older verison of Zeek.
+if it's appropriate to use it if you're running an older version of Zeek.
 While we've not tested with every version, we expect this should generally
 work fine. In terms of the default outputs from Zeek, what we've observed is
 that typically _more_ log types and additional fields appear in newer
