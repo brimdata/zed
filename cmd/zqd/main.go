@@ -6,6 +6,7 @@ import (
 
 	_ "github.com/brimsec/zq/cmd/zqd/listen"
 	root "github.com/brimsec/zq/cmd/zqd/root"
+	_ "github.com/brimsec/zq/cmd/zqd/winexec"
 	"github.com/brimsec/zq/zqd"
 )
 
