@@ -310,7 +310,7 @@ Skipping openflow log as it has records nested within records
 ```
 
 (Note: The "Skipping openflow..." message is due to known issue [#15](https://github.com/brimsec/zeek/issues/15)
-that should be soon addressed. It does not affect this example.)
+It does not affect this example. If you have logs with multiple levels of nesting, please let us know and/or comment on the issue.)
 
 We can compare it to our original type definition to confirm we see the
 expected modifications. The top set of differences describes the additional
