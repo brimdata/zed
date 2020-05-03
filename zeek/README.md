@@ -134,8 +134,37 @@ match.
 Cut fields ts,id.orig_h not present together in input
 ```
 
+Because we didn't apply a typing definition, here `zq` was performing _type_
+_inference_, assigning data types that match JSON's limited types. We can see
+this more clearly by having `zq` print an event back out in Zeek format after
+inferring data types:
+
+```
+# zq -f zeek "cut ts,id.orig_h | head 1" ~/zq-sample-data/zeek-ndjson/http.ndjson.gz
+#separator \x09
+#set_separator	,
+#empty_field	(empty)
+#unset_field	-
+#fields	ts	id.orig_h
+#types	string	string
+2018-03-24T17:15:20.609736Z	10.164.94.120
+```
+
 However, once we apply the the type definition, `zq` now knows to treat
-`id.orig_h` as an IP address, so the CIDR match succeeds, and we see the
+`id.orig_h` as an IP address.
+
+```
+# zq -f zeek -j ~/zq/zeek/types.json "cut ts,id.orig_h | head 1" ~/zq-sample-data/zeek-ndjson/http.ndjson.gz
+#separator \x09
+#set_separator	,
+#empty_field	(empty)
+#unset_field	-
+#fields	ts	id.orig_h
+#types	time	addr
+1521911720.609736	10.164.94.120
+```
+
+Revisiting our original query, now the CIDR match succeeds, and we see the
 expected result.
 
 ```
