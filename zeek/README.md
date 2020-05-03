@@ -35,7 +35,8 @@ better sense of priority and how to go about it if we've heard from those
 who have tried it. Whether you've used this feature and it "just worked" or if
 you hit challenges and need help, please join our
 [public Slack](https://join.slack.com/t/brimsec/shared_invite/zt-cy34xoxg-hZiTKUT~1KdGjlaBIuUUdg)
-and tell us about it. Thanks!
+and tell us about it, or
+[open an issue](https://github.com/brimsec/zq/issues/new/choose). Thanks!
 
 # Sample data
 
@@ -73,7 +74,7 @@ Consider this Zeek HTTP event as output by the
 package:
 
 ```
-# gzcat ~/zq-sample-data/zeek-ndjson/http.ndjson.gz | head -1 | jq -S .
+# gzcat ~/zq-sample-data/zeek-ndjson/http.ndjson.gz | head -n 1 | jq -S .
 {
   "_path": "http",
   "_write_ts": "2018-03-24T17:15:20.610930Z",
