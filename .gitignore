@@ -1,6 +1,5 @@
 bin/
-dist/*
-!dist/.gitignore
+dist/
 tests/test-root
 zq-sample-data
 zql/deps/
