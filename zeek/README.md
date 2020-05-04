@@ -217,7 +217,7 @@ total 24
 # Customizing type definitions
 
 When reading a set of Zeek JSON logs, the exceptions that may occur typically
-all into one of two categories:
+fall into one of two categories:
 
 1. `descriptor not found` - An event is read that has no `_path` defined in
 the `rules` portion of the type defintion
