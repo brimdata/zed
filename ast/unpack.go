@@ -67,11 +67,7 @@ func unpackProc(custom Unpacker, node joe.JSON) (Proc, error) {
 		}
 		return &SortProc{Fields: fields}, nil
 	case "CutProc":
-		fields, err := unpackFieldExprArray(node.Get("fields"))
-		if err != nil {
-			return nil, err
-		}
-		return &CutProc{Fields: fields}, nil
+		return &CutProc{}, nil
 	case "HeadProc":
 		return &HeadProc{}, nil
 	case "TailProc":
@@ -101,15 +97,11 @@ func unpackProc(custom Unpacker, node joe.JSON) (Proc, error) {
 		}
 		return &ReducerProc{Reducers: reducers}, nil
 	case "GroupByProc":
-		keys, err := unpackFieldExprArray(node.Get("keys"))
-		if err != nil {
-			return nil, err
-		}
 		reducers, err := unpackReducers(node.Get("reducers"))
 		if err != nil {
 			return nil, err
 		}
-		return &GroupByProc{Keys: keys, Reducers: reducers}, nil
+		return &GroupByProc{Reducers: reducers}, nil
 	case "TopProc":
 		fields, err := unpackFieldExprArray(node.Get("fields"))
 		if err != nil {

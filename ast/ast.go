@@ -203,8 +203,8 @@ type (
 	// sending each such modified record to its output in the order received.
 	CutProc struct {
 		Node
-		Complement bool        `json:"complement"`
-		Fields     []FieldExpr `json:"fields"`
+		Complement bool     `json:"complement"`
+		Fields     []string `json:"fields"`
 	}
 	// A HeadProc node represents a proc that forwards the indicated number
 	// of records then terminates.
@@ -258,11 +258,11 @@ type (
 	// be aggregated over. When absent, the runtime defaults to an appropriate value.
 	GroupByProc struct {
 		Node
-		Duration       Duration    `json:"duration"`
-		UpdateInterval Duration    `json:"update_interval"`
-		Limit          int         `json:"limit,omitempty"`
-		Keys           []FieldExpr `json:"keys"`
-		Reducers       []Reducer   `json:"reducers"`
+		Duration       Duration  `json:"duration"`
+		UpdateInterval Duration  `json:"update_interval"`
+		Limit          int       `json:"limit,omitempty"`
+		Keys           []string  `json:"keys"`
+		Reducers       []Reducer `json:"reducers"`
 	}
 	// TopProc is similar to proc.SortProc with a few key differences:
 	// - It only sorts in descending order.

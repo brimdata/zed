@@ -93,21 +93,6 @@ type Compiler interface {
 	Compile(ast.Proc, *Context, Proc) (Proc, error)
 }
 
-// Choose the name to use for a groupby key
-func GroupKey(node ast.FieldExpr) string {
-	switch n := node.(type) {
-	case *ast.FieldRead:
-		return n.Field
-	case *ast.FieldCall:
-		if n.Fn == "RecordFieldRead" {
-			return n.Param
-		}
-		return GroupKey(n.Field)
-	default:
-		panic("unknown FieldExpr type")
-	}
-}
-
 // CompileProc compiles an AST into a graph of Procs, and returns
 // the leaves.  A custom proc compiler can be included and it will be tried first
 // for each node encountered during the compilation.
