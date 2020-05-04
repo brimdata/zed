@@ -2,7 +2,7 @@
   "name": "zq",
   "version": "0.13.0-dev",
   "scripts": {
-      "prepack": "go build -o dist ./cmd/..."
+      "prepack": "node npm/build"
   },
   "files": [
       "dist/**",

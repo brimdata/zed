@@ -1,5 +1,7 @@
 export GO111MODULE=on
 
+# If VERSION or LDFLAGS change, please also change
+# npm/build.
 VERSION = $(shell git describe --tags --dirty --always)
 LDFLAGS = -s -X main.version=$(VERSION)
 ZEEKTAG = v3.0.2-brim1
@@ -49,6 +51,7 @@ test-zeek: bin/$(ZEEKPATH)
 perf-compare: build $(SAMPLEDATA)
 	scripts/comparison-test.sh
 
+# If the build recipe changes, please also change npm/build.
 build:
 	@mkdir -p dist
 	@go build -ldflags='$(LDFLAGS)' -o dist ./cmd/...
