@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/brimsec/zq/ast"
-	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 )
@@ -38,7 +37,7 @@ func CompileCutProc(c *Context, parent Proc, node *ast.CutProc) (*Cut, error) {
 		Base:       Base{Context: c, Parent: parent},
 		complement: node.Complement,
 		fieldnames: node.Fields,
-		cutter:     NewCutter(c.TypeContext, node.Complement, fields),
+		cutter:     NewCutter(c.TypeContext, node.Complement, node.Fields),
 	}, nil
 }
 
