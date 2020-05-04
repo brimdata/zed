@@ -159,7 +159,11 @@ func handlePcapSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 }
 
 func handleSpaceList(c *Core, w http.ResponseWriter, r *http.Request) {
-	spaces := c.spaces.ListNames()
+	spaces, err := c.spaces.List()
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
 	respond(c, w, r, http.StatusOK, spaces)
 }
 
@@ -191,7 +195,12 @@ func handleSpacePost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	info, err := c.spaces.Create(req.Name, req.DataDir)
+	sp, err := c.spaces.Create(req.Name, req.DataPath)
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	info, err := sp.Info()
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -200,15 +209,37 @@ func handleSpacePost(c *Core, w http.ResponseWriter, r *http.Request) {
 	respond(c, w, r, http.StatusOK, info)
 }
 
+func handleSpacePut(c *Core, w http.ResponseWriter, r *http.Request) {
+	s := extractSpace(c, w, r)
+	if s == nil {
+		return
+	}
+	_, cancel, err := s.StartSpaceOp(r.Context())
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	defer cancel()
+	var req api.SpacePutRequest
+	if !request(c, w, r, &req) {
+		return
+	}
+	if err := s.Update(req); err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func handleSpaceDelete(c *Core, w http.ResponseWriter, r *http.Request) {
 	v := mux.Vars(r)
-	name, ok := v["space"]
+	id, ok := v["space"]
 	if !ok {
-		respondError(c, w, r, zqe.E(zqe.Invalid, "no space name in path"))
+		respondError(c, w, r, zqe.E(zqe.Invalid, "no space id in path"))
 		return
 	}
 
-	err := c.spaces.Delete(name)
+	err := c.spaces.Delete(api.SpaceID(id))
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -370,12 +401,12 @@ loop:
 
 func extractSpace(c *Core, w http.ResponseWriter, r *http.Request) *space.Space {
 	v := mux.Vars(r)
-	name, ok := v["space"]
+	id, ok := v["space"]
 	if !ok {
-		respondError(c, w, r, zqe.E(zqe.Invalid, "no space name in path"))
+		respondError(c, w, r, zqe.E(zqe.Invalid, "no space id in path"))
 		return nil
 	}
-	s, err := c.spaces.Get(name)
+	s, err := c.spaces.Get(api.SpaceID(id))
 	if err != nil {
 		respondError(c, w, r, err)
 		return nil

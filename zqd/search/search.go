@@ -93,7 +93,7 @@ type Output interface {
 // of tuples, a "search" applied to the tuples producing a set of matched
 // tuples, and a proc to the process the tuples
 type Query struct {
-	Space string
+	Space api.SpaceID
 	Dir   int
 	Span  nano.Span
 	Proc  ast.Proc
