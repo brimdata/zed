@@ -1,22 +1,23 @@
 package zbuf
 
 import (
-	"os"
+	"io"
 )
 
 type File struct {
 	Reader
-	file *os.File
+	c    io.Closer
+	name string
 }
 
-func NewFile(r Reader, f *os.File) *File {
-	return &File{r, f}
+func NewFile(r Reader, c io.Closer, name string) *File {
+	return &File{r, c, name}
 }
 
 func (r *File) Close() error {
-	return r.file.Close()
+	return r.c.Close()
 }
 
 func (r *File) String() string {
-	return r.file.Name()
+	return r.name
 }

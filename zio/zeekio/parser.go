@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -171,68 +170,69 @@ func (p *Parser) ParseDirective(line []byte) error {
 // record must be adjacent which simplifies the logic here.
 func Unflatten(zctx *resolver.Context, columns []zng.Column, addPath bool) ([]zng.Column, bool, error) {
 	hasPath := false
-	cols := make([]zng.Column, 0)
-	var nestedCols []zng.Column
-	var nestedField string
 	for _, col := range columns {
 		// XXX could validate field names here...
 		if col.Name == "_path" {
 			hasPath = true
 		}
-
-		var fld string
-		dot := strings.IndexByte(col.Name, '.')
-		if dot >= 0 {
-			fld = col.Name[:dot]
-		}
-
-		// Check if we're entering or leaving a nested record.
-		if fld != nestedField {
-			if len(nestedField) > 0 {
-				// We've reached the end of a nested record.
-				recType, err := zctx.LookupTypeRecord(nestedCols)
-				if err != nil {
-					return nil, false, err
-				}
-				newcol := zng.NewColumn(nestedField, recType)
-				cols = append(cols, newcol)
-			}
-
-			if len(fld) > 0 {
-				// We're entering a new nested record.
-				nestedCols = make([]zng.Column, 0)
-			}
-			nestedField = fld
-		}
-
-		if len(fld) == 0 {
-			// Just a regular field.
-			cols = append(cols, col)
-		} else {
-			// Add to the nested record.
-			newcol := zng.NewColumn(col.Name[dot+1:], col.Type)
-			nestedCols = append(nestedCols, newcol)
-		}
 	}
-
-	// If we were in the midst of a nested record, make sure we
-	// account for it.
-	if len(nestedField) > 0 {
-		recType, err := zctx.LookupTypeRecord(nestedCols)
-		if err != nil {
-			return nil, false, err
-		}
-		newcol := zng.NewColumn(nestedField, recType)
-		cols = append(cols, newcol)
+	out, err := unflattenRecord(zctx, columns)
+	if err != nil {
+		return nil, false, err
 	}
 
 	var needpath bool
 	if addPath && !hasPath {
 		pathcol := zng.NewColumn("_path", zng.TypeString)
-		cols = append([]zng.Column{pathcol}, cols...)
+		out = append([]zng.Column{pathcol}, out...)
 		needpath = true
 	}
-	return cols, needpath, nil
+	return out, needpath, nil
+}
+
+func unflattenRecord(zctx *resolver.Context, cols []zng.Column) ([]zng.Column, error) {
+	// extract a []Column consisting of all the leading columns
+	// from the input that belong to the same record, with the
+	// common prefix removed from their name.
+	// returns the prefix and the extracted same-record columns.
+	recCols := func(cols []zng.Column) (string, []zng.Column) {
+		var ret []zng.Column
+		var prefix string
+		if dot := strings.IndexByte(cols[0].Name, '.'); dot != -1 {
+			prefix = cols[0].Name[:dot]
+		}
+		for i := range cols {
+			if !strings.HasPrefix(cols[i].Name, prefix) {
+				break
+			}
+			trimmed := strings.TrimPrefix(cols[i].Name, prefix+".")
+			ret = append(ret, zng.NewColumn(trimmed, cols[i].Type))
+		}
+		return prefix, ret
+	}
+	var out []zng.Column
+	i := 0
+	for i < len(cols) {
+		col := cols[i]
+		if strings.IndexByte(col.Name, '.') < 0 {
+			// Just a top-level field.
+			out = append(out, col)
+			i++
+			continue
+		}
+		prefix, nestedCols := recCols(cols[i:])
+		recCols, err := unflattenRecord(zctx, nestedCols)
+		if err != nil {
+			return nil, err
+		}
+		recType, err := zctx.LookupTypeRecord(recCols)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, zng.NewColumn(prefix, recType))
+		i += len(nestedCols)
+	}
+	return out, nil
 }
 
 func (p *Parser) setDescriptor() error {
@@ -282,7 +282,8 @@ func (p *Parser) ParseValue(line []byte) (*zng.Record, error) {
 		// each time here
 		path = []byte(p.Path)
 	}
-	zv, err := zbuf.NewRawFromZeekTSV(p.builder, p.descriptor, path, line)
+	p.builder.Reset()
+	zv, err := buildRecordFromZeekTSV(p.builder, p.descriptor, path, line)
 	if err != nil {
 		return nil, err
 	}
