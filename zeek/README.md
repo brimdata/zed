@@ -28,7 +28,7 @@ describe the customization process.
 
 # Contact us!
 
-If you're using JSON type defintions with `zq` or [Brim](https://github.com/brimsec/brim),
+If you're using JSON type definitions with `zq` or [Brim](https://github.com/brimsec/brim),
 we'd like to hear from you! We know the process of customizing the definitions
 can be tricky. We have ideas for ways we might improve it, but we'll have a
 better sense of priority and how to go about it if we've heard from those
@@ -51,7 +51,7 @@ A set of JSON-format Zeek logs will now be present in `~/zq-sample-data/zeek-ndj
 
 # Usage
 
-Asssuming you have the [`zq`](https://github.com/brimsec/zq) repository locally
+Assuming you have the [`zq`](https://github.com/brimsec/zq) repository locally
 cloned to `~/zq` and the `zq` binary is in your `$PATH`, here's an example of
 reading in all Zeek events while applying the JSON type definition:
 
@@ -61,7 +61,7 @@ COUNT
 1462078
 ```
 
-Since we saw no errors from `zq`, that means the definitons in `types.json`
+Since we saw no errors from `zq`, that means the definitions in `types.json`
 fully described all named fields in all the log files. If there had been
 errors, `zq` would have stopped reading when the first error was encountered
 and would not have returned a `count()` result. The sections below describe
@@ -434,7 +434,7 @@ concern you, you could customize the `types.json` by trimming them from the
 appropriate `descriptors` section. However, you may want to simply continue
 using the newer `types.json` because now you're "future-proofed" for when you
 eventually do upgrade to a newer Zeek version and your logs start to include
-the additional fields and logs included in the type definiton.
+the additional fields and logs included in the type definition.
 
 # Need help? Have feedback?
 
