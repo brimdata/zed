@@ -14,10 +14,10 @@ import (
 )
 
 func createTempSpace(t *testing.T, spaces *space.Manager) *space.Space {
-	_, err := spaces.Create(t.Name(), "")
+	sp, err := spaces.Create(t.Name(), "")
 	require.NoError(t, err)
 
-	space, err := spaces.Get(t.Name())
+	space, err := spaces.Get(sp.ID())
 	require.NoError(t, err)
 
 	return space

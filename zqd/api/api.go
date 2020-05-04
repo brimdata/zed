@@ -35,7 +35,7 @@ type TaskEnd struct {
 }
 
 type SearchRequest struct {
-	Space string          `json:"space" validate:"required"`
+	Space SpaceID         `json:"space" validate:"required"`
 	Proc  json.RawMessage `json:"proc" validate:"required"`
 	Span  nano.Span       `json:"span"`
 	Dir   int             `json:"dir" validate:"required"`
@@ -72,8 +72,12 @@ type ScannerStats struct {
 	RecordsMatched int64 `json:"records_matched"`
 }
 
+type SpaceID string
+
 type SpaceInfo struct {
+	ID          SpaceID    `json:"id"`
 	Name        string     `json:"name"`
+	DataPath    string     `json:"data_path"`
 	Span        *nano.Span `json:"span,omitempty"`
 	Size        int64      `json:"size" unit:"bytes"`
 	PcapSupport bool       `json:"pcap_support"`
@@ -87,11 +91,9 @@ type StatusResponse struct {
 }
 
 type SpacePostRequest struct {
-	Name    string `json:"name"`
-	DataDir string `json:"data_dir"`
+	Name     string `json:"name"`
+	DataPath string `json:"data_path"`
 }
-
-type SpacePostResponse SpacePostRequest
 
 type PcapPostRequest struct {
 	Path string `json:"path"`

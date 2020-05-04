@@ -13,14 +13,13 @@ import (
 
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pcap/pcapio"
-	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqe"
-	"go.uber.org/zap"
+	"github.com/segmentio/ksuid"
 )
 
 const (
@@ -38,11 +37,9 @@ var (
 	ErrSpaceNotExist       = zqe.E(zqe.NotFound, "space does not exist")
 )
 
-type Manager struct {
-	rootPath string
-	mapLock  sync.Mutex
-	spaces   map[string]*Space
-	logger   *zap.Logger
+func newSpaceID() api.SpaceID {
+	id := ksuid.New()
+	return api.SpaceID(fmt.Sprintf("sp_%s", id.String()))
 }
 
 type Space struct {
@@ -59,133 +56,6 @@ type Space struct {
 	wg sync.WaitGroup
 	// closed to signal non-delete ops should terminate
 	cancelChan chan struct{}
-}
-
-func NewManager(root string, logger *zap.Logger) *Manager {
-	mgr := &Manager{
-		rootPath: root,
-		spaces:   make(map[string]*Space),
-		logger:   logger,
-	}
-
-	dirs, err := ioutil.ReadDir(root)
-	if err != nil {
-		return mgr
-	}
-
-	for _, dir := range dirs {
-		if !dir.IsDir() {
-			continue
-		}
-
-		path := filepath.Join(root, dir.Name())
-		config, err := loadConfig(path)
-		if err != nil {
-			logger.Error("Error loading config", zap.Error(err))
-			continue
-		}
-
-		space := newSpace(path, config)
-		mgr.spaces[space.Name()] = space
-	}
-
-	return mgr
-}
-
-func (m *Manager) Create(name, dataPath string) (*api.SpacePostResponse, error) {
-	m.mapLock.Lock()
-	defer m.mapLock.Unlock()
-
-	if name == "" && dataPath == "" {
-		return nil, zqe.E(zqe.Invalid, "must supply non-empty name or dataPath")
-	}
-	var path string
-	if name == "" {
-		name = filepath.Base(dataPath)
-	}
-	path, err := fs.UniqueDir(m.rootPath, name)
-	if err != nil {
-		return nil, err
-	}
-	name = filepath.Base(path)
-	if dataPath == "" {
-		dataPath = path
-	}
-	c := config{
-		DataPath:      dataPath,
-		ZngStreamSize: defaultStreamSize,
-	}
-	if err := c.save(path); err != nil {
-		os.RemoveAll(path)
-		return nil, err
-	}
-
-	if _, exists := m.spaces[name]; exists {
-		m.logger.Error("created duplicate space name", zap.String("name", name))
-		return nil, errors.New("created duplicate space name (this should not happen)")
-	}
-
-	m.spaces[name] = newSpace(path, c)
-	return &api.SpacePostResponse{
-		Name:    name,
-		DataDir: dataPath,
-	}, nil
-}
-
-func (m *Manager) Get(name string) (*Space, error) {
-	m.mapLock.Lock()
-	defer m.mapLock.Unlock()
-	space, exists := m.spaces[name]
-	if !exists {
-		return nil, ErrSpaceNotExist
-	}
-
-	return space, nil
-}
-
-func (m *Manager) Delete(name string) error {
-	m.mapLock.Lock()
-	defer m.mapLock.Unlock()
-
-	space, exists := m.spaces[name]
-	if !exists {
-		return ErrSpaceNotExist
-	}
-
-	err := space.delete()
-	if err != nil {
-		return err
-	}
-
-	delete(m.spaces, name)
-	return nil
-}
-
-func (m *Manager) ListNames() []string {
-	result := []string{}
-
-	m.mapLock.Lock()
-	defer m.mapLock.Unlock()
-	for name := range m.spaces {
-		result = append(result, name)
-	}
-	return result
-}
-
-func (m *Manager) List() []api.SpaceInfo {
-	result := []api.SpaceInfo{}
-
-	m.mapLock.Lock()
-	defer m.mapLock.Unlock()
-	for _, space := range m.spaces {
-		info, err := space.Info()
-		if err != nil {
-			m.logger.Error("error reading space info", zap.Error(err))
-			continue
-		}
-		result = append(result, info)
-	}
-	return result
 }
 
 func newSpace(path string, conf config) *Space {
@@ -231,8 +101,8 @@ func (s *Space) StartSpaceOp(ctx context.Context) (context.Context, context.Canc
 	return ctx, done, nil
 }
 
-func (s *Space) Name() string {
-	return filepath.Base(s.path)
+func (s *Space) ID() api.SpaceID {
+	return api.SpaceID(filepath.Base(s.path))
 }
 
 func (s *Space) Info() (api.SpaceInfo, error) {
@@ -245,8 +115,10 @@ func (s *Space) Info() (api.SpaceInfo, error) {
 		return api.SpaceInfo{}, err
 	}
 	spaceInfo := api.SpaceInfo{
-		Name:        s.Name(),
+		ID:          s.ID(),
+		Name:        s.conf.Name,
 		Size:        logsize,
+		DataPath:    s.conf.DataPath,
 		PcapSupport: s.PcapPath() != "",
 		PcapPath:    s.PcapPath(),
 		PcapSize:    pcapsize,
@@ -415,6 +287,7 @@ func (s *Space) delete() error {
 }
 
 type config struct {
+	Name     string `json:"name"`
 	DataPath string `json:"data_path"`
 	// XXX PcapPath should be named pcap_path in json land. To avoid having to
 	// do a migration we'll keep this as-is for now.

@@ -138,8 +138,8 @@ func (c *Connection) Ping(ctx context.Context) (time.Duration, error) {
 }
 
 // SpaceInfo retrieves information about the specified space.
-func (c *Connection) SpaceInfo(ctx context.Context, spaceName string) (*SpaceInfo, error) {
-	path := path.Join("/space", url.PathEscape(spaceName))
+func (c *Connection) SpaceInfo(ctx context.Context, id SpaceID) (*SpaceInfo, error) {
+	path := path.Join("/space", url.PathEscape(string(id)))
 	resp, err := c.Request(ctx).
 		SetResult(&SpaceInfo{}).
 		Get(path)
@@ -152,10 +152,10 @@ func (c *Connection) SpaceInfo(ctx context.Context, spaceName string) (*SpaceInf
 	return resp.Result().(*SpaceInfo), nil
 }
 
-func (c *Connection) SpacePost(ctx context.Context, req SpacePostRequest) (*SpacePostResponse, error) {
+func (c *Connection) SpacePost(ctx context.Context, req SpacePostRequest) (*SpaceInfo, error) {
 	resp, err := c.Request(ctx).
 		SetBody(req).
-		SetResult(&SpacePostResponse{}).
+		SetResult(&SpaceInfo{}).
 		Post("/space")
 	if err != nil {
 		if r, ok := err.(*ErrorResponse); ok && r.StatusCode() == http.StatusConflict {
@@ -163,19 +163,19 @@ func (c *Connection) SpacePost(ctx context.Context, req SpacePostRequest) (*Spac
 		}
 		return nil, err
 	}
-	return resp.Result().(*SpacePostResponse), nil
+	return resp.Result().(*SpaceInfo), nil
 }
 
-func (c *Connection) SpaceList(ctx context.Context) ([]string, error) {
-	var res []string
+func (c *Connection) SpaceList(ctx context.Context) ([]SpaceInfo, error) {
+	var res []SpaceInfo
 	_, err := c.Request(ctx).
 		SetResult(&res).
 		Get("/space")
 	return res, err
 }
 
-func (c *Connection) SpaceDelete(ctx context.Context, spaceName string) (err error) {
-	path := path.Join("/space", url.PathEscape(spaceName))
+func (c *Connection) SpaceDelete(ctx context.Context, id SpaceID) (err error) {
+	path := path.Join("/space", url.PathEscape(string(id)))
 	_, err = c.Request(ctx).Delete(path)
 	return err
 }
@@ -195,11 +195,11 @@ func (c *Connection) Search(ctx context.Context, search SearchRequest) (Search, 
 	return NewZngSearch(r), nil
 }
 
-func (c *Connection) PcapPost(ctx context.Context, space string, payload PcapPostRequest) (*Stream, error) {
+func (c *Connection) PcapPost(ctx context.Context, space SpaceID, payload PcapPostRequest) (*Stream, error) {
 	req := c.Request(ctx).
 		SetBody(payload)
 	req.Method = http.MethodPost
-	req.URL = path.Join("/space", url.PathEscape(space), "pcap")
+	req.URL = path.Join("/space", string(space), "pcap")
 	r, err := c.stream(req)
 	if err != nil {
 		return nil, err
@@ -208,11 +208,11 @@ func (c *Connection) PcapPost(ctx context.Context, space string, payload PcapPos
 	return NewStream(jsonpipe), nil
 }
 
-func (c *Connection) PcapSearch(ctx context.Context, space string, payload PcapSearch) (*PcapReadCloser, error) {
+func (c *Connection) PcapSearch(ctx context.Context, space SpaceID, payload PcapSearch) (*PcapReadCloser, error) {
 	req := c.Request(ctx).
 		SetQueryParamsFromValues(payload.ToQuery())
 	req.Method = http.MethodGet
-	req.URL = path.Join("/space", url.PathEscape(space), "pcap")
+	req.URL = path.Join("/space", string(space), "pcap")
 	r, err := c.stream(req)
 	if err != nil {
 		if r, ok := err.(*ErrorResponse); ok && r.StatusCode() == http.StatusNotFound {
@@ -232,11 +232,11 @@ type PcapReadCloser struct {
 	io.Closer
 }
 
-func (c *Connection) LogPost(ctx context.Context, space string, payload LogPostRequest) (*Stream, error) {
+func (c *Connection) LogPost(ctx context.Context, space SpaceID, payload LogPostRequest) (*Stream, error) {
 	req := c.Request(ctx).
 		SetBody(payload)
 	req.Method = http.MethodPost
-	req.URL = path.Join("/space", url.PathEscape(space), "log")
+	req.URL = path.Join("/space", url.PathEscape(string(space)), "log")
 	r, err := c.stream(req)
 	if err != nil {
 		return nil, err
