@@ -198,7 +198,7 @@ func unflattenRecord(zctx *resolver.Context, cols []zng.Column) ([]zng.Column, e
 	recCols := func(cols []zng.Column) (string, []zng.Column) {
 		var ret []zng.Column
 		var prefix string
-		if dot := strings.IndexByte(cols[0].Name, '.'); dot != -1 { // xxx we always assume
+		if dot := strings.IndexByte(cols[0].Name, '.'); dot != -1 {
 			prefix = cols[0].Name[:dot]
 		}
 		for i := range cols {
