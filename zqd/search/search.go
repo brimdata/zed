@@ -11,11 +11,11 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/space"
+	"github.com/brimsec/zq/zqe"
 	"go.uber.org/zap"
 )
 
@@ -37,9 +37,13 @@ func NewSearch(ctx context.Context, s *space.Space, req api.SearchRequest) (*Sea
 	if req.Span.Dur < 0 {
 		return nil, errors.New("time span must have non-negative duration")
 	}
-	// XXX allow either direction even through we do forward only right now
-	if req.Dir != 1 && req.Dir != -1 {
-		return nil, errors.New("time direction must be 1 or -1")
+	// XXX zqd only supports backwards searches, remove once this has been
+	// fixed.
+	if req.Dir == 1 {
+		return nil, zqe.E(zqe.Invalid, "forward searches not yet supported")
+	}
+	if req.Dir != -1 {
+		return nil, zqe.E(zqe.Invalid, "time direction must be 1 or -1")
 	}
 	query, err := UnpackQuery(req)
 	if err != nil {
@@ -51,7 +55,7 @@ func NewSearch(ctx context.Context, s *space.Space, req api.SearchRequest) (*Sea
 		return nil, err
 	}
 	zctx := resolver.NewContext()
-	mapper := scanner.NewMapper(zngReader, zctx)
+	mapper := zbuf.NewMapper(zngReader, zctx)
 	mux, err := launch(ctx, query, mapper, zctx)
 	if err != nil {
 		zngReader.Close()

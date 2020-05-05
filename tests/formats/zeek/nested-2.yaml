@@ -1,0 +1,18 @@
+zql: '*'
+
+input: |
+  #0:record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],referenced_file:record[ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],fuid:bstring]]
+  0:[smb_cmd;1258594907.85978;Chjxid42dvvzIzdeG8;[192.168.1.102;1076;192.168.1.1;139;][1258594907.85978;Chjxid42dvvzIzdeG8;[192.168.1.102;1076;192.168.1.1;139;]ZYjxid42dvvzIzdeG8;]]
+
+output-format: zeek
+
+output: |
+  #separator \x09
+  #set_separator	,
+  #empty_field	(empty)
+  #unset_field	-
+  #path	smb_cmd
+  #fields	ts	uid	id.orig_h	id.orig_p	id.resp_h	id.resp_p	referenced_file.ts	referenced_file.uid	referenced_file.id.orig_h	referenced_file.id.orig_p	referenced_file.id.resp_h	referenced_file.id.resp_p	referenced_file.fuid
+  #types	time	string	addr	port	addr	port	time	string	addr	port	addr	port	string
+  1258594907.859780	Chjxid42dvvzIzdeG8	192.168.1.102	1076	192.168.1.1	139	1258594907.859780	Chjxid42dvvzIzdeG8	192.168.1.102	1076	192.168.1.1	139	ZYjxid42dvvzIzdeG8
+

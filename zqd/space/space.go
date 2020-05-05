@@ -93,12 +93,6 @@ func NewManager(root string, logger *zap.Logger) *Manager {
 
 func (m *Manager) Create(name, dataPath string) (*api.SpacePostResponse, error) {
 	m.mapLock.Lock()
-	_, exists := m.spaces[name]
-	if exists {
-		m.mapLock.Unlock()
-		return nil, ErrSpaceExists
-	}
-
 	defer m.mapLock.Unlock()
 
 	if name == "" && dataPath == "" {
@@ -106,19 +100,14 @@ func (m *Manager) Create(name, dataPath string) (*api.SpacePostResponse, error) 
 	}
 	var path string
 	if name == "" {
-		var err error
-		if path, err = fs.UniqueDir(m.rootPath, filepath.Base(dataPath)); err != nil {
-			return nil, err
-		}
-		name = filepath.Base(path)
-	} else {
-		path = filepath.Join(m.rootPath, name)
-		if err := os.Mkdir(path, 0700); err != nil {
-			if os.IsExist(err) {
-				return nil, ErrSpaceExists
-			}
-			return nil, err
-		}
+		name = filepath.Base(dataPath)
+	}
+	path, err := fs.UniqueDir(m.rootPath, name)
+	if err != nil {
+		return nil, err
+	}
+	name = filepath.Base(path)
+	if dataPath == "" {
 		dataPath = path
 	}
 	c := config{
@@ -128,6 +117,11 @@ func (m *Manager) Create(name, dataPath string) (*api.SpacePostResponse, error) 
 	if err := c.save(path); err != nil {
 		os.RemoveAll(path)
 		return nil, err
+	}
+
+	if _, exists := m.spaces[name]; exists {
+		m.logger.Error("created duplicate space name", zap.String("name", name))
+		return nil, errors.New("created duplicate space name (this should not happen)")
 	}
 
 	m.spaces[name] = newSpace(path, c)

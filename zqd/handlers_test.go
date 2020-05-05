@@ -8,6 +8,7 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
@@ -107,7 +108,7 @@ func TestSearchEmptySpace(t *testing.T) {
 	require.Equal(t, "", res)
 }
 
-func TestSearchInvalidRequest(t *testing.T) {
+func TestSearchError(t *testing.T) {
 	src := `
 #0:record[_path:string,ts:time,uid:bstring]
 0:[conn;1521911723.205187;CBrzd94qfowOqJwCHa;]
@@ -123,16 +124,32 @@ func TestSearchInvalidRequest(t *testing.T) {
 	require.NoError(t, err)
 	proc, err := json.Marshal(parsed)
 	require.NoError(t, err)
-	req := api.SearchRequest{
-		Space: "test",
-		Proc:  proc,
-		Span:  nano.MaxSpan,
-		Dir:   2,
-	}
-	_, err = client.Search(context.Background(), req)
-	require.Error(t, err)
-	errResp := err.(*api.ErrorResponse)
-	require.IsType(t, &api.Error{}, errResp.Err)
+	t.Run("InvalidDir", func(t *testing.T) {
+		req := api.SearchRequest{
+			Space: "test",
+			Proc:  proc,
+			Span:  nano.MaxSpan,
+			Dir:   2,
+		}
+		_, err = client.Search(context.Background(), req)
+		require.Error(t, err)
+		errResp := err.(*api.ErrorResponse)
+		assert.Equal(t, http.StatusBadRequest, errResp.StatusCode())
+		assert.IsType(t, &api.Error{}, errResp.Err)
+	})
+	t.Run("ForwardSearchUnsupported", func(t *testing.T) {
+		req := api.SearchRequest{
+			Space: "test",
+			Proc:  proc,
+			Span:  nano.MaxSpan,
+			Dir:   1,
+		}
+		_, err = client.Search(context.Background(), req)
+		require.Error(t, err)
+		errResp := err.(*api.ErrorResponse)
+		assert.Equal(t, http.StatusBadRequest, errResp.StatusCode())
+		assert.IsType(t, &api.Error{}, errResp.Err)
+	})
 }
 
 func TestSpaceList(t *testing.T) {
@@ -216,6 +233,21 @@ func TestSpacePostNameOnly(t *testing.T) {
 		DataDir: filepath.Join(c.Root, "test"),
 	}
 	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	require.NoError(t, err)
+	require.Equal(t, expected, sp)
+}
+
+func TestSpacePostDuplicateName(t *testing.T) {
+	ctx := context.Background()
+	c, client, done := newCore(t)
+	defer done()
+	expected := &api.SpacePostResponse{
+		Name:    "test_01",
+		DataDir: filepath.Join(c.Root, "test_01"),
+	}
+	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	require.NoError(t, err)
+	sp, err = client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 	require.Equal(t, expected, sp)
 }
@@ -354,9 +386,9 @@ func TestPostZngLogs(t *testing.T) {
 	status := payloads[len(payloads)-2].(*api.LogPostStatus)
 	span := &nano.Span{Ts: 1e9, Dur: 1e9 + 1}
 	require.Equal(t, &api.LogPostStatus{
-		Type: "LogPostStatus",
-		Span: span,
-		Size: 80,
+		Type:         "LogPostStatus",
+		LogTotalSize: 148,
+		LogReadSize:  148,
 	}, status)
 
 	taskend := payloads[len(payloads)-1].(*api.TaskEnd)
@@ -398,11 +430,10 @@ func TestPostZngLogWarning(t *testing.T) {
 	assert.Regexp(t, ": line 3: bad format$", warn2.Warning)
 
 	status := payloads[len(payloads)-2].(*api.LogPostStatus)
-	span := &nano.Span{Ts: nano.Ts(1e9), Dur: 1}
 	expected := &api.LogPostStatus{
-		Type: "LogPostStatus",
-		Span: span,
-		Size: 49,
+		Type:         "LogPostStatus",
+		LogTotalSize: 95,
+		LogReadSize:  95,
 	}
 	require.Equal(t, expected, status)
 
@@ -511,11 +542,10 @@ func TestPostNDJSONLogWarning(t *testing.T) {
 	assert.Regexp(t, ": line 2: incomplete descriptor", warn2.Warning)
 
 	status := payloads[len(payloads)-2].(*api.LogPostStatus)
-	span := nano.Span{Ts: 1e9, Dur: 1}
 	expected := &api.LogPostStatus{
-		Type: "LogPostStatus",
-		Span: &span,
-		Size: 25,
+		Type:         "LogPostStatus",
+		LogTotalSize: 134,
+		LogReadSize:  134,
 	}
 	require.Equal(t, expected, status)
 
