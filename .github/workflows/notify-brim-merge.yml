@@ -19,7 +19,7 @@ jobs:
         # https://developer.github.com/v3/activity/events/types/#pullrequestevent
         # Pull request
         # https://developer.github.com/v3/pulls/
-        merged=$(cat $GITHUB_EVENT_PATH | jq '.pull_request.merged')
+        merged=$(jq .pull_request.merged < "${GITHUB_EVENT_PATH}")
         echo "::set-output name=merged::$merged"
       id: vars
     - name: Post PR closed event, if the close was a merge
