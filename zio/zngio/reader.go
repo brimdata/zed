@@ -95,10 +95,10 @@ func (r *Reader) LastSOS() int64 {
 func (r *Reader) ReadPayload() (*zng.Record, []byte, error) {
 again:
 	b, err := r.read(1)
-	if err == io.EOF || err == peeker.ErrTruncated {
-		return nil, nil, nil
-	}
 	if err != nil {
+		if err == io.EOF || err == peeker.ErrTruncated {
+			return nil, nil, nil
+		}
 		return nil, nil, err
 	}
 	code := b[0]
