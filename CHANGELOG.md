@@ -1,6 +1,15 @@
 These entries focus on changes we think are relevant to users of Brim,
-zq, or pcap.  For all changes to zqd, its API, or to other components in the zq
-repo, check the git log.
+zq, or pcap.  For all changes to zqd, its API, or to other components in the
+zq repo, check the git log.
+
+## v0.13.0
+* zqd: Enable time indexing to provide faster query response in narrower time ranges (#647)
+* zql: Make ipv4 subnet bases contain 4 octets to remove ambiguity between fractions & CIDR (#670)
+* zq: Use an external sort for large inputs (removes the 10-million line `sort` limit) (#527)
+* zq: Fix an issue where duplicate field names could be produced by aggregate functions & group-by (#676)
+* zar: Introduce an experimental prototype for working with archived logs ([README](https://github.com/brimsec/zq/blob/master/cmd/zar/README.md)) (#700)
+* zq: Support recursive record nesting in Zeek reader/writer (#715)
+* zqd: Zeek log import support needed for Brim (#616, #517, #608, #592, #592, #582, #709)
 
 ## v0.12.0
 * zql: Introduce `=~` and `!~` operators in filters for globs, regexps, and matching addresses against subnets (#604, #620)
