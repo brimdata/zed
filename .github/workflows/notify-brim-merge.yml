@@ -1,4 +1,4 @@
-name: Notify PR merge
+name: Notify Brim
 
 on:
   pull_request:
