@@ -96,6 +96,7 @@ func (r *Reader) ReadPayload() (*zng.Record, []byte, error) {
 again:
 	b, err := r.read(1)
 	if err != nil {
+		// Having tried to read a single byte above, ErrTruncated means io.EOF.
 		if err == io.EOF || err == peeker.ErrTruncated {
 			return nil, nil, nil
 		}
