@@ -7,7 +7,7 @@ zq repo, check the git log.
 * zql: Make ipv4 subnet bases contain 4 octets to remove ambiguity between fractions & CIDR (#670)
 * zq: Use an external sort for large inputs (removes the 10-million line `sort` limit) (#527)
 * zq: Fix an issue where duplicate field names could be produced by aggregate functions & group-by (#676)
-* zar: Introduce for experimental prototype for working with archived logs ([README](https://github.com/brimsec/zq/blob/master/cmd/zar/README.md)) (#700)
+* zar: Introduce an experimental prototype for working with archived logs ([README](https://github.com/brimsec/zq/blob/master/cmd/zar/README.md)) (#700)
 * zq: Support recursive record nesting in Zeek reader/writer (#715)
 * zqd: Zeek log import support needed for Brim (#616, #517, #608, #592, #592, #582, #709)
 
