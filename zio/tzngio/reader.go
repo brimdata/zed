@@ -26,11 +26,11 @@ const (
 	MaxLineSize = 50 * 1024 * 1024
 )
 
-func scanErr(err error, n int) error {
+func scanErr(err error) error {
 	if err == bufio.ErrTooLong {
-		return fmt.Errorf("max line size exceeded at line %d", n)
+		return fmt.Errorf("max line size exceeded")
 	}
-	return fmt.Errorf("error encountered after %d lines: %s", n, err)
+	return err
 }
 
 type ReadStats struct {
@@ -83,7 +83,7 @@ again:
 	line, err := r.scanner.ScanLine()
 	if line == nil {
 		if err != nil {
-			err = scanErr(err, r.stats.Lines)
+			err = scanErr(err)
 		}
 		return nil, nil, err
 	}
