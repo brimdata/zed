@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"regexp"
 
@@ -163,6 +164,14 @@ func isTerminal(f *os.File) bool {
 	return terminal.IsTerminal(int(f.Fd()))
 }
 
+func isS3(path string) bool {
+	u, err := url.Parse(path)
+	if err != nil {
+		return false
+	}
+	return u.Scheme == "s3"
+}
+
 func (c *Command) Run(args []string) error {
 	if c.showVersion {
 		return c.printVersion()
@@ -193,7 +202,7 @@ func (c *Command) Run(args []string) error {
 	paths := args
 	var query ast.Proc
 	var err error
-	if fileExists(paths[0]) {
+	if fileExists(paths[0]) || isS3(paths[0]) {
 		query, err = zql.ParseProc("*")
 		if err != nil {
 			return err

@@ -3,9 +3,14 @@ package detector
 import (
 	"errors"
 	"io"
+	"net/url"
 	"os"
 	"regexp"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zng/resolver"
@@ -16,12 +21,28 @@ type OpenConfig struct {
 	DashStdin      bool
 	JSONTypeConfig *ndjsonio.TypeConfig
 	JSONPathRegex  string
+	AwsCfg         *aws.Config
 }
 
-// OpenFile creates and returns zbuf.File for the indicated path.  If the path is
-// a directory or can't otherwise be open as a file, then an error is returned.
+func isS3(path string) bool {
+	u, err := url.Parse(path)
+	if err != nil {
+		return false
+	}
+	return u.Scheme == "s3"
+}
+
+// OpenFile creates and returns zbuf.File for the indicated "path",
+// which can be a local file path, a local directory path, or a s3
+// URL. If the path is neither of these or can't otherwise be opened,
+// an error is returned.
 func OpenFile(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, error) {
 	var f *os.File
+
+	if isS3(path) {
+		return OpenS3File(zctx, path, cfg)
+	}
+
 	if cfg.DashStdin && path == "-" {
 		f = os.Stdin
 	} else {
@@ -39,6 +60,53 @@ func OpenFile(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, 
 	}
 
 	return OpenFromNamedReadCloser(zctx, f, path, cfg)
+}
+
+type pipeWriterAt struct {
+	*io.PipeWriter
+}
+
+func (pw *pipeWriterAt) WriteAt(p []byte, _ int64) (n int, err error) {
+	return pw.Write(p)
+}
+
+// OpenS3File opens a file pointed to by a s3-style url like s3://bucket/name.
+//
+// The AWS SDK requires the region and credentials (access key ID and
+// secret) to make a request to S3. Credentials are needed even for
+// objects with no access restrictions. (If we want make access to
+// public objects possible with AWS creds, we could add support for
+// https:// URIs and fetch them via generic HTTP.)  Credentials can be
+// passed as environment variables (AWS_ACCESS_KEY_ID, and
+// AWS_SECRET_ACCESS_KEY), or they can be read from the shared
+// credentials file (using the default profile or the one indicated by
+// AWS_PROFILE). The region must always be present as an environment
+// variable.  For more information, see
+// https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html
+func OpenS3File(zctx *resolver.Context, s3path string, cfg OpenConfig) (*zbuf.File, error) {
+	u, err := url.Parse(s3path)
+	if err != nil {
+		return nil, err
+	}
+	bucket := u.Host
+	key := u.Path
+
+	sesh := session.Must(session.NewSession(cfg.AwsCfg))
+
+	s3Client := s3.New(sesh)
+	s3Downloader := s3manager.NewDownloaderWithClient(s3Client)
+	getObj := &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	}
+	pr, pw := io.Pipe()
+	go func() {
+		_, err := s3Downloader.Download(&pipeWriterAt{pw}, getObj, func(d *s3manager.Downloader) {
+			d.Concurrency = 1
+		})
+		pw.CloseWithError(err)
+	}()
+	return OpenFromNamedReadCloser(zctx, pr, s3path, cfg)
 }
 
 func OpenFromNamedReadCloser(zctx *resolver.Context, rc io.ReadCloser, path string, cfg OpenConfig) (*zbuf.File, error) {
