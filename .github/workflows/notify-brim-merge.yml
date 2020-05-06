@@ -3,6 +3,8 @@ name: Notify Brim
 # https://help.github.com/en/actions/reference/events-that-trigger-workflows#pull-request-event-pull_request
 on:
   pull_request:
+    branches:
+      - master
     types: closed
 
 jobs:
