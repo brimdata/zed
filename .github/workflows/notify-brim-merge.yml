@@ -6,7 +6,7 @@ name: Notify Brim
 on:
   pull_request:
     branches:
-      - master
+      - dispatch-to-brim
     types: closed
 
 jobs:
