@@ -278,10 +278,14 @@ type (
 
 	PutProc struct {
 		Node
-		Target string     `json:"target"`
-		Expr   Expression `json:"expression"`
+		Clauses []PutClause `json:"clauses"`
 	}
 )
+
+type PutClause struct {
+	Target string     `json:"target"`
+	Expr   Expression `json:"expression"`
+}
 
 //XXX TBD: chance to nano.Duration
 type Duration struct {

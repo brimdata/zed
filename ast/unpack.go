@@ -79,15 +79,27 @@ func unpackProc(custom Unpacker, node joe.JSON) (Proc, error) {
 		}
 		return &FilterProc{Filter: filter}, nil
 	case "PutProc":
-		exprNode := node.Get("expression")
-		if exprNode == joe.Undefined {
-			return nil, errors.New("PutProc missing expression")
+		clausesNode := node.Get("clauses")
+		if clausesNode == joe.Undefined {
+			return nil, errors.New("PutProc missing clauses")
 		}
-		expr, err := unpackExpression(exprNode)
-		if err != nil {
-			return nil, err
+		if !clausesNode.IsArray() {
+			return nil, errors.New("PutProc clauses must be an array")
 		}
-		return &PutProc{Expr: expr}, nil
+		n := clausesNode.Len()
+		clauses := make([]PutClause, n)
+		for k := 0; k < n; k++ {
+			exprNode := clausesNode.Index(k).Get("expression")
+			if exprNode == joe.Undefined {
+				return nil, errors.New("PutClause missing expression")
+			}
+			expr, err := unpackExpression(exprNode)
+			if err != nil {
+				return nil, err
+			}
+			clauses[k] = PutClause{Expr: expr}
+		}
+		return &PutProc{Clauses: clauses}, nil
 	case "UniqProc":
 		return &UniqProc{}, nil
 	case "ReducerProc":
