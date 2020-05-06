@@ -106,8 +106,12 @@ func (r *Reader) reset() {
 func (r *Reader) ReadPayload() (*zng.Record, []byte, error) {
 again:
 	b, err := r.read(1)
-	if err == io.EOF || len(b) == 0 {
-		return nil, nil, nil
+	if err != nil {
+		// Having tried to read a single byte above, ErrTruncated means io.EOF.
+		if err == io.EOF || err == peeker.ErrTruncated {
+			return nil, nil, nil
+		}
+		return nil, nil, err
 	}
 	code := b[0]
 	if code&0x80 != 0 {
