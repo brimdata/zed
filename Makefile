@@ -40,7 +40,7 @@ test-unit:
 	@go test -short ./...
 
 test-system: build
-	@ZTEST_BINDIR=$(CURDIR)/dist go test -v -tags=system ./tests -args PATH=$(shell pwd)/dist
+	@ZTEST_BINDIR=$(CURDIR)/dist go test -v ./tests
 
 test-heavy: build $(SAMPLEDATA)
 	@go test -v -tags=heavy ./tests
