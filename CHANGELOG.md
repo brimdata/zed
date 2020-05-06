@@ -2,6 +2,10 @@ These entries focus on changes we think are relevant to users of Brim,
 zq, or pcap.  For all changes to zqd, its API, or to other components in the
 zq repo, check the git log.
 
+## v0.13.1
+* zq: Fix an issue with stream reset that was preventing the pcap button in Brim from activating (#725)
+* zql: Allow multiple fields to be written from `put` processor (#697)
+
 ## v0.13.0
 * zqd: Enable time indexing to provide faster query response in narrower time ranges (#647)
 * zql: Make ipv4 subnet bases contain 4 octets to remove ambiguity between fractions & CIDR (#670)
