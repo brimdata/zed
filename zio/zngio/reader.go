@@ -18,22 +18,27 @@ const (
 )
 
 type Reader struct {
-	peeker   *peeker.Reader
-	zctx     *resolver.Context
+	peeker *peeker.Reader
+	// shared/output context
+	sctx *resolver.Context
+	// internal context implied by zng file
+	zctx *resolver.Context
+	// mapper to map internal to shared type contexts
 	mapper   *resolver.Mapper
 	position int64
 	sos      int64
 }
 
-func NewReader(reader io.Reader, zctx *resolver.Context) *Reader {
-	return NewReaderWithSize(reader, zctx, ReadSize)
+func NewReader(reader io.Reader, sctx *resolver.Context) *Reader {
+	return NewReaderWithSize(reader, sctx, ReadSize)
 }
 
-func NewReaderWithSize(reader io.Reader, zctx *resolver.Context, size int) *Reader {
+func NewReaderWithSize(reader io.Reader, sctx *resolver.Context, size int) *Reader {
 	return &Reader{
 		peeker: peeker.NewReader(reader, size, MaxSize),
+		sctx:   sctx,
 		zctx:   resolver.NewContext(),
-		mapper: resolver.NewMapper(zctx),
+		mapper: resolver.NewMapper(sctx),
 	}
 }
 
@@ -88,6 +93,12 @@ func (r *Reader) LastSOS() int64 {
 	return r.sos
 }
 
+func (r *Reader) reset() {
+	r.zctx.Reset()
+	r.mapper = resolver.NewMapper(r.sctx)
+	r.sos = r.position
+}
+
 // ReadPayload returns either data values as zbuf.Record or control payloads
 // as byte slices.  The record and byte slice are volatile so they must be
 // copied (via copy for byte slice or zbuf.Record.Keep()) before any subsequent
@@ -112,8 +123,7 @@ again:
 		case zng.TypeDefAlias:
 			err = r.readTypeAlias()
 		case zng.CtrlEOS:
-			r.zctx.Reset()
-			r.sos = r.position
+			r.reset()
 		default:
 			// XXX we should return the control code
 			len, err := r.readUvarint()
