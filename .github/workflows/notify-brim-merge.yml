@@ -1,6 +1,8 @@
 name: Notify Brim
 
 # https://help.github.com/en/actions/reference/events-that-trigger-workflows#pull-request-event-pull_request
+# Use pull_request because it contains more interesting metadata than a
+# push event.
 on:
   pull_request:
     branches:
