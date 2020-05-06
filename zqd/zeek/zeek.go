@@ -54,7 +54,7 @@ func LauncherFromPath(zeekpath string) (Launcher, error) {
 		return nil, fmt.Errorf("zeek path error: %w", err)
 	}
 
-	var args []string
+	var cmdline []string
 	if runtime.GOOS == "windows" {
 		// On windows, use the hidden zqd subcommand winexec that ensures any
 		// spawned process is terminated.
@@ -62,12 +62,12 @@ func LauncherFromPath(zeekpath string) (Launcher, error) {
 		if err != nil {
 			return nil, fmt.Errorf("cant get executable path for zqd")
 		}
-		args = []string{zqdexec, "winexec"}
+		cmdline = []string{zqdexec, "winexec"}
 	}
-	args = append(args, zeekpath, "-C", "-r", "-", "--exec", ExecScript, "local")
+	cmdline = append(cmdline, zeekpath, "-C", "-r", "-", "--exec", ExecScript, "local")
 
 	return func(ctx context.Context, r io.Reader, dir string) (Process, error) {
-		p := newProcess(ctx, r, args, dir)
+		p := newProcess(ctx, r, cmdline[0], cmdline[1:], dir)
 		return p, p.start()
 	}, nil
 }
@@ -77,8 +77,8 @@ type process struct {
 	stderrBuf *bytes.Buffer
 }
 
-func newProcess(ctx context.Context, pcap io.Reader, args []string, outdir string) *process {
-	cmd := exec.CommandContext(ctx, args[0], args[1:]...)
+func newProcess(ctx context.Context, pcap io.Reader, name string, args []string, outdir string) *process {
+	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Dir = outdir
 	cmd.Stdin = pcap
 	p := &process{cmd: cmd, stderrBuf: bytes.NewBuffer(nil)}

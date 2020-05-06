@@ -15,16 +15,15 @@ var spec = &charm.Spec{
 	Hidden: true,
 	Name:   "winexec",
 	Usage:  "winexec <command> <command-options...>",
-	Short:  "exec helper for windows",
+	Short:  "exec helper for Windows",
 	Long: `
-Executes the given command and arguments, terminating all spawned processes on exit.
+Executes the given command, terminating all spawned processes on exit.
 `,
 	New: newWindowsExecutor,
 }
 
 func newWindowsExecutor(_ charm.Command, _ *flag.FlagSet) (charm.Command, error) {
-	c := &windowsExecutor{}
-	return c, nil
+	return &windowsExecutor{}, nil
 }
 
 type windowsExecutor struct {

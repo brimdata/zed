@@ -2,8 +2,8 @@
 
 package winexec
 
-import "fmt"
+import "errors"
 
 func winexec(_ []string) error {
-	return fmt.Errorf("winexec only for windows platforms")
+	return errors.New("winexec is only available on Windows")
 }

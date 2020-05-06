@@ -1,7 +1,7 @@
 package winexec
 
 import (
-	"fmt"
+	"errors"
 	"os"
 	"os/exec"
 	"unsafe"
@@ -28,8 +28,7 @@ func ensureSpawnedProcessTermination() error {
 
 	// We add ourselves so that any process we launch will automatically be
 	// added to the job.
-	err = jo.AddCurrentProcess()
-	if err != nil {
+	if err := jo.AddCurrentProcess(); err != nil {
 		return err
 	}
 
@@ -52,11 +51,10 @@ func ensureSpawnedProcessTermination() error {
 
 func winexec(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("expected command to execute")
+		return errors.New("expected command to execute")
 	}
 
-	err := ensureSpawnedProcessTermination()
-	if err != nil {
+	if err := ensureSpawnedProcessTermination(); err != nil {
 		return err
 	}
 
