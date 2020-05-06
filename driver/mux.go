@@ -2,7 +2,6 @@ package driver
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zqd/api"
+	"github.com/brimsec/zq/zqe"
 )
 
 type MuxResult struct {
@@ -43,7 +43,7 @@ func (m *Mux) safeGet() (b zbuf.Batch, err error) {
 		if r == nil {
 			return
 		}
-		err = fmt.Errorf("panic: %+v", r)
+		err = zqe.RecoverError(r)
 	}()
 	b, err = m.Get()
 	return

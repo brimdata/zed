@@ -2,12 +2,12 @@ package zqd
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strconv"
 	"sync/atomic"
 	"time"
 
+	"github.com/brimsec/zq/zqe"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
@@ -76,9 +76,9 @@ func panicCatchMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 				if r == nil {
 					return
 				}
-				rstr := fmt.Sprint(r)
-				logger.DPanic("Panic", zap.String("error", rstr))
-				http.Error(w, rstr, http.StatusInternalServerError)
+				err := zqe.RecoverError(r)
+				logger.DPanic("panic", zap.Error(err))
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}()
 
 			next.ServeHTTP(w, r)

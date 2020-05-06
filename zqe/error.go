@@ -5,6 +5,7 @@ package zqe
 import (
 	"fmt"
 	"runtime"
+	"runtime/debug"
 	"strings"
 )
 
@@ -117,4 +118,8 @@ func E(args ...interface{}) error {
 	}
 
 	return e
+}
+
+func RecoverError(r interface{}) error {
+	return E("panic: %+v\n%s\n", r, string(debug.Stack()))
 }
