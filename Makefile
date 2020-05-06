@@ -7,6 +7,12 @@ LDFLAGS = -s -X main.version=$(VERSION)
 ZEEKTAG = v3.0.2-brim1
 ZEEKPATH = zeek-$(ZEEKTAG)
 
+# This enables a shortcut to run a single test from the ./tests suite, e.g.:
+# make TEST=TestZTest/suite/cut/cut
+ifneq "$(TEST)" ""
+test-one: test-run
+endif
+
 vet:
 	@go vet -copylocks ./...
 
@@ -41,6 +47,9 @@ test-unit:
 
 test-system: build
 	@ZTEST_BINDIR=$(CURDIR)/dist go test -v ./tests
+
+test-run: build
+	@ZTEST_BINDIR=$(CURDIR)/dist go test -v ./tests -run $(TEST)
 
 test-heavy: build $(SAMPLEDATA)
 	@go test -v -tags=heavy ./tests
