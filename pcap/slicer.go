@@ -25,7 +25,7 @@ func GenerateSlices(index Index, span nano.Span) ([]slicer.Slice, error) {
 	var slices []slicer.Slice
 	for _, section := range index {
 		pslice, err := FindPacketSlice(section.Index, span)
-		if err == ErrNoPacketsFound {
+		if err == ErrNoPcapsFound {
 			continue
 		}
 		if err != nil {
@@ -41,12 +41,12 @@ func GenerateSlices(index Index, span nano.Span) ([]slicer.Slice, error) {
 
 func FindPacketSlice(e ranger.Envelope, span nano.Span) (slicer.Slice, error) {
 	if len(e) == 0 {
-		return slicer.Slice{}, ErrNoPacketsFound
+		return slicer.Slice{}, ErrNoPcapsFound
 	}
 	d := e.FindSmallestDomain(ranger.Range{uint64(span.Ts), uint64(span.End())})
 	gap := d.X1 - d.X0
 	if gap == 0 {
-		return slicer.Slice{}, ErrNoPacketsFound
+		return slicer.Slice{}, ErrNoPcapsFound
 	}
 	return slicer.Slice{d.X0, d.X1 - d.X0}, nil
 }

@@ -30,8 +30,8 @@ func unpack(b []byte) (interface{}, error) {
 		out = &SearchStats{}
 	case "SearchEnd":
 		out = &SearchEnd{}
-	case "PacketPostStatus":
-		out = &PacketPostStatus{}
+	case "PcapPostStatus":
+		out = &PcapPostStatus{}
 	case "LogPostStatus":
 		out = &LogPostStatus{}
 	case "LogPostWarning":

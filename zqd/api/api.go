@@ -73,12 +73,12 @@ type ScannerStats struct {
 }
 
 type SpaceInfo struct {
-	Name          string     `json:"name"`
-	Span          *nano.Span `json:"span,omitempty"`
-	Size          int64      `json:"size" unit:"bytes"`
-	PacketSupport bool       `json:"packet_support"`
-	PacketSize    int64      `json:"packet_size" unit:"bytes"`
-	PacketPath    string     `json:"packet_path"`
+	Name        string     `json:"name"`
+	Span        *nano.Span `json:"span,omitempty"`
+	Size        int64      `json:"size" unit:"bytes"`
+	PcapSupport bool       `json:"pcap_support"`
+	PcapSize    int64      `json:"pcap_size" unit:"bytes"`
+	PcapPath    string     `json:"pcap_path"`
 }
 
 type StatusResponse struct {
@@ -93,18 +93,18 @@ type SpacePostRequest struct {
 
 type SpacePostResponse SpacePostRequest
 
-type PacketPostRequest struct {
+type PcapPostRequest struct {
 	Path string `json:"path"`
 }
 
-type PacketPostStatus struct {
-	Type           string     `json:"type"`
-	StartTime      nano.Ts    `json:"start_time"`
-	UpdateTime     nano.Ts    `json:"update_time"`
-	PacketSize     int64      `json:"packet_total_size" unit:"bytes"`
-	PacketReadSize int64      `json:"packet_read_size" unit:"bytes"`
-	SnapshotCount  int        `json:"snapshot_count"`
-	Span           *nano.Span `json:"span,omitempty"`
+type PcapPostStatus struct {
+	Type          string     `json:"type"`
+	StartTime     nano.Ts    `json:"start_time"`
+	UpdateTime    nano.Ts    `json:"update_time"`
+	PcapSize      int64      `json:"pcap_total_size" unit:"bytes"`
+	PcapReadSize  int64      `json:"pcap_read_size" unit:"bytes"`
+	SnapshotCount int        `json:"snapshot_count"`
+	Span          *nano.Span `json:"span,omitempty"`
 }
 
 type LogPostRequest struct {
@@ -124,9 +124,9 @@ type LogPostStatus struct {
 	LogReadSize  int64  `json:"log_read_size" unit:"bytes"`
 }
 
-// PacketSearch are the query string args to the packet endpoint when searching
+// PcapSearch are the query string args to the packet endpoint when searching
 // for packets within a connection 5-tuple.
-type PacketSearch struct {
+type PcapSearch struct {
 	Span    nano.Span
 	Proto   string `validate:"required"`
 	SrcHost net.IP `validate:"required"`
@@ -136,7 +136,7 @@ type PacketSearch struct {
 }
 
 // ToQuery transforms a packet search into a url.Values.
-func (ps *PacketSearch) ToQuery() url.Values {
+func (ps *PcapSearch) ToQuery() url.Values {
 	tssec, tsns := ps.Span.Ts.Split()
 	dursec := int(ps.Span.Dur / 1000000000)
 	durns := int(int64(ps.Span.Dur) - int64(dursec)*1000000000)
@@ -158,7 +158,7 @@ func (ps *PacketSearch) ToQuery() url.Values {
 }
 
 // FromQuery parses a query string and populates the receiver's values.
-func (ps *PacketSearch) FromQuery(v url.Values) error {
+func (ps *PcapSearch) FromQuery(v url.Values) error {
 	var err error
 	var tsSec, tsNs, durSec, durNs int64
 	if tsSec, err = strconv.ParseInt(v.Get("ts_sec"), 10, 64); err != nil {

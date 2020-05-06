@@ -15,8 +15,8 @@ import (
 )
 
 var (
-	// ErrNoPacketsFound is an error indicating no packets have been found.
-	ErrNoPacketsFound = zqe.E(zqe.NotFound, "no packets found")
+	// ErrNoPcapsFound is an error indicating no packets have been found.
+	ErrNoPcapsFound = zqe.E(zqe.NotFound, "no packets found")
 )
 
 type PacketFilter func(gopacket.Packet) bool
@@ -163,7 +163,7 @@ func (s *Search) Reader(ctx context.Context, r pcapio.Reader) (*SearchReader, er
 		return nil, err
 	}
 	if len(reader.window) == 0 {
-		return nil, ErrNoPacketsFound
+		return nil, ErrNoPcapsFound
 	}
 	return reader, nil
 }

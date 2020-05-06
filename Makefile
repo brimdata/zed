@@ -55,7 +55,7 @@ test-heavy: build $(SAMPLEDATA)
 	@go test -v -tags=heavy ./tests
 
 test-zeek: bin/$(ZEEKPATH)
-	@ZEEK=$(CURDIR)/bin/$(ZEEKPATH)/zeek go test -v -run=PacketPost -tags=zeek ./zqd
+	@ZEEK=$(CURDIR)/bin/$(ZEEKPATH)/zeek go test -v -run=PcapPost -tags=zeek ./zqd
 
 perf-compare: build $(SAMPLEDATA)
 	scripts/comparison-test.sh

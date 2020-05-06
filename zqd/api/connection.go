@@ -195,11 +195,11 @@ func (c *Connection) Search(ctx context.Context, search SearchRequest) (Search, 
 	return NewZngSearch(r), nil
 }
 
-func (c *Connection) PacketPost(ctx context.Context, space string, payload PacketPostRequest) (*Stream, error) {
+func (c *Connection) PcapPost(ctx context.Context, space string, payload PcapPostRequest) (*Stream, error) {
 	req := c.Request(ctx).
 		SetBody(payload)
 	req.Method = http.MethodPost
-	req.URL = path.Join("/space", url.PathEscape(space), "packet")
+	req.URL = path.Join("/space", url.PathEscape(space), "pcap")
 	r, err := c.stream(req)
 	if err != nil {
 		return nil, err
@@ -208,11 +208,11 @@ func (c *Connection) PacketPost(ctx context.Context, space string, payload Packe
 	return NewStream(jsonpipe), nil
 }
 
-func (c *Connection) PcapSearch(ctx context.Context, space string, payload PacketSearch) (*PcapReadCloser, error) {
+func (c *Connection) PcapSearch(ctx context.Context, space string, payload PcapSearch) (*PcapReadCloser, error) {
 	req := c.Request(ctx).
 		SetQueryParamsFromValues(payload.ToQuery())
 	req.Method = http.MethodGet
-	req.URL = path.Join("/space", url.PathEscape(space), "packet")
+	req.URL = path.Join("/space", url.PathEscape(space), "pcap")
 	r, err := c.stream(req)
 	if err != nil {
 		if r, ok := err.(*ErrorResponse); ok && r.StatusCode() == http.StatusNotFound {
