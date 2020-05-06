@@ -25,10 +25,10 @@ jobs:
     - name: Post PR closed event, if the close was a merge
       if: steps.vars.outputs.merged == 'true'
       run: |
-        cat $GITHUB_EVENT_PATH
+        jq < "${GITHUB_EVENT_PATH}"
         # Get what we want from the pull request event, craft a
         # repository dispatch event, and send it.
         # https://help.github.com/en/actions/reference/events-that-trigger-workflows#external-events-repository_dispatch
         # https://developer.github.com/v3/repos/#create-a-repository-dispatch-event
-        cat $GITHUB_EVENT_PATH | jq '.pull_request | { "event_type": "zq-pr-merged", "client_payload": {body, "branch": .head.ref, merge_commit_sha, number, title, "url": .html_url, "user": .user.login}}' > payload.json
+        jq '.pull_request | { "event_type": "zq-pr-merged", "client_payload": {body, "branch": .head.ref, merge_commit_sha, number, title, "url": .html_url, "user": .user.login}}' < "${GITHUB_EVENT_PATH}" > payload.json
         curl -XPOST -u "${{ secrets.PAT_USERNAME }}:${{ secrets.PAT_TOKEN }}" -H "Accept: application/vnd.github.v3+json"  -H "Content-Type: application/json" ${{ secrets.MERGE_EVENT_URL }} --data @payload.json
