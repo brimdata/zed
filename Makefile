@@ -7,9 +7,8 @@ LDFLAGS = -s -X main.version=$(VERSION)
 ZEEKTAG = v3.0.2-brim1
 ZEEKPATH = zeek-$(ZEEKTAG)
 
-# By putting this optional target first, conditiional on the TEST env var,
-# you can run just one test using by simiply typing "make TEST=go-test-path",
-# e.g., "make TEST=TestZTest/suite/cut/cut"
+# This enables a shortcut to run a single test from the ./tests suite, e.g.:
+# make TEST=TestZTest/suite/cut/cut
 ifneq "$(TEST)" ""
 test-one: test-run
 endif
