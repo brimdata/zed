@@ -73,16 +73,17 @@ func (pw *pipeWriterAt) WriteAt(p []byte, _ int64) (n int, err error) {
 // OpenS3File opens a file pointed to by a s3-style url like s3://bucket/name.
 //
 // The AWS SDK requires the region and credentials (access key ID and
-// secret) to make a request to S3. Credentials are needed even for
-// objects with no access restrictions. (If we want make access to
-// public objects possible with AWS creds, we could add support for
-// https:// URIs and fetch them via generic HTTP.)  Credentials can be
-// passed as environment variables (AWS_ACCESS_KEY_ID, and
-// AWS_SECRET_ACCESS_KEY), or they can be read from the shared
-// credentials file (using the default profile or the one indicated by
-// AWS_PROFILE). The region must always be present as an environment
-// variable.  For more information, see
-// https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html
+// secret) to make a request to S3. They can be passed as the usual
+// AWS environment variables, or be read from the usual aws config
+// files in ~/.aws.
+//
+// Note that access to public objects without credentials is possible
+// only if awscfg.AwsCfg.Credentials is set to
+// credentials.AnonymousCredentials. However, use of anonymous
+// credentials is currently not exposed as a zq command-line option,
+// and any attempt to read from s3 without credentials fails.
+// (Another way to access such public objects would be through plain
+// https access, once we add that support).
 func OpenS3File(zctx *resolver.Context, s3path string, cfg OpenConfig) (*zbuf.File, error) {
 	u, err := url.Parse(s3path)
 	if err != nil {
