@@ -193,7 +193,7 @@ func (c *Command) Run(args []string) error {
 	paths := args
 	var query ast.Proc
 	var err error
-	if fileExists(paths[0]) {
+	if fileExists(paths[0]) || detector.IsS3Path(paths[0]) {
 		query, err = zql.ParseProc("*")
 		if err != nil {
 			return err
