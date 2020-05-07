@@ -205,6 +205,28 @@ func handleSpacePost(c *Core, w http.ResponseWriter, r *http.Request) {
 	respond(c, w, r, http.StatusOK, info)
 }
 
+func handleSpacePut(c *Core, w http.ResponseWriter, r *http.Request) {
+	s := extractSpace(c, w, r)
+	if s == nil {
+		return
+	}
+	_, cancel, err := s.StartSpaceOp(r.Context())
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	defer cancel()
+	var req api.SpacePutRequest
+	if !request(c, w, r, &req) {
+		return
+	}
+	if err := s.Update(req); err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func handleSpaceDelete(c *Core, w http.ResponseWriter, r *http.Request) {
 	v := mux.Vars(r)
 	id, ok := v["space"]

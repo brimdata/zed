@@ -95,6 +95,10 @@ type SpacePostRequest struct {
 	DataPath string `json:"data_path"`
 }
 
+type SpacePutRequest struct {
+	Name string `json:"name"`
+}
+
 type PcapPostRequest struct {
 	Path string `json:"path"`
 }

@@ -257,6 +257,19 @@ func TestSpacePostDataPath(t *testing.T) {
 	assert.Equal(t, datapath, sp.DataPath)
 }
 
+func TestSpacePut(t *testing.T) {
+	ctx := context.Background()
+	_, client, done := newCore(t)
+	defer done()
+	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	require.NoError(t, err)
+	err = client.SpacePut(ctx, sp.ID, api.SpacePutRequest{Name: "new_name"})
+	require.NoError(t, err)
+	info, err := client.SpaceInfo(ctx, sp.ID)
+	require.NoError(t, err)
+	assert.Equal(t, "new_name", info.Name)
+}
+
 func TestSpaceDelete(t *testing.T) {
 	ctx := context.Background()
 	_, client, done := newCore(t)

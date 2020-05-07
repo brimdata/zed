@@ -166,6 +166,13 @@ func (c *Connection) SpacePost(ctx context.Context, req SpacePostRequest) (*Spac
 	return resp.Result().(*SpaceInfo), nil
 }
 
+func (c *Connection) SpacePut(ctx context.Context, id SpaceID, req SpacePutRequest) error {
+	_, err := c.Request(ctx).
+		SetBody(req).
+		Put(path.Join("/space", string(id)))
+	return err
+}
+
 func (c *Connection) SpaceList(ctx context.Context) ([]SpaceInfo, error) {
 	var res []SpaceInfo
 	_, err := c.Request(ctx).

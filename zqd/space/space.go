@@ -105,6 +105,15 @@ func (s *Space) ID() api.SpaceID {
 	return api.SpaceID(filepath.Base(s.path))
 }
 
+func (s *Space) Update(req api.SpacePutRequest) error {
+	if req.Name == "" {
+		return zqe.E(zqe.Invalid, "cannot set name to an empty string")
+	}
+	// XXX This is not thread safe. Will fix in upcoming pr.
+	s.conf.Name = req.Name
+	return s.conf.save(s.path)
+}
+
 func (s *Space) Info() (api.SpaceInfo, error) {
 	logsize, err := s.LogSize()
 	if err != nil {
