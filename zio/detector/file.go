@@ -43,12 +43,12 @@ func OpenFile(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, 
 	if IsS3Path(path) {
 		return OpenS3File(zctx, path, cfg)
 	}
-	var f *os.File
 
 	if cfg.Format == "parquet" {
 		return OpenParquet(zctx, path, cfg)
 	}
 
+	var f *os.File
 	if cfg.DashStdin && path == "-" {
 		f = os.Stdin
 	} else {

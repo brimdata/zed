@@ -15,7 +15,7 @@ import (
 type Reader struct {
 	pr      *reader.ParquetReader
 	typ     *zng.TypeRecord
-	columns []ParquetColumn
+	columns []parquetColumn
 	record  int
 }
 
@@ -42,15 +42,15 @@ func NewReader(f source.ParquetFile, zctx *resolver.Context) (*Reader, error) {
 	return &Reader{pr, typ, cols, 0}, nil
 }
 
-type ParquetColumn struct {
+type parquetColumn struct {
 	name     string
 	ptype    parquet.Type
 	ctype    *parquet.ConvertedType
 	ltype    *parquet.LogicalType
-	listType *ParquetColumn
+	listType *parquetColumn
 }
 
-func (pc *ParquetColumn) zngType() zng.Type {
+func (pc *parquetColumn) zngType() zng.Type {
 	if pc.listType != nil {
 		inner := pc.listType.zngType()
 		return zng.NewTypeArray(-1, inner)
@@ -90,7 +90,7 @@ func (pc *ParquetColumn) zngType() zng.Type {
 	panic(fmt.Sprintf("unhandled parquet type %s", pc.ptype))
 }
 
-func (pc *ParquetColumn) convert(v reflect.Value, typ zng.Type) (zcode.Bytes, error) {
+func (pc *parquetColumn) convert(v reflect.Value, typ zng.Type) (zcode.Bytes, error) {
 	if pc.ptype == parquet.Type_INT96 {
 		// XXX huh what to do with these
 		return zng.EncodeInt(0), nil
@@ -110,7 +110,7 @@ func (pc *ParquetColumn) convert(v reflect.Value, typ zng.Type) (zcode.Bytes, er
 	}
 }
 
-func (pc *ParquetColumn) append(builder *zcode.Builder, v reflect.Value, typ zng.Type) error {
+func (pc *parquetColumn) append(builder *zcode.Builder, v reflect.Value, typ zng.Type) error {
 	if pc.listType == nil {
 		zv, err := pc.convert(v, typ)
 		if err != nil {
@@ -148,15 +148,15 @@ func dump(el parquet.SchemaElement) {
 	fmt.Printf("\n")
 }
 
-func convertSchema(schema []*parquet.SchemaElement) ([]ParquetColumn, error) {
+func convertSchema(schema []*parquet.SchemaElement) ([]parquetColumn, error) {
 	// build a zng descriptor from the schema.  first element in the
 	// schema is the root, skip over it...
-	var columns []ParquetColumn
+	var columns []parquetColumn
 	for i := 1; i < len(schema); {
 		// dump(*schema[i])
 
 		n := 1
-		var col *ParquetColumn
+		var col *parquetColumn
 		var err error
 		if schema[i].NumChildren != nil {
 			n, col, err = convertNestedElement(schema, i)
@@ -179,16 +179,16 @@ func convertSchema(schema []*parquet.SchemaElement) ([]ParquetColumn, error) {
 	return columns, nil
 }
 
-func convertSimpleElement(el parquet.SchemaElement) (*ParquetColumn, error) {
+func convertSimpleElement(el parquet.SchemaElement) (*parquetColumn, error) {
 	if el.RepetitionType != nil && *el.RepetitionType == parquet.FieldRepetitionType_REPEATED {
 		return nil, fmt.Errorf("cannot convert repeated element %s", el.Name)
 	}
 
-	c := &ParquetColumn{el.Name, *el.Type, el.ConvertedType, el.LogicalType, nil}
+	c := &parquetColumn{el.Name, *el.Type, el.ConvertedType, el.LogicalType, nil}
 	return c, nil
 }
 
-func convertNestedElement(els []*parquet.SchemaElement, i int) (int, *ParquetColumn, error) {
+func convertNestedElement(els []*parquet.SchemaElement, i int) (int, *parquetColumn, error) {
 	el := els[i]
 	if el.ConvertedType != nil && *el.ConvertedType == parquet.ConvertedType_LIST {
 		return convertListType(els, i)
@@ -200,7 +200,7 @@ func convertNestedElement(els []*parquet.SchemaElement, i int) (int, *ParquetCol
 	return 1, nil, fmt.Errorf("Cannot handle non-LIST nested element %s", el.Name)
 }
 
-func convertListType(els []*parquet.SchemaElement, i int) (int, *ParquetColumn, error) {
+func convertListType(els []*parquet.SchemaElement, i int) (int, *parquetColumn, error) {
 	// Per https://github.com/apache/parquet-format/blob/master/LogicalTypes.md#lists
 	// List structure is:
 	// <list-repetition> group <name> (LIST) {
@@ -235,7 +235,7 @@ func convertListType(els []*parquet.SchemaElement, i int) (int, *ParquetColumn, 
 		return 1, nil, err
 	}
 
-	c := &ParquetColumn{el.Name, *el.Type, el.ConvertedType, el.LogicalType, typ}
+	c := &parquetColumn{el.Name, *el.Type, el.ConvertedType, el.LogicalType, typ}
 	return 3, c, nil
 }
 
