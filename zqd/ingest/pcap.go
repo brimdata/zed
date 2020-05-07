@@ -13,6 +13,7 @@ import (
 
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pcap"
+	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
@@ -144,7 +145,7 @@ outer:
 }
 
 func (p *Process) indexPcap() error {
-	pcapfile, err := os.Open(p.pcapPath)
+	pcapfile, err := fs.Open(p.pcapPath)
 	if err != nil {
 		return err
 	}
@@ -155,7 +156,7 @@ func (p *Process) indexPcap() error {
 	}
 	idxpath := p.space.DataPath(space.PcapIndexFile)
 	tmppath := idxpath + ".tmp"
-	f, err := os.Create(tmppath)
+	f, err := fs.Create(tmppath)
 	if err != nil {
 		return err
 	}
@@ -173,7 +174,7 @@ func (p *Process) indexPcap() error {
 }
 
 func (p *Process) runZeek(ctx context.Context) error {
-	pcapfile, err := os.Open(p.pcapPath)
+	pcapfile, err := fs.Open(p.pcapPath)
 	if err != nil {
 		return err
 	}

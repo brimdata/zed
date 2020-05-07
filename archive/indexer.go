@@ -3,8 +3,8 @@ package archive
 import (
 	"errors"
 	"fmt"
-	"os"
 
+	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zdx"
 	"github.com/brimsec/zq/zio/zngio"
@@ -67,7 +67,7 @@ func run(zardir string, rules []Rule, progress chan<- string) error {
 			progress <- fmt.Sprintf("%s: creating index %s", logPath, indexer.Path())
 		}
 	}
-	file, err := os.Open(logPath)
+	file, err := fs.Open(logPath)
 	if err != nil {
 		return err
 	}

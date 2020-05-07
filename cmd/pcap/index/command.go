@@ -6,10 +6,10 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"os"
 
 	"github.com/brimsec/zq/cmd/pcap/root"
 	"github.com/brimsec/zq/pcap"
+	"github.com/brimsec/zq/pkg/fs"
 	"github.com/mccanne/charm"
 )
 
@@ -61,7 +61,7 @@ func (c *Command) Run(args []string) error {
 	if len(args) != 0 || c.inputFile == "" {
 		return errors.New("pcap index: must be provide single pcap file as -r argument")
 	}
-	f, err := os.Open(c.inputFile)
+	f, err := fs.Open(c.inputFile)
 	if err != nil {
 		return err
 	}

@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 
+	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zng/resolver"
@@ -32,7 +33,7 @@ func OpenFile(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, 
 		if info.IsDir() {
 			return nil, errors.New("is a directory")
 		}
-		f, err = os.Open(path)
+		f, err = fs.Open(path)
 		if err != nil {
 			return nil, err
 		}
