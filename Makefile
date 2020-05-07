@@ -4,7 +4,7 @@ export GO111MODULE=on
 # npm/build.
 VERSION = $(shell git describe --tags --dirty --always)
 LDFLAGS = -s -X main.version=$(VERSION)
-ZEEKTAG = dev-zeek-runner
+ZEEKTAG = v3.0.2-brim3
 ZEEKPATH = zeek-$(ZEEKTAG)
 
 # This enables a shortcut to run a single test from the ./tests suite, e.g.:
