@@ -37,12 +37,10 @@ func isS3(path string) bool {
 // URL. If the path is neither of these or can't otherwise be opened,
 // an error is returned.
 func OpenFile(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, error) {
-	var f *os.File
-
 	if isS3(path) {
 		return OpenS3File(zctx, path, cfg)
 	}
-
+	var f *os.File
 	if cfg.DashStdin && path == "-" {
 		f = os.Stdin
 	} else {
