@@ -24,7 +24,7 @@ type OpenConfig struct {
 	AwsCfg         *aws.Config
 }
 
-func isS3(path string) bool {
+func IsS3Path(path string) bool {
 	u, err := url.Parse(path)
 	if err != nil {
 		return false
@@ -37,7 +37,7 @@ func isS3(path string) bool {
 // URL. If the path is neither of these or can't otherwise be opened,
 // an error is returned.
 func OpenFile(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, error) {
-	if isS3(path) {
+	if IsS3Path(path) {
 		return OpenS3File(zctx, path, cfg)
 	}
 	var f *os.File
