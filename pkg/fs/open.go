@@ -5,7 +5,7 @@ package fs
 import "os"
 
 func OpenFile(name string, flag int, perm os.FileMode) (*os.File, error) {
-	return fs.OpenFile(name, flag, perm)
+	return os.OpenFile(name, flag, perm)
 }
 
 func Open(name string) (*os.File, error) {
