@@ -53,7 +53,6 @@ func loadFile(t *testing.T, datadir, bucket, name, data string) {
 }
 
 func TestS3MinioPoc(t *testing.T) {
-
 	lines := []string{
 		"#0:record[ts:time,uid:bstring]",
 		"0:[1521911721.255387;C8Tful1TvM3Zf5x8fl;]",
@@ -61,6 +60,7 @@ func TestS3MinioPoc(t *testing.T) {
 	}
 	dir, err := ioutil.TempDir("", "s3test")
 	require.NoError(t, err)
+	defer os.RemoveAll(dir)
 
 	loadFile(t, dir, "brim", "conn.tzng", strings.Join(lines, "\n"))
 	mcli := startServer(t, dir)

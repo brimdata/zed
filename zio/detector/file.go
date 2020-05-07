@@ -33,7 +33,7 @@ func isS3(path string) bool {
 }
 
 // OpenFile creates and returns zbuf.File for the indicated "path",
-// which can be a local file path, a local directory path, or a s3
+// which can be a local file path, a local directory path, or an S3
 // URL. If the path is neither of these or can't otherwise be opened,
 // an error is returned.
 func OpenFile(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, error) {
@@ -70,7 +70,7 @@ func (pw *pipeWriterAt) WriteAt(p []byte, _ int64) (n int, err error) {
 	return pw.Write(p)
 }
 
-// OpenS3File opens a file pointed to by a s3-style url like s3://bucket/name.
+// OpenS3File opens a file pointed to by an S3-style URL like s3://bucket/name.
 //
 // The AWS SDK requires the region and credentials (access key ID and
 // secret) to make a request to S3. They can be passed as the usual
@@ -81,7 +81,7 @@ func (pw *pipeWriterAt) WriteAt(p []byte, _ int64) (n int, err error) {
 // only if awscfg.AwsCfg.Credentials is set to
 // credentials.AnonymousCredentials. However, use of anonymous
 // credentials is currently not exposed as a zq command-line option,
-// and any attempt to read from s3 without credentials fails.
+// and any attempt to read from S3 without credentials fails.
 // (Another way to access such public objects would be through plain
 // https access, once we add that support).
 func OpenS3File(zctx *resolver.Context, s3path string, cfg OpenConfig) (*zbuf.File, error) {
@@ -89,16 +89,11 @@ func OpenS3File(zctx *resolver.Context, s3path string, cfg OpenConfig) (*zbuf.Fi
 	if err != nil {
 		return nil, err
 	}
-	bucket := u.Host
-	key := u.Path
-
-	sesh := session.Must(session.NewSession(cfg.AwsCfg))
-
-	s3Client := s3.New(sesh)
-	s3Downloader := s3manager.NewDownloaderWithClient(s3Client)
+	sess := session.Must(session.NewSession(cfg.AwsCfg))
+	s3Downloader := s3manager.NewDownloader(sess)
 	getObj := &s3.GetObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
+		Bucket: aws.String(u.Host),
+		Key:    aws.String(u.Path),
 	}
 	pr, pw := io.Pipe()
 	go func() {
