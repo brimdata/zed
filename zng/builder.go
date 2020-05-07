@@ -55,13 +55,15 @@ func (b *Builder) Build(zvs ...zcode.Bytes) *Record {
 	return &b.rec
 }
 
-// Parse creates a record from the zng string representation of each leaf field
+// Parse creates a record from the a text representation of each leaf value
 // in the DFS traversal of the record type.  If there aren't enough inputs values
 // to occupy every leaf value, then those values are left unset, in which case
 // a valid record is returned along with ErrIncomplete.
-// XXX This currently does not work for embedded sets, unions, and so forth.
-// We need to define a record value syntax and do proper recusive descent
-// parsing here.
+// XXX We do not yet have a complete specification of the literal syntax of
+// zng values (e.g., as defined in zql) but once we have clarity, we will
+// update this routine with proper recursive-descent parsing of the syntax,
+// or we will use the peg parser to generate an AST for the literal and
+// take that AST as input here.
 func (b *Builder) Parse(vals ...string) (*Record, error) {
 	b.Reset()
 	out, err := b.parseRecord(b.Type, vals)
@@ -151,7 +153,9 @@ func (b *Builder) parseArray(typ *TypeArray, in string) error {
 	}
 	//XXX for now just use simple comma rule, which means comman
 	// cannot be embedded in a set value here.  we need a recursive
-	// descent parser like the type parser to d this correctly
+	// descent parser like the type parser to d this correctly or
+	// change all this to built from an AST literal object parsed
+	// by the zql parser.
 	for _, val := range strings.Split(in, ",") {
 		switch v := inner.(type) {
 		case *TypeRecord:
