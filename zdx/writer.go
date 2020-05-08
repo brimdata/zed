@@ -128,14 +128,13 @@ func (w *Writer) Write(rec *zng.Record) error {
 		// (or until we know it's the last frame in the file).
 		// So we build the frame key record from the current record
 		// here ahead of its use and save it in the frameKey variable.
-
 		key, err := w.cutter.Cut(rec)
 		if err != nil {
 			return err
 		}
 		// If the key isn't here flag an error.  All keys must be
 		// present to build a proper index.
-		// XXX we also need to check that they are in order.
+		// XXX We also need to check that they are in order.
 		if key == nil {
 			return fmt.Errorf("no key field present in record of type: %s", rec.Type)
 		}

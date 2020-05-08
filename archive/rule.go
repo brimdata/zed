@@ -38,6 +38,7 @@ func ParsePattern(in string) (string, string, error) {
 // dynamically as directories are encountered.
 type Rule interface {
 	NewIndexer(zardir string) (zbuf.WriteCloser, error)
+	Path(zardir string) string
 }
 
 func NewRule(pattern string) (Rule, error) {
@@ -64,8 +65,12 @@ func NewTypeRule(typeName string) (*TypeRule, error) {
 	}, nil
 }
 
+func (t *TypeRule) Path(dir string) string {
+	return filepath.Join(dir, typeZdxName(t.Type))
+}
+
 func (t *TypeRule) NewIndexer(dir string) (zbuf.WriteCloser, error) {
-	zdxPath := filepath.Join(dir, typeZdxName(t.Type))
+	zdxPath := t.Path(dir)
 	// XXX DANGER, remove without warning, should we have a force flag?
 	if err := zdx.Remove(zdxPath); err != nil && !os.IsNotExist(err) {
 		return nil, err
@@ -92,8 +97,12 @@ func NewFieldRule(field string) (*FieldRule, error) {
 	}, nil
 }
 
+func (f *FieldRule) Path(dir string) string {
+	return filepath.Join(dir, fieldZdxName(f.field))
+}
+
 func (f *FieldRule) NewIndexer(dir string) (zbuf.WriteCloser, error) {
-	zdxPath := filepath.Join(dir, fieldZdxName(f.field))
+	zdxPath := f.Path(dir)
 	// XXX DANGER, remove without warning, should we have a force flag?
 	if err := zdx.Remove(zdxPath); err != nil && !os.IsNotExist(err) {
 		return nil, err

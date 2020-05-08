@@ -27,8 +27,8 @@ zdx index and displays the result as a zng record.
 If the index has multiple keys, then multiple records may be returned for
 all the records that match the supplied keys.
 Each key argument specifies a value to look up in the table and must be parseable
-as a zng type of the key that was originally indexed where the keys refer to the leaf
-values in left-to-awrite order of the keys represented as a record, inclusive
+as the zng type of the key that was originally indexed where the keys refer to the leaf
+values in left-to-right order of the keys represented as a record, inclusive
 of any nested records.`,
 	New: newLookupCommand,
 }

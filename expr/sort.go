@@ -83,16 +83,15 @@ func NewSortFn(nullsMax bool, fields ...FieldExprResolver) SortFn {
 
 func NewKeyCompareFn(key *zng.Record) (KeyCompareFn, error) {
 	sorters := make(map[zng.Type]comparefn)
-	it := key.FieldIter()
 	var accessors []FieldExprResolver
 	var keyval []zng.Value
-	for !it.Done() {
+	for it := key.FieldIter(); !it.Done(); {
 		name, val, err := it.Next()
 		if err != nil {
 			return nil, err
 		}
-		// we got to unset... all remaining values inthe key
-		// must be unset
+		// We got an unset value, so all remaining values in the key
+		// must be unset.
 		if isNull(val) {
 			break
 		}

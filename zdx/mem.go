@@ -65,8 +65,7 @@ func (t *MemTable) open() {
 			t.keys[k] = []byte(key)
 			k++
 		}
-		typ := t.keyType
-		compare := expr.LookupSorter(typ)
+		compare := expr.LookupSorter(t.keyType)
 		sort.SliceStable(t.keys, func(a, b int) bool {
 			return compare(t.keys[a], t.keys[b]) < 0
 		})

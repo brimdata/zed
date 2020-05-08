@@ -67,7 +67,8 @@ func (c *Command) Run(args []string) error {
 	file := os.Stdin
 	path := args[0]
 	if path != "-" {
-		file, err := os.Open(path)
+		var err error
+		file, err = os.Open(path)
 		if err != nil {
 			return err
 		}
@@ -124,7 +125,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	// We do this little song and dance so we can return error on close
-	// but don't call close twice if make it here.
+	// but don't call close twice if we make it here.
 	close = false
 	return writer.Close()
 }

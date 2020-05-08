@@ -17,7 +17,7 @@ import (
 var Convert = &charm.Spec{
 	Name:  "convert",
 	Usage: "convert [-f framesize] [ -o file ] -k field[,field,...] file",
-	Short: "generate an zdx file from one or more zng files",
+	Short: "generate a zdx file from one or more zng files",
 	Long: `
 The convert command generates a zdx index containing keys and optional values
 from the input file.  The required flag -k specifies one or more zng record
@@ -74,20 +74,15 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 	keys := strings.Split(c.keys, ",")
 	writer, err := zdx.NewWriter(zctx, c.outputFile, keys, c.framesize)
 	if err != nil {
 		return err
 	}
-	close := true
-	defer func() {
-		if close {
-			writer.Close()
-		}
-	}()
 	if err := zbuf.Copy(writer, zbuf.Reader(file)); err != nil {
+		writer.Close()
 		return err
 	}
-	close = false
 	return writer.Close()
 }

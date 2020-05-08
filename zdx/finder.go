@@ -147,7 +147,7 @@ func (f *Finder) search(compare expr.KeyCompareFn) error {
 		}
 		off, err = rec.AccessInt(f.offsetField)
 		if err != nil {
-			return fmt.Errorf("btree child field: %s", err)
+			return fmt.Errorf("b-tree child field: %w", err)
 		}
 		level -= 1
 	}
@@ -179,9 +179,6 @@ func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zng.Record, keys *z
 		return err
 	}
 	for {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
 		// As long as we have an exact key-match, where unset key
 		// columns are "don't care", keep reading records and return
 		// them via the channel.
@@ -192,7 +189,11 @@ func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zng.Record, keys *z
 		if rec == nil {
 			return nil
 		}
-		hits <- rec
+		select {
+		case hits <- rec:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 }
 

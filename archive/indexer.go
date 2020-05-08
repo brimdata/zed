@@ -51,8 +51,7 @@ func run(zardir string, rules []Rule, progress chan<- string) error {
 		}
 		writers = append(writers, w)
 		if progress != nil {
-			//XXX
-			progress <- fmt.Sprintf("%s: creating index", logPath)
+			progress <- fmt.Sprintf("%s: creating index %s", logPath, rule.Path(logPath))
 		}
 	}
 	file, err := fs.Open(logPath)

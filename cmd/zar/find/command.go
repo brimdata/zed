@@ -27,7 +27,7 @@ An index may either be a standard index file
 ceated by "zar index" or a custom index (-x) file created from an abitrary zng file
 that has been formatted and wrapped by the "zdx convert" or "zar zdx" commands.
 
-The standard indexes, "pattern" argument has the form "field=value" (for field searches)
+For standard indexes, "pattern" argument has the form "field=value" (for field searches)
 or ":type=value" (for type searches).  For example, if type "ip" has been
 indexed then the IP 10.0.1.2 can be searched by saying
 
@@ -131,7 +131,7 @@ func (c *Command) Run(args []string) error {
 			err = writer.Write(hit)
 		} else {
 			var path string
-			path, err := hit.AccessString(c.pathField)
+			path, err = hit.AccessString(c.pathField)
 			if err == nil {
 				fmt.Println(path)
 			}

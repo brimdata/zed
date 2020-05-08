@@ -47,15 +47,16 @@ func Find(ctx context.Context, rootDir, indexName string, pattern []string, hits
 	return Walk(rootDir, func(zardir string) error {
 		path := filepath.Join(zardir, indexName)
 		searchHits := make(chan *zng.Record)
-		var err error
+		var searchErr error
 		go func() {
-			err = search(ctx, zctx, searchHits, path, pattern, skipMissing)
+			searchErr = search(ctx, zctx, searchHits, path, pattern, skipMissing)
 			close(searchHits)
 		}()
 		logPath := ZarDirToLog(zardir)
 		for hit := range searchHits {
 			if pathCol != nil {
 				val := zng.Value{pathCol[0].Type, zng.EncodeString(logPath)}
+				var err error
 				hit, err = zctx.AddColumns(hit, pathCol, []zng.Value{val})
 				if err != nil {
 					cancel()
@@ -67,7 +68,7 @@ func Find(ctx context.Context, rootDir, indexName string, pattern []string, hits
 			}
 			hits <- hit
 		}
-		return err
+		return searchErr
 	})
 }
 
