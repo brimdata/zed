@@ -162,7 +162,7 @@ func (f *Finder) Lookup(keys *zng.Record) (*zng.Record, error) {
 	}
 	if err := f.search(compare); err != nil {
 		if err == ErrNotFound {
-			// Reaturn nil/success when exact-match lookup fails
+			// Return nil/success when exact-match lookup fails
 			err = nil
 		}
 		return nil, err

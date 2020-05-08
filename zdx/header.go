@@ -9,23 +9,28 @@ import (
 )
 
 const (
-	Magic      = "zdx"
-	Version    = "0.2"
-	ChildField = "_btree_child"
+	MagicName      = "magic"
+	VersionName    = "version"
+	ChildFieldName = "child_field"
+	KeysName       = "keys"
+
+	MagicVal      = "zdx"
+	VersionVal    = "0.2"
+	ChildFieldVal = "_btree_child"
 )
 
 var ErrNotIndex = errors.New("not a zdx index")
 
 func ParseHeader(rec *zng.Record) (string, *zng.TypeRecord, error) {
-	magic, err := rec.AccessString("magic")
-	if err != nil || magic != Magic {
+	magic, err := rec.AccessString(MagicName)
+	if err != nil || magic != MagicVal {
 		return "", nil, ErrNotIndex
 	}
-	childField, err := rec.AccessString("child_field")
+	childField, err := rec.AccessString(ChildFieldName)
 	if err != nil {
 		return "", nil, ErrNotIndex
 	}
-	keys, err := rec.ValueByField("keys")
+	keys, err := rec.ValueByField(KeysName)
 	if err != nil {
 		return "", nil, ErrNotIndex
 	}
@@ -38,10 +43,10 @@ func ParseHeader(rec *zng.Record) (string, *zng.TypeRecord, error) {
 
 func newHeader(zctx *resolver.Context, keys *zng.Record) (*zng.Record, error) {
 	cols := []zng.Column{
-		{"magic", zng.TypeString},
-		{"version", zng.TypeString},
-		{"child_field", zng.TypeString},
-		{"keys", keys.Type},
+		{MagicName, zng.TypeString},
+		{VersionName, zng.TypeString},
+		{ChildFieldName, zng.TypeString},
+		{KeysName, keys.Type},
 		// XXX when we collapse bundle to single file we will need
 		// a pointer to the btree section... coming soon
 		//{"btree_offset or base_length", zng.String},
@@ -52,14 +57,14 @@ func newHeader(zctx *resolver.Context, keys *zng.Record) (*zng.Record, error) {
 	}
 	// This loop works around the corner case that the field reserved
 	// for the child pointer is in use by the key...
-	childField := ChildField
+	childField := ChildFieldVal
 	for k := 0; keys.HasField(childField); k++ {
-		childField = fmt.Sprintf("%s_%d", ChildField, k)
+		childField = fmt.Sprintf("%s_%d", ChildFieldVal, k)
 	}
 	// We call Parse here with just the Magic and Version and leave the
 	// key field empty so the parser will create records with unset values.
 	builder := zng.NewBuilder(typ)
-	rec, err := builder.Parse(Magic, Version, childField)
+	rec, err := builder.Parse(MagicVal, VersionVal, childField)
 	if err != nil && err != zng.ErrIncomplete {
 		return nil, err
 	}

@@ -95,7 +95,7 @@ func (c *Command) Run(args []string) error {
 		patterns = args
 	} else {
 		if len(args) != 1 {
-			return errors.New("zar find: exactly one search pattern must be provided")
+			return errors.New("zar find: standard index supports exactly one search pattern")
 		}
 		pattern, path, err := archive.ParsePattern(args[0])
 		if err != nil {

@@ -176,7 +176,7 @@ func (w *Writer) addToParentIndex(key *zng.Record, offset int64) error {
 }
 
 func (w *Writer) writeIndexRecord(keys *zng.Record, offset int64) error {
-	childField, err := w.header.AccessString("child_field")
+	childField, err := w.header.AccessString(ChildFieldName)
 	if err != nil {
 		return err
 	}

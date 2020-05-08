@@ -8,6 +8,7 @@ import (
 
 	"github.com/brimsec/zq/cmd/zdx/root"
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/zdx"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/zngio"
@@ -68,7 +69,7 @@ func (c *Command) Run(args []string) error {
 	path := args[0]
 	if path != "-" {
 		var err error
-		file, err = os.Open(path)
+		file, err = fs.Open(path)
 		if err != nil {
 			return err
 		}

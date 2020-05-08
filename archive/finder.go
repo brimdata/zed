@@ -19,11 +19,11 @@ import (
 // unspecified, implying a "don't care" condition for the unspecified sub-key(s).
 // If skipMissing is true, then log files that do not have the indicated index
 // are silently skipped; otherwise, an error is returned for the missing index file
-// and the search is terminated.  If pathField is non-zero, then a column is added
+// and the search is terminated.  If pathField is set, then a column is added
 // to each returned zng.Record with the path of the log file relating that hit
 // where the column name is given by the pathField argument.  If the passed-in
 // ctx is canceled, the search will terminate with error context.Canceled.
-// XXX We currently allow only one pattern at a time though it might
+// XXX We currently allow only one multi-key pattern at a time though it might
 // be more efficient at large scale to allow multipe patterns that
 // are effectively OR-ed together so that there is locality of
 // access to the zdx files.
