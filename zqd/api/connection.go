@@ -182,10 +182,14 @@ func (c *Connection) SpaceDelete(ctx context.Context, spaceName string) (err err
 
 // Search sends a search task to the server and returns a Search interface
 // that the caller uses to stream back results via the Read method.
-func (c *Connection) Search(ctx context.Context, search SearchRequest) (Search, error) {
+func (c *Connection) Search(ctx context.Context, search SearchRequest, params map[string]string) (Search, error) {
 	req := c.Request(ctx).
 		SetBody(search).
 		SetQueryParam("format", "zng")
+
+	for n, v := range params {
+		req.SetQueryParam(n, v)
+	}
 	req.Method = http.MethodPost
 	req.URL = "/search"
 	r, err := c.stream(req)

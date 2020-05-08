@@ -17,12 +17,14 @@ import (
 type ZngOutput struct {
 	response http.ResponseWriter
 	writer   *zngio.Writer
+	ctrl     bool
 }
 
-func NewZngOutput(response http.ResponseWriter) *ZngOutput {
+func NewZngOutput(response http.ResponseWriter, ctrl bool) *ZngOutput {
 	o := &ZngOutput{
 		response: response,
 		writer:   zngio.NewWriter(response, zio.WriterFlags{}),
+		ctrl:     ctrl,
 	}
 	return o
 }
@@ -52,6 +54,9 @@ func (r *ZngOutput) End(ctrl interface{}) error {
 }
 
 func (r *ZngOutput) SendControl(ctrl interface{}) error {
+	if !r.ctrl {
+		return nil
+	}
 	msg, err := json.Marshal(ctrl)
 	if err != nil {
 		//XXX need a better json error message
