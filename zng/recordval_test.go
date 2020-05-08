@@ -1,11 +1,15 @@
 package zng_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/brimsec/zq/zcode"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRecordTypeCheck(t *testing.T) {
@@ -56,4 +60,23 @@ func TestRecordTypeCheck(t *testing.T) {
 		r.Raw = b.Bytes()
 		assert.NoError(t, r.TypeCheck())
 	})
+}
+
+const in = `
+#zfile=string
+#zbool=bool
+#0:record[foo:zfile,bar:zbool]
+0:[hello;true;]
+`
+
+func TestRecordAccessAlias(t *testing.T) {
+	reader := tzngio.NewReader(strings.NewReader(in), resolver.NewContext())
+	rec, err := reader.Read()
+	require.NoError(t, err)
+	s, err := rec.AccessString("foo")
+	require.NoError(t, err)
+	assert.Equal(t, s, "hello")
+	b, err := rec.AccessBool("bar")
+	require.NoError(t, err)
+	assert.Equal(t, b, true)
 }
