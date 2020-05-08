@@ -77,12 +77,7 @@ func newTypeInfo(zctx *resolver.Context, desc *zng.TypeRecord, path string) (*ty
 	return &info, nil
 }
 
-// newRawFromJSON builds a raw value from a descriptor and the JSON object
-// in data.  It works in two steps.  First, it constructs a slice of views onto
-// the underlying JSON values.  This slice follows the order of the flattened
-// columns.  Second, it builds the full encoded value and building nested
-// records as necessary.
-func (info *typeInfo) newRawFromJSON(data []byte) (zcode.Bytes, int, error) {
+func (info *typeInfo) makeViews(data []byte) (int, error) {
 	var droppedFields int
 
 	for i := range info.jsonVals {
@@ -116,39 +111,18 @@ func (info *typeInfo) newRawFromJSON(data []byte) (zcode.Bytes, int, error) {
 		return nil
 	}
 	if err := jsonparser.ObjectEach(data, callback); err != nil {
-		return nil, 0, err
+		return 0, err
 	}
+	return droppedFields, nil
+}
 
-	builder := zcode.NewBuilder()
-	colno := 0
-	nestedColno := 0
-	nestedColumns := info.descriptor.Columns
-	flatColumns := info.flatDesc.Columns
-	for i := range flatColumns {
-		val := info.jsonVals[i].val
-		if i == info.descriptor.TsCol {
-			if info.jsonVals[i].typ != jsonparser.String && info.jsonVals[i].typ != jsonparser.Number {
-				return nil, 0, fmt.Errorf("invalid json type for ts: %s", info.jsonVals[i].typ)
-			}
+func appendRecordFromViews(builder *zcode.Builder, columns []zng.Column, jsonVals []jsonVal) ([]jsonVal, error) {
 
-			ts, err := parseJSONTimestamp(val)
-			if err != nil {
-				return nil, 0, err
-			}
-			if ts < 0 {
-				return nil, 0, fmt.Errorf("negative ts")
-			}
-		}
-
-		recType, isRecord := nestedColumns[colno].Type.(*zng.TypeRecord)
-		if isRecord && nestedColno == 0 {
-			builder.BeginContainer()
-		}
-
-		switch info.jsonVals[i].typ {
+	handleVal := func(jv jsonVal, typ zng.Type) error {
+		switch jv.typ {
 		case jsonparser.Array:
 			builder.BeginContainer()
-			ztyp := zng.InnerType(flatColumns[i].Type)
+			ztyp := zng.InnerType(typ)
 			var iterErr error
 			callback := func(v []byte, typ jsonparser.ValueType, offset int, _ error) {
 				zv, err := parseSimpleType(v, ztyp)
@@ -158,42 +132,80 @@ func (info *typeInfo) newRawFromJSON(data []byte) (zcode.Bytes, int, error) {
 					builder.AppendPrimitive(zv)
 				}
 			}
-			if _, err := jsonparser.ArrayEach(val, callback); err != nil {
-				return nil, 0, err
+			if _, err := jsonparser.ArrayEach(jv.val, callback); err != nil {
+				return err
 			}
 			if iterErr != nil {
-				return nil, 0, iterErr
+				return iterErr
 			}
-			if _, ok := flatColumns[i].Type.(*zng.TypeSet); ok {
+			if _, ok := typ.(*zng.TypeSet); ok {
 				builder.TransformContainer(zng.NormalizeSet)
 			}
 			builder.EndContainer()
 		case jsonparser.NotExist, jsonparser.Null:
-			switch flatColumns[i].Type.(type) {
+			switch typ.(type) {
 			case *zng.TypeSet, *zng.TypeArray:
 				builder.AppendContainer(nil)
 			default:
 				builder.AppendPrimitive(nil)
 			}
 		default:
-			zv, err := parseSimpleType(val, flatColumns[i].Type)
+			zv, err := parseSimpleType(jv.val, typ)
 			if err != nil {
-				return nil, 0, err
+				return err
 			}
 			builder.AppendPrimitive(zv)
 		}
+		return nil
+	}
 
-		if isRecord {
-			nestedColno += 1
-			if nestedColno == len(recType.Columns) {
-				builder.EndContainer()
-				nestedColno = 0
-				colno += 1
-			}
-		} else {
-			colno += 1
+	c := 0
+	for c < len(columns) {
+		if len(jsonVals) == 0 {
+			return nil, errors.New("too few values")
 		}
 
+		typ := columns[c].Type
+		if recType, isRec := typ.(*zng.TypeRecord); isRec {
+			builder.BeginContainer()
+			var err error
+			if jsonVals, err = appendRecordFromViews(builder, recType.Columns, jsonVals); err != nil {
+				return nil, err
+			}
+			builder.EndContainer()
+		} else {
+			if err := handleVal(jsonVals[0], typ); err != nil {
+				return nil, err
+			}
+			jsonVals = jsonVals[1:]
+		}
+		c++
+	}
+	return jsonVals, nil
+}
+
+// newRawFromJSON builds a raw value from a descriptor and the JSON object
+// in data.  It works in two steps.  First, it constructs a slice of views onto
+// the underlying JSON values.  This slice follows the order of the flattened
+// columns.  Second, it builds the full encoded value and building nested
+// records as necessary.
+func (info *typeInfo) newRawFromJSON(data []byte) (zcode.Bytes, int, error) {
+
+	droppedFields, err := info.makeViews(data)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	i := info.descriptor.TsCol
+	if i >= 0 && info.jsonVals[i].typ != jsonparser.String && info.jsonVals[i].typ != jsonparser.Number {
+		return nil, 0, fmt.Errorf("invalid json type for ts: %s", info.jsonVals[i].typ)
+	}
+
+	builder := zcode.NewBuilder()
+
+	_, err = appendRecordFromViews(builder, info.descriptor.Columns, info.jsonVals)
+	if err != nil {
+		return nil, 0, err
 	}
 	return builder.Bytes(), droppedFields, nil
 }
@@ -278,7 +290,6 @@ func (p *typeParser) parseObject(b []byte) (zng.Value, error) {
 		incr(&p.stats.IncompleteDescriptor)
 		return zng.Value{}, ErrIncompleteDescriptor
 	}
-
 	return zng.Value{ti.descriptor, raw}, nil
 }
 
