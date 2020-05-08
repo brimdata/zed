@@ -17,6 +17,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/zbuf"
@@ -799,7 +800,7 @@ func (p *testZeekProcess) Wait() error {
 func writeLogsFn(logs []string) procFn {
 	return func(t *testZeekProcess) error {
 		for _, log := range logs {
-			r, err := os.Open(log)
+			r, err := fs.Open(log)
 			if err != nil {
 				return err
 			}

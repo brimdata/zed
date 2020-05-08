@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/parquetio"
@@ -59,7 +60,7 @@ func OpenFile(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, 
 		if info.IsDir() {
 			return nil, errors.New("is a directory")
 		}
-		f, err = os.Open(path)
+		f, err = fs.Open(path)
 		if err != nil {
 			return nil, err
 		}

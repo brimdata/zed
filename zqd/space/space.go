@@ -285,7 +285,7 @@ func (s *Space) PcapSearch(ctx context.Context, req api.PcapSearch) (*SearchRead
 	default:
 		return nil, fmt.Errorf("unsupported proto type: %s", req.Proto)
 	}
-	f, err := os.Open(s.PcapPath())
+	f, err := fs.Open(s.PcapPath())
 	if err != nil {
 		return nil, err
 	}
@@ -345,7 +345,7 @@ func (s *Space) DataPath(elem ...string) string {
 func (s *Space) OpenZng(span nano.Span) (zbuf.ReadCloser, error) {
 	zctx := resolver.NewContext()
 
-	f, err := os.Open(s.DataPath(AllZngFile))
+	f, err := fs.Open(s.DataPath(AllZngFile))
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return nil, err
@@ -353,7 +353,7 @@ func (s *Space) OpenZng(span nano.Span) (zbuf.ReadCloser, error) {
 
 		// Couldn't read all.zng, check for an old space with all.bzng
 		bzngFile := strings.TrimSuffix(AllZngFile, filepath.Ext(AllZngFile)) + ".bzng"
-		f, err = os.Open(s.DataPath(bzngFile))
+		f, err = fs.Open(s.DataPath(bzngFile))
 		if err != nil {
 			if !os.IsNotExist(err) {
 				return nil, err
@@ -367,7 +367,7 @@ func (s *Space) OpenZng(span nano.Span) (zbuf.ReadCloser, error) {
 }
 
 func (s *Space) CreateFile(file string) (*os.File, error) {
-	return os.Create(s.DataPath(file))
+	return fs.Create(s.DataPath(file))
 }
 
 func (s *Space) HasFile(file string) bool {
@@ -477,7 +477,7 @@ func loadConfig(spacePath string) (config, error) {
 func (c config) save(spacePath string) error {
 	path := filepath.Join(spacePath, configFile)
 	tmppath := path + ".tmp"
-	f, err := os.Create(tmppath)
+	f, err := fs.Create(tmppath)
 	if err != nil {
 		return err
 	}
@@ -508,7 +508,7 @@ func loadInfoFile(path string) (info, error) {
 func (i info) save(path string) error {
 	path = filepath.Join(path, infoFile)
 	tmppath := path + ".tmp"
-	f, err := os.Create(tmppath)
+	f, err := fs.Create(tmppath)
 	if err != nil {
 		return err
 	}

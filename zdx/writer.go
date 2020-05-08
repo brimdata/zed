@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/brimsec/zq/pkg/bufwriter"
+	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
@@ -60,7 +61,7 @@ func newWriter(path string, framesize, level int) (*Writer, error) {
 		panic("something wrong")
 	}
 	name := filename(path, level)
-	f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	f, err := fs.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return nil, err
 	}

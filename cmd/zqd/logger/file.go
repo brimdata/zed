@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/brimsec/zq/pkg/fs"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"gopkg.in/yaml.v3"
@@ -51,9 +52,9 @@ func OpenFile(path string, mode FileMode) (zapcore.WriteSyncer, error) {
 	case FileModeRotate:
 		return logrotate(path, mode)
 	case FileModeTruncate:
-		return os.OpenFile(path, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
+		return fs.OpenFile(path, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
 	default: // FileModeAppend
-		return os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+		return fs.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 	}
 }
 

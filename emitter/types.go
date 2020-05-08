@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/brimsec/zq/pkg/bufwriter"
+	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/zng"
 )
 
@@ -24,7 +25,7 @@ func NewTypeLogger(path string, verbose bool) (*TypeLogger, error) {
 	} else {
 		var err error
 		flags := os.O_WRONLY | os.O_CREATE | os.O_TRUNC
-		file, err := os.OpenFile(path, flags, 0600)
+		file, err := fs.OpenFile(path, flags, 0600)
 		if err != nil {
 			return nil, err
 		}

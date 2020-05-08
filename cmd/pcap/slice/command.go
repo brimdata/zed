@@ -12,6 +12,7 @@ import (
 	"github.com/brimsec/zq/cmd/pcap/root"
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pcap/pcapio"
+	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/mccanne/charm"
 )
@@ -117,7 +118,7 @@ func (c *Command) Run(args []string) error {
 	}
 	in := os.Stdin
 	if c.inputFile != "-" {
-		in, err = os.Open(c.inputFile)
+		in, err = fs.Open(c.inputFile)
 		if err != nil {
 			return err
 		}
@@ -141,7 +142,7 @@ func (c *Command) Run(args []string) error {
 	}
 	out := io.Writer(os.Stdout)
 	if c.outputFile != "-" {
-		f, err := os.OpenFile(c.outputFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+		f, err := fs.OpenFile(c.outputFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
 			return err
 		}
