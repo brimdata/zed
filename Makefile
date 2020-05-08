@@ -4,7 +4,7 @@ export GO111MODULE=on
 # npm/build.
 VERSION = $(shell git describe --tags --dirty --always)
 LDFLAGS = -s -X main.version=$(VERSION)
-ZEEKTAG = v3.0.2-brim1
+ZEEKTAG = v3.0.2-brim3
 ZEEKPATH = zeek-$(ZEEKTAG)
 
 # This enables a shortcut to run a single test from the ./tests suite, e.g.:
@@ -55,7 +55,7 @@ test-heavy: build $(SAMPLEDATA)
 	@go test -v -tags=heavy ./tests
 
 test-zeek: bin/$(ZEEKPATH)
-	@ZEEK=$(CURDIR)/bin/$(ZEEKPATH)/zeek go test -v -run=PcapPost -tags=zeek ./zqd
+	@ZEEK=$(CURDIR)/bin/$(ZEEKPATH)/zeekrunner go test -v -run=PcapPost -tags=zeek ./zqd
 
 perf-compare: build $(SAMPLEDATA)
 	scripts/comparison-test.sh

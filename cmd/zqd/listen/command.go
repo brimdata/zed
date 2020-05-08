@@ -2,7 +2,6 @@ package listen
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -55,21 +54,21 @@ func init() {
 
 type Command struct {
 	*root.Command
-	listenAddr string
-	conf       zqd.Config
-	pprof      bool
-	zeekpath   string
-	configfile string
-	loggerConf *logger.Config
-	logger     *zap.Logger
-	devMode    bool
+	listenAddr     string
+	conf           zqd.Config
+	pprof          bool
+	zeekRunnerPath string
+	configfile     string
+	loggerConf     *logger.Config
+	logger         *zap.Logger
+	devMode        bool
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.StringVar(&c.listenAddr, "l", ":9867", "[addr]:port to listen on")
 	f.StringVar(&c.conf.Root, "datadir", ".", "data directory")
-	f.StringVar(&c.zeekpath, "zeekpath", "", "path to the zeek executable to use (defaults to zeek in $PATH)")
+	f.StringVar(&c.zeekRunnerPath, "zeekrunner", "", "path to command that generates zeek logs from pcap data")
 	f.BoolVar(&c.pprof, "pprof", false, "add pprof routes to api")
 	f.StringVar(&c.configfile, "config", "", "path to a zqd config file")
 	f.BoolVar(&c.devMode, "dev", false, "runs zqd in development mode")
@@ -164,8 +163,11 @@ func (c *Command) loadConfigFile() error {
 }
 
 func (c *Command) initZeek() error {
-	ln, err := zeek.LauncherFromPath(c.zeekpath)
-	if err != nil && !errors.Is(err, zeek.ErrNotFound) {
+	if c.zeekRunnerPath == "" {
+		return nil
+	}
+	ln, err := zeek.LauncherFromPath(c.zeekRunnerPath)
+	if err != nil {
 		return err
 	}
 	c.conf.ZeekLauncher = ln

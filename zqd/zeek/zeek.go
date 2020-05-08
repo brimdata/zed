@@ -12,16 +12,6 @@ import (
 	"strings"
 )
 
-// ExecScript will be fed into a launched zeek process as the --exec option. The
-// default script disables the packet_filter and loaded scripts logs. These logs
-// are disabled because the emit either timeless logs or logs with timestamp
-// set to execution time rather than time of capture.
-var ExecScript = `
-event zeek_init() {
-	Log::disable_stream(PacketFilter::LOG);
-	Log::disable_stream(LoadedScripts::LOG);
-}`
-
 // ErrNotFound is returned from LauncherFromPath when the zeek executable is not
 // found.
 var ErrNotFound = errors.New("zeek not found")
@@ -38,23 +28,14 @@ type Process interface {
 // starting the Process, that error will be returned.
 type Launcher func(context.Context, io.Reader, string) (Process, error)
 
-// LauncherFromPath returns a Launcher instance that will launch zeek processes
-// using the provided path to a zeek executable. If an empty string is provided,
-// this will attempt to load zeek from $PATH. If zeek cannot be found
-// ErrNotFound is returned.
+// LauncherFromPath returns a Launcher instance that will execute a pcap
+// to zeek log transformation, using the provided path to the command.
+// zeekpath should point to an executable or script that:
+// - expects to receive a pcap file on stdin
+// - writes the resulting zeek logs into its working directory
 func LauncherFromPath(zeekpath string) (Launcher, error) {
-	if zeekpath == "" {
-		zeekpath = "zeek"
-	}
-	zeekpath, err := exec.LookPath(zeekpath)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) || errors.Is(err, exec.ErrNotFound) {
-			return nil, ErrNotFound
-		}
-		return nil, fmt.Errorf("zeek path error: %w", err)
-	}
-
 	var cmdline []string
+
 	if runtime.GOOS == "windows" {
 		// On windows, use the hidden zqd subcommand winexec that ensures any
 		// spawned process is terminated.
@@ -62,9 +43,10 @@ func LauncherFromPath(zeekpath string) (Launcher, error) {
 		if err != nil {
 			return nil, fmt.Errorf("cant get executable path for zqd")
 		}
-		cmdline = []string{zqdexec, "winexec"}
+		cmdline = []string{zqdexec, "winexec", zeekpath}
+	} else {
+		cmdline = []string{zeekpath}
 	}
-	cmdline = append(cmdline, zeekpath, "-C", "-r", "-", "--exec", ExecScript, "local")
 
 	return func(ctx context.Context, r io.Reader, dir string) (Process, error) {
 		p := newProcess(ctx, r, cmdline[0], cmdline[1:], dir)
