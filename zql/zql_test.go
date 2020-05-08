@@ -3,16 +3,16 @@ package zql
 import (
 	"bufio"
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/pkg/fs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestValid(t *testing.T) {
-	file, err := os.Open("valid.zql")
+	file, err := fs.Open("valid.zql")
 	require.NoError(t, err)
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
@@ -23,7 +23,7 @@ func TestValid(t *testing.T) {
 }
 
 func TestInvalid(t *testing.T) {
-	file, err := os.Open("invalid.zql")
+	file, err := fs.Open("invalid.zql")
 	require.NoError(t, err)
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
