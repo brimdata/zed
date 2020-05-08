@@ -14,13 +14,15 @@ type JSON struct {
 	pipe   *api.JSONPipe
 	stream *zjsonio.Stream
 	mtu    int
+	ctrl   bool
 }
 
-func NewJSONOutput(resp http.ResponseWriter, mtu int) *JSON {
+func NewJSONOutput(resp http.ResponseWriter, mtu int, ctrl bool) *JSON {
 	return &JSON{
 		pipe:   api.NewJSONPipe(resp),
 		stream: zjsonio.NewStream(),
 		mtu:    mtu,
+		ctrl:   ctrl,
 	}
 }
 
@@ -64,10 +66,16 @@ func (s *JSON) SendBatch(cid int, set zbuf.Batch) error {
 	return nil
 }
 
-func (s *JSON) SendControl(ctrl interface{}) error {
-	return s.pipe.Send(ctrl)
+func (s *JSON) SendControl(msg interface{}) error {
+	if !s.ctrl {
+		return nil
+	}
+	return s.pipe.Send(msg)
 }
 
-func (s *JSON) End(ctrl interface{}) error {
-	return s.pipe.SendFinal(ctrl)
+func (s *JSON) End(msg interface{}) error {
+	if !s.ctrl {
+		msg = nil
+	}
+	return s.pipe.SendFinal(msg)
 }

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
@@ -107,7 +108,7 @@ func TestZngIndex(t *testing.T) {
 		// First time we read the file we don't have an index, but a
 		// search with a time span should still only return results
 		// from the span.
-		fp, err = os.Open(fname)
+		fp, err = fs.Open(fname)
 		require.NoError(t, err)
 		ireader, err := index.NewReader(fp, resolver.NewContext(), span)
 		require.NoError(t, err)
@@ -118,7 +119,7 @@ func TestZngIndex(t *testing.T) {
 
 		// Second time through, should get the same results, this time
 		// verify that we didn't read the whole file.
-		fp, err = os.Open(fname)
+		fp, err = fs.Open(fname)
 		require.NoError(t, err)
 		ireader, err = index.NewReader(fp, resolver.NewContext(), span)
 		require.NoError(t, err)

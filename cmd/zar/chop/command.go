@@ -9,6 +9,7 @@ import (
 
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/pkg/bufwriter"
+	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
@@ -106,7 +107,7 @@ func (c *Command) Run(args []string) error {
 			path := filepath.Join(dir, ts.StringFloat()+".zng")
 			//XXX for now just truncate any existing file.
 			// a future PR will do a split/merge.
-			out, err := os.OpenFile(path, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0644)
+			out, err := fs.OpenFile(path, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0644)
 			if err != nil {
 				return err
 			}

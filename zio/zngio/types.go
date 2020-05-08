@@ -19,6 +19,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
@@ -40,7 +41,7 @@ func NewTypeFile(path string) (*TypeFile, error) {
 	zctx := resolver.NewContext()
 	info, err := os.Stat(path)
 	if os.IsNotExist(err) {
-		f, err := os.Create(path)
+		f, err := fs.Create(path)
 		if err != nil {
 			return nil, err
 		}
@@ -51,7 +52,7 @@ func NewTypeFile(path string) (*TypeFile, error) {
 		if info.IsDir() {
 			return nil, fmt.Errorf("type file cannot be a directory: %s", path)
 		}
-		file, err := os.Open(path)
+		file, err := fs.Open(path)
 		if err != nil {
 			return nil, err
 		}

@@ -69,7 +69,7 @@ const (
 // If the file format is not supported an error is returned.
 //
 //  // Create new reader:
-//  f, _ := os.Open("/tmp/file.pcap")
+//  f, _ := fs.Open("/tmp/file.pcap")
 //  defer f.Close()
 //  r, err := NewReader(f)
 //  data, info, err := r.Read()

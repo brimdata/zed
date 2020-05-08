@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/driver"
+	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
@@ -87,7 +88,7 @@ func openIncomingLog(path string) (*readCounter, int64, error) {
 	if info.IsDir() {
 		return nil, 0, zqe.E(zqe.Invalid, "path is a directory")
 	}
-	f, err := os.Open(path)
+	f, err := fs.Open(path)
 	if err != nil {
 		return nil, 0, err
 	}

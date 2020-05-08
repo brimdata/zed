@@ -82,7 +82,6 @@ func init() {
 type Command struct {
 	zctx            *resolver.Context
 	dir             string
-	path            string
 	jsonTypePath    string
 	jsonPathRegexp  string
 	jsonTypeConfig  *ndjsonio.TypeConfig
@@ -100,7 +99,6 @@ type Command struct {
 }
 
 func New(f *flag.FlagSet) (charm.Command, error) {
-	cwd, _ := os.Getwd()
 	c := &Command{zctx: resolver.NewContext()}
 
 	c.jsonPathRegexp = ingest.DefaultJSONPathRegexp
@@ -111,7 +109,6 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	// Flags added for readers are -i XXX json
 	c.ReaderFlags.SetFlags(f)
 
-	f.StringVar(&c.path, "p", cwd, "path for input")
 	f.StringVar(&c.dir, "d", "", "directory for output data files")
 	f.StringVar(&c.outputFile, "o", "", "write data to output file")
 	f.StringVar(&c.jsonTypePath, "j", "", "path to json types file")

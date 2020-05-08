@@ -3,6 +3,7 @@ package zdx
 import (
 	"os"
 
+	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
 )
@@ -27,7 +28,7 @@ func NewReader(path string) (*Reader, error) {
 }
 
 func newReader(path string, level int) (*Reader, error) {
-	f, err := os.Open(filename(path, level))
+	f, err := fs.Open(filename(path, level))
 	if err != nil {
 		return nil, err
 	}

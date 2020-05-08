@@ -13,6 +13,7 @@ import (
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
@@ -331,7 +332,7 @@ type runFile struct {
 // newRunFile writes sorted to filename and returns a runFile that reads the
 // file using zctx.
 func newRunFile(filename string, sorted []*zng.Record, zctx *resolver.Context) (*runFile, error) {
-	f, err := os.Create(filename)
+	f, err := fs.Create(filename)
 	if err != nil {
 		return nil, err
 	}

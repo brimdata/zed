@@ -17,6 +17,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/zbuf"
@@ -45,6 +46,41 @@ func TestSearch(t *testing.T) {
 	_ = postSpaceLogs(t, client, sp.Name, nil, false, src)
 	res := searchTzng(t, client, sp.Name, "*")
 	require.Equal(t, test.Trim(src), res)
+}
+
+func TestSearchNoCtrl(t *testing.T) {
+	src := `
+#0:record[_path:string,ts:time,uid:bstring]
+0:[conn;1521911723.205187;CBrzd94qfowOqJwCHa;]
+0:[conn;1521911721.255387;C8Tful1TvM3Zf5x8fl;]
+`
+	_, client, done := newCore(t)
+	defer done()
+	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
+	require.NoError(t, err)
+	_ = postSpaceLogs(t, client, sp.Name, nil, false, src)
+
+	parsed, err := zql.ParseProc("*")
+	require.NoError(t, err)
+	proc, err := json.Marshal(parsed)
+	require.NoError(t, err)
+	req := api.SearchRequest{
+		Space: "test",
+		Proc:  proc,
+		Span:  nano.MaxSpan,
+		Dir:   -1,
+	}
+	r, err := client.Search(context.Background(), req, map[string]string{"noctrl": "true"})
+	require.NoError(t, err)
+	var msgs []interface{}
+	r.SetOnCtrl(func(i interface{}) {
+		msgs = append(msgs, i)
+	})
+	buf := bytes.NewBuffer(nil)
+	w := zbuf.NopFlusher(tzngio.NewWriter(buf))
+	require.NoError(t, zbuf.Copy(w, r))
+	require.Equal(t, test.Trim(src), buf.String())
+	require.Equal(t, 0, len(msgs))
 }
 
 func TestSearchStats(t *testing.T) {
@@ -131,7 +167,7 @@ func TestSearchError(t *testing.T) {
 			Span:  nano.MaxSpan,
 			Dir:   2,
 		}
-		_, err = client.Search(context.Background(), req)
+		_, err = client.Search(context.Background(), req, nil)
 		require.Error(t, err)
 		errResp := err.(*api.ErrorResponse)
 		assert.Equal(t, http.StatusBadRequest, errResp.StatusCode())
@@ -144,7 +180,7 @@ func TestSearchError(t *testing.T) {
 			Span:  nano.MaxSpan,
 			Dir:   1,
 		}
-		_, err = client.Search(context.Background(), req)
+		_, err = client.Search(context.Background(), req, nil)
 		require.Error(t, err)
 		errResp := err.(*api.ErrorResponse)
 		assert.Equal(t, http.StatusBadRequest, errResp.StatusCode())
@@ -643,7 +679,7 @@ func search(t *testing.T, client *api.Connection, space, prog string) (string, [
 		Span:  nano.MaxSpan,
 		Dir:   -1,
 	}
-	r, err := client.Search(context.Background(), req)
+	r, err := client.Search(context.Background(), req, nil)
 	require.NoError(t, err)
 	buf := bytes.NewBuffer(nil)
 	w := zbuf.NopFlusher(tzngio.NewWriter(buf))
@@ -764,7 +800,7 @@ func (p *testZeekProcess) Wait() error {
 func writeLogsFn(logs []string) procFn {
 	return func(t *testZeekProcess) error {
 		for _, log := range logs {
-			r, err := os.Open(log)
+			r, err := fs.Open(log)
 			if err != nil {
 				return err
 			}
