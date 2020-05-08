@@ -1,3 +1,17 @@
+// This file contains code from these Go 1.13.8 source files:
+// - os/file.go
+// - os/file_windows.go
+// - syscall/syscall_windows.go
+// - os/path_windows.go
+//
+// That code is covered by the following copyright notice,
+// and the license file mentioned is available at:
+// https://github.com/golang/go/blob/go1.13.8/LICENSE
+//
+// Copyright 2009 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package fs
 
 import (
@@ -23,6 +37,14 @@ func OpenFile(name string, flag int, perm os.FileMode) (*os.File, error) {
 		return nil, e
 	}
 	return os.NewFile(uintptr(h), name), nil
+}
+
+func Open(name string) (*os.File, error) {
+	return OpenFile(name, os.O_RDONLY, 0)
+}
+
+func Create(name string) (*os.File, error) {
+	return OpenFile(name, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 }
 
 // syscallMode returns the syscall-specific mode bits from Go's portable mode bits.
@@ -247,12 +269,4 @@ func syscallOpen(path string, mode int, perm uint32) (fd syscall.Handle, err err
 	}
 	h, e := syscall.CreateFile(pathp, access, sharemode, sa, createmode, syscall.FILE_ATTRIBUTE_NORMAL, 0)
 	return h, e
-}
-
-func Open(name string) (*os.File, error) {
-	return OpenFile(name, os.O_RDONLY, 0)
-}
-
-func Create(name string) (*os.File, error) {
-	return OpenFile(name, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 }
