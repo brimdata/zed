@@ -98,14 +98,18 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	defer srch.Close()
 
 	var out search.Output
+	ctrl := true
+	if r.URL.Query().Get("noctrl") != "" {
+		ctrl = false
+	}
 	format := r.URL.Query().Get("format")
 	switch format {
 	case "zjson", "json":
 		// XXX Should write appropriate ndjson content header.
-		out = search.NewJSONOutput(w, search.DefaultMTU)
+		out = search.NewJSONOutput(w, search.DefaultMTU, ctrl)
 	case "zng":
 		// XXX Should write appropriate zng content header.
-		out = search.NewZngOutput(w)
+		out = search.NewZngOutput(w, ctrl)
 	default:
 		respondError(c, w, r, zqe.E(zqe.Invalid, "unsupported format: %s", format))
 		return
