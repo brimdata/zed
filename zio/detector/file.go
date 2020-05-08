@@ -13,7 +13,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/ndjsonio"
+	"github.com/brimsec/zq/zio/parquetio"
 	"github.com/brimsec/zq/zng/resolver"
+
+	"github.com/xitongsys/parquet-go-source/local"
 )
 
 type OpenConfig struct {
@@ -40,6 +43,11 @@ func OpenFile(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, 
 	if IsS3Path(path) {
 		return OpenS3File(zctx, path, cfg)
 	}
+
+	if cfg.Format == "parquet" {
+		return OpenParquet(zctx, path, cfg)
+	}
+
 	var f *os.File
 	if cfg.DashStdin && path == "-" {
 		f = os.Stdin
@@ -101,6 +109,18 @@ func OpenS3File(zctx *resolver.Context, s3path string, cfg OpenConfig) (*zbuf.Fi
 		pw.CloseWithError(err)
 	}()
 	return OpenFromNamedReadCloser(zctx, pr, s3path, cfg)
+}
+
+func OpenParquet(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, error) {
+	fr, err := local.NewLocalFileReader(path)
+	if err != nil {
+		return nil, err
+	}
+	r, err := parquetio.NewReader(fr, resolver.NewContext())
+	if err != nil {
+		return nil, err
+	}
+	return zbuf.NewFile(r, fr, path), nil
 }
 
 func OpenFromNamedReadCloser(zctx *resolver.Context, rc io.ReadCloser, path string, cfg OpenConfig) (*zbuf.File, error) {
