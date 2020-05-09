@@ -6,7 +6,7 @@
 > ARE ALL SUBJECT TO CHANGE.
 
 This is a sketch of an early prototype of zar and related tools for
-indexing and search log archives.
+indexing and searching log archives.
 
 We'll use the test data here:
 ```
@@ -292,7 +292,7 @@ index:
 ```
 zar find -z -x custom 10.164.94.120 | zq -t -
 ```
-Now we're talking!  And if youo take the results and do a little more math to
+Now we're talking!  And if you take the results and do a little more math to
 aggregate the aggregations, like this:
 ```
 zar find -z -x custom 10.164.94.120 | zq -f table "sum(count) as count by _path" -
