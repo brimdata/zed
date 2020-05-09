@@ -21,10 +21,12 @@ type FieldIndexer struct {
 }
 
 func NewFieldIndexer(path, field string, accessor expr.FieldExprResolver) *FieldIndexer {
+	zctx := resolver.NewContext()
 	return &FieldIndexer{
 		IndexerCommon: IndexerCommon{
-			MemTable: zdx.NewMemTable(resolver.NewContext()),
+			MemTable: zdx.NewMemTable(zctx),
 			path:     path,
+			zctx:     zctx,
 		},
 		accessor: accessor,
 	}

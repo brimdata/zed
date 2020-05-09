@@ -1,7 +1,7 @@
 script: |
   zq -o tmp.zng "sum(v) by s | put key=s | sort key"  babble.tzng
   # -x says input keys already sorted and don't create new base records
-  zdx create -o index -x tmp.zng
+  zdx convert -o index -k key tmp.zng
   # 50 not in index
   zq -t index.1.zng
   echo ===
@@ -15,9 +15,9 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      #0:record[key:string,value:int64]
+      #0:record[key:string,_btree_child:int64]
       0:[Algedi-pigeonman;0;]
-      0:[protohydrogen-plesiomorphism;32770;]
+      0:[protistic-haystack;32795;]
       ===
       #0:record[s:string,sum:int64,key:string]
       0:[wailer-strick;149;wailer-strick;]

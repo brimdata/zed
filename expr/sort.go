@@ -9,7 +9,7 @@ import (
 )
 
 type SortFn func(a *zng.Record, b *zng.Record) int
-type SortValFn func(a zng.Value, b zng.Value) int
+type KeyCompareFn func(*zng.Record) int
 
 // Internal function that compares two values of compatible types.
 type comparefn func(a, b zcode.Bytes) int
@@ -64,7 +64,7 @@ func NewSortFn(nullsMax bool, fields ...FieldExprResolver) SortFn {
 
 			sf, ok := sorters[a.Type]
 			if !ok {
-				sf = lookupSorter(a.Type)
+				sf = LookupSorter(a.Type)
 				sorters[a.Type] = sf
 			}
 
@@ -81,52 +81,53 @@ func NewSortFn(nullsMax bool, fields ...FieldExprResolver) SortFn {
 	}
 }
 
-func NewSortValFn(nullsMax bool) SortValFn {
+func NewKeyCompareFn(key *zng.Record) (KeyCompareFn, error) {
 	sorters := make(map[zng.Type]comparefn)
-	return func(a zng.Value, b zng.Value) int {
-		// Handle nulls according to nullsMax
-		nullA := isNull(a)
-		nullB := isNull(b)
-		if nullA && nullB {
-			return 0
+	var accessors []FieldExprResolver
+	var keyval []zng.Value
+	for it := key.FieldIter(); !it.Done(); {
+		name, val, err := it.Next()
+		if err != nil {
+			return nil, err
 		}
-		if nullA {
-			if nullsMax {
-				return 1
-			} else {
+		// We got an unset value, so all remaining values in the key
+		// must be unset.
+		if isNull(val) {
+			break
+		}
+		keyval = append(keyval, val)
+		accessors = append(accessors, CompileFieldAccess(name))
+	}
+	return func(rec *zng.Record) int {
+		for k, access := range accessors {
+			a := access(rec)
+			if isNull(a) {
+				// we know the key value is not null
 				return -1
 			}
-		}
-		if nullB {
-			if nullsMax {
+			b := keyval[k]
+			// If the type of a field in the comparison record does
+			// not match the type of the key, behavior is undefined.
+			if a.Type.ID() != b.Type.ID() {
 				return -1
-			} else {
-				return 1
 			}
-		}
-
-		// If values are of different types, just compare
-		// the native representation of the type
-		if a.Type.ID() != b.Type.ID() {
-			return bytes.Compare([]byte(a.Type.String()), []byte(b.Type.String()))
-		}
-
-		sf, ok := sorters[a.Type]
-		if !ok {
-			sf = lookupSorter(a.Type)
-			sorters[a.Type] = sf
-		}
-
-		v := sf(a.Bytes, b.Bytes)
-		// If the events don't match, then return the sort
-		// info.  Otherwise, they match and we continue on
-		// on in the loop to the secondary key, etc.
-		if v != 0 {
-			return v
+			//XXX sorters should be a slice indexed by ID
+			sf, ok := sorters[a.Type]
+			if !ok {
+				sf = LookupSorter(a.Type)
+				sorters[a.Type] = sf
+			}
+			v := sf(a.Bytes, b.Bytes)
+			// If the fields don't match, then return the sense of
+			// the mismatch.  Otherwise, we continue on
+			// in the loop to the secondary key, etc.
+			if v != 0 {
+				return v
+			}
 		}
 		// All the keys matched with equality.
 		return 0
-	}
+	}, nil
 }
 
 // SortStable performs a stable sort on the provided records.
@@ -172,12 +173,12 @@ func (r *RecordSlice) Index(i int) *zng.Record {
 	return r.records[i]
 }
 
-func lookupSorter(typ zng.Type) comparefn {
+func LookupSorter(typ zng.Type) comparefn {
 	// XXX record support easy to add here if we moved the creation of the
 	// field resolvers into this package.
 	if innerType := zng.InnerType(typ); innerType != nil {
 		return func(a, b zcode.Bytes) int {
-			compare := lookupSorter(innerType)
+			compare := LookupSorter(innerType)
 			ia := a.Iter()
 			ib := b.Iter()
 			for {

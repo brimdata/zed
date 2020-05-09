@@ -1,12 +1,11 @@
 package find
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
 	"os"
-	"strings"
-	"sync"
 
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cmd/zar/root"
@@ -18,25 +17,40 @@ import (
 
 var Find = &charm.Spec{
 	Name:  "find",
-	Usage: "find [-R dir] pattern",
+	Usage: "find [options] pattern [pattern...]",
 	Short: "look through zar index files and displays matches",
 	Long: `
-"zar find" descends the directory given by the -R option looking for zng files
-that have a corresponding zar index conforming to the indicated <pattern>.
-The "pattern" argument has the form "field=value" (for field searches)
+"zar find" descends the directory given by the -R option (or ZAR_ROOT)
+looking for zng files that have been indexed and performs a search on
+each such index file in accordance withe the specified search pattern.
+An index may either be a standard index file
+ceated by "zar index" or a custom index (-x) file created from an abitrary zng file
+that has been formatted and wrapped by the "zdx convert" or "zar zdx" commands.
+
+For standard indexes, "pattern" argument has the form "field=value" (for field searches)
 or ":type=value" (for type searches).  For example, if type "ip" has been
 indexed then the IP 10.0.1.2 can be searched by saying
 
-	zar find -R /path/to/logs :ip=10.0.1.2
+	zar find :ip=10.0.1.2
 
 Or if the field "uri" has been indexed, you might say
 
-	zar find -R /path/to/logs uri=/x/y/z
+	zar find uri=/x/y/z
 
-The path of each zng file that matches the pattern is printed.
+For custom indexes, the name of index is given by the -x option,
+and the "pattern" argument(s) comprise one or more values that
+are parseable in accordance with the zng type of the corresponding
+search keys.  For example, an index with custom keys of the form
 
-If the root directory is not specified by either the ZAR_ROOT environemnt
-variable or the -R option, then the current directory is assumed.
+	record[a:record[x:int64,y:ip],b:string]
+
+could be queried using syntax like this
+
+	zar find -x custom 99 10.0.0.1 hello
+
+The results of a search is either a list of the paths of each
+zng log that matches the pattern (the default), or a zng stream of the
+records of the base layer of the index file (-z)
 `,
 	New: New,
 }
@@ -51,6 +65,8 @@ type Command struct {
 	skipMissing bool
 	indexFile   string
 	outputFile  string
+	pathField   string
+	zng         bool
 	WriterFlags zio.WriterFlags
 }
 
@@ -58,8 +74,10 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive to walk")
 	f.BoolVar(&c.skipMissing, "Q", false, "skip errors caused by missing index files ")
-	f.StringVar(&c.indexFile, "x", "", "name of zdx index in the zar dirs")
+	f.StringVar(&c.indexFile, "x", "", "name of zdx index for custom index searches")
 	f.StringVar(&c.outputFile, "o", "", "write data to output file")
+	f.StringVar(&c.pathField, "l", "_log", "zng field name for path name of log file")
+	f.BoolVar(&c.zng, "z", false, "write results as zng stream rather than list of files")
 
 	// Flags added for writers are -f, -T, -F, -E, -U, and -b
 	c.WriterFlags.SetFlags(f)
@@ -68,77 +86,63 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	if len(args) != 1 {
-		return errors.New("zar find: exactly one search pattern must be provided")
+	if c.root == "" {
+		return errors.New("zar find: root directory must be specified with -R or ZAR_ROOT")
 	}
-	var pattern string
-	var rule archive.Rule
-	zngOutput := false
-	if c.outputFile != "" {
-		if c.indexFile == "" {
-			return errors.New("zar find: must specify -x with -o")
-		}
-		zngOutput = true
-		//XXX hack fo now.  fix later.r
-		rule, _ = archive.NewStaticRule(c.indexFile)
-		pattern = args[0]
+	var patterns []string
+	indexFile := c.indexFile
+	if indexFile != "" {
+		patterns = args
 	} else {
-		v := strings.Split(args[0], "=")
-		if len(v) != 2 {
-			return errors.New("zar find: syntax error: " + args[0])
+		if len(args) != 1 {
+			return errors.New("zar find: standard index supports exactly one search pattern")
 		}
-		fieldOrType := v[0]
-		pattern = v[1]
-		var err error
-		rule, err = archive.NewRule(fieldOrType)
+		pattern, path, err := archive.ParsePattern(args[0])
 		if err != nil {
-			return errors.New("zar find: error parsing pattern: " + err.Error())
+			return err
 		}
+		patterns = []string{pattern}
+		indexFile = path
 	}
 	//XXX allow "-" to trigger zng but changed back for emitter API
 	if c.outputFile == "-" {
 		c.outputFile = ""
 	}
-	rootDir := c.root
-	if rootDir == "" {
-		rootDir = "."
-	}
-	var err error
-	var searchErr error
-	var wg sync.WaitGroup
-	wg.Add(1)
-	if zngOutput {
-		writer, err := emitter.NewFile(c.outputFile, &c.WriterFlags)
+	var writer *zio.Writer
+	if c.zng {
+		var err error
+		writer, err = emitter.NewFile(c.outputFile, &c.WriterFlags)
 		if err != nil {
 			return err
 		}
 		defer writer.Close()
-		hits := make(chan *zng.Record)
-		go func() {
-			for hit := range hits {
-				if err := writer.Write(hit); err != nil {
-					searchErr = err
-					break
-				}
-			}
-			wg.Done()
-		}()
-		err = archive.FindZng(rootDir, rule, pattern, hits, c.skipMissing)
-		close(hits)
-	} else {
-		hits := make(chan string)
-		go func() {
-			for hit := range hits {
-				fmt.Println(hit)
-			}
-			wg.Done()
-		}()
-		err = archive.Find(rootDir, rule, pattern, hits, c.skipMissing)
-		close(hits)
 	}
-	wg.Wait()
-	if err == nil {
-		err = searchErr
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	hits := make(chan *zng.Record)
+	var searchErr error
+	go func() {
+		searchErr = archive.Find(ctx, c.root, indexFile, patterns, hits, c.pathField, c.skipMissing)
+		close(hits)
+	}()
+	for hit := range hits {
+		var err error
+		if writer != nil {
+			err = writer.Write(hit)
+		} else {
+			var path string
+			path, err = hit.AccessString(c.pathField)
+			if err == nil {
+				fmt.Println(path)
+			}
+		}
+		if err != nil {
+			cancel()
+			for _ = range hits {
+				// let search goroutine unwind after cancel
+			}
+			return err
+		}
 	}
-	return err
+	return searchErr
 }

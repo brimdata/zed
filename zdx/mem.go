@@ -65,11 +65,9 @@ func (t *MemTable) open() {
 			t.keys[k] = []byte(key)
 			k++
 		}
-		compare := expr.NewSortValFn(false)
+		compare := expr.LookupSorter(t.keyType)
 		sort.SliceStable(t.keys, func(a, b int) bool {
-			v0 := zng.Value{t.keyType, t.keys[a]}
-			v1 := zng.Value{t.keyType, t.keys[b]}
-			return compare(v0, v1) < 0
+			return compare(t.keys[a], t.keys[b]) < 0
 		})
 	}
 	t.offset = 0

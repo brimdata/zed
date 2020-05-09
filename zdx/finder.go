@@ -1,6 +1,7 @@
 package zdx
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -8,29 +9,42 @@ import (
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 )
+
+var ErrNotFound = errors.New("key not found")
 
 // Finder looks up values in a zdx using its hierarchical index files.
 type Finder struct {
-	path   string
-	keycol int
-	files  []*Reader
+	path        string
+	keys        *zng.TypeRecord
+	builder     *zng.Builder
+	offsetField string
+	zctx        *resolver.Context
+	files       []*Reader
 }
 
 // NewFinder returns an object that is used to lookup keys in a zdx.
-func NewFinder(path string) *Finder {
+func NewFinder(zctx *resolver.Context, path string) *Finder {
 	return &Finder{
 		path: path,
+		zctx: zctx,
 	}
 }
 
-// Open prepares a zdx bundle for lookups and return the zng.Type of the
-// keys stored in this index.  If the bundle exists but is empty, zero
-// values are returned.  If the bundle does not exist, os.ErrNotExist is returned.
-func (f *Finder) Open() (zng.Type, error) {
+func (f *Finder) Keys() *zng.TypeRecord {
+	return f.keys
+}
+
+// Open prepares the underlying zdx index for lookups.  It opens the file
+// and reads the header, returning errors if the file is corrrupt, doesn't
+// exist, or its zdx header is invalid.  If the index exists but is empty,
+// zero values are returned for any lookups.  If the index does not exist,
+// os.ErrNotExist is returned.
+func (f *Finder) Open() error {
 	level := 0
 	for {
-		r, err := newReader(f.path, level)
+		r, err := newReader(f.zctx, f.path, level)
 		if err != nil {
 			if os.IsNotExist(err) {
 				break
@@ -40,32 +54,30 @@ func (f *Finder) Open() (zng.Type, error) {
 				// interesting.
 				_ = f.Close()
 			}
-			return nil, err
+			return err
 		}
 		level += 1
 		f.files = append(f.files, r)
 	}
 	if len(f.files) == 0 {
-		return nil, os.ErrNotExist
+		return os.ErrNotExist
 	}
-	// Read the first record to determine the key type, then seek back
-	// to the beginning.
+	// Read the first record as the zdx header.
 	rec, err := f.files[0].Read()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if rec == nil {
-		// index exists but is empty
-		return nil, nil
+		// files exists but is empty
+		return fmt.Errorf("%s: cannnot read zdx header", f.path)
 	}
-	val, err := rec.ValueByField("key")
+	childField, keysType, err := ParseHeader(rec)
 	if err != nil {
-		return nil, fmt.Errorf("%s: not a zdx index", f.path)
+		return fmt.Errorf("%s: %s", f.path, err)
 	}
-	keyType := val.Type
-	_, err = f.files[0].Seek(0)
-	f.keycol, _ = rec.Type.ColumnOfField("key")
-	return keyType, err
+	f.keys = keysType
+	f.offsetField = childField
+	return nil
 }
 
 func (f *Finder) Path() string {
@@ -81,65 +93,21 @@ func (f *Finder) Close() error {
 	return nil
 }
 
-// lookupOffset finds the largest key that is smaller than the input key
-// in the record stream read from the reader, where key is the first column
-// of each record in the stream.  The second column in the record must be an
-// integer and that value is returned for the largest said key.
-func lookupOffset(reader zbuf.Reader, key zng.Value) (int64, error) {
-	var lastOff int64 = -1
-	// XXX this should be specialized for the known type
-	compare := expr.NewSortValFn(true)
-	for {
-		rec, err := reader.Read()
-		if err != nil {
-			return -1, err
-		}
-		if rec == nil {
-			break
-		}
-		// Since we know that each record is a key in column 0 and
-		// and an int64 offset in column 1, we can pull the zcode.Bytes
-		// encoding out directly with Slice.
-		k := rec.Value(0)
-		if k.Type == nil {
-			return -1, errors.New("key missing in index file")
-		}
-		if compare(key, k) < 0 {
-			break
-		}
-		off, err := rec.Slice(1)
-		if err != nil {
-			return -1, err
-		}
-		lastOff, err = zng.DecodeInt(off)
-		if err != nil {
-			return -1, err
-		}
-	}
-	return lastOff, nil
-}
-
 // lookup searches for a match of the given key compared to the
-// key column of the records read from the reader.  If the boolean argument
+// key values in the records read from the reader.  If the boolean argument
 // "exact" is true, then only exact matches are returned.  Otherwise, the
-// record with the lagest key smaller than the key arrgument is returned.
-// This is called only for the base layer of the index where the key field
-// can appear anywhere.
-func lookup(reader zbuf.Reader, key zng.Value, exact bool, keycol int) (*zng.Record, error) {
-	// XXX this should be specialized for the known type
-	compare := expr.NewSortValFn(true)
+// record with the lagest key smaller than the key argument is returned.
+func lookup(reader zbuf.Reader, compare expr.KeyCompareFn, exact bool) (*zng.Record, error) {
 	var prev *zng.Record
 	for {
 		rec, err := reader.Read()
-		if rec == nil {
-			return nil, err
+		if err != nil || rec == nil {
+			if exact {
+				prev = nil
+			}
+			return prev, err
 		}
-		k := rec.Value(keycol)
-		if k.Type == nil {
-			return nil, errors.New("key missing from record")
-		}
-		cmp := compare(k, key)
-		if cmp >= 0 {
+		if cmp := compare(rec); cmp >= 0 {
 			if cmp == 0 {
 				return rec, nil
 			}
@@ -149,14 +117,13 @@ func lookup(reader zbuf.Reader, key zng.Value, exact bool, keycol int) (*zng.Rec
 			return prev, nil
 		}
 		prev = rec
-
 	}
 }
 
-func (f *Finder) search(key zng.Value) error {
+func (f *Finder) search(compare expr.KeyCompareFn) error {
 	n := len(f.files)
 	if n == 0 {
-		return ErrCorruptFile
+		panic("open should have detected this")
 	}
 	// We start with the topmost index file of the zdx bundle and
 	// find the greatest key smaller than or equal to othe lookup key then repeat
@@ -169,15 +136,18 @@ func (f *Finder) search(key zng.Value) error {
 		if _, err := reader.Seek(off); err != nil {
 			return err
 		}
-		var err error
-		off, err = lookupOffset(reader, key)
+		rec, err := lookup(reader, compare, false)
 		if err != nil {
 			return err
 		}
-		if off == -1 {
+		if rec == nil {
 			// This key can't be in the zdx since it is smaller than
 			// the smallest key in the zdx's index files.
-			return nil
+			return ErrNotFound
+		}
+		off, err = rec.AccessInt(f.offsetField)
+		if err != nil {
+			return fmt.Errorf("b-tree child field: %w", err)
 		}
 		level -= 1
 	}
@@ -185,16 +155,72 @@ func (f *Finder) search(key zng.Value) error {
 	return err
 }
 
-func (f *Finder) Lookup(key zng.Value) (*zng.Record, error) {
-	if err := f.search(key); err != nil {
+func (f *Finder) Lookup(keys *zng.Record) (*zng.Record, error) {
+	compare, err := expr.NewKeyCompareFn(keys)
+	if err != nil {
 		return nil, err
 	}
-	return lookup(f.files[0], key, true, f.keycol)
+	if err := f.search(compare); err != nil {
+		if err == ErrNotFound {
+			// Return nil/success when exact-match lookup fails
+			err = nil
+		}
+		return nil, err
+	}
+	return lookup(f.files[0], compare, true)
 }
 
-func (f *Finder) LookupClosest(key zng.Value) (*zng.Record, error) {
-	if err := f.search(key); err != nil {
+func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zng.Record, keys *zng.Record) error {
+	compare, err := expr.NewKeyCompareFn(keys)
+	if err != nil {
+		return err
+	}
+	if err := f.search(compare); err != nil {
+		return err
+	}
+	for {
+		// As long as we have an exact key-match, where unset key
+		// columns are "don't care", keep reading records and return
+		// them via the channel.
+		rec, err := lookup(f.files[0], compare, true)
+		if err != nil {
+			return err
+		}
+		if rec == nil {
+			return nil
+		}
+		select {
+		case hits <- rec:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+}
+
+func (f *Finder) LookupClosest(keys *zng.Record) (*zng.Record, error) {
+	compare, err := expr.NewKeyCompareFn(keys)
+	if err != nil {
 		return nil, err
 	}
-	return lookup(f.files[0], key, false, f.keycol)
+	if err := f.search(compare); err != nil {
+		return nil, err
+	}
+	return lookup(f.files[0], compare, false)
+}
+
+// ParseKeys uses the key template from the zdx header to parse
+// a slice of string values which correspnod to the DFS-order
+// of the fields in the key.  The inputs may be smaller than the
+// number of key fields, in which case they are "don't cares"
+// in terms of key lookups.  Any don't-care fields must all be
+// at the end of the key record.
+func (f *Finder) ParseKeys(inputs []string) (*zng.Record, error) {
+	if f.builder == nil {
+		f.builder = zng.NewBuilder(f.keys)
+	}
+	rec, err := f.builder.Parse(inputs...)
+	if err == zng.ErrIncomplete {
+		err = nil
+	}
+	return rec, err
 }

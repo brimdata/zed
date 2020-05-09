@@ -5,4 +5,4 @@ script: |
 outputs:
   - name: stderr
     regexp: |
-      empty: index is empty
+      empty: cannnot read zdx header

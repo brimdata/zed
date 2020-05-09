@@ -6,10 +6,11 @@ import (
 	"os"
 	"time"
 
+	_ "github.com/brimsec/zq/cmd/zdx/convert"
 	_ "github.com/brimsec/zq/cmd/zdx/create"
 	_ "github.com/brimsec/zq/cmd/zdx/lookup"
-	_ "github.com/brimsec/zq/cmd/zdx/merge"
 	"github.com/brimsec/zq/cmd/zdx/root"
+	_ "github.com/brimsec/zq/cmd/zdx/seek"
 )
 
 func main() {

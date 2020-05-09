@@ -23,16 +23,16 @@ type Reader struct {
 // Seek() may be called on this Reader.  Any call to Seek() must be to
 // an offset that begins a new zng stream (e.g., beginning of file or
 // the data immediately following an end-of-stream code)
-func NewReader(path string) (*Reader, error) {
-	return newReader(path, 0)
+func NewReader(zctx *resolver.Context, path string) (*Reader, error) {
+	return newReader(zctx, path, 0)
 }
 
-func newReader(path string, level int) (*Reader, error) {
+func newReader(zctx *resolver.Context, path string, level int) (*Reader, error) {
 	f, err := fs.Open(filename(path, level))
 	if err != nil {
 		return nil, err
 	}
-	seeker := zngio.NewSeekerWithSize(f, resolver.NewContext(), FrameSize)
+	seeker := zngio.NewSeekerWithSize(f, zctx, FrameSize)
 	return &Reader{
 		Seeker: *seeker,
 		file:   f,

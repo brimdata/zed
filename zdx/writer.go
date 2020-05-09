@@ -2,44 +2,50 @@ package zdx
 
 import (
 	"errors"
+	"fmt"
 	"os"
 
 	"github.com/brimsec/zq/pkg/bufwriter"
 	"github.com/brimsec/zq/pkg/fs"
+	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-// Writer implements the zbuf.Writer interface. A Writer creates a zdx bundle,
-// comprising the base zng file along with its related b-tree files,
-// as zng records are consumed.  The records must all have the same
-// type and be comprised of two columns where the first column name is
-// "key" and the second column name is "value."
+// Writer implements the zbuf.Writer interface. A Writer creates a zdx index,
+// comprising the base zng file along with its related b-tree sections,
+// as zng records are consumed.
 //
-// A zdx base file is a zng file represented as sequence of zng records where
-// the records have either a single column named "key" or two columns named
-// "key" and "value".  The records are sorted by the key field.
-// Once the zng file data is written, the b-tree index files comprise a
-// constant b-tree to make key lookups efficient.  The b-tree files
-// are zng files where each record is comprised of a "key" field in
-// column 0 and an "offset" field in column 1.  The key field is an arbitrary
-// zng type while the offset field must be a zng int64.  The offset field
-// corresponds to the seek offset of the b-tree file next below it in the
-// hierarchy where that key is found.
+// The keyFields argument to NewWriter provides a list of the key names, ordered by
+// precedence, that will serve as the keys into the index.  The input
+// records may or may not have all the key fields.  If a key field is
+// missing it appears as a null value in the index.  Nulls are sorted
+// before all non-null values.
+//
+// The keys in the input zng stream must be previously sorted consistent
+// with the precedence order of the keyFields.
+//
+// As the zng file data is written, a b-tree index is computed as a
+// constant b-tree to make key lookups efficient.  The b-tree sections
+// are written to temporary zng files (.1, .2, etc) and at close,
+// they are collapsed into the single-file zdx format.
+// XXX TBD: the single-file implementation will arrive in a subsequent PR.
 type Writer struct {
+	zctx        *resolver.Context
 	path        string
 	level       int
 	writer      *bufwriter.Writer
 	out         *zngio.Writer
 	parent      *Writer
+	header      *zng.Record
 	frameThresh int
 	frameStart  int64
 	frameEnd    int64
-	frameKey    *zng.Value
-	keyBuf      zng.Value
-	builder     *zng.Builder
+	frameKey    *zng.Record
+	keyFields   []string
+	cutter      *proc.Cutter
 	recType     *zng.TypeRecord
 }
 
@@ -49,14 +55,17 @@ type Writer struct {
 // with the form $path, $path.1, and so forth.  Calls to Write must
 // provide keys in increasing lexicographic order.  Duplicate keys are not
 // allowed but will not be detected.  Close() must be called when done writing.
-func NewWriter(path string, framesize int) (*Writer, error) {
+func NewWriter(zctx *resolver.Context, path string, keyFields []string, framesize int) (*Writer, error) {
+	if keyFields == nil {
+		keyFields = []string{"key"}
+	}
 	if framesize == 0 {
 		return nil, errors.New("zdx framesize cannot be zero")
 	}
-	return newWriter(path, framesize, 0)
+	return newWriter(zctx, path, keyFields, framesize, 0, nil)
 }
 
-func newWriter(path string, framesize, level int) (*Writer, error) {
+func newWriter(zctx *resolver.Context, path string, keyFields []string, framesize, level int, hdr *zng.Record) (*Writer, error) {
 	if level > 5 {
 		panic("something wrong")
 	}
@@ -67,12 +76,16 @@ func newWriter(path string, framesize, level int) (*Writer, error) {
 	}
 	writer := bufwriter.New(f)
 	return &Writer{
+		zctx:        zctx,
 		path:        path,
+		keyFields:   keyFields,
 		level:       level,
 		writer:      writer,
 		out:         zngio.NewWriter(writer, zio.WriterFlags{}),
+		header:      hdr,
 		frameThresh: framesize,
 		frameEnd:    int64(framesize),
+		cutter:      proc.NewCutter(zctx, false, keyFields),
 	}, nil
 }
 
@@ -100,7 +113,7 @@ func (w *Writer) Close() error {
 
 func (w *Writer) Write(rec *zng.Record) error {
 	offset := w.out.Position()
-	if offset >= w.frameEnd {
+	if offset >= w.frameEnd && w.frameKey != nil {
 		w.frameEnd = offset + int64(w.frameThresh)
 		// the frame in place is already big enough... flush it and
 		// start going on the next
@@ -108,18 +121,35 @@ func (w *Writer) Write(rec *zng.Record) error {
 			return err
 		}
 	}
-	// Remember the first key of a new frame. This happens at beginning
-	// of stream or when we end the current frame immediately above.
 	if w.frameKey == nil {
-		key, err := rec.ValueByField("key")
+		// When we start a new frame, we want to create a key entry
+		// in the parent for the current key but we don't want to write
+		// it until we know this frame will be big enough to add it
+		// (or until we know it's the last frame in the file).
+		// So we build the frame key record from the current record
+		// here ahead of its use and save it in the frameKey variable.
+		key, err := w.cutter.Cut(rec)
 		if err != nil {
-			return ErrCorruptFile
+			return err
 		}
-		// Copy the key value from the stream so we can write it to the
-		// parent when we hit end-of-frame.
-		w.keyBuf.Type = key.Type
-		w.keyBuf.Bytes = append(w.keyBuf.Bytes[:0], key.Bytes...)
-		w.frameKey = &w.keyBuf
+		// If the key isn't here flag an error.  All keys must be
+		// present to build a proper index.
+		// XXX We also need to check that they are in order.
+		if key == nil {
+			return fmt.Errorf("no key field present in record of type: %s", rec.Type)
+		}
+		w.frameKey = key
+		// If this is the start of the level zero zdx, emit the superblock.
+		if w.header == nil {
+			hdr, err := newHeader(w.zctx, key)
+			if err != nil {
+				return err
+			}
+			w.header = hdr
+			if err := w.out.Write(hdr); err != nil {
+				return err
+			}
+		}
 	}
 	return w.out.Write(rec)
 }
@@ -134,10 +164,10 @@ func (w *Writer) endFrame() error {
 	return nil
 }
 
-func (w *Writer) addToParentIndex(key *zng.Value, offset int64) error {
+func (w *Writer) addToParentIndex(key *zng.Record, offset int64) error {
 	if w.parent == nil {
 		var err error
-		w.parent, err = newWriter(w.path, w.frameThresh, w.level+1)
+		w.parent, err = newWriter(w.zctx, w.path, w.keyFields, w.frameThresh, w.level+1, w.header)
 		if err != nil {
 			return err
 		}
@@ -145,18 +175,16 @@ func (w *Writer) addToParentIndex(key *zng.Value, offset int64) error {
 	return w.parent.writeIndexRecord(key, offset)
 }
 
-func (w *Writer) writeIndexRecord(key *zng.Value, offset int64) error {
-	if w.builder == nil {
-		cols := []zng.Column{
-			{"key", key.Type},
-			{"value", zng.TypeInt64},
-		}
-		w.recType = resolver.NewContext().MustLookupTypeRecord(cols)
-		w.builder = zng.NewBuilder(w.recType)
+func (w *Writer) writeIndexRecord(keys *zng.Record, offset int64) error {
+	childField, err := w.header.AccessString(ChildFieldName)
+	if err != nil {
+		return err
 	}
-	if w.recType.Columns[0].Type != key.Type {
-		return errors.New("zdx error: type of key changed")
-	}
+	col := []zng.Column{{childField, zng.TypeInt64}}
 	val := zng.EncodeInt(offset)
-	return w.Write(w.builder.Build(key.Bytes, val))
+	rec, err := w.zctx.AddColumns(keys, col, []zng.Value{{zng.TypeInt64, val}})
+	if err != nil {
+		return err
+	}
+	return w.Write(rec)
 }

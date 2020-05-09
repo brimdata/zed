@@ -1,5 +1,5 @@
 script: |
-  zdx create -x -f 30 -o index -
+  zdx create -x -f 100 -o index -k key -
   zq -t index.1.zng
 
 inputs:
@@ -20,7 +20,6 @@ inputs:
 outputs:
   - name: stdout
     data: |
-        #0:record[key:string,value:int64]
-        0:[a;0;]
-        0:[e;36;]
-        0:[h;67;]
+      #0:record[key:string,_btree_child:int64]
+      0:[a;0;]
+      0:[i;101;]

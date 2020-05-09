@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cmd/zar/root"
@@ -24,11 +25,11 @@ var Zdx = &charm.Spec{
 "zar zdx" descends the directory given by the -R option (or ZAR_ROOT env) looking for
 logs with zar directories and for each such directory found, it runs
 zdx on the file provided relative to each zar directory.
-The input file must have a field called "key" where all the records in the
-file are sorted by that key in increasing value according to the zng type
-of the key.
-If the root directory is not specified by either the ZAR_ROOT environemnt
-variable or the -R option, then the current directory is assumed.
+The input file must have one of the specified key fields in each record.
+If no keys are specified, the default is to look for a single key called "key".
+All the records in the
+file are sorted by the provided key(s) in increasing value according to the zng type
+of the key, otherwise.
 `,
 	New: New,
 }
@@ -40,6 +41,7 @@ func init() {
 type Command struct {
 	*root.Command
 	root        string
+	keys        string
 	framesize   int
 	outputFile  string
 	quiet       bool
@@ -49,6 +51,7 @@ type Command struct {
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive to walk")
+	f.StringVar(&c.keys, "k", "key", "one or more comma-separated key fields")
 	f.IntVar(&c.framesize, "f", 32*1024, "minimum frame size used in zdx file")
 	f.StringVar(&c.outputFile, "o", "zdx", "output zdx bundle name")
 	f.BoolVar(&c.quiet, "q", false, "do not print any warnings to stderr")
@@ -63,13 +66,10 @@ func (c *Command) Run(args []string) error {
 	if len(args) != 1 {
 		return errors.New("zar zdx takes exactly one input file name")
 	}
-	rootPath := c.root
-	if rootPath == "" {
-		rootPath = "."
-	}
+	keys := strings.Split(c.keys, ",")
 	// XXX this is parallelizable except for writing to stdout when
 	// concatenating results
-	return archive.Walk(rootPath, func(zardir string) error {
+	return archive.Walk(c.root, func(zardir string) error {
 		path := archive.Localize(zardir, args[:1])
 		zctx := resolver.NewContext()
 		cfg := detector.OpenConfig{
@@ -91,7 +91,7 @@ func (c *Command) Run(args []string) error {
 
 		//XXX should have a single-file Localizer
 		outputPath := archive.Localize(zardir, []string{c.outputFile})
-		writer, err := zdx.NewWriter(outputPath[0], c.framesize)
+		writer, err := zdx.NewWriter(zctx, outputPath[0], keys, c.framesize)
 		if err != nil {
 			return err
 		}
