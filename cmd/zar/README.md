@@ -33,9 +33,12 @@ mkdir ./logs
 set ZAR_ROOT=`pwd`/logs
 ```
 
-Now let's in ingest the data using "zar chop".  We are working on more
-sophisticated ways to ingest data, but for now zar chop just chops its input
-into chunks of approximately equal size.  Zar chop expects its input to be
+Now, let's ingest the data using "zar chop".  We are working on more
+sophisticated ways to ingest data (e.g., by the standard time partitioning
+techniques of year/month/day/hour etc), but for now zar chop just chops
+its input into chunks of approximately equal size.
+
+Zar chop expects its input to be
 in the zng format so we'll use zq to take all the zng logs, gunzip them,
 and feed them to chop, which here expects its data on stdin.  We'll chop them
 into chunks of 25MB, which is very small, but in this example the data set is
@@ -43,7 +46,6 @@ fairly small (175MB) and you can always try it out on larger data sets:
 ```
 zq zng/*.gz | zar chop -s 25 -
 ```
-
 
 ## initializing the archive
 
@@ -71,38 +73,71 @@ different pieces and aggregate the result.
 
 The zq subcommand of zar lets you do this.  Here's how you run zq
 on each log in the archive.  The "_" refers to the current log file
-in the traversal.
+in the traversal:
 ```
 zar zq "count()" _ > counts.zng
 ```
-This writes the output to counts.zng.  Each run of the zq command on a log
-file generates a zng output stream and the streams are all strung together
-in sequence to create out the output.  So you can run it this way and send
-output to stdout (the default if there is no output file) and pipe it to
-a plain zq command that will show the output as a table:
+This invocation of zar traverses the archive, applies the zql "count()" operator
+over each log file, and writes the output as a stream of zng data where the
+sub-streams are simply concatenated together.
+By default, the output is sent to stdout, which means you can
+simply pipe the resulting stream to
+a vanilla zq command that will show the output as a table:
 ```
 zar zq "count()" _ | zq -f table -
 ```
-And you can sum all the counts to get a total:
+which, for example, results in:
+```
+COUNT
+222617
+223815
+218575
+211968
+230343
+225666
+129094
+```
+Likewise, you could take the stream of event counts and sum
+them to get a total:
 ```
 zar zq "count()" _ | zq -f text "sum(count)" -
 ```
-which should equal this
+which should have the same result as
 ```
 zq -f text "count()" zng/*.gz
+```
+or...
+```
+1462078
 ```
 
 ## search for an IP
 
-Let's say you want to search for a particular IP across all the zar logs.
-This is easy, just say:
+Now let's say you want to search for a particular IP across all the zar logs.
+This is easy. You just say:
 ```
 zar zq "id.orig_h=10.10.23.2" _ | zq -t -
 ```
-However, it's kind of slow like all the stuff above because every record is read to
-search for that IP.
+which gives this somewhat cryptic result in text zng format:
+```
+#zenum=string
+#0:record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],proto:zenum,service:bstring,duration:duration,orig_bytes:uint64,resp_bytes:uint64,conn_state:bstring,local_orig:bool,local_resp:bool,missed_bytes:uint64,history:bstring,orig_pkts:uint64,orig_ip_bytes:uint64,resp_pkts:uint64,resp_ip_bytes:uint64,tunnel_parents:set[bstring]]
+0:[conn;1521911721.307472;C4NuQHXpLAuXjndmi;[10.10.23.2;11;10.0.0.111;0;]icmp;-;1260.819589;23184;0;OTH;-;-;0;-;828;46368;0;0;-;]
+```
+(If you want to learn more about this format, check out the
+[ZNG spec](https://github.com/brimsec/zq/blob/master/zng/docs/spec.md).)
 
-We can speed this up by building an index of whatever we want, in this case IP addresses.
+You might have noticed that this is kind of slow --- like all the counting above ---
+because every record is read to search for that IP.
+
+We can speed this up by building an index.  Some people think building indexes
+is a waste of time, but we think they can be really helpful if you're smart
+about how you build them.
+
+Zar lets you pretty much build any
+sort of index you'd like and you can even embed whatever custom zql analytics
+you would like in a search index.  But for now, let's look at just IP addresses.
+
 The "zar index" command makes it easy to index any field or any zng type.
 e.g., to index every value that is of type IP, we simply say
 ```
@@ -120,71 +155,82 @@ If you want to see one, just look at it with zq, e.g.
 ```
 zq -t $ZAR_ROOT/20180324/1521912191.526264.zng.zar/zdx:type:ip.zng
 ```
-
 Now if you run "zar find", it will efficiently look through all the index files
 instead of the logs and run much faster...
 ```
 zar find :ip=10.10.23.2
 ```
+In the output here, you'll see this IP exists in exactly one log file:
+```
+/path/to/ZAR_ROOT/20180324/1521912868.861247.zng
+```
 
-### micro-indexes
+## micro-indexes
 
-We call these files "micro indexes" because each index pertains to just one
-chunk of log file and represents just one indexing rule.
+We call these zng files "micro indexes" because each index pertains to just one
+chunk of log file and represents just one indexing rule.  If you're curious about
+what's in the index, it's just a sorted list of keyed records along with some
+additional zng streams that comprise a constant b-tree index into the sorted list.
+But the cool thing here is that everything is just a zng stream.
 
-We're not building a massive, integrated inverted index that
-tells you exactly where each event is in the event store.  Our model is to
-instead build lots of small indexes for each log chunk and index different things
-in the different indexes.
+Instead of building a massive, inverted index with glorious roaring
+bitmaps that tell you exactly where each event is in the event store, our model
+is to instead build lots of small indexes for each log chunk and index different
+things in the different indexes.
 
-### creating more micro-indexes
+## creating more micro-indexes
 
-You can add and delete micro-indexes whenever you want.  Let's say you later
-decide you want searches over the uri field to run fast.  You just run
-"zar index" again:
+The beauty of this approach is that you can add and delete micro-indexes
+whenever you want.  No need to suffer the fate of a massive reindexing
+job when you have a new idea about what to index.
+
+So, let's say you later decide you want searches over the "uri" field to run fast.
+You just run "zar index" again but with different parameters:
 ```
 zar index uri
 ```
-No need to run a massive re-indexing job if you change the indexing rules
-since each micro-index is independent of the other.
-
 And now you can run field matches on `uri`:
 ```
 zar find uri=/file
 ```
-
+and you'll get
+```
+/path/to/ZAR_ROOT/20180324/1521911720.600725.zng
+/path/to/ZAR_ROOT/20180324/1521912191.526264.zng
+```
 If you have a look, you'll see there are index files now for both type ip
 and field uri:
 ```
 zar ls -l
 ```
 
-### operating directly on micro-indexes
+## operating directly on micro-indexes
 
 Let's say instead of searching for what log chunk a value is in, we want to
-actually pull out the zng records that comprise the index.  The syntax
-is kind of clunky and we're working to clean it up but you can say...
+actually pull out the zng records that comprise the index.  This turns out
+to be really powerful in general, but to give you a taste here, you can say...
 ```
-zar find -z -o - -x zdx:type:ip 10.47.21.138 | zq -t -
+zar find -z -x zdx:type:ip 10.47.21.138 | zq -t -
 ```
 where `-z` says to produce zng output instead of a path listing,
 and you'll get this...
 ```
 #zfile=string
 #0:record[key:ip,_log:zfile]
-0:[10.47.21.138;/Users/mccanne/repo/logs/20180324/1521911720.600725.zng;]
-0:[10.47.21.138;/Users/mccanne/repo/logs/20180324/1521911867.742821.zng;]
-0:[10.47.21.138;/Users/mccanne/repo/logs/20180324/1521912191.526264.zng;]
-0:[10.47.21.138;/Users/mccanne/repo/logs/20180324/1521912390.147127.zng;]
+0:[10.47.21.138;/path/to/ZAR_ROOT/20180324/1521911720.600725.zng;]
+0:[10.47.21.138;/path/to/ZAR_ROOT/20180324/1521911867.742821.zng;]
+0:[10.47.21.138;/path/to/ZAR_ROOT/20180324/1521912191.526264.zng;]
+0:[10.47.21.138;/path/to/ZAR_ROOT/20180324/1521912390.147127.zng;]
 ```
 The find command adds a column called "_log" (which can be disabled
 or customized to a different field name) so you can see where the
 search hits came from even when they are combined into a zng stream.
-The type field of the path is alias --- a sort of logical type ---
+The type of the path field is a "zng alias" --- a sort of logical type ---
 where a client can infer the type "zfile" refers to a zng data file.
 
-But, what if we wanted to oput other information in the index alongside each key?
-Then maybe we can do interesting with that extra info.
+But, what if we wanted to put even more information in the index
+alongside each key?  If we could, it seems we could do arbitrarily
+interesting things with this...
 
 ## custom indexes
 
@@ -198,17 +244,18 @@ these results behind in each zar directory:
 ```
 zar zq -o groupby.zng "count() by _path, id.orig_h" _
 ```
+In this case, the `-o` argument to `zar zq` tells it to leave the results
+attached to the log file, in the zar directory associated with that log.
 You can run ls to see the files are indeed there:
 ```
 zar ls groupby.zng
 ```
-
-Actually, we'd like that to be an index.  So, we should add a "key" field
-and make sure the file is sorted by key:
+Actually, instead of just this file hanging around, we'd like to turn it into
+an index that `zar find` can make sense out of.  The simplest way to do this
+is to add a "key" field and make sure the file is sorted by key:
 ```
 zar zq -o keys.zng "put key=id.orig_h | cut -c id | sort key" groupby.zng
 ```
-
 (ignore "value is unset" messages... we need to fix this)
 
 Run ls again and you'll see everything is there
@@ -227,9 +274,6 @@ The -o option provides the prefix of the zdx file.  Let's just called it "custom
 ```
 zar zdx -o custom keys.zng
 ```
-(TBD: we should probably use ".zdx" to denote a single file in its zdx form after
-we fix things to use single-file form instead of bundle form.)
-
 Now I can see my index files for the custom rule I made
 ```
 zar ls custom.zng
@@ -246,14 +290,14 @@ you can see the IPs, counts, and _path strings.
 And now I can go back to my example from before and use "zar find" on the custom
 index:
 ```
-zar find -z -o - -x custom 10.164.94.120 | zq -t -
+zar find -z -x custom 10.164.94.120 | zq -t -
 ```
-Now we're talking!  And if I take the results and do a little more math to
-aggregate the aggregations, I get this:
+Now we're talking!  And if youo take the results and do a little more math to
+aggregate the aggregations, like this:
 ```
-zar find -z -o - -x custom 10.164.94.120 | zq -f table "sum(count) as count by _path" -
+zar find -z -x custom 10.164.94.120 | zq -f table "sum(count) as count by _path" -
 ```
-And you get
+You'll get
 ```
 _PATH       COUNT
 dns         8
@@ -284,7 +328,7 @@ But using zar with the custom indexes is MUCH faster.  Pretty cool.
 ## Map-reduce
 
 What's really going on here is map-reduce style computation on your log archives
-without having to set up a spark or hadoop cluster and write java map-reduce classes.
+without having to set up a spark cluster and write java map-reduce classes.
 
 The classic map-reduce example is word count.  Let's do this example with
 the uri field in http logs.  First, we map each record that has a uri
