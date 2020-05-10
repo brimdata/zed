@@ -574,14 +574,14 @@ func TestPostNDJSONLogWarning(t *testing.T) {
 	payloads := postSpaceLogs(t, client, spaceName, &tc, false, src1, src2)
 	warn1 := payloads[1].(*api.LogPostWarning)
 	warn2 := payloads[2].(*api.LogPostWarning)
-	assert.Regexp(t, ": line 1: descriptor not found$", warn1.Warning)
+	assert.Regexp(t, ": line 1: descriptor not found", warn1.Warning)
 	assert.Regexp(t, ": line 2: incomplete descriptor", warn2.Warning)
 
 	status := payloads[len(payloads)-2].(*api.LogPostStatus)
 	expected := &api.LogPostStatus{
 		Type:         "LogPostStatus",
-		LogTotalSize: 134,
-		LogReadSize:  134,
+		LogTotalSize: 71,
+		LogReadSize:  71,
 	}
 	require.Equal(t, expected, status)
 

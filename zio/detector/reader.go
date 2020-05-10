@@ -14,7 +14,7 @@ import (
 	"github.com/brimsec/zq/zqe"
 )
 
-func NewReader(r io.Reader, zctx *resolver.Context) (zbuf.Reader, error) {
+func NewReader(r io.Reader, zctx *resolver.Context, path string, cfg OpenConfig) (zbuf.Reader, error) {
 	recorder := NewRecorder(r)
 	track := NewTrack(recorder)
 
@@ -45,6 +45,11 @@ func NewReader(r io.Reader, zctx *resolver.Context) (zbuf.Reader, error) {
 	nr, err := ndjsonio.NewReader(track, resolver.NewContext())
 	if err != nil {
 		return nil, err
+	}
+	if cfg.JSONTypeConfig != nil {
+		if err = jsonConfig(cfg, nr, path); err != nil {
+			return nil, err
+		}
 	}
 	ndjsonErr := match(nr, "ndjson")
 	if ndjsonErr == nil {

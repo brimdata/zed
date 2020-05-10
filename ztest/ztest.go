@@ -619,7 +619,7 @@ func runzq(bindir, ZQL, outputFormat, outputFlags string, inputs ...string) (out
 func loadInputs(inputs []string, zctx *resolver.Context) (*zbuf.Combiner, error) {
 	var readers []zbuf.Reader
 	for _, input := range inputs {
-		zr, err := detector.NewReader(detector.GzipReader(strings.NewReader(input)), zctx)
+		zr, err := detector.NewReader(detector.GzipReader(strings.NewReader(input)), zctx, "", detector.OpenConfig{})
 		if err != nil {
 			return nil, err
 		}

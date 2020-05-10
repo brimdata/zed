@@ -32,7 +32,7 @@ func Trim(s string) string {
 
 func stringReader(input string, ifmt string, zctx *resolver.Context) (zbuf.Reader, error) {
 	if ifmt == "" {
-		return detector.NewReader(strings.NewReader(input), zctx)
+		return detector.NewReader(strings.NewReader(input), zctx, "", detector.OpenConfig{})
 	}
 	zr, err := detector.LookupReader(strings.NewReader(input), zctx, ifmt)
 	if err != nil {
