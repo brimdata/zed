@@ -6,13 +6,13 @@
 > ARE ALL SUBJECT TO CHANGE.
 
 This is a sketch of an early prototype of zar and related tools for
-indexing and search log archives.
+indexing and searching log archives.
 
 We'll use the test data here:
 ```
 https://github.com/brimsec/zq-sample-data/tree/master/zng
 ```
-You can copy the just zng data directory needed for this demo
+You can copy just the zng data directory needed for this demo
 into your current directory using subversion:
 ```
 svn checkout https://github.com/brimsec/zq-sample-data/trunk/zng
@@ -292,7 +292,7 @@ index:
 ```
 zar find -z -x custom 10.164.94.120 | zq -t -
 ```
-Now we're talking!  And if youo take the results and do a little more math to
+Now we're talking!  And if you take the results and do a little more math to
 aggregate the aggregations, like this:
 ```
 zar find -z -x custom 10.164.94.120 | zq -f table "sum(count) as count by _path" -
@@ -321,7 +321,7 @@ We can compute this aggregation now for any IP in the micro-index
 without reading any of the original log files!  You'll get the same
 output from this...
 ```
-zq "id.orig_h=10.164.94.120" ../zng/*.gz | zq -f table "count() by _path" -
+zq "id.orig_h=10.164.94.120" zng/*.gz | zq -f table "count() by _path" -
 ```
 But using zar with the custom indexes is MUCH faster.  Pretty cool.
 
@@ -344,7 +344,7 @@ Now we reduce by aggregating the uri and summing the counts:
 ```
 zar zq -o wordcounts.zng "sum(count) by uri | put count=sum | cut uri,count" words.zng
 ```
-If we were dealing with a huge archive, we could do an approximation by talking
+If we were dealing with a huge archive, we could do an approximation by taking
 the top 1000 in each zar directory then we could aggregate with another zq
 command at the top-level:
 ```
