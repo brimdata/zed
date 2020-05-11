@@ -144,7 +144,7 @@ func (pc *parquetColumn) convert(v reflect.Value) (zcode.Bytes, error) {
 		return zng.EncodeTime(nano.Ts(v.Int() * 1000)), nil
 
 	default:
-		return nil, fmt.Errorf("unexpected type %s", pc.typ)
+		return nil, fmt.Errorf("unexpected type %d", pc.typ)
 	}
 }
 
