@@ -47,7 +47,7 @@ func NewReaderWithConfig(r io.Reader, zctx *resolver.Context, path string, cfg O
 		return nil, err
 	}
 	if cfg.JSONTypeConfig != nil {
-		if err = jsonConfig(cfg, nr, path); err != nil {
+		if err := jsonConfig(cfg, nr, path); err != nil {
 			return nil, err
 		}
 	}
