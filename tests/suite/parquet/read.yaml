@@ -13,7 +13,7 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      #0:record[Ts:int64,Uid:string,Id_orig_h:string,Id_orig_p:int32,Id_resp_h:string,Id_resp_p:int32,Proto:string,Service:string,Duration:float64,Orig_bytes:int64,Resp_bytes:int64,Conn_state:string,Local_orig:bool,Local_resp:bool,Missed_bytes:int64,History:string,Orig_pkts:int64,Orig_ip_bytes:int64,Resp_pkts:int64,Resp_ip_bytes:int64,Tunnel_parents:string]
+      #0:record[ts:int64,uid:string,id_orig_h:string,id_orig_p:int32,id_resp_h:string,id_resp_p:int32,proto:string,service:string,duration:float64,orig_bytes:int64,resp_bytes:int64,conn_state:string,local_orig:bool,local_resp:bool,missed_bytes:int64,history:string,orig_pkts:int64,orig_ip_bytes:int64,resp_pkts:int64,resp_ip_bytes:int64,tunnel_parents:string]
       0:[0;C8Tful1TvM3Zf5x8fl;10.164.94.120;39681;10.47.3.155;3389;tcp;\u002d;0.004265999887138605;97;19;RSTR;-;-;0;ShADTdtr;10;730;6;342;\u002d;]
       0:[0;CXWfTK3LRdiuQxBbM6;10.47.25.80;50817;10.128.0.218;23189;tcp;\u002d;0.00048600000445730984;0;0;REJ;-;-;0;Sr;2;104;2;80;\u002d;]
       0:[0;CM59GGQhNEoKONb5i;10.47.25.80;50817;10.128.0.218;23189;tcp;\u002d;0.0005380000220611691;0;0;REJ;-;-;0;Sr;2;104;2;80;\u002d;]
