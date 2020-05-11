@@ -10,6 +10,7 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/xitongsys/parquet-go/parquet"
 	"github.com/xitongsys/parquet-go/reader"
+	"github.com/xitongsys/parquet-go/schema"
 	"github.com/xitongsys/parquet-go/source"
 )
 
@@ -26,7 +27,7 @@ func NewReader(f source.ParquetFile, zctx *resolver.Context) (*Reader, error) {
 		return nil, err
 	}
 
-	cols, err := convertSchema(pr.Footer.Schema)
+	cols, err := convertSchema(pr.Footer.Schema, pr.SchemaHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +190,10 @@ func dump(el parquet.SchemaElement) {
 	fmt.Printf("\n")
 }
 
-func convertSchema(schema []*parquet.SchemaElement) ([]parquetColumn, error) {
+func convertSchema(schema []*parquet.SchemaElement, handler *schema.SchemaHandler) ([]parquetColumn, error) {
+	rootIn := handler.Infos[0].InName
+	rootEx := handler.Infos[0].ExName
+
 	// build a zng descriptor from the schema.  first element in the
 	// schema is the root, skip over it...
 	var columns []parquetColumn
@@ -213,6 +217,10 @@ func convertSchema(schema []*parquet.SchemaElement) ([]parquetColumn, error) {
 		if col == nil {
 			continue
 		}
+
+		// XXX translate the column name
+		name := handler.InPathToExPath[fmt.Sprintf("%s.%s", rootIn, col.goName)]
+		col.name = name[len(rootEx)+1:]
 
 		columns = append(columns, *col)
 	}
