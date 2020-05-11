@@ -129,7 +129,7 @@ func OpenFromNamedReadCloser(zctx *resolver.Context, rc io.ReadCloser, path stri
 	r := GzipReader(rc)
 	var zr zbuf.Reader
 	if cfg.Format == "" || cfg.Format == "auto" {
-		zr, err = NewReader(r, zctx, path, cfg)
+		zr, err = NewReaderWithConfig(r, zctx, path, cfg)
 	} else {
 		zr, err = LookupReader(r, zctx, cfg.Format)
 	}

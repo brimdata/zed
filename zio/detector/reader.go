@@ -14,7 +14,7 @@ import (
 	"github.com/brimsec/zq/zqe"
 )
 
-func NewReader(r io.Reader, zctx *resolver.Context, path string, cfg OpenConfig) (zbuf.Reader, error) {
+func NewReaderWithConfig(r io.Reader, zctx *resolver.Context, path string, cfg OpenConfig) (zbuf.Reader, error) {
 	recorder := NewRecorder(r)
 	track := NewTrack(recorder)
 
@@ -62,6 +62,10 @@ func NewReader(r io.Reader, zctx *resolver.Context, path string, cfg OpenConfig)
 		return zngio.NewReader(recorder, zctx), nil
 	}
 	return nil, joinErrs([]error{tzngErr, zeekErr, ndjsonErr, zjsonErr, zngErr})
+}
+
+func NewReader(r io.Reader, zctx *resolver.Context) (zbuf.Reader, error) {
+	return NewReaderWithConfig(r, zctx, "", OpenConfig{})
 }
 
 func joinErrs(errs []error) error {
