@@ -15,36 +15,6 @@ func lookup(r *zng.Record, col int) zcode.Bytes {
 	return zv
 }
 
-func TestNewRecordZeekStrings(t *testing.T) {
-	zctx := resolver.NewContext()
-	typ, err := zctx.LookupByName("record[_path:string,ts:time,data:string]")
-	require.NoError(t, err)
-	d := typ.(*zng.TypeRecord)
-
-	_, err = NewRecordZeekStrings(d, "some path", "123.456")
-	assert.EqualError(t, err, "got 2 values, expected 3")
-
-	_, err = NewRecordZeekStrings(d, "some path", "123.456", "some data", "unexpected")
-	assert.EqualError(t, err, "got 4 values, expected 3")
-
-	r, err := NewRecordZeekStrings(d, "some path", "123.4567", "some data")
-	assert.NoError(t, err)
-	assert.EqualValues(t, 123456700000, r.Ts)
-	s, _ := r.AccessString("_path")
-	assert.EqualValues(t, "some path", s)
-	assert.EqualValues(t, "123.4567", r.Value(1).String())
-	assert.EqualValues(t, "some data", lookup(r, 2))
-	assert.Nil(t, lookup(r, 3))
-
-	r, err = NewRecordZeekStrings(d, "some path", "123.456", "")
-	assert.NoError(t, err)
-	assert.EqualValues(t, 123456000000, r.Ts)
-	assert.EqualValues(t, "some path", lookup(r, 0))
-	assert.EqualValues(t, "123.456", r.Value(1).String())
-	assert.EqualValues(t, "", lookup(r, 2))
-	assert.Nil(t, lookup(r, 3))
-}
-
 func zs(ss ...string) [][]byte {
 	var vals [][]byte
 	for _, s := range ss {
