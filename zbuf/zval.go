@@ -37,23 +37,6 @@ func appendZvalFromZeek(dst zcode.Bytes, typ zng.Type, val []byte) zcode.Bytes {
 	}
 }
 
-// NewRecordZeekStrings creates a record from Zeek UTF-8 strings.
-func NewRecordZeekStrings(typ *zng.TypeRecord, ss ...string) (t *zng.Record, err error) {
-	vals := make([][]byte, 0, 32)
-	for _, s := range ss {
-		vals = append(vals, []byte(s))
-	}
-	zv, ts, err := NewRawAndTsFromZeekValues(typ, typ.TsCol, vals)
-	if err != nil {
-		return nil, err
-	}
-	r := zng.NewRecordTs(typ, ts, zv)
-	if err := r.TypeCheck(); err != nil {
-		return nil, err
-	}
-	return r, nil
-}
-
 func isHighPrecision(ts nano.Ts) bool {
 	_, ns := ts.Split()
 	return (ns/1000)*1000 != ns
