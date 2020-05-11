@@ -49,31 +49,31 @@ type HandledType int
 // These are all the types we can handle...
 const (
 	// un-annotated primitive types
-	Boolean = iota
-	Int32
-	Int64
-	Float
-	ByteArray
+	boolean = iota
+	int32
+	int64
+	float
+	byteArray
 
 	// XXX
-	Int96
+	int96
 
 	// annotated strings
-	UTF8
-	ENUM
-	JSON
-	BSON
+	utf8
+	enum
+	json
+	bson
 
 	// annotated int64s
-	TimestampMilliseconds
-	TimestampMicroseconds
-	TimestampNanoseconds
+	timestampMilliseconds
+	timestampMicroseconds
+	timestampNanoseconds
 
 	// XXX INTERVAL
 	// XXX INT_*, UINT_* types
 
 	// composite types
-	List
+	list
 )
 
 type parquetColumn struct {
@@ -91,27 +91,27 @@ func (pc *parquetColumn) zngType(zctx *resolver.Context) zng.Type {
 	}
 
 	switch pc.typ {
-	case Boolean:
+	case boolean:
 		return zng.TypeBool
-	case Int32:
+	case int32:
 		return zng.TypeInt32
-	case Int64:
+	case int64:
 		return zng.TypeInt64
-	case Float:
+	case float:
 		return zng.TypeFloat64
-	case ByteArray:
+	case byteArray:
 		return zng.TypeBstring
 
-	case UTF8, ENUM, JSON:
+	case utf8, enum, json:
 		return zng.TypeString
-	case BSON:
+	case bson:
 		return zng.TypeBstring
 
-	case TimestampMilliseconds, TimestampMicroseconds, TimestampNanoseconds:
+	case timestampMilliseconds, timestampMicroseconds, timestampNanoseconds:
 		return zng.TypeTime
 
 	// XXX
-	case Int96:
+	case int96:
 		return zng.TypeInt64
 	}
 	panic(fmt.Sprintf("unhandled type %d", pc.typ))
@@ -119,29 +119,29 @@ func (pc *parquetColumn) zngType(zctx *resolver.Context) zng.Type {
 
 func (pc *parquetColumn) convert(v reflect.Value) (zcode.Bytes, error) {
 	switch pc.typ {
-	case Int96:
+	case int96:
 		// XXX huh what to do with these
 		return zng.EncodeInt(0), nil
 
-	case Boolean:
+	case boolean:
 		return zng.EncodeBool(v.Bool()), nil
 
-	case Int32, Int64:
+	case int32, int64:
 		return zng.EncodeInt(v.Int()), nil
 
-	case Float:
+	case float:
 		return zng.EncodeFloat64(v.Float()), nil
 
-	case ByteArray, BSON:
+	case byteArray, bson:
 		return zng.EncodeBstring(v.String()), nil
 
-	case UTF8, ENUM, JSON:
+	case utf8, enum, json:
 		return zng.EncodeString(v.String()), nil
 
-	case TimestampMilliseconds:
+	case timestampMilliseconds:
 		return zng.EncodeTime(nano.Ts(v.Int() * 1_000_000)), nil
 
-	case TimestampMicroseconds:
+	case timestampMicroseconds:
 		return zng.EncodeTime(nano.Ts(v.Int() * 1000)), nil
 
 	default:
@@ -238,17 +238,17 @@ func convertSimpleElement(el parquet.SchemaElement) (*parquetColumn, error) {
 	if el.ConvertedType != nil {
 		switch *el.ConvertedType {
 		case parquet.ConvertedType_UTF8:
-			typ = UTF8
+			typ = utf8
 		case parquet.ConvertedType_JSON:
-			typ = JSON
+			typ = json
 		case parquet.ConvertedType_BSON:
-			typ = BSON
+			typ = bson
 		case parquet.ConvertedType_ENUM:
-			typ = ENUM
+			typ = enum
 		case parquet.ConvertedType_TIMESTAMP_MILLIS:
-			typ = TimestampMilliseconds
+			typ = timestampMilliseconds
 		case parquet.ConvertedType_TIMESTAMP_MICROS:
-			typ = TimestampMicroseconds
+			typ = timestampMicroseconds
 
 		// XXX case parquet.ConvertedType_INTERVAL:
 
@@ -259,17 +259,17 @@ func convertSimpleElement(el parquet.SchemaElement) (*parquetColumn, error) {
 	} else if el.Type != nil {
 		switch *el.Type {
 		case parquet.Type_BOOLEAN:
-			typ = Boolean
+			typ = boolean
 		case parquet.Type_INT32:
-			typ = Int32
+			typ = int32
 		case parquet.Type_INT64:
-			typ = Int64
+			typ = int64
 		case parquet.Type_FLOAT, parquet.Type_DOUBLE:
-			typ = Float
+			typ = float
 		case parquet.Type_BYTE_ARRAY:
-			typ = ByteArray
+			typ = byteArray
 		case parquet.Type_INT96:
-			typ = Int96
+			typ = int96
 		default:
 			return nil, fmt.Errorf("unhandled type %s\n", *el.Type)
 		}
@@ -349,7 +349,7 @@ func convertListType(els []*parquet.SchemaElement, i int) (int, *parquetColumn, 
 		return 1, nil, err
 	}
 
-	c := &parquetColumn{goName: el.Name, typ: List, listType: typ}
+	c := &parquetColumn{goName: el.Name, typ: list, listType: typ}
 	return 3, c, nil
 }
 
