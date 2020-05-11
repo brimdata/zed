@@ -6,7 +6,6 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/zeekio"
 	"github.com/brimsec/zq/zng"
@@ -72,7 +71,7 @@ func (t *Table) Write(r *zng.Record) error {
 		t.nline = 0
 	}
 	//XXX only works for zeek-oriented records right now (won't work for NDJSON nested records)
-	ss, changePrecision, err := zbuf.ZeekStrings(r, t.precision, t.format)
+	ss, changePrecision, err := zeekio.ZeekStrings(r, t.precision, t.format)
 	if err != nil {
 		return err
 	}

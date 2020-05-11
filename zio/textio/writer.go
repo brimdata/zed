@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/zeekio"
 	"github.com/brimsec/zq/zng"
@@ -72,7 +71,7 @@ func (t *Text) Write(rec *zng.Record) error {
 	} else {
 		var err error
 		var changePrecision bool
-		out, changePrecision, err = zbuf.ZeekStrings(rec, t.precision, t.format)
+		out, changePrecision, err = zeekio.ZeekStrings(rec, t.precision, t.format)
 		if err != nil {
 			return err
 		}
