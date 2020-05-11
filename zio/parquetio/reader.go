@@ -34,7 +34,7 @@ func NewReader(f source.ParquetFile, zctx *resolver.Context) (*Reader, error) {
 
 	zcols := make([]zng.Column, len(cols))
 	for i, c := range cols {
-		zcols[i] = zng.Column{c.name, c.zngType()}
+		zcols[i] = zng.Column{c.name, c.zngType(zctx)}
 	}
 	typ, err := zctx.LookupTypeRecord(zcols)
 	if err != nil {
@@ -83,10 +83,11 @@ type parquetColumn struct {
 	name     string
 }
 
-func (pc *parquetColumn) zngType() zng.Type {
+func (pc *parquetColumn) zngType(zctx *resolver.Context) zng.Type {
 	if pc.listType != nil {
-		inner := pc.listType.zngType()
-		return zng.NewTypeArray(-1, inner)
+		inner := pc.listType.zngType(zctx)
+		atype := zng.NewTypeArray(-1, inner)
+		return zctx.AddType(atype)
 	}
 
 	switch pc.typ {
