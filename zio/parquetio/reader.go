@@ -86,8 +86,7 @@ type parquetColumn struct {
 func (pc *parquetColumn) zngType(zctx *resolver.Context) zng.Type {
 	if pc.listType != nil {
 		inner := pc.listType.zngType(zctx)
-		atype := zng.NewTypeArray(-1, inner)
-		return zctx.AddType(atype)
+		return zctx.LookupTypeArray(inner)
 	}
 
 	switch pc.typ {
