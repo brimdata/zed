@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -42,12 +43,43 @@ func NewReader(f source.ParquetFile, zctx *resolver.Context) (*Reader, error) {
 	return &Reader{pr, typ, cols, 0}, nil
 }
 
+type HandledType int
+
+// These are all the types we can handle...
+const (
+	// un-annotated primitive types
+	Boolean = iota
+	Int32
+	Int64
+	Float
+	ByteArray
+
+	// XXX
+	Int96
+
+	// annotated strings
+	UTF8
+	ENUM
+	JSON
+	BSON
+
+	// annotated int64s
+	TimestampMilliseconds
+	TimestampMicroseconds
+	TimestampNanoseconds
+
+	// XXX INTERVAL
+	// XXX INT_*, UINT_* types
+
+	// composite types
+	List
+)
+
 type parquetColumn struct {
-	name     string
-	ptype    parquet.Type
-	ctype    *parquet.ConvertedType
-	ltype    *parquet.LogicalType
+	goName   string
+	typ      HandledType
 	listType *parquetColumn
+	name     string
 }
 
 func (pc *parquetColumn) zngType() zng.Type {
@@ -56,63 +88,68 @@ func (pc *parquetColumn) zngType() zng.Type {
 		return zng.NewTypeArray(-1, inner)
 	}
 
-	if pc.ctype != nil {
-		switch *pc.ctype {
-		case parquet.ConvertedType_UTF8, parquet.ConvertedType_JSON, parquet.ConvertedType_ENUM:
-			return zng.TypeString
-
-			// XXX TIMESTAMP_*
-			// XXX INTERVAL
-			// XXX INT_*, UINT_*
-		}
-	}
-
-	// XXX handle logical types
-
-	// Unadorned primitive type...
-	switch pc.ptype {
-	case parquet.Type_BOOLEAN:
+	switch pc.typ {
+	case Boolean:
 		return zng.TypeBool
-	case parquet.Type_INT32:
+	case Int32:
 		return zng.TypeInt32
-	case parquet.Type_INT64:
+	case Int64:
 		return zng.TypeInt64
-	case parquet.Type_FLOAT, parquet.Type_DOUBLE:
+	case Float:
 		return zng.TypeFloat64
-	case parquet.Type_BYTE_ARRAY:
+	case ByteArray:
 		return zng.TypeBstring
 
+	case UTF8, ENUM, JSON:
+		return zng.TypeString
+	case BSON:
+		return zng.TypeBstring
+
+	case TimestampMilliseconds, TimestampMicroseconds, TimestampNanoseconds:
+		return zng.TypeTime
+
 	// XXX
-	case parquet.Type_INT96:
+	case Int96:
 		return zng.TypeInt64
 	}
-
-	panic(fmt.Sprintf("unhandled parquet type %s", pc.ptype))
+	panic(fmt.Sprintf("unhandled type %d", pc.typ))
 }
 
-func (pc *parquetColumn) convert(v reflect.Value, typ zng.Type) (zcode.Bytes, error) {
-	if pc.ptype == parquet.Type_INT96 {
+func (pc *parquetColumn) convert(v reflect.Value) (zcode.Bytes, error) {
+	switch pc.typ {
+	case Int96:
 		// XXX huh what to do with these
 		return zng.EncodeInt(0), nil
-	}
 
-	switch typ.ID() {
-	case zng.IdBool:
+	case Boolean:
 		return zng.EncodeBool(v.Bool()), nil
-	case zng.IdInt32, zng.IdInt64:
+
+	case Int32, Int64:
 		return zng.EncodeInt(v.Int()), nil
-	case zng.IdFloat64:
+
+	case Float:
 		return zng.EncodeFloat64(v.Float()), nil
-	case zng.IdBstring, zng.IdString:
+
+	case ByteArray, BSON:
 		return zng.EncodeBstring(v.String()), nil
+
+	case UTF8, ENUM, JSON:
+		return zng.EncodeString(v.String()), nil
+
+	case TimestampMilliseconds:
+		return zng.EncodeTime(nano.Ts(v.Int() * 1_000_000)), nil
+
+	case TimestampMicroseconds:
+		return zng.EncodeTime(nano.Ts(v.Int() * 1000)), nil
+
 	default:
-		return nil, fmt.Errorf("unexpected type %s", typ)
+		return nil, fmt.Errorf("unexpected type %s", pc.typ)
 	}
 }
 
-func (pc *parquetColumn) append(builder *zcode.Builder, v reflect.Value, typ zng.Type) error {
+func (pc *parquetColumn) append(builder *zcode.Builder, v reflect.Value) error {
 	if pc.listType == nil {
-		zv, err := pc.convert(v, typ)
+		zv, err := pc.convert(v)
 		if err != nil {
 			return err
 		}
@@ -120,13 +157,11 @@ func (pc *parquetColumn) append(builder *zcode.Builder, v reflect.Value, typ zng
 		return nil
 	}
 
-	arrayType := typ.(*zng.TypeArray)
-
 	builder.BeginContainer()
 
 	n := v.Len()
 	for i := 0; i < n; i++ {
-		zv, err := pc.listType.convert(v.Index(i), arrayType.Type)
+		zv, err := pc.listType.convert(v.Index(i))
 		if err != nil {
 			return err
 		}
@@ -138,7 +173,13 @@ func (pc *parquetColumn) append(builder *zcode.Builder, v reflect.Value, typ zng
 }
 
 func dump(el parquet.SchemaElement) {
-	fmt.Printf("%s %s", el.Name, *el.Type)
+	fmt.Printf("%s", el.Name)
+	if el.Type == nil {
+		fmt.Printf(" (no type)")
+	} else {
+		fmt.Printf(" %s", *el.Type)
+	}
+
 	if el.ConvertedType != nil {
 		fmt.Printf(" ct %s", *el.ConvertedType)
 	}
@@ -184,8 +225,71 @@ func convertSimpleElement(el parquet.SchemaElement) (*parquetColumn, error) {
 		return nil, fmt.Errorf("cannot convert repeated element %s", el.Name)
 	}
 
-	c := &parquetColumn{el.Name, *el.Type, el.ConvertedType, el.LogicalType, nil}
+	var typ HandledType
+	if el.ConvertedType != nil {
+		switch *el.ConvertedType {
+		case parquet.ConvertedType_UTF8:
+			typ = UTF8
+		case parquet.ConvertedType_JSON:
+			typ = JSON
+		case parquet.ConvertedType_BSON:
+			typ = BSON
+		case parquet.ConvertedType_ENUM:
+			typ = ENUM
+		case parquet.ConvertedType_TIMESTAMP_MILLIS:
+			typ = TimestampMilliseconds
+		case parquet.ConvertedType_TIMESTAMP_MICROS:
+			typ = TimestampMicroseconds
+
+		// XXX case parquet.ConvertedType_INTERVAL:
+
+		default:
+			return nil, fmt.Errorf("unhandled ConvertedType %s", *el.ConvertedType)
+		}
+		// XXX handle logical types
+	} else if el.Type != nil {
+		switch *el.Type {
+		case parquet.Type_BOOLEAN:
+			typ = Boolean
+		case parquet.Type_INT32:
+			typ = Int32
+		case parquet.Type_INT64:
+			typ = Int64
+		case parquet.Type_FLOAT, parquet.Type_DOUBLE:
+			typ = Float
+		case parquet.Type_BYTE_ARRAY:
+			typ = ByteArray
+		case parquet.Type_INT96:
+			typ = Int96
+		default:
+			return nil, fmt.Errorf("unhandled type %s\n", *el.Type)
+		}
+	} else {
+		return nil, fmt.Errorf("cannot find type info for %s", el.Name)
+	}
+
+	c := &parquetColumn{goName: el.Name, typ: typ}
 	return c, nil
+}
+
+func countChildren(els []*parquet.SchemaElement, i int) int {
+	if i >= len(els) {
+		return -1
+	}
+	if els[i].NumChildren == nil {
+		return 1
+	}
+
+	n := int(*(els[i].NumChildren))
+	j := i + 1
+	for c := 0; c < n; c++ {
+		cc := countChildren(els, j)
+		if cc == -1 {
+			return -1
+		}
+		j += cc
+	}
+	return j - i
 }
 
 func convertNestedElement(els []*parquet.SchemaElement, i int) (int, *parquetColumn, error) {
@@ -197,7 +301,8 @@ func convertNestedElement(els []*parquet.SchemaElement, i int) (int, *parquetCol
 		return convertListType(els, i)
 	}
 
-	return 1, nil, fmt.Errorf("Cannot handle non-LIST nested element %s", el.Name)
+	return countChildren(els, i), nil, nil
+	// return 1, nil, fmt.Errorf("Cannot handle non-LIST nested element %s", el.Name)
 }
 
 func convertListType(els []*parquet.SchemaElement, i int) (int, *parquetColumn, error) {
@@ -235,7 +340,7 @@ func convertListType(els []*parquet.SchemaElement, i int) (int, *parquetColumn, 
 		return 1, nil, err
 	}
 
-	c := &parquetColumn{el.Name, *el.Type, el.ConvertedType, el.LogicalType, typ}
+	c := &parquetColumn{goName: el.Name, typ: List, listType: typ}
 	return 3, c, nil
 }
 
@@ -252,8 +357,8 @@ func (r *Reader) Read() (*zng.Record, error) {
 
 	builder := zcode.NewBuilder()
 	v := reflect.ValueOf(res[0])
-	for i, c := range r.columns {
-		fv := v.FieldByName(c.name)
+	for _, c := range r.columns {
+		fv := v.FieldByName(c.goName)
 		// parquet-go uses a native type for a required element
 		// or a pointer for an optional element.  We should keep
 		// track of this when converting the schema, but for now
@@ -267,8 +372,7 @@ func (r *Reader) Read() (*zng.Record, error) {
 			fv = reflect.Indirect(fv)
 		}
 
-		// XXX get rid of the 3rd arg
-		err = c.append(builder, fv, r.typ.Columns[i].Type)
+		err = c.append(builder, fv)
 		if err != nil {
 			return nil, err
 		}
