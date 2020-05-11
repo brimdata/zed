@@ -1,41 +1,9 @@
 package zbuf
 
 import (
-	"bytes"
-
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 )
-
-// appendZvalFromZeek appends to dst the zval for the Zeek UTF-8 value described
-// by typ and val.
-func appendZvalFromZeek(dst zcode.Bytes, typ zng.Type, val []byte) zcode.Bytes {
-	const empty = "(empty)"
-	const setSeparator = ','
-	const unset = '-'
-	switch typ.(type) {
-	case *zng.TypeSet, *zng.TypeArray:
-		if bytes.Equal(val, []byte{unset}) {
-			return zcode.AppendContainer(dst, nil)
-		}
-		inner := zng.InnerType(typ)
-		zv := make(zcode.Bytes, 0)
-		if !bytes.Equal(val, []byte(empty)) {
-			for _, v := range bytes.Split(val, []byte{setSeparator}) {
-				body, _ := inner.Parse(v)
-				zv = zcode.AppendPrimitive(zv, body)
-			}
-		}
-		return zcode.AppendContainer(dst, zv)
-	default:
-		if bytes.Equal(val, []byte{unset}) {
-			return zcode.AppendPrimitive(dst, nil)
-		}
-		body, _ := typ.Parse(val)
-		return zcode.AppendPrimitive(dst, body)
-	}
-}
 
 func isHighPrecision(ts nano.Ts) bool {
 	_, ns := ts.Split()
