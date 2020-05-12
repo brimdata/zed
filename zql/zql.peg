@@ -11,7 +11,6 @@
 #define ARRAY(...) []interface{}{__VA_ARGS__}
 #define ARRAY_LEN(a) len(a.([]interface{}))
 #define FOREACH(arr, var) for _, var := range arr
-#define IF(stmt) if stmt
 #define APPEND(arr, value) arr = append(arr, value)
 #define PREPEND(value, arr) append([]interface{}{value}, (arr.([]interface{}))...)
 #define TEXT string(c.text)
@@ -30,7 +29,6 @@
 #define ARRAY(...) [__VA_ARGS__]
 #define ARRAY_LEN(a) a.length
 #define FOREACH(arr, var) for(let var of arr)
-#define IF(stmt) if (stmt)
 #define APPEND(arr, value) arr.push(value)
 #define PREPEND(value, arr) [value, ...arr]
 #define TEXT text()
@@ -50,7 +48,7 @@ query
       RETURN(makeSequentialProc(PREPEND(filt, procs)))
     }
   / s:search _? rest:chainedProc* {
-      if(ARRAY_LEN(rest) == 0) {
+      if (ARRAY_LEN(rest) == 0) {
           RETURN(s)
       } else {
           RETURN(makeSequentialProc(PREPEND(s, rest)))
@@ -62,7 +60,7 @@ query
 
 procChain
   = first:proc rest:chainedProc* {
-      IF(ISNOTNULL(rest)) {
+      if ISNOTNULL(rest) {
         RETURN(PREPEND(first, rest))
       } else {
         RETURN(ARRAY(first))
@@ -198,7 +196,7 @@ searchKeywords
 procList
   = first:procChain rest:parallelChain* {
       INIT_ASSIGN_VAR(fp, makeSequentialProc(first))
-      IF(ISNOTNULL(rest)) {
+      if ISNOTNULL(rest) {
         RETURN(makeParallelProc(PREPEND(fp, rest)))
       } else {
         RETURN(fp)
