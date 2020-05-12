@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"regexp"
 
 	"github.com/brimsec/zq/pkg/skim"
 	"github.com/brimsec/zq/zio/zjsonio"
@@ -34,20 +35,29 @@ type Reader struct {
 	stats   ReadStats
 }
 
-func NewReader(reader io.Reader, zctx *resolver.Context) (*Reader, error) {
+func NewReader(reader io.Reader, zctx *resolver.Context, tc *TypeConfig, JSONPathRegex string, filepath string) (*Reader, error) {
 	_, err := zctx.LookupTypeAlias("zenum", zng.TypeString)
 	if err != nil {
 		return nil, err
 	}
-
 	buffer := make([]byte, ReadSize)
 	scanner := skim.NewScanner(reader, buffer, MaxLineSize)
-	return &Reader{
+	r := &Reader{
 		scanner: scanner,
 		stats:   ReadStats{Stats: &scanner.Stats, typeStats: &typeStats{}},
 		inf:     inferParser{zctx},
 		zctx:    zctx,
-	}, nil
+	}
+	if tc != nil {
+		var path string
+		re := regexp.MustCompile(JSONPathRegex)
+		match := re.FindStringSubmatch(filepath)
+		if len(match) == 2 {
+			path = match[1]
+		}
+		r.configureTypes(*tc, path)
+	}
+	return r, nil
 }
 
 // typeRules is used internally and is derived from TypeConfig by
@@ -58,13 +68,13 @@ type typeRules struct {
 	rules       []Rule
 }
 
-// ConfigureTypes adds a TypeConfig to the reader. Its should be
+// configureTypes adds a TypeConfig to the reader. Its should be
 // called before input lines are processed. If a non-empty defaultPath
 // is passed, it is used for json objects without a _path.
 // In the absence of a TypeConfig, records are all parsed with the
 // inferParser. If a TypeConfig is present, records are parsed
 // with the typeParser.
-func (r *Reader) ConfigureTypes(tc TypeConfig, defaultPath string) error {
+func (r *Reader) configureTypes(tc TypeConfig, defaultPath string) error {
 	tr := typeRules{
 		descriptors: make(map[string]*zng.TypeRecord),
 		rules:       tc.Rules,

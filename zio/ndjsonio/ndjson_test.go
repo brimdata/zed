@@ -127,7 +127,7 @@ func TestNDJSON(t *testing.T) {
 func runtestcase(t *testing.T, input, output string) {
 	var out bytes.Buffer
 	w := NewWriter(&out)
-	r, err := NewReader(strings.NewReader(input), resolver.NewContext())
+	r, err := NewReader(strings.NewReader(input), resolver.NewContext(), nil, "", "")
 	require.NoError(t, err)
 	require.NoError(t, zbuf.Copy(zbuf.NopFlusher(w), r))
 	NDJSONEq(t, output, out.String())
@@ -332,10 +332,9 @@ func TestNDJSONTypeErrors(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			var out bytes.Buffer
 			w := NewWriter(&out)
-			r, err := NewReader(strings.NewReader(c.input), resolver.NewContext())
+			r, err := NewReader(strings.NewReader(c.input), resolver.NewContext(), nil, "", "")
 			require.NoError(t, err)
-
-			err = r.ConfigureTypes(typeConfig, c.defaultPath)
+			err = r.configureTypes(typeConfig, c.defaultPath)
 			require.NoError(t, err)
 
 			err = zbuf.Copy(zbuf.NopFlusher(w), r)

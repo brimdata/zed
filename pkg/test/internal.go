@@ -3,6 +3,7 @@ package test
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"strings"
 
 	"github.com/brimsec/zq/driver"
@@ -31,17 +32,12 @@ func Trim(s string) string {
 }
 
 func stringReader(input string, ifmt string, zctx *resolver.Context) (zbuf.Reader, error) {
-	if ifmt == "" {
-		return detector.NewReader(strings.NewReader(input), zctx)
+	cfg := detector.OpenConfig{
+		Format: ifmt,
 	}
-	zr, err := detector.LookupReader(strings.NewReader(input), zctx, ifmt)
-	if err != nil {
-		return nil, err
-	}
-	if zr == nil {
-		return nil, fmt.Errorf("unknown input format %s", ifmt)
-	}
-	return zr, nil
+	rc := ioutil.NopCloser(strings.NewReader(input))
+
+	return detector.OpenFromNamedReadCloser(zctx, rc, "test", cfg)
 }
 
 func newEmitter(ofmt string) (*emitter.Bytes, error) {

@@ -42,18 +42,13 @@ func NewReaderWithConfig(r io.Reader, zctx *resolver.Context, path string, cfg O
 	track.Reset()
 
 	// ndjson must come after zjson since zjson is a subset of ndjson
-	nr, err := ndjsonio.NewReader(track, resolver.NewContext())
+	nr, err := ndjsonio.NewReader(track, resolver.NewContext(), cfg.JSONTypeConfig, cfg.JSONPathRegex, path)
 	if err != nil {
 		return nil, err
 	}
-	if cfg.JSONTypeConfig != nil {
-		if err := jsonConfig(cfg, nr, path); err != nil {
-			return nil, err
-		}
-	}
 	ndjsonErr := match(nr, "ndjson")
 	if ndjsonErr == nil {
-		return ndjsonio.NewReader(recorder, zctx)
+		return ndjsonio.NewReader(recorder, zctx, cfg.JSONTypeConfig, cfg.JSONPathRegex, path)
 	}
 	track.Reset()
 
