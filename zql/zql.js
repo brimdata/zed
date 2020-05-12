@@ -147,7 +147,7 @@ function peg$parse(input, options) {
             return makeSequentialProc([filt, ... procs])
           },
       peg$c2 = function(s, rest) {
-            if(rest.length == 0) {
+            if (rest.length == 0) {
                 return s
             } else {
                 return makeSequentialProc([s, ... rest])
@@ -157,7 +157,7 @@ function peg$parse(input, options) {
             return makeSequentialProc([s])
           },
       peg$c4 = function(first, rest) {
-            if ((rest)) {
+            if (rest) {
               return [first, ... rest]
             } else {
               return [first]
@@ -249,7 +249,7 @@ function peg$parse(input, options) {
       peg$c52 = function() { return makeLiteral("null", "") },
       peg$c53 = function(first, rest) {
             let fp =  makeSequentialProc(first)
-            if ((rest)) {
+            if (rest) {
               return makeParallelProc([fp, ... rest])
             } else {
               return fp
