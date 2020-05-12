@@ -148,6 +148,12 @@ func (r *Record) Bytes() []byte {
 	return r.Raw
 }
 
+// Walk traverses a record in depth-first order, calling a
+// RecordVisitor on the way.
+func (r *Record) Walk(rv RecordVisitor) error {
+	return walkRecord(r.Type, r.Raw, rv)
+}
+
 // TypeCheck checks that the value coding in Raw is structurally consistent
 // with this value's descriptor.  It does not check that the actual leaf
 // values when parsed are type compatible with the leaf types.
