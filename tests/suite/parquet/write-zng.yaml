@@ -1,8 +1,9 @@
-# A simple test of reading a zeek conn.log file converted with
-# Apache NiFi and a custom Avro schema.
+# This is similar to the basic read.yaml test, but it converts the data
+# to zng and then reads that, ensuring that zng type identifiers are
+# properly handled.
 
 script: |
-  zq -t -i parquet conn.parquet
+  zq -i parquet conn.parquet | zq -t -
 
 inputs:
   - name: conn.parquet
