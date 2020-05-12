@@ -158,114 +158,14 @@ func (r *Record) Walk(rv RecordVisitor) error {
 // with this value's descriptor.  It does not check that the actual leaf
 // values when parsed are type compatible with the leaf types.
 func (r *Record) TypeCheck() error {
-	return checkRecord(r.Type, r.Raw)
-}
-
-func checkVector(typ *TypeArray, body zcode.Bytes) error {
-	if body == nil {
-		return nil
-	}
-	inner := InnerType(AliasedType(typ))
-	it := zcode.Iter(body)
-	for !it.Done() {
-		body, container, err := it.Next()
-		if err != nil {
-			return err
-		}
-		switch v := inner.(type) {
-		case *TypeRecord:
-			if !container {
-				return &RecordTypeError{Name: "<record element>", Type: v.String(), Err: ErrNotContainer}
-			}
-			if err := checkRecord(v, body); err != nil {
-				return err
-			}
-		case *TypeArray:
-			if !container {
-				return &RecordTypeError{Name: "<array element>", Type: v.String(), Err: ErrNotContainer}
-			}
-			if err := checkVector(v, body); err != nil {
-				return err
-			}
-		case *TypeSet:
-			if !container {
-				return &RecordTypeError{Name: "<set element>", Type: v.String(), Err: ErrNotContainer}
-			}
-			if err := checkSet(v, body); err != nil {
-				return err
-			}
-		case *TypeUnion:
-			if !container {
-				return &RecordTypeError{Name: "<union value>", Type: v.String(), Err: ErrNotContainer}
-			}
-			if err := checkUnion(v, body); err != nil {
-				return err
-			}
-		default:
-			if container {
-				return &RecordTypeError{Name: "<array element>", Type: v.String(), Err: ErrNotPrimitive}
+	return r.Walk(func(typ Type, body zcode.Bytes) (bool, error) {
+		if typset, ok := typ.(*TypeSet); ok {
+			if err := checkSet(typset, body); err != nil {
+				return false, err
 			}
 		}
-	}
-	return nil
-}
-
-func checkUnion(typ *TypeUnion, body zcode.Bytes) error {
-	if len(body) == 0 {
-		return nil
-	}
-	it := zcode.Iter(body)
-	v, container, err := it.Next()
-	if err != nil {
-		return err
-	}
-	if container {
-		return ErrBadValue
-	}
-	index := zcode.DecodeCountedUvarint(v)
-	inner, err := typ.TypeIndex(int(index))
-	if err != nil {
-		return err
-	}
-	body, container, err = it.Next()
-	if err != nil {
-		return err
-	}
-	switch v := AliasedType(inner).(type) {
-	case *TypeRecord:
-		if !container {
-			return &RecordTypeError{Name: "<record element>", Type: v.String(), Err: ErrNotContainer}
-		}
-		if err := checkRecord(v, body); err != nil {
-			return err
-		}
-	case *TypeArray:
-		if !container {
-			return &RecordTypeError{Name: "<array element>", Type: v.String(), Err: ErrNotContainer}
-		}
-		if err := checkVector(v, body); err != nil {
-			return err
-		}
-	case *TypeSet:
-		if !container {
-			return &RecordTypeError{Name: "<set element>", Type: v.String(), Err: ErrNotContainer}
-		}
-		if err := checkSet(v, body); err != nil {
-			return err
-		}
-	case *TypeUnion:
-		if !container {
-			return &RecordTypeError{Name: "<union value>", Type: v.String(), Err: ErrNotContainer}
-		}
-		if err := checkUnion(v, body); err != nil {
-			return err
-		}
-	default:
-		if container {
-			return &RecordTypeError{Name: "<union value>", Type: v.String(), Err: ErrNotPrimitive}
-		}
-	}
-	return nil
+		return true, nil
+	})
 }
 
 func checkSet(typ *TypeSet, body zcode.Bytes) error {
@@ -297,57 +197,6 @@ func checkSet(typ *TypeSet, body zcode.Bytes) error {
 			}
 		}
 		prev = tagAndBody
-	}
-	return nil
-}
-
-func checkRecord(typ *TypeRecord, body zcode.Bytes) error {
-	if body == nil {
-		return nil
-	}
-	it := zcode.Iter(body)
-	for _, col := range typ.Columns {
-		if it.Done() {
-			return &RecordTypeError{Name: col.Name, Type: col.Type.String(), Err: ErrMissingField}
-		}
-		body, container, err := it.Next()
-		if err != nil {
-			return err
-		}
-		switch v := AliasedType(col.Type).(type) {
-		case *TypeRecord:
-			if !container {
-				return &RecordTypeError{Name: col.Name, Type: col.Type.String(), Err: ErrNotContainer}
-			}
-			if err := checkRecord(v, body); err != nil {
-				return err
-			}
-		case *TypeArray:
-			if !container {
-				return &RecordTypeError{Name: col.Name, Type: col.Type.String(), Err: ErrNotContainer}
-			}
-			if err := checkVector(v, body); err != nil {
-				return err
-			}
-		case *TypeSet:
-			if !container {
-				return &RecordTypeError{Name: col.Name, Type: col.Type.String(), Err: ErrNotContainer}
-			}
-			if err := checkSet(v, body); err != nil {
-				return err
-			}
-		case *TypeUnion:
-			if !container {
-				return &RecordTypeError{Name: col.Name, Type: col.Type.String(), Err: ErrNotContainer}
-			}
-			if err := checkUnion(v, body); err != nil {
-				return err
-			}
-		default:
-			if container {
-				return &RecordTypeError{Name: col.Name, Type: col.Type.String(), Err: ErrNotPrimitive}
-			}
-		}
 	}
 	return nil
 }
