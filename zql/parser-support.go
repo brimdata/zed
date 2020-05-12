@@ -339,6 +339,14 @@ func makeUnaryExpr(opIn, operandIn interface{}) ast.Expression {
 	}
 }
 
+func makeCastExpression(exprIn, typeIn interface{}) ast.Expression {
+	return &ast.CastExpression{
+		ast.Node{"CastExpr"},
+		exprIn.(ast.Expression),
+		getString(typeIn),
+	}
+}
+
 func makeBinaryExprChain(firstIn, restIn interface{}) ast.Expression {
 	first := firstIn.(ast.Expression)
 	if restIn == nil {

@@ -163,10 +163,17 @@ type FunctionCall struct {
 	Args     []Expression `json:"args"`
 }
 
+type CastExpression struct {
+	Node
+	Expr Expression `json:"expr"`
+	Type string     `json:"type"`
+}
+
 func (*UnaryExpression) exprNode()       {}
 func (*BinaryExpression) exprNode()      {}
 func (*ConditionalExpression) exprNode() {}
 func (*FunctionCall) exprNode()          {}
+func (*CastExpression) exprNode()        {}
 func (*Literal) exprNode()               {}
 func (*FieldRead) exprNode()             {}
 

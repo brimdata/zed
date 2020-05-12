@@ -137,6 +137,10 @@ function makeUnaryExpr(operator, operand) {
   return { op: "UnaryExpr", operator, operand };
 }
 
+function makeCastExpression(expr, type) {
+  return { op: "CastExpr", expr, type };
+}
+
 function makeBinaryExprChain(first, rest) {
   let ret = first
   for (let part of rest) {
