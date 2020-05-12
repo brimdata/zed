@@ -218,7 +218,14 @@ func convertSchema(schema []*parquet.SchemaElement, handler *schema.SchemaHandle
 			continue
 		}
 
-		// XXX translate the column name
+		// The parquet-go library converts column names into names
+		// that are valid public field names in a go structure.
+		// Recover the original column names from the parquet schema
+		// here.  This is a little messy since the data structure
+		// inside parquet-go uses fully qualified names so we have
+		// to convert a field name to the fully qualified name, map
+		// it to the original fully qualified name, then grab the
+		// original column name.
 		name := handler.InPathToExPath[fmt.Sprintf("%s.%s", rootIn, col.goName)]
 		col.name = name[len(rootEx)+1:]
 
@@ -309,8 +316,8 @@ func convertNestedElement(els []*parquet.SchemaElement, i int) (int, *parquetCol
 		return convertListType(els, i)
 	}
 
+	// Skip this element and all its children...
 	return countChildren(els, i), nil, nil
-	// return 1, nil, fmt.Errorf("Cannot handle non-LIST nested element %s", el.Name)
 }
 
 func convertListType(els []*parquet.SchemaElement, i int) (int, *parquetColumn, error) {
