@@ -24,6 +24,16 @@ func ParseProc(query string) (ast.Proc, error) {
 	return ret, nil
 }
 
+// MustParseProc is functionally the same as ParseProc but panics if an error
+// is encountered.
+func MustParseProc(query string) ast.Proc {
+	proc, err := ParseProc(query)
+	if err != nil {
+		panic(err)
+	}
+	return proc
+}
+
 // Helper to get a properly-typed slice of Procs from an interface{}.
 func procArray(val interface{}) []ast.Proc {
 	var ret []ast.Proc

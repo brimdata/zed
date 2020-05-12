@@ -22,6 +22,7 @@ require (
 	go.uber.org/multierr v1.5.0
 	go.uber.org/zap v1.15.0
 	golang.org/x/crypto v0.0.0-20191117063200-497ca9f6d64f
+	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	golang.org/x/text v0.3.2
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v3 v3.0.0-20200121175148-a6ecf24a6d71

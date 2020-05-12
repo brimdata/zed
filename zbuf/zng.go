@@ -97,3 +97,22 @@ func CopyWithContext(ctx context.Context, dst WriteFlusher, src Reader) error {
 func Copy(dst WriteFlusher, src Reader) error {
 	return CopyWithContext(context.Background(), dst, src)
 }
+
+func MultiWriter(writers ...Writer) Writer {
+	w := make([]Writer, len(writers))
+	copy(w, writers)
+	return &multiWriter{w}
+}
+
+type multiWriter struct {
+	writers []Writer
+}
+
+func (m *multiWriter) Write(rec *zng.Record) error {
+	for _, w := range m.writers {
+		if err := w.Write(rec); err != nil {
+			return err
+		}
+	}
+	return nil
+}

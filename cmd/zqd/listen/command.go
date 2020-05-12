@@ -79,7 +79,10 @@ func (c *Command) Run(args []string) error {
 	if err := c.init(); err != nil {
 		return err
 	}
-	core := zqd.NewCore(c.conf)
+	core, err := zqd.NewCore(c.conf)
+	if err != nil {
+		return err
+	}
 	c.logger.Info("Starting",
 		zap.String("datadir", c.conf.Root),
 		zap.Bool("pprof_routes", c.pprof),

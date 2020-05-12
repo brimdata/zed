@@ -56,7 +56,7 @@ func TestPcapPostSuccess(t *testing.T) {
 		info, err := p.client.SpaceInfo(context.Background(), p.space)
 		assert.NoError(t, err)
 		assert.Equal(t, p.space, info.Name)
-		assert.Equal(t, nano.NewSpanTs(nano.Unix(1501770877, 471635000), nano.Unix(1501770880, 988247000)), *info.Span)
+		assert.Equal(t, nano.NewSpanTs(nano.Unix(1501770877, 471635000), nano.Unix(1501770880, 988247001)), *info.Span)
 		// Must use InDelta here because zeek randomly generates uids that
 		// vary in size.
 		assert.InDelta(t, 1437, info.Size, 10)
@@ -80,7 +80,7 @@ func TestPcapPostSuccess(t *testing.T) {
 		assert.Equal(t, status.PcapSize, info.Size())
 		assert.Equal(t, status.PcapReadSize, info.Size())
 		assert.Equal(t, 1, status.SnapshotCount)
-		assert.Equal(t, nano.NewSpanTs(nano.Unix(1501770877, 471635000), nano.Unix(1501770880, 988247000)), *status.Span)
+		assert.Equal(t, nano.NewSpanTs(nano.Unix(1501770877, 471635000), nano.Unix(1501770880, 988247001)), *status.Span)
 	})
 	t.Run("TaskEndMessage", func(t *testing.T) {
 		status := p.payloads[len(p.payloads)-1].(*api.TaskEnd)
@@ -247,7 +247,9 @@ func setCoreRoot(t *testing.T, c zqd.Config) *zqd.Core {
 	if c.Logger == nil {
 		c.Logger = zaptest.NewLogger(t, zaptest.Level(zap.WarnLevel))
 	}
-	return zqd.NewCore(c)
+	core, err := zqd.NewCore(c)
+	require.NoError(t, err)
+	return core
 }
 
 type pcapPostResult struct {

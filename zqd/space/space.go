@@ -8,26 +8,20 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pcap/pcapio"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/zngio"
-	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
+	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqe"
 	"go.uber.org/zap"
 )
 
 const (
-	AllZngFile = "all.zng"
-	configFile = "config.json"
-	infoFile   = "info.json"
-	// XXX This should be named pcaps.idx.json. Once we have a system for migrations this should be done.
+	configFile        = "config.json"
 	PcapIndexFile     = "packets.idx.json"
 	defaultStreamSize = 5000
 )
@@ -46,10 +40,10 @@ type Manager struct {
 }
 
 type Space struct {
+	Storage *storage.ZngStorage
+
 	path string
 	conf config
-
-	index *zngio.TimeIndex
 
 	// state about operations in progress
 	opMutex       sync.Mutex
@@ -61,7 +55,7 @@ type Space struct {
 	cancelChan chan struct{}
 }
 
-func NewManager(root string, logger *zap.Logger) *Manager {
+func NewManager(root string, logger *zap.Logger) (*Manager, error) {
 	mgr := &Manager{
 		rootPath: root,
 		spaces:   make(map[string]*Space),
@@ -70,7 +64,7 @@ func NewManager(root string, logger *zap.Logger) *Manager {
 
 	dirs, err := ioutil.ReadDir(root)
 	if err != nil {
-		return mgr
+		return mgr, nil
 	}
 
 	for _, dir := range dirs {
@@ -85,11 +79,14 @@ func NewManager(root string, logger *zap.Logger) *Manager {
 			continue
 		}
 
-		space := newSpace(path, config)
+		space, err := newSpace(path, config)
+		if err != nil {
+			return nil, err
+		}
 		mgr.spaces[space.Name()] = space
 	}
 
-	return mgr
+	return mgr, nil
 }
 
 func (m *Manager) Create(name, dataPath string) (*api.SpacePostResponse, error) {
@@ -125,7 +122,11 @@ func (m *Manager) Create(name, dataPath string) (*api.SpacePostResponse, error) 
 		return nil, errors.New("created duplicate space name (this should not happen)")
 	}
 
-	m.spaces[name] = newSpace(path, c)
+	sp, err := newSpace(path, c)
+	if err != nil {
+		return nil, err
+	}
+	m.spaces[name] = sp
 	return &api.SpacePostResponse{
 		Name:    name,
 		DataDir: dataPath,
@@ -188,13 +189,17 @@ func (m *Manager) List() []api.SpaceInfo {
 	return result
 }
 
-func newSpace(path string, conf config) *Space {
+func newSpace(path string, conf config) (*Space, error) {
+	s, err := storage.OpenZng(path, conf.ZngStreamSize)
+	if err != nil {
+		return nil, err
+	}
 	return &Space{
+		Storage:    s,
 		path:       path,
 		conf:       conf,
-		index:      zngio.NewTimeIndex(),
 		cancelChan: make(chan struct{}, 0),
-	}
+	}, nil
 }
 
 // StartSpaceOp registers that an operation on this space is in progress.
@@ -236,7 +241,7 @@ func (s *Space) Name() string {
 }
 
 func (s *Space) Info() (api.SpaceInfo, error) {
-	logsize, err := s.LogSize()
+	logsize, err := s.Storage.Size()
 	if err != nil {
 		return api.SpaceInfo{}, err
 	}
@@ -244,19 +249,18 @@ func (s *Space) Info() (api.SpaceInfo, error) {
 	if err != nil {
 		return api.SpaceInfo{}, err
 	}
+	var span *nano.Span
+	sp := s.Storage.Span()
+	if sp.Dur > 0 {
+		span = &sp
+	}
 	spaceInfo := api.SpaceInfo{
 		Name:        s.Name(),
 		Size:        logsize,
+		Span:        span,
 		PcapSupport: s.PcapPath() != "",
 		PcapPath:    s.PcapPath(),
 		PcapSize:    pcapsize,
-	}
-	i, err := loadInfoFile(s.conf.DataPath)
-	if err == nil {
-		span := i.Span()
-		spaceInfo.Span = &span
-	} else if !errors.Is(err, os.ErrNotExist) {
-		return api.SpaceInfo{}, err
 	}
 	return spaceInfo, nil
 }
@@ -265,7 +269,7 @@ func (s *Space) Info() (api.SpaceInfo, error) {
 // the provided search request. If pcaps are not supported in this Space,
 // ErrPcapOpsNotSupported is returned.
 func (s *Space) PcapSearch(ctx context.Context, req api.PcapSearch) (*SearchReadCloser, error) {
-	if s.PcapPath() == "" || !s.HasFile(PcapIndexFile) {
+	if s.PcapPath() == "" || !s.hasFile(PcapIndexFile) {
 		return nil, ErrPcapOpsNotSupported
 	}
 	index, err := pcap.LoadIndex(s.DataPath(PcapIndexFile))
@@ -317,11 +321,6 @@ func (c *SearchReadCloser) Close() error {
 	return c.f.Close()
 }
 
-// LogSize returns the size in bytes of the logs in space.
-func (s *Space) LogSize() (int64, error) {
-	return sizeof(s.DataPath(AllZngFile))
-}
-
 // PcapSize returns the size in bytes of the packet capture in the space.
 func (s *Space) PcapSize() (int64, error) {
 	return sizeof(s.PcapPath())
@@ -342,35 +341,7 @@ func (s *Space) DataPath(elem ...string) string {
 	return filepath.Join(append([]string{s.conf.DataPath}, elem...)...)
 }
 
-func (s *Space) OpenZng(span nano.Span) (zbuf.ReadCloser, error) {
-	zctx := resolver.NewContext()
-
-	f, err := fs.Open(s.DataPath(AllZngFile))
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return nil, err
-		}
-
-		// Couldn't read all.zng, check for an old space with all.bzng
-		bzngFile := strings.TrimSuffix(AllZngFile, filepath.Ext(AllZngFile)) + ".bzng"
-		f, err = fs.Open(s.DataPath(bzngFile))
-		if err != nil {
-			if !os.IsNotExist(err) {
-				return nil, err
-			}
-			r := zngio.NewReader(strings.NewReader(""), zctx)
-			return zbuf.NopReadCloser(r), nil
-		}
-	}
-
-	return s.index.NewReader(f, zctx, span)
-}
-
-func (s *Space) CreateFile(file string) (*os.File, error) {
-	return fs.Create(s.DataPath(file))
-}
-
-func (s *Space) HasFile(file string) bool {
+func (s *Space) hasFile(file string) bool {
 	info, err := os.Stat(s.DataPath(file))
 	if err != nil {
 		return false
@@ -422,45 +393,6 @@ type config struct {
 	ZngStreamSize int    `json:"zng_stream_size"`
 }
 
-type info struct {
-	MinTime nano.Ts `json:"min_time"`
-	MaxTime nano.Ts `json:"max_time"`
-}
-
-func (i info) Span() nano.Span {
-	return nano.NewSpanTs(i.MinTime, i.MaxTime)
-}
-
-// UnsetSpan nils out the cached time span value for the space.
-func (s *Space) UnsetSpan() error {
-	return os.Remove(s.DataPath(infoFile))
-}
-
-func (s *Space) SetSpan(span nano.Span) error {
-	cur, err := loadInfoFile(s.conf.DataPath)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return err
-		}
-		cur = info{nano.MaxTs, nano.MinTs}
-	}
-	cur.MinTime = span.Ts
-	cur.MaxTime = span.End()
-	return cur.save(s.conf.DataPath)
-}
-
-func (s *Space) Span() (*nano.Span, error) {
-	i, err := loadInfoFile(s.conf.DataPath)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return nil, err
-		}
-		return nil, nil
-	}
-	span := i.Span()
-	return &span, nil
-}
-
 // loadConfig loads the contents of config.json in a space's path.
 func loadConfig(spacePath string) (config, error) {
 	var c config
@@ -482,37 +414,6 @@ func (c config) save(spacePath string) error {
 		return err
 	}
 	if err := json.NewEncoder(f).Encode(c); err != nil {
-		f.Close()
-		os.Remove(tmppath)
-		return err
-	}
-	if err = f.Close(); err != nil {
-		os.Remove(tmppath)
-		return err
-	}
-	return os.Rename(tmppath, path)
-}
-
-func loadInfoFile(path string) (info, error) {
-	var i info
-	b, err := ioutil.ReadFile(filepath.Join(path, infoFile))
-	if err != nil {
-		return info{}, err
-	}
-	if err := json.Unmarshal(b, &i); err != nil {
-		return i, err
-	}
-	return i, nil
-}
-
-func (i info) save(path string) error {
-	path = filepath.Join(path, infoFile)
-	tmppath := path + ".tmp"
-	f, err := fs.Create(tmppath)
-	if err != nil {
-		return err
-	}
-	if err := json.NewEncoder(f).Encode(i); err != nil {
 		f.Close()
 		os.Remove(tmppath)
 		return err

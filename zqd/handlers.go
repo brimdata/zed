@@ -240,7 +240,7 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	proc, err := ingest.Pcap(ctx, s, req.Path, c.ZeekLauncher)
+	op, err := ingest.NewPcapOp(ctx, s, req.Path, c.ZeekLauncher)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -259,24 +259,21 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	for {
 		var done bool
 		select {
-		case <-proc.Done():
+		case <-op.Done():
 			done = true
-		case <-proc.Snap():
+		case <-op.Snap():
 		case <-ticker.C:
 		}
 
-		var span *nano.Span
-		if span, err = s.Span(); err != nil {
-			break
-		}
+		span := s.Storage.Span()
 		status := api.PcapPostStatus{
 			Type:          "PcapPostStatus",
-			StartTime:     proc.StartTime,
+			StartTime:     op.StartTime,
 			UpdateTime:    nano.Now(),
-			PcapSize:      proc.PcapSize,
-			PcapReadSize:  proc.PcapReadSize(),
-			SnapshotCount: proc.SnapshotCount(),
-			Span:          span,
+			PcapSize:      op.PcapSize,
+			PcapReadSize:  op.PcapReadSize(),
+			SnapshotCount: op.SnapshotCount(),
+			Span:          &span,
 		}
 		if err := pipe.Send(status); err != nil {
 			logger.Warn("Error sending payload", zap.Error(err))
@@ -287,7 +284,7 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	taskEnd := api.TaskEnd{Type: "TaskEnd", TaskID: taskID}
-	if err := proc.Err(); err != nil {
+	if err := op.Err(); err != nil {
 		var ok bool
 		taskEnd.Error, ok = err.(*api.Error)
 		if !ok {
@@ -305,7 +302,6 @@ func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	if s == nil {
 		return
 	}
-
 	ctx, cancel, err := s.StartSpaceOp(r.Context())
 	if err != nil {
 		respondError(c, w, r, err)
@@ -321,13 +317,65 @@ func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		respondError(c, w, r, zqe.E(zqe.Invalid, "empty paths"))
 		return
 	}
+	op, err := ingest.NewLogOp(ctx, s.Storage, req)
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
 	w.Header().Set("Content-Type", "application/ndjson")
 	w.WriteHeader(http.StatusAccepted)
 
+	logger := c.requestLogger(r)
 	pipe := api.NewJSONPipe(w)
-	err = ingest.Logs(ctx, pipe, s, req)
-	if err != nil {
-		c.requestLogger(r).Warn("Error during log ingest", zap.Error(err))
+	if err := pipe.SendStart(0); err != nil {
+		logger.Warn("error sending payload", zap.Error(err))
+		return
+	}
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case warning := <-op.Warning():
+			err := pipe.Send(api.LogPostWarning{
+				Type:    "LogPostWarning",
+				Warning: warning,
+			})
+			if err != nil {
+				logger.Warn("error sending payload", zap.Error(err))
+				return
+			}
+		case <-op.Done():
+			// drain warnings
+			for _, warning := range op.DrainWarnings() {
+				err := pipe.Send(api.LogPostWarning{
+					Type:    "LogPostWarning",
+					Warning: warning,
+				})
+				if err != nil {
+					logger.Warn("error sending payload", zap.Error(err))
+					return
+				}
+			}
+			// send final status
+			err := pipe.Send(op.Status())
+			if err != nil {
+				logger.Warn("error sending payload", zap.Error(err))
+				return
+			}
+			err = pipe.SendEnd(0, op.Error())
+			if err != nil {
+				logger.Warn("error sending payload", zap.Error(err))
+				return
+			}
+			return
+		case <-ticker.C:
+			status := op.Status()
+			err := pipe.Send(status)
+			if err != nil {
+				logger.Warn("error sending payload", zap.Error(err))
+				return
+			}
+		}
 	}
 }
 
