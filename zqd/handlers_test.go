@@ -572,7 +572,7 @@ func TestPostNDJSONLogWarning(t *testing.T) {
 
 	payloads := postSpaceLogs(t, client, spaceName, &tc, src1, src2)
 	warnings := payloads.LogPostWarnings()
-	assert.Regexp(t, ": line 1: descriptor not found$", warnings[0].Warning)
+	assert.Regexp(t, ": line 1: descriptor not found", warnings[0].Warning)
 	assert.Regexp(t, ": line 2: incomplete descriptor", warnings[1].Warning)
 
 	status := payloads[len(payloads)-2].(*api.LogPostStatus)

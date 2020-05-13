@@ -165,7 +165,7 @@ func (p *PcapOp) indexPcap() error {
 	if err = p.space.Storage.UnsetSpan(); err != nil {
 		return err
 	}
-	if err = p.space.Storage.SetSpan(span); err != nil {
+	if err = p.space.Storage.UnionSpan(span); err != nil {
 		return err
 	}
 	return os.Rename(tmppath, idxpath)
