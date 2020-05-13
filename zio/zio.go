@@ -14,7 +14,7 @@ type ReaderFlags struct {
 }
 
 func (f *ReaderFlags) SetFlags(fs *flag.FlagSet) {
-	fs.StringVar(&f.Format, "i", "auto", "format of input data [auto,zng,ndjson,zeek,zjson,tzng]")
+	fs.StringVar(&f.Format, "i", "auto", "format of input data [auto,zng,ndjson,zeek,zjson,tzng,parquet]")
 }
 
 // WriterFlags has the union of the flags accepted by all the different
