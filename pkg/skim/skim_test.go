@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/pkg/skim"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -70,4 +71,15 @@ func TestSkimNoNewLine(t *testing.T) {
 		t.Fatal(err)
 	}
 	require.Equal(t, []byte(nil), line)
+}
+
+func TestSkimCarriageReturn(t *testing.T) {
+	data := []byte("line1\n\r\nline2\r\n\r\n\rline3\rline3\nline4\r")
+	buf := make([]byte, ReadSize)
+	scanner := skim.NewScanner(bytes.NewReader(data), buf, MaxLineSize)
+	for _, s := range []string{"line1\n", "line2\n", "\rline3\rline3\n", "line4\r"} {
+		line, err := scanner.ScanLine()
+		require.NoError(t, err)
+		assert.Equal(t, s, string(line))
+	}
 }
