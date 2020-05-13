@@ -3,11 +3,13 @@ package expr_test
 import (
 	"errors"
 	"fmt"
+	"net"
 	"strings"
 	"testing"
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -108,6 +110,12 @@ func zfloat64(f float64) zng.Value {
 
 func zstring(s string) zng.Value {
 	return zng.Value{zng.TypeString, zng.EncodeString(s)}
+}
+
+func zngip(t *testing.T, s string) zng.Value {
+	ip := net.ParseIP(s)
+	require.NotNil(t, ip, "converted ip")
+	return zng.Value{zng.TypeIP, zng.EncodeIP(ip)}
 }
 
 func TestPrimitives(t *testing.T) {
@@ -622,4 +630,61 @@ func TestConditional(t *testing.T) {
 	// (field y doesn't exist but it shouldn't be evaluated)
 	testSuccessful(t, "x = 0 ? y : x", record, zint64(1))
 	testSuccessful(t, "x != 0 ? x : y", record, zint64(1))
+}
+
+func TestCasts(t *testing.T) {
+	record, err := parseOneRecord(`
+#0:record[x:int64]
+0:[1;]`)
+	require.NoError(t, err)
+
+	// Test casts to byte
+	testSuccessful(t, "10 :byte", record, zng.Value{zng.TypeByte, zng.EncodeByte(10)})
+	testError(t, "-1 :byte", record, expr.ErrBadCast, "out of range cast to byte")
+	testError(t, "300 :byte", record, expr.ErrBadCast, "out of range cast to byte")
+	testError(t, `"foo" :byte"`, record, expr.ErrBadCast, "cannot cast incompatible type to byte")
+
+	// Test casts to int16
+	testSuccessful(t, "10 :int16", record, zng.Value{zng.TypeInt16, zng.EncodeInt(10)})
+	testError(t, "-33000 :int16", record, expr.ErrBadCast, "out of range cast to int16")
+	testError(t, "33000 :int16", record, expr.ErrBadCast, "out of range cast to int16")
+	testError(t, `"foo" :int16"`, record, expr.ErrBadCast, "cannot cast incompatible type to int16")
+
+	// Test casts to uint16
+	testSuccessful(t, "10 :uint16", record, zng.Value{zng.TypeUint16, zng.EncodeUint(10)})
+	testError(t, "-1 :uint16", record, expr.ErrBadCast, "out of range cast to uint16")
+	testError(t, "66000 :uint16", record, expr.ErrBadCast, "out of range cast to uint16")
+	testError(t, `"foo" :uint16"`, record, expr.ErrBadCast, "cannot cast incompatible type to uint16")
+
+	// Test casts to int32
+	testSuccessful(t, "10 :int32", record, zng.Value{zng.TypeInt32, zng.EncodeInt(10)})
+	testError(t, "-2200000000 :int32", record, expr.ErrBadCast, "out of range cast to int32")
+	testError(t, "2200000000 :int32", record, expr.ErrBadCast, "out of range cast to int32")
+	testError(t, `"foo" :int32"`, record, expr.ErrBadCast, "cannot cast incompatible type to int32")
+
+	// Test casts to uint32
+	testSuccessful(t, "10 :uint32", record, zng.Value{zng.TypeUint32, zng.EncodeUint(10)})
+	testError(t, "-1 :uint32", record, expr.ErrBadCast, "out of range cast to uint32")
+	testError(t, "4300000000 :byte", record, expr.ErrBadCast, "out of range cast to uint32")
+	testError(t, `"foo" :uint32"`, record, expr.ErrBadCast, "cannot cast incompatible type to uint32")
+
+	// Test casts to uint64
+	testSuccessful(t, "10 :uint64", record, zuint64(10))
+	testError(t, "-1 :uint64", record, expr.ErrBadCast, "out of range cast to uint64")
+	testError(t, `"foo" :uint64"`, record, expr.ErrBadCast, "cannot cast incompatible type to uint64")
+
+	// Test casts to float64
+	testSuccessful(t, "10 :float64", record, zfloat64(10))
+	testError(t, `"foo" :float64"`, record, expr.ErrBadCast, "cannot cast incompatible type to float64")
+
+	// Test casts to ip
+	testSuccessful(t, `"1.2.3.4" :ip`, record, zngip(t, "1.2.3.4"))
+	testError(t, "1234 :ip", record, expr.ErrBadCast, "cast of invalid ip address fails")
+	testError(t, `"not an address" :ip`, record, expr.ErrBadCast, "cast of invalid ip address fails")
+
+	// Test casts to time
+	ts := zng.Value{zng.TypeTime, zng.EncodeTime(nano.Ts(1589126400_000_000_000))}
+	testSuccessful(t, "1589126400.0 :time", record, ts)
+	testSuccessful(t, "1589126400000000000 :time", record, ts)
+	testError(t, `"1234" :time`, record, expr.ErrBadCast, "cannot cast string to time")
 }
