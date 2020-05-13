@@ -34,12 +34,12 @@ func NewTypeIndexer(path string, refType zng.Type) *TypeIndexer {
 }
 
 func (t *TypeIndexer) Write(rec *zng.Record) error {
-	return rec.Walk(func(typ zng.Type, body zcode.Bytes) (bool, error) {
+	return rec.Walk(func(typ zng.Type, body zcode.Bytes) error {
 		if typ == t.Type {
 			t.enter(body)
-			return false, nil
+			return zng.SkipContainer
 		}
-		return true, nil
+		return nil
 	})
 }
 

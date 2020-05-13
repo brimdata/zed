@@ -158,13 +158,14 @@ func (r *Record) Walk(rv RecordVisitor) error {
 // with this value's descriptor.  It does not check that the actual leaf
 // values when parsed are type compatible with the leaf types.
 func (r *Record) TypeCheck() error {
-	return r.Walk(func(typ Type, body zcode.Bytes) (bool, error) {
+	return r.Walk(func(typ Type, body zcode.Bytes) error {
 		if typset, ok := typ.(*TypeSet); ok {
 			if err := checkSet(typset, body); err != nil {
-				return false, err
+				return err
 			}
+			return SkipContainer
 		}
-		return true, nil
+		return nil
 	})
 }
 
