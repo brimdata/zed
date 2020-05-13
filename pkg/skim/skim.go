@@ -27,7 +27,7 @@ type Scanner struct {
 	window []byte
 }
 
-// we handle only newline-terminated lines
+// We handle lines terminated either by "\n" or by "\r\n".
 const token = byte('\n')
 
 func NewScanner(r io.Reader, buffer []byte, limit int) *Scanner {
@@ -118,9 +118,20 @@ func (s *Scanner) Peek() byte {
 	return s.window[0]
 }
 
+// normalizeLineEnding replaces a terminal "\r\n" sequence in buf with
+// a newline.
+func normalizeLineEnding(buf []byte) []byte {
+	if bytes.HasSuffix(buf, []byte("\r\n")) {
+		buf = buf[:len(buf)-1]
+		buf[len(buf)-1] = '\n'
+	}
+	return buf
+}
+
 // Scan returns the next line of input as a byte slice or nil and an
-// error indicating the state of things.  The newline terminating the
-// line is returned in the slice, except in the case of a final line
+// error indicating the state of things.  A terminal "\r\n" sequence
+// is first replaced with a newline, and then the terminal newline
+// is returned in the slice, except in the case of a final line
 // without a newline.  When a line is encountered that is larger than
 // the max line size, then the partial line is returned along with
 // ErrLineTooLong.  In this case, Scan can be subsequently called for
@@ -146,7 +157,7 @@ func (s *Scanner) Scan() ([]byte, error) {
 			} else {
 				s.window = s.window[off:]
 			}
-			return result, nil
+			return normalizeLineEnding(result), nil
 		}
 		// we didn't find a line.
 		// if the buffer is full, it means it's too small to
@@ -170,7 +181,7 @@ func (s *Scanner) Scan() ([]byte, error) {
 			if err == io.EOF && len(s.window) > 0 {
 				result := s.window
 				s.window = nil
-				return result, nil
+				return normalizeLineEnding(result), nil
 			}
 			return nil, err
 		}
