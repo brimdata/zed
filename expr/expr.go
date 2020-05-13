@@ -87,9 +87,6 @@ func compileNative(node ast.Expression) (NativeEvaluator, error) {
 	case *ast.UnaryExpression:
 		return compileUnary(*n)
 
-	case *ast.CastExpression:
-		return compileCast(*n)
-
 	case *ast.BinaryExpression:
 		lhsFunc, err := compileNative(n.LHS)
 		if err != nil {
@@ -126,6 +123,9 @@ func compileNative(node ast.Expression) (NativeEvaluator, error) {
 	case *ast.FunctionCall:
 		return compileFunctionCall(*n)
 
+	case *ast.CastExpression:
+		return compileCast(*n)
+
 	default:
 		return nil, fmt.Errorf("invalid expression type %T", node)
 	}
@@ -149,144 +149,6 @@ func compileUnary(node ast.UnaryExpression) (NativeEvaluator, error) {
 		}
 		return zngnative.Value{zng.TypeBool, !(val.Value.(bool))}, nil
 	}, nil
-}
-
-func compileCast(node ast.CastExpression) (NativeEvaluator, error) {
-	fn, err := compileNative(node.Expr)
-	if err != nil {
-		return nil, err
-	}
-
-	switch node.Type {
-	case "int16":
-		return func(rec *zng.Record) (zngnative.Value, error) {
-			val, err := fn(rec)
-			if err != nil {
-				return zngnative.Value{}, err
-			}
-			i, ok := zngnative.CoerceNativeToInt(val)
-			if !ok || i < math.MinInt16 || i > math.MaxInt16 {
-				return zngnative.Value{}, ErrBadCast
-			}
-			return zngnative.Value{zng.TypeInt16, i}, nil
-		}, nil
-	case "int32":
-		return func(rec *zng.Record) (zngnative.Value, error) {
-			val, err := fn(rec)
-			if err != nil {
-				return zngnative.Value{}, err
-			}
-			i, ok := zngnative.CoerceNativeToInt(val)
-			if !ok || i < math.MinInt32 || i > math.MaxInt32 {
-				return zngnative.Value{}, ErrBadCast
-			}
-			return zngnative.Value{zng.TypeInt32, i}, nil
-		}, nil
-	case "int64":
-		return func(rec *zng.Record) (zngnative.Value, error) {
-			val, err := fn(rec)
-			if err != nil {
-				return zngnative.Value{}, err
-			}
-			i, ok := zngnative.CoerceNativeToInt(val)
-			if !ok {
-				return zngnative.Value{}, ErrBadCast
-			}
-			return zngnative.Value{zng.TypeInt64, i}, nil
-		}, nil
-	case "byte":
-		return func(rec *zng.Record) (zngnative.Value, error) {
-			val, err := fn(rec)
-			if err != nil {
-				return zngnative.Value{}, err
-			}
-			i, ok := zngnative.CoerceNativeToUint(val)
-			if !ok || i > math.MaxUint8 {
-				return zngnative.Value{}, ErrBadCast
-			}
-			return zngnative.Value{zng.TypeByte, i}, nil
-		}, nil
-	case "uint16":
-		return func(rec *zng.Record) (zngnative.Value, error) {
-			val, err := fn(rec)
-			if err != nil {
-				return zngnative.Value{}, err
-			}
-			i, ok := zngnative.CoerceNativeToUint(val)
-			if !ok || i > math.MaxUint16 {
-				return zngnative.Value{}, ErrBadCast
-			}
-			return zngnative.Value{zng.TypeUint16, i}, nil
-		}, nil
-	case "uint32":
-		return func(rec *zng.Record) (zngnative.Value, error) {
-			val, err := fn(rec)
-			if err != nil {
-				return zngnative.Value{}, err
-			}
-			i, ok := zngnative.CoerceNativeToUint(val)
-			if !ok || i > math.MaxUint32 {
-				return zngnative.Value{}, ErrBadCast
-			}
-			return zngnative.Value{zng.TypeUint32, i}, nil
-		}, nil
-	case "uint64":
-		return func(rec *zng.Record) (zngnative.Value, error) {
-			val, err := fn(rec)
-			if err != nil {
-				return zngnative.Value{}, err
-			}
-			i, ok := zngnative.CoerceNativeToUint(val)
-			if !ok {
-				return zngnative.Value{}, ErrBadCast
-			}
-			return zngnative.Value{zng.TypeUint64, i}, nil
-		}, nil
-	case "float64":
-		return func(rec *zng.Record) (zngnative.Value, error) {
-			val, err := fn(rec)
-			if err != nil {
-				return zngnative.Value{}, err
-			}
-			f, ok := zngnative.CoerceNativeToFloat64(val)
-			if !ok {
-				return zngnative.Value{}, ErrBadCast
-			}
-			return zngnative.Value{zng.TypeFloat64, f}, nil
-		}, nil
-	case "ip":
-		return func(rec *zng.Record) (zngnative.Value, error) {
-			val, err := fn(rec)
-			if err != nil {
-				return zngnative.Value{}, err
-			}
-			if val.Type.ID() != zng.IdString && val.Type.ID() != zng.IdBstring {
-				return zngnative.Value{}, ErrBadCast
-			}
-			ip := net.ParseIP(val.Value.(string))
-			if ip == nil {
-				return zngnative.Value{}, ErrBadCast
-			}
-			return zngnative.Value{zng.TypeIP, ip}, nil
-		}, nil
-	case "time":
-		return func(rec *zng.Record) (zngnative.Value, error) {
-			val, err := fn(rec)
-			if err != nil {
-				return zngnative.Value{}, err
-			}
-			if val.Type.ID() == zng.IdFloat64 {
-				return zngnative.Value{zng.TypeTime, int64(nano.FloatToTs(val.Value.(float64)))}, nil
-			}
-			i, ok := zngnative.CoerceNativeToInt(val)
-			if !ok {
-				return zngnative.Value{}, ErrBadCast
-			}
-			return zngnative.Value{zng.TypeTime, i}, nil
-		}, nil
-	default:
-		return nil, fmt.Errorf("cast to %s not implemeneted", node.Type)
-	}
 }
 
 func compileLogical(lhsFunc, rhsFunc NativeEvaluator, operator string) (NativeEvaluator, error) {
@@ -975,6 +837,36 @@ func compileArrayIndex(lhsFunc, rhsFunc NativeEvaluator, operator string) (Nativ
 	}, nil
 }
 
+func compileConditional(node ast.ConditionalExpression) (NativeEvaluator, error) {
+	conditionFunc, err := compileNative(node.Condition)
+	if err != nil {
+		return nil, err
+	}
+	thenFunc, err := compileNative(node.Then)
+	if err != nil {
+		return nil, err
+	}
+	elseFunc, err := compileNative(node.Else)
+	if err != nil {
+		return nil, err
+	}
+
+	return func(r *zng.Record) (zngnative.Value, error) {
+		condition, err := conditionFunc(r)
+		if err != nil {
+			return zngnative.Value{}, err
+		}
+		if condition.Type.ID() != zng.IdBool {
+			return zngnative.Value{}, ErrIncompatibleTypes
+		}
+		if condition.Value.(bool) {
+			return thenFunc(r)
+		} else {
+			return elseFunc(r)
+		}
+	}, nil
+}
+
 func compileFieldReference(lhsFunc, rhsFunc NativeEvaluator, operator string) (NativeEvaluator, error) {
 	return func(rec *zng.Record) (zngnative.Value, error) {
 		lhs, err := lhsFunc(rec)
@@ -1047,32 +939,140 @@ func compileFunctionCall(node ast.FunctionCall) (NativeEvaluator, error) {
 	}, nil
 }
 
-func compileConditional(node ast.ConditionalExpression) (NativeEvaluator, error) {
-	conditionFunc, err := compileNative(node.Condition)
-	if err != nil {
-		return nil, err
-	}
-	thenFunc, err := compileNative(node.Then)
-	if err != nil {
-		return nil, err
-	}
-	elseFunc, err := compileNative(node.Else)
+func compileCast(node ast.CastExpression) (NativeEvaluator, error) {
+	fn, err := compileNative(node.Expr)
 	if err != nil {
 		return nil, err
 	}
 
-	return func(r *zng.Record) (zngnative.Value, error) {
-		condition, err := conditionFunc(r)
-		if err != nil {
-			return zngnative.Value{}, err
-		}
-		if condition.Type.ID() != zng.IdBool {
-			return zngnative.Value{}, ErrIncompatibleTypes
-		}
-		if condition.Value.(bool) {
-			return thenFunc(r)
-		} else {
-			return elseFunc(r)
-		}
-	}, nil
+	switch node.Type {
+	case "int16":
+		return func(rec *zng.Record) (zngnative.Value, error) {
+			val, err := fn(rec)
+			if err != nil {
+				return zngnative.Value{}, err
+			}
+			i, ok := zngnative.CoerceNativeToInt(val)
+			if !ok || i < math.MinInt16 || i > math.MaxInt16 {
+				return zngnative.Value{}, ErrBadCast
+			}
+			return zngnative.Value{zng.TypeInt16, i}, nil
+		}, nil
+	case "int32":
+		return func(rec *zng.Record) (zngnative.Value, error) {
+			val, err := fn(rec)
+			if err != nil {
+				return zngnative.Value{}, err
+			}
+			i, ok := zngnative.CoerceNativeToInt(val)
+			if !ok || i < math.MinInt32 || i > math.MaxInt32 {
+				return zngnative.Value{}, ErrBadCast
+			}
+			return zngnative.Value{zng.TypeInt32, i}, nil
+		}, nil
+	case "int64":
+		return func(rec *zng.Record) (zngnative.Value, error) {
+			val, err := fn(rec)
+			if err != nil {
+				return zngnative.Value{}, err
+			}
+			i, ok := zngnative.CoerceNativeToInt(val)
+			if !ok {
+				return zngnative.Value{}, ErrBadCast
+			}
+			return zngnative.Value{zng.TypeInt64, i}, nil
+		}, nil
+	case "byte":
+		return func(rec *zng.Record) (zngnative.Value, error) {
+			val, err := fn(rec)
+			if err != nil {
+				return zngnative.Value{}, err
+			}
+			i, ok := zngnative.CoerceNativeToUint(val)
+			if !ok || i > math.MaxUint8 {
+				return zngnative.Value{}, ErrBadCast
+			}
+			return zngnative.Value{zng.TypeByte, i}, nil
+		}, nil
+	case "uint16":
+		return func(rec *zng.Record) (zngnative.Value, error) {
+			val, err := fn(rec)
+			if err != nil {
+				return zngnative.Value{}, err
+			}
+			i, ok := zngnative.CoerceNativeToUint(val)
+			if !ok || i > math.MaxUint16 {
+				return zngnative.Value{}, ErrBadCast
+			}
+			return zngnative.Value{zng.TypeUint16, i}, nil
+		}, nil
+	case "uint32":
+		return func(rec *zng.Record) (zngnative.Value, error) {
+			val, err := fn(rec)
+			if err != nil {
+				return zngnative.Value{}, err
+			}
+			i, ok := zngnative.CoerceNativeToUint(val)
+			if !ok || i > math.MaxUint32 {
+				return zngnative.Value{}, ErrBadCast
+			}
+			return zngnative.Value{zng.TypeUint32, i}, nil
+		}, nil
+	case "uint64":
+		return func(rec *zng.Record) (zngnative.Value, error) {
+			val, err := fn(rec)
+			if err != nil {
+				return zngnative.Value{}, err
+			}
+			i, ok := zngnative.CoerceNativeToUint(val)
+			if !ok {
+				return zngnative.Value{}, ErrBadCast
+			}
+			return zngnative.Value{zng.TypeUint64, i}, nil
+		}, nil
+	case "float64":
+		return func(rec *zng.Record) (zngnative.Value, error) {
+			val, err := fn(rec)
+			if err != nil {
+				return zngnative.Value{}, err
+			}
+			f, ok := zngnative.CoerceNativeToFloat64(val)
+			if !ok {
+				return zngnative.Value{}, ErrBadCast
+			}
+			return zngnative.Value{zng.TypeFloat64, f}, nil
+		}, nil
+	case "ip":
+		return func(rec *zng.Record) (zngnative.Value, error) {
+			val, err := fn(rec)
+			if err != nil {
+				return zngnative.Value{}, err
+			}
+			if val.Type.ID() != zng.IdString && val.Type.ID() != zng.IdBstring {
+				return zngnative.Value{}, ErrBadCast
+			}
+			ip := net.ParseIP(val.Value.(string))
+			if ip == nil {
+				return zngnative.Value{}, ErrBadCast
+			}
+			return zngnative.Value{zng.TypeIP, ip}, nil
+		}, nil
+	case "time":
+		return func(rec *zng.Record) (zngnative.Value, error) {
+			val, err := fn(rec)
+			if err != nil {
+				return zngnative.Value{}, err
+			}
+			if val.Type.ID() == zng.IdFloat64 {
+				return zngnative.Value{zng.TypeTime, int64(nano.FloatToTs(val.Value.(float64)))}, nil
+			}
+			i, ok := zngnative.CoerceNativeToInt(val)
+			if !ok {
+				return zngnative.Value{}, ErrBadCast
+			}
+			return zngnative.Value{zng.TypeTime, i}, nil
+		}, nil
+	default:
+		return nil, fmt.Errorf("cast to %s not implemeneted", node.Type)
+	}
 }

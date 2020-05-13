@@ -112,7 +112,7 @@ func zstring(s string) zng.Value {
 	return zng.Value{zng.TypeString, zng.EncodeString(s)}
 }
 
-func zngip(t *testing.T, s string) zng.Value {
+func zip(t *testing.T, s string) zng.Value {
 	ip := net.ParseIP(s)
 	require.NotNil(t, ip, "converted ip")
 	return zng.Value{zng.TypeIP, zng.EncodeIP(ip)}
@@ -678,7 +678,7 @@ func TestCasts(t *testing.T) {
 	testError(t, `"foo" :float64"`, record, expr.ErrBadCast, "cannot cast incompatible type to float64")
 
 	// Test casts to ip
-	testSuccessful(t, `"1.2.3.4" :ip`, record, zngip(t, "1.2.3.4"))
+	testSuccessful(t, `"1.2.3.4" :ip`, record, zip(t, "1.2.3.4"))
 	testError(t, "1234 :ip", record, expr.ErrBadCast, "cast of invalid ip address fails")
 	testError(t, `"not an address" :ip`, record, expr.ErrBadCast, "cast of invalid ip address fails")
 
