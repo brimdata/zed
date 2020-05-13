@@ -14,7 +14,7 @@ import (
 	"github.com/brimsec/zq/zqe"
 )
 
-func NewReader(r io.Reader, zctx *resolver.Context) (zbuf.Reader, error) {
+func NewReaderWithConfig(r io.Reader, zctx *resolver.Context, path string, cfg OpenConfig) (zbuf.Reader, error) {
 	recorder := NewRecorder(r)
 	track := NewTrack(recorder)
 
@@ -42,13 +42,13 @@ func NewReader(r io.Reader, zctx *resolver.Context) (zbuf.Reader, error) {
 	track.Reset()
 
 	// ndjson must come after zjson since zjson is a subset of ndjson
-	nr, err := ndjsonio.NewReader(track, resolver.NewContext())
+	nr, err := ndjsonio.NewReader(track, resolver.NewContext(), cfg.JSONTypeConfig, cfg.JSONPathRegex, path)
 	if err != nil {
 		return nil, err
 	}
 	ndjsonErr := match(nr, "ndjson")
 	if ndjsonErr == nil {
-		return ndjsonio.NewReader(recorder, zctx)
+		return ndjsonio.NewReader(recorder, zctx, cfg.JSONTypeConfig, cfg.JSONPathRegex, path)
 	}
 	track.Reset()
 
@@ -57,6 +57,10 @@ func NewReader(r io.Reader, zctx *resolver.Context) (zbuf.Reader, error) {
 		return zngio.NewReader(recorder, zctx), nil
 	}
 	return nil, joinErrs([]error{tzngErr, zeekErr, ndjsonErr, zjsonErr, zngErr})
+}
+
+func NewReader(r io.Reader, zctx *resolver.Context) (zbuf.Reader, error) {
+	return NewReaderWithConfig(r, zctx, "", OpenConfig{})
 }
 
 func joinErrs(errs []error) error {

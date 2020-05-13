@@ -5,7 +5,6 @@ import (
 	"io"
 	"net/url"
 	"os"
-	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -129,18 +128,12 @@ func OpenFromNamedReadCloser(zctx *resolver.Context, rc io.ReadCloser, path stri
 	r := GzipReader(rc)
 	var zr zbuf.Reader
 	if cfg.Format == "" || cfg.Format == "auto" {
-		zr, err = NewReader(r, zctx)
+		zr, err = NewReaderWithConfig(r, zctx, path, cfg)
 	} else {
-		zr, err = LookupReader(r, zctx, cfg.Format)
+		zr, err = lookupReader(r, zctx, path, cfg)
 	}
 	if err != nil {
 		return nil, err
-	}
-
-	if jr, ok := zr.(*ndjsonio.Reader); ok && cfg.JSONTypeConfig != nil {
-		if err = jsonConfig(cfg, jr, path); err != nil {
-			return nil, err
-		}
 	}
 
 	return zbuf.NewFile(zr, rc, path), nil
@@ -156,14 +149,4 @@ func OpenFiles(zctx *resolver.Context, paths ...string) (*zbuf.Combiner, error) 
 		readers = append(readers, reader)
 	}
 	return zbuf.NewCombiner(readers), nil
-}
-
-func jsonConfig(cfg OpenConfig, jr *ndjsonio.Reader, filename string) error {
-	var path string
-	re := regexp.MustCompile(cfg.JSONPathRegex)
-	match := re.FindStringSubmatch(filename)
-	if len(match) == 2 {
-		path = match[1]
-	}
-	return jr.ConfigureTypes(*cfg.JSONTypeConfig, path)
 }

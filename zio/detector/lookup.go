@@ -55,18 +55,18 @@ func LookupWriter(w io.WriteCloser, wflags *zio.WriterFlags) *zio.Writer {
 	}
 }
 
-func LookupReader(r io.Reader, zctx *resolver.Context, format string) (zbuf.Reader, error) {
-	switch format {
+func lookupReader(r io.Reader, zctx *resolver.Context, path string, cfg OpenConfig) (zbuf.Reader, error) {
+	switch cfg.Format {
 	case "tzng":
 		return tzngio.NewReader(r, zctx), nil
 	case "zeek":
 		return zeekio.NewReader(r, zctx)
 	case "ndjson":
-		return ndjsonio.NewReader(r, zctx)
+		return ndjsonio.NewReader(r, zctx, cfg.JSONTypeConfig, cfg.JSONPathRegex, path)
 	case "zjson":
 		return zjsonio.NewReader(r, zctx), nil
 	case "zng":
 		return zngio.NewReader(r, zctx), nil
 	}
-	return nil, fmt.Errorf("no such reader type: \"%s\"", format)
+	return nil, fmt.Errorf("no such reader type: \"%s\"", cfg.Format)
 }
