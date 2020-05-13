@@ -269,7 +269,21 @@ func compileCast(node ast.CastExpression) (NativeEvaluator, error) {
 			}
 			return zngnative.Value{zng.TypeIP, ip}, nil
 		}, nil
-
+	case "time":
+		return func(rec *zng.Record) (zngnative.Value, error) {
+			val, err := fn(rec)
+			if err != nil {
+				return zngnative.Value{}, err
+			}
+			if val.Type.ID() == zng.IdFloat64 {
+				return zngnative.Value{zng.TypeTime, int64(nano.FloatToTs(val.Value.(float64)))}, nil
+			}
+			i, ok := zngnative.CoerceNativeToInt(val)
+			if !ok {
+				return zngnative.Value{}, ErrBadCast
+			}
+			return zngnative.Value{zng.TypeTime, i}, nil
+		}, nil
 	default:
 		return nil, fmt.Errorf("cast to %s not implemeneted", node.Type)
 	}
