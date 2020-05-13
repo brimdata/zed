@@ -2,6 +2,7 @@ package zqd
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 	"sync/atomic"
@@ -76,8 +77,8 @@ func panicCatchMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 				if r == nil {
 					return
 				}
+				logger.DPanic("Panic", zap.String("error", fmt.Sprint(r)))
 				err := zqe.RecoverError(r)
-				logger.DPanic("panic", zap.Error(err))
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}()
 
