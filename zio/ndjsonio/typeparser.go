@@ -309,6 +309,48 @@ func parseSimpleType(value []byte, typ zng.Type) ([]byte, error) {
 			return nil, err
 		}
 		return zng.EncodeInt(int64(f * 1e9)), nil
+	case zng.TypeUint64:
+		f, err := strconv.ParseFloat(string(value), 10)
+		if err != nil {
+			return nil, err
+		}
+		return zng.EncodeUint(uint64(f)), nil
+	case zng.TypeInt64:
+		f, err := strconv.ParseFloat(string(value), 10)
+		if err != nil {
+			return nil, err
+		}
+		return zng.EncodeInt(int64(f)), nil
+	case zng.TypeUint32:
+		f, err := strconv.ParseFloat(string(value), 10)
+		if err != nil {
+			return nil, err
+		}
+		return zng.EncodeUint(uint64(uint32(f))), nil
+	case zng.TypeInt32:
+		f, err := strconv.ParseFloat(string(value), 10)
+		if err != nil {
+			return nil, err
+		}
+		return zng.EncodeInt(int64(int32(f))), nil
+	case zng.TypeUint16:
+		f, err := strconv.ParseFloat(string(value), 10)
+		if err != nil {
+			return nil, err
+		}
+		return zng.EncodeUint(uint64(uint16(f))), nil
+	case zng.TypeInt16:
+		f, err := strconv.ParseFloat(string(value), 10)
+		if err != nil {
+			return nil, err
+		}
+		return zng.EncodeInt(int64(int16(f))), nil
+	case zng.TypeByte:
+		f, err := strconv.ParseFloat(string(value), 10)
+		if err != nil {
+			return nil, err
+		}
+		return zng.EncodeUint(uint64(uint8(f))), nil
 	default:
 		b, err := typ.Parse(value)
 		if err != nil {
