@@ -50,7 +50,10 @@ func NewReader(reader io.Reader, zctx *resolver.Context, tc *TypeConfig, JSONPat
 	}
 	if tc != nil {
 		var path string
-		re := regexp.MustCompile(JSONPathRegex)
+		re, err := regexp.Compile(JSONPathRegex)
+		if err != nil {
+			return nil, err
+		}
 		match := re.FindStringSubmatch(filepath)
 		if len(match) == 2 {
 			path = match[1]
