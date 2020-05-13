@@ -33,6 +33,18 @@ func (p *JSONPipe) flush() {
 	flusher.Flush()
 }
 
+func (p *JSONPipe) SendStart(taskID int64) error {
+	return p.Send(TaskStart{Type: "TaskStart", TaskID: taskID})
+}
+
+func (p *JSONPipe) SendEnd(taskID int64, err error) error {
+	var apierr *Error
+	if err != nil {
+		apierr = &Error{Type: "Error", Message: err.Error()}
+	}
+	return p.SendFinal(TaskEnd{Type: "TaskEnd", TaskID: taskID, Error: apierr})
+}
+
 // Send encodes as JSON the payload and streams it as a message over the
 // underlying HTTP connection.  Returns an errorr and does not transmit the message
 // if the connection has already been set into an error state.
@@ -48,5 +60,6 @@ func (p *JSONPipe) Send(payload interface{}) error {
 }
 
 func (p *JSONPipe) SendFinal(payload interface{}) error {
+	defer p.flush()
 	return p.encoder.Encode(payload)
 }

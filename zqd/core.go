@@ -32,17 +32,21 @@ type Core struct {
 	logger       *zap.Logger
 }
 
-func NewCore(conf Config) *Core {
+func NewCore(conf Config) (*Core, error) {
 	logger := conf.Logger
 	if logger == nil {
 		logger = zap.NewNop()
 	}
+	spaces, err := space.NewManager(conf.Root, conf.Logger)
+	if err != nil {
+		return nil, err
+	}
 	return &Core{
 		Root:         conf.Root,
 		ZeekLauncher: conf.ZeekLauncher,
-		spaces:       space.NewManager(conf.Root, conf.Logger),
+		spaces:       spaces,
 		logger:       logger,
-	}
+	}, nil
 }
 
 func (c *Core) HasZeek() bool {

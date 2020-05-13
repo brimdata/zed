@@ -50,7 +50,7 @@ func NewSearch(ctx context.Context, s *space.Space, req api.SearchRequest) (*Sea
 		return nil, err
 	}
 
-	zngReader, err := s.OpenZng(query.Span)
+	zngReader, err := s.Storage.Open(query.Span)
 	if err != nil {
 		return nil, err
 	}
