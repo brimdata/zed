@@ -90,50 +90,40 @@ func TestMinMax(t *testing.T) {
 }
 
 func TestCeilFloorRound(t *testing.T) {
-	record, err := parseOneRecord(`
-#0:record[u:uint64]
-0:[50;]`)
-	require.NoError(t, err)
+	testSuccessful(t, "Math.ceil(1.5)", nil, zfloat64(2))
+	testSuccessful(t, "Math.floor(1.5)", nil, zfloat64(1))
+	testSuccessful(t, "Math.round(1.5)", nil, zfloat64(2))
 
-	testSuccessful(t, "Math.ceil(1.5)", record, zfloat64(2))
-	testSuccessful(t, "Math.floor(1.5)", record, zfloat64(1))
-	testSuccessful(t, "Math.round(1.5)", record, zfloat64(2))
+	testSuccessful(t, "Math.ceil(5)", nil, zint64(5))
+	testSuccessful(t, "Math.floor(5)", nil, zint64(5))
+	testSuccessful(t, "Math.round(5)", nil, zint64(5))
 
-	testSuccessful(t, "Math.ceil(5)", record, zint64(5))
-	testSuccessful(t, "Math.floor(5)", record, zint64(5))
-	testSuccessful(t, "Math.round(5)", record, zint64(5))
-
-	testError(t, "Math.ceil()", record, expr.ErrTooFewArgs, "ceil() with no args")
-	testError(t, "Math.ceil(1, 2)", record, expr.ErrTooManyArgs, "ceil() with too many args")
-	testError(t, "Math.floor()", record, expr.ErrTooFewArgs, "floor() with no args")
-	testError(t, "Math.floor(1, 2)", record, expr.ErrTooManyArgs, "floor() with too many args")
-	testError(t, "Math.round()", record, expr.ErrTooFewArgs, "round() with no args")
-	testError(t, "Math.round(1, 2)", record, expr.ErrTooManyArgs, "round() with too many args")
+	testError(t, "Math.ceil()", nil, expr.ErrTooFewArgs, "ceil() with no args")
+	testError(t, "Math.ceil(1, 2)", nil, expr.ErrTooManyArgs, "ceil() with too many args")
+	testError(t, "Math.floor()", nil, expr.ErrTooFewArgs, "floor() with no args")
+	testError(t, "Math.floor(1, 2)", nil, expr.ErrTooManyArgs, "floor() with too many args")
+	testError(t, "Math.round()", nil, expr.ErrTooFewArgs, "round() with no args")
+	testError(t, "Math.round(1, 2)", nil, expr.ErrTooManyArgs, "round() with too many args")
 }
 
 func TestLogPow(t *testing.T) {
-	record, err := parseOneRecord(`
-#0:record[u:uint64]
-0:[50;]`)
-	require.NoError(t, err)
-
 	// Math.log() computes natural logarithm.  Rather than writing
 	// out long floating point numbers in the parameters or results,
 	// use more complex expressions that evaluate to simpler values.
-	testSuccessful(t, "Math.log(32) / Math.log(2)", record, zfloat64(5))
-	testSuccessful(t, "Math.log(32.0) / Math.log(2.0)", record, zfloat64(5))
+	testSuccessful(t, "Math.log(32) / Math.log(2)", nil, zfloat64(5))
+	testSuccessful(t, "Math.log(32.0) / Math.log(2.0)", nil, zfloat64(5))
 
-	testSuccessful(t, "Math.pow(10, 2)", record, zfloat64(100))
-	testSuccessful(t, "Math.pow(4.0, 1.5)", record, zfloat64(8))
+	testSuccessful(t, "Math.pow(10, 2)", nil, zfloat64(100))
+	testSuccessful(t, "Math.pow(4.0, 1.5)", nil, zfloat64(8))
 
-	testError(t, "Math.log()", record, expr.ErrTooFewArgs, "log() with no args")
-	testError(t, "Math.log(2, 3)", record, expr.ErrTooManyArgs, "log() with too many args")
-	testError(t, "Math.log(0)", record, expr.ErrBadArgument, "log() of 0")
-	testError(t, "Math.log(-1)", record, expr.ErrBadArgument, "log() of negative number")
+	testError(t, "Math.log()", nil, expr.ErrTooFewArgs, "log() with no args")
+	testError(t, "Math.log(2, 3)", nil, expr.ErrTooManyArgs, "log() with too many args")
+	testError(t, "Math.log(0)", nil, expr.ErrBadArgument, "log() of 0")
+	testError(t, "Math.log(-1)", nil, expr.ErrBadArgument, "log() of negative number")
 
-	testError(t, "Math.pow()", record, expr.ErrTooFewArgs, "pow() with no args")
-	testError(t, "Math.pow(2, 3, r)", record, expr.ErrTooManyArgs, "pow() with too many args")
-	testError(t, "Math.pow(-1, 0.5)", record, expr.ErrBadArgument, "pow() with invalid arguments")
+	testError(t, "Math.pow()", nil, expr.ErrTooFewArgs, "pow() with no args")
+	testError(t, "Math.pow(2, 3, r)", nil, expr.ErrTooManyArgs, "pow() with too many args")
+	testError(t, "Math.pow(-1, 0.5)", nil, expr.ErrBadArgument, "pow() with invalid arguments")
 }
 
 func TestMod(t *testing.T) {
@@ -153,72 +143,57 @@ func TestMod(t *testing.T) {
 }
 
 func TestStrFormat(t *testing.T) {
-	record, err := parseOneRecord(`
-#0:record[u:uint64]
-0:[5;]`)
-	require.NoError(t, err)
+	testSuccessful(t, "String.formatFloat(1.2)", nil, zstring("1.2"))
+	testError(t, "String.formatFloat()", nil, expr.ErrTooFewArgs, "formatFloat() with no args")
+	testError(t, "String.formatFloat(1.2, 3.4)", nil, expr.ErrTooManyArgs, "formatFloat() with too many args")
+	testError(t, "String.formatFloat(1)", nil, expr.ErrBadArgument, "formatFloat() with non-float arg")
 
-	testSuccessful(t, "String.formatFloat(1.2)", record, zstring("1.2"))
-	testError(t, "String.formatFloat()", record, expr.ErrTooFewArgs, "formatFloat() with no args")
-	testError(t, "String.formatFloat(1.2, 3.4)", record, expr.ErrTooManyArgs, "formatFloat() with too many args")
-	testError(t, "String.formatFloat(1)", record, expr.ErrBadArgument, "formatFloat() with non-float arg")
+	testSuccessful(t, "String.formatInt(5)", nil, zstring("5"))
+	testError(t, "String.formatInt()", nil, expr.ErrTooFewArgs, "formatInt() with no args")
+	testError(t, "String.formatInt(3, 4)", nil, expr.ErrTooManyArgs, "formatInt() with too many args")
+	testError(t, "String.formatInt(1.5)", nil, expr.ErrBadArgument, "formatInt() with non-int arg")
 
-	testSuccessful(t, "String.formatInt(5)", record, zstring("5"))
-	testError(t, "String.formatInt()", record, expr.ErrTooFewArgs, "formatInt() with no args")
-	testError(t, "String.formatInt(3, 4)", record, expr.ErrTooManyArgs, "formatInt() with too many args")
-	testError(t, "String.formatInt(1.5)", record, expr.ErrBadArgument, "formatInt() with non-int arg")
-
-	testSuccessful(t, "String.formatIp(1.2.3.4)", record, zstring("1.2.3.4"))
-	testError(t, "String.formatIp()", record, expr.ErrTooFewArgs, "formatIp() with no args")
-	testError(t, "String.formatIp(1.2, 3.4)", record, expr.ErrTooManyArgs, "formatIp() with too many args")
-	testError(t, "String.formatIp(1)", record, expr.ErrBadArgument, "formatIp() with non-ip arg")
+	testSuccessful(t, "String.formatIp(1.2.3.4)", nil, zstring("1.2.3.4"))
+	testError(t, "String.formatIp()", nil, expr.ErrTooFewArgs, "formatIp() with no args")
+	testError(t, "String.formatIp(1.2, 3.4)", nil, expr.ErrTooManyArgs, "formatIp() with too many args")
+	testError(t, "String.formatIp(1)", nil, expr.ErrBadArgument, "formatIp() with non-ip arg")
 }
 
 func TestStrParse(t *testing.T) {
-	record, err := parseOneRecord(`
-#0:record[u:uint64]
-0:[5;]`)
-	require.NoError(t, err)
+	testSuccessful(t, `String.parseInt("1")`, nil, zint64(1))
+	testSuccessful(t, `String.parseInt("-1")`, nil, zint64(-1))
+	testError(t, `String.parseInt()`, nil, expr.ErrTooFewArgs, "parseInt() with no args")
+	testError(t, `String.parseInt("a", "b")`, nil, expr.ErrTooManyArgs, "parseInt() with too many args")
+	testError(t, `String.parseInt("abc")`, nil, strconv.ErrSyntax, "parseInt() with non-parseable string")
 
-	testSuccessful(t, `String.parseInt("1")`, record, zint64(1))
-	testSuccessful(t, `String.parseInt("-1")`, record, zint64(-1))
-	testError(t, `String.parseInt()`, record, expr.ErrTooFewArgs, "parseInt() with no args")
-	testError(t, `String.parseInt("a", "b")`, record, expr.ErrTooManyArgs, "parseInt() with too many args")
-	testError(t, `String.parseInt("abc")`, record, strconv.ErrSyntax, "parseInt() with non-parseable string")
+	testSuccessful(t, `String.parseFloat("5.5")`, nil, zfloat64(5.5))
+	testError(t, `String.parseFloat()`, nil, expr.ErrTooFewArgs, "parseFloat() with no args")
+	testError(t, `String.parseFloat("a", "b")`, nil, expr.ErrTooManyArgs, "parseFloat() with too many args")
+	testError(t, `String.parseFloat("abc")`, nil, strconv.ErrSyntax, "parseFloat() with non-parseable string")
 
-	testSuccessful(t, `String.parseFloat("5.5")`, record, zfloat64(5.5))
-	testError(t, `String.parseFloat()`, record, expr.ErrTooFewArgs, "parseFloat() with no args")
-	testError(t, `String.parseFloat("a", "b")`, record, expr.ErrTooManyArgs, "parseFloat() with too many args")
-	testError(t, `String.parseFloat("abc")`, record, strconv.ErrSyntax, "parseFloat() with non-parseable string")
-
-	testSuccessful(t, `String.parseIp("1.2.3.4")`, record, zaddr("1.2.3.4"))
-	testError(t, `String.parseIp()`, record, expr.ErrTooFewArgs, "parseIp() with no args")
-	testError(t, `String.parseIp("a", "b")`, record, expr.ErrTooManyArgs, "parseIp() with too many args")
-	testError(t, `String.parseIp("abc")`, record, expr.ErrBadArgument, "parseIp() with non-parseable string")
+	testSuccessful(t, `String.parseIp("1.2.3.4")`, nil, zaddr("1.2.3.4"))
+	testError(t, `String.parseIp()`, nil, expr.ErrTooFewArgs, "parseIp() with no args")
+	testError(t, `String.parseIp("a", "b")`, nil, expr.ErrTooManyArgs, "parseIp() with too many args")
+	testError(t, `String.parseIp("abc")`, nil, expr.ErrBadArgument, "parseIp() with non-parseable string")
 }
 
 func TestOtherStrFuncs(t *testing.T) {
-	record, err := parseOneRecord(`
-#0:record[u:uint64]
-0:[5;]`)
-	require.NoError(t, err)
+	testSuccessful(t, `String.replace("bann", "n", "na")`, nil, zstring("banana"))
+	testError(t, `String.replace("foo", "bar")`, nil, expr.ErrTooFewArgs, "replace() with too few args")
+	testError(t, `String.replace("foo", "bar", "baz", "blort")`, nil, expr.ErrTooManyArgs, "replace() with too many args")
+	testError(t, `String.replace("foo", "o", 5)`, nil, expr.ErrBadArgument, "replace() with non-string arg")
 
-	testSuccessful(t, `String.replace("bann", "n", "na")`, record, zstring("banana"))
-	testError(t, `String.replace("foo", "bar")`, record, expr.ErrTooFewArgs, "replace() with too few args")
-	testError(t, `String.replace("foo", "bar", "baz", "blort")`, record, expr.ErrTooManyArgs, "replace() with too many args")
-	testError(t, `String.replace("foo", "o", 5)`, record, expr.ErrBadArgument, "replace() with non-string arg")
+	testSuccessful(t, `String.toLower("BOO")`, nil, zstring("boo"))
+	testError(t, `String.toLower()`, nil, expr.ErrTooFewArgs, "toLower() with no args")
+	testError(t, `String.toLower("BOO", "HOO")`, nil, expr.ErrTooManyArgs, "toLower() with too many args")
 
-	testSuccessful(t, `String.toLower("BOO")`, record, zstring("boo"))
-	testError(t, `String.toLower()`, record, expr.ErrTooFewArgs, "toLower() with no args")
-	testError(t, `String.toLower("BOO", "HOO")`, record, expr.ErrTooManyArgs, "toLower() with too many args")
+	testSuccessful(t, `String.toUpper("boo")`, nil, zstring("BOO"))
+	testError(t, `String.toUpper()`, nil, expr.ErrTooFewArgs, "toUpper() with no args")
+	testError(t, `String.toUpper("boo", "hoo")`, nil, expr.ErrTooManyArgs, "toUpper() with too many args")
 
-	testSuccessful(t, `String.toUpper("boo")`, record, zstring("BOO"))
-	testError(t, `String.toUpper()`, record, expr.ErrTooFewArgs, "toUpper() with no args")
-	testError(t, `String.toUpper("boo", "hoo")`, record, expr.ErrTooManyArgs, "toUpper() with too many args")
-
-	testSuccessful(t, `String.trim("  hi  there   ")`, record, zstring("hi  there"))
-	testError(t, `String.trim()`, record, expr.ErrTooFewArgs, "trim() with no args")
-	testError(t, `String.trim("  hi  ", "  there  ")`, record, expr.ErrTooManyArgs, "trim() with too many args")
+	testSuccessful(t, `String.trim("  hi  there   ")`, nil, zstring("hi  there"))
+	testError(t, `String.trim()`, nil, expr.ErrTooFewArgs, "trim() with no args")
+	testError(t, `String.trim("  hi  ", "  there  ")`, nil, expr.ErrTooManyArgs, "trim() with too many args")
 }
 
 func TestLen(t *testing.T) {
@@ -252,11 +227,6 @@ func TestLen(t *testing.T) {
 }
 
 func TestTime(t *testing.T) {
-	record, err := parseOneRecord(`
-#0:record[x:int32]
-0:[1;]`)
-	require.NoError(t, err)
-
 	// These represent the same time (Tue, 26 May 2020 15:27:47.967 in GMT)
 	iso := "2020-05-26T15:27:47.967Z"
 	msec := 1590506867_967
@@ -264,31 +234,31 @@ func TestTime(t *testing.T) {
 	zval := zng.Value{zng.TypeTime, zng.EncodeTime(nano.Ts(nsec))}
 
 	exp := fmt.Sprintf(`Time.fromISO("%s")`, iso)
-	testSuccessful(t, exp, record, zval)
+	testSuccessful(t, exp, nil, zval)
 	exp = fmt.Sprintf("Time.fromMilliseconds(%d)", msec)
-	testSuccessful(t, exp, record, zval)
+	testSuccessful(t, exp, nil, zval)
 	exp = fmt.Sprintf("Time.fromMilliseconds(%d.0)", msec)
-	testSuccessful(t, exp, record, zval)
+	testSuccessful(t, exp, nil, zval)
 	exp = fmt.Sprintf("Time.fromMicroseconds(%d)", msec*1000)
-	testSuccessful(t, exp, record, zval)
+	testSuccessful(t, exp, nil, zval)
 	exp = fmt.Sprintf("Time.fromMicroseconds(%d.0)", msec*1000)
-	testSuccessful(t, exp, record, zval)
+	testSuccessful(t, exp, nil, zval)
 	exp = fmt.Sprintf("Time.fromNanoseconds(%d)", nsec)
-	testSuccessful(t, exp, record, zval)
+	testSuccessful(t, exp, nil, zval)
 
-	testError(t, "Time.fromISO()", record, expr.ErrTooFewArgs, "Time.fromISO() with no args")
-	testError(t, `Time.fromISO("abc", "def")`, record, expr.ErrTooManyArgs, "Time.fromISO() with too many args")
-	testError(t, "Time.fromISO(1234)", record, expr.ErrBadArgument, "Time.fromISO() with wrong argument type")
+	testError(t, "Time.fromISO()", nil, expr.ErrTooFewArgs, "Time.fromISO() with no args")
+	testError(t, `Time.fromISO("abc", "def")`, nil, expr.ErrTooManyArgs, "Time.fromISO() with too many args")
+	testError(t, "Time.fromISO(1234)", nil, expr.ErrBadArgument, "Time.fromISO() with wrong argument type")
 
-	testError(t, "Time.fromMilliseconds()", record, expr.ErrTooFewArgs, "Time.fromMilliseconds() with no args")
-	testError(t, "Time.fromMilliseconds(123, 456)", record, expr.ErrTooManyArgs, "Time.fromMilliseconds() with too many args")
-	testError(t, `Time.fromMilliseconds("1234")`, record, expr.ErrBadArgument, "Time.fromMilliseconds() with wrong argument type")
+	testError(t, "Time.fromMilliseconds()", nil, expr.ErrTooFewArgs, "Time.fromMilliseconds() with no args")
+	testError(t, "Time.fromMilliseconds(123, 456)", nil, expr.ErrTooManyArgs, "Time.fromMilliseconds() with too many args")
+	testError(t, `Time.fromMilliseconds("1234")`, nil, expr.ErrBadArgument, "Time.fromMilliseconds() with wrong argument type")
 
-	testError(t, "Time.fromMicroseconds()", record, expr.ErrTooFewArgs, "Time.fromMicroseconds() with no args")
-	testError(t, "Time.fromMicroseconds(123, 456)", record, expr.ErrTooManyArgs, "Time.fromMicroseconds() with too many args")
-	testError(t, `Time.fromMicroseconds("1234")`, record, expr.ErrBadArgument, "Time.fromMicroseconds() with wrong argument type")
+	testError(t, "Time.fromMicroseconds()", nil, expr.ErrTooFewArgs, "Time.fromMicroseconds() with no args")
+	testError(t, "Time.fromMicroseconds(123, 456)", nil, expr.ErrTooManyArgs, "Time.fromMicroseconds() with too many args")
+	testError(t, `Time.fromMicroseconds("1234")`, nil, expr.ErrBadArgument, "Time.fromMicroseconds() with wrong argument type")
 
-	testError(t, "Time.fromNanoseconds()", record, expr.ErrTooFewArgs, "Time.fromNanoseconds() with no args")
-	testError(t, "Time.fromNanoseconds(123, 456)", record, expr.ErrTooManyArgs, "Time.fromNanoseconds() with too many args")
-	testError(t, `Time.fromNanoseconds("1234")`, record, expr.ErrBadArgument, "Time.fromNanoseconds() with wrong argument type")
+	testError(t, "Time.fromNanoseconds()", nil, expr.ErrTooFewArgs, "Time.fromNanoseconds() with no args")
+	testError(t, "Time.fromNanoseconds(123, 456)", nil, expr.ErrTooManyArgs, "Time.fromNanoseconds() with too many args")
+	testError(t, `Time.fromNanoseconds("1234")`, nil, expr.ErrBadArgument, "Time.fromNanoseconds() with wrong argument type")
 }
