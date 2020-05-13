@@ -49,13 +49,13 @@ func TestPcapPostSuccess(t *testing.T) {
 0:[1501770877.501001;]
 0:[1501770877.471635;]
 0:[1501770877.471635;]`
-		res := searchTzng(t, p.client, p.space, "cut ts")
+		res := searchTzng(t, p.client, p.space.ID, "cut ts")
 		assert.Equal(t, test.Trim(expected), res)
 	})
 	t.Run("SpaceInfo", func(t *testing.T) {
-		info, err := p.client.SpaceInfo(context.Background(), p.space)
+		info, err := p.client.SpaceInfo(context.Background(), p.space.ID)
 		assert.NoError(t, err)
-		assert.Equal(t, p.space, info.Name)
+		assert.Equal(t, p.space.ID, info.ID)
 		assert.Equal(t, nano.NewSpanTs(nano.Unix(1501770877, 471635000), nano.Unix(1501770880, 988247001)), *info.Span)
 		// Must use InDelta here because zeek randomly generates uids that
 		// vary in size.
@@ -65,7 +65,7 @@ func TestPcapPostSuccess(t *testing.T) {
 		assert.Equal(t, p.pcapfile, info.PcapPath)
 	})
 	t.Run("PcapIndexExists", func(t *testing.T) {
-		require.FileExists(t, filepath.Join(p.core.Root, p.space, space.PcapIndexFile))
+		require.FileExists(t, filepath.Join(p.core.Root, string(p.space.ID), space.PcapIndexFile))
 	})
 	t.Run("TaskStartMessage", func(t *testing.T) {
 		status := p.payloads[0].(*api.TaskStart)
@@ -106,7 +106,7 @@ func TestPcapPostSearch(t *testing.T) {
 			DstHost: net.ParseIP("54.148.114.85"),
 			DstPort: 80,
 		}
-		rc, err := p.client.PcapSearch(context.Background(), p.space, req)
+		rc, err := p.client.PcapSearch(context.Background(), p.space.ID, req)
 		require.NoError(t, err)
 		defer rc.Close()
 		// just make sure it's a valid pcap
@@ -127,7 +127,7 @@ func TestPcapPostSearch(t *testing.T) {
 			DstHost: net.ParseIP("54.148.114.85"),
 			DstPort: 80,
 		}
-		_, err := p.client.PcapSearch(context.Background(), p.space, req)
+		_, err := p.client.PcapSearch(context.Background(), p.space.ID, req)
 		require.Equal(t, api.ErrNoPcapResultsFound, err)
 	})
 }
@@ -156,10 +156,12 @@ func TestPcapPostInvalidPcap(t *testing.T) {
 		require.Regexp(t, "bad pcap file", reserr.Err.Error())
 	})
 	t.Run("EmptySpaceInfo", func(t *testing.T) {
-		info, err := p.client.SpaceInfo(context.Background(), p.space)
+		info, err := p.client.SpaceInfo(context.Background(), p.space.ID)
 		assert.NoError(t, err)
 		expected := api.SpaceInfo{
-			Name: p.space,
+			ID:       p.space.ID,
+			Name:     p.space.Name,
+			DataPath: p.space.DataPath,
 		}
 		require.Equal(t, &expected, info)
 	})
@@ -207,10 +209,12 @@ func TestPcapPostZeekFailAfterWrite(t *testing.T) {
 		require.Equal(t, expected, last)
 	})
 	t.Run("EmptySpaceInfo", func(t *testing.T) {
-		info, err := p.client.SpaceInfo(context.Background(), p.space)
+		info, err := p.client.SpaceInfo(context.Background(), p.space.ID)
 		assert.NoError(t, err)
 		expected := api.SpaceInfo{
-			Name: p.space,
+			ID:       p.space.ID,
+			Name:     p.space.Name,
+			DataPath: p.space.DataPath,
 		}
 		require.Equal(t, &expected, info)
 	})
@@ -227,11 +231,13 @@ func pcapPostWithConfig(t *testing.T, conf zqd.Config, pcapfile string) pcapPost
 	c := setCoreRoot(t, conf)
 	ts := httptest.NewServer(zqd.NewHandler(c, conf.Logger))
 	client := api.NewConnectionTo(ts.URL)
+	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
+	require.NoError(t, err)
 	res := pcapPostResult{
 		core:     c,
 		srv:      ts,
 		client:   client,
-		space:    "test",
+		space:    *sp,
 		pcapfile: pcapfile,
 	}
 	res.postPcap(t, pcapfile)
@@ -256,7 +262,7 @@ type pcapPostResult struct {
 	core     *zqd.Core
 	client   *api.Connection
 	srv      *httptest.Server
-	space    string
+	space    api.SpaceInfo
 	pcapfile string
 	body     []byte
 	err      error
@@ -264,10 +270,8 @@ type pcapPostResult struct {
 }
 
 func (r *pcapPostResult) postPcap(t *testing.T, file string) {
-	_, err := r.client.SpacePost(context.Background(), api.SpacePostRequest{Name: r.space})
-	require.NoError(t, err)
 	var stream *api.Stream
-	stream, r.err = r.client.PcapPost(context.Background(), r.space, api.PcapPostRequest{r.pcapfile})
+	stream, r.err = r.client.PcapPost(context.Background(), r.space.ID, api.PcapPostRequest{r.pcapfile})
 	if r.err == nil {
 		r.readPayloads(t, stream)
 	}

@@ -43,8 +43,8 @@ func TestSearch(t *testing.T) {
 	defer done()
 	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	_ = postSpaceLogs(t, client, sp.Name, nil, src)
-	res := searchTzng(t, client, sp.Name, "*")
+	_ = postSpaceLogs(t, client, sp.ID, nil, src)
+	res := searchTzng(t, client, sp.ID, "*")
 	require.Equal(t, test.Trim(src), res)
 }
 
@@ -58,14 +58,14 @@ func TestSearchNoCtrl(t *testing.T) {
 	defer done()
 	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	_ = postSpaceLogs(t, client, sp.Name, nil, src)
+	_ = postSpaceLogs(t, client, sp.ID, nil, src)
 
 	parsed, err := zql.ParseProc("*")
 	require.NoError(t, err)
 	proc, err := json.Marshal(parsed)
 	require.NoError(t, err)
 	req := api.SearchRequest{
-		Space: "test",
+		Space: sp.ID,
 		Proc:  proc,
 		Span:  nano.MaxSpan,
 		Dir:   -1,
@@ -93,8 +93,8 @@ func TestSearchStats(t *testing.T) {
 	defer done()
 	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	_ = postSpaceLogs(t, client, sp.Name, nil, src)
-	_, msgs := search(t, client, sp.Name, "_path != b")
+	_ = postSpaceLogs(t, client, sp.ID, nil, src)
+	_, msgs := search(t, client, sp.ID, "_path != b")
 	var stats *api.SearchStats
 	for i := len(msgs) - 1; i >= 0; i-- {
 		if s, ok := msgs[i].(*api.SearchStats); ok {
@@ -128,19 +128,18 @@ func TestGroupByReverse(t *testing.T) {
 	defer done()
 	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	_ = postSpaceLogs(t, client, sp.Name, nil, src)
-	res := searchTzng(t, client, sp.Name, "every 1s count()")
+	_ = postSpaceLogs(t, client, sp.ID, nil, src)
+	res := searchTzng(t, client, sp.ID, "every 1s count()")
 	require.Equal(t, test.Trim(counts), res)
 }
 
 func TestSearchEmptySpace(t *testing.T) {
-	space := "test"
 	ctx := context.Background()
 	_, client, done := newCore(t)
 	defer done()
-	_, err := client.SpacePost(ctx, api.SpacePostRequest{Name: space})
+	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	res := searchTzng(t, client, space, "*")
+	res := searchTzng(t, client, sp.ID, "*")
 	require.Equal(t, "", res)
 }
 
@@ -154,7 +153,7 @@ func TestSearchError(t *testing.T) {
 	defer done()
 	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	_ = postSpaceLogs(t, client, sp.Name, nil, src)
+	_ = postSpaceLogs(t, client, sp.ID, nil, src)
 
 	parsed, err := zql.ParseProc("*")
 	require.NoError(t, err)
@@ -162,7 +161,7 @@ func TestSearchError(t *testing.T) {
 	require.NoError(t, err)
 	t.Run("InvalidDir", func(t *testing.T) {
 		req := api.SearchRequest{
-			Space: "test",
+			Space: sp.ID,
 			Proc:  proc,
 			Span:  nano.MaxSpan,
 			Dir:   2,
@@ -175,7 +174,7 @@ func TestSearchError(t *testing.T) {
 	})
 	t.Run("ForwardSearchUnsupported", func(t *testing.T) {
 		req := api.SearchRequest{
-			Space: "test",
+			Space: sp.ID,
 			Proc:  proc,
 			Span:  nano.MaxSpan,
 			Dir:   1,
@@ -190,6 +189,7 @@ func TestSearchError(t *testing.T) {
 
 func TestSpaceList(t *testing.T) {
 	names := []string{"sp1", "sp2", "sp3", "sp4"}
+	var expected []api.SpaceInfo
 
 	ctx := context.Background()
 	c, client, done := newCore(t)
@@ -197,27 +197,32 @@ func TestSpaceList(t *testing.T) {
 		defer done()
 
 		for _, n := range names {
-			_, err := client.SpacePost(ctx, api.SpacePostRequest{Name: n})
+			sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: n})
 			require.NoError(t, err)
+			expected = append(expected, api.SpaceInfo{
+				ID:       sp.ID,
+				Name:     n,
+				DataPath: filepath.Join(c.Root, string(sp.ID)),
+			})
 		}
 
 		list, err := client.SpaceList(ctx)
 		require.NoError(t, err)
-		sort.Strings(list)
-		require.Equal(t, names, list)
+		sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
+		require.Equal(t, expected, list)
 	}
 
-	// Delete config.json from one space, then simulate a restart by
+	// Delete dir from one space, then simulate a restart by
 	// creating a new Core pointing to the same root.
-	require.NoError(t, os.Remove(filepath.Join(c.Root, "sp3", "config.json")))
-	expected := []string{"sp1", "sp2", "sp4"}
+	require.NoError(t, os.RemoveAll(filepath.Join(c.Root, string(expected[2].ID))))
+	expected = append(expected[:2], expected[3:]...)
 
 	c, client, done = newCoreAtDir(t, c.Root)
 	defer done()
 
 	list, err := client.SpaceList(ctx)
 	require.NoError(t, err)
-	sort.Strings(list)
+	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
 	require.Equal(t, expected, list)
 }
 
@@ -231,15 +236,17 @@ func TestSpaceInfo(t *testing.T) {
 	defer done()
 	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	_ = postSpaceLogs(t, client, sp.Name, nil, src)
+	_ = postSpaceLogs(t, client, sp.ID, nil, src)
 	span := nano.Span{Ts: 1e9, Dur: 1e9 + 1}
 	expected := &api.SpaceInfo{
-		Span:        &span,
+		ID:          sp.ID,
 		Name:        sp.Name,
+		DataPath:    sp.DataPath,
+		Span:        &span,
 		Size:        81,
 		PcapSupport: false,
 	}
-	info, err := client.SpaceInfo(ctx, sp.Name)
+	info, err := client.SpaceInfo(ctx, sp.ID)
 	require.NoError(t, err)
 	require.Equal(t, expected, info)
 }
@@ -250,10 +257,12 @@ func TestSpaceInfoNoData(t *testing.T) {
 	defer done()
 	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	info, err := client.SpaceInfo(ctx, sp.Name)
+	info, err := client.SpaceInfo(ctx, sp.ID)
 	require.NoError(t, err)
 	expected := &api.SpaceInfo{
+		ID:          sp.ID,
 		Name:        sp.Name,
+		DataPath:    sp.DataPath,
 		Size:        0,
 		PcapSupport: false,
 	}
@@ -264,65 +273,37 @@ func TestSpacePostNameOnly(t *testing.T) {
 	ctx := context.Background()
 	c, client, done := newCore(t)
 	defer done()
-	expected := &api.SpacePostResponse{
-		Name:    "test",
-		DataDir: filepath.Join(c.Root, "test"),
-	}
 	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	require.Equal(t, expected, sp)
+	assert.Equal(t, "test", sp.Name)
+	assert.Equal(t, filepath.Join(c.Root, string(sp.ID)), sp.DataPath)
+	assert.Regexp(t, "^sp", sp.ID)
 }
 
-func TestSpacePostDuplicateName(t *testing.T) {
-	ctx := context.Background()
-	c, client, done := newCore(t)
-	defer done()
-	expected := &api.SpacePostResponse{
-		Name:    "test_01",
-		DataDir: filepath.Join(c.Root, "test_01"),
-	}
-	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
-	require.NoError(t, err)
-	sp, err = client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
-	require.NoError(t, err)
-	require.Equal(t, expected, sp)
-}
-
-func TestSpacePostDataDir(t *testing.T) {
+func TestSpacePostDataPath(t *testing.T) {
 	ctx := context.Background()
 	tmp := createTempDir(t)
 	defer os.RemoveAll(tmp)
-	datadir := filepath.Join(tmp, "mypcap.brim")
-	expected := &api.SpacePostResponse{
-		Name:    "mypcap.brim",
-		DataDir: datadir,
-	}
+	datapath := filepath.Join(tmp, "mypcap.brim")
 	_, client, done := newCoreAtDir(t, filepath.Join(tmp, "spaces"))
 	defer done()
-	sp, err := client.SpacePost(ctx, api.SpacePostRequest{DataDir: datadir})
+	sp, err := client.SpacePost(ctx, api.SpacePostRequest{DataPath: datapath})
 	require.NoError(t, err)
-	require.Equal(t, expected, sp)
+	assert.Equal(t, "mypcap.brim", sp.Name)
+	assert.Equal(t, datapath, sp.DataPath)
 }
 
-func TestSpacePostDataDirDuplicate(t *testing.T) {
+func TestSpacePut(t *testing.T) {
 	ctx := context.Background()
-	tmp1 := createTempDir(t)
-	defer os.RemoveAll(tmp1)
-	tmp2 := createTempDir(t)
-	defer os.RemoveAll(tmp2)
-	datadir1 := filepath.Join(tmp1, "mypcap.brim")
-	datadir2 := filepath.Join(tmp2, "mypcap.brim")
-	expected := &api.SpacePostResponse{
-		Name:    "mypcap_01.brim",
-		DataDir: datadir2,
-	}
-	_, client, done := newCoreAtDir(t, filepath.Join(tmp1, "spaces"))
+	_, client, done := newCore(t)
 	defer done()
-	_, err := client.SpacePost(ctx, api.SpacePostRequest{DataDir: datadir1})
+	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	sp2, err := client.SpacePost(ctx, api.SpacePostRequest{DataDir: datadir2})
+	err = client.SpacePut(ctx, sp.ID, api.SpacePutRequest{Name: "new_name"})
 	require.NoError(t, err)
-	require.Equal(t, expected, sp2)
+	info, err := client.SpaceInfo(ctx, sp.ID)
+	require.NoError(t, err)
+	assert.Equal(t, "new_name", info.Name)
 }
 
 func TestSpaceDelete(t *testing.T) {
@@ -331,11 +312,11 @@ func TestSpaceDelete(t *testing.T) {
 	defer done()
 	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	err = client.SpaceDelete(ctx, sp.Name)
+	err = client.SpaceDelete(ctx, sp.ID)
 	require.NoError(t, err)
 	list, err := client.SpaceList(ctx)
 	require.NoError(t, err)
-	require.Equal(t, []string{}, list)
+	require.Equal(t, []api.SpaceInfo{}, list)
 }
 
 func TestSpaceDeleteDataDir(t *testing.T) {
@@ -347,27 +328,15 @@ func TestSpaceDeleteDataDir(t *testing.T) {
 	datadir := filepath.Join(tmp, "mypcap.brim")
 	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	err = client.SpaceDelete(ctx, sp.Name)
+	err = client.SpaceDelete(ctx, sp.ID)
 	require.NoError(t, err)
 	list, err := client.SpaceList(ctx)
 	require.NoError(t, err)
-	require.Equal(t, []string{}, list)
+	require.Equal(t, []api.SpaceInfo{}, list)
 	// ensure data dir has also been deleted
 	_, err = os.Stat(datadir)
 	require.Error(t, err)
 	require.Truef(t, os.IsNotExist(err), "expected error to be os.IsNotExist, got %v", err)
-}
-
-func TestURLEncodingSupport(t *testing.T) {
-	ctx := context.Background()
-	_, client, done := newCore(t)
-	defer done()
-	rawSpace := "raw %space.brim"
-	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: rawSpace})
-	require.NoError(t, err)
-	require.Equal(t, rawSpace, sp.Name)
-	err = client.SpaceDelete(ctx, rawSpace)
-	require.NoError(t, err)
 }
 
 func TestNoEndSlashSupport(t *testing.T) {
@@ -413,12 +382,10 @@ func TestPostZngLogs(t *testing.T) {
 	}
 	_, client, done := newCore(t)
 	defer done()
-	spaceName := "test"
-
-	_, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: spaceName})
+	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 
-	payloads := postSpaceLogs(t, client, spaceName, nil, strings.Join(src1, "\n"), strings.Join(src2, "\n"))
+	payloads := postSpaceLogs(t, client, sp.ID, nil, strings.Join(src1, "\n"), strings.Join(src2, "\n"))
 	status := payloads[len(payloads)-2].(*api.LogPostStatus)
 	span := &nano.Span{Ts: 1e9, Dur: 1e9 + 1}
 	require.Equal(t, &api.LogPostStatus{
@@ -431,14 +398,16 @@ func TestPostZngLogs(t *testing.T) {
 	assert.Equal(t, taskend.Type, "TaskEnd")
 	assert.Nil(t, taskend.Error)
 
-	res := searchTzng(t, client, spaceName, "*")
+	res := searchTzng(t, client, sp.ID, "*")
 	require.Equal(t, strings.Join(append(src2, src1[1]), "\n"), strings.TrimSpace(res))
 
-	info, err := client.SpaceInfo(context.Background(), spaceName)
+	info, err := client.SpaceInfo(context.Background(), sp.ID)
 	require.NoError(t, err)
 	require.Equal(t, &api.SpaceInfo{
+		ID:          sp.ID,
+		Name:        sp.Name,
+		DataPath:    sp.DataPath,
 		Span:        span,
-		Name:        spaceName,
 		Size:        81,
 		PcapSupport: false,
 	}, info)
@@ -455,11 +424,10 @@ func TestPostZngLogWarning(t *testing.T) {
 	}
 	_, client, done := newCore(t)
 	defer done()
-	spaceName := "test"
-	_, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: spaceName})
+	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 
-	payloads := postSpaceLogs(t, client, spaceName, nil, strings.Join(src1, "\n"), strings.Join(src2, "\n"))
+	payloads := postSpaceLogs(t, client, sp.ID, nil, strings.Join(src1, "\n"), strings.Join(src2, "\n"))
 	warnings := payloads.LogPostWarnings()
 	assert.Regexp(t, ": format detection error.*", warnings[0].Warning)
 	assert.Regexp(t, ": line 3: bad format$", warnings[1].Warning)
@@ -506,25 +474,26 @@ func TestPostNDJSONLogs(t *testing.T) {
 	test := func(input string) {
 		_, client, done := newCore(t)
 		defer done()
-		const spaceName = "test"
 
-		_, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: spaceName})
+		sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 		require.NoError(t, err)
 
-		payloads := postSpaceLogs(t, client, spaceName, &tc, input)
+		payloads := postSpaceLogs(t, client, sp.ID, &tc, input)
 		last := payloads[len(payloads)-1].(*api.TaskEnd)
 		assert.Equal(t, last.Type, "TaskEnd")
 		assert.Nil(t, last.Error)
 
-		res := searchTzng(t, client, spaceName, "*")
+		res := searchTzng(t, client, sp.ID, "*")
 		require.Equal(t, expected, strings.TrimSpace(res))
 
 		span := nano.Span{Ts: 1e9, Dur: 1e9 + 1}
-		info, err := client.SpaceInfo(context.Background(), spaceName)
+		info, err := client.SpaceInfo(context.Background(), sp.ID)
 		require.NoError(t, err)
 		require.Equal(t, &api.SpaceInfo{
+			ID:          sp.ID,
+			Name:        sp.Name,
+			DataPath:    sp.DataPath,
 			Span:        &span,
-			Name:        spaceName,
 			Size:        81,
 			PcapSupport: false,
 		}, info)
@@ -566,11 +535,10 @@ func TestPostNDJSONLogWarning(t *testing.T) {
 	}
 	_, client, done := newCore(t)
 	defer done()
-	const spaceName = "test"
-	_, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: spaceName})
+	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 
-	payloads := postSpaceLogs(t, client, spaceName, &tc, src1, src2)
+	payloads := postSpaceLogs(t, client, sp.ID, &tc, src1, src2)
 	warnings := payloads.LogPostWarnings()
 	assert.Regexp(t, ": line 1: descriptor not found", warnings[0].Warning)
 	assert.Regexp(t, ": line 2: incomplete descriptor", warnings[1].Warning)
@@ -596,12 +564,11 @@ func TestPostLogStopErr(t *testing.T) {
 	defer os.Remove(logfile)
 	_, client, done := newCore(t)
 	defer done()
-	spaceName := "test"
 
-	_, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: spaceName})
+	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 
-	_, err = client.LogPost(context.Background(), spaceName, api.LogPostRequest{Paths: []string{logfile}, StopErr: true})
+	_, err = client.LogPost(context.Background(), sp.ID, api.LogPostRequest{Paths: []string{logfile}, StopErr: true})
 	require.Error(t, err)
 	assert.Regexp(t, ": format detection error.*", err.Error())
 }
@@ -610,10 +577,8 @@ func TestDeleteDuringPcapPost(t *testing.T) {
 	c, client, done := newCore(t)
 	defer done()
 
-	spaceName := "deleteDuringPcapPost"
 	pcapfile := "./testdata/valid.pcap"
-
-	_, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: spaceName})
+	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "deleteDuringPacketPost"})
 	require.NoError(t, err)
 
 	waitFn := func(tzp *testZeekProcess) error {
@@ -628,7 +593,7 @@ func TestDeleteDuringPcapPost(t *testing.T) {
 
 	wg.Add(1)
 	doPost := func() error {
-		stream, err := client.PcapPost(context.Background(), spaceName, api.PcapPostRequest{pcapfile})
+		stream, err := client.PcapPost(context.Background(), sp.ID, api.PcapPostRequest{pcapfile})
 		if err != nil {
 			return err
 		}
@@ -657,7 +622,7 @@ func TestDeleteDuringPcapPost(t *testing.T) {
 	}()
 
 	wg.Wait()
-	err = client.SpaceDelete(context.Background(), spaceName)
+	err = client.SpaceDelete(context.Background(), sp.ID)
 	require.NoError(t, err)
 
 	require.Error(t, <-pcapPostErr, "context canceled")
@@ -666,7 +631,7 @@ func TestDeleteDuringPcapPost(t *testing.T) {
 // search runs the provided zql program as a search on the provided
 // space, returning the tzng results along with a slice of all control
 // messages that were received.
-func search(t *testing.T, client *api.Connection, space, prog string) (string, []interface{}) {
+func search(t *testing.T, client *api.Connection, space api.SpaceID, prog string) (string, []interface{}) {
 	parsed, err := zql.ParseProc(prog)
 	require.NoError(t, err)
 	proc, err := json.Marshal(parsed)
@@ -689,7 +654,7 @@ func search(t *testing.T, client *api.Connection, space, prog string) (string, [
 	return buf.String(), msgs
 }
 
-func searchTzng(t *testing.T, client *api.Connection, space, prog string) string {
+func searchTzng(t *testing.T, client *api.Connection, space api.SpaceID, prog string) string {
 	tzng, _ := search(t, client, space, prog)
 	return tzng
 }
@@ -748,7 +713,7 @@ func (ps postPayloads) LogPostWarnings() []*api.LogPostWarning {
 }
 
 // postSpaceLogs POSTs the provided strings as logs in to the provided space, and returns a slice of any payloads that the server sent.
-func postSpaceLogs(t *testing.T, c *api.Connection, spaceName string, tc *ndjsonio.TypeConfig, logs ...string) postPayloads {
+func postSpaceLogs(t *testing.T, c *api.Connection, spaceID api.SpaceID, tc *ndjsonio.TypeConfig, logs ...string) postPayloads {
 	var filenames []string
 	for _, log := range logs {
 		name := writeTempFile(t, log)
@@ -757,7 +722,7 @@ func postSpaceLogs(t *testing.T, c *api.Connection, spaceName string, tc *ndjson
 	}
 
 	ctx := context.Background()
-	s, err := c.LogPost(ctx, spaceName, api.LogPostRequest{Paths: filenames, JSONTypeConfig: tc})
+	s, err := c.LogPost(ctx, spaceID, api.LogPostRequest{Paths: filenames, JSONTypeConfig: tc})
 	require.NoError(t, err)
 	var payloads []interface{}
 	for {

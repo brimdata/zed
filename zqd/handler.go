@@ -30,6 +30,7 @@ func NewHandler(core *Core, logger *zap.Logger) http.Handler {
 	h.Handle("/space", handleSpaceList).Methods("GET")
 	h.Handle("/space", handleSpacePost).Methods("POST")
 	h.Handle("/space/{space}", handleSpaceGet).Methods("GET")
+	h.Handle("/space/{space}", handleSpacePut).Methods("PUT")
 	h.Handle("/space/{space}", handleSpaceDelete).Methods("DELETE")
 	h.Handle("/space/{space}/pcap", handlePcapSearch).Methods("GET")
 	h.Handle("/space/{space}/pcap", handlePcapPost).Methods("POST")
