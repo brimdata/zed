@@ -324,7 +324,6 @@ func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/ndjson")
 	w.WriteHeader(http.StatusAccepted)
-
 	logger := c.requestLogger(r)
 	pipe := api.NewJSONPipe(w)
 	if err := pipe.SendStart(0); err != nil {
@@ -333,9 +332,13 @@ func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
+loop:
 	for {
 		select {
-		case warning := <-op.Warning():
+		case warning, ok := <-op.Status():
+			if !ok {
+				break loop
+			}
 			err := pipe.Send(api.LogPostWarning{
 				Type:    "LogPostWarning",
 				Warning: warning,
@@ -344,38 +347,24 @@ func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {
 				logger.Warn("error sending payload", zap.Error(err))
 				return
 			}
-		case <-op.Done():
-			// drain warnings
-			for _, warning := range op.DrainWarnings() {
-				err := pipe.Send(api.LogPostWarning{
-					Type:    "LogPostWarning",
-					Warning: warning,
-				})
-				if err != nil {
-					logger.Warn("error sending payload", zap.Error(err))
-					return
-				}
-			}
-			// send final status
-			err := pipe.Send(op.Status())
-			if err != nil {
-				logger.Warn("error sending payload", zap.Error(err))
-				return
-			}
-			err = pipe.SendEnd(0, op.Error())
-			if err != nil {
-				logger.Warn("error sending payload", zap.Error(err))
-				return
-			}
-			return
 		case <-ticker.C:
-			status := op.Status()
-			err := pipe.Send(status)
+			err := pipe.Send(op.Stats())
 			if err != nil {
 				logger.Warn("error sending payload", zap.Error(err))
 				return
 			}
 		}
+	}
+	// send final status
+	err = pipe.Send(op.Stats())
+	if err != nil {
+		logger.Warn("error sending payload", zap.Error(err))
+		return
+	}
+	err = pipe.SendEnd(0, op.Error())
+	if err != nil {
+		logger.Warn("error sending payload", zap.Error(err))
+		return
 	}
 }
 

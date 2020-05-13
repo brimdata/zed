@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync"
 	"sync/atomic"
 
 	"github.com/brimsec/zq/pkg/fs"
@@ -27,7 +28,7 @@ type LogOp struct {
 	err          error
 
 	warningCh chan string
-	doneCh    chan struct{}
+	wg        sync.WaitGroup
 }
 
 // Logs ingests the provided list of files into the provided space.
@@ -35,7 +36,6 @@ type LogOp struct {
 func NewLogOp(ctx context.Context, store *storage.ZngStorage, req api.LogPostRequest) (*LogOp, error) {
 	p := &LogOp{
 		warningCh: make(chan string, 5),
-		doneCh:    make(chan struct{}),
 	}
 	var cfg detector.OpenConfig
 	if req.JSONTypeConfig != nil {
@@ -64,6 +64,7 @@ func NewLogOp(ctx context.Context, store *storage.ZngStorage, req api.LogPostReq
 		p.readCounters = append(p.readCounters, rc)
 		p.readers = append(p.readers, zr)
 	}
+	p.wg.Add(1)
 	go p.start(ctx, store)
 	return p, nil
 }
@@ -134,10 +135,11 @@ func (p *LogOp) start(ctx context.Context, store *storage.ZngStorage) {
 	if err := p.closeFiles(); err != nil && p.err != nil {
 		p.err = err
 	}
-	close(p.doneCh)
+	close(p.warningCh)
+	p.wg.Done()
 }
 
-func (p *LogOp) Status() api.LogPostStatus {
+func (p *LogOp) Stats() api.LogPostStatus {
 	return api.LogPostStatus{
 		Type:         "LogPostStatus",
 		LogTotalSize: p.bytesTotal,
@@ -145,27 +147,11 @@ func (p *LogOp) Status() api.LogPostStatus {
 	}
 }
 
-func (p *LogOp) Warning() <-chan string {
+func (p *LogOp) Status() <-chan string {
 	return p.warningCh
 }
 
-func (p *LogOp) Done() <-chan struct{} {
-	return p.doneCh
-}
-
-func (p *LogOp) DrainWarnings() []string {
-	var warnings []string
-	for {
-		select {
-		case w := <-p.warningCh:
-			warnings = append(warnings, w)
-		default:
-			return warnings
-		}
-	}
-}
-
 func (p *LogOp) Error() error {
-	<-p.doneCh
+	p.wg.Wait()
 	return p.err
 }
