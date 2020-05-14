@@ -249,15 +249,6 @@ func (c *Command) errorf(format string, args ...interface{}) {
 	_, _ = fmt.Fprintf(os.Stderr, format, args...)
 }
 
-type namedReader struct {
-	zbuf.Reader
-	name string
-}
-
-func (r namedReader) String() string {
-	return r.name
-}
-
 func (c *Command) inputReaders(paths []string) ([]zbuf.Reader, error) {
 	cfg := detector.OpenConfig{
 		Format:         c.ReaderFlags.Format,
@@ -276,8 +267,7 @@ func (c *Command) inputReaders(paths []string) ([]zbuf.Reader, error) {
 			c.errorf("%s\n", err)
 			continue
 		}
-		// wrap in a named reader so the reader implements Stringer
-		readers = append(readers, namedReader{file, path})
+		readers = append(readers, file)
 	}
 	return readers, nil
 }
