@@ -499,8 +499,21 @@ NotExpression
   = "!" __ e:NotExpression {
         RETURN(makeUnaryExpr("!", e))
     }
-  / CallExpression
+  / CastExpression
 
+CastExpression
+  = e:CallExpression t:(__ ":" __ ct:ZngType { RETURN(ct) })? {
+    if ISNOTNULL(t) {
+      RETURN(makeCastExpression(e, t))
+    } else {
+      RETURN(e)
+    }
+  }
+
+ZngType
+ = "bool" / "byte" / "int16" / "uint16" / "int32" / "uint32"
+ / "int64" / "uint64" / "float64" / "string" / "bstring"
+ / "ip" / "net" / "time" / "duration"
 
 CallExpression
   = fn:FunctionName __ "(" args:ArgumentList ")" {
