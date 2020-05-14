@@ -252,16 +252,15 @@ func (c *Command) errorf(format string, args ...interface{}) {
 func (c *Command) inputReaders(paths []string) ([]zbuf.Reader, error) {
 	cfg := detector.OpenConfig{
 		Format:         c.ReaderFlags.Format,
-		DashStdin:      true,
 		JSONTypeConfig: c.jsonTypeConfig,
 		JSONPathRegex:  c.jsonPathRegexp,
 	}
 	var readers []zbuf.Reader
 	for _, path := range paths {
-		file, err := detector.OpenFile(c.zctx, path, cfg)
 		if path == "-" {
-			path = "stdin"
+			path = "/dev/stdin"
 		}
+		file, err := detector.OpenFile(c.zctx, path, cfg)
 		if err != nil {
 			err = fmt.Errorf("%s: %w", path, err)
 			if c.stopErr {
