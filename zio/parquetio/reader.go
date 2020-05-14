@@ -14,7 +14,7 @@ import (
 	"github.com/xitongsys/parquet-go/source"
 )
 
-const BUFSIZE = 1000
+const bufsize = 1000
 
 type Reader struct {
 	pr      *reader.ParquetReader
@@ -363,19 +363,19 @@ func convertListType(els []*parquet.SchemaElement, i int) (int, *parquetColumn, 
 }
 
 func (r *Reader) Read() (*zng.Record, error) {
-	var err error
-	if r.buf == nil || len(r.buf) == 0 {
+	if len(r.buf) == 0 {
 		toread := int(r.pr.GetNumRows()) - r.record
 		if toread == 0 {
 			return nil, nil
 		}
 
-		if toread > BUFSIZE {
-			toread = BUFSIZE
+		if toread > bufsize {
+			toread = bufsize
 		}
 
 		r.record += toread
 
+		var err error
 		r.buf, err = r.pr.ReadByNumber(toread)
 		if err != nil {
 			return nil, err
@@ -400,7 +400,7 @@ func (r *Reader) Read() (*zng.Record, error) {
 			fv = reflect.Indirect(fv)
 		}
 
-		err = c.append(builder, fv)
+		err := c.append(builder, fv)
 		if err != nil {
 			return nil, err
 		}
