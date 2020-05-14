@@ -20,7 +20,7 @@ type waitReader struct {
 
 func (w *waitReader) Read() (*zng.Record, error) {
 	w.Done()
-	time.Sleep(time.Duration(w.dur))
+	time.Sleep(w.dur)
 	return nil, errors.New("time out")
 }
 
