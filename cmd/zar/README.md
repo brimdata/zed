@@ -365,12 +365,18 @@ it as text...
 ```
 zar find -z -x custom2 216.58.193.206 | zq -f text "sum(resp_bytes)" -
 ```
-While you can't "wild card" the primary key when doing a search, remember
-everything is a zng file, so you an do a brute-force search on the indexes,
-e.g., to look aggregate across the secondary keys.  Let's say we wanted
-a count of all bytes received by 10.47.6.173 as the originator.  We could
-build a different custom index to track that, or we could just scan the
-custom2 index using brute force:
+Note that you can't "wild card" the primary key when doing a search via
+"zar find" because the index is sorted by primary key first, then secondary
+key, and so forth, and efficient lookups are carried out by traversing the
+b-tree index structure of these sorted keys.  But remember,
+everything is a zng file, so you can do a brute-force search on the base-layer
+of the index, e.g., to look for all the instances of a value in the secondary
+key position (ignoring the primary key) by using "zar zq" instead of "zar find".
+
+So, let's say we wanted
+a count of all bytes received by 10.47.6.173 as the originator, which is the
+secondary key.  While we could build a different custom index where id.orig_h
+is the primary key, we could also just scan the custom2 index using brute force:
 ```
 zar zq id.orig_h=10.47.6.173 custom2.zng | zq -f text "sum(resp_bytes)" -
 ```
