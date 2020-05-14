@@ -1,8 +1,8 @@
 script: |
   echo -n "" > empty.zng
-  zdx lookup -t -k none empty
+  zdx lookup -t -k none empty.zng
 
 outputs:
   - name: stderr
     regexp: |
-      empty: cannnot read zdx header
+      .*: trailer not found
