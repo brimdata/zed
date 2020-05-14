@@ -13,7 +13,9 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/tzngio"
+	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
 	minio "github.com/minio/minio/cmd"
 	"github.com/minio/minio/pkg/madmin"
@@ -67,6 +69,10 @@ func TestS3Minio(t *testing.T) {
 	dnsParquet, err := ioutil.ReadFile("testdata/dns.parquet")
 	require.NoError(t, err)
 	loadFile(t, dir, "brim", "dns.parquet", dnsParquet)
+
+	dnsZng, err := ioutil.ReadFile("testdata/dns.zng")
+	require.NoError(t, err)
+	loadFile(t, dir, "brim", "dns.zng", dnsZng)
 
 	mcli := startServer(t, dir)
 	waitForServer(t, mcli)
@@ -125,10 +131,10 @@ func TestS3Minio(t *testing.T) {
 		require.NoError(t, err)
 		defer f.Close()
 
-		w := tzngio.NewWriter(&out)
-		err = zbuf.Copy(zbuf.NopFlusher(w), f)
+		w := zngio.NewWriter(&out, zio.WriterFlags{})
+		err = zbuf.Copy(w, f)
 		require.NoError(t, err)
-		dnsZng, err := ioutil.ReadFile("testdata/dns.tzng")
+		dnsZng, err := ioutil.ReadFile("testdata/dns.zng")
 		require.NoError(t, err)
 		require.Equal(t, dnsZng, out.Bytes())
 	})
