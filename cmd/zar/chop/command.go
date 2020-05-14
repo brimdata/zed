@@ -66,10 +66,12 @@ func (c *Command) Run(args []string) error {
 		return errors.New("zar chop: exactly one input file must be specified (- for stdin)")
 	}
 	path := args[0]
+	if path == "-" {
+		path = "/dev/stdin"
+	}
 	zctx := resolver.NewContext()
 	cfg := detector.OpenConfig{
-		Format:    c.ReaderFlags.Format,
-		DashStdin: true,
+		Format: c.ReaderFlags.Format,
 		//JSONTypeConfig: c.jsonTypeConfig,
 		//JSONPathRegex:  c.jsonPathRegexp,
 	}

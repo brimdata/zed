@@ -21,7 +21,6 @@ import (
 
 type OpenConfig struct {
 	Format         string
-	DashStdin      bool
 	JSONTypeConfig *ndjsonio.TypeConfig
 	JSONPathRegex  string
 	AwsCfg         *aws.Config
@@ -49,9 +48,8 @@ func OpenFile(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, 
 	}
 
 	var f *os.File
-	if cfg.DashStdin && path == "-" {
+	if path == "/dev/stdin" {
 		f = os.Stdin
-		path = "stdin"
 	} else {
 		info, err := os.Stat(path)
 		if err != nil {
