@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"regexp"
+	"runtime/pprof"
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
@@ -161,6 +162,18 @@ func isTerminal(f *os.File) bool {
 }
 
 func (c *Command) Run(args []string) error {
+	if true {
+		f, err := os.Create("profile")
+		if err != nil {
+			fmt.Printf("Can't open profile: %s\n", err)
+		} else {
+			err = pprof.StartCPUProfile(f)
+			if err != nil {
+				fmt.Printf("Can't start pfoiler: %s\n", err)
+			}
+			defer pprof.StopCPUProfile()
+		}
+	}
 	if c.showVersion {
 		return c.printVersion()
 	}
