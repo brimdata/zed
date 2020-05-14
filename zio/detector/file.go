@@ -43,8 +43,8 @@ func IsS3Path(path string) bool {
 // URL. If the path is neither of these or can't otherwise be opened,
 // an error is returned.
 func OpenFile(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, error) {
-        // Parquest is special and needs its own reader for s3 sources- therefore this must go before
-        // the IsS3Path check.
+	// Parquet is special and needs its own reader for s3 sources- therefore this must go before
+	// the IsS3Path check.
 	if cfg.Format == "parquet" {
 		return OpenParquet(zctx, path, cfg)
 	}
