@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 
+	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zio/zeekio"
@@ -304,49 +304,49 @@ func parseSimpleType(value []byte, typ zng.Type) ([]byte, error) {
 	case zng.TypeDuration:
 		// cannot use nano.Parse because javascript floats values can have
 		// greater precision than 1e-9.
-		f, err := strconv.ParseFloat(string(value), 10)
+		f, err := byteconv.ParseFloat64(value)
 		if err != nil {
 			return nil, err
 		}
 		return zng.EncodeInt(int64(f * 1e9)), nil
 	case zng.TypeUint64:
-		f, err := strconv.ParseFloat(string(value), 10)
+		f, err := byteconv.ParseFloat64(value)
 		if err != nil {
 			return nil, err
 		}
 		return zng.EncodeUint(uint64(f)), nil
 	case zng.TypeInt64:
-		f, err := strconv.ParseFloat(string(value), 10)
+		f, err := byteconv.ParseFloat64(value)
 		if err != nil {
 			return nil, err
 		}
 		return zng.EncodeInt(int64(f)), nil
 	case zng.TypeUint32:
-		f, err := strconv.ParseFloat(string(value), 10)
+		f, err := byteconv.ParseFloat64(value)
 		if err != nil {
 			return nil, err
 		}
 		return zng.EncodeUint(uint64(uint32(f))), nil
 	case zng.TypeInt32:
-		f, err := strconv.ParseFloat(string(value), 10)
+		f, err := byteconv.ParseFloat64(value)
 		if err != nil {
 			return nil, err
 		}
 		return zng.EncodeInt(int64(int32(f))), nil
 	case zng.TypeUint16:
-		f, err := strconv.ParseFloat(string(value), 10)
+		f, err := byteconv.ParseFloat64(value)
 		if err != nil {
 			return nil, err
 		}
 		return zng.EncodeUint(uint64(uint16(f))), nil
 	case zng.TypeInt16:
-		f, err := strconv.ParseFloat(string(value), 10)
+		f, err := byteconv.ParseFloat64(value)
 		if err != nil {
 			return nil, err
 		}
 		return zng.EncodeInt(int64(int16(f))), nil
 	case zng.TypeByte:
-		f, err := strconv.ParseFloat(string(value), 10)
+		f, err := byteconv.ParseFloat64(value)
 		if err != nil {
 			return nil, err
 		}
