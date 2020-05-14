@@ -1070,7 +1070,7 @@ func compileCast(node ast.CastExpression) (NativeEvaluator, error) {
 			if !ok {
 				return zngnative.Value{}, ErrBadCast
 			}
-			return zngnative.Value{zng.TypeTime, i}, nil
+			return zngnative.Value{zng.TypeTime, i * 1_000_000_000}, nil
 		}, nil
 	default:
 		return nil, fmt.Errorf("cast to %s not implemeneted", node.Type)
