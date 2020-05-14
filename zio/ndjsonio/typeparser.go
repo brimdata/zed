@@ -35,7 +35,6 @@ type typeParser struct {
 var (
 	ErrDescriptorNotFound   = errors.New("descriptor not found")
 	ErrMissingPath          = errors.New("missing path field")
-	ErrBadFormat            = errors.New("bad format")
 	ErrIncompleteDescriptor = errors.New("incomplete descriptor")
 )
 
@@ -118,16 +117,16 @@ func (info *typeInfo) makeViews(data []byte) (int, error) {
 
 func appendRecordFromViews(builder *zcode.Builder, columns []zng.Column, jsonVals []jsonVal) ([]jsonVal, error) {
 
-	handleVal := func(jv jsonVal, typ zng.Type) error {
+	handleVal := func(jv jsonVal, col zng.Column) error {
 		switch jv.typ {
 		case jsonparser.Array:
 			builder.BeginContainer()
-			ztyp := zng.InnerType(typ)
+			ztyp := zng.InnerType(col.Type)
 			var iterErr error
 			callback := func(v []byte, typ jsonparser.ValueType, offset int, _ error) {
 				zv, err := parseSimpleType(v, ztyp)
 				if err != nil {
-					iterErr = err
+					iterErr = fmt.Errorf("field \"%s\" (type %s): %w", col.Name, typ, err)
 				} else {
 					builder.AppendPrimitive(zv)
 				}
@@ -138,21 +137,21 @@ func appendRecordFromViews(builder *zcode.Builder, columns []zng.Column, jsonVal
 			if iterErr != nil {
 				return iterErr
 			}
-			if _, ok := typ.(*zng.TypeSet); ok {
+			if _, ok := col.Type.(*zng.TypeSet); ok {
 				builder.TransformContainer(zng.NormalizeSet)
 			}
 			builder.EndContainer()
 		case jsonparser.NotExist, jsonparser.Null:
-			switch typ.(type) {
+			switch col.Type.(type) {
 			case *zng.TypeSet, *zng.TypeArray:
 				builder.AppendContainer(nil)
 			default:
 				builder.AppendPrimitive(nil)
 			}
 		default:
-			zv, err := parseSimpleType(jv.val, typ)
+			zv, err := parseSimpleType(jv.val, col.Type)
 			if err != nil {
-				return err
+				return fmt.Errorf("field \"%s\" (type %s): %w", col.Name, col.Type, err)
 			}
 			builder.AppendPrimitive(zv)
 		}
@@ -174,7 +173,7 @@ func appendRecordFromViews(builder *zcode.Builder, columns []zng.Column, jsonVal
 			}
 			builder.EndContainer()
 		} else {
-			if err := handleVal(jsonVals[0], typ); err != nil {
+			if err := handleVal(jsonVals[0], columns[c]); err != nil {
 				return nil, err
 			}
 			jsonVals = jsonVals[1:]
@@ -284,7 +283,7 @@ func (p *typeParser) parseObject(b []byte) (zng.Value, error) {
 	raw, dropped, err := ti.newRawFromJSON(b)
 	if err != nil {
 		incr(&p.stats.BadFormat)
-		return zng.Value{}, ErrBadFormat
+		return zng.Value{}, err
 	}
 	if dropped > 0 {
 		incr(&p.stats.IncompleteDescriptor)
