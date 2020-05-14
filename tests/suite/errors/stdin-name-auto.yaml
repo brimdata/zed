@@ -1,0 +1,13 @@
+script: |
+  zq - < bad.tzng
+
+inputs:
+  - name: bad.tzng
+    data: |
+        #0:record[_path:string]
+        0:[conn;1;]
+
+outputs:
+  - name: stderr
+    regexp: |
+      stdin: format detection error
