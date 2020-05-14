@@ -17,7 +17,7 @@ import (
 	"github.com/brimsec/zq/zio/parquetio"
 	"github.com/brimsec/zq/zng/resolver"
 
-	_ "github.com/xitongsys/parquet-go-source/local"
+	"github.com/xitongsys/parquet-go-source/local"
 )
 
 type OpenConfig struct {
@@ -113,21 +113,15 @@ func OpenS3File(zctx *resolver.Context, s3path string, cfg OpenConfig) (*zbuf.Fi
 }
 
 func OpenParquet(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, error) {
-	/*
-		fr, err := local.NewLocalFileReader(path)
-		if err != nil {
-			return nil, err
-		}
-		r, err := parquetio.NewReader(fr, zctx)
-		if err != nil {
-			return nil, err
-		}
-	*/
-	r, err := parquetio.NewTReader(path, zctx)
+	fr, err := local.NewLocalFileReader(path)
 	if err != nil {
 		return nil, err
 	}
-	return zbuf.NewFile(r, r, path), nil
+	r, err := parquetio.NewReader(fr, zctx)
+	if err != nil {
+		return nil, err
+	}
+	return zbuf.NewFile(r, fr, path), nil
 }
 
 func OpenFromNamedReadCloser(zctx *resolver.Context, rc io.ReadCloser, path string, cfg OpenConfig) (*zbuf.File, error) {
