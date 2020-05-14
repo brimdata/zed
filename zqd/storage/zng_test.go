@@ -36,5 +36,4 @@ func TestFailOnConcurrentWrites(t *testing.T) {
 	err = store.Rewrite(context.Background(), waitReader(time.Second*5))
 	require.Error(t, err)
 	require.True(t, errors.Is(err, storage.ErrWriteInProgress))
-
 }

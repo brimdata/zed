@@ -457,7 +457,7 @@ func checkPatterns(patterns map[string]*regexp.Regexp, dir *Dir, stdout, stderr 
 			}
 		}
 		if !re.Match(body) {
-			return fmt.Errorf("regex mismatch: %s %s", re, string(body))
+			return fmt.Errorf("regex mismatch: '%s' does not match '%s'", re, string(body))
 		}
 	}
 	return nil
