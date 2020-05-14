@@ -1,6 +1,7 @@
 package detector
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/url"
@@ -17,6 +18,8 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 
 	"github.com/xitongsys/parquet-go-source/local"
+	parquets3 "github.com/xitongsys/parquet-go-source/s3"
+	"github.com/xitongsys/parquet-go/source"
 )
 
 type OpenConfig struct {
@@ -41,12 +44,14 @@ const StdinPath = "/dev/stdin"
 // URL. If the path is neither of these or can't otherwise be opened,
 // an error is returned.
 func OpenFile(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, error) {
-	if IsS3Path(path) {
-		return OpenS3File(zctx, path, cfg)
-	}
-
+	// Parquet is special and needs its own reader for s3 sources- therefore this must go before
+	// the IsS3Path check.
 	if cfg.Format == "parquet" {
 		return OpenParquet(zctx, path, cfg)
+	}
+
+	if IsS3Path(path) {
+		return OpenS3File(zctx, path, cfg)
 	}
 
 	var f *os.File
@@ -113,15 +118,27 @@ func OpenS3File(zctx *resolver.Context, s3path string, cfg OpenConfig) (*zbuf.Fi
 }
 
 func OpenParquet(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, error) {
-	fr, err := local.NewLocalFileReader(path)
+	var pf source.ParquetFile
+	var err error
+	if IsS3Path(path) {
+		var u *url.URL
+		u, err = url.Parse(path)
+		if err != nil {
+			return nil, err
+		}
+		pf, err = parquets3.NewS3FileReader(context.Background(), u.Host, u.Path, cfg.AwsCfg)
+	} else {
+		pf, err = local.NewLocalFileReader(path)
+	}
 	if err != nil {
 		return nil, err
 	}
-	r, err := parquetio.NewReader(fr, zctx)
+
+	r, err := parquetio.NewReader(pf, zctx)
 	if err != nil {
 		return nil, err
 	}
-	return zbuf.NewFile(r, fr, path), nil
+	return zbuf.NewFile(r, pf, path), nil
 }
 
 func OpenFromNamedReadCloser(zctx *resolver.Context, rc io.ReadCloser, path string, cfg OpenConfig) (*zbuf.File, error) {
