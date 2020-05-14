@@ -1,6 +1,7 @@
 package detector
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
@@ -56,7 +57,8 @@ func NewReaderWithConfig(r io.Reader, zctx *resolver.Context, path string, cfg O
 	if zngErr == nil {
 		return zngio.NewReader(recorder, zctx), nil
 	}
-	return nil, joinErrs([]error{tzngErr, zeekErr, ndjsonErr, zjsonErr, zngErr})
+	parquetErr := errors.New("parquet: auto-detection not supported")
+	return nil, joinErrs([]error{tzngErr, zeekErr, ndjsonErr, zjsonErr, zngErr, parquetErr})
 }
 
 func NewReader(r io.Reader, zctx *resolver.Context) (zbuf.Reader, error) {
