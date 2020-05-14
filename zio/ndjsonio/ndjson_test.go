@@ -200,6 +200,20 @@ func TestNewRawFromJSON(t *testing.T) {
 			json:        `{"_path": "test", "ts":1573860644637}`,
 			defaultPath: "inferred",
 		},
+		{
+			name: "uint64 in scientific notation",
+			tzng: `#0:record[_path:string,datetime:uint64]
+0:[test;1521835103;]`,
+			json:        `{"_path": "test", "datetime":1.521835103E9}`,
+			defaultPath: "inferred",
+		},
+		{
+			name: "int64 in scientific notation",
+			tzng: `#0:record[_path:string,datetime:int64]
+0:[test;-1521835103;]`,
+			json:        `{"_path": "test", "datetime":-1.521835103E9}`,
+			defaultPath: "inferred",
+		},
 	}
 
 	for _, c := range cases {
