@@ -23,7 +23,7 @@ import (
 )
 
 func startServer(t *testing.T, dir string) *madmin.AdminClient {
-	go func() { minio.Main([]string{"--address :9000", "server", dir}) }()
+	go func() { minio.Main([]string{"--address localhost:9000", "server", dir}) }()
 
 	mcli, err := madmin.New("localhost:9000", "minioadmin", "minioadmin", false)
 	require.NoError(t, err)
