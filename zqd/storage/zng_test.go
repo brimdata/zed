@@ -13,10 +13,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type waitReader time.Duration
+type waitReader struct {
+	sync.WaitGroup
+	dur time.Duration
+}
 
-func (w waitReader) Read() (*zng.Record, error) {
-	time.Sleep(time.Duration(w))
+func (w *waitReader) Read() (*zng.Record, error) {
+	w.Done()
+	time.Sleep(w.dur)
 	return nil, errors.New("time out")
 }
 
@@ -25,16 +29,14 @@ func TestFailOnConcurrentWrites(t *testing.T) {
 	require.NoError(t, err)
 	store, err := storage.OpenZng(dir, 0)
 	require.NoError(t, err)
-	var wg sync.WaitGroup
-	wg.Add(1)
+	wr := &waitReader{dur: time.Second * 5}
+	wr.Add(1)
 	go func() {
-		wg.Done()
-		store.Rewrite(context.Background(), waitReader(time.Second*5))
+		store.Rewrite(context.Background(), wr)
 	}()
-	wg.Wait()
+	wr.Wait()
 
-	err = store.Rewrite(context.Background(), waitReader(time.Second*5))
+	err = store.Rewrite(context.Background(), nil)
 	require.Error(t, err)
 	require.True(t, errors.Is(err, storage.ErrWriteInProgress))
-
 }
