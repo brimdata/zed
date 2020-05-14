@@ -45,14 +45,14 @@ func stopServer(t *testing.T, cli *madmin.AdminClient) {
 	require.NoError(t, err)
 }
 
-func loadFile(t *testing.T, datadir, bucket, name, data string) {
+func loadFile(t *testing.T, datadir, bucket, name string, data []byte) {
 	bucketDir := path.Join(datadir, bucket)
 	err := os.MkdirAll(bucketDir, 0700)
 	require.NoError(t, err)
-	ioutil.WriteFile(path.Join(bucketDir, name), []byte(data), 0644)
+	ioutil.WriteFile(path.Join(bucketDir, name), data, 0644)
 }
 
-func TestS3MinioPoc(t *testing.T) {
+func TestS3Minio(t *testing.T) {
 	lines := []string{
 		"#0:record[ts:time,uid:bstring]",
 		"0:[1521911721.255387;C8Tful1TvM3Zf5x8fl;]",
@@ -62,7 +62,12 @@ func TestS3MinioPoc(t *testing.T) {
 	require.NoError(t, err)
 	defer os.RemoveAll(dir)
 
-	loadFile(t, dir, "brim", "conn.tzng", strings.Join(lines, "\n"))
+	loadFile(t, dir, "brim", "conn.tzng", []byte(strings.Join(lines, "\n")))
+
+	dnsParquet, err := ioutil.ReadFile("testdata/dns.parquet")
+	require.NoError(t, err)
+	loadFile(t, dir, "brim", "dns.parquet", dnsParquet)
+
 	mcli := startServer(t, dir)
 	waitForServer(t, mcli)
 
@@ -82,7 +87,7 @@ func TestS3MinioPoc(t *testing.T) {
 		},
 	}
 
-	t.Run("Open single file", func(t *testing.T) {
+	t.Run("Read single file", func(t *testing.T) {
 		var out bytes.Buffer
 		f, err := OpenFile(resolver.NewContext(), "s3://brim/conn.tzng", cfg)
 		require.NoError(t, err)
@@ -112,6 +117,20 @@ func TestS3MinioPoc(t *testing.T) {
 		expected := strings.Join([]string{lines[0], lines[1], lines[1], lines[2], lines[2]}, "\n")
 		require.Equal(t, expected, strings.TrimSpace(out.String()))
 	})
+	t.Run("Read parquet file", func(t *testing.T) {
+		var out bytes.Buffer
+		cfgP := cfg
+		cfgP.Format = "parquet"
+		f, err := OpenFile(resolver.NewContext(), "s3://brim/dns.parquet", cfgP)
+		require.NoError(t, err)
+		defer f.Close()
 
+		w := tzngio.NewWriter(&out)
+		err = zbuf.Copy(zbuf.NopFlusher(w), f)
+		require.NoError(t, err)
+		dnsZng, err := ioutil.ReadFile("testdata/dns.tzng")
+		require.NoError(t, err)
+		require.Equal(t, dnsZng, out.Bytes())
+	})
 	stopServer(t, mcli)
 }
