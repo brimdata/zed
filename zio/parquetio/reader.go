@@ -14,11 +14,14 @@ import (
 	"github.com/xitongsys/parquet-go/source"
 )
 
+const BUFSIZE = 1000
+
 type Reader struct {
 	pr      *reader.ParquetReader
 	typ     *zng.TypeRecord
 	columns []parquetColumn
 	record  int
+	buf     []interface{}
 }
 
 func NewReader(f source.ParquetFile, zctx *resolver.Context) (*Reader, error) {
@@ -41,7 +44,7 @@ func NewReader(f source.ParquetFile, zctx *resolver.Context) (*Reader, error) {
 		return nil, err
 	}
 
-	return &Reader{pr, typ, cols, 0}, nil
+	return &Reader{pr, typ, cols, 0, nil}, nil
 }
 
 type HandledType int
@@ -360,18 +363,28 @@ func convertListType(els []*parquet.SchemaElement, i int) (int, *parquetColumn, 
 }
 
 func (r *Reader) Read() (*zng.Record, error) {
-	if r.record == int(r.pr.GetNumRows()) {
-		return nil, nil
-	}
-	r.record++
+	var err error
+	if r.buf == nil || len(r.buf) == 0 {
+		toread := int(r.pr.GetNumRows()) - r.record
+		if toread == 0 {
+			return nil, nil
+		}
 
-	res, err := r.pr.ReadByNumber(1)
-	if err != nil {
-		return nil, err
+		if toread > BUFSIZE {
+			toread = BUFSIZE
+		}
+
+		r.record += toread
+
+		r.buf, err = r.pr.ReadByNumber(toread)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	builder := zcode.NewBuilder()
-	v := reflect.ValueOf(res[0])
+	v := reflect.ValueOf(r.buf[0])
+	r.buf = r.buf[1:]
 	for _, c := range r.columns {
 		fv := v.FieldByName(c.goName)
 		// parquet-go uses a native type for a required element
