@@ -67,7 +67,7 @@ func (c *Command) Run(args []string) error {
 	}
 	path := args[0]
 	if path == "-" {
-		path = "/dev/stdin"
+		path = detector.StdinPath
 	}
 	zctx := resolver.NewContext()
 	cfg := detector.OpenConfig{

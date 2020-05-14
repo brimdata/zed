@@ -34,6 +34,8 @@ func IsS3Path(path string) bool {
 	return u.Scheme == "s3"
 }
 
+const StdinPath = "/dev/stdin"
+
 // OpenFile creates and returns zbuf.File for the indicated "path",
 // which can be a local file path, a local directory path, or an S3
 // URL. If the path is neither of these or can't otherwise be opened,
@@ -48,7 +50,7 @@ func OpenFile(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, 
 	}
 
 	var f *os.File
-	if path == "/dev/stdin" {
+	if path == StdinPath {
 		f = os.Stdin
 	} else {
 		info, err := os.Stat(path)

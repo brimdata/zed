@@ -258,7 +258,7 @@ func (c *Command) inputReaders(paths []string) ([]zbuf.Reader, error) {
 	var readers []zbuf.Reader
 	for _, path := range paths {
 		if path == "-" {
-			path = "/dev/stdin"
+			path = detector.StdinPath
 		}
 		file, err := detector.OpenFile(c.zctx, path, cfg)
 		if err != nil {
