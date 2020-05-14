@@ -73,8 +73,7 @@ func (c *Command) Run(args []string) error {
 		path := archive.Localize(zardir, args[:1])
 		zctx := resolver.NewContext()
 		cfg := detector.OpenConfig{
-			Format:    c.ReaderFlags.Format,
-			DashStdin: true, //XXX
+			Format: c.ReaderFlags.Format,
 			//JSONTypeConfig: c.jsonTypeConfig,
 			//JSONPathRegex:  c.jsonPathRegexp,
 		}

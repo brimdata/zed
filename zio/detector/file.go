@@ -21,7 +21,6 @@ import (
 
 type OpenConfig struct {
 	Format         string
-	DashStdin      bool
 	JSONTypeConfig *ndjsonio.TypeConfig
 	JSONPathRegex  string
 	AwsCfg         *aws.Config
@@ -34,6 +33,8 @@ func IsS3Path(path string) bool {
 	}
 	return u.Scheme == "s3"
 }
+
+const StdinPath = "/dev/stdin"
 
 // OpenFile creates and returns zbuf.File for the indicated "path",
 // which can be a local file path, a local directory path, or an S3
@@ -49,7 +50,7 @@ func OpenFile(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, 
 	}
 
 	var f *os.File
-	if cfg.DashStdin && path == "-" {
+	if path == StdinPath {
 		f = os.Stdin
 	} else {
 		info, err := os.Stat(path)

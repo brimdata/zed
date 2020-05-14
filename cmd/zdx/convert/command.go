@@ -63,10 +63,12 @@ func (c *Command) Run(args []string) error {
 		return errors.New("must specify a single zng input file containing keys and optional values")
 	}
 	path := args[0]
+	if path == "-" {
+		path = detector.StdinPath
+	}
 	zctx := resolver.NewContext()
 	cfg := detector.OpenConfig{
-		Format:    c.ReaderFlags.Format,
-		DashStdin: true,
+		Format: c.ReaderFlags.Format,
 		//JSONTypeConfig: c.jsonTypeConfig,
 		//JSONPathRegex:  c.jsonPathRegexp,
 	}

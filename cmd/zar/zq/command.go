@@ -190,7 +190,6 @@ func (c *Command) Run(args []string) error {
 func (c *Command) inputReaders(zctx *resolver.Context, paths []string) ([]zbuf.Reader, error) {
 	cfg := detector.OpenConfig{
 		Format:         c.ReaderFlags.Format,
-		DashStdin:      true,
 		JSONTypeConfig: c.jsonTypeConfig,
 		JSONPathRegex:  c.jsonPathRegexp,
 	}
