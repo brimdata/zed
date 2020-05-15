@@ -1,11 +1,42 @@
 package nano_test
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestSpanJSON(t *testing.T) {
+	type teststruct struct {
+		Span nano.Span `json:"span"`
+	}
+	t.Run("MarshalZero", func(t *testing.T) {
+		data, err := json.Marshal(teststruct{})
+		assert.NoError(t, err)
+		assert.Equal(t, `{"span":null}`, string(data))
+	})
+	t.Run("UnmarshalZero", func(t *testing.T) {
+		test := teststruct{nano.Span{Ts: 0, Dur: 1}}
+		err := json.Unmarshal([]byte(`{"span":null}`), &test)
+		assert.NoError(t, err)
+		assert.Equal(t, nano.Span{}, test.Span)
+	})
+	t.Run("Marshal", func(t *testing.T) {
+		test := teststruct{nano.Span{Ts: 0, Dur: 1}}
+		data, err := json.Marshal(test)
+		assert.NoError(t, err)
+		assert.Equal(t, `{"span":{"ts":{"sec":0,"ns":0},"dur":{"sec":0,"ns":1}}}`, string(data))
+	})
+	t.Run("Unmarshal", func(t *testing.T) {
+		input := `{"span":{"ts":{"sec":0,"ns":0},"dur":{"sec":0,"ns":1}}}`
+		test := teststruct{nano.Span{Ts: 0, Dur: 10000}}
+		err := json.Unmarshal([]byte(input), &test)
+		assert.NoError(t, err)
+		assert.Equal(t, nano.Span{Dur: 1}, test.Span)
+	})
+}
 
 func TestSubSpan(t *testing.T) {
 	t.Parallel()

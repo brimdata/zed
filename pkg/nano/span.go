@@ -1,6 +1,7 @@
 package nano
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -24,6 +25,9 @@ type jsonSpan struct {
 // MarshalJSON fulfills the json.Marshaler interface.  We need to encode
 // Dur as a 64-bit timestamp so we use jsonSpan to do the conversion.
 func (s Span) MarshalJSON() ([]byte, error) {
+	if s.IsZero() {
+		return json.Marshal(nil)
+	}
 	v := jsonSpan{s.Ts, Ts(s.Dur)}
 	return json.Marshal(&v)
 }
@@ -33,6 +37,10 @@ func (s Span) MarshalJSON() ([]byte, error) {
 // XXX It would be nice to have Dur data type that we could marshal/unmarshal
 // but that creates a lot of casting changes in the current code.  Maybe later.
 func (s *Span) UnmarshalJSON(in []byte) error {
+	if bytes.Equal(in, []byte("null")) {
+		*s = Span{}
+		return nil
+	}
 	var v jsonSpan
 	if err := json.Unmarshal(in, &v); err != nil {
 		return err
@@ -180,6 +188,10 @@ func (s Span) String() string {
 func (s Span) Pretty() string {
 	d := time.Duration(s.Dur)
 	return fmt.Sprintf("%s+%s", s.Ts.Pretty(), d.String())
+}
+
+func (s Span) IsZero() bool {
+	return s.Dur == 0
 }
 
 func min(a, b Ts) Ts {
