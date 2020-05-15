@@ -325,6 +325,72 @@ zq "id.orig_h=10.164.94.120" zng/*.gz | zq -f table "count() by _path" -
 ```
 But using zar with the custom indexes is MUCH faster.  Pretty cool.
 
+## multi-key custom indexes
+
+In addition to a single-key search, you can build indexes with multiple keys
+in each row.  To do this, you list the keys in order
+of precedence, e.g., primary, secondary, etc.  Then, you can perform searches
+using one or more keys in that order where any missing keys are "don't cares"
+and will match all search rows with any value.
+
+For example, let's say we want to build an index that has primary key
+`id.resp_h` and secondary key `id.orig_h` from all the conn logs where we
+cache the sum of response bytes to each originator.
+
+First, we compute the aggregation with the sorted keys into a temp file,
+then we convert the sorted keys into an index, and finally we remove the temp file.
+```
+zar zq -o keys.zng "_path=conn | sum(resp_bytes) as resp_bytes by id.resp_h,id.orig_h | sort id.resp_h,id.orig_h" _
+zar zdx -o custom2 -k id.resp_h,id.orig_h keys.zng
+zar rm keys.zng
+```
+And now we can search with a primary key and a secondary key, e.g.,
+```
+zar find -z -x custom2 216.58.193.206 10.47.6.173 | zq -t -
+```
+which produces just one record as this pair appears in only one log file.
+```
+#zfile=string
+#0:record[id:record[resp_h:ip,orig_h:ip],resp_bytes:uint64,_log:zfile]
+0:[[216.58.193.206;10.47.6.173;]5112;/path/to/logs/20180324/1521912191.526264.zng;]
+```
+The nice thing here is that you can also just specify a primary key, which will
+issue a search that returns all the index hits that have the primary key with
+any value for the secondary key, e.g.,
+```
+zar find -z -x custom2 216.58.193.206 | zq -t -
+```
+and of course you can sum up all the response bytes to get a table and output
+it as text...
+```
+zar find -z -x custom2 216.58.193.206 | zq -f text "sum(resp_bytes)" -
+```
+Note that you can't "wild card" the primary key when doing a search via
+"zar find" because the index is sorted by primary key first, then secondary
+key, and so forth, and efficient lookups are carried out by traversing the
+b-tree index structure of these sorted keys.  But remember,
+everything is a zng file, so you can do a brute-force search on the base-layer
+of the index, e.g., to look for all the instances of a value in the secondary
+key position (ignoring the primary key) by using "zar zq" instead of "zar find".
+
+So, let's say we wanted
+a count of all bytes received by 10.47.6.173 as the originator, which is the
+secondary key.  While we could build a different custom index where id.orig_h
+is the primary key, we could also just scan the custom2 index using brute force:
+```
+zar zq id.orig_h=10.47.6.173 custom2.zng | zq -f text "sum(resp_bytes)" -
+```
+Even though this is a "brute force scan", it's a brute force scan of only this
+one micro-index so it runs much faster than scanning all of the original
+log data to perform the same query.
+
+But to double check here, you can run
+```
+zar zq id.orig_h=10.47.6.173 _ | zq -f text "sum(resp_bytes)" -
+```
+and you will get the same answer.
+
+
 ## Map-reduce
 
 What's really going on here is map-reduce style computation on your log archives
