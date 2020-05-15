@@ -76,6 +76,10 @@ func (p *process) wrapError(err error) error {
 		stderr = strings.TrimSpace(stderr)
 		return fmt.Errorf("zeek exited with status %d: %s", exitErr.ExitCode(), stderr)
 	}
+	var pathErr *os.PathError
+	if errors.As(err, &pathErr) {
+		return fmt.Errorf("error executing zeek runner: %s: %v", pathErr.Path, pathErr.Err)
+	}
 	return err
 }
 
