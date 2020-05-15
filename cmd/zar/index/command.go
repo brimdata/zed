@@ -60,6 +60,12 @@ func (c *Command) Run(args []string) error {
 	if c.root == "" {
 		return errors.New("zar index: a directory must be specified with -R or ZAR_ROOT")
 	}
+
+	ark, err := archive.OpenArchive(c.root)
+	if err != nil {
+		return err
+	}
+
 	var rules []archive.Rule
 	for _, pattern := range args {
 		rule, err := archive.NewRule(pattern)
@@ -80,7 +86,7 @@ func (c *Command) Run(args []string) error {
 			wg.Done()
 		}()
 	}
-	err := archive.IndexDirTree(c.root, rules, progress)
+	err = archive.IndexDirTree(ark, rules, progress)
 	if progress != nil {
 		close(progress)
 		wg.Wait()

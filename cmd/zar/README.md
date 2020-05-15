@@ -33,18 +33,18 @@ mkdir ./logs
 set ZAR_ROOT=`pwd`/logs
 ```
 
-Now, let's ingest the data using "zar chop".  We are working on more
+Now, let's ingest the data using "zar import".  We are working on more
 sophisticated ways to ingest data (e.g., by the standard time partitioning
-techniques of year/month/day/hour etc), but for now zar chop just chops
+techniques of year/month/day/hour etc), but for now zar import just chops
 its input into chunks of approximately equal size.
 
-Zar chop expects its input to be
+Zar import expects its input to be
 in the zng format so we'll use zq to take all the zng logs, gunzip them,
 and feed them to chop, which here expects its data on stdin.  We'll chop them
 into chunks of 25MB, which is very small, but in this example the data set is
 fairly small (175MB) and you can always try it out on larger data sets:
 ```
-zq zng/*.gz | zar chop -s 25 -
+zq zng/*.gz | zar import -s 25 -
 ```
 
 ## initializing the archive

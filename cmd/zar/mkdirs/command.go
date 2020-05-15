@@ -1,8 +1,8 @@
 package mkdirs
 
 import (
-	"errors"
 	"flag"
+	"os"
 	"regexp"
 
 	"github.com/brimsec/zq/archive"
@@ -13,10 +13,10 @@ import (
 
 var MkDirs = &charm.Spec{
 	Name:  "mkdirs",
-	Usage: "mkdirs [-p <glob>] dir",
+	Usage: "mkdirs [-R archive] [-p <glob>]",
 	Short: "walk a directory tree and create zar directories",
 	Long: `
-"zar mkdirs" descends the directory given by the dir argument looking for
+"zar mkdirs" walks an archive's directories looking for
 log files that match the glob-style pattern specified by -p.
 If -p is not provided, "*.zng" is used as a default.  For each matched file,
 "zar mkdirs" creates a zar directory if it does not already exist.  This conveniently
@@ -34,22 +34,26 @@ func init() {
 
 type Command struct {
 	*root.Command
+	root string
 	glob string
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
+	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive to walk")
 	f.StringVar(&c.glob, "p", "*.zng", "glob pattern for logs")
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	if len(args) != 1 {
-		return errors.New("zar mkdirs: directory to walk must be specified")
-	}
 	re, err := regexp.Compile(reglob.Reglob(c.glob))
 	if err != nil {
 		return err
 	}
-	return archive.MkDirs(args[0], re)
+
+	ark, err := archive.OpenArchive(c.root)
+	if err != nil {
+		return err
+	}
+	return archive.MkDirs(ark, re)
 }

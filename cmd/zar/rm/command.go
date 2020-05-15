@@ -55,7 +55,13 @@ func (c *Command) Run(args []string) error {
 	if c.root == "" {
 		return errors.New("zar rm: no archive root specified with -R or ZAR_ROOT")
 	}
-	return archive.Walk(c.root, func(zardir string) error {
+
+	ark, err := archive.OpenArchive(c.root)
+	if err != nil {
+		return err
+	}
+
+	return archive.Walk(ark, func(zardir string) error {
 		for _, name := range args {
 			path := filepath.Join(zardir, name)
 			if fileExists(path) {

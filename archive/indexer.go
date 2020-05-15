@@ -24,9 +24,9 @@ func fieldZdxName(fieldname string) string {
 	return "zdx:field:" + fieldname
 }
 
-func IndexDirTree(dir string, rules []Rule, progress chan<- string) error {
+func IndexDirTree(ark *Archive, rules []Rule, progress chan<- string) error {
 	nerr := 0
-	return Walk(dir, func(zardir string) error {
+	return Walk(ark, func(zardir string) error {
 		if err := run(zardir, rules, progress); err != nil {
 			if progress != nil {
 				progress <- fmt.Sprintf("%s: %s\n", zardir, err)

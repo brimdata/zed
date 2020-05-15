@@ -1,16 +1,16 @@
 script: |
   mkdir logs
-  zar chop -q -b 2500 -R ./logs babble.tzng
+  zar import -q -b 2500 -R ./logs babble.tzng
   echo ===
   zar ls -R ./logs
   echo ===
-  zar mkdirs ./logs
+  zar mkdirs -R ./logs
   zar ls -R ./logs
   echo ===
   touch logs/20200421/1587508830.06852324.zng.zar/foo
   zar ls -R ./logs foo
   echo ===
-  mkdir foo
+  zar import -empty -R foo
   mkdir foo/bar.zar
   touch foo/bar.zar/x
   touch foo/bar.zar/y

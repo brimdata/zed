@@ -1,7 +1,7 @@
 script: |
   mkdir logs
-  zar chop -q -b 2500 -R ./logs babble.tzng
-  zar mkdirs ./logs
+  zar import -q -b 2500 -R ./logs babble.tzng
+  zar mkdirs -R ./logs
   zar zq -R ./logs "count()" _ | zq -t "sum(count)" -
   echo ===
   zar zq -R ./logs -o count.zng "count()" _

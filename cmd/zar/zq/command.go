@@ -113,6 +113,11 @@ func (c *Command) Run(args []string) error {
 		c.outputFile = ""
 	}
 
+	ark, err := archive.OpenArchive(c.root)
+	if err != nil {
+		return err
+	}
+
 	if _, err := regexp.Compile(c.jsonPathRegexp); err != nil {
 		return err
 	}
@@ -126,13 +131,9 @@ func (c *Command) Run(args []string) error {
 	if len(args) == 0 {
 		return errors.New("zar zq needs input arguments")
 	}
-	rootPath := c.root
-	if rootPath == "" {
-		rootPath = "."
-	}
 	// XXX this is parallelizable except for writing to stdout when
 	// concatenating results
-	return archive.Walk(rootPath, func(zardir string) error {
+	return archive.Walk(ark, func(zardir string) error {
 		inputs := args
 		var query ast.Proc
 		var err error

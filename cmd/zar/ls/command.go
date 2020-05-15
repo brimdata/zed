@@ -15,10 +15,10 @@ import (
 
 var Ls = &charm.Spec{
 	Name:  "ls",
-	Usage: "ls dir [dir ...]",
+	Usage: "ls [options] [pattern]",
 	Short: "list the zar directories in an archive",
 	Long: `
-"zar ls" descends the one or more directories specified and prints out
+"zar ls" walks an archive's directories and prints out
 the path of each zar directory contained with those top-level directories.
 TBD: In the future, this command could
 display a detailed summary of the context each zar directory.
@@ -44,17 +44,20 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	if c.root == "" {
-		return errors.New("zar ls: no root specified with -R or ZAR_ROOT")
-	}
 	if len(args) > 1 {
 		return errors.New("zar ls: too many arguments")
 	}
+
+	ark, err := archive.OpenArchive(c.root)
+	if err != nil {
+		return err
+	}
+
 	var pattern string
 	if len(args) == 1 {
 		pattern = args[0]
 	}
-	return archive.Walk(c.root, func(zardir string) error {
+	return archive.Walk(ark, func(zardir string) error {
 		printDir(zardir, pattern, c.lflag)
 		return nil
 	})

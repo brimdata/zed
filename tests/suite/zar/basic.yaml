@@ -1,7 +1,9 @@
 script: |
   mkdir logs
-  zar chop -q -b 2500 -R ./logs babble.tzng
-  zar mkdirs ./logs
+  zar import -q -b 2500 -R ./logs babble.tzng
+  zq -t logs/zar.json
+  echo ===
+  zar mkdirs -R ./logs
   zar index -q -R ./logs v
   zar find -R ./logs v=106
   echo ===
@@ -15,6 +17,9 @@ inputs:
 outputs:
   - name: stdout
     data: |
+      #0:record[log_size_threshold:float64,version:float64]
+      0:[2500;0;]
+      ===
       logs/20200421/1587512398.0689091.zng
       logs/20200421/1587513208.06466306.zng
       logs/20200422/1587517919.0642989.zng
