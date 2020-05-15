@@ -23,25 +23,34 @@ type Config struct {
 	LogSizeThreshold int `json:"log_size_threshold"`
 }
 
-func (c *Config) Write(path string) error {
-	b, err := json.Marshal(c)
+func writeTempFile(dir, pattern string, b []byte) (name string, err error) {
+	f, err := ioutil.TempFile(dir, pattern)
 	if err != nil {
-		return err
-	}
-	f, err := ioutil.TempFile(filepath.Dir(path), "."+configName+".*")
-	if err != nil {
-		return err
+		return "", err
 	}
 	_, err = f.Write(b)
 	if err != nil {
 		f.Close()
-		return err
+		os.Remove(f.Name())
+		return "", err
 	}
-	err = f.Close()
+	return f.Name(), f.Close()
+}
+
+func (c *Config) Write(path string) (err error) {
+	b, err := json.Marshal(c)
 	if err != nil {
 		return err
 	}
-	return os.Rename(f.Name(), path)
+	tmp, err := writeTempFile(filepath.Dir(path), "."+configName+".*", b)
+	if err != nil {
+		return err
+	}
+	err = os.Rename(tmp, path)
+	if err != nil {
+		os.Remove(tmp)
+	}
+	return err
 }
 
 func ConfigRead(path string) (*Config, error) {
@@ -50,16 +59,8 @@ func ConfigRead(path string) (*Config, error) {
 		return nil, err
 	}
 	defer f.Close()
-	b, err := ioutil.ReadAll(f)
-	if err != nil {
-		return nil, err
-	}
 	var c Config
-	err = json.Unmarshal(b, &c)
-	if err != nil {
-		return nil, err
-	}
-	return &c, nil
+	return &c, json.NewDecoder(f).Decode(&c)
 }
 
 type CreateFlags struct {
@@ -91,21 +92,12 @@ type Archive struct {
 
 func OpenArchive(path string) (*Archive, error) {
 	if path == "" {
-		return nil, errors.New("no ZAR_ROOT directory specified")
+		return nil, errors.New("no archive directory specified")
 	}
-	info, err := os.Stat(path)
-	if err != nil {
-		return nil, err
-	}
-	if !info.IsDir() {
-		return nil, errors.New("ZAR_ROOT not a directory")
-	}
-
 	c, err := ConfigRead(filepath.Join(path, configName))
 	if err != nil {
 		return nil, err
 	}
-
 	return &Archive{
 		Config: c,
 		Root:   path,
@@ -114,26 +106,18 @@ func OpenArchive(path string) (*Archive, error) {
 
 func CreateOrOpenArchive(path string, f CreateFlags) (*Archive, error) {
 	if path == "" {
-		return nil, errors.New("no ZAR_ROOT directory specified")
+		return nil, errors.New("no archive directory specified")
 	}
-	if info, err := os.Stat(path); err != nil {
-		if os.IsNotExist(err) {
-			err = os.MkdirAll(path, 0700)
-			if err != nil {
-				return nil, err
-			}
-		}
-	} else if !info.IsDir() {
-		return nil, errors.New("ZAR_ROOT not a directory")
-	}
-
 	cfgpath := filepath.Join(path, configName)
 	if _, err := os.Stat(cfgpath); err != nil {
 		if os.IsNotExist(err) {
-			err = f.Config().Write(cfgpath)
-			if err != nil {
+			if err := os.MkdirAll(path, 0700); err != nil {
 				return nil, err
 			}
+			err = f.Config().Write(cfgpath)
+		}
+		if err != nil {
+			return nil, err
 		}
 	}
 	return OpenArchive(path)
