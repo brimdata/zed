@@ -1,6 +1,6 @@
 script: |
   mkdir logs
-  zar import -q -s 2500B -R ./logs babble.tzng
+  zar import -s 2500B -R ./logs babble.tzng
   zar mkdirs -R ./logs
   # make an index by hand for each log containing a sum
   zar zq -R ./logs -o tmp.zng "sum(v) by s | put key=s | sort key" _

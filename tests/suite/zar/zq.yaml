@@ -1,6 +1,6 @@
 script: |
   mkdir logs
-  zar import -q -s 2500B -R ./logs babble.tzng
+  zar import -s 2500B -R ./logs babble.tzng
   zar mkdirs -R ./logs
   zar zq -R ./logs "count()" _ | zq -t "sum(count)" -
   echo ===
