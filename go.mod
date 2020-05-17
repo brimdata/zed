@@ -3,6 +3,7 @@ module github.com/brimsec/zq
 go 1.13
 
 require (
+	github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf
 	github.com/alexbrainman/ps v0.0.0-20171229230509-b3e1b4a15894
 	github.com/aws/aws-sdk-go v1.30.19
 	github.com/axiomhq/hyperloglog v0.0.0-20191112132149-a4c4c47bc57f

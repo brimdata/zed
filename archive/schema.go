@@ -3,7 +3,6 @@ package archive
 import (
 	"encoding/json"
 	"errors"
-	"flag"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -19,8 +18,8 @@ var DefaultConfig Config = Config{
 }
 
 type Config struct {
-	Version          int `json:"version"`
-	LogSizeThreshold int `json:"log_size_threshold"`
+	Version          int   `json:"version"`
+	LogSizeThreshold int64 `json:"log_size_threshold"`
 }
 
 func writeTempFile(dir, pattern string, b []byte) (name string, err error) {
@@ -67,24 +66,16 @@ func ConfigRead(path string) (*Config, error) {
 	return &c, json.NewDecoder(f).Decode(&c)
 }
 
-type CreateFlags struct {
-	megaThresh int
-	byteThresh int
+type CreateOptions struct {
+	LogSizeThreshold *int64
 }
 
-func (f *CreateFlags) SetFlags(fs *flag.FlagSet) {
-	fs.IntVar(&f.megaThresh, "s", DefaultConfig.LogSizeThreshold/(1024*1024), "target size of chopped files in MiB")
-	fs.IntVar(&f.byteThresh, "b", 0, "target size of chopped files in bytes (overrides -s)")
-}
-
-func (f *CreateFlags) Config() *Config {
+func (c *CreateOptions) Config() *Config {
 	cfg := DefaultConfig
 
-	thresh := f.byteThresh
-	if thresh == 0 {
-		thresh = f.megaThresh * 1024 * 1024
+	if c.LogSizeThreshold != nil {
+		cfg.LogSizeThreshold = *c.LogSizeThreshold
 	}
-	cfg.LogSizeThreshold = thresh
 
 	return &cfg
 }
@@ -108,7 +99,7 @@ func OpenArchive(path string) (*Archive, error) {
 	}, nil
 }
 
-func CreateOrOpenArchive(path string, f CreateFlags) (*Archive, error) {
+func CreateOrOpenArchive(path string, co *CreateOptions) (*Archive, error) {
 	if path == "" {
 		return nil, errors.New("no archive directory specified")
 	}
@@ -118,7 +109,7 @@ func CreateOrOpenArchive(path string, f CreateFlags) (*Archive, error) {
 			if err := os.MkdirAll(path, 0700); err != nil {
 				return nil, err
 			}
-			err = f.Config().Write(cfgpath)
+			err = co.Config().Write(cfgpath)
 		}
 		if err != nil {
 			return nil, err

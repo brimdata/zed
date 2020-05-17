@@ -1,6 +1,6 @@
 script: |
   mkdir logs
-  zar import -q -b 2500 -R ./logs babble.tzng
+  zar import -q -s 2500B -R ./logs babble.tzng
   zq -t logs/zar.json
   echo ===
   zar mkdirs -R ./logs
