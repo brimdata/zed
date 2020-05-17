@@ -34,7 +34,11 @@ func writeTempFile(dir, pattern string, b []byte) (name string, err error) {
 		os.Remove(f.Name())
 		return "", err
 	}
-	return f.Name(), f.Close()
+	err = f.Close()
+	if err != nil {
+		os.Remove(f.Name())
+	}
+	return f.Name(), nil
 }
 
 func (c *Config) Write(path string) (err error) {
