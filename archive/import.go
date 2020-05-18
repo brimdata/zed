@@ -86,10 +86,21 @@ func (d *importDriver) ChannelEnd(cid int) error {
 func (d *importDriver) Warn(warning string) error          { return nil }
 func (d *importDriver) Stats(stats api.ScannerStats) error { return nil }
 
-func Import(ark *Archive, r zbuf.Reader) error {
-	var importProc = zql.MustParseProc("*")
+func importProc(ark *Archive) string {
+	if ark.Config.DataSortForward {
+		return "sort ts"
+	} else {
+		return "sort -r ts"
+	}
+}
 
-	fg, err := driver.Compile(context.TODO(), importProc, r, false, nano.MaxSpan, zap.NewNop())
+func Import(ark *Archive, r zbuf.Reader) error {
+	proc, err := zql.ParseProc(importProc(ark))
+	if err != nil {
+		return err
+	}
+
+	fg, err := driver.Compile(context.TODO(), proc, r, false, nano.MaxSpan, zap.NewNop())
 	if err != nil {
 		return err
 	}

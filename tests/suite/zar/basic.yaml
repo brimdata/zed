@@ -17,11 +17,11 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      #0:record[log_size_threshold:float64,version:float64]
-      0:[2500;0;]
+      #0:record[data_sort_forward:bool,log_size_threshold:float64,version:float64]
+      0:[F;2500;0;]
       ===
-      logs/20200421/1587512398.0689091.zng
-      logs/20200421/1587513208.06466306.zng
-      logs/20200422/1587517919.0642989.zng
+      logs/20200421/1587513216.06789438.zng
+      logs/20200422/1587514053.06464653.zng
+      logs/20200422/1587518620.0622373.zng
       ===
       ===

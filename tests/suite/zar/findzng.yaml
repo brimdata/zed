@@ -18,4 +18,4 @@ outputs:
     data: |
       #zfile=string
       #0:record[s:string,sum:int64,key:string,_log:zfile]
-      0:[amphitheatral-televox;251;amphitheatral-televox;logs/20200421/1587513208.06466306.zng;]
+      0:[amphitheatral-televox;251;amphitheatral-televox;logs/20200422/1587514053.06464653.zng;]

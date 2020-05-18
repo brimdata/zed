@@ -15,11 +15,13 @@ const configName = "zar.json"
 var DefaultConfig Config = Config{
 	Version:          0,
 	LogSizeThreshold: 500 * 1024 * 1024,
+	DataSortForward:  false,
 }
 
 type Config struct {
 	Version          int   `json:"version"`
 	LogSizeThreshold int64 `json:"log_size_threshold"`
+	DataSortForward  bool  `json:"data_sort_forward"`
 }
 
 func writeTempFile(dir, pattern string, b []byte) (name string, err error) {
@@ -93,6 +95,7 @@ func OpenArchive(path string) (*Archive, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &Archive{
 		Config: c,
 		Root:   path,
