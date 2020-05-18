@@ -8,20 +8,27 @@ import (
 	"path/filepath"
 
 	"github.com/brimsec/zq/pkg/fs"
+	"github.com/brimsec/zq/pkg/nano"
 )
 
-const configName = "zar.json"
+const metaDataFilename = "zar.json"
 
-var DefaultConfig Config = Config{
+var DefaultConfig MetaData = MetaData{
 	Version:          0,
 	LogSizeThreshold: 500 * 1024 * 1024,
 	DataSortForward:  false,
 }
 
-type Config struct {
-	Version          int   `json:"version"`
-	LogSizeThreshold int64 `json:"log_size_threshold"`
-	DataSortForward  bool  `json:"data_sort_forward"`
+type MetaData struct {
+	Version          int        `json:"version"`
+	LogSizeThreshold int64      `json:"log_size_threshold"`
+	DataSortForward  bool       `json:"data_sort_forward"`
+	Spans            []SpanInfo `json:"spans"`
+}
+
+type SpanInfo struct {
+	Span nano.Span `json:"span"`
+	Part string    `json:"part"`
 }
 
 func writeTempFile(dir, pattern string, b []byte) (name string, err error) {
@@ -42,12 +49,12 @@ func writeTempFile(dir, pattern string, b []byte) (name string, err error) {
 	return f.Name(), nil
 }
 
-func (c *Config) Write(path string) (err error) {
+func (c *MetaData) Write(path string) (err error) {
 	b, err := json.Marshal(c)
 	if err != nil {
 		return err
 	}
-	tmp, err := writeTempFile(filepath.Dir(path), "."+configName+".*", b)
+	tmp, err := writeTempFile(filepath.Dir(path), "."+metaDataFilename+".*", b)
 	if err != nil {
 		return err
 	}
@@ -58,13 +65,13 @@ func (c *Config) Write(path string) (err error) {
 	return err
 }
 
-func ConfigRead(path string) (*Config, error) {
+func ConfigRead(path string) (*MetaData, error) {
 	f, err := fs.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
-	var c Config
+	var c MetaData
 	return &c, json.NewDecoder(f).Decode(&c)
 }
 
@@ -72,7 +79,7 @@ type CreateOptions struct {
 	LogSizeThreshold *int64
 }
 
-func (c *CreateOptions) Config() *Config {
+func (c *CreateOptions) toMetaData() *MetaData {
 	cfg := DefaultConfig
 
 	if c.LogSizeThreshold != nil {
@@ -83,22 +90,27 @@ func (c *CreateOptions) Config() *Config {
 }
 
 type Archive struct {
-	Config *Config
-	Root   string
+	Meta *MetaData
+	Root string
+}
+
+func (ark *Archive) AppendSpans(spans []SpanInfo) error {
+	ark.Meta.Spans = append(ark.Meta.Spans, spans...)
+	return ark.Meta.Write(filepath.Join(ark.Root, metaDataFilename))
 }
 
 func OpenArchive(path string) (*Archive, error) {
 	if path == "" {
 		return nil, errors.New("no archive directory specified")
 	}
-	c, err := ConfigRead(filepath.Join(path, configName))
+	c, err := ConfigRead(filepath.Join(path, metaDataFilename))
 	if err != nil {
 		return nil, err
 	}
 
 	return &Archive{
-		Config: c,
-		Root:   path,
+		Meta: c,
+		Root: path,
 	}, nil
 }
 
@@ -106,13 +118,13 @@ func CreateOrOpenArchive(path string, co *CreateOptions) (*Archive, error) {
 	if path == "" {
 		return nil, errors.New("no archive directory specified")
 	}
-	cfgpath := filepath.Join(path, configName)
+	cfgpath := filepath.Join(path, metaDataFilename)
 	if _, err := os.Stat(cfgpath); err != nil {
 		if os.IsNotExist(err) {
 			if err := os.MkdirAll(path, 0700); err != nil {
 				return nil, err
 			}
-			err = co.Config().Write(cfgpath)
+			err = co.toMetaData().Write(cfgpath)
 		}
 		if err != nil {
 			return nil, err

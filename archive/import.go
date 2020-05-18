@@ -27,16 +27,22 @@ type importDriver struct {
 	bw  *bufwriter.Writer
 	zw  zbuf.Writer
 	n   int64
+
+	span    nano.Span
+	relpath string
+	spans   []SpanInfo
 }
 
 func (d *importDriver) writeOne(rec *zng.Record) error {
+	recspan := nano.NewSpanTs(rec.Ts, rec.Ts+1)
 	if d.zw == nil {
-		ts := rec.Ts
-		dir := filepath.Join(d.ark.Root, tsDir(ts))
+		d.span = recspan
+		dir := filepath.Join(d.ark.Root, tsDir(rec.Ts))
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			return err
 		}
-		path := filepath.Join(dir, ts.StringFloat()+".zng")
+		d.relpath = filepath.Join(tsDir(rec.Ts), rec.Ts.StringFloat()+".zng")
+		path := filepath.Join(d.ark.Root, d.relpath)
 		//XXX for now just truncate any existing file.
 		// a future PR will do a split/merge.
 		out, err := fs.OpenFile(path, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0644)
@@ -45,12 +51,14 @@ func (d *importDriver) writeOne(rec *zng.Record) error {
 		}
 		d.bw = bufwriter.New(out)
 		d.zw = zngio.NewWriter(d.bw, zio.WriterFlags{})
+	} else {
+		d.span = d.span.Union(recspan)
 	}
 	if err := d.zw.Write(rec); err != nil {
 		return err
 	}
 	d.n += int64(len(rec.Raw))
-	if d.n >= d.ark.Config.LogSizeThreshold {
+	if d.n >= d.ark.Meta.LogSizeThreshold {
 		if err := d.close(); err != nil {
 			return err
 		}
@@ -63,6 +71,10 @@ func (d *importDriver) close() error {
 		if err := d.bw.Close(); err != nil {
 			return err
 		}
+		d.spans = append(d.spans, SpanInfo{
+			Span: d.span,
+			Part: d.relpath,
+		})
 	}
 	d.zw = nil
 	d.n = 0
@@ -87,7 +99,7 @@ func (d *importDriver) Warn(warning string) error          { return nil }
 func (d *importDriver) Stats(stats api.ScannerStats) error { return nil }
 
 func importProc(ark *Archive) string {
-	if ark.Config.DataSortForward {
+	if ark.Meta.DataSortForward {
 		return "sort ts"
 	} else {
 		return "sort -r ts"
@@ -105,5 +117,10 @@ func Import(ark *Archive, r zbuf.Reader) error {
 		return err
 	}
 
-	return driver.Run(fg, &importDriver{ark: ark}, nil)
+	id := &importDriver{ark: ark}
+	if err := driver.Run(fg, id, nil); err != nil {
+		return err
+	}
+
+	return ark.AppendSpans(id.spans)
 }
