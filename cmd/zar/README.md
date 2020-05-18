@@ -232,7 +232,7 @@ But, what if we wanted to put even more information in the index
 alongside each key?  If we could, it seems we could do arbitrarily
 interesting things with this...
 
-## custom indexes
+## custom indexes: storing aggregations in an index
 
 Since everything is a zng file, you can create whatever values you want to
 go along with your index keys using zql queries.  Why don't we go back to counting?
@@ -242,7 +242,7 @@ this key, we'll compute the number of times that value appeared for each zeek
 log type.  To do this, we'll run "zar zq" in a way that leaves
 these results behind in each zar directory:
 ```
-zar zq -o groupby.zng "count() by _path, id.orig_h" _
+zar zq -o groupby.zng "count() by _path, id.orig_h | sort id.orig_h" _
 ```
 In this case, the `-o` argument to `zar zq` tells it to leave the results
 attached to the log file, in the zar directory associated with that log.
@@ -250,29 +250,12 @@ You can run ls to see the files are indeed there:
 ```
 zar ls groupby.zng
 ```
-Actually, instead of just this file hanging around, we'd like to turn it into
-an index that `zar find` can make sense out of.  The simplest way to do this
-is to add a "key" field and make sure the file is sorted by key:
-```
-zar zq -o keys.zng "put key=id.orig_h | cut -c id | sort key" groupby.zng
-```
-(ignore "value is unset" messages... we need to fix this)
-
-Run ls again and you'll see everything is there
-```
-zar ls -l
-```
-Since we made the key files, we don't need the old files anymore so we can
-delete them
-```
-zar rm groupby.zng
-```
 
 Now, we can convert the sorted-key zng file into an index that "zar find" can
 use by running "zar zdx" (the index form of a zng file is called a zdx file).
-The -o option provides the prefix of the zdx file.  Let's just called it "custom".
+The -o option provides the prefix of the zdx file name.  Let's just call it "custom".
 ```
-zar zdx -o custom keys.zng
+zar zdx -o custom -k id.orig_h groupby.zng
 ```
 Now I can see my index files for the custom rule I made
 ```
