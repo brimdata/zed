@@ -239,7 +239,7 @@ func decodeContainer(builder *zcode.Builder, typ zng.Type, body []interface{}) e
 		// each column either a string value or an array of string values
 		if column == nil {
 			// this is an unset column
-			if zng.IsContainerType(childType) || zng.IsContainerType(columns[k].Type) {
+			if zng.IsContainerType(zng.AliasedType(childType)) || zng.IsContainerType(zng.AliasedType(columns[k].Type)) {
 				builder.AppendContainer(nil)
 			} else {
 				builder.AppendPrimitive(nil)
@@ -252,14 +252,15 @@ func decodeContainer(builder *zcode.Builder, typ zng.Type, body []interface{}) e
 			}
 			childType = columns[k].Type
 		}
+		realType := zng.AliasedType(childType)
 		s, ok := column.(string)
 		if ok {
-			if err := decodeField(builder, childType, s); err != nil {
+			if err := decodeField(builder, realType, s); err != nil {
 				return err
 			}
 			continue
 		}
-		if utyp, ok := childType.(*zng.TypeUnion); ok {
+		if utyp, ok := realType.(*zng.TypeUnion); ok {
 			if err := decodeUnion(builder, utyp, column); err != nil {
 				return err
 			}
@@ -269,7 +270,7 @@ func decodeContainer(builder *zcode.Builder, typ zng.Type, body []interface{}) e
 		if !ok {
 			return errors.New("bad json for zjson value")
 		}
-		if err := decodeContainer(builder, childType, children); err != nil {
+		if err := decodeContainer(builder, realType, children); err != nil {
 			return err
 		}
 	}
