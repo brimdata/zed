@@ -1,6 +1,7 @@
 package zarimport
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -90,5 +91,5 @@ func (c *Command) Run(args []string) error {
 	}
 	defer reader.Close()
 
-	return archive.Import(ark, reader)
+	return archive.Import(context.TODO(), ark, reader)
 }

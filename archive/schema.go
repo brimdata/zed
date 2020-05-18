@@ -100,9 +100,9 @@ func (ark *Archive) AppendSpans(spans []SpanInfo) error {
 
 	sort.Slice(ark.Meta.Spans, func(i, j int) bool {
 		if ark.Meta.DataSortForward {
-			return ark.Meta.Spans[i].Span.Ts <= ark.Meta.Spans[j].Span.Ts
+			return ark.Meta.Spans[i].Span.Ts < ark.Meta.Spans[j].Span.Ts
 		} else {
-			return ark.Meta.Spans[j].Span.Ts <= ark.Meta.Spans[i].Span.Ts
+			return ark.Meta.Spans[j].Span.Ts < ark.Meta.Spans[i].Span.Ts
 		}
 	})
 

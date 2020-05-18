@@ -8,10 +8,6 @@ import (
 
 type Visitor func(zardir string) error
 
-func IsZarDir(path string) bool {
-	return filepath.Ext(path) == zarExt
-}
-
 func ZarDirToLog(path string) string {
 	return strings.TrimSuffix(path, zarExt)
 }

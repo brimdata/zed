@@ -34,7 +34,7 @@ type importDriver struct {
 }
 
 func (d *importDriver) writeOne(rec *zng.Record) error {
-	recspan := nano.NewSpanTs(rec.Ts, rec.Ts+1)
+	recspan := nano.Span{rec.Ts, 1}
 	if d.zw == nil {
 		d.span = recspan
 		dir := filepath.Join(d.ark.Root, tsDir(rec.Ts))
@@ -81,7 +81,10 @@ func (d *importDriver) close() error {
 	return nil
 }
 
-func (d *importDriver) Write(_ int, batch zbuf.Batch) error {
+func (d *importDriver) Write(cid int, batch zbuf.Batch) error {
+	if cid != 0 {
+		panic("importDriver write to non-zero channel")
+	}
 	for i := 0; i < batch.Length(); i++ {
 		if err := d.writeOne(batch.Index(i)); err != nil {
 			return err
@@ -92,6 +95,9 @@ func (d *importDriver) Write(_ int, batch zbuf.Batch) error {
 }
 
 func (d *importDriver) ChannelEnd(cid int) error {
+	if cid != 0 {
+		panic("importDriver ChannelEnd to non-zero channel")
+	}
 	return d.close()
 }
 
@@ -106,13 +112,13 @@ func importProc(ark *Archive) string {
 	}
 }
 
-func Import(ark *Archive, r zbuf.Reader) error {
+func Import(ctx context.Context, ark *Archive, r zbuf.Reader) error {
 	proc, err := zql.ParseProc(importProc(ark))
 	if err != nil {
 		return err
 	}
 
-	fg, err := driver.Compile(context.TODO(), proc, r, false, nano.MaxSpan, zap.NewNop())
+	fg, err := driver.Compile(ctx, proc, r, false, nano.MaxSpan, zap.NewNop())
 	if err != nil {
 		return err
 	}
