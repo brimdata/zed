@@ -628,6 +628,40 @@ func TestDeleteDuringPcapPost(t *testing.T) {
 	require.Error(t, <-pcapPostErr, "context canceled")
 }
 
+func TestSpaceDataDir(t *testing.T) {
+	src := `
+#0:record[_path:string,ts:time,uid:bstring]
+0:[conn;1521911723.205187;CBrzd94qfowOqJwCHa;]
+0:[conn;1521911721.255387;C8Tful1TvM3Zf5x8fl;]
+`
+
+	root := createTempDir(t)
+	datapath := createTempDir(t)
+
+	_, client1, done1 := newCoreAtDir(t, root)
+	defer done1()
+
+	// Verify space creation request uses datapath.
+	sp, err := client1.SpacePost(context.Background(), api.SpacePostRequest{
+		Name:     "test",
+		DataPath: datapath,
+	})
+	require.NoError(t, err)
+	_ = postSpaceLogs(t, client1, sp.ID, nil, src)
+	res := searchTzng(t, client1, sp.ID, "*")
+	require.Equal(t, test.Trim(src), res)
+
+	_, err = os.Stat(filepath.Join(datapath, "all.zng"))
+	require.NoError(t, err)
+
+	// Verify space load on startup uses datapath.
+	_, client2, done2 := newCoreAtDir(t, root)
+	defer done2()
+
+	res = searchTzng(t, client2, sp.ID, "*")
+	require.Equal(t, test.Trim(src), res)
+}
+
 // search runs the provided zql program as a search on the provided
 // space, returning the tzng results along with a slice of all control
 // messages that were received.
