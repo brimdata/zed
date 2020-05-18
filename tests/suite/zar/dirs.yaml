@@ -1,38 +1,44 @@
 script: |
   mkdir logs
-  zar import -R ./logs -empty
-  echo -n > logs/f1.zng
-  echo -n > logs/f2.zng
-  echo -n > logs/f3.ndjson
-  zar mkdirs -R ./logs -p "*.zng"
+  zar import -s 20KiB -R ./logs babble.tzng
+  find logs | sort
+  echo ===
+  zar ls -R ./logs
+  echo ===
   find logs | sort
   echo ===
   zar rmdirs -R ./logs
   find logs | sort
-  echo ===
-  zar mkdirs -R ./logs -p "*.ndjson"
-  find logs | sort
+
+inputs:
+  - name: babble.tzng
+    source: ../zdx/babble.tzng
 
 outputs:
   - name: stdout
     data: |
       logs
-      logs/f1.zng
-      logs/f1.zng.zar
-      logs/f2.zng
-      logs/f2.zng.zar
-      logs/f3.ndjson
+      logs/20200421
+      logs/20200421/1587512288.06249439.zng
+      logs/20200422
+      logs/20200422/1587518620.0622373.zng
+      logs/zar.json
+      ===
+      logs/20200422/1587518620.0622373.zng.zar
+      logs/20200421/1587512288.06249439.zng.zar
+      ===
+      logs
+      logs/20200421
+      logs/20200421/1587512288.06249439.zng
+      logs/20200421/1587512288.06249439.zng.zar
+      logs/20200422
+      logs/20200422/1587518620.0622373.zng
+      logs/20200422/1587518620.0622373.zng.zar
       logs/zar.json
       ===
       logs
-      logs/f1.zng
-      logs/f2.zng
-      logs/f3.ndjson
-      logs/zar.json
-      ===
-      logs
-      logs/f1.zng
-      logs/f2.zng
-      logs/f3.ndjson
-      logs/f3.ndjson.zar
+      logs/20200421
+      logs/20200421/1587512288.06249439.zng
+      logs/20200422
+      logs/20200422/1587518620.0622373.zng
       logs/zar.json

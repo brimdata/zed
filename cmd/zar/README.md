@@ -49,15 +49,6 @@ zq zng/*.gz | zar import -s 25 -
 
 ## initializing the archive
 
-You can list the contents of an archive with zar ls...
-```
-zar ls
-```
-Hmm, it doesn't show anything yet because we first have to turn the ingested
-data into an archive by creating the zar directories:
-```
-zar mkdirs ./logs
-```
 Try "zar ls" now and you can see the zar directories.  This is where zar puts
 lots of interesting data associated with each ingested log chunk.
 ```
@@ -470,7 +461,6 @@ To clean out all the files you've created in the zar directories and
 start over, just run
 ```
 zar rmdirs $ZAR_ROOT
-zar mkdirs $ZAR_ROOT
 ```
 This will leave all the ingested log files in place and just clear out
 the zar directories tied to log files.

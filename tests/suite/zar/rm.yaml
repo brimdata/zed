@@ -1,17 +1,16 @@
 script: |
-  zar import -empty -R foo
-  mkdir foo/a.zar
-  mkdir foo/b.zar
-  touch foo/a.zar/x
-  touch foo/a.zar/y
-  touch foo/b.zar/y
-  zar ls -R ./foo x
-  zar ls -R ./foo y
+  mkdir logs
+  zar import -s 20KiB -R ./logs babble.tzng
+  zar ls -R ./logs
   echo ===
-  zar rm -R ./foo y
+  touch logs/20200421/1587512288.06249439.zng.zar/foo
+  touch logs/20200422/1587518620.0622373.zng.zar/bar
+  zar ls -R ./logs foo
+  zar ls -R ./logs bar
   echo ===
-  zar ls -R ./foo x
-  zar ls -R ./foo y
+  zar rm -R ./logs foo
+  echo ===
+  find logs | sort
 
 inputs:
   - name: babble.tzng
@@ -20,11 +19,21 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      foo/a.zar/x
-      foo/a.zar/y
-      foo/b.zar/y
+      logs/20200422/1587518620.0622373.zng.zar
+      logs/20200421/1587512288.06249439.zng.zar
       ===
-      foo/a.zar/y: removed
-      foo/b.zar/y: removed
+      logs/20200421/1587512288.06249439.zng.zar/foo
+      logs/20200422/1587518620.0622373.zng.zar/bar
       ===
-      foo/a.zar/x
+      logs/20200422/1587518620.0622373.zng.zar/foo: not found
+      logs/20200421/1587512288.06249439.zng.zar/foo: removed
+      ===
+      logs
+      logs/20200421
+      logs/20200421/1587512288.06249439.zng
+      logs/20200421/1587512288.06249439.zng.zar
+      logs/20200422
+      logs/20200422/1587518620.0622373.zng
+      logs/20200422/1587518620.0622373.zng.zar
+      logs/20200422/1587518620.0622373.zng.zar/bar
+      logs/zar.json

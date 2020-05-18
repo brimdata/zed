@@ -1,20 +1,13 @@
 script: |
   mkdir logs
-  zar import -s 2500B -R ./logs babble.tzng
-  echo ===
+  zar import -s 20KiB -R ./logs babble.tzng
   zar ls -R ./logs
   echo ===
-  zar mkdirs -R ./logs
-  zar ls -R ./logs
-  echo ===
-  touch logs/20200422/1587517152.06293072.zng.zar/foo
+  touch logs/20200421/1587512288.06249439.zng.zar/foo
   zar ls -R ./logs foo
   echo ===
-  zar import -empty -R foo
-  mkdir foo/bar.zar
-  touch foo/bar.zar/x
-  touch foo/bar.zar/y
-  zar ls -R ./foo -l
+  zar ls -R ./logs -l
+  echo ===
 
 inputs:
   - name: babble.tzng
@@ -23,25 +16,12 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      ===
-      ===
-      logs/20200421/1587508850.06466032.zng.zar
-      logs/20200421/1587509729.06618418.zng.zar
-      logs/20200421/1587510414.06953991.zng.zar
-      logs/20200421/1587511094.06170004.zng.zar
-      logs/20200421/1587511734.06734765.zng.zar
-      logs/20200421/1587512439.06556231.zng.zar
-      logs/20200421/1587513216.06789438.zng.zar
-      logs/20200422/1587514053.06464653.zng.zar
-      logs/20200422/1587514825.06323209.zng.zar
-      logs/20200422/1587515660.06416955.zng.zar
-      logs/20200422/1587516416.06480216.zng.zar
-      logs/20200422/1587517152.06293072.zng.zar
-      logs/20200422/1587517956.06264854.zng.zar
       logs/20200422/1587518620.0622373.zng.zar
+      logs/20200421/1587512288.06249439.zng.zar
       ===
-      logs/20200422/1587517152.06293072.zng.zar/foo
+      logs/20200421/1587512288.06249439.zng.zar/foo
       ===
-      foo/bar.zar
-      	x
-      	y
+      logs/20200422/1587518620.0622373.zng.zar
+      logs/20200421/1587512288.06249439.zng.zar
+      	foo
+      ===

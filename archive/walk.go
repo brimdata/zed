@@ -1,10 +1,8 @@
 package archive
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 )
 
@@ -40,69 +38,23 @@ func Localize(zardir string, filenames []string) []string {
 	return out
 }
 
-// Walk descends a directory hierarchy looking for zar directories and
-// invokes the visitor on each log file with a zar dir, providing the path
-// of the log file and path of the zar dir.
+// Walk traverses the archive invoking the visitor on the zar dir corresponding
+// to each log file, creating the zar dir if needed.
 func Walk(ark *Archive, visit Visitor) error {
-	return filepath.Walk(ark.Root, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return fmt.Errorf("%q: %v", path, err)
+	for _, s := range ark.Meta.Spans {
+		zardir := LogToZarDir(filepath.Join(ark.Root, s.Part))
+		if err := os.MkdirAll(zardir, 0700); err != nil {
+			return err
 		}
-		if info.IsDir() && IsZarDir(path) {
-			if err := visit(path); err != nil {
-				return err
-			}
-			return filepath.SkipDir
+		if err := visit(zardir); err != nil {
+			return err
 		}
-		// descend...
-		return nil
-	})
-}
-
-// MkDirs descends a directory hierarchy looking for file paths that match
-// the provided regular expression and creates a zar directory for each
-// such file path.
-func MkDirs(ark *Archive, re *regexp.Regexp) error {
-	return filepath.Walk(ark.Root, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return fmt.Errorf("%q: %v", path, err)
-		}
-		if info.IsDir() {
-			if IsZarDir(path) {
-				// don't create zar dirs inside of existing
-				// zar dirs
-				return filepath.SkipDir
-			}
-			// descend...
-			return nil
-		}
-		if re.Match([]byte(path)) {
-			zardir := LogToZarDir(path)
-			if err := os.Mkdir(zardir, 0700); err != nil {
-				if os.IsExist(err) {
-					err = nil
-				}
-				return err
-			}
-		}
-		return nil
-	})
+	}
+	return nil
 }
 
 // RmDirs descends a directory hierarchy looking for zar dirs and remove
 // each such directory and all of its contents.
 func RmDirs(ark *Archive) error {
-	return filepath.Walk(ark.Root, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return fmt.Errorf("%q: %v", path, err)
-		}
-		if info.IsDir() && IsZarDir(path) {
-			if err := os.RemoveAll(path); err != nil {
-				return err
-			}
-			return filepath.SkipDir
-		}
-		// descend...
-		return nil
-	})
+	return Walk(ark, os.RemoveAll)
 }

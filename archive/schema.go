@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
@@ -96,6 +97,15 @@ type Archive struct {
 
 func (ark *Archive) AppendSpans(spans []SpanInfo) error {
 	ark.Meta.Spans = append(ark.Meta.Spans, spans...)
+
+	sort.Slice(ark.Meta.Spans, func(i, j int) bool {
+		if ark.Meta.DataSortForward {
+			return ark.Meta.Spans[i].Span.Ts <= ark.Meta.Spans[j].Span.Ts
+		} else {
+			return ark.Meta.Spans[j].Span.Ts <= ark.Meta.Spans[i].Span.Ts
+		}
+	})
+
 	return ark.Meta.Write(filepath.Join(ark.Root, metaDataFilename))
 }
 
