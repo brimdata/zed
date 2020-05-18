@@ -1,15 +1,16 @@
 script: |
   mkdir logs
+  zar import -R ./logs -empty
   echo -n > logs/f1.zng
   echo -n > logs/f2.zng
   echo -n > logs/f3.ndjson
-  zar mkdirs -p "*.zng" logs
+  zar mkdirs -R ./logs -p "*.zng"
   find logs | sort
   echo ===
-  zar rmdirs logs
+  zar rmdirs -R ./logs
   find logs | sort
   echo ===
-  zar mkdirs -p "*.ndjson" logs
+  zar mkdirs -R ./logs -p "*.ndjson"
   find logs | sort
 
 outputs:
@@ -21,14 +22,17 @@ outputs:
       logs/f2.zng
       logs/f2.zng.zar
       logs/f3.ndjson
+      logs/zar.json
       ===
       logs
       logs/f1.zng
       logs/f2.zng
       logs/f3.ndjson
+      logs/zar.json
       ===
       logs
       logs/f1.zng
       logs/f2.zng
       logs/f3.ndjson
       logs/f3.ndjson.zar
+      logs/zar.json

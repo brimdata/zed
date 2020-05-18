@@ -43,8 +43,8 @@ func Localize(zardir string, filenames []string) []string {
 // Walk descends a directory hierarchy looking for zar directories and
 // invokes the visitor on each log file with a zar dir, providing the path
 // of the log file and path of the zar dir.
-func Walk(dir string, visit Visitor) error {
-	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+func Walk(ark *Archive, visit Visitor) error {
+	return filepath.Walk(ark.Root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return fmt.Errorf("%q: %v", path, err)
 		}
@@ -62,8 +62,8 @@ func Walk(dir string, visit Visitor) error {
 // MkDirs descends a directory hierarchy looking for file paths that match
 // the provided regular expression and creates a zar directory for each
 // such file path.
-func MkDirs(dir string, re *regexp.Regexp) error {
-	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+func MkDirs(ark *Archive, re *regexp.Regexp) error {
+	return filepath.Walk(ark.Root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return fmt.Errorf("%q: %v", path, err)
 		}
@@ -91,8 +91,8 @@ func MkDirs(dir string, re *regexp.Regexp) error {
 
 // RmDirs descends a directory hierarchy looking for zar dirs and remove
 // each such directory and all of its contents.
-func RmDirs(dir string) error {
-	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+func RmDirs(ark *Archive) error {
+	return filepath.Walk(ark.Root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return fmt.Errorf("%q: %v", path, err)
 		}

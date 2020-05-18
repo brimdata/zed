@@ -66,10 +66,16 @@ func (c *Command) Run(args []string) error {
 	if len(args) != 1 {
 		return errors.New("zar zdx takes exactly one input file name")
 	}
+
+	ark, err := archive.OpenArchive(c.root)
+	if err != nil {
+		return err
+	}
+
 	keys := strings.Split(c.keys, ",")
 	// XXX this is parallelizable except for writing to stdout when
 	// concatenating results
-	return archive.Walk(c.root, func(zardir string) error {
+	return archive.Walk(ark, func(zardir string) error {
 		path := archive.Localize(zardir, args[:1])
 		zctx := resolver.NewContext()
 		cfg := detector.OpenConfig{

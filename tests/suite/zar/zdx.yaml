@@ -1,7 +1,7 @@
 script: |
   mkdir logs
-  zar chop -q -b 2500 -R ./logs babble.tzng
-  zar mkdirs ./logs
+  zar import -q -s 2500B -R ./logs babble.tzng
+  zar mkdirs -R ./logs
   # make an index by hand for each log containing a sum
   zar zq -R ./logs -o tmp.zng "sum(v) by s | put key=s | sort key" _
   # turn each custom key file into a b-tere index

@@ -86,9 +86,11 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	if c.root == "" {
-		return errors.New("zar find: root directory must be specified with -R or ZAR_ROOT")
+	ark, err := archive.OpenArchive(c.root)
+	if err != nil {
+		return err
 	}
+
 	var patterns []string
 	indexFile := c.indexFile
 	if indexFile != "" {
@@ -122,7 +124,7 @@ func (c *Command) Run(args []string) error {
 	hits := make(chan *zng.Record)
 	var searchErr error
 	go func() {
-		searchErr = archive.Find(ctx, c.root, indexFile, patterns, hits, c.pathField, c.skipMissing)
+		searchErr = archive.Find(ctx, ark, indexFile, patterns, hits, c.pathField, c.skipMissing)
 		close(hits)
 	}()
 	for hit := range hits {

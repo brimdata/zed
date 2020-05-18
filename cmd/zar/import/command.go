@@ -1,4 +1,4 @@
-package index
+package zarimport
 
 import (
 	"errors"
@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/alecthomas/units"
+	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/pkg/bufwriter"
 	"github.com/brimsec/zq/pkg/fs"
@@ -19,13 +21,13 @@ import (
 	"github.com/mccanne/charm"
 )
 
-var Chop = &charm.Spec{
-	Name:  "chop",
-	Usage: "chop [options] file",
-	Short: "chop log files into pieces",
+var Import = &charm.Spec{
+	Name:  "import",
+	Usage: "import [options] file",
+	Short: "import log files into pieces",
 	Long: `
-The chop command provides a crude way to break up a zng file or stream
-into smaller chunks.  It takes as input zng data and cuts the stream
+The import command provides a way to create a new zar archive with data.
+It takes as input zng data and cuts the stream
 into chunks where each chunk is created when the size threshold is exceeded,
 either in bytes (-b) or megabytes (-s).  The path of each chunk is a subdirectory
 in the specified directory (-R or ZAR_ROOT) where the subdirectory name is derived from the
@@ -35,24 +37,24 @@ timestamp of the first zng record in that chunk.
 }
 
 func init() {
-	root.Zar.Add(Chop)
+	root.Zar.Add(Import)
 }
 
 type Command struct {
 	*root.Command
-	megaThresh  int
-	byteThresh  int
 	root        string
+	thresh      string
 	quiet       bool
+	empty       bool
 	ReaderFlags zio.ReaderFlags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive for chopped files")
-	f.IntVar(&c.megaThresh, "s", 500, "target size of chopped files in MB")
-	f.IntVar(&c.byteThresh, "b", 0, "target size of chopped files in bytes (overrides -s)")
+	f.StringVar(&c.thresh, "s", units.Base2Bytes(archive.DefaultConfig.LogSizeThreshold).String(), "target size of chopped files, as '10MB' or '4GiB', etc.")
 	f.BoolVar(&c.quiet, "q", false, "do not print progress updates to stdout")
+	f.BoolVar(&c.empty, "empty", false, "create an archive without initial data")
 	c.ReaderFlags.SetFlags(f)
 	return c, nil
 }
@@ -62,9 +64,28 @@ func tsDir(ts nano.Ts) string {
 }
 
 func (c *Command) Run(args []string) error {
-	if len(args) != 1 {
-		return errors.New("zar chop: exactly one input file must be specified (- for stdin)")
+	if c.empty && len(args) > 0 {
+		return errors.New("zar import: empty flag specified with input files")
+	} else if !c.empty && len(args) != 1 {
+		return errors.New("zar import: exactly one input file must be specified (- for stdin)")
 	}
+
+	co := &archive.CreateOptions{}
+	if thresh, err := units.ParseStrictBytes(c.thresh); err != nil {
+		return fmt.Errorf("invalid target file size: %w", err)
+	} else {
+		co.LogSizeThreshold = &thresh
+	}
+
+	ark, err := archive.CreateOrOpenArchive(c.root, co)
+	if err != nil {
+		return err
+	}
+
+	if c.empty {
+		return nil
+	}
+
 	path := args[0]
 	if path == "-" {
 		path = detector.StdinPath
@@ -82,10 +103,6 @@ func (c *Command) Run(args []string) error {
 	var w *bufwriter.Writer
 	var zw zbuf.Writer
 	var n int
-	thresh := c.byteThresh
-	if thresh == 0 {
-		thresh = c.megaThresh * 1024 * 1024
-	}
 	for {
 		rec, err := reader.Read()
 		if err != nil || rec == nil {
@@ -98,11 +115,7 @@ func (c *Command) Run(args []string) error {
 		}
 		if w == nil {
 			ts := rec.Ts
-			rootDir := c.root
-			if rootDir == "" {
-				rootDir = "."
-			}
-			dir := filepath.Join(rootDir, tsDir(ts))
+			dir := filepath.Join(ark.Root, tsDir(ts))
 			if err := os.MkdirAll(dir, 0755); err != nil {
 				return err
 			}
@@ -123,7 +136,7 @@ func (c *Command) Run(args []string) error {
 			return err
 		}
 		n += len(rec.Raw)
-		if n >= thresh {
+		if int64(n) >= ark.Config.LogSizeThreshold {
 			if err := w.Close(); err != nil {
 				return err
 			}

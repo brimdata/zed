@@ -1,8 +1,8 @@
 package rmdirs
 
 import (
-	"errors"
 	"flag"
+	"os"
 
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cmd/zar/root"
@@ -11,7 +11,7 @@ import (
 
 var RmDirs = &charm.Spec{
 	Name:  "rmdirs",
-	Usage: "rmdirs <dir>",
+	Usage: "rmdirs [-R archive]",
 	Short: "walk a directory tree and remove zar directories",
 	Long: `
 "zar rmdirs" descends the provided directory looking for
@@ -28,16 +28,19 @@ func init() {
 
 type Command struct {
 	*root.Command
+	root string
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
+	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive to walk")
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	if len(args) != 1 {
-		return errors.New("zar rmdirs: must specified top-level directory to walk and delete")
+	ark, err := archive.OpenArchive(c.root)
+	if err != nil {
+		return err
 	}
-	return archive.RmDirs(args[0])
+	return archive.RmDirs(ark)
 }

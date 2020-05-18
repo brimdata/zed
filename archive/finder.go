@@ -27,7 +27,7 @@ import (
 // be more efficient at large scale to allow multipe patterns that
 // are effectively OR-ed together so that there is locality of
 // access to the zdx files.
-func Find(ctx context.Context, rootDir, indexName string, pattern []string, hits chan<- *zng.Record, pathField string, skipMissing bool) error {
+func Find(ctx context.Context, ark *Archive, indexName string, pattern []string, hits chan<- *zng.Record, pathField string, skipMissing bool) error {
 	//XXX this can be parallelized fairly easily since the search results are
 	// share the same type context allowing the zng.Records to easily comprise
 	// a single stream
@@ -44,7 +44,7 @@ func Find(ctx context.Context, rootDir, indexName string, pattern []string, hits
 		pathCol = []zng.Column{{pathField, typ}}
 	}
 	ctx, cancel := context.WithCancel(ctx)
-	return Walk(rootDir, func(zardir string) error {
+	return Walk(ark, func(zardir string) error {
 		path := filepath.Join(zardir, indexName)
 		searchHits := make(chan *zng.Record)
 		var searchErr error

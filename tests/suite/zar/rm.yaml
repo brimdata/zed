@@ -1,5 +1,5 @@
 script: |
-  mkdir foo
+  zar import -empty -R foo
   mkdir foo/a.zar
   mkdir foo/b.zar
   touch foo/a.zar/x
