@@ -224,7 +224,8 @@ func TestAlias(t *testing.T) {
 1:[bro;127.0.0.1;]`
 	const recordAlias = `#myrec=record[host:ip]
 #0:record[foo:myrec]
-0:[[127.0.0.2;]]`
+0:[[127.0.0.2;]]
+0:[-;]`
 
 	t.Run("Zng", func(t *testing.T) {
 		t.Run("simple", func(t *testing.T) {
