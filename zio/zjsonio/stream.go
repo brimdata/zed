@@ -108,6 +108,7 @@ func encodeContainer(typ zng.Type, val []byte) (interface{}, error) {
 				childType = columns[k].Type
 				k++
 			}
+			childType = zng.AliasedType(childType)
 			if utyp, ok := (childType).(*zng.TypeUnion); ok {
 				if !container {
 					return nil, zng.ErrBadValue

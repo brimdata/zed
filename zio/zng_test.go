@@ -222,6 +222,10 @@ func TestAlias(t *testing.T) {
 0:[bar;127.0.0.1;]
 #1:record[foo:string,resp_h:ipaddr]
 1:[bro;127.0.0.1;]`
+	const recordAlias = `#myrec=record[host:ip]
+#0:record[foo:myrec]
+0:[[127.0.0.2;]]
+0:[-;]`
 
 	t.Run("Zng", func(t *testing.T) {
 		t.Run("simple", func(t *testing.T) {
@@ -243,6 +247,9 @@ func TestAlias(t *testing.T) {
 		})
 		t.Run("alias-in-different-records", func(t *testing.T) {
 			boomerangZJSON(t, multipleRecords)
+		})
+		t.Run("alias-of-record-type", func(t *testing.T) {
+			boomerangZJSON(t, recordAlias)
 		})
 	})
 }

@@ -239,7 +239,7 @@ func decodeContainer(builder *zcode.Builder, typ zng.Type, body []interface{}) e
 		// each column either a string value or an array of string values
 		if column == nil {
 			// this is an unset column
-			if zng.IsContainerType(childType) || zng.IsContainerType(columns[k].Type) {
+			if zng.IsContainerType(zng.AliasedType(childType)) || zng.IsContainerType(zng.AliasedType(columns[k].Type)) {
 				builder.AppendContainer(nil)
 			} else {
 				builder.AppendPrimitive(nil)
@@ -250,7 +250,7 @@ func decodeContainer(builder *zcode.Builder, typ zng.Type, body []interface{}) e
 			if k >= len(columns) {
 				return &zng.RecordTypeError{Name: "<record>", Type: typ.String(), Err: zng.ErrExtraField}
 			}
-			childType = columns[k].Type
+			childType = zng.AliasedType(columns[k].Type)
 		}
 		s, ok := column.(string)
 		if ok {
