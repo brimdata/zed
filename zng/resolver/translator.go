@@ -21,17 +21,21 @@ func NewTranslator(in, out *Context) *Translator {
 }
 
 // Lookup implements zng.Resolver
-func (t *Translator) Lookup(id int) *zng.TypeRecord {
+func (t *Translator) Lookup(id int) (*zng.TypeRecord, error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	outputType := t.lookup(id)
+	var err error
 	if outputType == nil {
 		inputType := t.inputCtx.Lookup(id)
 		if inputType == nil {
-			return nil
+			return nil, nil
 		}
-		outputType = t.outputCtx.TranslateTypeRecord(inputType)
+		outputType, err = t.outputCtx.TranslateTypeRecord(inputType)
+		if err != nil {
+			return nil, err
+		}
 		t.enter(id, outputType)
 	}
-	return outputType
+	return outputType, nil
 }
