@@ -27,7 +27,7 @@ func (w *waitReader) Read() (*zng.Record, error) {
 func TestFailOnConcurrentWrites(t *testing.T) {
 	dir, err := ioutil.TempDir("", t.Name())
 	require.NoError(t, err)
-	store, err := storage.OpenZng(dir, 0)
+	store, err := storage.Load(dir)
 	require.NoError(t, err)
 	wr := &waitReader{dur: time.Second * 5}
 	wr.Add(1)

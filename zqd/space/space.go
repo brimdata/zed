@@ -21,9 +21,8 @@ import (
 )
 
 const (
-	configFile        = "config.json"
-	PcapIndexFile     = "packets.idx.json"
-	defaultStreamSize = 5000
+	configFile    = "config.json"
+	PcapIndexFile = "packets.idx.json"
 )
 
 var (
@@ -53,8 +52,8 @@ type Space struct {
 	cancelChan chan struct{}
 }
 
-func newSpace(path string, conf config) (*Space, error) {
-	s, err := storage.OpenZng(conf.DataPath, conf.ZngStreamSize)
+func loadSpace(path string, conf config) (*Space, error) {
+	s, err := storage.Load(conf.DataPath)
 	if err != nil {
 		return nil, err
 	}
@@ -233,10 +232,6 @@ func (s *Space) PcapPath() string {
 	return s.conf.PcapPath
 }
 
-func (s *Space) StreamSize() int {
-	return s.conf.ZngStreamSize
-}
-
 // Delete removes the space's path and data dir (should the data dir be
 // different then the space's path).
 // Don't call this directly, used Manager.Delete()
@@ -265,8 +260,7 @@ type config struct {
 	DataPath string `json:"data_path"`
 	// XXX PcapPath should be named pcap_path in json land. To avoid having to
 	// do a migration we'll keep this as-is for now.
-	PcapPath      string `json:"packet_path"`
-	ZngStreamSize int    `json:"zng_stream_size"`
+	PcapPath string `json:"packet_path"`
 }
 
 // loadConfig loads the contents of config.json in a space's path.

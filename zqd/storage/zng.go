@@ -23,16 +23,18 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-var (
-	ErrWriteInProgress = errors.New("another write is already in progress")
-)
-
-var zngWriteProc = zql.MustParseProc("sort -r ts")
-
 const (
 	allZngFile    = "all.zng"
 	allZngTmpFile = "all.zng.tmp"
 	infoFile      = "info.json"
+
+	defaultStreamSize = 5000
+)
+
+var (
+	ErrWriteInProgress = errors.New("another write is already in progress")
+
+	zngWriteProc = zql.MustParseProc("sort -r ts")
 )
 
 type ZngStorage struct {
@@ -43,11 +45,11 @@ type ZngStorage struct {
 	wsem       *semaphore.Weighted
 }
 
-func OpenZng(path string, streamsize int) (*ZngStorage, error) {
+func Load(path string) (*ZngStorage, error) {
 	s := &ZngStorage{
 		path:       path,
 		index:      zngio.NewTimeIndex(),
-		streamsize: streamsize,
+		streamsize: defaultStreamSize,
 		wsem:       semaphore.NewWeighted(1),
 	}
 	return s, s.readInfoFile()
