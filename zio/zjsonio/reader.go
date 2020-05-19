@@ -250,17 +250,16 @@ func decodeContainer(builder *zcode.Builder, typ zng.Type, body []interface{}) e
 			if k >= len(columns) {
 				return &zng.RecordTypeError{Name: "<record>", Type: typ.String(), Err: zng.ErrExtraField}
 			}
-			childType = columns[k].Type
+			childType = zng.AliasedType(columns[k].Type)
 		}
-		realType := zng.AliasedType(childType)
 		s, ok := column.(string)
 		if ok {
-			if err := decodeField(builder, realType, s); err != nil {
+			if err := decodeField(builder, childType, s); err != nil {
 				return err
 			}
 			continue
 		}
-		if utyp, ok := realType.(*zng.TypeUnion); ok {
+		if utyp, ok := childType.(*zng.TypeUnion); ok {
 			if err := decodeUnion(builder, utyp, column); err != nil {
 				return err
 			}
@@ -270,7 +269,7 @@ func decodeContainer(builder *zcode.Builder, typ zng.Type, body []interface{}) e
 		if !ok {
 			return errors.New("bad json for zjson value")
 		}
-		if err := decodeContainer(builder, realType, children); err != nil {
+		if err := decodeContainer(builder, childType, children); err != nil {
 			return err
 		}
 	}

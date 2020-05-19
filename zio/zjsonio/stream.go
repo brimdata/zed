@@ -108,8 +108,8 @@ func encodeContainer(typ zng.Type, val []byte) (interface{}, error) {
 				childType = columns[k].Type
 				k++
 			}
-			realType := zng.AliasedType(childType)
-			if utyp, ok := (realType).(*zng.TypeUnion); ok {
+			childType = zng.AliasedType(childType)
+			if utyp, ok := (childType).(*zng.TypeUnion); ok {
 				if !container {
 					return nil, zng.ErrBadValue
 				}
@@ -118,11 +118,11 @@ func encodeContainer(typ zng.Type, val []byte) (interface{}, error) {
 					return nil, err
 				}
 				body = append(body, fld)
-			} else if zng.IsContainerType(realType) {
+			} else if zng.IsContainerType(childType) {
 				if !container {
 					return nil, zng.ErrBadValue
 				}
-				child, err := encodeContainer(realType, v)
+				child, err := encodeContainer(childType, v)
 				if err != nil {
 					return nil, err
 				}
@@ -131,7 +131,7 @@ func encodeContainer(typ zng.Type, val []byte) (interface{}, error) {
 				if container {
 					return nil, zng.ErrBadValue
 				}
-				fld, err := encodePrimitive(realType, v)
+				fld, err := encodePrimitive(childType, v)
 				if err != nil {
 					return nil, err
 				}
