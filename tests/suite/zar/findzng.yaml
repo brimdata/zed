@@ -1,8 +1,7 @@
 
 script: |
   mkdir logs
-  zar import -q -s 2500B -R ./logs babble.tzng
-  zar mkdirs -R ./logs
+  zar import -s 2500B -R ./logs babble.tzng
   # make an index by hand for each log containing a sum
   zar zq -R ./logs -o tmp.zng "sum(v) by s | put key=s | sort key" _
   # turn each custom key file into a b-tree index
@@ -18,4 +17,4 @@ outputs:
     data: |
       #zfile=string
       #0:record[s:string,sum:int64,key:string,_log:zfile]
-      0:[amphitheatral-televox;251;amphitheatral-televox;logs/20200421/1587513208.06466306.zng;]
+      0:[amphitheatral-televox;251;amphitheatral-televox;logs/20200422/1587514053.06464653.zng;]

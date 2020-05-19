@@ -1,14 +1,13 @@
 script: |
   mkdir logs
-  zar import -q -s 2500B -R ./logs babble.tzng
-  zar mkdirs -R ./logs
+  zar import -s 2500B -R ./logs babble.tzng
   # make an index by hand for each log containing a sum
   zar zq -R ./logs -o tmp.zng "sum(v) by s | put key=s | sort key" _
   # turn each custom key file into a b-tere index
   zar zdx -R ./logs -f 500 -o index tmp.zng
   ls logs/*/*/index.1.zng | sort
   echo ===
-  zq -t logs/20200421/1587513208.06466306.zng.zar/index.1.zng
+  zq -t logs/20200421/1587513216.06789438.zng.zar/index.1.zng
 
 inputs:
   - name: babble.tzng
@@ -17,26 +16,26 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      logs/20200421/1587508830.06852324.zng.zar/index.1.zng
-      logs/20200421/1587509666.06371639.zng.zar/index.1.zng
-      logs/20200421/1587510340.06376481.zng.zar/index.1.zng
-      logs/20200421/1587511070.06294938.zng.zar/index.1.zng
-      logs/20200421/1587511703.06774599.zng.zar/index.1.zng
-      logs/20200421/1587512398.0689091.zng.zar/index.1.zng
-      logs/20200421/1587513208.06466306.zng.zar/index.1.zng
-      logs/20200422/1587513965.0662909.zng.zar/index.1.zng
-      logs/20200422/1587514781.06104719.zng.zar/index.1.zng
-      logs/20200422/1587515638.06653301.zng.zar/index.1.zng
-      logs/20200422/1587516408.06648763.zng.zar/index.1.zng
-      logs/20200422/1587517144.06969796.zng.zar/index.1.zng
-      logs/20200422/1587517919.0642989.zng.zar/index.1.zng
+      logs/20200421/1587509729.06618418.zng.zar/index.1.zng
+      logs/20200421/1587510414.06953991.zng.zar/index.1.zng
+      logs/20200421/1587511094.06170004.zng.zar/index.1.zng
+      logs/20200421/1587511734.06734765.zng.zar/index.1.zng
+      logs/20200421/1587512439.06556231.zng.zar/index.1.zng
+      logs/20200421/1587513216.06789438.zng.zar/index.1.zng
+      logs/20200422/1587514053.06464653.zng.zar/index.1.zng
+      logs/20200422/1587514825.06323209.zng.zar/index.1.zng
+      logs/20200422/1587515660.06416955.zng.zar/index.1.zng
+      logs/20200422/1587516416.06480216.zng.zar/index.1.zng
+      logs/20200422/1587517152.06293072.zng.zar/index.1.zng
+      logs/20200422/1587517956.06264854.zng.zar/index.1.zng
+      logs/20200422/1587518620.0622373.zng.zar/index.1.zng
       ===
       #0:record[key:string,_btree_child:int64]
-      0:[Auriga-teat;0;]
-      0:[algesthesis-unkindred;539;]
-      0:[colonopexy-ketonimin;1042;]
-      0:[gangliac-cuspule;1548;]
-      0:[nephratonia-subdeltoid;2074;]
-      0:[ratiocinant-unmoaned;2610;]
-      0:[sniggoringly-craniography;3142;]
-      0:[veridically-coelenterate;3651;]
+      0:[Aulacomniaceae-kerril;0;]
+      0:[anemogram-throngingly;551;]
+      0:[cowhiding-pterylographic;1094;]
+      0:[hyperdactyl-groper;1609;]
+      0:[manifesto-mortally;2112;]
+      0:[parviflorous-unspoilable;2620;]
+      0:[scythelike-Bartonia;3148;]
+      0:[unevaded-Wishram;3652;]
