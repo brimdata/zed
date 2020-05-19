@@ -1,51 +1,22 @@
 package parquetio
 
 import (
+	"errors"
 	"fmt"
-	"reflect"
 
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/xitongsys/parquet-go/common"
+	"github.com/xitongsys/parquet-go/layout"
 	"github.com/xitongsys/parquet-go/parquet"
 	"github.com/xitongsys/parquet-go/reader"
-	"github.com/xitongsys/parquet-go/schema"
 	"github.com/xitongsys/parquet-go/source"
+	"github.com/xitongsys/parquet-go/types"
 )
 
 const bufsize = 1000
-
-type Reader struct {
-	pr      *reader.ParquetReader
-	typ     *zng.TypeRecord
-	columns []parquetColumn
-	record  int
-	buf     []interface{}
-}
-
-func NewReader(f source.ParquetFile, zctx *resolver.Context) (*Reader, error) {
-	pr, err := reader.NewParquetReader(f, nil, 4)
-	if err != nil {
-		return nil, err
-	}
-
-	cols, err := convertSchema(pr.Footer.Schema, pr.SchemaHandler)
-	if err != nil {
-		return nil, err
-	}
-
-	zcols := make([]zng.Column, len(cols))
-	for i, c := range cols {
-		zcols[i] = zng.Column{c.name, c.zngType(zctx)}
-	}
-	typ, err := zctx.LookupTypeRecord(zcols)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Reader{pr, typ, cols, 0, nil}, nil
-}
 
 type HandledType int
 
@@ -53,8 +24,8 @@ type HandledType int
 const (
 	// un-annotated primitive types
 	boolean = iota
-	int32
-	int64
+	tint32
+	tint64
 	float
 	byteArray
 
@@ -79,25 +50,58 @@ const (
 	list
 )
 
-type parquetColumn struct {
-	goName   string
-	typ      HandledType
-	listType *parquetColumn
-	name     string
+func lookupPrimitiveType(typ *parquet.Type, cType *parquet.ConvertedType) (HandledType, bool) {
+	if cType != nil {
+		switch *cType {
+		case parquet.ConvertedType_UTF8:
+			return utf8, true
+		case parquet.ConvertedType_JSON:
+			return json, true
+		case parquet.ConvertedType_BSON:
+			return bson, true
+		case parquet.ConvertedType_ENUM:
+			return enum, true
+		case parquet.ConvertedType_TIMESTAMP_MILLIS:
+			return timestampMilliseconds, true
+		case parquet.ConvertedType_TIMESTAMP_MICROS:
+			return timestampMicroseconds, true
+
+		// XXX case parquet.ConvertedType_INTERVAL:
+
+		default:
+			return HandledType(-1), false
+		}
+
+		// XXX handle logical types
+	} else if typ != nil {
+		switch *typ {
+		case parquet.Type_BOOLEAN:
+			return boolean, true
+		case parquet.Type_INT32:
+			return tint32, true
+		case parquet.Type_INT64:
+			return tint64, true
+		case parquet.Type_FLOAT, parquet.Type_DOUBLE:
+			return float, true
+		case parquet.Type_BYTE_ARRAY:
+			return byteArray, true
+		case parquet.Type_INT96:
+			return int96, true
+		default:
+			return HandledType(-1), false
+		}
+	} else {
+		return HandledType(-1), false
+	}
 }
 
-func (pc *parquetColumn) zngType(zctx *resolver.Context) zng.Type {
-	if pc.listType != nil {
-		inner := pc.listType.zngType(zctx)
-		return zctx.LookupTypeArray(inner)
-	}
-
-	switch pc.typ {
+func simpleParquetTypeToZngType(typ HandledType) zng.Type {
+	switch typ {
 	case boolean:
 		return zng.TypeBool
-	case int32:
+	case tint32:
 		return zng.TypeInt32
-	case int64:
+	case tint64:
 		return zng.TypeInt64
 	case float:
 		return zng.TypeFloat64
@@ -116,64 +120,73 @@ func (pc *parquetColumn) zngType(zctx *resolver.Context) zng.Type {
 	case int96:
 		return zng.TypeInt64
 	}
-	panic(fmt.Sprintf("unhandled type %d", pc.typ))
+	panic(fmt.Sprintf("unhandled type %d", typ))
 }
 
-func (pc *parquetColumn) convert(v reflect.Value) (zcode.Bytes, error) {
-	switch pc.typ {
-	case int96:
-		// XXX huh what to do with these
-		return zng.EncodeInt(0), nil
-
+func encodeZng(v interface{}, typ HandledType) zcode.Bytes {
+	switch typ {
 	case boolean:
-		return zng.EncodeBool(v.Bool()), nil
+		return zng.EncodeBool(v.(bool))
 
-	case int32, int64:
-		return zng.EncodeInt(v.Int()), nil
+	case tint32, tint64:
+		return zng.EncodeInt(v.(int64))
 
 	case float:
-		return zng.EncodeFloat64(v.Float()), nil
+		return zng.EncodeFloat64(v.(float64))
 
 	case byteArray, bson:
-		return zng.EncodeBstring(v.String()), nil
+		return zng.EncodeBstring(v.(string))
 
 	case utf8, enum, json:
-		return zng.EncodeString(v.String()), nil
+		return zng.EncodeString(v.(string))
 
 	case timestampMilliseconds:
-		return zng.EncodeTime(nano.Ts(v.Int() * 1_000_000)), nil
+		return zng.EncodeTime(nano.Ts(v.(int) * 1_000_000))
 
 	case timestampMicroseconds:
-		return zng.EncodeTime(nano.Ts(v.Int() * 1000)), nil
+		return zng.EncodeTime(nano.Ts(v.(int) * 1000))
 
 	default:
-		return nil, fmt.Errorf("unexpected type %d", pc.typ)
+		panic(fmt.Sprintf("unexpected type %d", typ))
 	}
+
 }
 
-func (pc *parquetColumn) append(builder *zcode.Builder, v reflect.Value) error {
-	if pc.listType == nil {
-		zv, err := pc.convert(v)
-		if err != nil {
-			return err
-		}
-		builder.AppendPrimitive(zv)
-		return nil
+type Reader struct {
+	pr      *reader.ParquetReader
+	typ     *zng.TypeRecord
+	columns []column
+	record  int
+	total   int
+}
+
+func NewReader(f source.ParquetFile, zctx *resolver.Context) (*Reader, error) {
+	pr, err := reader.NewParquetReader(f, nil, 1)
+	if err != nil {
+		return nil, err
 	}
 
-	builder.BeginContainer()
-
-	n := v.Len()
-	for i := 0; i < n; i++ {
-		zv, err := pc.listType.convert(v.Index(i))
-		if err != nil {
-			return err
-		}
-		builder.AppendPrimitive(zv)
+	cols, err := buildColumns(pr)
+	if err != nil {
+		return nil, err
 	}
 
-	builder.EndContainer()
-	return nil
+	zcols := make([]zng.Column, len(cols))
+	for i, c := range cols {
+		zcols[i] = zng.Column{c.getName(), c.zngType(zctx)}
+	}
+	typ, err := zctx.LookupTypeRecord(zcols)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Reader{pr, typ, cols, 0, int(pr.GetNumRows())}, nil
+}
+
+type column interface {
+	zngType(zctx *resolver.Context) zng.Type
+	append(builder *zcode.Builder) error
+	getName() string
 }
 
 func dump(el parquet.SchemaElement) {
@@ -193,23 +206,23 @@ func dump(el parquet.SchemaElement) {
 	fmt.Printf("\n")
 }
 
-func convertSchema(schema []*parquet.SchemaElement, handler *schema.SchemaHandler) ([]parquetColumn, error) {
-	rootIn := handler.Infos[0].InName
-	rootEx := handler.Infos[0].ExName
+func buildColumns(pr *reader.ParquetReader) ([]column, error) {
+	schema := pr.Footer.Schema
 
-	// build a zng descriptor from the schema.  first element in the
-	// schema is the root, skip over it...
-	var columns []parquetColumn
+	// first element in the schema is the root, skip it.
+	// for each reamaining column, build a column iterator
+	// structure.
+	var columns []column
 	for i := 1; i < len(schema); {
 		// dump(*schema[i])
 
 		n := 1
-		var col *parquetColumn
+		var col column
 		var err error
 		if schema[i].NumChildren != nil {
-			n, col, err = convertNestedElement(schema, i)
+			n, col, err = newNestedColumn(schema, i, pr)
 		} else {
-			col, err = convertSimpleElement(*schema[i])
+			col, err = newSimpleColumn(*schema[i], pr)
 		}
 		i += n
 		if err != nil {
@@ -221,73 +234,54 @@ func convertSchema(schema []*parquet.SchemaElement, handler *schema.SchemaHandle
 			continue
 		}
 
-		// The parquet-go library converts column names into names
-		// that are valid public field names in a go structure.
-		// Recover the original column names from the parquet schema
-		// here.  This is a little messy since the data structure
-		// inside parquet-go uses fully qualified names so we have
-		// to convert a field name to the fully qualified name, map
-		// it to the original fully qualified name, then grab the
-		// original column name.
-		name := handler.InPathToExPath[fmt.Sprintf("%s.%s", rootIn, col.goName)]
-		col.name = name[len(rootEx)+1:]
-
-		columns = append(columns, *col)
+		columns = append(columns, col)
 	}
 
 	return columns, nil
 }
 
-func convertSimpleElement(el parquet.SchemaElement) (*parquetColumn, error) {
+func newSimpleColumn(el parquet.SchemaElement, pr *reader.ParquetReader) (column, error) {
 	if el.RepetitionType != nil && *el.RepetitionType == parquet.FieldRepetitionType_REPEATED {
 		return nil, fmt.Errorf("cannot convert repeated element %s", el.Name)
 	}
 
-	var typ HandledType
-	if el.ConvertedType != nil {
-		switch *el.ConvertedType {
-		case parquet.ConvertedType_UTF8:
-			typ = utf8
-		case parquet.ConvertedType_JSON:
-			typ = json
-		case parquet.ConvertedType_BSON:
-			typ = bson
-		case parquet.ConvertedType_ENUM:
-			typ = enum
-		case parquet.ConvertedType_TIMESTAMP_MILLIS:
-			typ = timestampMilliseconds
-		case parquet.ConvertedType_TIMESTAMP_MICROS:
-			typ = timestampMicroseconds
+	pT := el.Type
+	cT := el.ConvertedType
 
-		// XXX case parquet.ConvertedType_INTERVAL:
-
-		default:
-			return nil, fmt.Errorf("unhandled ConvertedType %s", *el.ConvertedType)
-		}
-		// XXX handle logical types
-	} else if el.Type != nil {
-		switch *el.Type {
-		case parquet.Type_BOOLEAN:
-			typ = boolean
-		case parquet.Type_INT32:
-			typ = int32
-		case parquet.Type_INT64:
-			typ = int64
-		case parquet.Type_FLOAT, parquet.Type_DOUBLE:
-			typ = float
-		case parquet.Type_BYTE_ARRAY:
-			typ = byteArray
-		case parquet.Type_INT96:
-			typ = int96
-		default:
-			return nil, fmt.Errorf("unhandled type %s\n", *el.Type)
-		}
-	} else {
-		return nil, fmt.Errorf("cannot find type info for %s", el.Name)
+	typ, ok := lookupPrimitiveType(pT, cT)
+	if !ok {
+		return nil, errors.New("cannot convert type")
 	}
 
-	c := &parquetColumn{goName: el.Name, typ: typ}
-	return c, nil
+	handler := pr.SchemaHandler
+	path := []string{handler.Infos[0].InName, el.Name}
+	pathStr := common.PathToStr(path)
+
+	cbuf := pr.ColumnBuffers[pathStr]
+
+	// The parquet-go library converts column names into names
+	// that are valid public field names in a go structure.
+	// Recover the original column names from the parquet schema
+	// here.  This is a little messy since the data structure
+	// inside parquet-go uses fully qualified names so we have
+	// to convert a field name to the fully qualified name, map
+	// it to the original fully qualified name, then grab the
+	// original column name.
+	name := handler.InPathToExPath[pathStr]
+	name = name[len(handler.Infos[0].ExName)+1:]
+
+	// maxRepetition, _ := schemaHandler.MaxRepetitionLevel(path)
+	maxDefinition, _ := handler.MaxDefinitionLevel(path)
+
+	return &simpleColumn{
+		name: name,
+		typ:  typ,
+		cbuf: cbuf,
+		pT:   pT,
+		cT:   cT,
+		//maxRepetition: repetitionLevels,
+		maxDefinition: maxDefinition,
+	}, nil
 }
 
 func countChildren(els []*parquet.SchemaElement, i int) int {
@@ -310,20 +304,20 @@ func countChildren(els []*parquet.SchemaElement, i int) int {
 	return j - i
 }
 
-func convertNestedElement(els []*parquet.SchemaElement, i int) (int, *parquetColumn, error) {
+func newNestedColumn(els []*parquet.SchemaElement, i int, pr *reader.ParquetReader) (int, column, error) {
 	el := els[i]
 	if el.ConvertedType != nil && *el.ConvertedType == parquet.ConvertedType_LIST {
-		return convertListType(els, i)
+		return newListColumn(els, i, pr)
 	}
 	if el.LogicalType != nil && el.LogicalType.LIST != nil {
-		return convertListType(els, i)
+		return newListColumn(els, i, pr)
 	}
 
 	// Skip this element and all its children...
 	return countChildren(els, i), nil, nil
 }
 
-func convertListType(els []*parquet.SchemaElement, i int) (int, *parquetColumn, error) {
+func newListColumn(els []*parquet.SchemaElement, i int, pr *reader.ParquetReader) (int, column, error) {
 	// Per https://github.com/apache/parquet-format/blob/master/LogicalTypes.md#lists
 	// List structure is:
 	// <list-repetition> group <name> (LIST) {
@@ -353,54 +347,162 @@ func convertListType(els []*parquet.SchemaElement, i int) (int, *parquetColumn, 
 	}
 
 	typeEl := els[i+2]
-	typ, err := convertSimpleElement(*typeEl)
-	if err != nil {
-		return 1, nil, err
+
+	pT := typeEl.Type
+	cT := typeEl.ConvertedType
+
+	typ, ok := lookupPrimitiveType(pT, cT)
+	if !ok {
+		return 3, nil, errors.New("cannot convert type")
 	}
 
-	c := &parquetColumn{goName: el.Name, typ: list, listType: typ}
-	return 3, c, nil
+	handler := pr.SchemaHandler
+	path := []string{handler.Infos[0].InName, el.Name, listEl.Name, typeEl.Name}
+
+	cbuf := pr.ColumnBuffers[common.PathToStr(path)]
+
+	// The parquet-go library converts column names into names
+	// that are valid public field names in a go structure.
+	// Recover the original column names from the parquet schema
+	// here.  This is a little messy since the data structure
+	// inside parquet-go uses fully qualified names so we have
+	// to convert a field name to the fully qualified name, map
+	// it to the original fully qualified name, then grab the
+	// original column name.
+	name := handler.InPathToExPath[common.PathToStr(path[:2])]
+	name = name[len(handler.Infos[0].ExName)+1:]
+
+	maxRepetition, _ := handler.MaxRepetitionLevel(path)
+	maxDefinition, _ := handler.MaxDefinitionLevel(path)
+
+	c := listColumn{
+		name:          name,
+		innerType:     typ,
+		cbuf:          cbuf,
+		pT:            pT,
+		cT:            cT,
+		maxRepetition: maxRepetition,
+		maxDefinition: maxDefinition,
+	}
+
+	return 3, &c, nil
+}
+
+type simpleColumn struct {
+	name      string
+	typ       HandledType
+	cbuf      *reader.ColumnBufferType
+	table     *layout.Table
+	n         int
+	tableSize int
+
+	pT            *parquet.Type
+	cT            *parquet.ConvertedType
+	maxDefinition int32
+}
+
+func (c *simpleColumn) getName() string { return c.name }
+
+func (c *simpleColumn) zngType(zctx *resolver.Context) zng.Type {
+	return simpleParquetTypeToZngType(c.typ)
+}
+
+func (c *simpleColumn) append(builder *zcode.Builder) error {
+	if c.n >= c.tableSize {
+		tab, nread := c.cbuf.ReadRows(int64(bufsize))
+		c.table = tab
+		c.tableSize = int(nread)
+		c.n = 0
+	}
+
+	dl := c.table.DefinitionLevels[c.n]
+	val := c.table.Values[c.n]
+	c.n++
+
+	if c.maxDefinition > dl {
+		builder.AppendPrimitive(nil)
+		return nil
+	}
+
+	v := types.ParquetTypeToGoType(val, c.pT, c.cT)
+	builder.AppendPrimitive(encodeZng(v, c.typ))
+	return nil
+}
+
+type listColumn struct {
+	name      string
+	innerType HandledType
+
+	cbuf      *reader.ColumnBufferType
+	table     *layout.Table
+	n         int
+	tableSize int
+
+	pT            *parquet.Type
+	cT            *parquet.ConvertedType
+	maxRepetition int32
+	maxDefinition int32
+}
+
+func (c *listColumn) getName() string { return c.name }
+
+func (c *listColumn) zngType(zctx *resolver.Context) zng.Type {
+	inner := simpleParquetTypeToZngType(c.innerType)
+	return zctx.LookupTypeArray(inner)
+}
+
+func (c *listColumn) readNext() (interface{}, int32, int32) {
+	if c.n >= c.tableSize {
+		tab, _ := c.cbuf.ReadRows(int64(bufsize))
+		c.table = tab
+		ln := len(tab.RepetitionLevels)
+		if ln != len(tab.DefinitionLevels) {
+			panic("mismatched repetition/definition levels")
+		}
+		if ln != len(tab.Values) {
+			panic("mismatched repetition levels/values")
+		}
+		c.tableSize = ln
+		c.n = 0
+	}
+
+	rl := c.table.RepetitionLevels[c.n]
+	dl := c.table.DefinitionLevels[c.n]
+	val := c.table.Values[c.n]
+	c.n++
+
+	return val, rl, dl
+}
+
+func (c *listColumn) append(builder *zcode.Builder) error {
+	v, rl, dl := c.readNext()
+
+	if c.maxDefinition > dl {
+		builder.AppendPrimitive(nil)
+		return nil
+	}
+
+	builder.BeginContainer()
+	for {
+		builder.AppendPrimitive(encodeZng(v, c.innerType))
+		if rl == c.maxRepetition {
+			break
+		}
+		v, rl, dl = c.readNext()
+	}
+	builder.EndContainer()
+	return nil
 }
 
 func (r *Reader) Read() (*zng.Record, error) {
-	if len(r.buf) == 0 {
-		toread := int(r.pr.GetNumRows()) - r.record
-		if toread == 0 {
-			return nil, nil
-		}
-
-		if toread > bufsize {
-			toread = bufsize
-		}
-
-		r.record += toread
-
-		var err error
-		r.buf, err = r.pr.ReadByNumber(toread)
-		if err != nil {
-			return nil, err
-		}
+	if r.record == r.total {
+		return nil, nil
 	}
+	r.record++
 
 	builder := zcode.NewBuilder()
-	v := reflect.ValueOf(r.buf[0])
-	r.buf = r.buf[1:]
 	for _, c := range r.columns {
-		fv := v.FieldByName(c.goName)
-		// parquet-go uses a native type for a required element
-		// or a pointer for an optional element.  We should keep
-		// track of this when converting the schema, but for now
-		// just assume a pointer means optional and add the null
-		// value if appropriate or just dereference it...
-		if fv.Kind() == reflect.Ptr {
-			if fv.IsNil() {
-				builder.AppendPrimitive(nil)
-				continue
-			}
-			fv = reflect.Indirect(fv)
-		}
-
-		err := c.append(builder, fv)
+		err := c.append(builder)
 		if err != nil {
 			return nil, err
 		}
