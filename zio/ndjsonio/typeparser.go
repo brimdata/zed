@@ -122,6 +122,9 @@ func appendRecordFromViews(builder *zcode.Builder, columns []zng.Column, jsonVal
 		case jsonparser.Array:
 			builder.BeginContainer()
 			ztyp := zng.InnerType(col.Type)
+			if ztyp == nil {
+				return zng.ErrNotPrimitive
+			}
 			var iterErr error
 			callback := func(v []byte, typ jsonparser.ValueType, offset int, _ error) {
 				zv, err := parseSimpleType(v, ztyp)
@@ -293,6 +296,9 @@ func (p *typeParser) parseObject(b []byte) (zng.Value, error) {
 }
 
 func parseSimpleType(value []byte, typ zng.Type) ([]byte, error) {
+	if zng.IsContainerType(typ) {
+		return nil, zng.ErrNotContainer
+	}
 	switch typ {
 	case zng.TypeTime:
 		ts, err := parseJSONTimestamp(value)
