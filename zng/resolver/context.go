@@ -589,6 +589,12 @@ func (c *Context) TranslateType(ext zng.Type) zng.Type {
 		return c.LookupTypeArray(inner)
 	case *zng.TypeUnion:
 		return c.TranslateTypeUnion(ext)
+	case *zng.TypeAlias:
+		typ, err := c.LookupTypeAlias(ext.Name, ext.Type)
+		if err != nil {
+			panic(err)
+		}
+		return typ
 	}
 }
 

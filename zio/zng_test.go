@@ -237,6 +237,9 @@ func TestAlias(t *testing.T) {
 		t.Run("alias-in-different-records", func(t *testing.T) {
 			boomerang(t, multipleRecords)
 		})
+		t.Run("alias-of-record-type", func(t *testing.T) {
+			boomerang(t, recordAlias)
+		})
 	})
 	t.Run("ZJSON", func(t *testing.T) {
 		t.Run("simple", func(t *testing.T) {
