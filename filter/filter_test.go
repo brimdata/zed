@@ -287,6 +287,18 @@ func TestFilters(t *testing.T) {
 		{"wor*", true},
 	})
 
+	// Test searching with subnet syntax
+	record, err = parseOneRecord(`
+#0:record[addr:ip]
+0:[192.168.1.50;]
+`)
+	require.NoError(t, err)
+	runCases(t, record, []testcase{
+		{"192.168.0.0/16", true},
+		{"192.168.1.0/24", true},
+		{"10.0.0.0/8", false},
+	})
+
 	// Test time coercion
 	record, err = parseOneRecord(`
 #0:record[ts:time,ts2:time,ts3:time]
