@@ -8,12 +8,11 @@ import (
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
+
 	"github.com/xitongsys/parquet-go/common"
-	"github.com/xitongsys/parquet-go/layout"
 	"github.com/xitongsys/parquet-go/parquet"
 	"github.com/xitongsys/parquet-go/reader"
 	"github.com/xitongsys/parquet-go/source"
-	"github.com/xitongsys/parquet-go/types"
 )
 
 const bufsize = 1000
@@ -27,6 +26,7 @@ const (
 	tint32
 	tint64
 	float
+	double
 	byteArray
 
 	// XXX
@@ -81,8 +81,10 @@ func lookupPrimitiveType(typ *parquet.Type, cType *parquet.ConvertedType) (Handl
 			return tint32, true
 		case parquet.Type_INT64:
 			return tint64, true
-		case parquet.Type_FLOAT, parquet.Type_DOUBLE:
+		case parquet.Type_FLOAT:
 			return float, true
+		case parquet.Type_DOUBLE:
+			return double, true
 		case parquet.Type_BYTE_ARRAY:
 			return byteArray, true
 		case parquet.Type_INT96:
@@ -103,7 +105,7 @@ func simpleParquetTypeToZngType(typ HandledType) zng.Type {
 		return zng.TypeInt32
 	case tint64:
 		return zng.TypeInt64
-	case float:
+	case float, double:
 		return zng.TypeFloat64
 	case byteArray:
 		return zng.TypeBstring
@@ -131,7 +133,7 @@ func encodeZng(v interface{}, typ HandledType) zcode.Bytes {
 	case tint32, tint64:
 		return zng.EncodeInt(v.(int64))
 
-	case float:
+	case float, double:
 		return zng.EncodeFloat64(v.(float64))
 
 	case byteArray, bson:
@@ -261,8 +263,6 @@ func newSimpleColumn(el parquet.SchemaElement, pr *reader.ParquetReader) (column
 	path := []string{handler.Infos[0].InName, el.Name}
 	pathStr := common.PathToStr(path)
 
-	cbuf := pr.ColumnBuffers[pathStr]
-
 	// The parquet-go library converts column names into names
 	// that are valid public field names in a go structure.
 	// Recover the original column names from the parquet schema
@@ -274,15 +274,17 @@ func newSimpleColumn(el parquet.SchemaElement, pr *reader.ParquetReader) (column
 	name := handler.InPathToExPath[pathStr]
 	name = name[len(handler.Infos[0].ExName)+1:]
 
+	maxRepetition, _ := handler.MaxRepetitionLevel(path)
 	maxDefinition, _ := handler.MaxDefinitionLevel(path)
 
+	iter := newColumnIterator(pr, el.Name, maxRepetition, maxDefinition)
 	return &simpleColumn{
 		name:          name,
 		typ:           typ,
-		cbuf:          cbuf,
+		iter:          iter,
+		maxDefinition: maxDefinition,
 		pT:            pT,
 		cT:            cT,
-		maxDefinition: maxDefinition,
 	}, nil
 }
 
@@ -361,8 +363,6 @@ func newListColumn(els []*parquet.SchemaElement, i int, pr *reader.ParquetReader
 	handler := pr.SchemaHandler
 	path := []string{handler.Infos[0].InName, el.Name, listEl.Name, typeEl.Name}
 
-	cbuf := pr.ColumnBuffers[common.PathToStr(path)]
-
 	// The parquet-go library converts column names into names
 	// that are valid public field names in a go structure.
 	// Recover the original column names from the parquet schema
@@ -377,12 +377,12 @@ func newListColumn(els []*parquet.SchemaElement, i int, pr *reader.ParquetReader
 	maxRepetition, _ := handler.MaxRepetitionLevel(path)
 	maxDefinition, _ := handler.MaxDefinitionLevel(path)
 
+	iter := newColumnIterator(pr, el.Name, maxRepetition, maxDefinition)
+
 	c := listColumn{
 		name:          name,
 		innerType:     typ,
-		cbuf:          cbuf,
-		pT:            pT,
-		cT:            cT,
+		iter:          iter,
 		maxRepetition: maxRepetition,
 		maxDefinition: maxDefinition,
 	}
@@ -393,16 +393,14 @@ func newListColumn(els []*parquet.SchemaElement, i int, pr *reader.ParquetReader
 // simpleColumn handles a column from a parquet file that holds individual
 // (non-repeated) primitive values.
 type simpleColumn struct {
-	name      string
-	typ       HandledType
-	cbuf      *reader.ColumnBufferType
-	table     *layout.Table
-	n         int
-	tableSize int
+	name string
+	typ  HandledType
 
-	pT            *parquet.Type
-	cT            *parquet.ConvertedType
+	iter          *columnIterator
 	maxDefinition int32
+
+	pT *parquet.Type
+	cT *parquet.ConvertedType
 }
 
 func (c *simpleColumn) getName() string { return c.name }
@@ -411,31 +409,81 @@ func (c *simpleColumn) zngType(zctx *resolver.Context) zng.Type {
 	return simpleParquetTypeToZngType(c.typ)
 }
 
+func appendItem(builder *zcode.Builder, typ HandledType, iter *columnIterator, maxDef, maxRep int32) (bool, error) {
+	var rl, dl int32
+	switch typ {
+	case boolean:
+		var b bool
+		b, rl, dl = iter.nextBoolean()
+		if maxDef > dl {
+			builder.AppendPrimitive(nil)
+		} else {
+			builder.AppendPrimitive(zng.EncodeBool(b))
+		}
+	case tint32:
+		var i int32
+		i, rl, dl = iter.nextInt32()
+		if maxDef > dl {
+			builder.AppendPrimitive(nil)
+		} else {
+			builder.AppendPrimitive(zng.EncodeInt(int64(i)))
+		}
+	case tint64:
+		var i int64
+		i, rl, dl = iter.nextInt64()
+		if maxDef > dl {
+			builder.AppendPrimitive(nil)
+		} else {
+			builder.AppendPrimitive(zng.EncodeInt(i))
+		}
+	case float:
+		var f float64
+		f, rl, dl = iter.nextFloat()
+		if maxDef > dl {
+			builder.AppendPrimitive(nil)
+		} else {
+			builder.AppendPrimitive(zng.EncodeFloat64(f))
+		}
+	case double:
+		var f float64
+		f, rl, dl = iter.nextDouble()
+		if maxDef > dl {
+			builder.AppendPrimitive(nil)
+		} else {
+			builder.AppendPrimitive(zng.EncodeFloat64(f))
+		}
+	case utf8, enum, json:
+		var a []byte
+		a, rl, dl = iter.nextByteArray()
+		if maxDef > dl {
+			builder.AppendPrimitive(nil)
+		} else {
+			builder.AppendPrimitive(zng.EncodeString(string(a)))
+		}
+	case byteArray, bson:
+		var a []byte
+		a, rl, dl = iter.nextByteArray()
+		if maxDef > dl {
+			builder.AppendPrimitive(nil)
+		} else {
+			builder.AppendPrimitive(zng.EncodeBstring(string(a)))
+		}
+		//case timestampMilliseconds, timestampMicroseconds, timestampNanoseconds:
+		// XXX
+	default:
+		return false, fmt.Errorf("unhandled type %s", typ)
+	}
+	return (rl == maxRep), nil
+}
+
 // append reads the next value from this column and appends it to the
 // given zcode.Builder.  This code represents an unwound and vastly
 // simplified version of the code in the methods:
 // parquet-go.reader.ParquetReader.read(), and
 // parquet-go.marshal.Unmarshal()
 func (c *simpleColumn) append(builder *zcode.Builder) error {
-	if c.n >= c.tableSize {
-		tab, nread := c.cbuf.ReadRows(int64(bufsize))
-		c.table = tab
-		c.tableSize = int(nread)
-		c.n = 0
-	}
-
-	dl := c.table.DefinitionLevels[c.n]
-	val := c.table.Values[c.n]
-	c.n++
-
-	if c.maxDefinition > dl {
-		builder.AppendPrimitive(nil)
-		return nil
-	}
-
-	v := types.ParquetTypeToGoType(val, c.pT, c.cT)
-	builder.AppendPrimitive(encodeZng(v, c.typ))
-	return nil
+	_, err := appendItem(builder, c.typ, c.iter, c.maxDefinition, 0)
+	return err
 }
 
 // listColumn handles a column from a parquet file that holds LIST
@@ -444,13 +492,7 @@ type listColumn struct {
 	name      string
 	innerType HandledType
 
-	cbuf      *reader.ColumnBufferType
-	table     *layout.Table
-	n         int
-	tableSize int
-
-	pT            *parquet.Type
-	cT            *parquet.ConvertedType
+	iter          *columnIterator
 	maxRepetition int32
 	maxDefinition int32
 }
@@ -462,37 +504,13 @@ func (c *listColumn) zngType(zctx *resolver.Context) zng.Type {
 	return zctx.LookupTypeArray(inner)
 }
 
-func (c *listColumn) readNext() (interface{}, int32, int32) {
-	if c.n >= c.tableSize {
-		tab, _ := c.cbuf.ReadRows(int64(bufsize))
-		c.table = tab
-		ln := len(tab.RepetitionLevels)
-		if ln != len(tab.DefinitionLevels) {
-			panic("mismatched repetition/definition levels")
-		}
-		if ln != len(tab.Values) {
-			panic("mismatched repetition levels/values")
-		}
-		c.tableSize = ln
-		c.n = 0
-	}
-
-	rl := c.table.RepetitionLevels[c.n]
-	dl := c.table.DefinitionLevels[c.n]
-	val := c.table.Values[c.n]
-	c.n++
-
-	return val, rl, dl
-}
-
 // append reads the next value from this column and appends it to the given
 // zcode.Builder.  This code (together with the readNext() method represent
 // an unwound and vastly simplified version of the code in the methods:
 // parquet-go.reader.ParquetReader.read(), and
 // parquet-go.marshal.Unmarshal()
 func (c *listColumn) append(builder *zcode.Builder) error {
-	v, rl, dl := c.readNext()
-
+	dl := c.iter.peekDL()
 	if c.maxDefinition > dl {
 		builder.AppendContainer(nil)
 		return nil
@@ -500,15 +518,13 @@ func (c *listColumn) append(builder *zcode.Builder) error {
 
 	builder.BeginContainer()
 	for {
-		if v == nil {
-			builder.AppendPrimitive(nil)
-		} else {
-			builder.AppendPrimitive(encodeZng(v, c.innerType))
+		last, err := appendItem(builder, c.innerType, c.iter, c.maxDefinition, c.maxRepetition)
+		if err != nil {
+			return err
 		}
-		if rl == c.maxRepetition {
+		if last {
 			break
 		}
-		v, rl, dl = c.readNext()
 	}
 	builder.EndContainer()
 	return nil
