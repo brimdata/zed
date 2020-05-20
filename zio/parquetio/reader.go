@@ -484,7 +484,11 @@ func (c *listColumn) append(builder *zcode.Builder) error {
 
 	builder.BeginContainer()
 	for {
-		builder.AppendPrimitive(encodeZng(v, c.innerType))
+		if v == nil {
+			builder.AppendPrimitive(nil)
+		} else {
+			builder.AppendPrimitive(encodeZng(v, c.innerType))
+		}
 		if rl == c.maxRepetition {
 			break
 		}
