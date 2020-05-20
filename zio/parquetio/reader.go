@@ -183,6 +183,10 @@ func NewReader(f source.ParquetFile, zctx *resolver.Context) (*Reader, error) {
 	return &Reader{pr, typ, cols, 0, int(pr.GetNumRows())}, nil
 }
 
+// column abstracts away the handling of an indvidual column from a
+// parquet file.  This interface currently has two concrete
+// implementations, one for columns that just hold primitive values
+// and one for columns that hold lists.
 type column interface {
 	zngType(zctx *resolver.Context) zng.Type
 	append(builder *zcode.Builder) error
@@ -270,16 +274,14 @@ func newSimpleColumn(el parquet.SchemaElement, pr *reader.ParquetReader) (column
 	name := handler.InPathToExPath[pathStr]
 	name = name[len(handler.Infos[0].ExName)+1:]
 
-	// maxRepetition, _ := schemaHandler.MaxRepetitionLevel(path)
 	maxDefinition, _ := handler.MaxDefinitionLevel(path)
 
 	return &simpleColumn{
-		name: name,
-		typ:  typ,
-		cbuf: cbuf,
-		pT:   pT,
-		cT:   cT,
-		//maxRepetition: repetitionLevels,
+		name:          name,
+		typ:           typ,
+		cbuf:          cbuf,
+		pT:            pT,
+		cT:            cT,
 		maxDefinition: maxDefinition,
 	}, nil
 }
@@ -388,6 +390,8 @@ func newListColumn(els []*parquet.SchemaElement, i int, pr *reader.ParquetReader
 	return 3, &c, nil
 }
 
+// simpleColumn handles a column from a parquet file that holds individual
+// (non-repeated) primitive values.
 type simpleColumn struct {
 	name      string
 	typ       HandledType
@@ -407,6 +411,11 @@ func (c *simpleColumn) zngType(zctx *resolver.Context) zng.Type {
 	return simpleParquetTypeToZngType(c.typ)
 }
 
+// append reads the next value from this column and appends it to the
+// given zcode.Builder.  This code represents an unwound and vastly
+// simplified version of the code in the methods:
+// parquet-go.reader.ParquetReader.read(), and
+// parquet-go.marshal.Unmarshal()
 func (c *simpleColumn) append(builder *zcode.Builder) error {
 	if c.n >= c.tableSize {
 		tab, nread := c.cbuf.ReadRows(int64(bufsize))
@@ -429,6 +438,8 @@ func (c *simpleColumn) append(builder *zcode.Builder) error {
 	return nil
 }
 
+// listColumn handles a column from a parquet file that holds LIST
+// structures as defined in the parquet spec.
 type listColumn struct {
 	name      string
 	innerType HandledType
@@ -474,6 +485,11 @@ func (c *listColumn) readNext() (interface{}, int32, int32) {
 	return val, rl, dl
 }
 
+// append reads the next value from this column and appends it to the given
+// zcode.Builder.  This code (together with the readNext() method represent
+// an unwound and vastly simplified version of the code in the methods:
+// parquet-go.reader.ParquetReader.read(), and
+// parquet-go.marshal.Unmarshal()
 func (c *listColumn) append(builder *zcode.Builder) error {
 	v, rl, dl := c.readNext()
 
