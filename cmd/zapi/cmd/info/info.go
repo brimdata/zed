@@ -1,7 +1,6 @@
 package info
 
 import (
-	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -42,7 +41,7 @@ func New(parent charm.Command, flags *flag.FlagSet) (charm.Command, error) {
 func (c *Command) Run(args []string) error {
 	client := c.Client()
 	if len(args) > 0 {
-		matches, err := cmd.SpaceGlob(context.TODO(), client, args...)
+		matches, err := cmd.SpaceGlob(c.Context(), client, args...)
 		if err != nil {
 			return err
 		}
@@ -55,7 +54,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	info, err := client.SpaceInfo(context.TODO(), id)
+	info, err := client.SpaceInfo(c.Context(), id)
 	if err != nil {
 		return err
 	}
