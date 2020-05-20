@@ -80,12 +80,14 @@ func (r *Reader) Read() (*zng.Record, error) {
 		id := rec.Type.ID()
 		sharedType := r.mapper.Map(id)
 		if sharedType == nil {
-			sharedType = r.mapper.Enter(id, rec.Type)
+			sharedType, err = r.mapper.Enter(id, rec.Type)
+			if err != nil {
+				return nil, err
+			}
 		}
 		rec.Type = sharedType
 		return rec, err
 	}
-
 }
 
 // LastSOS returns the offset of the most recent Start-of-Stream

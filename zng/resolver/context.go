@@ -570,10 +570,10 @@ func (c *Context) parseArrayTypeBody(in string) (string, *zng.TypeArray, error) 
 	return rest, c.LookupTypeArray(inner), nil
 }
 
-func (c *Context) TranslateType(ext zng.Type) zng.Type {
+func (c *Context) TranslateType(ext zng.Type) (zng.Type, error) {
 	id := ext.ID()
 	if id < zng.IdTypeDef {
-		return ext
+		return ext, nil
 	}
 	switch ext := ext.(type) {
 	default:
@@ -582,33 +582,46 @@ func (c *Context) TranslateType(ext zng.Type) zng.Type {
 	case *zng.TypeRecord:
 		return c.TranslateTypeRecord(ext)
 	case *zng.TypeSet:
-		inner := c.TranslateType(ext.InnerType)
-		return c.LookupTypeSet(inner)
+		inner, err := c.TranslateType(ext.InnerType)
+		if err != nil {
+			return nil, err
+		}
+		return c.LookupTypeSet(inner), nil
 	case *zng.TypeArray:
-		inner := c.TranslateType(ext.Type)
-		return c.LookupTypeArray(inner)
+		inner, err := c.TranslateType(ext.Type)
+		if err != nil {
+			return nil, err
+		}
+		return c.LookupTypeArray(inner), nil
 	case *zng.TypeUnion:
 		return c.TranslateTypeUnion(ext)
+	case *zng.TypeAlias:
+		return c.LookupTypeAlias(ext.Name, ext.Type)
 	}
 }
 
-func (c *Context) TranslateTypeRecord(ext *zng.TypeRecord) *zng.TypeRecord {
+func (c *Context) TranslateTypeRecord(ext *zng.TypeRecord) (*zng.TypeRecord, error) {
 	var columns []zng.Column
 	for _, col := range ext.Columns {
-		child := c.TranslateType(col.Type)
+		child, err := c.TranslateType(col.Type)
+		if err != nil {
+			return nil, err
+		}
 		columns = append(columns, zng.NewColumn(col.Name, child))
 	}
-
-	return c.MustLookupTypeRecord(columns)
+	return c.MustLookupTypeRecord(columns), nil
 }
 
-func (c *Context) TranslateTypeUnion(ext *zng.TypeUnion) *zng.TypeUnion {
+func (c *Context) TranslateTypeUnion(ext *zng.TypeUnion) (*zng.TypeUnion, error) {
 	var types []zng.Type
 	for _, t := range ext.Types {
-		translated := c.TranslateType(t)
+		translated, err := c.TranslateType(t)
+		if err != nil {
+			return nil, err
+		}
 		types = append(types, translated)
 	}
-	return c.LookupTypeUnion(types)
+	return c.LookupTypeUnion(types), nil
 }
 
 // Cache returns a cache of this table providing lockless lookups, but cannot

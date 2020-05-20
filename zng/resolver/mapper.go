@@ -22,12 +22,16 @@ func (m *Mapper) Map(td int) *zng.TypeRecord {
 }
 
 //XXX Enter should allocate the td as it creates the new type in the output context
-func (m *Mapper) Enter(id int, ext *zng.TypeRecord) *zng.TypeRecord {
-	if typ := m.outputCtx.TranslateTypeRecord(ext); typ != nil {
-		m.enter(id, typ)
-		return typ
+func (m *Mapper) Enter(id int, ext *zng.TypeRecord) (*zng.TypeRecord, error) {
+	typ, err := m.outputCtx.TranslateTypeRecord(ext)
+	if err != nil {
+		return nil, err
 	}
-	return nil
+	if typ != nil {
+		m.enter(id, typ)
+		return typ, nil
+	}
+	return nil, nil
 }
 
 func (m *Mapper) EnterByName(td int, typeName string) (*zng.TypeRecord, error) {
