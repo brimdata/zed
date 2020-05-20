@@ -46,7 +46,7 @@ func (c *Command) Run(args []string) error {
 		if err != nil {
 			return err
 		}
-		return printInfoList(client, matches)
+		return printInfoList(matches)
 	}
 	id, err := c.SpaceID()
 	if err == cmd.ErrSpaceNotSpecified {
@@ -59,19 +59,19 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	return printInfo(client, *info)
+	return printInfo(*info)
 }
 
-func printInfoList(client *api.Connection, spaces []api.SpaceInfo) error {
+func printInfoList(spaces []api.SpaceInfo) error {
 	for _, space := range spaces {
-		if err := printInfo(client, space); err != nil {
+		if err := printInfo(space); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func printInfo(client *api.Connection, info api.SpaceInfo) error {
+func printInfo(info api.SpaceInfo) error {
 	fmt.Println(info.Name)
 	w := tabwriter.NewWriter(os.Stdout, 0, 2, 1, ' ', 0)
 	infoVal := reflect.ValueOf(info)
