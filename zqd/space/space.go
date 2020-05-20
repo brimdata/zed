@@ -54,7 +54,7 @@ type Space struct {
 }
 
 func newSpace(path string, conf config) (*Space, error) {
-	s, err := storage.OpenZng(path, conf.ZngStreamSize)
+	s, err := storage.OpenZng(conf.DataPath, conf.ZngStreamSize)
 	if err != nil {
 		return nil, err
 	}
