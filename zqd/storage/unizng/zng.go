@@ -1,4 +1,4 @@
-package storage
+package unizng
 
 import (
 	"context"
@@ -37,14 +37,6 @@ var (
 	zngWriteProc = zql.MustParseProc("sort -r ts")
 )
 
-type ZngStorage struct {
-	path       string
-	span       nano.Span
-	index      *zngio.TimeIndex
-	streamsize int
-	wsem       *semaphore.Weighted
-}
-
 func Load(path string) (*ZngStorage, error) {
 	s := &ZngStorage{
 		path:       path,
@@ -53,6 +45,17 @@ func Load(path string) (*ZngStorage, error) {
 		wsem:       semaphore.NewWeighted(1),
 	}
 	return s, s.readInfoFile()
+}
+
+// ZngStorage stores data as a single zng file; this is the default
+// storage choice for Brim, where its intended to be a write-once
+// import of data.
+type ZngStorage struct {
+	path       string
+	span       nano.Span
+	index      *zngio.TimeIndex
+	streamsize int
+	wsem       *semaphore.Weighted
 }
 
 func (s *ZngStorage) join(args ...string) string {

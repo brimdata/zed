@@ -16,6 +16,7 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/storage"
+	"github.com/brimsec/zq/zqd/storage/unizng"
 	"github.com/brimsec/zq/zqe"
 	"github.com/segmentio/ksuid"
 )
@@ -37,7 +38,7 @@ func newSpaceID() api.SpaceID {
 }
 
 type Space struct {
-	Storage *storage.ZngStorage
+	Storage *unizng.ZngStorage
 
 	path string
 	conf config

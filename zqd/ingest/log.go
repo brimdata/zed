@@ -12,7 +12,7 @@ import (
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
-	"github.com/brimsec/zq/zqd/storage"
+	"github.com/brimsec/zq/zqd/storage/unizng"
 	"github.com/brimsec/zq/zqe"
 )
 
@@ -33,7 +33,7 @@ type LogOp struct {
 
 // Logs ingests the provided list of files into the provided space.
 // Like ingest.Pcap, this overwrites any existing data in the space.
-func NewLogOp(ctx context.Context, store *storage.ZngStorage, req api.LogPostRequest) (*LogOp, error) {
+func NewLogOp(ctx context.Context, store *unizng.ZngStorage, req api.LogPostRequest) (*LogOp, error) {
 	p := &LogOp{
 		warningCh: make(chan string, 5),
 	}
@@ -125,7 +125,7 @@ func (p *LogOp) bytesRead() int64 {
 	return read
 }
 
-func (p *LogOp) start(ctx context.Context, store *storage.ZngStorage) {
+func (p *LogOp) start(ctx context.Context, store *unizng.ZngStorage) {
 	// first drain warnings
 	for _, warning := range p.warnings {
 		p.warningCh <- warning

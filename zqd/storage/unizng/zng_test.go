@@ -1,4 +1,4 @@
-package storage_test
+package unizng_test
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zqd/storage"
+	"github.com/brimsec/zq/zqd/storage/unizng"
 	"github.com/stretchr/testify/require"
 )
 
@@ -38,5 +39,5 @@ func TestFailOnConcurrentWrites(t *testing.T) {
 
 	err = store.Rewrite(context.Background(), nil)
 	require.Error(t, err)
-	require.True(t, errors.Is(err, storage.ErrWriteInProgress))
+	require.True(t, errors.Is(err, unizng.ErrWriteInProgress))
 }

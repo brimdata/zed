@@ -1,4 +1,4 @@
-package storage
+package unizng
 
 import (
 	"github.com/brimsec/zq/zbuf"
