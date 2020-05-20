@@ -15,7 +15,7 @@ var ErrNoMatch = errors.New("no match")
 func SpaceGlob(ctx context.Context, client *API, patterns ...string) ([]api.SpaceInfo, error) {
 	all, err := client.SpaceList(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't fetch spaces: %s", err)
+		return nil, fmt.Errorf("couldn't fetch spaces: %w", err)
 	}
 	if len(all) == 0 {
 		return nil, errors.New("no spaces exist")
