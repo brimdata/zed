@@ -494,7 +494,7 @@ func (c *listColumn) append(builder *zcode.Builder) error {
 	v, rl, dl := c.readNext()
 
 	if c.maxDefinition > dl {
-		builder.AppendPrimitive(nil)
+		builder.AppendContainer(nil)
 		return nil
 	}
 
