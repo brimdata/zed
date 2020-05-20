@@ -44,7 +44,7 @@ and feed them to chop, which here expects its data on stdin.  We'll chop them
 into chunks of 25MB, which is very small, but in this example the data set is
 fairly small (175MB) and you can always try it out on larger data sets:
 ```
-zq zng/*.gz | zar import -s 25 -
+zq zng/*.gz | zar import -s 25MB -
 ```
 
 ## initializing the archive
@@ -144,7 +144,7 @@ zar ls -l
 You will see all the indexes left behind. They are just zng files.
 If you want to see one, just look at it with zq, e.g.
 ```
-zq -t $ZAR_ROOT/20180324/1521912191.526264.zng.zar/zdx:type:ip.zng
+zq -t $ZAR_ROOT/20180324/1521912152.518493.zng.zar/zdx:type:ip.zng
 ```
 Now if you run "zar find", it will efficiently look through all the index files
 instead of the logs and run much faster...
@@ -153,7 +153,7 @@ zar find :ip=10.10.23.2
 ```
 In the output here, you'll see this IP exists in exactly one log file:
 ```
-/path/to/ZAR_ROOT/20180324/1521912868.861247.zng
+/path/to/ZAR_ROOT/20180324/1521911841.543641.zng
 ```
 
 ## micro-indexes
@@ -186,8 +186,8 @@ zar find uri=/file
 ```
 and you'll get
 ```
-/path/to/ZAR_ROOT/20180324/1521911720.600725.zng
-/path/to/ZAR_ROOT/20180324/1521912191.526264.zng
+/path/to/ZAR_ROOT/20180324/1521912335.72784.zng
+/path/to/ZAR_ROOT/20180324/1521911841.543641.zng
 ```
 If you have a look, you'll see there are index files now for both type ip
 and field uri:
@@ -208,10 +208,10 @@ and you'll get this...
 ```
 #zfile=string
 #0:record[key:ip,_log:zfile]
-0:[10.47.21.138;/path/to/ZAR_ROOT/20180324/1521911720.600725.zng;]
-0:[10.47.21.138;/path/to/ZAR_ROOT/20180324/1521911867.742821.zng;]
-0:[10.47.21.138;/path/to/ZAR_ROOT/20180324/1521912191.526264.zng;]
-0:[10.47.21.138;/path/to/ZAR_ROOT/20180324/1521912390.147127.zng;]
+0:[10.47.21.138;/Users/phil/logs/20180324/1521912549.366398.zng;]
+0:[10.47.21.138;/Users/phil/logs/20180324/1521912335.72784.zng;]
+0:[10.47.21.138;/Users/phil/logs/20180324/1521911975.777469.zng;]
+0:[10.47.21.138;/Users/phil/logs/20180324/1521911841.543641.zng;]
 ```
 The find command adds a column called "_log" (which can be disabled
 or customized to a different field name) so you can see where the
@@ -254,7 +254,7 @@ zar ls custom.zng
 ```
 I can see what's in it now:
 ```
-zq -f table $ZAR_ROOT/20180324/1521912191.526264.zng.zar/custom.zng | head -10
+zq -f table $ZAR_ROOT/20180324/1521912152.518493.zng.zar/custom.zng | head -10
 ```
 Along with a header describing the zdx layout,
 you can see the IPs, counts, and _path strings.
@@ -326,7 +326,7 @@ which produces just one record as this pair appears in only one log file.
 ```
 #zfile=string
 #0:record[id:record[resp_h:ip,orig_h:ip],resp_bytes:uint64,_log:zfile]
-0:[[216.58.193.206;10.47.6.173;]5112;/path/to/logs/20180324/1521912191.526264.zng;]
+0:[[216.58.193.206;10.47.6.173;]5112;/Users/phil/logs/20180324/1521912152.518493.zng;]
 ```
 The nice thing here is that you can also just specify a primary key, which will
 issue a search that returns all the index hits that have the primary key with
@@ -378,7 +378,7 @@ zar zq -o words.zng "uri != null | cut uri | put count=1" _
 ```
 again you can look at one of the files...
 ```
-zq -t $ZAR_ROOT/20180324/1521912008.698329.zng.zar/words.zng
+zq -t $ZAR_ROOT/20180324/1521911975.777469.zng.zar/words.zng
 ```
 Now we reduce by aggregating the uri and summing the counts:
 ```
