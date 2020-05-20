@@ -20,7 +20,7 @@ var (
 
 var ErrSpaceNotSpecified = errors.New("either space name (-s) or id (-id) must be specified")
 
-var Cli = &charm.Spec{
+var CLI = &charm.Spec{
 	Name:          "zapi",
 	Usage:         "zapi [global options] command [options] [arguments...]",
 	Short:         "use zapi to talk to a zqd server",
