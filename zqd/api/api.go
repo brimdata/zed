@@ -2,9 +2,11 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/url"
+	"regexp"
 	"strconv"
 
 	"github.com/brimsec/zq/pkg/nano"
@@ -72,7 +74,25 @@ type ScannerStats struct {
 	RecordsMatched int64 `json:"records_matched"`
 }
 
+var spaceIDRegexp = regexp.MustCompile("^[a-zA-Z0-9_]+$")
+
 type SpaceID string
+
+// String is part of the flag.Value interface allowing a SpaceID value to be
+// used as a command line flag.
+func (s SpaceID) String() string {
+	return string(s)
+}
+
+// Set is part of the flag.Value interface allowing a SpaceID value to be
+// used as a command line flag.
+func (s *SpaceID) Set(str string) error {
+	if !spaceIDRegexp.MatchString(str) {
+		return errors.New("all characters in a SpaceID must be [a-zA-Z0-9_]")
+	}
+	*s = SpaceID(str)
+	return nil
+}
 
 type SpaceInfo struct {
 	ID          SpaceID    `json:"id"`
@@ -83,6 +103,16 @@ type SpaceInfo struct {
 	PcapSupport bool       `json:"pcap_support"`
 	PcapSize    int64      `json:"pcap_size" unit:"bytes"`
 	PcapPath    string     `json:"pcap_path"`
+}
+
+type SpaceInfos []SpaceInfo
+
+func (s SpaceInfos) Names() []string {
+	names := make([]string, len(s))
+	for i, info := range s {
+		names[i] = info.Name
+	}
+	return names
 }
 
 type StatusResponse struct {
