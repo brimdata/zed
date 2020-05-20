@@ -19,7 +19,7 @@ func FieldByJSONName(v reflect.Value, name string) (reflect.Value, bool) {
 
 // JsonName returns the JSON name of the field.  It returns the empty string if
 // the field is always omitted (i.e., it has a json:"-" tag).
-func JsonName(s reflect.StructField) string {
+func JSONName(s reflect.StructField) string {
 	tag := s.Tag.Get("json")
 	if tag == "-" {
 		return ""
