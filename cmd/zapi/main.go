@@ -17,7 +17,7 @@ var (
 func main() {
 	cmd.Version = version
 	cmd.ZqVersion = zqVersion
-	_, err := cmd.Cli.ExecRoot(os.Args[1:])
+	_, err := cmd.CLI.ExecRoot(os.Args[1:])
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)

@@ -26,7 +26,7 @@ about the currently selected space.`,
 }
 
 func init() {
-	cmd.Cli.Add(Info)
+	cmd.CLI.Add(Info)
 }
 
 type Command struct {
@@ -40,10 +40,7 @@ func New(parent charm.Command, flags *flag.FlagSet) (charm.Command, error) {
 // Run lists all spaces in the current zqd host or if a parameter
 // is provided (in glob style) lists the info about that space.
 func (c *Command) Run(args []string) error {
-	client, err := c.API()
-	if err != nil {
-		return err
-	}
+	client := c.Client()
 	if len(args) > 0 {
 		matches, err := cmd.SpaceGlob(context.TODO(), client, args...)
 		if err != nil {
@@ -65,23 +62,23 @@ func (c *Command) Run(args []string) error {
 	return printInfo(client, *info)
 }
 
-func printInfoList(api *cmd.API, spaces []api.SpaceInfo) error {
+func printInfoList(client *api.Connection, spaces []api.SpaceInfo) error {
 	for _, space := range spaces {
-		if err := printInfo(api, space); err != nil {
+		if err := printInfo(client, space); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func printInfo(api *cmd.API, info api.SpaceInfo) error {
+func printInfo(client *api.Connection, info api.SpaceInfo) error {
 	fmt.Println(info.Name)
 	w := tabwriter.NewWriter(os.Stdout, 0, 2, 1, ' ', 0)
 	infoVal := reflect.ValueOf(info)
 	for i := 0; i < infoVal.NumField(); i++ {
 		v := infoVal.Field(i)
 		t := infoVal.Type().Field(i)
-		name := cmd.JsonName(t)
+		name := cmd.JSONName(t)
 		if v.Kind() == reflect.Ptr && v.IsNil() {
 			fmt.Fprintf(w, "  %s:\t%v\n", name, nil)
 			continue

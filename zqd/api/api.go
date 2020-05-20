@@ -78,14 +78,14 @@ var spaceIDRegexp = regexp.MustCompile("^[a-zA-Z0-9_]+$")
 
 type SpaceID string
 
+// String is part of the flag.Value interface allowing a SpaceID value to be
+// used as a command line flag.
 func (s SpaceID) String() string {
 	return string(s)
 }
 
-func (s SpaceID) Get() interface{} {
-	return s
-}
-
+// Set is part of the flag.Value interface allowing a SpaceID value to be
+// used as a command line flag.
 func (s *SpaceID) Set(str string) error {
 	if !spaceIDRegexp.MatchString(str) {
 		return errors.New("all characters in a SpaceID must be [a-zA-Z0-9_]")

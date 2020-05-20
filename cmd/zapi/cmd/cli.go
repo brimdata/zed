@@ -21,18 +21,17 @@ var (
 var ErrSpaceNotSpecified = errors.New("either space name (-s) or id (-id) must be specified")
 
 var CLI = &charm.Spec{
-	Name:          "zapi",
-	Usage:         "zapi [global options] command [options] [arguments...]",
-	Short:         "use zapi to talk to a zqd server",
-	RedactedFlags: "p",
-	Long:          "",
+	Name:  "zapi",
+	Usage: "zapi [global options] command [options] [arguments...]",
+	Short: "use zapi to talk to a zqd server",
+	Long:  "",
 	New: func(parent charm.Command, flags *flag.FlagSet) (charm.Command, error) {
 		return New(flags)
 	},
 }
 
 func init() {
-	Cli.Add(charm.Help)
+	CLI.Add(charm.Help)
 }
 
 func New(f *flag.FlagSet) (charm.Command, error) {
@@ -41,7 +40,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 		ZqVersion: ZqVersion,
 	}
 
-	defaultHost := "localhost:9867" //XXX
+	defaultHost := "localhost:9867"
 	f.StringVar(&c.Host, "h", defaultHost, "<host[:port]>")
 	f.StringVar(&c.Spacename, "s", c.Spacename, "<space>")
 	f.Var(&c.spaceID, "id", "<space_id>")
@@ -50,7 +49,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 }
 
 type Command struct {
-	api       *API
+	client    *api.Connection
 	Version   string
 	ZqVersion string
 	Host      string
@@ -58,18 +57,12 @@ type Command struct {
 	spaceID   api.SpaceID
 }
 
-// API returns the api object.  If it doesn't exist, it is allocated and
-// the server is contacted and authenticated.  If the user types in a new
-// password to auhenticate, then the password is saved in the credentials file.
-func (c *Command) API() (*API, error) {
-	if c.api == nil {
-		var err error
-		c.api, err = newAPI("http://" + c.Host)
-		if err != nil {
-			return nil, err
-		}
+// Client returns a central api.Connection instance.
+func (c *Command) Client() *api.Connection {
+	if c.client == nil {
+		c.client = api.NewConnectionTo("http://" + c.Host)
 	}
-	return c.api, nil
+	return c.client
 }
 
 func (c *Command) SpaceID() (api.SpaceID, error) {
@@ -79,10 +72,7 @@ func (c *Command) SpaceID() (api.SpaceID, error) {
 	if c.Spacename == "" {
 		return "", ErrSpaceNotSpecified
 	}
-	client, err := c.API()
-	if err != nil {
-		return "", err
-	}
+	client := c.Client()
 	spaces, err := SpaceGlob(context.TODO(), client, c.Spacename)
 	if err != nil {
 		return "", err
@@ -101,9 +91,9 @@ func (c *Command) Run(args []string) error {
 		return fmt.Errorf("unknown command: %s", args[0])
 	}
 	// XXX In the future this will enter the REPL, for now just run help.
-	return Cli.Exec(c, []string{"help"})
+	return CLI.Exec(c, []string{"help"})
 }
 
 func Errorf(spec string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, Cli.Name+": "+spec, args...)
+	fmt.Fprintf(os.Stderr, CLI.Name+": "+spec, args...)
 }

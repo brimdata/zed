@@ -12,7 +12,7 @@ import (
 
 var ErrNoMatch = errors.New("no match")
 
-func SpaceGlob(ctx context.Context, client *API, patterns ...string) ([]api.SpaceInfo, error) {
+func SpaceGlob(ctx context.Context, client *api.Connection, patterns ...string) ([]api.SpaceInfo, error) {
 	all, err := client.SpaceList(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't fetch spaces: %w", err)
