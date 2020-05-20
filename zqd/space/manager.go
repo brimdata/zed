@@ -1,6 +1,7 @@
 package space
 
 import (
+	"context"
 	"errors"
 	"io/ioutil"
 	"os"
@@ -122,14 +123,14 @@ func (m *Manager) Delete(id api.SpaceID) error {
 	return nil
 }
 
-func (m *Manager) List() ([]api.SpaceInfo, error) {
+func (m *Manager) List(ctx context.Context) ([]api.SpaceInfo, error) {
 	result := []api.SpaceInfo{}
 
 	m.mapLock.Lock()
 	defer m.mapLock.Unlock()
 	for id := range m.spaces {
 		sp := m.spaces[id]
-		info, err := sp.Info()
+		info, err := sp.Info(ctx)
 		if err != nil {
 			return nil, err
 		}

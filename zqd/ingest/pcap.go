@@ -17,11 +17,13 @@ import (
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/space"
+	"github.com/brimsec/zq/zqd/storage/unizng"
 	"github.com/brimsec/zq/zqd/zeek"
 )
 
 var (
 	ErrIngestProcessInFlight = errors.New("another ingest process is already in flight for this space")
+	ErrNoPcapSupport         = errors.New("space does not support pcap ingest")
 )
 
 const tmpIngestDir = ".tmp.ingest"
@@ -31,6 +33,7 @@ type PcapOp struct {
 	PcapSize  int64
 
 	space        *space.Space
+	store        *unizng.ZngStorage
 	snapshots    int32
 	pcapPath     string
 	pcapReadSize int64
@@ -46,6 +49,10 @@ type PcapOp struct {
 // directory. If zeekExec is an empty string, this will attempt to resolve zeek
 // from $PATH.
 func NewPcapOp(ctx context.Context, s *space.Space, pcap string, zlauncher zeek.Launcher) (*PcapOp, error) {
+	store, ok := s.Storage.(*unizng.ZngStorage)
+	if !ok {
+		return nil, ErrNoPcapSupport
+	}
 	logdir := s.DataPath(tmpIngestDir)
 	if err := os.Mkdir(logdir, 0700); err != nil {
 		if os.IsExist(err) {
@@ -62,6 +69,7 @@ func NewPcapOp(ctx context.Context, s *space.Space, pcap string, zlauncher zeek.
 		StartTime: nano.Now(),
 		PcapSize:  info.Size(),
 		space:     s,
+		store:     store,
 		pcapPath:  pcap,
 		logdir:    logdir,
 		done:      make(chan struct{}),
@@ -98,7 +106,7 @@ func (p *PcapOp) run(ctx context.Context) error {
 		p.space.SetPcapPath("")
 		// Don't want to use passed context here because a cancelled context
 		// would cause storage not to be cleared.
-		p.space.Storage.Clear(context.Background())
+		p.store.Clear(context.Background())
 	}
 
 	ticker := time.NewTicker(time.Second)
@@ -162,10 +170,10 @@ func (p *PcapOp) indexPcap() error {
 	f.Close()
 	// grab span from index and use to generate space info min/max time.
 	span := idx.Span()
-	if err = p.space.Storage.UnsetSpan(); err != nil {
+	if err = p.store.UnsetSpan(); err != nil {
 		return err
 	}
-	if err = p.space.Storage.UnionSpan(span); err != nil {
+	if err = p.store.UnionSpan(span); err != nil {
 		return err
 	}
 	return os.Rename(tmppath, idxpath)
@@ -230,7 +238,7 @@ func (p *PcapOp) createSnapshot(ctx context.Context) error {
 		return err
 	}
 	defer zr.Close()
-	if err := p.space.Storage.Rewrite(ctx, zr); err != nil {
+	if err := p.store.Rewrite(ctx, zr); err != nil {
 		return err
 	}
 	atomic.AddInt32(&p.snapshots, 1)

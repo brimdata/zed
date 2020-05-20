@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqd/storage/unizng"
 	"github.com/stretchr/testify/require"
 )
@@ -28,7 +27,7 @@ func (w *waitReader) Read() (*zng.Record, error) {
 func TestFailOnConcurrentWrites(t *testing.T) {
 	dir, err := ioutil.TempDir("", t.Name())
 	require.NoError(t, err)
-	store, err := storage.Load(dir)
+	store, err := unizng.Load(dir)
 	require.NoError(t, err)
 	wr := &waitReader{dur: time.Second * 5}
 	wr.Add(1)

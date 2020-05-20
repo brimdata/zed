@@ -17,6 +17,7 @@ import (
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqe"
 	"github.com/brimsec/zq/zql"
 	"go.uber.org/zap"
@@ -63,7 +64,7 @@ func (s *ZngStorage) join(args ...string) string {
 	return filepath.Join(args...)
 }
 
-func (s *ZngStorage) Open(span nano.Span) (zbuf.ReadCloser, error) {
+func (s *ZngStorage) Open(_ context.Context, span nano.Span) (zbuf.ReadCloser, error) {
 	zctx := resolver.NewContext()
 	f, err := os.Open(s.join(allZngFile))
 	if err != nil {
@@ -181,21 +182,19 @@ func (s *ZngStorage) UnsetSpan() error {
 	return s.syncInfoFile()
 }
 
-// XXX This is not thread safe and it should be.
-func (s *ZngStorage) Span() nano.Span {
-	return s.span
-}
-
-func (s *ZngStorage) Size() (int64, error) {
+func (s *ZngStorage) Summary(_ context.Context) (storage.Summary, error) {
+	var sum storage.Summary
 	zngpath := s.join(allZngFile)
-	f, err := os.Stat(zngpath)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return 0, nil
+	if f, err := os.Stat(zngpath); err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			return sum, err
 		}
-		return 0, err
+	} else {
+		sum.DataBytes = f.Size()
 	}
-	return f.Size(), nil
+	// XXX This is not thread safe and it should be.
+	sum.Span = s.span
+	return sum, nil
 }
 
 type info struct {

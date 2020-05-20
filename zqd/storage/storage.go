@@ -1,9 +1,18 @@
 package storage
 
 import (
-	"github.com/brimsec/zq/zqd/storage/unizng"
+	"context"
+
+	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zbuf"
 )
 
-func Load(path string) (*unizng.ZngStorage, error) {
-	return unizng.Load(path)
+type Summary struct {
+	Span      nano.Span
+	DataBytes int64
+}
+
+type Storage interface {
+	Open(ctx context.Context, span nano.Span) (zbuf.ReadCloser, error)
+	Summary(ctx context.Context) (Summary, error)
 }

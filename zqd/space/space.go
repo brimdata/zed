@@ -16,7 +16,7 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/storage"
-	"github.com/brimsec/zq/zqd/storage/unizng"
+	"github.com/brimsec/zq/zqd/storage/loader"
 	"github.com/brimsec/zq/zqe"
 	"github.com/segmentio/ksuid"
 )
@@ -38,7 +38,7 @@ func newSpaceID() api.SpaceID {
 }
 
 type Space struct {
-	Storage *unizng.ZngStorage
+	Storage storage.Storage
 
 	path string
 	conf config
@@ -54,7 +54,7 @@ type Space struct {
 }
 
 func loadSpace(path string, conf config) (*Space, error) {
-	s, err := storage.Load(conf.DataPath)
+	s, err := loader.Load(conf.DataPath)
 	if err != nil {
 		return nil, err
 	}
@@ -113,8 +113,11 @@ func (s *Space) Update(req api.SpacePutRequest) error {
 	return s.conf.save(s.path)
 }
 
-func (s *Space) Info() (api.SpaceInfo, error) {
-	logsize, err := s.Storage.Size()
+func (s *Space) Info(ctx context.Context) (api.SpaceInfo, error) {
+	sum, err := s.Storage.Summary(ctx)
+	if err != nil {
+		return api.SpaceInfo{}, err
+	}
 	if err != nil {
 		return api.SpaceInfo{}, err
 	}
@@ -123,15 +126,14 @@ func (s *Space) Info() (api.SpaceInfo, error) {
 		return api.SpaceInfo{}, err
 	}
 	var span *nano.Span
-	sp := s.Storage.Span()
-	if sp.Dur > 0 {
-		span = &sp
+	if sum.Span.Dur > 0 {
+		span = &sum.Span
 	}
 	spaceInfo := api.SpaceInfo{
 		ID:          s.ID(),
 		Name:        s.conf.Name,
 		DataPath:    s.conf.DataPath,
-		Size:        logsize,
+		Size:        sum.DataBytes,
 		Span:        span,
 		PcapSupport: s.PcapPath() != "",
 		PcapPath:    s.PcapPath(),
