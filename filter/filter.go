@@ -115,7 +115,7 @@ func EvalAny(eval Predicate, recursive bool) Filter {
 }
 
 func compileSearch(node *ast.Search) (Filter, error) {
-	if node.Value.Type == "regexp" {
+	if node.Value.Type == "regexp" || node.Value.Type == "net" {
 		match, err := Comparison("=~", node.Value)
 		if err != nil {
 			return nil, err
