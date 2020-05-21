@@ -374,7 +374,7 @@ func (r *hybridReader) fillVals() {
 		bi := 0
 		for i := 0; i < n; i++ {
 			for havebits < r.width {
-				iv = (iv << 8) | uint64(r.buf[bi])
+				iv |= uint64(r.buf[bi]) << havebits
 				havebits += 8
 				bi++
 			}
