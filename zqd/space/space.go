@@ -54,7 +54,11 @@ type Space struct {
 }
 
 func loadSpace(path string, conf config) (*Space, error) {
-	s, err := loader.Load(conf.DataPath)
+	datapath := conf.DataPath
+	if datapath == "." {
+		datapath = path
+	}
+	s, err := loader.Load(datapath)
 	if err != nil {
 		return nil, err
 	}
@@ -118,9 +122,6 @@ func (s *Space) Info(ctx context.Context) (api.SpaceInfo, error) {
 	if err != nil {
 		return api.SpaceInfo{}, err
 	}
-	if err != nil {
-		return api.SpaceInfo{}, err
-	}
 	pcapsize, err := s.PcapSize()
 	if err != nil {
 		return api.SpaceInfo{}, err
@@ -133,6 +134,7 @@ func (s *Space) Info(ctx context.Context) (api.SpaceInfo, error) {
 		ID:          s.ID(),
 		Name:        s.conf.Name,
 		DataPath:    s.conf.DataPath,
+		StorageKind: sum.Kind.String(),
 		Size:        sum.DataBytes,
 		Span:        span,
 		PcapSupport: s.PcapPath() != "",

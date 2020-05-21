@@ -7,7 +7,29 @@ import (
 	"github.com/brimsec/zq/zbuf"
 )
 
+type Kind int
+
+const (
+	KindUnknown Kind = iota
+	KindUniZng
+	KindArchive
+)
+
+func (k Kind) String() string {
+	switch k {
+	case KindUniZng:
+		return "unizng"
+	case KindArchive:
+		return "archive"
+	case KindUnknown:
+		fallthrough
+	default:
+		return "unknown storage kind"
+	}
+}
+
 type Summary struct {
+	Kind      Kind
 	Span      nano.Span
 	DataBytes int64
 }

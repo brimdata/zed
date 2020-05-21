@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/brimsec/zq/pkg/nano"
 )
 
 type Visitor func(zardir string) error
@@ -43,6 +45,17 @@ func Walk(ark *Archive, visit Visitor) error {
 			return err
 		}
 		if err := visit(zardir); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+type SpanVisitor func(span nano.Span, zngpath string) error
+
+func SpanWalk(ark *Archive, v SpanVisitor) error {
+	for _, s := range ark.Meta.Spans {
+		if err := v(s.Span, filepath.Join(ark.Root, s.Part)); err != nil {
 			return err
 		}
 	}

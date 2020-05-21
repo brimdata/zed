@@ -23,7 +23,7 @@ import (
 
 var (
 	ErrIngestProcessInFlight = errors.New("another ingest process is already in flight for this space")
-	ErrNoPcapSupport         = errors.New("space does not support pcap ingest")
+	ErrNoPcapImport          = errors.New("space does not support pcap import")
 )
 
 const tmpIngestDir = ".tmp.ingest"
@@ -51,7 +51,7 @@ type PcapOp struct {
 func NewPcapOp(ctx context.Context, s *space.Space, pcap string, zlauncher zeek.Launcher) (*PcapOp, error) {
 	store, ok := s.Storage.(*unizng.ZngStorage)
 	if !ok {
-		return nil, ErrNoPcapSupport
+		return nil, ErrNoPcapImport
 	}
 	logdir := s.DataPath(tmpIngestDir)
 	if err := os.Mkdir(logdir, 0700); err != nil {

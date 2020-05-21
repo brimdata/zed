@@ -17,14 +17,18 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/tzngio"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd"
 	"github.com/brimsec/zq/zqd/api"
+	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqd/zeek"
 	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/assert"
@@ -200,9 +204,10 @@ func TestSpaceList(t *testing.T) {
 			sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: n})
 			require.NoError(t, err)
 			expected = append(expected, api.SpaceInfo{
-				ID:       sp.ID,
-				Name:     n,
-				DataPath: filepath.Join(c.Root, string(sp.ID)),
+				ID:          sp.ID,
+				Name:        n,
+				DataPath:    filepath.Join(c.Root, string(sp.ID)),
+				StorageKind: storage.KindUniZng.String(),
 			})
 		}
 
@@ -242,6 +247,7 @@ func TestSpaceInfo(t *testing.T) {
 		ID:          sp.ID,
 		Name:        sp.Name,
 		DataPath:    sp.DataPath,
+		StorageKind: storage.KindUniZng.String(),
 		Span:        &span,
 		Size:        81,
 		PcapSupport: false,
@@ -263,6 +269,7 @@ func TestSpaceInfoNoData(t *testing.T) {
 		ID:          sp.ID,
 		Name:        sp.Name,
 		DataPath:    sp.DataPath,
+		StorageKind: storage.KindUniZng.String(),
 		Size:        0,
 		PcapSupport: false,
 	}
@@ -407,6 +414,7 @@ func TestPostZngLogs(t *testing.T) {
 		ID:          sp.ID,
 		Name:        sp.Name,
 		DataPath:    sp.DataPath,
+		StorageKind: storage.KindUniZng.String(),
 		Span:        span,
 		Size:        81,
 		PcapSupport: false,
@@ -493,6 +501,7 @@ func TestPostNDJSONLogs(t *testing.T) {
 			ID:          sp.ID,
 			Name:        sp.Name,
 			DataPath:    sp.DataPath,
+			StorageKind: storage.KindUniZng.String(),
 			Span:        &span,
 			Size:        81,
 			PcapSupport: false,
@@ -660,6 +669,61 @@ func TestSpaceDataDir(t *testing.T) {
 
 	res = searchTzng(t, client2, sp.ID, "*")
 	require.Equal(t, test.Trim(src), res)
+}
+
+func createArchiveSpace(t *testing.T, datapath string, thresh int64, srcfile string) {
+	ctx := context.Background()
+
+	co := &archive.CreateOptions{
+		LogSizeThreshold: &thresh,
+	}
+	ark, err := archive.CreateOrOpenArchive(datapath, co)
+	require.NoError(t, err)
+
+	zctx := resolver.NewContext()
+	reader, err := detector.OpenFile(zctx, srcfile, detector.OpenConfig{})
+	require.NoError(t, err)
+	defer reader.Close()
+
+	err = archive.Import(ctx, ark, reader)
+	require.NoError(t, err)
+}
+
+func TestCreateArchiveSpace(t *testing.T) {
+	datapath := createTempDir(t)
+	thresh := int64(100)
+	createArchiveSpace(t, datapath, thresh, "../tests/suite/zdx/babble.tzng")
+
+	root := createTempDir(t)
+
+	_, client, done := newCoreAtDir(t, root)
+	defer done()
+
+	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{
+		Name:     "arktest",
+		DataPath: datapath,
+	})
+	require.NoError(t, err)
+
+	span := nano.Span{Ts: 1587508830068523240, Dur: 9789993714061}
+	expsi := &api.SpaceInfo{
+		ID:          sp.ID,
+		Name:        sp.Name,
+		DataPath:    sp.DataPath,
+		StorageKind: storage.KindArchive.String(),
+		Span:        &span,
+		Size:        38261,
+	}
+	si, err := client.SpaceInfo(context.Background(), sp.ID)
+	require.NoError(t, err)
+	require.Equal(t, expsi, si)
+
+	exptzng := `
+#0:record[ts:time,s:string,v:int64]
+0:[1587508881.0613914;harefoot-raucous;137;]
+`
+	res := searchTzng(t, client, sp.ID, "s=harefoot-raucous")
+	require.Equal(t, test.Trim(exptzng), res)
 }
 
 // search runs the provided zql program as a search on the provided

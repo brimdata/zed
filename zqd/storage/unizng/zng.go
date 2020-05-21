@@ -198,6 +198,7 @@ func (s *ZngStorage) Summary(_ context.Context) (storage.Summary, error) {
 	}
 	// XXX This is not thread safe and it should be.
 	sum.Span = s.span
+	sum.Kind = storage.KindUniZng
 	return sum, nil
 }
 
