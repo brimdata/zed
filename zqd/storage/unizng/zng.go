@@ -59,6 +59,10 @@ type ZngStorage struct {
 	wsem       *semaphore.Weighted
 }
 
+func (s *ZngStorage) NativeDirection() zbuf.Direction {
+	return zbuf.DirTimeReverse
+}
+
 func (s *ZngStorage) join(args ...string) string {
 	args = append([]string{s.path}, args...)
 	return filepath.Join(args...)

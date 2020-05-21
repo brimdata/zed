@@ -140,7 +140,7 @@ func (p *LogOp) start(ctx context.Context, store *unizng.ZngStorage) {
 	for _, warning := range p.warnings {
 		p.warningCh <- warning
 	}
-	r := zbuf.NewCombiner(p.readers)
+	r := zbuf.NewCombiner(p.readers, store.NativeDirection())
 	p.err = store.Rewrite(ctx, r)
 	if err := p.closeFiles(); err != nil && p.err != nil {
 		p.err = err

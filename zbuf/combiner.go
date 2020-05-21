@@ -4,25 +4,45 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zng"
+)
+
+type Direction bool
+
+const (
+	DirTimeForward = Direction(true)
+	DirTimeReverse = Direction(false)
 )
 
 type Combiner struct {
 	readers []Reader
 	hol     []*zng.Record
 	done    []bool
+	dir     Direction
 }
 
-func NewCombiner(readers []Reader) *Combiner {
+// NewCombiner returns a Combiner that merges zbuf.Readers into
+// a single Reader. If the ordering of the input readers matches
+// the direction specified, the output records will maintain
+// that order.
+func NewCombiner(readers []Reader, dir Direction) *Combiner {
 	return &Combiner{
 		readers: readers,
 		hol:     make([]*zng.Record, len(readers)),
 		done:    make([]bool, len(readers)),
+		dir:     dir,
 	}
 }
 
 func (c *Combiner) Read() (*zng.Record, error) {
 	idx := -1
+	var cmp func(x, y nano.Ts) bool
+	if c.dir == DirTimeForward {
+		cmp = func(x, y nano.Ts) bool { return x < y }
+	} else {
+		cmp = func(x, y nano.Ts) bool { return x > y }
+	}
 	for k, l := range c.readers {
 		if c.done[k] {
 			continue
@@ -38,7 +58,7 @@ func (c *Combiner) Read() (*zng.Record, error) {
 			}
 			c.hol[k] = tup
 		}
-		if idx == -1 || c.hol[k].Ts < c.hol[idx].Ts {
+		if idx == -1 || cmp(c.hol[k].Ts, c.hol[idx].Ts) {
 			idx = k
 		}
 	}
