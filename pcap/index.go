@@ -20,10 +20,6 @@ func (i Index) Span() nano.Span {
 	for _, s := range i {
 		for _, bin := range s.Index {
 			binspan := nano.NewSpanTs(nano.Ts(bin.Range.Y0), nano.Ts(bin.Range.Y1))
-			if span.Ts == 0 {
-				span = binspan
-				continue
-			}
 			span = span.Union(binspan)
 		}
 	}

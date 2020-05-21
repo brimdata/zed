@@ -21,6 +21,10 @@ type jsonSpan struct {
 	Dur Ts `json:"dur"`
 }
 
+func (s Span) IsZero() bool {
+	return s.Ts == 0 && s.Dur == 0
+}
+
 // MarshalJSON fulfills the json.Marshaler interface.  We need to encode
 // Dur as a 64-bit timestamp so we use jsonSpan to do the conversion.
 func (s Span) MarshalJSON() ([]byte, error) {
@@ -117,10 +121,15 @@ func (s Span) Intersect(b Span) Span {
 	return NewSpanTs(start, end)
 }
 
-// Union merges two spans returning a new span where start equals
-// min(a.start, b.start) and end equals max(a.end, b.end). Assumes the two spans
-// overlap.
+// Union returns a new span that includes the time range of this span
+// and the input span.
 func (s Span) Union(b Span) Span {
+	if b.IsZero() {
+		return s
+	}
+	if s.IsZero() {
+		return b
+	}
 	return NewSpanTs(min(s.Ts, b.Ts), max(s.End(), b.End()))
 }
 

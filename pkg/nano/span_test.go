@@ -161,3 +161,24 @@ func TestSubtract(t *testing.T) {
 		})
 	}
 }
+
+func TestSpanUnion(t *testing.T) {
+	var s0 nano.Span
+	s1 := nano.Span{Ts: 1, Dur: 1}
+	s2 := nano.Span{Ts: 10, Dur: 10}
+
+	assert.True(t, s0.IsZero())
+	assert.False(t, s1.IsZero())
+
+	r0 := s0.Union(s1)
+	assert.Equal(t, s1.Ts, r0.Ts)
+	assert.Equal(t, s1.Dur, r0.Dur)
+
+	r1 := s1.Union(s0)
+	assert.Equal(t, s1.Ts, r1.Ts)
+	assert.Equal(t, s1.Dur, r1.Dur)
+
+	r2 := s1.Union(s2)
+	assert.EqualValues(t, 1, r2.Ts)
+	assert.EqualValues(t, 19, r2.Dur)
+}

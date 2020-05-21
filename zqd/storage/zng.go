@@ -88,13 +88,8 @@ func (w *spanWriter) Write(rec *zng.Record) error {
 	if rec.Ts == 0 {
 		return nil
 	}
-	first := w.span == nano.Span{}
 	s := nano.Span{Ts: rec.Ts, Dur: 1}
-	if first {
-		w.span = s
-	} else {
-		w.span = w.span.Union(s)
-	}
+	w.span = w.span.Union(s)
 	return nil
 }
 
@@ -160,14 +155,8 @@ func (s *ZngStorage) Clear(ctx context.Context) error {
 
 // XXX This is not thread safe and it should be.
 func (s *ZngStorage) UnionSpan(span nano.Span) error {
-	first := s.span == nano.Span{}
-	if first {
-		s.span = span
-	} else {
-		s.span = s.span.Union(span)
-	}
+	s.span = s.span.Union(span)
 	return s.syncInfoFile()
-
 }
 
 // XXX This is not thread safe and it should be.

@@ -50,11 +50,6 @@ func (a *Array) Index(k int) *zng.Record {
 
 func (a *Array) Append(r *zng.Record) {
 	s := nano.Span{Ts: r.Ts}
-	first := a.span == nano.Span{}
-	if first {
-		a.span = s
-	} else {
-		a.span = a.span.Union(s)
-	}
+	a.span = a.span.Union(s)
 	a.records = append(a.records, r)
 }
