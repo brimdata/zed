@@ -14,7 +14,7 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/space"
-	"github.com/brimsec/zq/zqd/storage/unizng"
+	"github.com/brimsec/zq/zqd/storage/filestore"
 	"github.com/brimsec/zq/zqe"
 )
 
@@ -40,7 +40,7 @@ type LogOp struct {
 // Logs ingests the provided list of files into the provided space.
 // Like ingest.Pcap, this overwrites any existing data in the space.
 func NewLogOp(ctx context.Context, s *space.Space, req api.LogPostRequest) (*LogOp, error) {
-	store, ok := s.Storage.(*unizng.ZngStorage)
+	store, ok := s.Storage.(*filestore.Storage)
 	if !ok {
 		return nil, ErrNoLogIngestSupport
 	}
@@ -135,7 +135,7 @@ func (p *LogOp) bytesRead() int64 {
 	return read
 }
 
-func (p *LogOp) start(ctx context.Context, store *unizng.ZngStorage) {
+func (p *LogOp) start(ctx context.Context, store *filestore.Storage) {
 	// first drain warnings
 	for _, warning := range p.warnings {
 		p.warningCh <- warning

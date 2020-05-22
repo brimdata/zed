@@ -1,4 +1,4 @@
-package unizng_test
+package filestore_test
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zqd/storage/unizng"
+	"github.com/brimsec/zq/zqd/storage/filestore"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,7 +27,7 @@ func (w *waitReader) Read() (*zng.Record, error) {
 func TestFailOnConcurrentWrites(t *testing.T) {
 	dir, err := ioutil.TempDir("", t.Name())
 	require.NoError(t, err)
-	store, err := unizng.Load(dir)
+	store, err := filestore.Load(dir)
 	require.NoError(t, err)
 	wr := &waitReader{dur: time.Second * 5}
 	wr.Add(1)
@@ -38,5 +38,5 @@ func TestFailOnConcurrentWrites(t *testing.T) {
 
 	err = store.Rewrite(context.Background(), nil)
 	require.Error(t, err)
-	require.True(t, errors.Is(err, unizng.ErrWriteInProgress))
+	require.True(t, errors.Is(err, filestore.ErrWriteInProgress))
 }

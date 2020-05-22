@@ -10,18 +10,18 @@ import (
 type Kind int
 
 const (
-	KindUnknown Kind = iota
-	KindUniZng
-	KindArchive
+	UnknownStore Kind = iota
+	FileStore
+	ArchiveStore
 )
 
 func (k Kind) String() string {
 	switch k {
-	case KindUniZng:
-		return "unizng"
-	case KindArchive:
-		return "archive"
-	case KindUnknown:
+	case FileStore:
+		return "filestore"
+	case ArchiveStore:
+		return "archivestore"
+	case UnknownStore:
 		fallthrough
 	default:
 		return "unknown storage kind"

@@ -159,8 +159,7 @@ func handlePcapSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 }
 
 func handleSpaceList(c *Core, w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	spaces, err := c.spaces.List(ctx)
+	spaces, err := c.spaces.List(r.Context())
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -196,13 +195,12 @@ func handleSpacePost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := r.Context()
 	sp, err := c.spaces.Create(req.Name, req.DataPath)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
 	}
-	info, err := sp.Info(ctx)
+	info, err := sp.Info(r.Context())
 	if err != nil {
 		respondError(c, w, r, err)
 		return

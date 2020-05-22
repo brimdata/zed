@@ -2,8 +2,8 @@ package loader
 
 import (
 	"github.com/brimsec/zq/zqd/storage"
-	archivestore "github.com/brimsec/zq/zqd/storage/archive"
-	"github.com/brimsec/zq/zqd/storage/unizng"
+	"github.com/brimsec/zq/zqd/storage/archivestore"
+	"github.com/brimsec/zq/zqd/storage/filestore"
 )
 
 func Load(path string) (storage.Storage, error) {
@@ -11,5 +11,5 @@ func Load(path string) (storage.Storage, error) {
 	if err == nil {
 		return as, nil
 	}
-	return unizng.Load(path)
+	return filestore.Load(path)
 }

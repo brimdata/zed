@@ -207,7 +207,7 @@ func TestSpaceList(t *testing.T) {
 				ID:          sp.ID,
 				Name:        n,
 				DataPath:    filepath.Join(c.Root, string(sp.ID)),
-				StorageKind: storage.KindUniZng.String(),
+				StorageKind: storage.FileStore.String(),
 			})
 		}
 
@@ -247,7 +247,7 @@ func TestSpaceInfo(t *testing.T) {
 		ID:          sp.ID,
 		Name:        sp.Name,
 		DataPath:    sp.DataPath,
-		StorageKind: storage.KindUniZng.String(),
+		StorageKind: storage.FileStore.String(),
 		Span:        &span,
 		Size:        81,
 		PcapSupport: false,
@@ -269,7 +269,7 @@ func TestSpaceInfoNoData(t *testing.T) {
 		ID:          sp.ID,
 		Name:        sp.Name,
 		DataPath:    sp.DataPath,
-		StorageKind: storage.KindUniZng.String(),
+		StorageKind: storage.FileStore.String(),
 		Size:        0,
 		PcapSupport: false,
 	}
@@ -414,7 +414,7 @@ func TestPostZngLogs(t *testing.T) {
 		ID:          sp.ID,
 		Name:        sp.Name,
 		DataPath:    sp.DataPath,
-		StorageKind: storage.KindUniZng.String(),
+		StorageKind: storage.FileStore.String(),
 		Span:        span,
 		Size:        81,
 		PcapSupport: false,
@@ -501,7 +501,7 @@ func TestPostNDJSONLogs(t *testing.T) {
 			ID:          sp.ID,
 			Name:        sp.Name,
 			DataPath:    sp.DataPath,
-			StorageKind: storage.KindUniZng.String(),
+			StorageKind: storage.FileStore.String(),
 			Span:        &span,
 			Size:        81,
 			PcapSupport: false,
@@ -710,7 +710,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 		ID:          sp.ID,
 		Name:        sp.Name,
 		DataPath:    sp.DataPath,
-		StorageKind: storage.KindArchive.String(),
+		StorageKind: storage.ArchiveStore.String(),
 		Span:        &span,
 		Size:        38261,
 	}

@@ -64,7 +64,7 @@ func (as *ArkStorage) Open(ctx context.Context, span nano.Span) (zbuf.ReadCloser
 
 func (as *ArkStorage) Summary(_ context.Context) (storage.Summary, error) {
 	var sum storage.Summary
-	sum.Kind = storage.KindArchive
+	sum.Kind = storage.ArchiveStore
 	return sum, archive.SpanWalk(as.ark, func(sp nano.Span, zngpath string) error {
 		sinfo, err := os.Stat(zngpath)
 		if err != nil {

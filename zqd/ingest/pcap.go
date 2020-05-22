@@ -17,7 +17,7 @@ import (
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/space"
-	"github.com/brimsec/zq/zqd/storage/unizng"
+	"github.com/brimsec/zq/zqd/storage/filestore"
 	"github.com/brimsec/zq/zqd/zeek"
 )
 
@@ -33,7 +33,7 @@ type PcapOp struct {
 	PcapSize  int64
 
 	space        *space.Space
-	store        *unizng.ZngStorage
+	store        *filestore.Storage
 	snapshots    int32
 	pcapPath     string
 	pcapReadSize int64
@@ -49,7 +49,7 @@ type PcapOp struct {
 // directory. If zeekExec is an empty string, this will attempt to resolve zeek
 // from $PATH.
 func NewPcapOp(ctx context.Context, s *space.Space, pcap string, zlauncher zeek.Launcher) (*PcapOp, error) {
-	store, ok := s.Storage.(*unizng.ZngStorage)
+	store, ok := s.Storage.(*filestore.Storage)
 	if !ok {
 		return nil, ErrNoPcapImport
 	}
