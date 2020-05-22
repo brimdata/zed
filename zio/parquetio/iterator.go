@@ -46,6 +46,8 @@ type columnIterator struct {
 	valReader valueReader
 
 	// only used for PageType_DICTIONARY_PAGE
+	int64Dict     []int64
+	floatDict     []float64
 	byteArrayDict [][]byte
 	// XXX need other types
 }
@@ -61,7 +63,9 @@ func newColumnIterator(pr *reader.ParquetReader, name string, maxRL, maxDL int32
 
 func (i *columnIterator) clearDictionaries() {
 	i.byteArrayDict = nil
-	// XXX other types
+	i.int64Dict = nil
+	i.floatDict = nil
+	// XXX clear others as they are added
 }
 
 func (i *columnIterator) loadOnePage() (*parquet.PageHeader, []byte, error) {
@@ -157,6 +161,20 @@ func (i *columnIterator) ensureDataPage() {
 func (i *columnIterator) loadDictionaryPage(header *parquet.PageHeader, buf []byte) {
 	n := int(header.DictionaryPageHeader.GetNumValues())
 	switch i.colMetadata.GetType() {
+	case parquet.Type_INT64:
+		i.int64Dict = make([]int64, n)
+		r := plainReader{buf}
+		for j := 0; j < n; j++ {
+			i.int64Dict[j] = r.nextInt64()
+		}
+
+	case parquet.Type_DOUBLE:
+		i.floatDict = make([]float64, n)
+		r := plainReader{buf}
+		for j := 0; j < n; j++ {
+			i.floatDict[j] = r.nextDouble()
+		}
+
 	case parquet.Type_BYTE_ARRAY:
 		i.byteArrayDict = make([][]byte, n)
 		r := plainReader{buf}
@@ -165,7 +183,7 @@ func (i *columnIterator) loadDictionaryPage(header *parquet.PageHeader, buf []by
 		}
 
 	default:
-		//fmt.Printf("skipping dictionary page for type %s\n", i.colMetadata.GetType())
+		// fmt.Printf("skipping dictionary page for type %s\n", i.colMetadata.GetType())
 	}
 }
 
@@ -198,16 +216,27 @@ func (i *columnIterator) initializeDataPage(header *parquet.PageHeader, buf []by
 	}
 
 	enc := header.DataPageHeader.GetEncoding()
+	typ := i.colMetadata.GetType()
 	switch enc {
 	case parquet.Encoding_PLAIN:
 		//fmt.Printf("instantiate plainReader for %s\n", i.name)
-		i.valReader = &plainReader{buf}
+		if typ == parquet.Type_BOOLEAN {
+			i.valReader = &plainBooleanReader{buf: buf}
+		} else {
+			i.valReader = &plainReader{buf}
+		}
 	case parquet.Encoding_PLAIN_DICTIONARY:
-		switch i.colMetadata.GetType() {
+		switch typ {
+		case parquet.Type_INT64:
+			i.valReader = newDictionaryInt64Reader(buf, i.int64Dict)
+
+		case parquet.Type_DOUBLE:
+			i.valReader = newDictionaryDoubleReader(buf, i.floatDict)
+
 		case parquet.Type_BYTE_ARRAY:
 			i.valReader = newDictionaryByteArrayReader(buf, i.byteArrayDict)
 		default:
-			//fmt.Printf("skipping dictionary page of type %s\n", i.colMetadata.GetType())
+			//fmt.Printf("skipping dictionary page of type %s\n", typ)
 			i.valReader = &nullReader{}
 		}
 	default:
@@ -425,6 +454,44 @@ func (r *nullReader) nextByteArray() []byte {
 	return nil
 }
 
+type plainBooleanReader struct {
+	buf     []byte
+	current byte
+	bits    int
+}
+
+func (r *plainBooleanReader) nextBoolean() bool {
+	if r.bits == 0 {
+		r.current = r.buf[0]
+		r.buf = r.buf[1:]
+		r.bits = 8
+	}
+	b := (r.current & 1) == 1
+	r.current >>= 1
+	r.bits -= 1
+	return b
+}
+
+func (r *plainBooleanReader) nextInt32() int32 {
+	panic("cannot read INT32 from PLAIN BOOLEAN reader")
+}
+
+func (r *plainBooleanReader) nextInt64() int64 {
+	panic("cannot read INT64 from PLAIN BOOLEAN reader")
+}
+
+func (r *plainBooleanReader) nextFloat() float64 {
+	panic("cannot read FLOAT from PLAIN BOOLEAN reader")
+}
+
+func (r *plainBooleanReader) nextDouble() float64 {
+	panic("cannot read DOUBLE from PLAIN BOOLEAN reader")
+}
+
+func (r *plainBooleanReader) nextByteArray() []byte {
+	panic("cannot read BYTE_ARRAY from PLAIN BOOLEAN reader")
+}
+
 // Handle Parquet PLAIN encoding type
 type plainReader struct {
 	buf []byte
@@ -485,6 +552,86 @@ func (r *plainReader) nextByteArray() []byte {
 	ret := r.buf[4:total]
 	r.buf = r.buf[total:]
 	return ret
+}
+
+// Handle Parquet PLAIN_DICTIONARY encoding type
+type dictionaryInt64Reader struct {
+	dict        []int64
+	indexReader *hybridReader
+}
+
+func newDictionaryInt64Reader(buf []byte, dict []int64) *dictionaryInt64Reader {
+	width := int(buf[0])
+	reader := newHybridReader(buf[1:], width)
+	return &dictionaryInt64Reader{dict, reader}
+}
+
+func (r *dictionaryInt64Reader) nextBoolean() bool {
+	panic("cannot read BOOLEAN from INT64 dictionary reader")
+}
+
+func (r *dictionaryInt64Reader) nextInt32() int32 {
+	panic("cannot read INT32 from INT64 dictionary reader")
+}
+
+func (r *dictionaryInt64Reader) nextInt64() int64 {
+	i := int(r.indexReader.nextInt64())
+	if i > len(r.dict) {
+		panic(fmt.Sprintf("dictionary index too large (%d>%d)", i, len(r.dict)))
+	}
+	return r.dict[i]
+}
+
+func (r *dictionaryInt64Reader) nextFloat() float64 {
+	panic("cannot read FLOAT from INT64 dictionary reader")
+}
+
+func (r *dictionaryInt64Reader) nextDouble() float64 {
+	panic("cannot read DOUBLE from INT64 dictionary reader")
+}
+
+func (r *dictionaryInt64Reader) nextByteArray() []byte {
+	panic("cannot read BYTE_ARRAY from INT64 dictionary reader")
+}
+
+// Handle Parquet PLAIN_DICTIONARY encoding type
+type dictionaryDoubleReader struct {
+	dict        []float64
+	indexReader *hybridReader
+}
+
+func newDictionaryDoubleReader(buf []byte, dict []float64) *dictionaryDoubleReader {
+	width := int(buf[0])
+	reader := newHybridReader(buf[1:], width)
+	return &dictionaryDoubleReader{dict, reader}
+}
+
+func (r *dictionaryDoubleReader) nextBoolean() bool {
+	panic("cannot read BOOLEAN from DOUBLE dictionary reader")
+}
+
+func (r *dictionaryDoubleReader) nextInt32() int32 {
+	panic("cannot read INT32 from DOUBLE dictionary reader")
+}
+
+func (r *dictionaryDoubleReader) nextInt64() int64 {
+	panic("cannot read INT64 from DOUBLE dictionary reader")
+}
+
+func (r *dictionaryDoubleReader) nextFloat() float64 {
+	panic("cannot read FLOAT from DOUBLE dictionary reader")
+}
+
+func (r *dictionaryDoubleReader) nextDouble() float64 {
+	i := int(r.indexReader.nextInt64())
+	if i > len(r.dict) {
+		panic(fmt.Sprintf("dictionary index too large (%d>%d)", i, len(r.dict)))
+	}
+	return r.dict[i]
+}
+
+func (r *dictionaryDoubleReader) nextByteArray() []byte {
+	panic("cannot read BYTE_ARRAY from DOUBLE dictionary reader")
 }
 
 // Handle Parquet PLAIN_DICTIONARY encoding type
