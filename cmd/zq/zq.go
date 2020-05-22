@@ -7,8 +7,11 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"regexp"
+	"runtime"
+	"runtime/pprof"
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
@@ -34,7 +37,7 @@ var Zq = &charm.Spec{
 	Name:        "zq",
 	Usage:       "zq [ options ] [ zql ] file [ file ... ]",
 	Short:       "command line logs processor",
-	HiddenFlags: "pathregexp",
+	HiddenFlags: "cpuprofile,memprofile,pathregexp",
 	Long: `
 zq is a command-line tool for processing logs.  It applies boolean logic
 to filter each log value, optionally computes analytics and transformations,
@@ -94,6 +97,9 @@ type Command struct {
 	forceBinary     bool
 	sortMemMaxBytes int
 	textShortcut    bool
+	cpuprofile      string
+	memprofile      string
+	cleanupFns      []func()
 	ReaderFlags     zio.ReaderFlags
 	WriterFlags     zio.WriterFlags
 }
@@ -121,6 +127,8 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.showVersion, "version", false, "print version and exit")
 	f.BoolVar(&c.textShortcut, "t", false, "use format tzng independent of -f option")
 	f.BoolVar(&c.forceBinary, "B", false, "allow binary zng be sent to a terminal output")
+	f.StringVar(&c.cpuprofile, "cpuprofile", "", "write cpu profile to `file`")
+	f.StringVar(&c.memprofile, "memprofile", "", "write memory profile to `file`")
 	return c, nil
 }
 
@@ -161,11 +169,18 @@ func isTerminal(f *os.File) bool {
 }
 
 func (c *Command) Run(args []string) error {
+	defer c.runCleanup()
 	if c.showVersion {
 		return c.printVersion()
 	}
 	if len(args) == 0 {
 		return Zq.Exec(c, []string{"help"})
+	}
+	if c.cpuprofile != "" {
+		c.runCPUProfile()
+	}
+	if c.memprofile != "" {
+		c.cleanup(c.runMemProfile)
 	}
 	if c.textShortcut {
 		c.WriterFlags.Format = "tzng"
@@ -287,4 +302,33 @@ func (c *Command) openOutput() (zbuf.WriteCloser, error) {
 		return nil, err
 	}
 	return w, nil
+}
+
+func (c *Command) cleanup(f func()) {
+	c.cleanupFns = append(c.cleanupFns, f)
+}
+
+func (c *Command) runCleanup() {
+	for _, fn := range c.cleanupFns {
+		fn()
+	}
+}
+
+func (c *Command) runCPUProfile() {
+	f, err := os.Create(c.cpuprofile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	pprof.StartCPUProfile(f)
+	c.cleanup(pprof.StopCPUProfile)
+}
+
+func (c *Command) runMemProfile() {
+	f, err := os.Create(c.memprofile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	runtime.GC()
+	pprof.WriteHeapProfile(f)
+	f.Close()
 }

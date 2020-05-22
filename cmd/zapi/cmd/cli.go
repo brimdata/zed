@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"syscall"
 
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/mccanne/charm"
@@ -38,6 +39,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{
 		Version:   Version,
 		ZqVersion: ZqVersion,
+		ctx:       newSignalCtx(context.Background(), syscall.SIGINT, syscall.SIGTERM),
 	}
 
 	defaultHost := "localhost:9867"
@@ -54,7 +56,12 @@ type Command struct {
 	ZqVersion string
 	Host      string
 	Spacename string
+	ctx       *signalCtx
 	spaceID   api.SpaceID
+}
+
+func (c *Command) Context() context.Context {
+	return c.ctx
 }
 
 // Client returns a central api.Connection instance.
@@ -73,7 +80,7 @@ func (c *Command) SpaceID() (api.SpaceID, error) {
 		return "", ErrSpaceNotSpecified
 	}
 	client := c.Client()
-	spaces, err := SpaceGlob(context.TODO(), client, c.Spacename)
+	spaces, err := SpaceGlob(c.ctx, client, c.Spacename)
 	if err != nil {
 		return "", err
 	}
