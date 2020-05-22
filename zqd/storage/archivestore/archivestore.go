@@ -25,11 +25,11 @@ type Storage struct {
 	ark *archive.Archive
 }
 
-func (as *Storage) NativeDirection() zbuf.Direction {
-	return zbuf.Direction(as.ark.Meta.DataSortForward)
+func (s *Storage) NativeDirection() zbuf.Direction {
+	return zbuf.Direction(s.ark.Meta.DataSortForward)
 }
 
-func (as *Storage) Open(ctx context.Context, span nano.Span) (zbuf.ReadCloser, error) {
+func (s *Storage) Open(ctx context.Context, span nano.Span) (zbuf.ReadCloser, error) {
 	var (
 		err     error
 		readers []zbuf.Reader
@@ -43,7 +43,7 @@ func (as *Storage) Open(ctx context.Context, span nano.Span) (zbuf.ReadCloser, e
 		}
 	}()
 	zctx := resolver.NewContext()
-	err = archive.SpanWalk(as.ark, func(sp nano.Span, zngpath string) error {
+	err = archive.SpanWalk(s.ark, func(sp nano.Span, zngpath string) error {
 		if !span.Overlaps(sp) {
 			return nil
 		}
@@ -58,14 +58,14 @@ func (as *Storage) Open(ctx context.Context, span nano.Span) (zbuf.ReadCloser, e
 	if err != nil {
 		return nil, err
 	}
-	combiner := zbuf.NewCombiner(readers, as.NativeDirection())
+	combiner := zbuf.NewCombiner(readers, s.NativeDirection())
 	return combiner, nil
 }
 
-func (as *Storage) Summary(_ context.Context) (storage.Summary, error) {
+func (s *Storage) Summary(_ context.Context) (storage.Summary, error) {
 	var sum storage.Summary
 	sum.Kind = storage.ArchiveStore
-	return sum, archive.SpanWalk(as.ark, func(sp nano.Span, zngpath string) error {
+	return sum, archive.SpanWalk(s.ark, func(sp nano.Span, zngpath string) error {
 		sinfo, err := os.Stat(zngpath)
 		if err != nil {
 			return err
