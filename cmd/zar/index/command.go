@@ -91,7 +91,7 @@ func (c *Command) Run(args []string) error {
 		rules = append(rules, rule)
 	}
 	for _, pattern := range args {
-		rule, err := archive.NewRule(pattern, c.outputFile)
+		rule, err := archive.NewRule(pattern)
 		if err != nil {
 			return errors.New("zar index: " + err.Error())
 		}

@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/brimsec/zq/ast"
-	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zdx"
 	"github.com/brimsec/zq/zng"
@@ -80,36 +79,21 @@ func (t *TypeRule) NewIndexer(dir string) (zbuf.WriteCloser, error) {
 	return NewTypeIndexer(zdxPath, t.Type), nil
 }
 
-// FieldRule provides a means to generate Indexers and Finders for a field-specific
-// rules.  Each FieldRule is configured with a field name and the new methods
-// create Indexers and Finders that operate on this field.
-type FieldRule struct {
-	field    string
-	accessor expr.FieldExprResolver
-}
-
-func NewFieldRule(field string) (*FieldRule, error) {
-	accessor := expr.CompileFieldAccess(field)
-	if accessor == nil {
-		return nil, fmt.Errorf("bad field syntax: %s", field)
+// NewFieldRule creates an indexing rule that will index the field passed in as argument.
+func NewFieldRule(field string) (*ZqlRule, error) {
+	c := ast.SequentialProc{
+		Procs: []ast.Proc{
+			&ast.CutProc{
+				Fields: []string{field},
+			},
+			&ast.GroupByProc{
+				Keys: []string{field},
+			},
+			&ast.SortProc{},
+		},
 	}
-	return &FieldRule{
-		field:    field,
-		accessor: accessor,
-	}, nil
-}
 
-func (f *FieldRule) Path(dir string) string {
-	return filepath.Join(dir, fieldZdxName(f.field))
-}
-
-func (f *FieldRule) NewIndexer(dir string) (zbuf.WriteCloser, error) {
-	zdxPath := f.Path(dir)
-	// XXX DANGER, remove without warning, should we have a force flag?
-	if err := zdx.Remove(zdxPath); err != nil && !os.IsNotExist(err) {
-		return nil, err
-	}
-	return NewFieldIndexer(zdxPath, f.field, f.accessor), nil
+	return newZqlRuleAST(&c, fieldZdxName(field), []string{field}, framesize)
 }
 
 // xxx comment
@@ -123,13 +107,9 @@ type ZqlRule struct {
 	keys      []string
 }
 
-func NewZqlRule(s, path string, keys []string, framesize int) (*ZqlRule, error) {
+func newZqlRuleAST(proc ast.Proc, path string, keys []string, framesize int) (*ZqlRule, error) {
 	if path == "" {
 		return nil, fmt.Errorf("zql indexing rule requires an output path")
-	}
-	proc, err := zql.ParseProc(s)
-	if err != nil {
-		return nil, err
 	}
 	return &ZqlRule{
 		proc:      proc,
@@ -137,6 +117,14 @@ func NewZqlRule(s, path string, keys []string, framesize int) (*ZqlRule, error) 
 		framesize: framesize,
 		keys:      keys,
 	}, nil
+}
+
+func NewZqlRule(s, path string, keys []string, framesize int) (*ZqlRule, error) {
+	proc, err := zql.ParseProc(s)
+	if err != nil {
+		return nil, err
+	}
+	return newZqlRuleAST(proc, path, keys, framesize)
 }
 
 func (f *ZqlRule) Path(dir string) string {
