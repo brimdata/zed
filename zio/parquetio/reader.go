@@ -69,7 +69,7 @@ func lookupPrimitiveType(typ *parquet.Type, cType *parquet.ConvertedType) (Handl
 		// XXX case parquet.ConvertedType_INTERVAL:
 
 		default:
-			return HandledType(-1), false
+			return -1, false
 		}
 
 		// XXX handle logical types
@@ -90,10 +90,10 @@ func lookupPrimitiveType(typ *parquet.Type, cType *parquet.ConvertedType) (Handl
 		case parquet.Type_INT96:
 			return int96, true
 		default:
-			return HandledType(-1), false
+			return -1, false
 		}
 	} else {
-		return HandledType(-1), false
+		return -1, false
 	}
 }
 
