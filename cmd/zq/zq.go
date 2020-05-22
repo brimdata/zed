@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"runtime"
 	"runtime/pprof"
 
 	"github.com/brimsec/zq/ast"
@@ -36,7 +37,7 @@ var Zq = &charm.Spec{
 	Name:        "zq",
 	Usage:       "zq [ options ] [ zql ] file [ file ... ]",
 	Short:       "command line logs processor",
-	HiddenFlags: "pathregexp,cpuprofile,memprofile",
+	HiddenFlags: "cpuprofile,memprofile,pathregexp",
 	Long: `
 zq is a command-line tool for processing logs.  It applies boolean logic
 to filter each log value, optionally computes analytics and transformations,
@@ -327,6 +328,7 @@ func (c *Command) runMemProfile() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	runtime.GC()
 	pprof.WriteHeapProfile(f)
 	f.Close()
 }
