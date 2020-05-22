@@ -13,23 +13,23 @@ import (
 	"github.com/brimsec/zq/zqd/storage"
 )
 
-func Load(path string) (*ArkStorage, error) {
+func Load(path string) (*Storage, error) {
 	ark, err := archive.OpenArchive(path)
 	if err != nil {
 		return nil, err
 	}
-	return &ArkStorage{ark: ark}, nil
+	return &Storage{ark: ark}, nil
 }
 
-type ArkStorage struct {
+type Storage struct {
 	ark *archive.Archive
 }
 
-func (as *ArkStorage) NativeDirection() zbuf.Direction {
+func (as *Storage) NativeDirection() zbuf.Direction {
 	return zbuf.Direction(as.ark.Meta.DataSortForward)
 }
 
-func (as *ArkStorage) Open(ctx context.Context, span nano.Span) (zbuf.ReadCloser, error) {
+func (as *Storage) Open(ctx context.Context, span nano.Span) (zbuf.ReadCloser, error) {
 	var (
 		err     error
 		readers []zbuf.Reader
@@ -62,7 +62,7 @@ func (as *ArkStorage) Open(ctx context.Context, span nano.Span) (zbuf.ReadCloser
 	return combiner, nil
 }
 
-func (as *ArkStorage) Summary(_ context.Context) (storage.Summary, error) {
+func (as *Storage) Summary(_ context.Context) (storage.Summary, error) {
 	var sum storage.Summary
 	sum.Kind = storage.ArchiveStore
 	return sum, archive.SpanWalk(as.ark, func(sp nano.Span, zngpath string) error {
