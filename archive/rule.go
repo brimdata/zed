@@ -7,11 +7,13 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zdx"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zql"
 )
 
 func ParsePattern(in string) (string, string, error) {
@@ -108,4 +110,40 @@ func (f *FieldRule) NewIndexer(dir string) (zbuf.WriteCloser, error) {
 		return nil, err
 	}
 	return NewFieldIndexer(zdxPath, f.field, f.accessor), nil
+}
+
+// xxx comment
+// ZqlRule provides a means to generate Indexers for a zql rule.
+// rules.  Each ZqlRule is configured with a field name and the new methods
+// create Indexers and Finders that operate on this field.
+type ZqlRule struct {
+	proc      ast.Proc
+	path      string
+	framesize int
+	keys      []string
+}
+
+func NewZqlRule(s, path string, keys []string, framesize int) (*ZqlRule, error) {
+	if path == "" {
+		return nil, fmt.Errorf("zql indexing rule requires an output path")
+	}
+	proc, err := zql.ParseProc(s)
+	if err != nil {
+		return nil, err
+	}
+	return &ZqlRule{
+		proc:      proc,
+		path:      path,
+		framesize: framesize,
+		keys:      keys,
+	}, nil
+}
+
+func (f *ZqlRule) Path(dir string) string {
+	return filepath.Join(dir, f.path)
+}
+
+func (f *ZqlRule) NewIndexer(dir string) (zbuf.WriteCloser, error) {
+	// once this is all done, there probably won't be a NewIndexer on the interface anymore
+	panic("zqlRule: no NewIndexer")
 }
