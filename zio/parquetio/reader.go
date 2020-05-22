@@ -471,7 +471,7 @@ func appendItem(builder *zcode.Builder, typ HandledType, iter *columnIterator, m
 		//case timestampMilliseconds, timestampMicroseconds, timestampNanoseconds:
 		// XXX
 	default:
-		return false, fmt.Errorf("unhandled type %s", typ)
+		return false, fmt.Errorf("unhandled type %d", typ)
 	}
 	return (rl == maxRep), nil
 }
