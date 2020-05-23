@@ -47,7 +47,7 @@ func IndexDirTree(ark *Archive, rules []Rule, progress chan<- string) error {
 	})
 }
 
-func runZql(zardir string, rule *ZqlRule, progress chan<- string) error {
+func runOne(zardir string, rule Rule, progress chan<- string) error {
 	logPath := ZarDirToLog(zardir)
 	file, err := fs.Open(logPath)
 	if err != nil {
@@ -61,7 +61,7 @@ func runZql(zardir string, rule *ZqlRule, progress chan<- string) error {
 		return err
 	}
 	defer fgi.Close()
-	out, err := driver.Compile(context.TODO(), rule.proc, r, false, nano.MaxSpan, zap.NewNop())
+	out, err := driver.CompileCustom(context.TODO(), &compiler{}, rule.proc, r, false, nano.MaxSpan, zap.NewNop())
 	if err != nil {
 		return err
 	}
@@ -72,59 +72,13 @@ func runZql(zardir string, rule *ZqlRule, progress chan<- string) error {
 }
 
 func run(zardir string, rules []Rule, progress chan<- string) error {
-	logPath := ZarDirToLog(zardir)
-	var writers []zbuf.WriteCloser
 	for _, rule := range rules {
-		if zrule, ok := rule.(*ZqlRule); ok {
-			err := runZql(zardir, zrule, progress)
-			if err != nil {
-				return err
-			}
-			continue
-		}
-		w, err := rule.NewIndexer(zardir)
+		err := runOne(zardir, rule, progress)
 		if err != nil {
 			return err
 		}
-		writers = append(writers, w)
-		if progress != nil {
-			progress <- fmt.Sprintf("%s: creating index %s", logPath, rule.Path(zardir))
-		}
 	}
-	file, err := fs.Open(logPath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	reader := zngio.NewReader(file, resolver.NewContext())
-	// XXX This for-loop could be easily parallelized by having each writer
-	// live in its own go routine and sending the rec over a set of
-	// blocking channels (so we flow-control it).
-	for {
-		rec, err := reader.Read()
-		if err != nil {
-			return err
-		}
-		if rec == nil {
-			break
-		}
-		for _, w := range writers {
-			if err := w.Write(rec); err != nil {
-				return err
-			}
-		}
-	}
-	var lastErr error
-	// XXX this loop could be parallelized.. the close on the index writers
-	// dump the in-memory table to disk.  Also, we should use a zql proc
-	// graph to do this work instead of the in-memory map once we have
-	// group-by spills working.
-	for _, w := range writers {
-		if err := w.Close(); err != nil {
-			lastErr = err
-		}
-	}
-	return lastErr
+	return nil
 }
 
 type FlowgraphIndexer struct {

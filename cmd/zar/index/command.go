@@ -88,14 +88,14 @@ func (c *Command) Run(args []string) error {
 		if err != nil {
 			return errors.New("zar index: " + err.Error())
 		}
-		rules = append(rules, rule)
+		rules = append(rules, *rule)
 	}
 	for _, pattern := range args {
 		rule, err := archive.NewRule(pattern)
 		if err != nil {
 			return errors.New("zar index: " + err.Error())
 		}
-		rules = append(rules, rule)
+		rules = append(rules, *rule)
 	}
 	var wg sync.WaitGroup
 	var progress chan string
