@@ -22,10 +22,8 @@ var Find = &charm.Spec{
 	Long: `
 "zar find" descends the directory given by the -R option (or ZAR_ROOT)
 looking for zng files that have been indexed and performs a search on
-each such index file in accordance withe the specified search pattern.
-An index may either be a standard index file
-ceated by "zar index" or a custom index (-x) file created from an abitrary zng file
-that has been formatted and wrapped by the "zdx convert" or "zar zdx" commands.
+each such index file in accordance with the specified search pattern.
+Indexes are created by "zar index".
 
 For standard indexes, "pattern" argument has the form "field=value" (for field searches)
 or ":type=value" (for type searches).  For example, if type "ip" has been
