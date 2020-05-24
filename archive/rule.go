@@ -65,20 +65,21 @@ func NewTypeRule(typeName string) (*Rule, error) {
 }
 
 // NewFieldRule creates an indexing rule that will index the field passed in as argument.
-func NewFieldRule(field string) (*Rule, error) {
+// It is currently an error to try to index a field name that appears as different types.
+func NewFieldRule(fieldName string) (*Rule, error) {
 	c := ast.SequentialProc{
 		Procs: []ast.Proc{
-			&ast.CutProc{
-				Fields: []string{field},
+			&fieldCutterNode{
+				field: fieldName,
+				out:   "key",
 			},
 			&ast.GroupByProc{
-				Keys: []string{field},
+				Keys: []string{"key"},
 			},
 			&ast.SortProc{},
 		},
 	}
-
-	return newRuleAST(&c, fieldZdxName(field), []string{field}, framesize)
+	return newRuleAST(&c, fieldZdxName(fieldName), []string{"key"}, framesize)
 }
 
 // Rule contains the runtime configuration for an indexing rule.
