@@ -42,6 +42,8 @@ func NewRule(pattern string) (*Rule, error) {
 // since the writer always writes a bit past the threshold
 const framesize = 32 * 1024 * 2
 
+const keyName = "key"
+
 // NewFieldRule creates an indexing rule that will index all fields of
 // the type passed in as argument.
 func NewTypeRule(typeName string) (*Rule, error) {
@@ -52,16 +54,16 @@ func NewTypeRule(typeName string) (*Rule, error) {
 	c := ast.SequentialProc{
 		Procs: []ast.Proc{
 			&typeSplitterNode{
-				key:      "key",
+				key:      keyName,
 				typeName: typeName,
 			},
 			&ast.GroupByProc{
-				Keys: []string{"key"},
+				Keys: []string{keyName},
 			},
 			&ast.SortProc{},
 		},
 	}
-	return newRuleAST(&c, typeZdxName(typ), []string{"key"}, framesize)
+	return newRuleAST(&c, typeZdxName(typ), []string{keyName}, framesize)
 }
 
 // NewFieldRule creates an indexing rule that will index the field passed in as argument.
@@ -71,15 +73,15 @@ func NewFieldRule(fieldName string) (*Rule, error) {
 		Procs: []ast.Proc{
 			&fieldCutterNode{
 				field: fieldName,
-				out:   "key",
+				out:   keyName,
 			},
 			&ast.GroupByProc{
-				Keys: []string{"key"},
+				Keys: []string{keyName},
 			},
 			&ast.SortProc{},
 		},
 	}
-	return newRuleAST(&c, fieldZdxName(fieldName), []string{"key"}, framesize)
+	return newRuleAST(&c, fieldZdxName(fieldName), []string{keyName}, framesize)
 }
 
 // Rule contains the runtime configuration for an indexing rule.

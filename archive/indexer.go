@@ -88,7 +88,7 @@ type FlowgraphIndexer struct {
 
 func NewFlowgraphIndexer(zctx *resolver.Context, path string, keys []string, framesize int) (*FlowgraphIndexer, error) {
 	if len(keys) == 0 {
-		keys = []string{"key"}
+		keys = []string{keyName}
 	}
 	writer, err := zdx.NewWriter(zctx, path, keys, framesize)
 	if err != nil {
