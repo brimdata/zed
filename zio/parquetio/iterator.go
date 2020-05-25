@@ -15,6 +15,15 @@ import (
 	"github.com/xitongsys/parquet-go/source"
 )
 
+// Helper to avoid sprinkling fmt.Printf() calls around the code.
+// Enable debug statements by uncommenting the call to Printf()
+func debugf(msg string, args ...interface{}) {
+	//fmt.Printf(msg, args...)
+}
+
+// valueReader is the interface used for anything that can iterate over
+// a series of values of one of the parquet primitive types.  Note that
+// not all methods can be used on all implementations of this interface.
 type valueReader interface {
 	nextBoolean() bool
 	nextInt32() int32
@@ -24,6 +33,10 @@ type valueReader interface {
 	nextByteArray() []byte
 }
 
+// columnIterator reads and emits all the values from an individual
+// column inside a parquet file.  This implementation is not yet complete,
+// it only handles PLAIN and PLAIN_DICTIONARY encodings for a few
+// primitive data types.
 type columnIterator struct {
 	pr   *reader.ParquetReader
 	name string
@@ -68,7 +81,11 @@ func (i *columnIterator) clearDictionaries() {
 	// XXX clear others as they are added
 }
 
+// loadOnePage reads the next page that is part of this column.
 func (i *columnIterator) loadOnePage() (*parquet.PageHeader, []byte, error) {
+	// If we've reached the end of a row group (or if we haven't
+	// yet read the first row group), find the right offset inside
+	// the parquet file for this column in the next row group.
 	if i.groupRead == i.groupTotal {
 		if i.rowGroup >= len(i.pr.Footer.RowGroups) {
 			return nil, nil, io.EOF
@@ -87,11 +104,11 @@ func (i *columnIterator) loadOnePage() (*parquet.PageHeader, []byte, error) {
 			}
 		}
 		if col == nil {
-			panic("cannot find column")
+			return nil, nil, fmt.Errorf("cannot find ColumnChunk for %s", i.name)
 		}
 
 		if col.FilePath != nil {
-			panic("ColumnChunk refers to external file")
+			return nil, nil, fmt.Errorf("ColumnChunk for %s refers to external file", i.name)
 		}
 
 		i.colMetadata = col.MetaData
@@ -107,13 +124,13 @@ func (i *columnIterator) loadOnePage() (*parquet.PageHeader, []byte, error) {
 		i.clearDictionaries()
 	}
 
+	// Pages within a row group are sequential in the file.
+	// The thriftReader object keeps track of the file offset,
+	// for this column.  Read the header for the next page from it.
 	header, err := layout.ReadPageHeader(i.thriftReader)
 	if err != nil {
 		return nil, nil, err
 	}
-
-	// fmt.Printf("header type %s\n", header.GetType())
-	// XXX assert on page type
 
 	compressedLen := header.GetCompressedPageSize()
 
@@ -131,12 +148,15 @@ func (i *columnIterator) loadOnePage() (*parquet.PageHeader, []byte, error) {
 	return header, page, nil
 }
 
+// ensureDataPage loads a new data page if the current page has been
+// completely read (or if no page has yet been loaded).  This may include
+// loading and parsing dictionary pages, but when this function returns,
+// the caller may assume there are valid values available in this struct's
+// data structures to decode.
 func (i *columnIterator) ensureDataPage() {
 	if i.pageRead < i.pageTotal {
 		return
 	}
-
-	// XXX update groupTotal
 
 	for {
 		header, page, err := i.loadOnePage()
@@ -144,6 +164,7 @@ func (i *columnIterator) ensureDataPage() {
 			panic(err)
 		}
 
+		debugf("read page type %s\n", header.GetType())
 		switch header.GetType() {
 		case parquet.PageType_DICTIONARY_PAGE:
 			i.loadDictionaryPage(header, page)
@@ -183,14 +204,37 @@ func (i *columnIterator) loadDictionaryPage(header *parquet.PageHeader, buf []by
 		}
 
 	default:
-		// fmt.Printf("skipping dictionary page for type %s\n", i.colMetadata.GetType())
+		debugf("skipping dictionary page for type %s\n", i.colMetadata.GetType())
 	}
 }
 
+// grabLenDenoatedBuf extracts a chunk of data that represents
+// repetition level (RL) or definition level (DL) data inside a data page.
+// This consists of a 4 byte integer that represents the size of the
+// encoded data followed by the actual encoded data.  Returns the
+// length-denoted encoded data and the total number of bytes that were
+// required from the original buffer.
+func grabLenDenotedBuf(buf []byte) ([]byte, int, error) {
+	if len(buf) < 4 {
+		return nil, 0, fmt.Errorf("buffer is too short (%d)", len(buf))
+	}
+	ln := binary.LittleEndian.Uint32(buf[:4])
+	total := int(4 + ln)
+	if len(buf) < total {
+		return nil, 0, fmt.Errorf("buffer is too short (%d, need %d)", len(buf), total)
+	}
+	return buf[4:total], total, nil
+}
+
+// initializeDataPage sets up the rlReader, dlReader, and valReader
+// members of this struct for a new data page.
 func (i *columnIterator) initializeDataPage(header *parquet.PageHeader, buf []byte) {
 	i.pageRead = 0
 	i.pageTotal = int(header.DataPageHeader.GetNumValues())
 
+	// Per https://github.com/apache/parquet-format#data-pages
+	// a page contains the optional RL data, the optional DL data,
+	// and the encoded values, all back-to-back in the page.
 	if i.maxRL > 0 {
 		width := int(common.BitNum(uint64(i.maxRL)))
 		hbuf, n, err := grabLenDenotedBuf(buf)
@@ -219,7 +263,6 @@ func (i *columnIterator) initializeDataPage(header *parquet.PageHeader, buf []by
 	typ := i.colMetadata.GetType()
 	switch enc {
 	case parquet.Encoding_PLAIN:
-		//fmt.Printf("instantiate plainReader for %s\n", i.name)
 		if typ == parquet.Type_BOOLEAN {
 			i.valReader = &plainBooleanReader{buf: buf}
 		} else {
@@ -236,15 +279,17 @@ func (i *columnIterator) initializeDataPage(header *parquet.PageHeader, buf []by
 		case parquet.Type_BYTE_ARRAY:
 			i.valReader = newDictionaryByteArrayReader(buf, i.byteArrayDict)
 		default:
-			//fmt.Printf("skipping dictionary page of type %s\n", typ)
+			debugf("skipping dictionary page of type %s\n", typ)
 			i.valReader = &nullReader{}
 		}
 	default:
-		//fmt.Printf("skipping data page with encoding %s\n", enc)
+		debugf("skipping data page with encoding %s\n", enc)
 		i.valReader = &nullReader{}
 	}
 }
 
+// peekDL returns the definition level (DL) for the next value on this
+// page without advancing the iterator
 func (i *columnIterator) peekDL() int32 {
 	i.ensureDataPage()
 	if i.dlReader == nil {
@@ -253,7 +298,8 @@ func (i *columnIterator) peekDL() int32 {
 	return int32(i.dlReader.peekInt64())
 }
 
-// advance counter, grab rl and dl
+// advance counter, grab rl and dl.  (to keep everything consistent,
+// the caller should also advance valReader every time this is called)
 func (i *columnIterator) commonNext() (int32, int32) {
 	i.ensureDataPage()
 	i.pageRead++
@@ -327,18 +373,9 @@ func (i *columnIterator) nextByteArray() ([]byte, int32, int32) {
 	return v, rl, dl
 }
 
-func grabLenDenotedBuf(buf []byte) ([]byte, int, error) {
-	if len(buf) < 4 {
-		return nil, 0, fmt.Errorf("buffer is too short (%d)", len(buf))
-	}
-	ln := binary.LittleEndian.Uint32(buf[:4])
-	total := int(4 + ln)
-	if len(buf) < total {
-		return nil, 0, fmt.Errorf("buffer is too short (%d, need %d)", len(buf), total)
-	}
-	return buf[4:total], total, nil
-}
-
+// hybridReader decodes 64-bit inntegers encoded using the hybrid
+// RLE/bit-packing encoding described at:
+// https://github.com/apache/parquet-format/blob/master/Encodings.md#run-length-encoding--bit-packing-hybrid-rle--3
 type hybridReader struct {
 	buf   []byte
 	width int
@@ -373,7 +410,6 @@ func (r *hybridReader) fillVals() {
 		r.buf = r.buf[bytes:]
 
 		n := int(hdr >> 1)
-		//fmt.Printf("decode rle %d x %d\n", val, n)
 		if cap(r.vals) >= n {
 			r.vals = r.vals[:n]
 		} else {
@@ -385,7 +421,6 @@ func (r *hybridReader) fillVals() {
 	} else {
 		// bit packed
 		groups := int(hdr >> 1)
-		//fmt.Printf("decode packed %d*8 %d-bit values\n", groups, r.width)
 		n := groups * 8
 		if cap(r.vals) >= n {
 			r.vals = r.vals[:n]
@@ -427,6 +462,10 @@ func (r *hybridReader) nextInt64() int64 {
 	return ret
 }
 
+// nullReader repeatedly returns a default value for some data type.
+// This is a development tool that allows us to "handle" unsupported
+// encodings without panicing or failing.  Eventually this should be
+// removed.
 type nullReader struct {
 }
 
@@ -454,6 +493,9 @@ func (r *nullReader) nextByteArray() []byte {
 	return nil
 }
 
+// plainBooleanReader decodes BOOLEAN-typed values encoded with the
+// parquet PLAIN encoding described at:
+// https://github.com/apache/parquet-format/blob/master/Encodings.md#plain-plain--0
 type plainBooleanReader struct {
 	buf     []byte
 	current byte
@@ -492,6 +534,9 @@ func (r *plainBooleanReader) nextByteArray() []byte {
 	panic("cannot read BYTE_ARRAY from PLAIN BOOLEAN reader")
 }
 
+// plainReader decodes values encoded with the parquet PLAIN encoding
+// for all types other than BOOLEAN.  PLAIN encoding is described at:
+// https://github.com/apache/parquet-format/blob/master/Encodings.md#plain-plain--0
 // Handle Parquet PLAIN encoding type
 type plainReader struct {
 	buf []byte
@@ -554,7 +599,9 @@ func (r *plainReader) nextByteArray() []byte {
 	return ret
 }
 
-// Handle Parquet PLAIN_DICTIONARY encoding type
+// dictionaryInt64Reader decodes INT64-typed values encoded with the
+// parquet PLAIN_DICTIONARY encoding described at:
+// https://github.com/apache/parquet-format/blob/master/Encodings.md#dictionary-encoding-plain_dictionary--2-and-rle_dictionary--8
 type dictionaryInt64Reader struct {
 	dict        []int64
 	indexReader *hybridReader
@@ -594,7 +641,9 @@ func (r *dictionaryInt64Reader) nextByteArray() []byte {
 	panic("cannot read BYTE_ARRAY from INT64 dictionary reader")
 }
 
-// Handle Parquet PLAIN_DICTIONARY encoding type
+// dictionaryDoubleReader decodes DOUBLE-typed values encoded with the
+// parquet PLAIN_DICTIONARY encoding described at:
+// https://github.com/apache/parquet-format/blob/master/Encodings.md#dictionary-encoding-plain_dictionary--2-and-rle_dictionary--8
 type dictionaryDoubleReader struct {
 	dict        []float64
 	indexReader *hybridReader
@@ -634,7 +683,9 @@ func (r *dictionaryDoubleReader) nextByteArray() []byte {
 	panic("cannot read BYTE_ARRAY from DOUBLE dictionary reader")
 }
 
-// Handle Parquet PLAIN_DICTIONARY encoding type
+// dictionaryByteArrayReader decodes BYTE_ARRAY-typed values encoded with the
+// parquet PLAIN_DICTIONARY encoding described at:
+// https://github.com/apache/parquet-format/blob/master/Encodings.md#dictionary-encoding-plain_dictionary--2-and-rle_dictionary--8
 type dictionaryByteArrayReader struct {
 	dict        [][]byte
 	indexReader *hybridReader

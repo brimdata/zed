@@ -1,7 +1,6 @@
 package parquetio
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/brimsec/zq/pkg/nano"
@@ -12,10 +11,9 @@ import (
 	"github.com/xitongsys/parquet-go/common"
 	"github.com/xitongsys/parquet-go/parquet"
 	"github.com/xitongsys/parquet-go/reader"
+	"github.com/xitongsys/parquet-go/schema"
 	"github.com/xitongsys/parquet-go/source"
 )
-
-const bufsize = 1000
 
 type HandledType int
 
@@ -50,50 +48,50 @@ const (
 	list
 )
 
-func lookupPrimitiveType(typ *parquet.Type, cType *parquet.ConvertedType) (HandledType, bool) {
+func lookupPrimitiveType(typ *parquet.Type, cType *parquet.ConvertedType) (HandledType, error) {
 	if cType != nil {
 		switch *cType {
 		case parquet.ConvertedType_UTF8:
-			return utf8, true
+			return utf8, nil
 		case parquet.ConvertedType_JSON:
-			return json, true
+			return json, nil
 		case parquet.ConvertedType_BSON:
-			return bson, true
+			return bson, nil
 		case parquet.ConvertedType_ENUM:
-			return enum, true
+			return enum, nil
 		case parquet.ConvertedType_TIMESTAMP_MILLIS:
-			return timestampMilliseconds, true
+			return timestampMilliseconds, nil
 		case parquet.ConvertedType_TIMESTAMP_MICROS:
-			return timestampMicroseconds, true
+			return timestampMicroseconds, nil
 
 		// XXX case parquet.ConvertedType_INTERVAL:
 
 		default:
-			return -1, false
+			return -1, fmt.Errorf("cannot convert Ctype %s", *cType)
 		}
 
 		// XXX handle logical types
 	} else if typ != nil {
 		switch *typ {
 		case parquet.Type_BOOLEAN:
-			return boolean, true
+			return boolean, nil
 		case parquet.Type_INT32:
-			return tint32, true
+			return tint32, nil
 		case parquet.Type_INT64:
-			return tint64, true
+			return tint64, nil
 		case parquet.Type_FLOAT:
-			return float, true
+			return float, nil
 		case parquet.Type_DOUBLE:
-			return double, true
+			return double, nil
 		case parquet.Type_BYTE_ARRAY:
-			return byteArray, true
+			return byteArray, nil
 		case parquet.Type_INT96:
-			return int96, true
+			return int96, nil
 		default:
-			return -1, false
+			return -1, fmt.Errorf("cannot convert type %s", *typ)
 		}
 	} else {
-		return -1, false
+		return -1, fmt.Errorf("cannot convert unknown type")
 	}
 }
 
@@ -122,36 +120,9 @@ func simpleParquetTypeToZngType(typ HandledType) zng.Type {
 	case int96:
 		return zng.TypeInt64
 	}
+
+	// This is only reachable in the event of a programming error.
 	panic(fmt.Sprintf("unhandled type %d", typ))
-}
-
-func encodeZng(v interface{}, typ HandledType) zcode.Bytes {
-	switch typ {
-	case boolean:
-		return zng.EncodeBool(v.(bool))
-
-	case tint32, tint64:
-		return zng.EncodeInt(v.(int64))
-
-	case float, double:
-		return zng.EncodeFloat64(v.(float64))
-
-	case byteArray, bson:
-		return zng.EncodeBstring(v.(string))
-
-	case utf8, enum, json:
-		return zng.EncodeString(v.(string))
-
-	case timestampMilliseconds:
-		return zng.EncodeTime(nano.Ts(v.(int) * 1_000_000))
-
-	case timestampMicroseconds:
-		return zng.EncodeTime(nano.Ts(v.(int) * 1000))
-
-	default:
-		panic(fmt.Sprintf("unexpected type %d", typ))
-	}
-
 }
 
 type Reader struct {
@@ -202,23 +173,6 @@ type column interface {
 	getName() string
 }
 
-func dump(el parquet.SchemaElement) {
-	fmt.Printf("%s", el.Name)
-	if el.Type == nil {
-		fmt.Printf(" (no type)")
-	} else {
-		fmt.Printf(" %s", *el.Type)
-	}
-
-	if el.ConvertedType != nil {
-		fmt.Printf(" ct %s", *el.ConvertedType)
-	}
-	if el.LogicalType != nil {
-		fmt.Printf(" lt %s", *el.LogicalType)
-	}
-	fmt.Printf("\n")
-}
-
 func buildColumns(pr *reader.ParquetReader) ([]column, error) {
 	schema := pr.Footer.Schema
 
@@ -227,8 +181,6 @@ func buildColumns(pr *reader.ParquetReader) ([]column, error) {
 	// structure.
 	var columns []column
 	for i := 1; i < len(schema); {
-		// dump(*schema[i])
-
 		n := 1
 		var col column
 		var err error
@@ -253,33 +205,34 @@ func buildColumns(pr *reader.ParquetReader) ([]column, error) {
 	return columns, nil
 }
 
+// The parquet-go library converts column names into names that are valid
+// public field names in a go structure.  This function recovers the
+// original column name from the parquet schema.
+// This is also complicated by the fact that a bunch of data structures
+// inside parquet-go use fully-qualified names.  This functions takes the
+// fully-qualified name as represented inside parquet-go
+// (e.g., "Com46acme46zng_1234.P__path") and returns just the column name
+// (i.e., "_path" in this example).
+func translateColName(internalPath string, handler *schema.SchemaHandler) string {
+	name := handler.InPathToExPath[internalPath]
+	return name[len(handler.Infos[0].ExName)+1:]
+}
+
 func newSimpleColumn(el parquet.SchemaElement, pr *reader.ParquetReader) (column, error) {
 	if el.RepetitionType != nil && *el.RepetitionType == parquet.FieldRepetitionType_REPEATED {
 		return nil, fmt.Errorf("cannot convert repeated element %s", el.Name)
 	}
 
-	pT := el.Type
-	cT := el.ConvertedType
-
-	typ, ok := lookupPrimitiveType(pT, cT)
-	if !ok {
-		return nil, errors.New("cannot convert type")
+	typ, err := lookupPrimitiveType(el.Type, el.ConvertedType)
+	if err != nil {
+		return nil, err
 	}
 
 	handler := pr.SchemaHandler
 	path := []string{handler.Infos[0].InName, el.Name}
 	pathStr := common.PathToStr(path)
 
-	// The parquet-go library converts column names into names
-	// that are valid public field names in a go structure.
-	// Recover the original column names from the parquet schema
-	// here.  This is a little messy since the data structure
-	// inside parquet-go uses fully qualified names so we have
-	// to convert a field name to the fully qualified name, map
-	// it to the original fully qualified name, then grab the
-	// original column name.
-	name := handler.InPathToExPath[pathStr]
-	name = name[len(handler.Infos[0].ExName)+1:]
+	name := translateColName(pathStr, handler)
 
 	maxRepetition, _ := handler.MaxRepetitionLevel(path)
 	maxDefinition, _ := handler.MaxDefinitionLevel(path)
@@ -290,11 +243,12 @@ func newSimpleColumn(el parquet.SchemaElement, pr *reader.ParquetReader) (column
 		typ:           typ,
 		iter:          iter,
 		maxDefinition: maxDefinition,
-		pT:            pT,
-		cT:            cT,
 	}, nil
 }
 
+// Given a schema element with child elements, recursively count its
+// total number of descendents.  This is only used for skipping over
+// columnns with an unrecognized structure.
 func countChildren(els []*parquet.SchemaElement, i int) int {
 	if i >= len(els) {
 		return -1
@@ -336,6 +290,9 @@ func newListColumn(els []*parquet.SchemaElement, i int, pr *reader.ParquetReader
 	//     <element-repetition> <element-type> element;
 	//   }
 	// }
+	//
+	// First sanity check that we're looking at something with that
+	// structure.
 
 	el := els[i]
 	if len(els) < i+2 {
@@ -358,28 +315,17 @@ func newListColumn(els []*parquet.SchemaElement, i int, pr *reader.ParquetReader
 	}
 
 	typeEl := els[i+2]
-
-	pT := typeEl.Type
-	cT := typeEl.ConvertedType
-
-	typ, ok := lookupPrimitiveType(pT, cT)
-	if !ok {
-		return 3, nil, errors.New("cannot convert type")
+	typ, err := lookupPrimitiveType(typeEl.Type, typeEl.ConvertedType)
+	if err != nil {
+		return 3, nil, err
 	}
 
+	// This is something we can handle.  The column name correponds
+	// to the outer element (el), but the actual values are kept in
+	// the innermost nested element (typeEl).
 	handler := pr.SchemaHandler
 	path := []string{handler.Infos[0].InName, el.Name, listEl.Name, typeEl.Name}
-
-	// The parquet-go library converts column names into names
-	// that are valid public field names in a go structure.
-	// Recover the original column names from the parquet schema
-	// here.  This is a little messy since the data structure
-	// inside parquet-go uses fully qualified names so we have
-	// to convert a field name to the fully qualified name, map
-	// it to the original fully qualified name, then grab the
-	// original column name.
-	name := handler.InPathToExPath[common.PathToStr(path[:2])]
-	name = name[len(handler.Infos[0].ExName)+1:]
+	name := translateColName(common.PathToStr(path[:2]), handler)
 
 	maxRepetition, _ := handler.MaxRepetitionLevel(path)
 	maxDefinition, _ := handler.MaxDefinitionLevel(path)
@@ -397,25 +343,11 @@ func newListColumn(els []*parquet.SchemaElement, i int, pr *reader.ParquetReader
 	return 3, &c, nil
 }
 
-// simpleColumn handles a column from a parquet file that holds individual
-// (non-repeated) primitive values.
-type simpleColumn struct {
-	name string
-	typ  HandledType
-
-	iter          *columnIterator
-	maxDefinition int32
-
-	pT *parquet.Type
-	cT *parquet.ConvertedType
-}
-
-func (c *simpleColumn) getName() string { return c.name }
-
-func (c *simpleColumn) zngType(zctx *resolver.Context) zng.Type {
-	return simpleParquetTypeToZngType(c.typ)
-}
-
+// Read one primitive value from a column iterator and append it to the
+// given zcode.Builder.  This is essentially the complete implemenntation
+// of append() for a non-repeated column, and is used inside a loop for
+// LIST-valued columns.  The first return value is a boolean indicating
+// whether this is the last element in a repeated sequence.
 func appendItem(builder *zcode.Builder, typ HandledType, iter *columnIterator, maxDef, maxRep int32) (bool, error) {
 	var rl, dl int32
 	switch typ {
@@ -475,12 +407,43 @@ func appendItem(builder *zcode.Builder, typ HandledType, iter *columnIterator, m
 		} else {
 			builder.AppendPrimitive(zng.EncodeBstring(string(a)))
 		}
-		//case timestampMilliseconds, timestampMicroseconds, timestampNanoseconds:
-		// XXX
+	case timestampMilliseconds, timestampMicroseconds, timestampNanoseconds:
+		var i int64
+		i, rl, dl = iter.nextInt64()
+		if maxDef > dl {
+			builder.AppendPrimitive(nil)
+		} else {
+			var ts nano.Ts
+			switch typ {
+			case timestampMilliseconds:
+				ts = nano.Ts(i * 1000_000)
+			case timestampMicroseconds:
+				ts = nano.Ts(i * 1000)
+			case timestampNanoseconds:
+				ts = nano.Ts(i)
+			}
+			builder.AppendPrimitive(zng.EncodeTime(ts))
+		}
 	default:
 		return false, fmt.Errorf("unhandled type %d", typ)
 	}
 	return (rl == maxRep), nil
+}
+
+// simpleColumn handles a column from a parquet file that holds individual
+// (non-repeated) primitive values.
+type simpleColumn struct {
+	name string
+	typ  HandledType
+
+	iter          *columnIterator
+	maxDefinition int32
+}
+
+func (c *simpleColumn) getName() string { return c.name }
+
+func (c *simpleColumn) zngType(zctx *resolver.Context) zng.Type {
+	return simpleParquetTypeToZngType(c.typ)
 }
 
 // append reads the next value from this column and appends it to the
