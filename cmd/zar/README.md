@@ -6,7 +6,7 @@
 > ARE ALL SUBJECT TO CHANGE.
 
 This is a sketch of an early prototype of zar and related tools for
-indexing and searching log archives.
+indexing and searching log archives and running interesting graph queries.
 
 We'll use the test data here:
 ```
@@ -405,6 +405,74 @@ URI                     SUM
 /api/get/9/18           4627
 ```
 Pretty cool!
+
+## simple graph queries
+
+Here is another example to illustrate the power of zar/zq.  Just like you can
+build search indexes with arbitrary zql commands, you can also build graph indexes
+to hold edge lists and node attributes, providing an efficient means to do
+graph queries.  While this doesn't provide a full-featured graph database
+like [neo4j](https://github.com/neo4j/neo4j),
+it does provide a nice way to do many types of graph queries that
+could prove useful for your archive analytics.
+
+For example, to build an searchable edge list comprising communicating IP addresses,
+run the following commands to a create a multi-key search index
+keyed by all unique instances of IP address pairs (in both directions)
+where each index includes a count of the occurrences.
+```
+zar zq -o forward.zng "id.orig_h != null | put from=id.orig_h,to=id.resp_h | count() by from,to" _
+zar zq -o reverse.zng "id.orig_h != null | put from=id.resp_h,to=id.orig_h | count() by from,to" _
+zar zq -o directed-pairs.zng "count() by from,to" forward.zng reverse.zng
+zar zdx -o graph -k from,to directed-pairs.zng
+```
+> (Note: there is a small change we can make to zql to do this with one `zar zq`
+> command... coming soon.)
+
+This creates an index called "graph" that you can use to search for IP address
+pair relationships, e.g., you can say
+```
+zar find -z -x graph 216.58.193.195 | zq -f table "count() by from,to" -
+```
+to get a listing of all of the edges from IP 216.58.193.195 to any other IP,
+which looks like this:
+```
+FROM           TO           COUNT
+216.58.193.195 10.47.1.100  3
+216.58.193.195 10.47.1.150  1
+216.58.193.195 10.47.1.151  3
+216.58.193.195 10.47.1.152  4
+216.58.193.195 10.47.1.153  2
+216.58.193.195 10.47.1.154  1
+216.58.193.195 10.47.1.155  2
+216.58.193.195 10.47.1.208  2
+216.58.193.195 10.47.2.100  4
+...
+```
+To view this with d3, we can collect up the edges emanating from a few IP addresses
+and format the output as ndjson in the format expected by bostock's
+force-directed graph.
+This command sequence will collect up the edges into `edges.njdson`:
+```
+zar find -z -x graph 216.58.193.195 | zq "count() by from,to" - > edges.zng
+zar find -z -x graph 10.47.6.162 | zq "count() by from,to" - >> edges.zng
+zar find -z -x graph 10.47.5.153 | zq "count() by from,to" - >> edges.zng
+zq -f ndjson "sum(count) as value by from,to | put source=from, target=to | cut source,target,value" edges.zng >> edges.ndjson
+```
+> (Note: with a few additions to zql and zar, we can make this much simpler and
+> more efficient.  Coming soon.  Also, we should be able to say `group by node`,
+> which implies no reducer and emits columns with just the group-by keys.)
+
+Now that we have the edges in `edges.ndjson`, let's grab all the nodes
+in the graph and put them in the form expected by bostock using this command sequence:
+```
+zq "count() by from | put id=from" edges.zng > nodes.zng
+zq "count() by to | put id=to" edges.zng >> nodes.zng
+zq -f ndjson "count() by id | cut id | put group=1" nodes.zng > nodes.ndjson
+```
+To make a simple demo of this concept here, I cut and paste the nodes and edges
+data into a gist and added some commas with `awk`.  Check out this
+[d3 "block"](https://bl.ocks.org/mccanne/ff6f703cf202aee59197fff1f63d04fe).
 
 ## pipes
 
