@@ -160,6 +160,7 @@ type Reader struct {
 	columns []column
 	record  int
 	total   int
+	builder *zcode.Builder
 }
 
 func NewReader(f source.ParquetFile, zctx *resolver.Context) (*Reader, error) {
@@ -182,7 +183,13 @@ func NewReader(f source.ParquetFile, zctx *resolver.Context) (*Reader, error) {
 		return nil, err
 	}
 
-	return &Reader{pr, typ, cols, 0, int(pr.GetNumRows())}, nil
+	return &Reader{
+		pr:      pr,
+		typ:     typ,
+		columns: cols,
+		total:   int(pr.GetNumRows()),
+		builder: zcode.NewBuilder(),
+	}, nil
 }
 
 // column abstracts away the handling of an indvidual column from a
@@ -536,12 +543,12 @@ func (r *Reader) Read() (*zng.Record, error) {
 	}
 	r.record++
 
-	builder := zcode.NewBuilder()
+	r.builder.Reset()
 	for _, c := range r.columns {
-		err := c.append(builder)
+		err := c.append(r.builder)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return zng.NewRecord(r.typ, builder.Bytes())
+	return zng.NewRecord(r.typ, r.builder.Bytes())
 }
