@@ -179,8 +179,7 @@ func (c *Command) openOutput(zardir, filename string) (zbuf.WriteCloser, error) 
 	if path != "" {
 		path = filepath.Join(zardir, filename)
 	}
-	flags := zio.WriterFlags{Format: "zng"}
-	w, err := emitter.NewFile(path, &flags)
+	w, err := emitter.NewFile(path, &zio.WriterFlags{Format: "zng"})
 	if err != nil {
 		return nil, err
 	}
