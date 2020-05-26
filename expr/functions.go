@@ -7,6 +7,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/brimsec/zq/zng"
@@ -49,6 +50,11 @@ var allFns = map[string]struct {
 	"String.toLower":     {1, 1, stringToLower},
 	"String.toUpper":     {1, 1, stringToUpper},
 	"String.trim":        {1, 1, stringTrim},
+
+	"Time.fromISO":          {1, 1, timeFromISO},
+	"Time.fromMilliseconds": {1, 1, timeFromMsec},
+	"Time.fromMicroseconds": {1, 1, timeFromUsec},
+	"Time.fromNanoseconds":  {1, 1, timeFromNsec},
 }
 
 func err(fn string, err error) (zngnative.Value, error) {
@@ -406,4 +412,39 @@ func stringTrim(args []zngnative.Value) (zngnative.Value, error) {
 	}
 	s := strings.TrimSpace(args[0].Value.(string))
 	return zngnative.Value{zng.TypeString, s}, nil
+}
+
+func timeFromISO(args []zngnative.Value) (zngnative.Value, error) {
+	if !isString(args[0]) {
+		return err("Time.fromISO", ErrBadArgument)
+	}
+	ts, e := time.Parse(time.RFC3339Nano, args[0].Value.(string))
+	if e != nil {
+		return err("Time.fromISO", ErrBadArgument)
+	}
+	return zngnative.Value{zng.TypeTime, ts.UnixNano()}, nil
+}
+
+func timeFromMsec(args []zngnative.Value) (zngnative.Value, error) {
+	ms, ok := zngnative.CoerceNativeToInt(args[0])
+	if !ok {
+		return err("Time.fromMilliseconds", ErrBadArgument)
+	}
+	return zngnative.Value{zng.TypeTime, ms * 1_000_000}, nil
+}
+
+func timeFromUsec(args []zngnative.Value) (zngnative.Value, error) {
+	us, ok := zngnative.CoerceNativeToInt(args[0])
+	if !ok {
+		return err("Time.fromMicroseconds", ErrBadArgument)
+	}
+	return zngnative.Value{zng.TypeTime, us * 1000}, nil
+}
+
+func timeFromNsec(args []zngnative.Value) (zngnative.Value, error) {
+	ns, ok := zngnative.CoerceNativeToInt(args[0])
+	if !ok {
+		return err("Time.fromNanoseconds", ErrBadArgument)
+	}
+	return zngnative.Value{zng.TypeTime, ns}, nil
 }

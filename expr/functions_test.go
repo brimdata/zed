@@ -1,11 +1,13 @@
 package expr_test
 
 import (
+	"fmt"
 	"net"
 	"strconv"
 	"testing"
 
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zng"
 	"github.com/stretchr/testify/require"
 )
@@ -247,4 +249,46 @@ func TestLen(t *testing.T) {
 	testSuccessful(t, `String.runeLen(s)`, record, zint64(1))
 	testSuccessful(t, `String.runeLen(bs)`, record, zint64(1))
 	testSuccessful(t, `String.runeLen(bs2)`, record, zint64(4))
+}
+
+func TestTime(t *testing.T) {
+	record, err := parseOneRecord(`
+#0:record[x:int32]
+0:[1;]`)
+	require.NoError(t, err)
+
+	// These represent the same time (Tue, 26 May 2020 15:27:47.967 in GMT)
+	iso := "2020-05-26T15:27:47.967Z"
+	msec := 1590506867_967
+	nsec := msec * 1_000_000
+	zval := zng.Value{zng.TypeTime, zng.EncodeTime(nano.Ts(nsec))}
+
+	exp := fmt.Sprintf(`Time.fromISO("%s")`, iso)
+	testSuccessful(t, exp, record, zval)
+	exp = fmt.Sprintf("Time.fromMilliseconds(%d)", msec)
+	testSuccessful(t, exp, record, zval)
+	exp = fmt.Sprintf("Time.fromMilliseconds(%d.0)", msec)
+	testSuccessful(t, exp, record, zval)
+	exp = fmt.Sprintf("Time.fromMicroseconds(%d)", msec*1000)
+	testSuccessful(t, exp, record, zval)
+	exp = fmt.Sprintf("Time.fromMicroseconds(%d.0)", msec*1000)
+	testSuccessful(t, exp, record, zval)
+	exp = fmt.Sprintf("Time.fromNanoseconds(%d)", nsec)
+	testSuccessful(t, exp, record, zval)
+
+	testError(t, "Time.fromISO()", record, expr.ErrTooFewArgs, "Time.fromISO() with no args")
+	testError(t, `Time.fromISO("abc", "def")`, record, expr.ErrTooManyArgs, "Time.fromISO() with too many args")
+	testError(t, "Time.fromISO(1234)", record, expr.ErrBadArgument, "Time.fromISO() with wrong argument type")
+
+	testError(t, "Time.fromMilliseconds()", record, expr.ErrTooFewArgs, "Time.fromMilliseconds() with no args")
+	testError(t, "Time.fromMilliseconds(123, 456)", record, expr.ErrTooManyArgs, "Time.fromMilliseconds() with too many args")
+	testError(t, `Time.fromMilliseconds("1234")`, record, expr.ErrBadArgument, "Time.fromMilliseconds() with wrong argument type")
+
+	testError(t, "Time.fromMicroseconds()", record, expr.ErrTooFewArgs, "Time.fromMicroseconds() with no args")
+	testError(t, "Time.fromMicroseconds(123, 456)", record, expr.ErrTooManyArgs, "Time.fromMicroseconds() with too many args")
+	testError(t, `Time.fromMicroseconds("1234")`, record, expr.ErrBadArgument, "Time.fromMicroseconds() with wrong argument type")
+
+	testError(t, "Time.fromNanoseconds()", record, expr.ErrTooFewArgs, "Time.fromNanoseconds() with no args")
+	testError(t, "Time.fromNanoseconds(123, 456)", record, expr.ErrTooManyArgs, "Time.fromNanoseconds() with too many args")
+	testError(t, `Time.fromNanoseconds("1234")`, record, expr.ErrBadArgument, "Time.fromNanoseconds() with wrong argument type")
 }
