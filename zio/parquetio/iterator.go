@@ -41,8 +41,8 @@ type columnIterator struct {
 	pr   *reader.ParquetReader
 	name string
 
-	maxRL int32
-	maxDL int32
+	maxRepetitionLevel int32
+	maxDefinitionLevel int32
 
 	rowGroup int
 
@@ -67,10 +67,10 @@ type columnIterator struct {
 
 func newColumnIterator(pr *reader.ParquetReader, name string, maxRL, maxDL int32) *columnIterator {
 	return &columnIterator{
-		pr:    pr,
-		name:  name,
-		maxRL: maxRL,
-		maxDL: maxDL,
+		pr:                 pr,
+		name:               name,
+		maxRepetitionLevel: maxRL,
+		maxDefinitionLevel: maxDL,
 	}
 }
 
@@ -132,11 +132,8 @@ func (i *columnIterator) loadOnePage() (*parquet.PageHeader, []byte, error) {
 		return nil, nil, err
 	}
 
-	compressedLen := header.GetCompressedPageSize()
-
-	raw := make([]byte, compressedLen)
-	_, err = i.thriftReader.Read(raw)
-	if err != nil {
+	raw := make([]byte, header.GetCompressedPageSize())
+	if _, err = i.thriftReader.Read(raw); err != nil {
 		return nil, nil, err
 	}
 
@@ -235,8 +232,8 @@ func (i *columnIterator) initializeDataPage(header *parquet.PageHeader, buf []by
 	// Per https://github.com/apache/parquet-format#data-pages
 	// a page contains the optional RL data, the optional DL data,
 	// and the encoded values, all back-to-back in the page.
-	if i.maxRL > 0 {
-		width := int(common.BitNum(uint64(i.maxRL)))
+	if i.maxRepetitionLevel > 0 {
+		width := int(common.BitNum(uint64(i.maxRepetitionLevel)))
 		hbuf, n, err := grabLenDenotedBuf(buf)
 		if err != nil {
 			panic(err)
@@ -247,8 +244,8 @@ func (i *columnIterator) initializeDataPage(header *parquet.PageHeader, buf []by
 		i.rlReader = nil
 	}
 
-	if i.maxDL > 0 {
-		width := int(common.BitNum(uint64(i.maxDL)))
+	if i.maxDefinitionLevel > 0 {
+		width := int(common.BitNum(uint64(i.maxDefinitionLevel)))
 		hbuf, n, err := grabLenDenotedBuf(buf)
 		if err != nil {
 			panic(err)
@@ -312,7 +309,7 @@ func (i *columnIterator) commonNext() (int32, int32) {
 		dl = int32(i.dlReader.nextInt64())
 	}
 
-	if rl == i.maxRL {
+	if rl == i.maxRepetitionLevel {
 		i.groupRead++
 	}
 
@@ -322,7 +319,7 @@ func (i *columnIterator) commonNext() (int32, int32) {
 func (i *columnIterator) nextBoolean() (bool, int32, int32) {
 	rl, dl := i.commonNext()
 	var v bool
-	if dl == i.maxDL {
+	if dl == i.maxDefinitionLevel {
 		v = i.valReader.nextBoolean()
 	}
 	return v, rl, dl
@@ -331,7 +328,7 @@ func (i *columnIterator) nextBoolean() (bool, int32, int32) {
 func (i *columnIterator) nextInt32() (int32, int32, int32) {
 	rl, dl := i.commonNext()
 	var v int32
-	if dl == i.maxDL {
+	if dl == i.maxDefinitionLevel {
 		v = i.valReader.nextInt32()
 	}
 	return v, rl, dl
@@ -340,7 +337,7 @@ func (i *columnIterator) nextInt32() (int32, int32, int32) {
 func (i *columnIterator) nextInt64() (int64, int32, int32) {
 	rl, dl := i.commonNext()
 	var v int64
-	if dl == i.maxDL {
+	if dl == i.maxDefinitionLevel {
 		v = i.valReader.nextInt64()
 	}
 	return v, rl, dl
@@ -349,7 +346,7 @@ func (i *columnIterator) nextInt64() (int64, int32, int32) {
 func (i *columnIterator) nextFloat() (float64, int32, int32) {
 	rl, dl := i.commonNext()
 	var v float64
-	if dl == i.maxDL {
+	if dl == i.maxDefinitionLevel {
 		v = i.valReader.nextFloat()
 	}
 	return v, rl, dl
@@ -358,7 +355,7 @@ func (i *columnIterator) nextFloat() (float64, int32, int32) {
 func (i *columnIterator) nextDouble() (float64, int32, int32) {
 	rl, dl := i.commonNext()
 	var v float64
-	if dl == i.maxDL {
+	if dl == i.maxDefinitionLevel {
 		v = i.valReader.nextDouble()
 	}
 	return v, rl, dl
@@ -367,7 +364,7 @@ func (i *columnIterator) nextDouble() (float64, int32, int32) {
 func (i *columnIterator) nextByteArray() ([]byte, int32, int32) {
 	rl, dl := i.commonNext()
 	var v []byte
-	if dl == i.maxDL {
+	if dl == i.maxDefinitionLevel {
 		v = i.valReader.nextByteArray()
 	}
 	return v, rl, dl
