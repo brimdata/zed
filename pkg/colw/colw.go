@@ -86,8 +86,7 @@ func Write(w io.Writer, in []string, width, pad int) error {
 		}
 		colno := k % ncol
 		if colno == ncol-1 {
-			_, err := w.Write(newline)
-			if err != nil {
+			if _, err := w.Write(newline); err != nil {
 				return err
 			}
 		} else {
