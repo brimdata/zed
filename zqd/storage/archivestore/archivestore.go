@@ -30,15 +30,12 @@ func (s *Storage) NativeDirection() zbuf.Direction {
 }
 
 func (s *Storage) Open(ctx context.Context, span nano.Span) (zbuf.ReadCloser, error) {
-	var (
-		err     error
-		readers []zbuf.Reader
-	)
+	var err error
+	var readers []zbuf.Reader
 	defer func() {
 		if err != nil {
 			for _, r := range readers {
-				zf := r.(*zbuf.File)
-				zf.Close()
+				r.(*zbuf.File).Close()
 			}
 		}
 	}()
