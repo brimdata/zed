@@ -31,11 +31,8 @@ type Command struct {
 }
 
 func (c *Command) Run(args []string) error {
-	if len(args) > 2 {
-		return errors.New("too many arguments")
-	}
-	if len(args) < 2 {
-		return errors.New("not enough arguments")
+	if len(args) != 2 {
+		return errors.New("expected <old_name> <new_name>")
 	}
 	c.Spacename = args[0]
 	newname := args[1]
