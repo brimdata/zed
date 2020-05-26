@@ -157,7 +157,7 @@ func OpenFromNamedReadCloser(zctx *resolver.Context, rc io.ReadCloser, path stri
 	return zbuf.NewFile(zr, rc, path), nil
 }
 
-func OpenFiles(zctx *resolver.Context, dir zbuf.Direction, paths ...string) (*zbuf.Combiner, error) {
+func OpenFiles(zctx *resolver.Context, dir zbuf.RecordCmpFn, paths ...string) (*zbuf.Combiner, error) {
 	var readers []zbuf.Reader
 	for _, path := range paths {
 		reader, err := OpenFile(zctx, path, OpenConfig{})

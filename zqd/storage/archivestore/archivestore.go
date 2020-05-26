@@ -26,7 +26,7 @@ type Storage struct {
 }
 
 func (s *Storage) NativeDirection() zbuf.Direction {
-	return zbuf.Direction(s.ark.Meta.DataSortForward)
+	return s.ark.Meta.DataSortDirection
 }
 
 func (s *Storage) Open(ctx context.Context, span nano.Span) (zbuf.ReadCloser, error) {
@@ -58,7 +58,7 @@ func (s *Storage) Open(ctx context.Context, span nano.Span) (zbuf.ReadCloser, er
 	if err != nil {
 		return nil, err
 	}
-	combiner := zbuf.NewCombiner(readers, s.NativeDirection())
+	combiner := zbuf.NewCombiner(readers, zbuf.RecordCompare(s.NativeDirection()))
 	return combiner, nil
 }
 

@@ -168,7 +168,7 @@ func (c *Command) Run(args []string) error {
 				readers[i] = zbuf.NewWarningReader(r, wch)
 			}
 		}
-		reader := zbuf.NewCombiner(readers, zbuf.Direction(ark.Meta.DataSortForward))
+		reader := zbuf.NewCombiner(readers, zbuf.RecordCompare(ark.Meta.DataSortDirection))
 		defer reader.Close()
 		writer, err := c.openOutput(zardir, c.outputFile)
 		if err != nil {
@@ -176,7 +176,8 @@ func (c *Command) Run(args []string) error {
 		}
 		defer writer.Close()
 		// XXX we shouldn't need zap here, nano?  etc
-		mux, err := driver.CompileWarningsCh(context.Background(), query, reader, !ark.Meta.DataSortForward, nano.MaxSpan, zap.NewNop(), wch)
+		reverse := ark.Meta.DataSortDirection == zbuf.DirTimeReverse
+		mux, err := driver.CompileWarningsCh(context.Background(), query, reader, reverse, nano.MaxSpan, zap.NewNop(), wch)
 		if err != nil {
 			return err
 		}

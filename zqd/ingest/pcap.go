@@ -14,6 +14,7 @@ import (
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/space"
@@ -233,7 +234,7 @@ func (p *PcapOp) createSnapshot(ctx context.Context) error {
 		return nil
 	}
 	// convert logs into sorted zng
-	zr, err := detector.OpenFiles(resolver.NewContext(), p.store.NativeDirection(), files...)
+	zr, err := detector.OpenFiles(resolver.NewContext(), zbuf.RecordCompare(p.store.NativeDirection()), files...)
 	if err != nil {
 		return err
 	}

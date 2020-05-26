@@ -105,10 +105,13 @@ func (d *importDriver) Warn(warning string) error          { return nil }
 func (d *importDriver) Stats(stats api.ScannerStats) error { return nil }
 
 func importProc(ark *Archive) string {
-	if ark.Meta.DataSortForward {
+	switch ark.Meta.DataSortDirection {
+	case zbuf.DirTimeForward:
 		return "sort ts"
-	} else {
+	case zbuf.DirTimeReverse:
 		return "sort -r ts"
+	default:
+		panic("unhandled direction")
 	}
 }
 
