@@ -30,7 +30,7 @@ Un-annotated values of these types may be mapped to ZNG as follows:
 | BOOLEAN      | `bool`   | |
 | INT32        | `int32`  | |
 | INT64        | `int64`  | |
-| INT96        | (none)   | This is described in the spec as "deprecated, only used by legacy implementations." |
+| INT96        | (none)   | (see note below) |
 | FLOAT        | `float64` | This Parquet type is a 32 bit float, but the only float in ZNG is 64 bits |
 | DOUBLE       | `float64` | |
 | BYTE_ARRAY   | `bstring` | The ZNG `bytes` type would be more appropriate if/when it is implemented |
