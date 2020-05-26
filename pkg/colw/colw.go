@@ -76,8 +76,7 @@ func Write(w io.Writer, in []string, width, pad int) error {
 	ncol := len(widths)
 	padding := makePadding(width, ' ')
 	for k, s := range in {
-		_, err := w.Write([]byte(s))
-		if err != nil {
+		if _, err := w.Write([]byte(s)); err != nil {
 			return err
 		}
 		if k == len(in)-1 {
