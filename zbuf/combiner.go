@@ -7,22 +7,18 @@ import (
 	"github.com/brimsec/zq/zng"
 )
 
-type Direction int
+type Direction bool
 
 const (
-	DirTimeForward = Direction(1)
-	DirTimeReverse = Direction(-1)
+	DirTimeForward = Direction(true)
+	DirTimeReverse = Direction(false)
 )
 
 func RecordCompare(d Direction) RecordCmpFn {
-	switch d {
-	case DirTimeForward:
+	if d == DirTimeForward {
 		return CmpTimeForward
-	case DirTimeReverse:
-		return CmpTimeReverse
-	default:
-		panic("unhandled storage direction")
 	}
+	return CmpTimeReverse
 }
 
 // RecordCmpFn returns true if a < b.

@@ -100,14 +100,10 @@ func (ark *Archive) AppendSpans(spans []SpanInfo) error {
 	ark.Meta.Spans = append(ark.Meta.Spans, spans...)
 
 	sort.Slice(ark.Meta.Spans, func(i, j int) bool {
-		switch ark.Meta.DataSortDirection {
-		case zbuf.DirTimeForward:
+		if ark.Meta.DataSortDirection == zbuf.DirTimeForward {
 			return ark.Meta.Spans[i].Span.Ts < ark.Meta.Spans[j].Span.Ts
-		case zbuf.DirTimeReverse:
-			return ark.Meta.Spans[j].Span.Ts < ark.Meta.Spans[i].Span.Ts
-		default:
-			panic("unhandled direction")
 		}
+		return ark.Meta.Spans[j].Span.Ts < ark.Meta.Spans[i].Span.Ts
 	})
 
 	return ark.Meta.Write(filepath.Join(ark.Root, metaDataFilename))
