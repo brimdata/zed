@@ -40,8 +40,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	err = c.Client().SpacePut(c.Context(), id, api.SpacePutRequest{Name: newname})
-	if err != nil {
+	if err := c.Client().SpacePut(c.Context(), id, api.SpacePutRequest{Name: newname}); err != nil {
 		return err
 	}
 	fmt.Printf("%s: space renamed to %s\n", oldname, newname)
