@@ -34,9 +34,9 @@ func (c *Command) Run(args []string) error {
 	if len(args) != 2 {
 		return errors.New("expected <old_name> <new_name>")
 	}
-	c.Spacename = args[0]
+	oldname := args[0]
 	newname := args[1]
-	id, err := c.SpaceID()
+	id, err := cmd.GetSpaceID(c.Context(), c.Client(), oldname)
 	if err != nil {
 		return err
 	}
@@ -44,6 +44,6 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%s: space renamed to %s\n", c.Spacename, newname)
+	fmt.Printf("%s: space renamed to %s\n", oldname, newname)
 	return nil
 }

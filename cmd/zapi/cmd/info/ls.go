@@ -53,16 +53,13 @@ func (c *LsCommand) Run(args []string) error {
 	if c.lflag {
 		// print details about each space
 		return printInfoList(matches)
-	} else {
-		names := api.SpaceInfos(matches).Names()
-		width := termwidth.Width()
-		// print listing laid out in columns like ls
-		err := colw.Write(os.Stdout, names, width, 3)
-		if err == colw.ErrDoesNotFit {
-			fmt.Println(strings.Join(names, "\n"))
-		} else if err != nil {
-			return err
-		}
 	}
-	return nil
+	names := api.SpaceInfos(matches).Names()
+	width := termwidth.Width()
+	// print listing laid out in columns like ls
+	err = colw.Write(os.Stdout, names, width, 3)
+	if err == colw.ErrDoesNotFit {
+		fmt.Println(strings.Join(names, "\n"))
+	}
+	return err
 }
