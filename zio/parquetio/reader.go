@@ -508,8 +508,7 @@ func (r *Reader) Read() (*zng.Record, error) {
 
 	r.builder.Reset()
 	for _, c := range r.columns {
-		err := c.append(r.builder)
-		if err != nil {
+		if err := c.append(r.builder); err != nil {
 			return nil, err
 		}
 	}
