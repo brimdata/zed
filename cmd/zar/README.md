@@ -411,8 +411,8 @@ Pretty cool!
 Here is another example to illustrate the power of zar/zq.  Just like you can
 build search indexes with arbitrary zql commands, you can also build graph indexes
 to hold edge lists and node attributes, providing an efficient means to do
-graph queries.  While this doesn't provide a full-featured graph database
-like [neo4j](https://github.com/neo4j/neo4j),
+topological queries of graph data structures.  While this doesn't provide a
+full-featured graph database like [neo4j](https://github.com/neo4j/neo4j),
 it does provide a nice way to do many types of graph queries that
 could prove useful for your archive analytics.
 
