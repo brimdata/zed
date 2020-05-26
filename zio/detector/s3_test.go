@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/tzngio"
@@ -114,7 +115,7 @@ func TestS3Minio(t *testing.T) {
 		require.NoError(t, err)
 		defer f2.Close()
 
-		c := zbuf.NewCombiner([]zbuf.Reader{f1, f2})
+		c := zbuf.NewCombiner([]zbuf.Reader{f1, f2}, expr.SortTsAscending)
 
 		w := tzngio.NewWriter(&out)
 		err = zbuf.Copy(zbuf.NopFlusher(w), c)

@@ -8,6 +8,11 @@ import (
 	"github.com/brimsec/zq/zng"
 )
 
+var (
+	SortTsAscending  = sortTsFn(false)
+	SortTsDescending = sortTsFn(true)
+)
+
 type SortFn func(a *zng.Record, b *zng.Record) int
 type KeyCompareFn func(*zng.Record) int
 
@@ -359,5 +364,22 @@ func LookupSorter(typ zng.Type) comparefn {
 			}
 			return bytes.Compare(va.To16(), vb.To16())
 		}
+	}
+}
+
+func sortTsFn(desc bool) SortFn {
+	return func(a, b *zng.Record) int {
+		var i int
+		if a.Ts == b.Ts {
+			i = 0
+		} else if a.Ts < b.Ts {
+			i = -1
+		} else {
+			i = 1
+		}
+		if desc {
+			i = i * -1
+		}
+		return i
 	}
 }

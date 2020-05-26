@@ -16,6 +16,7 @@ import (
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
+	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
@@ -168,7 +169,7 @@ func (c *Command) Run(args []string) error {
 				readers[i] = zbuf.NewWarningReader(r, wch)
 			}
 		}
-		reader := zbuf.NewCombiner(readers)
+		reader := zbuf.NewCombiner(readers, expr.SortTsAscending)
 		defer reader.Close()
 		writer, err := c.openOutput(zardir, c.outputFile)
 		if err != nil {

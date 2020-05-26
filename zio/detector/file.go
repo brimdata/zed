@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/ndjsonio"
@@ -166,5 +167,5 @@ func OpenFiles(zctx *resolver.Context, paths ...string) (*zbuf.Combiner, error) 
 		}
 		readers = append(readers, reader)
 	}
-	return zbuf.NewCombiner(readers), nil
+	return zbuf.NewCombiner(readers, expr.SortTsAscending), nil
 }

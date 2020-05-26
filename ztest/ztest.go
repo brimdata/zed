@@ -129,6 +129,7 @@ import (
 
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
+	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
@@ -625,7 +626,7 @@ func loadInputs(inputs []string, zctx *resolver.Context) (*zbuf.Combiner, error)
 		}
 		readers = append(readers, zr)
 	}
-	return zbuf.NewCombiner(readers), nil
+	return zbuf.NewCombiner(readers, expr.SortTsAscending), nil
 }
 
 func tmpInputFiles(inputs []string) (string, []string, error) {

@@ -7,6 +7,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/detector"
@@ -130,7 +131,7 @@ func (p *LogOp) start(ctx context.Context, store *storage.ZngStorage) {
 	for _, warning := range p.warnings {
 		p.warningCh <- warning
 	}
-	r := zbuf.NewCombiner(p.readers)
+	r := zbuf.NewCombiner(p.readers, expr.SortTsDescending)
 	p.err = store.Rewrite(ctx, r)
 	if err := p.closeFiles(); err != nil && p.err != nil {
 		p.err = err

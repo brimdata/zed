@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/zng"
 )
 
@@ -11,13 +12,15 @@ type Combiner struct {
 	readers []Reader
 	hol     []*zng.Record
 	done    []bool
+	sortFn  expr.SortFn
 }
 
-func NewCombiner(readers []Reader) *Combiner {
+func NewCombiner(readers []Reader, sortFn expr.SortFn) *Combiner {
 	return &Combiner{
 		readers: readers,
 		hol:     make([]*zng.Record, len(readers)),
 		done:    make([]bool, len(readers)),
+		sortFn:  sortFn,
 	}
 }
 
@@ -38,7 +41,7 @@ func (c *Combiner) Read() (*zng.Record, error) {
 			}
 			c.hol[k] = tup
 		}
-		if idx == -1 || c.hol[k].Ts < c.hol[idx].Ts {
+		if idx == -1 || c.sortFn(c.hol[k], c.hol[idx]) == -1 {
 			idx = k
 		}
 	}
