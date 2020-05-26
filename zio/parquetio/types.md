@@ -36,17 +36,27 @@ Un-annotated values of these types may be mapped to ZNG as follows:
 | BYTE_ARRAY   | `bstring` | The ZNG `bytes` type would be more appropriate if/when it is implemented |
 | FIXED_LEN_BYTE_ARRAY | `bstring` | (same as above) |
 
+Note: We have come across INT96 valued columns "in the wild" in files
+created with pyspark that use timestamp types.  They apparently use
+[this format](https://github.com/xhochy/parquet-format/blob/cb4727767823ae201fd567f67825cc22834c20e9/LogicalTypes.md#int96-timestamps-also-called-impala_timestamp) but empirically, the pyspark writer seems to lose precision when
+using this format so its probably not a very high priority to support it.
+
 ### Logical Types
 
 Parquet types that include annotations to provide additional information
 on how they should be interpreted are called logical types.
 There is a good description of logical types at
 <https://github.com/apache/parquet-format/blob/master/LogicalTypes.md>.
-Note that there are two ways to express these annotations in the file,
-an older format called "Converted Types" and the prefered "Logical Types".
-The differences between the two appear to be entirely about how
-the annotations are formatted in the file -- everything expressible as
-a converted type is also expressible as a logical type.
+Note that there are two ways to express these annotations in the file:
+"Converted Types" and "Logical Types".  Although the Parquet
+specification focuses on Logical Types and describes Converted Types as
+an "older representation", we haven't encountered files that use
+Logical Types.  In particular, files created with recent
+Nifi (version 1.11.4) use Converted Types.
+In any case, expanding support to cover Logical Types should be
+straightforward -- the difference is between the two is mostly about how
+the annotations are formatted in the file and Logical Types simply
+offer more flexibility and expressiveness.
 
 The Thrift definitions for Converted Types are
 [here](https://github.com/apache/parquet-format/blob/7390aa18ac855622f6d5cb737e9628eecd7565fd/src/main/thrift/parquet.thrift#L48-L177).
@@ -83,8 +93,11 @@ out-of-band information about how particular fields should be translated.
 Orthogonally to Converted Types and Logical Types, any field in Parquet
 can be "repeated".  This building block is used in conjunction with the
 MAP and LIST types to build more complex structures.
-These types still need more study, presumably a Parquet LIST can be
-converted to a ZNG `vector`.
-ZNG doesn't have any native equivalent for MAP, we could do something
-like `set[record[key:sometype, value:sometype]]` though it wouldn't be
-practical to operate on these from ZQL.
+The zq Parquet reader currently translates LIST structures as defined
+[here](https://github.com/apache/parquet-format/blob/master/LogicalTypes.md#lists) into ZNG `vector` types.  Any other repeated values are silently
+ignored by the Parquet reader.
+For the MAP type speficially, ZNG doesn't have any native equivalent.
+Adding maps as a ZNG feature has been discussed in the past.  In the
+absence of native maps, we could do something like
+`set[record[key:sometype, value:sometype]]` though it wouldn't be practical
+to operate on these from ZQL.
