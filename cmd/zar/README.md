@@ -416,14 +416,14 @@ like [neo4j](https://github.com/neo4j/neo4j),
 it does provide a nice way to do many types of graph queries that
 could prove useful for your archive analytics.
 
-For example, to build an searchable edge list comprising communicating IP addresses,
+For example, to build a searchable edge list comprising communicating IP addresses,
 run the following commands to a create a multi-key search index
 keyed by all unique instances of IP address pairs (in both directions)
 where each index includes a count of the occurrences.
 ```
 zar zq -o forward.zng "id.orig_h != null | put from=id.orig_h,to=id.resp_h | count() by from,to" _
 zar zq -o reverse.zng "id.orig_h != null | put from=id.resp_h,to=id.orig_h | count() by from,to" _
-zar zq -o directed-pairs.zng "count() by from,to" forward.zng reverse.zng
+zar zq -o directed-pairs.zng "sum(count) as count by from,to" forward.zng reverse.zng
 zar zdx -o graph -k from,to directed-pairs.zng
 ```
 > (Note: there is a small change we can make to zql to do this with one `zar zq`
@@ -432,21 +432,21 @@ zar zdx -o graph -k from,to directed-pairs.zng
 This creates an index called "graph" that you can use to search for IP address
 pair relationships, e.g., you can say
 ```
-zar find -z -x graph 216.58.193.195 | zq -f table "count() by from,to" -
+zar find -z -x graph 216.58.193.195 | zq -f table "sum(count) as count by from,to" -
 ```
 to get a listing of all of the edges from IP 216.58.193.195 to any other IP,
 which looks like this:
 ```
 FROM           TO           COUNT
-216.58.193.195 10.47.1.100  3
-216.58.193.195 10.47.1.150  1
-216.58.193.195 10.47.1.151  3
-216.58.193.195 10.47.1.152  4
-216.58.193.195 10.47.1.153  2
-216.58.193.195 10.47.1.154  1
-216.58.193.195 10.47.1.155  2
-216.58.193.195 10.47.1.208  2
-216.58.193.195 10.47.2.100  4
+216.58.193.195 10.47.1.100  6
+216.58.193.195 10.47.1.150  8
+216.58.193.195 10.47.1.151  8
+216.58.193.195 10.47.1.152  18
+216.58.193.195 10.47.1.153  4
+216.58.193.195 10.47.1.154  4
+216.58.193.195 10.47.1.155  18
+216.58.193.195 10.47.1.208  10
+216.58.193.195 10.47.2.100  47
 ...
 ```
 To view this with d3, we can collect up the edges emanating from a few IP addresses
