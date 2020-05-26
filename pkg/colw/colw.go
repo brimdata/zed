@@ -91,8 +91,7 @@ func Write(w io.Writer, in []string, width, pad int) error {
 		} else {
 			pad := widths[colno] - len(s)
 			if pad > 0 {
-				_, err := w.Write(padding[0:pad])
-				if err != nil {
+				if _, err := w.Write(padding[0:pad]); err != nil {
 					return err
 				}
 
