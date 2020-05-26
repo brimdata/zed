@@ -38,8 +38,7 @@ func (c *Command) Run(args []string) error {
 	}
 	client := c.Client()
 	name := args[0]
-	_, err := client.SpacePost(c.Context(), api.SpacePostRequest{Name: name})
-	if err != nil {
+	if _, err := client.SpacePost(c.Context(), api.SpacePostRequest{Name: name}); err != nil {
 		return fmt.Errorf("couldn't create new space %s: %v", name, err)
 	}
 	fmt.Printf("%s: space created\n", name)
