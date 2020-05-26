@@ -34,9 +34,9 @@ var Zq = &charm.Spec{
 	Long: `
 "zar zq" descends the directory given by the -R option (or ZAR_ROOT env) looking for
 logs with zar directories and for each such directory found, it runs
-the zq logic relative to that directory.  The file names here are relative to that
-directory and the special name "_" refers to the actual log file
-in the parent of the zar directory.
+the zq logic relative to that directory and emits the results in zng format.
+The file names here are relative to that directory and the special name "_" refers
+to the actual log file in the parent of the zar directory.
 
 If the root directory is not specified by either the ZAR_ROOT environemnt
 variable or the -R option, then the current directory is assumed.
@@ -58,7 +58,6 @@ type Command struct {
 	stopErr        bool
 	quiet          bool
 	ReaderFlags    zio.ReaderFlags
-	WriterFlags    zio.WriterFlags
 }
 
 func fileExists(path string) bool {
@@ -80,9 +79,6 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.jsonTypePath, "j", "", "path to json types file")
 	f.StringVar(&c.jsonPathRegexp, "pathregexp", c.jsonPathRegexp, "regexp for extracting _path from json log name (when -inferpath=true)")
 	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
-
-	// Flags added for writers are -f, -T, -F, -E, -U, and -b
-	c.WriterFlags.SetFlags(f)
 
 	// Flags added for readers are -i XXX json
 	c.ReaderFlags.SetFlags(f)
@@ -224,7 +220,8 @@ func (c *Command) openOutput(zardir, filename string) (zbuf.WriteCloser, error) 
 	if path != "" {
 		path = filepath.Join(zardir, filename)
 	}
-	w, err := emitter.NewFile(path, &c.WriterFlags)
+	flags := zio.WriterFlags{Format: "zng"}
+	w, err := emitter.NewFile(path, &flags)
 	if err != nil {
 		return nil, err
 	}
