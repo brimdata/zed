@@ -159,7 +159,7 @@ func handlePcapSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 }
 
 func handleSpaceList(c *Core, w http.ResponseWriter, r *http.Request) {
-	spaces, err := c.spaces.List()
+	spaces, err := c.spaces.List(r.Context())
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -173,14 +173,14 @@ func handleSpaceGet(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, cancel, err := s.StartSpaceOp(r.Context())
+	ctx, cancel, err := s.StartSpaceOp(r.Context())
 	if err != nil {
 		respondError(c, w, r, err)
 		return
 	}
 	defer cancel()
 
-	info, err := s.Info()
+	info, err := s.Info(ctx)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -200,7 +200,7 @@ func handleSpacePost(c *Core, w http.ResponseWriter, r *http.Request) {
 		respondError(c, w, r, err)
 		return
 	}
-	info, err := sp.Info()
+	info, err := sp.Info(r.Context())
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -296,7 +296,12 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		case <-ticker.C:
 		}
 
-		span := s.Storage.Span()
+		sum, err := s.Storage.Summary(ctx)
+		if err != nil {
+			logger.Warn("Error reading storage summary", zap.Error(err))
+			return
+		}
+
 		status := api.PcapPostStatus{
 			Type:          "PcapPostStatus",
 			StartTime:     op.StartTime,
@@ -304,7 +309,7 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 			PcapSize:      op.PcapSize,
 			PcapReadSize:  op.PcapReadSize(),
 			SnapshotCount: op.SnapshotCount(),
-			Span:          &span,
+			Span:          &sum.Span,
 		}
 		if err := pipe.Send(status); err != nil {
 			logger.Warn("Error sending payload", zap.Error(err))
@@ -348,7 +353,7 @@ func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		respondError(c, w, r, zqe.E(zqe.Invalid, "empty paths"))
 		return
 	}
-	op, err := ingest.NewLogOp(ctx, s.Storage, req)
+	op, err := ingest.NewLogOp(ctx, s, req)
 	if err != nil {
 		respondError(c, w, r, err)
 		return

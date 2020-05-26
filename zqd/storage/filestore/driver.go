@@ -1,4 +1,4 @@
-package storage
+package filestore
 
 import (
 	"github.com/brimsec/zq/zbuf"

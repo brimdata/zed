@@ -7,17 +7,48 @@ import (
 	"github.com/brimsec/zq/zng"
 )
 
+type Direction bool
+
+const (
+	DirTimeForward = Direction(true)
+	DirTimeReverse = Direction(false)
+)
+
+func RecordCompare(d Direction) RecordCmpFn {
+	if d == DirTimeForward {
+		return CmpTimeForward
+	}
+	return CmpTimeReverse
+}
+
+// RecordCmpFn returns true if a < b.
+type RecordCmpFn func(a, b *zng.Record) bool
+
+func CmpTimeForward(a, b *zng.Record) bool {
+	return a.Ts < b.Ts
+}
+
+func CmpTimeReverse(a, b *zng.Record) bool {
+	return !CmpTimeForward(a, b)
+}
+
 type Combiner struct {
 	readers []Reader
 	hol     []*zng.Record
 	done    []bool
+	less    RecordCmpFn
 }
 
-func NewCombiner(readers []Reader) *Combiner {
+// NewCombiner returns a Combiner that merges zbuf.Readers into
+// a single Reader. If the ordering of the input readers matches
+// the direction specified, the output records will maintain
+// that order.
+func NewCombiner(readers []Reader, cmp RecordCmpFn) *Combiner {
 	return &Combiner{
 		readers: readers,
 		hol:     make([]*zng.Record, len(readers)),
 		done:    make([]bool, len(readers)),
+		less:    cmp,
 	}
 }
 
@@ -38,7 +69,7 @@ func (c *Combiner) Read() (*zng.Record, error) {
 			}
 			c.hol[k] = tup
 		}
-		if idx == -1 || c.hol[k].Ts < c.hol[idx].Ts {
+		if idx == -1 || c.less(c.hol[k], c.hol[idx]) {
 			idx = k
 		}
 	}

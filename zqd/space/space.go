@@ -16,14 +16,14 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/storage"
+	"github.com/brimsec/zq/zqd/storage/loader"
 	"github.com/brimsec/zq/zqe"
 	"github.com/segmentio/ksuid"
 )
 
 const (
-	configFile        = "config.json"
-	PcapIndexFile     = "packets.idx.json"
-	defaultStreamSize = 5000
+	configFile    = "config.json"
+	PcapIndexFile = "packets.idx.json"
 )
 
 var (
@@ -38,7 +38,7 @@ func newSpaceID() api.SpaceID {
 }
 
 type Space struct {
-	Storage *storage.ZngStorage
+	Storage storage.Storage
 
 	path string
 	conf config
@@ -53,8 +53,12 @@ type Space struct {
 	cancelChan chan struct{}
 }
 
-func newSpace(path string, conf config) (*Space, error) {
-	s, err := storage.OpenZng(conf.DataPath, conf.ZngStreamSize)
+func loadSpace(path string, conf config) (*Space, error) {
+	datapath := conf.DataPath
+	if datapath == "." {
+		datapath = path
+	}
+	s, err := loader.Load(datapath)
 	if err != nil {
 		return nil, err
 	}
@@ -113,8 +117,8 @@ func (s *Space) Update(req api.SpacePutRequest) error {
 	return s.conf.save(s.path)
 }
 
-func (s *Space) Info() (api.SpaceInfo, error) {
-	logsize, err := s.Storage.Size()
+func (s *Space) Info(ctx context.Context) (api.SpaceInfo, error) {
+	sum, err := s.Storage.Summary(ctx)
 	if err != nil {
 		return api.SpaceInfo{}, err
 	}
@@ -123,15 +127,15 @@ func (s *Space) Info() (api.SpaceInfo, error) {
 		return api.SpaceInfo{}, err
 	}
 	var span *nano.Span
-	sp := s.Storage.Span()
-	if sp.Dur > 0 {
-		span = &sp
+	if sum.Span.Dur > 0 {
+		span = &sum.Span
 	}
 	spaceInfo := api.SpaceInfo{
 		ID:          s.ID(),
 		Name:        s.conf.Name,
 		DataPath:    s.conf.DataPath,
-		Size:        logsize,
+		StorageKind: sum.Kind.String(),
+		Size:        sum.DataBytes,
 		Span:        span,
 		PcapSupport: s.PcapPath() != "",
 		PcapPath:    s.PcapPath(),
@@ -233,10 +237,6 @@ func (s *Space) PcapPath() string {
 	return s.conf.PcapPath
 }
 
-func (s *Space) StreamSize() int {
-	return s.conf.ZngStreamSize
-}
-
 // Delete removes the space's path and data dir (should the data dir be
 // different then the space's path).
 // Don't call this directly, used Manager.Delete()
@@ -265,8 +265,7 @@ type config struct {
 	DataPath string `json:"data_path"`
 	// XXX PcapPath should be named pcap_path in json land. To avoid having to
 	// do a migration we'll keep this as-is for now.
-	PcapPath      string `json:"packet_path"`
-	ZngStreamSize int    `json:"zng_stream_size"`
+	PcapPath string `json:"packet_path"`
 }
 
 // loadConfig loads the contents of config.json in a space's path.

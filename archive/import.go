@@ -105,11 +105,10 @@ func (d *importDriver) Warn(warning string) error          { return nil }
 func (d *importDriver) Stats(stats api.ScannerStats) error { return nil }
 
 func importProc(ark *Archive) string {
-	if ark.Meta.DataSortForward {
+	if ark.Meta.DataSortDirection == zbuf.DirTimeForward {
 		return "sort ts"
-	} else {
-		return "sort -r ts"
 	}
+	return "sort -r ts"
 }
 
 func Import(ctx context.Context, ark *Archive, r zbuf.Reader) error {

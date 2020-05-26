@@ -10,21 +10,22 @@ import (
 
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zbuf"
 )
 
 const metaDataFilename = "zar.json"
 
 var DefaultConfig MetaData = MetaData{
-	Version:          0,
-	LogSizeThreshold: 500 * 1024 * 1024,
-	DataSortForward:  false,
+	Version:           0,
+	LogSizeThreshold:  500 * 1024 * 1024,
+	DataSortDirection: zbuf.DirTimeReverse,
 }
 
 type MetaData struct {
-	Version          int        `json:"version"`
-	LogSizeThreshold int64      `json:"log_size_threshold"`
-	DataSortForward  bool       `json:"data_sort_forward"`
-	Spans            []SpanInfo `json:"spans"`
+	Version           int            `json:"version"`
+	LogSizeThreshold  int64          `json:"log_size_threshold"`
+	DataSortDirection zbuf.Direction `json:"data_sort_direction"`
+	Spans             []SpanInfo     `json:"spans"`
 }
 
 type SpanInfo struct {
@@ -99,11 +100,10 @@ func (ark *Archive) AppendSpans(spans []SpanInfo) error {
 	ark.Meta.Spans = append(ark.Meta.Spans, spans...)
 
 	sort.Slice(ark.Meta.Spans, func(i, j int) bool {
-		if ark.Meta.DataSortForward {
+		if ark.Meta.DataSortDirection == zbuf.DirTimeForward {
 			return ark.Meta.Spans[i].Span.Ts < ark.Meta.Spans[j].Span.Ts
-		} else {
-			return ark.Meta.Spans[j].Span.Ts < ark.Meta.Spans[i].Span.Ts
 		}
+		return ark.Meta.Spans[j].Span.Ts < ark.Meta.Spans[i].Span.Ts
 	})
 
 	return ark.Meta.Write(filepath.Join(ark.Root, metaDataFilename))

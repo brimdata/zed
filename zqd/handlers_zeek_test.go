@@ -19,6 +19,7 @@ import (
 	"github.com/brimsec/zq/zqd"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/space"
+	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqd/zeek"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -159,9 +160,10 @@ func TestPcapPostInvalidPcap(t *testing.T) {
 		info, err := p.client.SpaceInfo(context.Background(), p.space.ID)
 		assert.NoError(t, err)
 		expected := api.SpaceInfo{
-			ID:       p.space.ID,
-			Name:     p.space.Name,
-			DataPath: p.space.DataPath,
+			ID:          p.space.ID,
+			Name:        p.space.Name,
+			DataPath:    p.space.DataPath,
+			StorageKind: storage.FileStore.String(),
 		}
 		require.Equal(t, &expected, info)
 	})
@@ -212,9 +214,10 @@ func TestPcapPostZeekFailAfterWrite(t *testing.T) {
 		info, err := p.client.SpaceInfo(context.Background(), p.space.ID)
 		assert.NoError(t, err)
 		expected := api.SpaceInfo{
-			ID:       p.space.ID,
-			Name:     p.space.Name,
-			DataPath: p.space.DataPath,
+			ID:          p.space.ID,
+			Name:        p.space.Name,
+			DataPath:    p.space.DataPath,
+			StorageKind: storage.FileStore.String(),
 		}
 		require.Equal(t, &expected, info)
 	})

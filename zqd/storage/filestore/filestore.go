@@ -1,4 +1,4 @@
-package storage
+package filestore
 
 import (
 	"context"
@@ -17,25 +17,41 @@ import (
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqe"
 	"github.com/brimsec/zq/zql"
 	"go.uber.org/zap"
 	"golang.org/x/sync/semaphore"
 )
 
-var (
-	ErrWriteInProgress = errors.New("another write is already in progress")
-)
-
-var zngWriteProc = zql.MustParseProc("sort -r ts")
-
 const (
 	allZngFile    = "all.zng"
 	allZngTmpFile = "all.zng.tmp"
 	infoFile      = "info.json"
+
+	defaultStreamSize = 5000
 )
 
-type ZngStorage struct {
+var (
+	ErrWriteInProgress = errors.New("another write is already in progress")
+
+	zngWriteProc = zql.MustParseProc("sort -r ts")
+)
+
+func Load(path string) (*Storage, error) {
+	s := &Storage{
+		path:       path,
+		index:      zngio.NewTimeIndex(),
+		streamsize: defaultStreamSize,
+		wsem:       semaphore.NewWeighted(1),
+	}
+	return s, s.readInfoFile()
+}
+
+// Storage stores data as a single zng file; this is the default
+// storage choice for Brim, where its intended to be a write-once
+// import of data.
+type Storage struct {
 	path       string
 	span       nano.Span
 	index      *zngio.TimeIndex
@@ -43,22 +59,16 @@ type ZngStorage struct {
 	wsem       *semaphore.Weighted
 }
 
-func OpenZng(path string, streamsize int) (*ZngStorage, error) {
-	s := &ZngStorage{
-		path:       path,
-		index:      zngio.NewTimeIndex(),
-		streamsize: streamsize,
-		wsem:       semaphore.NewWeighted(1),
-	}
-	return s, s.readInfoFile()
+func (s *Storage) NativeDirection() zbuf.Direction {
+	return zbuf.DirTimeReverse
 }
 
-func (s *ZngStorage) join(args ...string) string {
+func (s *Storage) join(args ...string) string {
 	args = append([]string{s.path}, args...)
 	return filepath.Join(args...)
 }
 
-func (s *ZngStorage) Open(span nano.Span) (zbuf.ReadCloser, error) {
+func (s *Storage) Open(_ context.Context, span nano.Span) (zbuf.ReadCloser, error) {
 	zctx := resolver.NewContext()
 	f, err := os.Open(s.join(allZngFile))
 	if err != nil {
@@ -98,7 +108,7 @@ func (w *spanWriter) Write(rec *zng.Record) error {
 	return nil
 }
 
-func (s *ZngStorage) Rewrite(ctx context.Context, zr zbuf.Reader) error {
+func (s *Storage) Rewrite(ctx context.Context, zr zbuf.Reader) error {
 	if !s.wsem.TryAcquire(1) {
 		return zqe.E(zqe.Conflict, ErrWriteInProgress)
 	}
@@ -136,7 +146,7 @@ func (s *ZngStorage) Rewrite(ctx context.Context, zr zbuf.Reader) error {
 	return s.UnionSpan(spanWriter.span)
 }
 
-func (s *ZngStorage) write(ctx context.Context, zw zbuf.Writer, zr zbuf.Reader) error {
+func (s *Storage) write(ctx context.Context, zw zbuf.Writer, zr zbuf.Reader) error {
 	out, err := driver.Compile(ctx, zngWriteProc, zr, false, nano.MaxSpan, zap.NewNop())
 	if err != nil {
 		return err
@@ -147,7 +157,7 @@ func (s *ZngStorage) write(ctx context.Context, zw zbuf.Writer, zr zbuf.Reader) 
 
 // Clear wipes all data from storage. Will wait for any ongoing write operations
 // are complete before doing this.
-func (s *ZngStorage) Clear(ctx context.Context) error {
+func (s *Storage) Clear(ctx context.Context) error {
 	if err := s.wsem.Acquire(ctx, 1); err != nil {
 		return err
 	}
@@ -159,7 +169,7 @@ func (s *ZngStorage) Clear(ctx context.Context) error {
 }
 
 // XXX This is not thread safe and it should be.
-func (s *ZngStorage) UnionSpan(span nano.Span) error {
+func (s *Storage) UnionSpan(span nano.Span) error {
 	first := s.span == nano.Span{}
 	if first {
 		s.span = span
@@ -171,26 +181,25 @@ func (s *ZngStorage) UnionSpan(span nano.Span) error {
 }
 
 // XXX This is not thread safe and it should be.
-func (s *ZngStorage) UnsetSpan() error {
+func (s *Storage) UnsetSpan() error {
 	s.span = nano.Span{}
 	return s.syncInfoFile()
 }
 
-// XXX This is not thread safe and it should be.
-func (s *ZngStorage) Span() nano.Span {
-	return s.span
-}
-
-func (s *ZngStorage) Size() (int64, error) {
+func (s *Storage) Summary(_ context.Context) (storage.Summary, error) {
+	var sum storage.Summary
 	zngpath := s.join(allZngFile)
-	f, err := os.Stat(zngpath)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return 0, nil
+	if f, err := os.Stat(zngpath); err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			return sum, err
 		}
-		return 0, err
+	} else {
+		sum.DataBytes = f.Size()
 	}
-	return f.Size(), nil
+	// XXX This is not thread safe and it should be.
+	sum.Span = s.span
+	sum.Kind = storage.FileStore
+	return sum, nil
 }
 
 type info struct {
@@ -200,7 +209,7 @@ type info struct {
 
 // readInfoFile reads the info file on disk (if it exists) and sets the cached
 // span value for storage.
-func (s *ZngStorage) readInfoFile() error {
+func (s *Storage) readInfoFile() error {
 	b, err := ioutil.ReadFile(s.join(infoFile))
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -216,7 +225,7 @@ func (s *ZngStorage) readInfoFile() error {
 	return nil
 }
 
-func (s *ZngStorage) syncInfoFile() error {
+func (s *Storage) syncInfoFile() error {
 	path := s.join(infoFile)
 	// If span.Dur is 0 this means we have a zero span and should therefore
 	// delete the file.

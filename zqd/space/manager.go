@@ -1,6 +1,7 @@
 package space
 
 import (
+	"context"
 	"errors"
 	"io/ioutil"
 	"os"
@@ -43,7 +44,7 @@ func NewManager(root string, logger *zap.Logger) (*Manager, error) {
 			continue
 		}
 
-		space, err := newSpace(path, config)
+		space, err := loadSpace(path, config)
 		if err != nil {
 			return nil, err
 		}
@@ -72,9 +73,8 @@ func (m *Manager) Create(name, dataPath string) (*Space, error) {
 		dataPath = path
 	}
 	c := config{
-		Name:          name,
-		DataPath:      dataPath,
-		ZngStreamSize: defaultStreamSize,
+		Name:     name,
+		DataPath: dataPath,
 	}
 	if err := c.save(path); err != nil {
 		os.RemoveAll(path)
@@ -86,7 +86,7 @@ func (m *Manager) Create(name, dataPath string) (*Space, error) {
 		return nil, errors.New("created duplicate space id (this should not happen)")
 	}
 
-	sp, err := newSpace(path, c)
+	sp, err := loadSpace(path, c)
 	if err != nil {
 		return nil, err
 	}
@@ -123,14 +123,14 @@ func (m *Manager) Delete(id api.SpaceID) error {
 	return nil
 }
 
-func (m *Manager) List() ([]api.SpaceInfo, error) {
+func (m *Manager) List(ctx context.Context) ([]api.SpaceInfo, error) {
 	result := []api.SpaceInfo{}
 
 	m.mapLock.Lock()
 	defer m.mapLock.Unlock()
 	for id := range m.spaces {
 		sp := m.spaces[id]
-		info, err := sp.Info()
+		info, err := sp.Info(ctx)
 		if err != nil {
 			return nil, err
 		}

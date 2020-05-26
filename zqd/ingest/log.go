@@ -2,6 +2,7 @@ package ingest
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"sync"
@@ -12,13 +13,18 @@ import (
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
-	"github.com/brimsec/zq/zqd/storage"
+	"github.com/brimsec/zq/zqd/space"
+	"github.com/brimsec/zq/zqd/storage/filestore"
 	"github.com/brimsec/zq/zqe"
 )
 
 // x509.14:00:00-15:00:00.log.gz (open source zeek)
 // x509_20191101_14:00:00-15:00:00+0000.log.gz (corelight)
 const DefaultJSONPathRegexp = `([a-zA-Z0-9_]+)(?:\.|_\d{8}_)\d\d:\d\d:\d\d\-\d\d:\d\d:\d\d(?:[+\-]\d{4})?\.log(?:$|\.gz)`
+
+var (
+	ErrNoLogIngestSupport = errors.New("space does not support log ingest")
+)
 
 type LogOp struct {
 	bytesTotal   int64
@@ -33,7 +39,11 @@ type LogOp struct {
 
 // Logs ingests the provided list of files into the provided space.
 // Like ingest.Pcap, this overwrites any existing data in the space.
-func NewLogOp(ctx context.Context, store *storage.ZngStorage, req api.LogPostRequest) (*LogOp, error) {
+func NewLogOp(ctx context.Context, s *space.Space, req api.LogPostRequest) (*LogOp, error) {
+	store, ok := s.Storage.(*filestore.Storage)
+	if !ok {
+		return nil, ErrNoLogIngestSupport
+	}
 	p := &LogOp{
 		warningCh: make(chan string, 5),
 	}
@@ -125,12 +135,12 @@ func (p *LogOp) bytesRead() int64 {
 	return read
 }
 
-func (p *LogOp) start(ctx context.Context, store *storage.ZngStorage) {
+func (p *LogOp) start(ctx context.Context, store *filestore.Storage) {
 	// first drain warnings
 	for _, warning := range p.warnings {
 		p.warningCh <- warning
 	}
-	r := zbuf.NewCombiner(p.readers)
+	r := zbuf.NewCombiner(p.readers, zbuf.RecordCompare(store.NativeDirection()))
 	p.err = store.Rewrite(ctx, r)
 	if err := p.closeFiles(); err != nil && p.err != nil {
 		p.err = err

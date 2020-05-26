@@ -98,6 +98,7 @@ type SpaceInfo struct {
 	ID          SpaceID    `json:"id"`
 	Name        string     `json:"name"`
 	DataPath    string     `json:"data_path"`
+	StorageKind string     `json:"storage_kind"`
 	Span        *nano.Span `json:"span,omitempty"`
 	Size        int64      `json:"size" unit:"bytes"`
 	PcapSupport bool       `json:"pcap_support"`
