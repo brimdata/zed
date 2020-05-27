@@ -25,15 +25,14 @@ are written to that file's zar directory.
 
 A pattern is either a field name or a ":" followed by a zng type name.
 For example, to index the all fields of type port and the field id.orig_h,
-you would run
+you would run:
 
 	zar index -R /path/to/logs id.orig_h :port
 
 Each pattern results a separate zdx index file for each log file found.
 
-For custom indexes, zql flowgraph can be used instead of a
-pattern. This requires specifying the key and output file name. For
-example
+For custom indexes, zql can be used instead of a pattern. This
+requires specifying the key and output file name. For example:
 
        zar index -k id.orig_h -o custom -z "count() by _path, id.orig_h | sort id.orig_h"
 
@@ -64,7 +63,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.IntVar(&c.framesize, "f", 32*1024, "minimum frame size used in zdx file")
 	f.StringVar(&c.outputFile, "o", "zdx", "output index name (for custom indexes)")
 	f.BoolVar(&c.quiet, "q", false, "don't print progress on stdout")
-	f.StringVar(&c.zql, "z", "", "zql flowgraph for custom indexes")
+	f.StringVar(&c.zql, "z", "", "zql for custom indexes")
 	return c, nil
 }
 

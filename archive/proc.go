@@ -1,7 +1,6 @@
 package archive
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/brimsec/zq/ast"
@@ -12,12 +11,12 @@ import (
 	"github.com/brimsec/zq/zng"
 )
 
-var ErrSyntax = errors.New("syntax/format error encountered parsing zng data")
-
 // A FieldCutter is a custom proc that, given an input record and a
 // field name, outputs one record per input record containing the
 // field, with the field as only column.  It is used for field-based
-// indexing.
+// indexing. Unlike the zql cut proc, which has support for different
+// types in a same-named field, this proc doesn't support different
+// types, and errors if more than one type is seen.
 type FieldCutter struct {
 	proc.Base
 	builder  *zng.Builder
