@@ -83,6 +83,8 @@ type GroupBy struct {
 	agg        *GroupByAggregator
 }
 
+// A keyRow holds information about the key column types that result
+// from a given incoming type ID.
 type keyRow struct {
 	id      int
 	columns []zng.Column
@@ -95,12 +97,13 @@ type keyRow struct {
 // by time-binning are partially ordered by timestamp coincident with
 // search direction.
 type GroupByAggregator struct {
-	// keyCols maps incoming type ID of the record's type to a set of columns
-	// for that record type where each column represents a key.  If the
-	// inbound record doesn't have all of the group-by keys, then it is
-	// blocked by setting the map entry to nil.  If there are no group-by
-	// keys, then the map is set to an empty slice.
-	keyCols  map[int]keyRow
+	// keyRows maps incoming type ID to a keyRow holding
+	// information on the column types for that record's group-by
+	// keys. If the inbound record doesn't have all of the keys,
+	// then it is blocked by setting the map entry to nil. If
+	// there are no group-by keys, then the map is set to an empty
+	// slice.
+	keyRows  map[int]keyRow
 	cacheKey []byte // Reduces memory allocations in Consume.
 	// zctx is the type context of the running search.
 	zctx *resolver.Context
@@ -125,7 +128,7 @@ type GroupByAggregator struct {
 }
 
 type GroupByRow struct {
-	keycols  keyRow
+	keycols  []zng.Column
 	keyvals  zcode.Bytes
 	ts       nano.Ts
 	reducers compile.Row
@@ -148,7 +151,7 @@ func NewGroupByAggregator(c *Context, params GroupByParams) *GroupByAggregator {
 		kctx:            resolver.NewContext(),
 		reducerDefs:     params.reducers,
 		builder:         params.builder,
-		keyCols:         make(map[int]keyRow),
+		keyRows:         make(map[int]keyRow),
 		tables:          make(map[nano.Ts]map[string]*GroupByRow),
 		TimeBinDuration: dur,
 		reverse:         c.Reverse,
@@ -199,7 +202,7 @@ func (g *GroupBy) Pull() (zbuf.Batch, error) {
 	return zbuf.NewArray([]*zng.Record{}, batch.Span()), nil
 }
 
-func (g *GroupByAggregator) createRow(keyCols keyRow, ts nano.Ts, vals zcode.Bytes) *GroupByRow {
+func (g *GroupByAggregator) createGroupByRow(keyCols []zng.Column, ts nano.Ts, vals zcode.Bytes) *GroupByRow {
 	// Make a deep copy so the caller can reuse the underlying arrays.
 	v := make(zcode.Bytes, len(vals))
 	copy(v, vals)
@@ -214,8 +217,6 @@ func (g *GroupByAggregator) createRow(keyCols keyRow, ts nano.Ts, vals zcode.Byt
 func newKeyRow(kctx *resolver.Context, r *zng.Record, keys []GroupByKey) (keyRow, error) {
 	cols := make([]zng.Column, len(keys))
 	for k, key := range keys {
-		// Recurse the record to find the bottom column for group-by
-		// on record access, e.g., a.b.c should find the column for "c".
 		keyVal := key.resolver(r)
 		if keyVal.Type == nil {
 			return keyRow{}, nil
@@ -245,16 +246,16 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 	// First check if we've seen this descriptor before and if not
 	// build an entry for it.
 	id := r.Type.ID()
-	keyCols, ok := g.keyCols[id]
+	keyRow, ok := g.keyRows[id]
 	if !ok {
 		var err error
-		keyCols, err = newKeyRow(g.kctx, r, g.keys)
+		keyRow, err = newKeyRow(g.kctx, r, g.keys)
 		if err != nil {
 			return err
 		}
-		g.keyCols[id] = keyCols
+		g.keyRows[id] = keyRow
 	}
-	if keyCols.columns == nil {
+	if keyRow.columns == nil {
 		// block this descriptor since it doesn't have all the group-by keys
 		return nil
 	}
@@ -277,7 +278,7 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 	} else {
 		keyBytes = make(zcode.Bytes, 4, 128)
 	}
-	binary.BigEndian.PutUint32(keyBytes, uint32(keyCols.id))
+	binary.BigEndian.PutUint32(keyBytes, uint32(keyRow.id))
 	g.builder.Reset()
 	for _, key := range g.keys {
 		keyVal := key.resolver(r)
@@ -304,7 +305,7 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 		if len(table) >= g.limit {
 			return errTooBig(g.limit)
 		}
-		row = g.createRow(keyCols, ts, keyBytes[4:])
+		row = g.createGroupByRow(keyRow.columns, ts, keyBytes[4:])
 		table[string(keyBytes)] = row
 	}
 	row.reducers.Consume(r)
@@ -408,8 +409,8 @@ func (g *GroupByAggregator) lookupRowType(row *GroupByRow) (*zng.TypeRecord, err
 	if g.TimeBinDuration > 0 {
 		cols = append(cols, zng.NewColumn("ts", zng.TypeTime))
 	}
-	types := make([]zng.Type, len(row.keycols.columns))
-	for k, col := range row.keycols.columns {
+	types := make([]zng.Type, len(row.keycols))
+	for k, col := range row.keycols {
 		types[k] = col.Type
 	}
 	cols = append(cols, g.builder.TypedColumns(types)...)
