@@ -42,7 +42,7 @@ func (c *LsCommand) Run(args []string) error {
 	matches, err := cmd.SpaceGlob(c.Context(), client, args...)
 	if err != nil {
 		if err == cmd.ErrNoSpacesExist {
-			fmt.Fprintln(os.Stdout, "no spaces exist")
+			fmt.Println("no spaces exist")
 			return nil
 		}
 		return err
