@@ -2,14 +2,11 @@ package zq
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
-	"regexp"
 
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/ast"
@@ -20,7 +17,6 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
-	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
 	"github.com/mccanne/charm"
@@ -34,9 +30,9 @@ var Zq = &charm.Spec{
 	Long: `
 "zar zq" descends the directory given by the -R option (or ZAR_ROOT env) looking for
 logs with zar directories and for each such directory found, it runs
-the zq logic relative to that directory.  The file names here are relative to that
-directory and the special name "_" refers to the actual log file
-in the parent of the zar directory.
+the zq logic relative to that directory and emits the results in zng format.
+The file names here are relative to that directory and the special name "_" refers
+to the actual log file in the parent of the zar directory.
 
 If the root directory is not specified by either the ZAR_ROOT environemnt
 variable or the -R option, then the current directory is assumed.
@@ -50,15 +46,10 @@ func init() {
 
 type Command struct {
 	*root.Command
-	root           string
-	jsonTypePath   string
-	jsonPathRegexp string
-	jsonTypeConfig *ndjsonio.TypeConfig
-	outputFile     string
-	stopErr        bool
-	quiet          bool
-	ReaderFlags    zio.ReaderFlags
-	WriterFlags    zio.WriterFlags
+	root       string
+	outputFile string
+	stopErr    bool
+	quiet      bool
 }
 
 func fileExists(path string) bool {
@@ -77,33 +68,9 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive to walk")
 	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
 	f.StringVar(&c.outputFile, "o", "", "write data to output file")
-	f.StringVar(&c.jsonTypePath, "j", "", "path to json types file")
-	f.StringVar(&c.jsonPathRegexp, "pathregexp", c.jsonPathRegexp, "regexp for extracting _path from json log name (when -inferpath=true)")
 	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
 
-	// Flags added for writers are -f, -T, -F, -E, -U, and -b
-	c.WriterFlags.SetFlags(f)
-
-	// Flags added for readers are -i XXX json
-	c.ReaderFlags.SetFlags(f)
-
 	return c, nil
-}
-
-func (c *Command) loadJsonTypes() (*ndjsonio.TypeConfig, error) {
-	data, err := ioutil.ReadFile(c.jsonTypePath)
-	if err != nil {
-		return nil, err
-	}
-	var tc ndjsonio.TypeConfig
-	err = json.Unmarshal(data, &tc)
-	if err != nil {
-		return nil, fmt.Errorf("%s: unmarshaling error: %s", c.jsonTypePath, err)
-	}
-	if err = tc.Validate(); err != nil {
-		return nil, fmt.Errorf("%s: %s", c.jsonTypePath, err)
-	}
-	return &tc, nil
 }
 
 //XXX lots here copied from zq command... we should refactor into a tools package
@@ -118,16 +85,6 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 
-	if _, err := regexp.Compile(c.jsonPathRegexp); err != nil {
-		return err
-	}
-	if c.jsonTypePath != "" {
-		tc, err := c.loadJsonTypes()
-		if err != nil {
-			return err
-		}
-		c.jsonTypeConfig = tc
-	}
 	if len(args) == 0 {
 		return errors.New("zar zq needs input arguments")
 	}
@@ -191,9 +148,7 @@ func (c *Command) Run(args []string) error {
 
 func (c *Command) inputReaders(zctx *resolver.Context, paths []string) ([]zbuf.Reader, error) {
 	cfg := detector.OpenConfig{
-		Format:         c.ReaderFlags.Format,
-		JSONTypeConfig: c.jsonTypeConfig,
-		JSONPathRegex:  c.jsonPathRegexp,
+		Format: "zng",
 	}
 	var readers []zbuf.Reader
 	for _, path := range paths {
@@ -225,7 +180,7 @@ func (c *Command) openOutput(zardir, filename string) (zbuf.WriteCloser, error) 
 	if path != "" {
 		path = filepath.Join(zardir, filename)
 	}
-	w, err := emitter.NewFile(path, &c.WriterFlags)
+	w, err := emitter.NewFile(path, &zio.WriterFlags{Format: "zng"})
 	if err != nil {
 		return nil, err
 	}
