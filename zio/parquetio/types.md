@@ -70,9 +70,9 @@ These types can be mapped to ZNG as follows:
 | Converted Type UTF8<br>Logical Type STRING | ZNG `string` ||
 | Converted Types MAP, MAP_KEY_VALUE<br>Logical Type MAP | (none) | see below |
 | Converted Type LIST<br>Logical Type LIST | ZNG `vector` | see below |
-| Converted Type ENUM<br>Logical Type ENUM | `ZNG string` | This could be the ZNG `enum` type if we ressurected it |
+| Converted Type ENUM<br>Logical Type ENUM | ZNG `string` | This could be the ZNG `enum` type if we ressurected it |
 | Converted Type DECIMAL<br>Logical Type DECIMAL | (none) | ZNG doesn't have an equivalent type.  We could convert these to floating point, but that would come at the cost of lost precision -- presumably people are using this type to avoid that problem. |
-| Converted Type DATE<br>Logical Type DATE | (nonen) | The Parquet type is just a date, not a particular time on a given date.  The ZNG `time` type is not exactly equivalent but we could define a convention such as "midnight UTC on the given date" |
+| Converted Type DATE<br>Logical Type DATE | (none) | The Parquet type is just a date, not a particular time on a given date.  The ZNG `time` type is not exactly equivalent but we could define a convention such as "midnight UTC on the given date" |
 | Converted Types TIME_MILLIS, TIME_MICROS<br>Logical Type TIME | (none) | This is a particular time without an associated date (e.g., 3:00 PM).  ZNG has no equivalent type |
 | Converted Types TIMESTAMP_MILLIS, TIMESTAMP_MICROS<br>Logical Type TIMESTAMP | `time` | |
 | Converted Types UINT_8, UINT_16, UINT_32, UINT_64, INT_8, INT_16, INT_32, INT_64<br>Logical Type INTEGER | (none) | These could easily be converted to ZNG `byte`, `uint16`, `uint32`, `uint64`, `int16`, `int32`, `int64`.  ZNG has no signed 8-bit value, we could just convert that to an `int16`? |
