@@ -14,9 +14,7 @@ var Rename = &charm.Spec{
 	Name:  "rename",
 	Usage: "rename [old_name] [new_name]",
 	Short: "renames a space",
-	Long: `The rename command takes two arguments. The first arugment is the
-	current name of the space and the second arugment is the new name of the space.
-	`,
+	Long: `Renames a space, given the current space name and a desired new name.`,
 	New: func(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 		return &Command{Command: parent.(*cmd.Command)}, nil
 	},
