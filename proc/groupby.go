@@ -214,8 +214,6 @@ func (g *GroupByAggregator) createRow(keyCols keyRow, ts nano.Ts, vals zcode.Byt
 func newKeyRow(kctx *resolver.Context, r *zng.Record, keys []GroupByKey) (keyRow, error) {
 	cols := make([]zng.Column, len(keys))
 	for k, key := range keys {
-		// Recurse the record to find the bottom column for group-by
-		// on record access, e.g., a.b.c should find the column for "c".
 		keyVal := key.resolver(r)
 		if keyVal.Type == nil {
 			return keyRow{}, nil

@@ -80,7 +80,7 @@ func (fr *fieldRead) apply(e zng.Value) zng.Value {
 // CompileFieldExpr() takes a FieldExpr AST (which represents either a
 // simple field reference like "fieldname" or something more complex
 // like "fieldname[0].subfield.subsubfield[3]") and compiles it into a
-// ValResolver -- a function that takes a zbuf.Record and extracts the
+// FieldExprResolver -- a function that takes a zbuf.Record and extracts the
 // value to which the FieldExpr refers.  If the FieldExpr cannot be
 // compiled, this function returns an error.  If the resolver is given
 // a record for which the given expression cannot be evaluated (e.g.,
