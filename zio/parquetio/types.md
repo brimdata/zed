@@ -65,21 +65,22 @@ Thrift definitions for Logical Types are
 
 These types can be mapped to ZNG as follows:
 
-| Parquet Type | ZNG Type | Notes |
-| ------------ | -------- | ----- |
-| Converted Type UTF8<br>Logical Type STRING | `string` ||
-| Converted Types MAP, MAP_KEY_VALUE<br>Logical Type MAP | | see below |
-| Converted Type LIST<br>Logical Type LIST | | see below |
-| Converted Type ENUM<br>Logical Type ENUM | `string` | This could be the ZNG `enum` type if we ressurected it |
+| Parquet Type | Current Handling |  Notes |
+| ------------ | ---------------- | ----- |
+| Converted Type UTF8<br>Logical Type STRING | ZNG `string` ||
+| Converted Types MAP, MAP_KEY_VALUE<br>Logical Type MAP | (none) | see below |
+| Converted Type LIST<br>Logical Type LIST | ZNG `vector` | see below |
+| Converted Type ENUM<br>Logical Type ENUM | `ZNG string` | This could be the ZNG `enum` type if we ressurected it |
 | Converted Type DECIMAL<br>Logical Type DECIMAL | (none) | ZNG doesn't have an equivalent type.  We could convert these to floating point, but that would come at the cost of lost precision -- presumably people are using this type to avoid that problem. |
-| Converted Type DATE<br>Logical Type DATE | `time` | The Parquet type is just a date, not a particular time on a given date.  So, ZNG `time` is not exactly equivalent but we could define a convention such as "midnight UTC on the given date" |
+| Converted Type DATE<br>Logical Type DATE | (nonen) | The Parquet type is just a date, not a particular time on a given date.  The ZNG `time` type is not exactly equivalent but we could define a convention such as "midnight UTC on the given date" |
 | Converted Types TIME_MILLIS, TIME_MICROS<br>Logical Type TIME | (none) | This is a particular time without an associated date (e.g., 3:00 PM).  ZNG has no equivalent type |
 | Converted Types TIMESTAMP_MILLIS, TIMESTAMP_MICROS<br>Logical Type TIMESTAMP | `time` | |
-| Converted Types UINT_8, UINT_16, UINT_32, UINT_64, INT_8, INT_16, INT_32, INT_64<br>Logical Type INTEGER | `byte`, `uint16`, `uint32`, `uint64`, `int16`, `int32`, `int64` | ZNG has no signed 8-bit value, we could just convert that to an `int16`? |
-| Converted Types JSON, BSON<br>Logical Types JSON, BSON | (none) | No ZNG equivalent.  We could represent as `bstring` to allow the data to be stored in ZNG, but it can't be operated on with ZQL. |
-| Converted Type INTERVAL | `duration` | Parquet intervals can include months which makes them variable.  Such an interval can't be represented by the ZNG `duration` type but shorter intervals can be. |
+| Converted Types UINT_8, UINT_16, UINT_32, UINT_64, INT_8, INT_16, INT_32, INT_64<br>Logical Type INTEGER | (none) | These could easily be converted to ZNG `byte`, `uint16`, `uint32`, `uint64`, `int16`, `int32`, `int64`.  ZNG has no signed 8-bit value, we could just convert that to an `int16`? |
+| Converted Type JSON<br>Logical Type JSON | ZNG `string` | Note that the actual structured data cannot be decoded/operated on from zql. |
+| Converted Type BSON<br>Logical Type BSON | ZNG `bstring` | As with JSON, we preserve the data here, but there's no way to extract the structured data represented by a BSON blob. |
+| Converted Type INTERVAL | (none) | This could be translated to ZNG `duration` type.  However, Parquet intervals can include months which makes them variable.  Such an interval can't be represented by the ZNG `duration` type but shorter intervals can be. |
 | Logical Type UNKNOWN | `null` | |
-| Logical Type UUID | `string` or `bstring` | |
+| Logical Type UUID | (none) | Could easily be converted to ZNG `string` |
 
 Note: Parquet has no annotation to describe IP addresses or "subnets".
 How do existing Zeek->Parquet converters handle this and how can we
