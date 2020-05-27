@@ -278,6 +278,13 @@ func loadConfig(spacePath string) (config, error) {
 	if err := json.Unmarshal(b, &c); err != nil {
 		return c, err
 	}
+
+	if c.Name == "" {
+		// Ensure that name is not blank for spaces created before the
+		// zq#721 work to use space ids.
+		c.Name = filepath.Base(spacePath)
+	}
+
 	return c, nil
 }
 
