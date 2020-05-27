@@ -346,14 +346,13 @@ func newListColumn(els []*parquet.SchemaElement, i int, pr *reader.ParquetReader
 // Read one primitive value from a column iterator and append it to the
 // given zcode.Builder.  This is essentially the complete implemenntation
 // of append() for a non-repeated column, and is used inside a loop for
-// LIST-valued columns.  The first return value is a boolean indicating
-// whether this is the last element in a repeated sequence.
-func appendItem(builder *zcode.Builder, typ HandledType, iter *columnIterator, maxDef, maxRep int32) (bool, error) {
-	var rl, dl int32
+// LIST-valued columns.
+func appendItem(builder *zcode.Builder, typ HandledType, iter *columnIterator, maxDef int32) error {
+	var dl int32
 	switch typ {
 	case boolean:
 		var b bool
-		b, rl, dl = iter.nextBoolean()
+		b, _, dl = iter.nextBoolean()
 		if maxDef > dl {
 			builder.AppendPrimitive(nil)
 		} else {
@@ -361,7 +360,7 @@ func appendItem(builder *zcode.Builder, typ HandledType, iter *columnIterator, m
 		}
 	case tint32:
 		var i int32
-		i, rl, dl = iter.nextInt32()
+		i, _, dl = iter.nextInt32()
 		if maxDef > dl {
 			builder.AppendPrimitive(nil)
 		} else {
@@ -369,7 +368,7 @@ func appendItem(builder *zcode.Builder, typ HandledType, iter *columnIterator, m
 		}
 	case tint64:
 		var i int64
-		i, rl, dl = iter.nextInt64()
+		i, _, dl = iter.nextInt64()
 		if maxDef > dl {
 			builder.AppendPrimitive(nil)
 		} else {
@@ -377,7 +376,7 @@ func appendItem(builder *zcode.Builder, typ HandledType, iter *columnIterator, m
 		}
 	case float:
 		var f float64
-		f, rl, dl = iter.nextFloat()
+		f, _, dl = iter.nextFloat()
 		if maxDef > dl {
 			builder.AppendPrimitive(nil)
 		} else {
@@ -385,7 +384,7 @@ func appendItem(builder *zcode.Builder, typ HandledType, iter *columnIterator, m
 		}
 	case double:
 		var f float64
-		f, rl, dl = iter.nextDouble()
+		f, _, dl = iter.nextDouble()
 		if maxDef > dl {
 			builder.AppendPrimitive(nil)
 		} else {
@@ -393,7 +392,7 @@ func appendItem(builder *zcode.Builder, typ HandledType, iter *columnIterator, m
 		}
 	case utf8, enum, json:
 		var a []byte
-		a, rl, dl = iter.nextByteArray()
+		a, _, dl = iter.nextByteArray()
 		if maxDef > dl {
 			builder.AppendPrimitive(nil)
 		} else {
@@ -401,7 +400,7 @@ func appendItem(builder *zcode.Builder, typ HandledType, iter *columnIterator, m
 		}
 	case byteArray, bson:
 		var a []byte
-		a, rl, dl = iter.nextByteArray()
+		a, _, dl = iter.nextByteArray()
 		if maxDef > dl {
 			builder.AppendPrimitive(nil)
 		} else {
@@ -409,7 +408,7 @@ func appendItem(builder *zcode.Builder, typ HandledType, iter *columnIterator, m
 		}
 	case timestampMilliseconds, timestampMicroseconds, timestampNanoseconds:
 		var i int64
-		i, rl, dl = iter.nextInt64()
+		i, _, dl = iter.nextInt64()
 		if maxDef > dl {
 			builder.AppendPrimitive(nil)
 		} else {
@@ -425,9 +424,9 @@ func appendItem(builder *zcode.Builder, typ HandledType, iter *columnIterator, m
 			builder.AppendPrimitive(zng.EncodeTime(ts))
 		}
 	default:
-		return false, fmt.Errorf("unhandled type %d", typ)
+		return fmt.Errorf("unhandled type %d", typ)
 	}
-	return (rl == maxRep), nil
+	return nil
 }
 
 // simpleColumn handles a column from a parquet file that holds individual
@@ -452,8 +451,7 @@ func (c *simpleColumn) zngType(zctx *resolver.Context) zng.Type {
 // parquet-go.reader.ParquetReader.read(), and
 // parquet-go.marshal.Unmarshal()
 func (c *simpleColumn) append(builder *zcode.Builder) error {
-	_, err := appendItem(builder, c.typ, c.iter, c.maxDefinition, 0)
-	return err
+	return appendItem(builder, c.typ, c.iter, c.maxDefinition)
 }
 
 // listColumn handles a column from a parquet file that holds LIST
@@ -487,13 +485,19 @@ func (c *listColumn) append(builder *zcode.Builder) error {
 	}
 
 	builder.BeginContainer()
+	first := true
 	for {
-		last, err := appendItem(builder, c.innerType, c.iter, c.maxDefinition, c.maxRepetition)
+		rl := c.iter.peekRL()
+		if first {
+			first = false
+		} else {
+			if rl == 0 {
+				break
+			}
+		}
+		err := appendItem(builder, c.innerType, c.iter, c.maxDefinition)
 		if err != nil {
 			return err
-		}
-		if last {
-			break
 		}
 	}
 	builder.EndContainer()

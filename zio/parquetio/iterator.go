@@ -150,15 +150,15 @@ func (i *columnIterator) loadOnePage() (*parquet.PageHeader, []byte, error) {
 // loading and parsing dictionary pages, but when this function returns,
 // the caller may assume there are valid values available in this struct's
 // data structures to decode.
-func (i *columnIterator) ensureDataPage() {
+func (i *columnIterator) ensureDataPage() error {
 	if i.pageRead < i.pageTotal {
-		return
+		return nil
 	}
 
 	for {
 		header, page, err := i.loadOnePage()
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		debugf("read page type %s\n", header.GetType())
@@ -168,7 +168,7 @@ func (i *columnIterator) ensureDataPage() {
 
 		case parquet.PageType_DATA_PAGE:
 			i.initializeDataPage(header, page)
-			return
+			return nil
 
 		default:
 			panic(fmt.Sprintf("unhandled page type %s", header.GetType()))
@@ -288,17 +288,48 @@ func (i *columnIterator) initializeDataPage(header *parquet.PageHeader, buf []by
 // peekDL returns the definition level (DL) for the next value on this
 // page without advancing the iterator
 func (i *columnIterator) peekDL() int32 {
-	i.ensureDataPage()
+	err := i.ensureDataPage()
+	if err != nil {
+		if err == io.EOF {
+			return 0
+		} else {
+			panic(err)
+		}
+	}
 	if i.dlReader == nil {
 		return 0
 	}
 	return int32(i.dlReader.peekInt64())
 }
 
+// peekRL returns the repetition level (RL) for the next value on this
+// page without advancing the iterator
+func (i *columnIterator) peekRL() int32 {
+	err := i.ensureDataPage()
+	if err != nil {
+		if err == io.EOF {
+			return 0
+		} else {
+			panic(err)
+		}
+	}
+	if i.rlReader == nil {
+		return 0
+	}
+	return int32(i.rlReader.peekInt64())
+}
+
 // advance counter, grab rl and dl.  (to keep everything consistent,
 // the caller should also advance valReader every time this is called)
 func (i *columnIterator) commonNext() (int32, int32) {
-	i.ensureDataPage()
+	err := i.ensureDataPage()
+	if err != nil {
+		if err == io.EOF {
+			return 0, 0
+		} else {
+			panic(err)
+		}
+	}
 	i.pageRead++
 
 	var rl, dl int32
