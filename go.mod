@@ -5,6 +5,7 @@ go 1.13
 require (
 	github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf
 	github.com/alexbrainman/ps v0.0.0-20171229230509-b3e1b4a15894
+	github.com/apache/thrift v0.0.0-20181112125854-24918abba929
 	github.com/aws/aws-sdk-go v1.30.19
 	github.com/axiomhq/hyperloglog v0.0.0-20191112132149-a4c4c47bc57f
 	github.com/buger/jsonparser v0.0.0-20191004114745-ee4c978eae7e
@@ -25,6 +26,7 @@ require (
 	go.uber.org/zap v1.15.0
 	golang.org/x/crypto v0.0.0-20191117063200-497ca9f6d64f
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
+	golang.org/x/sys v0.0.0-20200513112337-417ce2331b5c // indirect
 	golang.org/x/text v0.3.2
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v3 v3.0.0-20200121175148-a6ecf24a6d71
