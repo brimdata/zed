@@ -10,6 +10,7 @@ import (
 
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/mccanne/charm"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 var (
@@ -41,10 +42,14 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 		ctx:       newSignalCtx(context.Background(), syscall.SIGINT, syscall.SIGTERM),
 	}
 
+	// If not a terminal make nofancy on by default.
+	c.NoFancy = !terminal.IsTerminal(int(os.Stdout.Fd()))
+
 	defaultHost := "localhost:9867"
 	f.StringVar(&c.Host, "h", defaultHost, "<host[:port]>")
 	f.StringVar(&c.Spacename, "s", c.Spacename, "<space>")
 	f.Var(&c.spaceID, "id", "<space_id>")
+	f.BoolVar(&c.NoFancy, "nofancy", false, "disable fancy cli features (set to true if shell is not a tty)")
 
 	return c, nil
 }
@@ -55,6 +60,7 @@ type Command struct {
 	ZqVersion string
 	Host      string
 	Spacename string
+	NoFancy   bool
 	ctx       *signalCtx
 	spaceID   api.SpaceID
 }
