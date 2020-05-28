@@ -126,6 +126,7 @@ func simpleParquetTypeToZngType(typ HandledType) zng.Type {
 }
 
 type Reader struct {
+	file    source.ParquetFile
 	footer  *parquet.FileMetaData
 	typ     *zng.TypeRecord
 	columns []column
@@ -135,57 +136,64 @@ type Reader struct {
 }
 
 func NewReader(f source.ParquetFile, zctx *resolver.Context) (*Reader, error) {
-	footer, err := readFooter(f)
+	reader := Reader{
+		file: f,
+	}
+	err := reader.initialize(zctx)
 	if err != nil {
 		return nil, err
 	}
-
-	cols, err := buildColumns(footer, f)
-	if err != nil {
-		return nil, err
-	}
-
-	zcols := make([]zng.Column, len(cols))
-	for i, c := range cols {
-		zcols[i] = zng.Column{c.getName(), c.zngType(zctx)}
-	}
-	typ, err := zctx.LookupTypeRecord(zcols)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Reader{
-		footer:  footer,
-		typ:     typ,
-		columns: cols,
-		total:   int(footer.GetNumRows()),
-		builder: zcode.NewBuilder(),
-	}, nil
+	return &reader, nil
 }
 
-func readFooter(f source.ParquetFile) (*parquet.FileMetaData, error) {
+func (r *Reader) initialize(zctx *resolver.Context) error {
+	err := r.readFooter()
+	if err != nil {
+		return err
+	}
+	r.total = int(r.footer.GetNumRows())
+
+	err = r.buildColumns()
+	if err != nil {
+		return err
+	}
+
+	zcols := make([]zng.Column, len(r.columns))
+	for i, c := range r.columns {
+		zcols[i] = zng.Column{c.getName(), c.zngType(zctx)}
+	}
+	r.typ, err = zctx.LookupTypeRecord(zcols)
+	if err != nil {
+		return err
+	}
+
+	r.builder = zcode.NewBuilder()
+
+	return nil
+}
+
+func (r *Reader) readFooter() error {
 	// Per https://github.com/apache/parquet-format#file-format
 	// the last 4 bytes are the sequence "PAR1", the preceding 4
 	// bytes are the size of the metadata
 	var err error
 	buf := make([]byte, 4)
-	if _, err = f.Seek(-8, io.SeekEnd); err != nil {
-		return nil, err
+	if _, err = r.file.Seek(-8, io.SeekEnd); err != nil {
+		return err
 	}
-	if _, err = f.Read(buf); err != nil {
-		return nil, err
+	if _, err = r.file.Read(buf); err != nil {
+		return err
 	}
 	size := binary.LittleEndian.Uint32(buf)
 
-	if _, err = f.Seek(-(int64)(8+size), io.SeekEnd); err != nil {
-		return nil, err
+	if _, err = r.file.Seek(-(int64)(8+size), io.SeekEnd); err != nil {
+		return err
 	}
 
-	footer := parquet.NewFileMetaData()
+	r.footer = parquet.NewFileMetaData()
 	pf := thrift.NewTCompactProtocolFactory()
-	protocol := pf.GetProtocol(thrift.NewStreamTransportR(f))
-	err = footer.Read(protocol)
-	return footer, err
+	protocol := pf.GetProtocol(thrift.NewStreamTransportR(r.file))
+	return r.footer.Read(protocol)
 }
 
 // column abstracts away the handling of an indvidual column from a
@@ -198,8 +206,8 @@ type column interface {
 	getName() string
 }
 
-func buildColumns(footer *parquet.FileMetaData, file source.ParquetFile) ([]column, error) {
-	schema := footer.Schema
+func (r *Reader) buildColumns() error {
+	schema := r.footer.Schema
 	// first element in the schema is the root, skip it.
 	// for each reamaining column, build a column iterator
 	// structure.
@@ -209,13 +217,13 @@ func buildColumns(footer *parquet.FileMetaData, file source.ParquetFile) ([]colu
 		var col column
 		var err error
 		if schema[i].NumChildren != nil {
-			n, col, err = newNestedColumn(schema, i, footer, file)
+			n, col, err = r.newNestedColumn(schema, i)
 		} else {
-			col, err = newSimpleColumn(*schema[i], footer, file)
+			col, err = r.newSimpleColumn(*schema[i])
 		}
 		i += n
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		// XXX if no error but no type, just skip...
@@ -226,10 +234,11 @@ func buildColumns(footer *parquet.FileMetaData, file source.ParquetFile) ([]colu
 		columns = append(columns, col)
 	}
 
-	return columns, nil
+	r.columns = columns
+	return nil
 }
 
-func newSimpleColumn(el parquet.SchemaElement, footer *parquet.FileMetaData, file source.ParquetFile) (column, error) {
+func (r *Reader) newSimpleColumn(el parquet.SchemaElement) (column, error) {
 	if el.RepetitionType != nil && *el.RepetitionType == parquet.FieldRepetitionType_REPEATED {
 		return nil, fmt.Errorf("cannot convert repeated element %s", el.Name)
 	}
@@ -244,7 +253,7 @@ func newSimpleColumn(el parquet.SchemaElement, footer *parquet.FileMetaData, fil
 		maxDefinition = 1
 	}
 
-	iter := newColumnIterator(el.Name, footer, file, 0, maxDefinition)
+	iter := newColumnIterator(el.Name, r.footer, r.file, 0, maxDefinition)
 	return &simpleColumn{
 		name: el.Name,
 		typ:  typ,
@@ -275,20 +284,20 @@ func countChildren(els []*parquet.SchemaElement, i int) int {
 	return j - i
 }
 
-func newNestedColumn(els []*parquet.SchemaElement, i int, footer *parquet.FileMetaData, file source.ParquetFile) (int, column, error) {
+func (r *Reader) newNestedColumn(els []*parquet.SchemaElement, i int) (int, column, error) {
 	el := els[i]
 	if el.ConvertedType != nil && *el.ConvertedType == parquet.ConvertedType_LIST {
-		return newListColumn(els, i, footer, file)
+		return r.newListColumn(els, i)
 	}
 	if el.LogicalType != nil && el.LogicalType.LIST != nil {
-		return newListColumn(els, i, footer, file)
+		return r.newListColumn(els, i)
 	}
 
 	// Skip this element and all its children...
 	return countChildren(els, i), nil, nil
 }
 
-func newListColumn(els []*parquet.SchemaElement, i int, footer *parquet.FileMetaData, file source.ParquetFile) (int, column, error) {
+func (r *Reader) newListColumn(els []*parquet.SchemaElement, i int) (int, column, error) {
 	// Per https://github.com/apache/parquet-format/blob/master/LogicalTypes.md#lists
 	// List structure is:
 	// <list-repetition> group <name> (LIST) {
@@ -329,7 +338,7 @@ func newListColumn(els []*parquet.SchemaElement, i int, footer *parquet.FileMeta
 	// This is something we can handle.  The column name correponds
 	// to the outer element (el), but the actual values are kept in
 	// the innermost nested element (typeEl).
-	iter := newColumnIterator(el.Name, footer, file, 1, 2)
+	iter := newColumnIterator(el.Name, r.footer, r.file, 1, 2)
 
 	c := listColumn{
 		name:          el.Name,
