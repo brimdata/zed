@@ -5,12 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/brimsec/zq/pkg/glob"
 	"github.com/brimsec/zq/zqd/api"
 )
 
-var ErrNoMatch = errors.New("no match")
+var (
+	ErrNoMatch       = errors.New("no match")
+	ErrNoSpacesExist = errors.New("no spaces exist")
+)
 
 func SpaceGlob(ctx context.Context, client *api.Connection, patterns ...string) ([]api.SpaceInfo, error) {
 	all, err := client.SpaceList(ctx)
@@ -18,7 +22,7 @@ func SpaceGlob(ctx context.Context, client *api.Connection, patterns ...string) 
 		return nil, fmt.Errorf("couldn't fetch spaces: %w", err)
 	}
 	if len(all) == 0 {
-		return nil, errors.New("no spaces exist")
+		return nil, ErrNoSpacesExist
 	}
 	var spaces []api.SpaceInfo
 	if len(patterns) == 0 {
@@ -38,6 +42,18 @@ func SpaceGlob(ctx context.Context, client *api.Connection, patterns ...string) 
 		return spaces[i].Name < spaces[j].Name
 	})
 	return spaces, nil
+}
+
+func GetSpaceID(ctx context.Context, client *api.Connection, name string) (api.SpaceID, error) {
+	spaces, err := SpaceGlob(ctx, client, name)
+	if err != nil {
+		return "", err
+	}
+	if len(spaces) > 1 {
+		list := strings.Join(api.SpaceInfos(spaces).Names(), ", ")
+		return "", fmt.Errorf("found multiple matching spaces: %s", list)
+	}
+	return spaces[0].ID, nil
 }
 
 type spacemap map[string]api.SpaceInfo

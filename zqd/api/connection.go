@@ -184,6 +184,9 @@ func (c *Connection) SpaceList(ctx context.Context) ([]SpaceInfo, error) {
 func (c *Connection) SpaceDelete(ctx context.Context, id SpaceID) (err error) {
 	path := path.Join("/space", url.PathEscape(string(id)))
 	_, err = c.Request(ctx).Delete(path)
+	if r, ok := err.(*ErrorResponse); ok && r.StatusCode() == http.StatusNotFound {
+		return ErrSpaceNotFound
+	}
 	return err
 }
 

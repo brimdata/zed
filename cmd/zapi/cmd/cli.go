@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 	"syscall"
 
 	"github.com/brimsec/zq/zqd/api"
@@ -79,16 +78,7 @@ func (c *Command) SpaceID() (api.SpaceID, error) {
 	if c.Spacename == "" {
 		return "", ErrSpaceNotSpecified
 	}
-	client := c.Client()
-	spaces, err := SpaceGlob(c.ctx, client, c.Spacename)
-	if err != nil {
-		return "", err
-	}
-	if len(spaces) > 1 {
-		list := strings.Join(api.SpaceInfos(spaces).Names(), ", ")
-		return "", fmt.Errorf("found multiple matching spaces: %s", list)
-	}
-	return spaces[0].ID, nil
+	return GetSpaceID(c.ctx, c.Client(), c.Spacename)
 }
 
 // Run is called by charm when there are no sub-commands on the main

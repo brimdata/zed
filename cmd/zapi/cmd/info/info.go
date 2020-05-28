@@ -26,6 +26,7 @@ about the currently selected space.`,
 
 func init() {
 	cmd.CLI.Add(Info)
+	cmd.CLI.Add(Ls)
 }
 
 type Command struct {
