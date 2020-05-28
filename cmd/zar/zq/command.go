@@ -94,8 +94,8 @@ func (c *Command) Run(args []string) error {
 		inputs := args
 		var query ast.Proc
 		var err error
-		first := archive.Localize(zardir, inputs[:1])
-		if first[0] != "" && fileExists(first[0]) {
+		first := archive.Localize(zardir, inputs[0])
+		if first != "" && fileExists(first) {
 			query, err = zql.ParseProc("*")
 			if err != nil {
 				return err
@@ -107,7 +107,10 @@ func (c *Command) Run(args []string) error {
 			}
 			inputs = inputs[1:]
 		}
-		localPaths := archive.Localize(zardir, inputs)
+		var localPaths []string
+		for _, input := range inputs {
+			localPaths = append(localPaths, archive.Localize(zardir, input))
+		}
 		readers, err := c.inputReaders(resolver.NewContext(), localPaths)
 		if err != nil {
 			return err
