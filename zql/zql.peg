@@ -406,13 +406,13 @@ uniq
     }
 
 put
-  = "put"i _ first:PutClause rest:(__ "," __ cl:PutClause { RETURN(cl) })* {
+  = "put"i _ first:Assignment rest:(__ "," __ cl:Assignment { RETURN(cl) })* {
       RETURN(makePutProc(first, rest))
     }
 
-PutClause
+Assignment
   = f:fieldName __ "=" __ e:Expression {
-      RETURN(makePutClause(f, e))
+      RETURN(makeAssignment(f, e))
     }
 
 PrimaryExpression
