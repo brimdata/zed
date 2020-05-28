@@ -208,8 +208,8 @@ func tests() suite {
 	// Test reducers with mixed-type inputs
 	s.add(New("mixed-inputs", mixedIn, mixedOut, "first(f), last(f) by key"))
 
-	s.add(New("aliases", aliasIn, aliasOut, "count() by host"))
-	// XXX add coverage of time batching (every ..)
+	// Commented out pending https://github.com/brimsec/zq/issues/836
+	// s.add(New("aliases", aliasIn, aliasOut, "count() by host"))
 
 	return s
 }

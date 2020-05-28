@@ -15,12 +15,13 @@ import (
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
 type GroupByKey struct {
-	name     string
-	resolver expr.FieldExprResolver
+	name string
+	expr expr.ExpressionEvaluator
 }
 
 type GroupByParams struct {
@@ -47,11 +48,17 @@ const defaultGroupByLimit = 1000000
 
 func CompileGroupBy(node *ast.GroupByProc, zctx *resolver.Context) (*GroupByParams, error) {
 	keys := make([]GroupByKey, 0)
-	for _, key := range node.Keys {
+	var targetNames []string
+	for _, astKey := range node.Keys {
+		ex, err := expr.CompileExpr(astKey.Expr)
+		if err != nil {
+			return nil, fmt.Errorf("compiling groupby: %w", err)
+		}
 		keys = append(keys, GroupByKey{
-			name:     key,
-			resolver: expr.CompileFieldAccess(key),
+			name: astKey.Target,
+			expr: ex,
 		})
+		targetNames = append(targetNames, astKey.Target)
 	}
 	reducers := make([]compile.CompiledReducer, 0)
 	for _, reducer := range node.Reducers {
@@ -61,7 +68,7 @@ func CompileGroupBy(node *ast.GroupByProc, zctx *resolver.Context) (*GroupByPara
 		}
 		reducers = append(reducers, compiled)
 	}
-	builder, err := NewColumnBuilder(zctx, node.Keys)
+	builder, err := NewColumnBuilder(zctx, targetNames)
 	if err != nil {
 		return nil, fmt.Errorf("compiling groupby: %w", err)
 	}
@@ -217,7 +224,12 @@ func (g *GroupByAggregator) createGroupByRow(keyCols []zng.Column, ts nano.Ts, v
 func newKeyRow(kctx *resolver.Context, r *zng.Record, keys []GroupByKey) (keyRow, error) {
 	cols := make([]zng.Column, len(keys))
 	for k, key := range keys {
-		keyVal := key.resolver(r)
+		keyVal, err := key.expr(r)
+		// Don't err on ErrNoSuchField; just return an empty
+		// keyRow and the descriptor will be blocked.
+		if err != nil && !errors.Is(err, expr.ErrNoSuchField) {
+			return keyRow{}, err
+		}
 		if keyVal.Type == nil {
 			return keyRow{}, nil
 		}
@@ -281,7 +293,10 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 	binary.BigEndian.PutUint32(keyBytes, uint32(keyRow.id))
 	g.builder.Reset()
 	for _, key := range g.keys {
-		keyVal := key.resolver(r)
+		keyVal, err := key.expr(r)
+		if err != nil && !errors.Is(err, zng.ErrUnset) {
+			return err
+		}
 		g.builder.Append(keyVal.Bytes, keyVal.IsContainer())
 	}
 	zv, err := g.builder.Encode()

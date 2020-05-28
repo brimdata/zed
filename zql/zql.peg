@@ -213,8 +213,16 @@ proc
       RETURN(proc)
     }
 
-groupBy
-  = "by"i _ list:fieldRefDotOnlyList { RETURN(list) }
+groupByKeys
+  = "by"i _ first:groupByKey rest:(__ "," __ cl:groupByKey { RETURN(cl) })* {
+      RETURN(makeGroupByKeys(first, rest))
+    }
+
+
+groupByKey
+  = Assignment
+  / field:DereferenceExpression { RETURN(makeGroupByKey(TEXT, field)) }
+
 
 everyDur
   = "every"i _ dur:duration { RETURN(dur) }
@@ -310,7 +318,7 @@ fieldReducer
   }
 
 reducerProc
-  = every:(everyDur _)? reducers:reducerList keys:(_ groupBy)? limit:procLimitArg? {
+  = every:(everyDur _)? reducers:reducerList keys:(_ groupByKeys)? limit:procLimitArg? {
     if ISNOTNULL(OR(keys, every)) {
       if ISNOTNULL(keys) {
         keys = ASSERT_ARRAY(keys)[1]
