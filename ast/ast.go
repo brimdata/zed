@@ -285,11 +285,11 @@ type (
 
 	PutProc struct {
 		Node
-		Clauses []PutClause `json:"clauses"`
+		Clauses []Assignment `json:"clauses"`
 	}
 )
 
-type PutClause struct {
+type Assignment struct {
 	Target string     `json:"target"`
 	Expr   Expression `json:"expression"`
 }

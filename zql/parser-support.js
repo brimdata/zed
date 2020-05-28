@@ -107,7 +107,7 @@ function makeTailProc(count) { return { op: "TailProc", count }; }
 function makeUniqProc(cflag) { return { op: "TailProc", cflag }; }
 function makeFilterProc(filter) { return { op: "FilterProc", filter }; }
 
-function makePutClause(target, expression) { return { target, expression }; }
+function makeAssignment(target, expression) { return { target, expression }; }
 function makePutProc(first, rest) {
   return { op: "PutProc", clauses: [first, ...rest] };
 }
