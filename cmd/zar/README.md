@@ -233,26 +233,15 @@ this key, we'll compute the number of times that value appeared for each zeek
 log type.  To do this, we'll run "zar zq" in a way that leaves
 these results behind in each zar directory:
 ```
-zar zq -o groupby.zng "count() by _path, id.orig_h | sort id.orig_h" _
+zar index -q -o custom -k id.orig_h -z "count() by _path, id.orig_h | sort id.orig_h"
 ```
-In this case, the `-o` argument to `zar zq` tells it to leave the results
-attached to the log file, in the zar directory associated with that log.
-You can run ls to see the files are indeed there:
-```
-zar ls groupby.zng
-```
-
-Now, we can convert the sorted-key zng file into an index that "zar find" can
-use by running "zar zdx" (the index form of a zng file is called a zdx file).
-The -o option provides the prefix of the zdx file name.  Let's just call it "custom".
-```
-zar zdx -o custom -k id.orig_h groupby.zng
-```
-Now I can see my index files for the custom rule I made
+Unlike for the field and type indexes we created previously, for
+custom indexes the index file name must be specified via the `-o`
+flag.  You can run ls to see the custom index files are indeed there:
 ```
 zar ls custom.zng
 ```
-I can see what's in it now:
+To see what's in it:
 ```
 zq -f table $ZAR_ROOT/20180324/1521912152.518493.zng.zar/custom.zng | head -10
 ```
@@ -310,13 +299,8 @@ and will match all search rows with any value.
 For example, let's say we want to build an index that has primary key
 `id.resp_h` and secondary key `id.orig_h` from all the conn logs where we
 cache the sum of response bytes to each originator.
-
-First, we compute the aggregation with the sorted keys into a temp file,
-then we convert the sorted keys into an index, and finally we remove the temp file.
 ```
-zar zq -o keys.zng "_path=conn | sum(resp_bytes) as resp_bytes by id.resp_h,id.orig_h | sort id.resp_h,id.orig_h" _
-zar zdx -o custom2 -k id.resp_h,id.orig_h keys.zng
-zar rm keys.zng
+zar index -o custom2 -k id.resp_h,id.orig_h -z "_path=conn | sum(resp_bytes) as resp_bytes by id.resp_h,id.orig_h | sort id.resp_h,id.orig_h"
 ```
 And now we can search with a primary key and a secondary key, e.g.,
 ```

@@ -22,7 +22,16 @@ func Compile(ctx context.Context, program ast.Proc, reader zbuf.Reader, reverse 
 	return CompileWarningsCh(ctx, program, reader, reverse, span, logger, ch)
 }
 
+func CompileCustom(ctx context.Context, custom proc.Compiler, program ast.Proc, reader zbuf.Reader, reverse bool, span nano.Span, logger *zap.Logger) (*MuxOutput, error) {
+	ch := make(chan string, 5)
+	return CompileWarningsChCustom(ctx, custom, program, reader, reverse, span, logger, ch)
+}
+
 func CompileWarningsCh(ctx context.Context, program ast.Proc, reader zbuf.Reader, reverse bool, span nano.Span, logger *zap.Logger, ch chan string) (*MuxOutput, error) {
+	return CompileWarningsChCustom(ctx, nil, program, reader, reverse, span, logger, ch)
+}
+
+func CompileWarningsChCustom(ctx context.Context, custom proc.Compiler, program ast.Proc, reader zbuf.Reader, reverse bool, span nano.Span, logger *zap.Logger, ch chan string) (*MuxOutput, error) {
 
 	filterAst, program := liftFilter(program)
 	scanner, err := newScanner(ctx, reader, filterAst, span)
@@ -36,7 +45,7 @@ func CompileWarningsCh(ctx context.Context, program ast.Proc, reader zbuf.Reader
 		Reverse:     reverse,
 		Warnings:    ch,
 	}
-	leaves, err := proc.CompileProc(nil, program, pctx, scanner)
+	leaves, err := proc.CompileProc(custom, program, pctx, scanner)
 	if err != nil {
 		return nil, err
 	}

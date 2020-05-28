@@ -1,14 +1,20 @@
 package archive
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
+	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/fs"
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zdx"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zqd/api"
+	"go.uber.org/zap"
 )
 
 const zarExt = ".zar"
@@ -41,51 +47,70 @@ func IndexDirTree(ark *Archive, rules []Rule, progress chan<- string) error {
 	})
 }
 
-func run(zardir string, rules []Rule, progress chan<- string) error {
+func runOne(zardir string, rule Rule, progress chan<- string) error {
 	logPath := ZarDirToLog(zardir)
-	var writers []zbuf.WriteCloser
-	for _, rule := range rules {
-		w, err := rule.NewIndexer(zardir)
-		if err != nil {
-			return err
-		}
-		writers = append(writers, w)
-		if progress != nil {
-			progress <- fmt.Sprintf("%s: creating index %s", logPath, rule.Path(zardir))
-		}
-	}
 	file, err := fs.Open(logPath)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
-	reader := zngio.NewReader(file, resolver.NewContext())
-	// XXX This for-loop could be easily parallelized by having each writer
-	// live in its own go routine and sending the rec over a set of
-	// blocking channels (so we flow-control it).
-	for {
-		rec, err := reader.Read()
+	zctx := resolver.NewContext()
+	r := zngio.NewReader(file, zctx)
+	fgi, err := NewFlowgraphIndexer(zctx, rule.Path(zardir), rule.keys, rule.framesize)
+	if err != nil {
+		return err
+	}
+	defer fgi.Close()
+	out, err := driver.CompileCustom(context.TODO(), &compiler{}, rule.proc, r, false, nano.MaxSpan, zap.NewNop())
+	if err != nil {
+		return err
+	}
+	if progress != nil {
+		progress <- fmt.Sprintf("%s: creating index %s", logPath, rule.Path(zardir))
+	}
+	return driver.Run(out, fgi, nil)
+}
+
+func run(zardir string, rules []Rule, progress chan<- string) error {
+	for _, rule := range rules {
+		err := runOne(zardir, rule, progress)
 		if err != nil {
 			return err
 		}
-		if rec == nil {
-			break
-		}
-		for _, w := range writers {
-			if err := w.Write(rec); err != nil {
-				return err
-			}
-		}
 	}
-	var lastErr error
-	// XXX this loop could be parallelized.. the close on the index writers
-	// dump the in-memory table to disk.  Also, we should use a zql proc
-	// graph to do this work instead of the in-memory map once we have
-	// group-by spills working.
-	for _, w := range writers {
-		if err := w.Close(); err != nil {
-			lastErr = err
-		}
-	}
-	return lastErr
+	return nil
 }
+
+type FlowgraphIndexer struct {
+	zctx *resolver.Context
+	w    *zdx.Writer
+}
+
+func NewFlowgraphIndexer(zctx *resolver.Context, path string, keys []string, framesize int) (*FlowgraphIndexer, error) {
+	if len(keys) == 0 {
+		keys = []string{keyName}
+	}
+	writer, err := zdx.NewWriter(zctx, path, keys, framesize)
+	if err != nil {
+		return nil, err
+	}
+	return &FlowgraphIndexer{zctx, writer}, nil
+}
+
+func (f *FlowgraphIndexer) Write(_ int, batch zbuf.Batch) error {
+	for i := 0; i < batch.Length(); i++ {
+		if err := f.w.Write(batch.Index(i)); err != nil {
+			return err
+		}
+	}
+	batch.Unref()
+	return nil
+}
+
+func (f *FlowgraphIndexer) Close() error {
+	return f.w.Close()
+}
+
+func (f *FlowgraphIndexer) Warn(warning string) error          { return nil }
+func (f *FlowgraphIndexer) Stats(stats api.ScannerStats) error { return nil }
+func (f *FlowgraphIndexer) ChannelEnd(cid int) error           { return nil }
