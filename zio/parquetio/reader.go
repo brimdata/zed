@@ -126,8 +126,8 @@ func simpleParquetTypeToZngType(typ HandledType) zng.Type {
 }
 
 type ReaderOpts struct {
-	columns                []string
-	ignoreUnhandledColumns bool
+	Columns                []string
+	IgnoreUnhandledColumns bool
 }
 
 type Reader struct {
@@ -179,10 +179,10 @@ type column interface {
 }
 
 func (o *ReaderOpts) wantColumn(name string) bool {
-	if len(o.columns) == 0 {
+	if len(o.Columns) == 0 {
 		return true
 	}
-	for _, cname := range o.columns {
+	for _, cname := range o.Columns {
 		if name == cname {
 			return true
 		}
@@ -212,7 +212,7 @@ func buildColumns(pr *reader.ParquetReader, opts ReaderOpts) ([]column, error) {
 		}
 
 		if col == nil {
-			if opts.ignoreUnhandledColumns {
+			if opts.IgnoreUnhandledColumns {
 				continue
 			}
 			return nil, fmt.Errorf("cannot handle column %s", col.getName())
