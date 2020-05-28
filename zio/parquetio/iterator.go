@@ -162,7 +162,7 @@ func (i *columnIterator) ensureDataPage() error {
 			return err
 		}
 
-		debugf("read page type %s\n", header.GetType())
+		debugf("read page type %s for %s\n", header.GetType(), i.name)
 		switch header.GetType() {
 		case parquet.PageType_DICTIONARY_PAGE:
 			i.loadDictionaryPage(header, page)

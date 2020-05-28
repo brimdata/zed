@@ -255,9 +255,10 @@ func (r *Reader) newSimpleColumn(el parquet.SchemaElement) (column, error) {
 
 	iter := newColumnIterator(el.Name, r.footer, r.file, 0, maxDefinition)
 	return &simpleColumn{
-		name: el.Name,
-		typ:  typ,
-		iter: iter,
+		name:          el.Name,
+		typ:           typ,
+		iter:          iter,
+		maxDefinition: maxDefinition,
 	}, nil
 }
 
@@ -439,9 +440,10 @@ func appendItem(builder *zcode.Builder, typ HandledType, iter *columnIterator, m
 // simpleColumn handles a column from a parquet file that holds individual
 // (non-repeated) primitive values.
 type simpleColumn struct {
-	name string
-	typ  HandledType
-	iter *columnIterator
+	name          string
+	typ           HandledType
+	iter          *columnIterator
+	maxDefinition int32
 }
 
 func (c *simpleColumn) getName() string { return c.name }
@@ -457,7 +459,7 @@ func (c *simpleColumn) zngType(zctx *resolver.Context) zng.Type {
 // parquet-go.marshal.Unmarshal()
 func (c *simpleColumn) append(builder *zcode.Builder) error {
 	// For simple values, the max definition level is exactly 1
-	return appendItem(builder, c.typ, c.iter, 1)
+	return appendItem(builder, c.typ, c.iter, c.maxDefinition)
 }
 
 // listColumn handles a column from a parquet file that holds LIST
