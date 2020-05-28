@@ -125,6 +125,11 @@ func simpleParquetTypeToZngType(typ HandledType) zng.Type {
 	panic(fmt.Sprintf("unhandled type %d", typ))
 }
 
+type ReaderOpts struct {
+	columns                []string
+	ignoreUnhandledColumns bool
+}
+
 type Reader struct {
 	pr      *reader.ParquetReader
 	typ     *zng.TypeRecord
@@ -134,13 +139,13 @@ type Reader struct {
 	builder *zcode.Builder
 }
 
-func NewReader(f source.ParquetFile, zctx *resolver.Context) (*Reader, error) {
+func NewReader(f source.ParquetFile, zctx *resolver.Context, opts ReaderOpts) (*Reader, error) {
 	pr, err := reader.NewParquetReader(f, nil, 1)
 	if err != nil {
 		return nil, err
 	}
 
-	cols, err := buildColumns(pr)
+	cols, err := buildColumns(pr, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +178,19 @@ type column interface {
 	getName() string
 }
 
-func buildColumns(pr *reader.ParquetReader) ([]column, error) {
+func (o *ReaderOpts) wantColumn(name string) bool {
+	if len(o.columns) == 0 {
+		return true
+	}
+	for _, cname := range o.columns {
+		if name == cname {
+			return true
+		}
+	}
+	return false
+}
+
+func buildColumns(pr *reader.ParquetReader, opts ReaderOpts) ([]column, error) {
 	schema := pr.Footer.Schema
 
 	// first element in the schema is the root, skip it.
@@ -194,12 +211,16 @@ func buildColumns(pr *reader.ParquetReader) ([]column, error) {
 			return nil, err
 		}
 
-		// XXX if no error but no type, just skip...
 		if col == nil {
-			continue
+			if opts.ignoreUnhandledColumns {
+				continue
+			}
+			return nil, fmt.Errorf("cannot handle column %s", col.getName())
 		}
 
-		columns = append(columns, col)
+		if opts.wantColumn(col.getName()) {
+			columns = append(columns, col)
+		}
 	}
 
 	return columns, nil
