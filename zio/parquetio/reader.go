@@ -508,7 +508,10 @@ func (c *listColumn) zngType(zctx *resolver.Context) zng.Type {
 // parquet-go.reader.ParquetReader.read(), and
 // parquet-go.marshal.Unmarshal()
 func (c *listColumn) append(builder *zcode.Builder) error {
-	dl := c.iter.peekDL()
+	dl, err := c.iter.peekDL()
+	if err != nil {
+		return err
+	}
 	if c.maxDefinition > dl {
 		builder.AppendContainer(nil)
 		return nil
@@ -517,7 +520,14 @@ func (c *listColumn) append(builder *zcode.Builder) error {
 	builder.BeginContainer()
 	first := true
 	for {
-		rl := c.iter.peekRL()
+		rl, err := c.iter.peekRL()
+		if err != nil {
+			if err == io.EOF {
+				break
+			} else {
+				return err
+			}
+		}
 		if first {
 			first = false
 		} else {
@@ -525,7 +535,7 @@ func (c *listColumn) append(builder *zcode.Builder) error {
 				break
 			}
 		}
-		err := appendItem(builder, c.innerType, c.iter, c.maxDefinition)
+		err = appendItem(builder, c.innerType, c.iter, c.maxDefinition)
 		if err != nil {
 			return err
 		}
