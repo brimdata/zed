@@ -726,6 +726,26 @@ func TestCreateArchiveSpace(t *testing.T) {
 	require.Equal(t, test.Trim(exptzng), res)
 }
 
+func TestBlankNameSpace(t *testing.T) {
+	// Verify that spaces created before the zq#721 work have names.
+
+	oldconfig := `{"data_path":"."}`
+	testdirname := "testdirname"
+	root := createTempDir(t)
+
+	err := os.MkdirAll(filepath.Join(root, testdirname), 0700)
+	require.NoError(t, err)
+	err = ioutil.WriteFile(filepath.Join(root, testdirname, "config.json"), []byte(oldconfig), 0600)
+	require.NoError(t, err)
+
+	_, client, done := newCoreAtDir(t, root)
+	defer done()
+
+	si, err := client.SpaceInfo(context.Background(), api.SpaceID(testdirname))
+	require.NoError(t, err)
+	assert.Equal(t, testdirname, si.Name)
+}
+
 // search runs the provided zql program as a search on the provided
 // space, returning the tzng results along with a slice of all control
 // messages that were received.
