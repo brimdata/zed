@@ -41,8 +41,6 @@ func NewPcap(parent charm.Command, flags *flag.FlagSet) (charm.Command, error) {
 	return c, nil
 }
 
-// Run lists all spaces in the current zqd host or if a parameter
-// is provided (in glob style) lists the info about that space.
 func (c *PcapCommand) Run(args []string) (err error) {
 	if len(args) == 0 {
 		return errors.New("pcap path arg required")
