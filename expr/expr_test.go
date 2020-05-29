@@ -10,6 +10,7 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -70,7 +71,18 @@ func evaluate(e string, record *zng.Record) (zng.Value, error) {
 	return eval(record)
 }
 
+var emptyRecord *zng.Record
+
 func testSuccessful(t *testing.T, e string, record *zng.Record, expect zng.Value) {
+	if record == nil {
+		if emptyRecord == nil {
+			rtype := zng.NewTypeRecord(-1, []zng.Column{})
+			var err error
+			emptyRecord, err = zng.NewRecord(rtype, zcode.Bytes{})
+			require.NoError(t, err)
+		}
+		record = emptyRecord
+	}
 	t.Run(e, func(t *testing.T) {
 		result, err := evaluate(e, record)
 		require.NoError(t, err)
@@ -458,26 +470,21 @@ func TestCompareNonNumbers(t *testing.T) {
 }
 
 func TestPattern(t *testing.T) {
-	record, err := parseOneRecord(`
-#0:record[i:int32]
-0:[1;]`)
-	require.NoError(t, err)
+	testSuccessful(t, `"abc" =~ "abc"`, nil, zbool(true))
+	testSuccessful(t, `"abc" =~ "a*"`, nil, zbool(true))
+	testSuccessful(t, `"abc" =~ "*bc"`, nil, zbool(true))
+	testSuccessful(t, `"abc" =~ "x*"`, nil, zbool(false))
 
-	testSuccessful(t, `"abc" =~ "abc"`, record, zbool(true))
-	testSuccessful(t, `"abc" =~ "a*"`, record, zbool(true))
-	testSuccessful(t, `"abc" =~ "*bc"`, record, zbool(true))
-	testSuccessful(t, `"abc" =~ "x*"`, record, zbool(false))
+	testSuccessful(t, `"abc" !~ "abc"`, nil, zbool(false))
+	testSuccessful(t, `"abc" !~ "a*"`, nil, zbool(false))
+	testSuccessful(t, `"abc" !~ "*bc"`, nil, zbool(false))
+	testSuccessful(t, `"abc" !~ "x*"`, nil, zbool(true))
 
-	testSuccessful(t, `"abc" !~ "abc"`, record, zbool(false))
-	testSuccessful(t, `"abc" !~ "a*"`, record, zbool(false))
-	testSuccessful(t, `"abc" !~ "*bc"`, record, zbool(false))
-	testSuccessful(t, `"abc" !~ "x*"`, record, zbool(true))
+	testSuccessful(t, "10.1.1.1 =~ 10.0.0.0/8", nil, zbool(true))
+	testSuccessful(t, "10.1.1.1 =~ 192.168.0.0/16", nil, zbool(false))
 
-	testSuccessful(t, "10.1.1.1 =~ 10.0.0.0/8", record, zbool(true))
-	testSuccessful(t, "10.1.1.1 =~ 192.168.0.0/16", record, zbool(false))
-
-	testSuccessful(t, "10.1.1.1 !~ 10.0.0.0/8", record, zbool(false))
-	testSuccessful(t, "10.1.1.1 !~ 192.168.0.0/16", record, zbool(true))
+	testSuccessful(t, "10.1.1.1 !~ 10.0.0.0/8", nil, zbool(false))
+	testSuccessful(t, "10.1.1.1 !~ 192.168.0.0/16", nil, zbool(true))
 }
 
 func TestIn(t *testing.T) {
@@ -633,58 +640,53 @@ func TestConditional(t *testing.T) {
 }
 
 func TestCasts(t *testing.T) {
-	record, err := parseOneRecord(`
-#0:record[x:int64]
-0:[1;]`)
-	require.NoError(t, err)
-
 	// Test casts to byte
-	testSuccessful(t, "10 :byte", record, zng.Value{zng.TypeByte, zng.EncodeByte(10)})
-	testError(t, "-1 :byte", record, expr.ErrBadCast, "out of range cast to byte")
-	testError(t, "300 :byte", record, expr.ErrBadCast, "out of range cast to byte")
-	testError(t, `"foo" :byte"`, record, expr.ErrBadCast, "cannot cast incompatible type to byte")
+	testSuccessful(t, "10 :byte", nil, zng.Value{zng.TypeByte, zng.EncodeByte(10)})
+	testError(t, "-1 :byte", nil, expr.ErrBadCast, "out of range cast to byte")
+	testError(t, "300 :byte", nil, expr.ErrBadCast, "out of range cast to byte")
+	testError(t, `"foo" :byte"`, nil, expr.ErrBadCast, "cannot cast incompatible type to byte")
 
 	// Test casts to int16
-	testSuccessful(t, "10 :int16", record, zng.Value{zng.TypeInt16, zng.EncodeInt(10)})
-	testError(t, "-33000 :int16", record, expr.ErrBadCast, "out of range cast to int16")
-	testError(t, "33000 :int16", record, expr.ErrBadCast, "out of range cast to int16")
-	testError(t, `"foo" :int16"`, record, expr.ErrBadCast, "cannot cast incompatible type to int16")
+	testSuccessful(t, "10 :int16", nil, zng.Value{zng.TypeInt16, zng.EncodeInt(10)})
+	testError(t, "-33000 :int16", nil, expr.ErrBadCast, "out of range cast to int16")
+	testError(t, "33000 :int16", nil, expr.ErrBadCast, "out of range cast to int16")
+	testError(t, `"foo" :int16"`, nil, expr.ErrBadCast, "cannot cast incompatible type to int16")
 
 	// Test casts to uint16
-	testSuccessful(t, "10 :uint16", record, zng.Value{zng.TypeUint16, zng.EncodeUint(10)})
-	testError(t, "-1 :uint16", record, expr.ErrBadCast, "out of range cast to uint16")
-	testError(t, "66000 :uint16", record, expr.ErrBadCast, "out of range cast to uint16")
-	testError(t, `"foo" :uint16"`, record, expr.ErrBadCast, "cannot cast incompatible type to uint16")
+	testSuccessful(t, "10 :uint16", nil, zng.Value{zng.TypeUint16, zng.EncodeUint(10)})
+	testError(t, "-1 :uint16", nil, expr.ErrBadCast, "out of range cast to uint16")
+	testError(t, "66000 :uint16", nil, expr.ErrBadCast, "out of range cast to uint16")
+	testError(t, `"foo" :uint16"`, nil, expr.ErrBadCast, "cannot cast incompatible type to uint16")
 
 	// Test casts to int32
-	testSuccessful(t, "10 :int32", record, zng.Value{zng.TypeInt32, zng.EncodeInt(10)})
-	testError(t, "-2200000000 :int32", record, expr.ErrBadCast, "out of range cast to int32")
-	testError(t, "2200000000 :int32", record, expr.ErrBadCast, "out of range cast to int32")
-	testError(t, `"foo" :int32"`, record, expr.ErrBadCast, "cannot cast incompatible type to int32")
+	testSuccessful(t, "10 :int32", nil, zng.Value{zng.TypeInt32, zng.EncodeInt(10)})
+	testError(t, "-2200000000 :int32", nil, expr.ErrBadCast, "out of range cast to int32")
+	testError(t, "2200000000 :int32", nil, expr.ErrBadCast, "out of range cast to int32")
+	testError(t, `"foo" :int32"`, nil, expr.ErrBadCast, "cannot cast incompatible type to int32")
 
 	// Test casts to uint32
-	testSuccessful(t, "10 :uint32", record, zng.Value{zng.TypeUint32, zng.EncodeUint(10)})
-	testError(t, "-1 :uint32", record, expr.ErrBadCast, "out of range cast to uint32")
-	testError(t, "4300000000 :byte", record, expr.ErrBadCast, "out of range cast to uint32")
-	testError(t, `"foo" :uint32"`, record, expr.ErrBadCast, "cannot cast incompatible type to uint32")
+	testSuccessful(t, "10 :uint32", nil, zng.Value{zng.TypeUint32, zng.EncodeUint(10)})
+	testError(t, "-1 :uint32", nil, expr.ErrBadCast, "out of range cast to uint32")
+	testError(t, "4300000000 :byte", nil, expr.ErrBadCast, "out of range cast to uint32")
+	testError(t, `"foo" :uint32"`, nil, expr.ErrBadCast, "cannot cast incompatible type to uint32")
 
 	// Test casts to uint64
-	testSuccessful(t, "10 :uint64", record, zuint64(10))
-	testError(t, "-1 :uint64", record, expr.ErrBadCast, "out of range cast to uint64")
-	testError(t, `"foo" :uint64"`, record, expr.ErrBadCast, "cannot cast incompatible type to uint64")
+	testSuccessful(t, "10 :uint64", nil, zuint64(10))
+	testError(t, "-1 :uint64", nil, expr.ErrBadCast, "out of range cast to uint64")
+	testError(t, `"foo" :uint64"`, nil, expr.ErrBadCast, "cannot cast incompatible type to uint64")
 
 	// Test casts to float64
-	testSuccessful(t, "10 :float64", record, zfloat64(10))
-	testError(t, `"foo" :float64"`, record, expr.ErrBadCast, "cannot cast incompatible type to float64")
+	testSuccessful(t, "10 :float64", nil, zfloat64(10))
+	testError(t, `"foo" :float64"`, nil, expr.ErrBadCast, "cannot cast incompatible type to float64")
 
 	// Test casts to ip
-	testSuccessful(t, `"1.2.3.4" :ip`, record, zip(t, "1.2.3.4"))
-	testError(t, "1234 :ip", record, expr.ErrBadCast, "cast of invalid ip address fails")
-	testError(t, `"not an address" :ip`, record, expr.ErrBadCast, "cast of invalid ip address fails")
+	testSuccessful(t, `"1.2.3.4" :ip`, nil, zip(t, "1.2.3.4"))
+	testError(t, "1234 :ip", nil, expr.ErrBadCast, "cast of invalid ip address fails")
+	testError(t, `"not an address" :ip`, nil, expr.ErrBadCast, "cast of invalid ip address fails")
 
 	// Test casts to time
 	ts := zng.Value{zng.TypeTime, zng.EncodeTime(nano.Ts(1589126400_000_000_000))}
-	testSuccessful(t, "1589126400.0 :time", record, ts)
-	testSuccessful(t, "1589126400 :time", record, ts)
-	testError(t, `"1234" :time`, record, expr.ErrBadCast, "cannot cast string to time")
+	testSuccessful(t, "1589126400.0 :time", nil, ts)
+	testSuccessful(t, "1589126400 :time", nil, ts)
+	testError(t, `"1234" :time`, nil, expr.ErrBadCast, "cannot cast string to time")
 }
