@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 
 	"github.com/brimsec/zq/driver"
@@ -29,24 +30,28 @@ type importDriver struct {
 	zw  zbuf.Writer
 	n   int64
 
-	span    nano.Span
-	relpath string
-	spans   []SpanInfo
+	span  nano.Span
+	part  string
+	spans []SpanInfo
 }
 
 func (d *importDriver) writeOne(rec *zng.Record) error {
 	recspan := nano.Span{rec.Ts, 1}
 	if d.zw == nil {
+		dname := tsDir(rec.Ts)
+		fname := rec.Ts.StringFloat() + ".zng"
 		d.span = recspan
-		dir := filepath.Join(d.ark.Root, tsDir(rec.Ts))
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		d.part = path.Join(dname, fname)
+
+		dpath := filepath.Join(d.ark.Root, dname)
+		if err := os.MkdirAll(dpath, 0755); err != nil {
 			return err
 		}
-		d.relpath = filepath.Join(tsDir(rec.Ts), rec.Ts.StringFloat()+".zng")
-		path := filepath.Join(d.ark.Root, d.relpath)
+
 		//XXX for now just truncate any existing file.
 		// a future PR will do a split/merge.
-		out, err := fs.OpenFile(path, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0644)
+		fpath := filepath.Join(d.ark.Root, dname, fname)
+		out, err := fs.OpenFile(fpath, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0644)
 		if err != nil {
 			return err
 		}
@@ -74,7 +79,7 @@ func (d *importDriver) close() error {
 		}
 		d.spans = append(d.spans, SpanInfo{
 			Span: d.span,
-			Part: d.relpath,
+			Part: d.part,
 		})
 		d.bw = nil
 	}

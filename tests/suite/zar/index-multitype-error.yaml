@@ -13,6 +13,6 @@ inputs:
 
 
 outputs:
-  - name: stdout
+  - name: stderr
     regexp: |
       type of id.orig_h field changed from ip to string

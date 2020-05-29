@@ -2,7 +2,6 @@ package archive
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/brimsec/zq/driver"
@@ -23,27 +22,16 @@ const zarExt = ".zar"
 // file names. We might want to re-work the naming scheme.
 
 func typeZdxName(t zng.Type) string {
-	return "zdx:type:" + t.String()
+	return "zdx-type-" + t.String()
 }
 
 func fieldZdxName(fieldname string) string {
-	return "zdx:field:" + fieldname
+	return "zdx-field-" + fieldname
 }
 
 func IndexDirTree(ark *Archive, rules []Rule, progress chan<- string) error {
-	nerr := 0
 	return Walk(ark, func(zardir string) error {
-		if err := run(zardir, rules, progress); err != nil {
-			if progress != nil {
-				progress <- fmt.Sprintf("%s: %s\n", zardir, err)
-			}
-			nerr++
-			if nerr > 10 {
-				//XXX
-				return errors.New("stopping after too many errors...")
-			}
-		}
-		return nil
+		return run(zardir, rules, progress)
 	})
 }
 

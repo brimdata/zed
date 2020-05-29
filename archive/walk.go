@@ -46,7 +46,7 @@ type SpanVisitor func(si SpanInfo, zardir string) error
 
 func SpanWalk(ark *Archive, v SpanVisitor) error {
 	for _, s := range ark.Meta.Spans {
-		zardir := LogToZarDir(filepath.Join(ark.Root, s.Part))
+		zardir := LogToZarDir(filepath.Join(ark.Root, filepath.FromSlash(s.Part)))
 		if err := os.MkdirAll(zardir, 0700); err != nil {
 			return err
 		}
