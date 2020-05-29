@@ -134,7 +134,7 @@ func OpenParquet(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.Fil
 		return nil, err
 	}
 
-	r, err := parquetio.NewReader(pf, zctx)
+	r, err := parquetio.NewReader(pf, zctx, parquetio.ReaderOpts{})
 	if err != nil {
 		return nil, err
 	}
