@@ -74,25 +74,20 @@ func (c *PcapCommand) Run(args []string) (err error) {
 	if err != nil {
 		return err
 	}
-	var res interface{}
 loop:
 	for {
-		res, err = stream.Next()
-		if err != nil {
+		var v interface{}
+		v, err = stream.Next()
+		if err != nil || v == nil {
 			break loop
 		}
-		if res == nil {
-			break loop
-		}
-		switch typ := res.(type) {
+		switch v := v.(type) {
 		case *api.TaskEnd:
-			if typ.Error != nil {
-				err = typ.Error
-			}
+			err = v.Error
 			break loop
 		case *api.PcapPostStatus:
-			atomic.StoreInt64(&c.bytesRead, typ.PcapReadSize)
-			atomic.StoreInt64(&c.bytesTotal, typ.PcapSize)
+			atomic.StoreInt64(&c.bytesRead, v.PcapReadSize)
+			atomic.StoreInt64(&c.bytesTotal, v.PcapSize)
 		}
 	}
 	if dp != nil {
