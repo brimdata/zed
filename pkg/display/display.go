@@ -3,6 +3,7 @@ package display
 import (
 	"bytes"
 	"io"
+	"sync"
 	"time"
 
 	"github.com/gosuri/uilive"
@@ -18,6 +19,7 @@ type Display struct {
 	updater  Displayer
 	buffer   *bytes.Buffer
 	close    chan struct{}
+	done     sync.WaitGroup
 }
 
 func New(updater Displayer, interval time.Duration) *Display {
@@ -41,12 +43,14 @@ func (d *Display) update() bool {
 }
 
 func (d *Display) Run() {
+	d.done.Add(1)
 	for {
 		if !d.update() {
 			close(d.close)
 		}
 		select {
 		case <-d.close:
+			d.done.Done()
 			return
 		case <-time.After(d.interval):
 		}
@@ -59,13 +63,14 @@ func (d *Display) Bypass() io.Writer {
 
 func (d *Display) Close() {
 	close(d.close)
+	d.done.Wait()
 	d.update()
 }
 
 func (d *Display) Wait() {
-	<-d.close
+	d.done.Wait()
 }
 
-func (d *Display) Done() chan struct{} {
-	return d.close
+func (d *Display) Done() {
+	return d.done.Wait()
 }
