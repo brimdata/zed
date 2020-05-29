@@ -17,15 +17,15 @@ import (
 	"github.com/mccanne/charm"
 )
 
-var Post = &charm.Spec{
+var PostLog = &charm.Spec{
 	Name:  "post",
 	Usage: "post [options] path...",
 	Short: "post log file(s) to a space",
-	New:   NewPost,
+	New:   NewLogPost,
 }
 
 func init() {
-	cmd.CLI.Add(Post)
+	cmd.CLI.Add(PostLog)
 }
 
 type LogCommand struct {
@@ -37,7 +37,7 @@ type LogCommand struct {
 	done       bool
 }
 
-func NewPost(parent charm.Command, flags *flag.FlagSet) (charm.Command, error) {
+func NewLogPost(parent charm.Command, flags *flag.FlagSet) (charm.Command, error) {
 	c := &LogCommand{Command: parent.(*cmd.Command)}
 	flags.BoolVar(&c.force, "f", false, "create space if specified space does not exist")
 	return c, nil

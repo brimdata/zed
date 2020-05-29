@@ -25,7 +25,7 @@ func New(updater Displayer, interval time.Duration) *Display {
 		live:     uilive.New(),
 		interval: interval,
 		updater:  updater,
-		buffer:   &bytes.Buffer{},
+		buffer:   bytes.NewBuffer(nil),
 		close:    make(chan struct{}),
 	}
 	return d
