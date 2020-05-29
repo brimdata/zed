@@ -31,7 +31,7 @@ type importDriver struct {
 	n   int64
 
 	span  nano.Span
-	part  string
+	logID LogID
 	spans []SpanInfo
 }
 
@@ -41,7 +41,7 @@ func (d *importDriver) writeOne(rec *zng.Record) error {
 		dname := tsDir(rec.Ts)
 		fname := rec.Ts.StringFloat() + ".zng"
 		d.span = recspan
-		d.part = path.Join(dname, fname)
+		d.logID = LogID(path.Join(dname, fname))
 
 		dpath := filepath.Join(d.ark.Root, dname)
 		if err := os.MkdirAll(dpath, 0755); err != nil {
@@ -78,8 +78,8 @@ func (d *importDriver) close() error {
 			return err
 		}
 		d.spans = append(d.spans, SpanInfo{
-			Span: d.span,
-			Part: d.part,
+			Span:  d.span,
+			LogID: d.logID,
 		})
 		d.bw = nil
 	}

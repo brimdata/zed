@@ -28,9 +28,15 @@ type MetaData struct {
 	Spans             []SpanInfo     `json:"spans"`
 }
 
+type LogID string
+
+func (l LogID) Path(ark *Archive) string {
+	return filepath.Join(ark.Root, filepath.ToSlash(string(l)))
+}
+
 type SpanInfo struct {
-	Span nano.Span `json:"span"`
-	Part string    `json:"part"`
+	Span  nano.Span `json:"span"`
+	LogID LogID     `json:"log_id"`
 }
 
 func writeTempFile(dir, pattern string, b []byte) (name string, err error) {

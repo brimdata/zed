@@ -44,9 +44,9 @@ func AddPath(pathField string, absolutePath bool) FindOption {
 		opt.addPath = func(ark *Archive, si SpanInfo, rec *zng.Record) (*zng.Record, error) {
 			var path string
 			if absolutePath {
-				path = filepath.Join(ark.Root, si.Part)
+				path = si.LogID.Path(ark)
 			} else {
-				path = si.Part
+				path = string(si.LogID)
 			}
 			val := zng.Value{pathCol[0].Type, zng.EncodeString(path)}
 			return opt.zctx.AddColumns(rec, pathCol, []zng.Value{val})
