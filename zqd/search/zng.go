@@ -71,5 +71,5 @@ func (r *ZngOutput) SendControl(ctrl interface{}) error {
 }
 
 func (r *ZngOutput) ContentType() string {
-	return "application/x-zng"
+	return MimeTypeZNG
 }

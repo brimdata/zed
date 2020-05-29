@@ -81,5 +81,5 @@ func (s *JSON) End(msg interface{}) error {
 }
 
 func (s *JSON) ContentType() string {
-	return "application/ndjson"
+	return MimeTypeNDJSON
 }

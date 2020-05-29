@@ -25,6 +25,11 @@ const DefaultMTU = 100
 
 const StatsInterval = time.Millisecond * 500
 
+const (
+	MimeTypeNDJSON = "application/ndjson"
+	MimeTypeZNG    = "application/x-zng"
+)
+
 type Search struct {
 	mux *driver.MuxOutput
 	io.Closer

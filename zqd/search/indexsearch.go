@@ -33,17 +33,16 @@ func NewIndexSearch(ctx context.Context, s *space.Space, req api.IndexSearchRequ
 }
 
 func (s *IndexSearch) Run(out Output) (err error) {
-	id := int64(0)
-	if err = out.SendControl(&api.TaskStart{"TaskStart", id}); err != nil {
+	if err = out.SendControl(&api.TaskStart{"TaskStart", 0}); err != nil {
 		return
 	}
 	defer func() {
 		if err != nil {
 			verr := api.Error{Type: "INTERNAL", Message: err.Error()}
-			out.End(&api.TaskEnd{"TaskEnd", id, &verr})
+			out.End(&api.TaskEnd{"TaskEnd", 0, &verr})
 			return
 		}
-		err = out.End(&api.TaskEnd{"TaskEnd", id, nil})
+		err = out.End(&api.TaskEnd{"TaskEnd", 0, nil})
 	}()
 
 	for {
