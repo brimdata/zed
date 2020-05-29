@@ -86,7 +86,7 @@ func Find(ctx context.Context, ark *Archive, query IndexQuery, hits chan<- *zng.
 		var searchErr error
 		go func() {
 			defer close(searchHits)
-			searchErr = search(ctx, opt.zctx, searchHits, filepath.Join(zardir, query.IndexName), query.Patterns)
+			searchErr = search(ctx, opt.zctx, searchHits, filepath.Join(zardir, query.indexName), query.patterns)
 			if searchErr != nil && os.IsNotExist(searchErr) && opt.skipMissing {
 				// No index for this rule.  Skip it if the skip boolean
 				// says it's ok.  Otherwise, we return ErrNotExist since

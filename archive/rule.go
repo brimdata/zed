@@ -12,8 +12,8 @@ import (
 )
 
 type IndexQuery struct {
-	IndexName string
-	Patterns  []string
+	indexName string
+	patterns  []string
 }
 
 func ParseIndexQuery(indexName string, patterns []string) (iq IndexQuery, err error) {
@@ -21,8 +21,8 @@ func ParseIndexQuery(indexName string, patterns []string) (iq IndexQuery, err er
 		return iq, zqe.E(zqe.Invalid, "no search patterns")
 	}
 	if indexName != "" {
-		iq.IndexName = indexName
-		iq.Patterns = patterns
+		iq.indexName = indexName
+		iq.patterns = patterns
 		return
 	}
 	if len(patterns) != 1 {
@@ -45,8 +45,8 @@ func ParseIndexQuery(indexName string, patterns []string) (iq IndexQuery, err er
 	} else {
 		path = fieldZdxName(fieldOrType)
 	}
-	iq.IndexName = path
-	iq.Patterns = []string{v[1]}
+	iq.indexName = path
+	iq.patterns = []string{v[1]}
 	return iq, nil
 }
 
