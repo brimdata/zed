@@ -18,22 +18,15 @@ func LogToZarDir(path string) string {
 	return path + zarExt
 }
 
-// Localize maps the provided slice of relative pathnames into
-// absolute path names relative to the given zardir and returns
-// the new pathnames as a slice.  The special name "_" is mapped
-// to the path of the log file that corresponds to this zardir.
-func Localize(zardir string, filenames []string) []string {
-	var out []string
-	for _, filename := range filenames {
-		var s string
-		if filename == "_" {
-			s = ZarDirToLog(zardir)
-		} else {
-			s = filepath.Join(zardir, filename)
-		}
-		out = append(out, s)
+// Localize maps the provided relative path name into absolute path
+// names relative to the given zardir and returns the result.  The
+// special name "_" is mapped to the path of the log file that
+// corresponds to this zardir.
+func Localize(zardir string, pathname string) string {
+	if pathname == "_" {
+		return ZarDirToLog(zardir)
 	}
-	return out
+	return filepath.Join(zardir, pathname)
 }
 
 // Walk traverses the archive invoking the visitor on the zar dir corresponding

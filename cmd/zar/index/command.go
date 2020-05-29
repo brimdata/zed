@@ -50,6 +50,7 @@ type Command struct {
 	*root.Command
 	root       string
 	quiet      bool
+	inputFile  string
 	outputFile string
 	framesize  int
 	keys       string
@@ -61,6 +62,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive to walk")
 	f.StringVar(&c.keys, "k", "key", "one or more comma-separated key fields")
 	f.IntVar(&c.framesize, "f", 32*1024, "minimum frame size used in zdx file")
+	f.StringVar(&c.inputFile, "i", "_", "input file relative to each zar directory ('_' means archive log file in the parent of the zar directory)")
 	f.StringVar(&c.outputFile, "o", "zdx", "output index name (for custom indexes)")
 	f.BoolVar(&c.quiet, "q", false, "don't print progress on stdout")
 	f.StringVar(&c.zql, "z", "", "zql for custom indexes")
@@ -108,7 +110,7 @@ func (c *Command) Run(args []string) error {
 			wg.Done()
 		}()
 	}
-	err = archive.IndexDirTree(ark, rules, progress)
+	err = archive.IndexDirTree(ark, rules, c.inputFile, progress)
 	if progress != nil {
 		close(progress)
 		wg.Wait()
