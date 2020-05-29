@@ -125,6 +125,11 @@ func simpleParquetTypeToZngType(typ HandledType) zng.Type {
 	panic(fmt.Sprintf("unhandled type %d", typ))
 }
 
+type ReaderOpts struct {
+	Columns                []string
+	IgnoreUnhandledColumns bool
+}
+
 type Reader struct {
 	file    source.ParquetFile
 	footer  *parquet.FileMetaData
@@ -135,25 +140,26 @@ type Reader struct {
 	builder *zcode.Builder
 }
 
-func NewReader(f source.ParquetFile, zctx *resolver.Context) (*Reader, error) {
+func NewReader(f source.ParquetFile, zctx *resolver.Context, opts ReaderOpts) (*Reader, error) {
 	reader := Reader{
 		file: f,
 	}
-	err := reader.initialize(zctx)
+	err := reader.initialize(zctx, opts)
 	if err != nil {
 		return nil, err
 	}
 	return &reader, nil
 }
 
-func (r *Reader) initialize(zctx *resolver.Context) error {
+func (r *Reader) initialize(zctx *resolver.Context, opts ReaderOpts) error {
 	err := r.readFooter()
 	if err != nil {
 		return err
 	}
+
 	r.total = int(r.footer.GetNumRows())
 
-	err = r.buildColumns()
+	err = r.buildColumns(opts)
 	if err != nil {
 		return err
 	}
@@ -206,8 +212,21 @@ type column interface {
 	getName() string
 }
 
-func (r *Reader) buildColumns() error {
+func (o *ReaderOpts) wantColumn(name string) bool {
+	if len(o.Columns) == 0 {
+		return true
+	}
+	for _, cname := range o.Columns {
+		if name == cname {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *Reader) buildColumns(opts ReaderOpts) error {
 	schema := r.footer.Schema
+
 	// first element in the schema is the root, skip it.
 	// for each reamaining column, build a column iterator
 	// structure.
@@ -226,12 +245,16 @@ func (r *Reader) buildColumns() error {
 			return err
 		}
 
-		// XXX if no error but no type, just skip...
 		if col == nil {
-			continue
+			if opts.IgnoreUnhandledColumns {
+				continue
+			}
+			return fmt.Errorf("cannot handle column %s", col.getName())
 		}
 
-		columns = append(columns, col)
+		if opts.wantColumn(col.getName()) {
+			columns = append(columns, col)
+		}
 	}
 
 	r.columns = columns

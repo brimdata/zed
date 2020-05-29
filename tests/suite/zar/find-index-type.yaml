@@ -1,0 +1,25 @@
+
+script: |
+  zar import -R . log.tzng
+  zar index -q -R . :ip
+  zar find -R . :ip=1.1.1.1
+  zar find -R . :ip=192.168.1.102
+  zar find -R . :ip=192.168.2.1
+  zar find -R . :ip=192.168.1.1
+  zq -t "count(key)" 20091119/1258594907.85978.zng.zar/zdx\:type\:ip.zng # check unset not indexed
+
+inputs:
+  - name: log.tzng
+    data: |
+      #0:record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],referenced_file:record[ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],fuid:bstring]]
+      0:[smb_cmd;1258594907.85978;Chjxid42dvvzIzdeG8;[192.168.1.102;1076;192.168.2.1;139;][1258594907.85978;Chjxid42dvvzIzdeG8;[-;1076;192.168.1.1;139;]ZYjxid42dvvzIzdeG8;]]
+
+
+outputs:
+  - name: stdout
+    data: |
+      20091119/1258594907.85978.zng
+      20091119/1258594907.85978.zng
+      20091119/1258594907.85978.zng
+      #0:record[count:uint64]
+      0:[3;]

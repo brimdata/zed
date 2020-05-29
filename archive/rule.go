@@ -3,15 +3,12 @@ package archive
 import (
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zdx"
-	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zql"
 )
 
 func ParsePattern(in string) (string, string, error) {
@@ -34,78 +31,87 @@ func ParsePattern(in string) (string, string, error) {
 
 }
 
-// Rule is an interface for creating pattern-specific indexers and finders
-// dynamically as directories are encountered.
-type Rule interface {
-	NewIndexer(zardir string) (zbuf.WriteCloser, error)
-	Path(zardir string) string
-}
-
-func NewRule(pattern string) (Rule, error) {
+func NewRule(pattern string) (*Rule, error) {
 	if pattern[0] == ':' {
 		return NewTypeRule(pattern[1:])
 	}
 	return NewFieldRule(pattern)
 }
 
-// TypeRule provides a means to generate Indexers and Finders for a type-specific
-// rule. Each TypeRule instance is configured with a field name and the "new" methods
-// create Indexers and Finders that operate according to this type.
-type TypeRule struct {
-	Type zng.Type
-}
+// we make the framesize here larger than the writer framesize
+// since the writer always writes a bit past the threshold
+const framesize = 32 * 1024 * 2
 
-func NewTypeRule(typeName string) (*TypeRule, error) {
+const keyName = "key"
+
+// NewFieldRule creates an indexing rule that will index all fields of
+// the type passed in as argument.
+func NewTypeRule(typeName string) (*Rule, error) {
 	typ, err := resolver.NewContext().LookupByName(typeName)
 	if err != nil {
 		return nil, err
 	}
-	return &TypeRule{
-		Type: typ,
+	c := ast.SequentialProc{
+		Procs: []ast.Proc{
+			&typeSplitterNode{
+				key:      keyName,
+				typeName: typeName,
+			},
+			&ast.GroupByProc{
+				Keys: []string{keyName},
+			},
+			&ast.SortProc{},
+		},
+	}
+	return newRuleAST(&c, typeZdxName(typ), []string{keyName}, framesize)
+}
+
+// NewFieldRule creates an indexing rule that will index the field passed in as argument.
+// It is currently an error to try to index a field name that appears as different types.
+func NewFieldRule(fieldName string) (*Rule, error) {
+	c := ast.SequentialProc{
+		Procs: []ast.Proc{
+			&fieldCutterNode{
+				field: fieldName,
+				out:   keyName,
+			},
+			&ast.GroupByProc{
+				Keys: []string{keyName},
+			},
+			&ast.SortProc{},
+		},
+	}
+	return newRuleAST(&c, fieldZdxName(fieldName), []string{keyName}, framesize)
+}
+
+// Rule contains the runtime configuration for an indexing rule.
+type Rule struct {
+	proc      ast.Proc
+	path      string
+	framesize int
+	keys      []string
+}
+
+func newRuleAST(proc ast.Proc, path string, keys []string, framesize int) (*Rule, error) {
+	if path == "" {
+		return nil, fmt.Errorf("zql indexing rule requires an output path")
+	}
+	return &Rule{
+		proc:      proc,
+		path:      path,
+		framesize: framesize,
+		keys:      keys,
 	}, nil
 }
 
-func (t *TypeRule) Path(dir string) string {
-	return filepath.Join(dir, typeZdxName(t.Type))
-}
-
-func (t *TypeRule) NewIndexer(dir string) (zbuf.WriteCloser, error) {
-	zdxPath := t.Path(dir)
-	// XXX DANGER, remove without warning, should we have a force flag?
-	if err := zdx.Remove(zdxPath); err != nil && !os.IsNotExist(err) {
+func NewZqlRule(s, path string, keys []string, framesize int) (*Rule, error) {
+	proc, err := zql.ParseProc(s)
+	if err != nil {
 		return nil, err
 	}
-	return NewTypeIndexer(zdxPath, t.Type), nil
+	return newRuleAST(proc, path, keys, framesize)
 }
 
-// FieldRule provides a means to generate Indexers and Finders for a field-specific
-// rules.  Each FieldRule is configured with a field name and the new methods
-// create Indexers and Finders that operate on this field.
-type FieldRule struct {
-	field    string
-	accessor expr.FieldExprResolver
-}
-
-func NewFieldRule(field string) (*FieldRule, error) {
-	accessor := expr.CompileFieldAccess(field)
-	if accessor == nil {
-		return nil, fmt.Errorf("bad field syntax: %s", field)
-	}
-	return &FieldRule{
-		field:    field,
-		accessor: accessor,
-	}, nil
-}
-
-func (f *FieldRule) Path(dir string) string {
-	return filepath.Join(dir, fieldZdxName(f.field))
-}
-
-func (f *FieldRule) NewIndexer(dir string) (zbuf.WriteCloser, error) {
-	zdxPath := f.Path(dir)
-	// XXX DANGER, remove without warning, should we have a force flag?
-	if err := zdx.Remove(zdxPath); err != nil && !os.IsNotExist(err) {
-		return nil, err
-	}
-	return NewFieldIndexer(zdxPath, f.field, f.accessor), nil
+func (f *Rule) Path(dir string) string {
+	return filepath.Join(dir, f.path)
 }

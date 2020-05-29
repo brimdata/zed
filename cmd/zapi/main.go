@@ -6,6 +6,9 @@ import (
 
 	"github.com/brimsec/zq/cmd/zapi/cmd"
 	_ "github.com/brimsec/zq/cmd/zapi/cmd/info"
+	_ "github.com/brimsec/zq/cmd/zapi/cmd/new"
+	_ "github.com/brimsec/zq/cmd/zapi/cmd/rename"
+	_ "github.com/brimsec/zq/cmd/zapi/cmd/rm"
 )
 
 // These variables are populated via the Go linker.
