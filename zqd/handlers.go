@@ -104,7 +104,7 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", out.ContentType())
-	if err = srch.Run(out); err != nil {
+	if err := srch.Run(out); err != nil {
 		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
 	}
 }
