@@ -11,7 +11,6 @@ import (
 	"github.com/xitongsys/parquet-go/compress"
 	"github.com/xitongsys/parquet-go/layout"
 	"github.com/xitongsys/parquet-go/parquet"
-	"github.com/xitongsys/parquet-go/reader"
 	"github.com/xitongsys/parquet-go/source"
 )
 
@@ -38,8 +37,9 @@ type valueReader interface {
 // it only handles PLAIN and PLAIN_DICTIONARY encodings for a few
 // primitive data types.
 type columnIterator struct {
-	pr   *reader.ParquetReader
-	name string
+	name   string
+	footer *parquet.FileMetaData
+	file   source.ParquetFile
 
 	maxRepetitionLevel int32
 	maxDefinitionLevel int32
@@ -65,10 +65,11 @@ type columnIterator struct {
 	// XXX need other types
 }
 
-func newColumnIterator(pr *reader.ParquetReader, name string, maxRL, maxDL int32) *columnIterator {
+func newColumnIterator(name string, footer *parquet.FileMetaData, file source.ParquetFile, maxRL, maxDL int32) *columnIterator {
 	return &columnIterator{
-		pr:                 pr,
 		name:               name,
+		footer:             footer,
+		file:               file,
 		maxRepetitionLevel: maxRL,
 		maxDefinitionLevel: maxDL,
 	}
@@ -87,10 +88,10 @@ func (i *columnIterator) loadOnePage() (*parquet.PageHeader, []byte, error) {
 	// yet read the first row group), find the right offset inside
 	// the parquet file for this column in the next row group.
 	if i.groupRead == i.groupTotal {
-		if i.rowGroup >= len(i.pr.Footer.RowGroups) {
+		if i.rowGroup >= len(i.footer.RowGroups) {
 			return nil, nil, io.EOF
 		}
-		rg := i.pr.Footer.RowGroups[i.rowGroup]
+		rg := i.footer.RowGroups[i.rowGroup]
 		i.rowGroup++
 
 		i.groupRead = 0
@@ -119,7 +120,7 @@ func (i *columnIterator) loadOnePage() (*parquet.PageHeader, []byte, error) {
 		size := i.colMetadata.TotalCompressedSize
 
 		// XXX
-		i.thriftReader = source.ConvertToThriftReader(i.pr.PFile, offset, size)
+		i.thriftReader = source.ConvertToThriftReader(i.file, offset, size)
 
 		i.clearDictionaries()
 	}
@@ -161,22 +162,24 @@ func (i *columnIterator) ensureDataPage() error {
 			return err
 		}
 
-		debugf("read page type %s\n", header.GetType())
+		debugf("read page type %s for %s\n", header.GetType(), i.name)
 		switch header.GetType() {
 		case parquet.PageType_DICTIONARY_PAGE:
-			i.loadDictionaryPage(header, page)
+			err = i.loadDictionaryPage(header, page)
+			if err != nil {
+				return err
+			}
 
 		case parquet.PageType_DATA_PAGE:
-			i.initializeDataPage(header, page)
-			return nil
+			return i.initializeDataPage(header, page)
 
 		default:
-			panic(fmt.Sprintf("unhandled page type %s", header.GetType()))
+			return fmt.Errorf("unhandled page type %s", header.GetType())
 		}
 	}
 }
 
-func (i *columnIterator) loadDictionaryPage(header *parquet.PageHeader, buf []byte) {
+func (i *columnIterator) loadDictionaryPage(header *parquet.PageHeader, buf []byte) error {
 	n := int(header.DictionaryPageHeader.GetNumValues())
 	switch i.colMetadata.GetType() {
 	case parquet.Type_INT64:
@@ -203,9 +206,10 @@ func (i *columnIterator) loadDictionaryPage(header *parquet.PageHeader, buf []by
 	default:
 		debugf("skipping dictionary page for type %s\n", i.colMetadata.GetType())
 	}
+	return nil
 }
 
-// grabLenDenoatedBuf extracts a chunk of data that represents
+// grabLenDenotedBuf extracts a chunk of data that represents
 // repetition level (RL) or definition level (DL) data inside a data page.
 // This consists of a 4 byte integer that represents the size of the
 // encoded data followed by the actual encoded data.  Returns the
@@ -225,7 +229,7 @@ func grabLenDenotedBuf(buf []byte) ([]byte, int, error) {
 
 // initializeDataPage sets up the rlReader, dlReader, and valReader
 // members of this struct for a new data page.
-func (i *columnIterator) initializeDataPage(header *parquet.PageHeader, buf []byte) {
+func (i *columnIterator) initializeDataPage(header *parquet.PageHeader, buf []byte) error {
 	i.pageRead = 0
 	i.pageTotal = int(header.DataPageHeader.GetNumValues())
 
@@ -236,7 +240,7 @@ func (i *columnIterator) initializeDataPage(header *parquet.PageHeader, buf []by
 		width := int(common.BitNum(uint64(i.maxRepetitionLevel)))
 		hbuf, n, err := grabLenDenotedBuf(buf)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		buf = buf[n:]
 		i.rlReader = newHybridReader(hbuf, width)
@@ -248,7 +252,7 @@ func (i *columnIterator) initializeDataPage(header *parquet.PageHeader, buf []by
 		width := int(common.BitNum(uint64(i.maxDefinitionLevel)))
 		hbuf, n, err := grabLenDenotedBuf(buf)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		buf = buf[n:]
 		i.dlReader = newHybridReader(hbuf, width)
@@ -283,44 +287,38 @@ func (i *columnIterator) initializeDataPage(header *parquet.PageHeader, buf []by
 		debugf("skipping data page with encoding %s\n", enc)
 		i.valReader = &nullReader{}
 	}
+	return nil
 }
 
 // peekDL returns the definition level (DL) for the next value on this
 // page without advancing the iterator
-func (i *columnIterator) peekDL() int32 {
+func (i *columnIterator) peekDL() (int32, error) {
 	err := i.ensureDataPage()
 	if err != nil {
-		if err == io.EOF {
-			return 0
-		} else {
-			panic(err)
-		}
+		return 0, err
 	}
 	if i.dlReader == nil {
-		return 0
+		return 0, nil
 	}
-	return int32(i.dlReader.peekInt64())
+	return int32(i.dlReader.peekInt64()), nil
 }
 
 // peekRL returns the repetition level (RL) for the next value on this
 // page without advancing the iterator
-func (i *columnIterator) peekRL() int32 {
+func (i *columnIterator) peekRL() (int32, error) {
 	err := i.ensureDataPage()
 	if err != nil {
-		if err == io.EOF {
-			return 0
-		} else {
-			panic(err)
-		}
+		return 0, err
 	}
 	if i.rlReader == nil {
-		return 0
+		return 0, nil
 	}
-	return int32(i.rlReader.peekInt64())
+	return int32(i.rlReader.peekInt64()), nil
 }
 
 // advance counter, grab rl and dl.  (to keep everything consistent,
-// the caller should also advance valReader every time this is called)
+// the caller should also advance valReader when this is called if the
+// dl value indicates a value is present.)
 func (i *columnIterator) commonNext() (int32, int32) {
 	err := i.ensureDataPage()
 	if err != nil {

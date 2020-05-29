@@ -408,7 +408,7 @@ where each index includes a count of the occurrences.
 zar zq -o forward.zng "id.orig_h != null | put from=id.orig_h,to=id.resp_h | count() by from,to" _
 zar zq -o reverse.zng "id.orig_h != null | put from=id.resp_h,to=id.orig_h | count() by from,to" _
 zar zq -o directed-pairs.zng "sum(count) as count by from,to" forward.zng reverse.zng
-zar zdx -o graph -k from,to directed-pairs.zng
+zar index -i directed-pairs.zng -o graph  -k from,to -z "*"
 ```
 > (Note: there is a small change we can make to zql to do this with one `zar zq`
 > command... coming soon.)

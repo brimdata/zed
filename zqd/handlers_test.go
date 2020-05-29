@@ -696,13 +696,13 @@ func indexArchiveSpace(t *testing.T, datapath string, ruledef string) {
 	ark, err := archive.OpenArchive(datapath)
 	require.NoError(t, err)
 
-	err = archive.IndexDirTree(ark, []archive.Rule{*rule}, nil)
+	err = archive.IndexDirTree(ark, []archive.Rule{*rule}, "_", nil)
 	require.NoError(t, err)
 }
 
 func TestCreateArchiveSpace(t *testing.T) {
 	datapath := createTempDir(t)
-	thresh := int64(100)
+	thresh := int64(1000)
 	createArchiveSpace(t, datapath, thresh, "../tests/suite/zdx/babble.tzng")
 
 	root := createTempDir(t)
@@ -723,7 +723,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 		DataPath:    sp.DataPath,
 		StorageKind: storage.ArchiveStore.String(),
 		Span:        &span,
-		Size:        38261,
+		Size:        35285,
 	}
 	si, err := client.SpaceInfo(context.Background(), sp.ID)
 	require.NoError(t, err)

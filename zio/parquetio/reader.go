@@ -1,17 +1,17 @@
 package parquetio
 
 import (
+	"encoding/binary"
 	"fmt"
+	"io"
 
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 
-	"github.com/xitongsys/parquet-go/common"
+	"github.com/apache/thrift/lib/go/thrift"
 	"github.com/xitongsys/parquet-go/parquet"
-	"github.com/xitongsys/parquet-go/reader"
-	"github.com/xitongsys/parquet-go/schema"
 	"github.com/xitongsys/parquet-go/source"
 )
 
@@ -125,8 +125,14 @@ func simpleParquetTypeToZngType(typ HandledType) zng.Type {
 	panic(fmt.Sprintf("unhandled type %d", typ))
 }
 
+type ReaderOpts struct {
+	Columns                []string
+	IgnoreUnhandledColumns bool
+}
+
 type Reader struct {
-	pr      *reader.ParquetReader
+	file    source.ParquetFile
+	footer  *parquet.FileMetaData
 	typ     *zng.TypeRecord
 	columns []column
 	record  int
@@ -134,33 +140,66 @@ type Reader struct {
 	builder *zcode.Builder
 }
 
-func NewReader(f source.ParquetFile, zctx *resolver.Context) (*Reader, error) {
-	pr, err := reader.NewParquetReader(f, nil, 1)
+func NewReader(f source.ParquetFile, zctx *resolver.Context, opts ReaderOpts) (*Reader, error) {
+	reader := Reader{
+		file: f,
+	}
+	err := reader.initialize(zctx, opts)
 	if err != nil {
 		return nil, err
 	}
+	return &reader, nil
+}
 
-	cols, err := buildColumns(pr)
+func (r *Reader) initialize(zctx *resolver.Context, opts ReaderOpts) error {
+	err := r.readFooter()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	zcols := make([]zng.Column, len(cols))
-	for i, c := range cols {
+	r.total = int(r.footer.GetNumRows())
+
+	err = r.buildColumns(opts)
+	if err != nil {
+		return err
+	}
+
+	zcols := make([]zng.Column, len(r.columns))
+	for i, c := range r.columns {
 		zcols[i] = zng.Column{c.getName(), c.zngType(zctx)}
 	}
-	typ, err := zctx.LookupTypeRecord(zcols)
+	r.typ, err = zctx.LookupTypeRecord(zcols)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return &Reader{
-		pr:      pr,
-		typ:     typ,
-		columns: cols,
-		total:   int(pr.GetNumRows()),
-		builder: zcode.NewBuilder(),
-	}, nil
+	r.builder = zcode.NewBuilder()
+
+	return nil
+}
+
+func (r *Reader) readFooter() error {
+	// Per https://github.com/apache/parquet-format#file-format
+	// the last 4 bytes are the sequence "PAR1", the preceding 4
+	// bytes are the size of the metadata
+	var err error
+	buf := make([]byte, 4)
+	if _, err = r.file.Seek(-8, io.SeekEnd); err != nil {
+		return err
+	}
+	if _, err = r.file.Read(buf); err != nil {
+		return err
+	}
+	size := binary.LittleEndian.Uint32(buf)
+
+	if _, err = r.file.Seek(-(int64)(8+size), io.SeekEnd); err != nil {
+		return err
+	}
+
+	r.footer = parquet.NewFileMetaData()
+	pf := thrift.NewTCompactProtocolFactory()
+	protocol := pf.GetProtocol(thrift.NewStreamTransportR(r.file))
+	return r.footer.Read(protocol)
 }
 
 // column abstracts away the handling of an indvidual column from a
@@ -173,8 +212,20 @@ type column interface {
 	getName() string
 }
 
-func buildColumns(pr *reader.ParquetReader) ([]column, error) {
-	schema := pr.Footer.Schema
+func (o *ReaderOpts) wantColumn(name string) bool {
+	if len(o.Columns) == 0 {
+		return true
+	}
+	for _, cname := range o.Columns {
+		if name == cname {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *Reader) buildColumns(opts ReaderOpts) error {
+	schema := r.footer.Schema
 
 	// first element in the schema is the root, skip it.
 	// for each reamaining column, build a column iterator
@@ -185,40 +236,32 @@ func buildColumns(pr *reader.ParquetReader) ([]column, error) {
 		var col column
 		var err error
 		if schema[i].NumChildren != nil {
-			n, col, err = newNestedColumn(schema, i, pr)
+			n, col, err = r.newNestedColumn(schema, i)
 		} else {
-			col, err = newSimpleColumn(*schema[i], pr)
+			col, err = r.newSimpleColumn(*schema[i])
 		}
 		i += n
 		if err != nil {
-			return nil, err
+			return err
 		}
 
-		// XXX if no error but no type, just skip...
 		if col == nil {
-			continue
+			if opts.IgnoreUnhandledColumns {
+				continue
+			}
+			return fmt.Errorf("cannot handle column %s", col.getName())
 		}
 
-		columns = append(columns, col)
+		if opts.wantColumn(col.getName()) {
+			columns = append(columns, col)
+		}
 	}
 
-	return columns, nil
+	r.columns = columns
+	return nil
 }
 
-// The parquet-go library converts column names into names that are valid
-// public field names in a go structure.  This function recovers the
-// original column name from the parquet schema.
-// This is also complicated by the fact that a bunch of data structures
-// inside parquet-go use fully-qualified names.  This functions takes the
-// fully-qualified name as represented inside parquet-go
-// (e.g., "Com46acme46zng_1234.P__path") and returns just the column name
-// (i.e., "_path" in this example).
-func translateColName(internalPath string, handler *schema.SchemaHandler) string {
-	name := handler.InPathToExPath[internalPath]
-	return name[len(handler.Infos[0].ExName)+1:]
-}
-
-func newSimpleColumn(el parquet.SchemaElement, pr *reader.ParquetReader) (column, error) {
+func (r *Reader) newSimpleColumn(el parquet.SchemaElement) (column, error) {
 	if el.RepetitionType != nil && *el.RepetitionType == parquet.FieldRepetitionType_REPEATED {
 		return nil, fmt.Errorf("cannot convert repeated element %s", el.Name)
 	}
@@ -228,18 +271,14 @@ func newSimpleColumn(el parquet.SchemaElement, pr *reader.ParquetReader) (column
 		return nil, err
 	}
 
-	handler := pr.SchemaHandler
-	path := []string{handler.Infos[0].InName, el.Name}
-	pathStr := common.PathToStr(path)
+	var maxDefinition int32 = 0
+	if el.RepetitionType != nil && *el.RepetitionType == parquet.FieldRepetitionType_OPTIONAL {
+		maxDefinition = 1
+	}
 
-	name := translateColName(pathStr, handler)
-
-	maxRepetition, _ := handler.MaxRepetitionLevel(path)
-	maxDefinition, _ := handler.MaxDefinitionLevel(path)
-
-	iter := newColumnIterator(pr, el.Name, maxRepetition, maxDefinition)
+	iter := newColumnIterator(el.Name, r.footer, r.file, 0, maxDefinition)
 	return &simpleColumn{
-		name:          name,
+		name:          el.Name,
 		typ:           typ,
 		iter:          iter,
 		maxDefinition: maxDefinition,
@@ -269,20 +308,20 @@ func countChildren(els []*parquet.SchemaElement, i int) int {
 	return j - i
 }
 
-func newNestedColumn(els []*parquet.SchemaElement, i int, pr *reader.ParquetReader) (int, column, error) {
+func (r *Reader) newNestedColumn(els []*parquet.SchemaElement, i int) (int, column, error) {
 	el := els[i]
 	if el.ConvertedType != nil && *el.ConvertedType == parquet.ConvertedType_LIST {
-		return newListColumn(els, i, pr)
+		return r.newListColumn(els, i)
 	}
 	if el.LogicalType != nil && el.LogicalType.LIST != nil {
-		return newListColumn(els, i, pr)
+		return r.newListColumn(els, i)
 	}
 
 	// Skip this element and all its children...
 	return countChildren(els, i), nil, nil
 }
 
-func newListColumn(els []*parquet.SchemaElement, i int, pr *reader.ParquetReader) (int, column, error) {
+func (r *Reader) newListColumn(els []*parquet.SchemaElement, i int) (int, column, error) {
 	// Per https://github.com/apache/parquet-format/blob/master/LogicalTypes.md#lists
 	// List structure is:
 	// <list-repetition> group <name> (LIST) {
@@ -323,21 +362,13 @@ func newListColumn(els []*parquet.SchemaElement, i int, pr *reader.ParquetReader
 	// This is something we can handle.  The column name correponds
 	// to the outer element (el), but the actual values are kept in
 	// the innermost nested element (typeEl).
-	handler := pr.SchemaHandler
-	path := []string{handler.Infos[0].InName, el.Name, listEl.Name, typeEl.Name}
-	name := translateColName(common.PathToStr(path[:2]), handler)
-
-	maxRepetition, _ := handler.MaxRepetitionLevel(path)
-	maxDefinition, _ := handler.MaxDefinitionLevel(path)
-
-	iter := newColumnIterator(pr, el.Name, maxRepetition, maxDefinition)
+	iter := newColumnIterator(el.Name, r.footer, r.file, 1, 2)
 
 	c := listColumn{
-		name:          name,
+		name:          el.Name,
 		innerType:     typ,
 		iter:          iter,
-		maxRepetition: maxRepetition,
-		maxDefinition: maxDefinition,
+		maxDefinition: 2,
 	}
 
 	return 3, &c, nil
@@ -432,9 +463,8 @@ func appendItem(builder *zcode.Builder, typ HandledType, iter *columnIterator, m
 // simpleColumn handles a column from a parquet file that holds individual
 // (non-repeated) primitive values.
 type simpleColumn struct {
-	name string
-	typ  HandledType
-
+	name          string
+	typ           HandledType
 	iter          *columnIterator
 	maxDefinition int32
 }
@@ -451,6 +481,7 @@ func (c *simpleColumn) zngType(zctx *resolver.Context) zng.Type {
 // parquet-go.reader.ParquetReader.read(), and
 // parquet-go.marshal.Unmarshal()
 func (c *simpleColumn) append(builder *zcode.Builder) error {
+	// For simple values, the max definition level is exactly 1
 	return appendItem(builder, c.typ, c.iter, c.maxDefinition)
 }
 
@@ -461,7 +492,6 @@ type listColumn struct {
 	innerType HandledType
 
 	iter          *columnIterator
-	maxRepetition int32
 	maxDefinition int32
 }
 
@@ -478,7 +508,10 @@ func (c *listColumn) zngType(zctx *resolver.Context) zng.Type {
 // parquet-go.reader.ParquetReader.read(), and
 // parquet-go.marshal.Unmarshal()
 func (c *listColumn) append(builder *zcode.Builder) error {
-	dl := c.iter.peekDL()
+	dl, err := c.iter.peekDL()
+	if err != nil {
+		return err
+	}
 	if c.maxDefinition > dl {
 		builder.AppendContainer(nil)
 		return nil
@@ -487,7 +520,14 @@ func (c *listColumn) append(builder *zcode.Builder) error {
 	builder.BeginContainer()
 	first := true
 	for {
-		rl := c.iter.peekRL()
+		rl, err := c.iter.peekRL()
+		if err != nil {
+			if err == io.EOF {
+				break
+			} else {
+				return err
+			}
+		}
 		if first {
 			first = false
 		} else {
@@ -495,7 +535,7 @@ func (c *listColumn) append(builder *zcode.Builder) error {
 				break
 			}
 		}
-		err := appendItem(builder, c.innerType, c.iter, c.maxDefinition)
+		err = appendItem(builder, c.innerType, c.iter, c.maxDefinition)
 		if err != nil {
 			return err
 		}
