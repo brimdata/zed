@@ -49,7 +49,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.Host, "h", defaultHost, "<host[:port]>")
 	f.StringVar(&c.Spacename, "s", c.Spacename, "<space>")
 	f.Var(&c.spaceID, "id", "<space_id>")
-	f.BoolVar(&c.NoFancy, "nofancy", false, "disable fancy cli features (set to true if shell is not a tty)")
+	f.BoolVar(&c.NoFancy, "nofancy", c.NoFancy, "disable fancy CLI output (true if stdout is not a tty)")
 
 	return c, nil
 }
