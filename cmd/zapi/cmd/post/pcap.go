@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"path/filepath"
 	"sync/atomic"
 	"time"
 
@@ -67,7 +68,10 @@ func (c *PcapCommand) Run(args []string) (err error) {
 		go dp.Run()
 	}
 
-	file := args[0]
+	file, err := filepath.Abs(args[0])
+	if err != nil {
+		return err
+	}
 	stream, err := client.PcapPost(c.Context(), id, api.PcapPostRequest{Path: file})
 	if err != nil {
 		return err

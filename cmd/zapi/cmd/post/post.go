@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"sync/atomic"
 	"time"
 
@@ -49,6 +50,10 @@ func (c *LogCommand) Run(args []string) (err error) {
 	if len(args) == 0 {
 		return errors.New("path arg(s) required")
 	}
+	paths, err := abspaths(args)
+	if err != nil {
+		return err
+	}
 	if c.force {
 		sp, err := client.SpacePost(c.Context(), api.SpacePostRequest{Name: c.Spacename})
 		if err != nil && err != api.ErrSpaceExists {
@@ -70,7 +75,7 @@ func (c *LogCommand) Run(args []string) (err error) {
 		return err
 	}
 	c.start = time.Now()
-	stream, err := client.LogPost(c.Context(), id, api.LogPostRequest{Paths: args})
+	stream, err := client.LogPost(c.Context(), id, api.LogPostRequest{Paths: paths})
 	if err != nil {
 		return err
 	}
@@ -110,6 +115,18 @@ loop:
 		fmt.Printf("posted %s in %v\n", format.Bytes(read), time.Since(c.start))
 	}
 	return err
+}
+
+func abspaths(paths []string) ([]string, error) {
+	var err error
+	out := make([]string, len(paths))
+	for i, path := range paths {
+		out[i], err = filepath.Abs(path)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return out, nil
 }
 
 func (c *LogCommand) Display(w io.Writer) bool {
