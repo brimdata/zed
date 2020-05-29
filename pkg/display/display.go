@@ -71,5 +71,5 @@ func (d *Display) Wait() {
 }
 
 func (d *Display) Done() {
-	return d.done.Wait()
+	d.done.Wait()
 }
