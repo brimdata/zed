@@ -2,6 +2,7 @@ package archive
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -75,6 +76,7 @@ func (d *importDriver) close() error {
 			Span: d.span,
 			Part: d.relpath,
 		})
+		d.bw = nil
 	}
 	d.zw = nil
 	d.n = 0
@@ -124,7 +126,7 @@ func Import(ctx context.Context, ark *Archive, r zbuf.Reader) error {
 
 	id := &importDriver{ark: ark}
 	if err := driver.Run(fg, id, nil); err != nil {
-		return err
+		return fmt.Errorf("archive.Import: run failed: %w", err)
 	}
 
 	return ark.AppendSpans(id.spans)

@@ -1,34 +1,53 @@
 package archive
 
 import (
-	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zqe"
 	"github.com/brimsec/zq/zql"
 )
 
-func ParsePattern(in string) (string, string, error) {
+type IndexQuery struct {
+	IndexName string
+	Patterns  []string
+}
+
+func ParseIndexQuery(indexName string, patterns []string) (iq IndexQuery, err error) {
+	if len(patterns) == 0 {
+		return iq, zqe.E(zqe.Invalid, "no search patterns")
+	}
+	if indexName != "" {
+		iq.IndexName = indexName
+		iq.Patterns = patterns
+		return
+	}
+	if len(patterns) != 1 {
+		return iq, zqe.E(zqe.Invalid, "standard index supports exactly one search pattern")
+	}
+	in := patterns[0]
+
 	v := strings.Split(in, "=")
 	if len(v) != 2 {
-		return "", "", errors.New("not a standard index search")
+		return iq, zqe.E(zqe.Invalid, "malformed standard index query")
 	}
 	fieldOrType := v[0]
 	var path string
 	if fieldOrType[0] == ':' {
 		typ, err := resolver.NewContext().LookupByName(fieldOrType[1:])
 		if err != nil {
-			return "", "", err
+			return iq, err
 		}
 		path = typeZdxName(typ)
 	} else {
 		path = fieldZdxName(fieldOrType)
 	}
-	return v[1], path, nil
-
+	iq.IndexName = path
+	iq.Patterns = []string{v[1]}
+	return iq, nil
 }
 
 func NewRule(pattern string) (*Rule, error) {

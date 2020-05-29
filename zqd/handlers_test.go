@@ -689,6 +689,17 @@ func createArchiveSpace(t *testing.T, datapath string, thresh int64, srcfile str
 	require.NoError(t, err)
 }
 
+func indexArchiveSpace(t *testing.T, datapath string, ruledef string) {
+	rule, err := archive.NewRule(ruledef)
+	require.NoError(t, err)
+
+	ark, err := archive.OpenArchive(datapath)
+	require.NoError(t, err)
+
+	err = archive.IndexDirTree(ark, []archive.Rule{*rule}, nil)
+	require.NoError(t, err)
+}
+
 func TestCreateArchiveSpace(t *testing.T) {
 	datapath := createTempDir(t)
 	thresh := int64(100)
@@ -744,6 +755,54 @@ func TestBlankNameSpace(t *testing.T) {
 	si, err := client.SpaceInfo(context.Background(), api.SpaceID(testdirname))
 	require.NoError(t, err)
 	assert.Equal(t, testdirname, si.Name)
+}
+
+func TestIndexSearch(t *testing.T) {
+	datapath := createTempDir(t)
+	thresh := int64(100)
+	createArchiveSpace(t, datapath, thresh, "../tests/suite/zdx/babble.tzng")
+	indexArchiveSpace(t, datapath, "v")
+
+	root := createTempDir(t)
+
+	_, client, done := newCoreAtDir(t, root)
+	defer done()
+
+	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{
+		Name:     "TestIndexSearch",
+		DataPath: datapath,
+	})
+	require.NoError(t, err)
+
+	expected := `
+#zfile=string
+#0:record[key:int64,_log:zfile]
+0:[257;20200422/1587518260.06854923.zng;]
+0:[257;20200422/1587516663.06734275.zng;]
+0:[257;20200421/1587511785.067444.zng;]
+0:[257;20200421/1587511365.06329054.zng;]
+0:[257;20200421/1587510206.0666055.zng;]
+0:[257;20200421/1587509256.06429927.zng;]
+`
+	res, _ := indexSearch(t, client, sp.ID, "", []string{"v=257"})
+	assert.Equal(t, test.Trim(expected), res)
+}
+
+func indexSearch(t *testing.T, client *api.Connection, space api.SpaceID, indexName string, patterns []string) (string, []interface{}) {
+	req := api.IndexSearchRequest{
+		IndexName: indexName,
+		Patterns:  patterns,
+	}
+	r, err := client.IndexSearch(context.Background(), space, req, nil)
+	require.NoError(t, err)
+	buf := bytes.NewBuffer(nil)
+	w := zbuf.NopFlusher(tzngio.NewWriter(buf))
+	var msgs []interface{}
+	r.SetOnCtrl(func(i interface{}) {
+		msgs = append(msgs, i)
+	})
+	require.NoError(t, zbuf.Copy(w, r))
+	return buf.String(), msgs
 }
 
 // search runs the provided zql program as a search on the provided

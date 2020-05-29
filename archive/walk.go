@@ -4,11 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/brimsec/zq/pkg/nano"
 )
-
-type Visitor func(zardir string) error
 
 func ZarDirToLog(path string) string {
 	return strings.TrimSuffix(path, zarExt)
@@ -36,26 +32,25 @@ func Localize(zardir string, filenames []string) []string {
 	return out
 }
 
+type Visitor func(zardir string) error
+
 // Walk traverses the archive invoking the visitor on the zar dir corresponding
 // to each log file, creating the zar dir if needed.
 func Walk(ark *Archive, visit Visitor) error {
+	return SpanWalk(ark, func(_ SpanInfo, zardir string) error {
+		return visit(zardir)
+	})
+}
+
+type SpanVisitor func(si SpanInfo, zardir string) error
+
+func SpanWalk(ark *Archive, v SpanVisitor) error {
 	for _, s := range ark.Meta.Spans {
 		zardir := LogToZarDir(filepath.Join(ark.Root, s.Part))
 		if err := os.MkdirAll(zardir, 0700); err != nil {
 			return err
 		}
-		if err := visit(zardir); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-type SpanVisitor func(span nano.Span, zngpath string) error
-
-func SpanWalk(ark *Archive, v SpanVisitor) error {
-	for _, s := range ark.Meta.Spans {
-		if err := v(s.Span, filepath.Join(ark.Root, s.Part)); err != nil {
+		if err := v(s, zardir); err != nil {
 			return err
 		}
 	}

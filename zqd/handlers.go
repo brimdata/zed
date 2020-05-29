@@ -97,7 +97,19 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	defer srch.Close()
 
-	var out search.Output
+	out, err := getSearchOutput(w, r)
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", out.ContentType())
+	if err = srch.Run(out); err != nil {
+		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
+	}
+}
+
+func getSearchOutput(w http.ResponseWriter, r *http.Request) (search.Output, error) {
 	ctrl := true
 	if r.URL.Query().Get("noctrl") != "" {
 		ctrl = false
@@ -105,20 +117,11 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	format := r.URL.Query().Get("format")
 	switch format {
 	case "zjson", "json":
-		// XXX Should write appropriate ndjson content header.
-		out = search.NewJSONOutput(w, search.DefaultMTU, ctrl)
+		return search.NewJSONOutput(w, search.DefaultMTU, ctrl), nil
 	case "zng":
-		// XXX Should write appropriate zng content header.
-		out = search.NewZngOutput(w, ctrl)
+		return search.NewZngOutput(w, ctrl), nil
 	default:
-		respondError(c, w, r, zqe.E(zqe.Invalid, "unsupported format: %s", format))
-		return
-	}
-	// XXX This always returns bad request but should return status codes
-	// that reflect the nature of the returned error.
-	w.Header().Set("Content-Type", "application/ndjson")
-	if err = srch.Run(out); err != nil {
-		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
+		return nil, zqe.E(zqe.Invalid, "unsupported search format: %s", format)
 	}
 }
 
@@ -401,6 +404,42 @@ loop:
 	if err != nil {
 		logger.Warn("error sending payload", zap.Error(err))
 		return
+	}
+}
+
+func handleIndexSearch(c *Core, w http.ResponseWriter, r *http.Request) {
+	s := extractSpace(c, w, r)
+	if s == nil {
+		return
+	}
+	ctx, cancel, err := s.StartSpaceOp(r.Context())
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	defer cancel()
+
+	var req api.IndexSearchRequest
+	if !request(c, w, r, &req) {
+		return
+	}
+
+	srch, err := search.NewIndexSearch(ctx, s, req)
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	defer srch.Close()
+
+	out, err := getSearchOutput(w, r)
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", out.ContentType())
+	if err = srch.Run(out); err != nil {
+		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
 	}
 }
 

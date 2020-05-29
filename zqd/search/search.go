@@ -87,6 +87,7 @@ type Output interface {
 	SendBatch(int, zbuf.Batch) error
 	SendControl(interface{}) error
 	End(interface{}) error
+	ContentType() string
 }
 
 // A Query is the internal representation of search query describing a source
