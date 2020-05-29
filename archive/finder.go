@@ -26,7 +26,7 @@ func SkipMissing() FindOption {
 	}
 }
 
-const DefAddPathField = "_log"
+const DefaultAddPathField = "_log"
 
 func AddPath(pathField string, absolutePath bool) FindOption {
 	if pathField == "" {
@@ -76,8 +76,8 @@ func Find(ctx context.Context, ark *Archive, query IndexQuery, hits chan<- *zng.
 		zctx:    resolver.NewContext(),
 		addPath: func(_ *Archive, _ SpanInfo, rec *zng.Record) (*zng.Record, error) { return rec, nil },
 	}
-	for i := range opts {
-		if err := opts[i](&opt); err != nil {
+	for _, o := range opts {
+		if err := o(&opt); err != nil {
 			return err
 		}
 	}
@@ -96,12 +96,12 @@ func Find(ctx context.Context, ark *Archive, query IndexQuery, hits chan<- *zng.
 			}
 		}()
 		for hit := range searchHits {
-			xhit, err := opt.addPath(ark, si, hit)
+			h, err := opt.addPath(ark, si, hit)
 			if err != nil {
 				return err
 			}
 			select {
-			case hits <- xhit:
+			case hits <- h:
 			case <-ctx.Done():
 				return ctx.Err()
 			}

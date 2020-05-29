@@ -42,11 +42,10 @@ func (s *Storage) Open(ctx context.Context, span nano.Span) (zbuf.ReadCloser, er
 	}()
 	zctx := resolver.NewContext()
 	err = archive.SpanWalk(s.ark, func(si archive.SpanInfo, zardir string) error {
-		zngpath := archive.ZarDirToLog(zardir)
 		if !span.Overlaps(si.Span) {
 			return nil
 		}
-		f, err := fs.Open(zngpath)
+		f, err := fs.Open(archive.ZarDirToLog(zardir))
 		if err != nil {
 			return err
 		}
@@ -112,8 +111,8 @@ func (s *Storage) IndexSearch(ctx context.Context, query archive.IndexQuery) (zb
 		hits:   make(chan *zng.Record),
 	}
 	go func() {
-		defer close(is.hits)
-		is.err = archive.Find(ctx, s.ark, query, is.hits, archive.AddPath(archive.DefAddPathField, false))
+		is.err = archive.Find(ctx, s.ark, query, is.hits, archive.AddPath(archive.DefaultAddPathField, false))
+		close(is.hits)
 	}()
 	return is, nil
 }

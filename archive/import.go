@@ -41,6 +41,8 @@ func (d *importDriver) writeOne(rec *zng.Record) error {
 		dname := tsDir(rec.Ts)
 		fname := rec.Ts.StringFloat() + ".zng"
 		d.span = recspan
+		// Create LogID with path.Join so that it always uses forward
+		// slashes (dir1/foo.zng), regardless of platform.
 		d.logID = LogID(path.Join(dname, fname))
 
 		dpath := filepath.Join(d.ark.Root, dname)
@@ -50,7 +52,7 @@ func (d *importDriver) writeOne(rec *zng.Record) error {
 
 		//XXX for now just truncate any existing file.
 		// a future PR will do a split/merge.
-		fpath := filepath.Join(d.ark.Root, dname, fname)
+		fpath := filepath.Join(dpath, fname)
 		out, err := fs.OpenFile(fpath, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0644)
 		if err != nil {
 			return err

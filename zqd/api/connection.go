@@ -196,7 +196,6 @@ func (c *Connection) Search(ctx context.Context, search SearchRequest, params ma
 	req := c.Request(ctx).
 		SetBody(search).
 		SetQueryParam("format", "zng")
-
 	req.SetQueryParams(params)
 	req.Method = http.MethodPost
 	req.URL = "/search"
@@ -211,10 +210,9 @@ func (c *Connection) IndexSearch(ctx context.Context, space SpaceID, search Inde
 	req := c.Request(ctx).
 		SetBody(search).
 		SetQueryParam("format", "zng")
-
 	req.SetQueryParams(params)
 	req.Method = http.MethodPost
-	req.URL = path.Join("/space", string(space), "index_search")
+	req.URL = path.Join("/space", string(space), "indexsearch")
 	r, err := c.stream(req)
 	if err != nil {
 		return nil, err

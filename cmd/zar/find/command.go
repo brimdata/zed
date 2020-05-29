@@ -73,7 +73,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.skipMissing, "Q", false, "skip errors caused by missing index files ")
 	f.StringVar(&c.indexFile, "x", "", "name of zdx index for custom index searches")
 	f.StringVar(&c.outputFile, "o", "", "write data to output file")
-	f.StringVar(&c.pathField, "l", archive.DefAddPathField, "zng field name for path name of log file")
+	f.StringVar(&c.pathField, "l", archive.DefaultAddPathField, "zng field name for path name of log file")
 	f.BoolVar(&c.zng, "z", false, "write results as zng stream rather than list of files")
 
 	// Flags added for writers are -f, -T, -F, -E, -U, and -b
@@ -119,8 +119,8 @@ func (c *Command) Run(args []string) error {
 	hits := make(chan *zng.Record)
 	var searchErr error
 	go func() {
-		defer close(hits)
 		searchErr = archive.Find(ctx, ark, query, hits, findOptions...)
+		close(hits)
 	}()
 	for hit := range hits {
 		var err error

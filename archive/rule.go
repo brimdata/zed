@@ -16,38 +16,40 @@ type IndexQuery struct {
 	patterns  []string
 }
 
-func ParseIndexQuery(indexName string, patterns []string) (iq IndexQuery, err error) {
+func ParseIndexQuery(indexName string, patterns []string) (IndexQuery, error) {
 	if len(patterns) == 0 {
-		return iq, zqe.E(zqe.Invalid, "no search patterns")
+		return IndexQuery{}, zqe.E(zqe.Invalid, "no search patterns")
 	}
 	if indexName != "" {
-		iq.indexName = indexName
-		iq.patterns = patterns
-		return
+		return IndexQuery{
+			indexName: indexName,
+			patterns:  patterns,
+		}, nil
 	}
 	if len(patterns) != 1 {
-		return iq, zqe.E(zqe.Invalid, "standard index supports exactly one search pattern")
+		return IndexQuery{}, zqe.E(zqe.Invalid, "standard index supports exactly one search pattern")
 	}
 	in := patterns[0]
 
 	v := strings.Split(in, "=")
 	if len(v) != 2 {
-		return iq, zqe.E(zqe.Invalid, "malformed standard index query")
+		return IndexQuery{}, zqe.E(zqe.Invalid, "malformed standard index query")
 	}
 	fieldOrType := v[0]
 	var path string
 	if fieldOrType[0] == ':' {
 		typ, err := resolver.NewContext().LookupByName(fieldOrType[1:])
 		if err != nil {
-			return iq, err
+			return IndexQuery{}, err
 		}
 		path = typeZdxName(typ)
 	} else {
 		path = fieldZdxName(fieldOrType)
 	}
-	iq.indexName = path
-	iq.patterns = []string{v[1]}
-	return iq, nil
+	return IndexQuery{
+		indexName: path,
+		patterns:  []string{v[1]},
+	}, nil
 }
 
 func NewRule(pattern string) (*Rule, error) {

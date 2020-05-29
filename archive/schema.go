@@ -28,10 +28,15 @@ type MetaData struct {
 	Spans             []SpanInfo     `json:"spans"`
 }
 
+// A LogID identifies a single zng file within an archive. It is created
+// by doing a path join (with forward slashes, regardless of platform)
+// of the relative location of the file under the archive's root directory.
 type LogID string
 
+// Path returns the local filesystem path for the log file, using the
+// platforms file separator.
 func (l LogID) Path(ark *Archive) string {
-	return filepath.Join(ark.Root, filepath.ToSlash(string(l)))
+	return filepath.Join(ark.Root, filepath.FromSlash(string(l)))
 }
 
 type SpanInfo struct {
