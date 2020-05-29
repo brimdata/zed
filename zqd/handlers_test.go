@@ -759,7 +759,7 @@ func TestBlankNameSpace(t *testing.T) {
 
 func TestIndexSearch(t *testing.T) {
 	datapath := createTempDir(t)
-	thresh := int64(100)
+	thresh := int64(1000)
 	createArchiveSpace(t, datapath, thresh, "../tests/suite/zdx/babble.tzng")
 	indexArchiveSpace(t, datapath, "v")
 
@@ -777,12 +777,12 @@ func TestIndexSearch(t *testing.T) {
 	expected := `
 #zfile=string
 #0:record[key:int64,_log:zfile]
-0:[257;20200422/1587518260.06854923.zng;]
-0:[257;20200422/1587516663.06734275.zng;]
-0:[257;20200421/1587511785.067444.zng;]
-0:[257;20200421/1587511365.06329054.zng;]
-0:[257;20200421/1587510206.0666055.zng;]
-0:[257;20200421/1587509256.06429927.zng;]
+0:[257;20200422/1587518432.06228663.zng;]
+0:[257;20200422/1587516797.06911059.zng;]
+0:[257;20200421/1587511801.06624146.zng;]
+0:[257;20200421/1587511516.06430561.zng;]
+0:[257;20200421/1587510489.06591564.zng;]
+0:[257;20200421/1587509322.06101754.zng;]
 `
 	res, _ := indexSearch(t, client, sp.ID, "", []string{"v=257"})
 	assert.Equal(t, test.Trim(expected), res)
