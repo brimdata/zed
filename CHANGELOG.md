@@ -4,7 +4,7 @@ zq repo, check the git log.
 
 ## v0.14.0
 * zq: Add support for reading from S3 buckets (#733, #780, #783)
-* zq: Add initial support for reading Parquet files (#736, #754, #774, #780, #782, #820, #813, #830, #825, #834)
+* zq: Add initial support for reading Parquet files (only via `-i parquet`, no auto-detection) (#736, #754, #774, #780, #782, #820, #813, #830, #825, #834)
 * zq: Fix an issue with reading/writing recursively-nested NDJSON events (#748)
 * zqd: Begin using a "runner" to invoke Zeek for processing imported pcaps (#718, #788)
 * zq: Fix issues related to reading NDJSON during format detection (#752)
