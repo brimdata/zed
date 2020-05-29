@@ -77,27 +77,22 @@ func (c *LogCommand) Run(args []string) (err error) {
 	if err != nil {
 		return err
 	}
-	var payload interface{}
 loop:
 	for {
-		payload, err = stream.Next()
-		if err != nil {
+		var v interface{}
+		v, err = stream.Next()
+		if err != nil || v == nil {
 			break loop
 		}
-		if payload == nil {
-			break loop
-		}
-		switch typ := payload.(type) {
+		switch v := v.(type) {
 		case *api.LogPostWarning:
-			fmt.Fprintf(out, "warning: %s\n", typ.Warning)
+			fmt.Fprintf(out, "warning: %s\n", v.Warning)
 		case *api.TaskEnd:
-			if typ.Error != nil {
-				err = typ.Error
-			}
+			err = v.Error
 			break loop
 		case *api.LogPostStatus:
-			atomic.StoreInt64(&c.bytesRead, typ.LogReadSize)
-			atomic.StoreInt64(&c.bytesTotal, typ.LogTotalSize)
+			atomic.StoreInt64(&c.bytesRead, v.LogReadSize)
+			atomic.StoreInt64(&c.bytesTotal, v.LogTotalSize)
 		}
 	}
 	if dp != nil {
