@@ -11,7 +11,6 @@ import (
 	"github.com/xitongsys/parquet-go/compress"
 	"github.com/xitongsys/parquet-go/layout"
 	"github.com/xitongsys/parquet-go/parquet"
-	"github.com/xitongsys/parquet-go/reader"
 	"github.com/xitongsys/parquet-go/source"
 )
 
@@ -38,8 +37,9 @@ type valueReader interface {
 // it only handles PLAIN and PLAIN_DICTIONARY encodings for a few
 // primitive data types.
 type columnIterator struct {
-	pr   *reader.ParquetReader
-	name string
+	name   string
+	footer *parquet.FileMetaData
+	file   source.ParquetFile
 
 	maxRepetitionLevel int32
 	maxDefinitionLevel int32
@@ -65,10 +65,11 @@ type columnIterator struct {
 	// XXX need other types
 }
 
-func newColumnIterator(pr *reader.ParquetReader, name string, maxRL, maxDL int32) *columnIterator {
+func newColumnIterator(name string, footer *parquet.FileMetaData, file source.ParquetFile, maxRL, maxDL int32) *columnIterator {
 	return &columnIterator{
-		pr:                 pr,
 		name:               name,
+		footer:             footer,
+		file:               file,
 		maxRepetitionLevel: maxRL,
 		maxDefinitionLevel: maxDL,
 	}
@@ -87,10 +88,10 @@ func (i *columnIterator) loadOnePage() (*parquet.PageHeader, []byte, error) {
 	// yet read the first row group), find the right offset inside
 	// the parquet file for this column in the next row group.
 	if i.groupRead == i.groupTotal {
-		if i.rowGroup >= len(i.pr.Footer.RowGroups) {
+		if i.rowGroup >= len(i.footer.RowGroups) {
 			return nil, nil, io.EOF
 		}
-		rg := i.pr.Footer.RowGroups[i.rowGroup]
+		rg := i.footer.RowGroups[i.rowGroup]
 		i.rowGroup++
 
 		i.groupRead = 0
@@ -119,7 +120,7 @@ func (i *columnIterator) loadOnePage() (*parquet.PageHeader, []byte, error) {
 		size := i.colMetadata.TotalCompressedSize
 
 		// XXX
-		i.thriftReader = source.ConvertToThriftReader(i.pr.PFile, offset, size)
+		i.thriftReader = source.ConvertToThriftReader(i.file, offset, size)
 
 		i.clearDictionaries()
 	}
@@ -161,7 +162,7 @@ func (i *columnIterator) ensureDataPage() error {
 			return err
 		}
 
-		debugf("read page type %s\n", header.GetType())
+		debugf("read page type %s for %s\n", header.GetType(), i.name)
 		switch header.GetType() {
 		case parquet.PageType_DICTIONARY_PAGE:
 			i.loadDictionaryPage(header, page)
