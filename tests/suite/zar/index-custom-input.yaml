@@ -1,0 +1,18 @@
+# test a simple indexing scenario with the use of the -i flag
+script: |
+  mkdir logs
+  zar import -R ./logs babble.tzng
+  zar zq -q -o sums.zng -R ./logs "sum(v) by s" _
+  zar index -i sums.zng -q -R ./logs -o index -z "put key=s | sort key"
+  zq -t logs/20200422/1587518620.0622373.zng.zar/index.1.zng
+
+inputs:
+  - name: babble.tzng
+    source: ../zdx/babble.tzng
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[key:string,_btree_child:int64]
+      0:[Algedi-pigeonman;0;]
+      0:[protistic-haystack;32795;]
