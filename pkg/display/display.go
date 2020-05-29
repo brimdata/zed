@@ -23,14 +23,13 @@ type Display struct {
 }
 
 func New(updater Displayer, interval time.Duration) *Display {
-	d := &Display{
+	return &Display{
 		live:     uilive.New(),
 		interval: interval,
 		updater:  updater,
 		buffer:   bytes.NewBuffer(nil),
 		close:    make(chan struct{}),
 	}
-	return d
 }
 
 func (d *Display) update() bool {
