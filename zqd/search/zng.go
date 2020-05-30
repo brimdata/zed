@@ -69,3 +69,7 @@ func (r *ZngOutput) SendControl(ctrl interface{}) error {
 	r.flush()
 	return nil
 }
+
+func (r *ZngOutput) ContentType() string {
+	return MimeTypeZNG
+}

@@ -79,3 +79,7 @@ func (s *JSON) End(msg interface{}) error {
 	}
 	return s.pipe.SendFinal(msg)
 }
+
+func (s *JSON) ContentType() string {
+	return MimeTypeNDJSON
+}

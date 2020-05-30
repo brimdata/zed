@@ -2,7 +2,6 @@ package find
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -74,7 +73,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.skipMissing, "Q", false, "skip errors caused by missing index files ")
 	f.StringVar(&c.indexFile, "x", "", "name of zdx index for custom index searches")
 	f.StringVar(&c.outputFile, "o", "", "write data to output file")
-	f.StringVar(&c.pathField, "l", "_log", "zng field name for path name of log file")
+	f.StringVar(&c.pathField, "l", archive.DefaultAddPathField, "zng field name for path name of log file")
 	f.BoolVar(&c.zng, "z", false, "write results as zng stream rather than list of files")
 
 	// Flags added for writers are -f, -T, -F, -E, -U, and -b
@@ -89,21 +88,19 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 
-	var patterns []string
-	indexFile := c.indexFile
-	if indexFile != "" {
-		patterns = args
-	} else {
-		if len(args) != 1 {
-			return errors.New("zar find: standard index supports exactly one search pattern")
-		}
-		pattern, path, err := archive.ParsePattern(args[0])
-		if err != nil {
-			return err
-		}
-		patterns = []string{pattern}
-		indexFile = path
+	query, err := archive.ParseIndexQuery(c.indexFile, args)
+	if err != nil {
+		return err
 	}
+
+	var findOptions []archive.FindOption
+	if c.pathField != "" {
+		findOptions = append(findOptions, archive.AddPath(c.pathField, true))
+	}
+	if c.skipMissing {
+		findOptions = append(findOptions, archive.SkipMissing())
+	}
+
 	//XXX allow "-" to trigger zng but changed back for emitter API
 	if c.outputFile == "-" {
 		c.outputFile = ""
@@ -122,7 +119,7 @@ func (c *Command) Run(args []string) error {
 	hits := make(chan *zng.Record)
 	var searchErr error
 	go func() {
-		searchErr = archive.Find(ctx, ark, indexFile, patterns, hits, c.pathField, c.skipMissing)
+		searchErr = archive.Find(ctx, ark, query, hits, findOptions...)
 		close(hits)
 	}()
 	for hit := range hits {
@@ -137,10 +134,6 @@ func (c *Command) Run(args []string) error {
 			}
 		}
 		if err != nil {
-			cancel()
-			for _ = range hits {
-				// let search goroutine unwind after cancel
-			}
 			return err
 		}
 	}

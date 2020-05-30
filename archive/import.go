@@ -2,7 +2,9 @@ package archive
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 
 	"github.com/brimsec/zq/driver"
@@ -28,24 +30,30 @@ type importDriver struct {
 	zw  zbuf.Writer
 	n   int64
 
-	span    nano.Span
-	relpath string
-	spans   []SpanInfo
+	span  nano.Span
+	logID LogID
+	spans []SpanInfo
 }
 
 func (d *importDriver) writeOne(rec *zng.Record) error {
 	recspan := nano.Span{rec.Ts, 1}
 	if d.zw == nil {
+		dname := tsDir(rec.Ts)
+		fname := rec.Ts.StringFloat() + ".zng"
 		d.span = recspan
-		dir := filepath.Join(d.ark.Root, tsDir(rec.Ts))
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		// Create LogID with path.Join so that it always uses forward
+		// slashes (dir1/foo.zng), regardless of platform.
+		d.logID = LogID(path.Join(dname, fname))
+
+		dpath := filepath.Join(d.ark.Root, dname)
+		if err := os.MkdirAll(dpath, 0755); err != nil {
 			return err
 		}
-		d.relpath = filepath.Join(tsDir(rec.Ts), rec.Ts.StringFloat()+".zng")
-		path := filepath.Join(d.ark.Root, d.relpath)
+
 		//XXX for now just truncate any existing file.
 		// a future PR will do a split/merge.
-		out, err := fs.OpenFile(path, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0644)
+		fpath := filepath.Join(dpath, fname)
+		out, err := fs.OpenFile(fpath, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0644)
 		if err != nil {
 			return err
 		}
@@ -72,9 +80,10 @@ func (d *importDriver) close() error {
 			return err
 		}
 		d.spans = append(d.spans, SpanInfo{
-			Span: d.span,
-			Part: d.relpath,
+			Span:  d.span,
+			LogID: d.logID,
 		})
+		d.bw = nil
 	}
 	d.zw = nil
 	d.n = 0
@@ -124,7 +133,7 @@ func Import(ctx context.Context, ark *Archive, r zbuf.Reader) error {
 
 	id := &importDriver{ark: ark}
 	if err := driver.Run(fg, id, nil); err != nil {
-		return err
+		return fmt.Errorf("archive.Import: run failed: %w", err)
 	}
 
 	return ark.AppendSpans(id.spans)

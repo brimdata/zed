@@ -243,3 +243,8 @@ func (ps *PcapSearch) FromQuery(v url.Values) error {
 	}
 	return nil
 }
+
+type IndexSearchRequest struct {
+	IndexName string   `json:"index_name"`
+	Patterns  []string `json:"patterns"`
+}

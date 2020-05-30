@@ -25,6 +25,11 @@ const DefaultMTU = 100
 
 const StatsInterval = time.Millisecond * 500
 
+const (
+	MimeTypeNDJSON = "application/x-ndjson"
+	MimeTypeZNG    = "application/x-zng"
+)
+
 type Search struct {
 	mux *driver.MuxOutput
 	io.Closer
@@ -87,6 +92,7 @@ type Output interface {
 	SendBatch(int, zbuf.Batch) error
 	SendControl(interface{}) error
 	End(interface{}) error
+	ContentType() string
 }
 
 // A Query is the internal representation of search query describing a source

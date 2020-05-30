@@ -144,7 +144,7 @@ zar ls -l
 You will see all the indexes left behind. They are just zng files.
 If you want to see one, just look at it with zq, e.g.
 ```
-zq -t $ZAR_ROOT/20180324/1521912152.518493.zng.zar/zdx:type:ip.zng
+zq -t $ZAR_ROOT/20180324/1521912152.518493.zng.zar/zdx-type-ip.zng
 ```
 Now if you run "zar find", it will efficiently look through all the index files
 instead of the logs and run much faster...
@@ -201,7 +201,7 @@ Let's say instead of searching for what log chunk a value is in, we want to
 actually pull out the zng records that comprise the index.  This turns out
 to be really powerful in general, but to give you a taste here, you can say...
 ```
-zar find -z -x zdx:type:ip 10.47.21.138 | zq -t -
+zar find -z -x zdx-type-ip 10.47.21.138 | zq -t -
 ```
 where `-z` says to produce zng output instead of a path listing,
 and you'll get this...
