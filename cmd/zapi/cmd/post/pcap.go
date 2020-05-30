@@ -83,7 +83,9 @@ loop:
 		}
 		switch v := v.(type) {
 		case *api.TaskEnd:
-			err = v.Error
+			if v.Error != nil {
+				err = v.Error
+			}
 			break loop
 		case *api.PcapPostStatus:
 			atomic.StoreInt64(&c.bytesRead, v.PcapReadSize)

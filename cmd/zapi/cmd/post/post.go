@@ -88,7 +88,9 @@ loop:
 		case *api.LogPostWarning:
 			fmt.Fprintf(out, "warning: %s\n", v.Warning)
 		case *api.TaskEnd:
-			err = v.Error
+			if v.Error != nil {
+				err = v.Error
+			}
 			break loop
 		case *api.LogPostStatus:
 			atomic.StoreInt64(&c.bytesRead, v.LogReadSize)
