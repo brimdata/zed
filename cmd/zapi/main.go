@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/brimsec/zq/cmd/zapi/cmd"
+	_ "github.com/brimsec/zq/cmd/zapi/cmd/get"
 	_ "github.com/brimsec/zq/cmd/zapi/cmd/info"
 	_ "github.com/brimsec/zq/cmd/zapi/cmd/new"
 	_ "github.com/brimsec/zq/cmd/zapi/cmd/post"

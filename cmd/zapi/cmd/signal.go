@@ -8,29 +8,37 @@ import (
 
 type signalCtx struct {
 	context.Context
-	sigs   []os.Signal
-	caught os.Signal
+	cancel  context.CancelFunc
+	signals chan os.Signal
+	caught  os.Signal
 }
 
-func newSignalCtx(ctx context.Context, sigs ...os.Signal) (s *signalCtx) {
+func newSignalCtx(sigs ...os.Signal) *signalCtx {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, sigs...)
-	childctx, cancel := context.WithCancel(ctx)
-	s = &signalCtx{Context: childctx, sigs: sigs}
-	go func() {
-		select {
-		case sig := <-signals:
-			s.caught = sig
-			cancel()
-			return
-		case <-childctx.Done():
-			return
-		}
-	}()
-	return
+	s := &signalCtx{signals: signals}
+	s.Reset()
+	return s
+}
+
+func (s *signalCtx) listen() {
+	select {
+	case sig := <-s.signals:
+		s.caught = sig
+		s.cancel()
+	case <-s.Done():
+	}
 }
 
 func (s *signalCtx) Caught() os.Signal {
 	<-s.Done()
 	return s.caught
+}
+
+func (s *signalCtx) Reset() {
+	if s.cancel != nil {
+		s.cancel()
+	}
+	s.Context, s.cancel = context.WithCancel(context.Background())
+	go s.listen()
 }

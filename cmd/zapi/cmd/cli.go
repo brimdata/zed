@@ -5,10 +5,13 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"syscall"
 
+	"github.com/brimsec/zq/pkg/repl"
 	"github.com/brimsec/zq/zqd/api"
+	"github.com/kballard/go-shellquote"
 	"github.com/mccanne/charm"
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -18,6 +21,8 @@ var (
 	Version   string
 	ZqVersion string
 )
+
+var Get *charm.Spec
 
 var ErrSpaceNotSpecified = errors.New("either space name (-s) or id (-id) must be specified")
 
@@ -39,7 +44,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{
 		Version:   Version,
 		ZqVersion: ZqVersion,
-		ctx:       newSignalCtx(context.Background(), syscall.SIGINT, syscall.SIGTERM),
+		ctx:       newSignalCtx(syscall.SIGINT, syscall.SIGTERM),
 	}
 
 	// If not a terminal make nofancy on by default.
@@ -93,8 +98,44 @@ func (c *Command) Run(args []string) error {
 	if len(args) > 0 {
 		return fmt.Errorf("unknown command: %s", args[0])
 	}
-	// XXX In the future this will enter the REPL, for now just run help.
-	return CLI.Exec(c, []string{"help"})
+	// do not enter repl if space is not selected
+	if _, err := c.SpaceID(); err != nil {
+		return err
+	}
+	repl := repl.NewREPL(c)
+	err := repl.Run()
+	if err == io.EOF {
+		fmt.Println("")
+		err = nil
+	}
+	return err
+}
+
+func (c *Command) Consume(line string) (done bool) {
+	// Because ctrl-c is used to stop long running queries, reset signal
+	// context before every consume.
+	c.ctx.Reset()
+	args, err := shellquote.Split(line)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "parse error")
+		return
+	}
+	if len(args) == 0 {
+		return
+	}
+	switch args[0] {
+	case "quit", "exit", ".":
+		done = true
+	default:
+		if err := Get.Exec(c, args); err != nil {
+			fmt.Fprintf(os.Stderr, "%s\n", err)
+		}
+	}
+	return
+}
+
+func (c *Command) Prompt() string {
+	return c.Spacename + "> "
 }
 
 func Errorf(spec string, args ...interface{}) {
