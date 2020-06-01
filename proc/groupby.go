@@ -24,12 +24,11 @@ type GroupByKey struct {
 }
 
 type GroupByParams struct {
-	duration        ast.Duration
-	update_interval ast.Duration
-	limit           int
-	keys            []GroupByKey
-	reducers        []compile.CompiledReducer
-	builder         *ColumnBuilder
+	duration ast.Duration
+	limit    int
+	keys     []GroupByKey
+	reducers []compile.CompiledReducer
+	builder  *ColumnBuilder
 }
 
 type errTooBig int
@@ -66,12 +65,11 @@ func CompileGroupBy(node *ast.GroupByProc, zctx *resolver.Context) (*GroupByPara
 		return nil, fmt.Errorf("compiling groupby: %w", err)
 	}
 	return &GroupByParams{
-		duration:        node.Duration,
-		update_interval: node.UpdateInterval,
-		limit:           node.Limit,
-		keys:            keys,
-		reducers:        reducers,
-		builder:         builder,
+		duration: node.Duration,
+		limit:    node.Limit,
+		keys:     keys,
+		reducers: reducers,
+		builder:  builder,
 	}, nil
 }
 
@@ -165,11 +163,9 @@ func NewGroupBy(c *Context, parent Proc, params GroupByParams) *GroupBy {
 	// ast.GroupByParams
 	agg := NewGroupByAggregator(c, params)
 	timeBinned := params.duration.Seconds > 0
-	interval := time.Duration(params.update_interval.Seconds) * time.Second
 	return &GroupBy{
 		Base:       Base{Context: c, Parent: parent},
 		timeBinned: timeBinned,
-		interval:   interval,
 		agg:        agg,
 	}
 }

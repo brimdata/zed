@@ -117,7 +117,6 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 			reducers = append(reducers, compiled)
 		}
 		params := ReducerParams{
-			interval: v.UpdateInterval,
 			reducers: reducers,
 		}
 		return []Proc{NewReducer(c, parent, params)}, nil
