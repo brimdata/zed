@@ -128,6 +128,14 @@ function makeReducerProc(reducers) {
   return { op: "ReducerProc", reducers };
 }
 
+function makeGroupByKey(target, expression) {
+    return { op: "Assignment", target, expression };
+}
+
+function makeGroupByKeys(first, rest) {
+  return [first, ...rest];
+}
+
 function makeGroupByProc(duration, limit, keys, reducers) {
   if (limit === null) { limit = undefined; }
   return { op: "GroupByProc", keys, reducers, duration, limit };

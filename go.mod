@@ -17,6 +17,7 @@ require (
 	github.com/mccanne/joe v0.0.0-20181124064909-25770742c256
 	github.com/minio/minio v0.0.0-20200506004754-8eb99d3a877f
 	github.com/peterh/liner v1.1.0
+	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/segmentio/ksuid v1.0.2
 	github.com/stretchr/testify v1.5.1
