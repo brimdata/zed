@@ -1,7 +1,6 @@
 package pcapio
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/brimsec/zq/zqe"
@@ -14,10 +13,6 @@ type ErrInvalidPcap struct {
 func NewErrInvalidPcap(err error) error {
 	e := &ErrInvalidPcap{err: err}
 	return zqe.E(zqe.Invalid, e)
-}
-
-func errInvalid(text string) error {
-	return NewErrInvalidPcap(errors.New(text))
 }
 
 func errInvalidf(format string, a ...interface{}) error {

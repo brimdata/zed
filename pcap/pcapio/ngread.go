@@ -65,7 +65,7 @@ func NewNgReader(r io.Reader) (*NgReader, error) {
 
 func (r *NgReader) parsePacket(block []byte) ([]byte, int, error) {
 	if len(block) < PacketBlockHeaderLen {
-		return nil, 0, errInvalid("packet buffer length less than minimum packet size")
+		return nil, 0, errInvalidf("packet buffer length less than minimum packet size")
 	}
 	ifno := int(r.getUint32(block[8:12]))
 	if ifno >= len(r.ifaces) {
@@ -74,7 +74,7 @@ func (r *NgReader) parsePacket(block []byte) ([]byte, int, error) {
 	caplen := int(r.getUint32(block[20:24]))
 	packet := block[PacketBlockHeaderLen:]
 	if len(packet) < caplen {
-		return nil, 0, errInvalid("invalid capture length")
+		return nil, 0, errInvalidf("invalid capture length")
 	}
 	return packet[:caplen], ifno, nil
 }
@@ -156,10 +156,10 @@ func (r *NgReader) readBlock() (ngBlockType, []byte, error) {
 		return 0, nil, err
 	}
 	if uint32(len(b)) < length {
-		return 0, nil, errInvalid("truncated pcap-ng block")
+		return 0, nil, errInvalidf("truncated pcap-ng block")
 	}
 	if r.getUint32(b[length-4:length]) != uint32(length) {
-		return 0, nil, errInvalid("pcap-ng trailer length mismatch")
+		return 0, nil, errInvalidf("pcap-ng trailer length mismatch")
 	}
 	return typ, b, err
 }
@@ -170,7 +170,7 @@ func (r *NgReader) parseSectionMagic(b []byte) error {
 	} else if binary.LittleEndian.Uint32(b) == ngByteOrderMagic {
 		r.bigEndian = false
 	} else {
-		return errInvalid("Wrong byte order value in Section Header")
+		return errInvalidf("Wrong byte order value in Section Header")
 	}
 	r.ifaces = r.ifaces[:0]
 	return nil
@@ -187,7 +187,7 @@ func (r *NgReader) readOption(b []byte) (ngOptionCode, []byte, int, error) {
 	length := r.getUint16(b[2:4])
 	b = b[4:]
 	if int(length) > len(b) {
-		return 0, nil, 0, errInvalid("bad option length")
+		return 0, nil, 0, errInvalidf("bad option length")
 	}
 	// Determine padding. The option value field is always padded up to 32 bits.
 	padding := length % 4
@@ -201,7 +201,7 @@ func (r *NgReader) readOption(b []byte) (ngOptionCode, []byte, int, error) {
 // calculation, and adds the interface details to the current list.
 func (r *NgReader) parseInterfaceDescriptor(b []byte) error {
 	if len(b) < 20 {
-		return errInvalid("bad interface descriptor block")
+		return errInvalidf("bad interface descriptor block")
 	}
 	var intf NgInterface
 	intf.LinkType = layers.LinkType(r.getUint16(b[8:10]))
@@ -228,12 +228,12 @@ func (r *NgReader) parseInterfaceDescriptor(b []byte) error {
 			intf.OS = string(body)
 		case ngOptionCodeInterfaceTimestampOffset:
 			if len(body) != 8 {
-				return errInvalid("bad option value: ngOptionCodeInterfaceTimestampOffset")
+				return errInvalidf("bad option value: ngOptionCodeInterfaceTimestampOffset")
 			}
 			intf.TimestampOffset = r.getUint64(body[:8])
 		case ngOptionCodeInterfaceTimestampResolution:
 			if len(body) != 1 {
-				return errInvalid("bad option value: ngOptionCodeInterfaceTimestampResolution")
+				return errInvalidf("bad option value: ngOptionCodeInterfaceTimestampResolution")
 			}
 			intf.TimestampResolution = NgResolution(body[0])
 		}
@@ -294,7 +294,7 @@ func (r *NgReader) Read() ([]byte, BlockType, error) {
 			}
 			return block, TypePacket, nil
 		case ngBlockTypeSimplePacket:
-			return nil, 0, errInvalid("pcap-ng simple packets not supported")
+			return nil, 0, errInvalidf("pcap-ng simple packets not supported")
 		case ngBlockTypeInterfaceDescriptor:
 			err := r.parseInterfaceDescriptor(block)
 			return block, TypeInterface, err
@@ -303,7 +303,7 @@ func (r *NgReader) Read() ([]byte, BlockType, error) {
 		case ngBlockTypeSectionHeader:
 			return block, TypeSection, err
 		case ngBlockTypePacket:
-			return nil, 0, errInvalid("pcap-ng deprecated type packet not supported")
+			return nil, 0, errInvalidf("pcap-ng deprecated type packet not supported")
 		}
 	}
 	return nil, 0, nil

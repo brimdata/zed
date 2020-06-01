@@ -85,11 +85,11 @@ func NewPcapReader(r io.Reader) (*PcapReader, error) {
 
 func (r *PcapReader) Packet(block []byte) ([]byte, nano.Ts, layers.LinkType, error) {
 	if len(block) <= packetHeaderLen {
-		return nil, 0, 0, errInvalid("packet buffer length less than minimum packet size")
+		return nil, 0, 0, errInvalidf("packet buffer length less than minimum packet size")
 	}
 	caplen := int(r.byteOrder.Uint32(block[8:12]))
 	if caplen+packetHeaderLen > len(block) {
-		return nil, 0, 0, errInvalid("invalid capture length")
+		return nil, 0, 0, errInvalidf("invalid capture length")
 	}
 	ts := r.TsFromHeader(block)
 	pkt := block[packetHeaderLen:]
@@ -116,13 +116,13 @@ func (r *PcapReader) readHeader() error {
 		r.byteOrder = binary.BigEndian
 		r.nanoSecsFactor = 1000
 	} else {
-		return errInvalidf("Unknown magic %x", magic)
+		return errInvalidf("unknown magic %x", magic)
 	}
 	if r.versionMajor = r.byteOrder.Uint16(hdr[4:6]); r.versionMajor != versionMajor {
-		return errInvalidf("Unknown major version %d", r.versionMajor)
+		return errInvalidf("unknown major version %d", r.versionMajor)
 	}
 	if r.versionMinor = r.byteOrder.Uint16(hdr[6:8]); r.versionMinor != versionMinor {
-		return fmt.Errorf("Unknown minor version %d", r.versionMinor)
+		return errInvalidf("unknown minor version %d", r.versionMinor)
 	}
 	// ignore timezone 8:12 and sigfigs 12:16
 	r.snaplen = r.byteOrder.Uint32(hdr[16:20])
