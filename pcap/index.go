@@ -63,7 +63,7 @@ func CreateIndex(r io.Reader, size int) (Index, error) {
 		switch typ {
 		default:
 			if section == nil {
-				err = errors.New("missing section header")
+				err := errors.New("missing section header")
 				return nil, pcapio.NewErrInvalidPcap(err)
 			}
 			slice := slicer.Slice{
