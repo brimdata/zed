@@ -2,6 +2,7 @@ package proc
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"sort"
 	"time"
@@ -15,7 +16,6 @@ import (
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
