@@ -152,7 +152,7 @@ func TestPcapPostInvalidPcap(t *testing.T) {
 			t.Fatalf("expected error to be for type *api.ErrorResponse, got %T", p.err)
 		}
 		assert.Equal(t, http.StatusBadRequest, reserr.StatusCode())
-		require.Regexp(t, "invalid pcap: pcap: Unknown magic 73696874; ngpcap: first block type not a section header: 1936287860", reserr.Err.Error())
+		require.Regexp(t, "invalid pcap: pcap: unknown magic 73696874; pcapng: first block type not a section header: 1936287860", reserr.Err.Error())
 	})
 	t.Run("EmptySpaceInfo", func(t *testing.T) {
 		info, err := p.client.SpaceInfo(context.Background(), p.space.ID)
