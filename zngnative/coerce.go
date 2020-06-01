@@ -189,29 +189,32 @@ func CoerceToPort(in zng.Value) (uint32, bool) {
 // out, and true is returned. If the value cannot be coerced, then
 // false is returned.
 func CoerceToTime(in zng.Value) (nano.Ts, bool) {
+	native, err := ToNativeValue(in)
+	if err != nil {
+		return 0, false
+	}
+	return CoerceNativeToTime(native)
+}
+
+func CoerceNativeToTime(in Value) (nano.Ts, bool) {
 	var err error
 	var ts nano.Ts
 	switch in.Type.ID() {
 	default:
 		return 0, false
 	case zng.IdTime:
-		ts, err = zng.DecodeTime(in.Bytes)
+		ts = nano.Ts(in.Value.(int64))
 	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
-		var v int64
-		v, err = zng.DecodeInt(in.Bytes)
-		ts = nano.Ts(v) * 1_000_000_000
+		ts = nano.Ts(in.Value.(int64)) * 1_000_000_000
 	case zng.IdUint16, zng.IdUint32, zng.IdUint64:
-		var v uint64
-		v, err = zng.DecodeUint(in.Bytes)
+		v := in.Value.(uint64)
 		// check for overflow
 		if v > math.MaxInt64 {
 			return 0, false
 		}
 		ts = nano.Ts(v)
 	case zng.IdFloat64:
-		var v float64
-		v, err = zng.DecodeFloat64(in.Bytes)
-		ts = nano.Ts(v * 1e9)
+		ts = nano.Ts(in.Value.(float64) * 1e9)
 	}
 	if err != nil {
 		return 0, false
