@@ -13,19 +13,12 @@
 package pcapio
 
 import (
-	"errors"
 	"math"
 	"time"
 
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 )
-
-// ErrNgVersionMismatch gets returned for unknown pcapng section versions. This can only happen if ReaderOptions.SkipUnknownVersion == false
-var ErrNgVersionMismatch = errors.New("Unknown pcapng Version in Section Header")
-
-// ErrNgLinkTypeMismatch gets returned if the link type of an interface is not the same as the link type from the first interface. This can only happen if ReaderOptions.ErrorOnMismatchingLinkType == true && ReaderOptions.WantMixedLinkType == false
-var ErrNgLinkTypeMismatch = errors.New("Link type of current interface is different from first one")
 
 const (
 	ngByteOrderMagic = 0x1A2B3C4D

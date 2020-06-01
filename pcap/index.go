@@ -43,7 +43,7 @@ type Section struct {
 func CreateIndex(r io.Reader, size int) (Index, error) {
 	reader, err := pcapio.NewReader(r)
 	if err != nil {
-		return nil, errInvalidPcap(err)
+		return nil, err
 	}
 	var offsets []ranger.Point
 	var index Index
@@ -55,7 +55,7 @@ func CreateIndex(r io.Reader, size int) (Index, error) {
 			if err == io.EOF {
 				break
 			}
-			return nil, errInvalidPcap(err)
+			return nil, err
 		}
 		if block == nil {
 			break
@@ -64,7 +64,7 @@ func CreateIndex(r io.Reader, size int) (Index, error) {
 		default:
 			if section == nil {
 				err = errors.New("missing section header")
-				return nil, errInvalidPcap(err)
+				return nil, pcapio.NewErrInvalidPcap(err)
 			}
 			slice := slicer.Slice{
 				Offset: off,
@@ -75,7 +75,7 @@ func CreateIndex(r io.Reader, size int) (Index, error) {
 		case pcapio.TypePacket:
 			pkt, ts, _, err := reader.Packet(block)
 			if pkt == nil {
-				return nil, errInvalidPcap(err)
+				return nil, err
 			}
 			y := uint64(ts)
 			offsets = append(offsets, ranger.Point{X: off, Y: y})
@@ -84,7 +84,7 @@ func CreateIndex(r io.Reader, size int) (Index, error) {
 			// end previous section and start a new one
 			if section == nil && offsets != nil {
 				err = errors.New("missing section header")
-				return nil, errInvalidPcap(err)
+				return nil, pcapio.NewErrInvalidPcap(err)
 			}
 			if section != nil && offsets != nil {
 				section.Index = ranger.NewEnvelope(offsets, size)

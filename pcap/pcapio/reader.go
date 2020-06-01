@@ -1,6 +1,8 @@
 package pcapio
 
 import (
+	"errors"
+	"fmt"
 	"io"
 
 	"github.com/brimsec/zq/pkg/nano"
@@ -42,6 +44,13 @@ func NewReader(r io.Reader) (Reader, error) {
 	_, err2 := NewNgReader(track)
 	if err2 == nil {
 		return NewNgReader(recorder)
+	}
+	var pcaperr, ngerr *ErrInvalidPcap
+	if errors.As(err1, &pcaperr) && errors.As(err2, &ngerr) {
+		err1 = fmt.Errorf("pcap: %w", pcaperr.err)
+		err2 = fmt.Errorf("ngpcap: %w", ngerr.err)
+		err := multierr.Combine(err1, err2)
+		return nil, NewErrInvalidPcap(err)
 	}
 	return nil, multierr.Combine(err1, err2)
 }
