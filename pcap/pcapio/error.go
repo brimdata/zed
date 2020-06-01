@@ -7,11 +7,6 @@ import (
 	"github.com/brimsec/zq/zqe"
 )
 
-type detectorErr struct {
-	pcap   error
-	ngpcap error
-}
-
 type ErrInvalidPcap struct {
 	err error
 }
