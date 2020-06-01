@@ -14,6 +14,7 @@ package pcapio
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 
@@ -83,17 +84,17 @@ func NewPcapReader(r io.Reader) (*PcapReader, error) {
 	return reader, nil
 }
 
-func (r *PcapReader) Packet(block []byte) ([]byte, nano.Ts, layers.LinkType) {
+func (r *PcapReader) Packet(block []byte) ([]byte, nano.Ts, layers.LinkType, error) {
 	if len(block) <= packetHeaderLen {
-		return nil, 0, 0
+		return nil, 0, 0, errors.New("packet buffer length less then minimum packet size")
 	}
 	caplen := int(r.byteOrder.Uint32(block[8:12]))
 	if caplen+packetHeaderLen > len(block) {
-		return nil, 0, 0
+		return nil, 0, 0, errors.New("invalid capture length")
 	}
 	ts := r.TsFromHeader(block)
 	pkt := block[packetHeaderLen:]
-	return pkt[:caplen], ts, r.linkType
+	return pkt[:caplen], ts, r.linkType, nil
 }
 
 func (r *PcapReader) readHeader() error {

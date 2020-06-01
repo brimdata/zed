@@ -79,9 +79,9 @@ func (c *Command) Run(args []string) error {
 			break
 		}
 		if typ == pcapio.TypePacket {
-			pkt, ts, _ := reader.Packet(block)
-			if pkt == nil {
-				return pcapio.ErrCorruptPcap
+			_, ts, _, err := reader.Packet(block)
+			if err != nil {
+				return err
 			}
 			fmt.Fprintln(out, ts.StringFloat())
 		}

@@ -19,6 +19,28 @@ var (
 	ErrNoPcapsFound = zqe.E(zqe.NotFound, "no packets found")
 )
 
+type ErrInvalidPcap struct {
+	err error
+}
+
+func errInvalidPcap(err error) error {
+	e := &ErrInvalidPcap{err: err}
+	return zqe.E(zqe.Invalid, e)
+}
+
+func (e *ErrInvalidPcap) Is(target error) bool {
+	_, ok := target.(*ErrInvalidPcap)
+	return ok
+}
+
+func (e *ErrInvalidPcap) Unwrap() error {
+	return e.err
+}
+
+func (e *ErrInvalidPcap) Error() string {
+	return "invalid pcap: " + e.err.Error()
+}
+
 type PacketFilter func(gopacket.Packet) bool
 
 // Search describes the parameters for a packet search over a pcap file.
@@ -194,7 +216,7 @@ func (s *SearchReader) fill(ctx context.Context) error {
 			if err == io.EOF {
 				break
 			}
-			return err
+			return errInvalidPcap(err)
 		}
 		if block == nil {
 			break
@@ -212,9 +234,9 @@ func (s *SearchReader) fill(ctx context.Context) error {
 		case pcapio.TypeInterface:
 			s.buf = append(s.buf, block...)
 		default:
-			pktBuf, ts, linkType := s.reader.Packet(block)
+			pktBuf, ts, linkType, err := s.reader.Packet(block)
 			if pktBuf == nil {
-				return pcapio.ErrCorruptPcap
+				return errInvalidPcap(err)
 			}
 			if !s.span.ContainsClosed(ts) {
 				continue

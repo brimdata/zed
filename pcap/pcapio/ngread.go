@@ -21,11 +21,8 @@ import (
 
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/peeker"
-	"github.com/brimsec/zq/zqe"
 	"github.com/google/gopacket/layers"
 )
-
-var ErrCorruptPcap = zqe.E(zqe.Invalid, "bad pcap file")
 
 const PacketBlockHeaderLen = 28
 
@@ -56,20 +53,20 @@ func NewNgReader(r io.Reader) (*NgReader, error) {
 	return ret, nil
 }
 
-func (r *NgReader) parsePacket(block []byte) ([]byte, int) {
+func (r *NgReader) parsePacket(block []byte) ([]byte, int, error) {
 	if len(block) < PacketBlockHeaderLen {
-		return nil, 0
+		return nil, 0, errors.New("packet buffer length less then minimum packet size")
 	}
 	ifno := int(r.getUint32(block[8:12]))
 	if ifno >= len(r.ifaces) {
-		return nil, 0
+		return nil, 0, fmt.Errorf("packet references unknown interface no: %d", ifno)
 	}
 	caplen := int(r.getUint32(block[20:24]))
 	packet := block[PacketBlockHeaderLen:]
 	if len(packet) < caplen {
-		return nil, 0
+		return nil, 0, errors.New("invalid capture length")
 	}
-	return packet[:caplen], ifno
+	return packet[:caplen], ifno, nil
 }
 
 // Packet returns the captured portion of a packet from an enhanced packet
@@ -83,14 +80,14 @@ func (r *NgReader) parsePacket(block []byte) ([]byte, int) {
 // on timestamp).  We also do not support the original deprecated PCAP-NG packet
 // format but could add support if users request this (it would only be because
 // old pcaps with this deprecated format are sitting around).
-func (r *NgReader) Packet(block []byte) ([]byte, nano.Ts, layers.LinkType) {
-	packet, ifno := r.parsePacket(block)
-	if packet == nil {
-		return nil, 0, 0
+func (r *NgReader) Packet(block []byte) ([]byte, nano.Ts, layers.LinkType, error) {
+	packet, ifno, err := r.parsePacket(block)
+	if err != nil {
+		return nil, 0, 0, err
 	}
 	ts := uint64(r.getUint32(block[12:16]))<<32 | uint64(r.getUint32(block[16:20]))
 	t := time.Unix(r.convertTime(ifno, ts)).UTC()
-	return packet, nano.TimeToTs(t), r.ifaces[ifno].LinkType
+	return packet, nano.TimeToTs(t), r.ifaces[ifno].LinkType, nil
 }
 
 func (r *NgReader) Offset() uint64 {
@@ -281,9 +278,9 @@ func (r *NgReader) Read() ([]byte, BlockType, error) {
 		r.offset += uint64(len(block))
 		switch typ {
 		case ngBlockTypeEnhancedPacket:
-			packet, _ := r.parsePacket(block)
+			packet, _, err := r.parsePacket(block)
 			if packet == nil {
-				return nil, 0, ErrCorruptPcap
+				return nil, 0, err
 			}
 			return block, TypePacket, nil
 		case ngBlockTypeSimplePacket:
