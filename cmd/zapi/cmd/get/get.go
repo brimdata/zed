@@ -41,7 +41,6 @@ type Command struct {
 	protocol   string
 	dir        string
 	outputFile string
-	verbose    bool
 	reverse    bool
 	stats      bool
 	warnings   bool
@@ -55,7 +54,6 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.protocol, "p", "zng", "protocol to use for search request [ndjson,zjson,zng]")
 	f.StringVar(&c.dir, "d", "", "directory for output data files")
 	f.StringVar(&c.outputFile, "o", "", "write data to output file")
-	f.BoolVar(&c.verbose, "v", false, "show verbose details")
 	f.BoolVar(&c.reverse, "R", false, "reverse search order (from oldest to newest)")
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
 	f.BoolVar(&c.warnings, "W", false, "display warnings on stderr")
@@ -137,21 +135,11 @@ func parseExpr(spaceID api.SpaceID, expr string, reverse bool) (*api.SearchReque
 	}, nil
 }
 
-// XXX Net Yet
-// func printStats(stats *api.SearchStats) {
-// fmt.Fprintln(os.Stderr, format.StatsLine(*stats))
-// }
-
 func (c *Command) handleControl(ctrl interface{}) {
 	switch ctrl := ctrl.(type) {
 	case *api.SearchStats:
 		if c.stats {
-			if c.verbose {
-				// XXX Not yet
-				// printStats(ctrl)
-			} else {
-				c.final = ctrl
-			}
+			c.final = ctrl
 		}
 	case *api.SearchWarning:
 		if c.warnings {
