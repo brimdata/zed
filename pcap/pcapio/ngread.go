@@ -14,7 +14,6 @@ package pcapio
 
 import (
 	"encoding/binary"
-	"fmt"
 	"io"
 	"time"
 
@@ -152,7 +151,6 @@ func (r *NgReader) readBlock() (ngBlockType, []byte, error) {
 		// avoid infinite loop for bad input
 		return 0, nil, errInvalidf("pcap-ng block too small: %d bytes", length)
 	}
-	fmt.Println("length", length)
 	b, err := r.Reader.Read(int(length))
 	if err != nil {
 		return 0, nil, err
