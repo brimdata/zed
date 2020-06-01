@@ -55,6 +55,7 @@ var allFns = map[string]struct {
 	"Time.fromMilliseconds": {1, 1, timeFromMsec},
 	"Time.fromMicroseconds": {1, 1, timeFromUsec},
 	"Time.fromNanoseconds":  {1, 1, timeFromNsec},
+	"Time.trunc":            {2, 2, timeTrunc},
 }
 
 func err(fn string, err error) (zngnative.Value, error) {
@@ -447,4 +448,17 @@ func timeFromNsec(args []zngnative.Value) (zngnative.Value, error) {
 		return err("Time.fromNanoseconds", ErrBadArgument)
 	}
 	return zngnative.Value{zng.TypeTime, ns}, nil
+}
+
+func timeTrunc(args []zngnative.Value) (zngnative.Value, error) {
+	ts, ok := zngnative.CoerceNativeToTime(args[0])
+	if !ok {
+		return err("Time.trunc", ErrBadArgument)
+	}
+	dur, ok := zngnative.CoerceNativeToInt(args[1])
+	if !ok {
+		return err("Time.trunc", ErrBadArgument)
+	}
+	dur = dur * 1_000_000_000
+	return zngnative.Value{zng.TypeTime, int64(ts.Trunc(dur))}, nil
 }
