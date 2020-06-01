@@ -83,7 +83,7 @@ func CreateIndex(r io.Reader, size int) (Index, error) {
 		case pcapio.TypeSection:
 			// end previous section and start a new one
 			if section == nil && offsets != nil {
-				err = errors.New("missing section header")
+				err := errors.New("missing section header")
 				return nil, pcapio.NewErrInvalidPcap(err)
 			}
 			if section != nil && offsets != nil {
