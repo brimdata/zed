@@ -58,7 +58,7 @@ func NewNgReader(r io.Reader) (*NgReader, error) {
 		return nil, err
 	}
 	if typ != ngBlockTypeSectionHeader {
-		return nil, errInvalidf("Unknown magic %x", typ)
+		return nil, errInvalidf("unknown magic %x", typ)
 	}
 	ret.first = block
 	return ret, nil
