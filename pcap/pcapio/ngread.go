@@ -66,7 +66,7 @@ func NewNgReader(r io.Reader) (*NgReader, error) {
 
 func (r *NgReader) parsePacket(block []byte) ([]byte, int, error) {
 	if len(block) < PacketBlockHeaderLen {
-		return nil, 0, errInvalid("packet buffer length less then minimum packet size")
+		return nil, 0, errInvalid("packet buffer length less than minimum packet size")
 	}
 	ifno := int(r.getUint32(block[8:12]))
 	if ifno >= len(r.ifaces) {
