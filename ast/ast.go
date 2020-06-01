@@ -250,8 +250,7 @@ type (
 	// record that contains each reducer's result as a field in that record.
 	ReducerProc struct {
 		Node
-		UpdateInterval Duration  `json:"update_interval"`
-		Reducers       []Reducer `json:"reducers"`
+		Reducers []Reducer `json:"reducers"`
 	}
 	// A GroupByProc node represents a proc that consumes all the records
 	// in its input, partitions the records into groups based on the values
@@ -265,11 +264,10 @@ type (
 	// be aggregated over. When absent, the runtime defaults to an appropriate value.
 	GroupByProc struct {
 		Node
-		Duration       Duration  `json:"duration"`
-		UpdateInterval Duration  `json:"update_interval"`
-		Limit          int       `json:"limit,omitempty"`
-		Keys           []string  `json:"keys"`
-		Reducers       []Reducer `json:"reducers"`
+		Duration Duration  `json:"duration"`
+		Limit    int       `json:"limit,omitempty"`
+		Keys     []string  `json:"keys"`
+		Reducers []Reducer `json:"reducers"`
 	}
 	// TopProc is similar to proc.SortProc with a few key differences:
 	// - It only sorts in descending order.

@@ -1,9 +1,6 @@
 package proc
 
 import (
-	"time"
-
-	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/reducer/compile"
 	"github.com/brimsec/zq/zbuf"
@@ -11,23 +8,20 @@ import (
 )
 
 type ReducerParams struct {
-	interval ast.Duration
 	reducers []compile.CompiledReducer
 }
 
 type Reducer struct {
 	Base
-	n        int
-	interval time.Duration
-	columns  compile.Row
+	n       int
+	columns compile.Row
 }
 
 func NewReducer(c *Context, parent Proc, params ReducerParams) Proc {
-	interval := time.Duration(params.interval.Seconds) * time.Second
+
 	return &Reducer{
-		Base:     Base{Context: c, Parent: parent},
-		interval: interval,
-		columns:  compile.Row{Defs: params.reducers},
+		Base:    Base{Context: c, Parent: parent},
+		columns: compile.Row{Defs: params.reducers},
 	}
 }
 
