@@ -38,7 +38,7 @@ func prec(m float64) int {
 func abbrev(size int64) (string, string) {
 	switch {
 	case size < KB:
-		return strconv.FormatInt(size, 10), "bytes"
+		return strconv.FormatInt(size, 10), "B"
 	case size < MB:
 		v := float64(size) / KB
 		return strconv.FormatFloat(v, 'f', prec(v), 64), "KB"
