@@ -85,7 +85,7 @@ func NewPcapReader(r io.Reader) (*PcapReader, error) {
 
 func (r *PcapReader) Packet(block []byte) ([]byte, nano.Ts, layers.LinkType, error) {
 	if len(block) <= packetHeaderLen {
-		return nil, 0, 0, errInvalid("packet buffer length less then minimum packet size")
+		return nil, 0, 0, errInvalid("packet buffer length less than minimum packet size")
 	}
 	caplen := int(r.byteOrder.Uint32(block[8:12]))
 	if caplen+packetHeaderLen > len(block) {
