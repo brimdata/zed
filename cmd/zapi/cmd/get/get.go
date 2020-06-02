@@ -41,7 +41,6 @@ type Command struct {
 	protocol   string
 	dir        string
 	outputFile string
-	reverse    bool
 	stats      bool
 	warnings   bool
 	wire       bool
@@ -50,11 +49,10 @@ type Command struct {
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*cmd.Command)}
-	f.StringVar(&c.Format, "f", "text", "format for output data [ndjson,text,table,tzng,zeek,zng]")
+	f.StringVar(&c.Format, "f", "text", "format for output data [zng,ndjson,table,text,types,zeek,zjson,tzng]")
 	f.StringVar(&c.protocol, "p", "zng", "protocol to use for search request [ndjson,zjson,zng]")
 	f.StringVar(&c.dir, "d", "", "directory for output data files")
 	f.StringVar(&c.outputFile, "o", "", "write data to output file")
-	f.BoolVar(&c.reverse, "R", false, "reverse search order (from oldest to newest)")
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
 	f.BoolVar(&c.warnings, "W", false, "display warnings on stderr")
 	f.BoolVar(&c.ShowTypes, "T", false, "display field types in text output")
@@ -80,7 +78,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	req, err := parseExpr(id, expr, c.reverse)
+	req, err := parseExpr(id, expr)
 	if err != nil {
 		return fmt.Errorf("parse error: %s", err)
 	}
@@ -119,7 +117,7 @@ func (c *Command) Run(args []string) error {
 }
 
 // parseExpr creates an api.SearchRequest to be used with the client.
-func parseExpr(spaceID api.SpaceID, expr string, reverse bool) (*api.SearchRequest, error) {
+func parseExpr(spaceID api.SpaceID, expr string) (*api.SearchRequest, error) {
 	search, err := zql.ParseProc(expr)
 	if err != nil {
 		return nil, err
@@ -131,7 +129,6 @@ func parseExpr(spaceID api.SpaceID, expr string, reverse bool) (*api.SearchReque
 	return &api.SearchRequest{
 		Space: spaceID,
 		Proc:  proc,
-		Dir:   map[bool]int{true: 1, false: -1}[reverse],
 	}, nil
 }
 
