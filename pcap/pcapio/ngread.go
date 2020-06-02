@@ -14,18 +14,13 @@ package pcapio
 
 import (
 	"encoding/binary"
-	"errors"
-	"fmt"
 	"io"
 	"time"
 
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/peeker"
-	"github.com/brimsec/zq/zqe"
 	"github.com/google/gopacket/layers"
 )
-
-var ErrCorruptPcap = zqe.E(zqe.Invalid, "bad pcap file")
 
 const PacketBlockHeaderLen = 28
 
@@ -44,32 +39,44 @@ func NewNgReader(r io.Reader) (*NgReader, error) {
 	ret := &NgReader{
 		Reader: peeker.NewReader(r, 32*1024, 1024*1024),
 	}
+	hdr, err := ret.Peek(12)
+	if err != nil {
+		return nil, err
+	}
+	// ensure first block is correct
+	typ := ngBlockType(ret.getUint32(hdr[:4]))
+	//pcapng _must_ start with a section header
+	if typ != ngBlockTypeSectionHeader {
+		return nil, errInvalidf("first block type not a section header: %d", typ)
+	}
+	if err := ret.parseSectionMagic(hdr[8:12]); err != nil {
+		return nil, err
+	}
 	typ, block, err := ret.readBlock()
 	if err != nil {
 		return nil, err
 	}
-	//pcapng _must_ start with a section header
 	if typ != ngBlockTypeSectionHeader {
-		return nil, fmt.Errorf("Unknown magic %x", typ)
+		return nil, errInvalidf("unknown magic %x", typ)
 	}
 	ret.first = block
 	return ret, nil
 }
 
-func (r *NgReader) parsePacket(block []byte) ([]byte, int) {
+func (r *NgReader) parsePacket(block []byte) ([]byte, int, error) {
 	if len(block) < PacketBlockHeaderLen {
-		return nil, 0
+		return nil, 0, errInvalidf("packet buffer length less than minimum packet size")
 	}
 	ifno := int(r.getUint32(block[8:12]))
 	if ifno >= len(r.ifaces) {
-		return nil, 0
+		return nil, 0, errInvalidf("packet references unknown interface no: %d", ifno)
 	}
 	caplen := int(r.getUint32(block[20:24]))
 	packet := block[PacketBlockHeaderLen:]
 	if len(packet) < caplen {
-		return nil, 0
+		return nil, 0, errInvalidf("invalid capture length")
 	}
-	return packet[:caplen], ifno
+	return packet[:caplen], ifno, nil
 }
 
 // Packet returns the captured portion of a packet from an enhanced packet
@@ -83,14 +90,14 @@ func (r *NgReader) parsePacket(block []byte) ([]byte, int) {
 // on timestamp).  We also do not support the original deprecated PCAP-NG packet
 // format but could add support if users request this (it would only be because
 // old pcaps with this deprecated format are sitting around).
-func (r *NgReader) Packet(block []byte) ([]byte, nano.Ts, layers.LinkType) {
-	packet, ifno := r.parsePacket(block)
-	if packet == nil {
-		return nil, 0, 0
+func (r *NgReader) Packet(block []byte) ([]byte, nano.Ts, layers.LinkType, error) {
+	packet, ifno, err := r.parsePacket(block)
+	if err != nil {
+		return nil, 0, 0, err
 	}
 	ts := uint64(r.getUint32(block[12:16]))<<32 | uint64(r.getUint32(block[16:20]))
 	t := time.Unix(r.convertTime(ifno, ts)).UTC()
-	return packet, nano.TimeToTs(t), r.ifaces[ifno].LinkType
+	return packet, nano.TimeToTs(t), r.ifaces[ifno].LinkType, nil
 }
 
 func (r *NgReader) Offset() uint64 {
@@ -142,17 +149,17 @@ func (r *NgReader) readBlock() (ngBlockType, []byte, error) {
 	length := r.getUint32(hdr[4:8])
 	if length < 20 {
 		// avoid infinite loop for bad input
-		return 0, nil, fmt.Errorf("pcap-ng block too small: %d bytes", length)
+		return 0, nil, errInvalidf("pcap-ng block too small: %d bytes", length)
 	}
 	b, err := r.Reader.Read(int(length))
 	if err != nil {
 		return 0, nil, err
 	}
 	if uint32(len(b)) < length {
-		return 0, nil, errors.New("truncated pcap-ng block")
+		return 0, nil, errInvalidf("truncated pcap-ng block")
 	}
 	if r.getUint32(b[length-4:length]) != uint32(length) {
-		return 0, nil, errors.New("pcap-ng trailer length mismatch")
+		return 0, nil, errInvalidf("pcap-ng trailer length mismatch")
 	}
 	return typ, b, err
 }
@@ -163,7 +170,7 @@ func (r *NgReader) parseSectionMagic(b []byte) error {
 	} else if binary.LittleEndian.Uint32(b) == ngByteOrderMagic {
 		r.bigEndian = false
 	} else {
-		return errors.New("Wrong byte order value in Section Header")
+		return errInvalidf("Wrong byte order value in Section Header")
 	}
 	r.ifaces = r.ifaces[:0]
 	return nil
@@ -180,7 +187,7 @@ func (r *NgReader) readOption(b []byte) (ngOptionCode, []byte, int, error) {
 	length := r.getUint16(b[2:4])
 	b = b[4:]
 	if int(length) > len(b) {
-		return 0, nil, 0, errors.New("bad option length")
+		return 0, nil, 0, errInvalidf("bad option length")
 	}
 	// Determine padding. The option value field is always padded up to 32 bits.
 	padding := length % 4
@@ -194,7 +201,7 @@ func (r *NgReader) readOption(b []byte) (ngOptionCode, []byte, int, error) {
 // calculation, and adds the interface details to the current list.
 func (r *NgReader) parseInterfaceDescriptor(b []byte) error {
 	if len(b) < 20 {
-		return errors.New("bad interface descriptor block")
+		return errInvalidf("bad interface descriptor block")
 	}
 	var intf NgInterface
 	intf.LinkType = layers.LinkType(r.getUint16(b[8:10]))
@@ -221,12 +228,12 @@ func (r *NgReader) parseInterfaceDescriptor(b []byte) error {
 			intf.OS = string(body)
 		case ngOptionCodeInterfaceTimestampOffset:
 			if len(body) != 8 {
-				return errors.New("bad option value: ngOptionCodeInterfaceTimestampOffset")
+				return errInvalidf("bad option value: ngOptionCodeInterfaceTimestampOffset")
 			}
 			intf.TimestampOffset = r.getUint64(body[:8])
 		case ngOptionCodeInterfaceTimestampResolution:
 			if len(body) != 1 {
-				return errors.New("bad option value: ngOptionCodeInterfaceTimestampResolution")
+				return errInvalidf("bad option value: ngOptionCodeInterfaceTimestampResolution")
 			}
 			intf.TimestampResolution = NgResolution(body[0])
 		}
@@ -281,13 +288,13 @@ func (r *NgReader) Read() ([]byte, BlockType, error) {
 		r.offset += uint64(len(block))
 		switch typ {
 		case ngBlockTypeEnhancedPacket:
-			packet, _ := r.parsePacket(block)
+			packet, _, err := r.parsePacket(block)
 			if packet == nil {
-				return nil, 0, ErrCorruptPcap
+				return nil, 0, err
 			}
 			return block, TypePacket, nil
 		case ngBlockTypeSimplePacket:
-			return nil, 0, errors.New("pcap-ng simple packets not supported")
+			return nil, 0, errInvalidf("pcap-ng simple packets not supported")
 		case ngBlockTypeInterfaceDescriptor:
 			err := r.parseInterfaceDescriptor(block)
 			return block, TypeInterface, err
@@ -296,7 +303,7 @@ func (r *NgReader) Read() ([]byte, BlockType, error) {
 		case ngBlockTypeSectionHeader:
 			return block, TypeSection, err
 		case ngBlockTypePacket:
-			return nil, 0, errors.New("pcap-ng deprecated type packet not supported")
+			return nil, 0, errInvalidf("pcap-ng deprecated type packet not supported")
 		}
 	}
 	return nil, 0, nil

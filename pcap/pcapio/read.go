@@ -83,17 +83,17 @@ func NewPcapReader(r io.Reader) (*PcapReader, error) {
 	return reader, nil
 }
 
-func (r *PcapReader) Packet(block []byte) ([]byte, nano.Ts, layers.LinkType) {
+func (r *PcapReader) Packet(block []byte) ([]byte, nano.Ts, layers.LinkType, error) {
 	if len(block) <= packetHeaderLen {
-		return nil, 0, 0
+		return nil, 0, 0, errInvalidf("packet buffer length less than minimum packet size")
 	}
 	caplen := int(r.byteOrder.Uint32(block[8:12]))
 	if caplen+packetHeaderLen > len(block) {
-		return nil, 0, 0
+		return nil, 0, 0, errInvalidf("invalid capture length")
 	}
 	ts := r.TsFromHeader(block)
 	pkt := block[packetHeaderLen:]
-	return pkt[:caplen], ts, r.linkType
+	return pkt[:caplen], ts, r.linkType, nil
 }
 
 func (r *PcapReader) readHeader() error {
@@ -116,13 +116,13 @@ func (r *PcapReader) readHeader() error {
 		r.byteOrder = binary.BigEndian
 		r.nanoSecsFactor = 1000
 	} else {
-		return fmt.Errorf("Unknown magic %x", magic)
+		return errInvalidf("unknown magic %x", magic)
 	}
 	if r.versionMajor = r.byteOrder.Uint16(hdr[4:6]); r.versionMajor != versionMajor {
-		return fmt.Errorf("Unknown major version %d", r.versionMajor)
+		return errInvalidf("unknown major version %d", r.versionMajor)
 	}
 	if r.versionMinor = r.byteOrder.Uint16(hdr[6:8]); r.versionMinor != versionMinor {
-		return fmt.Errorf("Unknown minor version %d", r.versionMinor)
+		return errInvalidf("unknown minor version %d", r.versionMinor)
 	}
 	// ignore timezone 8:12 and sigfigs 12:16
 	r.snaplen = r.byteOrder.Uint32(hdr[16:20])
@@ -152,7 +152,7 @@ func (r *PcapReader) Read() ([]byte, BlockType, error) {
 	}
 	caplen := int(r.byteOrder.Uint32(hdr[8:12]))
 	if r.snaplen != 0 && caplen > int(r.snaplen) {
-		return nil, 0, fmt.Errorf("capture length exceeds snap length: %d > %d", caplen, r.snaplen)
+		return nil, 0, errInvalidf("capture length exceeds snap length: %d > %d", caplen, r.snaplen)
 	}
 	// Some pcaps have the bug that captures exceed the size of the actual packet.
 	// Wireshark seems to handle these ok, so instead of failing and raising

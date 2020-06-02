@@ -212,9 +212,9 @@ func (s *SearchReader) fill(ctx context.Context) error {
 		case pcapio.TypeInterface:
 			s.buf = append(s.buf, block...)
 		default:
-			pktBuf, ts, linkType := s.reader.Packet(block)
+			pktBuf, ts, linkType, err := s.reader.Packet(block)
 			if pktBuf == nil {
-				return pcapio.ErrCorruptPcap
+				return err
 			}
 			if !s.span.ContainsClosed(ts) {
 				continue
