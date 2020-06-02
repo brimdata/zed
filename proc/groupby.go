@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/brimsec/zq/ast"
@@ -47,8 +48,25 @@ const defaultGroupByLimit = 1000000
 
 func CompileGroupBy(node *ast.GroupByProc, zctx *resolver.Context) (*GroupByParams, error) {
 	keys := make([]GroupByKey, 0)
+	astKeys := node.Keys
 	var targetNames []string
-	for _, astKey := range node.Keys {
+	if node.Duration.Seconds > 0 {
+		everyKey := ast.Assignment{
+			Target: "ts",
+			Expr: &ast.FunctionCall{
+				Node:     ast.Node{"FunctionCall"},
+				Function: "Time.trunc",
+				Args: []ast.Expression{
+					&ast.FieldRead{ast.Node{"FieldRead"}, "ts"},
+					&ast.Literal{ast.Node{"Literal"}, "int64", strconv.Itoa(node.Duration.Seconds)},
+				},
+			},
+		}
+		astKeys = append([]ast.Assignment{everyKey}, astKeys...)
+		node.Duration.Seconds = 0
+	}
+
+	for _, astKey := range astKeys {
 		ex, err := compileKeyExpr(astKey.Expr)
 		if err != nil {
 			return nil, fmt.Errorf("compiling groupby: %w", err)
@@ -112,9 +130,7 @@ type keyRow struct {
 // GroupByAggregator performs the core aggregation computation for a
 // list of reducer generators. It handles both regular and time-binned
 // ("every") group-by operations.  Records are generated in a
-// deterministic but undefined total order. Records and spans generated
-// by time-binning are partially ordered by timestamp coincident with
-// search direction.
+// deterministic but undefined total order.
 type GroupByAggregator struct {
 	// keyRows maps incoming type ID to a keyRow holding
 	// information on the column types for that record's group-by
