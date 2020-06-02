@@ -37,7 +37,6 @@ func init() {
 type Command struct {
 	*cmd.Command
 	zio.WriterFlags
-	// format     string
 	protocol   string
 	dir        string
 	outputFile string
