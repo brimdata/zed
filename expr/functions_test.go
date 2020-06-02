@@ -245,6 +245,7 @@ func TestTime(t *testing.T) {
 	testSuccessful(t, exp, nil, zval)
 	exp = fmt.Sprintf("Time.fromNanoseconds(%d)", nsec)
 	testSuccessful(t, exp, nil, zval)
+	testSuccessful(t, "Time.trunc(1590506867.967, 1)", nil, zng.Value{zng.TypeTime, zng.EncodeTime(nano.Ts(1590506867 * 1_000_000_000))})
 
 	testError(t, "Time.fromISO()", nil, expr.ErrTooFewArgs, "Time.fromISO() with no args")
 	testError(t, `Time.fromISO("abc", "def")`, nil, expr.ErrTooManyArgs, "Time.fromISO() with too many args")
