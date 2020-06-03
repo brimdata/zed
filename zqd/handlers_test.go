@@ -191,6 +191,11 @@ func TestSearchError(t *testing.T) {
 	})
 }
 
+// XXX duplicate name tests:
+// - create space with dup name
+// - create subspace with dup name
+// - change name to dup name
+
 func TestSpaceList(t *testing.T) {
 	names := []string{"sp1", "sp2", "sp3", "sp4"}
 	var expected []api.SpaceInfo
@@ -287,6 +292,28 @@ func TestSpacePostNameOnly(t *testing.T) {
 	assert.Regexp(t, "^sp", sp.ID)
 }
 
+func TestSpacePostDuplicateName(t *testing.T) {
+	ctx := context.Background()
+	_, client, done := newCore(t)
+	defer done()
+	_, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	require.NoError(t, err)
+	_, err = client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	require.Equal(t, api.ErrSpaceExists, err)
+}
+
+func TestSpacePutDuplicateName(t *testing.T) {
+	ctx := context.Background()
+	_, client, done := newCore(t)
+	defer done()
+	_, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	require.NoError(t, err)
+	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test1"})
+	require.NoError(t, err)
+	err = client.SpacePut(ctx, sp.ID, api.SpacePutRequest{Name: "test"})
+	require.Regexp(t, "space with name 'test' already exists", err.Error())
+}
+
 func TestSpacePostDataPath(t *testing.T) {
 	ctx := context.Background()
 	tmp := createTempDir(t)
@@ -296,7 +323,7 @@ func TestSpacePostDataPath(t *testing.T) {
 	defer done()
 	sp, err := client.SpacePost(ctx, api.SpacePostRequest{DataPath: datapath})
 	require.NoError(t, err)
-	assert.Equal(t, "mypcap.brim", sp.Name)
+	assert.Equal(t, "mypcap_brim", sp.Name)
 	assert.Equal(t, datapath, sp.DataPath)
 }
 
@@ -603,10 +630,10 @@ func TestDeleteDuringPcapPost(t *testing.T) {
 	wg.Add(1)
 	doPost := func() error {
 		stream, err := client.PcapPost(context.Background(), sp.ID, api.PcapPostRequest{pcapfile})
+		wg.Done()
 		if err != nil {
 			return err
 		}
-		wg.Done()
 
 		var taskEnd *api.TaskEnd
 		for {

@@ -15,8 +15,8 @@ type archiveSpace struct {
 	spaceBase
 	path string
 
-	// muConf protects changes to configuration changes.
-	muConf sync.Mutex
+	// confmu protects changes to configuration changes.
+	confmu sync.Mutex
 	conf   config
 }
 
@@ -26,26 +26,43 @@ func (s *archiveSpace) Info(ctx context.Context) (api.SpaceInfo, error) {
 		return api.SpaceInfo{}, err
 	}
 
+	s.confmu.Lock()
+	defer s.confmu.Unlock()
 	si.Name = s.conf.Name
 	si.DataPath = s.conf.DataPath
 	return si, nil
 }
 
-func (s *archiveSpace) Update(req api.SpacePutRequest) error {
+func (s *archiveSpace) Name() string {
+	s.confmu.Lock()
+	defer s.confmu.Unlock()
+	return s.conf.Name
+}
+
+func (s *archiveSpace) update(req api.SpacePutRequest) error {
 	if req.Name == "" {
 		return zqe.E(zqe.Invalid, "cannot set name to an empty string")
 	}
 
-	s.muConf.Lock()
-	defer s.muConf.Unlock()
+	s.confmu.Lock()
+	defer s.confmu.Unlock()
 
-	s.conf.Name = req.Name
-	return s.conf.save(s.path)
+	conf := s.conf.clone()
+	conf.Name = req.Name
+	return s.updateConfigWithLock(conf)
+}
+
+func (s *archiveSpace) updateConfigWithLock(conf config) error {
+	if err := writeConfig(s.path, conf); err != nil {
+		return err
+	}
+	s.conf = conf
+	return nil
 }
 
 func (s *archiveSpace) delete() error {
-	s.muConf.Lock()
-	defer s.muConf.Unlock()
+	s.confmu.Lock()
+	defer s.confmu.Unlock()
 
 	if len(s.conf.Subspaces) != 0 {
 		return zqe.E(zqe.Conflict, "cannot delete space with subspaces")
@@ -61,12 +78,8 @@ func (s *archiveSpace) delete() error {
 }
 
 func (s *archiveSpace) CreateSubspace(req api.SubspacePostRequest) (*archiveSubspace, error) {
-	if req.Name == "" {
-		return nil, zqe.E(zqe.Invalid, "cannot set name to an empty string")
-	}
-
-	s.muConf.Lock()
-	defer s.muConf.Unlock()
+	s.confmu.Lock()
+	defer s.confmu.Unlock()
 
 	substore, err := archivestore.Load(s.conf.DataPath, &storage.ArchiveConfig{
 		OpenOptions: &req.OpenOptions,
@@ -80,8 +93,9 @@ func (s *archiveSpace) CreateSubspace(req api.SubspacePostRequest) (*archiveSubs
 		Name:        req.Name,
 		OpenOptions: req.OpenOptions,
 	}
-	s.conf.Subspaces = append(s.conf.Subspaces, subcfg)
-	if err := s.conf.save(s.path); err != nil {
+	newconf := s.conf.clone()
+	newconf.Subspaces = append(newconf.Subspaces, subcfg)
+	if err := s.updateConfigWithLock(newconf); err != nil {
 		return nil, err
 	}
 

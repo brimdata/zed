@@ -254,17 +254,19 @@ func handleSpacePut(c *Core, w http.ResponseWriter, r *http.Request) {
 	if s == nil {
 		return
 	}
+
 	_, cancel, err := s.StartOp(r.Context())
 	if err != nil {
 		respondError(c, w, r, err)
 		return
 	}
 	defer cancel()
+
 	var req api.SpacePutRequest
 	if !request(c, w, r, &req) {
 		return
 	}
-	if err := s.Update(req); err != nil {
+	if err := c.spaces.UpdateSpace(s, req); err != nil {
 		respondError(c, w, r, err)
 		return
 	}
