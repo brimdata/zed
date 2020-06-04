@@ -113,7 +113,7 @@ func (g *guard) acquireForDelete() error {
 	return nil
 }
 
-func loadSpace(path string, conf config) (Space, error) {
+func loadSpaces(path string, conf config) ([]Space, error) {
 	datapath := conf.DataPath
 	if datapath == "." {
 		datapath = path
@@ -131,19 +131,33 @@ func loadSpace(path string, conf config) (Space, error) {
 			path:      path,
 			conf:      conf,
 		}
-		return s, nil
+		return []Space{s}, nil
 
 	case storage.ArchiveStore:
 		store, err := archivestore.Load(datapath, conf.Storage.Archive)
 		if err != nil {
 			return nil, err
 		}
-		s := &archiveSpace{
+		parent := &archiveSpace{
 			spaceBase: spaceBase{id, store, newGuard()},
 			path:      path,
 			conf:      conf,
 		}
-		return s, nil
+		ret := []Space{parent}
+		for _, subcfg := range conf.Subspaces {
+			substore, err := archivestore.Load(datapath, &storage.ArchiveConfig{
+				OpenOptions: &subcfg.OpenOptions,
+			})
+			if err != nil {
+				return nil, err
+			}
+			sub := &archiveSubspace{
+				spaceBase: spaceBase{subcfg.ID, substore, newGuard()},
+				parent:    parent,
+			}
+			ret = append(ret, sub)
+		}
+		return ret, nil
 
 	default:
 		return nil, zqe.E(zqe.Invalid, "loadSpace: unknown storage kind: %s", conf.Storage.Kind)
@@ -198,7 +212,14 @@ type config struct {
 	// do a migration we'll keep this as-is for now.
 	PcapPath string `json:"packet_path"`
 
-	Storage storage.Config `json:"storage"`
+	Storage   storage.Config   `json:"storage"`
+	Subspaces []subspaceConfig `json:"subspaces"`
+}
+
+type subspaceConfig struct {
+	ID          api.SpaceID                `json:"id"`
+	Name        string                     `json:"name"`
+	OpenOptions storage.ArchiveOpenOptions `json:"open_options"`
 }
 
 // loadConfig loads the contents of config.json in a space's path.

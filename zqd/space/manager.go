@@ -45,11 +45,13 @@ func NewManager(root string, logger *zap.Logger) (*Manager, error) {
 			continue
 		}
 
-		space, err := loadSpace(path, config)
+		spaces, err := loadSpaces(path, config)
 		if err != nil {
 			return nil, err
 		}
-		mgr.spaces[space.ID()] = space
+		for _, s := range spaces {
+			mgr.spaces[s.ID()] = s
+		}
 	}
 
 	return mgr, nil
@@ -97,7 +99,26 @@ func (m *Manager) Create(req api.SpacePostRequest) (Space, error) {
 		return nil, errors.New("created duplicate space id (this should not happen)")
 	}
 
-	s, err := loadSpace(path, c)
+	spaces, err := loadSpaces(path, c)
+	if err != nil {
+		return nil, err
+	}
+	if len(spaces) != 1 {
+		panic("multiple spaces created during space create")
+	}
+	m.spaces[id] = spaces[0]
+	return spaces[0], nil
+}
+
+func (m *Manager) SubspaceCreate(parent Space, req api.SubspacePostRequest) (Space, error) {
+	m.mapLock.Lock()
+	defer m.mapLock.Unlock()
+
+	as, ok := parent.(*archiveSpace)
+	if !ok {
+		return nil, zqe.E(zqe.Invalid, "space does not support creating subspaces")
+	}
+	s, err := as.CreateSubspace(req)
 	if err != nil {
 		return nil, err
 	}

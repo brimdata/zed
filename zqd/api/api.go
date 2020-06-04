@@ -128,6 +128,11 @@ type SpacePostRequest struct {
 	Storage  *storage.Config `json:"storage"`
 }
 
+type SubspacePostRequest struct {
+	Name        string                     `json:"name"`
+	OpenOptions storage.ArchiveOpenOptions `json:"open_options"`
+}
+
 type SpacePutRequest struct {
 	Name string `json:"name"`
 }

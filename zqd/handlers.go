@@ -217,6 +217,38 @@ func handleSpacePost(c *Core, w http.ResponseWriter, r *http.Request) {
 	respond(c, w, r, http.StatusOK, info)
 }
 
+func handleSubspacePost(c *Core, w http.ResponseWriter, r *http.Request) {
+	s := extractSpace(c, w, r)
+	if s == nil {
+		return
+	}
+
+	ctx, cancel, err := s.StartOp(r.Context())
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	defer cancel()
+
+	var req api.SubspacePostRequest
+	if !request(c, w, r, &req) {
+		return
+	}
+
+	sp, err := c.spaces.SubspaceCreate(s, req)
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	info, err := sp.Info(ctx)
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+
+	respond(c, w, r, http.StatusOK, info)
+}
+
 func handleSpacePut(c *Core, w http.ResponseWriter, r *http.Request) {
 	s := extractSpace(c, w, r)
 	if s == nil {
@@ -281,12 +313,12 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 
 	pspace, ok := s.(ingest.PcapSpace)
 	if !ok {
-		respondError(c, w, r, zqe.E(zqe.Invalid, "space does not support importing pcaps"))
+		respondError(c, w, r, zqe.E(zqe.Invalid, "space does not support pcap import"))
 		return
 	}
 	pstore, ok := s.Storage().(ingest.PcapStore)
 	if !ok {
-		respondError(c, w, r, zqe.E(zqe.Invalid, "space storage does not support importing pcaps"))
+		respondError(c, w, r, zqe.E(zqe.Invalid, "storage does not support pcap import"))
 		return
 	}
 	op, err := ingest.NewPcapOp(ctx, pspace, pstore, req.Path, c.ZeekLauncher)
