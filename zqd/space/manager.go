@@ -138,19 +138,17 @@ func (m *Manager) Get(id api.SpaceID) (Space, error) {
 }
 
 func (m *Manager) Delete(id api.SpaceID) error {
-	m.mapLock.Lock()
-	defer m.mapLock.Unlock()
-
-	space, exists := m.spaces[id]
-	if !exists {
-		return ErrSpaceNotExist
-	}
-
-	err := space.delete()
+	space, err := m.Get(id)
 	if err != nil {
 		return err
 	}
 
+	if err := space.delete(); err != nil {
+		return err
+	}
+
+	m.mapLock.Lock()
+	defer m.mapLock.Unlock()
 	delete(m.spaces, id)
 	return nil
 }
