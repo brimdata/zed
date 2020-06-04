@@ -102,8 +102,7 @@ func (c *Command) Run(args []string) error {
 	if _, err := c.SpaceID(); err != nil {
 		return err
 	}
-	repl := repl.NewREPL(c)
-	err := repl.Run()
+	err := repl.Run(c)
 	if err == io.EOF {
 		fmt.Println("")
 		err = nil

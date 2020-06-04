@@ -53,7 +53,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.dir, "d", "", "directory for output data files")
 	f.StringVar(&c.outputFile, "o", "", "write data to output file")
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
-	f.BoolVar(&c.warnings, "W", false, "display warnings on stderr")
+	f.BoolVar(&c.warnings, "W", true, "display warnings on stderr")
 	f.BoolVar(&c.ShowTypes, "T", false, "display field types in text output")
 	f.BoolVar(&c.ShowFields, "F", false, "display field names in text output")
 	f.BoolVar(&c.EpochDates, "E", false, "display epoch timestamps in text output")
@@ -102,13 +102,12 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	stream := api.NewZngSearch(r) // XXX fix this to match specified format
+	stream := api.NewZngSearch(r)
 	stream.SetOnCtrl(c.handleControl)
 	if err := zbuf.Copy(zbuf.NopFlusher(writer), stream); err != nil {
 		writer.Close()
 		if c.Context().Err() != nil {
-			fmt.Fprintln(os.Stderr, "search aborted")
-			return nil
+			return errors.New("search aborted")
 		}
 		return err
 	}

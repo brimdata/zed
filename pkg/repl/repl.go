@@ -3,8 +3,6 @@
 package repl
 
 import (
-	"io"
-
 	"github.com/peterh/liner"
 )
 
@@ -13,29 +11,17 @@ type Consumer interface {
 	Prompt() string
 }
 
-type REPL struct {
-	consumer Consumer
-}
-
-func NewREPL(c Consumer) *REPL {
-	return &REPL{consumer: c}
-}
-
 // Run executes the REPL.
-func (r *REPL) Run() error {
+func Run(c Consumer) error {
 	l := liner.NewLiner()
-	defer l.Close() //nolint:errcheck
+	defer l.Close()
 	l.SetMultiLineMode(true)
 	for {
-		line, e := l.Prompt(r.consumer.Prompt())
-		if e == io.EOF {
-			return io.EOF
-		} else if e != nil {
-			// Ignore this error; the prior is more interesting.
-			return e
+		line, err := l.Prompt(c.Prompt())
+		if err != nil {
+			return err
 		}
-		done := r.consumer.Consume(line)
-		if done {
+		if c.Consume(line) {
 			return nil
 		}
 		l.AppendHistory(line)
@@ -44,13 +30,13 @@ func (r *REPL) Run() error {
 
 func Ask(prompt string) (string, error) {
 	l := liner.NewLiner()
-	defer l.Close() //nolint:errcheck
+	defer l.Close()
 	return l.Prompt(prompt)
 }
 
 func AskForPassword() (string, error) {
 	l := liner.NewLiner()
-	defer l.Close() //nolint:errcheck
+	defer l.Close()
 	return l.PasswordPrompt("Password:")
 }
 
