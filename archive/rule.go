@@ -65,11 +65,6 @@ const framesize = 32 * 1024 * 2
 
 const keyName = "key"
 
-var keyAst = ast.Assignment{
-	Target: "key",
-	Expr:   &ast.FieldRead{Field: "key"},
-}
-
 // NewFieldRule creates an indexing rule that will index all fields of
 // the type passed in as argument.
 func NewTypeRule(typeName string) (*Rule, error) {
@@ -84,7 +79,7 @@ func NewTypeRule(typeName string) (*Rule, error) {
 				typeName: typeName,
 			},
 			&ast.GroupByProc{
-				Keys: []ast.Assignment{keyAst},
+				Keys: []string{keyName},
 			},
 			&ast.SortProc{},
 		},
@@ -102,7 +97,7 @@ func NewFieldRule(fieldName string) (*Rule, error) {
 				out:   keyName,
 			},
 			&ast.GroupByProc{
-				Keys: []ast.Assignment{keyAst},
+				Keys: []string{keyName},
 			},
 			&ast.SortProc{},
 		},

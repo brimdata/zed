@@ -213,16 +213,8 @@ proc
       RETURN(proc)
     }
 
-groupByKeys
-  = "by"i _ first:groupByKey rest:(__ "," __ cl:groupByKey { RETURN(cl) })* {
-      RETURN(makeGroupByKeys(first, rest))
-    }
-
-
-groupByKey
-  = Assignment
-  / field:fieldExpr { RETURN(makeGroupByKey(TEXT, field)) }
-
+groupBy
+  = "by"i _ list:fieldRefDotOnlyList { RETURN(list) }
 
 everyDur
   = "every"i _ dur:duration { RETURN(dur) }
@@ -318,7 +310,7 @@ fieldReducer
   }
 
 reducerProc
-  = every:(everyDur _)? reducers:reducerList keys:(_ groupByKeys)? limit:procLimitArg? {
+  = every:(everyDur _)? reducers:reducerList keys:(_ groupBy)? limit:procLimitArg? {
     if ISNOTNULL(OR(keys, every)) {
       if ISNOTNULL(keys) {
         keys = ASSERT_ARRAY(keys)[1]
@@ -414,13 +406,13 @@ uniq
     }
 
 put
-  = "put"i _ first:Assignment rest:(__ "," __ cl:Assignment { RETURN(cl) })* {
+  = "put"i _ first:PutClause rest:(__ "," __ cl:PutClause { RETURN(cl) })* {
       RETURN(makePutProc(first, rest))
     }
 
-Assignment
+PutClause
   = f:fieldName __ "=" __ e:Expression {
-      RETURN(makeAssignment(f, e))
+      RETURN(makePutClause(f, e))
     }
 
 PrimaryExpression

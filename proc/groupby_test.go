@@ -31,9 +31,8 @@ const groupMultiOut = `
 `
 
 const unsetIn = `
-#1:record[key1:string,key2:string,n:int32]
-1:[-;-;3;]
-1:[-;-;4;]
+0:[-;-;3;]
+0:[-;-;4;]
 `
 
 const groupSingleOut_unsetOut = `
@@ -93,11 +92,6 @@ const nestedKeyOut = `
 0:[[1;]2;]
 0:[[2;]1;]
 `
-const nestedKeyAssignedOut = `
-#0:record[newkey:int32,count:uint64]
-0:[1;2;]
-0:[2;1;]
-`
 
 const nullIn = `
 #0:record[key:string,val:int64]
@@ -149,16 +143,6 @@ const aliasOut = `
 1:[127.0.0.1;1;]
 `
 
-const computedKeyIn = `
-#0:record[s:string,i:uint64,j:uint64]
-0:[foo;2;2;]
-0:[FOO;2;2;]
-`
-const computedKeyOut = `
-#0:record[s:string,ij:uint64,count:uint64]
-0:[foo;4;2;]
-`
-
 //XXX this should go in a shared package
 type suite []test.Internal
 
@@ -193,11 +177,9 @@ func tests() suite {
 
 	// Test a simple groupby
 	s.add(New("simple", in, groupSingleOut, "count() by key1"))
-	s.add(New("simple", in, groupSingleOut, "count() by key1=key1"))
 
 	// Test that unset key values work correctly
 	s.add(New("unset-keys", in+unsetIn, groupSingleOut_unsetOut, "count() by key1"))
-	s.add(New("unset-keys-at-start", unsetIn+in, groupSingleOut_unsetOut, "count() by key1"))
 
 	// Test grouping by multiple fields
 	s.add(New("multiple-fields", in, groupMultiOut, "count() by key1,key2"))
@@ -227,14 +209,8 @@ func tests() suite {
 	s.add(New("mixed-inputs", mixedIn, mixedOut, "first(f), last(f) by key"))
 
 	s.add(New("aliases", aliasIn, aliasOut, "count() by host"))
+	// XXX add coverage of time batching (every ..)
 
-	// Tests with assignments and computed keys
-	s.add(New("unset-keys-computed", in+unsetIn, groupSingleOut_unsetOut, "count() by key1=String.toLower(String.toUpper(key1))"))
-	s.add(New("unset-keys-assign", in+unsetIn, strings.ReplaceAll(groupSingleOut_unsetOut, "key1", "newkey"), "count() by newkey=key1"))
-	s.add(New("unset-keys-at-start-assign", unsetIn+in, strings.ReplaceAll(groupSingleOut_unsetOut, "key1", "newkey"), "count() by newkey=key1"))
-	s.add(New("multiple-fields-assign", in, strings.ReplaceAll(groupMultiOut, "key2", "newkey"), "count() by key1,newkey=key2"))
-	s.add(New("key-in-record-assign", nestedKeyIn, nestedKeyAssignedOut, "count() by newkey=rec.i"))
-	s.add(New("computed-key", computedKeyIn, computedKeyOut, "count() by s=String.toLower(s), ij=i+j"))
 	return s
 }
 

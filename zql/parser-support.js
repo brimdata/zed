@@ -107,7 +107,7 @@ function makeTailProc(count) { return { op: "TailProc", count }; }
 function makeUniqProc(cflag) { return { op: "TailProc", cflag }; }
 function makeFilterProc(filter) { return { op: "FilterProc", filter }; }
 
-function makeAssignment(target, expression) { return { target, expression }; }
+function makePutClause(target, expression) { return { target, expression }; }
 function makePutProc(first, rest) {
   return { op: "PutProc", clauses: [first, ...rest] };
 }
@@ -126,14 +126,6 @@ function makeDuration(seconds) {
 
 function makeReducerProc(reducers) {
   return { op: "ReducerProc", reducers };
-}
-
-function makeGroupByKey(target, expression) {
-    return { op: "Assignment", target, expression };
-}
-
-function makeGroupByKeys(first, rest) {
-  return [first, ...rest];
 }
 
 function makeGroupByProc(duration, limit, keys, reducers) {
