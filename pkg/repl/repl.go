@@ -45,11 +45,7 @@ func (r *REPL) Run() error {
 func Ask(prompt string) (string, error) {
 	l := liner.NewLiner()
 	defer l.Close() //nolint:errcheck
-	answer, err := l.Prompt(prompt)
-	if err != nil {
-		return "", err
-	}
-	return answer, nil
+	return l.Prompt(prompt)
 }
 
 func AskForPassword() (string, error) {
