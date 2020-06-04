@@ -23,8 +23,7 @@ func newSignalCtx(sigs ...os.Signal) *signalCtx {
 
 func (s *signalCtx) listen() {
 	select {
-	case sig := <-s.signals:
-		s.caught = sig
+	case s.caught = <-s.signals:
 		s.cancel()
 	case <-s.Done():
 	}
