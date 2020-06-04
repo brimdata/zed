@@ -7,25 +7,30 @@ import (
 	"github.com/brimsec/zq/zbuf"
 )
 
-type Kind int
+type Kind string
 
 const (
-	UnknownStore Kind = iota
-	FileStore
-	ArchiveStore
+	UnknownStore Kind = ""
+	FileStore    Kind = "filestore"
+	ArchiveStore Kind = "archivestore"
 )
 
-func (k Kind) String() string {
-	switch k {
-	case FileStore:
-		return "filestore"
-	case ArchiveStore:
-		return "archivestore"
-	case UnknownStore:
-		fallthrough
-	default:
-		return "unknown storage kind"
-	}
+type Config struct {
+	Kind    Kind           `json:"kind"`
+	Archive *ArchiveConfig `json:"archivestore"`
+}
+
+type ArchiveConfig struct {
+	OpenOptions   *ArchiveOpenOptions   `json:"open_options"`
+	CreateOptions *ArchiveCreateOptions `json:"create_options"`
+}
+
+type ArchiveOpenOptions struct {
+	LogFilter []string `json:"log_filter"`
+}
+
+type ArchiveCreateOptions struct {
+	LogSizeThreshold *int64 `json:"log_size_threshold"`
 }
 
 type Summary struct {

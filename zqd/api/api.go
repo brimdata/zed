@@ -12,6 +12,7 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/zjsonio"
+	"github.com/brimsec/zq/zqd/storage"
 )
 
 type Error struct {
@@ -95,15 +96,15 @@ func (s *SpaceID) Set(str string) error {
 }
 
 type SpaceInfo struct {
-	ID          SpaceID    `json:"id"`
-	Name        string     `json:"name"`
-	DataPath    string     `json:"data_path"`
-	StorageKind string     `json:"storage_kind"`
-	Span        *nano.Span `json:"span,omitempty"`
-	Size        int64      `json:"size" unit:"bytes"`
-	PcapSupport bool       `json:"pcap_support"`
-	PcapSize    int64      `json:"pcap_size" unit:"bytes"`
-	PcapPath    string     `json:"pcap_path"`
+	ID          SpaceID      `json:"id"`
+	Name        string       `json:"name"`
+	DataPath    string       `json:"data_path"`
+	StorageKind storage.Kind `json:"storage_kind"`
+	Span        *nano.Span   `json:"span,omitempty"`
+	Size        int64        `json:"size" unit:"bytes"`
+	PcapSupport bool         `json:"pcap_support"`
+	PcapSize    int64        `json:"pcap_size" unit:"bytes"`
+	PcapPath    string       `json:"pcap_path"`
 }
 
 type SpaceInfos []SpaceInfo
@@ -122,8 +123,9 @@ type StatusResponse struct {
 }
 
 type SpacePostRequest struct {
-	Name     string `json:"name"`
-	DataPath string `json:"data_path"`
+	Name     string          `json:"name"`
+	DataPath string          `json:"data_path"`
+	Storage  *storage.Config `json:"storage"`
 }
 
 type SpacePutRequest struct {

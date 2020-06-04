@@ -58,7 +58,7 @@ func loadSpace(path string, conf config) (*Space, error) {
 	if datapath == "." {
 		datapath = path
 	}
-	s, err := loader.Load(datapath)
+	s, err := loader.Load(datapath, conf.Storage)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +134,7 @@ func (s *Space) Info(ctx context.Context) (api.SpaceInfo, error) {
 		ID:          s.ID(),
 		Name:        s.conf.Name,
 		DataPath:    s.conf.DataPath,
-		StorageKind: sum.Kind.String(),
+		StorageKind: sum.Kind,
 		Size:        sum.DataBytes,
 		Span:        span,
 		PcapSupport: s.PcapPath() != "",
@@ -266,6 +266,8 @@ type config struct {
 	// XXX PcapPath should be named pcap_path in json land. To avoid having to
 	// do a migration we'll keep this as-is for now.
 	PcapPath string `json:"packet_path"`
+
+	Storage storage.Config `json:"storage"`
 }
 
 // loadConfig loads the contents of config.json in a space's path.
@@ -283,6 +285,9 @@ func loadConfig(spacePath string) (config, error) {
 		// Ensure that name is not blank for spaces created before the
 		// zq#721 work to use space ids.
 		c.Name = filepath.Base(spacePath)
+	}
+	if c.Storage.Kind == storage.UnknownStore {
+		c.Storage.Kind = storage.FileStore
 	}
 
 	return c, nil

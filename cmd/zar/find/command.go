@@ -83,7 +83,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	ark, err := archive.OpenArchive(c.root)
+	ark, err := archive.OpenArchive(c.root, nil)
 	if err != nil {
 		return err
 	}

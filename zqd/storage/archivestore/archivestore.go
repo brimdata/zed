@@ -9,13 +9,20 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/zngio"
-	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/storage"
 )
 
-func Load(path string) (*Storage, error) {
-	ark, err := archive.OpenArchive(path)
+func Load(path string, cfg *storage.ArchiveConfig) (*Storage, error) {
+	co := &archive.CreateOptions{}
+	if cfg != nil && cfg.CreateOptions != nil {
+		co.LogSizeThreshold = cfg.CreateOptions.LogSizeThreshold
+	}
+	oo := &archive.OpenOptions{}
+	if cfg != nil && cfg.OpenOptions != nil {
+		oo.LogFilter = cfg.OpenOptions.LogFilter
+	}
+	ark, err := archive.CreateOrOpenArchive(path, co, oo)
 	if err != nil {
 		return nil, err
 	}
@@ -79,40 +86,6 @@ func (s *Storage) Summary(_ context.Context) (storage.Summary, error) {
 	})
 }
 
-type indexSearch struct {
-	ctx    context.Context
-	cancel context.CancelFunc
-	hits   chan *zng.Record
-	err    error
-}
-
-func (is *indexSearch) Read() (*zng.Record, error) {
-	select {
-	case r, ok := <-is.hits:
-		if !ok {
-			return nil, is.err
-		}
-		return r, nil
-	case <-is.ctx.Done():
-		return nil, is.ctx.Err()
-	}
-}
-
-func (is *indexSearch) Close() error {
-	is.cancel()
-	return nil
-}
-
 func (s *Storage) IndexSearch(ctx context.Context, query archive.IndexQuery) (zbuf.ReadCloser, error) {
-	ctx, cancel := context.WithCancel(ctx)
-	is := &indexSearch{
-		ctx:    ctx,
-		cancel: cancel,
-		hits:   make(chan *zng.Record),
-	}
-	go func() {
-		is.err = archive.Find(ctx, s.ark, query, is.hits, archive.AddPath(archive.DefaultAddPathField, false))
-		close(is.hits)
-	}()
-	return is, nil
+	return archive.FindReadCloser(ctx, s.ark, query, archive.AddPath(archive.DefaultAddPathField, false))
 }

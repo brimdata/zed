@@ -48,7 +48,7 @@ func (c *Command) Run(args []string) error {
 		return errors.New("zar ls: too many arguments")
 	}
 
-	ark, err := archive.OpenArchive(c.root)
+	ark, err := archive.OpenArchive(c.root, nil)
 	if err != nil {
 		return err
 	}

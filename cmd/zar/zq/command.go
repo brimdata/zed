@@ -80,7 +80,7 @@ func (c *Command) Run(args []string) error {
 		c.outputFile = ""
 	}
 
-	ark, err := archive.OpenArchive(c.root)
+	ark, err := archive.OpenArchive(c.root, nil)
 	if err != nil {
 		return err
 	}

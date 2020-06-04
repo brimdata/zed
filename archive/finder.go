@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zdx"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -125,4 +126,42 @@ func search(ctx context.Context, zctx *resolver.Context, hits chan<- *zng.Record
 		err = fmt.Errorf("%s: %w", finder.Path(), err)
 	}
 	return err
+}
+
+type findReadCloser struct {
+	ctx    context.Context
+	cancel context.CancelFunc
+	hits   chan *zng.Record
+	err    error
+}
+
+func (f *findReadCloser) Read() (*zng.Record, error) {
+	select {
+	case r, ok := <-f.hits:
+		if !ok {
+			return nil, f.err
+		}
+		return r, nil
+	case <-f.ctx.Done():
+		return nil, f.ctx.Err()
+	}
+}
+
+func (f *findReadCloser) Close() error {
+	f.cancel()
+	return nil
+}
+
+func FindReadCloser(ctx context.Context, ark *Archive, query IndexQuery, opts ...FindOption) (zbuf.ReadCloser, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	f := &findReadCloser{
+		ctx:    ctx,
+		cancel: cancel,
+		hits:   make(chan *zng.Record),
+	}
+	go func() {
+		f.err = Find(ctx, ark, query, f.hits, opts...)
+		close(f.hits)
+	}()
+	return f, nil
 }

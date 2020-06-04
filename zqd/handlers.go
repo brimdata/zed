@@ -198,7 +198,7 @@ func handleSpacePost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sp, err := c.spaces.Create(req.Name, req.DataPath)
+	sp, err := c.spaces.Create(req)
 	if err != nil {
 		respondError(c, w, r, err)
 		return

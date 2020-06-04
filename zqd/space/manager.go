@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/brimsec/zq/zqd/api"
+	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqe"
 	"go.uber.org/zap"
 )
@@ -54,27 +55,37 @@ func NewManager(root string, logger *zap.Logger) (*Manager, error) {
 	return mgr, nil
 }
 
-func (m *Manager) Create(name, dataPath string) (*Space, error) {
+func (m *Manager) Create(req api.SpacePostRequest) (*Space, error) {
 	m.mapLock.Lock()
 	defer m.mapLock.Unlock()
 
-	if name == "" && dataPath == "" {
+	if req.Name == "" && req.DataPath == "" {
 		return nil, zqe.E(zqe.Invalid, "must supply non-empty name or dataPath")
 	}
-	if name == "" {
-		name = filepath.Base(dataPath)
+
+	var storecfg storage.Config
+	if req.Storage != nil {
+		storecfg = *req.Storage
+	}
+	if storecfg.Kind == storage.UnknownStore {
+		storecfg.Kind = storage.FileStore
+	}
+
+	if req.Name == "" {
+		req.Name = filepath.Base(req.DataPath)
 	}
 	id := newSpaceID()
 	path := filepath.Join(m.rootPath, string(id))
 	if err := os.Mkdir(path, 0755); err != nil {
 		return nil, err
 	}
-	if dataPath == "" {
-		dataPath = path
+	if req.DataPath == "" {
+		req.DataPath = path
 	}
 	c := config{
-		Name:     name,
-		DataPath: dataPath,
+		Name:     req.Name,
+		DataPath: req.DataPath,
+		Storage:  storecfg,
 	}
 	if err := c.save(path); err != nil {
 		os.RemoveAll(path)

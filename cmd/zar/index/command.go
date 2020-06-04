@@ -77,7 +77,7 @@ func (c *Command) Run(args []string) error {
 		return errors.New("zar index: a directory must be specified with -R or ZAR_ROOT")
 	}
 
-	ark, err := archive.OpenArchive(c.root)
+	ark, err := archive.OpenArchive(c.root, nil)
 	if err != nil {
 		return err
 	}

@@ -143,7 +143,7 @@ func (s *Storage) Rewrite(ctx context.Context, zr zbuf.Reader) error {
 	if err := os.Rename(tmppath, s.join(allZngFile)); err != nil {
 		return err
 	}
-	return s.UnionSpan(spanWriter.span)
+	return s.extendSpan(spanWriter.span)
 }
 
 func (s *Storage) write(ctx context.Context, zw zbuf.Writer, zr zbuf.Reader) error {
@@ -165,11 +165,10 @@ func (s *Storage) Clear(ctx context.Context) error {
 	if err := os.Remove(s.join(allZngFile)); err != nil && !os.IsNotExist(err) {
 		return err
 	}
-	return s.UnsetSpan()
+	return s.SetSpan(nano.Span{})
 }
 
-// XXX This is not thread safe and it should be.
-func (s *Storage) UnionSpan(span nano.Span) error {
+func (s *Storage) extendSpan(span nano.Span) error {
 	first := s.span == nano.Span{}
 	if first {
 		s.span = span
@@ -180,9 +179,8 @@ func (s *Storage) UnionSpan(span nano.Span) error {
 
 }
 
-// XXX This is not thread safe and it should be.
-func (s *Storage) UnsetSpan() error {
-	s.span = nano.Span{}
+func (s *Storage) SetSpan(span nano.Span) error {
+	s.span = span
 	return s.syncInfoFile()
 }
 

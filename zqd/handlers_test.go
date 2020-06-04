@@ -207,7 +207,7 @@ func TestSpaceList(t *testing.T) {
 				ID:          sp.ID,
 				Name:        n,
 				DataPath:    filepath.Join(c.Root, string(sp.ID)),
-				StorageKind: storage.FileStore.String(),
+				StorageKind: storage.FileStore,
 			})
 		}
 
@@ -247,7 +247,7 @@ func TestSpaceInfo(t *testing.T) {
 		ID:          sp.ID,
 		Name:        sp.Name,
 		DataPath:    sp.DataPath,
-		StorageKind: storage.FileStore.String(),
+		StorageKind: storage.FileStore,
 		Span:        &span,
 		Size:        81,
 		PcapSupport: false,
@@ -269,7 +269,7 @@ func TestSpaceInfoNoData(t *testing.T) {
 		ID:          sp.ID,
 		Name:        sp.Name,
 		DataPath:    sp.DataPath,
-		StorageKind: storage.FileStore.String(),
+		StorageKind: storage.FileStore,
 		Size:        0,
 		PcapSupport: false,
 	}
@@ -414,7 +414,7 @@ func TestPostZngLogs(t *testing.T) {
 		ID:          sp.ID,
 		Name:        sp.Name,
 		DataPath:    sp.DataPath,
-		StorageKind: storage.FileStore.String(),
+		StorageKind: storage.FileStore,
 		Span:        span,
 		Size:        81,
 		PcapSupport: false,
@@ -501,7 +501,7 @@ func TestPostNDJSONLogs(t *testing.T) {
 			ID:          sp.ID,
 			Name:        sp.Name,
 			DataPath:    sp.DataPath,
-			StorageKind: storage.FileStore.String(),
+			StorageKind: storage.FileStore,
 			Span:        &span,
 			Size:        81,
 			PcapSupport: false,
@@ -677,7 +677,7 @@ func createArchiveSpace(t *testing.T, datapath string, thresh int64, srcfile str
 	co := &archive.CreateOptions{
 		LogSizeThreshold: &thresh,
 	}
-	ark, err := archive.CreateOrOpenArchive(datapath, co)
+	ark, err := archive.CreateOrOpenArchive(datapath, co, nil)
 	require.NoError(t, err)
 
 	zctx := resolver.NewContext()
@@ -693,7 +693,7 @@ func indexArchiveSpace(t *testing.T, datapath string, ruledef string) {
 	rule, err := archive.NewRule(ruledef)
 	require.NoError(t, err)
 
-	ark, err := archive.OpenArchive(datapath)
+	ark, err := archive.OpenArchive(datapath, nil)
 	require.NoError(t, err)
 
 	err = archive.IndexDirTree(ark, []archive.Rule{*rule}, "_", nil)
@@ -713,6 +713,9 @@ func TestCreateArchiveSpace(t *testing.T) {
 	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{
 		Name:     "arktest",
 		DataPath: datapath,
+		Storage: &storage.Config{
+			Kind: storage.ArchiveStore,
+		},
 	})
 	require.NoError(t, err)
 
@@ -721,7 +724,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 		ID:          sp.ID,
 		Name:        sp.Name,
 		DataPath:    sp.DataPath,
-		StorageKind: storage.ArchiveStore.String(),
+		StorageKind: storage.ArchiveStore,
 		Span:        &span,
 		Size:        35285,
 	}
@@ -771,6 +774,9 @@ func TestIndexSearch(t *testing.T) {
 	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{
 		Name:     "TestIndexSearch",
 		DataPath: datapath,
+		Storage: &storage.Config{
+			Kind: storage.ArchiveStore,
+		},
 	})
 	require.NoError(t, err)
 
