@@ -263,12 +263,15 @@ type (
 	// large time ranges are processed and streamed efficiently.
 	// The limit parameter specifies the number of different groups that can
 	// be aggregated over. When absent, the runtime defaults to an appropriate value.
+	//
+	// xxx comment sorted
 	GroupByProc struct {
 		Node
 		Duration Duration     `json:"duration"`
 		Limit    int          `json:"limit,omitempty"`
 		Keys     []Assignment `json:"keys"`
 		Reducers []Reducer    `json:"reducers"`
+		Sorted   int          `json:"sorted"`
 	}
 	// TopProc is similar to proc.SortProc with a few key differences:
 	// - It only sorts in descending order.

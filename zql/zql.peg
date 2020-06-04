@@ -227,6 +227,9 @@ groupByKey
 everyDur
   = "every"i _ dur:duration { RETURN(dur) }
 
+groupBySorted
+  = _ "-sorted"i _ dir:sinteger { RETURN(parseInt(dir)) }
+
 equalityToken
   = EqualityOperator / RelativeOperator
 
@@ -317,6 +320,7 @@ fieldReducer
     RETURN(makeReducer(op, toLowerCase(op), field))
   }
 
+
 reduceProc
   = every:(everyDur _)? reducers:reducerList keys:(_ groupByKeys)? limit:procLimitArg? {
     if ISNOTNULL(OR(keys, every)) {
@@ -330,7 +334,7 @@ reduceProc
         every = ASSERT_ARRAY(every)[0]
       }
 
-      RETURN(makeGroupByProc(every, limit, keys, reducers))
+      RETURN(makeGroupByProc(every, sorted, limit, keys, reducers))
     }
 
     RETURN(makeReduceProc(reducers))
