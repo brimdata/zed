@@ -25,10 +25,11 @@ type GroupByKey struct {
 }
 
 type GroupByParams struct {
-	limit    int
-	keys     []GroupByKey
-	reducers []compile.CompiledReducer
-	builder  *ColumnBuilder
+	limit        int
+	keys         []GroupByKey
+	reducers     []compile.CompiledReducer
+	builder      *ColumnBuilder
+	inputSortDir int
 }
 
 type errTooBig int
@@ -87,10 +88,11 @@ func CompileGroupBy(node *ast.GroupByProc, zctx *resolver.Context) (*GroupByPara
 		return nil, fmt.Errorf("compiling groupby: %w", err)
 	}
 	return &GroupByParams{
-		limit:    node.Limit,
-		keys:     keys,
-		reducers: reducers,
-		builder:  builder,
+		limit:        node.Limit,
+		keys:         keys,
+		reducers:     reducers,
+		builder:      builder,
+		inputSortDir: node.Sorted,
 	}, nil
 }
 
@@ -141,14 +143,17 @@ type GroupByAggregator struct {
 	// lookup table so that values with the same encoding but of
 	// different types do not collide.  No types from this context
 	// are ever referenced.
-	kctx        *resolver.Context
-	keys        []GroupByKey
-	reducerDefs []compile.CompiledReducer
-	builder     *ColumnBuilder
-	table       map[string]*GroupByRow
-	reverse     bool
-	logger      *zap.Logger
-	limit       int
+	kctx         *resolver.Context
+	keys         []GroupByKey
+	reducerDefs  []compile.CompiledReducer
+	builder      *ColumnBuilder
+	table        map[string]*GroupByRow
+	reverse      bool
+	logger       *zap.Logger
+	limit        int
+	sortFn       expr.ValueSortFn // to compare primary keys for early key output
+	maxKey       *zng.Value
+	inputSortDir int
 }
 
 type GroupByRow struct {
@@ -162,17 +167,28 @@ func NewGroupByAggregator(c *Context, params GroupByParams) *GroupByAggregator {
 	if limit == 0 {
 		limit = defaultGroupByLimit
 	}
+	var sortFn expr.ValueSortFn
+	if len(params.keys) > 0 && params.inputSortDir != 0 {
+		s := expr.NewValueSortFn(true)
+		if params.inputSortDir < 0 {
+			sortFn = func(a, b zng.Value) int { return s(b, a) }
+		} else {
+			sortFn = s
+		}
+	}
 	return &GroupByAggregator{
-		keys:        params.keys,
-		zctx:        c.TypeContext,
-		kctx:        resolver.NewContext(),
-		reducerDefs: params.reducers,
-		builder:     params.builder,
-		keyRows:     make(map[int]keyRow),
-		table:       make(map[string]*GroupByRow),
-		reverse:     c.Reverse,
-		logger:      c.Logger,
-		limit:       limit,
+		keys:         params.keys,
+		zctx:         c.TypeContext,
+		kctx:         resolver.NewContext(),
+		reducerDefs:  params.reducers,
+		builder:      params.builder,
+		keyRows:      make(map[int]keyRow),
+		table:        make(map[string]*GroupByRow),
+		reverse:      c.Reverse,
+		logger:       c.Logger,
+		limit:        limit,
+		sortFn:       sortFn,
+		inputSortDir: params.inputSortDir,
 	}
 }
 
@@ -192,7 +208,7 @@ func (g *GroupBy) Pull() (zbuf.Batch, error) {
 		return nil, err
 	}
 	if batch == nil {
-		return g.agg.Results(g.MinTs, g.MaxTs)
+		return g.agg.Results(true, g.MinTs, g.MaxTs)
 	}
 	for k := 0; k < batch.Length(); k++ {
 		err := g.agg.Consume(batch.Index(k))
@@ -202,6 +218,15 @@ func (g *GroupBy) Pull() (zbuf.Batch, error) {
 		}
 	}
 	batch.Unref()
+	if g.agg.inputSortDir != 0 {
+		f, err := g.agg.Results(false, g.MinTs, g.MaxTs)
+		if err != nil {
+			return nil, err
+		}
+		if f != nil {
+			return f, nil
+		}
+	}
 	return zbuf.NewArray([]*zng.Record{}, batch.Span()), nil
 }
 
@@ -262,6 +287,7 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 		}
 		g.keyRows[id] = keyRow
 	}
+
 	if keyRow.columns == nil {
 		// block this descriptor since it doesn't have all the group-by keys
 		return nil
@@ -287,10 +313,13 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 	}
 	binary.BigEndian.PutUint32(keyBytes, uint32(keyRow.id))
 	g.builder.Reset()
-	for _, key := range g.keys {
+	for i, key := range g.keys {
 		keyVal, err := key.expr(r)
 		if err != nil && !errors.Is(err, zng.ErrUnset) {
 			return err
+		}
+		if i == 0 {
+			g.updateMax(keyVal)
 		}
 		g.builder.Append(keyVal.Bytes, keyVal.IsContainer())
 	}
@@ -313,15 +342,35 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 	return nil
 }
 
-// Results returns a zbuf.Batch with all aggregation result
-// records. It should be called once after all records have been
-// Consumed()'d.
-func (g *GroupByAggregator) Results(minTs nano.Ts, maxTs nano.Ts) (zbuf.Batch, error) {
-	recs, err := g.records()
+func (g *GroupByAggregator) updateMax(v zng.Value) {
+	if g.inputSortDir == 0 {
+		return
+	}
+	if g.maxKey == nil {
+		g.maxKey = &v
+		return
+	}
+	if g.sortFn(v, *g.maxKey) > 0 {
+		g.maxKey = &v
+	}
+}
+
+// Results returns a batch of aggregation result records. If the input
+// is sorted in the primary key, this can be called multiple times;
+// all completed keys at the time of the invocation are returned (but
+// not necessarily in their input sort order). A final call with
+// eof=true should be made to get the final keys.
+//
+// If the input is not sorted, a single call (with eof=true) should be
+// made after all records have been Consumed()'d.
+func (g *GroupByAggregator) Results(eof bool, minTs nano.Ts, maxTs nano.Ts) (zbuf.Batch, error) {
+	recs, err := g.records(eof)
 	if err != nil {
 		return nil, err
 	}
-	g.table = nil
+	if eof {
+		g.table = nil
+	}
 	if len(recs) == 0 {
 		// Don't propagate empty batches.
 		return nil, nil
@@ -336,7 +385,7 @@ func (g *GroupByAggregator) Results(minTs nano.Ts, maxTs nano.Ts) (zbuf.Batch, e
 
 // records returns a slice of all records from the groupby table in a
 // deterministic but undefined order.
-func (g *GroupByAggregator) records() ([]*zng.Record, error) {
+func (g *GroupByAggregator) records(eof bool) ([]*zng.Record, error) {
 	var keys []string
 	for k := range g.table {
 		keys = append(keys, k)
@@ -346,6 +395,14 @@ func (g *GroupByAggregator) records() ([]*zng.Record, error) {
 	var recs []*zng.Record
 	for _, k := range keys {
 		row := g.table[k]
+		primKey, err := getPrimaryKey(row)
+		if err != nil {
+			return nil, err
+		}
+		if !eof && g.sortFn(primKey, *g.maxKey) >= 0 {
+			continue
+		}
+
 		var zv zcode.Bytes
 		zv = append(zv, row.keyvals...)
 		for _, red := range row.reducers.Reducers {
@@ -365,8 +422,23 @@ func (g *GroupByAggregator) records() ([]*zng.Record, error) {
 			return nil, err
 		}
 		recs = append(recs, r)
+		delete(g.table, k)
 	}
 	return recs, nil
+}
+
+func getPrimaryKey(row *GroupByRow) (zng.Value, error) {
+	iter := zcode.Iter(row.keyvals)
+	for {
+		b, container, err := iter.Next()
+		if err != nil {
+			return zng.Value{}, err
+		}
+		if !container || b == nil {
+			return zng.Value{row.keycols[0].Type, b}, nil
+		}
+		iter = zcode.Iter(b)
+	}
 }
 
 func (g *GroupByAggregator) lookupRowType(row *GroupByRow) (*zng.TypeRecord, error) {

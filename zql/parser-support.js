@@ -136,9 +136,9 @@ function makeGroupByKeys(first, rest) {
   return [first, ...rest];
 }
 
-function makeGroupByProc(duration, limit, keys, reducers) {
+function makeGroupByProc(duration, sorted, limit, keys, reducers) {
   if (limit === null) { limit = undefined; }
-  return { op: "GroupByProc", keys, reducers, duration, limit };
+    return { op: "GroupByProc", keys, reducers, duration, limit , sorted};
 }
 
 function makeUnaryExpr(operator, operand) {
