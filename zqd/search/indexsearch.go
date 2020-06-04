@@ -6,26 +6,22 @@ import (
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zqd/api"
-	"github.com/brimsec/zq/zqd/space"
-	"github.com/brimsec/zq/zqd/storage/archivestore"
-	"github.com/brimsec/zq/zqe"
 )
 
 type IndexSearch struct {
 	zbuf.ReadCloser
 }
 
-func NewIndexSearch(ctx context.Context, s *space.Space, req api.IndexSearchRequest) (*IndexSearch, error) {
-	arkstore, ok := s.Storage.(*archivestore.Storage)
-	if !ok {
-		return nil, zqe.E(zqe.Invalid, "index search only supported on archive spaces")
-	}
+type IndexedArchive interface {
+	IndexSearch(context.Context, archive.IndexQuery) (zbuf.ReadCloser, error)
+}
 
+func NewIndexSearch(ctx context.Context, s IndexedArchive, req api.IndexSearchRequest) (*IndexSearch, error) {
 	query, err := archive.ParseIndexQuery(req.IndexName, req.Patterns)
 	if err != nil {
 		return nil, err
 	}
-	rc, err := arkstore.IndexSearch(ctx, query)
+	rc, err := s.IndexSearch(ctx, query)
 	if err != nil {
 		return nil, err
 	}

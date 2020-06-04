@@ -17,14 +17,14 @@ import (
 type Manager struct {
 	rootPath string
 	mapLock  sync.Mutex
-	spaces   map[api.SpaceID]*Space
+	spaces   map[api.SpaceID]Space
 	logger   *zap.Logger
 }
 
 func NewManager(root string, logger *zap.Logger) (*Manager, error) {
 	mgr := &Manager{
 		rootPath: root,
-		spaces:   make(map[api.SpaceID]*Space),
+		spaces:   make(map[api.SpaceID]Space),
 		logger:   logger,
 	}
 
@@ -55,7 +55,7 @@ func NewManager(root string, logger *zap.Logger) (*Manager, error) {
 	return mgr, nil
 }
 
-func (m *Manager) Create(req api.SpacePostRequest) (*Space, error) {
+func (m *Manager) Create(req api.SpacePostRequest) (Space, error) {
 	m.mapLock.Lock()
 	defer m.mapLock.Unlock()
 
@@ -97,15 +97,15 @@ func (m *Manager) Create(req api.SpacePostRequest) (*Space, error) {
 		return nil, errors.New("created duplicate space id (this should not happen)")
 	}
 
-	sp, err := loadSpace(path, c)
+	s, err := loadSpace(path, c)
 	if err != nil {
 		return nil, err
 	}
-	m.spaces[id] = sp
-	return sp, nil
+	m.spaces[s.ID()] = s
+	return s, nil
 }
 
-func (m *Manager) Get(id api.SpaceID) (*Space, error) {
+func (m *Manager) Get(id api.SpaceID) (Space, error) {
 	m.mapLock.Lock()
 	defer m.mapLock.Unlock()
 	space, exists := m.spaces[id]

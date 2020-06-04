@@ -3,27 +3,24 @@ package space
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
 
-	"github.com/brimsec/zq/pcap"
-	"github.com/brimsec/zq/pcap/pcapio"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/storage"
-	"github.com/brimsec/zq/zqd/storage/loader"
+	"github.com/brimsec/zq/zqd/storage/archivestore"
+	"github.com/brimsec/zq/zqd/storage/filestore"
 	"github.com/brimsec/zq/zqe"
 	"github.com/segmentio/ksuid"
 )
 
 const (
-	configFile    = "config.json"
-	PcapIndexFile = "packets.idx.json"
+	configFile = "config.json"
 )
 
 var (
@@ -32,20 +29,31 @@ var (
 	ErrSpaceNotExist       = zqe.E(zqe.NotFound, "space does not exist")
 )
 
+type Space interface {
+	ID() api.SpaceID
+	Storage() storage.Storage
+	Info(context.Context) (api.SpaceInfo, error)
+
+	// StartOp is called to register an operation is in progress; the
+	// returned cancel function must be called when the operation is done.
+	StartOp(context.Context) (context.Context, context.CancelFunc, error)
+
+	// Delete cancels any outstanding operations, then removes the space's path
+	// and data dir (should the data dir be different then the space's path).
+	// Intended to be called from Manager.Delete().
+	delete() error
+
+	Update(api.SpacePutRequest) error
+}
+
 func newSpaceID() api.SpaceID {
 	id := ksuid.New()
 	return api.SpaceID(fmt.Sprintf("sp_%s", id.String()))
 }
 
-type Space struct {
-	Storage storage.Storage
-
-	path string
-	conf config
-
+type guard struct {
 	// state about operations in progress
 	opMutex       sync.Mutex
-	active        int
 	deletePending bool
 
 	wg sync.WaitGroup
@@ -53,76 +61,112 @@ type Space struct {
 	cancelChan chan struct{}
 }
 
-func loadSpace(path string, conf config) (*Space, error) {
-	datapath := conf.DataPath
-	if datapath == "." {
-		datapath = path
+func newGuard() *guard {
+	return &guard{
+		cancelChan: make(chan struct{}),
 	}
-	s, err := loader.Load(datapath, conf.Storage)
-	if err != nil {
-		return nil, err
-	}
-	return &Space{
-		Storage:    s,
-		path:       path,
-		conf:       conf,
-		cancelChan: make(chan struct{}, 0),
-	}, nil
 }
 
-// StartSpaceOp registers that an operation on this space is in progress.
-// If the space is pending deletion, an error is returned.
-// Otherwise, this returns a new context, and a done function that must
-// be called when the operation completes.
-func (s *Space) StartSpaceOp(ctx context.Context) (context.Context, context.CancelFunc, error) {
-	s.opMutex.Lock()
-	defer s.opMutex.Unlock()
+func (g *guard) acquire(ctx context.Context) (context.Context, context.CancelFunc, error) {
+	g.opMutex.Lock()
+	defer g.opMutex.Unlock()
 
-	if s.deletePending {
+	if g.deletePending {
 		return ctx, func() {}, zqe.E(zqe.Conflict, "space is pending deletion")
 	}
 
-	s.wg.Add(1)
+	g.wg.Add(1)
 
 	ctx, cancel := context.WithCancel(ctx)
 	go func() {
 		select {
 		case <-ctx.Done():
-		case <-s.cancelChan:
+		case <-g.cancelChan:
 			cancel()
 		}
 	}()
 
 	done := func() {
-		s.opMutex.Lock()
-		defer s.opMutex.Unlock()
+		g.opMutex.Lock()
+		defer g.opMutex.Unlock()
 
-		s.wg.Done()
+		g.wg.Done()
 		cancel()
 	}
 
 	return ctx, done, nil
 }
 
-func (s *Space) ID() api.SpaceID {
-	return api.SpaceID(filepath.Base(s.path))
+func (g *guard) acquireForDelete() error {
+	g.opMutex.Lock()
+
+	if g.deletePending {
+		g.opMutex.Unlock()
+		return zqe.E(zqe.Conflict, "space is pending deletion")
+	}
+
+	g.deletePending = true
+	g.opMutex.Unlock()
+
+	close(g.cancelChan)
+	g.wg.Wait()
+	return nil
 }
 
-func (s *Space) Update(req api.SpacePutRequest) error {
-	if req.Name == "" {
-		return zqe.E(zqe.Invalid, "cannot set name to an empty string")
+func loadSpace(path string, conf config) (Space, error) {
+	datapath := conf.DataPath
+	if datapath == "." {
+		datapath = path
 	}
-	// XXX This is not thread safe. Will fix in upcoming pr.
-	s.conf.Name = req.Name
-	return s.conf.save(s.path)
+
+	id := api.SpaceID(filepath.Base(path))
+	switch conf.Storage.Kind {
+	case storage.FileStore:
+		store, err := filestore.Load(datapath)
+		if err != nil {
+			return nil, err
+		}
+		s := &fileSpace{
+			spaceBase: spaceBase{id, store, newGuard()},
+			path:      path,
+			conf:      conf,
+		}
+		return s, nil
+
+	case storage.ArchiveStore:
+		store, err := archivestore.Load(datapath, conf.Storage.Archive)
+		if err != nil {
+			return nil, err
+		}
+		s := &archiveSpace{
+			spaceBase: spaceBase{id, store, newGuard()},
+			path:      path,
+			conf:      conf,
+		}
+		return s, nil
+
+	default:
+		return nil, zqe.E(zqe.Invalid, "loadSpace: unknown storage kind: %s", conf.Storage.Kind)
+	}
 }
 
-func (s *Space) Info(ctx context.Context) (api.SpaceInfo, error) {
-	sum, err := s.Storage.Summary(ctx)
-	if err != nil {
-		return api.SpaceInfo{}, err
-	}
-	pcapsize, err := s.PcapSize()
+// spaceBase contains the basic fields common to different space types.
+type spaceBase struct {
+	id    api.SpaceID
+	store storage.Storage
+	sg    *guard
+}
+
+func (s *spaceBase) ID() api.SpaceID {
+	return s.id
+}
+
+func (s *spaceBase) Storage() storage.Storage {
+	return s.store
+}
+
+func (s *spaceBase) Info(ctx context.Context) (api.SpaceInfo, error) {
+	sum, err := s.store.Summary(ctx)
 	if err != nil {
 		return api.SpaceInfo{}, err
 	}
@@ -131,133 +175,20 @@ func (s *Space) Info(ctx context.Context) (api.SpaceInfo, error) {
 		span = &sum.Span
 	}
 	spaceInfo := api.SpaceInfo{
-		ID:          s.ID(),
-		Name:        s.conf.Name,
-		DataPath:    s.conf.DataPath,
+		ID:          s.id,
 		StorageKind: sum.Kind,
 		Size:        sum.DataBytes,
 		Span:        span,
-		PcapSupport: s.PcapPath() != "",
-		PcapPath:    s.PcapPath(),
-		PcapSize:    pcapsize,
 	}
 	return spaceInfo, nil
 }
 
-// PcapSearch returns a *pcap.SearchReader that streams all the packets meeting
-// the provided search request. If pcaps are not supported in this Space,
-// ErrPcapOpsNotSupported is returned.
-func (s *Space) PcapSearch(ctx context.Context, req api.PcapSearch) (*SearchReadCloser, error) {
-	if s.PcapPath() == "" || !s.hasFile(PcapIndexFile) {
-		return nil, ErrPcapOpsNotSupported
-	}
-	index, err := pcap.LoadIndex(s.DataPath(PcapIndexFile))
-	if err != nil {
-		return nil, err
-	}
-	var search *pcap.Search
-	switch req.Proto {
-	case "tcp":
-		flow := pcap.NewFlow(req.SrcHost, int(req.SrcPort), req.DstHost, int(req.DstPort))
-		search = pcap.NewTCPSearch(req.Span, flow)
-	case "udp":
-		flow := pcap.NewFlow(req.SrcHost, int(req.SrcPort), req.DstHost, int(req.DstPort))
-		search = pcap.NewUDPSearch(req.Span, flow)
-	case "icmp":
-		search = pcap.NewICMPSearch(req.Span, req.SrcHost, req.DstHost)
-	default:
-		return nil, fmt.Errorf("unsupported proto type: %s", req.Proto)
-	}
-	f, err := fs.Open(s.PcapPath())
-	if err != nil {
-		return nil, err
-	}
-	slicer, err := pcap.NewSlicer(f, index, req.Span)
-	if err != nil {
-		f.Close()
-		return nil, err
-	}
-	pcapReader, err := pcapio.NewReader(slicer)
-	if err != nil {
-		f.Close()
-		return nil, err
-	}
-	r, err := search.Reader(ctx, pcapReader)
-	if err != nil {
-		f.Close()
-		return nil, err
-	}
-	return &SearchReadCloser{r, f}, nil
-
-}
-
-type SearchReadCloser struct {
-	*pcap.SearchReader
-	f *os.File
-}
-
-func (c *SearchReadCloser) Close() error {
-	return c.f.Close()
-}
-
-// PcapSize returns the size in bytes of the packet capture in the space.
-func (s *Space) PcapSize() (int64, error) {
-	return sizeof(s.PcapPath())
-}
-
-func sizeof(path string) (int64, error) {
-	f, err := os.Stat(path)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return 0, nil
-		}
-		return 0, err
-	}
-	return f.Size(), nil
-}
-
-func (s *Space) DataPath(elem ...string) string {
-	return filepath.Join(append([]string{s.conf.DataPath}, elem...)...)
-}
-
-func (s *Space) hasFile(file string) bool {
-	info, err := os.Stat(s.DataPath(file))
-	if err != nil {
-		return false
-	}
-	return !info.IsDir()
-}
-
-func (s *Space) SetPcapPath(pcapPath string) error {
-	s.conf.PcapPath = pcapPath
-	return s.conf.save(s.path)
-}
-
-func (s *Space) PcapPath() string {
-	return s.conf.PcapPath
-}
-
-// Delete removes the space's path and data dir (should the data dir be
-// different then the space's path).
-// Don't call this directly, used Manager.Delete()
-func (s *Space) delete() error {
-	s.opMutex.Lock()
-
-	if s.deletePending {
-		s.opMutex.Unlock()
-		return zqe.E(zqe.Conflict, "space is pending deletion")
-	}
-
-	s.deletePending = true
-	s.opMutex.Unlock()
-
-	close(s.cancelChan)
-	s.wg.Wait()
-
-	if err := os.RemoveAll(s.path); err != nil {
-		return err
-	}
-	return os.RemoveAll(s.conf.DataPath)
+// StartOp registers that an operation on this space is in progress.
+// If the space is pending deletion, an error is returned.
+// Otherwise, this returns a new context, and a done function that must
+// be called when the operation completes.
+func (s *spaceBase) StartOp(ctx context.Context) (context.Context, context.CancelFunc, error) {
+	return s.sg.acquire(ctx)
 }
 
 type config struct {

@@ -14,7 +14,6 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
-	"github.com/brimsec/zq/zqd/space"
 	"github.com/brimsec/zq/zqe"
 	"go.uber.org/zap"
 )
@@ -35,7 +34,11 @@ type Search struct {
 	io.Closer
 }
 
-func NewSearch(ctx context.Context, s *space.Space, req api.SearchRequest) (*Search, error) {
+type SearchStore interface {
+	Open(ctx context.Context, span nano.Span) (zbuf.ReadCloser, error)
+}
+
+func NewSearch(ctx context.Context, s SearchStore, req api.SearchRequest) (*Search, error) {
 	if req.Span.Ts < 0 {
 		return nil, errors.New("time span must have non-negative timestamp")
 	}
@@ -55,7 +58,7 @@ func NewSearch(ctx context.Context, s *space.Space, req api.SearchRequest) (*Sea
 		return nil, err
 	}
 
-	zngReader, err := s.Storage.Open(ctx, query.Span)
+	zngReader, err := s.Open(ctx, query.Span)
 	if err != nil {
 		return nil, err
 	}

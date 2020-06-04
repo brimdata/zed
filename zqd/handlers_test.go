@@ -634,7 +634,7 @@ func TestDeleteDuringPcapPost(t *testing.T) {
 	err = client.SpaceDelete(context.Background(), sp.ID)
 	require.NoError(t, err)
 
-	require.Error(t, <-pcapPostErr, "context canceled")
+	require.Regexp(t, "context canceled", (<-pcapPostErr).Error())
 }
 
 func TestSpaceDataDir(t *testing.T) {

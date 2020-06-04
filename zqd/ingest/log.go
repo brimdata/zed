@@ -13,8 +13,6 @@ import (
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
-	"github.com/brimsec/zq/zqd/space"
-	"github.com/brimsec/zq/zqd/storage/filestore"
 	"github.com/brimsec/zq/zqe"
 )
 
@@ -37,13 +35,14 @@ type LogOp struct {
 	wg        sync.WaitGroup
 }
 
+type LogStore interface {
+	Rewrite(ctx context.Context, zr zbuf.Reader) error
+	NativeDirection() zbuf.Direction
+}
+
 // Logs ingests the provided list of files into the provided space.
 // Like ingest.Pcap, this overwrites any existing data in the space.
-func NewLogOp(ctx context.Context, s *space.Space, req api.LogPostRequest) (*LogOp, error) {
-	store, ok := s.Storage.(*filestore.Storage)
-	if !ok {
-		return nil, ErrNoLogIngestSupport
-	}
+func NewLogOp(ctx context.Context, ls LogStore, req api.LogPostRequest) (*LogOp, error) {
 	p := &LogOp{
 		warningCh: make(chan string, 5),
 	}
@@ -75,7 +74,7 @@ func NewLogOp(ctx context.Context, s *space.Space, req api.LogPostRequest) (*Log
 		p.readers = append(p.readers, zr)
 	}
 	p.wg.Add(1)
-	go p.start(ctx, store)
+	go p.start(ctx, ls)
 	return p, nil
 }
 
@@ -135,13 +134,13 @@ func (p *LogOp) bytesRead() int64 {
 	return read
 }
 
-func (p *LogOp) start(ctx context.Context, store *filestore.Storage) {
+func (p *LogOp) start(ctx context.Context, ls LogStore) {
 	// first drain warnings
 	for _, warning := range p.warnings {
 		p.warningCh <- warning
 	}
-	r := zbuf.NewCombiner(p.readers, zbuf.RecordCompare(store.NativeDirection()))
-	p.err = store.Rewrite(ctx, r)
+	r := zbuf.NewCombiner(p.readers, zbuf.RecordCompare(ls.NativeDirection()))
+	p.err = ls.Rewrite(ctx, r)
 	if err := p.closeFiles(); err != nil && p.err != nil {
 		p.err = err
 	}
