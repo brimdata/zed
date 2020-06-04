@@ -87,17 +87,17 @@ func unpackProc(custom Unpacker, node joe.JSON) (Proc, error) {
 			return nil, errors.New("PutProc clauses must be an array")
 		}
 		n := clausesNode.Len()
-		clauses := make([]PutClause, n)
+		clauses := make([]Assignment, n)
 		for k := 0; k < n; k++ {
 			exprNode := clausesNode.Index(k).Get("expression")
 			if exprNode == joe.Undefined {
-				return nil, errors.New("PutClause missing expression")
+				return nil, errors.New("Assignment missing expression")
 			}
 			expr, err := unpackExpression(exprNode)
 			if err != nil {
 				return nil, err
 			}
-			clauses[k] = PutClause{Expr: expr}
+			clauses[k] = Assignment{Expr: expr}
 		}
 		return &PutProc{Clauses: clauses}, nil
 	case "UniqProc":
