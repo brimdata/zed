@@ -108,6 +108,9 @@ func (s *archiveSubspace) Info(ctx context.Context) (api.SpaceInfo, error) {
 		name = s.parent.conf.Subspaces[i].Name
 		return nil
 	})
+	if err != nil {
+		return api.SpaceInfo{}, err
+	}
 	spaceInfo := api.SpaceInfo{
 		ID:          s.id,
 		Name:        name,
