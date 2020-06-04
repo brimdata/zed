@@ -2,7 +2,6 @@ package proc
 
 import (
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"sort"
 	"time"
@@ -20,8 +19,8 @@ import (
 )
 
 type GroupByKey struct {
-	name string
-	expr expr.ExpressionEvaluator
+	name     string
+	resolver expr.FieldExprResolver
 }
 
 type GroupByParams struct {
@@ -47,17 +46,11 @@ const defaultGroupByLimit = 1000000
 
 func CompileGroupBy(node *ast.GroupByProc, zctx *resolver.Context) (*GroupByParams, error) {
 	keys := make([]GroupByKey, 0)
-	var targetNames []string
-	for _, astKey := range node.Keys {
-		ex, err := compileKeyExpr(astKey.Expr)
-		if err != nil {
-			return nil, fmt.Errorf("compiling groupby: %w", err)
-		}
+	for _, key := range node.Keys {
 		keys = append(keys, GroupByKey{
-			name: astKey.Target,
-			expr: ex,
+			name:     key,
+			resolver: expr.CompileFieldAccess(key),
 		})
-		targetNames = append(targetNames, astKey.Target)
 	}
 	reducers := make([]compile.CompiledReducer, 0)
 	for _, reducer := range node.Reducers {
@@ -67,7 +60,7 @@ func CompileGroupBy(node *ast.GroupByProc, zctx *resolver.Context) (*GroupByPara
 		}
 		reducers = append(reducers, compiled)
 	}
-	builder, err := NewColumnBuilder(zctx, targetNames)
+	builder, err := NewColumnBuilder(zctx, node.Keys)
 	if err != nil {
 		return nil, fmt.Errorf("compiling groupby: %w", err)
 	}
@@ -78,20 +71,6 @@ func CompileGroupBy(node *ast.GroupByProc, zctx *resolver.Context) (*GroupByPara
 		reducers: reducers,
 		builder:  builder,
 	}, nil
-}
-
-func compileKeyExpr(ex ast.Expression) (expr.ExpressionEvaluator, error) {
-	if fe, ok := ex.(ast.FieldExpr); ok {
-		f, err := expr.CompileFieldExpr(fe)
-		if err != nil {
-			return nil, err
-		}
-		ev := func(r *zng.Record) (zng.Value, error) {
-			return f(r), nil
-		}
-		return ev, nil
-	}
-	return expr.CompileExpr(ex)
 }
 
 // GroupBy computes aggregations using a GroupByAggregator.
@@ -234,12 +213,7 @@ func (g *GroupByAggregator) createGroupByRow(keyCols []zng.Column, ts nano.Ts, v
 func newKeyRow(kctx *resolver.Context, r *zng.Record, keys []GroupByKey) (keyRow, error) {
 	cols := make([]zng.Column, len(keys))
 	for k, key := range keys {
-		keyVal, err := key.expr(r)
-		// Don't err on ErrNoSuchField; just return an empty
-		// keyRow and the descriptor will be blocked.
-		if err != nil && !errors.Is(err, expr.ErrNoSuchField) {
-			return keyRow{}, err
-		}
+		keyVal := key.resolver(r)
 		if keyVal.Type == nil {
 			return keyRow{}, nil
 		}
@@ -303,10 +277,7 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 	binary.BigEndian.PutUint32(keyBytes, uint32(keyRow.id))
 	g.builder.Reset()
 	for _, key := range g.keys {
-		keyVal, err := key.expr(r)
-		if err != nil && !errors.Is(err, zng.ErrUnset) {
-			return err
-		}
+		keyVal := key.resolver(r)
 		g.builder.Append(keyVal.Bytes, keyVal.IsContainer())
 	}
 	zv, err := g.builder.Encode()

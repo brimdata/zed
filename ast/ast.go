@@ -176,7 +176,6 @@ func (*FunctionCall) exprNode()          {}
 func (*CastExpression) exprNode()        {}
 func (*Literal) exprNode()               {}
 func (*FieldRead) exprNode()             {}
-func (*FieldCall) exprNode()             {}
 
 // ----------------------------------------------------------------------------
 // Procs
@@ -265,10 +264,10 @@ type (
 	// be aggregated over. When absent, the runtime defaults to an appropriate value.
 	GroupByProc struct {
 		Node
-		Duration Duration     `json:"duration"`
-		Limit    int          `json:"limit,omitempty"`
-		Keys     []Assignment `json:"keys"`
-		Reducers []Reducer    `json:"reducers"`
+		Duration Duration  `json:"duration"`
+		Limit    int       `json:"limit,omitempty"`
+		Keys     []string  `json:"keys"`
+		Reducers []Reducer `json:"reducers"`
 	}
 	// TopProc is similar to proc.SortProc with a few key differences:
 	// - It only sorts in descending order.
@@ -284,11 +283,11 @@ type (
 
 	PutProc struct {
 		Node
-		Clauses []Assignment `json:"clauses"`
+		Clauses []PutClause `json:"clauses"`
 	}
 )
 
-type Assignment struct {
+type PutClause struct {
 	Target string     `json:"target"`
 	Expr   Expression `json:"expression"`
 }
