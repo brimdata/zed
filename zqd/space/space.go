@@ -87,9 +87,6 @@ func (g *guard) acquire(ctx context.Context) (context.Context, context.CancelFun
 	}()
 
 	done := func() {
-		g.opMutex.Lock()
-		defer g.opMutex.Unlock()
-
 		g.wg.Done()
 		cancel()
 	}
