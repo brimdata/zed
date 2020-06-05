@@ -49,6 +49,12 @@ func CompileGroupBy(node *ast.GroupByProc, zctx *resolver.Context) (*GroupByPara
 	keys := make([]GroupByKey, 0)
 	astKeys := node.Keys
 	var targetNames []string
+
+	if node.Sorted != 0 && node.Duration.Seconds == 0 && len(astKeys) > 0 {
+		if _, ok := astKeys[0].Expr.(ast.FieldExpr); !ok {
+			return nil, fmt.Errorf("compiling groupby: cannot use -sorted in conjunction with a computed primary key")
+		}
+	}
 	if node.Duration.Seconds > 0 {
 		everyKey := ast.Assignment{
 			Target: "ts",
