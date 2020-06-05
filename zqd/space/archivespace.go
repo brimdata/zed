@@ -34,12 +34,12 @@ func (s *archiveSpace) Info(ctx context.Context) (api.SpaceInfo, error) {
 }
 
 func (s *archiveSpace) Update(req api.SpacePutRequest) error {
-	s.confMutex.Lock()
-	defer s.confMutex.Unlock()
-
 	if req.Name == "" {
 		return zqe.E(zqe.Invalid, "cannot set name to an empty string")
 	}
+
+	s.confMutex.Lock()
+	defer s.confMutex.Unlock()
 
 	s.conf.Name = req.Name
 	return s.conf.save(s.path)
@@ -63,6 +63,10 @@ func (s *archiveSpace) delete() error {
 }
 
 func (s *archiveSpace) CreateSubspace(req api.SubspacePostRequest) (*archiveSubspace, error) {
+	if req.Name == "" {
+		return nil, zqe.E(zqe.Invalid, "cannot set name to an empty string")
+	}
+
 	s.confMutex.Lock()
 	defer s.confMutex.Unlock()
 
