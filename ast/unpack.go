@@ -79,25 +79,9 @@ func unpackProc(custom Unpacker, node joe.JSON) (Proc, error) {
 		}
 		return &FilterProc{Filter: filter}, nil
 	case "PutProc":
-		clausesNode := node.Get("clauses")
-		if clausesNode == joe.Undefined {
-			return nil, errors.New("PutProc missing clauses")
-		}
-		if !clausesNode.IsArray() {
-			return nil, errors.New("PutProc clauses must be an array")
-		}
-		n := clausesNode.Len()
-		clauses := make([]Assignment, n)
-		for k := 0; k < n; k++ {
-			exprNode := clausesNode.Index(k).Get("expression")
-			if exprNode == joe.Undefined {
-				return nil, errors.New("Assignment missing expression")
-			}
-			expr, err := unpackExpression(exprNode)
-			if err != nil {
-				return nil, err
-			}
-			clauses[k] = Assignment{Expr: expr}
+		clauses, err := unpackAssignments(node.Get("clauses"))
+		if err != nil {
+			return nil, err
 		}
 		return &PutProc{Clauses: clauses}, nil
 	case "UniqProc":
@@ -109,11 +93,15 @@ func unpackProc(custom Unpacker, node joe.JSON) (Proc, error) {
 		}
 		return &ReducerProc{Reducers: reducers}, nil
 	case "GroupByProc":
+		keys, err := unpackAssignments(node.Get("keys"))
+		if err != nil {
+			return nil, err
+		}
 		reducers, err := unpackReducers(node.Get("reducers"))
 		if err != nil {
 			return nil, err
 		}
-		return &GroupByProc{Reducers: reducers}, nil
+		return &GroupByProc{Reducers: reducers, Keys: keys}, nil
 	case "TopProc":
 		fields, err := unpackFieldExprArray(node.Get("fields"))
 		if err != nil {
@@ -123,6 +111,37 @@ func unpackProc(custom Unpacker, node joe.JSON) (Proc, error) {
 	default:
 		return nil, fmt.Errorf("unknown proc op: %s", op)
 	}
+}
+
+func unpackAssignment(node joe.JSON) (Assignment, error) {
+	exprNode := node.Get("expression")
+	if exprNode == joe.Undefined {
+		return Assignment{}, errors.New("Assignment missing expression")
+	}
+	expr, err := unpackExpression(exprNode)
+	if err != nil {
+		return Assignment{}, err
+	}
+	return Assignment{Expr: expr}, nil
+}
+
+func unpackAssignments(node joe.JSON) ([]Assignment, error) {
+	if node == joe.Undefined {
+		return nil, nil
+	}
+	if !node.IsArray() {
+		return nil, errors.New("assignments should be an array")
+	}
+	n := node.Len()
+	keys := make([]Assignment, n)
+	for k := 0; k < n; k++ {
+		assi, err := unpackAssignment(node.Index(k))
+		if err != nil {
+			return nil, err
+		}
+		keys[k] = assi
+	}
+	return keys, nil
 }
 
 func unpackExpression(node joe.JSON) (Expression, error) {
@@ -216,6 +235,16 @@ func unpackExpression(node joe.JSON) (Expression, error) {
 		return &Literal{}, nil
 	case "FieldRead":
 		return &FieldRead{}, nil
+	case "FieldCall":
+		child := node.Get("field")
+		if child == joe.Undefined {
+			return nil, errors.New("FieldCall missing field property")
+		}
+		field, err := unpackFieldExpr(child)
+		if err != nil {
+			return nil, err
+		}
+		return &FieldCall{Field: field}, nil
 	default:
 		return nil, fmt.Errorf("unknown Expression op %s", op)
 	}
