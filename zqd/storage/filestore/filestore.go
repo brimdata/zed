@@ -169,6 +169,7 @@ func (s *Storage) Clear(ctx context.Context) error {
 }
 
 func (s *Storage) extendSpan(span nano.Span) error {
+	// XXX This is not thread safe and it should be.
 	first := s.span == nano.Span{}
 	if first {
 		s.span = span
@@ -180,6 +181,7 @@ func (s *Storage) extendSpan(span nano.Span) error {
 }
 
 func (s *Storage) SetSpan(span nano.Span) error {
+	// XXX This is not thread safe and it should be.
 	s.span = span
 	return s.syncInfoFile()
 }
