@@ -125,7 +125,7 @@ type StatusResponse struct {
 type SpacePostRequest struct {
 	Name     string          `json:"name"`
 	DataPath string          `json:"data_path"`
-	Storage  *storage.Config `json:"storage"`
+	Storage  *storage.Config `json:"storage,omitempty"`
 }
 
 type SubspacePostRequest struct {
