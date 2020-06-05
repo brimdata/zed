@@ -39,7 +39,7 @@ type Space interface {
 	StartOp(context.Context) (context.Context, context.CancelFunc, error)
 
 	// Delete cancels any outstanding operations, then removes the space's path
-	// and data dir (should the data dir be different then the space's path).
+	// and data dir (should the data dir be different than the space's path).
 	// Intended to be called from Manager.Delete().
 	delete() error
 

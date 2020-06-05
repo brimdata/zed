@@ -11,27 +11,27 @@ import (
 	"github.com/mccanne/charm"
 )
 
-var New = &charm.Spec{
+var NewSpec = &charm.Spec{
 	Name:  "new",
 	Usage: "new [spacename]",
 	Short: "create a new space",
 	Long: `The new command takes a single argument and creates a new, empty space
 named as specified.`,
-	New: NewFn,
+	New: New,
 }
 
 func init() {
-	cmd.CLI.Add(New)
+	cmd.CLI.Add(NewSpec)
 }
 
-type NewCommand struct {
+type Command struct {
 	*cmd.Command
 	kind     storage.Kind
 	datapath string
 }
 
-func NewFn(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &NewCommand{
+func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
+	c := &Command{
 		Command: parent.(*cmd.Command),
 		kind:    storage.FileStore,
 	}
@@ -40,7 +40,7 @@ func NewFn(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	return c, nil
 }
 
-func (c *NewCommand) Run(args []string) error {
+func (c *Command) Run(args []string) error {
 	if len(args) > 1 {
 		return errors.New("too many arguments")
 	}

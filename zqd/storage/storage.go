@@ -36,20 +36,20 @@ func (k *Kind) Set(x string) error {
 
 type Config struct {
 	Kind    Kind           `json:"kind"`
-	Archive *ArchiveConfig `json:"archivestore"`
+	Archive *ArchiveConfig `json:"archive,omitempty"`
 }
 
 type ArchiveConfig struct {
-	OpenOptions   *ArchiveOpenOptions   `json:"open_options"`
-	CreateOptions *ArchiveCreateOptions `json:"create_options"`
+	OpenOptions   *ArchiveOpenOptions   `json:"open_options,omitempty"`
+	CreateOptions *ArchiveCreateOptions `json:"create_options,omitempty"`
 }
 
 type ArchiveOpenOptions struct {
-	LogFilter []string `json:"log_filter"`
+	LogFilter []string `json:"log_filter,omitempty"`
 }
 
 type ArchiveCreateOptions struct {
-	LogSizeThreshold *int64 `json:"log_size_threshold"`
+	LogSizeThreshold *int64 `json:"log_size_threshold,omitempty"`
 }
 
 type Summary struct {

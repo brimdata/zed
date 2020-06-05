@@ -634,7 +634,7 @@ func TestDeleteDuringPcapPost(t *testing.T) {
 	err = client.SpaceDelete(context.Background(), sp.ID)
 	require.NoError(t, err)
 
-	require.Regexp(t, "context canceled", (<-pcapPostErr).Error())
+	require.EqualError(t, <-pcapPostErr, "context canceled")
 }
 
 func TestSpaceDataDir(t *testing.T) {
@@ -712,7 +712,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 
 	c.ZeekLauncher = testZeekLauncher(func(tzp *testZeekProcess) error {
 		const s = "unexpected attempt to run zeek"
-		t.Errorf(s)
+		t.Error(s)
 		return errors.New(s)
 	}, nil)
 

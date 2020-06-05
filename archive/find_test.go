@@ -44,8 +44,8 @@ func findQuery(t *testing.T, ark *Archive, query IndexQuery, opts ...FindOption)
 	require.NoError(t, err)
 	defer rc.Close()
 
-	buf := bytes.NewBuffer(nil)
-	w := zbuf.NopFlusher(tzngio.NewWriter(buf))
+	var buf bytes.Buffer
+	w := zbuf.NopFlusher(tzngio.NewWriter(&buf))
 	require.NoError(t, zbuf.Copy(w, rc))
 
 	return buf.String()
