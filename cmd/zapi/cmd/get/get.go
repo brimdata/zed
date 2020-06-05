@@ -1,7 +1,6 @@
 package get
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -9,6 +8,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/brimsec/zq/cmd/zapi/cmd"
 	"github.com/brimsec/zq/emitter"
@@ -38,6 +38,8 @@ type Command struct {
 	*cmd.Command
 	zio.WriterFlags
 	protocol   string
+	from       tsflag
+	to         tsflag
 	dir        string
 	outputFile string
 	stats      bool
@@ -47,7 +49,10 @@ type Command struct {
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{Command: parent.(*cmd.Command)}
+	c := &Command{
+		Command: parent.(*cmd.Command),
+		to:      tsflag(nano.MaxTs),
+	}
 	f.StringVar(&c.Format, "f", "text", "format for output data [zng,ndjson,table,text,types,zeek,zjson,tzng]")
 	f.StringVar(&c.protocol, "p", "zng", "protocol to use for search request [ndjson,zjson,zng]")
 	f.StringVar(&c.dir, "d", "", "directory for output data files")
@@ -58,6 +63,8 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.ShowFields, "F", false, "display field names in text output")
 	f.BoolVar(&c.EpochDates, "E", false, "display epoch timestamps in text output")
 	f.BoolVar(&c.wire, "w", false, "dump what's on the wire")
+	f.Var(&c.from, "from", "search from timestamp in RFC3339Nano format (e.g. 2006-01-02T15:04:05.999999999Z07:00)")
+	f.Var(&c.to, "to", "search to timestamp in RFC3339Nano format (e.g. 2006-01-02T15:04:05.999999999Z07:00)")
 	return c, nil
 }
 
@@ -81,14 +88,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return fmt.Errorf("parse error: %s", err)
 	}
-	req.Span, err = fromTo(c.Context(), client, id)
-	if err != nil {
-		return fmt.Errorf("%s: no such space: %s", c.Spacename, err)
-	}
-	if req.Span.Dur == 0 {
-		// this can happen for empty spaces
-		return fmt.Errorf("%s: space is empty", c.Spacename)
-	}
+	req.Span = nano.NewSpanTs(nano.Ts(c.from), nano.Ts(c.to))
 	params := map[string]string{"format": c.protocol}
 	r, err := client.SearchRaw(c.Context(), *req, params)
 	if err != nil {
@@ -127,6 +127,7 @@ func parseExpr(spaceID api.SpaceID, expr string) (*api.SearchRequest, error) {
 	return &api.SearchRequest{
 		Space: spaceID,
 		Proc:  proc,
+		Dir:   -1,
 	}, nil
 }
 
@@ -161,18 +162,33 @@ func (c *Command) runWireSearch(r io.Reader) error {
 	return err
 }
 
-func fromTo(ctx context.Context, client *api.Connection, id api.SpaceID) (nano.Span, error) {
-	//XXX for now we run the search over the entire space
-	//XXX need to add time range control to the get command
-	info, err := client.SpaceInfo(ctx, id)
+type tsflag nano.Ts
+
+func (t tsflag) String() string {
+	if t == 0 {
+		return "min"
+	}
+	if nano.Ts(t) == nano.MaxTs {
+		return "max"
+	}
+	return nano.Ts(t).Time().Format(time.RFC3339Nano)
+}
+
+func (t *tsflag) Set(val string) error {
+	if val == "min" {
+		*t = 0
+		return nil
+	}
+	if val == "max" {
+		*t = tsflag(nano.MaxTs)
+		return nil
+	}
+	in, err := time.Parse(time.RFC3339Nano, val)
 	if err != nil {
-		return nano.Span{}, err
+		return err
 	}
-	var span nano.Span
-	if info.Span != nil {
-		span = *info.Span
-	}
-	return span, nil
+	*t = tsflag(nano.TimeToTs(in))
+	return nil
 }
 
 func openOutput(dir, file string, flags zio.WriterFlags) (zbuf.WriteCloser, error) {
