@@ -26,13 +26,16 @@ func init() {
 
 type NewCommand struct {
 	*cmd.Command
-	kind     string
+	kind     storage.Kind
 	datapath string
 }
 
 func NewFn(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &NewCommand{Command: parent.(*cmd.Command)}
-	f.StringVar(&c.kind, "k", string(storage.FileStore), "kind of storage for this space")
+	c := &NewCommand{
+		Command: parent.(*cmd.Command),
+		kind:    storage.FileStore,
+	}
+	f.Var(&c.kind, "k", "kind of storage for this space")
 	f.StringVar(&c.datapath, "d", "", "specific directory for storage data")
 	return c, nil
 }

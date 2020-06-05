@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
@@ -14,6 +15,24 @@ const (
 	FileStore    Kind = "filestore"
 	ArchiveStore Kind = "archivestore"
 )
+
+func (k Kind) String() string {
+	return string(k)
+}
+
+func (k *Kind) Set(x string) error {
+	kx := Kind(x)
+	switch kx {
+	case FileStore:
+		fallthrough
+	case ArchiveStore:
+		*k = kx
+		return nil
+
+	default:
+		return fmt.Errorf("unknown storage kind: %s", x)
+	}
+}
 
 type Config struct {
 	Kind    Kind           `json:"kind"`
