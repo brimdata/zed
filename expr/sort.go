@@ -10,6 +10,7 @@ import (
 
 type SortFn func(a *zng.Record, b *zng.Record) int
 type KeyCompareFn func(*zng.Record) int
+type ValueSortFn func(a zng.Value, b zng.Value) int
 
 // Internal function that compares two values of compatible types.
 type comparefn func(a, b zcode.Bytes) int
@@ -34,41 +35,7 @@ func NewSortFn(nullsMax bool, fields ...FieldExprResolver) SortFn {
 		for _, resolver := range fields {
 			a := resolver(ra)
 			b := resolver(rb)
-
-			// Handle nulls according to nullsMax
-			nullA := isNull(a)
-			nullB := isNull(b)
-			if nullA && nullB {
-				continue
-			}
-			if nullA {
-				if nullsMax {
-					return 1
-				} else {
-					return -1
-				}
-			}
-			if nullB {
-				if nullsMax {
-					return -1
-				} else {
-					return 1
-				}
-			}
-
-			// If values are of different types, just compare
-			// the native representation of the type
-			if a.Type.ID() != b.Type.ID() {
-				return bytes.Compare([]byte(a.Type.String()), []byte(b.Type.String()))
-			}
-
-			sf, ok := sorters[a.Type]
-			if !ok {
-				sf = LookupSorter(a.Type)
-				sorters[a.Type] = sf
-			}
-
-			v := sf(a.Bytes, b.Bytes)
+			v := compareValues(a, b, sorters, nullsMax)
 			// If the events don't match, then return the sort
 			// info.  Otherwise, they match and we continue on
 			// on in the loop to the secondary key, etc.
@@ -79,6 +46,50 @@ func NewSortFn(nullsMax bool, fields ...FieldExprResolver) SortFn {
 		// All the keys matched with equality.
 		return 0
 	}
+}
+
+func NewValueSortFn(nullsMax bool) ValueSortFn {
+	sorters := make(map[zng.Type]comparefn)
+	return func(a, b zng.Value) int {
+		return compareValues(a, b, sorters, nullsMax)
+	}
+}
+
+func compareValues(a, b zng.Value, sorters map[zng.Type]comparefn, nullsMax bool) int {
+	// Handle nulls according to nullsMax
+	nullA := isNull(a)
+	nullB := isNull(b)
+	if nullA && nullB {
+		return 0
+	}
+	if nullA {
+		if nullsMax {
+			return 1
+		} else {
+			return -1
+		}
+	}
+	if nullB {
+		if nullsMax {
+			return -1
+		} else {
+			return 1
+		}
+	}
+
+	// If values are of different types, just compare
+	// the native representation of the type
+	if a.Type.ID() != b.Type.ID() {
+		return bytes.Compare([]byte(a.Type.String()), []byte(b.Type.String()))
+	}
+
+	sf, ok := sorters[a.Type]
+	if !ok {
+		sf = LookupSorter(a.Type)
+		sorters[a.Type] = sf
+	}
+
+	return sf(a.Bytes, b.Bytes)
 }
 
 func NewKeyCompareFn(key *zng.Record) (KeyCompareFn, error) {
