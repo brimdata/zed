@@ -5,6 +5,9 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/pkg/test"
+	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -240,6 +243,47 @@ func tests() suite {
 
 func TestGroupbySystem(t *testing.T) {
 	tests().runSystem(t)
+}
+
+func TestGroupbyUnit(t *testing.T) {
+	inZngs := []string{
+		`#0:record[ts:time]
+0:[1;]
+`,
+		`#0:record[ts:time]
+0:[2;]
+`,
+		`#0:record[ts:time]
+0:[3;]
+`}
+	outZngs := []string{
+		`#0:record[ts:time,count:int64]
+0:[1;1;]
+`,
+		`#0:record[ts:time,count:int64]
+0:[2;1;]
+`,
+		`#0:record[ts:time,count:int64]
+0:[3;1;]
+`}
+
+	resolver := resolver.NewContext()
+	var inBatches []zbuf.Batch
+	for _, s := range inZngs {
+		b, err := proc.ParseTestZng(resolver, s)
+		require.NoError(t, err, s)
+		inBatches = append(inBatches, b)
+	}
+	procTest, err := proc.NewProcTestFromSource("every 1s count() -sorted 1", resolver, inBatches)
+	assert.NoError(t, err)
+	for _, s := range outZngs {
+		b, err := proc.ParseTestZng(resolver, s)
+		require.NoError(t, err, s)
+		err = procTest.Expect(b)
+		assert.NoError(t, err)
+	}
+	err = procTest.ExpectEOS()
+	assert.NoError(t, err)
 }
 
 /* not yet
