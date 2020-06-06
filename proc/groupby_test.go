@@ -5,6 +5,9 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/pkg/test"
+	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -242,8 +245,122 @@ func TestGroupbySystem(t *testing.T) {
 	tests().runSystem(t)
 }
 
-/* not yet
 func TestGroupbyUnit(t *testing.T) {
-	tests().runUnit(t)
+	inBatches := []string{`
+#0:record[ts:time]
+0:[1;]
+`, `
+#0:record[ts:time]
+0:[1;]
+0:[2;]
+`, `
+#0:record[ts:time]
+0:[3;]
+`}
+	outBatches := []string{
+		``,
+		`
+#0:record[ts:time,count:uint64]
+0:[1;2;]
+`, `
+#0:record[ts:time,count:uint64]
+0:[2;1;]
+`, `
+#0:record[ts:time,count:uint64]
+0:[3;1;]
+`}
+
+	inBatchesWithUnset := append(inBatches, `
+#0:record[ts:time]
+0:[-;]
+`)
+
+	outBatchesWithUnset := append(outBatches, `
+#0:record[ts:time,count:uint64]
+0:[-;1;]
+`)
+
+	inBatchesRecordKey := []string{`
+#0:record[foo:record[a:string]]
+0:[[aaa;]]
+`, `
+#0:record[foo:record[a:string]]
+0:[[baa;]]
+`}
+	inBatchesRecordKeyWithUnsetRecord := append(inBatchesRecordKey, `
+#0:record[foo:record[a:string]]
+0:[-;]
+`)
+
+	outBatchesRecordKey := []string{
+		``,
+		`
+#0:record[foo:record[a:string],count:uint64]
+0:[[aaa;]1;]
+`, `
+#0:record[foo:record[a:string],count:uint64]
+0:[[baa;]1;]
+`}
+	outBatchesRecordKeyWithUnsetRecord := append(outBatchesRecordKey, `
+#0:record[foo:record[a:string],count:uint64]
+0:[-;1;]
+`)
+	outBatchesRecordKeyWithUnsetKey := append(outBatchesRecordKey, `
+#0:record[foo:record[a:string],count:uint64]
+0:[[-;]1;]
+`)
+
+	inBatchesRev := []string{
+		`#0:record[ts:time]
+0:[-;]
+0:[10;]
+0:[8;]
+0:[7;]
+0:[6;]
+0:[2;]`,
+		`#0:record[ts:time]
+0:[1;]`}
+
+	outBatchesRev := []string{`
+#0:record[ts:time,count:uint64]
+0:[-;1;]
+0:[10;1;]
+0:[8;1;]
+0:[7;1;]
+0:[6;1;]`,
+		`#0:record[ts:time,count:uint64]
+0:[2;1;]`,
+		`#0:record[ts:time,count:uint64]
+0:[1;1;]`}
+
+	runner := func(zql string, in, out []string) func(t *testing.T) {
+		return func(t *testing.T) {
+			resolver := resolver.NewContext()
+			var inBatches []zbuf.Batch
+			for _, s := range in {
+				b, err := proc.ParseTestZng(resolver, s)
+				require.NoError(t, err, s)
+				inBatches = append(inBatches, b)
+			}
+			procTest, err := proc.NewProcTestFromSource(zql, resolver, inBatches)
+			assert.NoError(t, err)
+			for _, s := range out {
+				b, err := proc.ParseTestZng(resolver, s)
+				require.NoError(t, err, s)
+				err = procTest.Expect(b)
+				assert.NoError(t, err)
+			}
+			err = procTest.ExpectEOS()
+			assert.NoError(t, err)
+		}
+	}
+
+	t.Run("forward-sorted", runner("count() by ts -sorted 1", inBatches, outBatches))
+	t.Run("forward-sorted-with-unset", runner("count() by ts -sorted 1", inBatchesWithUnset, outBatchesWithUnset))
+	t.Run("forward-sorted-every", runner("every 1s count() -sorted 1", inBatches, outBatches))
+	t.Run("forward-sorted-record-key", runner("count() by foo -sorted 1", inBatchesRecordKey, outBatchesRecordKey))
+	t.Run("forward-sorted-nested-key", runner("count() by foo.a -sorted 1", inBatchesRecordKey, outBatchesRecordKey))
+	t.Run("forward-sorted-record-key-unset", runner("count() by foo -sorted 1", inBatchesRecordKeyWithUnsetRecord, outBatchesRecordKeyWithUnsetRecord))
+	t.Run("forward-sorted-nested-key-unset", runner("count() by foo.a -sorted 1", inBatchesRecordKeyWithUnsetRecord, outBatchesRecordKeyWithUnsetKey))
+	t.Run("reverse-sorted", runner("count() by ts -sorted -1", inBatchesRev, outBatchesRev))
 }
-*/
