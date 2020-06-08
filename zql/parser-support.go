@@ -261,14 +261,14 @@ func makeFilterProc(expr interface{}) *ast.FilterProc {
 	return &ast.FilterProc{ast.Node{"FilterProc"}, expr.(ast.BooleanExpr)}
 }
 
-func makePutClause(target, expr interface{}) ast.PutClause {
-	return ast.PutClause{target.(string), expr.(ast.Expression)}
+func makeAssignment(target, expr interface{}) ast.Assignment {
+	return ast.Assignment{target.(string), expr.(ast.Expression)}
 }
 
 func makePutProc(first, rest interface{}) *ast.PutProc {
-	clauses := []ast.PutClause{first.(ast.PutClause)}
+	clauses := []ast.Assignment{first.(ast.Assignment)}
 	for _, c := range rest.([]interface{}) {
-		clauses = append(clauses, c.(ast.PutClause))
+		clauses = append(clauses, c.(ast.Assignment))
 	}
 	return &ast.PutProc{ast.Node{"PutProc"}, clauses}
 }
@@ -307,6 +307,20 @@ func makeReducerProc(reducers interface{}) *ast.ReducerProc {
 	}
 }
 
+func makeGroupByKey(textIn, valIn interface{}) ast.Assignment {
+	text := textIn.(string)
+	val := valIn.(ast.Expression)
+	return ast.Assignment{text, val}
+}
+
+func makeGroupByKeys(first, rest interface{}) []ast.Assignment {
+	keys := []ast.Assignment{first.(ast.Assignment)}
+	for _, k := range rest.([]interface{}) {
+		keys = append(keys, k.(ast.Assignment))
+	}
+	return keys
+}
+
 func makeGroupByProc(durationIn, limitIn, keysIn, reducersIn interface{}) *ast.GroupByProc {
 	var duration ast.Duration
 	if durationIn != nil {
@@ -318,7 +332,13 @@ func makeGroupByProc(durationIn, limitIn, keysIn, reducersIn interface{}) *ast.G
 		limit = limitIn.(int)
 	}
 
-	keys := stringArray(keysIn)
+	var keys []ast.Assignment
+	switch keysSlice := keysIn.(type) {
+	case []interface{}:
+		keys = []ast.Assignment{}
+	case []ast.Assignment:
+		keys = keysSlice
+	}
 	reducers := reducersArray(reducersIn)
 
 	return &ast.GroupByProc{
