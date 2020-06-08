@@ -177,8 +177,8 @@ type multiFileReader struct {
 	cfg    OpenConfig
 }
 
-// MultiReader returns a zbuf.ReadCloser that's the logical concatenation of the
-// provided input paths. They're read sequentially. Once all inputs have
+// MultiFileReader returns a zbuf.ReadCloser that's the logical concatenation
+// of the provided input paths. They're read sequentially. Once all inputs have
 // reached end of stream, Read will return end of stream. If any of the readers
 // return a non-nil error, Read will return that error.
 func MultiFileReader(zctx *resolver.Context, paths []string, cfg OpenConfig) zbuf.ReadCloser {
