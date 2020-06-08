@@ -29,16 +29,16 @@ const (
 	MimeTypeZNG    = "application/x-zng"
 )
 
-type Search struct {
-	mux *driver.MuxOutput
-	io.Closer
-}
-
 type SearchStore interface {
 	Open(ctx context.Context, span nano.Span) (zbuf.ReadCloser, error)
 }
 
-func NewSearch(ctx context.Context, s SearchStore, req api.SearchRequest) (*Search, error) {
+type SearchOp struct {
+	mux *driver.MuxOutput
+	io.Closer
+}
+
+func NewSearchOp(ctx context.Context, s SearchStore, req api.SearchRequest) (*SearchOp, error) {
 	if req.Span.Ts < 0 {
 		return nil, errors.New("time span must have non-negative timestamp")
 	}
@@ -69,10 +69,10 @@ func NewSearch(ctx context.Context, s SearchStore, req api.SearchRequest) (*Sear
 		zngReader.Close()
 		return nil, err
 	}
-	return &Search{mux, zngReader}, nil
+	return &SearchOp{mux, zngReader}, nil
 }
 
-func (s *Search) Run(output Output) error {
+func (s *SearchOp) Run(output Output) error {
 	d := &searchdriver{
 		output:    output,
 		startTime: nano.Now(),

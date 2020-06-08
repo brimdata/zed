@@ -15,11 +15,11 @@ import (
 
 type archiveSpace struct {
 	spaceBase
+	path string
 
-	// confMutex protects changes to configuration changes.
-	confMutex sync.Mutex
-	path      string
-	conf      config
+	// muConf protects changes to configuration changes.
+	muConf sync.Mutex
+	conf   config
 }
 
 func (s *archiveSpace) Info(ctx context.Context) (api.SpaceInfo, error) {
@@ -38,19 +38,19 @@ func (s *archiveSpace) Update(req api.SpacePutRequest) error {
 		return zqe.E(zqe.Invalid, "cannot set name to an empty string")
 	}
 
-	s.confMutex.Lock()
-	defer s.confMutex.Unlock()
+	s.muConf.Lock()
+	defer s.muConf.Unlock()
 
 	s.conf.Name = req.Name
 	return s.conf.save(s.path)
 }
 
 func (s *archiveSpace) delete() error {
-	s.confMutex.Lock()
-	defer s.confMutex.Unlock()
+	s.muConf.Lock()
+	defer s.muConf.Unlock()
 
 	if len(s.conf.Subspaces) != 0 {
-		return zqe.E(zqe.Conflict, "unable to delete space with subspaces")
+		return zqe.E(zqe.Conflict, "cannot delete space with subspaces")
 	}
 
 	if err := s.sg.acquireForDelete(); err != nil {
@@ -67,8 +67,8 @@ func (s *archiveSpace) CreateSubspace(req api.SubspacePostRequest) (*archiveSubs
 		return nil, zqe.E(zqe.Invalid, "cannot set name to an empty string")
 	}
 
-	s.confMutex.Lock()
-	defer s.confMutex.Unlock()
+	s.muConf.Lock()
+	defer s.muConf.Unlock()
 
 	substore, err := archivestore.Load(s.conf.DataPath, &storage.ArchiveConfig{
 		OpenOptions: &req.OpenOptions,
@@ -149,8 +149,8 @@ func (s *archiveSubspace) delete() error {
 }
 
 func (s *archiveSubspace) findConfig(fn func(i int) error) error {
-	s.parent.confMutex.Lock()
-	defer s.parent.confMutex.Unlock()
+	s.parent.muConf.Lock()
+	defer s.parent.muConf.Unlock()
 
 	for i := range s.parent.conf.Subspaces {
 		if s.parent.conf.Subspaces[i].ID == s.id {
@@ -158,5 +158,5 @@ func (s *archiveSubspace) findConfig(fn func(i int) error) error {
 		}
 	}
 	// should not happen
-	return fmt.Errorf("subspace %s cant find conf in parent %s", s.id, s.parent.id)
+	return fmt.Errorf("subspace %s cannot find conf in parent %s", s.id, s.parent.id)
 }

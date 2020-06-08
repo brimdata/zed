@@ -110,7 +110,7 @@ func (m *Manager) Create(req api.SpacePostRequest) (Space, error) {
 	return spaces[0], nil
 }
 
-func (m *Manager) SubspaceCreate(parent Space, req api.SubspacePostRequest) (Space, error) {
+func (m *Manager) CreateSubspace(parent Space, req api.SubspacePostRequest) (Space, error) {
 	m.mapLock.Lock()
 	defer m.mapLock.Unlock()
 

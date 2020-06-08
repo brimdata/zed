@@ -88,7 +88,7 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	defer cancel()
 
-	srch, err := search.NewSearch(ctx, s.Storage(), req)
+	srch, err := search.NewSearchOp(ctx, s.Storage(), req)
 	if err != nil {
 		// XXX This always returns bad request but should return status codes
 		// that reflect the nature of the returned error.
@@ -148,7 +148,7 @@ func handlePcapSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		respondError(c, w, r, zqe.E(zqe.Invalid, "space does not support pcap searches"))
 		return
 	}
-	reader, err := search.NewPcapSearch(ctx, pspace, req)
+	reader, err := search.NewPcapSearchOp(ctx, pspace, req)
 	if err == pcap.ErrNoPcapsFound {
 		respondError(c, w, r, zqe.E(zqe.NotFound, err))
 		return
@@ -235,7 +235,7 @@ func handleSubspacePost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sp, err := c.spaces.SubspaceCreate(s, req)
+	sp, err := c.spaces.CreateSubspace(s, req)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -476,12 +476,12 @@ func handleIndexSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	store, ok := s.Storage().(search.IndexedArchive)
+	store, ok := s.Storage().(search.IndexSearcher)
 	if !ok {
 		respondError(c, w, r, zqe.E(zqe.Invalid, "space storage does not support index search"))
 		return
 	}
-	srch, err := search.NewIndexSearch(ctx, store, req)
+	srch, err := search.NewIndexSearchOp(ctx, store, req)
 	if err != nil {
 		respondError(c, w, r, err)
 		return

@@ -52,7 +52,7 @@ type PcapOp struct {
 // directory. If zeekExec is an empty string, this will attempt to resolve zeek
 // from $PATH.
 func NewPcapOp(ctx context.Context, pspace PcapSpace, pstore PcapStore, pcap string, zlauncher zeek.Launcher) (*PcapOp, error) {
-	logdir, err := ioutil.TempDir("", "zqd-pcap-import-")
+	logdir, err := ioutil.TempDir("", "zqd-pcap-ingest-")
 	if err != nil {
 		return nil, err
 	}

@@ -16,10 +16,15 @@ type PcapSpace interface {
 	PcapPath() string
 }
 
-// NewPcapSearch returns a *pcap.SearchReader that streams all the packets meeting
+type PcapSearchOp struct {
+	*pcap.SearchReader
+	f *os.File
+}
+
+// NewPcapSearchOp returns a *pcap.PcapSearchOp that streams all the packets meeting
 // the provided search request. If pcaps are not supported in this Space,
 // ErrPcapOpsNotSupported is returned.
-func NewPcapSearch(ctx context.Context, pspace PcapSpace, req api.PcapSearch) (*PcapSearchReadCloser, error) {
+func NewPcapSearchOp(ctx context.Context, pspace PcapSpace, req api.PcapSearch) (*PcapSearchOp, error) {
 	index, err := pcap.LoadIndex(pspace.PcapIndexPath())
 	if err != nil {
 		return nil, err
@@ -56,14 +61,9 @@ func NewPcapSearch(ctx context.Context, pspace PcapSpace, req api.PcapSearch) (*
 		f.Close()
 		return nil, err
 	}
-	return &PcapSearchReadCloser{r, f}, nil
+	return &PcapSearchOp{r, f}, nil
 }
 
-type PcapSearchReadCloser struct {
-	*pcap.SearchReader
-	f *os.File
-}
-
-func (c *PcapSearchReadCloser) Close() error {
+func (c *PcapSearchOp) Close() error {
 	return c.f.Close()
 }

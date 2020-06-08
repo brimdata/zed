@@ -8,15 +8,15 @@ import (
 	"github.com/brimsec/zq/zqd/api"
 )
 
-type IndexSearch struct {
-	zbuf.ReadCloser
-}
-
-type IndexedArchive interface {
+type IndexSearcher interface {
 	IndexSearch(context.Context, archive.IndexQuery) (zbuf.ReadCloser, error)
 }
 
-func NewIndexSearch(ctx context.Context, s IndexedArchive, req api.IndexSearchRequest) (*IndexSearch, error) {
+type IndexSearchOp struct {
+	zbuf.ReadCloser
+}
+
+func NewIndexSearchOp(ctx context.Context, s IndexSearcher, req api.IndexSearchRequest) (*IndexSearchOp, error) {
 	query, err := archive.ParseIndexQuery(req.IndexName, req.Patterns)
 	if err != nil {
 		return nil, err
@@ -25,10 +25,10 @@ func NewIndexSearch(ctx context.Context, s IndexedArchive, req api.IndexSearchRe
 	if err != nil {
 		return nil, err
 	}
-	return &IndexSearch{rc}, nil
+	return &IndexSearchOp{rc}, nil
 }
 
-func (s *IndexSearch) Run(out Output) (err error) {
+func (s *IndexSearchOp) Run(out Output) (err error) {
 	if err = out.SendControl(&api.TaskStart{"TaskStart", 0}); err != nil {
 		return
 	}
