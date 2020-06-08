@@ -15,7 +15,7 @@ import (
 
 type Manager struct {
 	rootPath string
-	mapLock  sync.Mutex
+	spacesMu sync.Mutex
 	spaces   map[api.SpaceID]*Space
 	logger   *zap.Logger
 }
@@ -55,8 +55,8 @@ func NewManager(root string, logger *zap.Logger) (*Manager, error) {
 }
 
 func (m *Manager) Create(name, dataPath string) (*Space, error) {
-	m.mapLock.Lock()
-	defer m.mapLock.Unlock()
+	m.spacesMu.Lock()
+	defer m.spacesMu.Unlock()
 
 	if name == "" && dataPath == "" {
 		return nil, zqe.E(zqe.Invalid, "must supply non-empty name or dataPath")
@@ -95,8 +95,8 @@ func (m *Manager) Create(name, dataPath string) (*Space, error) {
 }
 
 func (m *Manager) Get(id api.SpaceID) (*Space, error) {
-	m.mapLock.Lock()
-	defer m.mapLock.Unlock()
+	m.spacesMu.Lock()
+	defer m.spacesMu.Unlock()
 	space, exists := m.spaces[id]
 	if !exists {
 		return nil, ErrSpaceNotExist
@@ -106,8 +106,8 @@ func (m *Manager) Get(id api.SpaceID) (*Space, error) {
 }
 
 func (m *Manager) Delete(id api.SpaceID) error {
-	m.mapLock.Lock()
-	defer m.mapLock.Unlock()
+	m.spacesMu.Lock()
+	defer m.spacesMu.Unlock()
 
 	space, exists := m.spaces[id]
 	if !exists {
@@ -126,8 +126,8 @@ func (m *Manager) Delete(id api.SpaceID) error {
 func (m *Manager) List(ctx context.Context) ([]api.SpaceInfo, error) {
 	result := []api.SpaceInfo{}
 
-	m.mapLock.Lock()
-	defer m.mapLock.Unlock()
+	m.spacesMu.Lock()
+	defer m.spacesMu.Unlock()
 	for id := range m.spaces {
 		sp := m.spaces[id]
 		info, err := sp.Info(ctx)
