@@ -15,6 +15,7 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/parquetio"
+	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 
 	"github.com/xitongsys/parquet-go-source/local"
@@ -167,4 +168,55 @@ func OpenFiles(zctx *resolver.Context, dir zbuf.RecordCmpFn, paths ...string) (*
 		readers = append(readers, reader)
 	}
 	return zbuf.NewCombiner(readers, dir), nil
+}
+
+type multiFileReader struct {
+	reader *zbuf.File
+	zctx   *resolver.Context
+	paths  []string
+	cfg    OpenConfig
+}
+
+// MultiFileReader returns a zbuf.ReadCloser that's the logical concatenation
+// of the provided input paths. They're read sequentially. Once all inputs have
+// reached end of stream, Read will return end of stream. If any of the readers
+// return a non-nil error, Read will return that error.
+func MultiFileReader(zctx *resolver.Context, paths []string, cfg OpenConfig) zbuf.ReadCloser {
+	return &multiFileReader{
+		zctx:  zctx,
+		paths: paths,
+		cfg:   cfg,
+	}
+}
+
+func (r *multiFileReader) Read() (rec *zng.Record, err error) {
+again:
+	if r.reader == nil {
+		if len(r.paths) == 0 {
+			return nil, nil
+		}
+		path := r.paths[0]
+		r.paths = r.paths[1:]
+		r.reader, err = OpenFile(r.zctx, path, r.cfg)
+		if err != nil {
+			return nil, err
+		}
+	}
+	rec, err = r.reader.Read()
+	if err == nil && rec == nil {
+		r.reader.Close()
+		r.reader = nil
+		goto again
+	}
+	return
+}
+
+// Close closes the current open files and clears the list of remaining paths
+// to be read. This is not thread safe.
+func (r *multiFileReader) Close() (err error) {
+	if r.reader != nil {
+		err = r.reader.Close()
+		r.reader = nil
+	}
+	return
 }

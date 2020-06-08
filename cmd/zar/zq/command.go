@@ -111,25 +111,25 @@ func (c *Command) Run(args []string) error {
 		for _, input := range inputs {
 			localPaths = append(localPaths, archive.Localize(zardir, input))
 		}
-		readers, err := c.inputReaders(resolver.NewContext(), localPaths)
+		paths, err := c.verifyPaths(localPaths)
 		if err != nil {
 			return err
 		}
-		if len(readers) == 0 {
+		if len(paths) == 0 {
 			// skip and warn if no inputs found
 			if !c.quiet {
 				fmt.Fprintf(os.Stderr, "%s: no inputs files found\n", zardir)
 			}
 			return nil
 		}
+		cfg := detector.OpenConfig{Format: "zng"}
+		rc := detector.MultiFileReader(resolver.NewContext(), paths, cfg)
+		defer rc.Close()
+		reader := zbuf.Reader(rc)
 		wch := make(chan string, 5)
 		if !c.stopErr {
-			for i, r := range readers {
-				readers[i] = zbuf.NewWarningReader(r, wch)
-			}
+			reader = zbuf.NewWarningReader(reader, wch)
 		}
-		reader := zbuf.NewCombiner(readers, zbuf.RecordCompare(ark.Meta.DataSortDirection))
-		defer reader.Close()
 		writer, err := c.openOutput(zardir, c.outputFile)
 		if err != nil {
 			return err
@@ -149,20 +149,20 @@ func (c *Command) Run(args []string) error {
 	})
 }
 
-func (c *Command) inputReaders(zctx *resolver.Context, paths []string) ([]zbuf.Reader, error) {
-	cfg := detector.OpenConfig{
-		Format: "zng",
-	}
-	var readers []zbuf.Reader
+func (c *Command) verifyPaths(paths []string) ([]string, error) {
+	var files []string
 	for _, path := range paths {
-		file, err := detector.OpenFile(zctx, path, cfg)
-		if err != nil {
-			if os.IsNotExist(err) {
-				if !c.quiet {
-					fmt.Fprintf(os.Stderr, "warning: %s not found\n", path)
-				}
-				continue
+		stat, err := os.Stat(path)
+		if os.IsNotExist(err) {
+			if !c.quiet {
+				fmt.Fprintf(os.Stderr, "warning: %s not found\n", path)
 			}
+			continue
+		}
+		if err == nil && stat.IsDir() {
+			err = fmt.Errorf("path is a directory")
+		}
+		if err != nil {
 			err = fmt.Errorf("%s: %w", path, err)
 			if c.stopErr {
 				return nil, err
@@ -170,11 +170,9 @@ func (c *Command) inputReaders(zctx *resolver.Context, paths []string) ([]zbuf.R
 			fmt.Fprintf(os.Stderr, "%s\n", err)
 			continue
 		}
-		// wrap in a named reader so the reader implements Stringer,
-		// e.g., as used by scanner.Combiner
-		readers = append(readers, namedReader{file, path})
+		files = append(files, path)
 	}
-	return readers, nil
+	return files, nil
 }
 
 func (c *Command) openOutput(zardir, filename string) (zbuf.WriteCloser, error) {
@@ -188,13 +186,4 @@ func (c *Command) openOutput(zardir, filename string) (zbuf.WriteCloser, error) 
 		return nil, err
 	}
 	return w, nil
-}
-
-type namedReader struct {
-	zbuf.Reader
-	name string
-}
-
-func (r namedReader) String() string {
-	return r.name
 }

@@ -116,7 +116,7 @@ func getSearchOutput(w http.ResponseWriter, r *http.Request) (search.Output, err
 	}
 	format := r.URL.Query().Get("format")
 	switch format {
-	case "zjson", "json":
+	case "zjson", "ndjson":
 		return search.NewJSONOutput(w, search.DefaultMTU, ctrl), nil
 	case "zng":
 		return search.NewZngOutput(w, ctrl), nil
