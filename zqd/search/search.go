@@ -14,7 +14,6 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
-	"github.com/brimsec/zq/zqd/space"
 	"github.com/brimsec/zq/zqe"
 	"go.uber.org/zap"
 )
@@ -30,12 +29,16 @@ const (
 	MimeTypeZNG    = "application/x-zng"
 )
 
-type Search struct {
+type SearchStore interface {
+	Open(ctx context.Context, span nano.Span) (zbuf.ReadCloser, error)
+}
+
+type SearchOp struct {
 	mux *driver.MuxOutput
 	io.Closer
 }
 
-func NewSearch(ctx context.Context, s *space.Space, req api.SearchRequest) (*Search, error) {
+func NewSearchOp(ctx context.Context, s SearchStore, req api.SearchRequest) (*SearchOp, error) {
 	if req.Span.Ts < 0 {
 		return nil, errors.New("time span must have non-negative timestamp")
 	}
@@ -55,7 +58,7 @@ func NewSearch(ctx context.Context, s *space.Space, req api.SearchRequest) (*Sea
 		return nil, err
 	}
 
-	zngReader, err := s.Storage.Open(ctx, query.Span)
+	zngReader, err := s.Open(ctx, query.Span)
 	if err != nil {
 		return nil, err
 	}
@@ -66,10 +69,10 @@ func NewSearch(ctx context.Context, s *space.Space, req api.SearchRequest) (*Sea
 		zngReader.Close()
 		return nil, err
 	}
-	return &Search{mux, zngReader}, nil
+	return &SearchOp{mux, zngReader}, nil
 }
 
-func (s *Search) Run(output Output) error {
+func (s *SearchOp) Run(output Output) error {
 	d := &searchdriver{
 		output:    output,
 		startTime: nano.Now(),

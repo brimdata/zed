@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/brimsec/zq/zqd/api"
+	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqe"
 	"go.uber.org/zap"
 )
@@ -16,14 +17,14 @@ import (
 type Manager struct {
 	rootPath string
 	spacesMu sync.Mutex
-	spaces   map[api.SpaceID]*Space
+	spaces   map[api.SpaceID]Space
 	logger   *zap.Logger
 }
 
 func NewManager(root string, logger *zap.Logger) (*Manager, error) {
 	mgr := &Manager{
 		rootPath: root,
-		spaces:   make(map[api.SpaceID]*Space),
+		spaces:   make(map[api.SpaceID]Space),
 		logger:   logger,
 	}
 
@@ -44,37 +45,49 @@ func NewManager(root string, logger *zap.Logger) (*Manager, error) {
 			continue
 		}
 
-		space, err := loadSpace(path, config)
+		spaces, err := loadSpaces(path, config)
 		if err != nil {
 			return nil, err
 		}
-		mgr.spaces[space.ID()] = space
+		for _, s := range spaces {
+			mgr.spaces[s.ID()] = s
+		}
 	}
 
 	return mgr, nil
 }
 
-func (m *Manager) Create(name, dataPath string) (*Space, error) {
+func (m *Manager) Create(req api.SpacePostRequest) (Space, error) {
 	m.spacesMu.Lock()
 	defer m.spacesMu.Unlock()
 
-	if name == "" && dataPath == "" {
+	if req.Name == "" && req.DataPath == "" {
 		return nil, zqe.E(zqe.Invalid, "must supply non-empty name or dataPath")
 	}
-	if name == "" {
-		name = filepath.Base(dataPath)
+
+	var storecfg storage.Config
+	if req.Storage != nil {
+		storecfg = *req.Storage
+	}
+	if storecfg.Kind == storage.UnknownStore {
+		storecfg.Kind = storage.FileStore
+	}
+
+	if req.Name == "" {
+		req.Name = filepath.Base(req.DataPath)
 	}
 	id := newSpaceID()
 	path := filepath.Join(m.rootPath, string(id))
 	if err := os.Mkdir(path, 0755); err != nil {
 		return nil, err
 	}
-	if dataPath == "" {
-		dataPath = path
+	if req.DataPath == "" {
+		req.DataPath = path
 	}
 	c := config{
-		Name:     name,
-		DataPath: dataPath,
+		Name:     req.Name,
+		DataPath: req.DataPath,
+		Storage:  storecfg,
 	}
 	if err := c.save(path); err != nil {
 		os.RemoveAll(path)
@@ -86,17 +99,37 @@ func (m *Manager) Create(name, dataPath string) (*Space, error) {
 		return nil, errors.New("created duplicate space id (this should not happen)")
 	}
 
-	sp, err := loadSpace(path, c)
+	spaces, err := loadSpaces(path, c)
 	if err != nil {
 		return nil, err
 	}
-	m.spaces[id] = sp
-	return sp, nil
+	if len(spaces) != 1 {
+		panic("multiple spaces created during space create")
+	}
+	m.spaces[id] = spaces[0]
+	return spaces[0], nil
 }
 
-func (m *Manager) Get(id api.SpaceID) (*Space, error) {
+func (m *Manager) CreateSubspace(parent Space, req api.SubspacePostRequest) (Space, error) {
 	m.spacesMu.Lock()
 	defer m.spacesMu.Unlock()
+
+	as, ok := parent.(*archiveSpace)
+	if !ok {
+		return nil, zqe.E(zqe.Invalid, "space does not support creating subspaces")
+	}
+	s, err := as.CreateSubspace(req)
+	if err != nil {
+		return nil, err
+	}
+	m.spaces[s.ID()] = s
+	return s, nil
+}
+
+func (m *Manager) Get(id api.SpaceID) (Space, error) {
+	m.spacesMu.Lock()
+	defer m.spacesMu.Unlock()
+
 	space, exists := m.spaces[id]
 	if !exists {
 		return nil, ErrSpaceNotExist
@@ -106,19 +139,17 @@ func (m *Manager) Get(id api.SpaceID) (*Space, error) {
 }
 
 func (m *Manager) Delete(id api.SpaceID) error {
-	m.spacesMu.Lock()
-	defer m.spacesMu.Unlock()
-
-	space, exists := m.spaces[id]
-	if !exists {
-		return ErrSpaceNotExist
-	}
-
-	err := space.delete()
+	space, err := m.Get(id)
 	if err != nil {
 		return err
 	}
 
+	if err := space.delete(); err != nil {
+		return err
+	}
+
+	m.spacesMu.Lock()
+	defer m.spacesMu.Unlock()
 	delete(m.spaces, id)
 	return nil
 }

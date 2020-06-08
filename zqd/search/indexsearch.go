@@ -6,33 +6,29 @@ import (
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zqd/api"
-	"github.com/brimsec/zq/zqd/space"
-	"github.com/brimsec/zq/zqd/storage/archivestore"
-	"github.com/brimsec/zq/zqe"
 )
 
-type IndexSearch struct {
+type IndexSearcher interface {
+	IndexSearch(context.Context, archive.IndexQuery) (zbuf.ReadCloser, error)
+}
+
+type IndexSearchOp struct {
 	zbuf.ReadCloser
 }
 
-func NewIndexSearch(ctx context.Context, s *space.Space, req api.IndexSearchRequest) (*IndexSearch, error) {
-	arkstore, ok := s.Storage.(*archivestore.Storage)
-	if !ok {
-		return nil, zqe.E(zqe.Invalid, "index search only supported on archive spaces")
-	}
-
+func NewIndexSearchOp(ctx context.Context, s IndexSearcher, req api.IndexSearchRequest) (*IndexSearchOp, error) {
 	query, err := archive.ParseIndexQuery(req.IndexName, req.Patterns)
 	if err != nil {
 		return nil, err
 	}
-	rc, err := arkstore.IndexSearch(ctx, query)
+	rc, err := s.IndexSearch(ctx, query)
 	if err != nil {
 		return nil, err
 	}
-	return &IndexSearch{rc}, nil
+	return &IndexSearchOp{rc}, nil
 }
 
-func (s *IndexSearch) Run(out Output) (err error) {
+func (s *IndexSearchOp) Run(out Output) (err error) {
 	if err = out.SendControl(&api.TaskStart{"TaskStart", 0}); err != nil {
 		return
 	}

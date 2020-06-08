@@ -2,30 +2,54 @@ package storage
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 )
 
-type Kind int
+type Kind string
 
 const (
-	UnknownStore Kind = iota
-	FileStore
-	ArchiveStore
+	UnknownStore Kind = ""
+	FileStore    Kind = "filestore"
+	ArchiveStore Kind = "archivestore"
 )
 
 func (k Kind) String() string {
-	switch k {
+	return string(k)
+}
+
+func (k *Kind) Set(x string) error {
+	kx := Kind(x)
+	switch kx {
 	case FileStore:
-		return "filestore"
-	case ArchiveStore:
-		return "archivestore"
-	case UnknownStore:
 		fallthrough
+	case ArchiveStore:
+		*k = kx
+		return nil
+
 	default:
-		return "unknown storage kind"
+		return fmt.Errorf("unknown storage kind: %s", x)
 	}
+}
+
+type Config struct {
+	Kind    Kind           `json:"kind"`
+	Archive *ArchiveConfig `json:"archive,omitempty"`
+}
+
+type ArchiveConfig struct {
+	OpenOptions   *ArchiveOpenOptions   `json:"open_options,omitempty"`
+	CreateOptions *ArchiveCreateOptions `json:"create_options,omitempty"`
+}
+
+type ArchiveOpenOptions struct {
+	LogFilter []string `json:"log_filter,omitempty"`
+}
+
+type ArchiveCreateOptions struct {
+	LogSizeThreshold *int64 `json:"log_size_threshold,omitempty"`
 }
 
 type Summary struct {

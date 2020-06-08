@@ -162,7 +162,7 @@ func TestPcapPostInvalidPcap(t *testing.T) {
 			ID:          p.space.ID,
 			Name:        p.space.Name,
 			DataPath:    p.space.DataPath,
-			StorageKind: storage.FileStore.String(),
+			StorageKind: storage.FileStore,
 		}
 		require.Equal(t, &expected, info)
 	})
@@ -216,7 +216,7 @@ func TestPcapPostZeekFailAfterWrite(t *testing.T) {
 			ID:          p.space.ID,
 			Name:        p.space.Name,
 			DataPath:    p.space.DataPath,
-			StorageKind: storage.FileStore.String(),
+			StorageKind: storage.FileStore,
 		}
 		require.Equal(t, &expected, info)
 	})

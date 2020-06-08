@@ -166,6 +166,20 @@ func (c *Connection) SpacePost(ctx context.Context, req SpacePostRequest) (*Spac
 	return resp.Result().(*SpaceInfo), nil
 }
 
+func (c *Connection) SubspacePost(ctx context.Context, id SpaceID, req SubspacePostRequest) (*SpaceInfo, error) {
+	resp, err := c.Request(ctx).
+		SetBody(req).
+		SetResult(&SpaceInfo{}).
+		Post(path.Join("/space", string(id), "subspace"))
+	if err != nil {
+		if r, ok := err.(*ErrorResponse); ok && r.StatusCode() == http.StatusConflict {
+			return nil, ErrSpaceExists
+		}
+		return nil, err
+	}
+	return resp.Result().(*SpaceInfo), nil
+}
+
 func (c *Connection) SpacePut(ctx context.Context, id SpaceID, req SpacePutRequest) error {
 	_, err := c.Request(ctx).
 		SetBody(req).

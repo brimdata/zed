@@ -207,7 +207,7 @@ func TestSpaceList(t *testing.T) {
 				ID:          sp.ID,
 				Name:        n,
 				DataPath:    filepath.Join(c.Root, string(sp.ID)),
-				StorageKind: storage.FileStore.String(),
+				StorageKind: storage.FileStore,
 			})
 		}
 
@@ -247,7 +247,7 @@ func TestSpaceInfo(t *testing.T) {
 		ID:          sp.ID,
 		Name:        sp.Name,
 		DataPath:    sp.DataPath,
-		StorageKind: storage.FileStore.String(),
+		StorageKind: storage.FileStore,
 		Span:        &span,
 		Size:        81,
 		PcapSupport: false,
@@ -269,7 +269,7 @@ func TestSpaceInfoNoData(t *testing.T) {
 		ID:          sp.ID,
 		Name:        sp.Name,
 		DataPath:    sp.DataPath,
-		StorageKind: storage.FileStore.String(),
+		StorageKind: storage.FileStore,
 		Size:        0,
 		PcapSupport: false,
 	}
@@ -414,7 +414,7 @@ func TestPostZngLogs(t *testing.T) {
 		ID:          sp.ID,
 		Name:        sp.Name,
 		DataPath:    sp.DataPath,
-		StorageKind: storage.FileStore.String(),
+		StorageKind: storage.FileStore,
 		Span:        span,
 		Size:        81,
 		PcapSupport: false,
@@ -501,7 +501,7 @@ func TestPostNDJSONLogs(t *testing.T) {
 			ID:          sp.ID,
 			Name:        sp.Name,
 			DataPath:    sp.DataPath,
-			StorageKind: storage.FileStore.String(),
+			StorageKind: storage.FileStore,
 			Span:        &span,
 			Size:        81,
 			PcapSupport: false,
@@ -634,7 +634,7 @@ func TestDeleteDuringPcapPost(t *testing.T) {
 	err = client.SpaceDelete(context.Background(), sp.ID)
 	require.NoError(t, err)
 
-	require.Error(t, <-pcapPostErr, "context canceled")
+	require.EqualError(t, <-pcapPostErr, "context canceled")
 }
 
 func TestSpaceDataDir(t *testing.T) {
@@ -677,7 +677,7 @@ func createArchiveSpace(t *testing.T, datapath string, thresh int64, srcfile str
 	co := &archive.CreateOptions{
 		LogSizeThreshold: &thresh,
 	}
-	ark, err := archive.CreateOrOpenArchive(datapath, co)
+	ark, err := archive.CreateOrOpenArchive(datapath, co, nil)
 	require.NoError(t, err)
 
 	zctx := resolver.NewContext()
@@ -693,7 +693,7 @@ func indexArchiveSpace(t *testing.T, datapath string, ruledef string) {
 	rule, err := archive.NewRule(ruledef)
 	require.NoError(t, err)
 
-	ark, err := archive.OpenArchive(datapath)
+	ark, err := archive.OpenArchive(datapath, nil)
 	require.NoError(t, err)
 
 	err = archive.IndexDirTree(ark, []archive.Rule{*rule}, "_", nil)
@@ -707,12 +707,21 @@ func TestCreateArchiveSpace(t *testing.T) {
 
 	root := createTempDir(t)
 
-	_, client, done := newCoreAtDir(t, root)
+	c, client, done := newCoreAtDir(t, root)
 	defer done()
+
+	c.ZeekLauncher = testZeekLauncher(func(tzp *testZeekProcess) error {
+		const s = "unexpected attempt to run zeek"
+		t.Error(s)
+		return errors.New(s)
+	}, nil)
 
 	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{
 		Name:     "arktest",
 		DataPath: datapath,
+		Storage: &storage.Config{
+			Kind: storage.ArchiveStore,
+		},
 	})
 	require.NoError(t, err)
 
@@ -721,7 +730,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 		ID:          sp.ID,
 		Name:        sp.Name,
 		DataPath:    sp.DataPath,
-		StorageKind: storage.ArchiveStore.String(),
+		StorageKind: storage.ArchiveStore,
 		Span:        &span,
 		Size:        35285,
 	}
@@ -735,6 +744,16 @@ func TestCreateArchiveSpace(t *testing.T) {
 `
 	res := searchTzng(t, client, sp.ID, "s=harefoot-raucous")
 	require.Equal(t, test.Trim(exptzng), res)
+
+	// Verify pcap post not supported
+	_, err = client.PcapPost(context.Background(), sp.ID, api.PcapPostRequest{"foo"})
+	require.Error(t, err)
+	assert.Regexp(t, "space does not support pcap import", err.Error())
+
+	// Verify log post not supported
+	_, err = client.LogPost(context.Background(), sp.ID, api.LogPostRequest{Paths: []string{"foo"}})
+	require.Error(t, err)
+	assert.Regexp(t, "space does not support log import", err.Error())
 }
 
 func TestBlankNameSpace(t *testing.T) {
@@ -771,6 +790,9 @@ func TestIndexSearch(t *testing.T) {
 	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{
 		Name:     "TestIndexSearch",
 		DataPath: datapath,
+		Storage: &storage.Config{
+			Kind: storage.ArchiveStore,
+		},
 	})
 	require.NoError(t, err)
 
@@ -786,6 +808,151 @@ func TestIndexSearch(t *testing.T) {
 `
 	res, _ := indexSearch(t, client, sp.ID, "", []string{"v=257"})
 	assert.Equal(t, test.Trim(expected), res)
+}
+
+func TestSubspaceCreate(t *testing.T) {
+	// Create archive & import data
+	datapath := createTempDir(t)
+	thresh := int64(1000)
+	createArchiveSpace(t, datapath, thresh, "../tests/suite/zdx/babble.tzng")
+	indexArchiveSpace(t, datapath, ":int64")
+
+	// Create server & the parent space
+	root := createTempDir(t)
+	_, client, done := newCoreAtDir(t, root)
+	defer done()
+
+	sp1, err := client.SpacePost(context.Background(), api.SpacePostRequest{
+		Name:     "TestSubspaceCreate",
+		DataPath: datapath,
+		Storage: &storage.Config{
+			Kind: storage.ArchiveStore,
+		},
+	})
+	require.NoError(t, err)
+
+	// Verify index search returns all logs
+	exp := `
+#zfile=string
+#0:record[key:int64,_log:zfile]
+0:[336;20200422/1587517412.06741443.zng;]
+0:[336;20200421/1587508871.06471174.zng;]
+`
+	res, _ := indexSearch(t, client, sp1.ID, "", []string{":int64=336"})
+	assert.Equal(t, test.Trim(exp), res)
+
+	// Create subspace
+	sp2, err := client.SubspacePost(context.Background(), sp1.ID, api.SubspacePostRequest{
+		Name: "subspace",
+		OpenOptions: storage.ArchiveOpenOptions{
+			LogFilter: []string{"20200422/1587517412.06741443.zng"},
+		},
+	})
+	require.NoError(t, err)
+
+	// Verify index search only returns filtered logs
+	exp = `
+#zfile=string
+#0:record[key:int64,_log:zfile]
+0:[336;20200422/1587517412.06741443.zng;]
+`
+	res, _ = indexSearch(t, client, sp2.ID, "", []string{":int64=336"})
+	assert.Equal(t, test.Trim(exp), res)
+
+	// Verify full search only returns filtered results
+	exp = `
+#0:record[ts:time,s:string,v:int64]
+0:[1587517152.06293072;scrabbler-protohydrogen;336;]
+`
+	res, _ = search(t, client, sp2.ID, "v=336")
+	assert.Equal(t, test.Trim(exp), res)
+
+	// Verify delete on parent fails
+	err = client.SpaceDelete(context.Background(), sp1.ID)
+	require.Error(t, err)
+	require.Regexp(t, "subspaces", err.Error())
+
+	// Delete subspace
+	err = client.SpaceDelete(context.Background(), sp2.ID)
+	require.NoError(t, err)
+
+	// parent delete should now succeed
+	err = client.SpaceDelete(context.Background(), sp1.ID)
+	require.NoError(t, err)
+}
+
+func TestSubspacePersist(t *testing.T) {
+	// Create archive & import data
+	datapath := createTempDir(t)
+	thresh := int64(1000)
+	createArchiveSpace(t, datapath, thresh, "../tests/suite/zdx/babble.tzng")
+	indexArchiveSpace(t, datapath, ":int64")
+
+	// Create server & the parent space
+	root := createTempDir(t)
+	_, client1, done1 := newCoreAtDir(t, root)
+	defer done1()
+
+	sp1, err := client1.SpacePost(context.Background(), api.SpacePostRequest{
+		Name:     "TestSubspaceCreate",
+		DataPath: datapath,
+		Storage: &storage.Config{
+			Kind: storage.ArchiveStore,
+		},
+	})
+	require.NoError(t, err)
+
+	// Create subspace
+	sp2, err := client1.SubspacePost(context.Background(), sp1.ID, api.SubspacePostRequest{
+		Name: "subspace",
+		OpenOptions: storage.ArchiveOpenOptions{
+			LogFilter: []string{"20200422/1587517412.06741443.zng"},
+		},
+	})
+	require.NoError(t, err)
+
+	// Verify index search only returns filtered logs
+	exp := `
+#zfile=string
+#0:record[key:int64,_log:zfile]
+0:[336;20200422/1587517412.06741443.zng;]
+`
+	res, _ := indexSearch(t, client1, sp2.ID, "", []string{":int64=336"})
+	assert.Equal(t, test.Trim(exp), res)
+
+	// Verify name change works
+	err = client1.SpacePut(context.Background(), sp2.ID, api.SpacePutRequest{Name: "newname"})
+	require.NoError(t, err)
+
+	si, err := client1.SpaceInfo(context.Background(), sp2.ID)
+	require.NoError(t, err)
+	assert.Equal(t, sp2.ID, si.ID)
+	assert.Equal(t, "newname", si.Name)
+
+	// Verify subspace is present & has new name with new server
+	_, client2, done2 := newCoreAtDir(t, root)
+	defer done2()
+
+	si, err = client2.SpaceInfo(context.Background(), sp2.ID)
+	require.NoError(t, err)
+	assert.Equal(t, sp2.ID, si.ID)
+	assert.Equal(t, "newname", si.Name)
+
+	// Delete subspace
+	err = client2.SpaceDelete(context.Background(), sp2.ID)
+	require.NoError(t, err)
+
+	si, err = client2.SpaceInfo(context.Background(), sp2.ID)
+	require.Error(t, err)
+	assert.Regexp(t, "not found", err.Error())
+
+	// Verify subspace gone with new server
+	_, client3, done3 := newCoreAtDir(t, root)
+	defer done3()
+
+	si, err = client3.SpaceInfo(context.Background(), sp2.ID)
+	require.Error(t, err)
+	assert.Regexp(t, "not found", err.Error())
 }
 
 func indexSearch(t *testing.T, client *api.Connection, space api.SpaceID, indexName string, patterns []string) (string, []interface{}) {

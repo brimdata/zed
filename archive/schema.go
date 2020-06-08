@@ -11,15 +11,10 @@ import (
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zqe"
 )
 
 const metadataFilename = "zar.json"
-
-var DefaultConfig Metadata = Metadata{
-	Version:           0,
-	LogSizeThreshold:  500 * 1024 * 1024,
-	DataSortDirection: zbuf.DirTimeReverse,
-}
 
 type Metadata struct {
 	Version           int            `json:"version"`
@@ -88,23 +83,36 @@ func ConfigRead(path string) (*Metadata, error) {
 	return &m, json.NewDecoder(f).Decode(&m)
 }
 
+const (
+	DefaultLogSizeThreshold  = 500 * 1024 * 1024
+	DefaultDataSortDirection = zbuf.DirTimeReverse
+)
+
 type CreateOptions struct {
 	LogSizeThreshold *int64
 }
 
 func (c *CreateOptions) toMetadata() *Metadata {
-	cfg := DefaultConfig
-
-	if c.LogSizeThreshold != nil {
-		cfg.LogSizeThreshold = *c.LogSizeThreshold
+	m := &Metadata{
+		Version:           0,
+		LogSizeThreshold:  DefaultLogSizeThreshold,
+		DataSortDirection: DefaultDataSortDirection,
 	}
 
-	return &cfg
+	if c.LogSizeThreshold != nil {
+		m.LogSizeThreshold = *c.LogSizeThreshold
+	}
+
+	return m
 }
 
 type Archive struct {
 	Meta *Metadata
 	Root string
+
+	// Spans contains either all spans from metadata, or a subset
+	// due to opening the archive with a filter list.
+	Spans []SpanInfo
 }
 
 func (ark *Archive) AppendSpans(spans []SpanInfo) error {
@@ -120,7 +128,11 @@ func (ark *Archive) AppendSpans(spans []SpanInfo) error {
 	return ark.Meta.Write(filepath.Join(ark.Root, metadataFilename))
 }
 
-func OpenArchive(path string) (*Archive, error) {
+type OpenOptions struct {
+	LogFilter []string
+}
+
+func OpenArchive(path string, oo *OpenOptions) (*Archive, error) {
 	if path == "" {
 		return nil, errors.New("no archive directory specified")
 	}
@@ -129,13 +141,32 @@ func OpenArchive(path string) (*Archive, error) {
 		return nil, err
 	}
 
+	var spans []SpanInfo
+	if oo != nil && len(oo.LogFilter) != 0 {
+		lmap := make(map[LogID]struct{})
+		for _, l := range oo.LogFilter {
+			lmap[LogID(l)] = struct{}{}
+		}
+		for _, s := range c.Spans {
+			if _, ok := lmap[s.LogID]; ok {
+				spans = append(spans, s)
+			}
+		}
+		if len(spans) == 0 {
+			return nil, zqe.E(zqe.Invalid, "OpenArchive: no spans left after filter")
+		}
+	} else {
+		spans = c.Spans
+	}
+
 	return &Archive{
-		Meta: c,
-		Root: path,
+		Meta:  c,
+		Root:  path,
+		Spans: spans,
 	}, nil
 }
 
-func CreateOrOpenArchive(path string, co *CreateOptions) (*Archive, error) {
+func CreateOrOpenArchive(path string, co *CreateOptions, oo *OpenOptions) (*Archive, error) {
 	if path == "" {
 		return nil, errors.New("no archive directory specified")
 	}
@@ -151,5 +182,5 @@ func CreateOrOpenArchive(path string, co *CreateOptions) (*Archive, error) {
 			return nil, err
 		}
 	}
-	return OpenArchive(path)
+	return OpenArchive(path, oo)
 }
