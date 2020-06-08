@@ -14,7 +14,6 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/pkg/fs"
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/zngio"
@@ -73,7 +72,7 @@ func (s *Sort) sortLoop() {
 		// Just one run so do an in-memory sort.
 		s.warnAboutUnseenFields()
 		expr.SortStable(firstRunRecs, s.sortFn)
-		array := zbuf.NewArray(firstRunRecs, nano.NewSpanTs(s.Base.MinTs, s.Base.MaxTs))
+		array := zbuf.NewArray(firstRunRecs)
 		s.sendResult(array, nil)
 		return
 	}

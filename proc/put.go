@@ -231,7 +231,6 @@ func (p *Put) Pull() (zbuf.Batch, error) {
 		in := batch.Index(k)
 		recs = append(recs, p.put(in))
 	}
-	span := batch.Span()
 	batch.Unref()
-	return zbuf.NewArray(recs, span), nil
+	return zbuf.NewArray(recs), nil
 }

@@ -77,10 +77,9 @@ func (c *Cut) Pull() (zbuf.Batch, error) {
 				recs = append(recs, out)
 			}
 		}
-		span := batch.Span()
 		batch.Unref()
 		if len(recs) > 0 {
-			return zbuf.NewArray(recs, span), nil
+			return zbuf.NewArray(recs), nil
 		}
 	}
 }

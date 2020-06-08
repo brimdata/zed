@@ -29,6 +29,5 @@ func (f *Filter) Pull() (zbuf.Batch, error) {
 			out = append(out, r.Keep())
 		}
 	}
-	//XXX need to update span... this will be done when we use Drop()
-	return zbuf.NewArray(out, batch.Span()), nil
+	return zbuf.NewArray(out), nil
 }

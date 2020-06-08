@@ -1,7 +1,6 @@
 package proc
 
 import (
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 )
@@ -29,7 +28,7 @@ func (t *Tail) tail() zbuf.Batch {
 	}
 	t.off = 0
 	t.count = 0
-	return zbuf.NewArray(out, nano.NewSpanTs(t.MinTs, t.MaxTs))
+	return zbuf.NewArray(out)
 
 }
 
