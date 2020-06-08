@@ -5,10 +5,9 @@ import (
 	"os"
 
 	"github.com/brimsec/zq/archive"
-	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/storage"
@@ -32,32 +31,19 @@ func (s *Storage) NativeDirection() zbuf.Direction {
 
 func (s *Storage) Open(ctx context.Context, span nano.Span) (zbuf.ReadCloser, error) {
 	var err error
-	var readers []zbuf.Reader
-	defer func() {
-		if err != nil {
-			for _, r := range readers {
-				r.(*zbuf.File).Close()
-			}
-		}
-	}()
-	zctx := resolver.NewContext()
+	var paths []string
 	err = archive.SpanWalk(s.ark, func(si archive.SpanInfo, zardir string) error {
-		if !span.Overlaps(si.Span) {
-			return nil
+		if span.Overlaps(si.Span) {
+			paths = append(paths, archive.ZarDirToLog(zardir))
 		}
-		f, err := fs.Open(archive.ZarDirToLog(zardir))
-		if err != nil {
-			return err
-		}
-		r := zngio.NewReader(f, zctx)
-		readers = append(readers, zbuf.NewFile(r, f, f.Name()))
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	combiner := zbuf.NewCombiner(readers, zbuf.RecordCompare(s.NativeDirection()))
-	return combiner, nil
+	zctx := resolver.NewContext()
+	cfg := detector.OpenConfig{Format: "zng"}
+	return detector.MultiFileReader(zctx, paths, cfg), nil
 }
 
 func (s *Storage) Summary(_ context.Context) (storage.Summary, error) {
