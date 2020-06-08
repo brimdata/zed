@@ -13,7 +13,7 @@ import (
 	"github.com/brimsec/zq/zbuf"
 )
 
-const metaDataFilename = "zar.json"
+const metadataFilename = "zar.json"
 
 var DefaultConfig Metadata = Metadata{
 	Version:           0,
@@ -67,7 +67,7 @@ func (c *Metadata) Write(path string) (err error) {
 	if err != nil {
 		return err
 	}
-	tmp, err := writeTempFile(filepath.Dir(path), "."+metaDataFilename+".*", b)
+	tmp, err := writeTempFile(filepath.Dir(path), "."+metadataFilename+".*", b)
 	if err != nil {
 		return err
 	}
@@ -117,14 +117,14 @@ func (ark *Archive) AppendSpans(spans []SpanInfo) error {
 		return ark.Meta.Spans[j].Span.Ts < ark.Meta.Spans[i].Span.Ts
 	})
 
-	return ark.Meta.Write(filepath.Join(ark.Root, metaDataFilename))
+	return ark.Meta.Write(filepath.Join(ark.Root, metadataFilename))
 }
 
 func OpenArchive(path string) (*Archive, error) {
 	if path == "" {
 		return nil, errors.New("no archive directory specified")
 	}
-	c, err := ConfigRead(filepath.Join(path, metaDataFilename))
+	c, err := ConfigRead(filepath.Join(path, metadataFilename))
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func CreateOrOpenArchive(path string, co *CreateOptions) (*Archive, error) {
 	if path == "" {
 		return nil, errors.New("no archive directory specified")
 	}
-	cfgpath := filepath.Join(path, metaDataFilename)
+	cfgpath := filepath.Join(path, metadataFilename)
 	if _, err := os.Stat(cfgpath); err != nil {
 		if os.IsNotExist(err) {
 			if err := os.MkdirAll(path, 0700); err != nil {
