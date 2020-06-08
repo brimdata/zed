@@ -15,13 +15,13 @@ import (
 
 const metaDataFilename = "zar.json"
 
-var DefaultConfig MetaData = MetaData{
+var DefaultConfig Metadata = Metadata{
 	Version:           0,
 	LogSizeThreshold:  500 * 1024 * 1024,
 	DataSortDirection: zbuf.DirTimeReverse,
 }
 
-type MetaData struct {
+type Metadata struct {
 	Version           int            `json:"version"`
 	LogSizeThreshold  int64          `json:"log_size_threshold"`
 	DataSortDirection zbuf.Direction `json:"data_sort_direction"`
@@ -62,7 +62,7 @@ func writeTempFile(dir, pattern string, b []byte) (name string, err error) {
 	return f.Name(), nil
 }
 
-func (c *MetaData) Write(path string) (err error) {
+func (c *Metadata) Write(path string) (err error) {
 	b, err := json.Marshal(c)
 	if err != nil {
 		return err
@@ -78,21 +78,21 @@ func (c *MetaData) Write(path string) (err error) {
 	return err
 }
 
-func ConfigRead(path string) (*MetaData, error) {
+func ConfigRead(path string) (*Metadata, error) {
 	f, err := fs.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
-	var c MetaData
-	return &c, json.NewDecoder(f).Decode(&c)
+	var m Metadata
+	return &m, json.NewDecoder(f).Decode(&m)
 }
 
 type CreateOptions struct {
 	LogSizeThreshold *int64
 }
 
-func (c *CreateOptions) toMetaData() *MetaData {
+func (c *CreateOptions) toMetadata() *Metadata {
 	cfg := DefaultConfig
 
 	if c.LogSizeThreshold != nil {
@@ -103,7 +103,7 @@ func (c *CreateOptions) toMetaData() *MetaData {
 }
 
 type Archive struct {
-	Meta *MetaData
+	Meta *Metadata
 	Root string
 }
 
@@ -145,7 +145,7 @@ func CreateOrOpenArchive(path string, co *CreateOptions) (*Archive, error) {
 			if err := os.MkdirAll(path, 0700); err != nil {
 				return nil, err
 			}
-			err = co.toMetaData().Write(cfgpath)
+			err = co.toMetadata().Write(cfgpath)
 		}
 		if err != nil {
 			return nil, err
