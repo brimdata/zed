@@ -7,7 +7,7 @@
 
 ---
 
-> A video walk-through of some what's shown below is captured in
+> A video walk-through of some of what's shown below is captured in
 > [this excerpt from a recent Zeek From Home event](https://www.youtube.com/watch?v=ldrEadAQYTM&t=46m00s).
 
 ---
