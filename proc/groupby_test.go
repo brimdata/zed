@@ -221,7 +221,7 @@ func tests() suite {
 	s.add(New("unset-inputs", unsetIn, unsetOut, "sum(val) by key"))
 
 	// Test reducers with missing operands
-	s.add(New("not-present", notPresentIn, notPresentOut, "max(val), sum(val) by key"))
+	s.add(New("not-present", notPresentIn, notPresentOut, "max(val), last(val) by key"))
 
 	// Test reducers with mixed-type inputs
 	s.add(New("mixed-inputs", mixedIn, mixedOut, "first(f), last(f) by key"))
