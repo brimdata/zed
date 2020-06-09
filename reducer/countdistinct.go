@@ -15,7 +15,7 @@ func (cdp *CountDistinctProto) Target() string {
 	return cdp.target
 }
 
-func (cdp *CountDistinctProto) Instantiate(*zng.Record) Interface {
+func (cdp *CountDistinctProto) Instantiate() Interface {
 	return &CountDistinct{
 		Resolver: cdp.resolver,
 		sketch:   hyperloglog.New(),

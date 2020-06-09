@@ -28,7 +28,7 @@ func (r *Row) Touch(rec *zng.Record) {
 		if r.Reducers[k] != nil {
 			continue
 		}
-		red := r.Defs[k].Instantiate(rec)
+		red := r.Defs[k].Instantiate()
 		r.Reducers[k] = red
 		r.n++
 	}

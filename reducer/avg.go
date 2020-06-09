@@ -15,7 +15,7 @@ func (ap *AvgProto) Target() string {
 	return ap.target
 }
 
-func (ap *AvgProto) Instantiate(*zng.Record) Interface {
+func (ap *AvgProto) Instantiate() Interface {
 	return &Avg{Resolver: ap.resolver}
 }
 

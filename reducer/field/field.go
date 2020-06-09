@@ -21,12 +21,8 @@ func (fp *FieldProto) Target() string {
 	return fp.target
 }
 
-func (fp *FieldProto) Instantiate(rec *zng.Record) reducer.Interface {
-	v := fp.resolver(rec)
-	if v.Type == nil {
-		v.Type = zng.TypeNull
-	}
-	return &FieldReducer{op: fp.op, resolver: fp.resolver, typ: v.Type}
+func (fp *FieldProto) Instantiate() reducer.Interface {
+	return &FieldReducer{op: fp.op, resolver: fp.resolver}
 }
 
 func NewFieldProto(target string, resolver expr.FieldExprResolver, op string) *FieldProto {
@@ -43,6 +39,9 @@ type FieldReducer struct {
 
 func (fr *FieldReducer) Result() zng.Value {
 	if fr.fn == nil {
+		if fr.typ == nil {
+			return zng.Value{Type: zng.TypeNull, Bytes: nil}
+		}
 		return zng.Value{Type: fr.typ, Bytes: nil}
 	}
 	return fr.fn.Result()
@@ -58,6 +57,9 @@ func (fr *FieldReducer) Consume(r *zng.Record) {
 	if val.Type == nil {
 		fr.FieldNotFound++
 		return
+	}
+	if fr.typ == nil {
+		fr.typ = val.Type
 	}
 	if val.Bytes == nil {
 		return

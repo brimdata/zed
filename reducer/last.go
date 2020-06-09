@@ -14,12 +14,8 @@ func (lp *LastProto) Target() string {
 	return lp.target
 }
 
-func (lp *LastProto) Instantiate(rec *zng.Record) Interface {
-	v := lp.resolver(rec)
-	if v.Type == nil {
-		v.Type = zng.TypeNull
-	}
-	return &Last{Resolver: lp.resolver, typ: v.Type}
+func (lp *LastProto) Instantiate() Interface {
+	return &Last{Resolver: lp.resolver}
 }
 
 func NewLastProto(target string, resolver expr.FieldExprResolver) *LastProto {
@@ -29,7 +25,6 @@ func NewLastProto(target string, resolver expr.FieldExprResolver) *LastProto {
 type Last struct {
 	Reducer
 	Resolver expr.FieldExprResolver
-	typ      zng.Type
 	record   *zng.Record
 }
 
@@ -43,7 +38,7 @@ func (l *Last) Consume(r *zng.Record) {
 func (l *Last) Result() zng.Value {
 	r := l.record
 	if r == nil {
-		return zng.Value{Type: l.typ, Bytes: nil}
+		return zng.Value{Type: zng.TypeNull, Bytes: nil}
 	}
 	return l.Resolver(r)
 }

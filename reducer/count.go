@@ -14,7 +14,7 @@ func (cp *CountProto) Target() string {
 	return cp.target
 }
 
-func (cp *CountProto) Instantiate(*zng.Record) Interface {
+func (cp *CountProto) Instantiate() Interface {
 	return &Count{Resolver: cp.resolver}
 }
 
