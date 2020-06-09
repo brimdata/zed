@@ -14,6 +14,8 @@ The following available processors are documented in detail below:
 
 **Note**: In the examples below, we'll use the `zq -f table` output format for human readability. Due to the width of the Zeek events used as sample data, you may need to "scroll right" in the output to see some field values.
 
+**Note**: Per ZQL [search syntax](../search-syntax/README.md), many examples below use shorthand that leaves off the explicit leading `* |`, matching all events before invoking the first processor in a pipeline.
+
 ---
 
 ## `cut`
@@ -31,7 +33,7 @@ The following available processors are documented in detail below:
 To return only the `ts` and `uid` columns of `conn` events:
 
 ```zq-command
-zq -f table '* | cut ts,uid' conn.log.gz
+zq -f table 'cut ts,uid' conn.log.gz
 ```
 
 #### Output:
@@ -48,7 +50,7 @@ TS                UID
 To return all fields _other than_ the `_path` field and `id` record of `weird` events:
 
 ```zq-command
-zq -f table '* | cut -c _path,id' weird.log.gz
+zq -f table 'cut -c _path,id' weird.log.gz
 ```
 
 #### Output:
@@ -77,7 +79,7 @@ TS                UID                NAME                             ADDL      
 To further trim the data returned in our [`cut`](#cut) example:
 
 ```zq-command
-zq -f table '* | cut ts,uid | filter uid=CXWfTK3LRdiuQxBbM6' conn.log.gz
+zq -f table 'cut ts,uid | filter uid=CXWfTK3LRdiuQxBbM6' conn.log.gz
 ```
 
 #### Output:
@@ -91,7 +93,7 @@ TS                UID
 An alternative syntax for our [`and` operator example](#../search-syntax/README.md#and):
 
 ```zq-command
-zq -f table '* | filter www.*cdn*.com _path=ssl' *.log.gz
+zq -f table 'filter www.*cdn*.com _path=ssl' *.log.gz
 ```
 
 #### Output:
@@ -118,7 +120,7 @@ ssl   1521912240.189735 CSbGJs3jOeB6glWLJj 10.47.7.154 27137     52.85.83.215 44
 To see the first `dns` event:
 
 ```zq-command
-zq -f table '* | head' dns.log.gz
+zq -f table 'head' dns.log.gz
 ```
 
 #### Output:
@@ -153,8 +155,9 @@ conn  1521911720.607695 CpjMvj2Cvj048u6bF1 10.164.94.120 39169     10.47.3.200 8
 | ------------------------- | ----------------------------------------------- |
 | **Description**           | Add/update fields based on the results of a computed expression |
 | **Syntax**                | `put <field> = <expression> [, <field> = <expression> ...]`     |
-| **Required arguments**    | `<field>` Field into which the computed value will be stored.<br>`<expression>` A valid ZQL expression (XXX citation needed).<br>If evaluation of any expressions fails, a warning is emitted and the original record is passed through unchanged.<br>Note: if multiple fields are written in a single `put`, all the new field values are computed first and then they are all written simultaneously.  As a result, a computed value cannot be referenced in another expression.  If you need to re-use a computed result, this can be done by chaining multiple `put` processors.  For example, this will not work `put N=len(somelist), isbig = N>10` but it can be written as `put N=len(somelist) \| put isbig= N>10` |
+| **Required arguments**    | `<field>`<br>Field into which the computed value will be stored.<br><br>`<expression>`<br>A valid ZQL [expression](../expressions/README.md). If evaluation of any expression fails, a warning is emitted and the original record is passed through unchanged. |
 | **Optional arguments**    | None |
+| **Caveats**               | If multiple fields are written in a single `put`, all the new field values are computed first and then they are all written simultaneously.  As a result, a computed value cannot be referenced in another expression.  If you need to re-use a computed result, this can be done by chaining multiple `put` processors.  For example, this will not work:<br>`put N=len(somelist), isbig=N>10`<br>But it could be written instead as:<br>`put N=len(somelist) \| put isbig=N>10` |
 | **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc#Put |
 
 #### Example #1:
@@ -189,7 +192,7 @@ ID.ORIG_H     ID.ORIG_P ID.RESP_H       ID.RESP_P ORIG_BYTES RESP_BYTES TOTAL_BY
 | **Description**           | Sort events based on the order of values in the specified named field(s). | 
 | **Syntax**                | `sort [-r] [-nulls first\|last] [field-list]`                 |
 | **Required<br>arguments** | None                                                                      |
-| **Optional<br>arguments** | `[-r]`<br>If specified, results will be sorted in reverse order.<br><br>`[-nulls first\|last]`<br>Specifies whether null values (i.e., values that are unset or that are not present at all in an incoming record) should be placed in the output.<br><br>`[field-list]`<br>One or more comma-separated field names by which to sort. Results will be sorted based on the values of the first field named in the list, then based on values in the second field named in the list, and so on.<br><br>If no field list is provided, sort will automatically pick a field by which to sort. The pick is done by examining the first result returned and finding the first field in left-to-right order of one of the following [data types](../data-types/README.md). If no fields of the first data type are found, the next is considered, and so on:<br>- `count`<br>- `int`<br>- `double`<br>If no fields of those types are found, sorting will be performed on the first field found in left-to-right order that is _not_ of the `time` data type. |
+| **Optional<br>arguments** | `[-r]`<br>If specified, results will be sorted in reverse order.<br><br>`[-nulls first\|last]`<br>Specifies whether null values (i.e., values that are unset or that are not present at all in an incoming record) should be placed in the output.<br><br>`[field-list]`<br>One or more comma-separated field names by which to sort. Results will be sorted based on the values of the first field named in the list, then based on values in the second field named in the list, and so on.<br><br>If no field list is provided, sort will automatically pick a field by which to sort. The pick is done by examining the first result returned and finding the first field in left-to-right that is of one of the integer ZNG [data types](../data-types/README.md) (`int16`, `uint16`, `int32`, `uint32`, `int64`, `uint64`) and if no integer fields are found, the first `float64` field is used. If no fields of these numeric types are found, sorting will be performed on the first field found in left-to-right order that is _not_ of the `time` data type. |
 | **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc#Sort                         |
 
 #### Example #1:
@@ -240,7 +243,7 @@ x509  1521912591.317347 FMITm2OyLT3OYnfq3  3                   068D4086AEB347299
 
 #### Example #3:
 
-Here we'll find which originating IP addresses generated the most `conn` events using the `count()` [aggregate function](../aggregate-functions/README.md) and piping its output to a `sort` in reverse order. Note that even though we didn't list a field name as an explicit argument, the `sort` processor did what we wanted because it found a field of the `count` [data type](../data-types/README.md).
+Here we'll find which originating IP addresses generated the most `conn` events using the `count()` [aggregate function](../aggregate-functions/README.md) and piping its output to a `sort` in reverse order. Note that even though we didn't list a field name as an explicit argument, the `sort` processor did what we wanted because it found a field of the `uint64` [data type](../data-types/README.md).
 
 ```zq-command
 zq -f table 'count() by id.orig_h | sort -r' conn.log.gz
@@ -293,7 +296,7 @@ wwonka       1
 To see the last `dns` event:
 
 ```zq-command
-zq -f table '* | tail' dns.log.gz
+zq -f table 'tail' dns.log.gz
 ```
 
 #### Output:
@@ -337,7 +340,7 @@ conn  1521912988.752765 COICgc1FXHKteyFy67 10.0.0.227     61314     10.47.5.58  
 To see a count of the top issuers of X.509 certificates:
 
 ```zq-command
-zq -f table '* | cut certificate.issuer | sort | uniq -c | sort -r' x509.log.gz
+zq -f table 'cut certificate.issuer | sort | uniq -c | sort -r' x509.log.gz
 ```
 
 #### Output:
