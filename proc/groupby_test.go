@@ -30,7 +30,7 @@ const groupMultiOut = `
 0:[b;z;1;]
 `
 
-const unsetIn = `
+const unsetKeyIn = `
 #1:record[key1:string,key2:string,n:int32]
 1:[-;-;3;]
 1:[-;-;4;]
@@ -99,13 +99,13 @@ const nestedKeyAssignedOut = `
 0:[2;1;]
 `
 
-const nullIn = `
+const unsetIn = `
 #0:record[key:string,val:int64]
 0:[key1;5;]
 0:[key2;-;]
 `
 
-const nullOut = `
+const unsetOut = `
 #0:record[key:string,sum:int64]
 0:[key1;5;]
 0:[key2;-;]
@@ -117,7 +117,7 @@ const notPresentIn = `
 `
 
 const notPresentOut = `
-#0:record[key:string,max:null,sum:null]
+#0:record[key:string,max:null,last:null]
 0:[key1;-;-;]
 `
 
@@ -196,8 +196,8 @@ func tests() suite {
 	s.add(New("simple", in, groupSingleOut, "count() by key1=key1"))
 
 	// Test that unset key values work correctly
-	s.add(New("unset-keys", in+unsetIn, groupSingleOut_unsetOut, "count() by key1"))
-	s.add(New("unset-keys-at-start", unsetIn+in, groupSingleOut_unsetOut, "count() by key1"))
+	s.add(New("unset-keys", in+unsetKeyIn, groupSingleOut_unsetOut, "count() by key1"))
+	s.add(New("unset-keys-at-start", unsetKeyIn+in, groupSingleOut_unsetOut, "count() by key1"))
 
 	// Test grouping by multiple fields
 	s.add(New("multiple-fields", in, groupMultiOut, "count() by key1,key2"))
@@ -217,8 +217,8 @@ func tests() suite {
 	// Check groupby key inside a record
 	s.add(New("key-in-record", nestedKeyIn, nestedKeyOut, "count() by rec.i"))
 
-	// Test reducers with null inputs
-	s.add(New("null-inputs", nullIn, nullOut, "sum(val) by key"))
+	// Test reducers with unset inputs
+	s.add(New("unset-inputs", unsetIn, unsetOut, "sum(val) by key"))
 
 	// Test reducers with missing operands
 	s.add(New("not-present", notPresentIn, notPresentOut, "max(val), sum(val) by key"))
@@ -229,9 +229,9 @@ func tests() suite {
 	s.add(New("aliases", aliasIn, aliasOut, "count() by host"))
 
 	// Tests with assignments and computed keys
-	s.add(New("unset-keys-computed", in+unsetIn, groupSingleOut_unsetOut, "count() by key1=String.toLower(String.toUpper(key1))"))
-	s.add(New("unset-keys-assign", in+unsetIn, strings.ReplaceAll(groupSingleOut_unsetOut, "key1", "newkey"), "count() by newkey=key1"))
-	s.add(New("unset-keys-at-start-assign", unsetIn+in, strings.ReplaceAll(groupSingleOut_unsetOut, "key1", "newkey"), "count() by newkey=key1"))
+	s.add(New("unset-keys-computed", in+unsetKeyIn, groupSingleOut_unsetOut, "count() by key1=String.toLower(String.toUpper(key1))"))
+	s.add(New("unset-keys-assign", in+unsetKeyIn, strings.ReplaceAll(groupSingleOut_unsetOut, "key1", "newkey"), "count() by newkey=key1"))
+	s.add(New("unset-keys-at-start-assign", unsetKeyIn+in, strings.ReplaceAll(groupSingleOut_unsetOut, "key1", "newkey"), "count() by newkey=key1"))
 	s.add(New("multiple-fields-assign", in, strings.ReplaceAll(groupMultiOut, "key2", "newkey"), "count() by key1,newkey=key2"))
 	s.add(New("key-in-record-assign", nestedKeyIn, nestedKeyAssignedOut, "count() by newkey=rec.i"))
 	s.add(New("computed-key", computedKeyIn, computedKeyOut, "count() by s=String.toLower(s), ij=i+j"))
