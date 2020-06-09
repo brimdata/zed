@@ -8,7 +8,6 @@ import (
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/reducer"
 	"github.com/brimsec/zq/reducer/compile"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zcode"
@@ -385,7 +384,7 @@ func (g *GroupByAggregator) records(eof bool) ([]*zng.Record, error) {
 		zv = append(zv, row.keyvals...)
 		for _, red := range row.reducers.Reducers {
 			// a reducer value is never a container
-			v := reducer.Result(red)
+			v := red.Result()
 			if v.IsContainer() {
 				panic("internal bug: reducer result cannot be a container!")
 			}
@@ -419,7 +418,7 @@ func (g *GroupByAggregator) lookupRowType(row *GroupByRow) (*zng.TypeRecord, err
 	}
 	cols = append(cols, g.builder.TypedColumns(types)...)
 	for k, red := range row.reducers.Reducers {
-		z := reducer.Result(red)
+		z := red.Result()
 		cols = append(cols, zng.NewColumn(row.reducers.Defs[k].Target(), z.Type))
 	}
 	// This could be more efficient but it's only done during group-by output...

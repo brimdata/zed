@@ -24,7 +24,7 @@ func (r *Row) Touch(rec *zng.Record) {
 	if r.Reducers == nil {
 		r.Reducers = make([]reducer.Interface, len(r.Defs))
 	}
-	for k, _ := range r.Defs {
+	for k := range r.Defs {
 		if r.Reducers[k] != nil {
 			continue
 		}
@@ -49,7 +49,7 @@ func (r *Row) Result(zctx *resolver.Context) (*zng.Record, error) {
 	columns := make([]zng.Column, n)
 	var zv zcode.Bytes
 	for k, red := range r.Reducers {
-		val := reducer.Result(red)
+		val := red.Result()
 		columns[k] = zng.NewColumn(r.Defs[k].Target(), val.Type)
 		zv = val.Encode(zv)
 	}
