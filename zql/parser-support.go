@@ -345,12 +345,12 @@ func makeGroupByProc(durationIn, sortedIn, limitIn, keysIn, reducersIn interface
 	reducers := reducersArray(reducersIn)
 
 	return &ast.GroupByProc{
-		Node:     ast.Node{"GroupByProc"},
-		Duration: duration,
-		Limit:    limit,
-		Keys:     keys,
-		Reducers: reducers,
-		Sorted:   sorted,
+		Node:         ast.Node{"GroupByProc"},
+		Duration:     duration,
+		Limit:        limit,
+		Keys:         keys,
+		Reducers:     reducers,
+		InputSortDir: sorted,
 	}
 }
 
