@@ -25,11 +25,11 @@ type GroupByKey struct {
 }
 
 type GroupByParams struct {
+	inputSortDir int
 	limit        int
 	keys         []GroupByKey
 	reducers     []compile.CompiledReducer
 	builder      *ColumnBuilder
-	inputSortDir int
 }
 
 type errTooBig int
@@ -46,11 +46,9 @@ func IsErrTooBig(err error) bool {
 const defaultGroupByLimit = 1000000
 
 func CompileGroupBy(node *ast.GroupByProc, zctx *resolver.Context) (*GroupByParams, error) {
-	keys := make([]GroupByKey, 0)
 	astKeys := node.Keys
-	var targetNames []string
 
-	if node.Sorted != 0 && node.Duration.Seconds == 0 && len(astKeys) > 0 {
+	if node.InputSortDir != 0 && node.Duration.Seconds == 0 && len(astKeys) > 0 {
 		if _, ok := astKeys[0].Expr.(ast.FieldExpr); !ok {
 			return nil, fmt.Errorf("compiling groupby: cannot use -sorted in conjunction with a computed primary key")
 		}
@@ -72,6 +70,8 @@ func CompileGroupBy(node *ast.GroupByProc, zctx *resolver.Context) (*GroupByPara
 	if len(astKeys) == 0 {
 		return nil, fmt.Errorf("compiling groupby: must have at least one key (or -every)")
 	}
+	keys := make([]GroupByKey, 0)
+	var targetNames []string
 	for _, astKey := range astKeys {
 		ex, err := compileKeyExpr(astKey.Expr)
 		if err != nil {
@@ -100,7 +100,7 @@ func CompileGroupBy(node *ast.GroupByProc, zctx *resolver.Context) (*GroupByPara
 		keys:         keys,
 		reducers:     reducers,
 		builder:      builder,
-		inputSortDir: node.Sorted,
+		inputSortDir: node.InputSortDir,
 	}, nil
 }
 
@@ -238,13 +238,13 @@ func (g *GroupBy) Pull() (zbuf.Batch, error) {
 	}
 	batch.Unref()
 	if g.agg.inputSortDir != 0 {
-		arr, err := g.agg.Results(false)
+		batch, err := g.agg.Results(false)
 		if err != nil {
 			return nil, err
 		}
-		if arr != nil {
-			expr.SortStable(arr.Records(), g.agg.recordSortFn)
-			return arr, nil
+		if batch != nil {
+			expr.SortStable(batch.Records(), g.agg.recordSortFn)
+			return batch, nil
 		}
 	}
 	return zbuf.NewArray([]*zng.Record{}, batch.Span()), nil
@@ -341,7 +341,7 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 			return err
 		}
 		if i == 0 && g.inputSortDir != 0 {
-			g.updateMax(keyVal)
+			g.updateMaxKey(keyVal)
 			prim = &keyVal
 		}
 		g.builder.Append(keyVal.Bytes, keyVal.IsContainer())
@@ -365,7 +365,7 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 	return nil
 }
 
-func (g *GroupByAggregator) updateMax(v zng.Value) {
+func (g *GroupByAggregator) updateMaxKey(v zng.Value) {
 	if g.maxKey == nil {
 		g.maxKey = &v
 		return
@@ -412,10 +412,8 @@ func (g *GroupByAggregator) records(eof bool) ([]*zng.Record, error) {
 	var recs []*zng.Record
 	for _, k := range keys {
 		row := g.table[k]
-		if !eof {
-			if g.valueSortFn(*row.primary, *g.maxKey) >= 0 {
-				continue
-			}
+		if !eof && g.valueSortFn(*row.primary, *g.maxKey) >= 0 {
+			continue
 		}
 
 		var zv zcode.Bytes
