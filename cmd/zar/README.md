@@ -5,6 +5,13 @@
 > IT'S NOT QUITE READY FOR PRODUCTION USE. THE SYNTAX/OPTIONS/OUTPUT ETC
 > ARE ALL SUBJECT TO CHANGE.
 
+---
+
+> A video walk-through of some of what's shown below is captured in
+> [this excerpt from a recent Zeek From Home event](https://www.youtube.com/watch?v=ldrEadAQYTM&t=46m00s).
+
+---
+
 This is a sketch of an early prototype of zar and related tools for
 indexing and searching log archives and running interesting graph queries.
 
