@@ -385,7 +385,7 @@ function peg$parse(input, options) {
             return makeGroupByProc(every, limit, keys, reducers)
           }
 
-          return makeReducerProc(reducers)
+          return makeReduceProc(reducers)
         },
       peg$c138 = "as",
       peg$c139 = peg$literalExpectation("as", true),
@@ -2051,7 +2051,7 @@ function peg$parse(input, options) {
 
     s0 = peg$parsesimpleProc();
     if (s0 === peg$FAILED) {
-      s0 = peg$parsereducerProc();
+      s0 = peg$parsereduceProc();
       if (s0 === peg$FAILED) {
         s0 = peg$currPos;
         if (input.charCodeAt(peg$currPos) === 40) {
@@ -3413,7 +3413,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parsereducerProc() {
+  function peg$parsereduceProc() {
     var s0, s1, s2, s3, s4, s5;
 
     s0 = peg$currPos;
@@ -8339,8 +8339,8 @@ function peg$parse(input, options) {
     return {type: "Duration", seconds};
   }
 
-  function makeReducerProc(reducers) {
-    return { op: "ReducerProc", reducers };
+  function makeReduceProc(reducers) {
+    return { op: "ReduceProc", reducers };
   }
 
   function makeGroupByKey(target, expression) {

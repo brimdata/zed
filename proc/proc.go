@@ -107,7 +107,7 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 		}
 	}
 	switch v := node.(type) {
-	case *ast.ReducerProc:
+	case *ast.ReduceProc:
 		reducers := make([]compile.CompiledReducer, 0)
 		for _, reducer := range v.Reducers {
 			compiled, err := compile.Compile(reducer)
@@ -116,10 +116,10 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 			}
 			reducers = append(reducers, compiled)
 		}
-		params := ReducerParams{
+		params := ReduceParams{
 			reducers: reducers,
 		}
-		return []Proc{NewReducer(c, parent, params)}, nil
+		return []Proc{NewReduce(c, parent, params)}, nil
 
 	case *ast.GroupByProc:
 		params, err := CompileGroupBy(v, c.TypeContext)

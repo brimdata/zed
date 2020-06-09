@@ -124,8 +124,8 @@ function makeDuration(seconds) {
   return {type: "Duration", seconds};
 }
 
-function makeReducerProc(reducers) {
-  return { op: "ReducerProc", reducers };
+function makeReduceProc(reducers) {
+  return { op: "ReduceProc", reducers };
 }
 
 function makeGroupByKey(target, expression) {

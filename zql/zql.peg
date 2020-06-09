@@ -208,7 +208,7 @@ parallelChain
 
 proc
   = simpleProc
-  / reducerProc
+  / reduceProc
   / "(" _? proc:procList _? ")" {
       RETURN(proc)
     }
@@ -317,7 +317,7 @@ fieldReducer
     RETURN(makeReducer(op, toLowerCase(op), field))
   }
 
-reducerProc
+reduceProc
   = every:(everyDur _)? reducers:reducerList keys:(_ groupByKeys)? limit:procLimitArg? {
     if ISNOTNULL(OR(keys, every)) {
       if ISNOTNULL(keys) {
@@ -333,7 +333,7 @@ reducerProc
       RETURN(makeGroupByProc(every, limit, keys, reducers))
     }
 
-    RETURN(makeReducerProc(reducers))
+    RETURN(makeReduceProc(reducers))
   }
 
 asClause

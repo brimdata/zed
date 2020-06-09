@@ -86,12 +86,12 @@ func unpackProc(custom Unpacker, node joe.JSON) (Proc, error) {
 		return &PutProc{Clauses: clauses}, nil
 	case "UniqProc":
 		return &UniqProc{}, nil
-	case "ReducerProc":
+	case "ReduceProc":
 		reducers, err := unpackReducers(node.Get("reducers"))
 		if err != nil {
 			return nil, err
 		}
-		return &ReducerProc{Reducers: reducers}, nil
+		return &ReduceProc{Reducers: reducers}, nil
 	case "GroupByProc":
 		keys, err := unpackAssignments(node.Get("keys"))
 		if err != nil {
