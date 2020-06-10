@@ -256,15 +256,15 @@ type (
 	// A GroupByProc node represents a proc that consumes all the records
 	// in its input, partitions the records into groups based on the values
 	// of the fields specified in the keys field (where the first key is the
-	// primary key), and applies reducers (if any) to each group. If the
-	// duration field is non-zero, then the groups further partioned by time
-	// into bins of the duration. In this case time is the primary key.
+	// primary grouping key), and applies reducers (if any) to each group. If the
+	// Duration field is non-zero, then the groups are further partioned by time
+	// into bins of the duration. In this case, the primary grouping key is ts.
 	// The Limit field specifies the number of different groups that can be
 	// aggregated over. When absent, the runtime defaults to an
 	// appropriate value.
 	// The InputSortDir field indicates that input is sorted (with
-	// direction indicated by the sign of the field) in the
-	// primary key. In this case, the proc outputs the reducer
+	// direction indicated by the sign of the field) in the primary
+	// grouping key. In this case, the proc outputs the reducer
 	// results from each key as they complete so that large inputs
 	// are processed and streamed efficiently.
 	GroupByProc struct {

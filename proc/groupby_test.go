@@ -338,14 +338,14 @@ func TestGroupbyUnit(t *testing.T) {
 			resolver := resolver.NewContext()
 			var inBatches []zbuf.Batch
 			for _, s := range in {
-				b, err := proc.ParseTestZng(resolver, s)
+				b, err := proc.ParseTestTzng(resolver, s)
 				require.NoError(t, err, s)
 				inBatches = append(inBatches, b)
 			}
 			procTest, err := proc.NewProcTestFromSource(zql, resolver, inBatches)
 			assert.NoError(t, err)
 			for _, s := range out {
-				b, err := proc.ParseTestZng(resolver, s)
+				b, err := proc.ParseTestTzng(resolver, s)
 				require.NoError(t, err, s)
 				err = procTest.Expect(b)
 				assert.NoError(t, err)

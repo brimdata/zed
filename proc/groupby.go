@@ -50,7 +50,7 @@ func CompileGroupBy(node *ast.GroupByProc, zctx *resolver.Context) (*GroupByPara
 
 	if node.InputSortDir != 0 && node.Duration.Seconds == 0 && len(astKeys) > 0 {
 		if _, ok := astKeys[0].Expr.(ast.FieldExpr); !ok {
-			return nil, fmt.Errorf("compiling groupby: cannot use -sorted in conjunction with a computed primary key")
+			return nil, fmt.Errorf("compiling groupby: cannot use -sorted in conjunction with a computed primary grouping key")
 		}
 	}
 	if node.Duration.Seconds > 0 {
@@ -159,7 +159,7 @@ type GroupByAggregator struct {
 	reverse      bool
 	logger       *zap.Logger
 	limit        int
-	valueSortFn  expr.ValueSortFn // to compare primary keys for early key output
+	valueSortFn  expr.ValueSortFn // to compare primary group keys for early key output
 	recordSortFn expr.SortFn
 	maxKey       *zng.Value
 	inputSortDir int
@@ -168,7 +168,7 @@ type GroupByAggregator struct {
 type GroupByRow struct {
 	keycols  []zng.Column
 	keyvals  zcode.Bytes
-	primary  *zng.Value // for sorting when input sorted
+	groupval *zng.Value // for sorting when input sorted
 	reducers compile.Row
 }
 
@@ -250,14 +250,14 @@ func (g *GroupBy) Pull() (zbuf.Batch, error) {
 	return zbuf.NewArray([]*zng.Record{}, batch.Span()), nil
 }
 
-func (g *GroupByAggregator) createGroupByRow(keyCols []zng.Column, vals zcode.Bytes, primary *zng.Value) *GroupByRow {
+func (g *GroupByAggregator) createGroupByRow(keyCols []zng.Column, vals zcode.Bytes, groupval *zng.Value) *GroupByRow {
 	// Make a deep copy so the caller can reuse the underlying arrays.
 	v := make(zcode.Bytes, len(vals))
 	copy(v, vals)
 	return &GroupByRow{
 		keycols:  keyCols,
 		keyvals:  v,
-		primary:  primary,
+		groupval: groupval,
 		reducers: compile.Row{Defs: g.reducerDefs},
 	}
 }
@@ -376,7 +376,7 @@ func (g *GroupByAggregator) updateMaxKey(v zng.Value) {
 }
 
 // Results returns a batch of aggregation result records. If the input
-// is sorted in the primary key, this can be called multiple times;
+// is sorted in the primary grouping key, this can be called multiple times;
 // all completed keys at the time of the invocation are returned (but
 // not necessarily in their input sort order). A final call with
 // eof=true should be made to get the final keys.
@@ -412,7 +412,7 @@ func (g *GroupByAggregator) records(eof bool) ([]*zng.Record, error) {
 	var recs []*zng.Record
 	for _, k := range keys {
 		row := g.table[k]
-		if !eof && g.valueSortFn(*row.primary, *g.maxKey) >= 0 {
+		if !eof && g.valueSortFn(*row.groupval, *g.maxKey) >= 0 {
 			continue
 		}
 
