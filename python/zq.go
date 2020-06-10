@@ -41,7 +41,7 @@ func ZqlFileEval(inquery, inpath, outpath string) (*C.char, bool) {
 	return result(doZqlFileEval(inquery, inpath, outpath))
 }
 
-func doZqlFileEval(inquery, inpath, outpath string) error {
+func doZqlFileEval(inquery, inpath, outpath string) (err error) {
 	if inpath == "-" {
 		inpath = "/dev/stdin"
 	}
@@ -66,9 +66,17 @@ func doZqlFileEval(inquery, inpath, outpath string) error {
 	if err != nil {
 		return err
 	}
-	defer w.Close()
+	defer func() {
+		closeErr := w.Close()
+		if err == nil {
+			err = closeErr
+		}
+	}()
 
 	fg, err := driver.Compile(context.Background(), query, rc, false, nano.MaxSpan, nil)
+	if err != nil {
+		return err
+	}
 	d := driver.NewCLI(w)
 
 	return driver.Run(fg, d, nil)
