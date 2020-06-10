@@ -157,7 +157,7 @@ conn  1521911720.607695 CpjMvj2Cvj048u6bF1 10.164.94.120 39169     10.47.3.200 8
 | **Syntax**                | `put <field> = <expression> [, <field> = <expression> ...]`     |
 | **Required arguments**    | `<field>`<br>Field into which the computed value will be stored.<br><br>`<expression>`<br>A valid ZQL [expression](../expressions/README.md). If evaluation of any expression fails, a warning is emitted and the original record is passed through unchanged. |
 | **Optional arguments**    | None |
-| **Caveats**               | If multiple fields are written in a single `put`, all the new field values are computed first and then they are all written simultaneously.  As a result, a computed value cannot be referenced in another expression.  If you need to re-use a computed result, this can be done by chaining multiple `put` processors.  For example, this will not work:<br>`put N=len(somelist), isbig=N>10`<br>But it could be written instead as:<br>`put N=len(somelist) \| put isbig=N>10` |
+| **Limitations**           | If multiple fields are written in a single `put`, all the new field values are computed first and then they are all written simultaneously.  As a result, a computed value cannot be referenced in another expression.  If you need to re-use a computed result, this can be done by chaining multiple `put` processors.  For example, this will not work:<br>`put N=len(somelist), isbig=N>10`<br>But it could be written instead as:<br>`put N=len(somelist) \| put isbig=N>10` |
 | **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc#Put |
 
 #### Example #1:
