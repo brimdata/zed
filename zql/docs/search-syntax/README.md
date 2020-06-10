@@ -20,7 +20,7 @@
 
 ## Search all events
 
-The simplest possible ZQL search is a match against all events. This search is expressed in `zq` with the wildcard `*`. The response will be a ZNG-formatted dump of all events. The default `zq` format is binary ZNG, a compact format that's ideal for working in pipelines. However, in these docs we'll often make use of the `-t` option to output the text-based TZNG format, which is readable at the command line.
+The simplest possible ZQL search is a match against all events. This search is expressed in `zq` with the wildcard `*`. The response will be a ZNG-formatted dump of all events. The default `zq` format is binary ZNG, a compact format that's ideal for working in pipelines. However, in these docs we'll sometimes make use of the `-t` option to output the text-based TZNG format, which is readable at the command line.
 
 #### Example:
 ```zq-command
