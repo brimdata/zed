@@ -253,7 +253,7 @@ When working with named fields, the data type of the field comes becomes signifi
 
 2.  The correct operator must be chosen based on whether the field type is primitive or complex.  For example, `id.resp_h=10.150.0.85` will match in our sample data because `id.resp_h` is a primitive type, `addr`. However, to check if the same IP had been a transmitting host in a `files` event, the syntax `10.150.0.85 in tx_hosts` would be used because `tx_hosts` is a complex type, `set[addr]`.
 
-See the [Data Types](./data-types/README.md) page for more details on types and the operators for working with them.
+See the [Data Types](../data-types/README.md) page for more details on types and the operators for working with them.
 
 ### Pattern Matches
 
