@@ -18,7 +18,7 @@ zq -f table 'cut ref_id | filter 83.162.0.0/16 | count()' ntp.log.gz
 However, if we cast it to an `ip` type, now the CIDR match is successful.
 
 ```zq-command
-zq -f table "cut ref_id | put ref_id=ref_id:ip | filter 83.162.0.0/16 | count()" ntp.log.gz
+zq -f table 'cut ref_id | put ref_id=ref_id:ip | filter 83.162.0.0/16 | count()' ntp.log.gz
 ```
 
 #### Output:
