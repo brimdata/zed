@@ -302,7 +302,7 @@ http  1521911867.561097 CgbtuX3gXoYFmEF82l 10.164.94.120 37311     10.47.3.142 8
 http  1521911867.570660 CgbtuX3gXoYFmEF82l 10.164.94.120 37311     10.47.3.142 8080      26          GET    10.47.3.142 /scripts/waE8_BuNCEKM.shtml -        1.1     Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0) -      0                1635              404         Not Found  -         -        (empty) -        -        -       -          -              -               FdKLBd3fhPSqFIDFWc -              text/html
 ```
 
-Determining whether the value of an Zeek `addr`-type field is within a subnet also uses the pattern matching operator.
+Determining whether the value of a Zeek `addr`-type field is within a subnet also uses the pattern matching operator.
 
 #### Example:
 ```zq-command
