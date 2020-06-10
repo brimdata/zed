@@ -29,13 +29,15 @@ extern struct goresult ErrorTest();
 """)
         self.zqlib = self.ffi.dlopen(ZQLIB)
 
-    def gostring(self, refs, s):
-        """Convert a Python string to an allocated GoString."""
+    def gostring(self, objrefs, s):
+        """Convert a Python string to an allocated GoString. cdata objects are
+        added to the objrefs list to ensure the caller controls when they go
+        out of scope to prevent premature collection."""
         u8b = s.encode('utf-8')
         c = self.ffi.new('char[]', u8b)
-        refs.append(c)
+        objrefs.append(c)
         gstr = self.ffi.new('GoString*', {'p': c, 'n': len(u8b)})
-        refs.append(gstr)
+        objrefs.append(gstr)
         return gstr
 
     def result(self, res):
@@ -50,20 +52,17 @@ extern struct goresult ErrorTest();
         self.result(self.zqlib.ErrorTest())
 
     def zql_file_eval(self, zql, infile, outfile):
-        refs = []
-        gzql = self.gostring(refs, zql)
-        ginfile = self.gostring(refs, infile)
-        goutfile = self.gostring(refs, outfile)
+        # objrefs holds references to the allocated cdata objects for the
+        # lifetime of the zql file call.
+        objrefs = []
+        gzql = self.gostring(objrefs, zql)
+        ginfile = self.gostring(objrefs, infile)
+        goutfile = self.gostring(objrefs, outfile)
         self.result(self.zqlib.ZqlFileEval(gzql[0], ginfile[0], goutfile[0]))
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 4:
-        raise Exception("expected args: <zql> <input-file> <output-file>")
+    if len(sys.argv) != 4:
+        sys.exit("usage: {} <zql> <input-file> <output-file>".format(sys.argv[0]))
 
-    zql = sys.argv[1]
-    infile = sys.argv[2]
-    outfile = sys.argv[3]
-
-    zq = Zq()
-    zq.zql_file_eval(zql, infile, outfile)
+    Zq().zql_file_eval(*sys.argv[1:])
