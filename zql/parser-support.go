@@ -300,9 +300,9 @@ func reducersArray(reducersIn interface{}) []ast.Reducer {
 	return ret
 }
 
-func makeReducerProc(reducers interface{}) *ast.ReducerProc {
-	return &ast.ReducerProc{
-		Node:     ast.Node{"ReducerProc"},
+func makeReduceProc(reducers interface{}) *ast.ReduceProc {
+	return &ast.ReduceProc{
+		Node:     ast.Node{"ReduceProc"},
 		Reducers: reducersArray(reducers),
 	}
 }

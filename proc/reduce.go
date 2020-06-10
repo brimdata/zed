@@ -7,25 +7,25 @@ import (
 	"github.com/brimsec/zq/zng"
 )
 
-type ReducerParams struct {
+type ReduceParams struct {
 	reducers []compile.CompiledReducer
 }
 
-type Reducer struct {
+type Reduce struct {
 	Base
 	n       int
 	columns compile.Row
 }
 
-func NewReducer(c *Context, parent Proc, params ReducerParams) Proc {
+func NewReduce(c *Context, parent Proc, params ReduceParams) Proc {
 
-	return &Reducer{
+	return &Reduce{
 		Base:    Base{Context: c, Parent: parent},
 		columns: compile.Row{Defs: params.reducers},
 	}
 }
 
-func (r *Reducer) output() (*zbuf.Array, error) {
+func (r *Reduce) output() (*zbuf.Array, error) {
 	rec, err := r.columns.Result(r.Context.TypeContext)
 	if err != nil {
 		return nil, err
@@ -33,7 +33,7 @@ func (r *Reducer) output() (*zbuf.Array, error) {
 	return zbuf.NewArray([]*zng.Record{rec}, nano.NewSpanTs(r.MinTs, r.MaxTs)), nil
 }
 
-func (r *Reducer) Pull() (zbuf.Batch, error) {
+func (r *Reduce) Pull() (zbuf.Batch, error) {
 	batch, err := r.Get()
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func (r *Reducer) Pull() (zbuf.Batch, error) {
 	return zbuf.NewArray([]*zng.Record{}, batch.Span()), nil
 }
 
-func (r *Reducer) consume(rec *zng.Record) {
+func (r *Reduce) consume(rec *zng.Record) {
 	r.n++
 	r.columns.Consume(rec)
 }

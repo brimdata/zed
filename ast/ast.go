@@ -245,11 +245,11 @@ type (
 		Node
 		Cflag bool `json:"cflag"`
 	}
-	// A ReducerProc node represents a proc that consumes all the records
+	// A ReduceProc node represents a proc that consumes all the records
 	// in its input and processes each record with one or more reducers.
 	// After all the records have been consumed, the proc generates a single
 	// record that contains each reducer's result as a field in that record.
-	ReducerProc struct {
+	ReduceProc struct {
 		Node
 		Reducers []Reducer `json:"reducers"`
 	}
@@ -322,12 +322,12 @@ func (*TailProc) ProcNode()       {}
 func (*PassProc) ProcNode()       {}
 func (*FilterProc) ProcNode()     {}
 func (*UniqProc) ProcNode()       {}
-func (*ReducerProc) ProcNode()    {}
+func (*ReduceProc) ProcNode()     {}
 func (*GroupByProc) ProcNode()    {}
 func (*TopProc) ProcNode()        {}
 func (*PutProc) ProcNode()        {}
 
-// A Reducer is an AST node that represents any of the boom reducers.  The Op
+// A Reducer is an AST node that represents a reducer function.  The Op
 // parameter indicates the specific reducer while the Field parameter indicates
 // which field of the incoming records should be operated upon by the reducer.
 // The result is given the field name specified by the Var parameter.
