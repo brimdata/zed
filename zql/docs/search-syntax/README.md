@@ -8,7 +8,7 @@
     + [Regular Expressions](#regular-expressions)
   * [Field/Value Match](#fieldvalue-match)
     + [Role of Data Types](#role-of-data-types)
-    + [Exact, Glob, and Regexp Matches](#exact-glob-and-regexp-matches)
+    + [Pattern Matches](#pattern-matches)
     + [Comparisons](#comparisons)
     + [Wildcard Field Names](#wildcard-field-names)
     + [Other Examples](#other-examples)
@@ -20,7 +20,7 @@
 
 ## Search all events
 
-The simplest possible ZQL search is a match against all events. This search is expressed in `zq` with the wildcard `*`. The response will be a ZNG-formatted dump of all events. The default `zq` format is binary ZNG, a compact format that's ideal for working in pipelines. However, in these docs we'll sometimes make use of the `-t` option to output the text-based TZNG format, which is readable at the command line.
+The simplest possible ZQL search is a match against all events. This search is expressed in `zq` with the wildcard `*`. The response will be a ZNG-formatted dump of all events. The default `zq` output is binary ZNG, a compact format that's ideal for working in pipelines. However, in these docs we'll sometimes make use of the `-t` option to output the text-based TZNG format, which is readable at the command line.
 
 #### Example:
 ```zq-command
@@ -41,7 +41,7 @@ zq -t '*' conn.log.gz
 If the ZQL argument is left out entirely, this wildcard is the default search. The following shorthand command line would produce the same output shown above.
 
 ```
-zq conn.log.gz
+zq -t conn.log.gz
 ```
 
 To start a ZQL pipeline with this default search, you can similarly leave out the leading `* |` before invoking your first [processor](#../processors/README.md) or [aggregate function](#../aggregate-functions/README.md).
@@ -255,7 +255,7 @@ When working with named fields, the data type of the field comes becomes signifi
 
 See the [Data Types](./data-types/README.md) page for more details on types and the operators for working with them.
 
-### Exact, Glob, and Regexp Matches
+### Pattern Matches
 
 An important distinction is that a "bare" field/value match is treated as an _exact_ match. If we take one of the results from our [bare word value match](#bare-word) example and attempt to look for `Widgits`, but only on a field named `certificate.subject`, there will be no matches. This is because `Widgits` only happens to appear as a _substring_ of `certificate.subject` fields in our sample data.
 
@@ -285,6 +285,38 @@ x509  1521911747.493786 FdBWBA3eODh6nHFt82 3                   C5F8CDF3FFCBBF2D 
 ```
 
 [Regular expressions](#regular-expressions) can also be used with the `=~` operator in field/value matches.
+
+#### Example:
+```zq-command
+zq -f table 'uri =~ /scripts\/waE8_BuNCEKM.(pl|sh)/' http.log.gz
+```
+
+#### Output:
+```zq-output
+_PATH TS                UID                ID.ORIG_H     ID.ORIG_P ID.RESP_H   ID.RESP_P TRANS_DEPTH METHOD HOST        URI                         REFERRER VERSION USER_AGENT                                                      ORIGIN REQUEST_BODY_LEN RESPONSE_BODY_LEN STATUS_CODE STATUS_MSG INFO_CODE INFO_MSG TAGS    USERNAME PASSWORD PROXIED ORIG_FUIDS ORIG_FILENAMES ORIG_MIME_TYPES RESP_FUIDS         RESP_FILENAMES RESP_MIME_TYPES
+http  1521911861.674390 Cq3Knz2CEXSJB8ktj  10.164.94.120 40913     10.47.3.142 5800      1           GET    10.47.3.142 /scripts/waE8_BuNCEKM.sh    -        1.0     Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0) -      0                151               404         Not Found  -         -        (empty) -        -        -       -          -              -               F8Jbkj1K2qm2xUR1Bj -              text/html
+http  1521911862.427215 C5yUcM3CEFl86YIfY7 10.164.94.120 34369     10.47.3.142 5800      1           GET    10.47.3.142 /scripts/waE8_BuNCEKM.pl    -        1.0     Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0) -      0                151               404         Not Found  -         -        (empty) -        -        -       -          -              -               F5M3Jc4B8xeR13JrP3 -              text/html
+http  1521911863.933983 CxJhWB3aN4LcZP59S1 10.164.94.120 37999     10.47.3.142 5800      1           GET    10.47.3.142 /scripts/waE8_BuNCEKM.shtml -        1.0     Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0) -      0                151               404         Not Found  -         -        (empty) -        -        -       -          -              -               Fq7wId3B4sZn24Jrf6 -              text/html
+http  1521911867.556312 CgbtuX3gXoYFmEF82l 10.164.94.120 37311     10.47.3.142 8080      23          GET    10.47.3.142 /scripts/waE8_BuNCEKM.sh    -        1.1     Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0) -      0                1635              404         Not Found  -         -        (empty) -        -        -       -          -              -               FRErxf1PYkI30aUNCh -              text/html
+http  1521911867.561097 CgbtuX3gXoYFmEF82l 10.164.94.120 37311     10.47.3.142 8080      24          GET    10.47.3.142 /scripts/waE8_BuNCEKM.pl    -        1.1     Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0) -      0                1635              404         Not Found  -         -        (empty) -        -        -       -          -              -               F0fseM1cd8JVpXcnK9 -              text/html
+http  1521911867.570660 CgbtuX3gXoYFmEF82l 10.164.94.120 37311     10.47.3.142 8080      26          GET    10.47.3.142 /scripts/waE8_BuNCEKM.shtml -        1.1     Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0) -      0                1635              404         Not Found  -         -        (empty) -        -        -       -          -              -               FdKLBd3fhPSqFIDFWc -              text/html
+```
+
+Determining if the value of an IP-type field is within a subnet also uses the pattern matching operator.
+
+#### Example:
+```zq-command
+zq -f table 'id.resp_h =~ 208.78.0.0/16' conn.log.gz
+```
+
+#### Output:
+```zq-output
+_PATH TS                UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H     ID.RESP_P PROTO SERVICE DURATION ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
+conn  1521912764.212387 CngWP41W7wzyQtMG4k 10.47.26.25 59095     208.78.71.136 53        udp   dns     0.003241 72         402        SF         -          -          0            Dd      2         128           2         458           -
+conn  1521912772.324550 CgZ2D84oSTX0Xw2fEl 10.47.26.25 59095     208.78.70.136 53        udp   dns     0.004167 144        804        SF         -          -          0            Dd      4         256           4         916           -
+conn  1521912787.538564 CGfWHn2Y6IDSBra1K4 10.47.26.25 59095     208.78.71.31  53        udp   dns     3.044438 276        1188       SF         -          -          0            Dd      6         444           6         1356          -
+conn  1521912907.721609 CCbNQn22j5UPZ4tute 10.47.26.25 59095     208.78.70.136 53        udp   dns     0.1326   176        870        SF         -          -          0            Dd      4         288           4         982           -
+```
 
 ### Comparisons
 
