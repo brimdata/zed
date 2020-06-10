@@ -3,7 +3,7 @@
 Comprehensive documentation for working with data types in ZQL is still a work
 in progress. In the meantime, here's a few tips to get started with.
 
-* Values read in by `zq` are stored internally and treated in expressions using one of the data types described in the [Typedefs](../../../zng/docs/spec.md#211-typedefs) section of the ZNG spec.
+* Values read in by `zq` are stored internally and treated in expressions using one of the data types described in the [ZNG Value Messages](../../../zng/docs/spec.md#22-zng-value-messages) section of the ZNG spec.
 * See the [Zeek Type Mappings](../../../zng/docs/zeek-compat.md#zeek-type-mappings) table for details on which ZNG data types correspond to the [data types](https://docs.zeek.org/en/current/script-reference/types.html) that appear in Zeek logs.
 * ZQL provides a [type casting](https://en.wikipedia.org/wiki/Type_conversion) syntax using `:` followed by a ZNG data type.
 
