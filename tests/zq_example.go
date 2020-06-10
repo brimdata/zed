@@ -315,6 +315,9 @@ func DocMarkdownFiles() ([]string, error) {
 	files := []string{
 		"zql/docs/processors/README.md",
 		"zql/docs/search-syntax/README.md",
+		"zql/docs/aggregate-functions/README.md",
+		"zql/docs/expressions/README.md",
+		"zql/docs/data-types/README.md",
 	}
 	repopath, err := RepoAbsPath()
 	if err != nil {

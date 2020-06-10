@@ -8,7 +8,7 @@
     + [Regular Expressions](#regular-expressions)
   * [Field/Value Match](#fieldvalue-match)
     + [Role of Data Types](#role-of-data-types)
-    + [Exact, Glob, and Regexp Matches](#exact-glob-and-regexp-matches)
+    + [Pattern Matches](#pattern-matches)
     + [Comparisons](#comparisons)
     + [Wildcard Field Names](#wildcard-field-names)
     + [Other Examples](#other-examples)
@@ -20,7 +20,7 @@
 
 ## Search all events
 
-The simplest possible ZQL search is a match against all events. This search is expressed in `zq` with the wildcard `*`. The response will be a ZNG-formatted dump of all events.
+The simplest possible ZQL search is a match against all events. This search is expressed in `zq` with the wildcard `*`. The response will be a ZNG-formatted dump of all events. The default `zq` output is binary ZNG, a compact format that's ideal for working in pipelines. However, in these docs we'll sometimes make use of the `-t` option to output the text-based TZNG format, which is readable at the command line.
 
 #### Example:
 ```zq-command
@@ -38,7 +38,11 @@ zq -t '*' conn.log.gz
 ...
 ```
 
-If the ZQL argument is left out entirely, this wildcard is the default search. The shorthand command-line `zq conn.log.gz` would produce the same output shown above.
+If the ZQL argument is left out entirely, this wildcard is the default search. The following shorthand command line would produce the same output shown above.
+
+```
+zq -t conn.log.gz
+```
 
 To start a ZQL pipeline with this default search, you can similarly leave out the leading `* |` before invoking your first [processor](#../processors/README.md) or [aggregate function](#../aggregate-functions/README.md).
 
@@ -247,11 +251,11 @@ When working with named fields, the data type of the field comes becomes signifi
 
 1. To match successfully, the value entered must be comparable to the data type of the named field. For instance, since `id.resp_h` is typically an `addr`-type field, an attempted field/value match `id.resp_h=10.150.0.999` will return an error, since this is not valid IP address syntax.
 
-2.  The correct operator must be chosen based on whether the field type is primitive or container.  For example, `id.resp_h=10.150.0.85` will match in our sample data because `id.resp_h` is a primitive type, `addr`. However, to check if the same IP had been a transmitting host in a `files` event, the syntax `10.150.0.85 in tx_hosts` would be used because `tx_hosts` is a container type, `set[addr]`.
+2.  The correct operator must be chosen based on whether the field type is primitive or complex.  For example, `id.resp_h=10.150.0.85` will match in our sample data because `id.resp_h` is a primitive type, `addr`. However, to check if the same IP had been a transmitting host in a `files` event, the syntax `10.150.0.85 in tx_hosts` would be used because `tx_hosts` is a complex type, `set[addr]`.
 
 See the [Data Types](./data-types/README.md) page for more details on types and the operators for working with them.
 
-### Exact, Glob, and Regexp Matches
+### Pattern Matches
 
 An important distinction is that a "bare" field/value match is treated as an _exact_ match. If we take one of the results from our [bare word value match](#bare-word) example and attempt to look for `Widgits`, but only on a field named `certificate.subject`, there will be no matches. This is because `Widgits` only happens to appear as a _substring_ of `certificate.subject` fields in our sample data.
 
@@ -262,7 +266,7 @@ zq -f table 'certificate.subject=Widgits' *.log.gz         # Produces no output
 ```zq-output
 ```
 
-To achieve this with a field/value match, we can use [glob wildcards](#glob-wildcards).
+To achieve this with a field/value match, we can use [glob wildcards](#glob-wildcards). Because this is not testing for strict equality, here we use the pattern matching operator (`=~`) between the field name and value.
 
 #### Example:
 ```zq-command
@@ -280,11 +284,43 @@ x509  1521911747.493786 FdBWBA3eODh6nHFt82 3                   C5F8CDF3FFCBBF2D 
 ...
 ```
 
-[Regular expressions](#regular-expressions) can also be used with field/value matches.
+[Regular expressions](#regular-expressions) can also be used with the `=~` operator in field/value matches.
+
+#### Example:
+```zq-command
+zq -f table 'uri =~ /scripts\/waE8_BuNCEKM.(pl|sh)/' http.log.gz
+```
+
+#### Output:
+```zq-output
+_PATH TS                UID                ID.ORIG_H     ID.ORIG_P ID.RESP_H   ID.RESP_P TRANS_DEPTH METHOD HOST        URI                         REFERRER VERSION USER_AGENT                                                      ORIGIN REQUEST_BODY_LEN RESPONSE_BODY_LEN STATUS_CODE STATUS_MSG INFO_CODE INFO_MSG TAGS    USERNAME PASSWORD PROXIED ORIG_FUIDS ORIG_FILENAMES ORIG_MIME_TYPES RESP_FUIDS         RESP_FILENAMES RESP_MIME_TYPES
+http  1521911861.674390 Cq3Knz2CEXSJB8ktj  10.164.94.120 40913     10.47.3.142 5800      1           GET    10.47.3.142 /scripts/waE8_BuNCEKM.sh    -        1.0     Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0) -      0                151               404         Not Found  -         -        (empty) -        -        -       -          -              -               F8Jbkj1K2qm2xUR1Bj -              text/html
+http  1521911862.427215 C5yUcM3CEFl86YIfY7 10.164.94.120 34369     10.47.3.142 5800      1           GET    10.47.3.142 /scripts/waE8_BuNCEKM.pl    -        1.0     Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0) -      0                151               404         Not Found  -         -        (empty) -        -        -       -          -              -               F5M3Jc4B8xeR13JrP3 -              text/html
+http  1521911863.933983 CxJhWB3aN4LcZP59S1 10.164.94.120 37999     10.47.3.142 5800      1           GET    10.47.3.142 /scripts/waE8_BuNCEKM.shtml -        1.0     Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0) -      0                151               404         Not Found  -         -        (empty) -        -        -       -          -              -               Fq7wId3B4sZn24Jrf6 -              text/html
+http  1521911867.556312 CgbtuX3gXoYFmEF82l 10.164.94.120 37311     10.47.3.142 8080      23          GET    10.47.3.142 /scripts/waE8_BuNCEKM.sh    -        1.1     Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0) -      0                1635              404         Not Found  -         -        (empty) -        -        -       -          -              -               FRErxf1PYkI30aUNCh -              text/html
+http  1521911867.561097 CgbtuX3gXoYFmEF82l 10.164.94.120 37311     10.47.3.142 8080      24          GET    10.47.3.142 /scripts/waE8_BuNCEKM.pl    -        1.1     Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0) -      0                1635              404         Not Found  -         -        (empty) -        -        -       -          -              -               F0fseM1cd8JVpXcnK9 -              text/html
+http  1521911867.570660 CgbtuX3gXoYFmEF82l 10.164.94.120 37311     10.47.3.142 8080      26          GET    10.47.3.142 /scripts/waE8_BuNCEKM.shtml -        1.1     Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0) -      0                1635              404         Not Found  -         -        (empty) -        -        -       -          -              -               FdKLBd3fhPSqFIDFWc -              text/html
+```
+
+Determining whether the value of a Zeek `addr`-type field is within a subnet also uses the pattern matching operator.
+
+#### Example:
+```zq-command
+zq -f table 'id.resp_h =~ 208.78.0.0/16' conn.log.gz
+```
+
+#### Output:
+```zq-output
+_PATH TS                UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H     ID.RESP_P PROTO SERVICE DURATION ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
+conn  1521912764.212387 CngWP41W7wzyQtMG4k 10.47.26.25 59095     208.78.71.136 53        udp   dns     0.003241 72         402        SF         -          -          0            Dd      2         128           2         458           -
+conn  1521912772.324550 CgZ2D84oSTX0Xw2fEl 10.47.26.25 59095     208.78.70.136 53        udp   dns     0.004167 144        804        SF         -          -          0            Dd      4         256           4         916           -
+conn  1521912787.538564 CGfWHn2Y6IDSBra1K4 10.47.26.25 59095     208.78.71.31  53        udp   dns     3.044438 276        1188       SF         -          -          0            Dd      6         444           6         1356          -
+conn  1521912907.721609 CCbNQn22j5UPZ4tute 10.47.26.25 59095     208.78.70.136 53        udp   dns     0.1326   176        870        SF         -          -          0            Dd      4         288           4         982           -
+```
 
 ### Comparisons
 
-In addition to testing for equality via `=`, other common comparison operators `!=`, `<`, `>`, `<=`, and `=>` are also available.
+In addition to testing for equality and pattern matching via `=` and `=~`, other common comparison operators `!=`, `<`, `>`, `<=`, and `=>` are also available.
 
 For example, the following search finds connections that have transferred many bytes.
 
@@ -336,7 +372,7 @@ _PATH  TS                UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H   I
 notice 1521911732.521729 Ckwqsn2ZSiVGtyiFO5 10.47.24.186 55782     10.150.0.85 443       FZW30y2Nwc9i0qmdvg -              -         tcp   SSL::Invalid_Server_Cert SSL certificate validation failed with (self signed certificate) CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU 10.47.24.186 10.150.0.85 443 - -          Notice::ACTION_LOG 3600         -                            -                      -                    -                        -
 ```
 
-Similarly, the following search will only match when the value appears in a container field of type `set[addr]` or `array[addr]`, such as `tx_hosts` in this case.
+Similarly, the following search will only match when the value appears in a complex field of type `set[addr]` or `array[addr]`, such as `tx_hosts` in this case.
 
 #### Example:
 ```zq-command
@@ -355,7 +391,7 @@ files 1521911747.493786 FdBWBA3eODh6nHFt82 10.150.0.85 10.10.18.2   ChpfSB4FWhg3
 
 ### Other Examples
 
-The other behaviors we described previously for general [value matching](#value-match) still apply the same for field/value matches. Below are some exercises you can try to observe this with the sample data. Search with `zq` against `*.log` in all cases.
+The other behaviors we described previously for general [value matching](#value-match) still apply the same for field/value matches. Below are some exercises you can try to observe this with the sample data. Search with `zq` against `*.log.gz` in all cases.
 
 1. Compare the result of our previous [quoted word](#quoted-word) value search for `"O=Internet Widgits"` with a field/value search for `certificate.subject=*Widgits*`. Note how the former showed many types of Zeek events while the latter shows _only_ `x509` events, since only these events contain the field named `certificate.subject`.
 2. Compare the result of our previous [glob wildcard](#glob-wildcards) value search for `www.*cdn*.com` with a field/value search for `server_name=www.*cdn*.com`. Note how the former showed mostly Zeek `dns` events and a couple `ssl` events, while the latter shows _only_ `ssl` events, since only these events contain the field named `server_name`.
@@ -363,7 +399,7 @@ The other behaviors we described previously for general [value matching](#value-
 
 ## Boolean Operators
 
-Your searches can be further refined by using boolean operators `and`, `or`, and `not`.
+Your searches can be further refined by using boolean operators `and`, `or`, and `not`. These operators are case-insensitive, so `AND`, `OR`, and `NOT` can also be used.
 
 ### `and`
 
@@ -443,7 +479,7 @@ rdp   1521911721.258458 C8Tful1TvM3Zf5x8fl 10.164.94.120 39681     10.47.3.155 3
 
 * **Note**: The `!` operator can also be used as alternative shorthand:
 
-        zq -f table '! _path=/conn|dns|files|ssl|x509|http|weird/' *.log.gz
+        zq -f table '! _path=~/conn|dns|files|ssl|x509|http|weird/' *.log.gz
 
 ### Parentheses & Order of Evaluation
 
