@@ -266,7 +266,7 @@ zq -f table 'certificate.subject=Widgits' *.log.gz         # Produces no output
 ```zq-output
 ```
 
-To achieve this with a field/value match, we can use [glob wildcards](#glob-wildcards).
+To achieve this with a field/value match, we can use [glob wildcards](#glob-wildcards). Because this is not testing for strict equality, here we use the `=~` operator between the field name and value.
 
 #### Example:
 ```zq-command
@@ -284,7 +284,7 @@ x509  1521911747.493786 FdBWBA3eODh6nHFt82 3                   C5F8CDF3FFCBBF2D 
 ...
 ```
 
-[Regular expressions](#regular-expressions) can also be used with field/value matches.
+[Regular expressions](#regular-expressions) can also be used with field/value matches, also with the `=~` operator.
 
 ### Comparisons
 
