@@ -9,7 +9,7 @@ in progress. In the meantime, here's a few tips to get started with.
 
 #### Example:
 
-The value in the JSON input below would ordinarily be treated as a string, but we can cast it to an `ip` type. This allows a downstream `filter` to correctly find the value in a CIDR match.
+The value in the JSON input below would ordinarily be treated as a `string`, but we can cast it to an `ip` type. This allows a downstream `filter` to correctly find the value in a CIDR match.
 
 ```zq-command
 echo '{"src": "192.168.1.5"}' | zq -t 'put src=src:ip | filter 192.168.1.0/24' -
