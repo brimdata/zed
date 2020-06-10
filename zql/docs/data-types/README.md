@@ -9,14 +9,20 @@ in progress. In the meantime, here's a few tips to get started with.
 
 #### Example:
 
-The value in the JSON input below would ordinarily be treated as a `string`, but we can cast it to an `ip` type. This allows a downstream `filter` to correctly find the value in a CIDR match.
+In the Zeek `ntp` log, the field `ref_id` is of Zeek's `string` type, but is often populated with a value that happens to be an IP address. When treated as a string, the attempted CIDR match in the following ZQL would be unsuccessful and no events would be counted.
+
+```
+zq -f table 'cut ref_id | filter 83.162.0.0/16 | count()' ntp.log.gz
+```
+
+However, if we cast it to an `ip` type, now the CIDR match is successful.
 
 ```zq-command
-echo '{"src": "192.168.1.5"}' | zq -t 'put src=src:ip | filter 192.168.1.0/24' -
+zq -f table "cut ref_id | put ref_id=ref_id:ip | filter 83.162.0.0/16 | count()" ntp.log.gz
 ```
 
 #### Output:
 ```zq-output
-#0:record[src:ip]
-0:[192.168.1.5;]
+COUNT
+28
 ```
