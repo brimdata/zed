@@ -33,3 +33,8 @@ jobs:
       - run: mkdir dist -ea 0
       - run: go build -o dist ./cmd/...
       - run: go test -v -tags=system ./tests
+  markdown-link-check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: gaurav-nelson/github-action-markdown-link-check@v1

@@ -731,7 +731,7 @@ e.g., the North Pole has a latitude but no meaningful longitude.
 ## 5. Related Links
 
 * [Zeek ASCII logging](https://docs.zeek.org/en/stable/examples/logs/)
-* [Binary logging in Zeek](https://www.zeek.org/development/projects/binary-logging.html)
+* [Binary logging in Zeek](https://old.zeek.org/development/projects/binary-logging.html)
 * [Hadoop sequence file](https://cwiki.apache.org/confluence/display/HADOOP2/SequenceFile)
 * [Avro](https://avro.apache.org)
 * [Parquet](https://en.wikipedia.org/wiki/Apache_Parquet)
