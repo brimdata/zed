@@ -1,7 +1,7 @@
 # Aggregate Functions
 
 Comprehensive documentation for ZQL aggrgeate functions is still a work in
-progress. In the meantime, here's a few examples to get started.
+progress. In the meantime, here's a few examples to get started with.
 
 #### Example #1:
 
