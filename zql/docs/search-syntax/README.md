@@ -284,7 +284,7 @@ x509  1521911747.493786 FdBWBA3eODh6nHFt82 3                   C5F8CDF3FFCBBF2D 
 ...
 ```
 
-[Regular expressions](#regular-expressions) can also be used with field/value matches, also with the `=~` operator.
+[Regular expressions](#regular-expressions) can also be used with the `=~` operator in field/value matches.
 
 ### Comparisons
 
