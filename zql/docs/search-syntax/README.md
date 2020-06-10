@@ -266,7 +266,7 @@ zq -f table 'certificate.subject=Widgits' *.log.gz         # Produces no output
 ```zq-output
 ```
 
-To achieve this with a field/value match, we can use [glob wildcards](#glob-wildcards). Because this is not testing for strict equality, here we use the `=~` operator between the field name and value.
+To achieve this with a field/value match, we can use [glob wildcards](#glob-wildcards). Because this is not testing for strict equality, here we use the `=~` pattern matching operator between the field name and value.
 
 #### Example:
 ```zq-command
@@ -284,11 +284,11 @@ x509  1521911747.493786 FdBWBA3eODh6nHFt82 3                   C5F8CDF3FFCBBF2D 
 ...
 ```
 
-[Regular expressions](#regular-expressions) can also be used with the `=~` operator in field/value matches.
+[Regular expressions](#regular-expressions) can also be used with the `=~` pattern matching operator in field/value matches.
 
 ### Comparisons
 
-In addition to testing for equality via `=`, other common comparison operators `!=`, `<`, `>`, `<=`, and `=>` are also available.
+In addition to testing for equality via `=` and pattern matching via `=~`, other common comparison operators `!=`, `<`, `>`, `<=`, and `=>` are also available.
 
 For example, the following search finds connections that have transferred many bytes.
 
