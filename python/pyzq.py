@@ -6,7 +6,7 @@ import sys
 from cffi import FFI
 
 ZQLIB = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                     './build/zq.so')
+                     '../dist/pybuild/zq.so')
 
 
 class Zq(object):
