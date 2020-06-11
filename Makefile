@@ -45,8 +45,8 @@ bin/$(ZEEKPATH): bin
 		&& mv bin/zeek bin/$(ZEEKPATH)
 
 generate:
-	GOBIN=bin go install github.com/golang/mock/mockgen
-	PATH=$(CURDIR)/bin:$(PATH) go generate ./...
+	@GOBIN=$(CURDIR)/bin go install github.com/golang/mock/mockgen
+	@PATH=$(CURDIR)/bin:$(PATH) go generate ./...
 
 test-generate: generate
 	git diff --exit-code
@@ -95,7 +95,7 @@ build-pyzq:
 
 # CI performs these actions individually since that looks nicer in the UI;
 # this is a shortcut so that a local dev can easily run everything.
-test-ci: fmt tidy vet generate test-unit test-system test-zeek test-heavy
+test-ci: fmt tidy vet test-generate test-unit test-system test-zeek test-heavy
 
 clean:
 	@rm -rf dist
