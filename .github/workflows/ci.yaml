@@ -39,5 +39,3 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - uses: gaurav-nelson/github-action-markdown-link-check@v1
-      with:
-        use-verbose-mode: 'yes'
