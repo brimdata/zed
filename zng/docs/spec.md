@@ -680,7 +680,7 @@ Type | Format
 `bstring` | a UTF-8 string with `\x` escapes of non-UTF binary data
 `enum` | a string representing an enumeration value defined outside the scope of ZNG
 `ip` | a string representing an IP address in [IPv4 or IPv6 format](https://tools.ietf.org/html/draft-main-ipaddr-text-rep-02#section-3)
-`port` | XXX - to be filled in during PR review          |
+`port` | a string representing an 16-bit network port |
 `net` | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291.
 `time` | signed dotted decimal notation of seconds
 `duration` | signed dotted decimal notation of seconds
