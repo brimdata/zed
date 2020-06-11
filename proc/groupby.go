@@ -170,6 +170,8 @@ func NewGroupByAggregator(c *Context, params GroupByParams) *GroupByAggregator {
 		}
 	}
 	return &GroupByAggregator{
+		inputSortDir: params.inputSortDir,
+		limit:        limit,
 		keys:         params.keys,
 		zctx:         c.TypeContext,
 		kctx:         resolver.NewContext(),
@@ -182,7 +184,6 @@ func NewGroupByAggregator(c *Context, params GroupByParams) *GroupByAggregator {
 		limit:        limit,
 		recordSortFn: recordSortFn,
 		valueSortFn:  valueSortFn,
-		inputSortDir: params.inputSortDir,
 	}
 }
 
