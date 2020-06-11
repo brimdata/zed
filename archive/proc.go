@@ -74,10 +74,9 @@ func (f *FieldCutter) Pull() (zbuf.Batch, error) {
 			}
 			recs = append(recs, f.builder.Build(val.Bytes).Keep())
 		}
-		span := batch.Span()
 		batch.Unref()
 		if len(recs) > 0 {
-			return zbuf.NewArray(recs, span), nil
+			return zbuf.NewArray(recs), nil
 		}
 	}
 }
@@ -128,10 +127,9 @@ func (t *TypeSplitter) Pull() (zbuf.Batch, error) {
 				return nil
 			})
 		}
-		span := batch.Span()
 		batch.Unref()
 		if len(recs) > 0 {
-			return zbuf.NewArray(recs, span), nil
+			return zbuf.NewArray(recs), nil
 		}
 	}
 }

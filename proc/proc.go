@@ -7,7 +7,6 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/filter"
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/reducer/compile"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
@@ -51,8 +50,6 @@ type Context struct {
 type Base struct {
 	*Context
 	Parent Proc
-	MinTs  nano.Ts // Smallest Span.Ts seen by Get.
-	MaxTs  nano.Ts // Largest Span.End() seen by Get.
 }
 
 func EOS(batch zbuf.Batch, err error) bool {
@@ -73,20 +70,7 @@ func (b *Base) Parents() []Proc {
 }
 
 func (b *Base) Get() (zbuf.Batch, error) {
-	batch, err := b.Parent.Pull()
-	if err != nil {
-		return nil, err
-	}
-	if batch != nil {
-		// XXX
-		if batch.Span().Ts < b.MinTs || b.MinTs == 0 {
-			b.MinTs = batch.Span().Ts
-		}
-		if batch.Span().End() > b.MaxTs {
-			b.MaxTs = batch.Span().End()
-		}
-	}
-	return batch, err
+	return b.Parent.Pull()
 }
 
 type Compiler interface {

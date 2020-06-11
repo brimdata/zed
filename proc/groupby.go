@@ -8,7 +8,6 @@ import (
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/reducer"
 	"github.com/brimsec/zq/reducer/compile"
 	"github.com/brimsec/zq/zbuf"
@@ -131,7 +130,6 @@ type GroupByAggregator struct {
 	reducerDefs  []compile.CompiledReducer
 	builder      *ColumnBuilder
 	table        map[string]*GroupByRow
-	reverse      bool
 	logger       *zap.Logger
 	limit        int
 	valueSortFn  expr.ValueSortFn // to compare primary group keys for early key output
@@ -179,7 +177,6 @@ func NewGroupByAggregator(c *Context, params GroupByParams) *GroupByAggregator {
 		builder:      params.builder,
 		keyRows:      make(map[int]keyRow),
 		table:        make(map[string]*GroupByRow),
-		reverse:      c.Reverse,
 		logger:       c.Logger,
 		recordSortFn: recordSortFn,
 		valueSortFn:  valueSortFn,
@@ -222,7 +219,7 @@ func (g *GroupBy) Pull() (zbuf.Batch, error) {
 			return batch, nil
 		}
 	}
-	return zbuf.NewArray([]*zng.Record{}, batch.Span()), nil
+	return zbuf.NewArray([]*zng.Record{}), nil
 }
 
 func (g *GroupByAggregator) createGroupByRow(keyCols []zng.Column, vals zcode.Bytes, groupval *zng.Value) *GroupByRow {
@@ -267,9 +264,7 @@ func newKeyRow(kctx *resolver.Context, r *zng.Record, keys []GroupByKey) (keyRow
 	return keyRow{id, cols}, nil
 }
 
-// Consume takes a record and adds it to the aggregation. Records
-// successively passed to Consume are expected to have timestamps in
-// monotonically increasing or decreasing order determined by g.reverse.
+// Consume adds a record to the aggregation.
 func (g *GroupByAggregator) Consume(r *zng.Record) error {
 	// First check if we've seen this descriptor before and if not
 	// build an entry for it.
@@ -367,12 +362,7 @@ func (g *GroupByAggregator) Results(eof bool) (zbuf.Batch, error) {
 		// Don't propagate empty batches.
 		return nil, nil
 	}
-	first, last := recs[0], recs[len(recs)-1]
-	if g.reverse {
-		first, last = last, first
-	}
-	span := nano.NewSpanTs(first.Ts, last.Ts)
-	return zbuf.NewArray(recs, span), nil
+	return zbuf.NewArray(recs), nil
 }
 
 // records returns a slice of all records from the groupby table in a

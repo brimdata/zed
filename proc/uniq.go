@@ -3,7 +3,6 @@ package proc
 import (
 	"bytes"
 
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 	"go.uber.org/zap"
@@ -56,19 +55,18 @@ func (u *Uniq) Pull() (zbuf.Batch, error) {
 	if err != nil {
 		return nil, err
 	}
-	span := nano.NewSpanTs(u.MinTs, u.MaxTs)
 	if batch == nil {
 		if u.last == nil {
 			return nil, nil
 		}
 		t := u.wrap(u.last)
 		u.last = nil
-		return zbuf.NewArray([]*zng.Record{t}, span), nil
+		return zbuf.NewArray([]*zng.Record{t}), nil
 	}
 	defer batch.Unref()
 	var out []*zng.Record
 	for k := 0; k < batch.Length(); k++ {
 		out = u.appendUniq(out, batch.Index(k))
 	}
-	return zbuf.NewArray(out, span), nil
+	return zbuf.NewArray(out), nil
 }

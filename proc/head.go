@@ -1,7 +1,6 @@
 package proc
 
 import (
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 )
@@ -41,5 +40,5 @@ func (h *Head) Pull() (zbuf.Batch, error) {
 	}
 	h.count = h.limit
 	h.Done()
-	return zbuf.NewArray(recs, nano.NewSpanTs(h.MinTs, h.MaxTs)), nil
+	return zbuf.NewArray(recs), nil
 }

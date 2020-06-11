@@ -4,7 +4,6 @@ import (
 	"container/heap"
 
 	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 )
@@ -92,5 +91,5 @@ func (t *Top) sorted() zbuf.Batch {
 	}
 	// clear records
 	t.records = nil
-	return zbuf.NewArray(out, nano.NewSpanTs(t.MinTs, t.MaxTs))
+	return zbuf.NewArray(out)
 }

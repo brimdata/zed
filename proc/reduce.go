@@ -1,7 +1,6 @@
 package proc
 
 import (
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/reducer/compile"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
@@ -30,7 +29,7 @@ func (r *Reduce) output() (*zbuf.Array, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zbuf.NewArray([]*zng.Record{rec}, nano.NewSpanTs(r.MinTs, r.MaxTs)), nil
+	return zbuf.NewArray([]*zng.Record{rec}), nil
 }
 
 func (r *Reduce) Pull() (zbuf.Batch, error) {
@@ -50,7 +49,7 @@ func (r *Reduce) Pull() (zbuf.Batch, error) {
 		r.consume(batch.Index(k))
 	}
 	batch.Unref()
-	return zbuf.NewArray([]*zng.Record{}, batch.Span()), nil
+	return zbuf.NewArray([]*zng.Record{}), nil
 }
 
 func (r *Reduce) consume(rec *zng.Record) {

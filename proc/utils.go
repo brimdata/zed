@@ -13,7 +13,6 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/ast"
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
@@ -211,7 +210,7 @@ func ParseTestTzng(zctx *resolver.Context, src string) (*zbuf.Array, error) {
 		records = append(records, rec)
 	}
 
-	return zbuf.NewArray(records, nano.MaxSpan), nil
+	return zbuf.NewArray(records), nil
 }
 
 // TestOneProcWithWarnings runs one test of a proc by compiling cmd as a proc,
