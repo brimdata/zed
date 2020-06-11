@@ -4,6 +4,7 @@ import (
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/reducer"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 )
 
 type Streamfn interface {
@@ -58,6 +59,10 @@ func (fr *FieldReducer) Consume(r *zng.Record) {
 		fr.FieldNotFound++
 		return
 	}
+	fr.consumeVal(val)
+}
+
+func (fr *FieldReducer) consumeVal(val zng.Value) {
 	if fr.typ == nil {
 		fr.typ = val.Type
 	}
@@ -84,4 +89,13 @@ func (fr *FieldReducer) Consume(r *zng.Record) {
 	if fr.fn.Consume(val) == zng.ErrTypeMismatch {
 		fr.TypeMismatch++
 	}
+}
+
+func (fr *FieldReducer) ResultPart(*resolver.Context) (zng.Value, error) {
+	return fr.Result(), nil
+}
+
+func (fr *FieldReducer) ConsumePart(v zng.Value) error {
+	fr.consumeVal(v)
+	return nil
 }

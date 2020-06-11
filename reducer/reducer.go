@@ -8,15 +8,22 @@ import (
 	"errors"
 
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 )
 
 var (
-	ErrUnsupportedType = errors.New("unsupported type")
+	ErrBadValue = errors.New("bad value")
 )
 
 type Interface interface {
 	Consume(*zng.Record)
 	Result() zng.Value
+}
+
+type Decomposable interface {
+	Interface
+	ConsumePart(zng.Value) error
+	ResultPart(*resolver.Context) (zng.Value, error)
 }
 
 type Stats struct {
