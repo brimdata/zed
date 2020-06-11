@@ -4,10 +4,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -245,6 +248,15 @@ func TestGroupbySystem(t *testing.T) {
 	tests().runSystem(t)
 }
 
+func compileGroupBy(code string) (*ast.GroupByProc, error) {
+	parsed, err := zql.Parse("", []byte(code))
+	if err != nil {
+		return nil, err
+	}
+	sp := parsed.(*ast.SequentialProc)
+	return sp.Procs[1].(*ast.GroupByProc), nil
+}
+
 func TestGroupbyUnit(t *testing.T) {
 	inBatches := []string{`
 #0:record[ts:time]
@@ -333,7 +345,7 @@ func TestGroupbyUnit(t *testing.T) {
 		`#0:record[ts:time,count:uint64]
 0:[1;1;]`}
 
-	runner := func(zql string, in, out []string) func(t *testing.T) {
+	runner := func(zql string, dir int, in, out []string) func(t *testing.T) {
 		return func(t *testing.T) {
 			resolver := resolver.NewContext()
 			var inBatches []zbuf.Batch
@@ -342,8 +354,17 @@ func TestGroupbyUnit(t *testing.T) {
 				require.NoError(t, err, s)
 				inBatches = append(inBatches, b)
 			}
-			procTest, err := proc.NewProcTestFromSource(zql, resolver, inBatches)
+
+			astProc, err := compileGroupBy(zql)
 			assert.NoError(t, err)
+			driver.ReplaceGroupByProcDurationWithKey(astProc)
+			astProc.InputSortDir = dir
+			tctx := proc.NewTestContext(resolver)
+			src := proc.NewTestSource(inBatches)
+			gproc, err := proc.CompileTestProcAST(astProc, tctx, src)
+			assert.NoError(t, err)
+			procTest := proc.NewProcTest(gproc, tctx)
+
 			for _, s := range out {
 				b, err := proc.ParseTestTzng(resolver, s)
 				require.NoError(t, err, s)
@@ -355,12 +376,12 @@ func TestGroupbyUnit(t *testing.T) {
 		}
 	}
 
-	t.Run("forward-sorted", runner("count() by ts -sorted 1", inBatches, outBatches))
-	t.Run("forward-sorted-with-unset", runner("count() by ts -sorted 1", inBatchesWithUnset, outBatchesWithUnset))
-	t.Run("forward-sorted-every", runner("every 1s count() -sorted 1", inBatches, outBatches))
-	t.Run("forward-sorted-record-key", runner("count() by foo -sorted 1", inBatchesRecordKey, outBatchesRecordKey))
-	t.Run("forward-sorted-nested-key", runner("count() by foo.a -sorted 1", inBatchesRecordKey, outBatchesRecordKey))
-	t.Run("forward-sorted-record-key-unset", runner("count() by foo -sorted 1", inBatchesRecordKeyWithUnsetRecord, outBatchesRecordKeyWithUnsetRecord))
-	t.Run("forward-sorted-nested-key-unset", runner("count() by foo.a -sorted 1", inBatchesRecordKeyWithUnsetRecord, outBatchesRecordKeyWithUnsetKey))
-	t.Run("reverse-sorted", runner("count() by ts -sorted -1", inBatchesRev, outBatchesRev))
+	t.Run("forward-sorted", runner("count() by ts", 1, inBatches, outBatches))
+	t.Run("forward-sorted-with-unset", runner("count() by ts", 1, inBatchesWithUnset, outBatchesWithUnset))
+	t.Run("forward-sorted-every", runner("every 1s count()", 1, inBatches, outBatches))
+	t.Run("forward-sorted-record-key", runner("count() by foo", 1, inBatchesRecordKey, outBatchesRecordKey))
+	t.Run("forward-sorted-nested-key", runner("count() by foo.a", 1, inBatchesRecordKey, outBatchesRecordKey))
+	t.Run("forward-sorted-record-key-unset", runner("count() by foo", 1, inBatchesRecordKeyWithUnsetRecord, outBatchesRecordKeyWithUnsetRecord))
+	t.Run("forward-sorted-nested-key-unset", runner("count() by foo.a", 1, inBatchesRecordKeyWithUnsetRecord, outBatchesRecordKeyWithUnsetKey))
+	t.Run("reverse-sorted", runner("count() by ts", -1, inBatchesRev, outBatchesRev))
 }

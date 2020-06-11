@@ -34,7 +34,6 @@ func CompileTestProc(code string, ctx *Context, parent Proc) (Proc, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	sp, ok := parsed.(*ast.SequentialProc)
 	if !ok {
 		return nil, errors.New("expected SequentialProc")
@@ -42,17 +41,18 @@ func CompileTestProc(code string, ctx *Context, parent Proc) (Proc, error) {
 	if len(sp.Procs) != 2 {
 		return nil, errors.New("expected 2 procs")
 	}
+	return CompileTestProcAST(sp.Procs[1], ctx, parent)
+}
 
-	proc, err := CompileProc(nil, sp.Procs[1], ctx, parent)
+func CompileTestProcAST(proc ast.Proc, ctx *Context, parent Proc) (Proc, error) {
+	procs, err := CompileProc(nil, proc, ctx, parent)
 	if err != nil {
 		return nil, err
 	}
-
-	if len(proc) != 1 {
+	if len(procs) != 1 {
 		return nil, errors.New("expected 1 proc")
 	}
-
-	return proc[0], nil
+	return procs[0], nil
 }
 
 // TestSource implements the Proc interface but outputs a fixed set of

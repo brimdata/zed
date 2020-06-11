@@ -33,7 +33,7 @@ func CompileWarningsCh(ctx context.Context, program ast.Proc, reader zbuf.Reader
 }
 
 func CompileWarningsChCustom(ctx context.Context, custom proc.Compiler, program ast.Proc, reader zbuf.Reader, readerSortKey string, reverse bool, span nano.Span, logger *zap.Logger, ch chan string) (*MuxOutput, error) {
-	replaceGroupByProcDurationWithKey(program)
+	ReplaceGroupByProcDurationWithKey(program)
 	if readerSortKey != "" {
 		dir := 1
 		if reverse {
@@ -84,7 +84,7 @@ func liftFilter(p ast.Proc) (*ast.FilterProc, ast.Proc) {
 	return nil, p
 }
 
-func replaceGroupByProcDurationWithKey(p ast.Proc) {
+func ReplaceGroupByProcDurationWithKey(p ast.Proc) {
 	switch p := p.(type) {
 	case *ast.GroupByProc:
 		if duration := p.Duration.Seconds; duration != 0 {
@@ -105,11 +105,11 @@ func replaceGroupByProcDurationWithKey(p ast.Proc) {
 		}
 	case *ast.ParallelProc:
 		for _, pp := range p.Procs {
-			replaceGroupByProcDurationWithKey(pp)
+			ReplaceGroupByProcDurationWithKey(pp)
 		}
 	case *ast.SequentialProc:
 		for _, pp := range p.Procs {
-			replaceGroupByProcDurationWithKey(pp)
+			ReplaceGroupByProcDurationWithKey(pp)
 		}
 	}
 }
