@@ -258,7 +258,7 @@ type (
 	// of the fields specified in the keys field (where the first key is the
 	// primary grouping key), and applies reducers (if any) to each group. If the
 	// Duration field is non-zero, then the groups are further partioned by time
-	// into bins of the duration. In this case, the primary grouping key is ts.
+	// into bins of the duration.  In this case, the primary grouping key is ts.
 	// The Limit field specifies the number of different groups that can be
 	// aggregated over. When absent, the runtime defaults to an
 	// appropriate value.
