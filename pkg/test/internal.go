@@ -57,7 +57,7 @@ func (i *Internal) Run() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	mux, err := driver.Compile(context.Background(), program, reader, false, nano.MaxSpan, zap.NewNop())
+	mux, err := driver.Compile(context.Background(), program, reader, "", false, nano.MaxSpan, zap.NewNop())
 	if err != nil {
 		return "", err
 	}

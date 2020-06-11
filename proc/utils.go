@@ -34,7 +34,6 @@ func CompileTestProc(code string, ctx *Context, parent Proc) (Proc, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	sp, ok := parsed.(*ast.SequentialProc)
 	if !ok {
 		return nil, errors.New("expected SequentialProc")
@@ -42,17 +41,18 @@ func CompileTestProc(code string, ctx *Context, parent Proc) (Proc, error) {
 	if len(sp.Procs) != 2 {
 		return nil, errors.New("expected 2 procs")
 	}
+	return CompileTestProcAST(sp.Procs[1], ctx, parent)
+}
 
-	proc, err := CompileProc(nil, sp.Procs[1], ctx, parent)
+func CompileTestProcAST(proc ast.Proc, ctx *Context, parent Proc) (Proc, error) {
+	procs, err := CompileProc(nil, proc, ctx, parent)
 	if err != nil {
 		return nil, err
 	}
-
-	if len(proc) != 1 {
+	if len(procs) != 1 {
 		return nil, errors.New("expected 1 proc")
 	}
-
-	return proc[0], nil
+	return procs[0], nil
 }
 
 // TestSource implements the Proc interface but outputs a fixed set of
@@ -197,7 +197,7 @@ func (p *ProcTest) Finish() error {
 	}
 }
 
-func parse(zctx *resolver.Context, src string) (*zbuf.Array, error) {
+func ParseTestTzng(zctx *resolver.Context, src string) (*zbuf.Array, error) {
 	reader := tzngio.NewReader(strings.NewReader(src), zctx)
 	records := make([]*zng.Record, 0)
 	for {
@@ -220,9 +220,9 @@ func parse(zctx *resolver.Context, src string) (*zbuf.Array, error) {
 // given warning(s) are emitted.
 func TestOneProcWithWarnings(t *testing.T, zngin, zngout string, warnings []string, cmd string) {
 	zctx := resolver.NewContext()
-	recsin, err := parse(zctx, zngin)
+	recsin, err := ParseTestTzng(zctx, zngin)
 	require.NoError(t, err)
-	recsout, err := parse(zctx, zngout)
+	recsout, err := ParseTestTzng(zctx, zngout)
 	require.NoError(t, err)
 
 	test, err := NewProcTestFromSource(cmd, zctx, []zbuf.Batch{recsin})
@@ -265,7 +265,7 @@ func TestOneProcWithBatches(t *testing.T, cmd string, zngs ...string) {
 	resolver := resolver.NewContext()
 	var batches []zbuf.Batch
 	for _, s := range zngs {
-		b, err := parse(resolver, s)
+		b, err := ParseTestTzng(resolver, s)
 		require.NoError(t, err, s)
 		batches = append(batches, b)
 	}
@@ -294,9 +294,9 @@ func TestOneProcWithBatches(t *testing.T, cmd string, zngs ...string) {
 // output records must all be present, but they may appear in any order.
 func TestOneProcUnsorted(t *testing.T, zngin, zngout string, cmd string) {
 	resolver := resolver.NewContext()
-	recsin, err := parse(resolver, zngin)
+	recsin, err := ParseTestTzng(resolver, zngin)
 	require.NoError(t, err)
-	recsout, err := parse(resolver, zngout)
+	recsout, err := ParseTestTzng(resolver, zngout)
 	require.NoError(t, err)
 
 	test, err := NewProcTestFromSource(cmd, resolver, []zbuf.Batch{recsin})

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"sort"
-	"time"
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
@@ -25,11 +24,11 @@ type GroupByKey struct {
 }
 
 type GroupByParams struct {
-	duration ast.Duration
-	limit    int
-	keys     []GroupByKey
-	reducers []compile.CompiledReducer
-	builder  *ColumnBuilder
+	inputSortDir int
+	limit        int
+	keys         []GroupByKey
+	reducers     []compile.CompiledReducer
+	builder      *ColumnBuilder
 }
 
 type errTooBig int
@@ -72,11 +71,11 @@ func CompileGroupBy(node *ast.GroupByProc, zctx *resolver.Context) (*GroupByPara
 		return nil, fmt.Errorf("compiling groupby: %w", err)
 	}
 	return &GroupByParams{
-		duration: node.Duration,
-		limit:    node.Limit,
-		keys:     keys,
-		reducers: reducers,
-		builder:  builder,
+		limit:        node.Limit,
+		keys:         keys,
+		reducers:     reducers,
+		builder:      builder,
+		inputSortDir: node.InputSortDir,
 	}, nil
 }
 
@@ -97,9 +96,7 @@ func compileKeyExpr(ex ast.Expression) (expr.ExpressionEvaluator, error) {
 // GroupBy computes aggregations using a GroupByAggregator.
 type GroupBy struct {
 	Base
-	timeBinned bool
-	interval   time.Duration
-	agg        *GroupByAggregator
+	agg *GroupByAggregator
 }
 
 // A keyRow holds information about the key column types that result
@@ -112,9 +109,7 @@ type keyRow struct {
 // GroupByAggregator performs the core aggregation computation for a
 // list of reducer generators. It handles both regular and time-binned
 // ("every") group-by operations.  Records are generated in a
-// deterministic but undefined total order. Records and spans generated
-// by time-binning are partially ordered by timestamp coincident with
-// search direction.
+// deterministic but undefined total order.
 type GroupByAggregator struct {
 	// keyRows maps incoming type ID to a keyRow holding
 	// information on the column types for that record's group-by
@@ -131,51 +126,63 @@ type GroupByAggregator struct {
 	// lookup table so that values with the same encoding but of
 	// different types do not collide.  No types from this context
 	// are ever referenced.
-	kctx        *resolver.Context
-	keys        []GroupByKey
-	reducerDefs []compile.CompiledReducer
-	builder     *ColumnBuilder
-	// For a regular group-by, tables has one entry with key 0.  For a
-	// time-binned group-by, tables has one entry per bin and is keyed by
-	// bin timestamp (so that a bin with span [ts, ts+timeBinDuration) has
-	// key ts).
-	tables          map[nano.Ts]map[string]*GroupByRow
-	TimeBinDuration int64 // Zero means regular group-by (no time binning).
-	reverse         bool
-	logger          *zap.Logger
-	limit           int
+	kctx         *resolver.Context
+	keys         []GroupByKey
+	reducerDefs  []compile.CompiledReducer
+	builder      *ColumnBuilder
+	table        map[string]*GroupByRow
+	reverse      bool
+	logger       *zap.Logger
+	limit        int
+	valueSortFn  expr.ValueSortFn // to compare primary group keys for early key output
+	recordSortFn expr.SortFn
+	maxKey       *zng.Value
+	inputSortDir int
 }
 
 type GroupByRow struct {
 	keycols  []zng.Column
 	keyvals  zcode.Bytes
-	ts       nano.Ts
+	groupval *zng.Value // for sorting when input sorted
 	reducers compile.Row
 }
 
 func NewGroupByAggregator(c *Context, params GroupByParams) *GroupByAggregator {
-	//XXX we should change this AST format... left over from Looky
-	// convert second to nano second
-	dur := int64(params.duration.Seconds) * 1000000000
-	if dur < 0 {
-		panic("dur cannot be negative")
-	}
 	limit := params.limit
 	if limit == 0 {
 		limit = defaultGroupByLimit
 	}
+	var valueSortFn expr.ValueSortFn
+	var recordSortFn expr.SortFn
+	if len(params.keys) > 0 && params.inputSortDir != 0 {
+		// As the default sort behavior, nullsMax=true is also expected for streaming groupby.
+		vs := expr.NewValueSortFn(true)
+		if params.inputSortDir < 0 {
+			valueSortFn = func(a, b zng.Value) int { return vs(b, a) }
+		} else {
+			valueSortFn = vs
+		}
+		rs := expr.NewSortFn(true, expr.CompileFieldAccess(params.keys[0].name))
+		if params.inputSortDir < 0 {
+			recordSortFn = func(a, b *zng.Record) int { return rs(b, a) }
+		} else {
+			recordSortFn = rs
+		}
+	}
 	return &GroupByAggregator{
-		keys:            params.keys,
-		zctx:            c.TypeContext,
-		kctx:            resolver.NewContext(),
-		reducerDefs:     params.reducers,
-		builder:         params.builder,
-		keyRows:         make(map[int]keyRow),
-		tables:          make(map[nano.Ts]map[string]*GroupByRow),
-		TimeBinDuration: dur,
-		reverse:         c.Reverse,
-		logger:          c.Logger,
-		limit:           limit,
+		inputSortDir: params.inputSortDir,
+		limit:        limit,
+		keys:         params.keys,
+		zctx:         c.TypeContext,
+		kctx:         resolver.NewContext(),
+		reducerDefs:  params.reducers,
+		builder:      params.builder,
+		keyRows:      make(map[int]keyRow),
+		table:        make(map[string]*GroupByRow),
+		reverse:      c.Reverse,
+		logger:       c.Logger,
+		recordSortFn: recordSortFn,
+		valueSortFn:  valueSortFn,
 	}
 }
 
@@ -183,11 +190,9 @@ func NewGroupBy(c *Context, parent Proc, params GroupByParams) *GroupBy {
 	// XXX in a subsequent PR we will isolate ast params and pass in
 	// ast.GroupByParams
 	agg := NewGroupByAggregator(c, params)
-	timeBinned := params.duration.Seconds > 0
 	return &GroupBy{
-		Base:       Base{Context: c, Parent: parent},
-		timeBinned: timeBinned,
-		agg:        agg,
+		Base: Base{Context: c, Parent: parent},
+		agg:  agg,
 	}
 }
 
@@ -197,7 +202,7 @@ func (g *GroupBy) Pull() (zbuf.Batch, error) {
 		return nil, err
 	}
 	if batch == nil {
-		return g.agg.Results(true, g.MinTs, g.MaxTs)
+		return g.agg.Results(true)
 	}
 	for k := 0; k < batch.Length(); k++ {
 		err := g.agg.Consume(batch.Index(k))
@@ -207,26 +212,27 @@ func (g *GroupBy) Pull() (zbuf.Batch, error) {
 		}
 	}
 	batch.Unref()
-	if g.timeBinned {
-		f, err := g.agg.Results(false, g.MinTs, g.MaxTs)
+	if g.agg.inputSortDir != 0 {
+		batch, err := g.agg.Results(false)
 		if err != nil {
 			return nil, err
 		}
-		if f != nil {
-			return f, nil
+		if batch != nil {
+			expr.SortStable(batch.Records(), g.agg.recordSortFn)
+			return batch, nil
 		}
 	}
 	return zbuf.NewArray([]*zng.Record{}, batch.Span()), nil
 }
 
-func (g *GroupByAggregator) createGroupByRow(keyCols []zng.Column, ts nano.Ts, vals zcode.Bytes) *GroupByRow {
+func (g *GroupByAggregator) createGroupByRow(keyCols []zng.Column, vals zcode.Bytes, groupval *zng.Value) *GroupByRow {
 	// Make a deep copy so the caller can reuse the underlying arrays.
 	v := make(zcode.Bytes, len(vals))
 	copy(v, vals)
 	return &GroupByRow{
 		keycols:  keyCols,
 		keyvals:  v,
-		ts:       ts,
+		groupval: groupval,
 		reducers: compile.Row{Defs: g.reducerDefs},
 	}
 }
@@ -277,6 +283,7 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 		}
 		g.keyRows[id] = keyRow
 	}
+
 	if keyRow.columns == nil {
 		// block this descriptor since it doesn't have all the group-by keys
 		return nil
@@ -302,10 +309,15 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 	}
 	binary.BigEndian.PutUint32(keyBytes, uint32(keyRow.id))
 	g.builder.Reset()
-	for _, key := range g.keys {
+	var prim *zng.Value
+	for i, key := range g.keys {
 		keyVal, err := key.expr(r)
 		if err != nil && !errors.Is(err, zng.ErrUnset) {
 			return err
+		}
+		if i == 0 && g.inputSortDir != 0 {
+			g.updateMaxKey(keyVal)
+			prim = &keyVal
 		}
 		g.builder.Append(keyVal.Bytes, keyVal.IsContainer())
 	}
@@ -316,62 +328,40 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 	keyBytes = append(keyBytes, zv...)
 	g.cacheKey = keyBytes
 
-	var ts nano.Ts
-	if g.TimeBinDuration > 0 {
-		ts = r.Ts.Trunc(g.TimeBinDuration)
-	}
-	table, ok := g.tables[ts]
+	row, ok := g.table[string(keyBytes)]
 	if !ok {
-		table = make(map[string]*GroupByRow)
-		g.tables[ts] = table
-	}
-	row, ok := table[string(keyBytes)]
-	if !ok {
-		if len(table) >= g.limit {
+		if len(g.table) >= g.limit {
 			return errTooBig(g.limit)
 		}
-		row = g.createGroupByRow(keyRow.columns, ts, keyBytes[4:])
-		table[string(keyBytes)] = row
+		row = g.createGroupByRow(keyRow.columns, keyBytes[4:], prim)
+		g.table[string(keyBytes)] = row
 	}
 	row.reducers.Consume(r)
 	return nil
 }
 
-// Results returns a batch of aggregation result records.
-// If this is a time-binned aggregation, this can be called multiple
-// times; all completed time bins at the time of the invocation are
-// returned. A final call with eof=true should be made to get the
-// final (possibly incomplete) time bin.
-// If this is not a time-binned aggregation, a single call (with
-// eof=true) should be made after all records have been Consumed()'d.
-func (g *GroupByAggregator) Results(eof bool, minTs nano.Ts, maxTs nano.Ts) (zbuf.Batch, error) {
-	var bins []nano.Ts
-	for b := range g.tables {
-		bins = append(bins, b)
+func (g *GroupByAggregator) updateMaxKey(v zng.Value) {
+	if g.maxKey == nil {
+		g.maxKey = &v
+		return
 	}
-	if g.reverse {
-		sort.Slice(bins, func(i, j int) bool { return bins[i] > bins[j] })
-	} else {
-		sort.Slice(bins, func(i, j int) bool { return bins[i] < bins[j] })
+	if g.valueSortFn(v, *g.maxKey) > 0 {
+		g.maxKey = &v
 	}
-	var recs []*zng.Record
-	for _, b := range bins {
-		if g.TimeBinDuration > 0 && !eof {
-			// We're not yet at EOF, so for a reverse search, we haven't
-			// seen all of g.minTs's bin and should skip it.
-			// Similarly, for a forward search, we haven't seen all
-			// of g.maxTs's bin and should skip it.
-			if g.reverse && b == minTs.Trunc(g.TimeBinDuration) ||
-				!g.reverse && b == maxTs.Trunc(g.TimeBinDuration) {
-				continue
-			}
-		}
-		newRecs, err := g.recordsForTable(g.tables[b])
-		if err != nil {
-			return nil, err
-		}
-		recs = append(recs, newRecs...)
-		delete(g.tables, b)
+}
+
+// Results returns a batch of aggregation result records. If the input
+// is sorted in the primary grouping key, this can be called multiple times;
+// all completed keys at the time of the invocation are returned (but
+// not necessarily in their input sort order). A final call with
+// eof=true should be made to get the final keys.
+//
+// If the input is not sorted, a single call (with eof=true) should be
+// made after all records have been Consumed()'d.
+func (g *GroupByAggregator) Results(eof bool) (zbuf.Batch, error) {
+	recs, err := g.records(eof)
+	if err != nil {
+		return nil, err
 	}
 	if len(recs) == 0 {
 		// Don't propagate empty batches.
@@ -381,26 +371,27 @@ func (g *GroupByAggregator) Results(eof bool, minTs nano.Ts, maxTs nano.Ts) (zbu
 	if g.reverse {
 		first, last = last, first
 	}
-	span := nano.NewSpanTs(first.Ts, last.Ts.Add(g.TimeBinDuration))
+	span := nano.NewSpanTs(first.Ts, last.Ts)
 	return zbuf.NewArray(recs, span), nil
 }
 
-// recordsForTable returns a slice of records with one record per table entry
-// in a deterministic but undefined order.
-func (g *GroupByAggregator) recordsForTable(table map[string]*GroupByRow) ([]*zng.Record, error) {
+// records returns a slice of all records from the groupby table in a
+// deterministic but undefined order.
+func (g *GroupByAggregator) records(eof bool) ([]*zng.Record, error) {
 	var keys []string
-	for k := range table {
+	for k := range g.table {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
 
 	var recs []*zng.Record
 	for _, k := range keys {
-		row := table[k]
-		var zv zcode.Bytes
-		if g.TimeBinDuration > 0 {
-			zv = zcode.AppendPrimitive(zv, zng.EncodeTime(row.ts))
+		row := g.table[k]
+		if !eof && g.valueSortFn(*row.groupval, *g.maxKey) >= 0 {
+			continue
 		}
+
+		var zv zcode.Bytes
 		zv = append(zv, row.keyvals...)
 		for _, red := range row.reducers.Reducers {
 			// a reducer value is never a container
@@ -414,8 +405,12 @@ func (g *GroupByAggregator) recordsForTable(table map[string]*GroupByRow) ([]*zn
 		if err != nil {
 			return nil, err
 		}
-		r := zng.NewRecordTs(typ, row.ts, zv)
+		r, err := zng.NewRecord(typ, zv)
+		if err != nil {
+			return nil, err
+		}
 		recs = append(recs, r)
+		delete(g.table, k)
 	}
 	return recs, nil
 }
@@ -426,15 +421,9 @@ func (g *GroupByAggregator) lookupRowType(row *GroupByRow) (*zng.TypeRecord, err
 	// descriptor since it is rare for there to be multiple descriptors
 	// or for it change from row to row.
 	n := len(g.keys) + len(g.reducerDefs)
-	if g.TimeBinDuration > 0 {
-		n++
-	}
 	cols := make([]zng.Column, 0, n)
-
-	if g.TimeBinDuration > 0 {
-		cols = append(cols, zng.NewColumn("ts", zng.TypeTime))
-	}
 	types := make([]zng.Type, len(row.keycols))
+
 	for k, col := range row.keycols {
 		types[k] = col.Type
 	}

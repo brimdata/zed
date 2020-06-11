@@ -2,6 +2,7 @@ package driver
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/filter"
@@ -17,22 +18,29 @@ import (
 // and compiles it into a runnable flowgraph, returning a
 // proc.MuxOutput that which brings together all of the flowgraphs
 // tails, and is ready to be Pull()'d from.
-func Compile(ctx context.Context, program ast.Proc, reader zbuf.Reader, reverse bool, span nano.Span, logger *zap.Logger) (*MuxOutput, error) {
+func Compile(ctx context.Context, program ast.Proc, reader zbuf.Reader, readerSortKey string, reverse bool, span nano.Span, logger *zap.Logger) (*MuxOutput, error) {
 	ch := make(chan string, 5)
-	return CompileWarningsCh(ctx, program, reader, reverse, span, logger, ch)
+	return CompileWarningsChCustom(ctx, nil, program, reader, readerSortKey, reverse, span, logger, ch)
 }
 
 func CompileCustom(ctx context.Context, custom proc.Compiler, program ast.Proc, reader zbuf.Reader, reverse bool, span nano.Span, logger *zap.Logger) (*MuxOutput, error) {
 	ch := make(chan string, 5)
-	return CompileWarningsChCustom(ctx, custom, program, reader, reverse, span, logger, ch)
+	return CompileWarningsChCustom(ctx, custom, program, reader, "", reverse, span, logger, ch)
 }
 
 func CompileWarningsCh(ctx context.Context, program ast.Proc, reader zbuf.Reader, reverse bool, span nano.Span, logger *zap.Logger, ch chan string) (*MuxOutput, error) {
-	return CompileWarningsChCustom(ctx, nil, program, reader, reverse, span, logger, ch)
+	return CompileWarningsChCustom(ctx, nil, program, reader, "", reverse, span, logger, ch)
 }
 
-func CompileWarningsChCustom(ctx context.Context, custom proc.Compiler, program ast.Proc, reader zbuf.Reader, reverse bool, span nano.Span, logger *zap.Logger, ch chan string) (*MuxOutput, error) {
-
+func CompileWarningsChCustom(ctx context.Context, custom proc.Compiler, program ast.Proc, reader zbuf.Reader, readerSortKey string, reverse bool, span nano.Span, logger *zap.Logger, ch chan string) (*MuxOutput, error) {
+	ReplaceGroupByProcDurationWithKey(program)
+	if readerSortKey != "" {
+		dir := 1
+		if reverse {
+			dir = -1
+		}
+		setGroupByProcInputSortDir(program, readerSortKey, dir)
+	}
 	filterAst, program := liftFilter(program)
 	scanner, err := newScanner(ctx, reader, filterAst, span)
 	if err != nil {
@@ -74,6 +82,99 @@ func liftFilter(p ast.Proc) (*ast.FilterProc, ast.Proc) {
 		}
 	}
 	return nil, p
+}
+
+func ReplaceGroupByProcDurationWithKey(p ast.Proc) {
+	switch p := p.(type) {
+	case *ast.GroupByProc:
+		if duration := p.Duration.Seconds; duration != 0 {
+			durationKey := ast.Assignment{
+				Target: "ts",
+				Expr: &ast.FunctionCall{
+					Function: "Time.trunc",
+					Args: []ast.Expression{
+						&ast.FieldRead{Field: "ts"},
+						&ast.Literal{
+							Type:  "int64",
+							Value: strconv.Itoa(duration),
+						}},
+				},
+			}
+			p.Duration.Seconds = 0
+			p.Keys = append([]ast.Assignment{durationKey}, p.Keys...)
+		}
+	case *ast.ParallelProc:
+		for _, pp := range p.Procs {
+			ReplaceGroupByProcDurationWithKey(pp)
+		}
+	case *ast.SequentialProc:
+		for _, pp := range p.Procs {
+			ReplaceGroupByProcDurationWithKey(pp)
+		}
+	}
+}
+
+// setGroupByProcInputSortDir examines p under the assumption that its input is
+// sorted according to inputSortField and inputSortDir.  If p is an
+// ast.GroupByProc and setGroupByProcInputSortDir can determine that its first
+// grouping key is inputSortField or an order-preserving function of
+// inputSortField, setGroupByProcInputSortDir sets ast.GroupByProc.InputSortDir
+// to inputSortDir.  setGroupByProcInputSortDir returns true if it determines
+// that p's output will remain sorted according to inputSortField and
+// inputSortDir; otherwise, it returns false.
+func setGroupByProcInputSortDir(p ast.Proc, inputSortField string, inputSortDir int) bool {
+	switch p := p.(type) {
+	case *ast.CutProc:
+		// Return true if the output record contains inputSortField.
+		for _, f := range p.Fields {
+			if f == inputSortField {
+				return !p.Complement
+			}
+		}
+		return p.Complement
+	case *ast.GroupByProc:
+		// Set p.InputSortDir and return true if the first grouping key
+		// is inputSortField or an order-preserving function of it.
+		if len(p.Keys) > 0 && p.Keys[0].Target == inputSortField {
+			switch expr := p.Keys[0].Expr.(type) {
+			case *ast.FieldRead:
+				if expr.Field == inputSortField {
+					p.InputSortDir = inputSortDir
+					return true
+				}
+			case *ast.FunctionCall:
+				switch expr.Function {
+				case "Math.ceil", "Math.floor", "Math.round", "Time.trunc":
+					if len(expr.Args) > 0 {
+						arg0, ok := expr.Args[0].(*ast.FieldRead)
+						if ok && arg0.Field == inputSortField {
+							p.InputSortDir = inputSortDir
+							return true
+						}
+					}
+				}
+			}
+		}
+		return false
+	case *ast.PutProc:
+		for _, c := range p.Clauses {
+			if c.Target == inputSortField {
+				return false
+			}
+		}
+		return true
+	case *ast.SequentialProc:
+		for _, pp := range p.Procs {
+			if !setGroupByProcInputSortDir(pp, inputSortField, inputSortDir) {
+				return false
+			}
+		}
+		return true
+	case *ast.FilterProc, *ast.HeadProc, *ast.PassProc, *ast.UniqProc, *ast.TailProc:
+		return true
+	default:
+		return false
+	}
 }
 
 // newScanner takes a Reader, optional Filter AST, and timespan, and
