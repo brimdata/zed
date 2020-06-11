@@ -15,7 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
-var ErrInvalidScheme = errors.New("path scheme must be s3")
+var ErrInvalidS3Path = errors.New("path is not a valid s3 location")
 
 func IsS3Path(path string) bool {
 	_, _, err := parsePath(path)
@@ -29,7 +29,7 @@ func parsePath(path string) (bucket, key string, err error) {
 		return
 	}
 	if u.Scheme != "s3" {
-		err = ErrInvalidScheme
+		err = ErrInvalidS3Path
 	}
 	bucket = u.Host
 	key = u.Path

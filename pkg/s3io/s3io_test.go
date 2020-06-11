@@ -21,7 +21,7 @@ import (
 
 func TestWriteInvalidPath(t *testing.T) {
 	_, err := NewWriter("http://localhost/upload", nil)
-	require.Equal(t, ErrInvalidScheme, err)
+	require.Equal(t, ErrInvalidS3Path, err)
 }
 
 func TestWriteSimple(t *testing.T) {
