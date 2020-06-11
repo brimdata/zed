@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - master
+      - zng-spec-cleanup
 
 jobs:
   test:

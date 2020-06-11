@@ -12,6 +12,32 @@
 > Also, we are contemplating reducing the number of primitive types, e.g.,
 > the number of variations in integer types.
 
+* [Summary](#summary)
+* [1. The ZNG data model](#1-the-zng-data-model)
+* [2. ZNG Binary Format (ZNG)](#2-zng-binary-format--zng-)
+  + [2.1 Control Messages](#21-control-messages)
+  + [2.1.1 Typedefs](#211-typedefs)
+    - [2.1.1.1 Record Typedef](#2111-record-typedef)
+    - [2.1.1.2 Array Typedef](#2112-array-typedef)
+    - [2.1.1.3 Set Typedef](#2113-set-typedef)
+    - [2.1.1.4 Union Typedef](#2114-union-typedef)
+    - [2.1.1.5 Alias Typedef](#2115-alias-typedef)
+  + [2.1.2 End-of-stream Markers](#212-end-of-stream-markers)
+  + [2.2 ZNG Value Messages](#22-zng-value-messages)
+* [3. ZNG Text Format (TZNG)](#3-zng-text-format--tzng-)
+  + [3.1 ZNG Control Messages](#31-zng-control-messages)
+  + [3.1.1 Type Binding](#311-type-binding)
+  + [3.1.2 Type Alias](#312-type-alias)
+  + [3.1.3 Application-specific Payload](#313-application-specific-payload)
+  + [Type Grammar](#type-grammar)
+  + [3.2 ZNG Values](#32-zng-values)
+    - [3.2.1 Character Escape Rules](#321-character-escape-rules)
+    - [3.2.2 Value Syntax](#322-value-syntax)
+* [4. Examples](#4-examples)
+* [5. Related Links](#5-related-links)
+
+## Summary
+
 ZNG is a format for structured data values, ideally suited for streams
 of heterogeneously typed records, e.g., structured logs, where filtering and
 analytics may be applied to a stream in parts without having to fully deserialize
