@@ -62,7 +62,7 @@ capture_loss 2
 To count the time-sorted data set into 5-minute buckets:
 
 ```zq-command
-zq -f table 'sort ts | every 5min count()' *.log.gz
+zq -f table 'every 5min count() | sort ts' *.log.gz
 ```
 
 #### Output:
