@@ -412,7 +412,7 @@ is interpreted as follows:
 | `bstring`  | variable |  UTF-8 byte sequence with `\x` escapes           |
 | `enum `    | variable |  UTF-8 bytes of enum string                      |
 | `ip`       | 4 or 16  |  4 or 16 bytes of IP address                     |
-| `port`     | XXX      |  XXX - to be filled in during PR review          |
+| `port`     | 2      |  2 byte unsigned int          |
 | `net`      | 8 or 32  |  8 or 32 bytes of IP prefix and subnet mask      |
 | `time`     | variable |  signed nanoseconds since epoch                  |
 | `duration` | variable |  signed nanoseconds duration                     |
