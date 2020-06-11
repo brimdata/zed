@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"sort"
-	"strconv"
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
@@ -46,33 +45,9 @@ func IsErrTooBig(err error) bool {
 const defaultGroupByLimit = 1000000
 
 func CompileGroupBy(node *ast.GroupByProc, zctx *resolver.Context) (*GroupByParams, error) {
-	astKeys := node.Keys
-
-	if node.InputSortDir != 0 && node.Duration.Seconds == 0 && len(astKeys) > 0 {
-		if _, ok := astKeys[0].Expr.(ast.FieldExpr); !ok {
-			return nil, fmt.Errorf("compiling groupby: cannot use -sorted in conjunction with a computed primary grouping key")
-		}
-	}
-	if node.Duration.Seconds > 0 {
-		everyKey := ast.Assignment{
-			Target: "ts",
-			Expr: &ast.FunctionCall{
-				Node:     ast.Node{"FunctionCall"},
-				Function: "Time.trunc",
-				Args: []ast.Expression{
-					&ast.FieldRead{ast.Node{"FieldRead"}, "ts"},
-					&ast.Literal{ast.Node{"Literal"}, "int64", strconv.Itoa(node.Duration.Seconds)},
-				},
-			},
-		}
-		astKeys = append([]ast.Assignment{everyKey}, astKeys...)
-	}
-	if len(astKeys) == 0 {
-		return nil, fmt.Errorf("compiling groupby: must have at least one key (or -every)")
-	}
 	keys := make([]GroupByKey, 0)
 	var targetNames []string
-	for _, astKey := range astKeys {
+	for _, astKey := range node.Keys {
 		ex, err := compileKeyExpr(astKey.Expr)
 		if err != nil {
 			return nil, fmt.Errorf("compiling groupby: %w", err)

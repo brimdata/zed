@@ -126,7 +126,7 @@ func Import(ctx context.Context, ark *Archive, r zbuf.Reader) error {
 		return err
 	}
 
-	fg, err := driver.Compile(ctx, proc, r, false, nano.MaxSpan, zap.NewNop())
+	fg, err := driver.Compile(ctx, proc, r, "", false, nano.MaxSpan, zap.NewNop())
 	if err != nil {
 		return err
 	}

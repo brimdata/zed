@@ -321,15 +321,12 @@ func makeGroupByKeys(first, rest interface{}) []ast.Assignment {
 	return keys
 }
 
-func makeGroupByProc(durationIn, sortedIn, limitIn, keysIn, reducersIn interface{}) *ast.GroupByProc {
+func makeGroupByProc(durationIn, limitIn, keysIn, reducersIn interface{}) *ast.GroupByProc {
 	var duration ast.Duration
 	if durationIn != nil {
 		duration = *(durationIn.(*ast.Duration))
 	}
-	var sorted int
-	if sortedIn != nil {
-		sorted = sortedIn.(int)
-	}
+
 	var limit int
 	if limitIn != nil {
 		limit = limitIn.(int)
@@ -345,12 +342,11 @@ func makeGroupByProc(durationIn, sortedIn, limitIn, keysIn, reducersIn interface
 	reducers := reducersArray(reducersIn)
 
 	return &ast.GroupByProc{
-		Node:         ast.Node{"GroupByProc"},
-		Duration:     duration,
-		Limit:        limit,
-		Keys:         keys,
-		Reducers:     reducers,
-		InputSortDir: sorted,
+		Node:     ast.Node{"GroupByProc"},
+		Duration: duration,
+		Limit:    limit,
+		Keys:     keys,
+		Reducers: reducers,
 	}
 }
 
