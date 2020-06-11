@@ -26,7 +26,7 @@ func NewFile(path string, flags *zio.WriterFlags) (*zio.Writer, error) {
 		// Don't close stdout in case we live inside something
 		// here that runs multiple instances of this to stdout.
 		f = &noClose{os.Stdout}
-	} else if s3io.IsS3Path(path) {
+	} else if detector.IsS3Path(path) {
 		if f, err = s3io.NewWriter(path, nil); err != nil {
 			return nil, err
 		}
