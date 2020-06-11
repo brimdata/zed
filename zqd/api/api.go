@@ -105,6 +105,7 @@ type SpaceInfo struct {
 	PcapSupport bool         `json:"pcap_support"`
 	PcapSize    int64        `json:"pcap_size" unit:"bytes"`
 	PcapPath    string       `json:"pcap_path"`
+	ParentID    SpaceID      `json:"parent_id"`
 }
 
 type SpaceInfos []SpaceInfo

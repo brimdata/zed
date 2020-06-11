@@ -849,6 +849,7 @@ func TestSubspaceCreate(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
+	assert.Equal(t, sp1.ID, sp2.ParentID)
 
 	// Verify index search only returns filtered logs
 	exp = `
@@ -910,6 +911,7 @@ func TestSubspacePersist(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
+	assert.Equal(t, sp1.ID, sp2.ParentID)
 
 	// Verify index search only returns filtered logs
 	exp := `
@@ -927,6 +929,7 @@ func TestSubspacePersist(t *testing.T) {
 	si, err := client1.SpaceInfo(context.Background(), sp2.ID)
 	require.NoError(t, err)
 	assert.Equal(t, sp2.ID, si.ID)
+	assert.Equal(t, sp1.ID, si.ParentID)
 	assert.Equal(t, "newname", si.Name)
 
 	// Verify subspace is present & has new name with new server
@@ -936,6 +939,7 @@ func TestSubspacePersist(t *testing.T) {
 	si, err = client2.SpaceInfo(context.Background(), sp2.ID)
 	require.NoError(t, err)
 	assert.Equal(t, sp2.ID, si.ID)
+	assert.Equal(t, sp1.ID, si.ParentID)
 	assert.Equal(t, "newname", si.Name)
 
 	// Delete subspace
