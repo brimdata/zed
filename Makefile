@@ -6,7 +6,6 @@ VERSION = $(shell git describe --tags --dirty --always)
 LDFLAGS = -s -X main.version=$(VERSION)
 ZEEKTAG = v3.0.2-brim3
 ZEEKPATH = zeek-$(ZEEKTAG)
-MOCKGEN_VERSION = v1.4.3
 
 # This enables a shortcut to run a single test from the ./tests suite, e.g.:
 # make TEST=TestZTest/suite/cut/cut
