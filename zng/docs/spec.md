@@ -12,7 +12,7 @@
 > Also, we are contemplating reducing the number of primitive types, e.g.,
 > the number of variations in integer types.
 
-* [Summary](#summary)
+* [Summary](https://bad-link.i.say)
 * [1. The ZNG data model](#1-the-zng-data-model)
 * [2. ZNG Binary Format (ZNG)](#2-zng-binary-format--zng-)
   + [2.1 Control Messages](#21-control-messages)
