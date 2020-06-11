@@ -259,21 +259,21 @@ type (
 	// primary grouping key), and applies reducers (if any) to each group. If the
 	// Duration field is non-zero, then the groups are further partioned by time
 	// into bins of the duration.  In this case, the primary grouping key is ts.
-	// The Limit field specifies the number of different groups that can be
-	// aggregated over. When absent, the runtime defaults to an
-	// appropriate value.
 	// The InputSortDir field indicates that input is sorted (with
 	// direction indicated by the sign of the field) in the primary
 	// grouping key. In this case, the proc outputs the reducer
 	// results from each key as they complete so that large inputs
 	// are processed and streamed efficiently.
+	// The Limit field specifies the number of different groups that can be
+	// aggregated over. When absent, the runtime defaults to an
+	// appropriate value.
 	GroupByProc struct {
 		Node
 		Duration     Duration     `json:"duration"`
+		InputSortDir int          `json:"input_sort_dir,omitempty"`
 		Limit        int          `json:"limit,omitempty"`
 		Keys         []Assignment `json:"keys"`
 		Reducers     []Reducer    `json:"reducers"`
-		InputSortDir int          `json:"input_sort_dir"`
 	}
 	// TopProc is similar to proc.SortProc with a few key differences:
 	// - It only sorts in descending order.

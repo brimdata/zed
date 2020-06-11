@@ -181,7 +181,6 @@ func NewGroupByAggregator(c *Context, params GroupByParams) *GroupByAggregator {
 		table:        make(map[string]*GroupByRow),
 		reverse:      c.Reverse,
 		logger:       c.Logger,
-		limit:        limit,
 		recordSortFn: recordSortFn,
 		valueSortFn:  valueSortFn,
 	}
