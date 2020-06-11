@@ -17,6 +17,11 @@ import (
 
 var ErrInvalidS3Path = errors.New("path is not a valid s3 location")
 
+func IsS3Path(path string) bool {
+	_, _, err := parsePath(path)
+	return err == nil
+}
+
 func parsePath(path string) (bucket, key string, err error) {
 	var u *url.URL
 	u, err = url.Parse(path)
