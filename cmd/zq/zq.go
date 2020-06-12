@@ -249,16 +249,20 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	defer writer.Close()
 	mux, err := driver.CompileWarningsCh(context.Background(), query, reader, false, nano.MaxSpan, zap.NewNop(), wch)
 	if err != nil {
+		writer.Close()
 		return err
 	}
 	d := driver.NewCLI(writer)
 	if !c.quiet {
 		d.SetWarningsWriter(os.Stderr)
 	}
-	return driver.Run(mux, d, nil)
+	if err := driver.Run(mux, d, nil); err != nil {
+		writer.Close()
+		return err
+	}
+	return writer.Close()
 }
 
 func (c *Command) errorf(format string, args ...interface{}) {
