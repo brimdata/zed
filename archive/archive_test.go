@@ -93,6 +93,7 @@ func TestOpenOptions(t *testing.T) {
 	ark2, err := OpenArchive(datapath, &OpenOptions{
 		LogFilter: []string{"20200422/1587517412.06741443.zng"},
 	})
+	require.NoError(t, err)
 
 	exp = `
 #zfile=string
@@ -150,6 +151,8 @@ func TestImportWhileOpen(t *testing.T) {
 		postSpans = append(postSpans, si)
 		return nil
 	})
+	require.NoError(t, err)
+
 	exp = []SpanInfo{{
 		Span:  nano.Span{Ts: 1587514075061481960, Dur: 4545000755341},
 		LogID: "20200422/1587518620.0622373.zng",
