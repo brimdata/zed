@@ -34,21 +34,13 @@ $(SAMPLEDATA):
 
 sampledata: $(SAMPLEDATA)
 
-bin:
+bin/$(ZEEKPATH):
 	@mkdir -p bin
-
-bin/$(ZEEKPATH): bin
 	@curl -L -o bin/$(ZEEKPATH).zip \
 		https://github.com/brimsec/zeek/releases/download/$(ZEEKTAG)/zeek-$(ZEEKTAG).$$(go env GOOS)-$$(go env GOARCH).zip
 	@unzip -q bin/$(ZEEKPATH).zip -d bin \
 		&& mv bin/zeek bin/$(ZEEKPATH)
 
-generate:
-	@GOBIN=$(CURDIR)/bin go install github.com/golang/mock/mockgen
-	@PATH=$(CURDIR)/bin:$(PATH) go generate ./...
-
-test-generate: generate
-	git diff --exit-code
 
 test-unit:
 	@go test -short ./...
@@ -94,11 +86,10 @@ build-pyzq:
 
 # CI performs these actions individually since that looks nicer in the UI;
 # this is a shortcut so that a local dev can easily run everything.
-test-ci: fmt tidy vet test-generate test-unit test-system test-zeek test-heavy
+test-ci: fmt tidy vet test-unit test-system test-zeek test-heavy
 
 clean:
 	@rm -rf dist
 
 .PHONY: fmt tidy vet test-unit test-system test-heavy sampledata test-ci
 .PHONY: perf-compare build install create-release-assets clean build-pyzq
-.PHONY: generate test-generate
