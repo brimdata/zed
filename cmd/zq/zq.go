@@ -259,6 +259,7 @@ func (c *Command) Run(args []string) error {
 		d.SetWarningsWriter(os.Stderr)
 	}
 	if err := driver.Run(mux, d, nil); err != nil {
+		writer.Close()
 		return err
 	}
 	return writer.Close()
