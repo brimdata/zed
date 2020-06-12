@@ -258,7 +258,7 @@ The `<nfields>` is encoded as a `uvarint`.
 
 The field name is encoded as a UTF-8 string defining a "ZNG identifier".
 The UTF-8 string
-is further encoded as a "counted string", which is a `uvarint` encoding
+is further encoded as a "counted string", which is the `uvarint` encoding
 of the length of the string followed by that many bytes of UTF-8 encoded
 string data.
 
