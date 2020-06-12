@@ -520,7 +520,7 @@ A type alias has the following form:
 #<type-name>:<type-string>
 ```
 Here, `<type-name>` is an identifier and `<type-string>`
-is a string defining a type according to the ZNG type syntax, which creates a
+is a string defining a type according to the ZNG type syntax. They create a
 binding between the indicated tag and the indicated type.
 This form defines an alias mapping the identifier to the indicated type.
 `<type-name>` is an identifier with semantics as defined in [Section 3.1.1.5](#3115-alias-typedef).
