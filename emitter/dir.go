@@ -4,10 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 
+	"github.com/brimsec/zq/pkg/s3io"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zng"
 )
@@ -36,8 +39,10 @@ func unknownFormat(format string) error {
 }
 
 func NewDir(dir, prefix string, stderr io.Writer, flags *zio.WriterFlags) (*Dir, error) {
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return nil, err
+	if !s3io.IsS3Path(dir) {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return nil, err
+		}
 	}
 	e := zio.Extension(flags.Format)
 	if e == "" {
@@ -80,15 +85,20 @@ func (d *Dir) lookupOutput(rec *zng.Record) (*zio.Writer, error) {
 // the case of two tds one _path, adding a # in the filename for every _path that
 // has more than one td.
 func (d *Dir) filename(r *zng.Record) (string, string) {
-	var path string
+	var _path string
 	base, err := r.AccessString("_path")
 	if err == nil {
-		path = base
+		_path = base
 	} else {
 		base = strconv.Itoa(r.Type.ID())
 	}
 	name := d.prefix + base + d.ext
-	return filepath.Join(d.dir, name), path
+	if s3io.IsS3Path(d.dir) {
+		u, _ := url.Parse(d.dir)
+		u.Path = path.Join(u.Path, name)
+		return u.String(), _path
+	}
+	return filepath.Join(d.dir, name), _path
 }
 
 func (d *Dir) newFile(rec *zng.Record) (*zio.Writer, error) {
