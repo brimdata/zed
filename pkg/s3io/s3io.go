@@ -40,11 +40,12 @@ func parsePath(path string) (bucket, key string, err error) {
 
 type Writer struct {
 	writer   *io.PipeWriter
+	reader   *io.PipeReader
 	uploader uploader
 	bucket   string
 	key      string
 	once     sync.Once
-	done     chan struct{}
+	done     sync.WaitGroup
 	err      error
 }
 
@@ -55,26 +56,27 @@ func NewWriter(path string, cfg *aws.Config, options ...func(*s3manager.Uploader
 	}
 	sess := session.Must(session.NewSession(cfg))
 	uploader := s3manager.NewUploader(sess, options...)
+	pr, pw := io.Pipe()
 	return &Writer{
 		bucket:   bucket,
 		key:      key,
+		writer:   pw,
+		reader:   pr,
 		uploader: uploader,
-		done:     make(chan struct{}),
 	}, nil
 }
 
 func (w *Writer) init() {
-	pr, pw := io.Pipe()
-	w.writer = pw
+	w.done.Add(1)
 	go func() {
 		_, err := w.uploader.Upload(&s3manager.UploadInput{
 			Bucket: aws.String(w.bucket),
 			Key:    aws.String(w.key),
-			Body:   pr,
+			Body:   w.reader,
 		})
 		w.err = err
-		_ = pr.CloseWithError(err) // can ignore, return value will always be nil
-		close(w.done)
+		_ = w.reader.CloseWithError(err) // can ignore, return value will always be nil
+		w.done.Done()
 	}()
 }
 
@@ -85,7 +87,7 @@ func (w *Writer) Write(b []byte) (int, error) {
 
 func (w *Writer) Close() error {
 	err := w.writer.Close()
-	<-w.done
+	w.done.Wait()
 	if err != nil {
 		return err
 	}
