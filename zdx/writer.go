@@ -85,7 +85,7 @@ func newWriter(zctx *resolver.Context, path string, keyFields []string, framesiz
 		header:      hdr,
 		frameThresh: framesize,
 		frameEnd:    int64(framesize),
-		cutter:      proc.NewCutter(zctx, false, keyFields),
+		cutter:      proc.NewStrictCutter(zctx, false, keyFields),
 	}, nil
 }
 

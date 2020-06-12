@@ -43,8 +43,12 @@ type Cutter struct {
 	complement  bool
 	cutBuilders map[int]*cutBuilder
 	fieldnames  []string
+	strict      bool
 }
 
+// NewCutter returns a Cutter for fieldnames.  If complement is true, the Cutter
+// copies fields that are not in fieldnames.  If complement is false, the Cutter
+// copies fields that are in fieldnames.
 func NewCutter(zctx *resolver.Context, complement bool, fieldnames []string) *Cutter {
 	return &Cutter{
 		zctx:        zctx,
@@ -52,6 +56,15 @@ func NewCutter(zctx *resolver.Context, complement bool, fieldnames []string) *Cu
 		fieldnames:  fieldnames,
 		cutBuilders: make(map[int]*cutBuilder),
 	}
+}
+
+// NewStrictCutter is like NewCutter but, if complement is false, (*Cutter).Cut
+// returns a record only if its input record contains all of the fields in
+// fieldnames.
+func NewStrictCutter(zctx *resolver.Context, complement bool, fieldnames []string) *Cutter {
+	c := NewCutter(zctx, complement, fieldnames)
+	c.strict = true
+	return c
 }
 
 func (c *Cutter) FoundCut() bool {
@@ -124,25 +137,32 @@ func fieldIn(set []string, cand string) bool {
 // optimization consisting of having a single columnbuilder and
 // resolver set doesn't seem worth the added special casing.
 func (c *Cutter) setBuilder(r *zng.Record) (*cutBuilder, error) {
+	// Build up the output type.
+	var fields []string
 	var resolvers []expr.FieldExprResolver
 	var outColTypes []zng.Type
-
-	builder, err := NewColumnBuilder(c.zctx, c.fieldnames)
-	if err != nil {
-		return nil, err
-	}
-	for _, name := range c.fieldnames {
-		resolvers = append(resolvers, expr.CompileFieldAccess(name))
-	}
-
-	// Build up the output type. If any of the cut fields
-	// is absent, there is no output for this input type.
-	for _, resolver := range resolvers {
+	for _, f := range c.fieldnames {
+		resolver := expr.CompileFieldAccess(f)
 		val := resolver(r)
 		if val.Type == nil {
-			return nil, nil
+			// The field is absent, so for this input type, ...
+			if c.strict {
+				// ...produce no output.
+				return nil, nil
+			}
+			// ...omit the field from the output.
+			continue
 		}
+		fields = append(fields, f)
+		resolvers = append(resolvers, resolver)
 		outColTypes = append(outColTypes, val.Type)
+	}
+	if len(fields) == 0 {
+		return nil, nil
+	}
+	builder, err := NewColumnBuilder(c.zctx, fields)
+	if err != nil {
+		return nil, err
 	}
 	cols := builder.TypedColumns(outColTypes)
 	outType, err := c.zctx.LookupTypeRecord(cols)
@@ -159,6 +179,9 @@ func (c *Cutter) builder(r *zng.Record) (*cutBuilder, error) {
 	return c.setBuilder(r)
 }
 
+// Cut returns a new record comprising fields copied from in according to the
+// receiver's configuration.  If the resulting record would be empty, Cut
+// returns nil.
 func (c *Cutter) Cut(in *zng.Record) (*zng.Record, error) {
 	cb, ok := c.cutBuilders[in.Type.ID()]
 	if !ok {
@@ -170,9 +193,6 @@ func (c *Cutter) Cut(in *zng.Record) (*zng.Record, error) {
 		c.cutBuilders[in.Type.ID()] = cb
 	}
 	if cb == nil {
-		// One or more cut fields isn't present in this type of
-		// input record, or the resulting record is empty (cut -c).
-		// Either way, we drop this input.
 		return nil, nil
 	}
 	return cb.cut(in), nil
