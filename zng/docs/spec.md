@@ -412,7 +412,7 @@ is interpreted as follows:
 | `bstring`  | variable |  UTF-8 byte sequence with `\x` escapes           |
 | `enum `    | variable |  UTF-8 bytes of enum string                      |
 | `ip`       | 4 or 16  |  4 or 16 bytes of IP address                     |
-| `port`     | 2      |  2 byte unsigned int          |
+| `port`     | 2        |  unsigned int of length 2                        |
 | `net`      | 8 or 32  |  8 or 32 bytes of IP prefix and subnet mask      |
 | `time`     | variable |  signed nanoseconds since epoch                  |
 | `duration` | variable |  signed nanoseconds duration                     |
@@ -664,27 +664,27 @@ Each UTF-8 string field parsed from a value line is interpreted according to the
 type descriptor of the line.
 The formats for each type is as follows:
 
-Type | Format
----- | ------
-`bool` | a single character `T` or `F`
-`byte` | two-characters of hexadecimal digit
-`int16` | decimal string representation of any signed, 16-bit integer
-`uint16` | decimal string representation of any unsigned, 16-bit integer
-`int32` | decimal string representation of any signed, 32-bit integer
-`uint32` | decimal string representation of any unsigned, 32-bit integer
-`int64` | decimal string representation of any signed, 64-bit integer
-`uint64` | decimal string representation of any unsigned, 64-bit integer
-`float64` | a decimal representation of a 64-bit IEEE floating point literal as defined in JavaScript
-`string` | a UTF-8 string
-`bytes` | a sequence of bytes encoded as base64
-`bstring` | a UTF-8 string with `\x` escapes of non-UTF binary data
-`enum` | a string representing an enumeration value defined outside the scope of ZNG
-`ip` | a string representing an IP address in [IPv4 or IPv6 format](https://tools.ietf.org/html/draft-main-ipaddr-text-rep-02#section-3)
-`port` | a string representing an 16-bit network port |
-`net` | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291.
-`time` | signed dotted decimal notation of seconds
+Type       | Format
+---------- | ------
+`bool`     | a single character `T` or `F`
+`byte`     | two-characters of hexadecimal digit
+`int16`    | decimal string representation of any signed, 16-bit integer
+`uint16`   | decimal string representation of any unsigned, 16-bit integer
+`int32`    | decimal string representation of any signed, 32-bit integer
+`uint32`   | decimal string representation of any unsigned, 32-bit integer
+`int64`    | decimal string representation of any signed, 64-bit integer
+`uint64`   | decimal string representation of any unsigned, 64-bit integer
+`float64`  | decimal representation of a 64-bit IEEE floating point literal as defined in JavaScript
+`string`   | a UTF-8 string
+`bytes`    | a sequence of bytes encoded as base64
+`bstring`  | a UTF-8 string with `\x` escapes of non-UTF binary data
+`enum`     | a string representing an enumeration value defined outside the scope of ZNG
+`ip`       | a string representing an IP address in [IPv4 or IPv6 format](https://tools.ietf.org/html/draft-main-ipaddr-text-rep-02#section-3)
+`port`     | decimal string representation of an unsigned, 16-bit integer |
+`net`      | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291.
+`time`     | signed dotted decimal notation of seconds
 `duration` | signed dotted decimal notation of seconds
-`null` | must be the literal value `-`
+`null`     | must be the literal value `-`
 
 ## 4.4 Examples
 
