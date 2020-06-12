@@ -46,8 +46,9 @@ type Cutter struct {
 	strict      bool
 }
 
-// NewCutter returns a Cutter whose Cut method returns a record if its input
-// record contains any field in fieldnames.
+// NewCutter returns a Cutter for fieldnames.  If complement is true, the Cutter
+// copies fields that are not in fieldnames.  If complement is false, the Cutter
+// copies fields that are in fieldnames.
 func NewCutter(zctx *resolver.Context, complement bool, fieldnames []string) *Cutter {
 	return &Cutter{
 		zctx:        zctx,
@@ -57,8 +58,9 @@ func NewCutter(zctx *resolver.Context, complement bool, fieldnames []string) *Cu
 	}
 }
 
-// NewCutter returns a Cutter whose Cut method returns a record if its input
-// record contains every field in fieldnames.
+// NewStrictCutter is like NewCutter but, if complement is false, (*Cutter).Cut
+// returns a record only if its input record contains all of the fields in
+// fieldnames.
 func NewStrictCutter(zctx *resolver.Context, complement bool, fieldnames []string) *Cutter {
 	c := NewCutter(zctx, complement, fieldnames)
 	c.strict = true
@@ -177,6 +179,9 @@ func (c *Cutter) builder(r *zng.Record) (*cutBuilder, error) {
 	return c.setBuilder(r)
 }
 
+// Cut returns a new record comprising fields copied from in according to the
+// receiver's configuration.  If the resulting record would be empty, Cut
+// returns nil.
 func (c *Cutter) Cut(in *zng.Record) (*zng.Record, error) {
 	cb, ok := c.cutBuilders[in.Type.ID()]
 	if !ok {
@@ -188,9 +193,6 @@ func (c *Cutter) Cut(in *zng.Record) (*zng.Record, error) {
 		c.cutBuilders[in.Type.ID()] = cb
 	}
 	if cb == nil {
-		// One or more cut fields isn't present in this type of
-		// input record, or the resulting record is empty (cut -c).
-		// Either way, we drop this input.
 		return nil, nil
 	}
 	return cb.cut(in), nil
