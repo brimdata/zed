@@ -41,29 +41,23 @@ type SpanInfo struct {
 	LogID LogID     `json:"log_id"`
 }
 
-func writeTempFile(dir, pattern string, b []byte) (string, time.Time, error) {
+func writeTempFile(dir, pattern string, b []byte) (string, error) {
 	f, err := ioutil.TempFile(dir, pattern)
 	if err != nil {
-		return "", time.Time{}, err
+		return "", err
 	}
 	_, err = f.Write(b)
 	if err != nil {
 		f.Close()
 		os.Remove(f.Name())
-		return "", time.Time{}, err
-	}
-	fi, err := f.Stat()
-	if err != nil {
-		f.Close()
-		os.Remove(f.Name())
-		return "", time.Time{}, err
+		return "", err
 	}
 	err = f.Close()
 	if err != nil {
 		os.Remove(f.Name())
-		return "", time.Time{}, err
+		return "", err
 	}
-	return f.Name(), fi.ModTime(), nil
+	return f.Name(), nil
 }
 
 func (c *Metadata) Write(path string) (time.Time, error) {
@@ -71,15 +65,20 @@ func (c *Metadata) Write(path string) (time.Time, error) {
 	if err != nil {
 		return time.Time{}, err
 	}
-	tmp, mtime, err := writeTempFile(filepath.Dir(path), "."+metadataFilename+".*", b)
+	tmp, err := writeTempFile(filepath.Dir(path), "."+metadataFilename+".*", b)
 	if err != nil {
 		return time.Time{}, err
 	}
 	err = os.Rename(tmp, path)
 	if err != nil {
 		os.Remove(tmp)
+		return time.Time{}, err
 	}
-	return mtime, err
+	fi, err := os.Stat(path)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return fi.ModTime(), nil
 }
 
 func MetadataRead(path string) (*Metadata, time.Time, error) {
@@ -132,7 +131,8 @@ type Archive struct {
 	mu    sync.RWMutex
 	spans []SpanInfo
 	// mdModTime is the last read modification time of the metadata file.
-	mdModTime time.Time
+	mdModTime     time.Time
+	mdUpdateCount int
 }
 
 func (ark *Archive) AppendSpans(spans []SpanInfo) error {
@@ -157,6 +157,7 @@ func (ark *Archive) AppendSpans(spans []SpanInfo) error {
 		return err
 	}
 
+	ark.mdUpdateCount++
 	ark.mdModTime = mtime
 	return nil
 }
@@ -177,43 +178,46 @@ func (ark *Archive) mdPath() string {
 
 // UpdateCheck looks at the archive's metadata file to see if it
 // has been written to since last read; if so, it is read and the
-// available spans are updated. The time of the most recent update
-// to the spans is returned.
-func (ark *Archive) UpdateCheck() (time.Time, error) {
+// available spans are updated.
+// A counter suitable for caching is returned. It starts at 1 when
+// this Archive is first opened, then increments every time the spans
+// are updated due to detecting a metadata file change.
+func (ark *Archive) UpdateCheck() (int, error) {
 	if ark.LogsFiltered {
 		// If a logfilter was specified at open, there's no need to
 		// check for newer log files in the archive.
-		return ark.mdModTime, nil
+		return ark.mdUpdateCount, nil
 	}
 
 	fi, err := os.Stat(ark.mdPath())
 	if err != nil {
-		return time.Time{}, err
+		return 0, err
 	}
 
 	ark.mu.RLock()
-	if !fi.ModTime().After(ark.mdModTime) {
-		mtime := ark.mdModTime
+	if fi.ModTime().Equal(ark.mdModTime) {
+		cnt := ark.mdUpdateCount
 		ark.mu.RUnlock()
-		return mtime, nil
+		return cnt, nil
 	}
 	ark.mu.RUnlock()
 
 	ark.mu.Lock()
 	defer ark.mu.Unlock()
 
-	if !fi.ModTime().After(ark.mdModTime) {
-		return ark.mdModTime, nil
+	if fi.ModTime().Equal(ark.mdModTime) {
+		return ark.mdUpdateCount, nil
 	}
 
 	md, mtime, err := MetadataRead(ark.mdPath())
 	if err != nil {
-		return time.Time{}, err
+		return 0, err
 	}
 
 	ark.spans = md.Spans
 	ark.mdModTime = mtime
-	return ark.mdModTime, nil
+	ark.mdUpdateCount++
+	return ark.mdUpdateCount, nil
 }
 
 type OpenOptions struct {
@@ -234,6 +238,7 @@ func OpenArchive(path string, oo *OpenOptions) (*Archive, error) {
 		DataSortDirection: m.DataSortDirection,
 		LogSizeThreshold:  m.LogSizeThreshold,
 		mdModTime:         mtime,
+		mdUpdateCount:     1,
 	}
 
 	if oo != nil && len(oo.LogFilter) != 0 {

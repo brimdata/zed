@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"sync"
-	"time"
 
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/pkg/nano"
@@ -32,7 +31,7 @@ func Load(path string, cfg *storage.ArchiveConfig) (*Storage, error) {
 
 type summaryCache struct {
 	mu         sync.Mutex
-	lastUpdate time.Time
+	lastUpdate int
 	span       nano.Span
 	dataBytes  int64
 }
@@ -67,13 +66,13 @@ func (s *Storage) Summary(_ context.Context) (storage.Summary, error) {
 	var sum storage.Summary
 	sum.Kind = storage.ArchiveStore
 
-	last, err := s.ark.UpdateCheck()
+	update, err := s.ark.UpdateCheck()
 	if err != nil {
 		return sum, err
 	}
 
 	s.sumCache.mu.Lock()
-	if last == s.sumCache.lastUpdate {
+	if update == s.sumCache.lastUpdate {
 		sum.Span = s.sumCache.span
 		sum.DataBytes = s.sumCache.dataBytes
 		s.sumCache.mu.Unlock()
@@ -100,7 +99,7 @@ func (s *Storage) Summary(_ context.Context) (storage.Summary, error) {
 	}
 
 	s.sumCache.mu.Lock()
-	s.sumCache.lastUpdate = last
+	s.sumCache.lastUpdate = update
 	s.sumCache.span = sum.Span
 	s.sumCache.dataBytes = sum.DataBytes
 	s.sumCache.mu.Unlock()

@@ -3,6 +3,7 @@ package archive
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io/ioutil"
 	"math"
 	"os"
@@ -117,23 +118,30 @@ func TestImportWhileOpen(t *testing.T) {
 	}, nil)
 	require.NoError(t, err)
 
-	// Record initial, no-log update check time.
+	// Verify initial update count.
 	update1, err := ark1.UpdateCheck()
 	require.NoError(t, err)
+	assert.Equal(t, 1, update1)
 
 	importTestFile(t, ark1, "testdata/td1.zng")
 
-	// Ensure UpdateCheck returns different time.
+	// Ensure UpdateCheck has incremented.
 	update2, err := ark1.UpdateCheck()
 	require.NoError(t, err)
-	assert.NotEqual(t, update1, update2)
+	if !assert.Equal(t, 2, update2) {
+		if fi, err := os.Stat(ark1.mdPath()); err == nil {
+			fmt.Fprintf(os.Stderr, "metadata mtime: %v, mdModTime %v", fi.ModTime(), ark1.mdModTime)
+		}
+	}
 
+	// Verify data & that a span walk now does not increment the update counter.
 	var initialSpans []SpanInfo
 	err = SpanWalk(ark1, func(si SpanInfo, _ string) error {
 		initialSpans = append(initialSpans, si)
 		return nil
 	})
 	require.NoError(t, err)
+	assert.Equal(t, 2, ark1.mdUpdateCount)
 	exp := []SpanInfo{SpanInfo{
 		Span:  nano.Span{Ts: 1587509776063858170, Dur: 4287004687211},
 		LogID: "20200422/1587514063.06854538.zng"}}
@@ -162,8 +170,9 @@ func TestImportWhileOpen(t *testing.T) {
 	}}
 	assert.Equal(t, exp, postSpans)
 
-	// Ensure UpdateCheck returns different time.
-	update3, err := ark2.UpdateCheck()
-	require.NoError(t, err)
-	assert.NotEqual(t, update2, update3)
+	if !assert.Equal(t, 3, ark1.mdUpdateCount) {
+		if fi, err := os.Stat(ark1.mdPath()); err == nil {
+			fmt.Fprintf(os.Stderr, "metadata mtime: %v, mdModTime %v", fi.ModTime(), ark1.mdModTime)
+		}
+	}
 }
