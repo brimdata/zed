@@ -12,7 +12,7 @@
 > Also, we are contemplating reducing the number of primitive types, e.g.,
 > the number of variations in integer types.
 
-* [1. Summary](#1-summary)
+* [1. Introduction](#1-introduction)
 * [2. The ZNG data model](#2-the-zng-data-model)
 * [3. ZNG Binary Format (ZNG)](#3-zng-binary-format-zng)
   + [3.1 Control Messages](#31-control-messages)
@@ -36,7 +36,7 @@
   + [4.4 Examples](#44-examples)
 * [5. Related Links](#5-related-links)
 
-## 1. Summary
+## 1. Introduction
 
 ZNG is a format for structured data values, ideally suited for streams
 of heterogeneously typed records, e.g., structured logs, where filtering and
