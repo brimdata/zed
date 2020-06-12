@@ -22,13 +22,13 @@
       - [3.1.1.3 Set Typedef](#3113-set-typedef)
       - [3.1.1.4 Union Typedef](#3114-union-typedef)
       - [3.1.1.5 Alias Typedef](#3115-alias-typedef)
-    - [3.1.2 End-of-stream Markers](#312-end-of-stream-markers)
+    - [3.1.2 End-of-Stream Markers](#312-end-of-stream-markers)
   + [3.2 ZNG Value Messages](#32-zng-value-messages)
 * [4. ZNG Text Format (TZNG)](#4-zng-text-format-tzng)
   + [4.1 ZNG Control Messages](#41-zng-control-messages)
     - [4.1.1 Type Binding](#411-type-binding)
     - [4.1.2 Type Alias](#412-type-alias)
-    - [4.1.3 Application-specific Payload](#413-application-specific-payload)
+    - [4.1.3 Application-Specific Payload](#413-application-specific-payload)
   + [4.2 Type Grammar](#42-type-grammar)
   + [4.3 ZNG Values](#43-zng-values)
     - [4.3.1 Character Escape Rules](#431-character-escape-rules)
@@ -333,7 +333,7 @@ existing type ID ``<type-id>``.  ``<type-id>`` is encoded as a `uvarint` and `<n
 is encoded as a `uvarint` representing the length of the name in bytes,
 followed by that many bytes of UTF-8 string.
 
-### 3.1.2 End-of-stream Markers
+### 3.1.2 End-of-Stream Markers
 
 A ZNG stream must be terminated by an end-of-stream marker.
 A new ZNG stream may begin immediately after an end-of-stream marker.
@@ -529,7 +529,7 @@ It is an error to define an alias that has the same name as a primitive type.
 It is also an error to redefine a previously defined alias with a
 type that differs from the original definition.
 
-### 4.1.3 Application-specific Payload
+### 4.1.3 Application-Specific Payload
 
 An application-specific payload has the following form:
 ```
