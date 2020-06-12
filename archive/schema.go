@@ -178,10 +178,9 @@ func (ark *Archive) mdPath() string {
 
 // UpdateCheck looks at the archive's metadata file to see if it
 // has been written to since last read; if so, it is read and the
-// available spans are updated.
-// A counter suitable for caching is returned. It starts at 1 when
-// this Archive is first opened, then increments every time the spans
-// are updated due to detecting a metadata file change.
+// available spans are updated. A counter is returned, starting
+// from 1, which is incremented every time this Archive has re-read
+// the metadata file, and possibly updated the available spans.
 func (ark *Archive) UpdateCheck() (int, error) {
 	if ark.LogsFiltered {
 		// If a logfilter was specified at open, there's no need to
