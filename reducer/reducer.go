@@ -8,10 +8,11 @@ import (
 	"errors"
 
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 )
 
 var (
-	ErrUnsupportedType = errors.New("unsupported type")
+	ErrBadValue = errors.New("bad value")
 )
 
 type Interface interface {
@@ -19,12 +20,10 @@ type Interface interface {
 	Result() zng.Value
 }
 
-// Result returns the Interface's result or a zng.Unset value if r is nil.
-func Result(r Interface) zng.Value {
-	if r == nil {
-		return zng.Value{}
-	}
-	return r.Result()
+type Decomposable interface {
+	Interface
+	ConsumePart(zng.Value) error
+	ResultPart(*resolver.Context) (zng.Value, error)
 }
 
 type Stats struct {

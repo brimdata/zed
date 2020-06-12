@@ -8,7 +8,6 @@ import (
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/reducer"
 	"github.com/brimsec/zq/reducer/field"
-	"github.com/brimsec/zq/zng"
 )
 
 var (
@@ -18,7 +17,7 @@ var (
 
 type CompiledReducer interface {
 	Target() string // The name of the field where results are stored.
-	Instantiate(*zng.Record) reducer.Interface
+	Instantiate() reducer.Interface
 }
 
 func Compile(params ast.Reducer) (CompiledReducer, error) {
