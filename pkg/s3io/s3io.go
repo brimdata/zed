@@ -85,9 +85,9 @@ func (w *Writer) Write(b []byte) (int, error) {
 
 func (w *Writer) Close() error {
 	err := w.writer.Close()
+	<-w.done
 	if err != nil {
 		return err
 	}
-	<-w.done
 	return w.err
 }
