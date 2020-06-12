@@ -20,11 +20,10 @@ func TestWriteSimple(t *testing.T) {
 	results := bytes.NewBuffer(nil)
 	expected := []byte("some test data")
 	w, _ := NewWriter("s3://localhost/upload", nil)
-	up := func(in *s3manager.UploadInput, _ ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
+	w.uploader = mockUploader(func(in *s3manager.UploadInput, _ ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
 		_, err := io.Copy(results, in.Body)
 		return &s3manager.UploadOutput{}, err
-	}
-	w.uploader = mockUploader(up)
+	})
 	_, err := w.Write(expected)
 	require.NoError(t, err)
 	require.NoError(t, w.Close())
