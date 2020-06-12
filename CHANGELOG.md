@@ -2,6 +2,15 @@ These entries focus on changes we think are relevant to users of Brim,
 zq, or pcap.  For all changes to zqd, its API, or to other components in the
 zq repo, check the git log.
 
+## v0.15.0
+* pcap: Report more detailed error information (#844)
+* zql: Add a new function `Time.trunc()` (#842)
+* zql: Support grouping by computed keys (#860)
+* zq: Change implementation of `-every X` to use a computed groupby key (#828)
+* zql: Clean up the [ZQL docs](https://github.com/brimsec/zq/tree/master/zql/docs) (#884)
+* zql: Change `cut` processor to emit any matching fields (#899)
+* zq: Allow output to an S3 bucket (#889)
+
 ## v0.14.0
 * zq: Add support for reading from S3 buckets (#733, #780, #783)
 * zq: Add initial support for reading Parquet files (only via `-i parquet`, no auto-detection) (#736, #754, #774, #780, #782, #820, #813, #830, #825, #834)
