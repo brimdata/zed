@@ -71,7 +71,7 @@ func TestDecomposableReducers(t *testing.T) {
 		}
 	})
 	t.Run("count", func(t *testing.T) {
-		proto := reducer.NewCountProto("avg", expr.CompileFieldAccess("n"))
+		proto := reducer.NewCountProto("count", expr.CompileFieldAccess("n"))
 		for i := 0; i <= len(recs); i++ {
 			res := runOne(t, resolver, proto, i, recs)
 			f, err := zng.DecodeUint(res.Bytes)
@@ -89,7 +89,7 @@ func TestDecomposableReducers(t *testing.T) {
 		}
 	})
 	t.Run("field-max", func(t *testing.T) {
-		proto := field.NewFieldProto("min", expr.CompileFieldAccess("n"), "Max")
+		proto := field.NewFieldProto("max", expr.CompileFieldAccess("n"), "Max")
 		for i := 0; i <= len(recs); i++ {
 			res := runOne(t, resolver, proto, i, recs)
 			f, err := zng.DecodeInt(res.Bytes)
@@ -98,7 +98,7 @@ func TestDecomposableReducers(t *testing.T) {
 		}
 	})
 	t.Run("field-sum", func(t *testing.T) {
-		proto := field.NewFieldProto("min", expr.CompileFieldAccess("n"), "Sum")
+		proto := field.NewFieldProto("sum", expr.CompileFieldAccess("n"), "Sum")
 		for i := 0; i <= len(recs); i++ {
 			res := runOne(t, resolver, proto, i, recs)
 			f, err := zng.DecodeInt(res.Bytes)
