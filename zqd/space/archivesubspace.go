@@ -38,6 +38,7 @@ func (s *archiveSubspace) Info(ctx context.Context) (api.SpaceInfo, error) {
 		StorageKind: sum.Kind,
 		Size:        sum.DataBytes,
 		Span:        span,
+		ParentID:    s.parent.ID(),
 	}
 	return spaceInfo, nil
 }
