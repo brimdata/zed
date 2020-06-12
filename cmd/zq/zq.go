@@ -261,9 +261,6 @@ func (c *Command) Run(args []string) error {
 	if err := driver.Run(mux, d, nil); err != nil {
 		return err
 	}
-	// If writer is an s3 error it could have important information as to
-	// whether the request was written successfully. Cannot do a simple defer
-	// writer.Close() here.
 	return writer.Close()
 }
 
