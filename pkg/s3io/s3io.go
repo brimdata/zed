@@ -73,8 +73,8 @@ func (w *Writer) init() {
 			Body:   pr,
 		})
 		w.err = err
-		close(w.done)
 		_ = pr.CloseWithError(err) // can ignore, return value will always be nil
+		close(w.done)
 	}()
 }
 
