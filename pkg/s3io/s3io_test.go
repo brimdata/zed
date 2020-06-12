@@ -36,7 +36,6 @@ func TestWriteImmediateError(t *testing.T) {
 	expected := errors.New("expected error")
 	w, _ := NewWriter("s3://localhost/upload", nil)
 	w.uploader = mockUploader(func(in *s3manager.UploadInput, _ ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
-		// _, err := io.Copy(results, in.Body)
 		return &s3manager.UploadOutput{}, expected
 	})
 	_, err := w.Write([]byte("test data"))
