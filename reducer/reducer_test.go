@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/reducer"
 	"github.com/brimsec/zq/reducer/compile"
 	"github.com/brimsec/zq/reducer/field"
@@ -30,7 +29,7 @@ func parse(zctx *resolver.Context, src string) (*zbuf.Array, error) {
 		records = append(records, rec)
 	}
 
-	return zbuf.NewArray(records, nano.MaxSpan), nil
+	return zbuf.NewArray(records), nil
 }
 
 func runOne(t *testing.T, zctx *resolver.Context, proto compile.CompiledReducer, i int, recs []*zng.Record) zng.Value {
