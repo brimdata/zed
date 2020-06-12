@@ -101,7 +101,7 @@ looks like this:
 ```
 Here, the type ID is the integer "9" representing the string type
 (defined in [Typedefs](#typedefs)) and the data value "hello, world"
-is an instance of a string.
+is an instance of the string type.
 
 ZNG gets more interesting when different data types are interleaved in the stream.
 For example,
