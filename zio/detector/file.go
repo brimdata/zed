@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/brimsec/zq/pkg/fs"
+	"github.com/brimsec/zq/pkg/s3io"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/parquetio"
@@ -30,14 +31,6 @@ type OpenConfig struct {
 	AwsCfg         *aws.Config
 }
 
-func IsS3Path(path string) bool {
-	u, err := url.Parse(path)
-	if err != nil {
-		return false
-	}
-	return u.Scheme == "s3"
-}
-
 const StdinPath = "/dev/stdin"
 
 // OpenFile creates and returns zbuf.File for the indicated "path",
@@ -51,7 +44,7 @@ func OpenFile(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, 
 		return OpenParquet(zctx, path, cfg)
 	}
 
-	if IsS3Path(path) {
+	if s3io.IsS3Path(path) {
 		return OpenS3File(zctx, path, cfg)
 	}
 
@@ -121,7 +114,7 @@ func OpenS3File(zctx *resolver.Context, s3path string, cfg OpenConfig) (*zbuf.Fi
 func OpenParquet(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, error) {
 	var pf source.ParquetFile
 	var err error
-	if IsS3Path(path) {
+	if s3io.IsS3Path(path) {
 		var u *url.URL
 		u, err = url.Parse(path)
 		if err != nil {
