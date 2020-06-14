@@ -80,6 +80,12 @@ As far as we know, the Zeek log format pioneered the concept of
 embedding the schema of the log lines within the log file itself using
 meta-records, and ZNG merely modernizes this original approach.
 
+The [`zq`](https://github.com/brimsec/zq) command-line tool provides a
+reference implementation of ZNG as it's described here, including the type
+system, error handling, etc., barring the exceptions
+described in the [alpha notice](http://0.0.0.0:6419/#zng-specification)
+at the top of this specification.
+
 ## 2. The ZNG data model
 
 ZNG encodes a sequence of one or more typed data values to comprise a stream.
@@ -574,9 +580,6 @@ XXX - I don't see ctype referenced anywhere else. Shouldn't it be?
 
 <id-continue> := <id-start> | [0-9]
 ```
-
-A reference implementation of this type system is embedded in
-[zq/zng](../).
 
 ### 4.3 Values
 
