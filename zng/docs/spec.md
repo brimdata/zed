@@ -83,7 +83,7 @@ meta-records, and ZNG merely modernizes this original approach.
 The [`zq`](https://github.com/brimsec/zq) command-line tool provides a
 reference implementation of ZNG as it's described here, including the type
 system, error handling, etc., barring the exceptions
-described in the [alpha notice](http://0.0.0.0:6419/#zng-specification)
+described in the [alpha notice](#zng-specification)
 at the top of this specification.
 
 ## 2. The ZNG data model
