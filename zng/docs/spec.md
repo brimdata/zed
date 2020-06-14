@@ -22,14 +22,14 @@
       - [3.1.1.4 Union Typedef](#3114-union-typedef)
       - [3.1.1.5 Alias Typedef](#3115-alias-typedef)
     - [3.1.2 End-of-Stream Markers](#312-end-of-stream-markers)
-  + [3.2 ZNG Value Messages](#32-zng-value-messages)
+  + [3.2 Value Messages](#32-value-messages)
 * [4. ZNG Text Format (TZNG)](#4-zng-text-format-tzng)
-  + [4.1 ZNG Control Messages](#41-zng-control-messages)
+  + [4.1 Control Messages](#41-control-messages)
     - [4.1.1 Type Binding](#411-type-binding)
     - [4.1.2 Type Alias](#412-type-alias)
     - [4.1.3 Application-Specific Payload](#413-application-specific-payload)
   + [4.2 Type Grammar](#42-type-grammar)
-  + [4.3 ZNG Values](#43-zng-values)
+  + [4.3 Values](#43-values)
     - [4.3.1 Character Escape Rules](#431-character-escape-rules)
     - [4.3.2 Value Syntax](#432-value-syntax)
   + [4.4 Examples](#44-examples)
@@ -332,6 +332,10 @@ existing type ID ``<type-id>``.  ``<type-id>`` is encoded as a `uvarint` and `<n
 is encoded as a `uvarint` representing the length of the name in bytes,
 followed by that many bytes of UTF-8 string.
 
+It is an error to define an alias that has the same name as a primitive type.
+It is also an error to redefine a previously defined alias with a
+type that differs from the original definition.
+
 ### 3.1.2 End-of-Stream Markers
 
 A ZNG stream must be terminated by an end-of-stream marker.
@@ -368,7 +372,7 @@ previously defined type, the appropriate typedef control code must
 be re-emitted
 (and note that the typedef may now be assigned a different ID).
 
-### 3.2 ZNG Value Messages
+### 3.2 Value Messages
 
 Following a header byte with bit 7 zero is a `typed value`
 with a `uvarint7` encoding its length.
@@ -391,6 +395,9 @@ length in bytes of the type ID.
 |uvarint7|type-id|value|
 ------------------------
 ```
+
+It is an error for a value to reference a type ID that has not been previously
+defined by a typedef scoped to the stream in which the value appears.
 
 A typed value with a `value` of length `N` and the type indicated
 is interpreted as follows:
@@ -480,10 +487,10 @@ lexicographically greater than that of the preceding element.
 ## 4. ZNG Text Format (TZNG)
 
 The ZNG text format is a human-readable form that follows directly from the ZNG
-binary format.  A ZNG file/stream is encoded with UTF-8.
+binary format.  A TZNG file/stream is encoded with UTF-8.
 All subsequent references to characters and strings in this section refer to
 the Unicode code points that result when the stream is decoded.
-If a ZNG stream includes data that is not valid UTF-8, the stream is invalid.
+If a TZNG stream includes data that is not valid UTF-8, the stream is invalid.
 
 A stream of control messages and values messages is represented
 as a sequence of lines each terminated by a newline.
@@ -493,18 +500,18 @@ i.e., via `\u{0a}` or `\x0a`.
 A line that begins with `#` is a control message and all other lines
 are values.
 
-### 4.1 ZNG Control Messages
+### 4.1 Control Messages
 
-ZNG control messages have one of four forms defined below.
+TZNG control messages have one of four forms defined below.
 
 Any line beginning with `#` that does not conform with the syntax described here
 is an error.
-When errors are encountered parsing ZNG, an implementation should return a
-corresponding error and allow ZNG parsing to proceed if desired.
+When errors are encountered parsing TZNG, an implementation should return a
+corresponding error and allow TZNG parsing to proceed if desired.
 
 ### 4.1.1 Type Binding
 
-A type binding has the following form:
+A TZNG type binding has the following form:
 ```
 #<type-tag>:<type-string>
 ```
@@ -514,7 +521,7 @@ a binding between the indicated tag and the indicated type.
 
 ### 4.1.2 Type Alias
 
-A type alias has the following form:
+A TZNG type alias has the following form:
 ```
 #<type-name>:<type-string>
 ```
@@ -524,17 +531,14 @@ binding between the indicated tag and the indicated type.
 This form defines an alias mapping the identifier to the indicated type.
 `<type-name>` is an identifier with semantics as defined in [Section 3.1.1.5](#3115-alias-typedef).
 
-It is an error to define an alias that has the same name as a primitive type.
-It is also an error to redefine a previously defined alias with a
-type that differs from the original definition.
 
 ### 4.1.3 Application-Specific Payload
 
-An application-specific payload has the following form:
+A TZNG application-specific payload has the following form:
 ```
-#!<control code>:<payload>
+#!<control-code>:<payload>
 ```
-Here, `<control code>` is a decimal integer in the range 6-127 and `<payload>`
+Here, `<control-code>` is a decimal integer in the range 6-127 and `<payload>`
 is any UTF-8 string with escaped newlines.
 
 ### 4.2 Type Grammar
@@ -564,19 +568,19 @@ XXX - I don't see ctype referenced anywhere else. Shouldn't it be?
 
 <alias-name> := <id>
 
-<id> := <id_start> <id_continue>*
+<id> := <id-start> <id-continue>*
 
-<id_start> := [A-Za-z_$]
+<id-start> := [A-Za-z_$]
 
-<id_continue> := <id_start> | [0-9]
+<id-continue> := <id-start> | [0-9]
 ```
 
 A reference implementation of this type system is embedded in
 [zq/zng](../).
 
-### 4.3 ZNG Values
+### 4.3 Values
 
-A ZNG value is encoded on a line as a typed value, which is encoded as
+A TZNG value is encoded on a line as a typed value, which is encoded as
 an integer type code followed by `:`, which is in turn followed
 by a value encoding.
 
@@ -614,9 +618,6 @@ if the parsed value does not match the indicated type in terms of number and
 sub-structure of value elements present and their interpretation as a valid
 string of the specified type.
 
-It is an error for a value to reference a type ID that has not been previously
-defined by a typedef scoped to the stream in which the value appears.
-
 ### 4.3.1 Character Escape Rules
 
 Any Unicode code point may be represented in a `string` value using
@@ -633,7 +634,7 @@ is not a valid escape sequence.
 The behavior of an implementation that encounters such
 invalid sequences in a `string` type is undefined.
 
-Any character in a `bstring` value may be escaped from the ZNG formatting rules
+Any character in a `bstring` value may be escaped from the TZNG formatting rules
 using the hex escape syntax, i.e., `\xhh` where `h` is a hexadecimal digit.
 This allows binary data that does not conform to a valid UTF-8 character encoding
 to be embedded in the `bstring` data type.
@@ -708,7 +709,7 @@ an earlier-defined type alias:
 #SET:set[string]
 #99:record[v:REC,s:SET,r:REC,s2:SET]
 ```
-This ZNG defines a tag for the primitive string type and defines a record
+This TZNG defines a tag for the primitive string type and defines a record
 and references the types accordingly in three values;
 ```
 #0:string
@@ -726,7 +727,7 @@ string("this is a semicolon: ;")
 Note that the tag integers occupy their own numeric space indepedent of
 any underlying ZNG type IDs.
 
-The semicolon terminator is important.  Consider this ZNG depicting
+The semicolon terminator is important.  Consider this TZNG depicting
 sets of strings:
 ```
 #0:set[string]
