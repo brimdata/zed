@@ -15,10 +15,10 @@ type Source struct {
 	Config *aws.Config
 }
 
-func (l *Source) NewWriter(path string) (io.WriteCloser, error) {
-	return NewWriter(path, l.Config)
+func (s *Source) NewWriter(path string) (io.WriteCloser, error) {
+	return NewWriter(path, s.Config)
 }
 
-func (l *Source) NewReader(path string) (io.ReadCloser, error) {
+func (s *Source) NewReader(path string) (io.ReadCloser, error) {
 	return nil, errors.New("method unsupported")
 }
