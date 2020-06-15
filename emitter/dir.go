@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/brimsec/zq/pkg/s3io"
+	"github.com/brimsec/zq/pkg/iosource"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zng"
 )
@@ -32,6 +32,7 @@ type Dir struct {
 	flags   *zio.WriterFlags
 	writers map[*zng.TypeRecord]*zio.Writer
 	paths   map[string]*zio.Writer
+	source  *iosource.Registry
 }
 
 func unknownFormat(format string) error {
@@ -39,7 +40,15 @@ func unknownFormat(format string) error {
 }
 
 func NewDir(dir, prefix string, stderr io.Writer, flags *zio.WriterFlags) (*Dir, error) {
-	if !s3io.IsS3Path(dir) {
+	return NewDirWithSource(dir, prefix, stderr, flags, iosource.DefaultRegistry)
+}
+
+func NewDirWithSource(dir, prefix string, stderr io.Writer, flags *zio.WriterFlags, source *iosource.Registry) (*Dir, error) {
+	scheme, ok := source.GetScheme(dir)
+	if !ok {
+		return nil, fmt.Errorf("%s: unsupported scheme", scheme)
+	}
+	if scheme == iosource.FileScheme {
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			return nil, err
 		}
@@ -56,6 +65,7 @@ func NewDir(dir, prefix string, stderr io.Writer, flags *zio.WriterFlags) (*Dir,
 		flags:   flags,
 		writers: make(map[*zng.TypeRecord]*zio.Writer),
 		paths:   make(map[string]*zio.Writer),
+		source:  source,
 	}, nil
 }
 
@@ -93,8 +103,7 @@ func (d *Dir) filename(r *zng.Record) (string, string) {
 		base = strconv.Itoa(r.Type.ID())
 	}
 	name := d.prefix + base + d.ext
-	if s3io.IsS3Path(d.dir) {
-		u, _ := url.Parse(d.dir)
+	if u, _ := url.Parse(d.dir); u != nil {
 		u.Path = path.Join(u.Path, name)
 		return u.String(), _path
 	}
@@ -106,7 +115,7 @@ func (d *Dir) newFile(rec *zng.Record) (*zio.Writer, error) {
 	if w, ok := d.paths[path]; ok {
 		return w, nil
 	}
-	w, err := NewFile(filename, d.flags)
+	w, err := NewFileWithSource(filename, d.flags, d.source)
 	if err != nil {
 		return nil, err
 	}
