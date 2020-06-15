@@ -13,6 +13,11 @@ var DefaultRegistry = &Registry{
 	schemes: map[string]Source{"file": DefaultFileSource},
 }
 
+type Source interface {
+	NewReader(path string) (io.ReadCloser, error)
+	NewWriter(path string) (io.WriteCloser, error)
+}
+
 type Registry struct {
 	mu      sync.RWMutex
 	schemes map[string]Source
@@ -60,11 +65,6 @@ func (r *Registry) GetScheme(path string) (string, bool) {
 	defer r.mu.RUnlock()
 	_, ok := r.schemes[scheme]
 	return scheme, ok
-}
-
-type Source interface {
-	NewReader(path string) (io.ReadCloser, error)
-	NewWriter(path string) (io.WriteCloser, error)
 }
 
 func Register(scheme string, source Source) {
