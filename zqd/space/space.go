@@ -53,7 +53,7 @@ func newSpaceID() api.SpaceID {
 
 type guard struct {
 	// state about operations in progress
-	opMutex       sync.Mutex
+	mu            sync.Mutex
 	deletePending bool
 
 	wg sync.WaitGroup
@@ -68,8 +68,8 @@ func newGuard() *guard {
 }
 
 func (g *guard) acquire(ctx context.Context) (context.Context, context.CancelFunc, error) {
-	g.opMutex.Lock()
-	defer g.opMutex.Unlock()
+	g.mu.Lock()
+	defer g.mu.Unlock()
 
 	if g.deletePending {
 		return ctx, func() {}, zqe.E(zqe.Conflict, "space is pending deletion")
@@ -95,15 +95,15 @@ func (g *guard) acquire(ctx context.Context) (context.Context, context.CancelFun
 }
 
 func (g *guard) acquireForDelete() error {
-	g.opMutex.Lock()
+	g.mu.Lock()
 
 	if g.deletePending {
-		g.opMutex.Unlock()
+		g.mu.Unlock()
 		return zqe.E(zqe.Conflict, "space is pending deletion")
 	}
 
 	g.deletePending = true
-	g.opMutex.Unlock()
+	g.mu.Unlock()
 
 	close(g.cancelChan)
 	g.wg.Wait()
