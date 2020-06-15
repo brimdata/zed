@@ -23,12 +23,16 @@ type Registry struct {
 	schemes map[string]Source
 }
 
-func (r *Registry) Add(scheme string, loader Source) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+func (r *Registry) initWithLock() {
 	if r.schemes == nil {
 		r.schemes = map[string]Source{}
 	}
+}
+
+func (r *Registry) Add(scheme string, loader Source) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.initWithLock()
 	r.schemes[scheme] = loader
 }
 
@@ -52,6 +56,7 @@ func (r *Registry) Source(path string) (Source, error) {
 	scheme := getScheme(path)
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+	r.initWithLock()
 	loader, ok := r.schemes[scheme]
 	if !ok {
 		return nil, errors.New("unknown scheme")
@@ -63,6 +68,7 @@ func (r *Registry) GetScheme(path string) (string, bool) {
 	scheme := getScheme(path)
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+	r.initWithLock()
 	_, ok := r.schemes[scheme]
 	return scheme, ok
 }
