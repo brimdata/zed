@@ -136,7 +136,7 @@ func (c *Command) Run(args []string) error {
 		}
 		defer writer.Close()
 		// XXX we shouldn't need zap here, nano?  etc
-		reverse := ark.DataSortDirection == zbuf.DirTimeReverse
+		reverse := ark.Meta.DataSortDirection == zbuf.DirTimeReverse
 		mux, err := driver.CompileWarningsCh(context.Background(), query, reader, reverse, nano.MaxSpan, zap.NewNop(), wch)
 		if err != nil {
 			return err
