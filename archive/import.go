@@ -66,7 +66,7 @@ func (d *importDriver) writeOne(rec *zng.Record) error {
 		return err
 	}
 	d.n += int64(len(rec.Raw))
-	if d.n >= d.ark.Meta.LogSizeThreshold {
+	if d.n >= d.ark.LogSizeThreshold {
 		if err := d.close(); err != nil {
 			return err
 		}
@@ -114,7 +114,7 @@ func (d *importDriver) Warn(warning string) error          { return nil }
 func (d *importDriver) Stats(stats api.ScannerStats) error { return nil }
 
 func importProc(ark *Archive) string {
-	if ark.Meta.DataSortDirection == zbuf.DirTimeForward {
+	if ark.DataSortDirection == zbuf.DirTimeForward {
 		return "sort ts"
 	}
 	return "sort -r ts"
