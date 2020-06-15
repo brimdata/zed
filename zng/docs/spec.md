@@ -522,7 +522,7 @@ A TZNG type binding has the following form:
 #<type-tag>:<type-string>
 ```
 Here, `<type-tag>` is a string decimal integer and `<type-string>`
-is a string defining a type according to the [TZNG type grammar`](#42-type-grammar). They create
+is a string defining a record type (`<rtype>`) according to the [TZNG type grammar`](#42-type-grammar). They create
 a binding between the indicated tag and the indicated type.
 
 ### 4.1.2 Type Alias
@@ -556,13 +556,16 @@ grammar describing the textual type encodings is:
          | string | bytes | bstring | enum | ip | port | net | time | duration | null
          | <alias-name>
 
-XXX - I don't see ctype referenced anywhere else. Shouldn't it be?
 <ctype> :=  array [ <stype> ]
-          | record [ <columns> ]
-          | record [ ]
           | union [ <stype-list> ]
           | set [ <stype> ]
+          | <rtype>
 
+<rtype> :=  record [ <columns> ]
+          | record [ ]
+
+
+<type> := <stype> | <ctype>
 
 <stype-list> :=    <stype>
                  | <stype-list> , <stype>
@@ -570,7 +573,7 @@ XXX - I don't see ctype referenced anywhere else. Shouldn't it be?
 <columns> :=      <column>
                 | <columns> , <column>
 
-<column> := <id> : <stype>
+<column> :=  <id> : <type>
 
 <alias-name> := <id>
 
