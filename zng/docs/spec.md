@@ -522,7 +522,7 @@ A TZNG type binding has the following form:
 #<type-tag>:<type-string>
 ```
 Here, `<type-tag>` is a string decimal integer and `<type-string>`
-is a string defining a record type (`<rtype>`) according to the [TZNG type grammar`](#42-type-grammar). They create
+is a string defining a record type (`<rtype>`) according to the [TZNG type grammar](#42-type-grammar). They create
 a binding between the indicated tag and the indicated type.
 
 ### 4.1.2 Type Alias
