@@ -556,24 +556,24 @@ grammar describing the textual type encodings is:
          | string | bytes | bstring | enum | ip | port | net | time | duration | null
          | <alias-name>
 
-<ctype> :=  array [ <stype> ]
-          | union [ <stype-list> ]
-          | set [ <stype> ]
-          | <rtype>
+<ctype> := array [ <stype> ]
+         | union [ <stype-list> ]
+         | set [ <stype> ]
+         | <rtype>
 
-<rtype> :=  record [ <columns> ]
-          | record [ ]
+<rtype> := record [ <columns> ]
+         | record [ ]
 
 
 <type> := <stype> | <ctype>
 
-<stype-list> :=    <stype>
-                 | <stype-list> , <stype>
+<stype-list> := <stype>
+              | <stype-list> , <stype>
 
-<columns> :=      <column>
-                | <columns> , <column>
+<columns> := <column>
+           | <columns> , <column>
 
-<column> :=  <id> : <type>
+<column> := <id> : <type>
 
 <alias-name> := <id>
 
