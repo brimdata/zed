@@ -22,8 +22,7 @@ func (f *FileSource) NewWriter(path string) (io.WriteCloser, error) {
 }
 
 func filePath(path string) string {
-	u, _ := url.Parse(path)
-	if u != nil {
+	if u, _ := url.Parse(path); u != nil {
 		return u.Path
 	}
 	return path
