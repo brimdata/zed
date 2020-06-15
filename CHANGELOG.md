@@ -6,7 +6,7 @@ zq repo, check the git log.
 * pcap: Report more detailed error information (#844)
 * zql: Add a new function `Time.trunc()` (#842)
 * zql: Support grouping by computed keys (#860)
-* zq: Change implementation of `-every X` to use a computed groupby key (#828)
+* zq: Change implementation of `every X` to use a computed groupby key (#893)
 * zql: Clean up the [ZQL docs](https://github.com/brimsec/zq/tree/master/zql/docs) (#884)
 * zql: Change `cut` processor to emit any matching fields (#899)
 * zq: Allow output to an S3 bucket (#889)
