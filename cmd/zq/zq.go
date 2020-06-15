@@ -16,6 +16,7 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
+	"github.com/brimsec/zq/pkg/iosource"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/s3io"
 	"github.com/brimsec/zq/proc"
@@ -81,6 +82,7 @@ https://github.com/brimsec/zq
 
 func init() {
 	Zq.Add(charm.Help)
+	iosource.Register("s3", s3io.DefaultSource)
 }
 
 type Command struct {

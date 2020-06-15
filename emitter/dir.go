@@ -4,10 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 
+	"github.com/brimsec/zq/pkg/iosource"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zng"
 )
@@ -29,6 +32,7 @@ type Dir struct {
 	flags   *zio.WriterFlags
 	writers map[*zng.TypeRecord]*zio.Writer
 	paths   map[string]*zio.Writer
+	source  *iosource.Registry
 }
 
 func unknownFormat(format string) error {
@@ -36,8 +40,18 @@ func unknownFormat(format string) error {
 }
 
 func NewDir(dir, prefix string, stderr io.Writer, flags *zio.WriterFlags) (*Dir, error) {
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return nil, err
+	return NewDirWithSource(dir, prefix, stderr, flags, iosource.DefaultRegistry)
+}
+
+func NewDirWithSource(dir, prefix string, stderr io.Writer, flags *zio.WriterFlags, source *iosource.Registry) (*Dir, error) {
+	scheme, ok := source.GetScheme(dir)
+	if !ok {
+		return nil, fmt.Errorf("%s: unsupported scheme", scheme)
+	}
+	if scheme == iosource.FileScheme {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return nil, err
+		}
 	}
 	e := zio.Extension(flags.Format)
 	if e == "" {
@@ -51,6 +65,7 @@ func NewDir(dir, prefix string, stderr io.Writer, flags *zio.WriterFlags) (*Dir,
 		flags:   flags,
 		writers: make(map[*zng.TypeRecord]*zio.Writer),
 		paths:   make(map[string]*zio.Writer),
+		source:  source,
 	}, nil
 }
 
@@ -80,15 +95,19 @@ func (d *Dir) lookupOutput(rec *zng.Record) (*zio.Writer, error) {
 // the case of two tds one _path, adding a # in the filename for every _path that
 // has more than one td.
 func (d *Dir) filename(r *zng.Record) (string, string) {
-	var path string
+	var _path string
 	base, err := r.AccessString("_path")
 	if err == nil {
-		path = base
+		_path = base
 	} else {
 		base = strconv.Itoa(r.Type.ID())
 	}
 	name := d.prefix + base + d.ext
-	return filepath.Join(d.dir, name), path
+	if u, _ := url.Parse(d.dir); u != nil {
+		u.Path = path.Join(u.Path, name)
+		return u.String(), _path
+	}
+	return filepath.Join(d.dir, name), _path
 }
 
 func (d *Dir) newFile(rec *zng.Record) (*zio.Writer, error) {
@@ -96,7 +115,7 @@ func (d *Dir) newFile(rec *zng.Record) (*zio.Writer, error) {
 	if w, ok := d.paths[path]; ok {
 		return w, nil
 	}
-	w, err := NewFile(filename, d.flags)
+	w, err := NewFileWithSource(filename, d.flags, d.source)
 	if err != nil {
 		return nil, err
 	}
