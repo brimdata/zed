@@ -37,11 +37,11 @@ func ErrorTest() (*C.char, bool) {
 }
 
 //export ZqlFileEval
-func ZqlFileEval(inquery, inpath, outpath string) (*C.char, bool) {
-	return result(doZqlFileEval(inquery, inpath, outpath))
+func ZqlFileEval(inquery, inpath, informat, outpath, outformat string) (*C.char, bool) {
+	return result(doZqlFileEval(inquery, inpath, informat, outpath, outformat))
 }
 
-func doZqlFileEval(inquery, inpath, outpath string) (err error) {
+func doZqlFileEval(inquery, inpath, informat, outpath, outformat string) (err error) {
 	if inpath == "-" {
 		inpath = "/dev/stdin"
 	}
@@ -54,14 +54,16 @@ func doZqlFileEval(inquery, inpath, outpath string) (err error) {
 	}
 
 	zctx := resolver.NewContext()
-	rc, err := detector.OpenFile(zctx, inpath, detector.OpenConfig{})
+	rc, err := detector.OpenFile(zctx, inpath, detector.OpenConfig{
+		Format: informat,
+	})
 	if err != nil {
 		return err
 	}
 	defer rc.Close()
 
 	w, err := emitter.NewFile(outpath, &zio.WriterFlags{
-		Format: "zng",
+		Format: outformat,
 	})
 	if err != nil {
 		return err
