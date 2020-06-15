@@ -38,14 +38,7 @@ func Walk(ark *Archive, visit Visitor) error {
 type SpanVisitor func(si SpanInfo, zardir string) error
 
 func SpanWalk(ark *Archive, v SpanVisitor) error {
-	if _, err := ark.UpdateCheck(); err != nil {
-		return err
-	}
-
-	ark.mu.RLock()
-	defer ark.mu.RUnlock()
-
-	for _, s := range ark.spans {
+	for _, s := range ark.Spans {
 		zardir := LogToZarDir(s.LogID.Path(ark))
 		if err := os.MkdirAll(zardir, 0700); err != nil {
 			return err

@@ -3,7 +3,6 @@ package archivestore
 import (
 	"context"
 	"os"
-	"sync"
 
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/pkg/nano"
@@ -29,20 +28,12 @@ func Load(path string, cfg *storage.ArchiveConfig) (*Storage, error) {
 	return &Storage{ark: ark}, nil
 }
 
-type summaryCache struct {
-	mu         sync.Mutex
-	lastUpdate int
-	span       nano.Span
-	dataBytes  int64
-}
-
 type Storage struct {
-	ark      *archive.Archive
-	sumCache summaryCache
+	ark *archive.Archive
 }
 
 func (s *Storage) NativeDirection() zbuf.Direction {
-	return s.ark.DataSortDirection
+	return s.ark.Meta.DataSortDirection
 }
 
 func (s *Storage) Open(ctx context.Context, span nano.Span) (zbuf.ReadCloser, error) {
@@ -65,22 +56,7 @@ func (s *Storage) Open(ctx context.Context, span nano.Span) (zbuf.ReadCloser, er
 func (s *Storage) Summary(_ context.Context) (storage.Summary, error) {
 	var sum storage.Summary
 	sum.Kind = storage.ArchiveStore
-
-	update, err := s.ark.UpdateCheck()
-	if err != nil {
-		return sum, err
-	}
-
-	s.sumCache.mu.Lock()
-	if update == s.sumCache.lastUpdate {
-		sum.Span = s.sumCache.span
-		sum.DataBytes = s.sumCache.dataBytes
-		s.sumCache.mu.Unlock()
-		return sum, nil
-	}
-	s.sumCache.mu.Unlock()
-
-	err = archive.SpanWalk(s.ark, func(si archive.SpanInfo, zardir string) error {
+	return sum, archive.SpanWalk(s.ark, func(si archive.SpanInfo, zardir string) error {
 		zngpath := archive.ZarDirToLog(zardir)
 		sinfo, err := os.Stat(zngpath)
 		if err != nil {
@@ -94,17 +70,6 @@ func (s *Storage) Summary(_ context.Context) (storage.Summary, error) {
 		}
 		return nil
 	})
-	if err != nil {
-		return sum, err
-	}
-
-	s.sumCache.mu.Lock()
-	s.sumCache.lastUpdate = update
-	s.sumCache.span = sum.Span
-	s.sumCache.dataBytes = sum.DataBytes
-	s.sumCache.mu.Unlock()
-
-	return sum, nil
 }
 
 func (s *Storage) IndexSearch(ctx context.Context, query archive.IndexQuery) (zbuf.ReadCloser, error) {
