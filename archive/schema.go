@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"sync"
+	"time"
 
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
@@ -39,7 +41,7 @@ type SpanInfo struct {
 	LogID LogID     `json:"log_id"`
 }
 
-func writeTempFile(dir, pattern string, b []byte) (name string, err error) {
+func writeTempFile(dir, pattern string, b []byte) (string, error) {
 	f, err := ioutil.TempFile(dir, pattern)
 	if err != nil {
 		return "", err
@@ -53,34 +55,47 @@ func writeTempFile(dir, pattern string, b []byte) (name string, err error) {
 	err = f.Close()
 	if err != nil {
 		os.Remove(f.Name())
+		return "", err
 	}
 	return f.Name(), nil
 }
 
-func (c *Metadata) Write(path string) (err error) {
+func (c *Metadata) Write(path string) (time.Time, error) {
 	b, err := json.Marshal(c)
 	if err != nil {
-		return err
+		return time.Time{}, err
 	}
 	tmp, err := writeTempFile(filepath.Dir(path), "."+metadataFilename+".*", b)
 	if err != nil {
-		return err
+		return time.Time{}, err
 	}
 	err = os.Rename(tmp, path)
 	if err != nil {
 		os.Remove(tmp)
+		return time.Time{}, err
 	}
-	return err
+	fi, err := os.Stat(path)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return fi.ModTime(), nil
 }
 
-func ConfigRead(path string) (*Metadata, error) {
+func MetadataRead(path string) (*Metadata, time.Time, error) {
 	f, err := fs.Open(path)
 	if err != nil {
-		return nil, err
+		return nil, time.Time{}, err
 	}
 	defer f.Close()
-	var m Metadata
-	return &m, json.NewDecoder(f).Decode(&m)
+	fi, err := f.Stat()
+	if err != nil {
+		return nil, time.Time{}, err
+	}
+	var c Metadata
+	if err := json.NewDecoder(f).Decode(&c); err != nil {
+		return nil, time.Time{}, err
+	}
+	return &c, fi.ModTime(), nil
 }
 
 const (
@@ -107,25 +122,101 @@ func (c *CreateOptions) toMetadata() *Metadata {
 }
 
 type Archive struct {
-	Meta *Metadata
-	Root string
+	Root              string
+	DataSortDirection zbuf.Direction
+	LogSizeThreshold  int64
+	LogsFiltered      bool
 
-	// Spans contains either all spans from metadata, or a subset
-	// due to opening the archive with a filter list.
-	Spans []SpanInfo
+	// mu protects below fields.
+	mu    sync.RWMutex
+	spans []SpanInfo
+	// mdModTime is the last read modification time of the metadata file.
+	mdModTime     time.Time
+	mdUpdateCount int
 }
 
 func (ark *Archive) AppendSpans(spans []SpanInfo) error {
-	ark.Meta.Spans = append(ark.Meta.Spans, spans...)
+	if ark.LogsFiltered {
+		return errors.New("cannot add spans to log filtered archive")
+	}
 
-	sort.Slice(ark.Meta.Spans, func(i, j int) bool {
-		if ark.Meta.DataSortDirection == zbuf.DirTimeForward {
-			return ark.Meta.Spans[i].Span.Ts < ark.Meta.Spans[j].Span.Ts
+	ark.mu.Lock()
+	defer ark.mu.Unlock()
+
+	ark.spans = append(ark.spans, spans...)
+
+	sort.Slice(ark.spans, func(i, j int) bool {
+		if ark.DataSortDirection == zbuf.DirTimeForward {
+			return ark.spans[i].Span.Ts < ark.spans[j].Span.Ts
 		}
-		return ark.Meta.Spans[j].Span.Ts < ark.Meta.Spans[i].Span.Ts
+		return ark.spans[j].Span.Ts < ark.spans[i].Span.Ts
 	})
 
-	return ark.Meta.Write(filepath.Join(ark.Root, metadataFilename))
+	mtime, err := ark.metaWrite()
+	if err != nil {
+		return err
+	}
+
+	ark.mdUpdateCount++
+	ark.mdModTime = mtime
+	return nil
+}
+
+func (ark *Archive) metaWrite() (time.Time, error) {
+	m := &Metadata{
+		Version:           0,
+		LogSizeThreshold:  ark.LogSizeThreshold,
+		DataSortDirection: ark.DataSortDirection,
+		Spans:             ark.spans,
+	}
+	return m.Write(ark.mdPath())
+}
+
+func (ark *Archive) mdPath() string {
+	return filepath.Join(ark.Root, metadataFilename)
+}
+
+// UpdateCheck looks at the archive's metadata file to see if it
+// has been written to since last read; if so, it is read and the
+// available spans are updated. A counter is returned, starting
+// from 1, which is incremented every time this Archive has re-read
+// the metadata file, and possibly updated the available spans.
+func (ark *Archive) UpdateCheck() (int, error) {
+	if ark.LogsFiltered {
+		// If a logfilter was specified at open, there's no need to
+		// check for newer log files in the archive.
+		return ark.mdUpdateCount, nil
+	}
+
+	fi, err := os.Stat(ark.mdPath())
+	if err != nil {
+		return 0, err
+	}
+
+	ark.mu.RLock()
+	if fi.ModTime().Equal(ark.mdModTime) {
+		cnt := ark.mdUpdateCount
+		ark.mu.RUnlock()
+		return cnt, nil
+	}
+	ark.mu.RUnlock()
+
+	ark.mu.Lock()
+	defer ark.mu.Unlock()
+
+	if fi.ModTime().Equal(ark.mdModTime) {
+		return ark.mdUpdateCount, nil
+	}
+
+	md, mtime, err := MetadataRead(ark.mdPath())
+	if err != nil {
+		return 0, err
+	}
+
+	ark.spans = md.Spans
+	ark.mdModTime = mtime
+	ark.mdUpdateCount++
+	return ark.mdUpdateCount, nil
 }
 
 type OpenOptions struct {
@@ -136,34 +227,39 @@ func OpenArchive(path string, oo *OpenOptions) (*Archive, error) {
 	if path == "" {
 		return nil, errors.New("no archive directory specified")
 	}
-	c, err := ConfigRead(filepath.Join(path, metadataFilename))
+	m, mtime, err := MetadataRead(filepath.Join(path, metadataFilename))
 	if err != nil {
 		return nil, err
 	}
 
-	var spans []SpanInfo
+	ark := &Archive{
+		Root:              path,
+		DataSortDirection: m.DataSortDirection,
+		LogSizeThreshold:  m.LogSizeThreshold,
+		mdModTime:         mtime,
+		mdUpdateCount:     1,
+	}
+
 	if oo != nil && len(oo.LogFilter) != 0 {
+		ark.LogsFiltered = true
 		lmap := make(map[LogID]struct{})
 		for _, l := range oo.LogFilter {
 			lmap[LogID(l)] = struct{}{}
 		}
-		for _, s := range c.Spans {
+
+		for _, s := range m.Spans {
 			if _, ok := lmap[s.LogID]; ok {
-				spans = append(spans, s)
+				ark.spans = append(ark.spans, s)
 			}
 		}
-		if len(spans) == 0 {
-			return nil, zqe.E(zqe.Invalid, "OpenArchive: no spans left after filter")
+		if len(ark.spans) == 0 {
+			return nil, zqe.E(zqe.Invalid, "OpenArchive: no logs left after filter")
 		}
 	} else {
-		spans = c.Spans
+		ark.spans = m.Spans
 	}
 
-	return &Archive{
-		Meta:  c,
-		Root:  path,
-		Spans: spans,
-	}, nil
+	return ark, nil
 }
 
 func CreateOrOpenArchive(path string, co *CreateOptions, oo *OpenOptions) (*Archive, error) {
@@ -176,7 +272,7 @@ func CreateOrOpenArchive(path string, co *CreateOptions, oo *OpenOptions) (*Arch
 			if err := os.MkdirAll(path, 0700); err != nil {
 				return nil, err
 			}
-			err = co.toMetadata().Write(cfgpath)
+			_, err = co.toMetadata().Write(cfgpath)
 		}
 		if err != nil {
 			return nil, err
