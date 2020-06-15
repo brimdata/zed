@@ -9,17 +9,8 @@ import (
 
 const FileScheme = "file"
 
-var (
-	DefaultRegistry = &Registry{}
-)
-
-func init() {
-	resetDefaultRegistry()
-}
-
-func resetDefaultRegistry() {
-	DefaultRegistry = &Registry{}
-	DefaultRegistry.Add(FileScheme, DefaultFileSource)
+var DefaultRegistry = &Registry{
+	schemes: map[string]Source{"file": DefaultFileSource},
 }
 
 type Registry struct {
