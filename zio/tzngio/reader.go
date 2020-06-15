@@ -37,7 +37,7 @@ type ReadStats struct {
 	*skim.Stats
 	RecordsRead int `json:"records_read"`
 	BadFormat   int `json:"bad_format"`
-	BadMetaData int `json:"bad_meta_data"`
+	BadMetadata int `json:"bad_metadata"`
 	ReadFailure int `json:"read_failure"`
 	Unknown     int `json:"unknown"`
 }
