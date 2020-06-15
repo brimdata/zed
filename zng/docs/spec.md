@@ -33,7 +33,8 @@
     - [4.3.1 Character Escape Rules](#431-character-escape-rules)
     - [4.3.2 Value Syntax](#432-value-syntax)
   + [4.4 Examples](#44-examples)
-* [5. Related Links](#5-related-links)
+* [Appendix A. Data Type Reference](#appendix-a-data-type-reference)
+* [Appendix B. Related Links](#appendix-b-related-links)
 
 ## 1. Introduction
 
@@ -190,40 +191,7 @@ begin at the value 23 and increase by one for each typedef. These bindings
 are scoped to the stream in which the typedef occurs.
 
 Type IDs for the "primitive types" need not be defined with typedefs and
-are predefined as follows:
-
-<table>
-<tr><td>
-
-| Type       | ID |
-|------------|------|
-| `bool`     |   0  |
-| `byte`     |   1  |
-| `int16`    |   2  |
-| `uint16`   |   3  |
-| `int32`    |   4  |
-| `uint32`   |   5  |
-| `int64`    |   6  |
-| `uint64`   |   7  |
-| `float64`  |   8  |
-| `string`   |   9  |
-
-</td><td>
-
-| Type       | ID |
-|------------|------|
-| `bytes`    |  10  |
-| `bstring`  |  11  |
-| `enum`     |  12  |
-| `ip`       |  13  |
-| `port`     |  14  |
-| `net`      |  15  |
-| `time`     |  16  |
-| `duration` |  17  |
-| `null`     |  18  |
-| &nbsp;     |      |
-
-</td></tr> </table>
+are predefined with the IDs shown in [Appendix A](#appendix-a-data-type-reference).
 
 A typedef is encoded as a single byte indicating the container type ID followed by
 the type encoding.  This creates a binding between the implied type ID
@@ -405,30 +373,8 @@ length in bytes of the type ID.
 It is an error for a value to reference a type ID that has not been previously
 defined by a typedef scoped to the stream in which the value appears.
 
-A typed value with a `value` of length `N` and the type indicated
-is interpreted as follows:
-
-| Type       | N        |              Value                               |
-|------------|----------|--------------------------------------------------|
-| `bool`     | 1        |  one byte 0 (false) or 1 (true)                  |
-| `byte`     | 1        |  the byte                                        |
-| `int16`    | variable |  signed int of length N                          |
-| `uint16`   | variable |  unsigned int of length N                        |
-| `int32`    | variable |  signed int of length N                          |
-| `uint32`   | variable |  unsigned int of length N                        |
-| `int64`    | variable |  signed int of length N                          |
-| `uint64`   | variable |  unsigned int of length N                        |
-| `float64`  | 8        |  8 bytes of IEEE 64-bit format                   |
-| `string`   | variable |  UTF-8 byte sequence of string                   |
-| `bytes`    | variable |  bytes of value                                  |
-| `bstring`  | variable |  UTF-8 byte sequence with `\x` escapes           |
-| `enum `    | variable |  UTF-8 bytes of enum string                      |
-| `ip`       | 4 or 16  |  4 or 16 bytes of IP address                     |
-| `port`     | 2        |  unsigned int of length 2                        |
-| `net`      | 8 or 32  |  8 or 32 bytes of IP prefix and subnet mask      |
-| `time`     | variable |  signed nanoseconds since epoch                  |
-| `duration` | variable |  signed nanoseconds duration                     |
-| `null`     | 0        |  No value, always represents an undefined value  |
+A typed value with a `value` of length `N` is interpreted as described in the
+table in [Appendix A](#appendix-a-data-type-reference).
 
 All multi-byte sequences representing machine words are serialized in
 little-endian format.
@@ -667,30 +613,8 @@ to `-` as opposed to representing an unset value.
 ### 4.3.2 Value Syntax
 
 Each UTF-8 string field parsed from a value line is interpreted according to the
-type descriptor of the line.
-The formats for each type is as follows:
-
-Type       | Format
----------- | ------
-`bool`     | a single character `T` or `F`
-`byte`     | two-characters of hexadecimal digit
-`int16`    | decimal string representation of any signed, 16-bit integer
-`uint16`   | decimal string representation of any unsigned, 16-bit integer
-`int32`    | decimal string representation of any signed, 32-bit integer
-`uint32`   | decimal string representation of any unsigned, 32-bit integer
-`int64`    | decimal string representation of any signed, 64-bit integer
-`uint64`   | decimal string representation of any unsigned, 64-bit integer
-`float64`  | decimal representation of a 64-bit IEEE floating point literal as defined in JavaScript
-`string`   | a UTF-8 string
-`bytes`    | a sequence of bytes encoded as base64
-`bstring`  | a UTF-8 string with `\x` escapes of non-UTF binary data
-`enum`     | a string representing an enumeration value defined outside the scope of ZNG
-`ip`       | a string representing an IP address in [IPv4 or IPv6 format](https://tools.ietf.org/html/draft-main-ipaddr-text-rep-02#section-3)
-`port`     | decimal string representation of an unsigned, 16-bit integer |
-`net`      | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291.
-`time`     | signed dotted decimal notation of seconds
-`duration` | signed dotted decimal notation of seconds
-`null`     | must be the literal value `-`
+type descriptor of the line using the formats shown in the table in
+[Appendix A](#appendix-a-data-type-reference).
 
 ## 4.4 Examples
 
@@ -763,7 +687,36 @@ An unset value indicates a field of a `record` that wasn't set by the encoder:
 ```
 e.g., the North Pole has a latitude but no meaningful longitude.
 
-## 5. Related Links
+## Appendix A. Data Type Reference
+
+For each ZNG primitive type, the following table describes:
+* The predefined ID, which need not be defined in [ZNG Typedefs](#311-typedefs)
+* How a typed `value` of length `N` is interpreted in a [ZNG Value Message](#32-value-messages)
+* The format of a UTF-8 string representing a [TZNG Value](#432-value-syntax) of that type
+
+| Type       | ID |    N     |       ZNG Value Interpretation                 | TZNG Value Syntax                                             |
+|------------|---:|:--------:|------------------------------------------------|---------------------------------------------------------------|
+| `bool`     |  0 |    1     | one byte 0 (false) or 1 (true)                 | a single character `T` or `F`                                 |
+| `byte`     |  1 |    1     | the byte                                       | two-characters of hexadecimal digit                           |
+| `int16`    |  2 | variable | signed int of length N                         | decimal string representation of any signed, 16-bit integer   |
+| `uint16`   |  3 | variable | unsigned int of length N                       | decimal string representation of any unsigned, 16-bit integer |
+| `int32`    |  4 | variable | signed int of length N                         | decimal string representation of any signed, 32-bit integer   |
+| `uint32`   |  5 | variable | unsigned int of length N                       | decimal string representation of any unsigned, 32-bit integer |
+| `int64`    |  6 | variable | signed int of length N                         | decimal string representation of any signed, 64-bit integer   |
+| `uint64`   |  7 | variable | unsigned int of length N                       | decimal string representation of any unsigned, 64-bit integer |
+| `float64`  |  8 |    8     | 8 bytes of IEEE 64-bit format                  | decimal representation of a 64-bit IEEE floating point literal as defined in JavaScript |
+| `string`   |  9 | variable | UTF-8 byte sequence of string                  | a UTF-8 string                                                |
+| `bytes`    | 10 | variable | bytes of value                                 | a sequence of bytes encoded as base64                         |
+| `bstring`  | 11 | variable | UTF-8 byte sequence with `\x` escapes          | a UTF-8 string with `\x` escapes of non-UTF binary data       |
+| `enum `    | 12 | variable | UTF-8 bytes of enum string                     | a string representing an enumeration value defined outside the scope of ZNG |
+| `ip`       | 13 | 4 or 16  | 4 or 16 bytes of IP address                    | a string representing an IP address in [IPv4 or IPv6 format](https://tools.ietf.org/html/draft-main-ipaddr-text-rep-02#section-3) |
+| `port`     | 14 |    2     | unsigned int of length 2                       | decimal string representation of an unsigned, 16-bit integer  |
+| `net`      | 15 | 8 or 32  | 8 or 32 bytes of IP prefix and subnet mask     | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291. |
+| `time`     | 16 | variable | signed nanoseconds since epoch                 | signed dotted decimal notation of seconds                     |
+| `duration` | 17 | variable | signed nanoseconds duration                    | signed dotted decimal notation of seconds                     |
+| `null`     | 18 |    0     | No value, always represents an undefined value | must be the literal value `-`                                 |
+
+## Appendix B. Related Links
 
 * [Zeek ASCII logging](https://docs.zeek.org/en/stable/examples/logs/)
 * [Binary logging in Zeek](https://old.zeek.org/development/projects/binary-logging.html)
