@@ -90,10 +90,7 @@ func NewWriter(path string) (io.WriteCloser, error) {
 
 func getScheme(path string) string {
 	u, _ := url.Parse(path)
-	if u == nil {
-		return FileScheme
-	}
-	if u.Scheme == "" {
+	if u == nil || u.Scheme == "" {
 		return FileScheme
 	}
 	return u.Scheme
