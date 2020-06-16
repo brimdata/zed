@@ -62,15 +62,15 @@ zq -t 'cut server_tree_name' ntlm.log.gz # Shorthand for: zq '* | cut server_tre
 
 #### Example #2:
 ```zq-command
-zq -t 'count() by _path' *.log.gz  # Shorthand for: zq '* | count() by _path' *.log.gz
+zq -t 'count() by _path | sort' *.log.gz  # Shorthand for: zq '* | count() by _path | sort' *.log.gz
 ```
 
 #### Output:
 ```zq-output head:4
 #0:record[_path:string,count:uint64]
-0:[pe;21;]
-0:[dns;53615;]
-0:[dpd;25;]
+0:[capture_loss;2;]
+0:[rfb;3;]
+0:[stats;5;]
 ...
 ```
 

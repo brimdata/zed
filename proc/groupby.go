@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"sort"
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
@@ -371,7 +370,6 @@ func (g *GroupByAggregator) records(eof bool) ([]*zng.Record, error) {
 	for k := range g.table {
 		keys = append(keys, k)
 	}
-	sort.Strings(keys)
 
 	var recs []*zng.Record
 	for _, k := range keys {
