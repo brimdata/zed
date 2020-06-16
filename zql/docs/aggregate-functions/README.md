@@ -23,38 +23,38 @@ To count how many events there are of each Zeek log type in the sample data
 set:
 
 ```zq-command
-zq -f table 'count() by _path' *.log.gz
+zq -f table 'count() by _path | sort' *.log.gz
 ```
 
 #### Output:
 ```zq-output
 _PATH        COUNT
-pe           21
-dns          53615
-dpd          25
-ftp          93
-ntp          904
-rdp          4122
+capture_loss 2
 rfb          3
-ssh          22
-ssl          35493
-conn         1021952
-http         144034
-ntlm         422
-smtp         1188
-snmp         65
-x509         10013
-files        162986
 stats        5
-weird        24048
-modbus       129
-notice       64
-syslog       2378
-dce_rpc      78
 kerberos     11
 smb_files    12
+pe           21
+ssh          22
+dpd          25
+notice       64
+snmp         65
+dce_rpc      78
+ftp          93
+modbus       129
 smb_mapping  393
-capture_loss 2
+ntlm         422
+ntp          904
+smtp         1188
+syslog       2378
+rdp          4122
+x509         10013
+weird        24048
+ssl          35493
+dns          53615
+http         144034
+files        162986
+conn         1021952
 ```
 
 #### Example #3:
