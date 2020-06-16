@@ -210,14 +210,12 @@ func (g *GroupBy) runLoop(ch chan Result) {
 			return
 		}
 		if batch == nil {
-			b, err := g.agg.Results(true)
-			g.sendResult(b, err)
+			 g.sendResult(g.agg.Results(true))
 			g.sendResult(nil, nil)
 			return
 		}
 		for k := 0; k < batch.Length(); k++ {
-			err := g.agg.Consume(batch.Index(k))
-			if err != nil {
+			if err := g.agg.Consume(batch.Index(k)); err != nil {
 				batch.Unref()
 				g.sendResult(nil, err)
 				return
