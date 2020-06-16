@@ -17,8 +17,8 @@ import (
 )
 
 type GroupByKey struct {
-	name string
-	expr expr.ExpressionEvaluator
+	target string
+	expr   expr.ExpressionEvaluator
 }
 
 type GroupByParams struct {
@@ -44,17 +44,17 @@ const defaultGroupByLimit = 1000000
 
 func CompileGroupBy(node *ast.GroupByProc, zctx *resolver.Context) (*GroupByParams, error) {
 	keys := make([]GroupByKey, 0)
-	var targetNames []string
+	var targets []string
 	for _, astKey := range node.Keys {
 		ex, err := compileKeyExpr(astKey.Expr)
 		if err != nil {
 			return nil, fmt.Errorf("compiling groupby: %w", err)
 		}
 		keys = append(keys, GroupByKey{
-			name: astKey.Target,
-			expr: ex,
+			target: astKey.Target,
+			expr:   ex,
 		})
-		targetNames = append(targetNames, astKey.Target)
+		targets = append(targets, astKey.Target)
 	}
 	reducers := make([]compile.CompiledReducer, 0)
 	for _, reducer := range node.Reducers {
@@ -64,7 +64,7 @@ func CompileGroupBy(node *ast.GroupByProc, zctx *resolver.Context) (*GroupByPara
 		}
 		reducers = append(reducers, compiled)
 	}
-	builder, err := NewColumnBuilder(zctx, targetNames)
+	builder, err := NewColumnBuilder(zctx, targets)
 	if err != nil {
 		return nil, fmt.Errorf("compiling groupby: %w", err)
 	}
@@ -159,7 +159,7 @@ func NewGroupByAggregator(c *Context, params GroupByParams) *GroupByAggregator {
 		} else {
 			valueSortFn = vs
 		}
-		rs := expr.NewSortFn(true, expr.CompileFieldAccess(params.keys[0].name))
+		rs := expr.NewSortFn(true, expr.CompileFieldAccess(params.keys[0].target))
 		if params.inputSortDir < 0 {
 			recordSortFn = func(a, b *zng.Record) int { return rs(b, a) }
 		} else {
@@ -245,7 +245,7 @@ func newKeyRow(kctx *resolver.Context, r *zng.Record, keys []GroupByKey) (keyRow
 		if keyVal.Type == nil {
 			return keyRow{}, nil
 		}
-		cols[k] = zng.NewColumn(key.name, keyVal.Type)
+		cols[k] = zng.NewColumn(key.target, keyVal.Type)
 	}
 	// Lookup a unique ID by converting the columns too a record string
 	// and looking up the record by name in the scratch type context.
