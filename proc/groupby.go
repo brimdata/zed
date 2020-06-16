@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
@@ -93,7 +94,9 @@ func compileKeyExpr(ex ast.Expression) (expr.ExpressionEvaluator, error) {
 // GroupBy computes aggregations using a GroupByAggregator.
 type GroupBy struct {
 	Base
-	agg *GroupByAggregator
+	agg      *GroupByAggregator
+	once     sync.Once
+	resultCh chan Result
 }
 
 // A keyRow holds information about the key column types that result
@@ -186,38 +189,60 @@ func NewGroupBy(c *Context, parent Proc, params GroupByParams) *GroupBy {
 	// ast.GroupByParams
 	agg := NewGroupByAggregator(c, params)
 	return &GroupBy{
-		Base: Base{Context: c, Parent: parent},
-		agg:  agg,
+		Base:     Base{Context: c, Parent: parent},
+		agg:      agg,
+		resultCh: make(chan Result),
 	}
 }
 
 func (g *GroupBy) Pull() (zbuf.Batch, error) {
-	batch, err := g.Get()
-	if err != nil {
-		return nil, err
-	}
-	if batch == nil {
-		return g.agg.Results(true)
-	}
-	for k := 0; k < batch.Length(); k++ {
-		err := g.agg.Consume(batch.Index(k))
+	g.once.Do(func() { go g.runLoop(g.resultCh) })
+	r := <-g.resultCh
+	return r.Batch, r.Err
+}
+
+func (g *GroupBy) runLoop(ch chan Result) {
+	defer close(ch)
+	for {
+		batch, err := g.Get()
 		if err != nil {
-			batch.Unref()
-			return nil, err
+			g.sendResult(nil, err)
+			return
+		}
+		if batch == nil {
+			b, err := g.agg.Results(true)
+			g.sendResult(b, err)
+			g.sendResult(nil, nil)
+			return
+		}
+		for k := 0; k < batch.Length(); k++ {
+			err := g.agg.Consume(batch.Index(k))
+			if err != nil {
+				batch.Unref()
+				g.sendResult(nil, err)
+				return
+			}
+		}
+		batch.Unref()
+		if g.agg.inputSortDir != 0 {
+			res, err := g.agg.Results(false)
+			if err != nil {
+				g.sendResult(nil, err)
+				return
+			}
+			if res != nil {
+				expr.SortStable(res.Records(), g.agg.recordSortFn)
+				g.sendResult(res, nil)
+			}
 		}
 	}
-	batch.Unref()
-	if g.agg.inputSortDir != 0 {
-		batch, err := g.agg.Results(false)
-		if err != nil {
-			return nil, err
-		}
-		if batch != nil {
-			expr.SortStable(batch.Records(), g.agg.recordSortFn)
-			return batch, nil
-		}
+}
+
+func (g *GroupBy) sendResult(b zbuf.Batch, err error) {
+	select {
+	case g.resultCh <- Result{Batch: b, Err: err}:
+	case <-g.Context.Done():
 	}
-	return zbuf.NewArray([]*zng.Record{}), nil
 }
 
 func (g *GroupByAggregator) createGroupByRow(keyCols []zng.Column, vals zcode.Bytes, groupval *zng.Value) *GroupByRow {
