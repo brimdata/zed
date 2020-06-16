@@ -33,7 +33,7 @@
     - [4.3.1 Character Escape Rules](#431-character-escape-rules)
     - [4.3.2 Value Syntax](#432-value-syntax)
   + [4.4 Examples](#44-examples)
-* [5. Data Type Reference](#5-data-type-reference)
+* [5. Primitive Types](#5-primitive-types)
 * [Appendix A. Related Links](#appendix-a-related-links)
 
 ## 1. Introduction
@@ -191,7 +191,7 @@ begin at the value 23 and increase by one for each typedef. These bindings
 are scoped to the stream in which the typedef occurs.
 
 Type IDs for the "primitive types" need not be defined with typedefs and
-are predefined with the IDs shown in the [Data Type Reference](#5-data-type-reference).
+are predefined with the IDs shown in the [Primitive Types](#5-primitive-types) table.
 
 A typedef is encoded as a single byte indicating the container type ID followed by
 the type encoding.  This creates a binding between the implied type ID
@@ -374,7 +374,7 @@ It is an error for a value to reference a type ID that has not been previously
 defined by a typedef scoped to the stream in which the value appears.
 
 A typed value with a `value` of length `N` is interpreted as described in the
-table in the [Data Type Reference](#5-data-type-reference).
+[Primitive Types](#5-primitive-types) table.
 
 All multi-byte sequences representing machine words are serialized in
 little-endian format.
@@ -613,8 +613,8 @@ to `-` as opposed to representing an unset value.
 ### 4.3.2 Value Syntax
 
 Each UTF-8 string field parsed from a value line is interpreted according to the
-type descriptor of the line using the formats shown in the table in
-[Data Type Reference](#5-data-type-reference).
+type descriptor of the line using the formats shown in the
+[Primitive Types](#5-primitive-types) table.
 
 ## 4.4 Examples
 
@@ -687,7 +687,7 @@ An unset value indicates a field of a `record` that wasn't set by the encoder:
 ```
 e.g., the North Pole has a latitude but no meaningful longitude.
 
-## 5. Data Type Reference
+## 5. Primitive Types
 
 For each ZNG primitive type, the following table describes:
 * The predefined ID, which need not be defined in [ZNG Typedefs](#311-typedefs)
