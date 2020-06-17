@@ -196,13 +196,13 @@ func NewGroupBy(c *Context, parent Proc, params GroupByParams) *GroupBy {
 }
 
 func (g *GroupBy) Pull() (zbuf.Batch, error) {
-	g.once.Do(func() { go g.run(g.resultCh) })
+	g.once.Do(func() { go g.run() })
 	r := <-g.resultCh
 	return r.Batch, r.Err
 }
 
-func (g *GroupBy) run(ch chan Result) {
-	defer close(ch)
+func (g *GroupBy) run() {
+	defer close(g.resultCh)
 	for {
 		batch, err := g.Get()
 		if err != nil {
