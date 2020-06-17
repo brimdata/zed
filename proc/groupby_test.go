@@ -273,7 +273,6 @@ func TestGroupbyUnit(t *testing.T) {
 0:[3;]
 `}
 	outBatches := []string{
-		``,
 		`
 #0:record[ts:time,count:uint64]
 0:[1;2;]
@@ -308,7 +307,6 @@ func TestGroupbyUnit(t *testing.T) {
 `)
 
 	outBatchesRecordKey := []string{
-		``,
 		`
 #0:record[foo:record[a:string],count:uint64]
 0:[[aaa;]1;]
