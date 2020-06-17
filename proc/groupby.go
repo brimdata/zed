@@ -207,9 +207,13 @@ func (g *GroupBy) run() {
 			return
 		}
 		if batch == nil {
-			g.sendResult(g.agg.Results(true))
-			g.sendResult(nil, nil)
-			return
+			for {
+				b, err := g.agg.Results(true)
+				g.sendResult(b, err)
+				if b == nil {
+					return
+				}
+			}
 		}
 		for k := 0; k < batch.Length(); k++ {
 			if err := g.agg.Consume(batch.Index(k)); err != nil {
@@ -219,16 +223,21 @@ func (g *GroupBy) run() {
 			}
 		}
 		batch.Unref()
-		if g.agg.inputSortDir != 0 {
+		if g.agg.inputSortDir == 0 {
+			continue
+		}
+		// sorted input: see if we have any completed keys we can emit.
+		for {
 			res, err := g.agg.Results(false)
 			if err != nil {
 				g.sendResult(nil, err)
 				return
 			}
-			if res != nil {
-				expr.SortStable(res.Records(), g.agg.recordCompare)
-				g.sendResult(res, nil)
+			if res == nil {
+				break
 			}
+			expr.SortStable(res.Records(), g.agg.recordCompare)
+			g.sendResult(res, nil)
 		}
 	}
 }
