@@ -9,7 +9,7 @@ import (
 
 // MarshalJSONFile writes the JSON encoding of v to a file named by filename.
 // The file is created atomically. If the file does not exist, Marshal creates
-// it with permissions perm.  Internally MarshalJSONFile uses json.Marshal.
+// it with permissions perm.
 func MarshalJSONFile(v interface{}, filename string, perm os.FileMode) error {
 	tmppath := filename + ".tmp"
 	f, err := OpenFile(tmppath, os.O_RDWR|os.O_CREATE|os.O_TRUNC|os.O_EXCL, perm)
