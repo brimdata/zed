@@ -13,17 +13,17 @@ type archiveSubspace struct {
 	parent *archiveSpace
 }
 
-func (s *archiveSubspace) Info(ctx context.Context) (info api.SpaceInfo, err error) {
+func (s *archiveSubspace) Info(ctx context.Context) (api.SpaceInfo, error) {
 	sum, err := s.store.Summary(ctx)
 	if err != nil {
-		return info, err
+		return api.SpaceInfo{}, err
 	}
 	var span *nano.Span
 	if sum.Span.Dur > 0 {
 		span = &sum.Span
 	}
 	var name, dp string
-	s.findConfig(func(i int) error {
+	err = s.findConfig(func(i int) error {
 		name = s.parent.conf.Subspaces[i].Name
 		dp = s.parent.conf.DataPath
 		return nil
@@ -36,7 +36,7 @@ func (s *archiveSubspace) Info(ctx context.Context) (info api.SpaceInfo, err err
 		Size:        sum.DataBytes,
 		Span:        span,
 		ParentID:    s.parent.ID(),
-	}, nil
+	}, err
 }
 
 func (s *archiveSubspace) update(req api.SpacePutRequest) error {
@@ -72,8 +72,8 @@ func (s *archiveSubspace) Name() string {
 }
 
 func (s *archiveSubspace) findConfig(fn func(int) error) error {
-	s.parent.confmu.Lock()
-	defer s.parent.confmu.Unlock()
+	s.parent.confMu.Lock()
+	defer s.parent.confMu.Unlock()
 	i := s.parent.conf.subspaceIndex(s.id)
 	if i == -1 {
 		// should not happen

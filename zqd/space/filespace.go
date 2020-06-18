@@ -17,8 +17,7 @@ type fileSpace struct {
 	spaceBase
 	path string
 
-	// confmu protects changes to configuration changes.
-	confmu sync.Mutex
+	confMu sync.Mutex
 	conf   config
 }
 
@@ -41,8 +40,8 @@ func (s *fileSpace) Info(ctx context.Context) (api.SpaceInfo, error) {
 }
 
 func (s *fileSpace) Name() string {
-	s.confmu.Lock()
-	defer s.confmu.Unlock()
+	s.confMu.Lock()
+	defer s.confMu.Unlock()
 	return s.conf.Name
 }
 
@@ -50,16 +49,16 @@ func (s *fileSpace) update(req api.SpacePutRequest) error {
 	if req.Name == "" {
 		return zqe.E(zqe.Invalid, "cannot set name to an empty string")
 	}
-	s.confmu.Lock()
-	defer s.confmu.Unlock()
+	s.confMu.Lock()
+	defer s.confMu.Unlock()
 	conf := s.conf.clone()
 	conf.Name = req.Name
 	return s.updateConfigWithLock(conf)
 }
 
 func (s *fileSpace) SetPcapPath(pcapPath string) error {
-	s.confmu.Lock()
-	defer s.confmu.Unlock()
+	s.confMu.Lock()
+	defer s.confMu.Unlock()
 	conf := s.conf.clone()
 	conf.PcapPath = pcapPath
 	return s.updateConfigWithLock(conf)
@@ -104,7 +103,7 @@ func filesize(path string) (int64, error) {
 }
 
 func (s *fileSpace) PcapPath() string {
-	s.confmu.Lock()
-	defer s.confmu.Unlock()
+	s.confMu.Lock()
+	defer s.confMu.Unlock()
 	return s.conf.PcapPath
 }

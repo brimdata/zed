@@ -15,8 +15,7 @@ type archiveSpace struct {
 	spaceBase
 	path string
 
-	// confmu protects changes to configuration changes.
-	confmu sync.Mutex
+	confMu sync.Mutex
 	conf   config
 }
 
@@ -26,16 +25,16 @@ func (s *archiveSpace) Info(ctx context.Context) (api.SpaceInfo, error) {
 		return api.SpaceInfo{}, err
 	}
 
-	s.confmu.Lock()
-	defer s.confmu.Unlock()
+	s.confMu.Lock()
+	defer s.confMu.Unlock()
 	si.Name = s.conf.Name
 	si.DataPath = s.conf.DataPath
 	return si, nil
 }
 
 func (s *archiveSpace) Name() string {
-	s.confmu.Lock()
-	defer s.confmu.Unlock()
+	s.confMu.Lock()
+	defer s.confMu.Unlock()
 	return s.conf.Name
 }
 
@@ -44,8 +43,8 @@ func (s *archiveSpace) update(req api.SpacePutRequest) error {
 		return zqe.E(zqe.Invalid, "cannot set name to an empty string")
 	}
 
-	s.confmu.Lock()
-	defer s.confmu.Unlock()
+	s.confMu.Lock()
+	defer s.confMu.Unlock()
 
 	conf := s.conf.clone()
 	conf.Name = req.Name
@@ -61,8 +60,8 @@ func (s *archiveSpace) updateConfigWithLock(conf config) error {
 }
 
 func (s *archiveSpace) delete() error {
-	s.confmu.Lock()
-	defer s.confmu.Unlock()
+	s.confMu.Lock()
+	defer s.confMu.Unlock()
 
 	if len(s.conf.Subspaces) != 0 {
 		return zqe.E(zqe.Conflict, "cannot delete space with subspaces")
@@ -78,8 +77,8 @@ func (s *archiveSpace) delete() error {
 }
 
 func (s *archiveSpace) CreateSubspace(req api.SubspacePostRequest) (*archiveSubspace, error) {
-	s.confmu.Lock()
-	defer s.confmu.Unlock()
+	s.confMu.Lock()
+	defer s.confMu.Unlock()
 
 	substore, err := archivestore.Load(s.conf.DataPath, &storage.ArchiveConfig{
 		OpenOptions: &req.OpenOptions,

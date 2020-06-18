@@ -311,7 +311,7 @@ func TestSpacePutDuplicateName(t *testing.T) {
 	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test1"})
 	require.NoError(t, err)
 	err = client.SpacePut(ctx, sp.ID, api.SpacePutRequest{Name: "test"})
-	require.Regexp(t, "space with name 'test' already exists", err.Error())
+	assert.EqualError(t, err, "status code 409: space with name 'test' already exists")
 }
 
 func TestSpacePostDataPath(t *testing.T) {
