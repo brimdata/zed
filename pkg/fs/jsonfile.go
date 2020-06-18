@@ -36,9 +36,8 @@ func UnmarshalJSONFile(filename string, v interface{}) error {
 	if err != nil {
 		return err
 	}
-
-	if err = json.Unmarshal(data, v); err != nil {
-		return fmt.Errorf("%s: unmarshaling error: %s", filename, err)
+	if err := json.Unmarshal(data, v); err != nil {
+		return fmt.Errorf("%s: unmarshaling error: %w", filename, err)
 	}
 	return nil
 }
