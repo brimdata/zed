@@ -55,10 +55,7 @@ func (s *archiveSubspace) delete() error {
 	return s.findConfig(func(i int) error {
 		conf := s.parent.conf.clone()
 		conf.Subspaces = append(conf.Subspaces[:i], conf.Subspaces[i+1:]...)
-		if err := s.parent.updateConfigWithLock(conf); err != nil {
-			return err
-		}
-		return nil
+		return s.parent.updateConfigWithLock(conf)
 	})
 }
 
