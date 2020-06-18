@@ -208,16 +208,7 @@ func (p *Put) put(in *zng.Record) *zng.Record {
 		}
 	}
 
-	out, err := zng.NewRecord(descInfo.typ, bytes)
-	if err != nil {
-		// NewRecord fails if the descriptor has a ts field but
-		// the value can't be extracted or parsed.  Since the input
-		// record had to be valid for us to get into this proc, this
-		// would only happen if a bug in the logic above produced
-		// an invalid record representation.
-		panic(err)
-	}
-	return out
+	return zng.NewRecord(descInfo.typ, bytes)
 }
 
 func (p *Put) Pull() (zbuf.Batch, error) {

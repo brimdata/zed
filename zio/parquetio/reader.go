@@ -556,5 +556,5 @@ func (r *Reader) Read() (*zng.Record, error) {
 			return nil, err
 		}
 	}
-	return zng.NewRecord(r.typ, r.builder.Bytes())
+	return zng.NewRecord(r.typ, r.builder.Bytes()), nil
 }

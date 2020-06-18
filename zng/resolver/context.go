@@ -314,7 +314,7 @@ func (c *Context) AddColumns(r *zng.Record, newCols []zng.Column, vals []zng.Val
 	if err != nil {
 		return nil, err
 	}
-	return zng.NewRecord(typ, zv)
+	return zng.NewRecord(typ, zv), nil
 }
 
 // NewValue creates a Value with the given type and value described

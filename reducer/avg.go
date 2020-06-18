@@ -67,10 +67,7 @@ func (a *Avg) ConsumePart(p zng.Value) error {
 	if !ok {
 		return ErrBadValue
 	}
-	rec, err := zng.NewRecord(rType, p.Bytes)
-	if err != nil {
-		return ErrBadValue
-	}
+	rec := zng.NewRecord(rType, p.Bytes)
 	sumVal, err := rec.ValueByField(sumName)
 	if err != nil || sumVal.Type != zng.TypeFloat64 {
 		return ErrBadValue

@@ -29,13 +29,7 @@ func (cb *cutBuilder) cut(in *zng.Record) *zng.Record {
 		// XXX internal error, what to do...
 		return nil
 	}
-
-	r, err := zng.NewRecord(cb.outType, zv)
-	if err != nil {
-		// records with invalid ts shouldn't get here
-		return nil
-	}
-	return r
+	return zng.NewRecord(cb.outType, zv)
 }
 
 type Cutter struct {

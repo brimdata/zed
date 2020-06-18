@@ -43,44 +43,26 @@ func (r *RecordTypeError) Unwrap() error { return r.Err }
 // operations on zeek data can work with either serialized data or native
 // zng.Records by accessing data via the Record methods.
 type Record struct {
-	Ts          nano.Ts
 	Type        *TypeRecord
 	nonvolatile bool
 	// Raw is the serialization format for records.  A raw value comprises a
 	// sequence of zvals, one per descriptor column.  The descriptor is stored
 	// outside of the raw serialization but is needed to interpret the raw values.
-	Raw zcode.Bytes
+	Raw     zcode.Bytes
+	ts      nano.Ts
+	tsValid bool
 }
 
-func NewRecordTs(typ *TypeRecord, ts nano.Ts, raw zcode.Bytes) *Record {
+func NewRecord(typ *TypeRecord, raw zcode.Bytes) *Record {
 	return &Record{
-		Ts:          ts,
 		Type:        typ,
 		nonvolatile: true,
 		Raw:         raw,
 	}
 }
 
-func NewRecord(typ *TypeRecord, zv zcode.Bytes) (*Record, error) {
-	r := NewRecordTs(typ, 0, zv)
-	if typ.TsCol < 0 {
-		return r, nil
-	}
-	body, err := r.Slice(typ.TsCol)
-	if err != nil {
-		return nil, err
-	}
-	if body != nil {
-		r.Ts, err = DecodeTime(body)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return r, nil
-}
-
-func NewRecordCheck(typ *TypeRecord, ts nano.Ts, raw zcode.Bytes) (*Record, error) {
-	r := NewRecordTs(typ, ts, raw)
+func NewRecordCheck(typ *TypeRecord, raw zcode.Bytes) (*Record, error) {
+	r := NewRecord(typ, raw)
 	if err := r.TypeCheck(); err != nil {
 		return nil, err
 	}
@@ -93,12 +75,10 @@ func NewRecordCheck(typ *TypeRecord, ts nano.Ts, raw zcode.Bytes) (*Record, erro
 // into a reusable buffer allowing the scanner to filter these records
 // without having their body copied to safe memory, i.e., when the scanner
 // matches a record, it will call Keep() to make a safe copy.
-func NewVolatileRecord(typ *TypeRecord, ts nano.Ts, raw zcode.Bytes) *Record {
+func NewVolatileRecord(typ *TypeRecord, raw zcode.Bytes) *Record {
 	return &Record{
-		Ts:          ts,
-		Type:        typ,
-		nonvolatile: false,
-		Raw:         raw,
+		Type: typ,
+		Raw:  raw,
 	}
 }
 
@@ -121,10 +101,15 @@ func (r *Record) Keep() *Record {
 	if r.nonvolatile {
 		return r
 	}
-	v := &Record{Ts: r.Ts, Type: r.Type, nonvolatile: true}
-	v.Raw = make(zcode.Bytes, len(r.Raw))
-	copy(v.Raw, r.Raw)
-	return v
+	raw := make(zcode.Bytes, len(r.Raw))
+	copy(raw, r.Raw)
+	return &Record{
+		Type:        r.Type,
+		nonvolatile: true,
+		Raw:         raw,
+		ts:          r.ts,
+		tsValid:     r.tsValid,
+	}
 }
 
 func (r *Record) CopyBody() {
@@ -333,6 +318,16 @@ func (r *Record) AccessTimeByColumn(colno int) (nano.Ts, error) {
 		return 0, err
 	}
 	return DecodeTime(zv)
+}
+
+// Ts returns the value of the receiver's "ts" field.  If the field is absent,
+// is null, or has a type other than TypeOfTime, Ts returns nano.MinTs.
+func (r *Record) Ts() nano.Ts {
+	if !r.tsValid {
+		r.ts, _ = r.AccessTime("ts")
+		r.tsValid = true
+	}
+	return r.ts
 }
 
 func (r *Record) String() string {

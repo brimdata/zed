@@ -415,11 +415,7 @@ func (g *GroupByAggregator) records(eof bool) ([]*zng.Record, error) {
 		if err != nil {
 			return nil, err
 		}
-		r, err := zng.NewRecord(typ, zv)
-		if err != nil {
-			return nil, err
-		}
-		recs = append(recs, r)
+		recs = append(recs, zng.NewRecord(typ, zv))
 		delete(g.table, k)
 	}
 	return recs, nil

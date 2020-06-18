@@ -25,7 +25,7 @@ func RecordCompare(d Direction) RecordCmpFn {
 type RecordCmpFn func(a, b *zng.Record) bool
 
 func CmpTimeForward(a, b *zng.Record) bool {
-	return a.Ts < b.Ts
+	return a.Ts() < b.Ts()
 }
 
 func CmpTimeReverse(a, b *zng.Record) bool {

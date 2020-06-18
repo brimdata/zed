@@ -287,5 +287,5 @@ func (p *Parser) ParseValue(line []byte) (*zng.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zng.NewRecord(p.descriptor, zv)
+	return zng.NewRecord(p.descriptor, zv), nil
 }

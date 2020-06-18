@@ -57,5 +57,5 @@ func (r *Row) Result(zctx *resolver.Context) (*zng.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zng.NewRecordTs(typ, 0, zv), nil
+	return zng.NewRecord(typ, zv), nil
 }

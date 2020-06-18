@@ -63,7 +63,7 @@ func (s *Scanner) Read() (*zng.Record, error) {
 		}
 		atomic.AddInt64(&s.stats.bytesRead, int64(len(rec.Raw)))
 		atomic.AddInt64(&s.stats.recordsRead, 1)
-		if s.span != nano.MaxSpan && !s.span.Contains(rec.Ts) ||
+		if s.span != nano.MaxSpan && !s.span.Contains(rec.Ts()) ||
 			s.filter != nil && !s.filter(rec) {
 			continue
 		}

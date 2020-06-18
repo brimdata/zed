@@ -92,10 +92,10 @@ func (i *indexReader) Read() (*zng.Record, error) {
 			return nil, nil
 		}
 
-		if rec.Ts < i.start {
+		if rec.Ts() < i.start {
 			continue
 		}
-		if rec.Ts <= i.end {
+		if rec.Ts() <= i.end {
 			return rec, nil
 		}
 
@@ -116,27 +116,27 @@ func (i *indexReader) readOne() (*zng.Record, error) {
 	if i.lastTs != 0 {
 		switch i.order {
 		case OrderUnknown:
-			if rec.Ts > i.lastTs {
+			if rec.Ts() > i.lastTs {
 				i.order = OrderAscending
-			} else if rec.Ts < i.lastTs {
+			} else if rec.Ts() < i.lastTs {
 				i.order = OrderDescending
 			}
 		case OrderAscending:
-			if rec.Ts < i.lastTs {
+			if rec.Ts() < i.lastTs {
 				i.order = OrderUnsorted
 			}
 		case OrderDescending:
-			if rec.Ts > i.lastTs {
+			if rec.Ts() > i.lastTs {
 				i.order = OrderUnsorted
 			}
 		}
 	}
-	i.lastTs = rec.Ts
+	i.lastTs = rec.Ts()
 
 	sos := i.Reader.LastSOS()
 	if sos != i.lastSOS {
 		i.lastSOS = sos
-		ts := rec.Ts
+		ts := rec.Ts()
 		if ts != i.lastIndexedTs {
 			i.lastIndexedTs = ts
 			i.marks = append(i.marks, mark{ts, sos})
@@ -205,17 +205,17 @@ func (r *rangeReader) Read() (*zng.Record, error) {
 		if rec != nil {
 			switch r.order {
 			case OrderAscending:
-				if rec.Ts < r.start {
+				if rec.Ts() < r.start {
 					continue
 				}
-				if rec.Ts > r.end {
+				if rec.Ts() > r.end {
 					rec = nil
 				}
 			case OrderDescending:
-				if rec.Ts > r.end {
+				if rec.Ts() > r.end {
 					continue
 				}
-				if rec.Ts < r.start {
+				if rec.Ts() < r.start {
 					rec = nil
 				}
 			}
