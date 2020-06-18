@@ -191,11 +191,6 @@ func TestSearchError(t *testing.T) {
 	})
 }
 
-// XXX duplicate name tests:
-// - create space with dup name
-// - create subspace with dup name
-// - change name to dup name
-
 func TestSpaceList(t *testing.T) {
 	names := []string{"sp1", "sp2", "sp3", "sp4"}
 	var expected []api.SpaceInfo
