@@ -48,7 +48,7 @@ func (c *Command) Run(args []string) error {
 		},
 	}
 	if _, err := client.SubspacePost(c.Context(), api.SpaceID(c.parentID), req); err != nil {
-		return fmt.Errorf("couldn't create subspace %s: %v", c.name, err)
+		return fmt.Errorf("couldn't create subspace %s: %w", c.name, err)
 	}
 	fmt.Printf("%s: subspace created\n", c.name)
 	return nil
