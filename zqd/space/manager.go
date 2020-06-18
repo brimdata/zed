@@ -77,7 +77,7 @@ func (m *Manager) Create(req api.SpacePostRequest) (Space, error) {
 	if req.Name == "" && req.DataPath == "" {
 		return nil, zqe.E(zqe.Invalid, "must supply non-empty name or dataPath")
 	}
-	// If name is not set then derrive name from DataPath; removing and
+	// If name is not set then derive name from DataPath, removing and
 	// replacing invalid characters.
 	if req.Name == "" {
 		req.Name = safeName(m.names, req.DataPath)
