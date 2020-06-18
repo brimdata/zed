@@ -78,7 +78,7 @@ func validateName(names map[string]api.SpaceID, name string) error {
 	if nameRegexp.MatchString(name) {
 		return zqe.E(zqe.Invalid, "name must contain only characters [a-zA-Z0-9_]")
 	}
-	if _, exists := names[name]; exists {
+	if _, ok := names[name]; ok {
 		return zqe.E(zqe.Conflict, "space with name '%s' already exists", name)
 	}
 	return nil
