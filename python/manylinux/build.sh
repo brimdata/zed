@@ -3,15 +3,11 @@
 set -o pipefail -ex
 
 # Prepare Go
-GOTAR=go1.13.12.linux-amd64.tar.gz
-cd /
-curl -O https://storage.googleapis.com/golang/$GOTAR
-tar zxvf $GOTAR
+curl -sS https://storage.googleapis.com/golang/go1.13.12.linux-amd64.tar.gz | tar xvzf - -C /
 export PATH=$PATH:/go/bin
 
 # Build go zqext
-cd /io
-make build-python-lib
+make -C /io build-python-lib
 
 # Create & audit wheels for each Python version
 for py in cp36-cp36m cp37-cp37m cp38-cp38; do

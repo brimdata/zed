@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name = 'brim',
     version = '0.0.1',
-    description = 'Brim tooling for ZNG data',
+    description = 'Brim tools for ZNG data',
     url = 'https://github.com/brimsec/zq',
     author = 'Brim Security, Inc.',
     author_email = 'support@brimsecurity.com',

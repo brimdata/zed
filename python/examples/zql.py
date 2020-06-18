@@ -12,11 +12,10 @@ args = parser.parse_args()
 if len(args.args) != 3:
     sys.exit(parser.print_help())
 
-kwargs = {
-    'inquery': args.args[0],
-    'infile': args.args[1],
-    'informat': args.i,
-    'outfile': args.args[2],
-    'outformat': args.f,
-}
-brim.zql_file_eval(**kwargs)
+brim.zql_file_eval(
+    inquery=args.args[0],
+    infile=args.args[1],
+    informat=args.i,
+    outfile=args.args[2],
+    outformat=args.f,
+)
