@@ -53,7 +53,7 @@ func NewManager(root string, logger *zap.Logger) (*Manager, error) {
 			}
 			config.Version = configVersion
 			if err := writeConfig(path, config); err != nil {
-				logger.Error("error migrating config", zap.Error(err))
+				logger.Error("Error migrating config", zap.Error(err))
 				continue
 			}
 		}
