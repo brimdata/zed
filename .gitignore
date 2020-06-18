@@ -1,5 +1,6 @@
 bin/
 dist/
+python/build/
 tests/test-root
 zq-sample-data
 zql/deps/

@@ -80,16 +80,23 @@ create-release-assets:
 		zip -r release/$${d}.zip $${d} ; \
 	done
 
-build-pyzq:
-	@mkdir -p dist/pybuild
-	@go build -buildmode=c-shared -o dist/pybuild/zq.so ./python/zq.go
+build-python-wheel: build-python-lib
+	pip3 wheel --no-deps -w dist ./python
+
+build-python-lib:
+	@mkdir -p python/build/zqext
+	go build -buildmode=c-archive -o python/build/zqext/libzqext.a ./python/src/zqext.go
+
+clean-python:
+	@rm -rf python/build
 
 # CI performs these actions individually since that looks nicer in the UI;
 # this is a shortcut so that a local dev can easily run everything.
 test-ci: fmt tidy vet test-unit test-system test-zeek test-heavy
 
-clean:
+clean: clean-python
 	@rm -rf dist
 
 .PHONY: fmt tidy vet test-unit test-system test-heavy sampledata test-ci
-.PHONY: perf-compare build install create-release-assets clean build-pyzq
+.PHONY: perf-compare build install create-release-assets clean clean-python
+.PHONY: build-python-wheel
