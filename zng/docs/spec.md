@@ -5,10 +5,10 @@
 > the zq output format is subject to change.  In this branch,
 > zq attempts to implement everything herein excepting:
 >
-> * the bytes type is not yet implemented,
-> * it is not yet possible to validate enums against a set of allowed values.
+> * the `bytes` type is not yet implemented,
+> * the `enum` type is not yet implemented.
 >
-> Also, we are contemplating reducing the number of primitive types, e.g.,
+> Also, we are contemplating reducing the number of [primitive types](#5-primitive-types), e.g.,
 > the number of variations in integer types.
 
 * [1. Introduction](#1-introduction)
