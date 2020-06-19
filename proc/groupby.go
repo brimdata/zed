@@ -13,7 +13,6 @@ import (
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
-	"go.uber.org/zap"
 )
 
 type GroupByKey struct {
@@ -131,7 +130,6 @@ type GroupByAggregator struct {
 	reducerDefs  []compile.CompiledReducer
 	builder      *ColumnBuilder
 	table        map[string]*GroupByRow
-	logger       *zap.Logger
 	limit        int
 	valueSortFn  expr.ValueSortFn // to compare primary group keys for early key output
 	recordSortFn expr.SortFn
@@ -178,7 +176,6 @@ func NewGroupByAggregator(c *Context, params GroupByParams) *GroupByAggregator {
 		builder:      params.builder,
 		keyRows:      make(map[int]keyRow),
 		table:        make(map[string]*GroupByRow),
-		logger:       c.Logger,
 		recordSortFn: recordSortFn,
 		valueSortFn:  valueSortFn,
 	}
@@ -389,14 +386,8 @@ func (g *GroupByAggregator) Results(eof bool) (zbuf.Batch, error) {
 // records returns a slice of all records from the groupby table in a
 // deterministic but undefined order.
 func (g *GroupByAggregator) records(eof bool) ([]*zng.Record, error) {
-	var keys []string
-	for k := range g.table {
-		keys = append(keys, k)
-	}
-
 	var recs []*zng.Record
-	for _, k := range keys {
-		row := g.table[k]
+	for k, row := range g.table {
 		if !eof && g.valueSortFn(*row.groupval, *g.maxKey) >= 0 {
 			continue
 		}
