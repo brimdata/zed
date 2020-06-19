@@ -388,7 +388,7 @@ func (g *GroupByAggregator) Results(eof bool) (zbuf.Batch, error) {
 func (g *GroupByAggregator) records(eof bool) ([]*zng.Record, error) {
 	var recs []*zng.Record
 	for k, row := range g.table {
-		if !eof && g.valueCompareFn(*row.groupval, *g.maxKey) >= 0 {
+		if !eof && g.valueCompare(*row.groupval, *g.maxKey) >= 0 {
 			continue
 		}
 

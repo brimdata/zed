@@ -30,12 +30,12 @@ func isNull(val zng.Value) bool {
 // a record with a null value is considered larger than a record with any
 // other value, and vice versa.
 func NewCompareFn(nullsMax bool, fields ...FieldExprResolver) CompareFn {
-	sorters := make(map[zng.Type]comparefn)
+	comparefns := make(map[zng.Type]comparefn)
 	return func(ra *zng.Record, rb *zng.Record) int {
 		for _, resolver := range fields {
 			a := resolver(ra)
 			b := resolver(rb)
-			v := compareValues(a, b, sorters, nullsMax)
+			v := compareValues(a, b, comparefns, nullsMax)
 			// If the events don't match, then return the sort
 			// info.  Otherwise, they match and we continue on
 			// on in the loop to the secondary key, etc.
@@ -49,13 +49,13 @@ func NewCompareFn(nullsMax bool, fields ...FieldExprResolver) CompareFn {
 }
 
 func NewValueCompareFn(nullsMax bool) ValueCompareFn {
-	sorters := make(map[zng.Type]comparefn)
+	comparefns := make(map[zng.Type]comparefn)
 	return func(a, b zng.Value) int {
-		return compareValues(a, b, sorters, nullsMax)
+		return compareValues(a, b, comparefns, nullsMax)
 	}
 }
 
-func compareValues(a, b zng.Value, sorters map[zng.Type]comparefn, nullsMax bool) int {
+func compareValues(a, b zng.Value, comparefns map[zng.Type]comparefn, nullsMax bool) int {
 	// Handle nulls according to nullsMax
 	nullA := isNull(a)
 	nullB := isNull(b)
@@ -83,17 +83,17 @@ func compareValues(a, b zng.Value, sorters map[zng.Type]comparefn, nullsMax bool
 		return bytes.Compare([]byte(a.Type.String()), []byte(b.Type.String()))
 	}
 
-	sf, ok := sorters[a.Type]
+	cfn, ok := comparefns[a.Type]
 	if !ok {
-		sf = LookupCompare(a.Type)
-		sorters[a.Type] = sf
+		cfn = LookupCompare(a.Type)
+		comparefns[a.Type] = cfn
 	}
 
-	return sf(a.Bytes, b.Bytes)
+	return cfn(a.Bytes, b.Bytes)
 }
 
 func NewKeyCompareFn(key *zng.Record) (KeyCompareFn, error) {
-	sorters := make(map[zng.Type]comparefn)
+	comparefns := make(map[zng.Type]comparefn)
 	var accessors []FieldExprResolver
 	var keyval []zng.Value
 	for it := key.FieldIter(); !it.Done(); {
@@ -122,13 +122,13 @@ func NewKeyCompareFn(key *zng.Record) (KeyCompareFn, error) {
 			if a.Type.ID() != b.Type.ID() {
 				return -1
 			}
-			//XXX sorters should be a slice indexed by ID
-			sf, ok := sorters[a.Type]
+			//XXX comparefns should be a slice indexed by ID
+			cfn, ok := comparefns[a.Type]
 			if !ok {
-				sf = LookupCompare(a.Type)
-				sorters[a.Type] = sf
+				cfn = LookupCompare(a.Type)
+				comparefns[a.Type] = cfn
 			}
-			v := sf(a.Bytes, b.Bytes)
+			v := cfn(a.Bytes, b.Bytes)
 			// If the fields don't match, then return the sense of
 			// the mismatch.  Otherwise, we continue on
 			// in the loop to the secondary key, etc.
@@ -142,8 +142,8 @@ func NewKeyCompareFn(key *zng.Record) (KeyCompareFn, error) {
 }
 
 // SortStable performs a stable sort on the provided records.
-func SortStable(records []*zng.Record, sorter CompareFn) {
-	slice := &RecordSlice{records, sorter}
+func SortStable(records []*zng.Record, compare CompareFn) {
+	slice := &RecordSlice{records, compare}
 	sort.Stable(slice)
 }
 
