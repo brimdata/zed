@@ -85,9 +85,9 @@ T	123	456	123.456	1592502151.123456	123.456	smile\xf0\x9f\x98\x81smile	\x09\x07\
 ## Type-Specific Details
 
 As `zq` acts as a reference implementation for ZNG, it's helpful to understand
-the following subtleties of how it reads the following Zeek data types into
-ZNG equivalents and writes them back out again in Zeek log format. Other
-ZNG implementations (should they exist) may handle these differently.
+how it reads the following Zeek data types into ZNG equivalents and writes
+them back out again in Zeek log format. Other ZNG implementations (should they
+exist) may handle these differently.
 
 ### `double`
 
