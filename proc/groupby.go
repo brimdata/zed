@@ -13,7 +13,6 @@ import (
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
-	"go.uber.org/zap"
 )
 
 type GroupByKey struct {
@@ -131,7 +130,6 @@ type GroupByAggregator struct {
 	reducerDefs  []compile.CompiledReducer
 	builder      *ColumnBuilder
 	table        map[string]*GroupByRow
-	logger       *zap.Logger
 	limit        int
 	valueSortFn  expr.ValueSortFn // to compare primary group keys for early key output
 	recordSortFn expr.SortFn
@@ -178,7 +176,6 @@ func NewGroupByAggregator(c *Context, params GroupByParams) *GroupByAggregator {
 		builder:      params.builder,
 		keyRows:      make(map[int]keyRow),
 		table:        make(map[string]*GroupByRow),
-		logger:       c.Logger,
 		recordSortFn: recordSortFn,
 		valueSortFn:  valueSortFn,
 	}
