@@ -139,7 +139,7 @@ _not_ intended to be read or presented as such. Meanwhile, another Zeek
 UTF-8. These details are currently only captured within the Zeek source code
 itself that defines how these values are generated.
 
-ZNG includes a [primtive type](spec.md#5-primitive-types) called `bytes` that's
+ZNG includes a [primitive type](spec.md#5-primitive-types) called `bytes` that's
 suited to storing the former "always binary" case and a `string` type for the
 latter "always printable" case. However, Zeek logs do not currently communicate
 detail that would allow a ZNG implementation to know which Zeek `string` fields
