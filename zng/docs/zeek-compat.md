@@ -162,7 +162,7 @@ value is intended to be populated and used.
 Zeek's `record` type is unique in that every Zeek log line effectively _is_ a
 record, with its schema defined via the `#fields` and `#types` directives in
 the headers of each log file. Unlike what we saw in the
-[example TZNG output](#example), the word "record" is never called out
+[example TZNG output](#example), the word "record" never appears
 explicitly in the schema definition in Zeek logs.
 
 Embedded records also subtly appear within Zeek log lines in the form of
