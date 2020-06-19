@@ -3,6 +3,7 @@ package archive
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -52,6 +53,11 @@ func writeTempFile(dir, pattern string, b []byte) (string, error) {
 		os.Remove(f.Name())
 		return "", err
 	}
+	//err = f.Sync()
+	//if err != nil {
+	//	os.Remove(f.Name())
+	//	return "", err
+	//}
 	err = f.Close()
 	if err != nil {
 		os.Remove(f.Name())
@@ -155,6 +161,10 @@ func (ark *Archive) AppendSpans(spans []SpanInfo) error {
 	mtime, err := ark.metaWrite()
 	if err != nil {
 		return err
+	}
+
+	if mtime.Equal(ark.mdModTime) {
+		return fmt.Errorf("AppendSpans: no mtime update after write: file mtime %v, ark.mdModTime %v, now %v", mtime, ark.mdModTime, time.Now())
 	}
 
 	ark.mdUpdateCount++

@@ -15,26 +15,28 @@ jobs:
           go-version: '1.13'
       - uses: actions/checkout@v1
       - run: go mod download
+      - run: df -T
       - run: make fmt
       - run: make tidy
       - run: make vet
       - run: make test-unit
-      - run: make test-system
-      - run: make test-zeek
-      - run: make test-heavy
-  test-windows:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/setup-go@v1
-        with:
-          go-version: '1.13'
-      - uses: actions/checkout@v1
-      - run: go test -short ./...
-      - run: mkdir dist -ea 0
-      - run: go build -o dist ./cmd/...
-      - run: go test -v -tags=system ./tests
-  markdown-link-check:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v1
-    - uses: gaurav-nelson/github-action-markdown-link-check@v1
+#      - run: make test-system
+#      - run: make test-zeek
+# XXX alfred
+#      - run: make test-heavy
+#  test-windows:
+#    runs-on: windows-latest
+#    steps:
+#      - uses: actions/setup-go@v1
+#        with:
+#          go-version: '1.13'
+#      - uses: actions/checkout@v1
+#      - run: go test -short ./...
+#      - run: mkdir dist -ea 0
+#      - run: go build -o dist ./cmd/...
+#      - run: go test -v -tags=system ./tests
+#  markdown-link-check:
+#    runs-on: ubuntu-latest
+#    steps:
+#    - uses: actions/checkout@v1
+#    - uses: gaurav-nelson/github-action-markdown-link-check@v1

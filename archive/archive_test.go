@@ -172,7 +172,7 @@ func TestImportWhileOpen(t *testing.T) {
 
 	if !assert.Equal(t, 3, ark1.mdUpdateCount) {
 		if fi, err := os.Stat(ark1.mdPath()); err == nil {
-			fmt.Fprintf(os.Stderr, "metadata mtime: %v, mdModTime %v", fi.ModTime(), ark1.mdModTime)
+			fmt.Fprintf(os.Stderr, "metadata mtime: %v, ark1.mdModTime %v, ark2.mdModTime %v", fi.ModTime(), ark1.mdModTime, ark2.mdModTime)
 		}
 	}
 }

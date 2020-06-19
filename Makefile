@@ -43,7 +43,7 @@ bin/$(ZEEKPATH):
 
 
 test-unit:
-	@go test -short ./...
+	@go test -v -short ./...
 
 test-system: build
 	@ZTEST_BINDIR=$(CURDIR)/dist go test -v ./tests
