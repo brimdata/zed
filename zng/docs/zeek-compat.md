@@ -148,8 +148,7 @@ to store as which of these two ZNG data types. Therefore the single ZNG
 `string`-type fields.
 
 One exception to this is Zeek's `_path` field. As it's a standard field that's
-known to be populated by Zeek's logging system (or populated by `zq` during
-while reading some variations of
+known to be populated by Zeek's logging system (or populated by `zq` when reading some
 [Zeek JSON data](https://github.com/brimsec/zq/tree/master/zeek#type-definition-structure--importance-of-_path))
 `zq` currently handles `_path` using ZNG's `string` type.
 
