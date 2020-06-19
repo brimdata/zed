@@ -8,8 +8,8 @@ import (
 	"github.com/brimsec/zq/zng"
 )
 
-type SortFn func(a *zng.Record, b *zng.Record) int
-type ValueSortFn func(a zng.Value, b zng.Value) int
+type CompareFn func(a *zng.Record, b *zng.Record) int
+type ValueCompareFn func(a zng.Value, b zng.Value) int
 type KeyCompareFn func(*zng.Record) int
 
 // Internal function that compares two values of compatible types.
@@ -19,7 +19,7 @@ func isNull(val zng.Value) bool {
 	return val.Type == nil || val.Bytes == nil
 }
 
-// NewSortFn creates a function that compares a pair of Records
+// NewCompareFn creates a function that compares a pair of Records
 // based on the provided ordered list of fields.
 // The returned function uses the same return conventions as standard
 // routines such as bytes.Compare() and strings.Compare(), so it may
@@ -29,7 +29,7 @@ func isNull(val zng.Value) bool {
 // is governed by the nullsMax parameter.  If this parameter is true,
 // a record with a null value is considered larger than a record with any
 // other value, and vice versa.
-func NewSortFn(nullsMax bool, fields ...FieldExprResolver) SortFn {
+func NewCompareFn(nullsMax bool, fields ...FieldExprResolver) CompareFn {
 	sorters := make(map[zng.Type]comparefn)
 	return func(ra *zng.Record, rb *zng.Record) int {
 		for _, resolver := range fields {
@@ -48,7 +48,7 @@ func NewSortFn(nullsMax bool, fields ...FieldExprResolver) SortFn {
 	}
 }
 
-func NewValueSortFn(nullsMax bool) ValueSortFn {
+func NewValueCompareFn(nullsMax bool) ValueCompareFn {
 	sorters := make(map[zng.Type]comparefn)
 	return func(a, b zng.Value) int {
 		return compareValues(a, b, sorters, nullsMax)
@@ -85,7 +85,7 @@ func compareValues(a, b zng.Value, sorters map[zng.Type]comparefn, nullsMax bool
 
 	sf, ok := sorters[a.Type]
 	if !ok {
-		sf = LookupSorter(a.Type)
+		sf = LookupCompare(a.Type)
 		sorters[a.Type] = sf
 	}
 
@@ -125,7 +125,7 @@ func NewKeyCompareFn(key *zng.Record) (KeyCompareFn, error) {
 			//XXX sorters should be a slice indexed by ID
 			sf, ok := sorters[a.Type]
 			if !ok {
-				sf = LookupSorter(a.Type)
+				sf = LookupCompare(a.Type)
 				sorters[a.Type] = sf
 			}
 			v := sf(a.Bytes, b.Bytes)
@@ -142,18 +142,18 @@ func NewKeyCompareFn(key *zng.Record) (KeyCompareFn, error) {
 }
 
 // SortStable performs a stable sort on the provided records.
-func SortStable(records []*zng.Record, sorter SortFn) {
+func SortStable(records []*zng.Record, sorter CompareFn) {
 	slice := &RecordSlice{records, sorter}
 	sort.Stable(slice)
 }
 
 type RecordSlice struct {
 	records []*zng.Record
-	sorter  SortFn
+	compare CompareFn
 }
 
-func NewRecordSlice(sorter SortFn) *RecordSlice {
-	return &RecordSlice{sorter: sorter}
+func NewRecordSlice(compare CompareFn) *RecordSlice {
+	return &RecordSlice{compare: compare}
 }
 
 // Swap implements sort.Interface for *Record slices.
@@ -164,7 +164,7 @@ func (r *RecordSlice) Swap(i, j int) { r.records[i], r.records[j] = r.records[j]
 
 // Less implements sort.Interface for *Record slices.
 func (r *RecordSlice) Less(i, j int) bool {
-	return r.sorter(r.records[i], r.records[j]) < 0
+	return r.compare(r.records[i], r.records[j]) < 0
 }
 
 // Push adds x as element Len(). Implements heap.Interface.
@@ -184,12 +184,12 @@ func (r *RecordSlice) Index(i int) *zng.Record {
 	return r.records[i]
 }
 
-func LookupSorter(typ zng.Type) comparefn {
+func LookupCompare(typ zng.Type) comparefn {
 	// XXX record support easy to add here if we moved the creation of the
 	// field resolvers into this package.
 	if innerType := zng.InnerType(typ); innerType != nil {
 		return func(a, b zcode.Bytes) int {
-			compare := LookupSorter(innerType)
+			compare := LookupCompare(innerType)
 			ia := a.Iter()
 			ib := b.Iter()
 			for {
