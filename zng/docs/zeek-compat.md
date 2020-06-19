@@ -50,6 +50,14 @@ applicable to handling certain types.
 | [`vector`](https://docs.zeek.org/en/current/script-reference/types.html#type-vector)     | [`array`](spec.md#3112-array-typedef)   | |
 | [`record`](https://docs.zeek.org/en/current/script-reference/types.html#type-record)     | [`record`](spec.md#3111-record-typedef) | See [`record` details](#record) |
 
+* **Note**: The [Zeek data type](https://docs.zeek.org/en/current/script-reference/types.html)
+page describes the types in the context of the
+[Zeek scripting language](https://docs.zeek.org/en/current/examples/scripting/).
+The Zeek types available in scripting are a superset of the data types that may
+appear in Zeek log files. The encodings of the types also differ in some ways
+between the two contexts. However, we link to this reference because there is
+no authoritative specification of the Zeek log format.
+
 ## Example
 
 The following example shows an input log that includes each Zeek data type,
@@ -105,8 +113,7 @@ maintain the order of `set` elements as they originally appeared in a Zeek log.
 
 As they're encountered in common programming languages, enum variables
 typically hold one of a set of predefined constants. While this is
-how Zeek's `enum` type behaves inside the
-[Zeek scripting language](https://docs.zeek.org/en/current/examples/scripting/),
+how Zeek's `enum` type behaves inside the Zeek scripting language,
 when the `enum` type is output in a Zeek log, the log does not communicate
 any such set of "allowed" constants as they were originally defined. Therefore,
 when `zq` reads a Zeek `enum` into ZNG, it defines a
