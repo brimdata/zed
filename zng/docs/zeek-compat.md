@@ -92,7 +92,9 @@ ZNG implementations (should they exist) may handle these differently.
 ### `double`
 
 As they do not affect accuracy, "trailing zero" decimal digits on Zeek `double`
-values will _not_ be preserved (e.g. `123.4560` becomes `123.456`).
+values will _not_ be preserved when they are formatted into a string, such as
+via the TZNG/Zeek/table output options in `zq` (e.g. `123.4560` becomes
+`123.456`).
 
 ### `set`
 
