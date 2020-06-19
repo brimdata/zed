@@ -302,6 +302,22 @@ func TestSpacePostDuplicateName(t *testing.T) {
 	require.Equal(t, api.ErrSpaceExists, err)
 }
 
+func TestSpaceInvalidName(t *testing.T) {
+	ctx := context.Background()
+	_, client, done := newCore(t)
+	defer done()
+	t.Run("Post", func(t *testing.T) {
+		_, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test.bad"})
+		require.EqualError(t, err, "status code 400: name must contain only characters [a-zA-Z0-9_]")
+	})
+	t.Run("Put", func(t *testing.T) {
+		sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+		require.NoError(t, err)
+		err = client.SpacePut(ctx, sp.ID, api.SpacePutRequest{Name: "test.bad"})
+		require.EqualError(t, err, "status code 400: name must contain only characters [a-zA-Z0-9_]")
+	})
+}
+
 func TestSpacePutDuplicateName(t *testing.T) {
 	ctx := context.Background()
 	_, client, done := newCore(t)
