@@ -287,6 +287,44 @@ func TestSpacePostNameOnly(t *testing.T) {
 	assert.Regexp(t, "^sp", sp.ID)
 }
 
+func TestSpacePostDuplicateName(t *testing.T) {
+	ctx := context.Background()
+	_, client, done := newCore(t)
+	defer done()
+	_, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	require.NoError(t, err)
+	_, err = client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	require.Equal(t, api.ErrSpaceExists, err)
+}
+
+func TestSpaceInvalidName(t *testing.T) {
+	ctx := context.Background()
+	_, client, done := newCore(t)
+	defer done()
+	t.Run("Post", func(t *testing.T) {
+		_, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test.bad"})
+		require.EqualError(t, err, "status code 400: name must contain only characters [a-zA-Z0-9_]")
+	})
+	t.Run("Put", func(t *testing.T) {
+		sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+		require.NoError(t, err)
+		err = client.SpacePut(ctx, sp.ID, api.SpacePutRequest{Name: "test.bad"})
+		require.EqualError(t, err, "status code 400: name must contain only characters [a-zA-Z0-9_]")
+	})
+}
+
+func TestSpacePutDuplicateName(t *testing.T) {
+	ctx := context.Background()
+	_, client, done := newCore(t)
+	defer done()
+	_, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	require.NoError(t, err)
+	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test1"})
+	require.NoError(t, err)
+	err = client.SpacePut(ctx, sp.ID, api.SpacePutRequest{Name: "test"})
+	assert.EqualError(t, err, "status code 409: space with name 'test' already exists")
+}
+
 func TestSpacePostDataPath(t *testing.T) {
 	ctx := context.Background()
 	tmp := createTempDir(t)
@@ -296,7 +334,7 @@ func TestSpacePostDataPath(t *testing.T) {
 	defer done()
 	sp, err := client.SpacePost(ctx, api.SpacePostRequest{DataPath: datapath})
 	require.NoError(t, err)
-	assert.Equal(t, "mypcap.brim", sp.Name)
+	assert.Equal(t, "mypcap_brim", sp.Name)
 	assert.Equal(t, datapath, sp.DataPath)
 }
 
@@ -603,10 +641,10 @@ func TestDeleteDuringPcapPost(t *testing.T) {
 	wg.Add(1)
 	doPost := func() error {
 		stream, err := client.PcapPost(context.Background(), sp.ID, api.PcapPostRequest{pcapfile})
+		wg.Done()
 		if err != nil {
 			return err
 		}
-		wg.Done()
 
 		var taskEnd *api.TaskEnd
 		for {

@@ -2,14 +2,10 @@ package space
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"path/filepath"
 	"sync"
 
-	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/storage"
@@ -31,6 +27,7 @@ var (
 
 type Space interface {
 	ID() api.SpaceID
+	Name() string
 	Storage() storage.Storage
 	Info(context.Context) (api.SpaceInfo, error)
 
@@ -42,8 +39,7 @@ type Space interface {
 	// and data dir (should the data dir be different than the space's path).
 	// Intended to be called from Manager.Delete().
 	delete() error
-
-	Update(api.SpacePutRequest) error
+	update(api.SpacePutRequest) error
 }
 
 func newSpaceID() api.SpaceID {
@@ -101,7 +97,6 @@ func (g *guard) acquireForDelete() error {
 		g.mu.Unlock()
 		return zqe.E(zqe.Conflict, "space is pending deletion")
 	}
-
 	g.deletePending = true
 	g.mu.Unlock()
 
@@ -200,63 +195,4 @@ func (s *spaceBase) Info(ctx context.Context) (api.SpaceInfo, error) {
 // be called when the operation completes.
 func (s *spaceBase) StartOp(ctx context.Context) (context.Context, context.CancelFunc, error) {
 	return s.sg.acquire(ctx)
-}
-
-type config struct {
-	Name     string `json:"name"`
-	DataPath string `json:"data_path"`
-	// XXX PcapPath should be named pcap_path in json land. To avoid having to
-	// do a migration we'll keep this as-is for now.
-	PcapPath string `json:"packet_path"`
-
-	Storage   storage.Config   `json:"storage"`
-	Subspaces []subspaceConfig `json:"subspaces"`
-}
-
-type subspaceConfig struct {
-	ID          api.SpaceID                `json:"id"`
-	Name        string                     `json:"name"`
-	OpenOptions storage.ArchiveOpenOptions `json:"open_options"`
-}
-
-// loadConfig loads the contents of config.json in a space's path.
-func loadConfig(spacePath string) (config, error) {
-	var c config
-	b, err := ioutil.ReadFile(filepath.Join(spacePath, configFile))
-	if err != nil {
-		return c, err
-	}
-	if err := json.Unmarshal(b, &c); err != nil {
-		return c, err
-	}
-
-	if c.Name == "" {
-		// Ensure that name is not blank for spaces created before the
-		// zq#721 work to use space ids.
-		c.Name = filepath.Base(spacePath)
-	}
-	if c.Storage.Kind == storage.UnknownStore {
-		c.Storage.Kind = storage.FileStore
-	}
-
-	return c, nil
-}
-
-func (c config) save(spacePath string) error {
-	path := filepath.Join(spacePath, configFile)
-	tmppath := path + ".tmp"
-	f, err := fs.Create(tmppath)
-	if err != nil {
-		return err
-	}
-	if err := json.NewEncoder(f).Encode(c); err != nil {
-		f.Close()
-		os.Remove(tmppath)
-		return err
-	}
-	if err = f.Close(); err != nil {
-		os.Remove(tmppath)
-		return err
-	}
-	return os.Rename(tmppath, path)
 }

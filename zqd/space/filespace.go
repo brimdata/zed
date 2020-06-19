@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqe"
@@ -15,7 +16,9 @@ const PcapIndexFile = "packets.idx.json"
 type fileSpace struct {
 	spaceBase
 	path string
-	conf config
+
+	confMu sync.Mutex
+	conf   config
 }
 
 func (s *fileSpace) Info(ctx context.Context) (api.SpaceInfo, error) {
@@ -36,12 +39,37 @@ func (s *fileSpace) Info(ctx context.Context) (api.SpaceInfo, error) {
 	return si, nil
 }
 
-func (s *fileSpace) Update(req api.SpacePutRequest) error {
+func (s *fileSpace) Name() string {
+	s.confMu.Lock()
+	defer s.confMu.Unlock()
+	return s.conf.Name
+}
+
+func (s *fileSpace) update(req api.SpacePutRequest) error {
 	if req.Name == "" {
 		return zqe.E(zqe.Invalid, "cannot set name to an empty string")
 	}
-	s.conf.Name = req.Name
-	return s.conf.save(s.path)
+	s.confMu.Lock()
+	defer s.confMu.Unlock()
+	conf := s.conf.clone()
+	conf.Name = req.Name
+	return s.updateConfigWithLock(conf)
+}
+
+func (s *fileSpace) SetPcapPath(pcapPath string) error {
+	s.confMu.Lock()
+	defer s.confMu.Unlock()
+	conf := s.conf.clone()
+	conf.PcapPath = pcapPath
+	return s.updateConfigWithLock(conf)
+}
+
+func (s *fileSpace) updateConfigWithLock(conf config) error {
+	if err := writeConfig(s.path, conf); err != nil {
+		return err
+	}
+	s.conf = conf
+	return nil
 }
 
 func (s *fileSpace) delete() error {
@@ -74,11 +102,8 @@ func filesize(path string) (int64, error) {
 	return f.Size(), nil
 }
 
-func (s *fileSpace) SetPcapPath(pcapPath string) error {
-	s.conf.PcapPath = pcapPath
-	return s.conf.save(s.path)
-}
-
 func (s *fileSpace) PcapPath() string {
+	s.confMu.Lock()
+	defer s.confMu.Unlock()
 	return s.conf.PcapPath
 }
