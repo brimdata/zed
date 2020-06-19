@@ -34,7 +34,7 @@ type Sort struct {
 	fieldResolvers     []expr.FieldExprResolver
 	once               sync.Once
 	resultCh           chan Result
-	sortFn             expr.SortFn
+	compareFn          expr.CompareFn
 	unseenFieldTracker *unseenFieldTracker
 }
 
@@ -67,11 +67,11 @@ func (s *Sort) sortLoop() {
 		s.sendResult(nil, err)
 		return
 	}
-	s.setSortFn(firstRunRecs[0])
+	s.setCompareFn(firstRunRecs[0])
 	if eof {
 		// Just one run so do an in-memory sort.
 		s.warnAboutUnseenFields()
-		expr.SortStable(firstRunRecs, s.sortFn)
+		expr.SortStable(firstRunRecs, s.compareFn)
 		array := zbuf.NewArray(firstRunRecs)
 		s.sendResult(array, nil)
 		return
@@ -128,7 +128,7 @@ func (s *Sort) recordsForOneRun() ([]*zng.Record, bool, error) {
 }
 
 func (s *Sort) createRuns(firstRunRecs []*zng.Record) (*runManager, error) {
-	rm, err := newRunManager(s.sortFn)
+	rm, err := newRunManager(s.compareFn)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +160,7 @@ func (s *Sort) warnAboutUnseenFields() {
 	}
 }
 
-func (s *Sort) setSortFn(r *zng.Record) {
+func (s *Sort) setCompareFn(r *zng.Record) {
 	resolvers := s.fieldResolvers
 	if resolvers == nil {
 		fld := guessSortField(r)
@@ -177,11 +177,11 @@ func (s *Sort) setSortFn(r *zng.Record) {
 	if s.dir < 0 {
 		nullsMax = !nullsMax
 	}
-	sortFn := expr.NewSortFn(nullsMax, resolvers...)
+	compareFn := expr.NewCompareFn(nullsMax, resolvers...)
 	if s.dir < 0 {
-		s.sortFn = func(a, b *zng.Record) int { return sortFn(b, a) }
+		s.compareFn = func(a, b *zng.Record) int { return compareFn(b, a) }
 	} else {
-		s.sortFn = sortFn
+		s.compareFn = compareFn
 	}
 }
 
@@ -232,20 +232,20 @@ func guessSortField(rec *zng.Record) string {
 type runManager struct {
 	runs       []*runFile
 	runIndices map[*runFile]int
-	sortFn     expr.SortFn
+	compareFn  expr.CompareFn
 	tempDir    string
 	zctx       *resolver.Context
 }
 
 // newRunManager creates a temporary directory.  Call cleanup to remove it.
-func newRunManager(sortFn expr.SortFn) (*runManager, error) {
+func newRunManager(compareFn expr.CompareFn) (*runManager, error) {
 	tempDir, err := ioutil.TempDir("", "zq-sort-")
 	if err != nil {
 		return nil, err
 	}
 	return &runManager{
 		runIndices: make(map[*runFile]int),
-		sortFn:     sortFn,
+		compareFn:  compareFn,
 		tempDir:    tempDir,
 		zctx:       resolver.NewContext(),
 	}, nil
@@ -260,7 +260,7 @@ func (r *runManager) cleanup() {
 
 // createRun creates a new run containing the records in recs.
 func (r *runManager) createRun(recs []*zng.Record) error {
-	expr.SortStable(recs, r.sortFn)
+	expr.SortStable(recs, r.compareFn)
 	index := len(r.runIndices)
 	filename := filepath.Join(r.tempDir, strconv.Itoa(index))
 	runFile, err := newRunFile(filename, recs, r.zctx)
@@ -298,7 +298,7 @@ func (r *runManager) Read() (*zng.Record, error) {
 func (r *runManager) Len() int { return len(r.runs) }
 
 func (r *runManager) Less(i, j int) bool {
-	v := r.sortFn(r.runs[i].nextRecord, r.runs[j].nextRecord)
+	v := r.compareFn(r.runs[i].nextRecord, r.runs[j].nextRecord)
 	switch {
 	case v < 0:
 		return true

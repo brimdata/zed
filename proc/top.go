@@ -20,7 +20,7 @@ type Top struct {
 	limit      int
 	fields     []expr.FieldExprResolver
 	records    *expr.RecordSlice
-	sorter     expr.SortFn
+	compare    expr.CompareFn
 	flushEvery bool
 }
 
@@ -68,11 +68,11 @@ func (t *Top) consume(rec *zng.Record) {
 		t.fields = []expr.FieldExprResolver{resolver}
 	}
 	if t.records == nil {
-		t.sorter = expr.NewSortFn(false, t.fields...)
-		t.records = expr.NewRecordSlice(t.sorter)
+		t.compare = expr.NewCompareFn(false, t.fields...)
+		t.records = expr.NewRecordSlice(t.compare)
 		heap.Init(t.records)
 	}
-	if t.records.Len() < t.limit || t.sorter(t.records.Index(0), rec) < 0 {
+	if t.records.Len() < t.limit || t.compare(t.records.Index(0), rec) < 0 {
 		heap.Push(t.records, rec.Keep())
 	}
 	if t.records.Len() > t.limit {

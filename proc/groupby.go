@@ -125,16 +125,16 @@ type GroupByAggregator struct {
 	// lookup table so that values with the same encoding but of
 	// different types do not collide.  No types from this context
 	// are ever referenced.
-	kctx         *resolver.Context
-	keys         []GroupByKey
-	reducerDefs  []compile.CompiledReducer
-	builder      *ColumnBuilder
-	table        map[string]*GroupByRow
-	limit        int
-	valueSortFn  expr.ValueSortFn // to compare primary group keys for early key output
-	recordSortFn expr.SortFn
-	maxKey       *zng.Value
-	inputSortDir int
+	kctx          *resolver.Context
+	keys          []GroupByKey
+	reducerDefs   []compile.CompiledReducer
+	builder       *ColumnBuilder
+	table         map[string]*GroupByRow
+	limit         int
+	valueCompare  expr.ValueCompareFn // to compare primary group keys for early key output
+	recordCompare expr.CompareFn
+	maxKey        *zng.Value
+	inputSortDir  int
 }
 
 type GroupByRow struct {
@@ -149,35 +149,35 @@ func NewGroupByAggregator(c *Context, params GroupByParams) *GroupByAggregator {
 	if limit == 0 {
 		limit = defaultGroupByLimit
 	}
-	var valueSortFn expr.ValueSortFn
-	var recordSortFn expr.SortFn
+	var valueCompare expr.ValueCompareFn
+	var recordCompare expr.CompareFn
 	if len(params.keys) > 0 && params.inputSortDir != 0 {
 		// As the default sort behavior, nullsMax=true is also expected for streaming groupby.
-		vs := expr.NewValueSortFn(true)
+		vs := expr.NewValueCompareFn(true)
 		if params.inputSortDir < 0 {
-			valueSortFn = func(a, b zng.Value) int { return vs(b, a) }
+			valueCompare = func(a, b zng.Value) int { return vs(b, a) }
 		} else {
-			valueSortFn = vs
+			valueCompare = vs
 		}
-		rs := expr.NewSortFn(true, expr.CompileFieldAccess(params.keys[0].target))
+		rs := expr.NewCompareFn(true, expr.CompileFieldAccess(params.keys[0].target))
 		if params.inputSortDir < 0 {
-			recordSortFn = func(a, b *zng.Record) int { return rs(b, a) }
+			recordCompare = func(a, b *zng.Record) int { return rs(b, a) }
 		} else {
-			recordSortFn = rs
+			recordCompare = rs
 		}
 	}
 	return &GroupByAggregator{
-		inputSortDir: params.inputSortDir,
-		limit:        limit,
-		keys:         params.keys,
-		zctx:         c.TypeContext,
-		kctx:         resolver.NewContext(),
-		reducerDefs:  params.reducers,
-		builder:      params.builder,
-		keyRows:      make(map[int]keyRow),
-		table:        make(map[string]*GroupByRow),
-		recordSortFn: recordSortFn,
-		valueSortFn:  valueSortFn,
+		inputSortDir:  params.inputSortDir,
+		limit:         limit,
+		keys:          params.keys,
+		zctx:          c.TypeContext,
+		kctx:          resolver.NewContext(),
+		reducerDefs:   params.reducers,
+		builder:       params.builder,
+		keyRows:       make(map[int]keyRow),
+		table:         make(map[string]*GroupByRow),
+		recordCompare: recordCompare,
+		valueCompare:  valueCompare,
 	}
 }
 
@@ -226,7 +226,7 @@ func (g *GroupBy) run() {
 				return
 			}
 			if res != nil {
-				expr.SortStable(res.Records(), g.agg.recordSortFn)
+				expr.SortStable(res.Records(), g.agg.recordCompare)
 				g.sendResult(res, nil)
 			}
 		}
@@ -358,7 +358,7 @@ func (g *GroupByAggregator) updateMaxKey(v zng.Value) {
 		g.maxKey = &v
 		return
 	}
-	if g.valueSortFn(v, *g.maxKey) > 0 {
+	if g.valueCompare(v, *g.maxKey) > 0 {
 		g.maxKey = &v
 	}
 }
@@ -388,7 +388,7 @@ func (g *GroupByAggregator) Results(eof bool) (zbuf.Batch, error) {
 func (g *GroupByAggregator) records(eof bool) ([]*zng.Record, error) {
 	var recs []*zng.Record
 	for k, row := range g.table {
-		if !eof && g.valueSortFn(*row.groupval, *g.maxKey) >= 0 {
+		if !eof && g.valueCompare(*row.groupval, *g.maxKey) >= 0 {
 			continue
 		}
 
