@@ -2,9 +2,8 @@ package filestore
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -25,9 +24,8 @@ import (
 )
 
 const (
-	allZngFile    = "all.zng"
-	allZngTmpFile = "all.zng.tmp"
-	infoFile      = "info.json"
+	allZngFile = "all.zng"
+	infoFile   = "info.json"
 
 	defaultStreamSize = 5000
 )
@@ -70,7 +68,7 @@ func (s *Storage) join(args ...string) string {
 
 func (s *Storage) Open(_ context.Context, span nano.Span) (zbuf.ReadCloser, error) {
 	zctx := resolver.NewContext()
-	f, err := os.Open(s.join(allZngFile))
+	f, err := fs.Open(s.join(allZngFile))
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return nil, err
@@ -78,7 +76,7 @@ func (s *Storage) Open(_ context.Context, span nano.Span) (zbuf.ReadCloser, erro
 
 		// Couldn't read all.zng, check for an old space with all.bzng
 		bzngFile := strings.TrimSuffix(allZngFile, filepath.Ext(allZngFile)) + ".bzng"
-		f, err = os.Open(s.join(bzngFile))
+		f, err = fs.Open(s.join(bzngFile))
 		if err != nil {
 			if !os.IsNotExist(err) {
 				return nil, err
@@ -114,35 +112,18 @@ func (s *Storage) Rewrite(ctx context.Context, zr zbuf.Reader) error {
 	}
 	defer s.wsem.Release(1)
 
-	// For the time being, this endpoint will overwrite any underlying data.
-	// In order to get rid errors on any concurrent searches on this space,
-	// write zng to a temp file and rename on successful conversion.
-	tmppath := s.join(allZngTmpFile)
-	zngfile, err := os.Create(tmppath)
-	if err != nil {
-		return err
-	}
-
-	fileWriter := zngio.NewWriter(zngfile, zio.WriterFlags{StreamRecordsMax: s.streamsize})
 	spanWriter := &spanWriter{}
-	zw := zbuf.MultiWriter(fileWriter, spanWriter)
+	if err := fs.ReplaceFile(s.join(allZngFile), 0600, func(w io.Writer) error {
+		fileWriter := zngio.NewWriter(w, zio.WriterFlags{StreamRecordsMax: s.streamsize})
+		zw := zbuf.MultiWriter(fileWriter, spanWriter)
+		if err := s.write(ctx, zw, zr); err != nil {
+			return err
+		}
+		return fileWriter.Flush()
+	}); err != nil {
+		return err
+	}
 
-	if err := s.write(ctx, zw, zr); err != nil {
-		zngfile.Close()
-		os.RemoveAll(tmppath)
-		return err
-	}
-	if err := fileWriter.Flush(); err != nil {
-		return err
-	}
-
-	if err := zngfile.Close(); err != nil {
-		os.RemoveAll(tmppath)
-		return err
-	}
-	if err := os.Rename(tmppath, s.join(allZngFile)); err != nil {
-		return err
-	}
 	return s.extendSpan(spanWriter.span)
 }
 
@@ -210,15 +191,11 @@ type info struct {
 // readInfoFile reads the info file on disk (if it exists) and sets the cached
 // span value for storage.
 func (s *Storage) readInfoFile() error {
-	b, err := ioutil.ReadFile(s.join(infoFile))
-	if err != nil {
+	var inf info
+	if err := fs.UnmarshalJSONFile(s.join(infoFile), &inf); err != nil {
 		if os.IsNotExist(err) {
 			return nil
 		}
-		return err
-	}
-	var inf info
-	if err := json.Unmarshal(b, &inf); err != nil {
 		return err
 	}
 	s.span = nano.NewSpanTs(inf.MinTime, inf.MaxTime)
@@ -235,20 +212,6 @@ func (s *Storage) syncInfoFile() error {
 		}
 		return nil
 	}
-	tmppath := path + ".tmp"
-	f, err := fs.Create(tmppath)
-	if err != nil {
-		return err
-	}
 	info := info{s.span.Ts, s.span.End()}
-	if err := json.NewEncoder(f).Encode(info); err != nil {
-		f.Close()
-		os.Remove(tmppath)
-		return err
-	}
-	if err = f.Close(); err != nil {
-		os.Remove(tmppath)
-		return err
-	}
-	return os.Rename(tmppath, path)
+	return fs.MarshalJSONFile(info, path, 0600)
 }
