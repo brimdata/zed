@@ -15,6 +15,7 @@
 package fs
 
 import (
+	"io/ioutil"
 	"os"
 	"syscall"
 	"unsafe"
@@ -45,6 +46,15 @@ func Open(name string) (*os.File, error) {
 
 func Create(name string) (*os.File, error) {
 	return OpenFile(name, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
+}
+
+func ReadFile(name string) ([]byte, error) {
+	f, err := Open(name)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return ioutil.ReadAll(f)
 }
 
 // syscallMode returns the syscall-specific mode bits from Go's portable mode bits.

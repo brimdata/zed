@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 )
 
@@ -21,7 +20,7 @@ func MarshalJSONFile(v interface{}, filename string, perm os.FileMode) (err erro
 // and stores the result in the value pointed to by v.  Internally, Unmarshal
 // uses json.Unmarshal.
 func UnmarshalJSONFile(filename string, v interface{}) error {
-	data, err := ioutil.ReadFile(filename)
+	data, err := ReadFile(filename)
 	if err != nil {
 		return err
 	}
