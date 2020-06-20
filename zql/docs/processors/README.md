@@ -79,12 +79,12 @@ Cut fields nothere,alsoabsent not present together in input
 
 As long as some of the named fields are present, these will be returned. No warning is generated for absent fields in this case.
 
-```zq-command head:4
+```zq-command
 zq -f table 'cut nothere,name' weird.log.gz
 ```
 
 #### Output:
-```zq-output
+```zq-output head:4
 NAME
 TCP_ack_underflow_or_misorder
 truncated_header
