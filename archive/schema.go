@@ -1,9 +1,7 @@
 package archive
 
 import (
-	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -41,58 +39,19 @@ type SpanInfo struct {
 	LogID LogID     `json:"log_id"`
 }
 
-func writeTempFile(dir, pattern string, b []byte) (string, error) {
-	f, err := ioutil.TempFile(dir, pattern)
-	if err != nil {
-		return "", err
-	}
-	_, err = f.Write(b)
-	if err != nil {
-		f.Close()
-		os.Remove(f.Name())
-		return "", err
-	}
-	err = f.Close()
-	if err != nil {
-		os.Remove(f.Name())
-		return "", err
-	}
-	return f.Name(), nil
-}
-
-func (c *Metadata) Write(path string) (time.Time, error) {
-	b, err := json.Marshal(c)
-	if err != nil {
-		return time.Time{}, err
-	}
-	tmp, err := writeTempFile(filepath.Dir(path), "."+metadataFilename+".*", b)
-	if err != nil {
-		return time.Time{}, err
-	}
-	err = os.Rename(tmp, path)
-	if err != nil {
-		os.Remove(tmp)
-		return time.Time{}, err
-	}
-	fi, err := os.Stat(path)
-	if err != nil {
-		return time.Time{}, err
-	}
-	return fi.ModTime(), nil
+func (c *Metadata) Write(path string) error {
+	return fs.MarshalJSONFile(c, path, 0600)
 }
 
 func MetadataRead(path string) (*Metadata, time.Time, error) {
-	f, err := fs.Open(path)
-	if err != nil {
-		return nil, time.Time{}, err
-	}
-	defer f.Close()
-	fi, err := f.Stat()
+	// Read the mtime before the read so that the returned time
+	// represents a time at or before the content of the metadata file.
+	fi, err := os.Stat(path)
 	if err != nil {
 		return nil, time.Time{}, err
 	}
 	var c Metadata
-	if err := json.NewDecoder(f).Decode(&c); err != nil {
+	if err := fs.UnmarshalJSONFile(path, &c); err != nil {
 		return nil, time.Time{}, err
 	}
 	return &c, fi.ModTime(), nil
@@ -130,7 +89,7 @@ type Archive struct {
 	// mu protects below fields.
 	mu    sync.RWMutex
 	spans []SpanInfo
-	// mdModTime is the last read modification time of the metadata file.
+	// mdModTime is the mtime from the last read of the metadata file.
 	mdModTime     time.Time
 	mdUpdateCount int
 }
@@ -152,17 +111,16 @@ func (ark *Archive) AppendSpans(spans []SpanInfo) error {
 		return ark.spans[j].Span.Ts < ark.spans[i].Span.Ts
 	})
 
-	mtime, err := ark.metaWrite()
+	err := ark.metaWrite()
 	if err != nil {
 		return err
 	}
 
 	ark.mdUpdateCount++
-	ark.mdModTime = mtime
 	return nil
 }
 
-func (ark *Archive) metaWrite() (time.Time, error) {
+func (ark *Archive) metaWrite() error {
 	m := &Metadata{
 		Version:           0,
 		LogSizeThreshold:  ark.LogSizeThreshold,
@@ -272,7 +230,7 @@ func CreateOrOpenArchive(path string, co *CreateOptions, oo *OpenOptions) (*Arch
 			if err := os.MkdirAll(path, 0700); err != nil {
 				return nil, err
 			}
-			_, err = co.toMetadata().Write(cfgpath)
+			err = co.toMetadata().Write(cfgpath)
 		}
 		if err != nil {
 			return nil, err

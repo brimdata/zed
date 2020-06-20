@@ -128,7 +128,7 @@ func TestImportWhileOpen(t *testing.T) {
 	// Ensure UpdateCheck has incremented.
 	update2, err := ark1.UpdateCheck()
 	require.NoError(t, err)
-	if !assert.Equal(t, 2, update2) {
+	if !assert.Equal(t, 3, update2) {
 		if fi, err := os.Stat(ark1.mdPath()); err == nil {
 			fmt.Fprintf(os.Stderr, "metadata mtime: %v, mdModTime %v", fi.ModTime(), ark1.mdModTime)
 		}
@@ -141,7 +141,7 @@ func TestImportWhileOpen(t *testing.T) {
 		return nil
 	})
 	require.NoError(t, err)
-	assert.Equal(t, 2, ark1.mdUpdateCount)
+	assert.Equal(t, 3, ark1.mdUpdateCount)
 	exp := []SpanInfo{SpanInfo{
 		Span:  nano.Span{Ts: 1587509776063858170, Dur: 4287004687211},
 		LogID: "20200422/1587514063.06854538.zng"}}
@@ -170,9 +170,9 @@ func TestImportWhileOpen(t *testing.T) {
 	}}
 	assert.Equal(t, exp, postSpans)
 
-	if !assert.Equal(t, 3, ark1.mdUpdateCount) {
+	if !assert.Equal(t, 4, ark1.mdUpdateCount) {
 		if fi, err := os.Stat(ark1.mdPath()); err == nil {
-			fmt.Fprintf(os.Stderr, "metadata mtime: %v, mdModTime %v", fi.ModTime(), ark1.mdModTime)
+			fmt.Fprintf(os.Stderr, "metadata mtime: %v, ark1.mdModTime %v, ark2.mdModTime %v", fi.ModTime(), ark1.mdModTime, ark2.mdModTime)
 		}
 	}
 }
