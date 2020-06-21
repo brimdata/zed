@@ -12,7 +12,7 @@ import (
 	"github.com/brimsec/zq/zqe"
 )
 
-var nameRegexp = regexp.MustCompile("[^a-zA-Z0-9_]")
+var nameRegexp = regexp.MustCompile("[^-.a-zA-Z0-9_]")
 
 const configVersion = 1
 
@@ -76,7 +76,7 @@ func validateName(names map[string]api.SpaceID, name string) error {
 		return zqe.E(zqe.Invalid, "cannot set name to an empty string")
 	}
 	if nameRegexp.MatchString(name) {
-		return zqe.E(zqe.Invalid, "name must contain only characters [a-zA-Z0-9_]")
+		return zqe.E(zqe.Invalid, "invalid space name")
 	}
 	if _, ok := names[name]; ok {
 		return zqe.E(zqe.Conflict, "space with name '%s' already exists", name)
