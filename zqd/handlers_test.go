@@ -302,14 +302,18 @@ func TestSpaceInvalidName(t *testing.T) {
 	_, client, done := newCore(t)
 	defer done()
 	t.Run("Post", func(t *testing.T) {
-		_, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test.bad"})
-		require.EqualError(t, err, "status code 400: name must contain only characters [a-zA-Z0-9_]")
+		_, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test-is.good"})
+		require.NoError(t, err)
+	})
+	t.Run("Post", func(t *testing.T) {
+		_, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test!bad"})
+		require.EqualError(t, err, "status code 400: invalid space name")
 	})
 	t.Run("Put", func(t *testing.T) {
 		sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 		require.NoError(t, err)
-		err = client.SpacePut(ctx, sp.ID, api.SpacePutRequest{Name: "test.bad"})
-		require.EqualError(t, err, "status code 400: name must contain only characters [a-zA-Z0-9_]")
+		err = client.SpacePut(ctx, sp.ID, api.SpacePutRequest{Name: "test!bad"})
+		require.EqualError(t, err, "status code 400: invalid space name")
 	})
 }
 
