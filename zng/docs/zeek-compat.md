@@ -104,32 +104,6 @@ values will _not_ be preserved when they are formatted into a string, such as
 via the TZNG/Zeek/table output options in `zq` (e.g. `123.4560` becomes
 `123.456`).
 
-### `set`
-
-Because order within sets is not significant, no attempt is made by `zq` to
-maintain the order of `set` elements as they originally appeared in a Zeek log.
-
-### `enum`
-
-As they're encountered in common programming languages, enum variables
-typically hold one of a set of predefined values. While this is
-how Zeek's `enum` type behaves inside the Zeek scripting language,
-when the `enum` type is output in a Zeek log, the log does not communicate
-any such set of "allowed" values as they were originally defined. Therefore,
-when `zq` reads a Zeek `enum` into ZNG, it defines a
-[type alias](spec.md#412-type-alias) called `zenum` to use for such a field,
-ultimately treating the value as if it were of the ZNG `string` type. The use
-of the alias maintains the history of the field having originally been read in
-from a Zeek `enum` field. This allows `zq` to restore the Zeek `enum` type
-if/when the field may be later output again in Zeek log format. However, when
-working with the value in ZQL, only `string`-type operations will be possible.
-
-As explained in the [alpha notice in the ZNG specification](spec.md), a true
-ZNG `enum` type with predefined values has not yet been defined in the spec
-nor implemented in `zq`. Once available in ZNG, Zeek could potentially
-offer direct log output in ZNG format that communicates the full definition of
-an `enum`, including the set of allowed values.
-
 ### `string`
 
 Zeek's `string` data type is complicated by its ability to hold printable ASCII
@@ -163,6 +137,32 @@ If Zeek were to provide an option to generate logs directly in ZNG format, this
 would create an opportunity to assign the appropriate ZNG `bytes` or `string`
 type at the point of origin, depending on what's known about how the field's
 value is intended to be populated and used.
+
+### `enum`
+
+As they're encountered in common programming languages, enum variables
+typically hold one of a set of predefined values. While this is
+how Zeek's `enum` type behaves inside the Zeek scripting language,
+when the `enum` type is output in a Zeek log, the log does not communicate
+any such set of "allowed" values as they were originally defined. Therefore,
+when `zq` reads a Zeek `enum` into ZNG, it defines a
+[type alias](spec.md#412-type-alias) called `zenum` to use for such a field,
+ultimately treating the value as if it were of the ZNG `string` type. The use
+of the alias maintains the history of the field having originally been read in
+from a Zeek `enum` field. This allows `zq` to restore the Zeek `enum` type
+if/when the field may be later output again in Zeek log format. However, when
+working with the value in ZQL, only `string`-type operations will be possible.
+
+As explained in the [alpha notice in the ZNG specification](spec.md), a true
+ZNG `enum` type with predefined values has not yet been defined in the spec
+nor implemented in `zq`. Once available in ZNG, Zeek could potentially
+offer direct log output in ZNG format that communicates the full definition of
+an `enum`, including the set of allowed values.
+
+### `set`
+
+Because order within sets is not significant, no attempt is made by `zq` to
+maintain the order of `set` elements as they originally appeared in a Zeek log.
 
 ### `record`
 
