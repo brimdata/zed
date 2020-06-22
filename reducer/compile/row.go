@@ -10,36 +10,19 @@ import (
 type Row struct {
 	Defs     []CompiledReducer
 	Reducers []reducer.Interface
-	n        int
 }
 
-func (r *Row) Full() bool {
-	return r.n == len(r.Defs)
-}
-
-func (r *Row) Touch(rec *zng.Record) {
-	if r.Full() {
-		return
+func NewRow(defs []CompiledReducer) Row {
+	reducers := make([]reducer.Interface, len(defs))
+	for k := range defs {
+		reducers[k] = defs[k].Instantiate()
 	}
-	if r.Reducers == nil {
-		r.Reducers = make([]reducer.Interface, len(r.Defs))
-	}
-	for k := range r.Defs {
-		if r.Reducers[k] != nil {
-			continue
-		}
-		red := r.Defs[k].Instantiate()
-		r.Reducers[k] = red
-		r.n++
-	}
+	return Row{defs, reducers}
 }
 
 func (r *Row) Consume(rec *zng.Record) {
-	r.Touch(rec)
 	for _, red := range r.Reducers {
-		if red != nil {
-			red.Consume(rec)
-		}
+		red.Consume(rec)
 	}
 }
 
