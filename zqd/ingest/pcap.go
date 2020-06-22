@@ -3,7 +3,6 @@ package ingest
 import (
 	"bufio"
 	"context"
-	"encoding/json"
 	"io"
 	"io/ioutil"
 	"os"
@@ -153,22 +152,11 @@ func (p *PcapOp) indexPcap() error {
 		return err
 	}
 	idxpath := p.pspace.PcapIndexPath()
-	tmppath := idxpath + ".tmp"
-	f, err := fs.Create(tmppath)
-	if err != nil {
+	if err := fs.MarshalJSONFile(idx, idxpath, 0600); err != nil {
 		return err
 	}
-	if err := json.NewEncoder(f).Encode(idx); err != nil {
-		f.Close()
-		return err
-	}
-	f.Close()
 	// grab span from index and use to generate space info min/max time.
-	span := idx.Span()
-	if err = p.pstore.SetSpan(span); err != nil {
-		return err
-	}
-	return os.Rename(tmppath, idxpath)
+	return p.pstore.SetSpan(idx.Span())
 }
 
 func (p *PcapOp) runZeek(ctx context.Context) error {
