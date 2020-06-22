@@ -7,8 +7,8 @@ import (
 )
 
 type LastProto struct {
-	target   string
-	resolver expr.FieldExprResolver
+	target              string
+	resolver, tresolver expr.FieldExprResolver
 }
 
 func (lp *LastProto) Target() string {
@@ -19,8 +19,16 @@ func (lp *LastProto) Instantiate() Interface {
 	return &Last{Resolver: lp.resolver}
 }
 
-func NewLastProto(target string, resolver expr.FieldExprResolver) *LastProto {
-	return &LastProto{target, resolver}
+func (lp *LastProto) TargetResolver() expr.FieldExprResolver {
+	return lp.tresolver
+}
+
+func NewLastProto(target string, tresolver, resolver expr.FieldExprResolver) *LastProto {
+	return &LastProto{
+		target:    target,
+		tresolver: tresolver,
+		resolver:  resolver,
+	}
 }
 
 type Last struct {

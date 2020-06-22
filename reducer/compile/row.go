@@ -1,11 +1,15 @@
 package compile
 
 import (
+	"errors"
+
 	"github.com/brimsec/zq/reducer"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
+
+var ErrDecompose = errors.New("reducer row doesn't decompose")
 
 type Row struct {
 	Defs     []CompiledReducer
@@ -24,6 +28,21 @@ func (r *Row) Consume(rec *zng.Record) {
 	for _, red := range r.Reducers {
 		red.Consume(rec)
 	}
+}
+
+func (r *Row) ConsumePart(rec *zng.Record) error {
+	for i, red := range r.Reducers {
+		dec, ok := red.(reducer.Decomposable)
+		if !ok {
+			return ErrDecompose
+		}
+		res := r.Defs[i].TargetResolver()
+		err := dec.ConsumePart(res(rec))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Result creates a new record from the results of the reducers.

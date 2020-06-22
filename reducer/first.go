@@ -7,8 +7,8 @@ import (
 )
 
 type FirstProto struct {
-	target   string
-	resolver expr.FieldExprResolver
+	target              string
+	resolver, tresolver expr.FieldExprResolver
 }
 
 func (fp *FirstProto) Target() string {
@@ -19,8 +19,16 @@ func (fp *FirstProto) Instantiate() Interface {
 	return &First{Resolver: fp.resolver}
 }
 
-func NewFirstProto(target string, field expr.FieldExprResolver) *FirstProto {
-	return &FirstProto{target, field}
+func (fp *FirstProto) TargetResolver() expr.FieldExprResolver {
+	return fp.tresolver
+}
+
+func NewFirstProto(target string, tresolver, resolver expr.FieldExprResolver) *FirstProto {
+	return &FirstProto{
+		target:    target,
+		tresolver: tresolver,
+		resolver:  resolver,
+	}
 }
 
 type First struct {

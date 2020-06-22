@@ -9,20 +9,28 @@ import (
 )
 
 type AvgProto struct {
-	target   string
-	resolver expr.FieldExprResolver
+	target              string
+	resolver, tresolver expr.FieldExprResolver
 }
 
 func (ap *AvgProto) Target() string {
 	return ap.target
 }
 
+func (ap *AvgProto) TargetResolver() expr.FieldExprResolver {
+	return ap.tresolver
+}
+
 func (ap *AvgProto) Instantiate() Interface {
 	return &Avg{Resolver: ap.resolver}
 }
 
-func NewAvgProto(target string, field expr.FieldExprResolver) *AvgProto {
-	return &AvgProto{target, field}
+func NewAvgProto(target string, tresolver, resolver expr.FieldExprResolver) *AvgProto {
+	return &AvgProto{
+		target:    target,
+		tresolver: tresolver,
+		resolver:  resolver,
+	}
 }
 
 type Avg struct {
