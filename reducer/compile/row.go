@@ -36,8 +36,8 @@ func (r *Row) ConsumePart(rec *zng.Record) error {
 		if !ok {
 			return ErrDecompose
 		}
-		res := r.Defs[i].TargetResolver()
-		err := dec.ConsumePart(res(rec))
+		resolver := r.Defs[i].TargetResolver()
+		err := dec.ConsumePart(resolver(rec))
 		if err != nil {
 			return err
 		}

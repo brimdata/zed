@@ -1,18 +1,27 @@
 package proc
 
 import (
+	"bufio"
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strconv"
 	"sync"
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/pkg/fs"
+	"github.com/brimsec/zq/reducer"
 	"github.com/brimsec/zq/reducer/compile"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zcode"
+	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
+	"go.uber.org/zap"
 )
 
 type GroupByKey struct {
@@ -125,16 +134,54 @@ type GroupByAggregator struct {
 	// lookup table so that values with the same encoding but of
 	// different types do not collide.  No types from this context
 	// are ever referenced.
-	kctx          *resolver.Context
-	keys          []GroupByKey
-	reducerDefs   []compile.CompiledReducer
-	builder       *ColumnBuilder
-	table         map[string]*GroupByRow
-	limit         int
-	valueCompare  expr.ValueCompareFn // to compare primary group keys for early key output
-	recordCompare expr.CompareFn
-	maxKey        *zng.Value
-	inputSortDir  int
+	kctx         *resolver.Context
+	keys         []GroupByKey
+	decomposable bool
+	reducerDefs  []compile.CompiledReducer
+	builder      *ColumnBuilder
+	table        map[string]*GroupByRow
+	limit        int
+	valueCompare expr.ValueCompareFn // to compare primary group keys for early key output
+	keyCompare   expr.CompareFn      // compare the first key (used when input sorted)
+	keysCompare  expr.CompareFn      // compare all keys
+	maxKey       *zng.Value
+	inputSortDir int
+	spillManager *spillManager
+	combiner     *Combiner
+}
+
+type spillManager struct {
+	tempDir string
+	n       int
+}
+
+func newSpillManager() (*spillManager, error) {
+	tempDir, err := ioutil.TempDir("", "zq-sort-")
+	if err != nil {
+		return nil, err
+	}
+	return &spillManager{tempDir: tempDir}, nil
+}
+
+func (sm *spillManager) writeSpill(zctx *resolver.Context, b zbuf.Batch) (zbuf.Reader, error) {
+	filename := filepath.Join(sm.tempDir, strconv.Itoa(sm.n))
+	f, err := fs.Create(filename)
+	if err != nil {
+		return nil, err
+	}
+	if err := writeZng(f, b.Records()); err != nil {
+		f.Close()
+		os.Remove(f.Name())
+		return nil, err
+	}
+	if _, err := f.Seek(0, 0); err != nil {
+		f.Close()
+		os.Remove(f.Name())
+		return nil, err
+	}
+	zr := zngio.NewReader(bufio.NewReader(f), zctx)
+	sm.n++
+	return zr, nil
 }
 
 type GroupByRow struct {
@@ -150,7 +197,8 @@ func NewGroupByAggregator(c *Context, params GroupByParams) *GroupByAggregator {
 		limit = defaultGroupByLimit
 	}
 	var valueCompare expr.ValueCompareFn
-	var recordCompare expr.CompareFn
+	var keyCompare, keysCompare expr.CompareFn
+
 	if len(params.keys) > 0 && params.inputSortDir != 0 {
 		// As the default sort behavior, nullsMax=true is also expected for streaming groupby.
 		vs := expr.NewValueCompareFn(true)
@@ -161,24 +209,98 @@ func NewGroupByAggregator(c *Context, params GroupByParams) *GroupByAggregator {
 		}
 		rs := expr.NewCompareFn(true, expr.CompileFieldAccess(params.keys[0].target))
 		if params.inputSortDir < 0 {
-			recordCompare = func(a, b *zng.Record) int { return rs(b, a) }
+			keyCompare = func(a, b *zng.Record) int { return rs(b, a) }
 		} else {
-			recordCompare = rs
+			keyCompare = rs
 		}
 	}
-	return &GroupByAggregator{
-		inputSortDir:  params.inputSortDir,
-		limit:         limit,
-		keys:          params.keys,
-		zctx:          c.TypeContext,
-		kctx:          resolver.NewContext(),
-		reducerDefs:   params.reducers,
-		builder:       params.builder,
-		keyRows:       make(map[int]keyRow),
-		table:         make(map[string]*GroupByRow),
-		recordCompare: recordCompare,
-		valueCompare:  valueCompare,
+	var resolvers []expr.FieldExprResolver
+	for _, k := range params.keys {
+		resolvers = append(resolvers, expr.CompileFieldAccess(k.target))
 	}
+	rs := expr.NewCompareFn(true, resolvers...)
+	if params.inputSortDir < 0 {
+		keysCompare = func(a, b *zng.Record) int { return rs(b, a) }
+	} else {
+		keysCompare = rs
+	}
+	sm, err := newSpillManager()
+	if err != nil {
+		c.Logger.Warn("groupby: could not create spill manager", zap.Error(err))
+	}
+	combiner := NewCombiner(nil, keysCompare, merger(c.TypeContext, params.builder, params.keys, params.reducers))
+	return &GroupByAggregator{
+		inputSortDir: params.inputSortDir,
+		limit:        limit,
+		keys:         params.keys,
+		zctx:         c.TypeContext,
+		kctx:         resolver.NewContext(),
+		decomposable: decomposable(params.reducers),
+		reducerDefs:  params.reducers,
+		builder:      params.builder,
+		keyRows:      make(map[int]keyRow),
+		table:        make(map[string]*GroupByRow),
+		keyCompare:   keyCompare,
+		keysCompare:  keysCompare,
+		valueCompare: valueCompare,
+		spillManager: sm,
+		combiner:     combiner,
+	}
+}
+
+func merger(zctx *resolver.Context, builder *ColumnBuilder, keys []GroupByKey, rs []compile.CompiledReducer) MergeFunc {
+	return func(head *zng.Record, tail ...*zng.Record) (*zng.Record, error) {
+		if len(tail) == 0 {
+			return head, nil
+		}
+		row := compile.NewRow(rs)
+		err := row.ConsumePart(head)
+		if err != nil {
+			return nil, err
+		}
+		for _, r := range tail {
+			err := row.ConsumePart(r)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		var types []zng.Type
+		builder.Reset()
+		for _, key := range keys {
+			keyVal, err := key.expr(head)
+			if err != nil && !errors.Is(err, zng.ErrUnset) {
+				return nil, err
+			}
+			types = append(types, keyVal.Type)
+			builder.Append(keyVal.Bytes, keyVal.IsContainer())
+		}
+		zv, err := builder.Encode()
+		if err != nil {
+			return nil, err
+		}
+		cols := builder.TypedColumns(types)
+		for i, red := range row.Reducers {
+			v := red.Result()
+			cols = append(cols, zng.NewColumn(row.Defs[i].Target(), v.Type))
+			zv = v.Encode(zv)
+		}
+		typ, err := zctx.LookupTypeRecord(cols)
+		if err != nil {
+			return nil, err
+		}
+		return zng.NewRecord(typ, zv)
+	}
+}
+
+func decomposable(rs []compile.CompiledReducer) bool {
+	for _, r := range rs {
+		instance := r.Instantiate()
+		if _, ok := instance.(reducer.Decomposable); !ok {
+			return false
+		}
+	}
+	return true
 }
 
 func NewGroupBy(c *Context, parent Proc, params GroupByParams) *GroupBy {
@@ -236,7 +358,7 @@ func (g *GroupBy) run() {
 			if res == nil {
 				break
 			}
-			expr.SortStable(res.Records(), g.agg.recordCompare)
+			expr.SortStable(res.Records(), g.agg.keyCompare)
 			g.sendResult(res, nil)
 		}
 	}
@@ -353,12 +475,38 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 	row, ok := g.table[string(keyBytes)]
 	if !ok {
 		if len(g.table) >= g.limit {
-			return errTooBig(g.limit)
+			if !g.decomposable || g.spillManager == nil {
+				return errTooBig(g.limit)
+			}
+			err := g.spillTable()
+			if err != nil {
+				return err
+			}
 		}
 		row = g.createGroupByRow(keyRow.columns, keyBytes[4:], prim)
 		g.table[string(keyBytes)] = row
 	}
 	row.reducers.Consume(r)
+	return nil
+}
+
+func (g *GroupByAggregator) spillTable() error {
+	recs, err := g.memResults(true, true)
+	if err != nil {
+		return err
+	}
+	if len(recs) == 0 {
+		return nil
+	}
+	parts := zbuf.NewArray(recs)
+
+	expr.SortStable(parts.Records(), g.keysCompare)
+
+	spill, err := g.spillManager.writeSpill(g.zctx, parts)
+	if err != nil {
+		return err
+	}
+	g.combiner.AddReader(spill)
 	return nil
 }
 
@@ -372,42 +520,104 @@ func (g *GroupByAggregator) updateMaxKey(v zng.Value) {
 	}
 }
 
+func (g *GroupByAggregator) haveSpills() bool {
+	return g.spillManager != nil && g.spillManager.n > 0
+}
+
 // Results returns a batch of aggregation result records. If the input
-// is sorted in the primary grouping key, this can be called multiple times;
-// all completed keys at the time of the invocation are returned (but
-// not necessarily in their input sort order). A final call with
-// eof=true should be made to get the final keys.
-//
-// If the input is not sorted, a single call (with eof=true) should be
-// made after all records have been Consumed()'d.
+// is sorted in the primary key, only keys that are completed are
+// returned (but not necessarily in their input sort order). A final
+// call with eof=true should be made to get the final keys.
 func (g *GroupByAggregator) Results(eof bool) (zbuf.Batch, error) {
-	recs, err := g.records(eof)
-	if err != nil {
-		return nil, err
+	if !g.haveSpills() {
+		recs, err := g.memResults(eof, false)
+		if err != nil {
+			return nil, err
+		}
+		if len(recs) == 0 {
+			// Don't propagate empty batches.
+			return nil, nil
+		}
+		// xxx uniformize spillResults and memResults to both return same types...
+		// probably by making memResults return a zbuf.Batch
+		return zbuf.NewArray(recs), nil
+	}
+
+	if eof && g.haveSpills() {
+		// We're at EOF, so write our table before merging all files for output.
+		err := g.spillTable()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return g.spillResults(eof)
+}
+
+func (g *GroupByAggregator) spillResults(eof bool) (zbuf.Batch, error) {
+	n := 1000 // xxx
+	recs := make([]*zng.Record, 0, n)
+	for len(recs) < n {
+		if g.inputSortDir != 0 {
+			rec, err := g.combiner.Peek()
+			if err != nil {
+				return nil, err
+			}
+			if rec == nil {
+				break
+			}
+			// only read completed keys with sorted input
+			if !eof && g.inputSortDir != 0 {
+				keyVal, err := g.keys[0].expr(rec)
+				if err != nil && !errors.Is(err, zng.ErrUnset) {
+					return nil, err
+				}
+				if g.valueCompare(keyVal, *g.maxKey) >= 0 {
+					break
+				}
+			}
+		}
+		rec, err := g.combiner.Read()
+		if err != nil {
+			return nil, err
+		}
+		if rec == nil {
+			break
+		}
+		rec.CopyBody() // xxx need it?
+		recs = append(recs, rec)
 	}
 	if len(recs) == 0 {
-		// Don't propagate empty batches.
 		return nil, nil
 	}
 	return zbuf.NewArray(recs), nil
 }
 
-// records returns a slice of all records from the groupby table in a
+// results returns a slice of all records from the groupby table in a
 // deterministic but undefined order.
-func (g *GroupByAggregator) records(eof bool) ([]*zng.Record, error) {
+func (g *GroupByAggregator) memResults(eof bool, part bool) ([]*zng.Record, error) {
 	var recs []*zng.Record
 	for k, row := range g.table {
 		if !eof && g.valueCompare(*row.groupval, *g.maxKey) >= 0 {
 			continue
 		}
-
 		var zv zcode.Bytes
 		zv = append(zv, row.keyvals...)
 		for _, red := range row.reducers.Reducers {
-			// a reducer value is never a container
-			v := red.Result()
-			if v.IsContainer() {
-				panic("internal bug: reducer result cannot be a container!")
+			var v zng.Value
+			if part {
+				var err error
+				deco := red.(reducer.Decomposable)
+				v, err = deco.ResultPart(g.zctx)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				// a reducer value is never a container
+				v = red.Result()
+				if v.IsContainer() {
+					panic("internal bug: reducer result cannot be a container!")
+				}
 			}
 			zv = v.Encode(zv)
 		}
