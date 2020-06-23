@@ -248,7 +248,7 @@ func (g *GroupByAggregator) createGroupByRow(keyCols []zng.Column, vals zcode.By
 		keycols:  keyCols,
 		keyvals:  v,
 		groupval: groupval,
-		reducers: compile.Row{Defs: g.reducerDefs},
+		reducers: compile.NewRow(g.reducerDefs),
 	}
 }
 
