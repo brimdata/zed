@@ -43,13 +43,12 @@ of heterogeneously typed records, e.g., structured logs, where filtering and
 analytics may be applied to a stream in parts without having to fully deserialize
 every value.
 
-ZNG has both a text form called "TZNG",
-comprised of a sequence of newline-delimited UTF-8 strings,
-as well as a binary form called "ZNG".
+ZNG has a binary form called "ZNG" as well as text form called "TZNG" that's
+comprised of a sequence of newline-delimited UTF-8 strings.
 
 ZNG is richly typed and thinner on the wire than JSON.
 Like [newline-delimited JSON (NDJSON)](http://ndjson.org/),
-the ZNG text format represents a sequence of data objects
+the TZNG text format represents a sequence of data objects
 that can be parsed line by line.
 ZNG strikes a balance between the narrowly typed but flexible NDJSON format and
 a more structured approach like
@@ -74,8 +73,7 @@ ZNG is more expressive than JSON in that any JSON input
 can be mapped onto ZNG and recovered by decoding
 that ZNG back into JSON, but the converse is not true.
 
-The ZNG design [was motivated by](./zeek-compat.md)
-and is compatible with the
+The ZNG design was motivated by and [is compatible with](./zeek-compat.md) the
 [Zeek log format](https://docs.zeek.org/en/stable/examples/logs/).
 As far as we know, the Zeek log format pioneered the concept of
 embedding the schema of the log lines within the log file itself using
@@ -106,7 +104,7 @@ looks like this:
 9:hello, world
 ```
 Here, the type ID is the integer "9" representing the string type
-(defined in [Typedefs](#typedefs)) and the data value "hello, world"
+(defined in [Typedefs](#311-typedefs)) and the data value "hello, world"
 is an instance of the string type.
 
 ZNG gets more interesting when different data types are interleaved in the stream.
