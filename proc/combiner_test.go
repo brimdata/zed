@@ -1,11 +1,12 @@
-package zdx_test
+package proc_test
 
 import (
 	"strings"
 	"testing"
 
+	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zdx"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -29,9 +30,11 @@ func TestCombinerOrder(t *testing.T) {
 	zctx := resolver.NewContext()
 	s1 := tzngio.NewReader(strings.NewReader(stream1), zctx)
 	s2 := tzngio.NewReader(strings.NewReader(stream2), zctx)
-	c := zdx.NewCombiner([]zbuf.Reader{s1, s2}, func(a, b *zng.Record) *zng.Record {
-		return a
-	})
+	c := proc.NewCombiner(
+		[]zbuf.Reader{s1, s2},
+		expr.NewCompareFn(true, expr.CompileFieldAccess("key")),
+		func(a *zng.Record, _ ...*zng.Record) (*zng.Record, error) { return a, nil },
+	)
 	var keys []string
 	for {
 		rec, _ := c.Read()
