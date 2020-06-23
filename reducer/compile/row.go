@@ -14,8 +14,8 @@ type Row struct {
 
 func NewRow(defs []CompiledReducer) Row {
 	reducers := make([]reducer.Interface, len(defs))
-	for k := range defs {
-		reducers[k] = defs[k].Instantiate()
+	for i := range defs {
+		reducers[i] = defs[i].Instantiate()
 	}
 	return Row{defs, reducers}
 }
