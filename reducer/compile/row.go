@@ -9,8 +9,6 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-var ErrDecompose = errors.New("reducer row doesn't decompose")
-
 type Row struct {
 	Defs     []CompiledReducer
 	Reducers []reducer.Interface
@@ -34,7 +32,7 @@ func (r *Row) ConsumePart(rec *zng.Record) error {
 	for i, red := range r.Reducers {
 		dec, ok := red.(reducer.Decomposable)
 		if !ok {
-			return ErrDecompose
+			return errors.New("reducer row doesn't decompose")
 		}
 		resolver := r.Defs[i].TargetResolver()
 		err := dec.ConsumePart(resolver(rec))
