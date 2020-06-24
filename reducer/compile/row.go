@@ -35,8 +35,7 @@ func (r *Row) ConsumePart(rec *zng.Record) error {
 			return errors.New("reducer row doesn't decompose")
 		}
 		resolver := r.Defs[i].TargetResolver()
-		err := dec.ConsumePart(resolver(rec))
-		if err != nil {
+		if err := dec.ConsumePart(resolver(rec)); err != nil {
 			return err
 		}
 	}

@@ -12,7 +12,7 @@ type MergeFunc func(*zng.Record, ...*zng.Record) (*zng.Record, error)
 
 // Combiner reads from two or more sorted inputs, implementing a new
 // zbuf.Reader from the inputs. It uses a comparison function to
-// merge-sort its outputs. If inputs are all sorted according to ths
+// merge-sort its outputs. If inputs are all sorted according to the
 // same comparison function, the combiner output will similarly be
 // sorted.
 //
