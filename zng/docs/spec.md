@@ -507,7 +507,6 @@ grammar describing the textual type encodings is:
          | <rtype>
 
 <rtype> := record [ <columns> ]
-         | record [ ]
 
 
 <type> := <stype> | <ctype>
