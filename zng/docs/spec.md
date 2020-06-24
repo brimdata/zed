@@ -504,9 +504,7 @@ grammar describing the textual type encodings is:
 <ctype> := array [ <stype> ]
          | union [ <stype-list> ]
          | set [ <stype> ]
-         | <rtype>
-
-<rtype> := record [ <columns> ]
+         | record [ <columns> ]
 
 
 <type> := <stype> | <ctype>
