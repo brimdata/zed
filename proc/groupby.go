@@ -40,7 +40,7 @@ type GroupByParams struct {
 type errTooBig int
 
 func (e errTooBig) Error() string {
-	return fmt.Sprintf("groupby aggregation exceeded configured cardinality limit (%d)", e)
+	return fmt.Sprintf("non-decomposable groupby aggregation exceeded configured cardinality limit (%d)", e)
 }
 
 func IsErrTooBig(err error) bool {
@@ -179,9 +179,13 @@ func (sm *spillManager) writeSpill(zctx *resolver.Context, b zbuf.Batch) (zbuf.R
 		os.Remove(f.Name())
 		return nil, err
 	}
-	zr := zngio.NewReader(bufio.NewReader(f), zctx)
 	sm.n++
+	zr := zngio.NewReader(bufio.NewReader(f), zctx)
 	return zr, nil
+}
+
+func (sm *spillManager) removeAll() {
+	os.RemoveAll(sm.tempDir)
 }
 
 type GroupByRow struct {
@@ -317,7 +321,15 @@ func NewGroupBy(c *Context, parent Proc, params GroupByParams) *GroupBy {
 func (g *GroupBy) Pull() (zbuf.Batch, error) {
 	g.once.Do(func() { go g.run() })
 	r := <-g.resultCh
+	if r.Batch == nil {
+		g.cleanup()
+	}
 	return r.Batch, r.Err
+}
+
+func (g *GroupBy) cleanup() {
+	g.agg.combiner.Close()
+	g.agg.spillManager.removeAll()
 }
 
 func (g *GroupBy) run() {
@@ -491,15 +503,13 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 }
 
 func (g *GroupByAggregator) spillTable() error {
-	recs, err := g.memResults(true, true)
+	parts, err := g.memResults(true, true)
 	if err != nil {
 		return err
 	}
-	if len(recs) == 0 {
+	if parts == nil {
 		return nil
 	}
-	parts := zbuf.NewArray(recs)
-
 	expr.SortStable(parts.Records(), g.keysCompare)
 
 	spill, err := g.spillManager.writeSpill(g.zctx, parts)
@@ -530,35 +540,27 @@ func (g *GroupByAggregator) haveSpills() bool {
 // call with eof=true should be made to get the final keys.
 func (g *GroupByAggregator) Results(eof bool) (zbuf.Batch, error) {
 	if !g.haveSpills() {
-		recs, err := g.memResults(eof, false)
-		if err != nil {
-			return nil, err
-		}
-		if len(recs) == 0 {
-			// Don't propagate empty batches.
-			return nil, nil
-		}
-		// xxx uniformize spillResults and memResults to both return same types...
-		// probably by making memResults return a zbuf.Batch
-		return zbuf.NewArray(recs), nil
+		return g.memResults(eof, false)
 	}
-
 	if eof && g.haveSpills() {
-		// We're at EOF, so write our table before merging all files for output.
+		// EOF: spill in-memory table before merging all files for output.
 		err := g.spillTable()
 		if err != nil {
 			return nil, err
 		}
 	}
-
 	return g.spillResults(eof)
 }
 
+const batchLen = 100 // like sort
+
 func (g *GroupByAggregator) spillResults(eof bool) (zbuf.Batch, error) {
-	n := 1000 // xxx
-	recs := make([]*zng.Record, 0, n)
-	for len(recs) < n {
-		if g.inputSortDir != 0 {
+	recs := make([]*zng.Record, 0, batchLen)
+	if !eof && g.inputSortDir == 0 {
+		return nil, nil
+	}
+	for len(recs) < batchLen {
+		if !eof && g.inputSortDir != 0 {
 			rec, err := g.combiner.Peek()
 			if err != nil {
 				return nil, err
@@ -566,15 +568,12 @@ func (g *GroupByAggregator) spillResults(eof bool) (zbuf.Batch, error) {
 			if rec == nil {
 				break
 			}
-			// only read completed keys with sorted input
-			if !eof && g.inputSortDir != 0 {
-				keyVal, err := g.keys[0].expr(rec)
-				if err != nil && !errors.Is(err, zng.ErrUnset) {
-					return nil, err
-				}
-				if g.valueCompare(keyVal, *g.maxKey) >= 0 {
-					break
-				}
+			keyVal, err := g.keys[0].expr(rec)
+			if err != nil && !errors.Is(err, zng.ErrUnset) {
+				return nil, err
+			}
+			if g.valueCompare(keyVal, *g.maxKey) >= 0 {
+				break
 			}
 		}
 		rec, err := g.combiner.Read()
@@ -584,7 +583,7 @@ func (g *GroupByAggregator) spillResults(eof bool) (zbuf.Batch, error) {
 		if rec == nil {
 			break
 		}
-		rec.CopyBody() // xxx need it?
+		rec.CopyBody()
 		recs = append(recs, rec)
 	}
 	if len(recs) == 0 {
@@ -593,9 +592,11 @@ func (g *GroupByAggregator) spillResults(eof bool) (zbuf.Batch, error) {
 	return zbuf.NewArray(recs), nil
 }
 
-// results returns a slice of all records from the groupby table in a
-// deterministic but undefined order.
-func (g *GroupByAggregator) memResults(eof bool, part bool) ([]*zng.Record, error) {
+// memResults returns a slice of records from the in-memory groupby
+// table. if part is true, it returns partial reducer results as
+// returned by reducer.Decomposable.ResultPart(). It is an error to
+// pass part=true if any reducer is non-decomposable.
+func (g *GroupByAggregator) memResults(eof bool, part bool) (zbuf.Batch, error) {
 	var recs []*zng.Record
 	for k, row := range g.table {
 		if !eof && g.valueCompare(*row.groupval, *g.maxKey) >= 0 {
@@ -607,8 +608,8 @@ func (g *GroupByAggregator) memResults(eof bool, part bool) ([]*zng.Record, erro
 			var v zng.Value
 			if part {
 				var err error
-				deco := red.(reducer.Decomposable)
-				v, err = deco.ResultPart(g.zctx)
+				dec := red.(reducer.Decomposable)
+				v, err = dec.ResultPart(g.zctx)
 				if err != nil {
 					return nil, err
 				}
@@ -632,7 +633,10 @@ func (g *GroupByAggregator) memResults(eof bool, part bool) ([]*zng.Record, erro
 		recs = append(recs, r)
 		delete(g.table, k)
 	}
-	return recs, nil
+	if len(recs) == 0 {
+		return nil, nil
+	}
+	return zbuf.NewArray(recs), nil
 }
 
 func (g *GroupByAggregator) lookupRowType(row *GroupByRow) (*zng.TypeRecord, error) {
