@@ -3,6 +3,7 @@ package reducer
 import (
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 )
 
 type FirstProto struct {
@@ -25,22 +26,35 @@ func NewFirstProto(target string, field expr.FieldExprResolver) *FirstProto {
 type First struct {
 	Reducer
 	Resolver expr.FieldExprResolver
-	record   *zng.Record
+	val      *zng.Value
 }
 
 func (f *First) Consume(r *zng.Record) {
-	if f.record != nil {
+	if f.val != nil {
 		return
 	}
-	if v := f.Resolver(r); v.Type == nil {
+	v := f.Resolver(r)
+	if v.Type == nil {
 		return
 	}
-	f.record = r
+	f.val = &v
+}
+
+func (f *First) ConsumePart(p zng.Value) error {
+	if f.val != nil || p.Type == zng.TypeNull {
+		return nil
+	}
+	f.val = &p
+	return nil
 }
 
 func (f *First) Result() zng.Value {
-	if f.record == nil {
+	if f.val == nil {
 		return zng.Value{Type: zng.TypeNull, Bytes: nil}
 	}
-	return f.Resolver(f.record)
+	return *f.val
+}
+
+func (f *First) ResultPart(*resolver.Context) (zng.Value, error) {
+	return f.Result(), nil
 }
