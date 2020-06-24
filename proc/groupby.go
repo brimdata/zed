@@ -560,7 +560,7 @@ func (g *GroupByAggregator) spillResults(eof bool) (zbuf.Batch, error) {
 	}
 	for len(recs) < batchLen {
 		if !eof && g.inputSortDir != 0 {
-			rec, err := g.combiner.Peek()
+			rec, err := g.combiner.PeekMin()
 			if err != nil {
 				return nil, err
 			}

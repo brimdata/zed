@@ -54,12 +54,14 @@ func (c *Combiner) AddReader(r zbuf.Reader) {
 	c.hol = append(c.hol, nil)
 }
 
-func (c *Combiner) Peek() (*zng.Record, error) {
-	minrec, _, err := c.peek()
+// PeekMin returns the current minimum record (under the combiner's
+// compare function) across all current reader HOLs.
+func (c *Combiner) PeekMin() (*zng.Record, error) {
+	minrec, _, err := c.peekmin()
 	return minrec, err
 }
 
-func (c *Combiner) peek() (*zng.Record, int, error) {
+func (c *Combiner) peekmin() (*zng.Record, int, error) {
 	var minrec *zng.Record
 	var mink int
 	for k := range c.readers {
@@ -86,7 +88,7 @@ func (c *Combiner) peek() (*zng.Record, int, error) {
 }
 
 func (c *Combiner) Read() (*zng.Record, error) {
-	minrec, mink, err := c.peek()
+	minrec, mink, err := c.peekmin()
 	if minrec == nil {
 		return nil, err
 	}
