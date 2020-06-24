@@ -646,12 +646,12 @@ and references the types accordingly in three values;
 1:[hello;world;]
 0:this is a semicolon: \x3b;
 ```
-which represents a stream of the following three values (expressed as
-pseudocode):
+which represents a stream of the three values, that could be expressed in JSON
+as:
 ```
-string("hello, world")
-record(a:"hello",b:"world")
-string("this is a semicolon: ;")
+"hello, world"
+{"a": "hello", "b": "world"}
+"this is a semicolon: ;"
 ```
 Note that the tag integers occupy their own numeric space indepedent of
 any underlying ZNG type IDs.
