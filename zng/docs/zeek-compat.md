@@ -22,7 +22,7 @@ maintain an internal ZNG representation of any Zeek data that is read or
 imported. Therefore, knowing the equivalent types will prove useful when
 performing [ZQL](../../zql/README.md) operations such as
 [type casting](../../zql/docs/data-types#example) or looking at the
-data when output as [TZNG](spec.md#4-zng-text-format-tzng).
+data when output as [TZNG](spec.md#3-zng-text-format-tzng).
 
 ## Equivalent Types
 
@@ -35,20 +35,20 @@ applicable to handling certain types.
 
 | Zeek Type  | ZNG Type   | Additional Detail |
 |------------|------------|-------------------|
-| [`bool`](https://docs.zeek.org/en/current/script-reference/types.html#type-bool)         | [`bool`](spec.md#5-primitive-types)     | |
-| [`count`](https://docs.zeek.org/en/current/script-reference/types.html#type-count)       | [`uint64`](spec.md#5-primitive-types)   | |
-| [`int`](https://docs.zeek.org/en/current/script-reference/types.html#type-int)           | [`int64`](spec.md#5-primitive-types)    | |
-| [`double`](https://docs.zeek.org/en/current/script-reference/types.html#type-double)     | [`float64`](spec.md#5-primitive-types)  | See [`double` details](#double) |
-| [`time`](https://docs.zeek.org/en/current/script-reference/types.html#type-time)         | [`time`](spec.md#5-primitive-types)     | |
-| [`interval`](https://docs.zeek.org/en/current/script-reference/types.html#type-interval) | [`duration`](spec.md#5-primitive-types) | |
-| [`string`](https://docs.zeek.org/en/current/script-reference/types.html#type-string)     | [`bstring` or `string`](spec.md#5-primitive-types) | See [`string` details](#string) |
-| [`port`](https://docs.zeek.org/en/current/script-reference/types.html#type-port)         | [`port`](spec.md#5-primitive-types)     | |
-| [`addr`](https://docs.zeek.org/en/current/script-reference/types.html#type-addr)         | [`ip`](spec.md#5-primitive-types)       | |
-| [`subnet`](https://docs.zeek.org/en/current/script-reference/types.html#type-subnet)     | [`net`](spec.md#5-primitive-types)      | |
-| [`enum`](https://docs.zeek.org/en/current/script-reference/types.html#type-enum)         | [`string`](spec.md#5-primitive-types)   | See [`enum` details](#enum) |
-| [`set`](https://docs.zeek.org/en/current/script-reference/types.html#type-set)           | [`set`](spec.md#3113-set-typedef)       | See [`set` details](#set) | 
-| [`vector`](https://docs.zeek.org/en/current/script-reference/types.html#type-vector)     | [`array`](spec.md#3112-array-typedef)   | |
-| [`record`](https://docs.zeek.org/en/current/script-reference/types.html#type-record)     | [`record`](spec.md#3111-record-typedef) | See [`record` details](#record) |
+| [`bool`](https://docs.zeek.org/en/current/script-reference/types.html#type-bool)         | [`bool`](spec.md#4-primitive-types)     | |
+| [`count`](https://docs.zeek.org/en/current/script-reference/types.html#type-count)       | [`uint64`](spec.md#4-primitive-types)   | |
+| [`int`](https://docs.zeek.org/en/current/script-reference/types.html#type-int)           | [`int64`](spec.md#4-primitive-types)    | |
+| [`double`](https://docs.zeek.org/en/current/script-reference/types.html#type-double)     | [`float64`](spec.md#4-primitive-types)  | See [`double` details](#double) |
+| [`time`](https://docs.zeek.org/en/current/script-reference/types.html#type-time)         | [`time`](spec.md#4-primitive-types)     | |
+| [`interval`](https://docs.zeek.org/en/current/script-reference/types.html#type-interval) | [`duration`](spec.md#4-primitive-types) | |
+| [`string`](https://docs.zeek.org/en/current/script-reference/types.html#type-string)     | [`bstring` or `string`](spec.md#4-primitive-types) | See [`string` details](#string) |
+| [`port`](https://docs.zeek.org/en/current/script-reference/types.html#type-port)         | [`port`](spec.md#4-primitive-types)     | |
+| [`addr`](https://docs.zeek.org/en/current/script-reference/types.html#type-addr)         | [`ip`](spec.md#4-primitive-types)       | |
+| [`subnet`](https://docs.zeek.org/en/current/script-reference/types.html#type-subnet)     | [`net`](spec.md#4-primitive-types)      | |
+| [`enum`](https://docs.zeek.org/en/current/script-reference/types.html#type-enum)         | [`string`](spec.md#4-primitive-types)   | See [`enum` details](#enum) |
+| [`set`](https://docs.zeek.org/en/current/script-reference/types.html#type-set)           | [`set`](spec.md#2113-set-typedef)       | See [`set` details](#set) | 
+| [`vector`](https://docs.zeek.org/en/current/script-reference/types.html#type-vector)     | [`array`](spec.md#2112-array-typedef)   | |
+| [`record`](https://docs.zeek.org/en/current/script-reference/types.html#type-record)     | [`record`](spec.md#2111-record-typedef) | See [`record` details](#record) |
 
 * **Note**: The [Zeek data type](https://docs.zeek.org/en/current/script-reference/types.html)
 page describes the types in the context of the
@@ -120,7 +120,7 @@ _not_ intended to be read or presented as such. Meanwhile, another Zeek
 UTF-8. These details are currently only captured within the Zeek source code
 itself that defines how these values are generated.
 
-ZNG includes a [primitive type](spec.md#5-primitive-types) called `bytes` that's
+ZNG includes a [primitive type](spec.md#4-primitive-types) called `bytes` that's
 suited to storing the former "always binary" case and a `string` type for the
 latter "always printable" case. However, Zeek logs do not currently communicate
 detail that would allow a ZNG implementation to know which Zeek `string` fields
@@ -146,7 +146,7 @@ how Zeek's `enum` type behaves inside the Zeek scripting language,
 when the `enum` type is output in a Zeek log, the log does not communicate
 any such set of "allowed" values as they were originally defined. Therefore,
 when `zq` reads a Zeek `enum` into ZNG, it defines a
-[type alias](spec.md#412-type-alias) called `zenum` to use for such a field,
+[type alias](spec.md#312-type-alias) called `zenum` to use for such a field,
 ultimately treating the value as if it were of the ZNG `string` type. The use
 of the alias maintains the history of the field having originally been read in
 from a Zeek `enum` field. This allows `zq` to restore the Zeek `enum` type

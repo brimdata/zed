@@ -11,32 +11,31 @@
 > * only streams of `record` types (which may consist of any combination of
 >   other implemented types) may currently be expressed in value messages.
 >
-> Also, we are contemplating reducing the number of [primitive types](#5-primitive-types), e.g.,
+> Also, we are contemplating reducing the number of [primitive types](#4-primitive-types), e.g.,
 > the number of variations in integer types.
 
 * [1. Introduction](#1-introduction)
-* [2. The ZNG data model](#2-the-zng-data-model)
-* [3. ZNG Binary Format (ZNG)](#3-zng-binary-format-zng)
+* [2. ZNG Binary Format (ZNG)](#2-zng-binary-format-zng)
+  + [2.1 Control Messages](#21-control-messages)
+    - [2.1.1 Typedefs](#211-typedefs)
+      - [2.1.1.1 Record Typedef](#2111-record-typedef)
+      - [2.1.1.2 Array Typedef](#2112-array-typedef)
+      - [2.1.1.3 Set Typedef](#2113-set-typedef)
+      - [2.1.1.4 Union Typedef](#2114-union-typedef)
+      - [2.1.1.5 Alias Typedef](#2115-alias-typedef)
+    - [2.1.2 End-of-Stream Markers](#212-end-of-stream-markers)
+  + [2.2 Value Messages](#22-value-messages)
+* [3. ZNG Text Format (TZNG)](#3-zng-text-format-tzng)
   + [3.1 Control Messages](#31-control-messages)
-    - [3.1.1 Typedefs](#311-typedefs)
-      - [3.1.1.1 Record Typedef](#3111-record-typedef)
-      - [3.1.1.2 Array Typedef](#3112-array-typedef)
-      - [3.1.1.3 Set Typedef](#3113-set-typedef)
-      - [3.1.1.4 Union Typedef](#3114-union-typedef)
-      - [3.1.1.5 Alias Typedef](#3115-alias-typedef)
-    - [3.1.2 End-of-Stream Markers](#312-end-of-stream-markers)
-  + [3.2 Value Messages](#32-value-messages)
-* [4. ZNG Text Format (TZNG)](#4-zng-text-format-tzng)
-  + [4.1 Control Messages](#41-control-messages)
-    - [4.1.1 Type Binding](#411-type-binding)
-    - [4.1.2 Type Alias](#412-type-alias)
-    - [4.1.3 Application-Specific Payload](#413-application-specific-payload)
-  + [4.2 Type Grammar](#42-type-grammar)
-  + [4.3 Values](#43-values)
-    - [4.3.1 Character Escape Rules](#431-character-escape-rules)
-    - [4.3.2 Value Syntax](#432-value-syntax)
-  + [4.4 Examples](#44-examples)
-* [5. Primitive Types](#5-primitive-types)
+    - [3.1.1 Type Binding](#311-type-binding)
+    - [3.1.2 Type Alias](#312-type-alias)
+    - [3.1.3 Application-Specific Payload](#313-application-specific-payload)
+  + [3.2 Type Grammar](#32-type-grammar)
+  + [3.3 Values](#33-values)
+    - [3.3.1 Character Escape Rules](#331-character-escape-rules)
+    - [3.3.2 Value Syntax](#332-value-syntax)
+  + [3.4 Examples](#34-examples)
+* [4. Primitive Types](#4-primitive-types)
 * [Appendix A. Related Links](#appendix-a-related-links)
 
 ## 1. Introduction
@@ -87,62 +86,7 @@ system, error handling, etc., barring the exceptions
 described in the [alpha notice](#note-this-specification-is-alpha-and-a-work-in-progress)
 at the top of this specification.
 
-## 2. The ZNG data model
-
-ZNG encodes a sequence of one or more typed data values to comprise a stream.
-The stream of values is interleaved with control messages
-that provide type definitions and other metadata.  The type of
-a particular data value is specified by its "type identifier", or type ID,
-which is an integer representing either a "primitive type" or a
-"container type".
-
-The ZNG type system comprises the standard set of primitive types like integers,
-floating point, strings, byte arrays, etc. as well as container types
-like records, arrays, and sets arranged from the primitive types.
-
-For example, a ZNG stream representing the single string "hello world"
-looks like this:
-```
-9:hello, world
-```
-Here, the type ID is the integer "9" representing the string type
-(defined in [Typedefs](#311-typedefs)) and the data value "hello, world"
-is an instance of the string type.
-
-ZNG gets more interesting when different data types are interleaved in the stream.
-For example,
-```
-9:hello, world
-4:42
-9:there's a fly in my soup!
-9:no, there isn't.
-4:3
-```
-where type ID 4 represents an integer.  This encoding represents the sequence of
-values:
-```
-"hello, world"
-42
-"there's a fly in my soup!"
-"no, there isn't."
-3
-```
-ZNG streams are often comprised as a sequence of records, which works well to provide
-an efficient representation of structured logs.  In this case, a new type ID is
-needed to define the schema for each distinct record.  To define a new
-type, the "#" syntax is used.  For example,
-logs from the open-source Zeek system might look like this
-```
-#24:record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port]...
-#25:record[_path:string,ts:time,fuid:bstring,tx_hosts:set[ip]...
-24:[conn;1425565514.419939;CogZFI3py5JsFZGik;[192.168.1.1:;80/tcp;192.168.1.2;8080;]...
-25:[files;1425565514.419987;Fj8sRF1gdneMHN700d;[52.218.49.89;52.218.48.169;]...
-```
-Note that the value encoding need not refer to the field names and types as both are 
-completely captured by the type ID.  Values merely encode the value
-information consistent with the referenced type ID.
-
-## 3. ZNG Binary Format (ZNG)
+## 2. ZNG Binary Format (ZNG)
 
 The ZNG binary format is based on machine-readable data types with an
 encoding methodology inspired by Avro and
@@ -155,7 +99,7 @@ Each message is prefixed with a single-byte header code.  The upper bit of
 the header code indicates whether the message is a control message (1)
 or a value message (0).
 
-### 3.1 Control Messages
+### 2.1 Control Messages
 
 The lower 7 bits of a control header byte define the control code.
 Control codes 0 through 5 are reserved for ZNG:
@@ -182,7 +126,7 @@ any ZNG streaming API.  In this way, senders and receivers of ZNG can embed
 protocol directives as ZNG control payloads rather than defining additional
 encapsulating protocols.
 
-### 3.1.1 Typedefs
+### 2.1.1 Typedefs
 
 Following a header byte of 0x80-0x83 is a "typedef".  A typedef binds
 "the next available" integer type ID to a type encoding.  Type IDs
@@ -190,7 +134,7 @@ begin at the value 23 and increase by one for each typedef. These bindings
 are scoped to the stream in which the typedef occurs.
 
 Type IDs for the "primitive types" need not be defined with typedefs and
-are predefined with the IDs shown in the [Primitive Types](#5-primitive-types) table.
+are predefined with the IDs shown in the [Primitive Types](#4-primitive-types) table.
 
 A typedef is encoded as a single byte indicating the container type ID followed by
 the type encoding.  This creates a binding between the implied type ID
@@ -206,7 +150,7 @@ The type ID is encoded as a `uvarint`, an encoding used throughout the ZNG forma
 > 7 bits of each byte from least-significant digit (byte 0) to
 > most-significant digit (byte N-1).
 
-#### 3.1.1.1 Record Typedef
+#### 2.1.1.1 Record Typedef
 
 A record typedef creates a new type ID equal to the next stream type ID
 with the following structure:
@@ -241,7 +185,7 @@ The type ID follows the field name and is encoded as a `uvarint`.
 
 A record may not contain zero columns.
 
-#### 3.1.1.2 Array Typedef
+#### 2.1.1.2 Array Typedef
 
 An array type is encoded as simply the type code of the elements of
 the array encoded as a `uvarint`:
@@ -251,7 +195,7 @@ the array encoded as a `uvarint`:
 ----------------
 ```
 
-#### 3.1.1.3 Set Typedef
+#### 2.1.1.3 Set Typedef
 
 A set type is encoded as a type count followed by the type ID of the
 elements of the set, each encoded as a `uvarint`:
@@ -265,7 +209,7 @@ elements of the set, each encoded as a `uvarint`:
 
 `<type-id>` must be a primitive type ID.
 
-#### 3.1.1.4 Union Typedef
+#### 2.1.1.4 Union Typedef
 
 A union typedef creates a new type ID equal to the next stream type ID
 with the following structure:
@@ -283,7 +227,7 @@ The `<ntypes>` and the type IDs are all encoded as `uvarint`.
 
 `<ntypes>` cannot be 0.
 
-#### 3.1.1.5 Alias Typedef
+#### 2.1.1.5 Alias Typedef
 
 A type alias defines a new type ID that binds a new type name
 to a previously existing type ID.  This is useful for systems like Zeek,
@@ -309,7 +253,7 @@ It is an error to define an alias that has the same name as a primitive type.
 It is also an error to redefine a previously defined alias with a
 type that differs from the original definition.
 
-### 3.1.2 End-of-Stream Markers
+### 2.1.2 End-of-Stream Markers
 
 A ZNG stream must be terminated by an end-of-stream marker.
 A new ZNG stream may begin immediately after an end-of-stream marker.
@@ -345,7 +289,7 @@ previously defined type, the appropriate typedef control code must
 be re-emitted
 (and note that the typedef may now be assigned a different ID).
 
-### 3.2 Value Messages
+### 2.2 Value Messages
 
 Following a header byte with bit 7 zero is a `typed value`
 with a `uvarint7` encoding its length.
@@ -373,7 +317,7 @@ It is an error for a value to reference a type ID that has not been previously
 defined by a typedef scoped to the stream in which the value appears.
 
 A typed value with a `value` of length `N` is interpreted as described in the
-[Primitive Types](#5-primitive-types) table.
+[Primitive Types](#4-primitive-types) table.
 
 All multi-byte sequences representing machine words are serialized in
 little-endian format.
@@ -435,7 +379,7 @@ For sets, the concatenation of elements must be normalized so that the
 sequence of bytes encoding each element's tag-counted value is
 lexicographically greater than that of the preceding element.
 
-## 4. ZNG Text Format (TZNG)
+## 3. ZNG Text Format (TZNG)
 
 The ZNG text format is a human-readable form that follows directly from the ZNG
 binary format.  A TZNG file/stream is encoded with UTF-8.
@@ -451,7 +395,7 @@ i.e., via `\u{0a}` or `\x0a`.
 A line that begins with `#` is a control message and all other lines
 are values.
 
-### 4.1 Control Messages
+### 3.1 Control Messages
 
 TZNG control messages have one of three forms defined below.
 
@@ -460,30 +404,30 @@ is an error.
 When errors are encountered parsing TZNG, an implementation should return a
 corresponding error and allow TZNG parsing to proceed if desired.
 
-### 4.1.1 Type Binding
+### 3.1.1 Type Binding
 
 A TZNG type binding has the following form:
 ```
 #<type-tag>:<type-string>
 ```
 Here, `<type-tag>` is a string decimal integer and `<type-string>`
-is a string defining a type (`<type>`) according to the [TZNG type grammar](#42-type-grammar). They create
+is a string defining a type (`<type>`) according to the [TZNG type grammar](#32-type-grammar). They create
 a binding between the indicated tag and the indicated type.
 
-### 4.1.2 Type Alias
+### 3.1.2 Type Alias
 
 A TZNG type alias has the following form:
 ```
 #<type-name>=<type-string>
 ```
 Here, `<type-name>` is an identifier and `<type-string>`
-is a string defining a type (`<type>`) according to the [TZNG type grammar](#42-type-grammar). They create a
+is a string defining a type (`<type>`) according to the [TZNG type grammar](#32-type-grammar). They create a
 binding between the indicated tag and the indicated type.
 This form defines an alias mapping the identifier to the indicated type.
-`<type-name>` is an identifier with semantics as defined in [Section 3.1.1.5](#3115-alias-typedef).
+`<type-name>` is an identifier with semantics as defined in [Section 2.1.1.5](#2115-alias-typedef).
 
 
-### 4.1.3 Application-Specific Payload
+### 3.1.3 Application-Specific Payload
 
 A TZNG application-specific payload has the following form:
 ```
@@ -492,7 +436,7 @@ A TZNG application-specific payload has the following form:
 Here, `<control-code>` is a decimal integer in the range 6-127 and `<payload>`
 is any UTF-8 string with escaped newlines.
 
-### 4.2 Type Grammar
+### 3.2 Type Grammar
 
 Given the above textual definitions and the underlying ZNG specification, a
 grammar describing the textual type encodings is:
@@ -526,7 +470,7 @@ grammar describing the textual type encodings is:
 <id-continue> := <id-start> | [0-9]
 ```
 
-### 4.3 Values
+### 3.3 Values
 
 A TZNG value is encoded on a line as a typed value, which is encoded as
 an integer type code followed by `:`, which is in turn followed
@@ -566,7 +510,7 @@ if the parsed value does not match the indicated type in terms of number and
 sub-structure of value elements present and their interpretation as a valid
 string of the specified type.
 
-### 4.3.1 Character Escape Rules
+### 3.3.1 Character Escape Rules
 
 Any Unicode code point may be represented in a `string` value using
 the same `\u` syntax as JavaScript.  Specifically:
@@ -606,13 +550,13 @@ of a value:
 In addition, `-` must be escaped if representing the single ASCII byte equal
 to `-` as opposed to representing an unset value.
 
-### 4.3.2 Value Syntax
+### 3.3.2 Value Syntax
 
 Each UTF-8 string field parsed from a value line is interpreted according to the
 type descriptor of the line using the formats shown in the
-[Primitive Types](#5-primitive-types) table.
+[Primitive Types](#4-primitive-types) table.
 
-## 4.4 Examples
+## 3.4 Examples
 
 Here are some simple examples to get the gist of the ZNG text format.
 
@@ -695,12 +639,12 @@ An unset value indicates a field of a `record` that wasn't set by the encoder:
 ```
 e.g., the North Pole has a latitude but no meaningful longitude.
 
-## 5. Primitive Types
+## 4. Primitive Types
 
 For each ZNG primitive type, the following table describes:
-* The predefined ID, which need not be defined in [ZNG Typedefs](#311-typedefs)
-* How a typed `value` of length `N` is interpreted in a [ZNG Value Message](#32-value-messages)
-* The format of a UTF-8 string representing a [TZNG Value](#432-value-syntax) of that type
+* The predefined ID, which need not be defined in [ZNG Typedefs](#211-typedefs)
+* How a typed `value` of length `N` is interpreted in a [ZNG Value Message](#22-value-messages)
+* The format of a UTF-8 string representing a [TZNG Value](#332-value-syntax) of that type
 
 | Type       | ID |    N     |       ZNG Value Interpretation                 | TZNG Value Syntax                                             |
 |------------|---:|:--------:|------------------------------------------------|---------------------------------------------------------------|
