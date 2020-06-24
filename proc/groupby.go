@@ -48,7 +48,7 @@ func IsErrTooBig(err error) bool {
 	return ok
 }
 
-const defaultGroupByLimit = 1000000
+var DefaultGroupByLimit = 1000000
 
 func CompileGroupBy(node *ast.GroupByProc, zctx *resolver.Context) (*GroupByParams, error) {
 	keys := make([]GroupByKey, 0)
@@ -198,7 +198,7 @@ type GroupByRow struct {
 func NewGroupByAggregator(c *Context, params GroupByParams) *GroupByAggregator {
 	limit := params.limit
 	if limit == 0 {
-		limit = defaultGroupByLimit
+		limit = DefaultGroupByLimit
 	}
 	var valueCompare expr.ValueCompareFn
 	var keyCompare, keysCompare expr.CompareFn
@@ -253,10 +253,12 @@ func NewGroupByAggregator(c *Context, params GroupByParams) *GroupByAggregator {
 }
 
 func merger(zctx *resolver.Context, builder *ColumnBuilder, keys []GroupByKey, rs []compile.CompiledReducer) MergeFunc {
+	var keyResolvers []expr.FieldExprResolver
+	for _, k := range keys {
+		keyResolvers = append(keyResolvers, expr.CompileFieldAccess(k.target))
+	}
+
 	return func(head *zng.Record, tail ...*zng.Record) (*zng.Record, error) {
-		if len(tail) == 0 {
-			return head, nil
-		}
 		row := compile.NewRow(rs)
 		err := row.ConsumePart(head)
 		if err != nil {
@@ -271,11 +273,8 @@ func merger(zctx *resolver.Context, builder *ColumnBuilder, keys []GroupByKey, r
 
 		var types []zng.Type
 		builder.Reset()
-		for _, key := range keys {
-			keyVal, err := key.expr(head)
-			if err != nil && !errors.Is(err, zng.ErrUnset) {
-				return nil, err
-			}
+		for _, res := range keyResolvers {
+			keyVal := res(head)
 			types = append(types, keyVal.Type)
 			builder.Append(keyVal.Bytes, keyVal.IsContainer())
 		}
@@ -622,7 +621,7 @@ func (g *GroupByAggregator) memResults(eof bool, part bool) (zbuf.Batch, error) 
 			}
 			zv = v.Encode(zv)
 		}
-		typ, err := g.lookupRowType(row)
+		typ, err := g.lookupRowType(row, part)
 		if err != nil {
 			return nil, err
 		}
@@ -639,7 +638,7 @@ func (g *GroupByAggregator) memResults(eof bool, part bool) (zbuf.Batch, error) 
 	return zbuf.NewArray(recs), nil
 }
 
-func (g *GroupByAggregator) lookupRowType(row *GroupByRow) (*zng.TypeRecord, error) {
+func (g *GroupByAggregator) lookupRowType(row *GroupByRow, part bool) (*zng.TypeRecord, error) {
 	// This is only done once per row at output time so generally not a
 	// bottleneck, but this could be optimized by keeping a cache of the
 	// descriptor since it is rare for there to be multiple descriptors
@@ -653,7 +652,16 @@ func (g *GroupByAggregator) lookupRowType(row *GroupByRow) (*zng.TypeRecord, err
 	}
 	cols = append(cols, g.builder.TypedColumns(types)...)
 	for k, red := range row.reducers.Reducers {
-		z := red.Result()
+		var z zng.Value
+		if part {
+			var err error
+			z, err = red.(reducer.Decomposable).ResultPart(g.zctx)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			z = red.Result()
+		}
 		cols = append(cols, zng.NewColumn(row.reducers.Defs[k].Target(), z.Type))
 	}
 	// This could be more efficient but it's only done during group-by output...

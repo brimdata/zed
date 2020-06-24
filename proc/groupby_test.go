@@ -172,7 +172,6 @@ const computedKeyOut = `
 type suite []test.Internal
 
 func (s suite) runSystem(t *testing.T) {
-	t.Parallel()
 	for _, d := range s {
 		t.Run(d.Name, func(t *testing.T) {
 			results, err := d.Run()
@@ -248,7 +247,17 @@ func tests() suite {
 }
 
 func TestGroupbySystem(t *testing.T) {
-	tests().runSystem(t)
+	t.Run("memory", func(t *testing.T) {
+		tests().runSystem(t)
+	})
+	t.Run("spill", func(t *testing.T) {
+		saved := proc.DefaultGroupByLimit
+		proc.DefaultGroupByLimit = 1
+		defer func() {
+			proc.DefaultGroupByLimit = saved
+		}()
+		tests().runSystem(t)
+	})
 }
 
 func compileGroupBy(code string) (*ast.GroupByProc, error) {
