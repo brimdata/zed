@@ -1,12 +1,15 @@
 # ZNG Specification
 
-> Note: This specification is ALPHA and a work in progress.
-> Zq's implementation of ZNG is tracking this spec and as it changes,
+> ### Note: This specification is ALPHA and a work in progress.
+> [Zq](https://github.com/brimsec/zq/blob/master/README.md)'s
+> implementation of ZNG is tracking this spec and as it changes,
 > the zq output format is subject to change.  In this branch,
 > zq attempts to implement everything herein excepting:
 >
 > * the `bytes` type is not yet implemented,
-> * the `enum` type is not yet implemented.
+> * the `enum` type is not yet implemented,
+> * only streams of `record` types (which may consist of any combination of
+>   other implemented types) may currently be expressed in value messages.
 >
 > Also, we are contemplating reducing the number of [primitive types](#5-primitive-types), e.g.,
 > the number of variations in integer types.
@@ -47,12 +50,11 @@ ZNG has a binary form called "ZNG" as well as text form called "TZNG" that's
 comprised of a sequence of newline-delimited UTF-8 strings.
 
 ZNG is richly typed and thinner on the wire than JSON.
-Like [newline-delimited JSON (NDJSON)](http://ndjson.org/),
-the TZNG text format represents a sequence of data objects
+ZNG strikes a balance between the narrowly typed but flexible
+[newline-delimited JSON (NDJSON)](http://ndjson.org/) format and
+a more structured approach like [Apache Avro](https://avro.apache.org).
+Like NDJSON, the TZNG text format represents a sequence of data objects
 that can be parsed line by line.
-ZNG strikes a balance between the narrowly typed but flexible NDJSON format and
-a more structured approach like
-[Apache Avro](https://avro.apache.org).
 
 ZNG is type rich and embeds all type information in the stream while having a
 binary serialization format that allows "lazy parsing" of fields such that
@@ -82,7 +84,7 @@ meta-records, and ZNG merely modernizes this original approach.
 The [`zq`](https://github.com/brimsec/zq) command-line tool provides a
 reference implementation of ZNG as it's described here, including the type
 system, error handling, etc., barring the exceptions
-described in the [alpha notice](#zng-specification)
+described in the [alpha notice](#note-this-specification-is-alpha-and-a-work-in-progress)
 at the top of this specification.
 
 ## 2. The ZNG data model
@@ -131,8 +133,8 @@ needed to define the schema for each distinct record.  To define a new
 type, the "#" syntax is used.  For example,
 logs from the open-source Zeek system might look like this
 ```
-#24:record[_path:string,ts:time,uid:string,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port]...
-#25:record[_path:string,ts:time,fuid:string,tx_hosts:set[ip]...
+#24:record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port]...
+#25:record[_path:string,ts:time,fuid:bstring,tx_hosts:set[ip]...
 24:[conn;1425565514.419939;CogZFI3py5JsFZGik;[192.168.1.1:;80/tcp;192.168.1.2;8080;]...
 25:[files;1425565514.419987;Fj8sRF1gdneMHN700d;[52.218.49.89;52.218.48.169;]...
 ```
@@ -178,8 +180,7 @@ These payloads are guaranteed to be preserved
 in order within the stream and presented to higher layer components through
 any ZNG streaming API.  In this way, senders and receivers of ZNG can embed
 protocol directives as ZNG control payloads rather than defining additional
-encapsulating protocols.  See the
-[zng-over-http](zng-over-http.md) protocol for an example.
+encapsulating protocols.
 
 ### 3.1.1 Typedefs
 
@@ -452,7 +453,7 @@ are values.
 
 ### 4.1 Control Messages
 
-TZNG control messages have one of four forms defined below.
+TZNG control messages have one of three forms defined below.
 
 Any line beginning with `#` that does not conform with the syntax described here
 is an error.
@@ -466,17 +467,17 @@ A TZNG type binding has the following form:
 #<type-tag>:<type-string>
 ```
 Here, `<type-tag>` is a string decimal integer and `<type-string>`
-is a string defining a record type (`<rtype>`) according to the [TZNG type grammar](#42-type-grammar). They create
+is a string defining a type (`<type>`) according to the [TZNG type grammar](#42-type-grammar). They create
 a binding between the indicated tag and the indicated type.
 
 ### 4.1.2 Type Alias
 
 A TZNG type alias has the following form:
 ```
-#<type-name>:<type-string>
+#<type-name>=<type-string>
 ```
 Here, `<type-name>` is an identifier and `<type-string>`
-is a string defining a type according to the [TZNG type grammar](#42-type-grammar). They create a
+is a string defining a type (`<type>`) according to the [TZNG type grammar](#42-type-grammar). They create a
 binding between the indicated tag and the indicated type.
 This form defines an alias mapping the identifier to the indicated type.
 `<type-name>` is an identifier with semantics as defined in [Section 3.1.1.5](#3115-alias-typedef).
@@ -622,19 +623,19 @@ Primitive types look like this and do not need typedefs:
 ```
 bool
 string
-int
+int64
 ```
 Container types look like this and do need typedefs:
 ```
-#0:array[int]
+#0:array[int64]
 #1:set[bool,string]
 #2:record[x:float64,y:float64]
 ```
 Container types can be embedded in other container types by referencing
 an earlier-defined type alias:
 ```
-#REC:record[a:string,b:string,c:int]
-#SET:set[string]
+#REC=record[a:string,b:string,c:int64]
+#SET=set[string]
 #99:record[v:REC,s:SET,r:REC,s2:SET]
 ```
 This TZNG defines a tag for the primitive string type and defines a record
@@ -646,7 +647,8 @@ and references the types accordingly in three values;
 1:[hello;world;]
 0:this is a semicolon: \x3b;
 ```
-which represents a stream of the following three values:
+which represents a stream of the following three values (expressed as
+pseudocode):
 ```
 string("hello, world")
 record(a:"hello",b:"world")

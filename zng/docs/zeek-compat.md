@@ -153,7 +153,7 @@ from a Zeek `enum` field. This allows `zq` to restore the Zeek `enum` type
 if/when the field may be later output again in Zeek log format. However, when
 working with the value in ZQL, only `string`-type operations will be possible.
 
-As explained in the [alpha notice in the ZNG specification](spec.md), a true
+As explained in the [alpha notice in the ZNG specification](spec.md#note-this-specification-is-alpha-and-a-work-in-progress), a true
 ZNG `enum` type with predefined values has not yet been defined in the spec
 nor implemented in `zq`. Once available in ZNG, Zeek could potentially
 offer direct log output in ZNG format that communicates the full definition of
