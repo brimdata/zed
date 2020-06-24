@@ -78,6 +78,24 @@ func TestDecomposableReducers(t *testing.T) {
 			require.Equal(t, f, uint64(3))
 		}
 	})
+	t.Run("first", func(t *testing.T) {
+		proto := reducer.NewFirstProto("first", expr.CompileFieldAccess("n"))
+		for i := 0; i <= len(recs); i++ {
+			res := runOne(t, resolver, proto, i, recs)
+			f, err := zng.DecodeInt(res.Bytes)
+			require.NoError(t, err)
+			require.Equal(t, f, int64(0))
+		}
+	})
+	t.Run("last", func(t *testing.T) {
+		proto := reducer.NewLastProto("last", expr.CompileFieldAccess("n"))
+		for i := 0; i <= len(recs); i++ {
+			res := runOne(t, resolver, proto, i, recs)
+			f, err := zng.DecodeInt(res.Bytes)
+			require.NoError(t, err)
+			require.Equal(t, f, int64(10))
+		}
+	})
 	t.Run("field-min", func(t *testing.T) {
 		proto := field.NewFieldProto("min", expr.CompileFieldAccess("n"), "Min")
 		for i := 0; i <= len(recs); i++ {
