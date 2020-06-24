@@ -654,6 +654,17 @@ as:
 Note that the tag integers occupy their own numeric space indepedent of
 any underlying ZNG type IDs.
 
+In the common case of working with streams of structured logs, a new tag
+integer will be defined for each distinct record. The following sample shows
+a type binding and value for open source Zeek `weird` and `ftp` events:
+
+```
+#0:record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],name:bstring,addl:bstring,notice:bool,peer:bstring]
+0:[weird;1521911720.600843;C1zOivgBT6dBmknqk;[10.47.1.152;49562;23.217.103.245;80;]TCP_ack_underflow_or_misorder;-;F;zeek;]
+#1:record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],user:bstring,password:bstring,command:bstring,arg:bstring,mime_type:bstring,file_size:uint64,reply_code:uint64,reply_msg:bstring,data_channel:record[passive:bool,orig_h:ip,resp_h:ip,resp_p:port],fuid:bstring]
+1:[ftp;1521911724.699488;ChkumY1k35TmZFL0V3;[10.164.94.120;45905;10.47.27.80;21;]anonymous;nessus@nessus.org;PASV;-;-;-;227;Entering Passive Mode (172,20,0,80,200,63).;[T;10.164.94.120;172.20.0.80;51263;]-;]
+```
+
 The semicolon terminator is important.  Consider this TZNG depicting
 sets of strings:
 ```
