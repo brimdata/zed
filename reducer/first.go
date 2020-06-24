@@ -11,6 +11,14 @@ type FirstProto struct {
 	resolver, tresolver expr.FieldExprResolver
 }
 
+func NewFirstProto(target string, tresolver, resolver expr.FieldExprResolver) *FirstProto {
+	return &FirstProto{
+		target:    target,
+		tresolver: tresolver,
+		resolver:  resolver,
+	}
+}
+
 func (fp *FirstProto) Target() string {
 	return fp.target
 }
@@ -21,14 +29,6 @@ func (fp *FirstProto) Instantiate() Interface {
 
 func (fp *FirstProto) TargetResolver() expr.FieldExprResolver {
 	return fp.tresolver
-}
-
-func NewFirstProto(target string, tresolver, resolver expr.FieldExprResolver) *FirstProto {
-	return &FirstProto{
-		target:    target,
-		tresolver: tresolver,
-		resolver:  resolver,
-	}
 }
 
 type First struct {

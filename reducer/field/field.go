@@ -18,6 +18,15 @@ type FieldProto struct {
 	resolver, tresolver expr.FieldExprResolver
 }
 
+func NewFieldProto(target string, tresolver, resolver expr.FieldExprResolver, op string) *FieldProto {
+	return &FieldProto{
+		target:    target,
+		tresolver: tresolver,
+		resolver:  resolver,
+		op:        op,
+	}
+}
+
 func (fp *FieldProto) Target() string {
 	return fp.target
 }
@@ -28,15 +37,6 @@ func (fp *FieldProto) TargetResolver() expr.FieldExprResolver {
 
 func (fp *FieldProto) Instantiate() reducer.Interface {
 	return &FieldReducer{op: fp.op, resolver: fp.resolver}
-}
-
-func NewFieldProto(target string, tresolver, resolver expr.FieldExprResolver, op string) *FieldProto {
-	return &FieldProto{
-		target:    target,
-		tresolver: tresolver,
-		resolver:  resolver,
-		op:        op,
-	}
 }
 
 type FieldReducer struct {

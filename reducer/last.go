@@ -11,6 +11,14 @@ type LastProto struct {
 	resolver, tresolver expr.FieldExprResolver
 }
 
+func NewLastProto(target string, tresolver, resolver expr.FieldExprResolver) *LastProto {
+	return &LastProto{
+		target:    target,
+		tresolver: tresolver,
+		resolver:  resolver,
+	}
+}
+
 func (lp *LastProto) Target() string {
 	return lp.target
 }
@@ -21,14 +29,6 @@ func (lp *LastProto) Instantiate() Interface {
 
 func (lp *LastProto) TargetResolver() expr.FieldExprResolver {
 	return lp.tresolver
-}
-
-func NewLastProto(target string, tresolver, resolver expr.FieldExprResolver) *LastProto {
-	return &LastProto{
-		target:    target,
-		tresolver: tresolver,
-		resolver:  resolver,
-	}
 }
 
 type Last struct {

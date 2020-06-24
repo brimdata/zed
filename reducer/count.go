@@ -11,6 +11,14 @@ type CountProto struct {
 	resolver, tresolver expr.FieldExprResolver
 }
 
+func NewCountProto(target string, tresolver, resolver expr.FieldExprResolver) *CountProto {
+	return &CountProto{
+		target:    target,
+		resolver:  resolver,
+		tresolver: tresolver,
+	}
+}
+
 func (cp *CountProto) Target() string {
 	return cp.target
 }
@@ -21,14 +29,6 @@ func (cp *CountProto) TargetResolver() expr.FieldExprResolver {
 
 func (cp *CountProto) Instantiate() Interface {
 	return &Count{Resolver: cp.resolver}
-}
-
-func NewCountProto(target string, tresolver, resolver expr.FieldExprResolver) *CountProto {
-	return &CountProto{
-		target:    target,
-		resolver:  resolver,
-		tresolver: tresolver,
-	}
 }
 
 type Count struct {
