@@ -8,7 +8,6 @@ import (
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/tzngio"
-	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -33,7 +32,6 @@ func TestCombinerOrder(t *testing.T) {
 	c := proc.NewCombiner(
 		[]zbuf.Reader{s1, s2},
 		expr.NewCompareFn(true, expr.CompileFieldAccess("key")),
-		func(a *zng.Record, _ ...*zng.Record) (*zng.Record, error) { return a, nil },
 	)
 	var keys []string
 	for {

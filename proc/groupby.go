@@ -147,6 +147,7 @@ type GroupByAggregator struct {
 	inputSortDir int
 	spillManager spillManager
 	combiner     *Combiner
+	mergeReader  MergeReader
 }
 
 type spillManager struct {
@@ -229,7 +230,8 @@ func NewGroupByAggregator(c *Context, params GroupByParams) *GroupByAggregator {
 	} else {
 		keysCompare = rs
 	}
-	combiner := NewCombiner(nil, keysCompare, merger(c.TypeContext, params.builder, params.keys, params.reducers))
+	combiner := NewCombiner(nil, keysCompare)
+	mergeReader := NewMergeReader(combiner, keysCompare, merger(c.TypeContext, params.builder, params.keys, params.reducers))
 	return &GroupByAggregator{
 		inputSortDir: params.inputSortDir,
 		limit:        limit,
@@ -246,6 +248,7 @@ func NewGroupByAggregator(c *Context, params GroupByParams) *GroupByAggregator {
 		valueCompare: valueCompare,
 		spillManager: spillManager{},
 		combiner:     combiner,
+		mergeReader:  mergeReader,
 	}
 }
 
@@ -557,7 +560,7 @@ func (g *GroupByAggregator) spillResults(eof bool) (zbuf.Batch, error) {
 	}
 	for len(recs) < batchLen {
 		if !eof && g.inputSortDir != 0 {
-			rec, err := g.combiner.PeekMin()
+			rec, err := g.combiner.Peek()
 			if err != nil {
 				return nil, err
 			}
@@ -572,7 +575,7 @@ func (g *GroupByAggregator) spillResults(eof bool) (zbuf.Batch, error) {
 				break
 			}
 		}
-		rec, err := g.combiner.Read()
+		rec, err := g.mergeReader.Read()
 		if err != nil {
 			return nil, err
 		}

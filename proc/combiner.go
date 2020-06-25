@@ -23,7 +23,6 @@ type MergeFunc func(*zng.Record, ...*zng.Record) (*zng.Record, error)
 // the first record of each identical set. This can be used to
 // deduplicate records.
 type Combiner struct {
-	merge   MergeFunc
 	compare expr.CompareFn
 	readers []zbuf.Reader
 	done    []bool
@@ -31,12 +30,8 @@ type Combiner struct {
 }
 
 // NewCombiner returns a new combiner
-func NewCombiner(readers []zbuf.Reader, c expr.CompareFn, m MergeFunc) *Combiner {
-	if m == nil {
-		m = func(r *zng.Record, _ ...*zng.Record) (*zng.Record, error) { return r, nil }
-	}
+func NewCombiner(readers []zbuf.Reader, c expr.CompareFn) *Combiner {
 	return &Combiner{
-		merge:   m,
 		compare: c,
 		readers: readers,
 		hol:     make([]*zng.Record, len(readers)),
@@ -54,14 +49,14 @@ func (c *Combiner) AddReader(r zbuf.Reader) {
 	c.hol = append(c.hol, nil)
 }
 
-// PeekMin returns the current minimum record (under the combiner's
+// Peek returns the current minimum record (under the combiner's
 // compare function) across all current reader HOLs.
-func (c *Combiner) PeekMin() (*zng.Record, error) {
-	minrec, _, err := c.peekmin()
-	return minrec, err
+func (c *Combiner) Peek() (*zng.Record, error) {
+	rec, _, err := c.peek()
+	return rec, err
 }
 
-func (c *Combiner) peekmin() (*zng.Record, int, error) {
+func (c *Combiner) peek() (*zng.Record, int, error) {
 	var minrec *zng.Record
 	var mink int
 	for k := range c.readers {
@@ -88,25 +83,12 @@ func (c *Combiner) peekmin() (*zng.Record, int, error) {
 }
 
 func (c *Combiner) Read() (*zng.Record, error) {
-	minrec, mink, err := c.peekmin()
-	if minrec == nil {
-		return nil, err
+	rec, i, err := c.peek()
+	if rec == nil || err != nil {
+		return rec, err
 	}
-	recs := []*zng.Record{minrec}
-	// Assemble a slice with all head-of-line records that are
-	// identical to minrec under c.compare, merge them, and return
-	// the result.
-	for k := range c.readers {
-		if k == mink {
-			c.hol[k] = nil
-			continue
-		}
-		if c.hol[k] != nil && c.compare(recs[0], c.hol[k]) == 0 {
-			recs = append(recs, c.hol[k])
-			c.hol[k] = nil
-		}
-	}
-	return c.merge(recs[0], recs[1:]...)
+	c.hol[i] = nil
+	return rec, nil
 }
 
 func (c *Combiner) Close() error {
@@ -124,4 +106,42 @@ func closeReader(r zbuf.Reader) error {
 		return closer.Close()
 	}
 	return nil
+}
+
+type Peeker interface {
+	zbuf.Reader
+	Peek() (*zng.Record, error)
+}
+
+type MergeReader struct {
+	reader  Peeker
+	compare expr.CompareFn
+	merge   MergeFunc
+}
+
+func NewMergeReader(r Peeker, c expr.CompareFn, m MergeFunc) MergeReader {
+	return MergeReader{r, c, m}
+}
+
+func (m *MergeReader) Read() (*zng.Record, error) {
+	rec, err := m.reader.Read()
+	if err != nil {
+		return nil, err
+	}
+	if rec == nil {
+		return nil, nil
+	}
+	recs := []*zng.Record{rec}
+	for {
+		rec, err := m.reader.Peek()
+		if err != nil {
+			return nil, err
+		}
+		if rec == nil || m.compare(recs[0], rec) != 0 {
+			break
+		}
+		recs = append(recs, rec)
+		_, _ = m.reader.Read()
+	}
+	return m.merge(recs[0], recs[1:]...)
 }
