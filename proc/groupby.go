@@ -21,7 +21,6 @@ import (
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
-	"go.uber.org/zap"
 )
 
 type GroupByKey struct {
@@ -146,7 +145,7 @@ type GroupByAggregator struct {
 	keysCompare  expr.CompareFn      // compare all keys
 	maxKey       *zng.Value
 	inputSortDir int
-	spillManager *spillManager
+	spillManager spillManager
 	combiner     *Combiner
 }
 
@@ -155,15 +154,14 @@ type spillManager struct {
 	n       int
 }
 
-func newSpillManager() (*spillManager, error) {
-	tempDir, err := ioutil.TempDir("", "zq-sort-")
-	if err != nil {
-		return nil, err
-	}
-	return &spillManager{tempDir: tempDir}, nil
-}
-
 func (sm *spillManager) writeSpill(zctx *resolver.Context, b zbuf.Batch) (zbuf.Reader, error) {
+	if sm.tempDir == "" {
+		tempDir, err := ioutil.TempDir("", "zq-sort-")
+		if err != nil {
+			return nil, err
+		}
+		sm.tempDir = tempDir
+	}
 	filename := filepath.Join(sm.tempDir, strconv.Itoa(sm.n))
 	f, err := fs.Create(filename)
 	if err != nil {
@@ -185,6 +183,9 @@ func (sm *spillManager) writeSpill(zctx *resolver.Context, b zbuf.Batch) (zbuf.R
 }
 
 func (sm *spillManager) removeAll() {
+	if sm.tempDir == "" {
+		return
+	}
 	os.RemoveAll(sm.tempDir)
 }
 
@@ -228,10 +229,6 @@ func NewGroupByAggregator(c *Context, params GroupByParams) *GroupByAggregator {
 	} else {
 		keysCompare = rs
 	}
-	sm, err := newSpillManager()
-	if err != nil {
-		c.Logger.Warn("groupby: could not create spill manager", zap.Error(err))
-	}
 	combiner := NewCombiner(nil, keysCompare, merger(c.TypeContext, params.builder, params.keys, params.reducers))
 	return &GroupByAggregator{
 		inputSortDir: params.inputSortDir,
@@ -247,7 +244,7 @@ func NewGroupByAggregator(c *Context, params GroupByParams) *GroupByAggregator {
 		keyCompare:   keyCompare,
 		keysCompare:  keysCompare,
 		valueCompare: valueCompare,
-		spillManager: sm,
+		spillManager: spillManager{},
 		combiner:     combiner,
 	}
 }
@@ -486,7 +483,7 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 	row, ok := g.table[string(keyBytes)]
 	if !ok {
 		if len(g.table) >= g.limit {
-			if !g.decomposable || g.spillManager == nil {
+			if !g.decomposable {
 				return errTooBig(g.limit)
 			}
 			err := g.spillTable()
@@ -530,7 +527,7 @@ func (g *GroupByAggregator) updateMaxKey(v zng.Value) {
 }
 
 func (g *GroupByAggregator) haveSpills() bool {
-	return g.spillManager != nil && g.spillManager.n > 0
+	return g.spillManager.n > 0
 }
 
 // Results returns a batch of aggregation result records. If the input
