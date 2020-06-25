@@ -89,13 +89,15 @@ func (s *Storage) Open(_ context.Context, span nano.Span) (zbuf.ReadCloser, erro
 }
 
 type spanWriter struct {
-	span nano.Span
+	span   nano.Span
+	writes bool
 }
 
 func (w *spanWriter) Write(rec *zng.Record) error {
 	if rec.Ts == 0 {
 		return nil
 	}
+	w.writes = true
 	first := w.span == nano.Span{}
 	s := nano.Span{Ts: rec.Ts, Dur: 1}
 	if first {
@@ -122,6 +124,10 @@ func (s *Storage) Rewrite(ctx context.Context, zr zbuf.Reader) error {
 		return fileWriter.Flush()
 	}); err != nil {
 		return err
+	}
+
+	if !spanWriter.writes {
+		return nil
 	}
 
 	return s.extendSpan(spanWriter.span)
