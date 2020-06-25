@@ -39,6 +39,7 @@ func (s *Server) Start(ctx context.Context) error {
 	s.srv.BaseContext = func(l net.Listener) context.Context { return ctx }
 	ln, err := net.Listen("tcp", s.addr)
 	if err != nil {
+		s.logger.Error("error", zap.Error(err))
 		return err
 	}
 	s.lnAddr = ln.Addr().String()
