@@ -2,6 +2,11 @@ These entries focus on changes we think are relevant to users of Brim,
 zq, or pcap.  For all changes to zqd, its API, or to other components in the
 zq repo, check the git log.
 
+## v0.16.0
+* zng: Readability improvements in the [ZNG specification](https://github.com/brimsec/zq/blob/master/zng/docs/spec.md) (#897, #910, #917)
+* zq: Support directory output to S3 (#898)
+* zql: Group-by no longer emits records in "deterministic but undefined" order (#914)
+
 ## v0.15.0
 * pcap: Report more detailed error information (#844)
 * zql: Add a new function `Time.trunc()` (#842)
