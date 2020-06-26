@@ -59,11 +59,11 @@ func (p *inferParser) parseObject(b []byte) (zng.Value, error) {
 	for _, v := range zngValues {
 		columnBuilder.Append(v.Bytes, zng.IsContainerType(zng.AliasedType(v.Type)))
 	}
-	bytes_, err := columnBuilder.Encode()
+	zbytes, err := columnBuilder.Encode()
 	if err != nil {
 		return zng.Value{}, err
 	}
-	return zng.Value{Type: typ, Bytes: bytes_}, nil
+	return zng.Value{Type: typ, Bytes: zbytes}, nil
 }
 
 func (p *inferParser) parseValue(raw []byte, typ jsonparser.ValueType) (zng.Value, error) {
