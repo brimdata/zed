@@ -99,6 +99,11 @@ func TestNDJSON(t *testing.T) {
 			output: `{ "s": "foo", "nest": { "s": "bar", "n": 5 }}`,
 		},
 		{
+			name:   "legacy nested fields with multiple levels of nesting",
+			input:  `{ "a.b.1": 1, "a.b.2": 2, "a.b.c.3": 3, "a.b.c.4": 4 }`,
+			output: `{ "a": { "b": { "1": 1, "2": 2, "c": { "3": 3, "4": 4 } } } }`,
+		},
+		{
 			name:   "string with unicode escape",
 			input:  `{ "s": "Hello\u002c world!" }`,
 			output: `{ "s": "Hello, world!" }`,
