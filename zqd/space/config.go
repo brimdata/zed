@@ -3,8 +3,8 @@ package space
 import (
 	"fmt"
 	"path/filepath"
-	"regexp"
 	"strings"
+	"unicode"
 
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/zqd/api"
@@ -12,7 +12,13 @@ import (
 	"github.com/brimsec/zq/zqe"
 )
 
-var nameRegexp = regexp.MustCompile("[^-.a-zA-Z0-9_]")
+func invalidSpaceNameRune(r rune) bool {
+	return r == '/' || !unicode.IsPrint(r)
+}
+
+func validSpaceName(s string) bool {
+	return strings.IndexFunc(s, invalidSpaceNameRune) == -1
+}
 
 const configVersion = 1
 
@@ -75,7 +81,7 @@ func validateName(names map[string]api.SpaceID, name string) error {
 	if name == "" {
 		return zqe.E(zqe.Invalid, "cannot set name to an empty string")
 	}
-	if nameRegexp.MatchString(name) {
+	if !validSpaceName(name) {
 		return zqe.E(zqe.Invalid, "invalid space name")
 	}
 	if _, ok := names[name]; ok {
@@ -89,11 +95,14 @@ func validateName(names map[string]api.SpaceID, name string) error {
 // order to ensure the generated name is unique this should be called with the
 // manager lock held.
 func safeName(names map[string]api.SpaceID, proposed string) string {
-	base := filepath.Base(proposed)
-	base = strings.ReplaceAll(base, " ", "_")
-	base = strings.ReplaceAll(base, ".", "_")
-	base = strings.ReplaceAll(base, "-", "_")
-	base = nameRegexp.ReplaceAllString(base, "")
+	var sb strings.Builder
+	for _, r := range proposed {
+		if invalidSpaceNameRune(r) {
+			r = '_'
+		}
+		sb.WriteRune(r)
+	}
+	base := sb.String()
 	name := base
 	// ensure uniqueness
 	for i := 1; ; i++ {
