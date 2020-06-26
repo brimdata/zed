@@ -302,18 +302,16 @@ func TestSpaceInvalidName(t *testing.T) {
 	_, client, done := newCore(t)
 	defer done()
 	t.Run("Post", func(t *testing.T) {
-		_, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test-is.good"})
+		_, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "𝚭𝚴𝚪 is.good"})
 		require.NoError(t, err)
-	})
-	t.Run("Post", func(t *testing.T) {
-		_, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test!bad"})
-		require.EqualError(t, err, "status code 400: invalid space name")
+		_, err = client.SpacePost(ctx, api.SpacePostRequest{Name: "𝚭𝚴𝚪/bad"})
+		require.EqualError(t, err, "status code 400: name may not contain '/' or non-printable characters")
 	})
 	t.Run("Put", func(t *testing.T) {
-		sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+		sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "𝚭𝚴𝚪1"})
 		require.NoError(t, err)
-		err = client.SpacePut(ctx, sp.ID, api.SpacePutRequest{Name: "test!bad"})
-		require.EqualError(t, err, "status code 400: invalid space name")
+		err = client.SpacePut(ctx, sp.ID, api.SpacePutRequest{Name: "𝚭𝚴𝚪/2"})
+		require.EqualError(t, err, "status code 400: name may not contain '/' or non-printable characters")
 	})
 }
 
@@ -338,7 +336,7 @@ func TestSpacePostDataPath(t *testing.T) {
 	defer done()
 	sp, err := client.SpacePost(ctx, api.SpacePostRequest{DataPath: datapath})
 	require.NoError(t, err)
-	assert.Equal(t, "mypcap_brim", sp.Name)
+	assert.Equal(t, "mypcap.brim", sp.Name)
 	assert.Equal(t, datapath, sp.DataPath)
 }
 
