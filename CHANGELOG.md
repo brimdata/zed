@@ -6,6 +6,11 @@ zq repo, check the git log.
 * zng: Readability improvements in the [ZNG specification](https://github.com/brimsec/zq/blob/master/zng/docs/spec.md) (#897, #910, #917)
 * zq: Support directory output to S3 (#898)
 * zql: Group-by no longer emits records in "deterministic but undefined" order (#914)
+* zqd: Revise constraints on Space names (#853, #926, #944, #945)
+* zqd: Fix an issue where a file replacement race could cause an "access is denied" error in Brim during pcap import (#925)
+* zng: Revise [Zeek compatibility](https://github.com/brimsec/zq/blob/master/zng/docs/zeek-compat.md) doc (#919)
+* zql: Clarify [`cut` processor documentation](https://github.com/brimsec/zq/tree/master/zql/docs/processors#cut) (#924)
+* zqd: Fix an issue where an invalid 1970 Space start time could be created in Brim during pcap inport (#938)
 
 ## v0.15.0
 * pcap: Report more detailed error information (#844)
