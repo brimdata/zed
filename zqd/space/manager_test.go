@@ -20,14 +20,14 @@ func TestV1Migration(t *testing.T) {
 		require.NoError(t, err)
 		defer os.RemoveAll(root)
 
-		testWriteConfig(t, root, config{Name: "name-with &*(&stuff"})
+		testWriteConfig(t, root, config{Name: "name/𝚭𝚴𝚪/stuff"})
 
 		mgr, err := NewManager(root, zap.NewNop())
 		require.NoError(t, err)
 		list, err := mgr.List(context.Background())
 		require.NoError(t, err)
 		require.Len(t, list, 1)
-		require.Equal(t, "name_with_stuff", list[0].Name)
+		require.Equal(t, "name_𝚭𝚴𝚪_stuff", list[0].Name)
 	})
 	t.Run("DuplicateNames", func(t *testing.T) {
 		root, err := ioutil.TempDir("", "")

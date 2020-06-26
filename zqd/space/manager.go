@@ -80,7 +80,7 @@ func (m *Manager) Create(req api.SpacePostRequest) (Space, error) {
 	// If name is not set then derive name from DataPath, removing and
 	// replacing invalid characters.
 	if req.Name == "" {
-		req.Name = safeName(m.names, req.DataPath)
+		req.Name = safeName(m.names, filepath.Base(req.DataPath))
 	}
 	if err := validateName(m.names, req.Name); err != nil {
 		return nil, err
