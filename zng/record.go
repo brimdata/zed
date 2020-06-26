@@ -11,14 +11,12 @@ type TypeRecord struct {
 	id      int
 	Columns []Column
 	LUT     map[string]int
-	TsCol   int // -1 if no time-typed "ts" field
 }
 
 func NewTypeRecord(id int, columns []Column) *TypeRecord {
 	r := &TypeRecord{
 		id:      id,
 		Columns: columns,
-		TsCol:   -1,
 	}
 	r.createLUT()
 	return r
@@ -143,10 +141,5 @@ func (t *TypeRecord) createLUT() {
 	t.LUT = make(map[string]int)
 	for k, col := range t.Columns {
 		t.LUT[col.Name] = k
-		if col.Name == "ts" {
-			if _, ok := col.Type.(*TypeOfTime); ok {
-				t.TsCol = k
-			}
-		}
 	}
 }
