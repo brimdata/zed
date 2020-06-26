@@ -6,8 +6,8 @@ import (
 	"sort"
 
 	"github.com/brimsec/zq/pkg/byteconv"
+	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zcode"
-	"github.com/brimsec/zq/zio/zeekio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/buger/jsonparser"
@@ -36,56 +36,34 @@ func (p *inferParser) parseObject(b []byte) (zng.Value, error) {
 	sort.Slice(kvs, func(i, j int) bool {
 		return bytes.Compare(kvs[i].key, kvs[j].key) < 0
 	})
-
-	// Build the list of columns (without types yet) and then run them
-	// through Unflatten() to find nested records.
-	columns := make([]zng.Column, len(kvs))
-	for i, kv := range kvs {
-		columns[i] = zng.NewColumn(string(kv.key), zng.TypeString)
-	}
-	columns, _, err = zeekio.Unflatten(p.zctx, columns, false)
-	if err != nil {
-		return zng.Value{}, err
-	}
-
-	// Parse the actual values and fill in column types along the way,
-	// taking care to step into nested records as necessary.
-	colno := 0
-	nestedColno := 0
-	var vals, nestedVals []zng.Value
+	var fields []string
+	var zngTypes []zng.Type
+	var zngValues []zng.Value
 	for _, kv := range kvs {
-		val, err := p.parseValue(kv.value, kv.typ)
+		fields = append(fields, string(kv.key))
+		v, err := p.parseValue(kv.value, kv.typ)
 		if err != nil {
 			return zng.Value{}, err
 		}
-
-		recType, isRecord := columns[colno].Type.(*zng.TypeRecord)
-		if isRecord {
-			nestedVals = append(nestedVals, val)
-		} else {
-			vals = append(vals, val)
-		}
-
-		if isRecord {
-			recType.Columns[nestedColno].Type = val.Type
-			nestedColno += 1
-			if nestedColno == len(recType.Columns) {
-				vals = append(vals, zng.Value{recType, encodeContainer(nestedVals)})
-				nestedVals = []zng.Value{}
-				nestedColno = 0
-				colno += 1
-			}
-		} else {
-			columns[colno].Type = val.Type
-			colno += 1
-		}
+		zngTypes = append(zngTypes, v.Type)
+		zngValues = append(zngValues, v)
 	}
-
-	typ, err := p.zctx.LookupTypeRecord(columns)
+	columnBuilder, err := proc.NewColumnBuilder(p.zctx, fields)
 	if err != nil {
 		return zng.Value{}, err
 	}
-	return zng.Value{typ, encodeContainer(vals)}, nil
+	typ, err := p.zctx.LookupTypeRecord(columnBuilder.TypedColumns(zngTypes))
+	if err != nil {
+		return zng.Value{}, err
+	}
+	for _, v := range zngValues {
+		columnBuilder.Append(v.Bytes, zng.IsContainerType(zng.AliasedType(v.Type)))
+	}
+	bytes_, err := columnBuilder.Encode()
+	if err != nil {
+		return zng.Value{}, err
+	}
+	return zng.Value{Type: typ, Bytes: bytes_}, nil
 }
 
 func (p *inferParser) parseValue(raw []byte, typ jsonparser.ValueType) (zng.Value, error) {
