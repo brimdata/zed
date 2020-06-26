@@ -69,8 +69,8 @@ func NewRecordCheck(typ *TypeRecord, raw zcode.Bytes) (*Record, error) {
 	return r, nil
 }
 
-// NewVolatileRecord creates a record from a timestamp and a raw value
-// marked volatile so that Keep() must be called to make it safe.
+// NewVolatileRecord creates a record from a raw value and marks
+// it volatile so that Keep() must be called to make it safe.
 // This is useful for readers that allocate records whose raw body points
 // into a reusable buffer allowing the scanner to filter these records
 // without having their body copied to safe memory, i.e., when the scanner
