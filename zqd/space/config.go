@@ -12,17 +12,12 @@ import (
 	"github.com/brimsec/zq/zqe"
 )
 
-func validSpaceNameRune(r rune) bool {
-	return r != '/' && unicode.IsPrint(r)
+func invalidSpaceNameRune(r rune) bool {
+	return r == '/' || !unicode.IsPrint(r)
 }
 
 func validSpaceName(s string) bool {
-	for _, r := range s {
-		if !validSpaceNameRune(r) {
-			return false
-		}
-	}
-	return true
+	return strings.IndexFunc(s, invalidSpaceNameRune) == -1
 }
 
 const configVersion = 1
@@ -102,11 +97,10 @@ func validateName(names map[string]api.SpaceID, name string) error {
 func safeName(names map[string]api.SpaceID, proposed string) string {
 	var sb strings.Builder
 	for _, r := range proposed {
-		if validSpaceNameRune(r) {
-			sb.WriteRune(r)
-		} else {
-			sb.WriteRune('_')
+		if invalidSpaceNameRune(r) {
+			r = '_'
 		}
+		sb.WriteRune(r)
 	}
 	base := sb.String()
 	name := base
