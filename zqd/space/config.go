@@ -82,7 +82,7 @@ func validateName(names map[string]api.SpaceID, name string) error {
 		return zqe.E(zqe.Invalid, "cannot set name to an empty string")
 	}
 	if !validSpaceName(name) {
-		return zqe.E(zqe.Invalid, "name may not contain / or non-printable characters")
+		return zqe.E(zqe.Invalid, "name may not contain '/' or non-printable characters")
 	}
 	if _, ok := names[name]; ok {
 		return zqe.E(zqe.Conflict, "space with name '%s' already exists", name)
