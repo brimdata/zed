@@ -143,7 +143,8 @@ type GroupByAggregator struct {
 	valueCompare expr.ValueCompareFn // to compare primary group keys for early key output
 	keyCompare   expr.CompareFn      // compare the first key (used when input sorted)
 	keysCompare  expr.CompareFn      // compare all keys
-	maxKey       *zng.Value
+	maxTableKey  *zng.Value
+	maxSpillKey  *zng.Value
 	inputSortDir int
 	spillManager spillManager
 	combiner     *Combiner
@@ -471,7 +472,7 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 			return err
 		}
 		if i == 0 && g.inputSortDir != 0 {
-			g.updateMaxKey(keyVal)
+			g.updateMaxTableKey(keyVal)
 			prim = &keyVal
 		}
 		g.builder.Append(keyVal.Bytes, keyVal.IsContainer())
@@ -489,7 +490,7 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 			if !g.decomposable {
 				return errTooBig(g.limit)
 			}
-			err := g.spillTable()
+			err := g.spillTable(false)
 			if err != nil {
 				return err
 			}
@@ -501,7 +502,7 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 	return nil
 }
 
-func (g *GroupByAggregator) spillTable() error {
+func (g *GroupByAggregator) spillTable(eof bool) error {
 	parts, err := g.readTable(true, true)
 	if err != nil {
 		return err
@@ -509,7 +510,16 @@ func (g *GroupByAggregator) spillTable() error {
 	if parts == nil {
 		return nil
 	}
-	expr.SortStable(parts.Records(), g.keysCompare)
+	recs := parts.Records()
+	expr.SortStable(recs, g.keysCompare)
+
+	if !eof && g.inputSortDir != 0 {
+		keyVal, err := g.keys[0].expr(recs[len(recs)-1])
+		if err != nil && !errors.Is(err, zng.ErrUnset) {
+			return err
+		}
+		g.updateMaxSpillKey(keyVal)
+	}
 
 	spill, err := g.spillManager.writeSpill(g.zctx, parts)
 	if err != nil {
@@ -519,13 +529,23 @@ func (g *GroupByAggregator) spillTable() error {
 	return nil
 }
 
-func (g *GroupByAggregator) updateMaxKey(v zng.Value) {
-	if g.maxKey == nil {
-		g.maxKey = &v
+func (g *GroupByAggregator) updateMaxTableKey(v zng.Value) {
+	if g.maxTableKey == nil {
+		g.maxTableKey = &v
 		return
 	}
-	if g.valueCompare(v, *g.maxKey) > 0 {
-		g.maxKey = &v
+	if g.valueCompare(v, *g.maxTableKey) > 0 {
+		g.maxTableKey = &v
+	}
+}
+
+func (g *GroupByAggregator) updateMaxSpillKey(v zng.Value) {
+	if g.maxSpillKey == nil {
+		g.maxSpillKey = &v
+		return
+	}
+	if g.valueCompare(v, *g.maxSpillKey) > 0 {
+		g.maxSpillKey = &v
 	}
 }
 
@@ -543,7 +563,7 @@ func (g *GroupByAggregator) Results(eof bool) (zbuf.Batch, error) {
 	}
 	if eof && g.haveSpills() {
 		// EOF: spill in-memory table before merging all files for output.
-		err := g.spillTable()
+		err := g.spillTable(true)
 		if err != nil {
 			return nil, err
 		}
@@ -571,7 +591,7 @@ func (g *GroupByAggregator) readSpills(eof bool) (zbuf.Batch, error) {
 			if err != nil && !errors.Is(err, zng.ErrUnset) {
 				return nil, err
 			}
-			if g.valueCompare(keyVal, *g.maxKey) >= 0 {
+			if g.valueCompare(keyVal, *g.maxSpillKey) >= 0 {
 				break
 			}
 		}
@@ -603,7 +623,7 @@ func (g *GroupByAggregator) readTable(flush, decompose bool) (zbuf.Batch, error)
 		if !flush && g.valueCompare == nil {
 			panic("internal bug: tried to fetch completed tuples on non-sorted input")
 		}
-		if !flush && g.valueCompare(*row.groupval, *g.maxKey) >= 0 {
+		if !flush && g.valueCompare(*row.groupval, *g.maxTableKey) >= 0 {
 			continue
 		}
 		var zv zcode.Bytes
