@@ -15,52 +15,56 @@ var (
 	ErrFieldRequired = errors.New("field parameter required")
 )
 
-type CompiledReducer interface {
-	Target() string // The name of the field where results are stored.
-	TargetResolver() expr.FieldExprResolver
-	Instantiate() reducer.Interface
+type CompiledReducer struct {
+	Target         string // The name of the field where results are stored.
+	TargetResolver expr.FieldExprResolver
+	Instantiate    func() reducer.Interface
 }
 
 func Compile(params ast.Reducer) (CompiledReducer, error) {
-	name := params.Var
 	var fld expr.FieldExprResolver
 	if params.Field != nil {
 		var err error
 		if fld, err = expr.CompileFieldExpr(params.Field); err != nil {
-			return nil, err
+			return CompiledReducer{}, err
 		}
+	} else if params.Op != "Count" {
+		return CompiledReducer{}, ErrFieldRequired
 	}
-	target := expr.CompileFieldAccess(name)
 
+	var inst func() reducer.Interface
 	switch params.Op {
 	case "Count":
-		return reducer.NewCountProto(name, target, fld), nil
+		inst = func() reducer.Interface {
+			return &reducer.Count{Resolver: fld}
+		}
 	case "First":
-		if fld == nil {
-			return nil, ErrFieldRequired
+		inst = func() reducer.Interface {
+			return &reducer.First{Resolver: fld}
 		}
-		return reducer.NewFirstProto(name, target, fld), nil
 	case "Last":
-		if fld == nil {
-			return nil, ErrFieldRequired
+		inst = func() reducer.Interface {
+			return &reducer.Last{Resolver: fld}
 		}
-		return reducer.NewLastProto(name, target, fld), nil
 	case "Avg":
-		if fld == nil {
-			return nil, ErrFieldRequired
+		inst = func() reducer.Interface {
+			return &reducer.Avg{Resolver: fld}
 		}
-		return reducer.NewAvgProto(name, target, fld), nil
 	case "CountDistinct":
-		if fld == nil {
-			return nil, ErrFieldRequired
+		inst = func() reducer.Interface {
+			return reducer.NewCountDistinct(fld)
 		}
-		return reducer.NewCountDistinctProto(name, target, fld), nil
 	case "Sum", "Min", "Max":
-		if fld == nil {
-			return nil, ErrFieldRequired
+		inst = func() reducer.Interface {
+			return &field.FieldReducer{Op: params.Op, Resolver: fld}
 		}
-		return field.NewFieldProto(name, target, fld, params.Op), nil
 	default:
-		return nil, fmt.Errorf("unknown reducer op: %s", params.Op)
+		return CompiledReducer{}, fmt.Errorf("unknown reducer op: %s", params.Op)
 	}
+
+	return CompiledReducer{
+		Target:         params.Var,
+		TargetResolver: expr.CompileFieldAccess(params.Var),
+		Instantiate:    inst,
+	}, nil
 }

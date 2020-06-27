@@ -6,31 +6,6 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-type LastProto struct {
-	target              string
-	resolver, tresolver expr.FieldExprResolver
-}
-
-func NewLastProto(target string, tresolver, resolver expr.FieldExprResolver) *LastProto {
-	return &LastProto{
-		target:    target,
-		tresolver: tresolver,
-		resolver:  resolver,
-	}
-}
-
-func (lp *LastProto) Target() string {
-	return lp.target
-}
-
-func (lp *LastProto) Instantiate() Interface {
-	return &Last{Resolver: lp.resolver}
-}
-
-func (lp *LastProto) TargetResolver() expr.FieldExprResolver {
-	return lp.tresolver
-}
-
 type Last struct {
 	Reducer
 	Resolver expr.FieldExprResolver

@@ -34,7 +34,7 @@ func (r *Row) ConsumePart(rec *zng.Record) error {
 		if !ok {
 			return errors.New("reducer row doesn't decompose")
 		}
-		resolver := r.Defs[i].TargetResolver()
+		resolver := r.Defs[i].TargetResolver
 		if err := dec.ConsumePart(resolver(rec)); err != nil {
 			return err
 		}
@@ -49,7 +49,7 @@ func (r *Row) Result(zctx *resolver.Context) (*zng.Record, error) {
 	var zv zcode.Bytes
 	for k, red := range r.Reducers {
 		val := red.Result()
-		columns[k] = zng.NewColumn(r.Defs[k].Target(), val.Type)
+		columns[k] = zng.NewColumn(r.Defs[k].Target, val.Type)
 		zv = val.Encode(zv)
 	}
 	typ, err := zctx.LookupTypeRecord(columns)
