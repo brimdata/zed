@@ -7,8 +7,16 @@ import (
 )
 
 type CountDistinctProto struct {
-	target   string
-	resolver expr.FieldExprResolver
+	target              string
+	resolver, tresolver expr.FieldExprResolver
+}
+
+func NewCountDistinctProto(target string, tresolver, resolver expr.FieldExprResolver) *CountDistinctProto {
+	return &CountDistinctProto{
+		target:    target,
+		tresolver: tresolver,
+		resolver:  resolver,
+	}
 }
 
 func (cdp *CountDistinctProto) Target() string {
@@ -22,8 +30,8 @@ func (cdp *CountDistinctProto) Instantiate() Interface {
 	}
 }
 
-func NewCountDistinctProto(target string, resolver expr.FieldExprResolver) *CountDistinctProto {
-	return &CountDistinctProto{target, resolver}
+func (cdp *CountDistinctProto) TargetResolver() expr.FieldExprResolver {
+	return cdp.tresolver
 }
 
 // CountDistinct uses hyperloglog to approximate the count of unique values for

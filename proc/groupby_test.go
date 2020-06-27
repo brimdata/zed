@@ -1,18 +1,31 @@
 package proc_test
 
 import (
+	"bytes"
+	"context"
+	"fmt"
+	"io"
+	"sort"
 	"strings"
 	"testing"
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zio/detector"
+	"github.com/brimsec/zq/zio/tzngio"
+	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 // Data sets for tests:
@@ -172,7 +185,6 @@ const computedKeyOut = `
 type suite []test.Internal
 
 func (s suite) runSystem(t *testing.T) {
-	t.Parallel()
 	for _, d := range s {
 		t.Run(d.Name, func(t *testing.T) {
 			results, err := d.Run()
@@ -248,7 +260,17 @@ func tests() suite {
 }
 
 func TestGroupbySystem(t *testing.T) {
-	tests().runSystem(t)
+	t.Run("memory", func(t *testing.T) {
+		tests().runSystem(t)
+	})
+	t.Run("spill", func(t *testing.T) {
+		saved := proc.DefaultGroupByLimit
+		proc.DefaultGroupByLimit = 1
+		defer func() {
+			proc.DefaultGroupByLimit = saved
+		}()
+		tests().runSystem(t)
+	})
 }
 
 func compileGroupBy(code string) (*ast.GroupByProc, error) {
@@ -386,3 +408,109 @@ func TestGroupbyUnit(t *testing.T) {
 	t.Run("forward-sorted-nested-key-unset", runner("count() by foo.a", 1, inBatchesRecordKeyWithUnsetRecord, outBatchesRecordKeyWithUnsetKey))
 	t.Run("reverse-sorted", runner("count() by ts", -1, inBatchesRev, outBatchesRev))
 }
+
+type countReader struct {
+	n int
+	r zbuf.Reader
+}
+
+func (cr *countReader) Read() (*zng.Record, error) {
+	rec, err := cr.r.Read()
+	if rec != nil {
+		cr.n++
+	}
+	return rec, err
+}
+
+type testGroupByDriver struct {
+	n      int
+	writer zbuf.Writer
+	cb     func(n int)
+}
+
+func (d *testGroupByDriver) Write(cid int, batch zbuf.Batch) error {
+	for _, r := range batch.Records() {
+		d.n++
+		if err := d.writer.Write(r); err != nil {
+			return err
+		}
+	}
+	d.cb(d.n)
+	return nil
+}
+
+func (d *testGroupByDriver) Warn(msg string) error {
+	panic("shouldn't warn")
+}
+
+func (d *testGroupByDriver) ChannelEnd(int) error         { return nil }
+func (d *testGroupByDriver) Stats(api.ScannerStats) error { return nil }
+
+func TestGroupbyStreamingSpill(t *testing.T) {
+
+	// This test verifies that with sorted input, spillable groupby streams results as input arrives.
+	//
+	// The sorted input key is ts. The input and config parameters are carefully chosen such that:
+	// - spills are not aligned with ts changes (at least some
+	//   transitions from ts=n to ts=n+1 happen mid-spill)
+	// - secondary keys repeat in a ts bin
+	//
+	// Together these conditions test that the read barrier (using
+	// GroupByAggregator.maxSpillKey) does not read a key from a
+	// spill before that all records for that key have been
+	// written to the spill.
+	//
+	savedBatchSize := scanner.BatchSize
+	scanner.BatchSize = 1
+	savedBatchSizeGroupByLimit := proc.DefaultGroupByLimit
+	proc.DefaultGroupByLimit = 2
+	defer func() {
+		scanner.BatchSize = savedBatchSize
+		proc.DefaultGroupByLimit = savedBatchSizeGroupByLimit
+	}()
+
+	const totRecs = 200
+	const recsPerTs = 9
+	const uniqueIpsPerTs = 3
+
+	data := []string{"#0:record[ts:time,ip:ip]"}
+	for i := 0; i < totRecs; i++ {
+		t := i / recsPerTs
+		data = append(data, fmt.Sprintf("0:[%d;1.1.1.%d;]", t, i%uniqueIpsPerTs))
+	}
+	proc, err := zql.ParseProc("every 1s count() by ip")
+	assert.NoError(t, err)
+
+	runOne := func(inputSortKey string) []string {
+		zctx := resolver.NewContext()
+		zr := tzngio.NewReader(strings.NewReader(strings.Join(data, "\n")), zctx)
+		cr := &countReader{r: zr}
+		muxOutput, err := driver.Compile(context.Background(), proc, cr, inputSortKey, false, nano.MaxSpan, zap.NewNop())
+		assert.NoError(t, err)
+		var outbuf bytes.Buffer
+		zw := detector.LookupWriter(&nopCloser{&outbuf}, &zio.WriterFlags{})
+		d := &testGroupByDriver{
+			writer: zw,
+			cb: func(n int) {
+				if inputSortKey != "" {
+					if n == uniqueIpsPerTs {
+						require.Less(t, cr.n, totRecs)
+					}
+				}
+			},
+		}
+		err = driver.Run(muxOutput, d, nil)
+		require.NoError(t, err)
+		outData := strings.Split(outbuf.String(), "\n")
+		sort.Strings(outData)
+		return outData
+	}
+
+	res := runOne("") // run once in non-streaming mode to have reference results to compare with.
+	resStreaming := runOne("ts")
+	require.Equal(t, res, resStreaming)
+}
+
+type nopCloser struct{ io.Writer }
+
+func (*nopCloser) Close() error { return nil }

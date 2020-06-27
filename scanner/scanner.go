@@ -35,11 +35,11 @@ func NewScanner(ctx context.Context, reader zbuf.Reader, f filter.Filter, s nano
 	}
 }
 
-const batchSize = 100
+var BatchSize = 100
 
 // Pull implements Proc.Pull.
 func (s *Scanner) Pull() (zbuf.Batch, error) {
-	return zbuf.ReadBatch(s, batchSize)
+	return zbuf.ReadBatch(s, BatchSize)
 }
 
 func (s *Scanner) Stats() api.ScannerStats {

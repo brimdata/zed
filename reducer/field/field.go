@@ -13,21 +13,30 @@ type Streamfn interface {
 }
 
 type FieldProto struct {
-	target   string
-	op       string
-	resolver expr.FieldExprResolver
+	target              string
+	op                  string
+	resolver, tresolver expr.FieldExprResolver
+}
+
+func NewFieldProto(target string, tresolver, resolver expr.FieldExprResolver, op string) *FieldProto {
+	return &FieldProto{
+		target:    target,
+		tresolver: tresolver,
+		resolver:  resolver,
+		op:        op,
+	}
 }
 
 func (fp *FieldProto) Target() string {
 	return fp.target
 }
 
-func (fp *FieldProto) Instantiate() reducer.Interface {
-	return &FieldReducer{op: fp.op, resolver: fp.resolver}
+func (fp *FieldProto) TargetResolver() expr.FieldExprResolver {
+	return fp.tresolver
 }
 
-func NewFieldProto(target string, resolver expr.FieldExprResolver, op string) *FieldProto {
-	return &FieldProto{target, op, resolver}
+func (fp *FieldProto) Instantiate() reducer.Interface {
+	return &FieldReducer{op: fp.op, resolver: fp.resolver}
 }
 
 type FieldReducer struct {
