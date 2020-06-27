@@ -12,16 +12,9 @@ type MergeFunc func(*zng.Record, ...*zng.Record) (*zng.Record, error)
 
 // Combiner reads from two or more sorted inputs, implementing a new
 // zbuf.Reader from the inputs. It uses a comparison function to
-// merge-sort its outputs. If inputs are all sorted according to the
+// merge-sort its outputs. If the inputs are all sorted according to the
 // same comparison function, the combiner output will similarly be
 // sorted.
-//
-// If the combiner's MergeFunc is non-nil, that function is invoked to
-// merge all identical records into one upon reading from the
-// combiner, where record identity is defined by the comparison
-// function. If it is nil, then a default merger is used that returns
-// the first record of each identical set. This can be used to
-// deduplicate records.
 type Combiner struct {
 	compare expr.CompareFn
 	readers []zbuf.Reader
@@ -113,6 +106,9 @@ type Peeker interface {
 	Peek() (*zng.Record, error)
 }
 
+// A MergeReader reads records from a Peeker, merging all identical
+// records into one upon reading from the combiner, where record
+// identity is defined by the compare function.
 type MergeReader struct {
 	reader  Peeker
 	compare expr.CompareFn

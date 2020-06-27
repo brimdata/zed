@@ -503,14 +503,14 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 }
 
 func (g *GroupByAggregator) spillTable(eof bool) error {
-	parts, err := g.readTable(true, true)
+	batch, err := g.readTable(true, true)
 	if err != nil {
 		return err
 	}
-	if parts == nil {
+	if batch == nil {
 		return nil
 	}
-	recs := parts.Records()
+	recs := batch.Records()
 	expr.SortStable(recs, g.keysCompare)
 
 	if !eof && g.inputSortDir != 0 {
@@ -521,7 +521,7 @@ func (g *GroupByAggregator) spillTable(eof bool) error {
 		g.updateMaxSpillKey(keyVal)
 	}
 
-	spill, err := g.spillManager.writeSpill(g.zctx, parts)
+	spill, err := g.spillManager.writeSpill(g.zctx, batch)
 	if err != nil {
 		return err
 	}
@@ -555,8 +555,8 @@ func (g *GroupByAggregator) haveSpills() bool {
 
 // Results returns a batch of aggregation result records. If the input
 // is sorted in the primary key, only keys that are completed are
-// returned (but not necessarily in their input sort order). A final
-// call with eof=true should be made to get the final keys.
+// returned. A final call with eof=true should be made to get the
+// final keys.
 func (g *GroupByAggregator) Results(eof bool) (zbuf.Batch, error) {
 	if !g.haveSpills() {
 		return g.readTable(eof, false)
@@ -614,9 +614,9 @@ func (g *GroupByAggregator) readSpills(eof bool) (zbuf.Batch, error) {
 // readTable returns a slice of records from the in-memory groupby
 // table. If flush is true, the entire table is returned. If flush is
 // false and input is sorted only completed keys are returned.
-// If part is true, it returns partial reducer results as
+// If decompose is true, it returns partial reducer results as
 // returned by reducer.Decomposable.ResultPart(). It is an error to
-// pass part=true if any reducer is non-decomposable.
+// pass decompose=true if any reducer is non-decomposable.
 func (g *GroupByAggregator) readTable(flush, decompose bool) (zbuf.Batch, error) {
 	var recs []*zng.Record
 	for k, row := range g.table {
@@ -663,7 +663,7 @@ func (g *GroupByAggregator) readTable(flush, decompose bool) (zbuf.Batch, error)
 	return zbuf.NewArray(recs), nil
 }
 
-func (g *GroupByAggregator) lookupRowType(row *GroupByRow, part bool) (*zng.TypeRecord, error) {
+func (g *GroupByAggregator) lookupRowType(row *GroupByRow, decompose bool) (*zng.TypeRecord, error) {
 	// This is only done once per row at output time so generally not a
 	// bottleneck, but this could be optimized by keeping a cache of the
 	// descriptor since it is rare for there to be multiple descriptors
@@ -678,7 +678,7 @@ func (g *GroupByAggregator) lookupRowType(row *GroupByRow, part bool) (*zng.Type
 	cols = append(cols, g.builder.TypedColumns(types)...)
 	for k, red := range row.reducers.Reducers {
 		var z zng.Value
-		if part {
+		if decompose {
 			var err error
 			z, err = red.(reducer.Decomposable).ResultPart(g.zctx)
 			if err != nil {
