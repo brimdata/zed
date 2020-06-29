@@ -125,7 +125,7 @@ stream.  For example, in the following TZNG:
 35:no, there isn't.
 36:3
 ```
-Here the tag `36` now binds binds to one of ZNG's integer types. This encoding
+Here the tag `36` now binds to one of ZNG's integer types. This encoding
 represents the sequence of values that could be expressed in JSON as:
 ```
 "hello, world"
