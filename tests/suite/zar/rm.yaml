@@ -1,14 +1,14 @@
 script: |
   mkdir logs
   zar import -s 20KiB -R ./logs babble.tzng
-  zar ls -R ./logs
+  zar ls -relative -R ./logs
   echo ===
   touch logs/20200421/1587512288.06249439.zng.zar/foo
   touch logs/20200422/1587518620.0622373.zng.zar/bar
-  zar ls -R ./logs foo
-  zar ls -R ./logs bar
+  zar ls -relative -R ./logs foo
+  zar ls -relative -R ./logs bar
   echo ===
-  zar rm -R ./logs foo
+  zar rm -relative -R ./logs foo
   echo ===
   find logs | sort
 
@@ -19,14 +19,14 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      logs/20200422/1587518620.0622373.zng.zar
-      logs/20200421/1587512288.06249439.zng.zar
+      20200422/1587518620.0622373.zng.zar
+      20200421/1587512288.06249439.zng.zar
       ===
-      logs/20200421/1587512288.06249439.zng.zar/foo
-      logs/20200422/1587518620.0622373.zng.zar/bar
+      20200421/1587512288.06249439.zng.zar/foo
+      20200422/1587518620.0622373.zng.zar/bar
       ===
-      logs/20200422/1587518620.0622373.zng.zar/foo: not found
-      logs/20200421/1587512288.06249439.zng.zar/foo: removed
+      20200422/1587518620.0622373.zng.zar/foo: not found
+      20200421/1587512288.06249439.zng.zar/foo: removed
       ===
       logs
       logs/20200421

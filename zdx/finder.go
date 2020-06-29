@@ -4,19 +4,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zqe"
 )
 
 var ErrNotFound = errors.New("key not found")
 
 // Finder looks up values in a zdx using its hierarchical index files.
 type Finder struct {
-	path        string
+	path        iosrc.URI
 	keys        *zng.TypeRecord
 	builder     *zng.Builder
 	offsetField string
@@ -25,9 +26,9 @@ type Finder struct {
 }
 
 // NewFinder returns an object that is used to lookup keys in a zdx.
-func NewFinder(zctx *resolver.Context, path string) *Finder {
+func NewFinder(zctx *resolver.Context, uri iosrc.URI) *Finder {
 	return &Finder{
-		path: path,
+		path: uri,
 		zctx: zctx,
 	}
 }
@@ -46,7 +47,8 @@ func (f *Finder) Open() error {
 	for {
 		r, err := newReader(f.zctx, f.path, level)
 		if err != nil {
-			if os.IsNotExist(err) {
+			var zerr *zqe.Error
+			if errors.As(err, &zerr) && zerr.Kind == zqe.NotFound {
 				break
 			}
 			if len(f.files) > 0 {
@@ -60,7 +62,7 @@ func (f *Finder) Open() error {
 		f.files = append(f.files, r)
 	}
 	if len(f.files) == 0 {
-		return os.ErrNotExist
+		return zqe.E(zqe.NotFound, "no files found")
 	}
 	// Read the first record as the zdx header.
 	rec, err := f.files[0].Read()
@@ -81,7 +83,7 @@ func (f *Finder) Open() error {
 }
 
 func (f *Finder) Path() string {
-	return f.path
+	return f.path.String()
 }
 
 func (f *Finder) Close() error {

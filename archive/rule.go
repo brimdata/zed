@@ -2,10 +2,10 @@ package archive
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
 	"github.com/brimsec/zq/zql"
@@ -138,6 +138,6 @@ func NewZqlRule(s, path string, keys []string, framesize int) (*Rule, error) {
 	return newRuleAST(proc, path, keys, framesize)
 }
 
-func (f *Rule) Path(dir string) string {
-	return filepath.Join(dir, f.path)
+func (f *Rule) Path(dir iosrc.URI) iosrc.URI {
+	return dir.AppendPath(f.path)
 }

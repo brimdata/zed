@@ -58,13 +58,14 @@ func init() {
 
 type Command struct {
 	*root.Command
-	root        string
-	skipMissing bool
-	indexFile   string
-	outputFile  string
-	pathField   string
-	zng         bool
-	WriterFlags zio.WriterFlags
+	root          string
+	skipMissing   bool
+	indexFile     string
+	outputFile    string
+	pathField     string
+	relativePaths bool
+	zng           bool
+	WriterFlags   zio.WriterFlags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -74,6 +75,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.indexFile, "x", "", "name of zdx index for custom index searches")
 	f.StringVar(&c.outputFile, "o", "", "write data to output file")
 	f.StringVar(&c.pathField, "l", archive.DefaultAddPathField, "zng field name for path name of log file")
+	f.BoolVar(&c.relativePaths, "relative", false, "display paths relative to root")
 	f.BoolVar(&c.zng, "z", false, "write results as zng stream rather than list of files")
 
 	// Flags added for writers are -f, -T, -F, -E, -U, and -b
@@ -95,7 +97,7 @@ func (c *Command) Run(args []string) error {
 
 	var findOptions []archive.FindOption
 	if c.pathField != "" {
-		findOptions = append(findOptions, archive.AddPath(c.pathField, true))
+		findOptions = append(findOptions, archive.AddPath(c.pathField, !c.relativePaths))
 	}
 	if c.skipMissing {
 		findOptions = append(findOptions, archive.SkipMissing())

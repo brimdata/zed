@@ -4,17 +4,21 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
 	"os"
 	"testing"
 
+	"github.com/brimsec/zq/pkg/iosrc"
+	iosrcmock "github.com/brimsec/zq/pkg/iosrc/mock"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -136,7 +140,7 @@ func TestImportWhileOpen(t *testing.T) {
 
 	// Verify data & that a span walk now does not increment the update counter.
 	var initialSpans []SpanInfo
-	err = SpanWalk(ark1, func(si SpanInfo, _ string) error {
+	err = SpanWalk(ark1, func(si SpanInfo, _ iosrc.URI) error {
 		initialSpans = append(initialSpans, si)
 		return nil
 	})
@@ -155,7 +159,7 @@ func TestImportWhileOpen(t *testing.T) {
 
 	// Verify that the data appears to the earlier opened handle
 	var postSpans []SpanInfo
-	err = SpanWalk(ark1, func(si SpanInfo, _ string) error {
+	err = SpanWalk(ark1, func(si SpanInfo, _ iosrc.URI) error {
 		postSpans = append(postSpans, si)
 		return nil
 	})
@@ -176,3 +180,33 @@ func TestImportWhileOpen(t *testing.T) {
 		}
 	}
 }
+
+func TestRemoteSourceImport(t *testing.T) {
+	root, err := ioutil.TempDir("", "")
+	require.NoError(t, err)
+	defer os.RemoveAll(root)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	src := iosrcmock.NewMockSource(ctrl)
+	var recvuri iosrc.URI
+	src.EXPECT().NewWriter(gomock.Any()).
+		DoAndReturn(func(uri iosrc.URI) (io.WriteCloser, error) {
+			recvuri = uri
+			return &nopWriteCloser{}, nil
+		})
+	thresh := int64(math.MaxInt64)
+	co := &CreateOptions{
+		DataPath:         "s3://test-bucket/test-key",
+		LogSizeThreshold: &thresh,
+	}
+	ark, err := CreateOrOpenArchive(root, co, &OpenOptions{DataSource: src})
+	require.NoError(t, err)
+	importTestFile(t, ark, "testdata/td1.zng")
+
+	assert.Equal(t, "s3://test-bucket/test-key/20200422/1587514063.06854538.zng", recvuri.String())
+}
+
+type nopWriteCloser struct{}
+
+func (*nopWriteCloser) Close() error                { return nil }
+func (*nopWriteCloser) Write(b []byte) (int, error) { return len(b), nil }

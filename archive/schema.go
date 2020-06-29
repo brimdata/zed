@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/pkg/fs"
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zcode"
@@ -22,6 +23,7 @@ const metadataFilename = "zar.json"
 
 type Metadata struct {
 	Version           int            `json:"version"`
+	DataPath          string         `json:"data_path"`
 	LogSizeThreshold  int64          `json:"log_size_threshold"`
 	DataSortDirection zbuf.Direction `json:"data_sort_direction"`
 	Spans             []SpanInfo     `json:"spans"`
@@ -34,8 +36,8 @@ type LogID string
 
 // Path returns the local filesystem path for the log file, using the
 // platforms file separator.
-func (l LogID) Path(ark *Archive) string {
-	return filepath.Join(ark.Root, filepath.FromSlash(string(l)))
+func (l LogID) Path(ark *Archive) iosrc.URI {
+	return ark.DataPath.AppendPath(string(l))
 }
 
 type SpanInfo struct {
@@ -68,6 +70,7 @@ const (
 
 type CreateOptions struct {
 	LogSizeThreshold *int64
+	DataPath         string
 }
 
 func (c *CreateOptions) toMetadata() *Metadata {
@@ -75,10 +78,14 @@ func (c *CreateOptions) toMetadata() *Metadata {
 		Version:           0,
 		LogSizeThreshold:  DefaultLogSizeThreshold,
 		DataSortDirection: DefaultDataSortDirection,
+		DataPath:          ".",
 	}
 
 	if c.LogSizeThreshold != nil {
 		m.LogSizeThreshold = *c.LogSizeThreshold
+	}
+	if c.DataPath != "" {
+		m.DataPath = c.DataPath
 	}
 
 	return m
@@ -86,9 +93,12 @@ func (c *CreateOptions) toMetadata() *Metadata {
 
 type Archive struct {
 	Root              string
+	DataPath          iosrc.URI
 	DataSortDirection zbuf.Direction
 	LogSizeThreshold  int64
 	LogsFiltered      bool
+
+	dataSrc iosrc.Source
 
 	// mu protects below fields.
 	mu    sync.RWMutex
@@ -133,6 +143,7 @@ func (ark *Archive) metaWrite() error {
 		Version:           0,
 		LogSizeThreshold:  ark.LogSizeThreshold,
 		DataSortDirection: ark.DataSortDirection,
+		DataPath:          ark.DataPath.String(),
 		Spans:             ark.spans,
 	}
 	return m.Write(ark.mdPath())
@@ -186,26 +197,42 @@ func (ark *Archive) UpdateCheck() (int, error) {
 }
 
 type OpenOptions struct {
-	LogFilter []string
+	LogFilter  []string
+	DataSource iosrc.Source
 }
 
-func OpenArchive(path string, oo *OpenOptions) (*Archive, error) {
-	if path == "" {
+func OpenArchive(root string, oo *OpenOptions) (*Archive, error) {
+	if root == "" {
 		return nil, errors.New("no archive directory specified")
 	}
-	m, mtime, err := MetadataRead(filepath.Join(path, metadataFilename))
+	m, mtime, err := MetadataRead(filepath.Join(root, metadataFilename))
+	if err != nil {
+		return nil, err
+	}
+	if m.DataPath == "." {
+		m.DataPath = root
+	}
+	dpuri, err := iosrc.ParseURI(m.DataPath)
 	if err != nil {
 		return nil, err
 	}
 
 	ark := &Archive{
-		Root:              path,
+		Root:              root,
 		DataSortDirection: m.DataSortDirection,
 		LogSizeThreshold:  m.LogSizeThreshold,
+		DataPath:          dpuri,
 		mdModTime:         mtime,
 		mdUpdateCount:     1,
 	}
 
+	if oo != nil && oo.DataSource != nil {
+		ark.dataSrc = oo.DataSource
+	} else {
+		if ark.dataSrc, err = iosrc.GetSource(dpuri); err != nil {
+			return nil, err
+		}
+	}
 	if oo != nil && len(oo.LogFilter) != 0 {
 		ark.LogsFiltered = true
 		lmap := make(map[LogID]struct{})
@@ -285,8 +312,8 @@ func (s *statReadCloser) run() {
 		zng.NewColumn("size", zng.TypeUint64),
 	})
 
-	s.err = SpanWalk(s.ark, func(si SpanInfo, zardir string) error {
-		fi, err := os.Stat(ZarDirToLog(zardir))
+	s.err = SpanWalk(s.ark, func(si SpanInfo, zardir iosrc.URI) error {
+		fi, err := iosrc.Stat(ZarDirToLog(zardir))
 		if err != nil {
 			return err
 		}

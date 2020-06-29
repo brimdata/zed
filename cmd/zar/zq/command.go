@@ -4,15 +4,14 @@ import (
 	"context"
 	"errors"
 	"flag"
-	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
@@ -52,17 +51,6 @@ type Command struct {
 	quiet      bool
 }
 
-func fileExists(path string) bool {
-	if path == "-" {
-		return true
-	}
-	info, err := os.Stat(path)
-	if err != nil {
-		return false
-	}
-	return !info.IsDir()
-}
-
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive to walk")
@@ -90,12 +78,15 @@ func (c *Command) Run(args []string) error {
 	}
 	// XXX this is parallelizable except for writing to stdout when
 	// concatenating results
-	return archive.Walk(ark, func(zardir string) error {
+	return archive.Walk(ark, func(zardir iosrc.URI) error {
 		inputs := args
 		var query ast.Proc
-		var err error
 		first := archive.Localize(zardir, inputs[0])
-		if first != "" && fileExists(first) {
+		ok, err := iosrc.Exists(first)
+		if err != nil {
+			return err
+		}
+		if ok {
 			query, err = zql.ParseProc("*")
 			if err != nil {
 				return err
@@ -107,20 +98,16 @@ func (c *Command) Run(args []string) error {
 			}
 			inputs = inputs[1:]
 		}
-		var localPaths []string
+		var paths []string
 		for _, input := range inputs {
-			localPaths = append(localPaths, archive.Localize(zardir, input))
-		}
-		paths, err := c.verifyPaths(localPaths)
-		if err != nil {
-			return err
-		}
-		if len(paths) == 0 {
-			// skip and warn if no inputs found
-			if !c.quiet {
-				fmt.Fprintf(os.Stderr, "%s: no inputs files found\n", zardir)
+			p := archive.Localize(zardir, input)
+			// XXX Doing this because detector doesn't support file uri's. At
+			// some point it should.
+			if p.Scheme == "file" {
+				paths = append(paths, p.Filepath())
+			} else {
+				paths = append(paths, p.String())
 			}
-			return nil
 		}
 		cfg := detector.OpenConfig{Format: "zng"}
 		rc := detector.MultiFileReader(resolver.NewContext(), paths, cfg)
@@ -149,37 +136,11 @@ func (c *Command) Run(args []string) error {
 	})
 }
 
-func (c *Command) verifyPaths(paths []string) ([]string, error) {
-	var files []string
-	for _, path := range paths {
-		stat, err := os.Stat(path)
-		if os.IsNotExist(err) {
-			if !c.quiet {
-				fmt.Fprintf(os.Stderr, "warning: %s not found\n", path)
-			}
-			continue
-		}
-		if err == nil && stat.IsDir() {
-			err = fmt.Errorf("path is a directory")
-		}
-		if err != nil {
-			err = fmt.Errorf("%s: %w", path, err)
-			if c.stopErr {
-				return nil, err
-			}
-			fmt.Fprintf(os.Stderr, "%s\n", err)
-			continue
-		}
-		files = append(files, path)
-	}
-	return files, nil
-}
-
-func (c *Command) openOutput(zardir, filename string) (zbuf.WriteCloser, error) {
+func (c *Command) openOutput(zardir iosrc.URI, filename string) (zbuf.WriteCloser, error) {
 	path := filename
 	// prepend path if not stdout
 	if path != "" {
-		path = filepath.Join(zardir, filename)
+		path = zardir.AppendPath(filename).String()
 	}
 	w, err := emitter.NewFile(path, &zio.WriterFlags{Format: "zng"})
 	if err != nil {

@@ -27,44 +27,19 @@ package zdx
 import (
 	"errors"
 	"fmt"
-	"os"
+
+	"github.com/brimsec/zq/pkg/iosrc"
 )
 
 var (
 	ErrCorruptFile = errors.New("corrupt zdx file")
 )
 
-func filename(path string, level int) string {
+func filename(uri iosrc.URI, level int) iosrc.URI {
 	if level == 0 {
-		return fmt.Sprintf("%s.zng", path)
+		uri.Path += ".zng"
+	} else {
+		uri.Path += fmt.Sprintf(".%d.zng", level)
 	}
-	return fmt.Sprintf("%s.%d.zng", path, level)
-}
-
-func Remove(path string) error {
-	level := 0
-	for {
-		err := os.Remove(filename(path, level))
-		if err != nil {
-			if os.IsNotExist(err) {
-				err = nil
-			}
-			return err
-		}
-		level++
-	}
-}
-
-func Rename(oldpath, newpath string) error {
-	level := 0
-	for {
-		err := os.Rename(filename(oldpath, level), filename(newpath, level))
-		if err != nil {
-			if os.IsNotExist(err) {
-				err = nil
-			}
-			return err
-		}
-		level++
-	}
+	return uri
 }

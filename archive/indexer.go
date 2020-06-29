@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/brimsec/zq/driver"
-	"github.com/brimsec/zq/pkg/fs"
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zdx"
@@ -30,20 +30,20 @@ func fieldZdxName(fieldname string) string {
 }
 
 func IndexDirTree(ark *Archive, rules []Rule, path string, progress chan<- string) error {
-	return Walk(ark, func(zardir string) error {
+	return Walk(ark, func(zardir iosrc.URI) error {
 		logPath := Localize(zardir, path)
 		return run(zardir, rules, logPath, progress)
 	})
 }
 
-func runOne(zardir string, rule Rule, inputPath string, progress chan<- string) error {
-	file, err := fs.Open(inputPath)
+func runOne(zardir iosrc.URI, rule Rule, inputPath iosrc.URI, progress chan<- string) error {
+	rc, err := iosrc.NewReader(inputPath)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer rc.Close()
 	zctx := resolver.NewContext()
-	r := zngio.NewReader(file, zctx)
+	r := zngio.NewReader(rc, zctx)
 	fgi, err := NewFlowgraphIndexer(zctx, rule.Path(zardir), rule.keys, rule.framesize)
 	if err != nil {
 		return err
@@ -59,7 +59,7 @@ func runOne(zardir string, rule Rule, inputPath string, progress chan<- string) 
 	return driver.Run(out, fgi, nil)
 }
 
-func run(zardir string, rules []Rule, logPath string, progress chan<- string) error {
+func run(zardir iosrc.URI, rules []Rule, logPath iosrc.URI, progress chan<- string) error {
 	for _, rule := range rules {
 		err := runOne(zardir, rule, logPath, progress)
 		if err != nil {
@@ -74,11 +74,11 @@ type FlowgraphIndexer struct {
 	w    *zdx.Writer
 }
 
-func NewFlowgraphIndexer(zctx *resolver.Context, path string, keys []string, framesize int) (*FlowgraphIndexer, error) {
+func NewFlowgraphIndexer(zctx *resolver.Context, uri iosrc.URI, keys []string, framesize int) (*FlowgraphIndexer, error) {
 	if len(keys) == 0 {
 		keys = []string{keyName}
 	}
-	writer, err := zdx.NewWriter(zctx, path, keys, framesize)
+	writer, err := zdx.NewWriter(zctx, uri.String(), keys, framesize)
 	if err != nil {
 		return nil, err
 	}

@@ -3,13 +3,11 @@ package archive
 import (
 	"context"
 	"fmt"
-	"os"
 	"path"
-	"path/filepath"
 
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/bufwriter"
-	"github.com/brimsec/zq/pkg/fs"
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
@@ -45,15 +43,17 @@ func (d *importDriver) writeOne(rec *zng.Record) error {
 		// slashes (dir1/foo.zng), regardless of platform.
 		d.logID = LogID(path.Join(dname, fname))
 
-		dpath := filepath.Join(d.ark.Root, dname)
-		if err := os.MkdirAll(dpath, 0755); err != nil {
-			return err
+		dpath := d.ark.DataPath.AppendPath(dname)
+		if dirmkr, ok := d.ark.dataSrc.(iosrc.DirMaker); ok {
+			if err := dirmkr.MkdirAll(dpath, 0755); err != nil {
+				return err
+			}
 		}
 
 		//XXX for now just truncate any existing file.
 		// a future PR will do a split/merge.
-		fpath := filepath.Join(dpath, fname)
-		out, err := fs.OpenFile(fpath, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0644)
+		fpath := dpath.AppendPath(fname)
+		out, err := d.ark.dataSrc.NewWriter(fpath)
 		if err != nil {
 			return err
 		}

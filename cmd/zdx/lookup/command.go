@@ -9,6 +9,7 @@ import (
 
 	"github.com/brimsec/zq/cmd/zdx/root"
 	"github.com/brimsec/zq/emitter"
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zdx"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zng"
@@ -75,7 +76,11 @@ func (c *LookupCommand) Run(args []string) error {
 	if c.keys == "" {
 		return errors.New("must specify one or more comma-separated keys")
 	}
-	finder := zdx.NewFinder(resolver.NewContext(), path)
+	uri, err := iosrc.ParseURI(path)
+	if err != nil {
+		return err
+	}
+	finder := zdx.NewFinder(resolver.NewContext(), uri)
 	if err := finder.Open(); err != nil {
 		return err
 	}

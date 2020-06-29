@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/brimsec/zq/pkg/bufwriter"
-	"github.com/brimsec/zq/pkg/iosource"
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
 )
@@ -19,21 +19,29 @@ func (*noClose) Close() error {
 }
 
 func NewFile(path string, flags *zio.WriterFlags) (*zio.Writer, error) {
-	return NewFileWithSource(path, flags, iosource.DefaultRegistry)
+	if path == "" {
+		path = "stdout"
+	}
+	uri, err := iosrc.ParseURI(path)
+	if err != nil {
+		return nil, err
+	}
+	src, err := iosrc.GetSource(uri)
+	if err != nil {
+		return nil, err
+	}
+	return NewFileWithSource(uri, flags, src)
 }
 
-func NewFileWithSource(path string, flags *zio.WriterFlags, source *iosource.Registry) (*zio.Writer, error) {
-	var err error
-	var f io.WriteCloser
-	if path == "" {
+func NewFileWithSource(path iosrc.URI, flags *zio.WriterFlags, source iosrc.Source) (*zio.Writer, error) {
+	f, err := source.NewWriter(path)
+	if err != nil {
+		return nil, err
+	}
+	if path.Scheme == "stdio" {
 		// Don't close stdout in case we live inside something
 		// here that runs multiple instances of this to stdout.
 		f = &noClose{os.Stdout}
-	} else {
-		f, err = source.NewWriter(path)
-		if err != nil {
-			return nil, err
-		}
 	}
 	// On close, zio.Writer.Close(), the zng WriteFlusher will be flushed
 	// then the bufwriter will closed (which will flush it's internal buffer

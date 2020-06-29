@@ -1,12 +1,12 @@
 script: |
   mkdir logs
   zar import -s 20KiB -R ./logs babble.tzng
-  zar ls -R ./logs
+  zar ls -relative -R ./logs
   echo ===
   touch logs/20200421/1587512288.06249439.zng.zar/foo
-  zar ls -R ./logs foo
+  zar ls -relative -R ./logs foo
   echo ===
-  zar ls -R ./logs -l
+  zar ls -relative -R ./logs -l
   echo ===
 
 inputs:
@@ -16,12 +16,12 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      logs/20200422/1587518620.0622373.zng.zar
-      logs/20200421/1587512288.06249439.zng.zar
+      20200422/1587518620.0622373.zng.zar
+      20200421/1587512288.06249439.zng.zar
       ===
-      logs/20200421/1587512288.06249439.zng.zar/foo
+      20200421/1587512288.06249439.zng.zar/foo
       ===
-      logs/20200422/1587518620.0622373.zng.zar
-      logs/20200421/1587512288.06249439.zng.zar
+      20200422/1587518620.0622373.zng.zar
+      20200421/1587512288.06249439.zng.zar
       	foo
       ===
