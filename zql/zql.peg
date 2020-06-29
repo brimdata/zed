@@ -336,14 +336,8 @@ reduceProc
     RETURN(makeReduceProc(reducers))
   }
 
-asClause
-  = "as"i _ v:fieldName { RETURN(v) }
-
 reducerExpr
-  = field:fieldExpr _? "=" _? f:reducer {
-    RETURN(overrideReducerVar(f, field))
-  }
-  / f:reducer _ field:asClause {
+  = field:fieldName _? "=" _? f:reducer {
     RETURN(overrideReducerVar(f, field))
   }
   / reducer

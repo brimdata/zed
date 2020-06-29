@@ -265,7 +265,7 @@ zar find -z -x custom 10.164.94.120 | zq -t -
 Now we're talking!  And if you take the results and do a little more math to
 aggregate the aggregations, like this:
 ```
-zar find -z -x custom 10.164.94.120 | zq -f table "sum(count) as count by _path" -
+zar find -z -x custom 10.164.94.120 | zq -f table "count=sum(count) by _path" -
 ```
 You'll get
 ```
@@ -307,7 +307,7 @@ For example, let's say we want to build an index that has primary key
 `id.resp_h` and secondary key `id.orig_h` from all the conn logs where we
 cache the sum of response bytes to each originator.
 ```
-zar index -o custom2 -k id.resp_h,id.orig_h -z "_path=conn | sum(resp_bytes) as resp_bytes by id.resp_h,id.orig_h | sort id.resp_h,id.orig_h"
+zar index -o custom2 -k id.resp_h,id.orig_h -z "_path=conn | resp_bytes=sum(resp_bytes) by id.resp_h,id.orig_h | sort id.resp_h,id.orig_h"
 ```
 And now we can search with a primary key and a secondary key, e.g.,
 ```
@@ -414,7 +414,7 @@ where each index includes a count of the occurrences.
 ```
 zar zq -o forward.zng "id.orig_h != null | put from=id.orig_h,to=id.resp_h | count() by from,to" _
 zar zq -o reverse.zng "id.orig_h != null | put from=id.resp_h,to=id.orig_h | count() by from,to" _
-zar zq -o directed-pairs.zng "sum(count) as count by from,to" forward.zng reverse.zng
+zar zq -o directed-pairs.zng "count=sum(count) by from,to" forward.zng reverse.zng
 zar index -i directed-pairs.zng -o graph  -k from,to -z "*"
 ```
 > (Note: there is a small change we can make to zql to do this with one `zar zq`
@@ -423,7 +423,7 @@ zar index -i directed-pairs.zng -o graph  -k from,to -z "*"
 This creates an index called "graph" that you can use to search for IP address
 pair relationships, e.g., you can say
 ```
-zar find -z -x graph 216.58.193.195 | zq -f table "sum(count) as count by from,to" -
+zar find -z -x graph 216.58.193.195 | zq -f table "count=sum(count) by from,to" -
 ```
 to get a listing of all of the edges from IP 216.58.193.195 to any other IP,
 which looks like this:
@@ -448,7 +448,7 @@ This command sequence will collect up the edges into `edges.njdson`:
 zar find -z -x graph 216.58.193.195 | zq "count() by from,to" - > edges.zng
 zar find -z -x graph 10.47.6.162 | zq "count() by from,to" - >> edges.zng
 zar find -z -x graph 10.47.5.153 | zq "count() by from,to" - >> edges.zng
-zq -f ndjson "sum(count) as value by from,to | put source=from, target=to | cut source,target,value" edges.zng >> edges.ndjson
+zq -f ndjson "value=sum(count) by from,to | put source=from, target=to | cut source,target,value" edges.zng >> edges.ndjson
 ```
 > (Note: with a few additions to zql and zar, we can make this much simpler and
 > more efficient.  Coming soon.  Also, we should be able to say `group by node`,
