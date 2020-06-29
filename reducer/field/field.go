@@ -12,37 +12,10 @@ type Streamfn interface {
 	Consume(zng.Value) error
 }
 
-type FieldProto struct {
-	target              string
-	op                  string
-	resolver, tresolver expr.FieldExprResolver
-}
-
-func NewFieldProto(target string, tresolver, resolver expr.FieldExprResolver, op string) *FieldProto {
-	return &FieldProto{
-		target:    target,
-		tresolver: tresolver,
-		resolver:  resolver,
-		op:        op,
-	}
-}
-
-func (fp *FieldProto) Target() string {
-	return fp.target
-}
-
-func (fp *FieldProto) TargetResolver() expr.FieldExprResolver {
-	return fp.tresolver
-}
-
-func (fp *FieldProto) Instantiate() reducer.Interface {
-	return &FieldReducer{op: fp.op, resolver: fp.resolver}
-}
-
 type FieldReducer struct {
 	reducer.Reducer
-	op       string
-	resolver expr.FieldExprResolver
+	Op       string
+	Resolver expr.FieldExprResolver
 	typ      zng.Type
 	fn       Streamfn
 }
@@ -63,7 +36,7 @@ func (fr *FieldReducer) Consume(r *zng.Record) {
 	// reducer just parse the byte slice in the record without making a value...
 	// XXX then we have Values in the zbuf.Record, we would first check the
 	// Value element in the column--- this would all go in a new method of zbuf.Record
-	val := fr.resolver(r)
+	val := fr.Resolver(r)
 	if val.Type == nil {
 		fr.FieldNotFound++
 		return
@@ -81,15 +54,15 @@ func (fr *FieldReducer) consumeVal(val zng.Value) {
 	if fr.fn == nil {
 		switch val.Type.ID() {
 		case zng.IdInt16, zng.IdInt32, zng.IdInt64:
-			fr.fn = NewIntStreamfn(fr.op)
+			fr.fn = NewIntStreamfn(fr.Op)
 		case zng.IdUint16, zng.IdUint32, zng.IdUint64:
-			fr.fn = NewUintStreamfn(fr.op)
+			fr.fn = NewUintStreamfn(fr.Op)
 		case zng.IdFloat64:
-			fr.fn = NewFloat64Streamfn(fr.op)
+			fr.fn = NewFloat64Streamfn(fr.Op)
 		case zng.IdDuration:
-			fr.fn = NewDurationStreamfn(fr.op)
+			fr.fn = NewDurationStreamfn(fr.Op)
 		case zng.IdTime:
-			fr.fn = NewTimeStreamfn(fr.op)
+			fr.fn = NewTimeStreamfn(fr.Op)
 		default:
 			fr.TypeMismatch++
 			return

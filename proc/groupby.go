@@ -286,7 +286,7 @@ func merger(zctx *resolver.Context, builder *ColumnBuilder, keys []GroupByKey, r
 		cols := builder.TypedColumns(types)
 		for i, red := range row.Reducers {
 			v := red.Result()
-			cols = append(cols, zng.NewColumn(row.Defs[i].Target(), v.Type))
+			cols = append(cols, zng.NewColumn(row.Defs[i].Target, v.Type))
 			zv = v.Encode(zv)
 		}
 		typ, err := zctx.LookupTypeRecord(cols)
@@ -687,7 +687,7 @@ func (g *GroupByAggregator) lookupRowType(row *GroupByRow, decompose bool) (*zng
 		} else {
 			z = red.Result()
 		}
-		cols = append(cols, zng.NewColumn(row.reducers.Defs[k].Target(), z.Type))
+		cols = append(cols, zng.NewColumn(row.reducers.Defs[k].Target, z.Type))
 	}
 	// This could be more efficient but it's only done during group-by output...
 	return g.zctx.LookupTypeRecord(cols)

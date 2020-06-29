@@ -6,31 +6,6 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-type CountProto struct {
-	target              string
-	resolver, tresolver expr.FieldExprResolver
-}
-
-func NewCountProto(target string, tresolver, resolver expr.FieldExprResolver) *CountProto {
-	return &CountProto{
-		target:    target,
-		resolver:  resolver,
-		tresolver: tresolver,
-	}
-}
-
-func (cp *CountProto) Target() string {
-	return cp.target
-}
-
-func (cp *CountProto) TargetResolver() expr.FieldExprResolver {
-	return cp.tresolver
-}
-
-func (cp *CountProto) Instantiate() Interface {
-	return &Count{Resolver: cp.resolver}
-}
-
 type Count struct {
 	Reducer
 	Resolver expr.FieldExprResolver

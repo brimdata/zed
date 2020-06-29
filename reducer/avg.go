@@ -8,31 +8,6 @@ import (
 	"github.com/brimsec/zq/zngnative"
 )
 
-type AvgProto struct {
-	target              string
-	resolver, tresolver expr.FieldExprResolver
-}
-
-func NewAvgProto(target string, tresolver, resolver expr.FieldExprResolver) *AvgProto {
-	return &AvgProto{
-		target:    target,
-		tresolver: tresolver,
-		resolver:  resolver,
-	}
-}
-
-func (ap *AvgProto) Target() string {
-	return ap.target
-}
-
-func (ap *AvgProto) TargetResolver() expr.FieldExprResolver {
-	return ap.tresolver
-}
-
-func (ap *AvgProto) Instantiate() Interface {
-	return &Avg{Resolver: ap.resolver}
-}
-
 type Avg struct {
 	Reducer
 	Resolver expr.FieldExprResolver
