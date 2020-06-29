@@ -15,7 +15,7 @@
 > the number of variations in integer types.
 
 * [1. Introduction](#1-introduction)
-* [2. The ZNG data model](#2-the-zng-data-model)
+* [2. The ZNG Data Model](#2-the-zng-data-model)
 * [3. ZNG Binary Format (ZNG)](#3-zng-binary-format-zng)
   + [3.1 Control Messages](#31-control-messages)
     - [3.1.1 Typedefs](#311-typedefs)
@@ -87,7 +87,7 @@ system, error handling, etc., barring the exceptions
 described in the [alpha notice](#note-this-specification-is-alpha-and-a-work-in-progress)
 at the top of this specification.
 
-## 2. The ZNG data model
+## 2. The ZNG Data Model
 
 ZNG encodes a sequence of one or more typed data values to comprise a stream.
 The stream of values is interleaved with control messages
@@ -100,26 +100,33 @@ The ZNG type system comprises the standard set of primitive types like integers,
 floating point, strings, byte arrays, etc. as well as container types
 like records, arrays, and sets arranged from the primitive types.
 
-For example, a ZNG stream representing the single string "hello world"
-looks like this:
+For example, a TZNG stream representing the single string "hello world"
+may look like this:
 ```
-9:hello, world
+#35:string
+35:hello, world
 ```
-Here, the type ID is the integer "9" representing the string type
-(defined in [Typedefs](#311-typedefs)) and the data value "hello, world"
-is an instance of the string type.
+Here, the first line binds a tag `35` to the ZNG `string` data type
+and the second line references that tag to specify a value of the `string`
+type. TZNG is being shown here for human readability. In the underlying
+binary ZNG encoding, a single [Value Message](#32-value-messages) can represent
+the string by referencing the type ID of `9` (per the
+[Primitive Types](#5-primitive-types) table) with no leading
+[Typedef](#311-typedefs) required.
 
-ZNG gets more interesting when different data types are interleaved in the stream.
-For example,
+ZNG gets more interesting when different data types are interleaved in the
+stream.  For example, in the following TZNG:
 ```
-9:hello, world
-4:42
-9:there's a fly in my soup!
-9:no, there isn't.
-4:3
+#35:string
+35:hello, world
+#36:int64
+36:42
+35:there's a fly in my soup!
+35:no, there isn't.
+36:3
 ```
-where type ID 4 represents an integer.  This encoding represents the sequence of
-values:
+Here the tag `36` now binds binds to one of ZNG's integer types. This encoding
+represents the sequence of values that could be expressed in JSON as:
 ```
 "hello, world"
 42
@@ -127,20 +134,21 @@ values:
 "no, there isn't."
 3
 ```
-ZNG streams are often comprised as a sequence of records, which works well to provide
-an efficient representation of structured logs.  In this case, a new type ID is
-needed to define the schema for each distinct record.  To define a new
-type, the "#" syntax is used.  For example,
-logs from the open-source Zeek system might look like this
+ZNG streams are often comprised as a sequence of records, which works well to
+provide an efficient representation of structured logs. In this case, a new
+type defines the schema for each distinct record. For example, the following
+shows type bindings and values in TZNG for open source `weird` and `ftp`
+events:
+
 ```
-#24:record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port]...
-#25:record[_path:string,ts:time,fuid:bstring,tx_hosts:set[ip]...
-24:[conn;1425565514.419939;CogZFI3py5JsFZGik;[192.168.1.1:;80/tcp;192.168.1.2;8080;]...
-25:[files;1425565514.419987;Fj8sRF1gdneMHN700d;[52.218.49.89;52.218.48.169;]...
+#24:record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],name:bstring,addl:bstring,notice:bool,peer:bstring]
+24:[weird;1521911720.600843;C1zOivgBT6dBmknqk;[10.47.1.152;49562;23.217.103.245;80;]TCP_ack_underflow_or_misorder;-;F;zeek;]
+#25:record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],user:bstring,password:bstring,command:bstring,arg:bstring,mime_type:bstring,file_size:uint64,reply_code:uint64,reply_msg:bstring,data_channel:record[passive:bool,orig_h:ip,resp_h:ip,resp_p:port],fuid:bstring]
+25:[ftp;1521911724.699488;ChkumY1k35TmZFL0V3;[10.164.94.120;45905;10.47.27.80;21;]anonymous;nessus@nessus.org;PASV;-;-;-;227;Entering Passive Mode (172,20,0,80,200,63).;[T;10.164.94.120;172.20.0.80;51263;]-;]
 ```
-Note that the value encoding need not refer to the field names and types as both are 
-completely captured by the type ID.  Values merely encode the value
-information consistent with the referenced type ID.
+Note that the value encoding need not refer to the field names and types as
+both are completely captured by the type definition. Values merely encode the
+value information consistent with the referenced type.
 
 ## 3. ZNG Binary Format (ZNG)
 
@@ -653,17 +661,6 @@ as:
 ```
 Note that the tag integers occupy their own numeric space indepedent of
 any underlying ZNG type IDs.
-
-In the common case of working with streams of structured logs, a new tag
-integer will be defined for each distinct record. The following sample shows
-a type binding and value for open source Zeek `weird` and `ftp` events:
-
-```
-#0:record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],name:bstring,addl:bstring,notice:bool,peer:bstring]
-0:[weird;1521911720.600843;C1zOivgBT6dBmknqk;[10.47.1.152;49562;23.217.103.245;80;]TCP_ack_underflow_or_misorder;-;F;zeek;]
-#1:record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],user:bstring,password:bstring,command:bstring,arg:bstring,mime_type:bstring,file_size:uint64,reply_code:uint64,reply_msg:bstring,data_channel:record[passive:bool,orig_h:ip,resp_h:ip,resp_p:port],fuid:bstring]
-1:[ftp;1521911724.699488;ChkumY1k35TmZFL0V3;[10.164.94.120;45905;10.47.27.80;21;]anonymous;nessus@nessus.org;PASV;-;-;-;227;Entering Passive Mode (172,20,0,80,200,63).;[T;10.164.94.120;172.20.0.80;51263;]-;]
-```
 
 The semicolon terminator is important.  Consider this TZNG depicting
 sets of strings:
