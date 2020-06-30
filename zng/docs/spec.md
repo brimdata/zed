@@ -115,7 +115,7 @@ the string by referencing the type ID of `9` (per the
 [Typedef](#311-typedefs) required.
 
 ZNG gets more interesting when different data types are interleaved in the
-stream.  For example, in the following TZNG:
+stream.  For example, consider this TZNG stream:
 ```
 #35:string
 35:hello, world
