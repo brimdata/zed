@@ -46,8 +46,8 @@ of heterogeneously typed records, e.g., structured logs, where filtering and
 analytics may be applied to a stream in parts without having to fully deserialize
 every value.
 
-ZNG has a binary form called "ZNG" as well as text form called "TZNG" that's
-comprised of a sequence of newline-delimited UTF-8 strings.
+ZNG has a binary form called _ZNG_ as well as text form called _TZNG_,
+comprising of a sequence of newline-terminated UTF-8 strings.
 
 ZNG is richly typed and thinner on the wire than JSON.
 ZNG strikes a balance between the narrowly typed but flexible
