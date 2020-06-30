@@ -3,42 +3,36 @@ package reducer
 import (
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 )
-
-type LastProto struct {
-	target   string
-	resolver expr.FieldExprResolver
-}
-
-func (lp *LastProto) Target() string {
-	return lp.target
-}
-
-func (lp *LastProto) Instantiate() Interface {
-	return &Last{Resolver: lp.resolver}
-}
-
-func NewLastProto(target string, resolver expr.FieldExprResolver) *LastProto {
-	return &LastProto{target, resolver}
-}
 
 type Last struct {
 	Reducer
 	Resolver expr.FieldExprResolver
-	record   *zng.Record
+	val      *zng.Value
 }
 
 func (l *Last) Consume(r *zng.Record) {
-	if v := l.Resolver(r); v.Type == nil {
+	v := l.Resolver(r)
+	if v.Type == nil {
 		return
 	}
-	l.record = r
+	l.val = &v
+}
+
+func (l *Last) ConsumePart(p zng.Value) error {
+	l.val = &p
+	return nil
 }
 
 func (l *Last) Result() zng.Value {
-	r := l.record
-	if r == nil {
+	v := l.val
+	if v == nil {
 		return zng.Value{Type: zng.TypeNull, Bytes: nil}
 	}
-	return l.Resolver(r)
+	return *v
+}
+
+func (l *Last) ResultPart(*resolver.Context) (zng.Value, error) {
+	return l.Result(), nil
 }

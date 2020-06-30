@@ -81,7 +81,7 @@ To calculate the total of `resp_bytes` values across all `conn` events and save
 the result in a field called `download_traffic`:
 
 ```zq-command
-zq -f table 'sum(resp_bytes) as download_traffic' conn.log.gz
+zq -f table 'download_traffic=sum(resp_bytes)' conn.log.gz
 ```
 
 #### Output:

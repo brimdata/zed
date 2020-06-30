@@ -6,32 +6,19 @@ import (
 	"github.com/brimsec/zq/zng"
 )
 
-type CountDistinctProto struct {
-	target   string
-	resolver expr.FieldExprResolver
-}
-
-func (cdp *CountDistinctProto) Target() string {
-	return cdp.target
-}
-
-func (cdp *CountDistinctProto) Instantiate() Interface {
-	return &CountDistinct{
-		Resolver: cdp.resolver,
-		sketch:   hyperloglog.New(),
-	}
-}
-
-func NewCountDistinctProto(target string, resolver expr.FieldExprResolver) *CountDistinctProto {
-	return &CountDistinctProto{target, resolver}
-}
-
 // CountDistinct uses hyperloglog to approximate the count of unique values for
 // a field.
 type CountDistinct struct {
 	Reducer
 	Resolver expr.FieldExprResolver
 	sketch   *hyperloglog.Sketch
+}
+
+func NewCountDistinct(resolver expr.FieldExprResolver) *CountDistinct {
+	return &CountDistinct{
+		Resolver: resolver,
+		sketch:   hyperloglog.New(),
+	}
 }
 
 func (c *CountDistinct) Consume(r *zng.Record) {

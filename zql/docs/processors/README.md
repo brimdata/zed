@@ -62,6 +62,36 @@ TS                UID                NAME                             ADDL      
 ...
 ```
 
+#### Example #3:
+
+If the requested list of named fields returns no results, `cut` returns a warning.
+
+```zq-command
+zq -f table 'cut nothere,alsoabsent' weird.log.gz 
+```
+
+#### Output:
+```zq-output
+Cut fields nothere,alsoabsent not present together in input
+```
+
+#### Example #4:
+
+As long as some of the named fields are present, these will be returned. No warning is generated for absent fields in this case.
+
+```zq-command
+zq -f table 'cut nothere,name' weird.log.gz
+```
+
+#### Output:
+```zq-output head:4
+NAME
+TCP_ack_underflow_or_misorder
+truncated_header
+above_hole_data_without_any_acks
+...
+```
+
 ---
 
 ## `filter`

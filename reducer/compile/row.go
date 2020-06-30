@@ -1,6 +1,8 @@
 package compile
 
 import (
+	"errors"
+
 	"github.com/brimsec/zq/reducer"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
@@ -10,37 +12,34 @@ import (
 type Row struct {
 	Defs     []CompiledReducer
 	Reducers []reducer.Interface
-	n        int
 }
 
-func (r *Row) Full() bool {
-	return r.n == len(r.Defs)
-}
-
-func (r *Row) Touch(rec *zng.Record) {
-	if r.Full() {
-		return
+func NewRow(defs []CompiledReducer) Row {
+	reducers := make([]reducer.Interface, len(defs))
+	for i := range defs {
+		reducers[i] = defs[i].Instantiate()
 	}
-	if r.Reducers == nil {
-		r.Reducers = make([]reducer.Interface, len(r.Defs))
-	}
-	for k := range r.Defs {
-		if r.Reducers[k] != nil {
-			continue
-		}
-		red := r.Defs[k].Instantiate()
-		r.Reducers[k] = red
-		r.n++
-	}
+	return Row{defs, reducers}
 }
 
 func (r *Row) Consume(rec *zng.Record) {
-	r.Touch(rec)
 	for _, red := range r.Reducers {
-		if red != nil {
-			red.Consume(rec)
+		red.Consume(rec)
+	}
+}
+
+func (r *Row) ConsumePart(rec *zng.Record) error {
+	for i, red := range r.Reducers {
+		dec, ok := red.(reducer.Decomposable)
+		if !ok {
+			return errors.New("reducer row doesn't decompose")
+		}
+		resolver := r.Defs[i].TargetResolver
+		if err := dec.ConsumePart(resolver(rec)); err != nil {
+			return err
 		}
 	}
+	return nil
 }
 
 // Result creates a new record from the results of the reducers.
@@ -50,7 +49,7 @@ func (r *Row) Result(zctx *resolver.Context) (*zng.Record, error) {
 	var zv zcode.Bytes
 	for k, red := range r.Reducers {
 		val := red.Result()
-		columns[k] = zng.NewColumn(r.Defs[k].Target(), val.Type)
+		columns[k] = zng.NewColumn(r.Defs[k].Target, val.Type)
 		zv = val.Encode(zv)
 	}
 	typ, err := zctx.LookupTypeRecord(columns)

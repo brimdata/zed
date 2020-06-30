@@ -17,10 +17,9 @@ type Reduce struct {
 }
 
 func NewReduce(c *Context, parent Proc, params ReduceParams) Proc {
-
 	return &Reduce{
 		Base:    Base{Context: c, Parent: parent},
-		columns: compile.Row{Defs: params.reducers},
+		columns: compile.NewRow(params.reducers),
 	}
 }
 

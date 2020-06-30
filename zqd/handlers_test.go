@@ -287,6 +287,46 @@ func TestSpacePostNameOnly(t *testing.T) {
 	assert.Regexp(t, "^sp", sp.ID)
 }
 
+func TestSpacePostDuplicateName(t *testing.T) {
+	ctx := context.Background()
+	_, client, done := newCore(t)
+	defer done()
+	_, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	require.NoError(t, err)
+	_, err = client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	require.Equal(t, api.ErrSpaceExists, err)
+}
+
+func TestSpaceInvalidName(t *testing.T) {
+	ctx := context.Background()
+	_, client, done := newCore(t)
+	defer done()
+	t.Run("Post", func(t *testing.T) {
+		_, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "𝚭𝚴𝚪 is.good"})
+		require.NoError(t, err)
+		_, err = client.SpacePost(ctx, api.SpacePostRequest{Name: "𝚭𝚴𝚪/bad"})
+		require.EqualError(t, err, "status code 400: name may not contain '/' or non-printable characters")
+	})
+	t.Run("Put", func(t *testing.T) {
+		sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "𝚭𝚴𝚪1"})
+		require.NoError(t, err)
+		err = client.SpacePut(ctx, sp.ID, api.SpacePutRequest{Name: "𝚭𝚴𝚪/2"})
+		require.EqualError(t, err, "status code 400: name may not contain '/' or non-printable characters")
+	})
+}
+
+func TestSpacePutDuplicateName(t *testing.T) {
+	ctx := context.Background()
+	_, client, done := newCore(t)
+	defer done()
+	_, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	require.NoError(t, err)
+	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test1"})
+	require.NoError(t, err)
+	err = client.SpacePut(ctx, sp.ID, api.SpacePutRequest{Name: "test"})
+	assert.EqualError(t, err, "status code 409: space with name 'test' already exists")
+}
+
 func TestSpacePostDataPath(t *testing.T) {
 	ctx := context.Background()
 	tmp := createTempDir(t)
@@ -603,10 +643,10 @@ func TestDeleteDuringPcapPost(t *testing.T) {
 	wg.Add(1)
 	doPost := func() error {
 		stream, err := client.PcapPost(context.Background(), sp.ID, api.PcapPostRequest{pcapfile})
+		wg.Done()
 		if err != nil {
 			return err
 		}
-		wg.Done()
 
 		var taskEnd *api.TaskEnd
 		for {
