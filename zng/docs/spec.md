@@ -47,7 +47,7 @@ analytics may be applied to a stream in parts without having to fully deserializ
 every value.
 
 ZNG has a binary form called _ZNG_ as well as text form called _TZNG_,
-comprising of a sequence of newline-terminated UTF-8 strings.
+comprising a sequence of newline-terminated UTF-8 strings.
 
 ZNG is richly typed and thinner on the wire than JSON.
 ZNG strikes a balance between the narrowly typed but flexible
