@@ -7,7 +7,6 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/skim"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
@@ -103,16 +102,7 @@ func (r *Reader) parseValues(typ *zng.TypeRecord, v interface{}) (*zng.Record, e
 		//XXX need better error here... this won't make much sense
 		return nil, err
 	}
-	record, err := zng.NewRecordCheck(typ, nano.MinTs, zv)
-	if err != nil {
-		return nil, err
-	}
-	//XXX this should go in NewRecord?
-	ts, err := record.AccessTime("ts")
-	if err == nil {
-		record.Ts = ts
-	}
-	return record, nil
+	return zng.NewRecordCheck(typ, zv)
 }
 
 func (r *Reader) parseAliases(aliases []Alias) error {

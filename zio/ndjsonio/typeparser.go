@@ -198,8 +198,8 @@ func (info *typeInfo) newRawFromJSON(data []byte) (zcode.Bytes, int, error) {
 		return nil, 0, err
 	}
 
-	i := info.descriptor.TsCol
-	if i >= 0 && info.jsonVals[i].typ != jsonparser.String && info.jsonVals[i].typ != jsonparser.Number {
+	i, ok := info.descriptor.ColumnOfField("ts")
+	if ok && info.jsonVals[i].typ != jsonparser.String && info.jsonVals[i].typ != jsonparser.Number {
 		return nil, 0, fmt.Errorf("invalid json type for ts: %s", info.jsonVals[i].typ)
 	}
 

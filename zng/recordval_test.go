@@ -1,9 +1,12 @@
 package zng_test
 
 import (
+	"fmt"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
@@ -79,4 +82,24 @@ func TestRecordAccessAlias(t *testing.T) {
 	b, err := rec.AccessBool("bar")
 	require.NoError(t, err)
 	assert.Equal(t, b, true)
+}
+
+func TestRecordTs(t *testing.T) {
+	cases := []struct {
+		typ, val string
+		expected nano.Ts
+	}{
+		{"record[ts:time]", "[1;]", nano.Ts(time.Second)},
+		{"record[notts:time]", "[1;]", nano.MinTs}, // No ts field.
+		{"record[ts:time]", "[-;]", nano.MinTs},    // Null ts field.
+		{"record[ts:int64]", "[1;]", nano.MinTs},   // Type of ts field is not TypeOfTime.
+	}
+	for _, c := range cases {
+		input := fmt.Sprintf("#0:%s\n0:%s\n", c.typ, c.val)
+		zr := tzngio.NewReader(strings.NewReader(input), resolver.NewContext())
+		rec, err := zr.Read()
+		assert.NoError(t, err)
+		require.NotNil(t, rec)
+		assert.Exactly(t, c.expected, rec.Ts(), "input: %q", input)
+	}
 }

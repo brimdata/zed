@@ -21,7 +21,7 @@ func TestContextAddColumns(t *testing.T) {
 	ts, _ := nano.Parse([]byte("123.456"))
 	r, err = ctx.AddColumns(r, cols, []zng.Value{zng.NewTime(ts), zng.NewString("S2")})
 	require.NoError(t, err)
-	assert.EqualValues(t, 123456000000, r.Ts)
+	assert.EqualValues(t, 123456000000, r.Ts())
 	assert.EqualValues(t, "S1", r.Value(0).String())
 	assert.EqualValues(t, "123.456", r.Value(1).String())
 	assert.EqualValues(t, "S2", r.Value(2).String())

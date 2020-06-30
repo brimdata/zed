@@ -10,7 +10,6 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -71,17 +70,10 @@ func evaluate(e string, record *zng.Record) (zng.Value, error) {
 	return eval(record)
 }
 
-var emptyRecord *zng.Record
-
 func testSuccessful(t *testing.T, e string, record *zng.Record, expect zng.Value) {
 	if record == nil {
-		if emptyRecord == nil {
-			rtype := zng.NewTypeRecord(-1, []zng.Column{})
-			var err error
-			emptyRecord, err = zng.NewRecord(rtype, zcode.Bytes{})
-			require.NoError(t, err)
-		}
-		record = emptyRecord
+		emptyRecordType := zng.NewTypeRecord(-1, nil)
+		record = zng.NewRecord(emptyRecordType, nil)
 	}
 	t.Run(e, func(t *testing.T) {
 		result, err := evaluate(e, record)

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/peeker"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -313,14 +312,9 @@ func (r *Reader) parseValue(id int, b []byte) (*zng.Record, error) {
 	if typ == nil {
 		return nil, zng.ErrDescriptorInvalid
 	}
-	record := zng.NewVolatileRecord(typ, nano.MinTs, b)
+	record := zng.NewVolatileRecord(typ, b)
 	if err := record.TypeCheck(); err != nil {
 		return nil, err
-	}
-	//XXX this should go in NewRecord?
-	ts, err := record.AccessTime("ts")
-	if err == nil {
-		record.Ts = ts
 	}
 	return record, nil
 }

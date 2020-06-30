@@ -36,10 +36,10 @@ type importDriver struct {
 }
 
 func (d *importDriver) writeOne(rec *zng.Record) error {
-	recspan := nano.Span{rec.Ts, 1}
+	recspan := nano.Span{rec.Ts(), 1}
 	if d.zw == nil {
-		dname := tsDir(rec.Ts)
-		fname := rec.Ts.StringFloat() + ".zng"
+		dname := tsDir(rec.Ts())
+		fname := rec.Ts().StringFloat() + ".zng"
 		d.span = recspan
 		// Create LogID with path.Join so that it always uses forward
 		// slashes (dir1/foo.zng), regardless of platform.

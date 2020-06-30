@@ -144,12 +144,5 @@ again:
 	if err != nil {
 		return nil, err
 	}
-	record, err := zng.NewRecord(outType, zv.Bytes)
-	if err != nil {
-		return nil, err
-	}
-	if err := record.TypeCheck(); err != nil {
-		return nil, err
-	}
-	return record, nil
+	return zng.NewRecordCheck(outType, zv.Bytes)
 }

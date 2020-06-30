@@ -8,7 +8,6 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/skim"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -210,14 +209,5 @@ func (r *Reader) parseValue(line []byte) (*zng.Record, error) {
 		return nil, err
 	}
 
-	record, err := zng.NewRecordCheck(typ, nano.MinTs, raw)
-	if err != nil {
-		return nil, err
-	}
-	ts, err := record.AccessTime("ts")
-	if err == nil {
-		record.Ts = ts
-	}
-	// Ignore errors, it just means the point doesn't have a time-typed ts field
-	return record, nil
+	return zng.NewRecordCheck(typ, raw)
 }

@@ -94,12 +94,12 @@ type spanWriter struct {
 }
 
 func (w *spanWriter) Write(rec *zng.Record) error {
-	if rec.Ts == 0 {
+	if rec.Ts() == 0 {
 		return nil
 	}
 	w.writes = true
 	first := w.span == nano.Span{}
-	s := nano.Span{Ts: rec.Ts, Dur: 1}
+	s := nano.Span{Ts: rec.Ts(), Dur: 1}
 	if first {
 		w.span = s
 	} else {

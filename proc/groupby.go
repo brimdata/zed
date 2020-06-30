@@ -293,7 +293,7 @@ func merger(zctx *resolver.Context, builder *ColumnBuilder, keys []GroupByKey, r
 		if err != nil {
 			return nil, err
 		}
-		return zng.NewRecord(typ, zv)
+		return zng.NewRecord(typ, zv), nil
 	}
 }
 
@@ -650,11 +650,7 @@ func (g *GroupByAggregator) readTable(flush, decompose bool) (zbuf.Batch, error)
 		if err != nil {
 			return nil, err
 		}
-		r, err := zng.NewRecord(typ, zv)
-		if err != nil {
-			return nil, err
-		}
-		recs = append(recs, r)
+		recs = append(recs, zng.NewRecord(typ, zv))
 		delete(g.table, k)
 	}
 	if len(recs) == 0 {

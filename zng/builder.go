@@ -48,10 +48,6 @@ func (b *Builder) Build(zvs ...zcode.Bytes) *Record {
 	// between subsequent calls.
 	b.rec.Type = b.Type
 	b.rec.Raw = b.Bytes()
-	// fill in the ts if there's a ts field
-	if b.Type.TsCol >= 0 {
-		b.rec.Ts, _ = b.rec.AccessTime("ts")
-	}
 	return &b.rec
 }
 
@@ -78,10 +74,6 @@ func (b *Builder) Parse(vals ...string) (*Record, error) {
 	// between subsequent calls.
 	b.rec.Type = b.Type
 	b.rec.Raw = b.Bytes()
-	// fill in the ts if there's a ts field
-	if b.Type.TsCol >= 0 {
-		b.rec.Ts, _ = b.rec.AccessTime("ts")
-	}
 	// We do a final type check to make sure everything is good.  In particular,
 	// there are no checks below to ensure that set vals comply with the
 	// ordering constraint.  XXX we could order them automatically if they
