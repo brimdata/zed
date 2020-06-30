@@ -624,13 +624,13 @@ type descriptor of the line using the formats shown in the
 
 Here are some simple examples to get the gist of the ZNG text format.
 
-Primitive types look like this and do not need typedefs:
+Primitive types look like this:
 ```
 bool
 string
 int64
 ```
-Container types look like this and do need typedefs:
+Container types look like this:
 ```
 #0:array[int64]
 #1:set[bool,string]
