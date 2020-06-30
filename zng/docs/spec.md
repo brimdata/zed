@@ -126,7 +126,7 @@ stream.  For example, consider this TZNG stream:
 36:3
 ```
 Here the tag `36` now binds to one of ZNG's integer types. This encoding
-represents the sequence of values that could be expressed in JSON as:
+represents the sequence of values that could be expressed in JSON as
 ```
 "hello, world"
 42
