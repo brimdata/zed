@@ -659,7 +659,7 @@ as:
 {"a": "hello", "b": "world"}
 "this is a semicolon: ;"
 ```
-Note that the tag integers occupy their own numeric space indepedent of
+Note that the tag integers occupy their own numeric space independent of
 any underlying ZNG type IDs.
 
 The semicolon terminator is important.  Consider this TZNG depicting
