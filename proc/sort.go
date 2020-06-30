@@ -272,7 +272,16 @@ func (r *runManager) createRun(recs []*zng.Record) error {
 	return nil
 }
 
-// Read returns the smallest record (per Less) from among the next record in
+// Peek returns the next record without advancing the reader.  The record stops
+// being valid at the next read call.
+func (r *runManager) Peek() (*zng.Record, error) {
+	if r.Len() == 0 {
+		return nil, nil
+	}
+	return r.runs[0].nextRecord, nil
+}
+
+// Read returns the smallest record (per Less) from among the next records in
 // each run.  It implements the merge operation for an external merge sort.
 func (r *runManager) Read() (*zng.Record, error) {
 	for {

@@ -1,24 +1,17 @@
 package proc
 
 import (
-	"bufio"
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-	"strconv"
 	"sync"
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/reducer"
 	"github.com/brimsec/zq/reducer/compile"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zcode"
-	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
@@ -135,6 +128,7 @@ type GroupByAggregator struct {
 	// are ever referenced.
 	kctx         *resolver.Context
 	keys         []GroupByKey
+	keyResolvers []expr.FieldExprResolver
 	decomposable bool
 	reducerDefs  []compile.CompiledReducer
 	builder      *ColumnBuilder
@@ -146,49 +140,7 @@ type GroupByAggregator struct {
 	maxTableKey  *zng.Value
 	maxSpillKey  *zng.Value
 	inputSortDir int
-	spillManager spillManager
-	combiner     *Combiner
-	mergeReader  MergeReader
-}
-
-type spillManager struct {
-	tempDir string
-	n       int
-}
-
-func (sm *spillManager) writeSpill(zctx *resolver.Context, b zbuf.Batch) (zbuf.Reader, error) {
-	if sm.tempDir == "" {
-		tempDir, err := ioutil.TempDir("", "zq-sort-")
-		if err != nil {
-			return nil, err
-		}
-		sm.tempDir = tempDir
-	}
-	filename := filepath.Join(sm.tempDir, strconv.Itoa(sm.n))
-	f, err := fs.Create(filename)
-	if err != nil {
-		return nil, err
-	}
-	if err := writeZng(f, b.Records()); err != nil {
-		f.Close()
-		os.Remove(f.Name())
-		return nil, err
-	}
-	if _, err := f.Seek(0, 0); err != nil {
-		f.Close()
-		os.Remove(f.Name())
-		return nil, err
-	}
-	sm.n++
-	zr := zngio.NewReader(bufio.NewReader(f), zctx)
-	return zr, nil
-}
-
-func (sm *spillManager) removeAll() {
-	if sm.tempDir == "" {
-		return
-	}
-	os.RemoveAll(sm.tempDir)
+	runManager   *runManager
 }
 
 type GroupByRow struct {
@@ -231,12 +183,11 @@ func NewGroupByAggregator(c *Context, params GroupByParams) *GroupByAggregator {
 	} else {
 		keysCompare = rs
 	}
-	combiner := NewCombiner(nil, keysCompare)
-	mergeReader := NewMergeReader(combiner, keysCompare, merger(c.TypeContext, params.builder, params.keys, params.reducers))
 	return &GroupByAggregator{
 		inputSortDir: params.inputSortDir,
 		limit:        limit,
 		keys:         params.keys,
+		keyResolvers: resolvers,
 		zctx:         c.TypeContext,
 		kctx:         resolver.NewContext(),
 		decomposable: decomposable(params.reducers),
@@ -247,53 +198,6 @@ func NewGroupByAggregator(c *Context, params GroupByParams) *GroupByAggregator {
 		keyCompare:   keyCompare,
 		keysCompare:  keysCompare,
 		valueCompare: valueCompare,
-		spillManager: spillManager{},
-		combiner:     combiner,
-		mergeReader:  mergeReader,
-	}
-}
-
-func merger(zctx *resolver.Context, builder *ColumnBuilder, keys []GroupByKey, rs []compile.CompiledReducer) MergeFunc {
-	var keyResolvers []expr.FieldExprResolver
-	for _, k := range keys {
-		keyResolvers = append(keyResolvers, expr.CompileFieldAccess(k.target))
-	}
-
-	return func(head *zng.Record, tail ...*zng.Record) (*zng.Record, error) {
-		row := compile.NewRow(rs)
-		err := row.ConsumePart(head)
-		if err != nil {
-			return nil, err
-		}
-		for _, r := range tail {
-			err := row.ConsumePart(r)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		var types []zng.Type
-		builder.Reset()
-		for _, res := range keyResolvers {
-			keyVal := res(head)
-			types = append(types, keyVal.Type)
-			builder.Append(keyVal.Bytes, keyVal.IsContainer())
-		}
-		zv, err := builder.Encode()
-		if err != nil {
-			return nil, err
-		}
-		cols := builder.TypedColumns(types)
-		for i, red := range row.Reducers {
-			v := red.Result()
-			cols = append(cols, zng.NewColumn(row.Defs[i].Target, v.Type))
-			zv = v.Encode(zv)
-		}
-		typ, err := zctx.LookupTypeRecord(cols)
-		if err != nil {
-			return nil, err
-		}
-		return zng.NewRecord(typ, zv), nil
 	}
 }
 
@@ -321,19 +225,16 @@ func NewGroupBy(c *Context, parent Proc, params GroupByParams) *GroupBy {
 func (g *GroupBy) Pull() (zbuf.Batch, error) {
 	g.once.Do(func() { go g.run() })
 	r := <-g.resultCh
-	if r.Batch == nil {
-		g.cleanup()
-	}
 	return r.Batch, r.Err
 }
 
-func (g *GroupBy) cleanup() {
-	g.agg.combiner.Close()
-	g.agg.spillManager.removeAll()
-}
-
 func (g *GroupBy) run() {
-	defer close(g.resultCh)
+	defer func() {
+		close(g.resultCh)
+		if g.agg.runManager != nil {
+			g.agg.runManager.cleanup()
+		}
+	}()
 	for {
 		batch, err := g.Get()
 		if err != nil {
@@ -504,28 +405,27 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 
 func (g *GroupByAggregator) spillTable(eof bool) error {
 	batch, err := g.readTable(true, true)
-	if err != nil {
+	if err != nil || batch == nil {
 		return err
 	}
-	if batch == nil {
-		return nil
+	if g.runManager == nil {
+		g.runManager, err = newRunManager(g.keysCompare)
+		if err != nil {
+			return err
+		}
 	}
 	recs := batch.Records()
-	expr.SortStable(recs, g.keysCompare)
-
+	// Note that this will sort recs according to g.keysCompare.
+	if err := g.runManager.createRun(recs); err != nil {
+		return err
+	}
 	if !eof && g.inputSortDir != 0 {
-		keyVal, err := g.keys[0].expr(recs[len(recs)-1])
+		v, err := g.keys[0].expr(recs[len(recs)-1])
 		if err != nil && !errors.Is(err, zng.ErrUnset) {
 			return err
 		}
-		g.updateMaxSpillKey(keyVal)
+		g.updateMaxSpillKey(v)
 	}
-
-	spill, err := g.spillManager.writeSpill(g.zctx, batch)
-	if err != nil {
-		return err
-	}
-	g.combiner.AddReader(spill)
 	return nil
 }
 
@@ -549,22 +449,17 @@ func (g *GroupByAggregator) updateMaxSpillKey(v zng.Value) {
 	}
 }
 
-func (g *GroupByAggregator) haveSpills() bool {
-	return g.spillManager.n > 0
-}
-
 // Results returns a batch of aggregation result records. If the input
 // is sorted in the primary key, only keys that are completed are
 // returned. A final call with eof=true should be made to get the
 // final keys.
 func (g *GroupByAggregator) Results(eof bool) (zbuf.Batch, error) {
-	if !g.haveSpills() {
+	if g.runManager == nil {
 		return g.readTable(eof, false)
 	}
-	if eof && g.haveSpills() {
+	if eof {
 		// EOF: spill in-memory table before merging all files for output.
-		err := g.spillTable(true)
-		if err != nil {
+		if err := g.spillTable(true); err != nil {
 			return nil, err
 		}
 	}
@@ -580,7 +475,7 @@ func (g *GroupByAggregator) readSpills(eof bool) (zbuf.Batch, error) {
 	}
 	for len(recs) < batchLen {
 		if !eof && g.inputSortDir != 0 {
-			rec, err := g.combiner.Peek()
+			rec, err := g.runManager.Peek()
 			if err != nil {
 				return nil, err
 			}
@@ -595,7 +490,7 @@ func (g *GroupByAggregator) readSpills(eof bool) (zbuf.Batch, error) {
 				break
 			}
 		}
-		rec, err := g.mergeReader.Read()
+		rec, err := g.nextResultFromSpills()
 		if err != nil {
 			return nil, err
 		}
@@ -609,6 +504,58 @@ func (g *GroupByAggregator) readSpills(eof bool) (zbuf.Batch, error) {
 		return nil, nil
 	}
 	return zbuf.NewArray(recs), nil
+}
+
+func (g *GroupByAggregator) nextResultFromSpills() (*zng.Record, error) {
+	// Consume all partial result records that have the same grouping keys.
+	row := compile.NewRow(g.reducerDefs)
+	var firstRec *zng.Record
+	for {
+		rec, err := g.runManager.Peek()
+		if err != nil {
+			return nil, err
+		}
+		if rec == nil {
+			break
+		}
+		if firstRec == nil {
+			firstRec = rec.Keep()
+		} else if g.keysCompare(firstRec, rec) != 0 {
+			break
+		}
+		if err := row.ConsumePart(rec); err != nil {
+			return nil, err
+		}
+		if _, err := g.runManager.Read(); err != nil {
+			return nil, err
+		}
+	}
+	if firstRec == nil {
+		return nil, nil
+	}
+	// Build the result record.
+	g.builder.Reset()
+	var types []zng.Type
+	for _, res := range g.keyResolvers {
+		keyVal := res(firstRec)
+		types = append(types, keyVal.Type)
+		g.builder.Append(keyVal.Bytes, keyVal.IsContainer())
+	}
+	zbytes, err := g.builder.Encode()
+	if err != nil {
+		return nil, err
+	}
+	cols := g.builder.TypedColumns(types)
+	for i, red := range row.Reducers {
+		v := red.Result()
+		cols = append(cols, zng.NewColumn(row.Defs[i].Target, v.Type))
+		zbytes = v.Encode(zbytes)
+	}
+	typ, err := g.zctx.LookupTypeRecord(cols)
+	if err != nil {
+		return nil, err
+	}
+	return zng.NewRecord(typ, zbytes), nil
 }
 
 // readTable returns a slice of records from the in-memory groupby
