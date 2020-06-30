@@ -108,11 +108,7 @@ might look like this:
 ```
 Here, the first line binds a tag `35` to the ZNG `string` data type
 and the second line references that tag to specify a value of the `string`
-type. TZNG is being shown here for human readability. In the equivalent
-binary ZNG encoding, a single [Value Message](#32-value-messages) can represent
-the string by referencing the type ID of `9` (per the
-[Primitive Types](#5-primitive-types) table) with no leading
-[Typedef](#311-typedefs) required.
+type.
 
 ZNG gets more interesting when different data types are interleaved in the
 stream.  For example, consider this TZNG stream:
