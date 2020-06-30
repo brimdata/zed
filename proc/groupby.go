@@ -293,7 +293,7 @@ func merger(zctx *resolver.Context, builder *ColumnBuilder, keys []GroupByKey, r
 		if err != nil {
 			return nil, err
 		}
-		return zng.NewRecord(typ, zv)
+		return zng.NewRecord(typ, zv), nil
 	}
 }
 
