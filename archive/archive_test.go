@@ -146,9 +146,12 @@ func TestImportWhileOpen(t *testing.T) {
 	// Ensure UpdateCheck has incremented.
 	update2, err := ark1.UpdateCheck()
 	require.NoError(t, err)
-	if !assert.Equal(t, 3, update2) {
+	missedUpdate := !assert.Equal(t, 3, update2)
+	forcedTimes := !assert.Equal(t, 0, ark1.mdForcedTimes)
+	if missedUpdate || forcedTimes {
 		if fi, err := os.Stat(ark1.mdPath()); err == nil {
-			fmt.Fprintf(os.Stderr, "now: %v, metadata initial mtime: %v, mtime: %v, mdModTime %v\n", time.Now(), initialMTime, fi.ModTime(), ark1.mdModTime)
+			fmt.Fprintf(os.Stderr, "now: %v, metadata initial mtime: %v, mtime: %v, mdModTime %v mdForcedTimes %v\n",
+				time.Now(), initialMTime, fi.ModTime(), ark1.mdModTime, ark1.mdForcedTimes)
 		}
 		watchMtime(t, ark1.mdPath(), initialMTime)
 	}

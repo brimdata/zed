@@ -2,6 +2,7 @@ package archive
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -96,6 +97,9 @@ type Archive struct {
 	// archive is potentially updated due to writing new logs, or
 	// on re-reading the metadata file.
 	mdUpdateCount int
+
+	// XXX Test Debugging
+	mdForcedTimes int
 }
 
 func (ark *Archive) AppendSpans(spans []SpanInfo) error {
@@ -115,8 +119,35 @@ func (ark *Archive) AppendSpans(spans []SpanInfo) error {
 		return ark.spans[j].Span.Ts < ark.spans[i].Span.Ts
 	})
 
+	fi1, err := os.Stat(ark.mdPath())
+	if err != nil {
+		return err
+	}
+
 	if err := ark.metaWrite(); err != nil {
 		return err
+	}
+
+	mtimeUpdated := false
+	var fi2 os.FileInfo
+	for n := 0; n < 10; n++ {
+		fi2, err = os.Stat(ark.mdPath())
+		if err != nil {
+			return err
+		}
+
+		if fi2.ModTime().Equal(fi1.ModTime()) {
+			if err := os.Chtimes(ark.mdPath(), time.Now(), time.Now()); err != nil {
+				return err
+			}
+			ark.mdForcedTimes++
+		} else {
+			mtimeUpdated = true
+			break
+		}
+	}
+	if !mtimeUpdated {
+		return fmt.Errorf("metadata file mtime not updated: before write %v after write %v", fi1.ModTime(), fi2.ModTime())
 	}
 
 	ark.mdUpdateCount++
