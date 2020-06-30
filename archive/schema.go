@@ -115,8 +115,7 @@ func (ark *Archive) AppendSpans(spans []SpanInfo) error {
 		return ark.spans[j].Span.Ts < ark.spans[i].Span.Ts
 	})
 
-	err := ark.metaWrite()
-	if err != nil {
+	if err := ark.metaWrite(); err != nil {
 		return err
 	}
 

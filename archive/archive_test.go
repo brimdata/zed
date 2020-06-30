@@ -8,6 +8,7 @@ import (
 	"math"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/test"
@@ -105,6 +106,21 @@ func TestOpenOptions(t *testing.T) {
 	require.Equal(t, test.Trim(exp), out)
 }
 
+func watchMtime(t *testing.T, path string, origmtime time.Time) {
+	start := time.Now()
+	changed := false
+	for i := 0; i < 50; i++ {
+		time.Sleep(100 * time.Millisecond)
+		u, err := os.Stat(path)
+		require.NoError(t, err)
+		if !u.ModTime().Equal(origmtime) {
+			changed = true
+			break
+		}
+	}
+	fmt.Fprintf(os.Stderr, "changed: %v start: %v, now: %v\n", changed, start, time.Now())
+}
+
 func TestImportWhileOpen(t *testing.T) {
 	// Create an archive with initial data
 	datapath, err := ioutil.TempDir("", "")
@@ -118,6 +134,8 @@ func TestImportWhileOpen(t *testing.T) {
 	}, nil)
 	require.NoError(t, err)
 
+	initialMTime := ark1.mdModTime
+
 	// Verify initial update count.
 	update1, err := ark1.UpdateCheck()
 	require.NoError(t, err)
@@ -130,8 +148,9 @@ func TestImportWhileOpen(t *testing.T) {
 	require.NoError(t, err)
 	if !assert.Equal(t, 3, update2) {
 		if fi, err := os.Stat(ark1.mdPath()); err == nil {
-			fmt.Fprintf(os.Stderr, "metadata mtime: %v, mdModTime %v", fi.ModTime(), ark1.mdModTime)
+			fmt.Fprintf(os.Stderr, "now: %v, metadata initial mtime: %v, mtime: %v, mdModTime %v\n", time.Now(), initialMTime, fi.ModTime(), ark1.mdModTime)
 		}
+		watchMtime(t, ark1.mdPath(), initialMTime)
 	}
 
 	// Verify data & that a span walk now does not increment the update counter.
