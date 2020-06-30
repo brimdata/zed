@@ -1,18 +1,21 @@
 # ZNG Specification
 
-> Note: This specification is ALPHA and a work in progress.
-> Zq's implementation of ZNG is tracking this spec and as it changes,
+> ### Note: This specification is ALPHA and a work in progress.
+> [Zq](https://github.com/brimsec/zq/blob/master/README.md)'s
+> implementation of ZNG is tracking this spec and as it changes,
 > the zq output format is subject to change.  In this branch,
 > zq attempts to implement everything herein excepting:
 >
 > * the `bytes` type is not yet implemented,
-> * the `enum` type is not yet implemented.
+> * the `enum` type is not yet implemented,
+> * only streams of `record` types (which may consist of any combination of
+>   other implemented types) may currently be expressed in value messages.
 >
 > Also, we are contemplating reducing the number of [primitive types](#5-primitive-types), e.g.,
 > the number of variations in integer types.
 
 * [1. Introduction](#1-introduction)
-* [2. The ZNG data model](#2-the-zng-data-model)
+* [2. The ZNG Data Model](#2-the-zng-data-model)
 * [3. ZNG Binary Format (ZNG)](#3-zng-binary-format-zng)
   + [3.1 Control Messages](#31-control-messages)
     - [3.1.1 Typedefs](#311-typedefs)
@@ -43,17 +46,15 @@ of heterogeneously typed records, e.g., structured logs, where filtering and
 analytics may be applied to a stream in parts without having to fully deserialize
 every value.
 
-ZNG has both a text form called "TZNG",
-comprised of a sequence of newline-delimited UTF-8 strings,
-as well as a binary form called "ZNG".
+ZNG has a binary form called _ZNG_ as well as text form called _TZNG_,
+comprising a sequence of newline-terminated UTF-8 strings.
 
 ZNG is richly typed and thinner on the wire than JSON.
-Like [newline-delimited JSON (NDJSON)](http://ndjson.org/),
-the ZNG text format represents a sequence of data objects
+ZNG strikes a balance between the narrowly typed but flexible
+[newline-delimited JSON (NDJSON)](http://ndjson.org/) format and
+a more structured approach like [Apache Avro](https://avro.apache.org).
+Like NDJSON, the TZNG text format represents a sequence of data objects
 that can be parsed line by line.
-ZNG strikes a balance between the narrowly typed but flexible NDJSON format and
-a more structured approach like
-[Apache Avro](https://avro.apache.org).
 
 ZNG is type rich and embeds all type information in the stream while having a
 binary serialization format that allows "lazy parsing" of fields such that
@@ -74,8 +75,7 @@ ZNG is more expressive than JSON in that any JSON input
 can be mapped onto ZNG and recovered by decoding
 that ZNG back into JSON, but the converse is not true.
 
-The ZNG design [was motivated by](./zeek-compat.md)
-and is compatible with the
+The ZNG design was motivated by and [is compatible with](./zeek-compat.md) the
 [Zeek log format](https://docs.zeek.org/en/stable/examples/logs/).
 As far as we know, the Zeek log format pioneered the concept of
 embedding the schema of the log lines within the log file itself using
@@ -84,10 +84,10 @@ meta-records, and ZNG merely modernizes this original approach.
 The [`zq`](https://github.com/brimsec/zq) command-line tool provides a
 reference implementation of ZNG as it's described here, including the type
 system, error handling, etc., barring the exceptions
-described in the [alpha notice](#zng-specification)
+described in the [alpha notice](#note-this-specification-is-alpha-and-a-work-in-progress)
 at the top of this specification.
 
-## 2. The ZNG data model
+## 2. The ZNG Data Model
 
 ZNG encodes a sequence of one or more typed data values to comprise a stream.
 The stream of values is interleaved with control messages
@@ -100,26 +100,29 @@ The ZNG type system comprises the standard set of primitive types like integers,
 floating point, strings, byte arrays, etc. as well as container types
 like records, arrays, and sets arranged from the primitive types.
 
-For example, a ZNG stream representing the single string "hello world"
-looks like this:
+For example, a TZNG stream representing the single string "hello world"
+might look like this:
 ```
-9:hello, world
+#35:string
+35:hello, world
 ```
-Here, the type ID is the integer "9" representing the string type
-(defined in [Typedefs](#typedefs)) and the data value "hello, world"
-is an instance of the string type.
+Here, the first line binds a tag `35` to the ZNG `string` data type
+and the second line references that tag to specify a value of the `string`
+type.
 
-ZNG gets more interesting when different data types are interleaved in the stream.
-For example,
+ZNG gets more interesting when different data types are interleaved in the
+stream.  For example, consider this TZNG stream:
 ```
-9:hello, world
-4:42
-9:there's a fly in my soup!
-9:no, there isn't.
-4:3
+#35:string
+35:hello, world
+#36:int64
+36:42
+35:there's a fly in my soup!
+35:no, there isn't.
+36:3
 ```
-where type ID 4 represents an integer.  This encoding represents the sequence of
-values:
+Here the tag `36` now binds to one of ZNG's integer types. This encoding
+represents the sequence of values that could be expressed in JSON as
 ```
 "hello, world"
 42
@@ -127,20 +130,21 @@ values:
 "no, there isn't."
 3
 ```
-ZNG streams are often comprised as a sequence of records, which works well to provide
-an efficient representation of structured logs.  In this case, a new type ID is
-needed to define the schema for each distinct record.  To define a new
-type, the "#" syntax is used.  For example,
-logs from the open-source Zeek system might look like this
+ZNG streams often comprise a sequence of records, which works well to
+provide an efficient representation of structured logs. In this case, a new
+type defines the schema for each distinct record. For example, the following
+shows type bindings and values in TZNG for Zeek's `weird` and `ftp`
+events:
+
 ```
-#24:record[_path:string,ts:time,uid:string,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port]...
-#25:record[_path:string,ts:time,fuid:string,tx_hosts:set[ip]...
-24:[conn;1425565514.419939;CogZFI3py5JsFZGik;[192.168.1.1:;80/tcp;192.168.1.2;8080;]...
-25:[files;1425565514.419987;Fj8sRF1gdneMHN700d;[52.218.49.89;52.218.48.169;]...
+#24:record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],name:bstring,addl:bstring,notice:bool,peer:bstring]
+24:[weird;1521911720.600843;C1zOivgBT6dBmknqk;[10.47.1.152;49562;23.217.103.245;80;]TCP_ack_underflow_or_misorder;-;F;zeek;]
+#25:record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],user:bstring,password:bstring,command:bstring,arg:bstring,mime_type:bstring,file_size:uint64,reply_code:uint64,reply_msg:bstring,data_channel:record[passive:bool,orig_h:ip,resp_h:ip,resp_p:port],fuid:bstring]
+25:[ftp;1521911724.699488;ChkumY1k35TmZFL0V3;[10.164.94.120;45905;10.47.27.80;21;]anonymous;nessus@nessus.org;PASV;-;-;-;227;Entering Passive Mode (172,20,0,80,200,63).;[T;10.164.94.120;172.20.0.80;51263;]-;]
 ```
-Note that the value encoding need not refer to the field names and types as both are 
-completely captured by the type ID.  Values merely encode the value
-information consistent with the referenced type ID.
+Note that the value encoding need not refer to the field names and types as
+both are completely captured by the type definition. Values merely encode the
+value information consistent with the referenced type.
 
 ## 3. ZNG Binary Format (ZNG)
 
@@ -180,8 +184,7 @@ These payloads are guaranteed to be preserved
 in order within the stream and presented to higher layer components through
 any ZNG streaming API.  In this way, senders and receivers of ZNG can embed
 protocol directives as ZNG control payloads rather than defining additional
-encapsulating protocols.  See the
-[zng-over-http](zng-over-http.md) protocol for an example.
+encapsulating protocols.
 
 ### 3.1.1 Typedefs
 
@@ -454,7 +457,7 @@ are values.
 
 ### 4.1 Control Messages
 
-TZNG control messages have one of four forms defined below.
+TZNG control messages have one of three forms defined below.
 
 Any line beginning with `#` that does not conform with the syntax described here
 is an error.
@@ -468,17 +471,17 @@ A TZNG type binding has the following form:
 #<type-tag>:<type-string>
 ```
 Here, `<type-tag>` is a string decimal integer and `<type-string>`
-is a string defining a record type (`<rtype>`) according to the [TZNG type grammar](#42-type-grammar). They create
+is a string defining a type (`<type>`) according to the [TZNG type grammar](#42-type-grammar). They create
 a binding between the indicated tag and the indicated type.
 
 ### 4.1.2 Type Alias
 
 A TZNG type alias has the following form:
 ```
-#<type-name>:<type-string>
+#<type-name>=<type-string>
 ```
 Here, `<type-name>` is an identifier and `<type-string>`
-is a string defining a type according to the [TZNG type grammar](#42-type-grammar). They create a
+is a string defining a type (`<type>`) according to the [TZNG type grammar](#42-type-grammar). They create a
 binding between the indicated tag and the indicated type.
 This form defines an alias mapping the identifier to the indicated type.
 `<type-name>` is an identifier with semantics as defined in [Section 3.1.1.5](#3115-alias-typedef).
@@ -505,10 +508,7 @@ grammar describing the textual type encodings is:
 <ctype> := array [ <stype> ]
          | union [ <stype-list> ]
          | set [ <stype> ]
-         | <rtype>
-
-<rtype> := record [ <columns> ]
-         | record [ ]
+         | record [ <columns> ]
 
 
 <type> := <stype> | <ctype>
@@ -620,23 +620,23 @@ type descriptor of the line using the formats shown in the
 
 Here are some simple examples to get the gist of the ZNG text format.
 
-Primitive types look like this and do not need typedefs:
+Primitive types look like this:
 ```
 bool
 string
-int
+int64
 ```
-Container types look like this and do need typedefs:
+Container types look like this:
 ```
-#0:array[int]
+#0:array[int64]
 #1:set[bool,string]
 #2:record[x:float64,y:float64]
 ```
 Container types can be embedded in other container types by referencing
 an earlier-defined type alias:
 ```
-#REC:record[a:string,b:string,c:int]
-#SET:set[string]
+#REC=record[a:string,b:string,c:int64]
+#SET=set[string]
 #99:record[v:REC,s:SET,r:REC,s2:SET]
 ```
 This TZNG defines a tag for the primitive string type and defines a record
@@ -648,13 +648,14 @@ and references the types accordingly in three values;
 1:[hello;world;]
 0:this is a semicolon: \x3b;
 ```
-which represents a stream of the following three values:
+which represents a stream of the three values, that could be expressed in JSON
+as
 ```
-string("hello, world")
-record(a:"hello",b:"world")
-string("this is a semicolon: ;")
+"hello, world"
+{"a": "hello", "b": "world"}
+"this is a semicolon: ;"
 ```
-Note that the tag integers occupy their own numeric space indepedent of
+Note that the tag integers occupy their own numeric space independent of
 any underlying ZNG type IDs.
 
 The semicolon terminator is important.  Consider this TZNG depicting
