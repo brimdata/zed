@@ -653,7 +653,7 @@ and references the types accordingly in three values;
 0:this is a semicolon: \x3b;
 ```
 which represents a stream of the three values, that could be expressed in JSON
-as:
+as
 ```
 "hello, world"
 {"a": "hello", "b": "world"}
