@@ -134,7 +134,7 @@ represents the sequence of values that could be expressed in JSON as:
 "no, there isn't."
 3
 ```
-ZNG streams are often comprised as a sequence of records, which works well to
+ZNG streams often comprise a sequence of records, which works well to
 provide an efficient representation of structured logs. In this case, a new
 type defines the schema for each distinct record. For example, the following
 shows type bindings and values in TZNG for open source `weird` and `ftp`
