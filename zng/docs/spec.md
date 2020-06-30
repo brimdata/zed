@@ -101,7 +101,7 @@ floating point, strings, byte arrays, etc. as well as container types
 like records, arrays, and sets arranged from the primitive types.
 
 For example, a TZNG stream representing the single string "hello world"
-may look like this:
+might look like this:
 ```
 #35:string
 35:hello, world
