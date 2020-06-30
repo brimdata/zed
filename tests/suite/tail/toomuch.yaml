@@ -1,0 +1,9 @@
+zql: tail 2
+
+input: |
+  #0:record[x:string]
+  0:[first;]
+
+output: |
+  #0:record[x:string]
+  0:[first;]

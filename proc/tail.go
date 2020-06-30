@@ -22,9 +22,13 @@ func (t *Tail) tail() zbuf.Batch {
 	if t.count <= 0 {
 		return nil
 	}
-	out := make([]*zng.Record, t.limit)
-	for k := 0; k < t.limit; k++ {
-		out[k] = t.q[(t.off+k)%t.limit]
+	start := t.off
+	if t.count < t.limit {
+		start = 0
+	}
+	out := make([]*zng.Record, t.count)
+	for k := 0; k < t.count; k++ {
+		out[k] = t.q[(start+k)%t.limit]
 	}
 	t.off = 0
 	t.count = 0
