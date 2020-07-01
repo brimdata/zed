@@ -14,9 +14,11 @@ The following available processors are documented in detail below:
 
 **Note**: In the examples below, we'll use the `zq -f table` output format for human readability. Due to the width of the Zeek events used as sample data, you may need to "scroll right" in the output to see some field values.
 
-**Note**: Per ZQL [search syntax](../search-syntax/README.md), many examples below use shorthand that leaves off the explicit leading `* |`, matching all events before invoking the first processor in a pipeline.
+**Note**: Per ZQL [search syntax](../search-syntax/README.md), many examples below use shorthand that leaves off the explicit leading `* |`, matching all events before invoking the first element in a pipeline.
 
 ---
+
+# Available Processors
 
 ## `cut`
 
