@@ -999,6 +999,42 @@ func TestSubspacePersist(t *testing.T) {
 	assert.Regexp(t, "not found", err.Error())
 }
 
+func TestArchiveStat(t *testing.T) {
+	datapath := createTempDir(t)
+	thresh := int64(20 * 1024)
+	createArchiveSpace(t, datapath, thresh, "../tests/suite/zdx/babble.tzng")
+
+	root := createTempDir(t)
+	_, client, done := newCoreAtDir(t, root)
+	defer done()
+
+	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{
+		Name:     t.Name(),
+		DataPath: datapath,
+		Storage: &storage.Config{
+			Kind: storage.ArchiveStore,
+		},
+	})
+	require.NoError(t, err)
+
+	exp := `
+#0:record[type:string,log_id:string,start:time,duration:duration,size:uint64]
+0:[chunk;20200422/1587518620.0622373.zng;1587512305.06978904;6314.992448261;21761;]
+0:[chunk;20200421/1587512288.06249439.zng;1587508830.06852324;3457.993971151;13152;]
+`
+	res := archiveStat(t, client, sp.ID)
+	assert.Equal(t, test.Trim(exp), res)
+}
+
+func archiveStat(t *testing.T, client *api.Connection, space api.SpaceID) string {
+	r, err := client.ArchiveStat(context.Background(), space, nil)
+	require.NoError(t, err)
+	buf := bytes.NewBuffer(nil)
+	w := zbuf.NopFlusher(tzngio.NewWriter(buf))
+	require.NoError(t, zbuf.Copy(w, r))
+	return buf.String()
+}
+
 func indexSearch(t *testing.T, client *api.Connection, space api.SpaceID, indexName string, patterns []string) (string, []interface{}) {
 	req := api.IndexSearchRequest{
 		IndexName: indexName,

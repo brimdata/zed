@@ -238,6 +238,19 @@ func (c *Connection) IndexSearch(ctx context.Context, space SpaceID, search Inde
 	return NewZngSearch(r), nil
 }
 
+func (c *Connection) ArchiveStat(ctx context.Context, space SpaceID, params map[string]string) (Search, error) {
+	req := c.Request(ctx).
+		SetQueryParam("format", "zng")
+	req.SetQueryParams(params)
+	req.Method = http.MethodGet
+	req.URL = path.Join("/space", string(space), "archivestat")
+	r, err := c.stream(req)
+	if err != nil {
+		return nil, err
+	}
+	return NewZngSearch(r), nil
+}
+
 func (c *Connection) PcapPost(ctx context.Context, space SpaceID, payload PcapPostRequest) (*Stream, error) {
 	req := c.Request(ctx).
 		SetBody(payload)

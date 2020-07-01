@@ -36,6 +36,7 @@ func NewHandler(core *Core, logger *zap.Logger) http.Handler {
 	h.Handle("/space/{space}/pcap", handlePcapPost).Methods("POST")
 	h.Handle("/space/{space}/log", handleLogPost).Methods("POST")
 	h.Handle("/space/{space}/indexsearch", handleIndexSearch).Methods("POST")
+	h.Handle("/space/{space}/archivestat", handleArchiveStat).Methods("GET")
 	h.Handle("/space/{space}/subspace", handleSubspacePost).Methods("POST")
 	h.Handle("/search", handleSearch).Methods("POST")
 	h.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
