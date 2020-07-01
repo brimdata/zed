@@ -65,6 +65,7 @@ func (c *Combiner) peek() (*zng.Record, int, error) {
 				c.done[k] = true
 				continue
 			}
+			rec.CopyBody()
 			c.hol[k] = rec
 		}
 		if minrec == nil || c.compare(minrec, c.hol[k]) > 0 {
