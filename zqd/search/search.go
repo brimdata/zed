@@ -91,13 +91,6 @@ func (s *SearchOp) Run(output Output) error {
 	return d.end(0)
 }
 
-type Output interface {
-	SendBatch(int, zbuf.Batch) error
-	SendControl(interface{}) error
-	End(interface{}) error
-	ContentType() string
-}
-
 // A Query is the internal representation of search query describing a source
 // of tuples, a "search" applied to the tuples producing a set of matched
 // tuples, and a proc to the process the tuples
