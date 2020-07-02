@@ -602,7 +602,6 @@ func (g *GroupByAggregator) readSpills(eof bool) (zbuf.Batch, error) {
 		if rec == nil {
 			break
 		}
-		rec.CopyBody()
 		recs = append(recs, rec)
 	}
 	if len(recs) == 0 {
