@@ -247,6 +247,7 @@ func CreateOrOpenArchive(path string, co *CreateOptions, oo *OpenOptions) (*Arch
 	return OpenArchive(path, oo)
 }
 
+// statReadCloser implements zbuf.ReadCloser
 type statReadCloser struct {
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -276,7 +277,7 @@ func (s *statReadCloser) run() {
 	defer close(s.recs)
 
 	zctx := resolver.NewContext()
-	chunkTyp := zctx.MustLookupTypeRecord([]zng.Column{
+	typ := zctx.MustLookupTypeRecord([]zng.Column{
 		zng.NewColumn("type", zng.TypeString),
 		zng.NewColumn("log_id", zng.TypeString),
 		zng.NewColumn("start", zng.TypeTime),
@@ -297,7 +298,7 @@ func (s *statReadCloser) run() {
 		zv = zng.NewDuration(si.Span.Dur).Encode(zv)
 		zv = zng.NewUint64(uint64(fi.Size())).Encode(zv)
 
-		rec := zng.NewRecord(chunkTyp, zv)
+		rec := zng.NewRecord(typ, zv)
 		select {
 		case s.recs <- rec:
 			return nil
