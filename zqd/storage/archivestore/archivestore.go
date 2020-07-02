@@ -110,3 +110,7 @@ func (s *Storage) Summary(_ context.Context) (storage.Summary, error) {
 func (s *Storage) IndexSearch(ctx context.Context, query archive.IndexQuery) (zbuf.ReadCloser, error) {
 	return archive.FindReadCloser(ctx, s.ark, query, archive.AddPath(archive.DefaultAddPathField, false))
 }
+
+func (s *Storage) ArchiveStat(ctx context.Context) (zbuf.ReadCloser, error) {
+	return archive.Stat(ctx, s.ark)
+}

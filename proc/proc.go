@@ -43,7 +43,6 @@ type Context struct {
 	context.Context
 	TypeContext *resolver.Context
 	Logger      *zap.Logger
-	Reverse     bool
 	Warnings    chan string
 }
 

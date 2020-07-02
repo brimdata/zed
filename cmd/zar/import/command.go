@@ -45,7 +45,7 @@ type Command struct {
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
-	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive for chopped files")
+	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive to walk")
 	f.StringVar(&c.thresh, "s", units.Base2Bytes(archive.DefaultLogSizeThreshold).String(), "target size of chopped files, as '10MB' or '4GiB', etc.")
 	f.BoolVar(&c.empty, "empty", false, "create an archive without initial data")
 	c.ReaderFlags.SetFlags(f)
