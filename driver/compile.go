@@ -87,7 +87,7 @@ func ReplaceGroupByProcDurationWithKey(p ast.Proc) {
 	switch p := p.(type) {
 	case *ast.GroupByProc:
 		if duration := p.Duration.Seconds; duration != 0 {
-			durationKey := ast.Assignment{
+			durationKey := ast.ExpressionAssignment{
 				Target: "ts",
 				Expr: &ast.FunctionCall{
 					Function: "Time.trunc",
@@ -100,7 +100,7 @@ func ReplaceGroupByProcDurationWithKey(p ast.Proc) {
 				},
 			}
 			p.Duration.Seconds = 0
-			p.Keys = append([]ast.Assignment{durationKey}, p.Keys...)
+			p.Keys = append([]ast.ExpressionAssignment{durationKey}, p.Keys...)
 		}
 	case *ast.ParallelProc:
 		for _, pp := range p.Procs {

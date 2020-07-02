@@ -65,7 +65,7 @@ const framesize = 32 * 1024 * 2
 
 const keyName = "key"
 
-var keyAst = ast.Assignment{
+var keyAst = ast.ExpressionAssignment{
 	Target: "key",
 	Expr:   &ast.FieldRead{Field: "key"},
 }
@@ -84,7 +84,7 @@ func NewTypeRule(typeName string) (*Rule, error) {
 				typeName: typeName,
 			},
 			&ast.GroupByProc{
-				Keys: []ast.Assignment{keyAst},
+				Keys: []ast.ExpressionAssignment{keyAst},
 			},
 			&ast.SortProc{},
 		},
@@ -102,7 +102,7 @@ func NewFieldRule(fieldName string) (*Rule, error) {
 				out:   keyName,
 			},
 			&ast.GroupByProc{
-				Keys: []ast.Assignment{keyAst},
+				Keys: []ast.ExpressionAssignment{keyAst},
 			},
 			&ast.SortProc{},
 		},

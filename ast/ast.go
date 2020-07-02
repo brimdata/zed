@@ -269,11 +269,11 @@ type (
 	// appropriate value.
 	GroupByProc struct {
 		Node
-		Duration     Duration     `json:"duration"`
-		InputSortDir int          `json:"input_sort_dir,omitempty"`
-		Limit        int          `json:"limit,omitempty"`
-		Keys         []Assignment `json:"keys"`
-		Reducers     []Reducer    `json:"reducers"`
+		Duration     Duration               `json:"duration"`
+		InputSortDir int                    `json:"input_sort_dir,omitempty"`
+		Limit        int                    `json:"limit,omitempty"`
+		Keys         []ExpressionAssignment `json:"keys"`
+		Reducers     []Reducer              `json:"reducers"`
 	}
 	// TopProc is similar to proc.SortProc with a few key differences:
 	// - It only sorts in descending order.
@@ -289,11 +289,11 @@ type (
 
 	PutProc struct {
 		Node
-		Clauses []Assignment `json:"clauses"`
+		Clauses []ExpressionAssignment `json:"clauses"`
 	}
 )
 
-type Assignment struct {
+type ExpressionAssignment struct {
 	Target string     `json:"target"`
 	Expr   Expression `json:"expression"`
 }

@@ -220,7 +220,7 @@ groupByKeys
 
 
 groupByKey
-  = Assignment
+  = ExpressionAssignment
   / field:fieldExpr { RETURN(makeGroupByKey(TEXT, field)) }
 
 
@@ -408,13 +408,13 @@ uniq
     }
 
 put
-  = "put"i _ first:Assignment rest:(__ "," __ cl:Assignment { RETURN(cl) })* {
+  = "put"i _ first:ExpressionAssignment rest:(__ "," __ cl:ExpressionAssignment { RETURN(cl) })* {
       RETURN(makePutProc(first, rest))
     }
 
-Assignment
+ExpressionAssignment
   = f:fieldName __ "=" __ e:Expression {
-      RETURN(makeAssignment(f, e))
+      RETURN(makeExpressionAssignment(f, e))
     }
 
 PrimaryExpression

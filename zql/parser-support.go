@@ -261,14 +261,14 @@ func makeFilterProc(expr interface{}) *ast.FilterProc {
 	return &ast.FilterProc{ast.Node{"FilterProc"}, expr.(ast.BooleanExpr)}
 }
 
-func makeAssignment(target, expr interface{}) ast.Assignment {
-	return ast.Assignment{target.(string), expr.(ast.Expression)}
+func makeExpressionAssignment(target, expr interface{}) ast.ExpressionAssignment {
+	return ast.ExpressionAssignment{target.(string), expr.(ast.Expression)}
 }
 
 func makePutProc(first, rest interface{}) *ast.PutProc {
-	clauses := []ast.Assignment{first.(ast.Assignment)}
+	clauses := []ast.ExpressionAssignment{first.(ast.ExpressionAssignment)}
 	for _, c := range rest.([]interface{}) {
-		clauses = append(clauses, c.(ast.Assignment))
+		clauses = append(clauses, c.(ast.ExpressionAssignment))
 	}
 	return &ast.PutProc{ast.Node{"PutProc"}, clauses}
 }
@@ -307,16 +307,16 @@ func makeReduceProc(reducers interface{}) *ast.ReduceProc {
 	}
 }
 
-func makeGroupByKey(textIn, valIn interface{}) ast.Assignment {
+func makeGroupByKey(textIn, valIn interface{}) ast.ExpressionAssignment {
 	text := textIn.(string)
 	val := valIn.(ast.Expression)
-	return ast.Assignment{text, val}
+	return ast.ExpressionAssignment{text, val}
 }
 
-func makeGroupByKeys(first, rest interface{}) []ast.Assignment {
-	keys := []ast.Assignment{first.(ast.Assignment)}
+func makeGroupByKeys(first, rest interface{}) []ast.ExpressionAssignment {
+	keys := []ast.ExpressionAssignment{first.(ast.ExpressionAssignment)}
 	for _, k := range rest.([]interface{}) {
-		keys = append(keys, k.(ast.Assignment))
+		keys = append(keys, k.(ast.ExpressionAssignment))
 	}
 	return keys
 }
@@ -332,11 +332,11 @@ func makeGroupByProc(durationIn, limitIn, keysIn, reducersIn interface{}) *ast.G
 		limit = limitIn.(int)
 	}
 
-	var keys []ast.Assignment
+	var keys []ast.ExpressionAssignment
 	switch keysSlice := keysIn.(type) {
 	case []interface{}:
-		keys = []ast.Assignment{}
-	case []ast.Assignment:
+		keys = []ast.ExpressionAssignment{}
+	case []ast.ExpressionAssignment:
 		keys = keysSlice
 	}
 	reducers := reducersArray(reducersIn)
