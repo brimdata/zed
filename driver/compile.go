@@ -50,7 +50,6 @@ func CompileWarningsChCustom(ctx context.Context, custom proc.Compiler, program 
 		Context:     ctx,
 		TypeContext: resolver.NewContext(),
 		Logger:      logger,
-		Reverse:     reverse,
 		Warnings:    ch,
 	}
 	leaves, err := proc.CompileProc(custom, program, pctx, scanner)
