@@ -25,9 +25,17 @@ type Cut struct {
 // do this now since it might confuse users who expect to see output
 // fields in the order they specified.
 func CompileCutProc(c *Context, parent Proc, node *ast.CutProc) (*Cut, error) {
+	var fieldnames, targets []string
+	for _, fa := range node.Fields {
+		if fa.Target == "" {
+			fa.Target = fa.Source
+		}
+		targets = append(targets, fa.Target)
+		fieldnames = append(fieldnames, fa.Source)
+	}
 	// build this once at compile time for error checking.
 	if !node.Complement {
-		_, err := NewColumnBuilder(c.TypeContext, node.Fields)
+		_, err := NewColumnBuilder(c.TypeContext, targets)
 		if err != nil {
 			return nil, fmt.Errorf("compiling cut: %w", err)
 		}
@@ -36,8 +44,8 @@ func CompileCutProc(c *Context, parent Proc, node *ast.CutProc) (*Cut, error) {
 	return &Cut{
 		Base:       Base{Context: c, Parent: parent},
 		complement: node.Complement,
-		fieldnames: node.Fields,
-		cutter:     NewCutter(c.TypeContext, node.Complement, node.Fields),
+		fieldnames: fieldnames,
+		cutter:     NewCutter(c.TypeContext, node.Complement, targets, fieldnames),
 	}, nil
 }
 

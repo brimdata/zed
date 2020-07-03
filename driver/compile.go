@@ -126,7 +126,7 @@ func setGroupByProcInputSortDir(p ast.Proc, inputSortField string, inputSortDir 
 	case *ast.CutProc:
 		// Return true if the output record contains inputSortField.
 		for _, f := range p.Fields {
-			if f == inputSortField {
+			if f.Source == inputSortField {
 				return !p.Complement
 			}
 		}

@@ -92,7 +92,8 @@ function makeTopProc(fields, limit, flush) {
   return { op: "TopProc", fields, limit, flush};
 }
 
-function makeCutProc(args, fields) {
+function makeFieldAssignment(target, source) { return { target, source }; }
+function makeCutProc(args, first, rest) {
     let complement = false;
     if (args.length > 1) {
       throw new Error(`Duplicate argument -c`);
@@ -100,7 +101,7 @@ function makeCutProc(args, fields) {
     if (args.length == 1) {
         complement = true;
     }
-    return { op: "CutProc", complement, fields };
+    return { op: "CutProc", complement: complement, fields: [first, ...rest] };
 }
 function makeHeadProc(count) { return { op: "HeadProc", count }; }
 function makeTailProc(count) { return { op: "TailProc", count }; }

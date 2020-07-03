@@ -33,20 +33,22 @@ func (cb *cutBuilder) cut(in *zng.Record) *zng.Record {
 }
 
 type Cutter struct {
-	zctx        *resolver.Context
-	complement  bool
-	cutBuilders map[int]*cutBuilder
-	fieldnames  []string
-	strict      bool
+	zctx                *resolver.Context
+	complement          bool
+	cutBuilders         map[int]*cutBuilder
+	targets, fieldnames []string
+	strict              bool
 }
 
-// NewCutter returns a Cutter for fieldnames.  If complement is true, the Cutter
-// copies fields that are not in fieldnames.  If complement is false, the Cutter
-// copies fields that are in fieldnames.
-func NewCutter(zctx *resolver.Context, complement bool, fieldnames []string) *Cutter {
+// NewCutter returns a Cutter for fieldnames. If complement is true,
+// the Cutter copies fields that are not in fieldnames. If complement
+// is false, the Cutter copies any fields in fieldnames, where targets
+// specifies the copied field names.
+func NewCutter(zctx *resolver.Context, complement bool, targets, fieldnames []string) *Cutter {
 	return &Cutter{
 		zctx:        zctx,
 		complement:  complement,
+		targets:     targets,
 		fieldnames:  fieldnames,
 		cutBuilders: make(map[int]*cutBuilder),
 	}
@@ -55,8 +57,8 @@ func NewCutter(zctx *resolver.Context, complement bool, fieldnames []string) *Cu
 // NewStrictCutter is like NewCutter but, if complement is false, (*Cutter).Cut
 // returns a record only if its input record contains all of the fields in
 // fieldnames.
-func NewStrictCutter(zctx *resolver.Context, complement bool, fieldnames []string) *Cutter {
-	c := NewCutter(zctx, complement, fieldnames)
+func NewStrictCutter(zctx *resolver.Context, complement bool, targets, fieldnames []string) *Cutter {
+	c := NewCutter(zctx, complement, targets, fieldnames)
 	c.strict = true
 	return c
 }
@@ -132,10 +134,10 @@ func fieldIn(set []string, cand string) bool {
 // resolver set doesn't seem worth the added special casing.
 func (c *Cutter) setBuilder(r *zng.Record) (*cutBuilder, error) {
 	// Build up the output type.
-	var fields []string
+	var targets []string
 	var resolvers []expr.FieldExprResolver
 	var outColTypes []zng.Type
-	for _, f := range c.fieldnames {
+	for i, f := range c.fieldnames {
 		resolver := expr.CompileFieldAccess(f)
 		val := resolver(r)
 		if val.Type == nil {
@@ -147,14 +149,14 @@ func (c *Cutter) setBuilder(r *zng.Record) (*cutBuilder, error) {
 			// ...omit the field from the output.
 			continue
 		}
-		fields = append(fields, f)
+		targets = append(targets, c.targets[i])
 		resolvers = append(resolvers, resolver)
 		outColTypes = append(outColTypes, val.Type)
 	}
-	if len(fields) == 0 {
+	if len(targets) == 0 {
 		return nil, nil
 	}
-	builder, err := NewColumnBuilder(c.zctx, fields)
+	builder, err := NewColumnBuilder(c.zctx, targets)
 	if err != nil {
 		return nil, err
 	}

@@ -229,7 +229,7 @@ func makeTopProc(fieldsIn, limitIn, flushIn interface{}) *ast.TopProc {
 	return &ast.TopProc{ast.Node{"TopProc"}, limit, fields, flush}
 }
 
-func makeCutProc(argsIn, fieldsIn interface{}) (*ast.CutProc, error) {
+func makeCutProc(argsIn, first, rest interface{}) (*ast.CutProc, error) {
 	var complement bool
 	argsArray := argsIn.([]interface{})
 	if len(argsArray) > 1 {
@@ -239,7 +239,11 @@ func makeCutProc(argsIn, fieldsIn interface{}) (*ast.CutProc, error) {
 		complement = true
 	}
 
-	fields := stringArray(fieldsIn)
+	fields := []ast.FieldAssignment{first.(ast.FieldAssignment)}
+	for _, c := range rest.([]interface{}) {
+		fields = append(fields, c.(ast.FieldAssignment))
+	}
+
 	return &ast.CutProc{ast.Node{"CutProc"}, complement, fields}, nil
 }
 
@@ -263,6 +267,10 @@ func makeFilterProc(expr interface{}) *ast.FilterProc {
 
 func makeExpressionAssignment(target, expr interface{}) ast.ExpressionAssignment {
 	return ast.ExpressionAssignment{target.(string), expr.(ast.Expression)}
+}
+
+func makeFieldAssignment(target, source interface{}) ast.FieldAssignment {
+	return ast.FieldAssignment{target.(string), source.(string)}
 }
 
 func makePutProc(first, rest interface{}) *ast.PutProc {

@@ -271,24 +271,6 @@ fieldExprList
 fieldRefDotOnly
   = base:fieldName refs:("." field:fieldName)* { RETURN(TEXT) }
 
-fieldRefDotOnlyList
-  = first:fieldRefDotOnly rest:(_? "," _? ref:fieldRefDotOnly { RETURN(ref) })* {
-  INIT_ASSIGN_VAR(result, ARRAY(first))
-  FOREACH(ASSERT_ARRAY(rest), r) {
-    APPEND(result, r)
-  }
-  RETURN(result)
-  }
-
-fieldNameList
-  = first:fieldName rest:(_? "," _? fieldName)* {
-      INIT_ASSIGN_VAR(result, ARRAY(first))
-      FOREACH(ASSERT_ARRAY(rest), r) {
-        APPEND(result, ASSERT_ARRAY(r)[3])
-      }
-      RETURN(result)
-  }
-
 countOp
   = "count"i { RETURN("Count") }
 
@@ -386,8 +368,14 @@ procLimitArg
 
 cutArg = (_ "-c" { RETURN(makeArg("c", NULL)) })*
 
+cutAssignment
+  = FieldAssignment
+  / field:fieldRefDotOnly {
+    RETURN(makeFieldAssignment("", field))
+  }
+
 cut
-  = "cut"i arg:cutArg _ list:fieldRefDotOnlyList {  return makeCutProc(arg, list) }
+  = "cut"i arg:cutArg _ first:cutAssignment rest:(__ "," __ cl:cutAssignment { RETURN(cl) })* {  return makeCutProc(arg, first, rest) }
 head
   = "head"i _ count:unsignedInteger { RETURN(makeHeadProc(count)) }
   / "head"i { RETURN(makeHeadProc(1)) }
@@ -415,6 +403,11 @@ put
 ExpressionAssignment
   = f:fieldName __ "=" __ e:Expression {
       RETURN(makeExpressionAssignment(f, e))
+    }
+
+FieldAssignment
+  = f:fieldName __ "=" __ e:fieldRefDotOnly {
+      RETURN(makeFieldAssignment(f, e))
     }
 
 PrimaryExpression

@@ -211,8 +211,8 @@ type (
 	// sending each such modified record to its output in the order received.
 	CutProc struct {
 		Node
-		Complement bool     `json:"complement"`
-		Fields     []string `json:"fields"`
+		Complement bool              `json:"complement"`
+		Fields     []FieldAssignment `json:"fields"`
 	}
 	// A HeadProc node represents a proc that forwards the indicated number
 	// of records then terminates.
@@ -296,6 +296,11 @@ type (
 type ExpressionAssignment struct {
 	Target string     `json:"target"`
 	Expr   Expression `json:"expression"`
+}
+
+type FieldAssignment struct {
+	Target string `json:"target"`
+	Source string `json:"source"`
 }
 
 //XXX TBD: chance to nano.Duration

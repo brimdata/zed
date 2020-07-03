@@ -88,7 +88,7 @@ func newWriter(zctx *resolver.Context, path iosrc.URI, keyFields []string, frame
 		header:      hdr,
 		frameThresh: framesize,
 		frameEnd:    int64(framesize),
-		cutter:      proc.NewStrictCutter(zctx, false, keyFields),
+		cutter:      proc.NewStrictCutter(zctx, false, keyFields, keyFields),
 	}, nil
 }
 
