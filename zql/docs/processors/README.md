@@ -24,7 +24,7 @@ The following available processors are documented in detail below:
 | ------------------------- | ----------------------------------------------------------- |
 | **Description**           | Return the data only from the specified named fields.       |
 | **Syntax**                | `cut [-c] <field-list>`                                     |
-| **Required<br>arguments** | `<field-list>`<br>One or more comma-separated field names.  |
+| **Required<br>arguments** | `<field-list>`<br>One or more comma-separated field names or assignments.  |
 | **Optional<br>arguments** | `[-c]`<br>If specified, print all fields _other than_ those specified. |
 | **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc#Cut            |
 
@@ -91,6 +91,24 @@ truncated_header
 above_hole_data_without_any_acks
 ...
 ```
+
+#### Example #5:
+
+To return only the `ts` and `uid` columns of `conn` events, with `ts` renamed to `time`:
+
+```zq-command
+zq -f table 'cut time=ts,uid' conn.log.gz
+```
+
+#### Output:
+```zq-output head:4
+TIME              UID
+1521911721.255387 C8Tful1TvM3Zf5x8fl
+1521911721.411148 CXWfTK3LRdiuQxBbM6
+1521911721.926018 CM59GGQhNEoKONb5i
+...
+```
+
 
 ---
 
