@@ -3,7 +3,7 @@ script: |
   zar import -s 20KiB -R ./logs babble.tzng
   find logs | sort
   echo ===
-  zar ls -R ./logs
+  zar ls -relative -R ./logs
   echo ===
   find logs | sort
   echo ===
@@ -24,8 +24,8 @@ outputs:
       logs/20200422/1587518620.0622373.zng
       logs/zar.json
       ===
-      logs/20200422/1587518620.0622373.zng.zar
-      logs/20200421/1587512288.06249439.zng.zar
+      20200422/1587518620.0622373.zng.zar
+      20200421/1587512288.06249439.zng.zar
       ===
       logs
       logs/20200421

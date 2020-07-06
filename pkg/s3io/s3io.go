@@ -3,11 +3,14 @@ package s3io
 import (
 	"errors"
 	"io"
+	"net/http"
 	"net/url"
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
@@ -92,4 +95,46 @@ func (w *Writer) Close() error {
 		return err
 	}
 	return w.err
+}
+
+func NewReader(path string, cfg *aws.Config) (io.ReadCloser, error) {
+	bucket, key, err := parsePath(path)
+	if err != nil {
+		return nil, err
+	}
+	sess := session.Must(session.NewSession(cfg))
+	client := s3.New(sess)
+	res, err := client.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+func Stat(path string, cfg *aws.Config) (*s3.HeadObjectOutput, error) {
+	bucket, key, err := parsePath(path)
+	if err != nil {
+		return nil, err
+	}
+	sess := session.Must(session.NewSession(cfg))
+	client := s3.New(sess)
+	return client.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+}
+
+func Exists(path string, cfg *aws.Config) (bool, error) {
+	_, err := Stat(path, cfg)
+	if err != nil {
+		var reqerr awserr.RequestFailure
+		if errors.As(err, &reqerr) && reqerr.StatusCode() == http.StatusNotFound {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }

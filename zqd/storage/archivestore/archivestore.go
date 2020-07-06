@@ -2,10 +2,10 @@ package archivestore
 
 import (
 	"context"
-	"os"
 	"sync"
 
 	"github.com/brimsec/zq/archive"
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/detector"
@@ -48,9 +48,16 @@ func (s *Storage) NativeDirection() zbuf.Direction {
 func (s *Storage) Open(ctx context.Context, span nano.Span) (zbuf.ReadCloser, error) {
 	var err error
 	var paths []string
-	err = archive.SpanWalk(s.ark, func(si archive.SpanInfo, zardir string) error {
+	err = archive.SpanWalk(s.ark, func(si archive.SpanInfo, zardir iosrc.URI) error {
 		if span.Overlaps(si.Span) {
-			paths = append(paths, archive.ZarDirToLog(zardir))
+			p := archive.ZarDirToLog(zardir)
+			// XXX Doing this because detector doesn't support file uri's. At
+			// some point it should.
+			if p.Scheme == "file" {
+				paths = append(paths, p.Filepath())
+			} else {
+				paths = append(paths, p.String())
+			}
 		}
 		return nil
 	})
@@ -80,13 +87,13 @@ func (s *Storage) Summary(_ context.Context) (storage.Summary, error) {
 	}
 	s.sumCache.mu.Unlock()
 
-	err = archive.SpanWalk(s.ark, func(si archive.SpanInfo, zardir string) error {
+	err = archive.SpanWalk(s.ark, func(si archive.SpanInfo, zardir iosrc.URI) error {
 		zngpath := archive.ZarDirToLog(zardir)
-		sinfo, err := os.Stat(zngpath)
+		info, err := iosrc.Stat(zngpath)
 		if err != nil {
 			return err
 		}
-		sum.DataBytes += sinfo.Size()
+		sum.DataBytes += info.Size()
 		if sum.Span.Dur == 0 {
 			sum.Span = si.Span
 		} else {

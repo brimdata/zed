@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zdx"
 	"github.com/brimsec/zq/zng"
@@ -45,7 +45,7 @@ func AddPath(pathField string, absolutePath bool) FindOption {
 		opt.addPath = func(ark *Archive, si SpanInfo, rec *zng.Record) (*zng.Record, error) {
 			var path string
 			if absolutePath {
-				path = si.LogID.Path(ark)
+				path = si.LogID.Path(ark).String()
 			} else {
 				path = string(si.LogID)
 			}
@@ -82,12 +82,12 @@ func Find(ctx context.Context, ark *Archive, query IndexQuery, hits chan<- *zng.
 			return err
 		}
 	}
-	return SpanWalk(ark, func(si SpanInfo, zardir string) error {
+	return SpanWalk(ark, func(si SpanInfo, zardir iosrc.URI) error {
 		searchHits := make(chan *zng.Record)
 		var searchErr error
 		go func() {
 			defer close(searchHits)
-			searchErr = search(ctx, opt.zctx, searchHits, filepath.Join(zardir, query.indexName), query.patterns)
+			searchErr = search(ctx, opt.zctx, searchHits, zardir.AppendPath(query.indexName), query.patterns)
 			if searchErr != nil && os.IsNotExist(searchErr) && opt.skipMissing {
 				// No index for this rule.  Skip it if the skip boolean
 				// says it's ok.  Otherwise, we return ErrNotExist since
@@ -111,8 +111,8 @@ func Find(ctx context.Context, ark *Archive, query IndexQuery, hits chan<- *zng.
 	})
 }
 
-func search(ctx context.Context, zctx *resolver.Context, hits chan<- *zng.Record, path string, patterns []string) error {
-	finder := zdx.NewFinder(zctx, path)
+func search(ctx context.Context, zctx *resolver.Context, hits chan<- *zng.Record, uri iosrc.URI, patterns []string) error {
+	finder := zdx.NewFinder(zctx, uri)
 	if err := finder.Open(); err != nil {
 		return fmt.Errorf("%s: %w", finder.Path(), err)
 	}

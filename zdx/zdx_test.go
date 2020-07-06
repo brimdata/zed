@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zdx"
 	"github.com/brimsec/zq/zio/tzngio"
@@ -93,12 +94,11 @@ const sixPairs = `
 func TestSearch(t *testing.T) {
 	path := buildTestTable(t, sixPairs)
 	defer os.RemoveAll(path) // nolint:errcheck
+	uri, err := iosrc.ParseURI(path)
+	require.NoError(t, err)
 	zctx := resolver.NewContext()
-	finder := zdx.NewFinder(zctx, path)
-	err := finder.Open()
-	if err != nil {
-		t.Error(err)
-	}
+	finder := zdx.NewFinder(zctx, uri)
+	require.NoError(t, finder.Open())
 	keyRec, err := zng.NewBuilder(finder.Keys()).Parse("key2")
 	require.NoError(t, err)
 	rec, err := finder.Lookup(keyRec)

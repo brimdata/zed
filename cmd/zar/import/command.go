@@ -38,6 +38,7 @@ func init() {
 type Command struct {
 	*root.Command
 	root        string
+	dataPath    string
 	thresh      string
 	empty       bool
 	ReaderFlags zio.ReaderFlags
@@ -46,6 +47,7 @@ type Command struct {
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive to walk")
+	f.StringVar(&c.dataPath, "data", "", "location for storing data files (defaults to root directory)")
 	f.StringVar(&c.thresh, "s", units.Base2Bytes(archive.DefaultLogSizeThreshold).String(), "target size of chopped files, as '10MB' or '4GiB', etc.")
 	f.BoolVar(&c.empty, "empty", false, "create an archive without initial data")
 	c.ReaderFlags.SetFlags(f)
@@ -59,7 +61,7 @@ func (c *Command) Run(args []string) error {
 		return errors.New("zar import: exactly one input file must be specified (- for stdin)")
 	}
 
-	co := &archive.CreateOptions{}
+	co := &archive.CreateOptions{DataPath: c.dataPath}
 	if thresh, err := units.ParseStrictBytes(c.thresh); err != nil {
 		return fmt.Errorf("invalid target file size: %w", err)
 	} else {

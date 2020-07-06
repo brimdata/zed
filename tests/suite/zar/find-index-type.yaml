@@ -2,10 +2,10 @@
 script: |
   zar import -R . log.tzng
   zar index -q -R . :ip
-  zar find -R . :ip=1.1.1.1
-  zar find -R . :ip=192.168.1.102
-  zar find -R . :ip=192.168.2.1
-  zar find -R . :ip=192.168.1.1
+  zar find -relative -R . :ip=1.1.1.1
+  zar find -relative -R . :ip=192.168.1.102
+  zar find -relative -R . :ip=192.168.2.1
+  zar find -relative -R . :ip=192.168.1.1
   zq -t "count(key)" 20091119/1258594907.85978.zng.zar/zdx-type-ip.zng # check unset not indexed
 
 inputs:

@@ -1,7 +1,7 @@
 script: |
   mkdir logs
   zar import -s 20KiB -R ./logs babble.tzng
-  zar ls -R ./logs
+  zar ls -relative -R ./logs
   echo ===
   zar stat -R ./logs
   echo ===
@@ -15,8 +15,8 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      logs/20200422/1587518620.0622373.zng.zar
-      logs/20200421/1587512288.06249439.zng.zar
+      20200422/1587518620.0622373.zng.zar
+      20200421/1587512288.06249439.zng.zar
       ===
       TYPE  LOG_ID                           START                DURATION       SIZE
       chunk 20200422/1587518620.0622373.zng  1587512305.069789040 6314.992448261 21761

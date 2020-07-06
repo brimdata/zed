@@ -3,10 +3,9 @@ package zdx
 import (
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/brimsec/zq/pkg/bufwriter"
-	"github.com/brimsec/zq/pkg/fs"
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/zngio"
@@ -34,7 +33,7 @@ import (
 // XXX TBD: the single-file implementation will arrive in a subsequent PR.
 type Writer struct {
 	zctx        *resolver.Context
-	path        string
+	uri         iosrc.URI
 	level       int
 	writer      *bufwriter.Writer
 	out         *zngio.Writer
@@ -62,22 +61,26 @@ func NewWriter(zctx *resolver.Context, path string, keyFields []string, framesiz
 	if framesize == 0 {
 		return nil, errors.New("zdx framesize cannot be zero")
 	}
-	return newWriter(zctx, path, keyFields, framesize, 0, nil)
+	uri, err := iosrc.ParseURI(path)
+	if err != nil {
+		return nil, err
+	}
+	return newWriter(zctx, uri, keyFields, framesize, 0, nil)
 }
 
-func newWriter(zctx *resolver.Context, path string, keyFields []string, framesize, level int, hdr *zng.Record) (*Writer, error) {
+func newWriter(zctx *resolver.Context, path iosrc.URI, keyFields []string, framesize, level int, hdr *zng.Record) (*Writer, error) {
 	if level > 5 {
 		panic("something wrong")
 	}
 	name := filename(path, level)
-	f, err := fs.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	w, err := iosrc.NewWriter(name)
 	if err != nil {
 		return nil, err
 	}
-	writer := bufwriter.New(f)
+	writer := bufwriter.New(w)
 	return &Writer{
 		zctx:        zctx,
-		path:        path,
+		uri:         path,
 		keyFields:   keyFields,
 		level:       level,
 		writer:      writer,
@@ -167,7 +170,7 @@ func (w *Writer) endFrame() error {
 func (w *Writer) addToParentIndex(key *zng.Record, offset int64) error {
 	if w.parent == nil {
 		var err error
-		w.parent, err = newWriter(w.zctx, w.path, w.keyFields, w.frameThresh, w.level+1, w.header)
+		w.parent, err = newWriter(w.zctx, w.uri, w.keyFields, w.frameThresh, w.level+1, w.header)
 		if err != nil {
 			return err
 		}

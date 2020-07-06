@@ -2,8 +2,8 @@
 script: |
   zar import -R . log.tzng
   zar index -q -R . referenced_file.id.orig_h
-  zar find -R . referenced_file.id.orig_h=1.1.1.1
-  zar find -R . referenced_file.id.orig_h=192.168.1.102
+  zar find -relative -R . referenced_file.id.orig_h=1.1.1.1
+  zar find -relative -R . referenced_file.id.orig_h=192.168.1.102
   zq -t "count(key)" 20091119/1258594907.85978.zng.zar/zdx-field-referenced_file.id.orig_h.zng # check unset not indexed
 
 
