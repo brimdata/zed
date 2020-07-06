@@ -114,53 +114,6 @@ func NewReader(path string, cfg *aws.Config) (io.ReadCloser, error) {
 	return res.Body, nil
 }
 
-func RemoveAll(path string, cfg *aws.Config) error {
-	bucket, key, err := parsePath(path)
-	if err != nil {
-		return err
-	}
-	sess := session.Must(session.NewSession(cfg))
-	client := s3.New(sess)
-	input := &s3.ListObjectsV2Input{
-		Prefix: aws.String(key),
-		Bucket: aws.String(bucket),
-	}
-	del := &s3.Delete{}
-	err = client.ListObjectsV2Pages(input, func(out *s3.ListObjectsV2Output, lastPage bool) bool {
-		for _, obj := range out.Contents {
-			del.Objects = append(del.Objects, &s3.ObjectIdentifier{Key: obj.Key})
-		}
-		return true
-	})
-	if err != nil {
-		return err
-	}
-	_, err = client.DeleteObjects(&s3.DeleteObjectsInput{
-		Bucket: &bucket,
-		Delete: del,
-	})
-	return err
-}
-
-func Remove(path string, cfg *aws.Config) error {
-	bucket, key, err := parsePath(path)
-	if err != nil {
-		return err
-	}
-	sess := session.Must(session.NewSession(cfg))
-	client := s3.New(sess)
-	_, err = client.DeleteObject(&s3.DeleteObjectInput{
-		Key:    &key,
-		Bucket: &bucket,
-	})
-	return err
-}
-
-func Rename(oldpath, newpath string, cfg *aws.Config) error {
-	// ugh only way to do this is to copy and rename
-	return nil
-}
-
 func Stat(path string, cfg *aws.Config) (*s3.HeadObjectOutput, error) {
 	bucket, key, err := parsePath(path)
 	if err != nil {
