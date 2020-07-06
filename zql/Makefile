@@ -60,4 +60,3 @@ zql.js: $(PEGJS)
 .PHONY: zql.es.js
 zql.es.js: zql.js
 	$(ROLLUP) --format es --plugin commonjs -o zql.es.js zql.js
-	
