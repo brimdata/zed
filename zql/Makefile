@@ -1,6 +1,7 @@
 deps = $(CURDIR)/deps
 
 PEGJS = $(deps)/bin/pegjs
+ROLLUP = $(deps)/bin/rollup
 PIGEON = $(deps)/bin/pigeon
 GOIMPORTS = $(deps)/bin/goimports
 
@@ -14,7 +15,7 @@ GOIMPORTS_INSTALLED = $(shell test -d $(deps) && (cd $(deps); go list -m -f {{.V
 
 PEGJS_ARGS = --allowed-start-rules start,Expression
 
-all: zql.go zql.js
+all: zql.go zql.js zql.es.js
 
 run: all
 	go run ./main
@@ -22,7 +23,7 @@ run: all
 $(PEGJS):
 ifneq ($(PEGJS_VERSION),$(PEGJS_INSTALLED))
 	mkdir -p $(deps)
-	npm install --global --prefix $(deps) pegjs@$(PEGJS_VERSION)
+	npm install --global --prefix $(deps) pegjs@$(PEGJS_VERSION) rollup @rollup/plugin-commonjs
 endif
 
 GODEPS :=
@@ -55,3 +56,7 @@ zql.go: $(PIGEON) $(GOIMPORTS)
 .PHONY: zql.js
 zql.js: $(PEGJS)
 	cpp -E -P zql.peg | $(PEGJS) $(PEGJS_ARGS) -o $@
+
+.PHONY: zql.es.js
+zql.es.js: zql.js
+	$(ROLLUP) --format es --plugin commonjs -o zql.es.js zql.js
