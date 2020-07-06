@@ -62,7 +62,7 @@ func (f *Finder) Open() error {
 		f.files = append(f.files, r)
 	}
 	if len(f.files) == 0 {
-		return zqe.E(zqe.NotFound, "no files found")
+		return zqe.E(zqe.NotFound)
 	}
 	// Read the first record as the zdx header.
 	rec, err := f.files[0].Read()
