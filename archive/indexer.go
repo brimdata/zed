@@ -49,7 +49,7 @@ func runOne(zardir iosrc.URI, rule Rule, inputPath iosrc.URI, progress chan<- st
 		return err
 	}
 	defer fgi.Close()
-	out, err := driver.CompileCustom(context.TODO(), &compiler{}, rule.proc, r, false, nano.MaxSpan, zap.NewNop())
+	out, err := driver.CompileCustom(context.TODO(), zctx, &compiler{}, rule.proc, r, false, nano.MaxSpan, zap.NewNop())
 	if err != nil {
 		return err
 	}

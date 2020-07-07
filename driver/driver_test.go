@@ -34,7 +34,7 @@ func TestMuxDriver(t *testing.T) {
 
 	t.Run("muxed into one writer", func(t *testing.T) {
 		reader := tzngio.NewReader(strings.NewReader(input), zctx)
-		flowgraph, err := Compile(context.Background(), query, reader, "", false, nano.MaxSpan, nil)
+		flowgraph, err := Compile(context.Background(), resolver.NewContext(), query, reader, "", false, nano.MaxSpan, nil)
 		assert.NoError(t, err)
 		c := counter{}
 		d := NewCLI(&c)
@@ -45,7 +45,7 @@ func TestMuxDriver(t *testing.T) {
 
 	t.Run("muxed into individual writers", func(t *testing.T) {
 		reader := tzngio.NewReader(strings.NewReader(input), zctx)
-		flowgraph, err := Compile(context.Background(), query, reader, "", false, nano.MaxSpan, nil)
+		flowgraph, err := Compile(context.Background(), resolver.NewContext(), query, reader, "", false, nano.MaxSpan, nil)
 		assert.NoError(t, err)
 		cs := []zbuf.Writer{&counter{}, &counter{}}
 		d := NewCLI(cs...)

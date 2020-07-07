@@ -109,8 +109,9 @@ func (c *Command) Run(args []string) error {
 				paths = append(paths, p.String())
 			}
 		}
+		zctx := resolver.NewContext()
 		cfg := detector.OpenConfig{Format: "zng"}
-		rc := detector.MultiFileReader(resolver.NewContext(), paths, cfg)
+		rc := detector.MultiFileReader(zctx, paths, cfg)
 		defer rc.Close()
 		reader := zbuf.Reader(rc)
 		wch := make(chan string, 5)
@@ -124,7 +125,7 @@ func (c *Command) Run(args []string) error {
 		defer writer.Close()
 		// XXX we shouldn't need zap here, nano?  etc
 		reverse := ark.DataSortDirection == zbuf.DirTimeReverse
-		mux, err := driver.CompileWarningsCh(context.Background(), query, reader, reverse, nano.MaxSpan, zap.NewNop(), wch)
+		mux, err := driver.CompileWarningsCh(context.Background(), zctx, query, reader, reverse, nano.MaxSpan, zap.NewNop(), wch)
 		if err != nil {
 			return err
 		}
