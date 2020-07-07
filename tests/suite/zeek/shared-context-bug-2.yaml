@@ -1,0 +1,19 @@
+zql: cut id | put id2=id | cut id.orig_h
+
+input: |
+  #separator \x09
+  #set_separator	,
+  #empty_field	(empty)
+  #unset_field	-
+  #fields	id.orig_h	id.orig_p	id.resp_h	id.resp_p	tunnel_parents
+  #types	addr	port	addr	port	set[string]
+  10.164.94.120	39681	10.47.3.155	3389	-
+
+output-format: tzng
+
+output: |
+  #0:record[id:record[orig_h:ip]]
+  0:[[10.164.94.120;]]
+
+
+
