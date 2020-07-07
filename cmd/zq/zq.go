@@ -251,7 +251,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	mux, err := driver.CompileWarningsCh(context.Background(), query, reader, false, nano.MaxSpan, zap.NewNop(), wch)
+	mux, err := driver.CompileWarningsCh(context.Background(), c.zctx, query, reader, false, nano.MaxSpan, zap.NewNop(), wch)
 	if err != nil {
 		writer.Close()
 		return err

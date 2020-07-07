@@ -53,11 +53,12 @@ func (i *Internal) Run() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("parse error: %s (%s)", err, i.Query)
 	}
-	reader, err := stringReader(i.Input, i.InputFormat, resolver.NewContext())
+	zctx := resolver.NewContext()
+	reader, err := stringReader(i.Input, i.InputFormat, zctx)
 	if err != nil {
 		return "", err
 	}
-	mux, err := driver.Compile(context.Background(), program, reader, "", false, nano.MaxSpan, zap.NewNop())
+	mux, err := driver.Compile(context.Background(), zctx, program, reader, "", false, nano.MaxSpan, zap.NewNop())
 	if err != nil {
 		return "", err
 	}

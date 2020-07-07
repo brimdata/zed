@@ -75,7 +75,7 @@ func doZqlFileEval(inquery, inpath, informat, outpath, outformat string) (err er
 		}
 	}()
 
-	fg, err := driver.Compile(context.Background(), query, rc, "", false, nano.MaxSpan, nil)
+	fg, err := driver.Compile(context.Background(), zctx, query, rc, "", false, nano.MaxSpan, nil)
 	if err != nil {
 		return err
 	}

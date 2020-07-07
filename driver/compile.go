@@ -18,21 +18,24 @@ import (
 // and compiles it into a runnable flowgraph, returning a
 // proc.MuxOutput that which brings together all of the flowgraphs
 // tails, and is ready to be Pull()'d from.
-func Compile(ctx context.Context, program ast.Proc, reader zbuf.Reader, readerSortKey string, reverse bool, span nano.Span, logger *zap.Logger) (*MuxOutput, error) {
+func Compile(ctx context.Context, zctx *resolver.Context, program ast.Proc, reader zbuf.Reader, readerSortKey string, reverse bool, span nano.Span, logger *zap.Logger) (*MuxOutput, error) {
 	ch := make(chan string, 5)
-	return CompileWarningsChCustom(ctx, nil, program, reader, readerSortKey, reverse, span, logger, ch)
+	return CompileWarningsChCustom(ctx, zctx, nil, program, reader, readerSortKey, reverse, span, logger, ch)
 }
 
-func CompileCustom(ctx context.Context, custom proc.Compiler, program ast.Proc, reader zbuf.Reader, reverse bool, span nano.Span, logger *zap.Logger) (*MuxOutput, error) {
+func CompileCustom(ctx context.Context, zctx *resolver.Context, custom proc.Compiler, program ast.Proc, reader zbuf.Reader, reverse bool, span nano.Span, logger *zap.Logger) (*MuxOutput, error) {
 	ch := make(chan string, 5)
-	return CompileWarningsChCustom(ctx, custom, program, reader, "", reverse, span, logger, ch)
+	return CompileWarningsChCustom(ctx, zctx, custom, program, reader, "", reverse, span, logger, ch)
 }
 
-func CompileWarningsCh(ctx context.Context, program ast.Proc, reader zbuf.Reader, reverse bool, span nano.Span, logger *zap.Logger, ch chan string) (*MuxOutput, error) {
-	return CompileWarningsChCustom(ctx, nil, program, reader, "", reverse, span, logger, ch)
+func CompileWarningsCh(ctx context.Context, zctx *resolver.Context, program ast.Proc, reader zbuf.Reader, reverse bool, span nano.Span, logger *zap.Logger, ch chan string) (*MuxOutput, error) {
+	return CompileWarningsChCustom(ctx, zctx, nil, program, reader, "", reverse, span, logger, ch)
 }
 
-func CompileWarningsChCustom(ctx context.Context, custom proc.Compiler, program ast.Proc, reader zbuf.Reader, readerSortKey string, reverse bool, span nano.Span, logger *zap.Logger, ch chan string) (*MuxOutput, error) {
+func CompileWarningsChCustom(ctx context.Context, zctx *resolver.Context, custom proc.Compiler, program ast.Proc, reader zbuf.Reader, readerSortKey string, reverse bool, span nano.Span, logger *zap.Logger, ch chan string) (*MuxOutput, error) {
+	if zctx == nil {
+		zctx = resolver.NewContext()
+	}
 	ReplaceGroupByProcDurationWithKey(program)
 	if readerSortKey != "" {
 		dir := 1
@@ -48,7 +51,7 @@ func CompileWarningsChCustom(ctx context.Context, custom proc.Compiler, program 
 	}
 	pctx := &proc.Context{
 		Context:     ctx,
-		TypeContext: resolver.NewContext(),
+		TypeContext: zctx,
 		Logger:      logger,
 		Reverse:     reverse,
 		Warnings:    ch,
