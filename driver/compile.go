@@ -33,9 +33,6 @@ func CompileWarningsCh(ctx context.Context, zctx *resolver.Context, program ast.
 }
 
 func CompileWarningsChCustom(ctx context.Context, zctx *resolver.Context, custom proc.Compiler, program ast.Proc, reader zbuf.Reader, readerSortKey string, reverse bool, span nano.Span, logger *zap.Logger, ch chan string) (*MuxOutput, error) {
-	if zctx == nil {
-		zctx = resolver.NewContext()
-	}
 	ReplaceGroupByProcDurationWithKey(program)
 	if readerSortKey != "" {
 		dir := 1
