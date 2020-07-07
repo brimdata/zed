@@ -9,11 +9,6 @@ input: |
   #types	addr	port	addr	port	set[string]
   10.164.94.120	39681	10.47.3.155	3389	-
 
-output-format: tzng
-
 output: |
   #0:record[id:record[orig_h:ip]]
   0:[[10.164.94.120;]]
-
-
-
