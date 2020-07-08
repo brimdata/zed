@@ -838,13 +838,13 @@ func TestIndexSearch(t *testing.T) {
 
 	expected := `
 #zfile=string
-#0:record[key:int64,_log:zfile]
-0:[257;20200422/1587518432.06228663.zng;]
-0:[257;20200422/1587516797.06911059.zng;]
-0:[257;20200421/1587511801.06624146.zng;]
-0:[257;20200421/1587511516.06430561.zng;]
-0:[257;20200421/1587510489.06591564.zng;]
-0:[257;20200421/1587509322.06101754.zng;]
+#0:record[key:int64,count:uint64,_log:zfile]
+0:[257;1;20200422/1587518432.06228663.zng;]
+0:[257;1;20200422/1587516797.06911059.zng;]
+0:[257;1;20200421/1587511801.06624146.zng;]
+0:[257;1;20200421/1587511516.06430561.zng;]
+0:[257;1;20200421/1587510489.06591564.zng;]
+0:[257;1;20200421/1587509322.06101754.zng;]
 `
 	res, _ := indexSearch(t, client, sp.ID, "", []string{"v=257"})
 	assert.Equal(t, test.Trim(expected), res)
@@ -874,9 +874,9 @@ func TestSubspaceCreate(t *testing.T) {
 	// Verify index search returns all logs
 	exp := `
 #zfile=string
-#0:record[key:int64,_log:zfile]
-0:[336;20200422/1587517412.06741443.zng;]
-0:[336;20200421/1587508871.06471174.zng;]
+#0:record[key:int64,count:uint64,_log:zfile]
+0:[336;1;20200422/1587517412.06741443.zng;]
+0:[336;1;20200421/1587508871.06471174.zng;]
 `
 	res, _ := indexSearch(t, client, sp1.ID, "", []string{":int64=336"})
 	assert.Equal(t, test.Trim(exp), res)
@@ -894,8 +894,8 @@ func TestSubspaceCreate(t *testing.T) {
 	// Verify index search only returns filtered logs
 	exp = `
 #zfile=string
-#0:record[key:int64,_log:zfile]
-0:[336;20200422/1587517412.06741443.zng;]
+#0:record[key:int64,count:uint64,_log:zfile]
+0:[336;1;20200422/1587517412.06741443.zng;]
 `
 	res, _ = indexSearch(t, client, sp2.ID, "", []string{":int64=336"})
 	assert.Equal(t, test.Trim(exp), res)
@@ -956,8 +956,8 @@ func TestSubspacePersist(t *testing.T) {
 	// Verify index search only returns filtered logs
 	exp := `
 #zfile=string
-#0:record[key:int64,_log:zfile]
-0:[336;20200422/1587517412.06741443.zng;]
+#0:record[key:int64,count:uint64,_log:zfile]
+0:[336;1;20200422/1587517412.06741443.zng;]
 `
 	res, _ := indexSearch(t, client1, sp2.ID, "", []string{":int64=336"})
 	assert.Equal(t, test.Trim(exp), res)

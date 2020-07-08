@@ -88,9 +88,9 @@ func TestOpenOptions(t *testing.T) {
 	require.NoError(t, err)
 	exp := `
 #zfile=string
-#0:record[key:int64,_log:zfile]
-0:[336;20200422/1587517412.06741443.zng;]
-0:[336;20200421/1587508871.06471174.zng;]
+#0:record[key:int64,count:uint64,_log:zfile]
+0:[336;1;20200422/1587517412.06741443.zng;]
+0:[336;1;20200421/1587508871.06471174.zng;]
 `
 	out := indexQuery(t, ark1, query, AddPath(DefaultAddPathField, false))
 	require.Equal(t, test.Trim(exp), out)
@@ -102,8 +102,8 @@ func TestOpenOptions(t *testing.T) {
 
 	exp = `
 #zfile=string
-#0:record[key:int64,_log:zfile]
-0:[336;20200422/1587517412.06741443.zng;]
+#0:record[key:int64,count:uint64,_log:zfile]
+0:[336;1;20200422/1587517412.06741443.zng;]
 `
 	out = indexQuery(t, ark2, query, AddPath(DefaultAddPathField, false))
 	require.Equal(t, test.Trim(exp), out)
