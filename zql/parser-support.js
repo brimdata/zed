@@ -104,7 +104,7 @@ function makeCutProc(args, fields) {
 }
 function makeHeadProc(count) { return { op: "HeadProc", count }; }
 function makeTailProc(count) { return { op: "TailProc", count }; }
-function makeUniqProc(cflag) { return { op: "TailProc", cflag }; }
+function makeUniqProc(cflag) { return { op: "UniqProc", cflag }; }
 function makeFilterProc(filter) { return { op: "FilterProc", filter }; }
 
 function makeAssignment(target, expression) { return { target, expression }; }
