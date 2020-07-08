@@ -124,7 +124,8 @@ func recordKey(columns []zng.Column) string {
 	for _, col := range columns {
 		id := col.Type.ID()
 		if alias, ok := col.Type.(*zng.TypeAlias); ok {
-			id = alias.AliasID()
+			key += fmt.Sprintf("%s:%s/%d;", col.Name, alias.Name, alias.ID())
+			continue
 		}
 		key += fmt.Sprintf("%s:%d;", col.Name, id)
 	}

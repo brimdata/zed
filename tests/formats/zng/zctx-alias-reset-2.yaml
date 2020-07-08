@@ -1,0 +1,22 @@
+# Test that type aliases are properly reset and reusable after stream boundaries
+
+script: |
+  zq -b 2 in.tzng | zq -t "count() by proto" -
+
+inputs:
+  - name: in.tzng
+    data: |
+      #0:record[ts:time]
+      0:[1425565512.963801;]
+      #zenum=string
+      #1:record[ts:time,proto:zenum]
+      1:[1425565514.419939;udp;]
+      1:[1425565514.419939;udp;]
+
+outputs:
+  - name: stdout
+    data: |
+      #zenum=string
+      #0:record[proto:zenum,count:uint64]
+      0:[udp;2;]
+
