@@ -15,7 +15,6 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqe"
-	"go.uber.org/zap"
 )
 
 // This mtu is pretty small but it keeps the JSON object size below 64kb or so
@@ -171,5 +170,10 @@ func launch(ctx context.Context, query *Query, reader zbuf.Reader, zctx *resolve
 		span = nano.MaxSpan
 	}
 	// Records in a zqd filestore are sorted by descending ts (in zqd/storage/filestore.(*Storage).write).
-	return driver.Compile(context.Background(), zctx, query.Proc, reader, "ts", true, span, zap.NewNop())
+	return driver.Compile(ctx, query.Proc, reader, driver.Config{
+		TypeContext: zctx,
+		SortKey:     "ts",
+		SortReverse: true,
+		Span:        span,
+	})
 }

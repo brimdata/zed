@@ -13,10 +13,8 @@ import (
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zql"
-	"go.uber.org/zap"
 )
 
 func tsDir(ts nano.Ts) string {
@@ -127,7 +125,7 @@ func Import(ctx context.Context, ark *Archive, r zbuf.Reader) error {
 		return err
 	}
 
-	fg, err := driver.Compile(ctx, resolver.NewContext(), proc, r, "", false, nano.MaxSpan, zap.NewNop())
+	fg, err := driver.Compile(ctx, proc, r, driver.Config{})
 	if err != nil {
 		return err
 	}

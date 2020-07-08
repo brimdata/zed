@@ -8,7 +8,6 @@ import (
 
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
@@ -75,7 +74,7 @@ func doZqlFileEval(inquery, inpath, informat, outpath, outformat string) (err er
 		}
 	}()
 
-	fg, err := driver.Compile(context.Background(), zctx, query, rc, "", false, nano.MaxSpan, nil)
+	fg, err := driver.Compile(context.Background(), query, rc, driver.Config{TypeContext: zctx})
 	if err != nil {
 		return err
 	}

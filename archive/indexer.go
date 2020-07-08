@@ -14,7 +14,6 @@ import (
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
-	"go.uber.org/zap"
 )
 
 const zarExt = ".zar"
@@ -50,7 +49,10 @@ func runOne(zardir iosrc.URI, rule Rule, inputPath iosrc.URI, progress chan<- st
 		return err
 	}
 	defer fgi.Close()
-	out, err := driver.CompileCustom(context.TODO(), zctx, &compiler{}, rule.proc, r, false, nano.MaxSpan, zap.NewNop())
+	out, err := driver.Compile(context.TODO(), rule.proc, r, driver.Config{
+		TypeContext: zctx,
+		Custom:      &compiler{},
+	})
 	if err != nil {
 		return err
 	}

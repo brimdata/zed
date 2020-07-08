@@ -19,7 +19,6 @@ import (
 	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqe"
 	"github.com/brimsec/zq/zql"
-	"go.uber.org/zap"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -134,7 +133,7 @@ func (s *Storage) Rewrite(ctx context.Context, zr zbuf.Reader) error {
 }
 
 func (s *Storage) write(ctx context.Context, zw zbuf.Writer, zr zbuf.Reader) error {
-	out, err := driver.Compile(ctx, resolver.NewContext(), zngWriteProc, zr, "ts", false, nano.MaxSpan, zap.NewNop())
+	out, err := driver.Compile(ctx, zngWriteProc, zr, driver.Config{})
 	if err != nil {
 		return err
 	}

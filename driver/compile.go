@@ -14,45 +14,54 @@ import (
 	"go.uber.org/zap"
 )
 
+type Config struct {
+	TypeContext *resolver.Context
+	SortKey     string
+	SortReverse bool
+	Span        nano.Span
+	Warnings    chan string
+	Logger      *zap.Logger
+	Custom      proc.Compiler
+}
+
 // Compile takes an AST, an input reader, and configuration parameters,
 // and compiles it into a runnable flowgraph, returning a
 // proc.MuxOutput that which brings together all of the flowgraphs
 // tails, and is ready to be Pull()'d from.
-func Compile(ctx context.Context, zctx *resolver.Context, program ast.Proc, reader zbuf.Reader, readerSortKey string, reverse bool, span nano.Span, logger *zap.Logger) (*MuxOutput, error) {
-	ch := make(chan string, 5)
-	return CompileWarningsChCustom(ctx, zctx, nil, program, reader, readerSortKey, reverse, span, logger, ch)
-}
+func Compile(ctx context.Context, program ast.Proc, reader zbuf.Reader, cfg Config) (*MuxOutput, error) {
+	if cfg.TypeContext == nil {
+		cfg.TypeContext = resolver.NewContext()
+	}
+	if cfg.Span.Dur == 0 {
+		cfg.Span = nano.MaxSpan
+	}
+	if cfg.Warnings == nil {
+		cfg.Warnings = make(chan string, 5)
+	}
+	if cfg.Logger == nil {
+		cfg.Logger = zap.NewNop()
+	}
 
-func CompileCustom(ctx context.Context, zctx *resolver.Context, custom proc.Compiler, program ast.Proc, reader zbuf.Reader, reverse bool, span nano.Span, logger *zap.Logger) (*MuxOutput, error) {
-	ch := make(chan string, 5)
-	return CompileWarningsChCustom(ctx, zctx, custom, program, reader, "", reverse, span, logger, ch)
-}
-
-func CompileWarningsCh(ctx context.Context, zctx *resolver.Context, program ast.Proc, reader zbuf.Reader, reverse bool, span nano.Span, logger *zap.Logger, ch chan string) (*MuxOutput, error) {
-	return CompileWarningsChCustom(ctx, zctx, nil, program, reader, "", reverse, span, logger, ch)
-}
-
-func CompileWarningsChCustom(ctx context.Context, zctx *resolver.Context, custom proc.Compiler, program ast.Proc, reader zbuf.Reader, readerSortKey string, reverse bool, span nano.Span, logger *zap.Logger, ch chan string) (*MuxOutput, error) {
 	ReplaceGroupByProcDurationWithKey(program)
-	if readerSortKey != "" {
+	if cfg.SortKey != "" {
 		dir := 1
-		if reverse {
+		if cfg.SortReverse {
 			dir = -1
 		}
-		setGroupByProcInputSortDir(program, readerSortKey, dir)
+		setGroupByProcInputSortDir(program, cfg.SortKey, dir)
 	}
 	filterAst, program := liftFilter(program)
-	scanner, err := newScanner(ctx, reader, filterAst, span)
+	scanner, err := newScanner(ctx, reader, filterAst, cfg.Span)
 	if err != nil {
 		return nil, err
 	}
 	pctx := &proc.Context{
 		Context:     ctx,
-		TypeContext: zctx,
-		Logger:      logger,
-		Warnings:    ch,
+		TypeContext: cfg.TypeContext,
+		Logger:      cfg.Logger,
+		Warnings:    cfg.Warnings,
 	}
-	leaves, err := proc.CompileProc(custom, program, pctx, scanner)
+	leaves, err := proc.CompileProc(cfg.Custom, program, pctx, scanner)
 	if err != nil {
 		return nil, err
 	}

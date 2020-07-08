@@ -12,14 +12,12 @@ import (
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
 	"github.com/mccanne/charm"
-	"go.uber.org/zap"
 )
 
 var Zq = &charm.Spec{
@@ -123,9 +121,12 @@ func (c *Command) Run(args []string) error {
 			return err
 		}
 		defer writer.Close()
-		// XXX we shouldn't need zap here, nano?  etc
-		reverse := ark.DataSortDirection == zbuf.DirTimeReverse
-		mux, err := driver.CompileWarningsCh(context.Background(), zctx, query, reader, reverse, nano.MaxSpan, zap.NewNop(), wch)
+		mux, err := driver.Compile(context.Background(), query, reader, driver.Config{
+			TypeContext: zctx,
+			SortKey:     "ts",
+			SortReverse: ark.DataSortDirection == zbuf.DirTimeReverse,
+			Warnings:    wch,
+		})
 		if err != nil {
 			return err
 		}

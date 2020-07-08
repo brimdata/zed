@@ -129,7 +129,6 @@ import (
 
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
@@ -137,7 +136,6 @@ import (
 	"github.com/brimsec/zq/zql"
 	"github.com/pmezard/go-difflib/difflib"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
 
@@ -588,7 +586,7 @@ func runzq(bindir, ZQL, outputFormat, outputFlags string, inputs ...string) (out
 		outputFormat = "null"
 		zctx.SetLogger(&emitter.TypeLogger{WriteCloser: &nopCloser{&outbuf}})
 	}
-	muxOutput, err := driver.Compile(context.Background(), zctx, proc, zr, "", false, nano.MaxSpan, zap.NewNop())
+	muxOutput, err := driver.Compile(context.Background(), proc, zr, driver.Config{TypeContext: zctx})
 	if err != nil {
 		return "", "", err
 	}

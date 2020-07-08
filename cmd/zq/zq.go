@@ -17,7 +17,6 @@ import (
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/s3io"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
@@ -28,7 +27,6 @@ import (
 	"github.com/brimsec/zq/zqd/ingest"
 	"github.com/brimsec/zq/zql"
 	"github.com/mccanne/charm"
-	"go.uber.org/zap"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -251,7 +249,10 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	mux, err := driver.CompileWarningsCh(context.Background(), c.zctx, query, reader, false, nano.MaxSpan, zap.NewNop(), wch)
+	mux, err := driver.Compile(context.Background(), query, reader, driver.Config{
+		TypeContext: c.zctx,
+		Warnings:    wch,
+	})
 	if err != nil {
 		writer.Close()
 		return err
