@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/brimsec/zq/pkg/s3io"
 	"github.com/mccanne/charm"
 )
 
@@ -61,51 +61,60 @@ func (c *Command) Run(args []string) error {
 		pattern = args[0]
 	}
 	return archive.Walk(ark, func(zardir iosrc.URI) error {
-		if zardir.Scheme != "file" {
-			return errors.New("only file paths currently supported for this command")
-		}
-		c.printDir(ark.DataPath.Filepath(), zardir.Filepath(), pattern, c.lflag)
+		c.printDir(ark.DataPath, zardir, pattern)
 		return nil
 	})
 }
 
-func fileExists(path string) bool {
-	info, err := os.Stat(path)
+func fileExists(path iosrc.URI) bool {
+	info, err := iosrc.Stat(path)
 	if err != nil {
 		return false
 	}
-	return !info.IsDir()
+	if fsinfo, ok := info.(os.FileInfo); ok {
+		return !fsinfo.IsDir()
+	}
+	return true
 }
 
-func (c *Command) printDir(root, dir, pattern string, lflag bool) {
+func (c *Command) printDir(root, dir iosrc.URI, pattern string) {
 	if pattern != "" {
-		path := filepath.Join(dir, pattern)
+		path := dir.AppendPath(pattern)
 		if fileExists(path) {
 			fmt.Println(c.printable(root, path))
 		}
 		return
 	}
 	fmt.Println(c.printable(root, dir))
-	if lflag {
-		files := ls(dir)
+	if c.lflag {
+		var files []string
+		switch dir.Scheme {
+		case "file":
+			files = lsfs(dir.Filepath())
+		case "s3":
+			var err error
+			if files, err = s3io.Ls(dir.String(), nil); err != nil {
+				fmt.Fprintf(os.Stderr, "error listing s3 objects: %v", err)
+				return
+			}
+		default:
+			fmt.Fprintf(os.Stderr, "long form flag unsupported for scheme %q", dir.Scheme)
+			return
+		}
 		for _, f := range files {
 			fmt.Printf("\t%s\n", f)
 		}
 	}
 }
 
-func (c *Command) printable(root, path string) string {
+func (c *Command) printable(root, path iosrc.URI) string {
 	if c.relativePaths {
-		p, err := filepath.Rel(root, path)
-		if err != nil {
-			panic(err)
-		}
-		path = p
+		return root.RelPath(path)
 	}
-	return path
+	return path.String()
 }
 
-func ls(dir string) []string {
+func lsfs(dir string) []string {
 	var out []string
 	infos, err := ioutil.ReadDir(dir)
 	if err != nil {

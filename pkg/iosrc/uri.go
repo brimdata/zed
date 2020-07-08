@@ -3,6 +3,7 @@ package iosrc
 import (
 	"errors"
 	"net/url"
+	"strings"
 )
 
 type URI url.URL
@@ -55,6 +56,13 @@ func (p URI) AppendPath(elem ...string) URI {
 func (p URI) String() string {
 	u := url.URL(p)
 	return (&u).String()
+}
+
+func (u URI) RelPath(target URI) string {
+	if !strings.HasSuffix(u.Path, "/") {
+		u.Path += "/"
+	}
+	return strings.TrimPrefix(target.Path, u.Path)
 }
 
 // Maybe rawurl is of the form scheme:path.

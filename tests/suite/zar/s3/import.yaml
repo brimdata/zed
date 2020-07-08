@@ -1,0 +1,34 @@
+script: |
+  export AWS_REGION=us-east-2 AWS_ACCESS_KEY_ID=minioadmin \
+        AWS_SECRET_ACCESS_KEY=minioadmin AWS_S3_ENDPOINT=http://localhost:9000
+  mkdir -p data/bucket
+  minio server --quiet --address "localhost:9000" ./data &> /dev/null &
+  pid=$!
+  until nc -vzw 2 localhost 9000; do sleep 2; done
+  zar import -s 2500B -R ./root -data s3://bucket/zartest babble.tzng
+  echo ===
+  zar ls -R ./root
+  kill $pid &> /dev/null
+
+inputs:
+  - name: babble.tzng
+    source: ../../zdx/babble.tzng
+
+outputs:
+  - name: stdout
+    data: |
+      ===
+      s3://bucket/zartest/20200422/1587518620.0622373.zng.zar
+      s3://bucket/zartest/20200422/1587517956.06264854.zng.zar
+      s3://bucket/zartest/20200422/1587517152.06293072.zng.zar
+      s3://bucket/zartest/20200422/1587516416.06480216.zng.zar
+      s3://bucket/zartest/20200422/1587515660.06416955.zng.zar
+      s3://bucket/zartest/20200422/1587514825.06323209.zng.zar
+      s3://bucket/zartest/20200422/1587514053.06464653.zng.zar
+      s3://bucket/zartest/20200421/1587513216.06789438.zng.zar
+      s3://bucket/zartest/20200421/1587512439.06556231.zng.zar
+      s3://bucket/zartest/20200421/1587511734.06734765.zng.zar
+      s3://bucket/zartest/20200421/1587511094.06170004.zng.zar
+      s3://bucket/zartest/20200421/1587510414.06953991.zng.zar
+      s3://bucket/zartest/20200421/1587509729.06618418.zng.zar
+      s3://bucket/zartest/20200421/1587508850.06466032.zng.zar

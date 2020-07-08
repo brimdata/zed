@@ -41,6 +41,9 @@ bin/$(ZEEKPATH):
 	@unzip -q bin/$(ZEEKPATH).zip -d bin \
 		&& mv bin/zeek bin/$(ZEEKPATH)
 
+bin/minio:
+	@GOBIN=$(CURDIR)/bin go install github.com/minio/minio
+
 generate:
 	@GOBIN=$(CURDIR)/bin go install github.com/golang/mock/mockgen
 	@PATH=$(CURDIR)/bin:$(PATH) go generate ./...
@@ -51,11 +54,11 @@ test-generate: generate
 test-unit:
 	@go test -short ./...
 
-test-system: build
-	@ZTEST_BINDIR=$(CURDIR)/dist go test -v ./tests
+test-system: build bin/minio
+	@ZTEST_PATH=$(CURDIR)/dist:$(CURDIR)/bin go test -v ./tests
 
-test-run: build
-	@ZTEST_BINDIR=$(CURDIR)/dist go test -v ./tests -run $(TEST)
+test-run: build bin/minio
+	@ZTEST_PATH=$(CURDIR)/dist:$(CURDIR)/bin go test -v ./tests -run $(TEST)
 
 test-heavy: build $(SAMPLEDATA)
 	@go test -v -tags=heavy ./tests
@@ -105,4 +108,4 @@ clean: clean-python
 
 .PHONY: fmt tidy vet test-unit test-system test-heavy sampledata test-ci
 .PHONY: perf-compare build install create-release-assets clean clean-python
-.PHONY: build-python-wheel generate test-generate
+.PHONY: build-python-wheel generate test-generate bin/minio

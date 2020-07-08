@@ -103,10 +103,10 @@
 //
 //     func TestZTest(t *testing.T) { ztest.Run(t, "testdata/ztest") }
 //
-// If the ZTEST_BINDIR environment variable is unset or empty and the test
+// If the ZTEST_PATH environment variable is unset or empty and the test
 // is not a script test, Run runs ztests in the current process and skips
 // the script tests.  Otherwise, Run runs each ztest in a separate process
-// using the zq executable in the directory specified by ZTEST_BINDIR.
+// using the zq executable in the directories specified by ZTEST_PATH.
 package ztest
 
 import (
@@ -146,13 +146,13 @@ import (
 // subtest named f.  bindir is a path to the executables that the script-mode
 // tests will run.
 func Run(t *testing.T, dirname string) {
-	bindir := os.Getenv("ZTEST_BINDIR")
+	bindir := os.Getenv("ZTEST_PATH")
 	if bindir != "" {
 		if out, _, err := runzq(bindir, "help", "", ""); err != nil {
 			if out != "" {
 				out = fmt.Sprintf(" with output %q", out)
 			}
-			t.Fatalf("failed to exec zq in dir $ZTEST_BINDIR %s: %s%s", bindir, err, out)
+			t.Fatalf("failed to exec zq in dir $ZTEST_PATH %s: %s%s", bindir, err, out)
 		}
 	}
 	fileinfos, err := ioutil.ReadDir(dirname)
@@ -553,17 +553,17 @@ func runzq(bindir, ZQL, outputFormat, outputFlags string, inputs ...string) (out
 	var outbuf bytes.Buffer
 	var errbuf bytes.Buffer
 	if bindir != "" {
-		zq := filepath.Join(bindir, "zq")
 		tmpdir, files, err := tmpInputFiles(inputs)
 		if err != nil {
 			return "", "", err
 		}
 		defer os.RemoveAll(tmpdir)
-		cmd := exec.Command(zq, "-f", outputFormat)
+		cmd := exec.Command("zq", "-f", outputFormat)
 		if len(outputFlags) > 0 {
 			flags := strings.Split(outputFlags, " ")
 			cmd.Args = append(cmd.Args, flags...)
 		}
+		cmd.Env = []string{"PATH=/bin:/usr/bin:" + bindir}
 		cmd.Args = append(cmd.Args, ZQL)
 		cmd.Args = append(cmd.Args, files...)
 		cmd.Stdout = &outbuf
