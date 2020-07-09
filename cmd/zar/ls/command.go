@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cmd/zar/root"
@@ -96,6 +97,9 @@ func (c *Command) printDir(root, dir iosrc.URI, pattern string) {
 			if files, err = s3io.ListObjects(dir.String(), nil); err != nil {
 				fmt.Fprintf(os.Stderr, "error listing s3 objects: %v", err)
 				return
+			}
+			for i := range files {
+				_, files[i] = path.Split(files[i])
 			}
 		default:
 			fmt.Fprintf(os.Stderr, "long form flag unsupported for scheme %q", dir.Scheme)

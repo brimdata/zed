@@ -4,7 +4,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"sync"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/brimsec/zq/pkg/iosrc"
 )
 
 var ErrInvalidS3Path = errors.New("path is not a valid s3 location")
@@ -29,8 +29,7 @@ func IsS3Path(path string) bool {
 }
 
 func parsePath(path string) (bucket, key string, err error) {
-	var u *url.URL
-	u, err = url.Parse(path)
+	u, err := iosrc.ParseURI(path)
 	if err != nil {
 		return
 	}
