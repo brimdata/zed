@@ -7,6 +7,7 @@ import (
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zdx"
 	"github.com/brimsec/zq/zio/zngio"
@@ -70,8 +71,10 @@ func run(zardir iosrc.URI, rules []Rule, logPath iosrc.URI, progress chan<- stri
 }
 
 type FlowgraphIndexer struct {
-	zctx *resolver.Context
-	w    *zdx.Writer
+	zctx    *resolver.Context
+	w       *zdx.Writer
+	keyType zng.Type
+	cutter  *proc.Cutter
 }
 
 func NewFlowgraphIndexer(zctx *resolver.Context, uri iosrc.URI, keys []string, framesize int) (*FlowgraphIndexer, error) {
@@ -82,12 +85,27 @@ func NewFlowgraphIndexer(zctx *resolver.Context, uri iosrc.URI, keys []string, f
 	if err != nil {
 		return nil, err
 	}
-	return &FlowgraphIndexer{zctx, writer}, nil
+	return &FlowgraphIndexer{
+		zctx:   zctx,
+		w:      writer,
+		cutter: proc.NewStrictCutter(zctx, false, keys, keys),
+	}, nil
 }
 
 func (f *FlowgraphIndexer) Write(_ int, batch zbuf.Batch) error {
 	for i := 0; i < batch.Length(); i++ {
-		if err := f.w.Write(batch.Index(i)); err != nil {
+		rec := batch.Index(i)
+		key, err := f.cutter.Cut(rec)
+		if err != nil {
+			return fmt.Errorf("checking index record: %w", err)
+		}
+		if f.keyType == nil {
+			f.keyType = key.Type
+		}
+		if key.Type.ID() != f.keyType.ID() {
+			return fmt.Errorf("key type changed from %s to %s", f.keyType, key.Type)
+		}
+		if err := f.w.Write(rec); err != nil {
 			return err
 		}
 	}

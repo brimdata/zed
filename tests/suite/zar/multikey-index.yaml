@@ -4,7 +4,6 @@ script: |
   zar index -q -R ./logs -o index -k sum,s -z "sum(v) by s | sort sum,s"
   zar find -R ./logs -relative -z -x index 149 wailer-strick | zq -t -
 
-
 inputs:
   - name: babble.tzng
     source: ../zdx/babble.tzng
