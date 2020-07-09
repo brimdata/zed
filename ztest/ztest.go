@@ -134,6 +134,7 @@ import (
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zqe"
 	"github.com/brimsec/zq/zql"
 	"github.com/pmezard/go-difflib/difflib"
 	"github.com/stretchr/testify/require"
@@ -553,17 +554,20 @@ func runzq(bindir, ZQL, outputFormat, outputFlags string, inputs ...string) (out
 	var outbuf bytes.Buffer
 	var errbuf bytes.Buffer
 	if bindir != "" {
+		zq, err := lookupzq(bindir)
+		if err != nil {
+			return "", "", err
+		}
 		tmpdir, files, err := tmpInputFiles(inputs)
 		if err != nil {
 			return "", "", err
 		}
 		defer os.RemoveAll(tmpdir)
-		cmd := exec.Command("zq", "-f", outputFormat)
+		cmd := exec.Command(zq, "-f", outputFormat)
 		if len(outputFlags) > 0 {
 			flags := strings.Split(outputFlags, " ")
 			cmd.Args = append(cmd.Args, flags...)
 		}
-		cmd.Env = []string{"PATH=/bin:/usr/bin:" + bindir}
 		cmd.Args = append(cmd.Args, ZQL)
 		cmd.Args = append(cmd.Args, files...)
 		cmd.Stdout = &outbuf
@@ -614,6 +618,19 @@ func runzq(bindir, ZQL, outputFormat, outputFlags string, inputs ...string) (out
 		return string(outbuf.Bytes()), err.Error(), err
 	}
 	return string(outbuf.Bytes()), string(errbuf.Bytes()), nil
+}
+
+func lookupzq(bindir string) (string, error) {
+	for _, dir := range filepath.SplitList(bindir) {
+		zq, err := exec.LookPath(filepath.Join(dir, "zq"))
+		if err == nil {
+			return zq, nil
+		}
+		if !errors.Is(err, exec.ErrNotFound) {
+			return "", err
+		}
+	}
+	return "", zqe.E(zqe.NotFound)
 }
 
 func loadInputs(inputs []string, zctx *resolver.Context) (*zbuf.Combiner, error) {
