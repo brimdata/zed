@@ -33,11 +33,12 @@ func (cb *cutBuilder) cut(in *zng.Record) *zng.Record {
 }
 
 type Cutter struct {
-	zctx                *resolver.Context
-	complement          bool
-	cutBuilders         map[int]*cutBuilder
-	targets, fieldnames []string
-	strict              bool
+	zctx        *resolver.Context
+	complement  bool
+	cutBuilders map[int]*cutBuilder
+	targets     []string
+	fieldnames  []string
+	strict      bool
 }
 
 // NewCutter returns a Cutter for fieldnames. If complement is true,
