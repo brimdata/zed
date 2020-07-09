@@ -2,6 +2,17 @@ These entries focus on changes we think are relevant to users of Brim,
 zq, or pcap.  For all changes to zqd, its API, or to other components in the
 zq repo, check the git log.
 
+## v0.17.0
+* zq: Fix an issue where the inferred JSON reader crashed on multiple nested fields (#948)
+* zq: Introduce spill-to-disk groupby for performing very large aggregations (#932, #963)
+* zql: Use syntax `c=count()` instead of `count() as c` for naming the field that holds the value returned by an aggregate function (#950)
+* zql: Fix an issue where attempts to `tail` too much caused a panic (#958)
+* zng: Readability improvements in the [ZNG specification](https://github.com/brimsec/zq/blob/master/zng/docs/spec.md) (#935)
+* zql: Fix an issue where use of `cut`, `put`, and `cut` in the same pipeline caused a panic (#980)
+* zql: Fix an issue that was preventing the `uniq` processor from  working in the Brim app (#984)
+* zq: Fix an issue where spurious type IDs were being created (#964)
+* zql: Support renaming a field via the `cut` processor (#969)
+
 ## v0.16.0
 * zng: Readability improvements in the [ZNG specification](https://github.com/brimsec/zq/blob/master/zng/docs/spec.md) (#897, #910, #917)
 * zq: Support directory output to S3 (#898)
