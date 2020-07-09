@@ -92,7 +92,8 @@ function makeTopProc(fields, limit, flush) {
   return { op: "TopProc", fields, limit, flush};
 }
 
-function makeCutProc(args, fields) {
+function makeFieldAssignment(target, source) { return { target, source }; }
+function makeCutProc(args, first, rest) {
     let complement = false;
     if (args.length > 1) {
       throw new Error(`Duplicate argument -c`);
@@ -100,14 +101,14 @@ function makeCutProc(args, fields) {
     if (args.length == 1) {
         complement = true;
     }
-    return { op: "CutProc", complement, fields };
+    return { op: "CutProc", complement: complement, fields: [first, ...rest] };
 }
 function makeHeadProc(count) { return { op: "HeadProc", count }; }
 function makeTailProc(count) { return { op: "TailProc", count }; }
 function makeUniqProc(cflag) { return { op: "UniqProc", cflag }; }
 function makeFilterProc(filter) { return { op: "FilterProc", filter }; }
 
-function makeAssignment(target, expression) { return { target, expression }; }
+function makeExpressionAssignment(target, expression) { return { target, expression }; }
 function makePutProc(first, rest) {
   return { op: "PutProc", clauses: [first, ...rest] };
 }
@@ -129,7 +130,7 @@ function makeReduceProc(reducers) {
 }
 
 function makeGroupByKey(target, expression) {
-    return { op: "Assignment", target, expression };
+    return { op: "ExpressionAssignment", target, expression };
 }
 
 function makeGroupByKeys(first, rest) {

@@ -1,0 +1,13 @@
+zql: cut ports=id, resp_p=id.resp_p
+
+input: |
+  #0:record[id:record[orig_p:port,resp_p:port]]
+  0:[[1;2;]]
+  #1:record[id:array[port]]
+  1:[[3;4;]]
+
+output: |
+  #0:record[ports:record[orig_p:port,resp_p:port],resp_p:port]
+  0:[[1;2;]2;]
+  #1:record[ports:array[port]]
+  1:[[3;4;]]

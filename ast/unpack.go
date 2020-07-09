@@ -79,7 +79,7 @@ func unpackProc(custom Unpacker, node joe.JSON) (Proc, error) {
 		}
 		return &FilterProc{Filter: filter}, nil
 	case "PutProc":
-		clauses, err := unpackAssignments(node.Get("clauses"))
+		clauses, err := unpackExpressionAssignments(node.Get("clauses"))
 		if err != nil {
 			return nil, err
 		}
@@ -93,7 +93,7 @@ func unpackProc(custom Unpacker, node joe.JSON) (Proc, error) {
 		}
 		return &ReduceProc{Reducers: reducers}, nil
 	case "GroupByProc":
-		keys, err := unpackAssignments(node.Get("keys"))
+		keys, err := unpackExpressionAssignments(node.Get("keys"))
 		if err != nil {
 			return nil, err
 		}
@@ -113,19 +113,19 @@ func unpackProc(custom Unpacker, node joe.JSON) (Proc, error) {
 	}
 }
 
-func unpackAssignment(node joe.JSON) (Assignment, error) {
+func unpackExpressionAssignment(node joe.JSON) (ExpressionAssignment, error) {
 	exprNode := node.Get("expression")
 	if exprNode == joe.Undefined {
-		return Assignment{}, errors.New("Assignment missing expression")
+		return ExpressionAssignment{}, errors.New("ExpressionAssignment missing expression")
 	}
 	expr, err := unpackExpression(exprNode)
 	if err != nil {
-		return Assignment{}, err
+		return ExpressionAssignment{}, err
 	}
-	return Assignment{Expr: expr}, nil
+	return ExpressionAssignment{Expr: expr}, nil
 }
 
-func unpackAssignments(node joe.JSON) ([]Assignment, error) {
+func unpackExpressionAssignments(node joe.JSON) ([]ExpressionAssignment, error) {
 	if node == joe.Undefined {
 		return nil, nil
 	}
@@ -133,9 +133,9 @@ func unpackAssignments(node joe.JSON) ([]Assignment, error) {
 		return nil, errors.New("assignments should be an array")
 	}
 	n := node.Len()
-	keys := make([]Assignment, n)
+	keys := make([]ExpressionAssignment, n)
 	for k := 0; k < n; k++ {
-		assi, err := unpackAssignment(node.Index(k))
+		assi, err := unpackExpressionAssignment(node.Index(k))
 		if err != nil {
 			return nil, err
 		}

@@ -373,7 +373,7 @@ zq -t $ZAR_ROOT/20180324/1521911975.777469.zng.zar/words.zng
 ```
 Now we reduce by aggregating the uri and summing the counts:
 ```
-zar zq -o wordcounts.zng "sum(count) by uri | put count=sum | cut uri,count" words.zng
+zar zq -o wordcounts.zng "sum(count) by uri | cut uri,count=sum" words.zng
 ```
 If we were dealing with a huge archive, we could do an approximation by taking
 the top 1000 in each zar directory then we could aggregate with another zq
@@ -448,7 +448,7 @@ This command sequence will collect up the edges into `edges.njdson`:
 zar find -z -x graph 216.58.193.195 | zq "count() by from,to" - > edges.zng
 zar find -z -x graph 10.47.6.162 | zq "count() by from,to" - >> edges.zng
 zar find -z -x graph 10.47.5.153 | zq "count() by from,to" - >> edges.zng
-zq -f ndjson "value=sum(count) by from,to | put source=from, target=to | cut source,target,value" edges.zng >> edges.ndjson
+zq -f ndjson "value=sum(count) by from,to | cut source=from,target=to,value" edges.zng >> edges.ndjson
 ```
 > (Note: with a few additions to zql and zar, we can make this much simpler and
 > more efficient.  Coming soon.  Also, we should be able to say `group by node`,
