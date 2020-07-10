@@ -10,7 +10,7 @@ script: |
   zar ls -R ./root
   echo ===
   zar ls -relative -R ./root
-  kill $pid &> /dev/null
+  kill -KILL $pid &> /dev/null
 
 inputs:
   - name: babble.tzng
