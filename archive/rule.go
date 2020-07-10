@@ -69,6 +69,10 @@ var keyAst = ast.ExpressionAssignment{
 	Target: "key",
 	Expr:   &ast.FieldRead{Field: "key"},
 }
+var countAst = ast.Reducer{
+	Node: ast.Node{Op: "Count"},
+	Var:  "count",
+}
 
 // NewFieldRule creates an indexing rule that will index all fields of
 // the type passed in as argument.
@@ -84,9 +88,10 @@ func NewTypeRule(typeName string) (*Rule, error) {
 				typeName: typeName,
 			},
 			&ast.GroupByProc{
-				Keys: []ast.ExpressionAssignment{keyAst},
+				Keys:     []ast.ExpressionAssignment{keyAst},
+				Reducers: []ast.Reducer{countAst},
 			},
-			&ast.SortProc{},
+			&ast.SortProc{Fields: []ast.FieldExpr{&ast.FieldRead{Field: "key"}}},
 		},
 	}
 	return newRuleAST(&c, typeZdxName(typ), []string{keyName}, framesize)
@@ -102,9 +107,10 @@ func NewFieldRule(fieldName string) (*Rule, error) {
 				out:   keyName,
 			},
 			&ast.GroupByProc{
-				Keys: []ast.ExpressionAssignment{keyAst},
+				Keys:     []ast.ExpressionAssignment{keyAst},
+				Reducers: []ast.Reducer{countAst},
 			},
-			&ast.SortProc{},
+			&ast.SortProc{Fields: []ast.FieldExpr{&ast.FieldRead{Field: "key"}}},
 		},
 	}
 	return newRuleAST(&c, fieldZdxName(fieldName), []string{keyName}, framesize)
