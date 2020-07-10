@@ -1,0 +1,16 @@
+script: |
+  zar import -R . multitype.tzng
+  zar index -R . -q -o custom -k id.orig_h -z "cut id.orig_h | sort" _
+
+inputs:
+  - name: multitype.tzng
+    data: |
+      #0:record[_path:string,ts:time,id:record[orig_h:ip]]
+      0:[smb_cmd;1258594907.85978;[192.168.2.1;]]
+      #1:record[_path:string,ts:time,id:record[orig_h:string]]
+      1:[smb_cmd;1258594907.85978;[192.168.2.1;]]
+
+outputs:
+  - name: stderr
+    regexp: |
+      key type changed from record\[id:record\[orig_h:ip\]\] to record\[id:record\[orig_h:string\]\]
