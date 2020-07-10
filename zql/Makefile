@@ -17,7 +17,7 @@ PEGJS_ARGS = --allowed-start-rules start,Expression
 
 all: zql.go zql.js zql.es.js
 
-run: all
+run: zql.go zql.js
 	go run ./main
 
 $(PEGJS):
