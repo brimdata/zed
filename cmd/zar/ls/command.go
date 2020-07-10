@@ -93,7 +93,7 @@ func (c *Command) printDir(root, dir iosrc.URI, pattern string) {
 			files = lsfs(dir.Filepath())
 		case "s3":
 			var err error
-			if files, err = s3io.Ls(dir.String(), nil); err != nil {
+			if files, err = s3io.ListObjects(dir.String(), nil); err != nil {
 				fmt.Fprintf(os.Stderr, "error listing s3 objects: %v", err)
 				return
 			}

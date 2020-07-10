@@ -124,7 +124,7 @@ func Stat(path string, cfg *aws.Config) (*s3.HeadObjectOutput, error) {
 	})
 }
 
-func Ls(path string, cfg *aws.Config) ([]string, error) {
+func ListObjects(path string, cfg *aws.Config) ([]string, error) {
 	bucket, key, err := parsePath(path)
 	if err != nil {
 		return nil, err
