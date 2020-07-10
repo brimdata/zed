@@ -84,6 +84,8 @@ func unpackProc(custom Unpacker, node joe.JSON) (Proc, error) {
 			return nil, err
 		}
 		return &PutProc{Clauses: clauses}, nil
+	case "RenameProc":
+		return &RenameProc{}, nil
 	case "UniqProc":
 		return &UniqProc{}, nil
 	case "ReduceProc":

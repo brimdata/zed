@@ -1,0 +1,29 @@
+zql: rename f=foo, b=bar
+
+input: |
+  #0:record[foo:string]
+  0:[foo0;]
+  #1:record[foo:string,goo:string]
+  1:[foo1;goo1;]
+  #2:record[bar:string]
+  2:[bar2;]
+  #3:record[goo:string,bar:string]
+  3:[goo3;bar3;]
+  #4:record[bar:string,goo:string,foo:string]
+  4:[bar4;goo4;foo4;]
+  #5:record[goo:string]
+  5:[goo5;]
+
+output: |
+  #0:record[f:string]
+  0:[foo0;]
+  #1:record[f:string,goo:string]
+  1:[foo1;goo1;]
+  #2:record[b:string]
+  2:[bar2;]
+  #3:record[goo:string,b:string]
+  3:[goo3;bar3;]
+  #4:record[b:string,goo:string,f:string]
+  4:[bar4;goo4;foo4;]
+  #5:record[goo:string]
+  5:[goo5;]

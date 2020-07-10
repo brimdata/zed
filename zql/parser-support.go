@@ -281,6 +281,15 @@ func makePutProc(first, rest interface{}) *ast.PutProc {
 	return &ast.PutProc{ast.Node{"PutProc"}, clauses}
 }
 
+func makeRenameProc(first, rest interface{}) (*ast.RenameProc, error) {
+	fields := []ast.FieldAssignment{first.(ast.FieldAssignment)}
+	for _, c := range rest.([]interface{}) {
+		fields = append(fields, c.(ast.FieldAssignment))
+	}
+
+	return &ast.RenameProc{ast.Node{"RenameProc"}, fields}, nil
+}
+
 func makeReducer(opIn, varIn, fieldIn interface{}) *ast.Reducer {
 	var field ast.FieldExpr
 	if fieldIn != nil {

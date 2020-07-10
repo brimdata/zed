@@ -1,0 +1,11 @@
+script: zq -t "rename dst=id.resp_h" -
+
+inputs:
+  - name: stdin
+    data: |
+      #0:record[id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port]]
+      0:[[10.164.94.120;39681;10.47.3.155;3389;]]
+
+outputs:
+  - name: stderr
+    regexp: cannot rename id.resp_h to dst

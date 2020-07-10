@@ -1,0 +1,12 @@
+script: zq -t "rename foo=goo" -
+
+inputs:
+  - name: stdin
+    data: |
+      #1:record[foo:string,goo:string]
+      1:[foo1;goo1;]
+
+outputs:
+  - name: stderr
+    regexp: |
+      rename: duplicate field foo

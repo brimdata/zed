@@ -346,6 +346,7 @@ simpleProc
   / filter
   / uniq
   / put
+  / rename
 
 sort
   = "sort"i args:sortArgs list:(_ l:fieldExprList { RETURN(l) })? {
@@ -400,14 +401,17 @@ put
       RETURN(makePutProc(first, rest))
     }
 
+rename
+  = "rename"i _ first:FieldAssignment rest:(__ "," __ cl:FieldAssignment { RETURN(cl) })* {  return makeRenameProc(first, rest) }
+
 ExpressionAssignment
   = f:fieldName __ "=" __ e:Expression {
       RETURN(makeExpressionAssignment(f, e))
     }
 
 FieldAssignment
-  = f:fieldName __ "=" __ e:fieldRefDotOnly {
-      RETURN(makeFieldAssignment(f, e))
+  = l:fieldRefDotOnly __ "=" __ r:fieldRefDotOnly {
+      RETURN(makeFieldAssignment(l, r))
     }
 
 PrimaryExpression
