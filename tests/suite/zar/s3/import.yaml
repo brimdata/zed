@@ -1,10 +1,5 @@
 script: |
-  export AWS_REGION=us-east-2 AWS_ACCESS_KEY_ID=minioadmin \
-        AWS_SECRET_ACCESS_KEY=minioadmin AWS_S3_ENDPOINT=http://localhost:9000
-  mkdir -p data/bucket
-  minio server --quiet --address "localhost:9000" ./data &> /dev/null &
-  trap "kill -9 $!" EXIT
-  until nc -vzw 2 localhost 9000; do sleep 2; done
+  source minio.sh
   zar import -s 20KiB -R ./root -data s3://bucket/zartest babble.tzng
   echo ===
   zar ls -R ./root
@@ -14,6 +9,8 @@ script: |
 inputs:
   - name: babble.tzng
     source: ../../zdx/babble.tzng
+  - name: minio.sh
+    source: ./minio.sh
 
 outputs:
   - name: stdout
