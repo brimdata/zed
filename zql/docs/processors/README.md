@@ -8,6 +8,7 @@ The following available processors are documented in detail below:
 * [`filter`](#filter)
 * [`head`](#head)
 * [`put`](#put)
+* [`rename`](#rename)
 * [`sort`](#sort)
 * [`tail`](#tail)
 * [`uniq`](#uniq)
@@ -230,6 +231,38 @@ ID.ORIG_H     ID.ORIG_P ID.RESP_H       ID.RESP_P ORIG_BYTES RESP_BYTES TOTAL_BY
 10.47.8.100   37127     52.216.162.155  443       1494       105936280  105937774
 10.47.5.155   40728     91.189.91.23    80        21396      98972170   98993566
 ```
+
+---
+
+## `rename`
+
+|                           |                                                 |
+| ------------------------- | ----------------------------------------------- |
+| **Description**           | Rename fields in a record. |
+| **Syntax**                | `rename <newname> = <oldname> [, <newname> = <oldname> ...]`     |
+| **Required arguments**    | One or more field assignment expressions. Renames are applied left to right; each rename observes the effect of all renames that preceded it. |
+| **Optional arguments**    | None |
+| **Limitations**           | A field can only be renamed within its own record. For example id.orig_h can be renamed to id.src, but it cannot be renamed to src. |
+| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc#Rename |
+
+
+#### Example:
+
+Rename `ts` to `time`, rename one of the inner fields of `id`, and rename the `id` record itself to `conntuple`:
+
+```zq-command
+ zq -f table 'rename time=ts, id.src=id.orig_h, conntuple=id' conn.log.gz
+```
+
+#### Output:
+```zq-output head:5
+_PATH TIME              UID                CONNTUPLE.SRC  CONNTUPLE.ORIG_P CONNTUPLE.RESP_H CONNTUPLE.RESP_P PROTO SERVICE  DURATION ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY     ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
+conn  1521911721.255387 C8Tful1TvM3Zf5x8fl 10.164.94.120  39681            10.47.3.155      3389             tcp   -        0.004266 97         19         RSTR       -          -          0            ShADTdtr    10        730           6         342           -
+conn  1521911721.411148 CXWfTK3LRdiuQxBbM6 10.47.25.80    50817            10.128.0.218     23189            tcp   -        0.000486 0          0          REJ        -          -          0            Sr          2         104           2         80            -
+conn  1521911721.926018 CM59GGQhNEoKONb5i  10.47.25.80    50817            10.128.0.218     23189            tcp   -        0.000538 0          0          REJ        -          -          0            Sr          2         104           2         80            -
+conn  1521911722.690601 CuKFds250kxFgkhh8f 10.47.25.80    50813            10.128.0.218     27765            tcp   -        0.000546 0          0          REJ        -          -          0            Sr          2         104           2         80            -
+```
+
 
 ---
 
