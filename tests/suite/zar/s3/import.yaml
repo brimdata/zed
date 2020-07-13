@@ -3,14 +3,13 @@ script: |
         AWS_SECRET_ACCESS_KEY=minioadmin AWS_S3_ENDPOINT=http://localhost:9000
   mkdir -p data/bucket
   minio server --quiet --address "localhost:9000" ./data &> /dev/null &
-  pid=$!
+  trap "kill -9 $!" EXIT
   until nc -vzw 2 localhost 9000; do sleep 2; done
   zar import -s 20KiB -R ./root -data s3://bucket/zartest babble.tzng
   echo ===
   zar ls -R ./root
   echo ===
   zar ls -relative -R ./root
-  kill -KILL $pid &> /dev/null
 
 inputs:
   - name: babble.tzng
