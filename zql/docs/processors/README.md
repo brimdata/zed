@@ -242,7 +242,7 @@ ID.ORIG_H     ID.ORIG_P ID.RESP_H       ID.RESP_P ORIG_BYTES RESP_BYTES TOTAL_BY
 | **Syntax**                | `rename <newname> = <oldname> [, <newname> = <oldname> ...]`     |
 | **Required arguments**    | One or more field assignment expressions. Renames are applied left to right; each rename observes the effect of all renames that preceded it. |
 | **Optional arguments**    | None |
-| **Limitations**           | A field can only be renamed within its own record. For example id.orig_h can be renamed to id.src, but it cannot be renamed to src. |
+| **Limitations**           | A field can only be renamed within its own record. For example `id.orig_h` can be renamed to `id.src`, but it cannot be renamed to `src`. |
 | **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc#Rename |
 
 
@@ -261,7 +261,7 @@ conn  1521911721.255387 C8Tful1TvM3Zf5x8fl 10.164.94.120  39681            10.47
 conn  1521911721.411148 CXWfTK3LRdiuQxBbM6 10.47.25.80    50817            10.128.0.218     23189            tcp   -        0.000486 0          0          REJ        -          -          0            Sr          2         104           2         80            -
 conn  1521911721.926018 CM59GGQhNEoKONb5i  10.47.25.80    50817            10.128.0.218     23189            tcp   -        0.000538 0          0          REJ        -          -          0            Sr          2         104           2         80            -
 conn  1521911722.690601 CuKFds250kxFgkhh8f 10.47.25.80    50813            10.128.0.218     27765            tcp   -        0.000546 0          0          REJ        -          -          0            Sr          2         104           2         80            -
-```
+...
 
 
 ---
