@@ -286,7 +286,6 @@ func makeRenameProc(first, rest interface{}) (*ast.RenameProc, error) {
 	for _, c := range rest.([]interface{}) {
 		fields = append(fields, c.(ast.FieldAssignment))
 	}
-
 	return &ast.RenameProc{ast.Node{"RenameProc"}, fields}, nil
 }
 

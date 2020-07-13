@@ -50,7 +50,7 @@ func (r *Rename) renamedType(typ *zng.TypeRecord, fields []string, target string
 	if !ok {
 		return typ, nil
 	}
-	var innerTyp zng.Type
+	var innerType zng.Type
 	var name string
 	if len(fields) > 1 {
 		recType, ok := typ.Columns[c].Type.(*zng.TypeRecord)
@@ -58,19 +58,19 @@ func (r *Rename) renamedType(typ *zng.TypeRecord, fields []string, target string
 			return typ, nil
 		}
 		var err error
-		innerTyp, err = r.renamedType(recType, fields[1:], target)
+		innerType, err = r.renamedType(recType, fields[1:], target)
 		if err != nil {
 			return nil, err
 		}
 		name = fields[0]
 	} else {
-		innerTyp = typ.Columns[c].Type
+		innerType = typ.Columns[c].Type
 		name = target
 	}
 
 	newcols := make([]zng.Column, len(typ.Columns))
 	copy(newcols, typ.Columns)
-	newcols[c] = zng.Column{Name: name, Type: innerTyp}
+	newcols[c] = zng.Column{Name: name, Type: innerType}
 	return r.TypeContext.LookupTypeRecord(newcols)
 }
 
@@ -86,28 +86,24 @@ func (r *Rename) computeType(typ *zng.TypeRecord) (*zng.TypeRecord, error) {
 }
 
 func (r *Rename) Pull() (zbuf.Batch, error) {
-	for {
-		batch, err := r.Get()
-		if EOS(batch, err) {
-			return nil, err
-		}
-		recs := make([]*zng.Record, 0, batch.Length())
-		for k := 0; k < batch.Length(); k++ {
-			in := batch.Index(k)
-			id := in.Type.ID()
-			if _, ok := r.typeMap[id]; !ok {
-				typ, err := r.computeType(in.Type)
-				if err != nil {
-					return nil, fmt.Errorf("rename: %w", err)
-				}
-				r.typeMap[id] = typ
-			}
-			in.Type = r.typeMap[id]
-			recs = append(recs, in)
-		}
-		batch.Unref()
-		if len(recs) > 0 {
-			return zbuf.NewArray(recs), nil
-		}
+	batch, err := r.Get()
+	if EOS(batch, err) {
+		return nil, err
 	}
+	recs := make([]*zng.Record, 0, batch.Length())
+	for k := 0; k < batch.Length(); k++ {
+		in := batch.Index(k)
+		id := in.Type.ID()
+		if _, ok := r.typeMap[id]; !ok {
+			typ, err := r.computeType(in.Type)
+			if err != nil {
+				return nil, fmt.Errorf("rename: %w", err)
+			}
+			r.typeMap[id] = typ
+		}
+		in.Type = r.typeMap[id]
+		recs = append(recs, in)
+	}
+	batch.Unref()
+	return zbuf.NewArray(recs), nil
 }
