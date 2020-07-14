@@ -6,7 +6,6 @@ import (
 
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zdx"
