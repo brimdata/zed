@@ -101,8 +101,15 @@ func (r *Rename) Pull() (zbuf.Batch, error) {
 			}
 			r.typeMap[id] = typ
 		}
-		in.Type = r.typeMap[id]
-		recs = append(recs, in)
+		out := in.Keep()
+		if id != r.typeMap[id].ID() {
+			if out != in {
+				out.Type = r.typeMap[id]
+			} else {
+				out = zng.NewRecord(r.typeMap[id], out.Raw)
+			}
+		}
+		recs = append(recs, out)
 	}
 	batch.Unref()
 	return zbuf.NewArray(recs), nil
