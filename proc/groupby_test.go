@@ -484,8 +484,8 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 		zr := tzngio.NewReader(strings.NewReader(strings.Join(data, "\n")), zctx)
 		cr := &countReader{r: zr}
 		muxOutput, err := driver.Compile(context.Background(), proc, cr, driver.Config{
-			TypeContext: zctx,
-			SortKey:     inputSortKey,
+			TypeContext:   zctx,
+			ReaderSortKey: inputSortKey,
 		})
 		assert.NoError(t, err)
 		var outbuf bytes.Buffer

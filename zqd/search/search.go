@@ -171,9 +171,9 @@ func launch(ctx context.Context, query *Query, reader zbuf.Reader, zctx *resolve
 	}
 	// Records in a zqd filestore are sorted by descending ts (in zqd/storage/filestore.(*Storage).write).
 	return driver.Compile(ctx, query.Proc, reader, driver.Config{
-		TypeContext: zctx,
-		SortKey:     "ts",
-		SortReverse: true,
-		Span:        span,
+		TypeContext:       zctx,
+		ReaderSortKey:     "ts",
+		ReaderSortReverse: true,
+		Span:              span,
 	})
 }

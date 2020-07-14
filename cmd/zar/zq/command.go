@@ -122,10 +122,10 @@ func (c *Command) Run(args []string) error {
 		}
 		defer writer.Close()
 		mux, err := driver.Compile(context.Background(), query, reader, driver.Config{
-			TypeContext: zctx,
-			SortKey:     "ts",
-			SortReverse: ark.DataSortDirection == zbuf.DirTimeReverse,
-			Warnings:    wch,
+			TypeContext:       zctx,
+			ReaderSortKey:     "ts",
+			ReaderSortReverse: ark.DataSortDirection == zbuf.DirTimeReverse,
+			Warnings:          wch,
 		})
 		if err != nil {
 			return err

@@ -15,13 +15,13 @@ import (
 )
 
 type Config struct {
-	TypeContext *resolver.Context
-	SortKey     string
-	SortReverse bool
-	Span        nano.Span
-	Warnings    chan string
-	Logger      *zap.Logger
-	Custom      proc.Compiler
+	Custom            proc.Compiler
+	Logger            *zap.Logger
+	ReaderSortKey     string
+	ReaderSortReverse bool
+	Span              nano.Span
+	TypeContext       *resolver.Context
+	Warnings          chan string
 }
 
 // Compile takes an AST, an input reader, and configuration parameters,
@@ -43,12 +43,12 @@ func Compile(ctx context.Context, program ast.Proc, reader zbuf.Reader, cfg Conf
 	}
 
 	ReplaceGroupByProcDurationWithKey(program)
-	if cfg.SortKey != "" {
+	if cfg.ReaderSortKey != "" {
 		dir := 1
-		if cfg.SortReverse {
+		if cfg.ReaderSortReverse {
 			dir = -1
 		}
-		setGroupByProcInputSortDir(program, cfg.SortKey, dir)
+		setGroupByProcInputSortDir(program, cfg.ReaderSortKey, dir)
 	}
 	filterAst, program := liftFilter(program)
 	scanner, err := newScanner(ctx, reader, filterAst, cfg.Span)
