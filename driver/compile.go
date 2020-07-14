@@ -28,14 +28,14 @@ type Config struct {
 // proc.MuxOutput that which brings together all of the flowgraphs
 // tails, and is ready to be Pull()'d from.
 func Compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader, cfg Config) (*MuxOutput, error) {
+	if cfg.Logger == nil {
+		cfg.Logger = zap.NewNop()
+	}
 	if cfg.Span.Dur == 0 {
 		cfg.Span = nano.MaxSpan
 	}
 	if cfg.Warnings == nil {
 		cfg.Warnings = make(chan string, 5)
-	}
-	if cfg.Logger == nil {
-		cfg.Logger = zap.NewNop()
 	}
 
 	ReplaceGroupByProcDurationWithKey(program)
