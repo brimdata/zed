@@ -590,7 +590,7 @@ func runzq(bindir, ZQL, outputFormat, outputFlags string, inputs ...string) (out
 	}
 	muxOutput, err := driver.Compile(context.Background(), zctx, proc, zr, "", false, nano.MaxSpan, zap.NewNop())
 	if err != nil {
-		return "", "", err
+		return "", err.Error(), err
 	}
 	var zflags zio.WriterFlags
 	var flags flag.FlagSet
