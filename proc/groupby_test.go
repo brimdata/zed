@@ -11,7 +11,6 @@ import (
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/scanner"
@@ -25,7 +24,6 @@ import (
 	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 )
 
 // Data sets for tests:
@@ -485,7 +483,9 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 		zctx := resolver.NewContext()
 		zr := tzngio.NewReader(strings.NewReader(strings.Join(data, "\n")), zctx)
 		cr := &countReader{r: zr}
-		muxOutput, err := driver.Compile(context.Background(), zctx, proc, cr, inputSortKey, false, nano.MaxSpan, zap.NewNop())
+		muxOutput, err := driver.Compile(context.Background(), proc, zctx, cr, driver.Config{
+			ReaderSortKey: inputSortKey,
+		})
 		assert.NoError(t, err)
 		var outbuf bytes.Buffer
 		zw := detector.LookupWriter(&nopCloser{&outbuf}, &zio.WriterFlags{})

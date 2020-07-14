@@ -725,7 +725,7 @@ func createArchiveSpace(t *testing.T, datapath string, thresh int64, srcfile str
 	require.NoError(t, err)
 	defer reader.Close()
 
-	err = archive.Import(ctx, ark, reader)
+	err = archive.Import(ctx, ark, zctx, reader)
 	require.NoError(t, err)
 }
 

@@ -19,7 +19,6 @@ import (
 	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqe"
 	"github.com/brimsec/zq/zql"
-	"go.uber.org/zap"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -108,7 +107,7 @@ func (w *spanWriter) Write(rec *zng.Record) error {
 	return nil
 }
 
-func (s *Storage) Rewrite(ctx context.Context, zr zbuf.Reader) error {
+func (s *Storage) Rewrite(ctx context.Context, zctx *resolver.Context, zr zbuf.Reader) error {
 	if !s.wsem.TryAcquire(1) {
 		return zqe.E(zqe.Conflict, ErrWriteInProgress)
 	}
@@ -118,7 +117,7 @@ func (s *Storage) Rewrite(ctx context.Context, zr zbuf.Reader) error {
 	if err := fs.ReplaceFile(s.join(allZngFile), 0600, func(w io.Writer) error {
 		fileWriter := zngio.NewWriter(w, zio.WriterFlags{StreamRecordsMax: s.streamsize})
 		zw := zbuf.MultiWriter(fileWriter, spanWriter)
-		if err := s.write(ctx, zw, zr); err != nil {
+		if err := s.write(ctx, zw, zctx, zr); err != nil {
 			return err
 		}
 		return fileWriter.Flush()
@@ -133,8 +132,8 @@ func (s *Storage) Rewrite(ctx context.Context, zr zbuf.Reader) error {
 	return s.extendSpan(spanWriter.span)
 }
 
-func (s *Storage) write(ctx context.Context, zw zbuf.Writer, zr zbuf.Reader) error {
-	out, err := driver.Compile(ctx, resolver.NewContext(), zngWriteProc, zr, "ts", false, nano.MaxSpan, zap.NewNop())
+func (s *Storage) write(ctx context.Context, zw zbuf.Writer, zctx *resolver.Context, zr zbuf.Reader) error {
+	out, err := driver.Compile(ctx, zngWriteProc, zctx, zr, driver.Config{})
 	if err != nil {
 		return err
 	}

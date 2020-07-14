@@ -11,6 +11,7 @@ import (
 
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/require"
 )
 
@@ -33,14 +34,15 @@ func TestFailOnConcurrentWrites(t *testing.T) {
 	}()
 	store, err := Load(dir)
 	require.NoError(t, err)
+	zctx := resolver.NewContext()
 	wr := &waitReader{dur: time.Second * 5}
 	wr.Add(1)
 	go func() {
-		store.Rewrite(context.Background(), wr)
+		store.Rewrite(context.Background(), zctx, wr)
 	}()
 	wr.Wait()
 
-	err = store.Rewrite(context.Background(), nil)
+	err = store.Rewrite(context.Background(), zctx, nil)
 	require.Error(t, err)
 	require.True(t, errors.Is(err, ErrWriteInProgress))
 }
@@ -64,7 +66,7 @@ func TestRewriteNoRecords(t *testing.T) {
 	err = store.SetSpan(sp)
 	require.NoError(t, err)
 
-	err = store.Rewrite(context.Background(), &emptyReader{})
+	err = store.Rewrite(context.Background(), resolver.NewContext(), &emptyReader{})
 	require.NoError(t, err)
 
 	sum, err := store.Summary(context.Background())

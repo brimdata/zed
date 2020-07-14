@@ -33,10 +33,11 @@ type LogOp struct {
 
 	warningCh chan string
 	wg        sync.WaitGroup
+	zctx      *resolver.Context
 }
 
 type LogStore interface {
-	Rewrite(ctx context.Context, zr zbuf.Reader) error
+	Rewrite(ctx context.Context, zctx *resolver.Context, zr zbuf.Reader) error
 	NativeDirection() zbuf.Direction
 }
 
@@ -45,20 +46,20 @@ type LogStore interface {
 func NewLogOp(ctx context.Context, ls LogStore, req api.LogPostRequest) (*LogOp, error) {
 	p := &LogOp{
 		warningCh: make(chan string, 5),
+		zctx:      resolver.NewContext(),
 	}
 	var cfg detector.OpenConfig
 	if req.JSONTypeConfig != nil {
 		cfg.JSONTypeConfig = req.JSONTypeConfig
 		cfg.JSONPathRegex = DefaultJSONPathRegexp
 	}
-	zctx := resolver.NewContext()
 	for _, path := range req.Paths {
 		rc, size, err := openIncomingLog(path)
 		if err != nil {
 			p.closeFiles()
 			return nil, err
 		}
-		sf, err := detector.OpenFromNamedReadCloser(zctx, rc, path, cfg)
+		sf, err := detector.OpenFromNamedReadCloser(p.zctx, rc, path, cfg)
 		if err != nil {
 			rc.Close()
 			if req.StopErr {
@@ -140,7 +141,7 @@ func (p *LogOp) start(ctx context.Context, ls LogStore) {
 		p.warningCh <- warning
 	}
 	r := zbuf.NewCombiner(p.readers, zbuf.RecordCompare(ls.NativeDirection()))
-	p.err = ls.Rewrite(ctx, r)
+	p.err = ls.Rewrite(ctx, p.zctx, r)
 	if err := p.closeFiles(); err != nil && p.err != nil {
 		p.err = err
 	}
