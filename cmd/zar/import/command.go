@@ -93,5 +93,5 @@ func (c *Command) Run(args []string) error {
 	}
 	defer reader.Close()
 
-	return archive.Import(context.TODO(), ark, reader)
+	return archive.Import(context.TODO(), ark, zctx, reader)
 }

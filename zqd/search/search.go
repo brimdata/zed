@@ -170,8 +170,7 @@ func launch(ctx context.Context, query *Query, reader zbuf.Reader, zctx *resolve
 		span = nano.MaxSpan
 	}
 	// Records in a zqd filestore are sorted by descending ts (in zqd/storage/filestore.(*Storage).write).
-	return driver.Compile(ctx, query.Proc, reader, driver.Config{
-		TypeContext:       zctx,
+	return driver.Compile(ctx, query.Proc, zctx, reader, driver.Config{
 		ReaderSortKey:     "ts",
 		ReaderSortReverse: true,
 		Span:              span,

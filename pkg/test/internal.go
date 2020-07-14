@@ -56,7 +56,7 @@ func (i *Internal) Run() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	mux, err := driver.Compile(context.Background(), program, reader, driver.Config{TypeContext: zctx})
+	mux, err := driver.Compile(context.Background(), program, zctx, reader, driver.Config{})
 	if err != nil {
 		return "", err
 	}

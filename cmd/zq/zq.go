@@ -249,9 +249,8 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	mux, err := driver.Compile(context.Background(), query, reader, driver.Config{
-		TypeContext: c.zctx,
-		Warnings:    wch,
+	mux, err := driver.Compile(context.Background(), query, c.zctx, reader, driver.Config{
+		Warnings: wch,
 	})
 	if err != nil {
 		writer.Close()

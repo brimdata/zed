@@ -586,7 +586,7 @@ func runzq(bindir, ZQL, outputFormat, outputFlags string, inputs ...string) (out
 		outputFormat = "null"
 		zctx.SetLogger(&emitter.TypeLogger{WriteCloser: &nopCloser{&outbuf}})
 	}
-	muxOutput, err := driver.Compile(context.Background(), proc, zr, driver.Config{TypeContext: zctx})
+	muxOutput, err := driver.Compile(context.Background(), proc, zctx, zr, driver.Config{})
 	if err != nil {
 		return "", "", err
 	}

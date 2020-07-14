@@ -49,9 +49,8 @@ func runOne(zardir iosrc.URI, rule Rule, inputPath iosrc.URI, progress chan<- st
 		return err
 	}
 	defer fgi.Close()
-	out, err := driver.Compile(context.TODO(), rule.proc, r, driver.Config{
-		TypeContext: zctx,
-		Custom:      &compiler{},
+	out, err := driver.Compile(context.TODO(), rule.proc, zctx, r, driver.Config{
+		Custom: &compiler{},
 	})
 	if err != nil {
 		return err

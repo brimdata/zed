@@ -13,6 +13,7 @@ import (
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zql"
 )
@@ -119,13 +120,13 @@ func importProc(ark *Archive) string {
 	return "sort -r ts"
 }
 
-func Import(ctx context.Context, ark *Archive, r zbuf.Reader) error {
+func Import(ctx context.Context, ark *Archive, zctx *resolver.Context, r zbuf.Reader) error {
 	proc, err := zql.ParseProc(importProc(ark))
 	if err != nil {
 		return err
 	}
 
-	fg, err := driver.Compile(ctx, proc, r, driver.Config{})
+	fg, err := driver.Compile(ctx, proc, zctx, r, driver.Config{})
 	if err != nil {
 		return err
 	}

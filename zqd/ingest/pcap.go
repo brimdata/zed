@@ -213,12 +213,13 @@ func (p *PcapOp) createSnapshot(ctx context.Context) error {
 		return nil
 	}
 	// convert logs into sorted zng
-	zr, err := detector.OpenFiles(resolver.NewContext(), zbuf.RecordCompare(p.pstore.NativeDirection()), files...)
+	zctx := resolver.NewContext()
+	zr, err := detector.OpenFiles(zctx, zbuf.RecordCompare(p.pstore.NativeDirection()), files...)
 	if err != nil {
 		return err
 	}
 	defer zr.Close()
-	if err := p.pstore.Rewrite(ctx, zr); err != nil {
+	if err := p.pstore.Rewrite(ctx, zctx, zr); err != nil {
 		return err
 	}
 	atomic.AddInt32(&p.snapshots, 1)

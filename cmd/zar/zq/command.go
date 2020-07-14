@@ -121,8 +121,7 @@ func (c *Command) Run(args []string) error {
 			return err
 		}
 		defer writer.Close()
-		mux, err := driver.Compile(context.Background(), query, reader, driver.Config{
-			TypeContext:       zctx,
+		mux, err := driver.Compile(context.Background(), query, zctx, reader, driver.Config{
 			ReaderSortKey:     "ts",
 			ReaderSortReverse: ark.DataSortDirection == zbuf.DirTimeReverse,
 			Warnings:          wch,

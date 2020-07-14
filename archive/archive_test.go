@@ -36,7 +36,7 @@ func importTestFile(t *testing.T, ark *Archive, srcfile string) {
 	require.NoError(t, err)
 	defer reader.Close()
 
-	err = Import(context.Background(), ark, reader)
+	err = Import(context.Background(), ark, zctx, reader)
 	require.NoError(t, err)
 }
 

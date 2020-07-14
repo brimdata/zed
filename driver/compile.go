@@ -20,7 +20,6 @@ type Config struct {
 	ReaderSortKey     string
 	ReaderSortReverse bool
 	Span              nano.Span
-	TypeContext       *resolver.Context
 	Warnings          chan string
 }
 
@@ -28,10 +27,7 @@ type Config struct {
 // and compiles it into a runnable flowgraph, returning a
 // proc.MuxOutput that which brings together all of the flowgraphs
 // tails, and is ready to be Pull()'d from.
-func Compile(ctx context.Context, program ast.Proc, reader zbuf.Reader, cfg Config) (*MuxOutput, error) {
-	if cfg.TypeContext == nil {
-		cfg.TypeContext = resolver.NewContext()
-	}
+func Compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader, cfg Config) (*MuxOutput, error) {
 	if cfg.Span.Dur == 0 {
 		cfg.Span = nano.MaxSpan
 	}
@@ -57,7 +53,7 @@ func Compile(ctx context.Context, program ast.Proc, reader zbuf.Reader, cfg Conf
 	}
 	pctx := &proc.Context{
 		Context:     ctx,
-		TypeContext: cfg.TypeContext,
+		TypeContext: zctx,
 		Logger:      cfg.Logger,
 		Warnings:    cfg.Warnings,
 	}
