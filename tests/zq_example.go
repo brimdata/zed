@@ -5,9 +5,6 @@ Find valid ZQ examples in markdown, run them against
 https://github.com/brimsec/zq-sample-data/zeek-default, and compare results in
 docs with results produced.
 
-In separate patches:
-- Find files as opposed to hard-coding them
-
 Use markers in markdown fenced code blocks to denote either a zq command or
 output from zq. Use is like:
 
@@ -159,7 +156,7 @@ func ZQOutputLineCount(fcb *ast.FencedCodeBlock, source []byte) int {
 	return customCount
 }
 
-// CollectExamples returns a zq-command / zq-output pairs from a single
+// CollectExamples returns zq-command / zq-output pairs from a single
 // markdown source after parsing it as a goldmark AST.
 func CollectExamples(node ast.Node, source []byte) ([]ZQExampleInfo, error) {
 	var examples []ZQExampleInfo
