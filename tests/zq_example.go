@@ -80,6 +80,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -310,23 +311,21 @@ func TestcasesFromFile(filename string) ([]ZQExampleTest, error) {
 
 // DocMarkdownFiles returns markdown files to inspect.
 func DocMarkdownFiles() ([]string, error) {
-	// This needs to find markdown files in the repo. Right now we just
-	// declare them directly.
-	files := []string{
-		"zql/docs/processors/README.md",
-		"zql/docs/search-syntax/README.md",
-		"zql/docs/aggregate-functions/README.md",
-		"zql/docs/expressions/README.md",
-		"zql/docs/data-types/README.md",
-	}
 	repopath, err := RepoAbsPath()
 	if err != nil {
 		return nil, err
 	}
-	for i, file := range files {
-		files[i] = filepath.Join(repopath, file)
-	}
-	return files, nil
+	var files []string
+	err = filepath.Walk(repopath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() && strings.HasSuffix(path, ".md") {
+			files = append(files, path)
+		}
+		return nil
+	})
+	return files, err
 }
 
 // ZQExampleTestCases returns all test cases derived from doc examples.
