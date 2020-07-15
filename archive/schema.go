@@ -22,11 +22,12 @@ import (
 const metadataFilename = "zar.json"
 
 type Metadata struct {
-	Version           int            `json:"version"`
-	DataPath          string         `json:"data_path"`
-	LogSizeThreshold  int64          `json:"log_size_threshold"`
-	DataSortDirection zbuf.Direction `json:"data_sort_direction"`
-	Spans             []SpanInfo     `json:"spans"`
+	Version           int                  `json:"version"`
+	DataPath          string               `json:"data_path"`
+	LogSizeThreshold  int64                `json:"log_size_threshold"`
+	DataSortDirection zbuf.Direction       `json:"data_sort_direction"`
+	Spans             []SpanInfo           `json:"spans"`
+	Indexes           map[string]IndexInfo `json:"indexes"`
 }
 
 // A LogID identifies a single zng file within an archive. It is created
@@ -43,6 +44,11 @@ func (l LogID) Path(ark *Archive) iosrc.URI {
 type SpanInfo struct {
 	Span  nano.Span `json:"span"`
 	LogID LogID     `json:"log_id"`
+}
+
+type IndexInfo struct {
+	Type string `json:"type"`
+	Path string `json:"path"`
 }
 
 func (c *Metadata) Write(path string) error {
@@ -79,6 +85,7 @@ func (c *CreateOptions) toMetadata() *Metadata {
 		LogSizeThreshold:  DefaultLogSizeThreshold,
 		DataSortDirection: DefaultDataSortDirection,
 		DataPath:          ".",
+		Indexes:           make(map[string]IndexInfo),
 	}
 
 	if c.LogSizeThreshold != nil {
@@ -101,8 +108,9 @@ type Archive struct {
 	dataSrc iosrc.Source
 
 	// mu protects below fields.
-	mu    sync.RWMutex
-	spans []SpanInfo
+	mu      sync.RWMutex
+	indexes map[string]IndexInfo // map key is index path
+	spans   []SpanInfo
 	// mdModTime is the mtime of the metadata at or before its contents
 	// were last read.
 	mdModTime time.Time
@@ -138,12 +146,28 @@ func (ark *Archive) AppendSpans(spans []SpanInfo) error {
 	return nil
 }
 
+func (ark *Archive) AddIndexes(indexes []IndexInfo) error {
+	ark.mu.Lock()
+	defer ark.mu.Unlock()
+	for _, ind := range indexes {
+		ark.indexes[ind.Path] = ind
+	}
+	err := ark.metaWrite()
+	if err != nil {
+		return err
+	}
+
+	ark.mdUpdateCount++
+	return nil
+}
+
 func (ark *Archive) metaWrite() error {
 	m := &Metadata{
 		Version:           0,
 		LogSizeThreshold:  ark.LogSizeThreshold,
 		DataSortDirection: ark.DataSortDirection,
 		DataPath:          ark.DataPath.String(),
+		Indexes:           ark.indexes,
 		Spans:             ark.spans,
 	}
 	return m.Write(ark.mdPath())
@@ -222,6 +246,7 @@ func OpenArchive(root string, oo *OpenOptions) (*Archive, error) {
 		DataSortDirection: m.DataSortDirection,
 		LogSizeThreshold:  m.LogSizeThreshold,
 		DataPath:          dpuri,
+		indexes:           m.Indexes,
 		mdModTime:         mtime,
 		mdUpdateCount:     1,
 	}

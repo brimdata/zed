@@ -10,6 +10,7 @@ import (
 	"github.com/brimsec/zq/zdx"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zqe"
 )
 
 type findOptions struct {
@@ -82,12 +83,16 @@ func Find(ctx context.Context, ark *Archive, query IndexQuery, hits chan<- *zng.
 			return err
 		}
 	}
+	indexInfo, ok := ark.indexes[query.indexName]
+	if !ok {
+		return zqe.E(zqe.NotFound)
+	}
 	return SpanWalk(ark, func(si SpanInfo, zardir iosrc.URI) error {
 		searchHits := make(chan *zng.Record)
 		var searchErr error
 		go func() {
 			defer close(searchHits)
-			searchErr = search(ctx, opt.zctx, searchHits, zardir.AppendPath(query.indexName), query.patterns)
+			searchErr = search(ctx, opt.zctx, searchHits, zardir.AppendPath(indexInfo.Path), query.patterns)
 			if searchErr != nil && os.IsNotExist(searchErr) && opt.skipMissing {
 				// No index for this rule.  Skip it if the skip boolean
 				// says it's ok.  Otherwise, we return ErrNotExist since
