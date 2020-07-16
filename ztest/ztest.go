@@ -145,7 +145,7 @@ import (
 // Run runs the ztests in the directory named dirname.  For each file f.yaml in
 // the directory, Run calls FromYAMLFile to load a ztest and then runs it in
 // subtest named f. path is an os-specific delimited list of paths like the
-// $PATH environment variable.
+// PATH environment variable.
 func Run(t *testing.T, dirname string) {
 	path := os.Getenv("ZTEST_PATH")
 	if path != "" {
