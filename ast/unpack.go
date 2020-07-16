@@ -231,6 +231,16 @@ func unpackExpression(node joe.JSON) (Expression, error) {
 			}
 		}
 		return &FunctionCall{Args: args}, nil
+	case "CastExpr":
+		exprNode := node.Get("expr")
+		if exprNode == joe.Undefined {
+			return nil, errors.New("CastExpr missing expr")
+		}
+		expr, err := unpackExpression(exprNode)
+		if err != nil {
+			return nil, err
+		}
+		return &CastExpression{Expr: expr}, nil
 	case "Literal":
 		return &Literal{}, nil
 	case "FieldRead":
