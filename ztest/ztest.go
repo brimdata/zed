@@ -548,8 +548,8 @@ func runsh(testname, path, dirname string, zt *ZTest) error {
 // according to outputFormat. inputs may be in any format recognized by "zq -i
 // auto" and maybe be gzip-compressed.  outputFormat may be any string accepted
 // by "zq -f".  If path is empty, the query runs in the current process.
-// If path is not empty, it specifies a zq path that will be used to run
-// the query.
+// If path is not empty, it specifies a command search path used to find
+// a zq executable to run the query.
 func runzq(path, ZQL, outputFormat, outputFlags string, inputs ...string) (out string, warnOrError string, err error) {
 	var outbuf bytes.Buffer
 	var errbuf bytes.Buffer
