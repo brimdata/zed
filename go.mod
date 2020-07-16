@@ -34,4 +34,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.0-20200121175148-a6ecf24a6d71
 )
 
-replace github.com/minio/minio => github.com/mattnibs/minio v0.0.0-20200716173056-375b93385c07
+replace github.com/minio/minio => github.com/brimsec/minio v0.0.0-20200716201010-79ee8c90ab20
