@@ -73,9 +73,9 @@ func AddPath(pathField string, absolutePath bool) FindOption {
 // be more efficient at large scale to allow multipe patterns that
 // are effectively OR-ed together so that there is locality of
 // access to the zdx files.
-func Find(ctx context.Context, ark *Archive, query IndexQuery, hits chan<- *zng.Record, opts ...FindOption) error {
+func Find(ctx context.Context, zctx *resolver.Context, ark *Archive, query IndexQuery, hits chan<- *zng.Record, opts ...FindOption) error {
 	opt := findOptions{
-		zctx:    resolver.NewContext(),
+		zctx:    zctx,
 		addPath: func(_ *Archive, _ SpanInfo, rec *zng.Record) (*zng.Record, error) { return rec, nil },
 	}
 	for _, o := range opts {
@@ -157,7 +157,7 @@ func (f *findReadCloser) Close() error {
 	return nil
 }
 
-func FindReadCloser(ctx context.Context, ark *Archive, query IndexQuery, opts ...FindOption) (zbuf.ReadCloser, error) {
+func FindReadCloser(ctx context.Context, zctx *resolver.Context, ark *Archive, query IndexQuery, opts ...FindOption) (zbuf.ReadCloser, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	f := &findReadCloser{
 		ctx:    ctx,
@@ -165,7 +165,7 @@ func FindReadCloser(ctx context.Context, ark *Archive, query IndexQuery, opts ..
 		hits:   make(chan *zng.Record),
 	}
 	go func() {
-		f.err = Find(ctx, ark, query, f.hits, opts...)
+		f.err = Find(ctx, zctx, ark, query, f.hits, opts...)
 		close(f.hits)
 	}()
 	return f, nil

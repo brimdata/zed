@@ -304,6 +304,7 @@ type statReadCloser struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 	ark    *Archive
+	zctx   *resolver.Context
 	recs   chan *zng.Record
 	err    error
 }
@@ -328,8 +329,7 @@ func (s *statReadCloser) Close() error {
 func (s *statReadCloser) run() {
 	defer close(s.recs)
 
-	zctx := resolver.NewContext()
-	typ := zctx.MustLookupTypeRecord([]zng.Column{
+	typ := s.zctx.MustLookupTypeRecord([]zng.Column{
 		zng.NewColumn("type", zng.TypeString),
 		zng.NewColumn("log_id", zng.TypeString),
 		zng.NewColumn("start", zng.TypeTime),
@@ -360,13 +360,14 @@ func (s *statReadCloser) run() {
 	})
 }
 
-func Stat(ctx context.Context, ark *Archive) (zbuf.ReadCloser, error) {
+func Stat(ctx context.Context, zctx *resolver.Context, ark *Archive) (zbuf.ReadCloser, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	s := &statReadCloser{
 		ctx:    ctx,
 		cancel: cancel,
-		recs:   make(chan *zng.Record),
 		ark:    ark,
+		zctx:   zctx,
+		recs:   make(chan *zng.Record),
 	}
 	go s.run()
 	return s, nil

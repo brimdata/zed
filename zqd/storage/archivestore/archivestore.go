@@ -45,7 +45,7 @@ func (s *Storage) NativeDirection() zbuf.Direction {
 	return s.ark.DataSortDirection
 }
 
-func (s *Storage) Open(ctx context.Context, span nano.Span) (zbuf.ReadCloser, error) {
+func (s *Storage) Open(ctx context.Context, zctx *resolver.Context, span nano.Span) (zbuf.ReadCloser, error) {
 	var err error
 	var paths []string
 	err = archive.SpanWalk(s.ark, func(si archive.SpanInfo, zardir iosrc.URI) error {
@@ -64,7 +64,6 @@ func (s *Storage) Open(ctx context.Context, span nano.Span) (zbuf.ReadCloser, er
 	if err != nil {
 		return nil, err
 	}
-	zctx := resolver.NewContext()
 	cfg := detector.OpenConfig{Format: "zng"}
 	return detector.MultiFileReader(zctx, paths, cfg), nil
 }
@@ -114,10 +113,10 @@ func (s *Storage) Summary(_ context.Context) (storage.Summary, error) {
 	return sum, nil
 }
 
-func (s *Storage) IndexSearch(ctx context.Context, query archive.IndexQuery) (zbuf.ReadCloser, error) {
-	return archive.FindReadCloser(ctx, s.ark, query, archive.AddPath(archive.DefaultAddPathField, false))
+func (s *Storage) IndexSearch(ctx context.Context, zctx *resolver.Context, query archive.IndexQuery) (zbuf.ReadCloser, error) {
+	return archive.FindReadCloser(ctx, zctx, s.ark, query, archive.AddPath(archive.DefaultAddPathField, false))
 }
 
-func (s *Storage) ArchiveStat(ctx context.Context) (zbuf.ReadCloser, error) {
-	return archive.Stat(ctx, s.ark)
+func (s *Storage) ArchiveStat(ctx context.Context, zctx *resolver.Context) (zbuf.ReadCloser, error) {
+	return archive.Stat(ctx, zctx, s.ark)
 }

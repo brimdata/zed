@@ -29,7 +29,7 @@ const (
 )
 
 type SearchStore interface {
-	Open(ctx context.Context, span nano.Span) (zbuf.ReadCloser, error)
+	Open(ctx context.Context, zctx *resolver.Context, span nano.Span) (zbuf.ReadCloser, error)
 }
 
 type SearchOp struct {
@@ -57,11 +57,11 @@ func NewSearchOp(ctx context.Context, s SearchStore, req api.SearchRequest) (*Se
 		return nil, err
 	}
 
-	zngReader, err := s.Open(ctx, query.Span)
+	zctx := resolver.NewContext()
+	zngReader, err := s.Open(ctx, zctx, query.Span)
 	if err != nil {
 		return nil, err
 	}
-	zctx := resolver.NewContext()
 	mapper := zbuf.NewMapper(zngReader, zctx)
 	mux, err := launch(ctx, query, mapper, zctx)
 	if err != nil {

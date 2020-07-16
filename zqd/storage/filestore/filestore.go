@@ -65,8 +65,7 @@ func (s *Storage) join(args ...string) string {
 	return filepath.Join(args...)
 }
 
-func (s *Storage) Open(_ context.Context, span nano.Span) (zbuf.ReadCloser, error) {
-	zctx := resolver.NewContext()
+func (s *Storage) Open(_ context.Context, zctx *resolver.Context, span nano.Span) (zbuf.ReadCloser, error) {
 	f, err := fs.Open(s.join(allZngFile))
 	if err != nil {
 		if !os.IsNotExist(err) {

@@ -11,6 +11,7 @@ import (
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
 )
 
@@ -119,9 +120,10 @@ func (c *Command) Run(args []string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	hits := make(chan *zng.Record)
+	zctx := resolver.NewContext()
 	var searchErr error
 	go func() {
-		searchErr = archive.Find(ctx, ark, query, hits, findOptions...)
+		searchErr = archive.Find(ctx, zctx, ark, query, hits, findOptions...)
 		close(hits)
 	}()
 	for hit := range hits {

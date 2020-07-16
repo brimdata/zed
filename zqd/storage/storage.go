@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zng/resolver"
 )
 
 type Kind string
@@ -59,7 +60,7 @@ type Summary struct {
 }
 
 type Storage interface {
-	Open(ctx context.Context, span nano.Span) (zbuf.ReadCloser, error)
+	Open(ctx context.Context, zctx *resolver.Context, span nano.Span) (zbuf.ReadCloser, error)
 	Summary(ctx context.Context) (Summary, error)
 	NativeDirection() zbuf.Direction
 }
