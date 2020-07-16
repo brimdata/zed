@@ -19,7 +19,7 @@ until [ -f $portdir/port ]; do
 done
 
 port=$(cat $portdir/port)
-export AWS_REGION=us-east-2
+export AWS_REGION=does-not-matter
 export AWS_ACCESS_KEY_ID=minioadmin
 export AWS_SECRET_ACCESS_KEY=minioadmin
 export AWS_S3_ENDPOINT=http://localhost:$port
