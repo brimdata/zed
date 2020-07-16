@@ -1,7 +1,7 @@
 #!/bin/bash
 
 mkdir -p data/bucket
-minio server --writeportfile="./port" --quiet --address ":0" ./data &
+minio server --writeportfile="./port" --quiet --address "localhost:0" ./data &
 trap "kill -9 $!" EXIT
 
 # Wait for port file to show up. Minio will write this file once the listener
@@ -21,4 +21,3 @@ export AWS_REGION=us-east-2
 export AWS_ACCESS_KEY_ID=minioadmin
 export AWS_SECRET_ACCESS_KEY=minioadmin
 export AWS_S3_ENDPOINT=http://localhost:$port
-
