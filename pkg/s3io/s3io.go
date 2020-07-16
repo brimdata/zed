@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -57,8 +58,8 @@ func NewWriter(path string, cfg *aws.Config, options ...func(*s3manager.Uploader
 	if err != nil {
 		return nil, err
 	}
-	sess := session.Must(session.NewSession(cfg))
-	uploader := s3manager.NewUploader(sess, options...)
+	client := newClient(cfg)
+	uploader := s3manager.NewUploaderWithClient(client, options...)
 	pr, pw := io.Pipe()
 	return &Writer{
 		bucket:   bucket,
@@ -102,9 +103,7 @@ func NewReader(path string, cfg *aws.Config) (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	sess := session.Must(session.NewSession(cfg))
-	client := s3.New(sess)
-	res, err := client.GetObject(&s3.GetObjectInput{
+	res, err := newClient(cfg).GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
@@ -119,12 +118,33 @@ func Stat(path string, cfg *aws.Config) (*s3.HeadObjectOutput, error) {
 	if err != nil {
 		return nil, err
 	}
-	sess := session.Must(session.NewSession(cfg))
-	client := s3.New(sess)
-	return client.HeadObject(&s3.HeadObjectInput{
+	return newClient(cfg).HeadObject(&s3.HeadObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
+}
+
+func ListObjects(path string, cfg *aws.Config) ([]string, error) {
+	bucket, key, err := parsePath(path)
+	if err != nil {
+		return nil, err
+	}
+	client := newClient(cfg)
+	var keys []string
+	return keys, ls(client, bucket, key, func(out *s3.ListObjectsV2Output, lastPage bool) bool {
+		for _, obj := range out.Contents {
+			keys = append(keys, *obj.Key)
+		}
+		return true
+	})
+}
+
+func ls(client *s3.S3, bucket, key string, cb func(*s3.ListObjectsV2Output, bool) bool) error {
+	input := &s3.ListObjectsV2Input{
+		Prefix: aws.String(key),
+		Bucket: aws.String(bucket),
+	}
+	return client.ListObjectsV2Pages(input, cb)
 }
 
 func Exists(path string, cfg *aws.Config) (bool, error) {
@@ -137,4 +157,18 @@ func Exists(path string, cfg *aws.Config) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func newClient(cfg *aws.Config) *s3.S3 {
+	if cfg == nil {
+		cfg = &aws.Config{}
+	}
+	// Add ability to override s3 endpoint via env variable (the aws sdk doesn't
+	// support this). This is mostly for system tests w/ minio.
+	if endpoint := os.Getenv("AWS_S3_ENDPOINT"); cfg.Endpoint == nil && endpoint != "" {
+		cfg.Endpoint = aws.String(endpoint)
+		cfg.S3ForcePathStyle = aws.Bool(true) // https://github.com/minio/minio/tree/master/docs/config#domain
+	}
+	sess := session.Must(session.NewSession(cfg))
+	return s3.New(sess)
 }
