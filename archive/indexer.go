@@ -29,10 +29,18 @@ func fieldZdxName(fieldname string) string {
 }
 
 func IndexDirTree(ark *Archive, rules []Rule, path string, progress chan<- string) error {
-	return Walk(ark, func(zardir iosrc.URI) error {
+	err := Walk(ark, func(zardir iosrc.URI) error {
 		logPath := Localize(zardir, path)
 		return run(zardir, rules, logPath, progress)
 	})
+	if err != nil {
+		return err
+	}
+	var infos []IndexInfo
+	for _, r := range rules {
+		infos = append(infos, IndexInfo{r.typ, r.path})
+	}
+	return ark.AddIndexes(infos)
 }
 
 func runOne(zardir iosrc.URI, rule Rule, inputPath iosrc.URI, progress chan<- string) error {
