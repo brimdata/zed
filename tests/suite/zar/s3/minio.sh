@@ -2,9 +2,8 @@
 
 mkdir -p data/bucket
 portdir=$(mktemp -d)
-trap "rm -rf $portdir" EXIT
 minio server --writeportfile="$portdir/port" --quiet --address "localhost:0" ./data &
-trap "kill -9 $!" EXIT
+trap "rm -rf $portdir; kill -9 $!" EXIT
 
 # Wait for port file to show up. Minio will write this file once the listener
 # has started.
