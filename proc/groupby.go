@@ -235,8 +235,10 @@ func NewGroupBy(c *Context, parent Proc, params GroupByParams) *GroupBy {
 
 func (g *GroupBy) Pull() (zbuf.Batch, error) {
 	g.once.Do(func() { go g.run() })
-	r := <-g.resultCh
-	return r.Batch, r.Err
+	if r, ok := <-g.resultCh; ok {
+		return r.Batch, r.Err
+	}
+	return nil, g.Context.Err()
 }
 
 func (g *GroupBy) run() {
