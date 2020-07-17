@@ -291,6 +291,12 @@ type (
 		Node
 		Clauses []ExpressionAssignment `json:"clauses"`
 	}
+
+	// A RenameProc node represents a proc that renames fields.
+	RenameProc struct {
+		Node
+		Fields []FieldAssignment `json:"fields"`
+	}
 )
 
 type ExpressionAssignment struct {
@@ -336,6 +342,7 @@ func (*ReduceProc) ProcNode()     {}
 func (*GroupByProc) ProcNode()    {}
 func (*TopProc) ProcNode()        {}
 func (*PutProc) ProcNode()        {}
+func (*RenameProc) ProcNode()     {}
 
 // A Reducer is an AST node that represents a reducer function.  The Op
 // parameter indicates the specific reducer while the Field parameter indicates

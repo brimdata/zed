@@ -166,6 +166,13 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 		}
 		return []Proc{put}, nil
 
+	case *ast.RenameProc:
+		rename, err := CompileRenameProc(c, parent, v)
+		if err != nil {
+			return nil, err
+		}
+		return []Proc{rename}, nil
+
 	case *ast.SequentialProc:
 		var parents []Proc
 		var err error

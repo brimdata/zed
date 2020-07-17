@@ -112,6 +112,10 @@ function makeExpressionAssignment(target, expression) { return { target, express
 function makePutProc(first, rest) {
   return { op: "PutProc", clauses: [first, ...rest] };
 }
+function makeRenameProc(first, rest) {
+    return { op: "RenameProc", fields: [first, ...rest] };
+}
+
 function makeReducer(op, var_, field) {
   if (field === null) { field = undefined; }
   return { op, var: var_, field };
