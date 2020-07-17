@@ -5,11 +5,11 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/brimsec/zq/zqe"
 	"github.com/mccanne/charm"
 )
 
@@ -65,32 +65,25 @@ func (c *Command) Run(args []string) error {
 	}
 
 	return archive.Walk(ark, func(zardir iosrc.URI) error {
-		if zardir.Scheme != "file" {
-			return errors.New("only file paths currently supported for this command")
-		}
-		dir := zardir.Filepath()
 		for _, name := range args {
-			path := filepath.Join(dir, name)
-			if fileExists(path) {
-				if err := os.Remove(path); err != nil {
-					return err
+			path := zardir.AppendPath(name)
+			if err := iosrc.Remove(path); err != nil {
+				var zerr *zqe.Error
+				if errors.As(err, &zerr) && zerr.Kind == zqe.NotFound {
+					fmt.Printf("%s: not found\n", c.printable(ark.DataPath, path))
+					continue
 				}
-				fmt.Printf("%s: removed\n", c.printable(ark.DataPath.Filepath(), path))
-			} else {
-				fmt.Printf("%s: not found\n", c.printable(ark.DataPath.Filepath(), path))
+				return err
 			}
+			fmt.Printf("%s: removed\n", c.printable(ark.DataPath, path))
 		}
 		return nil
 	})
 }
 
-func (c *Command) printable(root, path string) string {
+func (c *Command) printable(root, path iosrc.URI) string {
 	if c.relativePaths {
-		p, err := filepath.Rel(root, path)
-		if err != nil {
-			panic(err)
-		}
-		path = p
+		return root.RelPath(path)
 	}
-	return path
+	return path.String()
 }

@@ -114,6 +114,14 @@ func Exists(uri URI) (bool, error) {
 	return source.Exists(uri)
 }
 
+func Remove(uri URI) error {
+	source, err := DefaultRegistry.Source(uri)
+	if err != nil {
+		return nil
+	}
+	return source.Remove(uri)
+}
+
 func GetSource(uri URI) (Source, error) {
 	return DefaultRegistry.Source(uri)
 }

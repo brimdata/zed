@@ -30,14 +30,12 @@ func (s *Source) NewReader(uri iosrc.URI) (io.ReadCloser, error) {
 	return r, wrapErr(uri, err)
 }
 
-// XXX TODO
 func (s *Source) Remove(uri iosrc.URI) error {
-	return errors.New("method unsupported")
+	return Remove(uri.String(), s.Config)
 }
 
-// XXX TODO
 func (s *Source) RemoveAll(uri iosrc.URI) error {
-	return errors.New("method unsupported")
+	return RemoveAll(uri.String(), s.Config)
 }
 
 func (s *Source) Exists(uri iosrc.URI) (bool, error) {
