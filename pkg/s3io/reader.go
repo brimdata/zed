@@ -37,8 +37,6 @@ func NewReader(path string, cfg *aws.Config) (*Reader, error) {
 	}, nil
 }
 
-var errInvalidOffset = errors.New("Seek: invalid offset")
-
 func (r *Reader) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case io.SeekStart:
@@ -47,10 +45,10 @@ func (r *Reader) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekEnd:
 		offset += r.size
 	default:
-		return 0, fmt.Errorf("%d: unknown whence value", whence)
+		return 0, errors.New("s3io.Reader.Seek: invalid whence")
 	}
 	if offset < 0 {
-		return 0, errInvalidOffset
+		return 0, errors.New("s3io.Reader.Seek: negative position")
 	}
 	r.offset = offset
 	return offset, nil
