@@ -1,6 +1,8 @@
 script: |
   mkdir logs
   zar import -s 20KiB -R ./logs babble.tzng
+  zar index -R ./logs -q :string
+  zar index -R ./logs -q v
   zar ls -relative -R ./logs
   echo ===
   zar stat -R ./logs
@@ -18,11 +20,23 @@ outputs:
       20200422/1587518620.0622373.zng.zar
       20200421/1587512288.06249439.zng.zar
       ===
+      TYPE  LOG_ID                          START                DURATION       SIZE
+      chunk 20200422/1587518620.0622373.zng 1587512305.069789040 6314.992448261 21761
+      TYPE  LOG_ID                          INDEX_ID        INDEX_TYPE SIZE  KEYS.KEY
+      index 20200422/1587518620.0622373.zng zdx-field-v     field      2537  int64
+      index 20200422/1587518620.0622373.zng zdx-type-string type       15775 string
       TYPE  LOG_ID                           START                DURATION       SIZE
-      chunk 20200422/1587518620.0622373.zng  1587512305.069789040 6314.992448261 21761
       chunk 20200421/1587512288.06249439.zng 1587508830.068523240 3457.993971151 13152
+      TYPE  LOG_ID                           INDEX_ID        INDEX_TYPE SIZE KEYS.KEY
+      index 20200421/1587512288.06249439.zng zdx-field-v     field      1868 int64
+      index 20200421/1587512288.06249439.zng zdx-type-string type       9546 string
       ===
       #0:record[type:string,log_id:string,start:time,duration:duration,size:uint64]
       0:[chunk;20200422/1587518620.0622373.zng;1587512305.06978904;6314.992448261;21761;]
+      #1:record[type:string,log_id:string,index_id:string,index_type:string,size:uint64,keys:record[key:string]]
+      1:[index;20200422/1587518620.0622373.zng;zdx-field-v;field;2537;[int64;]]
+      1:[index;20200422/1587518620.0622373.zng;zdx-type-string;type;15775;[string;]]
       0:[chunk;20200421/1587512288.06249439.zng;1587508830.06852324;3457.993971151;13152;]
+      1:[index;20200421/1587512288.06249439.zng;zdx-field-v;field;1868;[int64;]]
+      1:[index;20200421/1587512288.06249439.zng;zdx-type-string;type;9546;[string;]]
       ===
