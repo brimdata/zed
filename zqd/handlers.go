@@ -12,6 +12,7 @@ import (
 	"github.com/brimsec/zq/pkg/ctxio"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/ingest"
 	"github.com/brimsec/zq/zqd/search"
@@ -505,7 +506,7 @@ func handleIndexSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 }
 
 type ArchiveStater interface {
-	ArchiveStat(context.Context) (zbuf.ReadCloser, error)
+	ArchiveStat(context.Context, *resolver.Context) (zbuf.ReadCloser, error)
 }
 
 func handleArchiveStat(c *Core, w http.ResponseWriter, r *http.Request) {
@@ -525,7 +526,7 @@ func handleArchiveStat(c *Core, w http.ResponseWriter, r *http.Request) {
 		respondError(c, w, r, zqe.E(zqe.Invalid, "space storage does not support archive stat"))
 		return
 	}
-	rc, err := store.ArchiveStat(ctx)
+	rc, err := store.ArchiveStat(ctx, resolver.NewContext())
 	if err != nil {
 		respondError(c, w, r, err)
 		return

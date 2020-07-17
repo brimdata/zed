@@ -52,7 +52,7 @@ func indexArchiveSpace(t *testing.T, datapath string, ruledef string) {
 }
 
 func indexQuery(t *testing.T, ark *Archive, query IndexQuery, opts ...FindOption) string {
-	rc, err := FindReadCloser(context.Background(), ark, query, opts...)
+	rc, err := FindReadCloser(context.Background(), resolver.NewContext(), ark, query, opts...)
 	require.NoError(t, err)
 	defer rc.Close()
 

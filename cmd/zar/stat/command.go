@@ -11,6 +11,7 @@ import (
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
 )
 
@@ -63,7 +64,7 @@ func (c *Command) Run(args []string) (err error) {
 		}
 	}()
 
-	rc, err := archive.Stat(context.Background(), ark)
+	rc, err := archive.Stat(context.Background(), resolver.NewContext(), ark)
 	if err != nil {
 		return err
 	}
