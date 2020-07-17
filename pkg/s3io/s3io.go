@@ -104,16 +104,16 @@ func RemoveAll(path string, cfg *aws.Config) error {
 	}
 	client := newClient(cfg)
 	deleter := s3manager.NewBatchDeleteWithClient(client)
-	itr := s3manager.NewDeleteListIterator(client, &s3.ListObjectsInput{
+	it := s3manager.NewDeleteListIterator(client, &s3.ListObjectsInput{
 		Bucket: aws.String(bucket),
 		Prefix: aws.String(key),
 	})
-	if err := deleter.Delete(aws.BackgroundContext(), itr); err != nil {
+	if err := deleter.Delete(aws.BackgroundContext(), it); err != nil {
 		return err
 	}
-	for itr.Next() {
-		itr.DeleteObject()
-		if err := itr.Err(); err != nil {
+	for it.Next() {
+		it.DeleteObject()
+		if err := it.Err(); err != nil {
 			return err
 		}
 	}
