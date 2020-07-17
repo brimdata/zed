@@ -8,9 +8,6 @@ import (
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/s3io"
 	"github.com/brimsec/zq/zbuf"
@@ -45,7 +42,11 @@ func OpenFile(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, 
 	}
 
 	if s3io.IsS3Path(path) {
-		return OpenS3File(zctx, path, cfg)
+		f, err := s3io.NewReader(path, cfg.AwsCfg)
+		if err != nil {
+			return nil, err
+		}
+		return OpenFromNamedReadCloser(zctx, f, path, cfg)
 	}
 
 	var f *os.File
@@ -66,49 +67,6 @@ func OpenFile(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, 
 	}
 
 	return OpenFromNamedReadCloser(zctx, f, path, cfg)
-}
-
-type pipeWriterAt struct {
-	*io.PipeWriter
-}
-
-func (pw *pipeWriterAt) WriteAt(p []byte, _ int64) (n int, err error) {
-	return pw.Write(p)
-}
-
-// OpenS3File opens a file pointed to by an S3-style URL like s3://bucket/name.
-//
-// The AWS SDK requires the region and credentials (access key ID and
-// secret) to make a request to S3. They can be passed as the usual
-// AWS environment variables, or be read from the usual aws config
-// files in ~/.aws.
-//
-// Note that access to public objects without credentials is possible
-// only if awscfg.AwsCfg.Credentials is set to
-// credentials.AnonymousCredentials. However, use of anonymous
-// credentials is currently not exposed as a zq command-line option,
-// and any attempt to read from S3 without credentials fails.
-// (Another way to access such public objects would be through plain
-// https access, once we add that support).
-func OpenS3File(zctx *resolver.Context, s3path string, cfg OpenConfig) (*zbuf.File, error) {
-	u, err := url.Parse(s3path)
-	if err != nil {
-		return nil, err
-	}
-	sess := session.Must(session.NewSession(cfg.AwsCfg))
-	s3Downloader := s3manager.NewDownloader(sess)
-	getObj := &s3.GetObjectInput{
-		Bucket: aws.String(u.Host),
-		Key:    aws.String(u.Path),
-	}
-	pr, pw := io.Pipe()
-	go func() {
-		_, err := s3Downloader.Download(&pipeWriterAt{pw}, getObj, func(d *s3manager.Downloader) {
-			d.Concurrency = 1
-		})
-		pw.CloseWithError(err)
-	}()
-	return OpenFromNamedReadCloser(zctx, pr, s3path, cfg)
 }
 
 func OpenParquet(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, error) {
