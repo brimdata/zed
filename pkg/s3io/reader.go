@@ -62,17 +62,14 @@ func (r *Reader) Read(p []byte) (int, error) {
 	if r.offset >= r.size {
 		return 0, io.EOF
 	}
-
-	n := len(p)
-	getObjRange := r.bytesRange(n)
+	if len(p) == 0 {
+		return 0, nil
+	}	
 	getObj := &s3.GetObjectInput{
 		Bucket: aws.String(r.bucket),
 		Key:    aws.String(r.key),
+		Range:  aws.String(r.bytesRange(len(p)))
 	}
-	if len(getObjRange) > 0 {
-		getObj.Range = aws.String(getObjRange)
-	}
-
 	wab := aws.NewWriteAtBuffer(p)
 	bytesDownloaded, err := r.downloader.Download(wab, getObj)
 	if err != nil {
