@@ -64,11 +64,11 @@ func (r *Reader) Read(p []byte) (int, error) {
 	}
 	if len(p) == 0 {
 		return 0, nil
-	}	
+	}
 	getObj := &s3.GetObjectInput{
 		Bucket: aws.String(r.bucket),
 		Key:    aws.String(r.key),
-		Range:  aws.String(r.bytesRange(len(p)))
+		Range:  aws.String(r.bytesRange(len(p))),
 	}
 	wab := aws.NewWriteAtBuffer(p)
 	bytesDownloaded, err := r.downloader.Download(wab, getObj)
@@ -77,10 +77,10 @@ func (r *Reader) Read(p []byte) (int, error) {
 	}
 
 	buf := wab.Bytes()
-	if len(buf) > n {
+	if len(buf) > len(p) {
 		// backing buffer reassigned, copy over some of the data
 		copy(p, buf)
-		bytesDownloaded = int64(n)
+		bytesDownloaded = int64(len(p))
 	}
 	r.offset += bytesDownloaded
 
