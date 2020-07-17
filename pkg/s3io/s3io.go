@@ -97,21 +97,6 @@ func (w *Writer) Close() error {
 	return w.err
 }
 
-func NewReader(path string, cfg *aws.Config) (io.ReadCloser, error) {
-	bucket, key, err := parsePath(path)
-	if err != nil {
-		return nil, err
-	}
-	res, err := newClient(cfg).GetObject(&s3.GetObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
-	})
-	if err != nil {
-		return nil, err
-	}
-	return res.Body, nil
-}
-
 func Stat(path string, cfg *aws.Config) (*s3.HeadObjectOutput, error) {
 	bucket, key, err := parsePath(path)
 	if err != nil {

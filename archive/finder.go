@@ -46,7 +46,11 @@ func AddPath(pathField string, absolutePath bool) FindOption {
 		opt.addPath = func(ark *Archive, si SpanInfo, rec *zng.Record) (*zng.Record, error) {
 			var path string
 			if absolutePath {
-				path = si.LogID.Path(ark).String()
+				if ark.DataPath.Scheme == "file" {
+					path = si.LogID.Path(ark).Filepath()
+				} else {
+					path = si.LogID.Path(ark).String()
+				}
 			} else {
 				path = string(si.LogID)
 			}
