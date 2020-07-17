@@ -58,6 +58,16 @@ func (r *Reader) bytesRange(num int) string {
 	return fmt.Sprintf("bytes=%d-%d", r.offset, r.offset+int64(num)-1)
 }
 
+type writeAtBuf []byte
+
+func (w writeAtBuf) WriteAt(p []byte, off int64) (int, error) {
+	n := copy(w[off:], p)
+	if n < len(p) {
+		return n, errors.New("s3io: short write")
+	}
+	return n, nil
+}
+
 func (r *Reader) Read(p []byte) (int, error) {
 	if r.offset >= r.size {
 		return 0, io.EOF
@@ -70,18 +80,11 @@ func (r *Reader) Read(p []byte) (int, error) {
 		Key:    aws.String(r.key),
 		Range:  aws.String(r.bytesRange(len(p))),
 	}
-	wab := aws.NewWriteAtBuffer(p)
-	bytesDownloaded, err := r.downloader.Download(wab, getObj)
+	bytesDownloaded, err := r.downloader.Download(writeAtBuf(p), getObj)
 	if err != nil {
 		return 0, err
 	}
 
-	buf := wab.Bytes()
-	if len(buf) > len(p) {
-		// backing buffer reassigned, copy over some of the data
-		copy(p, buf)
-		bytesDownloaded = int64(len(p))
-	}
 	r.offset += bytesDownloaded
 
 	return int(bytesDownloaded), err
