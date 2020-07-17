@@ -69,14 +69,6 @@ func OpenFile(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, 
 	return OpenFromNamedReadCloser(zctx, f, path, cfg)
 }
 
-type pipeWriterAt struct {
-	*io.PipeWriter
-}
-
-func (pw *pipeWriterAt) WriteAt(p []byte, _ int64) (n int, err error) {
-	return pw.Write(p)
-}
-
 func OpenParquet(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, error) {
 	var pf source.ParquetFile
 	var err error
