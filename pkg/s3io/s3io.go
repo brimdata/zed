@@ -97,6 +97,41 @@ func (w *Writer) Close() error {
 	return w.err
 }
 
+func RemoveAll(path string, cfg *aws.Config) error {
+	bucket, key, err := parsePath(path)
+	if err != nil {
+		return err
+	}
+	client := newClient(cfg)
+	deleter := s3manager.NewBatchDeleteWithClient(client)
+	it := s3manager.NewDeleteListIterator(client, &s3.ListObjectsInput{
+		Bucket: aws.String(bucket),
+		Prefix: aws.String(key),
+	})
+	if err := deleter.Delete(aws.BackgroundContext(), it); err != nil {
+		return err
+	}
+	for it.Next() {
+		it.DeleteObject()
+		if err := it.Err(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Remove(path string, cfg *aws.Config) error {
+	bucket, key, err := parsePath(path)
+	if err != nil {
+		return err
+	}
+	_, err = newClient(cfg).DeleteObject(&s3.DeleteObjectInput{
+		Key:    &key,
+		Bucket: &bucket,
+	})
+	return err
+}
+
 func Stat(path string, cfg *aws.Config) (*s3.HeadObjectOutput, error) {
 	bucket, key, err := parsePath(path)
 	if err != nil {
