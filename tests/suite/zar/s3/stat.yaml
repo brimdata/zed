@@ -1,0 +1,30 @@
+script: |
+  source minio.sh
+  zar import -s 20KiB -R ./root -data s3://bucket/zartest babble.tzng
+  zar ls -relative -R ./root
+  echo ===
+  zar stat -R ./root
+  echo ===
+  zar stat -R ./root -f tzng
+  echo ===
+
+inputs:
+  - name: babble.tzng
+    source: ../../zdx/babble.tzng
+  - name: minio.sh
+    source: ./minio.sh
+
+outputs:
+  - name: stdout
+    data: |
+      20200422/1587518620.0622373.zng.zar
+      20200421/1587512288.06249439.zng.zar
+      ===
+      TYPE  LOG_ID                           START                DURATION       SIZE
+      chunk 20200422/1587518620.0622373.zng  1587512305.069789040 6314.992448261 21761
+      chunk 20200421/1587512288.06249439.zng 1587508830.068523240 3457.993971151 13152
+      ===
+      #0:record[type:string,log_id:string,start:time,duration:duration,size:uint64]
+      0:[chunk;20200422/1587518620.0622373.zng;1587512305.06978904;6314.992448261;21761;]
+      0:[chunk;20200421/1587512288.06249439.zng;1587508830.06852324;3457.993971151;13152;]
+      ===
