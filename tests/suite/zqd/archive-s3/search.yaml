@@ -1,0 +1,22 @@
+script: |
+  source services.sh
+  zar import -s 20KiB -R ./root -data s3://bucket/zartest babble.tzng
+  echo ===
+  zapi -h $ZQD_HOST new -d ./root -k archivestore testsp
+  echo ===
+  zapi -h $ZQD_HOST -s testsp get -f tzng "s=harefoot-raucous"
+
+inputs:
+  - name: babble.tzng
+    source: ../../zdx/babble.tzng
+  - name: services.sh
+    source: ./services.sh
+
+outputs:
+  - name: stdout
+    data: |
+      ===
+      testsp: space created
+      ===
+      #0:record[ts:time,s:string,v:int64]
+      0:[1587508881.0613914;harefoot-raucous;137;]

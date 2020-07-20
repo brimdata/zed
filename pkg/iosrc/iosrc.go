@@ -3,7 +3,7 @@
 package iosrc
 
 import (
-	"errors"
+	"fmt"
 	"io"
 	"os"
 	"sync"
@@ -80,7 +80,7 @@ func (r *Registry) Source(uri URI) (Source, error) {
 	r.initWithLock()
 	loader, ok := r.schemes[scheme]
 	if !ok {
-		return nil, errors.New("unknown scheme")
+		return nil, fmt.Errorf("unknown scheme: %q", scheme)
 	}
 	return loader, nil
 }
