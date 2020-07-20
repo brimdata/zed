@@ -14,7 +14,7 @@ import (
 	"github.com/brimsec/zq/zqe"
 )
 
-// statReadCloser implements zbuf.ReadCloser
+// statReadCloser implements zbuf.ReadCloser.
 type statReadCloser struct {
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -89,15 +89,15 @@ func (s *statReadCloser) indexRecord(si SpanInfo, zardir iosrc.URI, indexPath st
 	}
 	if s.indexBuilders[indexPath] == nil {
 		keycols := make([]zng.Column, len(info.Keys))
-		for i := range info.Keys {
+		for i, k := range info.Keys {
 			keycols[i] = zng.Column{
-				Name: info.Keys[i].Name,
+				Name: k.Name,
 				Type: zng.TypeString,
 			}
 		}
 		keyrec := s.zctx.MustLookupTypeRecord(keycols)
 
-		indexBuilder := zng.NewBuilder(s.zctx.MustLookupTypeRecord([]zng.Column{
+		s.indexBuilders[indexPath] = zng.NewBuilder(s.zctx.MustLookupTypeRecord([]zng.Column{
 			zng.NewColumn("type", zng.TypeString),
 			zng.NewColumn("log_id", zng.TypeString),
 			zng.NewColumn("index_id", zng.TypeString),
@@ -105,7 +105,6 @@ func (s *statReadCloser) indexRecord(si SpanInfo, zardir iosrc.URI, indexPath st
 			zng.NewColumn("size", zng.TypeUint64),
 			zng.NewColumn("keys", keyrec),
 		}))
-		s.indexBuilders[indexPath] = indexBuilder
 	}
 
 	if len(s.indexBuilders[indexPath].Type.Columns) != 5+len(info.Keys) {

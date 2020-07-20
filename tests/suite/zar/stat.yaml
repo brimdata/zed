@@ -1,8 +1,7 @@
 script: |
   mkdir logs
   zar import -s 20KiB -R ./logs babble.tzng
-  zar index -R ./logs -q :string
-  zar index -R ./logs -q v
+  zar index -R ./logs -q :string v
   zar ls -relative -R ./logs
   echo ===
   zar stat -R ./logs

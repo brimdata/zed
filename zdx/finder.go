@@ -49,18 +49,17 @@ type Info struct {
 
 // Stat returns summary information about the zdx index at uri.
 func Stat(uri iosrc.URI) (*Info, error) {
-	level := 0
+	var level int
 	var size int64
 	for {
-		path := filename(uri, level)
-		si, err := iosrc.Stat(path)
+		si, err := iosrc.Stat(filename(uri, level))
 		if err != nil {
 			if errors.Is(err, zqe.E(zqe.NotFound)) {
 				break
 			}
 			return nil, err
 		}
-		level += 1
+		level++
 		size += si.Size()
 	}
 	if level == 0 {
@@ -82,13 +81,13 @@ func Stat(uri iosrc.URI) (*Info, error) {
 	}
 	_, keysType, err := ParseHeader(rec)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", uri.String(), err)
+		return nil, fmt.Errorf("%s: %w", uri, err)
 	}
 	keys := make([]InfoKey, len(keysType.Columns))
-	for i := range keysType.Columns {
+	for i, c := range keysType.Columns {
 		keys[i] = InfoKey{
-			Name:     keysType.Columns[i].Name,
-			TypeName: keysType.Columns[i].Type.String(),
+			Name:     c.Name,
+			TypeName: c.Type.String(),
 		}
 	}
 	return &Info{
