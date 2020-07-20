@@ -4,7 +4,9 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/pprof"
 	"os"
@@ -13,6 +15,7 @@ import (
 
 	"github.com/brimsec/zq/cmd/zqd/logger"
 	"github.com/brimsec/zq/cmd/zqd/root"
+	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/httpd"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zqd"
@@ -62,6 +65,7 @@ type Command struct {
 	loggerConf     *logger.Config
 	logger         *zap.Logger
 	devMode        bool
+	portFile       string
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -72,6 +76,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.pprof, "pprof", false, "add pprof routes to api")
 	f.StringVar(&c.configfile, "config", "", "path to a zqd config file")
 	f.BoolVar(&c.devMode, "dev", false, "runs zqd in development mode")
+	f.StringVar(&c.portFile, "portfile", "", "write port of http listener to file")
 	return c, nil
 }
 
@@ -103,7 +108,15 @@ func (c *Command) Run(args []string) error {
 	}()
 	srv := httpd.New(c.listenAddr, h)
 	srv.SetLogger(c.logger.Named("httpd"))
-	return srv.Run(ctx)
+	if err := srv.Start(ctx); err != nil {
+		return err
+	}
+	if c.portFile != "" {
+		if err := c.writePortFile(srv.Addr()); err != nil {
+			return err
+		}
+	}
+	return srv.Wait()
 }
 
 func (c *Command) init() error {
@@ -194,4 +207,15 @@ func (c *Command) initLogger() error {
 	c.logger = zap.New(core, opts...)
 	c.conf.Logger = c.logger
 	return nil
+}
+
+func (c *Command) writePortFile(addr string) error {
+	_, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return err
+	}
+	return fs.ReplaceFile(c.portFile, 0644, func(w io.Writer) error {
+		_, err := w.Write([]byte(port))
+		return err
+	})
 }
