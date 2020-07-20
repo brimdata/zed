@@ -30,7 +30,7 @@ export AWS_S3_ENDPOINT=http://localhost:$(cat $portdir/minio)
 
 zqd listen -l="localhost:0" -portfile="$portdir/zqd" -datadir=./zqdroot &
 zqdpid=$!
-trap "rm -rf $portdir; kill -9 $miniopid ; kill -9 $zqdpid" EXIT
+trap "rm -rf $portdir; kill -9 $miniopid $zqdpid" EXIT
 
 awaitfile $portdir/zqd
 
