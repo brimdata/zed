@@ -25,7 +25,7 @@ func NewFlow(src net.IP, srcPort int, dst net.IP, dstPort int) Flow {
 }
 
 func (f Flow) String() string {
-	return f.S0.String() + ";" + f.S1.String()
+	return f.S0.String() + "-" + f.S1.String()
 }
 
 func ParseSocket(s string) (Socket, error) {
