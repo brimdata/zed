@@ -28,7 +28,7 @@ export AWS_ACCESS_KEY_ID=minioadmin
 export AWS_SECRET_ACCESS_KEY=minioadmin
 export AWS_S3_ENDPOINT=http://localhost:$(cat $portdir/minio)
 
-zqd listen -l="localhost:0" -portfile="$portdir/zqd" -datadir=./zqdroot &
+zqd listen -l=localhost:0 -portfile="$portdir/zqd" -datadir=./zqdroot &
 zqdpid=$!
 trap "rm -rf $portdir; kill -9 $miniopid $zqdpid" EXIT
 
