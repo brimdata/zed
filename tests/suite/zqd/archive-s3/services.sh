@@ -22,7 +22,7 @@ minio server --writeportfile="$portdir/minio" --quiet --address localhost:0 ./s3
 miniopid=$!
 awaitfile $portdir/minio
 
-# AWS envariables must be set before zqd starts so zqd has access to them.
+# AWS env variables must be set before zqd starts so zqd has access to them.
 export AWS_REGION=does-not-matter
 export AWS_ACCESS_KEY_ID=minioadmin
 export AWS_SECRET_ACCESS_KEY=minioadmin
