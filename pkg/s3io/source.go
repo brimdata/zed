@@ -59,7 +59,7 @@ func (s *Source) Stat(uri iosrc.URI) (iosrc.Info, error) {
 func wrapErr(uri iosrc.URI, err error) error {
 	var reqerr awserr.RequestFailure
 	if errors.As(err, &reqerr) && reqerr.StatusCode() == http.StatusNotFound {
-		return zqe.E(zqe.NotFound, uri.String())
+		return zqe.E(zqe.NotFound)
 	}
 	return err
 }
