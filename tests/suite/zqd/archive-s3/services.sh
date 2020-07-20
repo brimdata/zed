@@ -18,7 +18,7 @@ mkdir -p zqdroot
 portdir=$(mktemp -d)
 
 
-minio server --writeportfile="$portdir/minio" --quiet --address "localhost:0" ./s3 &
+minio server --writeportfile="$portdir/minio" --quiet --address localhost:0 ./s3 &
 miniopid=$!
 awaitfile $portdir/minio
 
