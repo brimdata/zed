@@ -1,8 +1,11 @@
 # Contributing
 
-Thank you for contributing to `zq`! Feel free to
-[post an issue](https://github.com/brimsec/zq/issues),
-fork the repo, or send us a pull request.
+Thank you for contributing to `zq`!
+
+Per [common practice](https://www.thinkful.com/learn/github-pull-request-tutorial/Feel-Free-to-Ask#Feel-Free-to-Ask),
+please [open an issue](https://github.com/brimsec/zq/issues) before sending a pull request.  If you
+think your ideas might benefit from some refinement via Q&A, come talk to us on
+[Slack](https://join.slack.com/t/brimsec/shared_invite/zt-cy34xoxg-hZiTKUT~1KdGjlaBIuUUdg) as well.
 
 `zq` is early in its life cycle and will be expanding quickly.  Please star and/or
 watch the repo so you can follow and track our progress.
@@ -42,4 +45,3 @@ And to run system tests, execute:
 ```
 make test-system
 ```
-
