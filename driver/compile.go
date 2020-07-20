@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/proc"
@@ -178,6 +179,189 @@ func setGroupByProcInputSortDir(p ast.Proc, inputSortField string, inputSortDir 
 		return true
 	default:
 		return false
+	}
+}
+
+// expressionFields returns a slice with all fields referenced
+// in an expression. Fields will be repeated if they appear
+// repeatedly.
+func expressionFields(expr ast.Expression) []string {
+	switch expr := expr.(type) {
+	case *ast.UnaryExpression:
+		return expressionFields(expr.Operand)
+	case *ast.BinaryExpression:
+		lhs := expressionFields(expr.LHS)
+		rhs := expressionFields(expr.RHS)
+		return append(lhs, rhs...)
+	case *ast.ConditionalExpression:
+		fields := expressionFields(expr.Condition)
+		fields = append(fields, expressionFields(expr.Then)...)
+		fields = append(fields, expressionFields(expr.Else)...)
+		return fields
+	case *ast.FunctionCall:
+		fields := []string{}
+		for _, arg := range expr.Args {
+			fields = append(fields, expressionFields(arg)...)
+		}
+		return fields
+	case *ast.CastExpression:
+		return expressionFields(expr.Expr)
+	case *ast.Literal:
+		return []string{}
+	case *ast.FieldRead:
+		return []string{expr.Field}
+	case *ast.FieldCall:
+		return expressionFields(expr.Field.(ast.Expression))
+	default:
+		panic("expression type not handled")
+	}
+}
+
+// booleanExpressionFields returns a slice with all fields referenced
+// in a boolean expression. Fields will be repeated if they appear
+// repeatedly.  If all fields are referenced, nil is returned.
+func booleanExpressionFields(expr ast.BooleanExpr) []string {
+	switch expr := expr.(type) {
+	case *ast.Search:
+		return nil
+	case *ast.LogicalAnd:
+		l := booleanExpressionFields(expr.Left)
+		r := booleanExpressionFields(expr.Right)
+		if l == nil || r == nil {
+			return nil
+		}
+		return append(l, r...)
+	case *ast.LogicalOr:
+		l := booleanExpressionFields(expr.Left)
+		r := booleanExpressionFields(expr.Right)
+		if l == nil || r == nil {
+			return nil
+		}
+		return append(l, r...)
+	case *ast.LogicalNot:
+		return booleanExpressionFields(expr.Expr)
+	case *ast.MatchAll:
+		return []string{}
+	case *ast.CompareAny:
+		return nil
+	case *ast.CompareField:
+		return expressionFields(expr.Field.(ast.Expression))
+	default:
+		panic("boolean expression type not handled")
+	}
+}
+
+// computeColumns walks a flowgraph and computes a subset of columns
+// that can be read by the source without modifying the output. For
+// example, for the flowgraph "* | cut x", only the column "x" needs
+// to be read by the source. On the other hand, for the flowgraph "* >
+// 1", all columns need to be read.
+//
+// The return value is a map where the keys are string representations
+// of the columns to be read at the source. If the return value is a
+// nil map, all columns must be read.
+func computeColumns(p ast.Proc) map[string]struct{} {
+	cols, _ := computeColumnsR(p, map[string]struct{}{})
+	return cols
+}
+
+// computeColumnsR is the recursive func used by computeColumns to
+// compute a column set that can be read at the source. It walks a
+// flowgraph, from the source, until it hits a "boundary proc". A
+// "boundary proc" is one for which we can identify a set of input columns
+// that fully determine its output. For example, 'cut x' is boundary
+// proc (with set {x}); 'filter *>1' is a boundary proc (with set "all
+// fields"); and 'head' is not a boundary proc.
+//
+// Note that this function does not calculate the smallest column set
+// for all possible flowgraphs: (1) It does not walk into parallel
+// procs. (2) It does not track field renames: 'rename foo=y | count()
+// by x' gets the column set {x, y} which is greater than the minimal
+// column set {x}. (However 'rename x=y | count() by x' also gets {x,
+// y}, which is minimal).
+func computeColumnsR(p ast.Proc, colset map[string]struct{}) (map[string]struct{}, bool) {
+	switch p := p.(type) {
+	case *ast.CutProc:
+		if p.Complement {
+			return colset, false
+		}
+		for _, f := range p.Fields {
+			colset[f.Source] = struct{}{}
+		}
+		return colset, true
+	case *ast.GroupByProc:
+		for _, r := range p.Reducers {
+			if r.Field == nil {
+				continue
+			}
+			colset[expr.FieldExprToString(r.Field)] = struct{}{}
+		}
+		for _, key := range p.Keys {
+			for _, field := range expressionFields(key.Expr) {
+				colset[field] = struct{}{}
+			}
+		}
+		return colset, true
+	case *ast.ReduceProc:
+		for _, r := range p.Reducers {
+			if r.Field == nil {
+				continue
+			}
+			colset[expr.FieldExprToString(r.Field)] = struct{}{}
+		}
+		return colset, true
+	case *ast.SequentialProc:
+		for i := range p.Procs {
+			var done bool
+			colset, done = computeColumnsR(p.Procs[i], colset)
+			if done {
+				return colset, true
+			}
+		}
+		// We got to end without seeing a boundary proc, return "all cols"
+		return nil, true
+	case *ast.ParallelProc:
+		// (These could be further analysed to determine the
+		// colsets on each branch, and then merge them at the
+		// split point.)
+		return nil, true
+	case *ast.UniqProc:
+		return nil, true
+	case *ast.HeadProc, *ast.TailProc, *ast.PassProc:
+		return colset, false
+	case *ast.FilterProc:
+		fields := booleanExpressionFields(p.Filter)
+		if fields == nil {
+			return nil, true
+		}
+		for _, field := range fields {
+			colset[field] = struct{}{}
+		}
+		return colset, false
+	case *ast.PutProc:
+		for _, c := range p.Clauses {
+			for _, field := range expressionFields(c.Expr) {
+				colset[field] = struct{}{}
+			}
+		}
+		return colset, false
+	case *ast.RenameProc:
+		for _, f := range p.Fields {
+			colset[f.Source] = struct{}{}
+		}
+		return colset, false
+	case *ast.SortProc:
+		if len(p.Fields) == 0 {
+			// we don't know which sort field will
+			// be used.
+			return nil, true
+		}
+		for _, f := range p.Fields {
+			colset[expr.FieldExprToString(f)] = struct{}{}
+		}
+		return colset, false
+	default:
+		panic("proc type not handled")
 	}
 }
 
