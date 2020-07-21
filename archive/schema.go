@@ -48,7 +48,14 @@ type IndexInfo struct {
 }
 
 func (c *Metadata) Write(path string) error {
-	return fs.MarshalJSONFile(c, path, 0600)
+	if err := fs.MarshalJSONFile(c, path, 0600); err != nil {
+		return err
+	}
+	// Ensure the mtime is updated on the file. This Chtimes call was required
+	// due to failures seen in CI, when an mtime change wasn't observed after
+	// some writes. See https://github.com/brimsec/brim/issues/883.
+	now := time.Now()
+	return os.Chtimes(path, now, now)
 }
 
 func MetadataRead(path string) (*Metadata, time.Time, error) {
