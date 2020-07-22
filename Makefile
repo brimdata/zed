@@ -42,7 +42,11 @@ bin/$(ZEEKPATH):
 		&& mv bin/zeek bin/$(ZEEKPATH)
 
 bin/minio:
-	@GOBIN=$(CURDIR)/bin go install github.com/minio/minio
+	@mkdir -p bin
+	@echo 'module deps' > bin/go.mod
+	@echo 'require github.com/minio/minio latest' >> bin/go.mod
+	@echo 'replace github.com/minio/minio => github.com/brimsec/minio v0.0.0-20200716214025-90d56627f750' >> bin/go.mod
+	@cd bin && GOBIN=$(CURDIR)/bin go install github.com/minio/minio
 
 generate:
 	@GOBIN=$(CURDIR)/bin go install github.com/golang/mock/mockgen
