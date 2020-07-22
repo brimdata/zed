@@ -111,8 +111,8 @@ func (s *statReadCloser) indexRecord(si SpanInfo, zardir iosrc.URI, indexPath st
 		return zqe.E("key record differs in index files %s %s", indexPath, si.LogID)
 	}
 	var keybytes zcode.Bytes
-	for i := range info.Keys {
-		keybytes = zcode.AppendPrimitive(keybytes, zng.EncodeString(info.Keys[i].TypeName))
+	for _, k := range info.Keys {
+		keybytes = zcode.AppendPrimitive(keybytes, zng.EncodeString(k.TypeName))
 	}
 
 	rec := s.indexBuilders[indexPath].Build(
