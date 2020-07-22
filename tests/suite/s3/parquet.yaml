@@ -1,14 +1,14 @@
 script: |
   source minio.sh
-  mv *.tzng ./data/bucket
+  mv *.tzng data/bucket
   zq -i parquet dns.parquet
 
 inputs:
   - name: minio.sh
     source: ../zar/s3/minio.sh
   - name: dns.parquet
-    source: ./testdata/dns.parquet
+    source: dns.parquet
 
 outputs:
   - name: stdout
-    source: ./testdata/dns.zng
+    source: dns.zng
