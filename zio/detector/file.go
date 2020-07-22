@@ -2,13 +2,12 @@ package detector
 
 import (
 	"context"
-	"errors"
 	"io"
 	"net/url"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/brimsec/zq/pkg/fs"
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/s3io"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/ndjsonio"
@@ -41,27 +40,15 @@ func OpenFile(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, 
 		return OpenParquet(zctx, path, cfg)
 	}
 
-	if s3io.IsS3Path(path) {
-		f, err := s3io.NewReader(path, cfg.AwsCfg)
-		if err != nil {
-			return nil, err
-		}
-		return OpenFromNamedReadCloser(zctx, f, path, cfg)
-	}
-
-	var f *os.File
+	var f io.ReadCloser
 	if path == StdinPath {
 		f = os.Stdin
 	} else {
-		info, err := os.Stat(path)
+		uri, err := iosrc.ParseURI(path)
 		if err != nil {
 			return nil, err
 		}
-		if info.IsDir() {
-			return nil, errors.New("is a directory")
-		}
-		f, err = fs.Open(path)
-		if err != nil {
+		if f, err = iosrc.NewReader(uri); err != nil {
 			return nil, err
 		}
 	}
