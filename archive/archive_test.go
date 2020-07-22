@@ -110,7 +110,6 @@ func TestOpenOptions(t *testing.T) {
 }
 
 func TestImportWhileOpen(t *testing.T) {
-	t.Skip("skipping due to test failures, see brim#883")
 	// Create an archive with initial data
 	datapath, err := ioutil.TempDir("", "")
 	require.NoError(t, err)
