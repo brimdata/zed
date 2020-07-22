@@ -1003,6 +1003,7 @@ func TestArchiveStat(t *testing.T) {
 	datapath := createTempDir(t)
 	thresh := int64(20 * 1024)
 	createArchiveSpace(t, datapath, thresh, "../tests/suite/zdx/babble.tzng")
+	indexArchiveSpace(t, datapath, "v")
 
 	root := createTempDir(t)
 	_, client, done := newCoreAtDir(t, root)
@@ -1020,7 +1021,10 @@ func TestArchiveStat(t *testing.T) {
 	exp := `
 #0:record[type:string,log_id:string,start:time,duration:duration,size:uint64]
 0:[chunk;20200422/1587518620.0622373.zng;1587512305.06978904;6314.992448261;21761;]
+#1:record[type:string,log_id:string,index_id:string,index_type:string,size:uint64,keys:record[key:string]]
+1:[index;20200422/1587518620.0622373.zng;zdx-field-v;field;2537;[int64;]]
 0:[chunk;20200421/1587512288.06249439.zng;1587508830.06852324;3457.993971151;13152;]
+1:[index;20200421/1587512288.06249439.zng;zdx-field-v;field;1868;[int64;]]
 `
 	res := archiveStat(t, client, sp.ID)
 	assert.Equal(t, test.Trim(exp), res)

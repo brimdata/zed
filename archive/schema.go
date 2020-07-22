@@ -1,7 +1,6 @@
 package archive
 
 import (
-	"context"
 	"errors"
 	"os"
 	"path/filepath"
@@ -13,9 +12,6 @@ import (
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zcode"
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
 )
 
@@ -297,78 +293,4 @@ func CreateOrOpenArchive(path string, co *CreateOptions, oo *OpenOptions) (*Arch
 		}
 	}
 	return OpenArchive(path, oo)
-}
-
-// statReadCloser implements zbuf.ReadCloser
-type statReadCloser struct {
-	ctx    context.Context
-	cancel context.CancelFunc
-	ark    *Archive
-	zctx   *resolver.Context
-	recs   chan *zng.Record
-	err    error
-}
-
-func (s *statReadCloser) Read() (*zng.Record, error) {
-	select {
-	case r, ok := <-s.recs:
-		if !ok {
-			return nil, s.err
-		}
-		return r, nil
-	case <-s.ctx.Done():
-		return nil, s.ctx.Err()
-	}
-}
-
-func (s *statReadCloser) Close() error {
-	s.cancel()
-	return nil
-}
-
-func (s *statReadCloser) run() {
-	defer close(s.recs)
-
-	typ := s.zctx.MustLookupTypeRecord([]zng.Column{
-		zng.NewColumn("type", zng.TypeString),
-		zng.NewColumn("log_id", zng.TypeString),
-		zng.NewColumn("start", zng.TypeTime),
-		zng.NewColumn("duration", zng.TypeDuration),
-		zng.NewColumn("size", zng.TypeUint64),
-	})
-
-	s.err = SpanWalk(s.ark, func(si SpanInfo, zardir iosrc.URI) error {
-		fi, err := iosrc.Stat(ZarDirToLog(zardir))
-		if err != nil {
-			return err
-		}
-
-		var zv zcode.Bytes
-		zv = zng.NewString("chunk").Encode(zv)
-		zv = zng.NewString(string(si.LogID)).Encode(zv)
-		zv = zng.NewTime(si.Span.Ts).Encode(zv)
-		zv = zng.NewDuration(si.Span.Dur).Encode(zv)
-		zv = zng.NewUint64(uint64(fi.Size())).Encode(zv)
-
-		rec := zng.NewRecord(typ, zv)
-		select {
-		case s.recs <- rec:
-			return nil
-		case <-s.ctx.Done():
-			return s.ctx.Err()
-		}
-	})
-}
-
-func Stat(ctx context.Context, zctx *resolver.Context, ark *Archive) (zbuf.ReadCloser, error) {
-	ctx, cancel := context.WithCancel(ctx)
-	s := &statReadCloser{
-		ctx:    ctx,
-		cancel: cancel,
-		ark:    ark,
-		zctx:   zctx,
-		recs:   make(chan *zng.Record),
-	}
-	go s.run()
-	return s, nil
 }
