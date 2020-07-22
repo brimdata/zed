@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -37,7 +38,7 @@ func parsePath(path string) (bucket, key string, err error) {
 		err = ErrInvalidS3Path
 	}
 	bucket = u.Host
-	key = u.Path
+	key = strings.TrimPrefix(u.Path, "/")
 	return
 }
 

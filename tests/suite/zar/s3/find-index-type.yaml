@@ -7,6 +7,8 @@ script: |
   zar find -relative -R . :ip=192.168.2.1
   zar find -relative -R . :ip=192.168.1.1
   echo ===
+  zar ls -l -R .
+  echo ===
   zq -t "count(key)" s3://bucket/zartest/20091119/1258594907.85978.zng.zar/zdx-type-ip.zng # check unset not indexed
 
 inputs:
@@ -24,6 +26,9 @@ outputs:
       20091119/1258594907.85978.zng
       20091119/1258594907.85978.zng
       20091119/1258594907.85978.zng
+      ===
+      s3://bucket/zartest/20091119/1258594907.85978.zng.zar
+      	zdx-type-ip.zng
       ===
       #0:record[count:uint64]
       0:[3;]
