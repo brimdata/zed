@@ -56,6 +56,10 @@ func (s *FileSource) Exists(uri URI) (bool, error) {
 	return true, nil
 }
 
+func (s *FileSource) NewReplacer(uri URI) (io.WriteCloser, error) {
+	return fs.NewFileReplacer(uri.Filepath(), s.Perm)
+}
+
 func wrapfileError(uri URI, err error) error {
 	if os.IsNotExist(err) {
 		return zqe.E(zqe.NotFound, uri.String())

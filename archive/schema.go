@@ -1,13 +1,13 @@
 package archive
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	"sort"
 	"sync"
 	"time"
 
-	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
@@ -47,37 +47,53 @@ type IndexInfo struct {
 }
 
 func (c *Metadata) Write(uri iosrc.URI) error {
-	switch uri.Scheme {
-	case "file":
-		path := uri.Filepath()
-		return fs.MarshalJSONFile(c, path, 0600)
-	case "s3":
-		return zqe.E("s3 not handled yet: %s", uri)
-	default:
-		return zqe.E("unhandled uriu scheme: %s", uri)
+	src, err := iosrc.GetSource(uri)
+	if err != nil {
+		return err
 	}
+	rep, ok := src.(iosrc.Replaceable)
+	if !ok {
+		return zqe.E("scheme does not support metadata updates: %s", uri)
+	}
+	wc, err := rep.NewReplacer(uri)
+	if err != nil {
+		return err
+	}
+	if err := json.NewEncoder(wc).Encode(c); err != nil {
+		wc.Close()
+		return err
+	}
+	if err := wc.Close(); err != nil {
+		return err
+	}
+	if uri.Scheme == "file" {
+		// Ensure the mtime is updated on the file after the close. This Chtimes
+		// call was required due to failures seen in CI, when an mtime change
+		// wasn't observed after some writes.
+		// See https://github.com/brimsec/brim/issues/883.
+		now := time.Now()
+		return os.Chtimes(uri.Filepath(), now, now)
+	}
+	return nil
 }
 
 func MetadataRead(uri iosrc.URI) (*Metadata, time.Time, error) {
 	// Read the mtime before the read so that the returned time
 	// represents a time at or before the content of the metadata file.
-	switch uri.Scheme {
-	case "file":
-		path := uri.Filepath()
-		fi, err := os.Stat(path)
-		if err != nil {
-			return nil, time.Time{}, err
-		}
-		var c Metadata
-		if err := fs.UnmarshalJSONFile(path, &c); err != nil {
-			return nil, time.Time{}, err
-		}
-		return &c, fi.ModTime(), nil
-	case "s3":
-		return nil, time.Time{}, zqe.E("s3 not handled yet: %s", uri)
-	default:
-		return nil, time.Time{}, zqe.E("unhandled uri scheme: %s", uri)
+	info, err := iosrc.Stat(uri)
+	if err != nil {
+		return nil, time.Time{}, err
 	}
+	rc, err := iosrc.NewReader(uri)
+	if err != nil {
+		return nil, time.Time{}, err
+	}
+	defer rc.Close()
+	var md Metadata
+	if err := json.NewDecoder(rc).Decode(&md); err != nil {
+		return nil, time.Time{}, err
+	}
+	return &md, info.ModTime(), nil
 }
 
 const (

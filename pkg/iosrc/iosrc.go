@@ -39,6 +39,11 @@ type DirMaker interface {
 	MkdirAll(URI, os.FileMode) error
 }
 
+// A Replaceable source supports atomic updates to a URI.
+type Replaceable interface {
+	NewReplacer(URI) (io.WriteCloser, error)
+}
+
 type Registry struct {
 	mu      sync.RWMutex
 	schemes map[string]Source
