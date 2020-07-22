@@ -38,8 +38,7 @@ func parsePath(path string) (bucket, key string, err error) {
 		err = ErrInvalidS3Path
 	}
 	bucket = u.Host
-	key = u.Path
-	key = strings.TrimPrefix(key, "/")
+	key = strings.TrimPrefix(u.Path, "/")
 	return
 }
 
