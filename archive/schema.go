@@ -257,12 +257,16 @@ func OpenArchive(rpath string, oo *OpenOptions) (*Archive, error) {
 	if err != nil {
 		return nil, err
 	}
+	return openArchive(root, oo)
+}
+
+func openArchive(root iosrc.URI, oo *OpenOptions) (*Archive, error) {
 	m, mtime, err := MetadataRead(root.AppendPath(metadataFilename))
 	if err != nil {
 		return nil, err
 	}
 	if m.DataPath == "." {
-		m.DataPath = rpath
+		m.DataPath = root.String()
 	}
 	dpuri, err := iosrc.ParseURI(m.DataPath)
 	if err != nil {
@@ -334,5 +338,5 @@ func CreateOrOpenArchive(rpath string, co *CreateOptions, oo *OpenOptions) (*Arc
 		}
 	}
 
-	return OpenArchive(rpath, oo)
+	return openArchive(root, oo)
 }
