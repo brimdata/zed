@@ -3,7 +3,6 @@ package archive
 import (
 	"errors"
 	"os"
-	"path/filepath"
 	"sort"
 	"sync"
 	"time"
@@ -47,29 +46,38 @@ type IndexInfo struct {
 	Path string `json:"path"`
 }
 
-func (c *Metadata) Write(path string) error {
-	if err := fs.MarshalJSONFile(c, path, 0600); err != nil {
-		return err
+func (c *Metadata) Write(uri iosrc.URI) error {
+	switch uri.Scheme {
+	case "file":
+		path := uri.Filepath()
+		return fs.MarshalJSONFile(c, path, 0600)
+	case "s3":
+		return zqe.E("s3 not handled yet: %s", uri)
+	default:
+		return zqe.E("unhandled uriu scheme: %s", uri)
 	}
-	// Ensure the mtime is updated on the file. This Chtimes call was required
-	// due to failures seen in CI, when an mtime change wasn't observed after
-	// some writes. See https://github.com/brimsec/brim/issues/883.
-	now := time.Now()
-	return os.Chtimes(path, now, now)
 }
 
-func MetadataRead(path string) (*Metadata, time.Time, error) {
+func MetadataRead(uri iosrc.URI) (*Metadata, time.Time, error) {
 	// Read the mtime before the read so that the returned time
 	// represents a time at or before the content of the metadata file.
-	fi, err := os.Stat(path)
-	if err != nil {
-		return nil, time.Time{}, err
+	switch uri.Scheme {
+	case "file":
+		path := uri.Filepath()
+		fi, err := os.Stat(path)
+		if err != nil {
+			return nil, time.Time{}, err
+		}
+		var c Metadata
+		if err := fs.UnmarshalJSONFile(path, &c); err != nil {
+			return nil, time.Time{}, err
+		}
+		return &c, fi.ModTime(), nil
+	case "s3":
+		return nil, time.Time{}, zqe.E("s3 not handled yet: %s", uri)
+	default:
+		return nil, time.Time{}, zqe.E("unhandled uri scheme: %s", uri)
 	}
-	var c Metadata
-	if err := fs.UnmarshalJSONFile(path, &c); err != nil {
-		return nil, time.Time{}, err
-	}
-	return &c, fi.ModTime(), nil
 }
 
 const (
@@ -102,7 +110,7 @@ func (c *CreateOptions) toMetadata() *Metadata {
 }
 
 type Archive struct {
-	Root              string
+	Root              iosrc.URI
 	DataPath          iosrc.URI
 	DataSortDirection zbuf.Direction
 	LogSizeThreshold  int64
@@ -173,11 +181,11 @@ func (ark *Archive) metaWrite() error {
 		Indexes:           ark.indexes,
 		Spans:             ark.spans,
 	}
-	return m.Write(ark.mdPath())
+	return m.Write(ark.mdURI())
 }
 
-func (ark *Archive) mdPath() string {
-	return filepath.Join(ark.Root, metadataFilename)
+func (ark *Archive) mdURI() iosrc.URI {
+	return ark.Root.AppendPath(metadataFilename)
 }
 
 // UpdateCheck looks at the archive's metadata file to see if it
@@ -192,7 +200,7 @@ func (ark *Archive) UpdateCheck() (int, error) {
 		return ark.mdUpdateCount, nil
 	}
 
-	fi, err := os.Stat(ark.mdPath())
+	fi, err := iosrc.Stat(ark.mdURI())
 	if err != nil {
 		return 0, err
 	}
@@ -212,7 +220,7 @@ func (ark *Archive) UpdateCheck() (int, error) {
 		return ark.mdUpdateCount, nil
 	}
 
-	md, mtime, err := MetadataRead(ark.mdPath())
+	md, mtime, err := MetadataRead(ark.mdURI())
 	if err != nil {
 		return 0, err
 	}
@@ -228,16 +236,17 @@ type OpenOptions struct {
 	DataSource iosrc.Source
 }
 
-func OpenArchive(root string, oo *OpenOptions) (*Archive, error) {
-	if root == "" {
-		return nil, errors.New("no archive directory specified")
+func OpenArchive(rpath string, oo *OpenOptions) (*Archive, error) {
+	root, err := iosrc.ParseURI(rpath)
+	if err != nil {
+		return nil, err
 	}
-	m, mtime, err := MetadataRead(filepath.Join(root, metadataFilename))
+	m, mtime, err := MetadataRead(root.AppendPath(metadataFilename))
 	if err != nil {
 		return nil, err
 	}
 	if m.DataPath == "." {
-		m.DataPath = root
+		m.DataPath = rpath
 	}
 	dpuri, err := iosrc.ParseURI(m.DataPath)
 	if err != nil {
@@ -283,21 +292,31 @@ func OpenArchive(root string, oo *OpenOptions) (*Archive, error) {
 	return ark, nil
 }
 
-func CreateOrOpenArchive(path string, co *CreateOptions, oo *OpenOptions) (*Archive, error) {
-	if path == "" {
-		return nil, errors.New("no archive directory specified")
+func CreateOrOpenArchive(rpath string, co *CreateOptions, oo *OpenOptions) (*Archive, error) {
+	root, err := iosrc.ParseURI(rpath)
+	if err != nil {
+		return nil, err
 	}
-	cfgpath := filepath.Join(path, metadataFilename)
-	if _, err := os.Stat(cfgpath); err != nil {
-		if os.IsNotExist(err) {
-			if err := os.MkdirAll(path, 0700); err != nil {
-				return nil, err
-			}
-			err = co.toMetadata().Write(cfgpath)
-		}
+
+	mdPath := root.AppendPath(metadataFilename)
+	ok, err := iosrc.Exists(mdPath)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		src, err := iosrc.GetSource(root)
 		if err != nil {
 			return nil, err
 		}
+		if dm, ok := src.(iosrc.DirMaker); ok {
+			if err := dm.MkdirAll(root, 0700); err != nil {
+				return nil, err
+			}
+		}
+		if err := co.toMetadata().Write(mdPath); err != nil {
+			return nil, err
+		}
 	}
-	return OpenArchive(path, oo)
+
+	return OpenArchive(rpath, oo)
 }
