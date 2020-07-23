@@ -6,6 +6,7 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestComputeColumns(t *testing.T) {
@@ -31,10 +32,6 @@ func TestComputeColumns(t *testing.T) {
 		},
 		{
 			"head 1 | tail 1 | cut x, y, z",
-			[]string{"x", "y", "z"},
-		},
-		{
-			"cut -c foo | cut x, y, z",
 			[]string{"x", "y", "z"},
 		},
 		{
@@ -74,7 +71,7 @@ func TestComputeColumns(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.zql, func(t *testing.T) {
 			query, err := zql.ParseProc(tc.zql)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			// apply ReplaceGroupByProcDurationWithKey here because computeColumns
 			// will be applied after it when it is plugged into compilation.
 			ReplaceGroupByProcDurationWithKey(query)
@@ -140,7 +137,7 @@ func TestExpressionFields(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.expr, func(t *testing.T) {
 			parsed, err := zql.Parse("", []byte(tc.expr), zql.Entrypoint("Expression"))
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			f := expressionFields(parsed.(ast.Expression))
 			assert.Equal(t, tc.expected, f)
 		})
@@ -176,7 +173,7 @@ func TestBooleanExpressionFields(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.expr, func(t *testing.T) {
 			parsed, err := zql.Parse("", []byte(tc.expr), zql.Entrypoint("searchExpr"))
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			f := booleanExpressionFields(parsed.(ast.BooleanExpr))
 			assert.Equal(t, tc.expected, f)
 		})

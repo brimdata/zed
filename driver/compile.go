@@ -185,33 +185,31 @@ func setGroupByProcInputSortDir(p ast.Proc, inputSortField string, inputSortDir 
 // expressionFields returns a slice with all fields referenced
 // in an expression. Fields will be repeated if they appear
 // repeatedly.
-func expressionFields(expr ast.Expression) []string {
-	switch expr := expr.(type) {
+func expressionFields(e ast.Expression) []string {
+	switch e := e.(type) {
 	case *ast.UnaryExpression:
-		return expressionFields(expr.Operand)
+		return expressionFields(e.Operand)
 	case *ast.BinaryExpression:
-		lhs := expressionFields(expr.LHS)
-		rhs := expressionFields(expr.RHS)
-		return append(lhs, rhs...)
+		return append(expressionFields(e.LHS), expressionFields(e.RHS)...)
 	case *ast.ConditionalExpression:
-		fields := expressionFields(expr.Condition)
-		fields = append(fields, expressionFields(expr.Then)...)
-		fields = append(fields, expressionFields(expr.Else)...)
+		fields := expressionFields(e.Condition)
+		fields = append(fields, expressionFields(e.Then)...)
+		fields = append(fields, expressionFields(e.Else)...)
 		return fields
 	case *ast.FunctionCall:
 		fields := []string{}
-		for _, arg := range expr.Args {
+		for _, arg := range e.Args {
 			fields = append(fields, expressionFields(arg)...)
 		}
 		return fields
 	case *ast.CastExpression:
-		return expressionFields(expr.Expr)
+		return expressionFields(e.Expr)
 	case *ast.Literal:
 		return []string{}
 	case *ast.FieldRead:
-		return []string{expr.Field}
+		return []string{e.Field}
 	case *ast.FieldCall:
-		return expressionFields(expr.Field.(ast.Expression))
+		return expressionFields(e.Field.(ast.Expression))
 	default:
 		panic("expression type not handled")
 	}
@@ -220,32 +218,32 @@ func expressionFields(expr ast.Expression) []string {
 // booleanExpressionFields returns a slice with all fields referenced
 // in a boolean expression. Fields will be repeated if they appear
 // repeatedly.  If all fields are referenced, nil is returned.
-func booleanExpressionFields(expr ast.BooleanExpr) []string {
-	switch expr := expr.(type) {
+func booleanExpressionFields(e ast.BooleanExpr) []string {
+	switch e := e.(type) {
 	case *ast.Search:
 		return nil
 	case *ast.LogicalAnd:
-		l := booleanExpressionFields(expr.Left)
-		r := booleanExpressionFields(expr.Right)
+		l := booleanExpressionFields(e.Left)
+		r := booleanExpressionFields(e.Right)
 		if l == nil || r == nil {
 			return nil
 		}
 		return append(l, r...)
 	case *ast.LogicalOr:
-		l := booleanExpressionFields(expr.Left)
-		r := booleanExpressionFields(expr.Right)
+		l := booleanExpressionFields(e.Left)
+		r := booleanExpressionFields(e.Right)
 		if l == nil || r == nil {
 			return nil
 		}
 		return append(l, r...)
 	case *ast.LogicalNot:
-		return booleanExpressionFields(expr.Expr)
+		return booleanExpressionFields(e.Expr)
 	case *ast.MatchAll:
 		return []string{}
 	case *ast.CompareAny:
 		return nil
 	case *ast.CompareField:
-		return expressionFields(expr.Field.(ast.Expression))
+		return expressionFields(e.Field.(ast.Expression))
 	default:
 		panic("boolean expression type not handled")
 	}
@@ -272,6 +270,8 @@ func computeColumns(p ast.Proc) map[string]struct{} {
 // that fully determine its output. For example, 'cut x' is boundary
 // proc (with set {x}); 'filter *>1' is a boundary proc (with set "all
 // fields"); and 'head' is not a boundary proc.
+// The first return value is a map representing the column set; the
+// second is bool indicating that a boundary proc has been reached.
 //
 // Note that this function does not calculate the smallest column set
 // for all possible flowgraphs: (1) It does not walk into parallel
@@ -291,10 +291,9 @@ func computeColumnsR(p ast.Proc, colset map[string]struct{}) (map[string]struct{
 		return colset, true
 	case *ast.GroupByProc:
 		for _, r := range p.Reducers {
-			if r.Field == nil {
-				continue
+			if r.Field != nil {
+				colset[expr.FieldExprToString(r.Field)] = struct{}{}
 			}
-			colset[expr.FieldExprToString(r.Field)] = struct{}{}
 		}
 		for _, key := range p.Keys {
 			for _, field := range expressionFields(key.Expr) {
@@ -304,16 +303,15 @@ func computeColumnsR(p ast.Proc, colset map[string]struct{}) (map[string]struct{
 		return colset, true
 	case *ast.ReduceProc:
 		for _, r := range p.Reducers {
-			if r.Field == nil {
-				continue
+			if r.Field != nil {
+				colset[expr.FieldExprToString(r.Field)] = struct{}{}
 			}
-			colset[expr.FieldExprToString(r.Field)] = struct{}{}
 		}
 		return colset, true
 	case *ast.SequentialProc:
-		for i := range p.Procs {
+		for _, pp := range p.Procs {
 			var done bool
-			colset, done = computeColumnsR(p.Procs[i], colset)
+			colset, done = computeColumnsR(pp, colset)
 			if done {
 				return colset, true
 			}
