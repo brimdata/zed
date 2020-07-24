@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 
@@ -180,7 +181,10 @@ func (c *Command) loadConfigFile() error {
 
 func (c *Command) initZeek() error {
 	if c.zeekRunnerPath == "" {
-		return nil
+		var err error
+		if c.zeekRunnerPath, err = exec.LookPath("zeekrunner"); err != nil {
+			return nil
+		}
 	}
 	ln, err := zeek.LauncherFromPath(c.zeekRunnerPath)
 	if err != nil {
