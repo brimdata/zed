@@ -105,7 +105,6 @@ func ReplaceGroupByProcDurationWithKey(p ast.Proc) {
 						}},
 				},
 			}
-			p.Duration.Seconds = 0
 			p.Keys = append([]ast.ExpressionAssignment{durationKey}, p.Keys...)
 		}
 	case *ast.ParallelProc:
