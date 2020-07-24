@@ -39,8 +39,8 @@ type DirMaker interface {
 	MkdirAll(URI, os.FileMode) error
 }
 
-// A Replaceable source supports atomic updates to a URI.
-type Replaceable interface {
+// A ReplacerAble source supports atomic updates to a URI.
+type ReplacerAble interface {
 	NewReplacer(URI) (io.WriteCloser, error)
 }
 

@@ -13,7 +13,7 @@ inputs:
   - name: babble.tzng
     source: ../../zdx/babble.tzng
   - name: minio.sh
-    source: ./minio.sh
+    source: minio.sh
 
 outputs:
   - name: stdout

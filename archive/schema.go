@@ -51,7 +51,7 @@ func (c *Metadata) Write(uri iosrc.URI) error {
 	if err != nil {
 		return err
 	}
-	rep, ok := src.(iosrc.Replaceable)
+	rep, ok := src.(iosrc.ReplacerAble)
 	if !ok {
 		return zqe.E("scheme does not support metadata updates: %s", uri)
 	}
