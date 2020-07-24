@@ -476,10 +476,11 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 		t := i / recsPerTs
 		data = append(data, fmt.Sprintf("0:[%d;1.1.1.%d;]", t, i%uniqueIpsPerTs))
 	}
-	proc, err := zql.ParseProc("every 1s count() by ip")
-	assert.NoError(t, err)
 
 	runOne := func(inputSortKey string) []string {
+		proc, err := zql.ParseProc("every 1s count() by ip")
+		assert.NoError(t, err)
+
 		zctx := resolver.NewContext()
 		zr := tzngio.NewReader(strings.NewReader(strings.Join(data, "\n")), zctx)
 		cr := &countReader{r: zr}
