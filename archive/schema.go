@@ -1,14 +1,13 @@
 package archive
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
-	"path/filepath"
 	"sort"
 	"sync"
 	"time"
 
-	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
@@ -47,29 +46,54 @@ type IndexInfo struct {
 	Path string `json:"path"`
 }
 
-func (c *Metadata) Write(path string) error {
-	if err := fs.MarshalJSONFile(c, path, 0600); err != nil {
+func (c *Metadata) Write(uri iosrc.URI) error {
+	src, err := iosrc.GetSource(uri)
+	if err != nil {
 		return err
 	}
-	// Ensure the mtime is updated on the file. This Chtimes call was required
-	// due to failures seen in CI, when an mtime change wasn't observed after
-	// some writes. See https://github.com/brimsec/brim/issues/883.
-	now := time.Now()
-	return os.Chtimes(path, now, now)
+	rep, ok := src.(iosrc.ReplacerAble)
+	if !ok {
+		return zqe.E("scheme does not support metadata updates: %s", uri)
+	}
+	wc, err := rep.NewReplacer(uri)
+	if err != nil {
+		return err
+	}
+	if err := json.NewEncoder(wc).Encode(c); err != nil {
+		wc.Close()
+		return err
+	}
+	if err := wc.Close(); err != nil {
+		return err
+	}
+	if uri.Scheme == "file" {
+		// Ensure the mtime is updated on the file after the close. This Chtimes
+		// call was required due to failures seen in CI, when an mtime change
+		// wasn't observed after some writes.
+		// See https://github.com/brimsec/brim/issues/883.
+		now := time.Now()
+		return os.Chtimes(uri.Filepath(), now, now)
+	}
+	return nil
 }
 
-func MetadataRead(path string) (*Metadata, time.Time, error) {
+func MetadataRead(uri iosrc.URI) (*Metadata, time.Time, error) {
 	// Read the mtime before the read so that the returned time
 	// represents a time at or before the content of the metadata file.
-	fi, err := os.Stat(path)
+	info, err := iosrc.Stat(uri)
 	if err != nil {
 		return nil, time.Time{}, err
 	}
-	var c Metadata
-	if err := fs.UnmarshalJSONFile(path, &c); err != nil {
+	rc, err := iosrc.NewReader(uri)
+	if err != nil {
 		return nil, time.Time{}, err
 	}
-	return &c, fi.ModTime(), nil
+	defer rc.Close()
+	var md Metadata
+	if err := json.NewDecoder(rc).Decode(&md); err != nil {
+		return nil, time.Time{}, err
+	}
+	return &md, info.ModTime(), nil
 }
 
 const (
@@ -102,7 +126,7 @@ func (c *CreateOptions) toMetadata() *Metadata {
 }
 
 type Archive struct {
-	Root              string
+	Root              iosrc.URI
 	DataPath          iosrc.URI
 	DataSortDirection zbuf.Direction
 	LogSizeThreshold  int64
@@ -173,11 +197,11 @@ func (ark *Archive) metaWrite() error {
 		Indexes:           ark.indexes,
 		Spans:             ark.spans,
 	}
-	return m.Write(ark.mdPath())
+	return m.Write(ark.mdURI())
 }
 
-func (ark *Archive) mdPath() string {
-	return filepath.Join(ark.Root, metadataFilename)
+func (ark *Archive) mdURI() iosrc.URI {
+	return ark.Root.AppendPath(metadataFilename)
 }
 
 // UpdateCheck looks at the archive's metadata file to see if it
@@ -192,7 +216,7 @@ func (ark *Archive) UpdateCheck() (int, error) {
 		return ark.mdUpdateCount, nil
 	}
 
-	fi, err := os.Stat(ark.mdPath())
+	fi, err := iosrc.Stat(ark.mdURI())
 	if err != nil {
 		return 0, err
 	}
@@ -212,7 +236,7 @@ func (ark *Archive) UpdateCheck() (int, error) {
 		return ark.mdUpdateCount, nil
 	}
 
-	md, mtime, err := MetadataRead(ark.mdPath())
+	md, mtime, err := MetadataRead(ark.mdURI())
 	if err != nil {
 		return 0, err
 	}
@@ -228,16 +252,21 @@ type OpenOptions struct {
 	DataSource iosrc.Source
 }
 
-func OpenArchive(root string, oo *OpenOptions) (*Archive, error) {
-	if root == "" {
-		return nil, errors.New("no archive directory specified")
+func OpenArchive(rpath string, oo *OpenOptions) (*Archive, error) {
+	root, err := iosrc.ParseURI(rpath)
+	if err != nil {
+		return nil, err
 	}
-	m, mtime, err := MetadataRead(filepath.Join(root, metadataFilename))
+	return openArchive(root, oo)
+}
+
+func openArchive(root iosrc.URI, oo *OpenOptions) (*Archive, error) {
+	m, mtime, err := MetadataRead(root.AppendPath(metadataFilename))
 	if err != nil {
 		return nil, err
 	}
 	if m.DataPath == "." {
-		m.DataPath = root
+		m.DataPath = root.String()
 	}
 	dpuri, err := iosrc.ParseURI(m.DataPath)
 	if err != nil {
@@ -283,21 +312,31 @@ func OpenArchive(root string, oo *OpenOptions) (*Archive, error) {
 	return ark, nil
 }
 
-func CreateOrOpenArchive(path string, co *CreateOptions, oo *OpenOptions) (*Archive, error) {
-	if path == "" {
-		return nil, errors.New("no archive directory specified")
+func CreateOrOpenArchive(rpath string, co *CreateOptions, oo *OpenOptions) (*Archive, error) {
+	root, err := iosrc.ParseURI(rpath)
+	if err != nil {
+		return nil, err
 	}
-	cfgpath := filepath.Join(path, metadataFilename)
-	if _, err := os.Stat(cfgpath); err != nil {
-		if os.IsNotExist(err) {
-			if err := os.MkdirAll(path, 0700); err != nil {
-				return nil, err
-			}
-			err = co.toMetadata().Write(cfgpath)
-		}
+
+	mdPath := root.AppendPath(metadataFilename)
+	ok, err := iosrc.Exists(mdPath)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		src, err := iosrc.GetSource(root)
 		if err != nil {
 			return nil, err
 		}
+		if dm, ok := src.(iosrc.DirMaker); ok {
+			if err := dm.MkdirAll(root, 0700); err != nil {
+				return nil, err
+			}
+		}
+		if err := co.toMetadata().Write(mdPath); err != nil {
+			return nil, err
+		}
 	}
-	return OpenArchive(path, oo)
+
+	return openArchive(root, oo)
 }

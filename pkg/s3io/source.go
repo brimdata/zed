@@ -56,6 +56,11 @@ func (s *Source) Stat(uri iosrc.URI) (iosrc.Info, error) {
 	return info(*out), nil
 }
 
+func (s *Source) NewReplacer(uri iosrc.URI) (io.WriteCloser, error) {
+	// Updates to S3 objects are atomic.
+	return s.NewWriter(uri)
+}
+
 func wrapErr(err error) error {
 	var reqerr awserr.RequestFailure
 	if errors.As(err, &reqerr) && reqerr.StatusCode() == http.StatusNotFound {

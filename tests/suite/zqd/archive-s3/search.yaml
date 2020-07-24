@@ -10,7 +10,7 @@ inputs:
   - name: babble.tzng
     source: ../../zdx/babble.tzng
   - name: services.sh
-    source: ./services.sh
+    source: services.sh
 
 outputs:
   - name: stdout
