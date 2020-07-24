@@ -52,7 +52,9 @@ func (c *PcapCommand) Run(args []string) (err error) {
 		if err != nil && err != api.ErrSpaceExists {
 			return err
 		}
-		id = sp.ID
+		if sp != nil {
+			id = sp.ID
+		}
 	}
 	if id == "" {
 		id, err = c.SpaceID()

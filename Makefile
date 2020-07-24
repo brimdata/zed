@@ -58,11 +58,11 @@ test-generate: generate
 test-unit:
 	@go test -short ./...
 
-test-system: build bin/minio
-	@ZTEST_PATH=$(CURDIR)/dist:$(CURDIR)/bin go test -v ./tests
+test-system: build bin/minio bin/$(ZEEKPATH)
+	@ZTEST_PATH=$(CURDIR)/dist:$(CURDIR)/bin:$(CURDIR)/bin/$(ZEEKPATH) go test -v ./tests
 
-test-run: build bin/minio
-	@ZTEST_PATH=$(CURDIR)/dist:$(CURDIR)/bin go test -v ./tests -run $(TEST)
+test-run: build bin/minio bin/$(ZEEKPATH)
+	@ZTEST_PATH=$(CURDIR)/dist:$(CURDIR)/bin:$(CURDIR)/bin/$(ZEEKPATH) go test -v ./tests -run $(TEST)
 
 test-heavy: build $(SAMPLEDATA)
 	@go test -v -tags=heavy ./tests
