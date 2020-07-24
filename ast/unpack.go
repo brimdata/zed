@@ -36,7 +36,7 @@ func unpackProcs(custom Unpacker, node joe.JSON) ([]Proc, error) {
 func unpackProc(custom Unpacker, node joe.JSON) (Proc, error) {
 	op, ok := node.Get("op").String()
 	if !ok {
-		return nil, fmt.Errorf("AST is missing op field")
+		return nil, fmt.Errorf("AST is missing op field: %s", node)
 	}
 	if custom != nil {
 		p, err := custom.Unpack(op, node)
