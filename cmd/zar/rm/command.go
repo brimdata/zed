@@ -41,16 +41,6 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	return c, nil
 }
 
-func fileExists(path string) bool {
-	if path == "-" {
-		return true
-	}
-	info, err := os.Stat(path)
-	if err != nil {
-		return false
-	}
-	return !info.IsDir()
-}
 func (c *Command) Run(args []string) error {
 	if len(args) == 0 {
 		return errors.New("zar rm: no file specified")

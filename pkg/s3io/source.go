@@ -31,11 +31,11 @@ func (s *Source) NewReader(uri iosrc.URI) (io.ReadCloser, error) {
 }
 
 func (s *Source) Remove(uri iosrc.URI) error {
-	return Remove(uri.String(), s.Config)
+	return wrapErr(Remove(uri.String(), s.Config))
 }
 
 func (s *Source) RemoveAll(uri iosrc.URI) error {
-	return RemoveAll(uri.String(), s.Config)
+	return wrapErr(RemoveAll(uri.String(), s.Config))
 }
 
 func (s *Source) Exists(uri iosrc.URI) (bool, error) {

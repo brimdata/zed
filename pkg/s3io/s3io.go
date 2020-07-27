@@ -126,6 +126,9 @@ func Remove(path string, cfg *aws.Config) error {
 	if err != nil {
 		return err
 	}
+	if _, err := head(bucket, key, cfg); err != nil {
+		return err
+	}
 	_, err = newClient(cfg).DeleteObject(&s3.DeleteObjectInput{
 		Key:    &key,
 		Bucket: &bucket,
@@ -138,6 +141,10 @@ func Stat(path string, cfg *aws.Config) (*s3.HeadObjectOutput, error) {
 	if err != nil {
 		return nil, err
 	}
+	return head(bucket, key, cfg)
+}
+
+func head(bucket, key string, cfg *aws.Config) (*s3.HeadObjectOutput, error) {
 	return newClient(cfg).HeadObject(&s3.HeadObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
