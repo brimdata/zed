@@ -6,17 +6,15 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sync"
 	"time"
 )
 
 const FileScheme = "file"
 
-var DefaultRegistry = &Registry{
-	schemes: map[string]Source{
-		"file":  DefaultFileSource,
-		"stdio": defaultStdioSource,
-	},
+var schemes = map[string]Source{
+	"file":  DefaultFileSource,
+	"stdio": defaultStdioSource,
+	"s3":    defaultS3Source,
 }
 
 type Source interface {
@@ -44,83 +42,32 @@ type ReplacerAble interface {
 	NewReplacer(URI) (io.WriteCloser, error)
 }
 
-type Registry struct {
-	mu      sync.RWMutex
-	schemes map[string]Source
-}
-
-func (r *Registry) initWithLock() {
-	if r.schemes == nil {
-		r.schemes = map[string]Source{}
-	}
-}
-
-func (r *Registry) Add(scheme string, loader Source) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.initWithLock()
-	r.schemes[scheme] = loader
-}
-
-func (r *Registry) NewReader(uri URI) (io.ReadCloser, error) {
-	s, err := r.Source(uri)
-	if err != nil {
-		return nil, err
-	}
-	return s.NewReader(uri)
-}
-
-func (r *Registry) NewWriter(uri URI) (io.WriteCloser, error) {
-	s, err := r.Source(uri)
-	if err != nil {
-		return nil, err
-	}
-	return s.NewWriter(uri)
-}
-
-func (r *Registry) Source(uri URI) (Source, error) {
-	scheme := getScheme(uri)
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	r.initWithLock()
-	loader, ok := r.schemes[scheme]
-	if !ok {
-		return nil, fmt.Errorf("unknown scheme: %q", scheme)
-	}
-	return loader, nil
-}
-
-func (r *Registry) GetScheme(uri URI) (string, bool) {
-	scheme := getScheme(uri)
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	r.initWithLock()
-	_, ok := r.schemes[scheme]
-	return scheme, ok
-}
-
-func Register(scheme string, source Source) {
-	DefaultRegistry.Add(scheme, source)
-}
-
 func NewReader(uri URI) (io.ReadCloser, error) {
-	return DefaultRegistry.NewReader(uri)
+	source, err := GetSource(uri)
+	if err != nil {
+		return nil, nil
+	}
+	return source.NewReader(uri)
 }
 
 func NewWriter(uri URI) (io.WriteCloser, error) {
-	return DefaultRegistry.NewWriter(uri)
+	source, err := GetSource(uri)
+	if err != nil {
+		return nil, err
+	}
+	return source.NewWriter(uri)
 }
 
 func Exists(uri URI) (bool, error) {
-	source, err := DefaultRegistry.Source(uri)
+	source, err := GetSource(uri)
 	if err != nil {
-		return false, nil
+		return false, err
 	}
 	return source.Exists(uri)
 }
 
 func Remove(uri URI) error {
-	source, err := DefaultRegistry.Source(uri)
+	source, err := GetSource(uri)
 	if err != nil {
 		return nil
 	}
@@ -128,11 +75,16 @@ func Remove(uri URI) error {
 }
 
 func GetSource(uri URI) (Source, error) {
-	return DefaultRegistry.Source(uri)
+	scheme := getScheme(uri)
+	source, ok := schemes[scheme]
+	if !ok {
+		return nil, fmt.Errorf("unknown scheme: %q", scheme)
+	}
+	return source, nil
 }
 
 func Stat(uri URI) (Info, error) {
-	source, err := DefaultRegistry.Source(uri)
+	source, err := GetSource(uri)
 	if err != nil {
 		return nil, nil
 	}
