@@ -16,7 +16,6 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
-	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/s3io"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
@@ -80,7 +79,6 @@ https://github.com/brimsec/zq
 
 func init() {
 	Zq.Add(charm.Help)
-	iosrc.Register("s3", s3io.DefaultSource)
 }
 
 type Command struct {
