@@ -45,7 +45,7 @@ type ReplacerAble interface {
 func NewReader(uri URI) (io.ReadCloser, error) {
 	source, err := GetSource(uri)
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 	return source.NewReader(uri)
 }
@@ -69,7 +69,7 @@ func Exists(uri URI) (bool, error) {
 func Remove(uri URI) error {
 	source, err := GetSource(uri)
 	if err != nil {
-		return nil
+		return err
 	}
 	return source.Remove(uri)
 }
@@ -86,7 +86,7 @@ func GetSource(uri URI) (Source, error) {
 func Stat(uri URI) (Info, error) {
 	source, err := GetSource(uri)
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 	return source.Stat(uri)
 }
