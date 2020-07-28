@@ -77,7 +77,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.conf.Root, "datadir", ".", "data directory")
 	f.StringVar(&c.zeekRunnerPath, "zeekrunner", "", "path to command that generates zeek logs from pcap data")
 	f.BoolVar(&c.pprof, "pprof", false, "add pprof routes to api")
-	f.BoolVar(&c.prom, "prom", false, "add prometheus metrics routes to api")
+	f.BoolVar(&c.prom, "prometheus", false, "add prometheus metrics routes to api")
 	f.StringVar(&c.configfile, "config", "", "path to a zqd config file")
 	f.BoolVar(&c.devMode, "dev", false, "runs zqd in development mode")
 	f.StringVar(&c.portFile, "portfile", "", "write port of http listener to file")
