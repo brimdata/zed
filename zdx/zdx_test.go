@@ -40,6 +40,7 @@ func buildTestTable(t *testing.T, zngText string) string {
 	if err != nil {
 		t.Error(err)
 	}
+	t.Cleanup(func() { os.RemoveAll(dir) })
 	path := filepath.Join(dir, "zdx")
 	reader := newTextReader(zngText)
 	writer, err := zdx.NewWriter(resolver.NewContext(), path, nil, 32*1024)

@@ -330,7 +330,6 @@ func TestSpacePutDuplicateName(t *testing.T) {
 func TestSpacePostDataPath(t *testing.T) {
 	ctx := context.Background()
 	tmp := createTempDir(t)
-	defer os.RemoveAll(tmp)
 	datapath := filepath.Join(tmp, "mypcap.brim")
 	_, client, done := newCoreAtDir(t, filepath.Join(tmp, "spaces"))
 	defer done()
@@ -369,7 +368,6 @@ func TestSpaceDelete(t *testing.T) {
 func TestSpaceDeleteDataDir(t *testing.T) {
 	ctx := context.Background()
 	tmp := createTempDir(t)
-	defer os.RemoveAll(tmp)
 	_, client, done := newCoreAtDir(t, filepath.Join(tmp, "spaces"))
 	defer done()
 	datadir := filepath.Join(tmp, "mypcap.brim")
@@ -1094,6 +1092,7 @@ func createTempDir(t *testing.T) string {
 	name := strings.ReplaceAll(t.Name(), "/", "-")
 	dir, err := ioutil.TempDir("", name)
 	require.NoError(t, err)
+	t.Cleanup(func() { os.RemoveAll(dir) })
 	return dir
 }
 
@@ -1112,10 +1111,7 @@ func newCoreAtDir(t *testing.T, dir string) (*zqd.Core, *api.Connection, func())
 	require.NoError(t, err)
 	h := zqd.NewHandler(c, conf.Logger)
 	ts := httptest.NewServer(h)
-	return c, api.NewConnectionTo(ts.URL), func() {
-		os.RemoveAll(dir)
-		ts.Close()
-	}
+	return c, api.NewConnectionTo(ts.URL), ts.Close
 }
 
 func writeTempFile(t *testing.T, contents string) string {
