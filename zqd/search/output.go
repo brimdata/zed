@@ -13,8 +13,8 @@ type Output interface {
 }
 
 func SendFromReader(out Output, r zbuf.Reader) (err error) {
-	if err = out.SendControl(&api.TaskStart{"TaskStart", 0}); err != nil {
-		return
+	if err := out.SendControl(&api.TaskStart{"TaskStart", 0}); err != nil {
+		return err
 	}
 	defer func() {
 		if err != nil {
@@ -33,8 +33,8 @@ func SendFromReader(out Output, r zbuf.Reader) (err error) {
 		if b == nil {
 			return
 		}
-		if err = out.SendBatch(0, b); err != nil {
-			return
+		if err := out.SendBatch(0, b); err != nil {
+			return err
 		}
 	}
 }

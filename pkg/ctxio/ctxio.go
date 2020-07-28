@@ -18,7 +18,7 @@ func NewWriter(ctx context.Context, w io.Writer) io.Writer {
 }
 
 func (w *writer) Write(p []byte) (n int, err error) {
-	if err = w.ctx.Err(); err != nil {
+	if err := w.ctx.Err(); err != nil {
 		return 0, err
 	}
 	return w.Writer.Write(p)
@@ -34,7 +34,7 @@ func NewReader(ctx context.Context, r io.Reader) io.Reader {
 }
 
 func (r *reader) Read(p []byte) (n int, err error) {
-	if err = r.ctx.Err(); err != nil {
+	if err := r.ctx.Err(); err != nil {
 		return 0, err
 	}
 	return r.Reader.Read(p)

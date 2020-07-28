@@ -52,7 +52,7 @@ func (w *Writer) Write(r *zng.Record) error {
 	if err != nil {
 		return nil
 	}
-	if err = w.writeContainer(zng.Value{Type: r.Type, Bytes: r.Raw}); err != nil {
+	if err := w.writeContainer(zng.Value{Type: r.Type, Bytes: r.Raw}); err != nil {
 		return err
 	}
 	return w.write("\n")
@@ -85,7 +85,7 @@ func (w *Writer) writeUnion(parent zng.Value) error {
 		return err
 	}
 	s := strconv.FormatInt(index, 10) + ":"
-	if err = w.write(s); err != nil {
+	if err := w.write(s); err != nil {
 		return err
 	}
 

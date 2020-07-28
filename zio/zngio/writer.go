@@ -56,8 +56,7 @@ func (w *Writer) Write(r *zng.Record) error {
 			return err
 		}
 		w.buffer = b
-		err = w.write(b)
-		if err != nil {
+		if err := w.write(b); err != nil {
 			return err
 		}
 	}
@@ -71,12 +70,11 @@ func (w *Writer) Write(r *zng.Record) error {
 		dst = zcode.AppendUvarint(dst, uint64(id>>6))
 	}
 	dst = zcode.AppendUvarint(dst, uint64(len(r.Raw)))
-	err := w.write(dst)
-	if err != nil {
+	if err := w.write(dst); err != nil {
 		return err
 	}
 
-	err = w.write(r.Raw)
+	err := w.write(r.Raw)
 	w.streamRecords++
 	if w.streamRecordsMax > 0 && w.streamRecords >= w.streamRecordsMax {
 		w.EndStream()
@@ -90,8 +88,7 @@ func (w *Writer) WriteControl(b []byte) error {
 	//XXX 0xff for now.  need to pass through control codes?
 	dst = append(dst, 0xff)
 	dst = zcode.AppendUvarint(dst, uint64(len(b)))
-	err := w.write(dst)
-	if err != nil {
+	if err := w.write(dst); err != nil {
 		return err
 	}
 	return w.write(b)

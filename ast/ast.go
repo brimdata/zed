@@ -321,12 +321,11 @@ type DurationNode struct {
 
 func (d *Duration) UnmarshalJSON(b []byte) error {
 	var v DurationNode
-	err := json.Unmarshal(b, &v)
-	if err != nil {
+	if err := json.Unmarshal(b, &v); err != nil {
 		return err
 	}
 	d.Seconds = v.Seconds
-	return err
+	return nil
 }
 
 func (*SequentialProc) ProcNode() {}

@@ -45,7 +45,7 @@ func NewTypeFile(path string) (*TypeFile, error) {
 		if err != nil {
 			return nil, err
 		}
-		if err = f.Close(); err != nil {
+		if err := f.Close(); err != nil {
 			return nil, err
 		}
 	} else {
@@ -56,10 +56,10 @@ func NewTypeFile(path string) (*TypeFile, error) {
 		if err != nil {
 			return nil, err
 		}
-		if err = ReadTypeContext(file, zctx); err != nil {
+		if err := ReadTypeContext(file, zctx); err != nil {
 			return nil, err
 		}
-		if err = file.Close(); err != nil {
+		if err := file.Close(); err != nil {
 			return nil, err
 		}
 	}

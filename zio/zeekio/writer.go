@@ -45,8 +45,7 @@ func (w *Writer) Write(r *zng.Record) error {
 	}
 	path, _ := r.AccessString("_path")
 	if r.Type != w.typ || path != w.Path {
-		err = w.writeHeader(r, path)
-		if err != nil {
+		if err := w.writeHeader(r, path); err != nil {
 			return err
 		}
 		w.typ = r.Type
