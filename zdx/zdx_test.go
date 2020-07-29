@@ -94,7 +94,6 @@ const sixPairs = `
 
 func TestSearch(t *testing.T) {
 	path := buildTestTable(t, sixPairs)
-	defer os.RemoveAll(path) // nolint:errcheck
 	uri, err := iosrc.ParseURI(path)
 	require.NoError(t, err)
 	zctx := resolver.NewContext()
