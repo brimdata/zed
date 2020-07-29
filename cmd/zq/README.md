@@ -1,7 +1,7 @@
 # `zq`
 
 `zq` is a command-line tool to search, analyze, and transform structured logs. 
- It evaluates [ZQL ](../.../zql/docs/README.md) queries against input log
+ It evaluates [ZQL ](../../zql/docs/README.md) queries against input log
   files, producing an output log stream in the [ZNG](../../zng/docs/spec.md)
   format by default. For all `zq` options, see the built-in help by running:
 
