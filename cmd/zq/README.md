@@ -17,21 +17,26 @@ Here are a few examples using a small Zeek formatted log file, `conn.log
 data, which is used in the examples in the
 [query language documentation](../../zql/docs/README.md).
 
-To cut the columns of a Zeek "conn" log like `zeek-cut` does, run:
+To cut the columns of a Zeek "conn" log like `zeek-cut`, and output to the
+ terminal run:
+
 ```
-zq "* | cut ts,id.orig_h,id.orig_p" conn.log
+zq -t "* | cut ts,id.orig_h,id.orig_p" conn.log
 ```
-The "`*`" tells `zq` to match every line, which is sent to the `cut` processor
+
+The `-t` tells `zq` to use [TZNG](../../zng/docs/spec.md#4-zng-text-format-tzng)
+for its output format. The "`*`" 
+tells `zq` to match every line, which is sent to the `cut` processor
 using the UNIX-like pipe syntax.
 
 When looking over everything like this, you can omit the search pattern
 as a shorthand and simply type:
 ```
-zq "cut ts,id.orig_h,id.orig_p" conn.log
+zq -t "cut ts,id.orig_h,id.orig_p" conn.log
 ```
 
-The default output is a ZNG file.  If you want just the tab-separated lines
-like `zeek-cut`, you can specify text output:
+The default output is the binary ZNG format.  If you want just the tab-separated
+ lines like `zeek-cut`, you can specify text output:
 ```
 zq -f text "cut ts,id.orig_h,id.orig_p" conn.log
 ```
@@ -44,9 +49,9 @@ zq -f zeek "cut ts,id.orig_h,id.orig_p" conn.log
 You can use an aggregate function to summarize data over one or
 more fields, e.g., summing field values, counting, or computing an average.
 ```
-zq "sum(orig_bytes)" conn.log
-zq "orig_bytes > 10000 | count()" conn.log
-zq "avg(orig_bytes)" conn.log
+zq -t "sum(orig_bytes)" conn.log
+zq -t "orig_bytes > 10000 | count()" conn.log
+zq -t "avg(orig_bytes)" conn.log
 ```
 
 The [ZNG specification](../../zng/docs/spec.md) describes the significance of
@@ -54,7 +59,7 @@ The [ZNG specification](../../zng/docs/spec.md) describes the significance of
 `_path` field.  By leveraging this, diverse Zeek logs can be combined into a single
 file.
 ```
-zq *.log > all.tzng
+zq *.log > all.zng
 ```
 
 ### Comparisons
