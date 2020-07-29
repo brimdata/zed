@@ -1,14 +1,10 @@
 # `zapi`
 
 `zapi` is command-line utility for interacting with the API provided by the
- [zqd](../zqd/README.md) daemon. It can:
+ [zqd](../zqd/README.md) daemon. It can be used to create data spaces,
+ import logs and pcaps, list info on spaces, and more.
 
- * create a new data space
- * import logs and pcaps
- * list information about one or all spaces
-
-
-For all `zapi` options, see the built-in help by running:
+For all `zapi` options, use the help subcommand:
 
 ```
 zapi help

@@ -3,7 +3,7 @@
 `zq` is a command-line tool to search, analyze, and transform structured logs. 
  It evaluates [ZQL ](../../zql/docs/README.md) queries against input log
   files, producing an output log stream in the [ZNG](../../zng/docs/spec.md)
-  format by default. For all `zq` options, see the built-in help by running:
+  format by default. For all `zq` options, use the help subcommand:
 
 ```
 zq help
@@ -11,14 +11,14 @@ zq help
 
 ## Examples
 
-Here are a few examples using a small Zeek formatted log file, `conn.log
-`, located in this directory. See the
+Here are a few examples using a small Zeek formatted log file, `conn.log`,
+located in this directory. See the
 [zq-sample-data repo](https://github.com/brimsec/zq-sample-data) for more test
 data, which is used in the examples in the
 [query language documentation](../../zql/docs/README.md).
 
 To cut the columns of a Zeek "conn" log like `zeek-cut`, and output to the
- terminal run:
+ terminal, use `cut`:
 
 ```
 zq -t "* | cut ts,id.orig_h,id.orig_p" conn.log
@@ -30,18 +30,18 @@ tells `zq` to match every line, which is sent to the `cut` processor
 using the UNIX-like pipe syntax.
 
 When looking over everything like this, you can omit the search pattern
-as a shorthand and simply type:
+as a shorthand.
 ```
 zq -t "cut ts,id.orig_h,id.orig_p" conn.log
 ```
 
 The default output is the binary ZNG format.  If you want just the tab-separated
- lines like `zeek-cut`, you can specify text output:
+ lines like `zeek-cut`, you can specify text output.
 ```
 zq -f text "cut ts,id.orig_h,id.orig_p" conn.log
 ```
 If you want the old-style Zeek [ASCII TSV](https://docs.zeek.org/en/stable/examples/logs/)
-log format, run the command with the `-f` flag specifying `zeek` for the output
+log format, use the `-f` flag specifying `zeek` for the output
 format:
 ```
 zq -f zeek "cut ts,id.orig_h,id.orig_p" conn.log
@@ -54,10 +54,10 @@ zq -t "orig_bytes > 10000 | count()" conn.log
 zq -t "avg(orig_bytes)" conn.log
 ```
 
-The [ZNG specification](../../zng/docs/spec.md) describes the significance of
- the
-`_path` field.  By leveraging this, diverse Zeek logs can be combined into a single
-file.
+The [ZNG specification](../../zng/docs/spec.md) describes how the format can
+represent a stream of heterogeneously typed records. By leveraging this,
+diverse Zeek logs can be combined into a single file.
+
 ```
 zq *.log > all.zng
 ```
@@ -95,7 +95,7 @@ at the [performance](../../performance/README.md) page.
 | tzng | yes | yes | yes | [TZNG specification](../../zng/docs/spec.md#4-zng-text-format-tzng) |
 | ndjson | yes | yes | yes | Newline delimited JSON records |
 | zeek  | yes | yes | yes | [Zeek compatible](https://docs.zeek.org/en/stable/examples/logs/) tab separated values |
-| zjson | yes | yes | yes | Zeek JSON |
+| zjson | yes | yes | yes | [ZNG over JSON](../../zng/docs/zng-over-json.md) |
 | parquet | yes | no | no | [Parquet file format](https://github.com/apache/parquet-format#file-format)
 | table | no | no | yes | table output, with column headers |
 | text | no | no | yes | space separated output |

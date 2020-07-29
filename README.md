@@ -1,15 +1,17 @@
 # `zq` [![Tests][tests-img]][tests] [![GoDoc][doc-img]][doc]
 
-The `zq` repository contains tools and components used to search, analyze
-, and store structured log data, including:
+The `zq` repository contains tools and components used to search, analyze,
+and store structured log data, including
 
 * The [zq](cmd/zq/README.md) command line tool, for searching and analyzing log
  files
-* The [zar](cmd/zar/README.md) command line tool, for working with log data
- archives
 * The [zqd](cmd/zqd/README.md) daemon, which serves a REST-like API to manage
  and query log archives, and is the backend for the [Brim](https://github.com/brimsec/brim)
  application
+* The [zar](cmd/zar/README.md) command line tool, for working with log data
+ archives
+* The [zapi](cmd/zapi/README.md) command line tool, for interacting with the
+API provided by zqd
 * The [ZQL](zql/docs/README.md) query language definition and implementation
 * The [ZNG](zng/docs/README.md) structured log specification and supporting components
 
@@ -17,7 +19,7 @@ The `zq` repository contains tools and components used to search, analyze
 
 To install `zq` or any other tool from this repo, you can either clone the repo
  and compile from source, or use a pre-compiled
- [release](https://github.com/brimsec/zq/releases), available for Windows, MacOS, and Linux.
+ [release](https://github.com/brimsec/zq/releases), available for Windows, macOS, and Linux.
 
 If you don't have Go installed, download and install it from the
 [Go downloads page](https://golang.org/dl/).
