@@ -35,7 +35,7 @@ as a shorthand.
 zq -t "cut ts,id.orig_h,id.orig_p" conn.log
 ```
 
-The default output is the binary ZNG format.  If you want just the tab-separated
+The default output is the binary ZNG format. If you want just the tab-separated
  lines like `zeek-cut`, you can specify text output.
 ```
 zq -f text "cut ts,id.orig_h,id.orig_p" conn.log
@@ -64,20 +64,19 @@ zq *.log > all.zng
 
 ### Comparisons
 
-Revisiting the `cut` example shown above:
+The following usage of `cut` (repeated from above):
 
 ```
 zq -f text "cut ts,id.orig_h,id.orig_p" conn.log
 ```
 
-This is functionally equivalent to the `zeek-cut` command-line:
+is functionally equivalent to this `zeek-cut` command:
 
 ```
 zeek-cut ts id.orig_h id.orig_p < conn.log
 ```
 
-If your Zeek events are stored as JSON and you are accustomed to querying with `jq`,
-the equivalent would be:
+If your Zeek events are stored as JSON, the equivalent `jq` command is:
 
 ```
 jq -c '. | { ts, "id.orig_h", "id.orig_p" }' conn.ndjson
