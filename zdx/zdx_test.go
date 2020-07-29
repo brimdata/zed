@@ -40,6 +40,7 @@ func buildTestTable(t *testing.T, zngText string) string {
 	if err != nil {
 		t.Error(err)
 	}
+	t.Cleanup(func() { os.RemoveAll(dir) })
 	path := filepath.Join(dir, "zdx")
 	reader := newTextReader(zngText)
 	writer, err := zdx.NewWriter(resolver.NewContext(), path, nil, 32*1024)
@@ -93,7 +94,6 @@ const sixPairs = `
 
 func TestSearch(t *testing.T) {
 	path := buildTestTable(t, sixPairs)
-	defer os.RemoveAll(path) // nolint:errcheck
 	uri, err := iosrc.ParseURI(path)
 	require.NoError(t, err)
 	zctx := resolver.NewContext()

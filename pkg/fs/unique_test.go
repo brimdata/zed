@@ -12,6 +12,7 @@ import (
 func TestUniqueDir(t *testing.T) {
 	tdir, err := ioutil.TempDir("", "")
 	require.NoError(t, err)
+	defer os.RemoveAll(tdir)
 
 	err = os.Mkdir(path.Join(tdir, "foo"), 0700)
 	require.NoError(t, err)
