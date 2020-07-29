@@ -12,6 +12,7 @@ import (
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zio/zjsonio"
 	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,11 +38,11 @@ func identity(t *testing.T, logs string) {
 }
 
 // Send logs to tzng reader -> zng writer -> zng reader -> tzng writer
-func boomerang(t *testing.T, logs string) {
+func boomerang(t *testing.T, logs string, compress bool) {
 	in := []byte(strings.TrimSpace(logs) + "\n")
 	tzngSrc := tzngio.NewReader(bytes.NewReader(in), resolver.NewContext())
 	var rawzng Output
-	rawDst := zbuf.NopFlusher(zngio.NewWriter(&rawzng, zio.WriterFlags{}))
+	rawDst := zngio.NewWriter(&rawzng, zio.WriterFlags{ZngCompress: compress})
 	err := zbuf.Copy(rawDst, tzngSrc)
 	require.NoError(t, err)
 
@@ -142,15 +143,27 @@ func TestTzng(t *testing.T) {
 }
 
 func TestRaw(t *testing.T) {
-	boomerang(t, tzng1)
-	boomerang(t, tzng2)
-	boomerang(t, tzng3)
-	boomerang(t, tzng4)
-	boomerang(t, tzng5)
-	boomerang(t, tzng6)
-	boomerang(t, tzng7)
-	boomerang(t, tzng8)
-	boomerang(t, tzngBig())
+	boomerang(t, tzng1, false)
+	boomerang(t, tzng2, false)
+	boomerang(t, tzng3, false)
+	boomerang(t, tzng4, false)
+	boomerang(t, tzng5, false)
+	boomerang(t, tzng6, false)
+	boomerang(t, tzng7, false)
+	boomerang(t, tzng8, false)
+	boomerang(t, tzngBig(), false)
+}
+
+func TestRawCompressed(t *testing.T) {
+	boomerang(t, tzng1, true)
+	boomerang(t, tzng2, true)
+	boomerang(t, tzng3, true)
+	boomerang(t, tzng4, true)
+	boomerang(t, tzng5, true)
+	boomerang(t, tzng6, true)
+	boomerang(t, tzng7, true)
+	boomerang(t, tzng8, true)
+	boomerang(t, tzngBig(), true)
 }
 
 const ctrl = `
@@ -229,16 +242,16 @@ func TestAlias(t *testing.T) {
 
 	t.Run("Zng", func(t *testing.T) {
 		t.Run("simple", func(t *testing.T) {
-			boomerang(t, simple)
+			boomerang(t, simple, true)
 		})
 		t.Run("wrapped-aliases", func(t *testing.T) {
-			boomerang(t, wrapped)
+			boomerang(t, wrapped, true)
 		})
 		t.Run("alias-in-different-records", func(t *testing.T) {
-			boomerang(t, multipleRecords)
+			boomerang(t, multipleRecords, true)
 		})
 		t.Run("alias-of-record-type", func(t *testing.T) {
-			boomerang(t, recordAlias)
+			boomerang(t, recordAlias, true)
 		})
 	})
 	t.Run("ZJSON", func(t *testing.T) {
@@ -257,7 +270,8 @@ func TestAlias(t *testing.T) {
 	})
 }
 
-const strm = `
+func TestStreams(t *testing.T) {
+	const in = `
 #0:record[key:ip]
 0:[1.2.3.4;]
 0:[::;]
@@ -265,55 +279,48 @@ const strm = `
 0:[1.149.119.73;]
 0:[1.160.203.191;]
 0:[2.12.27.251;]`
-
-func TestEOS(t *testing.T) {
-	in := []byte(strings.TrimSpace(strm) + "\n")
-	r := tzngio.NewReader(bytes.NewReader(in), resolver.NewContext())
+	tr := tzngio.NewReader(bytes.NewReader([]byte(in)), resolver.NewContext())
 	var out Output
-	writer := zngio.NewWriter(&out, zio.WriterFlags{StreamRecordsMax: 2})
-	w := zbuf.NopFlusher(writer)
+	zw := zngio.NewWriter(&out, zio.WriterFlags{StreamRecordsMax: 2, ZngCompress: true})
 
-	// Copy the tzng as zng to out and record the position of the second record.
-	rec, err := r.Read()
-	require.NoError(t, err)
-	err = w.Write(rec)
-	require.NoError(t, err)
-	writePos := writer.Position()
-	rec, err = r.Read()
-	require.NoError(t, err)
-	err = w.Write(rec)
-	require.NoError(t, err)
-	// After two writes there is a valid sync point.
-	seekPoint := writer.Position()
-	seekRec, err := r.Read()
-	require.NoError(t, err)
-	err = w.Write(seekRec)
-	require.NoError(t, err)
-	err = zbuf.Copy(w, r)
-	require.NoError(t, err)
+	var recs []*zng.Record
+	for {
+		rec, err := tr.Read()
+		require.NoError(t, err)
+		if rec == nil {
+			break
+		}
+		require.NoError(t, zw.Write(rec))
+		recs = append(recs, rec.Keep())
+	}
 
-	// Read back the zng and make sure the streams are aligned after
-	// the first record.
+	zr := zngio.NewReader(bytes.NewReader(out.Buffer.Bytes()), resolver.NewContext())
 
-	r2 := zngio.NewReader(bytes.NewReader(out.Buffer.Bytes()), resolver.NewContext())
-	_, err = r2.Read()
+	rec, rec2Off, err := zr.SkipStream()
 	require.NoError(t, err)
-	readPos := r2.Position()
-	assert.Equal(t, writePos, readPos)
+	assert.Equal(t, recs[2].Raw, rec.Raw)
 
-	// Read back the zng and make sure the streams are aligned after
-	// the first record.
+	rec, rec4Off, err := zr.SkipStream()
+	require.NoError(t, err)
+	assert.Equal(t, recs[4].Raw, rec.Raw)
 
-	s := zngio.NewSeeker(bytes.NewReader(out.Buffer.Bytes()), resolver.NewContext())
-	_, err = s.Seek(seekPoint)
-	require.NoError(t, err)
-	rec, err = s.Read()
-	require.NoError(t, err)
-	assert.Equal(t, seekRec.Raw, rec.Raw)
+	zs := zngio.NewSeeker(bytes.NewReader(out.Buffer.Bytes()), resolver.NewContext())
 
-	r3 := zngio.NewReader(bytes.NewReader(out.Buffer.Bytes()), resolver.NewContext())
-	rec, off, err := r3.SkipStream()
+	_, err = zs.Seek(rec4Off)
 	require.NoError(t, err)
-	require.NotNil(t, rec)
-	assert.Equal(t, off, seekPoint)
+	rec, err = zs.Read()
+	require.NoError(t, err)
+	assert.Equal(t, recs[4].Raw, rec.Raw)
+
+	_, err = zs.Seek(rec2Off)
+	require.NoError(t, err)
+	rec, err = zs.Read()
+	require.NoError(t, err)
+	assert.Equal(t, recs[2].Raw, rec.Raw)
+
+	_, err = zs.Seek(0)
+	require.NoError(t, err)
+	rec, err = zs.Read()
+	require.NoError(t, err)
+	assert.Equal(t, recs[0].Raw, rec.Raw)
 }

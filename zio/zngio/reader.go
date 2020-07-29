@@ -1,6 +1,7 @@
 package zngio
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"github.com/brimsec/zq/pkg/peeker"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/pierrec/lz4/v4"
 )
 
 const (
@@ -17,7 +19,9 @@ const (
 )
 
 type Reader struct {
-	peeker *peeker.Reader
+	peeker          *peeker.Reader
+	uncompressed    *bytes.Buffer
+	uncompressedBuf []byte
 	// shared/output context
 	sctx *resolver.Context
 	// internal context implied by zng file
@@ -39,12 +43,6 @@ func NewReaderWithSize(reader io.Reader, sctx *resolver.Context, size int) *Read
 		zctx:   resolver.NewContext(),
 		mapper: resolver.NewMapper(sctx),
 	}
-}
-
-func (r *Reader) read(n int) ([]byte, error) {
-	b, err := r.peeker.Read(n)
-	r.position += int64(len(b))
-	return b, err
 }
 
 func (r *Reader) Position() int64 {
@@ -128,7 +126,15 @@ again:
 		case zng.TypeDefAlias:
 			err = r.readTypeAlias()
 		case zng.CtrlEOS:
+			if r.uncompressed != nil {
+				return nil, nil, errors.New("zngio: CtrlEOS in compressed data")
+			}
 			r.reset()
+		case zng.CtrlCompressed:
+			if r.uncompressed != nil {
+				return nil, nil, errors.New("zngio: CtrlCompressed in compressed data")
+			}
+			err = r.readCompressed()
 		default:
 			// XXX we should return the control code
 			len, err := r.readUvarint()
@@ -170,17 +176,79 @@ again:
 	return rec, nil, nil
 }
 
+// read returns an error if fewer than n bytes are available.
+func (r *Reader) read(n int) ([]byte, error) {
+	if r.uncompressed != nil {
+		if n > MaxSize {
+			return nil, errors.New("zngio: read exceeds MaxSize")
+		}
+		buf := r.uncompressed.Next(n)
+		if len(buf) < n {
+			return nil, errors.New("zngio: short read")
+		}
+		if r.uncompressed.Len() == 0 {
+			r.uncompressed = nil
+		}
+		return buf, nil
+	}
+	b, err := r.peeker.Read(n)
+	r.position += int64(len(b))
+	return b, err
+}
+
+func (r *Reader) readCompressed() error {
+	format, err := r.readUvarint()
+	if err != nil {
+		return err
+	}
+	if zng.CompressionFormat(format) != zng.CompressionFormatLZ4 {
+		return fmt.Errorf("zngio: unknown compression format 0x%x", format)
+	}
+	uncompressedLen, err := r.readUvarint()
+	if err != nil {
+		return err
+	}
+	if uncompressedLen > MaxSize {
+		return errors.New("zngio: uncompressed length exceeds MaxSize")
+	}
+	compressedLen, err := r.readUvarint()
+	if err != nil {
+		return err
+	}
+	zbuf, err := r.read(compressedLen)
+	if err != nil {
+		return err
+	}
+	if cap(r.uncompressedBuf) < uncompressedLen {
+		r.uncompressedBuf = make([]byte, uncompressedLen)
+	}
+	ubuf := r.uncompressedBuf[:uncompressedLen]
+	if compressedLen == uncompressedLen {
+		copy(ubuf, zbuf)
+	} else {
+		n, err := lz4.UncompressBlock(zbuf, ubuf)
+		if err != nil {
+			return fmt.Errorf("zngio: %w", err)
+		}
+		if n != uncompressedLen {
+			return fmt.Errorf("zngio: got %d uncompressed bytes, expected %d", n, uncompressedLen)
+		}
+	}
+	r.uncompressed = bytes.NewBuffer(ubuf)
+	return nil
+}
+
 func (r *Reader) readUvarint() (int, error) {
-	b, err := r.peeker.Peek(binary.MaxVarintLen64)
-	if err != nil && err != io.EOF && err != peeker.ErrTruncated {
-		return 0, zng.ErrBadFormat
+	u64, err := binary.ReadUvarint(r)
+	return int(u64), err
+}
+
+func (r *Reader) ReadByte() (byte, error) {
+	b, err := r.read(1)
+	if err != nil {
+		return 0, err
 	}
-	v, n := binary.Uvarint(b)
-	if n <= 0 {
-		return 0, zng.ErrBadFormat
-	}
-	_, err = r.read(n)
-	return int(v), err
+	return b[0], nil
 }
 
 func (r *Reader) readColumn() (zng.Column, error) {

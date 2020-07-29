@@ -24,6 +24,7 @@ func NewSeekerWithSize(s io.ReadSeeker, zctx *resolver.Context, framesize int) *
 
 func (s *Seeker) Seek(offset int64) (int64, error) {
 	s.peeker.Reset()
+	s.uncompressed = nil
 	s.zctx.Reset()
 	n, err := s.seeker.Seek(offset, io.SeekStart)
 	s.position = n

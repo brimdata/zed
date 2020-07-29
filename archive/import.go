@@ -25,7 +25,7 @@ func tsDir(ts nano.Ts) string {
 type importDriver struct {
 	ark *Archive
 	bw  *bufwriter.Writer
-	zw  zbuf.Writer
+	zw  *zngio.Writer
 	n   int64
 
 	span  nano.Span
@@ -58,7 +58,7 @@ func (d *importDriver) writeOne(rec *zng.Record) error {
 			return err
 		}
 		d.bw = bufwriter.New(out)
-		d.zw = zngio.NewWriter(d.bw, zio.WriterFlags{})
+		d.zw = zngio.NewWriter(d.bw, zio.WriterFlags{ZngCompress: true})
 	} else {
 		d.span = d.span.Union(recspan)
 	}
@@ -75,6 +75,11 @@ func (d *importDriver) writeOne(rec *zng.Record) error {
 }
 
 func (d *importDriver) close() error {
+	if d.zw != nil {
+		if err := d.zw.Flush(); err != nil {
+			return err
+		}
+	}
 	if d.bw != nil {
 		if err := d.bw.Close(); err != nil {
 			return err

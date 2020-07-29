@@ -25,6 +25,7 @@
       - [3.1.1.4 Union Typedef](#3114-union-typedef)
       - [3.1.1.5 Alias Typedef](#3115-alias-typedef)
     - [3.1.2 End-of-Stream Markers](#312-end-of-stream-markers)
+    - [3.1.3 Compressed Message Block](#313-compressed-message-block)
   + [3.2 Value Messages](#32-value-messages)
 * [4. ZNG Text Format (TZNG)](#4-zng-text-format-tzng)
   + [4.1 Control Messages](#41-control-messages)
@@ -162,16 +163,17 @@ or a value message (0).
 ### 3.1 Control Messages
 
 The lower 7 bits of a control header byte define the control code.
-Control codes 0 through 5 are reserved for ZNG:
+Control codes 0 through 6 are reserved for ZNG:
 
-| Code | Message Type      |
-|------|-------------------|
-|  `0` | record definition |
-|  `1` | array definition  |
-|  `2` | set definition    |
-|  `3` | union definition  |
-|  `4` | type alias        |
-|  `5` | end-of-stream     |
+| Code | Message Type             |
+|------|--------------------------|
+| `0`  | record definition        |
+| `1`  | array definition         |
+| `2`  | set definition           |
+| `3`  | union definition         |
+| `4`  | type alias               |
+| `5`  | end-of-stream            |
+| `6`  | compressed message block |
 
 All other control codes are available to higher-layer protocols to carry
 application-specific payloads embedded in the ZNG stream.
@@ -348,6 +350,32 @@ the initial value of 23.  To represent subsequent records that use a
 previously defined type, the appropriate typedef control code must
 be re-emitted
 (and note that the typedef may now be assigned a different ID).
+
+### 3.1.2 Compressed Message Block
+
+Following a header byte of 0x86 is a compressed message block, .  Such a
+block comprises a compressed sequence of control and value messages.
+The sequence can include any message except for end-of-stream markers
+and compressed message blocks.
+
+A compressed message block is encoded as follows:
+```
+------------------------------------------------------------------------------
+|0x86|<format><uncompressed-length>|<compressed-length>|<compressed-messages>|
+------------------------------------------------------------------------------
+
+```
+where 
+* `<format>`, a `uvarint`, identifies the algorthim used to compress the
+  message sequence
+* `<uncompressed-length>`, a `uvarint`, is the length in bytes of the
+  uncompressed message sequence
+* `<compressed-length>`, a `uvarint`, is the length in bytes of `<compressed-messages>`
+* `<compressed-messages>` is the compressed message sequence
+
+The only value defined for `<algorithm>` is `0`, specifying that
+`<compressed-messages>` contains an
+[LZ4 block](https://github.com/lz4/lz4/blob/master/doc/lz4_Block_format.md).
 
 ### 3.2 Value Messages
 

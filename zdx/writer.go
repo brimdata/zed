@@ -84,7 +84,7 @@ func newWriter(zctx *resolver.Context, path iosrc.URI, keyFields []string, frame
 		keyFields:   keyFields,
 		level:       level,
 		writer:      writer,
-		out:         zngio.NewWriter(writer, zio.WriterFlags{}),
+		out:         zngio.NewWriter(writer, zio.WriterFlags{ZngCompress: true}),
 		header:      hdr,
 		frameThresh: framesize,
 		frameEnd:    int64(framesize),
@@ -94,6 +94,9 @@ func newWriter(zctx *resolver.Context, path iosrc.URI, keyFields []string, frame
 
 // Flush implements zbuf.WriteFlusher.
 func (w *Writer) Flush() error {
+	if err := w.out.Flush(); err != nil {
+		return err
+	}
 	return w.writer.Flush()
 }
 
@@ -104,6 +107,9 @@ func (w *Writer) Close() error {
 		if err := w.endFrame(); err != nil {
 			return err
 		}
+	}
+	if err := w.out.Flush(); err != nil {
+		return err
 	}
 	if err := w.writer.Close(); err != nil {
 		return err
@@ -161,7 +167,9 @@ func (w *Writer) endFrame() error {
 	if err := w.addToParentIndex(w.frameKey, w.frameStart); err != nil {
 		return err
 	}
-	w.out.EndStream()
+	if err := w.out.EndStream(); err != nil {
+		return err
+	}
 	w.frameStart = w.out.Position()
 	w.frameKey = nil
 	return nil

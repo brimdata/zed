@@ -114,7 +114,8 @@ func (s *Storage) Rewrite(ctx context.Context, zctx *resolver.Context, zr zbuf.R
 
 	spanWriter := &spanWriter{}
 	if err := fs.ReplaceFile(s.join(allZngFile), 0600, func(w io.Writer) error {
-		fileWriter := zngio.NewWriter(w, zio.WriterFlags{StreamRecordsMax: s.streamsize})
+		wf := zio.WriterFlags{ZngCompress: true, StreamRecordsMax: s.streamsize}
+		fileWriter := zngio.NewWriter(w, wf)
 		zw := zbuf.MultiWriter(fileWriter, spanWriter)
 		if err := s.write(ctx, zw, zctx, zr); err != nil {
 			return err

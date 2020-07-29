@@ -26,6 +26,7 @@ type WriterFlags struct {
 	ShowFields       bool
 	EpochDates       bool
 	StreamRecordsMax int
+	ZngCompress      bool
 }
 
 func (f *WriterFlags) SetFlags(fs *flag.FlagSet) {
@@ -35,6 +36,7 @@ func (f *WriterFlags) SetFlags(fs *flag.FlagSet) {
 	fs.BoolVar(&f.EpochDates, "E", false, "display epoch timestamps in text output")
 	fs.BoolVar(&f.UTF8, "U", false, "display zeek strings as UTF-8")
 	fs.IntVar(&f.StreamRecordsMax, "b", 0, "limit for number of records in each ZNG stream(0 for no limit)")
+	fs.BoolVar(&f.ZngCompress, "zngcompress", true, "compress zng output")
 }
 
 type Writer struct {
