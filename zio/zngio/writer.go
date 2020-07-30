@@ -1,7 +1,6 @@
 package zngio
 
 import (
-	"encoding/binary"
 	"io"
 
 	"github.com/brimsec/zq/zcode"
@@ -12,7 +11,7 @@ import (
 )
 
 type Writer struct {
-	ow *offsetWriter
+	ow *offsetWriter // offset never points inside a compressed message block
 	cw *compressionWriter
 
 	encoder          *resolver.Encoder
@@ -25,7 +24,7 @@ func NewWriter(w io.Writer, flags zio.WriterFlags) *Writer {
 	ow := &offsetWriter{w: w}
 	var cw *compressionWriter
 	if flags.ZngCompress {
-		cw = newCompressionWriter(ow)
+		cw = &compressionWriter{w: ow}
 	}
 	return &Writer{
 		ow:               ow,
@@ -134,13 +133,10 @@ func (o *offsetWriter) Write(b []byte) (int, error) {
 }
 
 type compressionWriter struct {
-	w    io.Writer
-	ubuf []byte
-	zbuf []byte
-}
-
-func newCompressionWriter(w io.Writer) *compressionWriter {
-	return &compressionWriter{w: w}
+	w      io.Writer
+	header []byte
+	ubuf   []byte
+	zbuf   []byte
 }
 
 func (c *compressionWriter) Flush() error {
@@ -158,12 +154,11 @@ func (c *compressionWriter) Flush() error {
 		return err
 	case zlen > 0:
 		// Compression was effective.
-		header := make([]byte, 0, 1+3*binary.MaxVarintLen64)
-		header = append(header, zng.CtrlCompressed)
-		header = zcode.AppendUvarint(header, uint64(zng.CompressionFormatLZ4))
-		header = zcode.AppendUvarint(header, uint64(len(c.ubuf)))
-		header = zcode.AppendUvarint(header, uint64(zlen))
-		if _, err := c.w.Write(header); err != nil {
+		c.header = append(c.header[:0], zng.CtrlCompressed)
+		c.header = zcode.AppendUvarint(c.header, uint64(zng.CompressionFormatLZ4))
+		c.header = zcode.AppendUvarint(c.header, uint64(len(c.ubuf)))
+		c.header = zcode.AppendUvarint(c.header, uint64(zlen))
+		if _, err := c.w.Write(c.header); err != nil {
 			return err
 		}
 		if _, err := c.w.Write(zbuf[:zlen]); err != nil {

@@ -20,6 +20,7 @@ const (
 
 type Reader struct {
 	peeker          *peeker.Reader
+	peekerOffset    int64 // never points inside a compressed message block
 	uncompressed    *bytes.Buffer
 	uncompressedBuf []byte
 	// shared/output context
@@ -27,9 +28,8 @@ type Reader struct {
 	// internal context implied by zng file
 	zctx *resolver.Context
 	// mapper to map internal to shared type contexts
-	mapper   *resolver.Mapper
-	position int64
-	sos      int64
+	mapper *resolver.Mapper
+	sos    int64
 }
 
 func NewReader(reader io.Reader, sctx *resolver.Context) *Reader {
@@ -46,7 +46,7 @@ func NewReaderWithSize(reader io.Reader, sctx *resolver.Context, size int) *Read
 }
 
 func (r *Reader) Position() int64 {
-	return r.position
+	return r.peekerOffset
 }
 
 // SkipStream skips over the records in the current stream and returns
@@ -95,7 +95,7 @@ func (r *Reader) LastSOS() int64 {
 func (r *Reader) reset() {
 	r.zctx.Reset()
 	r.mapper = resolver.NewMapper(r.sctx)
-	r.sos = r.position
+	r.sos = r.peekerOffset
 }
 
 // ReadPayload returns either data values as zbuf.Record or control payloads
@@ -192,7 +192,7 @@ func (r *Reader) read(n int) ([]byte, error) {
 		return buf, nil
 	}
 	b, err := r.peeker.Read(n)
-	r.position += int64(len(b))
+	r.peekerOffset += int64(len(b))
 	return b, err
 }
 
@@ -223,16 +223,12 @@ func (r *Reader) readCompressed() error {
 		r.uncompressedBuf = make([]byte, uncompressedLen)
 	}
 	ubuf := r.uncompressedBuf[:uncompressedLen]
-	if compressedLen == uncompressedLen {
-		copy(ubuf, zbuf)
-	} else {
-		n, err := lz4.UncompressBlock(zbuf, ubuf)
-		if err != nil {
-			return fmt.Errorf("zngio: %w", err)
-		}
-		if n != uncompressedLen {
-			return fmt.Errorf("zngio: got %d uncompressed bytes, expected %d", n, uncompressedLen)
-		}
+	n, err := lz4.UncompressBlock(zbuf, ubuf)
+	if err != nil {
+		return fmt.Errorf("zngio: %w", err)
+	}
+	if n != uncompressedLen {
+		return fmt.Errorf("zngio: got %d uncompressed bytes, expected %d", n, uncompressedLen)
 	}
 	r.uncompressed = bytes.NewBuffer(ubuf)
 	return nil
