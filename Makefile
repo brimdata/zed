@@ -14,7 +14,7 @@ test-one: test-run
 endif
 
 vet:
-	@go vet -copylocks ./...
+	@go vet -composites=false -stdmethods=false ./...
 
 fmt:
 	@res=$$(go fmt ./...); \
