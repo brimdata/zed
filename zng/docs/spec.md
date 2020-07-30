@@ -351,9 +351,9 @@ previously defined type, the appropriate typedef control code must
 be re-emitted
 (and note that the typedef may now be assigned a different ID).
 
-### 3.1.2 Compressed Message Block
+### 3.1.3 Compressed Message Block
 
-Following a header byte of 0x86 is a compressed message block, .  Such a
+Following a header byte of 0x86 is a compressed message block.  Such a
 block comprises a compressed sequence of control and value messages.
 The sequence can include any message except for end-of-stream markers
 and compressed message blocks.
@@ -373,7 +373,7 @@ where
 * `<compressed-length>`, a `uvarint`, is the length in bytes of `<compressed-messages>`
 * `<compressed-messages>` is the compressed message sequence
 
-The only value defined for `<algorithm>` is `0`, specifying that
+The only value defined for `<format>` is `0`, specifying that
 `<compressed-messages>` contains an
 [LZ4 block](https://github.com/lz4/lz4/blob/master/doc/lz4_Block_format.md).
 
