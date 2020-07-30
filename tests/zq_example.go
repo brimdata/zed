@@ -118,8 +118,7 @@ func (t *ZQExampleTest) Run() (string, error) {
 	var b bytes.Buffer
 	c.Stdout = &b
 	c.Stderr = &b
-	err := c.Run()
-	if err != nil {
+	if err := c.Run(); err != nil {
 		return string(b.Bytes()), err
 	}
 	scanner := bufio.NewScanner(&b)
