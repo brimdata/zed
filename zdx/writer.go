@@ -84,7 +84,7 @@ func newWriter(zctx *resolver.Context, path iosrc.URI, keyFields []string, frame
 		keyFields:   keyFields,
 		level:       level,
 		writer:      writer,
-		out:         zngio.NewWriter(writer, zio.WriterFlags{ZngCompress: true}),
+		out:         zngio.NewWriter(writer, zio.WriterFlags{}),
 		header:      hdr,
 		frameThresh: framesize,
 		frameEnd:    int64(framesize),
