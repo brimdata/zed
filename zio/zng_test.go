@@ -42,7 +42,7 @@ func boomerang(t *testing.T, logs string, compress bool) {
 	in := []byte(strings.TrimSpace(logs) + "\n")
 	tzngSrc := tzngio.NewReader(bytes.NewReader(in), resolver.NewContext())
 	var rawzng Output
-	rawDst := zngio.NewWriter(&rawzng, zio.WriterFlags{ZngCompress: compress})
+	rawDst := zngio.NewWriter(&rawzng, zio.WriterFlags{ZngLZ4BlockSize: zio.DefaultZngLZ4BlockSize})
 	err := zbuf.Copy(rawDst, tzngSrc)
 	require.NoError(t, err)
 
@@ -281,7 +281,10 @@ func TestStreams(t *testing.T) {
 0:[2.12.27.251;]`
 	tr := tzngio.NewReader(bytes.NewReader([]byte(in)), resolver.NewContext())
 	var out Output
-	zw := zngio.NewWriter(&out, zio.WriterFlags{StreamRecordsMax: 2, ZngCompress: true})
+	zw := zngio.NewWriter(&out, zio.WriterFlags{
+		StreamRecordsMax: 2,
+		ZngLZ4BlockSize:  zio.DefaultZngLZ4BlockSize,
+	})
 
 	var recs []*zng.Record
 	for {

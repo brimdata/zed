@@ -58,7 +58,7 @@ func (d *importDriver) writeOne(rec *zng.Record) error {
 			return err
 		}
 		d.bw = bufwriter.New(out)
-		d.zw = zngio.NewWriter(d.bw, zio.WriterFlags{ZngCompress: true})
+		d.zw = zngio.NewWriter(d.bw, zio.WriterFlags{ZngLZ4BlockSize: zio.DefaultZngLZ4BlockSize})
 	} else {
 		d.span = d.span.Union(recspan)
 	}

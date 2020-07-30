@@ -17,6 +17,10 @@ func (f *ReaderFlags) SetFlags(fs *flag.FlagSet) {
 	fs.StringVar(&f.Format, "i", "auto", "format of input data [auto,zng,ndjson,zeek,zjson,tzng,parquet]")
 }
 
+// DefaultZngLZ4BlockSize is a reasonable default for
+// WriterFlags.ZngLZ4BlockSize.
+const DefaultZngLZ4BlockSize = 16 * 1024
+
 // WriterFlags has the union of the flags accepted by all the different
 // Writer implementations.
 type WriterFlags struct {
@@ -26,7 +30,7 @@ type WriterFlags struct {
 	ShowFields       bool
 	EpochDates       bool
 	StreamRecordsMax int
-	ZngCompress      bool
+	ZngLZ4BlockSize  int
 }
 
 func (f *WriterFlags) SetFlags(fs *flag.FlagSet) {
@@ -35,8 +39,9 @@ func (f *WriterFlags) SetFlags(fs *flag.FlagSet) {
 	fs.BoolVar(&f.ShowFields, "F", false, "display field names in text output")
 	fs.BoolVar(&f.EpochDates, "E", false, "display epoch timestamps in text output")
 	fs.BoolVar(&f.UTF8, "U", false, "display zeek strings as UTF-8")
-	fs.IntVar(&f.StreamRecordsMax, "b", 0, "limit for number of records in each ZNG stream(0 for no limit)")
-	fs.BoolVar(&f.ZngCompress, "zngcompress", true, "compress zng output")
+	fs.IntVar(&f.StreamRecordsMax, "b", 0, "limit for number of records in each ZNG stream (0 for no limit)")
+	fs.IntVar(&f.ZngLZ4BlockSize, "znglz4blocksize", DefaultZngLZ4BlockSize,
+		"LZ4 block size in bytes for ZNG compression (nonpositive to disable)")
 }
 
 type Writer struct {

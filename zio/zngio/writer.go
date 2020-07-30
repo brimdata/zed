@@ -23,8 +23,8 @@ type Writer struct {
 func NewWriter(w io.Writer, flags zio.WriterFlags) *Writer {
 	ow := &offsetWriter{w: w}
 	var cw *compressionWriter
-	if flags.ZngCompress {
-		cw = &compressionWriter{w: ow}
+	if flags.ZngLZ4BlockSize > 0 {
+		cw = &compressionWriter{w: ow, blockSize: flags.ZngLZ4BlockSize}
 	}
 	return &Writer{
 		ow:               ow,
@@ -132,10 +132,11 @@ func (o *offsetWriter) Write(b []byte) (int, error) {
 }
 
 type compressionWriter struct {
-	w      io.Writer
-	header []byte
-	ubuf   []byte
-	zbuf   []byte
+	w         io.Writer
+	blockSize int
+	header    []byte
+	ubuf      []byte
+	zbuf      []byte
 }
 
 func (c *compressionWriter) Flush() error {
@@ -176,8 +177,7 @@ func (c *compressionWriter) Flush() error {
 }
 
 func (c *compressionWriter) Write(p []byte) (int, error) {
-	const blockMaxSize = 16 * 1024
-	if len(c.ubuf)+len(p) > blockMaxSize {
+	if len(c.ubuf)+len(p) > c.blockSize {
 		if err := c.Flush(); err != nil {
 			return 0, err
 		}
