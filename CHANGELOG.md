@@ -4,10 +4,12 @@ zq repo, check the git log.
 
 ## v0.18.0
 * zql: Fix an issue where data type casting was not working in Brim (#1008)
-* zql: Add a new [`rename` processor](https://github.com/brimsec/zq/tree/master/zql/docs/processors#rename) to rename fields in a record (#998)
+* zql: Add a new [`rename` processor](https://github.com/brimsec/zq/tree/master/zql/docs/processors#rename) to rename fields in a record (#998, #1038)
 * zqd: Fix an issue where API responses were being blocked in Brim due to commas in Content-Disposition headers (#1014) 
 * zq: Improve error messaging on S3 object-not-found (#1019)
 * zapi: Fix an issue where `pcappost` run with `-f` and an existing Space name caused a panic (#1042)
+* zqd: Add a `-prometheus` option to add [Prometheus](https://prometheus.io/) metrics routes the API (#1046)
+* zq: Update [README](https://github.com/brimsec/zq/blob/master/README.md) and add docs for more command-line tools (#1049)
 
 ## v0.17.0
 * zq: Fix an issue where the inferred JSON reader crashed on multiple nested fields (#948)
