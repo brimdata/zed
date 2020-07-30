@@ -16,7 +16,6 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
-	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/s3io"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
@@ -80,7 +79,6 @@ https://github.com/brimsec/zq
 
 func init() {
 	Zq.Add(charm.Help)
-	iosrc.Register("s3", s3io.DefaultSource)
 }
 
 type Command struct {
@@ -155,11 +153,10 @@ func (c *Command) loadJsonTypes() (*ndjsonio.TypeConfig, error) {
 		return nil, err
 	}
 	var tc ndjsonio.TypeConfig
-	err = json.Unmarshal(data, &tc)
-	if err != nil {
+	if err := json.Unmarshal(data, &tc); err != nil {
 		return nil, fmt.Errorf("%s: unmarshaling error: %s", c.jsonTypePath, err)
 	}
-	if err = tc.Validate(); err != nil {
+	if err := tc.Validate(); err != nil {
 		return nil, fmt.Errorf("%s: %s", c.jsonTypePath, err)
 	}
 	return &tc, nil

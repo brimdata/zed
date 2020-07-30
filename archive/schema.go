@@ -164,8 +164,7 @@ func (ark *Archive) AppendSpans(spans []SpanInfo) error {
 		return ark.spans[j].Span.Ts < ark.spans[i].Span.Ts
 	})
 
-	err := ark.metaWrite()
-	if err != nil {
+	if err := ark.metaWrite(); err != nil {
 		return err
 	}
 
@@ -179,8 +178,7 @@ func (ark *Archive) AddIndexes(indexes []IndexInfo) error {
 	for _, ind := range indexes {
 		ark.indexes[ind.Path] = ind
 	}
-	err := ark.metaWrite()
-	if err != nil {
+	if err := ark.metaWrite(); err != nil {
 		return err
 	}
 

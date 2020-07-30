@@ -271,8 +271,7 @@ func (p *Parser) Descriptor() (*zng.TypeRecord, bool) {
 
 func (p *Parser) ParseValue(line []byte) (*zng.Record, error) {
 	if p.descriptor == nil {
-		err := p.setDescriptor()
-		if err != nil {
+		if err := p.setDescriptor(); err != nil {
 			return nil, err
 		}
 	}
