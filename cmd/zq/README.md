@@ -100,4 +100,4 @@ at the [performance](../../performance/README.md) page.
 | parquet | yes | no | no | [Parquet file format](https://github.com/apache/parquet-format#file-format)
 | table | no | no | yes | table output, with column headers |
 | text | no | no | yes | space separated output |
-| types | no | no | * | Used to output text description of read record types |
+| types | no | no | yes | outputs input record types |
