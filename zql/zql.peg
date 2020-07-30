@@ -6,8 +6,8 @@
     package zql
 }
 #define RETURN(x) return x, nil
+#define VAR(x) var x
 #define NULL nil
-#define INIT_ASSIGN_VAR(x, var) x := var
 #define ARRAY(...) []interface{}{__VA_ARGS__}
 #define ARRAY_LEN(a) len(a.([]interface{}))
 #define FOREACH(arr, var) for _, var := range arr
@@ -19,13 +19,17 @@
 #define ASSERT_ARRAY(a) a.([]interface{})
 #define ASSERT_STRING(s) s.(string)
 #define ASSERT_INT(i) i.(int)
+#define ASSERT_MAP(m) m.(map[string]interface{})
+#define HAS(m, k) _, ok := m[k]; ok
+#define MAP(...) map[string]interface{}{__VA_ARGS__}
+#define PRINT(...) fmt.Println(__VA_ARGS__)  
 #else
 {
 #include "parser-support.js"
 }
 #define RETURN(x) return x
+#define VAR(x) let x
 #define NULL null
-#define INIT_ASSIGN_VAR(x, var) let x = var
 #define ARRAY(...) [__VA_ARGS__]
 #define ARRAY_LEN(a) a.length
 #define FOREACH(arr, var) for(let var of arr)
@@ -37,6 +41,10 @@
 #define ISNOTNULL(n) (n)
 #define ASSERT_ARRAY(a) a
 #define ASSERT_STRING(s) s
+#define ASSERT_MAP(m) m
+#define HAS(m, k) (k in m)
+#define MAP(...) {__VA_ARGS__}
+#define PRINT(...) console.log(__VAR_ARGS__)
 #endif
 
 
@@ -44,18 +52,18 @@ start = _? ast:query _? EOF { RETURN(ast) }
 
 query
   = procs:procChain {
-      INIT_ASSIGN_VAR(filt, makeFilterProc(makeMatchAll()))
-      RETURN(makeSequentialProc(PREPEND(filt, procs)))
+      VAR(filt) = MAP("op": "FilterProc", "filter": MAP("op": "MatchAll"))
+      RETURN(MAP("op": "SequentialProc", "procs": PREPEND(filt, procs)))
     }
   / s:search _? rest:chainedProc* {
       if (ARRAY_LEN(rest) == 0) {
           RETURN(s)
       } else {
-          RETURN(makeSequentialProc(PREPEND(s, rest)))
+          RETURN(MAP("op": "SequentialProc", "procs": PREPEND(s, rest)))
       }
     }
   / s:search {
-      RETURN(makeSequentialProc(ARRAY(s)))
+      RETURN(MAP("op": "SequentialProc", "procs": ARRAY(s)))
     }
 
 procChain
@@ -71,51 +79,60 @@ chainedProc = _? "|" _? p:proc { RETURN(p) }
 
 search
   = expr:searchExpr {
-      RETURN(makeFilterProc(expr))
+      RETURN(MAP("op": "FilterProc", "filter": expr))
     }
 
 searchExpr
   = first:searchTerm rest:oredSearchTerm* {
-      RETURN(makeOrChain(first, rest))
+      RETURN(makeChain(first, rest, "LogicalOr"))
     }
 
 oredSearchTerm = _ orToken _ t:searchTerm { RETURN(t) }
 
 searchTerm
   = first:searchFactor rest:andedSearchTerm* {
-      RETURN(makeAndChain(first, rest))
+      RETURN(makeChain(first, rest, "LogicalAnd"))
     }
 
 andedSearchTerm = _ (andToken _)? f:searchFactor { RETURN(f) }
 
 searchFactor
   = (notToken _ / "!" _?) e:searchExpr {
-      RETURN(makeLogicalNot(e))
+      RETURN(MAP("op": "LogicalNot", "expr": e))
     }
   / !("-") s:searchPred { RETURN(s) }
   / "(" _? expr:searchExpr _? ")" { RETURN(expr) }
 
 searchPred
-  = "*" _? fieldComparator:equalityToken _? v:searchValue {
-      RETURN(makeCompareAny(fieldComparator, false, v))
+  = "*" _? comp:equalityToken _? v:searchValue {
+      RETURN(MAP("op": "CompareAny", "comparator": comp, "recursive": false, "value": v))
     }
-  / "**" _? fieldComparator:equalityToken _? v:searchValue {
-      RETURN(makeCompareAny(fieldComparator, true, v))
+  / "**" _? comp:equalityToken _? v:searchValue {
+      RETURN(MAP("op": "CompareAny", "comparator": comp, "recursive": true, "value": v))
     }
-  / f:fieldExpr _? fieldComparator:equalityToken _? v:searchValue {
-      RETURN(makeCompareField(fieldComparator, f, v))
+  / f:fieldExpr _? comp:equalityToken _? v:searchValue {
+      RETURN(MAP("op": "CompareField", "comparator": comp, "field": f, "value": v))
     }
   / v:searchValue _? inToken _? "*" {
-      RETURN(makeCompareAny("in", false, v))
+      RETURN(MAP("op": "CompareAny", "comparator": "in", "recursive": false, "value": v))
     }
   / v:searchValue _? inToken _? f:fieldReference {
-      RETURN(makeCompareField("in", f, v))
+      RETURN(MAP("op": "CompareField", "comparator": "in", "field": f, "value": v))
     }
   / v:searchLiteral {
-      RETURN(makeSearch(TEXT, v, false))
+      RETURN(MAP("op": "Search", "text": TEXT, "value": v))
     }
   / !((searchKeywords) _ ) v:searchWord {
-      RETURN(makeSearch(TEXT, makeLiteral("string", v), true))
+      VAR(str) = ASSERT_STRING(v)
+      if (str == "*") {
+        RETURN(MAP("op": "MatchAll"))
+      }
+      VAR(literal) = MAP("op": "Literal", "type": "string", "value": v)
+      if (reglob.IsGlobby(str)) {
+        literal["type"] = "regexp"
+        literal["value"] = reglob.Reglob(str)
+      }
+      RETURN(MAP("op": "Search", "text": TEXT, "value": literal))
     }
 
 searchLiteral
@@ -137,56 +154,56 @@ searchLiteral
 searchValue
   = searchLiteral
   / !((searchKeywords) _) v:searchWord {
-      RETURN(makeLiteral("string", v))
+      RETURN(MAP("op": "Literal", "type": "string", "value": v))
     }
 
 StringLiteral
   = v:quotedString {
-      RETURN(makeLiteral("string", v))
+      RETURN(MAP("op": "Literal", "type": "string", "value": v))
     }
 
 RegexpLiteral
   = v:reString {
-      RETURN(makeLiteral("regexp", v))
+      RETURN(MAP("op": "Literal", "type": "regexp", "value": v))
     }
 
 PortLiteral
   = v:port {
-      RETURN(makeLiteral("port", v))
+      RETURN(MAP("op": "Literal", "type": "port", "value": v))
     }
 
 SubnetLiteral
   = v:ip6subnet {
-      RETURN(makeLiteral("net", v))
+      RETURN(MAP("op": "Literal", "type": "net", "value": v))
     }
   / v:subnet {
-      RETURN(makeLiteral("net", v))
+      RETURN(MAP("op": "Literal", "type": "net", "value": v))
     }
 
 AddressLiteral
   = v:ip6addr {
-      RETURN(makeLiteral("ip", v))
+      RETURN(MAP("op": "Literal", "type": "ip", "value": v))
     }
   / v:addr {
-      RETURN(makeLiteral("ip", v))
+      RETURN(MAP("op": "Literal", "type": "ip", "value": v))
     }
 
 FloatLiteral
   = v:sdouble {
-      RETURN(makeLiteral("float64", v))
+      RETURN(MAP("op": "Literal", "type": "float64", "value": v))
     }
 
 IntegerLiteral
   = v:sinteger {
-      RETURN(makeLiteral("int64", v))
+      RETURN(MAP("op": "Literal", "type": "int64", "value": v))
     }
 
 BooleanLiteral
-  = "true"           { RETURN(makeLiteral("bool", "true")) }
-  / "false"          { RETURN(makeLiteral("bool", "false")) }
+  = "true"           { RETURN(MAP("op": "Literal", "type": "bool", "value": "true")) }
+  / "false"          { RETURN(MAP("op": "Literal", "type": "bool", "value": "false")) }
 
 NullLiteral
-  = "null"           { RETURN(makeLiteral("null", "")) }
+  = "null"           { RETURN(MAP("op": "Literal", "type": "null")) }
 
 searchKeywords
   = andToken
@@ -195,16 +212,16 @@ searchKeywords
 
 procList
   = first:procChain rest:parallelChain* {
-      INIT_ASSIGN_VAR(fp, makeSequentialProc(first))
+      VAR(fp) = MAP("op": "SequentialProc", "procs": first)
       if ISNOTNULL(rest) {
-        RETURN(makeParallelProc(PREPEND(fp, rest)))
+        RETURN(MAP("op": "ParallelProc", "procs": PREPEND(fp, rest)))
       } else {
         RETURN(fp)
       }
     }
 
 parallelChain
-  = _? ";" _? ch:procChain { RETURN(makeSequentialProc(ch)) }
+  = _? ";" _? ch:procChain { RETURN(MAP("op": "SequentialProc", "procs": ch)) }
 
 proc
   = simpleProc
@@ -215,13 +232,13 @@ proc
 
 groupByKeys
   = "by"i _ first:groupByKey rest:(__ "," __ cl:groupByKey { RETURN(cl) })* {
-      RETURN(makeGroupByKeys(first, rest))
+      RETURN(PREPEND(first, rest))
     }
 
 
 groupByKey
   = ExpressionAssignment
-  / field:fieldExpr { RETURN(makeGroupByKey(TEXT, field)) }
+  / field:fieldExpr { RETURN(MAP("op": "ExpressionAssignment", "target": TEXT, "expression": field)) }
 
 
 everyDur
@@ -241,16 +258,22 @@ fieldNameStart = [A-Za-z_$]
 fieldNameRest = fieldNameStart / [0-9]
 
 fieldReference
- = base:fieldName derefs:(
-       "." field:fieldName    { RETURN(makeFieldCall("RecordFieldRead", NULL, field)) }
-     / "[" index:suint "]" { RETURN(makeFieldCall("Index", NULL, index)) }
+ = base:fieldName ds:(
+       "." field:fieldName    { RETURN(MAP("op": "FieldCall", "fn": "RecordFieldRead", "field": NULL, "param": field)) }
+     / "[" index:suint "]" { RETURN(MAP("op": "FieldCall", "fn": "Index", "field": NULL, "param": index)) }
    )* {
-     RETURN(chainFieldCalls(base, derefs))
+     VAR(ret) = MAP("op": "FieldRead", "field": base)
+     FOREACH(ASSERT_ARRAY(ds), d) {
+       VAR(derefs) = ASSERT_MAP(d) 
+       derefs["field"] = ret
+       ret = derefs
+     }
+     RETURN(ret)
    }
 
 fieldExpr
-  = op:fieldOp _? "(" _? field:fieldReference _? ")" {
-      RETURN(makeFieldCall(op, field, NULL))
+  = fn:fieldOp _? "(" _? field:fieldReference _? ")" {
+      RETURN(MAP("op": "FieldCall", "fn": fn, "field": field, "param": NULL))
     }
   / fieldReference
 
@@ -259,7 +282,7 @@ fieldOp
 
 fieldExprList
   = first:fieldExpr rest:(_? "," _? fieldExpr)* {
-      INIT_ASSIGN_VAR(result, ARRAY(first))
+      VAR(result) = ARRAY(first)
 
       FOREACH(ASSERT_ARRAY(rest), r) {
         APPEND(result, ASSERT_ARRAY(r)[3])
@@ -291,12 +314,20 @@ paddedFieldExpr = _? field:fieldExpr _? { RETURN(field) }
 
 countReducer
   = op:countOp _? "(" field:paddedFieldExpr?  _? ")" {
-    RETURN(makeReducer(op, "count", field))
+    VAR(r) = MAP("op": op, "var": "count")
+    if ISNOTNULL(field) {
+      r["field"] = field
+    }
+    RETURN(r)
   }
 
 fieldReducer
   = op:fieldReducerOp _? "(" _? field:fieldExpr  _? ")" {
-    RETURN(makeReducer(op, toLowerCase(op), field))
+    VAR(r) = MAP("op": op, "var": toLowerCase(op))
+    if ISNOTNULL(field) {
+      r["field"] = field
+    }
+    RETURN(r)
   }
 
 reduceProc
@@ -312,15 +343,17 @@ reduceProc
         every = ASSERT_ARRAY(every)[0]
       }
 
-      RETURN(makeGroupByProc(every, limit, keys, reducers))
+      RETURN(MAP("op": "GroupByProc", "duration": every, "limit": limit, "keys": keys, "reducers": reducers))
     }
 
-    RETURN(makeReduceProc(reducers))
+    RETURN(MAP("op": "ReduceProc", "reducers": reducers))
   }
 
 reducerExpr
   = field:fieldName _? "=" _? f:reducer {
-    RETURN(overrideReducerVar(f, field))
+    VAR(r) = ASSERT_MAP(f)
+    r["var"] = field    
+    RETURN(r)
   }
   / reducer
 
@@ -330,7 +363,7 @@ reducer
 
 reducerList
   = first:reducerExpr rest:(_? "," _? reducerExpr)* {
-      INIT_ASSIGN_VAR(result, ARRAY(first))
+      VAR(result) = ARRAY(first)
       FOREACH(ASSERT_ARRAY(rest), r) {
         APPEND(result, ASSERT_ARRAY(r)[3])
       }
@@ -350,68 +383,102 @@ simpleProc
 
 sort
   = "sort"i args:sortArgs list:(_ l:fieldExprList { RETURN(l) })? {
-    return makeSortProc(args, list)
+    VAR(argm) = ASSERT_MAP(args)
+    VAR(proc) = MAP("op": "SortProc", "fields": list, "sortdir": 1, "nullsfirst": false)
+    if HAS(argm, "r") {
+      proc["sortdir"] = -1
+    }
+    if HAS(argm, "nulls") {
+      if (argm["nulls"] == "first") {
+        proc["nullsfirst"] = true
+      }
+    }
+    RETURN(proc)
   }
 
-sortArgs = (_ a:sortArg { RETURN(a) })*
+sortArgs = args:(_ a:sortArg{ RETURN(a) })* {
+    return makeArgMap(args)
+}
 
 sortArg
-  = "-r" { RETURN(makeArg("r", NULL)) }
-  / "-nulls" _ where:(("first" / "last") { RETURN(TEXT) } ) { RETURN(makeArg("nulls", where)) }
+  = "-r" { RETURN(MAP("name": "r", "value": NULL)) }
+  / "-nulls" _ where:(("first" / "last") { RETURN(TEXT) } ) { RETURN(MAP("name": "nulls", "value": where)) }
 
 top
-  = "top"i limit:(_ n:unsignedInteger { RETURN(n)})? flush:(_ "-flush")? list:(_ f:fieldExprList { RETURN(f) })? {
-    RETURN(makeTopProc(list, limit, flush))
+  = "top"i limit:(_ n:unsignedInteger { RETURN(n)})? flush:(_ "-flush")? fields:(_ f:fieldExprList { RETURN(f) })? {
+    VAR(proc) = MAP("op": "TopProc")
+    if ISNOTNULL(limit) {
+      proc["limit"] = limit
+    }
+    if ISNOTNULL(fields) {
+      proc["fields"] = fields
+    }
+    if ISNOTNULL(flush) {
+      proc["flush"] = true
+    }
+    RETURN(proc)
   }
 
 procLimitArg
   = _ "-limit" _ limit:unsignedInteger { RETURN(limit) }
 
-cutArg = (_ "-c" { RETURN(makeArg("c", NULL)) })*
+cutArgs
+  = args:(_ "-c" { RETURN(MAP("name": "c", "value": NULL)) })* {
+    return makeArgMap(args)
+  }
 
 cutAssignment
   = FieldAssignment
   / field:fieldRefDotOnly {
-    RETURN(makeFieldAssignment("", field))
+    RETURN(MAP("target": "", "source": field))
   }
 
 cut
-  = "cut"i arg:cutArg _ first:cutAssignment rest:(__ "," __ cl:cutAssignment { RETURN(cl) })* {  return makeCutProc(arg, first, rest) }
+  = "cut"i args:cutArgs _ first:cutAssignment rest:(__ "," __ cl:cutAssignment { RETURN(cl) })* {
+    VAR(argm) = ASSERT_MAP(args)
+    VAR(proc) = MAP("op": "CutProc", "fields": PREPEND(first, rest), "complement": false) 
+    if HAS(argm, "c") {
+      proc["complement"] = true
+    }
+    RETURN(proc)
+  }
 head
-  = "head"i _ count:unsignedInteger { RETURN(makeHeadProc(count)) }
-  / "head"i { RETURN(makeHeadProc(1)) }
+  = "head"i _ count:unsignedInteger { RETURN(MAP("op": "HeadProc", "count": count)) }
+  / "head"i { RETURN(MAP("op": "HeadProc", "count": 1)) }
 tail
-  = "tail"i _ count:unsignedInteger { RETURN(makeTailProc(count)) }
-  / "tail"i { RETURN(makeTailProc(1)) }
+  = "tail"i _ count:unsignedInteger { RETURN(MAP("op": "TailProc", "count": count)) }
+  / "tail"i { RETURN(MAP("op": "TailProc", "count": 1)) }
 
 filter
   = "filter"i _ expr:searchExpr {
-      RETURN(makeFilterProc(expr))
+      RETURN(MAP("op": "FilterProc", "filter": expr))
     }
 uniq
   = "uniq"i _ "-c" {
-      RETURN(makeUniqProc(true))
+      RETURN(MAP("op": "UniqProc", "cflag": true))
     }
   / "uniq"i {
-      RETURN(makeUniqProc(false))
+      RETURN(MAP("op": "UniqProc", "cflag": false))
     }
 
 put
   = "put"i _ first:ExpressionAssignment rest:(__ "," __ cl:ExpressionAssignment { RETURN(cl) })* {
-      RETURN(makePutProc(first, rest))
+      RETURN(MAP("op": "PutProc", "clauses": PREPEND(first, rest)))
     }
 
 rename
-  = "rename"i _ first:FieldAssignment rest:(__ "," __ cl:FieldAssignment { RETURN(cl) })* {  return makeRenameProc(first, rest) }
+  = "rename"i _ first:FieldAssignment rest:(__ "," __ cl:FieldAssignment { RETURN(cl) })* {
+      RETURN(MAP("op": "RenameProc", "fields": PREPEND(first, rest)))
+    }
 
 ExpressionAssignment
   = f:fieldName __ "=" __ e:Expression {
-      RETURN(makeExpressionAssignment(f, e))
+      RETURN(MAP("target": f, "expression": e))
     }
 
 FieldAssignment
   = l:fieldRefDotOnly __ "=" __ r:fieldRefDotOnly {
-      RETURN(makeFieldAssignment(l, r))
+      RETURN(MAP("target": l, "source": r))
     }
 
 PrimaryExpression
@@ -429,7 +496,13 @@ PrimaryExpression
 
 FieldReference
   = f:fieldName {
-      RETURN(chainFieldCalls(f, ARRAY()))
+      VAR(ret) = MAP("op": "FieldRead", "field": f)
+      FOREACH(ARRAY(), d) {
+        VAR(derefs) = ASSERT_MAP(d) 
+        derefs["field"] = ret
+        ret = derefs
+      }
+      RETURN(ret)
     }
 
 //
@@ -442,37 +515,37 @@ Expression = ConditionalExpression
 
 ConditionalExpression
   = condition:LogicalORExpression __ "?" __ thenClause:Expression __ ":" __ elseClause:Expression {
-    RETURN(makeConditionalExpr(condition, thenClause, elseClause))
+    RETURN(MAP("op": "ConditionalExpr", "condition": condition, "then": thenClause, "else": elseClause))
   }
   / LogicalORExpression
 
 LogicalORExpression
   = first:LogicalANDExpression
-    rest:(__ orToken __ LogicalANDExpression)* {
+    rest:(__ op:orToken __ expr:LogicalANDExpression{ RETURN(ARRAY(op, expr)) })* {
         RETURN(makeBinaryExprChain(first, rest))
     }
 
 LogicalANDExpression
   = first:EqualityCompareExpression
-    rest:(__ andToken __ EqualityCompareExpression)* {
+    rest:(__ op:andToken __ expr:EqualityCompareExpression{ RETURN(ARRAY(op, expr)) })* {
         RETURN(makeBinaryExprChain(first, rest))
     }
 
 EqualityCompareExpression
   = first:RelativeExpression
-    rest:(__ EqualityComparator __ RelativeExpression)* {
+    rest:(__ comp:EqualityComparator __ expr:RelativeExpression{ RETURN(ARRAY(comp, expr)) })* {
         RETURN(makeBinaryExprChain(first, rest))
     }
 
 EqualityOperator = ("=~" / "!~" / "=" / "!=") { RETURN(TEXT) }
 
 EqualityComparator
-  = EqualityOperator
+  = EqualityOperator 
   / "in" { RETURN(TEXT) }
 
 RelativeExpression
   = first:AdditiveExpression
-    rest:(__ RelativeOperator __ AdditiveExpression)* {
+    rest:(__ op:RelativeOperator __ expr:AdditiveExpression{ RETURN(ARRAY(op, expr)) })* {
         RETURN(makeBinaryExprChain(first, rest))
     }
 
@@ -480,7 +553,7 @@ RelativeOperator = ("<=" / "<" / ">=" / ">") { RETURN(TEXT) }
 
 AdditiveExpression
   = first:MultiplicativeExpression
-    rest:(__ AdditiveOperator __ MultiplicativeExpression)* {
+    rest:(__ op:AdditiveOperator __ expr:MultiplicativeExpression{ RETURN(ARRAY(op, expr)) })* {
         RETURN(makeBinaryExprChain(first, rest))
     }
 
@@ -488,7 +561,7 @@ AdditiveOperator = ("+" / "-") { RETURN(TEXT) }
 
 MultiplicativeExpression
   = first:NotExpression
-    rest:(__ op:MultiplicativeOperator __ operand:NotExpression)* {
+    rest:(__ op:MultiplicativeOperator __ expr:NotExpression{ RETURN(ARRAY(op, expr)) })* {
         RETURN(makeBinaryExprChain(first, rest))
     }
 
@@ -496,27 +569,27 @@ MultiplicativeOperator = ("*" / "/") { RETURN(TEXT) }
 
 NotExpression
   = "!" __ e:NotExpression {
-        RETURN(makeUnaryExpr("!", e))
+        RETURN(MAP("op": "UnaryExpr", "operator": "!", "operand": e))
     }
   / CastExpression
 
 CastExpression
   = e:CallExpression t:(__ ":" __ ct:ZngType { RETURN(ct) })? {
     if ISNOTNULL(t) {
-      RETURN(makeCastExpression(e, t))
+      RETURN(MAP("op": "CastExpr", "expr": e, "type": t))
     } else {
       RETURN(e)
     }
   }
 
 ZngType
- = "bool" / "byte" / "int16" / "uint16" / "int32" / "uint32"
+ = ("bool" / "byte" / "int16" / "uint16" / "int32" / "uint32"
  / "int64" / "uint64" / "float64" / "string" / "bstring"
- / "ip" / "net" / "time" / "duration"
+ / "ip" / "net" / "time" / "duration") { RETURN(TEXT) }
 
 CallExpression
   = fn:FunctionName __ "(" args:ArgumentList ")" {
-        RETURN(makeFunctionCall(fn, args))
+        RETURN(MAP("op": "FunctionCall", "function": fn, "args": args))
     }
   / DereferenceExpression
 
@@ -535,8 +608,12 @@ ArgumentList
 DereferenceExpression
   = base:PrimaryExpression
     derefs:(
-        __ "[" __ index:Expression __ "]"
-      / __ "." __ (field:fieldName { RETURN(makeLiteral("string", TEXT)) })
+        __ "[" __ index:Expression __ "]" {
+          RETURN(ARRAY("[", index))
+        }
+      / __ "." __ field:fieldName {
+          RETURN(ARRAY(".", MAP("op": "Literal", "type": "string", "value": field)))
+        }
     )* {
         RETURN(makeBinaryExprChain(base, derefs))
     }
@@ -574,23 +651,23 @@ day_abbrev = "days"/"day"/"d"
 week_abbrev = "weeks"/"week"/"wks"/"wk"/"w"
 
 seconds
-  = "second" { RETURN(makeDuration(1)) }
-  / num:number _? sec_abbrev { RETURN(makeDuration(num)) }
+  = "second" { RETURN(MAP("type": "Duration", "seconds": 1)) }
+  / num:number _? sec_abbrev { RETURN(MAP("type": "Duration", "seconds": num)) }
 
 minutes
-  = "minute" { RETURN(makeDuration(60)) }
-  / num:number _? min_abbrev { RETURN(makeDuration(ASSERT_INT(num)*60)) }
+  = "minute" { RETURN(MAP("type": "Duration", "seconds": 60)) }
+  / num:number _? min_abbrev { RETURN(MAP("type": "Duration", "seconds": ASSERT_INT(num)*60)) }
 
 hours
-  = "hour" { RETURN(makeDuration(3600)) }
-  / num:number _? hour_abbrev { RETURN(makeDuration(ASSERT_INT(num)*3600)) }
+  = "hour" { RETURN(MAP("type": "Duration", "seconds": 3600)) }
+  / num:number _? hour_abbrev { RETURN(MAP("type": "Duration", "seconds": ASSERT_INT(num)*3600)) }
 
 days
-  = "day" { RETURN(makeDuration(3600*24)) }
-  / num:number _? day_abbrev { RETURN(makeDuration(ASSERT_INT(num)*3600*24)) }
+  = "day" { RETURN(MAP("type": "Duration", "seconds": 3600*24)) }
+  / num:number _? day_abbrev { RETURN(MAP("type": "Duration", "seconds": (ASSERT_INT(num)*3600*24))) }
 
 weeks
-  = num:number _? week_abbrev { RETURN(makeDuration(ASSERT_INT(num)*3600*24*7)) }
+  = num:number _? week_abbrev { RETURN(MAP("type": "Duration", "seconds": ASSERT_INT(num)*3600*24*7)) }
 
 number = unsignedInteger
 

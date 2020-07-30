@@ -43,7 +43,7 @@ func parseOneRecord(zngsrc string) (*zng.Record, error) {
 }
 
 func compileExpr(s string) (expr.ExpressionEvaluator, error) {
-	parsed, err := zql.Parse("", []byte(s), zql.Entrypoint("Expression"))
+	parsed, err := zql.ParseExpression(s)
 	if err != nil {
 		return nil, err
 	}
