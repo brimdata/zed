@@ -27,6 +27,6 @@ func (s *Seeker) Seek(offset int64) (int64, error) {
 	s.uncompressed = nil
 	s.zctx.Reset()
 	n, err := s.seeker.Seek(offset, io.SeekStart)
-	s.position = n
+	s.peekerOffset = n
 	return n, err
 }
