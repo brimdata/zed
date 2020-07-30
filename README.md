@@ -1,7 +1,7 @@
 # `zq` [![Tests][tests-img]][tests] [![GoDoc][doc-img]][doc]
 
 The `zq` repository contains tools and components used to search, analyze,
-and store structured log data, including
+and store structured log data, including:
 
 * The [zq](cmd/zq/README.md) command line tool, for searching and analyzing log
  files
