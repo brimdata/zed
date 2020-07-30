@@ -175,7 +175,7 @@ func (c *compressionWriter) Flush() error {
 			return err
 		}
 	default:
-		panic("negative size")
+		panic("zngio: negative size")
 	}
 	c.ubuf = c.ubuf[:0]
 	return nil
