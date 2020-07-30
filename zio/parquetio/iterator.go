@@ -165,8 +165,7 @@ func (i *columnIterator) ensureDataPage() error {
 		debugf("read page type %s for %s\n", header.GetType(), i.name)
 		switch header.GetType() {
 		case parquet.PageType_DICTIONARY_PAGE:
-			err = i.loadDictionaryPage(header, page)
-			if err != nil {
+			if err := i.loadDictionaryPage(header, page); err != nil {
 				return err
 			}
 
@@ -293,8 +292,7 @@ func (i *columnIterator) initializeDataPage(header *parquet.PageHeader, buf []by
 // peekDL returns the definition level (DL) for the next value on this
 // page without advancing the iterator
 func (i *columnIterator) peekDL() (int32, error) {
-	err := i.ensureDataPage()
-	if err != nil {
+	if err := i.ensureDataPage(); err != nil {
 		return 0, err
 	}
 	if i.dlReader == nil {
@@ -306,8 +304,7 @@ func (i *columnIterator) peekDL() (int32, error) {
 // peekRL returns the repetition level (RL) for the next value on this
 // page without advancing the iterator
 func (i *columnIterator) peekRL() (int32, error) {
-	err := i.ensureDataPage()
-	if err != nil {
+	if err := i.ensureDataPage(); err != nil {
 		return 0, err
 	}
 	if i.rlReader == nil {
@@ -320,8 +317,7 @@ func (i *columnIterator) peekRL() (int32, error) {
 // the caller should also advance valReader when this is called if the
 // dl value indicates a value is present.)
 func (i *columnIterator) commonNext() (int32, int32) {
-	err := i.ensureDataPage()
-	if err != nil {
+	if err := i.ensureDataPage(); err != nil {
 		if err == io.EOF {
 			return 0, 0
 		} else {

@@ -399,8 +399,7 @@ func (z *ZTest) Run(t *testing.T, testname, path, dirname, filename string) {
 			t.Skip("skipping script test on in-process run")
 		}
 		adir, _ := filepath.Abs(dirname)
-		err := runsh(testname, path, adir, z)
-		if err != nil {
+		if err := runsh(testname, path, adir, z); err != nil {
 			t.Fatalf("%s: %s", filename, err)
 		}
 		return
@@ -535,8 +534,7 @@ func runsh(testname, path, dirname string, zt *ZTest) error {
 			return err
 		}
 	}
-	err = checkPatterns(expectedPattern, dir, stdout, stderr)
-	if err != nil {
+	if err := checkPatterns(expectedPattern, dir, stdout, stderr); err != nil {
 		return err
 	}
 	return checkData(expectedData, dir, stdout, stderr)
@@ -597,8 +595,7 @@ func runzq(path, ZQL, outputFormat, outputFlags string, inputs ...string) (out s
 	var zflags zio.WriterFlags
 	var flags flag.FlagSet
 	zflags.SetFlags(&flags)
-	err = flags.Parse(strings.Split(outputFlags, " "))
-	if err != nil {
+	if err := flags.Parse(strings.Split(outputFlags, " ")); err != nil {
 		return "", "", err
 	}
 	zflags.Format = outputFormat
@@ -652,8 +649,7 @@ func tmpInputFiles(inputs []string) (string, []string, error) {
 	for i, input := range inputs {
 		name := fmt.Sprintf("input%d", i+1)
 		file := filepath.Join(dir, name)
-		err := ioutil.WriteFile(file, []byte(input), 0644)
-		if err != nil {
+		if err := ioutil.WriteFile(file, []byte(input), 0644); err != nil {
 			os.RemoveAll(dir)
 			return "", nil, err
 		}

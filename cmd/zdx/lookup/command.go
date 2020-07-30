@@ -110,7 +110,7 @@ func (c *LookupCommand) Run(args []string) error {
 		return err
 	}
 	for hit := range hits {
-		if err = writer.Write(hit); err != nil {
+		if err := writer.Write(hit); err != nil {
 			writer.Close()
 			return err
 		}

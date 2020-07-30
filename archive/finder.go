@@ -130,11 +130,10 @@ func search(ctx context.Context, zctx *resolver.Context, hits chan<- *zng.Record
 	if err != nil {
 		return fmt.Errorf("%s: %w", finder.Path(), err)
 	}
-	err = finder.LookupAll(ctx, hits, keys)
-	if err != nil {
-		err = fmt.Errorf("%s: %w", finder.Path(), err)
+	if err := finder.LookupAll(ctx, hits, keys); err != nil {
+		return fmt.Errorf("%s: %w", finder.Path(), err)
 	}
-	return err
+	return nil
 }
 
 type findReadCloser struct {

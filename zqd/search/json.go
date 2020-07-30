@@ -55,8 +55,7 @@ func (s *JSON) SendBatch(cid int, set zbuf.Batch) error {
 			ChannelID: cid,
 			Records:   formatted,
 		}
-		err = s.pipe.Send(v)
-		if err != nil {
+		if err := s.pipe.Send(v); err != nil {
 			return err
 		}
 		records = records[frag:]

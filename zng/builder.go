@@ -104,14 +104,14 @@ func (b *Builder) parseRecord(typ *TypeRecord, in []string) ([]string, error) {
 			b.EndContainer()
 		case *TypeArray:
 			b.BeginContainer()
-			if err = b.parseArray(v, in[0]); err != nil {
+			if err := b.parseArray(v, in[0]); err != nil {
 				return nil, err
 			}
 			b.EndContainer()
 			in = in[1:]
 		case *TypeSet:
 			b.BeginContainer()
-			if err = b.parseSet(v, in[0]); err != nil {
+			if err := b.parseSet(v, in[0]); err != nil {
 				return nil, err
 			}
 			b.EndContainer()
@@ -120,7 +120,7 @@ func (b *Builder) parseRecord(typ *TypeRecord, in []string) ([]string, error) {
 			// XXX need a value syntax that indicates which type to use
 			return nil, errors.New("union values not yet supported")
 		default:
-			if err = b.parsePrimitive(v, in[0]); err != nil {
+			if err := b.parsePrimitive(v, in[0]); err != nil {
 				return nil, err
 			}
 			in = in[1:]

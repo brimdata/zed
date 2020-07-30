@@ -71,8 +71,7 @@ func (w *Writer) Write(r *zng.Record) error {
 			return err
 		}
 		w.buffer = b
-		err = w.write(b)
-		if err != nil {
+		if err := w.write(b); err != nil {
 			return err
 		}
 	}

@@ -391,8 +391,7 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 			if !g.decomposable {
 				return errTooBig(g.limit)
 			}
-			err := g.spillTable(false)
-			if err != nil {
+			if err := g.spillTable(false); err != nil {
 				return err
 			}
 		}
