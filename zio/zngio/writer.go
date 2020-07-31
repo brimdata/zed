@@ -143,34 +143,37 @@ func (c *compressionWriter) Flush() error {
 	if len(c.ubuf) == 0 {
 		return nil
 	}
-	// len(c.ubuf)-1 guarantees compression will either be effective or fail.
-	if cap(c.zbuf) < len(c.ubuf)-1 {
-		c.zbuf = make([]byte, len(c.ubuf)-1)
+	if cap(c.zbuf) < len(c.ubuf) {
+		c.zbuf = make([]byte, len(c.ubuf))
 	}
-	zbuf := c.zbuf[:len(c.ubuf)-1]
+	zbuf := c.zbuf[:len(c.ubuf)]
 	zlen, err := lz4.CompressBlock(c.ubuf, zbuf, nil)
-	switch {
-	case err != nil:
+	if err != nil {
 		return err
-	case zlen > 0:
-		// Compression was effective.
+	}
+	if zlen > 0 {
 		c.header = append(c.header[:0], zng.CtrlCompressed)
 		c.header = zcode.AppendUvarint(c.header, uint64(zng.CompressionFormatLZ4))
 		c.header = zcode.AppendUvarint(c.header, uint64(len(c.ubuf)))
 		c.header = zcode.AppendUvarint(c.header, uint64(zlen))
+	}
+	if zlen > 0 && len(c.header)+zlen < len(c.ubuf) {
+		// Compression succeeded and the compressed message block is
+		// smaller than the buffered messages, so write the compressed
+		// message block.
 		if _, err := c.w.Write(c.header); err != nil {
 			return err
 		}
 		if _, err := c.w.Write(zbuf[:zlen]); err != nil {
 			return err
 		}
-	case zlen == 0:
-		// Compression wasn't effective, so just write uncompressed data.
+	} else {
+		// Compression failed or the compressed message block isn't
+		// smaller than the buffered messages, so write the buffered
+		// messages without compression.
 		if _, err := c.w.Write(c.ubuf); err != nil {
 			return err
 		}
-	default:
-		panic("zngio: negative size")
 	}
 	c.ubuf = c.ubuf[:0]
 	return nil

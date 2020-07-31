@@ -249,7 +249,7 @@ func TestSpaceInfo(t *testing.T) {
 		DataPath:    sp.DataPath,
 		StorageKind: storage.FileStore,
 		Span:        &span,
-		Size:        82,
+		Size:        81,
 		PcapSupport: false,
 	}
 	info, err := client.SpaceInfo(ctx, sp.ID)
@@ -770,7 +770,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 		DataPath:    sp.DataPath,
 		StorageKind: storage.ArchiveStore,
 		Span:        &span,
-		Size:        35332,
+		Size:        35318,
 	}
 	si, err := client.SpaceInfo(context.Background(), sp.ID)
 	require.NoError(t, err)
