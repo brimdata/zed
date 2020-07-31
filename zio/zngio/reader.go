@@ -239,12 +239,20 @@ func (r *Reader) readUvarint() (int, error) {
 	return int(u64), err
 }
 
+// ReadByte implements io.ByteReader.ReadByte.
 func (r *Reader) ReadByte() (byte, error) {
-	b, err := r.read(1)
-	if err != nil {
-		return 0, err
+	if r.uncompressed != nil {
+		b, err := r.uncompressed.ReadByte()
+		if r.uncompressed.Len() == 0 {
+			r.uncompressed = nil
+		}
+		return b, err
 	}
-	return b[0], nil
+	b, err := r.peeker.ReadByte()
+	if err == nil {
+		r.peekerOffset++
+	}
+	return b, err
 }
 
 func (r *Reader) readColumn() (zng.Column, error) {

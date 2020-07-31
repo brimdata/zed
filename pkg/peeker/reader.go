@@ -86,3 +86,17 @@ func (r *Reader) Read(n int) ([]byte, error) {
 	r.cursor = r.cursor[n:]
 	return b, nil
 }
+
+// ReadByte implements io.ByteReader.ReadByte.
+func (r *Reader) ReadByte() (byte, error) {
+	if len(r.cursor) > 0 {
+		b := r.cursor[0]
+		r.cursor = r.cursor[1:]
+		return b, nil
+	}
+	buf, err := r.Read(1)
+	if err != nil {
+		return 0, err
+	}
+	return buf[0], nil
+}
