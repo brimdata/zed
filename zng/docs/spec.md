@@ -373,9 +373,8 @@ where
 * `<compressed-length>`, a `uvarint`, is the length in bytes of `<compressed-messages>`
 * `<compressed-messages>` is the compressed message sequence
 
-The only value defined for `<format>` is `0`, specifying that
-`<compressed-messages>` contains an
-[LZ4 block](https://github.com/lz4/lz4/blob/master/doc/lz4_Block_format.md).
+Values for `<format>` are defined in the
+[ZNG compression format specification](./compression-spec.md).
 
 ### 3.2 Value Messages
 
