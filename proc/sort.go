@@ -387,7 +387,7 @@ func (r *runFile) read() (*zng.Record, bool, error) {
 // writeZng writes records to w as a zng stream.
 func writeZng(w io.Writer, records []*zng.Record) error {
 	bw := bufio.NewWriter(w)
-	zw := zngio.NewWriter(bw, zio.WriterFlags{ZngLZ4BlockSize: zio.DefaultZngLZ4BlockSize})
+	zw := zngio.NewWriter(bw, zio.WriterFlags{})
 	for _, rec := range records {
 		if err := zw.Write(rec); err != nil {
 			return err
