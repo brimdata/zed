@@ -1,0 +1,30 @@
+FROM golang:1.14-alpine AS build
+
+# Install some dependencies needed to build the project
+RUN apk add bash ca-certificates git gcc g++ libc-dev
+
+# All these steps will be cached
+RUN mkdir /build
+WORKDIR /build
+
+# Copying the .mod and .sum files before the rest of the code
+# to improve the caching behavior of Docker
+COPY go.mod . 
+COPY go.sum .  
+
+# Get dependancies - will also be cached if we won't change mod/sum
+RUN go mod download
+# COPY the source code as the last step
+COPY . .
+
+# And compile the project 
+# CGO_ENABLED and installsuffix are part of the scheme to get better caching on builds
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o /go/bin/entrypoint ./cmd/zqd
+
+
+FROM golang:1.14-alpine
+WORKDIR /app
+RUN apk update && apk add ca-certificates
+COPY --from=build /build/. /app/.
+COPY --from=build /go/bin/entrypoint /app/entrypoint
+ENTRYPOINT ["/app/entrypoint"]
