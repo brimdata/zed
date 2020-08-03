@@ -17,10 +17,10 @@ require (
 	github.com/gosuri/uilive v0.0.4
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/klauspost/compress v1.10.3 // indirect
-	github.com/mattn/go-isatty v0.0.8 // indirect
 	github.com/mccanne/charm v0.0.3-0.20191224190439-b05e1b7b1be3
 	github.com/mccanne/joe v0.0.0-20181124064909-25770742c256
 	github.com/peterh/liner v1.1.0
+	github.com/pierrec/lz4/v4 v4.0.1
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/prometheus/client_golang v1.7.1
 	github.com/segmentio/ksuid v1.0.2
@@ -37,7 +37,6 @@ require (
 	golang.org/x/text v0.3.3
 	golang.org/x/tools v0.0.0-20200425043458-8463f397d07c // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
-	gopkg.in/yaml.v2 v2.2.8 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200121175148-a6ecf24a6d71
 )
 

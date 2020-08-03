@@ -60,7 +60,7 @@ func TestPcapPostSuccess(t *testing.T) {
 		assert.Equal(t, nano.NewSpanTs(nano.Unix(1501770877, 471635000), nano.Unix(1501770880, 988247001)), *info.Span)
 		// Must use InDelta here because zeek randomly generates uids that
 		// vary in size.
-		assert.InDelta(t, 1437, info.Size, 10)
+		assert.InDelta(t, 1169, info.Size, 10)
 		assert.Equal(t, int64(4224), info.PcapSize)
 		assert.True(t, info.PcapSupport)
 		assert.Equal(t, p.pcapfile, info.PcapPath)
