@@ -1,6 +1,6 @@
 # Deploying the ZQ daemon in a Kubernetes cluster
 
-The describes a procedure for deploying the ZQ daemon that you can connect to remotely with Brim. This is useful for when you are running Brim on a machine that need to access large log files that are in the data center where you are running the ZQ daemon.
+This describes a procedure for deploying the ZQ daemon that you can connect to remotely with Brim. This is useful for when you are running Brim on a machine that need to access large log files that are in the data center where you are running the ZQ daemon.
 
 Currently we support zqd access to ZAR files stored on Amazon S3, so we also describe a procedure for deploying zqd to a K8s cluster hosted on AWS EKS.
 
