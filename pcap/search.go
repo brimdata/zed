@@ -158,8 +158,7 @@ type SearchReader struct {
 func (s *Search) Reader(ctx context.Context, r pcapio.Reader) (*SearchReader, error) {
 	opts := gopacket.DecodeOptions{Lazy: true, NoCopy: true}
 	reader := &SearchReader{Search: s, reader: r, opts: opts}
-	err := reader.fill(ctx)
-	if err != nil {
+	if err := reader.fill(ctx); err != nil {
 		return nil, err
 	}
 	if len(reader.window) == 0 {
@@ -170,8 +169,7 @@ func (s *Search) Reader(ctx context.Context, r pcapio.Reader) (*SearchReader, er
 
 func (s *SearchReader) Read(p []byte) (n int, err error) {
 	if len(s.window) == 0 {
-		err = s.fill(context.Background())
-		if err != nil {
+		if err := s.fill(context.Background()); err != nil {
 			return 0, err
 		}
 		if len(s.window) == 0 {

@@ -136,9 +136,9 @@ func TestExpressionFields(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.expr, func(t *testing.T) {
-			parsed, err := zql.Parse("", []byte(tc.expr), zql.Entrypoint("Expression"))
+			e, err := zql.ParseExpression(tc.expr)
 			require.NoError(t, err)
-			f := expressionFields(parsed.(ast.Expression))
+			f := expressionFields(e)
 			assert.Equal(t, tc.expected, f)
 		})
 	}
@@ -172,9 +172,9 @@ func TestBooleanExpressionFields(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.expr, func(t *testing.T) {
-			parsed, err := zql.Parse("", []byte(tc.expr), zql.Entrypoint("searchExpr"))
+			parsed, err := zql.ParseProc(tc.expr)
 			require.NoError(t, err)
-			f := booleanExpressionFields(parsed.(ast.BooleanExpr))
+			f := booleanExpressionFields(parsed.(*ast.FilterProc).Filter)
 			assert.Equal(t, tc.expected, f)
 		})
 	}

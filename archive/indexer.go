@@ -70,8 +70,7 @@ func runOne(zardir iosrc.URI, rule Rule, inputPath iosrc.URI, progress chan<- st
 
 func run(zardir iosrc.URI, rules []Rule, logPath iosrc.URI, progress chan<- string) error {
 	for _, rule := range rules {
-		err := runOne(zardir, rule, logPath, progress)
-		if err != nil {
+		if err := runOne(zardir, rule, logPath, progress); err != nil {
 			return err
 		}
 	}

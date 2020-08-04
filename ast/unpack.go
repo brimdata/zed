@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/mccanne/joe"
+	"github.com/mitchellh/mapstructure"
 )
 
 type Unpacker interface {
@@ -120,7 +121,7 @@ func unpackExpressionAssignment(node joe.JSON) (ExpressionAssignment, error) {
 	if exprNode == joe.Undefined {
 		return ExpressionAssignment{}, errors.New("ExpressionAssignment missing expression")
 	}
-	expr, err := unpackExpression(exprNode)
+	expr, err := UnpackExpression(exprNode)
 	if err != nil {
 		return ExpressionAssignment{}, err
 	}
@@ -146,7 +147,7 @@ func unpackExpressionAssignments(node joe.JSON) ([]ExpressionAssignment, error) 
 	return keys, nil
 }
 
-func unpackExpression(node joe.JSON) (Expression, error) {
+func UnpackExpression(node joe.JSON) (Expression, error) {
 	op, ok := node.Get("op").String()
 	if !ok {
 		return nil, errors.New("Expression node missing op field")
@@ -158,7 +159,7 @@ func unpackExpression(node joe.JSON) (Expression, error) {
 		if operandNode == joe.Undefined {
 			return nil, errors.New("UnaryExpression missing operand")
 		}
-		operand, err := unpackExpression(operandNode)
+		operand, err := UnpackExpression(operandNode)
 		if err != nil {
 			return nil, err
 		}
@@ -168,7 +169,7 @@ func unpackExpression(node joe.JSON) (Expression, error) {
 		if lhsNode == joe.Undefined {
 			return nil, errors.New("BinaryExpression missing lhs")
 		}
-		lhs, err := unpackExpression(lhsNode)
+		lhs, err := UnpackExpression(lhsNode)
 		if err != nil {
 			return nil, err
 		}
@@ -177,7 +178,7 @@ func unpackExpression(node joe.JSON) (Expression, error) {
 		if rhsNode == joe.Undefined {
 			return nil, errors.New("BinaryExpression missing rhs")
 		}
-		rhs, err := unpackExpression(rhsNode)
+		rhs, err := UnpackExpression(rhsNode)
 		if err != nil {
 			return nil, err
 		}
@@ -188,7 +189,7 @@ func unpackExpression(node joe.JSON) (Expression, error) {
 		if conditionNode == joe.Undefined {
 			return nil, errors.New("ConditionalExpr missing condition")
 		}
-		condition, err := unpackExpression(conditionNode)
+		condition, err := UnpackExpression(conditionNode)
 		if err != nil {
 			return nil, err
 		}
@@ -197,7 +198,7 @@ func unpackExpression(node joe.JSON) (Expression, error) {
 		if thenNode == joe.Undefined {
 			return nil, errors.New("ConditionalExpr missing then")
 		}
-		thenClause, err := unpackExpression(thenNode)
+		thenClause, err := UnpackExpression(thenNode)
 		if err != nil {
 			return nil, err
 		}
@@ -206,7 +207,7 @@ func unpackExpression(node joe.JSON) (Expression, error) {
 		if elseNode == joe.Undefined {
 			return nil, errors.New("ConditionalExpr missing else")
 		}
-		elseClause, err := unpackExpression(elseNode)
+		elseClause, err := UnpackExpression(elseNode)
 		if err != nil {
 			return nil, err
 		}
@@ -227,7 +228,7 @@ func unpackExpression(node joe.JSON) (Expression, error) {
 		args := make([]Expression, n)
 		for i := 0; i < n; i++ {
 			var err error
-			args[i], err = unpackExpression(argsNode.Index(i))
+			args[i], err = UnpackExpression(argsNode.Index(i))
 			if err != nil {
 				return nil, err
 			}
@@ -238,7 +239,7 @@ func unpackExpression(node joe.JSON) (Expression, error) {
 		if exprNode == joe.Undefined {
 			return nil, errors.New("CastExpr missing expr")
 		}
-		expr, err := unpackExpression(exprNode)
+		expr, err := UnpackExpression(exprNode)
 		if err != nil {
 			return nil, err
 		}
@@ -393,8 +394,26 @@ func unpackReducers(node joe.JSON) ([]Reducer, error) {
 	return reducers, nil
 }
 
-// UnpackProc transforms a JSON representation of a proc into an ast.Proc.
-func UnpackProc(custom Unpacker, buf []byte) (Proc, error) {
+func UnpackMap(custom Unpacker, m interface{}) (Proc, error) {
+	obj := joe.Interface(m)
+	proc, err := unpackProc(custom, obj)
+	if err != nil {
+		return nil, err
+	}
+	c := &mapstructure.DecoderConfig{
+		TagName: "json",
+		Result:  proc,
+		Squash:  true,
+	}
+	dec, err := mapstructure.NewDecoder(c)
+	if err != nil {
+		return nil, err
+	}
+	return proc, dec.Decode(m)
+}
+
+// UnpackJSON transforms a JSON representation of a proc into an ast.Proc.
+func UnpackJSON(custom Unpacker, buf []byte) (Proc, error) {
 	obj, err := joe.Parse(buf)
 	if err != nil {
 		return nil, err

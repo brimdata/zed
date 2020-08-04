@@ -40,7 +40,7 @@ func NewDir(dir, prefix string, stderr io.Writer, flags *zio.WriterFlags) (*Dir,
 	if err != nil {
 		return nil, err
 	}
-	src, err := iosrc.DefaultRegistry.Source(uri)
+	src, err := iosrc.GetSource(uri)
 	if err != nil {
 		return nil, err
 	}

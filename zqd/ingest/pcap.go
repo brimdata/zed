@@ -70,11 +70,11 @@ func NewPcapOp(ctx context.Context, pspace PcapSpace, pstore PcapStore, pcap str
 		snap:      make(chan struct{}),
 		zlauncher: zlauncher,
 	}
-	if err = p.indexPcap(); err != nil {
+	if err := p.indexPcap(); err != nil {
 		os.Remove(p.pspace.PcapIndexPath())
 		return nil, err
 	}
-	if err = p.pspace.SetPcapPath(p.pcapPath); err != nil {
+	if err := p.pspace.SetPcapPath(p.pcapPath); err != nil {
 		os.Remove(p.pspace.PcapIndexPath())
 		return nil, err
 	}

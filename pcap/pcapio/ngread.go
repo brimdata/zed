@@ -306,5 +306,4 @@ func (r *NgReader) Read() ([]byte, BlockType, error) {
 			return nil, 0, errInvalidf("pcap-ng deprecated type packet not supported")
 		}
 	}
-	return nil, 0, nil
 }

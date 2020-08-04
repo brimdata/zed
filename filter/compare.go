@@ -73,7 +73,6 @@ func CompareBool(op string, pattern bool) (Predicate, error) {
 		}
 		return compare(b, pattern)
 	}, nil
-	return nil, fmt.Errorf("bad comparator for boolean type: %s", op)
 }
 
 var compareInt = map[string]func(int64, int64) bool{

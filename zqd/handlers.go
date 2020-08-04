@@ -284,8 +284,7 @@ func handleSpaceDelete(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := c.spaces.Delete(api.SpaceID(id))
-	if err != nil {
+	if err := c.spaces.Delete(api.SpaceID(id)); err != nil {
 		respondError(c, w, r, err)
 		return
 	}
@@ -336,7 +335,7 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	pipe := api.NewJSONPipe(w)
 	taskID := c.getTaskID()
 	taskStart := api.TaskStart{Type: "TaskStart", TaskID: taskID}
-	if err = pipe.Send(taskStart); err != nil {
+	if err := pipe.Send(taskStart); err != nil {
 		logger.Warn("Error sending payload", zap.Error(err))
 		return
 	}
@@ -382,7 +381,7 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 			taskEnd.Error = &api.Error{Type: "Error", Message: err.Error()}
 		}
 	}
-	if err = pipe.SendFinal(taskEnd); err != nil {
+	if err := pipe.SendFinal(taskEnd); err != nil {
 		logger.Warn("Error sending payload", zap.Error(err))
 		return
 	}
@@ -444,21 +443,18 @@ loop:
 				return
 			}
 		case <-ticker.C:
-			err := pipe.Send(op.Stats())
-			if err != nil {
+			if err := pipe.Send(op.Stats()); err != nil {
 				logger.Warn("error sending payload", zap.Error(err))
 				return
 			}
 		}
 	}
 	// send final status
-	err = pipe.Send(op.Stats())
-	if err != nil {
+	if err := pipe.Send(op.Stats()); err != nil {
 		logger.Warn("error sending payload", zap.Error(err))
 		return
 	}
-	err = pipe.SendEnd(0, op.Error())
-	if err != nil {
+	if err := pipe.SendEnd(0, op.Error()); err != nil {
 		logger.Warn("error sending payload", zap.Error(err))
 		return
 	}

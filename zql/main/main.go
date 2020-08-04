@@ -21,10 +21,8 @@ func runGo(line string) error {
 		return err
 	}
 
-	fmt.Printf("Go raw result:\n%s\n", got)
-
 	js, _ := json.MarshalIndent(got, "", "    ")
-	fmt.Printf("Go Result after json.Marshal:\n%s\n", js)
+	fmt.Printf("Go Result:\n%s\n", js)
 	return nil
 }
 

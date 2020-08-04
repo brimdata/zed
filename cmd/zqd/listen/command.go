@@ -22,6 +22,8 @@ import (
 	"github.com/brimsec/zq/zqd"
 	"github.com/brimsec/zq/zqd/zeek"
 	"github.com/mccanne/charm"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
@@ -61,6 +63,7 @@ type Command struct {
 	listenAddr     string
 	conf           zqd.Config
 	pprof          bool
+	prom           bool
 	zeekRunnerPath string
 	configfile     string
 	loggerConf     *logger.Config
@@ -75,6 +78,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.conf.Root, "datadir", ".", "data directory")
 	f.StringVar(&c.zeekRunnerPath, "zeekrunner", "", "path to command that generates zeek logs from pcap data")
 	f.BoolVar(&c.pprof, "pprof", false, "add pprof routes to api")
+	f.BoolVar(&c.prom, "prometheus", false, "add prometheus metrics routes to api")
 	f.StringVar(&c.configfile, "config", "", "path to a zqd config file")
 	f.BoolVar(&c.devMode, "dev", false, "runs zqd in development mode")
 	f.StringVar(&c.portFile, "portfile", "", "write port of http listener to file")
@@ -97,6 +101,9 @@ func (c *Command) Run(args []string) error {
 	h := zqd.NewHandler(core, c.logger)
 	if c.pprof {
 		h = pprofHandlers(h)
+	}
+	if c.prom {
+		h = prometheusHandlers(h)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -143,6 +150,19 @@ func pprofHandlers(h http.Handler) http.Handler {
 	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
 	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	return mux
+}
+
+// XXX Eventually this function should take prometheus.Registry as an argument.
+// For now since we only care about retrieving go stats, create registry
+// here.
+func prometheusHandlers(h http.Handler) http.Handler {
+	mux := http.NewServeMux()
+	mux.Handle("/", h)
+	promreg := prometheus.NewRegistry()
+	promreg.MustRegister(prometheus.NewGoCollector())
+	promhandler := promhttp.HandlerFor(promreg, promhttp.HandlerOpts{})
+	mux.Handle("/metrics", promhandler)
 	return mux
 }
 

@@ -393,6 +393,9 @@ func writeZng(w io.Writer, records []*zng.Record) error {
 			return err
 		}
 	}
+	if err := zw.Flush(); err != nil {
+		return nil
+	}
 	return bw.Flush()
 }
 
