@@ -159,9 +159,11 @@ github.com/matttproud/golang_protobuf_extensions v1.0.1 h1:4hp9jkHxhMHkqkrB3Ix0j
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
 github.com/mccanne/charm v0.0.3-0.20191224190439-b05e1b7b1be3 h1:Sj9zugMeJDXrKpOZgiQXhm0Z87vPF2QfUMWE41lwcRQ=
 github.com/mccanne/charm v0.0.3-0.20191224190439-b05e1b7b1be3/go.mod h1:R47PUgWIRA4UrwFWKI6vgAEWHXPYWUg3iAtyXB8yKNU=
-github.com/mccanne/joe v0.0.0-20181124064909-25770742c256 h1:pWqEkj5bKTW1WXgBrcoc0uZReflLquW7xu6EsAersRc=
-github.com/mccanne/joe v0.0.0-20181124064909-25770742c256/go.mod h1:ws78j95WzGWyQqUJksJu3Dly2hyMI1II7HVcY7DoHFg=
+github.com/mccanne/joe v0.0.0-20200731213236-7c7845acf98b h1:ixbbGEmeKfQ0UWUUuNv5hxkkR1aO/Sy//vFLNrdCXQQ=
+github.com/mccanne/joe v0.0.0-20200731213236-7c7845acf98b/go.mod h1:ws78j95WzGWyQqUJksJu3Dly2hyMI1II7HVcY7DoHFg=
 github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db/go.mod h1:l0dey0ia/Uv7NcFFVbCLtqEBQbrT4OCwCSKTEv6enCw=
+github.com/mitchellh/mapstructure v1.3.3 h1:SzB1nHZ2Xi+17FP0zVQBHIZqvwRN9408fJO8h+eeNA8=
+github.com/mitchellh/mapstructure v1.3.3/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=
 github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
 github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
 github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742/go.mod h1:bx2lNnkwVCuqBIxFjflWJWanXIb3RllmbCylyMrvgv0=
