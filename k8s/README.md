@@ -35,7 +35,7 @@ In the k8s directory, there is a `create-cluster.sh` shell script to automate th
 ```
 kind create cluster --name zq-local
 ```
-Later, when you no longer need the cluster, you can remove it with:
+This starts a container image within Docker to host a single-node Kubernetes cluster. Later, when you no longer need the cluster, you can remove it with:
 ```
 kind delete cluster --name zq-local
 ```
@@ -60,11 +60,11 @@ The following command builds and labels the container image:
 ```
 docker build --pull --rm -t zqd:latest .
 ```
-The "killer feature" of Kind is that is makes it vary easy to copy container images into the local cluster without needing an image repo. To load the image into you Kind cluster:
+The "killer feature" of Kind is that it makes it very easy to copy container images into the local cluster without needing an image repo. To load the image into your Kind cluster:
 ```
 kind load docker-image --name zq-local zqd:latest
 ```
-This copies the image into the VM that is running your single-node Kubernetes cluster for Kind. Once it is there, use an image PullPolicy:Never to insure that the local copy of the image is used in our Kind cluster. Later, for remote deployments, we use image pullPolicy:IfNotPresent.
+This copies the image into the container that is running your single-node Kubernetes cluster for Kind. Once it is there, use an image PullPolicy:Never to insure that the local copy of the image is used in our Kind cluster. Later, for remote deployments, we use image pullPolicy:IfNotPresent.
 
 ### Deploy zqd into the local cluster with helm
 The K8s deployment and and service yaml for zqd is pretty simple. We use Helm 3 to parameterize the differences between local and remote deploys. (Note that there are good alternatives to Helm for this.) Helm can conveniently uninstall or upgrade zqd.
@@ -92,12 +92,13 @@ The commands we used in testing are detailed below.
 We used the AWS CLI version 2. Install intructions are here:
 https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html
 
-You must choose a region for the cluster. In the examples below, we use region us-east-1. (Hint: this is because us-east-1 is the lowest cost region for some S3 charges.)
+You must choose a region for the cluster. For the examples below, we used region us-east-1. (Hint: this is because us-east-1 is the lowest cost region for some S3 charges.) We set a default region with `aws configure` so it is not included in the CLI commands.
 
 Before starting, you will need to create a pem file for EKS to access EC2:
 https://docs.aws.amazon.com/cli/latest/userguide/cli-services-ec2-keypairs.html#creating-a-key-pair
-After creating the pem file according to the instructions in the doc, extract the public key with:
+After creating the pem file, extract the public key. If you already have a preferred key pair, just extract the public key.
 ```
+aws ec2 create-key-pair --key-name zqKeyPair --query 'KeyMaterial' --output text > zq-eks-test.pem
 ssh-keygen -y -f zq-eks-test.pem > zq-eks-test.pub
 ```
 We use AWS `eksctl` to create the cluster. To install eksctl on MacOS:
@@ -106,14 +107,13 @@ brew tap weaveworks/tap
 brew install weaveworks/tap/eksctl
 eksctl version
 ```
-After you have installed the AWS CLI
+Then create the cluster:
 ```
 eksctl create cluster \
 --name zqtest \
 --version 1.17 \
---region us-east-1 \
 --nodegroup-name standard-workers \
---node-type t3.large \
+--node-type t3.medium \
 --nodes 1 \
 --nodes-min 1 \
 --nodes-max 3 \
@@ -158,7 +158,6 @@ Create an ECR repo for zqd:
 ```
 aws ecr create-repository \
     --image-scanning-configuration scanOnPush=true \
-    --region us-east-1 \
     --repository-name zqd
 ```
 
