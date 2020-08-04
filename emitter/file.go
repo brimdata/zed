@@ -8,6 +8,7 @@ import (
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 type noClose struct {
@@ -33,20 +34,39 @@ func NewFile(path string, flags *zio.WriterFlags) (*zio.Writer, error) {
 	return NewFileWithSource(uri, flags, src)
 }
 
+func isTerminal(w io.Writer) bool {
+	if f, ok := w.(*os.File); ok {
+		if terminal.IsTerminal(int(f.Fd())) {
+			return true
+		}
+	}
+	return false
+}
+
 func NewFileWithSource(path iosrc.URI, flags *zio.WriterFlags, source iosrc.Source) (*zio.Writer, error) {
 	f, err := source.NewWriter(path)
 	if err != nil {
 		return nil, err
 	}
+
+	var wc io.WriteCloser
 	if path.Scheme == "stdio" {
-		// Don't close stdout in case we live inside something
-		// here that runs multiple instances of this to stdout.
-		f = &noClose{os.Stdout}
+		// Don't close stdio in case we live inside something
+		// that has multiple stdio users.
+		nc := &noClose{f}
+		if isTerminal(f) {
+			// Don't buffer terminal output.
+			wc = &noClose{f}
+		} else {
+			wc = bufwriter.New(nc)
+		}
+	} else {
+		wc = bufwriter.New(f)
 	}
 	// On close, zio.Writer.Close(), the zng WriteFlusher will be flushed
 	// then the bufwriter will closed (which will flush it's internal buffer
 	// then close the file)
-	w := detector.LookupWriter(bufwriter.New(f), flags)
+	w := detector.LookupWriter(wc, flags)
 	if w == nil {
 		return nil, unknownFormat(flags.Format)
 	}
