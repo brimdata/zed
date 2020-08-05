@@ -20,12 +20,12 @@ outputs:
       20200421/1587512288.06249439.zng.zar
       ===
       TYPE  LOG_ID                          START                DURATION       SIZE
-      chunk 20200422/1587518620.0622373.zng 1587512305.069789040 6314.992448261 21736
+      chunk 20200422/1587518620.0622373.zng 1587512305.069789040 6314.992448261 21351
       TYPE  LOG_ID                          INDEX_ID        INDEX_TYPE SIZE  KEYS.KEY
       index 20200422/1587518620.0622373.zng zdx-field-v     field      2538  int64
       index 20200422/1587518620.0622373.zng zdx-type-string type       15776 string
       TYPE  LOG_ID                           START                DURATION       SIZE
-      chunk 20200421/1587512288.06249439.zng 1587508830.068523240 3457.993971151 13054
+      chunk 20200421/1587512288.06249439.zng 1587508830.068523240 3457.993971151 13153
       TYPE  LOG_ID                           INDEX_ID        INDEX_TYPE SIZE KEYS.KEY
       index 20200421/1587512288.06249439.zng zdx-field-v     field      1869 int64
       index 20200421/1587512288.06249439.zng zdx-type-string type       9547 string

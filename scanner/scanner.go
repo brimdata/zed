@@ -4,16 +4,53 @@ import (
 	"context"
 	"sync/atomic"
 
+	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zqd/api"
 )
 
-// Scanner implements the proc.Proc interface.
-type Scanner struct {
+// ScannerAble is implemented by zbuf.Readers that provide an optimized
+// implementation of the Scanner interface.
+type ScannerAble interface {
+	NewScanner(ctx context.Context, filterExpr ast.BooleanExpr, s nano.Span) (Scanner, error)
+}
+
+// A Scanner is a zbuf.Batch source that also provides statistics.
+type Scanner interface {
+	Pull() (zbuf.Batch, error)
+	Stats() *ScannerStats
+}
+
+// ScannerStats holds Scanner statistics. It should be identical to
+// api.ScannerStats.
+type ScannerStats struct {
+	BytesRead      int64
+	BytesMatched   int64
+	RecordsRead    int64
+	RecordsMatched int64
+}
+
+// Accumulate updates its receiver by adding to it the values in ss.
+func (s *ScannerStats) Accumulate(ss *ScannerStats) {
+	s.BytesRead += ss.BytesRead
+	s.BytesMatched += ss.BytesMatched
+	s.RecordsRead += ss.RecordsRead
+	s.RecordsMatched += ss.RecordsMatched
+}
+
+// NewScanner returns a Scanner for reader that filters records by f and s.
+func NewScanner(ctx context.Context, reader zbuf.Reader, f filter.Filter, s nano.Span) Scanner {
+	return &scanner{
+		reader: reader,
+		filter: f,
+		span:   s,
+		ctx:    ctx,
+	}
+}
+
+type scanner struct {
 	reader zbuf.Reader
 	filter filter.Filter
 	span   nano.Span
@@ -26,24 +63,14 @@ type Scanner struct {
 	}
 }
 
-func NewScanner(ctx context.Context, reader zbuf.Reader, f filter.Filter, s nano.Span) *Scanner {
-	return &Scanner{
-		reader: reader,
-		filter: f,
-		span:   s,
-		ctx:    ctx,
-	}
-}
-
 var BatchSize = 100
 
-// Pull implements Proc.Pull.
-func (s *Scanner) Pull() (zbuf.Batch, error) {
+func (s *scanner) Pull() (zbuf.Batch, error) {
 	return zbuf.ReadBatch(s, BatchSize)
 }
 
-func (s *Scanner) Stats() api.ScannerStats {
-	return api.ScannerStats{
+func (s *scanner) Stats() *ScannerStats {
+	return &ScannerStats{
 		BytesRead:      atomic.LoadInt64(&s.stats.bytesRead),
 		BytesMatched:   atomic.LoadInt64(&s.stats.bytesMatched),
 		RecordsRead:    atomic.LoadInt64(&s.stats.recordsRead),
@@ -52,7 +79,7 @@ func (s *Scanner) Stats() api.ScannerStats {
 }
 
 // Read implements zbuf.Reader.Read.
-func (s *Scanner) Read() (*zng.Record, error) {
+func (s *scanner) Read() (*zng.Record, error) {
 	for {
 		if err := s.ctx.Err(); err != nil {
 			return nil, err
@@ -75,10 +102,3 @@ func (s *Scanner) Read() (*zng.Record, error) {
 		return rec, nil
 	}
 }
-
-// Done is required to implement proc.Proc interface. Ignore for now.
-func (s *Scanner) Done() {}
-
-// Parents is required to implement proc.Proc interface. Since Scanner will
-// always be the head of a flowgraph this should always return nil.
-func (s *Scanner) Parents() []proc.Proc { return nil }

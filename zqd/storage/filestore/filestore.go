@@ -135,7 +135,7 @@ func (s *Storage) Rewrite(ctx context.Context, zctx *resolver.Context, zr zbuf.R
 }
 
 func (s *Storage) write(ctx context.Context, zw zbuf.Writer, zctx *resolver.Context, zr zbuf.Reader) error {
-	out, err := driver.Compile(ctx, zngWriteProc, zctx, zr, driver.Config{})
+	out, err := driver.Compile(ctx, zngWriteProc, zctx, []zbuf.Reader{zr}, driver.Config{})
 	if err != nil {
 		return err
 	}
