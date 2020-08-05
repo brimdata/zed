@@ -12,10 +12,11 @@
 # checks that the MD5 hashes for the outputs still match the hashes stored
 # in the zq-sample-data repo.
 
-set -eo pipefail
+# We're intentionally not running with "set -eo pipefail" because we want to
+# let all permutations run and allow the final error text to be seen before
+# explicitly returning the intended error code.
 
 cd zq-sample-data
-
 scripts/check_md5sums.sh zng
 ZNG_SUCCESS="$?"
 echo
