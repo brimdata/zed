@@ -82,10 +82,19 @@ do
     echo -e "### $DESC\n" | tee "$MD"
     echo "|**<br>Tool**|**<br>Arguments**|**Input<br>Format**|**Output<br>Format**|**<br>Real**|**<br>User**|**<br>Sys**|" | tee -a "$MD"
     echo "|:----------:|:---------------:|:-----------------:|:------------------:|-----------:|-----------:|----------:|" | tee -a "$MD"
-    for INPUT in zeek zng tzng ndjson ; do
-      for OUTPUT in zeek zng tzng ndjson ; do
+    for INPUT in zeek zng zng-uncompressed tzng ndjson ; do
+      for OUTPUT in zeek zng zng-uncompressed tzng ndjson ; do
         echo -n "|\`zq\`|\`$zql\`|$INPUT|$OUTPUT|" | tee -a "$MD"
-        ALL_TIMES=$( ($TIME zq -i "$INPUT" -f "$OUTPUT" "$zql" $DATA/$INPUT/* > /dev/null) 2>&1)
+        if [[ $INPUT == "zng-uncompressed" ]]; then
+          INPUT_FMT="zng"
+        else
+          INPUT_FMT="$INPUT"
+        fi
+        if [[ $OUTPUT == "zng-uncompressed" ]]; then
+          ALL_TIMES=$( ($TIME zq -i "$INPUT_FMT" -f zng -znglz4blocksize 0 "$zql" $DATA/$INPUT/* > /dev/null) 2>&1)
+        else
+          ALL_TIMES=$( ($TIME zq -i "$INPUT_FMT" -f "$OUTPUT" "$zql" $DATA/$INPUT/* > /dev/null) 2>&1)
+        fi
         echo "$ALL_TIMES" | tr '\n' ' ' | awk '{ print $2 "|" $4 "|" $6 "|" }' | tee -a "$MD"
       done
     done
