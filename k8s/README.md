@@ -142,9 +142,6 @@ kubectl config set-context zqeks \
 kubectl config use-context zqeks
 ```
 
-## Tag and push images to ECR
-This is how you can push locally built images to ECR. When there is a build pipeline for Docker images set up with Jenkins (or Gitlab, etc.), then it will handle this process. It is pretty typical to install Jenkins for image builds into the EKS dev cluster. Github and Gitlab have features that do this too, and they are relatively inexpensive. (E.g. https://docs.github.com/en/actions/creating-actions/creating-a-docker-container-action)
-
 ### Pushing locally Docker images from your local dev machine to ECR
 You can push the Docker images build is the previos section to AWS ECR for deployment on EKS.
 
