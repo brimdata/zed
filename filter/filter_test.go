@@ -19,7 +19,7 @@ import (
 func compileFilter(filt string) (filter.Filter, error) {
 	// Parse the filter.  Any filter is a valid full zql query,
 	// it should parse to an AST with a top-level FilterProc node.
-	parsed, err := zql.Parse("", []byte(filt))
+	parsed, err := zql.ParseProc(filt)
 	if err != nil {
 		return nil, err
 	}

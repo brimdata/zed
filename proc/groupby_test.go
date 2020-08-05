@@ -272,7 +272,7 @@ func TestGroupbySystem(t *testing.T) {
 }
 
 func compileGroupBy(code string) (*ast.GroupByProc, error) {
-	parsed, err := zql.Parse("", []byte(code))
+	parsed, err := zql.ParseProc(code)
 	if err != nil {
 		return nil, err
 	}

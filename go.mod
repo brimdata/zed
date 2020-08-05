@@ -18,7 +18,8 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/klauspost/compress v1.10.3 // indirect
 	github.com/mccanne/charm v0.0.3-0.20191224190439-b05e1b7b1be3
-	github.com/mccanne/joe v0.0.0-20181124064909-25770742c256
+	github.com/mccanne/joe v0.0.0-20200731213236-7c7845acf98b
+	github.com/mitchellh/mapstructure v1.3.3
 	github.com/peterh/liner v1.1.0
 	github.com/pierrec/lz4/v4 v4.0.1
 	github.com/pmezard/go-difflib v1.0.0

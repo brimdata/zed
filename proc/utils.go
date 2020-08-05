@@ -29,7 +29,7 @@ func CompileTestProc(code string, ctx *Context, parent Proc) (Proc, error) {
 	// a wildcard filter and then pull out just the proc we care
 	// about below.
 	prog := fmt.Sprintf("* | %s", code)
-	parsed, err := zql.Parse("", []byte(prog))
+	parsed, err := zql.ParseProc(prog)
 	if err != nil {
 		return nil, err
 	}
