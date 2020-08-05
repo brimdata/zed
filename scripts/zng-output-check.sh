@@ -16,25 +16,6 @@ set -eo pipefail
 
 cd zq-sample-data
 
-mkdir -p zng && \
-for file in zeek-default/*
-do
-  zq -f zng "$file" \
-      | gzip -n > zng/"$(basename "$file" | sed 's/\.log\.gz//')".zng.gz
-done
-mkdir -p zng-uncompressed && \
-for file in zeek-default/*
-do
-  zq -f zng -znglz4blocksize 0 "$file" \
-      | gzip -n > zng-uncompressed/"$(basename "$file" | sed 's/\.log\.gz//')".zng.gz
-done
-mkdir -p tzng && \
-for file in zeek-default/*
-do
-  zq -f tzng "$file" \
-      | gzip -n > tzng/"$(basename "$file" | sed 's/\.log\.gz//')".tzng.gz
-done
-
 scripts/check_md5sums.sh zng
 ZNG_SUCCESS="$?"
 echo
@@ -43,8 +24,6 @@ ZNG_UNCOMPRESSED_SUCCESS="$?"
 echo
 scripts/check_md5sums.sh tzng
 TZNG_SUCCESS="$?"
-
-rm -rf "$DIR"
 
 if (( ZNG_SUCCESS == 0 && TZNG_SUCCESS == 0 && ZNG_UNCOMPRESSED_SUCCESS == 0 )); then
   exit 0
