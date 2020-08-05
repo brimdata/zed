@@ -73,6 +73,9 @@ test-zeek: bin/$(ZEEKPATH)
 perf-compare: build $(SAMPLEDATA)
 	scripts/comparison-test.sh
 
+zng-output-check: build $(SAMPLEDATA)
+	scripts/zng-output-check.sh
+
 # If the build recipe changes, please also change npm/build.
 build:
 	@mkdir -p dist

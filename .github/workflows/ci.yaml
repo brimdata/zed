@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - master
+      - zng-output-check
 
 jobs:
   test:
@@ -39,3 +40,8 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - uses: gaurav-nelson/github-action-markdown-link-check@v1
+  zng-output-check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - run: make zng-output-check
