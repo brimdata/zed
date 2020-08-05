@@ -14,7 +14,6 @@
 
 set -eo pipefail
 
-git clone --depth=1 https://github.com/brimsec/zq-sample-data.git
 cd zq-sample-data
 
 mkdir -p zng && \
