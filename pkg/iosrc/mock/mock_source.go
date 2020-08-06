@@ -50,10 +50,10 @@ func (mr *MockSourceMockRecorder) Exists(arg0 interface{}) *gomock.Call {
 }
 
 // NewReader mocks base method
-func (m *MockSource) NewReader(arg0 iosrc.URI) (io.ReadCloser, error) {
+func (m *MockSource) NewReader(arg0 iosrc.URI) (iosrc.Reader, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "NewReader", arg0)
-	ret0, _ := ret[0].(io.ReadCloser)
+	ret0, _ := ret[0].(iosrc.Reader)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
