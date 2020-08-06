@@ -2,17 +2,12 @@ package zngio
 
 import (
 	"bytes"
-	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
 
-	"github.com/brimsec/zq/ast"
-	"github.com/brimsec/zq/filter"
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/peeker"
-	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/pierrec/lz4/v4"
@@ -403,17 +398,4 @@ func (r *Reader) parseValue(id int, b []byte) (*zng.Record, error) {
 		return nil, err
 	}
 	return rec, nil
-}
-
-var _ scanner.ScannerAble = (*Reader)(nil)
-
-func (r *Reader) NewScanner(ctx context.Context, filterExpr ast.BooleanExpr, s nano.Span) (scanner.Scanner, error) {
-	var f filter.Filter
-	if filterExpr != nil {
-		var err error
-		if f, err = filter.Compile(filterExpr); err != nil {
-			return nil, err
-		}
-	}
-	return &zngScanner{ctx: ctx, reader: r, filter: f, span: s}, nil
 }
