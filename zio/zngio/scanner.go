@@ -33,13 +33,13 @@ func (s *zngScanner) Pull() (zbuf.Batch, error) {
 		if buf == nil || err != nil {
 			return nil, err
 		}
-		var recs []*zng.Record
 		if id < 0 {
 			if -id != zng.CtrlCompressed {
 				// Discard everything else.
 				continue
 			}
-			if recs, err = s.scanUncompressed(); err != nil {
+			recs, err := s.scanUncompressed()
+			if err != nil {
 				return nil, err
 			}
 			if len(recs) == 0 {
@@ -52,6 +52,7 @@ func (s *zngScanner) Pull() (zbuf.Batch, error) {
 			return nil, err
 		}
 		if rec != nil {
+			rec.CopyBody()
 			return zbuf.NewArray([]*zng.Record{rec}), nil
 		}
 	}

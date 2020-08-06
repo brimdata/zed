@@ -79,15 +79,6 @@ func (r *Reader) Read() (*zng.Record, error) {
 		if rec == nil {
 			return nil, err
 		}
-		id := rec.Type.ID()
-		sharedType := r.mapper.Map(id)
-		if sharedType == nil {
-			sharedType, err = r.mapper.Enter(id, rec.Type)
-			if err != nil {
-				return nil, err
-			}
-		}
-		rec.Type = sharedType
 		return rec, err
 	}
 }
@@ -399,11 +390,19 @@ func (r *Reader) parseValue(id int, b []byte) (*zng.Record, error) {
 	if typ == nil {
 		return nil, zng.ErrDescriptorInvalid
 	}
-	record := zng.NewVolatileRecord(typ, b)
-	if err := record.TypeCheck(); err != nil {
+	sharedType := r.mapper.Map(id)
+	if sharedType == nil {
+		var err error
+		sharedType, err = r.mapper.Enter(id, typ)
+		if err != nil {
+			return nil, err
+		}
+	}
+	rec := zng.NewVolatileRecord(sharedType, b)
+	if err := rec.TypeCheck(); err != nil {
 		return nil, err
 	}
-	return record, nil
+	return rec, nil
 }
 
 var _ scanner.ScannerAble = (*Reader)(nil)

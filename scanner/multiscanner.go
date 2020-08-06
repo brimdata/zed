@@ -2,6 +2,7 @@ package scanner
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/brimsec/zq/ast"
@@ -41,11 +42,12 @@ func NewMultiScanner(ctx context.Context, readers []zbuf.Reader, filterExpr ast.
 			scanners = append(scanners, NewScanner(ctx, r, f, span))
 		}
 	}
-	return &multiScanner{scanners: scanners}, nil
+	return &multiScanner{readers: readers, scanners: scanners}, nil
 }
 
 type multiScanner struct {
 	mu       sync.Mutex
+	readers  []zbuf.Reader
 	scanners []Scanner
 	stats    ScannerStats
 }
@@ -55,10 +57,17 @@ func (m *multiScanner) Pull() (zbuf.Batch, error) {
 	defer m.mu.Unlock()
 	for len(m.scanners) > 0 {
 		batch, err := m.scanners[0].Pull()
-		if batch != nil || err != nil {
+		if err != nil {
+			if _, ok := m.readers[0].(fmt.Stringer); ok {
+				err = fmt.Errorf("%s: %w", m.readers[0], err)
+			}
 			return batch, err
 		}
+		if batch != nil {
+			return batch, nil
+		}
 		m.stats.Accumulate(m.scanners[0].Stats())
+		m.readers = m.readers[1:]
 		m.scanners = m.scanners[1:]
 	}
 	return nil, nil
