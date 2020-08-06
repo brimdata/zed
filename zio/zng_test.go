@@ -42,7 +42,11 @@ func boomerang(t *testing.T, logs string, compress bool) {
 	in := []byte(strings.TrimSpace(logs) + "\n")
 	tzngSrc := tzngio.NewReader(bytes.NewReader(in), resolver.NewContext())
 	var rawzng Output
-	rawDst := zngio.NewWriter(&rawzng, zio.WriterFlags{ZngLZ4BlockSize: zio.DefaultZngLZ4BlockSize})
+	var zngLZ4BlockSize int
+	if compress {
+		zngLZ4BlockSize = zio.DefaultZngLZ4BlockSize
+	}
+	rawDst := zngio.NewWriter(&rawzng, zio.WriterFlags{ZngLZ4BlockSize: zngLZ4BlockSize})
 	require.NoError(t, zbuf.Copy(rawDst, tzngSrc))
 	require.NoError(t, rawDst.Flush())
 
