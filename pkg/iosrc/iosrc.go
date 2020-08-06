@@ -17,8 +17,15 @@ var schemes = map[string]Source{
 	"s3":    defaultS3Source,
 }
 
+type Reader interface {
+	io.Reader
+	io.ReaderAt
+	io.Seeker
+	io.Closer
+}
+
 type Source interface {
-	NewReader(URI) (io.ReadCloser, error)
+	NewReader(URI) (Reader, error)
 	NewWriter(URI) (io.WriteCloser, error)
 	Remove(URI) error
 	RemoveAll(URI) error
@@ -42,7 +49,7 @@ type ReplacerAble interface {
 	NewReplacer(URI) (io.WriteCloser, error)
 }
 
-func NewReader(uri URI) (io.ReadCloser, error) {
+func NewReader(uri URI) (Reader, error) {
 	source, err := GetSource(uri)
 	if err != nil {
 		return nil, err

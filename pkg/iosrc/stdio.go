@@ -13,7 +13,7 @@ var defaultStdioSource = &StdioSource{}
 
 type StdioSource struct{}
 
-func (f *StdioSource) NewReader(uri URI) (io.ReadCloser, error) {
+func (f *StdioSource) NewReader(uri URI) (Reader, error) {
 	return getStdioSource(uri)
 }
 
