@@ -116,7 +116,7 @@ func boomerangErr(t *testing.T, name, logs, errorMsg string, errorArgs ...interf
 	t.Run(name, func(t *testing.T) {
 		in := []byte(strings.TrimSpace(logs) + "\n")
 		zngSrc := tzngio.NewReader(bytes.NewReader(in), resolver.NewContext())
-		zngDst := zbuf.NopFlusher(tzngio.NewWriter(&output{}))
+		zngDst := tzngio.NewWriter(&output{})
 		err := zbuf.Copy(zngDst, zngSrc)
 		assert.Errorf(t, err, errorMsg, errorArgs...)
 	})
@@ -128,7 +128,7 @@ func boomerang(t *testing.T, name, logs string) {
 		var out output
 		in := []byte(strings.TrimSpace(logs) + "\n")
 		zngSrc := tzngio.NewReader(bytes.NewReader(in), resolver.NewContext())
-		zngDst := zbuf.NopFlusher(tzngio.NewWriter(&out))
+		zngDst := tzngio.NewWriter(&out)
 		err := zbuf.Copy(zngDst, zngSrc)
 		require.NoError(t, err)
 		assert.Equal(t, string(in), out.String())

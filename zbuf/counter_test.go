@@ -16,10 +16,6 @@ func (n *Sink) Write(rec *zng.Record) error {
 	return nil
 }
 
-func (n *Sink) Flush() error {
-	return nil
-}
-
 func TestCounter(t *testing.T) {
 	var count int64
 	var wg sync.WaitGroup

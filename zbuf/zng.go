@@ -68,33 +68,23 @@ func NewReadCloser(r Reader, c io.Closer) ReadCloser {
 	return extReadCloser{r, c}
 }
 
-func CopyWithContext(ctx context.Context, dst WriteFlusher, src Reader) error {
-	var err error
-	for ctx.Err() == nil {
-		var rec *zng.Record
-		rec, err = src.Read()
+func CopyWithContext(ctx context.Context, dst Writer, src Reader) error {
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		rec, err := src.Read()
 		if err != nil || rec == nil {
-			break
+			return err
 		}
-		err = dst.Write(rec)
-		if err != nil {
-			break
+		if err := dst.Write(rec); err != nil {
+			return err
 		}
-	}
-	dstErr := dst.Flush()
-	switch {
-	case err != nil:
-		return err
-	case dstErr != nil:
-		return dstErr
-	default:
-		return ctx.Err()
 	}
 }
 
-// Copy copies src to dst a la io.Copy.  The src reader is read from
-// while the dst writer is written to and closed.
-func Copy(dst WriteFlusher, src Reader) error {
+// Copy copies src to dst a la io.Copy.
+func Copy(dst Writer, src Reader) error {
 	return CopyWithContext(context.Background(), dst, src)
 }
 

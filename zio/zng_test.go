@@ -28,7 +28,7 @@ func (o *Output) Close() error {
 
 func identity(t *testing.T, logs string) {
 	var out Output
-	dst := zbuf.NopFlusher(tzngio.NewWriter(&out))
+	dst := tzngio.NewWriter(&out)
 	in := []byte(strings.TrimSpace(logs) + "\n")
 	src := tzngio.NewReader(bytes.NewReader(in), resolver.NewContext())
 	err := zbuf.Copy(dst, src)
@@ -43,13 +43,13 @@ func boomerang(t *testing.T, logs string, compress bool) {
 	tzngSrc := tzngio.NewReader(bytes.NewReader(in), resolver.NewContext())
 	var rawzng Output
 	rawDst := zngio.NewWriter(&rawzng, zio.WriterFlags{ZngLZ4BlockSize: zio.DefaultZngLZ4BlockSize})
-	err := zbuf.Copy(rawDst, tzngSrc)
-	require.NoError(t, err)
+	require.NoError(t, zbuf.Copy(rawDst, tzngSrc))
+	require.NoError(t, rawDst.Flush())
 
 	var out Output
 	rawSrc := zngio.NewReader(bytes.NewReader(rawzng.Bytes()), resolver.NewContext())
-	tzngDst := zbuf.NopFlusher(tzngio.NewWriter(&out))
-	err = zbuf.Copy(tzngDst, rawSrc)
+	tzngDst := tzngio.NewWriter(&out)
+	err := zbuf.Copy(tzngDst, rawSrc)
 	if assert.NoError(t, err) {
 		assert.Equal(t, in, out.Bytes())
 	}
@@ -58,13 +58,13 @@ func boomerang(t *testing.T, logs string, compress bool) {
 func boomerangZJSON(t *testing.T, logs string) {
 	tzngSrc := tzngio.NewReader(strings.NewReader(logs), resolver.NewContext())
 	var zjsonOutput Output
-	zjsonDst := zbuf.NopFlusher(zjsonio.NewWriter(&zjsonOutput))
+	zjsonDst := zjsonio.NewWriter(&zjsonOutput)
 	err := zbuf.Copy(zjsonDst, tzngSrc)
 	require.NoError(t, err)
 
 	var out Output
 	zjsonSrc := zjsonio.NewReader(bytes.NewReader(zjsonOutput.Bytes()), resolver.NewContext())
-	tzngDst := zbuf.NopFlusher(tzngio.NewWriter(&out))
+	tzngDst := tzngio.NewWriter(&out)
 	err = zbuf.Copy(tzngDst, zjsonSrc)
 	if assert.NoError(t, err) {
 		assert.Equal(t, strings.TrimSpace(logs), strings.TrimSpace(out.String()))

@@ -19,9 +19,9 @@
 // below in the hiearchy where the key is the first key found in that stream and
 // the value is the offset or the stream in the file below.
 //
-// zdx.Reader implements zbuf.Reader and zdx.Writer implements zbuf.Writer and
-// zbuf.WriteFlusher so generic zng functionality applies, e.g., a Reader can be
-// copied to a Writer using zbuf.Copy().
+// zdx.Reader implements zbuf.Reader and zdx.Writer implements zbuf.Writer so
+// generic zng functionality applies, e.g., a Reader can be copied to a Writer
+// using zbuf.Copy().
 package zdx
 
 import (

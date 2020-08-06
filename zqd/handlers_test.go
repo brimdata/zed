@@ -81,7 +81,7 @@ func TestSearchNoCtrl(t *testing.T) {
 		msgs = append(msgs, i)
 	})
 	buf := bytes.NewBuffer(nil)
-	w := zbuf.NopFlusher(tzngio.NewWriter(buf))
+	w := tzngio.NewWriter(buf)
 	require.NoError(t, zbuf.Copy(w, r))
 	require.Equal(t, test.Trim(src), buf.String())
 	require.Equal(t, 0, len(msgs))
@@ -1032,7 +1032,7 @@ func archiveStat(t *testing.T, client *api.Connection, space api.SpaceID) string
 	r, err := client.ArchiveStat(context.Background(), space, nil)
 	require.NoError(t, err)
 	buf := bytes.NewBuffer(nil)
-	w := zbuf.NopFlusher(tzngio.NewWriter(buf))
+	w := tzngio.NewWriter(buf)
 	require.NoError(t, zbuf.Copy(w, r))
 	return buf.String()
 }
@@ -1045,7 +1045,7 @@ func indexSearch(t *testing.T, client *api.Connection, space api.SpaceID, indexN
 	r, err := client.IndexSearch(context.Background(), space, req, nil)
 	require.NoError(t, err)
 	buf := bytes.NewBuffer(nil)
-	w := zbuf.NopFlusher(tzngio.NewWriter(buf))
+	w := tzngio.NewWriter(buf)
 	var msgs []interface{}
 	r.SetOnCtrl(func(i interface{}) {
 		msgs = append(msgs, i)
@@ -1071,7 +1071,7 @@ func search(t *testing.T, client *api.Connection, space api.SpaceID, prog string
 	r, err := client.Search(context.Background(), req, nil)
 	require.NoError(t, err)
 	buf := bytes.NewBuffer(nil)
-	w := zbuf.NopFlusher(tzngio.NewWriter(buf))
+	w := tzngio.NewWriter(buf)
 	var msgs []interface{}
 	r.SetOnCtrl(func(i interface{}) {
 		msgs = append(msgs, i)
