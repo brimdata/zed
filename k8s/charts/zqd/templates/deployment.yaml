@@ -4,6 +4,10 @@ metadata:
   name: {{ include "zqd.fullname" . }}
   labels:
     {{- include "zqd.labels" . | nindent 4 }}
+  annotations:
+    # This timestamp annotation is added so 'helm update'
+    # will always result in yaml changes and trigger an upgrade
+    timestamp: "{{ date "20060102150405" .Release.Time }}"
 spec:
 {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
@@ -33,20 +37,25 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/go/bin/zqd"]
+          args: ["listen", "-l", "localhost:9867", "-datadir", "/spaces"] 
           ports:
             - name: http
-              containerPort: 80
+              containerPort: 9867
               protocol: TCP
           livenessProbe:
             httpGet:
-              path: /
+              path: /status
               port: http
           readinessProbe:
             httpGet:
-              path: /
+              path: /status
               port: http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: /spaces
+              name: spaces-volume     
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -59,3 +68,7 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      volumes:
+        - name: spaces-volume
+          emptyDir: {}
+  

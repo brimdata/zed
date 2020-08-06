@@ -2,11 +2,15 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+configyaml: false
+
 replicaCount: 1
 
 image:
-  repository: "docker.io/library/"
-  pullPolicy: IfNotPresent
+  repository: "localhost:5000/"
+  # when not using docker registry:2 use repository: "docker.io/library/"
+  pullPolicy: Always
+  # have to use this pull policy if using a latest tag
   # Overrides the image tag whose default is the chart appVersion.
   tag: "zqd"
 

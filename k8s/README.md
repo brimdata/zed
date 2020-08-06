@@ -27,18 +27,13 @@ brew link --overwrite kubernetes-cli
 ```
 Connect to this helm chart repo:
 ```
-helm repo add stable https://kubernetes-charts.storage.googleapis.com/
+helm repo add bitnami https://charts.bitnami.com/bitnami
 ```
-
 ### Create a Kubernetes cluster with Kind
-In the k8s directory, there is a `create-cluster.sh` shell script to automate these steps. The manual procedure is described here.
-```
-kind create cluster --name zq-local
-```
-This starts a container image within Docker to host a single-node Kubernetes cluster. Later, when you no longer need the cluster, you can remove it with:
-```
-kind delete cluster --name zq-local
-```
+In the k8s directory, there is a `kind-with-registry.sh` shell script to automate these steps. It creates a kind cluster that will connect to the local docker registry. It will create the docker registry if it does not already exist. This is based on the instructions here:
+https://kind.sigs.k8s.io/docs/user/local-registry/
+
+This starts a container image within Docker to host a single-node Kubernetes cluster. 
 After the Kind cluster has come up, check to see if its pods are running with:
 ```
 kubectl get pod -A
@@ -58,11 +53,12 @@ There is a Dockerfile in the root directory. This Dockefile does a 2-stage build
 
 The following command builds and labels the container image:
 ```
-docker build --pull --rm -t zqd:latest .
+DOCKER_BUILDKIT=1 docker build --pull --rm \
+  -t "zqd:latest" -t "localhost:5000/zqd:latest" .
 ```
-The "killer feature" of Kind is that it makes it very easy to copy container images into the local cluster without needing an image repo. To load the image into your Kind cluster:
+Notive this adds a tags for loading the image into the local docker registry creaeted by kind-with-registry.sh. To load the image into the registry:
 ```
-kind load docker-image --name zq-local zqd:latest
+docker push "localhost:5000/zqd:latest"
 ```
 This copies the image into the container that is running your single-node Kubernetes cluster for Kind. Once it is there, use an image PullPolicy:Never to insure that the local copy of the image is used in our Kind cluster. Later, for remote deployments, we use image pullPolicy:IfNotPresent.
 
@@ -71,13 +67,18 @@ The K8s deployment and and service yaml for zqd is pretty simple. We use Helm 3 
 
 The helm 3 chart is in k8s/charts/zqd. To install zqd with the helm chart:
 ```
-helm install zqd-test-1 charts/zqd
+helm upgrade zqd-test-1 charts/zqd --install
 ```
+This will install the chart if it is not yet present, or upgrade it to latest if it is installed. (The helm chart adds a timestamp as an annotation to the deployment, so it will always restart the pods.)
+
 You can confirm the pod has started with:
 ```
 kubectl get pod
 ```
-NOTE: this is WIP, and the pod does not work yet! It will stay in CrashLoopBackoff.
+And view Helm installs with:
+```
+helm ls
+```
 
 ## WIP: Deploying the ZQ daemon to an AWS EKS cluster
 
@@ -183,9 +184,27 @@ kubectl create secret generic papertrail-destination --from-literal=papertrail-d
 kubectl create -f https://help.papertrailapp.com/assets/files/papertrail-logspout-daemonset.yml
 ```
 
+# Troubleshooting
+## Shell into a K8s pod
+```
+kubectl get pod
+```
+Copy the pod id, thensub it into:
+```
+kubectl exec -it zqd-test-1-XXXXXXXX-99999 -- sh
+```
 
+## Problems with the Docker containers
+Sometime a problem with the container will prevent it from starting in K8s, but you may be able to shell into the container in Docker to trouble-shoot. 
+```
+docker run -it zqd:latest sh
+```
 
+# Tearing down the environment
 
-
+Later, when you no longer need the cluster, you can remove it with:
+```
+kind delete cluster --name zq-local
+```
 
 

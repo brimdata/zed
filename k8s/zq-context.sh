@@ -1,7 +1,7 @@
 #!/bin/bash
 set -x #echo on
+set -o errexit
 
-kind create cluster --name zq-local
 kubectl create namespace zq
 kubectl config set-context zq \
   --namespace=zq \
