@@ -7,6 +7,7 @@ import (
 	"io"
 	"sort"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/brimsec/zq/ast"
@@ -408,14 +409,23 @@ func TestGroupbyUnit(t *testing.T) {
 }
 
 type countReader struct {
-	n int
-	r zbuf.Reader
+	mu sync.Mutex
+	n  int
+	r  zbuf.Reader
+}
+
+func (cr *countReader) records() int {
+	cr.mu.Lock()
+	defer cr.mu.Unlock()
+	return cr.n
 }
 
 func (cr *countReader) Read() (*zng.Record, error) {
 	rec, err := cr.r.Read()
 	if rec != nil {
+		cr.mu.Lock()
 		cr.n++
+		cr.mu.Unlock()
 	}
 	return rec, err
 }
@@ -495,7 +505,7 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 			cb: func(n int) {
 				if inputSortKey != "" {
 					if n == uniqueIpsPerTs {
-						require.Less(t, cr.n, totRecs)
+						require.Less(t, cr.records(), totRecs)
 					}
 				}
 			},
