@@ -38,7 +38,7 @@ spec:
           image: "{{ .Values.image.repository }}{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["/go/bin/zqd"]
-          args: ["listen", "-l", "localhost:9867", "-datadir", "/spaces"] 
+          args: ["listen", "-l", ":9867", "-datadir", "/spaces"] 
           ports:
             - name: http
               containerPort: 9867

@@ -33,23 +33,21 @@ helm repo add bitnami https://charts.bitnami.com/bitnami
 In the k8s directory, there is a `kind-with-registry.sh` shell script to automate these steps. It creates a kind cluster that will connect to the local docker registry. It will create the docker registry if it does not already exist. This is based on the instructions here:
 https://kind.sigs.k8s.io/docs/user/local-registry/
 
+```
+./kind-with-registry.sh
+./zq-context.sh
+```
+
 This starts a container image within Docker to host a single-node Kubernetes cluster. 
+We then create a 'zq' namespace in which to deploy our pods, and a corrresponding 'zq' context to set the zq namespace as default for subsequent kubectl and helm commands.
+
 After the Kind cluster has come up, check to see if its pods are running with:
 ```
 kubectl get pod -A
 ```
-We will create a 'zq' namespace in which to deploy our pods, and a corrresponding 'zq' context to set the zq namespace as default for subsequent kubectl and helm commands:
-```
-kubectl create namespace zq
-kubectl config set-context zq \
-  --namespace=zq \
-  --cluster=kind-zq-local \
-  --user=kind-zq-local
-kubectl config use-context zq
-```
 
 ### Build a zqd image with Docker
-There is a Dockerfile in the root directory. This Dockefile does a 2-stage build to produce a relatively small image containing the zqd binary. It is structured to cache intermediate results so it runs faster on subsequent builds.
+There is a Dockerfile in the root directory. This Dockerfile does a 2-stage build to produce a relatively small image containing the zqd binary. It is structured to cache intermediate results so it runs faster on subsequent builds.
 
 The following command builds and labels the container image:
 ```
@@ -79,6 +77,21 @@ And view Helm installs with:
 ```
 helm ls
 ```
+### Testing connectivity to zqd
+A simple test for the zqd is to send a /status request. This is used for the K8s liveness probe. Substitute the pod id into a port-forward command:
+
+```
+kubectl port-forward zqd-test-1-66b5f9dc8-8dshh 9867:9867
+```
+And in another console, use curl:
+```
+curl -v http://localhost:9867/status
+```
+You should get an 'ok' response.
+
+### Using the hosted zqd with Brim
+
+WIP!
 
 ## WIP: Deploying the ZQ daemon to an AWS EKS cluster
 
@@ -199,6 +212,11 @@ Sometime a problem with the container will prevent it from starting in K8s, but 
 ```
 docker run -it zqd:latest sh
 ```
+## Ports in K8s containers
+In order for the kubelet liveness check to work, zqd must be listening on 0.0.0.0:9867. 
+For `kubectl port-forward` to work, zqd must be listening on 127.0.0.1:9867.
+To get this behavior, we set the command line flag `zqd listen -l :9867` -- so it will listen to the socket for all hosts.
+
 
 # Tearing down the environment
 
