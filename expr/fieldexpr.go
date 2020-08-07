@@ -42,39 +42,19 @@ func (ai *arrayIndex) apply(e zng.Value) zng.Value {
 	return el
 }
 
-type fieldRead struct {
-	field string
-}
+type fieldRead string
 
-func (fr *fieldRead) apply(e zng.Value) zng.Value {
-	recType, ok := e.Type.(*zng.TypeRecord)
+func (f fieldRead) apply(v zng.Value) zng.Value {
+	recType, ok := v.Type.(*zng.TypeRecord)
 	if !ok {
 		// field reference on non-record type
 		return zng.Value{}
 	}
-
-	// XXX searching the list of columns for every record is
-	// expensive, but we can receive records with different
-	// types so caching this isn't straightforward.
-	for n, col := range recType.Columns {
-		if col.Name == fr.field {
-			var v []byte
-			it := e.Iter()
-			for i := 0; i <= n; i++ {
-				if it.Done() {
-					return zng.Value{}
-				}
-				var err error
-				v, _, err = it.Next()
-				if err != nil {
-					return zng.Value{}
-				}
-			}
-			return zng.Value{col.Type, v}
-		}
+	fv, err := zng.NewRecord(recType, v.Bytes).ValueByField(string(f))
+	if err != nil {
+		return zng.Value{}
 	}
-	// record doesn't have the named field
-	return zng.Value{}
+	return fv
 }
 
 // CompileFieldExpr() takes a FieldExpr AST (which represents either a
@@ -109,7 +89,7 @@ outer:
 				ops = append([]fieldop{&arrayIndex{idx}}, ops...)
 				node = op.Field
 			case "RecordFieldRead":
-				ops = append([]fieldop{&fieldRead{op.Param}}, ops...)
+				ops = append([]fieldop{fieldRead(op.Param)}, ops...)
 				node = op.Field
 			default:
 				return nil, fmt.Errorf("unknown FieldCall: %s", op.Fn)
