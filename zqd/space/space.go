@@ -3,9 +3,10 @@ package space
 import (
 	"context"
 	"fmt"
-	"path/filepath"
+	"path"
 	"sync"
 
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/storage"
@@ -105,13 +106,13 @@ func (g *guard) acquireForDelete() error {
 	return nil
 }
 
-func loadSpaces(path string, conf config) ([]Space, error) {
-	datapath := conf.DataPath
-	if datapath == "." {
-		datapath = path
+func loadSpaces(p iosrc.URI, conf config) ([]Space, error) {
+	datapath := conf.DataURI
+	if datapath.IsZero() {
+		datapath = p
 	}
 
-	id := api.SpaceID(filepath.Base(path))
+	id := api.SpaceID(path.Base(p.Path))
 	switch conf.Storage.Kind {
 	case storage.FileStore:
 		store, err := filestore.Load(datapath)
@@ -120,7 +121,7 @@ func loadSpaces(path string, conf config) ([]Space, error) {
 		}
 		s := &fileSpace{
 			spaceBase: spaceBase{id, store, newGuard()},
-			path:      path,
+			path:      p,
 			conf:      conf,
 		}
 		return []Space{s}, nil
@@ -132,7 +133,7 @@ func loadSpaces(path string, conf config) ([]Space, error) {
 		}
 		parent := &archiveSpace{
 			spaceBase: spaceBase{id, store, newGuard()},
-			path:      path,
+			path:      p,
 			conf:      conf,
 		}
 		ret := []Space{parent}

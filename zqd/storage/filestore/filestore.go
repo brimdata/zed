@@ -3,6 +3,7 @@ package filestore
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/fs"
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
@@ -35,9 +37,12 @@ var (
 	zngWriteProc = zql.MustParseProc("sort -r ts")
 )
 
-func Load(path string) (*Storage, error) {
+func Load(path iosrc.URI) (*Storage, error) {
+	if path.Scheme != "file" {
+		return nil, fmt.Errorf("unsupported FileStore scheme %q", path)
+	}
 	s := &Storage{
-		path:       path,
+		path:       path.Filepath(),
 		index:      zngio.NewTimeIndex(),
 		streamsize: defaultStreamSize,
 		wsem:       semaphore.NewWeighted(1),

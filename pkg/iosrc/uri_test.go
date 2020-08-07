@@ -1,6 +1,7 @@
 package iosrc
 
 import (
+	"encoding/json"
 	"os"
 	"path"
 	"path/filepath"
@@ -33,4 +34,29 @@ func TestURIRelative(t *testing.T) {
 	u1, err := ParseURI("relative/path")
 	require.NoError(t, err)
 	assert.Equal(t, expected, u1.String())
+}
+
+type jsonStruct struct{ Test URI }
+
+func TestURIJSON(t *testing.T) {
+	expected := "s3://test-bucket/test/key"
+	u, err := ParseURI(expected)
+	require.NoError(t, err)
+	d, err := json.Marshal(jsonStruct{u})
+	require.NoError(t, err)
+	var out jsonStruct
+	require.NoError(t, json.Unmarshal(d, &out))
+	assert.Equal(t, expected, out.Test.String())
+}
+
+func TestURIParseEmpty(t *testing.T) {
+	u, err := ParseURI("")
+	require.NoError(t, err)
+	assert.Equal(t, u, URI{})
+	assert.True(t, u.IsZero())
+}
+
+func TestURISerializeEmpty(t *testing.T) {
+	var u URI
+	assert.Equal(t, "", u.String())
 }

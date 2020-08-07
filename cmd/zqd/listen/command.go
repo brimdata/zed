@@ -12,7 +12,6 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"path/filepath"
 
 	"github.com/brimsec/zq/cmd/zqd/logger"
 	"github.com/brimsec/zq/cmd/zqd/root"
@@ -75,7 +74,7 @@ type Command struct {
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.StringVar(&c.listenAddr, "l", ":9867", "[addr]:port to listen on")
-	f.StringVar(&c.conf.Root, "datadir", ".", "data directory")
+	f.StringVar(&c.conf.Root, "data", "", "data location")
 	f.StringVar(&c.zeekRunnerPath, "zeekrunner", "", "path to command that generates zeek logs from pcap data")
 	f.BoolVar(&c.pprof, "pprof", false, "add pprof routes to api")
 	f.BoolVar(&c.prom, "prometheus", false, "add prometheus metrics routes to api")
@@ -128,11 +127,6 @@ func (c *Command) Run(args []string) error {
 }
 
 func (c *Command) init() error {
-	var err error
-	c.conf.Root, err = filepath.Abs(c.conf.Root)
-	if err != nil {
-		return err
-	}
 	if err := c.loadConfigFile(); err != nil {
 		return err
 	}

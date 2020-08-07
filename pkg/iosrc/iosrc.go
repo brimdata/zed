@@ -81,6 +81,14 @@ func Remove(uri URI) error {
 	return source.Remove(uri)
 }
 
+func RemoveAll(uri URI) error {
+	source, err := GetSource(uri)
+	if err != nil {
+		return err
+	}
+	return source.RemoveAll(uri)
+}
+
 func GetSource(uri URI) (Source, error) {
 	scheme := getScheme(uri)
 	source, ok := schemes[scheme]
