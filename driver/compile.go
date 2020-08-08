@@ -27,7 +27,7 @@ type Config struct {
 // and compiles it into a runnable flowgraph, returning a
 // proc.MuxOutput that which brings together all of the flowgraphs
 // tails, and is ready to be Pull()'d from.
-func Compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, readers []zbuf.Reader, cfg Config) (*MuxOutput, error) {
+func Compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader, cfg Config) (*MuxOutput, error) {
 	if cfg.Logger == nil {
 		cfg.Logger = zap.NewNop()
 	}
@@ -46,8 +46,8 @@ func Compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, read
 		}
 		setGroupByProcInputSortDir(program, cfg.ReaderSortKey, dir)
 	}
-	filterAst, program := liftFilter(program)
-	scanner, err := scanner.NewMultiScanner(ctx, readers, filterAst, cfg.Span)
+	filterExpr, program := liftFilter(program)
+	scanner, err := scanner.NewScanner(ctx, reader, filterExpr, cfg.Span)
 	if err != nil {
 		return nil, err
 	}
@@ -65,9 +65,9 @@ func Compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, read
 }
 
 // liftFilter removes the filter at the head of the flowgraph AST, if
-// one is present, and returns it and the modified flowgraph AST. If
-// the flowgraph does not start with a filter, it returns nil and the
-// unmodified flowgraph.
+// one is present, and returns its ast.BooleanExpr and the modified
+// flowgraph AST. If the flowgraph does not start with a filter, it
+// returns nil and the unmodified flowgraph.
 func liftFilter(p ast.Proc) (ast.BooleanExpr, ast.Proc) {
 	if fp, ok := p.(*ast.FilterProc); ok {
 		pass := &ast.PassProc{

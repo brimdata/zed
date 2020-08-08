@@ -131,7 +131,7 @@ func Import(ctx context.Context, ark *Archive, zctx *resolver.Context, r zbuf.Re
 		return err
 	}
 
-	fg, err := driver.Compile(ctx, proc, zctx, []zbuf.Reader{r}, driver.Config{})
+	fg, err := driver.Compile(ctx, proc, zctx, r, driver.Config{})
 	if err != nil {
 		return err
 	}

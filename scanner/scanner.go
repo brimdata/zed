@@ -40,14 +40,25 @@ func (s *ScannerStats) Accumulate(ss *ScannerStats) {
 	s.RecordsMatched += ss.RecordsMatched
 }
 
-// NewScanner returns a Scanner for reader that filters records by f and s.
-func NewScanner(ctx context.Context, reader zbuf.Reader, f filter.Filter, s nano.Span) Scanner {
-	return &scanner{
-		reader: reader,
-		filter: f,
-		span:   s,
-		ctx:    ctx,
+// NewScanner returns a Scanner for r that filters records by filterExpr and s.
+func NewScanner(ctx context.Context, r zbuf.Reader, filterExpr ast.BooleanExpr, s nano.Span) (Scanner, error) {
+	var sa ScannerAble
+	if f, ok := r.(*zbuf.File); ok {
+		sa, _ = f.Reader.(ScannerAble)
+	} else {
+		sa, _ = r.(ScannerAble)
 	}
+	if sa != nil {
+		return sa.NewScanner(ctx, filterExpr, s)
+	}
+	var f filter.Filter
+	if filterExpr != nil {
+		var err error
+		if f, err = filter.Compile(filterExpr); err != nil {
+			return nil, err
+		}
+	}
+	return &scanner{reader: r, filter: f, span: s, ctx: ctx}, nil
 }
 
 type scanner struct {
@@ -55,12 +66,7 @@ type scanner struct {
 	filter filter.Filter
 	span   nano.Span
 	ctx    context.Context
-	stats  struct {
-		bytesRead      int64
-		bytesMatched   int64
-		recordsRead    int64
-		recordsMatched int64
-	}
+	stats  ScannerStats
 }
 
 var BatchSize = 100
@@ -71,10 +77,10 @@ func (s *scanner) Pull() (zbuf.Batch, error) {
 
 func (s *scanner) Stats() *ScannerStats {
 	return &ScannerStats{
-		BytesRead:      atomic.LoadInt64(&s.stats.bytesRead),
-		BytesMatched:   atomic.LoadInt64(&s.stats.bytesMatched),
-		RecordsRead:    atomic.LoadInt64(&s.stats.recordsRead),
-		RecordsMatched: atomic.LoadInt64(&s.stats.recordsMatched),
+		BytesRead:      atomic.LoadInt64(&s.stats.BytesRead),
+		BytesMatched:   atomic.LoadInt64(&s.stats.BytesMatched),
+		RecordsRead:    atomic.LoadInt64(&s.stats.RecordsRead),
+		RecordsMatched: atomic.LoadInt64(&s.stats.RecordsMatched),
 	}
 }
 
@@ -88,14 +94,14 @@ func (s *scanner) Read() (*zng.Record, error) {
 		if err != nil || rec == nil {
 			return nil, err
 		}
-		atomic.AddInt64(&s.stats.bytesRead, int64(len(rec.Raw)))
-		atomic.AddInt64(&s.stats.recordsRead, 1)
+		atomic.AddInt64(&s.stats.BytesRead, int64(len(rec.Raw)))
+		atomic.AddInt64(&s.stats.RecordsRead, 1)
 		if s.span != nano.MaxSpan && !s.span.Contains(rec.Ts()) ||
 			s.filter != nil && !s.filter(rec) {
 			continue
 		}
-		atomic.AddInt64(&s.stats.bytesMatched, int64(len(rec.Raw)))
-		atomic.AddInt64(&s.stats.recordsMatched, 1)
+		atomic.AddInt64(&s.stats.BytesMatched, int64(len(rec.Raw)))
+		atomic.AddInt64(&s.stats.RecordsMatched, 1)
 		// Copy the underlying buffer (if volatile) because next call to
 		// reader.Next() may overwrite said buffer.
 		rec.CopyBody()

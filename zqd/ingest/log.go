@@ -140,8 +140,9 @@ func (p *LogOp) start(ctx context.Context, ls LogStore) {
 	for _, warning := range p.warnings {
 		p.warningCh <- warning
 	}
-	r := zbuf.NewCombiner(p.readers, zbuf.RecordCompare(ls.NativeDirection()))
-	p.err = ls.Rewrite(ctx, p.zctx, r)
+	rc := zbuf.NewCombiner(p.readers, zbuf.RecordCompare(ls.NativeDirection()))
+	defer rc.Close()
+	p.err = ls.Rewrite(ctx, p.zctx, rc)
 	if err := p.closeFiles(); err != nil && p.err != nil {
 		p.err = err
 	}

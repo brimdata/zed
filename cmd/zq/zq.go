@@ -228,19 +228,9 @@ func (c *Command) Run(args []string) error {
 		defer logger.Close()
 	}
 
-	files, err := c.openInputs(paths)
+	readers, err := c.inputReaders(paths)
 	if err != nil {
 		return err
-	}
-	defer func() {
-		for _, f := range files {
-			f.Close()
-		}
-	}()
-
-	var readers []zbuf.Reader
-	for _, f := range files {
-		readers = append(readers, f)
 	}
 
 	wch := make(chan string, 5)
@@ -249,16 +239,18 @@ func (c *Command) Run(args []string) error {
 			readers[i] = zbuf.NewWarningReader(r, wch)
 		}
 	}
-
-	mux, err := driver.Compile(context.Background(), query, c.zctx, readers, driver.Config{
-		Warnings: wch,
-	})
-	if err != nil {
-		return err
-	}
+	reader := zbuf.NewCombiner(readers, zbuf.CmpTimeForward)
+	defer reader.Close()
 
 	writer, err := c.openOutput()
 	if err != nil {
+		return err
+	}
+	mux, err := driver.Compile(context.Background(), query, c.zctx, reader, driver.Config{
+		Warnings: wch,
+	})
+	if err != nil {
+		writer.Close()
 		return err
 	}
 	d := driver.NewCLI(writer)
@@ -276,13 +268,13 @@ func (c *Command) errorf(format string, args ...interface{}) {
 	_, _ = fmt.Fprintf(os.Stderr, format, args...)
 }
 
-func (c *Command) openInputs(paths []string) ([]*zbuf.File, error) {
+func (c *Command) inputReaders(paths []string) ([]zbuf.Reader, error) {
 	cfg := detector.OpenConfig{
 		Format:         c.ReaderFlags.Format,
 		JSONTypeConfig: c.jsonTypeConfig,
 		JSONPathRegex:  c.jsonPathRegexp,
 	}
-	var files []*zbuf.File
+	var readers []zbuf.Reader
 	for _, path := range paths {
 		if path == "-" {
 			path = detector.StdinPath
@@ -296,9 +288,9 @@ func (c *Command) openInputs(paths []string) ([]*zbuf.File, error) {
 			c.errorf("%s\n", err)
 			continue
 		}
-		files = append(files, file)
+		readers = append(readers, file)
 	}
-	return files, nil
+	return readers, nil
 }
 
 func (c *Command) openOutput() (zbuf.WriteCloser, error) {
