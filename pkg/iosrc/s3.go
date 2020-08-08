@@ -25,7 +25,7 @@ func (s *s3Source) NewWriter(u URI) (io.WriteCloser, error) {
 	return w, wrapErr(err)
 }
 
-func (s *s3Source) NewReader(u URI) (io.ReadCloser, error) {
+func (s *s3Source) NewReader(u URI) (Reader, error) {
 	r, err := s3io.NewReader(u.String(), s.Config)
 	return r, wrapErr(err)
 }

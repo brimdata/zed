@@ -15,7 +15,7 @@ type FileSource struct {
 	Perm os.FileMode
 }
 
-func (f *FileSource) NewReader(uri URI) (io.ReadCloser, error) {
+func (f *FileSource) NewReader(uri URI) (Reader, error) {
 	r, err := fs.Open(uri.Filepath())
 	return r, wrapfileError(uri, err)
 }
