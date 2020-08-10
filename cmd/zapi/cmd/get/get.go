@@ -104,7 +104,7 @@ func (c *Command) Run(args []string) error {
 	}
 	stream := api.NewZngSearch(r)
 	stream.SetOnCtrl(c.handleControl)
-	if err := zbuf.Copy(zbuf.NopFlusher(writer), stream); err != nil {
+	if err := zbuf.Copy(writer, stream); err != nil {
 		writer.Close()
 		if c.Context().Err() != nil {
 			return errors.New("search aborted")

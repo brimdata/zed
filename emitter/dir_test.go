@@ -38,8 +38,7 @@ func TestDirS3Source(t *testing.T) {
 	require.NoError(t, err)
 	w, err := NewDirWithSource(uri, "", os.Stderr, &zio.WriterFlags{Format: "tzng"}, src)
 	require.NoError(t, err)
-	err = zbuf.Copy(zbuf.NopFlusher(w), r)
-	require.NoError(t, err)
+	require.NoError(t, zbuf.Copy(w, r))
 }
 
 type nopCloser struct{ *bytes.Buffer }

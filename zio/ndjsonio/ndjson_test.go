@@ -53,7 +53,7 @@ func TestNDJSONWriter(t *testing.T) {
 			var out bytes.Buffer
 			w := NewWriter(&out)
 			r := tzngio.NewReader(strings.NewReader(c.input), resolver.NewContext())
-			require.NoError(t, zbuf.Copy(zbuf.NopFlusher(w), r))
+			require.NoError(t, zbuf.Copy(w, r))
 			NDJSONEq(t, c.output, out.String())
 		})
 	}
@@ -134,7 +134,7 @@ func runtestcase(t *testing.T, input, output string) {
 	w := NewWriter(&out)
 	r, err := NewReader(strings.NewReader(input), resolver.NewContext(), nil, "", "")
 	require.NoError(t, err)
-	require.NoError(t, zbuf.Copy(zbuf.NopFlusher(w), r))
+	require.NoError(t, zbuf.Copy(w, r))
 	NDJSONEq(t, output, out.String())
 }
 
@@ -356,7 +356,7 @@ func TestNDJSONTypeErrors(t *testing.T) {
 			err = r.configureTypes(typeConfig, c.defaultPath)
 			require.NoError(t, err)
 
-			err = zbuf.Copy(zbuf.NopFlusher(w), r)
+			err = zbuf.Copy(w, r)
 			if c.success {
 				require.NoError(t, err)
 			} else {

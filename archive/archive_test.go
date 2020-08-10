@@ -57,7 +57,7 @@ func indexQuery(t *testing.T, ark *Archive, query IndexQuery, opts ...FindOption
 	defer rc.Close()
 
 	var buf bytes.Buffer
-	w := zbuf.NopFlusher(tzngio.NewWriter(&buf))
+	w := tzngio.NewWriter(&buf)
 	require.NoError(t, zbuf.Copy(w, rc))
 
 	return buf.String()

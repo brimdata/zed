@@ -54,8 +54,8 @@ func (r *Reader) Seek(offset int64, whence int) (int64, error) {
 	return offset, nil
 }
 
-func (r *Reader) bytesRange(num int) string {
-	return fmt.Sprintf("bytes=%d-%d", r.offset, r.offset+int64(num)-1)
+func bytesRange(off int64, len int) string {
+	return fmt.Sprintf("bytes=%d-%d", off, off+int64(len)-1)
 }
 
 type writeAtBuf []byte
@@ -72,20 +72,23 @@ func (r *Reader) Read(p []byte) (int, error) {
 	if r.offset >= r.size {
 		return 0, io.EOF
 	}
+	return r.ReadAt(p, r.offset)
+}
+
+func (r *Reader) ReadAt(p []byte, off int64) (int, error) {
 	if len(p) == 0 {
 		return 0, nil
 	}
 	getObj := &s3.GetObjectInput{
 		Bucket: aws.String(r.bucket),
 		Key:    aws.String(r.key),
-		Range:  aws.String(r.bytesRange(len(p))),
+		Range:  aws.String(bytesRange(off, len(p))),
 	}
 	bytesDownloaded, err := r.downloader.Download(writeAtBuf(p), getObj)
 	if err != nil {
 		return 0, err
 	}
-
-	r.offset += bytesDownloaded
+	r.offset = off + bytesDownloaded
 
 	return int(bytesDownloaded), err
 }
