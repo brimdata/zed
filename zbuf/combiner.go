@@ -38,7 +38,6 @@ func CmpTimeReverse(a, b *zng.Record) bool {
 // that order.
 func NewCombiner(readers []Reader, cmp RecordCmpFn) ReadCloser {
 	if len(readers) == 1 {
-		// XXX
 		if rc, ok := readers[0].(ReadCloser); ok {
 			return rc
 		}
