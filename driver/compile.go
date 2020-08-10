@@ -2,6 +2,7 @@ package driver
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/brimsec/zq/ast"
@@ -50,6 +51,9 @@ func Compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, read
 	scanner, err := scanner.NewScanner(ctx, reader, filterExpr, cfg.Span)
 	if err != nil {
 		return nil, err
+	}
+	if stringer, ok := reader.(fmt.Stringer); ok {
+		scanner = &namedScanner{scanner, stringer.String()}
 	}
 	pctx := &proc.Context{
 		Context:     ctx,
@@ -359,6 +363,19 @@ func computeColumnsR(p ast.Proc, colset map[string]struct{}) (map[string]struct{
 	default:
 		panic("proc type not handled")
 	}
+}
+
+type namedScanner struct {
+	scanner.Scanner
+	name string
+}
+
+func (n *namedScanner) Pull() (zbuf.Batch, error) {
+	b, err := n.Scanner.Pull()
+	if err != nil {
+		err = fmt.Errorf("%s: %w", n.name, err)
+	}
+	return b, err
 }
 
 // scannerProc extends a scanner.Scanner to implement the proc.Proc interface.
