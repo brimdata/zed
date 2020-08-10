@@ -1,62 +1,37 @@
-deps = $(CURDIR)/deps
-
-PEGJS = $(deps)/bin/pegjs
-ROLLUP = $(deps)/bin/rollup
-PIGEON = $(deps)/bin/pigeon
-GOIMPORTS = $(deps)/bin/goimports
-
+GOIMPORTS_VERSION = v0.0.0-20200204192400-7124308813f3
 PEGJS_VERSION = 0.10.0
 PIGEON_VERSION = v1.0.1-0.20190520151103-9fec3898cef8
-GOIMPORTS_VERSION = v0.0.0-20200204192400-7124308813f3
 
-PEGJS_INSTALLED = $(shell test -x $(PEGJS) && $(PEGJS) --version)
-PIGEON_INSTALLED = $(shell test -d $(deps) && (cd $(deps); go list -m -f {{.Version}} github.com/mna/pigeon || echo ""))
-GOIMPORTS_INSTALLED = $(shell test -d $(deps) && (cd $(deps); go list -m -f {{.Version}} golang.org/x/tools || echo ""))
-
-PEGJS_ARGS = --allowed-start-rules start,Expression
+deps = $(CURDIR)/deps
+npm = npm --global --prefix $(deps)
 
 all: zql.go zql.js zql.es.js
 
 run: zql.go zql.js
 	go run ./main
 
-$(PEGJS):
-ifneq ($(PEGJS_VERSION),$(PEGJS_INSTALLED))
-	mkdir -p $(deps)
-	npm install --global --prefix $(deps) pegjs@$(PEGJS_VERSION) rollup @rollup/plugin-commonjs
-endif
-
-GODEPS :=
-ifneq ($(PIGEON_VERSION),$(PIGEON_INSTALLED))
-  GODEPS += github.com/mna/pigeon@$(PIGEON_VERSION)
-endif
-ifneq ($(GOIMPORTS_VERSION),$(GOIMPORTS_INSTALLED))
-  GODEPS += golang.org/x/tools/cmd/goimports@$(GOIMPORTS_VERSION)
-endif
-
-.PHONY: $(PIGEON) $(GOIMPORTS)
-$(PIGEON) $(GOIMPORTS):
-ifneq (,$(GODEPS))
+.PHONY: zql.go
+zql.go:
+ifeq "$(shell go version -m $(deps)/bin/goimports 2>&1 | fgrep $(GOIMPORTS_VERSION))" ""
 	mkdir -p $(deps)
 	echo 'module deps' > $(deps)/go.mod
-	cd $(deps) && GOBIN=$(deps)/bin go get $(GODEPS)
+	cd $(deps) && GOBIN=$(deps)/bin go get golang.org/x/tools/cmd/goimports@$(GOIMPORTS_VERSION)
 endif
-
-#
-# The actual parsers depend on additional files
-# (parser-support.*, reglob, etc.).  Actually building the parsers is
-# pretty cheap so just do that every time rather than trying to track
-# all the proper dependencies.
-#
-.PHONY: zql.go
-zql.go: $(PIGEON) $(GOIMPORTS)
-	cpp -DGO -E -P zql.peg | $(PIGEON) -o $@
-	$(GOIMPORTS) -w $@
+ifeq "$(shell go version -m $(deps)/bin/pigeon 2>&1 | fgrep $(PIGEON_VERSION))" ""
+	mkdir -p $(deps)
+	echo 'module deps' > $(deps)/go.mod
+	cd $(deps) && GOBIN=$(deps)/bin go get github.com/mna/pigeon@$(PIGEON_VERSION)
+endif
+	cpp -DGO -E -P zql.peg | $(deps)/bin/pigeon -o $@
+	$(deps)/bin/goimports -w $@
 
 .PHONY: zql.js
-zql.js: $(PEGJS)
-	cpp -E -P zql.peg | $(PEGJS) $(PEGJS_ARGS) -o $@
+zql.js:
+ifeq "$(shell $(deps)/bin/pegjs --version 2>&1 | fgrep $(PEGJS_VERSION))" ""
+	$(npm) install pegjs@$(PEGJS_VERSION) rollup @rollup/plugin-commonjs
+endif
+	cpp -E -P zql.peg | $(deps)/bin/pegjs --allowed-start-rules start,Expression -o $@
 
 .PHONY: zql.es.js
 zql.es.js: zql.js
-	$(ROLLUP) --format es --plugin commonjs -o $@ zql.js
+	$(deps)/bin/rollup --format es --plugin commonjs $^ -o $@
