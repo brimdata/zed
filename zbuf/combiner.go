@@ -32,19 +32,17 @@ func CmpTimeReverse(a, b *zng.Record) bool {
 	return !CmpTimeForward(a, b)
 }
 
-type Combiner struct {
-	readers []Reader
-	hol     []*zng.Record
-	done    []bool
-	less    RecordCmpFn
-}
-
-// NewCombiner returns a Combiner that merges zbuf.Readers into
+// NewCombiner returns a ReaderCloser that merges zbuf.Readers into
 // a single Reader. If the ordering of the input readers matches
 // the direction specified, the output records will maintain
 // that order.
-func NewCombiner(readers []Reader, cmp RecordCmpFn) *Combiner {
-	return &Combiner{
+func NewCombiner(readers []Reader, cmp RecordCmpFn) ReadCloser {
+	if len(readers) == 1 {
+		if rc, ok := readers[0].(ReadCloser); ok {
+			return rc
+		}
+	}
+	return &combiner{
 		readers: readers,
 		hol:     make([]*zng.Record, len(readers)),
 		done:    make([]bool, len(readers)),
@@ -52,7 +50,14 @@ func NewCombiner(readers []Reader, cmp RecordCmpFn) *Combiner {
 	}
 }
 
-func (c *Combiner) Read() (*zng.Record, error) {
+type combiner struct {
+	readers []Reader
+	hol     []*zng.Record
+	done    []bool
+	less    RecordCmpFn
+}
+
+func (c *combiner) Read() (*zng.Record, error) {
 	idx := -1
 	for k, l := range c.readers {
 		if c.done[k] {
@@ -81,7 +86,7 @@ func (c *Combiner) Read() (*zng.Record, error) {
 	return tup, nil
 }
 
-func (c *Combiner) closeReader(r Reader) error {
+func (c *combiner) closeReader(r Reader) error {
 	if closer, ok := r.(io.Closer); ok {
 		return closer.Close()
 	}
@@ -90,7 +95,7 @@ func (c *Combiner) closeReader(r Reader) error {
 
 // Close closes underlying Readers implementing the io.Closer
 // interface if they haven't already been closed.
-func (c *Combiner) Close() error {
+func (c *combiner) Close() error {
 	var err error
 	for k, r := range c.readers {
 		c.done[k] = true

@@ -11,7 +11,7 @@ import (
 )
 
 type Writer struct {
-	ow *offsetWriter // offset never points inside a compressed message block
+	ow *offsetWriter // offset never points inside a compressed value message block
 	cw *compressionWriter
 
 	encoder          *resolver.Encoder
@@ -40,6 +40,10 @@ func (w *Writer) write(p []byte) error {
 		_, err := w.cw.Write(p)
 		return err
 	}
+	return w.writeUncompressed(p)
+}
+
+func (w *Writer) writeUncompressed(p []byte) error {
 	_, err := w.ow.Write(p)
 	return err
 }
@@ -56,8 +60,7 @@ func (w *Writer) EndStream() error {
 	}
 	w.encoder.Reset()
 	w.streamRecords = 0
-	_, err := w.ow.Write([]byte{zng.CtrlEOS})
-	return err
+	return w.writeUncompressed([]byte{zng.CtrlEOS})
 }
 
 func (w *Writer) Write(r *zng.Record) error {
@@ -71,7 +74,7 @@ func (w *Writer) Write(r *zng.Record) error {
 			return err
 		}
 		w.buffer = b
-		if err := w.write(b); err != nil {
+		if err := w.writeUncompressed(b); err != nil {
 			return err
 		}
 	}
@@ -105,7 +108,7 @@ func (w *Writer) WriteControl(b []byte) error {
 	dst = append(dst, 0xff)
 	dst = zcode.AppendUvarint(dst, uint64(len(b)))
 	dst = append(dst, b...)
-	return w.write(dst)
+	return w.writeUncompressed(dst)
 }
 
 func (w *Writer) Flush() error {
@@ -158,9 +161,9 @@ func (c *compressionWriter) Flush() error {
 		c.header = zcode.AppendUvarint(c.header, uint64(zlen))
 	}
 	if zlen > 0 && len(c.header)+zlen < len(c.ubuf) {
-		// Compression succeeded and the compressed message block is
-		// smaller than the buffered messages, so write the compressed
-		// message block.
+		// Compression succeeded and the compressed value message block
+		// is smaller than the buffered messages, so write the
+		// compressed value message block.
 		if _, err := c.w.Write(c.header); err != nil {
 			return err
 		}
@@ -168,9 +171,9 @@ func (c *compressionWriter) Flush() error {
 			return err
 		}
 	} else {
-		// Compression failed or the compressed message block isn't
-		// smaller than the buffered messages, so write the buffered
-		// messages without compression.
+		// Compression failed or the compressed value message block
+		// isn't smaller than the buffered messages, so write the
+		// buffered messages without compression.
 		if _, err := c.w.Write(c.ubuf); err != nil {
 			return err
 		}

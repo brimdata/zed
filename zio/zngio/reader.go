@@ -2,12 +2,17 @@ package zngio
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
 
+	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/filter"
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/peeker"
+	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/pierrec/lz4/v4"
@@ -20,7 +25,7 @@ const (
 
 type Reader struct {
 	peeker          *peeker.Reader
-	peekerOffset    int64 // never points inside a compressed message block
+	peekerOffset    int64 // never points inside a compressed value message block
 	uncompressed    *bytes.Buffer
 	uncompressedBuf []byte
 	// shared/output context
@@ -74,15 +79,6 @@ func (r *Reader) Read() (*zng.Record, error) {
 		if rec == nil {
 			return nil, err
 		}
-		id := rec.Type.ID()
-		sharedType := r.mapper.Map(id)
-		if sharedType == nil {
-			sharedType, err = r.mapper.Enter(id, rec.Type)
-			if err != nil {
-				return nil, err
-			}
-		}
-		rec.Type = sharedType
 		return rec, err
 	}
 }
@@ -103,17 +99,36 @@ func (r *Reader) reset() {
 // copied (via copy for byte slice or zbuf.Record.Keep()) before any subsequent
 // calls to Read or ReadPayload can be made.
 func (r *Reader) ReadPayload() (*zng.Record, []byte, error) {
+	id, buf, err := r.readPayload()
+	if buf == nil || err != nil {
+		return nil, nil, err
+	}
+	if id < 0 {
+		if -id == zng.CtrlCompressed {
+			return r.ReadPayload()
+		}
+		// XXX we should return the control code
+		return nil, buf, nil
+	}
+	rec, err := r.parseValue(id, buf)
+	return rec, nil, err
+}
+
+func (r *Reader) readPayload() (int, []byte, error) {
 again:
 	b, err := r.read(1)
 	if err != nil {
 		// Having tried to read a single byte above, ErrTruncated means io.EOF.
 		if err == io.EOF || err == peeker.ErrTruncated {
-			return nil, nil, nil
+			return 0, nil, nil
 		}
-		return nil, nil, err
+		return 0, nil, err
 	}
 	code := b[0]
 	if code&0x80 != 0 {
+		if r.uncompressed != nil {
+			return 0, nil, errors.New("zngio: control message in compressed value message block")
+		}
 		switch code {
 		case zng.TypeDefRecord:
 			err = r.readTypeRecord()
@@ -126,29 +141,24 @@ again:
 		case zng.TypeDefAlias:
 			err = r.readTypeAlias()
 		case zng.CtrlEOS:
-			if r.uncompressed != nil {
-				return nil, nil, errors.New("zngio: CtrlEOS in compressed data")
-			}
 			r.reset()
 		case zng.CtrlCompressed:
-			if r.uncompressed != nil {
-				return nil, nil, errors.New("zngio: CtrlCompressed in compressed data")
+			if err := r.readCompressed(); err != nil {
+				return 0, nil, err
 			}
-			err = r.readCompressed()
+			return -zng.CtrlCompressed, r.uncompressed.Bytes(), nil
 		default:
-			// XXX we should return the control code
 			len, err := r.readUvarint()
 			if err != nil {
-				return nil, nil, zng.ErrBadFormat
+				return 0, nil, zng.ErrBadFormat
 			}
-			b, err = r.read(len)
-			return nil, b, err
+			buf, err := r.read(len)
+			return -int(code), buf, err
 		}
 		if err != nil {
-			return nil, nil, err
+			return 0, nil, err
 		}
 		goto again
-
 	}
 	// read uvarint7 encoding of type ID
 	var id int
@@ -157,23 +167,19 @@ again:
 	} else {
 		v, err := r.readUvarint()
 		if err != nil {
-			return nil, nil, err
+			return 0, nil, err
 		}
 		id = (v << 6) | int(code&0x3f)
 	}
 	len, err := r.readUvarint()
 	if err != nil {
-		return nil, nil, err
+		return 0, nil, err
 	}
-	b, err = r.read(int(len))
+	buf, err := r.read(len)
 	if err != nil && err != io.EOF {
-		return nil, nil, zng.ErrBadFormat
+		return 0, nil, zng.ErrBadFormat
 	}
-	rec, err := r.parseValue(int(id), b)
-	if err != nil {
-		return nil, nil, err
-	}
-	return rec, nil, nil
+	return id, buf, nil
 }
 
 // read returns an error if fewer than n bytes are available.
@@ -384,9 +390,30 @@ func (r *Reader) parseValue(id int, b []byte) (*zng.Record, error) {
 	if typ == nil {
 		return nil, zng.ErrDescriptorInvalid
 	}
-	record := zng.NewVolatileRecord(typ, b)
-	if err := record.TypeCheck(); err != nil {
+	sharedType := r.mapper.Map(id)
+	if sharedType == nil {
+		var err error
+		sharedType, err = r.mapper.Enter(id, typ)
+		if err != nil {
+			return nil, err
+		}
+	}
+	rec := zng.NewVolatileRecord(sharedType, b)
+	if err := rec.TypeCheck(); err != nil {
 		return nil, err
 	}
-	return record, nil
+	return rec, nil
+}
+
+var _ scanner.ScannerAble = (*Reader)(nil)
+
+func (r *Reader) NewScanner(ctx context.Context, filterExpr ast.BooleanExpr, s nano.Span) (scanner.Scanner, error) {
+	var f filter.Filter
+	if filterExpr != nil {
+		var err error
+		if f, err = filter.Compile(filterExpr); err != nil {
+			return nil, err
+		}
+	}
+	return &zngScanner{ctx: ctx, reader: r, filter: f, span: s}, nil
 }

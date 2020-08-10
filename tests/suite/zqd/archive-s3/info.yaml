@@ -23,6 +23,6 @@ outputs:
         data_path:    ./root
         storage_kind: archivestore
         span:         2020-04-21T22:40:30Z+2h43m9.993714061s
-        size:         34.79KB
+        size:         34.50KB
         pcap_support: false
         pcap_size:    0B
