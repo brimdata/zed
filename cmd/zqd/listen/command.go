@@ -24,6 +24,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"gopkg.in/yaml.v3"
 )
 
@@ -66,6 +67,7 @@ type Command struct {
 	zeekRunnerPath string
 	configfile     string
 	loggerConf     *logger.Config
+	logLevel       zapcore.Level
 	logger         *zap.Logger
 	devMode        bool
 	portFile       string
@@ -79,6 +81,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.pprof, "pprof", false, "add pprof routes to api")
 	f.BoolVar(&c.prom, "prometheus", false, "add prometheus metrics routes to api")
 	f.StringVar(&c.configfile, "config", "", "path to a zqd config file")
+	f.Var(&c.logLevel, "loglevel", "level for log output (defaults to info)")
 	f.BoolVar(&c.devMode, "dev", false, "runs zqd in development mode")
 	f.StringVar(&c.portFile, "portfile", "", "write port of http listener to file")
 	return c, nil
@@ -211,6 +214,9 @@ func (c *Command) initZeek() error {
 func (c *Command) initLogger() error {
 	if c.loggerConf == nil {
 		c.loggerConf = defaultLogger
+		for i := range c.loggerConf.Children {
+			c.loggerConf.Children[i].Level = c.logLevel
+		}
 	}
 	core, err := logger.NewCore(*c.loggerConf)
 	if err != nil {
