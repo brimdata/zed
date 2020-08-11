@@ -74,7 +74,7 @@ type Command struct {
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.StringVar(&c.listenAddr, "l", ":9867", "[addr]:port to listen on")
-	f.StringVar(&c.conf.Root, "data", "", "data location")
+	f.StringVar(&c.conf.Root, "data", ".", "data location")
 	f.StringVar(&c.zeekRunnerPath, "zeekrunner", "", "path to command that generates zeek logs from pcap data")
 	f.BoolVar(&c.pprof, "pprof", false, "add pprof routes to api")
 	f.BoolVar(&c.prom, "prometheus", false, "add prometheus metrics routes to api")
