@@ -81,15 +81,12 @@ func (s *SearchOp) Run(ctx context.Context, store SearchStore, output Output) (e
 	}
 	defer rc.Close()
 
-	if err := driver.Run(ctx, d, s.query.Proc, zctx, rc, driver.Config{
+	return driver.Run(ctx, d, s.query.Proc, zctx, rc, driver.Config{
 		ReaderSortKey:     "ts",
 		ReaderSortReverse: true,
 		Span:              s.query.Span,
 		StatsTick:         statsTicker.C,
-	}); err != nil {
-		return err
-	}
-	return nil
+	})
 }
 
 // A Query is the internal representation of search query describing a source

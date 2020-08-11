@@ -23,7 +23,7 @@ func Run(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Context
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	mux, err := compileMux(ctx, program, zctx, reader, cfg)
+	mux, err := compile(ctx, program, zctx, reader, cfg)
 	if err != nil {
 		return err
 	}

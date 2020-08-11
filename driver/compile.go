@@ -22,11 +22,11 @@ type Config struct {
 	ReaderSortKey     string
 	ReaderSortReverse bool
 	Span              nano.Span
-	Warnings          chan string
 	StatsTick         <-chan time.Time
+	Warnings          chan string
 }
 
-func compileMux(ctx context.Context, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader, cfg Config) (*muxOutput, error) {
+func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader, cfg Config) (*muxOutput, error) {
 	if cfg.Logger == nil {
 		cfg.Logger = zap.NewNop()
 	}
