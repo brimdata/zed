@@ -135,12 +135,8 @@ func (s *Storage) Rewrite(ctx context.Context, zctx *resolver.Context, zr zbuf.R
 }
 
 func (s *Storage) write(ctx context.Context, zw zbuf.Writer, zctx *resolver.Context, zr zbuf.Reader) error {
-	out, err := driver.Compile(ctx, zngWriteProc, zctx, zr, driver.Config{})
-	if err != nil {
-		return err
-	}
 	d := &zngdriver{zw}
-	return driver.Run(out, d, nil)
+	return driver.Run(ctx, d, zngWriteProc, zctx, zr, driver.Config{})
 }
 
 // Clear wipes all data from storage. Will wait for any ongoing write operations

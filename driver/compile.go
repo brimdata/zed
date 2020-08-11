@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
@@ -21,14 +22,11 @@ type Config struct {
 	ReaderSortKey     string
 	ReaderSortReverse bool
 	Span              nano.Span
+	StatsTick         <-chan time.Time
 	Warnings          chan string
 }
 
-// Compile takes an AST, an input reader, and configuration parameters,
-// and compiles it into a runnable flowgraph, returning a
-// proc.MuxOutput that which brings together all of the flowgraphs
-// tails, and is ready to be Pull()'d from.
-func Compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader, cfg Config) (*MuxOutput, error) {
+func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader, cfg Config) (*muxOutput, error) {
 	if cfg.Logger == nil {
 		cfg.Logger = zap.NewNop()
 	}
@@ -65,7 +63,7 @@ func Compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, read
 	if err != nil {
 		return nil, err
 	}
-	return NewMuxOutput(pctx, leaves, scanner), nil
+	return newMuxOutput(pctx, leaves, scanner), nil
 }
 
 // liftFilter removes the filter at the head of the flowgraph AST, if

@@ -588,10 +588,6 @@ func runzq(path, ZQL, outputFormat, outputFlags string, inputs ...string) (out s
 		outputFormat = "null"
 		zctx.SetLogger(&emitter.TypeLogger{WriteCloser: &nopCloser{&outbuf}})
 	}
-	muxOutput, err := driver.Compile(context.Background(), proc, zctx, rc, driver.Config{})
-	if err != nil {
-		return "", err.Error(), err
-	}
 	var zflags zio.WriterFlags
 	var flags flag.FlagSet
 	zflags.SetFlags(&flags)
@@ -605,7 +601,7 @@ func runzq(path, ZQL, outputFormat, outputFlags string, inputs ...string) (out s
 	}
 	d := driver.NewCLI(zw)
 	d.SetWarningsWriter(&errbuf)
-	err = driver.Run(muxOutput, d, nil)
+	err = driver.Run(context.Background(), d, proc, zctx, rc, driver.Config{})
 	if err2 := zw.Flush(); err == nil {
 		err = err2
 	}
