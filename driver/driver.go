@@ -27,11 +27,11 @@ func Run(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Context
 	return runMux(mux, d, cfg.StatsTick)
 }
 
-func runMux(out *MuxOutput, d Driver, statsTickCh <-chan time.Time) error {
+func runMux(out *muxOutput, d Driver, statsTickCh <-chan time.Time) error {
 	for !out.Complete() {
 		chunk := out.Pull(statsTickCh)
 		if chunk.Err != nil {
-			if chunk.Err == ErrTimeout {
+			if chunk.Err == errTimeout {
 				if err := d.Stats(out.Stats()); err != nil {
 					return err
 				}

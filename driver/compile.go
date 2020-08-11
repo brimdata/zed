@@ -26,7 +26,7 @@ type Config struct {
 	StatsTick         <-chan time.Time
 }
 
-func compileMux(ctx context.Context, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader, cfg Config) (*MuxOutput, error) {
+func compileMux(ctx context.Context, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader, cfg Config) (*muxOutput, error) {
 	if cfg.Logger == nil {
 		cfg.Logger = zap.NewNop()
 	}
@@ -63,7 +63,7 @@ func compileMux(ctx context.Context, program ast.Proc, zctx *resolver.Context, r
 	if err != nil {
 		return nil, err
 	}
-	return NewMuxOutput(pctx, leaves, scanner), nil
+	return newMuxOutput(pctx, leaves, scanner), nil
 }
 
 // liftFilter removes the filter at the head of the flowgraph AST, if
