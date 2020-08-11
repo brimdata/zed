@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"runtime"
 	"testing"
 
@@ -66,7 +65,7 @@ func TestPcapPostSuccess(t *testing.T) {
 		assert.Equal(t, p.pcapfile, info.PcapPath)
 	})
 	t.Run("PcapIndexExists", func(t *testing.T) {
-		require.FileExists(t, filepath.Join(p.core.Root, string(p.space.ID), space.PcapIndexFile))
+		require.FileExists(t, p.core.Root.AppendPath(string(p.space.ID), space.PcapIndexFile).Filepath())
 	})
 	t.Run("TaskStartMessage", func(t *testing.T) {
 		status := p.payloads[0].(*api.TaskStart)
@@ -291,6 +290,6 @@ func (r *pcapPostResult) readPayloads(t *testing.T, stream *api.Stream) {
 }
 
 func (r *pcapPostResult) cleanup() {
-	os.RemoveAll(r.core.Root)
+	os.RemoveAll(r.core.Root.Filepath())
 	r.srv.Close()
 }

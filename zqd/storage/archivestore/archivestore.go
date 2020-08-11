@@ -13,7 +13,7 @@ import (
 	"github.com/brimsec/zq/zqd/storage"
 )
 
-func Load(path string, cfg *storage.ArchiveConfig) (*Storage, error) {
+func Load(path iosrc.URI, cfg *storage.ArchiveConfig) (*Storage, error) {
 	co := &archive.CreateOptions{}
 	if cfg != nil && cfg.CreateOptions != nil {
 		co.LogSizeThreshold = cfg.CreateOptions.LogSizeThreshold
@@ -22,7 +22,7 @@ func Load(path string, cfg *storage.ArchiveConfig) (*Storage, error) {
 	if cfg != nil && cfg.OpenOptions != nil {
 		oo.LogFilter = cfg.OpenOptions.LogFilter
 	}
-	ark, err := archive.CreateOrOpenArchive(path, co, oo)
+	ark, err := archive.CreateOrOpenArchive(path.String(), co, oo)
 	if err != nil {
 		return nil, err
 	}

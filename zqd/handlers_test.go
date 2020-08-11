@@ -206,7 +206,7 @@ func TestSpaceList(t *testing.T) {
 			expected = append(expected, api.SpaceInfo{
 				ID:          sp.ID,
 				Name:        n,
-				DataPath:    filepath.Join(c.Root, string(sp.ID)),
+				DataPath:    c.Root.AppendPath(string(sp.ID)),
 				StorageKind: storage.FileStore,
 			})
 		}
@@ -219,10 +219,10 @@ func TestSpaceList(t *testing.T) {
 
 	// Delete dir from one space, then simulate a restart by
 	// creating a new Core pointing to the same root.
-	require.NoError(t, os.RemoveAll(filepath.Join(c.Root, string(expected[2].ID))))
+	require.NoError(t, os.RemoveAll(filepath.Join(c.Root.Filepath(), string(expected[2].ID))))
 	expected = append(expected[:2], expected[3:]...)
 
-	c, client, done = newCoreAtDir(t, c.Root)
+	_, client, done = newCoreAtDir(t, c.Root.Filepath())
 	defer done()
 
 	list, err := client.SpaceList(ctx)
@@ -283,7 +283,7 @@ func TestSpacePostNameOnly(t *testing.T) {
 	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 	assert.Equal(t, "test", sp.Name)
-	assert.Equal(t, filepath.Join(c.Root, string(sp.ID)), sp.DataPath)
+	assert.Equal(t, c.Root.AppendPath(string(sp.ID)), sp.DataPath)
 	assert.Regexp(t, "^sp", sp.ID)
 }
 
@@ -336,7 +336,7 @@ func TestSpacePostDataPath(t *testing.T) {
 	sp, err := client.SpacePost(ctx, api.SpacePostRequest{DataPath: datapath})
 	require.NoError(t, err)
 	assert.Equal(t, "mypcap.brim", sp.Name)
-	assert.Equal(t, datapath, sp.DataPath)
+	assert.Equal(t, datapath, sp.DataPath.Filepath())
 }
 
 func TestSpacePut(t *testing.T) {

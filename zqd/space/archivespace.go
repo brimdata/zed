@@ -2,9 +2,9 @@ package space
 
 import (
 	"context"
-	"os"
 	"sync"
 
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqd/storage/archivestore"
@@ -13,7 +13,7 @@ import (
 
 type archiveSpace struct {
 	spaceBase
-	path string
+	path iosrc.URI
 
 	confMu sync.Mutex
 	conf   config
@@ -28,7 +28,7 @@ func (s *archiveSpace) Info(ctx context.Context) (api.SpaceInfo, error) {
 	s.confMu.Lock()
 	defer s.confMu.Unlock()
 	si.Name = s.conf.Name
-	si.DataPath = s.conf.DataPath
+	si.DataPath = s.conf.DataURI
 	return si, nil
 }
 
@@ -70,17 +70,17 @@ func (s *archiveSpace) delete() error {
 	if err := s.sg.acquireForDelete(); err != nil {
 		return err
 	}
-	if err := os.RemoveAll(s.path); err != nil {
+	if err := iosrc.RemoveAll(s.path); err != nil {
 		return err
 	}
-	return os.RemoveAll(s.conf.DataPath)
+	return iosrc.RemoveAll(s.conf.DataURI)
 }
 
 func (s *archiveSpace) CreateSubspace(req api.SubspacePostRequest) (*archiveSubspace, error) {
 	s.confMu.Lock()
 	defer s.confMu.Unlock()
 
-	substore, err := archivestore.Load(s.conf.DataPath, &storage.ArchiveConfig{
+	substore, err := archivestore.Load(s.conf.DataURI, &storage.ArchiveConfig{
 		OpenOptions: &req.OpenOptions,
 	})
 	if err != nil {
