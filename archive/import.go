@@ -26,7 +26,6 @@ type importDriver struct {
 	ark *Archive
 	bw  *bufwriter.Writer
 	zw  *zngio.Writer
-	n   int64
 
 	span  nano.Span
 	logID LogID
@@ -65,8 +64,7 @@ func (d *importDriver) writeOne(rec *zng.Record) error {
 	if err := d.zw.Write(rec); err != nil {
 		return err
 	}
-	d.n += int64(len(rec.Raw))
-	if d.n >= d.ark.LogSizeThreshold {
+	if d.zw.Position() >= d.ark.LogSizeThreshold {
 		if err := d.close(); err != nil {
 			return err
 		}
@@ -91,7 +89,6 @@ func (d *importDriver) close() error {
 		d.bw = nil
 	}
 	d.zw = nil
-	d.n = 0
 	return nil
 }
 

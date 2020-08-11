@@ -3,7 +3,7 @@ script: |
   zar import -s 20KiB -R ./logs babble.tzng
   zar ls -relative -R ./logs
   echo ===
-  touch logs/20200421/1587512288.06249439.zng.zar/foo
+  touch logs/20200421/1587509477.06313454.zng.zar/foo
   touch logs/20200422/1587518620.0622373.zng.zar/bar
   zar ls -relative -R ./logs foo
   zar ls -relative -R ./logs bar
@@ -20,18 +20,18 @@ outputs:
   - name: stdout
     data: |
       20200422/1587518620.0622373.zng.zar
-      20200421/1587512288.06249439.zng.zar
+      20200421/1587509477.06313454.zng.zar
       ===
-      20200421/1587512288.06249439.zng.zar/foo
+      20200421/1587509477.06313454.zng.zar/foo
       20200422/1587518620.0622373.zng.zar/bar
       ===
       20200422/1587518620.0622373.zng.zar/foo: not found
-      20200421/1587512288.06249439.zng.zar/foo: removed
+      20200421/1587509477.06313454.zng.zar/foo: removed
       ===
       logs
       logs/20200421
-      logs/20200421/1587512288.06249439.zng
-      logs/20200421/1587512288.06249439.zng.zar
+      logs/20200421/1587509477.06313454.zng
+      logs/20200421/1587509477.06313454.zng.zar
       logs/20200422
       logs/20200422/1587518620.0622373.zng
       logs/20200422/1587518620.0622373.zng.zar

@@ -21,9 +21,9 @@ outputs:
       ===
       s3://bucket/zartest/20200422/1587518620.0622373.zng.zar
       	count.zng
-      s3://bucket/zartest/20200421/1587512288.06249439.zng.zar
+      s3://bucket/zartest/20200421/1587509477.06313454.zng.zar
       	count.zng
       ===
       ===
       s3://bucket/zartest/20200422/1587518620.0622373.zng.zar
-      s3://bucket/zartest/20200421/1587512288.06249439.zng.zar
+      s3://bucket/zartest/20200421/1587509477.06313454.zng.zar
