@@ -1,6 +1,6 @@
 script: |
   mkdir logs
-  zar import -s 2500B -R ./logs babble.tzng
+  zar import -s 20KiB -R ./logs babble.tzng
   echo ===
   zar index -q -R ./logs v
   zar find -relative -R ./logs v=106
@@ -17,7 +17,5 @@ outputs:
     data: |
       ===
       20200422/1587518620.0622373.zng
-      20200422/1587514053.06464653.zng
-      20200421/1587513216.06789438.zng
       ===
       ===
