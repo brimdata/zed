@@ -267,6 +267,12 @@ type (
 	// The Limit field specifies the number of different groups that can be
 	// aggregated over. When absent, the runtime defaults to an
 	// appropriate value.
+	// If EmitPart is true, the proc will produce decomposed
+	// output results, using the reducer.ResultPart()
+	// method. Likewise, if ConsumePart is true, the proc will
+	// expect decomposed inputs, using the reducer.ResultPart()
+	// method. It is an error for either of these flags to be true
+	// if any reducer in Reducers is non-decomposable.
 	GroupByProc struct {
 		Node
 		Duration     Duration               `json:"duration"`
@@ -274,6 +280,8 @@ type (
 		Limit        int                    `json:"limit,omitempty"`
 		Keys         []ExpressionAssignment `json:"keys"`
 		Reducers     []Reducer              `json:"reducers"`
+		ConsumePart  bool                   `json:"consume_part"`
+		EmitPart     bool                   `json:"emit_part"`
 	}
 	// TopProc is similar to proc.SortProc with a few key differences:
 	// - It only sorts in descending order.

@@ -27,6 +27,8 @@ type GroupByParams struct {
 	keys         []GroupByKey
 	reducers     []compile.CompiledReducer
 	builder      *ColumnBuilder
+	consumePart  bool
+	emitPart     bool
 }
 
 type errTooBig int
@@ -68,12 +70,17 @@ func CompileGroupBy(node *ast.GroupByProc, zctx *resolver.Context) (*GroupByPara
 	if err != nil {
 		return nil, fmt.Errorf("compiling groupby: %w", err)
 	}
+	if (node.ConsumePart || node.EmitPart) && !decomposable(reducers) {
+		return nil, errors.New("partial input or output requested with non-decomposable reducers")
+	}
 	return &GroupByParams{
 		limit:        node.Limit,
 		keys:         keys,
 		reducers:     reducers,
 		builder:      builder,
 		inputSortDir: node.InputSortDir,
+		consumePart:  node.ConsumePart,
+		emitPart:     node.EmitPart,
 	}, nil
 }
 
@@ -141,6 +148,8 @@ type GroupByAggregator struct {
 	maxSpillKey  *zng.Value
 	inputSortDir int
 	runManager   *runManager
+	consumePart  bool
+	emitPart     bool
 }
 
 type GroupByRow struct {
@@ -198,6 +207,8 @@ func NewGroupByAggregator(c *Context, params GroupByParams) *GroupByAggregator {
 		keyCompare:   keyCompare,
 		keysCompare:  keysCompare,
 		valueCompare: valueCompare,
+		consumePart:  params.consumePart,
+		emitPart:     params.emitPart,
 	}
 }
 
@@ -398,6 +409,10 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 		row = g.createGroupByRow(keyRow.columns, keyBytes[4:], prim)
 		g.table[string(keyBytes)] = row
 	}
+
+	if g.consumePart {
+		return row.reducers.ConsumePart(r)
+	}
 	row.reducers.Consume(r)
 	return nil
 }
@@ -448,13 +463,13 @@ func (g *GroupByAggregator) updateMaxSpillKey(v zng.Value) {
 	}
 }
 
-// Results returns a batch of aggregation result records. If the input
-// is sorted in the primary key, only keys that are completed are
-// returned. A final call with eof=true should be made to get the
-// final keys.
+// Results returns a batch of aggregation result records. Upon eof,
+// this should be called repeatedly until a nil batch is returned. If
+// the input is sorted in the primary key, Results can be called
+// before eof, and keys that are completed will returned.
 func (g *GroupByAggregator) Results(eof bool) (zbuf.Batch, error) {
 	if g.runManager == nil {
-		return g.readTable(eof, false)
+		return g.readTable(eof, g.emitPart)
 	}
 	if eof {
 		// EOF: spill in-memory table before merging all files for output.
@@ -545,7 +560,16 @@ func (g *GroupByAggregator) nextResultFromSpills() (*zng.Record, error) {
 	}
 	cols := g.builder.TypedColumns(types)
 	for i, red := range row.Reducers {
-		v := red.Result()
+		var v zng.Value
+		if g.emitPart {
+			vv, err := red.(reducer.Decomposable).ResultPart(g.zctx)
+			if err != nil {
+				return nil, err
+			}
+			v = vv
+		} else {
+			v = red.Result()
+		}
 		cols = append(cols, zng.NewColumn(row.Defs[i].Target, v.Type))
 		zbytes = v.Encode(zbytes)
 	}
