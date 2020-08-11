@@ -20,6 +20,9 @@ type Driver interface {
 }
 
 func Run(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader, cfg Config) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	mux, err := compileMux(ctx, program, zctx, reader, cfg)
 	if err != nil {
 		return err
