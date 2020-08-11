@@ -41,7 +41,7 @@ func (r *Reader) NewScanner(ctx context.Context, filterExpr ast.BooleanExpr, s n
 			return nil, err
 		}
 		if len(p) > 1 {
-			// Profitable if pattern is more than one bytes.
+			// Profitable if pattern is longer than one byte.
 			sf = makeStringFinder(p)
 		}
 	}
