@@ -81,9 +81,11 @@ func loadConfig(spaceURI iosrc.URI) (config, error) {
 	if err != nil {
 		return c, err
 	}
-	defer r.Close()
 	data, err := ioutil.ReadAll(r)
 	if err != nil {
+		return c, err
+	}
+	if err := r.Close(); err != nil {
 		return c, err
 	}
 	var vc versionCheck
