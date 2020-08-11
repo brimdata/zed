@@ -5,7 +5,6 @@ package search
 import (
 	"context"
 	"errors"
-	"io"
 	"time"
 
 	"github.com/brimsec/zq/ast"
@@ -33,11 +32,10 @@ type SearchStore interface {
 }
 
 type SearchOp struct {
-	mux *driver.MuxOutput
-	io.Closer
+	query *Query
 }
 
-func NewSearchOp(ctx context.Context, s SearchStore, req api.SearchRequest) (*SearchOp, error) {
+func NewSearchOp(req api.SearchRequest) (*SearchOp, error) {
 	if req.Span.Ts < 0 {
 		return nil, errors.New("time span must have non-negative timestamp")
 	}
@@ -56,38 +54,42 @@ func NewSearchOp(ctx context.Context, s SearchStore, req api.SearchRequest) (*Se
 	if err != nil {
 		return nil, err
 	}
-
-	zctx := resolver.NewContext()
-	zngReader, err := s.Open(ctx, zctx, query.Span)
-	if err != nil {
-		return nil, err
-	}
-	mapper := zbuf.NewMapper(zngReader, zctx)
-	mux, err := launch(ctx, query, mapper, zctx)
-	if err != nil {
-		zngReader.Close()
-		return nil, err
-	}
-	return &SearchOp{mux, zngReader}, nil
+	return &SearchOp{query: query}, nil
 }
 
-func (s *SearchOp) Run(output Output) error {
+func (s *SearchOp) Run(ctx context.Context, store SearchStore, output Output) (err error) {
 	d := &searchdriver{
 		output:    output,
 		startTime: nano.Now(),
 	}
 	d.start(0)
+	defer func() {
+		if err != nil {
+			d.abort(0, err)
+			return
+		}
+		d.end(0)
+	}()
+
 	statsTicker := time.NewTicker(StatsInterval)
 	defer statsTicker.Stop()
-	if err := driver.Run(s.mux, d, statsTicker.C); err != nil {
-		d.abort(0, err)
+
+	zctx := resolver.NewContext()
+	rc, err := store.Open(ctx, zctx, s.query.Span)
+	if err != nil {
 		return err
 	}
-	if err := d.Stats(s.mux.Stats()); err != nil {
-		d.abort(0, err)
+	defer rc.Close()
+
+	if err := driver.Run(ctx, d, s.query.Proc, zctx, rc, driver.Config{
+		ReaderSortKey:     "ts",
+		ReaderSortReverse: true,
+		Span:              s.query.Span,
+		StatsTick:         statsTicker.C,
+	}); err != nil {
 		return err
 	}
-	return d.end(0)
+	return nil
 }
 
 // A Query is the internal representation of search query describing a source
@@ -162,17 +164,4 @@ func (d *searchdriver) ChannelEnd(cid int) error {
 		Reason:    "eof",
 	}
 	return d.output.SendControl(v)
-}
-
-func launch(ctx context.Context, query *Query, reader zbuf.Reader, zctx *resolver.Context) (*driver.MuxOutput, error) {
-	span := query.Span
-	if span == (nano.Span{}) {
-		span = nano.MaxSpan
-	}
-	// Records in a zqd filestore are sorted by descending ts (in zqd/storage/filestore.(*Storage).write).
-	return driver.Compile(ctx, query.Proc, zctx, reader, driver.Config{
-		ReaderSortKey:     "ts",
-		ReaderSortReverse: true,
-		Span:              span,
-	})
 }

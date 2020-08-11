@@ -131,13 +131,8 @@ func Import(ctx context.Context, ark *Archive, zctx *resolver.Context, r zbuf.Re
 		return err
 	}
 
-	fg, err := driver.Compile(ctx, proc, zctx, r, driver.Config{})
-	if err != nil {
-		return err
-	}
-
 	id := &importDriver{ark: ark}
-	if err := driver.Run(fg, id, nil); err != nil {
+	if err := driver.Run(ctx, id, proc, zctx, r, driver.Config{}); err != nil {
 		return fmt.Errorf("archive.Import: run failed: %w", err)
 	}
 

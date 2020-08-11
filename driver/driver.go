@@ -6,7 +6,9 @@ import (
 	"io"
 	"time"
 
+	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
 )
 
@@ -17,7 +19,15 @@ type Driver interface {
 	Stats(api.ScannerStats) error
 }
 
-func Run(out *MuxOutput, d Driver, statsTickCh <-chan time.Time) error {
+func Run(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader, cfg Config) error {
+	mux, err := compileMux(ctx, program, zctx, reader, cfg)
+	if err != nil {
+		return err
+	}
+	return runMux(mux, d, cfg.StatsTick)
+}
+
+func runMux(out *MuxOutput, d Driver, statsTickCh <-chan time.Time) error {
 	for !out.Complete() {
 		chunk := out.Pull(statsTickCh)
 		if chunk.Err != nil {
@@ -47,6 +57,9 @@ func Run(out *MuxOutput, d Driver, statsTickCh <-chan time.Time) error {
 				return err
 			}
 		}
+	}
+	if statsTickCh != nil {
+		return d.Stats(out.Stats())
 	}
 	return nil
 }

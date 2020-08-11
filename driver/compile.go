@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
@@ -22,13 +23,10 @@ type Config struct {
 	ReaderSortReverse bool
 	Span              nano.Span
 	Warnings          chan string
+	StatsTick         <-chan time.Time
 }
 
-// Compile takes an AST, an input reader, and configuration parameters,
-// and compiles it into a runnable flowgraph, returning a
-// proc.MuxOutput that which brings together all of the flowgraphs
-// tails, and is ready to be Pull()'d from.
-func Compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader, cfg Config) (*MuxOutput, error) {
+func compileMux(ctx context.Context, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader, cfg Config) (*MuxOutput, error) {
 	if cfg.Logger == nil {
 		cfg.Logger = zap.NewNop()
 	}
