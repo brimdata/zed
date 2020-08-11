@@ -71,7 +71,7 @@ func CompileGroupBy(node *ast.GroupByProc, zctx *resolver.Context) (*GroupByPara
 		return nil, fmt.Errorf("compiling groupby: %w", err)
 	}
 	if (node.ConsumePart || node.EmitPart) && !decomposable(reducers) {
-		return nil, fmt.Errorf("partial input or output requested with non-decomposable reducers")
+		return nil, errors.New("partial input or output requested with non-decomposable reducers")
 	}
 	return &GroupByParams{
 		limit:        node.Limit,
@@ -411,11 +411,10 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 	}
 
 	if g.consumePart {
-		err = row.reducers.ConsumePart(r)
-	} else {
-		row.reducers.Consume(r)
+		return row.reducers.ConsumePart(r)
 	}
-	return err
+	row.reducers.Consume(r)
+	return nil
 }
 
 func (g *GroupByAggregator) spillTable(eof bool) error {
