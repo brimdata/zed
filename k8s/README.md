@@ -89,7 +89,42 @@ curl -v http://localhost:9867/status
 ```
 You should get an 'ok' response.
 
-### Using the hosted zqd with Brim
+### Using zqd with zapi
+
+This is a walk-through of a local test we  do before testing on our k8s cluster. This is outside the k8s cluster to get familiar with trouble-shooting.
+
+As a prerequisite, you must have an S3 bucket and directory available for zqd. In the S3 console, or at the command line, create a 'datadir' for use with zqd. This directory will hold metadata for the spaces you will create with zapi.
+
+You will need AWS credentials. On your local machine you can use `aws configure` and then you must set the environment variable, `AWS_SDK_LOAD_CONFIG=true`. Within Kubernetes, we will need to handle AWS credentials with secrets. More on that later.
+
+Here is an example of creating a datadir, using an s3 bucket called `brim-scratch` in a directory called `mark` (change the s3 buckets for your setup.)
+```
+aws s3 ls # make sure the bucket exists!
+zqd listen -data s3://brim-scratch/mark/zqd-meta
+```
+zqd will stay running in that console, listening at `localhost:9867` by default.
+zqd will not create any s3 objects in zqd-meta until we issue a zapi command. Before using zapi, we use zar in another console to get sample data from our zq repo into s3:
+```
+zar import -R s3://brim-scratch/mark/sample-http-zng zq-sample-data/zng/http.zng.gz
+```
+This creates zng files in an s3 directory called `sample-http-zng` that we will use from zapi. To check what zar created:
+```
+aws s3 ls brim-scratch/mark --recursive
+```
+Now use zapi to make the zar data available to your running zqd instance. Note that zapi defaults to `localhost:9867` for zqd.
+```
+zapi new -k archivestore -d s3://brim-scratch/mark/sample-http-zng http-space-1
+```
+The `-d` parameter provides the same s3 dir that we used in the `-R` parameter of the zar command above. This command creates a new space for zqd called `http-space-1`. If we again list the s3 directories with `aws s3 ls brim-scratch/mark --recursive` we will see that zqd has now created a new object under its `-datadir` which has a name generated from "sp_1g0" followed by entropy.
+
+Now that you have a zqd running with a space, and you have made an archive from zar data, you can use zapi commands to query the sample data. Example:
+```
+zapi -s http-space-1 get "head 1"
+zapi -s http-space-1 get "tail 1"
+```
+The zapi commands in quotes are juthe same as Brim queries. Notice that "head 1" runs much faster than "tail 1", which has to read more data from s3.
+
+### Using zqd in the Kind cluster
 
 WIP!
 
