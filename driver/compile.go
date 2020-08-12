@@ -2,11 +2,12 @@ package driver
 
 import (
 	"context"
+	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/scanner"
@@ -21,14 +22,11 @@ type Config struct {
 	ReaderSortKey     string
 	ReaderSortReverse bool
 	Span              nano.Span
+	StatsTick         <-chan time.Time
 	Warnings          chan string
 }
 
-// Compile takes an AST, an input reader, and configuration parameters,
-// and compiles it into a runnable flowgraph, returning a
-// proc.MuxOutput that which brings together all of the flowgraphs
-// tails, and is ready to be Pull()'d from.
-func Compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader, cfg Config) (*MuxOutput, error) {
+func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader, cfg Config) (*muxOutput, error) {
 	if cfg.Logger == nil {
 		cfg.Logger = zap.NewNop()
 	}
@@ -47,10 +45,13 @@ func Compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, read
 		}
 		setGroupByProcInputSortDir(program, cfg.ReaderSortKey, dir)
 	}
-	filterAst, program := liftFilter(program)
-	scanner, err := newScanner(ctx, reader, filterAst, cfg.Span)
+	filterExpr, program := liftFilter(program)
+	scanner, err := scanner.NewScanner(ctx, reader, filterExpr, cfg.Span)
 	if err != nil {
 		return nil, err
+	}
+	if stringer, ok := reader.(fmt.Stringer); ok {
+		scanner = &namedScanner{scanner, stringer.String()}
 	}
 	pctx := &proc.Context{
 		Context:     ctx,
@@ -58,23 +59,23 @@ func Compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, read
 		Logger:      cfg.Logger,
 		Warnings:    cfg.Warnings,
 	}
-	leaves, err := proc.CompileProc(cfg.Custom, program, pctx, scanner)
+	leaves, err := proc.CompileProc(cfg.Custom, program, pctx, &scannerProc{scanner})
 	if err != nil {
 		return nil, err
 	}
-	return NewMuxOutput(pctx, leaves, scanner), nil
+	return newMuxOutput(pctx, leaves, scanner), nil
 }
 
 // liftFilter removes the filter at the head of the flowgraph AST, if
-// one is present, and returns it and the modified flowgraph AST. If
-// the flowgraph does not start with a filter, it returns nil and the
-// unmodified flowgraph.
-func liftFilter(p ast.Proc) (*ast.FilterProc, ast.Proc) {
+// one is present, and returns its ast.BooleanExpr and the modified
+// flowgraph AST. If the flowgraph does not start with a filter, it
+// returns nil and the unmodified flowgraph.
+func liftFilter(p ast.Proc) (ast.BooleanExpr, ast.Proc) {
 	if fp, ok := p.(*ast.FilterProc); ok {
 		pass := &ast.PassProc{
 			Node: ast.Node{"PassProc"},
 		}
-		return fp, pass
+		return fp.Filter, pass
 	}
 	seq, ok := p.(*ast.SequentialProc)
 	if ok && len(seq.Procs) > 0 {
@@ -83,7 +84,7 @@ func liftFilter(p ast.Proc) (*ast.FilterProc, ast.Proc) {
 				Node:  ast.Node{"SequentialProc"},
 				Procs: seq.Procs[1:],
 			}
-			return fp, rest
+			return fp.Filter, rest
 		}
 	}
 	return nil, p
@@ -362,16 +363,24 @@ func computeColumnsR(p ast.Proc, colset map[string]struct{}) (map[string]struct{
 	}
 }
 
-// newScanner takes a Reader, optional Filter AST, and timespan, and
-// constructs a scanner that can be used as the head of a
-// flowgraph.
-func newScanner(ctx context.Context, reader zbuf.Reader, fltast *ast.FilterProc, span nano.Span) (*scanner.Scanner, error) {
-	var f filter.Filter
-	if fltast != nil {
-		var err error
-		if f, err = filter.Compile(fltast.Filter); err != nil {
-			return nil, err
-		}
-	}
-	return scanner.NewScanner(ctx, reader, f, span), nil
+type namedScanner struct {
+	scanner.Scanner
+	name string
 }
+
+func (n *namedScanner) Pull() (zbuf.Batch, error) {
+	b, err := n.Scanner.Pull()
+	if err != nil {
+		err = fmt.Errorf("%s: %w", n.name, err)
+	}
+	return b, err
+}
+
+// scannerProc extends a scanner.Scanner to implement the proc.Proc interface.
+type scannerProc struct{ scanner.Scanner }
+
+// Done implements proc.Proc.Done.
+func (s *scannerProc) Done() {}
+
+// Parents implements proc.Proc.Parents.
+func (s *scannerProc) Parents() []proc.Proc { return nil }

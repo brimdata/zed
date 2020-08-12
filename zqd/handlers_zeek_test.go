@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"runtime"
 	"testing"
 
@@ -60,13 +59,13 @@ func TestPcapPostSuccess(t *testing.T) {
 		assert.Equal(t, nano.NewSpanTs(nano.Unix(1501770877, 471635000), nano.Unix(1501770880, 988247001)), *info.Span)
 		// Must use InDelta here because zeek randomly generates uids that
 		// vary in size.
-		assert.InDelta(t, 1169, info.Size, 10)
+		assert.InDelta(t, 1374, info.Size, 10)
 		assert.Equal(t, int64(4224), info.PcapSize)
 		assert.True(t, info.PcapSupport)
 		assert.Equal(t, p.pcapfile, info.PcapPath)
 	})
 	t.Run("PcapIndexExists", func(t *testing.T) {
-		require.FileExists(t, filepath.Join(p.core.Root, string(p.space.ID), space.PcapIndexFile))
+		require.FileExists(t, p.core.Root.AppendPath(string(p.space.ID), space.PcapIndexFile).Filepath())
 	})
 	t.Run("TaskStartMessage", func(t *testing.T) {
 		status := p.payloads[0].(*api.TaskStart)
@@ -291,6 +290,6 @@ func (r *pcapPostResult) readPayloads(t *testing.T, stream *api.Stream) {
 }
 
 func (r *pcapPostResult) cleanup() {
-	os.RemoveAll(r.core.Root)
+	os.RemoveAll(r.core.Root.Filepath())
 	r.srv.Close()
 }

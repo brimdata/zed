@@ -56,16 +56,12 @@ func runOne(zardir iosrc.URI, rule Rule, inputPath iosrc.URI, progress chan<- st
 		return err
 	}
 	defer fgi.Close()
-	out, err := driver.Compile(context.TODO(), rule.proc, zctx, r, driver.Config{
-		Custom: &compiler{},
-	})
-	if err != nil {
-		return err
-	}
 	if progress != nil {
 		progress <- fmt.Sprintf("%s: creating index %s", inputPath, rule.Path(zardir))
 	}
-	return driver.Run(out, fgi, nil)
+	return driver.Run(context.TODO(), fgi, rule.proc, zctx, r, driver.Config{
+		Custom: &compiler{},
+	})
 }
 
 func run(zardir iosrc.URI, rules []Rule, logPath iosrc.URI, progress chan<- string) error {

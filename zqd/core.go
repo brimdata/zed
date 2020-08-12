@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"sync/atomic"
 
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zqd/space"
 	"github.com/brimsec/zq/zqd/zeek"
 	"go.uber.org/zap"
@@ -25,7 +26,7 @@ type VersionMessage struct {
 var Version VersionMessage
 
 type Core struct {
-	Root         string
+	Root         iosrc.URI
 	ZeekLauncher zeek.Launcher
 	spaces       *space.Manager
 	taskCount    int64
@@ -37,12 +38,16 @@ func NewCore(conf Config) (*Core, error) {
 	if logger == nil {
 		logger = zap.NewNop()
 	}
-	spaces, err := space.NewManager(conf.Root, conf.Logger)
+	root, err := iosrc.ParseURI(conf.Root)
+	if err != nil {
+		return nil, err
+	}
+	spaces, err := space.NewManager(root, conf.Logger)
 	if err != nil {
 		return nil, err
 	}
 	return &Core{
-		Root:         conf.Root,
+		Root:         root,
 		ZeekLauncher: conf.ZeekLauncher,
 		spaces:       spaces,
 		logger:       logger,

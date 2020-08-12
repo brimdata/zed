@@ -494,10 +494,6 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 		zctx := resolver.NewContext()
 		zr := tzngio.NewReader(strings.NewReader(strings.Join(data, "\n")), zctx)
 		cr := &countReader{r: zr}
-		muxOutput, err := driver.Compile(context.Background(), proc, zctx, cr, driver.Config{
-			ReaderSortKey: inputSortKey,
-		})
-		assert.NoError(t, err)
 		var outbuf bytes.Buffer
 		zw := detector.LookupWriter(&nopCloser{&outbuf}, &zio.WriterFlags{})
 		d := &testGroupByDriver{
@@ -510,7 +506,9 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 				}
 			},
 		}
-		err = driver.Run(muxOutput, d, nil)
+		err = driver.Run(context.Background(), d, proc, zctx, cr, driver.Config{
+			ReaderSortKey: inputSortKey,
+		})
 		require.NoError(t, err)
 		outData := strings.Split(outbuf.String(), "\n")
 		sort.Strings(outData)

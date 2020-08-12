@@ -17,25 +17,25 @@ outputs:
   - name: stdout
     data: |
       20200422/1587518620.0622373.zng.zar
-      20200421/1587512288.06249439.zng.zar
+      20200421/1587509477.06313454.zng.zar
       ===
       TYPE  LOG_ID                          START                DURATION       SIZE
-      chunk 20200422/1587518620.0622373.zng 1587512305.069789040 6314.992448261 21736
+      chunk 20200422/1587518620.0622373.zng 1587509477.064505280 9142.997732021 32205
       TYPE  LOG_ID                          INDEX_ID        INDEX_TYPE SIZE  KEYS.KEY
-      index 20200422/1587518620.0622373.zng zdx-field-v     field      2538  int64
-      index 20200422/1587518620.0622373.zng zdx-type-string type       15776 string
-      TYPE  LOG_ID                           START                DURATION       SIZE
-      chunk 20200421/1587512288.06249439.zng 1587508830.068523240 3457.993971151 13054
+      index 20200422/1587518620.0622373.zng zdx-field-v     field      2950  int64
+      index 20200422/1587518620.0622373.zng zdx-type-string type       23712 string
+      TYPE  LOG_ID                           START                DURATION      SIZE
+      chunk 20200421/1587509477.06313454.zng 1587508830.068523240 646.994611301 2133
       TYPE  LOG_ID                           INDEX_ID        INDEX_TYPE SIZE KEYS.KEY
-      index 20200421/1587512288.06249439.zng zdx-field-v     field      1869 int64
-      index 20200421/1587512288.06249439.zng zdx-type-string type       9547 string
+      index 20200421/1587509477.06313454.zng zdx-field-v     field      459  int64
+      index 20200421/1587509477.06313454.zng zdx-type-string type       1611 string
       ===
       #0:record[type:string,log_id:string,start:time,duration:duration,size:uint64]
-      0:[chunk;20200422/1587518620.0622373.zng;1587512305.06978904;6314.992448261;21736;]
+      0:[chunk;20200422/1587518620.0622373.zng;1587509477.06450528;9142.997732021;32205;]
       #1:record[type:string,log_id:string,index_id:string,index_type:string,size:uint64,keys:record[key:string]]
-      1:[index;20200422/1587518620.0622373.zng;zdx-field-v;field;2538;[int64;]]
-      1:[index;20200422/1587518620.0622373.zng;zdx-type-string;type;15776;[string;]]
-      0:[chunk;20200421/1587512288.06249439.zng;1587508830.06852324;3457.993971151;13054;]
-      1:[index;20200421/1587512288.06249439.zng;zdx-field-v;field;1869;[int64;]]
-      1:[index;20200421/1587512288.06249439.zng;zdx-type-string;type;9547;[string;]]
+      1:[index;20200422/1587518620.0622373.zng;zdx-field-v;field;2950;[int64;]]
+      1:[index;20200422/1587518620.0622373.zng;zdx-type-string;type;23712;[string;]]
+      0:[chunk;20200421/1587509477.06313454.zng;1587508830.06852324;646.994611301;2133;]
+      1:[index;20200421/1587509477.06313454.zng;zdx-field-v;field;459;[int64;]]
+      1:[index;20200421/1587509477.06313454.zng;zdx-type-string;type;1611;[string;]]
       ===

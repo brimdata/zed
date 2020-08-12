@@ -11,7 +11,7 @@ input: |
 
 output-format: zng
 
-output-flags: -b 2
+output-flags: -b 2 -znglz4blocksize=0
 
 outputHex: |
   # define the record corresponding to type 0 above: 1 col, name s, type string

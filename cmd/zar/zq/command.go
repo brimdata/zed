@@ -121,19 +121,15 @@ func (c *Command) Run(args []string) error {
 			return err
 		}
 		defer writer.Close()
-		mux, err := driver.Compile(context.Background(), query, zctx, reader, driver.Config{
-			ReaderSortKey:     "ts",
-			ReaderSortReverse: ark.DataSortDirection == zbuf.DirTimeReverse,
-			Warnings:          wch,
-		})
-		if err != nil {
-			return err
-		}
 		d := driver.NewCLI(writer)
 		if !c.quiet {
 			d.SetWarningsWriter(os.Stderr)
 		}
-		return driver.Run(mux, d, nil)
+		return driver.Run(context.Background(), d, query, zctx, reader, driver.Config{
+			ReaderSortKey:     "ts",
+			ReaderSortReverse: ark.DataSortDirection == zbuf.DirTimeReverse,
+			Warnings:          wch,
+		})
 	})
 }
 

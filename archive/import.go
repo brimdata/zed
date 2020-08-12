@@ -26,7 +26,6 @@ type importDriver struct {
 	ark *Archive
 	bw  *bufwriter.Writer
 	zw  *zngio.Writer
-	n   int64
 
 	span  nano.Span
 	logID LogID
@@ -65,8 +64,7 @@ func (d *importDriver) writeOne(rec *zng.Record) error {
 	if err := d.zw.Write(rec); err != nil {
 		return err
 	}
-	d.n += int64(len(rec.Raw))
-	if d.n >= d.ark.LogSizeThreshold {
+	if d.zw.Position() >= d.ark.LogSizeThreshold {
 		if err := d.close(); err != nil {
 			return err
 		}
@@ -91,7 +89,6 @@ func (d *importDriver) close() error {
 		d.bw = nil
 	}
 	d.zw = nil
-	d.n = 0
 	return nil
 }
 
@@ -131,13 +128,8 @@ func Import(ctx context.Context, ark *Archive, zctx *resolver.Context, r zbuf.Re
 		return err
 	}
 
-	fg, err := driver.Compile(ctx, proc, zctx, r, driver.Config{})
-	if err != nil {
-		return err
-	}
-
 	id := &importDriver{ark: ark}
-	if err := driver.Run(fg, id, nil); err != nil {
+	if err := driver.Run(ctx, id, proc, zctx, r, driver.Config{}); err != nil {
 		return fmt.Errorf("archive.Import: run failed: %w", err)
 	}
 

@@ -56,16 +56,12 @@ func (i *Internal) Run() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	mux, err := driver.Compile(context.Background(), program, zctx, reader, driver.Config{})
-	if err != nil {
-		return "", err
-	}
 	output, err := newEmitter(i.OutputFormat)
 	if err != nil {
 		return "", err
 	}
 	d := driver.NewCLI(output)
-	if err := driver.Run(mux, d, nil); err != nil {
+	if err := driver.Run(context.Background(), d, program, zctx, reader, driver.Config{}); err != nil {
 		return "", err
 	}
 	return string(output.Bytes()), nil

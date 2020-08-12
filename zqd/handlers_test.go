@@ -206,7 +206,7 @@ func TestSpaceList(t *testing.T) {
 			expected = append(expected, api.SpaceInfo{
 				ID:          sp.ID,
 				Name:        n,
-				DataPath:    filepath.Join(c.Root, string(sp.ID)),
+				DataPath:    c.Root.AppendPath(string(sp.ID)),
 				StorageKind: storage.FileStore,
 			})
 		}
@@ -219,10 +219,10 @@ func TestSpaceList(t *testing.T) {
 
 	// Delete dir from one space, then simulate a restart by
 	// creating a new Core pointing to the same root.
-	require.NoError(t, os.RemoveAll(filepath.Join(c.Root, string(expected[2].ID))))
+	require.NoError(t, os.RemoveAll(filepath.Join(c.Root.Filepath(), string(expected[2].ID))))
 	expected = append(expected[:2], expected[3:]...)
 
-	c, client, done = newCoreAtDir(t, c.Root)
+	_, client, done = newCoreAtDir(t, c.Root.Filepath())
 	defer done()
 
 	list, err := client.SpaceList(ctx)
@@ -283,7 +283,7 @@ func TestSpacePostNameOnly(t *testing.T) {
 	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 	assert.Equal(t, "test", sp.Name)
-	assert.Equal(t, filepath.Join(c.Root, string(sp.ID)), sp.DataPath)
+	assert.Equal(t, c.Root.AppendPath(string(sp.ID)), sp.DataPath)
 	assert.Regexp(t, "^sp", sp.ID)
 }
 
@@ -336,7 +336,7 @@ func TestSpacePostDataPath(t *testing.T) {
 	sp, err := client.SpacePost(ctx, api.SpacePostRequest{DataPath: datapath})
 	require.NoError(t, err)
 	assert.Equal(t, "mypcap.brim", sp.Name)
-	assert.Equal(t, datapath, sp.DataPath)
+	assert.Equal(t, datapath, sp.DataPath.Filepath())
 }
 
 func TestSpacePut(t *testing.T) {
@@ -454,7 +454,7 @@ func TestPostZngLogs(t *testing.T) {
 		DataPath:    sp.DataPath,
 		StorageKind: storage.FileStore,
 		Span:        span,
-		Size:        78,
+		Size:        79,
 		PcapSupport: false,
 	}, info)
 }
@@ -541,7 +541,7 @@ func TestPostNDJSONLogs(t *testing.T) {
 			DataPath:    sp.DataPath,
 			StorageKind: storage.FileStore,
 			Span:        &span,
-			Size:        78,
+			Size:        79,
 			PcapSupport: false,
 		}, info)
 	}
@@ -770,7 +770,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 		DataPath:    sp.DataPath,
 		StorageKind: storage.ArchiveStore,
 		Span:        &span,
-		Size:        35318,
+		Size:        34419,
 	}
 	si, err := client.SpaceInfo(context.Background(), sp.ID)
 	require.NoError(t, err)
@@ -837,12 +837,9 @@ func TestIndexSearch(t *testing.T) {
 	expected := `
 #zfile=string
 #0:record[key:int64,count:uint64,_log:zfile]
-0:[257;1;20200422/1587518432.06228663.zng;]
-0:[257;1;20200422/1587516797.06911059.zng;]
-0:[257;1;20200421/1587511801.06624146.zng;]
-0:[257;1;20200421/1587511516.06430561.zng;]
-0:[257;1;20200421/1587510489.06591564.zng;]
-0:[257;1;20200421/1587509322.06101754.zng;]
+0:[257;2;20200422/1587518620.0622373.zng;]
+0:[257;3;20200422/1587513890.06193968.zng;]
+0:[257;1;20200421/1587509469.06883172.zng;]
 `
 	res, _ := indexSearch(t, client, sp.ID, "", []string{"v=257"})
 	assert.Equal(t, test.Trim(expected), res)
@@ -873,8 +870,8 @@ func TestSubspaceCreate(t *testing.T) {
 	exp := `
 #zfile=string
 #0:record[key:int64,count:uint64,_log:zfile]
-0:[336;1;20200422/1587517412.06741443.zng;]
-0:[336;1;20200421/1587508871.06471174.zng;]
+0:[336;1;20200422/1587518620.0622373.zng;]
+0:[336;1;20200421/1587509469.06883172.zng;]
 `
 	res, _ := indexSearch(t, client, sp1.ID, "", []string{":int64=336"})
 	assert.Equal(t, test.Trim(exp), res)
@@ -883,7 +880,7 @@ func TestSubspaceCreate(t *testing.T) {
 	sp2, err := client.SubspacePost(context.Background(), sp1.ID, api.SubspacePostRequest{
 		Name: "subspace",
 		OpenOptions: storage.ArchiveOpenOptions{
-			LogFilter: []string{"20200422/1587517412.06741443.zng"},
+			LogFilter: []string{"20200422/1587518620.0622373.zng"},
 		},
 	})
 	require.NoError(t, err)
@@ -893,7 +890,7 @@ func TestSubspaceCreate(t *testing.T) {
 	exp = `
 #zfile=string
 #0:record[key:int64,count:uint64,_log:zfile]
-0:[336;1;20200422/1587517412.06741443.zng;]
+0:[336;1;20200422/1587518620.0622373.zng;]
 `
 	res, _ = indexSearch(t, client, sp2.ID, "", []string{":int64=336"})
 	assert.Equal(t, test.Trim(exp), res)
@@ -945,7 +942,7 @@ func TestSubspacePersist(t *testing.T) {
 	sp2, err := client1.SubspacePost(context.Background(), sp1.ID, api.SubspacePostRequest{
 		Name: "subspace",
 		OpenOptions: storage.ArchiveOpenOptions{
-			LogFilter: []string{"20200422/1587517412.06741443.zng"},
+			LogFilter: []string{"20200422/1587518620.0622373.zng"},
 		},
 	})
 	require.NoError(t, err)
@@ -955,7 +952,7 @@ func TestSubspacePersist(t *testing.T) {
 	exp := `
 #zfile=string
 #0:record[key:int64,count:uint64,_log:zfile]
-0:[336;1;20200422/1587517412.06741443.zng;]
+0:[336;1;20200422/1587518620.0622373.zng;]
 `
 	res, _ := indexSearch(t, client1, sp2.ID, "", []string{":int64=336"})
 	assert.Equal(t, test.Trim(exp), res)
@@ -1018,11 +1015,11 @@ func TestArchiveStat(t *testing.T) {
 
 	exp := `
 #0:record[type:string,log_id:string,start:time,duration:duration,size:uint64]
-0:[chunk;20200422/1587518620.0622373.zng;1587512305.06978904;6314.992448261;21736;]
+0:[chunk;20200422/1587518620.0622373.zng;1587509477.06450528;9142.997732021;32205;]
 #1:record[type:string,log_id:string,index_id:string,index_type:string,size:uint64,keys:record[key:string]]
-1:[index;20200422/1587518620.0622373.zng;zdx-field-v;field;2538;[int64;]]
-0:[chunk;20200421/1587512288.06249439.zng;1587508830.06852324;3457.993971151;13054;]
-1:[index;20200421/1587512288.06249439.zng;zdx-field-v;field;1869;[int64;]]
+1:[index;20200422/1587518620.0622373.zng;zdx-field-v;field;2950;[int64;]]
+0:[chunk;20200421/1587509477.06313454.zng;1587508830.06852324;646.994611301;2133;]
+1:[index;20200421/1587509477.06313454.zng;zdx-field-v;field;459;[int64;]]
 `
 	res := archiveStat(t, client, sp.ID)
 	assert.Equal(t, test.Trim(exp), res)

@@ -4,7 +4,7 @@ script: |
   echo ===
   zapi -h $ZQD_HOST new -d ./root -k archivestore testsp
   echo ===
-  zapi -h $ZQD_HOST -s testsp get -f tzng "s=harefoot-raucous"
+  zapi -h $ZQD_HOST info testsp | egrep -v 'data_path|id|pcap_path'
 
 inputs:
   - name: babble.tzng
@@ -18,5 +18,10 @@ outputs:
       ===
       testsp: space created
       ===
-      #0:record[ts:time,s:string,v:int64]
-      0:[1587508881.0613914;harefoot-raucous;137;]
+      testsp
+        name:         testsp
+        storage_kind: archivestore
+        span:         2020-04-21T22:40:30Z+2h43m9.993714061s
+        size:         34.34KB
+        pcap_support: false
+        pcap_size:    0B
