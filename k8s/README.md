@@ -93,6 +93,39 @@ You should get an 'ok' response.
 
 WIP!
 
+## Adding Observability
+
+Here we add several moving parts to out local K8s cluster that will allow us to measure zqd's performance and resource consumption.
+
+First we will add a "service mesh" called Linkerd. 
+
+https://linkerd.io/2/getting-started/
+
+We do not need Linkerd for the typical use case of service meshes, which is to route intra-service messages, often gRPC, within a cluster. Instead, we leverage the side-car router as a conveninet way to monitor inbound and outbound traffic from ZQD. Conveniently, the Linkerd install also includes Prometheus and Grafana to support Linkerd's dashboard. We will configure these Prometheus and Grafana instances to also monitor zqd's Prometheus metrics.
+
+We will also install the Kube State Metrics:
+
+https://github.com/kubernetes/kube-state-metrics
+
+That capture the Prometheus metrics published by Kubernetes. The combination of the Prometheus metrics from zqd, Linkerd, and KSM will provide us with thorough instrumention of I/O, CPU, and RAM use correlated in time with zqd queries.
+
+### Step 1: install Linkerd into the Kind cluster
+
+First insure that Linkerd command line tools are installed. Use the getting started guide, or on MacOS:
+```
+brew install linkerd
+linkerd version
+```
+Make sure you are in the right context for your local Kind cluster, then:
+```
+linkerd install | kubectl apply -f -
+```
+Linkerd, when it is installed this way, will automatically inject sidecar containers into deployment than include Linkerd annotations. The various Linkerd services will run in their own 'linkerd' namespace and they take a while to start. To make sure it finishes the install, you can wait with:
+```
+kubectl wait --for=condition=available --timeout=120s -n linkerd deployment linkerd-tap
+```
+
+
 ## WIP: Deploying the ZQ daemon to an AWS EKS cluster
 
 NOTE: this EKS procedure is not yet working end-to-end in the k8s branch!
