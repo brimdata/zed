@@ -78,6 +78,7 @@ func (s *zngScanner) scanUncompressed() ([]*zng.Record, error) {
 			return nil, err
 		}
 		if rec != nil {
+			rec.CopyBody()
 			recs = append(recs, rec)
 		}
 	}
