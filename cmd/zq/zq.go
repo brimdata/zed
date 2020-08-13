@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -17,6 +16,7 @@ import (
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/pkg/s3io"
+	"github.com/brimsec/zq/pkg/signalctx"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
@@ -250,7 +250,9 @@ func (c *Command) Run(args []string) error {
 	if !c.quiet {
 		d.SetWarningsWriter(os.Stderr)
 	}
-	if err := driver.Run(context.Background(), d, query, c.zctx, reader, driver.Config{
+	ctx, cancel := signalctx.New(os.Interrupt)
+	defer cancel()
+	if err := driver.Run(ctx, d, query, c.zctx, reader, driver.Config{
 		Warnings: wch,
 	}); err != nil {
 		writer.Close()

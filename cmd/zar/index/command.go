@@ -10,6 +10,7 @@ import (
 
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cmd/zar/root"
+	"github.com/brimsec/zq/pkg/signalctx"
 	"github.com/mccanne/charm"
 )
 
@@ -110,7 +111,9 @@ func (c *Command) Run(args []string) error {
 			wg.Done()
 		}()
 	}
-	err = archive.IndexDirTree(ark, rules, c.inputFile, progress)
+	ctx, cancel := signalctx.New(os.Interrupt)
+	defer cancel()
+	err = archive.IndexDirTree(ctx, ark, rules, c.inputFile, progress)
 	if progress != nil {
 		close(progress)
 		wg.Wait()

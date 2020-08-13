@@ -28,10 +28,10 @@ func fieldZdxName(fieldname string) string {
 	return "zdx-field-" + fieldname
 }
 
-func IndexDirTree(ark *Archive, rules []Rule, path string, progress chan<- string) error {
+func IndexDirTree(ctx context.Context, ark *Archive, rules []Rule, path string, progress chan<- string) error {
 	err := Walk(ark, func(zardir iosrc.URI) error {
 		logPath := Localize(zardir, path)
-		return run(zardir, rules, logPath, progress)
+		return run(ctx, zardir, rules, logPath, progress)
 	})
 	if err != nil {
 		return err
@@ -43,7 +43,7 @@ func IndexDirTree(ark *Archive, rules []Rule, path string, progress chan<- strin
 	return ark.AddIndexes(infos)
 }
 
-func runOne(zardir iosrc.URI, rule Rule, inputPath iosrc.URI, progress chan<- string) error {
+func runOne(ctx context.Context, zardir iosrc.URI, rule Rule, inputPath iosrc.URI, progress chan<- string) error {
 	rc, err := iosrc.NewReader(inputPath)
 	if err != nil {
 		return err
@@ -59,14 +59,14 @@ func runOne(zardir iosrc.URI, rule Rule, inputPath iosrc.URI, progress chan<- st
 	if progress != nil {
 		progress <- fmt.Sprintf("%s: creating index %s", inputPath, rule.Path(zardir))
 	}
-	return driver.Run(context.TODO(), fgi, rule.proc, zctx, r, driver.Config{
+	return driver.Run(ctx, fgi, rule.proc, zctx, r, driver.Config{
 		Custom: &compiler{},
 	})
 }
 
-func run(zardir iosrc.URI, rules []Rule, logPath iosrc.URI, progress chan<- string) error {
+func run(ctx context.Context, zardir iosrc.URI, rules []Rule, logPath iosrc.URI, progress chan<- string) error {
 	for _, rule := range rules {
-		if err := runOne(zardir, rule, logPath, progress); err != nil {
+		if err := runOne(ctx, zardir, rule, logPath, progress); err != nil {
 			return err
 		}
 	}
