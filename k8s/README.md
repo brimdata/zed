@@ -126,9 +126,66 @@ The zapi commands in quotes are juthe same as Brim queries. Notice that "head 1"
 
 ### Using zqd in the Kind cluster
 
-WIP!
+#### AWS credentials
+To access AWS S3 from zqd running as a Kubernetes pod, you must have AWS credentials available to the code running in the pod. We use K8s secrets to provide the credential to the deployment as env vars. The secrets are references in the Helm template deployment.yaml. The shell script `aws-credentials.sh` reads your credentials using `aws configure` and creates a K8s secret in the Kind cluster. (We will do something different for AWS EKS, because we can use IAM when the cluster is deployed in AWS.)
+
+Before deploying zqd with helm, run:
+```
+./k8s/aws-credentials.sh
+```
+Then is you type:
+```
+kubectl get secret
+kebctl get secret aws-credentials -oyaml
+```
+You will see the new objects. The secrets are base64 encoded.
+
+#### Redeploy with helm
+This step is not mandatory, but if you make a change in the helm templates, you generally will want to uninstall/reinstall the zqd.
+```
+helm uninstall zqd-test-1
+helm install zqd-test-1 charts/zqd
+```
+To check if the AWS env vars are present in the deployment, these commands are helpful:
+```
+kubectl get deploy
+kubectl describe deploy zqd-test-1
+kubectl get deploy zqd-test-1 -oyaml
+```
+
+#### Redeploy zqd with an S3 datadir
+When you deploy zqd, you specify a datadir like we did in the standalone example. At present, this datadir is specified in the deployment.yaml for the helm template and passed in as a parameter to the helm install.
+
+In this example, we do a helm deploy with the same S3 datadir we used in the local example above:
+```
+helm uninstall zqd-test-1
+helm install zqd-test-1 charts/zqd --set datadir="s3://brim-scratch/mark/zqd-meta"
+```
+Check the logs to see if zqd is running with the correct parameters:
+```
+stern zqd-test-1
+```
+Now follow the instructions that Helm printed out on install to port-forward for zapi:
+```
+export POD_NAME=$(kubectl get pods --namespace zq -l "app.kubernetes.io/name=zqd,app.kubernetes.io/instance=zqd-test-1" -o jsonpath="{.items[0].metadata.name}")
+kubectl --namespace zq port-forward $POD_NAME 9867:9867
+```
+
+Now use zapi to create a space as in the local example above:
+```
+zapi new -k archivestore -d s3://brim-scratch/mark/sample-http-zng http-space-1
+```
+And try some zapi queries:
+```
+zapi -s http-space-2 get "head 1"
+zapi -s http-space-2 get "tail 1"
+```
+Notice that it is really slow now because it is running in resource-constrained local Kind cluster! :-)
+
 
 ## Adding Observability
+
+WIP!
 
 Here we add several moving parts to out local K8s cluster that will allow us to measure zqd's performance and resource consumption.
 

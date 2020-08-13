@@ -40,7 +40,7 @@ spec:
           image: "{{ .Values.image.repository }}{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["/go/bin/zqd"]
-          args: ["listen", "-l", ":9867", "-datadir", "/spaces"] 
+          args: ["listen", "-l", ":9867", "-data", {{ quote .Values.datadir }}] 
           ports:
             - name: http
               containerPort: 9867
@@ -53,6 +53,27 @@ spec:
             httpGet:
               path: /status
               port: http
+          env:
+          - name: AWS_REGION
+            valueFrom:
+              secretKeyRef:
+                key: aws-region
+                name: aws-credentials
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                key: aws-secret-access-key
+                name: aws-credentials
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                key: aws-access-key-id
+                name: aws-credentials
+          - name: AWS_SESSION_TOKEN
+            valueFrom:
+              secretKeyRef:
+                key: aws-session-token
+                name: aws-credentials 
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
