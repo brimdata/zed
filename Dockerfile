@@ -1,5 +1,7 @@
 FROM golang:1.14-alpine AS build
 
+ARG LDFLAGS
+
 # Install some dependencies needed to build the project
 RUN apk add bash ca-certificates git gcc g++ libc-dev
 
@@ -19,7 +21,7 @@ COPY . .
 
 # And compile the project 
 # CGO_ENABLED and installsuffix are part of the scheme to get better caching on builds
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o /go/bin/zqd ./cmd/zqd
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="${LDFLAGS}" -a -installsuffix cgo -o /go/bin/zqd ./cmd/zqd
 
 
 FROM golang:1.14-alpine

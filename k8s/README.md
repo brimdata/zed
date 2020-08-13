@@ -58,6 +58,9 @@ Notice this adds a tags for loading the image into the local docker registry cre
 ```
 docker push "localhost:5000/zqd:latest"
 ```
+
+The Makefile has a target `make docker` that creates a docker image with the correct version number passed in as LDFLAGS. `make docker` is the preferred way to build a docker image.
+
 This copies the image into a Docker registry that is accessed by your single-node Kubernetes cluster for Kind.
 
 ### Deploy zqd into the local cluster with helm
