@@ -182,6 +182,7 @@ zapi -s http-space-2 get "tail 1"
 ```
 Notice that it is really slow now because it is running in resource-constrained local Kind cluster! :-)
 
+We can also query http-space-2 with Brim, since it will connect to the same port-forward for zqd.
 
 ## Adding Observability
 
