@@ -54,15 +54,13 @@ The following command builds and labels the container image:
 DOCKER_BUILDKIT=1 docker build --pull --rm \
   -t "zqd:latest" -t "localhost:5000/zqd:latest" .
 ```
-Notive this adds a tags for loading the image into the local docker registry creaeted by kind-with-registry.sh. To load the image into the registry:
+Notice this adds a tags for loading the image into the local docker registry created by `kind-with-registry.sh.` To load the image into the registry:
 ```
 docker push "localhost:5000/zqd:latest"
 ```
-This copies the image into the container that is running your single-node Kubernetes cluster for Kind. Once it is there, use an image PullPolicy:Never to insure that the local copy of the image is used in our Kind cluster. Later, for remote deployments, we use image pullPolicy:IfNotPresent.
+This copies the image into a Docker registry that is accessed by your single-node Kubernetes cluster for Kind.
 
 ### Deploy zqd into the local cluster with helm
-The K8s deployment and and service yaml for zqd is pretty simple. We use Helm 3 to parameterize the differences between local and remote deploys. (Note that there are good alternatives to Helm for this.) Helm can conveniently uninstall or upgrade zqd.
-
 The helm 3 chart is in k8s/charts/zqd. To install zqd with the helm chart:
 ```
 helm upgrade zqd-test-1 charts/zqd --install
@@ -78,9 +76,10 @@ And view Helm installs with:
 helm ls
 ```
 ### Testing connectivity to zqd
-A simple test for the zqd is to send a /status request. This is used for the K8s liveness probe. Substitute the pod id into a port-forward command:
+A simple test for zqd is to send a /status request to its http endpoint. This is used for the K8s liveness probe. Substitute the pod id into a port-forward command:
 
 ```
+kubectl get pod
 kubectl port-forward zqd-test-1-66b5f9dc8-8dshh 9867:9867
 ```
 And in another console, use curl:
@@ -91,7 +90,7 @@ You should get an 'ok' response.
 
 ### Using zqd with zapi
 
-This is a walk-through of a local test we  do before testing on our k8s cluster. This is outside the k8s cluster to get familiar with trouble-shooting.
+This is a walk-through of a local test before testing on our k8s cluster. This is outside the k8s cluster to get familiar with trouble-shooting.
 
 As a prerequisite, you must have an S3 bucket and directory available for zqd. In the S3 console, or at the command line, create a 'datadir' for use with zqd. This directory will hold metadata for the spaces you will create with zapi.
 
@@ -103,7 +102,7 @@ aws s3 ls # make sure the bucket exists!
 zqd listen -data s3://brim-scratch/mark/zqd-meta
 ```
 zqd will stay running in that console, listening at `localhost:9867` by default.
-zqd will not create any s3 objects in zqd-meta until we issue a zapi command. Before using zapi, we use zar in another console to get sample data from our zq repo into s3:
+zqd will not create any s3 objects in zqd-meta until we issue a zapi command. Before using zapi, we use `zar import` in another console to copy sample data from our zq repo into s3:
 ```
 zar import -R s3://brim-scratch/mark/sample-http-zng zq-sample-data/zng/http.zng.gz
 ```
@@ -111,18 +110,18 @@ This creates zng files in an s3 directory called `sample-http-zng` that we will 
 ```
 aws s3 ls brim-scratch/mark --recursive
 ```
-Now use zapi to make the zar data available to your running zqd instance. Note that zapi defaults to `localhost:9867` for zqd.
+Now use zapi to make the zar data available to your running zqd instance. Note that zapi defaults to `localhost:9867` for connecting to zqd.
 ```
 zapi new -k archivestore -d s3://brim-scratch/mark/sample-http-zng http-space-1
 ```
-The `-d` parameter provides the same s3 dir that we used in the `-R` parameter of the zar command above. This command creates a new space for zqd called `http-space-1`. If we again list the s3 directories with `aws s3 ls brim-scratch/mark --recursive` we will see that zqd has now created a new object under its `-datadir` which has a name generated from "sp_1g0" followed by entropy.
+The `-d` parameter provides the same s3 dir that we used in the `-R` parameter of the zar command above. This command creates a new space for zqd called `http-space-1`. If we again list the s3 directories with `aws s3 ls brim-scratch/mark --recursive` we will see that zqd has now created a new object under its datadir, a directory name that is a base64 string prefixed with "sp_1g0".
 
 Now that you have a zqd running with a space, and you have made an archive from zar data, you can use zapi commands to query the sample data. Example:
 ```
 zapi -s http-space-1 get "head 1"
 zapi -s http-space-1 get "tail 1"
 ```
-The zapi commands in quotes are juthe same as Brim queries. Notice that "head 1" runs much faster than "tail 1", which has to read more data from s3.
+The zapi commands in quotes are the same as Brim queries. Notice that "head 1" runs much faster than "tail 1", which has to read more data from s3.
 
 ### Using zqd in the Kind cluster
 
@@ -133,15 +132,15 @@ Before deploying zqd with helm, run:
 ```
 ./k8s/aws-credentials.sh
 ```
-Then is you type:
+Then try:
 ```
 kubectl get secret
-kebctl get secret aws-credentials -oyaml
+kubectl get secret aws-credentials -oyaml
 ```
 You will see the new objects. The secrets are base64 encoded.
 
 #### Redeploy with helm
-This step is not mandatory, but if you make a change in the helm templates, you generally will want to uninstall/reinstall the zqd.
+This step is not mandatory, but if you make a change to the helm templates, you generally will want to uninstall/reinstall zqd.
 ```
 helm uninstall zqd-test-1
 helm install zqd-test-1 charts/zqd
@@ -165,15 +164,15 @@ Check the logs to see if zqd is running with the correct parameters:
 ```
 stern zqd-test-1
 ```
-Now follow the instructions that Helm printed out on install to port-forward for zapi:
+Now follow the instructions that Helm printed out on install to port-forward 9867:
 ```
 export POD_NAME=$(kubectl get pods --namespace zq -l "app.kubernetes.io/name=zqd,app.kubernetes.io/instance=zqd-test-1" -o jsonpath="{.items[0].metadata.name}")
 kubectl --namespace zq port-forward $POD_NAME 9867:9867
 ```
 
-Now use zapi to create a space as in the local example above:
+Now use zapi to create a space, just like the local example above:
 ```
-zapi new -k archivestore -d s3://brim-scratch/mark/sample-http-zng http-space-1
+zapi new -k archivestore -d s3://brim-scratch/mark/sample-http-zng http-space-2
 ```
 And try some zapi queries:
 ```
