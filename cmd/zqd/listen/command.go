@@ -81,7 +81,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.pprof, "pprof", false, "add pprof routes to api")
 	f.BoolVar(&c.prom, "prometheus", false, "add prometheus metrics routes to api")
 	f.StringVar(&c.configfile, "config", "", "path to a zqd config file")
-	f.Var(&c.logLevel, "loglevel", "level for log output (defaults to info)")
+	f.Var(&c.logLevel, "loglevel", "level for log output")
 	f.BoolVar(&c.devMode, "dev", false, "runs zqd in development mode")
 	f.StringVar(&c.portFile, "portfile", "", "write port of http listener to file")
 	return c, nil
