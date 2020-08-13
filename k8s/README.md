@@ -186,9 +186,7 @@ We can also query http-space-2 with Brim, since it will connect to the same port
 
 ## Adding Observability
 
-WIP!
-
-Here we add several moving parts to out local K8s cluster that will allow us to measure zqd's performance and resource consumption.
+Here we add several moving parts to our local K8s cluster that will allow us to measure zqd's performance and resource consumption.
 
 First we will add a "service mesh" called Linkerd. 
 
@@ -218,6 +216,32 @@ Linkerd, when it is installed this way, will automatically inject sidecar contai
 kubectl wait --for=condition=available --timeout=120s -n linkerd deployment linkerd-tap
 ```
 
+### Step 2: Redeploy zqd to get Linkerd sidecar proxy injection
+
+The zqd from the section "Redeploy zqd with an S3 datadir" will not yet have a Linkerd proxy. You can check this by doing this -- sub the pod id you get from `get pod` into the `describe pod`
+```
+kubectl get pod
+kubectl describe pod zqd-test-1-99999999-XXXXX
+```
+You will see that the pod has one container called `zqd`.
+After installing Linkerd, reinstall with helm like you did before:
+```
+helm uninstall zqd-test-1
+helm install zqd-test-1 charts/zqd --set datadir="s3://brim-scratch/mark/zqd-meta"
+```
+Now repeat the `describe pod` and you will see that the pod has a second container called `linkerd-proxy`. This proxy monitors both inbound and outbound traffic.
+
+### Step 3: Use the Linkerd dashboard to monitor zqd
+
+This part assumes you have a space created for zqd, as described above. Start the Linkerd dashboard with:
+```
+linkerd dashboard &
+```
+On most desktops, this will start a browser window with the dashboard. On the home screen of the dashboard under HTTP metrics you should see your namespace, zq. There is a grafana icon in the far rigght column next to zq. Click on that, and you will see some basic metrics for traffic through zqd.
+
+### Step 4: Kube State Metrics
+
+WIP!
 
 ## WIP: Deploying the ZQ daemon to an AWS EKS cluster
 

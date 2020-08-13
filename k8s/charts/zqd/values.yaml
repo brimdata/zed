@@ -29,7 +29,9 @@ serviceAccount:
   # If not set and create is true, a name is generated using the fullname template
   name: ""
 
-podAnnotations: {}
+podAnnotations: 
+  # request a linkerd sidecar (works if Linkerd is installed)
+  linkerd.io/inject: enabled
 
 podSecurityContext: {}
   # fsGroup: 2000

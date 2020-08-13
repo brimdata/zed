@@ -5,8 +5,6 @@ metadata:
   labels:
     {{- include "zqd.labels" . | nindent 4 }}
   annotations:
-    # request a linkerd sidecar (works if Linkerd is installed)
-    linkerd.io/inject: enabled
     # This timestamp annotation is added so 'helm update'
     # will always result in yaml changes and trigger an upgrade
     timestamp: "{{ date "20060102150405" .Release.Time }}"
