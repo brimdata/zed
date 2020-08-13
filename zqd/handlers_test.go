@@ -734,7 +734,7 @@ func indexArchiveSpace(t *testing.T, datapath string, ruledef string) {
 	ark, err := archive.OpenArchive(datapath, nil)
 	require.NoError(t, err)
 
-	err = archive.IndexDirTree(ark, []archive.Rule{*rule}, "_", nil)
+	err = archive.IndexDirTree(context.Background(), ark, []archive.Rule{*rule}, "_", nil)
 	require.NoError(t, err)
 }
 

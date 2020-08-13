@@ -1,7 +1,6 @@
 package zq
 
 import (
-	"context"
 	"errors"
 	"flag"
 	"os"
@@ -12,6 +11,7 @@ import (
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/brimsec/zq/pkg/signalctx"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
@@ -74,6 +74,10 @@ func (c *Command) Run(args []string) error {
 	if len(args) == 0 {
 		return errors.New("zar zq needs input arguments")
 	}
+
+	ctx, cancel := signalctx.New(os.Interrupt)
+	defer cancel()
+
 	// XXX this is parallelizable except for writing to stdout when
 	// concatenating results
 	return archive.Walk(ark, func(zardir iosrc.URI) error {
@@ -125,7 +129,7 @@ func (c *Command) Run(args []string) error {
 		if !c.quiet {
 			d.SetWarningsWriter(os.Stderr)
 		}
-		return driver.Run(context.Background(), d, query, zctx, reader, driver.Config{
+		return driver.Run(ctx, d, query, zctx, reader, driver.Config{
 			ReaderSortKey:     "ts",
 			ReaderSortReverse: ark.DataSortDirection == zbuf.DirTimeReverse,
 			Warnings:          wch,

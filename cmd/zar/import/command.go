@@ -1,7 +1,6 @@
 package zarimport
 
 import (
-	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -10,6 +9,7 @@ import (
 	"github.com/alecthomas/units"
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cmd/zar/root"
+	"github.com/brimsec/zq/pkg/signalctx"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
@@ -93,5 +93,8 @@ func (c *Command) Run(args []string) error {
 	}
 	defer reader.Close()
 
-	return archive.Import(context.TODO(), ark, zctx, reader)
+	ctx, cancel := signalctx.New(os.Interrupt)
+	defer cancel()
+
+	return archive.Import(ctx, ark, zctx, reader)
 }
