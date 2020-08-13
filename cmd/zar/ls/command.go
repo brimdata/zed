@@ -17,13 +17,11 @@ import (
 
 var Ls = &charm.Spec{
 	Name:  "ls",
-	Usage: "ls [options] [pattern]",
+	Usage: "ls [-R root] [options] [pattern]",
 	Short: "list the zar directories in an archive",
 	Long: `
 "zar ls" walks an archive's directories and prints out
 the path of each zar directory contained with those top-level directories.
-TBD: In the future, this command could
-display a detailed summary of the context each zar directory.
 `,
 	New: New,
 }
@@ -41,7 +39,7 @@ type Command struct {
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
-	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive to walk")
+	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
 	f.BoolVar(&c.lflag, "l", false, "long form")
 	f.BoolVar(&c.relativePaths, "relative", false, "display paths relative to root")
 	return c, nil

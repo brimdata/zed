@@ -15,13 +15,11 @@ import (
 
 var Index = &charm.Spec{
 	Name:  "index",
-	Usage: "index [-R dir] [options] [-z zql] [ pattern [ pattern ...]]",
+	Usage: "index [-R root] [options] [-z zql] [ pattern [ pattern ...]]",
 	Short: "create index files for zng files",
 	Long: `
-zar index descends the directory argument starting at dir and looks
-for files with zar directories.  Each such file found is indexed according
-to the one or more indexing rules provided, and the resulting indexes
-are written to that file's zar directory.
+"zar index" creates index files in a zar archive using one or more indexing
+rules.
 
 A pattern is either a field name or a ":" followed by a zng type name.
 For example, to index the all fields of type port and the field id.orig_h,
@@ -35,9 +33,6 @@ For custom indexes, zql can be used instead of a pattern. This
 requires specifying the key and output file name. For example:
 
        zar index -k id.orig_h -o custom -z "count() by _path, id.orig_h | sort id.orig_h"
-
-The root directory must be specified either by the ZAR_ROOT environemnt
-variable or the -R option.
 `,
 	New: New,
 }
@@ -59,7 +54,7 @@ type Command struct {
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
-	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive to walk")
+	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
 	f.StringVar(&c.keys, "k", "key", "one or more comma-separated key fields")
 	f.IntVar(&c.framesize, "f", 32*1024, "minimum frame size used in zdx file")
 	f.StringVar(&c.inputFile, "i", "_", "input file relative to each zar directory ('_' means archive log file in the parent of the zar directory)")
