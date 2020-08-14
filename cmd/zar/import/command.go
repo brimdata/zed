@@ -24,11 +24,10 @@ var Import = &charm.Spec{
 The import command provides a way to create a new zar archive with ZNG data
 from an existing file, S3 location, or stdin.
 
-The input data is sorted and paritioned by time into chunks. Each chunk is
-created when the size threshold is exceeded, either in bytes (-b) or megabytes
-(-s).  The path of each chunk is a subdirectory in the specified root
-(-R or ZAR_ROOT) where the subdirectory name is derived from the
-timestamp of the first zng record in that chunk.
+The input data is sorted and partitioned by time into approximately equal
+sized ZNG files, called "chunks". The path of each chunk is a subdirectory in
+the specified root location (-R or ZAR_ROOT), where the subdirectory name is
+derived from the timestamp of the first zng record in that chunk.
 `,
 	New: New,
 }
@@ -50,7 +49,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
 	f.StringVar(&c.dataPath, "data", "", "location for storing data files (defaults to root)")
-	f.StringVar(&c.thresh, "s", units.Base2Bytes(archive.DefaultLogSizeThreshold).String(), "target size of chopped files, as '10MB' or '4GiB', etc.")
+	f.StringVar(&c.thresh, "s", units.Base2Bytes(archive.DefaultLogSizeThreshold).String(), "target size of chunk files, as '10MB' or '4GiB', etc.")
 	f.BoolVar(&c.empty, "empty", false, "create an archive without initial data")
 	c.ReaderFlags.SetFlags(f)
 	return c, nil
