@@ -20,7 +20,7 @@ Using Homebrew (https://brew.sh) install the following packages:
 ```
 brew install kind stern helm
 ```
-The Docker desktop install also installed a version of kubectl that works for this process. If you want to update to the most current kubectl, then:
+The Docker desktop install also installs a version of kubectl that works for this process. `kubectl version` should be 1.17 or later. If you want to update to the most current kubectl, then:
 ```
 brew install kubernetes-cli
 brew link --overwrite kubernetes-cli
