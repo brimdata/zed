@@ -29,4 +29,3 @@ WORKDIR /app
 RUN apk update && apk add ca-certificates
 COPY --from=build /build/. /app/.
 COPY --from=build /go/bin/zqd /go/bin
-# ENTRYPOINT ["sh"]
