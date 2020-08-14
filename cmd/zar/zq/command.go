@@ -22,17 +22,12 @@ import (
 
 var Zq = &charm.Spec{
 	Name:  "zq",
-	Usage: "zq [-R dir] [options] [zql] file [file...]",
+	Usage: "zq [-R root] [options] [zql] file [file...]",
 	Short: "walk an archive and run zql queries",
 	Long: `
-"zar zq" descends the directory given by the -R option (or ZAR_ROOT env) looking for
-logs with zar directories and for each such directory found, it runs
-the zq logic relative to that directory and emits the results in zng format.
-The file names here are relative to that directory and the special name "_" refers
-to the actual log file in the parent of the zar directory.
-
-If the root directory is not specified by either the ZAR_ROOT environemnt
-variable or the -R option, then the current directory is assumed.
+"zar zq" executes a ZQL query against each chunk or associated file in an 
+archive. The special name "_" refers to chunk file itelf, and other names
+are interpreted relative to the chunk's associated file directory.
 `,
 	New: New,
 }
@@ -51,7 +46,7 @@ type Command struct {
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
-	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive to walk")
+	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
 	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
 	f.StringVar(&c.outputFile, "o", "", "write data to output file")
 	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")

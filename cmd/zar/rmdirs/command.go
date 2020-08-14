@@ -11,7 +11,7 @@ import (
 
 var RmDirs = &charm.Spec{
 	Name:  "rmdirs",
-	Usage: "rmdirs [-R archive]",
+	Usage: "rmdirs [-R root]",
 	Short: "walk a directory tree and remove zar directories",
 	Long: `
 "zar rmdirs" descends the provided directory looking for
@@ -33,7 +33,7 @@ type Command struct {
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
-	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive to walk")
+	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
 	return c, nil
 }
 
