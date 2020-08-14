@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"unicode/utf8"
 	"unsafe"
 )
 
@@ -21,9 +22,17 @@ func ParseBool(b []byte) (bool, error) {
 }
 
 func ParseIP(b []byte) (net.IP, error) {
-	ip := net.ParseIP(UnsafeString(b))
+	unsafeStr := UnsafeString(b)
+	ip := net.ParseIP(unsafeStr)
 	if ip == nil {
-		return nil, fmt.Errorf("bad addr value field %v", b)
+		var err error
+		if utf8.Valid(b) {
+			// Print a better error message if b is a utf8 string
+			err = fmt.Errorf("Cannot parse %s as an IP address", unsafeStr)
+		} else {
+			err = fmt.Errorf("Cannot parse bytes as an IP address: %v", b)
+		}
+		return nil, err
 	}
 	return ip, nil
 }
