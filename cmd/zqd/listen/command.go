@@ -24,6 +24,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"gopkg.in/yaml.v3"
 )
 
@@ -35,22 +36,6 @@ var Listen = &charm.Spec{
 The listen command launches a process to listen on the provided interface and
 `,
 	New: New,
-}
-
-// defaultLogger ignores output from the access logger.
-var defaultLogger = &logger.Config{
-	Type: logger.TypeWaterfall,
-	Children: []logger.Config{
-		{
-			Name:  "http.access",
-			Path:  "/dev/null",
-			Level: zap.InfoLevel,
-		},
-		{
-			Path:  "stderr",
-			Level: zap.InfoLevel,
-		},
-	},
 }
 
 func init() {
@@ -66,6 +51,7 @@ type Command struct {
 	zeekRunnerPath string
 	configfile     string
 	loggerConf     *logger.Config
+	logLevel       zapcore.Level
 	logger         *zap.Logger
 	devMode        bool
 	portFile       string
@@ -79,6 +65,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.pprof, "pprof", false, "add pprof routes to api")
 	f.BoolVar(&c.prom, "prometheus", false, "add prometheus metrics routes to api")
 	f.StringVar(&c.configfile, "config", "", "path to a zqd config file")
+	f.Var(&c.logLevel, "loglevel", "level for log output (defaults to info)")
 	f.BoolVar(&c.devMode, "dev", false, "runs zqd in development mode")
 	f.StringVar(&c.portFile, "portfile", "", "write port of http listener to file")
 	return c, nil
@@ -208,9 +195,27 @@ func (c *Command) initZeek() error {
 	return nil
 }
 
+// defaultLogger ignores output from the access logger.
+func (c *Command) defaultLogger() *logger.Config {
+	return &logger.Config{
+		Type: logger.TypeWaterfall,
+		Children: []logger.Config{
+			{
+				Name:  "http.access",
+				Path:  "/dev/null",
+				Level: c.logLevel,
+			},
+			{
+				Path:  "stderr",
+				Level: c.logLevel,
+			},
+		},
+	}
+}
+
 func (c *Command) initLogger() error {
 	if c.loggerConf == nil {
-		c.loggerConf = defaultLogger
+		c.loggerConf = c.defaultLogger()
 	}
 	core, err := logger.NewCore(*c.loggerConf)
 	if err != nil {

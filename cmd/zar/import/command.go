@@ -1,7 +1,6 @@
 package zarimport
 
 import (
-	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -10,6 +9,7 @@ import (
 	"github.com/alecthomas/units"
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cmd/zar/root"
+	"github.com/brimsec/zq/pkg/signalctx"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
@@ -18,15 +18,16 @@ import (
 
 var Import = &charm.Spec{
 	Name:  "import",
-	Usage: "import [options] file",
+	Usage: "import [-R root] [options] [file|S3-object|-]",
 	Short: "import log files into pieces",
 	Long: `
-The import command provides a way to create a new zar archive with data.
-It takes as input zng data and cuts the stream
-into chunks where each chunk is created when the size threshold is exceeded,
-either in bytes (-b) or megabytes (-s).  The path of each chunk is a subdirectory
-in the specified directory (-R or ZAR_ROOT) where the subdirectory name is derived from the
-timestamp of the first zng record in that chunk.
+The import command provides a way to create a new zar archive with ZNG data
+from an existing file, S3 location, or stdin.
+
+The input data is sorted and partitioned by time into approximately equal
+sized ZNG files, called "chunks". The path of each chunk is a subdirectory in
+the specified root location (-R or ZAR_ROOT), where the subdirectory name is
+derived from the timestamp of the first zng record in that chunk.
 `,
 	New: New,
 }
@@ -46,9 +47,9 @@ type Command struct {
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
-	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive to walk")
-	f.StringVar(&c.dataPath, "data", "", "location for storing data files (defaults to root directory)")
-	f.StringVar(&c.thresh, "s", units.Base2Bytes(archive.DefaultLogSizeThreshold).String(), "target size of chopped files, as '10MB' or '4GiB', etc.")
+	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
+	f.StringVar(&c.dataPath, "data", "", "location for storing data files (defaults to root)")
+	f.StringVar(&c.thresh, "s", units.Base2Bytes(archive.DefaultLogSizeThreshold).String(), "target size of chunk files, as '10MB' or '4GiB', etc.")
 	f.BoolVar(&c.empty, "empty", false, "create an archive without initial data")
 	c.ReaderFlags.SetFlags(f)
 	return c, nil
@@ -93,5 +94,8 @@ func (c *Command) Run(args []string) error {
 	}
 	defer reader.Close()
 
-	return archive.Import(context.TODO(), ark, zctx, reader)
+	ctx, cancel := signalctx.New(os.Interrupt)
+	defer cancel()
+
+	return archive.Import(ctx, ark, zctx, reader)
 }

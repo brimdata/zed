@@ -15,7 +15,7 @@ import (
 
 var Rm = &charm.Spec{
 	Name:  "rm",
-	Usage: "rm file",
+	Usage: "rm [-R root] file",
 	Short: "remove files from zar directories in an archive",
 	Long: `
 "zar rm" walks a zar achive and removes the file with the given name from
@@ -36,7 +36,7 @@ type Command struct {
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
-	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive to walk")
+	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
 	f.BoolVar(&c.relativePaths, "relative", false, "display paths relative to root")
 	return c, nil
 }
