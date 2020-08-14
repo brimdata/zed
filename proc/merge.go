@@ -84,8 +84,10 @@ func (m *Merge) Pull() (zbuf.Batch, error) {
 			go m.run()
 		}
 	})
-
 	for {
+		if m.nparents == 0 {
+			return nil, nil
+		}
 		res, ok := <-m.ch
 		if !ok {
 			return nil, nil
@@ -100,9 +102,6 @@ func (m *Merge) Pull() (zbuf.Batch, error) {
 		}
 
 		m.nparents--
-		if m.nparents == 0 {
-			return nil, nil
-		}
 	}
 }
 
