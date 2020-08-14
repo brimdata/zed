@@ -49,19 +49,23 @@ kubectl get pod -A
 ### Build a zqd image with Docker
 There is a Dockerfile in the root directory. This Dockerfile does a 2-stage build to produce a relatively small image containing the zqd binary. It is structured to cache intermediate results so it runs faster on subsequent builds.
 
-The following command builds and labels the container image:
-```
-DOCKER_BUILDKIT=1 docker build --pull --rm \
-  -t "zqd:latest" -t "localhost:5000/zqd:latest" .
-```
-Notice this adds a tags for loading the image into the local docker registry created by `kind-with-registry.sh.` To load the image into the registry:
-```
-docker push "localhost:5000/zqd:latest"
-```
-
 The Makefile has a target `make docker` that creates a docker image with the correct version number passed in as LDFLAGS. `make docker` is the preferred way to build a docker image.
 
-This copies the image into a Docker registry that is accessed by your single-node Kubernetes cluster for Kind.
+The `make docker` target also copies the image into a Docker registry that is accessed by your single-node Kubernetes cluster for Kind.
+
+### AWS credentials
+To access AWS S3 from zqd running as a Kubernetes pod, you must have AWS credentials available to the code running in the pod. We use K8s secrets to provide the credential to the deployment as env vars. The secrets are references in the Helm template deployment.yaml. The shell script `aws-credentials.sh` reads your credentials using `aws configure` and creates a K8s secret in the Kind cluster. (We will do something different for AWS EKS, because we can use IAM when the cluster is deployed in AWS.)
+
+Run:
+```
+./k8s/aws-credentials.sh
+```
+Then try:
+```
+kubectl get secret
+kubectl get secret aws-credentials -oyaml
+```
+You will see the new objects. The secrets are base64 encoded.
 
 ### Deploy zqd into the local cluster with helm
 The helm 3 chart is in k8s/charts/zqd. To install zqd with the helm chart:
@@ -126,36 +130,7 @@ zapi -s http-space-1 get "tail 1"
 ```
 The zapi commands in quotes are the same as Brim queries. Notice that "head 1" runs much faster than "tail 1", which has to read more data from s3.
 
-### Using zqd in the Kind cluster
-
-#### AWS credentials
-To access AWS S3 from zqd running as a Kubernetes pod, you must have AWS credentials available to the code running in the pod. We use K8s secrets to provide the credential to the deployment as env vars. The secrets are references in the Helm template deployment.yaml. The shell script `aws-credentials.sh` reads your credentials using `aws configure` and creates a K8s secret in the Kind cluster. (We will do something different for AWS EKS, because we can use IAM when the cluster is deployed in AWS.)
-
-Before deploying zqd with helm, run:
-```
-./k8s/aws-credentials.sh
-```
-Then try:
-```
-kubectl get secret
-kubectl get secret aws-credentials -oyaml
-```
-You will see the new objects. The secrets are base64 encoded.
-
-#### Redeploy with helm
-This step is not mandatory, but if you make a change to the helm templates, you generally will want to uninstall/reinstall zqd.
-```
-helm uninstall zqd-test-1
-helm install zqd-test-1 charts/zqd
-```
-To check if the AWS env vars are present in the deployment, these commands are helpful:
-```
-kubectl get deploy
-kubectl describe deploy zqd-test-1
-kubectl get deploy zqd-test-1 -oyaml
-```
-
-#### Redeploy zqd with an S3 datadir
+### Redeploy zqd with an S3 datadir
 When you deploy zqd, you specify a datadir like we did in the standalone example. At present, this datadir is specified in the deployment.yaml for the helm template and passed in as a parameter to the helm install.
 
 In this example, we do a helm deploy with the same S3 datadir we used in the local example above:
@@ -369,6 +344,30 @@ In order for the kubelet liveness check to work, zqd must be listening on 0.0.0.
 For `kubectl port-forward` to work, zqd must be listening on 127.0.0.1:9867.
 To get this behavior, we set the command line flag `zqd listen -l :9867` -- so it will listen to the socket for all hosts.
 
+## Building with  Docker directly
+The following command builds and labels the container image:
+```
+DOCKER_BUILDKIT=1 docker build --pull --rm \
+  -t "zqd:latest" -t "localhost:5000/zqd:latest" .
+```
+Notice this adds a tags for loading the image into the local docker registry created by `kind-with-registry.sh.` To load the image into the registry:
+```
+docker push "localhost:5000/zqd:latest"
+```
+This copies the image into a Docker registry that is accessed by your single-node Kubernetes cluster for Kind.
+
+## Redeploy with helm
+If you make a change to the helm templates, you generally will want to uninstall/reinstall zqd.
+```
+helm uninstall zqd-test-1
+helm install zqd-test-1 charts/zqd
+```
+To check if the AWS env vars are present in the deployment, these commands are helpful:
+```
+kubectl get deploy
+kubectl describe deploy zqd-test-1
+kubectl get deploy zqd-test-1 -oyaml
+```
 
 # Tearing down the environment
 
