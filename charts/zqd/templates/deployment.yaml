@@ -92,4 +92,3 @@ spec:
       volumes:
         - name: spaces-volume
           emptyDir: {}
-  
