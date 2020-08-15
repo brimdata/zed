@@ -220,6 +220,17 @@ func newClient(cfg *aws.Config) *s3.S3 {
 		cfg.Endpoint = aws.String(endpoint)
 		cfg.S3ForcePathStyle = aws.Bool(true) // https://github.com/minio/minio/tree/master/docs/config#domain
 	}
-	sess := session.Must(session.NewSession(cfg))
+
+	// Unless the user has a environment setting for shared config, enable it
+	// so that region & other info is automatically picked up from the
+	// .aws/config file.
+	scs := session.SharedConfigEnable
+	if v := os.Getenv("AWS_SDK_LOAD_CONFIG"); v != "" {
+		scs = session.SharedConfigStateFromEnv
+	}
+	sess := session.Must(session.NewSessionWithOptions(session.Options{
+		Config:            *cfg,
+		SharedConfigState: scs,
+	}))
 	return s3.New(sess)
 }
