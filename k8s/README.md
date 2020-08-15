@@ -67,41 +67,10 @@ kubectl get secret aws-credentials -oyaml
 ```
 You will see the new objects. The secrets are base64 encoded.
 
-### Deploy zqd into the local cluster with helm
-The helm 3 chart is in k8s/charts/zqd. To install zqd with the helm chart:
+### Deploy zqd with a S3 datauri
+In this example, we do a helm deploy that sets the S3 datauri for zqd. You should already have an S3 bucket set up for this. You can use any naming convention you want for you s3 datauri. In this example, the s3 bucket has a directory "mark" with a subdir call "zqd-meta". Change both of these values for your S3 setup. 
 ```
-helm upgrade zqd-test-1 charts/zqd --install
-```
-This will install the chart if it is not yet present, or upgrade it to latest if it is installed. (The helm chart adds a timestamp as an annotation to the deployment, so it will always restart the pods.)
-
-You can confirm the pod has started with:
-```
-kubectl get pod
-```
-And view Helm installs with:
-```
-helm ls
-```
-### Testing connectivity to zqd
-A simple test for zqd is to send a /status request to its http endpoint. This is used for the K8s liveness probe. Substitute the pod id into a port-forward command:
-
-```
-kubectl get pod
-kubectl port-forward zqd-test-1-66b5f9dc8-8dshh 9867:9867
-```
-And in another console, use curl:
-```
-curl -v http://localhost:9867/status
-```
-You should get an 'ok' response.
-
-### Redeploy zqd with an S3 datadir
-When you deploy zqd, you specify a datadir like we did in the standalone example. At present, this datadir is specified in the deployment.yaml for the helm template and passed in as a parameter to the helm install.
-
-In this example, we do a helm deploy with the same S3 datadir we used in the local example above:
-```
-helm uninstall zqd-test-1
-helm install zqd-test-1 charts/zqd --set datadir="s3://brim-scratch/mark/zqd-meta"
+helm install zqd-test-1 charts/zqd --set datauri="s3://brim-scratch/mark/zqd-meta"
 ```
 Check the logs to see if zqd is running with the correct parameters:
 ```
@@ -169,7 +138,7 @@ kubectl wait --for=condition=available --timeout=120s -n linkerd deployment link
 
 ### Step 2: Redeploy zqd to get Linkerd sidecar proxy injection
 
-The zqd from the section "Redeploy zqd with an S3 datadir" will not yet have a Linkerd proxy. You can check this by doing this -- sub the pod id you get from `get pod` into the `describe pod`
+The zqd from the section "Redeploy zqd with an S3 datauri" will not yet have a Linkerd proxy. You can check this by doing this -- sub the pod id you get from `get pod` into the `describe pod`
 ```
 kubectl get pod
 kubectl describe pod zqd-test-1-99999999-XXXXX
@@ -178,7 +147,7 @@ You will see that the pod has one container called `zqd`.
 After installing Linkerd, reinstall with helm like you did before:
 ```
 helm uninstall zqd-test-1
-helm install zqd-test-1 charts/zqd --set datadir="s3://brim-scratch/mark/zqd-meta"
+helm install zqd-test-1 charts/zqd --set datauri="s3://brim-scratch/mark/zqd-meta"
 ```
 Now repeat the `describe pod` and you will see that the pod has a second container called `linkerd-proxy`. This proxy monitors both inbound and outbound traffic.
 
@@ -346,11 +315,11 @@ kubectl get deploy zqd-test-1 -oyaml
 ## Using zqd with zapi
 This is a walk-through of a local test before testing on our k8s cluster. This is outside the k8s cluster to get familiar with trouble-shooting.
 
-As a prerequisite, you must have an S3 bucket and directory available for zqd. In the S3 console, or at the command line, create a 'datadir' for use with zqd. This directory will hold metadata for the spaces you will create with zapi.
+As a prerequisite, you must have an S3 bucket and directory available for zqd. In the S3 console, or at the command line, create a 'datauri' for use with zqd. This directory will hold metadata for the spaces you will create with zapi.
 
 You will need AWS credentials. On your local machine you can use `aws configure` and then you must set the environment variable, `AWS_SDK_LOAD_CONFIG=true`. Within Kubernetes, we will need to handle AWS credentials with secrets. More on that later.
 
-Here is an example of creating a datadir, using an s3 bucket called `brim-scratch` in a directory called `mark` (change the s3 buckets for your setup.)
+Here is an example of creating a datauri, using an s3 bucket called `brim-scratch` in a directory called `mark` (change the s3 buckets for your setup.)
 ```
 aws s3 ls # make sure the bucket exists!
 zqd listen -data s3://brim-scratch/mark/zqd-meta
@@ -368,7 +337,7 @@ Now use zapi to make the zar data available to your running zqd instance. Note t
 ```
 zapi new -k archivestore -d s3://brim-scratch/mark/sample-http-zng http-space-1
 ```
-The `-d` parameter provides the same s3 dir that we used in the `-R` parameter of the zar command above. This command creates a new space for zqd called `http-space-1`. If we again list the s3 directories with `aws s3 ls brim-scratch/mark --recursive` we will see that zqd has now created a new object under its datadir, a directory name that is a base64 string prefixed with "sp_1g0".
+The `-d` parameter provides the same s3 dir that we used in the `-R` parameter of the zar command above. This command creates a new space for zqd called `http-space-1`. If we again list the s3 directories with `aws s3 ls brim-scratch/mark --recursive` we will see that zqd has now created a new object under its datauri, a directory name that is a base64 string prefixed with "sp_1g0".
 
 Now that you have a zqd running with a space, and you have made an archive from zar data, you can use zapi commands to query the sample data. Example:
 ```
@@ -376,6 +345,35 @@ zapi -s http-space-1 get "head 1"
 zapi -s http-space-1 get "tail 1"
 ```
 The zapi commands in quotes are the same as Brim queries. Notice that "head 1" runs much faster than "tail 1", which has to read more data from s3.
+
+## Deploy zqd into the local cluster with helm
+The helm 3 chart is in k8s/charts/zqd. To install zqd with the helm chart:
+```
+helm upgrade zqd-test-1 charts/zqd --install
+```
+This will install the chart if it is not yet present, or upgrade it to latest if it is installed. (The helm chart adds a timestamp as an annotation to the deployment, so it will always restart the pods.)
+
+You can confirm the pod has started with:
+```
+kubectl get pod
+```
+And view Helm installs with:
+```
+helm ls
+```
+## Testing connectivity to zqd
+A simple test for zqd is to send a /status request to its http endpoint. This is used for the K8s liveness probe. Substitute the pod id into a port-forward command:
+
+```
+kubectl get pod
+kubectl port-forward zqd-test-1-66b5f9dc8-8dshh 9867:9867
+```
+And in another console, use curl:
+```
+curl -v http://localhost:9867/status
+```
+You should get an 'ok' response.
+
 
 # Tearing down the environment
 

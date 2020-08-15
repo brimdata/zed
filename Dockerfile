@@ -27,5 +27,4 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="${LDFLAGS}" -a -ins
 FROM golang:1.14-alpine
 WORKDIR /app
 RUN apk update && apk add ca-certificates
-COPY --from=build /build/. /app/.
 COPY --from=build /go/bin/zqd /go/bin
