@@ -1,10 +1,12 @@
 script: |
-  source services.sh
-  zar import -s 20KiB -R ./root -data s3://bucket/zartest babble.tzng
+  source services.sh s3://bucket/zqdroot
+  zar import -s 20KiB -R s3://bucket/zartest babble.tzng
   echo ===
-  zapi -h $ZQD_HOST new -d ./root -k archivestore testsp
+  zapi -h $ZQD_HOST new -d s3://bucket/zartest -k archivestore testsp
   echo ===
   zapi -h $ZQD_HOST info testsp | awk '!/id|pcap_path/{print }'
+  echo ===
+  zapi -h $ZQD_HOST -s testsp get -f tzng "s=harefoot-raucous"
 
 inputs:
   - name: babble.tzng
@@ -20,9 +22,12 @@ outputs:
       ===
       testsp
         name:         testsp
-        data_path:    ./root
+        data_path:    s3://bucket/zartest
         storage_kind: archivestore
         span:         2020-04-21T22:40:30Z+2h43m9.993714061s
-        size:         34.50KB
+        size:         34.34KB
         pcap_support: false
         pcap_size:    0B
+      ===
+      #0:record[ts:time,s:string,v:int64]
+      0:[1587508881.0613914;harefoot-raucous;137;]

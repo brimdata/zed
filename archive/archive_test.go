@@ -47,7 +47,7 @@ func indexArchiveSpace(t *testing.T, datapath string, ruledef string) {
 	ark, err := OpenArchive(datapath, nil)
 	require.NoError(t, err)
 
-	err = IndexDirTree(ark, []Rule{*rule}, "_", nil)
+	err = IndexDirTree(context.Background(), ark, []Rule{*rule}, "_", nil)
 	require.NoError(t, err)
 }
 
@@ -89,21 +89,21 @@ func TestOpenOptions(t *testing.T) {
 	exp := `
 #zfile=string
 #0:record[key:int64,count:uint64,_log:zfile]
-0:[336;1;20200422/1587517412.06741443.zng;]
-0:[336;1;20200421/1587508871.06471174.zng;]
+0:[336;1;20200422/1587518620.0622373.zng;]
+0:[336;1;20200421/1587509469.06883172.zng;]
 `
 	out := indexQuery(t, ark1, query, AddPath(DefaultAddPathField, false))
 	require.Equal(t, test.Trim(exp), out)
 
 	ark2, err := OpenArchive(datapath, &OpenOptions{
-		LogFilter: []string{"20200422/1587517412.06741443.zng"},
+		LogFilter: []string{"20200422/1587518620.0622373.zng"},
 	})
 	require.NoError(t, err)
 
 	exp = `
 #zfile=string
 #0:record[key:int64,count:uint64,_log:zfile]
-0:[336;1;20200422/1587517412.06741443.zng;]
+0:[336;1;20200422/1587518620.0622373.zng;]
 `
 	out = indexQuery(t, ark2, query, AddPath(DefaultAddPathField, false))
 	require.Equal(t, test.Trim(exp), out)

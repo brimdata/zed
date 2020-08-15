@@ -56,8 +56,10 @@ func CompileSortProc(c *Context, parent Proc, node *ast.SortProc) (*Sort, error)
 
 func (s *Sort) Pull() (zbuf.Batch, error) {
 	s.once.Do(func() { go s.sortLoop() })
-	r := <-s.resultCh
-	return r.Batch, r.Err
+	if r, ok := <-s.resultCh; ok {
+		return r.Batch, r.Err
+	}
+	return nil, s.Context.Err()
 }
 
 func (s *Sort) sortLoop() {

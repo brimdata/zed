@@ -2,11 +2,13 @@ package space
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
-	"os"
-	"path/filepath"
+	"path"
 	"sync"
 
+	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/brimsec/zq/pkg/s3io"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqe"
@@ -14,51 +16,43 @@ import (
 )
 
 type Manager struct {
-	rootPath string
+	rootPath iosrc.URI
 	spacesMu sync.Mutex
 	spaces   map[api.SpaceID]Space
 	names    map[string]api.SpaceID
 	logger   *zap.Logger
 }
 
-func NewManager(root string, logger *zap.Logger) (*Manager, error) {
+func NewManager(root iosrc.URI, logger *zap.Logger) (*Manager, error) {
 	mgr := &Manager{
 		rootPath: root,
 		spaces:   make(map[api.SpaceID]Space),
 		names:    make(map[string]api.SpaceID),
 		logger:   logger,
 	}
-
-	dirs, err := ioutil.ReadDir(root)
-	if err != nil {
-		return nil, err
+	var err error
+	var dirs []iosrc.URI
+	switch root.Scheme {
+	case "file":
+		if dirs, err = filespaces(root); err != nil {
+			return nil, err
+		}
+	case "s3":
+		if dirs, err = s3spaces(root); err != nil {
+			return nil, err
+		}
+	default:
+		return nil, fmt.Errorf("%s: unsupported scheme", root.Scheme)
 	}
 
 	for _, dir := range dirs {
-		if !dir.IsDir() {
-			continue
-		}
-
-		path := filepath.Join(root, dir.Name())
-		config, err := loadConfig(path)
+		config, err := loadConfig(dir)
 		if err != nil {
 			logger.Error("Error loading config", zap.Error(err))
 			continue
 		}
 
-		if config.Version < 1 {
-			config.Name = safeName(mgr.names, config.Name)
-			for _, sub := range config.Subspaces {
-				sub.Name = safeName(mgr.names, sub.Name)
-			}
-			config.Version = configVersion
-			if err := writeConfig(path, config); err != nil {
-				logger.Error("Error migrating config", zap.Error(err))
-				continue
-			}
-		}
-
-		spaces, err := loadSpaces(path, config)
+		spaces, err := loadSpaces(dir, config)
 		if err != nil {
 			return nil, err
 		}
@@ -71,16 +65,54 @@ func NewManager(root string, logger *zap.Logger) (*Manager, error) {
 	return mgr, nil
 }
 
+func s3spaces(root iosrc.URI) ([]iosrc.URI, error) {
+	prefixes, err := s3io.ListCommonPrefixes(root.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	var uris []iosrc.URI
+	for _, p := range prefixes {
+		u := root
+		u.Path = p
+		uris = append(uris, u)
+	}
+	return uris, nil
+}
+
+func filespaces(root iosrc.URI) ([]iosrc.URI, error) {
+	dirs, err := ioutil.ReadDir(root.Filepath())
+	if err != nil {
+		return nil, err
+	}
+	var uris []iosrc.URI
+	for _, dir := range dirs {
+		if !dir.IsDir() {
+			continue
+		}
+		uris = append(uris, root.AppendPath(dir.Name()))
+	}
+	return uris, nil
+}
+
 func (m *Manager) Create(req api.SpacePostRequest) (Space, error) {
 	m.spacesMu.Lock()
 	defer m.spacesMu.Unlock()
 	if req.Name == "" && req.DataPath == "" {
 		return nil, zqe.E(zqe.Invalid, "must supply non-empty name or dataPath")
 	}
+	var datapath iosrc.URI
+	if req.DataPath != "" {
+		var err error
+		datapath, err = iosrc.ParseURI(req.DataPath)
+		if err != nil {
+			return nil, err
+		}
+	}
 	// If name is not set then derive name from DataPath, removing and
 	// replacing invalid characters.
 	if req.Name == "" {
-		req.Name = safeName(m.names, filepath.Base(req.DataPath))
+		req.Name = safeName(path.Base(datapath.Path))
+		req.Name = uniqueName(m.names, req.Name)
 	}
 	if err := validateName(m.names, req.Name); err != nil {
 		return nil, err
@@ -92,17 +124,26 @@ func (m *Manager) Create(req api.SpacePostRequest) (Space, error) {
 	if storecfg.Kind == storage.UnknownStore {
 		storecfg.Kind = storage.FileStore
 	}
+	if storecfg.Kind == storage.FileStore && m.rootPath.Scheme != "file" {
+		return nil, zqe.E(zqe.Invalid, "cannot create file storage space on non-file backed data path")
+	}
 	id := newSpaceID()
-	path := filepath.Join(m.rootPath, string(id))
-	if err := os.Mkdir(path, 0755); err != nil {
+	path := m.rootPath.AppendPath(string(id))
+	src, err := iosrc.GetSource(path)
+	if err != nil {
 		return nil, err
 	}
-	if req.DataPath == "" {
-		req.DataPath = path
+	if dirmk, ok := src.(iosrc.DirMaker); ok {
+		if err := dirmk.MkdirAll(path, 0754); err != nil {
+			return nil, err
+		}
 	}
-	conf := config{Name: req.Name, DataPath: req.DataPath, Storage: storecfg}
+	if req.DataPath == "" {
+		datapath = path
+	}
+	conf := config{Version: configVersion, Name: req.Name, DataURI: datapath, Storage: storecfg}
 	if err := writeConfig(path, conf); err != nil {
-		os.RemoveAll(path)
+		iosrc.RemoveAll(path)
 		return nil, err
 	}
 	spaces, err := loadSpaces(path, conf)

@@ -166,6 +166,30 @@ func ListObjects(path string, cfg *aws.Config) ([]string, error) {
 	})
 }
 
+func ListCommonPrefixes(path string, cfg *aws.Config) ([]string, error) {
+	bucket, key, err := parsePath(path)
+	if err != nil {
+		return nil, err
+	}
+	if !strings.HasSuffix(key, "/") {
+		key += "/"
+	}
+	client := newClient(cfg)
+	input := &s3.ListObjectsV2Input{
+		Prefix:    aws.String(key),
+		Bucket:    aws.String(bucket),
+		Delimiter: aws.String("/"),
+	}
+	var prefixes []string
+	err = client.ListObjectsV2Pages(input, func(out *s3.ListObjectsV2Output, lastPage bool) bool {
+		for _, p := range out.CommonPrefixes {
+			prefixes = append(prefixes, *p.Prefix)
+		}
+		return true
+	})
+	return prefixes, err
+}
+
 func ls(client *s3.S3, bucket, key string, cb func(*s3.ListObjectsV2Output, bool) bool) error {
 	input := &s3.ListObjectsV2Input{
 		Prefix: aws.String(key),

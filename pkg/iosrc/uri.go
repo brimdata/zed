@@ -19,6 +19,9 @@ const (
 // treated as files and resolved as absolute paths using filepath.Abs.
 // path is an empty, Scheme is set to file.
 func ParseURI(path string) (URI, error) {
+	if path == "" {
+		return URI{}, nil
+	}
 	// First resolve stdio keywords in to fully-formed uri.
 	path = stdio(path)
 	var err error
@@ -53,9 +56,9 @@ func (p URI) AppendPath(elem ...string) URI {
 	return p
 }
 
-func (p URI) String() string {
-	u := url.URL(p)
-	return (&u).String()
+func (u URI) String() string {
+	url := url.URL(u)
+	return url.String()
 }
 
 func (u URI) RelPath(target URI) string {
@@ -63,6 +66,23 @@ func (u URI) RelPath(target URI) string {
 		u.Path += "/"
 	}
 	return strings.TrimPrefix(target.Path, u.Path)
+}
+
+func (u URI) IsZero() bool {
+	return u == URI{}
+}
+
+func (u URI) MarshalText() ([]byte, error) {
+	return []byte(u.String()), nil
+}
+
+func (u *URI) UnmarshalText(b []byte) error {
+	uri, err := ParseURI(string(b))
+	if err != nil {
+		return err
+	}
+	*u = uri
+	return nil
 }
 
 // Maybe rawurl is of the form scheme:path.

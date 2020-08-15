@@ -17,7 +17,7 @@ import (
 
 var Stat = &charm.Spec{
 	Name:  "stat",
-	Usage: "stat [options]",
+	Usage: "stat [-R root] [options]",
 	Short: "archive component statistics",
 	Long: `
 "zar stat" generates a ZNG stream with information about the chunks in
@@ -38,7 +38,7 @@ type Command struct {
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
-	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive to walk")
+	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
 	f.StringVar(&c.format, "f", "table", "format for output data [zng,ndjson,table,text,zeek,zjson,tzng] (default \"table\")")
 	return c, nil
 }

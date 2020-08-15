@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqe"
 )
@@ -15,7 +16,7 @@ const PcapIndexFile = "packets.idx.json"
 
 type fileSpace struct {
 	spaceBase
-	path string
+	path iosrc.URI
 
 	confMu sync.Mutex
 	conf   config
@@ -30,9 +31,13 @@ func (s *fileSpace) Info(ctx context.Context) (api.SpaceInfo, error) {
 	if err != nil {
 		return api.SpaceInfo{}, err
 	}
+	du := s.conf.DataURI
+	if du.IsZero() {
+		du = s.path
+	}
 
 	si.Name = s.conf.Name
-	si.DataPath = s.conf.DataPath
+	si.DataPath = du
 	si.PcapSize = pcapsize
 	si.PcapSupport = s.PcapPath() != ""
 	si.PcapPath = s.PcapPath()
@@ -76,14 +81,14 @@ func (s *fileSpace) delete() error {
 	if err := s.sg.acquireForDelete(); err != nil {
 		return err
 	}
-	if err := os.RemoveAll(s.path); err != nil {
+	if err := iosrc.RemoveAll(s.path); err != nil {
 		return err
 	}
-	return os.RemoveAll(s.conf.DataPath)
+	return iosrc.RemoveAll(s.conf.DataURI)
 }
 
 func (s *fileSpace) PcapIndexPath() string {
-	return filepath.Join(s.conf.DataPath, PcapIndexFile)
+	return filepath.Join(s.conf.DataURI.Filepath(), PcapIndexFile)
 }
 
 // PcapSize returns the size in bytes of the packet capture in the space.

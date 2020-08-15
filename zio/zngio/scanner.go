@@ -126,7 +126,6 @@ func (s *zngScanner) Pull() (zbuf.Batch, error) {
 			return nil, err
 		}
 		if rec != nil {
-			rec.CopyBody()
 			return zbuf.NewArray([]*zng.Record{rec}), nil
 		}
 	}
@@ -182,6 +181,7 @@ func (s *zngScanner) scanOne(id int, buf []byte) (*zng.Record, error) {
 	}
 	atomic.AddInt64(&s.stats.BytesMatched, int64(len(rec.Raw)))
 	atomic.AddInt64(&s.stats.RecordsMatched, 1)
+	rec.CopyBody()
 	return rec, nil
 }
 

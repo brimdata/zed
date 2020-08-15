@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/zjsonio"
@@ -98,7 +99,7 @@ func (s *SpaceID) Set(str string) error {
 type SpaceInfo struct {
 	ID          SpaceID      `json:"id"`
 	Name        string       `json:"name"`
-	DataPath    string       `json:"data_path"`
+	DataPath    iosrc.URI    `json:"data_path"`
 	StorageKind storage.Kind `json:"storage_kind"`
 	Span        *nano.Span   `json:"span,omitempty"`
 	Size        int64        `json:"size" unit:"bytes"`

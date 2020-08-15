@@ -2,6 +2,16 @@ These entries focus on changes we think are relevant to users of Brim,
 zq, or pcap.  For all changes to zqd, its API, or to other components in the
 zq repo, check the git log.
 
+## v0.19.0
+* zq: ZNG output is now LZ4-compressed by default (#1050, #1064, #1063, [ZNG spec](https://github.com/brimsec/zq/blob/master/zng/docs/spec.md#313-compressed-value-message-block))
+* zar: Adjust import size threshold to account for compression (#1082)
+* zqd: Support starting `zqd` with datapath set to an S3 path (#1072)
+* zq: Fix an issue with panics during pcap import (#1090)
+* zq: Fix an issue where spilled records were not cleaned up if `zq` was interrupted (#1093, #1099)
+* zqd: Add `-loglevel` flag (#1088)
+* zq: Update help text for `zar` commands to mention S3, and other improvements (#1094)
+* pcap: Fix an out-of-memory issue during import of very large pcaps (#1096)
+
 ## v0.18.0
 * zql: Fix an issue where data type casting was not working in Brim (#1008)
 * zql: Add a new [`rename` processor](https://github.com/brimsec/zq/tree/master/zql/docs/processors#rename) to rename fields in a record (#998, #1038)

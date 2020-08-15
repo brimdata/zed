@@ -20,7 +20,7 @@ var Find = &charm.Spec{
 	Usage: "find [options] pattern [pattern...]",
 	Short: "look through zar index files and displays matches",
 	Long: `
-"zar find" descends the directory given by the -R option (or ZAR_ROOT)
+"zar find" searches a zar archive
 looking for zng files that have been indexed and performs a search on
 each such index file in accordance with the specified search pattern.
 Indexes are created by "zar index".
@@ -71,7 +71,7 @@ type Command struct {
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
-	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive to walk")
+	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
 	f.BoolVar(&c.skipMissing, "Q", false, "skip errors caused by missing index files ")
 	f.StringVar(&c.indexFile, "x", "", "name of zdx index for custom index searches")
 	f.StringVar(&c.outputFile, "o", "", "write data to output file")

@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -32,7 +33,9 @@ func TestFailOnConcurrentWrites(t *testing.T) {
 	defer func() {
 		os.RemoveAll(dir)
 	}()
-	store, err := Load(dir)
+	u, err := iosrc.ParseURI(dir)
+	require.NoError(t, err)
+	store, err := Load(u)
 	require.NoError(t, err)
 	zctx := resolver.NewContext()
 	wr := &waitReader{dur: time.Second * 5}
@@ -59,7 +62,9 @@ func TestRewriteNoRecords(t *testing.T) {
 	defer func() {
 		os.RemoveAll(dir)
 	}()
-	store, err := Load(dir)
+	u, err := iosrc.ParseURI(dir)
+	require.NoError(t, err)
+	store, err := Load(u)
 	require.NoError(t, err)
 
 	sp := nano.Span{Ts: 10, Dur: 10}

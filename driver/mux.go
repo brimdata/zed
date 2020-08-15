@@ -12,32 +12,32 @@ import (
 	"github.com/brimsec/zq/zqe"
 )
 
-type MuxResult struct {
+type muxResult struct {
 	proc.Result
 	ID      int
 	Warning string
 }
 
-type MuxOutput struct {
+type muxOutput struct {
 	ctx      *proc.Context
 	runners  int
-	muxProcs []*Mux
+	muxProcs []*mux
 	once     sync.Once
-	in       chan MuxResult
+	in       chan muxResult
 	scanner  scanner.Scanner
 }
 
-type Mux struct {
+type mux struct {
 	proc.Base
 	ID  int
-	out chan<- MuxResult
+	out chan<- muxResult
 }
 
-func newMux(c *proc.Context, parent proc.Proc, id int, out chan MuxResult) *Mux {
-	return &Mux{Base: proc.Base{Context: c, Parent: parent}, ID: id, out: out}
+func newMux(c *proc.Context, parent proc.Proc, id int, out chan muxResult) *mux {
+	return &mux{Base: proc.Base{Context: c, Parent: parent}, ID: id, out: out}
 }
 
-func (m *Mux) safeGet() (b zbuf.Batch, err error) {
+func (m *mux) safeGet() (b zbuf.Batch, err error) {
 	defer func() {
 		r := recover()
 		if r == nil {
@@ -49,7 +49,7 @@ func (m *Mux) safeGet() (b zbuf.Batch, err error) {
 	return
 }
 
-func (m *Mux) run() {
+func (m *mux) run() {
 	// This loop pulls batches from the parent and pushes them
 	// downstream to the multiplexing proc.  If the mux isn't ready,
 	// the out channel will block and this  goroutine will block until
@@ -59,58 +59,57 @@ func (m *Mux) run() {
 	// due to rate mismatch.
 	for {
 		batch, err := m.safeGet()
-		m.out <- MuxResult{proc.Result{batch, err}, m.ID, ""}
+		m.out <- muxResult{proc.Result{batch, err}, m.ID, ""}
 		if proc.EOS(batch, err) {
 			return
 		}
 	}
 }
 
-func NewMuxOutput(ctx *proc.Context, parents []proc.Proc, scanner scanner.Scanner) *MuxOutput {
+func newMuxOutput(ctx *proc.Context, parents []proc.Proc, scanner scanner.Scanner) *muxOutput {
 	n := len(parents)
-	c := make(chan MuxResult, n)
-	mux := &MuxOutput{ctx: ctx, runners: n, in: c, scanner: scanner}
+	c := make(chan muxResult, n)
+	mux := &muxOutput{ctx: ctx, runners: n, in: c, scanner: scanner}
 	for id, parent := range parents {
 		mux.muxProcs = append(mux.muxProcs, newMux(ctx, parent, id, c))
 	}
 	return mux
 }
 
-func (m *MuxOutput) Stats() api.ScannerStats {
+func (m *muxOutput) Stats() api.ScannerStats {
 	if m.scanner == nil {
 		return api.ScannerStats{}
 	}
 	return api.ScannerStats(*m.scanner.Stats())
 }
 
-func (m *MuxOutput) Complete() bool {
+func (m *muxOutput) Complete() bool {
 	return len(m.ctx.Warnings) == 0 && m.runners == 0
 }
 
-func (m *MuxOutput) N() int {
+func (m *muxOutput) N() int {
 	return len(m.muxProcs)
 }
 
-//XXX
-var ErrTimeout = errors.New("timeout")
+var errTimeout = errors.New("timeout")
 
-func (m *MuxOutput) Pull(timeout <-chan time.Time) MuxResult {
+func (m *muxOutput) Pull(timeout <-chan time.Time) muxResult {
 	m.once.Do(func() {
 		for _, m := range m.muxProcs {
 			go m.run()
 		}
 	})
 	if m.Complete() {
-		return MuxResult{proc.Result{}, -1, ""}
+		return muxResult{proc.Result{}, -1, ""}
 	}
-	var result MuxResult
+	var result muxResult
 	select {
 	case <-timeout:
-		return MuxResult{proc.Result{nil, ErrTimeout}, 0, ""}
+		return muxResult{proc.Result{nil, errTimeout}, 0, ""}
 	case result = <-m.in:
 		// empty
 	case warning := <-m.ctx.Warnings:
-		return MuxResult{proc.Result{}, 0, warning}
+		return muxResult{proc.Result{}, 0, warning}
 	}
 
 	if proc.EOS(result.Batch, result.Err) {
@@ -119,7 +118,7 @@ func (m *MuxOutput) Pull(timeout <-chan time.Time) MuxResult {
 	return result
 }
 
-func (m *MuxOutput) Drain() {
+func (m *muxOutput) Drain() {
 	for !m.Complete() {
 		m.Pull(nil)
 	}

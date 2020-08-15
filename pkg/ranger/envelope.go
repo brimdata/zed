@@ -68,6 +68,20 @@ func rangeOf(offsets []Point) Range {
 	return r
 }
 
+func rangeOfBins(bins []Bin) Range {
+	r := Range{Y0: math.MaxUint64, Y1: 0}
+	for _, b := range bins {
+		y0, y1 := b.Range.Y0, b.Range.Y1
+		if r.Y0 > y0 {
+			r.Y0 = y0
+		}
+		if r.Y1 < y1 {
+			r.Y1 = y1
+		}
+	}
+	return r
+}
+
 // NewEnvelope creates a range envelope structure used by FindSmallestDomain.
 // The X field of the Points must be in non-decreasing order.
 func NewEnvelope(offsets []Point, nbin int) Envelope {
@@ -79,8 +93,8 @@ func NewEnvelope(offsets []Point, nbin int) Envelope {
 	nout := (n + stride - 1) / stride
 	bins := make([]Bin, nout)
 	for k := 0; k < nout; k++ {
-		bins[k].X = offsets[k*stride].X
 		m := k * stride
+		bins[k].X = offsets[m].X
 		end := m + stride
 		if end > len(offsets) {
 			end = len(offsets)
@@ -112,4 +126,71 @@ func (e Envelope) FindSmallestDomain(r Range) Domain {
 		x1 = math.MaxUint64
 	}
 	return Domain{x0, x1}
+}
+
+type combiner struct {
+	envelopes []Envelope
+}
+
+func (c *combiner) next() (Bin, bool) {
+	idx := -1
+	for i := range c.envelopes {
+		if len(c.envelopes[i]) == 0 {
+			continue
+		}
+		if idx == -1 || c.envelopes[i][0].X < c.envelopes[idx][0].X {
+			idx = i
+		}
+	}
+	if idx == -1 {
+		return Bin{}, true
+	}
+	b := c.envelopes[idx][0]
+	c.envelopes[idx] = c.envelopes[idx][1:]
+	return b, false
+}
+
+func (c *combiner) nextN(n int) []Bin {
+	var bins []Bin
+	for i := 0; i < n; i++ {
+		b, done := c.next()
+		if done {
+			return bins
+		}
+		bins = append(bins, b)
+	}
+	return bins
+}
+
+func (c *combiner) size() (size int) {
+	for _, e := range c.envelopes {
+		size += len(e)
+	}
+	return
+}
+
+func (c *combiner) maxlen() (l int) {
+	for _, e := range c.envelopes {
+		if len(e) > l {
+			l = len(e)
+		}
+	}
+	return
+}
+
+// Merge squashes the two envelopes together returning a new Envelope the size
+// of the longest Envelope provided.
+func (e Envelope) Merge(u Envelope) Envelope {
+	c := &combiner{[]Envelope{e, u}}
+	n := c.size()
+	nbin := c.maxlen()
+	stride := strideSize(n, nbin)
+	nout := (n + stride - 1) / stride
+	out := make([]Bin, nout)
+	for k := 0; k < nout; k++ {
+		bins := c.nextN(stride)
+		out[k].X = bins[0].X
+		out[k].Range = rangeOfBins(bins)
+	}
+	return out
 }
