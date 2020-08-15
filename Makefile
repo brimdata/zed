@@ -87,7 +87,7 @@ install:
 docker:
 	DOCKER_BUILDKIT=1 docker build --pull --rm \
 		--build-arg LDFLAGS='$(LDFLAGS)' \
-  		-t "zqd:latest" -t "localhost:5000/zqd:latest" -t "localhost:5000/zqd:$(VERSION)" .
+		-t "zqd:latest" -t "localhost:5000/zqd:latest" -t "localhost:5000/zqd:$(VERSION)" .
 	docker push "localhost:5000/zqd:latest"
 	docker push "localhost:5000/zqd:$(VERSION)"
 
