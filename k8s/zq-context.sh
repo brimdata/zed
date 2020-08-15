@@ -8,4 +8,3 @@ kubectl config set-context zq \
   --cluster=kind-zq-local \
   --user=kind-zq-local
 kubectl config use-context zq
-
