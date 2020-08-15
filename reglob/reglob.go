@@ -1,4 +1,13 @@
-// adapted from https://github.com/fitzgen/glob-to-regexp
+// The code in this source file is derived from:
+// https://github.com/fitzgen/glob-to-regexp
+// is covered by the copyright below.
+// The changes are covered by the copyright and license in the
+// LICENSE file in the root directory of this repository.
+
+// Copyright (c) 2013, Nick Fitzgerald All rights reserved.
+// See acknowledgments.txt for full license text from:
+// https://github.com/fitzgen/glob-to-regexp#license
+
 package reglob
 
 import (

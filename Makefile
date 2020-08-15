@@ -89,6 +89,7 @@ create-release-assets:
 		zqdir=zq-$(VERSION).$${os}-amd64 ; \
 		rm -rf dist/$${zqdir} ; \
 		mkdir -p dist/$${zqdir} ; \
+		cp LICENSE.txt acknowledgments.txt dist/$${zqdir} ; \
 		GOOS=$${os} GOARCH=amd64 go build -ldflags='$(LDFLAGS)' -o dist/$${zqdir} ./cmd/... ; \
 	done
 	rm -rf dist/release && mkdir -p dist/release
