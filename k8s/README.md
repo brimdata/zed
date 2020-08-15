@@ -68,7 +68,7 @@ kubectl get secret aws-credentials -oyaml
 You will see the new objects. The secrets are base64 encoded.
 
 ### Deploy zqd with a S3 datauri
-In this example, we do a helm deploy that sets the S3 datauri for zqd. You should already have an S3 bucket set up for this. You can use any naming convention you want for you s3 datauri. In this example, the s3 bucket has a directory "mark" with a subdir call "zqd-meta". Change both of these values for your S3 setup. 
+In this example, we do a helm deploy that sets the S3 datauri for zqd. You should already have an S3 bucket set up for this. You can use any naming convention you want for your S3 datauri. In this example, the S3 bucket has a directory "mark" with a subdir call "zqd-meta". Change both of these values for your S3 setup. 
 ```
 helm install zqd-test-1 charts/zqd --set datauri="s3://brim-scratch/mark/zqd-meta"
 ```
