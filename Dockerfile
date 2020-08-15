@@ -2,9 +2,6 @@ FROM golang:1.14-alpine AS build
 
 ARG LDFLAGS
 
-# Install some dependencies needed to build the project
-RUN apk add bash ca-certificates git gcc g++ libc-dev
-
 # All these steps will be cached
 RUN mkdir /build
 WORKDIR /build
