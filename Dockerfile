@@ -8,8 +8,7 @@ WORKDIR /build
 
 # Copying the .mod and .sum files before the rest of the code
 # to improve the caching behavior of Docker
-COPY go.mod . 
-COPY go.sum .  
+COPY go.mod go.sum . 
 
 # Get dependancies - will also be cached if we won't change mod/sum
 RUN go mod download
