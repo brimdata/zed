@@ -1,4 +1,5 @@
 FROM golang:1.14-alpine AS build
+RUN apk --update add ca-certificates
 
 ARG LDFLAGS
 
@@ -20,7 +21,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="${LDFLAGS}" -a -installsuffix cgo -o /go/bin/zqd ./cmd/zqd
 
 
-FROM golang:1.14-alpine
+FROM scratch
 WORKDIR /app
-RUN apk update && apk add ca-certificates
-COPY --from=build /go/bin/zqd /go/bin
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=build /go/bin/zqd /app
