@@ -23,4 +23,4 @@ containerdConfigPatches:
 EOF
 
 # connect the registry to the cluster network
-docker network connect "kind" "${reg_name}" || true
+docker network connect kind "${reg_name}" || true
