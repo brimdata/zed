@@ -22,8 +22,7 @@ func ParseBool(b []byte) (bool, error) {
 }
 
 func ParseIP(b []byte) (net.IP, error) {
-	unsafeStr := UnsafeString(b)
-	ip := net.ParseIP(unsafeStr)
+	ip := net.ParseIP(UnsafeString(b))
 	if ip == nil {
 		var err error
 		if utf8.Valid(b) {
