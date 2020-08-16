@@ -42,6 +42,7 @@ type Writer struct {
 	keyType     *zng.TypeRecord
 	iow         io.WriteCloser
 	childField  string
+	nlevel      int
 }
 
 type indexWriter struct {
@@ -185,6 +186,10 @@ func (w *Writer) finalize() error {
 }
 
 func newIndexWriter(base *Writer, w io.WriteCloser, name string) (*indexWriter, error) {
+	base.nlevel++
+	if base.nlevel >= MaxLevels {
+		return nil, ErrTooManyLevels
+	}
 	writer := bufwriter.New(w)
 	return &indexWriter{
 		base:     base,

@@ -1,0 +1,10 @@
+script: |
+  zdx create -o index.zng -k s -f 20 babble.tzng
+
+inputs:
+  - name: babble.tzng
+
+outputs:
+  - name: stderr
+    regexp: |
+      .*too many levels.*

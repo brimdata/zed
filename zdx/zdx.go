@@ -19,6 +19,8 @@ import (
 	"errors"
 )
 
+const MaxLevels = 20
+
 var (
-	ErrCorruptFile = errors.New("corrupt zdx file")
+	ErrTooManyLevels = errors.New("microindex has too many levels (a larger frame threshold is needed)")
 )
