@@ -27,8 +27,7 @@ func ParseIP(b []byte) (net.IP, error) {
 	if ip == nil {
 		var err error
 		if utf8.Valid(b) {
-			// Print a better error message if b is a utf8 string
-			err = fmt.Errorf("Cannot parse %s as an IP address", unsafeStr)
+			err = fmt.Errorf("Cannot parse %s as an IP address", string(b))
 		} else {
 			err = fmt.Errorf("Cannot parse bytes as an IP address: %v", b)
 		}
