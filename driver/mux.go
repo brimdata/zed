@@ -24,7 +24,7 @@ type muxOutput struct {
 	muxProcs []*mux
 	once     sync.Once
 	in       chan muxResult
-	scanner  scanner.Scanner
+	scanner  scanner.ScannerStatsAble
 }
 
 type mux struct {
@@ -66,7 +66,7 @@ func (m *mux) run() {
 	}
 }
 
-func newMuxOutput(ctx *proc.Context, parents []proc.Proc, scanner scanner.Scanner) *muxOutput {
+func newMuxOutput(ctx *proc.Context, parents []proc.Proc, scanner scanner.ScannerStatsAble) *muxOutput {
 	n := len(parents)
 	c := make(chan muxResult, n)
 	mux := &muxOutput{ctx: ctx, runners: n, in: c, scanner: scanner}

@@ -2,7 +2,7 @@ package driver
 
 import (
 	"context"
-	"fmt"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -10,8 +10,6 @@ import (
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/proc"
-	"github.com/brimsec/zq/scanner"
-	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 	"go.uber.org/zap"
 )
@@ -26,44 +24,48 @@ type Config struct {
 	Warnings          chan string
 }
 
-func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader, cfg Config) (*muxOutput, error) {
-	if cfg.Logger == nil {
-		cfg.Logger = zap.NewNop()
+func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc MultiSource, mcfg MultiConfig) (*muxOutput, error) {
+	if mcfg.Logger == nil {
+		mcfg.Logger = zap.NewNop()
 	}
-	if cfg.Span.Dur == 0 {
-		cfg.Span = nano.MaxSpan
+	if mcfg.Span.Dur == 0 {
+		mcfg.Span = nano.MaxSpan
 	}
-	if cfg.Warnings == nil {
-		cfg.Warnings = make(chan string, 5)
+	if mcfg.Warnings == nil {
+		mcfg.Warnings = make(chan string, 5)
+	}
+	if mcfg.Parallelism == 0 {
+		mcfg.Parallelism = runtime.GOMAXPROCS(0)
 	}
 
+	sortKey, sortReversed := msrc.OrderInfo()
+
 	ReplaceGroupByProcDurationWithKey(program)
-	if cfg.ReaderSortKey != "" {
-		dir := 1
-		if cfg.ReaderSortReverse {
-			dir = -1
-		}
-		setGroupByProcInputSortDir(program, cfg.ReaderSortKey, dir)
+	if sortKey != "" {
+		setGroupByProcInputSortDir(program, sortKey, zbufDirInt(sortReversed))
 	}
-	filterExpr, program := liftFilter(program)
-	scanner, err := scanner.NewScanner(ctx, reader, filterExpr, cfg.Span)
+
+	pgSetup, program, err := pscanAnalyze(program)
 	if err != nil {
 		return nil, err
 	}
-	if stringer, ok := reader.(fmt.Stringer); ok {
-		scanner = &namedScanner{scanner, stringer.String()}
-	}
+
 	pctx := &proc.Context{
 		Context:     ctx,
 		TypeContext: zctx,
-		Logger:      cfg.Logger,
-		Warnings:    cfg.Warnings,
+		Logger:      mcfg.Logger,
+		Warnings:    mcfg.Warnings,
 	}
-	leaves, err := proc.CompileProc(cfg.Custom, program, pctx, &scannerProc{scanner})
+	mergeProc, pgroup, err := createParallelGroup(pctx, pgSetup, msrc, mcfg)
 	if err != nil {
 		return nil, err
 	}
-	return newMuxOutput(pctx, leaves, scanner), nil
+
+	leaves, err := proc.CompileProc(mcfg.Custom, program, pctx, mergeProc)
+	if err != nil {
+		return nil, err
+	}
+	return newMuxOutput(pctx, leaves, pgroup), nil
 }
 
 // liftFilter removes the filter at the head of the flowgraph AST, if
@@ -362,25 +364,3 @@ func computeColumnsR(p ast.Proc, colset map[string]struct{}) (map[string]struct{
 		panic("proc type not handled")
 	}
 }
-
-type namedScanner struct {
-	scanner.Scanner
-	name string
-}
-
-func (n *namedScanner) Pull() (zbuf.Batch, error) {
-	b, err := n.Scanner.Pull()
-	if err != nil {
-		err = fmt.Errorf("%s: %w", n.name, err)
-	}
-	return b, err
-}
-
-// scannerProc extends a scanner.Scanner to implement the proc.Proc interface.
-type scannerProc struct{ scanner.Scanner }
-
-// Done implements proc.Proc.Done.
-func (s *scannerProc) Done() {}
-
-// Parents implements proc.Proc.Parents.
-func (s *scannerProc) Parents() []proc.Proc { return nil }

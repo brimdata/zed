@@ -20,14 +20,19 @@ type Driver interface {
 }
 
 func Run(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader, cfg Config) error {
+	msrc, mcfg := rdrToMulti(reader, cfg)
+	return MultiRun(ctx, d, program, zctx, msrc, mcfg)
+}
+
+func MultiRun(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Context, msrc MultiSource, mcfg MultiConfig) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	mux, err := compile(ctx, program, zctx, reader, cfg)
+	mux, err := compile(ctx, program, zctx, msrc, mcfg)
 	if err != nil {
 		return err
 	}
-	return runMux(mux, d, cfg.StatsTick)
+	return runMux(mux, d, mcfg.StatsTick)
 }
 
 func runMux(out *muxOutput, d Driver, statsTickCh <-chan time.Time) error {
