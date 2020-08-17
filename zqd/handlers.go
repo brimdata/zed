@@ -325,7 +325,7 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pcapstore := pspace.PcapStore()
-	logstore, ok := s.Storage().(ingest.ClearableLogStore)
+	logstore, ok := s.Storage().(ingest.ClearableStore)
 	if !ok {
 		respondError(c, w, r, zqe.E(zqe.Invalid, "storage does not support pcap import"))
 		return
@@ -415,12 +415,7 @@ func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		respondError(c, w, r, zqe.E(zqe.Invalid, "empty paths"))
 		return
 	}
-	ls, ok := s.Storage().(ingest.LogStore)
-	if !ok {
-		respondError(c, w, r, zqe.E(zqe.Invalid, "space does not support log import"))
-		return
-	}
-	op, err := ingest.NewLogOp(ctx, ls, req)
+	op, err := ingest.NewLogOp(ctx, s.Storage(), req)
 	if err != nil {
 		respondError(c, w, r, err)
 		return

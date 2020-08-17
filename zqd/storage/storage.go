@@ -60,7 +60,7 @@ type Summary struct {
 }
 
 type Storage interface {
-	Open(ctx context.Context, zctx *resolver.Context, span nano.Span) (zbuf.ReadCloser, error)
-	Summary(ctx context.Context) (Summary, error)
 	NativeDirection() zbuf.Direction
+	Summary(ctx context.Context) (Summary, error)
+	Write(ctx context.Context, zctx *resolver.Context, zr zbuf.Reader) error
 }

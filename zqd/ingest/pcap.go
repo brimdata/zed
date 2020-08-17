@@ -16,11 +16,12 @@ import (
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/pcapstorage"
+	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqd/zeek"
 )
 
-type ClearableLogStore interface {
-	LogStore
+type ClearableStore interface {
+	storage.Storage
 	Clear(ctx context.Context) error
 }
 
@@ -29,7 +30,7 @@ type PcapOp struct {
 	PcapSize  int64
 
 	pcapstore    *pcapstorage.Store
-	logstore     ClearableLogStore
+	store        ClearableStore
 	snapshots    int32
 	pcapuri      iosrc.URI
 	pcapReadSize int64
@@ -44,7 +45,7 @@ type PcapOp struct {
 // Process instance once zeek log files have started to materialize in a tmp
 // directory. If zeekExec is an empty string, this will attempt to resolve zeek
 // from $PATH.
-func NewPcapOp(ctx context.Context, pcapstore *pcapstorage.Store, logstore ClearableLogStore, pcap string, zlauncher zeek.Launcher) (*PcapOp, error) {
+func NewPcapOp(ctx context.Context, pcapstore *pcapstorage.Store, store ClearableStore, pcap string, zlauncher zeek.Launcher) (*PcapOp, error) {
 	pcapuri, err := iosrc.ParseURI(pcap)
 	if err != nil {
 		return nil, err
@@ -64,7 +65,7 @@ func NewPcapOp(ctx context.Context, pcapstore *pcapstorage.Store, logstore Clear
 		StartTime: nano.Now(),
 		PcapSize:  info.Size(),
 		pcapstore: pcapstore,
-		logstore:  logstore,
+		store:     store,
 		pcapuri:   pcapuri,
 		logdir:    logdir,
 		done:      make(chan struct{}),
@@ -92,7 +93,7 @@ func (p *PcapOp) run(ctx context.Context) error {
 		// Don't want to use passed context here because a cancelled context
 		// would cause storage not to be cleared.
 		p.pcapstore.Delete()
-		p.logstore.Clear(context.Background())
+		p.store.Clear(context.Background())
 	}
 
 	ticker := time.NewTicker(time.Second)
@@ -188,12 +189,12 @@ func (p *PcapOp) createSnapshot(ctx context.Context) error {
 	}
 	// convert logs into sorted zng
 	zctx := resolver.NewContext()
-	zr, err := detector.OpenFiles(zctx, zbuf.RecordCompare(p.logstore.NativeDirection()), files...)
+	zr, err := detector.OpenFiles(zctx, zbuf.RecordCompare(p.store.NativeDirection()), files...)
 	if err != nil {
 		return err
 	}
 	defer zr.Close()
-	if err := p.logstore.Write(ctx, zctx, zr); err != nil {
+	if err := p.store.Write(ctx, zctx, zr); err != nil {
 		return err
 	}
 	atomic.AddInt32(&p.snapshots, 1)
