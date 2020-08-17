@@ -225,7 +225,7 @@ func newClient(cfg *aws.Config) *s3.S3 {
 	// so that region & other info is automatically picked up from the
 	// .aws/config file.
 	scs := session.SharedConfigEnable
-	if v := os.Getenv("AWS_SDK_LOAD_CONFIG"); v != "" {
+	if os.Getenv("AWS_SDK_LOAD_CONFIG") != "" {
 		scs = session.SharedConfigStateFromEnv
 	}
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
