@@ -172,7 +172,7 @@ func migrateConfigV2(data []byte, _ iosrc.URI) (int, []byte, error) {
 
 func writeConfig(spaceURI iosrc.URI, c config) error {
 	if c.Version != configVersion {
-		return fmt.Errorf("writing an out of date config, expected version %d got %d", configVersion, c.Version)
+		return fmt.Errorf("writing an out of date config: expected version %d, got %d", configVersion, c.Version)
 	}
 	src, err := iosrc.GetSource(spaceURI)
 	if err != nil {
