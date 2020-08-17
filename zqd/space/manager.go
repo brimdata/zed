@@ -46,7 +46,7 @@ func NewManager(root iosrc.URI, logger *zap.Logger) (*Manager, error) {
 	}
 
 	for _, dir := range dirs {
-		config, err := loadConfig(dir)
+		config, err := mgr.loadConfig(dir)
 		if err != nil {
 			logger.Error("Error loading config", zap.Error(err))
 			continue

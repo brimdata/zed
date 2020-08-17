@@ -13,7 +13,6 @@ import (
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqe"
-	"github.com/segmentio/ksuid"
 )
 
 func invalidSpaceNameRune(r rune) bool {
@@ -74,7 +73,7 @@ func (c config) subspaceIndex(id api.SpaceID) int {
 }
 
 // loadConfig loads the contents of config.json in a space's path.
-func loadConfig(spaceURI iosrc.URI) (config, error) {
+func (m *Manager) loadConfig(spaceURI iosrc.URI) (config, error) {
 	var c config
 	p := spaceURI.AppendPath(configFile)
 	r, err := iosrc.NewReader(p)
@@ -96,26 +95,26 @@ func loadConfig(spaceURI iosrc.URI) (config, error) {
 		return c, fmt.Errorf("space config version %d ahead of binary version %d", vc.Version, configVersion)
 	}
 	if vc.Version < configVersion {
-		return migrateConfig(vc.Version, data, spaceURI)
+		return m.migrateConfig(vc.Version, data, spaceURI)
 	}
 	return c, json.Unmarshal(data, &c)
 }
 
 type migrator func([]byte, iosrc.URI) (int, []byte, error)
 
-func migrateConfig(version int, data []byte, spaceURI iosrc.URI) (config, error) {
-	var m migrator
+func (m *Manager) migrateConfig(version int, data []byte, spaceURI iosrc.URI) (config, error) {
+	var mg migrator
 	for version < configVersion {
 		switch version {
 		case 0:
-			m = migrateConfigV1
+			mg = m.migrateConfigV1
 		case 1:
-			m = migrateConfigV2
+			mg = migrateConfigV2
 		default:
 			return config{}, fmt.Errorf("unsupported config migration %d", version)
 		}
 		var err error
-		if version, data, err = m(data, spaceURI); err != nil {
+		if version, data, err = mg(data, spaceURI); err != nil {
 			return config{}, err
 		}
 	}
@@ -126,7 +125,7 @@ func migrateConfig(version int, data []byte, spaceURI iosrc.URI) (config, error)
 	return c, writeConfig(spaceURI, c)
 }
 
-func migrateConfigV1(data []byte, spaceURI iosrc.URI) (int, []byte, error) {
+func (m *Manager) migrateConfigV1(data []byte, spaceURI iosrc.URI) (int, []byte, error) {
 	var c configV1
 	if err := json.Unmarshal(data, &c); err != nil {
 		return 0, nil, err
@@ -135,14 +134,11 @@ func migrateConfigV1(data []byte, spaceURI iosrc.URI) (int, []byte, error) {
 		// Ensure that name is not blank for spaces created before the
 		// zq#721 work to use space ids.
 		c.Name = path.Base(spaceURI.Path)
-	} else {
-		// In version 0 names were not required to be unique. Since this should
-		// be a rare case that any version 0 config files exist, append a uuid
-		// to ensure uniqueness.
-		id := ksuid.New()
-		c.Name = c.Name + "_" + id.String()
-		c.Name = safeName(c.Name)
 	}
+	if _, ok := m.names[c.Name]; ok {
+		c.Name = uniqueName(m.names, c.Name)
+	}
+	c.Name = safeName(c.Name)
 	if c.Storage.Kind == storage.UnknownStore {
 		c.Storage.Kind = storage.FileStore
 	}
@@ -175,6 +171,9 @@ func migrateConfigV2(data []byte, _ iosrc.URI) (int, []byte, error) {
 }
 
 func writeConfig(spaceURI iosrc.URI, c config) error {
+	if c.Version != configVersion {
+		return fmt.Errorf("writing an out of date config: expected version %d, got %d", configVersion, c.Version)
+	}
 	src, err := iosrc.GetSource(spaceURI)
 	if err != nil {
 		return err

@@ -18,6 +18,26 @@ import (
 	"go.uber.org/zap"
 )
 
+func TestConfigCurrentVersion(t *testing.T) {
+	root, err := ioutil.TempDir("", "")
+	require.NoError(t, err)
+	defer os.RemoveAll(root)
+	u, err := iosrc.ParseURI(root)
+	require.NoError(t, err)
+	m, err := NewManager(u, zap.NewNop())
+	require.NoError(t, err)
+	s, err := m.Create(api.SpacePostRequest{Name: "test"})
+	require.NoError(t, err)
+	id := s.ID()
+	versionConfig := struct {
+		Version int `json:"version"`
+	}{}
+	err = fs.UnmarshalJSONFile(filepath.Join(root, string(id), configFile), &versionConfig)
+	require.NoError(t, err)
+
+	require.Equal(t, configVersion, versionConfig.Version)
+}
+
 func TestV2Migration(t *testing.T) {
 	root, err := ioutil.TempDir("", "")
 	require.NoError(t, err)
@@ -62,7 +82,7 @@ func TestV1Migration(t *testing.T) {
 		list, err := mgr.List(context.Background())
 		require.NoError(t, err)
 		require.Len(t, list, 1)
-		require.Regexp(t, "name_𝚭𝚴𝚪_stuff_", list[0].Name)
+		require.Equal(t, "name_𝚭𝚴𝚪_stuff", list[0].Name)
 	})
 	t.Run("DuplicateNames", func(t *testing.T) {
 		root, err := ioutil.TempDir("", "")
@@ -80,8 +100,8 @@ func TestV1Migration(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, list, 2)
 		sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
-		require.Regexp(t, "testname_", list[0].Name)
-		require.Regexp(t, "testname_", list[1].Name)
+		require.Equal(t, "testname", list[0].Name)
+		require.Regexp(t, "testname_01", list[1].Name)
 		require.NotEqual(t, list[0].Name, list[1].Name)
 	})
 }
