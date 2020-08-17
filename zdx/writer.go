@@ -57,8 +57,8 @@ type indexWriter struct {
 }
 
 // NewWriter returns a Writer ready to write a microindex or it returns
-// an error.  The microindex is written to the URL given while temporary
-// file are written locally.  Calls to Write must
+// an error.  The microindex is written to the URL provided in the path argument
+// while temporary file are written locally.  Calls to Write must
 // provide keys in increasing lexicographic order.  Duplicate keys are not
 // allowed but will not be detected.  Close() must be called when done writing.
 func NewWriter(zctx *resolver.Context, path string, keyFields []string, frameThresh int) (*Writer, error) {
@@ -108,14 +108,14 @@ func (w *Writer) Write(rec *zng.Record) error {
 }
 
 func (w *Writer) Close() error {
-	// Delete the temp files comprising the index hiearchy.
+	// Delete the temp files comprising the index hierarchy.
 	defer os.RemoveAll(w.tmpdir)
 	if w.writer == nil {
 		// If the writer hasn't been created because no records were
 		// encounted, just close the underlying storage object and return.
 		return w.iow.Close()
 	}
-	// First, close the parent if it exist (which will recursively close
+	// First, close the parent if it exists (which will recursively close
 	// all the parents to the root) while leaving the base layer open.
 	for p := w.writer.parent; p != nil; p = p.parent {
 		if err := p.Close(); err != nil {
