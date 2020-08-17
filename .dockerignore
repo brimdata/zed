@@ -5,4 +5,3 @@ tests/test-root
 zq-sample-data
 zql/deps/
 .idea
-.DS_Store
