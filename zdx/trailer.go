@@ -21,7 +21,7 @@ const (
 	KeysField        = "keys"
 
 	MagicVal      = "microindex"
-	VersionVal    = "0.3"
+	VersionVal    = 1
 	ChildFieldVal = "_child"
 
 	TrailerMaxSize = 4096
@@ -29,7 +29,7 @@ const (
 
 type Trailer struct {
 	Magic            string
-	Version          string
+	Version          int
 	ChildOffsetField string
 	FrameThresh      int
 	KeyType          *zng.TypeRecord
@@ -42,7 +42,7 @@ func newTrailerRecord(zctx *resolver.Context, childField string, frameThresh int
 	sectionsType := zctx.LookupTypeArray(zng.TypeInt64)
 	cols := []zng.Column{
 		{MagicField, zng.TypeString},
-		{VersionField, zng.TypeString},
+		{VersionField, zng.TypeInt32},
 		{ChildField, zng.TypeString},
 		{FrameThreshField, zng.TypeInt32},
 		{SectionsField, sectionsType},
@@ -55,7 +55,7 @@ func newTrailerRecord(zctx *resolver.Context, childField string, frameThresh int
 	builder := zng.NewBuilder(typ)
 	return builder.Build(
 		zng.EncodeString(MagicVal),
-		zng.EncodeString(VersionVal),
+		zng.EncodeInt(VersionVal),
 		zng.EncodeString(childField),
 		zng.EncodeInt(int64(frameThresh)),
 		encodeSections(sections),
@@ -87,24 +87,44 @@ func readTrailer(r io.ReadSeeker, n int64) (*Trailer, int, error) {
 		// or I/O problems XXX
 		return nil, 0, fmt.Errorf("couldn't read trailer: expected %d bytes but read %d", n, cc)
 	}
-	for off := int64(n) - 4; off >= 0; off-- {
+	for off := int(n) - 3; off >= 0; off-- {
 		// look for end of stream followed by an array[int64] typedef then
 		// a record typedef indicating the possible presence of the trailer,
 		// which we then try to decode.
-		if buf[off] == 0x85 && buf[off+1] == 0x81 && buf[off+2] == 0x06 && buf[off+3] == 0x80 {
-			attempt := buf[off+1 : n]
-			r := bytes.NewReader(attempt)
+		if bytes.Equal(buf[off:(off+3)], []byte{zng.TypeDefArray, zng.IdInt64, zng.TypeDefRecord}) {
+			if off > 0 && buf[off-1] != zng.CtrlEOS {
+				// If this isn't right after an end-of-stream
+				// (and we're not at the start of index), then
+				// we skip because it can't be a valid trailer.
+				continue
+			}
+			r := bytes.NewReader(buf[off:n])
 			rec, _ := zngio.NewReader(r, resolver.NewContext()).Read()
 			if rec == nil {
 				continue
 			}
+			_, err := trailerVersion(rec)
+			if err != nil {
+				return nil, 0, err
+			}
 			trailer, _ := recordToTrailer(rec)
 			if trailer != nil {
-				return trailer, len(attempt), nil
+				return trailer, int(n) - off, nil
 			}
 		}
 	}
 	return nil, 0, errors.New("microindex trailer not found")
+}
+
+func trailerVersion(rec *zng.Record) (int, error) {
+	version, err := rec.AccessInt(VersionField)
+	if err != nil {
+		return -1, errors.New("microindex version field is not a valid int32")
+	}
+	if version != VersionVal {
+		return -1, fmt.Errorf("microindex version %d found while expecting version %d", version, VersionVal)
+	}
+	return int(version), nil
 }
 
 func recordToTrailer(rec *zng.Record) (*Trailer, error) {
@@ -114,9 +134,9 @@ func recordToTrailer(rec *zng.Record) (*Trailer, error) {
 	if err != nil || trailer.Magic != MagicVal {
 		return nil, ErrNotIndex
 	}
-	version, err := rec.AccessString(VersionField)
-	if err != nil || version != VersionVal {
-		return nil, fmt.Errorf("microindex version %s not supported (by version %s)", version, VersionVal)
+	trailer.Version, err = trailerVersion(rec)
+	if err != nil {
+		return nil, err
 	}
 
 	trailer.ChildOffsetField, err = rec.AccessString(ChildField)

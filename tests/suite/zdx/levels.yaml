@@ -10,8 +10,8 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      #0:record[magic:string,version:string,child_field:string,frame_thresh:int32,sections:array[int64],keys:record[key:string]]
-      0:[microindex;0.3;_child;200;[24069;36;414;3192;]-;]
+      #0:record[magic:string,version:int32,child_field:string,frame_thresh:int32,sections:array[int64],keys:record[key:string]]
+      0:[microindex;1;_child;200;[24069;36;414;3192;]-;]
       ===
       #0:record[key:string,_child:int64]
       0:[Algedi-pigeonman;0;]
