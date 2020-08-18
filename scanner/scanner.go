@@ -14,13 +14,18 @@ import (
 // ScannerAble is implemented by zbuf.Readers that provide an optimized
 // implementation of the Scanner interface.
 type ScannerAble interface {
-	NewScanner(ctx context.Context, filterExpr ast.BooleanExpr, s nano.Span) (Scanner, error)
+	NewScanner(ctx context.Context, f filter.Filter, filterExpr ast.BooleanExpr, s nano.Span) (Scanner, error)
+}
+
+// A Statser produces scanner statistics.
+type Statser interface {
+	Stats() *ScannerStats
 }
 
 // A Scanner is a zbuf.Batch source that also provides statistics.
 type Scanner interface {
+	Statser
 	Pull() (zbuf.Batch, error)
-	Stats() *ScannerStats
 }
 
 // ScannerStats holds Scanner statistics. It should be identical to
@@ -41,22 +46,15 @@ func (s *ScannerStats) Accumulate(ss *ScannerStats) {
 }
 
 // NewScanner returns a Scanner for r that filters records by filterExpr and s.
-func NewScanner(ctx context.Context, r zbuf.Reader, filterExpr ast.BooleanExpr, s nano.Span) (Scanner, error) {
+func NewScanner(ctx context.Context, r zbuf.Reader, f filter.Filter, filterExpr ast.BooleanExpr, s nano.Span) (Scanner, error) {
 	var sa ScannerAble
-	if f, ok := r.(*zbuf.File); ok {
-		sa, _ = f.Reader.(ScannerAble)
+	if zf, ok := r.(*zbuf.File); ok {
+		sa, _ = zf.Reader.(ScannerAble)
 	} else {
 		sa, _ = r.(ScannerAble)
 	}
 	if sa != nil {
-		return sa.NewScanner(ctx, filterExpr, s)
-	}
-	var f filter.Filter
-	if filterExpr != nil {
-		var err error
-		if f, err = filter.Compile(filterExpr); err != nil {
-			return nil, err
-		}
+		return sa.NewScanner(ctx, f, filterExpr, s)
 	}
 	return &scanner{reader: r, filter: f, span: s, ctx: ctx}, nil
 }
