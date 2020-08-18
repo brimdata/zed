@@ -76,6 +76,13 @@ func NewReaderFromURI(zctx *resolver.Context, uri iosrc.URI) (*Reader, error) {
 	return reader, nil
 }
 
+func (r *Reader) IsEmpty() bool {
+	if r.trailer == nil {
+		panic("IsEmpty called on a Reader with an error")
+	}
+	return r.trailer.Sections == nil
+}
+
 func (r *Reader) section(level int) (int64, int64) {
 	off := int64(0)
 	for k := 0; k < level; k++ {

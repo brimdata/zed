@@ -1,7 +1,12 @@
 script: |
   zar import -R . multitype.tzng
-  zar index -R . id.orig_h
-
+  # ignore stdout here
+  zar index -R . id.orig_h > trash
+  # since index operation failed, no files should be left behind so this
+  # ls command should have an empty output
+  echo ===
+  ls 20091119/1258594907.85978.zng.zar
+  echo ===
 
 inputs:
   - name: multitype.tzng
@@ -16,3 +21,7 @@ outputs:
   - name: stderr
     regexp: |
       type of id.orig_h field changed from ip to string
+  - name: stdout
+    data: |
+      ===
+      ===

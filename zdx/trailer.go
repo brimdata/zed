@@ -152,6 +152,14 @@ func recordToTrailer(rec *zng.Record) (*Trailer, error) {
 	if !ok {
 		return nil, ErrNotIndex
 	}
+	trailer.Sections, err = decodeSections(rec)
+	if err != nil {
+		return nil, err
+	}
+	return &trailer, nil
+}
+
+func decodeSections(rec *zng.Record) ([]int64, error) {
 	v, err := rec.Access(SectionsField)
 	if err != nil {
 		return nil, err
@@ -159,6 +167,10 @@ func recordToTrailer(rec *zng.Record) (*Trailer, error) {
 	arrayType, ok := v.Type.(*zng.TypeArray)
 	if !ok {
 		return nil, fmt.Errorf("%s field in microindex trailer is not an arrray", SectionsField)
+	}
+	if v.Bytes == nil {
+		// This is an empty index.  Just return nil/success.
+		return nil, nil
 	}
 	zvals, err := arrayType.Decode(v.Bytes)
 	if err != nil {
@@ -175,8 +187,7 @@ func recordToTrailer(rec *zng.Record) (*Trailer, error) {
 		}
 		sizes = append(sizes, size)
 	}
-	trailer.Sections = sizes
-	return &trailer, nil
+	return sizes, nil
 }
 
 func uniqChildField(zctx *resolver.Context, keys *zng.Record) string {

@@ -17,23 +17,34 @@ import (
 )
 
 // Writer implements the zbuf.Writer interface. A Writer creates a microindex,
-// comprising the base zng file along with its related b-tree sections,
+// comprising the base zng file along with its related B-tree sections,
 // as zng records are consumed.
 //
 // The keyFields argument to NewWriter provides a list of the key names, ordered by
 // precedence, that will serve as the keys into the index.  The input
 // records may or may not have all the key fields.  If a key field is
-// missing it appears as a null value in the index.  Nulls are sorted
-// before all non-null values.
+// missing, it appears as a null value in the index.  Nulls are sorted
+// before all non-null values.  All key fields must have the same type.
+// The Writer may detect an error if a key fiield changes type but does not
+// check that every key has the same type; it is up to the caller to guarantee
+// this type consistency.  For example, the caller should create a separate
+// microindex for fields that have a common name but different types.
 //
 // The keys in the input zng stream must be previously sorted consistent
 // with the precedence order of the keyFields.
 //
-// As the zng file data is written, a b-tree index is computed as a
-// constant b-tree to make key lookups efficient.  The b-tree sections
+// As the zng file data is written, a B-tree index is computed as a
+// constant B-tree to make key lookups efficient.  The b-tree sections
 // are written to temporary files and at close, they are merged into
 // a single-file microindex.
+//
+// If a Writer is created the Closed without ever writing records to it, then
+// the index is created with no keys and an "empty" microindex trailer.  This is
+// useful for knowing when something has been indexed but no keys were present.
+// If a Writer is created then an error is enountered (for example, the type of)
 type Writer struct {
+	uri         iosrc.URI
+	keyFields   []string
 	zctx        *resolver.Context
 	writer      *indexWriter
 	cutter      *proc.Cutter
@@ -61,7 +72,8 @@ type indexWriter struct {
 // an error.  The microindex is written to the URL provided in the path argument
 // while temporary file are written locally.  Calls to Write must
 // provide keys in increasing lexicographic order.  Duplicate keys are not
-// allowed but will not be detected.  Close() must be called when done writing.
+// allowed but will not be detected.  Close() or Abort() must be called when
+// done writing.
 func NewWriter(zctx *resolver.Context, path string, keyFields []string, frameThresh int) (*Writer, error) {
 	if keyFields == nil {
 		keyFields = []string{"key"}
@@ -83,8 +95,10 @@ func NewWriter(zctx *resolver.Context, path string, keyFields []string, frameThr
 	}
 	w := &Writer{
 		zctx:        zctx,
+		uri:         uri,
 		cutter:      proc.NewStrictCutter(zctx, false, keyFields, keyFields),
 		tmpdir:      tmp,
+		keyFields:   keyFields,
 		frameThresh: frameThresh,
 		iow:         writer,
 	}
@@ -108,22 +122,44 @@ func (w *Writer) Write(rec *zng.Record) error {
 	return w.writer.write(rec)
 }
 
-func (w *Writer) Close() error {
+// Abort closes this writer, deleting any and all objects and/or files associated
+// with it.
+func (w *Writer) Abort() error {
 	// Delete the temp files comprising the index hierarchy.
 	defer os.RemoveAll(w.tmpdir)
-	if w.writer == nil {
-		// If the writer hasn't been created because no records were
-		// encounted, just close the underlying storage object and return.
-		return w.iow.Close()
+	firstErr := w.closeTree()
+	if err := w.iow.Close(); err != nil && firstErr == nil {
+		firstErr = err
 	}
+	if err := iosrc.Remove(w.uri); err != nil && firstErr == nil {
+		firstErr = err
+	}
+	return firstErr
+}
+
+func (w *Writer) Close() error {
+	// No matter what, delete the temp files comprising the index hierarchy.
+	defer os.RemoveAll(w.tmpdir)
 	// First, close the parent if it exists (which will recursively close
 	// all the parents to the root) while leaving the base layer open.
-	for p := w.writer.parent; p != nil; p = p.parent {
-		if err := p.Close(); err != nil {
-			return err
-		}
+	err := w.closeTree()
+	if err != nil {
+		w.iow.Close()
+		return err
 	}
-	// Also, close the frame of the base layer so we can copy the hierarchy
+	if w.writer == nil {
+		// If the writer hasn't been created because no records were
+		// encountered, then the base layer writer was never created.
+		// In this case, bypass the base layer, write an empty trailer
+		// directly to the output, and close.
+		err := w.writeEmptyTrailer()
+		err2 := w.iow.Close()
+		if err == nil {
+			err = err2
+		}
+		return err
+	}
+	// Otherwise, close the frame of the base layer so we can copy the hierarchy
 	// to the base.  Note that sum of the sizes of the parents is much smaller
 	// than the base so this will go fast compared to the entire indexing job.
 	if err := w.writer.closeFrame(); err != nil {
@@ -137,6 +173,19 @@ func (w *Writer) Close() error {
 	}
 	// Finally, close the base layer.
 	return w.writer.buffer.Close()
+}
+
+func (w *Writer) closeTree() error {
+	if w.writer == nil {
+		return nil
+	}
+	var firstErr error
+	for p := w.writer.parent; p != nil; p = p.parent {
+		if err := p.Close(); err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
+	return firstErr
 }
 
 func (w *Writer) finalize() error {
@@ -174,15 +223,32 @@ func (w *Writer) finalize() error {
 			return err
 		}
 	}
-	// Finally, write the size records as the trailer of the microindex.
-	rec, err := newTrailerRecord(w.zctx, w.childField, w.frameThresh, sizes, w.keyType)
+	return writeTrailer(base.zng, w.zctx, w.childField, w.frameThresh, sizes, w.keyType)
+}
+
+func (w *Writer) writeEmptyTrailer() error {
+	zw := zngio.NewWriter(w.iow, zio.WriterFlags{})
+	var cols []zng.Column
+	for _, key := range w.keyFields {
+		cols = append(cols, zng.Column{key, zng.TypeNull})
+	}
+	typ, err := w.zctx.LookupTypeRecord(cols)
 	if err != nil {
 		return err
 	}
-	if err := base.zng.Write(rec); err != nil {
+	return writeTrailer(zw, w.zctx, "", w.frameThresh, nil, typ)
+}
+
+func writeTrailer(w *zngio.Writer, zctx *resolver.Context, childField string, frameThresh int, sizes []int64, keyType *zng.TypeRecord) error {
+	// Finally, write the size records as the trailer of the microindex.
+	rec, err := newTrailerRecord(zctx, childField, frameThresh, sizes, keyType)
+	if err != nil {
 		return err
 	}
-	return base.zng.EndStream()
+	if err := w.Write(rec); err != nil {
+		return err
+	}
+	return w.EndStream()
 }
 
 func newIndexWriter(base *Writer, w io.WriteCloser, name string) (*indexWriter, error) {

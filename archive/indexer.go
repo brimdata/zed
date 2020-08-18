@@ -55,13 +55,17 @@ func runOne(ctx context.Context, zardir iosrc.URI, rule Rule, inputPath iosrc.UR
 	if err != nil {
 		return err
 	}
-	defer fgi.Close()
 	if progress != nil {
 		progress <- fmt.Sprintf("%s: creating index %s", inputPath, rule.Path(zardir))
 	}
-	return driver.Run(ctx, fgi, rule.proc, zctx, r, driver.Config{
+	err = driver.Run(ctx, fgi, rule.proc, zctx, r, driver.Config{
 		Custom: &compiler{},
 	})
+	if err != nil {
+		fgi.Abort()
+		return err
+	}
+	return fgi.Close()
 }
 
 func run(ctx context.Context, zardir iosrc.URI, rules []Rule, logPath iosrc.URI, progress chan<- string) error {
@@ -118,6 +122,10 @@ func (f *FlowgraphIndexer) Write(_ int, batch zbuf.Batch) error {
 
 func (f *FlowgraphIndexer) Close() error {
 	return f.w.Close()
+}
+
+func (f *FlowgraphIndexer) Abort() error {
+	return f.w.Abort()
 }
 
 func (f *FlowgraphIndexer) Warn(warning string) error          { return nil }

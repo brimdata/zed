@@ -1,0 +1,21 @@
+script: |
+  # b isn't in the input so this creates a valid microindex that is empty
+  zdx create -o index.zng -k b in.tzng
+  zq -t index.zng
+  echo ===
+  zdx lookup -t -k 0 index.zng
+  echo ===
+
+inputs:
+  - name: in.tzng
+    data: |
+      #0:record[a:string]
+      0:[hello;]
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[magic:string,version:int32,child_field:string,frame_thresh:int32,sections:array[int64],keys:record[key:null]]
+      0:[microindex;1;;32768;-;-;]
+      ===
+      ===
