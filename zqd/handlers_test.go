@@ -1017,9 +1017,9 @@ func TestArchiveStat(t *testing.T) {
 #0:record[type:string,log_id:string,start:time,duration:duration,size:uint64]
 0:[chunk;20200422/1587518620.0622373.zng;1587509477.06450528;9142.997732021;32205;]
 #1:record[type:string,log_id:string,index_id:string,index_type:string,size:uint64,keys:record[key:string]]
-1:[index;20200422/1587518620.0622373.zng;zdx-field-v.zng;field;2986;[int64;]]
+1:[index;20200422/1587518620.0622373.zng;zdx-field-v.zng;field;2984;[int64;]]
 0:[chunk;20200421/1587509477.06313454.zng;1587508830.06852324;646.994611301;2133;]
-1:[index;20200421/1587509477.06313454.zng;zdx-field-v.zng;field;495;[int64;]]`
+1:[index;20200421/1587509477.06313454.zng;zdx-field-v.zng;field;493;[int64;]]`
 	res := archiveStat(t, client, sp.ID)
 	assert.Equal(t, test.Trim(exp), res)
 }
