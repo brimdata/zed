@@ -14,14 +14,37 @@ import (
 
 type parallelHead struct {
 	proc.Base
-	pg *parallelGroup
+	once sync.Once
+	pg   *parallelGroup
+
+	mu sync.Mutex // protects below
 	sc ScannerCloser
 }
 
+func (ph *parallelHead) closeOnDone() {
+	select {
+	case <-ph.Context.Done():
+		ph.mu.Lock()
+		defer ph.mu.Unlock()
+		if ph.sc != nil {
+			ph.sc.Close()
+			ph.sc = nil
+		}
+	}
+}
+
 func (ph *parallelHead) Pull() (zbuf.Batch, error) {
+	// Trigger the parallel group to read from the multisource.
 	ph.pg.once.Do(func() {
 		go ph.pg.run()
 	})
+	// Ensure open scanners are closed when flowgraph execution stops.
+	ph.once.Do(func() {
+		go ph.closeOnDone()
+	})
+
+	ph.mu.Lock()
+	defer ph.mu.Unlock()
 
 	for {
 		if ph.sc == nil {

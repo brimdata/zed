@@ -80,7 +80,10 @@ func (o *oneSource) SendSources(ctx context.Context, _ *resolver.Context, sf Sou
 		scanner = &namedScanner{scanner, stringer.String()}
 	}
 	f := func() (ScannerCloser, error) {
-		return &noCloseScanner{scanner}, nil
+		return &scannerCloser{
+			Scanner: scanner,
+			Closer:  &onClose{},
+		}, nil
 	}
 	select {
 	case c <- f:
@@ -114,12 +117,20 @@ func zbufDirInt(reversed bool) int {
 	return 1
 }
 
-type noCloseScanner struct {
+type scannerCloser struct {
 	scanner.Scanner
+	io.Closer
 }
 
-func (r *noCloseScanner) Close() error {
-	return nil
+type onClose struct {
+	fn func() error
+}
+
+func (c *onClose) Close() error {
+	if c.fn == nil {
+		return nil
+	}
+	return c.fn()
 }
 
 type namedScanner struct {

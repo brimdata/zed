@@ -5,8 +5,10 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/brimsec/zq/scanner"
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
@@ -56,8 +58,9 @@ func (m *orderedmsrc) SendSources(ctx context.Context, zctx *resolver.Context, s
 			select {
 			case <-releaseChs[i]:
 			}
-			return &noCloseScanner{
+			return &scannerCloser{
 				Scanner: sn,
+				Closer:  &onClose{},
 			}, nil
 		}
 	}
@@ -94,4 +97,72 @@ func TestParallelOrder(t *testing.T) {
 0:[4;4;]
 `
 	assert.Equal(t, trim(exp), buf.String())
+}
+
+// A noEndScanner never returns proc.EOS from its Pull().
+type noEndScanner struct {
+	input string
+	zctx  *resolver.Context
+}
+
+func (rp *noEndScanner) Pull() (zbuf.Batch, error) {
+	r := tzngio.NewReader(strings.NewReader(rp.input), rp.zctx)
+	return zbuf.ReadBatch(r, 1)
+}
+
+func (rp *noEndScanner) Stats() *scanner.ScannerStats {
+	return &scanner.ScannerStats{}
+}
+
+type scannerCloseMS struct {
+	closed chan struct{}
+	input  string
+}
+
+func (m *scannerCloseMS) OrderInfo() (string, bool) {
+	return "", false
+}
+
+func (m *scannerCloseMS) SendSources(ctx context.Context, zctx *resolver.Context, sf SourceFilter, srcChan chan SourceOpener) error {
+	srcChan <- func() (ScannerCloser, error) {
+		return &scannerCloser{
+			// Use a noEndScanner so that a parallel head never tries to
+			// close the ScannerCloser in its Pull. That way, if the Close fires,
+			// we know it must have happened due to the query context cancellation.
+			Scanner: &noEndScanner{input: m.input, zctx: zctx},
+			Closer: &onClose{fn: func() error {
+				close(m.closed)
+				return nil
+			}},
+		}, nil
+	}
+	return nil
+}
+
+// TestScannerClose verifies that any open ScannerCloser's will be closed soon
+// after the MultiRun call finishes.
+func TestScannerClose(t *testing.T) {
+	query, err := zql.ParseProc("* | head 1")
+	require.NoError(t, err)
+
+	var buf bytes.Buffer
+	d := NewCLI(tzngio.NewWriter(&buf))
+	zctx := resolver.NewContext()
+	ms := &scannerCloseMS{
+		input: `
+#0:record[v:int32,ts:time]
+0:[1;1;]
+`,
+		closed: make(chan struct{}),
+	}
+	err = MultiRun(context.Background(), d, query, zctx, ms, MultiConfig{})
+	require.NoError(t, err)
+	require.Equal(t, trim(ms.input), trim(buf.String()))
+
+	tm := time.NewTimer(5 * time.Second)
+	select {
+	case <-ms.closed:
+	case <-tm.C:
+		t.Fatal("time out waiting for close")
+	}
 }
