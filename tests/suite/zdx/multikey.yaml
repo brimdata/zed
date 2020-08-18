@@ -4,14 +4,14 @@ script: |
   # in the base zng index.
   zq -o sorted.zng "sum(v) by s | sort sum,s"  babble.tzng
   # convert assumes input keys already sorted and doesn't create new base records
-  zdx convert -f 200 -o index -k sum,s sorted.zng
-  zq -t index.3.zng
+  zdx convert -f 200 -o index.zng -k sum,s sorted.zng
+  zdx section -t -s 1 index.zng
   echo ===
   # exact lookup of the one record
-  zdx lookup -t -k 149,wailer-strick index
+  zdx lookup -t -k 149,wailer-strick index.zng
   echo ===
   # don't cares for secondary key... returns multiple matches
-  zdx lookup -t -k 100 index
+  zdx lookup -t -k 100 index.zng
 
 inputs:
   - name: babble.tzng
@@ -19,10 +19,9 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      #0:record[sum:int64,s:string,_btree_child:int64]
+      #0:record[sum:int64,s:string,_child:int64]
       0:[0;Chechehet-nonofficially;0;]
-      0:[180;lapcock-paralogia;232;]
-      0:[353;Concorrezanes-meritedly;453;]
+      0:[194;ethionic-pastorate;218;]
       ===
       #0:record[s:string,sum:int64]
       0:[wailer-strick;149;]

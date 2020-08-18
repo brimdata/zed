@@ -70,7 +70,7 @@ func (c *LookupCommand) Run(args []string) error {
 		c.WriterFlags.Format = "tzng"
 	}
 	if c.WriterFlags.Format == "zng" && isTerminal(os.Stdout) && !c.forceBinary {
-		return errors.New("zq: writing binary zng data to terminal; override with -B or use -t for text.")
+		return errors.New("writing binary zng data to terminal; override with -B or use -t for text.")
 	}
 	path := args[0]
 	if c.keys == "" {

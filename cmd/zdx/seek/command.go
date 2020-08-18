@@ -19,7 +19,7 @@ import (
 
 var Seek = &charm.Spec{
 	Name:  "seek",
-	Usage: "seek [-f framesize] [ -o file ] [-v field] -k field file",
+	Usage: "seek [-f framethresh] [ -o file ] [-v field] -k field file",
 	Short: "generate a seek-style index file for a zng file",
 	Long: `
 The seek command creates an index for the seek offsets of each
@@ -40,7 +40,7 @@ func init() {
 
 type Command struct {
 	*root.Command
-	framesize   int
+	frameThresh int
 	outputFile  string
 	keyField    string
 	offsetField string
@@ -51,7 +51,7 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{
 		Command: parent.(*root.Command),
 	}
-	f.IntVar(&c.framesize, "f", 32*1024, "minimum frame size used in zdx file")
+	f.IntVar(&c.frameThresh, "f", 32*1024, "minimum frame size used in microindex file")
 	f.StringVar(&c.outputFile, "o", "zdx", "output index name")
 	f.StringVar(&c.keyField, "k", "", "name of search key field")
 	f.StringVar(&c.offsetField, "v", "offset", "field name for seek offset in output index")
@@ -77,7 +77,7 @@ func (c *Command) Run(args []string) error {
 	}
 	zctx := resolver.NewContext()
 	reader := zngio.NewReader(file, zctx)
-	writer, err := zdx.NewWriter(zctx, c.outputFile, []string{c.keyField}, c.framesize)
+	writer, err := zdx.NewWriter(zctx, c.outputFile, []string{c.keyField}, c.frameThresh)
 	if err != nil {
 		return err
 	}

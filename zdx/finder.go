@@ -10,89 +10,35 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zqe"
 )
 
 var ErrNotFound = errors.New("key not found")
 
-// Finder looks up values in a zdx using its hierarchical index files.
+// Finder looks up values in a microindex using its embedded index.
 type Finder struct {
-	path        iosrc.URI
-	keys        *zng.TypeRecord
-	builder     *zng.Builder
-	offsetField string
-	zctx        *resolver.Context
-	files       []*Reader
+	*Reader
+	zctx    *resolver.Context
+	uri     iosrc.URI
+	builder *zng.Builder
 }
 
-// NewFinder returns an object that is used to lookup keys in a zdx.
+// NewFinder returns an object that is used to lookup keys in a microindex.
 func NewFinder(zctx *resolver.Context, uri iosrc.URI) *Finder {
 	return &Finder{
-		path: uri,
 		zctx: zctx,
+		uri:  uri,
 	}
 }
 
-func (f *Finder) Keys() *zng.TypeRecord {
-	return f.keys
-}
-
-// Open prepares the underlying zdx index for lookups.  It opens the file
-// and reads the header, returning errors if the file is corrrupt, doesn't
-// exist, or its zdx header is invalid.  If the index exists but is empty,
-// zero values are returned for any lookups.  If the index does not exist,
-// os.ErrNotExist is returned.
+// Open prepares the underlying microindex for lookups.  It opens the file
+// and reads the trailer, returning errors if the file is corrrupt, doesn't
+// exist, or its microindex trailer is invalid.  If the microindex exists
+// but is empty, zero values are returned for any lookups.  If the microindex
+// does not exist, os.ErrNotExist is returned.
 func (f *Finder) Open() error {
-	level := 0
-	for {
-		r, err := newReader(f.zctx, f.path, level)
-		if err != nil {
-			var zerr *zqe.Error
-			if errors.As(err, &zerr) && zerr.Kind == zqe.NotFound {
-				break
-			}
-			if len(f.files) > 0 {
-				// Ignore this error; the prior is more
-				// interesting.
-				_ = f.Close()
-			}
-			return err
-		}
-		level += 1
-		f.files = append(f.files, r)
-	}
-	if len(f.files) == 0 {
-		return zqe.E(zqe.NotFound)
-	}
-	// Read the first record as the zdx header.
-	rec, err := f.files[0].Read()
-	if err != nil {
-		return err
-	}
-	if rec == nil {
-		// files exists but is empty
-		return fmt.Errorf("%s: cannnot read zdx header", f.path)
-	}
-	childField, keysType, err := ParseHeader(rec)
-	if err != nil {
-		return fmt.Errorf("%s: %s", f.path, err)
-	}
-	f.keys = keysType
-	f.offsetField = childField
-	return nil
-}
-
-func (f *Finder) Path() string {
-	return f.path.String()
-}
-
-func (f *Finder) Close() error {
-	for _, r := range f.files {
-		if err := r.Close(); err != nil {
-			return err
-		}
-	}
-	return nil
+	reader, err := NewReaderFromURI(f.zctx, f.uri)
+	f.Reader = reader
+	return err
 }
 
 // lookup searches for a match of the given key compared to the
@@ -122,39 +68,34 @@ func lookup(reader zbuf.Reader, compare expr.KeyCompareFn, exact bool) (*zng.Rec
 	}
 }
 
-func (f *Finder) search(compare expr.KeyCompareFn) error {
-	n := len(f.files)
-	if n == 0 {
-		panic("open should have detected this")
+func (f *Finder) search(compare expr.KeyCompareFn) (zbuf.Reader, error) {
+	if f.reader == nil {
+		panic("finder hasn't been opened")
 	}
-	// We start with the topmost index file of the zdx bundle and
-	// find the greatest key smaller than or equal to othe lookup key then repeat
-	// the process for that frame in the next index file till we get to the
-	// base file and return that offset.
-	level := n - 1
+	// We start with the topmost level of the microindex file and
+	// find the first key that matches according to the comparison,
+	// then repeat the process for that frame in the next index file
+	// till we get to the base layer and return a reader positioned at
+	// that offset.
+	n := len(f.trailer.Sections)
 	off := int64(0)
-	for level > 0 {
-		reader := f.files[level]
-		if _, err := reader.Seek(off); err != nil {
-			return err
-		}
+	for level := 1; level < n; level++ {
+		reader, err := f.newSectionReader(level, off)
 		rec, err := lookup(reader, compare, false)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if rec == nil {
-			// This key can't be in the zdx since it is smaller than
-			// the smallest key in the zdx's index files.
-			return ErrNotFound
+			// This key can't be in the microindex since it is
+			// smaller than the smallest key present.
+			return nil, ErrNotFound
 		}
-		off, err = rec.AccessInt(f.offsetField)
+		off, err = rec.AccessInt(f.trailer.ChildOffsetField)
 		if err != nil {
-			return fmt.Errorf("b-tree child field: %w", err)
+			return nil, fmt.Errorf("b-tree child field: %w", err)
 		}
-		level -= 1
 	}
-	_, err := f.files[0].Seek(off)
-	return err
+	return f.newSectionReader(0, off)
 }
 
 func (f *Finder) Lookup(keys *zng.Record) (*zng.Record, error) {
@@ -162,14 +103,15 @@ func (f *Finder) Lookup(keys *zng.Record) (*zng.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := f.search(compare); err != nil {
+	reader, err := f.search(compare)
+	if err != nil {
 		if err == ErrNotFound {
 			// Return nil/success when exact-match lookup fails
 			err = nil
 		}
 		return nil, err
 	}
-	return lookup(f.files[0], compare, true)
+	return lookup(reader, compare, true)
 }
 
 func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zng.Record, keys *zng.Record) error {
@@ -177,14 +119,15 @@ func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zng.Record, keys *z
 	if err != nil {
 		return err
 	}
-	if err := f.search(compare); err != nil {
+	reader, err := f.search(compare)
+	if err != nil {
 		return err
 	}
 	for {
 		// As long as we have an exact key-match, where unset key
 		// columns are "don't care", keep reading records and return
 		// them via the channel.
-		rec, err := lookup(f.files[0], compare, true)
+		rec, err := lookup(reader, compare, true)
 		if err != nil {
 			return err
 		}
@@ -204,13 +147,14 @@ func (f *Finder) LookupClosest(keys *zng.Record) (*zng.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := f.search(compare); err != nil {
+	reader, err := f.search(compare)
+	if err != nil {
 		return nil, err
 	}
-	return lookup(f.files[0], compare, false)
+	return lookup(reader, compare, false)
 }
 
-// ParseKeys uses the key template from the zdx header to parse
+// ParseKeys uses the key template from the microindex trailer to parse
 // a slice of string values which correspnod to the DFS-order
 // of the fields in the key.  The inputs may be smaller than the
 // number of key fields, in which case they are "don't cares"
@@ -218,7 +162,7 @@ func (f *Finder) LookupClosest(keys *zng.Record) (*zng.Record, error) {
 // at the end of the key record.
 func (f *Finder) ParseKeys(inputs []string) (*zng.Record, error) {
 	if f.builder == nil {
-		f.builder = zng.NewBuilder(f.keys)
+		f.builder = zng.NewBuilder(f.trailer.KeyType)
 	}
 	rec, err := f.builder.Parse(inputs...)
 	if err == zng.ErrIncomplete {

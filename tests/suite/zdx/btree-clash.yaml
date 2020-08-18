@@ -1,11 +1,11 @@
 script: |
-  zdx convert -f 50 -o index -k _btree_child -
-  zq -t index.1.zng
+  zdx convert -f 50 -o index.zng -k _child -
+  zdx section -t -trailer index.zng
 
 inputs:
   - name: stdin
     data: |
-      #0:record[key:string,_btree_child:int64]
+      #0:record[key:string,_child:int64]
       0:[a;0;]
       0:[b;1;]
       0:[c;2;]
@@ -17,6 +17,5 @@ outputs:
     data: ''
   - name: stdout
     data: |
-      #0:record[_btree_child:int64,_btree_child_0:int64]
-      0:[0;0;]
-      0:[1;106;]
+      #0:record[magic:string,version:string,child_field:string,frame_thresh:int32,sections:array[int64],keys:record[_child:int64]]
+      0:[microindex;0.3;_child_0;50;[33;]-;]

@@ -1,11 +1,11 @@
 script: |
-  zdx create -o index -k v babble.tzng
-  zdx lookup -t -k 469 index
+  zdx create -o index.zng -k v babble.tzng
+  zdx lookup -t -k 469 index.zng
   echo ===
   # 50 not in index
-  zdx lookup -t -k 50 index
+  zdx lookup -t -k 50 index.zng
   echo ===
-  zdx lookup -t -k 30 index
+  zdx lookup -t -k 30 index.zng
 
 inputs:
   - name: babble.tzng
