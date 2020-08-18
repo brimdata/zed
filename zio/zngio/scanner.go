@@ -17,30 +17,30 @@ import (
 
 // zngScanner implements scanner.Scanner.
 type zngScanner struct {
-	ctx    context.Context
-	reader *Reader
-	filter filter.Filter
-	finder *requiredPatternFinder
-	span   nano.Span
-	stats  scanner.ScannerStats
+	ctx          context.Context
+	reader       *Reader
+	filter       filter.Filter
+	bufferFilter *filter.BufferFilter
+	span         nano.Span
+	stats        scanner.ScannerStats
 }
 
 var _ scanner.ScannerAble = (*Reader)(nil)
 
 func (r *Reader) NewScanner(ctx context.Context, filterExpr ast.BooleanExpr, s nano.Span) (scanner.Scanner, error) {
 	var f filter.Filter
-	var finder *requiredPatternFinder
+	var bf *filter.BufferFilter
 	if filterExpr != nil {
 		var err error
 		if f, err = filter.Compile(filterExpr); err != nil {
 			return nil, err
 		}
-		finder, err = newRequiredPatterFinder(filterExpr)
+		bf, err = filter.NewBufferFilter(filterExpr)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return &zngScanner{ctx: ctx, reader: r, filter: f, finder: finder, span: s}, nil
+	return &zngScanner{ctx: ctx, reader: r, bufferFilter: bf, filter: f, span: s}, nil
 }
 
 // Pull implements scanner.Scanner.Pull.
@@ -78,15 +78,17 @@ func (s *zngScanner) Pull() (zbuf.Batch, error) {
 }
 
 func (s *zngScanner) scanUncompressed() ([]*zng.Record, error) {
-	if s.finder != nil && !s.finder.find(s.reader.uncompressed.Bytes()) {
-		// We know s.reader.uncompressed cannot contain any
-		// records matching s.filter.
+	uncompressed := s.reader.uncompressed
+	if bf := s.bufferFilter; bf != nil && !bf.Eval(uncompressed.Bytes()) {
+		// s.bufferFilter evaluated to false, so we know
+		// s.reader.uncompressed cannot contain records matching
+		// s.filter.
+		atomic.AddInt64(&s.stats.BytesRead, int64(uncompressed.Len()))
 		s.reader.uncompressed = nil
-		// xxx stats
 		return nil, nil
 	}
 	var recs []*zng.Record
-	for uncompressed := s.reader.uncompressed; uncompressed.Len() > 0; {
+	for uncompressed.Len() > 0 {
 		id, err := readUvarint7(uncompressed)
 		if err != nil {
 			return nil, err
