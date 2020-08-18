@@ -19,19 +19,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var omTestInputs = []string{
-	`
-#0:record[v:int32,ts:time]
-0:[10;1;]
-0:[20;2;]
-0:[30;3;]`,
-	`
-#0:record[v:int32,ts:time]
-0:[15;4;]
-0:[25;5;]
-0:[35;6;]`,
-}
-
 // recordPuller is a proc.Proc whose Pull method returns one batch for each
 // record of a zbuf.Reader.
 type recordPuller struct {
@@ -66,7 +53,7 @@ func readProcToTzng(p proc.Proc) (string, error) {
 	}
 }
 
-func fieldReadCompare(field string, reversed bool) (zbuf.RecordCmpFn, error) {
+func fieldReadCompare(field string) (zbuf.RecordCmpFn, error) {
 	fieldRead := &ast.FieldRead{
 		Node:  ast.Node{Op: "FieldRead"},
 		Field: field,
@@ -81,8 +68,21 @@ func fieldReadCompare(field string, reversed bool) (zbuf.RecordCmpFn, error) {
 	}, nil
 }
 
+var omTestInputs = []string{
+	`
+#0:record[v:int32,ts:time]
+0:[10;1;]
+0:[20;2;]
+0:[30;3;]`,
+	`
+#0:record[v:int32,ts:time]
+0:[15;4;]
+0:[25;5;]
+0:[35;6;]`,
+}
+
 func TestParallelOrder(t *testing.T) {
-	fieldV, err := fieldReadCompare("v", false)
+	fieldV, err := fieldReadCompare("v")
 	require.NoError(t, err)
 
 	cases := []struct {
