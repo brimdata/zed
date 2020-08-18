@@ -160,6 +160,30 @@ linkerd dashboard &
 On most desktops, this will start a browser window with the dashboard. On the home screen of the dashboard under HTTP metrics you should see your namespace, zq. There is a grafana icon in the far rigght column next to zq. Click on that, and you will see some basic metrics for traffic through zqd.
 
 ### Step 4: Kube State Metrics
+These instructions are digested from:
+https://github.com/kubernetes/kube-state-metrics/blob/master/README.md#setup
+
+You must have a go dev environment set up to follow these instructions.
+
+First clone the repo for kube-state-metrics:
+```
+git clone https://github.com/kubernetes/kube-state-metrics.git
+cd kube-state-metrics
+```
+
+To do a "vanilla" install into your local Kind cluster, use the configuration in examples/standard:
+```
+kubectl apply -f examples/standard/
+kubectl get pod -n kube-system
+```
+The `get pod` will show you that the kube-state-metrics are running alongside tge scheduler, et. al., in the kube-system namespace. KSM runs in this namespace because it is a core Kubernetes project.
+
+Prometheus is already running in the linkerd namespace. Now we will configure it to scrape KSM:
+
+WIP!
+
+### Step 5: A Grafana dashboard for zqd
+Grafana is also running in the linkerd namespace: it serves the Linkerd dashboard. Now we will add our own Grafana dashboard for zqd:
 
 WIP!
 
