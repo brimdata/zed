@@ -22,15 +22,13 @@ type parallelHead struct {
 }
 
 func (ph *parallelHead) closeOnDone() {
-	select {
-	case <-ph.Context.Done():
-		ph.mu.Lock()
-		defer ph.mu.Unlock()
-		if ph.sc != nil {
-			ph.sc.Close()
-			ph.sc = nil
-		}
+	<-ph.Context.Done()
+	ph.mu.Lock()
+	if ph.sc != nil {
+		ph.sc.Close()
+		ph.sc = nil
 	}
+	ph.mu.Unlock()
 }
 
 func (ph *parallelHead) Pull() (zbuf.Batch, error) {
@@ -80,7 +78,7 @@ type parallelGroup struct {
 
 	mu       sync.Mutex // protects below
 	stats    scanner.ScannerStats
-	scanners []scanner.Scanner
+	scanners map[scanner.Scanner]struct{}
 }
 
 func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
@@ -98,7 +96,7 @@ func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
 				continue
 			}
 			pg.mu.Lock()
-			pg.scanners = append(pg.scanners, sc)
+			pg.scanners[sc] = struct{}{}
 			pg.mu.Unlock()
 			return sc, nil
 		case <-pg.pctx.Done():
@@ -111,28 +109,22 @@ func (pg *parallelGroup) doneSource(sc ScannerCloser) {
 	pg.mu.Lock()
 	defer pg.mu.Unlock()
 	pg.stats.Accumulate(sc.Stats())
-	for i := range pg.scanners {
-		if pg.scanners[i] == sc {
-			pg.scanners[i] = nil
-			pg.scanners = append(pg.scanners[:i], pg.scanners[i+1:]...)
-			break
-		}
-	}
+	delete(pg.scanners, sc)
 }
 
 func (pg *parallelGroup) Stats() *scanner.ScannerStats {
 	pg.mu.Lock()
 	defer pg.mu.Unlock()
 	s := pg.stats
-	for _, sc := range pg.scanners {
+	for sc := range pg.scanners {
 		s.Accumulate(sc.Stats())
 	}
 	return &s
 }
 
 func (pg *parallelGroup) run() {
-	defer close(pg.sourceChan)
 	pg.sourceErr = pg.msrc.SendSources(pg.pctx, pg.pctx.TypeContext, pg.filter, pg.sourceChan)
+	close(pg.sourceChan)
 }
 
 func newCompareFn(field string, reversed bool) (zbuf.RecordCmpFn, error) {
@@ -195,6 +187,7 @@ func createParallelGroup(pctx *proc.Context, pgn *pgSetup, msrc MultiSource, mcf
 		msrc:       msrc,
 		pctx:       pctx,
 		sourceChan: make(chan SourceOpener),
+		scanners:   make(map[scanner.Scanner]struct{}),
 	}
 
 	chains := make([]proc.Proc, mcfg.Parallelism)
