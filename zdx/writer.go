@@ -76,7 +76,7 @@ func NewWriter(zctx *resolver.Context, path string, keyFields []string, frameThr
 	if err != nil {
 		return nil, err
 	}
-	tmp, err := ioutil.TempDir("", "*")
+	tmp, err := ioutil.TempDir("", "microindex-*")
 	if err != nil {
 		return nil, err
 	}
@@ -181,8 +181,7 @@ func (w *Writer) finalize() error {
 	if err := base.zng.Write(rec); err != nil {
 		return err
 	}
-	base.zng.EndStream()
-	return nil
+	return base.zng.EndStream()
 }
 
 func newIndexWriter(base *Writer, w io.WriteCloser, name string) (*indexWriter, error) {
@@ -197,7 +196,7 @@ func newIndexWriter(base *Writer, w io.WriteCloser, name string) (*indexWriter, 
 }
 
 func (w *indexWriter) newParent() (*indexWriter, error) {
-	file, err := ioutil.TempFile(w.base.tmpdir, "*")
+	file, err := ioutil.TempFile(w.base.tmpdir, "")
 	if err != nil {
 		return nil, err
 	}

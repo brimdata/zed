@@ -59,7 +59,7 @@ func NewReaderFromURI(zctx *resolver.Context, uri iosrc.URI) (*Reader, error) {
 	trailer, trailerLen, err := readTrailer(r, size)
 	if err != nil {
 		r.Close()
-		return nil, fmt.Errorf("%s: %s", uri, err)
+		return nil, fmt.Errorf("%s: %w", uri, err)
 	}
 	// We add a bit to the seeker buffer so to accommodate the usual
 	// overflow size.

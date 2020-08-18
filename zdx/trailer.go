@@ -93,7 +93,8 @@ func readTrailer(r io.ReadSeeker, n int64) (*Trailer, int, error) {
 		// which we then try to decode.
 		if buf[off] == 0x85 && buf[off+1] == 0x81 && buf[off+2] == 0x06 && buf[off+3] == 0x80 {
 			attempt := buf[off+1 : n]
-			rec := readOne(bytes.NewReader(attempt))
+			r := bytes.NewReader(attempt)
+			rec, _ := zngio.NewReader(r, resolver.NewContext()).Read()
 			if rec == nil {
 				continue
 			}
@@ -104,15 +105,6 @@ func readTrailer(r io.ReadSeeker, n int64) (*Trailer, int, error) {
 		}
 	}
 	return nil, 0, errors.New("trailer not found")
-}
-
-func readOne(reader *bytes.Reader) *zng.Record {
-	r := zngio.NewReader(reader, resolver.NewContext())
-	rec, err := r.Read()
-	if err != nil && err != io.EOF {
-		rec = nil
-	}
-	return rec
 }
 
 func recordToTrailer(rec *zng.Record) (*Trailer, error) {
