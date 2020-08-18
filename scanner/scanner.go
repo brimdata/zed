@@ -17,14 +17,14 @@ type ScannerAble interface {
 	NewScanner(ctx context.Context, f filter.Filter, filterExpr ast.BooleanExpr, s nano.Span) (Scanner, error)
 }
 
-// A ScannerStatsAble generates scanner statistics.
-type ScannerStatsAble interface {
+// A Statser produces scanner statistics.
+type Statser interface {
 	Stats() *ScannerStats
 }
 
 // A Scanner is a zbuf.Batch source that also provides statistics.
 type Scanner interface {
-	ScannerStatsAble
+	Statser
 	Pull() (zbuf.Batch, error)
 }
 
