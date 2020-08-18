@@ -211,17 +211,12 @@ func createParallelGroup(pctx *proc.Context, pgn *pgSetup, msrc MultiSource, mcf
 	}
 
 	sortField, reversed := msrc.OrderInfo()
-
-	var merger proc.Proc
-	if sortField != "" {
-		cmp, err := newCompareFn(sortField, reversed)
-		if err != nil {
-			return nil, nil, err
-		}
-		merger = proc.NewOrderedMerge(pctx, chains, cmp)
-	} else {
-		merger = proc.NewMerge(pctx, chains)
+	if sortField == "" {
+		return proc.NewMerge(pctx, chains), pg, nil
 	}
-
-	return merger, pg, nil
+	cmp, err := newCompareFn(sortField, reversed)
+	if err != nil {
+		return nil, nil, err
+	}
+	return proc.NewOrderedMerge(pctx, chains, cmp), pg, nil
 }
