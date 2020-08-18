@@ -5,4 +5,4 @@ script: |
 outputs:
   - name: stderr
     regexp: |
-      .*: trailer not found
+      .*: microindex trailer not found

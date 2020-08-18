@@ -104,7 +104,7 @@ func readTrailer(r io.ReadSeeker, n int64) (*Trailer, int, error) {
 			}
 		}
 	}
-	return nil, 0, errors.New("trailer not found")
+	return nil, 0, errors.New("microindex trailer not found")
 }
 
 func recordToTrailer(rec *zng.Record) (*Trailer, error) {
