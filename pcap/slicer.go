@@ -1,19 +1,19 @@
 package pcap
 
 import (
-	"os"
+	"io"
 
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/ranger"
 	"github.com/brimsec/zq/pkg/slicer"
 )
 
-func NewSlicer(file *os.File, index Index, span nano.Span) (*slicer.Reader, error) {
+func NewSlicer(seeker io.ReadSeeker, index Index, span nano.Span) (*slicer.Reader, error) {
 	slices, err := GenerateSlices(index, span)
 	if err != nil {
 		return nil, err
 	}
-	return slicer.NewReader(file, slices)
+	return slicer.NewReader(seeker, slices)
 }
 
 // GenerateSlices takes an index and time span and generates a list of

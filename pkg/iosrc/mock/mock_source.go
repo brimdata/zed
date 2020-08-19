@@ -79,6 +79,21 @@ func (mr *MockSourceMockRecorder) NewWriter(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewWriter", reflect.TypeOf((*MockSource)(nil).NewWriter), arg0)
 }
 
+// ReadFile mocks base method
+func (m *MockSource) ReadFile(arg0 iosrc.URI) ([]byte, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReadFile", arg0)
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReadFile indicates an expected call of ReadFile
+func (mr *MockSourceMockRecorder) ReadFile(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadFile", reflect.TypeOf((*MockSource)(nil).ReadFile), arg0)
+}
+
 // Remove mocks base method
 func (m *MockSource) Remove(arg0 iosrc.URI) error {
 	m.ctrl.T.Helper()
@@ -120,4 +135,18 @@ func (m *MockSource) Stat(arg0 iosrc.URI) (iosrc.Info, error) {
 func (mr *MockSourceMockRecorder) Stat(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Stat", reflect.TypeOf((*MockSource)(nil).Stat), arg0)
+}
+
+// WriteFile mocks base method
+func (m *MockSource) WriteFile(arg0 []byte, arg1 iosrc.URI) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WriteFile", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WriteFile indicates an expected call of WriteFile
+func (mr *MockSourceMockRecorder) WriteFile(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteFile", reflect.TypeOf((*MockSource)(nil).WriteFile), arg0, arg1)
 }

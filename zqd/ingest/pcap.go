@@ -10,23 +10,17 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/brimsec/zq/pcap"
-	"github.com/brimsec/zq/pkg/fs"
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zqd/pcapstorage"
 	"github.com/brimsec/zq/zqd/zeek"
 )
 
-type PcapSpace interface {
-	PcapIndexPath() string
-	SetPcapPath(string) error
-}
-
-type PcapStore interface {
+type ClearableLogStore interface {
 	LogStore
-	SetSpan(nano.Span) error
 	Clear(ctx context.Context) error
 }
 
@@ -34,10 +28,10 @@ type PcapOp struct {
 	StartTime nano.Ts
 	PcapSize  int64
 
-	pspace       PcapSpace
-	pstore       PcapStore
+	pcapstore    *pcapstorage.Store
+	logstore     ClearableLogStore
 	snapshots    int32
-	pcapPath     string
+	pcapuri      iosrc.URI
 	pcapReadSize int64
 	logdir       string
 	done, snap   chan struct{}
@@ -50,33 +44,32 @@ type PcapOp struct {
 // Process instance once zeek log files have started to materialize in a tmp
 // directory. If zeekExec is an empty string, this will attempt to resolve zeek
 // from $PATH.
-func NewPcapOp(ctx context.Context, pspace PcapSpace, pstore PcapStore, pcap string, zlauncher zeek.Launcher) (*PcapOp, error) {
-	logdir, err := ioutil.TempDir("", "zqd-pcap-ingest-")
+func NewPcapOp(ctx context.Context, pcapstore *pcapstorage.Store, logstore ClearableLogStore, pcap string, zlauncher zeek.Launcher) (*PcapOp, error) {
+	pcapuri, err := iosrc.ParseURI(pcap)
 	if err != nil {
 		return nil, err
 	}
-	info, err := os.Stat(pcap)
+	info, err := iosrc.Stat(pcapuri)
+	if err != nil {
+		return nil, err
+	}
+	if err := pcapstore.Rewrite(pcapuri); err != nil {
+		return nil, err
+	}
+	logdir, err := ioutil.TempDir("", "zqd-pcap-ingest-")
 	if err != nil {
 		return nil, err
 	}
 	p := &PcapOp{
 		StartTime: nano.Now(),
 		PcapSize:  info.Size(),
-		pspace:    pspace,
-		pstore:    pstore,
-		pcapPath:  pcap,
+		pcapstore: pcapstore,
+		logstore:  logstore,
+		pcapuri:   pcapuri,
 		logdir:    logdir,
 		done:      make(chan struct{}),
 		snap:      make(chan struct{}),
 		zlauncher: zlauncher,
-	}
-	if err := p.indexPcap(); err != nil {
-		os.Remove(p.pspace.PcapIndexPath())
-		return nil, err
-	}
-	if err := p.pspace.SetPcapPath(p.pcapPath); err != nil {
-		os.Remove(p.pspace.PcapIndexPath())
-		return nil, err
 	}
 	go func() {
 		p.err = p.run(ctx)
@@ -96,11 +89,10 @@ func (p *PcapOp) run(ctx context.Context) error {
 
 	abort := func() {
 		os.RemoveAll(p.logdir)
-		os.Remove(p.pspace.PcapIndexPath())
-		p.pspace.SetPcapPath("")
 		// Don't want to use passed context here because a cancelled context
 		// would cause storage not to be cleared.
-		p.pstore.Clear(context.Background())
+		p.pcapstore.Delete()
+		p.logstore.Clear(context.Background())
 	}
 
 	ticker := time.NewTicker(time.Second)
@@ -141,26 +133,8 @@ outer:
 	return nil
 }
 
-func (p *PcapOp) indexPcap() error {
-	pcapfile, err := fs.Open(p.pcapPath)
-	if err != nil {
-		return err
-	}
-	defer pcapfile.Close()
-	idx, err := pcap.CreateIndex(pcapfile, 10000)
-	if err != nil {
-		return err
-	}
-	idxpath := p.pspace.PcapIndexPath()
-	if err := fs.MarshalJSONFile(idx, idxpath, 0600); err != nil {
-		return err
-	}
-	// grab span from index and use to generate space info min/max time.
-	return p.pstore.SetSpan(idx.Span())
-}
-
 func (p *PcapOp) runZeek(ctx context.Context) error {
-	pcapfile, err := fs.Open(p.pcapPath)
+	pcapfile, err := iosrc.NewReader(p.pcapuri)
 	if err != nil {
 		return err
 	}
@@ -214,12 +188,12 @@ func (p *PcapOp) createSnapshot(ctx context.Context) error {
 	}
 	// convert logs into sorted zng
 	zctx := resolver.NewContext()
-	zr, err := detector.OpenFiles(zctx, zbuf.RecordCompare(p.pstore.NativeDirection()), files...)
+	zr, err := detector.OpenFiles(zctx, zbuf.RecordCompare(p.logstore.NativeDirection()), files...)
 	if err != nil {
 		return err
 	}
 	defer zr.Close()
-	if err := p.pstore.Rewrite(ctx, zctx, zr); err != nil {
+	if err := p.logstore.Rewrite(ctx, zctx, zr); err != nil {
 		return err
 	}
 	atomic.AddInt32(&p.snapshots, 1)

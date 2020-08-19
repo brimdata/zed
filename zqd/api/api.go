@@ -105,7 +105,7 @@ type SpaceInfo struct {
 	Size        int64        `json:"size" unit:"bytes"`
 	PcapSupport bool         `json:"pcap_support"`
 	PcapSize    int64        `json:"pcap_size" unit:"bytes"`
-	PcapPath    string       `json:"pcap_path"`
+	PcapPath    iosrc.URI    `json:"pcap_path"`
 	ParentID    SpaceID      `json:"parent_id,omitempty"`
 }
 
