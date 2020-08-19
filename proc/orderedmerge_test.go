@@ -7,8 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimsec/zq/ast"
-	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
@@ -51,21 +49,6 @@ func readProcToTzng(p proc.Proc) (string, error) {
 		}
 		b.Unref()
 	}
-}
-
-func fieldReadCompare(field string) (zbuf.RecordCmpFn, error) {
-	fieldRead := &ast.FieldRead{
-		Node:  ast.Node{Op: "FieldRead"},
-		Field: field,
-	}
-	res, err := expr.CompileFieldExpr(fieldRead)
-	if err != nil {
-		return nil, err
-	}
-	cmp := expr.NewCompareFn(true, res)
-	return func(a, b *zng.Record) bool {
-		return cmp(a, b) < 0
-	}, nil
 }
 
 var omTestInputs = []string{

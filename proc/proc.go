@@ -189,12 +189,12 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 				p := v.Procs[k].(*ast.ParallelProc)
 				if p.MergeOrderField != "" {
 					parent = NewOrderedMerge(c, parents, p.MergeOrderField, p.MergeOrderReverse)
-					return []Proc{parent}, nil
+				} else {
+					parent = NewMerge(c, parents)
 				}
-				parent = NewMerge(c, parents)
-			} else {
-				parent = parents[0]
+				continue
 			}
+			parent = parents[0]
 		}
 		return parents, nil
 
