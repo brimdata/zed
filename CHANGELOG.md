@@ -2,6 +2,12 @@ These entries focus on changes we think are relevant to users of Brim,
 zq, or pcap.  For all changes to zqd, its API, or to other components in the
 zq repo, check the git log.
 
+## v0.19.1
+
+* zq: Move third party license texts in zq repo to a single [acknowledgments.txt](https://github.com/brimsec/zq/blob/master/acknowledgments.txt) file (#1107)
+* zq: Automatically load AWS config from shared config file `~/.aws/config` by default (#1109)
+* zqd: Fix an issue with excess characters in Space names after upgrade (#1112)
+
 ## v0.19.0
 * zq: ZNG output is now LZ4-compressed by default (#1050, #1064, #1063, [ZNG spec](https://github.com/brimsec/zq/blob/master/zng/docs/spec.md#313-compressed-value-message-block))
 * zar: Adjust import size threshold to account for compression (#1082)

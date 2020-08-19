@@ -1,0 +1,11 @@
+script: |
+  zq -o tmp.zng babble.tzng
+  zdx lookup -t -k 469 tmp.zng
+
+inputs:
+  - name: babble.tzng
+
+outputs:
+  - name: stderr
+    regexp: |
+      .*: microindex trailer not found

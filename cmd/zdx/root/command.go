@@ -9,10 +9,9 @@ import (
 var Zdx = &charm.Spec{
 	Name:  "zdx",
 	Usage: "zdx <command> [options] [arguments...]",
-	Short: "use zdx to test/debug boom sst files",
+	Short: "create and manipulate microindexes",
 	Long: `
-zdx is command-line utility useful for debugging the zdx packaging and
-interrogating zdx files that are corrected by a client of zdx.`,
+zdx is command-line utility for creating and manipulating microindexes.`,
 	New: func(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 		return &Command{}, nil
 	},

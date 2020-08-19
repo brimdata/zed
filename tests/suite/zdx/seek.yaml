@@ -1,9 +1,7 @@
 # create a zng with sos every two records then index it as a time index
 script: |
-  zq -b 2 - | zdx seek -f 100 -o index -k ts -
+  zq -b 2 - | zdx seek -f 100 -o index.zng -k ts -
   zq -t index.zng
-  echo ===
-  zq -t index.1.zng
 
 inputs:
   - name: stdin
@@ -21,14 +19,10 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      #0:record[magic:string,version:string,child_field:string,keys:record[ts:time]]
-      0:[zdx;0.2;_btree_child;-;]
-      #1:record[ts:time,offset:int64]
-      1:[1000;0;]
-      1:[1002;34;]
-      1:[1004;68;]
-      1:[1006;102;]
-      ===
-      #0:record[ts:time,_btree_child:int64]
+      #0:record[ts:time,offset:int64]
       0:[1000;0;]
-      0:[1004;103;]
+      0:[1002;34;]
+      0:[1004;68;]
+      0:[1006;102;]
+      #1:record[magic:string,version:int32,child_field:string,frame_thresh:int32,sections:array[int64],keys:record[ts:time]]
+      1:[microindex;1;_child;100;[58;]-;]

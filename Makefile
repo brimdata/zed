@@ -84,11 +84,19 @@ build:
 install:
 	@go install -ldflags='$(LDFLAGS)' ./cmd/...
 
+docker:
+	DOCKER_BUILDKIT=1 docker build --pull --rm \
+		--build-arg LDFLAGS='$(LDFLAGS)' \
+		-t zqd:latest -t localhost:5000/zqd:latest -t localhost:5000/zqd:$(VERSION) .
+	docker push localhost:5000/zqd:latest
+	docker push localhost:5000/zqd:$(VERSION)
+
 create-release-assets:
 	for os in darwin linux windows; do \
 		zqdir=zq-$(VERSION).$${os}-amd64 ; \
 		rm -rf dist/$${zqdir} ; \
 		mkdir -p dist/$${zqdir} ; \
+		cp LICENSE.txt acknowledgments.txt dist/$${zqdir} ; \
 		GOOS=$${os} GOARCH=amd64 go build -ldflags='$(LDFLAGS)' -o dist/$${zqdir} ./cmd/... ; \
 	done
 	rm -rf dist/release && mkdir -p dist/release

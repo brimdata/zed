@@ -1,16 +1,15 @@
-// This file contains code from these Go 1.13.8 source files:
+// The code in this file is derived from these Go 1.13.8 source files:
 // - os/file.go
 // - os/file_windows.go
 // - syscall/syscall_windows.go
 // - os/path_windows.go
-//
-// That code is covered by the following copyright notice,
-// and the license file mentioned is available at:
-// https://github.com/golang/go/blob/go1.13.8/LICENSE
-//
-// Copyright 2009 The Go Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// and is covered by the copyright below.
+// The changes are covered by the copyright and license in the
+// LICENSE file in the root directory of this repository.
+
+// Copyright (c) 2009 The Go Authors. All rights reserved.
+// See acknowledgments.txt for full license text from:
+// https://github.com/golang/go/blob/master/LICENSE
 
 package fs
 

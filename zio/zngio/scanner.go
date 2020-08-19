@@ -7,7 +7,6 @@ import (
 	"io"
 	"sync/atomic"
 
-	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/scanner"
@@ -26,22 +25,6 @@ type zngScanner struct {
 }
 
 var _ scanner.ScannerAble = (*Reader)(nil)
-
-func (r *Reader) NewScanner(ctx context.Context, filterExpr ast.BooleanExpr, s nano.Span) (scanner.Scanner, error) {
-	var f filter.Filter
-	var bf *filter.BufferFilter
-	if filterExpr != nil {
-		var err error
-		if f, err = filter.Compile(filterExpr); err != nil {
-			return nil, err
-		}
-		bf, err = filter.NewBufferFilter(filterExpr)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return &zngScanner{ctx: ctx, reader: r, bufferFilter: bf, filter: f, span: s}, nil
-}
 
 // Pull implements scanner.Scanner.Pull.
 func (s *zngScanner) Pull() (zbuf.Batch, error) {

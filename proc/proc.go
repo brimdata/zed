@@ -7,7 +7,6 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/filter"
-	"github.com/brimsec/zq/reducer/compile"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 	"go.uber.org/zap"
@@ -16,7 +15,7 @@ import (
 // Proc is the interface to objects that operate on Batches of zbuf.Records
 // and are arranged into a flowgraph to perform pattern matching and analytics.
 // A proc is generally single-threaded unless lengths are taken to implement
-// concurrency within a Proc.  The model is reciever-driven, stream-oriented
+// concurrency within a Proc.  The model is receiver-driven, stream-oriented
 // data processing.  Downstream Procs Pull() batches of data from upstream procs.
 // Normally, a Proc pulls data until end of stream (nil batch and nil error)
 // or error (nil batch and non-nil error).  If a Proc wants to end before
@@ -91,18 +90,8 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 	}
 	switch v := node.(type) {
 	case *ast.ReduceProc:
-		reducers := make([]compile.CompiledReducer, 0)
-		for _, reducer := range v.Reducers {
-			compiled, err := compile.Compile(reducer)
-			if err != nil {
-				return nil, err
-			}
-			reducers = append(reducers, compiled)
-		}
-		params := ReduceParams{
-			reducers: reducers,
-		}
-		return []Proc{NewReduce(c, parent, params)}, nil
+		g := &ast.GroupByProc{Reducers: v.Reducers}
+		return CompileProc(custom, g, c, parent)
 
 	case *ast.GroupByProc:
 		params, err := CompileGroupBy(v, c.TypeContext)
@@ -186,10 +175,15 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 			// in which case the output layer will mux
 			// into channels.
 			if len(parents) > 1 && k < n-1 {
-				parent = NewMerge(c, parents)
-			} else {
-				parent = parents[0]
+				p := v.Procs[k].(*ast.ParallelProc)
+				if p.MergeOrderField != "" {
+					parent = NewOrderedMerge(c, parents, p.MergeOrderField, p.MergeOrderReverse)
+				} else {
+					parent = NewMerge(c, parents)
+				}
+				continue
 			}
+			parent = parents[0]
 		}
 		return parents, nil
 

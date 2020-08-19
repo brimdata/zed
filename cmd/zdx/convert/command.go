@@ -16,10 +16,10 @@ import (
 
 var Convert = &charm.Spec{
 	Name:  "convert",
-	Usage: "convert [-f framesize] [ -o file ] -k field[,field,...] file",
+	Usage: "convert [-f frametresh] [ -o file ] -k field[,field,...] file",
 	Short: "generate a zdx file from one or more zng files",
 	Long: `
-The convert command generates a zdx index containing keys and optional values
+The convert command generates a microindex containing keys and optional values
 from the input file.  The required flag -k specifies one or more zng record
 field names that comprise the index search keys, in precedence order.
 The keys must be pre-sorted in ascending order with
@@ -36,7 +36,7 @@ func init() {
 
 type Command struct {
 	*root.Command
-	framesize   int
+	frameThresh int
 	outputFile  string
 	keys        string
 	ReaderFlags zio.ReaderFlags
@@ -46,7 +46,7 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{
 		Command: parent.(*root.Command),
 	}
-	f.IntVar(&c.framesize, "f", 32*1024, "minimum frame size used in zdx file")
+	f.IntVar(&c.frameThresh, "f", 32*1024, "minimum frame size used in microindex file")
 	f.StringVar(&c.outputFile, "o", "zdx", "output zdx bundle name")
 	f.StringVar(&c.keys, "k", "", "comma-separated list of field names for keys")
 	c.ReaderFlags.SetFlags(f)
@@ -78,7 +78,7 @@ func (c *Command) Run(args []string) error {
 	}
 	defer file.Close()
 	keys := strings.Split(c.keys, ",")
-	writer, err := zdx.NewWriter(zctx, c.outputFile, keys, c.framesize)
+	writer, err := zdx.NewWriter(zctx, c.outputFile, keys, c.frameThresh)
 	if err != nil {
 		return err
 	}
