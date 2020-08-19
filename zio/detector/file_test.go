@@ -58,7 +58,7 @@ func TestMultiFileScanner(t *testing.T) {
 	f2 := writeTemp(t, []byte(input[1]))
 	defer os.Remove(f2)
 
-	mfr := NewMultiFileReader(resolver.NewContext(), []string{f1, f2}, OpenConfig{})
+	mfr := MultiFileReader(resolver.NewContext(), []string{f1, f2}, OpenConfig{})
 	sn, err := scanner.NewScanner(context.Background(), mfr, nil, nil, nano.MaxSpan)
 	require.NoError(t, err)
 	_, ok := sn.(*multiFileScanner)

@@ -113,29 +113,29 @@ func OpenFiles(zctx *resolver.Context, dir zbuf.RecordCmpFn, paths ...string) (z
 	return zbuf.NewCombiner(readers, dir), nil
 }
 
-type MultiFileReader struct {
+type multiFileReader struct {
 	reader *zbuf.File
 	zctx   *resolver.Context
 	paths  []string
 	cfg    OpenConfig
 }
 
-var _ zbuf.ReadCloser = (*MultiFileReader)(nil)
-var _ scanner.ScannerAble = (*MultiFileReader)(nil)
+var _ zbuf.ReadCloser = (*multiFileReader)(nil)
+var _ scanner.ScannerAble = (*multiFileReader)(nil)
 
-// NewMultiFileReader returns a zbuf.ReadCloser that's the logical concatenation
+// MultiFileReader returns a zbuf.ReadCloser that's the logical concatenation
 // of the provided input paths. They're read sequentially. Once all inputs have
 // reached end of stream, Read will return end of stream. If any of the readers
 // return a non-nil error, Read will return that error.
-func NewMultiFileReader(zctx *resolver.Context, paths []string, cfg OpenConfig) *MultiFileReader {
-	return &MultiFileReader{
+func MultiFileReader(zctx *resolver.Context, paths []string, cfg OpenConfig) zbuf.ReadCloser {
+	return &multiFileReader{
 		zctx:  zctx,
 		paths: paths,
 		cfg:   cfg,
 	}
 }
 
-func (r *MultiFileReader) prepReader() (bool, error) {
+func (r *multiFileReader) prepReader() (bool, error) {
 	if r.reader == nil {
 		if len(r.paths) == 0 {
 			return true, nil
@@ -151,7 +151,7 @@ func (r *MultiFileReader) prepReader() (bool, error) {
 	return false, nil
 }
 
-func (r *MultiFileReader) Read() (*zng.Record, error) {
+func (r *multiFileReader) Read() (*zng.Record, error) {
 	for {
 		if done, err := r.prepReader(); done || err != nil {
 			return nil, err
@@ -168,7 +168,7 @@ func (r *MultiFileReader) Read() (*zng.Record, error) {
 
 // Close closes the current open files and clears the list of remaining paths
 // to be read. This is not thread safe.
-func (r *MultiFileReader) Close() (err error) {
+func (r *multiFileReader) Close() (err error) {
 	if r.reader != nil {
 		err = r.reader.Close()
 		r.reader = nil
@@ -176,9 +176,9 @@ func (r *MultiFileReader) Close() (err error) {
 	return
 }
 
-func (r *MultiFileReader) NewScanner(ctx context.Context, f filter.Filter, filterExpr ast.BooleanExpr, s nano.Span) (scanner.Scanner, error) {
+func (r *multiFileReader) NewScanner(ctx context.Context, f filter.Filter, filterExpr ast.BooleanExpr, s nano.Span) (scanner.Scanner, error) {
 	return &multiFileScanner{
-		MultiFileReader: r,
+		multiFileReader: r,
 		ctx:             ctx,
 		filter:          f,
 		filterExpr:      filterExpr,
@@ -187,7 +187,7 @@ func (r *MultiFileReader) NewScanner(ctx context.Context, f filter.Filter, filte
 }
 
 type multiFileScanner struct {
-	*MultiFileReader
+	*multiFileReader
 	ctx        context.Context
 	filter     filter.Filter
 	filterExpr ast.BooleanExpr
