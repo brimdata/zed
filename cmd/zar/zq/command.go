@@ -108,7 +108,7 @@ func (c *Command) Run(args []string) error {
 		}
 		zctx := resolver.NewContext()
 		cfg := detector.OpenConfig{Format: "zng"}
-		rc := detector.MultiFileReader(zctx, paths, cfg)
+		rc := detector.NewMultiFileReader(zctx, paths, cfg)
 		defer rc.Close()
 		reader := zbuf.Reader(rc)
 		wch := make(chan string, 5)

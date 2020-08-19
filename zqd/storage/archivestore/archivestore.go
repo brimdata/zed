@@ -65,7 +65,7 @@ func (s *Storage) Open(ctx context.Context, zctx *resolver.Context, span nano.Sp
 		return nil, err
 	}
 	cfg := detector.OpenConfig{Format: "zng"}
-	return detector.MultiFileReader(zctx, paths, cfg), nil
+	return detector.NewMultiFileReader(zctx, paths, cfg), nil
 }
 
 func (s *Storage) Summary(_ context.Context) (storage.Summary, error) {
