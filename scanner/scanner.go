@@ -25,7 +25,7 @@ type Statser interface {
 // A Scanner is a zbuf.Batch source that also provides statistics.
 type Scanner interface {
 	Statser
-	zbuf.Puller
+	Pull() (zbuf.Batch, error)
 }
 
 // ScannerStats holds Scanner statistics. It should be identical to
