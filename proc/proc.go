@@ -15,7 +15,7 @@ import (
 // Proc is the interface to objects that operate on Batches of zbuf.Records
 // and are arranged into a flowgraph to perform pattern matching and analytics.
 // A proc is generally single-threaded unless lengths are taken to implement
-// concurrency within a Proc.  The model is reciever-driven, stream-oriented
+// concurrency within a Proc.  The model is receiver-driven, stream-oriented
 // data processing.  Downstream Procs Pull() batches of data from upstream procs.
 // Normally, a Proc pulls data until end of stream (nil batch and nil error)
 // or error (nil batch and non-nil error).  If a Proc wants to end before

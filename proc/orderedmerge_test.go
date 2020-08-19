@@ -34,23 +34,6 @@ func (rp *recordPuller) Pull() (zbuf.Batch, error) {
 	}
 }
 
-func readProcToTzng(p proc.Proc) (string, error) {
-	var sb strings.Builder
-	w := tzngio.NewWriter(&sb)
-	for {
-		b, err := p.Pull()
-		if b == nil || err != nil {
-			return sb.String(), err
-		}
-		for _, r := range b.Records() {
-			if err := w.Write(r); err != nil {
-				return "", err
-			}
-		}
-		b.Unref()
-	}
-}
-
 var omTestInputs = []string{
 	`
 #0:record[v:int32,ts:time]
@@ -109,9 +92,10 @@ func TestParallelOrder(t *testing.T) {
 			}
 			om := proc.NewOrderedMerge(pctx, parents, c.field, c.reversed)
 
-			res, err := readProcToTzng(om)
+			var sb strings.Builder
+			err := zbuf.CopyPuller(tzngio.NewWriter(&sb), om)
 			require.NoError(t, err)
-			assert.Equal(t, test.Trim(c.exp), res)
+			assert.Equal(t, test.Trim(c.exp), sb.String())
 		})
 	}
 }

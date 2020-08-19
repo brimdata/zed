@@ -38,3 +38,24 @@ func ReadBatch(zr Reader, n int) (Batch, error) {
 	}
 	return NewArray(recs), nil
 }
+
+// A Puller produces Batches of records, signaling end-of-stream by returning
+// a nil Batch and nil error.
+type Puller interface {
+	Pull() (Batch, error)
+}
+
+func CopyPuller(w Writer, p Puller) error {
+	for {
+		b, err := p.Pull()
+		if b == nil || err != nil {
+			return err
+		}
+		for _, r := range b.Records() {
+			if err := w.Write(r); err != nil {
+				return err
+			}
+		}
+		b.Unref()
+	}
+}

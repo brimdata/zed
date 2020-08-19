@@ -5,10 +5,15 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/s3io"
+	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/parquetio"
@@ -115,6 +120,9 @@ type multiFileReader struct {
 	cfg    OpenConfig
 }
 
+var _ zbuf.ReadCloser = (*multiFileReader)(nil)
+var _ scanner.ScannerAble = (*multiFileReader)(nil)
+
 // MultiFileReader returns a zbuf.ReadCloser that's the logical concatenation
 // of the provided input paths. They're read sequentially. Once all inputs have
 // reached end of stream, Read will return end of stream. If any of the readers
@@ -127,26 +135,35 @@ func MultiFileReader(zctx *resolver.Context, paths []string, cfg OpenConfig) zbu
 	}
 }
 
-func (r *multiFileReader) Read() (rec *zng.Record, err error) {
-again:
+func (r *multiFileReader) prepReader() (bool, error) {
 	if r.reader == nil {
 		if len(r.paths) == 0 {
-			return nil, nil
+			return true, nil
 		}
 		path := r.paths[0]
 		r.paths = r.paths[1:]
-		r.reader, err = OpenFile(r.zctx, path, r.cfg)
+		rdr, err := OpenFile(r.zctx, path, r.cfg)
 		if err != nil {
+			return false, err
+		}
+		r.reader = rdr
+	}
+	return false, nil
+}
+
+func (r *multiFileReader) Read() (*zng.Record, error) {
+	for {
+		if done, err := r.prepReader(); done || err != nil {
 			return nil, err
 		}
+		rec, err := r.reader.Read()
+		if err == nil && rec == nil {
+			r.reader.Close()
+			r.reader = nil
+			continue
+		}
+		return rec, err
 	}
-	rec, err = r.reader.Read()
-	if err == nil && rec == nil {
-		r.reader.Close()
-		r.reader = nil
-		goto again
-	}
-	return
 }
 
 // Close closes the current open files and clears the list of remaining paths
@@ -157,4 +174,62 @@ func (r *multiFileReader) Close() (err error) {
 		r.reader = nil
 	}
 	return
+}
+
+func (r *multiFileReader) NewScanner(ctx context.Context, f filter.Filter, filterExpr ast.BooleanExpr, s nano.Span) (scanner.Scanner, error) {
+	return &multiFileScanner{
+		multiFileReader: r,
+		ctx:             ctx,
+		filter:          f,
+		filterExpr:      filterExpr,
+		span:            s,
+	}, nil
+}
+
+type multiFileScanner struct {
+	*multiFileReader
+	ctx        context.Context
+	filter     filter.Filter
+	filterExpr ast.BooleanExpr
+	span       nano.Span
+
+	mu      sync.Mutex // protects below
+	scanner scanner.Scanner
+	stats   scanner.ScannerStats
+}
+
+func (s *multiFileScanner) Pull() (zbuf.Batch, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for {
+		if done, err := s.prepReader(); done || err != nil {
+			return nil, err
+		}
+		if s.scanner == nil {
+			sn, err := scanner.NewScanner(s.ctx, s.reader, s.filter, s.filterExpr, s.span)
+			if err != nil {
+				return nil, err
+			}
+			s.scanner = sn
+		}
+		batch, err := s.scanner.Pull()
+		if err == nil && batch == nil {
+			s.stats.Accumulate(s.scanner.Stats())
+			s.scanner = nil
+			s.reader.Close()
+			s.reader = nil
+			continue
+		}
+		return batch, err
+	}
+}
+
+func (s *multiFileScanner) Stats() *scanner.ScannerStats {
+	s.mu.Lock()
+	st := s.stats
+	if s.scanner != nil {
+		st.Accumulate(s.scanner.Stats())
+	}
+	s.mu.Unlock()
+	return &st
 }
