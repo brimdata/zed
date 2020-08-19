@@ -159,33 +159,29 @@ linkerd dashboard &
 ```
 On most desktops, this will start a browser window with the dashboard. On the home screen of the dashboard under HTTP metrics you should see your namespace, zq. There is a grafana icon in the far rigght column next to zq. Click on that, and you will see some basic metrics for traffic through zqd.
 
-### Step 4: Kube State Metrics
-These instructions are digested from:
-https://github.com/kubernetes/kube-state-metrics/blob/master/README.md#setup
-
-You must have a go dev environment set up to follow these instructions.
-
-First clone the repo for kube-state-metrics:
-```
-git clone https://github.com/kubernetes/kube-state-metrics.git
-cd kube-state-metrics
-```
-
-To do a "vanilla" install into your local Kind cluster, use the configuration in examples/standard:
-```
-kubectl apply -f examples/standard/
-kubectl get pod -n kube-system
-```
-The `get pod` will show you that the kube-state-metrics are running alongside tge scheduler, et. al., in the kube-system namespace. KSM runs in this namespace because it is a core Kubernetes project.
-
-Prometheus is already running in the linkerd namespace. Now we will configure it to scrape KSM:
-
-WIP!
-
-### Step 5: A Grafana dashboard for zqd
+### Step 4: A Grafana dashboard for zqd
 Grafana is also running in the linkerd namespace: it serves the Linkerd dashboard. Now we will add our own Grafana dashboard for zqd:
 
-WIP!
+This assumes that you have run `linkerd dashboard &` and that it has port-forwarded the Grafana instance to `localhost:50750`. Use a web browser to connect to the Grafana instance running in the linkerd nampespace:
+```
+http://localhost:50750/grafana
+```
+`k8s/grafana-dashboard.json` is a sample Grafana dashboard for zqd. To import the dashboard into the local Grafana instance, click on the "+" sign on left hand side of the Grafana home screen. From the drop=down that appears, select "import". On the import screen, select upload .json file, and choose `k8s/grafana-dashboard.json`. (You may have to change the name or uid on the import screen.)
+
+To experiment with the dashboard, you may want to place some repetitive load on the zqd instance. There is a shell script `k8s/zapi-loop.sh` you can use to do a simple zq query in a loop while you watch the dashboard. This script assumes you have completed "Deploy zqd with a S3 datauri" above.
+
+#### Dashboard details
+The sample dashboard that includes the following PromQL queries to monitor the zqd container:
+```
+container_memory_usage_bytes{id=~"/kube.+",container="zqd"}
+rate(container_cpu_usage_seconds_total{id=~"/kube.+",container="zqd"}[1m])
+sum(rate(tcp_read_bytes_total{app_kubernetes_io_name="zqd"}[1m]))
+sum(rate(container_network_receive_bytes_total[1m]))
+```
+The linkerd metrics for the queries above are described in:
+https://linkerd.io/2/reference/proxy-metrics/
+The cAdvisor metrics the queries above are described in:
+https://github.com/google/cadvisor/blob/master/docs/storage/prometheus.md
 
 ## WIP: Deploying the ZQ daemon to an AWS EKS cluster
 
@@ -398,6 +394,60 @@ curl -v http://localhost:9867/status
 ```
 You should get an 'ok' response.
 
+## Trying out Kube State Metrics
+These instructions are digested from:
+https://github.com/kubernetes/kube-state-metrics/blob/master/README.md#setup
+
+You must have a go dev environment set up to follow these instructions.
+
+First clone the repo for kube-state-metrics:
+```
+git clone https://github.com/kubernetes/kube-state-metrics.git
+cd kube-state-metrics
+```
+
+To do a "vanilla" install into your local Kind cluster, use the configuration in examples/standard:
+```
+kubectl apply -f examples/standard/
+kubectl get pod -n kube-system
+```
+The `get pod` will show you that the kube-state-metrics are running alongside the scheduler, et. al., in the kube-system namespace. KSM runs in this namespace because it is a core Kubernetes project.
+
+Prometheus is already running in the linkerd namespace. Now we will configure it to scrape KSM. Start by editing the configmap for the Prometheus intance installed by linkerd:
+```
+kubectl edit configmap -n linkerd linkerd-prometheus-config
+```
+At the start of the `scrape_configs:` add the following job. Make sure the indentation exactly matches the jobs below it (yaml is picky.)
+```
+    - job_name: 'kube-state-metrics'
+      static_configs:
+      - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8080']
+```
+After adding the text, it should look something like this in context:
+```
+    scrape_configs:
+    - job_name: 'kube-state-metrics'
+      static_configs:
+      - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8080']
+
+    - job_name: 'prometheus'
+```
+Now we need to verify that Prometheus is scraping the KSM metrics. 
+
+## Trouble-shooting Prometheus metrics
+
+We will connect to the expression browser for Prometheus by forwarding the port from the pod.
+```
+export PROM_POD=$(kubectl -n linkerd get pod -l "linkerd.io/proxy-deployment=linkerd-prometheus" -o jsonpath="{.items[0].metadata.name}")
+kubectl -n linkerd port-forward $PROM_POD 9090:9090
+```
+Now in a web browser, get:
+```
+http://localhost:9090/graph
+```
+You will see the Prometheus expression browser.
+
+The container metrics from cAdvisor are interesting to us. In the expression browser, in the drop down next to the execute button, select `container_cpu_usage_seconds_total`. Clicj execute and look at the graphs. We will find the CPU usage for our zqd container in this list.
 
 # Tearing down the environment
 
