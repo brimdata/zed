@@ -160,7 +160,7 @@ linkerd dashboard &
 On most desktops, this will start a browser window with the dashboard. On the home screen of the dashboard under HTTP metrics you should see your namespace, zq. There is a grafana icon in the far rigght column next to zq. Click on that, and you will see some basic metrics for traffic through zqd.
 
 ### Step 4: A Grafana dashboard for zqd
-Grafana is also running in the linkerd namespace: it serves the Linkerd dashboard. Now we will add our own Grafana dashboard for zqd:
+Grafana is also running in the linkerd namespace: it serves the Linkerd dashboard. Now we will add our own Grafana dashboard for zqd.
 
 This assumes that you have run `linkerd dashboard &` and that it has port-forwarded the Grafana instance to `localhost:50750`. Use a web browser to connect to the Grafana instance running in the linkerd nampespace:
 ```
@@ -180,7 +180,8 @@ sum(rate(container_network_receive_bytes_total[1m]))
 ```
 The linkerd metrics for the queries above are described in:
 https://linkerd.io/2/reference/proxy-metrics/
-The cAdvisor metrics the queries above are described in:
+
+The cAdvisor metrics for the queries above are described in:
 https://github.com/google/cadvisor/blob/master/docs/storage/prometheus.md
 
 ## WIP: Deploying the ZQ daemon to an AWS EKS cluster
