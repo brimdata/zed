@@ -186,6 +186,11 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 			// in which case the output layer will mux
 			// into channels.
 			if len(parents) > 1 && k < n-1 {
+				p := v.Procs[k].(*ast.ParallelProc)
+				if p.MergeOrderField != "" {
+					parent = NewOrderedMerge(c, parents, p.MergeOrderField, p.MergeOrderReverse)
+					return []Proc{parent}, nil
+				}
 				parent = NewMerge(c, parents)
 			} else {
 				parent = parents[0]

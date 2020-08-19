@@ -3,6 +3,7 @@ package proc
 import (
 	"sync"
 
+	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 )
@@ -12,7 +13,7 @@ import (
 // the output of OrderedMerge will have the same order.
 type OrderedMerge struct {
 	Base
-	recCmp  zbuf.RecordCmpFn
+	cmp     expr.CompareFn
 	once    sync.Once
 	parents []mergeParent
 }
@@ -26,10 +27,14 @@ type mergeParent struct {
 	resultCh chan Result
 }
 
-func NewOrderedMerge(c *Context, parents []Proc, cmp zbuf.RecordCmpFn) *OrderedMerge {
+func NewOrderedMerge(c *Context, parents []Proc, mergeField string, reversed bool) *OrderedMerge {
+	cmp := expr.NewCompareFn(true, expr.CompileFieldAccess(mergeField))
+	if reversed {
+		cmp = func(a, b *zng.Record) int { return cmp(b, a) }
+	}
 	m := &OrderedMerge{
 		Base:    Base{Context: c},
-		recCmp:  cmp,
+		cmp:     cmp,
 		parents: make([]mergeParent, len(parents)),
 	}
 	for i := range parents {
@@ -94,7 +99,7 @@ func (m *OrderedMerge) Read() (*zng.Record, error) {
 }
 
 func (m *OrderedMerge) compare(x *mergeParent, y *mergeParent) bool {
-	return m.recCmp(x.recs[x.recIdx], y.recs[y.recIdx])
+	return m.cmp(x.recs[x.recIdx], y.recs[y.recIdx]) < 0
 }
 
 func (m *OrderedMerge) next(p *mergeParent) *zng.Record {

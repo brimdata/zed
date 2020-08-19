@@ -82,15 +82,14 @@ var omTestInputs = []string{
 }
 
 func TestParallelOrder(t *testing.T) {
-	fieldV, err := fieldReadCompare("v")
-	require.NoError(t, err)
-
 	cases := []struct {
-		cmp zbuf.RecordCmpFn
-		exp string
+		field    string
+		reversed bool
+		exp      string
 	}{
 		{
-			cmp: zbuf.CmpTimeForward,
+			field:    "ts",
+			reversed: false,
 			exp: `
 #0:record[v:int32,ts:time]
 0:[10;1;]
@@ -102,7 +101,8 @@ func TestParallelOrder(t *testing.T) {
 `,
 		},
 		{
-			cmp: fieldV,
+			field:    "v",
+			reversed: false,
 			exp: `
 #0:record[v:int32,ts:time]
 0:[10;1;]
@@ -124,7 +124,7 @@ func TestParallelOrder(t *testing.T) {
 				r := tzngio.NewReader(bytes.NewReader([]byte(s)), zctx)
 				parents = append(parents, &recordPuller{Base: proc.Base{Context: pctx}, r: r})
 			}
-			om := proc.NewOrderedMerge(pctx, parents, c.cmp)
+			om := proc.NewOrderedMerge(pctx, parents, c.field, c.reversed)
 
 			res, err := readProcToTzng(om)
 			require.NoError(t, err)
