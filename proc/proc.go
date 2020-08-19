@@ -7,7 +7,6 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/filter"
-	"github.com/brimsec/zq/reducer/compile"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 	"go.uber.org/zap"
@@ -91,18 +90,8 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 	}
 	switch v := node.(type) {
 	case *ast.ReduceProc:
-		reducers := make([]compile.CompiledReducer, 0)
-		for _, reducer := range v.Reducers {
-			compiled, err := compile.Compile(reducer)
-			if err != nil {
-				return nil, err
-			}
-			reducers = append(reducers, compiled)
-		}
-		params := ReduceParams{
-			reducers: reducers,
-		}
-		return []Proc{NewReduce(c, parent, params)}, nil
+		g := &ast.GroupByProc{Reducers: v.Reducers}
+		return CompileProc(custom, g, c, parent)
 
 	case *ast.GroupByProc:
 		params, err := CompileGroupBy(v, c.TypeContext)
