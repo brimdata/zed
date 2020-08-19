@@ -47,7 +47,7 @@ its input into chunk files of approximately equal size.
 
 Zar import expects its input to be
 in the zng format so we'll use zq to take all the zng logs, gunzip them,
-and feed them to chop, which here expects its data on stdin.  We'll chop them
+and feed them to `zar import`, which here expects its data on stdin.  We'll chop them
 into chunks of 25MB, which is very small, but in this example the data set is
 fairly small (175MB) and you can always try it out on larger data sets:
 ```
@@ -163,7 +163,7 @@ zar ls -l
 You will see all the indexes left behind. They are just zng files.
 If you want to see one, just look at it with zq, e.g.
 ```
-zq -t $ZAR_ROOT/logs/20180324/1521911772.980384.zng/zdx-type-ip.zng
+zq -t $ZAR_ROOT/20180324/1521912990.158766.zng.zar/zdx-type-ip.zng
 ```
 Now if you run "zar find", it will efficiently look through all the index files
 instead of the logs and run much faster...
