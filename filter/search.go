@@ -1,6 +1,12 @@
+// This file is derived from
+// https://github.com/golang/go/blob/master/src/strings/search.go
+// as of August 2020 and is covered by the copyright below.
+// The changes are covered by the copyright and license in the
+// LICENSE file in the root directory of this repository.
+
 // Copyright 2012 The Go Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// See acknowledgments.txt for full license text from
+// https://github.com/golang/go/blob/master/LICENSE.
 
 package filter
 
