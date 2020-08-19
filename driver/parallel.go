@@ -207,9 +207,5 @@ func createParallelGroup(pctx *proc.Context, pgn *pgSetup, msrc MultiSource, mcf
 	if sortField == "" {
 		return proc.NewMerge(pctx, chains), pg, nil
 	}
-	cmp, err := newCompareFn(sortField, reversed)
-	if err != nil {
-		return nil, nil, err
-	}
-	return proc.NewOrderedMerge(pctx, chains, cmp), pg, nil
+	return proc.NewOrderedMerge(pctx, chains, sortField, reversed), pg, nil
 }

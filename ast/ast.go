@@ -197,7 +197,12 @@ type (
 	// a stream of records from their parent.
 	ParallelProc struct {
 		Node
-		Procs []Proc `json:"procs"`
+		// If non-zero, MergeOrderField contains the field name on
+		// which the branches of this parallel proc should be
+		// merged in the order indicated by MergeOrderReverse.
+		MergeOrderField   string `json:"merge_order_field"`
+		MergeOrderReverse bool   `json:"merge_order_reverse"`
+		Procs             []Proc `json:"procs"`
 	}
 	// A SortProc node represents a proc that sorts records.
 	SortProc struct {
