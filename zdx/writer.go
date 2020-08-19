@@ -3,6 +3,9 @@ package zdx
 import (
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
 
 	"github.com/brimsec/zq/pkg/bufwriter"
 	"github.com/brimsec/zq/pkg/iosrc"
@@ -13,7 +16,7 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-// Writer implements the zbuf.Writer interface. A Writer creates a zdx index,
+// Writer implements the zbuf.Writer interface. A Writer creates a microindex,
 // comprising the base zng file along with its related b-tree sections,
 // as zng records are consumed.
 //
@@ -28,102 +31,196 @@ import (
 //
 // As the zng file data is written, a b-tree index is computed as a
 // constant b-tree to make key lookups efficient.  The b-tree sections
-// are written to temporary zng files (.1, .2, etc) and at close,
-// they are collapsed into the single-file zdx format.
-// XXX TBD: the single-file implementation will arrive in a subsequent PR.
+// are written to temporary files and at close, they are merged into
+// a single-file microindex.
 type Writer struct {
 	zctx        *resolver.Context
-	uri         iosrc.URI
-	level       int
-	writer      *bufwriter.Writer
-	out         *zngio.Writer
-	parent      *Writer
-	header      *zng.Record
-	frameThresh int
-	frameStart  int64
-	frameEnd    int64
-	frameKey    *zng.Record
-	keyFields   []string
+	writer      *indexWriter
 	cutter      *proc.Cutter
-	recType     *zng.TypeRecord
+	tmpdir      string
+	frameThresh int
+	keyType     *zng.TypeRecord
+	iow         io.WriteCloser
+	childField  string
+	nlevel      int
 }
 
-// NewWriter returns a Writer ready to write an zdx bundle and related
-// index files via subsequent calls to Write(), or it returns an error.
-// All files will be written to the directory indicated by path
-// with the form $path, $path.1, and so forth.  Calls to Write must
+type indexWriter struct {
+	base       *Writer
+	parent     *indexWriter
+	name       string
+	buffer     *bufwriter.Writer
+	zng        *zngio.Writer
+	frameStart int64
+	frameEnd   int64
+	frameKey   *zng.Record
+	headerSize int
+}
+
+// NewWriter returns a Writer ready to write a microindex or it returns
+// an error.  The microindex is written to the URL provided in the path argument
+// while temporary file are written locally.  Calls to Write must
 // provide keys in increasing lexicographic order.  Duplicate keys are not
 // allowed but will not be detected.  Close() must be called when done writing.
-func NewWriter(zctx *resolver.Context, path string, keyFields []string, framesize int) (*Writer, error) {
+func NewWriter(zctx *resolver.Context, path string, keyFields []string, frameThresh int) (*Writer, error) {
 	if keyFields == nil {
 		keyFields = []string{"key"}
 	}
-	if framesize == 0 {
-		return nil, errors.New("zdx framesize cannot be zero")
+	if frameThresh == 0 {
+		return nil, errors.New("microindex frame threshold cannot be zero")
 	}
 	uri, err := iosrc.ParseURI(path)
 	if err != nil {
 		return nil, err
 	}
-	return newWriter(zctx, uri, keyFields, framesize, 0, nil)
-}
-
-func newWriter(zctx *resolver.Context, path iosrc.URI, keyFields []string, framesize, level int, hdr *zng.Record) (*Writer, error) {
-	if level > 5 {
-		panic("something wrong")
-	}
-	name := filename(path, level)
-	w, err := iosrc.NewWriter(name)
+	writer, err := iosrc.NewWriter(uri)
 	if err != nil {
 		return nil, err
 	}
-	writer := bufwriter.New(w)
-	return &Writer{
+	tmp, err := ioutil.TempDir("", "microindex-*")
+	if err != nil {
+		return nil, err
+	}
+	w := &Writer{
 		zctx:        zctx,
-		uri:         path,
-		keyFields:   keyFields,
-		level:       level,
-		writer:      writer,
-		out:         zngio.NewWriter(writer, zio.WriterFlags{}),
-		header:      hdr,
-		frameThresh: framesize,
-		frameEnd:    int64(framesize),
 		cutter:      proc.NewStrictCutter(zctx, false, keyFields, keyFields),
-	}, nil
-}
-
-// Flush implements zbuf.WriteFlusher.
-func (w *Writer) Flush() error {
-	if err := w.out.Flush(); err != nil {
-		return err
+		tmpdir:      tmp,
+		frameThresh: frameThresh,
+		iow:         writer,
 	}
-	return w.writer.Flush()
-}
-
-func (w *Writer) Close() error {
-	// Make sure to pass up framekeys to parent trees, even though frames aren't
-	// full.
-	if w.parent != nil && w.frameKey != nil {
-		if err := w.endFrame(); err != nil {
-			return err
-		}
-	}
-	if err := w.out.Flush(); err != nil {
-		return err
-	}
-	if err := w.writer.Close(); err != nil {
-		return err
-	}
-	if w.parent != nil {
-		return w.parent.Close()
-	}
-	return nil
+	return w, nil
 }
 
 func (w *Writer) Write(rec *zng.Record) error {
-	offset := w.out.Position()
+	if w.writer == nil {
+		var err error
+		w.writer, err = newIndexWriter(w, w.iow, "")
+		if err != nil {
+			return err
+		}
+		keys, err := w.cutter.Cut(rec)
+		if err != nil {
+			return err
+		}
+		w.keyType = keys.Type
+		w.childField = uniqChildField(w.zctx, keys)
+	}
+	return w.writer.write(rec)
+}
+
+func (w *Writer) Close() error {
+	// Delete the temp files comprising the index hierarchy.
+	defer os.RemoveAll(w.tmpdir)
+	if w.writer == nil {
+		// If the writer hasn't been created because no records were
+		// encounted, just close the underlying storage object and return.
+		return w.iow.Close()
+	}
+	// First, close the parent if it exists (which will recursively close
+	// all the parents to the root) while leaving the base layer open.
+	for p := w.writer.parent; p != nil; p = p.parent {
+		if err := p.Close(); err != nil {
+			return err
+		}
+	}
+	// Also, close the frame of the base layer so we can copy the hierarchy
+	// to the base.  Note that sum of the sizes of the parents is much smaller
+	// than the base so this will go fast compared to the entire indexing job.
+	if err := w.writer.closeFrame(); err != nil {
+		return err
+	}
+	// The hierarchy is now flushed and closed.  Assemble the file into
+	// a single microindex and remove the temporary btree files.
+	if err := w.finalize(); err != nil {
+		w.writer.buffer.Close()
+		return err
+	}
+	// Finally, close the base layer.
+	return w.writer.buffer.Close()
+}
+
+func (w *Writer) finalize() error {
+	// First, collect up parent linkage into a slice so we can traverse
+	// top down...
+	base := w.writer
+	var layers []*indexWriter
+	for p := base.parent; p != nil; p = p.parent {
+		layers = append(layers, p)
+	}
+	// Now, copy each non-base file in top-down order to the base-layer object.
+	var sizes []int64
+	sizes = append(sizes, base.frameStart)
+	for k := len(layers) - 1; k >= 0; k-- {
+		// Copy the files in the reverse order so the root comes first.
+		// This will avoid backward seeks while looking up keys in the tree
+		// (except for the one backward seek to the base layer).
+		layer := layers[k]
+		size := layer.frameStart
+		sizes = append(sizes, size)
+		f, err := os.Open(layer.name)
+		if err != nil {
+			return err
+		}
+		n, err := io.Copy(base.buffer, f)
+		if err != nil {
+			f.Close()
+			return err
+		}
+		if n != size {
+			f.Close()
+			return fmt.Errorf("internal microindex error: index file size (%d) does not equal zng size (%d)", n, size)
+		}
+		if err := f.Close(); err != nil {
+			return err
+		}
+	}
+	// Finally, write the size records as the trailer of the microindex.
+	rec, err := newTrailerRecord(w.zctx, w.childField, w.frameThresh, sizes, w.keyType)
+	if err != nil {
+		return err
+	}
+	if err := base.zng.Write(rec); err != nil {
+		return err
+	}
+	return base.zng.EndStream()
+}
+
+func newIndexWriter(base *Writer, w io.WriteCloser, name string) (*indexWriter, error) {
+	base.nlevel++
+	if base.nlevel >= MaxLevels {
+		return nil, ErrTooManyLevels
+	}
+	writer := bufwriter.New(w)
+	return &indexWriter{
+		base:     base,
+		buffer:   writer,
+		name:     name,
+		zng:      zngio.NewWriter(writer, zio.WriterFlags{}),
+		frameEnd: int64(base.frameThresh),
+	}, nil
+}
+
+func (w *indexWriter) newParent() (*indexWriter, error) {
+	file, err := ioutil.TempFile(w.base.tmpdir, "")
+	if err != nil {
+		return nil, err
+	}
+	return newIndexWriter(w.base, file, file.Name())
+}
+
+func (w *indexWriter) Close() error {
+	// Make sure to pass up framekeys to parent trees, even though frames aren't
+	// full.
+	if err := w.closeFrame(); err != nil {
+		return err
+	}
+	return w.buffer.Close()
+}
+
+func (w *indexWriter) write(rec *zng.Record) error {
+	offset := w.zng.Position()
 	if offset >= w.frameEnd && w.frameKey != nil {
-		w.frameEnd = offset + int64(w.frameThresh)
+		w.frameEnd = offset + int64(w.base.frameThresh)
 		// the frame in place is already big enough... flush it and
 		// start going on the next
 		if err := w.endFrame(); err != nil {
@@ -137,7 +234,7 @@ func (w *Writer) Write(rec *zng.Record) error {
 		// (or until we know it's the last frame in the file).
 		// So we build the frame key record from the current record
 		// here ahead of its use and save it in the frameKey variable.
-		key, err := w.cutter.Cut(rec)
+		key, err := w.base.cutter.Cut(rec)
 		if err != nil {
 			return err
 		}
@@ -148,37 +245,33 @@ func (w *Writer) Write(rec *zng.Record) error {
 			return fmt.Errorf("no key field present in record of type: %s", rec.Type)
 		}
 		w.frameKey = key
-		// If this is the start of the level zero zdx, emit the superblock.
-		if w.header == nil {
-			hdr, err := newHeader(w.zctx, key)
-			if err != nil {
-				return err
-			}
-			w.header = hdr
-			if err := w.out.Write(hdr); err != nil {
-				return err
-			}
-		}
 	}
-	return w.out.Write(rec)
+	return w.zng.Write(rec)
 }
 
-func (w *Writer) endFrame() error {
+func (w *indexWriter) endFrame() error {
 	if err := w.addToParentIndex(w.frameKey, w.frameStart); err != nil {
 		return err
 	}
-	if err := w.out.EndStream(); err != nil {
+	if err := w.closeFrame(); err != nil {
 		return err
 	}
-	w.frameStart = w.out.Position()
+	return nil
+}
+
+func (w *indexWriter) closeFrame() error {
+	if err := w.zng.EndStream(); err != nil {
+		return err
+	}
+	w.frameStart = w.zng.Position()
 	w.frameKey = nil
 	return nil
 }
 
-func (w *Writer) addToParentIndex(key *zng.Record, offset int64) error {
+func (w *indexWriter) addToParentIndex(key *zng.Record, offset int64) error {
 	if w.parent == nil {
 		var err error
-		w.parent, err = newWriter(w.zctx, w.uri, w.keyFields, w.frameThresh, w.level+1, w.header)
+		w.parent, err = w.newParent()
 		if err != nil {
 			return err
 		}
@@ -186,16 +279,12 @@ func (w *Writer) addToParentIndex(key *zng.Record, offset int64) error {
 	return w.parent.writeIndexRecord(key, offset)
 }
 
-func (w *Writer) writeIndexRecord(keys *zng.Record, offset int64) error {
-	childField, err := w.header.AccessString(ChildFieldName)
-	if err != nil {
-		return err
-	}
-	col := []zng.Column{{childField, zng.TypeInt64}}
+func (w *indexWriter) writeIndexRecord(keys *zng.Record, offset int64) error {
+	col := []zng.Column{{w.base.childField, zng.TypeInt64}}
 	val := zng.EncodeInt(offset)
-	rec, err := w.zctx.AddColumns(keys, col, []zng.Value{{zng.TypeInt64, val}})
+	rec, err := w.base.zctx.AddColumns(keys, col, []zng.Value{{zng.TypeInt64, val}})
 	if err != nil {
 		return err
 	}
-	return w.Write(rec)
+	return w.write(rec)
 }

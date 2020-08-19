@@ -1,6 +1,9 @@
 script: |
-  echo -n "" > empty.zng
-  zdx lookup -t -k none empty.zng
+  zq -o tmp.zng babble.tzng
+  zdx lookup -t -k 469 tmp.zng
+
+inputs:
+  - name: babble.tzng
 
 outputs:
   - name: stderr

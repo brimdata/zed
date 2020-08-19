@@ -21,11 +21,11 @@ const zarExt = ".zar"
 // file names. We might want to re-work the naming scheme.
 
 func typeZdxName(t zng.Type) string {
-	return "zdx-type-" + t.String()
+	return "zdx-type-" + t.String() + ".zng"
 }
 
 func fieldZdxName(fieldname string) string {
-	return "zdx-field-" + fieldname
+	return "zdx-field-" + fieldname + ".zng"
 }
 
 func IndexDirTree(ctx context.Context, ark *Archive, rules []Rule, path string, progress chan<- string) error {

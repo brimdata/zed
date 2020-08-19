@@ -10,6 +10,7 @@ import (
 	_ "github.com/brimsec/zq/cmd/zdx/create"
 	_ "github.com/brimsec/zq/cmd/zdx/lookup"
 	"github.com/brimsec/zq/cmd/zdx/root"
+	_ "github.com/brimsec/zq/cmd/zdx/section"
 	_ "github.com/brimsec/zq/cmd/zdx/seek"
 )
 

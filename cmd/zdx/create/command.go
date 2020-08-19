@@ -16,7 +16,7 @@ import (
 
 var Create = &charm.Spec{
 	Name:  "create",
-	Usage: "create [-f framesize] [ -o file ] -k field file",
+	Usage: "create [-f frameThresh] [ -o file ] -k field file",
 	Short: "create a key-only zdx index from a zng file",
 	Long: `
 The create command generates a key-only zdx index comprising the values from the
@@ -33,7 +33,7 @@ func init() {
 
 type Command struct {
 	*root.Command
-	framesize   int
+	frameThresh int
 	outputFile  string
 	keyField    string
 	skip        bool
@@ -45,7 +45,7 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{
 		Command: parent.(*root.Command),
 	}
-	f.IntVar(&c.framesize, "f", 32*1024, "minimum frame size used in zdx file")
+	f.IntVar(&c.frameThresh, "f", 32*1024, "minimum frame size used in microindex file")
 	f.StringVar(&c.outputFile, "o", "zdx", "output zdx bundle name")
 	f.StringVar(&c.keyField, "k", "", "field name of search keys")
 	f.BoolVar(&c.inputReady, "x", false, "input file is already sorted keys (and optional values)")
@@ -79,7 +79,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	writer, err := zdx.NewWriter(zctx, c.outputFile, nil, c.framesize)
+	writer, err := zdx.NewWriter(zctx, c.outputFile, nil, c.frameThresh)
 	if err != nil {
 		return err
 	}

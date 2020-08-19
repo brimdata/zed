@@ -1,12 +1,8 @@
 package zdx
 
 import (
-	"errors"
-	"fmt"
-
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zqe"
 )
 
 type InfoKey struct {
@@ -19,44 +15,22 @@ type Info struct {
 	Keys []InfoKey
 }
 
-// Stat returns summary information about the zdx index at uri.
+// Stat returns summary information about the microindex at uri.
 func Stat(uri iosrc.URI) (*Info, error) {
-	var level int
-	var size int64
-	for {
-		si, err := iosrc.Stat(filename(uri, level))
-		if err != nil {
-			if errors.Is(err, zqe.E(zqe.NotFound)) {
-				break
-			}
-			return nil, err
-		}
-		level++
-		size += si.Size()
+	si, err := iosrc.Stat(uri)
+	if err != nil {
+		return nil, err
 	}
-	if level == 0 {
-		return nil, zqe.E(zqe.NotFound)
-	}
-	r, err := newReader(resolver.NewContext(), uri, 0)
+	size := si.Size()
+	r, err := NewReaderFromURI(resolver.NewContext(), uri)
 	if err != nil {
 		return nil, err
 	}
 	defer r.Close()
 
-	rec, err := r.Read()
-	if err != nil {
-		return nil, err
-	}
-	if rec == nil {
-		// files exists but is empty
-		return nil, fmt.Errorf("%s: cannnot read zdx header", uri)
-	}
-	_, keysType, err := ParseHeader(rec)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", uri, err)
-	}
-	keys := make([]InfoKey, len(keysType.Columns))
-	for i, c := range keysType.Columns {
+	columns := r.Keys().Columns
+	keys := make([]InfoKey, len(columns))
+	for i, c := range columns {
 		keys[i] = InfoKey{
 			Name:     c.Name,
 			TypeName: c.Type.String(),

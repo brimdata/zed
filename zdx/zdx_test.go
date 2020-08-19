@@ -41,7 +41,7 @@ func buildTestTable(t *testing.T, zngText string) string {
 		t.Error(err)
 	}
 	t.Cleanup(func() { os.RemoveAll(dir) })
-	path := filepath.Join(dir, "zdx")
+	path := filepath.Join(dir, "test.zng")
 	reader := newTextReader(zngText)
 	writer, err := zdx.NewWriter(resolver.NewContext(), path, nil, 32*1024)
 	if err != nil {
@@ -121,7 +121,7 @@ func TestZdx(t *testing.T) {
 	}
 	const N = 5
 	defer os.RemoveAll(dir) //nolint:errcheck
-	path := filepath.Join(dir, "zdx")
+	path := filepath.Join(dir, "test2.zng")
 	stream, err := newReader(N)
 	require.NoError(t, err)
 	zctx := resolver.NewContext()
@@ -134,18 +134,17 @@ func TestZdx(t *testing.T) {
 	reader, err := zdx.NewReader(zctx, path)
 	require.NoError(t, err)
 	defer reader.Close() //nolint:errcheck
+	r, err := reader.NewSectionReader(0)
 	n := 0
 	for {
-		rec, err := reader.Read()
+		rec, err := r.Read()
 		if rec == nil {
 			break
 		}
 		require.NoError(t, err)
 		n++
 	}
-	// XXX subtract one for the header record... these tests will change
-	// when the hierachy of files is collapsed into a single file
-	assert.Exactly(t, N, n-1, "number of pairs read from zdx file doesn't match number written")
+	assert.Exactly(t, N, n, "number of pairs read from zdx file doesn't match number written")
 }
 
 /* not yet
