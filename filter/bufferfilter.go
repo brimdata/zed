@@ -96,7 +96,7 @@ func NewBufferFilter(e ast.BooleanExpr) (*BufferFilter, error) {
 		}
 		return &BufferFilter{op: opOr, left: left, right: right}, nil
 	default:
-		panic(fmt.Sprintf("BufferFilter: unknown type %T", e))
+		return nil, fmt.Errorf("filter AST unknown type: %T", e)
 	}
 }
 
