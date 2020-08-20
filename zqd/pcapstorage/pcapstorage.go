@@ -97,6 +97,7 @@ func (s *Store) Update(pcapuri iosrc.URI) error {
 		return err
 	}
 	if _, err := w.Write(b); err != nil {
+		w.Close()
 		return err
 	}
 	if err := w.Close(); err != nil {
