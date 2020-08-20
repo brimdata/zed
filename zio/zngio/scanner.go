@@ -62,7 +62,7 @@ func (s *zngScanner) Pull() (zbuf.Batch, error) {
 
 func (s *zngScanner) scanUncompressed() ([]*zng.Record, error) {
 	uncompressed := s.reader.uncompressed
-	if bf := s.bufferFilter; bf != nil && !bf.Eval(uncompressed.Bytes()) {
+	if s.bufferFilter != nil && !s.bufferFilter.Eval(uncompressed.Bytes()) {
 		// s.bufferFilter evaluated to false, so we know
 		// s.reader.uncompressed cannot contain records matching
 		// s.filter.
