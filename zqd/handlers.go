@@ -152,7 +152,7 @@ func handlePcapSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	pcapstore := pspace.PcapStorage()
 	if pcapstore.Empty() {
-		respondError(c, w, r, zqe.E(zqe.Invalid, "space does not support pcap searches"))
+		respondError(c, w, r, zqe.E(zqe.NotFound, "no pcap in this space"))
 		return
 	}
 	reader, err := pcapstore.NewSearch(ctx, req)
