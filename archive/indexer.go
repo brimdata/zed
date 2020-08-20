@@ -96,6 +96,7 @@ func NewFlowgraphIndexer(zctx *resolver.Context, uri iosrc.URI, keys []string, f
 }
 
 func (f *FlowgraphIndexer) Write(_ int, batch zbuf.Batch) error {
+	defer batch.Unref()
 	for i := 0; i < batch.Length(); i++ {
 		rec := batch.Index(i)
 		key, err := f.cutter.Cut(rec)
@@ -112,7 +113,6 @@ func (f *FlowgraphIndexer) Write(_ int, batch zbuf.Batch) error {
 			return err
 		}
 	}
-	batch.Unref()
 	return nil
 }
 
