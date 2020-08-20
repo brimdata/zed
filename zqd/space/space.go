@@ -121,14 +121,14 @@ func loadSpaces(p iosrc.URI, conf config) ([]Space, error) {
 	if datapath.IsZero() {
 		datapath = p
 	}
-	pcapstore, err := loadPcapStore(datapath)
-	if err != nil {
-		return nil, err
-	}
 	id := api.SpaceID(path.Base(p.Path))
 	switch conf.Storage.Kind {
 	case storage.FileStore:
 		store, err := filestore.Load(datapath)
+		if err != nil {
+			return nil, err
+		}
+		pcapstore, err := loadPcapStore(datapath)
 		if err != nil {
 			return nil, err
 		}
@@ -145,7 +145,7 @@ func loadSpaces(p iosrc.URI, conf config) ([]Space, error) {
 			return nil, err
 		}
 		parent := &archiveSpace{
-			spaceBase: spaceBase{id, store, pcapstore, newGuard()},
+			spaceBase: spaceBase{id, store, nil, newGuard()},
 			path:      p,
 			conf:      conf,
 		}
@@ -212,7 +212,7 @@ func (s *spaceBase) Info(ctx context.Context) (api.SpaceInfo, error) {
 		StorageKind: sum.Kind,
 		Size:        sum.DataBytes,
 	}
-	if !s.pcapstore.Empty() {
+	if s.pcapstore != nil && !s.pcapstore.Empty() {
 		pcapinfo, err := s.pcapstore.Info()
 		if err != nil {
 			return api.SpaceInfo{}, err
