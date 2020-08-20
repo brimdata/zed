@@ -154,7 +154,7 @@ func migrateConfigV3(data []byte, spaceuri iosrc.URI) (int, []byte, error) {
 			return 0, nil, err
 		}
 	}
-	c := configV2{
+	c := config{
 		Version:   3,
 		Name:      v2.Name,
 		DataURI:   v2.DataURI,
