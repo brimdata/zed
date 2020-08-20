@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	MetaFile = "pcap.meta.json"
+	MetaFile = "pcap.json"
 )
 
 type Store struct {
