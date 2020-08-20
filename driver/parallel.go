@@ -193,7 +193,7 @@ func createParallelGroup(pctx *proc.Context, pgn *pgSetup, msrc MultiSource, mcf
 	chains := make([]proc.Proc, mcfg.Parallelism)
 	for i := range chains {
 		head := &parallelHead{Base: proc.Base{Context: pctx}, pg: pg}
-		p, err := proc.CompileProc(mcfg.Custom, pgn.chain, pctx, head)
+		p, err := proc.CompileProc(mcfg.Custom, pgn.chain, pctx, []proc.Proc{head})
 		if err != nil {
 			return nil, nil, err
 		}

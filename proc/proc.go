@@ -75,10 +75,25 @@ type Compiler interface {
 	Compile(ast.Proc, *Context, Proc) (Proc, error)
 }
 
+func isContainerProc(node ast.Proc) bool {
+	if _, ok := node.(*ast.SequentialProc); ok {
+		return true
+	}
+	if _, ok := node.(*ast.ParallelProc); ok {
+		return true
+	}
+	return false
+}
+
 // CompileProc compiles an AST into a graph of Procs, and returns
 // the leaves.  A custom proc compiler can be included and it will be tried first
 // for each node encountered during the compilation.
-func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Proc, error) {
+func CompileProc(custom Compiler, node ast.Proc, c *Context, parents []Proc) ([]Proc, error) {
+	if !isContainerProc(node) && len(parents) != 1 {
+		return nil, fmt.Errorf("proc.CompileProc: expected single parent for node %T, got %d", node, len(parents))
+	}
+	parent := parents[0]
+
 	if custom != nil {
 		p, err := custom.Compile(node, c, parent)
 		if err != nil {
@@ -160,11 +175,10 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 		return []Proc{rename}, nil
 
 	case *ast.SequentialProc:
-		var parents []Proc
 		var err error
 		n := len(v.Procs)
 		for k := 0; k < n; k++ {
-			parents, err = CompileProc(custom, v.Procs[k], c, parent)
+			parents, err = CompileProc(custom, v.Procs[k], c, parents)
 			if err != nil {
 				return nil, err
 			}
@@ -174,38 +188,51 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 			if len(parents) > 1 && k < n-1 {
 				p := v.Procs[k].(*ast.ParallelProc)
 				if p.MergeOrderField != "" {
-					parent = NewOrderedMerge(c, parents, p.MergeOrderField, p.MergeOrderReverse)
+					parents = []Proc{NewOrderedMerge(c, parents, p.MergeOrderField, p.MergeOrderReverse)}
 				} else {
-					parent = NewMerge(c, parents)
+					parents = []Proc{NewMerge(c, parents)}
 				}
 				continue
 			}
-			parent = parents[0]
 		}
 		return parents, nil
 
 	case *ast.ParallelProc:
-		splitter := NewSplit(c, parent)
 		n := len(v.Procs)
-		var procs []Proc
-		for k := 0; k < n; k++ {
-			//
-			// for each downstream proc chain, create a new SplitChannel,
-			// attach the SplitChannel to the SplitProc, then generate the
-			// proc chain with the SplitChannel as the new parent
-			//
-			sc := NewSplitChannel(splitter)
-			proc, err := CompileProc(custom, v.Procs[k], c, sc)
-			if err != nil {
-				return nil, err
+		if len(parents) == 1 {
+			// Single parent: insert a splitter and wire to each branch.
+			splitter := NewSplit(c, parents[0])
+			parents = []Proc{}
+			for k := 0; k < n; k++ {
+				//
+				// for each downstream proc chain, create a new SplitChannel,
+				// attach the SplitChannel to the SplitProc, then generate the
+				// proc chain with the SplitChannel as the new parent
+				//
+				sc := NewSplitChannel(splitter)
+				parents = append(parents, sc)
 			}
-			procs = append(procs, proc...)
 		}
-		return procs, nil
-
+		return CompileParallelProc(custom, v, c, parents)
 	default:
 		return nil, fmt.Errorf("unknown AST type: %v", v)
 	}
+}
+
+func CompileParallelProc(custom Compiler, pp *ast.ParallelProc, c *Context, parents []Proc) ([]Proc, error) {
+	n := len(pp.Procs)
+	if len(parents) != n {
+		return nil, fmt.Errorf("proc.CompileProc: %d parents for parallel proc with %d branches", len(parents), len(pp.Procs))
+	}
+	var procs []Proc
+	for k := 0; k < n; k++ {
+		proc, err := CompileProc(custom, pp.Procs[k], c, []Proc{parents[k]})
+		if err != nil {
+			return nil, err
+		}
+		procs = append(procs, proc...)
+	}
+	return procs, nil
 }
 
 // Compile the proc AST and return a Executor ready to go

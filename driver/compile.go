@@ -61,7 +61,7 @@ func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc
 		return nil, err
 	}
 
-	leaves, err := proc.CompileProc(mcfg.Custom, program, pctx, mergeProc)
+	leaves, err := proc.CompileProc(mcfg.Custom, program, pctx, []proc.Proc{mergeProc})
 	if err != nil {
 		return nil, err
 	}
