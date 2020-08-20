@@ -100,8 +100,8 @@ func runCases(t *testing.T, record *zng.Record, cases []testcase) {
 			filterExpr := proc.(*ast.FilterProc).Filter
 
 			bf, err := filter.NewBufferFilter(filterExpr)
-			if assert.NoError(t, err, "filter: %q", tt.filter) &&
-				tt.expectedResult && bf != nil {
+			assert.NoError(t, err, "filter: %q", tt.filter)
+			if bf != nil && tt.expectedResult {
 				// We only check for false negatives because
 				// false positives are OK for correctness
 				// (though undesirable for performance).
