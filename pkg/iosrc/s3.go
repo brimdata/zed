@@ -36,6 +36,7 @@ func (s *s3Source) ReadFile(u URI) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer r.Close()
 	return ioutil.ReadAll(r)
 }
 
