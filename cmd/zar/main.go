@@ -8,6 +8,7 @@ import (
 	_ "github.com/brimsec/zq/cmd/zar/import"
 	_ "github.com/brimsec/zq/cmd/zar/index"
 	_ "github.com/brimsec/zq/cmd/zar/ls"
+	_ "github.com/brimsec/zq/cmd/zar/map"
 	_ "github.com/brimsec/zq/cmd/zar/rm"
 	_ "github.com/brimsec/zq/cmd/zar/rmdirs"
 	"github.com/brimsec/zq/cmd/zar/root"

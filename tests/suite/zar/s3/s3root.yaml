@@ -7,7 +7,7 @@ script: |
   echo ===
   zar find -relative -R s3://bucket/zartest v=106
   echo ===
-  zar zq -R s3://bucket/zartest "count()" _ | zq -t -
+  zar zq -R s3://bucket/zartest "count()" | zq -t -
 
 inputs:
   - name: babble.tzng
@@ -25,5 +25,4 @@ outputs:
       20200422/1587518620.0622373.zng
       ===
       #0:record[count:uint64]
-      0:[939;]
-      0:[61;]
+      0:[1000;]
