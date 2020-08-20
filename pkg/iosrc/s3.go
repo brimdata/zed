@@ -44,10 +44,11 @@ func (s *s3Source) WriteFile(d []byte, u URI) error {
 	if err != nil {
 		return err
 	}
-	if _, err := w.Write(d); err != nil {
-		return err
+	 _, err = w.Write(d)
+	 if err2 := w.Close() ; err == nil {
+		err = err2
 	}
-	return w.Close()
+	return err
 }
 
 func (s *s3Source) Remove(u URI) error {
