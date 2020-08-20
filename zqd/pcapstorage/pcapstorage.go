@@ -61,7 +61,7 @@ func Load(u iosrc.URI) (*Store, error) {
 	}, nil
 }
 
-func (s *Store) Rewrite(pcapuri iosrc.URI) error {
+func (s *Store) Update(pcapuri iosrc.URI) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	pcapfile, err := iosrc.NewReader(pcapuri)

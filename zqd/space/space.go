@@ -45,12 +45,12 @@ type Space interface {
 	update(api.SpacePutRequest) error
 }
 
-// PcapCapableSpace denotes that a space is capable of storing pcap files and
+// PcapSpace denotes that a space is capable of storing pcap files and
 // indexes.
 // XXX Temporary. The should be removed once archive spaces are enabled to allow
 // pcap ingest.
-type PcapCapableSpace interface {
-	PcapStorage() *pcapstorage.Store
+type PcapSpace interface {
+	PcapStore() *pcapstorage.Store
 }
 
 func newSpaceID() api.SpaceID {
@@ -171,7 +171,7 @@ func loadSpaces(p iosrc.URI, conf config) ([]Space, error) {
 }
 
 func loadPcapStore(u iosrc.URI) (*pcapstorage.Store, error) {
-	pcapstore, err := pcapstorage.Open(u)
+	pcapstore, err := pcapstorage.Load(u)
 	if err != nil {
 		var zerr *zqe.Error
 		if errors.As(err, &zerr) && zerr.Kind == zqe.NotFound {

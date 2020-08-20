@@ -53,7 +53,7 @@ func NewPcapOp(ctx context.Context, pcapstore *pcapstorage.Store, logstore Clear
 	if err != nil {
 		return nil, err
 	}
-	if err := pcapstore.Rewrite(pcapuri); err != nil {
+	if err := pcapstore.Update(pcapuri); err != nil {
 		return nil, err
 	}
 	logdir, err := ioutil.TempDir("", "zqd-pcap-ingest-")

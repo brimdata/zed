@@ -145,12 +145,12 @@ func handlePcapSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		respondError(c, w, r, zqe.E(zqe.Invalid, err))
 		return
 	}
-	pspace, ok := s.(space.PcapCapableSpace)
+	pspace, ok := s.(space.PcapSpace)
 	if !ok {
 		respondError(c, w, r, zqe.E(zqe.Invalid, "space does not support pcap searches"))
 		return
 	}
-	pcapstore := pspace.PcapStorage()
+	pcapstore := pspace.PcapStore()
 	if pcapstore.Empty() {
 		respondError(c, w, r, zqe.E(zqe.NotFound, "no pcap in this space"))
 		return
@@ -319,12 +319,12 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pspace, ok := s.(space.PcapCapableSpace)
+	pspace, ok := s.(space.PcapSpace)
 	if !ok {
 		respondError(c, w, r, zqe.E(zqe.Invalid, "space does not support pcap import"))
 		return
 	}
-	pcapstore := pspace.PcapStorage()
+	pcapstore := pspace.PcapStore()
 	logstore, ok := s.Storage().(ingest.ClearableLogStore)
 	if !ok {
 		respondError(c, w, r, zqe.E(zqe.Invalid, "storage does not support pcap import"))

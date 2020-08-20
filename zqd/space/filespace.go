@@ -25,17 +25,12 @@ func (s *fileSpace) Info(ctx context.Context) (api.SpaceInfo, error) {
 	if err != nil {
 		return api.SpaceInfo{}, err
 	}
-	du := s.conf.DataURI
-	if du.IsZero() {
-		du = s.path
-	}
-
 	si.Name = s.conf.Name
-	si.DataPath = du
+	si.DataPath = s.dataURI()
 	return si, nil
 }
 
-func (s *fileSpace) PcapStorage() *pcapstorage.Store {
+func (s *fileSpace) PcapStore() *pcapstorage.Store {
 	return s.pcapstore
 }
 
