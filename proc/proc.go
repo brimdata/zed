@@ -89,9 +89,6 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 		}
 	}
 	switch v := node.(type) {
-	case *ast.ReduceProc:
-		g := &ast.GroupByProc{Reducers: v.Reducers}
-		return CompileProc(custom, g, c, parent)
 
 	case *ast.GroupByProc:
 		params, err := CompileGroupBy(v, c.TypeContext)

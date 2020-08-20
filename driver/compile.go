@@ -303,13 +303,6 @@ func computeColumnsR(p ast.Proc, colset map[string]struct{}) (map[string]struct{
 			}
 		}
 		return colset, true
-	case *ast.ReduceProc:
-		for _, r := range p.Reducers {
-			if r.Field != nil {
-				colset[expr.FieldExprToString(r.Field)] = struct{}{}
-			}
-		}
-		return colset, true
 	case *ast.SequentialProc:
 		for _, pp := range p.Procs {
 			var done bool

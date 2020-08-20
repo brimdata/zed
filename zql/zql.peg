@@ -225,7 +225,7 @@ parallelChain
 
 proc
   = simpleProc
-  / reduceProc
+  / groupByProc
   / "(" _? proc:procList _? ")" {
       RETURN(proc)
     }
@@ -330,7 +330,7 @@ fieldReducer
     RETURN(r)
   }
 
-reduceProc
+groupByProc
   = every:(everyDur _)? reducers:reducerList keys:(_ groupByKeys)? limit:procLimitArg? {
     if ISNOTNULL(OR(keys, every)) {
       if ISNOTNULL(keys) {
@@ -345,8 +345,7 @@ reduceProc
 
       RETURN(MAP("op": "GroupByProc", "duration": every, "limit": limit, "keys": keys, "reducers": reducers))
     }
-
-    RETURN(MAP("op": "ReduceProc", "reducers": reducers))
+    RETURN(MAP("op": "GroupByProc", "reducers": reducers))
   }
 
 reducerExpr
