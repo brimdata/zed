@@ -42,7 +42,7 @@ func New(root iosrc.URI) *Store {
 	return &Store{root: root}
 }
 
-func Open(u iosrc.URI) (*Store, error) {
+func Load(u iosrc.URI) (*Store, error) {
 	metauri := u.AppendPath(MetaFile)
 	b, err := iosrc.ReadFile(metauri)
 	if os.IsNotExist(err) {
