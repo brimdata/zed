@@ -21,9 +21,9 @@ const (
 )
 
 type Store struct {
-	meta meta
-	root iosrc.URI
-	mu   sync.Mutex
+	metaMu sync.Mutex
+	meta   meta
+	root   iosrc.URI
 }
 
 type meta struct {
@@ -62,8 +62,8 @@ func Load(u iosrc.URI) (*Store, error) {
 }
 
 func (s *Store) Update(pcapuri iosrc.URI) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.metaMu.Lock()
+	defer s.metaMu.Unlock()
 	pcapfile, err := iosrc.NewReader(pcapuri)
 	if err != nil {
 		return err
@@ -108,14 +108,14 @@ func (s *Store) Update(pcapuri iosrc.URI) error {
 }
 
 func (s *Store) Empty() bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.metaMu.Lock()
+	defer s.metaMu.Unlock()
 	return s.meta.PcapURI.IsZero()
 }
 
 func (s *Store) Info() (Info, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.metaMu.Lock()
+	defer s.metaMu.Unlock()
 	fi, err := iosrc.Stat(s.meta.PcapURI)
 	if err != nil {
 		return Info{}, err
@@ -128,23 +128,23 @@ func (s *Store) Info() (Info, error) {
 }
 
 func (s *Store) Delete() error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.metaMu.Lock()
+	defer s.metaMu.Unlock()
 	s.meta = meta{}
 	return iosrc.Remove(s.root.AppendPath(MetaFile))
 }
 
 type Search struct {
 	*pcap.SearchReader
-	f io.ReadCloser
+	io.Closer
 }
 
 // NewSearch returns a *Search that streams all the packets meeting
 // the provided search request. If pcaps are not supported in this Space,
 // ErrPcapOpsNotSupported is returned.
 func (s *Store) NewSearch(ctx context.Context, req api.PcapSearch) (*Search, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.metaMu.Lock()
+	defer s.metaMu.Unlock()
 	var search *pcap.Search
 	switch req.Proto {
 	case "tcp":
@@ -178,10 +178,6 @@ func (s *Store) NewSearch(ctx context.Context, req api.PcapSearch) (*Search, err
 		return nil, err
 	}
 	return &Search{r, f}, nil
-}
-
-func (s *Search) Close() error {
-	return s.f.Close()
 }
 
 const metaFileV0 = "packets.idx.json"
