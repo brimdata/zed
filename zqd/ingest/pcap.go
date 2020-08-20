@@ -45,21 +45,30 @@ type PcapOp struct {
 // Process instance once zeek log files have started to materialize in a tmp
 // directory. If zeekExec is an empty string, this will attempt to resolve zeek
 // from $PATH.
-func NewPcapOp(ctx context.Context, pcapstore *pcapstorage.Store, store ClearableStore, pcap string, zlauncher zeek.Launcher) (*PcapOp, error) {
+func NewPcapOp(ctx context.Context, pcapstore *pcapstorage.Store, store ClearableStore, pcap string, zlauncher zeek.Launcher) (*PcapOp, []string, error) {
 	pcapuri, err := iosrc.ParseURI(pcap)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	info, err := iosrc.Stat(pcapuri)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	if err := pcapstore.Update(pcapuri); err != nil {
-		return nil, err
+	warn := make(chan string)
+	go func() {
+		err = pcapstore.Update(pcapuri, warn)
+		close(warn)
+	}()
+	var warnings []string
+	for w := range warn {
+		warnings = append(warnings, w)
+	}
+	if err != nil {
+		return nil, warnings, err
 	}
 	logdir, err := ioutil.TempDir("", "zqd-pcap-ingest-")
 	if err != nil {
-		return nil, err
+		return nil, warnings, err
 	}
 	p := &PcapOp{
 		StartTime: nano.Now(),
@@ -77,7 +86,7 @@ func NewPcapOp(ctx context.Context, pcapstore *pcapstorage.Store, store Clearabl
 		close(p.done)
 		close(p.snap)
 	}()
-	return p, nil
+	return p, warnings, nil
 }
 
 func (p *PcapOp) run(ctx context.Context) error {

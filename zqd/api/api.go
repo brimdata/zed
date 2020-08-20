@@ -143,6 +143,11 @@ type PcapPostRequest struct {
 	Path string `json:"path"`
 }
 
+type PcapPostWarning struct {
+	Type    string `json:"type"`
+	Warning string `json:"warning"`
+}
+
 type PcapPostStatus struct {
 	Type          string     `json:"type"`
 	StartTime     nano.Ts    `json:"start_time"`
@@ -151,6 +156,7 @@ type PcapPostStatus struct {
 	PcapReadSize  int64      `json:"pcap_read_size" unit:"bytes"`
 	SnapshotCount int        `json:"snapshot_count"`
 	Span          *nano.Span `json:"span,omitempty"`
+	Warning       string     `json:"warning,omitempty"`
 }
 
 type LogPostRequest struct {

@@ -34,6 +34,14 @@ type Reader interface {
 
 // NewReader returns a Reader by trying both pcap and pcap-ng formats.
 func NewReader(r io.Reader) (Reader, error) {
+	return NewReaderWithWarnings(r, nil)
+}
+
+// NewReaderWithWarnings returns a Reader by trying both pcap and pcap-ng formats
+// and arranges for warning messages to be sent over the given channel.  Different
+// pcap implementations can have out-of-spec peculiarities that can be tolerated
+// so we send warnings and try to okeep going.
+func NewReaderWithWarnings(r io.Reader, warningCh chan<- string) (Reader, error) {
 	recorder := detector.NewRecorder(r)
 	track := detector.NewTrack(recorder)
 	_, err1 := NewPcapReader(track)
@@ -43,7 +51,9 @@ func NewReader(r io.Reader) (Reader, error) {
 	track.Reset()
 	_, err2 := NewNgReader(track)
 	if err2 == nil {
-		return NewNgReader(recorder)
+		r, _ := NewNgReader(recorder)
+		r.SetWarningChan(warningCh)
+		return r, nil
 	}
 	var pcaperr, ngerr *ErrInvalidPcap
 	if errors.As(err1, &pcaperr) && errors.As(err2, &ngerr) {

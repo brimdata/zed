@@ -145,6 +145,16 @@ func TestPcapSearchNotFound(t *testing.T) {
 	defer p.cleanup()
 }
 
+func TestPcapPostPcapNgWithExtraBytes(t *testing.T) {
+	p := pcapPost(t, "./testdata/extra.pcapng", testZeekLauncher(nil, nil))
+	defer p.cleanup()
+	t.Run("PcapNgExtra", func(t *testing.T) {
+		require.NoError(t, p.err)
+		warning := p.payloads[1].(*api.PcapPostWarning)
+		assert.Equal(t, warning.Warning, "pcap-ng has extra bytes at eof: 20")
+	})
+}
+
 func TestPcapPostInvalidPcap(t *testing.T) {
 	p := pcapPost(t, "./testdata/invalid.pcap", testZeekLauncher(nil, nil))
 	defer p.cleanup()

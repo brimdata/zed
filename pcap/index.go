@@ -51,7 +51,11 @@ var offsetThresh = offsetMaxMem / int(pointSize)
 // CreateIndex creates an index for a pcap presented as an io.Reader.
 // The size parameter indicates how many bins the index should contain.
 func CreateIndex(r io.Reader, size int) (Index, error) {
-	reader, err := pcapio.NewReader(r)
+	return CreateIndexWithWarnings(r, size, nil)
+}
+
+func CreateIndexWithWarnings(r io.Reader, size int, c chan<- string) (Index, error) {
+	reader, err := pcapio.NewReaderWithWarnings(r, c)
 	if err != nil {
 		return nil, err
 	}
