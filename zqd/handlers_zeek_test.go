@@ -39,7 +39,7 @@ func TestPcapPostSuccess(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("skipping test for windows")
 	}
-	pcapuri, err := iosrc.ParseURI("./testdata/valid.pcap")
+	pcapuri, err := iosrc.ParseURI("testdata/valid.pcap")
 	require.NoError(t, err)
 	ln, err := zeek.LauncherFromPath(os.Getenv("ZEEK"))
 	require.NoError(t, err)
