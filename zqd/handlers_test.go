@@ -15,6 +15,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/brimsec/zq/archive"
@@ -627,10 +628,12 @@ func TestDeleteDuringPcapPost(t *testing.T) {
 	pcapfile := "./testdata/valid.pcap"
 	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "deleteDuringPacketPost"})
 	require.NoError(t, err)
+	var zeekClosed int32
 
 	waitFn := func(tzp *testZeekProcess) error {
 		<-tzp.ctx.Done()
-		return tzp.ctx.Err()
+		atomic.StoreInt32(&zeekClosed, 1)
+		return errors.New("zeek exited with error code: -1")
 	}
 
 	c.ZeekLauncher = testZeekLauncher(nil, waitFn)
@@ -672,7 +675,8 @@ func TestDeleteDuringPcapPost(t *testing.T) {
 	err = client.SpaceDelete(context.Background(), sp.ID)
 	require.NoError(t, err)
 
-	require.EqualError(t, <-pcapPostErr, "context canceled")
+	assert.EqualError(t, <-pcapPostErr, "pcap post operation canceled")
+	assert.Equal(t, int32(1), atomic.LoadInt32(&zeekClosed), "expected zeek to receive cancellation signal but did not")
 }
 
 func TestSpaceDataDir(t *testing.T) {

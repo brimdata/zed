@@ -379,11 +379,14 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	taskEnd := api.TaskEnd{Type: "TaskEnd", TaskID: taskID}
-	if err := op.Err(); err != nil {
+
+	if ctx.Err() != nil {
+		taskEnd.Error = &api.Error{Type: "Error", Message: "pcap post operation canceled"}
+	} else if operr := op.Err(); operr != nil {
 		var ok bool
-		taskEnd.Error, ok = err.(*api.Error)
+		taskEnd.Error, ok = operr.(*api.Error)
 		if !ok {
-			taskEnd.Error = &api.Error{Type: "Error", Message: err.Error()}
+			taskEnd.Error = &api.Error{Type: "Error", Message: operr.Error()}
 		}
 	}
 	if err := pipe.SendFinal(taskEnd); err != nil {
