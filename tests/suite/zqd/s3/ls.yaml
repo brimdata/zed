@@ -1,8 +1,8 @@
 script: |
   source services.sh s3://bucket/zqdroot
-  zapi -h $ZQD_HOST new -d s3://bucket/zartest -k archivestore testsp1
-  zapi -h $ZQD_HOST new -d s3://bucket/zartest -k archivestore testsp2
-  zapi -h $ZQD_HOST new -d s3://bucket/zartest -k archivestore testsp3
+  zapi -h $ZQD_HOST new -k archivestore testsp1
+  zapi -h $ZQD_HOST new -k archivestore testsp2
+  zapi -h $ZQD_HOST new -k archivestore testsp3
   echo ===
   zapi -h $ZQD_HOST ls
 

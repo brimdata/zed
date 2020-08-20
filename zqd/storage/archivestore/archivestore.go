@@ -113,10 +113,26 @@ func (s *Storage) Summary(_ context.Context) (storage.Summary, error) {
 	return sum, nil
 }
 
+func (s *Storage) Write(ctx context.Context, zctx *resolver.Context, zr zbuf.Reader) error {
+	_, err := s.ark.UpdateCheck()
+	if err != nil {
+		return err
+	}
+	return archive.Import(ctx, s.ark, zctx, zr)
+}
+
 func (s *Storage) IndexSearch(ctx context.Context, zctx *resolver.Context, query archive.IndexQuery) (zbuf.ReadCloser, error) {
+	_, err := s.ark.UpdateCheck()
+	if err != nil {
+		return nil, err
+	}
 	return archive.FindReadCloser(ctx, zctx, s.ark, query, archive.AddPath(archive.DefaultAddPathField, false))
 }
 
 func (s *Storage) ArchiveStat(ctx context.Context, zctx *resolver.Context) (zbuf.ReadCloser, error) {
+	_, err := s.ark.UpdateCheck()
+	if err != nil {
+		return nil, err
+	}
 	return archive.Stat(ctx, zctx, s.ark)
 }

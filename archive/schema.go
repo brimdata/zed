@@ -240,6 +240,7 @@ func (ark *Archive) UpdateCheck() (int, error) {
 	}
 
 	ark.spans = md.Spans
+	ark.indexes = md.Indexes
 	ark.mdModTime = mtime
 	ark.mdUpdateCount++
 	return ark.mdUpdateCount, nil

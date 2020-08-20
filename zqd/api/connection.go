@@ -288,7 +288,7 @@ type PcapReadCloser struct {
 	io.Closer
 }
 
-func (c *Connection) LogPost(ctx context.Context, space SpaceID, payload LogPostRequest) (*Stream, error) {
+func (c *Connection) LogPostStream(ctx context.Context, space SpaceID, payload LogPostRequest) (*Stream, error) {
 	req := c.Request(ctx).
 		SetBody(payload)
 	req.Method = http.MethodPost
@@ -299,6 +299,15 @@ func (c *Connection) LogPost(ctx context.Context, space SpaceID, payload LogPost
 	}
 	jsonpipe := NewJSONPipeScanner(r)
 	return NewStream(jsonpipe), nil
+}
+
+func (c *Connection) LogPost(ctx context.Context, space SpaceID, payload LogPostRequest) error {
+	stream, err := c.LogPostStream(ctx, space, payload)
+	if err != nil {
+		return err
+	}
+	_, err = ReadStream(stream)
+	return err
 }
 
 type ErrorResponse struct {

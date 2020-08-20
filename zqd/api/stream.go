@@ -27,3 +27,24 @@ func (s *Stream) Next() (interface{}, error) {
 	}
 	return nil, nil
 }
+
+func ReadStream(s *Stream) ([]interface{}, error) {
+	var payloads []interface{}
+	for {
+		v, err := s.Next()
+		if err != nil {
+			if err == io.EOF {
+				return payloads, nil
+			}
+			return nil, err
+		}
+		payloads = append(payloads, v)
+		switch payload := v.(type) {
+		case *TaskEnd:
+			if payload.Error != nil {
+				return nil, payload.Error
+			}
+			return payloads, nil
+		}
+	}
+}

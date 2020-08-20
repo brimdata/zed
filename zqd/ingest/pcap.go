@@ -193,7 +193,7 @@ func (p *PcapOp) createSnapshot(ctx context.Context) error {
 		return err
 	}
 	defer zr.Close()
-	if err := p.logstore.Rewrite(ctx, zctx, zr); err != nil {
+	if err := p.logstore.Write(ctx, zctx, zr); err != nil {
 		return err
 	}
 	atomic.AddInt32(&p.snapshots, 1)

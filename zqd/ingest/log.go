@@ -37,7 +37,7 @@ type LogOp struct {
 }
 
 type LogStore interface {
-	Rewrite(ctx context.Context, zctx *resolver.Context, zr zbuf.Reader) error
+	Write(ctx context.Context, zctx *resolver.Context, zr zbuf.Reader) error
 	NativeDirection() zbuf.Direction
 }
 
@@ -142,7 +142,7 @@ func (p *LogOp) start(ctx context.Context, ls LogStore) {
 	}
 	rc := zbuf.NewCombiner(p.readers, zbuf.RecordCompare(ls.NativeDirection()))
 	defer rc.Close()
-	p.err = ls.Rewrite(ctx, p.zctx, rc)
+	p.err = ls.Write(ctx, p.zctx, rc)
 	if err := p.closeFiles(); err != nil && p.err != nil {
 		p.err = err
 	}
