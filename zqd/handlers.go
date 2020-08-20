@@ -297,7 +297,7 @@ func handleSpaceDelete(c *Core, w http.ResponseWriter, r *http.Request) {
 
 func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	if !c.HasZeek() {
-		respondError(c, w, r, zqe.E(zqe.Invalid, "pcap post not supported: zeek not found"))
+		respondError(c, w, r, zqe.E(zqe.Invalid, "pcap post not supported: Zeek not found"))
 		return
 	}
 	logger := c.requestLogger(r)
