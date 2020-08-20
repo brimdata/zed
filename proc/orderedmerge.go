@@ -28,15 +28,14 @@ type mergeParent struct {
 }
 
 func NewOrderedMerge(c *Context, parents []Proc, mergeField string, reversed bool) *OrderedMerge {
-	cmp := expr.NewCompareFn(true, expr.CompileFieldAccess(mergeField))
-	if reversed {
-		cmp = func(a, b *zng.Record) int { return cmp(b, a) }
+	m := &OrderedMerge{Base: Base{Context: c}}
+	cmpFn := expr.NewCompareFn(true, expr.CompileFieldAccess(mergeField))
+	if !reversed {
+		m.cmp = cmpFn
+	} else {
+		m.cmp = func(a, b *zng.Record) int { return cmpFn(b, a) }
 	}
-	m := &OrderedMerge{
-		Base:    Base{Context: c},
-		cmp:     cmp,
-		parents: make([]mergeParent, len(parents)),
-	}
+	m.parents = make([]mergeParent, len(parents))
 	for i := range parents {
 		m.parents[i].proc = parents[i]
 		m.parents[i].resultCh = make(chan Result)

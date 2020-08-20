@@ -47,15 +47,32 @@ var omTestInputs = []string{
 0:[35;6;]`,
 }
 
+var omTestInputRev = []string{
+	`
+#0:record[v:int32,ts:time]
+0:[30;3;]
+0:[20;2;]
+0:[10;1;]
+`,
+	`
+#0:record[v:int32,ts:time]
+0:[35;6;]
+0:[25;5;]
+0:[15;4;]
+`,
+}
+
 func TestParallelOrder(t *testing.T) {
 	cases := []struct {
 		field    string
 		reversed bool
+		inputs   []string
 		exp      string
 	}{
 		{
 			field:    "ts",
 			reversed: false,
+			inputs:   omTestInputs,
 			exp: `
 #0:record[v:int32,ts:time]
 0:[10;1;]
@@ -69,6 +86,7 @@ func TestParallelOrder(t *testing.T) {
 		{
 			field:    "v",
 			reversed: false,
+			inputs:   omTestInputs,
 			exp: `
 #0:record[v:int32,ts:time]
 0:[10;1;]
@@ -79,6 +97,20 @@ func TestParallelOrder(t *testing.T) {
 0:[35;6;]
 `,
 		},
+		{
+			field:    "ts",
+			reversed: true,
+			inputs:   omTestInputRev,
+			exp: `
+#0:record[v:int32,ts:time]
+0:[35;6;]
+0:[25;5;]
+0:[15;4;]
+0:[30;3;]
+0:[20;2;]
+0:[10;1;]
+`,
+		},
 	}
 
 	for i, c := range cases {
@@ -86,7 +118,7 @@ func TestParallelOrder(t *testing.T) {
 			zctx := resolver.NewContext()
 			pctx := &proc.Context{Context: context.Background(), TypeContext: zctx}
 			var parents []proc.Proc
-			for _, s := range omTestInputs {
+			for _, s := range c.inputs {
 				r := tzngio.NewReader(bytes.NewReader([]byte(s)), zctx)
 				parents = append(parents, &recordPuller{Base: proc.Base{Context: pctx}, r: r})
 			}
