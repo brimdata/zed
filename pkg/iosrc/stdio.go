@@ -21,6 +21,14 @@ func (s *StdioSource) NewWriter(uri URI) (io.WriteCloser, error) {
 	return getStdioSource(uri)
 }
 
+func (s *StdioSource) ReadFile(uri URI) ([]byte, error) {
+	return nil, errStdioNotSupport
+}
+
+func (s *StdioSource) WriteFile(_ []byte, _ URI) error {
+	return errStdioNotSupport
+}
+
 func (s *StdioSource) Remove(uri URI) error {
 	return errStdioNotSupport
 }

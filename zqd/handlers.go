@@ -145,12 +145,17 @@ func handlePcapSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		respondError(c, w, r, zqe.E(zqe.Invalid, err))
 		return
 	}
-	pspace, ok := s.(search.PcapSpace)
+	pspace, ok := s.(space.PcapSpace)
 	if !ok {
 		respondError(c, w, r, zqe.E(zqe.Invalid, "space does not support pcap searches"))
 		return
 	}
-	reader, err := search.NewPcapSearchOp(ctx, pspace, req)
+	pcapstore := pspace.PcapStore()
+	if pcapstore.Empty() {
+		respondError(c, w, r, zqe.E(zqe.NotFound, "no pcap in this space"))
+		return
+	}
+	reader, err := pcapstore.NewSearch(ctx, req)
 	if err == pcap.ErrNoPcapsFound {
 		respondError(c, w, r, zqe.E(zqe.NotFound, err))
 		return
@@ -292,7 +297,7 @@ func handleSpaceDelete(c *Core, w http.ResponseWriter, r *http.Request) {
 
 func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	if !c.HasZeek() {
-		respondError(c, w, r, zqe.E(zqe.Invalid, "packet post not supported: zeek not found"))
+		respondError(c, w, r, zqe.E(zqe.Invalid, "pcap post not supported: Zeek not found"))
 		return
 	}
 	logger := c.requestLogger(r)
@@ -314,17 +319,18 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pspace, ok := s.(ingest.PcapSpace)
+	pspace, ok := s.(space.PcapSpace)
 	if !ok {
 		respondError(c, w, r, zqe.E(zqe.Invalid, "space does not support pcap import"))
 		return
 	}
-	pstore, ok := s.Storage().(ingest.PcapStore)
+	pcapstore := pspace.PcapStore()
+	logstore, ok := s.Storage().(ingest.ClearableLogStore)
 	if !ok {
 		respondError(c, w, r, zqe.E(zqe.Invalid, "storage does not support pcap import"))
 		return
 	}
-	op, err := ingest.NewPcapOp(ctx, pspace, pstore, req.Path, c.ZeekLauncher)
+	op, err := ingest.NewPcapOp(ctx, pcapstore, logstore, req.Path, c.ZeekLauncher)
 	if err != nil {
 		respondError(c, w, r, err)
 		return

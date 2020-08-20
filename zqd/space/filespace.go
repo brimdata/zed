@@ -4,15 +4,13 @@ import (
 	"context"
 	"errors"
 	"os"
-	"path/filepath"
 	"sync"
 
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zqd/api"
+	"github.com/brimsec/zq/zqd/pcapstorage"
 	"github.com/brimsec/zq/zqe"
 )
-
-const PcapIndexFile = "packets.idx.json"
 
 type fileSpace struct {
 	spaceBase
@@ -27,21 +25,21 @@ func (s *fileSpace) Info(ctx context.Context) (api.SpaceInfo, error) {
 	if err != nil {
 		return api.SpaceInfo{}, err
 	}
-	pcapsize, err := s.PcapSize()
-	if err != nil {
-		return api.SpaceInfo{}, err
-	}
+	si.Name = s.conf.Name
+	si.DataPath = s.dataURI()
+	return si, nil
+}
+
+func (s *fileSpace) PcapStore() *pcapstorage.Store {
+	return s.pcapstore
+}
+
+func (s *fileSpace) dataURI() iosrc.URI {
 	du := s.conf.DataURI
 	if du.IsZero() {
 		du = s.path
 	}
-
-	si.Name = s.conf.Name
-	si.DataPath = du
-	si.PcapSize = pcapsize
-	si.PcapSupport = s.PcapPath() != ""
-	si.PcapPath = s.PcapPath()
-	return si, nil
+	return du
 }
 
 func (s *fileSpace) Name() string {
@@ -58,14 +56,6 @@ func (s *fileSpace) update(req api.SpacePutRequest) error {
 	defer s.confMu.Unlock()
 	conf := s.conf.clone()
 	conf.Name = req.Name
-	return s.updateConfigWithLock(conf)
-}
-
-func (s *fileSpace) SetPcapPath(pcapPath string) error {
-	s.confMu.Lock()
-	defer s.confMu.Unlock()
-	conf := s.conf.clone()
-	conf.PcapPath = pcapPath
 	return s.updateConfigWithLock(conf)
 }
 
@@ -87,15 +77,6 @@ func (s *fileSpace) delete() error {
 	return iosrc.RemoveAll(s.conf.DataURI)
 }
 
-func (s *fileSpace) PcapIndexPath() string {
-	return filepath.Join(s.conf.DataURI.Filepath(), PcapIndexFile)
-}
-
-// PcapSize returns the size in bytes of the packet capture in the space.
-func (s *fileSpace) PcapSize() (int64, error) {
-	return filesize(s.PcapPath())
-}
-
 func filesize(path string) (int64, error) {
 	f, err := os.Stat(path)
 	if err != nil {
@@ -105,10 +86,4 @@ func filesize(path string) (int64, error) {
 		return 0, err
 	}
 	return f.Size(), nil
-}
-
-func (s *fileSpace) PcapPath() string {
-	s.confMu.Lock()
-	defer s.confMu.Unlock()
-	return s.conf.PcapPath
 }

@@ -13,11 +13,12 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/zqd"
 	"github.com/brimsec/zq/zqd/api"
-	"github.com/brimsec/zq/zqd/space"
+	"github.com/brimsec/zq/zqd/pcapstorage"
 	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqd/zeek"
 	"github.com/stretchr/testify/assert"
@@ -38,9 +39,11 @@ func TestPcapPostSuccess(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("skipping test for windows")
 	}
+	pcapuri, err := iosrc.ParseURI("testdata/valid.pcap")
+	require.NoError(t, err)
 	ln, err := zeek.LauncherFromPath(os.Getenv("ZEEK"))
 	require.NoError(t, err)
-	p := pcapPost(t, "./testdata/valid.pcap", ln)
+	p := pcapPost(t, pcapuri.Filepath(), ln)
 	defer p.cleanup()
 	t.Run("DataReverseSorted", func(t *testing.T) {
 		expected := `
@@ -62,10 +65,10 @@ func TestPcapPostSuccess(t *testing.T) {
 		assert.InDelta(t, 1374, info.Size, 10)
 		assert.Equal(t, int64(4224), info.PcapSize)
 		assert.True(t, info.PcapSupport)
-		assert.Equal(t, p.pcapfile, info.PcapPath)
+		assert.Equal(t, pcapuri, info.PcapPath)
 	})
 	t.Run("PcapIndexExists", func(t *testing.T) {
-		require.FileExists(t, p.core.Root.AppendPath(string(p.space.ID), space.PcapIndexFile).Filepath())
+		require.FileExists(t, p.core.Root.AppendPath(string(p.space.ID), pcapstorage.MetaFile).Filepath())
 	})
 	t.Run("TaskStartMessage", func(t *testing.T) {
 		status := p.payloads[0].(*api.TaskStart)

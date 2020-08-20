@@ -27,6 +27,8 @@ type Reader interface {
 type Source interface {
 	NewReader(URI) (Reader, error)
 	NewWriter(URI) (io.WriteCloser, error)
+	ReadFile(URI) ([]byte, error)
+	WriteFile([]byte, URI) error
 	Remove(URI) error
 	RemoveAll(URI) error
 	// Exists returns true if the specified uri exists and an error is there
@@ -63,6 +65,22 @@ func NewWriter(uri URI) (io.WriteCloser, error) {
 		return nil, err
 	}
 	return source.NewWriter(uri)
+}
+
+func ReadFile(uri URI) ([]byte, error) {
+	source, err := GetSource(uri)
+	if err != nil {
+		return nil, err
+	}
+	return source.ReadFile(uri)
+}
+
+func WriteFile(uri URI, d []byte) error {
+	source, err := GetSource(uri)
+	if err != nil {
+		return err
+	}
+	return source.WriteFile(d, uri)
 }
 
 func Exists(uri URI) (bool, error) {

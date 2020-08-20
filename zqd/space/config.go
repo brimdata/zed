@@ -11,9 +11,12 @@ import (
 
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zqd/api"
+	"github.com/brimsec/zq/zqd/pcapstorage"
 	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqe"
 )
+
+const configVersion = 3
 
 func invalidSpaceNameRune(r rune) bool {
 	return r == '/' || !unicode.IsPrint(r)
@@ -23,9 +26,15 @@ func validSpaceName(s string) bool {
 	return strings.IndexFunc(s, invalidSpaceNameRune) == -1
 }
 
-const configVersion = 2
-
 type config struct {
+	Version   int              `json:"version"`
+	Name      string           `json:"name"`
+	DataURI   iosrc.URI        `json:"data_uri"`
+	Storage   storage.Config   `json:"storage"`
+	Subspaces []subspaceConfig `json:"subspaces"`
+}
+
+type configV2 struct {
 	Version   int              `json:"version"`
 	Name      string           `json:"name"`
 	DataURI   iosrc.URI        `json:"data_uri"`
@@ -110,6 +119,8 @@ func (m *Manager) migrateConfig(version int, data []byte, spaceURI iosrc.URI) (c
 			mg = m.migrateConfigV1
 		case 1:
 			mg = migrateConfigV2
+		case 2:
+			mg = migrateConfigV3
 		default:
 			return config{}, fmt.Errorf("unsupported config migration %d", version)
 		}
@@ -123,6 +134,59 @@ func (m *Manager) migrateConfig(version int, data []byte, spaceURI iosrc.URI) (c
 		return c, err
 	}
 	return c, writeConfig(spaceURI, c)
+}
+
+func migrateConfigV3(data []byte, spaceuri iosrc.URI) (int, []byte, error) {
+	var v2 configV2
+	if err := json.Unmarshal(data, &v2); err != nil {
+		return 0, nil, err
+	}
+	if v2.PcapPath != "" {
+		pcapuri, err := iosrc.ParseURI(v2.PcapPath)
+		if err != nil {
+			return 0, nil, err
+		}
+		du := v2.DataURI
+		if du.IsZero() {
+			du = spaceuri
+		}
+		if err := pcapstorage.MigrateV3(du, pcapuri); err != nil {
+			return 0, nil, err
+		}
+	}
+	c := config{
+		Version:   3,
+		Name:      v2.Name,
+		DataURI:   v2.DataURI,
+		Storage:   v2.Storage,
+		Subspaces: v2.Subspaces,
+	}
+	d, err := json.Marshal(c)
+	return 3, d, err
+}
+
+func migrateConfigV2(data []byte, _ iosrc.URI) (int, []byte, error) {
+	var v1 configV1
+	if err := json.Unmarshal(data, &v1); err != nil {
+		return 0, nil, err
+	}
+	if v1.DataPath == "." {
+		v1.DataPath = ""
+	}
+	du, err := iosrc.ParseURI(v1.DataPath)
+	if err != nil {
+		return 0, nil, err
+	}
+	c := configV2{
+		Version:   2,
+		Name:      v1.Name,
+		DataURI:   du,
+		PcapPath:  v1.PcapPath,
+		Storage:   v1.Storage,
+		Subspaces: v1.Subspaces,
+	}
+	d, err := json.Marshal(c)
+	return 2, d, err
 }
 
 func (m *Manager) migrateConfigV1(data []byte, spaceURI iosrc.URI) (int, []byte, error) {
@@ -144,30 +208,6 @@ func (m *Manager) migrateConfigV1(data []byte, spaceURI iosrc.URI) (int, []byte,
 	}
 	d, err := json.Marshal(c)
 	return 1, d, err
-}
-
-func migrateConfigV2(data []byte, _ iosrc.URI) (int, []byte, error) {
-	var v1 configV1
-	if err := json.Unmarshal(data, &v1); err != nil {
-		return 0, nil, err
-	}
-	if v1.DataPath == "." {
-		v1.DataPath = ""
-	}
-	du, err := iosrc.ParseURI(v1.DataPath)
-	if err != nil {
-		return 0, nil, err
-	}
-	c := config{
-		Version:   2,
-		Name:      v1.Name,
-		DataURI:   du,
-		PcapPath:  v1.PcapPath,
-		Storage:   v1.Storage,
-		Subspaces: v1.Subspaces,
-	}
-	d, err := json.Marshal(c)
-	return 2, d, err
 }
 
 func writeConfig(spaceURI iosrc.URI, c config) error {
