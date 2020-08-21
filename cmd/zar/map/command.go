@@ -136,21 +136,24 @@ func (c *Command) Run(args []string) error {
 		if err != nil {
 			return err
 		}
-		defer writer.Close()
 		d := driver.NewCLI(writer)
 		if !c.quiet {
 			d.SetWarningsWriter(os.Stderr)
 		}
-		return driver.Run(ctx, d, query, zctx, reader, driver.Config{
+		err = driver.Run(ctx, d, query, zctx, reader, driver.Config{
 			ReaderSortKey:     "ts",
 			ReaderSortReverse: ark.DataSortDirection == zbuf.DirTimeReverse,
 			Warnings:          wch,
 		})
+		if closeErr := writer.Close(); closeErr != nil && err == nil {
+			err = closeErr
+		}
+		return err
 	})
 }
 
 func (c *Command) openOutput(zardir iosrc.URI) (zbuf.WriteCloser, error) {
-	path := ""
+	var path string
 	if c.outputFile != "" {
 		path = zardir.AppendPath(c.outputFile).String()
 	}

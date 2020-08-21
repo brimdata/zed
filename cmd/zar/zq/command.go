@@ -77,27 +77,22 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-
 	msrc := archive.NewMultiSource(ark, args[1:])
+
+	ctx, cancel := signalctx.New(os.Interrupt)
+	defer cancel()
 
 	writer, err := emitter.NewFile(c.outputFile, &c.writerFlags)
 	if err != nil {
 		return err
 	}
-	defer writer.Close()
-
 	d := driver.NewCLI(writer)
 	if !c.quiet {
 		d.SetWarningsWriter(os.Stderr)
 	}
-
-	zctx := resolver.NewContext()
-	wch := make(chan string, 5)
-
-	ctx, cancel := signalctx.New(os.Interrupt)
-	defer cancel()
-
-	return driver.MultiRun(ctx, d, query, zctx, msrc, driver.MultiConfig{
-		Warnings: wch,
-	})
+	err = driver.MultiRun(ctx, d, query, resolver.NewContext(), msrc, driver.MultiConfig{})
+	if closeErr := writer.Close(); closeErr != nil && err == nil {
+		err = closeErr
+	}
+	return err
 }
