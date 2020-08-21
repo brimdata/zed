@@ -1,7 +1,7 @@
 script: |
   source minio.sh
   zar import -s 20KiB -R ./root -data s3://bucket/zartest babble.tzng
-  zar map -R ./root -o count.zng "count()" _
+  zar map -R ./root -o count.zng "count()"
   echo ===
   zar ls -l -R ./root
   echo ===

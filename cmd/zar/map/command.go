@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/brimsec/zq/archive"
-	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
@@ -22,14 +21,15 @@ import (
 
 var Map = &charm.Spec{
 	Name:  "map",
-	Usage: "map [-R root] [options] [zql] file [file...]",
+	Usage: "map [-R root] [options] zql [file...]",
 	Short: "execute ZQL for each archive directory",
 	Long: `
 "zar map" executes a ZQL query on one or more files in each of the
 chunk directories of a zar archive, sending its output to either stdout,
-or to a per-directory file, specified via "-o". Input file names are
-relative to each zar subdirectory, and the special name "_" refers to
-the chunk file itself.
+or to a per-directory file, specified via "-o". By default, the chunk file
+is the sole input file; alternatively, one or more file names relative to
+each zar subdirectory may be given, using the special name "_" to refer to the
+chunk file itself.
 `,
 	New: New,
 }
@@ -66,6 +66,14 @@ func (c *Command) Run(args []string) error {
 	if len(args) == 0 {
 		return errors.New("zar map needs input arguments")
 	}
+	query, err := zql.ParseProc(args[0])
+	if err != nil {
+		return err
+	}
+	inputs := args[1:]
+	if len(inputs) == 0 {
+		inputs = []string{"_"}
+	}
 
 	if c.outputFile == "-" {
 		c.outputFile = ""
@@ -93,25 +101,6 @@ func (c *Command) Run(args []string) error {
 	// XXX this is parallelizable except for writing to stdout when
 	// concatenating results
 	return archive.Walk(ark, func(zardir iosrc.URI) error {
-		inputs := args
-		var query ast.Proc
-		first := archive.Localize(zardir, inputs[0])
-		ok, err := iosrc.Exists(first)
-		if err != nil {
-			return err
-		}
-		if ok {
-			query, err = zql.ParseProc("*")
-			if err != nil {
-				return err
-			}
-		} else {
-			query, err = zql.ParseProc(inputs[0])
-			if err != nil {
-				return err
-			}
-			inputs = inputs[1:]
-		}
 		var paths []string
 		for _, input := range inputs {
 			p := archive.Localize(zardir, input)

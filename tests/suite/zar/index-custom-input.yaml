@@ -2,7 +2,7 @@
 script: |
   mkdir logs
   zar import -R ./logs babble.tzng
-  zar map -q -o sums.zng -R ./logs "sum(v) by s" _
+  zar map -q -o sums.zng -R ./logs "sum(v) by s"
   zar index -f 20000 -i sums.zng -q -R ./logs -o index.zng -z "put key=s | sort key"
   zdx section -t -s 1 logs/20200422/1587518620.0622373.zng.zar/index.zng
 
