@@ -28,7 +28,7 @@ you would run:
 
 	zar index -R /path/to/logs id.orig_h :port
 
-Each pattern results a separate zdx index file for each log file found.
+Each pattern results in a separate microindex file for each log file found.
 
 For custom indexes, zql can be used instead of a pattern. This
 requires specifying the key and output file name. For example:
@@ -57,9 +57,9 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
 	f.StringVar(&c.keys, "k", "key", "one or more comma-separated key fields")
-	f.IntVar(&c.framesize, "f", 32*1024, "minimum frame size used in zdx file")
+	f.IntVar(&c.framesize, "f", 32*1024, "minimum frame size used in microindex file")
 	f.StringVar(&c.inputFile, "i", "_", "input file relative to each zar directory ('_' means archive log file in the parent of the zar directory)")
-	f.StringVar(&c.outputFile, "o", "zdx", "output index name (for custom indexes)")
+	f.StringVar(&c.outputFile, "o", "index.zng", "name of microindex output file (for custom indexes)")
 	f.BoolVar(&c.quiet, "q", false, "don't print progress on stdout")
 	f.StringVar(&c.zql, "z", "", "zql for custom indexes")
 	return c, nil

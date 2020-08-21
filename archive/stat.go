@@ -5,10 +5,10 @@ import (
 	"errors"
 	"sort"
 
+	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zcode"
-	"github.com/brimsec/zq/zdx"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
@@ -76,7 +76,7 @@ func (s *statReadCloser) chunkRecord(si SpanInfo, zardir iosrc.URI) error {
 }
 
 func (s *statReadCloser) indexRecord(si SpanInfo, zardir iosrc.URI, indexPath string) error {
-	info, err := zdx.Stat(zardir.AppendPath(indexPath))
+	info, err := microindex.Stat(zardir.AppendPath(indexPath))
 	if err != nil {
 		if errors.Is(err, zqe.E(zqe.NotFound)) {
 			return nil

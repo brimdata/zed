@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zdx"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
@@ -76,7 +76,7 @@ func AddPath(pathField string, absolutePath bool) FindOption {
 // XXX We currently allow only one multi-key pattern at a time though it might
 // be more efficient at large scale to allow multipe patterns that
 // are effectively OR-ed together so that there is locality of
-// access to the zdx files.
+// access to the microindex files.
 func Find(ctx context.Context, zctx *resolver.Context, ark *Archive, query IndexQuery, hits chan<- *zng.Record, opts ...FindOption) error {
 	opt := findOptions{
 		zctx:    zctx,
@@ -126,7 +126,7 @@ func Find(ctx context.Context, zctx *resolver.Context, ark *Archive, query Index
 }
 
 func search(ctx context.Context, zctx *resolver.Context, hits chan<- *zng.Record, uri iosrc.URI, patterns []string) error {
-	finder := zdx.NewFinder(zctx, uri)
+	finder := microindex.NewFinder(zctx, uri)
 	if err := finder.Open(); err != nil {
 		return fmt.Errorf("%s: %w", finder.Path(), err)
 	}

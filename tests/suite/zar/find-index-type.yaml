@@ -6,7 +6,7 @@ script: |
   zar find -relative -R . :ip=192.168.1.102
   zar find -relative -R . :ip=192.168.2.1
   zar find -relative -R . :ip=192.168.1.1
-  zq -t "count(key)" 20091119/1258594907.85978.zng.zar/zdx-type-ip.zng # check unset not indexed
+  zq -t "count(key)" 20091119/1258594907.85978.zng.zar/microindex-type-ip.zng # check unset not indexed
 
 inputs:
   - name: log.tzng
