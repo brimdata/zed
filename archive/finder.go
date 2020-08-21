@@ -87,7 +87,12 @@ func Find(ctx context.Context, zctx *resolver.Context, ark *Archive, query Index
 			return err
 		}
 	}
+	if _, err := ark.UpdateCheck(); err != nil {
+		return err
+	}
+	ark.mu.RLock()
 	indexInfo, ok := ark.indexes[query.indexName]
+	ark.mu.RUnlock()
 	if !ok {
 		return zqe.E(zqe.NotFound)
 	}

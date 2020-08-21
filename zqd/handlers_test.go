@@ -23,10 +23,8 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/tzngio"
-	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/storage"
@@ -616,7 +614,7 @@ func TestPostLogStopErr(t *testing.T) {
 	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 
-	_, err = client.LogPost(context.Background(), sp.ID, api.LogPostRequest{Paths: []string{logfile}, StopErr: true})
+	_, err = client.LogPostStream(context.Background(), sp.ID, api.LogPostRequest{Paths: []string{logfile}, StopErr: true})
 	require.Error(t, err)
 	assert.Regexp(t, ": format detection error.*", err.Error())
 }
@@ -713,24 +711,6 @@ func TestSpaceDataDir(t *testing.T) {
 	require.Equal(t, test.Trim(src), res)
 }
 
-func createArchiveSpace(t *testing.T, datapath string, thresh int64, srcfile string) {
-	ctx := context.Background()
-
-	co := &archive.CreateOptions{
-		LogSizeThreshold: &thresh,
-	}
-	ark, err := archive.CreateOrOpenArchive(datapath, co, nil)
-	require.NoError(t, err)
-
-	zctx := resolver.NewContext()
-	reader, err := detector.OpenFile(zctx, srcfile, detector.OpenConfig{})
-	require.NoError(t, err)
-	defer reader.Close()
-
-	err = archive.Import(ctx, ark, zctx, reader)
-	require.NoError(t, err)
-}
-
 func indexArchiveSpace(t *testing.T, datapath string, ruledef string) {
 	rule, err := archive.NewRule(ruledef)
 	require.NoError(t, err)
@@ -743,10 +723,7 @@ func indexArchiveSpace(t *testing.T, datapath string, ruledef string) {
 }
 
 func TestCreateArchiveSpace(t *testing.T) {
-	datapath := createTempDir(t)
 	thresh := int64(1000)
-	createArchiveSpace(t, datapath, thresh, "../tests/suite/zdx/babble.tzng")
-
 	root := createTempDir(t)
 
 	c, client, done := newCoreAtDir(t, root)
@@ -759,12 +736,19 @@ func TestCreateArchiveSpace(t *testing.T) {
 	}, nil)
 
 	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{
-		Name:     "arktest",
-		DataPath: datapath,
+		Name: "arktest",
 		Storage: &storage.Config{
 			Kind: storage.ArchiveStore,
+			Archive: &storage.ArchiveConfig{
+				CreateOptions: &storage.ArchiveCreateOptions{
+					LogSizeThreshold: &thresh,
+				},
+			},
 		},
 	})
+	require.NoError(t, err)
+	payload := api.LogPostRequest{Paths: []string{"../tests/suite/zdx/babble.tzng"}}
+	err = client.LogPost(context.Background(), sp.ID, payload)
 	require.NoError(t, err)
 
 	span := nano.Span{Ts: 1587508830068523240, Dur: 9789993714061}
@@ -791,11 +775,6 @@ func TestCreateArchiveSpace(t *testing.T) {
 	_, err = client.PcapPost(context.Background(), sp.ID, api.PcapPostRequest{"foo"})
 	require.Error(t, err)
 	assert.Regexp(t, "space does not support pcap import", err.Error())
-
-	// Verify log post not supported
-	_, err = client.LogPost(context.Background(), sp.ID, api.LogPostRequest{Paths: []string{"foo"}})
-	require.Error(t, err)
-	assert.Regexp(t, "space does not support log import", err.Error())
 }
 
 func TestBlankNameSpace(t *testing.T) {
@@ -819,24 +798,28 @@ func TestBlankNameSpace(t *testing.T) {
 }
 
 func TestIndexSearch(t *testing.T) {
-	datapath := createTempDir(t)
 	thresh := int64(1000)
-	createArchiveSpace(t, datapath, thresh, "../tests/suite/zdx/babble.tzng")
-	indexArchiveSpace(t, datapath, "v")
-
 	root := createTempDir(t)
 
 	_, client, done := newCoreAtDir(t, root)
 	defer done()
 
 	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{
-		Name:     "TestIndexSearch",
-		DataPath: datapath,
+		Name: "TestIndexSearch",
 		Storage: &storage.Config{
 			Kind: storage.ArchiveStore,
+			Archive: &storage.ArchiveConfig{
+				CreateOptions: &storage.ArchiveCreateOptions{
+					LogSizeThreshold: &thresh,
+				},
+			},
 		},
 	})
 	require.NoError(t, err)
+	payload := api.LogPostRequest{Paths: []string{"../tests/suite/zdx/babble.tzng"}}
+	err = client.LogPost(context.Background(), sp.ID, payload)
+	require.NoError(t, err)
+	indexArchiveSpace(t, sp.DataPath.Filepath(), "v")
 
 	expected := `
 #zfile=string
@@ -850,11 +833,7 @@ func TestIndexSearch(t *testing.T) {
 }
 
 func TestSubspaceCreate(t *testing.T) {
-	// Create archive & import data
-	datapath := createTempDir(t)
 	thresh := int64(1000)
-	createArchiveSpace(t, datapath, thresh, "../tests/suite/zdx/babble.tzng")
-	indexArchiveSpace(t, datapath, ":int64")
 
 	// Create server & the parent space
 	root := createTempDir(t)
@@ -862,13 +841,21 @@ func TestSubspaceCreate(t *testing.T) {
 	defer done()
 
 	sp1, err := client.SpacePost(context.Background(), api.SpacePostRequest{
-		Name:     "TestSubspaceCreate",
-		DataPath: datapath,
+		Name: "TestSubspaceCreate",
 		Storage: &storage.Config{
 			Kind: storage.ArchiveStore,
+			Archive: &storage.ArchiveConfig{
+				CreateOptions: &storage.ArchiveCreateOptions{
+					LogSizeThreshold: &thresh,
+				},
+			},
 		},
 	})
 	require.NoError(t, err)
+	payload := api.LogPostRequest{Paths: []string{"../tests/suite/zdx/babble.tzng"}}
+	err = client.LogPost(context.Background(), sp1.ID, payload)
+	require.NoError(t, err)
+	indexArchiveSpace(t, sp1.DataPath.Filepath(), ":int64")
 
 	// Verify index search returns all logs
 	exp := `
@@ -922,11 +909,7 @@ func TestSubspaceCreate(t *testing.T) {
 }
 
 func TestSubspacePersist(t *testing.T) {
-	// Create archive & import data
-	datapath := createTempDir(t)
 	thresh := int64(1000)
-	createArchiveSpace(t, datapath, thresh, "../tests/suite/zdx/babble.tzng")
-	indexArchiveSpace(t, datapath, ":int64")
 
 	// Create server & the parent space
 	root := createTempDir(t)
@@ -934,13 +917,21 @@ func TestSubspacePersist(t *testing.T) {
 	defer done1()
 
 	sp1, err := client1.SpacePost(context.Background(), api.SpacePostRequest{
-		Name:     "TestSubspaceCreate",
-		DataPath: datapath,
+		Name: "TestSubspaceCreate",
 		Storage: &storage.Config{
 			Kind: storage.ArchiveStore,
+			Archive: &storage.ArchiveConfig{
+				CreateOptions: &storage.ArchiveCreateOptions{
+					LogSizeThreshold: &thresh,
+				},
+			},
 		},
 	})
 	require.NoError(t, err)
+	payload := api.LogPostRequest{Paths: []string{"../tests/suite/zdx/babble.tzng"}}
+	err = client1.LogPost(context.Background(), sp1.ID, payload)
+	require.NoError(t, err)
+	indexArchiveSpace(t, sp1.DataPath.Filepath(), ":int64")
 
 	// Create subspace
 	sp2, err := client1.SubspacePost(context.Background(), sp1.ID, api.SubspacePostRequest{
@@ -999,23 +990,28 @@ func TestSubspacePersist(t *testing.T) {
 }
 
 func TestArchiveStat(t *testing.T) {
-	datapath := createTempDir(t)
 	thresh := int64(20 * 1024)
-	createArchiveSpace(t, datapath, thresh, "../tests/suite/zdx/babble.tzng")
-	indexArchiveSpace(t, datapath, "v")
 
 	root := createTempDir(t)
 	_, client, done := newCoreAtDir(t, root)
 	defer done()
 
 	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{
-		Name:     t.Name(),
-		DataPath: datapath,
+		Name: "TestArchiveStat",
 		Storage: &storage.Config{
 			Kind: storage.ArchiveStore,
+			Archive: &storage.ArchiveConfig{
+				CreateOptions: &storage.ArchiveCreateOptions{
+					LogSizeThreshold: &thresh,
+				},
+			},
 		},
 	})
 	require.NoError(t, err)
+	payload := api.LogPostRequest{Paths: []string{"../tests/suite/zdx/babble.tzng"}}
+	err = client.LogPost(context.Background(), sp.ID, payload)
+	require.NoError(t, err)
+	indexArchiveSpace(t, sp.DataPath.Filepath(), "v")
 
 	exp := `
 #0:record[type:string,log_id:string,start:time,duration:duration,size:uint64]
@@ -1146,7 +1142,7 @@ func postSpaceLogs(t *testing.T, c *api.Connection, spaceID api.SpaceID, tc *ndj
 	}
 
 	ctx := context.Background()
-	s, err := c.LogPost(ctx, spaceID, api.LogPostRequest{Paths: filenames, JSONTypeConfig: tc})
+	s, err := c.LogPostStream(ctx, spaceID, api.LogPostRequest{Paths: filenames, JSONTypeConfig: tc})
 	require.NoError(t, err)
 	var payloads []interface{}
 	for {
