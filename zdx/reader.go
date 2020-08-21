@@ -15,6 +15,7 @@ const (
 	FrameThresh  = 32 * 1024
 	FrameFudge   = 1024
 	FrameBufSize = FrameThresh + FrameFudge
+	FrameMaxSize = 20 * 1024 * 1024
 )
 
 // Reader implements zbuf.Reader, io.ReadSeeker, and io.Closer.
@@ -60,6 +61,9 @@ func NewReaderFromURI(zctx *resolver.Context, uri iosrc.URI) (*Reader, error) {
 	if err != nil {
 		r.Close()
 		return nil, fmt.Errorf("%s: %w", uri, err)
+	}
+	if trailer.FrameThresh > FrameMaxSize {
+		return nil, fmt.Errorf("%s: frame threshold too large (%d)", uri, trailer.FrameThresh)
 	}
 	// We add a bit to the seeker buffer so to accommodate the usual
 	// overflow size.
