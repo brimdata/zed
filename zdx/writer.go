@@ -83,6 +83,9 @@ func NewWriter(zctx *resolver.Context, path string, keyFields []string, frameThr
 	if frameThresh == 0 {
 		return nil, errors.New("microindex frame threshold cannot be zero")
 	}
+	if frameThresh > FrameMaxSize {
+		return nil, fmt.Errorf("frame threshold too large (%d)", frameThresh)
+	}
 	uri, err := iosrc.ParseURI(path)
 	if err != nil {
 		return nil, err
