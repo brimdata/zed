@@ -105,6 +105,8 @@ func unpackProc(custom Unpacker, node joe.JSON) (Proc, error) {
 			return nil, err
 		}
 		return &TopProc{Fields: fields}, nil
+	case "PassProc":
+		return &PassProc{}, nil
 	default:
 		return nil, fmt.Errorf("unknown proc op: %s", op)
 	}
