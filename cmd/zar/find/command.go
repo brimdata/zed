@@ -73,7 +73,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
 	f.BoolVar(&c.skipMissing, "Q", false, "skip errors caused by missing index files ")
-	f.StringVar(&c.indexFile, "x", "", "name of zdx index for custom index searches")
+	f.StringVar(&c.indexFile, "x", "", "name of microindex for custom index searches")
 	f.StringVar(&c.outputFile, "o", "", "write data to output file")
 	f.StringVar(&c.pathField, "l", archive.DefaultAddPathField, "zng field name for path name of log file")
 	f.BoolVar(&c.relativePaths, "relative", false, "display paths relative to root")
