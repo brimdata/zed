@@ -1,6 +1,7 @@
 package filter_test
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
@@ -92,6 +93,21 @@ func runCases(t *testing.T, record *zng.Record, cases []testcase) {
 		t.Run(tt.filter, func(t *testing.T) {
 			err := runTest(tt.filter, record, tt.expectedResult)
 			require.NoError(t, err)
+
+			proc, err := zql.ParseProc(tt.filter)
+			require.NoError(t, err, "filter: %q", tt.filter)
+
+			filterExpr := proc.(*ast.FilterProc).Filter
+
+			bf, err := filter.NewBufferFilter(filterExpr)
+			assert.NoError(t, err, "filter: %q", tt.filter)
+			if bf != nil && tt.expectedResult {
+				// We only check for false negatives because
+				// false positives are OK for correctness
+				// (though undesirable for performance).
+				assert.True(t, bf.Eval(record.Raw),
+					"filter: %q\nrecord:\n%s", tt.filter, hex.Dump(record.Raw))
+			}
 		})
 	}
 }

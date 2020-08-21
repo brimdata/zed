@@ -407,6 +407,14 @@ func (r *Reader) parseValue(id int, b []byte) (*zng.Record, error) {
 
 var _ scanner.ScannerAble = (*Reader)(nil)
 
-func (r *Reader) NewScanner(ctx context.Context, f filter.Filter, _ ast.BooleanExpr, s nano.Span) (scanner.Scanner, error) {
-	return &zngScanner{ctx: ctx, reader: r, filter: f, span: s}, nil
+func (r *Reader) NewScanner(ctx context.Context, f filter.Filter, filterExpr ast.BooleanExpr, s nano.Span) (scanner.Scanner, error) {
+	var bf *filter.BufferFilter
+	if filterExpr != nil {
+		var err error
+		bf, err = filter.NewBufferFilter(filterExpr)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &zngScanner{ctx: ctx, reader: r, bufferFilter: bf, filter: f, span: s}, nil
 }
