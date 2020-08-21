@@ -39,8 +39,7 @@ func ReadStream(s *Stream) ([]interface{}, error) {
 			return nil, err
 		}
 		payloads = append(payloads, v)
-		switch payload := v.(type) {
-		case *TaskEnd:
+		if end, ok := v.(*TaskEnd); ok {
 			if payload.Error != nil {
 				return nil, payload.Error
 			}
