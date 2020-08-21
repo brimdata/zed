@@ -306,7 +306,7 @@ func (c *Connection) LogPost(ctx context.Context, space SpaceID, payload LogPost
 	if err != nil {
 		return err
 	}
-	_, err = ReadStream(stream)
+	_, err = stream.ReadAll()
 	return err
 }
 

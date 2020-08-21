@@ -28,7 +28,7 @@ func (s *Stream) Next() (interface{}, error) {
 	return nil, nil
 }
 
-func ReadStream(s *Stream) ([]interface{}, error) {
+func (s *Stream) ReadAll() ([]interface{}, error) {
 	var payloads []interface{}
 	for {
 		v, err := s.Next()
@@ -40,8 +40,8 @@ func ReadStream(s *Stream) ([]interface{}, error) {
 		}
 		payloads = append(payloads, v)
 		if end, ok := v.(*TaskEnd); ok {
-			if payload.Error != nil {
-				return nil, payload.Error
+			if end.Error != nil {
+				return nil, end.Error
 			}
 			return payloads, nil
 		}
