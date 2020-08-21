@@ -1,12 +1,11 @@
 script: |
   mkdir logs
   zar import -s 20KiB -R ./logs babble.tzng
-  zar zq -R ./logs "count()" | zq -t -
+  zar map -R ./logs "count()" _ | zq -t -
   echo ===
   zar map -R ./logs -o count.zng "count()" _
-  zar zq -R ./logs "* | sort -r count" count.zng | zq -t -
-  echo ===
-  zar zq -R ./logs "sum(count)" count.zng | zq -t -
+  zq -t "*" ./logs/20200422/1587518620.0622373.zng.zar/count.zng
+  zq -t "*" ./logs/20200421/1587509477.06313454.zng.zar/count.zng
 
 inputs:
   - name: babble.tzng
@@ -16,11 +15,10 @@ outputs:
   - name: stdout
     data: |
       #0:record[count:uint64]
-      0:[1000;]
-      ===
-      #0:record[count:uint64]
       0:[939;]
       0:[61;]
       ===
-      #0:record[sum:uint64]
-      0:[1000;]
+      #0:record[count:uint64]
+      0:[939;]
+      #0:record[count:uint64]
+      0:[61;]

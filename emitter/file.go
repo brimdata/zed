@@ -34,7 +34,7 @@ func NewFile(path string, flags *zio.WriterFlags) (*zio.Writer, error) {
 	return NewFileWithSource(uri, flags, src)
 }
 
-func isTerminal(w io.Writer) bool {
+func IsTerminal(w io.Writer) bool {
 	if f, ok := w.(*os.File); ok {
 		if terminal.IsTerminal(int(f.Fd())) {
 			return true
@@ -55,7 +55,7 @@ func NewFileWithSource(path iosrc.URI, flags *zio.WriterFlags, source iosrc.Sour
 		// that has multiple stdio users.
 		wc = &noClose{f}
 		// Don't buffer terminal output.
-		if !isTerminal(f) {
+		if !IsTerminal(f) {
 			wc = bufwriter.New(wc)
 		}
 	} else {
