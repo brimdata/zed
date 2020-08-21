@@ -42,16 +42,21 @@ func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc
 		mcfg.Parallelism = runtime.GOMAXPROCS(0)
 	}
 
-	sortKey, sortReversed := msrc.OrderInfo()
-
 	ReplaceGroupByProcDurationWithKey(program)
+
+	sortKey, sortReversed := msrc.OrderInfo()
 	if sortKey != "" {
 		setGroupByProcInputSortDir(program, sortKey, zbufDirInt(sortReversed))
 	}
+	var filterExpr ast.BooleanExpr
+	filterExpr, program = liftFilter(program)
 
-	pgSetup, program, err := pscanAnalyze(program)
-	if err != nil {
-		return nil, err
+	var dist bool
+	if mcfg.Parallelism > 1 {
+		program, dist = parallelizeFlowgraph(wrapSeq(program), mcfg.Parallelism, sortKey, sortReversed)
+	}
+	if !dist {
+		mcfg.Parallelism = 1
 	}
 
 	pctx := &proc.Context{
@@ -60,16 +65,25 @@ func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc
 		Logger:      mcfg.Logger,
 		Warnings:    mcfg.Warnings,
 	}
-	mergeProc, pgroup, err := createParallelGroup(pctx, pgSetup, msrc, mcfg)
+	sources, pgroup, err := createParallelGroup(pctx, filterExpr, msrc, mcfg)
 	if err != nil {
 		return nil, err
 	}
 
-	leaves, err := compiler.Compile(mcfg.Custom, program, pctx, []proc.Interface{mergeProc})
+	leaves, err := compiler.Compile(mcfg.Custom, program, pctx, sources)
 	if err != nil {
 		return nil, err
 	}
 	return newMuxOutput(pctx, leaves, pgroup), nil
+}
+
+func wrapSeq(p ast.Proc) *ast.SequentialProc {
+	if p, ok := p.(*ast.SequentialProc); ok {
+		return p
+	}
+	return &ast.SequentialProc{
+		Procs: []ast.Proc{p},
+	}
 }
 
 // liftFilter removes the filter at the head of the flowgraph AST, if
