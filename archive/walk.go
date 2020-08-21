@@ -88,11 +88,10 @@ func NewMultiSource(ark *Archive, paths []string) driver.MultiSource {
 	if len(paths) == 0 {
 		paths = []string{"_"}
 	}
-	ms := &multiSource{
+	return &multiSource{
 		ark:   ark,
 		paths: paths,
 	}
-	return ms
 }
 
 func (ams *multiSource) OrderInfo() (string, bool) {
