@@ -99,6 +99,9 @@ func (f *Finder) search(compare expr.KeyCompareFn) (zbuf.Reader, error) {
 }
 
 func (f *Finder) Lookup(keys *zng.Record) (*zng.Record, error) {
+	if f.IsEmpty() {
+		return nil, nil
+	}
 	compare, err := expr.NewKeyCompareFn(keys)
 	if err != nil {
 		return nil, err
@@ -115,6 +118,9 @@ func (f *Finder) Lookup(keys *zng.Record) (*zng.Record, error) {
 }
 
 func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zng.Record, keys *zng.Record) error {
+	if f.IsEmpty() {
+		return nil
+	}
 	compare, err := expr.NewKeyCompareFn(keys)
 	if err != nil {
 		return err
@@ -143,6 +149,9 @@ func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zng.Record, keys *z
 }
 
 func (f *Finder) LookupClosest(keys *zng.Record) (*zng.Record, error) {
+	if f.IsEmpty() {
+		return nil, nil
+	}
 	compare, err := expr.NewKeyCompareFn(keys)
 	if err != nil {
 		return nil, err
@@ -161,6 +170,9 @@ func (f *Finder) LookupClosest(keys *zng.Record) (*zng.Record, error) {
 // in terms of key lookups.  Any don't-care fields must all be
 // at the end of the key record.
 func (f *Finder) ParseKeys(inputs []string) (*zng.Record, error) {
+	if f.IsEmpty() {
+		return nil, nil
+	}
 	if f.builder == nil {
 		f.builder = zng.NewBuilder(f.trailer.KeyType)
 	}
