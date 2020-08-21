@@ -25,7 +25,7 @@ import (
 // records may or may not have all the key fields.  If a key field is
 // missing, it appears as a null value in the index.  Nulls are sorted
 // before all non-null values.  All key fields must have the same type.
-// The Writer may detect an error if a key fiield changes type but does not
+// The Writer may detect an error if a key field changes type but does not
 // check that every key has the same type; it is up to the caller to guarantee
 // this type consistency.  For example, the caller should create a separate
 // microindex for fields that have a common name but different types.
@@ -34,14 +34,16 @@ import (
 // with the precedence order of the keyFields.
 //
 // As the zng file data is written, a B-tree index is computed as a
-// constant B-tree to make key lookups efficient.  The b-tree sections
+// constant B-tree to make key lookups efficient.  The B-tree sections
 // are written to temporary files and at close, they are merged into
 // a single-file microindex.
 //
-// If a Writer is created the Closed without ever writing records to it, then
+// If a Writer is created but Closed without ever writing records to it, then
 // the index is created with no keys and an "empty" microindex trailer.  This is
 // useful for knowing when something has been indexed but no keys were present.
-// If a Writer is created then an error is enountered (for example, the type of)
+// If a Writer is created then an error is enountered (for example, the type of
+// key changes), then you generally want to abort and cleanup by calling Abort()
+// instead of Close().
 type Writer struct {
 	uri         iosrc.URI
 	keyFields   []string
@@ -128,10 +130,10 @@ func (w *Writer) Abort() error {
 	// Delete the temp files comprising the index hierarchy.
 	defer os.RemoveAll(w.tmpdir)
 	firstErr := w.closeTree()
-	if err := w.iow.Close(); err != nil && firstErr == nil {
+	if err := w.iow.Close(); firstErr == nil {
 		firstErr = err
 	}
-	if err := iosrc.Remove(w.uri); err != nil && firstErr == nil {
+	if err := iosrc.Remove(w.uri); firstErr == nil {
 		firstErr = err
 	}
 	return firstErr
@@ -142,8 +144,7 @@ func (w *Writer) Close() error {
 	defer os.RemoveAll(w.tmpdir)
 	// First, close the parent if it exists (which will recursively close
 	// all the parents to the root) while leaving the base layer open.
-	err := w.closeTree()
-	if err != nil {
+	if err := w.closeTree(); err != nil {
 		w.iow.Close()
 		return err
 	}
@@ -153,8 +154,7 @@ func (w *Writer) Close() error {
 		// In this case, bypass the base layer, write an empty trailer
 		// directly to the output, and close.
 		err := w.writeEmptyTrailer()
-		err2 := w.iow.Close()
-		if err == nil {
+		if err2 := w.iow.Close(); err == nil {
 			err = err2
 		}
 		return err
@@ -181,7 +181,7 @@ func (w *Writer) closeTree() error {
 	}
 	var firstErr error
 	for p := w.writer.parent; p != nil; p = p.parent {
-		if err := p.Close(); err != nil && firstErr == nil {
+		if err := p.Close(); firstErr == nil {
 			firstErr = err
 		}
 	}
@@ -227,7 +227,6 @@ func (w *Writer) finalize() error {
 }
 
 func (w *Writer) writeEmptyTrailer() error {
-	zw := zngio.NewWriter(w.iow, zio.WriterFlags{})
 	var cols []zng.Column
 	for _, key := range w.keyFields {
 		cols = append(cols, zng.Column{key, zng.TypeNull})
@@ -236,6 +235,7 @@ func (w *Writer) writeEmptyTrailer() error {
 	if err != nil {
 		return err
 	}
+	zw := zngio.NewWriter(w.iow, zio.WriterFlags{})
 	return writeTrailer(zw, w.zctx, "", w.frameThresh, nil, typ)
 }
 
