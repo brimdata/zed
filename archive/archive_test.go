@@ -69,7 +69,7 @@ func TestOpenOptions(t *testing.T) {
 	defer os.RemoveAll(datapath)
 
 	thresh := int64(1000)
-	createArchiveSpace(t, datapath, "../tests/suite/zdx/babble.tzng", &CreateOptions{
+	createArchiveSpace(t, datapath, "../tests/suite/data/babble.tzng", &CreateOptions{
 		LogSizeThreshold: &thresh,
 	})
 

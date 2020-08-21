@@ -8,7 +8,7 @@ inputs:
   - name: services.sh
     source: ../services.sh
   - name: babble.tzng
-    source: ../../zdx/babble.tzng
+    source: ../../data/babble.tzng
   - name: ng.pcap
     source: ../../pcap/ng.pcap
 

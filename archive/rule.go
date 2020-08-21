@@ -42,9 +42,9 @@ func ParseIndexQuery(indexName string, patterns []string) (IndexQuery, error) {
 		if err != nil {
 			return IndexQuery{}, err
 		}
-		path = typeZdxName(typ)
+		path = typeMicroIndexName(typ)
 	} else {
-		path = fieldZdxName(fieldOrType)
+		path = fieldMicroIndexName(fieldOrType)
 	}
 	return IndexQuery{
 		indexName: path,
@@ -94,7 +94,7 @@ func NewTypeRule(typeName string) (*Rule, error) {
 			&ast.SortProc{Fields: []ast.FieldExpr{&ast.FieldRead{Field: "key"}}},
 		},
 	}
-	return newRuleAST("type", &c, typeZdxName(typ), []string{keyName}, framesize)
+	return newRuleAST("type", &c, typeMicroIndexName(typ), []string{keyName}, framesize)
 }
 
 // NewFieldRule creates an indexing rule that will index the field passed in as argument.
@@ -113,7 +113,7 @@ func NewFieldRule(fieldName string) (*Rule, error) {
 			&ast.SortProc{Fields: []ast.FieldExpr{&ast.FieldRead{Field: "key"}}},
 		},
 	}
-	return newRuleAST("field", &c, fieldZdxName(fieldName), []string{keyName}, framesize)
+	return newRuleAST("field", &c, fieldMicroIndexName(fieldName), []string{keyName}, framesize)
 }
 
 // Rule contains the runtime configuration for an indexing rule.

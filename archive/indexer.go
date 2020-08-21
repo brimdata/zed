@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"github.com/brimsec/zq/driver"
+	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zdx"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -20,12 +20,12 @@ const zarExt = ".zar"
 // XXX Embedding the type and field names like this can result in some clunky
 // file names. We might want to re-work the naming scheme.
 
-func typeZdxName(t zng.Type) string {
-	return "zdx-type-" + t.String() + ".zng"
+func typeMicroIndexName(t zng.Type) string {
+	return "microindex-type-" + t.String() + ".zng"
 }
 
-func fieldZdxName(fieldname string) string {
-	return "zdx-field-" + fieldname + ".zng"
+func fieldMicroIndexName(fieldname string) string {
+	return "microindex-field-" + fieldname + ".zng"
 }
 
 func IndexDirTree(ctx context.Context, ark *Archive, rules []Rule, path string, progress chan<- string) error {
@@ -79,7 +79,7 @@ func run(ctx context.Context, zardir iosrc.URI, rules []Rule, logPath iosrc.URI,
 
 type FlowgraphIndexer struct {
 	zctx    *resolver.Context
-	w       *zdx.Writer
+	w       *microindex.Writer
 	keyType zng.Type
 	cutter  *proc.Cutter
 }
@@ -88,7 +88,7 @@ func NewFlowgraphIndexer(zctx *resolver.Context, uri iosrc.URI, keys []string, f
 	if len(keys) == 0 {
 		keys = []string{keyName}
 	}
-	writer, err := zdx.NewWriter(zctx, uri.String(), keys, framesize)
+	writer, err := microindex.NewWriter(zctx, uri.String(), keys, framesize)
 	if err != nil {
 		return nil, err
 	}
