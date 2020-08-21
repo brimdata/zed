@@ -330,6 +330,6 @@ func (c *Command) runMemProfile() {
 		log.Fatal(err)
 	}
 	runtime.GC()
-	pprof.WriteHeapProfile(f)
+	pprof.Lookup("allocs").WriteTo(f, 0)
 	f.Close()
 }
