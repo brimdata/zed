@@ -1,5 +1,5 @@
 script: |
-  zdx create -f 1000000000 -o index.zng -k a in.tzng
+  microindex create -f 1000000000 -o index.zng -k a in.tzng
 
 inputs:
   - name: in.tzng
