@@ -93,11 +93,10 @@ each chunk; that's done with a command called "zar map". This invocation of zar
 traverses the archive, applies a query to each log file, and writes the output
 to either stdout, or to a new file in the chunk's directory.
 
-Here's an example using the same "count()" query as before. The special file
-name "_" means it should apply the query to each chunk file:
+Here's an example using the same "count()" query as before:
 
 ```
-zar map "count()" _ | zq -f table -
+zar map "count()" | zq -f table -
 ```
 which results in:
 ```
@@ -110,7 +109,7 @@ COUNT
 
 You could take the stream of event counts and sum them to get a total:
 ```
-zar map "count()" _ | zq -f text "sum(count)" -
+zar map "count()" | zq -f text "sum(count)" -
 ```
 which should have the same result as
 ```
@@ -163,7 +162,7 @@ zar ls -l
 You will see all the indexes left behind. They are just zng files.
 If you want to see one, just look at it with zq, e.g.
 ```
-zq -t $ZAR_ROOT/20180324/1521912990.158766.zng.zar/zdx-type-ip.zng
+zq -t $ZAR_ROOT/20180324/1521912990.158766.zng.zar/microindex-type-ip.zng
 ```
 Now if you run "zar find", it will efficiently look through all the index files
 instead of the logs and run much faster...
@@ -221,7 +220,7 @@ Let's say instead of searching for what log chunk a value is in, we want to
 actually pull out the zng records that comprise the index.  This turns out
 to be really powerful in general, but to give you a taste here, you can say...
 ```
-zar find -z -x zdx-type-ip.zng 10.47.21.138 | zq -t -
+zar find -z -x microindex-type-ip.zng 10.47.21.138 | zq -t -
 ```
 where `-z` says to produce zng output instead of a path listing,
 and you'll get this...
@@ -266,7 +265,8 @@ zq -f table $ZAR_ROOT/20180324/1521911772.980384.zng.zar/custom.zng | head -10
 ```
 You can see the IPs, counts, and _path strings.
 
-At the bottom you'll also find a record describing the zdx layout. To see it:
+At the bottom you'll also find a record describing the microindex layout. To
+see it:
 
 ```
 zq -f table $ZAR_ROOT/20180324/1521911772.980384.zng.zar/custom.zng | tail -2
@@ -368,7 +368,7 @@ log data to perform the same query.
 
 But to double check here, you can run
 ```
-zar map id.orig_h=10.47.6.173 _ | zq -f text "sum(resp_bytes)" -
+zar map id.orig_h=10.47.6.173 | zq -f text "sum(resp_bytes)" -
 ```
 and you will get the same answer.
 
@@ -382,7 +382,7 @@ The classic map-reduce example is word count.  Let's do this example with
 the uri field in http logs.  First, we map each record that has a uri
 to a new record with that uri and a count of 1:
 ```
-zar map -o words.zng "uri != null | cut uri | put count=1" _
+zar map -o words.zng "uri != null | cut uri | put count=1"
 ```
 again you can look at one of the files...
 ```
@@ -429,8 +429,8 @@ run the following commands to a create a multi-key search index
 keyed by all unique instances of IP address pairs (in both directions)
 where each index includes a count of the occurrences.
 ```
-zar map -o forward.zng "id.orig_h != null | put from=id.orig_h,to=id.resp_h | count() by from,to" _
-zar map -o reverse.zng "id.orig_h != null | put from=id.resp_h,to=id.orig_h | count() by from,to" _
+zar map -o forward.zng "id.orig_h != null | put from=id.orig_h,to=id.resp_h | count() by from,to"
+zar map -o reverse.zng "id.orig_h != null | put from=id.resp_h,to=id.orig_h | count() by from,to"
 zar map -o directed-pairs.zng "count=sum(count) by from,to | sort from,to" forward.zng reverse.zng
 zar index -i directed-pairs.zng -o graph.zng -k from,to -z "*"
 ```
