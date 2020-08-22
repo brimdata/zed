@@ -409,11 +409,11 @@ func decomposable(rs []ast.Reducer) bool {
 	return true
 }
 
-// distributeFlowgraph takes a sequential proc AST and tries to
-// distribute it by splitting as much as possible of the sequence into
+// parallelizeFlowgraph takes a sequential proc AST and tries to
+// parallelize it by splitting as much as possible of the sequence into
 // N parallel branches. The boolean return argument indicates whether
 // distribution succeeded.
-func distributeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string, inputSortReversed bool) (*ast.SequentialProc, bool) {
+func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string, inputSortReversed bool) (*ast.SequentialProc, bool) {
 	for i := range seq.Procs {
 		switch p := seq.Procs[i].(type) {
 		case *ast.CutProc, *ast.FilterProc, *ast.PassProc, *ast.PutProc, *ast.RenameProc:
@@ -464,7 +464,7 @@ func distributeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string, 
 		}
 	}
 	// If we're here, the flowgraph is a chain of stateless
-	// procs. If inputs are sorted, we can distribute the entire
+	// procs. If inputs are sorted, we can parallelize the entire
 	// chain and do an ordered merge. Otherwise, no distribution.
 	if inputSortField == "" {
 		return seq, false
