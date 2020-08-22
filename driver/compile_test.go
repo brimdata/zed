@@ -219,12 +219,6 @@ func TestDistributeFlowgraph(t *testing.T) {
 		},
 		{
 			"* | cut x | countdistinct(x) by y | uniq",
-			"",
-			"* | cut x | countdistinct(x) by y | uniq",
-			"",
-		},
-		{
-			"* | cut x | countdistinct(x) by y | uniq",
 			"ts",
 			"(filter * | cut x; filter * | cut x) | countdistinct(x) by y | uniq",
 			"ts",

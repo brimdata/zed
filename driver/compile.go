@@ -422,9 +422,6 @@ func distributeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string, 
 			continue
 		case *ast.GroupByProc:
 			if !decomposable(p.Reducers) {
-				if inputSortField == "" {
-					return seq, false
-				}
 				return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
 			}
 			// We have a decomposable groupby and can split the flowgraph into branches that run up to and including a groupby,
