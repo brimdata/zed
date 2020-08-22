@@ -7,22 +7,26 @@ import (
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/proc/compiler"
+	"github.com/brimsec/zq/proc/merge"
+	"github.com/brimsec/zq/proc/orderedmerge"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 )
 
 type parallelHead struct {
-	proc.Base
-	once sync.Once
-	pg   *parallelGroup
+	ctx    *proc.Context
+	parent proc.Interface
+	once   sync.Once
+	pg     *parallelGroup
 
 	mu sync.Mutex // protects below
 	sc ScannerCloser
 }
 
 func (ph *parallelHead) closeOnDone() {
-	<-ph.Context.Done()
+	<-ph.ctx.Done()
 	ph.mu.Lock()
 	if ph.sc != nil {
 		ph.sc.Close()
@@ -66,6 +70,13 @@ func (ph *parallelHead) Pull() (zbuf.Batch, error) {
 		}
 		return batch, err
 	}
+}
+
+func (ph *parallelHead) Done() {
+	//XXX need to do something here... this happens when the scanner
+	// hasn't finished but the flowgraph is done (e.g., tail).
+	// I don't think this worked right prior to this refactor.
+	// OR maybe this is ok because tail returns EOS then context is canceled?
 }
 
 type parallelGroup struct {
@@ -177,7 +188,7 @@ func pscanAnalyze(program ast.Proc) (*pgSetup, ast.Proc, error) {
 // XXX(alfred): This function is a temporary placeholder for a future
 // AST transformation that will determine what portions of a query may
 // safely happen concurrently as sources are read from a MultiSource.
-func createParallelGroup(pctx *proc.Context, pgn *pgSetup, msrc MultiSource, mcfg MultiConfig) (proc.Proc, *parallelGroup, error) {
+func createParallelGroup(pctx *proc.Context, pgn *pgSetup, msrc MultiSource, mcfg MultiConfig) (proc.Interface, *parallelGroup, error) {
 	pg := &parallelGroup{
 		filter: SourceFilter{
 			Filter:     pgn.filter,
@@ -190,10 +201,10 @@ func createParallelGroup(pctx *proc.Context, pgn *pgSetup, msrc MultiSource, mcf
 		scanners:   make(map[scanner.Scanner]struct{}),
 	}
 
-	chains := make([]proc.Proc, mcfg.Parallelism)
+	chains := make([]proc.Interface, mcfg.Parallelism)
 	for i := range chains {
-		head := &parallelHead{Base: proc.Base{Context: pctx}, pg: pg}
-		p, err := proc.CompileProc(mcfg.Custom, pgn.chain, pctx, []proc.Proc{head})
+		head := &parallelHead{ctx: pctx, parent: nil, pg: pg}
+		p, err := compiler.Compile(mcfg.Custom, pgn.chain, pctx, []proc.Interface{head})
 		if err != nil {
 			return nil, nil, err
 		}
@@ -205,7 +216,7 @@ func createParallelGroup(pctx *proc.Context, pgn *pgSetup, msrc MultiSource, mcf
 
 	sortField, reversed := msrc.OrderInfo()
 	if sortField == "" {
-		return proc.NewMerge(pctx, chains), pg, nil
+		return merge.New(pctx, chains), pg, nil
 	}
-	return proc.NewOrderedMerge(pctx, chains, sortField, reversed), pg, nil
+	return orderedmerge.New(pctx, chains, sortField, reversed), pg, nil
 }

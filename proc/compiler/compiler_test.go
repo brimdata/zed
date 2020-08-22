@@ -1,4 +1,4 @@
-package proc_test
+package compiler_test
 
 import (
 	"bytes"
@@ -9,13 +9,32 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/proc/compiler"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/tzngio"
+	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// recordPuller is a proc.Proc whose Pull method returns one batch for each
+// record of a zbuf.Reader.  XXX move this into proctest
+type recordPuller struct {
+	proc.Parent
+	r zbuf.Reader
+}
+
+func (rp *recordPuller) Pull() (zbuf.Batch, error) {
+	for {
+		rec, err := rp.r.Read()
+		if rec == nil || err != nil {
+			return nil, err
+		}
+		return zbuf.NewArray([]*zng.Record{rec}), nil
+	}
+}
 
 func TestCompileParents(t *testing.T) {
 	input := `
@@ -29,10 +48,10 @@ func TestCompileParents(t *testing.T) {
 `
 	zctx := resolver.NewContext()
 	pctx := &proc.Context{Context: context.Background(), TypeContext: zctx}
-	var sources []proc.Proc
+	var sources []proc.Interface
 	for i := 0; i < 2; i++ {
 		r := tzngio.NewReader(bytes.NewReader([]byte(input)), zctx)
-		sources = append(sources, &recordPuller{Base: proc.Base{Context: pctx}, r: r})
+		sources = append(sources, &recordPuller{r: r})
 	}
 	t.Run("read two sources", func(t *testing.T) {
 		query, err := zql.ParseProc("(filter *; filter *) | filter *")
@@ -42,7 +61,7 @@ func TestCompileParents(t *testing.T) {
 		// if the proc started with a parallel graph.
 		query.(*ast.SequentialProc).Procs = query.(*ast.SequentialProc).Procs[1:]
 
-		leaves, err := proc.CompileProc(nil, query, pctx, sources)
+		leaves, err := compiler.Compile(nil, query, pctx, sources)
 		require.NoError(t, err)
 
 		var sb strings.Builder
@@ -57,14 +76,14 @@ func TestCompileParents(t *testing.T) {
 
 		query.(*ast.SequentialProc).Procs = query.(*ast.SequentialProc).Procs[1:]
 
-		_, err = proc.CompileProc(nil, query, pctx, sources)
+		_, err = compiler.Compile(nil, query, pctx, sources)
 		require.Error(t, err)
 	})
 
 	t.Run("too many parents", func(t *testing.T) {
 		query, err := zql.ParseProc("* | (filter *; filter *) | filter *")
 		require.NoError(t, err)
-		_, err = proc.CompileProc(nil, query, pctx, sources)
+		_, err = compiler.Compile(nil, query, pctx, sources)
 		require.Error(t, err)
 	})
 }

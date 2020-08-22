@@ -1,23 +1,27 @@
-package proc
+package filter
 
 import (
 	"github.com/brimsec/zq/filter"
+	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 )
 
-type Filter struct {
-	Base
+type Proc struct {
+	proc.Parent
 	filter.Filter
 }
 
-func NewFilter(c *Context, parent Proc, f filter.Filter) *Filter {
-	return &Filter{Base{Context: c, Parent: parent}, f}
+func New(parent proc.Interface, f filter.Filter) *Proc {
+	return &Proc{
+		Parent: proc.Parent{parent},
+		Filter: f,
+	}
 }
 
-func (f *Filter) Pull() (zbuf.Batch, error) {
-	batch, err := f.Get()
-	if EOS(batch, err) {
+func (f *Proc) Pull() (zbuf.Batch, error) {
+	batch, err := f.Parent.Pull()
+	if proc.EOS(batch, err) {
 		return nil, err
 	}
 	defer batch.Unref()

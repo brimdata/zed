@@ -1,8 +1,9 @@
-package proc
+package put
 
 import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
@@ -17,7 +18,8 @@ import (
 // or appends a value as a new column.  Appended values appear as new
 // columns in the order that the clause appears in the put expression.
 type Put struct {
-	Base
+	proc.Parent
+	ctx     *proc.Context
 	clauses []clause
 	// vals is a fixed array to avoid re-allocating for every record
 	vals   []zng.Value
@@ -53,7 +55,7 @@ type clause struct {
 	eval   expr.ExpressionEvaluator
 }
 
-func CompilePutProc(c *Context, parent Proc, node *ast.PutProc) (*Put, error) {
+func New(ctx *proc.Context, parent proc.Interface, node *ast.PutProc) (*Proc, error) {
 	clauses := make([]clause, len(node.Clauses))
 	for k, cl := range node.Clauses {
 		var err error
@@ -63,8 +65,9 @@ func CompilePutProc(c *Context, parent Proc, node *ast.PutProc) (*Put, error) {
 			return nil, err
 		}
 	}
-	return &Put{
-		Base:    Base{Context: c, Parent: parent},
+	return &Proc{
+		Parent:  proc.Parent{parent},
+		ctx:     ctx,
 		clauses: clauses,
 		vals:    make([]zng.Value, len(node.Clauses)),
 		rules:   make(map[int]*putRule),
@@ -72,11 +75,11 @@ func CompilePutProc(c *Context, parent Proc, node *ast.PutProc) (*Put, error) {
 	}, nil
 }
 
-func (p *Put) maybeWarn(err error) {
+func (p *Proc) maybeWarn(err error) {
 	s := err.Error()
 	_, alreadyWarned := p.warned[s]
 	if !alreadyWarned {
-		p.Warnings <- s
+		p.ctx.Warnings <- s
 		p.warned[s] = struct{}{}
 	}
 }
@@ -201,9 +204,9 @@ func (p *Put) put(in *zng.Record) *zng.Record {
 	return zng.NewRecord(rule.typ, bytes)
 }
 
-func (p *Put) Pull() (zbuf.Batch, error) {
-	batch, err := p.Get()
-	if EOS(batch, err) {
+func (p *Proc) Pull() (zbuf.Batch, error) {
+	batch, err := p.Parent.Pull()
+	if proc.EOS(batch, err) {
 		return nil, err
 	}
 	recs := make([]*zng.Record, 0, batch.Length())

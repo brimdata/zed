@@ -1,4 +1,4 @@
-package proc_test
+package sort_test
 
 import (
 	"fmt"
@@ -7,7 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/proc/proctest"
+	sortproc "github.com/brimsec/zq/proc/sort"
 	"github.com/brimsec/zq/ztest"
 )
 
@@ -135,16 +136,16 @@ const chooseOut3 = `
 
 func TestSort(t *testing.T) {
 	// Test simple sorting of integers.
-	proc.TestOneProc(t, unsortedInts, ascendingInts, "sort foo")
+	proctest.TestOneProc(t, unsortedInts, ascendingInts, "sort foo")
 
 	// Test sorting ints in reverse.
-	proc.TestOneProc(t, unsortedInts, descendingInts, "sort -r foo")
+	proctest.TestOneProc(t, unsortedInts, descendingInts, "sort -r foo")
 
 	// Test sorting strings.
-	proc.TestOneProc(t, unsortedStrings, sortedStrings, "sort foo")
+	proctest.TestOneProc(t, unsortedStrings, sortedStrings, "sort foo")
 
 	// Test that unset values are sorted to the end
-	proc.TestOneProc(t, unsortedInts+unsetInt, ascendingInts+unsetInt, "sort foo")
+	proctest.TestOneProc(t, unsortedInts+unsetInt, ascendingInts+unsetInt, "sort foo")
 
 	// Test sorting records that don't all have the requested field.
 	// XXX sort.Stable() is apparently re-ordering the nofoo records?
@@ -155,26 +156,26 @@ func TestSort(t *testing.T) {
 	// Test sorting records with different types.
 	const mixedTypesIn = unsortedStrings + unsortedInts
 	const mixedTypesOut = ascendingInts + sortedStrings
-	proc.TestOneProc(t, mixedTypesIn, mixedTypesOut, "sort foo")
+	proctest.TestOneProc(t, mixedTypesIn, mixedTypesOut, "sort foo")
 
 	// Test sorting on multiple fields.
-	proc.TestOneProc(t, multiIn, foobarOut, "sort foo, bar")
-	proc.TestOneProc(t, multiIn, barfooOut, "sort bar, foo")
+	proctest.TestOneProc(t, multiIn, foobarOut, "sort foo, bar")
+	proctest.TestOneProc(t, multiIn, barfooOut, "sort bar, foo")
 
 	// Test that choosing a field when none is provided works.
-	proc.TestOneProc(t, chooseIn1, chooseOut1, "sort")
-	proc.TestOneProc(t, chooseIn2, chooseOut2, "sort")
-	proc.TestOneProc(t, chooseIn3, chooseOut3, "sort")
+	proctest.TestOneProc(t, chooseIn1, chooseOut1, "sort")
+	proctest.TestOneProc(t, chooseIn2, chooseOut2, "sort")
+	proctest.TestOneProc(t, chooseIn3, chooseOut3, "sort")
 
 	const warning = "Sort field bar not present in input"
-	proc.TestOneProcWithWarnings(t, unsortedInts, ascendingInts, []string{warning}, "sort foo, bar")
+	proctest.TestOneProcWithWarnings(t, unsortedInts, ascendingInts, []string{warning}, "sort foo, bar")
 }
 
 func TestSortExternal(t *testing.T) {
-	saved := proc.SortMemMaxBytes
-	proc.SortMemMaxBytes = 1024
+	saved := sortproc.MemMaxBytes
+	sortproc.MemMaxBytes = 1024
 	defer func() {
-		proc.SortMemMaxBytes = saved
+		sortproc.MemMaxBytes = saved
 	}()
 
 	makeTzng := func(ss []string) string {
@@ -189,7 +190,7 @@ func TestSortExternal(t *testing.T) {
 	// Create enough strings to exceed 2 * proc.SortMemMaxBytes.
 	var n int
 	var ss []string
-	for n <= 2*proc.SortMemMaxBytes {
+	for n <= 2*sortproc.MemMaxBytes {
 		s := fmt.Sprintf("%016x", rand.Uint64())
 		n += len(s)
 		ss = append(ss, s)

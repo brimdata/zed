@@ -9,7 +9,7 @@ import (
 
 	"github.com/brimsec/zq/pkg/bufwriter"
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/proc/cut"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
@@ -49,7 +49,7 @@ type Writer struct {
 	keyFields   []string
 	zctx        *resolver.Context
 	writer      *indexWriter
-	cutter      *proc.Cutter
+	cutter      *cut.Cutter
 	tmpdir      string
 	frameThresh int
 	keyType     *zng.TypeRecord
@@ -101,7 +101,7 @@ func NewWriter(zctx *resolver.Context, path string, keyFields []string, frameThr
 	w := &Writer{
 		zctx:        zctx,
 		uri:         uri,
-		cutter:      proc.NewStrictCutter(zctx, false, keyFields, keyFields),
+		cutter:      cut.NewStrictCutter(zctx, false, keyFields, keyFields),
 		tmpdir:      tmp,
 		keyFields:   keyFields,
 		frameThresh: frameThresh,

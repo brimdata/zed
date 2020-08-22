@@ -1,4 +1,4 @@
-package proc
+package sort
 
 import (
 	"bufio"
@@ -14,6 +14,7 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/pkg/fs"
+	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/zngio"
@@ -21,48 +22,50 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-// SortMemMaxBytes specifies the maximum amount of memory that each sort proc
+// MemMaxBytes specifies the maximum amount of memory that each sort proc
 // will consume.
-var SortMemMaxBytes = 128 * 1024 * 1024
+var MemMaxBytes = 128 * 1024 * 1024
 
-type Sort struct {
-	Base
+type Proc struct {
+	proc.Parent
+	ctx        *proc.Context
 	dir        int
 	nullsFirst bool
 	fields     []ast.FieldExpr
 
 	fieldResolvers     []expr.FieldExprResolver
 	once               sync.Once
-	resultCh           chan Result
+	resultCh           chan proc.Result
 	compareFn          expr.CompareFn
 	unseenFieldTracker *unseenFieldTracker
 }
 
-func CompileSortProc(c *Context, parent Proc, node *ast.SortProc) (*Sort, error) {
+func New(ctx *proc.Context, parent proc.Interface, node *ast.SortProc) (*Proc, error) {
 	fieldResolvers, err := expr.CompileFieldExprs(node.Fields)
 	if err != nil {
 		return nil, err
 	}
-	return &Sort{
-		Base:               Base{Context: c, Parent: parent},
+	return &Proc{
+		Parent:             proc.Parent{parent},
+		ctx:                ctx,
 		dir:                node.SortDir,
 		nullsFirst:         node.NullsFirst,
 		fields:             node.Fields,
 		fieldResolvers:     fieldResolvers,
-		resultCh:           make(chan Result),
+		resultCh:           make(chan proc.Result),
 		unseenFieldTracker: newUnseenFieldTracker(node.Fields, fieldResolvers),
 	}, nil
 }
 
-func (s *Sort) Pull() (zbuf.Batch, error) {
+func (s *Proc) Pull() (zbuf.Batch, error) {
 	s.once.Do(func() { go s.sortLoop() })
 	if r, ok := <-s.resultCh; ok {
 		return r.Batch, r.Err
 	}
-	return nil, s.Context.Err()
+	return nil, s.ctx.Err()
 }
 
-func (s *Sort) sortLoop() {
+func (s *Proc) sortLoop() {
 	defer close(s.resultCh)
 	firstRunRecs, eof, err := s.recordsForOneRun()
 	if err != nil || len(firstRunRecs) == 0 {
@@ -84,9 +87,9 @@ func (s *Sort) sortLoop() {
 		s.sendResult(nil, err)
 		return
 	}
-	defer runManager.cleanup()
+	defer runManager.Cleanup()
 	s.warnAboutUnseenFields()
-	for s.Context.Err() == nil {
+	for s.ctx.Err() == nil {
 		// Reading from runManager merges the runs.
 		b, err := zbuf.ReadBatch(runManager, 100)
 		s.sendResult(b, err)
@@ -96,18 +99,18 @@ func (s *Sort) sortLoop() {
 	}
 }
 
-func (s *Sort) sendResult(b zbuf.Batch, err error) {
+func (s *Proc) sendResult(b zbuf.Batch, err error) {
 	select {
-	case s.resultCh <- Result{Batch: b, Err: err}:
-	case <-s.Context.Done():
+	case s.resultCh <- proc.Result{Batch: b, Err: err}:
+	case <-s.ctx.Done():
 	}
 }
 
-func (s *Sort) recordsForOneRun() ([]*zng.Record, bool, error) {
+func (s *Proc) recordsForOneRun() ([]*zng.Record, bool, error) {
 	var nbytes int
 	var recs []*zng.Record
 	for {
-		batch, err := s.Get()
+		batch, err := s.Parent.Pull()
 		if err != nil {
 			return nil, false, err
 		}
@@ -123,30 +126,30 @@ func (s *Sort) recordsForOneRun() ([]*zng.Record, bool, error) {
 			recs = append(recs, rec)
 		}
 		batch.Unref()
-		if nbytes >= SortMemMaxBytes {
+		if nbytes >= MemMaxBytes {
 			return recs, false, nil
 		}
 	}
 }
 
-func (s *Sort) createRuns(firstRunRecs []*zng.Record) (*runManager, error) {
-	rm, err := newRunManager(s.compareFn)
+func (s *Proc) createRuns(firstRunRecs []*zng.Record) (*RunManager, error) {
+	rm, err := NewRunManager(s.compareFn)
 	if err != nil {
 		return nil, err
 	}
-	if err := rm.createRun(firstRunRecs); err != nil {
-		rm.cleanup()
+	if err := rm.CreateRun(firstRunRecs); err != nil {
+		rm.Cleanup()
 		return nil, err
 	}
 	for {
 		recs, eof, err := s.recordsForOneRun()
 		if err != nil {
-			rm.cleanup()
+			rm.Cleanup()
 			return nil, err
 		}
 		if recs != nil {
-			if err := rm.createRun(recs); err != nil {
-				rm.cleanup()
+			if err := rm.CreateRun(recs); err != nil {
+				rm.Cleanup()
 				return nil, err
 			}
 		}
@@ -156,16 +159,16 @@ func (s *Sort) createRuns(firstRunRecs []*zng.Record) (*runManager, error) {
 	}
 }
 
-func (s *Sort) warnAboutUnseenFields() {
+func (s *Proc) warnAboutUnseenFields() {
 	for _, f := range s.unseenFieldTracker.unseen() {
-		s.Warnings <- fmt.Sprintf("Sort field %s not present in input", expr.FieldExprToString(f))
+		s.ctx.Warnings <- fmt.Sprintf("Sort field %s not present in input", expr.FieldExprToString(f))
 	}
 }
 
-func (s *Sort) setCompareFn(r *zng.Record) {
+func (s *Proc) setCompareFn(r *zng.Record) {
 	resolvers := s.fieldResolvers
 	if resolvers == nil {
-		fld := guessSortField(r)
+		fld := GuessSortKey(r)
 		resolver := func(r *zng.Record) zng.Value {
 			e, err := r.Access(fld)
 			if err != nil {
@@ -216,7 +219,7 @@ var intTypes = []zng.Type{
 	zng.TypeUint64,
 }
 
-func guessSortField(rec *zng.Record) string {
+func GuessSortKey(rec *zng.Record) string {
 	typ := rec.Type
 	if fld := firstOf(typ, intTypes); fld != "" {
 		return fld
@@ -231,7 +234,7 @@ func guessSortField(rec *zng.Record) string {
 }
 
 // runManager manages runs (files of sorted records).
-type runManager struct {
+type RunManager struct {
 	runs       []*runFile
 	runIndices map[*runFile]int
 	compareFn  expr.CompareFn
@@ -239,13 +242,13 @@ type runManager struct {
 	zctx       *resolver.Context
 }
 
-// newRunManager creates a temporary directory.  Call cleanup to remove it.
-func newRunManager(compareFn expr.CompareFn) (*runManager, error) {
+// NewRunManager creates a temporary directory.  Call Cleanup to remove it.
+func NewRunManager(compareFn expr.CompareFn) (*RunManager, error) {
 	tempDir, err := ioutil.TempDir("", "zq-sort-")
 	if err != nil {
 		return nil, err
 	}
-	return &runManager{
+	return &RunManager{
 		runIndices: make(map[*runFile]int),
 		compareFn:  compareFn,
 		tempDir:    tempDir,
@@ -253,15 +256,15 @@ func newRunManager(compareFn expr.CompareFn) (*runManager, error) {
 	}, nil
 }
 
-func (r *runManager) cleanup() {
+func (r *RunManager) Cleanup() {
 	for _, run := range r.runs {
 		run.closeAndRemove()
 	}
 	os.RemoveAll(r.tempDir)
 }
 
-// createRun creates a new run containing the records in recs.
-func (r *runManager) createRun(recs []*zng.Record) error {
+// CreateRun creates a new run containing the records in recs.
+func (r *RunManager) CreateRun(recs []*zng.Record) error {
 	expr.SortStable(recs, r.compareFn)
 	index := len(r.runIndices)
 	filename := filepath.Join(r.tempDir, strconv.Itoa(index))
@@ -276,7 +279,7 @@ func (r *runManager) createRun(recs []*zng.Record) error {
 
 // Peek returns the next record without advancing the reader.  The record stops
 // being valid at the next read call.
-func (r *runManager) Peek() (*zng.Record, error) {
+func (r *RunManager) Peek() (*zng.Record, error) {
 	if r.Len() == 0 {
 		return nil, nil
 	}
@@ -285,7 +288,7 @@ func (r *runManager) Peek() (*zng.Record, error) {
 
 // Read returns the smallest record (per Less) from among the next records in
 // each run.  It implements the merge operation for an external merge sort.
-func (r *runManager) Read() (*zng.Record, error) {
+func (r *RunManager) Read() (*zng.Record, error) {
 	for {
 		if r.Len() == 0 {
 			return nil, nil
@@ -306,9 +309,9 @@ func (r *runManager) Read() (*zng.Record, error) {
 	}
 }
 
-func (r *runManager) Len() int { return len(r.runs) }
+func (r *RunManager) Len() int { return len(r.runs) }
 
-func (r *runManager) Less(i, j int) bool {
+func (r *RunManager) Less(i, j int) bool {
 	v := r.compareFn(r.runs[i].nextRecord, r.runs[j].nextRecord)
 	switch {
 	case v < 0:
@@ -321,11 +324,11 @@ func (r *runManager) Less(i, j int) bool {
 	}
 }
 
-func (r *runManager) Swap(i, j int) { r.runs[i], r.runs[j] = r.runs[j], r.runs[i] }
+func (r *RunManager) Swap(i, j int) { r.runs[i], r.runs[j] = r.runs[j], r.runs[i] }
 
-func (r *runManager) Push(x interface{}) { r.runs = append(r.runs, x.(*runFile)) }
+func (r *RunManager) Push(x interface{}) { r.runs = append(r.runs, x.(*runFile)) }
 
-func (r *runManager) Pop() interface{} {
+func (r *RunManager) Pop() interface{} {
 	x := r.runs[len(r.runs)-1]
 	r.runs = r.runs[:len(r.runs)-1]
 	return x

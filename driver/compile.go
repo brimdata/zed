@@ -11,6 +11,7 @@ import (
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/proc/compiler"
 	"github.com/brimsec/zq/reducer"
 	rcompile "github.com/brimsec/zq/reducer/compile"
 	"github.com/brimsec/zq/zng/resolver"
@@ -18,7 +19,7 @@ import (
 )
 
 type Config struct {
-	Custom            proc.Compiler
+	Custom            compiler.Hook
 	Logger            *zap.Logger
 	ReaderSortKey     string
 	ReaderSortReverse bool
@@ -64,7 +65,7 @@ func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc
 		return nil, err
 	}
 
-	leaves, err := proc.CompileProc(mcfg.Custom, program, pctx, []proc.Proc{mergeProc})
+	leaves, err := compiler.Compile(mcfg.Custom, program, pctx, []proc.Interface{mergeProc})
 	if err != nil {
 		return nil, err
 	}

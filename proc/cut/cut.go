@@ -1,16 +1,18 @@
-package proc
+package cut
 
 import (
 	"fmt"
 	"strings"
 
 	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 )
 
-type Cut struct {
-	Base
+type Proc struct {
+	proc.Parent
+	ctx        *proc.Context
 	complement bool
 	fieldnames []string
 	cutter     *Cutter
@@ -24,7 +26,7 @@ type Cut struct {
 // so the output record can be constructed efficiently, though we don't
 // do this now since it might confuse users who expect to see output
 // fields in the order they specified.
-func CompileCutProc(c *Context, parent Proc, node *ast.CutProc) (*Cut, error) {
+func New(ctx *proc.Context, parent proc.Interface, node *ast.CutProc) (*Proc, error) {
 	var fieldnames, targets []string
 	for _, fa := range node.Fields {
 		if fa.Target == "" {
@@ -35,21 +37,22 @@ func CompileCutProc(c *Context, parent Proc, node *ast.CutProc) (*Cut, error) {
 	}
 	// build this once at compile time for error checking.
 	if !node.Complement {
-		_, err := NewColumnBuilder(c.TypeContext, targets)
+		_, err := proc.NewColumnBuilder(ctx.TypeContext, targets)
 		if err != nil {
 			return nil, fmt.Errorf("compiling cut: %w", err)
 		}
 	}
 
-	return &Cut{
-		Base:       Base{Context: c, Parent: parent},
+	return &Proc{
+		Parent:     proc.Parent{parent},
+		ctx:        ctx,
 		complement: node.Complement,
 		fieldnames: fieldnames,
-		cutter:     NewCutter(c.TypeContext, node.Complement, targets, fieldnames),
+		cutter:     NewCutter(ctx.TypeContext, node.Complement, targets, fieldnames),
 	}, nil
 }
 
-func (c *Cut) maybeWarn() {
+func (c *Proc) maybeWarn() {
 	if c.complement || c.cutter.FoundCut() {
 		return
 	}
@@ -59,13 +62,13 @@ func (c *Cut) maybeWarn() {
 	} else {
 		msg = fmt.Sprintf("Cut fields %s not present together in input", strings.Join(c.fieldnames, ","))
 	}
-	c.Warnings <- msg
+	c.ctx.Warnings <- msg
 }
 
-func (c *Cut) Pull() (zbuf.Batch, error) {
+func (c *Proc) Pull() (zbuf.Batch, error) {
 	for {
-		batch, err := c.Get()
-		if EOS(batch, err) {
+		batch, err := c.Parent.Pull()
+		if proc.EOS(batch, err) {
 			c.maybeWarn()
 			return nil, err
 		}

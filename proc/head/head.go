@@ -1,26 +1,30 @@
-package proc
+package head
 
 import (
+	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 )
 
-type Head struct {
-	Base
+type Proc struct {
+	proc.Parent
 	limit, count int
 }
 
-func NewHead(c *Context, parent Proc, limit int) *Head {
-	return &Head{Base{Context: c, Parent: parent}, limit, 0}
+func New(parent proc.Interface, limit int) *Proc {
+	return &Proc{
+		Parent: proc.Parent{parent},
+		limit:  limit,
+	}
 }
 
-func (h *Head) Pull() (zbuf.Batch, error) {
+func (h *Proc) Pull() (zbuf.Batch, error) {
 	remaining := h.limit - h.count
 	if remaining <= 0 {
 		return nil, nil
 	}
-	batch, err := h.Get()
-	if EOS(batch, err) {
+	batch, err := h.Parent.Pull()
+	if proc.EOS(batch, err) {
 		return nil, err
 	}
 	n := batch.Length()
