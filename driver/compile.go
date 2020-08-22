@@ -2,6 +2,7 @@ package driver
 
 import (
 	"context"
+	"encoding/json"
 	"runtime"
 	"strconv"
 	"time"
@@ -10,6 +11,8 @@ import (
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/reducer"
+	rcompile "github.com/brimsec/zq/reducer/compile"
 	"github.com/brimsec/zq/zng/resolver"
 	"go.uber.org/zap"
 )
@@ -356,4 +359,119 @@ func computeColumnsR(p ast.Proc, colset map[string]struct{}) (map[string]struct{
 	default:
 		panic("proc type not handled")
 	}
+}
+
+func copyProcs(ps []ast.Proc) []ast.Proc {
+	var copies []ast.Proc
+	for _, p := range ps {
+		b, err := json.Marshal(p)
+		if err != nil {
+			panic(err)
+		}
+		proc, err := ast.UnpackJSON(nil, b)
+		if err != nil {
+			panic(err)
+		}
+		copies = append(copies, proc)
+	}
+	return copies
+}
+
+func buildSplitFlowgraph(branch, tail []ast.Proc, mergeField string, reverse bool, N int) *ast.SequentialProc {
+	pp := &ast.ParallelProc{
+		Node:              ast.Node{"ParallelProc"},
+		Procs:             []ast.Proc{},
+		MergeOrderField:   mergeField,
+		MergeOrderReverse: reverse,
+	}
+	for i := 0; i < N; i++ {
+		pp.Procs = append(pp.Procs, &ast.SequentialProc{
+			Node:  ast.Node{"SequentialProc"},
+			Procs: copyProcs(branch),
+		})
+	}
+	return &ast.SequentialProc{
+		Node:  ast.Node{"SequentialProc"},
+		Procs: append([]ast.Proc{pp}, tail...),
+	}
+}
+
+func decomposable(rs []ast.Reducer) bool {
+	for _, r := range rs {
+		cr, err := rcompile.Compile(r)
+		if err != nil {
+			return false
+		}
+		if _, ok := cr.Instantiate().(reducer.Decomposable); !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// parallelizeFlowgraph takes a sequential proc AST and tries to
+// parallelize it by splitting as much as possible of the sequence into
+// N parallel branches. The boolean return argument indicates whether
+// distribution succeeded.
+func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string, inputSortReversed bool) (*ast.SequentialProc, bool) {
+	for i := range seq.Procs {
+		switch p := seq.Procs[i].(type) {
+		case *ast.CutProc, *ast.FilterProc, *ast.PassProc, *ast.PutProc, *ast.RenameProc:
+			// Stateless procs: continue until we reach one of the procs below at
+			// which point we'll either split the flowgraph or see we can't and return it as-is.
+			continue
+		case *ast.GroupByProc:
+			if !decomposable(p.Reducers) {
+				return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
+			}
+			// We have a decomposable groupby and can split the flowgraph into branches that run up to and including a groupby,
+			// followed by a post-merge groupby that composes the results.
+			var mergeField string
+			if p.Duration.Seconds != 0 {
+				// Group by time requires a time-ordered merge, irrespective of any upstream ordering.
+				mergeField = "ts"
+			}
+			branch := copyProcs(seq.Procs[0 : i+1])
+			branch[len(branch)-1].(*ast.GroupByProc).EmitPart = true
+
+			composerGroupBy := copyProcs([]ast.Proc{p})[0].(*ast.GroupByProc)
+			composerGroupBy.ConsumePart = true
+
+			return buildSplitFlowgraph(branch, append([]ast.Proc{composerGroupBy}, seq.Procs[i+1:]...), mergeField, false, N), true
+		case *ast.SortProc:
+			dir := map[int]bool{-1: true, 1: false}[p.SortDir]
+			if len(p.Fields) == 1 {
+				// Single sort field: we can sort in each parallel branch, and then do an ordered merge.
+				mergeField := expr.FieldExprToString(p.Fields[0])
+				return buildSplitFlowgraph(seq.Procs[0:i+1], seq.Procs[i+1:], mergeField, dir, N), true
+			} else {
+				// Unknown or multiple sort fields: we sort after the merge point, which can be unordered.
+				return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], "", dir, N), true
+			}
+		case *ast.ParallelProc:
+			return seq, false
+		case *ast.UniqProc, *ast.HeadProc, *ast.TailProc:
+			if inputSortField == "" {
+				// Unknown order: we can't parallelize because we can't maintain this unknown order at the merge point.
+				return seq, false
+			}
+			// Split all the upstream procs into parallel branches, then merge and continue with this and any remaining procs.
+			return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
+		case *ast.SequentialProc:
+			return seq, false
+		default:
+			panic("proc type not handled")
+		}
+	}
+	// If we're here, the flowgraph is a chain of stateless
+	// procs. If inputs are sorted, we can parallelize the entire
+	// chain and do an ordered merge. Otherwise, no distribution.
+	if inputSortField == "" {
+		return seq, false
+	}
+	// Insert a pass tail in order to force a merge of the
+	// parallel branches. (Trailing parallel branches are wired to
+	// a mux output).
+	pass := &ast.PassProc{Node: ast.Node{"PassProc"}}
+	return buildSplitFlowgraph(seq.Procs, []ast.Proc{pass}, inputSortField, inputSortReversed, N), true
 }

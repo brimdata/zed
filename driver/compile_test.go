@@ -179,3 +179,114 @@ func TestBooleanExpressionFields(t *testing.T) {
 		})
 	}
 }
+
+func TestParallelizeFlowgraph(t *testing.T) {
+	tests := []struct {
+		zql                     string
+		orderField              string
+		expected                string
+		expectedMergeOrderField string
+	}{
+		{
+			"* | uniq",
+			"ts",
+			"(filter *; filter *) | uniq",
+			"ts",
+		},
+		{
+			"* | cut x | uniq",
+			"ts",
+			"(filter * | cut x; filter * | cut x) | uniq",
+			"ts",
+		},
+		{
+			"* | cut x | put x=y | rename foo=boo",
+			"",
+			"* | cut x | put x=y | rename foo=boo",
+			"ts",
+		},
+		{
+			"* | sort x | uniq",
+			"ts",
+			"(filter * | sort x; filter * | sort x) | uniq",
+			"x",
+		},
+		{
+			"* | sort | uniq",
+			"ts",
+			"(filter *; filter *) | sort | uniq",
+			"",
+		},
+		{
+			"* | cut x | countdistinct(x) by y | uniq",
+			"ts",
+			"(filter * | cut x; filter * | cut x) | countdistinct(x) by y | uniq",
+			"ts",
+		},
+		{
+			"* | count() by y",
+			"ts",
+			"(filter * | count() by y; filter * | count() by y) | count() by y",
+			"",
+		},
+		{
+			"* | every 1h count() by y",
+			"",
+			"(filter * | every 1h count() by y; filter * | every 1h count() by y) | every 1h count() by y",
+			"ts",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.zql, func(t *testing.T) {
+			query, err := zql.ParseProc(tc.zql)
+			require.NoError(t, err)
+			parallelized, ok := parallelizeFlowgraph(query.(*ast.SequentialProc), 2, tc.orderField, false)
+			require.Equal(t, ok, tc.zql != tc.expected)
+
+			expected, err := zql.ParseProc(tc.expected)
+			require.NoError(t, err)
+			if _, ok := expected.(*ast.SequentialProc).Procs[1].(*ast.ParallelProc); ok {
+				// Remove the "filter *" that is pre-pended during parsing
+				// if the proc started with a parallel graph.
+				expected.(*ast.SequentialProc).Procs = expected.(*ast.SequentialProc).Procs[1:]
+
+				// If the parallelized flowgraph includes a groupby, then adjust the expected AST by setting
+				// the EmitPart flag on the parallelized groupbys and the ConsumePart flag on the post-merge groupby.
+				branch := expected.(*ast.SequentialProc).Procs[0].(*ast.ParallelProc).Procs[0].(*ast.SequentialProc)
+				if _, ok := branch.Procs[len(branch.Procs)-1].(*ast.GroupByProc); ok {
+					for _, b := range expected.(*ast.SequentialProc).Procs[0].(*ast.ParallelProc).Procs {
+						seq := b.(*ast.SequentialProc)
+						seq.Procs[len(seq.Procs)-1].(*ast.GroupByProc).EmitPart = true
+					}
+					g := expected.(*ast.SequentialProc).Procs[1].(*ast.GroupByProc)
+					g.ConsumePart = true
+				}
+			}
+			if tc.zql != tc.expected {
+				expected.(*ast.SequentialProc).Procs[0].(*ast.ParallelProc).MergeOrderField = tc.expectedMergeOrderField
+			}
+			assert.Equal(t, expected.(*ast.SequentialProc), parallelized)
+		})
+	}
+	// This needs a standalone test due to the presence of a pass
+	// proc in the transformed AST.
+	t.Run("* | cut x | put x=y | rename foo=boo", func(t *testing.T) {
+		orderField := "ts"
+		query := "* | cut x | put x=y | rename foo=boo"
+		dquery := "(filter * | cut x | put x=y | rename foo=boo; filter * | cut x | put x=y | rename foo=boo)"
+		program, err := zql.ParseProc(query)
+		require.NoError(t, err)
+		parallelized, ok := parallelizeFlowgraph(program.(*ast.SequentialProc), 2, orderField, false)
+		require.True(t, ok)
+
+		expected, err := zql.ParseProc(dquery)
+		require.NoError(t, err)
+
+		// We can't express a pass proc in zql, so add it to the AST this way.
+		// (It's added by the parallelized flowgraph in order to force a merge rather than having trailing leaves connected to a mux output).
+		expected.(*ast.SequentialProc).Procs = append(expected.(*ast.SequentialProc).Procs[1:], &ast.PassProc{Node: ast.Node{"PassProc"}})
+		expected.(*ast.SequentialProc).Procs[0].(*ast.ParallelProc).MergeOrderField = orderField
+
+		assert.Equal(t, expected.(*ast.SequentialProc), parallelized)
+	})
+}
