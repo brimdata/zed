@@ -1,9 +1,11 @@
-package proc
+package top
 
 import (
 	"container/heap"
 
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/proc/sort"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 )
@@ -15,8 +17,8 @@ const defaultTopLimit = 100
 // - It utilizes a MaxHeap, immediately discarding records that are not in
 // the top N of the sort.
 // - It has a hidden option (FlushEvery) to sort and emit on every batch.
-type Top struct {
-	Base
+type Proc struct {
+	proc.Parent
 	limit      int
 	fields     []expr.FieldExprResolver
 	records    *expr.RecordSlice
@@ -24,19 +26,19 @@ type Top struct {
 	flushEvery bool
 }
 
-func NewTop(c *Context, parent Proc, limit int, fields []expr.FieldExprResolver, flushEvery bool) *Top {
+func New(parent proc.Parent, limit int, fields []expr.FieldExprResolver, flushEvery bool) *Proc {
 	if limit == 0 {
 		limit = defaultTopLimit
 	}
-	return &Top{
-		Base:       Base{Context: c, Parent: parent},
+	return &Proc{
+		Parent:     parent,
 		limit:      limit,
 		fields:     fields,
 		flushEvery: flushEvery,
 	}
 }
 
-func (t *Top) Pull() (zbuf.Batch, error) {
+func (t *Proc) Pull() (zbuf.Batch, error) {
 	for {
 		batch, err := t.Get()
 		if err != nil {
@@ -55,9 +57,9 @@ func (t *Top) Pull() (zbuf.Batch, error) {
 	}
 }
 
-func (t *Top) consume(rec *zng.Record) {
+func (t *Proc) consume(rec *zng.Record) {
 	if t.fields == nil {
-		fld := guessSortField(rec)
+		fld := sort.GuessSortKey(rec)
 		resolver := func(r *zng.Record) zng.Value {
 			e, err := r.Access(fld)
 			if err != nil {
@@ -80,7 +82,7 @@ func (t *Top) consume(rec *zng.Record) {
 	}
 }
 
-func (t *Top) sorted() zbuf.Batch {
+func (t *Proc) sorted() zbuf.Batch {
 	if t.records == nil {
 		return nil
 	}

@@ -1,25 +1,29 @@
-package proc
+package uniq
 
 import (
 	"bytes"
 
+	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 	"go.uber.org/zap"
 )
 
-type Uniq struct {
-	Base
+type Proc struct {
+	proc.Parent
 	cflag bool
 	count uint64
 	last  *zng.Record
 }
 
-func NewUniq(c *Context, parent Proc, cflag bool) *Uniq {
-	return &Uniq{Base: Base{Context: c, Parent: parent}, cflag: cflag}
+func New(parent proc.Parent, cflag bool) *Proc {
+	return &Proc{
+		Parent: parent,
+		cflag:  cflag,
+	}
 }
 
-func (u *Uniq) wrap(t *zng.Record) *zng.Record {
+func (u *Proc) wrap(t *zng.Record) *zng.Record {
 	if u.cflag {
 		cols := []zng.Column{zng.NewColumn("_uniq", zng.TypeUint64)}
 		vals := []zng.Value{zng.NewUint64(u.count)}
@@ -33,7 +37,7 @@ func (u *Uniq) wrap(t *zng.Record) *zng.Record {
 	return t
 }
 
-func (u *Uniq) appendUniq(out []*zng.Record, t *zng.Record) []*zng.Record {
+func (u *Proc) appendUniq(out []*zng.Record, t *zng.Record) []*zng.Record {
 	if u.count == 0 {
 		u.last = t.Keep()
 		u.count = 1
@@ -50,7 +54,7 @@ func (u *Uniq) appendUniq(out []*zng.Record, t *zng.Record) []*zng.Record {
 
 // uniq is a little bit complicated because we have to check uniqueness
 // across records between calls to Pull.
-func (u *Uniq) Pull() (zbuf.Batch, error) {
+func (u *Proc) Pull() (zbuf.Batch, error) {
 	batch, err := u.Get()
 	if err != nil {
 		return nil, err

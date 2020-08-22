@@ -1,4 +1,4 @@
-package proc
+package groupby
 
 import (
 	"encoding/binary"
@@ -8,6 +8,8 @@ import (
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/proc/sort"
 	"github.com/brimsec/zq/reducer"
 	"github.com/brimsec/zq/reducer/compile"
 	"github.com/brimsec/zq/zbuf"
@@ -26,7 +28,7 @@ type GroupByParams struct {
 	limit        int
 	keys         []GroupByKey
 	reducers     []compile.CompiledReducer
-	builder      *ColumnBuilder
+	builder      *proc.ColumnBuilder
 	consumePart  bool
 	emitPart     bool
 }
@@ -44,7 +46,7 @@ func IsErrTooBig(err error) bool {
 
 var DefaultGroupByLimit = 1000000
 
-func CompileGroupBy(node *ast.GroupByProc, zctx *resolver.Context) (*GroupByParams, error) {
+func CompileParams(node *ast.GroupByProc, zctx *resolver.Context) (*GroupByParams, error) {
 	keys := make([]GroupByKey, 0)
 	var targets []string
 	for _, astKey := range node.Keys {
@@ -66,7 +68,7 @@ func CompileGroupBy(node *ast.GroupByProc, zctx *resolver.Context) (*GroupByPara
 		}
 		reducers = append(reducers, compiled)
 	}
-	builder, err := NewColumnBuilder(zctx, targets)
+	builder, err := proc.NewColumnBuilder(zctx, targets)
 	if err != nil {
 		return nil, fmt.Errorf("compiling groupby: %w", err)
 	}
@@ -98,12 +100,12 @@ func compileKeyExpr(ex ast.Expression) (expr.ExpressionEvaluator, error) {
 	return expr.CompileExpr(ex)
 }
 
-// GroupBy computes aggregations using a GroupByAggregator.
-type GroupBy struct {
-	Base
-	agg      *GroupByAggregator
+// GroupBy computes aggregations using a Aggregator.
+type Proc struct {
+	proc.Parent
+	agg      *Aggregator
 	once     sync.Once
-	resultCh chan Result
+	resultCh chan proc.Result
 }
 
 // A keyRow holds information about the key column types that result
@@ -113,11 +115,11 @@ type keyRow struct {
 	columns []zng.Column
 }
 
-// GroupByAggregator performs the core aggregation computation for a
+// Aggregator performs the core aggregation computation for a
 // list of reducer generators. It handles both regular and time-binned
 // ("every") group-by operations.  Records are generated in a
 // deterministic but undefined total order.
-type GroupByAggregator struct {
+type Aggregator struct {
 	// keyRows maps incoming type ID to a keyRow holding
 	// information on the column types for that record's group-by
 	// keys. If the inbound record doesn't have all of the keys,
@@ -138,7 +140,7 @@ type GroupByAggregator struct {
 	keyResolvers []expr.FieldExprResolver
 	decomposable bool
 	reducerDefs  []compile.CompiledReducer
-	builder      *ColumnBuilder
+	builder      *proc.ColumnBuilder
 	table        map[string]*GroupByRow
 	limit        int
 	valueCompare expr.ValueCompareFn // to compare primary group keys for early key output
@@ -147,7 +149,7 @@ type GroupByAggregator struct {
 	maxTableKey  *zng.Value
 	maxSpillKey  *zng.Value
 	inputSortDir int
-	runManager   *runManager
+	runManager   *sort.RunManager
 	consumePart  bool
 	emitPart     bool
 }
@@ -159,7 +161,7 @@ type GroupByRow struct {
 	reducers compile.Row
 }
 
-func NewGroupByAggregator(c *Context, params GroupByParams) *GroupByAggregator {
+func NewAggregator(c *proc.Context, params GroupByParams) *Aggregator {
 	limit := params.limit
 	if limit == 0 {
 		limit = DefaultGroupByLimit
@@ -192,7 +194,7 @@ func NewGroupByAggregator(c *Context, params GroupByParams) *GroupByAggregator {
 	} else {
 		keysCompare = rs
 	}
-	return &GroupByAggregator{
+	return &Aggregator{
 		inputSortDir: params.inputSortDir,
 		limit:        limit,
 		keys:         params.keys,
@@ -222,18 +224,17 @@ func decomposable(rs []compile.CompiledReducer) bool {
 	return true
 }
 
-func NewGroupBy(c *Context, parent Proc, params GroupByParams) *GroupBy {
+func New(parent proc.Parent, params GroupByParams) *Proc {
 	// XXX in a subsequent PR we will isolate ast params and pass in
 	// ast.GroupByParams
-	agg := NewGroupByAggregator(c, params)
-	return &GroupBy{
-		Base:     Base{Context: c, Parent: parent},
-		agg:      agg,
-		resultCh: make(chan Result),
+	return &Proc{
+		Parent:   parent,
+		agg:      NewAggregator(parent.Context, params),
+		resultCh: make(chan proc.Result),
 	}
 }
 
-func (g *GroupBy) Pull() (zbuf.Batch, error) {
+func (g *Proc) Pull() (zbuf.Batch, error) {
 	g.once.Do(func() { go g.run() })
 	if r, ok := <-g.resultCh; ok {
 		return r.Batch, r.Err
@@ -241,11 +242,11 @@ func (g *GroupBy) Pull() (zbuf.Batch, error) {
 	return nil, g.Context.Err()
 }
 
-func (g *GroupBy) run() {
+func (g *Proc) run() {
 	defer func() {
 		close(g.resultCh)
 		if g.agg.runManager != nil {
-			g.agg.runManager.cleanup()
+			g.agg.runManager.Cleanup()
 		}
 	}()
 	for {
@@ -290,14 +291,14 @@ func (g *GroupBy) run() {
 	}
 }
 
-func (g *GroupBy) sendResult(b zbuf.Batch, err error) {
+func (g *Proc) sendResult(b zbuf.Batch, err error) {
 	select {
-	case g.resultCh <- Result{Batch: b, Err: err}:
+	case g.resultCh <- proc.Result{Batch: b, Err: err}:
 	case <-g.Context.Done():
 	}
 }
 
-func (g *GroupByAggregator) createGroupByRow(keyCols []zng.Column, vals zcode.Bytes, groupval *zng.Value) *GroupByRow {
+func (g *Aggregator) createGroupByRow(keyCols []zng.Column, vals zcode.Bytes, groupval *zng.Value) *GroupByRow {
 	// Make a deep copy so the caller can reuse the underlying arrays.
 	v := make(zcode.Bytes, len(vals))
 	copy(v, vals)
@@ -340,7 +341,7 @@ func newKeyRow(kctx *resolver.Context, r *zng.Record, keys []GroupByKey) (keyRow
 }
 
 // Consume adds a record to the aggregation.
-func (g *GroupByAggregator) Consume(r *zng.Record) error {
+func (g *Aggregator) Consume(r *zng.Record) error {
 	// First check if we've seen this descriptor before and if not
 	// build an entry for it.
 	id := r.Type.ID()
@@ -419,20 +420,20 @@ func (g *GroupByAggregator) Consume(r *zng.Record) error {
 	return nil
 }
 
-func (g *GroupByAggregator) spillTable(eof bool) error {
+func (g *Aggregator) spillTable(eof bool) error {
 	batch, err := g.readTable(true, true)
 	if err != nil || batch == nil {
 		return err
 	}
 	if g.runManager == nil {
-		g.runManager, err = newRunManager(g.keysCompare)
+		g.runManager, err = sort.NewRunManager(g.keysCompare)
 		if err != nil {
 			return err
 		}
 	}
 	recs := batch.Records()
 	// Note that this will sort recs according to g.keysCompare.
-	if err := g.runManager.createRun(recs); err != nil {
+	if err := g.runManager.CreateRun(recs); err != nil {
 		return err
 	}
 	if !eof && g.inputSortDir != 0 {
@@ -445,7 +446,7 @@ func (g *GroupByAggregator) spillTable(eof bool) error {
 	return nil
 }
 
-func (g *GroupByAggregator) updateMaxTableKey(v zng.Value) {
+func (g *Aggregator) updateMaxTableKey(v zng.Value) {
 	if g.maxTableKey == nil {
 		g.maxTableKey = &v
 		return
@@ -455,7 +456,7 @@ func (g *GroupByAggregator) updateMaxTableKey(v zng.Value) {
 	}
 }
 
-func (g *GroupByAggregator) updateMaxSpillKey(v zng.Value) {
+func (g *Aggregator) updateMaxSpillKey(v zng.Value) {
 	if g.maxSpillKey == nil {
 		g.maxSpillKey = &v
 		return
@@ -469,7 +470,7 @@ func (g *GroupByAggregator) updateMaxSpillKey(v zng.Value) {
 // this should be called repeatedly until a nil batch is returned. If
 // the input is sorted in the primary key, Results can be called
 // before eof, and keys that are completed will returned.
-func (g *GroupByAggregator) Results(eof bool) (zbuf.Batch, error) {
+func (g *Aggregator) Results(eof bool) (zbuf.Batch, error) {
 	if g.runManager == nil {
 		return g.readTable(eof, g.emitPart)
 	}
@@ -484,7 +485,7 @@ func (g *GroupByAggregator) Results(eof bool) (zbuf.Batch, error) {
 
 const batchLen = 100 // like sort
 
-func (g *GroupByAggregator) readSpills(eof bool) (zbuf.Batch, error) {
+func (g *Aggregator) readSpills(eof bool) (zbuf.Batch, error) {
 	recs := make([]*zng.Record, 0, batchLen)
 	if !eof && g.inputSortDir == 0 {
 		return nil, nil
@@ -521,7 +522,7 @@ func (g *GroupByAggregator) readSpills(eof bool) (zbuf.Batch, error) {
 	return zbuf.NewArray(recs), nil
 }
 
-func (g *GroupByAggregator) nextResultFromSpills() (*zng.Record, error) {
+func (g *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 	// Consume all partial result records that have the same grouping keys.
 	row := compile.NewRow(g.reducerDefs)
 	var firstRec *zng.Record
@@ -588,7 +589,7 @@ func (g *GroupByAggregator) nextResultFromSpills() (*zng.Record, error) {
 // If decompose is true, it returns partial reducer results as
 // returned by reducer.Decomposable.ResultPart(). It is an error to
 // pass decompose=true if any reducer is non-decomposable.
-func (g *GroupByAggregator) readTable(flush, decompose bool) (zbuf.Batch, error) {
+func (g *Aggregator) readTable(flush, decompose bool) (zbuf.Batch, error) {
 	var recs []*zng.Record
 	for k, row := range g.table {
 		if !flush && g.valueCompare == nil {
@@ -630,7 +631,7 @@ func (g *GroupByAggregator) readTable(flush, decompose bool) (zbuf.Batch, error)
 	return zbuf.NewArray(recs), nil
 }
 
-func (g *GroupByAggregator) lookupRowType(row *GroupByRow, decompose bool) (*zng.TypeRecord, error) {
+func (g *Aggregator) lookupRowType(row *GroupByRow, decompose bool) (*zng.TypeRecord, error) {
 	// This is only done once per row at output time so generally not a
 	// bottleneck, but this could be optimized by keeping a cache of the
 	// descriptor since it is rare for there to be multiple descriptors

@@ -1,10 +1,11 @@
-package proc
+package rename
 
 import (
 	"fmt"
 	"strings"
 
 	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 )
@@ -14,14 +15,14 @@ import (
 // renamed to id.src, but it cannot be renamed to src. Renames are
 // applied left to right; each rename observes the effect of all
 // renames that preceded it.
-type Rename struct {
-	Base
+type Proc struct {
+	proc.Parent
 	fieldnames []string
 	targets    []string
 	typeMap    map[int]*zng.TypeRecord
 }
 
-func CompileRenameProc(c *Context, parent Proc, node *ast.RenameProc) (*Rename, error) {
+func New(parent proc.Parent, node *ast.RenameProc) (*Proc, error) {
 	var fieldnames, targets []string
 	for _, fa := range node.Fields {
 		ts := strings.Split(fa.Target, ".")
@@ -37,15 +38,15 @@ func CompileRenameProc(c *Context, parent Proc, node *ast.RenameProc) (*Rename, 
 		targets = append(targets, ts[len(ts)-1])
 		fieldnames = append(fieldnames, fa.Source)
 	}
-	return &Rename{
-		Base:       Base{Context: c, Parent: parent},
+	return &Proc{
+		Parent:     parent,
 		fieldnames: fieldnames,
 		targets:    targets,
 		typeMap:    make(map[int]*zng.TypeRecord),
 	}, nil
 }
 
-func (r *Rename) renamedType(typ *zng.TypeRecord, fields []string, target string) (*zng.TypeRecord, error) {
+func (r *Proc) renamedType(typ *zng.TypeRecord, fields []string, target string) (*zng.TypeRecord, error) {
 	c, ok := typ.ColumnOfField(fields[0])
 	if !ok {
 		return typ, nil
@@ -74,7 +75,7 @@ func (r *Rename) renamedType(typ *zng.TypeRecord, fields []string, target string
 	return r.TypeContext.LookupTypeRecord(newcols)
 }
 
-func (r *Rename) computeType(typ *zng.TypeRecord) (*zng.TypeRecord, error) {
+func (r *Proc) computeType(typ *zng.TypeRecord) (*zng.TypeRecord, error) {
 	var err error
 	for i := range r.fieldnames {
 		typ, err = r.renamedType(typ, strings.Split(r.fieldnames[i], "."), r.targets[i])
@@ -85,9 +86,9 @@ func (r *Rename) computeType(typ *zng.TypeRecord) (*zng.TypeRecord, error) {
 	return typ, nil
 }
 
-func (r *Rename) Pull() (zbuf.Batch, error) {
+func (r *Proc) Pull() (zbuf.Batch, error) {
 	batch, err := r.Get()
-	if EOS(batch, err) {
+	if proc.EOS(batch, err) {
 		return nil, err
 	}
 	recs := make([]*zng.Record, 0, batch.Length())

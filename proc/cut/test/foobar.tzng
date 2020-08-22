@@ -1,0 +1,4 @@
+#0:record[foo:string,bar:string]
+0:[foo1;bar1;]
+0:[foo2;bar2;]
+0:[foo3;bar3;]

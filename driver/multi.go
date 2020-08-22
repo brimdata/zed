@@ -9,7 +9,7 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/proc/compiler"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
@@ -53,7 +53,7 @@ type SourceFilter struct {
 }
 
 type MultiConfig struct {
-	Custom      proc.Compiler
+	Custom      compiler.Custom
 	Logger      *zap.Logger
 	Parallelism int
 	Span        nano.Span

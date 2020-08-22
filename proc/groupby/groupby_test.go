@@ -1,4 +1,4 @@
-package proc_test
+package groupby_test
 
 import (
 	"bytes"
@@ -13,7 +13,8 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/test"
-	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/proc/groupby"
+	"github.com/brimsec/zq/proc/proctest"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
@@ -263,10 +264,10 @@ func TestGroupbySystem(t *testing.T) {
 		tests().runSystem(t)
 	})
 	t.Run("spill", func(t *testing.T) {
-		saved := proc.DefaultGroupByLimit
-		proc.DefaultGroupByLimit = 1
+		saved := groupby.DefaultGroupByLimit
+		groupby.DefaultGroupByLimit = 1
 		defer func() {
-			proc.DefaultGroupByLimit = saved
+			groupby.DefaultGroupByLimit = saved
 		}()
 		tests().runSystem(t)
 	})
@@ -372,7 +373,7 @@ func TestGroupbyUnit(t *testing.T) {
 			resolver := resolver.NewContext()
 			var inBatches []zbuf.Batch
 			for _, s := range in {
-				b, err := proc.ParseTestTzng(resolver, s)
+				b, err := proctest.ParseTestTzng(resolver, s)
 				require.NoError(t, err, s)
 				inBatches = append(inBatches, b)
 			}
@@ -381,14 +382,14 @@ func TestGroupbyUnit(t *testing.T) {
 			assert.NoError(t, err)
 			driver.ReplaceGroupByProcDurationWithKey(astProc)
 			astProc.InputSortDir = dir
-			tctx := proc.NewTestContext(resolver)
-			src := proc.NewTestSource(inBatches)
-			gproc, err := proc.CompileTestProcAST(astProc, tctx, src)
+			tctx := proctest.NewTestContext(resolver)
+			src := proctest.NewTestSource(inBatches)
+			gproc, err := proctest.CompileTestProcAST(astProc, tctx.NewParent(src))
 			assert.NoError(t, err)
-			procTest := proc.NewProcTest(gproc, tctx)
+			procTest := proctest.NewProcTest(gproc, tctx)
 
 			for _, s := range out {
-				b, err := proc.ParseTestTzng(resolver, s)
+				b, err := proctest.ParseTestTzng(resolver, s)
 				require.NoError(t, err, s)
 				err = procTest.Expect(b)
 				assert.NoError(t, err)
@@ -470,11 +471,11 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 	//
 	savedBatchSize := scanner.BatchSize
 	scanner.BatchSize = 1
-	savedBatchSizeGroupByLimit := proc.DefaultGroupByLimit
-	proc.DefaultGroupByLimit = 2
+	savedBatchSizeGroupByLimit := groupby.DefaultGroupByLimit
+	groupby.DefaultGroupByLimit = 2
 	defer func() {
 		scanner.BatchSize = savedBatchSize
-		proc.DefaultGroupByLimit = savedBatchSizeGroupByLimit
+		groupby.DefaultGroupByLimit = savedBatchSizeGroupByLimit
 	}()
 
 	const totRecs = 200

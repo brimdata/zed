@@ -1,4 +1,4 @@
-package proc
+package proctest
 
 // This file contains utilties for writing unit tests of procs
 // XXX It should go in a test framework instead of dangling here.  TBD.
@@ -13,6 +13,8 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/proc/compiler"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
@@ -21,7 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func CompileTestProc(code string, ctx *Context, parent Proc) (Proc, error) {
+func CompileTestProc(code string, parent proc.Parent) (proc.Interface, error) {
 	// XXX If we use a newer version of pigeon, we can just compile
 	// with "proc" as the terminal symbol.
 	// But for now, we have to compile a complete flowgraph.
@@ -40,11 +42,11 @@ func CompileTestProc(code string, ctx *Context, parent Proc) (Proc, error) {
 	if len(sp.Procs) != 2 {
 		return nil, errors.New("expected 2 procs")
 	}
-	return CompileTestProcAST(sp.Procs[1], ctx, parent)
+	return CompileTestProcAST(sp.Procs[1], parent)
 }
 
-func CompileTestProcAST(proc ast.Proc, ctx *Context, parent Proc) (Proc, error) {
-	procs, err := CompileProc(nil, proc, ctx, parent)
+func CompileTestProcAST(proc ast.Proc, parent proc.Parent) (proc.Interface, error) {
+	procs, err := compiler.Compile(nil, proc, parent)
 	if err != nil {
 		return nil, err
 	}
@@ -76,8 +78,8 @@ func (t *TestSource) Pull() (zbuf.Batch, error) {
 	return b, nil
 }
 
-func (t *TestSource) Done()           {}
-func (t *TestSource) Parents() []Proc { return nil }
+func (t *TestSource) Done()                     {}
+func (t *TestSource) Parents() []proc.Interface { return nil }
 
 // Helper for testing an individual proc.
 // To use this, first call NewTestProc() with all the records that should
@@ -85,20 +87,20 @@ func (t *TestSource) Parents() []Proc { return nil }
 // output of the proc.  Always end a test case with Finish() to ensure
 // there weren't any unexpected records or warnings.
 type ProcTest struct {
-	ctx          *Context
-	compiledProc Proc
+	ctx          *proc.Context
+	compiledProc proc.Interface
 	eos          bool
 }
 
-func NewProcTest(proc Proc, ctx *Context) *ProcTest {
+func NewProcTest(proc proc.Interface, ctx *proc.Context) *ProcTest {
 	return &ProcTest{ctx, proc, false}
 }
 
-func NewTestContext(zctx *resolver.Context) *Context {
+func NewTestContext(zctx *resolver.Context) *proc.Context {
 	if zctx == nil {
 		zctx = resolver.NewContext()
 	}
-	return &Context{
+	return &proc.Context{
 		Context:     context.Background(),
 		TypeContext: zctx,
 		Warnings:    make(chan string, 5),
@@ -108,7 +110,7 @@ func NewTestContext(zctx *resolver.Context) *Context {
 func NewProcTestFromSource(code string, zctx *resolver.Context, inRecords []zbuf.Batch) (*ProcTest, error) {
 	ctx := NewTestContext(zctx)
 	src := TestSource{inRecords, 0}
-	compiledProc, err := CompileTestProc(code, ctx, &src)
+	compiledProc, err := CompileTestProc(code, ctx.NewParent(&src))
 	if err != nil {
 		return nil, err
 	}

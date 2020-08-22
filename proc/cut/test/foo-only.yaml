@@ -1,0 +1,11 @@
+# This is one of the examples that would replace cut_test.go
+zql: cut foo
+
+# we would need to add support to ztest to be able to take input from files
+# like we can with the script test (easy change).  otherwise, we would need
+# to replicate the test vectors in each yaml file (maybe ok?)
+input:
+  -source: foobar.tzng
+
+output:
+  -source: foo.tzng

@@ -1,9 +1,10 @@
-package proc
+package cut
 
 import (
 	"strings"
 
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
@@ -12,7 +13,7 @@ import (
 // particular type of input record.
 type cutBuilder struct {
 	resolvers []expr.FieldExprResolver
-	builder   *ColumnBuilder
+	builder   *proc.ColumnBuilder
 	outType   *zng.TypeRecord
 }
 
@@ -99,7 +100,7 @@ func (c *Cutter) complementBuilder(r *zng.Record) (*cutBuilder, error) {
 	if len(outColTypes) == 0 {
 		return nil, nil
 	}
-	builder, err := NewColumnBuilder(c.zctx, fields)
+	builder, err := proc.NewColumnBuilder(c.zctx, fields)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +158,7 @@ func (c *Cutter) setBuilder(r *zng.Record) (*cutBuilder, error) {
 	if len(targets) == 0 {
 		return nil, nil
 	}
-	builder, err := NewColumnBuilder(c.zctx, targets)
+	builder, err := proc.NewColumnBuilder(c.zctx, targets)
 	if err != nil {
 		return nil, err
 	}

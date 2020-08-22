@@ -1,24 +1,29 @@
-package proc
+package tail
 
 import (
+	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 )
 
-type Tail struct {
-	Base
+type Proc struct {
+	proc.Parent
 	limit int
 	count int
 	off   int
 	q     []*zng.Record
 }
 
-func NewTail(c *Context, parent Proc, limit int) *Tail {
-	q := make([]*zng.Record, limit)
-	return &Tail{Base{Context: c, Parent: parent}, limit, 0, 0, q}
+func New(parent proc.Parent, limit int) *Proc {
+	//XXX should have a limit check on limit
+	return &Proc{
+		Parent: parent,
+		limit:  limit,
+		q:      make([]*zng.Record, limit),
+	}
 }
 
-func (t *Tail) tail() zbuf.Batch {
+func (t *Proc) tail() zbuf.Batch {
 	if t.count <= 0 {
 		return nil
 	}
@@ -36,10 +41,10 @@ func (t *Tail) tail() zbuf.Batch {
 
 }
 
-func (t *Tail) Pull() (zbuf.Batch, error) {
+func (t *Proc) Pull() (zbuf.Batch, error) {
 	for {
 		batch, err := t.Get()
-		if EOS(batch, err) {
+		if proc.EOS(batch, err) {
 			return t.tail(), nil
 		}
 		for k := 0; k < batch.Length(); k++ {

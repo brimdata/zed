@@ -1,10 +1,11 @@
-package proc
+package put
 
 import (
 	"sort"
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
@@ -27,8 +28,8 @@ type fieldinfo struct {
 	container bool
 }
 
-type Put struct {
-	Base
+type Proc struct {
+	proc.Parent
 	clauses []clause
 	// vals is a fixed array to avoid re-allocating for every record
 	vals   []zng.Value
@@ -41,7 +42,7 @@ type clause struct {
 	eval   expr.ExpressionEvaluator
 }
 
-func CompilePutProc(c *Context, parent Proc, node *ast.PutProc) (*Put, error) {
+func New(parent proc.Parent, node *ast.PutProc) (*Proc, error) {
 	clauses := make([]clause, len(node.Clauses))
 	for k, cl := range node.Clauses {
 		var err error
@@ -52,8 +53,8 @@ func CompilePutProc(c *Context, parent Proc, node *ast.PutProc) (*Put, error) {
 		}
 	}
 
-	return &Put{
-		Base:    Base{Context: c, Parent: parent},
+	return &Proc{
+		Parent:  parent,
 		clauses: clauses,
 		vals:    make([]zng.Value, len(node.Clauses)),
 		outmap:  make(map[int]descinfo),
@@ -61,7 +62,7 @@ func CompilePutProc(c *Context, parent Proc, node *ast.PutProc) (*Put, error) {
 	}, nil
 }
 
-func (p *Put) maybeWarn(err error) {
+func (p *Proc) maybeWarn(err error) {
 	s := err.Error()
 	_, alreadyWarned := p.warned[s]
 	if !alreadyWarned {
@@ -70,7 +71,7 @@ func (p *Put) maybeWarn(err error) {
 	}
 }
 
-func (p *Put) put(in *zng.Record) *zng.Record {
+func (p *Proc) put(in *zng.Record) *zng.Record {
 	// Figure out the output descriptor.  If we don't have one for
 	// this input descriptor or if any values have different types,
 	// we'll need to recompute it below.
@@ -211,9 +212,9 @@ func (p *Put) put(in *zng.Record) *zng.Record {
 	return zng.NewRecord(descInfo.typ, bytes)
 }
 
-func (p *Put) Pull() (zbuf.Batch, error) {
+func (p *Proc) Pull() (zbuf.Batch, error) {
 	batch, err := p.Get()
-	if EOS(batch, err) {
+	if proc.EOS(batch, err) {
 		return nil, err
 	}
 

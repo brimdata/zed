@@ -18,7 +18,7 @@ import (
 // types in a same-named field, this proc doesn't support different
 // types, and errors if more than one type is seen.
 type FieldCutter struct {
-	proc.Base
+	proc.Parent
 	builder  *zng.Builder
 	accessor expr.FieldExprResolver
 	field    string
@@ -28,14 +28,14 @@ type FieldCutter struct {
 
 // NewFieldCutter creates a FieldCutter for field fieldName, where the
 // output records' single column is named fieldName.
-func NewFieldCutter(pctx *proc.Context, parent proc.Proc, fieldName, out string) (proc.Proc, error) {
+func NewFieldCutter(parent proc.Parent, fieldName, out string) (proc.Interface, error) {
 	accessor := expr.CompileFieldAccess(fieldName)
 	if accessor == nil {
 		return nil, fmt.Errorf("bad field syntax: %s", fieldName)
 	}
 
 	return &FieldCutter{
-		Base:     proc.Base{Context: pctx, Parent: parent},
+		Parent:   parent,
 		field:    fieldName,
 		out:      out,
 		accessor: accessor,
@@ -92,20 +92,20 @@ func (t *fieldCutterNode) ProcNode() {}
 // zng type T, outputs one record for each field of the input record of
 // type T. It is used for type-based indexing.
 type TypeSplitter struct {
-	proc.Base
+	proc.Parent
 	builder zng.Builder
 	typ     zng.Type
 }
 
 // NewTypeSplitter creates a TypeSplitter for type typ, where the
 // output records' single column is named colName.
-func NewTypeSplitter(pctx *proc.Context, parent proc.Proc, typ zng.Type, colName string) (proc.Proc, error) {
+func NewTypeSplitter(parent proc.Parent, typ zng.Type, colName string) (proc.Interface, error) {
 	cols := []zng.Column{{colName, typ}}
-	rectyp := pctx.TypeContext.MustLookupTypeRecord(cols)
+	rectyp := parent.TypeContext.MustLookupTypeRecord(cols)
 	builder := zng.NewBuilder(rectyp)
 
 	return &TypeSplitter{
-		Base:    proc.Base{Context: pctx, Parent: parent},
+		Parent:  parent,
 		builder: *builder,
 		typ:     typ,
 	}, nil
@@ -143,16 +143,16 @@ func (t *typeSplitterNode) ProcNode() {}
 
 type compiler struct{}
 
-func (c *compiler) Compile(node ast.Proc, ctx *proc.Context, parent proc.Proc) (proc.Proc, error) {
+func (c *compiler) Compile(node ast.Proc, parent proc.Parent) (proc.Interface, error) {
 	switch v := node.(type) {
 	case *fieldCutterNode:
-		return NewFieldCutter(ctx, parent, v.field, v.out)
+		return NewFieldCutter(parent, v.field, v.out)
 	case *typeSplitterNode:
-		typ, err := ctx.TypeContext.LookupByName(v.typeName)
+		typ, err := parent.TypeContext.LookupByName(v.typeName)
 		if err != nil {
 			return nil, err
 		}
-		return NewTypeSplitter(ctx, parent, typ, v.key)
+		return NewTypeSplitter(parent, typ, v.key)
 	}
 	return nil, nil
 }

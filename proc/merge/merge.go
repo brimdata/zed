@@ -1,35 +1,30 @@
-package proc
+package merge
 
 import (
 	"sync"
 
+	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 )
 
 // A Merge proc merges multiple upstream inputs into one output.
-//
-// Note: rather than a standalone Proc, we could also have integrated
-// merging behavior into proc.Base, which would simplify compilation a
-// little bit. But we already took the standalone route for SplitProc,
-// and this matches that.
-type Merge struct {
-	Base
+type Proc struct {
 	once     sync.Once
-	ch       <-chan Result
+	ch       <-chan proc.Result
 	doneCh   chan struct{}
 	parents  []*runnerProc
 	nparents int
 }
 
 type runnerProc struct {
-	Base
-	ch     chan<- Result
+	proc.Parent
+	ch     chan<- proc.Result
 	doneCh <-chan struct{}
 }
 
-func newrunnerProc(c *Context, parent Proc, ch chan<- Result, doneCh <-chan struct{}) *runnerProc {
+func newrunnerProc(parent proc.Parent, ch chan<- proc.Result, doneCh <-chan struct{}) *runnerProc {
 	return &runnerProc{
-		Base:   Base{Context: c, Parent: parent},
+		Parent: parent,
 		ch:     ch,
 		doneCh: doneCh,
 	}
@@ -45,40 +40,38 @@ func (r *runnerProc) run() {
 		default:
 		}
 
-		r.ch <- Result{batch, err}
-		if EOS(batch, err) {
+		r.ch <- proc.Result{batch, err}
+		if proc.EOS(batch, err) {
 			break
 		}
 	}
 }
 
-func NewMerge(c *Context, parents []Proc) *Merge {
-	ch := make(chan Result)
+func New(c *proc.Context, parents []proc.Interface) *Proc {
+	ch := make(chan proc.Result)
 	doneCh := make(chan struct{})
 	var runners []*runnerProc
 	for _, parent := range parents {
-		runners = append(runners, newrunnerProc(c, parent, ch, doneCh))
+		runners = append(runners, newrunnerProc(c.NewParent(parent), ch, doneCh))
 	}
-	p := Merge{
-		Base:     Base{Context: c, Parent: nil},
+	return &Proc{
 		ch:       ch,
 		doneCh:   doneCh,
 		parents:  runners,
 		nparents: len(parents),
 	}
-	return &p
 }
 
-func (m *Merge) Parents() []Proc {
-	var pp []Proc
+func (m *Proc) Parents() []proc.Interface {
+	var pp []proc.Interface
 	for _, runner := range m.parents {
-		pp = append(pp, runner.Parent)
+		pp = append(pp, runner.Parent.Interface)
 	}
 	return pp
 }
 
 // Pull implements the merge logic for returning data from the upstreams.
-func (m *Merge) Pull() (zbuf.Batch, error) {
+func (m *Proc) Pull() (zbuf.Batch, error) {
 	m.once.Do(func() {
 		for _, m := range m.parents {
 			go m.run()
@@ -97,7 +90,7 @@ func (m *Merge) Pull() (zbuf.Batch, error) {
 			return nil, res.Err
 		}
 
-		if !EOS(res.Batch, res.Err) {
+		if !proc.EOS(res.Batch, res.Err) {
 			return res.Batch, res.Err
 		}
 
@@ -105,6 +98,6 @@ func (m *Merge) Pull() (zbuf.Batch, error) {
 	}
 }
 
-func (m *Merge) Done() {
+func (m *Proc) Done() {
 	close(m.doneCh)
 }

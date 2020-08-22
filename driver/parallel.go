@@ -7,13 +7,16 @@ import (
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/proc/compiler"
+	"github.com/brimsec/zq/proc/merge"
+	"github.com/brimsec/zq/proc/orderedmerge"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 )
 
 type parallelHead struct {
-	proc.Base
+	proc.Parent
 	once sync.Once
 	pg   *parallelGroup
 
@@ -177,7 +180,7 @@ func pscanAnalyze(program ast.Proc) (*pgSetup, ast.Proc, error) {
 // XXX(alfred): This function is a temporary placeholder for a future
 // AST transformation that will determine what portions of a query may
 // safely happen concurrently as sources are read from a MultiSource.
-func createParallelGroup(pctx *proc.Context, pgn *pgSetup, msrc MultiSource, mcfg MultiConfig) (proc.Proc, *parallelGroup, error) {
+func createParallelGroup(pctx *proc.Context, pgn *pgSetup, msrc MultiSource, mcfg MultiConfig) (proc.Interface, *parallelGroup, error) {
 	pg := &parallelGroup{
 		filter: SourceFilter{
 			Filter:     pgn.filter,
@@ -190,10 +193,10 @@ func createParallelGroup(pctx *proc.Context, pgn *pgSetup, msrc MultiSource, mcf
 		scanners:   make(map[scanner.Scanner]struct{}),
 	}
 
-	chains := make([]proc.Proc, mcfg.Parallelism)
+	chains := make([]proc.Interface, mcfg.Parallelism)
 	for i := range chains {
-		head := &parallelHead{Base: proc.Base{Context: pctx}, pg: pg}
-		p, err := proc.CompileProc(mcfg.Custom, pgn.chain, pctx, head)
+		head := &parallelHead{Parent: proc.Parent{Context: pctx}, pg: pg}
+		p, err := compiler.Compile(mcfg.Custom, pgn.chain, proc.Parent{Context: pctx, Interface: head})
 		if err != nil {
 			return nil, nil, err
 		}
@@ -205,7 +208,7 @@ func createParallelGroup(pctx *proc.Context, pgn *pgSetup, msrc MultiSource, mcf
 
 	sortField, reversed := msrc.OrderInfo()
 	if sortField == "" {
-		return proc.NewMerge(pctx, chains), pg, nil
+		return merge.New(pctx, chains), pg, nil
 	}
-	return proc.NewOrderedMerge(pctx, chains, sortField, reversed), pg, nil
+	return orderedmerge.New(pctx, chains, sortField, reversed), pg, nil
 }

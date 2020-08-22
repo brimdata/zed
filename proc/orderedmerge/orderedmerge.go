@@ -1,9 +1,10 @@
-package proc
+package orderedmerge
 
 import (
 	"sync"
 
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 )
@@ -11,11 +12,11 @@ import (
 // An OrderedMerge proc merges multiple upstream inputs into one output.
 // If the input streams are ordered according to the configured comparison,
 // the output of OrderedMerge will have the same order.
-type OrderedMerge struct {
-	Base
-	cmp     expr.CompareFn
-	once    sync.Once
-	parents []mergeParent
+type Proc struct {
+	proc.Parent //XXX this parents method won't work; copy merge.Proc pattern?
+	cmp         expr.CompareFn
+	once        sync.Once
+	parents     []mergeParent
 }
 
 type mergeParent struct {
@@ -23,12 +24,12 @@ type mergeParent struct {
 	recs     []*zng.Record
 	recIdx   int
 	done     bool
-	proc     Proc
-	resultCh chan Result
+	proc     proc.Interface
+	resultCh chan proc.Result
 }
 
-func NewOrderedMerge(c *Context, parents []Proc, mergeField string, reversed bool) *OrderedMerge {
-	m := &OrderedMerge{Base: Base{Context: c}}
+func New(c *proc.Context, parents []proc.Interface, mergeField string, reversed bool) *Proc {
+	m := &Proc{Parent: proc.Parent{Context: c}} //XXX
 	cmpFn := expr.NewCompareFn(true, expr.CompileFieldAccess(mergeField))
 	if !reversed {
 		m.cmp = cmpFn
@@ -38,20 +39,20 @@ func NewOrderedMerge(c *Context, parents []Proc, mergeField string, reversed boo
 	m.parents = make([]mergeParent, len(parents))
 	for i := range parents {
 		m.parents[i].proc = parents[i]
-		m.parents[i].resultCh = make(chan Result)
+		m.parents[i].resultCh = make(chan proc.Result)
 	}
 	return m
 }
 
-func (m *OrderedMerge) run() {
+func (m *Proc) run() {
 	for i := range m.parents {
 		p := &m.parents[i]
 		go func() {
 			for {
 				batch, err := p.proc.Pull()
 				select {
-				case p.resultCh <- Result{batch, err}:
-					if EOS(batch, err) {
+				case p.resultCh <- proc.Result{batch, err}:
+					if proc.EOS(batch, err) {
 						return
 					}
 				case <-m.Context.Done():
@@ -63,7 +64,9 @@ func (m *OrderedMerge) run() {
 }
 
 // Read fulfills zbuf.Reader so that we can use zbuf.ReadBatch.
-func (m *OrderedMerge) Read() (*zng.Record, error) {
+//XXX this is combining two things in one... I think this should be separated
+// out and a proc can wrap the facter-out stuff
+func (m *Proc) Read() (*zng.Record, error) {
 	idx := -1
 	for i := range m.parents {
 		p := &m.parents[i]
@@ -97,11 +100,11 @@ func (m *OrderedMerge) Read() (*zng.Record, error) {
 	return m.next(&m.parents[idx]), nil
 }
 
-func (m *OrderedMerge) compare(x *mergeParent, y *mergeParent) bool {
+func (m *Proc) compare(x *mergeParent, y *mergeParent) bool {
 	return m.cmp(x.recs[x.recIdx], y.recs[y.recIdx]) < 0
 }
 
-func (m *OrderedMerge) next(p *mergeParent) *zng.Record {
+func (m *Proc) next(p *mergeParent) *zng.Record {
 	rec := p.recs[p.recIdx]
 	p.recIdx++
 	if p.recIdx == len(p.recs) {
@@ -111,7 +114,9 @@ func (m *OrderedMerge) next(p *mergeParent) *zng.Record {
 	return rec
 }
 
-func (m *OrderedMerge) Pull() (zbuf.Batch, error) {
+const batchLen = 100 // XXX
+
+func (m *Proc) Pull() (zbuf.Batch, error) {
 	m.once.Do(m.run)
 	return zbuf.ReadBatch(m, batchLen)
 }
