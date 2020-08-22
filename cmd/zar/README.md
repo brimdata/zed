@@ -265,7 +265,7 @@ zq -f table $ZAR_ROOT/20180324/1521911772.980384.zng.zar/custom.zng | head -10
 ```
 You can see the IPs, counts, and _path strings.
 
-At the bottom you'll also find a record describing the microindex layout. To
+At the bottom you'll also find a record describing the micro-index layout. To
 see it:
 
 ```
@@ -353,7 +353,7 @@ key, and so forth, and efficient lookups are carried out by traversing the
 b-tree index structure of these sorted keys.  But remember,
 everything is a zng file, so you can do a brute-force search on the base-layer
 of the index, e.g., to look for all the instances of a value in the secondary
-key position (ignoring the primary key) by using "zar zq" instead of "zar find".
+key position (ignoring the primary key) by using "zar map" instead of "zar find".
 
 So, let's say we wanted
 a count of all bytes received by 10.47.6.173 as the originator, which is the
