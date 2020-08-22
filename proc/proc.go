@@ -207,9 +207,3 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parent Proc) ([]Pro
 		return nil, fmt.Errorf("unknown AST type: %v", v)
 	}
 }
-
-// Compile the proc AST and return a Executor ready to go
-// "scanner" is embedded into the source node during compilation... XXX fix
-func Compile(node ast.Proc, c *Context, custom Compiler) ([]Proc, error) {
-	return CompileProc(nil, node, c, nil)
-}
