@@ -1,0 +1,87 @@
+package inspect
+
+import (
+	"errors"
+	"flag"
+	"strings"
+
+	"github.com/brimsec/zq/cli"
+	"github.com/brimsec/zq/cmd/zst/root"
+	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zst"
+	"github.com/mccanne/charm"
+)
+
+var Cut = &charm.Spec{
+	Name:  "cut",
+	Usage: "cut [flags] -k field-expr path",
+	Short: "cut a column from a zst file",
+	Long: `
+The cut command cuts a single column from a zst file and writes the column
+to the output in the format of choice.
+
+This command is most useful for test, debug, and demo, as more efficient
+and complete "cuts" on zst files will eventually be available from zq
+in the future.  For example, zq cut will optmize the query
+
+	count() by _path
+
+to cut the path field and run analytics directly on the result without having
+to scan all of the zng row data.
+`,
+	New: newCommand,
+}
+
+func init() {
+	root.Zst.Add(Cut)
+}
+
+type Command struct {
+	*root.Command
+	writerFlags zio.WriterFlags
+	output      cli.OutputFlags
+	fieldExpr   string
+}
+
+func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
+	c := &Command{Command: parent.(*root.Command)}
+	f.StringVar(&c.fieldExpr, "k", "", "dotted field expression of field to cut")
+	c.writerFlags.SetFlags(f)
+	c.output.SetFlags(f)
+	return c, nil
+}
+
+func (c *Command) Run(args []string) error {
+	defer c.Cleanup()
+	if ok, err := c.Init(); !ok {
+		return err
+	}
+	if len(args) != 1 {
+		return errors.New("zst cut: must be run with a single input file")
+	}
+	if c.fieldExpr == "" {
+		return errors.New("zst cut: must specify field to cut with -k")
+	}
+	fields := strings.Split(c.fieldExpr, ".")
+	writerOpts := c.writerFlags.Options()
+	if err := c.output.Init(&writerOpts); err != nil {
+		return err
+	}
+	path := args[0]
+	cutter, err := zst.NewCutterFromPath(resolver.NewContext(), path, fields)
+	if err != nil {
+		return err
+	}
+	defer cutter.Close()
+	writer, err := c.output.Open(writerOpts)
+	if err != nil {
+		return err
+	}
+	if err := zbuf.Copy(writer, cutter); err != nil {
+		writer.Close()
+		return err
+	}
+	return writer.Close()
+}

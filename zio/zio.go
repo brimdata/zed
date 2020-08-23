@@ -7,6 +7,7 @@ import (
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/textio"
 	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zio/zstio"
 )
 
 type ReaderOpts struct {
@@ -17,11 +18,12 @@ type ReaderOpts struct {
 }
 
 type WriterOpts struct {
-	Format     string
-	UTF8       bool
-	Text       textio.WriterOpts
-	Zng        zngio.WriterOpts
+	Format string
+	UTF8   bool
 	EpochDates bool
+	Text   textio.WriterOpts
+	Zng    zngio.WriterOpts
+	Zst    zstio.WriterOpts
 }
 
 func Extension(format string) string {
@@ -42,6 +44,8 @@ func Extension(format string) string {
 		return ".zng"
 	case "csv":
 		return ".csv"
+	case "zst":
+		return ".zst"
 	default:
 		return ""
 	}

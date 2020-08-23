@@ -1,0 +1,17 @@
+script: |
+  zst create -o out.zst in.tzng
+  zq -i zst -t out.zst
+
+inputs:
+  - name: in.tzng
+    data: |
+      #0:record[a:string,b:union[string,float64]]
+      0:[hello;0:foo;]
+      0:[world;1:1;]
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[a:string,b:union[string,float64]]
+      0:[hello;0:foo;]
+      0:[world;1:1;]

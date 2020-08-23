@@ -1,0 +1,8 @@
+script: |
+  echo -n "" > empty.zst
+  zq -t -i zst empty.zst
+
+outputs:
+  - name: stderr
+    regexp: |
+      .*: zst trailer not found

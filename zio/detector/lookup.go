@@ -14,6 +14,7 @@ import (
 	"github.com/brimsec/zq/zio/zeekio"
 	"github.com/brimsec/zq/zio/zjsonio"
 	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zio/zstio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
@@ -47,6 +48,8 @@ func LookupWriter(w io.WriteCloser, opts zio.WriterOpts) zbuf.WriteCloser {
 		return ndjsonio.NewWriter(w)
 	case "zjson":
 		return zjsonio.NewWriter(w)
+	case "zst":
+		return zstio.NewWriter(w, opts.Zst)
 	case "text":
 		return textio.NewWriter(w, opts.UTF8, opts.Text, opts.EpochDates)
 	case "table":
@@ -68,6 +71,8 @@ func lookupReader(r io.Reader, zctx *resolver.Context, path string, opts zio.Rea
 		return zjsonio.NewReader(r, zctx), nil
 	case "zng":
 		return zngio.NewReaderWithOpts(r, zctx, opts.Zng), nil
+	case "zst":
+		return zstio.NewReader(r, zctx)
 	}
 	return nil, fmt.Errorf("no such format: \"%s\"", opts.Format)
 }
