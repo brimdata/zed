@@ -198,21 +198,6 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parents []Proc) ([]
 		return parents, nil
 
 	case *ast.ParallelProc:
-		n := len(v.Procs)
-		if len(parents) == 1 {
-			// Single parent: insert a splitter and wire to each branch.
-			splitter := NewSplit(c, parents[0])
-			parents = []Proc{}
-			for k := 0; k < n; k++ {
-				//
-				// for each downstream proc chain, create a new SplitChannel,
-				// attach the SplitChannel to the SplitProc, then generate the
-				// proc chain with the SplitChannel as the new parent
-				//
-				sc := NewSplitChannel(splitter)
-				parents = append(parents, sc)
-			}
-		}
 		return CompileParallelProc(custom, v, c, parents)
 	default:
 		return nil, fmt.Errorf("unknown AST type: %v", v)
@@ -221,6 +206,15 @@ func CompileProc(custom Compiler, node ast.Proc, c *Context, parents []Proc) ([]
 
 func CompileParallelProc(custom Compiler, pp *ast.ParallelProc, c *Context, parents []Proc) ([]Proc, error) {
 	n := len(pp.Procs)
+	if len(parents) == 1 {
+		// Single parent: insert a splitter and wire to each branch.
+		splitter := NewSplit(c, parents[0])
+		parents = []Proc{}
+		for k := 0; k < n; k++ {
+			sc := NewSplitChannel(splitter)
+			parents = append(parents, sc)
+		}
+	}
 	if len(parents) != n {
 		return nil, fmt.Errorf("proc.CompileProc: %d parents for parallel proc with %d branches", len(parents), len(pp.Procs))
 	}
