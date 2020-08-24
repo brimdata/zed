@@ -44,7 +44,7 @@ func CompileTestProc(code string, ctx *Context, parent Proc) (Proc, error) {
 }
 
 func CompileTestProcAST(proc ast.Proc, ctx *Context, parent Proc) (Proc, error) {
-	procs, err := CompileProc(nil, proc, ctx, parent)
+	procs, err := CompileProc(nil, proc, ctx, []Proc{parent})
 	if err != nil {
 		return nil, err
 	}
