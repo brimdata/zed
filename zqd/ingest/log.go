@@ -13,6 +13,7 @@ import (
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
+	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqe"
 )
 
@@ -36,14 +37,9 @@ type LogOp struct {
 	zctx      *resolver.Context
 }
 
-type LogStore interface {
-	Write(ctx context.Context, zctx *resolver.Context, zr zbuf.Reader) error
-	NativeDirection() zbuf.Direction
-}
-
 // Logs ingests the provided list of files into the provided space.
 // Like ingest.Pcap, this overwrites any existing data in the space.
-func NewLogOp(ctx context.Context, ls LogStore, req api.LogPostRequest) (*LogOp, error) {
+func NewLogOp(ctx context.Context, store storage.Storage, req api.LogPostRequest) (*LogOp, error) {
 	p := &LogOp{
 		warningCh: make(chan string, 5),
 		zctx:      resolver.NewContext(),
@@ -75,7 +71,7 @@ func NewLogOp(ctx context.Context, ls LogStore, req api.LogPostRequest) (*LogOp,
 		p.readers = append(p.readers, zr)
 	}
 	p.wg.Add(1)
-	go p.start(ctx, ls)
+	go p.start(ctx, store)
 	return p, nil
 }
 
@@ -135,14 +131,14 @@ func (p *LogOp) bytesRead() int64 {
 	return read
 }
 
-func (p *LogOp) start(ctx context.Context, ls LogStore) {
+func (p *LogOp) start(ctx context.Context, store storage.Storage) {
 	// first drain warnings
 	for _, warning := range p.warnings {
 		p.warningCh <- warning
 	}
-	rc := zbuf.NewCombiner(p.readers, zbuf.RecordCompare(ls.NativeDirection()))
+	rc := zbuf.NewCombiner(p.readers, zbuf.RecordCompare(store.NativeDirection()))
 	defer rc.Close()
-	p.err = ls.Write(ctx, p.zctx, rc)
+	p.err = store.Write(ctx, p.zctx, rc)
 	if err := p.closeFiles(); err != nil && p.err != nil {
 		p.err = err
 	}

@@ -5,10 +5,10 @@ import (
 	"sync"
 
 	"github.com/brimsec/zq/archive"
+	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/storage"
 )
@@ -45,27 +45,8 @@ func (s *Storage) NativeDirection() zbuf.Direction {
 	return s.ark.DataSortDirection
 }
 
-func (s *Storage) Open(ctx context.Context, zctx *resolver.Context, span nano.Span) (zbuf.ReadCloser, error) {
-	var err error
-	var paths []string
-	err = archive.SpanWalk(s.ark, func(si archive.SpanInfo, zardir iosrc.URI) error {
-		if span.Overlaps(si.Span) {
-			p := archive.ZarDirToLog(zardir)
-			// XXX Doing this because detector doesn't support file uri's. At
-			// some point it should.
-			if p.Scheme == "file" {
-				paths = append(paths, p.Filepath())
-			} else {
-				paths = append(paths, p.String())
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	cfg := detector.OpenConfig{Format: "zng"}
-	return detector.MultiFileReader(zctx, paths, cfg), nil
+func (s *Storage) MultiSource() driver.MultiSource {
+	return archive.NewMultiSource(s.ark, nil)
 }
 
 func (s *Storage) Summary(_ context.Context) (storage.Summary, error) {
