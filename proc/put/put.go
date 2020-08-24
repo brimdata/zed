@@ -17,7 +17,7 @@ import (
 // Each put clause either replaces an existing value in the column specified
 // or appends a value as a new column.  Appended values appear as new
 // columns in the order that the clause appears in the put expression.
-type Put struct {
+type Proc struct {
 	proc.Parent
 	ctx     *proc.Context
 	clauses []clause
@@ -55,7 +55,7 @@ type clause struct {
 	eval   expr.ExpressionEvaluator
 }
 
-func New(ctx *proc.Context, parent proc.Interface, node *ast.PutProc) (*Proc, error) {
+func New(ctx *proc.Context, parent proc.Interface, node *ast.PutProc) (proc.Interface, error) {
 	clauses := make([]clause, len(node.Clauses))
 	for k, cl := range node.Clauses {
 		var err error
@@ -84,7 +84,7 @@ func (p *Proc) maybeWarn(err error) {
 	}
 }
 
-func (p *Put) eval(in *zng.Record) ([]zng.Value, error) {
+func (p *Proc) eval(in *zng.Record) ([]zng.Value, error) {
 	vals := p.vals
 	for k, cl := range p.clauses {
 		var err error
@@ -96,7 +96,7 @@ func (p *Put) eval(in *zng.Record) ([]zng.Value, error) {
 	return vals, nil
 }
 
-func (p *Put) buildRule(inType *zng.TypeRecord, vals []zng.Value) (*putRule, error) {
+func (p *Proc) buildRule(inType *zng.TypeRecord, vals []zng.Value) (*putRule, error) {
 	n := len(inType.Columns)
 	cols := make([]zng.Column, n, n+len(p.clauses))
 	copy(cols, inType.Columns)
@@ -124,7 +124,7 @@ func (p *Put) buildRule(inType *zng.TypeRecord, vals []zng.Value) (*putRule, err
 	if nreplace == 0 {
 		replace = nil
 	}
-	typ, err := p.TypeContext.LookupTypeRecord(cols)
+	typ, err := p.ctx.TypeContext.LookupTypeRecord(cols)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +145,7 @@ func clauseTypesMatch(types []clauseType, vals []zng.Value) bool {
 	return true
 }
 
-func (p *Put) lookupRule(inType *zng.TypeRecord, vals []zng.Value) (*putRule, error) {
+func (p *Proc) lookupRule(inType *zng.TypeRecord, vals []zng.Value) (*putRule, error) {
 	rule := p.rules[inType.ID()]
 	if rule != nil && clauseTypesMatch(rule.clauseTypes, vals) {
 		return rule, nil
@@ -155,7 +155,7 @@ func (p *Put) lookupRule(inType *zng.TypeRecord, vals []zng.Value) (*putRule, er
 	return rule, err
 }
 
-func (p *Put) put(in *zng.Record) *zng.Record {
+func (p *Proc) put(in *zng.Record) *zng.Record {
 	vals, err := p.eval(in)
 	if err != nil {
 		p.maybeWarn(err)
