@@ -384,6 +384,12 @@ func copyProcs(ps []ast.Proc) []ast.Proc {
 }
 
 func buildSplitFlowgraph(branch, tail []ast.Proc, mergeField string, reverse bool, N int) *ast.SequentialProc {
+	if len(tail) == 0 && mergeField != "" {
+		// Insert a pass tail in order to force a merge of the
+		// parallel branches when compiling. (Trailing parallel branches are wired to
+		// a mux output).
+		tail = []ast.Proc{&ast.PassProc{Node: ast.Node{"PassProc"}}}
+	}
 	pp := &ast.ParallelProc{
 		Node:              ast.Node{"ParallelProc"},
 		Procs:             []ast.Proc{},
@@ -519,9 +525,5 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string,
 	if inputSortField == "" {
 		return seq, false
 	}
-	// Insert a pass tail in order to force a merge of the
-	// parallel branches. (Trailing parallel branches are wired to
-	// a mux output).
-	pass := &ast.PassProc{Node: ast.Node{"PassProc"}}
-	return buildSplitFlowgraph(seq.Procs, []ast.Proc{pass}, inputSortField, inputSortReversed, N), true
+	return buildSplitFlowgraph(seq.Procs, []ast.Proc{}, inputSortField, inputSortReversed, N), true
 }
