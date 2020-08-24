@@ -76,10 +76,9 @@ func panicCatchMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 				if rec == nil {
 					return
 				}
-				err := zqe.RecoverError(rec)
 				logger.DPanic("Panic",
+					zap.Error(zqe.RecoverError(rec)),
 					zap.String("request_id", getRequestID(r.Context())),
-					zap.Error(err),
 					zap.Stack("stack"),
 				)
 			}()
