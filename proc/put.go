@@ -27,9 +27,10 @@ type Put struct {
 
 // A putRule describes how a given record type is modified by describing
 // which input columns should be replaced with which clause expression and
-// which clauses should be appended.  The types of each clause expression
-// is recorded since a new rule must be created if they change.  Such changes
-// aren't typically expected but are possible in the expression language.
+// which clauses should be appended.  The type of each clause expression
+// is recorded since a new rule must be created if any of the types change.
+// Such changes aren't typically expected but are possible in the expression
+// language.
 type putRule struct {
 	typ         *zng.TypeRecord
 	clauseTypes []clauseType
@@ -97,7 +98,7 @@ func (p *Put) buildRule(inType *zng.TypeRecord, vals []zng.Value) (*putRule, err
 	cols := make([]zng.Column, n, n+len(p.clauses))
 	copy(cols, inType.Columns)
 	clauseTypes := make([]clauseType, len(p.clauses))
-	nreplace := 0
+	var nreplace int
 	replace := make([]int, n)
 	for k := range replace {
 		replace[k] = -1
@@ -105,8 +106,7 @@ func (p *Put) buildRule(inType *zng.TypeRecord, vals []zng.Value) (*putRule, err
 	var tail []int
 	for k, cl := range p.clauses {
 		typ := vals[k].Type
-		clauseTypes[k].Type = typ
-		clauseTypes[k].container = zng.IsContainerType(typ)
+		clauseTypes[k] = clauseType{typ, zng.IsContainerType(typ)}
 		col := zng.Column{Name: cl.target, Type: typ}
 		position, hasCol := inType.ColumnOfField(cl.target)
 		if hasCol {
@@ -147,8 +147,7 @@ func (p *Put) lookupRule(inType *zng.TypeRecord, vals []zng.Value) (*putRule, er
 	if rule != nil && clauseTypesMatch(rule.clauseTypes, vals) {
 		return rule, nil
 	}
-	var err error
-	rule, err = p.buildRule(inType, vals)
+	rule, err := p.buildRule(inType, vals)
 	p.rules[inType.ID()] = rule
 	return rule, err
 }
@@ -191,7 +190,7 @@ func (p *Put) put(in *zng.Record) *zng.Record {
 		}
 	}
 	// Finish building the output by appending the remaining clauses if any.
-	for clause := range rule.append {
+	for _, clause := range rule.append {
 		item := vals[clause].Bytes
 		if rule.clauseTypes[clause].container {
 			bytes = zcode.AppendContainer(bytes, item)
