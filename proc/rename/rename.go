@@ -16,8 +16,8 @@ import (
 // applied left to right; each rename observes the effect of all
 // renames that preceded it.
 type Proc struct {
-	proc.Parent
 	ctx        *proc.Context
+	parent     proc.Interface
 	fieldnames []string
 	targets    []string
 	typeMap    map[int]*zng.TypeRecord
@@ -40,8 +40,8 @@ func New(ctx *proc.Context, parent proc.Interface, node *ast.RenameProc) (*Proc,
 		fieldnames = append(fieldnames, fa.Source)
 	}
 	return &Proc{
-		Parent:     proc.Parent{parent},
 		ctx:        ctx,
+		parent:     parent,
 		fieldnames: fieldnames,
 		targets:    targets,
 		typeMap:    make(map[int]*zng.TypeRecord),
@@ -89,7 +89,7 @@ func (r *Proc) computeType(typ *zng.TypeRecord) (*zng.TypeRecord, error) {
 }
 
 func (r *Proc) Pull() (zbuf.Batch, error) {
-	batch, err := r.Parent.Pull()
+	batch, err := r.parent.Pull()
 	if proc.EOS(batch, err) {
 		return nil, err
 	}
@@ -116,4 +116,8 @@ func (r *Proc) Pull() (zbuf.Batch, error) {
 	}
 	batch.Unref()
 	return zbuf.NewArray(recs), nil
+}
+
+func (p *Proc) Done() {
+	p.parent.Done()
 }

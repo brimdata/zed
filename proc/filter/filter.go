@@ -8,19 +8,19 @@ import (
 )
 
 type Proc struct {
-	proc.Parent
 	filter.Filter
+	parent proc.Interface
 }
 
 func New(parent proc.Interface, f filter.Filter) *Proc {
 	return &Proc{
-		Parent: proc.Parent{parent},
+		parent: parent,
 		Filter: f,
 	}
 }
 
 func (f *Proc) Pull() (zbuf.Batch, error) {
-	batch, err := f.Parent.Pull()
+	batch, err := f.parent.Pull()
 	if proc.EOS(batch, err) {
 		return nil, err
 	}
@@ -34,4 +34,8 @@ func (f *Proc) Pull() (zbuf.Batch, error) {
 		}
 	}
 	return zbuf.NewArray(out), nil
+}
+
+func (p *Proc) Done() {
+	p.parent.Done()
 }

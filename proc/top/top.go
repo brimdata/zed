@@ -18,7 +18,7 @@ const defaultTopLimit = 100
 // the top N of the sort.
 // - It has a hidden option (FlushEvery) to sort and emit on every batch.
 type Proc struct {
-	proc.Parent
+	parent     proc.Interface
 	limit      int
 	fields     []expr.FieldExprResolver
 	records    *expr.RecordSlice
@@ -31,7 +31,7 @@ func New(parent proc.Interface, limit int, fields []expr.FieldExprResolver, flus
 		limit = defaultTopLimit
 	}
 	return &Proc{
-		Parent:     proc.Parent{parent},
+		parent:     parent,
 		limit:      limit,
 		fields:     fields,
 		flushEvery: flushEvery,
@@ -40,7 +40,7 @@ func New(parent proc.Interface, limit int, fields []expr.FieldExprResolver, flus
 
 func (t *Proc) Pull() (zbuf.Batch, error) {
 	for {
-		batch, err := t.Parent.Pull()
+		batch, err := t.parent.Pull()
 		if err != nil {
 			return nil, err
 		}
@@ -55,6 +55,10 @@ func (t *Proc) Pull() (zbuf.Batch, error) {
 			return t.sorted(), nil
 		}
 	}
+}
+
+func (p *Proc) Done() {
+	p.parent.Done()
 }
 
 func (t *Proc) consume(rec *zng.Record) {

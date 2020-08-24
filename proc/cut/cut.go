@@ -11,8 +11,8 @@ import (
 )
 
 type Proc struct {
-	proc.Parent
 	ctx        *proc.Context
+	parent     proc.Interface
 	complement bool
 	fieldnames []string
 	cutter     *Cutter
@@ -44,8 +44,8 @@ func New(ctx *proc.Context, parent proc.Interface, node *ast.CutProc) (*Proc, er
 	}
 
 	return &Proc{
-		Parent:     proc.Parent{parent},
 		ctx:        ctx,
+		parent:     parent,
 		complement: node.Complement,
 		fieldnames: fieldnames,
 		cutter:     NewCutter(ctx.TypeContext, node.Complement, targets, fieldnames),
@@ -67,7 +67,7 @@ func (c *Proc) maybeWarn() {
 
 func (c *Proc) Pull() (zbuf.Batch, error) {
 	for {
-		batch, err := c.Parent.Pull()
+		batch, err := c.parent.Pull()
 		if proc.EOS(batch, err) {
 			c.maybeWarn()
 			return nil, err
@@ -93,4 +93,8 @@ func (c *Proc) Pull() (zbuf.Batch, error) {
 			return zbuf.NewArray(recs), nil
 		}
 	}
+}
+
+func (p *Proc) Done() {
+	p.parent.Done()
 }

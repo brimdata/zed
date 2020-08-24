@@ -18,8 +18,8 @@ import (
 // or appends a value as a new column.  Appended values appear as new
 // columns in the order that the clause appears in the put expression.
 type Proc struct {
-	proc.Parent
 	ctx     *proc.Context
+	parent  proc.Interface
 	clauses []clause
 	// vals is a fixed array to avoid re-allocating for every record
 	vals   []zng.Value
@@ -66,8 +66,8 @@ func New(ctx *proc.Context, parent proc.Interface, node *ast.PutProc) (proc.Inte
 		}
 	}
 	return &Proc{
-		Parent:  proc.Parent{parent},
 		ctx:     ctx,
+		parent:  parent,
 		clauses: clauses,
 		vals:    make([]zng.Value, len(node.Clauses)),
 		rules:   make(map[int]*putRule),
@@ -205,7 +205,7 @@ func (p *Proc) put(in *zng.Record) *zng.Record {
 }
 
 func (p *Proc) Pull() (zbuf.Batch, error) {
-	batch, err := p.Parent.Pull()
+	batch, err := p.parent.Pull()
 	if proc.EOS(batch, err) {
 		return nil, err
 	}
@@ -216,4 +216,8 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 	}
 	batch.Unref()
 	return zbuf.NewArray(recs), nil
+}
+
+func (p *Proc) Done() {
+	p.parent.Done()
 }

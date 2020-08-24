@@ -6,15 +6,17 @@ import (
 )
 
 type Proc struct {
-	proc.Parent
+	parent proc.Interface
 }
 
 func New(parent proc.Interface) *Proc {
-	return &Proc{
-		Parent: proc.Parent{parent},
-	}
+	return &Proc{parent}
 }
 
 func (p *Proc) Pull() (zbuf.Batch, error) {
-	return p.Parent.Pull()
+	return p.parent.Pull()
+}
+
+func (p *Proc) Done() {
+	p.parent.Done()
 }

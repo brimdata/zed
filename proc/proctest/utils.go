@@ -23,6 +23,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// RecordPuller is a proc.Proc whose Pull method returns one batch for each
+// record of a zbuf.Reader.  XXX move this into proctest
+type RecordPuller struct {
+	R zbuf.Reader
+}
+
+func (r *RecordPuller) Pull() (zbuf.Batch, error) {
+	for {
+		rec, err := r.R.Read()
+		if rec == nil || err != nil {
+			return nil, err
+		}
+		return zbuf.NewArray([]*zng.Record{rec}), nil
+	}
+}
+
+func (r *RecordPuller) Done() {}
+
 func CompileTestProc(code string, ctx *proc.Context, parent proc.Interface) (proc.Interface, error) {
 	// XXX If we use a newer version of pigeon, we can just compile
 	// with "proc" as the terminal symbol.

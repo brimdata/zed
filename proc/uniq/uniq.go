@@ -10,16 +10,16 @@ import (
 )
 
 type Proc struct {
-	proc.Parent
-	ctx   *proc.Context
-	cflag bool
-	count uint64
-	last  *zng.Record
+	parent proc.Interface
+	ctx    *proc.Context
+	cflag  bool
+	count  uint64
+	last   *zng.Record
 }
 
 func New(ctx *proc.Context, parent proc.Interface, cflag bool) *Proc {
 	return &Proc{
-		Parent: proc.Parent{parent},
+		parent: parent,
 		ctx:    ctx,
 		cflag:  cflag,
 	}
@@ -57,7 +57,7 @@ func (u *Proc) appendUniq(out []*zng.Record, t *zng.Record) []*zng.Record {
 // uniq is a little bit complicated because we have to check uniqueness
 // across records between calls to Pull.
 func (u *Proc) Pull() (zbuf.Batch, error) {
-	batch, err := u.Parent.Pull()
+	batch, err := u.parent.Pull()
 	if err != nil {
 		return nil, err
 	}
@@ -75,4 +75,8 @@ func (u *Proc) Pull() (zbuf.Batch, error) {
 		out = u.appendUniq(out, batch.Index(k))
 	}
 	return zbuf.NewArray(out), nil
+}
+
+func (p *Proc) Done() {
+	p.parent.Done()
 }

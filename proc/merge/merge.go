@@ -52,7 +52,7 @@ func New(c *proc.Context, parents []proc.Interface) *Proc {
 	doneCh := make(chan struct{})
 	var runners []*runnerProc
 	for _, parent := range parents {
-		runners = append(runners, newrunnerProc(proc.Parent{parent}, ch, doneCh))
+		runners = append(runners, newrunnerProc(parent, ch, doneCh))
 	}
 	return &Proc{
 		ch:       ch,

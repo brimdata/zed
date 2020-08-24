@@ -7,13 +7,13 @@ import (
 )
 
 type Proc struct {
-	proc.Parent
+	parent       proc.Interface
 	limit, count int
 }
 
 func New(parent proc.Interface, limit int) *Proc {
 	return &Proc{
-		Parent: proc.Parent{parent},
+		parent: parent,
 		limit:  limit,
 	}
 }
@@ -23,7 +23,7 @@ func (h *Proc) Pull() (zbuf.Batch, error) {
 	if remaining <= 0 {
 		return nil, nil
 	}
-	batch, err := h.Parent.Pull()
+	batch, err := h.parent.Pull()
 	if proc.EOS(batch, err) {
 		return nil, err
 	}
@@ -45,4 +45,8 @@ func (h *Proc) Pull() (zbuf.Batch, error) {
 	h.count = h.limit
 	h.Done()
 	return zbuf.NewArray(recs), nil
+}
+
+func (p *Proc) Done() {
+	p.parent.Done()
 }

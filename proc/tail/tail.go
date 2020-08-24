@@ -7,17 +7,17 @@ import (
 )
 
 type Proc struct {
-	proc.Parent
-	limit int
-	count int
-	off   int
-	q     []*zng.Record
+	parent proc.Interface
+	limit  int
+	count  int
+	off    int
+	q      []*zng.Record
 }
 
 func New(parent proc.Interface, limit int) *Proc {
 	//XXX should have a limit check on limit
 	return &Proc{
-		Parent: proc.Parent{parent},
+		parent: parent,
 		limit:  limit,
 		q:      make([]*zng.Record, limit),
 	}
@@ -43,7 +43,7 @@ func (t *Proc) tail() zbuf.Batch {
 
 func (t *Proc) Pull() (zbuf.Batch, error) {
 	for {
-		batch, err := t.Parent.Pull()
+		batch, err := t.parent.Pull()
 		if proc.EOS(batch, err) {
 			return t.tail(), nil
 		}
@@ -57,4 +57,8 @@ func (t *Proc) Pull() (zbuf.Batch, error) {
 		}
 		batch.Unref()
 	}
+}
+
+func (p *Proc) Done() {
+	p.parent.Done()
 }

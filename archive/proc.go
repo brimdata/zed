@@ -18,8 +18,8 @@ import (
 // types in a same-named field, this proc doesn't support different
 // types, and errors if more than one type is seen.
 type FieldCutter struct {
-	proc.Parent
 	ctx      *proc.Context
+	parent   proc.Interface
 	builder  *zng.Builder
 	accessor expr.FieldExprResolver
 	field    string
@@ -36,8 +36,8 @@ func NewFieldCutter(ctx *proc.Context, parent proc.Interface, fieldName, out str
 	}
 
 	return &FieldCutter{
-		Parent:   proc.Parent{parent},
 		ctx:      ctx,
+		parent:   parent,
 		field:    fieldName,
 		out:      out,
 		accessor: accessor,
@@ -56,7 +56,7 @@ func (f *FieldCutter) checkType(typ zng.Type) error {
 
 func (f *FieldCutter) Pull() (zbuf.Batch, error) {
 	for {
-		batch, err := f.Parent.Pull()
+		batch, err := f.parent.Pull()
 		if proc.EOS(batch, err) {
 			return nil, err
 		}
@@ -83,6 +83,10 @@ func (f *FieldCutter) Pull() (zbuf.Batch, error) {
 	}
 }
 
+func (f *FieldCutter) Done() {
+	f.parent.Done()
+}
+
 type fieldCutterNode struct {
 	field string
 	out   string
@@ -94,7 +98,7 @@ func (t *fieldCutterNode) ProcNode() {}
 // zng type T, outputs one record for each field of the input record of
 // type T. It is used for type-based indexing.
 type TypeSplitter struct {
-	proc.Parent
+	parent  proc.Interface
 	builder zng.Builder
 	typ     zng.Type
 }
@@ -107,7 +111,7 @@ func NewTypeSplitter(ctx *proc.Context, parent proc.Interface, typ zng.Type, col
 	builder := zng.NewBuilder(rectyp)
 
 	return &TypeSplitter{
-		Parent:  proc.Parent{parent},
+		parent:  parent,
 		builder: *builder,
 		typ:     typ,
 	}, nil
@@ -115,7 +119,7 @@ func NewTypeSplitter(ctx *proc.Context, parent proc.Interface, typ zng.Type, col
 
 func (t *TypeSplitter) Pull() (zbuf.Batch, error) {
 	for {
-		batch, err := t.Parent.Pull()
+		batch, err := t.parent.Pull()
 		if proc.EOS(batch, err) {
 			return nil, err
 		}
@@ -134,6 +138,10 @@ func (t *TypeSplitter) Pull() (zbuf.Batch, error) {
 			return zbuf.NewArray(recs), nil
 		}
 	}
+}
+
+func (t *TypeSplitter) Done() {
+	t.parent.Done()
 }
 
 type typeSplitterNode struct {

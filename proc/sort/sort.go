@@ -27,8 +27,8 @@ import (
 var MemMaxBytes = 128 * 1024 * 1024
 
 type Proc struct {
-	proc.Parent
 	ctx        *proc.Context
+	parent     proc.Interface
 	dir        int
 	nullsFirst bool
 	fields     []ast.FieldExpr
@@ -46,8 +46,8 @@ func New(ctx *proc.Context, parent proc.Interface, node *ast.SortProc) (*Proc, e
 		return nil, err
 	}
 	return &Proc{
-		Parent:             proc.Parent{parent},
 		ctx:                ctx,
+		parent:             parent,
 		dir:                node.SortDir,
 		nullsFirst:         node.NullsFirst,
 		fields:             node.Fields,
@@ -63,6 +63,10 @@ func (s *Proc) Pull() (zbuf.Batch, error) {
 		return r.Batch, r.Err
 	}
 	return nil, s.ctx.Err()
+}
+
+func (p *Proc) Done() {
+	p.parent.Done()
 }
 
 func (s *Proc) sortLoop() {
@@ -110,7 +114,7 @@ func (s *Proc) recordsForOneRun() ([]*zng.Record, bool, error) {
 	var nbytes int
 	var recs []*zng.Record
 	for {
-		batch, err := s.Parent.Pull()
+		batch, err := s.parent.Pull()
 		if err != nil {
 			return nil, false, err
 		}

@@ -43,13 +43,3 @@ type Context struct {
 func EOS(batch zbuf.Batch, err error) bool {
 	return batch == nil || err != nil
 }
-
-type Parent struct {
-	Interface
-}
-
-func (p Parent) Done() {
-	if p.Interface != nil {
-		p.Interface.Done()
-	}
-}
