@@ -102,10 +102,15 @@ func ReplaceGroupByProcDurationWithKey(p ast.Proc) {
 			durationKey := ast.ExpressionAssignment{
 				Target: "ts",
 				Expr: &ast.FunctionCall{
+					Node:     ast.Node{"FunctionCall"},
 					Function: "Time.trunc",
 					Args: []ast.Expression{
-						&ast.FieldRead{Field: "ts"},
+						&ast.FieldRead{
+							Node:  ast.Node{"FieldRead"},
+							Field: "ts",
+						},
 						&ast.Literal{
+							Node:  ast.Node{"Literal"},
 							Type:  "int64",
 							Value: strconv.Itoa(duration),
 						}},
