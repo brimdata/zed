@@ -184,9 +184,7 @@ https://linkerd.io/2/reference/proxy-metrics/
 The cAdvisor metrics for the queries above are described in:
 https://github.com/google/cadvisor/blob/master/docs/storage/prometheus.md
 
-## WIP: Deploying the ZQ daemon to an AWS EKS cluster
-
-NOTE: this EKS procedure is not yet working end-to-end in the k8s branch!
+## Deploying the ZQ daemon to an AWS EKS cluster
 
 This walks through a procedure for setting up an EKS cluster on an AWS account. If you are contributing to ZQ, keep in mind the the AWS resources allocated here can be expensive. If you are working through this to learn, be sure to tear everything down ASAP after running experiments.
 
@@ -202,16 +200,6 @@ The following steps must be done in order to deploy zqd with helm.
 ### Creating the EKS Cluster
 Choose a region for the cluster. For the examples below, we used region us-east-1. (Hint: this is because us-east-1 is the lowest cost region for some S3 charges.) We set a default region with `aws configure` so it is not included in the CLI commands.
 
-##### CUT
-Before starting, you will need to create a pem file for EKS to access EC2:
-https://docs.aws.amazon.com/cli/latest/userguide/cli-services-ec2-keypairs.html#creating-a-key-pair
-After creating the pem file, extract the public key. If you already have a preferred key pair, just extract the public key.
-```
-aws ec2 create-key-pair --key-name zqKeyPair --query 'KeyMaterial' --output text > zq-eks-test.pem
-ssh-keygen -y -f zq-eks-test.pem > zq-eks-test.pub
-```
-##### ENDCUT
-
 We use AWS `eksctl` to create the cluster. To install eksctl on MacOS:
 ```
 brew tap weaveworks/tap
@@ -222,8 +210,8 @@ Then create the cluster:
 ```
 eksctl create cluster -f k8s/cluster.yaml
 ```
-This command usually takes at least 10 minutes to complete. It uses parameters provided in `k8s/cluster.yaml` -- you can edit this file to change it as needed. The file contains links to relevant AWS docs for how to chnage it.
-In this example, we limit the cluster size to 3. This is enough to test autoscaling, but the max might need to be increased for searches in very large log files. If you keep the cluster up during dev and testing, you may want to manually scale it down with:
+This command usually takes at least 10 minutes to complete. It uses parameters provided in `k8s/cluster.yaml` -- you can edit this file to change it as needed. The file contains links to relevant AWS docs for how to change it.
+In this example, we limit the cluster size to 3. This is enough to test autoscaling. If you keep the cluster up during dev and testing, you may want to manually scale it down with:
 ```
 eksctl scale nodegroup --cluster test -m 1 -N 1 -M 1 -n standard-workers --region us-east-1
 ```
@@ -241,6 +229,7 @@ kubectl config set-context zqdev \
   --user=mark@zq-dev.us-east-2.eksctl.io
 kubectl config use-context zqdev
 ```
+
 ### Install Linkerd into the EKS cluster
 
 Insure that Linkerd command line tools are installed (see local install above).
@@ -248,8 +237,26 @@ Insure that Linkerd command line tools are installed (see local install above).
 linkerd install | kubectl apply -f -
 ```
 
-### Pushing locally Docker images from your local dev machine to ECR
-You can push locally builr Docker images to AWS ECR for deployment on EKS. (This procedure can replaced by a CI/CD deployment pipeline.)
+### Use zar import to get some data into an S3 bucket in the region
+The permission we set up for S3 access are region-specific. We will use zar for create an S3 bucket in this region with some sample data. 
+
+If you do not already have a bucket you want to use in the same region as your EKS cluster, create it with `aws s3 mb`, e.g.
+```
+aws s3 mb s3://zqd-demo-1
+```
+Now use zar to create an object in S3. 
+
+For the following zar import, change the directory name to match your s3 bucket.
+```
+zar import -R s3://zqd-demo-1/mark/sample-http-zng zq-sample-data/zng/http.zng.gz
+```
+This creates zng files in an s3 directory called `sample-http-zng` that we will use from zapi after zqd has been deployed. To check what zar created:
+```
+aws s3 ls zqd-demo-1/mark --recursive
+```
+
+### Pushing locally built Docker images from your local dev machine to ECR
+You can push locally built Docker images to AWS ECR for deployment on EKS. (This procedure can replaced by a CI/CD deployment pipeline.)
 
 Use this doc:
 https://docs.aws.amazon.com/AmazonECR/latest/userguide/getting-started-cli.html
@@ -262,7 +269,7 @@ aws ecr create-repository \
     --repository-name zqd
 ```
 
-This must be run for each service, since in ECR terms, every image has it's own 'repo'. When the repo is created at the command line it returns JSON that looks like:
+When the repo is created at the command line it returns JSON that looks like:
 ```
 "repositoryUri": "123456789012.dkr.ecr.us-east-1.amazonaws.com/gateway"
 ```
@@ -275,72 +282,17 @@ aws ecr get-login-password --region us-east-1 | docker login \
 docker push 123456789012.dkr.ecr.us-east-1.amazonaws.com/zqd
 ```
 
-### CUT: Create an IAM service account to run the zqd service
-
-The following eksctl command has to be done once for your cluster. Substitute in the name of the EKS cluster you created above.
-```
-eksctl utils associate-iam-oidc-provider --cluster zqtest --approve
-```
-
-Create the service account with:
-```
-eksctl create iamserviceaccount \
-  --attach-policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess \
-  --approve --override-existing-serviceaccounts \
-  --cluster zqdev2 --namespace zq --name zqd-service-account
-```
-This creates a CloudFormation stack tp provision your service account. Later you can edit the CF stack directly and reapply it to added more policy ARNs.
-
-The `iamserviceaccount` creates three things: an IAM account, an IAM role for that account that has the attached policies, and the K8s `sa` object. Verify the service account has been created with:
-```
-kubectl get sa
-kubectl get sa zqd-service-account -oyaml
-```
-
-### Use zar import to get some data into an S3 bucket in the region
-The permission we set up for S3 access are region-specific. We will use zar for create an S3 bucket in this region with some sample data. 
-
-If you do not already have a bucket you want to use in the same region as your EKS cluster, create it with `aws s3 mb`, e.g.
-```
-aws s3 mb s3://zqd-demo-1
-```
-Now use zar to create an object in S3. 
-
-##### CUT
-This has to be done with the same IAM account that we will use for zqd later. This is, the zqd-test service account. In order to run zar as this account, create an access key, that is a file that we can use in the next step:
-```
-aws iam create-access-key --user-name zqd-service-account | tee zqd-access-key.json
-```
-##### END CUT
-
-For the following zar import, change the directory name to match your s3 bucket.
-```
-zar import -R s3://zqd-demo-1/mark/sample-http-zng zq-sample-data/zng/http.zng.gz
-```
-This creates zng files in an s3 directory called `sample-http-zng` that we will use from zapi after zqd has been deployed. To check what zar created:
-```
-aws s3 ls zqd-demo-1/mark --recursive
-```
-
-#### CUT: Trouble-shooting note
-If you use zar to write to an S3 bucket with one IAM user, and attempt to read with another IAM user, you will get something like the following error:
-```
-AccessDenied: Access Denied
-	status code: 403, request id: 63A062E7523BF781, host id: HMF3X7yVYSRF9JqPnvwQpvggZM/JlW3ZQR2BEQB+Jo0+bpONyeqNxSVXcDxVzj794Zld7+9eA9g=
-```
-This is issued by the S3 access layer in AWS, and it is not very informatve. :-)
-
 ### Deploy the zqd service with Helm
 Here is an example Helm install. This assumes you created an s3 resident space as in the local install bove. This is similar to the local Helm deploy. It uses the same charts, but command line parameters overide the Vakues.yaml to provide specific configuration for EKS.
 
-Substitute the image.repository you created above, and the service account you created (if you chose an account name other than "zqd-service-account".) Note that unlike the local deployment, we do not use K8s secrets for AWS credentials because the service account can provide those. If there is a serviceAccount.name then AWS Credentials are not incudeded in the deployment env.
+Substitute the image.repository you created above. Note that unlike the local deployment, we do not use K8s secrets for AWS credentials because the service account can provide those. If there is a serviceAccount.name then AWS Credentials are not incudeded in the deployment env.
 
 ```
 helm install zqd-test-1 charts/zqd \
   --set AWSRegion="us-east-2" \
   --set datauri="s3://zqd-demo/mark/zqd-meta" \
   --set image.repository="123456789012.dkr.ecr.us-east-1.amazonaws.com/" \
-  --set serviceAccount.name="zqd-service-account"
+  --set useCredSecret=false
 ```
 
 ### Exposing the zqd endpoint

@@ -175,7 +175,39 @@ Later in the same doc, there a good explaination of creating a service account:
 
 https://www.eksworkshop.com/beginner/110_irsa/preparation/
 
-#### Notes on IAM policies
+### Create an IAM service account to run the zqd service
+
+If you want to use a service account, the following eksctl command has to be done once for your cluster. Substitute in the name of the EKS cluster you created above.
+```
+eksctl utils associate-iam-oidc-provider --cluster zqtest --approve
+```
+
+Create the service account with:
+```
+eksctl create iamserviceaccount \
+  --attach-policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess \
+  --approve --override-existing-serviceaccounts \
+  --cluster zqdev2 --namespace zq --name zqd-service-account
+```
+This creates a CloudFormation stack tp provision your service account. Later you can edit the CF stack directly and reapply it to added more policy ARNs.
+
+The `iamserviceaccount` creates three things: an IAM account, an IAM role for that account that has the attached policies, and the K8s `sa` object. Verify the service account has been created with:
+```
+kubectl get sa
+kubectl get sa zqd-service-account -oyaml
+```
+
+## SSH into EKS nodes
+To do this yu will have to allow SSH access in the cluster.yaml. You will also need to specify a PEM file in the cluster.yaml.
+
+https://docs.aws.amazon.com/cli/latest/userguide/cli-services-ec2-keypairs.html#creating-a-key-pair
+After creating the pem file, extract the public key. If you already have a preferred key pair, just extract the public key.
+```
+aws ec2 create-key-pair --key-name zqKeyPair --query 'KeyMaterial' --output text > zq-eks-test.pem
+ssh-keygen -y -f zq-eks-test.pem > zq-eks-test.pub
+```
+
+## Notes on IAM policies
 The zqd service account needs read access to S3. AWS IAM has an ARN for `AmazonS3ReadOnlyAccess`. Here is how you get the ARN:
 ```
 aws iam list-policies --query 'Policies[?PolicyName==`AmazonS3ReadOnlyAccess`].Arn'
@@ -184,8 +216,14 @@ And the ARN is:
 ```
 arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
 ```
+## S3 Error
+The following message is issued by the S3 access layer in AWS, and it is not very informatve. :-)
+```
+AccessDenied: Access Denied
+	status code: 403, request id: 63A062E7523BF781, host id: HMF3X7yVYSRF9JqPnvwQpvggZM/JlW3ZQR2BEQB+Jo0+bpONyeqNxSVXcDxVzj794Zld7+9eA9g=
+```
 
-### Using centralized logging
+## Using centralized logging
 The default logging on K8s cluster just uses in-memory logs for the deployed pods. This is inconvenient for trouble-shooting. There are a number of centralized logging services available. The free verion of Papertrail (https://www.papertrail.com) is an easy place to start. If you create a free Papertrail account, the following instructions work for adding the log output from your pods in the EKS cluster to the Papertrail stream:
 https://help.papertrailapp.com/kb/configuration/configuring-centralized-logging-from-kubernetes/
 
