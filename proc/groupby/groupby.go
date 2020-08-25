@@ -489,14 +489,12 @@ func (a *Aggregator) Results(eof bool) (zbuf.Batch, error) {
 	return a.readSpills(eof)
 }
 
-const batchLen = 100 // like sort
-
 func (a *Aggregator) readSpills(eof bool) (zbuf.Batch, error) {
-	recs := make([]*zng.Record, 0, batchLen)
+	recs := make([]*zng.Record, 0, proc.BatchLen)
 	if !eof && a.inputSortDir == 0 {
 		return nil, nil
 	}
-	for len(recs) < batchLen {
+	for len(recs) < proc.BatchLen {
 		if !eof && a.inputSortDir != 0 {
 			rec, err := a.runManager.Peek()
 			if err != nil {

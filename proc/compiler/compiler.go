@@ -23,7 +23,6 @@ import (
 	"github.com/brimsec/zq/proc/uniq"
 )
 
-//XXX this should go away
 type Hook func(ast.Proc, *proc.Context, proc.Interface) (proc.Interface, error)
 
 func isContainerProc(node ast.Proc) bool {
@@ -143,7 +142,6 @@ func Compile(custom Hook, node ast.Proc, ctx *proc.Context, parents []proc.Inter
 				} else {
 					parents = []proc.Interface{merge.New(ctx, parents)}
 				}
-				continue
 			} else {
 				parent = parents[0]
 			}
@@ -162,7 +160,6 @@ func CompileParallel(custom Hook, pp *ast.ParallelProc, c *proc.Context, parents
 	n := len(pp.Procs)
 	if len(parents) == 1 {
 		// Single parent: insert a splitter and wire to each branch.
-		//XXX change split package to splitter
 		splitter := split.New(parents[0])
 		parents = []proc.Interface{}
 		for k := 0; k < n; k++ {

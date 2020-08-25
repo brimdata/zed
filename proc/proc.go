@@ -8,6 +8,8 @@ import (
 	"go.uber.org/zap"
 )
 
+const BatchLen = 100
+
 // proc.Interface is the interface to objects that operate on Batches of zbuf.Records
 // and are arranged into a flowgraph to perform pattern matching and analytics.
 // A proc is generally single-threaded unless lengths are taken to implement

@@ -64,8 +64,6 @@ func (p *Proc) run() {
 }
 
 // Read fulfills zbuf.Reader so that we can use zbuf.ReadBatch.
-//XXX this is combining two things in one... I think this should be separated
-// out and a proc can wrap the facter-out stuff
 func (p *Proc) Read() (*zng.Record, error) {
 	idx := -1
 	for i := range p.parents {
@@ -114,11 +112,9 @@ func next(p *mergeParent) *zng.Record {
 	return rec
 }
 
-const batchLen = 100 // XXX
-
 func (m *Proc) Pull() (zbuf.Batch, error) {
 	m.once.Do(m.run)
-	return zbuf.ReadBatch(m, batchLen)
+	return zbuf.ReadBatch(m, proc.BatchLen)
 }
 
 func (m *Proc) Done() {
