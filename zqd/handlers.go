@@ -346,11 +346,21 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	ticker := time.NewTicker(time.Second * 2)
 	defer ticker.Stop()
+loop:
 	for {
-		var done bool
 		select {
-		case <-op.Done():
-			done = true
+		case warning, ok := <-op.Status():
+			if !ok {
+				break loop
+			}
+			err := pipe.Send(api.LogPostWarning{
+				Type:    "PcapPostWarning",
+				Warning: warning,
+			})
+			if err != nil {
+				logger.Warn("error sending payload", zap.Error(err))
+				return
+			}
 		case <-op.Snap():
 		case <-ticker.C:
 		}
@@ -373,9 +383,6 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		if err := pipe.Send(status); err != nil {
 			logger.Warn("Error sending payload", zap.Error(err))
 			return
-		}
-		if done {
-			break
 		}
 	}
 	taskEnd := api.TaskEnd{Type: "TaskEnd", TaskID: taskID}
@@ -457,7 +464,7 @@ loop:
 		logger.Warn("error sending payload", zap.Error(err))
 		return
 	}
-	if err := pipe.SendEnd(0, op.Error()); err != nil {
+	if err := pipe.SendEnd(0, op.Err()); err != nil {
 		logger.Warn("error sending payload", zap.Error(err))
 		return
 	}

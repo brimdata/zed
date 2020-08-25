@@ -35,7 +35,8 @@ type PcapOp struct {
 	pcapuri      iosrc.URI
 	pcapReadSize int64
 	logdir       string
-	done, snap   chan struct{}
+	snap         chan struct{}
+	warningCh    chan string
 	err          error
 	zlauncher    zeek.Launcher
 }
@@ -54,9 +55,6 @@ func NewPcapOp(ctx context.Context, pcapstore *pcapstorage.Store, store Clearabl
 	if err != nil {
 		return nil, err
 	}
-	if err := pcapstore.Update(pcapuri); err != nil {
-		return nil, err
-	}
 	logdir, err := ioutil.TempDir("", "zqd-pcap-ingest-")
 	if err != nil {
 		return nil, err
@@ -68,13 +66,16 @@ func NewPcapOp(ctx context.Context, pcapstore *pcapstorage.Store, store Clearabl
 		store:     store,
 		pcapuri:   pcapuri,
 		logdir:    logdir,
-		done:      make(chan struct{}),
+		warningCh: make(chan string, 5),
 		snap:      make(chan struct{}),
 		zlauncher: zlauncher,
 	}
 	go func() {
-		p.err = p.run(ctx)
-		close(p.done)
+		p.err = pcapstore.Update(pcapuri)
+		if p.err == nil {
+			p.err = p.run(ctx)
+		}
+		close(p.warningCh)
 		close(p.snap)
 	}()
 	return p, nil
@@ -154,17 +155,12 @@ func (p *PcapOp) PcapReadSize() int64 {
 	return atomic.LoadInt64(&p.pcapReadSize)
 }
 
-// Err returns the an error if an error occurred while the ingest process was
-// running. If the process is still running Err will wait for the process to
-// complete before returning.
-func (p *PcapOp) Err() error {
-	<-p.done
-	return p.err
+func (p *PcapOp) Status() <-chan string {
+	return p.warningCh
 }
 
-// Done returns a chan that emits when the ingest process is complete.
-func (p *PcapOp) Done() <-chan struct{} {
-	return p.done
+func (p *PcapOp) Err() error {
+	return p.err
 }
 
 func (p *PcapOp) SnapshotCount() int {
