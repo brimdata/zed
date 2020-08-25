@@ -1,4 +1,4 @@
-package proc_test
+package orderedmerge_test
 
 import (
 	"bytes"
@@ -9,30 +9,14 @@ import (
 
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/proc/orderedmerge"
+	"github.com/brimsec/zq/proc/proctest"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/tzngio"
-	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-// recordPuller is a proc.Proc whose Pull method returns one batch for each
-// record of a zbuf.Reader.
-type recordPuller struct {
-	proc.Base
-	r zbuf.Reader
-}
-
-func (rp *recordPuller) Pull() (zbuf.Batch, error) {
-	for {
-		rec, err := rp.r.Read()
-		if rec == nil || err != nil {
-			return nil, err
-		}
-		return zbuf.NewArray([]*zng.Record{rec}), nil
-	}
-}
 
 var omTestInputs = []string{
 	`
@@ -117,12 +101,12 @@ func TestParallelOrder(t *testing.T) {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			zctx := resolver.NewContext()
 			pctx := &proc.Context{Context: context.Background(), TypeContext: zctx}
-			var parents []proc.Proc
+			var parents []proc.Interface
 			for _, s := range c.inputs {
 				r := tzngio.NewReader(bytes.NewReader([]byte(s)), zctx)
-				parents = append(parents, &recordPuller{Base: proc.Base{Context: pctx}, r: r})
+				parents = append(parents, &proctest.RecordPuller{R: r})
 			}
-			om := proc.NewOrderedMerge(pctx, parents, c.field, c.reversed)
+			om := orderedmerge.New(pctx, parents, c.field, c.reversed)
 
 			var sb strings.Builder
 			err := zbuf.CopyPuller(tzngio.NewWriter(&sb), om)

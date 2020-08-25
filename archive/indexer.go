@@ -7,7 +7,7 @@ import (
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/proc/cut"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
@@ -59,7 +59,7 @@ func runOne(ctx context.Context, zardir iosrc.URI, rule Rule, inputPath iosrc.UR
 		progress <- fmt.Sprintf("%s: creating index %s", inputPath, rule.Path(zardir))
 	}
 	err = driver.Run(ctx, fgi, rule.proc, zctx, r, driver.Config{
-		Custom: &compiler{},
+		Custom: compile,
 	})
 	if err != nil {
 		fgi.Abort()
@@ -81,7 +81,7 @@ type FlowgraphIndexer struct {
 	zctx    *resolver.Context
 	w       *microindex.Writer
 	keyType zng.Type
-	cutter  *proc.Cutter
+	cutter  *cut.Cutter
 }
 
 func NewFlowgraphIndexer(zctx *resolver.Context, uri iosrc.URI, keys []string, framesize int) (*FlowgraphIndexer, error) {
@@ -95,7 +95,7 @@ func NewFlowgraphIndexer(zctx *resolver.Context, uri iosrc.URI, keys []string, f
 	return &FlowgraphIndexer{
 		zctx:   zctx,
 		w:      writer,
-		cutter: proc.NewStrictCutter(zctx, false, keys, keys),
+		cutter: cut.NewStrictCutter(zctx, false, keys, keys),
 	}, nil
 }
 

@@ -1,16 +1,18 @@
-package proc
+package cut
 
 import (
 	"fmt"
 	"strings"
 
 	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 )
 
-type Cut struct {
-	Base
+type Proc struct {
+	ctx        *proc.Context
+	parent     proc.Interface
 	complement bool
 	fieldnames []string
 	cutter     *Cutter
@@ -24,7 +26,7 @@ type Cut struct {
 // so the output record can be constructed efficiently, though we don't
 // do this now since it might confuse users who expect to see output
 // fields in the order they specified.
-func CompileCutProc(c *Context, parent Proc, node *ast.CutProc) (*Cut, error) {
+func New(ctx *proc.Context, parent proc.Interface, node *ast.CutProc) (*Proc, error) {
 	var fieldnames, targets []string
 	for _, fa := range node.Fields {
 		if fa.Target == "" {
@@ -35,38 +37,39 @@ func CompileCutProc(c *Context, parent Proc, node *ast.CutProc) (*Cut, error) {
 	}
 	// build this once at compile time for error checking.
 	if !node.Complement {
-		_, err := NewColumnBuilder(c.TypeContext, targets)
+		_, err := proc.NewColumnBuilder(ctx.TypeContext, targets)
 		if err != nil {
 			return nil, fmt.Errorf("compiling cut: %w", err)
 		}
 	}
 
-	return &Cut{
-		Base:       Base{Context: c, Parent: parent},
+	return &Proc{
+		ctx:        ctx,
+		parent:     parent,
 		complement: node.Complement,
 		fieldnames: fieldnames,
-		cutter:     NewCutter(c.TypeContext, node.Complement, targets, fieldnames),
+		cutter:     NewCutter(ctx.TypeContext, node.Complement, targets, fieldnames),
 	}, nil
 }
 
-func (c *Cut) maybeWarn() {
-	if c.complement || c.cutter.FoundCut() {
+func (p *Proc) maybeWarn() {
+	if p.complement || p.cutter.FoundCut() {
 		return
 	}
 	var msg string
-	if len(c.fieldnames) == 1 {
-		msg = fmt.Sprintf("Cut field %s not present in input", c.fieldnames[0])
+	if len(p.fieldnames) == 1 {
+		msg = fmt.Sprintf("Cut field %s not present in input", p.fieldnames[0])
 	} else {
-		msg = fmt.Sprintf("Cut fields %s not present together in input", strings.Join(c.fieldnames, ","))
+		msg = fmt.Sprintf("Cut fields %s not present together in input", strings.Join(p.fieldnames, ","))
 	}
-	c.Warnings <- msg
+	p.ctx.Warnings <- msg
 }
 
-func (c *Cut) Pull() (zbuf.Batch, error) {
+func (p *Proc) Pull() (zbuf.Batch, error) {
 	for {
-		batch, err := c.Get()
-		if EOS(batch, err) {
-			c.maybeWarn()
+		batch, err := p.parent.Pull()
+		if proc.EOS(batch, err) {
+			p.maybeWarn()
 			return nil, err
 		}
 		// Make new records with only the fields specified.
@@ -76,7 +79,7 @@ func (c *Cut) Pull() (zbuf.Batch, error) {
 		for k := 0; k < batch.Length(); k++ {
 			in := batch.Index(k)
 
-			out, err := c.cutter.Cut(in)
+			out, err := p.cutter.Cut(in)
 			if err != nil {
 				return nil, err
 			}
@@ -90,4 +93,8 @@ func (c *Cut) Pull() (zbuf.Batch, error) {
 			return zbuf.NewArray(recs), nil
 		}
 	}
+}
+
+func (p *Proc) Done() {
+	p.parent.Done()
 }

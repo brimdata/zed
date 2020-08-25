@@ -1,0 +1,227 @@
+package sort
+
+import (
+	"fmt"
+	"sync"
+
+	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zng"
+)
+
+// MemMaxBytes specifies the maximum amount of memory that each sort proc
+// will consume.
+var MemMaxBytes = 128 * 1024 * 1024
+
+type Proc struct {
+	ctx        *proc.Context
+	parent     proc.Interface
+	dir        int
+	nullsFirst bool
+	fields     []ast.FieldExpr
+
+	fieldResolvers     []expr.FieldExprResolver
+	once               sync.Once
+	resultCh           chan proc.Result
+	compareFn          expr.CompareFn
+	unseenFieldTracker *unseenFieldTracker
+}
+
+func New(ctx *proc.Context, parent proc.Interface, node *ast.SortProc) (*Proc, error) {
+	fieldResolvers, err := expr.CompileFieldExprs(node.Fields)
+	if err != nil {
+		return nil, err
+	}
+	return &Proc{
+		ctx:                ctx,
+		parent:             parent,
+		dir:                node.SortDir,
+		nullsFirst:         node.NullsFirst,
+		fields:             node.Fields,
+		fieldResolvers:     fieldResolvers,
+		resultCh:           make(chan proc.Result),
+		unseenFieldTracker: newUnseenFieldTracker(node.Fields, fieldResolvers),
+	}, nil
+}
+
+func (p *Proc) Pull() (zbuf.Batch, error) {
+	p.once.Do(func() { go p.sortLoop() })
+	if r, ok := <-p.resultCh; ok {
+		return r.Batch, r.Err
+	}
+	return nil, p.ctx.Err()
+}
+
+func (p *Proc) Done() {
+	p.parent.Done()
+}
+
+func (p *Proc) sortLoop() {
+	defer close(p.resultCh)
+	firstRunRecs, eof, err := p.recordsForOneRun()
+	if err != nil || len(firstRunRecs) == 0 {
+		p.sendResult(nil, err)
+		return
+	}
+	p.setCompareFn(firstRunRecs[0])
+	if eof {
+		// Just one run so do an in-memory sort.
+		p.warnAboutUnseenFields()
+		expr.SortStable(firstRunRecs, p.compareFn)
+		array := zbuf.NewArray(firstRunRecs)
+		p.sendResult(array, nil)
+		return
+	}
+	// Multiple runs so do an external merge sort.
+	runManager, err := p.createRuns(firstRunRecs)
+	if err != nil {
+		p.sendResult(nil, err)
+		return
+	}
+	defer runManager.Cleanup()
+	p.warnAboutUnseenFields()
+	for p.ctx.Err() == nil {
+		// Reading from runManager merges the runs.
+		b, err := zbuf.ReadBatch(runManager, 100)
+		p.sendResult(b, err)
+		if b == nil || err != nil {
+			return
+		}
+	}
+}
+
+func (p *Proc) sendResult(b zbuf.Batch, err error) {
+	select {
+	case p.resultCh <- proc.Result{Batch: b, Err: err}:
+	case <-p.ctx.Done():
+	}
+}
+
+func (p *Proc) recordsForOneRun() ([]*zng.Record, bool, error) {
+	var nbytes int
+	var recs []*zng.Record
+	for {
+		batch, err := p.parent.Pull()
+		if err != nil {
+			return nil, false, err
+		}
+		if batch == nil {
+			return recs, true, nil
+		}
+		l := batch.Length()
+		for i := 0; i < l; i++ {
+			rec := batch.Index(i)
+			rec.CopyBody()
+			p.unseenFieldTracker.update(rec)
+			nbytes += len(rec.Raw)
+			recs = append(recs, rec)
+		}
+		batch.Unref()
+		if nbytes >= MemMaxBytes {
+			return recs, false, nil
+		}
+	}
+}
+
+func (p *Proc) createRuns(firstRunRecs []*zng.Record) (*RunManager, error) {
+	rm, err := NewRunManager(p.compareFn)
+	if err != nil {
+		return nil, err
+	}
+	if err := rm.CreateRun(firstRunRecs); err != nil {
+		rm.Cleanup()
+		return nil, err
+	}
+	for {
+		recs, eof, err := p.recordsForOneRun()
+		if err != nil {
+			rm.Cleanup()
+			return nil, err
+		}
+		if recs != nil {
+			if err := rm.CreateRun(recs); err != nil {
+				rm.Cleanup()
+				return nil, err
+			}
+		}
+		if eof {
+			return rm, nil
+		}
+	}
+}
+
+func (p *Proc) warnAboutUnseenFields() {
+	for _, f := range p.unseenFieldTracker.unseen() {
+		p.ctx.Warnings <- fmt.Sprintf("Sort field %s not present in input", expr.FieldExprToString(f))
+	}
+}
+
+func (p *Proc) setCompareFn(r *zng.Record) {
+	resolvers := p.fieldResolvers
+	if resolvers == nil {
+		fld := GuessSortKey(r)
+		resolver := func(r *zng.Record) zng.Value {
+			e, err := r.Access(fld)
+			if err != nil {
+				return zng.Value{}
+			}
+			return e
+		}
+		resolvers = []expr.FieldExprResolver{resolver}
+	}
+	nullsMax := !p.nullsFirst
+	if p.dir < 0 {
+		nullsMax = !nullsMax
+	}
+	compareFn := expr.NewCompareFn(nullsMax, resolvers...)
+	if p.dir < 0 {
+		p.compareFn = func(a, b *zng.Record) int { return compareFn(b, a) }
+	} else {
+		p.compareFn = compareFn
+	}
+}
+
+func firstOf(typ *zng.TypeRecord, which []zng.Type) string {
+	for _, col := range typ.Columns {
+		for _, t := range which {
+			if zng.SameType(col.Type, t) {
+				return col.Name
+			}
+		}
+	}
+	return ""
+}
+
+func firstNot(typ *zng.TypeRecord, which zng.Type) string {
+	for _, col := range typ.Columns {
+		if !zng.SameType(col.Type, which) {
+			return col.Name
+		}
+	}
+	return ""
+}
+
+var intTypes = []zng.Type{
+	zng.TypeInt16,
+	zng.TypeUint16,
+	zng.TypeInt32,
+	zng.TypeUint32,
+	zng.TypeInt64,
+	zng.TypeUint64,
+}
+
+func GuessSortKey(rec *zng.Record) string {
+	typ := rec.Type
+	if fld := firstOf(typ, intTypes); fld != "" {
+		return fld
+	}
+	if fld := firstOf(typ, []zng.Type{zng.TypeFloat64}); fld != "" {
+		return fld
+	}
+	if fld := firstNot(typ, zng.TypeTime); fld != "" {
+		return fld
+	}
+	return "ts"
+}

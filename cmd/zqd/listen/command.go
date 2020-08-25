@@ -17,7 +17,7 @@ import (
 	"github.com/brimsec/zq/cmd/zqd/root"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/httpd"
-	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/proc/sort"
 	"github.com/brimsec/zq/zqd"
 	"github.com/brimsec/zq/zqd/zeek"
 	"github.com/mccanne/charm"
@@ -175,7 +175,7 @@ func (c *Command) loadConfigFile() error {
 		if *v <= 0 {
 			return fmt.Errorf("%s: sortMemMaxBytes value must be greater than zero", c.configfile)
 		}
-		proc.SortMemMaxBytes = *v
+		sort.MemMaxBytes = *v
 	}
 	return err
 }

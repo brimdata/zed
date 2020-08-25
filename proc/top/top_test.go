@@ -1,9 +1,9 @@
-package proc_test
+package top_test
 
 import (
 	"testing"
 
-	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/proc/proctest"
 )
 
 func TestTop(t *testing.T) {
@@ -22,5 +22,5 @@ func TestTop(t *testing.T) {
 0:[4;]
 0:[3;]
 `
-	proc.TestOneProc(t, in, out, "top 3 foo")
+	proctest.TestOneProc(t, in, out, "top 3 foo")
 }

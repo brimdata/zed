@@ -1,37 +1,39 @@
-package proc
+package split
 
 import (
 	"sync"
 
+	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 )
 
-// Split splits its input into multiple proc outputs.  Since procs run from the
+// Splitter splits its input into multiple proc outputs.  Since procs run from the
 // receiver backward via Pull(), SplitProc pulls data from upstream when all the
 // outputs are ready, then sends the data downstream.
 //
 // This scheme implements flow control since the SplitProc prevents any of
 // the downstream from running ahead, esentially running the parallel paths
 // at the rate of the slowest consumer.
-type Split struct {
-	Base
+type Splitter struct {
+	parent   proc.Interface
 	once     sync.Once
 	n        int
-	requests chan (chan<- Result)
+	requests chan (chan<- proc.Result)
 }
 
-func NewSplit(c *Context, parent Proc) *Split {
-	s := &Split{Base: Base{Context: c, Parent: parent}}
-	s.requests = make(chan (chan<- Result))
-	return s
+func New(parent proc.Interface) *Splitter {
+	return &Splitter{
+		parent:   parent,
+		requests: make(chan (chan<- proc.Result)),
+	}
 }
 
-func (s *Split) Add(p *SplitChannel) chan (chan<- Result) {
+func (s *Splitter) Add() chan (chan<- proc.Result) {
 	s.n++
 	return s.requests
 }
 
-func (s *Split) gather(strip []chan<- Result) []chan<- Result {
+func (s *Splitter) gather(strip []chan<- proc.Result) []chan<- proc.Result {
 	flight := strip[:0]
 	for len(flight) < s.n {
 		ch := <-s.requests
@@ -44,7 +46,7 @@ func (s *Split) gather(strip []chan<- Result) []chan<- Result {
 	return flight
 }
 
-func (s *Split) run() {
+func (s *Splitter) run() {
 	// This loop is started by the first downstream SplitChannel as
 	// long as there are active downstream consumers.
 	// If the downstream proc isn't ready, it's request won't have arrived
@@ -53,22 +55,22 @@ func (s *Split) run() {
 	// indicating the downstream proc is done), then data is pulled from
 	// the upstream path and a reference-counted batch is transmitted to
 	// each requesting entity.
-	strip := make([]chan<- Result, 0, s.n)
+	strip := make([]chan<- proc.Result, 0, s.n)
 	for {
 		flight := s.gather(strip)
 		if s.n == 0 {
 			break
 		}
-		batch, err := s.Get()
-		s.send(flight, Result{batch, err})
+		batch, err := s.parent.Pull()
+		send(flight, proc.Result{batch, err})
 		if batch != nil {
 			batch.Unref()
 		}
 	}
-	s.Done()
+	s.parent.Done()
 }
 
-func (s *Split) send(flight []chan<- Result, result Result) {
+func send(flight []chan<- proc.Result, result proc.Result) {
 	for _, ch := range flight {
 		if result.Batch != nil {
 			result.Batch.Ref()
@@ -77,56 +79,47 @@ func (s *Split) send(flight []chan<- Result, result Result) {
 	}
 }
 
-func (s *Split) Pull() (zbuf.Batch, error) {
-	// never called
-	return nil, nil
+type Proc struct {
+	request chan chan<- proc.Result
+	ch      chan proc.Result
+	parent  *Splitter
 }
 
-type SplitChannel struct {
-	request chan chan<- Result
-	ch      chan Result
-	parent  *Split
-}
-
-func NewSplitChannel(parent *Split) *SplitChannel {
-	s := &SplitChannel{
-		ch:     make(chan Result),
-		parent: parent,
+func (s *Splitter) NewProc() *Proc {
+	p := &Proc{
+		ch:     make(chan proc.Result),
+		parent: s,
 	}
-	s.request = parent.Add(s)
-	return s
+	p.request = s.Add()
+	return p
 }
 
-func (s *SplitChannel) Parents() []Proc {
-	return []Proc{s.parent}
-}
-
-func (s *SplitChannel) Pull() (zbuf.Batch, error) {
-	s.parent.once.Do(func() {
-		go s.parent.run()
+func (p *Proc) Pull() (zbuf.Batch, error) {
+	p.parent.once.Do(func() {
+		go p.parent.run()
 	})
-	if s.ch == nil {
+	if p.ch == nil {
 		return nil, nil
 	}
 	// Send SplitProc a request, then read the result. On EOS we send a nil
 	// request to let SplitProc know we're done, which will cause it to exit
 	// when it sees that all of us SplitChannels are gone.
-	s.request <- s.ch
-	result := <-s.ch
-	if EOS(result.Batch, result.Err) {
-		s.Done()
+	p.request <- p.ch
+	result := <-p.ch
+	if proc.EOS(result.Batch, result.Err) {
+		p.Done()
 	}
 	return result.Batch, result.Err
 }
 
-func (s *SplitChannel) Done() {
+func (p *Proc) Done() {
 	// Signal to SplitProc that this path is done by sending a nil channel
-	// object.  We go ahead and mark the SplitChannel done by setting
+	// object.  We go ahead and mark the Proc done by setting
 	// it's channel to nil in case a spurious Pull() is called, but this
 	// should not happen.
-	if s.ch != nil {
-		var null chan Result
-		s.request <- null
-		s.ch = nil
+	if p.ch != nil {
+		var null chan proc.Result
+		p.request <- null
+		p.ch = nil
 	}
 }

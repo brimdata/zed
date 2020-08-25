@@ -1,10 +1,11 @@
-package proc
+package rename
 
 import (
 	"fmt"
 	"strings"
 
 	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 )
@@ -14,14 +15,15 @@ import (
 // renamed to id.src, but it cannot be renamed to src. Renames are
 // applied left to right; each rename observes the effect of all
 // renames that preceded it.
-type Rename struct {
-	Base
+type Proc struct {
+	ctx        *proc.Context
+	parent     proc.Interface
 	fieldnames []string
 	targets    []string
 	typeMap    map[int]*zng.TypeRecord
 }
 
-func CompileRenameProc(c *Context, parent Proc, node *ast.RenameProc) (*Rename, error) {
+func New(ctx *proc.Context, parent proc.Interface, node *ast.RenameProc) (*Proc, error) {
 	var fieldnames, targets []string
 	for _, fa := range node.Fields {
 		ts := strings.Split(fa.Target, ".")
@@ -37,15 +39,16 @@ func CompileRenameProc(c *Context, parent Proc, node *ast.RenameProc) (*Rename, 
 		targets = append(targets, ts[len(ts)-1])
 		fieldnames = append(fieldnames, fa.Source)
 	}
-	return &Rename{
-		Base:       Base{Context: c, Parent: parent},
+	return &Proc{
+		ctx:        ctx,
+		parent:     parent,
 		fieldnames: fieldnames,
 		targets:    targets,
 		typeMap:    make(map[int]*zng.TypeRecord),
 	}, nil
 }
 
-func (r *Rename) renamedType(typ *zng.TypeRecord, fields []string, target string) (*zng.TypeRecord, error) {
+func (p *Proc) renamedType(typ *zng.TypeRecord, fields []string, target string) (*zng.TypeRecord, error) {
 	c, ok := typ.ColumnOfField(fields[0])
 	if !ok {
 		return typ, nil
@@ -58,7 +61,7 @@ func (r *Rename) renamedType(typ *zng.TypeRecord, fields []string, target string
 			return typ, nil
 		}
 		var err error
-		innerType, err = r.renamedType(recType, fields[1:], target)
+		innerType, err = p.renamedType(recType, fields[1:], target)
 		if err != nil {
 			return nil, err
 		}
@@ -71,13 +74,13 @@ func (r *Rename) renamedType(typ *zng.TypeRecord, fields []string, target string
 	newcols := make([]zng.Column, len(typ.Columns))
 	copy(newcols, typ.Columns)
 	newcols[c] = zng.Column{Name: name, Type: innerType}
-	return r.TypeContext.LookupTypeRecord(newcols)
+	return p.ctx.TypeContext.LookupTypeRecord(newcols)
 }
 
-func (r *Rename) computeType(typ *zng.TypeRecord) (*zng.TypeRecord, error) {
+func (p *Proc) computeType(typ *zng.TypeRecord) (*zng.TypeRecord, error) {
 	var err error
-	for i := range r.fieldnames {
-		typ, err = r.renamedType(typ, strings.Split(r.fieldnames[i], "."), r.targets[i])
+	for i := range p.fieldnames {
+		typ, err = p.renamedType(typ, strings.Split(p.fieldnames[i], "."), p.targets[i])
 		if err != nil {
 			return nil, err
 		}
@@ -85,32 +88,36 @@ func (r *Rename) computeType(typ *zng.TypeRecord) (*zng.TypeRecord, error) {
 	return typ, nil
 }
 
-func (r *Rename) Pull() (zbuf.Batch, error) {
-	batch, err := r.Get()
-	if EOS(batch, err) {
+func (p *Proc) Pull() (zbuf.Batch, error) {
+	batch, err := p.parent.Pull()
+	if proc.EOS(batch, err) {
 		return nil, err
 	}
 	recs := make([]*zng.Record, 0, batch.Length())
 	for k := 0; k < batch.Length(); k++ {
 		in := batch.Index(k)
 		id := in.Type.ID()
-		if _, ok := r.typeMap[id]; !ok {
-			typ, err := r.computeType(in.Type)
+		if _, ok := p.typeMap[id]; !ok {
+			typ, err := p.computeType(in.Type)
 			if err != nil {
 				return nil, fmt.Errorf("rename: %w", err)
 			}
-			r.typeMap[id] = typ
+			p.typeMap[id] = typ
 		}
 		out := in.Keep()
-		if id != r.typeMap[id].ID() {
+		if id != p.typeMap[id].ID() {
 			if out != in {
-				out.Type = r.typeMap[id]
+				out.Type = p.typeMap[id]
 			} else {
-				out = zng.NewRecord(r.typeMap[id], out.Raw)
+				out = zng.NewRecord(p.typeMap[id], out.Raw)
 			}
 		}
 		recs = append(recs, out)
 	}
 	batch.Unref()
 	return zbuf.NewArray(recs), nil
+}
+
+func (p *Proc) Done() {
+	p.parent.Done()
 }
