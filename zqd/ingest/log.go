@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"sync"
 	"sync/atomic"
 
 	"github.com/brimsec/zq/pkg/fs"
@@ -33,7 +32,6 @@ type LogOp struct {
 	err          error
 
 	warningCh chan string
-	wg        sync.WaitGroup
 	zctx      *resolver.Context
 }
 
@@ -70,7 +68,6 @@ func NewLogOp(ctx context.Context, store storage.Storage, req api.LogPostRequest
 		p.readCounters = append(p.readCounters, rc)
 		p.readers = append(p.readers, zr)
 	}
-	p.wg.Add(1)
 	go p.start(ctx, store)
 	return p, nil
 }
@@ -143,7 +140,6 @@ func (p *LogOp) start(ctx context.Context, store storage.Storage) {
 		p.err = err
 	}
 	close(p.warningCh)
-	p.wg.Done()
 }
 
 func (p *LogOp) Stats() api.LogPostStatus {
@@ -158,7 +154,8 @@ func (p *LogOp) Status() <-chan string {
 	return p.warningCh
 }
 
+// Error indicates what if any error occurred during import, after the
+// Status channel is closed.
 func (p *LogOp) Error() error {
-	p.wg.Wait()
 	return p.err
 }
