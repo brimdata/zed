@@ -63,22 +63,22 @@ func New(c *proc.Context, parents []proc.Interface) *Proc {
 }
 
 // Pull implements the merge logic for returning data from the upstreams.
-func (m *Proc) Pull() (zbuf.Batch, error) {
-	m.once.Do(func() {
-		for _, m := range m.parents {
+func (p *Proc) Pull() (zbuf.Batch, error) {
+	p.once.Do(func() {
+		for _, m := range p.parents {
 			go m.run()
 		}
 	})
 	for {
-		if m.nparents == 0 {
+		if p.nparents == 0 {
 			return nil, nil
 		}
-		res, ok := <-m.ch
+		res, ok := <-p.ch
 		if !ok {
 			return nil, nil
 		}
 		if res.Err != nil {
-			m.Done()
+			p.Done()
 			return nil, res.Err
 		}
 
@@ -86,7 +86,7 @@ func (m *Proc) Pull() (zbuf.Batch, error) {
 			return res.Batch, res.Err
 		}
 
-		m.nparents--
+		p.nparents--
 	}
 }
 

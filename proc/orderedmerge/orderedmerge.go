@@ -44,18 +44,18 @@ func New(c *proc.Context, parents []proc.Interface, mergeField string, reversed 
 	return m
 }
 
-func (m *Proc) run() {
-	for i := range m.parents {
-		p := &m.parents[i]
+func (p *Proc) run() {
+	for i := range p.parents {
+		parent := &p.parents[i]
 		go func() {
 			for {
-				batch, err := p.proc.Pull()
+				batch, err := parent.proc.Pull()
 				select {
-				case p.resultCh <- proc.Result{batch, err}:
+				case parent.resultCh <- proc.Result{batch, err}:
 					if proc.EOS(batch, err) {
 						return
 					}
-				case <-m.ctx.Done():
+				case <-p.ctx.Done():
 					return
 				}
 			}
@@ -66,45 +66,45 @@ func (m *Proc) run() {
 // Read fulfills zbuf.Reader so that we can use zbuf.ReadBatch.
 //XXX this is combining two things in one... I think this should be separated
 // out and a proc can wrap the facter-out stuff
-func (m *Proc) Read() (*zng.Record, error) {
+func (p *Proc) Read() (*zng.Record, error) {
 	idx := -1
-	for i := range m.parents {
-		p := &m.parents[i]
-		if p.done {
+	for i := range p.parents {
+		parent := &p.parents[i]
+		if parent.done {
 			continue
 		}
-		if p.batch == nil {
+		if parent.batch == nil {
 			select {
-			case res := <-p.resultCh:
+			case res := <-parent.resultCh:
 				if res.Err != nil {
 					return nil, res.Err
 				}
 				if res.Batch == nil {
-					p.done = true
+					parent.done = true
 					continue
 				}
-				p.batch = res.Batch
-				p.recs = res.Batch.Records()
-				p.recIdx = 0
-			case <-m.ctx.Done():
-				return nil, m.ctx.Err()
+				parent.batch = res.Batch
+				parent.recs = res.Batch.Records()
+				parent.recIdx = 0
+			case <-p.ctx.Done():
+				return nil, p.ctx.Err()
 			}
 		}
-		if idx == -1 || m.compare(p, &m.parents[idx]) {
+		if idx == -1 || p.compare(parent, &p.parents[idx]) {
 			idx = i
 		}
 	}
 	if idx == -1 {
 		return nil, nil
 	}
-	return m.next(&m.parents[idx]), nil
+	return next(&p.parents[idx]), nil
 }
 
-func (m *Proc) compare(x *mergeParent, y *mergeParent) bool {
-	return m.cmp(x.recs[x.recIdx], y.recs[y.recIdx]) < 0
+func (p *Proc) compare(x *mergeParent, y *mergeParent) bool {
+	return p.cmp(x.recs[x.recIdx], y.recs[y.recIdx]) < 0
 }
 
-func (m *Proc) next(p *mergeParent) *zng.Record {
+func next(p *mergeParent) *zng.Record {
 	rec := p.recs[p.recIdx]
 	p.recIdx++
 	if p.recIdx == len(p.recs) {

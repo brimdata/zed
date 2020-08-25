@@ -48,7 +48,7 @@ func New(ctx *proc.Context, parent proc.Interface, node *ast.RenameProc) (*Proc,
 	}, nil
 }
 
-func (r *Proc) renamedType(typ *zng.TypeRecord, fields []string, target string) (*zng.TypeRecord, error) {
+func (p *Proc) renamedType(typ *zng.TypeRecord, fields []string, target string) (*zng.TypeRecord, error) {
 	c, ok := typ.ColumnOfField(fields[0])
 	if !ok {
 		return typ, nil
@@ -61,7 +61,7 @@ func (r *Proc) renamedType(typ *zng.TypeRecord, fields []string, target string) 
 			return typ, nil
 		}
 		var err error
-		innerType, err = r.renamedType(recType, fields[1:], target)
+		innerType, err = p.renamedType(recType, fields[1:], target)
 		if err != nil {
 			return nil, err
 		}
@@ -74,13 +74,13 @@ func (r *Proc) renamedType(typ *zng.TypeRecord, fields []string, target string) 
 	newcols := make([]zng.Column, len(typ.Columns))
 	copy(newcols, typ.Columns)
 	newcols[c] = zng.Column{Name: name, Type: innerType}
-	return r.ctx.TypeContext.LookupTypeRecord(newcols)
+	return p.ctx.TypeContext.LookupTypeRecord(newcols)
 }
 
-func (r *Proc) computeType(typ *zng.TypeRecord) (*zng.TypeRecord, error) {
+func (p *Proc) computeType(typ *zng.TypeRecord) (*zng.TypeRecord, error) {
 	var err error
-	for i := range r.fieldnames {
-		typ, err = r.renamedType(typ, strings.Split(r.fieldnames[i], "."), r.targets[i])
+	for i := range p.fieldnames {
+		typ, err = p.renamedType(typ, strings.Split(p.fieldnames[i], "."), p.targets[i])
 		if err != nil {
 			return nil, err
 		}
@@ -88,8 +88,8 @@ func (r *Proc) computeType(typ *zng.TypeRecord) (*zng.TypeRecord, error) {
 	return typ, nil
 }
 
-func (r *Proc) Pull() (zbuf.Batch, error) {
-	batch, err := r.parent.Pull()
+func (p *Proc) Pull() (zbuf.Batch, error) {
+	batch, err := p.parent.Pull()
 	if proc.EOS(batch, err) {
 		return nil, err
 	}
@@ -97,19 +97,19 @@ func (r *Proc) Pull() (zbuf.Batch, error) {
 	for k := 0; k < batch.Length(); k++ {
 		in := batch.Index(k)
 		id := in.Type.ID()
-		if _, ok := r.typeMap[id]; !ok {
-			typ, err := r.computeType(in.Type)
+		if _, ok := p.typeMap[id]; !ok {
+			typ, err := p.computeType(in.Type)
 			if err != nil {
 				return nil, fmt.Errorf("rename: %w", err)
 			}
-			r.typeMap[id] = typ
+			p.typeMap[id] = typ
 		}
 		out := in.Keep()
-		if id != r.typeMap[id].ID() {
+		if id != p.typeMap[id].ID() {
 			if out != in {
-				out.Type = r.typeMap[id]
+				out.Type = p.typeMap[id]
 			} else {
-				out = zng.NewRecord(r.typeMap[id], out.Raw)
+				out = zng.NewRecord(p.typeMap[id], out.Raw)
 			}
 		}
 		recs = append(recs, out)

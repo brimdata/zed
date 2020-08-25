@@ -52,24 +52,24 @@ func New(ctx *proc.Context, parent proc.Interface, node *ast.CutProc) (*Proc, er
 	}, nil
 }
 
-func (c *Proc) maybeWarn() {
-	if c.complement || c.cutter.FoundCut() {
+func (p *Proc) maybeWarn() {
+	if p.complement || p.cutter.FoundCut() {
 		return
 	}
 	var msg string
-	if len(c.fieldnames) == 1 {
-		msg = fmt.Sprintf("Cut field %s not present in input", c.fieldnames[0])
+	if len(p.fieldnames) == 1 {
+		msg = fmt.Sprintf("Cut field %s not present in input", p.fieldnames[0])
 	} else {
-		msg = fmt.Sprintf("Cut fields %s not present together in input", strings.Join(c.fieldnames, ","))
+		msg = fmt.Sprintf("Cut fields %s not present together in input", strings.Join(p.fieldnames, ","))
 	}
-	c.ctx.Warnings <- msg
+	p.ctx.Warnings <- msg
 }
 
-func (c *Proc) Pull() (zbuf.Batch, error) {
+func (p *Proc) Pull() (zbuf.Batch, error) {
 	for {
-		batch, err := c.parent.Pull()
+		batch, err := p.parent.Pull()
 		if proc.EOS(batch, err) {
-			c.maybeWarn()
+			p.maybeWarn()
 			return nil, err
 		}
 		// Make new records with only the fields specified.
@@ -79,7 +79,7 @@ func (c *Proc) Pull() (zbuf.Batch, error) {
 		for k := 0; k < batch.Length(); k++ {
 			in := batch.Index(k)
 
-			out, err := c.cutter.Cut(in)
+			out, err := p.cutter.Cut(in)
 			if err != nil {
 				return nil, err
 			}

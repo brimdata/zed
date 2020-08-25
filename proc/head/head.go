@@ -18,12 +18,12 @@ func New(parent proc.Interface, limit int) *Proc {
 	}
 }
 
-func (h *Proc) Pull() (zbuf.Batch, error) {
-	remaining := h.limit - h.count
+func (p *Proc) Pull() (zbuf.Batch, error) {
+	remaining := p.limit - p.count
 	if remaining <= 0 {
 		return nil, nil
 	}
-	batch, err := h.parent.Pull()
+	batch, err := p.parent.Pull()
 	if proc.EOS(batch, err) {
 		return nil, err
 	}
@@ -31,7 +31,7 @@ func (h *Proc) Pull() (zbuf.Batch, error) {
 	if n < remaining {
 		// This batch has fewer than the needed records.
 		// Send them all downstream and update the count.
-		h.count += n
+		p.count += n
 		return batch, nil
 	}
 	defer batch.Unref()
@@ -42,8 +42,8 @@ func (h *Proc) Pull() (zbuf.Batch, error) {
 	for k := 0; k < remaining; k++ {
 		recs[k] = batch.Index(k).Keep()
 	}
-	h.count = h.limit
-	h.Done()
+	p.count = p.limit
+	p.Done()
 	return zbuf.NewArray(recs), nil
 }
 

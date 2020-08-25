@@ -57,64 +57,64 @@ func New(ctx *proc.Context, parent proc.Interface, node *ast.SortProc) (*Proc, e
 	}, nil
 }
 
-func (s *Proc) Pull() (zbuf.Batch, error) {
-	s.once.Do(func() { go s.sortLoop() })
-	if r, ok := <-s.resultCh; ok {
+func (p *Proc) Pull() (zbuf.Batch, error) {
+	p.once.Do(func() { go p.sortLoop() })
+	if r, ok := <-p.resultCh; ok {
 		return r.Batch, r.Err
 	}
-	return nil, s.ctx.Err()
+	return nil, p.ctx.Err()
 }
 
 func (p *Proc) Done() {
 	p.parent.Done()
 }
 
-func (s *Proc) sortLoop() {
-	defer close(s.resultCh)
-	firstRunRecs, eof, err := s.recordsForOneRun()
+func (p *Proc) sortLoop() {
+	defer close(p.resultCh)
+	firstRunRecs, eof, err := p.recordsForOneRun()
 	if err != nil || len(firstRunRecs) == 0 {
-		s.sendResult(nil, err)
+		p.sendResult(nil, err)
 		return
 	}
-	s.setCompareFn(firstRunRecs[0])
+	p.setCompareFn(firstRunRecs[0])
 	if eof {
 		// Just one run so do an in-memory sort.
-		s.warnAboutUnseenFields()
-		expr.SortStable(firstRunRecs, s.compareFn)
+		p.warnAboutUnseenFields()
+		expr.SortStable(firstRunRecs, p.compareFn)
 		array := zbuf.NewArray(firstRunRecs)
-		s.sendResult(array, nil)
+		p.sendResult(array, nil)
 		return
 	}
 	// Multiple runs so do an external merge sort.
-	runManager, err := s.createRuns(firstRunRecs)
+	runManager, err := p.createRuns(firstRunRecs)
 	if err != nil {
-		s.sendResult(nil, err)
+		p.sendResult(nil, err)
 		return
 	}
 	defer runManager.Cleanup()
-	s.warnAboutUnseenFields()
-	for s.ctx.Err() == nil {
+	p.warnAboutUnseenFields()
+	for p.ctx.Err() == nil {
 		// Reading from runManager merges the runs.
 		b, err := zbuf.ReadBatch(runManager, 100)
-		s.sendResult(b, err)
+		p.sendResult(b, err)
 		if b == nil || err != nil {
 			return
 		}
 	}
 }
 
-func (s *Proc) sendResult(b zbuf.Batch, err error) {
+func (p *Proc) sendResult(b zbuf.Batch, err error) {
 	select {
-	case s.resultCh <- proc.Result{Batch: b, Err: err}:
-	case <-s.ctx.Done():
+	case p.resultCh <- proc.Result{Batch: b, Err: err}:
+	case <-p.ctx.Done():
 	}
 }
 
-func (s *Proc) recordsForOneRun() ([]*zng.Record, bool, error) {
+func (p *Proc) recordsForOneRun() ([]*zng.Record, bool, error) {
 	var nbytes int
 	var recs []*zng.Record
 	for {
-		batch, err := s.parent.Pull()
+		batch, err := p.parent.Pull()
 		if err != nil {
 			return nil, false, err
 		}
@@ -125,7 +125,7 @@ func (s *Proc) recordsForOneRun() ([]*zng.Record, bool, error) {
 		for i := 0; i < l; i++ {
 			rec := batch.Index(i)
 			rec.CopyBody()
-			s.unseenFieldTracker.update(rec)
+			p.unseenFieldTracker.update(rec)
 			nbytes += len(rec.Raw)
 			recs = append(recs, rec)
 		}
@@ -136,8 +136,8 @@ func (s *Proc) recordsForOneRun() ([]*zng.Record, bool, error) {
 	}
 }
 
-func (s *Proc) createRuns(firstRunRecs []*zng.Record) (*RunManager, error) {
-	rm, err := NewRunManager(s.compareFn)
+func (p *Proc) createRuns(firstRunRecs []*zng.Record) (*RunManager, error) {
+	rm, err := NewRunManager(p.compareFn)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +146,7 @@ func (s *Proc) createRuns(firstRunRecs []*zng.Record) (*RunManager, error) {
 		return nil, err
 	}
 	for {
-		recs, eof, err := s.recordsForOneRun()
+		recs, eof, err := p.recordsForOneRun()
 		if err != nil {
 			rm.Cleanup()
 			return nil, err
@@ -163,14 +163,14 @@ func (s *Proc) createRuns(firstRunRecs []*zng.Record) (*RunManager, error) {
 	}
 }
 
-func (s *Proc) warnAboutUnseenFields() {
-	for _, f := range s.unseenFieldTracker.unseen() {
-		s.ctx.Warnings <- fmt.Sprintf("Sort field %s not present in input", expr.FieldExprToString(f))
+func (p *Proc) warnAboutUnseenFields() {
+	for _, f := range p.unseenFieldTracker.unseen() {
+		p.ctx.Warnings <- fmt.Sprintf("Sort field %s not present in input", expr.FieldExprToString(f))
 	}
 }
 
-func (s *Proc) setCompareFn(r *zng.Record) {
-	resolvers := s.fieldResolvers
+func (p *Proc) setCompareFn(r *zng.Record) {
+	resolvers := p.fieldResolvers
 	if resolvers == nil {
 		fld := GuessSortKey(r)
 		resolver := func(r *zng.Record) zng.Value {
@@ -182,15 +182,15 @@ func (s *Proc) setCompareFn(r *zng.Record) {
 		}
 		resolvers = []expr.FieldExprResolver{resolver}
 	}
-	nullsMax := !s.nullsFirst
-	if s.dir < 0 {
+	nullsMax := !p.nullsFirst
+	if p.dir < 0 {
 		nullsMax = !nullsMax
 	}
 	compareFn := expr.NewCompareFn(nullsMax, resolvers...)
-	if s.dir < 0 {
-		s.compareFn = func(a, b *zng.Record) int { return compareFn(b, a) }
+	if p.dir < 0 {
+		p.compareFn = func(a, b *zng.Record) int { return compareFn(b, a) }
 	} else {
-		s.compareFn = compareFn
+		p.compareFn = compareFn
 	}
 }
 

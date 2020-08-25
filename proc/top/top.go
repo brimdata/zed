@@ -38,21 +38,21 @@ func New(parent proc.Interface, limit int, fields []expr.FieldExprResolver, flus
 	}
 }
 
-func (t *Proc) Pull() (zbuf.Batch, error) {
+func (p *Proc) Pull() (zbuf.Batch, error) {
 	for {
-		batch, err := t.parent.Pull()
+		batch, err := p.parent.Pull()
 		if err != nil {
 			return nil, err
 		}
 		if batch == nil {
-			return t.sorted(), nil
+			return p.sorted(), nil
 		}
 		for k := 0; k < batch.Length(); k++ {
-			t.consume(batch.Index(k))
+			p.consume(batch.Index(k))
 		}
 		batch.Unref()
-		if t.flushEvery {
-			return t.sorted(), nil
+		if p.flushEvery {
+			return p.sorted(), nil
 		}
 	}
 }
@@ -61,8 +61,8 @@ func (p *Proc) Done() {
 	p.parent.Done()
 }
 
-func (t *Proc) consume(rec *zng.Record) {
-	if t.fields == nil {
+func (p *Proc) consume(rec *zng.Record) {
+	if p.fields == nil {
 		fld := sort.GuessSortKey(rec)
 		resolver := func(r *zng.Record) zng.Value {
 			e, err := r.Access(fld)
@@ -71,18 +71,18 @@ func (t *Proc) consume(rec *zng.Record) {
 			}
 			return e
 		}
-		t.fields = []expr.FieldExprResolver{resolver}
+		p.fields = []expr.FieldExprResolver{resolver}
 	}
-	if t.records == nil {
-		t.compare = expr.NewCompareFn(false, t.fields...)
-		t.records = expr.NewRecordSlice(t.compare)
-		heap.Init(t.records)
+	if p.records == nil {
+		p.compare = expr.NewCompareFn(false, p.fields...)
+		p.records = expr.NewRecordSlice(p.compare)
+		heap.Init(p.records)
 	}
-	if t.records.Len() < t.limit || t.compare(t.records.Index(0), rec) < 0 {
-		heap.Push(t.records, rec.Keep())
+	if p.records.Len() < p.limit || p.compare(p.records.Index(0), rec) < 0 {
+		heap.Push(p.records, rec.Keep())
 	}
-	if t.records.Len() > t.limit {
-		heap.Pop(t.records)
+	if p.records.Len() > p.limit {
+		heap.Pop(p.records)
 	}
 }
 

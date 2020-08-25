@@ -162,10 +162,11 @@ func CompileParallel(custom Hook, pp *ast.ParallelProc, c *proc.Context, parents
 	n := len(pp.Procs)
 	if len(parents) == 1 {
 		// Single parent: insert a splitter and wire to each branch.
+		//XXX change split package to splitter
 		splitter := split.New(parents[0])
 		parents = []proc.Interface{}
 		for k := 0; k < n; k++ {
-			sc := split.NewChannel(splitter)
+			sc := splitter.NewProc()
 			parents = append(parents, sc)
 		}
 	}
