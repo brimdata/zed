@@ -52,6 +52,10 @@ spec:
               path: /status
               port: http
           env:
+          ##- if eq .Values.serviceAccount.name "" ##
+          {{- if .Values.useCredSecret }}
+          # These environment variables are set from secrets
+          # when there is no service account
           - name: AWS_REGION
             valueFrom:
               secretKeyRef:
@@ -71,7 +75,11 @@ spec:
             valueFrom:
               secretKeyRef:
                 key: aws-session-token
-                name: aws-credentials 
+                name: aws-credentials
+          {{- else }}
+          - name: AWS_REGION
+            value: "{{ .Values.AWSRegion }}"
+          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:

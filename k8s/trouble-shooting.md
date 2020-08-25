@@ -1,0 +1,196 @@
+# Troubleshooting
+
+These are assorted notes on trouble-shooting and dev procedures. Most of this text was originally in the README.md.
+
+## Shell into a K8s pod
+```
+kubectl get pod
+```
+Copy the pod id, thensub it into:
+```
+kubectl exec -it zqd-test-1-XXXXXXXX-99999 -- sh
+```
+
+## Problems with the Docker containers
+Sometime a problem with the container will prevent it from starting in K8s, but you may be able to shell into the container in Docker to trouble-shoot. 
+```
+docker run -it zqd:latest sh
+```
+## Ports in K8s containers
+In order for the kubelet liveness check to work, zqd must be listening on 0.0.0.0:9867. 
+For `kubectl port-forward` to work, zqd must be listening on 127.0.0.1:9867.
+To get this behavior, we set the command line flag `zqd listen -l :9867` -- so it will listen to the socket for all hosts.
+
+## Building with  Docker directly
+The following command builds and labels the container image:
+```
+DOCKER_BUILDKIT=1 docker build --pull --rm \
+  -t "zqd:latest" -t "localhost:5000/zqd:latest" .
+```
+Notice this adds a tags for loading the image into the local docker registry created by `kind-with-registry.sh.` To load the image into the registry:
+```
+docker push "localhost:5000/zqd:latest"
+```
+This copies the image into a Docker registry that is accessed by your single-node Kubernetes cluster for Kind.
+
+## Redeploy with helm
+If you make a change to the helm templates, you generally will want to uninstall/reinstall zqd.
+```
+helm uninstall zqd-test-1
+helm install zqd-test-1 charts/zqd
+```
+To check if the AWS env vars are present in the deployment, these commands are helpful:
+```
+kubectl get deploy
+kubectl describe deploy zqd-test-1
+kubectl get deploy zqd-test-1 -oyaml
+```
+
+## Using zqd with zapi
+This is a walk-through of a local test before testing on our k8s cluster. This is outside the k8s cluster to get familiar with trouble-shooting.
+
+As a prerequisite, you must have an S3 bucket and directory available for zqd. In the S3 console, or at the command line, create a 'datauri' for use with zqd. This directory will hold metadata for the spaces you will create with zapi.
+
+You will need AWS credentials. On your local machine you can use `aws configure` and then you must set the environment variable, `AWS_SDK_LOAD_CONFIG=true`. Within Kubernetes, we will need to handle AWS credentials with secrets. More on that later.
+
+Here is an example of creating a datauri, using an s3 bucket called `brim-scratch` in a directory called `mark` (change the s3 buckets for your setup.)
+```
+aws s3 ls # make sure the bucket exists!
+zqd listen -data s3://brim-scratch/mark/zqd-meta
+```
+zqd will stay running in that console, listening at `localhost:9867` by default.
+zqd will not create any s3 objects in zqd-meta until we issue a zapi command. Before using zapi, we use `zar import` in another console to copy sample data from our zq repo into s3:
+```
+zar import -R s3://brim-scratch/mark/sample-http-zng zq-sample-data/zng/http.zng.gz
+```
+This creates zng files in an s3 directory called `sample-http-zng` that we will use from zapi. To check what zar created:
+```
+aws s3 ls brim-scratch/mark --recursive
+```
+Now use zapi to make the zar data available to your running zqd instance. Note that zapi defaults to `localhost:9867` for connecting to zqd.
+```
+zapi new -k archivestore -d s3://brim-scratch/mark/sample-http-zng http-space-1
+```
+The `-d` parameter provides the same s3 dir that we used in the `-R` parameter of the zar command above. This command creates a new space for zqd called `http-space-1`. If we again list the s3 directories with `aws s3 ls brim-scratch/mark --recursive` we will see that zqd has now created a new object under its datauri, a directory name that is a base64 string prefixed with "sp_1g0".
+
+Now that you have a zqd running with a space, and you have made an archive from zar data, you can use zapi commands to query the sample data. Example:
+```
+zapi -s http-space-1 get "head 1"
+zapi -s http-space-1 get "tail 1"
+```
+The zapi commands in quotes are the same as Brim queries. Notice that "head 1" runs much faster than "tail 1", which has to read more data from s3.
+
+## Deploy zqd into the local cluster with helm
+The helm 3 chart is in k8s/charts/zqd. To install zqd with the helm chart:
+```
+helm upgrade zqd-test-1 charts/zqd --install
+```
+This will install the chart if it is not yet present, or upgrade it to latest if it is installed. (The helm chart adds a timestamp as an annotation to the deployment, so it will always restart the pods.)
+
+You can confirm the pod has started with:
+```
+kubectl get pod
+```
+And view Helm installs with:
+```
+helm ls
+```
+## Testing connectivity to zqd
+A simple test for zqd is to send a /status request to its http endpoint. This is used for the K8s liveness probe. Substitute the pod id into a port-forward command:
+
+```
+kubectl get pod
+kubectl port-forward zqd-test-1-66b5f9dc8-8dshh 9867:9867
+```
+And in another console, use curl:
+```
+curl -v http://localhost:9867/status
+```
+You should get an 'ok' response.
+
+## Trying out Kube State Metrics
+These instructions are digested from:
+https://github.com/kubernetes/kube-state-metrics/blob/master/README.md#setup
+
+You must have a go dev environment set up to follow these instructions.
+
+First clone the repo for kube-state-metrics:
+```
+git clone https://github.com/kubernetes/kube-state-metrics.git
+cd kube-state-metrics
+```
+
+To do a "vanilla" install into your local Kind cluster, use the configuration in examples/standard:
+```
+kubectl apply -f examples/standard/
+kubectl get pod -n kube-system
+```
+The `get pod` will show you that the kube-state-metrics are running alongside the scheduler, et. al., in the kube-system namespace. KSM runs in this namespace because it is a core Kubernetes project.
+
+Prometheus is already running in the linkerd namespace. Now we will configure it to scrape KSM. Start by editing the configmap for the Prometheus intance installed by linkerd:
+```
+kubectl edit configmap -n linkerd linkerd-prometheus-config
+```
+At the start of the `scrape_configs:` add the following job. Make sure the indentation exactly matches the jobs below it (yaml is picky.)
+```
+    - job_name: 'kube-state-metrics'
+      static_configs:
+      - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8080']
+```
+After adding the text, it should look something like this in context:
+```
+    scrape_configs:
+    - job_name: 'kube-state-metrics'
+      static_configs:
+      - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8080']
+
+    - job_name: 'prometheus'
+```
+Now we need to verify that Prometheus is scraping the KSM metrics. 
+
+## Trouble-shooting Prometheus metrics
+
+We will connect to the expression browser for Prometheus by forwarding the port from the pod.
+```
+export PROM_POD=$(kubectl -n linkerd get pod -l "linkerd.io/proxy-deployment=linkerd-prometheus" -o jsonpath="{.items[0].metadata.name}")
+kubectl -n linkerd port-forward $PROM_POD 9090:9090
+```
+Now in a web browser, get:
+```
+http://localhost:9090/graph
+```
+You will see the Prometheus expression browser.
+
+The container metrics from cAdvisor are interesting to us. In the expression browser, in the drop down next to the execute button, select `container_cpu_usage_seconds_total`. Clicj execute and look at the graphs. We will find the CPU usage for our zqd container in this list.
+
+## AWS IAM users and RBAC
+
+The following is a really good explaination of using K8s RBAC with AWS:
+
+https://www.eksworkshop.com/beginner/090_rbac/intro/
+
+This is a tricky topic and the docs on RBAC can be confusing -- the "tutorial" approach makes the connection between IAM and RBAC more clear.
+
+Later in the same doc, there a good explaination of creating a service account:
+
+https://www.eksworkshop.com/beginner/110_irsa/preparation/
+
+#### Notes on IAM policies
+The zqd service account needs read access to S3. AWS IAM has an ARN for `AmazonS3ReadOnlyAccess`. Here is how you get the ARN:
+```
+aws iam list-policies --query 'Policies[?PolicyName==`AmazonS3ReadOnlyAccess`].Arn'
+```
+And the ARN is:
+```
+arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+```
+
+### Using centralized logging
+The default logging on K8s cluster just uses in-memory logs for the deployed pods. This is inconvenient for trouble-shooting. There are a number of centralized logging services available. The free verion of Papertrail (https://www.papertrail.com) is an easy place to start. If you create a free Papertrail account, the following instructions work for adding the log output from your pods in the EKS cluster to the Papertrail stream:
+https://help.papertrailapp.com/kb/configuration/configuring-centralized-logging-from-kubernetes/
+
+These are the kubectl commands. Substitute your account ID for XXXXX
+```
+kubectl create secret generic papertrail-destination --from-literal=papertrail-destination=syslog+tls://logsN.papertrailapp.com:XXXXX
+kubectl create -f https://help.papertrailapp.com/assets/files/papertrail-logspout-daemonset.yml
+```
