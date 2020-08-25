@@ -189,13 +189,14 @@ https://github.com/google/cadvisor/blob/master/docs/storage/prometheus.md
 This walks through a procedure for setting up an EKS cluster on an AWS account. If you are contributing to ZQ, keep in mind the the AWS resources allocated here can be expensive. If you are working through this to learn, be sure to tear everything down ASAP after running experiments.
 
 We reference AWS docs freqently. The initial process is derived from:
+
 https://docs.aws.amazon.com/eks/latest/userguide/getting-started-eksctl.html
+
 The commands we used in testing are detailed below.
 
 We used the AWS CLI version 2. Install intructions are here:
-https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html
 
-The following steps must be done in order to deploy zqd with helm.
+https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html
 
 ### Creating the EKS Cluster
 Choose a region for the cluster. For the examples below, we used region us-east-1. (Hint: this is because us-east-1 is the lowest cost region for some S3 charges.) We set a default region with `aws configure` so it is not included in the CLI commands.
@@ -210,17 +211,11 @@ Then create the cluster:
 ```
 eksctl create cluster -f k8s/cluster.yaml
 ```
-This command usually takes at least 10 minutes to complete. It uses parameters provided in `k8s/cluster.yaml` -- you can edit this file to change it as needed. The file contains links to relevant AWS docs for how to change it.
-In this example, we limit the cluster size to 3. This is enough to test autoscaling. If you keep the cluster up during dev and testing, you may want to manually scale it down with:
-```
-eksctl scale nodegroup --cluster test -m 1 -N 1 -M 1 -n standard-workers --region us-east-1
-```
-This decreases the maximum to 1, which is as low as you can go with an EKS cluster.
-Later, when you want to delete the EKS cluster, you must first delete the nodegroup. This will take a few minutes. (BTW, I have found that deletes from the AWS console are at least as fast, and often faster, than using the AWS CLI to delete.)
+This command usually takes at least 10 minutes to complete. It uses parameters provided in `k8s/cluster.yaml` -- you can edit this file to change it as needed.
 
 ### Creating a zqeks namespace and a kubectl config context
 
-Similar to the create-cluster.sh script above, we create a context for the EKS cluster. You need to change the user and cluster in the example below. Use `kubectl config get-contexts` to get the values for your user and cluster.
+This creates a context for the EKS cluster. You need to change the user and cluster in the example below. Use `kubectl config get-contexts` to get the values for your user and cluster.
 ```
 kubectl create namespace zqdev
 kubectl config set-context zqdev \
@@ -238,7 +233,7 @@ linkerd install | kubectl apply -f -
 ```
 
 ### Use zar import to get some data into an S3 bucket in the region
-The permission we set up for S3 access are region-specific. We will use zar for create an S3 bucket in this region with some sample data. 
+We will use zar to create an S3 bucket in this region with sample data. 
 
 If you do not already have a bucket you want to use in the same region as your EKS cluster, create it with `aws s3 mb`, e.g.
 ```
@@ -256,9 +251,8 @@ aws s3 ls zqd-demo-1/mark --recursive
 ```
 
 ### Pushing locally built Docker images from your local dev machine to ECR
-You can push locally built Docker images to AWS ECR for deployment on EKS. (This procedure can replaced by a CI/CD deployment pipeline.)
+You can push locally built Docker images to AWS ECR for deployment on EKS. These instructions are derived from:
 
-Use this doc:
 https://docs.aws.amazon.com/AmazonECR/latest/userguide/getting-started-cli.html
 
 Create an ECR repo for zqd:
@@ -283,9 +277,9 @@ docker push 123456789012.dkr.ecr.us-east-1.amazonaws.com/zqd
 ```
 
 ### Deploy the zqd service with Helm
-Here is an example Helm install. This assumes you created an s3 resident space as in the local install bove. This is similar to the local Helm deploy. It uses the same charts, but command line parameters overide the Vakues.yaml to provide specific configuration for EKS.
+Here is an example Helm install. This assumes you created an S3 resident space as in the local install above. This is similar to the local Helm deploy. It uses the same charts, but command line parameters overide the Values.yaml to provide specific configuration for EKS.
 
-Substitute the image.repository you created above. Note that unlike the local deployment, we do not use K8s secrets for AWS credentials because the service account can provide those. If there is a serviceAccount.name then AWS Credentials are not incudeded in the deployment env.
+Substitute the image.repository you created above. Note that unlike the local deployment, we do not use K8s secrets for AWS credentials because the `cluster.yaml` above specified IAM policies for S3 access.
 
 ```
 helm install zqd-test-1 charts/zqd \
@@ -296,7 +290,8 @@ helm install zqd-test-1 charts/zqd \
 ```
 
 ### Exposing the zqd endpoint
-You may will want to limit the exposure of your zqd endpoint, probably with a security group. (TBD)
+
+Work in progess...
 
 ## [Trouble shooting](trouble-shooting.md)
 

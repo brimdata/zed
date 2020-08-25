@@ -207,6 +207,15 @@ aws ec2 create-key-pair --key-name zqKeyPair --query 'KeyMaterial' --output text
 ssh-keygen -y -f zq-eks-test.pem > zq-eks-test.pub
 ```
 
+## Scaling EKS cluster
+If you keep the cluster up during dev and testing, you may want to manually scale it down with:
+```
+eksctl scale nodegroup --cluster test -m 1 -N 1 -M 1 -n standard-workers --region us-east-1
+```
+This decreases the maximum to 1, which is as low as you can go with an EKS cluster.
+Later, when you want to delete the EKS cluster, you must first delete the nodegroup. This will take a few minutes. (BTW, I have found that deletes from the AWS console are at least as fast, and often faster, than using the AWS CLI to delete.)
+
+
 ## Notes on IAM policies
 The zqd service account needs read access to S3. AWS IAM has an ARN for `AmazonS3ReadOnlyAccess`. Here is how you get the ARN:
 ```
