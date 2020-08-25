@@ -421,10 +421,53 @@ func decomposable(rs []ast.Reducer) bool {
 func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string, inputSortReversed bool) (*ast.SequentialProc, bool) {
 	for i := range seq.Procs {
 		switch p := seq.Procs[i].(type) {
-		case *ast.CutProc, *ast.FilterProc, *ast.PassProc, *ast.PutProc, *ast.RenameProc:
+		case *ast.FilterProc, *ast.PassProc:
 			// Stateless procs: continue until we reach one of the procs below at
 			// which point we'll either split the flowgraph or see we can't and return it as-is.
 			continue
+		case *ast.CutProc:
+			if inputSortField == "" {
+				continue
+			}
+			if p.Complement {
+				for _, f := range p.Fields {
+					if f.Source == inputSortField {
+						return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
+					}
+				}
+				continue
+			}
+			var found bool
+			for _, f := range p.Fields {
+				if f.Source != inputSortField && f.Target == inputSortField {
+					return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
+				}
+				if f.Source == inputSortField && f.Target == "" {
+					found = true
+				}
+			}
+			if !found {
+				return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
+			}
+		case *ast.PutProc:
+			if inputSortField == "" {
+				continue
+			}
+			for _, c := range p.Clauses {
+				if c.Target == inputSortField {
+					return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
+				}
+			}
+			continue
+		case *ast.RenameProc:
+			if inputSortField == "" {
+				continue
+			}
+			for _, f := range p.Fields {
+				if f.Target == inputSortField {
+					return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
+				}
+			}
 		case *ast.GroupByProc:
 			if !decomposable(p.Reducers) {
 				return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
@@ -468,9 +511,10 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string,
 			panic("proc type not handled")
 		}
 	}
-	// If we're here, the flowgraph is a chain of stateless
-	// procs. If inputs are sorted, we can parallelize the entire
-	// chain and do an ordered merge. Otherwise, no distribution.
+	// If we're here, we reached the end of the flowgraph without
+	// coming across a merge-forcing proc. If inputs are sorted,
+	// we can parallelize the entire chain and do an ordered
+	// merge. Otherwise, no parallelization.
 	if inputSortField == "" {
 		return seq, false
 	}
