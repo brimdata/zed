@@ -51,11 +51,11 @@ func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc
 	var filterExpr ast.BooleanExpr
 	filterExpr, program = liftFilter(program)
 
-	var dist bool
+	var isParallel bool
 	if mcfg.Parallelism > 1 {
-		program, dist = parallelizeFlowgraph(wrapSeq(program), mcfg.Parallelism, sortKey, sortReversed)
+		program, isParallel = parallelizeFlowgraph(ensureSequentialProc(program), mcfg.Parallelism, sortKey, sortReversed)
 	}
-	if !dist {
+	if !isParallel {
 		mcfg.Parallelism = 1
 	}
 
@@ -77,7 +77,7 @@ func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc
 	return newMuxOutput(pctx, leaves, pgroup), nil
 }
 
-func wrapSeq(p ast.Proc) *ast.SequentialProc {
+func ensureSequentialProc(p ast.Proc) *ast.SequentialProc {
 	if p, ok := p.(*ast.SequentialProc); ok {
 		return p
 	}
@@ -436,9 +436,9 @@ func decomposable(rs []ast.Reducer) bool {
 }
 
 // parallelizeFlowgraph takes a sequential proc AST and tries to
-// parallelize it by splitting as much as possible of the sequence into
-// N parallel branches. The boolean return argument indicates whether
-// distribution succeeded.
+// parallelize it by splitting as much as possible of the sequence
+// into N parallel branches. The boolean return argument indicates
+// whether the flowgraph could be parallelized.
 func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string, inputSortReversed bool) (*ast.SequentialProc, bool) {
 	for i := range seq.Procs {
 		switch p := seq.Procs[i].(type) {
@@ -539,5 +539,5 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string,
 	if inputSortField == "" {
 		return seq, false
 	}
-	return buildSplitFlowgraph(seq.Procs, []ast.Proc{}, inputSortField, inputSortReversed, N), true
+	return buildSplitFlowgraph(seq.Procs, nil, inputSortField, inputSortReversed, N), true
 }
