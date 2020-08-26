@@ -59,7 +59,7 @@ func (p *Proc) run() {
 					if proc.EOS(batch, err) {
 						return
 					}
-				case _ = <-p.doneCh:
+				case <-p.doneCh:
 					parent.proc.Done()
 					return
 				case <-p.ctx.Done():
