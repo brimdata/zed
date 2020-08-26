@@ -43,7 +43,7 @@ func NewNgReader(r io.Reader) (*NgReader, error) {
 	hdr, err := ret.Peek(12)
 	if err != nil {
 		if err == peeker.ErrTruncated {
-			err = errInvalidf("packet-ng file is too small to be valid")
+			err = errInvalidf("pcap-ng file is too small to be valid")
 		}
 		return nil, err
 	}
