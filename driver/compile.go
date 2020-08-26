@@ -42,16 +42,21 @@ func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc
 		mcfg.Parallelism = runtime.GOMAXPROCS(0)
 	}
 
-	sortKey, sortReversed := msrc.OrderInfo()
-
 	ReplaceGroupByProcDurationWithKey(program)
+
+	sortKey, sortReversed := msrc.OrderInfo()
 	if sortKey != "" {
 		setGroupByProcInputSortDir(program, sortKey, zbufDirInt(sortReversed))
 	}
+	var filterExpr ast.BooleanExpr
+	filterExpr, program = liftFilter(program)
 
-	pgSetup, program, err := pscanAnalyze(program)
-	if err != nil {
-		return nil, err
+	var isParallel bool
+	if mcfg.Parallelism > 1 {
+		program, isParallel = parallelizeFlowgraph(ensureSequentialProc(program), mcfg.Parallelism, sortKey, sortReversed)
+	}
+	if !isParallel {
+		mcfg.Parallelism = 1
 	}
 
 	pctx := &proc.Context{
@@ -60,16 +65,25 @@ func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc
 		Logger:      mcfg.Logger,
 		Warnings:    mcfg.Warnings,
 	}
-	mergeProc, pgroup, err := createParallelGroup(pctx, pgSetup, msrc, mcfg)
+	sources, pgroup, err := createParallelGroup(pctx, filterExpr, msrc, mcfg)
 	if err != nil {
 		return nil, err
 	}
 
-	leaves, err := compiler.Compile(mcfg.Custom, program, pctx, []proc.Interface{mergeProc})
+	leaves, err := compiler.Compile(mcfg.Custom, program, pctx, sources)
 	if err != nil {
 		return nil, err
 	}
 	return newMuxOutput(pctx, leaves, pgroup), nil
+}
+
+func ensureSequentialProc(p ast.Proc) *ast.SequentialProc {
+	if p, ok := p.(*ast.SequentialProc); ok {
+		return p
+	}
+	return &ast.SequentialProc{
+		Procs: []ast.Proc{p},
+	}
 }
 
 // liftFilter removes the filter at the head of the flowgraph AST, if
@@ -384,6 +398,12 @@ func copyProcs(ps []ast.Proc) []ast.Proc {
 }
 
 func buildSplitFlowgraph(branch, tail []ast.Proc, mergeField string, reverse bool, N int) *ast.SequentialProc {
+	if len(tail) == 0 && mergeField != "" {
+		// Insert a pass tail in order to force a merge of the
+		// parallel branches when compiling. (Trailing parallel branches are wired to
+		// a mux output).
+		tail = []ast.Proc{&ast.PassProc{Node: ast.Node{"PassProc"}}}
+	}
 	pp := &ast.ParallelProc{
 		Node:              ast.Node{"ParallelProc"},
 		Procs:             []ast.Proc{},
@@ -416,9 +436,9 @@ func decomposable(rs []ast.Reducer) bool {
 }
 
 // parallelizeFlowgraph takes a sequential proc AST and tries to
-// parallelize it by splitting as much as possible of the sequence into
-// N parallel branches. The boolean return argument indicates whether
-// distribution succeeded.
+// parallelize it by splitting as much as possible of the sequence
+// into N parallel branches. The boolean return argument indicates
+// whether the flowgraph could be parallelized.
 func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string, inputSortReversed bool) (*ast.SequentialProc, bool) {
 	for i := range seq.Procs {
 		switch p := seq.Procs[i].(type) {
@@ -519,9 +539,5 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string,
 	if inputSortField == "" {
 		return seq, false
 	}
-	// Insert a pass tail in order to force a merge of the
-	// parallel branches. (Trailing parallel branches are wired to
-	// a mux output).
-	pass := &ast.PassProc{Node: ast.Node{"PassProc"}}
-	return buildSplitFlowgraph(seq.Procs, []ast.Proc{pass}, inputSortField, inputSortReversed, N), true
+	return buildSplitFlowgraph(seq.Procs, nil, inputSortField, inputSortReversed, N), true
 }

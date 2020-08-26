@@ -7,9 +7,6 @@ import (
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/proc"
-	"github.com/brimsec/zq/proc/compiler"
-	"github.com/brimsec/zq/proc/merge"
-	"github.com/brimsec/zq/proc/orderedmerge"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
@@ -160,39 +157,18 @@ func newCompareFn(field string, reversed bool) (zbuf.RecordCmpFn, error) {
 	}, nil
 }
 
-type pgSetup struct {
-	chain      *ast.SequentialProc
-	filter     filter.Filter
-	filterExpr ast.BooleanExpr
-}
-
-func pscanAnalyze(program ast.Proc) (*pgSetup, ast.Proc, error) {
-	filterExpr, p := liftFilter(program)
-	var f filter.Filter
+func createParallelGroup(pctx *proc.Context, filterExpr ast.BooleanExpr, msrc MultiSource, mcfg MultiConfig) ([]proc.Interface, *parallelGroup, error) {
+	var filt filter.Filter
 	if filterExpr != nil {
 		var err error
-		if f, err = filter.Compile(filterExpr); err != nil {
+		if filt, err = filter.Compile(filterExpr); err != nil {
 			return nil, nil, err
 		}
 	}
-	return &pgSetup{
-		chain: &ast.SequentialProc{
-			Node:  ast.Node{"SequentialProc"},
-			Procs: []ast.Proc{&ast.PassProc{ast.Node{Op: "PassProc"}}},
-		},
-		filter:     f,
-		filterExpr: filterExpr,
-	}, p, nil
-}
-
-// XXX(alfred): This function is a temporary placeholder for a future
-// AST transformation that will determine what portions of a query may
-// safely happen concurrently as sources are read from a MultiSource.
-func createParallelGroup(pctx *proc.Context, pgn *pgSetup, msrc MultiSource, mcfg MultiConfig) (proc.Interface, *parallelGroup, error) {
 	pg := &parallelGroup{
 		filter: SourceFilter{
-			Filter:     pgn.filter,
-			FilterExpr: pgn.filterExpr,
+			Filter:     filt,
+			FilterExpr: filterExpr,
 			Span:       mcfg.Span,
 		},
 		msrc:       msrc,
@@ -201,22 +177,9 @@ func createParallelGroup(pctx *proc.Context, pgn *pgSetup, msrc MultiSource, mcf
 		scanners:   make(map[scanner.Scanner]struct{}),
 	}
 
-	chains := make([]proc.Interface, mcfg.Parallelism)
-	for i := range chains {
-		head := &parallelHead{ctx: pctx, parent: nil, pg: pg}
-		p, err := compiler.Compile(mcfg.Custom, pgn.chain, pctx, []proc.Interface{head})
-		if err != nil {
-			return nil, nil, err
-		}
-		if len(p) != 1 {
-			panic("parallel head line ends with multiple leaves")
-		}
-		chains[i] = p[0]
+	sources := make([]proc.Interface, mcfg.Parallelism)
+	for i := range sources {
+		sources[i] = &parallelHead{ctx: pctx, parent: nil, pg: pg}
 	}
-
-	sortField, reversed := msrc.OrderInfo()
-	if sortField == "" {
-		return merge.New(pctx, chains), pg, nil
-	}
-	return orderedmerge.New(pctx, chains, sortField, reversed), pg, nil
+	return sources, pg, nil
 }
