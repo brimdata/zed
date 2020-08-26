@@ -155,7 +155,7 @@ func (p *LogOp) Status() <-chan string {
 }
 
 // Error indicates what if any error occurred during import, after the
-// Status channel is closed.
+// Status channel is closed.  The result is undefined while Status is open.
 func (p *LogOp) Error() error {
 	return p.err
 }
