@@ -73,7 +73,7 @@ func (c *LogCommand) Run(args []string) (err error) {
 		return err
 	}
 	c.start = time.Now()
-	stream, err := client.LogPost(c.Context(), id, api.LogPostRequest{Paths: paths})
+	stream, err := client.LogPostStream(c.Context(), id, api.LogPostRequest{Paths: paths})
 	if err != nil {
 		return err
 	}

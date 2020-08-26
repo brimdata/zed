@@ -2,6 +2,7 @@ package iosrc
 
 import (
 	"io"
+	"io/ioutil"
 	"os"
 
 	"github.com/brimsec/zq/pkg/fs"
@@ -23,6 +24,16 @@ func (f *FileSource) NewReader(uri URI) (Reader, error) {
 func (s *FileSource) NewWriter(uri URI) (io.WriteCloser, error) {
 	w, err := fs.OpenFile(uri.Filepath(), os.O_RDWR|os.O_CREATE|os.O_TRUNC, s.Perm)
 	return w, wrapfileError(uri, err)
+}
+
+func (s *FileSource) ReadFile(uri URI) ([]byte, error) {
+	d, err := ioutil.ReadFile(uri.Filepath())
+	return d, wrapfileError(uri, err)
+}
+
+func (s *FileSource) WriteFile(d []byte, uri URI) error {
+	err := ioutil.WriteFile(uri.Filepath(), d, s.Perm)
+	return wrapfileError(uri, err)
 }
 
 func (s *FileSource) MkdirAll(uri URI, perm os.FileMode) error {

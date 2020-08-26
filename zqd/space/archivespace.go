@@ -99,7 +99,7 @@ func (s *archiveSpace) CreateSubspace(req api.SubspacePostRequest) (*archiveSubs
 	}
 
 	return &archiveSubspace{
-		spaceBase: spaceBase{subcfg.ID, substore, newGuard()},
+		spaceBase: spaceBase{subcfg.ID, substore, nil, newGuard()},
 		parent:    s,
 	}, nil
 }

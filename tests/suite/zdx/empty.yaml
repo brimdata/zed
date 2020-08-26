@@ -1,8 +1,0 @@
-script: |
-  echo -n "" > empty.zng
-  zdx lookup -t -k none empty.zng
-
-outputs:
-  - name: stderr
-    regexp: |
-      .*: microindex trailer not found

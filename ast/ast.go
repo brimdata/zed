@@ -197,7 +197,12 @@ type (
 	// a stream of records from their parent.
 	ParallelProc struct {
 		Node
-		Procs []Proc `json:"procs"`
+		// If non-zero, MergeOrderField contains the field name on
+		// which the branches of this parallel proc should be
+		// merged in the order indicated by MergeOrderReverse.
+		MergeOrderField   string `json:"merge_order_field"`
+		MergeOrderReverse bool   `json:"merge_order_reverse"`
+		Procs             []Proc `json:"procs"`
 	}
 	// A SortProc node represents a proc that sorts records.
 	SortProc struct {
@@ -244,14 +249,6 @@ type (
 	UniqProc struct {
 		Node
 		Cflag bool `json:"cflag"`
-	}
-	// A ReduceProc node represents a proc that consumes all the records
-	// in its input and processes each record with one or more reducers.
-	// After all the records have been consumed, the proc generates a single
-	// record that contains each reducer's result as a field in that record.
-	ReduceProc struct {
-		Node
-		Reducers []Reducer `json:"reducers"`
 	}
 	// A GroupByProc node represents a proc that consumes all the records
 	// in its input, partitions the records into groups based on the values
@@ -345,7 +342,6 @@ func (*TailProc) ProcNode()       {}
 func (*PassProc) ProcNode()       {}
 func (*FilterProc) ProcNode()     {}
 func (*UniqProc) ProcNode()       {}
-func (*ReduceProc) ProcNode()     {}
 func (*GroupByProc) ProcNode()    {}
 func (*TopProc) ProcNode()        {}
 func (*PutProc) ProcNode()        {}

@@ -1,0 +1,101 @@
+package top
+
+import (
+	"container/heap"
+
+	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/proc/sort"
+	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zng"
+)
+
+const defaultTopLimit = 100
+
+// Top is similar to proc.Sort with a view key differences:
+// - It only sorts in descending order.
+// - It utilizes a MaxHeap, immediately discarding records that are not in
+// the top N of the sort.
+// - It has a hidden option (FlushEvery) to sort and emit on every batch.
+type Proc struct {
+	parent     proc.Interface
+	limit      int
+	fields     []expr.FieldExprResolver
+	records    *expr.RecordSlice
+	compare    expr.CompareFn
+	flushEvery bool
+}
+
+func New(parent proc.Interface, limit int, fields []expr.FieldExprResolver, flushEvery bool) *Proc {
+	if limit == 0 {
+		limit = defaultTopLimit
+	}
+	return &Proc{
+		parent:     parent,
+		limit:      limit,
+		fields:     fields,
+		flushEvery: flushEvery,
+	}
+}
+
+func (p *Proc) Pull() (zbuf.Batch, error) {
+	for {
+		batch, err := p.parent.Pull()
+		if err != nil {
+			return nil, err
+		}
+		if batch == nil {
+			return p.sorted(), nil
+		}
+		for k := 0; k < batch.Length(); k++ {
+			p.consume(batch.Index(k))
+		}
+		batch.Unref()
+		if p.flushEvery {
+			return p.sorted(), nil
+		}
+	}
+}
+
+func (p *Proc) Done() {
+	p.parent.Done()
+}
+
+func (p *Proc) consume(rec *zng.Record) {
+	if p.fields == nil {
+		fld := sort.GuessSortKey(rec)
+		resolver := func(r *zng.Record) zng.Value {
+			e, err := r.Access(fld)
+			if err != nil {
+				return zng.Value{}
+			}
+			return e
+		}
+		p.fields = []expr.FieldExprResolver{resolver}
+	}
+	if p.records == nil {
+		p.compare = expr.NewCompareFn(false, p.fields...)
+		p.records = expr.NewRecordSlice(p.compare)
+		heap.Init(p.records)
+	}
+	if p.records.Len() < p.limit || p.compare(p.records.Index(0), rec) < 0 {
+		heap.Push(p.records, rec.Keep())
+	}
+	if p.records.Len() > p.limit {
+		heap.Pop(p.records)
+	}
+}
+
+func (t *Proc) sorted() zbuf.Batch {
+	if t.records == nil {
+		return nil
+	}
+	out := make([]*zng.Record, t.records.Len())
+	for i := t.records.Len() - 1; i >= 0; i-- {
+		rec := heap.Pop(t.records).(*zng.Record)
+		out[i] = rec
+	}
+	// clear records
+	t.records = nil
+	return zbuf.NewArray(out)
+}

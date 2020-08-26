@@ -28,13 +28,17 @@ type muxOutput struct {
 }
 
 type mux struct {
-	proc.Base
-	ID  int
-	out chan<- muxResult
+	parent proc.Interface
+	ID     int
+	out    chan<- muxResult
 }
 
-func newMux(c *proc.Context, parent proc.Proc, id int, out chan muxResult) *mux {
-	return &mux{Base: proc.Base{Context: c, Parent: parent}, ID: id, out: out}
+func newMux(parent proc.Interface, id int, out chan muxResult) *mux {
+	return &mux{
+		parent: parent,
+		ID:     id,
+		out:    out,
+	}
 }
 
 func (m *mux) safeGet() (b zbuf.Batch, err error) {
@@ -45,7 +49,7 @@ func (m *mux) safeGet() (b zbuf.Batch, err error) {
 		}
 		err = zqe.RecoverError(r)
 	}()
-	b, err = m.Get()
+	b, err = m.parent.Pull()
 	return
 }
 
@@ -66,12 +70,12 @@ func (m *mux) run() {
 	}
 }
 
-func newMuxOutput(ctx *proc.Context, parents []proc.Proc, scanner scanner.Statser) *muxOutput {
+func newMuxOutput(ctx *proc.Context, parents []proc.Interface, scanner scanner.Statser) *muxOutput {
 	n := len(parents)
 	c := make(chan muxResult, n)
 	mux := &muxOutput{ctx: ctx, runners: n, in: c, scanner: scanner}
 	for id, parent := range parents {
-		mux.muxProcs = append(mux.muxProcs, newMux(ctx, parent, id, c))
+		mux.muxProcs = append(mux.muxProcs, newMux(parent, id, c))
 	}
 	return mux
 }

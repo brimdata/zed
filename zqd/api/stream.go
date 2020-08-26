@@ -27,3 +27,23 @@ func (s *Stream) Next() (interface{}, error) {
 	}
 	return nil, nil
 }
+
+func (s *Stream) ReadAll() ([]interface{}, error) {
+	var payloads []interface{}
+	for {
+		v, err := s.Next()
+		if err != nil {
+			if err == io.EOF {
+				return payloads, nil
+			}
+			return nil, err
+		}
+		payloads = append(payloads, v)
+		if end, ok := v.(*TaskEnd); ok {
+			if end.Error != nil {
+				return nil, end.Error
+			}
+			return payloads, nil
+		}
+	}
+}

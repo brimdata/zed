@@ -3,6 +3,7 @@ package iosrc
 import (
 	"errors"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -28,6 +29,27 @@ func (s *s3Source) NewWriter(u URI) (io.WriteCloser, error) {
 func (s *s3Source) NewReader(u URI) (Reader, error) {
 	r, err := s3io.NewReader(u.String(), s.Config)
 	return r, wrapErr(err)
+}
+
+func (s *s3Source) ReadFile(u URI) ([]byte, error) {
+	r, err := NewReader(u)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	return ioutil.ReadAll(r)
+}
+
+func (s *s3Source) WriteFile(d []byte, u URI) error {
+	w, err := NewWriter(u)
+	if err != nil {
+		return err
+	}
+	_, err = w.Write(d)
+	if err2 := w.Close(); err == nil {
+		err = err2
+	}
+	return err
 }
 
 func (s *s3Source) Remove(u URI) error {

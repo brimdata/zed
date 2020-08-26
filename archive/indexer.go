@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"github.com/brimsec/zq/driver"
+	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/proc/cut"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zdx"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -20,12 +20,12 @@ const zarExt = ".zar"
 // XXX Embedding the type and field names like this can result in some clunky
 // file names. We might want to re-work the naming scheme.
 
-func typeZdxName(t zng.Type) string {
-	return "zdx-type-" + t.String() + ".zng"
+func typeMicroIndexName(t zng.Type) string {
+	return "microindex-type-" + t.String() + ".zng"
 }
 
-func fieldZdxName(fieldname string) string {
-	return "zdx-field-" + fieldname + ".zng"
+func fieldMicroIndexName(fieldname string) string {
+	return "microindex-field-" + fieldname + ".zng"
 }
 
 func IndexDirTree(ctx context.Context, ark *Archive, rules []Rule, path string, progress chan<- string) error {
@@ -55,13 +55,17 @@ func runOne(ctx context.Context, zardir iosrc.URI, rule Rule, inputPath iosrc.UR
 	if err != nil {
 		return err
 	}
-	defer fgi.Close()
 	if progress != nil {
 		progress <- fmt.Sprintf("%s: creating index %s", inputPath, rule.Path(zardir))
 	}
-	return driver.Run(ctx, fgi, rule.proc, zctx, r, driver.Config{
-		Custom: &compiler{},
+	err = driver.Run(ctx, fgi, rule.proc, zctx, r, driver.Config{
+		Custom: compile,
 	})
+	if err != nil {
+		fgi.Abort()
+		return err
+	}
+	return fgi.Close()
 }
 
 func run(ctx context.Context, zardir iosrc.URI, rules []Rule, logPath iosrc.URI, progress chan<- string) error {
@@ -75,27 +79,28 @@ func run(ctx context.Context, zardir iosrc.URI, rules []Rule, logPath iosrc.URI,
 
 type FlowgraphIndexer struct {
 	zctx    *resolver.Context
-	w       *zdx.Writer
+	w       *microindex.Writer
 	keyType zng.Type
-	cutter  *proc.Cutter
+	cutter  *cut.Cutter
 }
 
 func NewFlowgraphIndexer(zctx *resolver.Context, uri iosrc.URI, keys []string, framesize int) (*FlowgraphIndexer, error) {
 	if len(keys) == 0 {
 		keys = []string{keyName}
 	}
-	writer, err := zdx.NewWriter(zctx, uri.String(), keys, framesize)
+	writer, err := microindex.NewWriter(zctx, uri.String(), keys, framesize)
 	if err != nil {
 		return nil, err
 	}
 	return &FlowgraphIndexer{
 		zctx:   zctx,
 		w:      writer,
-		cutter: proc.NewStrictCutter(zctx, false, keys, keys),
+		cutter: cut.NewStrictCutter(zctx, false, keys, keys),
 	}, nil
 }
 
 func (f *FlowgraphIndexer) Write(_ int, batch zbuf.Batch) error {
+	defer batch.Unref()
 	for i := 0; i < batch.Length(); i++ {
 		rec := batch.Index(i)
 		key, err := f.cutter.Cut(rec)
@@ -112,12 +117,15 @@ func (f *FlowgraphIndexer) Write(_ int, batch zbuf.Batch) error {
 			return err
 		}
 	}
-	batch.Unref()
 	return nil
 }
 
 func (f *FlowgraphIndexer) Close() error {
 	return f.w.Close()
+}
+
+func (f *FlowgraphIndexer) Abort() error {
+	return f.w.Abort()
 }
 
 func (f *FlowgraphIndexer) Warn(warning string) error          { return nil }

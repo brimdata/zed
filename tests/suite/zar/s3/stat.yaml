@@ -10,7 +10,7 @@ script: |
 
 inputs:
   - name: babble.tzng
-    source: ../../zdx/babble.tzng
+    source: ../../data/babble.tzng
   - name: minio.sh
     source: ./minio.sh
 

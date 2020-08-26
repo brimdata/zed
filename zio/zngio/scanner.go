@@ -16,12 +16,15 @@ import (
 
 // zngScanner implements scanner.Scanner.
 type zngScanner struct {
-	ctx    context.Context
-	reader *Reader
-	filter filter.Filter
-	span   nano.Span
-	stats  scanner.ScannerStats
+	ctx          context.Context
+	reader       *Reader
+	filter       filter.Filter
+	bufferFilter *filter.BufferFilter
+	span         nano.Span
+	stats        scanner.ScannerStats
 }
+
+var _ scanner.ScannerAble = (*Reader)(nil)
 
 // Pull implements scanner.Scanner.Pull.
 func (s *zngScanner) Pull() (zbuf.Batch, error) {
@@ -58,8 +61,17 @@ func (s *zngScanner) Pull() (zbuf.Batch, error) {
 }
 
 func (s *zngScanner) scanUncompressed() ([]*zng.Record, error) {
+	uncompressed := s.reader.uncompressed
+	if s.bufferFilter != nil && !s.bufferFilter.Eval(uncompressed.Bytes()) {
+		// s.bufferFilter evaluated to false, so we know
+		// s.reader.uncompressed cannot contain records matching
+		// s.filter.
+		atomic.AddInt64(&s.stats.BytesRead, int64(uncompressed.Len()))
+		s.reader.uncompressed = nil
+		return nil, nil
+	}
 	var recs []*zng.Record
-	for uncompressed := s.reader.uncompressed; uncompressed.Len() > 0; {
+	for uncompressed.Len() > 0 {
 		id, err := readUvarint7(uncompressed)
 		if err != nil {
 			return nil, err

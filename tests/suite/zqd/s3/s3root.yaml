@@ -1,28 +1,25 @@
 script: |
   source services.sh s3://bucket/zqdroot
-  zar import -s 20KiB -R s3://bucket/zartest babble.tzng
+  zapi -h $ZQD_HOST new -k archivestore -thresh 20KiB testsp
+  zapi -h $ZQD_HOST -s testsp post babble.tzng >/dev/null
   echo ===
-  zapi -h $ZQD_HOST new -d s3://bucket/zartest -k archivestore testsp
-  echo ===
-  zapi -h $ZQD_HOST info testsp | awk '!/id|pcap_path/{print }'
+  zapi -h $ZQD_HOST -s testsp info | egrep -v 'data_path|id|pcap_path'
   echo ===
   zapi -h $ZQD_HOST -s testsp get -f tzng "s=harefoot-raucous"
 
 inputs:
   - name: babble.tzng
-    source: ../../zdx/babble.tzng
+    source: ../../data/babble.tzng
   - name: services.sh
     source: ../services.sh
 
 outputs:
   - name: stdout
     data: |
-      ===
       testsp: space created
       ===
       testsp
         name:         testsp
-        data_path:    s3://bucket/zartest
         storage_kind: archivestore
         span:         2020-04-21T22:40:30Z+2h43m9.993714061s
         size:         34.34KB

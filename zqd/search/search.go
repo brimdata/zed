@@ -5,6 +5,7 @@ package search
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/brimsec/zq/ast"
@@ -13,6 +14,9 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
+	"github.com/brimsec/zq/zqd/storage"
+	"github.com/brimsec/zq/zqd/storage/archivestore"
+	"github.com/brimsec/zq/zqd/storage/filestore"
 	"github.com/brimsec/zq/zqe"
 )
 
@@ -26,10 +30,6 @@ const (
 	MimeTypeNDJSON = "application/x-ndjson"
 	MimeTypeZNG    = "application/x-zng"
 )
-
-type SearchStore interface {
-	Open(ctx context.Context, zctx *resolver.Context, span nano.Span) (zbuf.ReadCloser, error)
-}
 
 type SearchOp struct {
 	query *Query
@@ -57,7 +57,7 @@ func NewSearchOp(req api.SearchRequest) (*SearchOp, error) {
 	return &SearchOp{query: query}, nil
 }
 
-func (s *SearchOp) Run(ctx context.Context, store SearchStore, output Output) (err error) {
+func (s *SearchOp) Run(ctx context.Context, store storage.Storage, output Output) (err error) {
 	d := &searchdriver{
 		output:    output,
 		startTime: nano.Now(),
@@ -73,20 +73,30 @@ func (s *SearchOp) Run(ctx context.Context, store SearchStore, output Output) (e
 
 	statsTicker := time.NewTicker(StatsInterval)
 	defer statsTicker.Stop()
-
 	zctx := resolver.NewContext()
-	rc, err := store.Open(ctx, zctx, s.query.Span)
-	if err != nil {
-		return err
-	}
-	defer rc.Close()
 
-	return driver.Run(ctx, d, s.query.Proc, zctx, rc, driver.Config{
-		ReaderSortKey:     "ts",
-		ReaderSortReverse: true,
-		Span:              s.query.Span,
-		StatsTick:         statsTicker.C,
-	})
+	switch st := store.(type) {
+	case *archivestore.Storage:
+		return driver.MultiRun(ctx, d, s.query.Proc, zctx, st.MultiSource(), driver.MultiConfig{
+			Span:      s.query.Span,
+			StatsTick: statsTicker.C,
+		})
+	case *filestore.Storage:
+		rc, err := st.Open(ctx, zctx, s.query.Span)
+		if err != nil {
+			return err
+		}
+		defer rc.Close()
+
+		return driver.Run(ctx, d, s.query.Proc, zctx, rc, driver.Config{
+			ReaderSortKey:     "ts",
+			ReaderSortReverse: true,
+			Span:              s.query.Span,
+			StatsTick:         statsTicker.C,
+		})
+	default:
+		return fmt.Errorf("unknown storage type %T", st)
+	}
 }
 
 // A Query is the internal representation of search query describing a source

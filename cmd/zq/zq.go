@@ -17,7 +17,7 @@ import (
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/pkg/s3io"
 	"github.com/brimsec/zq/pkg/signalctx"
-	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/proc/sort"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
@@ -122,7 +122,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
 	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
 	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
-	f.IntVar(&c.sortMemMaxBytes, "sortmem", proc.SortMemMaxBytes, "maximum memory used by sort, in bytes")
+	f.IntVar(&c.sortMemMaxBytes, "sortmem", sort.MemMaxBytes, "maximum memory used by sort, in bytes")
 	f.BoolVar(&c.showVersion, "version", false, "print version and exit")
 	f.BoolVar(&c.textShortcut, "t", false, "use format tzng independent of -f option")
 	f.BoolVar(&c.forceBinary, "B", false, "allow binary zng be sent to a terminal output")
@@ -199,7 +199,7 @@ func (c *Command) Run(args []string) error {
 	if c.sortMemMaxBytes <= 0 {
 		return errors.New("sortmem value must be greater than zero")
 	}
-	proc.SortMemMaxBytes = c.sortMemMaxBytes
+	sort.MemMaxBytes = c.sortMemMaxBytes
 	paths := args
 	var query ast.Proc
 	var err error
@@ -330,6 +330,6 @@ func (c *Command) runMemProfile() {
 		log.Fatal(err)
 	}
 	runtime.GC()
-	pprof.WriteHeapProfile(f)
+	pprof.Lookup("allocs").WriteTo(f, 0)
 	f.Close()
 }

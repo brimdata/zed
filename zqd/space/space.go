@@ -2,6 +2,7 @@ package space
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path"
 	"sync"
@@ -9,6 +10,7 @@ import (
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zqd/api"
+	"github.com/brimsec/zq/zqd/pcapstorage"
 	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqd/storage/archivestore"
 	"github.com/brimsec/zq/zqd/storage/filestore"
@@ -41,6 +43,14 @@ type Space interface {
 	// Intended to be called from Manager.Delete().
 	delete() error
 	update(api.SpacePutRequest) error
+}
+
+// PcapSpace denotes that a space is capable of storing pcap files and
+// indexes.
+// XXX Temporary. The should be removed once archive spaces are enabled to allow
+// pcap ingest.
+type PcapSpace interface {
+	PcapStore() *pcapstorage.Store
 }
 
 func newSpaceID() api.SpaceID {
@@ -111,7 +121,6 @@ func loadSpaces(p iosrc.URI, conf config) ([]Space, error) {
 	if datapath.IsZero() {
 		datapath = p
 	}
-
 	id := api.SpaceID(path.Base(p.Path))
 	switch conf.Storage.Kind {
 	case storage.FileStore:
@@ -119,8 +128,12 @@ func loadSpaces(p iosrc.URI, conf config) ([]Space, error) {
 		if err != nil {
 			return nil, err
 		}
+		pcapstore, err := loadPcapStore(datapath)
+		if err != nil {
+			return nil, err
+		}
 		s := &fileSpace{
-			spaceBase: spaceBase{id, store, newGuard()},
+			spaceBase: spaceBase{id, store, pcapstore, newGuard()},
 			path:      p,
 			conf:      conf,
 		}
@@ -132,7 +145,7 @@ func loadSpaces(p iosrc.URI, conf config) ([]Space, error) {
 			return nil, err
 		}
 		parent := &archiveSpace{
-			spaceBase: spaceBase{id, store, newGuard()},
+			spaceBase: spaceBase{id, store, nil, newGuard()},
 			path:      p,
 			conf:      conf,
 		}
@@ -145,7 +158,7 @@ func loadSpaces(p iosrc.URI, conf config) ([]Space, error) {
 				return nil, err
 			}
 			sub := &archiveSubspace{
-				spaceBase: spaceBase{subcfg.ID, substore, newGuard()},
+				spaceBase: spaceBase{subcfg.ID, substore, nil, newGuard()},
 				parent:    parent,
 			}
 			ret = append(ret, sub)
@@ -157,11 +170,24 @@ func loadSpaces(p iosrc.URI, conf config) ([]Space, error) {
 	}
 }
 
+func loadPcapStore(u iosrc.URI) (*pcapstorage.Store, error) {
+	pcapstore, err := pcapstorage.Load(u)
+	if err != nil {
+		var zerr *zqe.Error
+		if errors.As(err, &zerr) && zerr.Kind == zqe.NotFound {
+			return pcapstorage.New(u), nil
+		}
+		return nil, err
+	}
+	return pcapstore, err
+}
+
 // spaceBase contains the basic fields common to different space types.
 type spaceBase struct {
-	id    api.SpaceID
-	store storage.Storage
-	sg    *guard
+	id        api.SpaceID
+	store     storage.Storage
+	pcapstore *pcapstorage.Store
+	sg        *guard
 }
 
 func (s *spaceBase) ID() api.SpaceID {
@@ -185,8 +211,23 @@ func (s *spaceBase) Info(ctx context.Context) (api.SpaceInfo, error) {
 		ID:          s.id,
 		StorageKind: sum.Kind,
 		Size:        sum.DataBytes,
-		Span:        span,
 	}
+	if s.pcapstore != nil && !s.pcapstore.Empty() {
+		pcapinfo, err := s.pcapstore.Info()
+		if err != nil {
+			return api.SpaceInfo{}, err
+		}
+		spaceInfo.PcapSize = pcapinfo.PcapSize
+		spaceInfo.PcapSupport = true
+		spaceInfo.PcapPath = pcapinfo.PcapURI
+		if span == nil {
+			span = &pcapinfo.Span
+		} else {
+			union := span.Union(pcapinfo.Span)
+			span = &union
+		}
+	}
+	spaceInfo.Span = span
 	return spaceInfo, nil
 }
 

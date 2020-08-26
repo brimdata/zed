@@ -111,7 +111,7 @@ func (w *spanWriter) Write(rec *zng.Record) error {
 	return nil
 }
 
-func (s *Storage) Rewrite(ctx context.Context, zctx *resolver.Context, zr zbuf.Reader) error {
+func (s *Storage) Write(ctx context.Context, zctx *resolver.Context, zr zbuf.Reader) error {
 	if !s.wsem.TryAcquire(1) {
 		return zqe.E(zqe.Conflict, ErrWriteInProgress)
 	}

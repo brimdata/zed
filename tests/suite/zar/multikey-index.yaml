@@ -6,7 +6,7 @@ script: |
 
 inputs:
   - name: babble.tzng
-    source: ../zdx/babble.tzng
+    source: ../data/babble.tzng
 
 outputs:
   - name: stdout
