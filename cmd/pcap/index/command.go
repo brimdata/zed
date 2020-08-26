@@ -66,8 +66,8 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	warn := make(chan string)
 	defer f.Close()
+	warn := make(chan string)
 	var index pcap.Index
 	go func() {
 		index, err = pcap.CreateIndexWithWarnings(f, c.limit, warn)

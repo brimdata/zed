@@ -156,7 +156,6 @@ type PcapPostStatus struct {
 	PcapReadSize  int64      `json:"pcap_read_size" unit:"bytes"`
 	SnapshotCount int        `json:"snapshot_count"`
 	Span          *nano.Span `json:"span,omitempty"`
-	Warning       string     `json:"warning,omitempty"`
 }
 
 type LogPostRequest struct {

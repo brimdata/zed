@@ -151,7 +151,7 @@ func TestPcapPostPcapNgWithExtraBytes(t *testing.T) {
 	t.Run("PcapNgExtra", func(t *testing.T) {
 		require.NoError(t, p.err)
 		warning := p.payloads[1].(*api.PcapPostWarning)
-		assert.Equal(t, warning.Warning, "pcap-ng has extra bytes at eof: 20")
+		assert.Equal(t, "pcap-ng has extra bytes at eof: 20", warning.Warning)
 	})
 }
 
