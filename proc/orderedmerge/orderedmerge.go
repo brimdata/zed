@@ -15,6 +15,7 @@ import (
 type Proc struct {
 	ctx     *proc.Context //XXX this parents method won't work; copy merge.Proc pattern?
 	cmp     expr.CompareFn
+	doneCh  chan struct{}
 	once    sync.Once
 	parents []mergeParent
 }
@@ -29,7 +30,10 @@ type mergeParent struct {
 }
 
 func New(c *proc.Context, parents []proc.Interface, mergeField string, reversed bool) *Proc {
-	m := &Proc{ctx: c}
+	m := &Proc{
+		ctx:    c,
+		doneCh: make(chan struct{}),
+	}
 	cmpFn := expr.NewCompareFn(true, expr.CompileFieldAccess(mergeField))
 	if !reversed {
 		m.cmp = cmpFn
@@ -55,6 +59,9 @@ func (p *Proc) run() {
 					if proc.EOS(batch, err) {
 						return
 					}
+				case <-p.doneCh:
+					parent.proc.Done()
+					return
 				case <-p.ctx.Done():
 					return
 				}
@@ -118,12 +125,5 @@ func (m *Proc) Pull() (zbuf.Batch, error) {
 }
 
 func (m *Proc) Done() {
-	// XXX this should do something.  The new refactor of proc revealed
-	// this problem because this proc embedded proc.Parent without using
-	// it which has a nop done.  Everything is fine with a single flowgraph
-	// path because this will eventually finish or get canceld but if
-	// this is on a parallel paht with a downstream head proc, e.g.,
-	// thtis Done should tear this proc down and signal Done on all of
-	// the parents.  It doesn't look like this does this properly right now
-	// and is instead relying on the context to finish for all the parents.
+	close(m.doneCh)
 }
