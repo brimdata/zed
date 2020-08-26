@@ -293,6 +293,39 @@ helm install zqd-test-1 charts/zqd \
 
 Work in progess...
 
+For now just use:
+```
+export POD_NAME=$(kubectl get pods --namespace zq -l "app.kubernetes.io/name=zqd,app.kubernetes.io/instance=zqd-test-1" -o jsonpath="{.items[0].metadata.name}")
+kubectl --namespace zq port-forward $POD_NAME 9867:9867
+```
+
+## Setting up an EC2 instance to run zar import
+
+This is for importing large zeek logs from S3 to a zar archive also on S3.
+
+Create an EC2 instance in the same region as the S3 buckets you want to access. SSH into the instance, and:
+```
+# provide your credentials
+aws configure
+# make sure you can see the S3 buckets
+aws s3 ls
+# install golang tools
+wget https://golang.org/dl/go1.14.7.linux-arm64.tar.gz
+sudo tar -C /usr/local -xzf go1.14.7.linux-arm64.tar.gz
+echo "export PATH=$PATH:/usr/local/go/bin" >> ~/.bash_profile
+source ~/.bash_profile
+go version  # make sure go is there!
+# install git, clone and install zq
+sudo yum install git -y
+git clone https://github.com/brimsec/zq
+make install
+~/go/bin/zar help  # make sure zar is built!
+```
+Now you have an environment where you can run zar and it can operate on data in S3 with good bandwidth. Example zar command:
+```
+~/go/bin/zar import -R s3://zqd-demo-1/mark/zeek-logs/dns s3://brim-sampledata/wrccdc/zeek-logs/dns.log.gz
+```
+
 ## [Trouble shooting](trouble-shooting.md)
 
 ## Tearing down the environment
@@ -301,4 +334,3 @@ Later, when you no longer need the local cluster, you can remove it with:
 ```
 kind delete cluster --name zq-local
 ```
-
