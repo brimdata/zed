@@ -283,7 +283,6 @@ func TestParallelizeFlowgraph(t *testing.T) {
 	// This needs a standalone test due to the presence of a pass
 	// proc in the transformed AST.
 	t.Run("* | cut ts, y, z | put x=y | rename y=z", func(t *testing.T) {
-		t.Skip()
 		orderField := "ts"
 		query := "* | cut ts, y, z | put x=y | rename y=z"
 		dquery := "(filter * | cut ts, y, z | put x=y | rename y=z; filter * | cut ts, y, z | put x=y | rename y=z)"
