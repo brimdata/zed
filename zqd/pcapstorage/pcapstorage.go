@@ -61,7 +61,7 @@ func Load(u iosrc.URI) (*Store, error) {
 	}, nil
 }
 
-func (s *Store) Update(pcapuri iosrc.URI) error {
+func (s *Store) Update(pcapuri iosrc.URI, warningCh chan<- string) error {
 	s.metaMu.Lock()
 	defer s.metaMu.Unlock()
 	pcapfile, err := iosrc.NewReader(pcapuri)
@@ -69,7 +69,7 @@ func (s *Store) Update(pcapuri iosrc.URI) error {
 		return err
 	}
 	defer pcapfile.Close()
-	idx, err := pcap.CreateIndex(pcapfile, 10000)
+	idx, err := pcap.CreateIndexWithWarnings(pcapfile, 10000, warningCh)
 	if err != nil {
 		return err
 	}

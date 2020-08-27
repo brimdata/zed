@@ -12,6 +12,8 @@ package pcapio
 
 import (
 	"encoding/binary"
+	"encoding/hex"
+	"fmt"
 	"io"
 	"time"
 
@@ -29,6 +31,7 @@ type NgReader struct {
 	first     []byte
 	bigEndian bool
 	offset    uint64
+	warningCh chan<- string
 }
 
 // NewNgReader initializes a new writer, reads the first section header,
@@ -39,6 +42,9 @@ func NewNgReader(r io.Reader) (*NgReader, error) {
 	}
 	hdr, err := ret.Peek(12)
 	if err != nil {
+		if err == peeker.ErrTruncated {
+			err = errInvalidf("pcap-ng file is too small to be valid")
+		}
 		return nil, err
 	}
 	// ensure first block is correct
@@ -59,6 +65,16 @@ func NewNgReader(r io.Reader) (*NgReader, error) {
 	}
 	ret.first = block
 	return ret, nil
+}
+
+func (r *NgReader) SetWarningChan(c chan<- string) {
+	r.warningCh = c
+}
+
+func (r *NgReader) warn(format string, a ...interface{}) {
+	if c := r.warningCh; c != nil {
+		c <- fmt.Sprintf(format, a...)
+	}
 }
 
 func (r *NgReader) parsePacket(block []byte) ([]byte, int, error) {
@@ -132,6 +148,12 @@ func (r *NgReader) getUint64(buffer []byte) uint64 {
 func (r *NgReader) readBlock() (ngBlockType, []byte, error) {
 	hdr, err := r.Peek(12)
 	if err != nil {
+		if err == peeker.ErrTruncated {
+			r.warn("pcap-ng has extra bytes at eof: %s", hex.EncodeToString(hdr))
+			// read the bytes to discard and reach eof
+			r.Reader.Read(len(hdr))
+			err = nil
+		}
 		return 0, nil, err
 	}
 	typ := ngBlockType(r.getUint32(hdr[:4]))

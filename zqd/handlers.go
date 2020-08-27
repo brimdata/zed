@@ -330,7 +330,7 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		respondError(c, w, r, zqe.E(zqe.Invalid, "storage does not support pcap import"))
 		return
 	}
-	op, err := ingest.NewPcapOp(ctx, pcapstore, logstore, req.Path, c.ZeekLauncher)
+	op, warnings, err := ingest.NewPcapOp(ctx, pcapstore, logstore, req.Path, c.ZeekLauncher)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -343,6 +343,16 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	if err := pipe.Send(taskStart); err != nil {
 		logger.Warn("Error sending payload", zap.Error(err))
 		return
+	}
+	for _, warning := range warnings {
+		err := pipe.Send(api.LogPostWarning{
+			Type:    "PcapPostWarning",
+			Warning: warning,
+		})
+		if err != nil {
+			logger.Warn("error sending payload", zap.Error(err))
+			return
+		}
 	}
 	ticker := time.NewTicker(time.Second * 2)
 	defer ticker.Stop()
