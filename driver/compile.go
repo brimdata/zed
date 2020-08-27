@@ -519,7 +519,14 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string,
 			}
 		case *ast.ParallelProc:
 			return seq, false
-		case *ast.UniqProc, *ast.HeadProc, *ast.TailProc:
+		case *ast.HeadProc, *ast.TailProc:
+			if inputSortField == "" {
+				// Unknown order: we can't parallelize because we can't maintain this unknown order at the merge point.
+				return seq, false
+			}
+			// put one head/tail on each parallel branch and one after the merge.
+			return buildSplitFlowgraph(seq.Procs[0:i+1], seq.Procs[i:], inputSortField, inputSortReversed, N), true
+		case *ast.UniqProc:
 			if inputSortField == "" {
 				// Unknown order: we can't parallelize because we can't maintain this unknown order at the merge point.
 				return seq, false
