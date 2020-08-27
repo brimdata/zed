@@ -143,8 +143,7 @@ func (c *Command) watchBrimFd(ctx context.Context) (context.Context, error) {
 	}
 	f := os.NewFile(uintptr(c.brimfd), "brimfd")
 	c.logger.Info("Listening to brim process pipe", zap.String("fd", f.Name()))
-	var cancel context.CancelFunc
-	ctx, cancel = context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(ctx)
 	go func() {
 		io.Copy(ioutil.Discard, f)
 		c.logger.Info("Brim fd closed, shutting down")
