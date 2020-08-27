@@ -315,9 +315,9 @@ Create an EC2 instance in the same region as the S3 buckets you want to access. 
 aws configure
 # make sure you can see the S3 buckets
 aws s3 ls
-# install golang tools
-wget https://golang.org/dl/go1.14.7.linux-arm64.tar.gz
-sudo tar -C /usr/local -xzf go1.14.7.linux-arm64.tar.gz
+# install golang tools from https://golang.org/dl/
+wget https://golang.org/dl/go1.14.7.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.14.7.linux-amd64.tar.gz
 echo "export PATH=$PATH:/usr/local/go/bin" >> ~/.bash_profile
 source ~/.bash_profile
 go version  # make sure go is there!
