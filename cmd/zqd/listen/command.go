@@ -2,6 +2,7 @@ package listen
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -12,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"runtime"
 
 	"github.com/brimsec/zq/cmd/zqd/logger"
 	"github.com/brimsec/zq/cmd/zqd/root"
@@ -35,7 +37,8 @@ var Listen = &charm.Spec{
 	Long: `
 The listen command launches a process to listen on the provided interface and
 `,
-	New: New,
+	HiddenFlags: "brimfd",
+	New:         New,
 }
 
 func init() {
@@ -55,6 +58,9 @@ type Command struct {
 	logger         *zap.Logger
 	devMode        bool
 	portFile       string
+	// brimfd is a file descriptor passed through by brim desktop. If set zqd
+	// will exit if the fd is closed.
+	brimfd int
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -68,6 +74,9 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.Var(&c.logLevel, "loglevel", "level for log output (defaults to info)")
 	f.BoolVar(&c.devMode, "dev", false, "runs zqd in development mode")
 	f.StringVar(&c.portFile, "portfile", "", "write port of http listener to file")
+
+	// hidden
+	f.IntVar(&c.brimfd, "brimfd", -1, "pipe read fd passed by brim to signal brim closure")
 	return c, nil
 }
 
@@ -93,6 +102,11 @@ func (c *Command) Run(args []string) error {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	if c.brimfd != -1 {
+		if ctx, err = c.watchBrimFd(ctx); err != nil {
+			return err
+		}
+	}
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt)
 	go func() {
@@ -121,6 +135,21 @@ func (c *Command) init() error {
 		return err
 	}
 	return c.initZeek()
+}
+
+func (c *Command) watchBrimFd(p context.Context) (context.Context, error) {
+	if runtime.GOOS == "windows" {
+		return nil, errors.New("flag -brimfd not applicable to windows")
+	}
+	f := os.NewFile(uintptr(c.brimfd), "brimfd")
+	c.logger.Info("Listening to brim process pipe", zap.String("fd", f.Name()))
+	ctx, cancel := context.WithCancel(p)
+	go func() {
+		io.Copy(ioutil.Discard, f)
+		c.logger.Info("Brim fd closed, shutting down")
+		cancel()
+	}()
+	return ctx, nil
 }
 
 func pprofHandlers(h http.Handler) http.Handler {
