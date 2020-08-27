@@ -29,12 +29,12 @@ function awaitfile {
   done
 }
 
-mkdir -p zqdroot
-zqdroot=zqdroot
+mkdir -p zqddata
+zqddata=zqddata
 tempdir=$(mktemp -d)
 
-mockbrim -zqddata="$zqdroot" -portfile="$tempdir/port" -pidfile="$tempdir/pid" &
-brimpid=$!
+mockbrim -zqddata="$zqddata" -portfile="$tempdir/port" -pidfile="$tempdir/pid" &
+mockbrimpid=$!
 
 # wait for zqd to start
 awaitfile $tempdir/port
@@ -42,7 +42,7 @@ awaitfile $tempdir/pid
 
 export ZQD_HOST=localhost:$(cat $tempdir/port)
 export ZQD_PID=$(cat $tempdir/pid)
-export BRIM_PID=$brimpid
+export MOCKBRIM_PID=$mockbrimpid
 
 # ensure that zqd process isn't leaked
 trap "kill -9 $ZQD_PID 2>/dev/null" EXIT

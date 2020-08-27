@@ -137,13 +137,14 @@ func (c *Command) init() error {
 	return c.initZeek()
 }
 
-func (c *Command) watchBrimFd(p context.Context) (context.Context, error) {
+func (c *Command) watchBrimFd(ctx context.Context) (context.Context, error) {
 	if runtime.GOOS == "windows" {
 		return nil, errors.New("flag -brimfd not applicable to windows")
 	}
 	f := os.NewFile(uintptr(c.brimfd), "brimfd")
 	c.logger.Info("Listening to brim process pipe", zap.String("fd", f.Name()))
-	ctx, cancel := context.WithCancel(p)
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithCancel(ctx)
 	go func() {
 		io.Copy(ioutil.Discard, f)
 		c.logger.Info("Brim fd closed, shutting down")
