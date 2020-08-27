@@ -10,6 +10,7 @@ import (
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/pkg/signalctx"
+	"github.com/brimsec/zq/proc/sort"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
@@ -38,17 +39,19 @@ func init() {
 
 type Command struct {
 	*root.Command
-	root        string
-	dataPath    string
-	thresh      string
-	empty       bool
-	ReaderFlags zio.ReaderFlags
+	root            string
+	dataPath        string
+	sortMemMaxBytes int
+	thresh          string
+	empty           bool
+	ReaderFlags     zio.ReaderFlags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
 	f.StringVar(&c.dataPath, "data", "", "location for storing data files (defaults to root)")
+	f.IntVar(&c.sortMemMaxBytes, "sortmem", sort.MemMaxBytes, "maximum memory used by sort, in bytes")
 	f.StringVar(&c.thresh, "s", units.Base2Bytes(archive.DefaultLogSizeThreshold).String(), "target size of chunk files, as '10MB' or '4GiB', etc.")
 	f.BoolVar(&c.empty, "empty", false, "create an archive without initial data")
 	c.ReaderFlags.SetFlags(f)
@@ -61,6 +64,11 @@ func (c *Command) Run(args []string) error {
 	} else if !c.empty && len(args) != 1 {
 		return errors.New("zar import: exactly one input file must be specified (- for stdin)")
 	}
+
+	if c.sortMemMaxBytes <= 0 {
+		return errors.New("sortmem value must be greater than zero")
+	}
+	sort.MemMaxBytes = c.sortMemMaxBytes
 
 	co := &archive.CreateOptions{DataPath: c.dataPath}
 	if thresh, err := units.ParseStrictBytes(c.thresh); err != nil {
