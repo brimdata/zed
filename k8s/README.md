@@ -184,6 +184,12 @@ https://linkerd.io/2/reference/proxy-metrics/
 The cAdvisor metrics for the queries above are described in:
 https://github.com/google/cadvisor/blob/master/docs/storage/prometheus.md
 
+## Delete the local cluster
+When you no longer need the local cluster, you can remove it with:
+```
+kind delete cluster --name zq-local
+```
+
 ## Deploying the ZQ daemon to an AWS EKS cluster
 
 This walks through a procedure for setting up an EKS cluster on an AWS account. If you are contributing to ZQ, keep in mind the the AWS resources allocated here can be expensive. If you are working through this to learn, be sure to tear everything down ASAP after running experiments.
@@ -326,11 +332,11 @@ Now you have an environment where you can run zar and it can operate on data in 
 ~/go/bin/zar import -R s3://zqd-demo-1/mark/zeek-logs/dns s3://brim-sampledata/wrccdc/zeek-logs/dns.log.gz
 ```
 
+## Tear-down
+Using the AWS console is the most convenient way to delete your EKS cluster, since you will want to double-check to make sure it is not running after you are done.
+
+When you want to delete the EKS cluster, you must first delete the nodegroup. This will take a few minutes.
+
+
 ## [Trouble shooting](trouble-shooting.md)
 
-## Tearing down the environment
-
-Later, when you no longer need the local cluster, you can remove it with:
-```
-kind delete cluster --name zq-local
-```
