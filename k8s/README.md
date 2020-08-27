@@ -205,7 +205,7 @@ We used the AWS CLI version 2. Install intructions are here:
 https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html
 
 ### Creating the EKS Cluster
-Choose a region for the cluster. For the examples below, we used region us-east-1. (Hint: this is because us-east-1 is the lowest cost region for some S3 charges.) We set a default region with `aws configure` so it is not included in the CLI commands.
+Choose a region for the cluster. For the examples below, we used region us-east-2. We set a default region with `aws configure` so it is not included in the CLI commands.
 
 We use AWS `eksctl` to create the cluster. To install eksctl on MacOS:
 ```
@@ -271,15 +271,15 @@ aws ecr create-repository \
 
 When the repo is created at the command line it returns JSON that looks like:
 ```
-"repositoryUri": "123456789012.dkr.ecr.us-east-1.amazonaws.com/gateway"
+"repositoryUri": "123456789012.dkr.ecr.us-east-2.amazonaws.com/gateway"
 ```
 Sustitute this URI into the tag, login and push steps. To push the zqd image created with the local build:
 ```
 make docker
-docker tag zqd 123456789012.dkr.ecr.us-east-1.amazonaws.com/zqd
-aws ecr get-login-password --region us-east-1 | docker login \
-  --username AWS --password-stdin 123456789012.dkr.ecr.us-east-1.amazonaws.com
-docker push 123456789012.dkr.ecr.us-east-1.amazonaws.com/zqd
+docker tag zqd 123456789012.dkr.ecr.us-east-2.amazonaws.com/zqd
+aws ecr get-login-password --region us-east-2 | docker login \
+  --username AWS --password-stdin 123456789012.dkr.ecr.us-east-2.amazonaws.com
+docker push 123456789012.dkr.ecr.us-east-2.amazonaws.com/zqd
 ```
 
 ### Deploy the zqd service with Helm
@@ -291,7 +291,7 @@ Substitute the image.repository you created above. Note that unlike the local de
 helm install zqd-test-1 charts/zqd \
   --set AWSRegion="us-east-2" \
   --set datauri="s3://zqd-demo/mark/zqd-meta" \
-  --set image.repository="123456789012.dkr.ecr.us-east-1.amazonaws.com/" \
+  --set image.repository="123456789012.dkr.ecr.us-east-2.amazonaws.com/" \
   --set useCredSecret=false
 ```
 
