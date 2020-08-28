@@ -1,6 +1,6 @@
-# Deploying the ZQ daemon in a Kubernetes cluster
+# Deploying the zq daemon in a Kubernetes cluster
 
-This describes a procedure for deploying the ZQD service that you can connect to remotely with Brim. This is useful for when you are running Brim on a machine that needs to access large log files that are in the data center where you are running the ZQD service.
+This describes a procedure for deploying the zqd service that you can connect to remotely with Brim. This is useful for when you are running Brim on a machine that needs to access large log files that are in the data center where you are running the zqd service.
 
 Currently we support zqd access to ZAR files stored on Amazon S3, so we also describe a procedure for deploying zqd to a K8s cluster hosted on AWS EKS.
 
@@ -112,7 +112,7 @@ First we will add a "service mesh" called Linkerd.
 
 https://linkerd.io/2/getting-started/
 
-We do not need Linkerd for the typical use case of service meshes, which is to route intra-service messages, often gRPC, within a cluster. Instead, we leverage the side-car router as a conveninet way to monitor inbound and outbound traffic from ZQD. Conveniently, the Linkerd install also includes Prometheus and Grafana to support Linkerd's dashboard. We will configure these Prometheus and Grafana instances to also monitor zqd's Prometheus metrics.
+We do not need Linkerd for the typical use case of service meshes, which is to route intra-service messages, often gRPC, within a cluster. Instead, we leverage the side-car router as a conveninet way to monitor inbound and outbound traffic from zqd. Conveniently, the Linkerd install also includes Prometheus and Grafana to support Linkerd's dashboard. We will configure these Prometheus and Grafana instances to also monitor zqd's Prometheus metrics.
 
 We will also install the Kube State Metrics:
 
@@ -190,9 +190,9 @@ When you no longer need the local cluster, you can remove it with:
 kind delete cluster --name zq-local
 ```
 
-## Deploying the ZQ daemon to an AWS EKS cluster
+## Deploying the zq daemon to an AWS EKS cluster
 
-This walks through a procedure for setting up an EKS cluster on an AWS account. If you are contributing to ZQ, keep in mind the the AWS resources allocated here can be expensive. If you are working through this to learn, be sure to tear everything down ASAP after running experiments.
+This walks through a procedure for setting up an EKS cluster on an AWS account. If you are contributing to zq, keep in mind the the AWS resources allocated here can be expensive. If you are working through this to learn, be sure to tear everything down ASAP after running experiments.
 
 We reference AWS docs freqently. The initial process is derived from:
 
@@ -213,7 +213,7 @@ brew tap weaveworks/tap
 brew install weaveworks/tap/eksctl
 eksctl version
 ```
-Then create the cluster:
+Then create the cluster. You may wish to edit `k8s/cluster.yaml` to choose your own cluster name and other options such as node instance type.
 ```
 eksctl create cluster -f k8s/cluster.yaml
 ```
@@ -338,5 +338,5 @@ Using the AWS console is the most convenient way to delete your EKS cluster, sin
 When you want to delete the EKS cluster, you must first delete the nodegroup. This will take a few minutes.
 
 
-## [Trouble shooting](trouble-shooting.md)
+## [Trouble shooting](troubleshooting.md)
 

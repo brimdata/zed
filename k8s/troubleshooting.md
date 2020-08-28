@@ -239,3 +239,13 @@ These are the kubectl commands. Substitute your account ID for XXXXX
 kubectl create secret generic papertrail-destination --from-literal=papertrail-destination=syslog+tls://logsN.papertrailapp.com:XXXXX
 kubectl create -f https://help.papertrailapp.com/assets/files/papertrail-logspout-daemonset.yml
 ```
+
+## Creating a tmpfs on an EC2 instance
+This can be useful for isolating IO bottlenecks in long-running operations like zar import.
+
+```
+sudo mkdir /mnt/ramdisk
+sudo mount -t tmpfs -o size=1024m tmpfs /mnt/ramdisk
+# Copy some S3 data to /mnt/ramdisk
+time aws s3 cp s3://brim-sampledata/wrccdc/zeek-logs/dns.log.gz /mnt/ramdisk/dns.log.gz
+```
