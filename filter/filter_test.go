@@ -1,6 +1,7 @@
 package filter_test
 
 import (
+	"bytes"
 	"encoding/hex"
 	"strings"
 	"testing"
@@ -8,7 +9,9 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/tzngio"
+	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/assert"
@@ -22,6 +25,16 @@ type testcase struct {
 
 func runCases(t *testing.T, tzng string, cases []testcase) {
 	t.Helper()
+	runCasesHelper(t, tzng, cases, false)
+}
+
+func runCasesExpectBufferFilterFalsePositives(t *testing.T, tzng string, cases []testcase) {
+	t.Helper()
+	runCasesHelper(t, tzng, cases, true)
+}
+
+func runCasesHelper(t *testing.T, tzng string, cases []testcase, expectBufferFilterFalsePositives bool) {
+	t.Helper()
 
 	zctx := resolver.NewContext()
 	batch, err := zbuf.ReadBatch(tzngio.NewReader(strings.NewReader(tzng), zctx), 2)
@@ -31,6 +44,8 @@ func runCases(t *testing.T, tzng string, cases []testcase) {
 
 	for _, c := range cases {
 		t.Run(c.filter, func(t *testing.T) {
+			t.Helper()
+
 			proc, err := zql.ParseProc(c.filter)
 			require.NoError(t, err, "filter: %q", c.filter)
 			filterExpr := proc.(*ast.FilterProc).Filter
@@ -44,12 +59,17 @@ func runCases(t *testing.T, tzng string, cases []testcase) {
 
 			bf, err := filter.NewBufferFilter(filterExpr)
 			assert.NoError(t, err, "filter: %q", c.filter)
-			if bf != nil && c.expected {
-				// We only check for false negatives because
-				// false positives are OK for correctness
-				// (though undesirable for performance).
-				assert.True(t, bf.Eval(rec.Raw),
-					"filter: %q\nrecord:\n%s", c.filter, hex.Dump(rec.Raw))
+			if bf != nil {
+				expected := c.expected
+				if expectBufferFilterFalsePositives {
+					expected = true
+				}
+				var buf bytes.Buffer
+				w := zngio.NewWriter(&buf, zio.WriterFlags{})
+				require.NoError(t, w.Write(rec))
+				require.NoError(t, w.Flush())
+				assert.Equal(t, expected, bf.Eval(zctx, buf.Bytes()),
+					"filter: %q\nbuffer:\n%s", c.filter, hex.Dump(buf.Bytes()))
 			}
 		})
 	}
@@ -150,7 +170,7 @@ func TestFilters(t *testing.T) {
 	tzng = `
 #0:record[nested:record[field:string]]
 0:[[test;]]`
-	runCases(t, tzng, []testcase{
+	runCasesExpectBufferFilterFalsePositives(t, tzng, []testcase{
 		{"nested.field = test", true},
 		{"bogus.field = test", false},
 		{"nested.bogus = test", false},
@@ -216,6 +236,38 @@ func TestFilters(t *testing.T) {
 	runCases(t, tzng, []testcase{
 		{`s = "Buenos di\u{0301}as sen\u{0303}or"`, true},
 		{`s = "Buenos d\u{ed}as se\u{f1}or"`, true},
+	})
+
+	// There are two Unicode code points with a multibyte UTF-8 encoding
+	// equivalent under Unicode simple case folding to code points with
+	// single-byte UTF-8 encodings: U+017F LATIN SMALL LETTER LONG S is
+	// equivalent to S and s, and U+212A KELVIN SIGN is equivalent to K and
+	// k. The next two records ensure they're handled correctly.
+
+	// Test U+017F LATIN SMALL LETTER LONG S.
+	tzng = `
+#0:record[a:string]
+0:[\u017F;]`
+	runCases(t, tzng, []testcase{
+		{`a = \u017F`, true},
+		{`a = S`, false},
+		{`a = s`, false},
+		{`\u017F`, true},
+		{`S`, false}, // XXX should be true
+		{`s`, false}, // XXX should be true
+	})
+
+	// Test U+212A KELVIN SIGN.
+	tzng = `
+#0:record[a:string]
+0:[\u212A;]`
+	runCases(t, tzng, []testcase{
+		{`a = '\u212A'`, true},
+		{`a = K`, true}, // True because Unicode NFC replaces U+212A with U+004B.
+		{`a = k`, false},
+		{`\u212A`, true},
+		{`K`, true},
+		{`k`, true},
 	})
 
 	// Test searching both fields and containers,

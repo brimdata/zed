@@ -10,7 +10,9 @@
 
 package filter
 
-import "strings"
+import (
+	"strings"
+)
 
 // stringFinder efficiently finds strings in a source text. It's implemented
 // using the Boyer-Moore string search algorithm:
@@ -127,6 +129,40 @@ func (f *stringFinder) next(text string) int {
 func max(a, b int) int {
 	if a > b {
 		return a
+	}
+	return b
+}
+
+// stringCaseFinder is a stringFinder that ignores case for ASCII letters (but
+// not for letters with multibyte UTF-8 encodings).
+type stringCaseFinder stringFinder
+
+func makeStringCaseFinder(pattern string) *stringCaseFinder {
+	return (*stringCaseFinder)(makeStringFinder(strings.ToLower(pattern)))
+}
+
+// next returns the index in text of the first occurrence of the pattern. If
+// the pattern is not found, it returns -1.
+func (f *stringCaseFinder) next(text string) int {
+	i := len(f.pattern) - 1
+	for i < len(text) {
+		// Compare backwards from the end until the first unmatching character.
+		j := len(f.pattern) - 1
+		for j >= 0 && tolower(text[i]) == f.pattern[j] {
+			i--
+			j--
+		}
+		if j < 0 {
+			return i + 1 // match
+		}
+		i += max(f.badCharSkip[tolower(text[i])], f.goodSuffixSkip[j])
+	}
+	return -1
+}
+
+func tolower(b byte) byte {
+	if b-'A' < 26 {
+		b += ('a' - 'A')
 	}
 	return b
 }
