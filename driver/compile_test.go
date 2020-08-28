@@ -247,6 +247,12 @@ func TestParallelizeFlowgraph(t *testing.T) {
 			"(filter * | every 1h count() by y; filter * | every 1h count() by y) | every 1h count() by y",
 			"ts",
 		},
+		{
+			"* | put a=1 | tail",
+			"ts",
+			"(filter * | put a=1 | tail; filter * | put a=1 | tail) | tail",
+			"ts",
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.zql, func(t *testing.T) {
