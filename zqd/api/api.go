@@ -143,6 +143,11 @@ type PcapPostRequest struct {
 	Path string `json:"path"`
 }
 
+type PcapPostWarning struct {
+	Type    string `json:"type"`
+	Warning string `json:"warning"`
+}
+
 type PcapPostStatus struct {
 	Type          string     `json:"type"`
 	StartTime     nano.Ts    `json:"start_time"`

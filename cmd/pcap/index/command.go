@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"os"
 
 	"github.com/brimsec/zq/cmd/pcap/root"
 	"github.com/brimsec/zq/pcap"
@@ -66,7 +67,15 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer f.Close()
-	index, err := pcap.CreateIndex(f, c.limit)
+	warn := make(chan string)
+	var index pcap.Index
+	go func() {
+		index, err = pcap.CreateIndexWithWarnings(f, c.limit, warn)
+		close(warn)
+	}()
+	for s := range warn {
+		fmt.Fprintf(os.Stderr, "warning: %s\n", s)
+	}
 	if err != nil {
 		return err
 	}
