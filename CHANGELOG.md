@@ -6,7 +6,7 @@ zq repo, check the git log.
 * zqd: Publish initial [docs](https://github.com/brimsec/zq/blob/master/k8s/README.md) for running `zqd` in Kubernetes (#1101)
 * zq: Provide a better error message when an invalid IP address is parsed (#1106)
 * zar: Use single files for microindexes (#1110)
-* zar: Fix an issue where `zar index` could not hanlde more than 5 "levels" (#1119)
+* zar: Fix an issue where `zar index` could not handle more than 5 "levels" (#1119)
 * zqd: Fix an issue where `zapi pcappost` incorrectly reported a canceled operation as a Zeek exit (#1139)
 * zar: Add support for empty mixro-indexes, also fixing an issue where `zar index` left behind empty files after an error (#1136)
 * zar: Add `zar map` to handle "for each file" operations (#1138, #1148)
