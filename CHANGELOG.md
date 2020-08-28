@@ -17,6 +17,7 @@ zq repo, check the git log.
 * zq: Fix an issue where an error "slice bounds out of range" would be triggered during attempted type conversion (#1158)
 * pcap: Fix an issue with pcapng files that have extra bytes at end-of-file (#1178)
 * zqd: Add a hidden `-brimfd` flag to `zqd listen` so that `zqd` can close gracefully if Brim is terminated abruptly (#1184)
+* zar: Perform `zar zq` queries concurrently where possible (#1165, #1145, #1138, #1074)
 
 ## v0.19.1
 
