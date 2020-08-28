@@ -113,12 +113,11 @@ func (p *Proc) recordsForOneRun() ([]*zng.Record, bool, error) {
 		l := batch.Length()
 		for i := 0; i < l; i++ {
 			rec := batch.Index(i)
-			rec.CopyBody()
 			p.unseenFieldTracker.update(rec)
 			nbytes += len(rec.Raw)
+			// We're keeping records owned by batch so don't call Unref.
 			recs = append(recs, rec)
 		}
-		batch.Unref()
 		if nbytes >= MemMaxBytes {
 			return recs, false, nil
 		}

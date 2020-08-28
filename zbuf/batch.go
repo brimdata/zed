@@ -4,9 +4,22 @@ import (
 	"github.com/brimsec/zq/zng"
 )
 
-// Batch is an interface to a bundle of records.
-// Batches can be shared across goroutines via reference counting and should be
-// copied on modification when the reference count is greater than 1.
+// Batch is an interface to a bundle of records.  Reference counting allows
+// efficient, safe reuse in concert with sharing across goroutines.
+//
+// A newly obtained Batch always has a reference count of one.  The Batch owns
+// its records and their storage, and an implementation may reuse this memory
+// when the reference count falls to zero, reducing load on the garbage
+// collector.
+//
+// To promote reuse, a goroutine should release a Batch reference when possible,
+// but care must be taken to avoid race conditions that arise from releasing a
+// reference too soon.  Specifically, a goroutine obtaining a *zng.Record from a
+// Batch must retain its Batch reference for as long as it retains the pointer,
+// and the goroutine must not use the pointer after releasing its reference.
+//
+// Regardless of reference count or implementation, an unreachable Batch will
+// eventually be reclaimed by the garbage collector.
 type Batch interface {
 	Ref()
 	Unref()
