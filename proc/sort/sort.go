@@ -68,6 +68,8 @@ func (p *Proc) sortLoop() {
 	p.setCompareFn(firstRunRecs[0])
 	if eof {
 		// Just one run so do an in-memory sort.
+		fmt.Printf("Doing a single in-memory sort, MemMaxBytes=%d \n", MemMaxBytes)
+
 		p.warnAboutUnseenFields()
 		expr.SortStable(firstRunRecs, p.compareFn)
 		array := zbuf.NewArray(firstRunRecs)
