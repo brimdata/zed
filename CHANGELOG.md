@@ -2,6 +2,22 @@ These entries focus on changes we think are relevant to users of Brim,
 zq, or pcap.  For all changes to zqd, its API, or to other components in the
 zq repo, check the git log.
 
+## v0.20.0
+* zqd: Publish initial [docs](https://github.com/brimsec/zq/blob/master/k8s/README.md) for running `zqd` in Kubernetes (#1101)
+* zq: Provide a better error message when an invalid IP address is parsed (#1106)
+* zar: Use single files for micro-indexes (#1110)
+* zar: Fix an issue where `zar index` could not hanlde more than 5 "levels" (#1119)
+* zqd: Fix an issue where `zapi pcappost` incorrectly reported a canceled operation as a Zeek exit (#1139)
+* zar: Add support for empty mixro-indexes, also fixing an issue where `zar index` left behind empty files after an error (#1136)
+* zar: Add `zar map` to handle "for each file" operations (#1138, #1148)
+* zq: Add Boyer-Moore filter optimization to ZNG scanner to improve performance (#1080)
+* zar: Change "zdx" to "microindex" (#1150)
+* zar: Update the [`zar` README](https://github.com/brimsec/zq/blob/master/cmd/zar/README.md) to reflect recent changes in commands/output (#1149)
+* zqd: Fix an issue where text stack traces could leak into ZJSON response streams (#1166)
+* zq: Fix an issue where an error "slice bounds out of range" would be triggered during attempted type conversion (#1158)
+* pcap: Fix an issue with pcapng files that have extra bytes at end-of-file (#1178)
+* zqd: Add a hidden `-brimfd` flag to `zqd listen` so that `zqd` can close gracefully if Brim is terminated abruptly (#1184)
+
 ## v0.19.1
 
 * zq: Move third party license texts in zq repo to a single [acknowledgments.txt](https://github.com/brimsec/zq/blob/master/acknowledgments.txt) file (#1107)
