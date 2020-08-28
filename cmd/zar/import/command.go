@@ -43,12 +43,14 @@ type Command struct {
 	dataPath        string
 	sortMemMaxBytes int
 	thresh          string
+	verbose         bool
 	empty           bool
 	ReaderFlags     zio.ReaderFlags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
+	f.BoolVar(&c.verbose, "v", false, "show verbose details")
 	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
 	f.StringVar(&c.dataPath, "data", "", "location for storing data files (defaults to root)")
 	f.IntVar(&c.sortMemMaxBytes, "sortmem", sort.MemMaxBytes, "maximum memory used by sort, in bytes")

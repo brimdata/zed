@@ -68,6 +68,8 @@ func (p *Proc) sortLoop() {
 	p.setCompareFn(firstRunRecs[0])
 	if eof {
 		// Just one run so do an in-memory sort.
+		fmt.Printf("Doing a single in-memory sort, MemMaxBytes=%d \n", MemMaxBytes)
+
 		p.warnAboutUnseenFields()
 		expr.SortStable(firstRunRecs, p.compareFn)
 		array := zbuf.NewArray(firstRunRecs)
@@ -75,6 +77,8 @@ func (p *Proc) sortLoop() {
 		return
 	}
 	// Multiple runs so do an external merge sort.
+	fmt.Printf("Doing an external merge sort that spills to disk, MemMaxBytes=%d \n", MemMaxBytes)
+
 	runManager, err := p.createRuns(firstRunRecs)
 	if err != nil {
 		p.sendResult(nil, err)
