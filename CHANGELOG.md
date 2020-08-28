@@ -8,7 +8,7 @@ zq repo, check the git log.
 * zar: Use single files for microindexes (#1110)
 * zar: Fix an issue where `zar index` could not handle more than 5 "levels" (#1119)
 * zqd: Fix an issue where `zapi pcappost` incorrectly reported a canceled operation as a Zeek exit (#1139)
-* zar: Add support for empty mixro-indexes, also fixing an issue where `zar index` left behind empty files after an error (#1136)
+* zar: Add support for empty microindexes, also fixing an issue where `zar index` left behind empty files after an error (#1136)
 * zar: Add `zar map` to handle "for each file" operations (#1138, #1148)
 * zq: Add Boyer-Moore filter optimization to ZNG scanner to improve performance (#1080)
 * zar: Change "zdx" to "microindex" (#1150)
