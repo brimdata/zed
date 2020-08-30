@@ -75,11 +75,8 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		}
 		select {
 		case res := <-p.ch:
-			if res.Err != nil {
-				return nil, res.Err
-			}
-			if res.Batch != nil {
-				return res.Batch, nil
+			if res.Batch != nil || res.Err != nil {
+				return res.Batch, res.Err
 			}
 			p.nparents--
 		case <-p.ctx.Done():
