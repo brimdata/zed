@@ -97,7 +97,7 @@ func (r *Reader) ReadAt(p []byte, off int64) (int, error) {
 		return 0, err
 	}
 	defer b.Close()
-	return io.ReadAtLeast(b, p, len(p))
+	return io.ReadAtLeast(b, p, int(count))
 }
 
 func (r *Reader) Close() error {
