@@ -9,6 +9,7 @@ import (
 
 // A Merge proc merges multiple upstream inputs into one output.
 type Proc struct {
+	ctx      *proc.Context
 	once     sync.Once
 	ch       <-chan proc.Result
 	doneCh   chan struct{}
@@ -17,44 +18,43 @@ type Proc struct {
 }
 
 type runnerProc struct {
+	ctx    *proc.Context
 	parent proc.Interface
 	ch     chan<- proc.Result
 	doneCh <-chan struct{}
-}
-
-func newrunnerProc(parent proc.Interface, ch chan<- proc.Result, doneCh <-chan struct{}) *runnerProc {
-	return &runnerProc{
-		parent: parent,
-		ch:     ch,
-		doneCh: doneCh,
-	}
 }
 
 func (r *runnerProc) run() {
 	for {
 		batch, err := r.parent.Pull()
 		select {
-		case _ = <-r.doneCh:
+		case r.ch <- proc.Result{batch, err}:
+			if proc.EOS(batch, err) {
+				return
+			}
+		case <-r.doneCh:
 			r.parent.Done()
-			break
-		default:
-		}
-
-		r.ch <- proc.Result{batch, err}
-		if proc.EOS(batch, err) {
-			break
+			return
+		case <-r.ctx.Done():
+			return
 		}
 	}
 }
 
-func New(c *proc.Context, parents []proc.Interface) *Proc {
+func New(ctx *proc.Context, parents []proc.Interface) *Proc {
 	ch := make(chan proc.Result)
 	doneCh := make(chan struct{})
 	var runners []*runnerProc
 	for _, parent := range parents {
-		runners = append(runners, newrunnerProc(parent, ch, doneCh))
+		runners = append(runners, &runnerProc{
+			ctx:    ctx,
+			parent: parent,
+			ch:     ch,
+			doneCh: doneCh,
+		})
 	}
 	return &Proc{
+		ctx:      ctx,
 		ch:       ch,
 		doneCh:   doneCh,
 		parents:  runners,
@@ -73,20 +73,18 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		if p.nparents == 0 {
 			return nil, nil
 		}
-		res, ok := <-p.ch
-		if !ok {
-			return nil, nil
+		select {
+		case res := <-p.ch:
+			if res.Err != nil {
+				return nil, res.Err
+			}
+			if res.Batch != nil {
+				return res.Batch, nil
+			}
+			p.nparents--
+		case <-p.ctx.Done():
+			return nil, p.ctx.Err()
 		}
-		if res.Err != nil {
-			p.Done()
-			return nil, res.Err
-		}
-
-		if !proc.EOS(res.Batch, res.Err) {
-			return res.Batch, res.Err
-		}
-
-		p.nparents--
 	}
 }
 
