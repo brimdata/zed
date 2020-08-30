@@ -42,7 +42,7 @@ func NewLogOp(ctx context.Context, store storage.Storage, req api.LogPostRequest
 		warningCh: make(chan string, 5),
 		zctx:      resolver.NewContext(),
 	}
-	var cfg detector.OpenConfig
+	cfg := detector.OpenConfig{TypeCheck: true}
 	if req.JSONTypeConfig != nil {
 		cfg.JSONTypeConfig = req.JSONTypeConfig
 		cfg.JSONPathRegex = DefaultJSONPathRegexp

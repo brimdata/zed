@@ -398,11 +398,7 @@ func (r *Reader) parseValue(id int, b []byte) (*zng.Record, error) {
 			return nil, err
 		}
 	}
-	rec := zng.NewVolatileRecord(sharedType, b)
-	if err := rec.TypeCheck(); err != nil {
-		return nil, err
-	}
-	return rec, nil
+	return zng.NewVolatileRecord(sharedType, b), nil
 }
 
 var _ scanner.ScannerAble = (*Reader)(nil)

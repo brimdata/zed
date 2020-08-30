@@ -30,6 +30,7 @@ type OpenConfig struct {
 	JSONTypeConfig *ndjsonio.TypeConfig
 	JSONPathRegex  string
 	AwsCfg         *aws.Config
+	TypeCheck      bool
 }
 
 const StdinPath = "/dev/stdin"
@@ -61,6 +62,25 @@ func OpenFile(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, 
 	return OpenFromNamedReadCloser(zctx, f, path, cfg)
 }
 
+type checkReader struct {
+	r zbuf.Reader
+}
+
+func (c *checkReader) Read() (*zng.Record, error) {
+	rec, err := c.r.Read()
+	if rec == nil || err != nil {
+		return rec, err
+	}
+	if err := rec.TypeCheck(); err != nil {
+		return nil, err
+	}
+	return rec, nil
+}
+
+func newCheckReader(r zbuf.Reader) zbuf.Reader {
+	return &checkReader{r}
+}
+
 func OpenParquet(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, error) {
 	var pf source.ParquetFile
 	var err error
@@ -78,9 +98,13 @@ func OpenParquet(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.Fil
 		return nil, err
 	}
 
-	r, err := parquetio.NewReader(pf, zctx, parquetio.ReaderOpts{})
+	pr, err := parquetio.NewReader(pf, zctx, parquetio.ReaderOpts{})
 	if err != nil {
 		return nil, err
+	}
+	var r zbuf.Reader = pr
+	if cfg.TypeCheck {
+		r = &checkReader{pr}
 	}
 	return zbuf.NewFile(r, pf, path), nil
 }
@@ -97,7 +121,9 @@ func OpenFromNamedReadCloser(zctx *resolver.Context, rc io.ReadCloser, path stri
 	if err != nil {
 		return nil, err
 	}
-
+	if cfg.TypeCheck {
+		zr = &checkReader{zr}
+	}
 	return zbuf.NewFile(zr, rc, path), nil
 }
 

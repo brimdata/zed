@@ -93,6 +93,7 @@ type Command struct {
 	quiet           bool
 	showVersion     bool
 	stopErr         bool
+	checkRecords    bool
 	forceBinary     bool
 	sortMemMaxBytes int
 	textShortcut    bool
@@ -122,6 +123,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
 	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
 	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
+	f.BoolVar(&c.checkRecords, "check", true, "check input records")
 	f.IntVar(&c.sortMemMaxBytes, "sortmem", sort.MemMaxBytes, "maximum memory used by sort, in bytes")
 	f.BoolVar(&c.showVersion, "version", false, "print version and exit")
 	f.BoolVar(&c.textShortcut, "t", false, "use format tzng independent of -f option")
@@ -270,6 +272,7 @@ func (c *Command) inputReaders(paths []string) ([]zbuf.Reader, error) {
 		Format:         c.ReaderFlags.Format,
 		JSONTypeConfig: c.jsonTypeConfig,
 		JSONPathRegex:  c.jsonPathRegexp,
+		TypeCheck:      c.checkRecords,
 	}
 	var readers []zbuf.Reader
 	for _, path := range paths {

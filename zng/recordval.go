@@ -61,14 +61,6 @@ func NewRecord(typ *TypeRecord, raw zcode.Bytes) *Record {
 	}
 }
 
-func NewRecordCheck(typ *TypeRecord, raw zcode.Bytes) (*Record, error) {
-	r := NewRecord(typ, raw)
-	if err := r.TypeCheck(); err != nil {
-		return nil, err
-	}
-	return r, nil
-}
-
 // NewVolatileRecord creates a record from a raw value and marks
 // it volatile so that Keep() must be called to make it safe.
 // This is useful for readers that allocate records whose raw body points

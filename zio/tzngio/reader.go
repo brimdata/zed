@@ -209,5 +209,5 @@ func (r *Reader) parseValue(line []byte) (*zng.Record, error) {
 		return nil, err
 	}
 
-	return zng.NewRecordCheck(typ, raw)
+	return zng.NewRecord(typ, raw), nil
 }
