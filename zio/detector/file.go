@@ -77,10 +77,6 @@ func (c *checkReader) Read() (*zng.Record, error) {
 	return rec, nil
 }
 
-func newCheckReader(r zbuf.Reader) zbuf.Reader {
-	return &checkReader{r}
-}
-
 func OpenParquet(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, error) {
 	var pf source.ParquetFile
 	var err error
