@@ -46,6 +46,12 @@ func TestE(t *testing.T) {
 	require.Panics(t, func() { E() })
 	e9 := E(1)
 	require.Regexp(t, "unknown type.*error_test", e9.Error())
+
+	// Error formatting
+	e10 := E("foo%d")
+	require.Equal(t, "foo%d", e10.Error())
+	e11 := E("foo%d", 10)
+	require.Equal(t, "foo10", e11.Error())
 }
 
 func TestIs(t *testing.T) {
