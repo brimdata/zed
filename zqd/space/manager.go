@@ -52,7 +52,7 @@ func NewManager(root iosrc.URI, logger *zap.Logger) (*Manager, error) {
 			continue
 		}
 
-		spaces, err := loadSpaces(dir, config)
+		spaces, err := loadSpaces(dir, config, mgr.logger)
 		if err != nil {
 			return nil, err
 		}
@@ -146,7 +146,7 @@ func (m *Manager) Create(req api.SpacePostRequest) (Space, error) {
 		iosrc.RemoveAll(path)
 		return nil, err
 	}
-	spaces, err := loadSpaces(path, conf)
+	spaces, err := loadSpaces(path, conf, m.logger)
 	if err != nil {
 		return nil, err
 	}
@@ -236,6 +236,12 @@ func (m *Manager) List(ctx context.Context) ([]api.SpaceInfo, error) {
 		sp := m.spaces[id]
 		info, err := sp.Info(ctx)
 		if err != nil {
+			// XXX should add ability to derive request id from context if it
+			// exists for current ctx.
+			m.logger.Warn("Could not get space info",
+				zap.String("space_id", string(id)),
+				zap.Error(err),
+			)
 			return nil, err
 		}
 		result = append(result, info)

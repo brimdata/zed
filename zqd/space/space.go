@@ -16,6 +16,7 @@ import (
 	"github.com/brimsec/zq/zqd/storage/filestore"
 	"github.com/brimsec/zq/zqe"
 	"github.com/segmentio/ksuid"
+	"go.uber.org/zap"
 )
 
 const (
@@ -116,12 +117,13 @@ func (g *guard) acquireForDelete() error {
 	return nil
 }
 
-func loadSpaces(p iosrc.URI, conf config) ([]Space, error) {
+func loadSpaces(p iosrc.URI, conf config, logger *zap.Logger) ([]Space, error) {
 	datapath := conf.DataURI
 	if datapath.IsZero() {
 		datapath = p
 	}
 	id := api.SpaceID(path.Base(p.Path))
+	logger = logger.With(zap.String("space_id", string(id)))
 	switch conf.Storage.Kind {
 	case storage.FileStore:
 		store, err := filestore.Load(datapath)
@@ -133,7 +135,7 @@ func loadSpaces(p iosrc.URI, conf config) ([]Space, error) {
 			return nil, err
 		}
 		s := &fileSpace{
-			spaceBase: spaceBase{id, store, pcapstore, newGuard()},
+			spaceBase: spaceBase{id, store, pcapstore, newGuard(), logger},
 			path:      p,
 			conf:      conf,
 		}
@@ -145,7 +147,7 @@ func loadSpaces(p iosrc.URI, conf config) ([]Space, error) {
 			return nil, err
 		}
 		parent := &archiveSpace{
-			spaceBase: spaceBase{id, store, nil, newGuard()},
+			spaceBase: spaceBase{id, store, nil, newGuard(), logger},
 			path:      p,
 			conf:      conf,
 		}
@@ -158,7 +160,7 @@ func loadSpaces(p iosrc.URI, conf config) ([]Space, error) {
 				return nil, err
 			}
 			sub := &archiveSubspace{
-				spaceBase: spaceBase{subcfg.ID, substore, nil, newGuard()},
+				spaceBase: spaceBase{subcfg.ID, substore, nil, newGuard(), logger},
 				parent:    parent,
 			}
 			ret = append(ret, sub)
@@ -188,6 +190,7 @@ type spaceBase struct {
 	store     storage.Storage
 	pcapstore *pcapstorage.Store
 	sg        *guard
+	logger    *zap.Logger
 }
 
 func (s *spaceBase) ID() api.SpaceID {
@@ -201,6 +204,7 @@ func (s *spaceBase) Storage() storage.Storage {
 func (s *spaceBase) Info(ctx context.Context) (api.SpaceInfo, error) {
 	sum, err := s.store.Summary(ctx)
 	if err != nil {
+		s.logger.Error("Error getting log store summary", zap.Error(err))
 		return api.SpaceInfo{}, err
 	}
 	var span *nano.Span
@@ -215,16 +219,22 @@ func (s *spaceBase) Info(ctx context.Context) (api.SpaceInfo, error) {
 	if s.pcapstore != nil && !s.pcapstore.Empty() {
 		pcapinfo, err := s.pcapstore.Info()
 		if err != nil {
-			return api.SpaceInfo{}, err
-		}
-		spaceInfo.PcapSize = pcapinfo.PcapSize
-		spaceInfo.PcapSupport = true
-		spaceInfo.PcapPath = pcapinfo.PcapURI
-		if span == nil {
-			span = &pcapinfo.Span
+			var ze *zqe.Error
+			if !errors.As(err, &ze) || ze.Kind != zqe.NotFound {
+				s.logger.Error("Error getting pcap store summary", zap.Error(err))
+				return api.SpaceInfo{}, err
+			}
+			s.logger.Info("Pcap not found", zap.String("pcap_uri", s.pcapstore.PcapURI().String()))
 		} else {
-			union := span.Union(pcapinfo.Span)
-			span = &union
+			spaceInfo.PcapSize = pcapinfo.PcapSize
+			spaceInfo.PcapSupport = true
+			spaceInfo.PcapPath = pcapinfo.PcapURI
+			if span == nil {
+				span = &pcapinfo.Span
+			} else {
+				union := span.Union(pcapinfo.Span)
+				span = &union
+			}
 		}
 	}
 	spaceInfo.Span = span
