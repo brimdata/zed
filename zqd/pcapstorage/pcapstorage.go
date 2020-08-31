@@ -127,6 +127,12 @@ func (s *Store) Info() (Info, error) {
 	}, nil
 }
 
+func (s *Store) PcapURI() iosrc.URI {
+	s.metaMu.Lock()
+	defer s.metaMu.Unlock()
+	return s.meta.PcapURI
+}
+
 func (s *Store) Delete() error {
 	s.metaMu.Lock()
 	defer s.metaMu.Unlock()
