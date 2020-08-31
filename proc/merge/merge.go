@@ -9,7 +9,7 @@ import (
 
 // A Merge proc merges multiple upstream inputs into one output.
 type Proc struct {
-	ctx      *proc.Context
+	pctx     *proc.Context
 	once     sync.Once
 	ch       <-chan proc.Result
 	doneCh   chan struct{}
@@ -18,7 +18,7 @@ type Proc struct {
 }
 
 type runnerProc struct {
-	ctx    *proc.Context
+	pctx   *proc.Context
 	parent proc.Interface
 	ch     chan<- proc.Result
 	doneCh <-chan struct{}
@@ -35,26 +35,26 @@ func (r *runnerProc) run() {
 		case <-r.doneCh:
 			r.parent.Done()
 			return
-		case <-r.ctx.Done():
+		case <-r.pctx.Done():
 			return
 		}
 	}
 }
 
-func New(ctx *proc.Context, parents []proc.Interface) *Proc {
+func New(pctx *proc.Context, parents []proc.Interface) *Proc {
 	ch := make(chan proc.Result)
 	doneCh := make(chan struct{})
 	var runners []*runnerProc
 	for _, parent := range parents {
 		runners = append(runners, &runnerProc{
-			ctx:    ctx,
+			pctx:   pctx,
 			parent: parent,
 			ch:     ch,
 			doneCh: doneCh,
 		})
 	}
 	return &Proc{
-		ctx:      ctx,
+		pctx:     pctx,
 		ch:       ch,
 		doneCh:   doneCh,
 		parents:  runners,
@@ -79,8 +79,8 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 				return res.Batch, res.Err
 			}
 			p.nparents--
-		case <-p.ctx.Done():
-			return nil, p.ctx.Err()
+		case <-p.pctx.Done():
+			return nil, p.pctx.Err()
 		}
 	}
 }

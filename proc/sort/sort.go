@@ -16,7 +16,7 @@ import (
 var MemMaxBytes = 128 * 1024 * 1024
 
 type Proc struct {
-	ctx        *proc.Context
+	pctx       *proc.Context
 	parent     proc.Interface
 	dir        int
 	nullsFirst bool
@@ -29,13 +29,13 @@ type Proc struct {
 	unseenFieldTracker *unseenFieldTracker
 }
 
-func New(ctx *proc.Context, parent proc.Interface, node *ast.SortProc) (*Proc, error) {
+func New(pctx *proc.Context, parent proc.Interface, node *ast.SortProc) (*Proc, error) {
 	fieldResolvers, err := expr.CompileFieldExprs(node.Fields)
 	if err != nil {
 		return nil, err
 	}
 	return &Proc{
-		ctx:                ctx,
+		pctx:               pctx,
 		parent:             parent,
 		dir:                node.SortDir,
 		nullsFirst:         node.NullsFirst,
@@ -51,7 +51,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 	if r, ok := <-p.resultCh; ok {
 		return r.Batch, r.Err
 	}
-	return nil, p.ctx.Err()
+	return nil, p.pctx.Err()
 }
 
 func (p *Proc) Done() {
@@ -82,7 +82,7 @@ func (p *Proc) sortLoop() {
 	}
 	defer runManager.Cleanup()
 	p.warnAboutUnseenFields()
-	for p.ctx.Err() == nil {
+	for p.pctx.Err() == nil {
 		// Reading from runManager merges the runs.
 		b, err := zbuf.ReadBatch(runManager, 100)
 		p.sendResult(b, err)
@@ -95,7 +95,7 @@ func (p *Proc) sortLoop() {
 func (p *Proc) sendResult(b zbuf.Batch, err error) {
 	select {
 	case p.resultCh <- proc.Result{Batch: b, Err: err}:
-	case <-p.ctx.Done():
+	case <-p.pctx.Done():
 	}
 }
 
@@ -153,7 +153,7 @@ func (p *Proc) createRuns(firstRunRecs []*zng.Record) (*RunManager, error) {
 
 func (p *Proc) warnAboutUnseenFields() {
 	for _, f := range p.unseenFieldTracker.unseen() {
-		p.ctx.Warnings <- fmt.Sprintf("Sort field %s not present in input", expr.FieldExprToString(f))
+		p.pctx.Warnings <- fmt.Sprintf("Sort field %s not present in input", expr.FieldExprToString(f))
 	}
 }
 
