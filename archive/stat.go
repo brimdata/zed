@@ -57,6 +57,7 @@ func (s *statReadCloser) chunkRecord(si SpanInfo, zardir iosrc.URI) error {
 			zng.NewColumn("start", zng.TypeTime),
 			zng.NewColumn("duration", zng.TypeDuration),
 			zng.NewColumn("size", zng.TypeUint64),
+			zng.NewColumn("record_count", zng.TypeUint64),
 		}))
 	}
 
@@ -66,6 +67,7 @@ func (s *statReadCloser) chunkRecord(si SpanInfo, zardir iosrc.URI) error {
 		zng.EncodeTime(si.Span.Ts),
 		zng.EncodeDuration(si.Span.Dur),
 		zng.EncodeUint(uint64(fi.Size())),
+		zng.EncodeUint(uint64(si.RecordCount)),
 	).Keep()
 	select {
 	case s.recs <- rec:
@@ -103,11 +105,12 @@ func (s *statReadCloser) indexRecord(si SpanInfo, zardir iosrc.URI, indexPath st
 			zng.NewColumn("index_id", zng.TypeString),
 			zng.NewColumn("index_type", zng.TypeString),
 			zng.NewColumn("size", zng.TypeUint64),
+			zng.NewColumn("record_count", zng.TypeUint64),
 			zng.NewColumn("keys", keyrec),
 		}))
 	}
 
-	if len(s.indexBuilders[indexPath].Type.Columns) != 5+len(info.Keys) {
+	if len(s.indexBuilders[indexPath].Type.Columns) != 6+len(info.Keys) {
 		return zqe.E("key record differs in index files %s %s", indexPath, si.LogID)
 	}
 	var keybytes zcode.Bytes
@@ -121,6 +124,7 @@ func (s *statReadCloser) indexRecord(si SpanInfo, zardir iosrc.URI, indexPath st
 		zng.EncodeString(indexPath),
 		zng.EncodeString(s.ark.indexes[indexPath].Type),
 		zng.EncodeUint(uint64(info.Size)),
+		zng.EncodeUint(uint64(si.RecordCount)),
 		keybytes,
 	).Keep()
 	select {

@@ -54,9 +54,10 @@ type ArchiveCreateOptions struct {
 }
 
 type Summary struct {
-	Kind      Kind
-	Span      nano.Span
-	DataBytes int64
+	Kind        Kind
+	Span        nano.Span
+	DataBytes   int64
+	RecordCount int64
 }
 
 type Storage interface {
