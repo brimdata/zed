@@ -11,7 +11,7 @@ import (
 )
 
 type Proc struct {
-	ctx        *proc.Context
+	pctx       *proc.Context
 	parent     proc.Interface
 	complement bool
 	fieldnames []string
@@ -26,7 +26,7 @@ type Proc struct {
 // so the output record can be constructed efficiently, though we don't
 // do this now since it might confuse users who expect to see output
 // fields in the order they specified.
-func New(ctx *proc.Context, parent proc.Interface, node *ast.CutProc) (*Proc, error) {
+func New(pctx *proc.Context, parent proc.Interface, node *ast.CutProc) (*Proc, error) {
 	var fieldnames, targets []string
 	for _, fa := range node.Fields {
 		if fa.Target == "" {
@@ -37,18 +37,18 @@ func New(ctx *proc.Context, parent proc.Interface, node *ast.CutProc) (*Proc, er
 	}
 	// build this once at compile time for error checking.
 	if !node.Complement {
-		_, err := proc.NewColumnBuilder(ctx.TypeContext, targets)
+		_, err := proc.NewColumnBuilder(pctx.TypeContext, targets)
 		if err != nil {
 			return nil, fmt.Errorf("compiling cut: %w", err)
 		}
 	}
 
 	return &Proc{
-		ctx:        ctx,
+		pctx:       pctx,
 		parent:     parent,
 		complement: node.Complement,
 		fieldnames: fieldnames,
-		cutter:     NewCutter(ctx.TypeContext, node.Complement, targets, fieldnames),
+		cutter:     NewCutter(pctx.TypeContext, node.Complement, targets, fieldnames),
 	}, nil
 }
 
@@ -62,7 +62,7 @@ func (p *Proc) maybeWarn() {
 	} else {
 		msg = fmt.Sprintf("Cut fields %s not present together in input", strings.Join(p.fieldnames, ","))
 	}
-	p.ctx.Warnings <- msg
+	p.pctx.Warnings <- msg
 }
 
 func (p *Proc) Pull() (zbuf.Batch, error) {

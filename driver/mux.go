@@ -19,7 +19,7 @@ type muxResult struct {
 }
 
 type muxOutput struct {
-	ctx      *proc.Context
+	pctx     *proc.Context
 	runners  int
 	muxProcs []*mux
 	once     sync.Once
@@ -70,10 +70,10 @@ func (m *mux) run() {
 	}
 }
 
-func newMuxOutput(ctx *proc.Context, parents []proc.Interface, scanner scanner.Statser) *muxOutput {
+func newMuxOutput(pctx *proc.Context, parents []proc.Interface, scanner scanner.Statser) *muxOutput {
 	n := len(parents)
 	c := make(chan muxResult, n)
-	mux := &muxOutput{ctx: ctx, runners: n, in: c, scanner: scanner}
+	mux := &muxOutput{pctx: pctx, runners: n, in: c, scanner: scanner}
 	for id, parent := range parents {
 		mux.muxProcs = append(mux.muxProcs, newMux(parent, id, c))
 	}
@@ -88,7 +88,7 @@ func (m *muxOutput) Stats() api.ScannerStats {
 }
 
 func (m *muxOutput) Complete() bool {
-	return len(m.ctx.Warnings) == 0 && m.runners == 0
+	return len(m.pctx.Warnings) == 0 && m.runners == 0
 }
 
 func (m *muxOutput) N() int {
@@ -112,7 +112,7 @@ func (m *muxOutput) Pull(timeout <-chan time.Time) muxResult {
 		return muxResult{proc.Result{nil, errTimeout}, 0, ""}
 	case result = <-m.in:
 		// empty
-	case warning := <-m.ctx.Warnings:
+	case warning := <-m.pctx.Warnings:
 		return muxResult{proc.Result{}, 0, warning}
 	}
 

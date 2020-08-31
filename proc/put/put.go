@@ -18,7 +18,7 @@ import (
 // or appends a value as a new column.  Appended values appear as new
 // columns in the order that the clause appears in the put expression.
 type Proc struct {
-	ctx     *proc.Context
+	pctx    *proc.Context
 	parent  proc.Interface
 	clauses []clause
 	// vals is a fixed array to avoid re-allocating for every record
@@ -55,7 +55,7 @@ type clause struct {
 	eval   expr.ExpressionEvaluator
 }
 
-func New(ctx *proc.Context, parent proc.Interface, node *ast.PutProc) (proc.Interface, error) {
+func New(pctx *proc.Context, parent proc.Interface, node *ast.PutProc) (proc.Interface, error) {
 	clauses := make([]clause, len(node.Clauses))
 	for k, cl := range node.Clauses {
 		var err error
@@ -66,7 +66,7 @@ func New(ctx *proc.Context, parent proc.Interface, node *ast.PutProc) (proc.Inte
 		}
 	}
 	return &Proc{
-		ctx:     ctx,
+		pctx:    pctx,
 		parent:  parent,
 		clauses: clauses,
 		vals:    make([]zng.Value, len(node.Clauses)),
@@ -79,7 +79,7 @@ func (p *Proc) maybeWarn(err error) {
 	s := err.Error()
 	_, alreadyWarned := p.warned[s]
 	if !alreadyWarned {
-		p.ctx.Warnings <- s
+		p.pctx.Warnings <- s
 		p.warned[s] = struct{}{}
 	}
 }
@@ -124,7 +124,7 @@ func (p *Proc) buildRule(inType *zng.TypeRecord, vals []zng.Value) (*putRule, er
 	if nreplace == 0 {
 		replace = nil
 	}
-	typ, err := p.ctx.TypeContext.LookupTypeRecord(cols)
+	typ, err := p.pctx.TypeContext.LookupTypeRecord(cols)
 	if err != nil {
 		return nil, err
 	}
