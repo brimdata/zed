@@ -21,7 +21,6 @@ type Proc struct {
 }
 
 type mergeParent struct {
-	batch    zbuf.Batch
 	recs     []*zng.Record
 	recIdx   int
 	done     bool
@@ -78,7 +77,7 @@ func (p *Proc) Read() (*zng.Record, error) {
 		if parent.done {
 			continue
 		}
-		if parent.batch == nil {
+		if parent.recs == nil {
 			select {
 			case res := <-parent.resultCh:
 				if res.Err != nil {
@@ -88,7 +87,7 @@ func (p *Proc) Read() (*zng.Record, error) {
 					parent.done = true
 					continue
 				}
-				parent.batch = res.Batch
+				// We're keeping records owned by res.Batch so don't call Unref.
 				parent.recs = res.Batch.Records()
 				parent.recIdx = 0
 			case <-p.ctx.Done():
@@ -113,8 +112,7 @@ func next(p *mergeParent) *zng.Record {
 	rec := p.recs[p.recIdx]
 	p.recIdx++
 	if p.recIdx == len(p.recs) {
-		p.batch.Unref()
-		p.batch = nil
+		p.recs = nil
 	}
 	return rec
 }

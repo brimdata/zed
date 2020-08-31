@@ -170,7 +170,8 @@ func (p *Proc) put(in *zng.Record) *zng.Record {
 	var bytes zcode.Bytes
 	if rule.replace == nil {
 		// All fields are being appended.
-		bytes = in.Raw
+		bytes = make([]byte, len(in.Raw))
+		copy(bytes, in.Raw)
 	} else {
 		// We're overwriting one or more fields.  Travese the
 		// replacement vector to determine whether each value should
@@ -212,7 +213,8 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 	recs := make([]*zng.Record, 0, batch.Length())
 	for k := 0; k < batch.Length(); k++ {
 		in := batch.Index(k)
-		recs = append(recs, p.put(in))
+		// Keep is necessary because put can return its argument.
+		recs = append(recs, p.put(in).Keep())
 	}
 	batch.Unref()
 	return zbuf.NewArray(recs), nil
