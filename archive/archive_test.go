@@ -147,8 +147,10 @@ func TestImportWhileOpen(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 3, ark1.mdUpdateCount)
 	exp := []SpanInfo{SpanInfo{
-		Span:  nano.Span{Ts: 1587509776063858170, Dur: 4287004687211},
-		LogID: "20200422/1587514063.06854538.zng"}}
+		Span:        nano.Span{Ts: 1587509776063858170, Dur: 4287004687211},
+		LogID:       "20200422/1587514063.06854538.zng",
+		RecordCount: 460,
+	}}
 	assert.Equal(t, exp, initialSpans)
 
 	// With a separate handle, open & import more data to the archive
@@ -166,11 +168,13 @@ func TestImportWhileOpen(t *testing.T) {
 	require.NoError(t, err)
 
 	exp = []SpanInfo{{
-		Span:  nano.Span{Ts: 1587514075061481960, Dur: 4545000755341},
-		LogID: "20200422/1587518620.0622373.zng",
+		Span:        nano.Span{Ts: 1587514075061481960, Dur: 4545000755341},
+		LogID:       "20200422/1587518620.0622373.zng",
+		RecordCount: 453,
 	}, {
-		Span:  nano.Span{Ts: 1587509776063858170, Dur: 4287004687211},
-		LogID: "20200422/1587514063.06854538.zng",
+		Span:        nano.Span{Ts: 1587509776063858170, Dur: 4287004687211},
+		LogID:       "20200422/1587514063.06854538.zng",
+		RecordCount: 460,
 	}}
 	assert.Equal(t, exp, postSpans)
 

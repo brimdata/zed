@@ -13,7 +13,7 @@ import (
 // If the input streams are ordered according to the configured comparison,
 // the output of OrderedMerge will have the same order.
 type Proc struct {
-	ctx     *proc.Context //XXX this parents method won't work; copy merge.Proc pattern?
+	pctx    *proc.Context //XXX this parents method won't work; copy merge.Proc pattern?
 	cmp     expr.CompareFn
 	doneCh  chan struct{}
 	once    sync.Once
@@ -21,7 +21,6 @@ type Proc struct {
 }
 
 type mergeParent struct {
-	batch    zbuf.Batch
 	recs     []*zng.Record
 	recIdx   int
 	done     bool
@@ -29,9 +28,9 @@ type mergeParent struct {
 	resultCh chan proc.Result
 }
 
-func New(c *proc.Context, parents []proc.Interface, mergeField string, reversed bool) *Proc {
+func New(pctx *proc.Context, parents []proc.Interface, mergeField string, reversed bool) *Proc {
 	m := &Proc{
-		ctx:    c,
+		pctx:   pctx,
 		doneCh: make(chan struct{}),
 	}
 	cmpFn := expr.NewCompareFn(true, expr.CompileFieldAccess(mergeField))
@@ -62,7 +61,7 @@ func (p *Proc) run() {
 				case <-p.doneCh:
 					parent.proc.Done()
 					return
-				case <-p.ctx.Done():
+				case <-p.pctx.Done():
 					return
 				}
 			}
@@ -78,7 +77,7 @@ func (p *Proc) Read() (*zng.Record, error) {
 		if parent.done {
 			continue
 		}
-		if parent.batch == nil {
+		if parent.recs == nil {
 			select {
 			case res := <-parent.resultCh:
 				if res.Err != nil {
@@ -88,11 +87,11 @@ func (p *Proc) Read() (*zng.Record, error) {
 					parent.done = true
 					continue
 				}
-				parent.batch = res.Batch
+				// We're keeping records owned by res.Batch so don't call Unref.
 				parent.recs = res.Batch.Records()
 				parent.recIdx = 0
-			case <-p.ctx.Done():
-				return nil, p.ctx.Err()
+			case <-p.pctx.Done():
+				return nil, p.pctx.Err()
 			}
 		}
 		if idx == -1 || p.compare(parent, &p.parents[idx]) {
@@ -113,8 +112,7 @@ func next(p *mergeParent) *zng.Record {
 	rec := p.recs[p.recIdx]
 	p.recIdx++
 	if p.recIdx == len(p.recs) {
-		p.batch.Unref()
-		p.batch = nil
+		p.recs = nil
 	}
 	return rec
 }

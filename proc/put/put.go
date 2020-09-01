@@ -18,7 +18,7 @@ import (
 // or appends a value as a new column.  Appended values appear as new
 // columns in the order that the clause appears in the put expression.
 type Proc struct {
-	ctx     *proc.Context
+	pctx    *proc.Context
 	parent  proc.Interface
 	clauses []clause
 	// vals is a fixed array to avoid re-allocating for every record
@@ -55,7 +55,7 @@ type clause struct {
 	eval   expr.ExpressionEvaluator
 }
 
-func New(ctx *proc.Context, parent proc.Interface, node *ast.PutProc) (proc.Interface, error) {
+func New(pctx *proc.Context, parent proc.Interface, node *ast.PutProc) (proc.Interface, error) {
 	clauses := make([]clause, len(node.Clauses))
 	for k, cl := range node.Clauses {
 		var err error
@@ -66,7 +66,7 @@ func New(ctx *proc.Context, parent proc.Interface, node *ast.PutProc) (proc.Inte
 		}
 	}
 	return &Proc{
-		ctx:     ctx,
+		pctx:    pctx,
 		parent:  parent,
 		clauses: clauses,
 		vals:    make([]zng.Value, len(node.Clauses)),
@@ -79,7 +79,7 @@ func (p *Proc) maybeWarn(err error) {
 	s := err.Error()
 	_, alreadyWarned := p.warned[s]
 	if !alreadyWarned {
-		p.ctx.Warnings <- s
+		p.pctx.Warnings <- s
 		p.warned[s] = struct{}{}
 	}
 }
@@ -124,7 +124,7 @@ func (p *Proc) buildRule(inType *zng.TypeRecord, vals []zng.Value) (*putRule, er
 	if nreplace == 0 {
 		replace = nil
 	}
-	typ, err := p.ctx.TypeContext.LookupTypeRecord(cols)
+	typ, err := p.pctx.TypeContext.LookupTypeRecord(cols)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +170,8 @@ func (p *Proc) put(in *zng.Record) *zng.Record {
 	var bytes zcode.Bytes
 	if rule.replace == nil {
 		// All fields are being appended.
-		bytes = in.Raw
+		bytes = make([]byte, len(in.Raw))
+		copy(bytes, in.Raw)
 	} else {
 		// We're overwriting one or more fields.  Travese the
 		// replacement vector to determine whether each value should
@@ -212,7 +213,8 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 	recs := make([]*zng.Record, 0, batch.Length())
 	for k := 0; k < batch.Length(); k++ {
 		in := batch.Index(k)
-		recs = append(recs, p.put(in))
+		// Keep is necessary because put can return its argument.
+		recs = append(recs, p.put(in).Keep())
 	}
 	batch.Unref()
 	return zbuf.NewArray(recs), nil

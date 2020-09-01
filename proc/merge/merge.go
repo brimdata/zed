@@ -9,6 +9,7 @@ import (
 
 // A Merge proc merges multiple upstream inputs into one output.
 type Proc struct {
+	pctx     *proc.Context
 	once     sync.Once
 	ch       <-chan proc.Result
 	doneCh   chan struct{}
@@ -17,44 +18,43 @@ type Proc struct {
 }
 
 type runnerProc struct {
+	pctx   *proc.Context
 	parent proc.Interface
 	ch     chan<- proc.Result
 	doneCh <-chan struct{}
-}
-
-func newrunnerProc(parent proc.Interface, ch chan<- proc.Result, doneCh <-chan struct{}) *runnerProc {
-	return &runnerProc{
-		parent: parent,
-		ch:     ch,
-		doneCh: doneCh,
-	}
 }
 
 func (r *runnerProc) run() {
 	for {
 		batch, err := r.parent.Pull()
 		select {
-		case _ = <-r.doneCh:
+		case r.ch <- proc.Result{batch, err}:
+			if proc.EOS(batch, err) {
+				return
+			}
+		case <-r.doneCh:
 			r.parent.Done()
-			break
-		default:
-		}
-
-		r.ch <- proc.Result{batch, err}
-		if proc.EOS(batch, err) {
-			break
+			return
+		case <-r.pctx.Done():
+			return
 		}
 	}
 }
 
-func New(c *proc.Context, parents []proc.Interface) *Proc {
+func New(pctx *proc.Context, parents []proc.Interface) *Proc {
 	ch := make(chan proc.Result)
 	doneCh := make(chan struct{})
 	var runners []*runnerProc
 	for _, parent := range parents {
-		runners = append(runners, newrunnerProc(parent, ch, doneCh))
+		runners = append(runners, &runnerProc{
+			pctx:   pctx,
+			parent: parent,
+			ch:     ch,
+			doneCh: doneCh,
+		})
 	}
 	return &Proc{
+		pctx:     pctx,
 		ch:       ch,
 		doneCh:   doneCh,
 		parents:  runners,
@@ -73,20 +73,15 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		if p.nparents == 0 {
 			return nil, nil
 		}
-		res, ok := <-p.ch
-		if !ok {
-			return nil, nil
+		select {
+		case res := <-p.ch:
+			if res.Batch != nil || res.Err != nil {
+				return res.Batch, res.Err
+			}
+			p.nparents--
+		case <-p.pctx.Done():
+			return nil, p.pctx.Err()
 		}
-		if res.Err != nil {
-			p.Done()
-			return nil, res.Err
-		}
-
-		if !proc.EOS(res.Batch, res.Err) {
-			return res.Batch, res.Err
-		}
-
-		p.nparents--
 	}
 }
 

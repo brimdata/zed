@@ -16,14 +16,14 @@ import (
 // applied left to right; each rename observes the effect of all
 // renames that preceded it.
 type Proc struct {
-	ctx        *proc.Context
+	pctx       *proc.Context
 	parent     proc.Interface
 	fieldnames []string
 	targets    []string
 	typeMap    map[int]*zng.TypeRecord
 }
 
-func New(ctx *proc.Context, parent proc.Interface, node *ast.RenameProc) (*Proc, error) {
+func New(pctx *proc.Context, parent proc.Interface, node *ast.RenameProc) (*Proc, error) {
 	var fieldnames, targets []string
 	for _, fa := range node.Fields {
 		ts := strings.Split(fa.Target, ".")
@@ -40,7 +40,7 @@ func New(ctx *proc.Context, parent proc.Interface, node *ast.RenameProc) (*Proc,
 		fieldnames = append(fieldnames, fa.Source)
 	}
 	return &Proc{
-		ctx:        ctx,
+		pctx:       pctx,
 		parent:     parent,
 		fieldnames: fieldnames,
 		targets:    targets,
@@ -74,7 +74,7 @@ func (p *Proc) renamedType(typ *zng.TypeRecord, fields []string, target string) 
 	newcols := make([]zng.Column, len(typ.Columns))
 	copy(newcols, typ.Columns)
 	newcols[c] = zng.Column{Name: name, Type: innerType}
-	return p.ctx.TypeContext.LookupTypeRecord(newcols)
+	return p.pctx.TypeContext.LookupTypeRecord(newcols)
 }
 
 func (p *Proc) computeType(typ *zng.TypeRecord) (*zng.TypeRecord, error) {

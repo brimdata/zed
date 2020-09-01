@@ -27,9 +27,10 @@ type importDriver struct {
 	bw  *bufwriter.Writer
 	zw  *zngio.Writer
 
-	span  nano.Span
-	logID LogID
-	spans []SpanInfo
+	span   nano.Span
+	logID  LogID
+	spans  []SpanInfo
+	rcount int
 }
 
 func (d *importDriver) writeOne(rec *zng.Record) error {
@@ -38,6 +39,7 @@ func (d *importDriver) writeOne(rec *zng.Record) error {
 		dname := tsDir(rec.Ts())
 		fname := rec.Ts().StringFloat() + ".zng"
 		d.span = recspan
+		d.rcount = 0
 		// Create LogID with path.Join so that it always uses forward
 		// slashes (dir1/foo.zng), regardless of platform.
 		d.logID = LogID(path.Join(dname, fname))
@@ -64,6 +66,7 @@ func (d *importDriver) writeOne(rec *zng.Record) error {
 	if err := d.zw.Write(rec); err != nil {
 		return err
 	}
+	d.rcount++
 	if d.zw.Position() >= d.ark.LogSizeThreshold {
 		if err := d.close(); err != nil {
 			return err
@@ -83,8 +86,9 @@ func (d *importDriver) close() error {
 			return err
 		}
 		d.spans = append(d.spans, SpanInfo{
-			Span:  d.span,
-			LogID: d.logID,
+			Span:        d.span,
+			LogID:       d.logID,
+			RecordCount: d.rcount,
 		})
 		d.bw = nil
 	}
