@@ -30,10 +30,11 @@ func Load(path iosrc.URI, cfg *storage.ArchiveConfig) (*Storage, error) {
 }
 
 type summaryCache struct {
-	mu         sync.Mutex
-	lastUpdate int
-	span       nano.Span
-	dataBytes  int64
+	mu          sync.Mutex
+	lastUpdate  int
+	span        nano.Span
+	dataBytes   int64
+	recordCount int64
 }
 
 type Storage struct {
@@ -62,6 +63,7 @@ func (s *Storage) Summary(_ context.Context) (storage.Summary, error) {
 	if update == s.sumCache.lastUpdate {
 		sum.Span = s.sumCache.span
 		sum.DataBytes = s.sumCache.dataBytes
+		sum.RecordCount = s.sumCache.recordCount
 		s.sumCache.mu.Unlock()
 		return sum, nil
 	}
@@ -74,6 +76,7 @@ func (s *Storage) Summary(_ context.Context) (storage.Summary, error) {
 			return err
 		}
 		sum.DataBytes += info.Size()
+		sum.RecordCount += int64(si.RecordCount)
 		if sum.Span.Dur == 0 {
 			sum.Span = si.Span
 		} else {

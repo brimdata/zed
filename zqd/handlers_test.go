@@ -1013,12 +1013,12 @@ func TestArchiveStat(t *testing.T) {
 	indexArchiveSpace(t, sp.DataPath.Filepath(), "v")
 
 	exp := `
-#0:record[type:string,log_id:string,start:time,duration:duration,size:uint64]
-0:[chunk;20200422/1587518620.0622373.zng;1587509477.06450528;9142.997732021;32205;]
-#1:record[type:string,log_id:string,index_id:string,index_type:string,size:uint64,keys:record[key:string]]
-1:[index;20200422/1587518620.0622373.zng;microindex-field-v.zng;field;2984;[int64;]]
-0:[chunk;20200421/1587509477.06313454.zng;1587508830.06852324;646.994611301;2133;]
-1:[index;20200421/1587509477.06313454.zng;microindex-field-v.zng;field;493;[int64;]]`
+#0:record[type:string,log_id:string,start:time,duration:duration,size:uint64,record_count:uint64]
+0:[chunk;20200422/1587518620.0622373.zng;1587509477.06450528;9142.997732021;32205;939;]
+#1:record[type:string,log_id:string,index_id:string,index_type:string,size:uint64,record_count:uint64,keys:record[key:string]]
+1:[index;20200422/1587518620.0622373.zng;microindex-field-v.zng;field;2984;939;[int64;]]
+0:[chunk;20200421/1587509477.06313454.zng;1587508830.06852324;646.994611301;2133;61;]
+1:[index;20200421/1587509477.06313454.zng;microindex-field-v.zng;field;493;61;[int64;]]`
 	res := archiveStat(t, client, sp.ID)
 	assert.Equal(t, test.Trim(exp), res)
 }
