@@ -1,6 +1,6 @@
-# Deploying the ZQ daemon in a Kubernetes cluster
+# Deploying the zq daemon in a Kubernetes cluster
 
-This describes a procedure for deploying the ZQD service that you can connect to remotely with Brim. This is useful for when you are running Brim on a machine that needs to access large log files that are in the data center where you are running the ZQD service.
+This describes a procedure for deploying the zqd service that you can connect to remotely with Brim. This is useful for when you are running Brim on a machine that needs to access large log files that are in the data center where you are running the zqd service.
 
 Currently we support zqd access to ZAR files stored on Amazon S3, so we also describe a procedure for deploying zqd to a K8s cluster hosted on AWS EKS.
 
@@ -112,7 +112,7 @@ First we will add a "service mesh" called Linkerd.
 
 https://linkerd.io/2/getting-started/
 
-We do not need Linkerd for the typical use case of service meshes, which is to route intra-service messages, often gRPC, within a cluster. Instead, we leverage the side-car router as a conveninet way to monitor inbound and outbound traffic from ZQD. Conveniently, the Linkerd install also includes Prometheus and Grafana to support Linkerd's dashboard. We will configure these Prometheus and Grafana instances to also monitor zqd's Prometheus metrics.
+We do not need Linkerd for the typical use case of service meshes, which is to route intra-service messages, often gRPC, within a cluster. Instead, we leverage the side-car router as a conveninet way to monitor inbound and outbound traffic from zqd. Conveniently, the Linkerd install also includes Prometheus and Grafana to support Linkerd's dashboard. We will configure these Prometheus and Grafana instances to also monitor zqd's Prometheus metrics.
 
 We will also install the Kube State Metrics:
 
@@ -159,79 +159,106 @@ linkerd dashboard &
 ```
 On most desktops, this will start a browser window with the dashboard. On the home screen of the dashboard under HTTP metrics you should see your namespace, zq. There is a grafana icon in the far rigght column next to zq. Click on that, and you will see some basic metrics for traffic through zqd.
 
-### Step 4: Kube State Metrics
+### Step 4: A Grafana dashboard for zqd
+Grafana is also running in the linkerd namespace: it serves the Linkerd dashboard. Now we will add our own Grafana dashboard for zqd.
 
-WIP!
+This assumes that you have run `linkerd dashboard &` and that it has port-forwarded the Grafana instance to `localhost:50750`. Use a web browser to connect to the Grafana instance running in the linkerd nampespace:
+```
+http://localhost:50750/grafana
+```
+`k8s/grafana-dashboard.json` is a sample Grafana dashboard for zqd. To import the dashboard into the local Grafana instance, click on the "+" sign on left hand side of the Grafana home screen. From the drop=down that appears, select "import". On the import screen, select upload .json file, and choose `k8s/grafana-dashboard.json`. (You may have to change the name or uid on the import screen.)
 
-## WIP: Deploying the ZQ daemon to an AWS EKS cluster
+To experiment with the dashboard, you may want to place some repetitive load on the zqd instance. There is a shell script `k8s/zapi-loop.sh` you can use to do a simple zq query in a loop while you watch the dashboard. This script assumes you have completed "Deploy zqd with a S3 datauri" above.
 
-NOTE: this EKS procedure is not yet working end-to-end in the k8s branch!
+#### Dashboard details
+The sample dashboard that includes the following PromQL queries to monitor the zqd container:
+```
+container_memory_usage_bytes{id=~"/kube.+",container="zqd"}
+rate(container_cpu_usage_seconds_total{id=~"/kube.+",container="zqd"}[1m])
+sum(rate(tcp_read_bytes_total{app_kubernetes_io_name="zqd"}[1m]))
+sum(rate(container_network_receive_bytes_total[1m]))
+```
+The linkerd metrics for the queries above are described in:
+https://linkerd.io/2/reference/proxy-metrics/
 
-This walks through a procedure for setting up an EKS cluster on an AWS account. If you are contributing to ZQ, keep in mind the the AWS resources allocated here can be expensive. If you are working through this to learn, be sure to tear everything down ASAP after running experiments.
+The cAdvisor metrics for the queries above are described in:
+https://github.com/google/cadvisor/blob/master/docs/storage/prometheus.md
+
+## Delete the local cluster
+When you no longer need the local cluster, you can remove it with:
+```
+kind delete cluster --name zq-local
+```
+
+## Deploying the zq daemon to an AWS EKS cluster
+
+This walks through a procedure for setting up an EKS cluster on an AWS account. If you are contributing to zq, keep in mind the the AWS resources allocated here can be expensive. If you are working through this to learn, be sure to tear everything down ASAP after running experiments.
 
 We reference AWS docs freqently. The initial process is derived from:
+
 https://docs.aws.amazon.com/eks/latest/userguide/getting-started-eksctl.html
+
 The commands we used in testing are detailed below.
 
 We used the AWS CLI version 2. Install intructions are here:
+
 https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html
 
-You must choose a region for the cluster. For the examples below, we used region us-east-1. (Hint: this is because us-east-1 is the lowest cost region for some S3 charges.) We set a default region with `aws configure` so it is not included in the CLI commands.
+### Creating the EKS Cluster
+Choose a region for the cluster. For the examples below, we used region us-east-2. We set a default region with `aws configure` so it is not included in the CLI commands.
 
-Before starting, you will need to create a pem file for EKS to access EC2:
-https://docs.aws.amazon.com/cli/latest/userguide/cli-services-ec2-keypairs.html#creating-a-key-pair
-After creating the pem file, extract the public key. If you already have a preferred key pair, just extract the public key.
-```
-aws ec2 create-key-pair --key-name zqKeyPair --query 'KeyMaterial' --output text > zq-eks-test.pem
-ssh-keygen -y -f zq-eks-test.pem > zq-eks-test.pub
-```
 We use AWS `eksctl` to create the cluster. To install eksctl on MacOS:
 ```
 brew tap weaveworks/tap
 brew install weaveworks/tap/eksctl
 eksctl version
 ```
-Then create the cluster:
+Then create the cluster. You may wish to edit `k8s/cluster.yaml` to choose your own cluster name and other options such as node instance type.
 ```
-eksctl create cluster \
---name zqtest \
---version 1.17 \
---nodegroup-name standard-workers \
---node-type t3.medium \
---nodes 1 \
---nodes-min 1 \
---nodes-max 3 \
---ssh-access \
---ssh-public-key zq-eks-test.pub \
---managed \
---asg-access
+eksctl create cluster -f k8s/cluster.yaml
 ```
-This command usually takes at least 10 minutes to complete.
-In this example, we limit the cluster size to 3. This is enough to test autoscaling, but the max might need to be increased for searches in very large log files. If you keep the cluster up during dev and testing, you may want to manually scale it down with:
-```
-eksctl scale nodegroup --cluster test -m 1 -N 1 -M 1 -n standard-workers --region us-east-1
-```
-This decreases the maximum to 1, which is as low as you can go with an EKS cluster.
-Later, when you want to delete the EKS cluster, you must first delete the nodegroup. This will take a few minutes. (BTW, I have found that deletes from the AWS console are at least as fast, and often faster, than using the AWS CLI to delete.)
+This command usually takes at least 10 minutes to complete. It uses parameters provided in `k8s/cluster.yaml` -- you can edit this file to change it as needed.
 
 ### Creating a zqeks namespace and a kubectl config context
 
-Similar to the create-cluster.sh script above, we create a context for the EKS cluster. You need to change the user and cluster in the example below. Use `kubectl config get-contexts` to get the values for your user and cluster.
+This creates a context for the EKS cluster. You need to change the user and cluster in the example below. Use `kubectl config get-contexts` to get the values for your user and cluster.
 ```
-kubectl create namespace zqeks
-kubectl config set-context zqeks \
-  --namespace=zqeks \
-  --cluster=zqeks.us-east-2.eksctl.io \
-  --user=mark@zqeks.us-east-2.eksctl.io
-kubectl config use-context zqeks
+kubectl create namespace zqdev
+kubectl config set-context zqdev \
+  --namespace=zqdev \
+  --cluster=zq-dev.us-east-2.eksctl.io \
+  --user=mark@zq-dev.us-east-2.eksctl.io
+kubectl config use-context zqdev
 ```
 
-### Pushing locally Docker images from your local dev machine to ECR
-You can push the Docker images build is the previos section to AWS ECR for deployment on EKS.
+### Install Linkerd into the EKS cluster
 
-NOTE: Often this procedure is replaced by a CI/CD deployment pipeline.
+Insure that Linkerd command line tools are installed (see local install above).
+```
+linkerd install | kubectl apply -f -
+```
 
-Use this doc:
+### Use zar import to get some data into an S3 bucket in the region
+We will use zar to create an S3 bucket in this region with sample data. 
+
+If you do not already have a bucket you want to use in the same region as your EKS cluster, create it with `aws s3 mb`, e.g.
+```
+aws s3 mb s3://zqd-demo-1
+```
+Now use zar to create an object in S3. 
+
+For the following zar import, change the directory name to match your s3 bucket.
+```
+zar import -R s3://zqd-demo-1/mark/sample-http-zng zq-sample-data/zng/http.zng.gz
+```
+This creates zng files in an s3 directory called `sample-http-zng` that we will use from zapi after zqd has been deployed. To check what zar created:
+```
+aws s3 ls zqd-demo-1/mark --recursive
+```
+
+### Pushing locally built Docker images from your local dev machine to ECR
+You can push locally built Docker images to AWS ECR for deployment on EKS. These instructions are derived from:
+
 https://docs.aws.amazon.com/AmazonECR/latest/userguide/getting-started-cli.html
 
 Create an ECR repo for zqd:
@@ -242,143 +269,116 @@ aws ecr create-repository \
     --repository-name zqd
 ```
 
-This must be run for each service, since in ECR terms, every image has it's own 'repo'. When the repo is created at the command line it returns JSON that looks like:
+When the repo is created at the command line it returns JSON that looks like:
 ```
-"repositoryUri": "123456789012.dkr.ecr.us-east-1.amazonaws.com/gateway"
+"repositoryUri": "123456789012.dkr.ecr.us-east-2.amazonaws.com/gateway"
 ```
 Sustitute this URI into the tag, login and push steps. To push the zqd image created with the local build:
 ```
-docker tag zqd 123456789012.dkr.ecr.us-east-1.amazonaws.com/zqd
-aws ecr get-login-password --region us-east-1 \
- | docker login --username AWS \
-   --password-stdin 123456789012.dkr.ecr.us-east-1.amazonaws.com
-docker push 123456789012.dkr.ecr.us-east-1.amazonaws.com/zqd
+make docker
+docker tag zqd 123456789012.dkr.ecr.us-east-2.amazonaws.com/zqd
+aws ecr get-login-password --region us-east-2 | docker login \
+  --username AWS --password-stdin 123456789012.dkr.ecr.us-east-2.amazonaws.com
+docker push 123456789012.dkr.ecr.us-east-2.amazonaws.com/zqd
+```
+
+### Deploy the zqd service with Helm
+Here is an example Helm install. This assumes you created an S3 resident space as in the local install above. This is similar to the local Helm deploy. It uses the same charts, but command line parameters overide the Values.yaml to provide specific configuration for EKS.
+
+Substitute the image.repository you created above. Note that unlike the local deployment, we do not use K8s secrets for AWS credentials because the `cluster.yaml` above specified IAM policies for S3 access.
+
+```
+helm install zqd-test-1 charts/zqd \
+  --set AWSRegion="us-east-2" \
+  --set datauri="s3://zqd-demo/mark/zqd-meta" \
+  --set image.repository="123456789012.dkr.ecr.us-east-2.amazonaws.com/" \
+  --set useCredSecret=false
 ```
 
 ### Exposing the zqd endpoint
-You may will want to limit the exposure of your zqd endpoint, probably with a security group. (TBD)
 
-### Using centralized logging
-The default logging on K8s cluster just uses in-memory logs for the deployed pods. This is inconvenient for trouble-shooting. There are a number of centralized logging services available. The free verion of Papertrail (https://www.papertrail.com) is an easy place to start. If you create a free Papertrail account, the following instructions work for adding the log output from you pods in the EKS cluster to the Papertrail stream:
-https://help.papertrailapp.com/kb/configuration/configuring-centralized-logging-from-kubernetes/
-These are kubectl commands. Substitute your account ID for XXXXX
+To access the running zqd instance, use kubectl port-forward:
 ```
-kubectl create secret generic papertrail-destination --from-literal=papertrail-destination=syslog+tls://logsN.papertrailapp.com:XXXXX
-kubectl create -f https://help.papertrailapp.com/assets/files/papertrail-logspout-daemonset.yml
+kubectl port-forward svc/zqd-test-1 9867:9867 &
 ```
+There is a script `k8s/ports.sh` that does this after removing any existing port-forwards.
 
-# Troubleshooting
-## Shell into a K8s pod
-```
-kubectl get pod
-```
-Copy the pod id, thensub it into:
-```
-kubectl exec -it zqd-test-1-XXXXXXXX-99999 -- sh
-```
+## Using a K8s hosted zqd to search large logs in the cloud
+This decribes a set of steps to use `zar import` to process large log files that can then be searched with the zqd you just deployed. In order to do this, you will need an EC2 instance in the same region as your EKS cluster. Follow the steps below to set this up.
 
-## Problems with the Docker containers
-Sometime a problem with the container will prevent it from starting in K8s, but you may be able to shell into the container in Docker to trouble-shoot. 
-```
-docker run -it zqd:latest sh
-```
-## Ports in K8s containers
-In order for the kubelet liveness check to work, zqd must be listening on 0.0.0.0:9867. 
-For `kubectl port-forward` to work, zqd must be listening on 127.0.0.1:9867.
-To get this behavior, we set the command line flag `zqd listen -l :9867` -- so it will listen to the socket for all hosts.
+### Setting up an EC2 instance to run zar import
 
-## Building with  Docker directly
-The following command builds and labels the container image:
+Create an EC2 instance in the same region as the S3 buckets you want to access. SSH into the instance, and:
 ```
-DOCKER_BUILDKIT=1 docker build --pull --rm \
-  -t "zqd:latest" -t "localhost:5000/zqd:latest" .
+# provide your credentials
+aws configure
+# make sure you can see the S3 buckets
+aws s3 ls
+# install golang tools from https://golang.org/dl/
+wget https://golang.org/dl/go1.14.7.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.14.7.linux-amd64.tar.gz
+echo "export PATH=$PATH:/usr/local/go/bin" >> ~/.bash_profile
+source ~/.bash_profile
+go version  # make sure go is there!
+# install git, clone and install zq
+sudo yum install git -y
+git clone https://github.com/brimsec/zq
+cd zq
+make install
+~/go/bin/zar help  # make sure zar is built!
 ```
-Notice this adds a tags for loading the image into the local docker registry created by `kind-with-registry.sh.` To load the image into the registry:
+Now you have an environment where you can run zar and it can operate on data in S3 with good bandwidth. You can update it as needed with:
 ```
-docker push "localhost:5000/zqd:latest"
+cd zq
+git pull
+make install
 ```
-This copies the image into a Docker registry that is accessed by your single-node Kubernetes cluster for Kind.
+You may want to use an SSD for $TMPDIR for zar import where the sort can spill to disk. Consider this if zar runs out of space for sorting.
 
-## Redeploy with helm
-If you make a change to the helm templates, you generally will want to uninstall/reinstall zqd.
+First use `lsblk` to find an SSD device, then mount it similarly to the following example:
 ```
-helm uninstall zqd-test-1
-helm install zqd-test-1 charts/zqd
-```
-To check if the AWS env vars are present in the deployment, these commands are helpful:
-```
-kubectl get deploy
-kubectl describe deploy zqd-test-1
-kubectl get deploy zqd-test-1 -oyaml
+lsblk  # look for a free device, e.g. nvme1n1
+sudo mkfs -t xfs /dev/nvme1n1
+sudo mkdir /data
+sudo mount /dev/nvme1n1 /data
+df  # Verify that /data is mounted
+sudo chown ec2-user /data  # so zar can write to it
+echo "export TMPDIR=/data" >> ~/.bash_profile
+source ~/.bash_profile
 ```
 
-## Using zqd with zapi
-This is a walk-through of a local test before testing on our k8s cluster. This is outside the k8s cluster to get familiar with trouble-shooting.
+### Using zar import for large S3 logs
+In the following examples, we import some log files that are already present in S3 in zeek format, and create a local archive for use by zqd. The following commands should be run on an ec2 instance in the same region as your EKS cluster:
+```
+# this is a 7 MB log -- takes a few seconds
+time ~/go/bin/zar import -R s3://zqd-demo-1/mark/zeek-logs/dpd s3://brim-sampledata/wrccdc/zeek-logs/dpd.log.gz
 
-As a prerequisite, you must have an S3 bucket and directory available for zqd. In the S3 console, or at the command line, create a 'datauri' for use with zqd. This directory will hold metadata for the spaces you will create with zapi.
+# and a 267 MB log -- takes a few minutes
+time ~/go/bin/zar import -R s3://zqd-demo-1/mark/zeek-logs/dns s3://brim-sampledata/wrccdc/zeek-logs/dns.log.gz
 
-You will need AWS credentials. On your local machine you can use `aws configure` and then you must set the environment variable, `AWS_SDK_LOAD_CONFIG=true`. Within Kubernetes, we will need to handle AWS credentials with secrets. More on that later.
+# and a 14 GB log -- takes about two hours, and will fail without TMPDIR space
+time ~/go/bin/zar import -R s3://zqd-demo-1/mark/zeek-logs/conn s3://brim-sampledata/wrccdc/zeek-logs/conn.log.gz
+```
+Assuming you have an EKS cluster set up as described above, with the port-forward in effect,  you can use zapi to create "spaces" for Brim:
+```
+zapi new -k archivestore -d s3://zqd-demo-1/mark/zeek-logs/dpd dpd-space
+zapi new -k archivestore -d s3://zqd-demo-1/mark/zeek-logs/dns dns-space
+zapi new -k archivestore -d s3://zqd-demo-1/mark/zeek-logs/conn conn-space
+```
 
-Here is an example of creating a datauri, using an s3 bucket called `brim-scratch` in a directory called `mark` (change the s3 buckets for your setup.)
-```
-aws s3 ls # make sure the bucket exists!
-zqd listen -data s3://brim-scratch/mark/zqd-meta
-```
-zqd will stay running in that console, listening at `localhost:9867` by default.
-zqd will not create any s3 objects in zqd-meta until we issue a zapi command. Before using zapi, we use `zar import` in another console to copy sample data from our zq repo into s3:
-```
-zar import -R s3://brim-scratch/mark/sample-http-zng zq-sample-data/zng/http.zng.gz
-```
-This creates zng files in an s3 directory called `sample-http-zng` that we will use from zapi. To check what zar created:
-```
-aws s3 ls brim-scratch/mark --recursive
-```
-Now use zapi to make the zar data available to your running zqd instance. Note that zapi defaults to `localhost:9867` for connecting to zqd.
-```
-zapi new -k archivestore -d s3://brim-scratch/mark/sample-http-zng http-space-1
-```
-The `-d` parameter provides the same s3 dir that we used in the `-R` parameter of the zar command above. This command creates a new space for zqd called `http-space-1`. If we again list the s3 directories with `aws s3 ls brim-scratch/mark --recursive` we will see that zqd has now created a new object under its datauri, a directory name that is a base64 string prefixed with "sp_1g0".
+Now you can run Brim, and it will use the same local:9867 port used by zapi. You will see the three spaces you just created, dpd-space, dns-space, and conn-space.
 
-Now that you have a zqd running with a space, and you have made an archive from zar data, you can use zapi commands to query the sample data. Example:
-```
-zapi -s http-space-1 get "head 1"
-zapi -s http-space-1 get "tail 1"
-```
-The zapi commands in quotes are the same as Brim queries. Notice that "head 1" runs much faster than "tail 1", which has to read more data from s3.
+### Observing resource usage in Grafana
 
-## Deploy zqd into the local cluster with helm
-The helm 3 chart is in k8s/charts/zqd. To install zqd with the helm chart:
-```
-helm upgrade zqd-test-1 charts/zqd --install
-```
-This will install the chart if it is not yet present, or upgrade it to latest if it is installed. (The helm chart adds a timestamp as an annotation to the deployment, so it will always restart the pods.)
+You can run `linkerd dashboard &` to get to a Grafana dashboard for zqd. `k8s/ports.sh` also includes `linkerd dashboard &`.
 
-You can confirm the pod has started with:
-```
-kubectl get pod
-```
-And view Helm installs with:
-```
-helm ls
-```
-## Testing connectivity to zqd
-A simple test for zqd is to send a /status request to its http endpoint. This is used for the K8s liveness probe. Substitute the pod id into a port-forward command:
+See above, at "Step 4: A Grafana dashboard for zqd". Those instructions work the same for a remote Grafana dashboard.
 
-```
-kubectl get pod
-kubectl port-forward zqd-test-1-66b5f9dc8-8dshh 9867:9867
-```
-And in another console, use curl:
-```
-curl -v http://localhost:9867/status
-```
-You should get an 'ok' response.
+## Tear-down
+Using the AWS console is the most convenient way to delete your EKS cluster, since you will want to double-check to make sure it is not running after you are done.
+
+When you want to delete the EKS cluster, you must first delete the nodegroup. This will take a few minutes.
 
 
-# Tearing down the environment
-
-Later, when you no longer need the cluster, you can remove it with:
-```
-kind delete cluster --name zq-local
-```
+## [Trouble shooting](troubleshooting.md)
 
