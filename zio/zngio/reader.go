@@ -1,7 +1,6 @@
 package zngio
 
 import (
-	"bytes"
 	"context"
 	"encoding/binary"
 	"errors"
@@ -26,8 +25,7 @@ const (
 type Reader struct {
 	peeker          *peeker.Reader
 	peekerOffset    int64 // never points inside a compressed value message block
-	uncompressed    *bytes.Buffer
-	uncompressedBuf []byte
+	uncompressedBuf *buffer
 	// shared/output context
 	sctx *resolver.Context
 	// internal context implied by zng file
@@ -110,7 +108,7 @@ func (r *Reader) ReadPayload() (*zng.Record, []byte, error) {
 		// XXX we should return the control code
 		return nil, buf, nil
 	}
-	rec, err := r.parseValue(id, buf)
+	rec, err := r.parseValue(nil, id, buf)
 	return rec, nil, err
 }
 
@@ -126,7 +124,7 @@ again:
 	}
 	code := b[0]
 	if code&0x80 != 0 {
-		if r.uncompressed != nil {
+		if r.uncompressedBuf != nil && r.uncompressedBuf.length() > 0 {
 			return 0, nil, errors.New("zngio: control message in compressed value message block")
 		}
 		switch code {
@@ -146,7 +144,7 @@ again:
 			if err := r.readCompressed(); err != nil {
 				return 0, nil, err
 			}
-			return -zng.CtrlCompressed, r.uncompressed.Bytes(), nil
+			return -zng.CtrlCompressed, r.uncompressedBuf.Bytes(), nil
 		default:
 			len, err := r.readUvarint()
 			if err != nil {
@@ -184,16 +182,13 @@ again:
 
 // read returns an error if fewer than n bytes are available.
 func (r *Reader) read(n int) ([]byte, error) {
-	if r.uncompressed != nil {
+	if r.uncompressedBuf != nil && r.uncompressedBuf.length() > 0 {
 		if n > MaxSize {
 			return nil, errors.New("zngio: read exceeds MaxSize")
 		}
-		buf := r.uncompressed.Next(n)
+		buf := r.uncompressedBuf.next(n)
 		if len(buf) < n {
 			return nil, errors.New("zngio: short read")
-		}
-		if r.uncompressed.Len() == 0 {
-			r.uncompressed = nil
 		}
 		return buf, nil
 	}
@@ -225,18 +220,15 @@ func (r *Reader) readCompressed() error {
 	if err != nil {
 		return err
 	}
-	if cap(r.uncompressedBuf) < uncompressedLen {
-		r.uncompressedBuf = make([]byte, uncompressedLen)
-	}
-	ubuf := r.uncompressedBuf[:uncompressedLen]
-	n, err := lz4.UncompressBlock(zbuf, ubuf)
+	ubuf := newBuffer(uncompressedLen)
+	n, err := lz4.UncompressBlock(zbuf, ubuf.Bytes())
 	if err != nil {
 		return fmt.Errorf("zngio: %w", err)
 	}
 	if n != uncompressedLen {
 		return fmt.Errorf("zngio: got %d uncompressed bytes, expected %d", n, uncompressedLen)
 	}
-	r.uncompressed = bytes.NewBuffer(ubuf)
+	r.uncompressedBuf = ubuf
 	return nil
 }
 
@@ -247,12 +239,8 @@ func (r *Reader) readUvarint() (int, error) {
 
 // ReadByte implements io.ByteReader.ReadByte.
 func (r *Reader) ReadByte() (byte, error) {
-	if r.uncompressed != nil {
-		b, err := r.uncompressed.ReadByte()
-		if r.uncompressed.Len() == 0 {
-			r.uncompressed = nil
-		}
-		return b, err
+	if r.uncompressedBuf != nil && r.uncompressedBuf.length() > 0 {
+		return r.uncompressedBuf.ReadByte()
 	}
 	b, err := r.peeker.ReadByte()
 	if err == nil {
@@ -385,7 +373,7 @@ func (r *Reader) readTypeAlias() error {
 	return nil
 }
 
-func (r *Reader) parseValue(id int, b []byte) (*zng.Record, error) {
+func (r *Reader) parseValue(rec *zng.Record, id int, b []byte) (*zng.Record, error) {
 	typ := r.zctx.Lookup(id)
 	if typ == nil {
 		return nil, zng.ErrDescriptorInvalid
@@ -398,7 +386,11 @@ func (r *Reader) parseValue(id int, b []byte) (*zng.Record, error) {
 			return nil, err
 		}
 	}
-	rec := zng.NewVolatileRecord(sharedType, b)
+	if rec == nil {
+		rec = zng.NewVolatileRecord(sharedType, b)
+	} else {
+		*rec = *zng.NewVolatileRecord(sharedType, b)
+	}
 	if err := rec.TypeCheck(); err != nil {
 		return nil, err
 	}
