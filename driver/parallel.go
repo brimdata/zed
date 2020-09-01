@@ -13,7 +13,7 @@ import (
 )
 
 type parallelHead struct {
-	ctx    *proc.Context
+	pctx   *proc.Context
 	parent proc.Interface
 	once   sync.Once
 	pg     *parallelGroup
@@ -23,7 +23,7 @@ type parallelHead struct {
 }
 
 func (ph *parallelHead) closeOnDone() {
-	<-ph.ctx.Done()
+	<-ph.pctx.Done()
 	ph.mu.Lock()
 	if ph.sc != nil {
 		ph.sc.Close()
@@ -77,10 +77,10 @@ func (ph *parallelHead) Done() {
 }
 
 type parallelGroup struct {
+	pctx       *proc.Context
 	filter     SourceFilter
 	msrc       MultiSource
 	once       sync.Once
-	pctx       *proc.Context
 	sourceChan chan SourceOpener
 	sourceErr  error
 
@@ -166,20 +166,20 @@ func createParallelGroup(pctx *proc.Context, filterExpr ast.BooleanExpr, msrc Mu
 		}
 	}
 	pg := &parallelGroup{
+		pctx: pctx,
 		filter: SourceFilter{
 			Filter:     filt,
 			FilterExpr: filterExpr,
 			Span:       mcfg.Span,
 		},
 		msrc:       msrc,
-		pctx:       pctx,
 		sourceChan: make(chan SourceOpener),
 		scanners:   make(map[scanner.Scanner]struct{}),
 	}
 
 	sources := make([]proc.Interface, mcfg.Parallelism)
 	for i := range sources {
-		sources[i] = &parallelHead{ctx: pctx, parent: nil, pg: pg}
+		sources[i] = &parallelHead{pctx: pctx, parent: nil, pg: pg}
 	}
 	return sources, pg, nil
 }

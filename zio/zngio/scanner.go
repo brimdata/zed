@@ -18,8 +18,9 @@ import (
 type zngScanner struct {
 	ctx          context.Context
 	reader       *Reader
-	filter       filter.Filter
 	bufferFilter *filter.BufferFilter
+	filter       filter.Filter
+	rec          zng.Record // Used to reduce memory allocations.
 	span         nano.Span
 	stats        scanner.ScannerStats
 }
@@ -41,63 +42,69 @@ func (s *zngScanner) Pull() (zbuf.Batch, error) {
 				// Discard everything else.
 				continue
 			}
-			recs, err := s.scanUncompressed()
+			batch, err := s.scanUncompressed()
 			if err != nil {
 				return nil, err
 			}
-			if len(recs) == 0 {
+			if batch == nil {
 				continue
 			}
-			return zbuf.NewArray(recs), nil
+			return batch, nil
 		}
-		rec, err := s.scanOne(id, buf)
+		rec, err := s.scanOne(&s.rec, id, buf)
 		if err != nil {
 			return nil, err
 		}
 		if rec != nil {
-			return zbuf.NewArray([]*zng.Record{rec}), nil
+			rec.CopyBody()
+			batch := newBatch(nil)
+			batch.add(rec)
+			return batch, nil
 		}
 	}
 }
 
-func (s *zngScanner) scanUncompressed() ([]*zng.Record, error) {
-	uncompressed := s.reader.uncompressed
-	if s.bufferFilter != nil && !s.bufferFilter.Eval(s.reader.zctx, uncompressed.Bytes()) {
-		// s.bufferFilter evaluated to false, so we know
-		// s.reader.uncompressed cannot contain records matching
-		// s.filter.
-		atomic.AddInt64(&s.stats.BytesRead, int64(uncompressed.Len()))
-		s.reader.uncompressed = nil
+func (s *zngScanner) scanUncompressed() (zbuf.Batch, error) {
+	ubuf := s.reader.uncompressedBuf
+	s.reader.uncompressedBuf = nil
+	if s.bufferFilter != nil && !s.bufferFilter.Eval(s.reader.zctx, ubuf.Bytes()) {
+		// s.bufferFilter evaluated to false, so we know ubuf cannot
+		// contain records matching s.filter.
+		atomic.AddInt64(&s.stats.BytesRead, int64(ubuf.length()))
+		ubuf.free()
 		return nil, nil
 	}
-	var recs []*zng.Record
-	for uncompressed.Len() > 0 {
-		id, err := readUvarint7(uncompressed)
+	batch := newBatch(ubuf)
+	for ubuf.length() > 0 {
+		id, err := readUvarint7(ubuf)
 		if err != nil {
 			return nil, err
 		}
-		length, err := binary.ReadUvarint(uncompressed)
+		length, err := binary.ReadUvarint(ubuf)
 		if err != nil {
 			return nil, err
 		}
-		raw := uncompressed.Next(int(length))
+		raw := ubuf.next(int(length))
 		if len(raw) < int(length) {
 			return nil, errors.New("zngio: short read")
 		}
-		rec, err := s.scanOne(id, raw)
+		rec, err := s.scanOne(&s.rec, id, raw)
 		if err != nil {
 			return nil, err
 		}
 		if rec != nil {
-			recs = append(recs, rec)
+			batch.add(rec)
 		}
 	}
-	s.reader.uncompressed = nil
-	return recs, nil
+	if batch.Length() == 0 {
+		batch.Unref()
+		return nil, nil
+	}
+	return batch, nil
 }
 
-func (s *zngScanner) scanOne(id int, buf []byte) (*zng.Record, error) {
-	rec, err := s.reader.parseValue(id, buf)
+func (s *zngScanner) scanOne(rec *zng.Record, id int, buf []byte) (*zng.Record, error) {
+	rec, err := s.reader.parseValue(rec, id, buf)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +116,6 @@ func (s *zngScanner) scanOne(id int, buf []byte) (*zng.Record, error) {
 	}
 	atomic.AddInt64(&s.stats.BytesMatched, int64(len(rec.Raw)))
 	atomic.AddInt64(&s.stats.RecordsMatched, 1)
-	rec.CopyBody()
 	return rec, nil
 }
 

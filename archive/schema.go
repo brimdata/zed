@@ -37,8 +37,9 @@ func (l LogID) Path(ark *Archive) iosrc.URI {
 }
 
 type SpanInfo struct {
-	Span  nano.Span `json:"span"`
-	LogID LogID     `json:"log_id"`
+	Span        nano.Span `json:"span"`
+	LogID       LogID     `json:"log_id"`
+	RecordCount int       `json:"record_count"`
 }
 
 type IndexInfo struct {

@@ -9,6 +9,7 @@ import (
 	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqd/storage/archivestore"
 	"github.com/brimsec/zq/zqe"
+	"go.uber.org/zap"
 )
 
 type archiveSpace struct {
@@ -98,8 +99,9 @@ func (s *archiveSpace) CreateSubspace(req api.SubspacePostRequest) (*archiveSubs
 		return nil, err
 	}
 
+	logger := s.logger.With(zap.String("space_id", string(subcfg.ID)))
 	return &archiveSubspace{
-		spaceBase: spaceBase{subcfg.ID, substore, nil, newGuard()},
+		spaceBase: spaceBase{subcfg.ID, substore, nil, newGuard(), logger},
 		parent:    s,
 	}, nil
 }

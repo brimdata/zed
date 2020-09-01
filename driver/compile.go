@@ -440,6 +440,16 @@ func decomposable(rs []ast.Reducer) bool {
 // into N parallel branches. The boolean return argument indicates
 // whether the flowgraph could be parallelized.
 func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string, inputSortReversed bool) (*ast.SequentialProc, bool) {
+	orderSensitiveTail := true
+	for i := range seq.Procs {
+		switch seq.Procs[i].(type) {
+		case *ast.SortProc, *ast.GroupByProc:
+			orderSensitiveTail = false
+			break
+		default:
+			continue
+		}
+	}
 	for i := range seq.Procs {
 		switch p := seq.Procs[i].(type) {
 		case *ast.FilterProc, *ast.PassProc:
@@ -447,7 +457,7 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string,
 			// which point we'll either split the flowgraph or see we can't and return it as-is.
 			continue
 		case *ast.CutProc:
-			if inputSortField == "" {
+			if inputSortField == "" || !orderSensitiveTail {
 				continue
 			}
 			if p.Complement {
@@ -471,7 +481,7 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string,
 				return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
 			}
 		case *ast.PutProc:
-			if inputSortField == "" {
+			if inputSortField == "" || !orderSensitiveTail {
 				continue
 			}
 			for _, c := range p.Clauses {
@@ -481,7 +491,7 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string,
 			}
 			continue
 		case *ast.RenameProc:
-			if inputSortField == "" {
+			if inputSortField == "" || !orderSensitiveTail {
 				continue
 			}
 			for _, f := range p.Fields {
@@ -519,7 +529,14 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string,
 			}
 		case *ast.ParallelProc:
 			return seq, false
-		case *ast.UniqProc, *ast.HeadProc, *ast.TailProc:
+		case *ast.HeadProc, *ast.TailProc:
+			if inputSortField == "" {
+				// Unknown order: we can't parallelize because we can't maintain this unknown order at the merge point.
+				return seq, false
+			}
+			// put one head/tail on each parallel branch and one after the merge.
+			return buildSplitFlowgraph(seq.Procs[0:i+1], seq.Procs[i:], inputSortField, inputSortReversed, N), true
+		case *ast.UniqProc:
 			if inputSortField == "" {
 				// Unknown order: we can't parallelize because we can't maintain this unknown order at the merge point.
 				return seq, false

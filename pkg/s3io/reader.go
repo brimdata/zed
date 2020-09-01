@@ -7,15 +7,16 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
 type Reader struct {
-	downloader *s3manager.Downloader
-	bucket     string
-	key        string
-	size       int64
-	offset     int64
+	client *s3.S3
+	bucket string
+	key    string
+	size   int64
+
+	offset int64
+	body   io.ReadCloser
 }
 
 func NewReader(path string, cfg *aws.Config) (*Reader, error) {
@@ -27,13 +28,11 @@ func NewReader(path string, cfg *aws.Config) (*Reader, error) {
 	if err != nil {
 		return nil, err
 	}
-	client := newClient(cfg)
-	downloader := s3manager.NewDownloaderWithClient(client)
 	return &Reader{
-		downloader: downloader,
-		bucket:     bucket,
-		key:        key,
-		size:       *info.ContentLength,
+		client: newClient(cfg),
+		bucket: bucket,
+		key:    key,
+		size:   *info.ContentLength,
 	}, nil
 }
 
@@ -50,49 +49,75 @@ func (r *Reader) Seek(offset int64, whence int) (int64, error) {
 	if offset < 0 {
 		return 0, errors.New("s3io.Reader.Seek: negative position")
 	}
-	r.offset = offset
-	return offset, nil
-}
-
-func bytesRange(off int64, len int) string {
-	return fmt.Sprintf("bytes=%d-%d", off, off+int64(len)-1)
-}
-
-type writeAtBuf []byte
-
-func (w writeAtBuf) WriteAt(p []byte, off int64) (int, error) {
-	n := copy(w[off:], p)
-	if n < len(p) {
-		return n, errors.New("s3io: short write")
+	if offset == r.offset {
+		return offset, nil
 	}
-	return n, nil
+	r.offset = offset
+	if r.body != nil {
+		r.body.Close()
+		r.body = nil
+	}
+	return r.offset, nil
 }
 
 func (r *Reader) Read(p []byte) (int, error) {
 	if r.offset >= r.size {
 		return 0, io.EOF
 	}
-	return r.ReadAt(p, r.offset)
+	if r.body == nil {
+		body, err := r.makeRequest(r.offset, r.size-r.offset)
+		if err != nil {
+			return 0, err
+		}
+		r.body = body
+	}
+	n, err := r.body.Read(p)
+	if err == io.EOF {
+		err = nil
+	}
+	if err == nil {
+		r.offset += int64(n)
+	}
+	return n, err
 }
 
 func (r *Reader) ReadAt(p []byte, off int64) (int, error) {
 	if len(p) == 0 {
 		return 0, nil
 	}
-	getObj := &s3.GetObjectInput{
-		Bucket: aws.String(r.bucket),
-		Key:    aws.String(r.key),
-		Range:  aws.String(bytesRange(off, len(p))),
+	if off >= r.size {
+		return 0, io.EOF
 	}
-	bytesDownloaded, err := r.downloader.Download(writeAtBuf(p), getObj)
+	count := int64(len(p))
+	if off+count >= r.size {
+		count = r.size - off
+	}
+	b, err := r.makeRequest(off, count)
 	if err != nil {
 		return 0, err
 	}
-	r.offset = off + bytesDownloaded
-
-	return int(bytesDownloaded), err
+	defer b.Close()
+	return io.ReadAtLeast(b, p, int(count))
 }
 
 func (r *Reader) Close() error {
-	return nil
+	var err error
+	if r.body != nil {
+		err = r.body.Close()
+		r.body = nil
+	}
+	return err
+}
+
+func (r *Reader) makeRequest(off int64, count int64) (io.ReadCloser, error) {
+	input := &s3.GetObjectInput{
+		Bucket: aws.String(r.bucket),
+		Key:    aws.String(r.key),
+		Range:  aws.String(fmt.Sprintf("bytes=%d-%d", off, off+count-1)),
+	}
+	res, err := r.client.GetObject(input)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
 }

@@ -38,14 +38,14 @@ func isContainerProc(node ast.Proc) bool {
 // Compile compiles an AST into a graph of Procs, and returns
 // the leaves.  A custom proc compiler can be included and it will be tried first
 // for each node encountered during the compilation.
-func Compile(custom Hook, node ast.Proc, ctx *proc.Context, parents []proc.Interface) ([]proc.Interface, error) {
+func Compile(custom Hook, node ast.Proc, pctx *proc.Context, parents []proc.Interface) ([]proc.Interface, error) {
 	if !isContainerProc(node) && len(parents) != 1 {
 		return nil, fmt.Errorf("proc.CompileProc: expected single parent for node %T, got %d", node, len(parents))
 	}
 	parent := parents[0]
 
 	if custom != nil {
-		p, err := custom(node, ctx, parent)
+		p, err := custom(node, pctx, parent)
 		if err != nil {
 			return nil, err
 		}
@@ -56,21 +56,21 @@ func Compile(custom Hook, node ast.Proc, ctx *proc.Context, parents []proc.Inter
 	switch v := node.(type) {
 
 	case *ast.GroupByProc:
-		params, err := groupby.CompileParams(v, ctx.TypeContext)
+		params, err := groupby.CompileParams(v, pctx.TypeContext)
 		if err != nil {
 			return nil, err
 		}
-		return []proc.Interface{groupby.New(ctx, parent, *params)}, nil
+		return []proc.Interface{groupby.New(pctx, parent, *params)}, nil
 
 	case *ast.CutProc:
-		cut, err := cut.New(ctx, parent, v)
+		cut, err := cut.New(pctx, parent, v)
 		if err != nil {
 			return nil, err
 		}
 		return []proc.Interface{cut}, nil
 
 	case *ast.SortProc:
-		sort, err := sort.New(ctx, parent, v)
+		sort, err := sort.New(pctx, parent, v)
 		if err != nil {
 			return nil, fmt.Errorf("compiling sort: %w", err)
 		}
@@ -91,7 +91,7 @@ func Compile(custom Hook, node ast.Proc, ctx *proc.Context, parents []proc.Inter
 		return []proc.Interface{tail.New(parent, limit)}, nil
 
 	case *ast.UniqProc:
-		return []proc.Interface{uniq.New(ctx, parent, v.Cflag)}, nil
+		return []proc.Interface{uniq.New(pctx, parent, v.Cflag)}, nil
 
 	case *ast.PassProc:
 		return []proc.Interface{pass.New(parent)}, nil
@@ -111,14 +111,14 @@ func Compile(custom Hook, node ast.Proc, ctx *proc.Context, parents []proc.Inter
 		return []proc.Interface{top.New(parent, v.Limit, fields, v.Flush)}, nil
 
 	case *ast.PutProc:
-		put, err := put.New(ctx, parent, v)
+		put, err := put.New(pctx, parent, v)
 		if err != nil {
 			return nil, err
 		}
 		return []proc.Interface{put}, nil
 
 	case *ast.RenameProc:
-		rename, err := rename.New(ctx, parent, v)
+		rename, err := rename.New(pctx, parent, v)
 		if err != nil {
 			return nil, err
 		}
@@ -128,7 +128,7 @@ func Compile(custom Hook, node ast.Proc, ctx *proc.Context, parents []proc.Inter
 		var err error
 		n := len(v.Procs)
 		for k := 0; k < n; k++ {
-			parents, err = Compile(custom, v.Procs[k], ctx, parents)
+			parents, err = Compile(custom, v.Procs[k], pctx, parents)
 			if err != nil {
 				return nil, err
 			}
@@ -138,9 +138,9 @@ func Compile(custom Hook, node ast.Proc, ctx *proc.Context, parents []proc.Inter
 			if len(parents) > 1 && k < n-1 {
 				p := v.Procs[k].(*ast.ParallelProc)
 				if p.MergeOrderField != "" {
-					parents = []proc.Interface{orderedmerge.New(ctx, parents, p.MergeOrderField, p.MergeOrderReverse)}
+					parents = []proc.Interface{orderedmerge.New(pctx, parents, p.MergeOrderField, p.MergeOrderReverse)}
 				} else {
-					parents = []proc.Interface{merge.New(ctx, parents)}
+					parents = []proc.Interface{merge.New(pctx, parents)}
 				}
 			} else {
 				parent = parents[0]
@@ -149,7 +149,7 @@ func Compile(custom Hook, node ast.Proc, ctx *proc.Context, parents []proc.Inter
 		return parents, nil
 
 	case *ast.ParallelProc:
-		return CompileParallel(custom, v, ctx, parents)
+		return CompileParallel(custom, v, pctx, parents)
 
 	default:
 		return nil, fmt.Errorf("unknown AST type: %v", v)
