@@ -100,7 +100,7 @@ func (r *Reader) parseValues(typ *zng.TypeRecord, v interface{}) (*zng.Record, e
 		//XXX need better error here... this won't make much sense
 		return nil, err
 	}
-	return zng.NewRecord(typ, zv), nil
+	return zng.NewRecordCheck(typ, zv)
 }
 
 func (r *Reader) parseAliases(aliases []Alias) error {

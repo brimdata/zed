@@ -144,5 +144,5 @@ again:
 	if err != nil {
 		return nil, err
 	}
-	return zng.NewRecord(outType, zv.Bytes), nil
+	return zng.NewRecordCheck(outType, zv.Bytes)
 }

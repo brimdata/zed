@@ -55,7 +55,7 @@ func NewReaderWithConfig(r io.Reader, zctx *resolver.Context, path string, cfg O
 
 	zngErr := match(zngio.NewReader(track, resolver.NewContext()), "zng")
 	if zngErr == nil {
-		return zngio.NewReader(recorder, zctx), nil
+		return zngio.NewReaderWithOpts(recorder, zctx, zngio.ReaderOpts{Check: cfg.ZngCheck}), nil
 	}
 	parquetErr := errors.New("parquet: auto-detection not supported")
 	return nil, joinErrs([]error{tzngErr, zeekErr, ndjsonErr, zjsonErr, zngErr, parquetErr})

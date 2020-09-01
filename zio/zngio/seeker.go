@@ -17,7 +17,7 @@ func NewSeeker(s io.ReadSeeker, zctx *resolver.Context) *Seeker {
 
 func NewSeekerWithSize(s io.ReadSeeker, zctx *resolver.Context, framesize int) *Seeker {
 	return &Seeker{
-		Reader: *NewReaderWithSize(s, zctx, framesize),
+		Reader: *NewReaderWithOpts(s, zctx, ReaderOpts{Size: framesize}),
 		seeker: s,
 	}
 }
