@@ -2,18 +2,19 @@ package filter
 
 import (
 	"encoding/binary"
-	"fmt"
 
+	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
 type fieldNameFinder struct {
+	fieldNameIter    fieldNameIter
 	stringCaseFinder *stringCaseFinder
 }
 
 func newFieldNameFinder(pattern string) *fieldNameFinder {
-	return &fieldNameFinder{makeStringCaseFinder(pattern)}
+	return &fieldNameFinder{stringCaseFinder: makeStringCaseFinder(pattern)}
 }
 
 // find returns true if buf may contain a record with a field whose
@@ -51,8 +52,9 @@ func (f *fieldNameFinder) find(zctx *resolver.Context, buf []byte) bool {
 		if !ok {
 			return true
 		}
-		for it := newFieldNameIter(tr); !it.done(); {
-			if f.stringCaseFinder.next(it.next()) != -1 {
+		for f.fieldNameIter.init(tr); !f.fieldNameIter.done(); {
+			name := f.fieldNameIter.next()
+			if f.stringCaseFinder.next(byteconv.UnsafeString(name)) != -1 {
 				return true
 			}
 		}
@@ -61,50 +63,48 @@ func (f *fieldNameFinder) find(zctx *resolver.Context, buf []byte) bool {
 }
 
 type fieldNameIter struct {
+	buf   []byte
 	stack []fieldNameIterInfo
 }
 
 type fieldNameIterInfo struct {
-	typ      *zng.TypeRecord
-	offset   int
-	fullname string
+	columns []zng.Column
+	offset  int
 }
 
-func newFieldNameIter(t *zng.TypeRecord) *fieldNameIter {
-	return &fieldNameIter{[]fieldNameIterInfo{{t, 0, ""}}}
+func (f *fieldNameIter) init(t *zng.TypeRecord) {
+	f.buf = f.buf[:0]
+	f.stack = append(f.stack[:0], fieldNameIterInfo{t.Columns, 0})
 }
 
 func (f *fieldNameIter) done() bool {
 	return len(f.stack) == 0
 }
 
-func (f *fieldNameIter) next() string {
-	info := &f.stack[len(f.stack)-1]
-	col := info.typ.Columns[info.offset]
-	name := col.Name
-	if len(info.fullname) > 0 {
-		name = info.fullname + "." + name
-	}
+func (f *fieldNameIter) next() []byte {
 	// Step into records.
 	for {
-		recType, ok := zng.AliasedType(col.Type).(*zng.TypeRecord)
+		info := &f.stack[len(f.stack)-1]
+		col := info.columns[info.offset]
+		f.buf = append(f.buf, "."+col.Name...)
+		t, ok := zng.AliasedType(col.Type).(*zng.TypeRecord)
 		if !ok {
 			break
 		}
-		f.stack = append(f.stack, fieldNameIterInfo{recType, 0, name})
-		info = &f.stack[len(f.stack)-1]
-		col = recType.Columns[0]
-		name = fmt.Sprintf("%s.%s", name, col.Name)
+		f.stack = append(f.stack, fieldNameIterInfo{t.Columns, 0})
 	}
+	// Skip leading dot.
+	name := f.buf[1:]
 	// Advance our position and step out of records.
-	info.offset++
-	for info.offset >= len(info.typ.Columns) {
-		f.stack = f.stack[:len(f.stack)-1]
-		if len(f.stack) == 0 {
+	for len(f.stack) > 0 {
+		info := &f.stack[len(f.stack)-1]
+		col := info.columns[info.offset]
+		f.buf = f.buf[:len(f.buf)-len(col.Name)-1]
+		info.offset++
+		if info.offset < len(info.columns) {
 			break
 		}
-		info = &f.stack[len(f.stack)-1]
-		info.offset++
+		f.stack = f.stack[:len(f.stack)-1]
 	}
 	return name
 }
