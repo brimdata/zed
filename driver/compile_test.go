@@ -39,6 +39,10 @@ func TestComputeColumns(t *testing.T) {
 			[]string{},
 		},
 		{
+			"tail | count()",
+			[]string{},
+		},
+		{
 			"count(y) by x",
 			[]string{"x", "y"},
 		},
@@ -212,6 +216,18 @@ func TestParallelizeFlowgraph(t *testing.T) {
 			"ts",
 		},
 		{
+			"* | put ts=foo | rename foo=boo | count()",
+			"ts",
+			"(filter * | put ts=foo | rename foo=boo | count(); filter * | put ts=foo | rename foo=boo | count()) | count()",
+			"",
+		},
+		{
+			"* | put ts=foo | rename foo=boo | sort",
+			"ts",
+			"(filter * | put ts=foo | rename foo=boo; filter * | put ts=foo | rename foo=boo) | sort",
+			"",
+		},
+		{
 			"* | put x=foo | rename foo=boo | uniq",
 			"ts",
 			"(filter * | put x=foo | rename foo=boo; filter * | put x=foo | rename foo=boo) | uniq",
@@ -307,4 +323,39 @@ func TestParallelizeFlowgraph(t *testing.T) {
 
 		assert.Equal(t, expected.(*ast.SequentialProc), parallelized)
 	})
+}
+
+func TestSetGroupByProcInputSortDir(t *testing.T) {
+	tests := []struct {
+		zql            string
+		inputSortField string
+		groupbySortDir int
+		outputSorted   bool
+	}{
+		{
+			"* | every 1h count()",
+			"ts",
+			1,
+			true,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.zql, func(t *testing.T) {
+			query, err := zql.ParseProc(tc.zql)
+			require.NoError(t, err)
+			ReplaceGroupByProcDurationWithKey(query)
+			outputSorted := setGroupByProcInputSortDir(query, tc.inputSortField, 1)
+			require.Equal(t, tc.outputSorted, outputSorted)
+
+			var found bool
+			for _, b := range query.(*ast.SequentialProc).Procs {
+				if gbp, ok := b.(*ast.GroupByProc); ok {
+					require.Equal(t, tc.groupbySortDir, gbp.InputSortDir)
+					found = true
+					break
+				}
+			}
+			require.True(t, found)
+		})
+	}
 }
