@@ -335,7 +335,7 @@ make install
 ```
 You may want to use an SSD for $TMPDIR for zar import where the sort can spill to disk. Consider this if zar runs out of space for sorting.
 
-First use `lsblk` to find an SSD device, then mount it similarly to the followinf example:
+First use `lsblk` to find an SSD device, then mount it similarly to the following example:
 ```
 lsblk  # look for a free device, e.g. nvme1n1
 sudo mkfs -t xfs /dev/nvme1n1
@@ -356,7 +356,7 @@ time ~/go/bin/zar import -R s3://zqd-demo-1/mark/zeek-logs/dpd s3://brim-sampled
 # and a 267 MB log -- takes a few minutes
 time ~/go/bin/zar import -R s3://zqd-demo-1/mark/zeek-logs/dns s3://brim-sampledata/wrccdc/zeek-logs/dns.log.gz
 
-# and a 14 GB log -- takes over an hour, and will fail without TMPDIR space
+# and a 14 GB log -- takes about two hours, and will fail without TMPDIR space
 time ~/go/bin/zar import -R s3://zqd-demo-1/mark/zeek-logs/conn s3://brim-sampledata/wrccdc/zeek-logs/conn.log.gz
 ```
 Assuming you have an EKS cluster set up as described above, with the port-forward in effect,  you can use zapi to create "spaces" for Brim:
