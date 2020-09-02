@@ -170,6 +170,9 @@ func TestFilters(t *testing.T) {
 	tzng = `
 #0:record[nested:record[field:string]]
 0:[[test;]]`
+	// We expect false positives from BufferFilter here because it looks for
+	// values without regard to field name, returning true as long as some
+	// field matches the literal to the right of the equal sign.
 	runCasesExpectBufferFilterFalsePositives(t, tzng, []testcase{
 		{"nested.field = test", true},
 		{"bogus.field = test", false},
@@ -253,8 +256,8 @@ func TestFilters(t *testing.T) {
 		{`a = S`, false},
 		{`a = s`, false},
 		{`\u017F`, true},
-		{`S`, false}, // XXX should be true
-		{`s`, false}, // XXX should be true
+		{`S`, false}, // Should be true; see https://github.com/brimsec/zq/issues/1207.
+		{`s`, false}, // Should be true; see https://github.com/brimsec/zq/issues/1207.
 	})
 
 	// Test U+212A KELVIN SIGN.
