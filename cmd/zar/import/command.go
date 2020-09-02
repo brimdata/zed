@@ -87,7 +87,7 @@ func (c *Command) Run(args []string) error {
 		Format: c.ReaderFlags.Format,
 		//JSONTypeConfig: c.jsonTypeConfig,
 		//JSONPathRegex:  c.jsonPathRegexp,
-		ZngCheck: true,
+		ZngCheck: c.ReaderFlags.ZngCheck,
 	}
 	reader, err := detector.OpenFile(zctx, path, cfg)
 	if err != nil {
