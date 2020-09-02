@@ -102,7 +102,7 @@ func compileKeyExpr(ex ast.Expression) (expr.ExpressionEvaluator, error) {
 
 // GroupBy computes aggregations using an Aggregator.
 type Proc struct {
-	ctx      *proc.Context
+	pctx     *proc.Context
 	parent   proc.Interface
 	agg      *Aggregator
 	once     sync.Once
@@ -225,13 +225,13 @@ func decomposable(rs []compile.CompiledReducer) bool {
 	return true
 }
 
-func New(ctx *proc.Context, parent proc.Interface, params GroupByParams) *Proc {
+func New(pctx *proc.Context, parent proc.Interface, params GroupByParams) *Proc {
 	// XXX in a subsequent PR we will isolate ast params and pass in
 	// ast.GroupByParams
 	return &Proc{
-		ctx:      ctx,
+		pctx:     pctx,
 		parent:   parent,
-		agg:      NewAggregator(ctx, params),
+		agg:      NewAggregator(pctx, params),
 		resultCh: make(chan proc.Result),
 	}
 }
@@ -241,7 +241,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 	if r, ok := <-p.resultCh; ok {
 		return r.Batch, r.Err
 	}
-	return nil, p.ctx.Err()
+	return nil, p.pctx.Err()
 }
 
 func (p *Proc) Done() {
@@ -300,7 +300,7 @@ func (p *Proc) run() {
 func (p *Proc) sendResult(b zbuf.Batch, err error) {
 	select {
 	case p.resultCh <- proc.Result{Batch: b, Err: err}:
-	case <-p.ctx.Done():
+	case <-p.pctx.Done():
 	}
 }
 

@@ -18,7 +18,7 @@ import (
 // types in a same-named field, this proc doesn't support different
 // types, and errors if more than one type is seen.
 type FieldCutter struct {
-	ctx      *proc.Context
+	pctx     *proc.Context
 	parent   proc.Interface
 	builder  *zng.Builder
 	accessor expr.FieldExprResolver
@@ -29,14 +29,14 @@ type FieldCutter struct {
 
 // NewFieldCutter creates a FieldCutter for field fieldName, where the
 // output records' single column is named fieldName.
-func NewFieldCutter(ctx *proc.Context, parent proc.Interface, fieldName, out string) (proc.Interface, error) {
+func NewFieldCutter(pctx *proc.Context, parent proc.Interface, fieldName, out string) (proc.Interface, error) {
 	accessor := expr.CompileFieldAccess(fieldName)
 	if accessor == nil {
 		return nil, fmt.Errorf("bad field syntax: %s", fieldName)
 	}
 
 	return &FieldCutter{
-		ctx:      ctx,
+		pctx:     pctx,
 		parent:   parent,
 		field:    fieldName,
 		out:      out,
@@ -71,7 +71,7 @@ func (f *FieldCutter) Pull() (zbuf.Batch, error) {
 			}
 			if f.builder == nil {
 				cols := []zng.Column{{f.out, val.Type}}
-				rectyp := f.ctx.TypeContext.MustLookupTypeRecord(cols)
+				rectyp := f.pctx.TypeContext.MustLookupTypeRecord(cols)
 				f.builder = zng.NewBuilder(rectyp)
 			}
 			recs = append(recs, f.builder.Build(val.Bytes).Keep())
@@ -105,9 +105,9 @@ type TypeSplitter struct {
 
 // NewTypeSplitter creates a TypeSplitter for type typ, where the
 // output records' single column is named colName.
-func NewTypeSplitter(ctx *proc.Context, parent proc.Interface, typ zng.Type, colName string) (proc.Interface, error) {
+func NewTypeSplitter(pctx *proc.Context, parent proc.Interface, typ zng.Type, colName string) (proc.Interface, error) {
 	cols := []zng.Column{{colName, typ}}
-	rectyp := ctx.TypeContext.MustLookupTypeRecord(cols)
+	rectyp := pctx.TypeContext.MustLookupTypeRecord(cols)
 	builder := zng.NewBuilder(rectyp)
 
 	return &TypeSplitter{
@@ -151,16 +151,16 @@ type typeSplitterNode struct {
 
 func (t *typeSplitterNode) ProcNode() {}
 
-func compile(node ast.Proc, ctx *proc.Context, parent proc.Interface) (proc.Interface, error) {
+func compile(node ast.Proc, pctx *proc.Context, parent proc.Interface) (proc.Interface, error) {
 	switch v := node.(type) {
 	case *fieldCutterNode:
-		return NewFieldCutter(ctx, parent, v.field, v.out)
+		return NewFieldCutter(pctx, parent, v.field, v.out)
 	case *typeSplitterNode:
-		typ, err := ctx.TypeContext.LookupByName(v.typeName)
+		typ, err := pctx.TypeContext.LookupByName(v.typeName)
 		if err != nil {
 			return nil, err
 		}
-		return NewTypeSplitter(ctx, parent, typ, v.key)
+		return NewTypeSplitter(pctx, parent, typ, v.key)
 	}
 	return nil, nil
 }

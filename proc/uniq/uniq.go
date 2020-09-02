@@ -10,17 +10,17 @@ import (
 )
 
 type Proc struct {
+	pctx   *proc.Context
 	parent proc.Interface
-	ctx    *proc.Context
 	cflag  bool
 	count  uint64
 	last   *zng.Record
 }
 
-func New(ctx *proc.Context, parent proc.Interface, cflag bool) *Proc {
+func New(pctx *proc.Context, parent proc.Interface, cflag bool) *Proc {
 	return &Proc{
+		pctx:   pctx,
 		parent: parent,
-		ctx:    ctx,
 		cflag:  cflag,
 	}
 }
@@ -29,9 +29,9 @@ func (p *Proc) wrap(t *zng.Record) *zng.Record {
 	if p.cflag {
 		cols := []zng.Column{zng.NewColumn("_uniq", zng.TypeUint64)}
 		vals := []zng.Value{zng.NewUint64(p.count)}
-		newR, err := p.ctx.TypeContext.AddColumns(t, cols, vals)
+		newR, err := p.pctx.TypeContext.AddColumns(t, cols, vals)
 		if err != nil {
-			p.ctx.Logger.Error("AddColumns failed", zap.Error(err))
+			p.pctx.Logger.Error("AddColumns failed", zap.Error(err))
 			return t
 		}
 		return newR

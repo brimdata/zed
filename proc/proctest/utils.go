@@ -41,7 +41,7 @@ func (r *RecordPuller) Pull() (zbuf.Batch, error) {
 
 func (r *RecordPuller) Done() {}
 
-func CompileTestProc(code string, ctx *proc.Context, parent proc.Interface) (proc.Interface, error) {
+func CompileTestProc(code string, pctx *proc.Context, parent proc.Interface) (proc.Interface, error) {
 	// XXX If we use a newer version of pigeon, we can just compile
 	// with "proc" as the terminal symbol.
 	// But for now, we have to compile a complete flowgraph.
@@ -60,11 +60,11 @@ func CompileTestProc(code string, ctx *proc.Context, parent proc.Interface) (pro
 	if len(sp.Procs) != 2 {
 		return nil, errors.New("expected 2 procs")
 	}
-	return CompileTestProcAST(sp.Procs[1], ctx, parent)
+	return CompileTestProcAST(sp.Procs[1], pctx, parent)
 }
 
-func CompileTestProcAST(node ast.Proc, ctx *proc.Context, parent proc.Interface) (proc.Interface, error) {
-	procs, err := compiler.Compile(nil, node, ctx, []proc.Interface{parent})
+func CompileTestProcAST(node ast.Proc, pctx *proc.Context, parent proc.Interface) (proc.Interface, error) {
+	procs, err := compiler.Compile(nil, node, pctx, []proc.Interface{parent})
 	if err != nil {
 		return nil, err
 	}
@@ -104,13 +104,13 @@ func (t *TestSource) Done() {}
 // output of the proc.  Always end a test case with Finish() to ensure
 // there weren't any unexpected records or warnings.
 type ProcTest struct {
-	ctx          *proc.Context
+	pctx         *proc.Context
 	compiledProc proc.Interface
 	eos          bool
 }
 
-func NewProcTest(proc proc.Interface, ctx *proc.Context) *ProcTest {
-	return &ProcTest{ctx, proc, false}
+func NewProcTest(proc proc.Interface, pctx *proc.Context) *ProcTest {
+	return &ProcTest{pctx, proc, false}
 }
 
 func NewTestContext(zctx *resolver.Context) *proc.Context {
@@ -189,7 +189,7 @@ func (p *ProcTest) Expect(data zbuf.Batch) error {
 
 func (p *ProcTest) ExpectWarning(expected string) error {
 	select {
-	case warning := <-p.ctx.Warnings:
+	case warning := <-p.pctx.Warnings:
 		if warning == expected {
 			return nil
 		} else {
@@ -208,7 +208,7 @@ func (p *ProcTest) Finish() error {
 	// XXX warnings channel is never closed, just ensure there's
 	// nothing there...
 	select {
-	case warning := <-p.ctx.Warnings:
+	case warning := <-p.pctx.Warnings:
 		return fmt.Errorf("got unexpected warning \"%s\"", warning)
 	default:
 		return nil
