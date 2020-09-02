@@ -2,6 +2,7 @@ package filter
 
 import (
 	"encoding/binary"
+	"math/big"
 
 	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/zng"
@@ -9,6 +10,7 @@ import (
 )
 
 type fieldNameFinder struct {
+	checkedIDs       big.Int
 	fieldNameIter    fieldNameIter
 	stringCaseFinder *stringCaseFinder
 }
@@ -21,6 +23,7 @@ func newFieldNameFinder(pattern string) *fieldNameFinder {
 // fully-qualified name (e.g., a.b.c) matches the pattern. find also returns
 // true if it encounters an error.
 func (f *fieldNameFinder) find(zctx *resolver.Context, buf []byte) bool {
+	f.checkedIDs.SetInt64(0)
 	for len(buf) > 0 {
 		if buf[0]&0x80 != 0 {
 			// Control messages are not expected.
@@ -44,6 +47,10 @@ func (f *fieldNameFinder) find(zctx *resolver.Context, buf []byte) bool {
 			return true
 		}
 		buf = buf[n+int(length):]
+		if f.checkedIDs.Bit(id) == 1 {
+			continue
+		}
+		f.checkedIDs.SetBit(&f.checkedIDs, id, 1)
 		t, err := zctx.LookupType(id)
 		if err != nil {
 			return true
