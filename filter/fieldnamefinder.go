@@ -19,9 +19,9 @@ func newFieldNameFinder(pattern string) *fieldNameFinder {
 	return &fieldNameFinder{stringCaseFinder: makeStringCaseFinder(pattern)}
 }
 
-// find returns true if buf may contain a record with a field whose
-// fully-qualified name (e.g., a.b.c) matches the pattern. find also returns
-// true if it encounters an error.
+// find returns true if buf, which holds a sequence of ZNG value messages, might
+// contain a record with a field whose fully-qualified name (e.g., a.b.c)
+// matches the pattern. find also returns true if it encounters an error.
 func (f *fieldNameFinder) find(zctx *resolver.Context, buf []byte) bool {
 	f.checkedIDs.SetInt64(0)
 	for len(buf) > 0 {

@@ -1,7 +1,6 @@
 package filter_test
 
 import (
-	"bytes"
 	"encoding/hex"
 	"strings"
 	"testing"
@@ -9,9 +8,8 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zio/tzngio"
-	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/assert"
@@ -64,12 +62,15 @@ func runCasesHelper(t *testing.T, tzng string, cases []testcase, expectBufferFil
 				if expectBufferFilterFalsePositives {
 					expected = true
 				}
-				var buf bytes.Buffer
-				w := zngio.NewWriter(&buf, zio.WriterFlags{})
-				require.NoError(t, w.Write(rec))
-				require.NoError(t, w.Flush())
-				assert.Equal(t, expected, bf.Eval(zctx, buf.Bytes()),
-					"filter: %q\nbuffer:\n%s", c.filter, hex.Dump(buf.Bytes()))
+				// For fieldNameFinder.find coverage, we need to
+				// hand BufferFilter.Eval a buffer containing a
+				// ZNG value message for rec, assembled here.
+				require.Less(t, rec.Type.ID(), 0x40)
+				buf := []byte{byte(rec.Type.ID())}
+				buf = zcode.AppendUvarint(buf, uint64(len(rec.Raw)))
+				buf = append(buf, rec.Raw...)
+				assert.Equal(t, expected, bf.Eval(zctx, buf),
+					"filter: %q\nbuffer:\n%s", c.filter, hex.Dump(buf))
 			}
 		})
 	}
@@ -459,12 +460,14 @@ func TestFilters(t *testing.T) {
 
 	// Test searching for a field name
 	tzng = `
-#0:record[foo:string,rec:record[sub:string]]
+#0:record[foo:string,rec:record[SUB:string]]
 0:[bleah;[meh;]]`
 	runCases(t, tzng, []testcase{
 		{"foo", true},
 		{"FOO", true},
+		{"foo.", false},
 		{"sub", true},
+		{"sub.", false},
 		{"rec.sub", true},
 		{"c.s", true},
 	})
