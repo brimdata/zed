@@ -39,8 +39,8 @@ type Reader struct {
 }
 
 type ReaderOpts struct {
-	Size  int
 	Check bool
+	Size  int
 }
 
 func NewReader(reader io.Reader, sctx *resolver.Context) *Reader {
@@ -409,11 +409,10 @@ func (r *Reader) parseValue(id int, b []byte) (*zng.Record, error) {
 		}
 	}
 	rec := zng.NewVolatileRecord(sharedType, b)
-	if !r.check {
-		return rec, nil
-	}
-	if err := rec.TypeCheck(); err != nil {
-		return nil, err
+	if r.check {
+		if err := rec.TypeCheck(); err != nil {
+			return nil, err
+		}
 	}
 	return rec, nil
 }
