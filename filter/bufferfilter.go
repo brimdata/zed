@@ -2,25 +2,30 @@ package filter
 
 import (
 	"fmt"
-	"unicode"
+	"unicode/utf8"
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 )
 
 const (
 	opAnd = iota
 	opOr
+	opFieldNameFinder
+	opStringCaseFinder
 	opStringFinder
 )
 
 // BufferFilter is a filter for byte slices containing ZNG values.
 type BufferFilter struct {
-	op           int
-	left         *BufferFilter
-	right        *BufferFilter
-	stringFinder *stringFinder
+	op    int
+	left  *BufferFilter
+	right *BufferFilter
+	fnf   *fieldNameFinder
+	scf   *stringCaseFinder
+	sf    *stringFinder
 }
 
 // NewBufferFilter tries to return a BufferFilter for e such that the
@@ -76,22 +81,23 @@ func NewBufferFilter(e ast.BooleanExpr) (*BufferFilter, error) {
 			return nil, nil
 		}
 		if e.Value.Type == "string" {
-			// TODO Match the behavior of searchRecordString.
-			return nil, nil
-		}
-		for _, r := range e.Text {
-			// TODO Make stringFinder insensitive to case. Until
-			// then, bail if e.Text contains a letter.
-			if unicode.IsLetter(r) {
+			pattern, err := zng.TypeBstring.Parse([]byte(e.Value.Value))
+			if err != nil {
+				return nil, err
+			}
+			left := newBufferFilterForStringCase(string(pattern))
+			if left == nil {
 				return nil, nil
 			}
+			right := &BufferFilter{
+				op:  opFieldNameFinder,
+				fnf: newFieldNameFinder(string(pattern)),
+			}
+			return &BufferFilter{op: opOr, left: left, right: right}, nil
 		}
-		left := &BufferFilter{
-			op:           opStringFinder,
-			stringFinder: makeStringFinder(e.Text),
-		}
+		left := newBufferFilterForStringCase(e.Text)
 		right, err := newBufferFilterForLiteral(e.Value)
-		if right == nil || err != nil {
+		if left == nil || right == nil || err != nil {
 			return nil, err
 		}
 		return &BufferFilter{op: opOr, left: left, right: right}, nil
@@ -122,25 +128,45 @@ func newBufferFilterForLiteral(l ast.Literal) (*BufferFilter, error) {
 	// We're looking for a complete ZNG value, so we can lengthen the
 	// pattern by calling Encode to add a tag.
 	pattern := string(v.Encode(nil))
+	return newBufferFilterForString(pattern), nil
+}
+
+func newBufferFilterForString(pattern string) *BufferFilter {
 	if len(pattern) < 2 {
 		// Very short patterns are unprofitable.
-		return nil, nil
+		return nil
 	}
-	return &BufferFilter{
-		op:           opStringFinder,
-		stringFinder: makeStringFinder(pattern),
-	}, nil
+	return &BufferFilter{op: opStringFinder, sf: makeStringFinder(pattern)}
+}
+
+func newBufferFilterForStringCase(pattern string) *BufferFilter {
+	if len(pattern) < 2 {
+		// Very short patterns are unprofitable.
+		return nil
+	}
+	for _, r := range pattern {
+		if r >= utf8.RuneSelf {
+			// stringCaseFinder is sensitive to case for letters
+			// with multibyte UTF-8 encodings.
+			return nil
+		}
+	}
+	return &BufferFilter{op: opStringCaseFinder, scf: makeStringCaseFinder(pattern)}
 }
 
 // Eval returns true if buf matches the receiver and false otherwise.
-func (b *BufferFilter) Eval(buf []byte) bool {
+func (b *BufferFilter) Eval(zctx *resolver.Context, buf []byte) bool {
 	switch b.op {
 	case opAnd:
-		return b.left.Eval(buf) && b.right.Eval(buf)
+		return b.left.Eval(zctx, buf) && b.right.Eval(zctx, buf)
 	case opOr:
-		return b.left.Eval(buf) || b.right.Eval(buf)
+		return b.left.Eval(zctx, buf) || b.right.Eval(zctx, buf)
+	case opFieldNameFinder:
+		return b.fnf.find(zctx, buf)
+	case opStringCaseFinder:
+		return b.scf.next(byteconv.UnsafeString(buf)) > -1
 	case opStringFinder:
-		return b.stringFinder.next(byteconv.UnsafeString(buf)) > -1
+		return b.sf.next(byteconv.UnsafeString(buf)) > -1
 	default:
 		panic(fmt.Sprintf("BufferFilter: unknown op %d", b.op))
 	}
