@@ -270,6 +270,7 @@ func (c *Command) inputReaders(paths []string) ([]zbuf.Reader, error) {
 		Format:         c.ReaderFlags.Format,
 		JSONTypeConfig: c.jsonTypeConfig,
 		JSONPathRegex:  c.jsonPathRegexp,
+		ZngCheck:       c.ReaderFlags.ZngCheck,
 	}
 	var readers []zbuf.Reader
 	for _, path := range paths {

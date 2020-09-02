@@ -66,7 +66,7 @@ func lookupReader(r io.Reader, zctx *resolver.Context, path string, cfg OpenConf
 	case "zjson":
 		return zjsonio.NewReader(r, zctx), nil
 	case "zng":
-		return zngio.NewReader(r, zctx), nil
+		return zngio.NewReaderWithOpts(r, zctx, zngio.ReaderOpts{Check: cfg.ZngCheck}), nil
 	}
 	return nil, fmt.Errorf("no such reader type: \"%s\"", cfg.Format)
 }
