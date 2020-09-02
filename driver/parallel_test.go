@@ -77,8 +77,8 @@ func trim(s string) string {
 func TestParallelOrder(t *testing.T) {
 	t.Parallel()
 
-	// Use `v!=3` to trigger & verify empty rank handling in orderedWaiter.
-	query, err := zql.ParseProc("v!=3")
+	// Use `v!=3` to trigger & verify empty rank handling in orderedmsrc.
+	query, err := zql.ParseProc("v!=3 | every 1s count()")
 	require.NoError(t, err)
 
 	var buf bytes.Buffer
@@ -90,11 +90,11 @@ func TestParallelOrder(t *testing.T) {
 	require.NoError(t, err)
 
 	exp := `
-#0:record[v:int32,ts:time]
-0:[0;0;]
+#0:record[ts:time,count:uint64]
+0:[0;1;]
 0:[1;1;]
-0:[2;2;]
-0:[4;4;]
+0:[2;1;]
+0:[4;1;]
 `
 	assert.Equal(t, trim(exp), buf.String())
 }

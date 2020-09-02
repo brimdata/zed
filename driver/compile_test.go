@@ -187,86 +187,37 @@ func TestBooleanExpressionFields(t *testing.T) {
 func TestParallelizeFlowgraph(t *testing.T) {
 	tests := []struct {
 		zql                     string
-		orderField              string
 		expected                string
 		expectedMergeOrderField string
 	}{
 		{
-			"* | uniq",
-			"ts",
-			"(filter *; filter *) | uniq",
-			"ts",
-		},
-		{
-			"* | cut ts, foo=x | uniq",
-			"ts",
-			"(filter * | cut ts, foo=x; filter * | cut ts, foo=x) | uniq",
-			"ts",
-		},
-		{
-			"* | cut -c x | uniq",
-			"ts",
-			"(filter * | cut -c x; filter * | cut -c x) | uniq",
-			"ts",
-		},
-		{
 			"* | put ts=foo | rename foo=boo",
-			"ts",
-			"(filter *; filter *) | put ts=foo | rename foo=boo",
+			"* | put ts=foo | rename foo=boo",
 			"ts",
 		},
 		{
 			"* | put ts=foo | rename foo=boo | count()",
-			"ts",
 			"(filter * | put ts=foo | rename foo=boo | count(); filter * | put ts=foo | rename foo=boo | count()) | count()",
 			"",
 		},
 		{
-			"* | put ts=foo | rename foo=boo | sort",
-			"ts",
-			"(filter * | put ts=foo | rename foo=boo; filter * | put ts=foo | rename foo=boo) | sort",
-			"",
-		},
-		{
-			"* | put x=foo | rename foo=boo | uniq",
-			"ts",
-			"(filter * | put x=foo | rename foo=boo; filter * | put x=foo | rename foo=boo) | uniq",
-			"ts",
-		},
-		{
-			"* | sort x | uniq",
-			"ts",
-			"(filter * | sort x; filter * | sort x) | uniq",
-			"x",
-		},
-		{
-			"* | sort | uniq",
-			"ts",
-			"(filter *; filter *) | sort | uniq",
+			"* | put ts=foo | rename foo=boo | uniq | count()",
+			"* | put ts=foo | rename foo=boo | uniq | count()",
 			"",
 		},
 		{
 			"* | put x=y | countdistinct(x) by y | uniq",
-			"ts",
-			"(filter * | put x=y; filter * | put x=y) | countdistinct(x) by y | uniq",
+			"* | put x=y | countdistinct(x) by y | uniq",
 			"ts",
 		},
 		{
 			"* | count() by y",
-			"ts",
 			"(filter * | count() by y; filter * | count() by y) | count() by y",
 			"",
 		},
 		{
 			"* | every 1h count() by y",
-			"",
 			"(filter * | every 1h count() by y; filter * | every 1h count() by y) | every 1h count() by y",
-			"ts",
-		},
-		{
-			"* | put a=1 | tail",
-			"ts",
-			"(filter * | put a=1 | tail; filter * | put a=1 | tail) | tail",
 			"ts",
 		},
 	}
@@ -274,7 +225,7 @@ func TestParallelizeFlowgraph(t *testing.T) {
 		t.Run(tc.zql, func(t *testing.T) {
 			query, err := zql.ParseProc(tc.zql)
 			require.NoError(t, err)
-			parallelized, ok := parallelizeFlowgraph(query.(*ast.SequentialProc), 2, tc.orderField, false)
+			parallelized, ok := parallelizeFlowgraph(query.(*ast.SequentialProc), 2)
 			require.Equal(t, ok, tc.zql != tc.expected)
 
 			expected, err := zql.ParseProc(tc.expected)
@@ -302,27 +253,6 @@ func TestParallelizeFlowgraph(t *testing.T) {
 			assert.Equal(t, expected.(*ast.SequentialProc), parallelized)
 		})
 	}
-	// This needs a standalone test due to the presence of a pass
-	// proc in the transformed AST.
-	t.Run("* | cut ts, y, z | put x=y | rename y=z", func(t *testing.T) {
-		orderField := "ts"
-		query := "* | cut ts, y, z | put x=y | rename y=z"
-		dquery := "(filter * | cut ts, y, z | put x=y | rename y=z; filter * | cut ts, y, z | put x=y | rename y=z)"
-		program, err := zql.ParseProc(query)
-		require.NoError(t, err)
-		parallelized, ok := parallelizeFlowgraph(program.(*ast.SequentialProc), 2, orderField, false)
-		require.True(t, ok)
-
-		expected, err := zql.ParseProc(dquery)
-		require.NoError(t, err)
-
-		// We can't express a pass proc in zql, so add it to the AST this way.
-		// (It's added by the parallelized flowgraph in order to force a merge rather than having trailing leaves connected to a mux output).
-		expected.(*ast.SequentialProc).Procs = append(expected.(*ast.SequentialProc).Procs[1:], &ast.PassProc{Node: ast.Node{"PassProc"}})
-		expected.(*ast.SequentialProc).Procs[0].(*ast.ParallelProc).MergeOrderField = orderField
-
-		assert.Equal(t, expected.(*ast.SequentialProc), parallelized)
-	})
 }
 
 func TestSetGroupByProcInputSortDir(t *testing.T) {

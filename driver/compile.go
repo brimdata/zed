@@ -53,7 +53,7 @@ func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc
 
 	var isParallel bool
 	if mcfg.Parallelism > 1 {
-		program, isParallel = parallelizeFlowgraph(ensureSequentialProc(program), mcfg.Parallelism, sortKey, sortReversed)
+		program, isParallel = parallelizeFlowgraph(ensureSequentialProc(program), mcfg.Parallelism)
 	}
 	if !isParallel {
 		mcfg.Parallelism = 1
@@ -439,69 +439,18 @@ func decomposable(rs []ast.Reducer) bool {
 // parallelize it by splitting as much as possible of the sequence
 // into N parallel branches. The boolean return argument indicates
 // whether the flowgraph could be parallelized.
-func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string, inputSortReversed bool) (*ast.SequentialProc, bool) {
-	orderSensitiveTail := true
-	for i := range seq.Procs {
-		switch seq.Procs[i].(type) {
-		case *ast.SortProc, *ast.GroupByProc:
-			orderSensitiveTail = false
-			break
-		default:
-			continue
-		}
-	}
+func parallelizeFlowgraph(seq *ast.SequentialProc, N int) (*ast.SequentialProc, bool) {
 	for i := range seq.Procs {
 		switch p := seq.Procs[i].(type) {
-		case *ast.FilterProc, *ast.PassProc:
-			// Stateless procs: continue until we reach one of the procs below at
-			// which point we'll either split the flowgraph or see we can't and return it as-is.
+		case *ast.UniqProc:
+			return seq, false
+		case *ast.SequentialProc, *ast.ParallelProc:
+			return seq, false
+		case *ast.FilterProc, *ast.PassProc, *ast.CutProc, *ast.PutProc, *ast.RenameProc, *ast.SortProc, *ast.HeadProc, *ast.TailProc:
 			continue
-		case *ast.CutProc:
-			if inputSortField == "" || !orderSensitiveTail {
-				continue
-			}
-			if p.Complement {
-				for _, f := range p.Fields {
-					if f.Source == inputSortField {
-						return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
-					}
-				}
-				continue
-			}
-			var found bool
-			for _, f := range p.Fields {
-				if f.Source != inputSortField && f.Target == inputSortField {
-					return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
-				}
-				if f.Source == inputSortField && f.Target == "" {
-					found = true
-				}
-			}
-			if !found {
-				return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
-			}
-		case *ast.PutProc:
-			if inputSortField == "" || !orderSensitiveTail {
-				continue
-			}
-			for _, c := range p.Clauses {
-				if c.Target == inputSortField {
-					return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
-				}
-			}
-			continue
-		case *ast.RenameProc:
-			if inputSortField == "" || !orderSensitiveTail {
-				continue
-			}
-			for _, f := range p.Fields {
-				if f.Target == inputSortField {
-					return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
-				}
-			}
 		case *ast.GroupByProc:
 			if !decomposable(p.Reducers) {
-				return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
+				return seq, false
 			}
 			// We have a decomposable groupby and can split the flowgraph into branches that run up to and including a groupby,
 			// followed by a post-merge groupby that composes the results.
@@ -517,44 +466,11 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string,
 			composerGroupBy.ConsumePart = true
 
 			return buildSplitFlowgraph(branch, append([]ast.Proc{composerGroupBy}, seq.Procs[i+1:]...), mergeField, false, N), true
-		case *ast.SortProc:
-			dir := map[int]bool{-1: true, 1: false}[p.SortDir]
-			if len(p.Fields) == 1 {
-				// Single sort field: we can sort in each parallel branch, and then do an ordered merge.
-				mergeField := expr.FieldExprToString(p.Fields[0])
-				return buildSplitFlowgraph(seq.Procs[0:i+1], seq.Procs[i+1:], mergeField, dir, N), true
-			} else {
-				// Unknown or multiple sort fields: we sort after the merge point, which can be unordered.
-				return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], "", dir, N), true
-			}
-		case *ast.ParallelProc:
-			return seq, false
-		case *ast.HeadProc, *ast.TailProc:
-			if inputSortField == "" {
-				// Unknown order: we can't parallelize because we can't maintain this unknown order at the merge point.
-				return seq, false
-			}
-			// put one head/tail on each parallel branch and one after the merge.
-			return buildSplitFlowgraph(seq.Procs[0:i+1], seq.Procs[i:], inputSortField, inputSortReversed, N), true
-		case *ast.UniqProc:
-			if inputSortField == "" {
-				// Unknown order: we can't parallelize because we can't maintain this unknown order at the merge point.
-				return seq, false
-			}
-			// Split all the upstream procs into parallel branches, then merge and continue with this and any remaining procs.
-			return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
-		case *ast.SequentialProc:
-			return seq, false
 		default:
 			panic("proc type not handled")
 		}
 	}
 	// If we're here, we reached the end of the flowgraph without
-	// coming across a merge-forcing proc. If inputs are sorted,
-	// we can parallelize the entire chain and do an ordered
-	// merge. Otherwise, no parallelization.
-	if inputSortField == "" {
-		return seq, false
-	}
-	return buildSplitFlowgraph(seq.Procs, nil, inputSortField, inputSortReversed, N), true
+	// coming across an aggregation.
+	return seq, false
 }
