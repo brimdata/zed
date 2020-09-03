@@ -9,6 +9,7 @@ import (
 	"github.com/alecthomas/units"
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cmd/zar/root"
+	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
@@ -67,6 +68,10 @@ func (c *Command) Run(args []string) error {
 		return fmt.Errorf("invalid target file size: %w", err)
 	} else {
 		co.LogSizeThreshold = &thresh
+	}
+
+	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
+		return err
 	}
 
 	ark, err := archive.CreateOrOpenArchive(c.root, co, nil)

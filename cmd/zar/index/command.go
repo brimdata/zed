@@ -10,6 +10,7 @@ import (
 
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cmd/zar/root"
+	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
 	"github.com/mccanne/charm"
 )
@@ -71,6 +72,9 @@ func (c *Command) Run(args []string) error {
 	}
 	if c.root == "" {
 		return errors.New("zar index: a directory must be specified with -R or ZAR_ROOT")
+	}
+	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
+		return err
 	}
 
 	ark, err := archive.OpenArchive(c.root, nil)

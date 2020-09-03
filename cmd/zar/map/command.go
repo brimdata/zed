@@ -10,6 +10,7 @@ import (
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
@@ -88,6 +89,10 @@ func (c *Command) Run(args []string) error {
 	// Don't allow non-zng to be written inside the archive.
 	if c.outputFile != "" && c.writerFlags.Format != "zng" {
 		return errors.New("only zng format allowed for chunk associated files")
+	}
+
+	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
+		return err
 	}
 
 	ctx, cancel := signalctx.New(os.Interrupt)
