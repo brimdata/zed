@@ -3,6 +3,7 @@
 package zqe
 
 import (
+	"errors"
 	"fmt"
 	"runtime"
 	"runtime/debug"
@@ -109,6 +110,10 @@ func E(args ...interface{}) error {
 		case error:
 			e.Err = arg
 		case string:
+			if i == len(args)-1 {
+				e.Err = errors.New(arg)
+				return e
+			}
 			e.Err = fmt.Errorf(arg, args[i+1:]...)
 			return e
 		default:
