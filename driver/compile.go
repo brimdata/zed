@@ -442,9 +442,7 @@ func decomposable(rs []ast.Reducer) bool {
 func parallelizeFlowgraph(seq *ast.SequentialProc, N int) (*ast.SequentialProc, bool) {
 	for i := range seq.Procs {
 		switch p := seq.Procs[i].(type) {
-		case *ast.UniqProc:
-			return seq, false
-		case *ast.SequentialProc, *ast.ParallelProc:
+		case *ast.ParallelProc, *ast.SequentialProc, *ast.UniqProc:
 			return seq, false
 		case *ast.FilterProc, *ast.PassProc, *ast.CutProc, *ast.PutProc, *ast.RenameProc, *ast.SortProc, *ast.HeadProc, *ast.TailProc:
 			continue
