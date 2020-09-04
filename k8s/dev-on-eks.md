@@ -1,0 +1,2 @@
+# Deploying zqd on EKS
+
