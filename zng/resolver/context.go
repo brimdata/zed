@@ -11,7 +11,6 @@ import (
 )
 
 var (
-	ErrExists        = errors.New("descriptor exists with different type")
 	ErrEmptyTypeList = errors.New("empty type list in set or union")
 	ErrAliasExists   = errors.New("alias exists with different type")
 )
@@ -22,26 +21,20 @@ type TypeLogger interface {
 
 // A Context manages the mapping between small-integer descriptor identifiers
 // and zng descriptor objects, which hold the binding between an identifier
-// and a zng.Type.  We use a map for the table to give us flexibility
-// as we achieve high performance lookups with the resolver Cache.
+// and a zng.Type.
 type Context struct {
 	mu     sync.RWMutex
 	table  []zng.Type
 	lut    map[string]int
-	caches sync.Pool
 	logger TypeLogger
 }
 
 func NewContext() *Context {
-	c := &Context{
+	return &Context{
 		//XXX hack... leave blanks for primitive types... will fix this later
 		table: make([]zng.Type, zng.IdTypeDef),
 		lut:   make(map[string]int),
 	}
-	c.caches.New = func() interface{} {
-		return NewCache(c)
-	}
-	return c
 }
 
 func (c *Context) SetLogger(logger TypeLogger) {
@@ -316,21 +309,6 @@ func (c *Context) AddColumns(r *zng.Record, newCols []zng.Column, vals []zng.Val
 		return nil, err
 	}
 	return zng.NewRecord(typ, zv), nil
-}
-
-// NewValue creates a Value with the given type and value described
-// as simple strings.  The zng.Value's type is allocated in this
-// type context.
-func (c *Context) NewValue(typ, val string) (zng.Value, error) {
-	t := zng.LookupPrimitive(typ)
-	if t == nil {
-		return zng.Value{}, fmt.Errorf("no such type: %s", typ)
-	}
-	zv, err := t.Parse([]byte(val))
-	if err != nil {
-		return zng.Value{}, err
-	}
-	return zng.Value{t, zv}, nil
 }
 
 func isIdChar(c byte) bool {
@@ -623,14 +601,4 @@ func (c *Context) TranslateTypeUnion(ext *zng.TypeUnion) (*zng.TypeUnion, error)
 		types = append(types, translated)
 	}
 	return c.LookupTypeUnion(types), nil
-}
-
-// Cache returns a cache of this table providing lockless lookups, but cannot
-// be used concurrently.
-func (c *Context) Cache() *Cache {
-	return c.caches.Get().(*Cache)
-}
-
-func (c *Context) Release(cache *Cache) {
-	c.caches.Put(cache)
 }
