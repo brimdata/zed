@@ -121,10 +121,11 @@ func TestNestedRecords(t *testing.T) {
 	// The schema used here touches several edge cases:
 	//  - nested records separated by a regular field
 	//  - adjacent nested records (nest2, nest3)
+	//  - nested record containing nonadjacent fields (nest1)
 	//  - nested record as the final column
-	fields := []string{"a", "nest1.a", "nest1.b", "b", "nest2.y", "nest3.z"}
-	types := []string{"int", "int", "int", "int", "int", "int"}
-	vals := []string{"1", "2", "3", "4", "5", "6"}
+	fields := []string{"a", "nest1.a", "nest1.b", "b", "nest2.y", "nest1.nestnest.c", "nest3.z"}
+	types := []string{"int", "int", "int", "int", "int", "int", "int"}
+	vals := []string{"1", "2", "3", "4", "5", "6", "7"}
 
 	parser := startLegacyTest(t, fields, types, "")
 	record, err := sendLegacyValues(parser, vals)
@@ -138,9 +139,14 @@ func TestNestedRecords(t *testing.T) {
 	assert.Equal(t, "nest1", cols[1].Name, "Column 1 is nest1")
 	nest1Type, ok := cols[1].Type.(*zng.TypeRecord)
 	assert.True(t, ok, "Columns nest1 is a record")
-	assert.Equal(t, 2, len(nest1Type.Columns), "nest1 has 2 columns")
+	assert.Equal(t, 3, len(nest1Type.Columns), "nest1 has 3 columns")
 	assert.Equal(t, "a", nest1Type.Columns[0].Name, "First column in nest1 is a")
 	assert.Equal(t, "b", nest1Type.Columns[1].Name, "Second column in nest1 is b")
+	assert.Equal(t, "nestnest", nest1Type.Columns[2].Name, "Third column in nest1 is nestnest")
+	nestnestType, ok := nest1Type.Columns[2].Type.(*zng.TypeRecord)
+	assert.True(t, ok, "nest1.nestnest is a record")
+	assert.Equal(t, 1, len(nestnestType.Columns), "nest1.nestnest has 1 column")
+	assert.Equal(t, "c", nestnestType.Columns[0].Name, "First column in nest1.nestnest is c")
 	assert.Equal(t, "b", cols[2].Name, "Column 2 is b")
 	assert.Equal(t, "nest2", cols[3].Name, "Column 3 is nest2")
 	nest2Type, ok := cols[3].Type.(*zng.TypeRecord)
@@ -163,9 +169,14 @@ func TestNestedRecords(t *testing.T) {
 	assert.Equal(t, nest1Type, e.Type, "Got right type for field nest1")
 	subVals, err := nest1Type.Decode(e.Bytes)
 	require.NoError(t, err)
-	assert.Equal(t, 2, len(subVals), "nest1 has 2 elements")
+	assert.Equal(t, 3, len(subVals), "nest1 has 3 elements")
 	assertInt64(t, 2, subVals[0], "nest1.a")
 	assertInt64(t, 3, subVals[1], "nest1.b")
+	assert.Equal(t, nestnestType, subVals[2].Type, "Got right type for field nest1.nestnest")
+	nestnestVals, err := nestnestType.Decode(subVals[2].Bytes)
+	require.NoError(t, err)
+	assert.Equal(t, 1, len(nestnestVals), "nest1.nestnest has 1 element")
+	assertInt64(t, 6, nestnestVals[0], "nest1.nestnest.c")
 
 	v, err = record.AccessInt("b")
 	require.NoError(t, err)
@@ -185,7 +196,7 @@ func TestNestedRecords(t *testing.T) {
 	subVals, err = nest3Type.Decode(e.Bytes)
 	require.NoError(t, err)
 	assert.Equal(t, 1, len(subVals), "nest3 has 1 element")
-	assertInt64(t, 6, subVals[0], "nest3.z")
+	assertInt64(t, 7, subVals[0], "nest3.z")
 }
 
 // Test things related to legacy zeek records that should cause the

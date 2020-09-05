@@ -30,8 +30,9 @@ type Parser struct {
 	addpath    bool
 	// descriptor is a lazily-allocated Descriptor corresponding
 	// to the contents of the #fields and #types directives.
-	descriptor *zng.TypeRecord
-	builder    *zcode.Builder
+	descriptor   *zng.TypeRecord
+	builder      *zcode.Builder
+	sourceFields []int
 }
 
 var (
@@ -167,7 +168,7 @@ func (p *Parser) ParseDirective(line []byte) error {
 // already present. The columns are returned as a slice along with a
 // bool indicating if a _path column was added.
 // Note that according to the zng spec, all the fields for a nested
-// record must be adjacent which simplifies the logic here.
+// record must be adjacent.
 func Unflatten(zctx *resolver.Context, columns []zng.Column, addPath bool) ([]zng.Column, bool, error) {
 	hasPath := false
 	for _, col := range columns {
@@ -241,8 +242,8 @@ func (p *Parser) setDescriptor() error {
 	if len(p.columns) == 0 || p.needfields || p.needtypes {
 		return ErrBadRecordDef
 	}
-
-	cols, addpath, err := Unflatten(p.zctx, p.columns, p.Path != "")
+	cols, sourceFields := coalesceRecordColumns(p.columns)
+	cols, addpath, err := Unflatten(p.zctx, cols, p.Path != "")
 	if err != nil {
 		return err
 	}
@@ -251,7 +252,50 @@ func (p *Parser) setDescriptor() error {
 		return err
 	}
 	p.addpath = addpath
+	p.sourceFields = sourceFields
 	return nil
+}
+
+// coalesceRecordColumns returns a permutation of cols in which the columns of
+// each nested record have been made adjacent along with a slice containing the
+// index of the source field for each column in that permutation.
+func coalesceRecordColumns(cols []zng.Column) ([]zng.Column, []int) {
+	prefixes := map[string]bool{"": true}
+	var outcols []zng.Column
+	var sourceFields []int
+	for i, c := range cols {
+		outcols = append(outcols, c)
+		sourceFields = append(sourceFields, i)
+		prefix := getPrefix(c.Name)
+		for !prefixes[prefix] {
+			prefixes[prefix] = true
+			prefix = getPrefix(prefix)
+		}
+		if prefix != "" {
+			for j := i; j > 0; j-- {
+				if strings.HasPrefix(outcols[j-1].Name, prefix) {
+					// Insert c at j.
+					copy(outcols[j+1:], outcols[j:])
+					outcols[j] = c
+					copy(sourceFields[j+1:], sourceFields[j:])
+					sourceFields[j] = i
+					break
+				}
+			}
+		}
+	}
+	return outcols, sourceFields
+}
+
+// getPrefix returns the prefix of dotpath up to and including its final period.
+// If dotpath does not contain a period, getPrefix returns the empty string.
+func getPrefix(name string) string {
+	name = strings.TrimRight(name, ".")
+	i := strings.LastIndex(name, ".")
+	if i < 0 {
+		return ""
+	}
+	return name[:i+1]
 }
 
 // Descriptor returns the current descriptor (from the most recently
@@ -282,7 +326,7 @@ func (p *Parser) ParseValue(line []byte) (*zng.Record, error) {
 		path = []byte(p.Path)
 	}
 	p.builder.Reset()
-	zv, err := buildRecordFromZeekTSV(p.builder, p.descriptor, path, line)
+	zv, err := buildRecordFromZeekTSV(p.builder, p.descriptor, p.sourceFields, path, line)
 	if err != nil {
 		return nil, err
 	}
