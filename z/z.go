@@ -24,8 +24,15 @@ func Int64(key string, val int64) Field {
 	return Field{zng.Column{key, zng.TypeInt64}, zng.EncodeInt(val), nil}
 }
 
+func Int64v(val int64) Field {
+	return Int64("", val)
+}
 func String(key string, val string) Field {
 	return Field{zng.Column{key, zng.TypeString}, zng.EncodeString(val), nil}
+}
+
+func Stringv(val string) Field {
+	return String("", val)
 }
 
 func (c *Context) zctx() *resolver.Context {
@@ -47,11 +54,21 @@ func (c *Context) recType(fields ...Field) *zng.TypeRecord {
 	return typ
 }
 
-func (c *Context) RecordField(key string, fields ...Field) Field {
+func (c *Context) arrayType(fields ...Field) *zng.TypeArray {
+	// XXX we should check the types of all the fields and
+	// convert to a union if the types are mixed
+	return c.zctx().LookupTypeArray(fields[0].Column.Type)
+}
+
+func (c *Context) Record(key string, fields ...Field) Field {
 	return Field{zng.Column{key, c.recType(fields...)}, nil, fields}
 }
 
-func (c *Context) Record(fields ...Field) *zng.Record {
+func (c *Context) Array(key string, fields ...Field) Field {
+	return Field{zng.Column{key, c.arrayType(fields...)}, nil, fields}
+}
+
+func (c *Context) NewRecord(fields ...Field) *zng.Record {
 	typ := c.recType(fields...)
 	var b zcode.Builder
 	c.build(&b, fields...)
@@ -68,6 +85,8 @@ func (c *Context) build(b *zcode.Builder, fields ...Field) {
 		}
 		switch typ := f.Column.Type.(type) {
 		case *zng.TypeRecord:
+			c.build(b, f.fields...)
+		case *zng.TypeArray:
 			c.build(b, f.fields...)
 		default:
 			panic("not implemented: " + typ.String())
