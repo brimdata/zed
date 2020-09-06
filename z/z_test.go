@@ -8,7 +8,7 @@ import (
 )
 
 func TestZ(t *testing.T) {
-	var zc z.Context
+	var zc z.Container
 	rec := zc.NewRecord(
 		z.Int64("cnt", 12),
 		zc.Array("a", z.Int64v(1), z.Int64v(2), z.Int64v(3)),

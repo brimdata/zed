@@ -6,7 +6,7 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-type Context struct {
+type Container struct {
 	*resolver.Context
 }
 
@@ -14,10 +14,6 @@ type Field struct {
 	zng.Column
 	zcode.Bytes
 	fields []Field
-}
-
-func NewContext() Context {
-	return Context{resolver.NewContext()}
 }
 
 func Int64(key string, val int64) Field {
@@ -35,14 +31,14 @@ func Stringv(val string) Field {
 	return String("", val)
 }
 
-func (c *Context) zctx() *resolver.Context {
+func (c *Container) zctx() *resolver.Context {
 	if c.Context == nil {
 		c.Context = resolver.NewContext()
 	}
 	return c.Context
 }
 
-func (c *Context) recType(fields ...Field) *zng.TypeRecord {
+func (c *Container) recType(fields ...Field) *zng.TypeRecord {
 	cols := make([]zng.Column, len(fields))
 	for k := range fields {
 		cols[k] = fields[k].Column
@@ -54,21 +50,21 @@ func (c *Context) recType(fields ...Field) *zng.TypeRecord {
 	return typ
 }
 
-func (c *Context) arrayType(fields ...Field) *zng.TypeArray {
+func (c *Container) arrayType(fields ...Field) *zng.TypeArray {
 	// XXX we should check the types of all the fields and
 	// convert to a union if the types are mixed
 	return c.zctx().LookupTypeArray(fields[0].Column.Type)
 }
 
-func (c *Context) Record(key string, fields ...Field) Field {
+func (c *Container) Record(key string, fields ...Field) Field {
 	return Field{zng.Column{key, c.recType(fields...)}, nil, fields}
 }
 
-func (c *Context) Array(key string, fields ...Field) Field {
+func (c *Container) Array(key string, fields ...Field) Field {
 	return Field{zng.Column{key, c.arrayType(fields...)}, nil, fields}
 }
 
-func (c *Context) NewRecord(fields ...Field) *zng.Record {
+func (c *Container) NewRecord(fields ...Field) *zng.Record {
 	typ := c.recType(fields...)
 	var b zcode.Builder
 	c.build(&b, fields...)
@@ -76,7 +72,7 @@ func (c *Context) NewRecord(fields ...Field) *zng.Record {
 	return zng.NewRecord(typ, body)
 }
 
-func (c *Context) build(b *zcode.Builder, fields ...Field) {
+func (c *Container) build(b *zcode.Builder, fields ...Field) {
 	b.BeginContainer()
 	for _, f := range fields {
 		if f.Bytes != nil {
