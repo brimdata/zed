@@ -75,19 +75,16 @@ func (c *Cutter) FoundCut() bool {
 // complementBuilder creates a builder for the complement form of cut, where a
 // all fields not in a set are to be cut from a record and passed on.
 func (c *Cutter) complementBuilder(r *zng.Record) (*cutBuilder, error) {
-	var resolvers []expr.FieldExprResolver
-
 	fields, fieldTypes := complementFields(c.fieldnames, "", r.Type)
-
 	// if the set of cut -c fields is equal to the set of record
 	// fields, then there is no output for this input type.
 	if len(fieldTypes) == 0 {
 		return nil, nil
 	}
 
+	var resolvers []expr.FieldExprResolver
 	for _, f := range fields {
-		resolver := expr.CompileFieldAccess(f)
-		resolvers = append(resolvers, resolver)
+		resolvers = append(resolvers, expr.CompileFieldAccess(f))
 	}
 
 	builder, err := proc.NewColumnBuilder(c.zctx, fields)
