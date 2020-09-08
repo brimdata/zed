@@ -97,6 +97,7 @@ func (d *CLI) Write(cid int, batch zbuf.Batch) error {
 			return err
 		}
 	}
+	batch.Unref()
 	return nil
 }
 
