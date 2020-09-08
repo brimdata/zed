@@ -151,6 +151,7 @@ func (d *searchdriver) Warn(warning string) error {
 }
 
 func (d *searchdriver) Write(cid int, batch zbuf.Batch) error {
+	defer batch.Unref()
 	return d.output.SendBatch(cid, batch)
 }
 
