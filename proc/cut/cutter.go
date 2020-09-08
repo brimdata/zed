@@ -103,8 +103,7 @@ func (c *Cutter) complementBuilder(r *zng.Record) (*cutBuilder, error) {
 }
 
 // complementFields returns the slice of fields and associated types
-// that make up the complemente of the set of fields passed as first
-// argument.
+// that make up the complement of the set of fields in drops.
 func complementFields(drops []string, prefix string, typ *zng.TypeRecord) ([]string, []zng.Type) {
 	var fields []string
 	var types []zng.Type
