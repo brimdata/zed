@@ -21,7 +21,7 @@ require (
 	github.com/mccanne/joe v0.0.0-20200731213236-7c7845acf98b
 	github.com/mitchellh/mapstructure v1.3.3
 	github.com/peterh/liner v1.1.0
-	github.com/pierrec/lz4/v4 v4.0.1
+	github.com/pierrec/lz4/v4 v4.0.2
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/prometheus/client_golang v1.7.1
 	github.com/segmentio/ksuid v1.0.2
