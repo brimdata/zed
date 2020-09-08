@@ -6,5 +6,5 @@ input: |
 
 output-format: ndjson
 output: |
-    {}
-    {"ja3s":{}}
+  {}
+  {"ja3s":{}}
