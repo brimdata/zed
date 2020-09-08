@@ -168,7 +168,7 @@ func (p *Parser) ParseDirective(line []byte) error {
 // already present. The columns are returned as a slice along with a
 // bool indicating if a _path column was added.
 // Note that according to the zng spec, all the fields for a nested
-// record must be adjacent.
+// record must be adjacent which simplifies the logic here.
 func Unflatten(zctx *resolver.Context, columns []zng.Column, addPath bool) ([]zng.Column, bool, error) {
 	hasPath := false
 	for _, col := range columns {
