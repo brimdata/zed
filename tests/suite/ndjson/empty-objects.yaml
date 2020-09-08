@@ -1,12 +1,10 @@
 zql: '*'
 
 input: |
-      {}
-      {"ja3s":{}}
+  {}
+  {"ja3s":{}}
 
 output-format: ndjson
-output:
-  |
+output: |
     {}
     {"ja3s":{}}
-
