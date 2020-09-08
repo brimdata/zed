@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
@@ -31,7 +30,7 @@ type Parser struct {
 	// descriptor is a lazily-allocated Descriptor corresponding
 	// to the contents of the #fields and #types directives.
 	descriptor   *zng.TypeRecord
-	builder      *zcode.Builder
+	builder      builder
 	sourceFields []int
 }
 
@@ -42,9 +41,8 @@ var (
 
 func NewParser(r *resolver.Context) *Parser {
 	return &Parser{
-		header:  header{separator: " "},
-		zctx:    r,
-		builder: zcode.NewBuilder(),
+		header: header{separator: " "},
+		zctx:   r,
 	}
 }
 
@@ -325,10 +323,5 @@ func (p *Parser) ParseValue(line []byte) (*zng.Record, error) {
 		// each time here
 		path = []byte(p.Path)
 	}
-	p.builder.Reset()
-	zv, err := buildRecordFromZeekTSV(p.builder, p.descriptor, p.sourceFields, path, line)
-	if err != nil {
-		return nil, err
-	}
-	return zng.NewRecord(p.descriptor, zv), nil
+	return p.builder.build(p.descriptor, p.sourceFields, path, line)
 }
