@@ -286,10 +286,7 @@ func (r *Reader) readTypeRecord() error {
 	if err != nil {
 		return zng.ErrBadFormat
 	}
-	if ncol == 0 {
-		return errors.New("type record: zero columns not allowed")
-	}
-	var columns []zng.Column
+	columns := []zng.Column{}
 	for k := 0; k < int(ncol); k++ {
 		col, err := r.readColumn()
 		if err != nil {

@@ -429,6 +429,15 @@ func (c *Context) parseRecordTypeBody(in string) (string, zng.Type, error) {
 		return "", nil, zng.ErrTypeSyntax
 	}
 	var columns []zng.Column
+	in, ok = match(in, "]")
+	if ok {
+		typ, err := c.LookupTypeRecord([]zng.Column{})
+		if err != nil {
+			return "", nil, err
+		}
+		return in, typ, nil
+	}
+
 	for {
 		// at top of loop, we have to have a field def either because
 		// this is the first def or we found a comma and are expecting
@@ -580,7 +589,7 @@ func (c *Context) TranslateType(ext zng.Type) (zng.Type, error) {
 }
 
 func (c *Context) TranslateTypeRecord(ext *zng.TypeRecord) (*zng.TypeRecord, error) {
-	var columns []zng.Column
+	columns := []zng.Column{}
 	for _, col := range ext.Columns {
 		child, err := c.TranslateType(col.Type)
 		if err != nil {
