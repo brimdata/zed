@@ -1,8 +1,6 @@
 package cut
 
 import (
-	"strings"
-
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zng"
@@ -78,33 +76,25 @@ func (c *Cutter) FoundCut() bool {
 // all fields not in a set are to be cut from a record and passed on.
 func (c *Cutter) complementBuilder(r *zng.Record) (*cutBuilder, error) {
 	var resolvers []expr.FieldExprResolver
-	var outColTypes []zng.Type
 
-	iter := r.FieldIter()
-	var fields []string
-	for !iter.Done() {
-		name, _, err := iter.Next()
-		if err != nil {
-			return nil, err
-		}
-		if !fieldIn(c.fieldnames, name) {
-			fields = append(fields, name)
-			resolver := expr.CompileFieldAccess(name)
-			resolvers = append(resolvers, resolver)
-			val := resolver(r)
-			outColTypes = append(outColTypes, val.Type)
-		}
-	}
+	fields, fieldTypes := complementFields(c.fieldnames, "", r.Type)
+
 	// if the set of cut -c fields is equal to the set of record
 	// fields, then there is no output for this input type.
-	if len(outColTypes) == 0 {
+	if len(fieldTypes) == 0 {
 		return nil, nil
 	}
+
+	for _, f := range fields {
+		resolver := expr.CompileFieldAccess(f)
+		resolvers = append(resolvers, resolver)
+	}
+
 	builder, err := proc.NewColumnBuilder(c.zctx, fields)
 	if err != nil {
 		return nil, err
 	}
-	cols := builder.TypedColumns(outColTypes)
+	cols := builder.TypedColumns(fieldTypes)
 	outType, err := c.zctx.LookupTypeRecord(cols)
 	if err != nil {
 		return nil, err
@@ -112,14 +102,32 @@ func (c *Cutter) complementBuilder(r *zng.Record) (*cutBuilder, error) {
 	return &cutBuilder{resolvers, builder, outType}, nil
 }
 
-func fieldIn(set []string, cand string) bool {
-	splits := strings.Split(cand, ".")
-	for _, setel := range set {
-		for j := range splits {
-			prefix := strings.Join(splits[:j+1], ".")
-			if prefix == setel {
-				return true
-			}
+// complementFields returns the slice of fields and associated types
+// that make up the complemente of the set of fields passed as first
+// argument.
+func complementFields(drops []string, prefix string, typ *zng.TypeRecord) ([]string, []zng.Type) {
+	var fields []string
+	var types []zng.Type
+	for _, c := range typ.Columns {
+		if contains(drops, prefix+c.Name) {
+			continue
+		}
+		if typ, ok := c.Type.(*zng.TypeRecord); ok {
+			innerFields, innerTypes := complementFields(drops, prefix+c.Name+".", typ)
+			fields = append(fields, innerFields...)
+			types = append(types, innerTypes...)
+			continue
+		}
+		fields = append(fields, prefix+c.Name)
+		types = append(types, c.Type)
+	}
+	return fields, types
+}
+
+func contains(ss []string, el string) bool {
+	for _, s := range ss {
+		if s == el {
+			return true
 		}
 	}
 	return false
