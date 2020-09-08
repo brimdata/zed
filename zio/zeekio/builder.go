@@ -8,7 +8,7 @@ import (
 	"github.com/brimsec/zq/zng"
 )
 
-func buildRecordFromZeekTSV(builder *zcode.Builder, typ *zng.TypeRecord, path []byte, data []byte) (zcode.Bytes, error) {
+func buildRecordFromZeekTSV(builder *zcode.Builder, typ *zng.TypeRecord, sourceFields []int, path []byte, data []byte) (zcode.Bytes, error) {
 	columns := typ.Columns
 	if path != nil {
 		if columns[0].Name != "_path" {
@@ -29,8 +29,14 @@ func buildRecordFromZeekTSV(builder *zcode.Builder, typ *zng.TypeRecord, path []
 		}
 	}
 	fields = append(fields, data[start:])
-
-	fields, err := appendRecordFromZeekTSV(builder, columns, fields)
+	if len(fields) > len(sourceFields) {
+		return nil, errors.New("too many values")
+	}
+	var fields2 [][]byte
+	for _, s := range sourceFields {
+		fields2 = append(fields2, fields[s])
+	}
+	fields, err := appendRecordFromZeekTSV(builder, columns, fields2)
 	if err != nil {
 		return nil, err
 	}
