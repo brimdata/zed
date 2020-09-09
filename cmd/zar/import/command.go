@@ -40,12 +40,12 @@ func init() {
 
 type Command struct {
 	*root.Command
-	root            string
-	dataPath        string
-	thresh          string
-	empty           bool
-	sortMemMaxBytes int
-	ReaderFlags     zio.ReaderFlags
+	root          string
+	dataPath      string
+	thresh        string
+	empty         bool
+	sortMemMaxMiB int
+	ReaderFlags   zio.ReaderFlags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -54,7 +54,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.dataPath, "data", "", "location for storing data files (defaults to root)")
 	f.StringVar(&c.thresh, "s", units.Base2Bytes(archive.DefaultLogSizeThreshold).String(), "target size of chunk files, as '10MB' or '4GiB', etc.")
 	f.BoolVar(&c.empty, "empty", false, "create an archive without initial data")
-	f.IntVar(&c.sortMemMaxBytes, "sortmem", sort.MemMaxBytes, "maximum memory used by sort, in bytes")
+	f.IntVar(&c.sortMemMaxMiB, "sortmem", sort.MemMaxBytes/(1024*1024), "maximum memory used by sort, in MiB")
 	c.ReaderFlags.SetFlags(f)
 	return c, nil
 }
@@ -66,12 +66,10 @@ func (c *Command) Run(args []string) error {
 		return errors.New("zar import: exactly one input file must be specified (- for stdin)")
 	}
 
-	if c.sortMemMaxBytes <= 1048576 {
-		// If this value is small, then in practice,
-		// archive.Import will fail with: too many open files
-		return errors.New("sortmem value must be at least 1 MB")
+	if c.sortMemMaxMiB <= 0 {
+		return errors.New("sortmem value must be greater than zero")
 	}
-	sort.MemMaxBytes = c.sortMemMaxBytes
+	sort.MemMaxBytes = c.sortMemMaxMiB * 1024 * 1024
 
 	co := &archive.CreateOptions{DataPath: c.dataPath}
 	if thresh, err := units.ParseStrictBytes(c.thresh); err != nil {

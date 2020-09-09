@@ -1,0 +1,7 @@
+script: 
+    zq -sortmem 0 -t -
+        
+outputs:
+  - name: stderr
+    data: |
+      sortmem value must be greater than zero
