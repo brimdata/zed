@@ -1,0 +1,14 @@
+script: |
+  mkdir logs
+  zar import -R ./logs missingcol.tzng
+
+inputs:
+  - name: missingcol.tzng
+    data: |
+      #0:record[a:string,b:string]
+      0:[a;]
+
+outputs:
+  - name: stderr
+    regexp: |
+      .*record missing a field

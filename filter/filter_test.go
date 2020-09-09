@@ -8,6 +8,7 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
@@ -22,6 +23,16 @@ type testcase struct {
 
 func runCases(t *testing.T, tzng string, cases []testcase) {
 	t.Helper()
+	runCasesHelper(t, tzng, cases, false)
+}
+
+func runCasesExpectBufferFilterFalsePositives(t *testing.T, tzng string, cases []testcase) {
+	t.Helper()
+	runCasesHelper(t, tzng, cases, true)
+}
+
+func runCasesHelper(t *testing.T, tzng string, cases []testcase, expectBufferFilterFalsePositives bool) {
+	t.Helper()
 
 	zctx := resolver.NewContext()
 	batch, err := zbuf.ReadBatch(tzngio.NewReader(strings.NewReader(tzng), zctx), 2)
@@ -31,6 +42,8 @@ func runCases(t *testing.T, tzng string, cases []testcase) {
 
 	for _, c := range cases {
 		t.Run(c.filter, func(t *testing.T) {
+			t.Helper()
+
 			proc, err := zql.ParseProc(c.filter)
 			require.NoError(t, err, "filter: %q", c.filter)
 			filterExpr := proc.(*ast.FilterProc).Filter
@@ -44,12 +57,20 @@ func runCases(t *testing.T, tzng string, cases []testcase) {
 
 			bf, err := filter.NewBufferFilter(filterExpr)
 			assert.NoError(t, err, "filter: %q", c.filter)
-			if bf != nil && c.expected {
-				// We only check for false negatives because
-				// false positives are OK for correctness
-				// (though undesirable for performance).
-				assert.True(t, bf.Eval(rec.Raw),
-					"filter: %q\nrecord:\n%s", c.filter, hex.Dump(rec.Raw))
+			if bf != nil {
+				expected := c.expected
+				if expectBufferFilterFalsePositives {
+					expected = true
+				}
+				// For fieldNameFinder.find coverage, we need to
+				// hand BufferFilter.Eval a buffer containing a
+				// ZNG value message for rec, assembled here.
+				require.Less(t, rec.Type.ID(), 0x40)
+				buf := []byte{byte(rec.Type.ID())}
+				buf = zcode.AppendUvarint(buf, uint64(len(rec.Raw)))
+				buf = append(buf, rec.Raw...)
+				assert.Equal(t, expected, bf.Eval(zctx, buf),
+					"filter: %q\nbuffer:\n%s", c.filter, hex.Dump(buf))
 			}
 		})
 	}
@@ -150,7 +171,10 @@ func TestFilters(t *testing.T) {
 	tzng = `
 #0:record[nested:record[field:string]]
 0:[[test;]]`
-	runCases(t, tzng, []testcase{
+	// We expect false positives from BufferFilter here because it looks for
+	// values without regard to field name, returning true as long as some
+	// field matches the literal to the right of the equal sign.
+	runCasesExpectBufferFilterFalsePositives(t, tzng, []testcase{
 		{"nested.field = test", true},
 		{"bogus.field = test", false},
 		{"nested.bogus = test", false},
@@ -216,6 +240,38 @@ func TestFilters(t *testing.T) {
 	runCases(t, tzng, []testcase{
 		{`s = "Buenos di\u{0301}as sen\u{0303}or"`, true},
 		{`s = "Buenos d\u{ed}as se\u{f1}or"`, true},
+	})
+
+	// There are two Unicode code points with a multibyte UTF-8 encoding
+	// equivalent under Unicode simple case folding to code points with
+	// single-byte UTF-8 encodings: U+017F LATIN SMALL LETTER LONG S is
+	// equivalent to S and s, and U+212A KELVIN SIGN is equivalent to K and
+	// k. The next two records ensure they're handled correctly.
+
+	// Test U+017F LATIN SMALL LETTER LONG S.
+	tzng = `
+#0:record[a:string]
+0:[\u017F;]`
+	runCases(t, tzng, []testcase{
+		{`a = \u017F`, true},
+		{`a = S`, false},
+		{`a = s`, false},
+		{`\u017F`, true},
+		{`S`, false}, // Should be true; see https://github.com/brimsec/zq/issues/1207.
+		{`s`, false}, // Should be true; see https://github.com/brimsec/zq/issues/1207.
+	})
+
+	// Test U+212A KELVIN SIGN.
+	tzng = `
+#0:record[a:string]
+0:[\u212A;]`
+	runCases(t, tzng, []testcase{
+		{`a = '\u212A'`, true},
+		{`a = K`, true}, // True because Unicode NFC replaces U+212A with U+004B.
+		{`a = k`, false},
+		{`\u212A`, true},
+		{`K`, true},
+		{`k`, true},
 	})
 
 	// Test searching both fields and containers,
@@ -404,12 +460,14 @@ func TestFilters(t *testing.T) {
 
 	// Test searching for a field name
 	tzng = `
-#0:record[foo:string,rec:record[sub:string]]
+#0:record[foo:string,rec:record[SUB:string]]
 0:[bleah;[meh;]]`
 	runCases(t, tzng, []testcase{
 		{"foo", true},
 		{"FOO", true},
+		{"foo.", false},
 		{"sub", true},
+		{"sub.", false},
 		{"rec.sub", true},
 		{"c.s", true},
 	})

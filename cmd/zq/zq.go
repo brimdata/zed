@@ -15,6 +15,7 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
+	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/s3io"
 	"github.com/brimsec/zq/pkg/signalctx"
 	"github.com/brimsec/zq/proc/sort"
@@ -227,6 +228,9 @@ func (c *Command) Run(args []string) error {
 		c.WriterFlags.Format = "null"
 		defer logger.Close()
 	}
+	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
+		return err
+	}
 
 	readers, err := c.inputReaders(paths)
 	if err != nil {
@@ -270,6 +274,7 @@ func (c *Command) inputReaders(paths []string) ([]zbuf.Reader, error) {
 		Format:         c.ReaderFlags.Format,
 		JSONTypeConfig: c.jsonTypeConfig,
 		JSONPathRegex:  c.jsonPathRegexp,
+		ZngCheck:       c.ReaderFlags.ZngCheck,
 	}
 	var readers []zbuf.Reader
 	for _, path := range paths {

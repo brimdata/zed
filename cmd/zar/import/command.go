@@ -9,6 +9,7 @@ import (
 	"github.com/alecthomas/units"
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cmd/zar/root"
+	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
 	"github.com/brimsec/zq/proc/sort"
 	"github.com/brimsec/zq/zio"
@@ -79,6 +80,10 @@ func (c *Command) Run(args []string) error {
 		co.LogSizeThreshold = &thresh
 	}
 
+	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
+		return err
+	}
+
 	ark, err := archive.CreateOrOpenArchive(c.root, co, nil)
 	if err != nil {
 		return err
@@ -97,6 +102,7 @@ func (c *Command) Run(args []string) error {
 		Format: c.ReaderFlags.Format,
 		//JSONTypeConfig: c.jsonTypeConfig,
 		//JSONPathRegex:  c.jsonPathRegexp,
+		ZngCheck: c.ReaderFlags.ZngCheck,
 	}
 	reader, err := detector.OpenFile(zctx, path, cfg)
 	if err != nil {

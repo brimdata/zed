@@ -19,6 +19,7 @@ import (
 	"github.com/brimsec/zq/cmd/zqd/root"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/httpd"
+	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/proc/sort"
 	"github.com/brimsec/zq/zqd"
 	"github.com/brimsec/zq/zqd/zeek"
@@ -84,12 +85,17 @@ func (c *Command) Run(args []string) error {
 	if err := c.init(); err != nil {
 		return err
 	}
+	openFilesLimit, err := rlimit.RaiseOpenFilesLimit()
+	if err != nil {
+		c.logger.Warn("Raising open files limit failed", zap.Error(err))
+	}
 	core, err := zqd.NewCore(c.conf)
 	if err != nil {
 		return err
 	}
 	c.logger.Info("Starting",
 		zap.String("datadir", c.conf.Root),
+		zap.Uint64("open_files_limit", openFilesLimit),
 		zap.Bool("pprof_routes", c.pprof),
 		zap.Bool("zeek_supported", core.HasZeek()),
 	)

@@ -7,21 +7,23 @@ import (
 	"github.com/brimsec/zq/zbuf"
 )
 
-// ReaderFlags has the union of the flags accepted by all the different
+// ReaderFlags has the union of all the flags accepted by the different
 // Reader implementations.
 type ReaderFlags struct {
-	Format string
+	Format   string
+	ZngCheck bool
 }
 
 func (f *ReaderFlags) SetFlags(fs *flag.FlagSet) {
 	fs.StringVar(&f.Format, "i", "auto", "format of input data [auto,zng,ndjson,zeek,zjson,tzng,parquet]")
+	fs.BoolVar(&f.ZngCheck, "zngcheck", true, "check input records when reading ZNG streams")
 }
 
 // DefaultZngLZ4BlockSize is a reasonable default for
 // WriterFlags.ZngLZ4BlockSize.
 const DefaultZngLZ4BlockSize = 16 * 1024
 
-// WriterFlags has the union of the flags accepted by all the different
+// WriterFlags has the union of all the flags accepted by the different
 // Writer implementations.
 type WriterFlags struct {
 	Format           string

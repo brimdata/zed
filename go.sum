@@ -179,8 +179,8 @@ github.com/pborman/getopt v0.0.0-20180729010549-6fdd0a2c7117/go.mod h1:85jBQOZwp
 github.com/peterh/liner v1.1.0 h1:f+aAedNJA6uk7+6rXsYBnhdo4Xux7ESLe+kcuVUF5os=
 github.com/peterh/liner v1.1.0/go.mod h1:CRroGNssyjTd/qIG2FyxByd2S8JEAZXBl4qUrZf8GS0=
 github.com/pierrec/cmdflag v0.0.2/go.mod h1:a3zKGZ3cdQUfxjd0RGMLZr8xI3nvpJOB+m6o/1X5BmU=
-github.com/pierrec/lz4/v4 v4.0.1 h1:HiTUn/JqhQQrNlPxvuXmpcyqpl+lvAM0meyTDvlVOaI=
-github.com/pierrec/lz4/v4 v4.0.1/go.mod h1:vvUajMAuienWCEdMnA5Zb5mp0VIa9M8VvKcVEOkoAh8=
+github.com/pierrec/lz4/v4 v4.0.2 h1:fD8xxs2iTE+tzWpQGKOiqn102qVH00ZT/STpuaN2eH0=
+github.com/pierrec/lz4/v4 v4.0.2/go.mod h1:vvUajMAuienWCEdMnA5Zb5mp0VIa9M8VvKcVEOkoAh8=
 github.com/pkg/errors v0.8.0/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=

@@ -67,7 +67,7 @@ func (s *zngScanner) Pull() (zbuf.Batch, error) {
 func (s *zngScanner) scanUncompressed() (zbuf.Batch, error) {
 	ubuf := s.reader.uncompressedBuf
 	s.reader.uncompressedBuf = nil
-	if s.bufferFilter != nil && !s.bufferFilter.Eval(ubuf.Bytes()) {
+	if s.bufferFilter != nil && !s.bufferFilter.Eval(s.reader.zctx, ubuf.Bytes()) {
 		// s.bufferFilter evaluated to false, so we know ubuf cannot
 		// contain records matching s.filter.
 		atomic.AddInt64(&s.stats.BytesRead, int64(ubuf.length()))

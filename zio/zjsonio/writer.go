@@ -18,10 +18,10 @@ type Alias struct {
 }
 
 type Record struct {
-	Id      int           `json:"id"`
-	Type    []interface{} `json:"type,omitempty"`
-	Aliases []Alias       `json:"aliases,omitempty"`
-	Values  []interface{} `json:"values"`
+	Id      int            `json:"id"`
+	Type    *[]interface{} `json:"type,omitempty"`
+	Aliases []Alias        `json:"aliases,omitempty"`
+	Values  []interface{}  `json:"values"`
 }
 
 type Writer struct {

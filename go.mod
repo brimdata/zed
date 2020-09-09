@@ -21,7 +21,7 @@ require (
 	github.com/mccanne/joe v0.0.0-20200731213236-7c7845acf98b
 	github.com/mitchellh/mapstructure v1.3.3
 	github.com/peterh/liner v1.1.0
-	github.com/pierrec/lz4/v4 v4.0.1
+	github.com/pierrec/lz4/v4 v4.0.2
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/prometheus/client_golang v1.7.1
 	github.com/segmentio/ksuid v1.0.2
@@ -34,7 +34,7 @@ require (
 	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381 // indirect
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
-	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae // indirect
+	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae
 	golang.org/x/text v0.3.3
 	golang.org/x/tools v0.0.0-20200425043458-8463f397d07c // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0

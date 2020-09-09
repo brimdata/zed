@@ -30,6 +30,7 @@ type OpenConfig struct {
 	JSONTypeConfig *ndjsonio.TypeConfig
 	JSONPathRegex  string
 	AwsCfg         *aws.Config
+	ZngCheck       bool
 }
 
 const StdinPath = "/dev/stdin"

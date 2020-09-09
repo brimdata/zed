@@ -245,8 +245,6 @@ N.B.: The rules for ZNG identifiers follow the same rules as
 
 The type ID follows the field name and is encoded as a `uvarint`.
 
-A record may not contain zero columns.
-
 #### 3.1.1.2 Array Typedef
 
 An array type is encoded as simply the type code of the elements of
@@ -454,10 +452,12 @@ The tag is defined as
 and is encoded as a `uvarint`.
 
 For example, tag value 0 is an unset primitive value and tag value 1
-is an unset container value.  Tag value 2 is a length zero primitive value,
-e.g., it could represent empty string.  Tag value 3 is a length 1 primitive value,
-e.g., it would represent the boolean "true" if followed by byte value 1
-in the context of type ID 0 (i.e., the type ID for boolean).
+is an unset container value.  Tag value 2 is a length zero primitive
+value, e.g., it could represent empty string.  Tag value 3 is a length
+zero container, such as an empty array or record with no fields.  Tag
+value 4 is a length 1 primitive value, e.g., it would represent the
+boolean "true" if followed by byte value 1 in the context of type ID 0
+(i.e., the type ID for boolean).
 
 Following the tag encoding is the value encoded in N bytes as described above.
 
