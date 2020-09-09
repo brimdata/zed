@@ -1,0 +1,10 @@
+zql: '*'
+
+input: |
+  {"id":23,"type":[],"values":[]}
+  {"id":24,"type":[{"name":"ja3s","type":[]}],"values":[[]]}
+
+output-format: zjson
+output: |
+  {"id":23,"type":[],"values":[]}
+  {"id":24,"type":[{"name":"ja3s","type":[]}],"values":[[]]}

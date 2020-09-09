@@ -245,8 +245,6 @@ N.B.: The rules for ZNG identifiers follow the same rules as
 
 The type ID follows the field name and is encoded as a `uvarint`.
 
-A record may not contain zero columns.
-
 #### 3.1.1.2 Array Typedef
 
 An array type is encoded as simply the type code of the elements of

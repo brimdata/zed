@@ -62,7 +62,7 @@ func (r *Reader) Read() (*zng.Record, error) {
 		if v.Aliases != nil {
 			r.parseAliases(v.Aliases)
 		}
-		typeName, err := DecodeType(v.Type)
+		typeName, err := DecodeType(*v.Type)
 		if err != nil {
 			return nil, err
 		}

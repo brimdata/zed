@@ -428,6 +428,14 @@ func (c *Context) parseRecordTypeBody(in string) (string, zng.Type, error) {
 	if !ok {
 		return "", nil, zng.ErrTypeSyntax
 	}
+	in, ok = match(in, "]")
+	if ok {
+		typ, err := c.LookupTypeRecord([]zng.Column{})
+		if err != nil {
+			return "", nil, err
+		}
+		return in, typ, nil
+	}
 	var columns []zng.Column
 	for {
 		// at top of loop, we have to have a field def either because
