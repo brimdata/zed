@@ -132,14 +132,14 @@ func (w *Writer) Write(rec *zng.Record) error {
 func (w *Writer) Abort() error {
 	// Delete the temp files comprising the index hierarchy.
 	defer os.RemoveAll(w.tmpdir)
-	firstErr := w.closeTree()
-	if err := w.iow.Close(); firstErr == nil {
-		firstErr = err
+	err := w.closeTree()
+	if closeErr := w.iow.Close(); err == nil {
+		err = closeErr
 	}
-	if err := iosrc.Remove(w.uri); firstErr == nil {
-		firstErr = err
+	if rmErr := iosrc.Remove(w.uri); err == nil {
+		err = rmErr
 	}
-	return firstErr
+	return err
 }
 
 func (w *Writer) Close() error {
@@ -182,13 +182,13 @@ func (w *Writer) closeTree() error {
 	if w.writer == nil {
 		return nil
 	}
-	var firstErr error
+	var err error
 	for p := w.writer.parent; p != nil; p = p.parent {
-		if err := p.Close(); firstErr == nil {
-			firstErr = err
+		if closeErr := p.Close(); err == nil {
+			err = closeErr
 		}
 	}
-	return firstErr
+	return err
 }
 
 func (w *Writer) finalize() error {
