@@ -23,11 +23,12 @@ func NewStream() *Stream {
 
 func (s *Stream) Transform(r *zng.Record) (*Record, error) {
 	id := r.Type.ID()
-	var typ []interface{}
+	var typ *[]interface{}
 	var aliases []Alias
 	if !s.tracker.Seen(id) {
 		aliases = s.encodeAliases(r.Type)
-		typ = encodeType(r.Type)
+		t := encodeType(r.Type)
+		typ = &t
 	}
 	v, err := encodeContainer(r.Type, r.Raw)
 	if err != nil {
@@ -148,7 +149,7 @@ func encodeContainer(typ zng.Type, val []byte) (interface{}, error) {
 // of objects so a javascript client can easily call JSON.parse() and have
 // the record structure present in an easy-to-navigate nested object.
 func encodeType(typ *zng.TypeRecord) []interface{} {
-	var columns []interface{}
+	columns := []interface{}{}
 	for _, c := range typ.Columns {
 		childRec, ok := c.Type.(*zng.TypeRecord)
 		var typ interface{}

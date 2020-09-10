@@ -31,6 +31,14 @@ func (p *inferParser) parseObject(b []byte) (zng.Value, error) {
 	if err != nil {
 		return zng.Value{}, err
 	}
+	if len(kvs) == 0 {
+		empty, err := p.zctx.LookupTypeRecord([]zng.Column{})
+		if err != nil {
+			return zng.Value{}, err
+		}
+		return zng.Value{Type: empty, Bytes: zcode.Bytes{}}, nil
+	}
+
 	// Sort fields lexigraphically ensuring maps with the same
 	// columns but different printed order get assigned the same descriptor.
 	sort.Slice(kvs, func(i, j int) bool {

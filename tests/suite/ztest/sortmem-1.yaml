@@ -1,0 +1,13 @@
+script: zq -sortmem 1 -t -
+        
+inputs:
+  - name: stdin
+    data: |
+      #0:record[a:string]
+      0:[hello;]
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[a:string]
+      0:[hello;]

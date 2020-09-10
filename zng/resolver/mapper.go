@@ -34,21 +34,6 @@ func (m *Mapper) Enter(id int, ext *zng.TypeRecord) (*zng.TypeRecord, error) {
 	return nil, nil
 }
 
-func (m *Mapper) EnterByName(td int, typeName string) (*zng.TypeRecord, error) {
-	outputType, err := m.outputCtx.LookupByName(typeName)
-	if err != nil {
-		return nil, err
-	}
-	if outputType != nil {
-		recType, ok := outputType.(*zng.TypeRecord)
-		if ok {
-			m.enter(td, recType)
-			return recType, nil
-		}
-	}
-	return nil, zng.ErrBadValue
-}
-
 func (m *Mapper) EnterTypeRecord(td int, typ *zng.TypeRecord) {
 	m.enter(td, typ)
 }
