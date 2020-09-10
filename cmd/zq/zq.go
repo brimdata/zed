@@ -83,25 +83,25 @@ func init() {
 }
 
 type Command struct {
-	zctx            *resolver.Context
-	dir             string
-	jsonTypePath    string
-	jsonPathRegexp  string
-	jsonTypeConfig  *ndjsonio.TypeConfig
-	outputFile      string
-	verbose         bool
-	stats           bool
-	quiet           bool
-	showVersion     bool
-	stopErr         bool
-	forceBinary     bool
-	sortMemMaxBytes int
-	textShortcut    bool
-	cpuprofile      string
-	memprofile      string
-	cleanupFns      []func()
-	ReaderFlags     zio.ReaderFlags
-	WriterFlags     zio.WriterFlags
+	zctx           *resolver.Context
+	dir            string
+	jsonTypePath   string
+	jsonPathRegexp string
+	jsonTypeConfig *ndjsonio.TypeConfig
+	outputFile     string
+	verbose        bool
+	stats          bool
+	quiet          bool
+	showVersion    bool
+	stopErr        bool
+	forceBinary    bool
+	sortMemMaxMiB  int
+	textShortcut   bool
+	cpuprofile     string
+	memprofile     string
+	cleanupFns     []func()
+	ReaderFlags    zio.ReaderFlags
+	WriterFlags    zio.WriterFlags
 }
 
 func New(f *flag.FlagSet) (charm.Command, error) {
@@ -123,7 +123,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
 	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
 	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
-	f.IntVar(&c.sortMemMaxBytes, "sortmem", sort.MemMaxBytes, "maximum memory used by sort, in bytes")
+	f.IntVar(&c.sortMemMaxMiB, "sortmem", sort.MemMaxBytes/(1024*1024), "maximum memory used by sort, in MiB")
 	f.BoolVar(&c.showVersion, "version", false, "print version and exit")
 	f.BoolVar(&c.textShortcut, "t", false, "use format tzng independent of -f option")
 	f.BoolVar(&c.forceBinary, "B", false, "allow binary zng be sent to a terminal output")
@@ -197,10 +197,10 @@ func (c *Command) Run(args []string) error {
 		}
 		c.jsonTypeConfig = tc
 	}
-	if c.sortMemMaxBytes <= 0 {
+	if c.sortMemMaxMiB <= 0 {
 		return errors.New("sortmem value must be greater than zero")
 	}
-	sort.MemMaxBytes = c.sortMemMaxBytes
+	sort.MemMaxBytes = c.sortMemMaxMiB * 1024 * 1024
 	paths := args
 	var query ast.Proc
 	var err error
