@@ -10,6 +10,7 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
@@ -65,7 +66,7 @@ func TestMultiFileScanner(t *testing.T) {
 	assert.True(t, ok)
 
 	var sb strings.Builder
-	err = zbuf.CopyPuller(tzngio.NewWriter(&sb), sn)
+	err = zbuf.CopyPuller(tzngio.NewWriter(&zio.NoCloser{&sb}), sn)
 	require.NoError(t, err)
 	require.Equal(t, trim(exp), trim(sb.String()))
 

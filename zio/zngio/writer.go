@@ -11,8 +11,9 @@ import (
 )
 
 type Writer struct {
-	ow *offsetWriter // offset never points inside a compressed value message block
-	cw *compressionWriter
+	closer io.Closer
+	ow     *offsetWriter // offset never points inside a compressed value message block
+	cw     *compressionWriter
 
 	encoder          *resolver.Encoder
 	buffer           []byte
@@ -20,19 +21,28 @@ type Writer struct {
 	streamRecordsMax int
 }
 
-func NewWriter(w io.Writer, flags zio.WriterFlags) *Writer {
+func NewWriter(w io.WriteCloser, flags zio.WriterFlags) *Writer {
 	ow := &offsetWriter{w: w}
 	var cw *compressionWriter
 	if flags.ZngLZ4BlockSize > 0 {
 		cw = &compressionWriter{w: ow, blockSize: flags.ZngLZ4BlockSize}
 	}
 	return &Writer{
+		closer:           w,
 		ow:               ow,
 		cw:               cw,
 		encoder:          resolver.NewEncoder(),
 		buffer:           make([]byte, 0, 128),
 		streamRecordsMax: flags.StreamRecordsMax,
 	}
+}
+
+func (w *Writer) Close() error {
+	firstErr := w.flush()
+	if err := w.closer.Close(); err != nil && firstErr == nil {
+		return firstErr
+	}
+	return firstErr
 }
 
 func (w *Writer) write(p []byte) error {
@@ -111,7 +121,7 @@ func (w *Writer) WriteControl(b []byte) error {
 	return w.writeUncompressed(dst)
 }
 
-func (w *Writer) Flush() error {
+func (w *Writer) flush() error {
 	if w.streamRecords > 0 {
 		return w.EndStream()
 	}

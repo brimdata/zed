@@ -12,6 +12,7 @@ import (
 	"github.com/brimsec/zq/proc/orderedmerge"
 	"github.com/brimsec/zq/proc/proctest"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
@@ -109,7 +110,7 @@ func TestParallelOrder(t *testing.T) {
 			om := orderedmerge.New(pctx, parents, c.field, c.reversed)
 
 			var sb strings.Builder
-			err := zbuf.CopyPuller(tzngio.NewWriter(&sb), om)
+			err := zbuf.CopyPuller(tzngio.NewWriter(&zio.NoCloser{&sb}), om)
 			require.NoError(t, err)
 			assert.Equal(t, test.Trim(c.exp), sb.String())
 		})

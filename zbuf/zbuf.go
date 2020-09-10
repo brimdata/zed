@@ -32,23 +32,6 @@ type WriteCloser interface {
 	io.Closer
 }
 
-type WriteFlusher interface {
-	Writer
-	Flush() error
-}
-
-type nopFlusher struct {
-	Writer
-}
-
-func (nopFlusher) Flush() error { return nil }
-
-// NopFlusher returns a WriteFlusher with a no-op Flush method wrapping
-// the provided Writer w.
-func NopFlusher(w Writer) WriteFlusher {
-	return nopFlusher{w}
-}
-
 type nopReadCloser struct {
 	Reader
 }
