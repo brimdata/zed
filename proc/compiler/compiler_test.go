@@ -49,7 +49,7 @@ func TestCompileParents(t *testing.T) {
 		require.NoError(t, err)
 
 		var sb strings.Builder
-		err = zbuf.CopyPuller(tzngio.NewWriter(&zio.NoCloser{&sb}), leaves[0])
+		err = zbuf.CopyPuller(tzngio.NewWriter(zio.NopCloser(&sb)), leaves[0])
 		require.NoError(t, err)
 		assert.Equal(t, test.Trim(exp), sb.String())
 	})

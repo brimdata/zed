@@ -66,7 +66,7 @@ func TestMultiFileScanner(t *testing.T) {
 	assert.True(t, ok)
 
 	var sb strings.Builder
-	err = zbuf.CopyPuller(tzngio.NewWriter(&zio.NoCloser{&sb}), sn)
+	err = zbuf.CopyPuller(tzngio.NewWriter(zio.NopCloser(&sb)), sn)
 	require.NoError(t, err)
 	require.Equal(t, trim(exp), trim(sb.String()))
 

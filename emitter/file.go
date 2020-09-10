@@ -46,7 +46,7 @@ func NewFileWithSource(path iosrc.URI, flags *zio.WriterFlags, source iosrc.Sour
 	if path.Scheme == "stdio" {
 		// Don't close stdio in case we live inside something
 		// that has multiple stdio users.
-		wc = &zio.NoCloser{f}
+		wc = zio.NopCloser(f)
 		// Don't buffer terminal output.
 		if !IsTerminal(f) {
 			wc = bufwriter.New(wc)

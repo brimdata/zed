@@ -83,7 +83,7 @@ func TestParallelOrder(t *testing.T) {
 	require.NoError(t, err)
 
 	var buf bytes.Buffer
-	d := NewCLI(tzngio.NewWriter(&zio.NoCloser{&buf}))
+	d := NewCLI(tzngio.NewWriter(zio.NopCloser(&buf)))
 	zctx := resolver.NewContext()
 	err = MultiRun(context.Background(), d, query, zctx, &orderedmsrc{}, MultiConfig{
 		Parallelism: len(parallelTestInputs),
@@ -147,7 +147,7 @@ func TestScannerClose(t *testing.T) {
 	require.NoError(t, err)
 
 	var buf bytes.Buffer
-	d := NewCLI(tzngio.NewWriter(&zio.NoCloser{&buf}))
+	d := NewCLI(tzngio.NewWriter(zio.NopCloser(&buf)))
 	zctx := resolver.NewContext()
 	ms := &scannerCloseMS{
 		input: `

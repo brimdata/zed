@@ -22,7 +22,7 @@ func NewTypeLogger(path string, verbose bool) (*TypeLogger, error) {
 	if path == "" {
 		// Don't close stdout in case we live inside something
 		// here that runs multiple instances of this to stdout.
-		f = &zio.NoCloser{os.Stdout}
+		f = zio.NopCloser(os.Stdout)
 	} else {
 		var err error
 		flags := os.O_WRONLY | os.O_CREATE | os.O_TRUNC

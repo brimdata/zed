@@ -110,7 +110,7 @@ func TestParallelOrder(t *testing.T) {
 			om := orderedmerge.New(pctx, parents, c.field, c.reversed)
 
 			var sb strings.Builder
-			err := zbuf.CopyPuller(tzngio.NewWriter(&zio.NoCloser{&sb}), om)
+			err := zbuf.CopyPuller(tzngio.NewWriter(zio.NopCloser(&sb)), om)
 			require.NoError(t, err)
 			assert.Equal(t, test.Trim(c.exp), sb.String())
 		})

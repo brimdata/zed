@@ -19,7 +19,7 @@ func (b *Bytes) Bytes() []byte {
 
 func NewBytes(flags *zio.WriterFlags) (*Bytes, error) {
 	b := &Bytes{}
-	b.Writer = detector.LookupWriter(&zio.NoCloser{&b.buf}, flags)
+	b.Writer = detector.LookupWriter(zio.NopCloser(&b.buf), flags)
 	if b.Writer == nil {
 		return nil, unknownFormat(flags.Format)
 	}
