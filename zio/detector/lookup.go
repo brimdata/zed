@@ -23,35 +23,34 @@ func (*nullWriter) Write(*zng.Record) error {
 	return nil
 }
 
-func LookupWriter(w io.WriteCloser, wflags *zio.WriterFlags) *zio.Writer {
+func (*nullWriter) Close() error {
+	return nil
+}
+
+func LookupWriter(w io.WriteCloser, wflags *zio.WriterFlags) zbuf.WriteCloser {
 	flags := *wflags
 	if flags.Format == "" {
 		flags.Format = "tzng"
 	}
-	var f zbuf.WriteFlusher
 	switch flags.Format {
 	default:
 		return nil
 	case "null":
-		f = zbuf.NopFlusher(&nullWriter{})
+		return &nullWriter{}
 	case "tzng":
-		f = zbuf.NopFlusher(tzngio.NewWriter(w))
+		return tzngio.NewWriter(w)
 	case "zng":
-		f = zngio.NewWriter(w, flags)
+		return zngio.NewWriter(w, flags)
 	case "zeek":
-		f = zbuf.NopFlusher(zeekio.NewWriter(w, flags))
+		return zeekio.NewWriter(w, flags)
 	case "ndjson":
-		f = zbuf.NopFlusher(ndjsonio.NewWriter(w))
+		return ndjsonio.NewWriter(w)
 	case "zjson":
-		f = zbuf.NopFlusher(zjsonio.NewWriter(w))
+		return zjsonio.NewWriter(w)
 	case "text":
-		f = zbuf.NopFlusher(textio.NewWriter(w, flags))
+		return textio.NewWriter(w, flags)
 	case "table":
-		f = tableio.NewWriter(w, flags)
-	}
-	return &zio.Writer{
-		WriteFlusher: f,
-		Closer:       w,
+		return tableio.NewWriter(w, flags)
 	}
 }
 

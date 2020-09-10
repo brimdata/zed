@@ -3,8 +3,6 @@ package zio
 import (
 	"flag"
 	"io"
-
-	"github.com/brimsec/zq/zbuf"
 )
 
 // ReaderFlags has the union of all the flags accepted by the different
@@ -46,27 +44,6 @@ func (f *WriterFlags) SetFlags(fs *flag.FlagSet) {
 		"LZ4 block size in bytes for ZNG compression (nonpositive to disable)")
 }
 
-type Writer struct {
-	zbuf.WriteFlusher
-	io.Closer
-}
-
-func NewWriter(writer zbuf.WriteFlusher, closer io.Closer) *Writer {
-	return &Writer{
-		WriteFlusher: writer,
-		Closer:       closer,
-	}
-}
-
-func (w *Writer) Close() error {
-	err := w.Flush()
-	cerr := w.Closer.Close()
-	if err == nil {
-		err = cerr
-	}
-	return err
-}
-
 func Extension(format string) string {
 	switch format {
 	case "tzng":
@@ -86,4 +63,16 @@ func Extension(format string) string {
 	default:
 		return ""
 	}
+}
+
+type nopCloser struct {
+	io.Writer
+}
+
+func (nopCloser) Close() error { return nil }
+
+// NopCloser returns a WriteCloser with a no-op Close method wrapping
+// the provided Writer w.
+func NopCloser(w io.Writer) io.WriteCloser {
+	return nopCloser{w}
 }

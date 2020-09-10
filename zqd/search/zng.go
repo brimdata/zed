@@ -23,7 +23,7 @@ type ZngOutput struct {
 func NewZngOutput(response http.ResponseWriter, ctrl bool) *ZngOutput {
 	o := &ZngOutput{
 		response: response,
-		writer:   zngio.NewWriter(response, zio.WriterFlags{}),
+		writer:   zngio.NewWriter(zio.NopCloser(response), zio.WriterFlags{}),
 		ctrl:     ctrl,
 	}
 	return o

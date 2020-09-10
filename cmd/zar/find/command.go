@@ -9,6 +9,7 @@ import (
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/emitter"
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -108,7 +109,7 @@ func (c *Command) Run(args []string) error {
 	if c.outputFile == "-" {
 		c.outputFile = ""
 	}
-	var writer *zio.Writer
+	var writer zbuf.WriteCloser
 	if c.zng {
 		var err error
 		writer, err = emitter.NewFile(c.outputFile, &c.WriterFlags)

@@ -15,7 +15,7 @@ import (
 var ErrDescriptorChanged = errors.New("descriptor changed")
 
 type Writer struct {
-	io.Writer
+	writer io.WriteCloser
 	header
 	flattener *Flattener
 	typ       *zng.TypeRecord
@@ -23,7 +23,7 @@ type Writer struct {
 	format    zng.OutFmt
 }
 
-func NewWriter(w io.Writer, flags zio.WriterFlags) *Writer {
+func NewWriter(w io.WriteCloser, flags zio.WriterFlags) *Writer {
 	var format zng.OutFmt
 	if flags.UTF8 {
 		format = zng.OutFormatZeek
@@ -31,11 +31,15 @@ func NewWriter(w io.Writer, flags zio.WriterFlags) *Writer {
 		format = zng.OutFormatZeekAscii
 	}
 	return &Writer{
-		Writer:    w,
+		writer:    w,
 		flattener: NewFlattener(resolver.NewContext()),
 		precision: 6,
 		format:    format,
 	}
+}
+
+func (w *Writer) Close() error {
+	return w.writer.Close()
 }
 
 func (w *Writer) Write(r *zng.Record) error {
@@ -62,7 +66,7 @@ func (w *Writer) Write(r *zng.Record) error {
 		values = append(values[:i], values[i+1:]...)
 	}
 	out := strings.Join(values, "\t") + "\n"
-	_, err = w.Writer.Write([]byte(out))
+	_, err = w.writer.Write([]byte(out))
 	return err
 }
 
@@ -114,7 +118,7 @@ func (w *Writer) writeHeader(r *zng.Record, path string) error {
 		}
 		s += "\n"
 	}
-	_, err := w.Writer.Write([]byte(s))
+	_, err := w.writer.Write([]byte(s))
 	return err
 }
 

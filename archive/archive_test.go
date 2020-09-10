@@ -15,6 +15,7 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
@@ -57,7 +58,7 @@ func indexQuery(t *testing.T, ark *Archive, query IndexQuery, opts ...FindOption
 	defer rc.Close()
 
 	var buf bytes.Buffer
-	w := tzngio.NewWriter(&buf)
+	w := tzngio.NewWriter(zio.NopCloser(&buf))
 	require.NoError(t, zbuf.Copy(w, rc))
 
 	return buf.String()

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -51,7 +52,7 @@ func TestNDJSONWriter(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			var out bytes.Buffer
-			w := NewWriter(&out)
+			w := NewWriter(zio.NopCloser(&out))
 			r := tzngio.NewReader(strings.NewReader(c.input), resolver.NewContext())
 			require.NoError(t, zbuf.Copy(w, r))
 			NDJSONEq(t, c.output, out.String())
@@ -131,7 +132,7 @@ func TestNDJSON(t *testing.T) {
 
 func runtestcase(t *testing.T, input, output string) {
 	var out bytes.Buffer
-	w := NewWriter(&out)
+	w := NewWriter(zio.NopCloser(&out))
 	r, err := NewReader(strings.NewReader(input), resolver.NewContext(), nil, "", "")
 	require.NoError(t, err)
 	require.NoError(t, zbuf.Copy(w, r))
@@ -350,7 +351,7 @@ func TestNDJSONTypeErrors(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			var out bytes.Buffer
-			w := NewWriter(&out)
+			w := NewWriter(zio.NopCloser(&out))
 			r, err := NewReader(strings.NewReader(c.input), resolver.NewContext(), nil, "", "")
 			require.NoError(t, err)
 			err = r.configureTypes(typeConfig, c.defaultPath)

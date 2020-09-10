@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/brimsec/zq/driver"
+	"github.com/brimsec/zq/pkg/bufwriter"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
@@ -119,7 +120,7 @@ func (s *Storage) Write(ctx context.Context, zctx *resolver.Context, zr zbuf.Rea
 
 	spanWriter := &spanWriter{}
 	if err := fs.ReplaceFile(s.join(allZngFile), 0600, func(w io.Writer) error {
-		fileWriter := zngio.NewWriter(w, zio.WriterFlags{
+		fileWriter := zngio.NewWriter(bufwriter.New(zio.NopCloser(w)), zio.WriterFlags{
 			StreamRecordsMax: s.streamsize,
 			ZngLZ4BlockSize:  zio.DefaultZngLZ4BlockSize,
 		})
@@ -127,7 +128,7 @@ func (s *Storage) Write(ctx context.Context, zctx *resolver.Context, zr zbuf.Rea
 		if err := s.write(ctx, zw, zctx, zr); err != nil {
 			return err
 		}
-		return fileWriter.Flush()
+		return fileWriter.Close()
 	}); err != nil {
 		return err
 	}

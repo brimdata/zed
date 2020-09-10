@@ -12,6 +12,7 @@ import (
 	"github.com/brimsec/zq/proc/compiler"
 	"github.com/brimsec/zq/proc/proctest"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
@@ -48,7 +49,7 @@ func TestCompileParents(t *testing.T) {
 		require.NoError(t, err)
 
 		var sb strings.Builder
-		err = zbuf.CopyPuller(tzngio.NewWriter(&sb), leaves[0])
+		err = zbuf.CopyPuller(tzngio.NewWriter(zio.NopCloser(&sb)), leaves[0])
 		require.NoError(t, err)
 		assert.Equal(t, test.Trim(exp), sb.String())
 	})

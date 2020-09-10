@@ -9,6 +9,7 @@ import (
 
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
@@ -82,7 +83,7 @@ func TestParallelOrder(t *testing.T) {
 	require.NoError(t, err)
 
 	var buf bytes.Buffer
-	d := NewCLI(tzngio.NewWriter(&buf))
+	d := NewCLI(tzngio.NewWriter(zio.NopCloser(&buf)))
 	zctx := resolver.NewContext()
 	err = MultiRun(context.Background(), d, query, zctx, &orderedmsrc{}, MultiConfig{
 		Parallelism: len(parallelTestInputs),
@@ -146,7 +147,7 @@ func TestScannerClose(t *testing.T) {
 	require.NoError(t, err)
 
 	var buf bytes.Buffer
-	d := NewCLI(tzngio.NewWriter(&buf))
+	d := NewCLI(tzngio.NewWriter(zio.NopCloser(&buf)))
 	zctx := resolver.NewContext()
 	ms := &scannerCloseMS{
 		input: `

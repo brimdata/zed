@@ -602,7 +602,7 @@ func runzq(path, ZQL, outputFormat, outputFlags string, inputs ...string) (out s
 	d := driver.NewCLI(zw)
 	d.SetWarningsWriter(&errbuf)
 	err = driver.Run(context.Background(), d, proc, zctx, rc, driver.Config{})
-	if err2 := zw.Flush(); err == nil {
+	if err2 := zw.Close(); err == nil {
 		err = err2
 	}
 	if err != nil {
