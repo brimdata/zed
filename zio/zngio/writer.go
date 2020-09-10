@@ -39,7 +39,7 @@ func NewWriter(w io.WriteCloser, flags zio.WriterFlags) *Writer {
 
 func (w *Writer) Close() error {
 	err := w.flush()
-	if closeErr := w.closer.Close(); closeErr != nil && err == nil {
+	if closeErr := w.closer.Close(); err == nil {
 		err = closeErr
 	}
 	return err
