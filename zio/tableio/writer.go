@@ -88,9 +88,9 @@ func (w *Writer) flush() error {
 }
 
 func (w *Writer) Close() error {
-	firstErr := w.flush()
-	if err := w.writer.Close(); err != nil && firstErr == nil {
-		firstErr = err
+	err := w.flush()
+	if closeErr := w.writer.Close(); closeErr != nil && err == nil {
+		err = closeErr
 	}
-	return firstErr
+	return err
 }

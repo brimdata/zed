@@ -38,11 +38,11 @@ func NewWriter(w io.WriteCloser, flags zio.WriterFlags) *Writer {
 }
 
 func (w *Writer) Close() error {
-	firstErr := w.flush()
-	if err := w.closer.Close(); err != nil && firstErr == nil {
-		return firstErr
+	err := w.flush()
+	if closeErr := w.closer.Close(); closeErr != nil && err == nil {
+		err = closeErr
 	}
-	return firstErr
+	return err
 }
 
 func (w *Writer) write(p []byte) error {
