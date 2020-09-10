@@ -22,12 +22,11 @@ func ParseURI(path string) (URI, error) {
 	if path == "" {
 		return URI{}, nil
 	}
-	// First resolve stdio keywords in to fully-formed uri.
-	path = stdio(path)
-	var err error
-	path, err = normalizeFilepaths(path)
-	if err != nil {
-		return URI{}, err
+	if u, ok := stdio(path); ok {
+		return u, nil
+	}
+	if u, ok, err := parseBarePath(path); err != nil || ok {
+		return u, err
 	}
 	u, err := url.Parse(path)
 	if err != nil {
@@ -36,16 +35,16 @@ func ParseURI(path string) (URI, error) {
 	return URI(*u), nil
 }
 
-func stdio(path string) string {
+func stdio(path string) (URI, bool) {
 	switch path {
 	case "stdin":
-		return stdin
+		return URI{Scheme: "stdio", Path: "/stdin"}, true
 	case "stdout":
-		return stdout
+		return URI{Scheme: "stdio", Path: "/stdout"}, true
 	case "stderr":
-		return stderr
+		return URI{Scheme: "stdio", Path: "/stderr"}, true
 	default:
-		return path
+		return URI{}, false
 	}
 }
 

@@ -7,18 +7,17 @@ import (
 
 var winVolumeRe = regexp.MustCompile("^[a-zA-Z]:")
 
-func normalizeFilepaths(path string) (string, error) {
+func parseBarePath(path string) (URI, bool, error) {
 	if !winVolumeRe.MatchString(path) {
 		if scheme, err := getscheme(path); err != nil || scheme != "" {
-			return path, err
+			return URI{}, false, err
 		}
 	}
-	var err error
-	path, err = filepath.Abs(path)
+	path, err := filepath.Abs(path)
 	if err != nil {
-		return "", err
+		return URI{}, false, err
 	}
-	return "file:///" + filepath.ToSlash(path), nil
+	return URI{Scheme: FileScheme, Path: "/" + filepath.ToSlash(path)}, true, nil
 }
 
 func (p URI) Filepath() string {

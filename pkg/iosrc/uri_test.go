@@ -60,3 +60,10 @@ func TestURISerializeEmpty(t *testing.T) {
 	var u URI
 	assert.Equal(t, "", u.String())
 }
+
+func TestPathWithEncodedChars(t *testing.T) {
+	p := filepath.FromSlash("/data/file%20with%20spaces")
+	u, err := ParseURI(p)
+	require.NoError(t, err)
+	assert.Equal(t, p, u.Filepath())
+}
