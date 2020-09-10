@@ -1,5 +1,4 @@
-script: 
-    zq -sortmem 1 -t -
+script: zq -sortmem 1 -t -
         
 inputs:
   - name: stdin
