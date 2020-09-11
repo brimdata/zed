@@ -152,15 +152,21 @@ func (s *Store) NewSearch(ctx context.Context, req api.PcapSearch) (*Search, err
 	s.metaMu.Lock()
 	defer s.metaMu.Unlock()
 	var search *pcap.Search
+	// We add two microseconds to the end of the span as fudge to deal with the
+	// fact that zeek truncates timestamps to microseconds where pcap-ng
+	// timestamps have nanosecond precision.  We need two microseconds because
+	// both the base timestamp of a conn record as well as the durtion time
+	// can be truncated downward.
+	span := nano.NewSpanTs(req.Span.Ts, req.Span.End()+2000)
 	switch req.Proto {
 	case "tcp":
 		flow := pcap.NewFlow(req.SrcHost, int(req.SrcPort), req.DstHost, int(req.DstPort))
-		search = pcap.NewTCPSearch(req.Span, flow)
+		search = pcap.NewTCPSearch(span, flow)
 	case "udp":
 		flow := pcap.NewFlow(req.SrcHost, int(req.SrcPort), req.DstHost, int(req.DstPort))
-		search = pcap.NewUDPSearch(req.Span, flow)
+		search = pcap.NewUDPSearch(span, flow)
 	case "icmp":
-		search = pcap.NewICMPSearch(req.Span, req.SrcHost, req.DstHost)
+		search = pcap.NewICMPSearch(span, req.SrcHost, req.DstHost)
 	default:
 		return nil, fmt.Errorf("unsupported proto type: %s", req.Proto)
 	}
@@ -168,7 +174,7 @@ func (s *Store) NewSearch(ctx context.Context, req api.PcapSearch) (*Search, err
 	if err != nil {
 		return nil, err
 	}
-	slicer, err := pcap.NewSlicer(f, s.meta.Index, req.Span)
+	slicer, err := pcap.NewSlicer(f, s.meta.Index, span)
 	if err != nil {
 		f.Close()
 		return nil, err
