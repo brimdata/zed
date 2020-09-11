@@ -11,7 +11,7 @@ import (
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/proc/sort"
 	"github.com/brimsec/zq/reducer"
-	"github.com/brimsec/zq/reducer/compile"
+	"github.com/brimsec/zq/reducer/compiler"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
@@ -27,7 +27,7 @@ type GroupByParams struct {
 	inputSortDir int
 	limit        int
 	keys         []GroupByKey
-	reducers     []compile.CompiledReducer
+	reducers     []compiler.CompiledReducer
 	builder      *proc.ColumnBuilder
 	consumePart  bool
 	emitPart     bool
@@ -60,9 +60,9 @@ func CompileParams(node *ast.GroupByProc, zctx *resolver.Context) (*GroupByParam
 		})
 		targets = append(targets, astKey.Target)
 	}
-	reducers := make([]compile.CompiledReducer, 0)
+	reducers := make([]compiler.CompiledReducer, 0)
 	for _, reducer := range node.Reducers {
-		compiled, err := compile.Compile(reducer)
+		compiled, err := compiler.Compile(reducer)
 		if err != nil {
 			return nil, err
 		}
@@ -140,7 +140,7 @@ type Aggregator struct {
 	keys         []GroupByKey
 	keyResolvers []expr.FieldExprResolver
 	decomposable bool
-	reducerDefs  []compile.CompiledReducer
+	reducerDefs  []compiler.CompiledReducer
 	builder      *proc.ColumnBuilder
 	table        map[string]*GroupByRow
 	limit        int
@@ -159,7 +159,7 @@ type GroupByRow struct {
 	keycols  []zng.Column
 	keyvals  zcode.Bytes
 	groupval *zng.Value // for sorting when input sorted
-	reducers compile.Row
+	reducers compiler.Row
 }
 
 func NewAggregator(c *proc.Context, params GroupByParams) *Aggregator {
@@ -215,7 +215,7 @@ func NewAggregator(c *proc.Context, params GroupByParams) *Aggregator {
 	}
 }
 
-func decomposable(rs []compile.CompiledReducer) bool {
+func decomposable(rs []compiler.CompiledReducer) bool {
 	for _, r := range rs {
 		instance := r.Instantiate()
 		if _, ok := instance.(reducer.Decomposable); !ok {
@@ -312,7 +312,7 @@ func (a *Aggregator) createGroupByRow(keyCols []zng.Column, vals zcode.Bytes, gr
 		keycols:  keyCols,
 		keyvals:  v,
 		groupval: groupval,
-		reducers: compile.NewRow(a.reducerDefs),
+		reducers: compiler.NewRow(a.reducerDefs),
 	}
 }
 
@@ -528,7 +528,7 @@ func (a *Aggregator) readSpills(eof bool) (zbuf.Batch, error) {
 
 func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 	// Consume all partial result records that have the same grouping keys.
-	row := compile.NewRow(a.reducerDefs)
+	row := compiler.NewRow(a.reducerDefs)
 	var firstRec *zng.Record
 	for {
 		rec, err := a.runManager.Peek()

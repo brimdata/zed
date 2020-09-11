@@ -13,7 +13,7 @@ import (
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/proc/compiler"
 	"github.com/brimsec/zq/reducer"
-	rcompile "github.com/brimsec/zq/reducer/compile"
+	rcompiler "github.com/brimsec/zq/reducer/compiler"
 	"github.com/brimsec/zq/zng/resolver"
 	"go.uber.org/zap"
 )
@@ -424,7 +424,7 @@ func buildSplitFlowgraph(branch, tail []ast.Proc, mergeField string, reverse boo
 
 func decomposable(rs []ast.Reducer) bool {
 	for _, r := range rs {
-		cr, err := rcompile.Compile(r)
+		cr, err := rcompiler.Compile(r)
 		if err != nil {
 			return false
 		}
