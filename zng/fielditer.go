@@ -44,27 +44,13 @@ func (r *fieldIter) Next() (name string, value Value, err error) {
 		name = fmt.Sprintf("%s.%s", info.fullname, col.Name)
 	}
 
-	// step into records as necessary
-	for {
-		recType, isRecord := AliasedType(col.Type).(*TypeRecord)
-		if !isRecord {
-			break
-		}
-
+	recType, isRecord := AliasedType(col.Type).(*TypeRecord)
+	if isRecord {
 		if !container {
 			return "", Value{}, ErrMismatch
 		}
-
 		r.stack = append(r.stack, iterInfo{zcode.Iter(zv), recType, 0, name})
-		info = &r.stack[len(r.stack)-1]
-
-		zv, container, err = info.iter.Next()
-		if err != nil {
-			return "", Value{}, err
-		}
-
-		col = recType.Columns[0]
-		name = fmt.Sprintf("%s.%s", name, col.Name)
+		return r.Next()
 	}
 
 	// we're at a leaf value, assemble it
