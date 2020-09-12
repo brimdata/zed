@@ -1,6 +1,7 @@
 package compiler
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/brimsec/zq/ast"
@@ -35,128 +36,116 @@ func isContainerProc(node ast.Proc) bool {
 	return false
 }
 
-// Compile compiles an AST into a graph of Procs, and returns
-// the leaves.  A custom proc compiler can be included and it will be tried first
-// for each node encountered during the compilation.
-func Compile(custom Hook, node ast.Proc, pctx *proc.Context, parents []proc.Interface) ([]proc.Interface, error) {
-	if !isContainerProc(node) && len(parents) != 1 {
-		return nil, fmt.Errorf("proc.CompileProc: expected single parent for node %T, got %d", node, len(parents))
-	}
-	parent := parents[0]
-
+func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, parent proc.Interface) (proc.Interface, error) {
 	if custom != nil {
 		p, err := custom(node, pctx, parent)
 		if err != nil {
 			return nil, err
 		}
 		if p != nil {
-			return []proc.Interface{p}, err
+			return p, err
 		}
 	}
 	switch v := node.(type) {
+
+	default:
+		return nil, fmt.Errorf("unknown AST type: %v", v)
 
 	case *ast.GroupByProc:
 		params, err := groupby.CompileParams(v, pctx.TypeContext)
 		if err != nil {
 			return nil, err
 		}
-		return []proc.Interface{groupby.New(pctx, parent, *params)}, nil
+		return groupby.New(pctx, parent, *params), nil
 
 	case *ast.CutProc:
 		cut, err := cut.New(pctx, parent, v)
 		if err != nil {
 			return nil, err
 		}
-		return []proc.Interface{cut}, nil
+		return cut, nil
 
 	case *ast.SortProc:
 		sort, err := sort.New(pctx, parent, v)
 		if err != nil {
 			return nil, fmt.Errorf("compiling sort: %w", err)
 		}
-		return []proc.Interface{sort}, nil
+		return sort, nil
 
 	case *ast.HeadProc:
 		limit := v.Count
 		if limit == 0 {
 			limit = 1
 		}
-		return []proc.Interface{head.New(parent, limit)}, nil
+		return head.New(parent, limit), nil
 
 	case *ast.TailProc:
 		limit := v.Count
 		if limit == 0 {
 			limit = 1
 		}
-		return []proc.Interface{tail.New(parent, limit)}, nil
+		return tail.New(parent, limit), nil
 
 	case *ast.UniqProc:
-		return []proc.Interface{uniq.New(pctx, parent, v.Cflag)}, nil
+		return uniq.New(pctx, parent, v.Cflag), nil
 
 	case *ast.PassProc:
-		return []proc.Interface{pass.New(parent)}, nil
+		return pass.New(parent), nil
 
 	case *ast.FilterProc:
 		f, err := filter.Compile(v.Filter)
 		if err != nil {
 			return nil, fmt.Errorf("compiling filter: %w", err)
 		}
-		return []proc.Interface{filterproc.New(parent, f)}, nil
+		return filterproc.New(parent, f), nil
 
 	case *ast.TopProc:
 		fields, err := expr.CompileFieldExprs(v.Fields)
 		if err != nil {
 			return nil, fmt.Errorf("compiling top: %w", err)
 		}
-		return []proc.Interface{top.New(parent, v.Limit, fields, v.Flush)}, nil
+		return top.New(parent, v.Limit, fields, v.Flush), nil
 
 	case *ast.PutProc:
 		put, err := put.New(pctx, parent, v)
 		if err != nil {
 			return nil, err
 		}
-		return []proc.Interface{put}, nil
+		return put, nil
 
 	case *ast.RenameProc:
 		rename, err := rename.New(pctx, parent, v)
 		if err != nil {
 			return nil, err
 		}
-		return []proc.Interface{rename}, nil
-
-	case *ast.SequentialProc:
-		var err error
-		n := len(v.Procs)
-		for k := 0; k < n; k++ {
-			parents, err = Compile(custom, v.Procs[k], pctx, parents)
-			if err != nil {
-				return nil, err
-			}
-			// merge unless we're at the end of the chain,
-			// in which case the output layer will mux
-			// into channels.
-			if len(parents) > 1 && k < n-1 {
-				p := v.Procs[k].(*ast.ParallelProc)
-				if p.MergeOrderField != "" {
-					parents = []proc.Interface{orderedmerge.New(pctx, parents, p.MergeOrderField, p.MergeOrderReverse)}
-				} else {
-					parents = []proc.Interface{merge.New(pctx, parents)}
-				}
-			} else {
-				parent = parents[0]
-			}
-		}
-		return parents, nil
-
-	case *ast.ParallelProc:
-		return CompileParallel(custom, v, pctx, parents)
-
-	default:
-		return nil, fmt.Errorf("unknown AST type: %v", v)
+		return rename, nil
 	}
 }
 
-func CompileParallel(custom Hook, pp *ast.ParallelProc, c *proc.Context, parents []proc.Interface) ([]proc.Interface, error) {
+func compileSequential(custom Hook, nodes []ast.Proc, pctx *proc.Context, parents []proc.Interface) ([]proc.Interface, error) {
+	node := nodes[0]
+	parents, err := Compile(custom, node, pctx, parents)
+	// merge unless we're at the end of the chain,
+	// in which case the output layer will mux
+	// into channels.
+	if len(nodes) == 1 {
+		return parents, err
+	}
+	if len(parents) > 1 {
+		var parent proc.Interface
+		p := node.(*ast.ParallelProc)
+		if p.MergeOrderField != "" {
+			parent = orderedmerge.New(pctx, parents, p.MergeOrderField, p.MergeOrderReverse)
+		} else {
+			parent = merge.New(pctx, parents)
+		}
+		parents = parents[0:1]
+		parents[0] = parent
+	}
+	return compileSequential(custom, nodes[1:], pctx, parents)
+}
+
+func compileParallel(custom Hook, pp *ast.ParallelProc, c *proc.Context, parents []proc.Interface) ([]proc.Interface, error) {
 	n := len(pp.Procs)
 	if len(parents) == 1 {
 		// Single parent: insert a splitter and wire to each branch.
@@ -179,4 +168,30 @@ func CompileParallel(custom Hook, pp *ast.ParallelProc, c *proc.Context, parents
 		procs = append(procs, proc...)
 	}
 	return procs, nil
+}
+
+// Compile compiles an AST into a graph of Procs, and returns
+// the leaves.  A custom compiler hook can be included and it will be tried first
+// for each node encountered during the compilation.
+func Compile(custom Hook, node ast.Proc, pctx *proc.Context, parents []proc.Interface) ([]proc.Interface, error) {
+	if len(parents) == 0 {
+		return nil, errors.New("no parents")
+	}
+	switch node := node.(type) {
+	default:
+		if len(parents) > 1 {
+			return nil, fmt.Errorf("ast type %v cannot have multiple parents", node)
+		}
+		p, err := compileProc(custom, node, pctx, parents[0])
+		return []proc.Interface{p}, err
+
+	case *ast.SequentialProc:
+		if len(node.Procs) == 0 {
+			return nil, errors.New("sequential proc without procs")
+		}
+		return compileSequential(custom, node.Procs, pctx, parents)
+
+	case *ast.ParallelProc:
+		return compileParallel(custom, node, pctx, parents)
+	}
 }
