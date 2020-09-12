@@ -87,6 +87,10 @@ type ColumnBuilder struct {
 // do this now since it might confuse users who expect to see output
 // fields in the order they specified.
 func NewColumnBuilder(zctx *resolver.Context, fields []string) (*ColumnBuilder, error) {
+	return NewColumnBuilderWithBuilder(zctx, fields, zcode.NewBuilder())
+}
+
+func NewColumnBuilderWithBuilder(zctx *resolver.Context, fields []string, builder *zcode.Builder) (*ColumnBuilder, error) {
 	seenRecords := make(map[string]bool)
 	fieldInfos := make([]fieldInfo, 0, len(fields))
 	var currentRecord []string
@@ -148,7 +152,7 @@ func NewColumnBuilder(zctx *resolver.Context, fields []string) (*ColumnBuilder, 
 
 	return &ColumnBuilder{
 		fields:  fieldInfos,
-		builder: zcode.NewBuilder(),
+		builder: builder,
 		zctx:    zctx,
 	}, nil
 }

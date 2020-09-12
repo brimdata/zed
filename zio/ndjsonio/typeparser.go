@@ -191,25 +191,23 @@ func appendRecordFromViews(builder *zcode.Builder, columns []zng.Column, jsonVal
 // the underlying JSON values.  This slice follows the order of the flattened
 // columns.  Second, it builds the full encoded value and building nested
 // records as necessary.
-func (info *typeInfo) newRawFromJSON(data []byte) (zcode.Bytes, int, error) {
+func (info *typeInfo) newRawFromJSON(builder *zcode.Builder, data []byte) (int, error) {
 
 	droppedFields, err := info.makeViews(data)
 	if err != nil {
-		return nil, 0, err
+		return 0, err
 	}
 
 	i, ok := info.descriptor.ColumnOfField("ts")
 	if ok && info.jsonVals[i].typ != jsonparser.String && info.jsonVals[i].typ != jsonparser.Number {
-		return nil, 0, fmt.Errorf("invalid json type for ts: %s", info.jsonVals[i].typ)
+		return 0, fmt.Errorf("invalid json type for ts: %s", info.jsonVals[i].typ)
 	}
-
-	builder := zcode.NewBuilder()
 
 	_, err = appendRecordFromViews(builder, info.descriptor.Columns, info.jsonVals)
 	if err != nil {
-		return nil, 0, err
+		return 0, err
 	}
-	return builder.Bytes(), droppedFields, nil
+	return droppedFields, nil
 }
 
 // findTypeInfo returns the typeInfo struct matching an input json
@@ -261,7 +259,7 @@ func (p *typeParser) findTypeInfo(zctx *resolver.Context, jobj []byte, tr typeRu
 	return nil, ErrDescriptorNotFound
 }
 
-func (p *typeParser) parseObject(b []byte) (zng.Value, error) {
+func (p *typeParser) parseObject(builder *zcode.Builder, b []byte) (zng.Type, error) {
 	incr := func(stat *int) {
 		(*stat)++
 		if p.stats.FirstBadLine == 0 {
@@ -280,19 +278,19 @@ func (p *typeParser) parseObject(b []byte) (zng.Value, error) {
 		default:
 			panic("unhandled error")
 		}
-		return zng.Value{}, err
+		return nil, err
 	}
 
-	raw, dropped, err := ti.newRawFromJSON(b)
+	dropped, err := ti.newRawFromJSON(builder, b)
 	if err != nil {
 		incr(&p.stats.BadFormat)
-		return zng.Value{}, err
+		return nil, err
 	}
 	if dropped > 0 {
 		incr(&p.stats.IncompleteDescriptor)
-		return zng.Value{}, ErrIncompleteDescriptor
+		return nil, ErrIncompleteDescriptor
 	}
-	return zng.Value{ti.descriptor, raw}, nil
+	return ti.descriptor, nil
 }
 
 func parseSimpleType(value []byte, typ zng.Type) ([]byte, error) {

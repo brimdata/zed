@@ -11,6 +11,7 @@ import (
 	"regexp"
 
 	"github.com/brimsec/zq/pkg/skim"
+	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zio/zjsonio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -33,6 +34,7 @@ type Reader struct {
 	typ     *typeParser
 	zctx    *resolver.Context
 	stats   ReadStats
+	builder zcode.Builder
 }
 
 func NewReader(reader io.Reader, zctx *resolver.Context, tc *TypeConfig, JSONPathRegex string, filepath string) (*Reader, error) {
@@ -119,10 +121,14 @@ func (r *Reader) Parse(b []byte) (zng.Value, error) {
 	if typ != jsonparser.Object {
 		return zng.Value{}, fmt.Errorf("expected JSON type to be Object but got %s", typ)
 	}
+	var t zng.Type
+	r.builder.Reset()
 	if r.typ != nil {
-		return r.typ.parseObject(val)
+		t, err := r.typ.parseObject(&r.builder, val)
+	} else {
+		t, err := r.inf.parseObject(&r.builder, val)
 	}
-	return r.inf.parseObject(val)
+	return zng.Value{t, r.builder.Bytes()}, nil
 }
 
 func (r *Reader) Read() (*zng.Record, error) {
