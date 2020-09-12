@@ -34,6 +34,7 @@ jobs:
       - run: mkdir dist -ea 0
       - run: go build -o dist ./cmd/...
       - run: go test -v -tags=system ./tests
+      - run: make test-zeek
   markdown-link-check:
     runs-on: ubuntu-latest
     steps:
