@@ -10,7 +10,6 @@ import (
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/require"
@@ -89,8 +88,7 @@ func TestZngIndex(t *testing.T) {
 			_ = os.Remove(fname)
 		}()
 
-		flags := zio.WriterFlags{StreamRecordsMax: 2}
-		writer := NewWriter(fp, flags)
+		writer := NewWriter(fp, WriterOpts{StreamRecordsMax: 2})
 
 		for {
 			rec, err := reader.Read()

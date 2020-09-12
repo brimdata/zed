@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/brimsec/zq/archive"
+	"github.com/brimsec/zq/cmd/cli"
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
@@ -13,8 +14,9 @@ import (
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
+	"github.com/brimsec/zq/zio/flags"
+	"github.com/brimsec/zq/zio/options"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
 	"github.com/mccanne/charm"
@@ -47,7 +49,8 @@ type Command struct {
 	root         string
 	stopErr      bool
 	textShortcut bool
-	writerFlags  zio.WriterFlags
+	writerFlags  flags.Writer
+	cli          cli.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -59,11 +62,16 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
 	f.BoolVar(&c.textShortcut, "t", false, "use format tzng independent of -f option")
 	c.writerFlags.SetFlags(f)
+	c.cli.SetFlags(f)
 	return c, nil
 }
 
 //XXX lots here copied from zq command... we should refactor into a tools package
 func (c *Command) Run(args []string) error {
+	defer c.cli.Cleanup()
+	if err := c.cli.Init(); err != nil {
+		return err
+	}
 	if len(args) == 0 {
 		return errors.New("zar map needs input arguments")
 	}
@@ -118,8 +126,8 @@ func (c *Command) Run(args []string) error {
 			}
 		}
 		zctx := resolver.NewContext()
-		cfg := detector.OpenConfig{Format: "zng"}
-		rc := detector.MultiFileReader(zctx, paths, cfg)
+		opts := options.Reader{Format: "zng"}
+		rc := detector.MultiFileReader(zctx, paths, opts)
 		defer rc.Close()
 		reader := zbuf.Reader(rc)
 		wch := make(chan string, 5)
@@ -151,7 +159,7 @@ func (c *Command) openOutput(zardir iosrc.URI) (zbuf.WriteCloser, error) {
 	if c.outputFile != "" {
 		path = zardir.AppendPath(c.outputFile).String()
 	}
-	w, err := emitter.NewFile(path, &c.writerFlags)
+	w, err := emitter.NewFile(path, c.writerFlags.Options())
 	if err != nil {
 		return nil, err
 	}

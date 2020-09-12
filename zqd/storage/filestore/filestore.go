@@ -120,9 +120,9 @@ func (s *Storage) Write(ctx context.Context, zctx *resolver.Context, zr zbuf.Rea
 
 	spanWriter := &spanWriter{}
 	if err := fs.ReplaceFile(s.join(allZngFile), 0600, func(w io.Writer) error {
-		fileWriter := zngio.NewWriter(bufwriter.New(zio.NopCloser(w)), zio.WriterFlags{
+		fileWriter := zngio.NewWriter(bufwriter.New(zio.NopCloser(w)), zngio.WriterOpts{
 			StreamRecordsMax: s.streamsize,
-			ZngLZ4BlockSize:  zio.DefaultZngLZ4BlockSize,
+			LZ4BlockSize:     zngio.DefaultLZ4BlockSize,
 		})
 		zw := zbuf.MultiWriter(fileWriter, spanWriter)
 		if err := s.write(ctx, zw, zctx, zr); err != nil {

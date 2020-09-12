@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/brimsec/zq/archive"
+	"github.com/brimsec/zq/cmd/cli"
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
@@ -52,6 +53,7 @@ type Command struct {
 	framesize  int
 	keys       string
 	zql        string
+	cli        cli.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -63,10 +65,15 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.outputFile, "o", "index.zng", "name of microindex output file (for custom indexes)")
 	f.BoolVar(&c.quiet, "q", false, "don't print progress on stdout")
 	f.StringVar(&c.zql, "z", "", "zql for custom indexes")
+	c.cli.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
+	defer c.cli.Cleanup()
+	if err := c.cli.Init(); err != nil {
+		return err
+	}
 	if len(args) == 0 && c.zql == "" {
 		return errors.New("zar index: one or more indexing patterns must be specified")
 	}

@@ -3,8 +3,6 @@ package zngio
 import (
 	"io"
 	"sync"
-
-	"github.com/brimsec/zq/zio"
 )
 
 type buffer struct {
@@ -15,10 +13,10 @@ type buffer struct {
 var bufferPool sync.Pool
 
 func newBuffer(length int) *buffer {
-	if length <= zio.DefaultZngLZ4BlockSize {
+	if length <= DefaultLZ4BlockSize {
 		b, ok := bufferPool.Get().(*buffer)
 		if !ok {
-			b = &buffer{data: make([]byte, zio.DefaultZngLZ4BlockSize)}
+			b = &buffer{data: make([]byte, DefaultLZ4BlockSize)}
 		}
 		b.data = b.data[:length]
 		b.off = 0
@@ -28,7 +26,7 @@ func newBuffer(length int) *buffer {
 }
 
 func (b *buffer) free() {
-	if cap(b.data) == zio.DefaultZngLZ4BlockSize {
+	if cap(b.data) == DefaultLZ4BlockSize {
 		bufferPool.Put(b)
 	}
 }

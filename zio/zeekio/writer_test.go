@@ -51,7 +51,7 @@ func runcase(t *testing.T, tzng, expected string) {
 	r := tzngio.NewReader(strings.NewReader(tzng), resolver.NewContext())
 	rec, err := r.Read()
 	require.NoError(t, err)
-	w := zeekio.NewWriter(zio.NopCloser(out), zio.WriterFlags{})
+	w := zeekio.NewWriter(zio.NopCloser(out), false)
 	require.NoError(t, w.Write(rec))
 	require.Equal(t, expected, out.String())
 }

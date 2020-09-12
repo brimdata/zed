@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/brimsec/zq/cmd/cli"
 	"github.com/brimsec/zq/cmd/microindex/root"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/pkg/fs"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -44,7 +44,7 @@ type Command struct {
 	outputFile  string
 	keyField    string
 	offsetField string
-	ReaderFlags zio.ReaderFlags
+	cli         cli.Flags
 }
 
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -55,8 +55,7 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.outputFile, "o", "index.zng", "name of microindex output file")
 	f.StringVar(&c.keyField, "k", "", "name of search key field")
 	f.StringVar(&c.offsetField, "v", "offset", "field name for seek offset in output index")
-	c.ReaderFlags.SetFlags(f)
-
+	c.cli.SetFlags(f)
 	return c, nil
 }
 
@@ -64,6 +63,10 @@ func (c *Command) Run(args []string) error {
 	//XXX no reason to limit this... fix later
 	if len(args) != 1 {
 		return errors.New("must specify a single zng input file containing keys and optional values")
+	}
+	defer c.cli.Cleanup()
+	if err := c.cli.Init(); err != nil {
+		return err
 	}
 	file := os.Stdin
 	path := args[0]

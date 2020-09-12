@@ -7,33 +7,38 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/zeekio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
+type WriterOpts struct {
+	ShowTypes  bool
+	ShowFields bool
+	EpochDates bool
+}
+
 type Writer struct {
-	zio.WriterFlags
+	WriterOpts
 	writer    io.WriteCloser
 	flattener *zeekio.Flattener
 	precision int
 	format    zng.OutFmt
 }
 
-func NewWriter(w io.WriteCloser, flags zio.WriterFlags) *Writer {
+func NewWriter(w io.WriteCloser, utf8 bool, opts WriterOpts) *Writer {
 	var format zng.OutFmt
-	if flags.UTF8 {
+	if utf8 {
 		format = zng.OutFormatZeek
 	} else {
 		format = zng.OutFormatZeekAscii
 	}
 	return &Writer{
-		writer:      w,
-		WriterFlags: flags,
-		flattener:   zeekio.NewFlattener(resolver.NewContext()),
-		precision:   6,
-		format:      format,
+		WriterOpts: opts,
+		writer:     w,
+		flattener:  zeekio.NewFlattener(resolver.NewContext()),
+		precision:  6,
+		format:     format,
 	}
 }
 

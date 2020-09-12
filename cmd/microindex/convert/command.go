@@ -5,11 +5,12 @@ import (
 	"flag"
 	"strings"
 
+	"github.com/brimsec/zq/cmd/cli"
 	"github.com/brimsec/zq/cmd/microindex/root"
 	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
+	"github.com/brimsec/zq/zio/flags"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
 )
@@ -39,7 +40,8 @@ type Command struct {
 	frameThresh int
 	outputFile  string
 	keys        string
-	ReaderFlags zio.ReaderFlags
+	ReaderFlags flags.Reader
+	cli         cli.Flags
 }
 
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -50,11 +52,16 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.outputFile, "o", "index.zng", "name of microindex output file")
 	f.StringVar(&c.keys, "k", "", "comma-separated list of field names for keys")
 	c.ReaderFlags.SetFlags(f)
+	c.cli.SetFlags(f)
 
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
+	defer c.cli.Cleanup()
+	if err := c.cli.Init(); err != nil {
+		return err
+	}
 	if c.keys == "" {
 		return errors.New("must specify at least one key field with -k")
 	}
@@ -66,13 +73,11 @@ func (c *Command) Run(args []string) error {
 	if path == "-" {
 		path = detector.StdinPath
 	}
-	zctx := resolver.NewContext()
-	cfg := detector.OpenConfig{
-		Format: c.ReaderFlags.Format,
-		//JSONTypeConfig: c.jsonTypeConfig,
-		//JSONPathRegex:  c.jsonPathRegexp,
+	if err := c.ReaderFlags.Init(); err != nil {
+		return err
 	}
-	file, err := detector.OpenFile(zctx, path, cfg)
+	zctx := resolver.NewContext()
+	file, err := detector.OpenFile(zctx, path, c.ReaderFlags.Options())
 	if err != nil {
 		return err
 	}

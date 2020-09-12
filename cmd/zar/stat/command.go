@@ -10,7 +10,7 @@ import (
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zio/options"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
 )
@@ -53,7 +53,7 @@ func (c *Command) Run(args []string) (err error) {
 		return err
 	}
 
-	wc, err := emitter.NewFile("", &zio.WriterFlags{Format: c.format})
+	wc, err := emitter.NewFile("", options.Writer{Format: c.format})
 	if err != nil {
 		return err
 	}

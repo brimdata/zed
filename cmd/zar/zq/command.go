@@ -1,17 +1,16 @@
 package zq
 
 import (
-	"errors"
 	"flag"
 	"os"
 
 	"github.com/brimsec/zq/archive"
+	"github.com/brimsec/zq/cmd/cli"
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/driver"
-	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
-	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zio/flags"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
 	"github.com/mccanne/charm"
@@ -37,37 +36,35 @@ func init() {
 
 type Command struct {
 	*root.Command
-	forceBinary  bool
-	outputFile   string
-	quiet        bool
-	root         string
-	stopErr      bool
-	textShortcut bool
-	writerFlags  zio.WriterFlags
+	quiet       bool
+	root        string
+	stopErr     bool
+	writerFlags flags.Writer
+	output      cli.OutputFlags
+	cli         cli.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
-	f.BoolVar(&c.forceBinary, "B", false, "allow binary zng output to a terminal")
-	f.StringVar(&c.outputFile, "o", "", "write data to output file")
 	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
 	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive to walk")
 	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
-	f.BoolVar(&c.textShortcut, "t", false, "use format tzng independent of -f option")
 	c.writerFlags.SetFlags(f)
+	c.output.SetFlags(f)
+	c.cli.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	if c.outputFile == "-" {
-		c.outputFile = ""
+	defer c.cli.Cleanup()
+	if err := c.cli.Init(); err != nil {
+		return err
 	}
-	if c.textShortcut {
-		c.writerFlags.Format = "tzng"
+	opts := c.writerFlags.Options()
+	if err := c.output.Init(&opts); err != nil {
+		return err
 	}
-	if c.outputFile == "" && c.writerFlags.Format == "zng" && emitter.IsTerminal(os.Stdout) && !c.forceBinary {
-		return errors.New("writing binary zng data to terminal; override with -B or use -t for text.")
-	}
+
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
@@ -86,7 +83,7 @@ func (c *Command) Run(args []string) error {
 	ctx, cancel := signalctx.New(os.Interrupt)
 	defer cancel()
 
-	writer, err := emitter.NewFile(c.outputFile, &c.writerFlags)
+	writer, err := c.output.Open(opts)
 	if err != nil {
 		return err
 	}

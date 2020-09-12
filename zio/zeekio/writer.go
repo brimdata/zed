@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
@@ -23,9 +22,9 @@ type Writer struct {
 	format    zng.OutFmt
 }
 
-func NewWriter(w io.WriteCloser, flags zio.WriterFlags) *Writer {
+func NewWriter(w io.WriteCloser, utf8 bool) *Writer {
 	var format zng.OutFmt
-	if flags.UTF8 {
+	if utf8 {
 		format = zng.OutFormatZeek
 	} else {
 		format = zng.OutFormatZeekAscii

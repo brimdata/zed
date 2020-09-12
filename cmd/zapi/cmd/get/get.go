@@ -15,7 +15,8 @@ import (
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zio/flags"
+	"github.com/brimsec/zq/zio/options"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zql"
 	"github.com/mccanne/charm"
@@ -36,16 +37,16 @@ func init() {
 
 type Command struct {
 	*cmd.Command
-	zio.WriterFlags
-	protocol   string
-	from       tsflag
-	to         tsflag
-	dir        string
-	outputFile string
-	stats      bool
-	warnings   bool
-	wire       bool
-	final      *api.SearchStats
+	writerFlags flags.Writer
+	protocol    string
+	from        tsflag
+	to          tsflag
+	dir         string
+	outputFile  string
+	stats       bool
+	warnings    bool
+	wire        bool
+	final       *api.SearchStats
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -53,15 +54,12 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 		Command: parent.(*cmd.Command),
 		to:      tsflag(nano.MaxTs),
 	}
-	f.StringVar(&c.Format, "f", "text", "format for output data [zng,ndjson,table,text,types,zeek,zjson,tzng]")
+	c.writerFlags.SetFlags(f)
 	f.StringVar(&c.protocol, "p", "zng", "protocol to use for search request [ndjson,zjson,zng]")
 	f.StringVar(&c.dir, "d", "", "directory for output data files")
 	f.StringVar(&c.outputFile, "o", "", "write data to output file")
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
 	f.BoolVar(&c.warnings, "W", true, "display warnings on stderr")
-	f.BoolVar(&c.ShowTypes, "T", false, "display field types in text output")
-	f.BoolVar(&c.ShowFields, "F", false, "display field names in text output")
-	f.BoolVar(&c.EpochDates, "E", false, "display epoch timestamps in text output")
 	f.BoolVar(&c.wire, "w", false, "dump what's on the wire")
 	f.Var(&c.from, "from", "search from timestamp in RFC3339Nano format (e.g. 2006-01-02T15:04:05.999999999Z07:00)")
 	f.Var(&c.to, "to", "search to timestamp in RFC3339Nano format (e.g. 2006-01-02T15:04:05.999999999Z07:00)")
@@ -98,7 +96,7 @@ func (c *Command) Run(args []string) error {
 	if c.wire {
 		return c.runWireSearch(r)
 	}
-	writer, err := openOutput(c.dir, c.outputFile, c.WriterFlags)
+	writer, err := openOutput(c.dir, c.outputFile, c.writerFlags.Options())
 	if err != nil {
 		return err
 	}
@@ -191,9 +189,9 @@ func (t *tsflag) Set(val string) error {
 	return nil
 }
 
-func openOutput(dir, file string, flags zio.WriterFlags) (zbuf.WriteCloser, error) {
+func openOutput(dir, file string, opts options.Writer) (zbuf.WriteCloser, error) {
 	if dir != "" {
-		return emitter.NewDir(dir, file, os.Stderr, &flags)
+		return emitter.NewDir(dir, file, os.Stderr, opts)
 	}
-	return emitter.NewFile(file, &flags)
+	return emitter.NewFile(file, opts)
 }

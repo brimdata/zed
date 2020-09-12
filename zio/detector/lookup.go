@@ -5,8 +5,8 @@ import (
 	"io"
 
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/ndjsonio"
+	"github.com/brimsec/zq/zio/options"
 	"github.com/brimsec/zq/zio/tableio"
 	"github.com/brimsec/zq/zio/textio"
 	"github.com/brimsec/zq/zio/tzngio"
@@ -27,12 +27,11 @@ func (*nullWriter) Close() error {
 	return nil
 }
 
-func LookupWriter(w io.WriteCloser, wflags *zio.WriterFlags) zbuf.WriteCloser {
-	flags := *wflags
-	if flags.Format == "" {
-		flags.Format = "tzng"
+func LookupWriter(w io.WriteCloser, opts options.Writer) zbuf.WriteCloser {
+	if opts.Format == "" {
+		opts.Format = "tzng"
 	}
-	switch flags.Format {
+	switch opts.Format {
 	default:
 		return nil
 	case "null":
@@ -40,32 +39,32 @@ func LookupWriter(w io.WriteCloser, wflags *zio.WriterFlags) zbuf.WriteCloser {
 	case "tzng":
 		return tzngio.NewWriter(w)
 	case "zng":
-		return zngio.NewWriter(w, flags)
+		return zngio.NewWriter(w, opts.Zng)
 	case "zeek":
-		return zeekio.NewWriter(w, flags)
+		return zeekio.NewWriter(w, opts.UTF8)
 	case "ndjson":
 		return ndjsonio.NewWriter(w)
 	case "zjson":
 		return zjsonio.NewWriter(w)
 	case "text":
-		return textio.NewWriter(w, flags)
+		return textio.NewWriter(w, opts.UTF8, opts.Text)
 	case "table":
-		return tableio.NewWriter(w, flags)
+		return tableio.NewWriter(w, opts.UTF8)
 	}
 }
 
-func lookupReader(r io.Reader, zctx *resolver.Context, path string, cfg OpenConfig) (zbuf.Reader, error) {
-	switch cfg.Format {
+func lookupReader(r io.Reader, zctx *resolver.Context, path string, opts options.Reader) (zbuf.Reader, error) {
+	switch opts.Format {
 	case "tzng":
 		return tzngio.NewReader(r, zctx), nil
 	case "zeek":
 		return zeekio.NewReader(r, zctx)
 	case "ndjson":
-		return ndjsonio.NewReader(r, zctx, cfg.JSONTypeConfig, cfg.JSONPathRegex, path)
+		return ndjsonio.NewReader(r, zctx, opts.JSON, path)
 	case "zjson":
 		return zjsonio.NewReader(r, zctx), nil
 	case "zng":
-		return zngio.NewReaderWithOpts(r, zctx, zngio.ReaderOpts{Check: cfg.ZngCheck}), nil
+		return zngio.NewReaderWithOpts(r, zctx, opts.Zng), nil
 	}
-	return nil, fmt.Errorf("no such reader type: \"%s\"", cfg.Format)
+	return nil, fmt.Errorf("no such format: \"%s\"", opts.Format)
 }

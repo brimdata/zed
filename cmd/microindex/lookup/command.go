@@ -4,18 +4,16 @@ import (
 	"context"
 	"errors"
 	"flag"
-	"os"
 	"strings"
 
+	"github.com/brimsec/zq/cmd/cli"
 	"github.com/brimsec/zq/cmd/microindex/root"
-	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zio/flags"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 var Lookup = &charm.Spec{
@@ -40,37 +38,34 @@ func init() {
 
 type LookupCommand struct {
 	*root.Command
-	keys         string
-	outputFile   string
-	WriterFlags  zio.WriterFlags
-	closest      bool
-	textShortcut bool
-	forceBinary  bool
+	keys        string
+	WriterFlags flags.Writer
+	closest     bool
+	output      cli.OutputFlags
+	cli         cli.Flags
 }
 
 func newLookupCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &LookupCommand{Command: parent.(*root.Command)}
 	f.StringVar(&c.keys, "k", "", "key(s) to search")
 	f.BoolVar(&c.closest, "c", false, "find closest insead of exact match")
-	f.BoolVar(&c.textShortcut, "t", false, "use format tzng independent of -f option")
-	f.BoolVar(&c.forceBinary, "B", false, "allow binary zng be sent to a terminal output")
 	c.WriterFlags.SetFlags(f)
+	c.cli.SetFlags(f)
+	c.output.SetFlags(f)
 	return c, nil
-}
-
-func isTerminal(f *os.File) bool {
-	return terminal.IsTerminal(int(f.Fd()))
 }
 
 func (c *LookupCommand) Run(args []string) error {
 	if len(args) != 1 {
 		return errors.New("microindex lookup: must be run with a single file argument")
 	}
-	if c.textShortcut {
-		c.WriterFlags.Format = "tzng"
+	defer c.cli.Cleanup()
+	if err := c.cli.Init(); err != nil {
+		return err
 	}
-	if c.WriterFlags.Format == "zng" && isTerminal(os.Stdout) && !c.forceBinary {
-		return errors.New("writing binary zng data to terminal; override with -B or use -t for text.")
+	opts := c.WriterFlags.Options()
+	if err := c.output.Init(&opts); err != nil {
+		return err
 	}
 	path := args[0]
 	if c.keys == "" {
@@ -105,7 +100,7 @@ func (c *LookupCommand) Run(args []string) error {
 		}
 		close(hits)
 	}()
-	writer, err := emitter.NewFile(c.outputFile, &c.WriterFlags)
+	writer, err := c.output.Open(opts)
 	if err != nil {
 		return err
 	}

@@ -10,7 +10,6 @@ import (
 	"github.com/brimsec/zq/pkg/bufwriter"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/proc/cut"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -238,7 +237,7 @@ func (w *Writer) writeEmptyTrailer() error {
 	if err != nil {
 		return err
 	}
-	zw := zngio.NewWriter(w.iow, zio.WriterFlags{})
+	zw := zngio.NewWriter(w.iow, zngio.WriterOpts{})
 	return writeTrailer(zw, w.zctx, "", w.frameThresh, nil, typ)
 }
 
@@ -264,7 +263,7 @@ func newIndexWriter(base *Writer, w io.WriteCloser, name string) (*indexWriter, 
 		base:     base,
 		buffer:   writer,
 		name:     name,
-		zng:      zngio.NewWriter(writer, zio.WriterFlags{}),
+		zng:      zngio.NewWriter(writer, zngio.WriterOpts{}),
 		frameEnd: int64(base.frameThresh),
 	}, nil
 }

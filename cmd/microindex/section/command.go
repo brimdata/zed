@@ -5,11 +5,11 @@ import (
 	"flag"
 	"os"
 
+	"github.com/brimsec/zq/cmd/cli"
 	"github.com/brimsec/zq/cmd/microindex/root"
-	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zio/flags"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
 	"golang.org/x/crypto/ssh/terminal"
@@ -35,21 +35,20 @@ func init() {
 
 type Command struct {
 	*root.Command
-	outputFile   string
-	WriterFlags  zio.WriterFlags
-	textShortcut bool
-	forceBinary  bool
-	trailer      bool
-	section      int
+	writerFlags flags.Writer
+	cli         cli.Flags
+	output      cli.OutputFlags
+	trailer     bool
+	section     int
 }
 
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
-	f.BoolVar(&c.textShortcut, "t", false, "use format tzng independent of -f option")
-	f.BoolVar(&c.forceBinary, "B", false, "allow binary zng be sent to a terminal output")
 	f.BoolVar(&c.trailer, "trailer", false, "include the micro-index trailer in the output")
 	f.IntVar(&c.section, "s", -1, "include the indicated section in the output")
-	c.WriterFlags.SetFlags(f)
+	c.writerFlags.SetFlags(f)
+	c.output.SetFlags(f)
+	c.cli.SetFlags(f)
 	return c, nil
 }
 
@@ -61,11 +60,13 @@ func (c *Command) Run(args []string) error {
 	if len(args) != 1 {
 		return errors.New("microindex section: must be run with a single path argument")
 	}
-	if c.textShortcut {
-		c.WriterFlags.Format = "tzng"
+	defer c.cli.Cleanup()
+	if err := c.cli.Init(); err != nil {
+		return err
 	}
-	if c.WriterFlags.Format == "zng" && isTerminal(os.Stdout) && !c.forceBinary {
-		return errors.New("writing binary zng data to terminal; override with -B or use -t for text.")
+	opts := c.writerFlags.Options()
+	if err := c.output.Init(&opts); err != nil {
+		return err
 	}
 	path := args[0]
 	reader, err := microindex.NewReader(resolver.NewContext(), path)
@@ -73,7 +74,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer reader.Close()
-	writer, err := emitter.NewFile(c.outputFile, &c.WriterFlags)
+	writer, err := c.output.Open(opts)
 	if err != nil {
 		return err
 	}
