@@ -188,9 +188,7 @@ func decodeUnion(builder *zcode.Builder, typ *zng.TypeUnion, body interface{}) e
 	if err != nil {
 		return fmt.Errorf("bad type index for zjson union value: %w", err)
 	}
-	var a [8]byte
-	n := zcode.EncodeCountedUvarint(a[:], uint64(index))
-	builder.AppendPrimitive(a[:n])
+	builder.AppendPrimitive(zng.EncodeInt(int64(index)))
 	if utyp, ok := inner.(*zng.TypeUnion); ok {
 		if err := decodeUnion(builder, utyp, tuple[1]); err != nil {
 			return err

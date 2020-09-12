@@ -183,7 +183,10 @@ func walkUnion(typ *TypeUnion, body zcode.Bytes, rv RecordVisitor) error {
 	if container {
 		return ErrBadValue
 	}
-	index := zcode.DecodeCountedUvarint(v)
+	index, err := DecodeInt(v)
+	if err != nil {
+		return err
+	}
 	inner, err := typ.TypeIndex(int(index))
 	if err != nil {
 		return err
