@@ -26,8 +26,8 @@ type Key struct {
 type Params struct {
 	inputSortDir int
 	limit        int
-	keys         []Key
-	reducers     []compile.CompiledReducer
+	keys         []GroupByKey
+	reducers     []reducer.Builder
 	builder      *proc.ColumnBuilder
 	consumePart  bool
 	emitPart     bool
@@ -60,7 +60,7 @@ func CompileParams(node *ast.GroupByProc, zctx *resolver.Context) (*Params, erro
 		})
 		targets = append(targets, astKey.Target)
 	}
-	reducers := make([]compile.CompiledReducer, 0)
+	reducers := make([]reducer.Builder, 0)
 	for _, reducer := range node.Reducers {
 		compiled, err := compile.Compile(reducer)
 		if err != nil {

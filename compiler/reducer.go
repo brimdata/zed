@@ -1,4 +1,4 @@
-package compile
+package compiler
 
 import (
 	"errors"
@@ -15,13 +15,7 @@ var (
 	ErrFieldRequired = errors.New("field parameter required")
 )
 
-type CompiledReducer struct {
-	Target         string // The name of the field where results are stored.
-	TargetResolver expr.FieldExprResolver
-	Instantiate    func() reducer.Interface
-}
-
-func Compile(params ast.Reducer) (CompiledReducer, error) {
+func CompileReducer(params ast.Reducer) (reducer.Builder, error) {
 	var fld expr.FieldExprResolver
 	if params.Field != nil {
 		var err error
@@ -29,7 +23,7 @@ func Compile(params ast.Reducer) (CompiledReducer, error) {
 			return CompiledReducer{}, err
 		}
 	} else if params.Op != "Count" {
-		return CompiledReducer{}, ErrFieldRequired
+		return reducer.Builder{}, ErrFieldRequired
 	}
 
 	var inst func() reducer.Interface
@@ -59,10 +53,10 @@ func Compile(params ast.Reducer) (CompiledReducer, error) {
 			return &field.FieldReducer{Op: params.Op, Resolver: fld}
 		}
 	default:
-		return CompiledReducer{}, fmt.Errorf("unknown reducer op: %s", params.Op)
+		return reducer.Builder{}, fmt.Errorf("unknown reducer op: %s", params.Op)
 	}
 
-	return CompiledReducer{
+	return reducer.Builder{
 		Target:         params.Var,
 		TargetResolver: expr.CompileFieldAccess(params.Var),
 		Instantiate:    inst,

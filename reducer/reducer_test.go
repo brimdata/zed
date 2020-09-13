@@ -6,7 +6,6 @@ import (
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/reducer"
-	"github.com/brimsec/zq/reducer/compile"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
@@ -31,7 +30,7 @@ func parse(zctx *resolver.Context, src string) (*zbuf.Array, error) {
 	return zbuf.NewArray(records), nil
 }
 
-func runOne(t *testing.T, zctx *resolver.Context, cred compile.CompiledReducer, i int, recs []*zng.Record) zng.Value {
+func runOne(t *testing.T, zctx *resolver.Context, cred reducer.Builder, i int, recs []*zng.Record) zng.Value {
 	red := cred.Instantiate().(reducer.Decomposable)
 	for _, rec := range recs[:i] {
 		red.Consume(rec)
@@ -59,8 +58,8 @@ func TestDecomposableReducers(t *testing.T) {
 	require.NoError(t, err)
 	recs := b.Records()
 
-	makeReducer := func(op, field string) compile.CompiledReducer {
-		cred, err := compile.Compile(ast.Reducer{
+	makeReducer := func(op, field string) reducer.Builder {
+		cred, err := compiler.CompileReducer(ast.Reducer{
 			Node: ast.Node{Op: op},
 			Var:  strings.ToLower(op),
 			Field: &ast.FieldRead{

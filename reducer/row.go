@@ -1,21 +1,20 @@
-package compile
+package reducer
 
 import (
 	"errors"
 
-	"github.com/brimsec/zq/reducer"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
 type Row struct {
-	Defs     []CompiledReducer
-	Reducers []reducer.Interface
+	Defs     []Builder
+	Reducers []Interface
 }
 
-func NewRow(defs []CompiledReducer) Row {
-	reducers := make([]reducer.Interface, len(defs))
+func NewRow(defs []Builder) Row {
+	reducers := make([]Interface, len(defs))
 	for i := range defs {
 		reducers[i] = defs[i].Instantiate()
 	}
@@ -30,7 +29,7 @@ func (r *Row) Consume(rec *zng.Record) {
 
 func (r *Row) ConsumePart(rec *zng.Record) error {
 	for i, red := range r.Reducers {
-		dec, ok := red.(reducer.Decomposable)
+		dec, ok := red.(Decomposable)
 		if !ok {
 			return errors.New("reducer row doesn't decompose")
 		}
