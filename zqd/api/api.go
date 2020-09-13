@@ -119,8 +119,7 @@ func (s SpaceInfos) Names() []string {
 	return names
 }
 
-type StatusResponse struct {
-	Ok      bool   `json:"ok"`
+type VersionResponse struct {
 	Version string `json:"version"`
 }
 

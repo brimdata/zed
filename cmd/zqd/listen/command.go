@@ -15,6 +15,7 @@ import (
 	"os/signal"
 	"runtime"
 
+	"github.com/brimsec/zq/cli"
 	"github.com/brimsec/zq/cmd/zqd/logger"
 	"github.com/brimsec/zq/cmd/zqd/root"
 	"github.com/brimsec/zq/pkg/fs"
@@ -93,7 +94,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		c.logger.Warn("Raising open files limit failed", zap.Error(err))
 	}
-	core, err := zqd.NewCore(c.conf)
+	core, err := zqd.NewCore(c.conf, cli.Version)
 	if err != nil {
 		return err
 	}

@@ -1103,7 +1103,7 @@ func newCoreAtDir(t *testing.T, dir string) (*zqd.Core, *api.Connection, func())
 		Logger: zaptest.NewLogger(t, zaptest.Level(zap.WarnLevel)),
 	}
 	require.NoError(t, os.MkdirAll(dir, 0755))
-	c, err := zqd.NewCore(conf)
+	c, err := zqd.NewCore(conf, "test")
 	require.NoError(t, err)
 	h := zqd.NewHandler(c, conf.Logger)
 	ts := httptest.NewServer(h)

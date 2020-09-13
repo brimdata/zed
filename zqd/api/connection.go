@@ -137,6 +137,29 @@ func (c *Connection) Ping(ctx context.Context) (time.Duration, error) {
 	return resp.Time(), nil
 }
 
+// backward compatibility with old versions of zqd
+type VersionCompat struct {
+	VersionResponse
+	Zqd string `json:"boomd"`
+	Zq  string `json:"zq"`
+}
+
+// Version retrieves the version string from the service.
+func (c *Connection) Version(ctx context.Context) (string, error) {
+	resp, err := c.Request(ctx).
+		SetResult(&VersionCompat{}).
+		Get("/version")
+	if err != nil {
+		return "", err
+	}
+	msg := resp.Result().(*VersionCompat)
+	version := msg.Version
+	if version == "" {
+		version = msg.Zqd
+	}
+	return version, nil
+}
+
 // SpaceInfo retrieves information about the specified space.
 func (c *Connection) SpaceInfo(ctx context.Context, id SpaceID) (*SpaceInfo, error) {
 	path := path.Join("/space", url.PathEscape(string(id)))

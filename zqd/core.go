@@ -17,14 +17,6 @@ type Config struct {
 	Logger       *zap.Logger
 }
 
-type VersionMessage struct {
-	Zqd string `json:"boomd"` //XXX boomd -> zqd
-	Zq  string `json:"zq"`
-}
-
-// This struct filled in by main from linker setting version strings.
-var Version VersionMessage
-
 type Core struct {
 	Root         iosrc.URI
 	ZeekLauncher zeek.Launcher
@@ -33,7 +25,10 @@ type Core struct {
 	logger       *zap.Logger
 }
 
-func NewCore(conf Config) (*Core, error) {
+var Version string
+
+func NewCore(conf Config, version string) (*Core, error) {
+	Version = version
 	logger := conf.Logger
 	if logger == nil {
 		logger = zap.NewNop()

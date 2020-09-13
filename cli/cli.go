@@ -19,7 +19,7 @@ import (
 )
 
 // Version is set via the Go linker.  See Makefile.
-var version = "unknown"
+var Version = "unknown"
 
 type Flags struct {
 	showVersion    bool
@@ -45,7 +45,7 @@ func (f *Flags) Init() (bool, error) {
 	}
 	sort.MemMaxBytes = int(f.sortMemMaxMiB * 1024 * 1024)
 	if f.showVersion {
-		fmt.Printf("Version: %s\n", version)
+		fmt.Printf("Version: %s\n", Version)
 		return false, nil
 	}
 	return true, nil
