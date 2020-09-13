@@ -10,7 +10,6 @@ import (
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -58,7 +57,7 @@ func (d *importDriver) writeOne(rec *zng.Record) error {
 			return err
 		}
 		bw := bufwriter.New(out)
-		d.zw = zngio.NewWriter(bw, zio.WriterFlags{ZngLZ4BlockSize: zio.DefaultZngLZ4BlockSize})
+		d.zw = zngio.NewWriter(bw, zngio.WriterOpts{LZ4BlockSize: zngio.DefaultLZ4BlockSize})
 	} else {
 		d.span = d.span.Union(recspan)
 	}

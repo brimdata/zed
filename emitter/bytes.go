@@ -6,6 +6,7 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
+	"github.com/brimsec/zq/zio/options"
 )
 
 type Bytes struct {
@@ -17,11 +18,11 @@ func (b *Bytes) Bytes() []byte {
 	return b.buf.Bytes()
 }
 
-func NewBytes(flags *zio.WriterFlags) (*Bytes, error) {
+func NewBytes(opts options.Writer) (*Bytes, error) {
 	b := &Bytes{}
-	b.Writer = detector.LookupWriter(zio.NopCloser(&b.buf), flags)
+	b.Writer = detector.LookupWriter(zio.NopCloser(&b.buf), opts)
 	if b.Writer == nil {
-		return nil, unknownFormat(flags.Format)
+		return nil, unknownFormat(opts.Format)
 	}
 	return b, nil
 }

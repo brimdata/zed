@@ -97,6 +97,10 @@ func parseSpan(sfrom, sto string) (nano.Span, error) {
 }
 
 func (c *Command) Run(args []string) error {
+	defer c.Cleanup()
+	if ok, err := c.Init(); !ok {
+		return err
+	}
 	if c.indexFile != "" && c.inputFile == "-" {
 		return errors.New("stdin cannot be used with an index file; use -r to specify the pcap file")
 	}

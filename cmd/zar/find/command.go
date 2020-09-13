@@ -10,7 +10,7 @@ import (
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zio/flags"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
@@ -67,7 +67,7 @@ type Command struct {
 	pathField     string
 	relativePaths bool
 	zng           bool
-	WriterFlags   zio.WriterFlags
+	writerFlags   flags.Writer
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -81,12 +81,17 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.zng, "z", false, "write results as zng stream rather than list of files")
 
 	// Flags added for writers are -f, -T, -F, -E, -U, and -b
-	c.WriterFlags.SetFlags(f)
+	c.writerFlags.SetFlags(f)
 
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
+	defer c.Cleanup()
+	if ok, err := c.Init(); !ok {
+		return err
+	}
+
 	ark, err := archive.OpenArchive(c.root, nil)
 	if err != nil {
 		return err
@@ -112,7 +117,7 @@ func (c *Command) Run(args []string) error {
 	var writer zbuf.WriteCloser
 	if c.zng {
 		var err error
-		writer, err = emitter.NewFile(c.outputFile, &c.WriterFlags)
+		writer, err = emitter.NewFile(c.outputFile, c.writerFlags.Options())
 		if err != nil {
 			return err
 		}

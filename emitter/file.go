@@ -9,10 +9,11 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
+	"github.com/brimsec/zq/zio/options"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-func NewFile(path string, flags *zio.WriterFlags) (zbuf.WriteCloser, error) {
+func NewFile(path string, opts options.Writer) (zbuf.WriteCloser, error) {
 	if path == "" {
 		path = "stdout"
 	}
@@ -24,7 +25,7 @@ func NewFile(path string, flags *zio.WriterFlags) (zbuf.WriteCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewFileWithSource(uri, flags, src)
+	return NewFileWithSource(uri, opts, src)
 }
 
 func IsTerminal(w io.Writer) bool {
@@ -36,7 +37,7 @@ func IsTerminal(w io.Writer) bool {
 	return false
 }
 
-func NewFileWithSource(path iosrc.URI, flags *zio.WriterFlags, source iosrc.Source) (zbuf.WriteCloser, error) {
+func NewFileWithSource(path iosrc.URI, opts options.Writer, source iosrc.Source) (zbuf.WriteCloser, error) {
 	f, err := source.NewWriter(path)
 	if err != nil {
 		return nil, err
@@ -57,9 +58,9 @@ func NewFileWithSource(path iosrc.URI, flags *zio.WriterFlags, source iosrc.Sour
 	// On close, zbuf.WriteCloser.Close() will close and flush the
 	// downstream writer, which will flush the bufwriter here and,
 	// in turn, close its underlying writer.
-	w := detector.LookupWriter(wc, flags)
+	w := detector.LookupWriter(wc, opts)
 	if w == nil {
-		return nil, unknownFormat(flags.Format)
+		return nil, unknownFormat(opts.Format)
 	}
 	return w, nil
 }

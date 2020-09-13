@@ -9,6 +9,7 @@ import (
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zio/options"
 	"github.com/brimsec/zq/zng"
 )
 
@@ -26,7 +27,7 @@ type Dir struct {
 	prefix  string
 	ext     string
 	stderr  io.Writer // XXX use warnings channel
-	flags   *zio.WriterFlags
+	opts    options.Writer
 	writers map[*zng.TypeRecord]zbuf.WriteCloser
 	paths   map[string]zbuf.WriteCloser
 	source  iosrc.Source
@@ -36,7 +37,7 @@ func unknownFormat(format string) error {
 	return fmt.Errorf("unknown output format: %s", format)
 }
 
-func NewDir(dir, prefix string, stderr io.Writer, flags *zio.WriterFlags) (*Dir, error) {
+func NewDir(dir, prefix string, stderr io.Writer, opts options.Writer) (*Dir, error) {
 	uri, err := iosrc.ParseURI(dir)
 	if err != nil {
 		return nil, err
@@ -45,25 +46,25 @@ func NewDir(dir, prefix string, stderr io.Writer, flags *zio.WriterFlags) (*Dir,
 	if err != nil {
 		return nil, err
 	}
-	return NewDirWithSource(uri, prefix, stderr, flags, src)
+	return NewDirWithSource(uri, prefix, stderr, opts, src)
 }
 
-func NewDirWithSource(dir iosrc.URI, prefix string, stderr io.Writer, flags *zio.WriterFlags, source iosrc.Source) (*Dir, error) {
+func NewDirWithSource(dir iosrc.URI, prefix string, stderr io.Writer, opts options.Writer, source iosrc.Source) (*Dir, error) {
 	if dirmkr, ok := source.(iosrc.DirMaker); ok {
 		if err := dirmkr.MkdirAll(dir, 0755); err != nil {
 			return nil, err
 		}
 	}
-	e := zio.Extension(flags.Format)
+	e := zio.Extension(opts.Format)
 	if e == "" {
-		return nil, unknownFormat(flags.Format)
+		return nil, unknownFormat(opts.Format)
 	}
 	return &Dir{
 		dir:     dir,
 		prefix:  prefix,
 		ext:     e,
 		stderr:  stderr,
-		flags:   flags,
+		opts:    opts,
 		writers: make(map[*zng.TypeRecord]zbuf.WriteCloser),
 		paths:   make(map[string]zbuf.WriteCloser),
 		source:  source,
@@ -112,7 +113,7 @@ func (d *Dir) newFile(rec *zng.Record) (zbuf.WriteCloser, error) {
 	if w, ok := d.paths[path]; ok {
 		return w, nil
 	}
-	w, err := NewFileWithSource(filename, d.flags, d.source)
+	w, err := NewFileWithSource(filename, d.opts, d.source)
 	if err != nil {
 		return nil, err
 	}

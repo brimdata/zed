@@ -13,8 +13,9 @@ import (
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
+	"github.com/brimsec/zq/zio/flags"
+	"github.com/brimsec/zq/zio/options"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
 	"github.com/mccanne/charm"
@@ -47,7 +48,7 @@ type Command struct {
 	root         string
 	stopErr      bool
 	textShortcut bool
-	writerFlags  zio.WriterFlags
+	writerFlags  flags.Writer
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -64,6 +65,10 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 
 //XXX lots here copied from zq command... we should refactor into a tools package
 func (c *Command) Run(args []string) error {
+	defer c.Cleanup()
+	if ok, err := c.Init(); !ok {
+		return err
+	}
 	if len(args) == 0 {
 		return errors.New("zar map needs input arguments")
 	}
@@ -118,8 +123,8 @@ func (c *Command) Run(args []string) error {
 			}
 		}
 		zctx := resolver.NewContext()
-		cfg := detector.OpenConfig{Format: "zng"}
-		rc := detector.MultiFileReader(zctx, paths, cfg)
+		opts := options.Reader{Format: "zng"}
+		rc := detector.MultiFileReader(zctx, paths, opts)
 		defer rc.Close()
 		reader := zbuf.Reader(rc)
 		wch := make(chan string, 5)
@@ -151,7 +156,7 @@ func (c *Command) openOutput(zardir iosrc.URI) (zbuf.WriteCloser, error) {
 	if c.outputFile != "" {
 		path = zardir.AppendPath(c.outputFile).String()
 	}
-	w, err := emitter.NewFile(path, &c.writerFlags)
+	w, err := emitter.NewFile(path, c.writerFlags.Options())
 	if err != nil {
 		return nil, err
 	}

@@ -67,6 +67,10 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
+	defer c.Cleanup()
+	if ok, err := c.Init(); !ok {
+		return err
+	}
 	if len(args) == 0 && c.zql == "" {
 		return errors.New("zar index: one or more indexing patterns must be specified")
 	}

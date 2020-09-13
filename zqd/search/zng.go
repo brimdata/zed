@@ -23,8 +23,9 @@ type ZngOutput struct {
 func NewZngOutput(response http.ResponseWriter, ctrl bool) *ZngOutput {
 	o := &ZngOutput{
 		response: response,
-		writer:   zngio.NewWriter(zio.NopCloser(response), zio.WriterFlags{}),
-		ctrl:     ctrl,
+		//XXX seems like we should compress by default
+		writer: zngio.NewWriter(zio.NopCloser(response), zngio.WriterOpts{}),
+		ctrl:   ctrl,
 	}
 	return o
 }

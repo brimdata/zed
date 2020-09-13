@@ -11,9 +11,8 @@ import (
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
-	"github.com/brimsec/zq/proc/sort"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
+	"github.com/brimsec/zq/zio/flags"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
 )
@@ -40,12 +39,11 @@ func init() {
 
 type Command struct {
 	*root.Command
-	root          string
-	dataPath      string
-	thresh        string
-	empty         bool
-	sortMemMaxMiB int
-	ReaderFlags   zio.ReaderFlags
+	root        string
+	dataPath    string
+	thresh      string
+	empty       bool
+	readerFlags flags.Reader
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -54,22 +52,23 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.dataPath, "data", "", "location for storing data files (defaults to root)")
 	f.StringVar(&c.thresh, "s", units.Base2Bytes(archive.DefaultLogSizeThreshold).String(), "target size of chunk files, as '10MB' or '4GiB', etc.")
 	f.BoolVar(&c.empty, "empty", false, "create an archive without initial data")
-	f.IntVar(&c.sortMemMaxMiB, "sortmem", sort.MemMaxBytes/(1024*1024), "maximum memory used by sort, in MiB")
-	c.ReaderFlags.SetFlags(f)
+	c.readerFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
+	defer c.Cleanup()
+	if ok, err := c.Init(); !ok {
+		return err
+	}
+	if err := c.readerFlags.Init(); err != nil {
+		return err
+	}
 	if c.empty && len(args) > 0 {
 		return errors.New("zar import: empty flag specified with input files")
 	} else if !c.empty && len(args) != 1 {
 		return errors.New("zar import: exactly one input file must be specified (- for stdin)")
 	}
-
-	if c.sortMemMaxMiB <= 0 {
-		return errors.New("sortmem value must be greater than zero")
-	}
-	sort.MemMaxBytes = c.sortMemMaxMiB * 1024 * 1024
 
 	co := &archive.CreateOptions{DataPath: c.dataPath}
 	if thresh, err := units.ParseStrictBytes(c.thresh); err != nil {
@@ -96,13 +95,7 @@ func (c *Command) Run(args []string) error {
 		path = detector.StdinPath
 	}
 	zctx := resolver.NewContext()
-	cfg := detector.OpenConfig{
-		Format: c.ReaderFlags.Format,
-		//JSONTypeConfig: c.jsonTypeConfig,
-		//JSONPathRegex:  c.jsonPathRegexp,
-		ZngCheck: c.ReaderFlags.ZngCheck,
-	}
-	reader, err := detector.OpenFile(zctx, path, cfg)
+	reader, err := detector.OpenFile(zctx, path, c.readerFlags.Options())
 	if err != nil {
 		return err
 	}

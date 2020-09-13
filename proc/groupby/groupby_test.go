@@ -17,8 +17,8 @@ import (
 	"github.com/brimsec/zq/proc/proctest"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
+	"github.com/brimsec/zq/zio/options"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -496,7 +496,7 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 		zr := tzngio.NewReader(strings.NewReader(strings.Join(data, "\n")), zctx)
 		cr := &countReader{r: zr}
 		var outbuf bytes.Buffer
-		zw := detector.LookupWriter(&nopCloser{&outbuf}, &zio.WriterFlags{})
+		zw := detector.LookupWriter(&nopCloser{&outbuf}, options.Writer{})
 		d := &testGroupByDriver{
 			writer: zw,
 			cb: func(n int) {

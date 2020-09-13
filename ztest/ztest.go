@@ -128,10 +128,9 @@ import (
 	"unicode/utf8"
 
 	"github.com/brimsec/zq/driver"
-	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
+	"github.com/brimsec/zq/zio/flags"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
 	"github.com/brimsec/zq/zql"
@@ -584,18 +583,14 @@ func runzq(path, ZQL, outputFormat, outputFlags string, inputs ...string) (out s
 		return "", err.Error(), err
 	}
 	defer rc.Close()
-	if outputFormat == "types" {
-		outputFormat = "null"
-		zctx.SetLogger(&emitter.TypeLogger{WriteCloser: &nopCloser{&outbuf}})
-	}
-	var zflags zio.WriterFlags
+	var zflags flags.Writer
 	var flags flag.FlagSet
 	zflags.SetFlags(&flags)
 	if err := flags.Parse(strings.Split(outputFlags, " ")); err != nil {
 		return "", "", err
 	}
 	zflags.Format = outputFormat
-	zw := detector.LookupWriter(&nopCloser{&outbuf}, &zflags)
+	zw := detector.LookupWriter(&nopCloser{&outbuf}, zflags.Options())
 	if zw == nil {
 		return "", "", fmt.Errorf("%s: unknown output format", outputFormat)
 	}

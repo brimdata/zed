@@ -7,7 +7,6 @@ import (
 	"os"
 	"sync"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/iosrc"
@@ -15,7 +14,7 @@ import (
 	"github.com/brimsec/zq/pkg/s3io"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/ndjsonio"
+	"github.com/brimsec/zq/zio/options"
 	"github.com/brimsec/zq/zio/parquetio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -25,25 +24,17 @@ import (
 	"github.com/xitongsys/parquet-go/source"
 )
 
-type OpenConfig struct {
-	Format         string
-	JSONTypeConfig *ndjsonio.TypeConfig
-	JSONPathRegex  string
-	AwsCfg         *aws.Config
-	ZngCheck       bool
-}
-
 const StdinPath = "/dev/stdin"
 
 // OpenFile creates and returns zbuf.File for the indicated "path",
 // which can be a local file path, a local directory path, or an S3
 // URL. If the path is neither of these or can't otherwise be opened,
 // an error is returned.
-func OpenFile(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, error) {
+func OpenFile(zctx *resolver.Context, path string, opts options.Reader) (*zbuf.File, error) {
 	// Parquet is special and needs its own reader for s3 sources- therefore this must go before
 	// the IsS3Path check.
-	if cfg.Format == "parquet" {
-		return OpenParquet(zctx, path, cfg)
+	if opts.Format == "parquet" {
+		return OpenParquet(zctx, path, opts)
 	}
 
 	var f io.ReadCloser
@@ -59,10 +50,10 @@ func OpenFile(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, 
 		}
 	}
 
-	return OpenFromNamedReadCloser(zctx, f, path, cfg)
+	return OpenFromNamedReadCloser(zctx, f, path, opts)
 }
 
-func OpenParquet(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.File, error) {
+func OpenParquet(zctx *resolver.Context, path string, opts options.Reader) (*zbuf.File, error) {
 	var pf source.ParquetFile
 	var err error
 	if s3io.IsS3Path(path) {
@@ -71,7 +62,7 @@ func OpenParquet(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.Fil
 		if err != nil {
 			return nil, err
 		}
-		pf, err = parquets3.NewS3FileReader(context.Background(), u.Host, u.Path, cfg.AwsCfg)
+		pf, err = parquets3.NewS3FileReader(context.Background(), u.Host, u.Path, opts.AwsCfg)
 	} else {
 		pf, err = local.NewLocalFileReader(path)
 	}
@@ -86,14 +77,14 @@ func OpenParquet(zctx *resolver.Context, path string, cfg OpenConfig) (*zbuf.Fil
 	return zbuf.NewFile(r, pf, path), nil
 }
 
-func OpenFromNamedReadCloser(zctx *resolver.Context, rc io.ReadCloser, path string, cfg OpenConfig) (*zbuf.File, error) {
+func OpenFromNamedReadCloser(zctx *resolver.Context, rc io.ReadCloser, path string, opts options.Reader) (*zbuf.File, error) {
 	var err error
 	r := GzipReader(rc)
 	var zr zbuf.Reader
-	if cfg.Format == "" || cfg.Format == "auto" {
-		zr, err = NewReaderWithConfig(r, zctx, path, cfg)
+	if opts.Format == "" || opts.Format == "auto" {
+		zr, err = NewReaderWithOpts(r, zctx, path, opts)
 	} else {
-		zr, err = lookupReader(r, zctx, path, cfg)
+		zr, err = lookupReader(r, zctx, path, opts)
 	}
 	if err != nil {
 		return nil, err
@@ -105,7 +96,7 @@ func OpenFromNamedReadCloser(zctx *resolver.Context, rc io.ReadCloser, path stri
 func OpenFiles(zctx *resolver.Context, dir zbuf.RecordCmpFn, paths ...string) (zbuf.ReadCloser, error) {
 	var readers []zbuf.Reader
 	for _, path := range paths {
-		reader, err := OpenFile(zctx, path, OpenConfig{})
+		reader, err := OpenFile(zctx, path, options.Reader{})
 		if err != nil {
 			return nil, err
 		}
@@ -118,7 +109,7 @@ type multiFileReader struct {
 	reader *zbuf.File
 	zctx   *resolver.Context
 	paths  []string
-	cfg    OpenConfig
+	opts   options.Reader
 }
 
 var _ zbuf.ReadCloser = (*multiFileReader)(nil)
@@ -128,11 +119,11 @@ var _ scanner.ScannerAble = (*multiFileReader)(nil)
 // of the provided input paths. They're read sequentially. Once all inputs have
 // reached end of stream, Read will return end of stream. If any of the readers
 // return a non-nil error, Read will return that error.
-func MultiFileReader(zctx *resolver.Context, paths []string, cfg OpenConfig) zbuf.ReadCloser {
+func MultiFileReader(zctx *resolver.Context, paths []string, opts options.Reader) zbuf.ReadCloser {
 	return &multiFileReader{
 		zctx:  zctx,
 		paths: paths,
-		cfg:   cfg,
+		opts:  opts,
 	}
 }
 
@@ -143,7 +134,7 @@ func (r *multiFileReader) prepReader() (bool, error) {
 		}
 		path := r.paths[0]
 		r.paths = r.paths[1:]
-		rdr, err := OpenFile(r.zctx, path, r.cfg)
+		rdr, err := OpenFile(r.zctx, path, r.opts)
 		if err != nil {
 			return false, err
 		}

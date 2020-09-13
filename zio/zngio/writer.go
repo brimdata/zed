@@ -4,11 +4,13 @@ import (
 	"io"
 
 	"github.com/brimsec/zq/zcode"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/pierrec/lz4/v4"
 )
+
+// DefaultLZ4BlockSize is a reasonable default for the WriterOpts.LZ4BlockSize.
+const DefaultLZ4BlockSize = 16 * 1024
 
 type Writer struct {
 	closer io.Closer
@@ -21,11 +23,16 @@ type Writer struct {
 	streamRecordsMax int
 }
 
-func NewWriter(w io.WriteCloser, flags zio.WriterFlags) *Writer {
+type WriterOpts struct {
+	StreamRecordsMax int
+	LZ4BlockSize     int
+}
+
+func NewWriter(w io.WriteCloser, opts WriterOpts) *Writer {
 	ow := &offsetWriter{w: w}
 	var cw *compressionWriter
-	if flags.ZngLZ4BlockSize > 0 {
-		cw = &compressionWriter{w: ow, blockSize: flags.ZngLZ4BlockSize}
+	if opts.LZ4BlockSize > 0 {
+		cw = &compressionWriter{w: ow, blockSize: opts.LZ4BlockSize}
 	}
 	return &Writer{
 		closer:           w,
@@ -33,7 +40,7 @@ func NewWriter(w io.WriteCloser, flags zio.WriterFlags) *Writer {
 		cw:               cw,
 		encoder:          resolver.NewEncoder(),
 		buffer:           make([]byte, 0, 128),
-		streamRecordsMax: flags.StreamRecordsMax,
+		streamRecordsMax: opts.StreamRecordsMax,
 	}
 }
 

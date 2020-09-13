@@ -9,8 +9,8 @@ import (
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
+	"github.com/brimsec/zq/zio/options"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
 )
@@ -30,12 +30,12 @@ func Trim(s string) string {
 }
 
 func stringReader(input string, ifmt string, zctx *resolver.Context) (zbuf.Reader, error) {
-	cfg := detector.OpenConfig{
+	opts := options.Reader{
 		Format: ifmt,
 	}
 	rc := ioutil.NopCloser(strings.NewReader(input))
 
-	return detector.OpenFromNamedReadCloser(zctx, rc, "test", cfg)
+	return detector.OpenFromNamedReadCloser(zctx, rc, "test", opts)
 }
 
 func newEmitter(ofmt string) (*emitter.Bytes, error) {
@@ -43,7 +43,7 @@ func newEmitter(ofmt string) (*emitter.Bytes, error) {
 		ofmt = "tzng"
 	}
 	// XXX text format options not supported
-	return emitter.NewBytes(&zio.WriterFlags{Format: ofmt})
+	return emitter.NewBytes(options.Writer{Format: ofmt})
 }
 
 func (i *Internal) Run() (string, error) {
