@@ -1,0 +1,15 @@
+zql: '*'
+
+input: |
+        #0:record[a:string,b:string]
+        0:[hello;world;]
+        0:[goodnight;gracie;]
+        0:[,;gracie;]
+
+output-format: csv
+
+output: |
+        a,b
+        hello,world
+        goodnight,gracie
+        ",",gracie

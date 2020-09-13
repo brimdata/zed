@@ -15,19 +15,19 @@ import (
 
 type Writer struct {
 	WriterOpts
-	writer    io.WriteCloser
-	flattener *flattener.Flattener
-	precision int
-	format    zng.OutFmt
+	EpochDates bool
+	writer     io.WriteCloser
+	flattener  *flattener.Flattener
+	precision  int
+	format     zng.OutFmt
 }
 
 type WriterOpts struct {
 	ShowTypes  bool
 	ShowFields bool
-	EpochDates bool
 }
 
-func NewWriter(w io.WriteCloser, utf8 bool, opts WriterOpts) *Writer {
+func NewWriter(w io.WriteCloser, utf8 bool, opts WriterOpts, dates bool) *Writer {
 	var format zng.OutFmt
 	if utf8 {
 		format = zng.OutFormatZeek
@@ -36,6 +36,7 @@ func NewWriter(w io.WriteCloser, utf8 bool, opts WriterOpts) *Writer {
 	}
 	return &Writer{
 		WriterOpts: opts,
+		EpochDates: dates,
 		writer:     w,
 		flattener:  flattener.New(resolver.NewContext()),
 		precision:  6,
