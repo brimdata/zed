@@ -9,7 +9,7 @@ import (
 	"os"
 	"syscall"
 
-	"github.com/brimsec/zq/cmd/cli"
+	"github.com/brimsec/zq/cli"
 	"github.com/brimsec/zq/pkg/repl"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/kballard/go-shellquote"

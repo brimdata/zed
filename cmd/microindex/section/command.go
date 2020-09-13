@@ -5,7 +5,7 @@ import (
 	"flag"
 	"os"
 
-	"github.com/brimsec/zq/cmd/cli"
+	"github.com/brimsec/zq/cli"
 	"github.com/brimsec/zq/cmd/microindex/root"
 	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/zbuf"

@@ -3,7 +3,7 @@ package root
 import (
 	"flag"
 
-	"github.com/brimsec/zq/cmd/cli"
+	"github.com/brimsec/zq/cli"
 	"github.com/mccanne/charm"
 )
 

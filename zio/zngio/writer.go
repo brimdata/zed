@@ -9,15 +9,8 @@ import (
 	"github.com/pierrec/lz4/v4"
 )
 
-// DefaultLZ4BlockSize is a reasonable default for the writer option.
-// For the command-line, this means compression is on by default with
-// this size buffer.
+// DefaultLZ4BlockSize is a reasonable default for the WriterOpts.LZ4BlockSize.
 const DefaultLZ4BlockSize = 16 * 1024
-
-type WriterOpts struct {
-	StreamRecordsMax int
-	LZ4BlockSize     int
-}
 
 type Writer struct {
 	closer io.Closer
@@ -28,6 +21,11 @@ type Writer struct {
 	buffer           []byte
 	streamRecords    int
 	streamRecordsMax int
+}
+
+type WriterOpts struct {
+	StreamRecordsMax int
+	LZ4BlockSize     int
 }
 
 func NewWriter(w io.WriteCloser, opts WriterOpts) *Writer {

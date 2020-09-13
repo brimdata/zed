@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/brimsec/zq/archive"
-	"github.com/brimsec/zq/cmd/cli"
+	"github.com/brimsec/zq/cli"
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/rlimit"

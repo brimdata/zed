@@ -22,10 +22,11 @@ import (
 var version = "unknown"
 
 type Flags struct {
-	showVersion   bool
-	sortMemMaxMiB float64
-	cpuprofile    string
-	memprofile    string
+	showVersion    bool
+	sortMemMaxMiB  float64
+	cpuprofile     string
+	memprofile     string
+	cpuProfileFile *os.File
 }
 
 func (f *Flags) SetFlags(fs *flag.FlagSet) {
@@ -37,7 +38,7 @@ func (f *Flags) SetFlags(fs *flag.FlagSet) {
 
 func (f *Flags) Init() (bool, error) {
 	if f.cpuprofile != "" {
-		runCPUProfile(f.cpuprofile)
+		f.runCPUProfile(f.cpuprofile)
 	}
 	if f.sortMemMaxMiB <= 0 {
 		return false, errors.New("sortmem value must be greater than zero")
@@ -51,12 +52,32 @@ func (f *Flags) Init() (bool, error) {
 }
 
 func (f *Flags) Cleanup() {
-	if f.cpuprofile != "" {
+	if f.cpuProfileFile != nil {
 		pprof.StopCPUProfile()
+		f.cpuProfileFile.Close()
 	}
 	if f.memprofile != "" {
 		runMemProfile(f.memprofile)
 	}
+}
+
+func (f *Flags) runCPUProfile(path string) {
+	file, err := os.Create(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	f.cpuProfileFile = file
+	pprof.StartCPUProfile(file)
+}
+
+func runMemProfile(path string) {
+	f, err := os.Create(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	runtime.GC()
+	pprof.Lookup("allocs").WriteTo(f, 0)
+	f.Close()
 }
 
 type OutputFlags struct {
@@ -134,22 +155,4 @@ func FileExists(path string) bool {
 
 func IsTerminal(f *os.File) bool {
 	return terminal.IsTerminal(int(f.Fd()))
-}
-
-func runCPUProfile(path string) {
-	f, err := os.Create(path)
-	if err != nil {
-		log.Fatal(err)
-	}
-	pprof.StartCPUProfile(f)
-}
-
-func runMemProfile(path string) {
-	f, err := os.Create(path)
-	if err != nil {
-		log.Fatal(err)
-	}
-	runtime.GC()
-	pprof.Lookup("allocs").WriteTo(f, 0)
-	f.Close()
 }

@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/brimsec/zq/ast"
-	"github.com/brimsec/zq/cmd/cli"
+	"github.com/brimsec/zq/cli"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/s3io"
@@ -98,13 +98,13 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
+	defer c.cli.Cleanup()
 	if ok, err := c.cli.Init(); !ok {
 		return err
 	}
 	if len(args) == 0 {
 		return Zq.Exec(c, []string{"help"})
 	}
-	defer c.cli.Cleanup()
 	if err := c.readerFlags.Init(); err != nil {
 		return err
 	}

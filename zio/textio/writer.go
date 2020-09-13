@@ -12,18 +12,18 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-type WriterOpts struct {
-	ShowTypes  bool
-	ShowFields bool
-	EpochDates bool
-}
-
 type Writer struct {
 	WriterOpts
 	writer    io.WriteCloser
 	flattener *zeekio.Flattener
 	precision int
 	format    zng.OutFmt
+}
+
+type WriterOpts struct {
+	ShowTypes  bool
+	ShowFields bool
+	EpochDates bool
 }
 
 func NewWriter(w io.WriteCloser, utf8 bool, opts WriterOpts) *Writer {
