@@ -15,7 +15,7 @@ import (
 	"github.com/buger/jsonparser"
 )
 
-type TypeStats struct {
+type typeStats struct {
 	BadFormat            int
 	FirstBadLine         int
 	DescriptorNotFound   int
@@ -28,8 +28,8 @@ type typeParser struct {
 	zctx          *resolver.Context
 	tr            typeRules
 	defaultPath   string
-	stats         *TypeStats
-	typeInfoCache map[int]*TypeInfo
+	stats         *typeStats
+	typeInfoCache map[int]*typeInfo
 }
 
 var (
@@ -43,13 +43,13 @@ var (
 // nested record fields). The two descriptors here represent the same data
 // in the same order, flatDescriptor describes the data as it appears in
 // JSON, descriptor describes it as it appears in zng values.
-type TypeInfo struct {
-	Descriptor *zng.TypeRecord
-	FlatDesc   *zng.TypeRecord
-	Path       []byte
-	JsonVals   []JsonVal
+type typeInfo struct {
+	descriptor *zng.TypeRecord
+	flatDesc   *zng.TypeRecord
+	path       []byte
+	jsonVals   []jsonVal
 }
-type JsonVal struct {
+type jsonVal struct {
 	val []byte
 	typ jsonparser.ValueType
 }
@@ -66,26 +66,26 @@ func getUnsafeDefault(data []byte, defaultValue string, key string) (string, err
 	return val, nil
 }
 
-func newTypeInfo(zctx *resolver.Context, desc *zng.TypeRecord, path string) (*TypeInfo, error) {
+func newTypeInfo(zctx *resolver.Context, desc *zng.TypeRecord, path string) (*typeInfo, error) {
 	flatCols := flattener.FlattenColumns(desc.Columns)
 	flatDesc, err := zctx.LookupTypeRecord(flatCols)
 	if err != nil {
 		return nil, err
 	}
-	info := TypeInfo{desc, flatDesc, []byte(path), make([]JsonVal, len(flatDesc.Columns))}
+	info := typeInfo{desc, flatDesc, []byte(path), make([]jsonVal, len(flatDesc.Columns))}
 	return &info, nil
 }
 
-func (info *TypeInfo) makeViews(data []byte) (int, error) {
+func (info *typeInfo) makeViews(data []byte) (int, error) {
 	var droppedFields int
 
-	for i := range info.JsonVals {
-		info.JsonVals[i].typ = jsonparser.NotExist
+	for i := range info.jsonVals {
+		info.jsonVals[i].typ = jsonparser.NotExist
 	}
 
 	// path is always the first field (typings config is validated
 	// for this, and inferred TDs are sorted with _path first).
-	info.JsonVals[0] = JsonVal{info.Path, jsonparser.String}
+	info.jsonVals[0] = jsonVal{info.path, jsonparser.String}
 
 	var prefix []string
 
@@ -102,8 +102,8 @@ func (info *TypeInfo) makeViews(data []byte) (int, error) {
 
 		fullkey := strings.Join(append(prefix, skey), ".")
 
-		if col, ok := info.FlatDesc.ColumnOfField(fullkey); ok {
-			info.JsonVals[col] = JsonVal{val, typ}
+		if col, ok := info.flatDesc.ColumnOfField(fullkey); ok {
+			info.jsonVals[col] = jsonVal{val, typ}
 		} else {
 			droppedFields++
 		}
@@ -115,9 +115,9 @@ func (info *TypeInfo) makeViews(data []byte) (int, error) {
 	return droppedFields, nil
 }
 
-func appendRecordFromViews(builder *zcode.Builder, columns []zng.Column, jsonVals []JsonVal) ([]JsonVal, error) {
+func appendRecordFromViews(builder *zcode.Builder, columns []zng.Column, jsonVals []jsonVal) ([]jsonVal, error) {
 
-	handleVal := func(jv JsonVal, col zng.Column) error {
+	handleVal := func(jv jsonVal, col zng.Column) error {
 		switch jv.typ {
 		case jsonparser.Array:
 			builder.BeginContainer()
@@ -191,21 +191,21 @@ func appendRecordFromViews(builder *zcode.Builder, columns []zng.Column, jsonVal
 // the underlying JSON values.  This slice follows the order of the flattened
 // columns.  Second, it builds the full encoded value and building nested
 // records as necessary.
-func (info *TypeInfo) NewRawFromJSON(data []byte) (zcode.Bytes, int, error) {
+func (info *typeInfo) newRawFromJSON(data []byte) (zcode.Bytes, int, error) {
 
 	droppedFields, err := info.makeViews(data)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	i, ok := info.Descriptor.ColumnOfField("ts")
-	if ok && info.JsonVals[i].typ != jsonparser.String && info.JsonVals[i].typ != jsonparser.Number {
-		return nil, 0, fmt.Errorf("invalid json type for ts: %s", info.JsonVals[i].typ)
+	i, ok := info.descriptor.ColumnOfField("ts")
+	if ok && info.jsonVals[i].typ != jsonparser.String && info.jsonVals[i].typ != jsonparser.Number {
+		return nil, 0, fmt.Errorf("invalid json type for ts: %s", info.jsonVals[i].typ)
 	}
 
 	builder := zcode.NewBuilder()
 
-	_, err = appendRecordFromViews(builder, info.Descriptor.Columns, info.JsonVals)
+	_, err = appendRecordFromViews(builder, info.descriptor.Columns, info.jsonVals)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -217,7 +217,7 @@ func (info *TypeInfo) NewRawFromJSON(data []byte) (zcode.Bytes, int, error) {
 // is not empty, it is used as the default _path if the object has no
 // such field. (we could at some point make this a bit more generic by
 // passing in a "defaultFieldValues" map... but not needed now).
-func (p *typeParser) findTypeInfo(zctx *resolver.Context, jobj []byte, tr typeRules, defaultPath string) (*TypeInfo, error) {
+func (p *typeParser) findTypeInfo(zctx *resolver.Context, jobj []byte, tr typeRules, defaultPath string) (*typeInfo, error) {
 	var fieldName, fieldVal, path string
 	for _, r := range tr.rules {
 		// we keep track of the last field value we extracted
@@ -283,7 +283,7 @@ func (p *typeParser) parseObject(b []byte) (zng.Value, error) {
 		return zng.Value{}, err
 	}
 
-	raw, dropped, err := ti.NewRawFromJSON(b)
+	raw, dropped, err := ti.newRawFromJSON(b)
 	if err != nil {
 		incr(&p.stats.BadFormat)
 		return zng.Value{}, err
@@ -292,7 +292,7 @@ func (p *typeParser) parseObject(b []byte) (zng.Value, error) {
 		incr(&p.stats.IncompleteDescriptor)
 		return zng.Value{}, ErrIncompleteDescriptor
 	}
-	return zng.Value{ti.Descriptor, raw}, nil
+	return zng.Value{ti.descriptor, raw}, nil
 }
 
 func parseSimpleType(value []byte, typ zng.Type) ([]byte, error) {
