@@ -9,13 +9,14 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zio/zeekio"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/flattener"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
 type Writer struct {
 	WriterOpts
 	writer    io.WriteCloser
-	flattener *zeekio.Flattener
+	flattener *flattener.Flattener
 	precision int
 	format    zng.OutFmt
 }
@@ -36,7 +37,7 @@ func NewWriter(w io.WriteCloser, utf8 bool, opts WriterOpts) *Writer {
 	return &Writer{
 		WriterOpts: opts,
 		writer:     w,
-		flattener:  zeekio.NewFlattener(resolver.NewContext()),
+		flattener:  flattener.New(resolver.NewContext()),
 		precision:  6,
 		format:     format,
 	}
