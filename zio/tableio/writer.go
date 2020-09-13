@@ -8,12 +8,13 @@ import (
 
 	"github.com/brimsec/zq/zio/zeekio"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/flattener"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
 type Writer struct {
 	writer    io.WriteCloser
-	flattener *zeekio.Flattener
+	flattener *flattener.Flattener
 	table     *tabwriter.Writer
 	typ       *zng.TypeRecord
 	limit     int
@@ -32,7 +33,7 @@ func NewWriter(w io.WriteCloser, utf8 bool) *Writer {
 	}
 	return &Writer{
 		writer:    w,
-		flattener: zeekio.NewFlattener(resolver.NewContext()),
+		flattener: flattener.New(resolver.NewContext()),
 		table:     table,
 		limit:     1000,
 		precision: 6,

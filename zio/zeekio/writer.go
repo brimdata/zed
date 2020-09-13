@@ -8,6 +8,7 @@ import (
 
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/flattener"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
@@ -16,7 +17,7 @@ var ErrDescriptorChanged = errors.New("descriptor changed")
 type Writer struct {
 	writer io.WriteCloser
 	header
-	flattener *Flattener
+	flattener *flattener.Flattener
 	typ       *zng.TypeRecord
 	precision int
 	format    zng.OutFmt
@@ -31,7 +32,7 @@ func NewWriter(w io.WriteCloser, utf8 bool) *Writer {
 	}
 	return &Writer{
 		writer:    w,
-		flattener: NewFlattener(resolver.NewContext()),
+		flattener: flattener.New(resolver.NewContext()),
 		precision: 6,
 		format:    format,
 	}

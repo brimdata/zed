@@ -9,8 +9,8 @@ import (
 	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zcode"
-	"github.com/brimsec/zq/zio/zeekio"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/flattener"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/buger/jsonparser"
 )
@@ -67,7 +67,7 @@ func getUnsafeDefault(data []byte, defaultValue string, key string) (string, err
 }
 
 func newTypeInfo(zctx *resolver.Context, desc *zng.TypeRecord, path string) (*typeInfo, error) {
-	flatCols := zeekio.FlattenColumns(desc.Columns)
+	flatCols := flattener.FlattenColumns(desc.Columns)
 	flatDesc, err := zctx.LookupTypeRecord(flatCols)
 	if err != nil {
 		return nil, err

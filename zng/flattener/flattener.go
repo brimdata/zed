@@ -1,4 +1,4 @@
-package zeekio
+package flattener
 
 import (
 	"fmt"
@@ -13,11 +13,11 @@ type Flattener struct {
 	mapper *resolver.Mapper
 }
 
-// NewFlattener returns a flattener that transforms nested records to flattened
+// New returns a flattener that transforms nested records to flattened
 // records where the type context of the received records must match the
 // zctx parameter provided here.  Any new type descriptors that are created
 // to flatten types also use zctx.
-func NewFlattener(zctx *resolver.Context) *Flattener {
+func New(zctx *resolver.Context) *Flattener {
 	return &Flattener{
 		zctx: zctx,
 		// This mapper maps types back into the same context and gives
