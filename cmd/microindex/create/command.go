@@ -4,7 +4,6 @@ import (
 	"errors"
 	"flag"
 
-	"github.com/brimsec/zq/cmd/cli"
 	"github.com/brimsec/zq/cmd/microindex/root"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/microindex"
@@ -40,7 +39,6 @@ type Command struct {
 	skip        bool
 	inputReady  bool
 	ReaderFlags flags.Reader
-	cli         cli.Flags
 }
 
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -53,12 +51,15 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.inputReady, "x", false, "input file is already sorted keys (and optional values)")
 	f.BoolVar(&c.skip, "S", false, "skip all records except for the first of each stream")
 	c.ReaderFlags.SetFlags(f)
-	c.cli.SetFlags(f)
 
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
+	defer c.Cleanup()
+	if ok, err := c.Init(); !ok {
+		return err
+	}
 	if c.keyField == "" {
 		return errors.New("must specify at least one key field with -k")
 	}
@@ -67,10 +68,6 @@ func (c *Command) Run(args []string) error {
 	// have spillable group-bys)
 	if len(args) != 1 {
 		return errors.New("must specify a single zng input file containing the indicated keys")
-	}
-	defer c.cli.Cleanup()
-	if err := c.cli.Init(); err != nil {
-		return err
 	}
 	path := args[0]
 	if path == "-" {

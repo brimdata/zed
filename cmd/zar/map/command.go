@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/brimsec/zq/archive"
-	"github.com/brimsec/zq/cmd/cli"
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
@@ -50,7 +49,6 @@ type Command struct {
 	stopErr      bool
 	textShortcut bool
 	writerFlags  flags.Writer
-	cli          cli.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -62,14 +60,13 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
 	f.BoolVar(&c.textShortcut, "t", false, "use format tzng independent of -f option")
 	c.writerFlags.SetFlags(f)
-	c.cli.SetFlags(f)
 	return c, nil
 }
 
 //XXX lots here copied from zq command... we should refactor into a tools package
 func (c *Command) Run(args []string) error {
-	defer c.cli.Cleanup()
-	if err := c.cli.Init(); err != nil {
+	defer c.Cleanup()
+	if ok, err := c.Init(); !ok {
 		return err
 	}
 	if len(args) == 0 {

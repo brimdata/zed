@@ -18,27 +18,36 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
+// Version is set via the Go linker.  See Makefile.
+var version = "unknown"
+
 type Flags struct {
+	showVersion   bool
 	sortMemMaxMiB float64
 	cpuprofile    string
 	memprofile    string
 }
 
 func (f *Flags) SetFlags(fs *flag.FlagSet) {
+	fs.BoolVar(&f.showVersion, "version", false, "print version and exit")
 	fs.Float64Var(&f.sortMemMaxMiB, "sortmem", float64(sort.MemMaxBytes)/(1024*1024), "maximum memory used by sort, in MiB")
-	fs.StringVar(&f.cpuprofile, "cpuprofile", "", "write cpu profile to `file`")
-	fs.StringVar(&f.memprofile, "memprofile", "", "write memory profile to `file`")
+	fs.StringVar(&f.cpuprofile, "cpuprofile", "", "write cpu profile to given file name")
+	fs.StringVar(&f.memprofile, "memprofile", "", "write memory profile to given file name")
 }
 
-func (f *Flags) Init() error {
+func (f *Flags) Init() (bool, error) {
 	if f.cpuprofile != "" {
 		runCPUProfile(f.cpuprofile)
 	}
 	if f.sortMemMaxMiB <= 0 {
-		return errors.New("sortmem value must be greater than zero")
+		return false, errors.New("sortmem value must be greater than zero")
 	}
 	sort.MemMaxBytes = int(f.sortMemMaxMiB * 1024 * 1024)
-	return nil
+	if f.showVersion {
+		fmt.Printf("Version: %s\n", version)
+		return false, nil
+	}
+	return true, nil
 }
 
 func (f *Flags) Cleanup() {

@@ -42,7 +42,6 @@ type LookupCommand struct {
 	WriterFlags flags.Writer
 	closest     bool
 	output      cli.OutputFlags
-	cli         cli.Flags
 }
 
 func newLookupCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -50,18 +49,17 @@ func newLookupCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, err
 	f.StringVar(&c.keys, "k", "", "key(s) to search")
 	f.BoolVar(&c.closest, "c", false, "find closest insead of exact match")
 	c.WriterFlags.SetFlags(f)
-	c.cli.SetFlags(f)
 	c.output.SetFlags(f)
 	return c, nil
 }
 
 func (c *LookupCommand) Run(args []string) error {
+	defer c.Cleanup()
+	if ok, err := c.Init(); !ok {
+		return err
+	}
 	if len(args) != 1 {
 		return errors.New("microindex lookup: must be run with a single file argument")
-	}
-	defer c.cli.Cleanup()
-	if err := c.cli.Init(); err != nil {
-		return err
 	}
 	opts := c.WriterFlags.Options()
 	if err := c.output.Init(&opts); err != nil {

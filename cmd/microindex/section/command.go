@@ -36,7 +36,6 @@ func init() {
 type Command struct {
 	*root.Command
 	writerFlags flags.Writer
-	cli         cli.Flags
 	output      cli.OutputFlags
 	trailer     bool
 	section     int
@@ -48,7 +47,6 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.IntVar(&c.section, "s", -1, "include the indicated section in the output")
 	c.writerFlags.SetFlags(f)
 	c.output.SetFlags(f)
-	c.cli.SetFlags(f)
 	return c, nil
 }
 
@@ -57,12 +55,12 @@ func isTerminal(f *os.File) bool {
 }
 
 func (c *Command) Run(args []string) error {
+	defer c.Cleanup()
+	if ok, err := c.Init(); !ok {
+		return err
+	}
 	if len(args) != 1 {
 		return errors.New("microindex section: must be run with a single path argument")
-	}
-	defer c.cli.Cleanup()
-	if err := c.cli.Init(); err != nil {
-		return err
 	}
 	opts := c.writerFlags.Options()
 	if err := c.output.Init(&opts); err != nil {

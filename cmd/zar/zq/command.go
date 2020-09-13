@@ -41,7 +41,6 @@ type Command struct {
 	stopErr     bool
 	writerFlags flags.Writer
 	output      cli.OutputFlags
-	cli         cli.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -51,13 +50,12 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
 	c.writerFlags.SetFlags(f)
 	c.output.SetFlags(f)
-	c.cli.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	defer c.cli.Cleanup()
-	if err := c.cli.Init(); err != nil {
+	defer c.Cleanup()
+	if ok, err := c.Init(); !ok {
 		return err
 	}
 	opts := c.writerFlags.Options()

@@ -3,7 +3,7 @@ export GO111MODULE=on
 # If VERSION or LDFLAGS change, please also change
 # npm/build.
 VERSION = $(shell git describe --tags --dirty --always)
-LDFLAGS = -s -X main.version=$(VERSION)
+LDFLAGS = -s -X github.com/brimsec/zq/cmd/cli.version=$(VERSION)
 ZEEKTAG = v3.0.2-brim3
 ZEEKPATH = zeek-$(ZEEKTAG)
 

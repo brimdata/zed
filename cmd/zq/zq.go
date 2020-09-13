@@ -18,9 +18,6 @@ import (
 	"github.com/mccanne/charm"
 )
 
-// Version is set via the Go linker.
-var version = "unknown"
-
 var Zq = &charm.Spec{
 	Name:        "zq",
 	Usage:       "zq [ options ] [ zql ] file [ file ... ]",
@@ -74,7 +71,6 @@ type Command struct {
 	verbose     bool
 	stats       bool
 	quiet       bool
-	showVersion bool
 	stopErr     bool
 	readerFlags flags.Reader
 	writerFlags flags.Writer
@@ -98,26 +94,17 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
 	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
 	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
-	f.BoolVar(&c.showVersion, "version", false, "print version and exit")
 	return c, nil
 }
 
-func (c *Command) printVersion() error {
-	fmt.Printf("Version: %s\n", version)
-	return nil
-}
-
 func (c *Command) Run(args []string) error {
-	if c.showVersion {
-		return c.printVersion()
+	if ok, err := c.cli.Init(); !ok {
+		return err
 	}
 	if len(args) == 0 {
 		return Zq.Exec(c, []string{"help"})
 	}
 	defer c.cli.Cleanup()
-	if err := c.cli.Init(); err != nil {
-		return err
-	}
 	if err := c.readerFlags.Init(); err != nil {
 		return err
 	}

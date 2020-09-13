@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/brimsec/zq/archive"
-	"github.com/brimsec/zq/cmd/cli"
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/zbuf"
@@ -69,7 +68,6 @@ type Command struct {
 	relativePaths bool
 	zng           bool
 	writerFlags   flags.Writer
-	cli           cli.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -85,14 +83,12 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	// Flags added for writers are -f, -T, -F, -E, -U, and -b
 	c.writerFlags.SetFlags(f)
 
-	c.cli.SetFlags(f)
-
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	defer c.cli.Cleanup()
-	if err := c.cli.Init(); err != nil {
+	defer c.Cleanup()
+	if ok, err := c.Init(); !ok {
 		return err
 	}
 

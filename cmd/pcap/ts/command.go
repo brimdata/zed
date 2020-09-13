@@ -42,6 +42,10 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
+	defer c.Cleanup()
+	if ok, err := c.Init(); !ok {
+		return err
+	}
 	if len(args) != 0 {
 		return errors.New("pcap ts takes no arguments")
 	}
