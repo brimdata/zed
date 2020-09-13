@@ -1,10 +1,9 @@
-package ndjsonio_test
+package ndjsonio
 
 import (
 	"encoding/json"
 	"testing"
 
-	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/stretchr/testify/require"
 )
 
@@ -204,7 +203,7 @@ func TestTypeConfigValidate(t *testing.T) {
 
 	for _, c := range testcases {
 		t.Run(c.name, func(t *testing.T) {
-			tc := ndjsonio.TypeConfig{}
+			tc := TypeConfig{}
 			err := json.Unmarshal([]byte(c.in), &tc)
 			require.NoError(t, err)
 			err = tc.Validate()
