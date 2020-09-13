@@ -34,7 +34,7 @@ type ReaderOpts struct {
 
 type ReadStats struct {
 	*skim.Stats
-	*typeStats
+	*TypeStats
 }
 
 type Reader struct {
@@ -42,7 +42,7 @@ type Reader struct {
 	inf     inferParser
 	typ     *typeParser
 	zctx    *resolver.Context
-	stats   ReadStats
+	Stats   ReadStats
 }
 
 func NewReader(reader io.Reader, zctx *resolver.Context, opts ReaderOpts, filepath string) (*Reader, error) {
@@ -54,7 +54,7 @@ func NewReader(reader io.Reader, zctx *resolver.Context, opts ReaderOpts, filepa
 	scanner := skim.NewScanner(reader, buffer, MaxLineSize)
 	r := &Reader{
 		scanner: scanner,
-		stats:   ReadStats{Stats: &scanner.Stats, typeStats: &typeStats{}},
+		Stats:   ReadStats{Stats: &scanner.Stats, TypeStats: &TypeStats{}},
 		inf:     inferParser{zctx},
 		zctx:    zctx,
 	}
@@ -69,7 +69,7 @@ func NewReader(reader io.Reader, zctx *resolver.Context, opts ReaderOpts, filepa
 		if len(match) == 2 {
 			path = match[1]
 		}
-		r.configureTypes(*opts.TypeConfig, path)
+		r.ConfigureTypes(*opts.TypeConfig, path)
 	}
 	return r, nil
 }
@@ -82,13 +82,13 @@ type typeRules struct {
 	rules       []Rule
 }
 
-// configureTypes adds a TypeConfig to the reader. Its should be
+// ConfigureTypes adds a TypeConfig to the reader. Its should be
 // called before input lines are processed. If a non-empty defaultPath
 // is passed, it is used for json objects without a _path.
 // In the absence of a TypeConfig, records are all parsed with the
 // inferParser. If a TypeConfig is present, records are parsed
 // with the typeParser.
-func (r *Reader) configureTypes(tc TypeConfig, defaultPath string) error {
+func (r *Reader) ConfigureTypes(tc TypeConfig, defaultPath string) error {
 	tr := typeRules{
 		descriptors: make(map[string]*zng.TypeRecord),
 		rules:       tc.Rules,
@@ -112,8 +112,8 @@ func (r *Reader) configureTypes(tc TypeConfig, defaultPath string) error {
 	r.typ = &typeParser{
 		zctx:          r.zctx,
 		tr:            tr,
-		stats:         r.stats.typeStats,
-		typeInfoCache: make(map[int]*typeInfo),
+		stats:         r.Stats.TypeStats,
+		typeInfoCache: make(map[int]*TypeInfo),
 		defaultPath:   defaultPath,
 	}
 	return nil

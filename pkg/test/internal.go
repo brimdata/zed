@@ -9,8 +9,8 @@ import (
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
-	"github.com/brimsec/zq/zio/options"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
 )
@@ -43,7 +43,7 @@ func newEmitter(ofmt string) (*emitter.Bytes, error) {
 		ofmt = "tzng"
 	}
 	// XXX text format options not supported
-	return emitter.NewBytes(options.Writer{Format: ofmt})
+	return emitter.NewBytes(zio.WriterOpts{Format: ofmt})
 }
 
 func (i *Internal) Run() (string, error) {

@@ -1,4 +1,4 @@
-package ndjsonio
+package ndjsonio_test
 
 import (
 	"bufio"
@@ -8,6 +8,7 @@ import (
 
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -52,7 +53,7 @@ func TestNDJSONWriter(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			var out bytes.Buffer
-			w := NewWriter(zio.NopCloser(&out))
+			w := ndjsonio.NewWriter(zio.NopCloser(&out))
 			r := tzngio.NewReader(strings.NewReader(c.input), resolver.NewContext())
 			require.NoError(t, zbuf.Copy(w, r))
 			NDJSONEq(t, c.output, out.String())
@@ -132,8 +133,8 @@ func TestNDJSON(t *testing.T) {
 
 func runtestcase(t *testing.T, input, output string) {
 	var out bytes.Buffer
-	w := NewWriter(zio.NopCloser(&out))
-	r, err := NewReader(strings.NewReader(input), resolver.NewContext(), ReaderOpts{}, "")
+	w := ndjsonio.NewWriter(zio.NopCloser(&out))
+	r, err := ndjsonio.NewReader(strings.NewReader(input), resolver.NewContext(), ndjsonio.ReaderOpts{}, "")
 	require.NoError(t, err)
 	require.NoError(t, zbuf.Copy(w, r))
 	NDJSONEq(t, output, out.String())
@@ -228,13 +229,13 @@ func TestNewRawFromJSON(t *testing.T) {
 			expected, err := r.Read()
 			require.NoError(t, err)
 			typ := expected.Type
-			ti := &typeInfo{
-				flatDesc:   typ,
-				descriptor: typ,
-				jsonVals:   make([]jsonVal, len(typ.Columns)),
-				path:       []byte(c.defaultPath),
+			ti := &ndjsonio.TypeInfo{
+				FlatDesc:   typ,
+				Descriptor: typ,
+				JsonVals:   make([]ndjsonio.JsonVal, len(typ.Columns)),
+				Path:       []byte(c.defaultPath),
 			}
-			raw, _, err := ti.newRawFromJSON([]byte(c.json))
+			raw, _, err := ti.NewRawFromJSON([]byte(c.json))
 			require.NoError(t, err)
 			rec := &zng.Record{Type: typ, Raw: raw}
 			assert.Equal(t, expected.String(), rec.String())
@@ -243,7 +244,7 @@ func TestNewRawFromJSON(t *testing.T) {
 }
 
 func TestNDJSONTypeErrors(t *testing.T) {
-	typeConfig := TypeConfig{
+	typeConfig := ndjsonio.TypeConfig{
 		Descriptors: map[string][]interface{}{
 			"http_log": []interface{}{
 				map[string]interface{}{
@@ -268,80 +269,80 @@ func TestNDJSONTypeErrors(t *testing.T) {
 				},
 			},
 		},
-		Rules: []Rule{
-			Rule{"_path", "http", "http_log"},
+		Rules: []ndjsonio.Rule{
+			{"_path", "http", "http_log"},
 		},
 	}
 
 	var cases = []struct {
 		name        string
-		result      typeStats
+		result      ndjsonio.TypeStats
 		input       string
 		success     bool
 		defaultPath string
 	}{
 		{
 			name:   "Valid",
-			result: typeStats{},
+			result: ndjsonio.TypeStats{},
 			input: `{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http"}
 			{"uid":"CXY9a54W2dLZwzPXf1","ts":"2017-03-24T19:59:24.306076Z","id.orig_h":"10.10.7.65","_path":"http"}`,
 			success: true,
 		},
 		{
 			name:   "Extra field",
-			result: typeStats{IncompleteDescriptor: 1, FirstBadLine: 2},
+			result: ndjsonio.TypeStats{IncompleteDescriptor: 1, FirstBadLine: 2},
 			input: `{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http"}
 {"ts":"2017-03-24T19:59:24.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http", "extra_field": 1}`,
 			success: false,
 		},
 		{
 			name:   "Bad line number",
-			result: typeStats{BadFormat: 1, FirstBadLine: 2},
+			result: ndjsonio.TypeStats{BadFormat: 1, FirstBadLine: 2},
 			input: `{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http"}
 {"hiddents":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http"}`,
 			success: false,
 		},
 		{
 			name:    "Missing Ts",
-			result:  typeStats{BadFormat: 1, FirstBadLine: 1},
+			result:  ndjsonio.TypeStats{BadFormat: 1, FirstBadLine: 1},
 			input:   `{"uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65", "_path": "http"}` + "\n",
 			success: false,
 		},
 		{
 			name:    "Negative Ts",
-			result:  typeStats{BadFormat: 1, FirstBadLine: 1},
+			result:  ndjsonio.TypeStats{BadFormat: 1, FirstBadLine: 1},
 			input:   `{"ts":"-1579438676.648","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65", "_path": "http"}` + "\n",
 			success: false,
 		},
 		{
 			name:    "Valid (inferred)",
-			result:  typeStats{DescriptorNotFound: 1, FirstBadLine: 1},
+			result:  ndjsonio.TypeStats{DescriptorNotFound: 1, FirstBadLine: 1},
 			input:   `{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"inferred"}`,
 			success: false,
 		},
 		{
 			name:    "Missing _path",
-			result:  typeStats{MissingPath: 1, FirstBadLine: 1},
+			result:  ndjsonio.TypeStats{MissingPath: 1, FirstBadLine: 1},
 			input:   `{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65"}` + "\n",
 			success: false,
 		},
 		{
 			name:        "_path provided as defaultPath",
-			result:      typeStats{},
+			result:      ndjsonio.TypeStats{},
 			input:       `{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65"}` + "\n",
 			success:     true,
 			defaultPath: "http",
 		},
 		{
 			name:        "invalid _path provided as defaultPath",
-			result:      typeStats{DescriptorNotFound: 1, FirstBadLine: 1},
+			result:      ndjsonio.TypeStats{DescriptorNotFound: 1, FirstBadLine: 1},
 			input:       `{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65"}` + "\n",
 			success:     false,
 			defaultPath: "nosuchpath",
 		},
 		{
 			name:        "invalid defaultPath doesn't override input _path",
-			result:      typeStats{},
+			result:      ndjsonio.TypeStats{},
 			input:       `{"_path": "http", "ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65"}` + "\n",
 			success:     true,
 			defaultPath: "nosuchpath",
@@ -351,10 +352,10 @@ func TestNDJSONTypeErrors(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			var out bytes.Buffer
-			w := NewWriter(zio.NopCloser(&out))
-			r, err := NewReader(strings.NewReader(c.input), resolver.NewContext(), ReaderOpts{}, "")
+			w := ndjsonio.NewWriter(zio.NopCloser(&out))
+			r, err := ndjsonio.NewReader(strings.NewReader(c.input), resolver.NewContext(), ndjsonio.ReaderOpts{}, "")
 			require.NoError(t, err)
-			err = r.configureTypes(typeConfig, c.defaultPath)
+			err = r.ConfigureTypes(typeConfig, c.defaultPath)
 			require.NoError(t, err)
 
 			err = zbuf.Copy(w, r)
@@ -363,7 +364,7 @@ func TestNDJSONTypeErrors(t *testing.T) {
 			} else {
 				require.Error(t, err)
 			}
-			require.Equal(t, c.result, *r.stats.typeStats)
+			require.Equal(t, c.result, *r.Stats.TypeStats)
 		})
 	}
 }

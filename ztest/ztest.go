@@ -129,8 +129,8 @@ import (
 
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
-	"github.com/brimsec/zq/zio/flags"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
 	"github.com/brimsec/zq/zql"
@@ -583,7 +583,7 @@ func runzq(path, ZQL, outputFormat, outputFlags string, inputs ...string) (out s
 		return "", err.Error(), err
 	}
 	defer rc.Close()
-	var zflags flags.Writer
+	var zflags zio.WriterFlags
 	var flags flag.FlagSet
 	zflags.SetFlags(&flags)
 	if err := flags.Parse(strings.Split(outputFlags, " ")); err != nil {
