@@ -638,7 +638,7 @@ func (a *Aggregator) readTable(flush, decompose bool) (zbuf.Batch, error) {
 func (a *Aggregator) lookupRowType(row *Row, decompose bool) (*zng.TypeRecord, error) {
 	// This is only done once per row at output time so generally not a
 	// bottleneck, but this could be optimized by keeping a cache of the
-	// descriptor since it is rare for there to be multiple descriptoras
+	// record types since it is rare for there to be multiple such types
 	// or for it change from row to row.
 	n := len(a.keys) + len(a.reducerDefs)
 	cols := make([]zng.Column, 0, n)
