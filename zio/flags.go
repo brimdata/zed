@@ -1,4 +1,4 @@
-package flags
+package zio
 
 import (
 	"encoding/json"
@@ -8,23 +8,22 @@ import (
 	"regexp"
 
 	"github.com/brimsec/zq/zio/ndjsonio"
-	"github.com/brimsec/zq/zio/options"
 	"github.com/brimsec/zq/zio/zngio"
 )
 
 // Reader has the union of all the flags accepted by the different
 // Reader implementations.
-type Reader struct {
-	options.Reader
+type ReaderFlags struct {
+	ReaderOpts
 	// The JSON type config is loaded from the types filie when Init is called.
 	jsonTypesFile string
 }
 
-func (r *Reader) Options() options.Reader {
-	return r.Reader
+func (r *ReaderFlags) Options() ReaderOpts {
+	return r.ReaderOpts
 }
 
-func (r *Reader) SetFlags(fs *flag.FlagSet) {
+func (r *ReaderFlags) SetFlags(fs *flag.FlagSet) {
 	fs.StringVar(&r.Format, "i", "auto", "format of input data [auto,zng,ndjson,zeek,zjson,tzng,parquet]")
 	fs.BoolVar(&r.Zng.Validate, "validate", true, "validate the input format when reading ZNG streams")
 	fs.StringVar(&r.jsonTypesFile, "j", "", "path to json types file")
@@ -33,7 +32,7 @@ func (r *Reader) SetFlags(fs *flag.FlagSet) {
 }
 
 // Init is called after flags have been parsed.
-func (r *Reader) Init() error {
+func (r *ReaderFlags) Init() error {
 	// Catch errors early ... ?! XXX
 	if _, err := regexp.Compile(r.JSON.PathRegexp); err != nil {
 		return err
@@ -65,15 +64,15 @@ func LoadJSONConfig(path string) (*ndjsonio.TypeConfig, error) {
 
 // Writer has the union of all the flags accepted by the different
 // Writer implementations.
-type Writer struct {
-	options.Writer
+type WriterFlags struct {
+	WriterOpts
 }
 
-func (w *Writer) Options() options.Writer {
-	return w.Writer
+func (w *WriterFlags) Options() WriterOpts {
+	return w.WriterOpts
 }
 
-func (w *Writer) SetFlags(fs *flag.FlagSet) {
+func (w *WriterFlags) SetFlags(fs *flag.FlagSet) {
 	fs.StringVar(&w.Format, "f", "zng", "format for output data [zng,ndjson,table,text,types,zeek,zjson,tzng]")
 	fs.BoolVar(&w.UTF8, "U", false, "display zeek strings as UTF-8")
 	fs.BoolVar(&w.Text.ShowTypes, "T", false, "display field types in text output")

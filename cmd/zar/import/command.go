@@ -11,8 +11,8 @@ import (
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
-	"github.com/brimsec/zq/zio/flags"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
 )
@@ -43,7 +43,7 @@ type Command struct {
 	dataPath    string
 	thresh      string
 	empty       bool
-	readerFlags flags.Reader
+	readerFlags zio.ReaderFlags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {

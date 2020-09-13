@@ -15,8 +15,7 @@ import (
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/flags"
-	"github.com/brimsec/zq/zio/options"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zql"
 	"github.com/mccanne/charm"
@@ -37,7 +36,7 @@ func init() {
 
 type Command struct {
 	*cmd.Command
-	writerFlags flags.Writer
+	writerFlags zio.WriterFlags
 	protocol    string
 	from        tsflag
 	to          tsflag
@@ -189,7 +188,7 @@ func (t *tsflag) Set(val string) error {
 	return nil
 }
 
-func openOutput(dir, file string, opts options.Writer) (zbuf.WriteCloser, error) {
+func openOutput(dir, file string, opts zio.WriterOpts) (zbuf.WriteCloser, error) {
 	if dir != "" {
 		return emitter.NewDir(dir, file, os.Stderr, opts)
 	}

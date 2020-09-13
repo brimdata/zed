@@ -12,8 +12,8 @@ import (
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/proc/sort"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
-	"github.com/brimsec/zq/zio/options"
 	"github.com/brimsec/zq/zng/resolver"
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -94,7 +94,7 @@ func (f *OutputFlags) SetFlags(fs *flag.FlagSet) {
 	fs.BoolVar(&f.forceBinary, "B", false, "allow binary zng be sent to a terminal output")
 }
 
-func (f *OutputFlags) Init(opts *options.Writer) error {
+func (f *OutputFlags) Init(opts *zio.WriterOpts) error {
 	if f.textShortcut {
 		if opts.Format != "zng" {
 			return errors.New("cannot use -t with -f")
@@ -107,7 +107,7 @@ func (f *OutputFlags) Init(opts *options.Writer) error {
 	return nil
 }
 
-func (o *OutputFlags) Open(opts options.Writer) (zbuf.WriteCloser, error) {
+func (o *OutputFlags) Open(opts zio.WriterOpts) (zbuf.WriteCloser, error) {
 	if o.dir != "" {
 		d, err := emitter.NewDir(o.dir, o.outputFile, os.Stderr, opts)
 		if err != nil {
@@ -122,7 +122,7 @@ func (o *OutputFlags) Open(opts options.Writer) (zbuf.WriteCloser, error) {
 	return w, nil
 }
 
-func OpenInputs(zctx *resolver.Context, opts options.Reader, paths []string, stopOnErr bool) ([]zbuf.Reader, error) {
+func OpenInputs(zctx *resolver.Context, opts zio.ReaderOpts, paths []string, stopOnErr bool) ([]zbuf.Reader, error) {
 	var readers []zbuf.Reader
 	for _, path := range paths {
 		if path == "-" {

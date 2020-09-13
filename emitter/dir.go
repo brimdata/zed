@@ -9,7 +9,6 @@ import (
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
-	"github.com/brimsec/zq/zio/options"
 	"github.com/brimsec/zq/zng"
 )
 
@@ -27,7 +26,7 @@ type Dir struct {
 	prefix  string
 	ext     string
 	stderr  io.Writer // XXX use warnings channel
-	opts    options.Writer
+	opts    zio.WriterOpts
 	writers map[*zng.TypeRecord]zbuf.WriteCloser
 	paths   map[string]zbuf.WriteCloser
 	source  iosrc.Source
@@ -37,7 +36,7 @@ func unknownFormat(format string) error {
 	return fmt.Errorf("unknown output format: %s", format)
 }
 
-func NewDir(dir, prefix string, stderr io.Writer, opts options.Writer) (*Dir, error) {
+func NewDir(dir, prefix string, stderr io.Writer, opts zio.WriterOpts) (*Dir, error) {
 	uri, err := iosrc.ParseURI(dir)
 	if err != nil {
 		return nil, err
@@ -49,7 +48,7 @@ func NewDir(dir, prefix string, stderr io.Writer, opts options.Writer) (*Dir, er
 	return NewDirWithSource(uri, prefix, stderr, opts, src)
 }
 
-func NewDirWithSource(dir iosrc.URI, prefix string, stderr io.Writer, opts options.Writer, source iosrc.Source) (*Dir, error) {
+func NewDirWithSource(dir iosrc.URI, prefix string, stderr io.Writer, opts zio.WriterOpts, source iosrc.Source) (*Dir, error) {
 	if dirmkr, ok := source.(iosrc.DirMaker); ok {
 		if err := dirmkr.MkdirAll(dir, 0755); err != nil {
 			return nil, err

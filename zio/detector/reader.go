@@ -6,8 +6,8 @@ import (
 	"io"
 
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/ndjsonio"
-	"github.com/brimsec/zq/zio/options"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zio/zeekio"
 	"github.com/brimsec/zq/zio/zjsonio"
@@ -16,7 +16,7 @@ import (
 	"github.com/brimsec/zq/zqe"
 )
 
-func NewReaderWithOpts(r io.Reader, zctx *resolver.Context, path string, opts options.Reader) (zbuf.Reader, error) {
+func NewReaderWithOpts(r io.Reader, zctx *resolver.Context, path string, opts zio.ReaderOpts) (zbuf.Reader, error) {
 	recorder := NewRecorder(r)
 	track := NewTrack(recorder)
 
@@ -63,7 +63,7 @@ func NewReaderWithOpts(r io.Reader, zctx *resolver.Context, path string, opts op
 }
 
 func NewReader(r io.Reader, zctx *resolver.Context) (zbuf.Reader, error) {
-	return NewReaderWithOpts(r, zctx, "", options.Reader{})
+	return NewReaderWithOpts(r, zctx, "", zio.ReaderOpts{})
 }
 
 func joinErrs(errs []error) error {

@@ -10,7 +10,7 @@ import (
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/flags"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
@@ -67,7 +67,7 @@ type Command struct {
 	pathField     string
 	relativePaths bool
 	zng           bool
-	writerFlags   flags.Writer
+	writerFlags   zio.WriterFlags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {

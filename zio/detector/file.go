@@ -14,7 +14,7 @@ import (
 	"github.com/brimsec/zq/pkg/s3io"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/options"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/parquetio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -30,7 +30,7 @@ const StdinPath = "/dev/stdin"
 // which can be a local file path, a local directory path, or an S3
 // URL. If the path is neither of these or can't otherwise be opened,
 // an error is returned.
-func OpenFile(zctx *resolver.Context, path string, opts options.Reader) (*zbuf.File, error) {
+func OpenFile(zctx *resolver.Context, path string, opts zio.ReaderOpts) (*zbuf.File, error) {
 	// Parquet is special and needs its own reader for s3 sources- therefore this must go before
 	// the IsS3Path check.
 	if opts.Format == "parquet" {
@@ -53,7 +53,7 @@ func OpenFile(zctx *resolver.Context, path string, opts options.Reader) (*zbuf.F
 	return OpenFromNamedReadCloser(zctx, f, path, opts)
 }
 
-func OpenParquet(zctx *resolver.Context, path string, opts options.Reader) (*zbuf.File, error) {
+func OpenParquet(zctx *resolver.Context, path string, opts zio.ReaderOpts) (*zbuf.File, error) {
 	var pf source.ParquetFile
 	var err error
 	if s3io.IsS3Path(path) {
@@ -77,7 +77,7 @@ func OpenParquet(zctx *resolver.Context, path string, opts options.Reader) (*zbu
 	return zbuf.NewFile(r, pf, path), nil
 }
 
-func OpenFromNamedReadCloser(zctx *resolver.Context, rc io.ReadCloser, path string, opts options.Reader) (*zbuf.File, error) {
+func OpenFromNamedReadCloser(zctx *resolver.Context, rc io.ReadCloser, path string, opts zio.ReaderOpts) (*zbuf.File, error) {
 	var err error
 	r := GzipReader(rc)
 	var zr zbuf.Reader
@@ -96,7 +96,7 @@ func OpenFromNamedReadCloser(zctx *resolver.Context, rc io.ReadCloser, path stri
 func OpenFiles(zctx *resolver.Context, dir zbuf.RecordCmpFn, paths ...string) (zbuf.ReadCloser, error) {
 	var readers []zbuf.Reader
 	for _, path := range paths {
-		reader, err := OpenFile(zctx, path, options.Reader{})
+		reader, err := OpenFile(zctx, path, zio.ReaderOpts{})
 		if err != nil {
 			return nil, err
 		}
@@ -109,7 +109,7 @@ type multiFileReader struct {
 	reader *zbuf.File
 	zctx   *resolver.Context
 	paths  []string
-	opts   options.Reader
+	opts   zio.ReaderOpts
 }
 
 var _ zbuf.ReadCloser = (*multiFileReader)(nil)
@@ -119,7 +119,7 @@ var _ scanner.ScannerAble = (*multiFileReader)(nil)
 // of the provided input paths. They're read sequentially. Once all inputs have
 // reached end of stream, Read will return end of stream. If any of the readers
 // return a non-nil error, Read will return that error.
-func MultiFileReader(zctx *resolver.Context, paths []string, opts options.Reader) zbuf.ReadCloser {
+func MultiFileReader(zctx *resolver.Context, paths []string, opts zio.ReaderOpts) zbuf.ReadCloser {
 	return &multiFileReader{
 		zctx:  zctx,
 		paths: paths,

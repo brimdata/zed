@@ -17,7 +17,6 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
-	"github.com/brimsec/zq/zio/options"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/golang/mock/gomock"
@@ -34,7 +33,7 @@ func createArchiveSpace(t *testing.T, datapath string, srcfile string, co *Creat
 
 func importTestFile(t *testing.T, ark *Archive, srcfile string) {
 	zctx := resolver.NewContext()
-	reader, err := detector.OpenFile(zctx, srcfile, options.Reader{})
+	reader, err := detector.OpenFile(zctx, srcfile, zio.ReaderOpts{})
 	require.NoError(t, err)
 	defer reader.Close()
 

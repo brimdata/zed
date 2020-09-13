@@ -30,7 +30,7 @@ func Trim(s string) string {
 }
 
 func stringReader(input string, ifmt string, zctx *resolver.Context) (zbuf.Reader, error) {
-	opts := options.Reader{
+	opts := zio.ReaderOpts{
 		Format: ifmt,
 	}
 	rc := ioutil.NopCloser(strings.NewReader(input))
