@@ -13,9 +13,8 @@ import (
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
-	"github.com/brimsec/zq/zio/flags"
-	"github.com/brimsec/zq/zio/options"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
 	"github.com/mccanne/charm"
@@ -48,7 +47,7 @@ type Command struct {
 	root         string
 	stopErr      bool
 	textShortcut bool
-	writerFlags  flags.Writer
+	writerFlags  zio.WriterFlags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -123,7 +122,7 @@ func (c *Command) Run(args []string) error {
 			}
 		}
 		zctx := resolver.NewContext()
-		opts := options.Reader{Format: "zng"}
+		opts := zio.ReaderOpts{Format: "zng"}
 		rc := detector.MultiFileReader(zctx, paths, opts)
 		defer rc.Close()
 		reader := zbuf.Reader(rc)

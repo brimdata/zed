@@ -9,9 +9,9 @@ import (
 
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zio/ndjsonio"
-	"github.com/brimsec/zq/zio/options"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
@@ -41,7 +41,7 @@ func NewLogOp(ctx context.Context, store storage.Storage, req api.LogPostRequest
 		warningCh: make(chan string, 5),
 		zctx:      resolver.NewContext(),
 	}
-	opts := options.Reader{Zng: zngio.ReaderOpts{Validate: true}}
+	opts := zio.ReaderOpts{Zng: zngio.ReaderOpts{Validate: true}}
 	//XXX if there is a json config, then the input has to be ndjson
 	// and we shouldn't be using the detector.  down the line, when
 	// we more holistically support json ingest, there should probably

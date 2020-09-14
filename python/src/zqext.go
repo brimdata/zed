@@ -8,8 +8,8 @@ import (
 
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
-	"github.com/brimsec/zq/zio/options"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
 )
@@ -53,7 +53,7 @@ func doZqlFileEval(inquery, inpath, informat, outpath, outformat string) (err er
 	}
 
 	zctx := resolver.NewContext()
-	rc, err := detector.OpenFile(zctx, inpath, options.Reader{
+	rc, err := detector.OpenFile(zctx, inpath, zio.ReaderOpts{
 		Format: informat,
 	})
 	if err != nil {
@@ -61,7 +61,7 @@ func doZqlFileEval(inquery, inpath, informat, outpath, outformat string) (err er
 	}
 	defer rc.Close()
 
-	w, err := emitter.NewFile(outpath, options.Writer{
+	w, err := emitter.NewFile(outpath, zio.WriterOpts{
 		Format: outformat,
 	})
 	if err != nil {

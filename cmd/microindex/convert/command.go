@@ -8,8 +8,8 @@ import (
 	"github.com/brimsec/zq/cmd/microindex/root"
 	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
-	"github.com/brimsec/zq/zio/flags"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
 )
@@ -39,7 +39,7 @@ type Command struct {
 	frameThresh int
 	outputFile  string
 	keys        string
-	ReaderFlags flags.Reader
+	ReaderFlags zio.ReaderFlags
 }
 
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {

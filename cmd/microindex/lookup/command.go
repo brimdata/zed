@@ -10,7 +10,7 @@ import (
 	"github.com/brimsec/zq/cmd/microindex/root"
 	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/zio/flags"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
@@ -39,7 +39,7 @@ func init() {
 type LookupCommand struct {
 	*root.Command
 	keys        string
-	WriterFlags flags.Writer
+	WriterFlags zio.WriterFlags
 	closest     bool
 	output      cli.OutputFlags
 }

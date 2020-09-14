@@ -9,7 +9,7 @@ import (
 	"github.com/brimsec/zq/pkg/iosrc"
 	iosrcmock "github.com/brimsec/zq/pkg/iosrc/mock"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/options"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/golang/mock/gomock"
@@ -36,7 +36,7 @@ func TestDirS3Source(t *testing.T) {
 
 	r := tzngio.NewReader(strings.NewReader(tzng), resolver.NewContext())
 	require.NoError(t, err)
-	w, err := NewDirWithSource(uri, "", os.Stderr, options.Writer{Format: "tzng"}, src)
+	w, err := NewDirWithSource(uri, "", os.Stderr, zio.WriterOpts{Format: "tzng"}, src)
 	require.NoError(t, err)
 	require.NoError(t, zbuf.Copy(w, r))
 }

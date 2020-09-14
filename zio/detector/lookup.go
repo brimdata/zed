@@ -5,8 +5,8 @@ import (
 	"io"
 
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/ndjsonio"
-	"github.com/brimsec/zq/zio/options"
 	"github.com/brimsec/zq/zio/tableio"
 	"github.com/brimsec/zq/zio/textio"
 	"github.com/brimsec/zq/zio/tzngio"
@@ -27,7 +27,7 @@ func (*nullWriter) Close() error {
 	return nil
 }
 
-func LookupWriter(w io.WriteCloser, opts options.Writer) zbuf.WriteCloser {
+func LookupWriter(w io.WriteCloser, opts zio.WriterOpts) zbuf.WriteCloser {
 	if opts.Format == "" {
 		opts.Format = "tzng"
 	}
@@ -53,7 +53,7 @@ func LookupWriter(w io.WriteCloser, opts options.Writer) zbuf.WriteCloser {
 	}
 }
 
-func lookupReader(r io.Reader, zctx *resolver.Context, path string, opts options.Reader) (zbuf.Reader, error) {
+func lookupReader(r io.Reader, zctx *resolver.Context, path string, opts zio.ReaderOpts) (zbuf.Reader, error) {
 	switch opts.Format {
 	case "tzng":
 		return tzngio.NewReader(r, zctx), nil

@@ -9,8 +9,8 @@ import (
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
-	"github.com/brimsec/zq/zio/options"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
@@ -128,7 +128,7 @@ func (ams *multiSource) SendSources(ctx context.Context, zctx *resolver.Context,
 					paths = append(paths, p.String())
 				}
 			}
-			rc := detector.MultiFileReader(zctx, paths, options.Reader{Format: "zng"})
+			rc := detector.MultiFileReader(zctx, paths, zio.ReaderOpts{Format: "zng"})
 			sn, err := scanner.NewScanner(ctx, rc, sf.Filter, sf.FilterExpr, sf.Span)
 			if err != nil {
 				return nil, err

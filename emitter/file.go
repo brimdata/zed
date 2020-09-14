@@ -9,11 +9,10 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
-	"github.com/brimsec/zq/zio/options"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-func NewFile(path string, opts options.Writer) (zbuf.WriteCloser, error) {
+func NewFile(path string, opts zio.WriterOpts) (zbuf.WriteCloser, error) {
 	if path == "" {
 		path = "stdout"
 	}
@@ -37,7 +36,7 @@ func IsTerminal(w io.Writer) bool {
 	return false
 }
 
-func NewFileWithSource(path iosrc.URI, opts options.Writer, source iosrc.Source) (zbuf.WriteCloser, error) {
+func NewFileWithSource(path iosrc.URI, opts zio.WriterOpts, source iosrc.Source) (zbuf.WriteCloser, error) {
 	f, err := source.NewWriter(path)
 	if err != nil {
 		return nil, err

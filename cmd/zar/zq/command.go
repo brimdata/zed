@@ -10,7 +10,7 @@ import (
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
-	"github.com/brimsec/zq/zio/flags"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
 	"github.com/mccanne/charm"
@@ -39,7 +39,7 @@ type Command struct {
 	quiet       bool
 	root        string
 	stopErr     bool
-	writerFlags flags.Writer
+	writerFlags zio.WriterFlags
 	output      cli.OutputFlags
 }
 

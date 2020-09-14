@@ -12,7 +12,7 @@ import (
 	"github.com/brimsec/zq/pkg/s3io"
 	"github.com/brimsec/zq/pkg/signalctx"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/flags"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
 	"github.com/mccanne/charm"
@@ -72,8 +72,8 @@ type Command struct {
 	stats       bool
 	quiet       bool
 	stopErr     bool
-	readerFlags flags.Reader
-	writerFlags flags.Writer
+	readerFlags zio.ReaderFlags
+	writerFlags zio.WriterFlags
 	output      cli.OutputFlags
 	cli         cli.Flags
 }
