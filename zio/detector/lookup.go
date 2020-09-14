@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zio/csvio"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/tableio"
 	"github.com/brimsec/zq/zio/textio"
@@ -47,9 +48,11 @@ func LookupWriter(w io.WriteCloser, opts zio.WriterOpts) zbuf.WriteCloser {
 	case "zjson":
 		return zjsonio.NewWriter(w)
 	case "text":
-		return textio.NewWriter(w, opts.UTF8, opts.Text)
+		return textio.NewWriter(w, opts.UTF8, opts.Text, opts.EpochDates)
 	case "table":
 		return tableio.NewWriter(w, opts.UTF8)
+	case "csv":
+		return csvio.NewWriter(w, opts.UTF8, opts.EpochDates)
 	}
 }
 

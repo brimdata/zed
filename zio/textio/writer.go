@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zio/zeekio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/flattener"
@@ -15,27 +14,26 @@ import (
 
 type Writer struct {
 	WriterOpts
-	writer    io.WriteCloser
-	flattener *flattener.Flattener
-	precision int
-	format    zng.OutFmt
+	EpochDates bool
+	writer     io.WriteCloser
+	flattener  *flattener.Flattener
+	precision  int
+	format     zng.OutFmt
 }
 
 type WriterOpts struct {
 	ShowTypes  bool
 	ShowFields bool
-	EpochDates bool
 }
 
-func NewWriter(w io.WriteCloser, utf8 bool, opts WriterOpts) *Writer {
-	var format zng.OutFmt
+func NewWriter(w io.WriteCloser, utf8 bool, opts WriterOpts, dates bool) *Writer {
+	format := zng.OutFormatZeekAscii
 	if utf8 {
 		format = zng.OutFormatZeek
-	} else {
-		format = zng.OutFormatZeekAscii
 	}
 	return &Writer{
 		WriterOpts: opts,
+		EpochDates: dates,
 		writer:     w,
 		flattener:  flattener.New(resolver.NewContext()),
 		precision:  6,
@@ -65,7 +63,7 @@ func (w *Writer) Write(rec *zng.Record) error {
 					if err != nil {
 						return err
 					}
-					v = nano.Ts(ts).Time().UTC().Format(time.RFC3339Nano)
+					v = ts.Time().UTC().Format(time.RFC3339Nano)
 				}
 			} else {
 				v = value.Format(w.format)

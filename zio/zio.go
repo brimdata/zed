@@ -17,10 +17,11 @@ type ReaderOpts struct {
 }
 
 type WriterOpts struct {
-	Format string
-	UTF8   bool
-	Text   textio.WriterOpts
-	Zng    zngio.WriterOpts
+	Format     string
+	UTF8       bool
+	Text       textio.WriterOpts
+	Zng        zngio.WriterOpts
+	EpochDates bool
 }
 
 func Extension(format string) string {
@@ -39,6 +40,8 @@ func Extension(format string) string {
 		return ".tbl"
 	case "zng":
 		return ".zng"
+	case "csv":
+		return ".csv"
 	default:
 		return ""
 	}
