@@ -60,7 +60,7 @@ func (r RecordWriter) MarshalZNG(zctx *resolver.Context, b *zcode.Builder) (zng.
 	var columns []zng.Column
 	b.BeginContainer()
 	for _, f := range r {
-		fieldType, err := f.encode(zctx, b)
+		fieldType, err := f.MarshalZNG(zctx, b)
 		if err != nil {
 			return nil, err
 		}
