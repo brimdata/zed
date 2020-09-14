@@ -27,6 +27,7 @@ const DefaultMTU = 100
 const StatsInterval = time.Millisecond * 500
 
 const (
+	MimeTypeCSV    = "text/csv"
 	MimeTypeNDJSON = "application/x-ndjson"
 	MimeTypeZNG    = "application/x-zng"
 )

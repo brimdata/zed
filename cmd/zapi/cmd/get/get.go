@@ -77,7 +77,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 		to:      tsflag(nano.MaxTs),
 	}
 	c.writerFlags.SetFlags(f)
-	f.StringVar(&c.encoding, "e", "zng", "server encoding to use for search results [ndjson,zjson,zng]")
+	f.StringVar(&c.encoding, "e", "zng", "server encoding to use for search results [csv,ndjson,zjson,zng]")
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
 	f.BoolVar(&c.warnings, "W", true, "display warnings on stderr")
 	f.BoolVar(&c.debug, "debug", false, "dump raw HTTP response straight to output")
@@ -109,14 +109,17 @@ func (c *Command) Run(args []string) error {
 	}
 	defer r.Close()
 	if c.debug {
-		return c.runDebugSearch(r)
+		return c.runRawSearch(r)
 	}
 	writerOpts := c.writerFlags.Options()
+	if c.encoding != "zng" {
+		if writerOpts.Format != "zng" {
+			return errors.New("-e cannot be used with -f")
+		}
+		return c.runRawSearch(r)
+	}
 	if err := c.output.Init(&writerOpts); err != nil {
 		return err
-	}
-	if writerOpts.Format != "zng" && c.encoding != "zng" {
-		return errors.New("-e cannot be used with -f")
 	}
 	writer, err := c.output.Open(writerOpts)
 	if err != nil {
@@ -166,7 +169,7 @@ func (c *Command) handleControl(ctrl interface{}) {
 	}
 }
 
-func (c *Command) runDebugSearch(r io.Reader) error {
+func (c *Command) runRawSearch(r io.Reader) error {
 	w := os.Stdout
 	filename := c.output.FileName()
 	if filename != "" {
