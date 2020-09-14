@@ -1,11 +1,11 @@
 zql: '*'
 
 input: |
-        #0:record[a:string,b:record[c:string,d:string]]
-        0:[hello;[world;goodbye;]]
+  #0:record[a:string,b:record[c:string,d:string]]
+  0:[hello;[world;goodbye;]]
 
 output-format: csv
 
 output: |
-        a,b.c,b.d
-        hello,world,goodbye
+  a,b.c,b.d
+  hello,world,goodbye

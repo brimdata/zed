@@ -6,13 +6,12 @@ import (
 	"io"
 	"time"
 
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/flattener"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-var ErrNotDataFrame = errors.New("Cannot format non-dataframe group of records as csv.")
+var ErrNotDataFrame = errors.New("csv output requires uniform records but different types encountered")
 
 type Writer struct {
 	epochDates bool
@@ -24,11 +23,9 @@ type Writer struct {
 }
 
 func NewWriter(w io.WriteCloser, utf8, epochDates bool) *Writer {
-	var format zng.OutFmt
+	format := zng.OutFormatZeekAscii
 	if utf8 {
 		format = zng.OutFormatZeek
-	} else {
-		format = zng.OutFormatZeekAscii
 	}
 	return &Writer{
 		writer:     w,
@@ -66,14 +63,12 @@ func (w *Writer) Write(rec *zng.Record) error {
 		var v string
 		value := rec.Value(k)
 		if !w.epochDates && col.Name == "ts" && col.Type == zng.TypeTime {
-			if value.IsUnsetOrNil() {
-				v = ""
-			} else {
+			if !value.IsUnsetOrNil() {
 				ts, err := zng.DecodeTime(value.Bytes)
 				if err != nil {
 					return err
 				}
-				v = nano.Ts(ts).Time().UTC().Format(time.RFC3339Nano)
+				v = ts.Time().UTC().Format(time.RFC3339Nano)
 			}
 		} else {
 			v = value.Format(w.format)

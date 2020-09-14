@@ -36,7 +36,7 @@ type Resolver interface {
 type OutFmt int
 
 const (
-	OutFormatUnescaped = iota
+	OutFormatUnescaped = OutFmt(iota)
 	OutFormatZNG
 	OutFormatZeek
 	OutFormatZeekAscii

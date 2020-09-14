@@ -77,7 +77,7 @@ func (w *WriterFlags) SetFlags(fs *flag.FlagSet) {
 	fs.BoolVar(&w.UTF8, "U", false, "display zeek strings as UTF-8")
 	fs.BoolVar(&w.Text.ShowTypes, "T", false, "display field types in text output")
 	fs.BoolVar(&w.Text.ShowFields, "F", false, "display field names in text output")
-	fs.BoolVar(&w.EpochDates, "E", false, "display epoch timestamps in text output")
+	fs.BoolVar(&w.EpochDates, "E", false, "display epoch timestamps in csv and text output")
 	fs.IntVar(&w.Zng.StreamRecordsMax, "b", 0, "limit for number of records in each ZNG stream (0 for no limit)")
 	fs.IntVar(&w.Zng.LZ4BlockSize, "znglz4blocksize", zngio.DefaultLZ4BlockSize,
 		"LZ4 block size in bytes for ZNG compression (nonpositive to disable)")

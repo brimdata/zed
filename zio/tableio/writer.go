@@ -25,11 +25,9 @@ type Writer struct {
 
 func NewWriter(w io.WriteCloser, utf8 bool) *Writer {
 	table := tabwriter.NewWriter(w, 0, 8, 1, ' ', 0)
-	var format zng.OutFmt
+	format := zng.OutFormatZeekAscii
 	if utf8 {
 		format = zng.OutFormatZeek
-	} else {
-		format = zng.OutFormatZeekAscii
 	}
 	return &Writer{
 		writer:    w,
