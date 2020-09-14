@@ -267,7 +267,7 @@ func setCoreRoot(t *testing.T, c zqd.Config) *zqd.Core {
 	if c.Logger == nil {
 		c.Logger = zaptest.NewLogger(t, zaptest.Level(zap.WarnLevel))
 	}
-	core, err := zqd.NewCore(c, "test")
+	core, err := zqd.NewCore(c)
 	require.NoError(t, err)
 	return core
 }
