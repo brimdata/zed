@@ -41,9 +41,8 @@ func NewHandler(core *Core, logger *zap.Logger) http.Handler {
 	h.Handle("/space/{space}/subspace", handleSubspacePost).Methods("POST")
 	h.Handle("/search", handleSearch).Methods("POST")
 	h.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
-		version := api.VersionResponse{Version: core.Version}
 		w.Header().Add("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&version)
+		json.NewEncoder(w).Encode(&api.VersionResponse{Version: core.Version})
 	})
 	h.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok"))
