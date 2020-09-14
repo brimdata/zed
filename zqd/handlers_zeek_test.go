@@ -19,6 +19,7 @@ import (
 	"github.com/brimsec/zq/zqd"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/pcapstorage"
+	"github.com/brimsec/zq/zqd/process"
 	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqd/zeek"
 	"github.com/stretchr/testify/assert"
@@ -234,8 +235,8 @@ func TestPcapPostZeekFailAfterWrite(t *testing.T) {
 	})
 }
 
-func pcapPost(t *testing.T, pcapfile string, l zeek.Launcher) pcapPostResult {
-	return pcapPostWithConfig(t, zqd.Config{ZeekLauncher: l}, pcapfile)
+func pcapPost(t *testing.T, pcapfile string, l process.Launcher) pcapPostResult {
+	return pcapPostWithConfig(t, zqd.Config{Launchers: zqd.Launchers{Zeek: l}}, pcapfile)
 }
 
 func pcapPostWithConfig(t *testing.T, conf zqd.Config, pcapfile string) pcapPostResult {

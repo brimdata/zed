@@ -3,21 +3,26 @@ package ingest
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
+	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/pcapstorage"
+	"github.com/brimsec/zq/zqd/process"
 	"github.com/brimsec/zq/zqd/storage"
-	"github.com/brimsec/zq/zqd/zeek"
 )
 
 type ClearableStore interface {
@@ -29,15 +34,15 @@ type PcapOp struct {
 	StartTime nano.Ts
 	PcapSize  int64
 
-	pcapstore    *pcapstorage.Store
-	store        ClearableStore
-	snapshots    int32
-	pcapuri      iosrc.URI
-	pcapReadSize int64
-	logdir       string
-	done, snap   chan struct{}
-	err          error
-	zlauncher    zeek.Launcher
+	pcapstore            *pcapstorage.Store
+	store                ClearableStore
+	snapshots            int32
+	pcapuri              iosrc.URI
+	pcapReadSize         int64
+	logdir               string
+	done, snap           chan struct{}
+	err                  error
+	slauncher, zlauncher process.Launcher
 }
 
 // NewPcapOp kicks of the process for ingesting a pcap file into a space.
@@ -45,10 +50,13 @@ type PcapOp struct {
 // Process instance once zeek log files have started to materialize in a tmp
 // directory. If zeekExec is an empty string, this will attempt to resolve zeek
 // from $PATH.
-func NewPcapOp(ctx context.Context, pcapstore *pcapstorage.Store, store ClearableStore, pcap string, zlauncher zeek.Launcher) (*PcapOp, []string, error) {
+func NewPcapOp(ctx context.Context, pcapstore *pcapstorage.Store, store ClearableStore, pcap string, slauncher, zlauncher process.Launcher) (*PcapOp, []string, error) {
 	pcapuri, err := iosrc.ParseURI(pcap)
 	if err != nil {
 		return nil, nil, err
+	}
+	if slauncher == nil && zlauncher == nil {
+		return nil, nil, fmt.Errorf("must provide at least one launcher")
 	}
 	info, err := iosrc.Stat(ctx, pcapuri)
 	if err != nil {
@@ -79,6 +87,7 @@ func NewPcapOp(ctx context.Context, pcapstore *pcapstorage.Store, store Clearabl
 		logdir:    logdir,
 		done:      make(chan struct{}),
 		snap:      make(chan struct{}),
+		slauncher: slauncher,
 		zlauncher: zlauncher,
 	}
 	go func() {
@@ -90,10 +99,25 @@ func NewPcapOp(ctx context.Context, pcapstore *pcapstorage.Store, store Clearabl
 }
 
 func (p *PcapOp) run(ctx context.Context) error {
-	var slurpErr error
+	var sErr, zErr error
+	var wg sync.WaitGroup
 	slurpDone := make(chan struct{})
+	if p.slauncher != nil {
+		wg.Add(1)
+		go func() {
+			sErr = p.runSuricata(ctx)
+			wg.Done()
+		}()
+	}
+	if p.zlauncher != nil {
+		wg.Add(1)
+		go func() {
+			zErr = p.runZeek(ctx)
+			wg.Done()
+		}()
+	}
 	go func() {
-		slurpErr = p.runZeek(ctx)
+		wg.Wait()
 		close(slurpDone)
 	}()
 
@@ -116,7 +140,7 @@ outer:
 			break outer
 		case t := <-ticker.C:
 			if t.After(start.Add(next)) {
-				if err := p.createSnapshot(ctx); err != nil {
+				if err := p.createSnapshot(ctx, p.zeekFiles()); err != nil {
 					abort()
 					return err
 				}
@@ -128,11 +152,16 @@ outer:
 			}
 		}
 	}
-	if slurpErr != nil {
+	if sErr != nil {
 		abort()
-		return slurpErr
+		return sErr
 	}
-	if err := p.createSnapshot(ctx); err != nil {
+	if zErr != nil {
+		abort()
+		return zErr
+	}
+	files := append(p.zeekFiles(), p.suricataFiles()...)
+	if err := p.createSnapshot(ctx, files); err != nil {
 		abort()
 		return err
 	}
@@ -155,6 +184,22 @@ func (p *PcapOp) runZeek(ctx context.Context) error {
 		return err
 	}
 	return zproc.Wait()
+}
+
+func (p *PcapOp) runSuricata(ctx context.Context) error {
+	pcapfile, err := iosrc.NewReader(ctx, p.pcapuri)
+	if err != nil {
+		return err
+	}
+	defer pcapfile.Close()
+	sproc, err := p.slauncher(ctx, bufio.NewReader(pcapfile), p.logdir)
+	if err != nil {
+		return err
+	}
+	if err = sproc.Wait(); err != nil {
+		return err
+	}
+	return p.convertSuricataLog(ctx)
 }
 
 // PcapReadSize returns the total size in bytes of data read from the underlying
@@ -186,13 +231,25 @@ func (p *PcapOp) Snap() <-chan struct{} {
 	return p.snap
 }
 
-func (p *PcapOp) createSnapshot(ctx context.Context) error {
+func (p *PcapOp) zeekFiles() []string {
 	files, err := filepath.Glob(filepath.Join(p.logdir, "*.log"))
 	// Per filepath.Glob documentation the only possible error would be due to
 	// an invalid glob pattern. Ok to panic.
 	if err != nil {
 		panic(err)
 	}
+	return files
+}
+
+func (p *PcapOp) suricataFiles() []string {
+	path := filepath.Join(p.logdir, "eve.zng")
+	if _, err := os.Stat(path); err != nil {
+		return nil
+	}
+	return []string{path}
+}
+
+func (p *PcapOp) createSnapshot(ctx context.Context, files []string) error {
 	if len(files) == 0 {
 		return nil
 	}
@@ -208,6 +265,28 @@ func (p *PcapOp) createSnapshot(ctx context.Context) error {
 	}
 	atomic.AddInt32(&p.snapshots, 1)
 	return nil
+}
+
+func (p *PcapOp) convertSuricataLog(ctx context.Context) error {
+	// For now, this just converts from json to
+	// zng. Soon it will apply a typing config and rename at least
+	// the timestamp field.
+	path := filepath.Join(p.logdir, "eve.json")
+	zctx := resolver.NewContext()
+	wc, err := fs.NewFileReplacer(filepath.Join(p.logdir, "eve.zng"), os.FileMode(0666))
+	if err != nil {
+		return err
+	}
+	zr, err := detector.OpenFile(zctx, path, zio.ReaderOpts{})
+	if err != nil {
+		return err
+	}
+	defer zr.Close()
+	zw := zngio.NewWriter(wc, zngio.WriterOpts{})
+	if err := zbuf.CopyWithContext(ctx, zw, zr); err != nil {
+		return err
+	}
+	return zw.Close()
 }
 
 func (p *PcapOp) Write(b []byte) (int, error) {
