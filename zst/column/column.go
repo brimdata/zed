@@ -1,5 +1,5 @@
-// Package column implements the organization of columns on storage for the
-// zst colunar storage object.
+// Package column implements the organization of columns on storage for a
+// zst columnar storage object.
 //
 // A zst object is created by allocating a RecordWriter for a top-level zng row type
 // (i.e., "schema") via NewRecordWriter.  The object to be written to is wrapped
