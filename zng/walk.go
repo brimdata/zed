@@ -6,18 +6,54 @@ import (
 	"github.com/brimsec/zq/zcode"
 )
 
-// A RecordVisitor is called for each value in a record encountered by
+// A Visitor is called for each value in a record encountered by
 // Walk. If the visitor returns an error, the walk stops and that
 // error will be returned to the caller of Walk(). The sole exception
 // is when the visitor returns the special value SkipContainer.
-type RecordVisitor func(typ Type, body zcode.Bytes) error
+type Visitor func(typ Type, body zcode.Bytes) error
 
-// SkipContainer is used as a return value from RecordVisitors to indicate
+// SkipContainer is used as a return value from Visitors to indicate
 // that the container passed in the call should not be visited. It is
 // not returned as an error by any function.
 var SkipContainer = errors.New("skip this container")
 
-func walkRecord(typ *TypeRecord, body zcode.Bytes, rv RecordVisitor) error {
+func Walk(typ Type, body zcode.Bytes, visit Visitor) error {
+	if err := visit(typ, body); err != nil {
+		if err == SkipContainer {
+			return nil
+		}
+		return err
+	}
+	switch typ := typ.(type) {
+	case *TypeAlias:
+		return Walk(typ.Type, body, visit)
+	case *TypeRecord:
+		return walkRecord(typ, body, visit)
+	case *TypeArray:
+		return walkArray(typ, body, visit)
+	case *TypeSet:
+		return walkSet(typ, body, visit)
+	case *TypeUnion:
+		return walkUnion(typ, body, visit)
+	}
+	return nil
+}
+
+func checkKind(name string, typ Type, container bool) error {
+	isContainer := IsContainerType(typ)
+	if isContainer == container {
+		return nil
+	}
+	var err error
+	if isContainer {
+		err = ErrNotContainer
+	} else {
+		err = ErrNotPrimitive
+	}
+	return &RecordTypeError{Name: name, Type: typ.String(), Err: err}
+}
+
+func walkRecord(typ *TypeRecord, body zcode.Bytes, visit Visitor) error {
 	if body == nil {
 		return nil
 	}
@@ -30,72 +66,17 @@ func walkRecord(typ *TypeRecord, body zcode.Bytes, rv RecordVisitor) error {
 		if err != nil {
 			return err
 		}
-		switch t := AliasedType(col.Type).(type) {
-		case *TypeRecord:
-			if !container {
-				return &RecordTypeError{Name: col.Name, Type: col.Type.String(), Err: ErrNotContainer}
-			}
-			if err := rv(t, body); err != nil {
-				if err == SkipContainer {
-					continue
-				}
-				return err
-			}
-			if err := walkRecord(t, body, rv); err != nil {
-				return err
-			}
-		case *TypeArray:
-			if !container {
-				return &RecordTypeError{Name: col.Name, Type: col.Type.String(), Err: ErrNotContainer}
-			}
-			if err := rv(t, body); err != nil {
-				if err == SkipContainer {
-					continue
-				}
-				return err
-			}
-			if err := walkVector(t, body, rv); err != nil {
-				return err
-			}
-		case *TypeSet:
-			if !container {
-				return &RecordTypeError{Name: col.Name, Type: col.Type.String(), Err: ErrNotContainer}
-			}
-			if err := rv(t, body); err != nil {
-				if err == SkipContainer {
-					continue
-				}
-				return err
-			}
-			if err := walkSet(t, body, rv); err != nil {
-				return err
-			}
-		case *TypeUnion:
-			if !container {
-				return &RecordTypeError{Name: col.Name, Type: col.Type.String(), Err: ErrNotContainer}
-			}
-			if err := rv(t, body); err != nil {
-				if err == SkipContainer {
-					continue
-				}
-				return err
-			}
-			if err := walkUnion(t, body, rv); err != nil {
-				return err
-			}
-		default:
-			if container {
-				return &RecordTypeError{Name: col.Name, Type: col.Type.String(), Err: ErrNotPrimitive}
-			}
-			if err := rv(t, body); err != nil && err != SkipContainer {
-				return err
-			}
+		if err := checkKind(col.Name, col.Type, container); err != nil {
+			return err
+		}
+		if err := Walk(col.Type, body, visit); err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
-func walkVector(typ *TypeArray, body zcode.Bytes, rv RecordVisitor) error {
+func walkArray(typ *TypeArray, body zcode.Bytes, visit Visitor) error {
 	if body == nil {
 		return nil
 	}
@@ -106,74 +87,23 @@ func walkVector(typ *TypeArray, body zcode.Bytes, rv RecordVisitor) error {
 		if err != nil {
 			return err
 		}
-		switch t := inner.(type) {
-		case *TypeRecord:
-			if !container {
-				return &RecordTypeError{Name: "<record element>", Type: t.String(), Err: ErrNotContainer}
-			}
-			if err := rv(t, body); err != nil {
-				if err == SkipContainer {
-					continue
-				}
-				return err
-			}
-			if err := walkRecord(t, body, rv); err != nil {
-				return err
-			}
-		case *TypeArray:
-			if !container {
-				return &RecordTypeError{Name: "<array element>", Type: t.String(), Err: ErrNotContainer}
-			}
-			if err := rv(t, body); err != nil {
-				if err == SkipContainer {
-					continue
-				}
-				return err
-			}
-			if err := walkVector(t, body, rv); err != nil {
-				return err
-			}
-		case *TypeSet:
-			if !container {
-				return &RecordTypeError{Name: "<set element>", Type: t.String(), Err: ErrNotContainer}
-			}
-			if err := rv(t, body); err != nil {
-				if err == SkipContainer {
-					continue
-				}
-				return err
-			}
-			if err := walkSet(t, body, rv); err != nil {
-				return err
-			}
-		case *TypeUnion:
-			if !container {
-				return &RecordTypeError{Name: "<union value>", Type: t.String(), Err: ErrNotContainer}
-			}
-			if err := rv(t, body); err != nil {
-				if err == SkipContainer {
-					continue
-				}
-				return err
-			}
-			if err := walkUnion(t, body, rv); err != nil {
-				return err
-			}
-		default:
-			if container {
-				return &RecordTypeError{Name: "<array element>", Type: t.String(), Err: ErrNotPrimitive}
-			}
-			if err := rv(t, body); err != nil && err != SkipContainer {
-				return err
-			}
+		if err := checkKind("<array element>", inner, container); err != nil {
+			return err
+		}
+		if err := Walk(inner, body, visit); err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
-func walkUnion(typ *TypeUnion, body zcode.Bytes, rv RecordVisitor) error {
-	if len(body) == 0 {
+func walkUnion(typ *TypeUnion, body zcode.Bytes, visit Visitor) error {
+	if body == nil {
 		return nil
+	}
+	if len(body) == 0 {
+		err := errors.New("union as empty body")
+		return &RecordTypeError{Name: "<union type>", Type: typ.String(), Err: err}
 	}
 	it := zcode.Iter(body)
 	v, container, err := it.Next()
@@ -195,68 +125,17 @@ func walkUnion(typ *TypeUnion, body zcode.Bytes, rv RecordVisitor) error {
 	if err != nil {
 		return err
 	}
-	switch t := AliasedType(inner).(type) {
-	case *TypeRecord:
-		if !container {
-			return &RecordTypeError{Name: "<record element>", Type: t.String(), Err: ErrNotContainer}
-		}
-
-		if err := walkRecord(t, body, rv); err != nil {
-			return err
-		}
-	case *TypeArray:
-		if !container {
-			return &RecordTypeError{Name: "<array element>", Type: t.String(), Err: ErrNotContainer}
-		}
-		if err := rv(t, body); err != nil {
-			if err == SkipContainer {
-				return nil
-			}
-			return err
-		}
-
-		if err := walkVector(t, body, rv); err != nil {
-			return err
-		}
-	case *TypeSet:
-		if !container {
-			return &RecordTypeError{Name: "<set element>", Type: t.String(), Err: ErrNotContainer}
-		}
-		if err := rv(t, body); err != nil {
-			if err == SkipContainer {
-				return nil
-			}
-			return err
-		}
-
-		if err := walkSet(t, body, rv); err != nil {
-			return err
-		}
-	case *TypeUnion:
-		if !container {
-			return &RecordTypeError{Name: "<union value>", Type: t.String(), Err: ErrNotContainer}
-		}
-		if err := rv(t, body); err != nil {
-			if err == SkipContainer {
-				return nil
-			}
-			return err
-		}
-		if err := walkUnion(t, body, rv); err != nil {
-			return err
-		}
-	default:
-		if container {
-			return &RecordTypeError{Name: "<union value>", Type: t.String(), Err: ErrNotPrimitive}
-		}
-		if err := rv(t, body); err != nil && err != SkipContainer {
-			return err
-		}
+	if !it.Done() {
+		err := errors.New("union value container has more than two items")
+		return &RecordTypeError{Name: "<union>", Type: typ.String(), Err: err}
 	}
-	return nil
+	if err := checkKind("<union body>", inner, container); err != nil {
+		return err
+	}
+	return Walk(inner, body, visit)
 }
 
-func walkSet(typ *TypeSet, body zcode.Bytes, rv RecordVisitor) error {
+func walkSet(typ *TypeSet, body zcode.Bytes, visit Visitor) error {
 	if body == nil {
 		return nil
 	}
@@ -270,10 +149,10 @@ func walkSet(typ *TypeSet, body zcode.Bytes, rv RecordVisitor) error {
 		if err != nil {
 			return err
 		}
-		if container {
-			return &RecordTypeError{Name: "<set element>", Type: typ.String(), Err: ErrNotPrimitive}
+		if err := checkKind("<set element>", inner, container); err != nil {
+			return err
 		}
-		if err := rv(inner, body); err != nil && err != SkipContainer {
+		if err := Walk(inner, body, visit); err != nil {
 			return err
 		}
 	}

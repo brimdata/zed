@@ -135,7 +135,7 @@ func (r *Record) Bytes() []byte {
 
 // Walk traverses a record in depth-first order, calling a
 // RecordVisitor on the way.
-func (r *Record) Walk(rv RecordVisitor) error {
+func (r *Record) Walk(rv Visitor) error {
 	return walkRecord(r.Type, r.Raw, rv)
 }
 
