@@ -18,12 +18,12 @@ type ReaderOpts struct {
 }
 
 type WriterOpts struct {
-	Format string
-	UTF8   bool
+	Format     string
+	UTF8       bool
 	EpochDates bool
-	Text   textio.WriterOpts
-	Zng    zngio.WriterOpts
-	Zst    zstio.WriterOpts
+	Text       textio.WriterOpts
+	Zng        zngio.WriterOpts
+	Zst        zstio.WriterOpts
 }
 
 func Extension(format string) string {
