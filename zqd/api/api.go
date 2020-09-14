@@ -262,3 +262,11 @@ type IndexSearchRequest struct {
 	IndexName string   `json:"index_name"`
 	Patterns  []string `json:"patterns"`
 }
+
+type IndexPostRequest struct {
+	Patterns   []string        `json:"patterns"`
+	AST        json.RawMessage `json:"ast,omitempty"`
+	Keys       []string        `json:"keys"`
+	InputFile  string          `json:"input_file"`
+	OutputFile string          `json:"output_file"`
+}

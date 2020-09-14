@@ -238,6 +238,13 @@ func (c *Connection) IndexSearch(ctx context.Context, space SpaceID, search Inde
 	return NewZngSearch(r), nil
 }
 
+func (c *Connection) IndexPost(ctx context.Context, space SpaceID, post IndexPostRequest) error {
+	_, err := c.Request(ctx).
+		SetBody(post).
+		Post(path.Join("/space", string(space), "index"))
+	return err
+}
+
 func (c *Connection) ArchiveStat(ctx context.Context, space SpaceID, params map[string]string) (Search, error) {
 	req := c.Request(ctx).
 		SetQueryParam("format", "zng")

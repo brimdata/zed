@@ -17,6 +17,7 @@ import (
 	"github.com/brimsec/zq/zqd/ingest"
 	"github.com/brimsec/zq/zqd/search"
 	"github.com/brimsec/zq/zqd/space"
+	"github.com/brimsec/zq/zqd/storage/archivestore"
 	"github.com/brimsec/zq/zqe"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -469,6 +470,34 @@ loop:
 	}
 	if err := pipe.SendEnd(0, op.Error()); err != nil {
 		logger.Warn("error sending payload", zap.Error(err))
+		return
+	}
+}
+
+func handleIndexPost(c *Core, w http.ResponseWriter, r *http.Request) {
+	s := extractSpace(c, w, r)
+	if s == nil {
+		return
+	}
+	ctx, cancel, err := s.StartOp(r.Context())
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	defer cancel()
+
+	var req api.IndexPostRequest
+	if !request(c, w, r, &req) {
+		return
+	}
+
+	store, ok := s.Storage().(*archivestore.Storage)
+	if !ok {
+		respondError(c, w, r, zqe.E(zqe.Invalid, "space storage does not support creating indexes"))
+		return
+	}
+	if err := store.IndexCreate(ctx, req); err != nil {
+		respondError(c, w, r, err)
 		return
 	}
 }
