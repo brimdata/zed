@@ -17,8 +17,8 @@ type Visitor func(typ Type, body zcode.Bytes) error
 // not returned as an error by any function.
 var SkipContainer = errors.New("skip this container")
 
-func Walk(typ Type, body zcode.Bytes, rv Visitor) error {
-	if err := rv(typ, body); err != nil {
+func Walk(typ Type, body zcode.Bytes, visit Visitor) error {
+	if err := visit(typ, body); err != nil {
 		if err == SkipContainer {
 			return nil
 		}
@@ -26,15 +26,15 @@ func Walk(typ Type, body zcode.Bytes, rv Visitor) error {
 	}
 	switch typ := typ.(type) {
 	case *TypeAlias:
-		return Walk(typ.Type, body, rv)
+		return Walk(typ.Type, body, visit)
 	case *TypeRecord:
-		return walkRecord(typ, body, rv)
+		return walkRecord(typ, body, visit)
 	case *TypeArray:
-		return walkArray(typ, body, rv)
+		return walkArray(typ, body, visit)
 	case *TypeSet:
-		return walkSet(typ, body, rv)
+		return walkSet(typ, body, visit)
 	case *TypeUnion:
-		return walkUnion(typ, body, rv)
+		return walkUnion(typ, body, visit)
 	}
 	return nil
 }
@@ -53,7 +53,7 @@ func checkKind(name string, typ Type, container bool) error {
 	return &RecordTypeError{Name: name, Type: typ.String(), Err: err}
 }
 
-func walkRecord(typ *TypeRecord, body zcode.Bytes, rv Visitor) error {
+func walkRecord(typ *TypeRecord, body zcode.Bytes, visit Visitor) error {
 	if body == nil {
 		return nil
 	}
@@ -69,14 +69,14 @@ func walkRecord(typ *TypeRecord, body zcode.Bytes, rv Visitor) error {
 		if err := checkKind(col.Name, col.Type, container); err != nil {
 			return err
 		}
-		if err := Walk(col.Type, body, rv); err != nil {
+		if err := Walk(col.Type, body, visit); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func walkArray(typ *TypeArray, body zcode.Bytes, rv Visitor) error {
+func walkArray(typ *TypeArray, body zcode.Bytes, visit Visitor) error {
 	if body == nil {
 		return nil
 	}
@@ -90,14 +90,14 @@ func walkArray(typ *TypeArray, body zcode.Bytes, rv Visitor) error {
 		if err := checkKind("<array element>", inner, container); err != nil {
 			return err
 		}
-		if err := Walk(inner, body, rv); err != nil {
+		if err := Walk(inner, body, visit); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func walkUnion(typ *TypeUnion, body zcode.Bytes, rv Visitor) error {
+func walkUnion(typ *TypeUnion, body zcode.Bytes, visit Visitor) error {
 	if body == nil {
 		return nil
 	}
@@ -132,10 +132,10 @@ func walkUnion(typ *TypeUnion, body zcode.Bytes, rv Visitor) error {
 	if err := checkKind("<union body>", inner, container); err != nil {
 		return err
 	}
-	return Walk(inner, body, rv)
+	return Walk(inner, body, visit)
 }
 
-func walkSet(typ *TypeSet, body zcode.Bytes, rv Visitor) error {
+func walkSet(typ *TypeSet, body zcode.Bytes, visit Visitor) error {
 	if body == nil {
 		return nil
 	}
@@ -149,7 +149,7 @@ func walkSet(typ *TypeSet, body zcode.Bytes, rv Visitor) error {
 		if err := checkKind("<set element>", inner, container); err != nil {
 			return err
 		}
-		if err := Walk(inner, body, rv); err != nil {
+		if err := Walk(inner, body, visit); err != nil {
 			return err
 		}
 	}
