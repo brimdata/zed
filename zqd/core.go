@@ -11,7 +11,8 @@ import (
 )
 
 type Config struct {
-	Root string
+	Root    string
+	Version string
 	// ZeekLauncher is the interface for launching zeek processes.
 	ZeekLauncher zeek.Launcher
 	Logger       *zap.Logger
@@ -19,16 +20,14 @@ type Config struct {
 
 type Core struct {
 	Root         iosrc.URI
+	Version      string
 	ZeekLauncher zeek.Launcher
 	spaces       *space.Manager
 	taskCount    int64
 	logger       *zap.Logger
 }
 
-var Version string
-
-func NewCore(conf Config, version string) (*Core, error) {
-	Version = version
+func NewCore(conf Config) (*Core, error) {
 	logger := conf.Logger
 	if logger == nil {
 		logger = zap.NewNop()
@@ -41,8 +40,13 @@ func NewCore(conf Config, version string) (*Core, error) {
 	if err != nil {
 		return nil, err
 	}
+	version := conf.Version
+	if version == "" {
+		version = "unknown"
+	}
 	return &Core{
 		Root:         root,
+		Version:      version,
 		ZeekLauncher: conf.ZeekLauncher,
 		spaces:       spaces,
 		logger:       logger,

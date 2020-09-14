@@ -67,6 +67,7 @@ type Command struct {
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
+	c.conf.Version = cli.Version
 	f.StringVar(&c.listenAddr, "l", ":9867", "[addr]:port to listen on")
 	f.StringVar(&c.conf.Root, "data", ".", "data location")
 	f.StringVar(&c.zeekRunnerPath, "zeekrunner", "", "path to command that generates zeek logs from pcap data")
@@ -94,7 +95,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		c.logger.Warn("Raising open files limit failed", zap.Error(err))
 	}
-	core, err := zqd.NewCore(c.conf, cli.Version)
+	core, err := zqd.NewCore(c.conf)
 	if err != nil {
 		return err
 	}
@@ -217,6 +218,7 @@ func (c *Command) loadConfigFile() error {
 		}
 		sort.MemMaxBytes = *v
 	}
+
 	return err
 }
 
