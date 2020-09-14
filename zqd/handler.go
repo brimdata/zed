@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/brimsec/zq/zqd/api"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
@@ -41,7 +42,7 @@ func NewHandler(core *Core, logger *zap.Logger) http.Handler {
 	h.Handle("/search", handleSearch).Methods("POST")
 	h.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&Version)
+		json.NewEncoder(w).Encode(&api.VersionResponse{Version: core.Version})
 	})
 	h.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok"))

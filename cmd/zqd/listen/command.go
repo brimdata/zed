@@ -15,6 +15,7 @@ import (
 	"os/signal"
 	"runtime"
 
+	"github.com/brimsec/zq/cli"
 	"github.com/brimsec/zq/cmd/zqd/logger"
 	"github.com/brimsec/zq/cmd/zqd/root"
 	"github.com/brimsec/zq/pkg/fs"
@@ -66,6 +67,7 @@ type Command struct {
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
+	c.conf.Version = cli.Version
 	f.StringVar(&c.listenAddr, "l", ":9867", "[addr]:port to listen on")
 	f.StringVar(&c.conf.Root, "data", ".", "data location")
 	f.StringVar(&c.zeekRunnerPath, "zeekrunner", "", "path to command that generates zeek logs from pcap data")
@@ -216,6 +218,7 @@ func (c *Command) loadConfigFile() error {
 		}
 		sort.MemMaxBytes = *v
 	}
+
 	return err
 }
 

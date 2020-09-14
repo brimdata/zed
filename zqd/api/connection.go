@@ -137,6 +137,17 @@ func (c *Connection) Ping(ctx context.Context) (time.Duration, error) {
 	return resp.Time(), nil
 }
 
+// Version retrieves the version string from the service.
+func (c *Connection) Version(ctx context.Context) (string, error) {
+	resp, err := c.Request(ctx).
+		SetResult(&VersionResponse{}).
+		Get("/version")
+	if err != nil {
+		return "", err
+	}
+	return resp.Result().(*VersionResponse).Version, nil
+}
+
 // SpaceInfo retrieves information about the specified space.
 func (c *Connection) SpaceInfo(ctx context.Context, id SpaceID) (*SpaceInfo, error) {
 	path := path.Join("/space", url.PathEscape(string(id)))

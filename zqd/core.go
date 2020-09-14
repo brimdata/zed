@@ -11,22 +11,16 @@ import (
 )
 
 type Config struct {
-	Root string
+	Root    string
+	Version string
 	// ZeekLauncher is the interface for launching zeek processes.
 	ZeekLauncher zeek.Launcher
 	Logger       *zap.Logger
 }
 
-type VersionMessage struct {
-	Zqd string `json:"boomd"` //XXX boomd -> zqd
-	Zq  string `json:"zq"`
-}
-
-// This struct filled in by main from linker setting version strings.
-var Version VersionMessage
-
 type Core struct {
 	Root         iosrc.URI
+	Version      string
 	ZeekLauncher zeek.Launcher
 	spaces       *space.Manager
 	taskCount    int64
@@ -46,8 +40,13 @@ func NewCore(conf Config) (*Core, error) {
 	if err != nil {
 		return nil, err
 	}
+	version := conf.Version
+	if version == "" {
+		version = "unknown"
+	}
 	return &Core{
 		Root:         root,
+		Version:      version,
 		ZeekLauncher: conf.ZeekLauncher,
 		spaces:       spaces,
 		logger:       logger,
