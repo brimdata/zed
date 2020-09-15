@@ -4,24 +4,20 @@ import (
 	"encoding/json"
 	"io"
 
+	"github.com/brimsec/zq/pkg/joe"
 	"github.com/brimsec/zq/zng"
 )
 
-type Column struct {
-	Name string      `json:"name"`
-	Type interface{} `json:"type"`
-}
-
 type Alias struct {
-	Name string `json:"name"`
-	Type string `json:"type"`
+	Name string  `json:"name"`
+	Type joe.Any `json:"type"`
 }
 
 type Record struct {
-	Id      int            `json:"id"`
-	Type    *[]interface{} `json:"type,omitempty"`
-	Aliases []Alias        `json:"aliases,omitempty"`
-	Values  []interface{}  `json:"values"`
+	Id      int           `json:"id"`
+	Type    joe.Object    `json:"schema,omitempty"`
+	Aliases []Alias       `json:"aliases,omitempty"`
+	Values  []interface{} `json:"values"`
 }
 
 type Writer struct {

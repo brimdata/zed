@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strconv"
 
+	"github.com/brimsec/zq/pkg/joe"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -23,12 +24,11 @@ func NewStream() *Stream {
 
 func (s *Stream) Transform(r *zng.Record) (*Record, error) {
 	id := r.Type.ID()
-	var typ *[]interface{}
+	var typ joe.Object
 	var aliases []Alias
 	if !s.tracker.Seen(id) {
 		aliases = s.encodeAliases(r.Type)
-		t := encodeType(r.Type)
-		typ = &t
+		typ = encodeTypeObj(r.Type)
 	}
 	v, err := encodeContainer(r.Type, r.Raw)
 	if err != nil {
@@ -143,32 +143,13 @@ func encodeContainer(typ zng.Type, val []byte) (interface{}, error) {
 	return body, nil
 }
 
-// Encode a type as a resursive set of JSON objects.  We could simply encode
-// the top level type string, but then a javascript client would need to have
-// a type parser.  Instead, we encode recursive record types as a nested set
-// of objects so a javascript client can easily call JSON.parse() and have
-// the record structure present in an easy-to-navigate nested object.
-func encodeType(typ *zng.TypeRecord) []interface{} {
-	columns := []interface{}{}
-	for _, c := range typ.Columns {
-		childRec, ok := c.Type.(*zng.TypeRecord)
-		var typ interface{}
-		if ok {
-			typ = encodeType(childRec)
-		} else {
-			typ = c.Type.String()
-		}
-		columns = append(columns, Column{Name: c.Name, Type: typ})
-	}
-	return columns
-}
-
 func (s *Stream) encodeAliases(typ *zng.TypeRecord) []Alias {
 	var aliases []Alias
 	for _, alias := range zng.AliasTypes(typ) {
 		id := alias.AliasID()
 		if _, ok := s.aliases[id]; !ok {
-			aliases = append(aliases, Alias{Name: alias.Name, Type: alias.Type.String()})
+			v := encodeTypeAny(alias.Type)
+			aliases = append(aliases, Alias{Name: alias.Name, Type: joe.Any{v}})
 			s.aliases[id] = nil
 		}
 	}
