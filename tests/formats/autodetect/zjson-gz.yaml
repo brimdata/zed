@@ -1,14 +1,14 @@
 zql: '*'
 
 input: !!binary |
-  H4sIAJ4pQ14AA5VSW0/CMBR+52f0eam7CviGSESjL0JiDCFNmYWVjLXpaYmE8N89zAs1xq
-  rJsnXnu7XndE/kM7lIi4jYnRbkYrYnDd/ggjDNbUU+6gSskc2KHKJPgoUTaiWWPMyha0Dq
-  oadAZeSKeYlS+5IW1SdUK2N93AjQP6tb9Jt67jG2woBUTWjXpdSVMEGGM1sRIoBAgmHtX4
-  CG23Ub4bVwoVTtE2oOlvFa4CkCNo14sUwbZVWJ8gBRgOWLWkIVyiwxjZUVlw1b4ny96XNj
-  +G72Zjv/IqmlaFD0fyW4xVqUwdNJAPfLON7i/+D1zvzdcstr+cwt3hSGPbMOvpPn0ZHlBO
-  DlJgDHxid5P856RXGe0bjI8jTH2nA5ulQ6rRbL2ye9vi7G2PoZSWKKT5f2Y6QUST/Jjt+c
-  pllMe13aKvM8IxgyvZtsk5S0CzYaXo1H7GEyYI830zEbjCYsSXvsenjPJuNBWpyTqHF1HZ
-  GyUrIUQK1xYAUt1ebo8IFW1uqzhCZeLfiaHzqdV48pxLdDBAAA
+  H4sICDNsYF8AA2luLnpqc29uAK2T22obMRCG7/sYc72oe0xs37muiVuamzpQQjBCXstZBVkSGsk
+  kGL97tZuDBSZKLgLLHub/5tdoZnUAsYFJ2WTgngyHyeHlCZa32m4gg1ZLv1MIk7sDKLbrNWqY6+
+  A1BdBZoe7hmL0BDk+qEyEUaV5sUqmR+qlatBX3NCpGmNhtUM1JNdq6WLcczfvZg3qWvTpGyJ5bF
+  FqldtQK03GbJLzd8xSAPACWDl8JLNTrdzxq71prGQOSoaNM8rCNhI3ij44aq50O/U6BHB1bS4Fd
+  as02rEbbjglFt2H2eD5eZi17CmGhVOjTaaHYRAqugs1XeKFfP/A22QGB6D8Y2XNBn/B6IT+23DM
+  pNsyFv4mGvjqP5/DqmPWY5/0RAMR+OkU9zqtR01xUJG+quqxDbLad/9Cm7Nbb37fm4apZhPncQZ
+  GTcF2ScR6QphgXVf+sSVnlZHRJhsy6rmCVwc2f5b4oYXih89nPxZz+XU7pv183CzqdL2lRjujV7
+  JouF9OyuYBMeSnD8ey0aDkSZz06Tlq96x1e1c45870gRRRL3lbHb/8BQavqnZ4EAAA=
 
 output: |
   #0:record[_path:string,ts:time,uid:string,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],version:string,cipher:string,curve:string,server_name:string,resumed:bool,last_alert:string,next_protocol:string,established:bool,cert_chain_fuids:array[string],client_cert_chain_fuids:array[string],subject:string,issuer:string,client_subject:string,client_issuer:string,validation_status:string]

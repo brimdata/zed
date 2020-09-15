@@ -3,7 +3,7 @@ script: zq -i zjson in.zjson
 inputs:
   - name: in.zjson
     data: |
-        {"id":0,"type":[{"name":"a","type":[{"name":"b","type":"string"}]}],"values":["1"]}
+        {"id":0,"type":{"type":"record","columns":[{"name":"a","type":{"type":"record","columns":[{"name":"b","type":"string"}]}}]},"values":["1"]}
 
 outputs:
   - name: stderr

@@ -62,18 +62,9 @@ func (r *Reader) Read() (*zng.Record, error) {
 		if v.Aliases != nil {
 			r.parseAliases(v.Aliases)
 		}
-		typeName, err := DecodeType(*v.Type)
+		recType, err = decodeTypeRecord(r.zctx, v.Type)
 		if err != nil {
 			return nil, err
-		}
-		typ, err := r.zctx.LookupByName(typeName)
-		if err != nil {
-			return nil, fmt.Errorf("unknown type: \"%s\"", typeName)
-		}
-		var ok bool
-		recType, ok = typ.(*zng.TypeRecord)
-		if !ok {
-			return nil, fmt.Errorf("type not a record: \"%s\"", typeName)
 		}
 		r.mapper[v.Id] = recType
 	}
@@ -115,46 +106,6 @@ func (r *Reader) parseAliases(aliases []Alias) error {
 		}
 	}
 	return nil
-}
-
-// decode a nested JSON object into a zeek type string and return the string.
-func DecodeType(columns []interface{}) (string, error) {
-	s := "record["
-	comma := ""
-	for _, o := range columns {
-		// each column a json object with name and type
-		m, ok := o.(map[string]interface{})
-		if !ok {
-			return "", errors.New("zjson type not a json object")
-		}
-		nameObj, ok := m["name"]
-		if !ok {
-			return "", errors.New("zjson type object missing name field")
-		}
-		name, ok := nameObj.(string)
-		if !ok {
-			return "", errors.New("zjson type object has non-string name field")
-		}
-		typeObj, ok := m["type"]
-		if !ok {
-			return "", errors.New("zjson type object missing type field")
-		}
-		typeName, ok := typeObj.(string)
-		if !ok {
-			childColumns, ok := typeObj.([]interface{})
-			if !ok {
-				return "", errors.New("zjson type field contains invalid type")
-			}
-			var err error
-			typeName, err = DecodeType(childColumns)
-			if err != nil {
-				return "", err
-			}
-		}
-		s += comma + name + ":" + typeName
-		comma = ","
-	}
-	return s + "]", nil
 }
 
 func decodeField(builder *zcode.Builder, typ zng.Type, s string) error {

@@ -1,10 +1,8 @@
 zql: '*'
 
 input: |
-  {"id":23,"type":[],"values":[]}
-  {"id":24,"type":[{"name":"ja3s","type":[]}],"values":[[]]}
+  {"id":23,"type":{"type":"record","columns":[{"name":"ja3s","type":"int32"}]},"values":[null]}
 
 output-format: zjson
 output: |
-  {"id":23,"type":[],"values":[]}
-  {"id":24,"type":[{"name":"ja3s","type":[]}],"values":[[]]}
+  {"id":23,"type":{"type":"record","columns":[{"name":"ja3s","type":"int32"}]},"values":[null]}

@@ -17,6 +17,7 @@ require (
 	github.com/gosuri/uilive v0.0.4
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/klauspost/compress v1.10.3 // indirect
+	github.com/kr/pretty v0.1.0
 	github.com/mccanne/charm v0.0.3-0.20191224190439-b05e1b7b1be3
 	github.com/mitchellh/mapstructure v1.3.3
 	github.com/peterh/liner v1.1.0
