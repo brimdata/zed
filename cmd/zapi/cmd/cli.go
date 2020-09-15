@@ -25,7 +25,17 @@ var CLI = &charm.Spec{
 	Name:  "zapi",
 	Usage: "zapi [global options] command [options] [arguments...]",
 	Short: "use zapi to talk to a zqd server",
-	Long:  "",
+	Long: `
+The zapi command-line tool is used to talk to a zq analytics service.
+This service could be zqd running on your laptop or in the cloud.
+
+Zapi is prounounced "zappy".
+
+With zapi you can create spaces, list spaces, post data to spaces, and run queries.
+
+The Brim application and the zapi client use the same REST API
+for interacting with a zq analytics service.
+`,
 	New: func(parent charm.Command, flags *flag.FlagSet) (charm.Command, error) {
 		return New(flags)
 	},

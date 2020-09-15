@@ -107,6 +107,10 @@ func (f *OutputFlags) Init(opts *zio.WriterOpts) error {
 	return nil
 }
 
+func (f *OutputFlags) FileName() string {
+	return f.outputFile
+}
+
 func (o *OutputFlags) Open(opts zio.WriterOpts) (zbuf.WriteCloser, error) {
 	if o.dir != "" {
 		d, err := emitter.NewDir(o.dir, o.outputFile, os.Stderr, opts)
