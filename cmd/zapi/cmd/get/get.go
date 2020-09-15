@@ -36,7 +36,7 @@ By default, the service streams results in native zng and the zapi client
 converts the results to the format specified by -f.
 
 Alternatively, the -e option can specify a different encoding to be used by
-the server, in which case, the output is not converted by -f.  These two options
+the server, in which case the output is not converted by -f.  These two options
 cannot be used together.
 
 Statistics and warnings can be displayed on stderr, which can be useful
@@ -80,7 +80,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.encoding, "e", "zng", "server encoding to use for search results [ndjson,zjson,zng]")
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
 	f.BoolVar(&c.warnings, "W", true, "display warnings on stderr")
-	f.BoolVar(&c.debug, "debug", false, "dump raw http response straight to output")
+	f.BoolVar(&c.debug, "debug", false, "dump raw HTTP response straight to output")
 	f.Var(&c.from, "from", "search from timestamp in RFC3339Nano format (e.g. 2006-01-02T15:04:05.999999999Z07:00)")
 	f.Var(&c.to, "to", "search to timestamp in RFC3339Nano format (e.g. 2006-01-02T15:04:05.999999999Z07:00)")
 	c.output.SetFlags(f)
