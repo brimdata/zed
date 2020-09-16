@@ -125,7 +125,7 @@ func (s *Storage) Write(ctx context.Context, zctx *resolver.Context, zr zbuf.Rea
 			LZ4BlockSize:     zngio.DefaultLZ4BlockSize,
 		})
 		zw := zbuf.MultiWriter(fileWriter, spanWriter)
-		if err := driver.Transform(ctx, zw, zngWriteProc, zctx, zr, driver.Config{}); err != nil {
+		if err := driver.Copy(ctx, zw, zngWriteProc, zctx, zr, driver.Config{}); err != nil {
 			return err
 		}
 		return fileWriter.Close()

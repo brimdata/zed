@@ -135,9 +135,9 @@ func (d *transformDriver) Warn(warning string) error          { return nil }
 func (d *transformDriver) Stats(stats api.ScannerStats) error { return nil }
 func (d *transformDriver) ChannelEnd(cid int) error           { return nil }
 
-// Transform applies a proc to all records from a zbuf.Reader, writing to a
+// Copy applies a proc to all records from a zbuf.Reader, writing to a
 // single zbuf.Writer. The proc must have a single tail.
-func Transform(ctx context.Context, w zbuf.Writer, prog ast.Proc, zctx *resolver.Context, r zbuf.Reader, cfg Config) error {
+func Copy(ctx context.Context, w zbuf.Writer, prog ast.Proc, zctx *resolver.Context, r zbuf.Reader, cfg Config) error {
 	d := &transformDriver{w: w}
 	return Run(ctx, d, prog, zctx, r, cfg)
 }
