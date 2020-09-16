@@ -17,6 +17,11 @@ jobs:
       - run: go mod download
       - run: make fmt
       - run: make tidy
+      - run: |
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository ppa:oisf/suricata-stable
+          sudo apt-get update
+          sudo apt-get install -y suricata
       - run: make vet
       - run: make test-generate
       - run: make test-unit
