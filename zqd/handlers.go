@@ -500,6 +500,7 @@ func handleIndexPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		respondError(c, w, r, err)
 		return
 	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func handleIndexSearch(c *Core, w http.ResponseWriter, r *http.Request) {
