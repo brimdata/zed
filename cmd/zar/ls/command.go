@@ -1,6 +1,7 @@
 package ls
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -59,14 +60,14 @@ func (c *Command) Run(args []string) error {
 	if len(args) == 1 {
 		pattern = args[0]
 	}
-	return archive.Walk(ark, func(zardir iosrc.URI) error {
+	return archive.Walk(context.TODO(), ark, func(zardir iosrc.URI) error {
 		c.printDir(ark.DataPath, zardir, pattern)
 		return nil
 	})
 }
 
 func fileExists(path iosrc.URI) bool {
-	info, err := iosrc.Stat(path)
+	info, err := iosrc.Stat(context.TODO(), path)
 	if err != nil {
 		return false
 	}
@@ -92,7 +93,7 @@ func (c *Command) printDir(root, dir iosrc.URI, pattern string) {
 			files = lsfs(dir.Filepath())
 		case "s3":
 			var err error
-			if files, err = s3io.ListObjects(dir.String(), nil); err != nil {
+			if files, err = s3io.ListObjects(context.TODO(), dir.String(), nil); err != nil {
 				fmt.Fprintf(os.Stderr, "error listing s3 objects: %v", err)
 				return
 			}

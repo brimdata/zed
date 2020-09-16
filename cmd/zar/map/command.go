@@ -102,14 +102,14 @@ func (c *Command) Run(args []string) error {
 	ctx, cancel := signalctx.New(os.Interrupt)
 	defer cancel()
 
-	ark, err := archive.OpenArchive(c.root, nil)
+	ark, err := archive.OpenArchiveWithContext(ctx, c.root, nil)
 	if err != nil {
 		return err
 	}
 
 	// XXX this is parallelizable except for writing to stdout when
 	// concatenating results
-	return archive.Walk(ark, func(zardir iosrc.URI) error {
+	return archive.Walk(ctx, ark, func(zardir iosrc.URI) error {
 		var paths []string
 		for _, input := range inputs {
 			p := archive.Localize(zardir, input)

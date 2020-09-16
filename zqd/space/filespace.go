@@ -67,14 +67,14 @@ func (s *fileSpace) updateConfigWithLock(conf config) error {
 	return nil
 }
 
-func (s *fileSpace) delete() error {
+func (s *fileSpace) delete(ctx context.Context) error {
 	if err := s.sg.acquireForDelete(); err != nil {
 		return err
 	}
-	if err := iosrc.RemoveAll(s.path); err != nil {
+	if err := iosrc.RemoveAll(ctx, s.path); err != nil {
 		return err
 	}
-	return iosrc.RemoveAll(s.conf.DataURI)
+	return iosrc.RemoveAll(ctx, s.conf.DataURI)
 }
 
 func filesize(path string) (int64, error) {

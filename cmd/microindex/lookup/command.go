@@ -74,7 +74,7 @@ func (c *LookupCommand) Run(args []string) error {
 		return err
 	}
 	finder := microindex.NewFinder(resolver.NewContext(), uri)
-	if err := finder.Open(); err != nil {
+	if err := finder.Open(context.TODO()); err != nil {
 		return err
 	}
 	defer finder.Close()

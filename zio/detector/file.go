@@ -31,6 +31,10 @@ const StdinPath = "/dev/stdin"
 // URL. If the path is neither of these or can't otherwise be opened,
 // an error is returned.
 func OpenFile(zctx *resolver.Context, path string, opts zio.ReaderOpts) (*zbuf.File, error) {
+	return OpenFileWithContext(context.Background(), zctx, path, opts)
+}
+
+func OpenFileWithContext(ctx context.Context, zctx *resolver.Context, path string, opts zio.ReaderOpts) (*zbuf.File, error) {
 	// Parquet is special and needs its own reader for s3 sources- therefore this must go before
 	// the IsS3Path check.
 	if opts.Format == "parquet" {
@@ -45,7 +49,7 @@ func OpenFile(zctx *resolver.Context, path string, opts zio.ReaderOpts) (*zbuf.F
 		if err != nil {
 			return nil, err
 		}
-		if f, err = iosrc.NewReader(uri); err != nil {
+		if f, err = iosrc.NewReader(ctx, uri); err != nil {
 			return nil, err
 		}
 	}
@@ -93,10 +97,10 @@ func OpenFromNamedReadCloser(zctx *resolver.Context, rc io.ReadCloser, path stri
 	return zbuf.NewFile(zr, rc, path), nil
 }
 
-func OpenFiles(zctx *resolver.Context, dir zbuf.RecordCmpFn, paths ...string) (zbuf.ReadCloser, error) {
+func OpenFiles(ctx context.Context, zctx *resolver.Context, dir zbuf.RecordCmpFn, paths ...string) (zbuf.ReadCloser, error) {
 	var readers []zbuf.Reader
 	for _, path := range paths {
-		reader, err := OpenFile(zctx, path, zio.ReaderOpts{})
+		reader, err := OpenFileWithContext(ctx, zctx, path, zio.ReaderOpts{})
 		if err != nil {
 			return nil, err
 		}
@@ -107,6 +111,7 @@ func OpenFiles(zctx *resolver.Context, dir zbuf.RecordCmpFn, paths ...string) (z
 
 type multiFileReader struct {
 	reader *zbuf.File
+	ctx    context.Context
 	zctx   *resolver.Context
 	paths  []string
 	opts   zio.ReaderOpts
@@ -120,7 +125,12 @@ var _ scanner.ScannerAble = (*multiFileReader)(nil)
 // reached end of stream, Read will return end of stream. If any of the readers
 // return a non-nil error, Read will return that error.
 func MultiFileReader(zctx *resolver.Context, paths []string, opts zio.ReaderOpts) zbuf.ReadCloser {
+	return MultiFileReaderWithContext(context.Background(), zctx, paths, opts)
+}
+
+func MultiFileReaderWithContext(ctx context.Context, zctx *resolver.Context, paths []string, opts zio.ReaderOpts) zbuf.ReadCloser {
 	return &multiFileReader{
+		ctx:   ctx,
 		zctx:  zctx,
 		paths: paths,
 		opts:  opts,
@@ -134,7 +144,7 @@ func (r *multiFileReader) prepReader() (bool, error) {
 		}
 		path := r.paths[0]
 		r.paths = r.paths[1:]
-		rdr, err := OpenFile(r.zctx, path, r.opts)
+		rdr, err := OpenFileWithContext(r.ctx, r.zctx, path, r.opts)
 		if err != nil {
 			return false, err
 		}

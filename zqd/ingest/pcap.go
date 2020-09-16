@@ -50,13 +50,13 @@ func NewPcapOp(ctx context.Context, pcapstore *pcapstorage.Store, store Clearabl
 	if err != nil {
 		return nil, nil, err
 	}
-	info, err := iosrc.Stat(pcapuri)
+	info, err := iosrc.Stat(ctx, pcapuri)
 	if err != nil {
 		return nil, nil, err
 	}
 	warn := make(chan string)
 	go func() {
-		err = pcapstore.Update(pcapuri, warn)
+		err = pcapstore.Update(ctx, pcapuri, warn)
 		close(warn)
 	}()
 	var warnings []string
@@ -101,7 +101,7 @@ func (p *PcapOp) run(ctx context.Context) error {
 		os.RemoveAll(p.logdir)
 		// Don't want to use passed context here because a cancelled context
 		// would cause storage not to be cleared.
-		p.pcapstore.Delete()
+		p.pcapstore.Delete(context.Background())
 		p.store.Clear(context.Background())
 	}
 
@@ -144,7 +144,7 @@ outer:
 }
 
 func (p *PcapOp) runZeek(ctx context.Context) error {
-	pcapfile, err := iosrc.NewReader(p.pcapuri)
+	pcapfile, err := iosrc.NewReader(ctx, p.pcapuri)
 	if err != nil {
 		return err
 	}
@@ -198,7 +198,7 @@ func (p *PcapOp) createSnapshot(ctx context.Context) error {
 	}
 	// convert logs into sorted zng
 	zctx := resolver.NewContext()
-	zr, err := detector.OpenFiles(zctx, zbuf.RecordCompare(p.store.NativeDirection()), files...)
+	zr, err := detector.OpenFiles(ctx, zctx, zbuf.RecordCompare(p.store.NativeDirection()), files...)
 	if err != nil {
 		return err
 	}

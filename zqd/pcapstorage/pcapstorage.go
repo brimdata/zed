@@ -42,9 +42,9 @@ func New(root iosrc.URI) *Store {
 	return &Store{root: root}
 }
 
-func Load(u iosrc.URI) (*Store, error) {
+func Load(ctx context.Context, u iosrc.URI) (*Store, error) {
 	metauri := u.AppendPath(MetaFile)
-	b, err := iosrc.ReadFile(metauri)
+	b, err := iosrc.ReadFile(ctx, metauri)
 	if os.IsNotExist(err) {
 		return nil, zqe.E(zqe.NotFound, "%s: pcap store not found", metauri)
 	}
@@ -61,10 +61,10 @@ func Load(u iosrc.URI) (*Store, error) {
 	}, nil
 }
 
-func (s *Store) Update(pcapuri iosrc.URI, warningCh chan<- string) error {
+func (s *Store) Update(ctx context.Context, pcapuri iosrc.URI, warningCh chan<- string) error {
 	s.metaMu.Lock()
 	defer s.metaMu.Unlock()
-	pcapfile, err := iosrc.NewReader(pcapuri)
+	pcapfile, err := iosrc.NewReader(ctx, pcapuri)
 	if err != nil {
 		return err
 	}
@@ -89,9 +89,9 @@ func (s *Store) Update(pcapuri iosrc.URI, warningCh chan<- string) error {
 	metauri := s.root.AppendPath(MetaFile)
 	var w io.WriteCloser
 	if replace, ok := src.(iosrc.ReplacerAble); ok {
-		w, err = replace.NewReplacer(metauri)
+		w, err = replace.NewReplacer(ctx, metauri)
 	} else {
-		w, err = src.NewWriter(metauri)
+		w, err = src.NewWriter(ctx, metauri)
 	}
 	if err != nil {
 		return err
@@ -113,10 +113,10 @@ func (s *Store) Empty() bool {
 	return s.meta.PcapURI.IsZero()
 }
 
-func (s *Store) Info() (Info, error) {
+func (s *Store) Info(ctx context.Context) (Info, error) {
 	s.metaMu.Lock()
 	defer s.metaMu.Unlock()
-	fi, err := iosrc.Stat(s.meta.PcapURI)
+	fi, err := iosrc.Stat(ctx, s.meta.PcapURI)
 	if err != nil {
 		return Info{}, err
 	}
@@ -133,11 +133,11 @@ func (s *Store) PcapURI() iosrc.URI {
 	return s.meta.PcapURI
 }
 
-func (s *Store) Delete() error {
+func (s *Store) Delete(ctx context.Context) error {
 	s.metaMu.Lock()
 	defer s.metaMu.Unlock()
 	s.meta = meta{}
-	return iosrc.Remove(s.root.AppendPath(MetaFile))
+	return iosrc.Remove(ctx, s.root.AppendPath(MetaFile))
 }
 
 type Search struct {
@@ -170,7 +170,7 @@ func (s *Store) NewSearch(ctx context.Context, req api.PcapSearch) (*Search, err
 	default:
 		return nil, fmt.Errorf("unsupported proto type: %s", req.Proto)
 	}
-	f, err := iosrc.NewReader(s.meta.PcapURI)
+	f, err := iosrc.NewReader(ctx, s.meta.PcapURI)
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +195,7 @@ func (s *Store) NewSearch(ctx context.Context, req api.PcapSearch) (*Search, err
 const metaFileV0 = "packets.idx.json"
 
 func MigrateV3(u iosrc.URI, pcapuri iosrc.URI) error {
-	b, err := iosrc.ReadFile(u.AppendPath(metaFileV0))
+	b, err := iosrc.ReadFile(context.Background(), u.AppendPath(metaFileV0))
 	if err != nil {
 		return err
 	}
@@ -212,8 +212,8 @@ func MigrateV3(u iosrc.URI, pcapuri iosrc.URI) error {
 	if err != nil {
 		return err
 	}
-	if err := iosrc.WriteFile(u.AppendPath(MetaFile), out); err != nil {
+	if err := iosrc.WriteFile(context.Background(), u.AppendPath(MetaFile), out); err != nil {
 		return err
 	}
-	return iosrc.Remove(u.AppendPath(metaFileV0))
+	return iosrc.Remove(context.Background(), u.AppendPath(metaFileV0))
 }

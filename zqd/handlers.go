@@ -217,7 +217,7 @@ func handleSpacePost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sp, err := c.spaces.Create(req)
+	sp, err := c.spaces.Create(r.Context(), req)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -249,7 +249,7 @@ func handleSubspacePost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sp, err := c.spaces.CreateSubspace(s, req)
+	sp, err := c.spaces.CreateSubspace(ctx, s, req)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -295,7 +295,7 @@ func handleSpaceDelete(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := c.spaces.Delete(api.SpaceID(id)); err != nil {
+	if err := c.spaces.Delete(r.Context(), api.SpaceID(id)); err != nil {
 		respondError(c, w, r, err)
 		return
 	}

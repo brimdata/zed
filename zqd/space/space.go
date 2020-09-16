@@ -42,7 +42,7 @@ type Space interface {
 	// Delete cancels any outstanding operations, then removes the space's path
 	// and data dir (should the data dir be different than the space's path).
 	// Intended to be called from Manager.Delete().
-	delete() error
+	delete(context.Context) error
 	update(api.SpacePutRequest) error
 }
 
@@ -117,7 +117,7 @@ func (g *guard) acquireForDelete() error {
 	return nil
 }
 
-func loadSpaces(p iosrc.URI, conf config, logger *zap.Logger) ([]Space, error) {
+func loadSpaces(ctx context.Context, p iosrc.URI, conf config, logger *zap.Logger) ([]Space, error) {
 	datapath := conf.DataURI
 	if datapath.IsZero() {
 		datapath = p
@@ -130,7 +130,7 @@ func loadSpaces(p iosrc.URI, conf config, logger *zap.Logger) ([]Space, error) {
 		if err != nil {
 			return nil, err
 		}
-		pcapstore, err := loadPcapStore(datapath)
+		pcapstore, err := loadPcapStore(ctx, datapath)
 		if err != nil {
 			return nil, err
 		}
@@ -142,7 +142,7 @@ func loadSpaces(p iosrc.URI, conf config, logger *zap.Logger) ([]Space, error) {
 		return []Space{s}, nil
 
 	case storage.ArchiveStore:
-		store, err := archivestore.Load(datapath, conf.Storage.Archive)
+		store, err := archivestore.Load(ctx, datapath, conf.Storage.Archive)
 		if err != nil {
 			return nil, err
 		}
@@ -153,7 +153,7 @@ func loadSpaces(p iosrc.URI, conf config, logger *zap.Logger) ([]Space, error) {
 		}
 		ret := []Space{parent}
 		for _, subcfg := range conf.Subspaces {
-			substore, err := archivestore.Load(datapath, &storage.ArchiveConfig{
+			substore, err := archivestore.Load(ctx, datapath, &storage.ArchiveConfig{
 				OpenOptions: &subcfg.OpenOptions,
 			})
 			if err != nil {
@@ -172,8 +172,8 @@ func loadSpaces(p iosrc.URI, conf config, logger *zap.Logger) ([]Space, error) {
 	}
 }
 
-func loadPcapStore(u iosrc.URI) (*pcapstorage.Store, error) {
-	pcapstore, err := pcapstorage.Load(u)
+func loadPcapStore(ctx context.Context, u iosrc.URI) (*pcapstorage.Store, error) {
+	pcapstore, err := pcapstorage.Load(ctx, u)
 	if err != nil {
 		var zerr *zqe.Error
 		if errors.As(err, &zerr) && zerr.Kind == zqe.NotFound {
@@ -217,7 +217,7 @@ func (s *spaceBase) Info(ctx context.Context) (api.SpaceInfo, error) {
 		Size:        sum.DataBytes,
 	}
 	if s.pcapstore != nil && !s.pcapstore.Empty() {
-		pcapinfo, err := s.pcapstore.Info()
+		pcapinfo, err := s.pcapstore.Info(ctx)
 		if err != nil {
 			var ze *zqe.Error
 			if !errors.As(err, &ze) || ze.Kind != zqe.NotFound {

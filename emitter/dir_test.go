@@ -2,6 +2,7 @@ package emitter
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"strings"
 	"testing"
@@ -29,9 +30,9 @@ func TestDirS3Source(t *testing.T) {
 	defer ctrl.Finish()
 	src := iosrcmock.NewMockSource(ctrl)
 
-	src.EXPECT().NewWriter(uri.AppendPath("conn.tzng")).
+	src.EXPECT().NewWriter(context.Background(), uri.AppendPath("conn.tzng")).
 		Return(&nopCloser{bytes.NewBuffer(nil)}, nil)
-	src.EXPECT().NewWriter(uri.AppendPath("http.tzng")).
+	src.EXPECT().NewWriter(context.Background(), uri.AppendPath("http.tzng")).
 		Return(&nopCloser{bytes.NewBuffer(nil)}, nil)
 
 	r := tzngio.NewReader(strings.NewReader(tzng), resolver.NewContext())

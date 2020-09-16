@@ -1,6 +1,7 @@
 package microindex
 
 import (
+	"context"
 	"fmt"
 	"io"
 
@@ -39,11 +40,19 @@ func NewReader(zctx *resolver.Context, path string) (*Reader, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewReaderFromURI(zctx, uri)
+	return NewReaderFromURI(context.Background(), zctx, uri)
 }
 
-func NewReaderFromURI(zctx *resolver.Context, uri iosrc.URI) (*Reader, error) {
-	r, err := iosrc.NewReader(uri)
+func NewReaderWithContext(ctx context.Context, zctx *resolver.Context, path string) (*Reader, error) {
+	uri, err := iosrc.ParseURI(path)
+	if err != nil {
+		return nil, err
+	}
+	return NewReaderFromURI(ctx, zctx, uri)
+}
+
+func NewReaderFromURI(ctx context.Context, zctx *resolver.Context, uri iosrc.URI) (*Reader, error) {
+	r, err := iosrc.NewReader(ctx, uri)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +61,7 @@ func NewReaderFromURI(zctx *resolver.Context, uri iosrc.URI) (*Reader, error) {
 	// in the inner loop of a microindex scan, so we might want to do this
 	// in parallel with the open either by extending the iosrc interface
 	// or running this call here in its own goroutine (before the open)
-	si, err := iosrc.Stat(uri)
+	si, err := iosrc.Stat(ctx, uri)
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,7 @@
 package emitter
 
 import (
+	"context"
 	"io"
 	"os"
 
@@ -37,7 +38,7 @@ func IsTerminal(w io.Writer) bool {
 }
 
 func NewFileWithSource(path iosrc.URI, opts zio.WriterOpts, source iosrc.Source) (zbuf.WriteCloser, error) {
-	f, err := source.NewWriter(path)
+	f, err := source.NewWriter(context.Background(), path) // XXX pass context?
 	if err != nil {
 		return nil, err
 	}
