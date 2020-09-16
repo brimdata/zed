@@ -118,6 +118,8 @@ func getSearchOutput(w http.ResponseWriter, r *http.Request) (search.Output, err
 	}
 	format := r.URL.Query().Get("format")
 	switch format {
+	case "csv":
+		return search.NewCSVOutput(w, ctrl), nil
 	case "zjson", "ndjson":
 		return search.NewJSONOutput(w, search.DefaultMTU, ctrl), nil
 	case "zng":

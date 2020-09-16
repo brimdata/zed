@@ -41,6 +41,11 @@ func (w *Writer) Close() error {
 	return w.writer.Close()
 }
 
+func (w *Writer) Flush() error {
+	w.encoder.Flush()
+	return w.encoder.Error()
+}
+
 func (w *Writer) Write(rec *zng.Record) error {
 	rec, err := w.flattener.Flatten(rec)
 	if err != nil {
