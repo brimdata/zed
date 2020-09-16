@@ -11,7 +11,7 @@ import (
 )
 
 // NDJSONOutput implements the Output inteface and writes NDJSON encoded-output
-// directly to the client as text/NDJSON.
+// directly to the client as application/x-ndjson..
 type NDJSONOutput struct {
 	response http.ResponseWriter
 	writer   *ndjsonio.Writer
