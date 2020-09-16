@@ -28,7 +28,7 @@ const StatsInterval = time.Millisecond * 500
 
 const (
 	MimeTypeCSV    = "text/csv"
-	MimeTypeJSON   = "application/x-ndjson"
+	MimeTypeJSON   = "application/json"
 	MimeTypeNDJSON = "application/x-ndjson"
 	MimeTypeZJSON  = "application/x-zjson"
 	MimeTypeZNG    = "application/x-zng"
