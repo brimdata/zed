@@ -125,7 +125,7 @@ func (s *Storage) Write(ctx context.Context, zctx *resolver.Context, zr zbuf.Rea
 			LZ4BlockSize:     zngio.DefaultLZ4BlockSize,
 		})
 		zw := zbuf.MultiWriter(fileWriter, spanWriter)
-		if err := s.write(ctx, zw, zctx, zr); err != nil {
+		if err := driver.Copy(ctx, zw, zngWriteProc, zctx, zr, driver.Config{}); err != nil {
 			return err
 		}
 		return fileWriter.Close()
@@ -138,11 +138,6 @@ func (s *Storage) Write(ctx context.Context, zctx *resolver.Context, zr zbuf.Rea
 	}
 
 	return s.extendSpan(spanWriter.span)
-}
-
-func (s *Storage) write(ctx context.Context, zw zbuf.Writer, zctx *resolver.Context, zr zbuf.Reader) error {
-	d := &zngdriver{zw}
-	return driver.Run(ctx, d, zngWriteProc, zctx, zr, driver.Config{})
 }
 
 // Clear wipes all data from storage. Will wait for any ongoing write operations
