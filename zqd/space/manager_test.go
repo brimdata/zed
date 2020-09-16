@@ -27,7 +27,7 @@ func TestConfigCurrentVersion(t *testing.T) {
 	require.NoError(t, err)
 	m, err := NewManager(u, zap.NewNop())
 	require.NoError(t, err)
-	s, err := m.Create(api.SpacePostRequest{Name: "test"})
+	s, err := m.Create(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 	id := s.ID()
 	versionConfig := struct {
@@ -73,7 +73,7 @@ func TestV3MigrationPcap(t *testing.T) {
 			Kind: storage.FileStore,
 		},
 	})
-	err := iosrc.WriteFile(pcapuri, nil)
+	err := iosrc.WriteFile(context.Background(), pcapuri, nil)
 	require.NoError(t, err)
 	tm.writeSpaceJSONFile(id, "packets.idx.json", pcap.Index{})
 
@@ -99,7 +99,7 @@ func TestV2Migration(t *testing.T) {
 			Kind: storage.FileStore,
 		},
 	})
-	err := iosrc.WriteFile(pcapuri, nil)
+	err := iosrc.WriteFile(context.Background(), pcapuri, nil)
 	require.NoError(t, err)
 	tm.writeSpaceJSONFile(id, "packets.idx.json", pcap.Index{})
 

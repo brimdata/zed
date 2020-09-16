@@ -60,7 +60,7 @@ func (s *archiveSpace) updateConfigWithLock(conf config) error {
 	return nil
 }
 
-func (s *archiveSpace) delete() error {
+func (s *archiveSpace) delete(ctx context.Context) error {
 	s.confMu.Lock()
 	defer s.confMu.Unlock()
 
@@ -71,17 +71,17 @@ func (s *archiveSpace) delete() error {
 	if err := s.sg.acquireForDelete(); err != nil {
 		return err
 	}
-	if err := iosrc.RemoveAll(s.path); err != nil {
+	if err := iosrc.RemoveAll(ctx, s.path); err != nil {
 		return err
 	}
-	return iosrc.RemoveAll(s.conf.DataURI)
+	return iosrc.RemoveAll(ctx, s.conf.DataURI)
 }
 
-func (s *archiveSpace) CreateSubspace(req api.SubspacePostRequest) (*archiveSubspace, error) {
+func (s *archiveSpace) CreateSubspace(ctx context.Context, req api.SubspacePostRequest) (*archiveSubspace, error) {
 	s.confMu.Lock()
 	defer s.confMu.Unlock()
 
-	substore, err := archivestore.Load(s.conf.DataURI, &storage.ArchiveConfig{
+	substore, err := archivestore.Load(ctx, s.conf.DataURI, &storage.ArchiveConfig{
 		OpenOptions: &req.OpenOptions,
 	})
 	if err != nil {

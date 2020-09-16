@@ -45,7 +45,7 @@ func (s *statReadCloser) Close() error {
 }
 
 func (s *statReadCloser) chunkRecord(si SpanInfo, zardir iosrc.URI) error {
-	fi, err := iosrc.Stat(ZarDirToLog(zardir))
+	fi, err := iosrc.Stat(s.ctx, ZarDirToLog(zardir))
 	if err != nil {
 		return err
 	}
@@ -78,7 +78,7 @@ func (s *statReadCloser) chunkRecord(si SpanInfo, zardir iosrc.URI) error {
 }
 
 func (s *statReadCloser) indexRecord(si SpanInfo, zardir iosrc.URI, indexPath string) error {
-	info, err := microindex.Stat(zardir.AppendPath(indexPath))
+	info, err := microindex.Stat(s.ctx, zardir.AppendPath(indexPath))
 	if err != nil {
 		if errors.Is(err, zqe.E(zqe.NotFound)) {
 			return nil
@@ -138,7 +138,7 @@ func (s *statReadCloser) indexRecord(si SpanInfo, zardir iosrc.URI, indexPath st
 func (s *statReadCloser) run() {
 	defer close(s.recs)
 
-	if _, err := s.ark.UpdateCheck(); err != nil {
+	if _, err := s.ark.UpdateCheck(s.ctx); err != nil {
 		s.err = err
 		return
 	}
@@ -150,7 +150,7 @@ func (s *statReadCloser) run() {
 	s.ark.mu.RUnlock()
 	sort.Strings(indexPaths)
 
-	s.err = SpanWalk(s.ark, func(si SpanInfo, zardir iosrc.URI) error {
+	s.err = SpanWalk(s.ctx, s.ark, func(si SpanInfo, zardir iosrc.URI) error {
 		if err := s.chunkRecord(si, zardir); err != nil {
 			return err
 		}

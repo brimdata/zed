@@ -23,6 +23,7 @@ func tsDir(ts nano.Ts) string {
 
 type importDriver struct {
 	ark *Archive
+	ctx context.Context
 	zw  *zngio.Writer
 
 	span   nano.Span
@@ -52,7 +53,7 @@ func (d *importDriver) writeOne(rec *zng.Record) error {
 		//XXX for now just truncate any existing file.
 		// a future PR will do a split/merge.
 		fpath := dpath.AppendPath(fname)
-		out, err := d.ark.dataSrc.NewWriter(fpath)
+		out, err := d.ark.dataSrc.NewWriter(d.ctx, fpath)
 		if err != nil {
 			return err
 		}
@@ -124,7 +125,7 @@ func Import(ctx context.Context, ark *Archive, zctx *resolver.Context, r zbuf.Re
 		return err
 	}
 
-	id := &importDriver{ark: ark}
+	id := &importDriver{ark: ark, ctx: ctx}
 	if err := driver.Run(ctx, id, proc, zctx, r, driver.Config{}); err != nil {
 		return fmt.Errorf("archive.Import: run failed: %w", err)
 	}

@@ -2,6 +2,7 @@ package microindex_test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -98,7 +99,7 @@ func TestSearch(t *testing.T) {
 	require.NoError(t, err)
 	zctx := resolver.NewContext()
 	finder := microindex.NewFinder(zctx, uri)
-	require.NoError(t, finder.Open())
+	require.NoError(t, finder.Open(context.Background()))
 	keyRec, err := zng.NewBuilder(finder.Keys()).Parse("key2")
 	require.NoError(t, err)
 	rec, err := finder.Lookup(keyRec)

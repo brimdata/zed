@@ -1,6 +1,7 @@
 package microindex
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -76,6 +77,10 @@ type indexWriter struct {
 // allowed but will not be detected.  Close() or Abort() must be called when
 // done writing.
 func NewWriter(zctx *resolver.Context, path string, keyFields []string, frameThresh int) (*Writer, error) {
+	return NewWriterWithContext(context.Background(), zctx, path, keyFields, frameThresh)
+
+}
+func NewWriterWithContext(ctx context.Context, zctx *resolver.Context, path string, keyFields []string, frameThresh int) (*Writer, error) {
 	if keyFields == nil {
 		keyFields = []string{"key"}
 	}
@@ -89,7 +94,7 @@ func NewWriter(zctx *resolver.Context, path string, keyFields []string, frameThr
 	if err != nil {
 		return nil, err
 	}
-	writer, err := iosrc.NewWriter(uri)
+	writer, err := iosrc.NewWriter(ctx, uri)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +140,8 @@ func (w *Writer) Abort() error {
 	if closeErr := w.iow.Close(); err == nil {
 		err = closeErr
 	}
-	if rmErr := iosrc.Remove(w.uri); err == nil {
+	// Ignore context here in the event that context is the reson for the abort.
+	if rmErr := iosrc.Remove(context.Background(), w.uri); err == nil {
 		err = rmErr
 	}
 	return err

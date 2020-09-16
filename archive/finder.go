@@ -87,7 +87,7 @@ func Find(ctx context.Context, zctx *resolver.Context, ark *Archive, query Index
 			return err
 		}
 	}
-	if _, err := ark.UpdateCheck(); err != nil {
+	if _, err := ark.UpdateCheck(ctx); err != nil {
 		return err
 	}
 	ark.mu.RLock()
@@ -96,7 +96,7 @@ func Find(ctx context.Context, zctx *resolver.Context, ark *Archive, query Index
 	if !ok {
 		return zqe.E(zqe.NotFound)
 	}
-	return SpanWalk(ark, func(si SpanInfo, zardir iosrc.URI) error {
+	return SpanWalk(ctx, ark, func(si SpanInfo, zardir iosrc.URI) error {
 		searchHits := make(chan *zng.Record)
 		var searchErr error
 		go func() {
@@ -127,7 +127,7 @@ func Find(ctx context.Context, zctx *resolver.Context, ark *Archive, query Index
 
 func search(ctx context.Context, zctx *resolver.Context, hits chan<- *zng.Record, uri iosrc.URI, patterns []string) error {
 	finder := microindex.NewFinder(zctx, uri)
-	if err := finder.Open(); err != nil {
+	if err := finder.Open(ctx); err != nil {
 		return fmt.Errorf("%s: %w", finder.Path(), err)
 	}
 	defer finder.Close()
