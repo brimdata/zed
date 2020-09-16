@@ -1,4 +1,4 @@
-// Package joe provides help types and methods for encoding and decoding json.
+// Package joe provides helper types and methods for encoding and decoding json.
 //
 // joe provides a simple API to access unstructured and ad hoc JSON objects
 // that is parsed generically by json.Unmarshal.  When JSON inputs are
@@ -43,15 +43,15 @@ func (Object) Index(k int) (Interface, error) {
 }
 
 func (Object) Number() (float64, error) {
-	return 0, fmt.Errorf("array is not a number")
+	return 0, errors.New("array is not a number")
 }
 
 func (Object) String() (string, error) {
-	return "", fmt.Errorf("array is not a string")
+	return "", errors.New("array is not a string")
 }
 
 func (Object) Bool() (bool, error) {
-	return false, fmt.Errorf("array is not a bool")
+	return false, errors.New("array is not a bool")
 }
 
 func (o Object) GetObject(field string) (Object, error) {
@@ -112,15 +112,15 @@ func (a Array) Index(k int) (Interface, error) {
 }
 
 func (Array) Number() (float64, error) {
-	return 0, fmt.Errorf("array is not a number")
+	return 0, errors.New("array is not a number")
 }
 
 func (Array) String() (string, error) {
-	return "", fmt.Errorf("array is not a string")
+	return "", errors.New("array is not a string")
 }
 
 func (Array) Bool() (bool, error) {
-	return false, fmt.Errorf("array is not a bool")
+	return false, errors.New("array is not a bool")
 }
 
 func (Number) Get(field string) (Interface, error) {
@@ -128,7 +128,7 @@ func (Number) Get(field string) (Interface, error) {
 }
 
 func (Number) Index(k int) (Interface, error) {
-	return nil, fmt.Errorf("number is not an array")
+	return nil, errors.New("number is not an array")
 }
 
 func (n Number) Number() (float64, error) {
@@ -136,11 +136,11 @@ func (n Number) Number() (float64, error) {
 }
 
 func (Number) String() (string, error) {
-	return "", fmt.Errorf("number is not a string")
+	return "", errors.New("number is not a string")
 }
 
 func (Number) Bool() (bool, error) {
-	return false, fmt.Errorf("number is not a bool")
+	return false, errors.New("number is not a bool")
 }
 
 func (String) Get(field string) (Interface, error) {
@@ -148,11 +148,11 @@ func (String) Get(field string) (Interface, error) {
 }
 
 func (String) Index(k int) (Interface, error) {
-	return nil, fmt.Errorf("string is not an array")
+	return nil, errors.New("string is not an array")
 }
 
 func (String) Number() (float64, error) {
-	return 0, fmt.Errorf("string is not a number")
+	return 0, errors.New("string is not a number")
 }
 
 func (s String) String() (string, error) {
@@ -160,7 +160,7 @@ func (s String) String() (string, error) {
 }
 
 func (String) Bool() (bool, error) {
-	return false, fmt.Errorf("string is not a bool")
+	return false, errors.New("string is not a bool")
 }
 
 func (Bool) Get(field string) (Interface, error) {
@@ -168,15 +168,15 @@ func (Bool) Get(field string) (Interface, error) {
 }
 
 func (Bool) Index(k int) (Interface, error) {
-	return nil, fmt.Errorf("bool is not an array")
+	return nil, errors.New("bool is not an array")
 }
 
 func (Bool) Number() (float64, error) {
-	return 0, fmt.Errorf("bool is not a number")
+	return 0, errors.New("bool is not a number")
 }
 
 func (Bool) String() (string, error) {
-	return "", fmt.Errorf("bool is not a string")
+	return "", errors.New("bool is not a string")
 }
 
 func (b Bool) Bool() (bool, error) {
@@ -184,10 +184,9 @@ func (b Bool) Bool() (bool, error) {
 }
 
 func Convert(v interface{}) Interface {
-	if v == nil {
-		return nil
-	}
 	switch v := v.(type) {
+	case nil:
+		return nil
 	case string:
 		return String(v)
 	case float64:
@@ -215,8 +214,7 @@ func Convert(v interface{}) Interface {
 
 func Unmarshal(in []byte) (Interface, error) {
 	var v interface{}
-	err := json.Unmarshal(in, &v)
-	if err != nil {
+	if err := json.Unmarshal(in, &v); err != nil {
 		return nil, err
 	}
 	return Convert(v), nil

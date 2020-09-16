@@ -237,9 +237,8 @@ func UnpackExpression(node joe.Interface) (Expression, error) {
 		if !ok {
 			return nil, errors.New("FunctionCall args property must be an array")
 		}
-		n := len(a)
-		args := make([]Expression, n)
-		for i := 0; i < n; i++ {
+		args := make([]Expression, len(a))
+		for i := range args {
 			var err error
 			args[i], err = UnpackExpression(a[i])
 			if err != nil {
