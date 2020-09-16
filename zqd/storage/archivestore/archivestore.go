@@ -107,7 +107,7 @@ func (s *Storage) Write(ctx context.Context, zctx *resolver.Context, zr zbuf.Rea
 func (s *Storage) IndexCreate(ctx context.Context, req api.IndexPostRequest) error {
 	var rules []archive.Rule
 	if req.AST != nil {
-		proc, err := ast.UnpackMap(nil, req.AST)
+		proc, err := ast.UnpackJSON(nil, req.AST)
 		if err != nil {
 			return zqe.E(zqe.Invalid, err)
 		}
