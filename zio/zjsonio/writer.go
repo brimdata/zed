@@ -15,7 +15,7 @@ type Alias struct {
 
 type Record struct {
 	Id      int           `json:"id"`
-	Type    joe.Object    `json:"type,omitempty"`
+	Type    joe.Object    `json:"schema,omitempty"`
 	Aliases []Alias       `json:"aliases,omitempty"`
 	Values  []interface{} `json:"values"`
 }

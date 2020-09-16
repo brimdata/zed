@@ -167,7 +167,7 @@ func decodeTypeAny(zctx *resolver.Context, in joe.Interface) (zng.Type, error) {
 	}
 	typ, err := object.GetString("type")
 	if err != nil {
-		return nil, err
+		return nil, errors.New("zson type field inside of type object is not a string")
 	}
 	of, _ := in.Get("of")
 	return decodeType(zctx, joe.String(typ), of)
