@@ -17,11 +17,10 @@ type CSVOutput struct {
 }
 
 func NewCSVOutput(response http.ResponseWriter, ctrl bool) *CSVOutput {
-	o := &CSVOutput{
+	return &CSVOutput{
 		response: response,
 		writer:   csvio.NewWriter(zio.NopCloser(response), true, false),
 	}
-	return o
 }
 
 func (r *CSVOutput) flush() {

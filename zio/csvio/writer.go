@@ -43,7 +43,7 @@ func (w *Writer) Close() error {
 
 func (w *Writer) Flush() error {
 	w.encoder.Flush()
-	return nil
+	return w.encoder.Error()
 }
 
 func (w *Writer) Write(rec *zng.Record) error {
