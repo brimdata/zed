@@ -22,6 +22,7 @@ jobs:
           sudo add-apt-repository ppa:oisf/suricata-stable
           sudo apt-get update
           sudo apt-get install -y suricata
+          which suricata
       - run: make vet
       - run: make test-generate
       - run: make test-unit
