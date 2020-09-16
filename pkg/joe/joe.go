@@ -1,7 +1,7 @@
-// Package joe provides helper types and methods for encoding and decoding json.
+// Package joe provides helper types and methods for encoding and decoding JSON.
 //
 // joe provides a simple API to access unstructured and ad hoc JSON objects
-// that is parsed generically by json.Unmarshal.  When JSON inputs are
+// that is parsed generically by json.Unmarshal.  When a inputs are
 // unstructured, it can be difficult to define Go structs that map cleanly
 // onto the JSON input.
 package joe
