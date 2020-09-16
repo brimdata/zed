@@ -77,7 +77,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 		to:      tsflag(nano.MaxTs),
 	}
 	c.writerFlags.SetFlags(f)
-	f.StringVar(&c.encoding, "e", "zng", "server encoding to use for search results [csv,ndjson,zjson,zng]")
+	f.StringVar(&c.encoding, "e", "zng", "server encoding to use for search results [csv,json,ndjson,zjson,zng]")
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
 	f.BoolVar(&c.warnings, "W", true, "display warnings on stderr")
 	f.BoolVar(&c.debug, "debug", false, "dump raw HTTP response straight to output")
