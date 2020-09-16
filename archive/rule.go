@@ -94,7 +94,7 @@ func NewTypeRule(typeName string) (*Rule, error) {
 			&ast.SortProc{Fields: []ast.FieldExpr{&ast.FieldRead{Field: "key"}}},
 		},
 	}
-	return newRuleAST("type", &c, typeMicroIndexName(typ), []string{keyName}, framesize)
+	return NewRuleAST("type", &c, typeMicroIndexName(typ), []string{keyName}, framesize)
 }
 
 // NewFieldRule creates an indexing rule that will index the field passed in as argument.
@@ -113,7 +113,7 @@ func NewFieldRule(fieldName string) (*Rule, error) {
 			&ast.SortProc{Fields: []ast.FieldExpr{&ast.FieldRead{Field: "key"}}},
 		},
 	}
-	return newRuleAST("field", &c, fieldMicroIndexName(fieldName), []string{keyName}, framesize)
+	return NewRuleAST("field", &c, fieldMicroIndexName(fieldName), []string{keyName}, framesize)
 }
 
 // Rule contains the runtime configuration for an indexing rule.
@@ -125,15 +125,18 @@ type Rule struct {
 	keys      []string
 }
 
-func newRuleAST(typ string, proc ast.Proc, path string, keys []string, framesize int) (*Rule, error) {
+func NewRuleAST(typ string, proc ast.Proc, path string, keys []string, fsize int) (*Rule, error) {
 	if path == "" {
 		return nil, fmt.Errorf("zql indexing rule requires an output path")
+	}
+	if fsize == 0 {
+		fsize = framesize
 	}
 	return &Rule{
 		typ:       typ,
 		proc:      proc,
 		path:      path,
-		framesize: framesize,
+		framesize: fsize,
 		keys:      keys,
 	}, nil
 }
@@ -143,7 +146,7 @@ func NewZqlRule(s, path string, keys []string, framesize int) (*Rule, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newRuleAST("zql", proc, path, keys, framesize)
+	return NewRuleAST("zql", proc, path, keys, framesize)
 }
 
 func (f *Rule) Path(dir iosrc.URI) iosrc.URI {

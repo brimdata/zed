@@ -5,12 +5,15 @@ import (
 	"sync"
 
 	"github.com/brimsec/zq/archive"
+	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/storage"
+	"github.com/brimsec/zq/zqe"
 )
 
 func Load(path iosrc.URI, cfg *storage.ArchiveConfig) (*Storage, error) {
@@ -99,6 +102,34 @@ func (s *Storage) Summary(_ context.Context) (storage.Summary, error) {
 
 func (s *Storage) Write(ctx context.Context, zctx *resolver.Context, zr zbuf.Reader) error {
 	return archive.Import(ctx, s.ark, zctx, zr)
+}
+
+func (s *Storage) IndexCreate(ctx context.Context, req api.IndexPostRequest) error {
+	var rules []archive.Rule
+	if req.AST != nil {
+		proc, err := ast.UnpackJSON(nil, req.AST)
+		if err != nil {
+			return zqe.E(zqe.Invalid, err)
+		}
+		rule, err := archive.NewRuleAST("zql", proc, req.OutputFile, req.Keys, 0)
+		if err != nil {
+			return zqe.E(zqe.Invalid, err)
+		}
+		rules = append(rules, *rule)
+	}
+	for _, pattern := range req.Patterns {
+		rule, err := archive.NewRule(pattern)
+		if err != nil {
+			return zqe.E(zqe.Invalid, err)
+		}
+		rules = append(rules, *rule)
+	}
+	inputFile := req.InputFile
+	if inputFile == "" {
+		inputFile = "_"
+	}
+	// XXX Eventually this method should provide progress updates.
+	return archive.IndexDirTree(ctx, s.ark, rules, inputFile, nil)
 }
 
 func (s *Storage) IndexSearch(ctx context.Context, zctx *resolver.Context, query archive.IndexQuery) (zbuf.ReadCloser, error) {

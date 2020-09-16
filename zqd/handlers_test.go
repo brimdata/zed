@@ -18,7 +18,6 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/test"
@@ -712,17 +711,6 @@ func TestSpaceDataDir(t *testing.T) {
 	require.Equal(t, test.Trim(src), res)
 }
 
-func indexArchiveSpace(t *testing.T, datapath string, ruledef string) {
-	rule, err := archive.NewRule(ruledef)
-	require.NoError(t, err)
-
-	ark, err := archive.OpenArchive(datapath, nil)
-	require.NoError(t, err)
-
-	err = archive.IndexDirTree(context.Background(), ark, []archive.Rule{*rule}, "_", nil)
-	require.NoError(t, err)
-}
-
 func TestCreateArchiveSpace(t *testing.T) {
 	thresh := int64(1000)
 	root := createTempDir(t)
@@ -820,7 +808,10 @@ func TestIndexSearch(t *testing.T) {
 	payload := api.LogPostRequest{Paths: []string{"../tests/suite/data/babble.tzng"}}
 	err = client.LogPost(context.Background(), sp.ID, payload)
 	require.NoError(t, err)
-	indexArchiveSpace(t, sp.DataPath.Filepath(), "v")
+	err = client.IndexPost(context.Background(), sp.ID, api.IndexPostRequest{
+		Patterns: []string{"v"},
+	})
+	require.NoError(t, err)
 
 	expected := `
 #zfile=string
@@ -856,7 +847,10 @@ func TestSubspaceCreate(t *testing.T) {
 	payload := api.LogPostRequest{Paths: []string{"../tests/suite/data/babble.tzng"}}
 	err = client.LogPost(context.Background(), sp1.ID, payload)
 	require.NoError(t, err)
-	indexArchiveSpace(t, sp1.DataPath.Filepath(), ":int64")
+	err = client.IndexPost(context.Background(), sp1.ID, api.IndexPostRequest{
+		Patterns: []string{":int64"},
+	})
+	require.NoError(t, err)
 
 	// Verify index search returns all logs
 	exp := `
@@ -932,7 +926,10 @@ func TestSubspacePersist(t *testing.T) {
 	payload := api.LogPostRequest{Paths: []string{"../tests/suite/data/babble.tzng"}}
 	err = client1.LogPost(context.Background(), sp1.ID, payload)
 	require.NoError(t, err)
-	indexArchiveSpace(t, sp1.DataPath.Filepath(), ":int64")
+	err = client1.IndexPost(context.Background(), sp1.ID, api.IndexPostRequest{
+		Patterns: []string{":int64"},
+	})
+	require.NoError(t, err)
 
 	// Create subspace
 	sp2, err := client1.SubspacePost(context.Background(), sp1.ID, api.SubspacePostRequest{
@@ -1011,7 +1008,10 @@ func TestArchiveStat(t *testing.T) {
 	payload := api.LogPostRequest{Paths: []string{"../tests/suite/data/babble.tzng"}}
 	err = client.LogPost(context.Background(), sp.ID, payload)
 	require.NoError(t, err)
-	indexArchiveSpace(t, sp.DataPath.Filepath(), "v")
+	err = client.IndexPost(context.Background(), sp.ID, api.IndexPostRequest{
+		Patterns: []string{"v"},
+	})
+	require.NoError(t, err)
 
 	exp := `
 #0:record[type:string,log_id:string,start:time,duration:duration,size:uint64,record_count:uint64]
