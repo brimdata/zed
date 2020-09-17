@@ -26,6 +26,7 @@
 package zst
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -86,16 +87,16 @@ func NewObjectFromSeeker(zctx *resolver.Context, s Seeker) (*Object, error) {
 	return NewObject(zctx, s, size)
 }
 
-func NewObjectFromPath(zctx *resolver.Context, path string) (*Object, error) {
+func NewObjectFromPath(ctx context.Context, zctx *resolver.Context, path string) (*Object, error) {
 	uri, err := iosrc.ParseURI(path)
 	if err != nil {
 		return nil, err
 	}
-	r, err := iosrc.NewReader(uri)
+	r, err := iosrc.NewReader(ctx, uri)
 	if err != nil {
 		return nil, err
 	}
-	si, err := iosrc.Stat(uri)
+	si, err := iosrc.Stat(ctx, uri)
 	if err != nil {
 		return nil, err
 	}

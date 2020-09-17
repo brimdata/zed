@@ -1,6 +1,8 @@
 package zst
 
 import (
+	"context"
+
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 )
@@ -27,8 +29,8 @@ func NewReader(object *Object) (*Reader, error) {
 
 }
 
-func NewReaderFromPath(zctx *resolver.Context, path string) (*Reader, error) {
-	object, err := NewObjectFromPath(zctx, path)
+func NewReaderFromPath(ctx context.Context, zctx *resolver.Context, path string) (*Reader, error) {
+	object, err := NewObjectFromPath(ctx, zctx, path)
 	if err != nil {
 		return nil, err
 	}

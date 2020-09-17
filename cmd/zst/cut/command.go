@@ -1,6 +1,7 @@
 package inspect
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"strings"
@@ -69,8 +70,10 @@ func (c *Command) Run(args []string) error {
 	if err := c.output.Init(&writerOpts); err != nil {
 		return err
 	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	path := args[0]
-	cutter, err := zst.NewCutterFromPath(resolver.NewContext(), path, fields)
+	cutter, err := zst.NewCutterFromPath(ctx, resolver.NewContext(), path, fields)
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,7 @@
 package create
 
 import (
+	"context"
 	"errors"
 	"flag"
 
@@ -86,14 +87,16 @@ func (c *Command) Run(args []string) error {
 	reader := zbuf.NewCombiner(readers, zbuf.CmpTimeForward)
 	defer reader.Close()
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	skewThresh := MibToBytes(c.skewThresh)
 	colThresh := MibToBytes(c.colThresh)
-	writer, err := zst.NewWriterFromPath(c.outputFile, skewThresh, colThresh)
+	writer, err := zst.NewWriterFromPath(ctx, c.outputFile, skewThresh, colThresh)
 	if err != nil {
 		return err
 	}
 	if err := zbuf.Copy(writer, reader); err != nil {
-		writer.Abort()
+		writer.Abort(ctx)
 		return err
 	}
 	return writer.Close()

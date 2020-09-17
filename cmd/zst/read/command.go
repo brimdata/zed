@@ -1,6 +1,7 @@
 package inspect
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"os"
@@ -59,8 +60,10 @@ func (c *Command) Run(args []string) error {
 	if len(args) != 1 {
 		return errors.New("zst read: must be run with a single path argument")
 	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	path := args[0]
-	reader, err := zst.NewReaderFromPath(resolver.NewContext(), path)
+	reader, err := zst.NewReaderFromPath(ctx, resolver.NewContext(), path)
 	if err != nil {
 		return err
 	}

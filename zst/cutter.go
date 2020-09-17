@@ -1,6 +1,7 @@
 package zst
 
 import (
+	"context"
 	"errors"
 	"io"
 
@@ -22,8 +23,8 @@ func NewCutter(object *Object, fields []string) (*Reader, error) {
 
 }
 
-func NewCutterFromPath(zctx *resolver.Context, path string, fields []string) (*Reader, error) {
-	object, err := NewObjectFromPath(zctx, path)
+func NewCutterFromPath(ctx context.Context, zctx *resolver.Context, path string, fields []string) (*Reader, error) {
+	object, err := NewObjectFromPath(ctx, zctx, path)
 	if err != nil {
 		return nil, err
 	}

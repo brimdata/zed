@@ -1,6 +1,7 @@
 package zst
 
 import (
+	"context"
 	"fmt"
 	"io"
 
@@ -70,12 +71,12 @@ type WriterURI struct {
 	uri iosrc.URI
 }
 
-func NewWriterFromPath(path string, skewThresh, segThresh int) (*WriterURI, error) {
+func NewWriterFromPath(ctx context.Context, path string, skewThresh, segThresh int) (*WriterURI, error) {
 	uri, err := iosrc.ParseURI(path)
 	if err != nil {
 		return nil, err
 	}
-	w, err := iosrc.NewWriter(uri)
+	w, err := iosrc.NewWriter(ctx, uri)
 	if err != nil {
 		return nil, err
 	}
@@ -126,9 +127,9 @@ func (w *Writer) Write(rec *zng.Record) error {
 
 // Abort closes this writer, deleting any and all objects and/or files associated
 // with it.
-func (w *WriterURI) Abort() error {
+func (w *WriterURI) Abort(ctx context.Context) error {
 	firstErr := w.writer.Close()
-	if err := iosrc.Remove(w.uri); firstErr == nil {
+	if err := iosrc.Remove(ctx, w.uri); firstErr == nil {
 		firstErr = err
 	}
 	return firstErr
