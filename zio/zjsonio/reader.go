@@ -7,6 +7,7 @@ import (
 	"io"
 	"strconv"
 
+	"github.com/brimsec/zq/pkg/joe"
 	"github.com/brimsec/zq/pkg/skim"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
@@ -96,7 +97,7 @@ func (r *Reader) parseValues(typ *zng.TypeRecord, v interface{}) (*zng.Record, e
 
 func (r *Reader) parseAliases(aliases []Alias) error {
 	for _, alias := range aliases {
-		typ, err := decodeTypeAny(r.zctx, alias.Type)
+		typ, err := decodeTypeAny(r.zctx, alias.Type.(joe.Interface))
 		if err != nil {
 			return fmt.Errorf("error decoding alias type: \"%s\"", err)
 		}

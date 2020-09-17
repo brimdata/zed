@@ -1,41 +1,12 @@
 package zjsonio
 
 import (
-	"encoding/json"
 	"errors"
 
 	"github.com/brimsec/zq/pkg/joe"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
-
-type stringAlias struct {
-	Name string     `json:"name"`
-	Type joe.String `json:"type"`
-}
-
-type objectAlias struct {
-	Name string     `json:"name"`
-	Type joe.Object `json:"type"`
-}
-
-func (a *Alias) MarshalJSON() ([]byte, error) {
-	if o, ok := a.Type.(joe.Object); ok {
-		v := &objectAlias{
-			Name: a.Name,
-			Type: o,
-		}
-		return json.Marshal(v)
-	}
-	if s, ok := a.Type.(joe.String); ok {
-		v := &stringAlias{
-			Name: a.Name,
-			Type: s,
-		}
-		return json.Marshal(v)
-	}
-	return nil, errors.New("alias type is not a string or object")
-}
 
 func encodeTypeAny(in zng.Type) joe.Interface {
 	if !zng.IsContainerType(in) {
@@ -97,8 +68,8 @@ func encodeTypes(in []zng.Type) joe.Array {
 func decodeType(zctx *resolver.Context, typ joe.String, of joe.Interface) (zng.Type, error) {
 	switch typ {
 	default:
-		t := zng.LookupPrimitive(string(typ))
-		if t == nil {
+		t, err := zctx.LookupByName(string(typ))
+		if err != nil {
 			return nil, errors.New("zjson unknown type: " + string(typ))
 		}
 		return t, nil
@@ -185,8 +156,8 @@ func decodeTypeObj(zctx *resolver.Context, in joe.Object) (zng.Type, error) {
 func decodeTypeAny(zctx *resolver.Context, in joe.Interface) (zng.Type, error) {
 	s, ok := in.(joe.String)
 	if ok {
-		t := zng.LookupPrimitive(string(s))
-		if t == nil {
+		t, err := zctx.LookupByName(string(s))
+		if err != nil {
 			return nil, errors.New("zjson unknown type: " + string(s))
 		}
 		return t, nil

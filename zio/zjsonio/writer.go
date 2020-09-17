@@ -9,8 +9,8 @@ import (
 )
 
 type Alias struct {
-	Name string        `json:"name"`
-	Type joe.Interface `json:"type"`
+	Name string      `json:"name"`
+	Type interface{} `json:"type"`
 }
 
 type Record struct {
@@ -55,4 +55,19 @@ func (w *Writer) Write(r *zng.Record) error {
 func (w *Writer) write(s string) error {
 	_, err := w.writer.Write([]byte(s))
 	return err
+}
+
+type tAlias struct {
+	Name string      `json:"name"`
+	Type interface{} `json:"type"`
+}
+
+func (a *Alias) UnmarshalJSON(b []byte) error {
+	v := &tAlias{}
+	if err := json.Unmarshal(b, v); err != nil {
+		return err
+	}
+	a.Name = v.Name
+	a.Type = joe.Convert(v.Type)
+	return nil
 }
