@@ -232,16 +232,3 @@ func (o *Object) UnmarshalJSON(b []byte) error {
 	*o = object
 	return nil
 }
-
-func (a *Array) UnmarshalJSON(b []byte) error {
-	v, err := Unmarshal(b)
-	if err != nil {
-		return err
-	}
-	array, ok := v.(Array)
-	if !ok {
-		return errors.New("not a joe.Array")
-	}
-	*a = array
-	return nil
-}
