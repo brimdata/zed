@@ -73,7 +73,7 @@ func (w *WriterFlags) Options() WriterOpts {
 }
 
 func (w *WriterFlags) SetFlags(fs *flag.FlagSet) {
-	fs.StringVar(&w.Format, "f", "zng", "format for output data [zng,ndjson,table,text,types,zeek,zjson,tzng]")
+	fs.StringVar(&w.Format, "f", "zng", "format for output data [zng,ndjson,table,text,csv,zeek,zjson,tzng]")
 	fs.BoolVar(&w.UTF8, "U", false, "display zeek strings as UTF-8")
 	fs.BoolVar(&w.Text.ShowTypes, "T", false, "display field types in text output")
 	fs.BoolVar(&w.Text.ShowFields, "F", false, "display field names in text output")
