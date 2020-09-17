@@ -149,7 +149,7 @@ func (s *Stream) encodeAliases(typ *zng.TypeRecord) []Alias {
 		id := alias.AliasID()
 		if _, ok := s.aliases[id]; !ok {
 			v := encodeTypeAny(alias.Type)
-			aliases = append(aliases, Alias{Name: alias.Name, Type: joe.Any{v}})
+			aliases = append(aliases, Alias{Name: alias.Name, Type: v})
 			s.aliases[id] = nil
 		}
 	}

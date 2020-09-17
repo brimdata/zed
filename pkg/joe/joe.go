@@ -18,12 +18,6 @@ type String string
 type Number float64
 type Bool bool
 
-// Any allows you to put a joe.Any inside of a struct and have it be marshalled
-// and converted for use as a joe.Interface.
-type Any struct {
-	Interface
-}
-
 type Interface interface {
 	Get(string) (Interface, error)
 	Index(int) (Interface, error)
@@ -189,46 +183,6 @@ func (b Bool) Bool() (bool, error) {
 	return bool(b), nil
 }
 
-func (a Any) Get(field string) (Interface, error) {
-	o, ok := a.Interface.(Object)
-	if !ok {
-		return nil, errors.New("any type is not an object")
-	}
-	return o.Get(field)
-}
-
-func (a Any) Index(k int) (Interface, error) {
-	array, ok := a.Interface.(Array)
-	if !ok {
-		return nil, errors.New("any type is not an array")
-	}
-	return array.Index(k)
-}
-
-func (a Any) Number() (float64, error) {
-	n, ok := a.Interface.(Number)
-	if !ok {
-		return 0, errors.New("any type is not a number")
-	}
-	return n.Number()
-}
-
-func (a Any) String() (string, error) {
-	s, ok := a.Interface.(String)
-	if !ok {
-		return "", errors.New("any type is not a string")
-	}
-	return s.String()
-}
-
-func (a Any) Bool() (bool, error) {
-	b, ok := a.Interface.(Bool)
-	if !ok {
-		return false, errors.New("any type is not a bool")
-	}
-	return b.Bool()
-}
-
 func Convert(v interface{}) Interface {
 	switch v := v.(type) {
 	case nil:
@@ -264,15 +218,6 @@ func Unmarshal(in []byte) (Interface, error) {
 		return nil, err
 	}
 	return Convert(v), nil
-}
-
-func (a *Any) UnmarshalJSON(b []byte) error {
-	v, err := Unmarshal(b)
-	if err != nil {
-		return err
-	}
-	a.Interface = v
-	return nil
 }
 
 func (o *Object) UnmarshalJSON(b []byte) error {

@@ -1,12 +1,41 @@
 package zjsonio
 
 import (
+	"encoding/json"
 	"errors"
 
 	"github.com/brimsec/zq/pkg/joe"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
+
+type stringAlias struct {
+	Name string     `json:"name"`
+	Type joe.String `json:"type"`
+}
+
+type objectAlias struct {
+	Name string     `json:"name"`
+	Type joe.Object `json:"type"`
+}
+
+func (a *Alias) MarshalJSON() ([]byte, error) {
+	if o, ok := a.Type.(joe.Object); ok {
+		v := &objectAlias{
+			Name: a.Name,
+			Type: o,
+		}
+		return json.Marshal(v)
+	}
+	if s, ok := a.Type.(joe.String); ok {
+		v := &stringAlias{
+			Name: a.Name,
+			Type: s,
+		}
+		return json.Marshal(v)
+	}
+	return nil, errors.New("alias type is not a string or object")
+}
 
 func encodeTypeAny(in zng.Type) joe.Interface {
 	if !zng.IsContainerType(in) {

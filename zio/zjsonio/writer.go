@@ -9,8 +9,8 @@ import (
 )
 
 type Alias struct {
-	Name string  `json:"name"`
-	Type joe.Any `json:"type"`
+	Name string        `json:"name"`
+	Type joe.Interface `json:"type"`
 }
 
 type Record struct {
