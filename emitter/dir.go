@@ -32,10 +32,6 @@ type Dir struct {
 	source  iosrc.Source
 }
 
-func unknownFormat(format string) error {
-	return fmt.Errorf("unknown output format: %s", format)
-}
-
 func NewDir(dir, prefix string, stderr io.Writer, opts zio.WriterOpts) (*Dir, error) {
 	uri, err := iosrc.ParseURI(dir)
 	if err != nil {
@@ -56,7 +52,7 @@ func NewDirWithSource(dir iosrc.URI, prefix string, stderr io.Writer, opts zio.W
 	}
 	e := zio.Extension(opts.Format)
 	if e == "" {
-		return nil, unknownFormat(opts.Format)
+		return nil, fmt.Errorf("unknown format: %s", opts.Format)
 	}
 	return &Dir{
 		dir:     dir,

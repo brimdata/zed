@@ -590,9 +590,9 @@ func runzq(path, ZQL, outputFormat, outputFlags string, inputs ...string) (out s
 		return "", "", err
 	}
 	zflags.Format = outputFormat
-	zw := detector.LookupWriter(&nopCloser{&outbuf}, zflags.Options())
-	if zw == nil {
-		return "", "", fmt.Errorf("%s: unknown output format", outputFormat)
+	zw, err := detector.LookupWriter(&nopCloser{&outbuf}, zflags.Options())
+	if err != nil {
+		return "", "", err
 	}
 	d := driver.NewCLI(zw)
 	d.SetWarningsWriter(&errbuf)

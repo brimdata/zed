@@ -29,33 +29,33 @@ func (*nullWriter) Close() error {
 	return nil
 }
 
-func LookupWriter(w io.WriteCloser, opts zio.WriterOpts) zbuf.WriteCloser {
+func LookupWriter(w io.WriteCloser, opts zio.WriterOpts) (zbuf.WriteCloser, error) {
 	if opts.Format == "" {
 		opts.Format = "tzng"
 	}
 	switch opts.Format {
 	default:
-		return nil
+		return nil, fmt.Errorf("unknown format: %s", opts.Format)
 	case "null":
-		return &nullWriter{}
+		return &nullWriter{}, nil
 	case "tzng":
-		return tzngio.NewWriter(w)
+		return tzngio.NewWriter(w), nil
 	case "zng":
-		return zngio.NewWriter(w, opts.Zng)
+		return zngio.NewWriter(w, opts.Zng), nil
 	case "zeek":
-		return zeekio.NewWriter(w, opts.UTF8)
+		return zeekio.NewWriter(w, opts.UTF8), nil
 	case "ndjson":
-		return ndjsonio.NewWriter(w)
+		return ndjsonio.NewWriter(w), nil
 	case "zjson":
-		return zjsonio.NewWriter(w)
+		return zjsonio.NewWriter(w), nil
 	case "zst":
 		return zstio.NewWriter(w, opts.Zst)
 	case "text":
-		return textio.NewWriter(w, opts.UTF8, opts.Text, opts.EpochDates)
+		return textio.NewWriter(w, opts.UTF8, opts.Text, opts.EpochDates), nil
 	case "table":
-		return tableio.NewWriter(w, opts.UTF8)
+		return tableio.NewWriter(w, opts.UTF8), nil
 	case "csv":
-		return csvio.NewWriter(w, opts.UTF8, opts.EpochDates)
+		return csvio.NewWriter(w, opts.UTF8, opts.EpochDates), nil
 	}
 }
 

@@ -32,7 +32,7 @@ keep rows in alignment so that a reader should not have to use more than
 this (approximate) memory footprint.
 
 Unlike parquet, zst column data may be laid out any way a client so chooses
-and is not constrained to the "row group" concept.  Thus, care should be 
+and is not constrained to the "row group" concept.  Thus, care should be
 taken here to control the amount of row skew that can arise.`,
 	New: newCommand,
 }

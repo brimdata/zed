@@ -58,9 +58,9 @@ func NewFileWithSource(path iosrc.URI, opts zio.WriterOpts, source iosrc.Source)
 	// On close, zbuf.WriteCloser.Close() will close and flush the
 	// downstream writer, which will flush the bufwriter here and,
 	// in turn, close its underlying writer.
-	w := detector.LookupWriter(wc, opts)
-	if w == nil {
-		return nil, unknownFormat(opts.Format)
+	w, err := detector.LookupWriter(wc, opts)
+	if err != nil {
+		return nil, err
 	}
 	return w, nil
 }
