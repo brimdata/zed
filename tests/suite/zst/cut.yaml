@@ -1,6 +1,4 @@
 script: |
-  #zq -i zst -t out.zst
-  #zq  -t in.tzng
   zst create -o out.zst in.tzng
   zst cut -t -k a out.zst
   echo ===

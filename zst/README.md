@@ -97,12 +97,12 @@ seeks.
 
 The zst data abstraction is built around a collection of "column streams".
 
-There is one column stream for each field of zng record type definition
+There is one column stream for each field of a zng record type definition
 that appears collectively throughout the zng input data including records
 embedded within records.
 
 For example, a field that is an array of records containing other fields would
-have a column stream for the top-level array field as well as column a stream
+have a column stream for the top-level array field as well as a column a stream
 for each field inside of the array values.
 
 Each column stream represents a sequence of values (inclusive of unset values)
@@ -215,7 +215,7 @@ analogous data structures, we simply reuse zng here.
 
 This reassembly zng stream encodes 2*N+1 zng records, where N is equal to the number
 of top-level zng record types that are present in the encoded input.
-To simply terminology, we call a top-level zng record type a "schema",
+To simplify terminology, we call a top-level zng record type a "schema",
 e.g., there are N unique schemas encoded in the zst object.
 
 Each of these N schemas gets defined as a record value, comprised

@@ -1,6 +1,5 @@
 script: |
-  echo -n "" > empty.zst
-  zq -t -i zst empty.zst
+  zq -t -i zst /dev/null
 
 outputs:
   - name: stderr

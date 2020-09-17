@@ -62,7 +62,7 @@ func (a *Assembler) Read() (*zng.Record, error) {
 	if col == nil {
 		return nil, ErrBadSchemaID
 	}
-	err = a.columns[schemaID].Read(&a.builder)
+	err = col.Read(&a.builder)
 	if err != nil {
 		return nil, err
 	}
