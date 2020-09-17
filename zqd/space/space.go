@@ -174,7 +174,7 @@ func loadSpaces(ctx context.Context, p iosrc.URI, conf config, logger *zap.Logge
 func loadPcapStore(ctx context.Context, u iosrc.URI) (*pcapstorage.Store, error) {
 	pcapstore, err := pcapstorage.Load(ctx, u)
 	if err != nil {
-		if zqe.IsKind(err, zqe.NotFound) {
+		if zqe.IsNotFound(err) {
 			return pcapstorage.New(u), nil
 		}
 		return nil, err
