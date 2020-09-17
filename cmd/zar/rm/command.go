@@ -59,8 +59,7 @@ func (c *Command) Run(args []string) error {
 		for _, name := range args {
 			path := zardir.AppendPath(name)
 			if err := iosrc.Remove(context.TODO(), path); err != nil {
-				var zerr *zqe.Error
-				if errors.As(err, &zerr) && zerr.Kind == zqe.NotFound {
+				if zqe.IsNotFound(err) {
 					fmt.Printf("%s: not found\n", c.printable(ark.DataPath, path))
 					continue
 				}

@@ -2,7 +2,6 @@ package space
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"path"
 	"sync"
@@ -175,8 +174,7 @@ func loadSpaces(ctx context.Context, p iosrc.URI, conf config, logger *zap.Logge
 func loadPcapStore(ctx context.Context, u iosrc.URI) (*pcapstorage.Store, error) {
 	pcapstore, err := pcapstorage.Load(ctx, u)
 	if err != nil {
-		var zerr *zqe.Error
-		if errors.As(err, &zerr) && zerr.Kind == zqe.NotFound {
+		if zqe.IsNotFound(err) {
 			return pcapstorage.New(u), nil
 		}
 		return nil, err
@@ -219,8 +217,7 @@ func (s *spaceBase) Info(ctx context.Context) (api.SpaceInfo, error) {
 	if s.pcapstore != nil && !s.pcapstore.Empty() {
 		pcapinfo, err := s.pcapstore.Info(ctx)
 		if err != nil {
-			var ze *zqe.Error
-			if !errors.As(err, &ze) || ze.Kind != zqe.NotFound {
+			if !zqe.IsNotFound(err) {
 				s.logger.Error("Error getting pcap store summary", zap.Error(err))
 				return api.SpaceInfo{}, err
 			}

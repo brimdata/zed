@@ -88,7 +88,7 @@ func (s *s3Source) NewReplacer(ctx context.Context, uri URI) (io.WriteCloser, er
 func wrapErr(err error) error {
 	var reqerr awserr.RequestFailure
 	if errors.As(err, &reqerr) && reqerr.StatusCode() == http.StatusNotFound {
-		return zqe.E(zqe.NotFound)
+		return zqe.ErrNotFound()
 	}
 	return err
 }
