@@ -52,7 +52,11 @@ func NewManagerWithContext(ctx context.Context, root iosrc.URI, logger *zap.Logg
 	for _, dir := range dirs {
 		config, err := mgr.loadConfig(ctx, dir)
 		if err != nil {
-			logger.Error("Error loading config", zap.Error(err))
+			if zqe.IsNotFound(err) {
+				logger.Debug("Config file not found", zap.String("uri", dir.String()))
+			} else {
+				logger.Warn("Error loading space", zap.String("uri", dir.String()), zap.Error(err))
+			}
 			continue
 		}
 
