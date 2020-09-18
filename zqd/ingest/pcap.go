@@ -271,17 +271,18 @@ func (p *PcapOp) convertSuricataLog(ctx context.Context) error {
 	// For now, this just converts from json to
 	// zng. Soon it will apply a typing config and rename at least
 	// the timestamp field.
-	path := filepath.Join(p.logdir, "eve.json")
 	zctx := resolver.NewContext()
-	wc, err := fs.NewFileReplacer(filepath.Join(p.logdir, "eve.zng"), os.FileMode(0666))
-	if err != nil {
-		return err
-	}
+	path := filepath.Join(p.logdir, "eve.json")
 	zr, err := detector.OpenFile(zctx, path, zio.ReaderOpts{})
 	if err != nil {
 		return err
 	}
 	defer zr.Close()
+	wc, err := fs.NewFileReplacer(filepath.Join(p.logdir, "eve.zng"), os.FileMode(0666))
+	if err != nil {
+		return err
+	}
+	defer wc.Close()
 	zw := zngio.NewWriter(wc, zngio.WriterOpts{})
 	if err := zbuf.CopyWithContext(ctx, zw, zr); err != nil {
 		return err
