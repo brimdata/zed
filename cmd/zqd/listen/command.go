@@ -239,7 +239,7 @@ func (c *Command) initZeek() error {
 	if err != nil {
 		return err
 	}
-	c.conf.Launchers.Zeek = ln
+	c.conf.Zeek = ln
 	return nil
 }
 
@@ -261,7 +261,7 @@ func (c *Command) initSuricata() error {
 	if err != nil {
 		return err
 	}
-	c.conf.Launchers.Suricata = ln
+	c.conf.Suricata = ln
 	return nil
 }
 

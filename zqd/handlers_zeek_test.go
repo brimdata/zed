@@ -235,7 +235,7 @@ func TestPcapPostZeekFailAfterWrite(t *testing.T) {
 }
 
 func pcapPost(t *testing.T, pcapfile string, l pcapanalyzer.Launcher) pcapPostResult {
-	return pcapPostWithConfig(t, zqd.Config{Launchers: zqd.Launchers{Zeek: l}}, pcapfile)
+	return pcapPostWithConfig(t, zqd.Config{Zeek: l}, pcapfile)
 }
 
 func pcapPostWithConfig(t *testing.T, conf zqd.Config, pcapfile string) pcapPostResult {

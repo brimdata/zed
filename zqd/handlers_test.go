@@ -634,7 +634,7 @@ func TestDeleteDuringPcapPost(t *testing.T) {
 		return errors.New("zeek exited with error code: -1")
 	}
 
-	c.Launchers.Zeek = testZeekLauncher(nil, waitFn)
+	c.Zeek = testZeekLauncher(nil, waitFn)
 
 	var wg sync.WaitGroup
 	pcapPostErr := make(chan error)
@@ -718,7 +718,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 	c, client, done := newCoreAtDir(t, root)
 	defer done()
 
-	c.Launchers.Zeek = testZeekLauncher(func(tzp *testZeekProcess) error {
+	c.Zeek = testZeekLauncher(func(tzp *testZeekProcess) error {
 		const s = "unexpected attempt to run zeek"
 		t.Error(s)
 		return errors.New(s)

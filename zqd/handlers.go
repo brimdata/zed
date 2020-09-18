@@ -337,7 +337,7 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		respondError(c, w, r, zqe.E(zqe.Invalid, "storage does not support pcap import"))
 		return
 	}
-	op, warnings, err := ingest.NewPcapOp(ctx, pcapstore, logstore, req.Path, c.Launchers.Suricata, c.Launchers.Zeek)
+	op, warnings, err := ingest.NewPcapOp(ctx, pcapstore, logstore, req.Path, c.Suricata, c.Zeek)
 	if err != nil {
 		respondError(c, w, r, err)
 		return

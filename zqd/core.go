@@ -11,20 +11,21 @@ import (
 )
 
 type Launchers struct {
-	Suricata, Zeek pcapanalyzer.Launcher
 }
 
 type Config struct {
-	Root      string
-	Version   string
-	Launchers Launchers
-	Logger    *zap.Logger
+	Root     string
+	Version  string
+	Suricata pcapanalyzer.Launcher
+	Zeek     pcapanalyzer.Launcher
+	Logger   *zap.Logger
 }
 
 type Core struct {
 	Root      iosrc.URI
 	Version   string
-	Launchers Launchers
+	Suricata  pcapanalyzer.Launcher
+	Zeek      pcapanalyzer.Launcher
 	spaces    *space.Manager
 	taskCount int64
 	logger    *zap.Logger
@@ -48,20 +49,21 @@ func NewCore(conf Config) (*Core, error) {
 		version = "unknown"
 	}
 	return &Core{
-		Root:      root,
-		Version:   version,
-		Launchers: conf.Launchers,
-		spaces:    spaces,
-		logger:    logger,
+		Root:     root,
+		Version:  version,
+		Suricata: conf.Suricata,
+		Zeek:     conf.Zeek,
+		spaces:   spaces,
+		logger:   logger,
 	}, nil
 }
 
 func (c *Core) HasSuricata() bool {
-	return c.Launchers.Suricata != nil
+	return c.Suricata != nil
 }
 
 func (c *Core) HasZeek() bool {
-	return c.Launchers.Zeek != nil
+	return c.Zeek != nil
 }
 
 func (c *Core) requestLogger(r *http.Request) *zap.Logger {
