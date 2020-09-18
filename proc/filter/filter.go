@@ -33,7 +33,7 @@ func (f *Proc) Pull() (zbuf.Batch, error) {
 			out = append(out, r.Keep())
 		}
 	}
-	return zbuf.NewArray(out), nil
+	return zbuf.Array(out), nil
 }
 
 func (p *Proc) Done() {

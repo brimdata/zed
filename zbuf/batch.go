@@ -49,7 +49,7 @@ func ReadBatch(zr Reader, n int) (Batch, error) {
 	if len(recs) == 0 {
 		return nil, nil
 	}
-	return NewArray(recs), nil
+	return Array(recs), nil
 }
 
 // A Puller produces Batches of records, signaling end-of-stream by returning

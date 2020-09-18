@@ -78,7 +78,7 @@ func (f *FieldCutter) Pull() (zbuf.Batch, error) {
 		}
 		batch.Unref()
 		if len(recs) > 0 {
-			return zbuf.NewArray(recs), nil
+			return zbuf.Array(recs), nil
 		}
 	}
 }
@@ -135,7 +135,7 @@ func (t *TypeSplitter) Pull() (zbuf.Batch, error) {
 		}
 		batch.Unref()
 		if len(recs) > 0 {
-			return zbuf.NewArray(recs), nil
+			return zbuf.Array(recs), nil
 		}
 	}
 }
