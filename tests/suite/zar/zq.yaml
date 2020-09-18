@@ -1,6 +1,6 @@
 script: |
   mkdir logs
-  zar import -s 20KiB -R ./logs babble.tzng
+  zar import -R ./logs babble.tzng
   zar zq -R ./logs "count()" | zq -t -
   echo ===
   zar map -R ./logs -o count.zng "count()"
@@ -19,8 +19,8 @@ outputs:
       0:[1000;]
       ===
       #0:record[count:uint64]
-      0:[939;]
-      0:[61;]
+      0:[504;]
+      0:[496;]
       ===
       #0:record[sum:uint64]
       0:[1000;]

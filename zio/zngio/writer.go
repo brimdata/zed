@@ -9,8 +9,10 @@ import (
 	"github.com/pierrec/lz4/v4"
 )
 
-// DefaultLZ4BlockSize is a reasonable default for the WriterOpts.LZ4BlockSize.
-const DefaultLZ4BlockSize = 16 * 1024
+const (
+	DefaultLZ4BlockSize     = 16 * 1024 // a reasonable default for WriterOpts.LZ4BlockSize
+	DefaultStreamRecordsMax = 5000      // a reasonable default for WriterOpts.StreamRecordsMax
+)
 
 type Writer struct {
 	closer io.Closer
@@ -21,6 +23,7 @@ type Writer struct {
 	buffer           []byte
 	streamRecords    int
 	streamRecordsMax int
+	lastsos          int64
 }
 
 type WriterOpts struct {
@@ -77,7 +80,15 @@ func (w *Writer) EndStream() error {
 	}
 	w.encoder.Reset()
 	w.streamRecords = 0
-	return w.writeUncompressed([]byte{zng.CtrlEOS})
+	if err := w.writeUncompressed([]byte{zng.CtrlEOS}); err != nil {
+		return err
+	}
+	w.lastsos = w.Position()
+	return nil
+}
+
+func (w *Writer) LastSOS() int64 {
+	return w.lastsos
 }
 
 func (w *Writer) Write(r *zng.Record) error {

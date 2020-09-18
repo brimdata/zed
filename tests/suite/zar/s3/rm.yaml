@@ -1,13 +1,14 @@
 script: |
+  mkdir logs
   source minio.sh
-  zar import -s 20KiB -R ./root -data s3://bucket/zartest babble.tzng
-  zar map -R ./root -o count.zng "count()"
+  zar import -R ./logs -data s3://bucket/zartest babble.tzng
+  zar map -R ./logs -o count.zng "count()"
   echo ===
-  zar ls -l -R ./root
+  zar ls -R ./logs -ranges -l
   echo ===
-  zar rm -R ./root count.zng
+  zar rm -R ./logs -ranges count.zng
   echo ===
-  zar rm -R ./root count.zng
+  zar rm -R ./logs -ranges count.zng
 
 inputs:
   - name: babble.tzng
@@ -19,13 +20,11 @@ outputs:
   - name: stdout
     data: |
       ===
-      s3://bucket/zartest/20200422/1587518620.0622373.zng.zar
-      	count.zng
-      s3://bucket/zartest/20200421/1587509477.06313454.zng.zar
-      	count.zng
+      [1587518620062237300-1587513611063914690]/count.zng
+      [1587513592062544400-1587508830068523240]/count.zng
       ===
-      s3://bucket/zartest/20200422/1587518620.0622373.zng.zar/count.zng: removed
-      s3://bucket/zartest/20200421/1587509477.06313454.zng.zar/count.zng: removed
+      [1587518620062237300-1587513611063914690]/count.zng: removed
+      [1587513592062544400-1587508830068523240]/count.zng: removed
       ===
-      s3://bucket/zartest/20200422/1587518620.0622373.zng.zar/count.zng: not found
-      s3://bucket/zartest/20200421/1587509477.06313454.zng.zar/count.zng: not found
+      [1587518620062237300-1587513611063914690]/count.zng: not found
+      [1587513592062544400-1587508830068523240]/count.zng: not found

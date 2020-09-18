@@ -1,13 +1,12 @@
 script: |
   mkdir logs
-  zar import -s 20KiB -R ./logs babble.tzng
+  zar import -R ./logs babble.tzng
   zar index -R ./logs -q :string v
-  zar ls -relative -R ./logs
   echo ===
-  zar stat -R ./logs
+  # Verify the log_id's in the default table format.
+  zq -t "count()" $(zar stat -R ./logs | grep -v ^TYPE | awk '{print "logs/"$2}' | sort | uniq)
   echo ===
-  zar stat -R ./logs -f tzng
-  echo ===
+  zar stat -R ./logs -f zng | zq -t "cut -c log_id" -
 
 inputs:
   - name: babble.tzng
@@ -16,26 +15,15 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      20200422/1587518620.0622373.zng.zar
-      20200421/1587509477.06313454.zng.zar
       ===
-      TYPE  LOG_ID                          START                DURATION       SIZE  RECORD_COUNT
-      chunk 20200422/1587518620.0622373.zng 1587509477.064505280 9142.997732021 32205 939
-      TYPE  LOG_ID                          INDEX_ID                   INDEX_TYPE SIZE  RECORD_COUNT KEYS.KEY
-      index 20200422/1587518620.0622373.zng microindex-field-v.zng     field      2984  939          int64
-      index 20200422/1587518620.0622373.zng microindex-type-string.zng type       23746 939          string
-      TYPE  LOG_ID                           START                DURATION      SIZE RECORD_COUNT
-      chunk 20200421/1587509477.06313454.zng 1587508830.068523240 646.994611301 2133 61
-      TYPE  LOG_ID                           INDEX_ID                   INDEX_TYPE SIZE RECORD_COUNT KEYS.KEY
-      index 20200421/1587509477.06313454.zng microindex-field-v.zng     field      493  61           int64
-      index 20200421/1587509477.06313454.zng microindex-type-string.zng type       1645 61           string
+      #0:record[count:uint64]
+      0:[1000;]
       ===
-      #0:record[type:string,log_id:string,start:time,duration:duration,size:uint64,record_count:uint64]
-      0:[chunk;20200422/1587518620.0622373.zng;1587509477.06450528;9142.997732021;32205;939;]
-      #1:record[type:string,log_id:string,index_id:string,index_type:string,size:uint64,record_count:uint64,keys:record[key:string]]
-      1:[index;20200422/1587518620.0622373.zng;microindex-field-v.zng;field;2984;939;[int64;]]
-      1:[index;20200422/1587518620.0622373.zng;microindex-type-string.zng;type;23746;939;[string;]]
-      0:[chunk;20200421/1587509477.06313454.zng;1587508830.06852324;646.994611301;2133;61;]
-      1:[index;20200421/1587509477.06313454.zng;microindex-field-v.zng;field;493;61;[int64;]]
-      1:[index;20200421/1587509477.06313454.zng;microindex-type-string.zng;type;1645;61;[string;]]
-      ===
+      #0:record[type:string,first:time,last:time,size:uint64,record_count:uint64]
+      0:[chunk;1587518620.0622373;1587513611.06391469;16995;496;]
+      #1:record[type:string,first:time,last:time,index_id:string,size:uint64,record_count:uint64,keys:record[key:string]]
+      1:[index;1587518620.0622373;1587513611.06391469;microindex-field-v.zng;2267;496;[int64;]]
+      1:[index;1587518620.0622373;1587513611.06391469;microindex-type-string.zng;12677;496;[string;]]
+      0:[chunk;1587513592.0625444;1587508830.06852324;17206;504;]
+      1:[index;1587513592.0625444;1587508830.06852324;microindex-field-v.zng;2253;504;[int64;]]
+      1:[index;1587513592.0625444;1587508830.06852324;microindex-type-string.zng;12714;504;[string;]]

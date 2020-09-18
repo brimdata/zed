@@ -1,12 +1,18 @@
 script: |
   mkdir logs
-  zar import -s 20KiB -R ./logs babble.tzng
-  zar ls -relative -R ./logs
+  zar import -R ./logs babble.tzng
+  zar ls -R ./logs -ranges
   echo ===
-  touch logs/20200421/1587509477.06313454.zng.zar/foo
-  zar ls -relative -R ./logs foo
+  zar ls -R ./logs -relative | sort > t1
+  (cd logs; find zd -type d -regex ".*\.zar$" | sort) > t2
+  test -s t1 && test -s t2 && diff t1 t2 && echo ls matches
   echo ===
-  zar ls -relative -R ./logs -l
+  touch $(find logs/zd -type d -regex ".*\.zar$" | sort | head -n 1)/foo
+  zar ls -relative -R ./logs foo > t3
+  (cd logs; find zd -type f -name foo) > t4
+  test -s t3 && test -s t4 && diff t3 t4 && echo found foo
+  echo ===
+  zar ls -R ./logs -ranges -l
   echo ===
 
 inputs:
@@ -16,12 +22,12 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      20200422/1587518620.0622373.zng.zar
-      20200421/1587509477.06313454.zng.zar
+      [1587518620062237300-1587513611063914690]
+      [1587513592062544400-1587508830068523240]
       ===
-      20200421/1587509477.06313454.zng.zar/foo
+      ls matches
       ===
-      20200422/1587518620.0622373.zng.zar
-      20200421/1587509477.06313454.zng.zar
-      	foo
+      found foo
+      ===
+      [1587513592062544400-1587508830068523240]/foo
       ===
