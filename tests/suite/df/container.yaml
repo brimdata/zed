@@ -1,0 +1,12 @@
+zql: df
+
+input: |
+  #0:record[a:string,r:record[x:int32,y:int32]]
+  0:[hello;[1;2;]]
+  #1:record[f:record[x:int32,y:int32],s:string]
+  1:[[3;4;]world;]
+
+output: |
+  #0:record[a:string,r:record[x:int32,y:int32],f:record[x:int32,y:int32],s:string]
+  0:[hello;[1;2;]-;-;]
+  0:[-;-;[3;4;]world;]

@@ -22,7 +22,7 @@
 #define ASSERT_MAP(m) m.(map[string]interface{})
 #define HAS(m, k) _, ok := m[k]; ok
 #define MAP(...) map[string]interface{}{__VA_ARGS__}
-#define PRINT(...) fmt.Println(__VA_ARGS__)  
+#define PRINT(...) fmt.Println(__VA_ARGS__)
 #else
 {
 #include "parser-support.js"
@@ -264,7 +264,7 @@ fieldReference
    )* {
      VAR(ret) = MAP("op": "FieldRead", "field": base)
      FOREACH(ASSERT_ARRAY(ds), d) {
-       VAR(derefs) = ASSERT_MAP(d) 
+       VAR(derefs) = ASSERT_MAP(d)
        derefs["field"] = ret
        ret = derefs
      }
@@ -351,7 +351,7 @@ groupByProc
 reducerExpr
   = field:fieldName _? "=" _? f:reducer {
     VAR(r) = ASSERT_MAP(f)
-    r["var"] = field    
+    r["var"] = field
     RETURN(r)
   }
   / reducer
@@ -379,6 +379,7 @@ simpleProc
   / uniq
   / put
   / rename
+  / df
 
 sort
   = "sort"i args:sortArgs list:(_ l:fieldExprList { RETURN(l) })? {
@@ -435,7 +436,7 @@ cutAssignment
 cut
   = "cut"i args:cutArgs _ first:cutAssignment rest:(__ "," __ cl:cutAssignment { RETURN(cl) })* {
     VAR(argm) = ASSERT_MAP(args)
-    VAR(proc) = MAP("op": "CutProc", "fields": PREPEND(first, rest), "complement": false) 
+    VAR(proc) = MAP("op": "CutProc", "fields": PREPEND(first, rest), "complement": false)
     if HAS(argm, "c") {
       proc["complement"] = true
     }
@@ -470,6 +471,11 @@ rename
       RETURN(MAP("op": "RenameProc", "fields": PREPEND(first, rest)))
     }
 
+df
+  = "df"i {
+      RETURN(MAP("op": "DfProc"))
+  }
+
 ExpressionAssignment
   = f:fieldName __ "=" __ e:Expression {
       RETURN(MAP("target": f, "expression": e))
@@ -497,7 +503,7 @@ FieldReference
   = f:fieldName {
       VAR(ret) = MAP("op": "FieldRead", "field": f)
       FOREACH(ARRAY(), d) {
-        VAR(derefs) = ASSERT_MAP(d) 
+        VAR(derefs) = ASSERT_MAP(d)
         derefs["field"] = ret
         ret = derefs
       }
@@ -539,7 +545,7 @@ EqualityCompareExpression
 EqualityOperator = ("=~" / "!~" / "=" / "!=") { RETURN(TEXT) }
 
 EqualityComparator
-  = EqualityOperator 
+  = EqualityOperator
   / "in" { RETURN(TEXT) }
 
 RelativeExpression

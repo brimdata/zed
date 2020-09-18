@@ -9,6 +9,7 @@ import (
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/proc/cut"
+	"github.com/brimsec/zq/proc/df"
 	filterproc "github.com/brimsec/zq/proc/filter"
 	"github.com/brimsec/zq/proc/groupby"
 	"github.com/brimsec/zq/proc/head"
@@ -119,6 +120,9 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, parent proc.Int
 			return nil, err
 		}
 		return rename, nil
+
+	case *ast.DfProc:
+		return df.New(pctx, parent)
 	}
 }
 
