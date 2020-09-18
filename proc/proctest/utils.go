@@ -35,7 +35,7 @@ func (r *RecordPuller) Pull() (zbuf.Batch, error) {
 		if rec == nil || err != nil {
 			return nil, err
 		}
-		return zbuf.NewArray([]*zng.Record{rec}), nil
+		return zbuf.Array([]*zng.Record{rec}), nil
 	}
 }
 
@@ -215,7 +215,7 @@ func (p *ProcTest) Finish() error {
 	}
 }
 
-func ParseTestTzng(zctx *resolver.Context, src string) (*zbuf.Array, error) {
+func ParseTestTzng(zctx *resolver.Context, src string) (zbuf.Array, error) {
 	reader := tzngio.NewReader(strings.NewReader(src), zctx)
 	records := make([]*zng.Record, 0)
 	for {
@@ -229,7 +229,7 @@ func ParseTestTzng(zctx *resolver.Context, src string) (*zbuf.Array, error) {
 		records = append(records, rec)
 	}
 
-	return zbuf.NewArray(records), nil
+	return zbuf.Array(records), nil
 }
 
 // TestOneProcWithWarnings runs one test of a proc by compiling cmd as a proc,
