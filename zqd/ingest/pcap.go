@@ -279,16 +279,10 @@ func (p *PcapOp) convertSuricataLog(ctx context.Context) error {
 		return err
 	}
 	defer zr.Close()
-	wc, err := fs.NewFileReplacer(filepath.Join(p.logdir, "eve.zng"), os.FileMode(0666))
-	if err != nil {
-		return err
-	}
-	defer wc.Close()
-	zw := zngio.NewWriter(wc, zngio.WriterOpts{})
-	if err := zbuf.CopyWithContext(ctx, zw, zr); err != nil {
-		return err
-	}
-	return zw.Close()
+	return fs.ReplaceFile(filepath.Join(p.logdir, "eve.zng"), os.FileMode(0666), func(w io.Writer) error {
+		zw := zngio.NewWriter(zio.NopCloser(w), zngio.WriterOpts{})
+		return zbuf.CopyWithContext(ctx, zw, zr)
+	})
 }
 
 func (p *PcapOp) Write(b []byte) (int, error) {
