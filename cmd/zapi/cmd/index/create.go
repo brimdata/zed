@@ -32,11 +32,10 @@ For custom indexes, zql can be used instead of a pattern. This
 requires specifying the key and output file name. For example:
 
     zapi index create -k id.orig_h -o custom -z "count() by _path, id.orig_h | sort id.orig_h"
-`,
 Multiple keys may be specified with multiple -k arguments, in which case the first key is the primary search key, the second key is the secondary search key, and so forth.  For example,
 
 zapi index create -k id.orig_h -k count -o custom -z "count() by _path, id.orig_h | sort id.orig_h,count"
-
+`,
 	New: NewCreate,
 }
 
