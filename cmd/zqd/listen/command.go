@@ -23,7 +23,7 @@ import (
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/proc/sort"
 	"github.com/brimsec/zq/zqd"
-	"github.com/brimsec/zq/zqd/zeek"
+	"github.com/brimsec/zq/zqd/pcapanalyzer"
 	"github.com/mccanne/charm"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -49,17 +49,18 @@ func init() {
 
 type Command struct {
 	*root.Command
-	listenAddr     string
-	conf           zqd.Config
-	pprof          bool
-	prom           bool
-	zeekRunnerPath string
-	configfile     string
-	loggerConf     *logger.Config
-	logLevel       zapcore.Level
-	logger         *zap.Logger
-	devMode        bool
-	portFile       string
+	listenAddr         string
+	conf               zqd.Config
+	pprof              bool
+	prom               bool
+	suricataRunnerPath string
+	zeekRunnerPath     string
+	configfile         string
+	loggerConf         *logger.Config
+	logLevel           zapcore.Level
+	logger             *zap.Logger
+	devMode            bool
+	portFile           string
 	// brimfd is a file descriptor passed through by brim desktop. If set zqd
 	// will exit if the fd is closed.
 	brimfd int
@@ -70,6 +71,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c.conf.Version = cli.Version
 	f.StringVar(&c.listenAddr, "l", ":9867", "[addr]:port to listen on")
 	f.StringVar(&c.conf.Root, "data", ".", "data location")
+	f.StringVar(&c.suricataRunnerPath, "suricatarunner", "", "path to command that generates suricata eve.json from pcap data")
 	f.StringVar(&c.zeekRunnerPath, "zeekrunner", "", "path to command that generates zeek logs from pcap data")
 	f.BoolVar(&c.pprof, "pprof", false, "add pprof routes to api")
 	f.BoolVar(&c.prom, "prometheus", false, "add prometheus metrics routes to api")
@@ -103,6 +105,7 @@ func (c *Command) Run(args []string) error {
 		zap.String("datadir", c.conf.Root),
 		zap.Uint64("open_files_limit", openFilesLimit),
 		zap.Bool("pprof_routes", c.pprof),
+		zap.Bool("suricata_supported", core.HasSuricata()),
 		zap.Bool("zeek_supported", core.HasZeek()),
 	)
 	h := zqd.NewHandler(core, c.logger)
@@ -146,7 +149,10 @@ func (c *Command) init() error {
 	if err := c.initLogger(); err != nil {
 		return err
 	}
-	return c.initZeek()
+	if err := c.initZeek(); err != nil {
+		return err
+	}
+	return c.initSuricata()
 }
 
 func (c *Command) watchBrimFd(ctx context.Context) (context.Context, error) {
@@ -229,11 +235,33 @@ func (c *Command) initZeek() error {
 			return nil
 		}
 	}
-	ln, err := zeek.LauncherFromPath(c.zeekRunnerPath)
+	ln, err := pcapanalyzer.LauncherFromPath(c.zeekRunnerPath)
 	if err != nil {
 		return err
 	}
-	c.conf.ZeekLauncher = ln
+	c.conf.Zeek = ln
+	return nil
+}
+
+func (c *Command) initSuricata() error {
+	if c.suricataRunnerPath == "" {
+		var err error
+		if c.suricataRunnerPath, err = exec.LookPath("suricatarunner"); err != nil {
+			return nil
+		}
+		// For now, finding the runner does not guarantee that
+		// suricata will be found. Once we install everything
+		// into zq/bin like we do for Zeek, this check can go
+		// away.
+		if _, err = exec.LookPath("suricata"); err != nil {
+			return nil
+		}
+	}
+	ln, err := pcapanalyzer.LauncherFromPath(c.suricataRunnerPath)
+	if err != nil {
+		return err
+	}
+	c.conf.Suricata = ln
 	return nil
 }
 

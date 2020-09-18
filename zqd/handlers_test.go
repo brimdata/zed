@@ -27,8 +27,8 @@ import (
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zqd"
 	"github.com/brimsec/zq/zqd/api"
+	"github.com/brimsec/zq/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/zqd/storage"
-	"github.com/brimsec/zq/zqd/zeek"
 	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -634,7 +634,7 @@ func TestDeleteDuringPcapPost(t *testing.T) {
 		return errors.New("zeek exited with error code: -1")
 	}
 
-	c.ZeekLauncher = testZeekLauncher(nil, waitFn)
+	c.Zeek = testZeekLauncher(nil, waitFn)
 
 	var wg sync.WaitGroup
 	pcapPostErr := make(chan error)
@@ -718,7 +718,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 	c, client, done := newCoreAtDir(t, root)
 	defer done()
 
-	c.ZeekLauncher = testZeekLauncher(func(tzp *testZeekProcess) error {
+	c.Zeek = testZeekLauncher(func(tzp *testZeekProcess) error {
 		const s = "unexpected attempt to run zeek"
 		t.Error(s)
 		return errors.New(s)
@@ -1156,8 +1156,8 @@ func postSpaceLogs(t *testing.T, c *api.Connection, spaceID api.SpaceID, tc *ndj
 	return payloads
 }
 
-func testZeekLauncher(start, wait procFn) zeek.Launcher {
-	return func(ctx context.Context, r io.Reader, dir string) (zeek.Process, error) {
+func testZeekLauncher(start, wait procFn) pcapanalyzer.Launcher {
+	return func(ctx context.Context, r io.Reader, dir string) (pcapanalyzer.ProcessWaiter, error) {
 		p := &testZeekProcess{
 			ctx:    ctx,
 			reader: r,
