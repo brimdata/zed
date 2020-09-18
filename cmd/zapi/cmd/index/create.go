@@ -26,7 +26,7 @@ you would run:
 
 	zapi index create id.orig_h :port
 
-Each pattern results in a separate microindex file for each log file found.
+Each pattern results in a separate, single-key microindex file for each log file found.
 
 For custom indexes, zql can be used instead of a pattern. This
 requires specifying the key and output file name. For example:
