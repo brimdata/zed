@@ -536,11 +536,7 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string,
 			}
 			// put one head/tail on each parallel branch and one after the merge.
 			return buildSplitFlowgraph(seq.Procs[0:i+1], seq.Procs[i:], inputSortField, inputSortReversed, N), true
-		case *ast.FuseProc:
-			// The df proc could conceivably be parallelized but there are better ways
-			// to optimize it with columnar form when we get to that...
-			return seq, false
-		case *ast.UniqProc:
+		case *ast.UniqProc, *ast.FuseProc:
 			if inputSortField == "" {
 				// Unknown order: we can't parallelize because we can't maintain this unknown order at the merge point.
 				return seq, false
