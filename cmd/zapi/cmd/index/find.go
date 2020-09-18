@@ -30,7 +30,7 @@ indexed then the IP 10.0.1.2 can be searched by saying
 
 Or if the field "uri" has been indexed, you might say
 
-	zapi iindex uri=/x/y/z
+	zapi index uri=/x/y/z
 
 For custom indexes, the name of index is given by the -x option,
 and the "pattern" argument(s) comprise one or more values that
