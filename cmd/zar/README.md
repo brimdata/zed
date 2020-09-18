@@ -478,9 +478,11 @@ zq "count() by from | put id=from" edges.zng > nodes.zng
 zq "count() by to | put id=to" edges.zng >> nodes.zng
 zq -f ndjson "count() by id | cut id | put group=1" nodes.zng > nodes.ndjson
 ```
+<!-- markdown-link-check-disable -->
 To make a simple demo of this concept here, I cut and paste the nodes and edges
 data into a gist and added some commas with `awk`.  Check out this
 [d3 "block"](https://bl.ocks.org/mccanne/ff6f703cf202aee59197fff1f63d04fe).
+<!-- markdown-link-check-enable -->
 
 ## pipes
 
