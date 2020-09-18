@@ -200,7 +200,7 @@ func setGroupByProcInputSortDir(p ast.Proc, inputSortField string, inputSortDir 
 			}
 		}
 		return true
-	case *ast.FilterProc, *ast.HeadProc, *ast.PassProc, *ast.UniqProc, *ast.TailProc:
+	case *ast.FilterProc, *ast.HeadProc, *ast.PassProc, *ast.UniqProc, *ast.TailProc, *ast.DfProc:
 		return true
 	default:
 		return false
@@ -341,7 +341,7 @@ func computeColumnsR(p ast.Proc, colset map[string]struct{}) (map[string]struct{
 		// colsets on each branch, and then merge them at the
 		// split point.)
 		return nil, true
-	case *ast.UniqProc:
+	case *ast.UniqProc, *ast.DfProc:
 		return nil, true
 	case *ast.HeadProc, *ast.TailProc, *ast.PassProc:
 		return colset, false
@@ -536,6 +536,10 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string,
 			}
 			// put one head/tail on each parallel branch and one after the merge.
 			return buildSplitFlowgraph(seq.Procs[0:i+1], seq.Procs[i:], inputSortField, inputSortReversed, N), true
+		case *ast.DfProc:
+			// The df proc could conceivably be parallelized but there are better ways
+			// to optimize it with columnar form when we get to that...
+			return seq, false
 		case *ast.UniqProc:
 			if inputSortField == "" {
 				// Unknown order: we can't parallelize because we can't maintain this unknown order at the merge point.

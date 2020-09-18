@@ -34,7 +34,7 @@ func (s *schema) mixin(typ *zng.TypeRecord) []int {
 		key := fmt.Sprintf("%s%d", name, c.Type.ID())
 		uberPosition, ok := s.position[key]
 		if !ok {
-			cnt := s.touch(c.Name)
+			cnt := s.touch(name)
 			if cnt > 1 {
 				name = fmt.Sprintf("%s_%d", name, cnt)
 			}
