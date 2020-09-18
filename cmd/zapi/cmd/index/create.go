@@ -24,7 +24,7 @@ A pattern is either a field name or a ":" followed by a zng type name.
 For example, to index the all fields of type port and the field id.orig_h,
 you would run:
 
-	zapi index create id.orig_h:port
+	zapi index create id.orig_h :port
 
 Each pattern results in a separate microindex file for each log file found.
 
