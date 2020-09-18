@@ -36,11 +36,14 @@ type Source interface {
 	// was an error finding this information.
 	Exists(context.Context, URI) (bool, error)
 	Stat(context.Context, URI) (Info, error)
+	ReadDir(context.Context, URI) ([]Info, error)
 }
 
 type Info interface {
+	Name() string
 	Size() int64
 	ModTime() time.Time
+	IsDir() bool
 }
 
 type DirMaker interface {
@@ -114,6 +117,14 @@ func Stat(ctx context.Context, uri URI) (Info, error) {
 		return nil, err
 	}
 	return source.Stat(ctx, uri)
+}
+
+func ReadDir(ctx context.Context, uri URI) ([]Info, error) {
+	source, err := GetSource(uri)
+	if err != nil {
+		return nil, err
+	}
+	return source.ReadDir(ctx, uri)
 }
 
 func GetSource(uri URI) (Source, error) {

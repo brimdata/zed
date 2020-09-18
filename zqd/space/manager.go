@@ -2,13 +2,10 @@ package space
 
 import (
 	"context"
-	"fmt"
-	"io/ioutil"
 	"path"
 	"sync"
 
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/pkg/s3io"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqe"
@@ -34,22 +31,16 @@ func NewManagerWithContext(ctx context.Context, root iosrc.URI, logger *zap.Logg
 		names:    make(map[string]api.SpaceID),
 		logger:   logger,
 	}
-	var err error
-	var dirs []iosrc.URI
-	switch root.Scheme {
-	case "file":
-		if dirs, err = filespaces(root); err != nil {
-			return nil, err
-		}
-	case "s3":
-		if dirs, err = s3spaces(ctx, root); err != nil {
-			return nil, err
-		}
-	default:
-		return nil, fmt.Errorf("%s: unsupported scheme", root.Scheme)
-	}
 
-	for _, dir := range dirs {
+	list, err := iosrc.ReadDir(ctx, root)
+	if err != nil {
+		return nil, err
+	}
+	for _, l := range list {
+		if !l.IsDir() {
+			continue
+		}
+		dir := root.AppendPath(l.Name())
 		config, err := mgr.loadConfig(ctx, dir)
 		if err != nil {
 			if zqe.IsNotFound(err) {
@@ -71,35 +62,6 @@ func NewManagerWithContext(ctx context.Context, root iosrc.URI, logger *zap.Logg
 	}
 
 	return mgr, nil
-}
-
-func s3spaces(ctx context.Context, root iosrc.URI) ([]iosrc.URI, error) {
-	prefixes, err := s3io.ListCommonPrefixes(ctx, root.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-	var uris []iosrc.URI
-	for _, p := range prefixes {
-		u := root
-		u.Path = p
-		uris = append(uris, u)
-	}
-	return uris, nil
-}
-
-func filespaces(root iosrc.URI) ([]iosrc.URI, error) {
-	dirs, err := ioutil.ReadDir(root.Filepath())
-	if err != nil {
-		return nil, err
-	}
-	var uris []iosrc.URI
-	for _, dir := range dirs {
-		if !dir.IsDir() {
-			continue
-		}
-		uris = append(uris, root.AppendPath(dir.Name()))
-	}
-	return uris, nil
 }
 
 func (m *Manager) Create(ctx context.Context, req api.SpacePostRequest) (Space, error) {

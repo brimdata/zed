@@ -80,6 +80,21 @@ func (mr *MockSourceMockRecorder) NewWriter(arg0, arg1 interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewWriter", reflect.TypeOf((*MockSource)(nil).NewWriter), arg0, arg1)
 }
 
+// ReadDir mocks base method
+func (m *MockSource) ReadDir(arg0 context.Context, arg1 iosrc.URI) ([]iosrc.Info, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReadDir", arg0, arg1)
+	ret0, _ := ret[0].([]iosrc.Info)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReadDir indicates an expected call of ReadDir
+func (mr *MockSourceMockRecorder) ReadDir(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadDir", reflect.TypeOf((*MockSource)(nil).ReadDir), arg0, arg1)
+}
+
 // ReadFile mocks base method
 func (m *MockSource) ReadFile(arg0 context.Context, arg1 iosrc.URI) ([]byte, error) {
 	m.ctrl.T.Helper()

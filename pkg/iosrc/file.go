@@ -73,6 +73,18 @@ func (s *FileSource) NewReplacer(_ context.Context, uri URI) (io.WriteCloser, er
 	return fs.NewFileReplacer(uri.Filepath(), s.Perm)
 }
 
+func (s *FileSource) ReadDir(_ context.Context, uri URI) ([]Info, error) {
+	entries, err := ioutil.ReadDir(uri.Filepath())
+	if err != nil {
+		return nil, err
+	}
+	infos := make([]Info, len(entries))
+	for i, e := range entries {
+		infos[i] = e
+	}
+	return infos, nil
+}
+
 func wrapfileError(uri URI, err error) error {
 	if os.IsNotExist(err) {
 		return zqe.E(zqe.NotFound, uri.String())

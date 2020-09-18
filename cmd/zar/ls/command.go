@@ -5,14 +5,11 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path"
 
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/pkg/s3io"
 	"github.com/mccanne/charm"
 )
 
@@ -87,25 +84,13 @@ func (c *Command) printDir(root, dir iosrc.URI, pattern string) {
 	}
 	fmt.Println(c.printable(root, dir))
 	if c.lflag {
-		var files []string
-		switch dir.Scheme {
-		case "file":
-			files = lsfs(dir.Filepath())
-		case "s3":
-			var err error
-			if files, err = s3io.ListObjects(context.TODO(), dir.String(), nil); err != nil {
-				fmt.Fprintf(os.Stderr, "error listing s3 objects: %v", err)
-				return
-			}
-			for i := range files {
-				_, files[i] = path.Split(files[i])
-			}
-		default:
-			fmt.Fprintf(os.Stderr, "long form flag unsupported for scheme %q", dir.Scheme)
+		entries, err := iosrc.ReadDir(context.TODO(), dir)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error listing directory: %v", err)
 			return
 		}
-		for _, f := range files {
-			fmt.Printf("\t%s\n", f)
+		for _, e := range entries {
+			fmt.Printf("\t%s\n", e.Name())
 		}
 	}
 }
@@ -115,20 +100,4 @@ func (c *Command) printable(root, path iosrc.URI) string {
 		return root.RelPath(path)
 	}
 	return path.String()
-}
-
-func lsfs(dir string) []string {
-	var out []string
-	infos, err := ioutil.ReadDir(dir)
-	if err != nil {
-		return nil
-	}
-	for _, info := range infos {
-		name := info.Name()
-		if info.IsDir() {
-			name += "/"
-		}
-		out = append(out, name)
-	}
-	return out
 }

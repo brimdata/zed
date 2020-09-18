@@ -35,7 +35,7 @@ func NewReader(ctx context.Context, path string, cfg *aws.Config) (*Reader, erro
 		ctx:    ctx,
 		bucket: bucket,
 		key:    key,
-		size:   *info.ContentLength,
+		size:   info.Size,
 	}, nil
 }
 
