@@ -1,0 +1,28 @@
+script: |
+  source services.sh
+  zapi -h $ZQD_HOST new -k archivestore -thresh 1B testsp >/dev/null
+  zapi -h $ZQD_HOST -s testsp post data.tzng >/dev/null
+  zapi -h $ZQD_HOST -s testsp index create :ip
+  zapi -h $ZQD_HOST -s testsp index find -f tzng :ip=192.168.1.102
+  echo ===
+  zapi -h $ZQD_HOST -s testsp index find -f tzng :ip=192.168.1.103
+
+inputs:
+  - name: services.sh
+    source: services.sh
+  - name: data.tzng
+    data: |
+      #0:record[_path:string,ts:time,orig_h:ip]
+      0:[test;1.0;192.168.1.102;]
+      0:[test;2;192.168.1.103;]
+
+outputs:
+  - name: stdout
+    data: |
+      #zfile=string
+      #0:record[key:ip,count:uint64,_log:zfile]
+      0:[192.168.1.102;1;19700101/1.zng;]
+      ===
+      #zfile=string
+      #0:record[key:ip,count:uint64,_log:zfile]
+      0:[192.168.1.103;1;19700101/2.zng;]
