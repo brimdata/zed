@@ -54,7 +54,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 			p.recs = append(p.recs, rec)
 		}
 		if nbytes >= MemMaxBytes {
-			return nil, errors.New("df processor exceeded memory limit")
+			return nil, errors.New("fuse processor exceeded memory limit")
 		}
 	}
 }
@@ -104,7 +104,7 @@ func (p *Proc) finish(types resolver.Slice, recs []*zng.Record) (zbuf.Batch, err
 			slots[pos].zv = zv
 		}
 		if !it.Done() {
-			return nil, errors.New("column mismatch in df proc")
+			return nil, errors.New("column mismatch in fuse processor")
 		}
 		uberRec := splice(uberType, slots)
 		out = append(out, uberRec)
