@@ -101,6 +101,8 @@ func unpackProc(custom Unpacker, node joe.Interface) (Proc, error) {
 		return &PutProc{Clauses: clauses}, nil
 	case "RenameProc":
 		return &RenameProc{}, nil
+	case "FuseProc":
+		return &FuseProc{}, nil
 	case "UniqProc":
 		return &UniqProc{}, nil
 	case "GroupByProc":

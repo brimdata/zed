@@ -10,6 +10,7 @@ import (
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/proc/cut"
 	filterproc "github.com/brimsec/zq/proc/filter"
+	"github.com/brimsec/zq/proc/fuse"
 	"github.com/brimsec/zq/proc/groupby"
 	"github.com/brimsec/zq/proc/head"
 	"github.com/brimsec/zq/proc/merge"
@@ -119,6 +120,9 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, parent proc.Int
 			return nil, err
 		}
 		return rename, nil
+
+	case *ast.FuseProc:
+		return fuse.New(pctx, parent)
 	}
 }
 
