@@ -35,7 +35,7 @@ func (r *RecordPuller) Pull() (zbuf.Batch, error) {
 		if rec == nil || err != nil {
 			return nil, err
 		}
-		return zbuf.Array([]*zng.Record{rec}), nil
+		return zbuf.Array{rec}, nil
 	}
 }
 

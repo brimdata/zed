@@ -67,7 +67,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		}
 		t := p.wrap(p.last)
 		p.last = nil
-		return zbuf.Array([]*zng.Record{t}), nil
+		return zbuf.Array{t}, nil
 	}
 	defer batch.Unref()
 	var out []*zng.Record
