@@ -21,7 +21,6 @@ import (
 	"github.com/brimsec/zq/zqd/pcapstorage"
 	"github.com/brimsec/zq/zqd/process"
 	"github.com/brimsec/zq/zqd/storage"
-	"github.com/brimsec/zq/zqd/zeek"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -42,7 +41,7 @@ func TestPcapPostSuccess(t *testing.T) {
 	}
 	pcapuri, err := iosrc.ParseURI("testdata/valid.pcap")
 	require.NoError(t, err)
-	ln, err := zeek.LauncherFromPath(os.Getenv("ZEEK"))
+	ln, err := process.LauncherFromPath(os.Getenv("ZEEK"))
 	require.NoError(t, err)
 	p := pcapPost(t, pcapuri.Filepath(), ln)
 	defer p.cleanup()
@@ -97,7 +96,7 @@ func TestPcapPostSearch(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("skipping test for windows")
 	}
-	ln, err := zeek.LauncherFromPath(os.Getenv("ZEEK"))
+	ln, err := process.LauncherFromPath(os.Getenv("ZEEK"))
 	require.NoError(t, err)
 	p := pcapPost(t, "./testdata/valid.pcap", ln)
 	defer p.cleanup()
@@ -140,7 +139,7 @@ func TestPcapSearchNotFound(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("skipping test for windows")
 	}
-	ln, err := zeek.LauncherFromPath(os.Getenv("ZEEK"))
+	ln, err := process.LauncherFromPath(os.Getenv("ZEEK"))
 	require.NoError(t, err)
 	p := pcapPost(t, "./testdata/valid.pcap", ln)
 	defer p.cleanup()

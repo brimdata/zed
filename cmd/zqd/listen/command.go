@@ -23,8 +23,7 @@ import (
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/proc/sort"
 	"github.com/brimsec/zq/zqd"
-	"github.com/brimsec/zq/zqd/suricata"
-	"github.com/brimsec/zq/zqd/zeek"
+	"github.com/brimsec/zq/zqd/process"
 	"github.com/mccanne/charm"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -236,7 +235,7 @@ func (c *Command) initZeek() error {
 			return nil
 		}
 	}
-	ln, err := zeek.LauncherFromPath(c.zeekRunnerPath)
+	ln, err := process.LauncherFromPath(c.zeekRunnerPath)
 	if err != nil {
 		return err
 	}
@@ -258,7 +257,7 @@ func (c *Command) initSuricata() error {
 			return nil
 		}
 	}
-	ln, err := suricata.LauncherFromPath(c.suricataRunnerPath)
+	ln, err := process.LauncherFromPath(c.suricataRunnerPath)
 	if err != nil {
 		return err
 	}
