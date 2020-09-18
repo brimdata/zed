@@ -140,7 +140,7 @@ outer:
 			break outer
 		case t := <-ticker.C:
 			if t.After(start.Add(next)) {
-				if err := p.createSnapshot(ctx, p.zeekFiles()); err != nil {
+				if err := p.createSnapshot(ctx); err != nil {
 					abort()
 					return err
 				}
@@ -160,8 +160,8 @@ outer:
 		abort()
 		return zErr
 	}
-	files := append(p.zeekFiles(), p.suricataFiles()...)
-	if err := p.createSnapshot(ctx, files); err != nil {
+
+	if err := p.createSnapshot(ctx); err != nil {
 		abort()
 		return err
 	}
@@ -249,7 +249,8 @@ func (p *PcapOp) suricataFiles() []string {
 	return []string{path}
 }
 
-func (p *PcapOp) createSnapshot(ctx context.Context, files []string) error {
+func (p *PcapOp) createSnapshot(ctx context.Context) error {
+	files := append(p.zeekFiles(), p.suricataFiles()...)
 	if len(files) == 0 {
 		return nil
 	}
