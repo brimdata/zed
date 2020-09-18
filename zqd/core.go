@@ -5,13 +5,13 @@ import (
 	"sync/atomic"
 
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/zqd/process"
+	"github.com/brimsec/zq/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/zqd/space"
 	"go.uber.org/zap"
 )
 
 type Launchers struct {
-	Suricata, Zeek process.Launcher
+	Suricata, Zeek pcapanalyzer.Launcher
 }
 
 type Config struct {

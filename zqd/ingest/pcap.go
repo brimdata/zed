@@ -20,8 +20,8 @@ import (
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/zqd/pcapstorage"
-	"github.com/brimsec/zq/zqd/process"
 	"github.com/brimsec/zq/zqd/storage"
 )
 
@@ -42,7 +42,7 @@ type PcapOp struct {
 	logdir               string
 	done, snap           chan struct{}
 	err                  error
-	slauncher, zlauncher process.Launcher
+	slauncher, zlauncher pcapanalyzer.Launcher
 }
 
 // NewPcapOp kicks of the process for ingesting a pcap file into a space.
@@ -50,7 +50,7 @@ type PcapOp struct {
 // Process instance once zeek log files have started to materialize in a tmp
 // directory. If zeekExec is an empty string, this will attempt to resolve zeek
 // from $PATH.
-func NewPcapOp(ctx context.Context, pcapstore *pcapstorage.Store, store ClearableStore, pcap string, slauncher, zlauncher process.Launcher) (*PcapOp, []string, error) {
+func NewPcapOp(ctx context.Context, pcapstore *pcapstorage.Store, store ClearableStore, pcap string, slauncher, zlauncher pcapanalyzer.Launcher) (*PcapOp, []string, error) {
 	pcapuri, err := iosrc.ParseURI(pcap)
 	if err != nil {
 		return nil, nil, err

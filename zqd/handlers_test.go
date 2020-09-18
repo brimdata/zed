@@ -27,7 +27,7 @@ import (
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zqd"
 	"github.com/brimsec/zq/zqd/api"
-	"github.com/brimsec/zq/zqd/process"
+	"github.com/brimsec/zq/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/assert"
@@ -1156,8 +1156,8 @@ func postSpaceLogs(t *testing.T, c *api.Connection, spaceID api.SpaceID, tc *ndj
 	return payloads
 }
 
-func testZeekLauncher(start, wait procFn) process.Launcher {
-	return func(ctx context.Context, r io.Reader, dir string) (process.ProcessWaiter, error) {
+func testZeekLauncher(start, wait procFn) pcapanalyzer.Launcher {
+	return func(ctx context.Context, r io.Reader, dir string) (pcapanalyzer.ProcessWaiter, error) {
 		p := &testZeekProcess{
 			ctx:    ctx,
 			reader: r,

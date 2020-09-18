@@ -18,8 +18,8 @@ import (
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/zqd"
 	"github.com/brimsec/zq/zqd/api"
+	"github.com/brimsec/zq/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/zqd/pcapstorage"
-	"github.com/brimsec/zq/zqd/process"
 	"github.com/brimsec/zq/zqd/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -41,7 +41,7 @@ func TestPcapPostSuccess(t *testing.T) {
 	}
 	pcapuri, err := iosrc.ParseURI("testdata/valid.pcap")
 	require.NoError(t, err)
-	ln, err := process.LauncherFromPath(os.Getenv("ZEEK"))
+	ln, err := pcapanalyzer.LauncherFromPath(os.Getenv("ZEEK"))
 	require.NoError(t, err)
 	p := pcapPost(t, pcapuri.Filepath(), ln)
 	defer p.cleanup()
@@ -96,7 +96,7 @@ func TestPcapPostSearch(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("skipping test for windows")
 	}
-	ln, err := process.LauncherFromPath(os.Getenv("ZEEK"))
+	ln, err := pcapanalyzer.LauncherFromPath(os.Getenv("ZEEK"))
 	require.NoError(t, err)
 	p := pcapPost(t, "./testdata/valid.pcap", ln)
 	defer p.cleanup()
@@ -139,7 +139,7 @@ func TestPcapSearchNotFound(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("skipping test for windows")
 	}
-	ln, err := process.LauncherFromPath(os.Getenv("ZEEK"))
+	ln, err := pcapanalyzer.LauncherFromPath(os.Getenv("ZEEK"))
 	require.NoError(t, err)
 	p := pcapPost(t, "./testdata/valid.pcap", ln)
 	defer p.cleanup()
@@ -234,7 +234,7 @@ func TestPcapPostZeekFailAfterWrite(t *testing.T) {
 	})
 }
 
-func pcapPost(t *testing.T, pcapfile string, l process.Launcher) pcapPostResult {
+func pcapPost(t *testing.T, pcapfile string, l pcapanalyzer.Launcher) pcapPostResult {
 	return pcapPostWithConfig(t, zqd.Config{Launchers: zqd.Launchers{Zeek: l}}, pcapfile)
 }
 
