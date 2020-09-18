@@ -506,10 +506,10 @@ function peg$parse(input, options) {
       peg$c191 = function(first, rest) {
             return {"op": "RenameProc", "fields": [first, ... rest]}
           },
-      peg$c192 = "df",
-      peg$c193 = peg$literalExpectation("df", true),
+      peg$c192 = "fuse",
+      peg$c193 = peg$literalExpectation("fuse", true),
       peg$c194 = function() {
-            return {"op": "DfProc"}
+            return {"op": "FuseProc"}
         },
       peg$c195 = function(f, e) {
             return {"target": f, "expression": e}
@@ -3534,7 +3534,7 @@ function peg$parse(input, options) {
                   if (s0 === peg$FAILED) {
                     s0 = peg$parserename();
                     if (s0 === peg$FAILED) {
-                      s0 = peg$parsedf();
+                      s0 = peg$parsefuse();
                     }
                   }
                 }
@@ -4473,13 +4473,13 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parsedf() {
+  function peg$parsefuse() {
     var s0, s1;
 
     s0 = peg$currPos;
-    if (input.substr(peg$currPos, 2).toLowerCase() === peg$c192) {
-      s1 = input.substr(peg$currPos, 2);
-      peg$currPos += 2;
+    if (input.substr(peg$currPos, 4).toLowerCase() === peg$c192) {
+      s1 = input.substr(peg$currPos, 4);
+      peg$currPos += 4;
     } else {
       s1 = peg$FAILED;
       if (peg$silentFails === 0) { peg$fail(peg$c193); }

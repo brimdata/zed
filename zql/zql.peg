@@ -379,7 +379,7 @@ simpleProc
   / uniq
   / put
   / rename
-  / df
+  / fuse
 
 sort
   = "sort"i args:sortArgs list:(_ l:fieldExprList { RETURN(l) })? {
@@ -471,9 +471,9 @@ rename
       RETURN(MAP("op": "RenameProc", "fields": PREPEND(first, rest)))
     }
 
-df
-  = "df"i {
-      RETURN(MAP("op": "DfProc"))
+fuse
+  = "fuse"i {
+      RETURN(MAP("op": "FuseProc"))
   }
 
 ExpressionAssignment

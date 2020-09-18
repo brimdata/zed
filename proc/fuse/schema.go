@@ -1,4 +1,4 @@
-package df
+package fuse
 
 import (
 	"fmt"

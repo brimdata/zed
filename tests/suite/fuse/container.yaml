@@ -1,4 +1,4 @@
-zql: df
+zql: fuse
 
 input: |
   #0:record[a:string,r:record[x:int32,y:int32]]

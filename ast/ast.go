@@ -303,8 +303,8 @@ type (
 		Fields []FieldAssignment `json:"fields"`
 	}
 
-	// A DfProc node represents a proc that turns a zng stream into a dataframe.
-	DfProc struct {
+	// A FuseProc node represents a proc that turns a zng stream into a dataframe.
+	FuseProc struct {
 		Node
 	}
 )
@@ -351,7 +351,7 @@ func (*GroupByProc) ProcNode()    {}
 func (*TopProc) ProcNode()        {}
 func (*PutProc) ProcNode()        {}
 func (*RenameProc) ProcNode()     {}
-func (*DfProc) ProcNode()         {}
+func (*FuseProc) ProcNode()       {}
 
 // A Reducer is an AST node that represents a reducer function.  The Op
 // parameter indicates the specific reducer while the Field parameter indicates
