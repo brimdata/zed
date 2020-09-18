@@ -70,14 +70,14 @@ func NewManagerWithContext(ctx context.Context, root iosrc.URI, logger *zap.Logg
 }
 
 func s3spaces(ctx context.Context, root iosrc.URI) ([]iosrc.URI, error) {
-	prefixes, err := s3io.ListCommonPrefixes(ctx, root.String(), nil)
+	entries, err := s3io.List(ctx, root.String(), nil)
 	if err != nil {
 		return nil, err
 	}
 	var uris []iosrc.URI
-	for _, p := range prefixes {
+	for _, e := range entries {
 		u := root
-		u.Path = p
+		u.Path = e.Name
 		uris = append(uris, u)
 	}
 	return uris, nil

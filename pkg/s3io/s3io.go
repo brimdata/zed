@@ -7,8 +7,10 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -139,12 +141,28 @@ func Remove(ctx context.Context, path string, cfg *aws.Config) error {
 	return err
 }
 
-func Stat(ctx context.Context, path string, cfg *aws.Config) (*s3.HeadObjectOutput, error) {
-	bucket, key, err := parsePath(path)
+type Info struct {
+	Name    string
+	Size    int64
+	ModTime time.Time
+	IsDir   bool
+}
+
+func Stat(ctx context.Context, uri string, cfg *aws.Config) (Info, error) {
+	bucket, key, err := parsePath(uri)
 	if err != nil {
-		return nil, err
+		return Info{}, err
 	}
-	return head(ctx, bucket, key, cfg)
+	h, err := head(ctx, bucket, key, cfg)
+	if err != nil {
+		return Info{}, err
+	}
+	return Info{
+		Name:    path.Base(key),
+		Size:    *h.ContentLength,
+		ModTime: *h.LastModified,
+		IsDir:   false,
+	}, nil
 }
 
 func head(ctx context.Context, bucket, key string, cfg *aws.Config) (*s3.HeadObjectOutput, error) {
@@ -154,22 +172,7 @@ func head(ctx context.Context, bucket, key string, cfg *aws.Config) (*s3.HeadObj
 	})
 }
 
-func ListObjects(ctx context.Context, path string, cfg *aws.Config) ([]string, error) {
-	bucket, key, err := parsePath(path)
-	if err != nil {
-		return nil, err
-	}
-	client := newClient(cfg)
-	var keys []string
-	return keys, ls(ctx, client, bucket, key, func(out *s3.ListObjectsV2Output, lastPage bool) bool {
-		for _, obj := range out.Contents {
-			keys = append(keys, *obj.Key)
-		}
-		return true
-	})
-}
-
-func ListCommonPrefixes(ctx context.Context, path string, cfg *aws.Config) ([]string, error) {
+func List(ctx context.Context, path string, cfg *aws.Config) ([]Info, error) {
 	bucket, key, err := parsePath(path)
 	if err != nil {
 		return nil, err
@@ -183,22 +186,25 @@ func ListCommonPrefixes(ctx context.Context, path string, cfg *aws.Config) ([]st
 		Bucket:    aws.String(bucket),
 		Delimiter: aws.String("/"),
 	}
-	var prefixes []string
-	err = client.ListObjectsV2Pages(input, func(out *s3.ListObjectsV2Output, lastPage bool) bool {
+	var entries []Info
+	err = client.ListObjectsV2PagesWithContext(ctx, input, func(out *s3.ListObjectsV2Output, lastPage bool) bool {
+		for _, obj := range out.Contents {
+			entries = append(entries, Info{
+				Name:    strings.TrimPrefix(*obj.Key, key),
+				Size:    *obj.Size,
+				ModTime: *obj.LastModified,
+				IsDir:   false,
+			})
+		}
 		for _, p := range out.CommonPrefixes {
-			prefixes = append(prefixes, *p.Prefix)
+			entries = append(entries, Info{
+				Name:  strings.TrimSuffix(strings.TrimPrefix(*p.Prefix, key), "/"),
+				IsDir: true,
+			})
 		}
 		return true
 	})
-	return prefixes, err
-}
-
-func ls(ctx context.Context, client *s3.S3, bucket, key string, cb func(*s3.ListObjectsV2Output, bool) bool) error {
-	input := &s3.ListObjectsV2Input{
-		Prefix: aws.String(key),
-		Bucket: aws.String(bucket),
-	}
-	return client.ListObjectsV2PagesWithContext(ctx, input, cb)
+	return entries, err
 }
 
 func Exists(ctx context.Context, path string, cfg *aws.Config) (bool, error) {

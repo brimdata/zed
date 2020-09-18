@@ -49,6 +49,10 @@ func (s *StdioSource) Exists(_ context.Context, uri URI) (bool, error) {
 	return true, nil
 }
 
+func (s *StdioSource) ReadDir(context.Context, URI) ([]Info, error) {
+	return nil, errStdioNotSupport
+}
+
 func getStdioSource(uri URI) (*os.File, error) {
 	if uri.Scheme != "stdio" {
 		return nil, fmt.Errorf("scheme of %q must stdio", uri)
