@@ -189,7 +189,7 @@ Here a `stats` event was the first record type to be printed in the results stre
 By using `fuse`, the unified schema of fields and types across all records is assembled in a first pass through the data stream, which enables the presentation of the results under a single, wider header row with no further interruptions between the subsequent data rows.
 
 ```zq-command
-zq -f table "fuse" stats.log.gz weird.log.gz
+zq -f table 'fuse' stats.log.gz weird.log.gz
 ```
 
 #### Output:
