@@ -6,6 +6,7 @@ The following available processors are documented in detail below:
 
 * [`cut`](#cut)
 * [`filter`](#filter)
+* [`fuse`](#fuse)
 * [`head`](#head)
 * [`put`](#put)
 * [`rename`](#rename)
@@ -151,6 +152,56 @@ _PATH TS                UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H    ID
 ssl   1521912180.244457 CUG0fiQAzL4rNWxai  10.47.2.100 36150     52.85.83.228 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 secp256r1 www.herokucdn.com F       -          h2            T           FXKmyTbr7HlvyL1h8,FADhCTvkq1ILFnD3j,FoVjYR16c3UIuXj4xk,FmiRYe1P53KOolQeVi   (empty)                 CN=*.herokucdn.com CN=Amazon,OU=Server CA 1B,O=Amazon,C=US -              -             ok
 ssl   1521912240.189735 CSbGJs3jOeB6glWLJj 10.47.7.154 27137     52.85.83.215 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 secp256r1 www.herokucdn.com F       -          h2            T           FuW2cZ3leE606wXSia,Fu5kzi1BUwnF0bSCsd,FyTViI32zPvCmNXgSi,FwV6ff3JGj4NZcVPE4 (empty)                 CN=*.herokucdn.com CN=Amazon,OU=Server CA 1B,O=Amazon,C=US -              -             ok
 ```
+
+---
+
+## `fuse`
+
+|                           |                                                   |
+| ------------------------- | ------------------------------------------------- |
+| **Description**           | Return results under a single record definition that unifies the field and type information across all records in the query result. |
+| **Syntax**                | `fuse`                                            |
+| **Required<br>arguments** | None                                              |
+| **Optional<br>arguments** | None                                              |
+| **Limitations**           | Because `fuse` must make a first pass through the data to assemble the unified schema, results from queries that use `fuse` will not begin streaming back immediately.<br><br>If the query result is too large, an error message `"fuse processor exceeded memory limit"` will be returned. Issue [zq/1320](https://github.com/brimsec/zq/issues/1320) tracks the removal of this limitation. |
+| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc/fuse |
+
+#### Example:
+
+Let's say you'd started with table-formatted output of both `stats` and `weird` events:
+
+```zq-command
+zq -f table stats.log.gz weird.log.gz
+```
+
+#### Output:
+```zq-output head:5
+_PATH TS                PEER MEM PKTS_PROC BYTES_RECV PKTS_DROPPED PKTS_LINK PKT_LAG EVENTS_PROC EVENTS_QUEUED ACTIVE_TCP_CONNS ACTIVE_UDP_CONNS ACTIVE_ICMP_CONNS TCP_CONNS UDP_CONNS ICMP_CONNS TIMERS ACTIVE_TIMERS FILES ACTIVE_FILES DNS_REQUESTS ACTIVE_DNS_REQUESTS REASSEM_TCP_SIZE REASSEM_FILE_SIZE REASSEM_FRAG_SIZE REASSEM_UNKNOWN_SIZE
+stats 1521911720.600725 zeek 74  26        29375      -            -         -       404         11            1                0                0                 1         0         0          36     32            0     0            0            0                   1528             0                 0                 0
+_PATH TS                UID                ID.ORIG_H      ID.ORIG_P ID.RESP_H       ID.RESP_P NAME                             ADDL             NOTICE PEER
+weird 1521911720.600843 C1zOivgBT6dBmknqk  10.47.1.152    49562     23.217.103.245  80        TCP_ack_underflow_or_misorder    -                F      zeek
+weird 1521911720.608108 -                  -              -         -               -         truncated_header                 -                F      zeek
+...
+```
+
+Here a `stats` event was the first record type to be printed in the results stream, so the preceding header row describes the names of its fields. Then a `weird` event came next in the results stream, so a header row describing its fields was printed. This presentation accurately conveys the heterogeneous nature of the data, but the frequent interruption of data rows with different headers is distracting and may make the output difficult to process in downstream tools.
+
+By using `fuse`, the unified schema of fields and types across all records is assembled in a first pass through the data stream, which enables the presentation of the results under a single, wider header row with no further interruptions between the subsequent data rows.
+
+```zq-command
+zq -f table "fuse" stats.log.gz weird.log.gz
+```
+
+#### Output:
+```zq-output head:4
+_PATH TS                PEER MEM PKTS_PROC BYTES_RECV PKTS_DROPPED PKTS_LINK PKT_LAG EVENTS_PROC EVENTS_QUEUED ACTIVE_TCP_CONNS ACTIVE_UDP_CONNS ACTIVE_ICMP_CONNS TCP_CONNS UDP_CONNS ICMP_CONNS TIMERS ACTIVE_TIMERS FILES ACTIVE_FILES DNS_REQUESTS ACTIVE_DNS_REQUESTS REASSEM_TCP_SIZE REASSEM_FILE_SIZE REASSEM_FRAG_SIZE REASSEM_UNKNOWN_SIZE UID                ID.ORIG_H      ID.ORIG_P ID.RESP_H       ID.RESP_P NAME                             ADDL             NOTICE
+stats 1521911720.600725 zeek 74  26        29375      -            -         -       404         11            1                0                0                 1         0         0          36     32            0     0            0            0                   1528             0                 0                 0                    -                  -              -         -               -         -                                -                -
+weird 1521911720.600843 zeek -   -         -          -            -         -       -           -             -                -                -                 -         -         -          -      -             -     -            -            -                   -                -                 -                 -                    C1zOivgBT6dBmknqk  10.47.1.152    49562     23.217.103.245  80        TCP_ack_underflow_or_misorder    -                F
+weird 1521911720.608108 zeek -   -         -          -            -         -       -           -             -                -                -                 -         -         -          -      -             -     -            -            -                   -                -                 -                 -                    -                  -              -         -               -         truncated_header                 -                F
+...
+```
+
+Other output formats invoked via `zq -f` that benefit greatly from the use of `fuse` include `csv` and `zeek`.
 
 ---
 
