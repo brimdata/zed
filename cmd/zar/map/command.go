@@ -6,6 +6,8 @@ import (
 	"os"
 
 	"github.com/brimsec/zq/archive"
+	"github.com/brimsec/zq/cli/outputflags"
+	"github.com/brimsec/zq/cli/procflags"
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
@@ -47,7 +49,8 @@ type Command struct {
 	root         string
 	stopErr      bool
 	textShortcut bool
-	writerFlags  zio.WriterFlags
+	outputFlags  outputflags.Flags
+	procFlags    procflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -58,14 +61,15 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive to walk")
 	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
 	f.BoolVar(&c.textShortcut, "t", false, "use format tzng independent of -f option")
-	c.writerFlags.SetFlags(f)
+	c.outputFlags.SetFlags(f)
+	c.procFlags.SetFlags(f)
 	return c, nil
 }
 
 //XXX lots here copied from zq command... we should refactor into a tools package
 func (c *Command) Run(args []string) error {
 	defer c.Cleanup()
-	if ok, err := c.Init(); !ok {
+	if ok, err := c.Init(&c.outputFlags); !ok {
 		return err
 	}
 	if len(args) == 0 {
@@ -80,18 +84,14 @@ func (c *Command) Run(args []string) error {
 		inputs = []string{"_"}
 	}
 
+	// XXX shouldn't this go on outputFlags.Init()
 	if c.outputFile == "-" {
 		c.outputFile = ""
 	}
-	if c.textShortcut {
-		c.writerFlags.Format = "tzng"
-	}
-	if c.outputFile == "" && c.writerFlags.Format == "zng" && emitter.IsTerminal(os.Stdout) && !c.forceBinary {
-		return errors.New("writing binary zng data to terminal; override with -B or use -t for text.")
-	}
 
 	// Don't allow non-zng to be written inside the archive.
-	if c.outputFile != "" && c.writerFlags.Format != "zng" {
+	// XXX we should allow outputFlags to parameterize this so help doesn't show the other formats
+	if c.outputFile != "" && c.outputFlags.Format != "zng" {
 		return errors.New("only zng format allowed for chunk associated files")
 	}
 
@@ -155,7 +155,7 @@ func (c *Command) openOutput(zardir iosrc.URI) (zbuf.WriteCloser, error) {
 	if c.outputFile != "" {
 		path = zardir.AppendPath(c.outputFile).String()
 	}
-	w, err := emitter.NewFile(path, c.writerFlags.Options())
+	w, err := emitter.NewFile(path, c.outputFlags.Options())
 	if err != nil {
 		return nil, err
 	}

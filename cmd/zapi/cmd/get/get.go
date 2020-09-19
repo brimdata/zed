@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/brimsec/zq/cli"
+	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/pkg/fs"
@@ -59,8 +59,7 @@ func init() {
 
 type Command struct {
 	*cmd.Command
-	writerFlags zio.WriterFlags
-	output      cli.OutputFlags
+	outputFlags outputflags.Flags
 	encoding    string
 	from        tsflag
 	to          tsflag
@@ -76,18 +75,21 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 		Command: parent.(*cmd.Command),
 		to:      tsflag(nano.MaxTs),
 	}
-	c.writerFlags.SetFlags(f)
 	f.StringVar(&c.encoding, "e", "zng", "server encoding to use for search results [csv,json,ndjson,zjson,zng]")
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
 	f.BoolVar(&c.warnings, "W", true, "display warnings on stderr")
 	f.BoolVar(&c.debug, "debug", false, "dump raw HTTP response straight to output")
 	f.Var(&c.from, "from", "search from timestamp in RFC3339Nano format (e.g. 2006-01-02T15:04:05.999999999Z07:00)")
 	f.Var(&c.to, "to", "search to timestamp in RFC3339Nano format (e.g. 2006-01-02T15:04:05.999999999Z07:00)")
-	c.output.SetFlags(f)
+	c.outputFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
+	defer c.Cleanup()
+	if ok, err := c.Init(&c.outputFlags); !ok {
+		return err
+	}
 	expr := "*"
 	if len(args) > 0 {
 		expr = strings.Join(args, " ")
@@ -111,17 +113,14 @@ func (c *Command) Run(args []string) error {
 	if c.debug {
 		return c.runRawSearch(r)
 	}
-	writerOpts := c.writerFlags.Options()
+	writerOpts := c.outputFlags.Options()
 	if c.encoding != "zng" {
 		if writerOpts.Format != "zng" {
 			return errors.New("-e cannot be used with -f")
 		}
 		return c.runRawSearch(r)
 	}
-	if err := c.output.Init(&writerOpts); err != nil {
-		return err
-	}
-	writer, err := c.output.Open(writerOpts)
+	writer, err := c.outputFlags.Open()
 	if err != nil {
 		return err
 	}
@@ -171,7 +170,7 @@ func (c *Command) handleControl(ctrl interface{}) {
 
 func (c *Command) runRawSearch(r io.Reader) error {
 	w := os.Stdout
-	filename := c.output.FileName()
+	filename := c.outputFlags.FileName()
 	if filename != "" {
 		var err error
 		flags := os.O_WRONLY | os.O_CREATE | os.O_TRUNC

@@ -7,12 +7,14 @@ import (
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/cli"
+	"github.com/brimsec/zq/cli/inputflags"
+	"github.com/brimsec/zq/cli/outputflags"
+	"github.com/brimsec/zq/cli/procflags"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/s3io"
 	"github.com/brimsec/zq/pkg/signalctx"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
 	"github.com/mccanne/charm"
@@ -72,9 +74,9 @@ type Command struct {
 	stats       bool
 	quiet       bool
 	stopErr     bool
-	readerFlags zio.ReaderFlags
-	writerFlags zio.WriterFlags
-	output      cli.OutputFlags
+	inputFlags  inputflags.Flags
+	outputFlags outputflags.Flags
+	procFlags   procflags.Flags
 	cli         cli.Flags
 }
 
@@ -82,13 +84,13 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{}
 
 	// Flags added for writers are -f, -T, -F, -E, -U, and -b
-	c.writerFlags.SetFlags(f)
+	c.outputFlags.SetFlags(f)
 
 	// Flags added for readers are -i, etc
-	c.readerFlags.SetFlags(f)
+	c.inputFlags.SetFlags(f)
 
+	c.procFlags.SetFlags(f)
 	c.cli.SetFlags(f)
-	c.output.SetFlags(f)
 
 	f.BoolVar(&c.verbose, "v", false, "show verbose details")
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
@@ -98,18 +100,11 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	defer c.cli.Cleanup()
-	if ok, err := c.cli.Init(); !ok {
-		return err
-	}
 	if len(args) == 0 {
 		return Zq.Exec(c, []string{"help"})
 	}
-	if err := c.readerFlags.Init(); err != nil {
-		return err
-	}
-	writerOpts := c.writerFlags.Options()
-	if err := c.output.Init(&writerOpts); err != nil {
+	defer c.cli.Cleanup()
+	if ok, err := c.cli.Init(&c.outputFlags, &c.inputFlags, &c.procFlags); !ok {
 		return err
 	}
 	paths := args
@@ -134,7 +129,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	zctx := resolver.NewContext()
-	readers, err := cli.OpenInputs(zctx, c.readerFlags.Options(), paths, c.stopErr)
+	readers, err := c.inputFlags.Open(zctx, paths, c.stopErr)
 	if err != nil {
 		return err
 	}
@@ -148,7 +143,7 @@ func (c *Command) Run(args []string) error {
 	reader := zbuf.NewCombiner(readers, zbuf.CmpTimeForward)
 	defer reader.Close()
 
-	writer, err := c.output.Open(writerOpts)
+	writer, err := c.outputFlags.Open()
 	if err != nil {
 		return err
 	}

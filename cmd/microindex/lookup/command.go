@@ -6,11 +6,10 @@ import (
 	"flag"
 	"strings"
 
-	"github.com/brimsec/zq/cli"
+	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cmd/microindex/root"
 	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
@@ -39,31 +38,25 @@ func init() {
 type LookupCommand struct {
 	*root.Command
 	keys        string
-	WriterFlags zio.WriterFlags
+	outputFlags outputflags.Flags
 	closest     bool
-	output      cli.OutputFlags
 }
 
 func newLookupCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &LookupCommand{Command: parent.(*root.Command)}
 	f.StringVar(&c.keys, "k", "", "key(s) to search")
 	f.BoolVar(&c.closest, "c", false, "find closest insead of exact match")
-	c.WriterFlags.SetFlags(f)
-	c.output.SetFlags(f)
+	c.outputFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *LookupCommand) Run(args []string) error {
 	defer c.Cleanup()
-	if ok, err := c.Init(); !ok {
+	if ok, err := c.Init(&c.outputFlags); !ok {
 		return err
 	}
 	if len(args) != 1 {
 		return errors.New("microindex lookup: must be run with a single file argument")
-	}
-	opts := c.WriterFlags.Options()
-	if err := c.output.Init(&opts); err != nil {
-		return err
 	}
 	path := args[0]
 	if c.keys == "" {
@@ -98,7 +91,7 @@ func (c *LookupCommand) Run(args []string) error {
 		}
 		close(hits)
 	}()
-	writer, err := c.output.Open(opts)
+	writer, err := c.outputFlags.Open()
 	if err != nil {
 		return err
 	}
