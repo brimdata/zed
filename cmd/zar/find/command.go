@@ -108,7 +108,6 @@ func (c *Command) Run(args []string) error {
 		findOptions = append(findOptions, archive.SkipMissing())
 	}
 
-	//XXX allow "-" to trigger zng but changed back for emitter API
 	outputFile := c.outputFlags.FileName()
 	if outputFile == "-" {
 		outputFile = ""

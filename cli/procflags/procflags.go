@@ -14,7 +14,6 @@ type Flags struct {
 }
 
 func (f *Flags) SetFlags(fs *flag.FlagSet) {
-	//XXX set default for Var's?
 	f.sortMemMax = units.Bytes(sort.MemMaxBytes)
 	fs.Var(&f.sortMemMax, "sortmem", "maximum memory used by sort in MiB, MB, etc")
 }
