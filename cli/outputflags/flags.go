@@ -48,6 +48,9 @@ func (f *Flags) Init() error {
 		}
 		f.Format = "tzng"
 	}
+	if f.outputFile == "-" {
+		f.outputFile = ""
+	}
 	if f.outputFile == "" && f.Format == "zng" && IsTerminal(os.Stdout) && !f.forceBinary {
 		return errors.New("writing binary zng data to terminal; override with -B or use -t for text.")
 	}

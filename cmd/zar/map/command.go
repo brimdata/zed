@@ -43,24 +43,18 @@ func init() {
 
 type Command struct {
 	*root.Command
-	forceBinary  bool
-	outputFile   string
-	quiet        bool
-	root         string
-	stopErr      bool
-	textShortcut bool
-	outputFlags  outputflags.Flags
-	procFlags    procflags.Flags
+	quiet       bool
+	root        string
+	stopErr     bool
+	outputFlags outputflags.Flags
+	procFlags   procflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
-	f.BoolVar(&c.forceBinary, "B", false, "allow binary zng output to a terminal")
-	f.StringVar(&c.outputFile, "o", "", "output file relative to zar directory")
 	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
 	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive to walk")
 	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
-	f.BoolVar(&c.textShortcut, "t", false, "use format tzng independent of -f option")
 	c.outputFlags.SetFlags(f)
 	c.procFlags.SetFlags(f)
 	return c, nil
@@ -69,7 +63,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 //XXX lots here copied from zq command... we should refactor into a tools package
 func (c *Command) Run(args []string) error {
 	defer c.Cleanup()
-	if ok, err := c.Init(&c.outputFlags); !ok {
+	if ok, err := c.Init(&c.outputFlags, &c.procFlags); !ok {
 		return err
 	}
 	if len(args) == 0 {
@@ -84,14 +78,9 @@ func (c *Command) Run(args []string) error {
 		inputs = []string{"_"}
 	}
 
-	// XXX shouldn't this go on outputFlags.Init()
-	if c.outputFile == "-" {
-		c.outputFile = ""
-	}
-
 	// Don't allow non-zng to be written inside the archive.
 	// XXX we should allow outputFlags to parameterize this so help doesn't show the other formats
-	if c.outputFile != "" && c.outputFlags.Format != "zng" {
+	if c.outputFlags.FileName() != "" && c.outputFlags.Format != "zng" {
 		return errors.New("only zng format allowed for chunk associated files")
 	}
 
@@ -152,8 +141,9 @@ func (c *Command) Run(args []string) error {
 
 func (c *Command) openOutput(zardir iosrc.URI) (zbuf.WriteCloser, error) {
 	var path string
-	if c.outputFile != "" {
-		path = zardir.AppendPath(c.outputFile).String()
+	filename := c.outputFlags.FileName()
+	if filename != "" {
+		path = zardir.AppendPath(filename).String()
 	}
 	w, err := emitter.NewFile(path, c.outputFlags.Options())
 	if err != nil {

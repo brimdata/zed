@@ -7,6 +7,7 @@ import (
 
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cli/inputflags"
+	"github.com/brimsec/zq/cli/procflags"
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
@@ -43,6 +44,7 @@ type Command struct {
 	thresh     units.Bytes
 	empty      bool
 	inputFlags inputflags.Flags
+	procFlags  procflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -53,12 +55,13 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.Var(&c.thresh, "s", "target size of chunk files, as '10MB' or '4GiB', etc.")
 	f.BoolVar(&c.empty, "empty", false, "create an archive without initial data")
 	c.inputFlags.SetFlags(f)
+	c.procFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
 	defer c.Cleanup()
-	if ok, err := c.Init(&c.inputFlags); !ok {
+	if ok, err := c.Init(&c.inputFlags, &c.procFlags); !ok {
 		return err
 	}
 	if c.empty && len(args) > 0 {

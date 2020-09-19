@@ -57,7 +57,6 @@ func init() {
 type FindCmd struct {
 	*cmd.Command
 	indexFile     string
-	outputFile    string
 	pathField     string
 	relativePaths bool
 	zng           bool
@@ -67,7 +66,6 @@ type FindCmd struct {
 func NewFind(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &FindCmd{Command: parent.(*IndexCmd).Command}
 	f.StringVar(&c.indexFile, "x", "", "name of microindex for custom index searches")
-	f.StringVar(&c.outputFile, "o", "", "write data to output file")
 	f.StringVar(&c.pathField, "l", archive.DefaultAddPathField, "zng field name for path name of log file")
 	f.BoolVar(&c.relativePaths, "relative", false, "display paths relative to root")
 	f.BoolVar(&c.zng, "z", false, "write results as zng stream rather than list of files")
@@ -88,7 +86,7 @@ func (c *FindCmd) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	writer, err := emitter.NewFile(c.outputFile, c.outputFlags.Options())
+	writer, err := emitter.NewFile(c.outputFlags.FileName(), c.outputFlags.Options())
 	if err != nil {
 		return err
 	}
