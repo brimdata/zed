@@ -171,17 +171,18 @@ ssl   1521912240.189735 CSbGJs3jOeB6glWLJj 10.47.7.154 27137     52.85.83.215 44
 Let's say you'd started with table-formatted output of both `stats` and `weird` events:
 
 ```zq-command
-zq -f table stats.log.gz weird.log.gz
+zq -f table 'ts < 1521911721' stats.log.gz weird.log.gz
 ```
 
 #### Output:
-```zq-output head:5
+```zq-output
 _PATH TS                PEER MEM PKTS_PROC BYTES_RECV PKTS_DROPPED PKTS_LINK PKT_LAG EVENTS_PROC EVENTS_QUEUED ACTIVE_TCP_CONNS ACTIVE_UDP_CONNS ACTIVE_ICMP_CONNS TCP_CONNS UDP_CONNS ICMP_CONNS TIMERS ACTIVE_TIMERS FILES ACTIVE_FILES DNS_REQUESTS ACTIVE_DNS_REQUESTS REASSEM_TCP_SIZE REASSEM_FILE_SIZE REASSEM_FRAG_SIZE REASSEM_UNKNOWN_SIZE
 stats 1521911720.600725 zeek 74  26        29375      -            -         -       404         11            1                0                0                 1         0         0          36     32            0     0            0            0                   1528             0                 0                 0
-_PATH TS                UID                ID.ORIG_H      ID.ORIG_P ID.RESP_H       ID.RESP_P NAME                             ADDL             NOTICE PEER
-weird 1521911720.600843 C1zOivgBT6dBmknqk  10.47.1.152    49562     23.217.103.245  80        TCP_ack_underflow_or_misorder    -                F      zeek
-weird 1521911720.608108 -                  -              -         -               -         truncated_header                 -                F      zeek
-...
+_PATH TS                UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H      ID.RESP_P NAME                             ADDL NOTICE PEER
+weird 1521911720.600843 C1zOivgBT6dBmknqk  10.47.1.152 49562     23.217.103.245 80        TCP_ack_underflow_or_misorder    -    F      zeek
+weird 1521911720.608108 -                  -           -         -              -         truncated_header                 -    F      zeek
+weird 1521911720.610033 C45Ff03lESjMQQQej1 10.47.5.155 40712     91.189.91.23   80        above_hole_data_without_any_acks -    F      zeek
+weird 1521911720.742818 Cs7J9j2xFQcazrg7Nc 10.47.8.100 5900      10.129.53.65   58485     connection_originator_SYN_ack    -    F      zeek
 ```
 
 Here a `stats` event was the first record type to be printed in the results stream, so the preceding header row describes the names of its fields. Then a `weird` event came next in the results stream, so a header row describing its fields was printed. This presentation accurately conveys the heterogeneous nature of the data, but the frequent interruption of data rows with different headers is distracting and may make the output difficult to process in downstream tools.
@@ -189,16 +190,17 @@ Here a `stats` event was the first record type to be printed in the results stre
 By using `fuse`, the unified schema of fields and types across all records is assembled in a first pass through the data stream, which enables the presentation of the results under a single, wider header row with no further interruptions between the subsequent data rows.
 
 ```zq-command
-zq -f table 'fuse' stats.log.gz weird.log.gz
+zq -f table 'ts < 1521911721 | fuse' stats.log.gz weird.log.gz
 ```
 
 #### Output:
-```zq-output head:4
-_PATH TS                PEER MEM PKTS_PROC BYTES_RECV PKTS_DROPPED PKTS_LINK PKT_LAG EVENTS_PROC EVENTS_QUEUED ACTIVE_TCP_CONNS ACTIVE_UDP_CONNS ACTIVE_ICMP_CONNS TCP_CONNS UDP_CONNS ICMP_CONNS TIMERS ACTIVE_TIMERS FILES ACTIVE_FILES DNS_REQUESTS ACTIVE_DNS_REQUESTS REASSEM_TCP_SIZE REASSEM_FILE_SIZE REASSEM_FRAG_SIZE REASSEM_UNKNOWN_SIZE UID                ID.ORIG_H      ID.ORIG_P ID.RESP_H       ID.RESP_P NAME                             ADDL             NOTICE
-stats 1521911720.600725 zeek 74  26        29375      -            -         -       404         11            1                0                0                 1         0         0          36     32            0     0            0            0                   1528             0                 0                 0                    -                  -              -         -               -         -                                -                -
-weird 1521911720.600843 zeek -   -         -          -            -         -       -           -             -                -                -                 -         -         -          -      -             -     -            -            -                   -                -                 -                 -                    C1zOivgBT6dBmknqk  10.47.1.152    49562     23.217.103.245  80        TCP_ack_underflow_or_misorder    -                F
-weird 1521911720.608108 zeek -   -         -          -            -         -       -           -             -                -                -                 -         -         -          -      -             -     -            -            -                   -                -                 -                 -                    -                  -              -         -               -         truncated_header                 -                F
-...
+```zq-output
+_PATH TS                PEER MEM PKTS_PROC BYTES_RECV PKTS_DROPPED PKTS_LINK PKT_LAG EVENTS_PROC EVENTS_QUEUED ACTIVE_TCP_CONNS ACTIVE_UDP_CONNS ACTIVE_ICMP_CONNS TCP_CONNS UDP_CONNS ICMP_CONNS TIMERS ACTIVE_TIMERS FILES ACTIVE_FILES DNS_REQUESTS ACTIVE_DNS_REQUESTS REASSEM_TCP_SIZE REASSEM_FILE_SIZE REASSEM_FRAG_SIZE REASSEM_UNKNOWN_SIZE UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H      ID.RESP_P NAME                             ADDL NOTICE
+stats 1521911720.600725 zeek 74  26        29375      -            -         -       404         11            1                0                0                 1         0         0          36     32            0     0            0            0                   1528             0                 0                 0                    -                  -           -         -              -         -                                -    -
+weird 1521911720.600843 zeek -   -         -          -            -         -       -           -             -                -                -                 -         -         -          -      -             -     -            -            -                   -                -                 -                 -                    C1zOivgBT6dBmknqk  10.47.1.152 49562     23.217.103.245 80        TCP_ack_underflow_or_misorder    -    F
+weird 1521911720.608108 zeek -   -         -          -            -         -       -           -             -                -                -                 -         -         -          -      -             -     -            -            -                   -                -                 -                 -                    -                  -           -         -              -         truncated_header                 -    F
+weird 1521911720.610033 zeek -   -         -          -            -         -       -           -             -                -                -                 -         -         -          -      -             -     -            -            -                   -                -                 -                 -                    C45Ff03lESjMQQQej1 10.47.5.155 40712     91.189.91.23   80        above_hole_data_without_any_acks -    F
+weird 1521911720.742818 zeek -   -         -          -            -         -       -           -             -                -                -                 -         -         -          -      -             -     -            -            -                   -                -                 -                 -                    Cs7J9j2xFQcazrg7Nc 10.47.8.100 5900      10.129.53.65   58485     connection_originator_SYN_ack    -    F
 ```
 
 Other output formats invoked via `zq -f` that benefit greatly from the use of `fuse` include `csv` and `zeek`.
