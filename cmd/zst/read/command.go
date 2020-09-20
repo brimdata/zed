@@ -6,10 +6,9 @@ import (
 	"flag"
 	"os"
 
-	"github.com/brimsec/zq/cli"
+	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cmd/zst/root"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zst"
 	"github.com/mccanne/charm"
@@ -37,14 +36,12 @@ func init() {
 
 type Command struct {
 	*root.Command
-	writerFlags zio.WriterFlags
-	output      cli.OutputFlags
+	outputFlags outputflags.Flags
 }
 
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
-	c.writerFlags.SetFlags(f)
-	c.output.SetFlags(f)
+	c.outputFlags.SetFlags(f)
 	return c, nil
 }
 
@@ -68,11 +65,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer reader.Close()
-	writerOpts := c.writerFlags.Options()
-	if err := c.output.Init(&writerOpts); err != nil {
-		return err
-	}
-	writer, err := c.output.Open(writerOpts)
+	writer, err := c.outputFlags.Open()
 	if err != nil {
 		return err
 	}

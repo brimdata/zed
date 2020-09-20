@@ -6,10 +6,9 @@ import (
 	"flag"
 	"strings"
 
-	"github.com/brimsec/zq/cli"
+	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cmd/zst/root"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zst"
 	"github.com/mccanne/charm"
@@ -41,22 +40,20 @@ func init() {
 
 type Command struct {
 	*root.Command
-	writerFlags zio.WriterFlags
-	output      cli.OutputFlags
+	outputFlags outputflags.Flags
 	fieldExpr   string
 }
 
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.StringVar(&c.fieldExpr, "k", "", "dotted field expression of field to cut")
-	c.writerFlags.SetFlags(f)
-	c.output.SetFlags(f)
+	c.outputFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
 	defer c.Cleanup()
-	if ok, err := c.Init(); !ok {
+	if ok, err := c.Init(&c.outputFlags); !ok {
 		return err
 	}
 	if len(args) != 1 {
@@ -66,10 +63,6 @@ func (c *Command) Run(args []string) error {
 		return errors.New("zst cut: must specify field to cut with -k")
 	}
 	fields := strings.Split(c.fieldExpr, ".")
-	writerOpts := c.writerFlags.Options()
-	if err := c.output.Init(&writerOpts); err != nil {
-		return err
-	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	path := args[0]
@@ -78,7 +71,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cutter.Close()
-	writer, err := c.output.Open(writerOpts)
+	writer, err := c.outputFlags.Open()
 	if err != nil {
 		return err
 	}

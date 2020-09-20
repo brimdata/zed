@@ -1,16 +1,14 @@
 package create
 
 import (
-	"context"
 	"errors"
 	"flag"
 
-	"github.com/brimsec/zq/cli"
+	"github.com/brimsec/zq/cli/inputflags"
+	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cmd/zst/root"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zst"
 	"github.com/mccanne/charm"
 )
 
@@ -44,10 +42,8 @@ func init() {
 
 type Command struct {
 	*root.Command
-	colThresh   float64
-	skewThresh  float64
-	outputFile  string
-	readerFlags zio.ReaderFlags
+	outputFlags outputflags.Flags
+	inputFlags  inputflags.Flags
 }
 
 func MibToBytes(mib float64) int {
@@ -58,45 +54,31 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{
 		Command: parent.(*root.Command),
 	}
-	f.Float64Var(&c.colThresh, "coltresh", 5, "minimum frame size (MiB) used for zst columns")
-	f.Float64Var(&c.skewThresh, "skewtresh", 25, "minimum skew size (MiB) used to group zst columns")
-	f.StringVar(&c.outputFile, "o", "", "name of zst output file")
-	c.readerFlags.SetFlags(f)
+	c.inputFlags.SetFlags(f)
+	c.outputFlags.SetFlagsWithFormat(f, "zst")
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
 	defer c.Cleanup()
-	if ok, err := c.Init(); !ok {
+	if ok, err := c.Init(&c.inputFlags, &c.outputFlags); !ok {
 		return err
 	}
 	if len(args) == 0 {
 		return errors.New("must specify one or more input files")
 	}
-	if err := c.readerFlags.Init(); err != nil {
-		return err
-	}
-	if c.outputFile == "" {
-		return errors.New("must specify an output file with -o")
-	}
 	zctx := resolver.NewContext()
-	readers, err := cli.OpenInputs(zctx, c.readerFlags.Options(), args, true)
+	readers, err := c.inputFlags.Open(zctx, args, true)
 	if err != nil {
 		return err
 	}
 	reader := zbuf.NewCombiner(readers, zbuf.CmpTimeForward)
 	defer reader.Close()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	skewThresh := MibToBytes(c.skewThresh)
-	colThresh := MibToBytes(c.colThresh)
-	writer, err := zst.NewWriterFromPath(ctx, c.outputFile, skewThresh, colThresh)
+	writer, err := c.outputFlags.Open()
 	if err != nil {
 		return err
 	}
 	if err := zbuf.Copy(writer, reader); err != nil {
-		writer.Abort(ctx)
 		return err
 	}
 	return writer.Close()
