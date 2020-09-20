@@ -90,6 +90,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	c.inputFlags.SetFlags(f)
 
 	c.procFlags.SetFlags(f)
+
 	c.cli.SetFlags(f)
 
 	f.BoolVar(&c.verbose, "v", false, "show verbose details")
@@ -100,16 +101,16 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
+	defer c.cli.Cleanup()
+	err := c.cli.Init(&c.outputFlags, &c.inputFlags, &c.procFlags)
 	if len(args) == 0 {
 		return Zq.Exec(c, []string{"help"})
 	}
-	defer c.cli.Cleanup()
-	if ok, err := c.cli.Init(&c.outputFlags, &c.inputFlags, &c.procFlags); !ok {
+	if err != nil {
 		return err
 	}
 	paths := args
 	var query ast.Proc
-	var err error
 	if cli.FileExists(paths[0]) || s3io.IsS3Path(paths[0]) {
 		query, err = zql.ParseProc("*")
 		if err != nil {

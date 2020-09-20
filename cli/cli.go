@@ -29,20 +29,24 @@ type Initializer interface {
 	Init() error
 }
 
-func (f *Flags) Init(all ...Initializer) (bool, error) {
+func (f *Flags) Init(all ...Initializer) error {
+	if f.showVersion {
+		fmt.Printf("Version: %s\n", Version)
+		os.Exit(0)
+	}
+	var err error
+	for _, flags := range all {
+		if initErr := flags.Init(); err == nil {
+			err = initErr
+		}
+	}
+	if err != nil {
+		return err
+	}
 	if f.cpuprofile != "" {
 		f.runCPUProfile(f.cpuprofile)
 	}
-	if f.showVersion {
-		fmt.Printf("Version: %s\n", Version)
-		return false, nil
-	}
-	for _, flags := range all {
-		if err := flags.Init(); err != nil {
-			return false, err
-		}
-	}
-	return true, nil
+	return nil
 }
 
 func (f *Flags) Cleanup() {

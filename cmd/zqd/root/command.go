@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/brimsec/zq/cli"
+	"github.com/brimsec/zq/cli/procflags"
 	"github.com/mccanne/charm"
 )
 
@@ -20,7 +21,8 @@ var Zqd = &charm.Spec{
 
 type Command struct {
 	charm.Command
-	cli cli.Flags
+	cli       cli.Flags
+	procFlags procflags.Flags
 }
 
 func init() {
@@ -35,6 +37,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{}
 	log.SetPrefix("zqd") // XXX switch to zapper
 	c.cli.SetFlags(f)
+	c.procFlags.SetFlags(f)
 	return c, nil
 }
 
@@ -42,13 +45,13 @@ func (c *Command) Cleanup() {
 	c.cli.Cleanup()
 }
 
-func (c *Command) Init() (bool, error) {
-	return c.cli.Init()
+func (c *Command) Init() error {
+	return c.cli.Init(&c.procFlags)
 }
 
 func (c *Command) Run(args []string) error {
-	defer c.cli.Cleanup()
-	if ok, err := c.cli.Init(); !ok {
+	defer c.Cleanup()
+	if err := c.Init(); err != nil {
 		return err
 	}
 	return Zqd.Exec(c, []string{"help"})

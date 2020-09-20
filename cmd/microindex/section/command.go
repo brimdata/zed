@@ -53,7 +53,7 @@ func isTerminal(f *os.File) bool {
 
 func (c *Command) Run(args []string) error {
 	defer c.Cleanup()
-	if ok, err := c.Init(&c.outputFlags); !ok {
+	if err := c.Init(&c.outputFlags); err != nil {
 		return err
 	}
 	if len(args) != 1 {

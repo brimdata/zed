@@ -55,7 +55,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 
 func (c *Command) Run(args []string) error {
 	defer c.Cleanup()
-	if ok, err := c.Init(&c.outputFlags, &c.procFlags); !ok {
+	if err := c.Init(&c.outputFlags, &c.procFlags); err != nil {
 		return err
 	}
 

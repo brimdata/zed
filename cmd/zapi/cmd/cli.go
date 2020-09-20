@@ -99,7 +99,7 @@ func (c *Command) Cleanup() {
 	c.cli.Cleanup()
 }
 
-func (c *Command) Init(all ...cli.Initializer) (bool, error) {
+func (c *Command) Init(all ...cli.Initializer) error {
 	return c.cli.Init(all...)
 }
 
@@ -107,7 +107,7 @@ func (c *Command) Init(all ...cli.Initializer) (bool, error) {
 // zqd command line.
 func (c *Command) Run(args []string) error {
 	defer c.Cleanup()
-	if ok, err := c.Init(); !ok {
+	if err := c.Init(); err != nil {
 		return err
 	}
 	if len(args) > 0 {
