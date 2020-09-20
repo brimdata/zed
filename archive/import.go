@@ -47,7 +47,7 @@ func (d *importDriver) newWriter(rec *zng.Record) error {
 	d.rcount = 0
 
 	// Create the data file writer
-	d.tsDir = d.ark.DataPath.AppendPath(dataDirname, tsDirName(d.firstTs))
+	d.tsDir = d.ark.DataPath.AppendPath(dataDirname, tsDirFor(d.firstTs).name())
 	if dirmkr, ok := d.ark.dataSrc.(iosrc.DirMaker); ok {
 		if err := dirmkr.MkdirAll(d.tsDir, 0755); err != nil {
 			return err

@@ -124,20 +124,27 @@ func seekIndexNameMatch(s string) (f seekIndexFile, ok bool) {
 // A tsDir is a directory found in the "<DataPath>/zd" directory of the archive,
 // and holds all of the data & associated files for a span of time, currently
 // fixed to a single day.
-
-func tsDirName(ts nano.Ts) string {
-	return path.Join(ts.Time().Format("20060102"))
+type tsDir struct {
+	nano.Span
 }
 
-func parseTsDirName(name string) (nano.Ts, bool) {
+func tsDirFor(ts nano.Ts) tsDir {
+	return tsDir{nano.Span{Ts: ts.Midnight(), Dur: nano.Day}}
+}
+
+func parseTsDirName(name string) (tsDir, bool) {
 	t, err := time.Parse("20060102", name)
 	if err != nil {
-		return 0, false
+		return tsDir{}, false
 	}
-	return nano.TimeToTs(t), true
+	return tsDirFor(nano.TimeToTs(t)), true
 }
 
-type tsDirVisitor func(ts nano.Ts, si []SpanInfo) error
+func (t tsDir) name() string {
+	return path.Join(t.Ts.Time().Format("20060102"))
+}
+
+type tsDirVisitor func(tsd tsDir, si []SpanInfo) error
 
 // tsDirVisit calls visitor for each tsDir in the archive, with all spans
 // within the tsDir. tsDir's are visited in the archive's order, and the
@@ -148,33 +155,29 @@ func tsDirVisit(ctx context.Context, ark *Archive, filterSpan nano.Span, visitor
 	if err != nil {
 		return err
 	}
-	type tsdir struct {
-		ts   nano.Ts
-		name string
-	}
-	var tsdirs []tsdir
+	var tsdirs []tsDir
 	for _, e := range dirents {
 		if !e.IsDir() {
 			continue
 		}
-		ts, ok := parseTsDirName(e.Name())
-		if !ok || !filterSpan.Contains(ts) {
+		tsd, ok := parseTsDirName(e.Name())
+		if !ok || !tsd.Overlaps(filterSpan) {
 			continue
 		}
-		tsdirs = append(tsdirs, tsdir{ts, e.Name()})
+		tsdirs = append(tsdirs, tsd)
 	}
 	sort.Slice(tsdirs, func(i, j int) bool {
 		if ark.DataSortDirection == zbuf.DirTimeForward {
-			return tsdirs[i].ts < tsdirs[j].ts
+			return tsdirs[i].Ts < tsdirs[j].Ts
 		}
-		return tsdirs[j].ts < tsdirs[i].ts
+		return tsdirs[j].Ts < tsdirs[i].Ts
 	})
 	for _, d := range tsdirs {
-		dirents, err := iosrc.ReadDir(ctx, zdDir.AppendPath(d.name))
+		dirents, err := iosrc.ReadDir(ctx, zdDir.AppendPath(d.name()))
 		if err != nil {
 			return err
 		}
-		if err := visitor(d.ts, tsDirEntriesToSpans(ark, filterSpan, dirents)); err != nil {
+		if err := visitor(d, tsDirEntriesToSpans(ark, filterSpan, dirents)); err != nil {
 			return err
 		}
 	}
@@ -265,7 +268,7 @@ func Walk(ctx context.Context, ark *Archive, visit Visitor) error {
 type LogID string
 
 func newLogID(ts nano.Ts, id uuid) LogID {
-	return LogID(path.Join(dataDirname, tsDirName(ts), fmt.Sprintf("%s-%s.zng", ingestDataKind, id)))
+	return LogID(path.Join(dataDirname, tsDirFor(ts).name(), fmt.Sprintf("%s-%s.zng", ingestDataKind, id)))
 }
 
 // Path returns the local filesystem path for the log file, using the
@@ -294,7 +297,7 @@ func (si SpanInfo) Range(ark *Archive) string {
 type SpanVisitor func(si SpanInfo, zardir iosrc.URI) error
 
 func SpanWalk(ctx context.Context, ark *Archive, v SpanVisitor) error {
-	return tsDirVisit(ctx, ark, nano.MaxSpan, func(_ nano.Ts, spans []SpanInfo) error {
+	return tsDirVisit(ctx, ark, nano.MaxSpan, func(_ tsDir, spans []SpanInfo) error {
 		for _, s := range spans {
 			zardir := LogToZarDir(s.LogID.Path(ark))
 			if dirmkr, ok := ark.dataSrc.(iosrc.DirMaker); ok {
