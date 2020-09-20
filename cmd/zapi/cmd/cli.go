@@ -5,12 +5,10 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io"
 	"os"
 	"syscall"
 
 	"github.com/brimsec/zq/cli"
-	"github.com/brimsec/zq/pkg/repl"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/kballard/go-shellquote"
 	"github.com/mccanne/charm"
@@ -110,19 +108,10 @@ func (c *Command) Run(args []string) error {
 	if err := c.Init(); err != nil {
 		return err
 	}
-	if len(args) > 0 {
-		return fmt.Errorf("unknown command: %s", args[0])
+	if len(args) == 0 {
+		return CLI.Exec(c, []string{"help"})
 	}
-	// do not enter repl if space is not selected
-	if _, err := c.SpaceID(); err != nil {
-		return err
-	}
-	err := repl.Run(c)
-	if err == io.EOF {
-		fmt.Println("")
-		err = nil
-	}
-	return err
+	return charm.ErrNoRun
 }
 
 func (c *Command) Consume(line string) (done bool) {

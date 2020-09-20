@@ -12,6 +12,7 @@ import (
 	_ "github.com/brimsec/zq/cmd/zapi/cmd/newsubspace"
 	_ "github.com/brimsec/zq/cmd/zapi/cmd/post"
 	_ "github.com/brimsec/zq/cmd/zapi/cmd/rename"
+	_ "github.com/brimsec/zq/cmd/zapi/cmd/repl"
 	_ "github.com/brimsec/zq/cmd/zapi/cmd/rm"
 	_ "github.com/brimsec/zq/cmd/zapi/cmd/version"
 )
