@@ -141,8 +141,7 @@ func (c *Command) Run(args []string) error {
 
 func (c *Command) openOutput(zardir iosrc.URI) (zbuf.WriteCloser, error) {
 	var path string
-	filename := c.outputFlags.FileName()
-	if filename != "" {
+	if filename := c.outputFlags.FileName(); filename != "" {
 		path = zardir.AppendPath(filename).String()
 	}
 	w, err := emitter.NewFile(path, c.outputFlags.Options())

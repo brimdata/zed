@@ -20,8 +20,8 @@ type Flags struct {
 	textShortcut bool
 }
 
-func (w *Flags) Options() zio.WriterOpts {
-	return w.WriterOpts
+func (f *Flags) Options() zio.WriterOpts {
+	return f.WriterOpts
 }
 
 func (f *Flags) SetFlags(fs *flag.FlagSet) {
