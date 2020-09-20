@@ -5,10 +5,10 @@ import (
 	"flag"
 	"strings"
 
+	"github.com/brimsec/zq/cli/inputflags"
 	"github.com/brimsec/zq/cmd/microindex/root"
 	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
@@ -39,7 +39,7 @@ type Command struct {
 	frameThresh int
 	outputFile  string
 	keys        string
-	ReaderFlags zio.ReaderFlags
+	inputFlags  inputflags.Flags
 }
 
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -49,14 +49,14 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.IntVar(&c.frameThresh, "f", 32*1024, "minimum frame size used in microindex file")
 	f.StringVar(&c.outputFile, "o", "index.zng", "name of microindex output file")
 	f.StringVar(&c.keys, "k", "", "comma-separated list of field names for keys")
-	c.ReaderFlags.SetFlags(f)
+	c.inputFlags.SetFlags(f)
 
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
 	defer c.Cleanup()
-	if ok, err := c.Init(); !ok {
+	if ok, err := c.Init(&c.inputFlags); !ok {
 		return err
 	}
 	if c.keys == "" {
@@ -70,11 +70,8 @@ func (c *Command) Run(args []string) error {
 	if path == "-" {
 		path = detector.StdinPath
 	}
-	if err := c.ReaderFlags.Init(); err != nil {
-		return err
-	}
 	zctx := resolver.NewContext()
-	file, err := detector.OpenFile(zctx, path, c.ReaderFlags.Options())
+	file, err := detector.OpenFile(zctx, path, c.inputFlags.Options())
 	if err != nil {
 		return err
 	}

@@ -5,12 +5,12 @@ import (
 	"os"
 
 	"github.com/brimsec/zq/archive"
-	"github.com/brimsec/zq/cli"
+	"github.com/brimsec/zq/cli/outputflags"
+	"github.com/brimsec/zq/cli/procflags"
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
 	"github.com/mccanne/charm"
@@ -39,8 +39,8 @@ type Command struct {
 	quiet       bool
 	root        string
 	stopErr     bool
-	writerFlags zio.WriterFlags
-	output      cli.OutputFlags
+	outputFlags outputflags.Flags
+	procFlags   procflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -48,18 +48,14 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
 	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive to walk")
 	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
-	c.writerFlags.SetFlags(f)
-	c.output.SetFlags(f)
+	c.outputFlags.SetFlags(f)
+	c.procFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
 	defer c.Cleanup()
-	if ok, err := c.Init(); !ok {
-		return err
-	}
-	opts := c.writerFlags.Options()
-	if err := c.output.Init(&opts); err != nil {
+	if ok, err := c.Init(&c.outputFlags, &c.procFlags); !ok {
 		return err
 	}
 
@@ -81,7 +77,7 @@ func (c *Command) Run(args []string) error {
 	ctx, cancel := signalctx.New(os.Interrupt)
 	defer cancel()
 
-	writer, err := c.output.Open(opts)
+	writer, err := c.outputFlags.Open()
 	if err != nil {
 		return err
 	}

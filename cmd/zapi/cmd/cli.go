@@ -95,11 +95,19 @@ func (c *Command) SpaceID() (api.SpaceID, error) {
 	return GetSpaceID(c.ctx, c.Client(), c.Spacename)
 }
 
+func (c *Command) Cleanup() {
+	c.cli.Cleanup()
+}
+
+func (c *Command) Init(all ...cli.Initializer) (bool, error) {
+	return c.cli.Init(all...)
+}
+
 // Run is called by charm when there are no sub-commands on the main
 // zqd command line.
 func (c *Command) Run(args []string) error {
-	defer c.cli.Cleanup()
-	if ok, err := c.cli.Init(); !ok {
+	defer c.Cleanup()
+	if ok, err := c.Init(); !ok {
 		return err
 	}
 	if len(args) > 0 {

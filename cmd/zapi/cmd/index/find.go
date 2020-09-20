@@ -4,10 +4,10 @@ import (
 	"flag"
 
 	"github.com/brimsec/zq/archive"
+	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/mccanne/charm"
 )
@@ -17,7 +17,7 @@ var Find = &charm.Spec{
 	Usage: "find [options] pattern [pattern...]",
 	Short: "look through zar index files and displays matches",
 	Long: `
-"zapi index find" searches an archive-backed space 
+"zapi index find" searches an archive-backed space
 looking for zng files that have been indexed and performs a search on
 each such index file in accordance with the specified search pattern.
 Indexes are created by "zapi index create".
@@ -57,23 +57,21 @@ func init() {
 type FindCmd struct {
 	*cmd.Command
 	indexFile     string
-	outputFile    string
 	pathField     string
 	relativePaths bool
 	zng           bool
-	writerFlags   zio.WriterFlags
+	outputFlags   outputflags.Flags
 }
 
 func NewFind(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &FindCmd{Command: parent.(*IndexCmd).Command}
 	f.StringVar(&c.indexFile, "x", "", "name of microindex for custom index searches")
-	f.StringVar(&c.outputFile, "o", "", "write data to output file")
 	f.StringVar(&c.pathField, "l", archive.DefaultAddPathField, "zng field name for path name of log file")
 	f.BoolVar(&c.relativePaths, "relative", false, "display paths relative to root")
 	f.BoolVar(&c.zng, "z", false, "write results as zng stream rather than list of files")
 
 	// Flags added for writers are -f, -T, -F, -E, -U, and -b
-	c.writerFlags.SetFlags(f)
+	c.outputFlags.SetFlags(f)
 
 	return c, nil
 }
@@ -88,7 +86,7 @@ func (c *FindCmd) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	writer, err := emitter.NewFile(c.outputFile, c.writerFlags.Options())
+	writer, err := emitter.NewFile(c.outputFlags.FileName(), c.outputFlags.Options())
 	if err != nil {
 		return err
 	}

@@ -5,11 +5,10 @@ import (
 	"flag"
 	"os"
 
-	"github.com/brimsec/zq/cli"
+	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cmd/microindex/root"
 	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
 	"golang.org/x/crypto/ssh/terminal"
@@ -35,8 +34,7 @@ func init() {
 
 type Command struct {
 	*root.Command
-	writerFlags zio.WriterFlags
-	output      cli.OutputFlags
+	outputFlags outputflags.Flags
 	trailer     bool
 	section     int
 }
@@ -45,8 +43,7 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.BoolVar(&c.trailer, "trailer", false, "include the micro-index trailer in the output")
 	f.IntVar(&c.section, "s", -1, "include the indicated section in the output")
-	c.writerFlags.SetFlags(f)
-	c.output.SetFlags(f)
+	c.outputFlags.SetFlags(f)
 	return c, nil
 }
 
@@ -56,15 +53,11 @@ func isTerminal(f *os.File) bool {
 
 func (c *Command) Run(args []string) error {
 	defer c.Cleanup()
-	if ok, err := c.Init(); !ok {
+	if ok, err := c.Init(&c.outputFlags); !ok {
 		return err
 	}
 	if len(args) != 1 {
 		return errors.New("microindex section: must be run with a single path argument")
-	}
-	opts := c.writerFlags.Options()
-	if err := c.output.Init(&opts); err != nil {
-		return err
 	}
 	path := args[0]
 	reader, err := microindex.NewReader(resolver.NewContext(), path)
@@ -72,7 +65,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer reader.Close()
-	writer, err := c.output.Open(opts)
+	writer, err := c.outputFlags.Open()
 	if err != nil {
 		return err
 	}

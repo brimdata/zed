@@ -3,15 +3,15 @@ package zarimport
 import (
 	"errors"
 	"flag"
-	"fmt"
 	"os"
 
-	"github.com/alecthomas/units"
 	"github.com/brimsec/zq/archive"
+	"github.com/brimsec/zq/cli/inputflags"
+	"github.com/brimsec/zq/cli/procflags"
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
-	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/pkg/units"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
@@ -39,29 +39,29 @@ func init() {
 
 type Command struct {
 	*root.Command
-	root        string
-	dataPath    string
-	thresh      string
-	empty       bool
-	readerFlags zio.ReaderFlags
+	root       string
+	dataPath   string
+	thresh     units.Bytes
+	empty      bool
+	inputFlags inputflags.Flags
+	procFlags  procflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
 	f.StringVar(&c.dataPath, "data", "", "location for storing data files (defaults to root)")
-	f.StringVar(&c.thresh, "s", units.Base2Bytes(archive.DefaultLogSizeThreshold).String(), "target size of chunk files, as '10MB' or '4GiB', etc.")
+	c.thresh = archive.DefaultLogSizeThreshold
+	f.Var(&c.thresh, "s", "target size of chunk files, as '10MB' or '4GiB', etc.")
 	f.BoolVar(&c.empty, "empty", false, "create an archive without initial data")
-	c.readerFlags.SetFlags(f)
+	c.inputFlags.SetFlags(f)
+	c.procFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
 	defer c.Cleanup()
-	if ok, err := c.Init(); !ok {
-		return err
-	}
-	if err := c.readerFlags.Init(); err != nil {
+	if ok, err := c.Init(&c.inputFlags, &c.procFlags); !ok {
 		return err
 	}
 	if c.empty && len(args) > 0 {
@@ -71,11 +71,8 @@ func (c *Command) Run(args []string) error {
 	}
 
 	co := &archive.CreateOptions{DataPath: c.dataPath}
-	if thresh, err := units.ParseStrictBytes(c.thresh); err != nil {
-		return fmt.Errorf("invalid target file size: %w", err)
-	} else {
-		co.LogSizeThreshold = &thresh
-	}
+	thresh := int64(c.thresh)
+	co.LogSizeThreshold = &thresh
 
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
@@ -95,7 +92,7 @@ func (c *Command) Run(args []string) error {
 		path = detector.StdinPath
 	}
 	zctx := resolver.NewContext()
-	reader, err := detector.OpenFile(zctx, path, c.readerFlags.Options())
+	reader, err := detector.OpenFile(zctx, path, c.inputFlags.Options())
 	if err != nil {
 		return err
 	}

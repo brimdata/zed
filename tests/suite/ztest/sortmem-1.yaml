@@ -1,5 +1,5 @@
-script: zq -sortmem 1 -t -
-        
+script: zq -sortmem 1MiB -t -
+
 inputs:
   - name: stdin
     data: |
