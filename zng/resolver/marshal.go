@@ -131,7 +131,15 @@ func encodeRecord(zctx *Context, b *zcode.Builder, sval reflect.Value) (zng.Type
 	return zctx.LookupTypeRecord(columns)
 }
 
+func isIP(typ reflect.Type) bool {
+	return typ.Name() == "IP" && typ.PkgPath() == "net"
+}
+
 func encodeArray(zctx *Context, b *zcode.Builder, arrayVal reflect.Value) (zng.Type, error) {
+	if isIP(arrayVal.Type()) {
+		b.AppendPrimitive(zng.EncodeIP(arrayVal.Bytes()))
+		return zng.TypeIP, nil
+	}
 	len := arrayVal.Len()
 	b.BeginContainer()
 	var innerType zng.Type

@@ -1,6 +1,7 @@
 package resolver_test
 
 import (
+	"net"
 	"strings"
 	"testing"
 
@@ -114,4 +115,22 @@ func TestMarshalSlice(t *testing.T) {
 0:[[]]
 `
 	assert.Equal(t, trim(exp2), rectzng(t, rec2))
+}
+
+type TestIP struct {
+	Addr net.IP
+}
+
+func TestMarshalIP(t *testing.T) {
+	s := TestIP{Addr: net.ParseIP("192.168.1.1")}
+	zctx := resolver.NewContext()
+	rec, err := resolver.MarshalRecord(zctx, s)
+	require.NoError(t, err)
+	require.NotNil(t, rec)
+
+	exp := `
+#0:record[Addr:ip]
+0:[192.168.1.1;]
+`
+	assert.Equal(t, trim(exp), rectzng(t, rec))
 }
