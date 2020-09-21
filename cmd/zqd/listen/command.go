@@ -249,13 +249,6 @@ func (c *Command) initSuricata() error {
 		if c.suricataRunnerPath, err = exec.LookPath("suricatarunner"); err != nil {
 			return nil
 		}
-		// For now, finding the runner does not guarantee that
-		// suricata will be found. Once we install everything
-		// into zq/bin like we do for Zeek, this check can go
-		// away.
-		if _, err = exec.LookPath("suricata"); err != nil {
-			return nil
-		}
 	}
 	ln, err := pcapanalyzer.LauncherFromPath(c.suricataRunnerPath)
 	if err != nil {

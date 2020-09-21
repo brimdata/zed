@@ -4,6 +4,8 @@ script: |
   zapi -h $ZQD_HOST -s testsp pcappost -f ng.pcap >/dev/null
   echo ===
   zapi -h $ZQD_HOST -s testsp get -f tzng "_path != stats | cut -c uid | sort -r ts, _path"
+  echo ===
+  zapi -h $ZQD_HOST -s testsp get -f tzng "count()"
 
 inputs:
   - name: ng.pcap
@@ -26,3 +28,6 @@ outputs:
       1:[conn;1425567047.804914;[192.168.0.51;33773;80.239.174.91;443;]tcp;-;-;-;-;OTH;-;-;0;^d;0;0;1;1440;-;]
       1:[conn;1425567047.804906;[192.168.0.51;33773;80.239.174.91;443;]tcp;-;-;-;-;OTH;-;-;0;^d;0;0;1;1440;-;]
       1:[conn;1425567047.803929;[192.168.0.51;33773;80.239.174.91;443;]tcp;-;-;-;-;OTH;-;-;0;^d;0;0;1;1440;-;]
+      ===
+      #0:record[count:uint64]
+      0:[10;]
