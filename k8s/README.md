@@ -4,7 +4,7 @@
 
 In order to develop for Kubernetes without paying for a cloud provider, we describe how to set up a local Kind cluster (Kubenertes in Docker).
 
-[Setting of a Kind cluster for zqd](kind-setup.md)
+[Setting up a Kind cluster for zqd](kind-setup.md)
 
 Once the Kind cluster is set up, we provide a **Tiltfile** for local dev deployment. 
 
