@@ -159,7 +159,7 @@ ssl   1521912240.189735 CSbGJs3jOeB6glWLJj 10.47.7.154 27137     52.85.83.215 44
 
 |                           |                                                   |
 | ------------------------- | ------------------------------------------------- |
-| **Description**           | Return results under a single record definition that unifies the field and type information across all records in the query result. |
+| **Description**           | Transforms input records into output records that unify the field and type information across all records in the query result. | 
 | **Syntax**                | `fuse`                                            |
 | **Required<br>arguments** | None                                              |
 | **Optional<br>arguments** | None                                              |
@@ -185,25 +185,36 @@ weird 1521911720.610033 C45Ff03lESjMQQQej1 10.47.5.155 40712     91.189.91.23   
 weird 1521911720.742818 Cs7J9j2xFQcazrg7Nc 10.47.8.100 5900      10.129.53.65   58485     connection_originator_SYN_ack    -    F      zeek
 ```
 
-Here a `stats` event was the first record type to be printed in the results stream, so the preceding header row describes the names of its fields. Then a `weird` event came next in the results stream, so a header row describing its fields was printed. This presentation accurately conveys the heterogeneous nature of the data, but the frequent interruption of data rows with different headers is distracting and may make the output difficult to process in downstream tools.
-
-By using `fuse`, the unified schema of fields and types across all records is assembled in a first pass through the data stream, which enables the presentation of the results under a single, wider header row with no further interruptions between the subsequent data rows.
+Here a `stats` event was the first record type to be printed in the results stream, so the preceding header row describes the names of its fields. Then a `weird` event came next in the results stream, so a header row describing its fields was printed. This presentation accurately conveys the heterogeneous nature of the data, but changing schemas mid-stream is not allowed in formats such as CSV or other downstream tooling such as SQL. Indeed, `zq` halts its output in this case.
 
 ```zq-command
-zq -f table 'ts < 1521911721 | fuse' stats.log.gz weird.log.gz
+zq -f csv 'ts < 1521911721' stats.log.gz weird.log.gz
 ```
 
 #### Output:
 ```zq-output
-_PATH TS                PEER MEM PKTS_PROC BYTES_RECV PKTS_DROPPED PKTS_LINK PKT_LAG EVENTS_PROC EVENTS_QUEUED ACTIVE_TCP_CONNS ACTIVE_UDP_CONNS ACTIVE_ICMP_CONNS TCP_CONNS UDP_CONNS ICMP_CONNS TIMERS ACTIVE_TIMERS FILES ACTIVE_FILES DNS_REQUESTS ACTIVE_DNS_REQUESTS REASSEM_TCP_SIZE REASSEM_FILE_SIZE REASSEM_FRAG_SIZE REASSEM_UNKNOWN_SIZE UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H      ID.RESP_P NAME                             ADDL NOTICE
-stats 1521911720.600725 zeek 74  26        29375      -            -         -       404         11            1                0                0                 1         0         0          36     32            0     0            0            0                   1528             0                 0                 0                    -                  -           -         -              -         -                                -    -
-weird 1521911720.600843 zeek -   -         -          -            -         -       -           -             -                -                -                 -         -         -          -      -             -     -            -            -                   -                -                 -                 -                    C1zOivgBT6dBmknqk  10.47.1.152 49562     23.217.103.245 80        TCP_ack_underflow_or_misorder    -    F
-weird 1521911720.608108 zeek -   -         -          -            -         -       -           -             -                -                -                 -         -         -          -      -             -     -            -            -                   -                -                 -                 -                    -                  -           -         -              -         truncated_header                 -    F
-weird 1521911720.610033 zeek -   -         -          -            -         -       -           -             -                -                -                 -         -         -          -      -             -     -            -            -                   -                -                 -                 -                    C45Ff03lESjMQQQej1 10.47.5.155 40712     91.189.91.23   80        above_hole_data_without_any_acks -    F
-weird 1521911720.742818 zeek -   -         -          -            -         -       -           -             -                -                -                 -         -         -          -      -             -     -            -            -                   -                -                 -                 -                    Cs7J9j2xFQcazrg7Nc 10.47.8.100 5900      10.129.53.65   58485     connection_originator_SYN_ack    -    F
+_path,ts,peer,mem,pkts_proc,bytes_recv,pkts_dropped,pkts_link,pkt_lag,events_proc,events_queued,active_tcp_conns,active_udp_conns,active_icmp_conns,tcp_conns,udp_conns,icmp_conns,timers,active_timers,files,active_files,dns_requests,active_dns_requests,reassem_tcp_size,reassem_file_size,reassem_frag_size,reassem_unknown_size
+stats,2018-03-24T17:15:20.600725Z,zeek,74,26,29375,-,-,-,404,11,1,0,0,1,0,0,36,32,0,0,0,0,1528,0,0,0
+csv output requires uniform records but different types encountered
 ```
 
-Other output formats invoked via `zq -f` that benefit greatly from the use of `fuse` include `csv` and `zeek`.
+By using `fuse`, the unified schema of fields and types across all records is assembled in a first pass through the data stream, which enables the presentation of the results under a single, wider header row with no further interruptions between the subsequent data rows.
+
+```zq-command
+zq -f csv 'ts < 1521911721 | fuse' stats.log.gz weird.log.gz
+```
+
+#### Output:
+```zq-output
+_path,ts,peer,mem,pkts_proc,bytes_recv,pkts_dropped,pkts_link,pkt_lag,events_proc,events_queued,active_tcp_conns,active_udp_conns,active_icmp_conns,tcp_conns,udp_conns,icmp_conns,timers,active_timers,files,active_files,dns_requests,active_dns_requests,reassem_tcp_size,reassem_file_size,reassem_frag_size,reassem_unknown_size,uid,id.orig_h,id.orig_p,id.resp_h,id.resp_p,name,addl,notice
+stats,2018-03-24T17:15:20.600725Z,zeek,74,26,29375,-,-,-,404,11,1,0,0,1,0,0,36,32,0,0,0,0,1528,0,0,0,-,-,-,-,-,-,-,-
+weird,2018-03-24T17:15:20.600843Z,zeek,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,C1zOivgBT6dBmknqk,10.47.1.152,49562,23.217.103.245,80,TCP_ack_underflow_or_misorder,-,F
+weird,2018-03-24T17:15:20.608108Z,zeek,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,truncated_header,-,F
+weird,2018-03-24T17:15:20.610033Z,zeek,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,C45Ff03lESjMQQQej1,10.47.5.155,40712,91.189.91.23,80,above_hole_data_without_any_acks,-,F
+weird,2018-03-24T17:15:20.742818Z,zeek,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,Cs7J9j2xFQcazrg7Nc,10.47.8.100,5900,10.129.53.65,58485,connection_originator_SYN_ack,-,F
+```
+
+Other output formats invoked via `zq -f` that benefit greatly from the use of `fuse` include `table` and `zeek`.
 
 ---
 
