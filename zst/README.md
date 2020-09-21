@@ -144,7 +144,7 @@ in a single pass.
 The data section contains raw data values organized into "segments",
 where a segment is simply a seek offset and byte length relative to the
 data section.  Each segment contains a sequence of
-[primitive-type zng values](https://github.com/brimsec/zq/blob/zst/zng/docs/spec.md#5-primitive-types),
+[primitive-type zng values](https://github.com/brimsec/zq/blob/master/zng/docs/spec.md#5-primitive-types),
 encoded as counted-length byte sequences where the counted-length is
 variable-length encoded as in the zng spec.
 
