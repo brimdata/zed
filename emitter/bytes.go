@@ -19,9 +19,10 @@ func (b *Bytes) Bytes() []byte {
 
 func NewBytes(opts zio.WriterOpts) (*Bytes, error) {
 	b := &Bytes{}
-	b.Writer = detector.LookupWriter(zio.NopCloser(&b.buf), opts)
-	if b.Writer == nil {
-		return nil, unknownFormat(opts.Format)
+	w, err := detector.LookupWriter(zio.NopCloser(&b.buf), opts)
+	if err != nil {
+		return nil, err
 	}
+	b.Writer = w
 	return b, nil
 }

@@ -83,7 +83,10 @@ func OpenParquet(zctx *resolver.Context, path string, opts zio.ReaderOpts) (*zbu
 
 func OpenFromNamedReadCloser(zctx *resolver.Context, rc io.ReadCloser, path string, opts zio.ReaderOpts) (*zbuf.File, error) {
 	var err error
-	r := GzipReader(rc)
+	r := io.Reader(rc)
+	if opts.Format != "zst" {
+		r = GzipReader(rc)
+	}
 	var zr zbuf.Reader
 	if opts.Format == "" || opts.Format == "auto" {
 		zr, err = NewReaderWithOpts(r, zctx, path, opts)
