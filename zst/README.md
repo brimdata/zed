@@ -102,7 +102,7 @@ that appears collectively throughout the zng input data including records
 embedded within records.
 
 For example, a field that is an array of records containing other fields would
-have a column stream for the top-level array field as well as a column a stream
+have a column stream for the top-level array field as well as a column
 for each field inside of the array values.
 
 Each column stream represents a sequence of values (inclusive of unset values)
@@ -155,7 +155,7 @@ blobs of zng data.
 > Unlike parquet, there is no explicit arrangement the column chunks into
 > row groups but rather they are allowed to grow at different rates so a
 > high-volume column might be comprised of many segments while a low-volume
-> column must just one or several.  This allows scans of low-volume record types
+> column must just be one or several.  This allows scans of low-volume record types
 > (the "mice") to perform well amongst high-volume record types (the "elephants"),
 > i.e., there are not a bunch of seeks with tiny reads of mice data interspersed
 > throughout the elephants.
@@ -411,7 +411,7 @@ typically in its entirety.
 Since this data structure is relatively small compared to all of the columnar
 data in the zst object,
 it will typically fit comfortably in memory and it can be very fast to scan the
-xentire reassembly structure for any purpose.
+entire reassembly structure for any purpose.
 
 > For example, for a given query, a "scan planner" could traverse all the
 > reassembly records to figure out which segments will be needed, then construct
