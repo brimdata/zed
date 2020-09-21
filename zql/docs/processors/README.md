@@ -187,12 +187,12 @@ weird 1521911720.742818 Cs7J9j2xFQcazrg7Nc 10.47.8.100 5900      10.129.53.65   
 
 Here a `stats` event was the first record type to be printed in the results stream, so the preceding header row describes the names of its fields. Then a `weird` event came next in the results stream, so a header row describing its fields was printed. This presentation accurately conveys the heterogeneous nature of the data, but changing schemas mid-stream is not allowed in formats such as CSV or other downstream tooling such as SQL. Indeed, `zq` halts its output in this case.
 
-```zq-command
+```
 zq -f csv 'ts < 1521911721' stats.log.gz weird.log.gz
 ```
 
 #### Output:
-```zq-output
+```
 _path,ts,peer,mem,pkts_proc,bytes_recv,pkts_dropped,pkts_link,pkt_lag,events_proc,events_queued,active_tcp_conns,active_udp_conns,active_icmp_conns,tcp_conns,udp_conns,icmp_conns,timers,active_timers,files,active_files,dns_requests,active_dns_requests,reassem_tcp_size,reassem_file_size,reassem_frag_size,reassem_unknown_size
 stats,2018-03-24T17:15:20.600725Z,zeek,74,26,29375,-,-,-,404,11,1,0,0,1,0,0,36,32,0,0,0,0,1528,0,0,0
 csv output requires uniform records but different types encountered
