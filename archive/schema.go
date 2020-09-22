@@ -9,6 +9,7 @@ import (
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zqe"
+	"github.com/segmentio/ksuid"
 )
 
 const metadataFilename = "zar.json"
@@ -100,7 +101,7 @@ type Archive struct {
 	DataPath          iosrc.URI
 	DataSortDirection zbuf.Direction
 	LogSizeThreshold  int64
-	LogFilter         []uuid
+	LogFilter         []ksuid.KSUID
 	dataSrc           iosrc.Source
 }
 
@@ -118,7 +119,7 @@ func (ark *Archive) mdURI() iosrc.URI {
 	return ark.Root.AppendPath(metadataFilename)
 }
 
-func (ark *Archive) filterAllowed(id uuid) bool {
+func (ark *Archive) filterAllowed(id ksuid.KSUID) bool {
 	if len(ark.LogFilter) == 0 {
 		return true
 	}

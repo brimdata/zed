@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/driver"
+	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/scanner"
@@ -37,25 +38,15 @@ const (
 	seekIndexKind            = "ts"
 )
 
-// A uuid is a unique identifier created with the ksuid package. These ids
-// are always 27 characters long, and combine 32 bits of time plus 128
-// random bits. The ids are roughly sortable by generation time, which can
-// be useful for debugging & investigation.
-type uuid string
-
-func newUUID() uuid {
-	return uuid(ksuid.New().String())
-}
-
 // A dataFile holds archive record data. Only one kind of data file
 // currently exists, representing a file created during ingest.
 type dataFile struct {
-	id   uuid
+	id   ksuid.KSUID
 	kind fileKind
 }
 
 func newDataFile() dataFile {
-	return dataFile{newUUID(), ingestDataKind}
+	return dataFile{ksuid.New(), ingestDataKind}
 }
 
 func (f dataFile) name() string {
@@ -69,7 +60,10 @@ func dataFileNameMatch(s string) (f dataFile, ok bool) {
 	if match == nil {
 		return
 	}
-	id := uuid(match[1])
+	id, err := ksuid.Parse(byteconv.UnsafeString(match[1]))
+	if err != nil {
+		return
+	}
 	return dataFile{id, ingestDataKind}, true
 }
 
@@ -77,9 +71,9 @@ func dataFileNameMatch(s string) (f dataFile, ok bool) {
 // values are seek offsets into the data file with the same uuid. The name
 // of a seekIndexFile encodes the number of records, and the first & last
 // record timestamps of the corresponding data file. The order of the
-// first & last records matches the archives data order.
+// first & last records matches the archive's data order.
 type seekIndexFile struct {
-	id          uuid
+	id          ksuid.KSUID
 	first       nano.Ts
 	last        nano.Ts
 	recordCount int64
@@ -100,16 +94,19 @@ func seekIndexNameMatch(s string) (f seekIndexFile, ok bool) {
 	if match == nil {
 		return
 	}
-	id := uuid(match[1])
-	recordCount, err := strconv.ParseInt(string(match[2]), 10, 64)
+	id, err := ksuid.Parse(byteconv.UnsafeString(match[1]))
 	if err != nil {
 		return
 	}
-	firstTs, err := strconv.ParseInt(string(match[3]), 10, 64)
+	recordCount, err := strconv.ParseInt(byteconv.UnsafeString(match[2]), 10, 64)
 	if err != nil {
 		return
 	}
-	lastTs, err := strconv.ParseInt(string(match[4]), 10, 64)
+	firstTs, err := strconv.ParseInt(byteconv.UnsafeString(match[3]), 10, 64)
+	if err != nil {
+		return
+	}
+	lastTs, err := strconv.ParseInt(byteconv.UnsafeString(match[4]), 10, 64)
 	if err != nil {
 		return
 	}
@@ -141,7 +138,7 @@ func parseTsDirName(name string) (tsDir, bool) {
 }
 
 func (t tsDir) name() string {
-	return path.Join(t.Ts.Time().Format("20060102"))
+	return t.Ts.Time().Format("20060102")
 }
 
 type tsDirVisitor func(tsd tsDir, si []SpanInfo) error
@@ -185,8 +182,8 @@ func tsDirVisit(ctx context.Context, ark *Archive, filterSpan nano.Span, visitor
 }
 
 func tsDirEntriesToSpans(ark *Archive, filterSpan nano.Span, entries []iosrc.Info) []SpanInfo {
-	dfileMap := make(map[uuid]struct{})
-	sfileMap := make(map[uuid]seekIndexFile)
+	dfileMap := make(map[ksuid.KSUID]struct{})
+	sfileMap := make(map[ksuid.KSUID]seekIndexFile)
 	for _, e := range entries {
 		if df, ok := dataFileNameMatch(e.Name()); ok {
 			dfileMap[df.id] = struct{}{}
@@ -267,7 +264,7 @@ func Walk(ctx context.Context, ark *Archive, visit Visitor) error {
 // of the relative location of the file under the archive's root directory.
 type LogID string
 
-func newLogID(ts nano.Ts, id uuid) LogID {
+func newLogID(ts nano.Ts, id ksuid.KSUID) LogID {
 	return LogID(path.Join(dataDirname, tsDirFor(ts).name(), fmt.Sprintf("%s-%s.zng", ingestDataKind, id)))
 }
 
