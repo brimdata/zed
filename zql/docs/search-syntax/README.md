@@ -80,7 +80,7 @@ The search result can be narrowed to include only events that contain certain va
 
 ### Bare Word
 
-The simplest form of such a search is a "bare" word (not wrapped in quotes), which will match against any field value that contains the word as a substring.
+The simplest form of such a search is a "bare" word (not wrapped in quotes), which will match against any field that contains the word, whether it's an exact match to the data type and value of a field or the word appears as a substring in a field.
 
 For example, searching across all our logs for `10.150.0.85` matches against events that contain `addr`-type fields containing this precise value (fields such as `tx_hosts` and `id.resp_h` in our sample data) and also where it appears within `string`-type fields (such as the field `certificate.subject` in `x509` events.)
 
@@ -247,9 +247,24 @@ conn  1521912990.158539 ChhAfsfyuz4n2hFMe 10.239.34.35 56602     10.47.6.51 873 
 
 ### Role of Data Types
 
-When working with named fields, the data type of the field comes becomes significant in two ways.
+When working with named fields, the data type of the field becomes significant in two ways.
 
-1. To match successfully, the value entered must be comparable to the data type of the named field. For instance, since `id.resp_h` is typically an `addr`-type field, an attempted field/value match `id.resp_h=10.150.0.999` will return an error, since this is not valid IP address syntax.
+1. To match successfully, the value entered must be comparable to the data type of the named field. For instance, the `host` field of the `http` events in our sample data are of `string` type, since it logs an HTTP header that is often a hostname or an IP address.
+
+   ```zq-command
+   zq -t 'count() by host | sort count,host' http.log.gz
+   ```
+
+   #### Output:
+   ```zq-output head:4
+   #0:record[host:bstring,count:uint64]
+   0:[0988253c66242502070643933dd49e88.clo.footprintdns.com;1;]
+   0:[10.47.21.1;1;]
+   0:[10.47.21.80/..;1;]
+   ...
+   ```
+
+   An attempted field/value match `host=10.47.21.1` would not match the event counted in the middle row of this table, since ZQL recognizes the bare value `10.47.21.1` as an IP address before comparing it to all the fields named `host` that it sees in the input stream. However, `host="10.47.21.1"` would match, since the quotes cause ZQL to treat the value as a string.
 
 2.  The correct operator must be chosen based on whether the field type is primitive or complex.  For example, `id.resp_h=10.150.0.85` will match in our sample data because `id.resp_h` is a primitive type, `addr`. However, to check if the same IP had been a transmitting host in a `files` event, the syntax `10.150.0.85 in tx_hosts` would be used because `tx_hosts` is a complex type, `set[addr]`.
 
