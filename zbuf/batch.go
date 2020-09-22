@@ -72,3 +72,36 @@ func CopyPuller(w Writer, p Puller) error {
 		b.Unref()
 	}
 }
+
+func PullerReader(p Puller) Reader {
+	return &pullerReader{p: p}
+}
+
+type pullerReader struct {
+	p     Puller
+	batch Batch
+	idx   int
+}
+
+func (r *pullerReader) Read() (*zng.Record, error) {
+	if r.batch == nil {
+		for {
+			batch, err := r.p.Pull()
+			if err != nil || batch == nil {
+				return nil, err
+			}
+			if batch.Length() == 0 {
+				continue
+			}
+			r.batch = batch
+			r.idx = 0
+			break
+		}
+	}
+	rec := r.batch.Index(r.idx)
+	r.idx++
+	if r.idx == r.batch.Length() {
+		r.batch = nil
+	}
+	return rec, nil
+}
