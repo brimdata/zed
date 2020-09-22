@@ -87,9 +87,36 @@ install:
 docker:
 	DOCKER_BUILDKIT=1 docker build --pull --rm \
 		--build-arg LDFLAGS='$(LDFLAGS)' \
-		-t zqd:latest -t localhost:5000/zqd:latest -t localhost:5000/zqd:$(VERSION) .
+		-t zqd:latest \
+		-t localhost:5000/zqd:latest \
+		-t localhost:5000/zqd:$(VERSION) \
+		-t $(ZQD_ECR_HOST)/zqd:$(VERSION) \
+		.
+
+docker-push-local: docker
 	docker push localhost:5000/zqd:latest
 	docker push localhost:5000/zqd:$(VERSION)
+
+docker-push-ecr: docker
+	aws ecr get-login-password --region us-east-2 | docker login \
+	  --username AWS --password-stdin 792043464098.dkr.ecr.us-east-2.amazonaws.com/zqd
+	docker push $(ZQD_ECR_HOST)/zqd:$(VERSION)
+
+kubectl-config:
+	kubectl create namespace $(ZQD_K8S_USER)
+	kubectl config set-context zqtest \
+	--namespace=$(ZQD_K8S_USER) \
+	--cluster=$(ZQD_TEST_CLUSTER) \
+	--user=$(ZQD_K8S_USER)@$(ZQD_TEST_CLUSTER)
+	kubectl config use-context zqtest
+
+helm-install:
+	helm install zqd charts/zqd \
+	--set AWSRegion="us-east-2" \
+	--set image.repository="$(ZQD_ECR_HOST)/" \
+	--set image.tag="zqd:$(VERSION)" \
+	--set useCredSecret=false \
+	--set datauri=$(ZQD_DATA_URI)
 
 create-release-assets:
 	for os in darwin linux windows; do \
