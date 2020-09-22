@@ -140,7 +140,7 @@ TS                UID
 
 #### Example #2:
 
-An alternative syntax for our [`and` operator example](#../search-syntax/README.md#and):
+An alternative syntax for our [`and` operator example](../search-syntax/README.md#and):
 
 ```zq-command
 zq -f table 'filter www.*cdn*.com _path=ssl' *.log.gz
