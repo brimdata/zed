@@ -123,13 +123,7 @@ func (ams *multiSource) SendSources(ctx context.Context, zctx *resolver.Context,
 			// the entire chunk.
 			var paths []string
 			for _, input := range ams.paths {
-				p := Localize(zardir, input)
-				// XXX Detector doesn't support file uri's.
-				if p.Scheme == "file" {
-					paths = append(paths, p.Filepath())
-				} else {
-					paths = append(paths, p.String())
-				}
+				paths = append(paths, Localize(zardir, input).String())
 			}
 			rc := detector.MultiFileReader(zctx, paths, zio.ReaderOpts{Format: "zng"})
 			sn, err := scanner.NewScanner(ctx, rc, sf.Filter, sf.FilterExpr, sf.Span)

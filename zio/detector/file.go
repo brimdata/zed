@@ -3,15 +3,12 @@ package detector
 import (
 	"context"
 	"io"
-	"net/url"
-	"os"
 	"sync"
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/pkg/s3io"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
@@ -35,40 +32,30 @@ func OpenFile(zctx *resolver.Context, path string, opts zio.ReaderOpts) (*zbuf.F
 }
 
 func OpenFileWithContext(ctx context.Context, zctx *resolver.Context, path string, opts zio.ReaderOpts) (*zbuf.File, error) {
-	// Parquet is special and needs its own reader for s3 sources- therefore this must go before
-	// the IsS3Path check.
+	uri, err := iosrc.ParseURI(path)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parquet is special and needs its own reader for s3 sources.
 	if opts.Format == "parquet" {
-		return OpenParquet(zctx, path, opts)
+		return OpenParquet(zctx, uri, opts)
 	}
 
-	var f io.ReadCloser
-	if path == StdinPath {
-		f = os.Stdin
-	} else {
-		uri, err := iosrc.ParseURI(path)
-		if err != nil {
-			return nil, err
-		}
-		if f, err = iosrc.NewReader(ctx, uri); err != nil {
-			return nil, err
-		}
+	f, err := iosrc.NewReader(ctx, uri)
+	if err != nil {
+		return nil, err
 	}
-
 	return OpenFromNamedReadCloser(zctx, f, path, opts)
 }
 
-func OpenParquet(zctx *resolver.Context, path string, opts zio.ReaderOpts) (*zbuf.File, error) {
+func OpenParquet(zctx *resolver.Context, uri iosrc.URI, opts zio.ReaderOpts) (*zbuf.File, error) {
 	var pf source.ParquetFile
 	var err error
-	if s3io.IsS3Path(path) {
-		var u *url.URL
-		u, err = url.Parse(path)
-		if err != nil {
-			return nil, err
-		}
-		pf, err = parquets3.NewS3FileReader(context.Background(), u.Host, u.Path, opts.AwsCfg)
+	if uri.Scheme == "s3" {
+		pf, err = parquets3.NewS3FileReader(context.Background(), uri.Host, uri.Path, opts.AwsCfg)
 	} else {
-		pf, err = local.NewLocalFileReader(path)
+		pf, err = local.NewLocalFileReader(uri.Filepath())
 	}
 	if err != nil {
 		return nil, err
@@ -78,7 +65,7 @@ func OpenParquet(zctx *resolver.Context, path string, opts zio.ReaderOpts) (*zbu
 	if err != nil {
 		return nil, err
 	}
-	return zbuf.NewFile(r, pf, path), nil
+	return zbuf.NewFile(r, pf, uri.String()), nil
 }
 
 func OpenFromNamedReadCloser(zctx *resolver.Context, rc io.ReadCloser, path string, opts zio.ReaderOpts) (*zbuf.File, error) {
