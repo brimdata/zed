@@ -372,7 +372,7 @@ dns   1521912892.637238 CN9X7Y36SH6faoh8t 10.47.8.10 58340     10.0.0.100 53    
 
 ### Wildcard Field Names
 
-It's possible to search for the typed value across _any_ field by entering a wildcard in place of the field name. Two wildcard operators are available depending on how broad you want your search to be. The `*` operator matches all top-level fields of the value's type, and the `**` operator additionally matches such values when they appear nested within records.
+It's possible to search across _all_ fields of the value's data type by entering a wildcard in place of the field name. Two wildcard operators are available depending on how broad you want your search to be. The `*` operator matches all top-level fields of the value's type, and the `**` operator additionally matches such values when they appear nested within records.
 
 For example, the following search matches many `ssl` and `conn` events that contain the value `10.150.0.85` in `addr`-type fields of the `id` record, such as `id.resp_h`. It also matches `notice` events where it appears in `id.resp_h` and also `dst`, a top-level field also of the `addr` type. Compare this with our [bare word](#bare-word) example where we also matched as a substring of the `string`-type field named `certificate.subject`.
 
