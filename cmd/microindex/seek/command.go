@@ -58,7 +58,7 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 
 func (c *Command) Run(args []string) error {
 	defer c.Cleanup()
-	if ok, err := c.Init(); !ok {
+	if err := c.Init(); err != nil {
 		return err
 	}
 	//XXX no reason to limit this... fix later

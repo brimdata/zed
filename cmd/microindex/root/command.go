@@ -29,7 +29,7 @@ func (c *Command) Cleanup() {
 	c.cli.Cleanup()
 }
 
-func (c *Command) Init(all ...cli.Initializer) (bool, error) {
+func (c *Command) Init(all ...cli.Initializer) error {
 	return c.cli.Init(all...)
 }
 
@@ -41,11 +41,12 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 
 func (c *Command) Run(args []string) error {
 	defer c.cli.Cleanup()
-	if ok, err := c.cli.Init(); !ok {
-		return err
-	}
+	err := c.cli.Init()
 	if len(args) == 0 {
 		return MicroIndex.Exec(c, []string{"help"})
+	}
+	if err != nil {
+		return err
 	}
 	return charm.ErrNoRun
 }

@@ -63,7 +63,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 //XXX lots here copied from zq command... we should refactor into a tools package
 func (c *Command) Run(args []string) error {
 	defer c.Cleanup()
-	if ok, err := c.Init(&c.outputFlags, &c.procFlags); !ok {
+	if err := c.Init(&c.outputFlags, &c.procFlags); err != nil {
 		return err
 	}
 	if len(args) == 0 {

@@ -57,7 +57,7 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 
 func (c *Command) Run(args []string) error {
 	defer c.Cleanup()
-	if ok, err := c.Init(&c.inputFlags); !ok {
+	if err := c.Init(&c.inputFlags); err != nil {
 		return err
 	}
 	if c.keyField == "" {

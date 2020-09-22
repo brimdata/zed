@@ -49,13 +49,13 @@ func (c *Command) Cleanup() {
 	c.cli.Cleanup()
 }
 
-func (c *Command) Init(all ...cli.Initializer) (bool, error) {
+func (c *Command) Init(all ...cli.Initializer) error {
 	return c.cli.Init(all...)
 }
 
 func (c *Command) Run(args []string) error {
 	defer c.cli.Cleanup()
-	if ok, err := c.cli.Init(); !ok {
+	if err := c.cli.Init(); err != nil {
 		return err
 	}
 	return Zar.Exec(c, []string{"help"})

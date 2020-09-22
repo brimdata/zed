@@ -98,7 +98,7 @@ func parseSpan(sfrom, sto string) (nano.Span, error) {
 
 func (c *Command) Run(args []string) error {
 	defer c.Cleanup()
-	if ok, err := c.Init(); !ok {
+	if err := c.Init(); err != nil {
 		return err
 	}
 	if c.indexFile != "" && c.inputFile == "-" {

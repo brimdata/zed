@@ -98,7 +98,7 @@ func max(in []int) int {
 
 func (c *Command) Run(args []string) error {
 	defer c.Cleanup()
-	if ok, err := c.Init(); !ok {
+	if err := c.Init(); err != nil {
 		return err
 	}
 	var cuts []int
