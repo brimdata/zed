@@ -23,11 +23,21 @@ type Merger struct {
 	zctx       *resolver.Context
 }
 
+const TempPrefix = "zq-spill-"
+
+func TempDir() (string, error) {
+	return ioutil.TempDir("", TempPrefix)
+}
+
+func TempFile() (*os.File, error) {
+	return ioutil.TempFile("", TempPrefix)
+}
+
 // NewMerger returns Merger to implement external merge sorts of a large
 // zng record stream.  It creates a temporary directory to hold the collection
 // of spilled chunks.  Call Cleanup to remove it.
 func NewMerger(compareFn expr.CompareFn) (*Merger, error) {
-	tempDir, err := ioutil.TempDir("", "zq-sort-")
+	tempDir, err := TempDir()
 	if err != nil {
 		return nil, err
 	}
