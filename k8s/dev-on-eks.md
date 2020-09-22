@@ -64,3 +64,16 @@ Run the following shell script to expose the zqd endpoint on you local host:
 ```
 This script kills existing port-forwards and creates a new port-forward. It also starts the Linkerd dashboard so you can monitor your endpoint.
 
+## Quick test for zqd connectivity
+Use zapi to create a Brim space if your ZQD_DATA_URI does not already contain a space, e.g.
+```
+zapi new -k archivestore -d s3://brim-scratch/mark/sample-http-zng http-space
+```
+And try some zapi queries:
+```
+zapi -s http-space get "head 1"
+zapi -s http-space get "tail 1"
+```
+
+You can also query http-space with Brim, since it will connect to the same port-forward for zqd that zapi uses.
+
