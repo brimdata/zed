@@ -83,16 +83,20 @@ type pullerReader struct {
 	idx   int
 }
 
-var _ Reader = (*pullerReader)(nil)
-
 func (r *pullerReader) Read() (*zng.Record, error) {
 	if r.batch == nil {
-		batch, err := r.p.Pull()
-		if err != nil || batch == nil {
-			return nil, err
+		for {
+			batch, err := r.p.Pull()
+			if err != nil || batch == nil {
+				return nil, err
+			}
+			if batch.Length() == 0 {
+				continue
+			}
+			r.batch = batch
+			r.idx = 0
+			break
 		}
-		r.batch = batch
-		r.idx = 0
 	}
 	rec := r.batch.Index(r.idx)
 	r.idx++

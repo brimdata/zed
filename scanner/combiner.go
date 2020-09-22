@@ -7,17 +7,16 @@ import (
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zng"
 )
 
-type combinerScanner struct {
-	combiner zbuf.Reader
+type combiner struct {
+	reader   zbuf.Reader
 	scanners []Scanner
 }
 
-// NewCombinerScanner returns a Scanner that combines the records scanned from
+// NewCombiner returns a Scanner that combines the records scanned from
 // a set of filtered readers.
-func NewCombinerScanner(ctx context.Context, readers []zbuf.Reader, spans []nano.Span, cmp zbuf.RecordCmpFn, f filter.Filter, filterExpr ast.BooleanExpr) (Scanner, error) {
+func NewCombiner(ctx context.Context, readers []zbuf.Reader, spans []nano.Span, cmp zbuf.RecordCmpFn, f filter.Filter, filterExpr ast.BooleanExpr) (Scanner, error) {
 	if len(readers) != len(spans) {
 		panic("length mismatch between readers and spans")
 	}
@@ -31,21 +30,17 @@ func NewCombinerScanner(ctx context.Context, readers []zbuf.Reader, spans []nano
 		scanners[i] = s
 		scanReaders[i] = zbuf.PullerReader(s)
 	}
-	return &combinerScanner{
-		combiner: zbuf.NewCombiner(scanReaders, cmp),
+	return &combiner{
+		reader:   zbuf.NewCombiner(scanReaders, cmp),
 		scanners: scanners,
 	}, nil
 }
 
-func (c *combinerScanner) Pull() (zbuf.Batch, error) {
-	return zbuf.ReadBatch(c, BatchSize)
+func (c *combiner) Pull() (zbuf.Batch, error) {
+	return zbuf.ReadBatch(c.reader, BatchSize)
 }
 
-func (c *combinerScanner) Read() (*zng.Record, error) {
-	return c.combiner.Read()
-}
-
-func (c *combinerScanner) Stats() *ScannerStats {
+func (c *combiner) Stats() *ScannerStats {
 	var ss ScannerStats
 	for _, s := range c.scanners {
 		ss.Accumulate(s.Stats())
