@@ -2,7 +2,7 @@
 
 Here are instructions for how to set up a local K8s cluster hosted on Kind (Kubernetes in Docker). These were tested on on a Macbook Pro. They can be adapted to Linux. In each section, we reference the setup instructions we used from other community projects and vendors. Those links have details on how to to do correponding setup on Linux.
 
-At this point, zqd on K8s is designed to access log file hosts on Amazon S3. The K8s deployment on Kind assumes you will need AWS credentials to access S3. 
+At this point, zqd on K8s is designed to access log files hosted on Amazon S3. The K8s deployment on Kind assumes you have AWS credentials to access S3. 
 
 ### Prerequisites
 
@@ -74,20 +74,9 @@ Linkerd, when it is installed this way, will automatically inject sidecar contai
 kubectl wait --for=condition=available --timeout=120s -n linkerd deployment linkerd-tap
 ```
 
-### Step 2: Redeploy zqd to get Linkerd sidecar proxy injection
+### Step 2: Deploy zqd to get Linkerd sidecar proxy injection
 
-The zqd from the section "Redeploy zqd with an S3 datauri" will not yet have a Linkerd proxy. You can check this by doing this -- sub the pod id you get from `get pod` into the `describe pod`
-```
-kubectl get pod
-kubectl describe pod zqd-test-1-99999999-XXXXX
-```
-You will see that the pod has one container called `zqd`.
-After installing Linkerd, reinstall with helm like you did before:
-```
-helm uninstall zqd-test-1
-helm install zqd-test-1 charts/zqd --set datauri="s3://brim-scratch/mark/zqd-meta"
-```
-Now repeat the `describe pod` and you will see that the pod has a second container called `linkerd-proxy`. This proxy monitors both inbound and outbound traffic.
+At this step, you can use the Makefile rules described in [Dev on Kind](dev-on-kind.md).
 
 ### Step 3: Use the Linkerd dashboard to monitor zqd
 

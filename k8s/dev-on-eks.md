@@ -4,9 +4,27 @@ These are instructions for deploying oa locally built image for zqd into an EKS 
 
 ## First time setup
 
+### Desktop tools
+
+`kubectl` and `helm` should be installed. See instructions at:
+
+https://kubernetes.io/docs/tasks/tools/install-kubectl/
+
+https://helm.sh/docs/intro/install/
+
+#### On MacOS
+Using brew (https://brew.sh) for the install works well on MacOS:
+```
+brew install kubernetes-cli helm
+```
+
+### EKS access
+
 First connect to the EKS cluster so you have kubectl access. You or a collegue should follow the steps here to obtain cluster access:
 
 https://docs.aws.amazon.com/eks/latest/userguide/add-user-role.html
+
+### Environment variables for Makefile rules
 
 In the zq Makefile, there are several rules to make the developer experience more consistent. These rules depend on having the following env vars defined:
 ```
@@ -17,6 +35,7 @@ export ZQD_TEST_CLUSTER=zq-test.us-east-2.eksctl.io
 ```
 You must modify these to fit you environment. ZQD_ECR_HOST is the host portion of the ECR service for your AWS account. ZQD_DATA_URI is used to set the '-data' flag when ZQD is started on Kubernetes. It should be an S3 bucket specific o you that you can use for testing. ZQD_K8S_USER is your username, which is usually the same as you AWS IAM username. ZQD_TEST_CLUSTER is the host of the EKS cluster you are using.
 
+### Create a K8s namespace for your development
 The Makefile rules are docker and kubectl commands that use these env vars.
 
 Start by creating a namespace, specific to you user, in which to deploy zqd. The following Makefile rule does that. It is design to be run once, and can be run again if you have removed the namespace.
@@ -31,7 +50,7 @@ make docker-push-ecr
 ```
 The tag on this image is based on `git describe` so it is specific to your branch. All zqd images are assumed to share the same ECR repo.
 
-## Install image
+## Install with Helm
 Helm is used to deploy the zqd image. Use:
 ```
 make helm-install

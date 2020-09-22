@@ -1,16 +1,38 @@
 # Deploying zqd on Kind
 
-To development K8s deployment and testing, we use Tilt.
+This assumes you have already followed the instructions in [Setting up a Kind cluster for zqd](kind-setup.md).
 
-https://tilt.dev 
-
-The zq root directory has a Tiltfile that can deploy to Kind. We describe how to use it. Later in this doc, we explain the "manual" steps for deployment if you are not using Tilt, since the manual steps are the way we built the Tiltfile to begin with.
-
-## Deploying with Tilt
-
+## Build and upload docker image
+To build and push the zqd image to the local Docker repo that is deployed on Kind, use:
 ```
-tilt up
+make docker-push-local
 ```
+
+## Install with Helm
+Helm is used to deploy the zqd image. Use:
+```
+make helm-install
+```
+To run Helm with the correct command line flags.
+
+After helm-install, you can check the status of your install with:
+```
+helm ls
+```
+If you want to redeploy in you test env, first uninstall the zqd instance with:
+```
+helm uninstall zqd
+```
+To check the status of your running pod in your namespace, use:
+```
+kubectl get pod
+```
+To see the unique name of your running zqd pod. Copy that name for the following troubleshooting steps. If the status of the pod in 'Error' of 'ImagePullBackoff' (or something else not good), then you can get details with:
+```
+kubectl describe pod zqd-56b46985fc-bqv87
+kubectl logs zqd-56b46985fc-bqv87 -p
+```
+Edit the commands to use your pod name.
 
 ## Creating test data in S3 using zar
 Before using zapi to access the running zqd, we use `zar import` in another console to copy sample data from our zq repo into s3. You must have an AWS account and the AWS CLI on your desktop machine to do this. Change the directory name to match your s3 bucket.
@@ -41,17 +63,14 @@ zapi -s http-space get "tail 1"
 
 We can also query http-space with Brim, since it will connect to the same port-forward for zqd.
 
-## Individual build steps seperate from the Tiltfile
+## Appendix: Individual build steps
 
-This explains each of the parts of the Tiltfile -- you do not need to run these steps if `tilt up` is doing everything you need.
+This give more detail on the Makefile rules.
 
 ### Build a zqd image with Docker
 There is a Dockerfile in the root directory. This Dockerfile does a 2-stage build to produce a relatively small image containing the zqd binary. It is structured to cache intermediate results so it runs faster on subsequent builds.
 
 The Makefile has a target `make docker` that creates a docker image with the correct version number passed in as LDFLAGS. `make docker` is the preferred way to build a docker image.
-
-The `make docker` target also copies the image into a Docker registry that is accessed by your single-node Kubernetes cluster for Kind.
-
 
 ### AWS credentials
 
