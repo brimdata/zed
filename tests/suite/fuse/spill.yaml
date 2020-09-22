@@ -1,0 +1,16 @@
+script: |
+  zq -t -fusemem 1B fuse in.tzng
+
+inputs:
+  - name: in.tzng
+    data: |
+      #0:record[a:string,b:string]
+      0:[hello;world;]
+      #1:record[b:string,c:string]
+      1:[goodnight;gracie;]
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[a:string,b:string,c:string]
+      0:[-;goodnight;gracie;]

@@ -18,17 +18,17 @@ func newPeeker(filename string, ordinal int, recs []*zng.Record, zctx *resolver.
 	}
 	for _, rec := range recs {
 		if err := f.Write(rec); err != nil {
-			f.closeAndRemove()
+			f.CloseAndRemove()
 			return nil, err
 		}
 	}
 	if err := f.Rewind(zctx); err != nil {
-		f.closeAndRemove()
+		f.CloseAndRemove()
 		return nil, err
 	}
 	first, err := f.Read()
 	if err != nil {
-		f.closeAndRemove()
+		f.CloseAndRemove()
 		return nil, err
 	}
 	return &peeker{f, first, ordinal}, nil
