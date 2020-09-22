@@ -40,7 +40,7 @@ See the [contributing guide](CONTRIBUTING.md) on how you can help improve `zq`!
 
 ## Join the Community
 
-Join our [Public Slack](https://join.slack.com/t/brimsec/shared_invite/zt-cy34xoxg-hZiTKUT~1KdGjlaBIuUUdg) workspace for announcements, Q&A, and to trade tips!
+Join our [Public Slack](https://www.brimsecurity.com/join-slack/) workspace for announcements, Q&A, and to trade tips!
 
 [doc-img]: https://godoc.org/github.com/brimsec/zq?status.svg
 [doc]: https://godoc.org/github.com/brimsec/zq

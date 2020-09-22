@@ -10,6 +10,7 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
@@ -58,14 +59,14 @@ func TestMultiFileScanner(t *testing.T) {
 	f2 := writeTemp(t, []byte(input[1]))
 	defer os.Remove(f2)
 
-	mfr := MultiFileReader(resolver.NewContext(), []string{f1, f2}, OpenConfig{})
+	mfr := MultiFileReader(resolver.NewContext(), []string{f1, f2}, zio.ReaderOpts{})
 	sn, err := scanner.NewScanner(context.Background(), mfr, nil, nil, nano.MaxSpan)
 	require.NoError(t, err)
 	_, ok := sn.(*multiFileScanner)
 	assert.True(t, ok)
 
 	var sb strings.Builder
-	err = zbuf.CopyPuller(tzngio.NewWriter(&sb), sn)
+	err = zbuf.CopyPuller(tzngio.NewWriter(zio.NopCloser(&sb)), sn)
 	require.NoError(t, err)
 	require.Equal(t, trim(exp), trim(sb.String()))
 

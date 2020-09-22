@@ -29,7 +29,7 @@ func fieldMicroIndexName(fieldname string) string {
 }
 
 func IndexDirTree(ctx context.Context, ark *Archive, rules []Rule, path string, progress chan<- string) error {
-	err := Walk(ark, func(zardir iosrc.URI) error {
+	err := Walk(ctx, ark, func(zardir iosrc.URI) error {
 		logPath := Localize(zardir, path)
 		return run(ctx, zardir, rules, logPath, progress)
 	})
@@ -44,14 +44,14 @@ func IndexDirTree(ctx context.Context, ark *Archive, rules []Rule, path string, 
 }
 
 func runOne(ctx context.Context, zardir iosrc.URI, rule Rule, inputPath iosrc.URI, progress chan<- string) error {
-	rc, err := iosrc.NewReader(inputPath)
+	rc, err := iosrc.NewReader(ctx, inputPath)
 	if err != nil {
 		return err
 	}
 	defer rc.Close()
 	zctx := resolver.NewContext()
 	r := zngio.NewReader(rc, zctx)
-	fgi, err := NewFlowgraphIndexer(zctx, rule.Path(zardir), rule.keys, rule.framesize)
+	fgi, err := NewFlowgraphIndexer(ctx, zctx, rule.Path(zardir), rule.keys, rule.framesize)
 	if err != nil {
 		return err
 	}
@@ -84,11 +84,11 @@ type FlowgraphIndexer struct {
 	cutter  *cut.Cutter
 }
 
-func NewFlowgraphIndexer(zctx *resolver.Context, uri iosrc.URI, keys []string, framesize int) (*FlowgraphIndexer, error) {
+func NewFlowgraphIndexer(ctx context.Context, zctx *resolver.Context, uri iosrc.URI, keys []string, framesize int) (*FlowgraphIndexer, error) {
 	if len(keys) == 0 {
 		keys = []string{keyName}
 	}
-	writer, err := microindex.NewWriter(zctx, uri.String(), keys, framesize)
+	writer, err := microindex.NewWriterWithContext(ctx, zctx, uri.String(), keys, framesize)
 	if err != nil {
 		return nil, err
 	}

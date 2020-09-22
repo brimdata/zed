@@ -127,10 +127,9 @@ import (
 	"testing"
 	"unicode/utf8"
 
+	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/driver"
-	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
@@ -584,25 +583,21 @@ func runzq(path, ZQL, outputFormat, outputFlags string, inputs ...string) (out s
 		return "", err.Error(), err
 	}
 	defer rc.Close()
-	if outputFormat == "types" {
-		outputFormat = "null"
-		zctx.SetLogger(&emitter.TypeLogger{WriteCloser: &nopCloser{&outbuf}})
-	}
-	var zflags zio.WriterFlags
+	var zflags outputflags.Flags
 	var flags flag.FlagSet
 	zflags.SetFlags(&flags)
 	if err := flags.Parse(strings.Split(outputFlags, " ")); err != nil {
 		return "", "", err
 	}
 	zflags.Format = outputFormat
-	zw := detector.LookupWriter(&nopCloser{&outbuf}, &zflags)
-	if zw == nil {
-		return "", "", fmt.Errorf("%s: unknown output format", outputFormat)
+	zw, err := detector.LookupWriter(&nopCloser{&outbuf}, zflags.Options())
+	if err != nil {
+		return "", "", err
 	}
 	d := driver.NewCLI(zw)
 	d.SetWarningsWriter(&errbuf)
 	err = driver.Run(context.Background(), d, proc, zctx, rc, driver.Config{})
-	if err2 := zw.Flush(); err == nil {
+	if err2 := zw.Close(); err == nil {
 		err = err2
 	}
 	if err != nil {

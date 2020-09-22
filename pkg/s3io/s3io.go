@@ -1,13 +1,16 @@
 package s3io
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -21,7 +24,7 @@ var ErrInvalidS3Path = errors.New("path is not a valid s3 location")
 // uploader is an interface wrapper for s3manager.Uploader. This is only here
 // for unit testing purposes.
 type uploader interface {
-	Upload(*s3manager.UploadInput, ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
+	UploadWithContext(context.Context, *s3manager.UploadInput, ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
 }
 
 func IsS3Path(path string) bool {
@@ -45,6 +48,7 @@ func parsePath(path string) (bucket, key string, err error) {
 type Writer struct {
 	writer   *io.PipeWriter
 	reader   *io.PipeReader
+	ctx      context.Context
 	uploader uploader
 	bucket   string
 	key      string
@@ -53,7 +57,7 @@ type Writer struct {
 	err      error
 }
 
-func NewWriter(path string, cfg *aws.Config, options ...func(*s3manager.Uploader)) (*Writer, error) {
+func NewWriter(ctx context.Context, path string, cfg *aws.Config, options ...func(*s3manager.Uploader)) (*Writer, error) {
 	bucket, key, err := parsePath(path)
 	if err != nil {
 		return nil, err
@@ -62,18 +66,19 @@ func NewWriter(path string, cfg *aws.Config, options ...func(*s3manager.Uploader
 	uploader := s3manager.NewUploaderWithClient(client, options...)
 	pr, pw := io.Pipe()
 	return &Writer{
-		bucket:   bucket,
-		key:      key,
 		writer:   pw,
 		reader:   pr,
+		ctx:      ctx,
 		uploader: uploader,
+		bucket:   bucket,
+		key:      key,
 	}, nil
 }
 
 func (w *Writer) init() {
 	w.done.Add(1)
 	go func() {
-		_, err := w.uploader.Upload(&s3manager.UploadInput{
+		_, err := w.uploader.UploadWithContext(w.ctx, &s3manager.UploadInput{
 			Bucket: aws.String(w.bucket),
 			Key:    aws.String(w.key),
 			Body:   w.reader,
@@ -98,7 +103,7 @@ func (w *Writer) Close() error {
 	return w.err
 }
 
-func RemoveAll(path string, cfg *aws.Config) error {
+func RemoveAll(ctx context.Context, path string, cfg *aws.Config) error {
 	bucket, key, err := parsePath(path)
 	if err != nil {
 		return err
@@ -109,7 +114,7 @@ func RemoveAll(path string, cfg *aws.Config) error {
 		Bucket: aws.String(bucket),
 		Prefix: aws.String(key),
 	})
-	if err := deleter.Delete(aws.BackgroundContext(), it); err != nil {
+	if err := deleter.Delete(ctx, it); err != nil {
 		return err
 	}
 	for it.Next() {
@@ -121,52 +126,53 @@ func RemoveAll(path string, cfg *aws.Config) error {
 	return nil
 }
 
-func Remove(path string, cfg *aws.Config) error {
+func Remove(ctx context.Context, path string, cfg *aws.Config) error {
 	bucket, key, err := parsePath(path)
 	if err != nil {
 		return err
 	}
-	if _, err := head(bucket, key, cfg); err != nil {
+	if _, err := head(ctx, bucket, key, cfg); err != nil {
 		return err
 	}
-	_, err = newClient(cfg).DeleteObject(&s3.DeleteObjectInput{
+	_, err = newClient(cfg).DeleteObjectWithContext(ctx, &s3.DeleteObjectInput{
 		Key:    &key,
 		Bucket: &bucket,
 	})
 	return err
 }
 
-func Stat(path string, cfg *aws.Config) (*s3.HeadObjectOutput, error) {
-	bucket, key, err := parsePath(path)
-	if err != nil {
-		return nil, err
-	}
-	return head(bucket, key, cfg)
+type Info struct {
+	Name    string
+	Size    int64
+	ModTime time.Time
+	IsDir   bool
 }
 
-func head(bucket, key string, cfg *aws.Config) (*s3.HeadObjectOutput, error) {
-	return newClient(cfg).HeadObject(&s3.HeadObjectInput{
+func Stat(ctx context.Context, uri string, cfg *aws.Config) (Info, error) {
+	bucket, key, err := parsePath(uri)
+	if err != nil {
+		return Info{}, err
+	}
+	h, err := head(ctx, bucket, key, cfg)
+	if err != nil {
+		return Info{}, err
+	}
+	return Info{
+		Name:    path.Base(key),
+		Size:    *h.ContentLength,
+		ModTime: *h.LastModified,
+		IsDir:   false,
+	}, nil
+}
+
+func head(ctx context.Context, bucket, key string, cfg *aws.Config) (*s3.HeadObjectOutput, error) {
+	return newClient(cfg).HeadObjectWithContext(ctx, &s3.HeadObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
 }
 
-func ListObjects(path string, cfg *aws.Config) ([]string, error) {
-	bucket, key, err := parsePath(path)
-	if err != nil {
-		return nil, err
-	}
-	client := newClient(cfg)
-	var keys []string
-	return keys, ls(client, bucket, key, func(out *s3.ListObjectsV2Output, lastPage bool) bool {
-		for _, obj := range out.Contents {
-			keys = append(keys, *obj.Key)
-		}
-		return true
-	})
-}
-
-func ListCommonPrefixes(path string, cfg *aws.Config) ([]string, error) {
+func List(ctx context.Context, path string, cfg *aws.Config) ([]Info, error) {
 	bucket, key, err := parsePath(path)
 	if err != nil {
 		return nil, err
@@ -180,26 +186,29 @@ func ListCommonPrefixes(path string, cfg *aws.Config) ([]string, error) {
 		Bucket:    aws.String(bucket),
 		Delimiter: aws.String("/"),
 	}
-	var prefixes []string
-	err = client.ListObjectsV2Pages(input, func(out *s3.ListObjectsV2Output, lastPage bool) bool {
+	var entries []Info
+	err = client.ListObjectsV2PagesWithContext(ctx, input, func(out *s3.ListObjectsV2Output, lastPage bool) bool {
+		for _, obj := range out.Contents {
+			entries = append(entries, Info{
+				Name:    strings.TrimPrefix(*obj.Key, key),
+				Size:    *obj.Size,
+				ModTime: *obj.LastModified,
+				IsDir:   false,
+			})
+		}
 		for _, p := range out.CommonPrefixes {
-			prefixes = append(prefixes, *p.Prefix)
+			entries = append(entries, Info{
+				Name:  strings.TrimSuffix(strings.TrimPrefix(*p.Prefix, key), "/"),
+				IsDir: true,
+			})
 		}
 		return true
 	})
-	return prefixes, err
+	return entries, err
 }
 
-func ls(client *s3.S3, bucket, key string, cb func(*s3.ListObjectsV2Output, bool) bool) error {
-	input := &s3.ListObjectsV2Input{
-		Prefix: aws.String(key),
-		Bucket: aws.String(bucket),
-	}
-	return client.ListObjectsV2Pages(input, cb)
-}
-
-func Exists(path string, cfg *aws.Config) (bool, error) {
-	_, err := Stat(path, cfg)
+func Exists(ctx context.Context, path string, cfg *aws.Config) (bool, error) {
+	_, err := Stat(ctx, path, cfg)
 	if err != nil {
 		var reqerr awserr.RequestFailure
 		if errors.As(err, &reqerr) && reqerr.StatusCode() == http.StatusNotFound {

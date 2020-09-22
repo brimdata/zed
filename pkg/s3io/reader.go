@@ -1,6 +1,7 @@
 package s3io
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 
 type Reader struct {
 	client *s3.S3
+	ctx    context.Context
 	bucket string
 	key    string
 	size   int64
@@ -19,8 +21,8 @@ type Reader struct {
 	body   io.ReadCloser
 }
 
-func NewReader(path string, cfg *aws.Config) (*Reader, error) {
-	info, err := Stat(path, cfg)
+func NewReader(ctx context.Context, path string, cfg *aws.Config) (*Reader, error) {
+	info, err := Stat(ctx, path, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -30,9 +32,10 @@ func NewReader(path string, cfg *aws.Config) (*Reader, error) {
 	}
 	return &Reader{
 		client: newClient(cfg),
+		ctx:    ctx,
 		bucket: bucket,
 		key:    key,
-		size:   *info.ContentLength,
+		size:   info.Size,
 	}, nil
 }
 
@@ -115,7 +118,7 @@ func (r *Reader) makeRequest(off int64, count int64) (io.ReadCloser, error) {
 		Key:    aws.String(r.key),
 		Range:  aws.String(fmt.Sprintf("bytes=%d-%d", off, off+count-1)),
 	}
-	res, err := r.client.GetObject(input)
+	res, err := r.client.GetObjectWithContext(r.ctx, input)
 	if err != nil {
 		return nil, err
 	}

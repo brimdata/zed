@@ -15,6 +15,7 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
@@ -32,7 +33,7 @@ func createArchiveSpace(t *testing.T, datapath string, srcfile string, co *Creat
 
 func importTestFile(t *testing.T, ark *Archive, srcfile string) {
 	zctx := resolver.NewContext()
-	reader, err := detector.OpenFile(zctx, srcfile, detector.OpenConfig{})
+	reader, err := detector.OpenFile(zctx, srcfile, zio.ReaderOpts{})
 	require.NoError(t, err)
 	defer reader.Close()
 
@@ -57,7 +58,7 @@ func indexQuery(t *testing.T, ark *Archive, query IndexQuery, opts ...FindOption
 	defer rc.Close()
 
 	var buf bytes.Buffer
-	w := tzngio.NewWriter(&buf)
+	w := tzngio.NewWriter(zio.NopCloser(&buf))
 	require.NoError(t, zbuf.Copy(w, rc))
 
 	return buf.String()
@@ -123,24 +124,24 @@ func TestImportWhileOpen(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify initial update count.
-	update1, err := ark1.UpdateCheck()
+	update1, err := ark1.UpdateCheck(context.Background())
 	require.NoError(t, err)
 	assert.Equal(t, 1, update1)
 
 	importTestFile(t, ark1, "testdata/td1.zng")
 
 	// Ensure UpdateCheck has incremented.
-	update2, err := ark1.UpdateCheck()
+	update2, err := ark1.UpdateCheck(context.Background())
 	require.NoError(t, err)
 	if !assert.Equal(t, 3, update2) {
-		if fi, err := iosrc.Stat(ark1.mdURI()); err == nil {
+		if fi, err := iosrc.Stat(context.Background(), ark1.mdURI()); err == nil {
 			fmt.Fprintf(os.Stderr, "metadata mtime: %v, mdModTime %v", fi.ModTime(), ark1.mdModTime)
 		}
 	}
 
 	// Verify data & that a span walk now does not increment the update counter.
 	var initialSpans []SpanInfo
-	err = SpanWalk(ark1, func(si SpanInfo, _ iosrc.URI) error {
+	err = SpanWalk(context.Background(), ark1, func(si SpanInfo, _ iosrc.URI) error {
 		initialSpans = append(initialSpans, si)
 		return nil
 	})
@@ -161,7 +162,7 @@ func TestImportWhileOpen(t *testing.T) {
 
 	// Verify that the data appears to the earlier opened handle
 	var postSpans []SpanInfo
-	err = SpanWalk(ark1, func(si SpanInfo, _ iosrc.URI) error {
+	err = SpanWalk(context.Background(), ark1, func(si SpanInfo, _ iosrc.URI) error {
 		postSpans = append(postSpans, si)
 		return nil
 	})
@@ -179,7 +180,7 @@ func TestImportWhileOpen(t *testing.T) {
 	assert.Equal(t, exp, postSpans)
 
 	if !assert.Equal(t, 4, ark1.mdUpdateCount) {
-		if fi, err := iosrc.Stat(ark1.mdURI()); err == nil {
+		if fi, err := iosrc.Stat(context.Background(), ark1.mdURI()); err == nil {
 			fmt.Fprintf(os.Stderr, "metadata mtime: %v, ark1.mdModTime %v, ark2.mdModTime %v", fi.ModTime(), ark1.mdModTime, ark2.mdModTime)
 		}
 	}
@@ -193,8 +194,8 @@ func TestRemoteSourceImport(t *testing.T) {
 	defer ctrl.Finish()
 	src := iosrcmock.NewMockSource(ctrl)
 	var recvuri iosrc.URI
-	src.EXPECT().NewWriter(gomock.Any()).
-		DoAndReturn(func(uri iosrc.URI) (io.WriteCloser, error) {
+	src.EXPECT().NewWriter(context.Background(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, uri iosrc.URI) (io.WriteCloser, error) {
 			recvuri = uri
 			return &nopWriteCloser{}, nil
 		})

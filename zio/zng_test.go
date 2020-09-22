@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zio/zjsonio"
 	"github.com/brimsec/zq/zio/zngio"
@@ -44,11 +43,11 @@ func boomerang(t *testing.T, logs string, compress bool) {
 	var rawzng Output
 	var zngLZ4BlockSize int
 	if compress {
-		zngLZ4BlockSize = zio.DefaultZngLZ4BlockSize
+		zngLZ4BlockSize = zngio.DefaultLZ4BlockSize
 	}
-	rawDst := zngio.NewWriter(&rawzng, zio.WriterFlags{ZngLZ4BlockSize: zngLZ4BlockSize})
+	rawDst := zngio.NewWriter(&rawzng, zngio.WriterOpts{LZ4BlockSize: zngLZ4BlockSize})
 	require.NoError(t, zbuf.Copy(rawDst, tzngSrc))
-	require.NoError(t, rawDst.Flush())
+	require.NoError(t, rawDst.Close())
 
 	var out Output
 	rawSrc := zngio.NewReader(bytes.NewReader(rawzng.Bytes()), resolver.NewContext())
@@ -285,9 +284,9 @@ func TestStreams(t *testing.T) {
 0:[2.12.27.251;]`
 	tr := tzngio.NewReader(bytes.NewReader([]byte(in)), resolver.NewContext())
 	var out Output
-	zw := zngio.NewWriter(&out, zio.WriterFlags{
+	zw := zngio.NewWriter(&out, zngio.WriterOpts{
 		StreamRecordsMax: 2,
-		ZngLZ4BlockSize:  zio.DefaultZngLZ4BlockSize,
+		LZ4BlockSize:     zngio.DefaultLZ4BlockSize,
 	})
 
 	var recs []*zng.Record

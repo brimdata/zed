@@ -1,25 +1,19 @@
 package emitter
 
 import (
+	"context"
 	"io"
 	"os"
 
 	"github.com/brimsec/zq/pkg/bufwriter"
 	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-type noClose struct {
-	io.Writer
-}
-
-func (*noClose) Close() error {
-	return nil
-}
-
-func NewFile(path string, flags *zio.WriterFlags) (*zio.Writer, error) {
+func NewFile(path string, opts zio.WriterOpts) (zbuf.WriteCloser, error) {
 	if path == "" {
 		path = "stdout"
 	}
@@ -31,7 +25,7 @@ func NewFile(path string, flags *zio.WriterFlags) (*zio.Writer, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewFileWithSource(uri, flags, src)
+	return NewFileWithSource(uri, opts, src)
 }
 
 func IsTerminal(w io.Writer) bool {
@@ -43,8 +37,8 @@ func IsTerminal(w io.Writer) bool {
 	return false
 }
 
-func NewFileWithSource(path iosrc.URI, flags *zio.WriterFlags, source iosrc.Source) (*zio.Writer, error) {
-	f, err := source.NewWriter(path)
+func NewFileWithSource(path iosrc.URI, opts zio.WriterOpts, source iosrc.Source) (zbuf.WriteCloser, error) {
+	f, err := source.NewWriter(context.Background(), path) // XXX pass context?
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +47,7 @@ func NewFileWithSource(path iosrc.URI, flags *zio.WriterFlags, source iosrc.Sour
 	if path.Scheme == "stdio" {
 		// Don't close stdio in case we live inside something
 		// that has multiple stdio users.
-		wc = &noClose{f}
+		wc = zio.NopCloser(f)
 		// Don't buffer terminal output.
 		if !IsTerminal(f) {
 			wc = bufwriter.New(wc)
@@ -61,12 +55,12 @@ func NewFileWithSource(path iosrc.URI, flags *zio.WriterFlags, source iosrc.Sour
 	} else {
 		wc = bufwriter.New(f)
 	}
-	// On close, zio.Writer.Close(), the zng WriteFlusher will be flushed
-	// then the bufwriter will closed (which will flush it's internal buffer
-	// then close the file)
-	w := detector.LookupWriter(wc, flags)
-	if w == nil {
-		return nil, unknownFormat(flags.Format)
+	// On close, zbuf.WriteCloser.Close() will close and flush the
+	// downstream writer, which will flush the bufwriter here and,
+	// in turn, close its underlying writer.
+	w, err := detector.LookupWriter(wc, opts)
+	if err != nil {
+		return nil, err
 	}
 	return w, nil
 }

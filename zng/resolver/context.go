@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"unicode"
 
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
@@ -336,8 +337,11 @@ func parseWord(in string) (string, string) {
 // in a zeek file header.  Each unique compound type object is created once and
 // interned so that pointer comparison can be used to determine type equality.
 func (c *Context) LookupByName(in string) (zng.Type, error) {
-	//XXX check if rest has junk and flag an error?
-	_, typ, err := c.parseType(in)
+	rest, typ, err := c.parseType(in)
+	// check if there is still text at the end of the type string...
+	if err == nil && rest != "" {
+		err = zng.ErrTypeSyntax
+	}
 	return typ, err
 }
 
@@ -463,14 +467,33 @@ func (c *Context) parseRecordTypeBody(in string) (string, zng.Type, error) {
 	}
 }
 
+func idChar(r rune) bool {
+	return r == '_' || r == '$' || (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z')
+}
+
+func checkID(id string) bool {
+	s := []rune(id)
+	if !idChar(s[0]) {
+		return false
+	}
+	for _, r := range s[1:] {
+		if !idChar(r) && !unicode.IsDigit(r) {
+			return false
+		}
+	}
+	return true
+}
+
 func (c *Context) parseColumn(in string) (string, zng.Column, error) {
 	in = strings.TrimSpace(in)
 	colon := strings.IndexByte(in, byte(':'))
 	if colon < 0 {
 		return "", zng.Column{}, zng.ErrTypeSyntax
 	}
-	//XXX should check if name is valid syntax?
 	name := strings.TrimSpace(in[:colon])
+	if !checkID(name) {
+		return "", zng.Column{}, zng.ErrTypeSyntax
+	}
 	rest, typ, err := c.parseType(in[colon+1:])
 	if err != nil {
 		return "", zng.Column{}, err

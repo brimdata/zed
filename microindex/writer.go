@@ -1,6 +1,7 @@
 package microindex
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -10,7 +11,6 @@ import (
 	"github.com/brimsec/zq/pkg/bufwriter"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/proc/cut"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -77,6 +77,10 @@ type indexWriter struct {
 // allowed but will not be detected.  Close() or Abort() must be called when
 // done writing.
 func NewWriter(zctx *resolver.Context, path string, keyFields []string, frameThresh int) (*Writer, error) {
+	return NewWriterWithContext(context.Background(), zctx, path, keyFields, frameThresh)
+
+}
+func NewWriterWithContext(ctx context.Context, zctx *resolver.Context, path string, keyFields []string, frameThresh int) (*Writer, error) {
 	if keyFields == nil {
 		keyFields = []string{"key"}
 	}
@@ -90,7 +94,7 @@ func NewWriter(zctx *resolver.Context, path string, keyFields []string, frameThr
 	if err != nil {
 		return nil, err
 	}
-	writer, err := iosrc.NewWriter(uri)
+	writer, err := iosrc.NewWriter(ctx, uri)
 	if err != nil {
 		return nil, err
 	}
@@ -132,14 +136,15 @@ func (w *Writer) Write(rec *zng.Record) error {
 func (w *Writer) Abort() error {
 	// Delete the temp files comprising the index hierarchy.
 	defer os.RemoveAll(w.tmpdir)
-	firstErr := w.closeTree()
-	if err := w.iow.Close(); firstErr == nil {
-		firstErr = err
+	err := w.closeTree()
+	if closeErr := w.iow.Close(); err == nil {
+		err = closeErr
 	}
-	if err := iosrc.Remove(w.uri); firstErr == nil {
-		firstErr = err
+	// Ignore context here in the event that context is the reson for the abort.
+	if rmErr := iosrc.Remove(context.Background(), w.uri); err == nil {
+		err = rmErr
 	}
-	return firstErr
+	return err
 }
 
 func (w *Writer) Close() error {
@@ -182,13 +187,13 @@ func (w *Writer) closeTree() error {
 	if w.writer == nil {
 		return nil
 	}
-	var firstErr error
+	var err error
 	for p := w.writer.parent; p != nil; p = p.parent {
-		if err := p.Close(); firstErr == nil {
-			firstErr = err
+		if closeErr := p.Close(); err == nil {
+			err = closeErr
 		}
 	}
-	return firstErr
+	return err
 }
 
 func (w *Writer) finalize() error {
@@ -238,7 +243,7 @@ func (w *Writer) writeEmptyTrailer() error {
 	if err != nil {
 		return err
 	}
-	zw := zngio.NewWriter(w.iow, zio.WriterFlags{})
+	zw := zngio.NewWriter(w.iow, zngio.WriterOpts{})
 	return writeTrailer(zw, w.zctx, "", w.frameThresh, nil, typ)
 }
 
@@ -264,7 +269,7 @@ func newIndexWriter(base *Writer, w io.WriteCloser, name string) (*indexWriter, 
 		base:     base,
 		buffer:   writer,
 		name:     name,
-		zng:      zngio.NewWriter(writer, zio.WriterFlags{}),
+		zng:      zngio.NewWriter(writer, zngio.WriterOpts{}),
 		frameEnd: int64(base.frameThresh),
 	}, nil
 }

@@ -49,7 +49,7 @@ func (s *archiveSubspace) update(req api.SpacePutRequest) error {
 	})
 }
 
-func (s *archiveSubspace) delete() error {
+func (s *archiveSubspace) delete(_ context.Context) error {
 	if err := s.sg.acquireForDelete(); err != nil {
 		return err
 	}

@@ -18,17 +18,17 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zqd"
 	"github.com/brimsec/zq/zqd/api"
+	"github.com/brimsec/zq/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/zqd/storage"
-	"github.com/brimsec/zq/zqd/zeek"
 	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -80,7 +80,7 @@ func TestSearchNoCtrl(t *testing.T) {
 		msgs = append(msgs, i)
 	})
 	buf := bytes.NewBuffer(nil)
-	w := tzngio.NewWriter(buf)
+	w := tzngio.NewWriter(zio.NopCloser(buf))
 	require.NoError(t, zbuf.Copy(w, r))
 	require.Equal(t, test.Trim(src), buf.String())
 	require.Equal(t, 0, len(msgs))
@@ -634,7 +634,7 @@ func TestDeleteDuringPcapPost(t *testing.T) {
 		return errors.New("zeek exited with error code: -1")
 	}
 
-	c.ZeekLauncher = testZeekLauncher(nil, waitFn)
+	c.Zeek = testZeekLauncher(nil, waitFn)
 
 	var wg sync.WaitGroup
 	pcapPostErr := make(chan error)
@@ -711,17 +711,6 @@ func TestSpaceDataDir(t *testing.T) {
 	require.Equal(t, test.Trim(src), res)
 }
 
-func indexArchiveSpace(t *testing.T, datapath string, ruledef string) {
-	rule, err := archive.NewRule(ruledef)
-	require.NoError(t, err)
-
-	ark, err := archive.OpenArchive(datapath, nil)
-	require.NoError(t, err)
-
-	err = archive.IndexDirTree(context.Background(), ark, []archive.Rule{*rule}, "_", nil)
-	require.NoError(t, err)
-}
-
 func TestCreateArchiveSpace(t *testing.T) {
 	thresh := int64(1000)
 	root := createTempDir(t)
@@ -729,7 +718,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 	c, client, done := newCoreAtDir(t, root)
 	defer done()
 
-	c.ZeekLauncher = testZeekLauncher(func(tzp *testZeekProcess) error {
+	c.Zeek = testZeekLauncher(func(tzp *testZeekProcess) error {
 		const s = "unexpected attempt to run zeek"
 		t.Error(s)
 		return errors.New(s)
@@ -819,7 +808,10 @@ func TestIndexSearch(t *testing.T) {
 	payload := api.LogPostRequest{Paths: []string{"../tests/suite/data/babble.tzng"}}
 	err = client.LogPost(context.Background(), sp.ID, payload)
 	require.NoError(t, err)
-	indexArchiveSpace(t, sp.DataPath.Filepath(), "v")
+	err = client.IndexPost(context.Background(), sp.ID, api.IndexPostRequest{
+		Patterns: []string{"v"},
+	})
+	require.NoError(t, err)
 
 	expected := `
 #zfile=string
@@ -855,7 +847,10 @@ func TestSubspaceCreate(t *testing.T) {
 	payload := api.LogPostRequest{Paths: []string{"../tests/suite/data/babble.tzng"}}
 	err = client.LogPost(context.Background(), sp1.ID, payload)
 	require.NoError(t, err)
-	indexArchiveSpace(t, sp1.DataPath.Filepath(), ":int64")
+	err = client.IndexPost(context.Background(), sp1.ID, api.IndexPostRequest{
+		Patterns: []string{":int64"},
+	})
+	require.NoError(t, err)
 
 	// Verify index search returns all logs
 	exp := `
@@ -931,7 +926,10 @@ func TestSubspacePersist(t *testing.T) {
 	payload := api.LogPostRequest{Paths: []string{"../tests/suite/data/babble.tzng"}}
 	err = client1.LogPost(context.Background(), sp1.ID, payload)
 	require.NoError(t, err)
-	indexArchiveSpace(t, sp1.DataPath.Filepath(), ":int64")
+	err = client1.IndexPost(context.Background(), sp1.ID, api.IndexPostRequest{
+		Patterns: []string{":int64"},
+	})
+	require.NoError(t, err)
 
 	// Create subspace
 	sp2, err := client1.SubspacePost(context.Background(), sp1.ID, api.SubspacePostRequest{
@@ -1010,7 +1008,10 @@ func TestArchiveStat(t *testing.T) {
 	payload := api.LogPostRequest{Paths: []string{"../tests/suite/data/babble.tzng"}}
 	err = client.LogPost(context.Background(), sp.ID, payload)
 	require.NoError(t, err)
-	indexArchiveSpace(t, sp.DataPath.Filepath(), "v")
+	err = client.IndexPost(context.Background(), sp.ID, api.IndexPostRequest{
+		Patterns: []string{"v"},
+	})
+	require.NoError(t, err)
 
 	exp := `
 #0:record[type:string,log_id:string,start:time,duration:duration,size:uint64,record_count:uint64]
@@ -1027,7 +1028,7 @@ func archiveStat(t *testing.T, client *api.Connection, space api.SpaceID) string
 	r, err := client.ArchiveStat(context.Background(), space, nil)
 	require.NoError(t, err)
 	buf := bytes.NewBuffer(nil)
-	w := tzngio.NewWriter(buf)
+	w := tzngio.NewWriter(zio.NopCloser(buf))
 	require.NoError(t, zbuf.Copy(w, r))
 	return buf.String()
 }
@@ -1040,7 +1041,7 @@ func indexSearch(t *testing.T, client *api.Connection, space api.SpaceID, indexN
 	r, err := client.IndexSearch(context.Background(), space, req, nil)
 	require.NoError(t, err)
 	buf := bytes.NewBuffer(nil)
-	w := tzngio.NewWriter(buf)
+	w := tzngio.NewWriter(zio.NopCloser(buf))
 	var msgs []interface{}
 	r.SetOnCtrl(func(i interface{}) {
 		msgs = append(msgs, i)
@@ -1066,7 +1067,7 @@ func search(t *testing.T, client *api.Connection, space api.SpaceID, prog string
 	r, err := client.Search(context.Background(), req, nil)
 	require.NoError(t, err)
 	buf := bytes.NewBuffer(nil)
-	w := tzngio.NewWriter(buf)
+	w := tzngio.NewWriter(zio.NopCloser(buf))
 	var msgs []interface{}
 	r.SetOnCtrl(func(i interface{}) {
 		msgs = append(msgs, i)
@@ -1155,8 +1156,8 @@ func postSpaceLogs(t *testing.T, c *api.Connection, spaceID api.SpaceID, tc *ndj
 	return payloads
 }
 
-func testZeekLauncher(start, wait procFn) zeek.Launcher {
-	return func(ctx context.Context, r io.Reader, dir string) (zeek.Process, error) {
+func testZeekLauncher(start, wait procFn) pcapanalyzer.Launcher {
+	return func(ctx context.Context, r io.Reader, dir string) (pcapanalyzer.ProcessWaiter, error) {
 		p := &testZeekProcess{
 			ctx:    ctx,
 			reader: r,

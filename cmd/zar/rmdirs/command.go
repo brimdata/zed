@@ -1,6 +1,7 @@
 package rmdirs
 
 import (
+	"context"
 	"flag"
 	"os"
 
@@ -42,5 +43,5 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	return archive.RmDirs(ark)
+	return archive.RmDirs(context.TODO(), ark)
 }

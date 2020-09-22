@@ -9,16 +9,15 @@ import (
 
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
+	"github.com/brimsec/zq/zio/ndjsonio"
+	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqe"
 )
-
-// x509.14:00:00-15:00:00.log.gz (open source zeek)
-// x509_20191101_14:00:00-15:00:00+0000.log.gz (corelight)
-const DefaultJSONPathRegexp = `([a-zA-Z0-9_]+)(?:\.|_\d{8}_)\d\d:\d\d:\d\d\-\d\d:\d\d:\d\d(?:[+\-]\d{4})?\.log(?:$|\.gz)`
 
 var (
 	ErrNoLogIngestSupport = errors.New("space does not support log ingest")
@@ -42,10 +41,15 @@ func NewLogOp(ctx context.Context, store storage.Storage, req api.LogPostRequest
 		warningCh: make(chan string, 5),
 		zctx:      resolver.NewContext(),
 	}
-	cfg := detector.OpenConfig{ZngCheck: true}
+	opts := zio.ReaderOpts{Zng: zngio.ReaderOpts{Validate: true}}
+	//XXX if there is a json config, then the input has to be ndjson
+	// and we shouldn't be using the detector.  down the line, when
+	// we more holistically support json ingest, there should probably
+	// be a different endpoint or other params here which might select
+	// the input rules by a named configuration
 	if req.JSONTypeConfig != nil {
-		cfg.JSONTypeConfig = req.JSONTypeConfig
-		cfg.JSONPathRegex = DefaultJSONPathRegexp
+		opts.JSON.TypeConfig = req.JSONTypeConfig
+		opts.JSON.PathRegexp = ndjsonio.DefaultPathRegexp
 	}
 	for _, path := range req.Paths {
 		rc, size, err := openIncomingLog(path)
@@ -53,7 +57,7 @@ func NewLogOp(ctx context.Context, store storage.Storage, req api.LogPostRequest
 			p.closeFiles()
 			return nil, err
 		}
-		sf, err := detector.OpenFromNamedReadCloser(p.zctx, rc, path, cfg)
+		sf, err := detector.OpenFromNamedReadCloser(p.zctx, rc, path, opts)
 		if err != nil {
 			rc.Close()
 			if req.StopErr {

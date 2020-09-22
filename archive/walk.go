@@ -9,6 +9,7 @@ import (
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
 )
@@ -38,16 +39,16 @@ type Visitor func(zardir iosrc.URI) error
 
 // Walk traverses the archive invoking the visitor on the zar dir corresponding
 // to each log file, creating the zar dir if needed.
-func Walk(ark *Archive, visit Visitor) error {
-	return SpanWalk(ark, func(_ SpanInfo, zardir iosrc.URI) error {
+func Walk(ctx context.Context, ark *Archive, visit Visitor) error {
+	return SpanWalk(ctx, ark, func(_ SpanInfo, zardir iosrc.URI) error {
 		return visit(zardir)
 	})
 }
 
 type SpanVisitor func(si SpanInfo, zardir iosrc.URI) error
 
-func SpanWalk(ark *Archive, v SpanVisitor) error {
-	if _, err := ark.UpdateCheck(); err != nil {
+func SpanWalk(ctx context.Context, ark *Archive, v SpanVisitor) error {
+	if _, err := ark.UpdateCheck(ctx); err != nil {
 		return err
 	}
 
@@ -70,8 +71,11 @@ func SpanWalk(ark *Archive, v SpanVisitor) error {
 
 // RmDirs descends a directory hierarchy looking for zar dirs and remove
 // each such directory and all of its contents.
-func RmDirs(ark *Archive) error {
-	return Walk(ark, ark.dataSrc.RemoveAll)
+func RmDirs(ctx context.Context, ark *Archive) error {
+	fn := func(u iosrc.URI) error {
+		return ark.dataSrc.RemoveAll(ctx, u)
+	}
+	return Walk(ctx, ark, fn)
 }
 
 type multiSource struct {
@@ -107,7 +111,7 @@ type archiveSource struct {
 }
 
 func (ams *multiSource) SendSources(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan driver.SourceOpener) error {
-	return SpanWalk(ams.ark, func(si SpanInfo, zardir iosrc.URI) error {
+	return SpanWalk(ctx, ams.ark, func(si SpanInfo, zardir iosrc.URI) error {
 		if !sf.Span.Overlaps(si.Span) {
 			return nil
 		}
@@ -127,7 +131,7 @@ func (ams *multiSource) SendSources(ctx context.Context, zctx *resolver.Context,
 					paths = append(paths, p.String())
 				}
 			}
-			rc := detector.MultiFileReader(zctx, paths, detector.OpenConfig{Format: "zng"})
+			rc := detector.MultiFileReader(zctx, paths, zio.ReaderOpts{Format: "zng"})
 			sn, err := scanner.NewScanner(ctx, rc, sf.Filter, sf.FilterExpr, sf.Span)
 			if err != nil {
 				return nil, err

@@ -3,16 +3,15 @@ package zarimport
 import (
 	"errors"
 	"flag"
-	"fmt"
 	"os"
 
-	"github.com/alecthomas/units"
 	"github.com/brimsec/zq/archive"
+	"github.com/brimsec/zq/cli/inputflags"
+	"github.com/brimsec/zq/cli/procflags"
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
-	"github.com/brimsec/zq/proc/sort"
-	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/pkg/units"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
@@ -40,43 +39,40 @@ func init() {
 
 type Command struct {
 	*root.Command
-	root          string
-	dataPath      string
-	thresh        string
-	empty         bool
-	sortMemMaxMiB int
-	ReaderFlags   zio.ReaderFlags
+	root       string
+	dataPath   string
+	thresh     units.Bytes
+	empty      bool
+	inputFlags inputflags.Flags
+	procFlags  procflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
 	f.StringVar(&c.dataPath, "data", "", "location for storing data files (defaults to root)")
-	f.StringVar(&c.thresh, "s", units.Base2Bytes(archive.DefaultLogSizeThreshold).String(), "target size of chunk files, as '10MB' or '4GiB', etc.")
+	c.thresh = archive.DefaultLogSizeThreshold
+	f.Var(&c.thresh, "s", "target size of chunk files, as '10MB' or '4GiB', etc.")
 	f.BoolVar(&c.empty, "empty", false, "create an archive without initial data")
-	f.IntVar(&c.sortMemMaxMiB, "sortmem", sort.MemMaxBytes/(1024*1024), "maximum memory used by sort, in MiB")
-	c.ReaderFlags.SetFlags(f)
+	c.inputFlags.SetFlags(f)
+	c.procFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
+	defer c.Cleanup()
+	if err := c.Init(&c.inputFlags, &c.procFlags); err != nil {
+		return err
+	}
 	if c.empty && len(args) > 0 {
 		return errors.New("zar import: empty flag specified with input files")
 	} else if !c.empty && len(args) != 1 {
 		return errors.New("zar import: exactly one input file must be specified (- for stdin)")
 	}
 
-	if c.sortMemMaxMiB <= 0 {
-		return errors.New("sortmem value must be greater than zero")
-	}
-	sort.MemMaxBytes = c.sortMemMaxMiB * 1024 * 1024
-
 	co := &archive.CreateOptions{DataPath: c.dataPath}
-	if thresh, err := units.ParseStrictBytes(c.thresh); err != nil {
-		return fmt.Errorf("invalid target file size: %w", err)
-	} else {
-		co.LogSizeThreshold = &thresh
-	}
+	thresh := int64(c.thresh)
+	co.LogSizeThreshold = &thresh
 
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
@@ -96,13 +92,7 @@ func (c *Command) Run(args []string) error {
 		path = detector.StdinPath
 	}
 	zctx := resolver.NewContext()
-	cfg := detector.OpenConfig{
-		Format: c.ReaderFlags.Format,
-		//JSONTypeConfig: c.jsonTypeConfig,
-		//JSONPathRegex:  c.jsonPathRegexp,
-		ZngCheck: c.ReaderFlags.ZngCheck,
-	}
-	reader, err := detector.OpenFile(zctx, path, cfg)
+	reader, err := detector.OpenFile(zctx, path, c.inputFlags.Options())
 	if err != nil {
 		return err
 	}

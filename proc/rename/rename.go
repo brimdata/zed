@@ -115,7 +115,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		recs = append(recs, out)
 	}
 	batch.Unref()
-	return zbuf.NewArray(recs), nil
+	return zbuf.Array(recs), nil
 }
 
 func (p *Proc) Done() {

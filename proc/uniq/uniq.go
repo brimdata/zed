@@ -67,14 +67,14 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		}
 		t := p.wrap(p.last)
 		p.last = nil
-		return zbuf.NewArray([]*zng.Record{t}), nil
+		return zbuf.Array{t}, nil
 	}
 	defer batch.Unref()
 	var out []*zng.Record
 	for k := 0; k < batch.Length(); k++ {
 		out = p.appendUniq(out, batch.Index(k))
 	}
-	return zbuf.NewArray(out), nil
+	return zbuf.Array(out), nil
 }
 
 func (p *Proc) Done() {

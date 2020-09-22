@@ -1,8 +1,8 @@
 script: |
   mkdir logs
-  zar import -sortmem 0 -s 20KiB -R ./logs babble.tzng
+  zar  import -sortmem 0 -s 20KiB -R ./logs babble.tzng
   echo ===
-  zar import -sortmem 1 -s 20KiB -R ./logs babble.tzng
+  zar  import -sortmem 1MiB -s 20KiB -R ./logs babble.tzng
   echo ===
   zar index -q -R ./logs v
   zar find -relative -R ./logs v=106

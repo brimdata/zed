@@ -21,12 +21,12 @@ type ZngOutput struct {
 }
 
 func NewZngOutput(response http.ResponseWriter, ctrl bool) *ZngOutput {
-	o := &ZngOutput{
+	return &ZngOutput{
 		response: response,
-		writer:   zngio.NewWriter(response, zio.WriterFlags{}),
-		ctrl:     ctrl,
+		//XXX seems like we should compress by default
+		writer: zngio.NewWriter(zio.NopCloser(response), zngio.WriterOpts{}),
+		ctrl:   ctrl,
 	}
-	return o
 }
 
 func (r *ZngOutput) flush() {

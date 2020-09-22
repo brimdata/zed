@@ -3,9 +3,10 @@ export GO111MODULE=on
 # If VERSION or LDFLAGS change, please also change
 # npm/build.
 VERSION = $(shell git describe --tags --dirty --always)
-LDFLAGS = -s -X main.version=$(VERSION)
+LDFLAGS = -s -X github.com/brimsec/zq/cli.Version=$(VERSION)
 ZEEKTAG = v3.0.2-brim3
 ZEEKPATH = zeek-$(ZEEKTAG)
+SURICATAPATH = suricata
 
 # This enables a shortcut to run a single test from the ./tests suite, e.g.:
 # make TEST=TestZTest/suite/cut/cut
@@ -59,10 +60,10 @@ test-unit:
 	@go test -short ./...
 
 test-system: build bin/minio bin/$(ZEEKPATH)
-	@ZTEST_PATH=$(CURDIR)/dist:$(CURDIR)/bin:$(CURDIR)/bin/$(ZEEKPATH) go test -v ./tests
+	@ZTEST_PATH=$(CURDIR)/dist:$(CURDIR)/bin:$(CURDIR)/bin/$(ZEEKPATH):$(CURDIR)/bin/$(SURICATAPATH) go test -v ./tests
 
 test-run: build bin/minio bin/$(ZEEKPATH)
-	@ZTEST_PATH=$(CURDIR)/dist:$(CURDIR)/bin:$(CURDIR)/bin/$(ZEEKPATH) go test -v ./tests -run $(TEST)
+	@ZTEST_PATH=$(CURDIR)/dist:$(CURDIR)/bin:$(CURDIR)/bin/$(ZEEKPATH):$(CURDIR)/bin/$(SURICATAPATH) go test -v ./tests -run $(TEST)
 
 test-heavy: build $(SAMPLEDATA)
 	@go test -v -tags=heavy ./tests

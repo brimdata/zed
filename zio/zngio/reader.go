@@ -31,14 +31,14 @@ type Reader struct {
 	// internal context implied by zng file
 	zctx *resolver.Context
 	// mapper to map internal to shared type contexts
-	mapper *resolver.Mapper
-	sos    int64
-	check  bool
+	mapper   *resolver.Mapper
+	sos      int64
+	validate bool
 }
 
 type ReaderOpts struct {
-	Check bool
-	Size  int
+	Validate bool
+	Size     int
 }
 
 func NewReader(reader io.Reader, sctx *resolver.Context) *Reader {
@@ -50,11 +50,11 @@ func NewReaderWithOpts(reader io.Reader, sctx *resolver.Context, opts ReaderOpts
 		opts.Size = ReadSize
 	}
 	return &Reader{
-		peeker: peeker.NewReader(reader, opts.Size, MaxSize),
-		sctx:   sctx,
-		zctx:   resolver.NewContext(),
-		mapper: resolver.NewMapper(sctx),
-		check:  opts.Check,
+		peeker:   peeker.NewReader(reader, opts.Size, MaxSize),
+		sctx:     sctx,
+		zctx:     resolver.NewContext(),
+		mapper:   resolver.NewMapper(sctx),
+		validate: opts.Validate,
 	}
 }
 
@@ -398,7 +398,7 @@ func (r *Reader) parseValue(rec *zng.Record, id int, b []byte) (*zng.Record, err
 	} else {
 		*rec = *zng.NewVolatileRecord(sharedType, b)
 	}
-	if r.check {
+	if r.validate {
 		if err := rec.TypeCheck(); err != nil {
 			return nil, err
 		}

@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/brimsec/zq/ast"
-	"github.com/mccanne/joe"
+	"github.com/brimsec/zq/pkg/joe"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -26,7 +26,7 @@ func ParseExpression(expr string) (ast.Expression, error) {
 	if err != nil {
 		return nil, err
 	}
-	node := joe.Interface(m)
+	node := joe.Convert(m)
 	ex, err := ast.UnpackExpression(node)
 	if err != nil {
 		return nil, err

@@ -6,6 +6,7 @@ The following available processors are documented in detail below:
 
 * [`cut`](#cut)
 * [`filter`](#filter)
+* [`fuse`](#fuse)
 * [`head`](#head)
 * [`put`](#put)
 * [`rename`](#rename)
@@ -27,7 +28,7 @@ The following available processors are documented in detail below:
 | **Syntax**                | `cut [-c] <field-list>`                                     |
 | **Required<br>arguments** | `<field-list>`<br>One or more comma-separated field names or assignments.  |
 | **Optional<br>arguments** | `[-c]`<br>If specified, print all fields _other than_ those specified. |
-| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc#Cut            |
+| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc/cut            |
 
 #### Example #1:
 
@@ -121,7 +122,7 @@ TIME              UID
 | **Syntax**                | `filter <search-expression>`                                          |
 | **Required<br>arguments** | `<search-expression>`<br>Any valid expression in ZQL [search syntax](../search-syntax/README.md) |
 | **Optional<br>arguments** | None                                                                  |
-| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc#Filter                   |
+| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc/filter                   |
 
 #### Example #1:
 
@@ -139,7 +140,7 @@ TS                UID
 
 #### Example #2:
 
-An alternative syntax for our [`and` operator example](#../search-syntax/README.md#and):
+An alternative syntax for our [`and` operator example](../search-syntax/README.md#and):
 
 ```zq-command
 zq -f table 'filter www.*cdn*.com _path=ssl' *.log.gz
@@ -154,6 +155,69 @@ ssl   1521912240.189735 CSbGJs3jOeB6glWLJj 10.47.7.154 27137     52.85.83.215 44
 
 ---
 
+## `fuse`
+
+|                           |                                                   |
+| ------------------------- | ------------------------------------------------- |
+| **Description**           | Transforms input records into output records that unify the field and type information across all records in the query result. | 
+| **Syntax**                | `fuse`                                            |
+| **Required<br>arguments** | None                                              |
+| **Optional<br>arguments** | None                                              |
+| **Limitations**           | Because `fuse` must make a first pass through the data to assemble the unified schema, results from queries that use `fuse` will not begin streaming back immediately.<br><br>If the query result is too large, an error message `"fuse processor exceeded memory limit"` will be returned. Issue [zq/1320](https://github.com/brimsec/zq/issues/1320) tracks the removal of this limitation. |
+| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc/fuse |
+
+#### Example:
+
+Let's say you'd started with table-formatted output of both `stats` and `weird` events:
+
+```zq-command
+zq -f table 'ts < 1521911721' stats.log.gz weird.log.gz
+```
+
+#### Output:
+```zq-output
+_PATH TS                PEER MEM PKTS_PROC BYTES_RECV PKTS_DROPPED PKTS_LINK PKT_LAG EVENTS_PROC EVENTS_QUEUED ACTIVE_TCP_CONNS ACTIVE_UDP_CONNS ACTIVE_ICMP_CONNS TCP_CONNS UDP_CONNS ICMP_CONNS TIMERS ACTIVE_TIMERS FILES ACTIVE_FILES DNS_REQUESTS ACTIVE_DNS_REQUESTS REASSEM_TCP_SIZE REASSEM_FILE_SIZE REASSEM_FRAG_SIZE REASSEM_UNKNOWN_SIZE
+stats 1521911720.600725 zeek 74  26        29375      -            -         -       404         11            1                0                0                 1         0         0          36     32            0     0            0            0                   1528             0                 0                 0
+_PATH TS                UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H      ID.RESP_P NAME                             ADDL NOTICE PEER
+weird 1521911720.600843 C1zOivgBT6dBmknqk  10.47.1.152 49562     23.217.103.245 80        TCP_ack_underflow_or_misorder    -    F      zeek
+weird 1521911720.608108 -                  -           -         -              -         truncated_header                 -    F      zeek
+weird 1521911720.610033 C45Ff03lESjMQQQej1 10.47.5.155 40712     91.189.91.23   80        above_hole_data_without_any_acks -    F      zeek
+weird 1521911720.742818 Cs7J9j2xFQcazrg7Nc 10.47.8.100 5900      10.129.53.65   58485     connection_originator_SYN_ack    -    F      zeek
+```
+
+Here a `stats` event was the first record type to be printed in the results stream, so the preceding header row describes the names of its fields. Then a `weird` event came next in the results stream, so a header row describing its fields was printed. This presentation accurately conveys the heterogeneous nature of the data, but changing schemas mid-stream is not allowed in formats such as CSV or other downstream tooling such as SQL. Indeed, `zq` halts its output in this case.
+
+```
+zq -f csv 'ts < 1521911721' stats.log.gz weird.log.gz
+```
+
+#### Output:
+```
+_path,ts,peer,mem,pkts_proc,bytes_recv,pkts_dropped,pkts_link,pkt_lag,events_proc,events_queued,active_tcp_conns,active_udp_conns,active_icmp_conns,tcp_conns,udp_conns,icmp_conns,timers,active_timers,files,active_files,dns_requests,active_dns_requests,reassem_tcp_size,reassem_file_size,reassem_frag_size,reassem_unknown_size
+stats,2018-03-24T17:15:20.600725Z,zeek,74,26,29375,-,-,-,404,11,1,0,0,1,0,0,36,32,0,0,0,0,1528,0,0,0
+csv output requires uniform records but different types encountered
+```
+
+By using `fuse`, the unified schema of fields and types across all records is assembled in a first pass through the data stream, which enables the presentation of the results under a single, wider header row with no further interruptions between the subsequent data rows.
+
+```zq-command
+zq -f csv 'ts < 1521911721 | fuse' stats.log.gz weird.log.gz
+```
+
+#### Output:
+```zq-output
+_path,ts,peer,mem,pkts_proc,bytes_recv,pkts_dropped,pkts_link,pkt_lag,events_proc,events_queued,active_tcp_conns,active_udp_conns,active_icmp_conns,tcp_conns,udp_conns,icmp_conns,timers,active_timers,files,active_files,dns_requests,active_dns_requests,reassem_tcp_size,reassem_file_size,reassem_frag_size,reassem_unknown_size,uid,id.orig_h,id.orig_p,id.resp_h,id.resp_p,name,addl,notice
+stats,2018-03-24T17:15:20.600725Z,zeek,74,26,29375,-,-,-,404,11,1,0,0,1,0,0,36,32,0,0,0,0,1528,0,0,0,-,-,-,-,-,-,-,-
+weird,2018-03-24T17:15:20.600843Z,zeek,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,C1zOivgBT6dBmknqk,10.47.1.152,49562,23.217.103.245,80,TCP_ack_underflow_or_misorder,-,F
+weird,2018-03-24T17:15:20.608108Z,zeek,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,truncated_header,-,F
+weird,2018-03-24T17:15:20.610033Z,zeek,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,C45Ff03lESjMQQQej1,10.47.5.155,40712,91.189.91.23,80,above_hole_data_without_any_acks,-,F
+weird,2018-03-24T17:15:20.742818Z,zeek,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,Cs7J9j2xFQcazrg7Nc,10.47.8.100,5900,10.129.53.65,58485,connection_originator_SYN_ack,-,F
+```
+
+Other output formats invoked via `zq -f` that benefit greatly from the use of `fuse` include `table` and `zeek`.
+
+---
+
 ## `head`
 
 |                           |                                                                       |
@@ -162,7 +226,7 @@ ssl   1521912240.189735 CSbGJs3jOeB6glWLJj 10.47.7.154 27137     52.85.83.215 44
 | **Syntax**                | `head [N]`                                                            |
 | **Required<br>arguments** | None. If no arguments are specified, only the first event is returned.| 
 | **Optional<br>arguments** | `[N]`<br>An integer specifying the number of results to return. If not specified, defaults to `1`. |
-| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc#Head                     |
+| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc/head                     |
 
 #### Example #1:
 
@@ -207,7 +271,7 @@ conn  1521911720.607695 CpjMvj2Cvj048u6bF1 10.164.94.120 39169     10.47.3.200 8
 | **Required arguments**    | `<field>`<br>Field into which the computed value will be stored.<br><br>`<expression>`<br>A valid ZQL [expression](../expressions/README.md). If evaluation of any expression fails, a warning is emitted and the original record is passed through unchanged. |
 | **Optional arguments**    | None |
 | **Limitations**           | If multiple fields are written in a single `put`, all the new field values are computed first and then they are all written simultaneously.  As a result, a computed value cannot be referenced in another expression.  If you need to re-use a computed result, this can be done by chaining multiple `put` processors.  For example, this will not work:<br>`put N=len(somelist), isbig=N>10`<br>But it could be written instead as:<br>`put N=len(somelist) \| put isbig=N>10` |
-| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc#Put |
+| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc/put |
 
 #### Example #1:
 
@@ -243,7 +307,7 @@ ID.ORIG_H     ID.ORIG_P ID.RESP_H       ID.RESP_P ORIG_BYTES RESP_BYTES TOTAL_BY
 | **Required arguments**    | One or more field assignment expressions. Renames are applied left to right; each rename observes the effect of all renames that preceded it. |
 | **Optional arguments**    | None |
 | **Limitations**           | A field can only be renamed within its own record. For example `id.orig_h` can be renamed to `id.src`, but it cannot be renamed to `src`. |
-| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc#Rename |
+| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc/rename |
 
 
 #### Example:
@@ -274,7 +338,7 @@ conn  1521911722.690601 CuKFds250kxFgkhh8f 10.47.25.80    50813            10.12
 | **Syntax**                | `sort [-r] [-nulls first\|last] [field-list]`                 |
 | **Required<br>arguments** | None                                                                      |
 | **Optional<br>arguments** | `[-r]`<br>If specified, results will be sorted in reverse order.<br><br>`[-nulls first\|last]`<br>Specifies where null values (i.e., values that are unset or that are not present at all in an incoming record) should be placed in the output.<br><br>`[field-list]`<br>One or more comma-separated field names by which to sort. Results will be sorted based on the values of the first field named in the list, then based on values in the second field named in the list, and so on.<br><br>If no field list is provided, sort will automatically pick a field by which to sort. The pick is done by examining the first result returned and finding the first field in left-to-right that is of one of the integer ZNG [data types](../data-types/README.md) (`int16`, `uint16`, `int32`, `uint32`, `int64`, `uint64`) and if no integer fields are found, the first `float64` field is used. If no fields of these numeric types are found, sorting will be performed on the first field found in left-to-right order that is _not_ of the `time` data type. |
-| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc#Sort                         |
+| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc/sort                         |
 
 #### Example #1:
 
@@ -370,7 +434,7 @@ wwonka       1
 | **Syntax**                | `tail [N]`                                                            |
 | **Required<br>arguments** | None. If no arguments are specified, only the last event is returned. | 
 | **Optional<br>arguments** | `[N]`<br>An integer specifying the number of results to return. If not specified, defaults to `1`. |
-| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc#Tail                     |
+| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc/tail                     |
 
 #### Example #1:
 
@@ -414,7 +478,7 @@ conn  1521912988.752765 COICgc1FXHKteyFy67 10.0.0.227     61314     10.47.5.58  
 | **Syntax**                | `uniq [-c]`                                                           |
 | **Required<br>arguments** | None                                                                  | 
 | **Optional<br>arguments** | `[-c]`<br>For each unique value shown, include a numeric count of how many times it appeared. |
-| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc#Uniq                     |
+| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/proc/uniq                     |
 
 #### Example:
 

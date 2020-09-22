@@ -4,11 +4,11 @@ import (
 	"errors"
 	"flag"
 
+	"github.com/brimsec/zq/cli/inputflags"
 	"github.com/brimsec/zq/cmd/microindex/root"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
@@ -38,7 +38,7 @@ type Command struct {
 	keyField    string
 	skip        bool
 	inputReady  bool
-	ReaderFlags zio.ReaderFlags
+	inputFlags  inputflags.Flags
 }
 
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -50,12 +50,16 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.keyField, "k", "", "field name of search keys")
 	f.BoolVar(&c.inputReady, "x", false, "input file is already sorted keys (and optional values)")
 	f.BoolVar(&c.skip, "S", false, "skip all records except for the first of each stream")
-	c.ReaderFlags.SetFlags(f)
+	c.inputFlags.SetFlags(f)
 
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
+	defer c.Cleanup()
+	if err := c.Init(&c.inputFlags); err != nil {
+		return err
+	}
 	if c.keyField == "" {
 		return errors.New("must specify at least one key field with -k")
 	}
@@ -70,12 +74,7 @@ func (c *Command) Run(args []string) error {
 		path = detector.StdinPath
 	}
 	zctx := resolver.NewContext()
-	cfg := detector.OpenConfig{
-		Format: c.ReaderFlags.Format,
-		//JSONTypeConfig: c.jsonTypeConfig,
-		//JSONPathRegex:  c.jsonPathRegexp,
-	}
-	file, err := detector.OpenFile(zctx, path, cfg)
+	file, err := detector.OpenFile(zctx, path, c.inputFlags.Options())
 	if err != nil {
 		return err
 	}

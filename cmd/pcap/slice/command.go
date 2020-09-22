@@ -43,8 +43,8 @@ packets that fall within the time range are scanned.  (If the time
 range is given but no index is provided, then the entire pcap is scanned
 but only packets that fall within the time range are matched.)
 If a flow filter is specified in the format "ip:port ip:port",
-along with a protocol ("tcp" or "udp" specified with -p), then only packets
-from that flow are matched.
+along with a protocol ("tcp", "udp", or "icmp" specified with -p), then
+only packets from that flow are matched.
 
 The time format for -from and -to is currently float seconds since 1970-01-01.
 We will support more flexible time formats in the future.
@@ -73,7 +73,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.indexFile, "x", "", "index file")
 	f.StringVar(&c.from, "from", "", "beginning of time range")
 	f.StringVar(&c.to, "to", "", "end of time range")
-	f.StringVar(&c.proto, "p", "tcp", "transport protocol (tcp or udp)")
+	f.StringVar(&c.proto, "p", "tcp", "transport protocol [tcp,udp,icmp]")
 	return c, nil
 }
 
@@ -97,6 +97,10 @@ func parseSpan(sfrom, sto string) (nano.Span, error) {
 }
 
 func (c *Command) Run(args []string) error {
+	defer c.Cleanup()
+	if err := c.Init(); err != nil {
+		return err
+	}
 	if c.indexFile != "" && c.inputFile == "-" {
 		return errors.New("stdin cannot be used with an index file; use -r to specify the pcap file")
 	}

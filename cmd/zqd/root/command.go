@@ -2,11 +2,11 @@ package root
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"strings"
 
-	"github.com/brimsec/zq/zqd"
+	"github.com/brimsec/zq/cli"
+	"github.com/brimsec/zq/cli/procflags"
 	"github.com/mccanne/charm"
 )
 
@@ -21,7 +21,8 @@ var Zqd = &charm.Spec{
 
 type Command struct {
 	charm.Command
-	showVersion bool
+	cli       cli.Flags
+	procFlags procflags.Flags
 }
 
 func init() {
@@ -34,19 +35,24 @@ func Servers(s string) []string {
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{}
-	f.BoolVar(&c.showVersion, "version", false, "print version and exit")
 	log.SetPrefix("zqd") // XXX switch to zapper
+	c.cli.SetFlags(f)
+	c.procFlags.SetFlags(f)
 	return c, nil
 }
 
-func (c *Command) printVersion() error {
-	fmt.Printf("Version: %s\n", zqd.Version.Zqd)
-	return nil
+func (c *Command) Cleanup() {
+	c.cli.Cleanup()
+}
+
+func (c *Command) Init() error {
+	return c.cli.Init(&c.procFlags)
 }
 
 func (c *Command) Run(args []string) error {
-	if c.showVersion {
-		return c.printVersion()
+	defer c.Cleanup()
+	if err := c.Init(); err != nil {
+		return err
 	}
 	return Zqd.Exec(c, []string{"help"})
 }

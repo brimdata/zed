@@ -22,6 +22,16 @@ const (
 	MaxLineSize = 50 * 1024 * 1024
 )
 
+// x509.14:00:00-15:00:00.log.gz (open source zeek)
+// x509_20191101_14:00:00-15:00:00+0000.log.gz (corelight)
+const DefaultPathRegexp = `([a-zA-Z0-9_]+)(?:\.|_\d{8}_)\d\d:\d\d:\d\d\-\d\d:\d\d:\d\d(?:[+\-]\d{4})?\.log(?:$|\.gz)`
+
+type ReaderOpts struct {
+	TypeConfig *TypeConfig
+	PathRegexp string
+	FilePath   string
+}
+
 type ReadStats struct {
 	*skim.Stats
 	*typeStats
@@ -35,7 +45,7 @@ type Reader struct {
 	stats   ReadStats
 }
 
-func NewReader(reader io.Reader, zctx *resolver.Context, tc *TypeConfig, JSONPathRegex string, filepath string) (*Reader, error) {
+func NewReader(reader io.Reader, zctx *resolver.Context, opts ReaderOpts, filepath string) (*Reader, error) {
 	_, err := zctx.LookupTypeAlias("zenum", zng.TypeString)
 	if err != nil {
 		return nil, err
@@ -48,17 +58,18 @@ func NewReader(reader io.Reader, zctx *resolver.Context, tc *TypeConfig, JSONPat
 		inf:     inferParser{zctx},
 		zctx:    zctx,
 	}
-	if tc != nil {
+	if opts.TypeConfig != nil {
 		var path string
-		re, err := regexp.Compile(JSONPathRegex)
+		re, err := regexp.Compile(opts.PathRegexp)
 		if err != nil {
 			return nil, err
 		}
+		//XXX why do we do this this way?
 		match := re.FindStringSubmatch(filepath)
 		if len(match) == 2 {
 			path = match[1]
 		}
-		r.configureTypes(*tc, path)
+		r.configureTypes(*opts.TypeConfig, path)
 	}
 	return r, nil
 }

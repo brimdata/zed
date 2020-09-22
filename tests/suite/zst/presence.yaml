@@ -1,0 +1,105 @@
+script: |
+  zst create -o o1.zst p1.tzng
+  zq -i zst -t -o o1.tzng o1.zst
+  zst create -o o2.zst p2.tzng
+  zq -i zst -t -o o2.tzng o2.zst
+  zst create -o o3.zst p3.tzng
+  zq -i zst -t -o o3.tzng o3.zst
+  zst create -o o4.zst p4.tzng
+  zq -i zst -t -o o4.tzng o4.zst
+
+inputs:
+  - name: p1.tzng
+    data: |
+        #0:record[s:string]
+        0:[-;]
+  - name: p2.tzng
+    data: |
+        #0:record[s:string]
+        0:[-;]
+        0:[-;]
+        0:[-;]
+        0:[-;]
+        0:[-;]
+        0:[x;]
+        0:[-;]
+        0:[-;]
+        0:[-;]
+        0:[-;]
+        0:[-;]
+  - name: p3.tzng
+    data: |
+        #0:record[s:string]
+        0:[-;]
+        0:[-;]
+        0:[-;]
+        0:[-;]
+        0:[-;]
+        0:[-;]
+        0:[-;]
+        0:[-;]
+        0:[-;]
+        0:[-;]
+        0:[x;]
+  - name: p4.tzng
+    data: |
+        #0:record[s:string]
+        0:[x;]
+        0:[x;]
+        0:[x;]
+        0:[x;]
+        0:[x;]
+        0:[x;]
+        0:[x;]
+        0:[x;]
+        0:[x;]
+        0:[x;]
+        0:[-;]
+
+outputs:
+  - name: o1.tzng
+    data: |
+        #0:record[s:string]
+        0:[-;]
+  - name: o2.tzng
+    data: |
+        #0:record[s:string]
+        0:[-;]
+        0:[-;]
+        0:[-;]
+        0:[-;]
+        0:[-;]
+        0:[x;]
+        0:[-;]
+        0:[-;]
+        0:[-;]
+        0:[-;]
+        0:[-;]
+  - name: o3.tzng
+    data: |
+        #0:record[s:string]
+        0:[-;]
+        0:[-;]
+        0:[-;]
+        0:[-;]
+        0:[-;]
+        0:[-;]
+        0:[-;]
+        0:[-;]
+        0:[-;]
+        0:[-;]
+        0:[x;]
+  - name: o4.tzng
+    data: |
+        #0:record[s:string]
+        0:[x;]
+        0:[x;]
+        0:[x;]
+        0:[x;]
+        0:[x;]
+        0:[x;]
+        0:[x;]
+        0:[x;]
+        0:[x;]
+        0:[x;]
+        0:[-;]

@@ -1,0 +1,7 @@
+script: |
+  zq -t -i zst /dev/null
+
+outputs:
+  - name: stderr
+    regexp: |
+      .*: zst trailer not found

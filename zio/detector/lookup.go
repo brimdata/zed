@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zio/csvio"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/tableio"
 	"github.com/brimsec/zq/zio/textio"
@@ -13,6 +14,7 @@ import (
 	"github.com/brimsec/zq/zio/zeekio"
 	"github.com/brimsec/zq/zio/zjsonio"
 	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zio/zstio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
@@ -23,50 +25,54 @@ func (*nullWriter) Write(*zng.Record) error {
 	return nil
 }
 
-func LookupWriter(w io.WriteCloser, wflags *zio.WriterFlags) *zio.Writer {
-	flags := *wflags
-	if flags.Format == "" {
-		flags.Format = "tzng"
+func (*nullWriter) Close() error {
+	return nil
+}
+
+func LookupWriter(w io.WriteCloser, opts zio.WriterOpts) (zbuf.WriteCloser, error) {
+	if opts.Format == "" {
+		opts.Format = "tzng"
 	}
-	var f zbuf.WriteFlusher
-	switch flags.Format {
+	switch opts.Format {
 	default:
-		return nil
+		return nil, fmt.Errorf("unknown format: %s", opts.Format)
 	case "null":
-		f = zbuf.NopFlusher(&nullWriter{})
+		return &nullWriter{}, nil
 	case "tzng":
-		f = zbuf.NopFlusher(tzngio.NewWriter(w))
+		return tzngio.NewWriter(w), nil
 	case "zng":
-		f = zngio.NewWriter(w, flags)
+		return zngio.NewWriter(w, opts.Zng), nil
 	case "zeek":
-		f = zbuf.NopFlusher(zeekio.NewWriter(w, flags))
+		return zeekio.NewWriter(w, opts.UTF8), nil
 	case "ndjson":
-		f = zbuf.NopFlusher(ndjsonio.NewWriter(w))
+		return ndjsonio.NewWriter(w), nil
 	case "zjson":
-		f = zbuf.NopFlusher(zjsonio.NewWriter(w))
+		return zjsonio.NewWriter(w), nil
+	case "zst":
+		return zstio.NewWriter(w, opts.Zst)
 	case "text":
-		f = zbuf.NopFlusher(textio.NewWriter(w, flags))
+		return textio.NewWriter(w, opts.UTF8, opts.Text, opts.EpochDates), nil
 	case "table":
-		f = tableio.NewWriter(w, flags)
-	}
-	return &zio.Writer{
-		WriteFlusher: f,
-		Closer:       w,
+		return tableio.NewWriter(w, opts.UTF8), nil
+	case "csv":
+		return csvio.NewWriter(w, opts.UTF8, opts.EpochDates), nil
 	}
 }
 
-func lookupReader(r io.Reader, zctx *resolver.Context, path string, cfg OpenConfig) (zbuf.Reader, error) {
-	switch cfg.Format {
+func lookupReader(r io.Reader, zctx *resolver.Context, path string, opts zio.ReaderOpts) (zbuf.Reader, error) {
+	switch opts.Format {
 	case "tzng":
 		return tzngio.NewReader(r, zctx), nil
 	case "zeek":
 		return zeekio.NewReader(r, zctx)
 	case "ndjson":
-		return ndjsonio.NewReader(r, zctx, cfg.JSONTypeConfig, cfg.JSONPathRegex, path)
+		return ndjsonio.NewReader(r, zctx, opts.JSON, path)
 	case "zjson":
 		return zjsonio.NewReader(r, zctx), nil
 	case "zng":
-		return zngio.NewReaderWithOpts(r, zctx, zngio.ReaderOpts{Check: cfg.ZngCheck}), nil
+		return zngio.NewReaderWithOpts(r, zctx, opts.Zng), nil
+	case "zst":
+		return zstio.NewReader(r, zctx)
 	}
-	return nil, fmt.Errorf("no such reader type: \"%s\"", cfg.Format)
+	return nil, fmt.Errorf("no such format: \"%s\"", opts.Format)
 }

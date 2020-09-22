@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/brimsec/zq/pkg/bufwriter"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
@@ -70,15 +71,11 @@ func (r *runFile) read() (*zng.Record, bool, error) {
 
 // writeZng writes records to w as a zng stream.
 func writeZng(w io.Writer, records []*zng.Record) error {
-	bw := bufio.NewWriter(w)
-	zw := zngio.NewWriter(bw, zio.WriterFlags{})
+	zw := zngio.NewWriter(bufwriter.New(zio.NopCloser(w)), zngio.WriterOpts{})
 	for _, rec := range records {
 		if err := zw.Write(rec); err != nil {
 			return err
 		}
 	}
-	if err := zw.Flush(); err != nil {
-		return nil
-	}
-	return bw.Flush()
+	return zw.Close()
 }

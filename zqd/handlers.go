@@ -17,6 +17,7 @@ import (
 	"github.com/brimsec/zq/zqd/ingest"
 	"github.com/brimsec/zq/zqd/search"
 	"github.com/brimsec/zq/zqd/space"
+	"github.com/brimsec/zq/zqd/storage/archivestore"
 	"github.com/brimsec/zq/zqe"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -118,8 +119,14 @@ func getSearchOutput(w http.ResponseWriter, r *http.Request) (search.Output, err
 	}
 	format := r.URL.Query().Get("format")
 	switch format {
-	case "zjson", "ndjson":
+	case "csv":
+		return search.NewCSVOutput(w, ctrl), nil
+	case "json":
 		return search.NewJSONOutput(w, search.DefaultMTU, ctrl), nil
+	case "ndjson":
+		return search.NewNDJSONOutput(w), nil
+	case "zjson":
+		return search.NewZJSONOutput(w, search.DefaultMTU, ctrl), nil
 	case "zng":
 		return search.NewZngOutput(w, ctrl), nil
 	default:
@@ -210,7 +217,7 @@ func handleSpacePost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sp, err := c.spaces.Create(req)
+	sp, err := c.spaces.Create(r.Context(), req)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -242,7 +249,7 @@ func handleSubspacePost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sp, err := c.spaces.CreateSubspace(s, req)
+	sp, err := c.spaces.CreateSubspace(ctx, s, req)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -288,7 +295,7 @@ func handleSpaceDelete(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := c.spaces.Delete(api.SpaceID(id)); err != nil {
+	if err := c.spaces.Delete(r.Context(), api.SpaceID(id)); err != nil {
 		respondError(c, w, r, err)
 		return
 	}
@@ -330,7 +337,7 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		respondError(c, w, r, zqe.E(zqe.Invalid, "storage does not support pcap import"))
 		return
 	}
-	op, warnings, err := ingest.NewPcapOp(ctx, pcapstore, logstore, req.Path, c.ZeekLauncher)
+	op, warnings, err := ingest.NewPcapOp(ctx, pcapstore, logstore, req.Path, c.Suricata, c.Zeek)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -471,6 +478,35 @@ loop:
 		logger.Warn("error sending payload", zap.Error(err))
 		return
 	}
+}
+
+func handleIndexPost(c *Core, w http.ResponseWriter, r *http.Request) {
+	s := extractSpace(c, w, r)
+	if s == nil {
+		return
+	}
+	ctx, cancel, err := s.StartOp(r.Context())
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	defer cancel()
+
+	var req api.IndexPostRequest
+	if !request(c, w, r, &req) {
+		return
+	}
+
+	store, ok := s.Storage().(*archivestore.Storage)
+	if !ok {
+		respondError(c, w, r, zqe.E(zqe.Invalid, "space storage does not support creating indexes"))
+		return
+	}
+	if err := store.IndexCreate(ctx, req); err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func handleIndexSearch(c *Core, w http.ResponseWriter, r *http.Request) {

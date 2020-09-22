@@ -1,6 +1,7 @@
 package archive
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"os"
@@ -56,7 +57,8 @@ func (c *Metadata) Write(uri iosrc.URI) error {
 	if !ok {
 		return zqe.E("scheme does not support metadata updates: %s", uri)
 	}
-	wc, err := rep.NewReplacer(uri)
+	// Pass background context because we don't want this to quit.
+	wc, err := rep.NewReplacer(context.Background(), uri)
 	if err != nil {
 		return err
 	}
@@ -78,14 +80,14 @@ func (c *Metadata) Write(uri iosrc.URI) error {
 	return nil
 }
 
-func MetadataRead(uri iosrc.URI) (*Metadata, time.Time, error) {
+func MetadataRead(ctx context.Context, uri iosrc.URI) (*Metadata, time.Time, error) {
 	// Read the mtime before the read so that the returned time
 	// represents a time at or before the content of the metadata file.
-	info, err := iosrc.Stat(uri)
+	info, err := iosrc.Stat(ctx, uri)
 	if err != nil {
 		return nil, time.Time{}, err
 	}
-	rc, err := iosrc.NewReader(uri)
+	rc, err := iosrc.NewReader(ctx, uri)
 	if err != nil {
 		return nil, time.Time{}, err
 	}
@@ -208,14 +210,14 @@ func (ark *Archive) mdURI() iosrc.URI {
 // available spans are updated. A counter is returned, starting
 // from 1, which is incremented every time this Archive has re-read
 // the metadata file, and possibly updated the available spans.
-func (ark *Archive) UpdateCheck() (int, error) {
+func (ark *Archive) UpdateCheck(ctx context.Context) (int, error) {
 	if ark.LogsFiltered {
 		// If a logfilter was specified at open, there's no need to
 		// check for newer log files in the archive.
 		return ark.mdUpdateCount, nil
 	}
 
-	fi, err := iosrc.Stat(ark.mdURI())
+	fi, err := iosrc.Stat(ctx, ark.mdURI())
 	if err != nil {
 		return 0, err
 	}
@@ -235,7 +237,7 @@ func (ark *Archive) UpdateCheck() (int, error) {
 		return ark.mdUpdateCount, nil
 	}
 
-	md, mtime, err := MetadataRead(ark.mdURI())
+	md, mtime, err := MetadataRead(ctx, ark.mdURI())
 	if err != nil {
 		return 0, err
 	}
@@ -253,15 +255,19 @@ type OpenOptions struct {
 }
 
 func OpenArchive(rpath string, oo *OpenOptions) (*Archive, error) {
+	return OpenArchiveWithContext(context.Background(), rpath, oo)
+}
+
+func OpenArchiveWithContext(ctx context.Context, rpath string, oo *OpenOptions) (*Archive, error) {
 	root, err := iosrc.ParseURI(rpath)
 	if err != nil {
 		return nil, err
 	}
-	return openArchive(root, oo)
+	return openArchive(ctx, root, oo)
 }
 
-func openArchive(root iosrc.URI, oo *OpenOptions) (*Archive, error) {
-	m, mtime, err := MetadataRead(root.AppendPath(metadataFilename))
+func openArchive(ctx context.Context, root iosrc.URI, oo *OpenOptions) (*Archive, error) {
+	m, mtime, err := MetadataRead(ctx, root.AppendPath(metadataFilename))
 	if err != nil {
 		return nil, err
 	}
@@ -313,13 +319,17 @@ func openArchive(root iosrc.URI, oo *OpenOptions) (*Archive, error) {
 }
 
 func CreateOrOpenArchive(rpath string, co *CreateOptions, oo *OpenOptions) (*Archive, error) {
+	return CreateOrOpenArchiveWithContext(context.Background(), rpath, co, oo)
+}
+
+func CreateOrOpenArchiveWithContext(ctx context.Context, rpath string, co *CreateOptions, oo *OpenOptions) (*Archive, error) {
 	root, err := iosrc.ParseURI(rpath)
 	if err != nil {
 		return nil, err
 	}
 
 	mdPath := root.AppendPath(metadataFilename)
-	ok, err := iosrc.Exists(mdPath)
+	ok, err := iosrc.Exists(ctx, mdPath)
 	if err != nil {
 		return nil, err
 	}
@@ -338,5 +348,5 @@ func CreateOrOpenArchive(rpath string, co *CreateOptions, oo *OpenOptions) (*Arc
 		}
 	}
 
-	return openArchive(root, oo)
+	return openArchive(ctx, root, oo)
 }

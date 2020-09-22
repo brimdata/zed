@@ -2,6 +2,7 @@ package driver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -112,3 +113,31 @@ func (d *CLI) Warn(msg string) error {
 
 func (d *CLI) ChannelEnd(int) error         { return nil }
 func (d *CLI) Stats(api.ScannerStats) error { return nil }
+
+type transformDriver struct {
+	w zbuf.Writer
+}
+
+func (d *transformDriver) Write(cid int, batch zbuf.Batch) error {
+	if cid != 0 {
+		return errors.New("transform proc with multiple tails")
+	}
+	for i := 0; i < batch.Length(); i++ {
+		if err := d.w.Write(batch.Index(i)); err != nil {
+			return err
+		}
+	}
+	batch.Unref()
+	return nil
+}
+
+func (d *transformDriver) Warn(warning string) error          { return nil }
+func (d *transformDriver) Stats(stats api.ScannerStats) error { return nil }
+func (d *transformDriver) ChannelEnd(cid int) error           { return nil }
+
+// Copy applies a proc to all records from a zbuf.Reader, writing to a
+// single zbuf.Writer. The proc must have a single tail.
+func Copy(ctx context.Context, w zbuf.Writer, prog ast.Proc, zctx *resolver.Context, r zbuf.Reader, cfg Config) error {
+	d := &transformDriver{w: w}
+	return Run(ctx, d, prog, zctx, r, cfg)
+}

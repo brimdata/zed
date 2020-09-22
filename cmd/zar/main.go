@@ -16,12 +16,7 @@ import (
 	_ "github.com/brimsec/zq/cmd/zar/zq"
 )
 
-// Version is set via the Go linker.
-var version = "unknown"
-
 func main() {
-	//XXX
-	//root.Version = version
 	if _, err := root.Zar.ExecRoot(os.Args[1:]); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)

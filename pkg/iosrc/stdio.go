@@ -1,6 +1,7 @@
 package iosrc
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -13,39 +14,43 @@ var defaultStdioSource = &StdioSource{}
 
 type StdioSource struct{}
 
-func (f *StdioSource) NewReader(uri URI) (Reader, error) {
+func (f *StdioSource) NewReader(_ context.Context, uri URI) (Reader, error) {
 	return getStdioSource(uri)
 }
 
-func (s *StdioSource) NewWriter(uri URI) (io.WriteCloser, error) {
+func (s *StdioSource) NewWriter(_ context.Context, uri URI) (io.WriteCloser, error) {
 	return getStdioSource(uri)
 }
 
-func (s *StdioSource) ReadFile(uri URI) ([]byte, error) {
+func (s *StdioSource) ReadFile(_ context.Context, uri URI) ([]byte, error) {
 	return nil, errStdioNotSupport
 }
 
-func (s *StdioSource) WriteFile(_ []byte, _ URI) error {
+func (s *StdioSource) WriteFile(_ context.Context, _ []byte, _ URI) error {
 	return errStdioNotSupport
 }
 
-func (s *StdioSource) Remove(uri URI) error {
+func (s *StdioSource) Remove(_ context.Context, uri URI) error {
 	return errStdioNotSupport
 }
 
-func (s *StdioSource) RemoveAll(uri URI) error {
+func (s *StdioSource) RemoveAll(_ context.Context, uri URI) error {
 	return errStdioNotSupport
 }
 
-func (s *StdioSource) Stat(uri URI) (Info, error) {
+func (s *StdioSource) Stat(_ context.Context, uri URI) (Info, error) {
 	return nil, errStdioNotSupport
 }
 
-func (s *StdioSource) Exists(uri URI) (bool, error) {
+func (s *StdioSource) Exists(_ context.Context, uri URI) (bool, error) {
 	if _, err := getStdioSource(uri); err != nil {
 		return false, err
 	}
 	return true, nil
+}
+
+func (s *StdioSource) ReadDir(context.Context, URI) ([]Info, error) {
+	return nil, errStdioNotSupport
 }
 
 func getStdioSource(uri URI) (*os.File, error) {

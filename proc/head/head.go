@@ -44,7 +44,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 	}
 	p.count = p.limit
 	p.Done()
-	return zbuf.NewArray(recs), nil
+	return zbuf.Array(recs), nil
 }
 
 func (p *Proc) Done() {

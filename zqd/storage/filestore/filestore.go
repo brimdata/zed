@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/brimsec/zq/driver"
+	"github.com/brimsec/zq/pkg/bufwriter"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
@@ -119,15 +120,15 @@ func (s *Storage) Write(ctx context.Context, zctx *resolver.Context, zr zbuf.Rea
 
 	spanWriter := &spanWriter{}
 	if err := fs.ReplaceFile(s.join(allZngFile), 0600, func(w io.Writer) error {
-		fileWriter := zngio.NewWriter(w, zio.WriterFlags{
+		fileWriter := zngio.NewWriter(bufwriter.New(zio.NopCloser(w)), zngio.WriterOpts{
 			StreamRecordsMax: s.streamsize,
-			ZngLZ4BlockSize:  zio.DefaultZngLZ4BlockSize,
+			LZ4BlockSize:     zngio.DefaultLZ4BlockSize,
 		})
 		zw := zbuf.MultiWriter(fileWriter, spanWriter)
-		if err := s.write(ctx, zw, zctx, zr); err != nil {
+		if err := driver.Copy(ctx, zw, zngWriteProc, zctx, zr, driver.Config{}); err != nil {
 			return err
 		}
-		return fileWriter.Flush()
+		return fileWriter.Close()
 	}); err != nil {
 		return err
 	}
@@ -137,11 +138,6 @@ func (s *Storage) Write(ctx context.Context, zctx *resolver.Context, zr zbuf.Rea
 	}
 
 	return s.extendSpan(spanWriter.span)
-}
-
-func (s *Storage) write(ctx context.Context, zw zbuf.Writer, zctx *resolver.Context, zr zbuf.Reader) error {
-	d := &zngdriver{zw}
-	return driver.Run(ctx, d, zngWriteProc, zctx, zr, driver.Config{})
 }
 
 // Clear wipes all data from storage. Will wait for any ongoing write operations

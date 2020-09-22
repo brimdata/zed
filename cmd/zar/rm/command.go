@@ -1,6 +1,7 @@
 package rm
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -54,12 +55,11 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 
-	return archive.Walk(ark, func(zardir iosrc.URI) error {
+	return archive.Walk(context.TODO(), ark, func(zardir iosrc.URI) error {
 		for _, name := range args {
 			path := zardir.AppendPath(name)
-			if err := iosrc.Remove(path); err != nil {
-				var zerr *zqe.Error
-				if errors.As(err, &zerr) && zerr.Kind == zqe.NotFound {
+			if err := iosrc.Remove(context.TODO(), path); err != nil {
+				if zqe.IsNotFound(err) {
 					fmt.Printf("%s: not found\n", c.printable(ark.DataPath, path))
 					continue
 				}

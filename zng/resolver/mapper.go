@@ -18,7 +18,7 @@ func NewMapper(out *Context) *Mapper {
 // the type mapping is unknown to it.  The output side is assumed to be shared
 // while the input side owned by one thread of control.
 func (m *Mapper) Map(td int) *zng.TypeRecord {
-	return m.lookup(td)
+	return m.Lookup(td)
 }
 
 //XXX Enter should allocate the td as it creates the new type in the output context
@@ -28,12 +28,12 @@ func (m *Mapper) Enter(id int, ext *zng.TypeRecord) (*zng.TypeRecord, error) {
 		return nil, err
 	}
 	if typ != nil {
-		m.enter(id, typ)
+		m.Slice.Enter(id, typ)
 		return typ, nil
 	}
 	return nil, nil
 }
 
 func (m *Mapper) EnterTypeRecord(td int, typ *zng.TypeRecord) {
-	m.enter(td, typ)
+	m.Slice.Enter(td, typ)
 }

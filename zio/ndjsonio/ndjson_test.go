@@ -3,6 +3,7 @@ package ndjsonio
 import (
 	"bufio"
 	"bytes"
+	"io"
 	"strings"
 	"testing"
 
@@ -13,6 +14,19 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// can't use zio.NopCloser since it creates an import cycle
+type nopCloser struct {
+	io.Writer
+}
+
+func (nopCloser) Close() error { return nil }
+
+// NopCloser returns a WriteCloser with a no-op Close method wrapping
+// the provided Writer w.
+func NopCloser(w io.Writer) io.WriteCloser {
+	return nopCloser{w}
+}
 
 func TestNDJSONWriter(t *testing.T) {
 	type testcase struct {
@@ -51,7 +65,7 @@ func TestNDJSONWriter(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			var out bytes.Buffer
-			w := NewWriter(&out)
+			w := NewWriter(NopCloser(&out))
 			r := tzngio.NewReader(strings.NewReader(c.input), resolver.NewContext())
 			require.NoError(t, zbuf.Copy(w, r))
 			NDJSONEq(t, c.output, out.String())
@@ -131,8 +145,8 @@ func TestNDJSON(t *testing.T) {
 
 func runtestcase(t *testing.T, input, output string) {
 	var out bytes.Buffer
-	w := NewWriter(&out)
-	r, err := NewReader(strings.NewReader(input), resolver.NewContext(), nil, "", "")
+	w := NewWriter(NopCloser(&out))
+	r, err := NewReader(strings.NewReader(input), resolver.NewContext(), ReaderOpts{}, "")
 	require.NoError(t, err)
 	require.NoError(t, zbuf.Copy(w, r))
 	NDJSONEq(t, output, out.String())
@@ -350,8 +364,8 @@ func TestNDJSONTypeErrors(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			var out bytes.Buffer
-			w := NewWriter(&out)
-			r, err := NewReader(strings.NewReader(c.input), resolver.NewContext(), nil, "", "")
+			w := NewWriter(NopCloser(&out))
+			r, err := NewReader(strings.NewReader(c.input), resolver.NewContext(), ReaderOpts{}, "")
 			require.NoError(t, err)
 			err = r.configureTypes(typeConfig, c.defaultPath)
 			require.NoError(t, err)

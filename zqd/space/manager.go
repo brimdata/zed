@@ -2,13 +2,10 @@ package space
 
 import (
 	"context"
-	"fmt"
-	"io/ioutil"
 	"path"
 	"sync"
 
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/pkg/s3io"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqe"
@@ -24,35 +21,37 @@ type Manager struct {
 }
 
 func NewManager(root iosrc.URI, logger *zap.Logger) (*Manager, error) {
+	return NewManagerWithContext(context.Background(), root, logger)
+}
+
+func NewManagerWithContext(ctx context.Context, root iosrc.URI, logger *zap.Logger) (*Manager, error) {
 	mgr := &Manager{
 		rootPath: root,
 		spaces:   make(map[api.SpaceID]Space),
 		names:    make(map[string]api.SpaceID),
 		logger:   logger,
 	}
-	var err error
-	var dirs []iosrc.URI
-	switch root.Scheme {
-	case "file":
-		if dirs, err = filespaces(root); err != nil {
-			return nil, err
-		}
-	case "s3":
-		if dirs, err = s3spaces(root); err != nil {
-			return nil, err
-		}
-	default:
-		return nil, fmt.Errorf("%s: unsupported scheme", root.Scheme)
-	}
 
-	for _, dir := range dirs {
-		config, err := mgr.loadConfig(dir)
+	list, err := iosrc.ReadDir(ctx, root)
+	if err != nil {
+		return nil, err
+	}
+	for _, l := range list {
+		if !l.IsDir() {
+			continue
+		}
+		dir := root.AppendPath(l.Name())
+		config, err := mgr.loadConfig(ctx, dir)
 		if err != nil {
-			logger.Error("Error loading config", zap.Error(err))
+			if zqe.IsNotFound(err) {
+				logger.Debug("Config file not found", zap.String("uri", dir.String()))
+			} else {
+				logger.Warn("Error loading space", zap.String("uri", dir.String()), zap.Error(err))
+			}
 			continue
 		}
 
-		spaces, err := loadSpaces(dir, config, mgr.logger)
+		spaces, err := loadSpaces(ctx, dir, config, mgr.logger)
 		if err != nil {
 			return nil, err
 		}
@@ -65,36 +64,7 @@ func NewManager(root iosrc.URI, logger *zap.Logger) (*Manager, error) {
 	return mgr, nil
 }
 
-func s3spaces(root iosrc.URI) ([]iosrc.URI, error) {
-	prefixes, err := s3io.ListCommonPrefixes(root.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-	var uris []iosrc.URI
-	for _, p := range prefixes {
-		u := root
-		u.Path = p
-		uris = append(uris, u)
-	}
-	return uris, nil
-}
-
-func filespaces(root iosrc.URI) ([]iosrc.URI, error) {
-	dirs, err := ioutil.ReadDir(root.Filepath())
-	if err != nil {
-		return nil, err
-	}
-	var uris []iosrc.URI
-	for _, dir := range dirs {
-		if !dir.IsDir() {
-			continue
-		}
-		uris = append(uris, root.AppendPath(dir.Name()))
-	}
-	return uris, nil
-}
-
-func (m *Manager) Create(req api.SpacePostRequest) (Space, error) {
+func (m *Manager) Create(ctx context.Context, req api.SpacePostRequest) (Space, error) {
 	m.spacesMu.Lock()
 	defer m.spacesMu.Unlock()
 	if req.Name == "" && req.DataPath == "" {
@@ -143,10 +113,10 @@ func (m *Manager) Create(req api.SpacePostRequest) (Space, error) {
 	}
 	conf := config{Version: configVersion, Name: req.Name, DataURI: datapath, Storage: storecfg}
 	if err := writeConfig(path, conf); err != nil {
-		iosrc.RemoveAll(path)
+		iosrc.RemoveAll(context.Background(), path)
 		return nil, err
 	}
-	spaces, err := loadSpaces(path, conf, m.logger)
+	spaces, err := loadSpaces(ctx, path, conf, m.logger)
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +126,7 @@ func (m *Manager) Create(req api.SpacePostRequest) (Space, error) {
 	return s, err
 }
 
-func (m *Manager) CreateSubspace(parent Space, req api.SubspacePostRequest) (Space, error) {
+func (m *Manager) CreateSubspace(ctx context.Context, parent Space, req api.SubspacePostRequest) (Space, error) {
 	m.spacesMu.Lock()
 	defer m.spacesMu.Unlock()
 	if err := validateName(m.names, req.Name); err != nil {
@@ -167,7 +137,7 @@ func (m *Manager) CreateSubspace(parent Space, req api.SubspacePostRequest) (Spa
 		return nil, zqe.E(zqe.Invalid, "space does not support creating subspaces")
 	}
 
-	s, err := as.CreateSubspace(req)
+	s, err := as.CreateSubspace(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +179,7 @@ func (m *Manager) Get(id api.SpaceID) (Space, error) {
 	return space, nil
 }
 
-func (m *Manager) Delete(id api.SpaceID) error {
+func (m *Manager) Delete(ctx context.Context, id api.SpaceID) error {
 	space, err := m.Get(id)
 	if err != nil {
 		return err
@@ -218,7 +188,7 @@ func (m *Manager) Delete(id api.SpaceID) error {
 	m.spacesMu.Lock()
 	defer m.spacesMu.Unlock()
 	name := space.Name()
-	if err := space.delete(); err != nil {
+	if err := space.delete(ctx); err != nil {
 		return err
 	}
 

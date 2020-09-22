@@ -5,21 +5,14 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io"
 	"os"
 	"syscall"
 
-	"github.com/brimsec/zq/pkg/repl"
+	"github.com/brimsec/zq/cli"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/kballard/go-shellquote"
 	"github.com/mccanne/charm"
 	"golang.org/x/crypto/ssh/terminal"
-)
-
-var (
-	// version numbers set by main
-	Version   string
-	ZqVersion string
 )
 
 var Get *charm.Spec
@@ -30,7 +23,17 @@ var CLI = &charm.Spec{
 	Name:  "zapi",
 	Usage: "zapi [global options] command [options] [arguments...]",
 	Short: "use zapi to talk to a zqd server",
-	Long:  "",
+	Long: `
+The zapi command-line tool is used to talk to a zq analytics service.
+This service could be zqd running on your laptop or in the cloud.
+
+Zapi is prounounced "zappy".
+
+With zapi you can create spaces, list spaces, post data to spaces, and run queries.
+
+The Brim application and the zapi client use the same REST API
+for interacting with a zq analytics service.
+`,
 	New: func(parent charm.Command, flags *flag.FlagSet) (charm.Command, error) {
 		return New(flags)
 	},
@@ -42,9 +45,7 @@ func init() {
 
 func New(f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{
-		Version:   Version,
-		ZqVersion: ZqVersion,
-		ctx:       newSignalCtx(syscall.SIGINT, syscall.SIGTERM),
+		ctx: newSignalCtx(syscall.SIGINT, syscall.SIGTERM),
 	}
 
 	// If not a terminal make nofancy on by default.
@@ -55,19 +56,19 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.Spacename, "s", c.Spacename, "<space>")
 	f.Var(&c.spaceID, "id", "<space_id>")
 	f.BoolVar(&c.NoFancy, "nofancy", c.NoFancy, "disable fancy CLI output (true if stdout is not a tty)")
+	c.cli.SetFlags(f)
 
 	return c, nil
 }
 
 type Command struct {
 	client    *api.Connection
-	Version   string
-	ZqVersion string
 	Host      string
 	Spacename string
 	NoFancy   bool
 	ctx       *signalCtx
 	spaceID   api.SpaceID
+	cli       cli.Flags
 }
 
 func (c *Command) Context() context.Context {
@@ -92,22 +93,25 @@ func (c *Command) SpaceID() (api.SpaceID, error) {
 	return GetSpaceID(c.ctx, c.Client(), c.Spacename)
 }
 
+func (c *Command) Cleanup() {
+	c.cli.Cleanup()
+}
+
+func (c *Command) Init(all ...cli.Initializer) error {
+	return c.cli.Init(all...)
+}
+
 // Run is called by charm when there are no sub-commands on the main
 // zqd command line.
 func (c *Command) Run(args []string) error {
-	if len(args) > 0 {
-		return fmt.Errorf("unknown command: %s", args[0])
-	}
-	// do not enter repl if space is not selected
-	if _, err := c.SpaceID(); err != nil {
+	defer c.Cleanup()
+	if err := c.Init(); err != nil {
 		return err
 	}
-	err := repl.Run(c)
-	if err == io.EOF {
-		fmt.Println("")
-		err = nil
+	if len(args) == 0 {
+		return CLI.Exec(c, []string{"help"})
 	}
-	return err
+	return charm.ErrNoRun
 }
 
 func (c *Command) Consume(line string) (done bool) {

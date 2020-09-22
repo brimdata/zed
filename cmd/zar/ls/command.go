@@ -1,17 +1,15 @@
 package ls
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path"
 
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/pkg/s3io"
 	"github.com/mccanne/charm"
 )
 
@@ -59,14 +57,14 @@ func (c *Command) Run(args []string) error {
 	if len(args) == 1 {
 		pattern = args[0]
 	}
-	return archive.Walk(ark, func(zardir iosrc.URI) error {
+	return archive.Walk(context.TODO(), ark, func(zardir iosrc.URI) error {
 		c.printDir(ark.DataPath, zardir, pattern)
 		return nil
 	})
 }
 
 func fileExists(path iosrc.URI) bool {
-	info, err := iosrc.Stat(path)
+	info, err := iosrc.Stat(context.TODO(), path)
 	if err != nil {
 		return false
 	}
@@ -86,25 +84,13 @@ func (c *Command) printDir(root, dir iosrc.URI, pattern string) {
 	}
 	fmt.Println(c.printable(root, dir))
 	if c.lflag {
-		var files []string
-		switch dir.Scheme {
-		case "file":
-			files = lsfs(dir.Filepath())
-		case "s3":
-			var err error
-			if files, err = s3io.ListObjects(dir.String(), nil); err != nil {
-				fmt.Fprintf(os.Stderr, "error listing s3 objects: %v", err)
-				return
-			}
-			for i := range files {
-				_, files[i] = path.Split(files[i])
-			}
-		default:
-			fmt.Fprintf(os.Stderr, "long form flag unsupported for scheme %q", dir.Scheme)
+		entries, err := iosrc.ReadDir(context.TODO(), dir)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error listing directory: %v", err)
 			return
 		}
-		for _, f := range files {
-			fmt.Printf("\t%s\n", f)
+		for _, e := range entries {
+			fmt.Printf("\t%s\n", e.Name())
 		}
 	}
 }
@@ -114,20 +100,4 @@ func (c *Command) printable(root, path iosrc.URI) string {
 		return root.RelPath(path)
 	}
 	return path.String()
-}
-
-func lsfs(dir string) []string {
-	var out []string
-	infos, err := ioutil.ReadDir(dir)
-	if err != nil {
-		return nil
-	}
-	for _, info := range infos {
-		name := info.Name()
-		if info.IsDir() {
-			name += "/"
-		}
-		out = append(out, name)
-	}
-	return out
 }

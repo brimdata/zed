@@ -119,8 +119,7 @@ func (s SpaceInfos) Names() []string {
 	return names
 }
 
-type StatusResponse struct {
-	Ok      bool   `json:"ok"`
+type VersionResponse struct {
 	Version string `json:"version"`
 }
 
@@ -261,4 +260,12 @@ func (ps *PcapSearch) FromQuery(v url.Values) error {
 type IndexSearchRequest struct {
 	IndexName string   `json:"index_name"`
 	Patterns  []string `json:"patterns"`
+}
+
+type IndexPostRequest struct {
+	Patterns   []string        `json:"patterns"`
+	AST        json.RawMessage `json:"ast,omitempty"`
+	Keys       []string        `json:"keys"`
+	InputFile  string          `json:"input_file"`
+	OutputFile string          `json:"output_file"`
 }

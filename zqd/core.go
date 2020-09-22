@@ -5,32 +5,30 @@ import (
 	"sync/atomic"
 
 	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/brimsec/zq/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/zqd/space"
-	"github.com/brimsec/zq/zqd/zeek"
 	"go.uber.org/zap"
 )
 
+type Launchers struct {
+}
+
 type Config struct {
-	Root string
-	// ZeekLauncher is the interface for launching zeek processes.
-	ZeekLauncher zeek.Launcher
-	Logger       *zap.Logger
+	Root     string
+	Version  string
+	Suricata pcapanalyzer.Launcher
+	Zeek     pcapanalyzer.Launcher
+	Logger   *zap.Logger
 }
-
-type VersionMessage struct {
-	Zqd string `json:"boomd"` //XXX boomd -> zqd
-	Zq  string `json:"zq"`
-}
-
-// This struct filled in by main from linker setting version strings.
-var Version VersionMessage
 
 type Core struct {
-	Root         iosrc.URI
-	ZeekLauncher zeek.Launcher
-	spaces       *space.Manager
-	taskCount    int64
-	logger       *zap.Logger
+	Root      iosrc.URI
+	Version   string
+	Suricata  pcapanalyzer.Launcher
+	Zeek      pcapanalyzer.Launcher
+	spaces    *space.Manager
+	taskCount int64
+	logger    *zap.Logger
 }
 
 func NewCore(conf Config) (*Core, error) {
@@ -46,16 +44,26 @@ func NewCore(conf Config) (*Core, error) {
 	if err != nil {
 		return nil, err
 	}
+	version := conf.Version
+	if version == "" {
+		version = "unknown"
+	}
 	return &Core{
-		Root:         root,
-		ZeekLauncher: conf.ZeekLauncher,
-		spaces:       spaces,
-		logger:       logger,
+		Root:     root,
+		Version:  version,
+		Suricata: conf.Suricata,
+		Zeek:     conf.Zeek,
+		spaces:   spaces,
+		logger:   logger,
 	}, nil
 }
 
+func (c *Core) HasSuricata() bool {
+	return c.Suricata != nil
+}
+
 func (c *Core) HasZeek() bool {
-	return c.ZeekLauncher != nil
+	return c.Zeek != nil
 }
 
 func (c *Core) requestLogger(r *http.Request) *zap.Logger {

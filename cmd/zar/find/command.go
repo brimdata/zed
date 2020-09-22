@@ -7,9 +7,10 @@ import (
 	"os"
 
 	"github.com/brimsec/zq/archive"
+	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/emitter"
-	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
@@ -62,11 +63,10 @@ type Command struct {
 	root          string
 	skipMissing   bool
 	indexFile     string
-	outputFile    string
 	pathField     string
 	relativePaths bool
 	zng           bool
-	WriterFlags   zio.WriterFlags
+	outputFlags   outputflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -74,18 +74,22 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
 	f.BoolVar(&c.skipMissing, "Q", false, "skip errors caused by missing index files ")
 	f.StringVar(&c.indexFile, "x", "", "name of microindex for custom index searches")
-	f.StringVar(&c.outputFile, "o", "", "write data to output file")
 	f.StringVar(&c.pathField, "l", archive.DefaultAddPathField, "zng field name for path name of log file")
 	f.BoolVar(&c.relativePaths, "relative", false, "display paths relative to root")
 	f.BoolVar(&c.zng, "z", false, "write results as zng stream rather than list of files")
 
 	// Flags added for writers are -f, -T, -F, -E, -U, and -b
-	c.WriterFlags.SetFlags(f)
+	c.outputFlags.SetFlags(f)
 
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
+	defer c.Cleanup()
+	if err := c.Init(); err != nil {
+		return err
+	}
+
 	ark, err := archive.OpenArchive(c.root, nil)
 	if err != nil {
 		return err
@@ -104,14 +108,14 @@ func (c *Command) Run(args []string) error {
 		findOptions = append(findOptions, archive.SkipMissing())
 	}
 
-	//XXX allow "-" to trigger zng but changed back for emitter API
-	if c.outputFile == "-" {
-		c.outputFile = ""
+	outputFile := c.outputFlags.FileName()
+	if outputFile == "-" {
+		outputFile = ""
 	}
-	var writer *zio.Writer
+	var writer zbuf.WriteCloser
 	if c.zng {
 		var err error
-		writer, err = emitter.NewFile(c.outputFile, &c.WriterFlags)
+		writer, err = emitter.NewFile(outputFile, c.outputFlags.Options())
 		if err != nil {
 			return err
 		}

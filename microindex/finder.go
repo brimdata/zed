@@ -35,8 +35,8 @@ func NewFinder(zctx *resolver.Context, uri iosrc.URI) *Finder {
 // exist, or its microindex trailer is invalid.  If the microindex exists
 // but is empty, zero values are returned for any lookups.  If the microindex
 // does not exist, os.ErrNotExist is returned.
-func (f *Finder) Open() error {
-	reader, err := NewReaderFromURI(f.zctx, f.uri)
+func (f *Finder) Open(ctx context.Context) error {
+	reader, err := NewReaderFromURI(ctx, f.zctx, f.uri)
 	f.Reader = reader
 	return err
 }

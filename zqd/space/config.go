@@ -1,6 +1,7 @@
 package space
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -82,10 +83,10 @@ func (c config) subspaceIndex(id api.SpaceID) int {
 }
 
 // loadConfig loads the contents of config.json in a space's path.
-func (m *Manager) loadConfig(spaceURI iosrc.URI) (config, error) {
+func (m *Manager) loadConfig(ctx context.Context, spaceURI iosrc.URI) (config, error) {
 	var c config
 	p := spaceURI.AppendPath(configFile)
-	r, err := iosrc.NewReader(p)
+	r, err := iosrc.NewReader(ctx, p)
 	if err != nil {
 		return c, err
 	}
@@ -221,9 +222,9 @@ func writeConfig(spaceURI iosrc.URI, c config) error {
 	uri := spaceURI.AppendPath(configFile)
 	var w io.WriteCloser
 	if replacer, ok := src.(iosrc.ReplacerAble); ok {
-		w, err = replacer.NewReplacer(uri)
+		w, err = replacer.NewReplacer(context.TODO(), uri)
 	} else {
-		w, err = src.NewWriter(uri)
+		w, err = src.NewWriter(context.TODO(), uri)
 	}
 	if err != nil {
 		return err

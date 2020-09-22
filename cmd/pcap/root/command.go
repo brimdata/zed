@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 
+	"github.com/brimsec/zq/cli"
 	"github.com/mccanne/charm"
 )
 
@@ -25,6 +26,7 @@ handle pcaps with out-of-order timestamps.
 
 type Command struct {
 	charm.Command
+	cli cli.Flags
 }
 
 func init() {
@@ -34,9 +36,22 @@ func init() {
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{}
 	log.SetPrefix("pcap") // XXX switch to zapper
+	c.cli.SetFlags(f)
 	return c, nil
 }
 
+func (c *Command) Cleanup() {
+	c.cli.Cleanup()
+}
+
+func (c *Command) Init() error {
+	return c.cli.Init()
+}
+
 func (c *Command) Run(args []string) error {
+	defer c.cli.Cleanup()
+	if err := c.cli.Init(); err != nil {
+		return err
+	}
 	return Pcap.Exec(c, []string{"help"})
 }

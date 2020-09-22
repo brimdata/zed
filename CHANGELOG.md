@@ -2,6 +2,23 @@ These entries focus on changes we think are relevant to users of Brim,
 zq, or pcap.  For all changes to zqd, its API, or to other components in the
 zq repo, check the git log.
 
+## v0.21.0
+* zq: Improve performance by making fewer API calls in S3 reader (#1191)
+* zq: Use memory more efficiently by reducing allocations (#1190, #1201)
+* zqd: Fix an issue where a pcap moved/deleted after import caused a 404 response and white screen in Brim (#1198)
+* zqd: Include details on [adding observability](https://github.com/brimsec/zq/tree/master/k8s#adding-observability) to the docs for running `zqd` in Kubernetes (#1173)
+* zq: Improve performance by removing unnecessary type checks (#1192, #1205)
+* zq: Add additional Boyer-Moore optimizations to improve search performance (#1188)
+* zq: Fix an issue where data import would sometimes fail with a "too many files" error (#1210)
+* zq: Fix an issue where error messages sometimes incorrectly contained the text "(MISSING)" (#1199)
+* zq: Fix an issue where non-adjacent record fields in Zeek TSV logs could not be read (#1225, #1218)
+* zql: Fix an issue where `cut -c` sometimes returned a "bad uvarint" error (#1227)
+* zq: Add support for empty ZNG records and empty NDJSON objects (#1228)
+* zng: Fix the tag value examples in the [ZNG spec](https://github.com/brimsec/zq/blob/master/zng/docs/spec.md) (#1230)
+* zq: Update LZ4 dependency to eliminate some memory allocations (#1232)
+* zar: Add a `-sortmem` flag to allow `zar import` to use more memory to improve performance (#1203)
+* zqd: Fix an issue where file paths containing URI escape codes could not be opened in Brim (#1238)
+
 ## v0.20.0
 * zqd: Publish initial [docs](https://github.com/brimsec/zq/blob/master/k8s/README.md) for running `zqd` in Kubernetes (#1101)
 * zq: Provide a better error message when an invalid IP address is parsed (#1106)

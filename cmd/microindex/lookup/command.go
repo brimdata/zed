@@ -4,18 +4,15 @@ import (
 	"context"
 	"errors"
 	"flag"
-	"os"
 	"strings"
 
+	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cmd/microindex/root"
-	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 var Lookup = &charm.Spec{
@@ -40,37 +37,26 @@ func init() {
 
 type LookupCommand struct {
 	*root.Command
-	keys         string
-	outputFile   string
-	WriterFlags  zio.WriterFlags
-	closest      bool
-	textShortcut bool
-	forceBinary  bool
+	keys        string
+	outputFlags outputflags.Flags
+	closest     bool
 }
 
 func newLookupCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &LookupCommand{Command: parent.(*root.Command)}
 	f.StringVar(&c.keys, "k", "", "key(s) to search")
 	f.BoolVar(&c.closest, "c", false, "find closest insead of exact match")
-	f.BoolVar(&c.textShortcut, "t", false, "use format tzng independent of -f option")
-	f.BoolVar(&c.forceBinary, "B", false, "allow binary zng be sent to a terminal output")
-	c.WriterFlags.SetFlags(f)
+	c.outputFlags.SetFlags(f)
 	return c, nil
 }
 
-func isTerminal(f *os.File) bool {
-	return terminal.IsTerminal(int(f.Fd()))
-}
-
 func (c *LookupCommand) Run(args []string) error {
+	defer c.Cleanup()
+	if err := c.Init(&c.outputFlags); err != nil {
+		return err
+	}
 	if len(args) != 1 {
 		return errors.New("microindex lookup: must be run with a single file argument")
-	}
-	if c.textShortcut {
-		c.WriterFlags.Format = "tzng"
-	}
-	if c.WriterFlags.Format == "zng" && isTerminal(os.Stdout) && !c.forceBinary {
-		return errors.New("writing binary zng data to terminal; override with -B or use -t for text.")
 	}
 	path := args[0]
 	if c.keys == "" {
@@ -81,7 +67,7 @@ func (c *LookupCommand) Run(args []string) error {
 		return err
 	}
 	finder := microindex.NewFinder(resolver.NewContext(), uri)
-	if err := finder.Open(); err != nil {
+	if err := finder.Open(context.TODO()); err != nil {
 		return err
 	}
 	defer finder.Close()
@@ -105,7 +91,7 @@ func (c *LookupCommand) Run(args []string) error {
 		}
 		close(hits)
 	}()
-	writer, err := emitter.NewFile(c.outputFile, &c.WriterFlags)
+	writer, err := c.outputFlags.Open()
 	if err != nil {
 		return err
 	}

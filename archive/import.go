@@ -10,7 +10,6 @@ import (
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -24,7 +23,7 @@ func tsDir(ts nano.Ts) string {
 
 type importDriver struct {
 	ark *Archive
-	bw  *bufwriter.Writer
+	ctx context.Context
 	zw  *zngio.Writer
 
 	span   nano.Span
@@ -54,12 +53,12 @@ func (d *importDriver) writeOne(rec *zng.Record) error {
 		//XXX for now just truncate any existing file.
 		// a future PR will do a split/merge.
 		fpath := dpath.AppendPath(fname)
-		out, err := d.ark.dataSrc.NewWriter(fpath)
+		out, err := d.ark.dataSrc.NewWriter(d.ctx, fpath)
 		if err != nil {
 			return err
 		}
-		d.bw = bufwriter.New(out)
-		d.zw = zngio.NewWriter(d.bw, zio.WriterFlags{ZngLZ4BlockSize: zio.DefaultZngLZ4BlockSize})
+		bw := bufwriter.New(out)
+		d.zw = zngio.NewWriter(bw, zngio.WriterOpts{LZ4BlockSize: zngio.DefaultLZ4BlockSize})
 	} else {
 		d.span = d.span.Union(recspan)
 	}
@@ -77,12 +76,7 @@ func (d *importDriver) writeOne(rec *zng.Record) error {
 
 func (d *importDriver) close() error {
 	if d.zw != nil {
-		if err := d.zw.Flush(); err != nil {
-			return err
-		}
-	}
-	if d.bw != nil {
-		if err := d.bw.Close(); err != nil {
+		if err := d.zw.Close(); err != nil {
 			return err
 		}
 		d.spans = append(d.spans, SpanInfo{
@@ -90,9 +84,8 @@ func (d *importDriver) close() error {
 			LogID:       d.logID,
 			RecordCount: d.rcount,
 		})
-		d.bw = nil
+		d.zw = nil
 	}
-	d.zw = nil
 	return nil
 }
 
@@ -132,7 +125,7 @@ func Import(ctx context.Context, ark *Archive, zctx *resolver.Context, r zbuf.Re
 		return err
 	}
 
-	id := &importDriver{ark: ark}
+	id := &importDriver{ark: ark, ctx: ctx}
 	if err := driver.Run(ctx, id, proc, zctx, r, driver.Config{}); err != nil {
 		return fmt.Errorf("archive.Import: run failed: %w", err)
 	}

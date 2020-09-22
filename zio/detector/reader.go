@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zio/zeekio"
@@ -15,7 +16,7 @@ import (
 	"github.com/brimsec/zq/zqe"
 )
 
-func NewReaderWithConfig(r io.Reader, zctx *resolver.Context, path string, cfg OpenConfig) (zbuf.Reader, error) {
+func NewReaderWithOpts(r io.Reader, zctx *resolver.Context, path string, opts zio.ReaderOpts) (zbuf.Reader, error) {
 	recorder := NewRecorder(r)
 	track := NewTrack(recorder)
 
@@ -43,26 +44,27 @@ func NewReaderWithConfig(r io.Reader, zctx *resolver.Context, path string, cfg O
 	track.Reset()
 
 	// ndjson must come after zjson since zjson is a subset of ndjson
-	nr, err := ndjsonio.NewReader(track, resolver.NewContext(), cfg.JSONTypeConfig, cfg.JSONPathRegex, path)
+	nr, err := ndjsonio.NewReader(track, resolver.NewContext(), opts.JSON, path)
 	if err != nil {
 		return nil, err
 	}
 	ndjsonErr := match(nr, "ndjson")
 	if ndjsonErr == nil {
-		return ndjsonio.NewReader(recorder, zctx, cfg.JSONTypeConfig, cfg.JSONPathRegex, path)
+		return ndjsonio.NewReader(recorder, zctx, opts.JSON, path)
 	}
 	track.Reset()
 
-	zngErr := match(zngio.NewReaderWithOpts(track, resolver.NewContext(), zngio.ReaderOpts{Check: true}), "zng")
+	zngErr := match(zngio.NewReaderWithOpts(track, resolver.NewContext(), zngio.ReaderOpts{Validate: true}), "zng")
 	if zngErr == nil {
-		return zngio.NewReaderWithOpts(recorder, zctx, zngio.ReaderOpts{Check: cfg.ZngCheck}), nil
+		return zngio.NewReaderWithOpts(recorder, zctx, opts.Zng), nil
 	}
 	parquetErr := errors.New("parquet: auto-detection not supported")
-	return nil, joinErrs([]error{tzngErr, zeekErr, ndjsonErr, zjsonErr, zngErr, parquetErr})
+	zstErr := errors.New("zst: auto-detection not supported")
+	return nil, joinErrs([]error{tzngErr, zeekErr, ndjsonErr, zjsonErr, zngErr, parquetErr, zstErr})
 }
 
 func NewReader(r io.Reader, zctx *resolver.Context) (zbuf.Reader, error) {
-	return NewReaderWithConfig(r, zctx, "", OpenConfig{})
+	return NewReaderWithOpts(r, zctx, "", zio.ReaderOpts{})
 }
 
 func joinErrs(errs []error) error {

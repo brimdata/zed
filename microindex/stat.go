@@ -1,6 +1,8 @@
 package microindex
 
 import (
+	"context"
+
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zng/resolver"
 )
@@ -16,13 +18,13 @@ type Info struct {
 }
 
 // Stat returns summary information about the microindex at uri.
-func Stat(uri iosrc.URI) (*Info, error) {
-	si, err := iosrc.Stat(uri)
+func Stat(ctx context.Context, uri iosrc.URI) (*Info, error) {
+	si, err := iosrc.Stat(ctx, uri)
 	if err != nil {
 		return nil, err
 	}
 	size := si.Size()
-	r, err := NewReaderFromURI(resolver.NewContext(), uri)
+	r, err := NewReaderFromURI(ctx, resolver.NewContext(), uri)
 	if err != nil {
 		return nil, err
 	}
