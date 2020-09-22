@@ -226,6 +226,7 @@ func (r *NgReader) parseInterfaceDescriptor(b []byte) error {
 	var intf NgInterface
 	intf.LinkType = layers.LinkType(r.getUint16(b[8:10]))
 	intf.SnapLength = r.getUint32(b[12:16])
+	b = b[16:]
 
 	// loop until we get to the 4-byte trailer length field
 	for len(b) > 4 {
