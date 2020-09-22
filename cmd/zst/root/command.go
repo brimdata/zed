@@ -35,7 +35,7 @@ func (c *Command) Cleanup() {
 	c.cli.Cleanup()
 }
 
-func (c *Command) Init(all ...cli.Initializer) (bool, error) {
+func (c *Command) Init(all ...cli.Initializer) error {
 	return c.cli.Init(all...)
 }
 
