@@ -1,4 +1,4 @@
-package spill
+package runmanager
 
 import (
 	"container/heap"
@@ -15,7 +15,7 @@ import (
 // Merger manages "runs" (files of sorted zng records) that are spilled to
 // disk a chunk at a time, then read back and merged in sorted order, effectively
 // implementing an external merge sort.
-type Merger struct {
+type Manager struct {
 	runs       []*peeker
 	runIndices map[*peeker]int
 	compareFn  expr.CompareFn
@@ -33,15 +33,15 @@ func TempFile() (*os.File, error) {
 	return ioutil.TempFile("", TempPrefix)
 }
 
-// NewMerger returns Merger to implement external merge sorts of a large
+// Manager returns Merger to implement external merge sorts of a large
 // zng record stream.  It creates a temporary directory to hold the collection
 // of spilled chunks.  Call Cleanup to remove it.
-func NewMerger(compareFn expr.CompareFn) (*Merger, error) {
+func NewManager(compareFn expr.CompareFn) (*Manager, error) {
 	tempDir, err := TempDir()
 	if err != nil {
 		return nil, err
 	}
-	return &Merger{
+	return &Manager{
 		runIndices: make(map[*peeker]int),
 		compareFn:  compareFn,
 		tempDir:    tempDir,
@@ -49,15 +49,15 @@ func NewMerger(compareFn expr.CompareFn) (*Merger, error) {
 	}, nil
 }
 
-func (r *Merger) Cleanup() {
+func (r *Manager) Cleanup() {
 	for _, run := range r.runs {
 		run.closeAndRemove()
 	}
 	os.RemoveAll(r.tempDir)
 }
 
-// Spiil spills a new run of records to a file in the Merger's temp directory.
-func (r *Merger) Spill(recs []*zng.Record) error {
+// CreateRun spills a new run of records to a file in the Merger's temp directory.
+func (r *Manager) CreateRun(recs []*zng.Record) error {
 	expr.SortStable(recs, r.compareFn)
 	index := len(r.runIndices)
 	filename := filepath.Join(r.tempDir, strconv.Itoa(index))
@@ -72,7 +72,7 @@ func (r *Merger) Spill(recs []*zng.Record) error {
 
 // Peek returns the next record without advancing the reader.  The record stops
 // being valid at the next read call.
-func (r *Merger) Peek() (*zng.Record, error) {
+func (r *Manager) Peek() (*zng.Record, error) {
 	if r.Len() == 0 {
 		return nil, nil
 	}
@@ -82,7 +82,7 @@ func (r *Merger) Peek() (*zng.Record, error) {
 // Read returns the smallest record (per the comparison function provided to MewMerger)
 // from among the next records in the spilled chunks.  It implements the merge operation
 // for an external merge sort.
-func (r *Merger) Read() (*zng.Record, error) {
+func (r *Manager) Read() (*zng.Record, error) {
 	for {
 		if r.Len() == 0 {
 			return nil, nil
@@ -103,9 +103,9 @@ func (r *Merger) Read() (*zng.Record, error) {
 	}
 }
 
-func (r *Merger) Len() int { return len(r.runs) }
+func (r *Manager) Len() int { return len(r.runs) }
 
-func (r *Merger) Less(i, j int) bool {
+func (r *Manager) Less(i, j int) bool {
 	v := r.compareFn(r.runs[i].nextRecord, r.runs[j].nextRecord)
 	switch {
 	case v < 0:
@@ -118,11 +118,11 @@ func (r *Merger) Less(i, j int) bool {
 	}
 }
 
-func (r *Merger) Swap(i, j int) { r.runs[i], r.runs[j] = r.runs[j], r.runs[i] }
+func (r *Manager) Swap(i, j int) { r.runs[i], r.runs[j] = r.runs[j], r.runs[i] }
 
-func (r *Merger) Push(x interface{}) { r.runs = append(r.runs, x.(*peeker)) }
+func (r *Manager) Push(x interface{}) { r.runs = append(r.runs, x.(*peeker)) }
 
-func (r *Merger) Pop() interface{} {
+func (r *Manager) Pop() interface{} {
 	x := r.runs[len(r.runs)-1]
 	r.runs = r.runs[:len(r.runs)-1]
 	return x

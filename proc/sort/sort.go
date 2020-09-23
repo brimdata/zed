@@ -7,7 +7,7 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/proc"
-	"github.com/brimsec/zq/proc/spill"
+	"github.com/brimsec/zq/proc/runmanager"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 )
@@ -125,12 +125,12 @@ func (p *Proc) recordsForOneRun() ([]*zng.Record, bool, error) {
 	}
 }
 
-func (p *Proc) createRuns(firstRunRecs []*zng.Record) (*spill.Merger, error) {
-	rm, err := spill.NewMerger(p.compareFn)
+func (p *Proc) createRuns(firstRunRecs []*zng.Record) (*runmanager.Manager, error) {
+	rm, err := runmanager.NewManager(p.compareFn)
 	if err != nil {
 		return nil, err
 	}
-	if err := rm.Spill(firstRunRecs); err != nil {
+	if err := rm.CreateRun(firstRunRecs); err != nil {
 		rm.Cleanup()
 		return nil, err
 	}
@@ -141,7 +141,7 @@ func (p *Proc) createRuns(firstRunRecs []*zng.Record) (*spill.Merger, error) {
 			return nil, err
 		}
 		if recs != nil {
-			if err := rm.Spill(recs); err != nil {
+			if err := rm.CreateRun(recs); err != nil {
 				rm.Cleanup()
 				return nil, err
 			}

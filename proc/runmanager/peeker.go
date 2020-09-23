@@ -1,4 +1,4 @@
-package spill
+package runmanager
 
 import (
 	"github.com/brimsec/zq/zng"
@@ -6,12 +6,12 @@ import (
 )
 
 type peeker struct {
-	*File
+	*Run
 	nextRecord *zng.Record
 }
 
 func newPeeker(filename string, recs []*zng.Record, zctx *resolver.Context) (*peeker, error) {
-	f, err := NewFileWithPath(filename, zctx)
+	f, err := NewRunWithPath(filename, zctx)
 	if err != nil {
 		return nil, err
 	}
