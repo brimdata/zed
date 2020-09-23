@@ -2,11 +2,10 @@ package space
 
 import (
 	"context"
-	"io/ioutil"
-	"os"
-	"path/filepath"
+	"path"
 	"sync"
 
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqe"
@@ -14,14 +13,18 @@ import (
 )
 
 type Manager struct {
-	rootPath string
+	rootPath iosrc.URI
 	spacesMu sync.Mutex
 	spaces   map[api.SpaceID]Space
 	names    map[string]api.SpaceID
 	logger   *zap.Logger
 }
 
-func NewManager(root string, logger *zap.Logger) (*Manager, error) {
+func NewManager(root iosrc.URI, logger *zap.Logger) (*Manager, error) {
+	return NewManagerWithContext(context.Background(), root, logger)
+}
+
+func NewManagerWithContext(ctx context.Context, root iosrc.URI, logger *zap.Logger) (*Manager, error) {
 	mgr := &Manager{
 		rootPath: root,
 		spaces:   make(map[api.SpaceID]Space),
@@ -29,36 +32,26 @@ func NewManager(root string, logger *zap.Logger) (*Manager, error) {
 		logger:   logger,
 	}
 
-	dirs, err := ioutil.ReadDir(root)
+	list, err := iosrc.ReadDir(ctx, root)
 	if err != nil {
 		return nil, err
 	}
-
-	for _, dir := range dirs {
-		if !dir.IsDir() {
+	for _, l := range list {
+		if !l.IsDir() {
 			continue
 		}
-
-		path := filepath.Join(root, dir.Name())
-		config, err := loadConfig(path)
+		dir := root.AppendPath(l.Name())
+		config, err := mgr.loadConfig(ctx, dir)
 		if err != nil {
-			logger.Error("Error loading config", zap.Error(err))
+			if zqe.IsNotFound(err) {
+				logger.Debug("Config file not found", zap.String("uri", dir.String()))
+			} else {
+				logger.Warn("Error loading space", zap.String("uri", dir.String()), zap.Error(err))
+			}
 			continue
 		}
 
-		if config.Version < 1 {
-			config.Name = safeName(mgr.names, config.Name)
-			for _, sub := range config.Subspaces {
-				sub.Name = safeName(mgr.names, sub.Name)
-			}
-			config.Version = configVersion
-			if err := writeConfig(path, config); err != nil {
-				logger.Error("Error migrating config", zap.Error(err))
-				continue
-			}
-		}
-
-		spaces, err := loadSpaces(path, config)
+		spaces, err := loadSpaces(ctx, dir, config, mgr.logger)
 		if err != nil {
 			return nil, err
 		}
@@ -71,16 +64,25 @@ func NewManager(root string, logger *zap.Logger) (*Manager, error) {
 	return mgr, nil
 }
 
-func (m *Manager) Create(req api.SpacePostRequest) (Space, error) {
+func (m *Manager) Create(ctx context.Context, req api.SpacePostRequest) (Space, error) {
 	m.spacesMu.Lock()
 	defer m.spacesMu.Unlock()
 	if req.Name == "" && req.DataPath == "" {
 		return nil, zqe.E(zqe.Invalid, "must supply non-empty name or dataPath")
 	}
+	var datapath iosrc.URI
+	if req.DataPath != "" {
+		var err error
+		datapath, err = iosrc.ParseURI(req.DataPath)
+		if err != nil {
+			return nil, err
+		}
+	}
 	// If name is not set then derive name from DataPath, removing and
 	// replacing invalid characters.
 	if req.Name == "" {
-		req.Name = safeName(m.names, filepath.Base(req.DataPath))
+		req.Name = safeName(path.Base(datapath.Path))
+		req.Name = uniqueName(m.names, req.Name)
 	}
 	if err := validateName(m.names, req.Name); err != nil {
 		return nil, err
@@ -92,20 +94,29 @@ func (m *Manager) Create(req api.SpacePostRequest) (Space, error) {
 	if storecfg.Kind == storage.UnknownStore {
 		storecfg.Kind = storage.FileStore
 	}
+	if storecfg.Kind == storage.FileStore && m.rootPath.Scheme != "file" {
+		return nil, zqe.E(zqe.Invalid, "cannot create file storage space on non-file backed data path")
+	}
 	id := newSpaceID()
-	path := filepath.Join(m.rootPath, string(id))
-	if err := os.Mkdir(path, 0755); err != nil {
+	path := m.rootPath.AppendPath(string(id))
+	src, err := iosrc.GetSource(path)
+	if err != nil {
 		return nil, err
+	}
+	if dirmk, ok := src.(iosrc.DirMaker); ok {
+		if err := dirmk.MkdirAll(path, 0754); err != nil {
+			return nil, err
+		}
 	}
 	if req.DataPath == "" {
-		req.DataPath = path
+		datapath = path
 	}
-	conf := config{Name: req.Name, DataPath: req.DataPath, Storage: storecfg}
+	conf := config{Version: configVersion, Name: req.Name, DataURI: datapath, Storage: storecfg}
 	if err := writeConfig(path, conf); err != nil {
-		os.RemoveAll(path)
+		iosrc.RemoveAll(context.Background(), path)
 		return nil, err
 	}
-	spaces, err := loadSpaces(path, conf)
+	spaces, err := loadSpaces(ctx, path, conf, m.logger)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +126,7 @@ func (m *Manager) Create(req api.SpacePostRequest) (Space, error) {
 	return s, err
 }
 
-func (m *Manager) CreateSubspace(parent Space, req api.SubspacePostRequest) (Space, error) {
+func (m *Manager) CreateSubspace(ctx context.Context, parent Space, req api.SubspacePostRequest) (Space, error) {
 	m.spacesMu.Lock()
 	defer m.spacesMu.Unlock()
 	if err := validateName(m.names, req.Name); err != nil {
@@ -126,7 +137,7 @@ func (m *Manager) CreateSubspace(parent Space, req api.SubspacePostRequest) (Spa
 		return nil, zqe.E(zqe.Invalid, "space does not support creating subspaces")
 	}
 
-	s, err := as.CreateSubspace(req)
+	s, err := as.CreateSubspace(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +179,7 @@ func (m *Manager) Get(id api.SpaceID) (Space, error) {
 	return space, nil
 }
 
-func (m *Manager) Delete(id api.SpaceID) error {
+func (m *Manager) Delete(ctx context.Context, id api.SpaceID) error {
 	space, err := m.Get(id)
 	if err != nil {
 		return err
@@ -177,7 +188,7 @@ func (m *Manager) Delete(id api.SpaceID) error {
 	m.spacesMu.Lock()
 	defer m.spacesMu.Unlock()
 	name := space.Name()
-	if err := space.delete(); err != nil {
+	if err := space.delete(ctx); err != nil {
 		return err
 	}
 
@@ -195,6 +206,12 @@ func (m *Manager) List(ctx context.Context) ([]api.SpaceInfo, error) {
 		sp := m.spaces[id]
 		info, err := sp.Info(ctx)
 		if err != nil {
+			// XXX should add ability to derive request id from context if it
+			// exists for current ctx.
+			m.logger.Warn("Could not get space info",
+				zap.String("space_id", string(id)),
+				zap.Error(err),
+			)
 			return nil, err
 		}
 		result = append(result, info)

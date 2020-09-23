@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"unicode"
 
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 )
 
 var (
-	ErrExists        = errors.New("descriptor exists with different type")
 	ErrEmptyTypeList = errors.New("empty type list in set or union")
 	ErrAliasExists   = errors.New("alias exists with different type")
 )
@@ -22,26 +22,20 @@ type TypeLogger interface {
 
 // A Context manages the mapping between small-integer descriptor identifiers
 // and zng descriptor objects, which hold the binding between an identifier
-// and a zng.Type.  We use a map for the table to give us flexibility
-// as we achieve high performance lookups with the resolver Cache.
+// and a zng.Type.
 type Context struct {
 	mu     sync.RWMutex
 	table  []zng.Type
 	lut    map[string]int
-	caches sync.Pool
 	logger TypeLogger
 }
 
 func NewContext() *Context {
-	c := &Context{
+	return &Context{
 		//XXX hack... leave blanks for primitive types... will fix this later
 		table: make([]zng.Type, zng.IdTypeDef),
 		lut:   make(map[string]int),
 	}
-	c.caches.New = func() interface{} {
-		return NewCache(c)
-	}
-	return c
 }
 
 func (c *Context) SetLogger(logger TypeLogger) {
@@ -124,7 +118,8 @@ func recordKey(columns []zng.Column) string {
 	for _, col := range columns {
 		id := col.Type.ID()
 		if alias, ok := col.Type.(*zng.TypeAlias); ok {
-			id = alias.AliasID()
+			key += fmt.Sprintf("%s:%s/%d;", col.Name, alias.Name, alias.ID())
+			continue
 		}
 		key += fmt.Sprintf("%s:%d;", col.Name, id)
 	}
@@ -317,21 +312,6 @@ func (c *Context) AddColumns(r *zng.Record, newCols []zng.Column, vals []zng.Val
 	return zng.NewRecord(typ, zv), nil
 }
 
-// NewValue creates a Value with the given type and value described
-// as simple strings.  The zng.Value's type is allocated in this
-// type context.
-func (c *Context) NewValue(typ, val string) (zng.Value, error) {
-	t := zng.LookupPrimitive(typ)
-	if t == nil {
-		return zng.Value{}, fmt.Errorf("no such type: %s", typ)
-	}
-	zv, err := t.Parse([]byte(val))
-	if err != nil {
-		return zng.Value{}, err
-	}
-	return zng.Value{t, zv}, nil
-}
-
 func isIdChar(c byte) bool {
 	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '.'
 }
@@ -357,8 +337,11 @@ func parseWord(in string) (string, string) {
 // in a zeek file header.  Each unique compound type object is created once and
 // interned so that pointer comparison can be used to determine type equality.
 func (c *Context) LookupByName(in string) (zng.Type, error) {
-	//XXX check if rest has junk and flag an error?
-	_, typ, err := c.parseType(in)
+	rest, typ, err := c.parseType(in)
+	// check if there is still text at the end of the type string...
+	if err == nil && rest != "" {
+		err = zng.ErrTypeSyntax
+	}
 	return typ, err
 }
 
@@ -449,6 +432,14 @@ func (c *Context) parseRecordTypeBody(in string) (string, zng.Type, error) {
 	if !ok {
 		return "", nil, zng.ErrTypeSyntax
 	}
+	in, ok = match(in, "]")
+	if ok {
+		typ, err := c.LookupTypeRecord([]zng.Column{})
+		if err != nil {
+			return "", nil, err
+		}
+		return in, typ, nil
+	}
 	var columns []zng.Column
 	for {
 		// at top of loop, we have to have a field def either because
@@ -476,14 +467,33 @@ func (c *Context) parseRecordTypeBody(in string) (string, zng.Type, error) {
 	}
 }
 
+func idChar(r rune) bool {
+	return r == '_' || r == '$' || (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z')
+}
+
+func checkID(id string) bool {
+	s := []rune(id)
+	if !idChar(s[0]) {
+		return false
+	}
+	for _, r := range s[1:] {
+		if !idChar(r) && !unicode.IsDigit(r) {
+			return false
+		}
+	}
+	return true
+}
+
 func (c *Context) parseColumn(in string) (string, zng.Column, error) {
 	in = strings.TrimSpace(in)
 	colon := strings.IndexByte(in, byte(':'))
 	if colon < 0 {
 		return "", zng.Column{}, zng.ErrTypeSyntax
 	}
-	//XXX should check if name is valid syntax?
 	name := strings.TrimSpace(in[:colon])
+	if !checkID(name) {
+		return "", zng.Column{}, zng.ErrTypeSyntax
+	}
 	rest, typ, err := c.parseType(in[colon+1:])
 	if err != nil {
 		return "", zng.Column{}, err
@@ -622,14 +632,4 @@ func (c *Context) TranslateTypeUnion(ext *zng.TypeUnion) (*zng.TypeUnion, error)
 		types = append(types, translated)
 	}
 	return c.LookupTypeUnion(types), nil
-}
-
-// Cache returns a cache of this table providing lockless lookups, but cannot
-// be used concurrently.
-func (c *Context) Cache() *Cache {
-	return c.caches.Get().(*Cache)
-}
-
-func (c *Context) Release(cache *Cache) {
-	c.caches.Put(cache)
 }

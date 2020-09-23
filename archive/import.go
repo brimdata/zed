@@ -3,21 +3,18 @@ package archive
 import (
 	"context"
 	"fmt"
-	"os"
 	"path"
-	"path/filepath"
 
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/bufwriter"
-	"github.com/brimsec/zq/pkg/fs"
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zql"
-	"go.uber.org/zap"
 )
 
 func tsDir(ts nano.Ts) string {
@@ -26,13 +23,13 @@ func tsDir(ts nano.Ts) string {
 
 type importDriver struct {
 	ark *Archive
-	bw  *bufwriter.Writer
-	zw  zbuf.Writer
-	n   int64
+	ctx context.Context
+	zw  *zngio.Writer
 
-	span  nano.Span
-	logID LogID
-	spans []SpanInfo
+	span   nano.Span
+	logID  LogID
+	spans  []SpanInfo
+	rcount int
 }
 
 func (d *importDriver) writeOne(rec *zng.Record) error {
@@ -41,32 +38,35 @@ func (d *importDriver) writeOne(rec *zng.Record) error {
 		dname := tsDir(rec.Ts())
 		fname := rec.Ts().StringFloat() + ".zng"
 		d.span = recspan
+		d.rcount = 0
 		// Create LogID with path.Join so that it always uses forward
 		// slashes (dir1/foo.zng), regardless of platform.
 		d.logID = LogID(path.Join(dname, fname))
 
-		dpath := filepath.Join(d.ark.Root, dname)
-		if err := os.MkdirAll(dpath, 0755); err != nil {
-			return err
+		dpath := d.ark.DataPath.AppendPath(dname)
+		if dirmkr, ok := d.ark.dataSrc.(iosrc.DirMaker); ok {
+			if err := dirmkr.MkdirAll(dpath, 0755); err != nil {
+				return err
+			}
 		}
 
 		//XXX for now just truncate any existing file.
 		// a future PR will do a split/merge.
-		fpath := filepath.Join(dpath, fname)
-		out, err := fs.OpenFile(fpath, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0644)
+		fpath := dpath.AppendPath(fname)
+		out, err := d.ark.dataSrc.NewWriter(d.ctx, fpath)
 		if err != nil {
 			return err
 		}
-		d.bw = bufwriter.New(out)
-		d.zw = zngio.NewWriter(d.bw, zio.WriterFlags{})
+		bw := bufwriter.New(out)
+		d.zw = zngio.NewWriter(bw, zngio.WriterOpts{LZ4BlockSize: zngio.DefaultLZ4BlockSize})
 	} else {
 		d.span = d.span.Union(recspan)
 	}
 	if err := d.zw.Write(rec); err != nil {
 		return err
 	}
-	d.n += int64(len(rec.Raw))
-	if d.n >= d.ark.LogSizeThreshold {
+	d.rcount++
+	if d.zw.Position() >= d.ark.LogSizeThreshold {
 		if err := d.close(); err != nil {
 			return err
 		}
@@ -75,18 +75,17 @@ func (d *importDriver) writeOne(rec *zng.Record) error {
 }
 
 func (d *importDriver) close() error {
-	if d.bw != nil {
-		if err := d.bw.Close(); err != nil {
+	if d.zw != nil {
+		if err := d.zw.Close(); err != nil {
 			return err
 		}
 		d.spans = append(d.spans, SpanInfo{
-			Span:  d.span,
-			LogID: d.logID,
+			Span:        d.span,
+			LogID:       d.logID,
+			RecordCount: d.rcount,
 		})
-		d.bw = nil
+		d.zw = nil
 	}
-	d.zw = nil
-	d.n = 0
 	return nil
 }
 
@@ -120,19 +119,14 @@ func importProc(ark *Archive) string {
 	return "sort -r ts"
 }
 
-func Import(ctx context.Context, ark *Archive, r zbuf.Reader) error {
+func Import(ctx context.Context, ark *Archive, zctx *resolver.Context, r zbuf.Reader) error {
 	proc, err := zql.ParseProc(importProc(ark))
 	if err != nil {
 		return err
 	}
 
-	fg, err := driver.Compile(ctx, proc, r, "", false, nano.MaxSpan, zap.NewNop())
-	if err != nil {
-		return err
-	}
-
-	id := &importDriver{ark: ark}
-	if err := driver.Run(fg, id, nil); err != nil {
+	id := &importDriver{ark: ark, ctx: ctx}
+	if err := driver.Run(ctx, id, proc, zctx, r, driver.Config{}); err != nil {
 		return fmt.Errorf("archive.Import: run failed: %w", err)
 	}
 

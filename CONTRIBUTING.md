@@ -1,8 +1,11 @@
 # Contributing
 
-Thank you for contributing to `zq`! Feel free to
-[post an issue](https://github.com/brimsec/zq/issues),
-fork the repo, or send us a pull request.
+Thank you for contributing to `zq`!
+
+Per [common practice](https://www.thinkful.com/learn/github-pull-request-tutorial/Feel-Free-to-Ask#Feel-Free-to-Ask),
+please [open an issue](https://github.com/brimsec/zq/issues) before sending a pull request.  If you
+think your ideas might benefit from some refinement via Q&A, come talk to us on
+[Slack](https://www.brimsecurity.com/join-slack/) as well.
 
 `zq` is early in its life cycle and will be expanding quickly.  Please star and/or
 watch the repo so you can follow and track our progress.
@@ -14,7 +17,7 @@ add a processor in [zq/proc](proc) or an aggregate function in [zq/reducer](redu
 
 ## Development
 
-`zq` requires Go 1.13 or later, and uses [Go modules](https://github.com/golang/go/wiki/Modules).
+`zq` requires Go 1.14 or later, and uses [Go modules](https://github.com/golang/go/wiki/Modules).
 Dependencies are specified in the [`go.mod` file](./go.mod) and managed
 automatically by commands like `go build` and `go test`.  No explicit
 fetch commands are necessary.  However, you must set the environment
@@ -42,4 +45,3 @@ And to run system tests, execute:
 ```
 make test-system
 ```
-

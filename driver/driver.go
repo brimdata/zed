@@ -2,11 +2,14 @@ package driver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"time"
 
+	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
 )
 
@@ -17,11 +20,27 @@ type Driver interface {
 	Stats(api.ScannerStats) error
 }
 
-func Run(out *MuxOutput, d Driver, statsTickCh <-chan time.Time) error {
+func Run(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader, cfg Config) error {
+	msrc, mcfg := rdrToMulti(reader, cfg)
+	return MultiRun(ctx, d, program, zctx, msrc, mcfg)
+}
+
+func MultiRun(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Context, msrc MultiSource, mcfg MultiConfig) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	mux, err := compile(ctx, program, zctx, msrc, mcfg)
+	if err != nil {
+		return err
+	}
+	return runMux(mux, d, mcfg.StatsTick)
+}
+
+func runMux(out *muxOutput, d Driver, statsTickCh <-chan time.Time) error {
 	for !out.Complete() {
 		chunk := out.Pull(statsTickCh)
 		if chunk.Err != nil {
-			if chunk.Err == ErrTimeout {
+			if chunk.Err == errTimeout {
 				if err := d.Stats(out.Stats()); err != nil {
 					return err
 				}
@@ -47,6 +66,9 @@ func Run(out *MuxOutput, d Driver, statsTickCh <-chan time.Time) error {
 				return err
 			}
 		}
+	}
+	if statsTickCh != nil {
+		return d.Stats(out.Stats())
 	}
 	return nil
 }
@@ -76,6 +98,7 @@ func (d *CLI) Write(cid int, batch zbuf.Batch) error {
 			return err
 		}
 	}
+	batch.Unref()
 	return nil
 }
 
@@ -90,3 +113,31 @@ func (d *CLI) Warn(msg string) error {
 
 func (d *CLI) ChannelEnd(int) error         { return nil }
 func (d *CLI) Stats(api.ScannerStats) error { return nil }
+
+type transformDriver struct {
+	w zbuf.Writer
+}
+
+func (d *transformDriver) Write(cid int, batch zbuf.Batch) error {
+	if cid != 0 {
+		return errors.New("transform proc with multiple tails")
+	}
+	for i := 0; i < batch.Length(); i++ {
+		if err := d.w.Write(batch.Index(i)); err != nil {
+			return err
+		}
+	}
+	batch.Unref()
+	return nil
+}
+
+func (d *transformDriver) Warn(warning string) error          { return nil }
+func (d *transformDriver) Stats(stats api.ScannerStats) error { return nil }
+func (d *transformDriver) ChannelEnd(cid int) error           { return nil }
+
+// Copy applies a proc to all records from a zbuf.Reader, writing to a
+// single zbuf.Writer. The proc must have a single tail.
+func Copy(ctx context.Context, w zbuf.Writer, prog ast.Proc, zctx *resolver.Context, r zbuf.Reader, cfg Config) error {
+	d := &transformDriver{w: w}
+	return Run(ctx, d, prog, zctx, r, cfg)
+}

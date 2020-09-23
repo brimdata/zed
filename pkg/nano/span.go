@@ -81,7 +81,6 @@ func (s Span) Partition(ts Ts, n int) int {
 	// division has truncated the value of partitionSize.
 	if i > n-1 {
 		panic("this shouldn't happen now")
-		i = n - 1
 	}
 
 	return i

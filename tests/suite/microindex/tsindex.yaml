@@ -1,0 +1,25 @@
+script: |
+  # index ts every 10 records
+  zq -b 10 babble.tzng | microindex create -S -o index -k ts -
+  # exact lookup for this particular ts
+  microindex lookup -t -k 1587512531.06754599 index
+  echo ===
+  # exact lookup for an absent ts
+  microindex lookup -t -k 1587512531.06754600 index
+  echo ===
+  # closest lookup for the absent ts
+  microindex lookup -c -t -k 1587512531.06754600 index
+
+inputs:
+  - name: babble.tzng
+    source: ../data/babble.tzng
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[key:time]
+      0:[1587512531.06754599;]
+      ===
+      ===
+      #0:record[key:time]
+      0:[1587512531.06754599;]

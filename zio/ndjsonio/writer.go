@@ -9,15 +9,19 @@ import (
 
 // Writer implements a Formatter for ndjson
 type Writer struct {
-	io.Writer
+	writer  io.WriteCloser
 	encoder *json.Encoder
 }
 
-func NewWriter(w io.Writer) *Writer {
+func NewWriter(w io.WriteCloser) *Writer {
 	return &Writer{
-		Writer:  w,
+		writer:  w,
 		encoder: json.NewEncoder(w),
 	}
+}
+
+func (w *Writer) Close() error {
+	return w.writer.Close()
 }
 
 func (w *Writer) Write(rec *zng.Record) error {

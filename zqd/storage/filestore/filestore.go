@@ -3,13 +3,16 @@ package filestore
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/brimsec/zq/driver"
+	"github.com/brimsec/zq/pkg/bufwriter"
 	"github.com/brimsec/zq/pkg/fs"
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
@@ -19,7 +22,6 @@ import (
 	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqe"
 	"github.com/brimsec/zq/zql"
-	"go.uber.org/zap"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -36,9 +38,12 @@ var (
 	zngWriteProc = zql.MustParseProc("sort -r ts")
 )
 
-func Load(path string) (*Storage, error) {
+func Load(path iosrc.URI) (*Storage, error) {
+	if path.Scheme != "file" {
+		return nil, fmt.Errorf("unsupported FileStore scheme %q", path)
+	}
 	s := &Storage{
-		path:       path,
+		path:       path.Filepath(),
 		index:      zngio.NewTimeIndex(),
 		streamsize: defaultStreamSize,
 		wsem:       semaphore.NewWeighted(1),
@@ -66,8 +71,7 @@ func (s *Storage) join(args ...string) string {
 	return filepath.Join(args...)
 }
 
-func (s *Storage) Open(_ context.Context, span nano.Span) (zbuf.ReadCloser, error) {
-	zctx := resolver.NewContext()
+func (s *Storage) Open(_ context.Context, zctx *resolver.Context, span nano.Span) (zbuf.ReadCloser, error) {
 	f, err := fs.Open(s.join(allZngFile))
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -108,7 +112,7 @@ func (w *spanWriter) Write(rec *zng.Record) error {
 	return nil
 }
 
-func (s *Storage) Rewrite(ctx context.Context, zr zbuf.Reader) error {
+func (s *Storage) Write(ctx context.Context, zctx *resolver.Context, zr zbuf.Reader) error {
 	if !s.wsem.TryAcquire(1) {
 		return zqe.E(zqe.Conflict, ErrWriteInProgress)
 	}
@@ -116,12 +120,15 @@ func (s *Storage) Rewrite(ctx context.Context, zr zbuf.Reader) error {
 
 	spanWriter := &spanWriter{}
 	if err := fs.ReplaceFile(s.join(allZngFile), 0600, func(w io.Writer) error {
-		fileWriter := zngio.NewWriter(w, zio.WriterFlags{StreamRecordsMax: s.streamsize})
+		fileWriter := zngio.NewWriter(bufwriter.New(zio.NopCloser(w)), zngio.WriterOpts{
+			StreamRecordsMax: s.streamsize,
+			LZ4BlockSize:     zngio.DefaultLZ4BlockSize,
+		})
 		zw := zbuf.MultiWriter(fileWriter, spanWriter)
-		if err := s.write(ctx, zw, zr); err != nil {
+		if err := driver.Copy(ctx, zw, zngWriteProc, zctx, zr, driver.Config{}); err != nil {
 			return err
 		}
-		return fileWriter.Flush()
+		return fileWriter.Close()
 	}); err != nil {
 		return err
 	}
@@ -131,15 +138,6 @@ func (s *Storage) Rewrite(ctx context.Context, zr zbuf.Reader) error {
 	}
 
 	return s.extendSpan(spanWriter.span)
-}
-
-func (s *Storage) write(ctx context.Context, zw zbuf.Writer, zr zbuf.Reader) error {
-	out, err := driver.Compile(ctx, zngWriteProc, zr, "ts", false, nano.MaxSpan, zap.NewNop())
-	if err != nil {
-		return err
-	}
-	d := &zngdriver{zw}
-	return driver.Run(out, d, nil)
 }
 
 // Clear wipes all data from storage. Will wait for any ongoing write operations

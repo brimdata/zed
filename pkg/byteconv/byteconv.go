@@ -23,7 +23,7 @@ func ParseBool(b []byte) (bool, error) {
 func ParseIP(b []byte) (net.IP, error) {
 	ip := net.ParseIP(UnsafeString(b))
 	if ip == nil {
-		return nil, fmt.Errorf("bad addr value field %v", b)
+		return nil, fmt.Errorf("net.ParseIP: parsing %q: syntax error", b)
 	}
 	return ip, nil
 }

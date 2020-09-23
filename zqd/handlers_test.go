@@ -15,21 +15,20 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 
-	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/detector"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/tzngio"
-	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd"
 	"github.com/brimsec/zq/zqd/api"
+	"github.com/brimsec/zq/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/zqd/storage"
-	"github.com/brimsec/zq/zqd/zeek"
 	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -81,7 +80,7 @@ func TestSearchNoCtrl(t *testing.T) {
 		msgs = append(msgs, i)
 	})
 	buf := bytes.NewBuffer(nil)
-	w := zbuf.NopFlusher(tzngio.NewWriter(buf))
+	w := tzngio.NewWriter(zio.NopCloser(buf))
 	require.NoError(t, zbuf.Copy(w, r))
 	require.Equal(t, test.Trim(src), buf.String())
 	require.Equal(t, 0, len(msgs))
@@ -206,7 +205,7 @@ func TestSpaceList(t *testing.T) {
 			expected = append(expected, api.SpaceInfo{
 				ID:          sp.ID,
 				Name:        n,
-				DataPath:    filepath.Join(c.Root, string(sp.ID)),
+				DataPath:    c.Root.AppendPath(string(sp.ID)),
 				StorageKind: storage.FileStore,
 			})
 		}
@@ -219,10 +218,10 @@ func TestSpaceList(t *testing.T) {
 
 	// Delete dir from one space, then simulate a restart by
 	// creating a new Core pointing to the same root.
-	require.NoError(t, os.RemoveAll(filepath.Join(c.Root, string(expected[2].ID))))
+	require.NoError(t, os.RemoveAll(filepath.Join(c.Root.Filepath(), string(expected[2].ID))))
 	expected = append(expected[:2], expected[3:]...)
 
-	c, client, done = newCoreAtDir(t, c.Root)
+	_, client, done = newCoreAtDir(t, c.Root.Filepath())
 	defer done()
 
 	list, err := client.SpaceList(ctx)
@@ -283,7 +282,7 @@ func TestSpacePostNameOnly(t *testing.T) {
 	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 	assert.Equal(t, "test", sp.Name)
-	assert.Equal(t, filepath.Join(c.Root, string(sp.ID)), sp.DataPath)
+	assert.Equal(t, c.Root.AppendPath(string(sp.ID)), sp.DataPath)
 	assert.Regexp(t, "^sp", sp.ID)
 }
 
@@ -330,14 +329,13 @@ func TestSpacePutDuplicateName(t *testing.T) {
 func TestSpacePostDataPath(t *testing.T) {
 	ctx := context.Background()
 	tmp := createTempDir(t)
-	defer os.RemoveAll(tmp)
 	datapath := filepath.Join(tmp, "mypcap.brim")
 	_, client, done := newCoreAtDir(t, filepath.Join(tmp, "spaces"))
 	defer done()
 	sp, err := client.SpacePost(ctx, api.SpacePostRequest{DataPath: datapath})
 	require.NoError(t, err)
 	assert.Equal(t, "mypcap.brim", sp.Name)
-	assert.Equal(t, datapath, sp.DataPath)
+	assert.Equal(t, datapath, sp.DataPath.Filepath())
 }
 
 func TestSpacePut(t *testing.T) {
@@ -369,7 +367,6 @@ func TestSpaceDelete(t *testing.T) {
 func TestSpaceDeleteDataDir(t *testing.T) {
 	ctx := context.Background()
 	tmp := createTempDir(t)
-	defer os.RemoveAll(tmp)
 	_, client, done := newCoreAtDir(t, filepath.Join(tmp, "spaces"))
 	defer done()
 	datadir := filepath.Join(tmp, "mypcap.brim")
@@ -456,7 +453,7 @@ func TestPostZngLogs(t *testing.T) {
 		DataPath:    sp.DataPath,
 		StorageKind: storage.FileStore,
 		Span:        span,
-		Size:        81,
+		Size:        79,
 		PcapSupport: false,
 	}, info)
 }
@@ -543,7 +540,7 @@ func TestPostNDJSONLogs(t *testing.T) {
 			DataPath:    sp.DataPath,
 			StorageKind: storage.FileStore,
 			Span:        &span,
-			Size:        81,
+			Size:        79,
 			PcapSupport: false,
 		}, info)
 	}
@@ -617,7 +614,7 @@ func TestPostLogStopErr(t *testing.T) {
 	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 
-	_, err = client.LogPost(context.Background(), sp.ID, api.LogPostRequest{Paths: []string{logfile}, StopErr: true})
+	_, err = client.LogPostStream(context.Background(), sp.ID, api.LogPostRequest{Paths: []string{logfile}, StopErr: true})
 	require.Error(t, err)
 	assert.Regexp(t, ": format detection error.*", err.Error())
 }
@@ -629,13 +626,15 @@ func TestDeleteDuringPcapPost(t *testing.T) {
 	pcapfile := "./testdata/valid.pcap"
 	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "deleteDuringPacketPost"})
 	require.NoError(t, err)
+	var zeekClosed int32
 
 	waitFn := func(tzp *testZeekProcess) error {
 		<-tzp.ctx.Done()
-		return tzp.ctx.Err()
+		atomic.StoreInt32(&zeekClosed, 1)
+		return errors.New("zeek exited with error code: -1")
 	}
 
-	c.ZeekLauncher = testZeekLauncher(nil, waitFn)
+	c.Zeek = testZeekLauncher(nil, waitFn)
 
 	var wg sync.WaitGroup
 	pcapPostErr := make(chan error)
@@ -674,7 +673,8 @@ func TestDeleteDuringPcapPost(t *testing.T) {
 	err = client.SpaceDelete(context.Background(), sp.ID)
 	require.NoError(t, err)
 
-	require.EqualError(t, <-pcapPostErr, "context canceled")
+	assert.EqualError(t, <-pcapPostErr, "pcap post operation canceled")
+	assert.Equal(t, int32(1), atomic.LoadInt32(&zeekClosed), "expected zeek to receive cancellation signal but did not")
 }
 
 func TestSpaceDataDir(t *testing.T) {
@@ -711,58 +711,33 @@ func TestSpaceDataDir(t *testing.T) {
 	require.Equal(t, test.Trim(src), res)
 }
 
-func createArchiveSpace(t *testing.T, datapath string, thresh int64, srcfile string) {
-	ctx := context.Background()
-
-	co := &archive.CreateOptions{
-		LogSizeThreshold: &thresh,
-	}
-	ark, err := archive.CreateOrOpenArchive(datapath, co, nil)
-	require.NoError(t, err)
-
-	zctx := resolver.NewContext()
-	reader, err := detector.OpenFile(zctx, srcfile, detector.OpenConfig{})
-	require.NoError(t, err)
-	defer reader.Close()
-
-	err = archive.Import(ctx, ark, reader)
-	require.NoError(t, err)
-}
-
-func indexArchiveSpace(t *testing.T, datapath string, ruledef string) {
-	rule, err := archive.NewRule(ruledef)
-	require.NoError(t, err)
-
-	ark, err := archive.OpenArchive(datapath, nil)
-	require.NoError(t, err)
-
-	err = archive.IndexDirTree(ark, []archive.Rule{*rule}, "_", nil)
-	require.NoError(t, err)
-}
-
 func TestCreateArchiveSpace(t *testing.T) {
-	datapath := createTempDir(t)
 	thresh := int64(1000)
-	createArchiveSpace(t, datapath, thresh, "../tests/suite/zdx/babble.tzng")
-
 	root := createTempDir(t)
 
 	c, client, done := newCoreAtDir(t, root)
 	defer done()
 
-	c.ZeekLauncher = testZeekLauncher(func(tzp *testZeekProcess) error {
+	c.Zeek = testZeekLauncher(func(tzp *testZeekProcess) error {
 		const s = "unexpected attempt to run zeek"
 		t.Error(s)
 		return errors.New(s)
 	}, nil)
 
 	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{
-		Name:     "arktest",
-		DataPath: datapath,
+		Name: "arktest",
 		Storage: &storage.Config{
 			Kind: storage.ArchiveStore,
+			Archive: &storage.ArchiveConfig{
+				CreateOptions: &storage.ArchiveCreateOptions{
+					LogSizeThreshold: &thresh,
+				},
+			},
 		},
 	})
+	require.NoError(t, err)
+	payload := api.LogPostRequest{Paths: []string{"../tests/suite/data/babble.tzng"}}
+	err = client.LogPost(context.Background(), sp.ID, payload)
 	require.NoError(t, err)
 
 	span := nano.Span{Ts: 1587508830068523240, Dur: 9789993714061}
@@ -772,7 +747,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 		DataPath:    sp.DataPath,
 		StorageKind: storage.ArchiveStore,
 		Span:        &span,
-		Size:        35285,
+		Size:        34419,
 	}
 	si, err := client.SpaceInfo(context.Background(), sp.ID)
 	require.NoError(t, err)
@@ -789,11 +764,6 @@ func TestCreateArchiveSpace(t *testing.T) {
 	_, err = client.PcapPost(context.Background(), sp.ID, api.PcapPostRequest{"foo"})
 	require.Error(t, err)
 	assert.Regexp(t, "space does not support pcap import", err.Error())
-
-	// Verify log post not supported
-	_, err = client.LogPost(context.Background(), sp.ID, api.LogPostRequest{Paths: []string{"foo"}})
-	require.Error(t, err)
-	assert.Regexp(t, "space does not support log import", err.Error())
 }
 
 func TestBlankNameSpace(t *testing.T) {
@@ -817,45 +787,45 @@ func TestBlankNameSpace(t *testing.T) {
 }
 
 func TestIndexSearch(t *testing.T) {
-	datapath := createTempDir(t)
 	thresh := int64(1000)
-	createArchiveSpace(t, datapath, thresh, "../tests/suite/zdx/babble.tzng")
-	indexArchiveSpace(t, datapath, "v")
-
 	root := createTempDir(t)
 
 	_, client, done := newCoreAtDir(t, root)
 	defer done()
 
 	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{
-		Name:     "TestIndexSearch",
-		DataPath: datapath,
+		Name: "TestIndexSearch",
 		Storage: &storage.Config{
 			Kind: storage.ArchiveStore,
+			Archive: &storage.ArchiveConfig{
+				CreateOptions: &storage.ArchiveCreateOptions{
+					LogSizeThreshold: &thresh,
+				},
+			},
 		},
+	})
+	require.NoError(t, err)
+	payload := api.LogPostRequest{Paths: []string{"../tests/suite/data/babble.tzng"}}
+	err = client.LogPost(context.Background(), sp.ID, payload)
+	require.NoError(t, err)
+	err = client.IndexPost(context.Background(), sp.ID, api.IndexPostRequest{
+		Patterns: []string{"v"},
 	})
 	require.NoError(t, err)
 
 	expected := `
 #zfile=string
-#0:record[key:int64,_log:zfile]
-0:[257;20200422/1587518432.06228663.zng;]
-0:[257;20200422/1587516797.06911059.zng;]
-0:[257;20200421/1587511801.06624146.zng;]
-0:[257;20200421/1587511516.06430561.zng;]
-0:[257;20200421/1587510489.06591564.zng;]
-0:[257;20200421/1587509322.06101754.zng;]
+#0:record[key:int64,count:uint64,_log:zfile]
+0:[257;2;20200422/1587518620.0622373.zng;]
+0:[257;3;20200422/1587513890.06193968.zng;]
+0:[257;1;20200421/1587509469.06883172.zng;]
 `
 	res, _ := indexSearch(t, client, sp.ID, "", []string{"v=257"})
 	assert.Equal(t, test.Trim(expected), res)
 }
 
 func TestSubspaceCreate(t *testing.T) {
-	// Create archive & import data
-	datapath := createTempDir(t)
 	thresh := int64(1000)
-	createArchiveSpace(t, datapath, thresh, "../tests/suite/zdx/babble.tzng")
-	indexArchiveSpace(t, datapath, ":int64")
 
 	// Create server & the parent space
 	root := createTempDir(t)
@@ -863,20 +833,31 @@ func TestSubspaceCreate(t *testing.T) {
 	defer done()
 
 	sp1, err := client.SpacePost(context.Background(), api.SpacePostRequest{
-		Name:     "TestSubspaceCreate",
-		DataPath: datapath,
+		Name: "TestSubspaceCreate",
 		Storage: &storage.Config{
 			Kind: storage.ArchiveStore,
+			Archive: &storage.ArchiveConfig{
+				CreateOptions: &storage.ArchiveCreateOptions{
+					LogSizeThreshold: &thresh,
+				},
+			},
 		},
+	})
+	require.NoError(t, err)
+	payload := api.LogPostRequest{Paths: []string{"../tests/suite/data/babble.tzng"}}
+	err = client.LogPost(context.Background(), sp1.ID, payload)
+	require.NoError(t, err)
+	err = client.IndexPost(context.Background(), sp1.ID, api.IndexPostRequest{
+		Patterns: []string{":int64"},
 	})
 	require.NoError(t, err)
 
 	// Verify index search returns all logs
 	exp := `
 #zfile=string
-#0:record[key:int64,_log:zfile]
-0:[336;20200422/1587517412.06741443.zng;]
-0:[336;20200421/1587508871.06471174.zng;]
+#0:record[key:int64,count:uint64,_log:zfile]
+0:[336;1;20200422/1587518620.0622373.zng;]
+0:[336;1;20200421/1587509469.06883172.zng;]
 `
 	res, _ := indexSearch(t, client, sp1.ID, "", []string{":int64=336"})
 	assert.Equal(t, test.Trim(exp), res)
@@ -885,7 +866,7 @@ func TestSubspaceCreate(t *testing.T) {
 	sp2, err := client.SubspacePost(context.Background(), sp1.ID, api.SubspacePostRequest{
 		Name: "subspace",
 		OpenOptions: storage.ArchiveOpenOptions{
-			LogFilter: []string{"20200422/1587517412.06741443.zng"},
+			LogFilter: []string{"20200422/1587518620.0622373.zng"},
 		},
 	})
 	require.NoError(t, err)
@@ -894,8 +875,8 @@ func TestSubspaceCreate(t *testing.T) {
 	// Verify index search only returns filtered logs
 	exp = `
 #zfile=string
-#0:record[key:int64,_log:zfile]
-0:[336;20200422/1587517412.06741443.zng;]
+#0:record[key:int64,count:uint64,_log:zfile]
+0:[336;1;20200422/1587518620.0622373.zng;]
 `
 	res, _ = indexSearch(t, client, sp2.ID, "", []string{":int64=336"})
 	assert.Equal(t, test.Trim(exp), res)
@@ -923,11 +904,7 @@ func TestSubspaceCreate(t *testing.T) {
 }
 
 func TestSubspacePersist(t *testing.T) {
-	// Create archive & import data
-	datapath := createTempDir(t)
 	thresh := int64(1000)
-	createArchiveSpace(t, datapath, thresh, "../tests/suite/zdx/babble.tzng")
-	indexArchiveSpace(t, datapath, ":int64")
 
 	// Create server & the parent space
 	root := createTempDir(t)
@@ -935,11 +912,22 @@ func TestSubspacePersist(t *testing.T) {
 	defer done1()
 
 	sp1, err := client1.SpacePost(context.Background(), api.SpacePostRequest{
-		Name:     "TestSubspaceCreate",
-		DataPath: datapath,
+		Name: "TestSubspaceCreate",
 		Storage: &storage.Config{
 			Kind: storage.ArchiveStore,
+			Archive: &storage.ArchiveConfig{
+				CreateOptions: &storage.ArchiveCreateOptions{
+					LogSizeThreshold: &thresh,
+				},
+			},
 		},
+	})
+	require.NoError(t, err)
+	payload := api.LogPostRequest{Paths: []string{"../tests/suite/data/babble.tzng"}}
+	err = client1.LogPost(context.Background(), sp1.ID, payload)
+	require.NoError(t, err)
+	err = client1.IndexPost(context.Background(), sp1.ID, api.IndexPostRequest{
+		Patterns: []string{":int64"},
 	})
 	require.NoError(t, err)
 
@@ -947,7 +935,7 @@ func TestSubspacePersist(t *testing.T) {
 	sp2, err := client1.SubspacePost(context.Background(), sp1.ID, api.SubspacePostRequest{
 		Name: "subspace",
 		OpenOptions: storage.ArchiveOpenOptions{
-			LogFilter: []string{"20200422/1587517412.06741443.zng"},
+			LogFilter: []string{"20200422/1587518620.0622373.zng"},
 		},
 	})
 	require.NoError(t, err)
@@ -956,8 +944,8 @@ func TestSubspacePersist(t *testing.T) {
 	// Verify index search only returns filtered logs
 	exp := `
 #zfile=string
-#0:record[key:int64,_log:zfile]
-0:[336;20200422/1587517412.06741443.zng;]
+#0:record[key:int64,count:uint64,_log:zfile]
+0:[336;1;20200422/1587518620.0622373.zng;]
 `
 	res, _ := indexSearch(t, client1, sp2.ID, "", []string{":int64=336"})
 	assert.Equal(t, test.Trim(exp), res)
@@ -999,6 +987,52 @@ func TestSubspacePersist(t *testing.T) {
 	assert.Regexp(t, "not found", err.Error())
 }
 
+func TestArchiveStat(t *testing.T) {
+	thresh := int64(20 * 1024)
+	root := createTempDir(t)
+	_, client, done := newCoreAtDir(t, root)
+	defer done()
+
+	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{
+		Name: "TestArchiveStat",
+		Storage: &storage.Config{
+			Kind: storage.ArchiveStore,
+			Archive: &storage.ArchiveConfig{
+				CreateOptions: &storage.ArchiveCreateOptions{
+					LogSizeThreshold: &thresh,
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+	payload := api.LogPostRequest{Paths: []string{"../tests/suite/data/babble.tzng"}}
+	err = client.LogPost(context.Background(), sp.ID, payload)
+	require.NoError(t, err)
+	err = client.IndexPost(context.Background(), sp.ID, api.IndexPostRequest{
+		Patterns: []string{"v"},
+	})
+	require.NoError(t, err)
+
+	exp := `
+#0:record[type:string,log_id:string,start:time,duration:duration,size:uint64,record_count:uint64]
+0:[chunk;20200422/1587518620.0622373.zng;1587509477.06450528;9142.997732021;32205;939;]
+#1:record[type:string,log_id:string,index_id:string,index_type:string,size:uint64,record_count:uint64,keys:record[key:string]]
+1:[index;20200422/1587518620.0622373.zng;microindex-field-v.zng;field;2984;939;[int64;]]
+0:[chunk;20200421/1587509477.06313454.zng;1587508830.06852324;646.994611301;2133;61;]
+1:[index;20200421/1587509477.06313454.zng;microindex-field-v.zng;field;493;61;[int64;]]`
+	res := archiveStat(t, client, sp.ID)
+	assert.Equal(t, test.Trim(exp), res)
+}
+
+func archiveStat(t *testing.T, client *api.Connection, space api.SpaceID) string {
+	r, err := client.ArchiveStat(context.Background(), space, nil)
+	require.NoError(t, err)
+	buf := bytes.NewBuffer(nil)
+	w := tzngio.NewWriter(zio.NopCloser(buf))
+	require.NoError(t, zbuf.Copy(w, r))
+	return buf.String()
+}
+
 func indexSearch(t *testing.T, client *api.Connection, space api.SpaceID, indexName string, patterns []string) (string, []interface{}) {
 	req := api.IndexSearchRequest{
 		IndexName: indexName,
@@ -1007,7 +1041,7 @@ func indexSearch(t *testing.T, client *api.Connection, space api.SpaceID, indexN
 	r, err := client.IndexSearch(context.Background(), space, req, nil)
 	require.NoError(t, err)
 	buf := bytes.NewBuffer(nil)
-	w := zbuf.NopFlusher(tzngio.NewWriter(buf))
+	w := tzngio.NewWriter(zio.NopCloser(buf))
 	var msgs []interface{}
 	r.SetOnCtrl(func(i interface{}) {
 		msgs = append(msgs, i)
@@ -1033,7 +1067,7 @@ func search(t *testing.T, client *api.Connection, space api.SpaceID, prog string
 	r, err := client.Search(context.Background(), req, nil)
 	require.NoError(t, err)
 	buf := bytes.NewBuffer(nil)
-	w := zbuf.NopFlusher(tzngio.NewWriter(buf))
+	w := tzngio.NewWriter(zio.NopCloser(buf))
 	var msgs []interface{}
 	r.SetOnCtrl(func(i interface{}) {
 		msgs = append(msgs, i)
@@ -1054,6 +1088,7 @@ func createTempDir(t *testing.T) string {
 	name := strings.ReplaceAll(t.Name(), "/", "-")
 	dir, err := ioutil.TempDir("", name)
 	require.NoError(t, err)
+	t.Cleanup(func() { os.RemoveAll(dir) })
 	return dir
 }
 
@@ -1072,10 +1107,7 @@ func newCoreAtDir(t *testing.T, dir string) (*zqd.Core, *api.Connection, func())
 	require.NoError(t, err)
 	h := zqd.NewHandler(c, conf.Logger)
 	ts := httptest.NewServer(h)
-	return c, api.NewConnectionTo(ts.URL), func() {
-		os.RemoveAll(dir)
-		ts.Close()
-	}
+	return c, api.NewConnectionTo(ts.URL), ts.Close
 }
 
 func writeTempFile(t *testing.T, contents string) string {
@@ -1110,7 +1142,7 @@ func postSpaceLogs(t *testing.T, c *api.Connection, spaceID api.SpaceID, tc *ndj
 	}
 
 	ctx := context.Background()
-	s, err := c.LogPost(ctx, spaceID, api.LogPostRequest{Paths: filenames, JSONTypeConfig: tc})
+	s, err := c.LogPostStream(ctx, spaceID, api.LogPostRequest{Paths: filenames, JSONTypeConfig: tc})
 	require.NoError(t, err)
 	var payloads []interface{}
 	for {
@@ -1124,8 +1156,8 @@ func postSpaceLogs(t *testing.T, c *api.Connection, spaceID api.SpaceID, tc *ndj
 	return payloads
 }
 
-func testZeekLauncher(start, wait procFn) zeek.Launcher {
-	return func(ctx context.Context, r io.Reader, dir string) (zeek.Process, error) {
+func testZeekLauncher(start, wait procFn) pcapanalyzer.Launcher {
+	return func(ctx context.Context, r io.Reader, dir string) (pcapanalyzer.ProcessWaiter, error) {
 		p := &testZeekProcess{
 			ctx:    ctx,
 			reader: r,

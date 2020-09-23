@@ -1,61 +1,29 @@
 package zio
 
 import (
-	"flag"
 	"io"
 
-	"github.com/brimsec/zq/zbuf"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/brimsec/zq/zio/ndjsonio"
+	"github.com/brimsec/zq/zio/textio"
+	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zio/zstio"
 )
 
-// ReaderFlags has the union of the flags accepted by all the different
-// Reader implementations.
-type ReaderFlags struct {
+type ReaderOpts struct {
 	Format string
+	Zng    zngio.ReaderOpts
+	JSON   ndjsonio.ReaderOpts
+	AwsCfg *aws.Config
 }
 
-func (f *ReaderFlags) SetFlags(fs *flag.FlagSet) {
-	fs.StringVar(&f.Format, "i", "auto", "format of input data [auto,zng,ndjson,zeek,zjson,tzng,parquet]")
-}
-
-// WriterFlags has the union of the flags accepted by all the different
-// Writer implementations.
-type WriterFlags struct {
-	Format           string
-	UTF8             bool
-	ShowTypes        bool
-	ShowFields       bool
-	EpochDates       bool
-	StreamRecordsMax int
-}
-
-func (f *WriterFlags) SetFlags(fs *flag.FlagSet) {
-	fs.StringVar(&f.Format, "f", "zng", "format for output data [zng,ndjson,table,text,types,zeek,zjson,tzng]")
-	fs.BoolVar(&f.ShowTypes, "T", false, "display field types in text output")
-	fs.BoolVar(&f.ShowFields, "F", false, "display field names in text output")
-	fs.BoolVar(&f.EpochDates, "E", false, "display epoch timestamps in text output")
-	fs.BoolVar(&f.UTF8, "U", false, "display zeek strings as UTF-8")
-	fs.IntVar(&f.StreamRecordsMax, "b", 0, "limit for number of records in each ZNG stream(0 for no limit)")
-}
-
-type Writer struct {
-	zbuf.WriteFlusher
-	io.Closer
-}
-
-func NewWriter(writer zbuf.WriteFlusher, closer io.Closer) *Writer {
-	return &Writer{
-		WriteFlusher: writer,
-		Closer:       closer,
-	}
-}
-
-func (w *Writer) Close() error {
-	err := w.Flush()
-	cerr := w.Closer.Close()
-	if err == nil {
-		err = cerr
-	}
-	return err
+type WriterOpts struct {
+	Format     string
+	UTF8       bool
+	EpochDates bool
+	Text       textio.WriterOpts
+	Zng        zngio.WriterOpts
+	Zst        zstio.WriterOpts
 }
 
 func Extension(format string) string {
@@ -74,7 +42,23 @@ func Extension(format string) string {
 		return ".tbl"
 	case "zng":
 		return ".zng"
+	case "csv":
+		return ".csv"
+	case "zst":
+		return ".zst"
 	default:
 		return ""
 	}
+}
+
+type nopCloser struct {
+	io.Writer
+}
+
+func (nopCloser) Close() error { return nil }
+
+// NopCloser returns a WriteCloser with a no-op Close method wrapping
+// the provided Writer w.
+func NopCloser(w io.Writer) io.WriteCloser {
+	return nopCloser{w}
 }

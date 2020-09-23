@@ -25,6 +25,7 @@
       - [3.1.1.4 Union Typedef](#3114-union-typedef)
       - [3.1.1.5 Alias Typedef](#3115-alias-typedef)
     - [3.1.2 End-of-Stream Markers](#312-end-of-stream-markers)
+    - [3.1.3 Compressed Value Message Block](#313-compressed-value-message-block)
   + [3.2 Value Messages](#32-value-messages)
 * [4. ZNG Text Format (TZNG)](#4-zng-text-format-tzng)
   + [4.1 Control Messages](#41-control-messages)
@@ -162,16 +163,17 @@ or a value message (0).
 ### 3.1 Control Messages
 
 The lower 7 bits of a control header byte define the control code.
-Control codes 0 through 5 are reserved for ZNG:
+Control codes 0 through 6 are reserved for ZNG:
 
-| Code | Message Type      |
-|------|-------------------|
-|  `0` | record definition |
-|  `1` | array definition  |
-|  `2` | set definition    |
-|  `3` | union definition  |
-|  `4` | type alias        |
-|  `5` | end-of-stream     |
+| Code | Message Type                   |
+|------|--------------------------------|
+| `0`  | record definition              |
+| `1`  | array definition               |
+| `2`  | set definition                 |
+| `3`  | union definition               |
+| `4`  | type alias                     |
+| `5`  | end-of-stream                  |
+| `6`  | compressed value message block |
 
 All other control codes are available to higher-layer protocols to carry
 application-specific payloads embedded in the ZNG stream.
@@ -242,8 +244,6 @@ N.B.: The rules for ZNG identifiers follow the same rules as
 [JavaScript identifiers](https://tc39.es/ecma262/#prod-IdentifierName).
 
 The type ID follows the field name and is encoded as a `uvarint`.
-
-A record may not contain zero columns.
 
 #### 3.1.1.2 Array Typedef
 
@@ -349,6 +349,30 @@ previously defined type, the appropriate typedef control code must
 be re-emitted
 (and note that the typedef may now be assigned a different ID).
 
+### 3.1.3 Compressed Value Message Block
+
+Following a header byte of 0x86 is a compressed value message block.
+Such a block comprises a compressed sequence of value messages.  The
+sequence must not include control messages.
+
+A compressed value message block is encoded as follows:
+```
+------------------------------------------------------------------------------
+|0x86|<format><uncompressed-length>|<compressed-length>|<compressed-messages>|
+------------------------------------------------------------------------------
+
+```
+where
+* `<format>`, a `uvarint`, identifies the algorthim used to compress the
+  message sequence
+* `<uncompressed-length>`, a `uvarint`, is the length in bytes of the
+  uncompressed message sequence
+* `<compressed-length>`, a `uvarint`, is the length in bytes of `<compressed-messages>`
+* `<compressed-messages>` is the compressed value message sequence
+
+Values for `<format>` are defined in the
+[ZNG compression format specification](./compression-spec.md).
+
 ### 3.2 Value Messages
 
 Following a header byte with bit 7 zero is a `typed value`
@@ -428,10 +452,12 @@ The tag is defined as
 and is encoded as a `uvarint`.
 
 For example, tag value 0 is an unset primitive value and tag value 1
-is an unset container value.  Tag value 2 is a length zero primitive value,
-e.g., it could represent empty string.  Tag value 3 is a length 1 primitive value,
-e.g., it would represent the boolean "true" if followed by byte value 1
-in the context of type ID 0 (i.e., the type ID for boolean).
+is an unset container value.  Tag value 2 is a length zero primitive
+value, e.g., it could represent empty string.  Tag value 3 is a length
+zero container, such as an empty array or record with no fields.  Tag
+value 4 is a length 1 primitive value, e.g., it would represent the
+boolean "true" if followed by byte value 1 in the context of type ID 0
+(i.e., the type ID for boolean).
 
 Following the tag encoding is the value encoded in N bytes as described above.
 

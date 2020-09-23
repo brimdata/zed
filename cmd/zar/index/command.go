@@ -9,19 +9,20 @@ import (
 	"sync"
 
 	"github.com/brimsec/zq/archive"
+	"github.com/brimsec/zq/cli/procflags"
 	"github.com/brimsec/zq/cmd/zar/root"
+	"github.com/brimsec/zq/pkg/rlimit"
+	"github.com/brimsec/zq/pkg/signalctx"
 	"github.com/mccanne/charm"
 )
 
 var Index = &charm.Spec{
 	Name:  "index",
-	Usage: "index [-R dir] [options] [-z zql] [ pattern [ pattern ...]]",
+	Usage: "index [-R root] [options] [-z zql] [ pattern [ pattern ...]]",
 	Short: "create index files for zng files",
 	Long: `
-zar index descends the directory argument starting at dir and looks
-for files with zar directories.  Each such file found is indexed according
-to the one or more indexing rules provided, and the resulting indexes
-are written to that file's zar directory.
+"zar index" creates index files in a zar archive using one or more indexing
+rules.
 
 A pattern is either a field name or a ":" followed by a zng type name.
 For example, to index the all fields of type port and the field id.orig_h,
@@ -29,15 +30,12 @@ you would run:
 
 	zar index -R /path/to/logs id.orig_h :port
 
-Each pattern results a separate zdx index file for each log file found.
+Each pattern results in a separate microindex file for each log file found.
 
 For custom indexes, zql can be used instead of a pattern. This
 requires specifying the key and output file name. For example:
 
        zar index -k id.orig_h -o custom -z "count() by _path, id.orig_h | sort id.orig_h"
-
-The root directory must be specified either by the ZAR_ROOT environemnt
-variable or the -R option.
 `,
 	New: New,
 }
@@ -55,26 +53,35 @@ type Command struct {
 	framesize  int
 	keys       string
 	zql        string
+	procFlags  procflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
-	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive to walk")
+	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
 	f.StringVar(&c.keys, "k", "key", "one or more comma-separated key fields")
-	f.IntVar(&c.framesize, "f", 32*1024, "minimum frame size used in zdx file")
+	f.IntVar(&c.framesize, "f", 32*1024, "minimum frame size used in microindex file")
 	f.StringVar(&c.inputFile, "i", "_", "input file relative to each zar directory ('_' means archive log file in the parent of the zar directory)")
-	f.StringVar(&c.outputFile, "o", "zdx", "output index name (for custom indexes)")
+	f.StringVar(&c.outputFile, "o", "index.zng", "name of microindex output file (for custom indexes)")
 	f.BoolVar(&c.quiet, "q", false, "don't print progress on stdout")
 	f.StringVar(&c.zql, "z", "", "zql for custom indexes")
+	c.procFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
+	defer c.Cleanup()
+	if err := c.Init(&c.procFlags); err != nil {
+		return err
+	}
 	if len(args) == 0 && c.zql == "" {
 		return errors.New("zar index: one or more indexing patterns must be specified")
 	}
 	if c.root == "" {
 		return errors.New("zar index: a directory must be specified with -R or ZAR_ROOT")
+	}
+	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
+		return err
 	}
 
 	ark, err := archive.OpenArchive(c.root, nil)
@@ -110,7 +117,9 @@ func (c *Command) Run(args []string) error {
 			wg.Done()
 		}()
 	}
-	err = archive.IndexDirTree(ark, rules, c.inputFile, progress)
+	ctx, cancel := signalctx.New(os.Interrupt)
+	defer cancel()
+	err = archive.IndexDirTree(ctx, ark, rules, c.inputFile, progress)
 	if progress != nil {
 		close(progress)
 		wg.Wait()

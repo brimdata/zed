@@ -5,20 +5,19 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"sync"
 	"sync/atomic"
 
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
+	"github.com/brimsec/zq/zio/ndjsonio"
+	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
+	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqe"
 )
-
-// x509.14:00:00-15:00:00.log.gz (open source zeek)
-// x509_20191101_14:00:00-15:00:00+0000.log.gz (corelight)
-const DefaultJSONPathRegexp = `([a-zA-Z0-9_]+)(?:\.|_\d{8}_)\d\d:\d\d:\d\d\-\d\d:\d\d:\d\d(?:[+\-]\d{4})?\.log(?:$|\.gz)`
 
 var (
 	ErrNoLogIngestSupport = errors.New("space does not support log ingest")
@@ -32,33 +31,33 @@ type LogOp struct {
 	err          error
 
 	warningCh chan string
-	wg        sync.WaitGroup
-}
-
-type LogStore interface {
-	Rewrite(ctx context.Context, zr zbuf.Reader) error
-	NativeDirection() zbuf.Direction
+	zctx      *resolver.Context
 }
 
 // Logs ingests the provided list of files into the provided space.
 // Like ingest.Pcap, this overwrites any existing data in the space.
-func NewLogOp(ctx context.Context, ls LogStore, req api.LogPostRequest) (*LogOp, error) {
+func NewLogOp(ctx context.Context, store storage.Storage, req api.LogPostRequest) (*LogOp, error) {
 	p := &LogOp{
 		warningCh: make(chan string, 5),
+		zctx:      resolver.NewContext(),
 	}
-	var cfg detector.OpenConfig
+	opts := zio.ReaderOpts{Zng: zngio.ReaderOpts{Validate: true}}
+	//XXX if there is a json config, then the input has to be ndjson
+	// and we shouldn't be using the detector.  down the line, when
+	// we more holistically support json ingest, there should probably
+	// be a different endpoint or other params here which might select
+	// the input rules by a named configuration
 	if req.JSONTypeConfig != nil {
-		cfg.JSONTypeConfig = req.JSONTypeConfig
-		cfg.JSONPathRegex = DefaultJSONPathRegexp
+		opts.JSON.TypeConfig = req.JSONTypeConfig
+		opts.JSON.PathRegexp = ndjsonio.DefaultPathRegexp
 	}
-	zctx := resolver.NewContext()
 	for _, path := range req.Paths {
 		rc, size, err := openIncomingLog(path)
 		if err != nil {
 			p.closeFiles()
 			return nil, err
 		}
-		sf, err := detector.OpenFromNamedReadCloser(zctx, rc, path, cfg)
+		sf, err := detector.OpenFromNamedReadCloser(p.zctx, rc, path, opts)
 		if err != nil {
 			rc.Close()
 			if req.StopErr {
@@ -73,8 +72,7 @@ func NewLogOp(ctx context.Context, ls LogStore, req api.LogPostRequest) (*LogOp,
 		p.readCounters = append(p.readCounters, rc)
 		p.readers = append(p.readers, zr)
 	}
-	p.wg.Add(1)
-	go p.start(ctx, ls)
+	go p.start(ctx, store)
 	return p, nil
 }
 
@@ -134,18 +132,18 @@ func (p *LogOp) bytesRead() int64 {
 	return read
 }
 
-func (p *LogOp) start(ctx context.Context, ls LogStore) {
+func (p *LogOp) start(ctx context.Context, store storage.Storage) {
 	// first drain warnings
 	for _, warning := range p.warnings {
 		p.warningCh <- warning
 	}
-	r := zbuf.NewCombiner(p.readers, zbuf.RecordCompare(ls.NativeDirection()))
-	p.err = ls.Rewrite(ctx, r)
+	rc := zbuf.NewCombiner(p.readers, zbuf.RecordCompare(store.NativeDirection()))
+	defer rc.Close()
+	p.err = store.Write(ctx, p.zctx, rc)
 	if err := p.closeFiles(); err != nil && p.err != nil {
 		p.err = err
 	}
 	close(p.warningCh)
-	p.wg.Done()
 }
 
 func (p *LogOp) Stats() api.LogPostStatus {
@@ -160,7 +158,8 @@ func (p *LogOp) Status() <-chan string {
 	return p.warningCh
 }
 
+// Error indicates what if any error occurred during import, after the
+// Status channel is closed.  The result is undefined while Status is open.
 func (p *LogOp) Error() error {
-	p.wg.Wait()
 	return p.err
 }

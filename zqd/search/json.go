@@ -1,52 +1,45 @@
 package search
 
 import (
+	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/zjsonio"
-	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zqd/api"
 )
 
+const MaxJSONRecords = 25000
+
 // JSON implements the Output interface.
 type JSON struct {
-	pipe   *api.JSONPipe
-	stream *zjsonio.Stream
-	mtu    int
-	ctrl   bool
+	stream   *zjsonio.Stream
+	response http.ResponseWriter
+	mtu      int
+	ctrl     bool
+	all      []interface{}
+	stat     interface{}
 }
 
 func NewJSONOutput(resp http.ResponseWriter, mtu int, ctrl bool) *JSON {
 	return &JSON{
-		pipe:   api.NewJSONPipe(resp),
-		stream: zjsonio.NewStream(),
-		mtu:    mtu,
-		ctrl:   ctrl,
+		stream:   zjsonio.NewStream(),
+		response: resp,
+		mtu:      mtu,
+		ctrl:     ctrl,
 	}
 }
 
-func (s *JSON) formatRecords(records []*zng.Record) ([]zjsonio.Record, error) {
-	var res = make([]zjsonio.Record, len(records))
-	for i, in := range records {
-		out, err := s.stream.Transform(in)
-		if err != nil {
-			return nil, err
-		}
-		res[i] = *out
-	}
-	return res, nil
-}
-
-func (s *JSON) SendBatch(cid int, set zbuf.Batch) error {
+func (j *JSON) SendBatch(cid int, set zbuf.Batch) error {
 	records := set.Records()
 	n := len(records)
 	for n > 0 {
 		frag := n
-		if frag > s.mtu {
-			frag = s.mtu
+		if frag > j.mtu {
+			frag = j.mtu
 		}
-		formatted, err := s.formatRecords(records[0:frag])
+		formatted, err := formatRecords(j.stream, records[0:frag])
 		if err != nil {
 			return err
 		}
@@ -55,8 +48,7 @@ func (s *JSON) SendBatch(cid int, set zbuf.Batch) error {
 			ChannelID: cid,
 			Records:   formatted,
 		}
-		err = s.pipe.Send(v)
-		if err != nil {
+		if err := j.append(v); err != nil {
 			return err
 		}
 		records = records[frag:]
@@ -66,20 +58,39 @@ func (s *JSON) SendBatch(cid int, set zbuf.Batch) error {
 	return nil
 }
 
-func (s *JSON) SendControl(msg interface{}) error {
-	if !s.ctrl {
-		return nil
+func (j *JSON) append(msg interface{}) error {
+	j.all = append(j.all, msg)
+	if len(j.all) > MaxJSONRecords {
+		err := errors.New("memory limit exceeded for single JSON response")
+		http.Error(j.response, err.Error(), http.StatusBadRequest)
+		return err
 	}
-	return s.pipe.Send(msg)
+	return nil
 }
 
-func (s *JSON) End(msg interface{}) error {
-	if !s.ctrl {
+func (v *JSON) SendControl(msg interface{}) error {
+	if !v.ctrl {
+		return nil
+	}
+	if _, ok := msg.(*api.SearchStats); ok {
+		v.stat = msg
+		return nil
+	}
+	return v.append(msg)
+}
+
+func (j *JSON) End(msg interface{}) error {
+	if !j.ctrl {
 		msg = nil
 	}
-	return s.pipe.SendFinal(msg)
+	err := json.NewEncoder(j.response).Encode(j.all)
+	if err != nil {
+		http.Error(j.response, err.Error(), http.StatusInternalServerError)
+		return err
+	}
+	return nil
 }
 
 func (s *JSON) ContentType() string {
-	return MimeTypeNDJSON
+	return MimeTypeJSON
 }

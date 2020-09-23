@@ -10,7 +10,7 @@ import (
 )
 
 type Writer struct {
-	io.Writer
+	writer io.WriteCloser
 	// tracker keeps track of a mapping from internal ZNG type IDs for each
 	// new record encountered (i.e., which triggers a typedef) so that we
 	// generate the output in canonical form whereby the typedefs in the
@@ -21,16 +21,20 @@ type Writer struct {
 	aliases map[int]struct{}
 }
 
-func NewWriter(w io.Writer) *Writer {
+func NewWriter(w io.WriteCloser) *Writer {
 	return &Writer{
-		Writer:  w,
+		writer:  w,
 		tracker: make(map[int]int),
 		aliases: make(map[int]struct{}),
 	}
 }
 
+func (w *Writer) Close() error {
+	return w.writer.Close()
+}
+
 func (w *Writer) WriteControl(b []byte) error {
-	_, err := fmt.Fprintf(w.Writer, "#!%s\n", string(b))
+	_, err := fmt.Fprintf(w.writer, "#!%s\n", string(b))
 	return err
 }
 
@@ -43,16 +47,16 @@ func (w *Writer) Write(r *zng.Record) error {
 		}
 		outId = len(w.tracker)
 		w.tracker[inId] = outId
-		_, err := fmt.Fprintf(w.Writer, "#%d:%s\n", outId, r.Type)
+		_, err := fmt.Fprintf(w.writer, "#%d:%s\n", outId, r.Type)
 		if err != nil {
 			return err
 		}
 	}
-	_, err := fmt.Fprintf(w.Writer, "%d:", outId)
+	_, err := fmt.Fprintf(w.writer, "%d:", outId)
 	if err != nil {
 		return nil
 	}
-	if err = w.writeContainer(zng.Value{Type: r.Type, Bytes: r.Raw}); err != nil {
+	if err := w.writeContainer(zng.Value{Type: r.Type, Bytes: r.Raw}); err != nil {
 		return err
 	}
 	return w.write("\n")
@@ -64,7 +68,7 @@ func (w *Writer) writeAliases(r *zng.Record) error {
 		id := alias.AliasID()
 		if _, ok := w.aliases[id]; !ok {
 			w.aliases[id] = struct{}{}
-			_, err := fmt.Fprintf(w.Writer, "#%s=%s\n", alias.Name, alias.Type.String())
+			_, err := fmt.Fprintf(w.writer, "#%s=%s\n", alias.Name, alias.Type.String())
 			if err != nil {
 				return err
 			}
@@ -74,7 +78,7 @@ func (w *Writer) writeAliases(r *zng.Record) error {
 }
 
 func (w *Writer) write(s string) error {
-	_, err := w.Writer.Write([]byte(s))
+	_, err := w.writer.Write([]byte(s))
 	return err
 }
 
@@ -85,7 +89,7 @@ func (w *Writer) writeUnion(parent zng.Value) error {
 		return err
 	}
 	s := strconv.FormatInt(index, 10) + ":"
-	if err = w.write(s); err != nil {
+	if err := w.write(s); err != nil {
 		return err
 	}
 

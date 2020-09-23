@@ -31,6 +31,14 @@ func (p *inferParser) parseObject(b []byte) (zng.Value, error) {
 	if err != nil {
 		return zng.Value{}, err
 	}
+	if len(kvs) == 0 {
+		empty, err := p.zctx.LookupTypeRecord([]zng.Column{})
+		if err != nil {
+			return zng.Value{}, err
+		}
+		return zng.Value{Type: empty, Bytes: zcode.Bytes{}}, nil
+	}
+
 	// Sort fields lexigraphically ensuring maps with the same
 	// columns but different printed order get assigned the same descriptor.
 	sort.Slice(kvs, func(i, j int) bool {
@@ -108,21 +116,19 @@ func (p *inferParser) unionType(vals []zng.Value) *zng.TypeUnion {
 }
 
 func encodeUnionArray(typ *zng.TypeUnion, vals []zng.Value) zcode.Bytes {
-	var a [8]byte
-	b := zcode.Bytes{}
+	var b zcode.Builder
 	for i := range vals {
-		ub := zcode.Bytes{}
+		b.BeginContainer()
 		index := typeIndex(typ.Types, vals[i].Type)
-		n := zcode.EncodeCountedUvarint(a[:], uint64(index))
-		ub = zcode.AppendPrimitive(ub, a[:n])
+		b.AppendPrimitive(zng.EncodeInt(int64(index)))
 		if zng.IsContainerType(vals[i].Type) {
-			ub = zcode.AppendContainer(ub, vals[i].Bytes)
+			b.AppendContainer(vals[i].Bytes)
 		} else {
-			ub = zcode.AppendPrimitive(ub, vals[i].Bytes)
+			b.AppendPrimitive(vals[i].Bytes)
 		}
-		b = zcode.AppendContainer(b, ub)
+		b.EndContainer()
 	}
-	return b
+	return b.Bytes()
 }
 
 func encodeContainer(vals []zng.Value) zcode.Bytes {

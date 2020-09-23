@@ -1,0 +1,29 @@
+script: |
+  source minio.sh
+  zar import -s 20KiB -R ./root -data s3://bucket/zartest babble.tzng
+  zar map -R ./root -o count.zng "count()"
+  echo ===
+  zar ls -l -R ./root
+  echo ===
+  zar rmdirs -R ./root
+  echo ===
+  zar ls -l -R ./root
+
+inputs:
+  - name: babble.tzng
+    source: ../../data/babble.tzng
+  - name: minio.sh
+    source: ./minio.sh
+
+outputs:
+  - name: stdout
+    data: |
+      ===
+      s3://bucket/zartest/20200422/1587518620.0622373.zng.zar
+      	count.zng
+      s3://bucket/zartest/20200421/1587509477.06313454.zng.zar
+      	count.zng
+      ===
+      ===
+      s3://bucket/zartest/20200422/1587518620.0622373.zng.zar
+      s3://bucket/zartest/20200421/1587509477.06313454.zng.zar

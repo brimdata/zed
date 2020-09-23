@@ -2,18 +2,19 @@ package space
 
 import (
 	"context"
-	"os"
 	"sync"
 
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqd/storage/archivestore"
 	"github.com/brimsec/zq/zqe"
+	"go.uber.org/zap"
 )
 
 type archiveSpace struct {
 	spaceBase
-	path string
+	path iosrc.URI
 
 	confMu sync.Mutex
 	conf   config
@@ -28,7 +29,7 @@ func (s *archiveSpace) Info(ctx context.Context) (api.SpaceInfo, error) {
 	s.confMu.Lock()
 	defer s.confMu.Unlock()
 	si.Name = s.conf.Name
-	si.DataPath = s.conf.DataPath
+	si.DataPath = s.conf.DataURI
 	return si, nil
 }
 
@@ -59,7 +60,7 @@ func (s *archiveSpace) updateConfigWithLock(conf config) error {
 	return nil
 }
 
-func (s *archiveSpace) delete() error {
+func (s *archiveSpace) delete(ctx context.Context) error {
 	s.confMu.Lock()
 	defer s.confMu.Unlock()
 
@@ -70,17 +71,17 @@ func (s *archiveSpace) delete() error {
 	if err := s.sg.acquireForDelete(); err != nil {
 		return err
 	}
-	if err := os.RemoveAll(s.path); err != nil {
+	if err := iosrc.RemoveAll(ctx, s.path); err != nil {
 		return err
 	}
-	return os.RemoveAll(s.conf.DataPath)
+	return iosrc.RemoveAll(ctx, s.conf.DataURI)
 }
 
-func (s *archiveSpace) CreateSubspace(req api.SubspacePostRequest) (*archiveSubspace, error) {
+func (s *archiveSpace) CreateSubspace(ctx context.Context, req api.SubspacePostRequest) (*archiveSubspace, error) {
 	s.confMu.Lock()
 	defer s.confMu.Unlock()
 
-	substore, err := archivestore.Load(s.conf.DataPath, &storage.ArchiveConfig{
+	substore, err := archivestore.Load(ctx, s.conf.DataURI, &storage.ArchiveConfig{
 		OpenOptions: &req.OpenOptions,
 	})
 	if err != nil {
@@ -98,8 +99,9 @@ func (s *archiveSpace) CreateSubspace(req api.SubspacePostRequest) (*archiveSubs
 		return nil, err
 	}
 
+	logger := s.logger.With(zap.String("space_id", string(subcfg.ID)))
 	return &archiveSubspace{
-		spaceBase: spaceBase{subcfg.ID, substore, newGuard()},
+		spaceBase: spaceBase{subcfg.ID, substore, nil, newGuard(), logger},
 		parent:    s,
 	}, nil
 }

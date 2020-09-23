@@ -57,7 +57,10 @@ func (t *TypeUnion) SplitZng(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) {
 	if container {
 		return nil, -1, nil, ErrBadValue
 	}
-	index := zcode.DecodeCountedUvarint(v)
+	index, err := DecodeInt(v)
+	if err != nil {
+		return nil, -1, nil, err
+	}
 	inner, err := t.TypeIndex(int(index))
 	if err != nil {
 		return nil, -1, nil, err

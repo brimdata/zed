@@ -12,8 +12,7 @@ func unpack(b []byte) (interface{}, error) {
 	var v struct {
 		Type string `json:"type"`
 	}
-	err := json.Unmarshal(b, &v)
-	if err != nil {
+	if err := json.Unmarshal(b, &v); err != nil {
 		return nil, err
 	}
 	var out interface{}
@@ -32,6 +31,8 @@ func unpack(b []byte) (interface{}, error) {
 		out = &SearchEnd{}
 	case "PcapPostStatus":
 		out = &PcapPostStatus{}
+	case "PcapPostWarning":
+		out = &PcapPostWarning{}
 	case "LogPostStatus":
 		out = &LogPostStatus{}
 	case "LogPostWarning":
@@ -41,8 +42,7 @@ func unpack(b []byte) (interface{}, error) {
 	default:
 		return nil, fmt.Errorf("unknown type in results stream: %s", v.Type)
 	}
-	err = json.Unmarshal(b, out)
-	if err != nil {
+	if err := json.Unmarshal(b, out); err != nil {
 		return nil, err
 	}
 	return out, nil

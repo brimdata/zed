@@ -24,7 +24,7 @@ func NewTranslator(in, out *Context) *Translator {
 func (t *Translator) Lookup(id int) (*zng.TypeRecord, error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	outputType := t.lookup(id)
+	outputType := t.Slice.Lookup(id)
 	var err error
 	if outputType == nil {
 		inputType := t.inputCtx.Lookup(id)
@@ -35,7 +35,7 @@ func (t *Translator) Lookup(id int) (*zng.TypeRecord, error) {
 		if err != nil {
 			return nil, err
 		}
-		t.enter(id, outputType)
+		t.Slice.Enter(id, outputType)
 	}
 	return outputType, nil
 }

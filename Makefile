@@ -3,9 +3,10 @@ export GO111MODULE=on
 # If VERSION or LDFLAGS change, please also change
 # npm/build.
 VERSION = $(shell git describe --tags --dirty --always)
-LDFLAGS = -s -X main.version=$(VERSION)
+LDFLAGS = -s -X github.com/brimsec/zq/cli.Version=$(VERSION)
 ZEEKTAG = v3.0.2-brim3
 ZEEKPATH = zeek-$(ZEEKTAG)
+SURICATAPATH = suricata
 
 # This enables a shortcut to run a single test from the ./tests suite, e.g.:
 # make TEST=TestZTest/suite/cut/cut
@@ -14,7 +15,7 @@ test-one: test-run
 endif
 
 vet:
-	@go vet -copylocks ./...
+	@go vet -composites=false -stdmethods=false ./...
 
 fmt:
 	@res=$$(go fmt ./...); \
@@ -41,15 +42,28 @@ bin/$(ZEEKPATH):
 	@unzip -q bin/$(ZEEKPATH).zip -d bin \
 		&& mv bin/zeek bin/$(ZEEKPATH)
 
+bin/minio:
+	@mkdir -p bin
+	@echo 'module deps' > bin/go.mod
+	@echo 'require github.com/minio/minio latest' >> bin/go.mod
+	@echo 'replace github.com/minio/minio => github.com/brimsec/minio v0.0.0-20200716214025-90d56627f750' >> bin/go.mod
+	@cd bin && GOBIN=$(CURDIR)/bin go install github.com/minio/minio
+
+generate:
+	@GOBIN=$(CURDIR)/bin go install github.com/golang/mock/mockgen
+	@PATH=$(CURDIR)/bin:$(PATH) go generate ./...
+
+test-generate: generate
+	git diff --exit-code
 
 test-unit:
 	@go test -short ./...
 
-test-system: build
-	@ZTEST_BINDIR=$(CURDIR)/dist go test -v ./tests
+test-system: build bin/minio bin/$(ZEEKPATH)
+	@ZTEST_PATH=$(CURDIR)/dist:$(CURDIR)/bin:$(CURDIR)/bin/$(ZEEKPATH):$(CURDIR)/bin/$(SURICATAPATH) go test -v ./tests
 
-test-run: build
-	@ZTEST_BINDIR=$(CURDIR)/dist go test -v ./tests -run $(TEST)
+test-run: build bin/minio bin/$(ZEEKPATH)
+	@ZTEST_PATH=$(CURDIR)/dist:$(CURDIR)/bin:$(CURDIR)/bin/$(ZEEKPATH):$(CURDIR)/bin/$(SURICATAPATH) go test -v ./tests -run $(TEST)
 
 test-heavy: build $(SAMPLEDATA)
 	@go test -v -tags=heavy ./tests
@@ -60,6 +74,9 @@ test-zeek: bin/$(ZEEKPATH)
 perf-compare: build $(SAMPLEDATA)
 	scripts/comparison-test.sh
 
+zng-output-check: build $(SAMPLEDATA)
+	scripts/zng-output-check.sh
+
 # If the build recipe changes, please also change npm/build.
 build:
 	@mkdir -p dist
@@ -68,11 +85,19 @@ build:
 install:
 	@go install -ldflags='$(LDFLAGS)' ./cmd/...
 
+docker:
+	DOCKER_BUILDKIT=1 docker build --pull --rm \
+		--build-arg LDFLAGS='$(LDFLAGS)' \
+		-t zqd:latest -t localhost:5000/zqd:latest -t localhost:5000/zqd:$(VERSION) .
+	docker push localhost:5000/zqd:latest
+	docker push localhost:5000/zqd:$(VERSION)
+
 create-release-assets:
 	for os in darwin linux windows; do \
 		zqdir=zq-$(VERSION).$${os}-amd64 ; \
 		rm -rf dist/$${zqdir} ; \
 		mkdir -p dist/$${zqdir} ; \
+		cp LICENSE.txt acknowledgments.txt dist/$${zqdir} ; \
 		GOOS=$${os} GOARCH=amd64 go build -ldflags='$(LDFLAGS)' -o dist/$${zqdir} ./cmd/... ; \
 	done
 	rm -rf dist/release && mkdir -p dist/release
@@ -92,11 +117,11 @@ clean-python:
 
 # CI performs these actions individually since that looks nicer in the UI;
 # this is a shortcut so that a local dev can easily run everything.
-test-ci: fmt tidy vet test-unit test-system test-zeek test-heavy
+test-ci: fmt tidy vet test-generate test-unit test-system test-zeek test-heavy
 
 clean: clean-python
 	@rm -rf dist
 
 .PHONY: fmt tidy vet test-unit test-system test-heavy sampledata test-ci
 .PHONY: perf-compare build install create-release-assets clean clean-python
-.PHONY: build-python-wheel
+.PHONY: build-python-wheel generate test-generate bin/minio

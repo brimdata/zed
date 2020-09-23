@@ -3,6 +3,7 @@
 package zqe
 
 import (
+	"errors"
 	"fmt"
 	"runtime"
 	"runtime/debug"
@@ -109,6 +110,10 @@ func E(args ...interface{}) error {
 		case error:
 			e.Err = arg
 		case string:
+			if i == len(args)-1 {
+				e.Err = errors.New(arg)
+				return e
+			}
 			e.Err = fmt.Errorf(arg, args[i+1:]...)
 			return e
 		default:
@@ -118,6 +123,30 @@ func E(args ...interface{}) error {
 	}
 
 	return e
+}
+
+// IsKind returns true if the provided error can be unwrapped as a *Error and if
+// *Error.Kind matches the provided Kind
+func IsKind(err error, k Kind) bool {
+	var zerr *Error
+	return errors.As(err, &zerr) && zerr.Kind == k
+}
+
+func IsOther(err error) bool    { return IsKind(err, Other) }
+func IsConflict(err error) bool { return IsKind(err, Conflict) }
+func IsExists(err error) bool   { return IsKind(err, Exists) }
+func IsInvalid(err error) bool  { return IsKind(err, Invalid) }
+func IsNotFound(err error) bool { return IsKind(err, NotFound) }
+
+func ErrOther(args ...interface{}) error    { return errKind(Other, args) }
+func ErrConflict(args ...interface{}) error { return errKind(Conflict, args) }
+func ErrExists(args ...interface{}) error   { return errKind(Exists, args) }
+func ErrInvalid(args ...interface{}) error  { return errKind(Invalid, args) }
+func ErrNotFound(args ...interface{}) error { return errKind(NotFound, args) }
+
+func errKind(k Kind, args []interface{}) error {
+	args = append([]interface{}{k}, args...)
+	return E(args...)
 }
 
 func RecoverError(r interface{}) error {

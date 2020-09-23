@@ -1,38 +1,24 @@
 script: |
   mkdir logs
-  zar import -s 2500B -R ./logs babble.tzng
-  zar index -q -R ./logs -f 500 -o index -z "sum(v) by s | put key=s | sort key"
-  ls logs/*/*/index.1.zng | sort
+  zar import -s 20KiB -R ./logs babble.tzng
+  zar index -f 20000 -q -R ./logs -f 500 -o index.zng -z "sum(v) by s | put key=s | sort key"
+  ls logs/*/*/index.zng | sort
   echo ===
-  zq -t logs/20200421/1587513216.06789438.zng.zar/index.1.zng
+  microindex section -s 1 -t logs/20200421/1587509477.06313454.zng.zar/index.zng
 
 inputs:
   - name: babble.tzng
-    source: ../zdx/babble.tzng
+    source: ../data/babble.tzng
 
 outputs:
   - name: stdout
     data: |
-      logs/20200421/1587509729.06618418.zng.zar/index.1.zng
-      logs/20200421/1587510414.06953991.zng.zar/index.1.zng
-      logs/20200421/1587511094.06170004.zng.zar/index.1.zng
-      logs/20200421/1587511734.06734765.zng.zar/index.1.zng
-      logs/20200421/1587512439.06556231.zng.zar/index.1.zng
-      logs/20200421/1587513216.06789438.zng.zar/index.1.zng
-      logs/20200422/1587514053.06464653.zng.zar/index.1.zng
-      logs/20200422/1587514825.06323209.zng.zar/index.1.zng
-      logs/20200422/1587515660.06416955.zng.zar/index.1.zng
-      logs/20200422/1587516416.06480216.zng.zar/index.1.zng
-      logs/20200422/1587517152.06293072.zng.zar/index.1.zng
-      logs/20200422/1587517956.06264854.zng.zar/index.1.zng
-      logs/20200422/1587518620.0622373.zng.zar/index.1.zng
+      logs/20200421/1587509477.06313454.zng.zar/index.zng
+      logs/20200422/1587518620.0622373.zng.zar/index.zng
       ===
-      #0:record[key:string,_btree_child:int64]
-      0:[Aulacomniaceae-kerril;0;]
-      0:[anemogram-throngingly;551;]
-      0:[cowhiding-pterylographic;1094;]
-      0:[hyperdactyl-groper;1609;]
-      0:[manifesto-mortally;2112;]
-      0:[parviflorous-unspoilable;2620;]
-      0:[scythelike-Bartonia;3148;]
-      0:[unevaded-Wishram;3652;]
+      #0:record[key:string,_child:int64]
+      0:[Areopagite-unfarrowed;0;]
+      0:[auditorium-alisp;548;]
+      0:[glycerite-oligoprothesy;1058;]
+      0:[neomorphism-equivorous;1559;]
+      0:[proceeding-noncausality;2095;]

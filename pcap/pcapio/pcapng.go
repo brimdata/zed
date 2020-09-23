@@ -5,10 +5,8 @@
 // LICENSE file in the root directory of this repository.
 
 // Copyright 2018 The GoPacket Authors. All rights reserved.
-//
-// Use of this source code is governed by a BSD-style license
-// that can be found in the LICENSE file in the root of the source
-// tree.
+// See acknowledgments.txt for full license text from:
+// https://github.com/google/gopacket/LICENSE
 
 package pcapio
 

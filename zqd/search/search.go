@@ -5,7 +5,7 @@ package search
 import (
 	"context"
 	"errors"
-	"io"
+	"fmt"
 	"time"
 
 	"github.com/brimsec/zq/ast"
@@ -14,8 +14,10 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
+	"github.com/brimsec/zq/zqd/storage"
+	"github.com/brimsec/zq/zqd/storage/archivestore"
+	"github.com/brimsec/zq/zqd/storage/filestore"
 	"github.com/brimsec/zq/zqe"
-	"go.uber.org/zap"
 )
 
 // This mtu is pretty small but it keeps the JSON object size below 64kb or so
@@ -25,20 +27,18 @@ const DefaultMTU = 100
 const StatsInterval = time.Millisecond * 500
 
 const (
+	MimeTypeCSV    = "text/csv"
+	MimeTypeJSON   = "application/json"
 	MimeTypeNDJSON = "application/x-ndjson"
+	MimeTypeZJSON  = "application/x-zjson"
 	MimeTypeZNG    = "application/x-zng"
 )
 
-type SearchStore interface {
-	Open(ctx context.Context, span nano.Span) (zbuf.ReadCloser, error)
-}
-
 type SearchOp struct {
-	mux *driver.MuxOutput
-	io.Closer
+	query *Query
 }
 
-func NewSearchOp(ctx context.Context, s SearchStore, req api.SearchRequest) (*SearchOp, error) {
+func NewSearchOp(req api.SearchRequest) (*SearchOp, error) {
 	if req.Span.Ts < 0 {
 		return nil, errors.New("time span must have non-negative timestamp")
 	}
@@ -57,45 +57,49 @@ func NewSearchOp(ctx context.Context, s SearchStore, req api.SearchRequest) (*Se
 	if err != nil {
 		return nil, err
 	}
-
-	zngReader, err := s.Open(ctx, query.Span)
-	if err != nil {
-		return nil, err
-	}
-	zctx := resolver.NewContext()
-	mapper := zbuf.NewMapper(zngReader, zctx)
-	mux, err := launch(ctx, query, mapper, zctx)
-	if err != nil {
-		zngReader.Close()
-		return nil, err
-	}
-	return &SearchOp{mux, zngReader}, nil
+	return &SearchOp{query: query}, nil
 }
 
-func (s *SearchOp) Run(output Output) error {
+func (s *SearchOp) Run(ctx context.Context, store storage.Storage, output Output) (err error) {
 	d := &searchdriver{
 		output:    output,
 		startTime: nano.Now(),
 	}
 	d.start(0)
+	defer func() {
+		if err != nil {
+			d.abort(0, err)
+			return
+		}
+		d.end(0)
+	}()
+
 	statsTicker := time.NewTicker(StatsInterval)
 	defer statsTicker.Stop()
-	if err := driver.Run(s.mux, d, statsTicker.C); err != nil {
-		d.abort(0, err)
-		return err
-	}
-	if err := d.Stats(s.mux.Stats()); err != nil {
-		d.abort(0, err)
-		return err
-	}
-	return d.end(0)
-}
+	zctx := resolver.NewContext()
 
-type Output interface {
-	SendBatch(int, zbuf.Batch) error
-	SendControl(interface{}) error
-	End(interface{}) error
-	ContentType() string
+	switch st := store.(type) {
+	case *archivestore.Storage:
+		return driver.MultiRun(ctx, d, s.query.Proc, zctx, st.MultiSource(), driver.MultiConfig{
+			Span:      s.query.Span,
+			StatsTick: statsTicker.C,
+		})
+	case *filestore.Storage:
+		rc, err := st.Open(ctx, zctx, s.query.Span)
+		if err != nil {
+			return err
+		}
+		defer rc.Close()
+
+		return driver.Run(ctx, d, s.query.Proc, zctx, rc, driver.Config{
+			ReaderSortKey:     "ts",
+			ReaderSortReverse: true,
+			Span:              s.query.Span,
+			StatsTick:         statsTicker.C,
+		})
+	default:
+		return fmt.Errorf("unknown storage type %T", st)
+	}
 }
 
 // A Query is the internal representation of search query describing a source
@@ -110,7 +114,7 @@ type Query struct {
 
 // UnpackQuery transforms a api.SearchRequest into a Query.
 func UnpackQuery(req api.SearchRequest) (*Query, error) {
-	proc, err := ast.UnpackProc(nil, req.Proc)
+	proc, err := ast.UnpackJSON(nil, req.Proc)
 	if err != nil {
 		return nil, err
 	}
@@ -170,13 +174,4 @@ func (d *searchdriver) ChannelEnd(cid int) error {
 		Reason:    "eof",
 	}
 	return d.output.SendControl(v)
-}
-
-func launch(ctx context.Context, query *Query, reader zbuf.Reader, zctx *resolver.Context) (*driver.MuxOutput, error) {
-	span := query.Span
-	if span == (nano.Span{}) {
-		span = nano.MaxSpan
-	}
-	// Records in a zqd filestore are sorted by descending ts (in zqd/storage/filestore.(*Storage).write).
-	return driver.Compile(context.Background(), query.Proc, reader, "ts", true, span, zap.NewNop())
 }

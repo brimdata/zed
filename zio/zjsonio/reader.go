@@ -48,8 +48,7 @@ func (r *Reader) Read() (*zng.Record, error) {
 		return nil, e(err)
 	}
 	var v Record
-	err = json.Unmarshal(line, &v)
-	if err != nil {
+	if err := json.Unmarshal(line, &v); err != nil {
 		return nil, e(err)
 	}
 	var recType *zng.TypeRecord
@@ -63,7 +62,7 @@ func (r *Reader) Read() (*zng.Record, error) {
 		if v.Aliases != nil {
 			r.parseAliases(v.Aliases)
 		}
-		typeName, err := DecodeType(v.Type)
+		typeName, err := DecodeType(*v.Type)
 		if err != nil {
 			return nil, err
 		}
@@ -93,8 +92,7 @@ func (r *Reader) parseValues(typ *zng.TypeRecord, v interface{}) (*zng.Record, e
 	// reset the builder and decode the body into the builder intermediate
 	// zng representation
 	r.builder.Reset()
-	err := decodeContainer(r.builder, typ, values)
-	if err != nil {
+	if err := decodeContainer(r.builder, typ, values); err != nil {
 		return nil, err
 	}
 	zv, err := r.builder.Bytes().ContainerBody()
@@ -190,11 +188,9 @@ func decodeUnion(builder *zcode.Builder, typ *zng.TypeUnion, body interface{}) e
 	if err != nil {
 		return fmt.Errorf("bad type index for zjson union value: %w", err)
 	}
-	var a [8]byte
-	n := zcode.EncodeCountedUvarint(a[:], uint64(index))
-	builder.AppendPrimitive(a[:n])
+	builder.AppendPrimitive(zng.EncodeInt(int64(index)))
 	if utyp, ok := inner.(*zng.TypeUnion); ok {
-		if err = decodeUnion(builder, utyp, tuple[1]); err != nil {
+		if err := decodeUnion(builder, utyp, tuple[1]); err != nil {
 			return err
 		}
 	} else if zng.IsContainerType(inner) {

@@ -1,7 +1,10 @@
-bin/
+!bin/
+bin/*
+!bin/suricata/
 dist/
 python/build/
 tests/test-root
 zq-sample-data
 zql/deps/
 .idea
+.DS_Store

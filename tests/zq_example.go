@@ -5,9 +5,6 @@ Find valid ZQ examples in markdown, run them against
 https://github.com/brimsec/zq-sample-data/zeek-default, and compare results in
 docs with results produced.
 
-In separate patches:
-- Find files as opposed to hard-coding them
-
 Use markers in markdown fenced code blocks to denote either a zq command or
 output from zq. Use is like:
 
@@ -80,6 +77,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -120,8 +118,7 @@ func (t *ZQExampleTest) Run() (string, error) {
 	var b bytes.Buffer
 	c.Stdout = &b
 	c.Stderr = &b
-	err := c.Run()
-	if err != nil {
+	if err := c.Run(); err != nil {
 		return string(b.Bytes()), err
 	}
 	scanner := bufio.NewScanner(&b)
@@ -158,7 +155,7 @@ func ZQOutputLineCount(fcb *ast.FencedCodeBlock, source []byte) int {
 	return customCount
 }
 
-// CollectExamples returns a zq-command / zq-output pairs from a single
+// CollectExamples returns zq-command / zq-output pairs from a single
 // markdown source after parsing it as a goldmark AST.
 func CollectExamples(node ast.Node, source []byte) ([]ZQExampleInfo, error) {
 	var examples []ZQExampleInfo
@@ -310,23 +307,21 @@ func TestcasesFromFile(filename string) ([]ZQExampleTest, error) {
 
 // DocMarkdownFiles returns markdown files to inspect.
 func DocMarkdownFiles() ([]string, error) {
-	// This needs to find markdown files in the repo. Right now we just
-	// declare them directly.
-	files := []string{
-		"zql/docs/processors/README.md",
-		"zql/docs/search-syntax/README.md",
-		"zql/docs/aggregate-functions/README.md",
-		"zql/docs/expressions/README.md",
-		"zql/docs/data-types/README.md",
-	}
 	repopath, err := RepoAbsPath()
 	if err != nil {
 		return nil, err
 	}
-	for i, file := range files {
-		files[i] = filepath.Join(repopath, file)
-	}
-	return files, nil
+	var files []string
+	err = filepath.Walk(repopath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() && strings.HasSuffix(path, ".md") {
+			files = append(files, path)
+		}
+		return nil
+	})
+	return files, err
 }
 
 // ZQExampleTestCases returns all test cases derived from doc examples.

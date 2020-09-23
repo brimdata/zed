@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"os"
 
 	"github.com/brimsec/zq/cmd/pcap/root"
 	"github.com/brimsec/zq/pcap"
@@ -58,6 +59,10 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
+	defer c.Cleanup()
+	if err := c.Init(); err != nil {
+		return err
+	}
 	if len(args) != 0 || c.inputFile == "" {
 		return errors.New("pcap index: must be provide single pcap file as -r argument")
 	}
@@ -66,7 +71,15 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer f.Close()
-	index, err := pcap.CreateIndex(f, c.limit)
+	warn := make(chan string)
+	var index pcap.Index
+	go func() {
+		index, err = pcap.CreateIndexWithWarnings(f, c.limit, warn)
+		close(warn)
+	}()
+	for s := range warn {
+		fmt.Fprintf(os.Stderr, "warning: %s\n", s)
+	}
 	if err != nil {
 		return err
 	}

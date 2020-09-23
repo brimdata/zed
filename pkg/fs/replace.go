@@ -46,14 +46,10 @@ func (r *replacer) Close() (err error) {
 			os.Remove(r.f.Name())
 		}
 	}()
-	if err = r.f.Sync(); err != nil {
-		r.f.Close()
+	if err := r.f.Close(); err != nil {
 		return err
 	}
-	if err = r.f.Close(); err != nil {
-		return err
-	}
-	if err = os.Chmod(r.f.Name(), r.perm); err != nil {
+	if err := os.Chmod(r.f.Name(), r.perm); err != nil {
 		return err
 	}
 	if r.writeErr == nil {

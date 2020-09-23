@@ -5,11 +5,12 @@ import (
 
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
 )
 
 type IndexSearcher interface {
-	IndexSearch(context.Context, archive.IndexQuery) (zbuf.ReadCloser, error)
+	IndexSearch(context.Context, *resolver.Context, archive.IndexQuery) (zbuf.ReadCloser, error)
 }
 
 type IndexSearchOp struct {
@@ -21,7 +22,7 @@ func NewIndexSearchOp(ctx context.Context, s IndexSearcher, req api.IndexSearchR
 	if err != nil {
 		return nil, err
 	}
-	rc, err := s.IndexSearch(ctx, query)
+	rc, err := s.IndexSearch(ctx, resolver.NewContext(), query)
 	if err != nil {
 		return nil, err
 	}
@@ -29,28 +30,5 @@ func NewIndexSearchOp(ctx context.Context, s IndexSearcher, req api.IndexSearchR
 }
 
 func (s *IndexSearchOp) Run(out Output) (err error) {
-	if err = out.SendControl(&api.TaskStart{"TaskStart", 0}); err != nil {
-		return
-	}
-	defer func() {
-		if err != nil {
-			verr := api.Error{Type: "INTERNAL", Message: err.Error()}
-			out.End(&api.TaskEnd{"TaskEnd", 0, &verr})
-			return
-		}
-		err = out.End(&api.TaskEnd{"TaskEnd", 0, nil})
-	}()
-
-	for {
-		var b zbuf.Batch
-		if b, err = zbuf.ReadBatch(s, DefaultMTU); err != nil {
-			return
-		}
-		if b == nil {
-			return
-		}
-		if err = out.SendBatch(0, b); err != nil {
-			return
-		}
-	}
+	return SendFromReader(out, s)
 }

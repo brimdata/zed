@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	"unsafe"
 
 	"github.com/brimsec/zq/pcap/pcapio"
 	"github.com/brimsec/zq/pkg/nano"
@@ -38,10 +39,23 @@ type Section struct {
 	Index  ranger.Envelope
 }
 
+const (
+	pointSize    = unsafe.Sizeof(ranger.Point{})
+	offsetMaxMem = 1024 * 1024 * 64 // 64MB
+)
+
+// offsetThresh is the max number of pcap offsets collected before offset array
+// in CreateIndex is condensed with ranger.NewEvelope.
+var offsetThresh = offsetMaxMem / int(pointSize)
+
 // CreateIndex creates an index for a pcap presented as an io.Reader.
 // The size parameter indicates how many bins the index should contain.
 func CreateIndex(r io.Reader, size int) (Index, error) {
-	reader, err := pcapio.NewReader(r)
+	return CreateIndexWithWarnings(r, size, nil)
+}
+
+func CreateIndexWithWarnings(r io.Reader, size int, c chan<- string) (Index, error) {
+	reader, err := pcapio.NewReaderWithWarnings(r, c)
 	if err != nil {
 		return nil, err
 	}
@@ -79,6 +93,14 @@ func CreateIndex(r io.Reader, size int) (Index, error) {
 			}
 			y := uint64(ts)
 			offsets = append(offsets, ranger.Point{X: off, Y: y})
+			// In order to avoid running out of memory for large pcap sections,
+			// condense offsets with ranger.NewEnvelope once offsetThresh has
+			// been reached.
+			if len(offsets) > offsetThresh {
+				env := ranger.NewEnvelope(offsets, size)
+				section.Index = env.Merge(section.Index)
+				offsets = offsets[:0]
+			}
 
 		case pcapio.TypeSection:
 			// end previous section and start a new one
@@ -86,8 +108,11 @@ func CreateIndex(r io.Reader, size int) (Index, error) {
 				err := errors.New("missing section header")
 				return nil, pcapio.NewErrInvalidPcap(err)
 			}
-			if section != nil && offsets != nil {
-				section.Index = ranger.NewEnvelope(offsets, size)
+			if section != nil {
+				if offsets != nil {
+					env := ranger.NewEnvelope(offsets, size)
+					section.Index = env.Merge(section.Index)
+				}
 				index = append(index, *section)
 			}
 			slice := slicer.Slice{
@@ -97,12 +122,13 @@ func CreateIndex(r io.Reader, size int) (Index, error) {
 			section = &Section{
 				Blocks: []slicer.Slice{slice},
 			}
-			offsets = nil
+			offsets = offsets[:0]
 		}
 	}
 	// end last section
 	if section != nil && offsets != nil {
-		section.Index = ranger.NewEnvelope(offsets, size)
+		env := ranger.NewEnvelope(offsets, size)
+		section.Index = env.Merge(section.Index)
 		index = append(index, *section)
 	}
 	if len(index) == 0 {

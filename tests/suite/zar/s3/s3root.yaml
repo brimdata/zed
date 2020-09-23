@@ -1,0 +1,28 @@
+script: |
+  source minio.sh
+  zar import -s 20KiB -R s3://bucket/zartest babble.tzng
+  zar index -q -R s3://bucket/zartest v
+  echo ===
+  zar ls -R s3://bucket/zartest
+  echo ===
+  zar find -relative -R s3://bucket/zartest v=106
+  echo ===
+  zar zq -R s3://bucket/zartest "count()" | zq -t -
+
+inputs:
+  - name: babble.tzng
+    source: ../../data/babble.tzng
+  - name: minio.sh
+    source: minio.sh
+
+outputs:
+  - name: stdout
+    data: |
+      ===
+      s3://bucket/zartest/20200422/1587518620.0622373.zng.zar
+      s3://bucket/zartest/20200421/1587509477.06313454.zng.zar
+      ===
+      20200422/1587518620.0622373.zng
+      ===
+      #0:record[count:uint64]
+      0:[1000;]

@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zng/resolver"
 )
 
 type Kind string
@@ -53,13 +54,14 @@ type ArchiveCreateOptions struct {
 }
 
 type Summary struct {
-	Kind      Kind
-	Span      nano.Span
-	DataBytes int64
+	Kind        Kind
+	Span        nano.Span
+	DataBytes   int64
+	RecordCount int64
 }
 
 type Storage interface {
-	Open(ctx context.Context, span nano.Span) (zbuf.ReadCloser, error)
-	Summary(ctx context.Context) (Summary, error)
 	NativeDirection() zbuf.Direction
+	Summary(ctx context.Context) (Summary, error)
+	Write(ctx context.Context, zctx *resolver.Context, zr zbuf.Reader) error
 }

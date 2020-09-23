@@ -9,8 +9,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,16 +33,19 @@ func TestFailOnConcurrentWrites(t *testing.T) {
 	defer func() {
 		os.RemoveAll(dir)
 	}()
-	store, err := Load(dir)
+	u, err := iosrc.ParseURI(dir)
 	require.NoError(t, err)
+	store, err := Load(u)
+	require.NoError(t, err)
+	zctx := resolver.NewContext()
 	wr := &waitReader{dur: time.Second * 5}
 	wr.Add(1)
 	go func() {
-		store.Rewrite(context.Background(), wr)
+		store.Write(context.Background(), zctx, wr)
 	}()
 	wr.Wait()
 
-	err = store.Rewrite(context.Background(), nil)
+	err = store.Write(context.Background(), zctx, nil)
 	require.Error(t, err)
 	require.True(t, errors.Is(err, ErrWriteInProgress))
 }
@@ -51,20 +56,22 @@ func (r *emptyReader) Read() (*zng.Record, error) {
 	return nil, nil
 }
 
-func TestRewriteNoRecords(t *testing.T) {
+func TestWriteNoRecords(t *testing.T) {
 	dir, err := ioutil.TempDir("", t.Name())
 	require.NoError(t, err)
 	defer func() {
 		os.RemoveAll(dir)
 	}()
-	store, err := Load(dir)
+	u, err := iosrc.ParseURI(dir)
+	require.NoError(t, err)
+	store, err := Load(u)
 	require.NoError(t, err)
 
 	sp := nano.Span{Ts: 10, Dur: 10}
 	err = store.SetSpan(sp)
 	require.NoError(t, err)
 
-	err = store.Rewrite(context.Background(), &emptyReader{})
+	err = store.Write(context.Background(), resolver.NewContext(), &emptyReader{})
 	require.NoError(t, err)
 
 	sum, err := store.Summary(context.Background())

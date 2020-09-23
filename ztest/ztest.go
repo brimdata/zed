@@ -103,10 +103,10 @@
 //
 //     func TestZTest(t *testing.T) { ztest.Run(t, "testdata/ztest") }
 //
-// If the ZTEST_BINDIR environment variable is unset or empty and the test
+// If the ZTEST_PATH environment variable is unset or empty and the test
 // is not a script test, Run runs ztests in the current process and skips
 // the script tests.  Otherwise, Run runs each ztest in a separate process
-// using the zq executable in the directory specified by ZTEST_BINDIR.
+// using the zq executable in the directories specified by ZTEST_PATH.
 package ztest
 
 import (
@@ -127,32 +127,30 @@ import (
 	"testing"
 	"unicode/utf8"
 
+	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/driver"
-	"github.com/brimsec/zq/emitter"
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zqe"
 	"github.com/brimsec/zq/zql"
 	"github.com/pmezard/go-difflib/difflib"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
 
 // Run runs the ztests in the directory named dirname.  For each file f.yaml in
 // the directory, Run calls FromYAMLFile to load a ztest and then runs it in
-// subtest named f.  bindir is a path to the executables that the script-mode
-// tests will run.
+// subtest named f.  path is a command search path like the
+// PATH environment variable.
 func Run(t *testing.T, dirname string) {
-	bindir := os.Getenv("ZTEST_BINDIR")
-	if bindir != "" {
-		if out, _, err := runzq(bindir, "help", "", ""); err != nil {
+	path := os.Getenv("ZTEST_PATH")
+	if path != "" {
+		if out, _, err := runzq(path, "help", "", ""); err != nil {
 			if out != "" {
 				out = fmt.Sprintf(" with output %q", out)
 			}
-			t.Fatalf("failed to exec zq in dir $ZTEST_BINDIR %s: %s%s", bindir, err, out)
+			t.Fatalf("failed to exec zq in dir $ZTEST_PATH %s: %s%s", path, err, out)
 		}
 	}
 	fileinfos, err := ioutil.ReadDir(dirname)
@@ -177,7 +175,7 @@ func Run(t *testing.T, dirname string) {
 			if err != nil {
 				t.Fatalf("%s: %s", filename, err)
 			}
-			zt.Run(t, testname, bindir, dirname, filename)
+			zt.Run(t, testname, path, dirname, filename)
 		})
 	}
 }
@@ -254,7 +252,7 @@ type ZTest struct {
 	OutputFlags  string `yaml:"output-flags,omitempty"`
 	ErrorRE      string `yaml:"errorRE"`
 	errRegex     *regexp.Regexp
-	Warnings     string `yaml:"warnings",omitempty"`
+	Warnings     string `yaml:"warnings,omitempty"`
 	// shell mode params
 	Script  string `yaml:"script,omitempty"`
 	Inputs  []File `yaml:"inputs,omitempty"`
@@ -385,7 +383,7 @@ func diffErr(expected, actual string) error {
 	return fmt.Errorf("expected and actual outputs differ:\n%s", diff)
 }
 
-func (z *ZTest) Run(t *testing.T, testname, bindir, dirname, filename string) {
+func (z *ZTest) Run(t *testing.T, testname, path, dirname, filename string) {
 	if err := z.check(); err != nil {
 		t.Fatalf("%s: bad yaml format: %s", filename, err)
 	}
@@ -396,17 +394,16 @@ func (z *ZTest) Run(t *testing.T, testname, bindir, dirname, filename string) {
 			// environments
 			t.Skip("skipping script test on Windows")
 		}
-		if bindir == "" {
+		if path == "" {
 			t.Skip("skipping script test on in-process run")
 		}
 		adir, _ := filepath.Abs(dirname)
-		err := runsh(testname, bindir, adir, z)
-		if err != nil {
+		if err := runsh(testname, path, adir, z); err != nil {
 			t.Fatalf("%s: %s", filename, err)
 		}
 		return
 	}
-	out, errout, err := runzq(bindir, z.ZQL, z.OutputFormat, z.OutputFlags, z.Input...)
+	out, errout, err := runzq(path, z.ZQL, z.OutputFormat, z.OutputFlags, z.Input...)
 	if err != nil {
 		if z.errRegex != nil {
 			if !z.errRegex.Match([]byte(errout)) {
@@ -485,7 +482,7 @@ func checkData(files map[string][]byte, dir *Dir, stdout, stderr string) error {
 	return nil
 }
 
-func runsh(testname, bindir, dirname string, zt *ZTest) error {
+func runsh(testname, path, dirname string, zt *ZTest) error {
 	dir, err := NewDir(testname)
 	if err != nil {
 		return err
@@ -522,7 +519,7 @@ func runsh(testname, bindir, dirname string, zt *ZTest) error {
 			expectedPattern[f.Name] = re
 		}
 	}
-	stdout, stderr, err := RunShell(dir, bindir, zt.Script, stdin)
+	stdout, stderr, err := RunShell(dir, path, zt.Script, stdin)
 	if err != nil {
 		// XXX If the err is an exit error, we ignore it and rely on
 		// tests that check stderr etc.  We could pull out the exit
@@ -536,8 +533,7 @@ func runsh(testname, bindir, dirname string, zt *ZTest) error {
 			return err
 		}
 	}
-	err = checkPatterns(expectedPattern, dir, stdout, stderr)
-	if err != nil {
+	if err := checkPatterns(expectedPattern, dir, stdout, stderr); err != nil {
 		return err
 	}
 	return checkData(expectedData, dir, stdout, stderr)
@@ -546,14 +542,17 @@ func runsh(testname, bindir, dirname string, zt *ZTest) error {
 // runzq runs the query in ZQL over inputs and returns the output formatted
 // according to outputFormat. inputs may be in any format recognized by "zq -i
 // auto" and maybe be gzip-compressed.  outputFormat may be any string accepted
-// by "zq -f".  If bindir is empty, the query runs in the current process.
-// If bindir is not empty, it specifies a zq path that will be used to run
-// the query.
-func runzq(bindir, ZQL, outputFormat, outputFlags string, inputs ...string) (out string, warnOrError string, err error) {
+// by "zq -f".  If path is empty, the query runs in the current process.
+// If path is not empty, it specifies a command search path used to find
+// a zq executable to run the query.
+func runzq(path, ZQL, outputFormat, outputFlags string, inputs ...string) (out string, warnOrError string, err error) {
 	var outbuf bytes.Buffer
 	var errbuf bytes.Buffer
-	if bindir != "" {
-		zq := filepath.Join(bindir, "zq")
+	if path != "" {
+		zq, err := lookupzq(path)
+		if err != nil {
+			return "", "", err
+		}
 		tmpdir, files, err := tmpInputFiles(inputs)
 		if err != nil {
 			return "", "", err
@@ -579,35 +578,26 @@ func runzq(bindir, ZQL, outputFormat, outputFlags string, inputs ...string) (out
 		return "", "", err
 	}
 	zctx := resolver.NewContext()
-	zr, err := loadInputs(inputs, zctx)
+	rc, err := loadInputs(inputs, zctx)
 	if err != nil {
 		return "", err.Error(), err
 	}
-	defer zr.Close()
-	if outputFormat == "types" {
-		outputFormat = "null"
-		zctx.SetLogger(&emitter.TypeLogger{WriteCloser: &nopCloser{&outbuf}})
-	}
-	muxOutput, err := driver.Compile(context.Background(), proc, zr, "", false, nano.MaxSpan, zap.NewNop())
-	if err != nil {
-		return "", "", err
-	}
-	var zflags zio.WriterFlags
+	defer rc.Close()
+	var zflags outputflags.Flags
 	var flags flag.FlagSet
 	zflags.SetFlags(&flags)
-	err = flags.Parse(strings.Split(outputFlags, " "))
-	if err != nil {
+	if err := flags.Parse(strings.Split(outputFlags, " ")); err != nil {
 		return "", "", err
 	}
 	zflags.Format = outputFormat
-	zw := detector.LookupWriter(&nopCloser{&outbuf}, &zflags)
-	if zw == nil {
-		return "", "", fmt.Errorf("%s: unknown output format", outputFormat)
+	zw, err := detector.LookupWriter(&nopCloser{&outbuf}, zflags.Options())
+	if err != nil {
+		return "", "", err
 	}
 	d := driver.NewCLI(zw)
 	d.SetWarningsWriter(&errbuf)
-	err = driver.Run(muxOutput, d, nil)
-	if err2 := zw.Flush(); err == nil {
+	err = driver.Run(context.Background(), d, proc, zctx, rc, driver.Config{})
+	if err2 := zw.Close(); err == nil {
 		err = err2
 	}
 	if err != nil {
@@ -616,7 +606,20 @@ func runzq(bindir, ZQL, outputFormat, outputFlags string, inputs ...string) (out
 	return string(outbuf.Bytes()), string(errbuf.Bytes()), nil
 }
 
-func loadInputs(inputs []string, zctx *resolver.Context) (*zbuf.Combiner, error) {
+func lookupzq(path string) (string, error) {
+	for _, dir := range filepath.SplitList(path) {
+		zq, err := exec.LookPath(filepath.Join(dir, "zq"))
+		if err == nil {
+			return zq, nil
+		}
+		if !errors.Is(err, exec.ErrNotFound) {
+			return "", err
+		}
+	}
+	return "", zqe.E(zqe.NotFound)
+}
+
+func loadInputs(inputs []string, zctx *resolver.Context) (zbuf.ReadCloser, error) {
 	var readers []zbuf.Reader
 	for _, input := range inputs {
 		zr, err := detector.NewReader(detector.GzipReader(strings.NewReader(input)), zctx)
@@ -637,8 +640,7 @@ func tmpInputFiles(inputs []string) (string, []string, error) {
 	for i, input := range inputs {
 		name := fmt.Sprintf("input%d", i+1)
 		file := filepath.Join(dir, name)
-		err := ioutil.WriteFile(file, []byte(input), 0644)
-		if err != nil {
+		if err := ioutil.WriteFile(file, []byte(input), 0644); err != nil {
 			os.RemoveAll(dir)
 			return "", nil, err
 		}

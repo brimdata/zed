@@ -137,6 +137,17 @@ func (c *Connection) Ping(ctx context.Context) (time.Duration, error) {
 	return resp.Time(), nil
 }
 
+// Version retrieves the version string from the service.
+func (c *Connection) Version(ctx context.Context) (string, error) {
+	resp, err := c.Request(ctx).
+		SetResult(&VersionResponse{}).
+		Get("/version")
+	if err != nil {
+		return "", err
+	}
+	return resp.Result().(*VersionResponse).Version, nil
+}
+
 // SpaceInfo retrieves information about the specified space.
 func (c *Connection) SpaceInfo(ctx context.Context, id SpaceID) (*SpaceInfo, error) {
 	path := path.Join("/space", url.PathEscape(string(id)))
@@ -238,6 +249,26 @@ func (c *Connection) IndexSearch(ctx context.Context, space SpaceID, search Inde
 	return NewZngSearch(r), nil
 }
 
+func (c *Connection) IndexPost(ctx context.Context, space SpaceID, post IndexPostRequest) error {
+	_, err := c.Request(ctx).
+		SetBody(post).
+		Post(path.Join("/space", string(space), "index"))
+	return err
+}
+
+func (c *Connection) ArchiveStat(ctx context.Context, space SpaceID, params map[string]string) (Search, error) {
+	req := c.Request(ctx).
+		SetQueryParam("format", "zng")
+	req.SetQueryParams(params)
+	req.Method = http.MethodGet
+	req.URL = path.Join("/space", string(space), "archivestat")
+	r, err := c.stream(req)
+	if err != nil {
+		return nil, err
+	}
+	return NewZngSearch(r), nil
+}
+
 func (c *Connection) PcapPost(ctx context.Context, space SpaceID, payload PcapPostRequest) (*Stream, error) {
 	req := c.Request(ctx).
 		SetBody(payload)
@@ -275,7 +306,7 @@ type PcapReadCloser struct {
 	io.Closer
 }
 
-func (c *Connection) LogPost(ctx context.Context, space SpaceID, payload LogPostRequest) (*Stream, error) {
+func (c *Connection) LogPostStream(ctx context.Context, space SpaceID, payload LogPostRequest) (*Stream, error) {
 	req := c.Request(ctx).
 		SetBody(payload)
 	req.Method = http.MethodPost
@@ -286,6 +317,15 @@ func (c *Connection) LogPost(ctx context.Context, space SpaceID, payload LogPost
 	}
 	jsonpipe := NewJSONPipeScanner(r)
 	return NewStream(jsonpipe), nil
+}
+
+func (c *Connection) LogPost(ctx context.Context, space SpaceID, payload LogPostRequest) error {
+	stream, err := c.LogPostStream(ctx, space, payload)
+	if err != nil {
+		return err
+	}
+	_, err = stream.ReadAll()
+	return err
 }
 
 type ErrorResponse struct {

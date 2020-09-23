@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func parse(zctx *resolver.Context, src string) (*zbuf.Array, error) {
+func parse(zctx *resolver.Context, src string) (zbuf.Array, error) {
 	reader := tzngio.NewReader(strings.NewReader(src), zctx)
 	records := make([]*zng.Record, 0)
 	for {
@@ -28,7 +28,7 @@ func parse(zctx *resolver.Context, src string) (*zbuf.Array, error) {
 		records = append(records, rec)
 	}
 
-	return zbuf.NewArray(records), nil
+	return zbuf.Array(records), nil
 }
 
 func runOne(t *testing.T, zctx *resolver.Context, cred compile.CompiledReducer, i int, recs []*zng.Record) zng.Value {

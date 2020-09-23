@@ -1,97 +1,77 @@
 package filter_test
 
 import (
-	"errors"
-	"fmt"
+	"encoding/hex"
 	"strings"
 	"testing"
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/filter"
+	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zio/tzngio"
-	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func compileFilter(filt string) (filter.Filter, error) {
-	// Parse the filter.  Any filter is a valid full zql query,
-	// it should parse to an AST with a top-level FilterProc node.
-	parsed, err := zql.Parse("", []byte(filt))
-	if err != nil {
-		return nil, err
-	}
-
-	filtProc, ok := parsed.(*ast.FilterProc)
-	if !ok {
-		return nil, errors.New("expected FilterProc")
-	}
-
-	// Compile the filter...
-	return filter.Compile(filtProc.Filter)
-}
-
-// Execute one test of a filter by compiling the given filter and
-// executing it against the given Record.  Returns an error if the filter
-// result does not match expectedResult (or for any other error such as
-// failure to parse or compile the filter)
-func runTest(filt string, record *zng.Record, expectedResult bool) error {
-	f, err := compileFilter(filt)
-	if err != nil {
-		return err
-	}
-
-	// And execute it.
-	result := f(record)
-	if result == expectedResult {
-		return nil
-	}
-
-	// Failure!  Try to assemble a useful error message.
-	// Just use the zval pretty format of Raw.
-	raw := record.Raw.String()
-	if expectedResult {
-		return fmt.Errorf("Filter \"%s\" should have matched \"%s\"", filt, raw)
-	} else {
-		return fmt.Errorf("Filter \"%s\" should not have matched \"%s\"", filt, raw)
-	}
-}
-
-func parseOneRecord(zngsrc string) (*zng.Record, error) {
-	ior := strings.NewReader(zngsrc)
-	reader := tzngio.NewReader(ior, resolver.NewContext())
-
-	rec, err := reader.Read()
-	if err != nil {
-		return nil, err
-	}
-	if rec == nil {
-		return nil, errors.New("expected to read one record")
-	}
-	rec.Keep()
-
-	rec2, err := reader.Read()
-	if err != nil {
-		return nil, err
-	}
-	if rec2 != nil {
-		return nil, errors.New("got more than one record")
-	}
-	return rec, nil
-}
-
 type testcase struct {
-	filter         string
-	expectedResult bool
+	filter   string
+	expected bool
 }
 
-func runCases(t *testing.T, record *zng.Record, cases []testcase) {
-	for _, tt := range cases {
-		t.Run(tt.filter, func(t *testing.T) {
-			err := runTest(tt.filter, record, tt.expectedResult)
-			require.NoError(t, err)
+func runCases(t *testing.T, tzng string, cases []testcase) {
+	t.Helper()
+	runCasesHelper(t, tzng, cases, false)
+}
+
+func runCasesExpectBufferFilterFalsePositives(t *testing.T, tzng string, cases []testcase) {
+	t.Helper()
+	runCasesHelper(t, tzng, cases, true)
+}
+
+func runCasesHelper(t *testing.T, tzng string, cases []testcase, expectBufferFilterFalsePositives bool) {
+	t.Helper()
+
+	zctx := resolver.NewContext()
+	batch, err := zbuf.ReadBatch(tzngio.NewReader(strings.NewReader(tzng), zctx), 2)
+	require.NoError(t, err, "tzng: %q", tzng)
+	require.Exactly(t, 1, batch.Length(), "tzng: %q", tzng)
+	rec := batch.Index(0)
+
+	for _, c := range cases {
+		t.Run(c.filter, func(t *testing.T) {
+			t.Helper()
+
+			proc, err := zql.ParseProc(c.filter)
+			require.NoError(t, err, "filter: %q", c.filter)
+			filterExpr := proc.(*ast.FilterProc).Filter
+
+			f, err := filter.Compile(filterExpr)
+			assert.NoError(t, err, "filter: %q", c.filter)
+			if f != nil {
+				assert.Equal(t, c.expected, f(rec),
+					"filter: %q\nrecord:\n%s", c.filter, hex.Dump(rec.Raw))
+			}
+
+			bf, err := filter.NewBufferFilter(filterExpr)
+			assert.NoError(t, err, "filter: %q", c.filter)
+			if bf != nil {
+				expected := c.expected
+				if expectBufferFilterFalsePositives {
+					expected = true
+				}
+				// For fieldNameFinder.find coverage, we need to
+				// hand BufferFilter.Eval a buffer containing a
+				// ZNG value message for rec, assembled here.
+				require.Less(t, rec.Type.ID(), 0x40)
+				buf := []byte{byte(rec.Type.ID())}
+				buf = zcode.AppendUvarint(buf, uint64(len(rec.Raw)))
+				buf = append(buf, rec.Raw...)
+				assert.Equal(t, expected, bf.Eval(zctx, buf),
+					"filter: %q\nbuffer:\n%s", c.filter, hex.Dump(buf))
+			}
 		})
 	}
 }
@@ -100,11 +80,10 @@ func TestFilters(t *testing.T) {
 	t.Parallel()
 
 	// Test set membership with "in"
-	record, err := parseOneRecord(`
+	tzng := `
 #0:record[stringset:set[bstring]]
-0:[[abc;xyz;]]`)
-	require.NoError(t, err)
-	runCases(t, record, []testcase{
+0:[[abc;xyz;]]`
+	runCases(t, tzng, []testcase{
 		{"abc in stringset", true},
 		{"xyz in stringset", true},
 		{"ab in stringset", false},
@@ -112,10 +91,10 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test escaped bstrings inside a set
-	record, err = parseOneRecord(`#0:record[stringset:set[bstring]]
-0:[[a\x3bb;xyz;]]`)
-	require.NoError(t, err)
-	runCases(t, record, []testcase{
+	tzng = `
+#0:record[stringset:set[bstring]]
+0:[[a\x3bb;xyz;]]`
+	runCases(t, tzng, []testcase{
 		{"\"a;b\" in stringset", true},
 		{"a in stringset", false},
 		{"b in stringset", false},
@@ -123,11 +102,10 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test array membership with "in"
-	record, err = parseOneRecord(`
+	tzng = `
 #0:record[stringvec:array[bstring]]
-0:[[abc;xyz;]]`)
-	require.NoError(t, err)
-	runCases(t, record, []testcase{
+0:[[abc;xyz;]]`
+	runCases(t, tzng, []testcase{
 		{"abc in stringvec", true},
 		{"xyz in stringvec", true},
 		{"ab in stringvec", false},
@@ -135,11 +113,10 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test escaped bstrings inside an array
-	record, err = parseOneRecord(`
+	tzng = `
 #0:record[stringvec:array[bstring]]
-0:[[a\x3bb;xyz;]]`)
-	require.NoError(t, err)
-	runCases(t, record, []testcase{
+0:[[a\x3bb;xyz;]]`
+	runCases(t, tzng, []testcase{
 		{"\"a;b\" in stringvec", true},
 		{"a in stringvec", false},
 		{"b in stringvec", false},
@@ -147,43 +124,39 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test membership in set of integers
-	record, err = parseOneRecord(`
+	tzng = `
 #0:record[intset:set[int32]]
-0:[[1;2;3;]]`)
-	require.NoError(t, err)
-	runCases(t, record, []testcase{
+0:[[1;2;3;]]`
+	runCases(t, tzng, []testcase{
 		{"2 in intset", true},
 		{"4 in intset", false},
 		{"abc in intset", false},
 	})
 
 	// Test membership in array of integers
-	record, err = parseOneRecord(`
+	tzng = `
 #0:record[intvec:array[int32]]
-0:[[1;2;3;]]`)
-	require.NoError(t, err)
-	runCases(t, record, []testcase{
+0:[[1;2;3;]]`
+	runCases(t, tzng, []testcase{
 		{"2 in intvec", true},
 		{"4 in intvec", false},
 		{"abc in intvec", false},
 	})
 
 	// Test membership in set of ip addresses
-	record, err = parseOneRecord(`
+	tzng = `
 #0:record[addrset:set[ip]]
-0:[[1.1.1.1;2.2.2.2;]]`)
-	require.NoError(t, err)
-	runCases(t, record, []testcase{
+0:[[1.1.1.1;2.2.2.2;]]`
+	runCases(t, tzng, []testcase{
 		{"1.1.1.1 in addrset", true},
 		{"3.3.3.3 in addrset", false},
 	})
 
 	// Test membership and len() on array of ip addresses
-	record, err = parseOneRecord(`
+	tzng = `
 #0:record[addrvec:array[ip]]
-0:[[1.1.1.1;2.2.2.2;]]`)
-	require.NoError(t, err)
-	runCases(t, record, []testcase{
+0:[[1.1.1.1;2.2.2.2;]]`
+	runCases(t, tzng, []testcase{
 		{"1.1.1.1 in addrvec", true},
 		{"3.3.3.3 in addrvec", false},
 		{"len(addrvec) = 2", true},
@@ -195,11 +168,13 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test comparing fields in nested records
-	record, err = parseOneRecord(`
+	tzng = `
 #0:record[nested:record[field:string]]
-0:[[test;]]`)
-	require.NoError(t, err)
-	runCases(t, record, []testcase{
+0:[[test;]]`
+	// We expect false positives from BufferFilter here because it looks for
+	// values without regard to field name, returning true as long as some
+	// field matches the literal to the right of the equal sign.
+	runCasesExpectBufferFilterFalsePositives(t, tzng, []testcase{
 		{"nested.field = test", true},
 		{"bogus.field = test", false},
 		{"nested.bogus = test", false},
@@ -208,11 +183,10 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test array of records
-	record, err = parseOneRecord(`
+	tzng = `
 #0:record[nested:array[record[field:int32]]]
-0:[[[1;][2;]]]`)
-	require.NoError(t, err)
-	runCases(t, record, []testcase{
+0:[[[1;][2;]]]`
+	runCases(t, tzng, []testcase{
 		{"nested[0].field = 1", true},
 		{"nested[1].field = 2", true},
 		{"nested[0].field = 2", false},
@@ -221,11 +195,10 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test array inside a record
-	record, err = parseOneRecord(`
+	tzng = `
 #0:record[nested:record[vec:array[int32]]]
-0:[[[1;2;3;]]]`)
-	require.NoError(t, err)
-	runCases(t, record, []testcase{
+0:[[[1;2;3;]]]`
+	runCases(t, tzng, []testcase{
 		{"1 in nested.vec", true},
 		{"2 in nested.vec", true},
 		{"4 in nested.vec", false},
@@ -236,11 +209,10 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test escaped chars in a bstring
-	record, err = parseOneRecord(`
+	tzng = `
 #0:record[s:bstring]
-0:[begin\x01\x02\xffend;]`)
-	require.NoError(t, err)
-	runCases(t, record, []testcase{
+0:[begin\x01\x02\xffend;]`
+	runCases(t, tzng, []testcase{
 		{"begin", true},
 		{"s=begin", false},
 		{"begin\\x01\\x02\\xffend", true},
@@ -255,30 +227,59 @@ func TestFilters(t *testing.T) {
 	// combining characters (e.g., plain n plus combining
 	// tilde) and the other uses composed characters.  Test both
 	// strings against queries written with both formats.
-	record, err = parseOneRecord(`
+	tzng = `
 #0:record[s:bstring]
-0:[Buenos di\xcc\x81as sen\xcc\x83or;]`)
-	require.NoError(t, err)
-	runCases(t, record, []testcase{
+0:[Buenos di\xcc\x81as sen\xcc\x83or;]`
+	runCases(t, tzng, []testcase{
 		{`s = "Buenos di\u{0301}as sen\u{0303}or"`, true},
 		{`s = "Buenos d\u{ed}as se\u{f1}or"`, true},
 	})
-	record, err = parseOneRecord(`
+	tzng = `
 #0:record[s:bstring]
-0:[Buenos d\xc3\xadas se\xc3\xb1or;]`)
-	require.NoError(t, err)
-	runCases(t, record, []testcase{
+0:[Buenos d\xc3\xadas se\xc3\xb1or;]`
+	runCases(t, tzng, []testcase{
 		{`s = "Buenos di\u{0301}as sen\u{0303}or"`, true},
 		{`s = "Buenos d\u{ed}as se\u{f1}or"`, true},
 	})
 
+	// There are two Unicode code points with a multibyte UTF-8 encoding
+	// equivalent under Unicode simple case folding to code points with
+	// single-byte UTF-8 encodings: U+017F LATIN SMALL LETTER LONG S is
+	// equivalent to S and s, and U+212A KELVIN SIGN is equivalent to K and
+	// k. The next two records ensure they're handled correctly.
+
+	// Test U+017F LATIN SMALL LETTER LONG S.
+	tzng = `
+#0:record[a:string]
+0:[\u017F;]`
+	runCases(t, tzng, []testcase{
+		{`a = \u017F`, true},
+		{`a = S`, false},
+		{`a = s`, false},
+		{`\u017F`, true},
+		{`S`, false}, // Should be true; see https://github.com/brimsec/zq/issues/1207.
+		{`s`, false}, // Should be true; see https://github.com/brimsec/zq/issues/1207.
+	})
+
+	// Test U+212A KELVIN SIGN.
+	tzng = `
+#0:record[a:string]
+0:[\u212A;]`
+	runCases(t, tzng, []testcase{
+		{`a = '\u212A'`, true},
+		{`a = K`, true}, // True because Unicode NFC replaces U+212A with U+004B.
+		{`a = k`, false},
+		{`\u212A`, true},
+		{`K`, true},
+		{`k`, true},
+	})
+
 	// Test searching both fields and containers,
 	// also test case-insensitive search.
-	record, err = parseOneRecord(`
+	tzng = `
 #0:record[s:string,srec:record[svec:array[string]]]
-0:[hello;[[world;worldz;1.1.1.1;]]]`)
-	require.NoError(t, err)
-	runCases(t, record, []testcase{
+0:[hello;[[world;worldz;1.1.1.1;]]]`
+	runCases(t, tzng, []testcase{
 		{"hello", true},
 		{"worldz", true},
 		{"HELLO", true},
@@ -288,23 +289,20 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test searching with subnet syntax
-	record, err = parseOneRecord(`
+	tzng = `
 #0:record[addr:ip]
-0:[192.168.1.50;]
-`)
-	require.NoError(t, err)
-	runCases(t, record, []testcase{
+0:[192.168.1.50;]`
+	runCases(t, tzng, []testcase{
 		{"192.168.0.0/16", true},
 		{"192.168.1.0/24", true},
 		{"10.0.0.0/8", false},
 	})
 
 	// Test time coercion
-	record, err = parseOneRecord(`
+	tzng = `
 #0:record[ts:time,ts2:time,ts3:time]
-0:[1.001;1578411532;1578411533.01;]`)
-	require.NoError(t, err)
-	runCases(t, record, []testcase{
+0:[1.001;1578411532;1578411533.01;]`
+	runCases(t, tzng, []testcase{
 		{"ts<2", true},
 		{"ts=1.001", true},
 		{"ts<1.002", true},
@@ -316,11 +314,10 @@ func TestFilters(t *testing.T) {
 	// Test that string search doesn't match non-string types:
 	// The ASCII value of 'T' (0x54) is present inside the binary
 	// encoding of 1.001.  But naked string search should not match.
-	record, err = parseOneRecord(`
+	tzng = `
 #0:record[f:float64]
-0:[1.001;]`)
-	require.NoError(t, err)
-	runCases(t, record, []testcase{
+0:[1.001;]`
+	runCases(t, tzng, []testcase{
 		{"T", false},
 	})
 
@@ -330,12 +327,10 @@ func TestFilters(t *testing.T) {
 	//    with integers on the RHS)
 	// 3. that coercion to float64 works properly (in the filters
 	//    with floats on the RHS)
-	record, err = parseOneRecord(`
+	tzng = `
 #0:record[b:byte,i16:int16,u16:uint16,i32:int32,u32:uint32,i64:int64,u64:uint64]
-0:[0;-32768;0;-2147483648;0;-9223372036854775808;0;]
-`)
-	require.NoError(t, err)
-	runCases(t, record, []testcase{
+0:[0;-32768;0;-2147483648;0;-9223372036854775808;0;]`
+	runCases(t, tzng, []testcase{
 		{"b > -1", true},
 		{"b = 0", true},
 		{"b < 1", true},
@@ -387,12 +382,10 @@ func TestFilters(t *testing.T) {
 		{"u16 != :0", false},
 	})
 
-	record, err = parseOneRecord(`
+	tzng = `
 #0:record[b:byte,i16:int16,u16:uint16,i32:int32,u32:uint32,i64:int64,u64:uint64]
-0:[255;32767;65535;2147483647;4294967295;9223372036854775807;18446744073709551615;]
-`)
-	require.NoError(t, err)
-	runCases(t, record, []testcase{
+0:[255;32767;65535;2147483647;4294967295;9223372036854775807;18446744073709551615;]`
+	runCases(t, tzng, []testcase{
 		{"b = 255", true},
 		{"i16 = 32767", true},
 		{"u16 = 65535", true},
@@ -405,12 +398,10 @@ func TestFilters(t *testing.T) {
 
 	// Test comparisons with field of type port (can compare with
 	// a port literal or an integer literal)
-	record, err = parseOneRecord(`
+	tzng = `
 #0:record[p:port]
-0:[443;]
-`)
-	require.NoError(t, err)
-	runCases(t, record, []testcase{
+0:[443;]`
+	runCases(t, tzng, []testcase{
 		{"p = :443", true},
 		{"p = 443", true},
 		{"p = 80", false},
@@ -418,22 +409,18 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test that port searches don't match the port number in strings
-	record, err = parseOneRecord(`
+	tzng = `
 #0:record[s:string]
-0:[123456;]
-`)
-	require.NoError(t, err)
-	runCases(t, record, []testcase{
+0:[123456;]`
+	runCases(t, tzng, []testcase{
 		{":123", false},
 	})
 
 	// Test coercion from string to bstring
-	record, err = parseOneRecord(`
+	tzng = `
 #0:record[s:bstring]
-0:[hello;]
-`)
-	require.NoError(t, err)
-	runCases(t, record, []testcase{
+0:[hello;]`
+	runCases(t, tzng, []testcase{
 		{"s = hello", true},
 		{"s =~ hello", true},
 		{"s !~ hello", false},
@@ -447,12 +434,10 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test ip comparisons
-	record, err = parseOneRecord(`
+	tzng = `
 #0:record[a:ip]
-0:[192.168.1.50;]
-`)
-	require.NoError(t, err)
-	runCases(t, record, []testcase{
+0:[192.168.1.50;]`
+	runCases(t, tzng, []testcase{
 		{"a = 192.168.1.50", true},
 		{"a = 50.1.168.192", false},
 		{"a != 50.1.168.192", true},
@@ -463,34 +448,36 @@ func TestFilters(t *testing.T) {
 	})
 
 	// Test comparisons with an aliased type
-	record, err = parseOneRecord(`
+	tzng = `
 #myint=int32
 #0:record[i:myint]
-0:[100;]`)
-	require.NoError(t, err)
-	runCases(t, record, []testcase{
+0:[100;]`
+	runCases(t, tzng, []testcase{
 		{"i = 100", true},
 		{"i > 0", true},
 		{"i < 50", false},
 	})
 
 	// Test searching for a field name
-	record, err = parseOneRecord(`
-#0:record[foo:string,rec:record[sub:string]]
-0:[bleah;[meh;]]`)
-	require.NoError(t, err)
-	runCases(t, record, []testcase{
+	tzng = `
+#0:record[foo:string,rec:record[SUB:string]]
+0:[bleah;[meh;]]`
+	runCases(t, tzng, []testcase{
 		{"foo", true},
 		{"FOO", true},
+		{"foo.", false},
 		{"sub", true},
+		{"sub.", false},
 		{"rec.sub", true},
 		{"c.s", true},
 	})
 }
 
 func TestBadFilter(t *testing.T) {
-	filter := `s =~ \xa8*`
-	_, err := compileFilter(filter)
+	t.Parallel()
+	proc, err := zql.ParseProc(`s =~ \xa8*`)
+	require.NoError(t, err)
+	_, err = filter.Compile(proc.(*ast.FilterProc).Filter)
 	assert.Error(t, err, "Received error for bad glob")
 	assert.Contains(t, err.Error(), "invalid UTF-8", "Received good error message for invalid UTF-8 in a regexp")
 }

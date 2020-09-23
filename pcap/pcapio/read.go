@@ -5,10 +5,8 @@
 // LICENSE file in the root directory of this repository.
 
 // Copyright 2014 Damjan Cvetko. All rights reserved.
-//
-// Use of this source code is governed by a BSD-style license
-// that can be found in the LICENSE file in the same directory
-// containing this source file.
+// See acknowledgments.txt for full license text from:
+// https://github.com/fitzgen/glob-to-regexp#license
 
 package pcapio
 

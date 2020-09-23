@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/pkg/fs"
@@ -25,8 +26,30 @@ var Get = &charm.Spec{
 	Name:  "get",
 	Usage: "get [options] <search>",
 	Short: "perform zql searches",
-	Long:  "TODO",
-	New:   New,
+	Long: `
+zapi get issues search requests to the zqd search service.
+
+The -from and -to options specify a time range.  If not provided, the entire
+space is searched.
+
+By default, the service streams results in native zng and the zapi client
+converts the results to the format specified by -f.
+
+Alternatively, the -e option can specify a different encoding to be used by
+the server, in which case the output is not converted by -f.  These two options
+cannot be used together.
+
+Statistics and warnings can be displayed on stderr, which can be useful
+for long running jobs.
+
+Everything is flow-controlled end to end, so if the client host, network,
+or disk becomes a bottleneck, the service will naturally clock itself
+at the rate determined by the client.
+
+The -debug option can be useful for debugging.  In this case, the server
+response is written unmodified in its entirety to the output.
+`,
+	New: New,
 }
 
 func init() {
@@ -36,16 +59,15 @@ func init() {
 
 type Command struct {
 	*cmd.Command
-	zio.WriterFlags
-	protocol   string
-	from       tsflag
-	to         tsflag
-	dir        string
-	outputFile string
-	stats      bool
-	warnings   bool
-	wire       bool
-	final      *api.SearchStats
+	outputFlags outputflags.Flags
+	encoding    string
+	from        tsflag
+	to          tsflag
+	dir         string
+	stats       bool
+	warnings    bool
+	debug       bool
+	final       *api.SearchStats
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -53,27 +75,20 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 		Command: parent.(*cmd.Command),
 		to:      tsflag(nano.MaxTs),
 	}
-	f.StringVar(&c.Format, "f", "text", "format for output data [zng,ndjson,table,text,types,zeek,zjson,tzng]")
-	f.StringVar(&c.protocol, "p", "zng", "protocol to use for search request [ndjson,zjson,zng]")
-	f.StringVar(&c.dir, "d", "", "directory for output data files")
-	f.StringVar(&c.outputFile, "o", "", "write data to output file")
+	f.StringVar(&c.encoding, "e", "zng", "server encoding to use for search results [csv,json,ndjson,zjson,zng]")
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
 	f.BoolVar(&c.warnings, "W", true, "display warnings on stderr")
-	f.BoolVar(&c.ShowTypes, "T", false, "display field types in text output")
-	f.BoolVar(&c.ShowFields, "F", false, "display field names in text output")
-	f.BoolVar(&c.EpochDates, "E", false, "display epoch timestamps in text output")
-	f.BoolVar(&c.wire, "w", false, "dump what's on the wire")
+	f.BoolVar(&c.debug, "debug", false, "dump raw HTTP response straight to output")
 	f.Var(&c.from, "from", "search from timestamp in RFC3339Nano format (e.g. 2006-01-02T15:04:05.999999999Z07:00)")
 	f.Var(&c.to, "to", "search to timestamp in RFC3339Nano format (e.g. 2006-01-02T15:04:05.999999999Z07:00)")
+	c.outputFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	// XXX For now only allow non-wire searches to run with zng response
-	// encoding. It shouldn't be difficult to allow this for all supported
-	// response encodings but KISS for now.
-	if !c.wire && c.protocol != "zng" {
-		return errors.New("only zng protocol allowed for non-wire searches")
+	defer c.Cleanup()
+	if err := c.Init(&c.outputFlags); err != nil {
+		return err
 	}
 	expr := "*"
 	if len(args) > 0 {
@@ -89,22 +104,29 @@ func (c *Command) Run(args []string) error {
 		return fmt.Errorf("parse error: %s", err)
 	}
 	req.Span = nano.NewSpanTs(nano.Ts(c.from), nano.Ts(c.to))
-	params := map[string]string{"format": c.protocol}
+	params := map[string]string{"format": c.encoding}
 	r, err := client.SearchRaw(c.Context(), *req, params)
 	if err != nil {
 		return fmt.Errorf("search error: %w", err)
 	}
 	defer r.Close()
-	if c.wire {
-		return c.runWireSearch(r)
+	if c.debug {
+		return c.runRawSearch(r)
 	}
-	writer, err := openOutput(c.dir, c.outputFile, c.WriterFlags)
+	writerOpts := c.outputFlags.Options()
+	if c.encoding != "zng" {
+		if writerOpts.Format != "zng" {
+			return errors.New("-e cannot be used with -f")
+		}
+		return c.runRawSearch(r)
+	}
+	writer, err := c.outputFlags.Open()
 	if err != nil {
 		return err
 	}
 	stream := api.NewZngSearch(r)
 	stream.SetOnCtrl(c.handleControl)
-	if err := zbuf.Copy(zbuf.NopFlusher(writer), stream); err != nil {
+	if err := zbuf.Copy(writer, stream); err != nil {
 		writer.Close()
 		if c.Context().Err() != nil {
 			return errors.New("search aborted")
@@ -146,12 +168,13 @@ func (c *Command) handleControl(ctrl interface{}) {
 	}
 }
 
-func (c *Command) runWireSearch(r io.Reader) error {
+func (c *Command) runRawSearch(r io.Reader) error {
 	w := os.Stdout
-	if c.outputFile != "" {
+	filename := c.outputFlags.FileName()
+	if filename != "" {
 		var err error
 		flags := os.O_WRONLY | os.O_CREATE | os.O_TRUNC
-		file, err := fs.OpenFile(c.outputFile, flags, 0600)
+		file, err := fs.OpenFile(filename, flags, 0600)
 		if err != nil {
 			return err
 		}
@@ -191,9 +214,9 @@ func (t *tsflag) Set(val string) error {
 	return nil
 }
 
-func openOutput(dir, file string, flags zio.WriterFlags) (zbuf.WriteCloser, error) {
+func openOutput(dir, file string, opts zio.WriterOpts) (zbuf.WriteCloser, error) {
 	if dir != "" {
-		return emitter.NewDir(dir, file, os.Stderr, &flags)
+		return emitter.NewDir(dir, file, os.Stderr, opts)
 	}
-	return emitter.NewFile(file, &flags)
+	return emitter.NewFile(file, opts)
 }

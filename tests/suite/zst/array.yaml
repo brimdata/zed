@@ -1,0 +1,19 @@
+script: |
+  zst create -o out.zst in.tzng
+  zq -i zst -t out.zst
+
+inputs:
+  - name: in.tzng
+    data: |
+      #0:record[a:string,b:array[record[a:string,b:string]]]
+      0:[hello;[[a;b;][c;d;][e;f;]]]
+      0:[world;-;]
+      0:[goodnight;[[a;b;][c;-;][e;f;]]]
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[a:string,b:array[record[a:string,b:string]]]
+      0:[hello;[[a;b;][c;d;][e;f;]]]
+      0:[world;-;]
+      0:[goodnight;[[a;b;][c;-;][e;f;]]]

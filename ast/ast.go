@@ -197,7 +197,12 @@ type (
 	// a stream of records from their parent.
 	ParallelProc struct {
 		Node
-		Procs []Proc `json:"procs"`
+		// If non-zero, MergeOrderField contains the field name on
+		// which the branches of this parallel proc should be
+		// merged in the order indicated by MergeOrderReverse.
+		MergeOrderField   string `json:"merge_order_field"`
+		MergeOrderReverse bool   `json:"merge_order_reverse"`
+		Procs             []Proc `json:"procs"`
 	}
 	// A SortProc node represents a proc that sorts records.
 	SortProc struct {
@@ -211,8 +216,8 @@ type (
 	// sending each such modified record to its output in the order received.
 	CutProc struct {
 		Node
-		Complement bool     `json:"complement"`
-		Fields     []string `json:"fields"`
+		Complement bool              `json:"complement"`
+		Fields     []FieldAssignment `json:"fields"`
 	}
 	// A HeadProc node represents a proc that forwards the indicated number
 	// of records then terminates.
@@ -245,14 +250,6 @@ type (
 		Node
 		Cflag bool `json:"cflag"`
 	}
-	// A ReduceProc node represents a proc that consumes all the records
-	// in its input and processes each record with one or more reducers.
-	// After all the records have been consumed, the proc generates a single
-	// record that contains each reducer's result as a field in that record.
-	ReduceProc struct {
-		Node
-		Reducers []Reducer `json:"reducers"`
-	}
 	// A GroupByProc node represents a proc that consumes all the records
 	// in its input, partitions the records into groups based on the values
 	// of the fields specified in the keys field (where the first key is the
@@ -267,13 +264,21 @@ type (
 	// The Limit field specifies the number of different groups that can be
 	// aggregated over. When absent, the runtime defaults to an
 	// appropriate value.
+	// If EmitPart is true, the proc will produce decomposed
+	// output results, using the reducer.ResultPart()
+	// method. Likewise, if ConsumePart is true, the proc will
+	// expect decomposed inputs, using the reducer.ResultPart()
+	// method. It is an error for either of these flags to be true
+	// if any reducer in Reducers is non-decomposable.
 	GroupByProc struct {
 		Node
-		Duration     Duration     `json:"duration"`
-		InputSortDir int          `json:"input_sort_dir,omitempty"`
-		Limit        int          `json:"limit,omitempty"`
-		Keys         []Assignment `json:"keys"`
-		Reducers     []Reducer    `json:"reducers"`
+		Duration     Duration               `json:"duration"`
+		InputSortDir int                    `json:"input_sort_dir,omitempty"`
+		Limit        int                    `json:"limit,omitempty"`
+		Keys         []ExpressionAssignment `json:"keys"`
+		Reducers     []Reducer              `json:"reducers"`
+		ConsumePart  bool                   `json:"consume_part"`
+		EmitPart     bool                   `json:"emit_part"`
 	}
 	// TopProc is similar to proc.SortProc with a few key differences:
 	// - It only sorts in descending order.
@@ -289,13 +294,29 @@ type (
 
 	PutProc struct {
 		Node
-		Clauses []Assignment `json:"clauses"`
+		Clauses []ExpressionAssignment `json:"clauses"`
+	}
+
+	// A RenameProc node represents a proc that renames fields.
+	RenameProc struct {
+		Node
+		Fields []FieldAssignment `json:"fields"`
+	}
+
+	// A FuseProc node represents a proc that turns a zng stream into a dataframe.
+	FuseProc struct {
+		Node
 	}
 )
 
-type Assignment struct {
+type ExpressionAssignment struct {
 	Target string     `json:"target"`
 	Expr   Expression `json:"expression"`
+}
+
+type FieldAssignment struct {
+	Target string `json:"target"`
+	Source string `json:"source"`
 }
 
 //XXX TBD: chance to nano.Duration
@@ -310,12 +331,11 @@ type DurationNode struct {
 
 func (d *Duration) UnmarshalJSON(b []byte) error {
 	var v DurationNode
-	err := json.Unmarshal(b, &v)
-	if err != nil {
+	if err := json.Unmarshal(b, &v); err != nil {
 		return err
 	}
 	d.Seconds = v.Seconds
-	return err
+	return nil
 }
 
 func (*SequentialProc) ProcNode() {}
@@ -327,10 +347,11 @@ func (*TailProc) ProcNode()       {}
 func (*PassProc) ProcNode()       {}
 func (*FilterProc) ProcNode()     {}
 func (*UniqProc) ProcNode()       {}
-func (*ReduceProc) ProcNode()     {}
 func (*GroupByProc) ProcNode()    {}
 func (*TopProc) ProcNode()        {}
 func (*PutProc) ProcNode()        {}
+func (*RenameProc) ProcNode()     {}
+func (*FuseProc) ProcNode()       {}
 
 // A Reducer is an AST node that represents a reducer function.  The Op
 // parameter indicates the specific reducer while the Field parameter indicates

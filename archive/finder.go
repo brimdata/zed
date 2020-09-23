@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 
+	"github.com/brimsec/zq/microindex"
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zdx"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zqe"
 )
 
 type findOptions struct {
@@ -45,7 +46,11 @@ func AddPath(pathField string, absolutePath bool) FindOption {
 		opt.addPath = func(ark *Archive, si SpanInfo, rec *zng.Record) (*zng.Record, error) {
 			var path string
 			if absolutePath {
-				path = si.LogID.Path(ark)
+				if ark.DataPath.Scheme == "file" {
+					path = si.LogID.Path(ark).Filepath()
+				} else {
+					path = si.LogID.Path(ark).String()
+				}
 			} else {
 				path = string(si.LogID)
 			}
@@ -71,10 +76,10 @@ func AddPath(pathField string, absolutePath bool) FindOption {
 // XXX We currently allow only one multi-key pattern at a time though it might
 // be more efficient at large scale to allow multipe patterns that
 // are effectively OR-ed together so that there is locality of
-// access to the zdx files.
-func Find(ctx context.Context, ark *Archive, query IndexQuery, hits chan<- *zng.Record, opts ...FindOption) error {
+// access to the microindex files.
+func Find(ctx context.Context, zctx *resolver.Context, ark *Archive, query IndexQuery, hits chan<- *zng.Record, opts ...FindOption) error {
 	opt := findOptions{
-		zctx:    resolver.NewContext(),
+		zctx:    zctx,
 		addPath: func(_ *Archive, _ SpanInfo, rec *zng.Record) (*zng.Record, error) { return rec, nil },
 	}
 	for _, o := range opts {
@@ -82,12 +87,21 @@ func Find(ctx context.Context, ark *Archive, query IndexQuery, hits chan<- *zng.
 			return err
 		}
 	}
-	return SpanWalk(ark, func(si SpanInfo, zardir string) error {
+	if _, err := ark.UpdateCheck(ctx); err != nil {
+		return err
+	}
+	ark.mu.RLock()
+	indexInfo, ok := ark.indexes[query.indexName]
+	ark.mu.RUnlock()
+	if !ok {
+		return zqe.E(zqe.NotFound)
+	}
+	return SpanWalk(ctx, ark, func(si SpanInfo, zardir iosrc.URI) error {
 		searchHits := make(chan *zng.Record)
 		var searchErr error
 		go func() {
 			defer close(searchHits)
-			searchErr = search(ctx, opt.zctx, searchHits, filepath.Join(zardir, query.indexName), query.patterns)
+			searchErr = search(ctx, opt.zctx, searchHits, zardir.AppendPath(indexInfo.Path), query.patterns)
 			if searchErr != nil && os.IsNotExist(searchErr) && opt.skipMissing {
 				// No index for this rule.  Skip it if the skip boolean
 				// says it's ok.  Otherwise, we return ErrNotExist since
@@ -111,9 +125,9 @@ func Find(ctx context.Context, ark *Archive, query IndexQuery, hits chan<- *zng.
 	})
 }
 
-func search(ctx context.Context, zctx *resolver.Context, hits chan<- *zng.Record, path string, patterns []string) error {
-	finder := zdx.NewFinder(zctx, path)
-	if err := finder.Open(); err != nil {
+func search(ctx context.Context, zctx *resolver.Context, hits chan<- *zng.Record, uri iosrc.URI, patterns []string) error {
+	finder := microindex.NewFinder(zctx, uri)
+	if err := finder.Open(ctx); err != nil {
 		return fmt.Errorf("%s: %w", finder.Path(), err)
 	}
 	defer finder.Close()
@@ -121,11 +135,10 @@ func search(ctx context.Context, zctx *resolver.Context, hits chan<- *zng.Record
 	if err != nil {
 		return fmt.Errorf("%s: %w", finder.Path(), err)
 	}
-	err = finder.LookupAll(ctx, hits, keys)
-	if err != nil {
-		err = fmt.Errorf("%s: %w", finder.Path(), err)
+	if err := finder.LookupAll(ctx, hits, keys); err != nil {
+		return fmt.Errorf("%s: %w", finder.Path(), err)
 	}
-	return err
+	return nil
 }
 
 type findReadCloser struct {
@@ -152,7 +165,7 @@ func (f *findReadCloser) Close() error {
 	return nil
 }
 
-func FindReadCloser(ctx context.Context, ark *Archive, query IndexQuery, opts ...FindOption) (zbuf.ReadCloser, error) {
+func FindReadCloser(ctx context.Context, zctx *resolver.Context, ark *Archive, query IndexQuery, opts ...FindOption) (zbuf.ReadCloser, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	f := &findReadCloser{
 		ctx:    ctx,
@@ -160,7 +173,7 @@ func FindReadCloser(ctx context.Context, ark *Archive, query IndexQuery, opts ..
 		hits:   make(chan *zng.Record),
 	}
 	go func() {
-		f.err = Find(ctx, ark, query, f.hits, opts...)
+		f.err = Find(ctx, zctx, ark, query, f.hits, opts...)
 		close(f.hits)
 	}()
 	return f, nil

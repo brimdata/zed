@@ -1,6 +1,7 @@
 package zqd
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,10 +11,13 @@ import (
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pkg/ctxio"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/ingest"
 	"github.com/brimsec/zq/zqd/search"
 	"github.com/brimsec/zq/zqd/space"
+	"github.com/brimsec/zq/zqd/storage/archivestore"
 	"github.com/brimsec/zq/zqe"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -88,14 +92,13 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	defer cancel()
 
-	srch, err := search.NewSearchOp(ctx, s.Storage(), req)
+	srch, err := search.NewSearchOp(req)
 	if err != nil {
 		// XXX This always returns bad request but should return status codes
 		// that reflect the nature of the returned error.
 		respondError(c, w, r, err)
 		return
 	}
-	defer srch.Close()
 
 	out, err := getSearchOutput(w, r)
 	if err != nil {
@@ -104,7 +107,7 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", out.ContentType())
-	if err := srch.Run(out); err != nil {
+	if err := srch.Run(ctx, s.Storage(), out); err != nil {
 		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
 	}
 }
@@ -116,8 +119,14 @@ func getSearchOutput(w http.ResponseWriter, r *http.Request) (search.Output, err
 	}
 	format := r.URL.Query().Get("format")
 	switch format {
-	case "zjson", "ndjson":
+	case "csv":
+		return search.NewCSVOutput(w, ctrl), nil
+	case "json":
 		return search.NewJSONOutput(w, search.DefaultMTU, ctrl), nil
+	case "ndjson":
+		return search.NewNDJSONOutput(w), nil
+	case "zjson":
+		return search.NewZJSONOutput(w, search.DefaultMTU, ctrl), nil
 	case "zng":
 		return search.NewZngOutput(w, ctrl), nil
 	default:
@@ -143,12 +152,17 @@ func handlePcapSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		respondError(c, w, r, zqe.E(zqe.Invalid, err))
 		return
 	}
-	pspace, ok := s.(search.PcapSpace)
+	pspace, ok := s.(space.PcapSpace)
 	if !ok {
 		respondError(c, w, r, zqe.E(zqe.Invalid, "space does not support pcap searches"))
 		return
 	}
-	reader, err := search.NewPcapSearchOp(ctx, pspace, req)
+	pcapstore := pspace.PcapStore()
+	if pcapstore.Empty() {
+		respondError(c, w, r, zqe.E(zqe.NotFound, "no pcap in this space"))
+		return
+	}
+	reader, err := pcapstore.NewSearch(ctx, req)
 	if err == pcap.ErrNoPcapsFound {
 		respondError(c, w, r, zqe.E(zqe.NotFound, err))
 		return
@@ -203,7 +217,7 @@ func handleSpacePost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sp, err := c.spaces.Create(req)
+	sp, err := c.spaces.Create(r.Context(), req)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -235,7 +249,7 @@ func handleSubspacePost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sp, err := c.spaces.CreateSubspace(s, req)
+	sp, err := c.spaces.CreateSubspace(ctx, s, req)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -281,8 +295,7 @@ func handleSpaceDelete(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := c.spaces.Delete(api.SpaceID(id))
-	if err != nil {
+	if err := c.spaces.Delete(r.Context(), api.SpaceID(id)); err != nil {
 		respondError(c, w, r, err)
 		return
 	}
@@ -291,7 +304,7 @@ func handleSpaceDelete(c *Core, w http.ResponseWriter, r *http.Request) {
 
 func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	if !c.HasZeek() {
-		respondError(c, w, r, zqe.E(zqe.Invalid, "packet post not supported: zeek not found"))
+		respondError(c, w, r, zqe.E(zqe.Invalid, "pcap post not supported: Zeek not found"))
 		return
 	}
 	logger := c.requestLogger(r)
@@ -313,17 +326,18 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pspace, ok := s.(ingest.PcapSpace)
+	pspace, ok := s.(space.PcapSpace)
 	if !ok {
 		respondError(c, w, r, zqe.E(zqe.Invalid, "space does not support pcap import"))
 		return
 	}
-	pstore, ok := s.Storage().(ingest.PcapStore)
+	pcapstore := pspace.PcapStore()
+	logstore, ok := s.Storage().(ingest.ClearableStore)
 	if !ok {
 		respondError(c, w, r, zqe.E(zqe.Invalid, "storage does not support pcap import"))
 		return
 	}
-	op, err := ingest.NewPcapOp(ctx, pspace, pstore, req.Path, c.ZeekLauncher)
+	op, warnings, err := ingest.NewPcapOp(ctx, pcapstore, logstore, req.Path, c.Suricata, c.Zeek)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -333,9 +347,19 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	pipe := api.NewJSONPipe(w)
 	taskID := c.getTaskID()
 	taskStart := api.TaskStart{Type: "TaskStart", TaskID: taskID}
-	if err = pipe.Send(taskStart); err != nil {
+	if err := pipe.Send(taskStart); err != nil {
 		logger.Warn("Error sending payload", zap.Error(err))
 		return
+	}
+	for _, warning := range warnings {
+		err := pipe.Send(api.LogPostWarning{
+			Type:    "PcapPostWarning",
+			Warning: warning,
+		})
+		if err != nil {
+			logger.Warn("error sending payload", zap.Error(err))
+			return
+		}
 	}
 	ticker := time.NewTicker(time.Second * 2)
 	defer ticker.Stop()
@@ -372,14 +396,17 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	taskEnd := api.TaskEnd{Type: "TaskEnd", TaskID: taskID}
-	if err := op.Err(); err != nil {
+
+	if ctx.Err() != nil {
+		taskEnd.Error = &api.Error{Type: "Error", Message: "pcap post operation canceled"}
+	} else if operr := op.Err(); operr != nil {
 		var ok bool
-		taskEnd.Error, ok = err.(*api.Error)
+		taskEnd.Error, ok = operr.(*api.Error)
 		if !ok {
-			taskEnd.Error = &api.Error{Type: "Error", Message: err.Error()}
+			taskEnd.Error = &api.Error{Type: "Error", Message: operr.Error()}
 		}
 	}
-	if err = pipe.SendFinal(taskEnd); err != nil {
+	if err := pipe.SendFinal(taskEnd); err != nil {
 		logger.Warn("Error sending payload", zap.Error(err))
 		return
 	}
@@ -405,12 +432,7 @@ func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		respondError(c, w, r, zqe.E(zqe.Invalid, "empty paths"))
 		return
 	}
-	ls, ok := s.Storage().(ingest.LogStore)
-	if !ok {
-		respondError(c, w, r, zqe.E(zqe.Invalid, "space does not support log import"))
-		return
-	}
-	op, err := ingest.NewLogOp(ctx, ls, req)
+	op, err := ingest.NewLogOp(ctx, s.Storage(), req)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -441,24 +463,50 @@ loop:
 				return
 			}
 		case <-ticker.C:
-			err := pipe.Send(op.Stats())
-			if err != nil {
+			if err := pipe.Send(op.Stats()); err != nil {
 				logger.Warn("error sending payload", zap.Error(err))
 				return
 			}
 		}
 	}
 	// send final status
-	err = pipe.Send(op.Stats())
-	if err != nil {
+	if err := pipe.Send(op.Stats()); err != nil {
 		logger.Warn("error sending payload", zap.Error(err))
 		return
 	}
-	err = pipe.SendEnd(0, op.Error())
-	if err != nil {
+	if err := pipe.SendEnd(0, op.Error()); err != nil {
 		logger.Warn("error sending payload", zap.Error(err))
 		return
 	}
+}
+
+func handleIndexPost(c *Core, w http.ResponseWriter, r *http.Request) {
+	s := extractSpace(c, w, r)
+	if s == nil {
+		return
+	}
+	ctx, cancel, err := s.StartOp(r.Context())
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	defer cancel()
+
+	var req api.IndexPostRequest
+	if !request(c, w, r, &req) {
+		return
+	}
+
+	store, ok := s.Storage().(*archivestore.Storage)
+	if !ok {
+		respondError(c, w, r, zqe.E(zqe.Invalid, "space storage does not support creating indexes"))
+		return
+	}
+	if err := store.IndexCreate(ctx, req); err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func handleIndexSearch(c *Core, w http.ResponseWriter, r *http.Request) {
@@ -498,6 +546,46 @@ func handleIndexSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", out.ContentType())
 	if err := srch.Run(out); err != nil {
+		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
+	}
+}
+
+type ArchiveStater interface {
+	ArchiveStat(context.Context, *resolver.Context) (zbuf.ReadCloser, error)
+}
+
+func handleArchiveStat(c *Core, w http.ResponseWriter, r *http.Request) {
+	s := extractSpace(c, w, r)
+	if s == nil {
+		return
+	}
+	ctx, cancel, err := s.StartOp(r.Context())
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	defer cancel()
+
+	store, ok := s.Storage().(ArchiveStater)
+	if !ok {
+		respondError(c, w, r, zqe.E(zqe.Invalid, "space storage does not support archive stat"))
+		return
+	}
+	rc, err := store.ArchiveStat(ctx, resolver.NewContext())
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	defer rc.Close()
+
+	out, err := getSearchOutput(w, r)
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", out.ContentType())
+	if err := search.SendFromReader(out, rc); err != nil {
 		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
 	}
 }

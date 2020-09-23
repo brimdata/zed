@@ -1,0 +1,15 @@
+zql: '*'
+
+input: !!binary |
+  gAQGb3JpZ19oDQZvcmlnX3AOBnJlc3BfaA0GcmVzcF9wDoELgBMFX3BhdGgLAnRzEAN1aW
+  QLAmlkFwd2ZXJzaW9uCwZjaXBoZXILBWN1cnZlCwtzZXJ2ZXJfbmFtZQsHcmVzdW1lZAAK
+  bGFzdF9hbGVydAsNbmV4dF9wcm90b2NvbAsLZXN0YWJsaXNoZWQAEGNlcnRfY2hhaW5fZn
+  VpZHMYF2NsaWVudF9jZXJ0X2NoYWluX2Z1aWRzGAdzdWJqZWN0CwZpc3N1ZXILDmNsaWVu
+  dF9zdWJqZWN0Cw1jbGllbnRfaXNzdWVyCxF2YWxpZGF0aW9uX3N0YXR1cwsZhwEIc3NsEg
+  D7VuCL010pJkNmRUJvcDJoYmZKWXBqRzVIZCMKCgoHWgbKyQo25lcYBgG7DlRMU3YxMkxU
+  TFNfRUNESEVfUlNBX1dJVEhfQUVTXzEyOF9HQ01fU0hBMjU2ACZjaG9pY2VzLnRydXN0ZS
+  5jb20EAQASaHR0cC8xLjEEAQEBAAAAAACF
+
+output: |
+  #0:record[_path:bstring,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],version:bstring,cipher:bstring,curve:bstring,server_name:bstring,resumed:bool,last_alert:bstring,next_protocol:bstring,established:bool,cert_chain_fuids:array[bstring],client_cert_chain_fuids:array[bstring],subject:bstring,issuer:bstring,client_subject:bstring,client_issuer:bstring,validation_status:bstring]
+  0:[ssl;1490385563.053424;CfEBop2hbfJYpjG5Hd;[10.10.7.90;51913;54.230.87.24;443;]TLSv12;TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256;-;choices.truste.com;T;-;http/1.1;T;-;-;-;-;-;-;-;]

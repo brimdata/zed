@@ -1,0 +1,7 @@
+zql: rename foo=goo
+
+input: |
+  #0:record[foo:string,goo:string]
+  0:[foo1;goo1;]
+
+errorRE: "rename: duplicate field foo"

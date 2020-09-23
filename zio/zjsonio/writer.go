@@ -18,22 +18,26 @@ type Alias struct {
 }
 
 type Record struct {
-	Id      int           `json:"id"`
-	Type    []interface{} `json:"type,omitempty"`
-	Aliases []Alias       `json:"aliases,omitempty"`
-	Values  []interface{} `json:"values"`
+	Id      int            `json:"id"`
+	Type    *[]interface{} `json:"type,omitempty"`
+	Aliases []Alias        `json:"aliases,omitempty"`
+	Values  []interface{}  `json:"values"`
 }
 
 type Writer struct {
-	io.Writer
+	writer io.WriteCloser
 	stream *Stream
 }
 
-func NewWriter(w io.Writer) *Writer {
+func NewWriter(w io.WriteCloser) *Writer {
 	return &Writer{
-		Writer: w,
+		writer: w,
 		stream: NewStream(),
 	}
+}
+
+func (w *Writer) Close() error {
+	return w.writer.Close()
 }
 
 func (w *Writer) Write(r *zng.Record) error {
@@ -45,7 +49,7 @@ func (w *Writer) Write(r *zng.Record) error {
 	if err != nil {
 		return err
 	}
-	_, err = w.Writer.Write(b)
+	_, err = w.writer.Write(b)
 	if err != nil {
 		return err
 	}
@@ -53,6 +57,6 @@ func (w *Writer) Write(r *zng.Record) error {
 }
 
 func (w *Writer) write(s string) error {
-	_, err := w.Writer.Write([]byte(s))
+	_, err := w.writer.Write([]byte(s))
 	return err
 }

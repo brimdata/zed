@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/zjsonio"
@@ -98,13 +99,13 @@ func (s *SpaceID) Set(str string) error {
 type SpaceInfo struct {
 	ID          SpaceID      `json:"id"`
 	Name        string       `json:"name"`
-	DataPath    string       `json:"data_path"`
+	DataPath    iosrc.URI    `json:"data_path"`
 	StorageKind storage.Kind `json:"storage_kind"`
 	Span        *nano.Span   `json:"span,omitempty"`
 	Size        int64        `json:"size" unit:"bytes"`
 	PcapSupport bool         `json:"pcap_support"`
 	PcapSize    int64        `json:"pcap_size" unit:"bytes"`
-	PcapPath    string       `json:"pcap_path"`
+	PcapPath    iosrc.URI    `json:"pcap_path"`
 	ParentID    SpaceID      `json:"parent_id,omitempty"`
 }
 
@@ -118,8 +119,7 @@ func (s SpaceInfos) Names() []string {
 	return names
 }
 
-type StatusResponse struct {
-	Ok      bool   `json:"ok"`
+type VersionResponse struct {
 	Version string `json:"version"`
 }
 
@@ -140,6 +140,11 @@ type SpacePutRequest struct {
 
 type PcapPostRequest struct {
 	Path string `json:"path"`
+}
+
+type PcapPostWarning struct {
+	Type    string `json:"type"`
+	Warning string `json:"warning"`
 }
 
 type PcapPostStatus struct {
@@ -255,4 +260,12 @@ func (ps *PcapSearch) FromQuery(v url.Values) error {
 type IndexSearchRequest struct {
 	IndexName string   `json:"index_name"`
 	Patterns  []string `json:"patterns"`
+}
+
+type IndexPostRequest struct {
+	Patterns   []string        `json:"patterns"`
+	AST        json.RawMessage `json:"ast,omitempty"`
+	Keys       []string        `json:"keys"`
+	InputFile  string          `json:"input_file"`
+	OutputFile string          `json:"output_file"`
 }

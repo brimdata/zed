@@ -1,0 +1,12 @@
+script: |
+  source minio.sh
+  zq -t s3://bucket/does/not/exist
+
+inputs:
+  - name: minio.sh
+    source: ../zar/s3/minio.sh
+
+outputs:
+  - name: stderr
+    data: |
+      s3://bucket/does/not/exist: item does not exist

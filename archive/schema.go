@@ -1,14 +1,15 @@
 package archive
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"os"
-	"path/filepath"
 	"sort"
 	"sync"
 	"time"
 
-	"github.com/brimsec/zq/pkg/fs"
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zqe"
@@ -17,10 +18,12 @@ import (
 const metadataFilename = "zar.json"
 
 type Metadata struct {
-	Version           int            `json:"version"`
-	LogSizeThreshold  int64          `json:"log_size_threshold"`
-	DataSortDirection zbuf.Direction `json:"data_sort_direction"`
-	Spans             []SpanInfo     `json:"spans"`
+	Version           int                  `json:"version"`
+	DataPath          string               `json:"data_path"`
+	LogSizeThreshold  int64                `json:"log_size_threshold"`
+	DataSortDirection zbuf.Direction       `json:"data_sort_direction"`
+	Spans             []SpanInfo           `json:"spans"`
+	Indexes           map[string]IndexInfo `json:"indexes"`
 }
 
 // A LogID identifies a single zng file within an archive. It is created
@@ -30,31 +33,70 @@ type LogID string
 
 // Path returns the local filesystem path for the log file, using the
 // platforms file separator.
-func (l LogID) Path(ark *Archive) string {
-	return filepath.Join(ark.Root, filepath.FromSlash(string(l)))
+func (l LogID) Path(ark *Archive) iosrc.URI {
+	return ark.DataPath.AppendPath(string(l))
 }
 
 type SpanInfo struct {
-	Span  nano.Span `json:"span"`
-	LogID LogID     `json:"log_id"`
+	Span        nano.Span `json:"span"`
+	LogID       LogID     `json:"log_id"`
+	RecordCount int       `json:"record_count"`
 }
 
-func (c *Metadata) Write(path string) error {
-	return fs.MarshalJSONFile(c, path, 0600)
+type IndexInfo struct {
+	Type string `json:"type"`
+	Path string `json:"path"`
 }
 
-func MetadataRead(path string) (*Metadata, time.Time, error) {
+func (c *Metadata) Write(uri iosrc.URI) error {
+	src, err := iosrc.GetSource(uri)
+	if err != nil {
+		return err
+	}
+	rep, ok := src.(iosrc.ReplacerAble)
+	if !ok {
+		return zqe.E("scheme does not support metadata updates: %s", uri)
+	}
+	// Pass background context because we don't want this to quit.
+	wc, err := rep.NewReplacer(context.Background(), uri)
+	if err != nil {
+		return err
+	}
+	if err := json.NewEncoder(wc).Encode(c); err != nil {
+		wc.Close()
+		return err
+	}
+	if err := wc.Close(); err != nil {
+		return err
+	}
+	if uri.Scheme == "file" {
+		// Ensure the mtime is updated on the file after the close. This Chtimes
+		// call was required due to failures seen in CI, when an mtime change
+		// wasn't observed after some writes.
+		// See https://github.com/brimsec/brim/issues/883.
+		now := time.Now()
+		return os.Chtimes(uri.Filepath(), now, now)
+	}
+	return nil
+}
+
+func MetadataRead(ctx context.Context, uri iosrc.URI) (*Metadata, time.Time, error) {
 	// Read the mtime before the read so that the returned time
 	// represents a time at or before the content of the metadata file.
-	fi, err := os.Stat(path)
+	info, err := iosrc.Stat(ctx, uri)
 	if err != nil {
 		return nil, time.Time{}, err
 	}
-	var c Metadata
-	if err := fs.UnmarshalJSONFile(path, &c); err != nil {
+	rc, err := iosrc.NewReader(ctx, uri)
+	if err != nil {
 		return nil, time.Time{}, err
 	}
-	return &c, fi.ModTime(), nil
+	defer rc.Close()
+	var md Metadata
+	if err := json.NewDecoder(rc).Decode(&md); err != nil {
+		return nil, time.Time{}, err
+	}
+	return &md, info.ModTime(), nil
 }
 
 const (
@@ -64,6 +106,7 @@ const (
 
 type CreateOptions struct {
 	LogSizeThreshold *int64
+	DataPath         string
 }
 
 func (c *CreateOptions) toMetadata() *Metadata {
@@ -71,24 +114,33 @@ func (c *CreateOptions) toMetadata() *Metadata {
 		Version:           0,
 		LogSizeThreshold:  DefaultLogSizeThreshold,
 		DataSortDirection: DefaultDataSortDirection,
+		DataPath:          ".",
+		Indexes:           make(map[string]IndexInfo),
 	}
 
 	if c.LogSizeThreshold != nil {
 		m.LogSizeThreshold = *c.LogSizeThreshold
+	}
+	if c.DataPath != "" {
+		m.DataPath = c.DataPath
 	}
 
 	return m
 }
 
 type Archive struct {
-	Root              string
+	Root              iosrc.URI
+	DataPath          iosrc.URI
 	DataSortDirection zbuf.Direction
 	LogSizeThreshold  int64
 	LogsFiltered      bool
 
+	dataSrc iosrc.Source
+
 	// mu protects below fields.
-	mu    sync.RWMutex
-	spans []SpanInfo
+	mu      sync.RWMutex
+	indexes map[string]IndexInfo // map key is index path
+	spans   []SpanInfo
 	// mdModTime is the mtime of the metadata at or before its contents
 	// were last read.
 	mdModTime time.Time
@@ -115,8 +167,21 @@ func (ark *Archive) AppendSpans(spans []SpanInfo) error {
 		return ark.spans[j].Span.Ts < ark.spans[i].Span.Ts
 	})
 
-	err := ark.metaWrite()
-	if err != nil {
+	if err := ark.metaWrite(); err != nil {
+		return err
+	}
+
+	ark.mdUpdateCount++
+	return nil
+}
+
+func (ark *Archive) AddIndexes(indexes []IndexInfo) error {
+	ark.mu.Lock()
+	defer ark.mu.Unlock()
+	for _, ind := range indexes {
+		ark.indexes[ind.Path] = ind
+	}
+	if err := ark.metaWrite(); err != nil {
 		return err
 	}
 
@@ -129,13 +194,15 @@ func (ark *Archive) metaWrite() error {
 		Version:           0,
 		LogSizeThreshold:  ark.LogSizeThreshold,
 		DataSortDirection: ark.DataSortDirection,
+		DataPath:          ark.DataPath.String(),
+		Indexes:           ark.indexes,
 		Spans:             ark.spans,
 	}
-	return m.Write(ark.mdPath())
+	return m.Write(ark.mdURI())
 }
 
-func (ark *Archive) mdPath() string {
-	return filepath.Join(ark.Root, metadataFilename)
+func (ark *Archive) mdURI() iosrc.URI {
+	return ark.Root.AppendPath(metadataFilename)
 }
 
 // UpdateCheck looks at the archive's metadata file to see if it
@@ -143,14 +210,14 @@ func (ark *Archive) mdPath() string {
 // available spans are updated. A counter is returned, starting
 // from 1, which is incremented every time this Archive has re-read
 // the metadata file, and possibly updated the available spans.
-func (ark *Archive) UpdateCheck() (int, error) {
+func (ark *Archive) UpdateCheck(ctx context.Context) (int, error) {
 	if ark.LogsFiltered {
 		// If a logfilter was specified at open, there's no need to
 		// check for newer log files in the archive.
 		return ark.mdUpdateCount, nil
 	}
 
-	fi, err := os.Stat(ark.mdPath())
+	fi, err := iosrc.Stat(ctx, ark.mdURI())
 	if err != nil {
 		return 0, err
 	}
@@ -170,38 +237,65 @@ func (ark *Archive) UpdateCheck() (int, error) {
 		return ark.mdUpdateCount, nil
 	}
 
-	md, mtime, err := MetadataRead(ark.mdPath())
+	md, mtime, err := MetadataRead(ctx, ark.mdURI())
 	if err != nil {
 		return 0, err
 	}
 
 	ark.spans = md.Spans
+	ark.indexes = md.Indexes
 	ark.mdModTime = mtime
 	ark.mdUpdateCount++
 	return ark.mdUpdateCount, nil
 }
 
 type OpenOptions struct {
-	LogFilter []string
+	LogFilter  []string
+	DataSource iosrc.Source
 }
 
-func OpenArchive(path string, oo *OpenOptions) (*Archive, error) {
-	if path == "" {
-		return nil, errors.New("no archive directory specified")
+func OpenArchive(rpath string, oo *OpenOptions) (*Archive, error) {
+	return OpenArchiveWithContext(context.Background(), rpath, oo)
+}
+
+func OpenArchiveWithContext(ctx context.Context, rpath string, oo *OpenOptions) (*Archive, error) {
+	root, err := iosrc.ParseURI(rpath)
+	if err != nil {
+		return nil, err
 	}
-	m, mtime, err := MetadataRead(filepath.Join(path, metadataFilename))
+	return openArchive(ctx, root, oo)
+}
+
+func openArchive(ctx context.Context, root iosrc.URI, oo *OpenOptions) (*Archive, error) {
+	m, mtime, err := MetadataRead(ctx, root.AppendPath(metadataFilename))
+	if err != nil {
+		return nil, err
+	}
+	if m.DataPath == "." {
+		m.DataPath = root.String()
+	}
+	dpuri, err := iosrc.ParseURI(m.DataPath)
 	if err != nil {
 		return nil, err
 	}
 
 	ark := &Archive{
-		Root:              path,
+		Root:              root,
 		DataSortDirection: m.DataSortDirection,
 		LogSizeThreshold:  m.LogSizeThreshold,
+		DataPath:          dpuri,
+		indexes:           m.Indexes,
 		mdModTime:         mtime,
 		mdUpdateCount:     1,
 	}
 
+	if oo != nil && oo.DataSource != nil {
+		ark.dataSrc = oo.DataSource
+	} else {
+		if ark.dataSrc, err = iosrc.GetSource(dpuri); err != nil {
+			return nil, err
+		}
+	}
 	if oo != nil && len(oo.LogFilter) != 0 {
 		ark.LogsFiltered = true
 		lmap := make(map[LogID]struct{})
@@ -224,21 +318,35 @@ func OpenArchive(path string, oo *OpenOptions) (*Archive, error) {
 	return ark, nil
 }
 
-func CreateOrOpenArchive(path string, co *CreateOptions, oo *OpenOptions) (*Archive, error) {
-	if path == "" {
-		return nil, errors.New("no archive directory specified")
+func CreateOrOpenArchive(rpath string, co *CreateOptions, oo *OpenOptions) (*Archive, error) {
+	return CreateOrOpenArchiveWithContext(context.Background(), rpath, co, oo)
+}
+
+func CreateOrOpenArchiveWithContext(ctx context.Context, rpath string, co *CreateOptions, oo *OpenOptions) (*Archive, error) {
+	root, err := iosrc.ParseURI(rpath)
+	if err != nil {
+		return nil, err
 	}
-	cfgpath := filepath.Join(path, metadataFilename)
-	if _, err := os.Stat(cfgpath); err != nil {
-		if os.IsNotExist(err) {
-			if err := os.MkdirAll(path, 0700); err != nil {
-				return nil, err
-			}
-			err = co.toMetadata().Write(cfgpath)
-		}
+
+	mdPath := root.AppendPath(metadataFilename)
+	ok, err := iosrc.Exists(ctx, mdPath)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		src, err := iosrc.GetSource(root)
 		if err != nil {
 			return nil, err
 		}
+		if dm, ok := src.(iosrc.DirMaker); ok {
+			if err := dm.MkdirAll(root, 0700); err != nil {
+				return nil, err
+			}
+		}
+		if err := co.toMetadata().Write(mdPath); err != nil {
+			return nil, err
+		}
 	}
-	return OpenArchive(path, oo)
+
+	return openArchive(ctx, root, oo)
 }

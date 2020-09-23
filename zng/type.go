@@ -36,7 +36,7 @@ type Resolver interface {
 type OutFmt int
 
 const (
-	OutFormatUnescaped = iota
+	OutFormatUnescaped = OutFmt(iota)
 	OutFormatZNG
 	OutFormatZeek
 	OutFormatZeekAscii
@@ -116,13 +116,18 @@ const (
 )
 
 const (
-	TypeDefRecord = 0x80
-	TypeDefArray  = 0x81
-	TypeDefSet    = 0x82
-	TypeDefUnion  = 0x83
-	TypeDefAlias  = 0x84
-	CtrlEOS       = 0x85
+	TypeDefRecord  = 0x80
+	TypeDefArray   = 0x81
+	TypeDefSet     = 0x82
+	TypeDefUnion   = 0x83
+	TypeDefAlias   = 0x84
+	CtrlEOS        = 0x85
+	CtrlCompressed = 0x86
 )
+
+type CompressionFormat int
+
+const CompressionFormatLZ4 CompressionFormat = 0x00
 
 func LookupPrimitive(name string) Type {
 	switch name {
@@ -251,7 +256,9 @@ func IsUnionType(typ Type) bool {
 }
 
 func IsContainerType(typ Type) bool {
-	switch typ.(type) {
+	switch typ := typ.(type) {
+	case *TypeAlias:
+		return IsContainerType(typ.Type)
 	case *TypeSet, *TypeArray, *TypeRecord, *TypeUnion:
 		return true
 	default:

@@ -1,0 +1,11 @@
+zql: cut a, b
+
+input: |
+  #0:record[]
+  0:[]
+  #1:record[a:record[]]
+  1:[[]]
+
+output: |
+  #0:record[a:record[]]
+  0:[[]]

@@ -3,16 +3,19 @@ package space
 import (
 	"context"
 	"fmt"
-	"path/filepath"
+	"path"
 	"sync"
 
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zqd/api"
+	"github.com/brimsec/zq/zqd/pcapstorage"
 	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqd/storage/archivestore"
 	"github.com/brimsec/zq/zqd/storage/filestore"
 	"github.com/brimsec/zq/zqe"
 	"github.com/segmentio/ksuid"
+	"go.uber.org/zap"
 )
 
 const (
@@ -38,8 +41,16 @@ type Space interface {
 	// Delete cancels any outstanding operations, then removes the space's path
 	// and data dir (should the data dir be different than the space's path).
 	// Intended to be called from Manager.Delete().
-	delete() error
+	delete(context.Context) error
 	update(api.SpacePutRequest) error
+}
+
+// PcapSpace denotes that a space is capable of storing pcap files and
+// indexes.
+// XXX Temporary. The should be removed once archive spaces are enabled to allow
+// pcap ingest.
+type PcapSpace interface {
+	PcapStore() *pcapstorage.Store
 }
 
 func newSpaceID() api.SpaceID {
@@ -105,46 +116,50 @@ func (g *guard) acquireForDelete() error {
 	return nil
 }
 
-func loadSpaces(path string, conf config) ([]Space, error) {
-	datapath := conf.DataPath
-	if datapath == "." {
-		datapath = path
+func loadSpaces(ctx context.Context, p iosrc.URI, conf config, logger *zap.Logger) ([]Space, error) {
+	datapath := conf.DataURI
+	if datapath.IsZero() {
+		datapath = p
 	}
-
-	id := api.SpaceID(filepath.Base(path))
+	id := api.SpaceID(path.Base(p.Path))
+	logger = logger.With(zap.String("space_id", string(id)))
 	switch conf.Storage.Kind {
 	case storage.FileStore:
 		store, err := filestore.Load(datapath)
 		if err != nil {
 			return nil, err
 		}
+		pcapstore, err := loadPcapStore(ctx, datapath)
+		if err != nil {
+			return nil, err
+		}
 		s := &fileSpace{
-			spaceBase: spaceBase{id, store, newGuard()},
-			path:      path,
+			spaceBase: spaceBase{id, store, pcapstore, newGuard(), logger},
+			path:      p,
 			conf:      conf,
 		}
 		return []Space{s}, nil
 
 	case storage.ArchiveStore:
-		store, err := archivestore.Load(datapath, conf.Storage.Archive)
+		store, err := archivestore.Load(ctx, datapath, conf.Storage.Archive)
 		if err != nil {
 			return nil, err
 		}
 		parent := &archiveSpace{
-			spaceBase: spaceBase{id, store, newGuard()},
-			path:      path,
+			spaceBase: spaceBase{id, store, nil, newGuard(), logger},
+			path:      p,
 			conf:      conf,
 		}
 		ret := []Space{parent}
 		for _, subcfg := range conf.Subspaces {
-			substore, err := archivestore.Load(datapath, &storage.ArchiveConfig{
+			substore, err := archivestore.Load(ctx, datapath, &storage.ArchiveConfig{
 				OpenOptions: &subcfg.OpenOptions,
 			})
 			if err != nil {
 				return nil, err
 			}
 			sub := &archiveSubspace{
-				spaceBase: spaceBase{subcfg.ID, substore, newGuard()},
+				spaceBase: spaceBase{subcfg.ID, substore, nil, newGuard(), logger},
 				parent:    parent,
 			}
 			ret = append(ret, sub)
@@ -156,11 +171,24 @@ func loadSpaces(path string, conf config) ([]Space, error) {
 	}
 }
 
+func loadPcapStore(ctx context.Context, u iosrc.URI) (*pcapstorage.Store, error) {
+	pcapstore, err := pcapstorage.Load(ctx, u)
+	if err != nil {
+		if zqe.IsNotFound(err) {
+			return pcapstorage.New(u), nil
+		}
+		return nil, err
+	}
+	return pcapstore, err
+}
+
 // spaceBase contains the basic fields common to different space types.
 type spaceBase struct {
-	id    api.SpaceID
-	store storage.Storage
-	sg    *guard
+	id        api.SpaceID
+	store     storage.Storage
+	pcapstore *pcapstorage.Store
+	sg        *guard
+	logger    *zap.Logger
 }
 
 func (s *spaceBase) ID() api.SpaceID {
@@ -174,6 +202,7 @@ func (s *spaceBase) Storage() storage.Storage {
 func (s *spaceBase) Info(ctx context.Context) (api.SpaceInfo, error) {
 	sum, err := s.store.Summary(ctx)
 	if err != nil {
+		s.logger.Error("Error getting log store summary", zap.Error(err))
 		return api.SpaceInfo{}, err
 	}
 	var span *nano.Span
@@ -184,8 +213,28 @@ func (s *spaceBase) Info(ctx context.Context) (api.SpaceInfo, error) {
 		ID:          s.id,
 		StorageKind: sum.Kind,
 		Size:        sum.DataBytes,
-		Span:        span,
 	}
+	if s.pcapstore != nil && !s.pcapstore.Empty() {
+		pcapinfo, err := s.pcapstore.Info(ctx)
+		if err != nil {
+			if !zqe.IsNotFound(err) {
+				s.logger.Error("Error getting pcap store summary", zap.Error(err))
+				return api.SpaceInfo{}, err
+			}
+			s.logger.Info("Pcap not found", zap.String("pcap_uri", s.pcapstore.PcapURI().String()))
+		} else {
+			spaceInfo.PcapSize = pcapinfo.PcapSize
+			spaceInfo.PcapSupport = true
+			spaceInfo.PcapPath = pcapinfo.PcapURI
+			if span == nil {
+				span = &pcapinfo.Span
+			} else {
+				union := span.Union(pcapinfo.Span)
+				span = &union
+			}
+		}
+	}
+	spaceInfo.Span = span
 	return spaceInfo, nil
 }
 

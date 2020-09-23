@@ -4,13 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/url"
-	"os"
-	"path"
-	"path/filepath"
 	"strconv"
 
-	"github.com/brimsec/zq/pkg/iosource"
+	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zng"
 )
@@ -25,46 +22,46 @@ var (
 // _path field in the boom descriptor.  Note that more than one descriptor
 // can map to the same output file.
 type Dir struct {
-	dir     string
+	dir     iosrc.URI
 	prefix  string
 	ext     string
 	stderr  io.Writer // XXX use warnings channel
-	flags   *zio.WriterFlags
-	writers map[*zng.TypeRecord]*zio.Writer
-	paths   map[string]*zio.Writer
-	source  *iosource.Registry
+	opts    zio.WriterOpts
+	writers map[*zng.TypeRecord]zbuf.WriteCloser
+	paths   map[string]zbuf.WriteCloser
+	source  iosrc.Source
 }
 
-func unknownFormat(format string) error {
-	return fmt.Errorf("unknown output format: %s", format)
-}
-
-func NewDir(dir, prefix string, stderr io.Writer, flags *zio.WriterFlags) (*Dir, error) {
-	return NewDirWithSource(dir, prefix, stderr, flags, iosource.DefaultRegistry)
-}
-
-func NewDirWithSource(dir, prefix string, stderr io.Writer, flags *zio.WriterFlags, source *iosource.Registry) (*Dir, error) {
-	scheme, ok := source.GetScheme(dir)
-	if !ok {
-		return nil, fmt.Errorf("%s: unsupported scheme", scheme)
+func NewDir(dir, prefix string, stderr io.Writer, opts zio.WriterOpts) (*Dir, error) {
+	uri, err := iosrc.ParseURI(dir)
+	if err != nil {
+		return nil, err
 	}
-	if scheme == iosource.FileScheme {
-		if err := os.MkdirAll(dir, 0755); err != nil {
+	src, err := iosrc.GetSource(uri)
+	if err != nil {
+		return nil, err
+	}
+	return NewDirWithSource(uri, prefix, stderr, opts, src)
+}
+
+func NewDirWithSource(dir iosrc.URI, prefix string, stderr io.Writer, opts zio.WriterOpts, source iosrc.Source) (*Dir, error) {
+	if dirmkr, ok := source.(iosrc.DirMaker); ok {
+		if err := dirmkr.MkdirAll(dir, 0755); err != nil {
 			return nil, err
 		}
 	}
-	e := zio.Extension(flags.Format)
+	e := zio.Extension(opts.Format)
 	if e == "" {
-		return nil, unknownFormat(flags.Format)
+		return nil, fmt.Errorf("unknown format: %s", opts.Format)
 	}
 	return &Dir{
 		dir:     dir,
 		prefix:  prefix,
 		ext:     e,
 		stderr:  stderr,
-		flags:   flags,
-		writers: make(map[*zng.TypeRecord]*zio.Writer),
-		paths:   make(map[string]*zio.Writer),
+		opts:    opts,
+		writers: make(map[*zng.TypeRecord]zbuf.WriteCloser),
+		paths:   make(map[string]zbuf.WriteCloser),
 		source:  source,
 	}, nil
 }
@@ -77,7 +74,7 @@ func (d *Dir) Write(r *zng.Record) error {
 	return out.Write(r)
 }
 
-func (d *Dir) lookupOutput(rec *zng.Record) (*zio.Writer, error) {
+func (d *Dir) lookupOutput(rec *zng.Record) (zbuf.WriteCloser, error) {
 	typ := rec.Type
 	w, ok := d.writers[typ]
 	if ok {
@@ -94,7 +91,7 @@ func (d *Dir) lookupOutput(rec *zng.Record) (*zio.Writer, error) {
 // filename returns the name of the file for the specified path. This handles
 // the case of two tds one _path, adding a # in the filename for every _path that
 // has more than one td.
-func (d *Dir) filename(r *zng.Record) (string, string) {
+func (d *Dir) filename(r *zng.Record) (iosrc.URI, string) {
 	var _path string
 	base, err := r.AccessString("_path")
 	if err == nil {
@@ -103,19 +100,15 @@ func (d *Dir) filename(r *zng.Record) (string, string) {
 		base = strconv.Itoa(r.Type.ID())
 	}
 	name := d.prefix + base + d.ext
-	if u, _ := url.Parse(d.dir); u != nil {
-		u.Path = path.Join(u.Path, name)
-		return u.String(), _path
-	}
-	return filepath.Join(d.dir, name), _path
+	return d.dir.AppendPath(name), _path
 }
 
-func (d *Dir) newFile(rec *zng.Record) (*zio.Writer, error) {
+func (d *Dir) newFile(rec *zng.Record) (zbuf.WriteCloser, error) {
 	filename, path := d.filename(rec)
 	if w, ok := d.paths[path]; ok {
 		return w, nil
 	}
-	w, err := NewFileWithSource(filename, d.flags, d.source)
+	w, err := NewFileWithSource(filename, d.opts, d.source)
 	if err != nil {
 		return nil, err
 	}

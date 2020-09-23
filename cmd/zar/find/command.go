@@ -7,10 +7,12 @@ import (
 	"os"
 
 	"github.com/brimsec/zq/archive"
+	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/emitter"
-	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
 )
 
@@ -19,7 +21,7 @@ var Find = &charm.Spec{
 	Usage: "find [options] pattern [pattern...]",
 	Short: "look through zar index files and displays matches",
 	Long: `
-"zar find" descends the directory given by the -R option (or ZAR_ROOT)
+"zar find" searches a zar archive
 looking for zng files that have been indexed and performs a search on
 each such index file in accordance with the specified search pattern.
 Indexes are created by "zar index".
@@ -58,31 +60,36 @@ func init() {
 
 type Command struct {
 	*root.Command
-	root        string
-	skipMissing bool
-	indexFile   string
-	outputFile  string
-	pathField   string
-	zng         bool
-	WriterFlags zio.WriterFlags
+	root          string
+	skipMissing   bool
+	indexFile     string
+	pathField     string
+	relativePaths bool
+	zng           bool
+	outputFlags   outputflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
-	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive to walk")
+	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
 	f.BoolVar(&c.skipMissing, "Q", false, "skip errors caused by missing index files ")
-	f.StringVar(&c.indexFile, "x", "", "name of zdx index for custom index searches")
-	f.StringVar(&c.outputFile, "o", "", "write data to output file")
+	f.StringVar(&c.indexFile, "x", "", "name of microindex for custom index searches")
 	f.StringVar(&c.pathField, "l", archive.DefaultAddPathField, "zng field name for path name of log file")
+	f.BoolVar(&c.relativePaths, "relative", false, "display paths relative to root")
 	f.BoolVar(&c.zng, "z", false, "write results as zng stream rather than list of files")
 
 	// Flags added for writers are -f, -T, -F, -E, -U, and -b
-	c.WriterFlags.SetFlags(f)
+	c.outputFlags.SetFlags(f)
 
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
+	defer c.Cleanup()
+	if err := c.Init(); err != nil {
+		return err
+	}
+
 	ark, err := archive.OpenArchive(c.root, nil)
 	if err != nil {
 		return err
@@ -95,20 +102,20 @@ func (c *Command) Run(args []string) error {
 
 	var findOptions []archive.FindOption
 	if c.pathField != "" {
-		findOptions = append(findOptions, archive.AddPath(c.pathField, true))
+		findOptions = append(findOptions, archive.AddPath(c.pathField, !c.relativePaths))
 	}
 	if c.skipMissing {
 		findOptions = append(findOptions, archive.SkipMissing())
 	}
 
-	//XXX allow "-" to trigger zng but changed back for emitter API
-	if c.outputFile == "-" {
-		c.outputFile = ""
+	outputFile := c.outputFlags.FileName()
+	if outputFile == "-" {
+		outputFile = ""
 	}
-	var writer *zio.Writer
+	var writer zbuf.WriteCloser
 	if c.zng {
 		var err error
-		writer, err = emitter.NewFile(c.outputFile, &c.WriterFlags)
+		writer, err = emitter.NewFile(outputFile, c.outputFlags.Options())
 		if err != nil {
 			return err
 		}
@@ -117,9 +124,10 @@ func (c *Command) Run(args []string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	hits := make(chan *zng.Record)
+	zctx := resolver.NewContext()
 	var searchErr error
 	go func() {
-		searchErr = archive.Find(ctx, ark, query, hits, findOptions...)
+		searchErr = archive.Find(ctx, zctx, ark, query, hits, findOptions...)
 		close(hits)
 	}()
 	for hit := range hits {

@@ -144,23 +144,20 @@ func NewReader(f source.ParquetFile, zctx *resolver.Context, opts ReaderOpts) (*
 	reader := Reader{
 		file: f,
 	}
-	err := reader.initialize(zctx, opts)
-	if err != nil {
+	if err := reader.initialize(zctx, opts); err != nil {
 		return nil, err
 	}
 	return &reader, nil
 }
 
 func (r *Reader) initialize(zctx *resolver.Context, opts ReaderOpts) error {
-	err := r.readFooter()
-	if err != nil {
+	if err := r.readFooter(); err != nil {
 		return err
 	}
 
 	r.total = int(r.footer.GetNumRows())
 
-	err = r.buildColumns(opts)
-	if err != nil {
+	if err := r.buildColumns(opts); err != nil {
 		return err
 	}
 
@@ -168,6 +165,7 @@ func (r *Reader) initialize(zctx *resolver.Context, opts ReaderOpts) error {
 	for i, c := range r.columns {
 		zcols[i] = zng.Column{c.getName(), c.zngType(zctx)}
 	}
+	var err error
 	r.typ, err = zctx.LookupTypeRecord(zcols)
 	if err != nil {
 		return err
@@ -535,8 +533,7 @@ func (c *listColumn) append(builder *zcode.Builder) error {
 				break
 			}
 		}
-		err = appendItem(builder, c.innerType, c.iter, c.maxDefinition)
-		if err != nil {
+		if err := appendItem(builder, c.innerType, c.iter, c.maxDefinition); err != nil {
 			return err
 		}
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zqd/api"
 )
@@ -22,10 +23,11 @@ func (s *archiveSubspace) Info(ctx context.Context) (api.SpaceInfo, error) {
 	if sum.Span.Dur > 0 {
 		span = &sum.Span
 	}
-	var name, dp string
+	var name string
+	var dp iosrc.URI
 	err = s.findConfig(func(i int) error {
 		name = s.parent.conf.Subspaces[i].Name
-		dp = s.parent.conf.DataPath
+		dp = s.parent.conf.DataURI
 		return nil
 	})
 	return api.SpaceInfo{
@@ -47,7 +49,7 @@ func (s *archiveSubspace) update(req api.SpacePutRequest) error {
 	})
 }
 
-func (s *archiveSubspace) delete() error {
+func (s *archiveSubspace) delete(_ context.Context) error {
 	if err := s.sg.acquireForDelete(); err != nil {
 		return err
 	}

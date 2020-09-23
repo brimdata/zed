@@ -1,0 +1,20 @@
+script: |
+  source services.sh s3://bucket/zqdroot
+  zapi -h $ZQD_HOST new -k archivestore testsp
+  echo ===
+  zapi -h $ZQD_HOST rm testsp
+  echo ===
+  zapi -h $ZQD_HOST ls
+
+inputs:
+  - name: services.sh
+    source: ../services.sh
+
+outputs:
+  - name: stdout
+    data: |
+      testsp: space created
+      ===
+      testsp: space removed
+      ===
+      no spaces exist

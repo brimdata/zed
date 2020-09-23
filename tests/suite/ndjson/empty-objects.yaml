@@ -1,0 +1,10 @@
+zql: '*'
+
+input: |
+  {}
+  {"ja3s":{}}
+
+output-format: ndjson
+output: |
+  {}
+  {"ja3s":{}}

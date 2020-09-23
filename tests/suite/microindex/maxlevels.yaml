@@ -1,0 +1,11 @@
+script: |
+  microindex create -o index.zng -k s -f 20 babble.tzng
+
+inputs:
+  - name: babble.tzng
+    source: ../data/babble.tzng
+
+outputs:
+  - name: stderr
+    regexp: |
+      .*too many levels.*

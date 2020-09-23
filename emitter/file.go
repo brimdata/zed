@@ -1,46 +1,66 @@
 package emitter
 
 import (
+	"context"
 	"io"
 	"os"
 
 	"github.com/brimsec/zq/pkg/bufwriter"
-	"github.com/brimsec/zq/pkg/iosource"
+	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
-type noClose struct {
-	io.Writer
-}
-
-func (*noClose) Close() error {
-	return nil
-}
-
-func NewFile(path string, flags *zio.WriterFlags) (*zio.Writer, error) {
-	return NewFileWithSource(path, flags, iosource.DefaultRegistry)
-}
-
-func NewFileWithSource(path string, flags *zio.WriterFlags, source *iosource.Registry) (*zio.Writer, error) {
-	var err error
-	var f io.WriteCloser
+func NewFile(path string, opts zio.WriterOpts) (zbuf.WriteCloser, error) {
 	if path == "" {
-		// Don't close stdout in case we live inside something
-		// here that runs multiple instances of this to stdout.
-		f = &noClose{os.Stdout}
-	} else {
-		f, err = source.NewWriter(path)
-		if err != nil {
-			return nil, err
+		path = "stdout"
+	}
+	uri, err := iosrc.ParseURI(path)
+	if err != nil {
+		return nil, err
+	}
+	src, err := iosrc.GetSource(uri)
+	if err != nil {
+		return nil, err
+	}
+	return NewFileWithSource(uri, opts, src)
+}
+
+func IsTerminal(w io.Writer) bool {
+	if f, ok := w.(*os.File); ok {
+		if terminal.IsTerminal(int(f.Fd())) {
+			return true
 		}
 	}
-	// On close, zio.Writer.Close(), the zng WriteFlusher will be flushed
-	// then the bufwriter will closed (which will flush it's internal buffer
-	// then close the file)
-	w := detector.LookupWriter(bufwriter.New(f), flags)
-	if w == nil {
-		return nil, unknownFormat(flags.Format)
+	return false
+}
+
+func NewFileWithSource(path iosrc.URI, opts zio.WriterOpts, source iosrc.Source) (zbuf.WriteCloser, error) {
+	f, err := source.NewWriter(context.Background(), path) // XXX pass context?
+	if err != nil {
+		return nil, err
+	}
+
+	var wc io.WriteCloser
+	if path.Scheme == "stdio" {
+		// Don't close stdio in case we live inside something
+		// that has multiple stdio users.
+		wc = zio.NopCloser(f)
+		// Don't buffer terminal output.
+		if !IsTerminal(f) {
+			wc = bufwriter.New(wc)
+		}
+	} else {
+		wc = bufwriter.New(f)
+	}
+	// On close, zbuf.WriteCloser.Close() will close and flush the
+	// downstream writer, which will flush the bufwriter here and,
+	// in turn, close its underlying writer.
+	w, err := detector.LookupWriter(wc, opts)
+	if err != nil {
+		return nil, err
 	}
 	return w, nil
 }

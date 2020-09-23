@@ -38,7 +38,7 @@ func TestInvalid(t *testing.T) {
 // string from inside the AST.
 func parseString(in string) (string, error) {
 	code := fmt.Sprintf("s = \"%s\"", in)
-	tree, err := Parse("", []byte(code))
+	tree, err := ParseProc(code)
 	if err != nil {
 		return "", err
 	}
