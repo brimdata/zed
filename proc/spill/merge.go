@@ -56,7 +56,10 @@ func (r *MergeSort) Cleanup() {
 	os.RemoveAll(r.tempDir)
 }
 
-// Spill spills a new run of records to a file in the MergeSort's temp directory.
+// Spill sorts and spills a new run of records to a file in the MergeSort's
+// temp directory.  Since we sort each chunk in memory before spilling, the
+// different chunks can be easily merged into sorted order when reading back
+// the chunks sequentially.
 func (r *MergeSort) Spill(recs []*zng.Record) error {
 	expr.SortStable(recs, r.compareFn)
 	index := len(r.runIndices)
