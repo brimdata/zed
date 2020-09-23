@@ -44,10 +44,10 @@ bin/$(ZEEKPATH):
 		&& mv bin/zeek bin/$(ZEEKPATH)
 
 bin/$(SURICATAPATH):
-	mkdir -p bin
-	curl -L -o bin/$(SURICATAPATH).zip \
+	@mkdir -p bin
+	@curl -L -o bin/$(SURICATAPATH).zip \
 		https://storage.googleapis.com/brimsec/suricata/suricata-$(SURICATATAG).$$(go env GOOS)-$$(go env GOARCH).zip
-	unzip -q bin/$(SURICATAPATH).zip -d bin \
+	@unzip -q bin/$(SURICATAPATH).zip -d bin \
 		&& mv bin/suricata bin/$(SURICATAPATH)
 
 bin/minio:
