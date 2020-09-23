@@ -4,11 +4,7 @@ import (
 	"flag"
 
 	"github.com/brimsec/zq/cli"
-	"github.com/brimsec/zq/cli/inputflags"
 	"github.com/brimsec/zq/cli/outputflags"
-	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
 )
@@ -30,77 +26,38 @@ func init() {
 }
 
 type Command struct {
-	startTime   float64
-	endTime     float64
+	version     int
+	count       int
+	seed        int
 	cli         cli.Flags
-	inputFlags  inputflags.Flags
 	outputFlags outputflags.Flags
 }
 
 func New(f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{}
 	c.cli.SetFlags(f)
-	c.inputFlags.SetFlags(f)
 	c.outputFlags.SetFlags(f)
 
-	//XXX should have a time/date option
-	f.Float64Var(&c.startTime, "s", 0, "start time")
-	f.Float64Var(&c.endTime, "e", 0, "start time")
+	f.IntVar(&c.version, "V", 1, "verson of app model")
+	f.IntVar(&c.count, "count", 50000, "count of app events to generate")
+	f.IntVar(&c.seed, "seed", 0, "seed for random number generator")
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
 	defer c.cli.Cleanup()
-	err := c.cli.Init(&c.outputFlags, &c.inputFlags)
-	if len(args) == 0 {
-		return Zsim.Exec(c, []string{"help"})
-	}
+	err := c.cli.Init(&c.outputFlags)
 	if err != nil {
 		return err
 	}
-	paths := args
 	zctx := resolver.NewContext()
-	readers, err := c.inputFlags.Open(zctx, paths, false)
-	if err != nil {
-		return err
-	}
-	reader := zbuf.NewCombiner(readers, zbuf.CmpTimeForward)
-	defer reader.Close()
-
 	writer, err := c.outputFlags.Open()
 	if err != nil {
 		return err
 	}
-	startTime := nano.FloatToTs(c.startTime)
-	endTime := nano.FloatToTs(c.endTime)
-	model := NewAppModel()
-	var appLog *zng.Record
-	for {
-		var rec *zng.Record
-		rec, err = reader.Read()
-		if err != nil || rec == nil {
-			break
-		}
-		if startTime != 0 && rec.Ts() < startTime {
-			continue
-		}
-		if endTime != 0 && rec.Ts() >= endTime {
-			break
-		}
-		if appLog == nil {
-			now := rec.Ts()
-			event := model.Next(now)
-			rec, err := resolver.MarshalRecord(zctx, event)
-			if err != nil {
-				break
-			}
-			appLog = rec
-		} else if appLog.Ts() <= rec.Ts() {
-			if err := writer.Write(appLog); err != nil {
-				break
-			}
-			appLog = nil
-		}
+	model := NewAppModel(c.version)
+	for cnt := 0; cnt < c.count; cnt++ {
+		rec := model.Next(zctx)
 		if err := writer.Write(rec); err != nil {
 			break
 		}
