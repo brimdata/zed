@@ -1,6 +1,6 @@
 # Deploying zqd on EKS
 
-These are instructions for deploying oa locally built image for zqd into an EKS cluster, in a namespace that is specific for your development.
+These are instructions for deploying a locally built image for zqd into an EKS cluster, in a namespace that is specific for your development.
 
 ## First time setup
 
@@ -20,7 +20,7 @@ brew install kubernetes-cli helm
 
 ### EKS access
 
-First connect to the EKS cluster so you have kubectl access. You or a collegue should follow the steps here to obtain cluster access:
+First connect to the EKS cluster so you have kubectl access. You or a colleague should follow the steps here to obtain cluster access:
 
 https://docs.aws.amazon.com/eks/latest/userguide/add-user-role.html
 
@@ -33,12 +33,15 @@ export ZQD_DATA_URI=s3://zqd-demo-1/mark/zqd-meta
 export ZQD_K8S_USER=mark
 export ZQD_TEST_CLUSTER=zq-test.us-east-2.eksctl.io
 ```
-You must modify these to fit you environment. ZQD_ECR_HOST is the host portion of the ECR service for your AWS account. ZQD_DATA_URI is used to set the '-data' flag when ZQD is started on Kubernetes. It should be an S3 bucket specific o you that you can use for testing. ZQD_K8S_USER is your username, which is usually the same as you AWS IAM username. ZQD_TEST_CLUSTER is the host of the EKS cluster you are using.
+You must modify these to fit you environment. 
+* ZQD_ECR_HOST is the host portion of the ECR service for your AWS account. 
+* ZQD_DATA_URI is used to set the '-data' flag when zqd is started on Kubernetes. It should be an S3 bucket specific o you that you can use for testing. 
+* ZQD_K8S_USER is your username, which is usually the same as you AWS IAM username.
+* ZQD_TEST_CLUSTER is the host of the EKS cluster you are using.
 
 ### Create a K8s namespace for your development
-The Makefile rules are docker and kubectl commands that use these env vars.
 
-Start by creating a namespace, specific to you user, in which to deploy zqd. The following Makefile rule does that. It is design to be run once, and can be run again if you have removed the namespace.
+Start by creating a namespace, specific to your user, in which to deploy zqd. The following Makefile rule does that. It is design to be run once. It can be run again if you have removed the namespace.
 ```
 make kubectl-config
 ```
@@ -48,7 +51,7 @@ This development workflow assumes that you will build and test zq locally, then 
 ```
 make docker-push-ecr
 ```
-The tag on this image is based on `git describe` so it is specific to your branch. All zqd images are assumed to share the same ECR repo.
+The tag on this image is based on `git describe` so it is specific to your branch. All zqd images share the same ECR repo.
 
 ## Install with Helm
 Helm is used to deploy the zqd image. Use:
@@ -57,11 +60,11 @@ make helm-install
 ```
 To run Helm with the correct command line flags.
 
-After helm-install, you can check the status of your install with:
+After the helm install, you can check the status of your install with:
 ```
 helm ls
 ```
-If you want to redeploy in you test env, first uninstall the zqd instance with:
+If you want to redeploy in your namespace, first uninstall the zqd instance with:
 ```
 helm uninstall zqd
 ```
@@ -69,7 +72,7 @@ To check the status of your running pod in your namespace, use:
 ```
 kubectl get pod
 ```
-To see the unique name of your running zqd pod. Copy that name for the following troubleshooting steps. If the status of the pod in 'Error' of 'ImagePullBackoff' (or something else not good), then you can get details with:
+This will show the unique name of your running zqd pod. Copy that name for the following troubleshooting steps. If the status of the pod is 'Error' or 'ImagePullBackoff' (or something else not good), then you can get details with:
 ```
 kubectl describe pod zqd-56b46985fc-bqv87
 kubectl logs zqd-56b46985fc-bqv87 -p
@@ -77,7 +80,7 @@ kubectl logs zqd-56b46985fc-bqv87 -p
 Edit the commands to use your pod name.
 
 ## Expose the endpoint for local development
-Run the following shell script to expose the zqd endpoint on you local host:
+Run the following shell script to expose the zqd endpoint on your local host:
 ```
 ./k8s/ports.sh
 ```
