@@ -47,7 +47,7 @@ func (d *importDriver) newWriter(rec *zng.Record) error {
 	d.rcount = 0
 
 	// Create the data file writer
-	d.tsDir = d.ark.DataPath.AppendPath(dataDirname, tsDirFor(d.firstTs).name())
+	d.tsDir = d.ark.DataPath.AppendPath(dataDirname, newTsDir(d.firstTs).name())
 	if dirmkr, ok := d.ark.dataSrc.(iosrc.DirMaker); ok {
 		if err := dirmkr.MkdirAll(d.tsDir, 0755); err != nil {
 			return err
@@ -157,13 +157,10 @@ func (d *importDriver) close() error {
 		idxWriter.Abort()
 		return err
 	}
-	if err := idxWriter.Close(); err != nil {
-		return err
-	}
 	// TODO: zq#1264
 	// Add an entry to the update log for S3 backed stores containing the
 	// location of the just added data & index file.
-	return nil
+	return idxWriter.Close()
 }
 
 func (d *importDriver) Write(cid int, batch zbuf.Batch) error {

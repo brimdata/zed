@@ -15,10 +15,11 @@ import (
 const metadataFilename = "zar.json"
 
 type Metadata struct {
-	Version           int            `json:"version"`
+	Version int `json:"version"`
+
 	DataPath          string         `json:"data_path"`
-	LogSizeThreshold  int64          `json:"log_size_threshold"`
 	DataSortDirection zbuf.Direction `json:"data_sort_direction"`
+	LogSizeThreshold  int64          `json:"log_size_threshold"`
 }
 
 func (c *Metadata) Write(uri iosrc.URI) error {
@@ -175,7 +176,7 @@ func openArchive(ctx context.Context, root iosrc.URI, oo *OpenOptions) (*Archive
 			return nil, err
 		}
 	}
-	if oo != nil && len(oo.LogFilter) != 0 {
+	if oo != nil {
 		for _, l := range oo.LogFilter {
 			df, ok := dataFileNameMatch(l)
 			if !ok {
@@ -209,9 +210,6 @@ func CreateOrOpenArchiveWithContext(ctx context.Context, rpath string, co *Creat
 			return nil, err
 		}
 		if dm, ok := src.(iosrc.DirMaker); ok {
-			if err := dm.MkdirAll(root, 0700); err != nil {
-				return nil, err
-			}
 			if err := dm.MkdirAll(root.AppendPath(dataDirname), 0700); err != nil {
 				return nil, err
 			}

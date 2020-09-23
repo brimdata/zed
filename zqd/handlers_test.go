@@ -24,8 +24,8 @@ import (
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zio/ndjsonio"
-	"github.com/brimsec/zq/zio/textio"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd"
@@ -822,7 +822,7 @@ func TestIndexSearch(t *testing.T) {
 0:[257;4;1587513592.0625444;1587509181.06547297;]
 `
 	res, _ := indexSearch(t, client, sp.ID, "", []string{"v=257"})
-	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c _log", res))
+	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c _log", res, "tzng"))
 }
 
 func TestSubspaceCreate(t *testing.T) {
@@ -860,9 +860,9 @@ func TestSubspaceCreate(t *testing.T) {
 0:[336;1;1587509168.06759839;1587508830.06852324;]
 `
 	res, _ := indexSearch(t, client, sp1.ID, "", []string{":int64=336"})
-	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c _log", res))
+	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c _log", res, "tzng"))
 
-	logId := strings.TrimSpace(tzngCopyToText(t, res, "first=1587509168.06759839 | cut _log"))
+	logId := strings.TrimSpace(tzngCopy(t, "first=1587509168.06759839 | cut _log", res, "text"))
 	// Create subspace
 	sp2, err := client.SubspacePost(context.Background(), sp1.ID, api.SubspacePostRequest{
 		Name: "subspace",
@@ -879,7 +879,7 @@ func TestSubspaceCreate(t *testing.T) {
 0:[336;1;1587509168.06759839;1587508830.06852324;]
 `
 	res, _ = indexSearch(t, client, sp2.ID, "", []string{":int64=336"})
-	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c _log", res))
+	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c _log", res, "tzng"))
 
 	// Verify full search only returns filtered results
 	exp = `
@@ -932,7 +932,7 @@ func TestSubspacePersist(t *testing.T) {
 	require.NoError(t, err)
 
 	res, _ := indexSearch(t, client1, sp1.ID, "", []string{":int64=336"})
-	logId := strings.TrimSpace(tzngCopyToText(t, res, "first=1587518620.0622373 | cut _log"))
+	logId := strings.TrimSpace(tzngCopy(t, "first=1587518620.0622373 | cut _log", res, "text"))
 
 	// Create subspace
 	sp2, err := client1.SubspacePost(context.Background(), sp1.ID, api.SubspacePostRequest{
@@ -950,7 +950,7 @@ func TestSubspacePersist(t *testing.T) {
 0:[336;1;1587518620.0622373;1587513894.06692143;]
 `
 	res, _ = indexSearch(t, client1, sp2.ID, "", []string{":int64=336"})
-	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c _log", res))
+	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c _log", res, "tzng"))
 
 	// Verify name change works
 	err = client1.SpacePut(context.Background(), sp2.ID, api.SpacePutRequest{Name: "newname"})
@@ -1024,7 +1024,7 @@ func TestArchiveStat(t *testing.T) {
 1:[index;1587513592.0625444;1587508830.06852324;microindex-field-v.zng;2253;504;[int64;]]
 `
 	res := archiveStat(t, client, sp.ID)
-	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c log_id", res))
+	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c log_id", res, "tzng"))
 }
 
 func archiveStat(t *testing.T, client *api.Connection, space api.SpaceID) string {
@@ -1084,24 +1084,14 @@ func searchTzng(t *testing.T, client *api.Connection, space api.SpaceID, prog st
 	return tzng
 }
 
-func tzngCopy(t *testing.T, prog string, in string) string {
+func tzngCopy(t *testing.T, prog string, in string, outFormat string) string {
 	zctx := resolver.NewContext()
 	r := tzngio.NewReader(bytes.NewReader([]byte(in)), zctx)
 	buf := bytes.NewBuffer(nil)
-	w := tzngio.NewWriter(zio.NopCloser(buf))
-	p := zql.MustParseProc(prog)
-	err := driver.Copy(context.Background(), w, p, zctx, r, driver.Config{})
+	w, err := detector.LookupWriter(zio.NopCloser(buf), zio.WriterOpts{Format: outFormat})
 	require.NoError(t, err)
-	return buf.String()
-}
-
-func tzngCopyToText(t *testing.T, in string, prog string) string {
-	zctx := resolver.NewContext()
-	r := tzngio.NewReader(bytes.NewReader([]byte(in)), zctx)
-	buf := bytes.NewBuffer(nil)
-	w := textio.NewWriter(zio.NopCloser(buf), false, textio.WriterOpts{}, false)
 	p := zql.MustParseProc(prog)
-	err := driver.Copy(context.Background(), w, p, zctx, r, driver.Config{})
+	err = driver.Copy(context.Background(), w, p, zctx, r, driver.Config{})
 	require.NoError(t, err)
 	return buf.String()
 }

@@ -7,7 +7,6 @@ import (
 	"path"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -98,15 +97,15 @@ func seekIndexNameMatch(s string) (f seekIndexFile, ok bool) {
 	if err != nil {
 		return
 	}
-	recordCount, err := strconv.ParseInt(byteconv.UnsafeString(match[2]), 10, 64)
+	recordCount, err := byteconv.ParseInt64(match[2])
 	if err != nil {
 		return
 	}
-	firstTs, err := strconv.ParseInt(byteconv.UnsafeString(match[3]), 10, 64)
+	firstTs, err := byteconv.ParseInt64(match[3])
 	if err != nil {
 		return
 	}
-	lastTs, err := strconv.ParseInt(byteconv.UnsafeString(match[4]), 10, 64)
+	lastTs, err := byteconv.ParseInt64(match[4])
 	if err != nil {
 		return
 	}
@@ -125,7 +124,7 @@ type tsDir struct {
 	nano.Span
 }
 
-func tsDirFor(ts nano.Ts) tsDir {
+func newTsDir(ts nano.Ts) tsDir {
 	return tsDir{nano.Span{Ts: ts.Midnight(), Dur: nano.Day}}
 }
 
@@ -134,7 +133,7 @@ func parseTsDirName(name string) (tsDir, bool) {
 	if err != nil {
 		return tsDir{}, false
 	}
-	return tsDirFor(nano.TimeToTs(t)), true
+	return newTsDir(nano.TimeToTs(t)), true
 }
 
 func (t tsDir) name() string {
@@ -265,7 +264,7 @@ func Walk(ctx context.Context, ark *Archive, visit Visitor) error {
 type LogID string
 
 func newLogID(ts nano.Ts, id ksuid.KSUID) LogID {
-	return LogID(path.Join(dataDirname, tsDirFor(ts).name(), fmt.Sprintf("%s-%s.zng", fileKindData, id)))
+	return LogID(path.Join(dataDirname, newTsDir(ts).name(), fmt.Sprintf("%s-%s.zng", fileKindData, id)))
 }
 
 // Path returns the local filesystem path for the log file, using the
