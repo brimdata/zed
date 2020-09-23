@@ -50,8 +50,6 @@ instead use `=` to specify an explicit name for the field.
 
 #### Example:
 
-To specify names for created fields:
-
 ```zq-command
 zq -f table 'quickest=min(duration),longest=max(duration),typical=avg(duration)' conn.log.gz
 ```
@@ -97,10 +95,10 @@ AVG
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
-| **Description**           | Return the number of events, optionally filtering on a specified field. |
+| **Description**           | Return the number of events. |
 | **Syntax**                | `count([field-name])`                                          |
 | **Required<br>arguments** | None                                                           |
-| **Optional<br>arguments** | `<field-name>`<br>The name of a field whose existence should be counted. |
+| **Optional<br>arguments** | `<field-name>`<br>The name of a field. If specified, only events that contain this field will be counted. |
 | **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/reducer#Count          |
 
 #### Example #1:
