@@ -32,16 +32,17 @@ import (
 // by wrapping the given io.Reader with a gzip.Reader.
 type PcapReader struct {
 	*peeker.Reader
+	LinkType layers.LinkType
+
 	byteOrder      binary.ByteOrder
 	nanoSecsFactor uint32
-	versionMajor   uint16
-	versionMinor   uint16
 	// timezone
 	// sigfigs
-	snaplen  uint32
-	linkType layers.LinkType
-	offset   uint64
-	header   []byte
+	versionMajor uint16
+	versionMinor uint16
+	snaplen      uint32
+	offset       uint64
+	header       []byte
 }
 
 //XXX from ngwrite
@@ -91,7 +92,7 @@ func (r *PcapReader) Packet(block []byte) ([]byte, nano.Ts, layers.LinkType, err
 	}
 	ts := r.TsFromHeader(block)
 	pkt := block[packetHeaderLen:]
-	return pkt[:caplen], ts, r.linkType, nil
+	return pkt[:caplen], ts, r.LinkType, nil
 }
 
 func (r *PcapReader) readHeader() error {
@@ -124,7 +125,7 @@ func (r *PcapReader) readHeader() error {
 	}
 	// ignore timezone 8:12 and sigfigs 12:16
 	r.snaplen = r.byteOrder.Uint32(hdr[16:20])
-	r.linkType = layers.LinkType(r.byteOrder.Uint32(hdr[20:24]))
+	r.LinkType = layers.LinkType(r.byteOrder.Uint32(hdr[20:24]))
 	return nil
 }
 
@@ -177,6 +178,10 @@ func (r *PcapReader) Offset() uint64 {
 	return r.offset
 }
 
+func (r *PcapReader) Version() string {
+	return fmt.Sprintf("%d.%d", r.versionMajor, r.versionMinor)
+}
+
 // SetSnaplen sets the snapshot length of the capture file.
 //
 // This is useful when a pcap file contains packets bigger than then snaplen.
@@ -210,7 +215,7 @@ func (r *PcapReader) SetSnaplen(newSnaplen uint32) {
 
 // Reader formatter
 func (r *PcapReader) String() string {
-	return fmt.Sprintf("PcapFile  maj: %x min: %x snaplen: %d linktype: %s", r.versionMajor, r.versionMinor, r.snaplen, r.linkType)
+	return fmt.Sprintf("PcapFile  maj: %x min: %x snaplen: %d linktype: %s", r.versionMajor, r.versionMinor, r.snaplen, r.LinkType)
 }
 
 // Resolution returns the timestamp resolution of acquired timestamps before scaling to NanosecondTimestampResolution.

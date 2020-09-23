@@ -6,6 +6,7 @@ import (
 
 	_ "github.com/brimsec/zq/cmd/pcap/cut"
 	_ "github.com/brimsec/zq/cmd/pcap/index"
+	_ "github.com/brimsec/zq/cmd/pcap/info"
 	"github.com/brimsec/zq/cmd/pcap/root"
 	_ "github.com/brimsec/zq/cmd/pcap/slice"
 	_ "github.com/brimsec/zq/cmd/pcap/ts"
