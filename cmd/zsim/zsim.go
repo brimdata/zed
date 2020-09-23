@@ -73,7 +73,8 @@ func (c *Command) Run(args []string) error {
 	}
 	startTime := nano.FloatToTs(c.startTime)
 	endTime := nano.FloatToTs(c.endTime)
-	// model := NewApp()
+	model := NewAppModel()
+	var appLog *zng.Record
 	for {
 		var rec *zng.Record
 		rec, err = reader.Read()
@@ -86,9 +87,20 @@ func (c *Command) Run(args []string) error {
 		if endTime != 0 && rec.Ts() >= endTime {
 			break
 		}
-		//if modelRec == nil {
-		//	modelRec = model.Next(rec.Ts)
-		//}
+		if appLog == nil {
+			now := rec.Ts()
+			event := model.Next(now)
+			rec, err := resolver.MarshalRecord(zctx, event)
+			if err != nil {
+				break
+			}
+			appLog = rec
+		} else if appLog.Ts() <= rec.Ts() {
+			if err := writer.Write(appLog); err != nil {
+				break
+			}
+			appLog = nil
+		}
 		if err := writer.Write(rec); err != nil {
 			break
 		}

@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 )
@@ -80,6 +81,10 @@ func encodeAny(zctx *Context, b *zcode.Builder, v reflect.Value) (zng.Type, erro
 		return zng.TypeBool, nil
 	// XXX Need to finish the zng int types...
 	case reflect.Int, reflect.Int64:
+		if isTs(v.Type()) {
+			b.AppendPrimitive(zng.EncodeTime(nano.Ts(v.Int())))
+			return zng.TypeTime, nil
+		}
 		b.AppendPrimitive(zng.EncodeInt(v.Int()))
 		return zng.TypeInt64, nil
 	case reflect.Int32, reflect.Int16, reflect.Int8:
@@ -133,6 +138,10 @@ func encodeRecord(zctx *Context, b *zcode.Builder, sval reflect.Value) (zng.Type
 
 func isIP(typ reflect.Type) bool {
 	return typ.Name() == "IP" && typ.PkgPath() == "net"
+}
+
+func isTs(typ reflect.Type) bool {
+	return typ.Name() == "Ts" && typ.PkgPath() == "github.com/brimsec/zq/pkg/nano"
 }
 
 func encodeArray(zctx *Context, b *zcode.Builder, arrayVal reflect.Value) (zng.Type, error) {

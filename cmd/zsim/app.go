@@ -5,7 +5,6 @@ import (
 	"net"
 
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/zng/resolver"
 	"github.com/icrowley/fake"
 )
 
@@ -20,22 +19,35 @@ type AppLog struct {
 }
 
 type AppModel struct {
-	zctx   *resolver.Context
-	names  []string
-	cities []string
-	ip     []net.IP
-	apps   []string
-	hacker string
+	names     []string
+	locations map[string][]location
+	ip        []net.IP
+	apps      []string
+	hacker    string
+	nhack     int
+	moscow    location
 }
 
-func NewAppModel(zctx *resolver.Context) *AppModel {
+func NewAppModel() *AppModel {
 	a := &AppModel{}
+	var locations []location
 	for k := 0; k < 20; k++ {
-		a.names = append(a.names, fake.FullName())
-		a.cities = append(a.cities, fake.City())
+		a.names = append(a.names, fake.FirstName()+" "+fake.LastName())
+		ip := net.ParseIP(fake.IPv4())
+		locations = append(locations, location{fake.City(), ip})
+	}
+	a.locations = make(map[string][]location)
+	for k := 0; k < 20; k++ {
+		name := a.names[k]
+		a.locations[name] = []location{locations[rand.Intn(20)]}
+		if rand.Intn(2) == 0 {
+			a.locations[name] = append(a.locations[name], locations[rand.Intn(20)])
+		}
 	}
 	a.apps = []string{"dropbox", "office365", "salesforce", "youtube", "slack", "amazon", "adp"}
 	a.hacker = a.names[0]
+	a.moscow.city = "Moscow"
+	a.moscow.ip = net.ParseIP(fake.IPv4())
 	return a
 }
 
@@ -48,8 +60,10 @@ type location struct {
 	ip   net.IP
 }
 
-func (a *AppModel) city() string {
-	return a.cities[rand.Intn(len(a.cities))]
+func (a *AppModel) locationOf(name string) location {
+	locations := a.locations[name]
+	//pretty.Println(name, locations)
+	return locations[rand.Intn(len(locations))]
 }
 
 func (a *AppModel) app() string {
@@ -64,15 +78,18 @@ func (a *AppModel) Next(now nano.Ts) *AppLog {
 	ms := int64(rand.Intn(1_000))
 	ts := now.Add(ms * 1_000_000)
 
-	city := a.city()
+	app := a.app()
 	name := a.name()
-	if name == a.hacker && rare() {
-		city = "Moscow"
+	location := a.locationOf(name)
+	if a.nhack < 5 && name == a.hacker && rare() {
+		a.nhack++
+		location.city = "Moscow"
+		app = "dropbox"
 	}
 	return &AppLog{
 		Ts:       ts,
 		Name:     name,
-		App:      a.app(),
-		Location: city,
+		App:      app,
+		Location: location.city,
 	}
 }
