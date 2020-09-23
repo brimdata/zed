@@ -9,12 +9,14 @@ require (
 	github.com/aws/aws-sdk-go v1.30.19
 	github.com/axiomhq/hyperloglog v0.0.0-20191112132149-a4c4c47bc57f
 	github.com/buger/jsonparser v0.0.0-20191004114745-ee4c978eae7e
+	github.com/corpix/uarand v0.1.1 // indirect
 	github.com/go-resty/resty/v2 v2.2.0
 	github.com/golang/mock v1.4.3
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/google/gopacket v1.1.17
 	github.com/gorilla/mux v1.7.5-0.20200711200521-98cb6bf42e08
 	github.com/gosuri/uilive v0.0.4
+	github.com/icrowley/fake v0.0.0-20180203215853-4178557ae428
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/klauspost/compress v1.10.3 // indirect
 	github.com/mccanne/charm v0.0.3-0.20191224190439-b05e1b7b1be3
