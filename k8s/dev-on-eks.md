@@ -4,18 +4,32 @@ These are instructions for deploying a locally built image for zqd into an EKS c
 
 ## First time setup
 
+This assumes that you have a AWS IAM access on the AWS account that hosts the EKS cluster. You should have installed the AWS CLI.
+
+https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html
+
+You should also have Docker installed in order to build the zqd container image.
+
+https://docs.docker.com/get-docker/
+
 ### Desktop tools
 
-`kubectl` and `helm` should be installed. See instructions at:
+`kubectl`, `eksctl` and `helm` should be installed. See instructions at:
 
 https://kubernetes.io/docs/tasks/tools/install-kubectl/
+
+https://docs.aws.amazon.com/eks/latest/userguide/eksctl.html
 
 https://helm.sh/docs/intro/install/
 
 #### On MacOS
 Using brew (https://brew.sh) for the install works well on MacOS:
 ```
-brew install kubernetes-cli helm
+brew tap weaveworks/tap
+brew install weaveworks/tap/eksctl
+brew install kubernetes-cli
+brew link --overwrite kubernetes-cli
+brew install helm
 ```
 
 ### EKS access
@@ -31,12 +45,10 @@ eksctl get cluster
 eksctl utils write-kubeconfig --cluster zq-test
 aws sts get-caller-identity
 ```
-And passes on their user arn to the AKS admin, who adds it to the "MapUsers" lists with:
+And passes on their user arn to the AKS admin, who adds it to the "MapUsers" list with:
 ```
 kubectl edit -n kube-system configmap/aws-auth
 ```
-
-
 
 ### Environment variables for Makefile rules
 
@@ -89,7 +101,7 @@ kubectl get pod
 This will show the unique name of your running zqd pod. Copy that name for the following troubleshooting steps. If the status of the pod is 'Error' or 'ImagePullBackoff' (or something else not good), then you can get details with:
 ```
 kubectl describe pod zqd-56b46985fc-bqv87
-kubectl logs zqd-56b46985fc-bqv87 -p
+kubectl logs -c zqd zqd-56b46985fc-bqv87 -p -f
 ```
 Edit the commands to use your pod name.
 
