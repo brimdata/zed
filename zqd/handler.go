@@ -3,6 +3,7 @@ package zqd
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/brimsec/zq/zqd/api"
@@ -54,5 +55,20 @@ func NewHandler(core *Core, logger *zap.Logger) http.Handler {
 		name := mux.Vars(r)["space"]
 		http.Redirect(w, r, fmt.Sprintf("/space/%s/pcap", name), http.StatusPermanentRedirect)
 	})
+	h.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, indexPage)
+	})
 	return h
 }
+
+const indexPage = `
+<!DOCTYPE html>
+<html>
+  <title>ZQD daemon</title>
+  <body style="padding:10px">
+    <h2>ZQD</h2>
+    <p>A <a href="https://github.com/brimsec/zq/tree/master/cmd/zqd">zqd</a> daemon is listening on this host/port.</p>
+    <p>If you're a <a href="https://www.brimsecurity.com/">Brim</a> user, connect to this host/port from the <a href="https://github.com/brimsec/brim">Brim application</a> in the graphical desktop interface in your operating system (not a web browser).</p>
+    <p>If your goal is to perform command line operations against this zqd, use the <a href="https://github.com/brimsec/zq/tree/master/cmd/zapi">zapi</a> client.</p>
+  </body>
+</html>`
