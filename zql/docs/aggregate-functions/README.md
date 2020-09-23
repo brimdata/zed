@@ -44,7 +44,7 @@ MIN      MAX         AVG
 0.000001 1269.512465 1.6373747834138621
 ```
 
-As just shown, the result returned by an aggregate function is by default
+As just shown, by default the result returned by an aggregate function is
 placed in a field with the same name as the aggregate function. You may
 instead use `=` to specify an explicit name for the field.
 
@@ -78,7 +78,7 @@ QUICKEST LONGEST     TYPICAL
 
 #### Example:
 
-To calculate the average number of bytes originated by all connectiosn as
+To calculate the average number of bytes originated by all connections as
 captured in Zeek `conn` events:
 
 ```zq-command
@@ -90,6 +90,8 @@ zq -f table 'avg(orig_bytes)' conn.log.gz
 AVG
 176.9861548654682
 ```
+
+---
 
 ## `count`
 
