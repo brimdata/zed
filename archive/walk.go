@@ -33,9 +33,9 @@ const (
 type fileKind string
 
 const (
-	unknownFileKind fileKind = ""
-	ingestDataKind           = "d"
-	seekIndexKind            = "ts"
+	fileKindUnknown fileKind = ""
+	fileKindData             = "d"
+	fileKindSeek             = "ts"
 )
 
 // A dataFile holds archive record data. Only one kind of data file
@@ -46,7 +46,7 @@ type dataFile struct {
 }
 
 func newDataFile() dataFile {
-	return dataFile{ksuid.New(), ingestDataKind}
+	return dataFile{ksuid.New(), fileKindData}
 }
 
 func (f dataFile) name() string {
@@ -64,7 +64,7 @@ func dataFileNameMatch(s string) (f dataFile, ok bool) {
 	if err != nil {
 		return
 	}
-	return dataFile{id, ingestDataKind}, true
+	return dataFile{id, fileKindData}, true
 }
 
 // A seekIndexFile is a microindex whose keys are record timestamps, and whose
@@ -80,7 +80,7 @@ type seekIndexFile struct {
 }
 
 func (f seekIndexFile) name() string {
-	return fmt.Sprintf("%s-%s-%d-%d-%d.zng", seekIndexKind, f.id, f.recordCount, f.first, f.last)
+	return fmt.Sprintf("%s-%s-%d-%d-%d.zng", fileKindSeek, f.id, f.recordCount, f.first, f.last)
 }
 
 func (f seekIndexFile) span() nano.Span {
@@ -265,7 +265,7 @@ func Walk(ctx context.Context, ark *Archive, visit Visitor) error {
 type LogID string
 
 func newLogID(ts nano.Ts, id ksuid.KSUID) LogID {
-	return LogID(path.Join(dataDirname, tsDirFor(ts).name(), fmt.Sprintf("%s-%s.zng", ingestDataKind, id)))
+	return LogID(path.Join(dataDirname, tsDirFor(ts).name(), fmt.Sprintf("%s-%s.zng", fileKindData, id)))
 }
 
 // Path returns the local filesystem path for the log file, using the
