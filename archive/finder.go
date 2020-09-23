@@ -10,7 +10,6 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zqe"
 )
 
 type findOptions struct {
@@ -42,7 +41,11 @@ func AddPath(pathField string, absolutePath bool) FindOption {
 		if err != nil {
 			return err
 		}
-		pathCol := []zng.Column{{pathField, typ}}
+		cols := []zng.Column{
+			{pathField, typ},
+			{"first", zng.TypeTime},
+			{"last", zng.TypeTime},
+		}
 		opt.addPath = func(ark *Archive, si SpanInfo, rec *zng.Record) (*zng.Record, error) {
 			var path string
 			if absolutePath {
@@ -54,8 +57,11 @@ func AddPath(pathField string, absolutePath bool) FindOption {
 			} else {
 				path = string(si.LogID)
 			}
-			val := zng.Value{pathCol[0].Type, zng.EncodeString(path)}
-			return opt.zctx.AddColumns(rec, pathCol, []zng.Value{val})
+			return opt.zctx.AddColumns(rec, cols, []zng.Value{
+				{cols[0].Type, zng.EncodeString(path)},
+				{cols[1].Type, zng.EncodeTime(si.First)},
+				{cols[2].Type, zng.EncodeTime(si.Last)},
+			})
 		}
 		return nil
 	}
@@ -87,21 +93,12 @@ func Find(ctx context.Context, zctx *resolver.Context, ark *Archive, query Index
 			return err
 		}
 	}
-	if _, err := ark.UpdateCheck(ctx); err != nil {
-		return err
-	}
-	ark.mu.RLock()
-	indexInfo, ok := ark.indexes[query.indexName]
-	ark.mu.RUnlock()
-	if !ok {
-		return zqe.E(zqe.NotFound)
-	}
 	return SpanWalk(ctx, ark, func(si SpanInfo, zardir iosrc.URI) error {
 		searchHits := make(chan *zng.Record)
 		var searchErr error
 		go func() {
 			defer close(searchHits)
-			searchErr = search(ctx, opt.zctx, searchHits, zardir.AppendPath(indexInfo.Path), query.patterns)
+			searchErr = search(ctx, opt.zctx, searchHits, zardir.AppendPath(query.indexName), query.patterns)
 			if searchErr != nil && os.IsNotExist(searchErr) && opt.skipMissing {
 				// No index for this rule.  Skip it if the skip boolean
 				// says it's ok.  Otherwise, we return ErrNotExist since

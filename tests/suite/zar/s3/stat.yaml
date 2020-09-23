@@ -1,12 +1,10 @@
 script: |
+  mkdir logs
   source minio.sh
-  zar import -s 20KiB -R ./root -data s3://bucket/zartest babble.tzng
-  zar ls -relative -R ./root
+  zar import -R ./logs -data s3://bucket/zartest babble.tzng
+  zar ls -R ./logs -ranges
   echo ===
-  zar stat -R ./root
-  echo ===
-  zar stat -R ./root -f tzng
-  echo ===
+  zar stat -R ./logs -f zng | zq -t "cut -c log_id" -
 
 inputs:
   - name: babble.tzng
@@ -17,14 +15,9 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      20200422/1587518620.0622373.zng.zar
-      20200421/1587509477.06313454.zng.zar
+      [1587518620062237300-1587513611063914690]
+      [1587513592062544400-1587508830068523240]
       ===
-      TYPE  LOG_ID                           START                DURATION       SIZE  RECORD_COUNT
-      chunk 20200422/1587518620.0622373.zng  1587509477.064505280 9142.997732021 32205 939
-      chunk 20200421/1587509477.06313454.zng 1587508830.068523240 646.994611301  2133  61
-      ===
-      #0:record[type:string,log_id:string,start:time,duration:duration,size:uint64,record_count:uint64]
-      0:[chunk;20200422/1587518620.0622373.zng;1587509477.06450528;9142.997732021;32205;939;]
-      0:[chunk;20200421/1587509477.06313454.zng;1587508830.06852324;646.994611301;2133;61;]
-      ===
+      #0:record[type:string,first:time,last:time,size:uint64,record_count:uint64]
+      0:[chunk;1587518620.0622373;1587513611.06391469;16995;496;]
+      0:[chunk;1587513592.0625444;1587508830.06852324;17206;504;]

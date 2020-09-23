@@ -15,8 +15,6 @@ import (
 	"github.com/brimsec/zq/zqd/api"
 )
 
-const zarExt = ".zar"
-
 // XXX Embedding the type and field names like this can result in some clunky
 // file names. We might want to re-work the naming scheme.
 
@@ -29,18 +27,10 @@ func fieldMicroIndexName(fieldname string) string {
 }
 
 func IndexDirTree(ctx context.Context, ark *Archive, rules []Rule, path string, progress chan<- string) error {
-	err := Walk(ctx, ark, func(zardir iosrc.URI) error {
+	return Walk(ctx, ark, func(zardir iosrc.URI) error {
 		logPath := Localize(zardir, path)
 		return run(ctx, zardir, rules, logPath, progress)
 	})
-	if err != nil {
-		return err
-	}
-	var infos []IndexInfo
-	for _, r := range rules {
-		infos = append(infos, IndexInfo{r.typ, r.path})
-	}
-	return ark.AddIndexes(infos)
 }
 
 func runOne(ctx context.Context, zardir iosrc.URI, rule Rule, inputPath iosrc.URI, progress chan<- string) error {

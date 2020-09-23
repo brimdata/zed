@@ -1,12 +1,18 @@
 
 script: |
-  zar import -R . log.tzng
-  zar index -q -R . :ip
-  zar find -relative -R . :ip=1.1.1.1
-  zar find -relative -R . :ip=192.168.1.102
-  zar find -relative -R . :ip=192.168.2.1
-  zar find -relative -R . :ip=192.168.1.1
-  zq -t "count(key)" 20091119/1258594907.85978.zng.zar/microindex-type-ip.zng # check unset not indexed
+  mkdir logs
+  zar import -R ./logs log.tzng
+  zar index -R ./logs -q :ip
+  echo ===
+  zar find -R ./logs :ip=1.1.1.1
+  echo ===
+  zar find -R ./logs -z :ip=192.168.1.102 | zq -t "cut -c _log" -
+  echo ===
+  zar find -R ./logs -z :ip=192.168.2.1 | zq -t "cut -c _log" -
+  echo ===
+  zar find -R ./logs -z :ip=192.168.1.1 | zq -t "cut -c _log" -
+  echo ===
+  zq -t "count(key)" $(find . -name microindex*) # check unset not indexed
 
 inputs:
   - name: log.tzng
@@ -18,8 +24,16 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      20091119/1258594907.85978.zng
-      20091119/1258594907.85978.zng
-      20091119/1258594907.85978.zng
+      ===
+      ===
+      #0:record[key:ip,count:uint64,first:time,last:time]
+      0:[192.168.1.102;1;1258594907.85978;1258594907.85978;]
+      ===
+      #0:record[key:ip,count:uint64,first:time,last:time]
+      0:[192.168.2.1;1;1258594907.85978;1258594907.85978;]
+      ===
+      #0:record[key:ip,count:uint64,first:time,last:time]
+      0:[192.168.1.1;1;1258594907.85978;1258594907.85978;]
+      ===
       #0:record[count:uint64]
       0:[3;]

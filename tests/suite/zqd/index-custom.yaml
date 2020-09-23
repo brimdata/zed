@@ -3,7 +3,7 @@ script: |
   zapi -h $ZQD_HOST new -k archivestore testsp >/dev/null
   zapi -h $ZQD_HOST -s testsp post babble.tzng >/dev/null
   zapi -h $ZQD_HOST -s testsp index create -k key -o index.zng -z "sum(v) by s | put key=s | sort key"
-  zapi -h $ZQD_HOST -s testsp index find -f tzng -x index.zng glycerite-oligoprothesy
+  zapi -h $ZQD_HOST -s testsp index find -z -x index.zng glycerite-oligoprothesy | zq -t "cut -c _log" -
 
 inputs:
   - name: services.sh
@@ -14,6 +14,5 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      #zfile=string
-      #0:record[s:string,sum:int64,key:string,_log:zfile]
-      0:[glycerite-oligoprothesy;407;glycerite-oligoprothesy;20200422/1587518620.0622373.zng;]
+      #0:record[s:string,sum:int64,key:string,first:time,last:time]
+      0:[glycerite-oligoprothesy;407;glycerite-oligoprothesy;1587513592.0625444;1587508830.06852324;]

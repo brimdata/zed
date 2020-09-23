@@ -1,11 +1,12 @@
 script: |
-  zar import -R . multitype.tzng
+  mkdir logs
+  zar import -R ./logs multitype.tzng
   # ignore stdout here
-  zar index -R . id.orig_h > trash
+  zar index -R ./logs id.orig_h > trash
   # since index operation failed, no files should be left behind so this
   # ls command should have an empty output
   echo ===
-  ls 20091119/1258594907.85978.zng.zar
+  zar ls -R ./logs -ranges -l
   echo ===
 
 inputs:

@@ -1,8 +1,8 @@
 script: |
   mkdir logs
-  zar import -s 20KiB -R ./logs babble.tzng
-  zar index -q -R ./logs -o index -k sum,s -z "sum(v) by s | sort sum,s"
-  zar find -R ./logs -relative -z -x index 149 wailer-strick | zq -t -
+  zar import -R ./logs babble.tzng
+  zar index -R ./logs -q -o index -k sum,s -z "sum(v) by s | sort sum,s"
+  zar find -R ./logs -z -x index 149 wailer-strick | zq -t "cut -c _log" -
 
 inputs:
   - name: babble.tzng
@@ -11,6 +11,5 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      #zfile=string
-      #0:record[s:string,sum:int64,_log:zfile]
-      0:[wailer-strick;149;20200422/1587518620.0622373.zng;]
+      #0:record[s:string,sum:int64,first:time,last:time]
+      0:[wailer-strick;149;1587513592.0625444;1587508830.06852324;]

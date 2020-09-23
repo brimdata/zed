@@ -1,11 +1,11 @@
 script: |
   mkdir logs
-  zar import -s 20KiB -R ./logs babble.tzng
+  zar import -R ./logs babble.tzng
   echo ===
-  zar index -q -R ./logs v
-  zar find -relative -R ./logs v=106
+  zar index -R ./logs -q v
+  zar find -R ./logs -z v=2 | zq -t "cut -c _log" -
   echo ===
-  zar find -relative -R ./logs v=10600
+  zar find -R ./logs -z v=10 | zq -t "cut -c _log" -
   echo ===
 
 inputs:
@@ -16,6 +16,7 @@ outputs:
   - name: stdout
     data: |
       ===
-      20200422/1587518620.0622373.zng
+      #0:record[key:int64,count:uint64,first:time,last:time]
+      0:[2;1;1587518620.0622373;1587513611.06391469;]
       ===
       ===

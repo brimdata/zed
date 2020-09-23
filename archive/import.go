@@ -3,10 +3,13 @@ package archive
 import (
 	"context"
 	"fmt"
-	"path"
+	"io/ioutil"
+	"os"
 
 	"github.com/brimsec/zq/driver"
+	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/pkg/bufwriter"
+	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
@@ -17,56 +20,99 @@ import (
 	"github.com/brimsec/zq/zql"
 )
 
-func tsDir(ts nano.Ts) string {
-	return ts.Time().Format("20060102")
-}
+// The below are vars for unit testing.
+var (
+	importLZ4BlockSize     = zngio.DefaultLZ4BlockSize
+	importStreamRecordsMax = zngio.DefaultStreamRecordsMax
+)
 
 type importDriver struct {
-	ark *Archive
-	ctx context.Context
-	zw  *zngio.Writer
+	ark             *Archive
+	ctx             context.Context
+	dataFile        dataFile
+	dataFileWriter  *zngio.Writer
+	firstTs         nano.Ts
+	indexBuilder    *zng.Builder
+	indexTempPath   string
+	indexTempWriter *zngio.Writer
+	lastTs          nano.Ts
+	needIndexWrite  bool
+	rcount          int64
+	tsDir           iosrc.URI
+	zctx            *resolver.Context
+}
 
-	span   nano.Span
-	logID  LogID
-	spans  []SpanInfo
-	rcount int
+func (d *importDriver) newWriter(rec *zng.Record) error {
+	d.firstTs = rec.Ts()
+	d.rcount = 0
+
+	// Create the data file writer
+	d.tsDir = d.ark.DataPath.AppendPath(dataDirname, newTsDir(d.firstTs).name())
+	if dirmkr, ok := d.ark.dataSrc.(iosrc.DirMaker); ok {
+		if err := dirmkr.MkdirAll(d.tsDir, 0755); err != nil {
+			return err
+		}
+	}
+	d.dataFile = newDataFile()
+	out, err := d.ark.dataSrc.NewWriter(d.ctx, d.tsDir.AppendPath(d.dataFile.name()))
+	if err != nil {
+		return err
+	}
+	d.dataFileWriter = zngio.NewWriter(bufwriter.New(out), zngio.WriterOpts{
+		LZ4BlockSize:     importLZ4BlockSize,
+		StreamRecordsMax: importStreamRecordsMax,
+	})
+
+	// Create the temporary index key file
+	idxTemp, err := ioutil.TempFile("", "archive-import-index-key-")
+	if err != nil {
+		return err
+	}
+	d.indexTempPath = idxTemp.Name()
+	d.indexTempWriter = zngio.NewWriter(bufwriter.New(idxTemp), zngio.WriterOpts{})
+	if d.indexBuilder == nil {
+		d.zctx = resolver.NewContext()
+		d.indexBuilder = zng.NewBuilder(d.zctx.MustLookupTypeRecord([]zng.Column{
+			{"ts", zng.TypeTime},
+			{"offset", zng.TypeInt64},
+		}))
+	}
+	return nil
 }
 
 func (d *importDriver) writeOne(rec *zng.Record) error {
-	recspan := nano.Span{rec.Ts(), 1}
-	if d.zw == nil {
-		dname := tsDir(rec.Ts())
-		fname := rec.Ts().StringFloat() + ".zng"
-		d.span = recspan
-		d.rcount = 0
-		// Create LogID with path.Join so that it always uses forward
-		// slashes (dir1/foo.zng), regardless of platform.
-		d.logID = LogID(path.Join(dname, fname))
-
-		dpath := d.ark.DataPath.AppendPath(dname)
-		if dirmkr, ok := d.ark.dataSrc.(iosrc.DirMaker); ok {
-			if err := dirmkr.MkdirAll(dpath, 0755); err != nil {
-				return err
-			}
-		}
-
-		//XXX for now just truncate any existing file.
-		// a future PR will do a split/merge.
-		fpath := dpath.AppendPath(fname)
-		out, err := d.ark.dataSrc.NewWriter(d.ctx, fpath)
-		if err != nil {
+	if d.dataFileWriter != nil && !d.firstTs.DayOf().Contains(rec.Ts()) {
+		// Don't allow data files to include records from multiple tsDir time spans.
+		if err := d.close(); err != nil {
 			return err
 		}
-		bw := bufwriter.New(out)
-		d.zw = zngio.NewWriter(bw, zngio.WriterOpts{LZ4BlockSize: zngio.DefaultLZ4BlockSize})
-	} else {
-		d.span = d.span.Union(recspan)
 	}
-	if err := d.zw.Write(rec); err != nil {
+	if d.dataFileWriter == nil {
+		if err := d.newWriter(rec); err != nil {
+			return err
+		}
+	}
+
+	// We want to index the start of stream (SOS) position of the data file by
+	// record timestamps; we don't know when we've started a new stream until
+	// after we written the first record in the stream.
+	sos := d.dataFileWriter.LastSOS()
+	if err := d.dataFileWriter.Write(rec); err != nil {
 		return err
 	}
+	d.lastTs = rec.Ts()
 	d.rcount++
-	if d.zw.Position() >= d.ark.LogSizeThreshold {
+	if d.needIndexWrite {
+		out := d.indexBuilder.Build(zng.EncodeTime(d.lastTs), zng.EncodeInt(sos))
+		if err := d.indexTempWriter.Write(out); err != nil {
+			return err
+		}
+		d.needIndexWrite = false
+	}
+	if d.dataFileWriter.LastSOS() != sos {
+		d.needIndexWrite = true
+	}
+	if d.dataFileWriter.Position() >= d.ark.LogSizeThreshold {
 		if err := d.close(); err != nil {
 			return err
 		}
@@ -75,18 +121,46 @@ func (d *importDriver) writeOne(rec *zng.Record) error {
 }
 
 func (d *importDriver) close() error {
-	if d.zw != nil {
-		if err := d.zw.Close(); err != nil {
-			return err
-		}
-		d.spans = append(d.spans, SpanInfo{
-			Span:        d.span,
-			LogID:       d.logID,
-			RecordCount: d.rcount,
-		})
-		d.zw = nil
+	if d.dataFileWriter == nil {
+		return nil
 	}
-	return nil
+	err := d.dataFileWriter.Close()
+	if closeErr := d.indexTempWriter.Close(); err == nil {
+		err = closeErr
+	}
+	if err != nil {
+		return err
+	}
+	d.dataFileWriter = nil
+
+	// Write the time seek index into the archive, feeding it the key/offset
+	// records written to indexTempPath.
+	tf, err := fs.Open(d.indexTempPath)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		tf.Close()
+		os.Remove(tf.Name())
+	}()
+	tfr := zngio.NewReader(tf, d.zctx)
+	sf := seekIndexFile{id: d.dataFile.id, recordCount: d.rcount, first: d.firstTs, last: d.lastTs}
+	idxURI := d.tsDir.AppendPath(sf.name())
+	idxWriter, err := microindex.NewWriter(d.zctx, idxURI.String(), []string{"ts"}, framesize)
+	if err != nil {
+		return err
+	}
+	// XXX: zq#1329
+	// The microindex finder doesn't yet handle searching when keys
+	// are stored in descending order, which is the zar default.
+	if err = zbuf.CopyWithContext(d.ctx, idxWriter, tfr); err != nil {
+		idxWriter.Abort()
+		return err
+	}
+	// TODO: zq#1264
+	// Add an entry to the update log for S3 backed stores containing the
+	// location of the just added data & index file.
+	return idxWriter.Close()
 }
 
 func (d *importDriver) Write(cid int, batch zbuf.Batch) error {
@@ -124,11 +198,13 @@ func Import(ctx context.Context, ark *Archive, zctx *resolver.Context, r zbuf.Re
 	if err != nil {
 		return err
 	}
-
-	id := &importDriver{ark: ark, ctx: ctx}
+	id := &importDriver{
+		ark:            ark,
+		ctx:            ctx,
+		needIndexWrite: true,
+	}
 	if err := driver.Run(ctx, id, proc, zctx, r, driver.Config{}); err != nil {
 		return fmt.Errorf("archive.Import: run failed: %w", err)
 	}
-
-	return ark.AppendSpans(id.spans)
+	return nil
 }
