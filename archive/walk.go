@@ -7,11 +7,11 @@ import (
 	"path"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/brimsec/zq/driver"
-	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/scanner"
@@ -55,11 +55,11 @@ func (f dataFile) name() string {
 var dataFileNameRegex = regexp.MustCompile(`d-([0-9A-Za-z]{27}).zng$`)
 
 func dataFileNameMatch(s string) (f dataFile, ok bool) {
-	match := dataFileNameRegex.FindSubmatch([]byte(s))
+	match := dataFileNameRegex.FindStringSubmatch(s)
 	if match == nil {
 		return
 	}
-	id, err := ksuid.Parse(byteconv.UnsafeString(match[1]))
+	id, err := ksuid.Parse(match[1])
 	if err != nil {
 		return
 	}
@@ -89,23 +89,23 @@ func (f seekIndexFile) span() nano.Span {
 var seekIndexNameRegex = regexp.MustCompile(`ts-([0-9A-Za-z]{27})-([0-9]+)-([0-9]+)-([0-9]+).zng$`)
 
 func seekIndexNameMatch(s string) (f seekIndexFile, ok bool) {
-	match := seekIndexNameRegex.FindSubmatch([]byte(s))
+	match := seekIndexNameRegex.FindStringSubmatch(s)
 	if match == nil {
 		return
 	}
-	id, err := ksuid.Parse(byteconv.UnsafeString(match[1]))
+	id, err := ksuid.Parse(match[1])
 	if err != nil {
 		return
 	}
-	recordCount, err := byteconv.ParseInt64(match[2])
+	recordCount, err := strconv.ParseInt(match[2], 10, 64)
 	if err != nil {
 		return
 	}
-	firstTs, err := byteconv.ParseInt64(match[3])
+	firstTs, err := strconv.ParseInt(match[3], 10, 64)
 	if err != nil {
 		return
 	}
-	lastTs, err := byteconv.ParseInt64(match[4])
+	lastTs, err := strconv.ParseInt(match[4], 10, 64)
 	if err != nil {
 		return
 	}
