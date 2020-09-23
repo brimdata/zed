@@ -9,12 +9,12 @@ import (
 
 // mergeChunksToSpans takes a set of Chunks with possibly overlapping spans,
 // and returns an ordered list of SpanInfos, whose spans will be bounded by
-// filter, and where each SpanInfo contains one or more Chunks whose data
-// falls into the SpanInfo's span.
-func mergeChunksToSpans(chunks []Chunk, dir zbuf.Direction, filter nano.Span) []SpanInfo {
-	var siChunks []Chunk // accumulating chunks for next SpanInfo
-	var siFirst nano.Ts  // first timestamp for next SpanInfo
-	var result []SpanInfo
+// filter, and where each spanInfo contains one or more Chunks whose data
+// falls into the spanInfo's span.
+func mergeChunksToSpans(chunks []Chunk, dir zbuf.Direction, filter nano.Span) []spanInfo {
+	var siChunks []Chunk // accumulating chunks for next spanInfo
+	var siFirst nano.Ts  // first timestamp for next spanInfo
+	var result []spanInfo
 	boundaries(chunks, dir, func(ts nano.Ts, firstChunks, lastChunks []Chunk) {
 		if len(firstChunks) > 0 {
 			// ts is the 'First' timestamp for these chunks.
@@ -23,11 +23,9 @@ func mergeChunksToSpans(chunks []Chunk, dir zbuf.Direction, filter nano.Span) []
 				// last timestamp was just before ts.
 				siSpan := closedSpan(siFirst, prevTs(ts, dir))
 				if filter.Overlaps(siSpan) {
-					first, last := spanToFirstLast(dir, filter.Intersect(siSpan))
-					result = append(result, SpanInfo{
-						First:  first,
-						Last:   last,
-						Chunks: copyChunks(siChunks, nil),
+					result = append(result, spanInfo{
+						span:   filter.Intersect(siSpan),
+						chunks: copyChunks(siChunks, nil),
 					})
 				}
 			}
@@ -39,11 +37,9 @@ func mergeChunksToSpans(chunks []Chunk, dir zbuf.Direction, filter nano.Span) []
 			// ts is the 'Last' timestamp for these chunks.
 			siSpan := closedSpan(siFirst, ts)
 			if filter.Overlaps(siSpan) {
-				first, last := spanToFirstLast(dir, filter.Intersect(siSpan))
-				result = append(result, SpanInfo{
-					First:  first,
-					Last:   last,
-					Chunks: copyChunks(siChunks, nil),
+				result = append(result, spanInfo{
+					span:   filter.Intersect(siSpan),
+					chunks: copyChunks(siChunks, nil),
 				})
 			}
 			// Drop the chunks that ended from our accumulation.
@@ -76,10 +72,7 @@ func closedSpan(x, y nano.Ts) nano.Span {
 // is represented by span s. It assumes s.Dur is greater than zero.
 func spanToFirstLast(dir zbuf.Direction, s nano.Span) (first, last nano.Ts) {
 	a := s.Ts
-	b := s.Ts + nano.Ts(s.Dur-1)
-	if a > b {
-		a, b = b, a
-	}
+	b := s.End() - 1
 	if dir == zbuf.DirTimeForward {
 		return a, b
 	}

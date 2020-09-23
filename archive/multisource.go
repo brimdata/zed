@@ -17,26 +17,19 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-// A SpanInfo is a logical view of the records within a time span, stored
+// A spanInfo is a logical view of the records within a time span, stored
 // in one or more Chunks.
-type SpanInfo struct {
-	First nano.Ts // timestamp of first record in this span
-	Last  nano.Ts // timestamp of last record in this span
+type spanInfo struct {
+	span nano.Span
 
-	// Chunks are the data files that contain records within this SpanInfo.
-	// The Chunks may have spans that extend beyond this SpanInfo, so any
+	// chunks are the data files that contain records within this spanInfo.
+	// The Chunks may have spans that extend beyond this spanInfo, so any
 	// records from these Chunks should be limited to those that fall within a
 	// closed span constructed from First & Last.
-	Chunks []Chunk
+	chunks []Chunk
 }
 
-// Span returns an inclusive nano.Span that contains both the first
-// and last record timestamps.
-func (si SpanInfo) Span() nano.Span {
-	return closedSpan(si.First, si.Last)
-}
-
-func spanWalk(ctx context.Context, ark *Archive, filter nano.Span, v func(si SpanInfo) error) error {
+func spanWalk(ctx context.Context, ark *Archive, filter nano.Span, v func(si spanInfo) error) error {
 	return tsDirVisit(ctx, ark, filter, func(_ tsDir, chunks []Chunk) error {
 		sinfos := mergeChunksToSpans(chunks, ark.DataSortDirection, filter)
 		for _, s := range sinfos {
@@ -67,20 +60,20 @@ type scannerCloser struct {
 	io.Closer
 }
 
-func newSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, f filter.Filter, filterExpr ast.BooleanExpr, si SpanInfo) (sc *scannerCloser, err error) {
-	if len(si.Chunks) == 1 {
-		rc, err := iosrc.NewReader(ctx, si.Chunks[0].Path(ark))
+func newSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, f filter.Filter, filterExpr ast.BooleanExpr, si spanInfo) (sc *scannerCloser, err error) {
+	if len(si.chunks) == 1 {
+		rc, err := iosrc.NewReader(ctx, si.chunks[0].Path(ark))
 		if err != nil {
 			return nil, err
 		}
-		sn, err := scanner.NewScanner(ctx, zngio.NewReader(rc, zctx), f, filterExpr, si.Span())
+		sn, err := scanner.NewScanner(ctx, zngio.NewReader(rc, zctx), f, filterExpr, si.span)
 		if err != nil {
 			rc.Close()
 			return nil, err
 		}
 		return &scannerCloser{sn, rc}, nil
 	}
-	closers := make([]io.Closer, len(si.Chunks))
+	closers := make([]io.Closer, len(si.chunks))
 	defer func() {
 		if err != nil {
 			for _, c := range closers {
@@ -88,8 +81,8 @@ func newSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, f
 			}
 		}
 	}()
-	readers := make([]zbuf.Reader, len(si.Chunks))
-	for i, chunk := range si.Chunks {
+	readers := make([]zbuf.Reader, len(si.chunks))
+	for i, chunk := range si.chunks {
 		rc, err := iosrc.NewReader(ctx, chunk.Path(ark))
 		if err != nil {
 			return nil, err
@@ -97,7 +90,7 @@ func newSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, f
 		closers[i] = rc
 		readers[i] = zngio.NewReader(rc, zctx)
 	}
-	sn, err := scanner.NewCombiner(ctx, readers, zbuf.RecordCompare(ark.DataSortDirection), f, filterExpr, si.Span())
+	sn, err := scanner.NewCombiner(ctx, readers, zbuf.RecordCompare(ark.DataSortDirection), f, filterExpr, si.span)
 	if err != nil {
 		return nil, err
 	}
@@ -136,8 +129,8 @@ func (ams *multiSource) OrderInfo() (string, bool) {
 	return "", false
 }
 
-func (ams *multiSource) spanWalk(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan driver.SourceOpener) error {
-	return spanWalk(ctx, ams.ark, sf.Span, func(si SpanInfo) error {
+func (ams *multiSource) spanWalk(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan<- driver.SourceOpener) error {
+	return spanWalk(ctx, ams.ark, sf.Span, func(si spanInfo) error {
 		so := func() (driver.ScannerCloser, error) {
 			return newSpanScanner(ctx, ams.ark, zctx, sf.Filter, sf.FilterExpr, si)
 		}
@@ -150,7 +143,7 @@ func (ams *multiSource) spanWalk(ctx context.Context, zctx *resolver.Context, sf
 	})
 }
 
-func (ams *multiSource) chunkWalk(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan driver.SourceOpener) error {
+func (ams *multiSource) chunkWalk(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan<- driver.SourceOpener) error {
 	return Walk(ctx, ams.ark, func(chunk Chunk) error {
 		so := func() (driver.ScannerCloser, error) {
 			paths := make([]string, len(ams.altPaths))
