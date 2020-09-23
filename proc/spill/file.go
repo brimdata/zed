@@ -67,7 +67,7 @@ func (f *File) Rewind(zctx *resolver.Context) error {
 }
 
 // closeAndRemove closes and removes the underlying file.
-// XXX errors are ignored.
+// Errors are ignored.
 func (r *File) closeAndRemove() {
 	r.file.Close()
 	os.Remove(r.file.Name())

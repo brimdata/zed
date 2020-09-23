@@ -150,7 +150,7 @@ type Aggregator struct {
 	maxTableKey  *zng.Value
 	maxSpillKey  *zng.Value
 	inputSortDir int
-	spiller      *spill.Merger
+	spiller      *spill.MergeSort
 	consumePart  bool
 	emitPart     bool
 }
@@ -432,7 +432,7 @@ func (a *Aggregator) spillTable(eof bool) error {
 		return err
 	}
 	if a.spiller == nil {
-		a.spiller, err = spill.NewMerger(a.keysCompare)
+		a.spiller, err = spill.NewMergeSort(a.keysCompare)
 		if err != nil {
 			return err
 		}
