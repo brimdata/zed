@@ -9,7 +9,7 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/proc"
-	"github.com/brimsec/zq/proc/runmanager"
+	"github.com/brimsec/zq/proc/spill"
 	"github.com/brimsec/zq/reducer"
 	"github.com/brimsec/zq/reducer/compile"
 	"github.com/brimsec/zq/zbuf"
@@ -150,7 +150,7 @@ type Aggregator struct {
 	maxTableKey  *zng.Value
 	maxSpillKey  *zng.Value
 	inputSortDir int
-	runManager   *runmanager.Manager
+	spiller      *spill.Merger
 	consumePart  bool
 	emitPart     bool
 }
@@ -251,8 +251,8 @@ func (p *Proc) Done() {
 func (p *Proc) run() {
 	defer func() {
 		close(p.resultCh)
-		if p.agg.runManager != nil {
-			p.agg.runManager.Cleanup()
+		if p.agg.spiller != nil {
+			p.agg.spiller.Cleanup()
 		}
 	}()
 	for {
@@ -431,15 +431,15 @@ func (a *Aggregator) spillTable(eof bool) error {
 	if err != nil || batch == nil {
 		return err
 	}
-	if a.runManager == nil {
-		a.runManager, err = runmanager.NewManager(a.keysCompare)
+	if a.spiller == nil {
+		a.spiller, err = spill.NewMerger(a.keysCompare)
 		if err != nil {
 			return err
 		}
 	}
 	recs := batch.Records()
 	// Note that this will sort recs according to g.keysCompare.
-	if err := a.runManager.CreateRun(recs); err != nil {
+	if err := a.spiller.Spill(recs); err != nil {
 		return err
 	}
 	if !eof && a.inputSortDir != 0 {
@@ -477,7 +477,7 @@ func (a *Aggregator) updateMaxSpillKey(v zng.Value) {
 // the input is sorted in the primary key, Results can be called
 // before eof, and keys that are completed will returned.
 func (a *Aggregator) Results(eof bool) (zbuf.Batch, error) {
-	if a.runManager == nil {
+	if a.spiller == nil {
 		return a.readTable(eof, a.emitPart)
 	}
 	if eof {
@@ -496,7 +496,7 @@ func (a *Aggregator) readSpills(eof bool) (zbuf.Batch, error) {
 	}
 	for len(recs) < proc.BatchLen {
 		if !eof && a.inputSortDir != 0 {
-			rec, err := a.runManager.Peek()
+			rec, err := a.spiller.Peek()
 			if err != nil {
 				return nil, err
 			}
@@ -531,7 +531,7 @@ func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 	row := compile.NewRow(a.reducerDefs)
 	var firstRec *zng.Record
 	for {
-		rec, err := a.runManager.Peek()
+		rec, err := a.spiller.Peek()
 		if err != nil {
 			return nil, err
 		}
@@ -546,7 +546,7 @@ func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 		if err := row.ConsumePart(rec); err != nil {
 			return nil, err
 		}
-		if _, err := a.runManager.Read(); err != nil {
+		if _, err := a.spiller.Read(); err != nil {
 			return nil, err
 		}
 	}
