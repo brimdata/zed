@@ -249,3 +249,8 @@ sudo mount -t tmpfs -o size=1024m tmpfs /mnt/ramdisk
 # Copy some S3 data to /mnt/ramdisk
 time aws s3 cp s3://brim-sampledata/wrccdc/zeek-logs/dns.log.gz /mnt/ramdisk/dns.log.gz
 ```
+
+## whoami on AWS
+```
+aws sts get-caller-identity
+```

@@ -24,6 +24,20 @@ First connect to the EKS cluster so you have kubectl access. You or a colleague 
 
 https://docs.aws.amazon.com/eks/latest/userguide/add-user-role.html
 
+#### Synopsis
+The user who wants EKS cluster access, runs:
+```
+eksctl get cluster
+eksctl utils write-kubeconfig --cluster zq-test
+aws sts get-caller-identity
+```
+And passes on their user arn to the AKS admin, who adds it to the "MapUsers" lists with:
+```
+kubectl edit -n kube-system configmap/aws-auth
+```
+
+
+
 ### Environment variables for Makefile rules
 
 In the zq Makefile, there are several rules to make the developer experience more consistent. These rules depend on having the following env vars defined:
