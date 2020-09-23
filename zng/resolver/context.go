@@ -440,7 +440,7 @@ func (c *Context) parseRecordTypeBody(in string) (string, zng.Type, error) {
 		}
 		return in, typ, nil
 	}
-	columns := []zng.Column{}
+	var columns []zng.Column
 	for {
 		// at top of loop, we have to have a field def either because
 		// this is the first def or we found a comma and are expecting
@@ -611,7 +611,7 @@ func (c *Context) TranslateType(ext zng.Type) (zng.Type, error) {
 }
 
 func (c *Context) TranslateTypeRecord(ext *zng.TypeRecord) (*zng.TypeRecord, error) {
-	columns := []zng.Column{}
+	var columns []zng.Column
 	for _, col := range ext.Columns {
 		child, err := c.TranslateType(col.Type)
 		if err != nil {
