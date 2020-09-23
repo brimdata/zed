@@ -286,7 +286,7 @@ func (r *Reader) readTypeRecord() error {
 	if err != nil {
 		return zng.ErrBadFormat
 	}
-	var columns []zng.Column
+	columns := []zng.Column{}
 	for k := 0; k < int(ncol); k++ {
 		col, err := r.readColumn()
 		if err != nil {

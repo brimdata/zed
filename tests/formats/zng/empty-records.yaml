@@ -1,17 +1,21 @@
-zql: '*'
+script: zq in.tzng | zq -t -
 
-input: |
-  #0:record[]
-  0:[]
-  #1:record[a:record[],b:array[record[]],d:string]
-  1:[[][]foo;]
-  1:[[][[][]]foo;]
-  1:[[][-;[]]foo;]
+inputs:
+  - name: in.tzng
+    data:   |
+      #0:record[]
+      0:[]
+      #1:record[a:record[],b:array[record[]],d:string]
+      1:[[][]foo;]
+      1:[[][[][]]foo;]
+      1:[[][-;[]]foo;]
 
-output: |
-  #0:record[]
-  0:[]
-  #1:record[a:record[],b:array[record[]],d:string]
-  1:[[][]foo;]
-  1:[[][[][]]foo;]
-  1:[[][-;[]]foo;]
+outputs:
+  - name: stdout
+    data: |
+      #0:record[]
+      0:[]
+      #1:record[a:record[],b:array[record[]],d:string]
+      1:[[][]foo;]
+      1:[[][[][]]foo;]
+      1:[[][-;[]]foo;]
