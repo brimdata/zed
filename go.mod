@@ -29,15 +29,14 @@ require (
 	github.com/stretchr/testify v1.5.1
 	github.com/xitongsys/parquet-go v1.5.3-0.20200514000040-789bba367841
 	github.com/xitongsys/parquet-go-source v0.0.0-20200509081216-8db33acb0acf
-	github.com/yuin/goldmark v1.1.27
+	github.com/yuin/goldmark v1.2.1
 	go.uber.org/multierr v1.5.0
 	go.uber.org/zap v1.15.0
 	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
-	golang.org/x/net v0.0.0-20200707034311-ab3426394381 // indirect
-	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
+	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae
 	golang.org/x/text v0.3.3
-	golang.org/x/tools v0.0.0-20200425043458-8463f397d07c // indirect
+	golang.org/x/tools v0.0.0-20200923014426-f5e916c686e1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v3 v3.0.0-20200121175148-a6ecf24a6d71
 )
