@@ -8,8 +8,8 @@ import (
 )
 
 var (
-	ErrUnterminated = errors.New("zng syntax error: unterminated container")
-	ErrSyntax       = errors.New("zng syntax error")
+	ErrUnterminated = errors.New("tzng syntax error: unterminated container")
+	ErrSyntax       = errors.New("tzng syntax error")
 )
 
 type Parser struct {
