@@ -1,6 +1,4 @@
-!bin/
-bin/*
-!bin/suricata/
+bin
 dist/
 python/build/
 tests/test-root

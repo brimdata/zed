@@ -80,7 +80,7 @@ The search result can be narrowed to include only events that contain certain va
 
 ### Bare Word
 
-The simplest form of such a search is a "bare" word (not wrapped in quotes), which will match against any field value that contains the word as a substring.
+The simplest form of such a search is a "bare" word (not wrapped in quotes), which will match against any field that contains the word, whether it's an exact match to the data type and value of a field or the word appears as a substring in a field.
 
 For example, searching across all our logs for `10.150.0.85` matches against events that contain `addr`-type fields containing this precise value (fields such as `tx_hosts` and `id.resp_h` in our sample data) and also where it appears within `string`-type fields (such as the field `certificate.subject` in `x509` events.)
 
@@ -247,9 +247,24 @@ conn  1521912990.158539 ChhAfsfyuz4n2hFMe 10.239.34.35 56602     10.47.6.51 873 
 
 ### Role of Data Types
 
-When working with named fields, the data type of the field comes becomes significant in two ways.
+When working with named fields, the data type of the field becomes significant in two ways.
 
-1. To match successfully, the value entered must be comparable to the data type of the named field. For instance, since `id.resp_h` is typically an `addr`-type field, an attempted field/value match `id.resp_h=10.150.0.999` will return an error, since this is not valid IP address syntax.
+1. To match successfully, the value entered must be comparable to the data type of the named field. For instance, the `host` field of the `http` events in our sample data are of `string` type, since it logs an HTTP header that is often a hostname or an IP address.
+
+   ```zq-command
+   zq -t 'count() by host | sort count,host' http.log.gz
+   ```
+
+   #### Output:
+   ```zq-output head:4
+   #0:record[host:bstring,count:uint64]
+   0:[0988253c66242502070643933dd49e88.clo.footprintdns.com;1;]
+   0:[10.47.21.1;1;]
+   0:[10.47.21.80/..;1;]
+   ...
+   ```
+
+   An attempted field/value match `host=10.47.21.1` would not match the event counted in the middle row of this table, since ZQL recognizes the bare value `10.47.21.1` as an IP address before comparing it to all the fields named `host` that it sees in the input stream. However, `host="10.47.21.1"` would match, since the quotes cause ZQL to treat the value as a string.
 
 2.  The correct operator must be chosen based on whether the field type is primitive or complex.  For example, `id.resp_h=10.150.0.85` will match in our sample data because `id.resp_h` is a primitive type, `addr`. However, to check if the same IP had been a transmitting host in a `files` event, the syntax `10.150.0.85 in tx_hosts` would be used because `tx_hosts` is a complex type, `set[addr]`.
 
@@ -357,9 +372,29 @@ dns   1521912892.637238 CN9X7Y36SH6faoh8t 10.47.8.10 58340     10.0.0.100 53    
 
 ### Wildcard Field Names
 
-Since the data type of the value is considered in field/value matches, it's possible to search for the value across any fields of the value's type by entering a wildcard (`*`) in place of the field name.
+It's possible to search across _all_ fields of the value's data type by entering a wildcard in place of the field name. Two wildcard operators are available depending on how broad you want your search to be. The `*` operator matches all top-level fields of the value's type, and the `**` operator additionally matches such values when they appear nested within records.
 
-For example, the following search finds many `ssl` and `conn` events that contain the value `10.150.0.85` in an `addr`-type field such as `id.resp_h`. Compare this with our [bare word](#bare-word) example where it also matched as a substring of the `string`-type field named `certificate.subject`.
+For example, the following search matches many `ssl` and `conn` events that contain the value `10.150.0.85` in `addr`-type fields of the `id` record, such as `id.resp_h`. It also matches `notice` events where it appears in `id.resp_h` and also `dst`, a top-level field also of the `addr` type. Compare this with our [bare word](#bare-word) example where we also matched as a substring of the `string`-type field named `certificate.subject`. This highlights how bare word searches match both on typed values and their string representation, whereas a field/value match is stricter, and considers typed values only.
+
+#### Example:
+```zq-command
+zq -f table '**=10.150.0.85' *.log.gz
+```
+
+#### Output:
+```zq-output head:8
+_PATH TS                UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H   ID.RESP_P PROTO SERVICE DURATION ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY   ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
+conn  1521911722.187980 CFis4J1xm9BOgtib34 10.47.8.10   56800     10.150.0.85 443       tcp   -       1.000534 31         77         SF         -          -          0            ^dtAfDTFr 8         382           10        554           -
+conn  1521911725.527535 CnvVUp1zg3fnDKrlFk 10.47.27.186 58665     10.150.0.85 443       tcp   -       1.000958 31         77         SF         -          -          0            ^dtAfDFTr 8         478           10        626           -
+conn  1521911727.167552 CsSFJyH4ucFtpmhqa  10.10.18.2   57331     10.150.0.85 443       tcp   -       1.000978 31         77         SF         -          -          0            ^dtAfDFTr 8         478           10        626           -
+_PATH TS                UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H   ID.RESP_P VERSION CIPHER                                CURVE  SERVER_NAME RESUMED LAST_ALERT NEXT_PROTOCOL ESTABLISHED CERT_CHAIN_FUIDS   CLIENT_CERT_CHAIN_FUIDS SUBJECT                                                      ISSUER                                                       CLIENT_SUBJECT CLIENT_ISSUER VALIDATION_STATUS
+ssl   1521911732.513518 Ckwqsn2ZSiVGtyiFO5 10.47.24.186 55782     10.150.0.85 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 x25519 -           F       -          h2            T           FZW30y2Nwc9i0qmdvg (empty)                 CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU -              -             self signed certificate
+_PATH  TS                UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H   ID.RESP_P FUID               FILE_MIME_TYPE FILE_DESC PROTO NOTE                     MSG                                                              SUB                                                          SRC          DST         P   N PEER_DESCR ACTIONS            SUPPRESS_FOR REMOTE_LOCATION.COUNTRY_CODE REMOTE_LOCATION.REGION REMOTE_LOCATION.CITY REMOTE_LOCATION.LATITUDE REMOTE_LOCATION.LONGITUDE
+notice 1521911732.521729 Ckwqsn2ZSiVGtyiFO5 10.47.24.186 55782     10.150.0.85 443       FZW30y2Nwc9i0qmdvg -              -         tcp   SSL::Invalid_Server_Cert SSL certificate validation failed with (self signed certificate) CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU 10.47.24.186 10.150.0.85 443 - -          Notice::ACTION_LOG 3600         -                            -                      -                    -                        -
+...
+```
+
+However, if we use the single `*` wildcard, we match only the single `notice` event, as this is the only event with a matching top-level field of the `addr` type (the `dst` field).
 
 #### Example:
 ```zq-command
@@ -372,7 +407,7 @@ _PATH  TS                UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H   I
 notice 1521911732.521729 Ckwqsn2ZSiVGtyiFO5 10.47.24.186 55782     10.150.0.85 443       FZW30y2Nwc9i0qmdvg -              -         tcp   SSL::Invalid_Server_Cert SSL certificate validation failed with (self signed certificate) CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU 10.47.24.186 10.150.0.85 443 - -          Notice::ACTION_LOG 3600         -                            -                      -                    -                        -
 ```
 
-Similarly, the following search will only match when the value appears in a complex field of type `set[addr]` or `array[addr]`, such as `tx_hosts` in this case.
+Similarly, the following search will only match when the value appears in a complex top-level field of type `set[addr]` or `array[addr]`, such as `tx_hosts` in this case.
 
 #### Example:
 ```zq-command
