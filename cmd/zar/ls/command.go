@@ -61,8 +61,8 @@ func (c *Command) Run(args []string) error {
 	if len(args) == 1 {
 		pattern = args[0]
 	}
-	return archive.SpanWalk(context.TODO(), ark, func(si archive.SpanInfo, dir iosrc.URI) error {
-		c.printDir(ark, si, dir, pattern)
+	return archive.Walk(context.TODO(), ark, func(chunk archive.Chunk) error {
+		c.printDir(ark, chunk, pattern)
 		return nil
 	})
 }
@@ -78,16 +78,17 @@ func fileExists(path iosrc.URI) bool {
 	return true
 }
 
-func (c *Command) printDir(ark *archive.Archive, si archive.SpanInfo, dir iosrc.URI, pattern string) {
+func (c *Command) printDir(ark *archive.Archive, chunk archive.Chunk, pattern string) {
+	dir := chunk.ZarDir(ark)
 	if pattern != "" {
 		path := dir.AppendPath(pattern)
 		if fileExists(path) {
-			fmt.Println(c.printable(ark, si, dir, pattern))
+			fmt.Println(c.printable(ark, chunk, dir, pattern))
 		}
 		return
 	}
 	if !c.lflag {
-		fmt.Println(c.printable(ark, si, dir, ""))
+		fmt.Println(c.printable(ark, chunk, dir, ""))
 	} else {
 		entries, err := iosrc.ReadDir(context.TODO(), dir)
 		if err != nil {
@@ -95,14 +96,14 @@ func (c *Command) printDir(ark *archive.Archive, si archive.SpanInfo, dir iosrc.
 			return
 		}
 		for _, e := range entries {
-			fmt.Println(c.printable(ark, si, dir, e.Name()))
+			fmt.Println(c.printable(ark, chunk, dir, e.Name()))
 		}
 	}
 }
 
-func (c *Command) printable(ark *archive.Archive, si archive.SpanInfo, zardir iosrc.URI, objPath string) string {
+func (c *Command) printable(ark *archive.Archive, chunk archive.Chunk, zardir iosrc.URI, objPath string) string {
 	if c.showRanges {
-		return path.Join(si.Range(ark), objPath)
+		return path.Join(chunk.Range(ark), objPath)
 	}
 	if c.relativePaths {
 		return strings.TrimSuffix(ark.DataPath.RelPath(zardir.AppendPath(objPath)), "/")

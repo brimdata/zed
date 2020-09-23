@@ -98,10 +98,11 @@ func (c *Command) Run(args []string) error {
 
 	// XXX this is parallelizable except for writing to stdout when
 	// concatenating results
-	return archive.Walk(ctx, ark, func(zardir iosrc.URI) error {
+	return archive.Walk(ctx, ark, func(chunk archive.Chunk) error {
+		zardir := chunk.ZarDir(ark)
 		var paths []string
 		for _, input := range inputs {
-			paths = append(paths, archive.Localize(zardir, input).String())
+			paths = append(paths, chunk.Localize(ark, input).String())
 		}
 		zctx := resolver.NewContext()
 		opts := zio.ReaderOpts{Format: "zng"}

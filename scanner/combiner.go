@@ -16,14 +16,11 @@ type combiner struct {
 
 // NewCombiner returns a Scanner that combines the records scanned from
 // a set of filtered readers.
-func NewCombiner(ctx context.Context, readers []zbuf.Reader, spans []nano.Span, cmp zbuf.RecordCmpFn, f filter.Filter, filterExpr ast.BooleanExpr) (Scanner, error) {
-	if len(readers) != len(spans) {
-		panic("length mismatch between readers and spans")
-	}
+func NewCombiner(ctx context.Context, readers []zbuf.Reader, cmp zbuf.RecordCmpFn, f filter.Filter, filterExpr ast.BooleanExpr, span nano.Span) (Scanner, error) {
 	scanners := make([]Scanner, len(readers))
 	scanReaders := make([]zbuf.Reader, len(readers))
 	for i, r := range readers {
-		s, err := NewScanner(ctx, r, f, filterExpr, spans[i])
+		s, err := NewScanner(ctx, r, f, filterExpr, span)
 		if err != nil {
 			return nil, err
 		}
