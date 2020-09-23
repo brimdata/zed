@@ -11,7 +11,7 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-// File provides a means to write a sequence of zng records to tempoarary
+// File provides a means to write a sequence of zng records to temporary
 // storage then read them back.  This is used for processing large batches of
 // data that do not fit in memory and/or cannot be shuffled to a peer worker,
 // but can be processed in multiple passes.  File implements zbuf.Reader and
@@ -25,11 +25,11 @@ type File struct {
 // NewFile returns a File.  Records should be written to File via the zbuf.Writer
 // interface, followed by a call to the Rewind method, followed by reading
 // records via the zbuf.Reader interface.
-func NewFile(f *os.File) (*File, error) {
+func NewFile(f *os.File) *File {
 	return &File{
 		Writer: zngio.NewWriter(bufwriter.New(zio.NopCloser(f)), zngio.WriterOpts{}),
 		file:   f,
-	}, nil
+	}
 }
 
 func NewTempFile() (*File, error) {
@@ -37,10 +37,7 @@ func NewTempFile() (*File, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &File{
-		Writer: zngio.NewWriter(bufwriter.New(zio.NopCloser(f)), zngio.WriterOpts{}),
-		file:   f,
-	}, nil
+	return NewFile(f), nil
 }
 
 func NewFileWithPath(path string, zctx *resolver.Context) (*File, error) {
@@ -48,7 +45,7 @@ func NewFileWithPath(path string, zctx *resolver.Context) (*File, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewFile(f)
+	return NewFile(f), nil
 }
 
 func (f *File) Rewind(zctx *resolver.Context) error {
