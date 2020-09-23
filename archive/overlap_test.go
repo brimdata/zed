@@ -113,6 +113,23 @@ func TestMergeChunksToSpans(t *testing.T) {
 			},
 		},
 		{
+			chunks: []Chunk{
+				{Id: kid("b"), First: 0, Last: 0},
+				{Id: kid("a"), First: 0, Last: 0},
+				{Id: kid("d"), First: 0, Last: 0},
+				{Id: kid("c"), First: 0, Last: 0},
+			},
+			filter: nano.MaxSpan,
+			dir:    zbuf.DirTimeForward,
+			exp: []SpanInfo{
+				{First: 0, Last: 0, Chunks: []Chunk{
+					{Id: kid("a"), First: 0, Last: 0},
+					{Id: kid("b"), First: 0, Last: 0},
+					{Id: kid("c"), First: 0, Last: 0},
+					{Id: kid("d"), First: 0, Last: 0}}},
+			},
+		},
+		{
 			chunks: nil,
 			filter: nano.MaxSpan,
 			dir:    zbuf.DirTimeForward,

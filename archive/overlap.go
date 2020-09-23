@@ -101,7 +101,7 @@ func prevTs(ts nano.Ts, dir zbuf.Direction) nano.Ts {
 }
 
 type point struct {
-	c     Chunk
+	idx   int
 	first bool
 	ts    nano.Ts
 }
@@ -111,16 +111,14 @@ type point struct {
 func boundaries(chunks []Chunk, dir zbuf.Direction, fn func(ts nano.Ts, firstChunks, lastChunks []Chunk)) {
 	points := make([]point, 2*len(chunks))
 	for i, c := range chunks {
-		points[2*i] = point{c: c, first: true, ts: c.First}
-		points[2*i+1] = point{c: c, ts: c.Last}
+		points[2*i] = point{idx: i, first: true, ts: c.First}
+		points[2*i+1] = point{idx: i, ts: c.Last}
 	}
 	sort.Slice(points, func(i, j int) bool {
-		if dir == zbuf.DirTimeForward {
-			return points[i].ts < points[j].ts
-		}
-		return points[j].ts < points[i].ts
+		return chunkTsCompare(dir, points[i].ts, chunks[points[i].idx].Id, points[j].ts, chunks[points[j].idx].Id)
 	})
-	var firstChunks, lastChunks []Chunk
+	firstChunks := make([]Chunk, 0, len(chunks))
+	lastChunks := make([]Chunk, 0, len(chunks))
 	for i := 0; i < len(points); {
 		j := i + 1
 		for ; j < len(points); j++ {
@@ -132,9 +130,9 @@ func boundaries(chunks []Chunk, dir zbuf.Direction, fn func(ts nano.Ts, firstChu
 		lastChunks = lastChunks[:0]
 		for _, p := range points[i:j] {
 			if p.first {
-				firstChunks = append(firstChunks, p.c)
+				firstChunks = append(firstChunks, chunks[p.idx])
 			} else {
-				lastChunks = append(lastChunks, p.c)
+				lastChunks = append(lastChunks, chunks[p.idx])
 			}
 		}
 		ts := points[i].ts

@@ -207,17 +207,7 @@ func tsDirEntriesToSpans(ark *Archive, filterSpan nano.Span, entries []iosrc.Inf
 		})
 	}
 	sort.Slice(chunks, func(i, j int) bool {
-		if ark.DataSortDirection == zbuf.DirTimeForward {
-			if chunks[i].First == chunks[j].First {
-				return ksuid.Compare(chunks[i].Id, chunks[j].Id) < 0
-			}
-			return chunks[i].First < chunks[j].First
-		} else {
-			if chunks[j].First == chunks[i].First {
-				return ksuid.Compare(chunks[j].Id, chunks[i].Id) < 0
-			}
-			return chunks[j].First < chunks[i].First
-		}
+		return chunkTsCompare(ark.DataSortDirection, chunks[i].First, chunks[i].Id, chunks[j].First, chunks[j].Id)
 	})
 	return chunks
 }
@@ -275,6 +265,19 @@ func (c Chunk) Path(ark *Archive) iosrc.URI {
 
 func (c Chunk) Range(ark *Archive) string {
 	return fmt.Sprintf("[%d-%d]", c.First, c.Last)
+}
+
+func chunkTsCompare(dir zbuf.Direction, iTs nano.Ts, iKid ksuid.KSUID, jTs nano.Ts, jKid ksuid.KSUID) bool {
+	if dir == zbuf.DirTimeForward {
+		if iTs == jTs {
+			return ksuid.Compare(iKid, jKid) < 0
+		}
+		return iTs < jTs
+	}
+	if jTs == iTs {
+		return ksuid.Compare(jKid, iKid) < 0
+	}
+	return jTs < iTs
 }
 
 type Visitor func(chunk Chunk) error
