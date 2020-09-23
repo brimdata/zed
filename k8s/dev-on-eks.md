@@ -35,8 +35,8 @@ export ZQD_TEST_CLUSTER=zq-test.us-east-2.eksctl.io
 ```
 You must modify these to fit you environment. 
 * ZQD_ECR_HOST is the host portion of the ECR service for your AWS account. 
-* ZQD_DATA_URI is used to set the '-data' flag when zqd is started on Kubernetes. It should be an S3 bucket specific o you that you can use for testing. 
-* ZQD_K8S_USER is your username, which is usually the same as you AWS IAM username.
+* ZQD_DATA_URI is used to set the '-data' flag when zqd is started on Kubernetes. It should be an S3 bucket specific to you that you can use for testing. 
+* ZQD_K8S_USER is your username, which is usually the same as your AWS IAM username.
 * ZQD_TEST_CLUSTER is the host of the EKS cluster you are using.
 
 ### Create a K8s namespace for your development
