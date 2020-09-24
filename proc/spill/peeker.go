@@ -37,6 +37,9 @@ func newPeeker(filename string, recs []*zng.Record, zctx *resolver.Context) (*pe
 // do its heap management a bit more easily.
 func (p *peeker) read() (*zng.Record, bool, error) {
 	rec := p.nextRecord
+	if rec != nil {
+		rec = rec.Keep()
+	}
 	var err error
 	p.nextRecord, err = p.Read()
 	eof := p.nextRecord == nil && err == nil
