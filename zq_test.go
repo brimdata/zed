@@ -14,9 +14,10 @@ import (
 func TestZq(t *testing.T) {
 	t.Parallel()
 	dirs := map[string]struct{}{}
-	re := regexp.MustCompile(`.*ztests/.*\.yaml$`)
+	unix := regexp.MustCompile(`.*ztests/.*\.yaml$`)
+	windows := regexp.MustCompile(`.*ztests\\.*\.yaml$`)
 	err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
-		if !info.IsDir() && strings.HasSuffix(path, ".yaml") && re.MatchString(path) {
+		if !info.IsDir() && strings.HasSuffix(path, ".yaml") && (unix.MatchString(path) || windows.MatchString(path)) {
 			dirs[filepath.Dir(path)] = struct{}{}
 		}
 		return err
