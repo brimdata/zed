@@ -249,31 +249,26 @@ func (p *Proc) Done() {
 }
 
 func (p *Proc) run() {
-	defer func() {
-		close(p.resultCh)
-		if p.agg.spiller != nil {
-			p.agg.spiller.Cleanup()
-		}
-	}()
 	for {
 		batch, err := p.parent.Pull()
 		if err != nil {
-			p.sendResult(nil, err)
+			p.shutdown(err)
 			return
 		}
 		if batch == nil {
 			for {
 				b, err := p.agg.Results(true)
-				p.sendResult(b, err)
 				if b == nil {
+					p.shutdown(err)
 					return
 				}
+				p.sendResult(b, err)
 			}
 		}
 		for k := 0; k < batch.Length(); k++ {
 			if err := p.agg.Consume(batch.Index(k)); err != nil {
 				batch.Unref()
-				p.sendResult(nil, err)
+				p.shutdown(err)
 				return
 			}
 		}
@@ -285,7 +280,7 @@ func (p *Proc) run() {
 		for {
 			res, err := p.agg.Results(false)
 			if err != nil {
-				p.sendResult(nil, err)
+				p.shutdown(err)
 				return
 			}
 			if res == nil {
@@ -302,6 +297,16 @@ func (p *Proc) sendResult(b zbuf.Batch, err error) {
 	case p.resultCh <- proc.Result{Batch: b, Err: err}:
 	case <-p.pctx.Done():
 	}
+}
+
+func (p *Proc) shutdown(err error) {
+	// Make sure we cleanup before sending EOS.  Otherwise, the process
+	// could exit before we remove the spill directory.
+	if p.agg.spiller != nil {
+		p.agg.spiller.Cleanup()
+	}
+	p.sendResult(nil, err)
+	close(p.resultCh)
 }
 
 func (a *Aggregator) createRow(keyCols []zng.Column, vals zcode.Bytes, groupval *zng.Value) *Row {
