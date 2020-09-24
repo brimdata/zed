@@ -37,7 +37,7 @@ type importDriver struct {
 	indexTempWriter *zngio.Writer
 	lastTs          nano.Ts
 	needIndexWrite  bool
-	rcount          int64
+	rcount          int
 	tsDir           iosrc.URI
 	zctx            *resolver.Context
 }
@@ -62,7 +62,6 @@ func (d *importDriver) newWriter(rec *zng.Record) error {
 		LZ4BlockSize:     importLZ4BlockSize,
 		StreamRecordsMax: importStreamRecordsMax,
 	})
-
 	// Create the temporary index key file
 	idxTemp, err := ioutil.TempFile("", "archive-import-index-key-")
 	if err != nil {
@@ -132,7 +131,6 @@ func (d *importDriver) close() error {
 		return err
 	}
 	d.dataFileWriter = nil
-
 	// Write the time seek index into the archive, feeding it the key/offset
 	// records written to indexTempPath.
 	tf, err := fs.Open(d.indexTempPath)

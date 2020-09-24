@@ -27,8 +27,9 @@ func fieldMicroIndexName(fieldname string) string {
 }
 
 func IndexDirTree(ctx context.Context, ark *Archive, rules []Rule, path string, progress chan<- string) error {
-	return Walk(ctx, ark, func(zardir iosrc.URI) error {
-		logPath := Localize(zardir, path)
+	return Walk(ctx, ark, func(chunk Chunk) error {
+		zardir := chunk.ZarDir(ark)
+		logPath := chunk.Localize(ark, path)
 		return run(ctx, zardir, rules, logPath, progress)
 	})
 }

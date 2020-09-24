@@ -55,18 +55,18 @@ func (s *Storage) MultiSource() driver.MultiSource {
 func (s *Storage) Summary(ctx context.Context) (storage.Summary, error) {
 	var sum storage.Summary
 	sum.Kind = storage.ArchiveStore
-	err := archive.SpanWalk(ctx, s.ark, func(si archive.SpanInfo, zardir iosrc.URI) error {
-		zngpath := archive.ZarDirToLog(zardir)
+	err := archive.Walk(ctx, s.ark, func(chunk archive.Chunk) error {
+		zngpath := chunk.Path(s.ark)
 		info, err := iosrc.Stat(ctx, zngpath)
 		if err != nil {
 			return err
 		}
 		sum.DataBytes += info.Size()
-		sum.RecordCount += int64(si.RecordCount)
+		sum.RecordCount += int64(chunk.RecordCount)
 		if sum.Span.Dur == 0 {
-			sum.Span = si.Span()
+			sum.Span = chunk.Span()
 		} else {
-			sum.Span = sum.Span.Union(si.Span())
+			sum.Span = sum.Span.Union(chunk.Span())
 		}
 		return nil
 	})

@@ -43,8 +43,8 @@ func (s *statReadCloser) Close() error {
 	return nil
 }
 
-func (s *statReadCloser) chunkRecord(si SpanInfo, zardir iosrc.URI) error {
-	fi, err := iosrc.Stat(s.ctx, ZarDirToLog(zardir))
+func (s *statReadCloser) chunkRecord(chunk Chunk) error {
+	fi, err := iosrc.Stat(s.ctx, chunk.Path(s.ark))
 	if err != nil {
 		return err
 	}
@@ -62,11 +62,11 @@ func (s *statReadCloser) chunkRecord(si SpanInfo, zardir iosrc.URI) error {
 
 	rec := s.chunkBuilder.Build(
 		zng.EncodeString("chunk"),
-		zng.EncodeString(string(si.LogID)),
-		zng.EncodeTime(si.First),
-		zng.EncodeTime(si.Last),
+		zng.EncodeString(string(chunk.LogID())),
+		zng.EncodeTime(chunk.First),
+		zng.EncodeTime(chunk.Last),
 		zng.EncodeUint(uint64(fi.Size())),
-		zng.EncodeUint(uint64(si.RecordCount)),
+		zng.EncodeUint(uint64(chunk.RecordCount)),
 	).Keep()
 	select {
 	case s.recs <- rec:
@@ -76,7 +76,8 @@ func (s *statReadCloser) chunkRecord(si SpanInfo, zardir iosrc.URI) error {
 	}
 }
 
-func (s *statReadCloser) indexRecord(si SpanInfo, zardir iosrc.URI, indexPath string) error {
+func (s *statReadCloser) indexRecord(chunk Chunk, indexPath string) error {
+	zardir := chunk.ZarDir(s.ark)
 	info, err := microindex.Stat(s.ctx, zardir.AppendPath(indexPath))
 	if err != nil {
 		if errors.Is(err, zqe.E(zqe.NotFound)) {
@@ -111,7 +112,7 @@ func (s *statReadCloser) indexRecord(si SpanInfo, zardir iosrc.URI, indexPath st
 	}
 
 	if len(s.indexBuilders[indexPath].Type.Columns) != 7+len(info.Keys) {
-		return zqe.E("key record differs in index files %s %s", indexPath, si.LogID)
+		return zqe.E("key record differs in index files %s %s", indexPath, chunk)
 	}
 	var keybytes zcode.Bytes
 	for _, k := range info.Keys {
@@ -120,12 +121,12 @@ func (s *statReadCloser) indexRecord(si SpanInfo, zardir iosrc.URI, indexPath st
 
 	rec := s.indexBuilders[indexPath].Build(
 		zng.EncodeString("index"),
-		zng.EncodeString(string(si.LogID)),
-		zng.EncodeTime(si.First),
-		zng.EncodeTime(si.Last),
+		zng.EncodeString(string(chunk.LogID())),
+		zng.EncodeTime(chunk.First),
+		zng.EncodeTime(chunk.Last),
 		zng.EncodeString(indexPath),
 		zng.EncodeUint(uint64(info.Size)),
-		zng.EncodeUint(uint64(si.RecordCount)),
+		zng.EncodeUint(uint64(chunk.RecordCount)),
 		keybytes,
 	).Keep()
 	select {
@@ -139,16 +140,16 @@ func (s *statReadCloser) indexRecord(si SpanInfo, zardir iosrc.URI, indexPath st
 func (s *statReadCloser) run() {
 	defer close(s.recs)
 
-	s.err = SpanWalk(s.ctx, s.ark, func(si SpanInfo, zardir iosrc.URI) error {
-		if err := s.chunkRecord(si, zardir); err != nil {
+	s.err = Walk(s.ctx, s.ark, func(chunk Chunk) error {
+		if err := s.chunkRecord(chunk); err != nil {
 			return err
 		}
-		if dirents, err := s.ark.dataSrc.ReadDir(s.ctx, zardir); err == nil {
+		if dirents, err := s.ark.dataSrc.ReadDir(s.ctx, chunk.ZarDir(s.ark)); err == nil {
 			for _, e := range dirents {
 				if e.IsDir() {
 					continue
 				}
-				if err := s.indexRecord(si, zardir, e.Name()); err != nil {
+				if err := s.indexRecord(chunk, e.Name()); err != nil {
 					return err
 				}
 			}
