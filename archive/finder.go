@@ -94,12 +94,12 @@ func Find(ctx context.Context, zctx *resolver.Context, ark *Archive, query Index
 		}
 	}
 	return Walk(ctx, ark, func(chunk Chunk) error {
-		zardir := chunk.ZarDir(ark)
 		searchHits := make(chan *zng.Record)
 		var searchErr error
 		go func() {
 			defer close(searchHits)
-			searchErr = search(ctx, opt.zctx, searchHits, zardir.AppendPath(query.indexName), query.patterns)
+			uri := chunk.ZarDir(ark).AppendPath(query.indexName)
+			searchErr = search(ctx, opt.zctx, searchHits, uri, query.patterns)
 			if searchErr != nil && os.IsNotExist(searchErr) && opt.skipMissing {
 				// No index for this rule.  Skip it if the skip boolean
 				// says it's ok.  Otherwise, we return ErrNotExist since

@@ -76,7 +76,7 @@ func (f seekIndexFile) name() string {
 }
 
 func (f seekIndexFile) span() nano.Span {
-	return closedSpan(f.first, f.last)
+	return firstLastToSpan(f.first, f.last)
 }
 
 var seekIndexNameRegex = regexp.MustCompile(`ts-([0-9A-Za-z]{27})-([0-9]+)-([0-9]+)-([0-9]+).zng$`)
@@ -233,7 +233,7 @@ type Chunk struct {
 }
 
 func (c Chunk) Span() nano.Span {
-	return closedSpan(c.First, c.Last)
+	return firstLastToSpan(c.First, c.Last)
 }
 
 func (c Chunk) LogID() LogID {
@@ -264,7 +264,7 @@ func (c Chunk) Range(ark *Archive) string {
 	return fmt.Sprintf("[%d-%d]", c.First, c.Last)
 }
 
-func chunkTsCompare(dir zbuf.Direction, iTs nano.Ts, iKid ksuid.KSUID, jTs nano.Ts, jKid ksuid.KSUID) bool {
+func chunkTsLess(dir zbuf.Direction, iTs nano.Ts, iKid ksuid.KSUID, jTs nano.Ts, jKid ksuid.KSUID) bool {
 	if dir == zbuf.DirTimeForward {
 		if iTs == jTs {
 			return ksuid.Compare(iKid, jKid) < 0
@@ -279,7 +279,7 @@ func chunkTsCompare(dir zbuf.Direction, iTs nano.Ts, iKid ksuid.KSUID, jTs nano.
 
 func chunksSort(dir zbuf.Direction, c []Chunk) {
 	sort.Slice(c, func(i, j int) bool {
-		return chunkTsCompare(dir, c[i].First, c[i].Id, c[j].First, c[j].Id)
+		return chunkTsLess(dir, c[i].First, c[i].Id, c[j].First, c[j].Id)
 	})
 }
 

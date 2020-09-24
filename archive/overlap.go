@@ -21,7 +21,7 @@ func mergeChunksToSpans(chunks []Chunk, dir zbuf.Direction, filter nano.Span) []
 			if len(siChunks) > 0 {
 				// We have accumulated chunks; create a span with them whose
 				// last timestamp was just before ts.
-				siSpan := closedSpan(siFirst, prevTs(ts, dir))
+				siSpan := firstLastToSpan(siFirst, prevTs(ts, dir))
 				if filter.Overlaps(siSpan) {
 					result = append(result, spanInfo{
 						span:   filter.Intersect(siSpan),
@@ -35,7 +35,7 @@ func mergeChunksToSpans(chunks []Chunk, dir zbuf.Direction, filter nano.Span) []
 		}
 		if len(lastChunks) > 0 {
 			// ts is the 'Last' timestamp for these chunks.
-			siSpan := closedSpan(siFirst, ts)
+			siSpan := firstLastToSpan(siFirst, ts)
 			if filter.Overlaps(siSpan) {
 				result = append(result, spanInfo{
 					span:   filter.Intersect(siSpan),
@@ -63,20 +63,10 @@ outer:
 	return
 }
 
-// closedSpan returns a span for the closed interval of [x,y].
-func closedSpan(x, y nano.Ts) nano.Span {
+// firstLastToSpan returns a span that includes x and y and does not require
+// them to be in any order.
+func firstLastToSpan(x, y nano.Ts) nano.Span {
 	return nano.Span{Ts: x, Dur: 1}.Union(nano.Span{Ts: y, Dur: 1})
-}
-
-// spanToFirstLast returns the timestamps that whose closed interval
-// is represented by span s. It assumes s.Dur is greater than zero.
-func spanToFirstLast(dir zbuf.Direction, s nano.Span) (first, last nano.Ts) {
-	a := s.Ts
-	b := s.End() - 1
-	if dir == zbuf.DirTimeForward {
-		return a, b
-	}
-	return b, a
 }
 
 func nextTs(ts nano.Ts, dir zbuf.Direction) nano.Ts {
@@ -108,7 +98,7 @@ func boundaries(chunks []Chunk, dir zbuf.Direction, fn func(ts nano.Ts, firstChu
 		points[2*i+1] = point{idx: i, ts: c.Last}
 	}
 	sort.Slice(points, func(i, j int) bool {
-		return chunkTsCompare(dir, points[i].ts, chunks[points[i].idx].Id, points[j].ts, chunks[points[j].idx].Id)
+		return chunkTsLess(dir, points[i].ts, chunks[points[i].idx].Id, points[j].ts, chunks[points[j].idx].Id)
 	})
 	firstChunks := make([]Chunk, 0, len(chunks))
 	lastChunks := make([]Chunk, 0, len(chunks))

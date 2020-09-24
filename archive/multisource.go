@@ -122,17 +122,17 @@ func NewMultiSource(ark *Archive, altPaths []string) driver.MultiSource {
 	}
 }
 
-func (ams *multiSource) OrderInfo() (string, bool) {
-	if len(ams.altPaths) == 0 {
-		return "ts", ams.ark.DataSortDirection == zbuf.DirTimeReverse
+func (m *multiSource) OrderInfo() (string, bool) {
+	if len(m.altPaths) == 0 {
+		return "ts", m.ark.DataSortDirection == zbuf.DirTimeReverse
 	}
 	return "", false
 }
 
-func (ams *multiSource) spanWalk(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan<- driver.SourceOpener) error {
-	return spanWalk(ctx, ams.ark, sf.Span, func(si spanInfo) error {
+func (m *multiSource) spanWalk(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan<- driver.SourceOpener) error {
+	return spanWalk(ctx, m.ark, sf.Span, func(si spanInfo) error {
 		so := func() (driver.ScannerCloser, error) {
-			return newSpanScanner(ctx, ams.ark, zctx, sf.Filter, sf.FilterExpr, si)
+			return newSpanScanner(ctx, m.ark, zctx, sf.Filter, sf.FilterExpr, si)
 		}
 		select {
 		case srcChan <- so:
@@ -143,12 +143,12 @@ func (ams *multiSource) spanWalk(ctx context.Context, zctx *resolver.Context, sf
 	})
 }
 
-func (ams *multiSource) chunkWalk(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan<- driver.SourceOpener) error {
-	return Walk(ctx, ams.ark, func(chunk Chunk) error {
+func (m *multiSource) chunkWalk(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan<- driver.SourceOpener) error {
+	return Walk(ctx, m.ark, func(chunk Chunk) error {
 		so := func() (driver.ScannerCloser, error) {
-			paths := make([]string, len(ams.altPaths))
-			for i, input := range ams.altPaths {
-				paths[i] = chunk.Localize(ams.ark, input).String()
+			paths := make([]string, len(m.altPaths))
+			for i, input := range m.altPaths {
+				paths[i] = chunk.Localize(m.ark, input).String()
 			}
 			rc := detector.MultiFileReader(zctx, paths, zio.ReaderOpts{Format: "zng"})
 			sn, err := scanner.NewScanner(ctx, rc, sf.Filter, sf.FilterExpr, sf.Span)
@@ -166,9 +166,9 @@ func (ams *multiSource) chunkWalk(ctx context.Context, zctx *resolver.Context, s
 	})
 }
 
-func (ams *multiSource) SendSources(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan driver.SourceOpener) error {
-	if len(ams.altPaths) == 0 {
-		return ams.spanWalk(ctx, zctx, sf, srcChan)
+func (m *multiSource) SendSources(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan driver.SourceOpener) error {
+	if len(m.altPaths) == 0 {
+		return m.spanWalk(ctx, zctx, sf, srcChan)
 	}
-	return ams.chunkWalk(ctx, zctx, sf, srcChan)
+	return m.chunkWalk(ctx, zctx, sf, srcChan)
 }
