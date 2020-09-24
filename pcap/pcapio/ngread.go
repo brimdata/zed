@@ -114,6 +114,17 @@ func (r *NgReader) Packet(block []byte) ([]byte, nano.Ts, layers.LinkType, error
 	return packet, nano.TimeToTs(t), r.ifaces[ifno].LinkType, nil
 }
 
+func (r *NgReader) InterfaceDescriptor(block []byte) (NgInterface, error) {
+	return r.parseInterfaceDescriptor(block)
+}
+
+func (r *NgReader) SectionHeader(block []byte) NgSectionInfo {
+	return NgSectionInfo{
+		MajorVersion: r.getUint16(block[12:14]),
+		MinorVersion: r.getUint16(block[14:16]),
+	}
+}
+
 func (r *NgReader) Offset() uint64 {
 	return r.offset
 }
@@ -219,11 +230,11 @@ func (r *NgReader) readOption(b []byte) (ngOptionCode, []byte, int, error) {
 
 // readInterfaceDescriptor parses an interface descriptor, prepares timing
 // calculation, and adds the interface details to the current list.
-func (r *NgReader) parseInterfaceDescriptor(b []byte) error {
-	if len(b) < 20 {
-		return errInvalidf("bad interface descriptor block")
-	}
+func (r *NgReader) parseInterfaceDescriptor(b []byte) (NgInterface, error) {
 	var intf NgInterface
+	if len(b) < 20 {
+		return intf, errInvalidf("bad interface descriptor block")
+	}
 	intf.LinkType = layers.LinkType(r.getUint16(b[8:10]))
 	intf.SnapLength = r.getUint32(b[12:16])
 	b = b[16:]
@@ -232,7 +243,7 @@ func (r *NgReader) parseInterfaceDescriptor(b []byte) error {
 	for len(b) > 4 {
 		code, body, length, err := r.readOption(b)
 		if err != nil {
-			return err
+			return intf, err
 		}
 		b = b[length:]
 		switch code {
@@ -249,12 +260,12 @@ func (r *NgReader) parseInterfaceDescriptor(b []byte) error {
 			intf.OS = string(body)
 		case ngOptionCodeInterfaceTimestampOffset:
 			if len(body) != 8 {
-				return errInvalidf("bad option value: ngOptionCodeInterfaceTimestampOffset")
+				return intf, errInvalidf("bad option value: ngOptionCodeInterfaceTimestampOffset")
 			}
 			intf.TimestampOffset = r.getUint64(body[:8])
 		case ngOptionCodeInterfaceTimestampResolution:
 			if len(body) != 1 {
-				return errInvalidf("bad option value: ngOptionCodeInterfaceTimestampResolution")
+				return intf, errInvalidf("bad option value: ngOptionCodeInterfaceTimestampResolution")
 			}
 			intf.TimestampResolution = NgResolution(body[0])
 		}
@@ -282,7 +293,7 @@ func (r *NgReader) parseInterfaceDescriptor(b []byte) error {
 		intf.scaleDown = intf.secondMask / 1e9
 	}
 	r.ifaces = append(r.ifaces, intf)
-	return nil
+	return intf, nil
 }
 
 // convertTime adds offset + shifts the given time value according to the given interface
@@ -317,7 +328,7 @@ func (r *NgReader) Read() ([]byte, BlockType, error) {
 		case ngBlockTypeSimplePacket:
 			return nil, 0, errInvalidf("pcap-ng simple packets not supported")
 		case ngBlockTypeInterfaceDescriptor:
-			err := r.parseInterfaceDescriptor(block)
+			_, err := r.parseInterfaceDescriptor(block)
 			return block, TypeInterface, err
 		case ngBlockTypeInterfaceStatistics:
 			// ignore and drop

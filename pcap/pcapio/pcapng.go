@@ -11,6 +11,7 @@
 package pcapio
 
 import (
+	"fmt"
 	"math"
 	"time"
 
@@ -173,6 +174,8 @@ func (i NgInterface) Resolution() gopacket.TimestampResolution {
 
 // NgSectionInfo contains additional information of a pcapng section
 type NgSectionInfo struct {
+	MajorVersion uint16
+	MinorVersion uint16
 	// Hardware is the hardware this file was generated on. This value might be empty if this option is missing.
 	Hardware string
 	// OS is the operating system this file was generated on. This value might be empty if this option is missing.
@@ -181,4 +184,8 @@ type NgSectionInfo struct {
 	Application string
 	// Comment can be an arbitrary comment. This value might be empty if this option is missing.
 	Comment string
+}
+
+func (n NgSectionInfo) Version() string {
+	return fmt.Sprintf("%d.%d", n.MajorVersion, n.MinorVersion)
 }
