@@ -1,8 +1,10 @@
-package tests
+package zq
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -10,12 +12,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestZTest(t *testing.T) {
+func TestZq(t *testing.T) {
 	t.Parallel()
-	dirs := map[string]bool{}
+	dirs := map[string]struct{}{}
+	pattern := fmt.Sprintf(`.*ztests\%c.*\.yaml$`, filepath.Separator)
+	re := regexp.MustCompile(pattern)
 	err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
-		if strings.HasSuffix(path, ".yaml") {
-			dirs[filepath.Dir(path)] = true
+		if !info.IsDir() && strings.HasSuffix(path, ".yaml") && re.MatchString(path) {
+			dirs[filepath.Dir(path)] = struct{}{}
 		}
 		return err
 	})
