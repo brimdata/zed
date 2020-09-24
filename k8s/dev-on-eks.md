@@ -49,6 +49,10 @@ And passes on their user arn to the AKS admin, who adds it to the "MapUsers" lis
 ```
 kubectl edit -n kube-system configmap/aws-auth
 ```
+`eksctl` can be used instead of kubectl to edit the aws-auth configmap. It is about the same amount of typing, e.g.
+```
+eksctl create iamidentitymapping --cluster zq-test --arn arn:aws:iam::123456:role/testing --group system:masters --username admin
+```
 
 ### Environment variables for Makefile rules
 

@@ -3,6 +3,7 @@ export GO111MODULE=on
 # If VERSION or LDFLAGS change, please also change
 # npm/build.
 VERSION = $(shell git describe --tags --dirty --always)
+ECR_VERSION = $(VERSION)-$(ZQD_K8S_USER)
 LDFLAGS = -s -X github.com/brimsec/zq/cli.Version=$(VERSION)
 ZEEKTAG = v3.0.2-brim3
 ZEEKPATH = zeek-$(ZEEKTAG)
@@ -89,19 +90,19 @@ docker:
 	DOCKER_BUILDKIT=1 docker build --pull --rm \
 		--build-arg LDFLAGS='$(LDFLAGS)' \
 		-t zqd:latest \
-		-t localhost:5000/zqd:latest \
-		-t localhost:5000/zqd:$(VERSION) \
-		-t $(ZQD_ECR_HOST)/zqd:$(VERSION) \
 		.
 
 docker-push-local: docker
+	docker tag zqd localhost:5000/zqd:latest
 	docker push localhost:5000/zqd:latest
+	docker tag zqd localhost:5000/zqd:$(VERSION)
 	docker push localhost:5000/zqd:$(VERSION)
 
 docker-push-ecr: docker
 	aws ecr get-login-password --region us-east-2 | docker login \
 	  --username AWS --password-stdin 792043464098.dkr.ecr.us-east-2.amazonaws.com/zqd
-	docker push $(ZQD_ECR_HOST)/zqd:$(VERSION)
+	docker tag zqd $(ZQD_ECR_HOST)/zqd:$(ECR_VERSION)
+	docker push $(ZQD_ECR_HOST)/zqd:$(ECR_VERSION)
 
 kubectl-config:
 	kubectl create namespace $(ZQD_K8S_USER)
@@ -115,7 +116,7 @@ helm-install:
 	helm install zqd charts/zqd \
 	--set AWSRegion="us-east-2" \
 	--set image.repository="$(ZQD_ECR_HOST)/" \
-	--set image.tag="zqd:$(VERSION)" \
+	--set image.tag="zqd:$(ECR_VERSION)" \
 	--set useCredSecret=false \
 	--set datauri=$(ZQD_DATA_URI)
 
