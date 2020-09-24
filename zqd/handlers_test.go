@@ -39,6 +39,8 @@ import (
 	"go.uber.org/zap/zaptest"
 )
 
+const babble = "../ztests/suite/data/babble.tzng"
+
 func TestSearch(t *testing.T) {
 	src := `
 #0:record[_path:string,ts:time,uid:bstring]
@@ -739,7 +741,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	payload := api.LogPostRequest{Paths: []string{"../tests/suite/data/babble.tzng"}}
+	payload := api.LogPostRequest{Paths: []string{babble}}
 	err = client.LogPost(context.Background(), sp.ID, payload)
 	require.NoError(t, err)
 
@@ -808,7 +810,7 @@ func TestIndexSearch(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	payload := api.LogPostRequest{Paths: []string{"../tests/suite/data/babble.tzng"}}
+	payload := api.LogPostRequest{Paths: []string{babble}}
 	err = client.LogPost(context.Background(), sp.ID, payload)
 	require.NoError(t, err)
 	err = client.IndexPost(context.Background(), sp.ID, api.IndexPostRequest{
@@ -845,7 +847,7 @@ func TestSubspaceCreate(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	payload := api.LogPostRequest{Paths: []string{"../tests/suite/data/babble.tzng"}}
+	payload := api.LogPostRequest{Paths: []string{babble}}
 	err = client.LogPost(context.Background(), sp1.ID, payload)
 	require.NoError(t, err)
 	err = client.IndexPost(context.Background(), sp1.ID, api.IndexPostRequest{
@@ -923,7 +925,7 @@ func TestSubspacePersist(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	payload := api.LogPostRequest{Paths: []string{"../tests/suite/data/babble.tzng"}}
+	payload := api.LogPostRequest{Paths: []string{babble}}
 	err = client1.LogPost(context.Background(), sp1.ID, payload)
 	require.NoError(t, err)
 	err = client1.IndexPost(context.Background(), sp1.ID, api.IndexPostRequest{
@@ -1007,7 +1009,7 @@ func TestArchiveStat(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	payload := api.LogPostRequest{Paths: []string{"../tests/suite/data/babble.tzng"}}
+	payload := api.LogPostRequest{Paths: []string{babble}}
 	err = client.LogPost(context.Background(), sp.ID, payload)
 	require.NoError(t, err)
 	err = client.IndexPost(context.Background(), sp.ID, api.IndexPostRequest{

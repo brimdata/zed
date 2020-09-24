@@ -21,6 +21,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const babble = "../ztests/suite/data/babble.tzng"
+
 func createArchiveSpace(t *testing.T, datapath string, srcfile string, co *CreateOptions) {
 	ark, err := CreateOrOpenArchive(datapath, co, nil)
 	require.NoError(t, err)
@@ -67,7 +69,7 @@ func TestOpenOptions(t *testing.T) {
 	defer os.RemoveAll(datapath)
 
 	thresh := int64(1000)
-	createArchiveSpace(t, datapath, "../tests/suite/data/babble.tzng", &CreateOptions{
+	createArchiveSpace(t, datapath, babble, &CreateOptions{
 		LogSizeThreshold: &thresh,
 	})
 
@@ -142,7 +144,7 @@ func TestSeekIndex(t *testing.T) {
 	defer func() {
 		importStreamRecordsMax = orig
 	}()
-	createArchiveSpace(t, datapath, "../tests/suite/data/babble.tzng", &CreateOptions{
+	createArchiveSpace(t, datapath, babble, &CreateOptions{
 		// Must use SortAscending: true until zq#1329 is addressed.
 		SortAscending: true,
 	})
