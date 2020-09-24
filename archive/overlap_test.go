@@ -32,14 +32,6 @@ func importTzng(t *testing.T, ark *Archive, s string) {
 }
 
 func TestMergeChunksToSpans(t *testing.T) {
-	type chnk struct {
-		id          string
-		first, last int
-	}
-	type testSpanInfo struct {
-		first, last int
-		chunks      []chnk
-	}
 	cases := []struct {
 		chunks []Chunk
 		filter nano.Span
@@ -146,7 +138,6 @@ func TestMergeChunksToSpans(t *testing.T) {
 	}
 	for i, c := range cases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-
 			assert.Equal(t, c.exp, mergeChunksToSpans(c.chunks, c.dir, c.filter))
 		})
 	}
