@@ -73,7 +73,7 @@ func newSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, f
 		}
 		return &scannerCloser{sn, rc}, nil
 	}
-	closers := make([]io.Closer, len(si.chunks))
+	closers := make([]io.Closer, 0, len(si.chunks))
 	defer func() {
 		if err != nil {
 			for _, c := range closers {
@@ -81,14 +81,14 @@ func newSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, f
 			}
 		}
 	}()
-	readers := make([]zbuf.Reader, len(si.chunks))
-	for i, chunk := range si.chunks {
+	readers := make([]zbuf.Reader, 0, len(si.chunks))
+	for _, chunk := range si.chunks {
 		rc, err := iosrc.NewReader(ctx, chunk.Path(ark))
 		if err != nil {
 			return nil, err
 		}
-		closers[i] = rc
-		readers[i] = zngio.NewReader(rc, zctx)
+		closers = append(closers, rc)
+		readers = append(readers, zngio.NewReader(rc, zctx))
 	}
 	sn, err := scanner.NewCombiner(ctx, readers, zbuf.RecordCompare(ark.DataSortDirection), f, filterExpr, si.span)
 	if err != nil {
