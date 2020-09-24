@@ -14,6 +14,9 @@ type TypeRecord struct {
 }
 
 func NewTypeRecord(id int, columns []Column) *TypeRecord {
+	if columns == nil {
+		columns = []Column{}
+	}
 	r := &TypeRecord{
 		id:      id,
 		Columns: columns,
