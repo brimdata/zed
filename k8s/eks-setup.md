@@ -91,7 +91,7 @@ Using the AWS console is the most convenient way to delete your EKS cluster, sin
 
 When you want to delete the EKS cluster, you must first delete the nodegroup. This will take a few minutes.
 
-# Appendix: tasks that are automated by Tilt but that are useful to remember
+# Appendix: tasks that are included in Makefile rules but that are useful to remember
 
 ## Pushing locally built Docker images from your local dev machine to ECR
 You can push locally built Docker images to AWS ECR for deployment on EKS. These instructions are derived from:

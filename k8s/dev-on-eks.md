@@ -123,9 +123,8 @@ zapi new -k archivestore -d s3://brim-scratch/mark/sample-http-zng http-space
 ```
 And try some zapi queries:
 ```
-zapi -s http-space get "head 1"
-zapi -s http-space get "tail 1"
+zapi -s http-space get -t "head 1"
+zapi -s http-space get -t "tail 1"
 ```
 
 You can also query http-space with Brim, since it will connect to the same port-forward for zqd that zapi uses.
-
