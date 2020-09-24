@@ -13,4 +13,5 @@ outputs:
   - name: stdout
     data: |
       #0:record[a:string,b:string,c:string]
+      0:[hello;world;-;]
       0:[-;goodnight;gracie;]

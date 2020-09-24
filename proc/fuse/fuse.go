@@ -94,6 +94,7 @@ func (p *Proc) writeBatch(batch zbuf.Batch) error {
 }
 
 func (p *Proc) stash(rec *zng.Record) error {
+	p.recs = append(p.recs, rec)
 	p.nbytes += len(rec.Raw)
 	if p.nbytes >= MemMaxBytes {
 		var err error
@@ -109,7 +110,6 @@ func (p *Proc) stash(rec *zng.Record) error {
 		p.recs = nil
 		return nil
 	}
-	p.recs = append(p.recs, rec)
 	return nil
 }
 
