@@ -14,7 +14,7 @@ import (
 func TestZq(t *testing.T) {
 	t.Parallel()
 	dirs := map[string]struct{}{}
-	re, _ := regexp.Compile(`.*ztests/.*\.yaml$`)
+	re := regexp.MustCompile(`.*ztests/.*\.yaml$`)
 	err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
 		if !info.IsDir() && strings.HasSuffix(path, ".yaml") && re.MatchString(path) {
 			dirs[filepath.Dir(path)] = struct{}{}
