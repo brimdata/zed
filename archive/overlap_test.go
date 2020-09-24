@@ -1,11 +1,11 @@
 package archive
 
 import (
-	"bytes"
 	"context"
 	"io/ioutil"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/brimsec/zq/pkg/nano"
@@ -19,14 +19,14 @@ import (
 
 func kid(s string) ksuid.KSUID {
 	var b [20]byte
-	copy(b[:], []byte(s))
+	copy(b[:], s)
 	k, _ := ksuid.FromBytes(b[:])
 	return k
 }
 
 func importTzng(t *testing.T, ark *Archive, s string) {
 	zctx := resolver.NewContext()
-	reader := tzngio.NewReader(bytes.NewReader([]byte(s)), zctx)
+	reader := tzngio.NewReader(strings.NewReader(s), zctx)
 	err := Import(context.Background(), ark, zctx, reader)
 	require.NoError(t, err)
 }
