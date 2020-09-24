@@ -188,6 +188,7 @@ func TestOverlapWalking(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.Len(t, chunks, 3)
+		chunksSort(ark.DataSortDirection, chunks)
 		var spans []nano.Span
 		for _, c := range chunks {
 			spans = append(spans, c.Span())
@@ -216,6 +217,7 @@ func TestOverlapWalking(t *testing.T) {
 		})
 		require.NoError(t, err)
 		assert.Len(t, chunks, 2)
+		chunksSort(ark.DataSortDirection, chunks)
 		var spans []nano.Span
 		for _, c := range chunks {
 			spans = append(spans, c.Span())

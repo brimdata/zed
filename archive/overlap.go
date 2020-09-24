@@ -7,9 +7,9 @@ import (
 	"github.com/brimsec/zq/zbuf"
 )
 
-// mergeChunksToSpans takes a set of Chunks with possibly overlapping spans,
-// and returns an ordered list of SpanInfos, whose spans will be bounded by
-// filter, and where each spanInfo contains one or more Chunks whose data
+// mergeChunksToSpans takes an unordered set of Chunks with possibly overlapping
+// spans, and returns an ordered list of SpanInfos, whose spans will be bounded
+// by filter, and where each spanInfo contains one or more Chunks whose data
 // falls into the spanInfo's span.
 func mergeChunksToSpans(chunks []Chunk, dir zbuf.Direction, filter nano.Span) []spanInfo {
 	var siChunks []Chunk // accumulating chunks for next spanInfo

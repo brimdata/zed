@@ -133,11 +133,11 @@ func (t tsDir) name() string {
 	return t.Ts.Time().Format("20060102")
 }
 
-type tsDirVisitor func(tsd tsDir, chunks []Chunk) error
+type tsDirVisitor func(tsd tsDir, unsortedChunks []Chunk) error
 
 // tsDirVisit calls visitor for each tsDir whose span overlaps with the
-// given span. tsDirs are visited in the archive's order, and the
-// spans passed to visitor are also sorted by the archive's order.
+// given span. tsDirs are visited in the archive's order, but the
+// chunks passed to visitor are not sorted.
 func tsDirVisit(ctx context.Context, ark *Archive, filterSpan nano.Span, visitor tsDirVisitor) error {
 	zdDir := ark.DataPath.AppendPath(dataDirname)
 	dirents, err := iosrc.ReadDir(ctx, zdDir)
@@ -166,14 +166,14 @@ func tsDirVisit(ctx context.Context, ark *Archive, filterSpan nano.Span, visitor
 		if err != nil {
 			return err
 		}
-		if err := visitor(d, tsDirEntriesToSpans(ark, filterSpan, dirents)); err != nil {
+		if err := visitor(d, tsDirEntriesToChunks(ark, filterSpan, dirents)); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func tsDirEntriesToSpans(ark *Archive, filterSpan nano.Span, entries []iosrc.Info) []Chunk {
+func tsDirEntriesToChunks(ark *Archive, filterSpan nano.Span, entries []iosrc.Info) []Chunk {
 	dfileMap := make(map[ksuid.KSUID]dataFile)
 	sfileMap := make(map[ksuid.KSUID]seekIndexFile)
 	for _, e := range entries {
@@ -206,9 +206,6 @@ func tsDirEntriesToSpans(ark *Archive, filterSpan nano.Span, entries []iosrc.Inf
 			RecordCount:  sf.recordCount,
 		})
 	}
-	sort.Slice(chunks, func(i, j int) bool {
-		return chunkTsCompare(ark.DataSortDirection, chunks[i].First, chunks[i].Id, chunks[j].First, chunks[j].Id)
-	})
 	return chunks
 }
 
@@ -280,12 +277,19 @@ func chunkTsCompare(dir zbuf.Direction, iTs nano.Ts, iKid ksuid.KSUID, jTs nano.
 	return jTs < iTs
 }
 
+func chunksSort(dir zbuf.Direction, c []Chunk) {
+	sort.Slice(c, func(i, j int) bool {
+		return chunkTsCompare(dir, c[i].First, c[i].Id, c[j].First, c[j].Id)
+	})
+}
+
 type Visitor func(chunk Chunk) error
 
 // Walk calls visitor for every data chunk in the archive.
 func Walk(ctx context.Context, ark *Archive, v Visitor) error {
 	dirmkr, _ := ark.dataSrc.(iosrc.DirMaker)
 	return tsDirVisit(ctx, ark, nano.MaxSpan, func(_ tsDir, chunks []Chunk) error {
+		chunksSort(ark.DataSortDirection, chunks)
 		for _, c := range chunks {
 			if dirmkr != nil {
 				zardir := c.ZarDir(ark)
