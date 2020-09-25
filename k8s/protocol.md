@@ -6,7 +6,7 @@ zqd executes queries by decomposing the user provided ZQL into an abstract synta
 
 Note: although we call this an AST in the code, I think it is a directed acyclic graph (DAG) that begins with a single node and ends with a single node. In the following dicussion I make that assumption.
 
-The basic strategy of distributed zqd to is allow procs to be executed by remote processes. This describes, at a high level, the protocol between a  "manager" zqd process, that builds the AST of procs, and "worker" zqd processes that execute a subtree of the manager's AST.
+The basic strategy of distributed zqd is to allow procs to be executed by remote processes. This describes, at a high level, the protocol between a  "manager" zqd process, that builds the AST of procs, and "worker" zqd processes that execute a subtree of the manager's AST.
 
 ## Code Story
 
