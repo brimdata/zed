@@ -22,6 +22,7 @@ var (
 	ErrNotArray   = errors.New("cannot index a non-array")
 	ErrIndex      = errors.New("array index out of bounds")
 	ErrUnionIndex = errors.New("union index out of bounds")
+	ErrEnumIndex  = errors.New("enum index out of bounds")
 )
 
 // The fmt paramter passed to Type.StringOf() must be one of the following
@@ -66,24 +67,28 @@ type Type interface {
 }
 
 var (
-	TypeBool     = &TypeOfBool{}
-	TypeInt8     = &TypeOfInt8{}
 	TypeUint8    = &TypeOfUint8{}
-	TypeInt16    = &TypeOfInt16{}
 	TypeUint16   = &TypeOfUint16{}
-	TypeInt32    = &TypeOfInt32{}
 	TypeUint32   = &TypeOfUint32{}
-	TypeInt64    = &TypeOfInt64{}
 	TypeUint64   = &TypeOfUint64{}
-	TypeFloat64  = &TypeOfFloat64{}
-	TypeString   = &TypeOfString{}
-	TypeBstring  = &TypeOfBstring{}
-	TypeIP       = &TypeOfIP{}
-	TypePort     = &TypeOfPort{}
-	TypeNet      = &TypeOfNet{}
-	TypeTime     = &TypeOfTime{}
+	TypePort     = &TypeOfPort{} // XXX take out port per Henri's feedback
+	TypeInt8     = &TypeOfInt8{}
+	TypeInt16    = &TypeOfInt16{}
+	TypeInt32    = &TypeOfInt32{}
+	TypeInt64    = &TypeOfInt64{}
 	TypeDuration = &TypeOfDuration{}
-	TypeNull     = &TypeOfNull{}
+	TypeTime     = &TypeOfTime{}
+	// XXX add Float32
+	TypeFloat64 = &TypeOfFloat64{}
+	TypeBool    = &TypeOfBool{}
+	TypeBytes   = &TypeOfBytes{}
+	TypeString  = &TypeOfString{}
+	TypeBstring = &TypeOfBstring{}
+	TypeIP      = &TypeOfIP{}
+	TypeNet     = &TypeOfNet{}
+	TypeType    = &TypeOfType{}
+	TypeError   = &TypeOfError{}
+	TypeNull    = &TypeOfNull{}
 )
 
 const (
@@ -104,12 +109,11 @@ const (
 	IdBytes    = 14
 	IdString   = 15
 	IdBstring  = 16
-	IdEnum     = 17
-	IdIP       = 18
-	IdNet      = 19
-	IdType     = 20
-	IdError    = 21
-	IdNull     = 22
+	IdIP       = 17
+	IdNet      = 18
+	IdType     = 19
+	IdError    = 20
+	IdNull     = 21
 
 	IdTypeDef = 23
 )
@@ -118,12 +122,12 @@ var promote = []int{
 	IdInt8,    // IdUint8    = 0
 	IdInt16,   // IdUint16   = 1
 	IdInt32,   // IdUint32   = 2
-	IdInt64,   //IdUint64   = 3
+	IdInt64,   //IdUint64    = 3
 	IdInt16,   // IdPort     = 4
-	IdInt8,    // IdInt8    = 5
-	IdInt16,   // IdInt8   = 6
-	IdInt32,   //IdInt32   = 7
-	IdInt64,   // IdInt64  = 8
+	IdInt8,    // IdInt8     = 5
+	IdInt16,   // IdInt8     = 6
+	IdInt32,   //IdInt32     = 7
+	IdInt64,   // IdInt64    = 8
 	IdInt64,   // IdDuration = 9
 	IdInt64,   // IdTime     = 10
 	IdFloat32, // IdFloat32  = 11
@@ -167,13 +171,22 @@ func IsStringy(id int) bool {
 }
 
 const (
-	TypeDefRecord  = 0x80
-	TypeDefArray   = 0x81
-	TypeDefSet     = 0x82
-	TypeDefUnion   = 0x83
-	TypeDefAlias   = 0x84
-	CtrlEOS        = 0x85
-	CtrlCompressed = 0x86
+	CtrlValueEscape   = 0xdf
+	TypeDefRecord     = 0xf0
+	TypeDefArray      = 0xf1
+	TypeDefSet        = 0xf2
+	TypeDefUnion      = 0xf3
+	TypeDefEnum       = 0xf4
+	TypeDefMap        = 0xf5
+	TypeDefAlias      = 0xf6
+	CtrlCompressed    = 0xf7
+	CtrlAppStart      = 0xf8
+	CtrlAppEnd        = 0xfe
+	CtrlEOS           = 0xff
+	AppEncodingZNG    = 0
+	AppEncodingJSON   = 1
+	AppEncodingString = 2
+	AppEncodingBinary = 3
 )
 
 type CompressionFormat int
@@ -182,40 +195,46 @@ const CompressionFormatLZ4 CompressionFormat = 0x00
 
 func LookupPrimitive(name string) Type {
 	switch name {
-	case "bool":
-		return TypeBool
-	case "int8":
-		return TypeInt8
 	case "uint8":
 		return TypeUint8
-	case "int16":
-		return TypeInt16
 	case "uint16":
 		return TypeUint16
-	case "int32":
-		return TypeInt32
 	case "uint32":
 		return TypeUint32
-	case "int64":
-		return TypeInt64
 	case "uint64":
 		return TypeUint64
+	case "port":
+		return TypePort
+	case "int8":
+		return TypeInt8
+	case "int16":
+		return TypeInt16
+	case "int32":
+		return TypeInt32
+	case "int64":
+		return TypeInt64
+	case "duration":
+		return TypeDuration
+	case "time":
+		return TypeTime
 	case "float64":
 		return TypeFloat64
+	case "bool":
+		return TypeBool
+	case "bytes":
+		return TypeBytes
 	case "string":
 		return TypeString
 	case "bstring":
 		return TypeBstring
 	case "ip":
 		return TypeIP
-	case "port":
-		return TypePort
 	case "net":
 		return TypeNet
-	case "time":
-		return TypeTime
-	case "duration":
-		return TypeDuration
+	case "type":
+		return TypeType
+	case "error":
+		return TypeError
 	case "null":
 		return TypeNull
 	}
@@ -258,6 +277,10 @@ func LookupPrimitiveById(id int) Type {
 		return TypeTime
 	case IdDuration:
 		return TypeDuration
+	case IdType:
+		return TypeType
+	case IdError:
+		return TypeError
 	case IdNull:
 		return TypeNull
 	}
@@ -273,7 +296,7 @@ func SameType(t1, t2 Type) bool {
 	return t1 == t2
 }
 
-// Utilities shared by compound types (ie, set and array)
+// Utilities shared by complex types (ie, set and array)
 
 // InnerType returns the element type for set and array types
 // or nil if the type is not a set or array.
@@ -300,6 +323,7 @@ func ContainedType(typ Type) (Type, []Column) {
 		return typ.Type, nil
 	case *TypeRecord:
 		return nil, typ.Columns
+		// XXX enum?
 	default:
 		return nil, nil
 	}
@@ -314,7 +338,7 @@ func IsContainerType(typ Type) bool {
 	switch typ := typ.(type) {
 	case *TypeAlias:
 		return IsContainerType(typ.Type)
-	case *TypeSet, *TypeArray, *TypeRecord, *TypeUnion:
+	case *TypeSet, *TypeArray, *TypeRecord, *TypeUnion, *TypeMap:
 		return true
 	default:
 		return false
@@ -332,6 +356,16 @@ func AliasTypes(typ Type) []*TypeAlias {
 		for _, col := range typ.Columns {
 			aliases = append(aliases, AliasTypes(col.Type)...)
 		}
+	case *TypeUnion:
+		for _, typ := range typ.Types {
+			aliases = append(aliases, AliasTypes(typ)...)
+		}
+	case *TypeEnum:
+		aliases = AliasTypes(typ.Type)
+	case *TypeMap:
+		keyAliases := AliasTypes(typ.KeyType)
+		valAliases := AliasTypes(typ.KeyType)
+		aliases = append(keyAliases, valAliases...)
 	case *TypeAlias:
 		aliases = append(aliases, AliasTypes(typ.Type)...)
 		aliases = append(aliases, typ)

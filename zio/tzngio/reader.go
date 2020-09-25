@@ -46,7 +46,7 @@ type Reader struct {
 	stats   ReadStats
 	zctx    *resolver.Context
 	mapper  map[int]*zng.TypeRecord
-	parser  *Parser
+	parser  *zng.Parser
 }
 
 func NewReader(reader io.Reader, zctx *resolver.Context) *Reader {
@@ -57,7 +57,7 @@ func NewReader(reader io.Reader, zctx *resolver.Context) *Reader {
 		stats:   ReadStats{Stats: &scanner.Stats},
 		zctx:    zctx,
 		mapper:  make(map[int]*zng.TypeRecord),
-		parser:  NewParser(),
+		parser:  zng.NewParser(),
 	}
 }
 
@@ -203,7 +203,6 @@ func (r *Reader) parseValue(line []byte) (*zng.Record, error) {
 	if !ok {
 		return nil, ErrInvalidDesc
 	}
-
 	raw, err := r.parser.Parse(typ, rest)
 	if err != nil {
 		return nil, err

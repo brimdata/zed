@@ -1,0 +1,9 @@
+zql: 'put x=m["b"]'
+
+input: |
+  #0:record[m:map[string,int32]]
+  0:[[a;1;b;2;c;3;]]
+
+output: |
+  #0:record[m:map[string,int32],x:int32]
+  0:[[a;1;b;2;c;3;]2;]

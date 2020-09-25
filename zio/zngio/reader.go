@@ -34,11 +34,18 @@ type Reader struct {
 	mapper   *resolver.Mapper
 	sos      int64
 	validate bool
+	app      AppMessage
 }
 
 type ReaderOpts struct {
 	Validate bool
 	Size     int
+}
+
+type AppMessage struct {
+	Code     int
+	Encoding int
+	Bytes    []byte
 }
 
 func NewReader(reader io.Reader, sctx *resolver.Context) *Reader {
@@ -77,17 +84,27 @@ func (r *Reader) SkipStream() (*zng.Record, int64, error) {
 
 func (r *Reader) Read() (*zng.Record, error) {
 	for {
-		rec, b, err := r.ReadPayload()
-		if b != nil {
-			if err != nil {
-				return nil, err
-			}
-			continue
-		}
-		if rec == nil {
+		rec, msg, err := r.ReadPayload()
+		if err != nil {
 			return nil, err
 		}
+		if msg != nil {
+			continue
+		}
 		return rec, err
+	}
+}
+
+func (r *Reader) ReadPayload() (*zng.Record, *AppMessage, error) {
+	for {
+		rec, msg, err := r.readPayload(nil)
+		if err != nil {
+			if err == startBatch || err == endBatch {
+				continue
+			}
+			return nil, nil, err
+		}
+		return rec, msg, err
 	}
 }
 
@@ -102,40 +119,27 @@ func (r *Reader) reset() {
 	r.sos = r.peekerOffset
 }
 
-// ReadPayload returns either data values as zbuf.Record or control payloads
-// as byte slices.  The record and byte slice are volatile so they must be
-// copied (via copy for byte slice or zbuf.Record.Keep()) before any subsequent
-// calls to Read or ReadPayload can be made.
-func (r *Reader) ReadPayload() (*zng.Record, []byte, error) {
-	id, buf, err := r.readPayload()
-	if buf == nil || err != nil {
-		return nil, nil, err
-	}
-	if id < 0 {
-		if -id == zng.CtrlCompressed {
-			return r.ReadPayload()
-		}
-		// XXX we should return the control code
-		return nil, buf, nil
-	}
-	rec, err := r.parseValue(nil, id, buf)
-	return rec, nil, err
-}
+var startBatch = errors.New("start of uncmompressed batch")
+var endBatch = errors.New("end of uncmmpressed batch encountered while parsing data")
 
-func (r *Reader) readPayload() (int, []byte, error) {
-again:
-	b, err := r.read(1)
-	if err != nil {
-		// Having tried to read a single byte above, ErrTruncated means io.EOF.
-		if err == io.EOF || err == peeker.ErrTruncated {
-			return 0, nil, nil
+// ReadPayload returns either data values as zbuf.Record or app-specific
+// messages .  The record or message is volatile so they must be
+// copied (via copy for message's byte slice or zbuf.Record.Keep()) as
+// subsequent calls to Read or ReadPayload will modify the referenced data.
+func (r *Reader) readPayload(rec *zng.Record) (*zng.Record, *AppMessage, error) {
+	for {
+		b, err := r.read(1)
+		if err != nil {
+			// Having tried to read a single byte above, ErrTruncated means io.EOF.
+			if err == io.EOF || err == peeker.ErrTruncated {
+				return nil, nil, nil
+			}
+			return nil, nil, err
 		}
-		return 0, nil, err
-	}
-	code := b[0]
-	if code&0x80 != 0 {
-		if r.uncompressedBuf != nil && r.uncompressedBuf.length() > 0 {
-			return 0, nil, errors.New("zngio: control message in compressed value message block")
+		code := b[0]
+		if code <= zng.CtrlValueEscape {
+			rec, err := r.readValue(rec, int(code))
+			return rec, nil, err
 		}
 		switch code {
 		case zng.TypeDefRecord:
@@ -151,56 +155,71 @@ again:
 		case zng.CtrlEOS:
 			r.reset()
 		case zng.CtrlCompressed:
-			if err := r.readCompressed(); err != nil {
-				return 0, nil, err
-			}
-			return -zng.CtrlCompressed, r.uncompressedBuf.Bytes(), nil
+			return nil, nil, r.readCompressed()
 		default:
-			len, err := r.readUvarint()
-			if err != nil {
-				return 0, nil, zng.ErrBadFormat
-			}
-			buf, err := r.read(len)
-			return -int(code), buf, err
+			msg, err := r.readAppMessage(int(code))
+			return nil, msg, err
 		}
 		if err != nil {
-			return 0, nil, err
+			return nil, nil, err
 		}
-		goto again
 	}
-	// read uvarint7 encoding of type ID
-	var id int
-	if (code & 0x40) == 0 {
-		id = int(code & 0x3f)
-	} else {
-		v, err := r.readUvarint()
+}
+
+func (r *Reader) readValue(rec *zng.Record, id int) (*zng.Record, error) {
+	if id == zng.CtrlValueEscape {
+		var err error
+		id, err = r.readUvarint()
 		if err != nil {
-			return 0, nil, err
+			return nil, err
 		}
-		id = (v << 6) | int(code&0x3f)
 	}
 	len, err := r.readUvarint()
 	if err != nil {
-		return 0, nil, err
+		return nil, zng.ErrBadFormat
+	}
+	b, err := r.read(len)
+	if err != nil && err != io.EOF {
+		return nil, zng.ErrBadFormat
+	}
+	rec, err = r.parseValue(rec, id, b)
+	return rec, err
+}
+
+func (r *Reader) readAppMessage(code int) (*AppMessage, error) {
+	encoding, err := r.ReadByte()
+	if err != nil {
+		return nil, zng.ErrBadFormat
+	}
+	len, err := r.readUvarint()
+	if err != nil {
+		return nil, zng.ErrBadFormat
 	}
 	buf, err := r.read(len)
-	if err != nil && err != io.EOF {
-		return 0, nil, zng.ErrBadFormat
+	if err != nil {
+		return nil, err
 	}
-	return id, buf, nil
+	r.app.Code = code
+	r.app.Encoding = int(encoding)
+	r.app.Bytes = buf
+	return &r.app, err
 }
 
 // read returns an error if fewer than n bytes are available.
 func (r *Reader) read(n int) ([]byte, error) {
-	if r.uncompressedBuf != nil && r.uncompressedBuf.length() > 0 {
-		if n > MaxSize {
-			return nil, errors.New("zngio: read exceeds MaxSize")
+	if r.uncompressedBuf != nil {
+		if r.uncompressedBuf.length() > 0 {
+			if n > MaxSize {
+				return nil, errors.New("zngio: read exceeds MaxSize buffer")
+			}
+			buf := r.uncompressedBuf.next(n)
+			if len(buf) < n {
+				return nil, errors.New("zngio: short read from decompression buffer")
+			}
+			return buf, nil
 		}
-		buf := r.uncompressedBuf.next(n)
-		if len(buf) < n {
-			return nil, errors.New("zngio: short read")
-		}
-		return buf, nil
+		r.uncompressedBuf = nil
+		return nil, endBatch
 	}
 	b, err := r.peeker.Read(n)
 	r.peekerOffset += int64(len(b))
@@ -208,6 +227,9 @@ func (r *Reader) read(n int) ([]byte, error) {
 }
 
 func (r *Reader) readCompressed() error {
+	if r.uncompressedBuf != nil {
+		return errors.New("zngio: cannot have zng compression inside of compression")
+	}
 	format, err := r.readUvarint()
 	if err != nil {
 		return err
@@ -239,7 +261,7 @@ func (r *Reader) readCompressed() error {
 		return fmt.Errorf("zngio: got %d uncompressed bytes, expected %d", n, uncompressedLen)
 	}
 	r.uncompressedBuf = ubuf
-	return nil
+	return startBatch
 }
 
 func (r *Reader) readUvarint() (int, error) {

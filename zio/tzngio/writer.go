@@ -56,6 +56,7 @@ func (w *Writer) Write(r *zng.Record) error {
 	if err != nil {
 		return nil
 	}
+	// XXX why can't we call StringOf on r.Type and make this easier?
 	if err := w.writeContainer(zng.Value{Type: r.Type, Bytes: r.Raw}); err != nil {
 		return err
 	}
@@ -115,12 +116,17 @@ func (w *Writer) writeContainer(parent zng.Value) error {
 	if _, ok := realType.(*zng.TypeUnion); ok {
 		return w.writeUnion(parent)
 	}
+	if typ, ok := realType.(*zng.TypeMap); ok {
+		s := typ.StringOf(parent.Bytes, zng.OutFormatZNG, true)
+		//XXX catch error
+		return w.write(s)
+	}
 	if err := w.write("["); err != nil {
 		return err
 	}
 	childType, columns := zng.ContainedType(realType)
 	if childType == nil && columns == nil {
-		return ErrSyntax
+		return zng.ErrSyntax
 	}
 	k := 0
 	if len(parent.Bytes) > 0 {

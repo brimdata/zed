@@ -62,7 +62,7 @@ func (t *TypeRecord) Decode(zv zcode.Bytes) ([]Value, error) {
 }
 
 func (t *TypeRecord) Parse(in []byte) (zcode.Bytes, error) {
-	panic("record.Parse shouldn't be called")
+	return ParseContainer(t, in)
 }
 
 func (t *TypeRecord) StringOf(zv zcode.Bytes, fmt OutFmt, _ bool) string {
@@ -143,6 +143,6 @@ func (t *TypeRecord) HasField(field string) bool {
 func (t *TypeRecord) createLUT() {
 	t.LUT = make(map[string]int)
 	for k, col := range t.Columns {
-		t.LUT[col.Name] = k
+		t.LUT[string(col.Name)] = k
 	}
 }
