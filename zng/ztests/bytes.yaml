@@ -1,0 +1,12 @@
+# make sure we can read packets with a buggy caplen greater than the
+# original packet size.  bad-caplen.pcap was extracted from the pcap
+# in brim/issue https://github.com/brimsec/brim/issues/615.
+zql: put c=b:string | put d=toBase64(c),f=toBase64(c):bytes | put e=fromBase64(d):string
+
+input: |
+  #0:record[b:bytes]
+  0:[aGksIHdvcmxk;]
+
+output: |
+  #0:record[b:bytes,c:string,d:string,f:bytes,e:string]
+  0:[aGksIHdvcmxk;hi, world;aGksIHdvcmxk;YUdrc0lIZHZjbXhr;hi, world;]

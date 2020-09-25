@@ -14,7 +14,7 @@ output-flags: -b 1
 
 outputHex: |
   # define a record with 3 columns
-  80 03
+  f0 03
   # first column name is _path (len 5)
   05 5f 70 61 74 68
   # first column type is string (15)
@@ -44,9 +44,9 @@ outputHex: |
   # 8 bytes of float64 data representing 1.0
   00 00 00 00 00 00 f0 3f
   # end of stream
-  85
+  ff
   # new frame: repeat the record type definition
-  80 03
+  f0 03
   05 5f 70 61 74 68
   0f
   02 74 73
@@ -62,4 +62,4 @@ outputHex: |
   # third column, primitive value of 9 total bytes, float64 1.5
   12 00 00 00 00 00 00 f8 3f
   # end of stream
-  85
+  ff

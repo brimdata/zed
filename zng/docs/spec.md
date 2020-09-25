@@ -1,6 +1,10 @@
 # ZNG Specification
 
-> ### Note: This specification is ALPHA and a work in progress.
+> ### Note: This specification is in BETA development.
+> We hope that no backward incompatible changes will be made during
+> the BETA phase.  We plan to
+> declare the specification stable and finalized in spring 2021.
+>
 > [Zq](https://github.com/brimsec/zq/blob/master/README.md)'s
 > implementation of ZNG is tracking this spec and as it changes,
 > the zq output format is subject to change.  In this branch,
@@ -9,10 +13,13 @@
 > * the `bytes` type is not yet implemented,
 > * the `enum` type is not yet implemented,
 > * only streams of `record` types (which may consist of any combination of
->   other implemented types) may currently be expressed in value messages.
+>   other implemented types) are supported by zq even though a stream of
+>   any types may currently be expressed in value messages.
 >
-> Also, we are contemplating reducing the number of [primitive types](#5-primitive-types), e.g.,
-> the number of variations in integer types.
+> TBD: should we add maps? It would be a complex type comprising
+> a list of key/values where the key type and value type is defined in the
+> map typedef.  The contrarian view is that maps are easily represented
+> as a sequence of record[key:keyType,value:valueType].
 
 * [1. Introduction](#1-introduction)
 * [2. The ZNG Data Model](#2-the-zng-data-model)
@@ -23,15 +30,19 @@
       - [3.1.1.2 Array Typedef](#3112-array-typedef)
       - [3.1.1.3 Set Typedef](#3113-set-typedef)
       - [3.1.1.4 Union Typedef](#3114-union-typedef)
-      - [3.1.1.5 Alias Typedef](#3115-alias-typedef)
-    - [3.1.2 End-of-Stream Markers](#312-end-of-stream-markers)
-    - [3.1.3 Compressed Value Message Block](#313-compressed-value-message-block)
+      - [3.1.1.5 Enum Typedef](#3115-enum-typedef)
+      - [3.1.1.6 Map Typedef](#3116-map-typedef)
+      - [3.1.1.7 Alias Typedef](#3117-alias-typedef)
+    - [3.1.2 Compressed Value Message Block](#312-compressed-value-message-block)
+    - [3.1.3 Application-Defined Messages](#313-application-defined-messages)
+    - [3.1.4 End-of-Stream Markers](#314-end-of-stream-markers)
   + [3.2 Value Messages](#32-value-messages)
 * [4. ZNG Text Format (TZNG)](#4-zng-text-format-tzng)
   + [4.1 Control Messages](#41-control-messages)
     - [4.1.1 Type Binding](#411-type-binding)
     - [4.1.2 Type Alias](#412-type-alias)
-    - [4.1.3 Application-Specific Payload](#413-application-specific-payload)
+    - [4.1.3 Application-Defined Messages](#413-application-defined-messages)
+    - [4.1.4 End of Stream](#414-end-of-stream)
   + [4.2 Type Grammar](#42-type-grammar)
   + [4.3 Values](#43-values)
     - [4.3.1 Character Escape Rules](#431-character-escape-rules)
@@ -55,7 +66,7 @@ ZNG strikes a balance between the narrowly typed but flexible
 [newline-delimited JSON (NDJSON)](http://ndjson.org/) format and
 a more structured approach like [Apache Avro](https://avro.apache.org).
 Like NDJSON, the TZNG text format represents a sequence of data objects
-that can be parsed line by line.
+that can be parsed line by line and is human readable.
 
 ZNG is type rich and embeds all type information in the stream while having a
 binary serialization format that allows "lazy parsing" of fields such that
@@ -76,6 +87,10 @@ ZNG is more expressive than JSON in that any JSON input
 can be mapped onto ZNG and recovered by decoding
 that ZNG back into JSON, but the converse is not true.
 
+Likewise, ZNG is a superset of SQL relational tables so any table could potentially
+be exported as ZNG data and re-imported from ZNG to SQL (though there is
+no notion of constraints like foreign keys in the ZNG format).
+
 The ZNG design was motivated by and [is compatible with](./zeek-compat.md) the
 [Zeek log format](https://docs.zeek.org/en/stable/examples/logs/).
 As far as we know, the Zeek log format pioneered the concept of
@@ -95,11 +110,15 @@ The stream of values is interleaved with control messages
 that provide type definitions and other metadata.  The type of
 a particular data value is specified by its "type identifier", or type ID,
 which is an integer representing either a "primitive type" or a
-"container type".
+"complex type".
 
 The ZNG type system comprises the standard set of primitive types like integers,
-floating point, strings, byte arrays, etc. as well as container types
-like records, arrays, and sets arranged from the primitive types.
+floating point, strings, byte arrays, etc. as well as complex types
+that are built from other types like records, arrays, and sets arranged
+from the primitive types.
+
+ZNG also includes first-class types, where a value can be of type "type".
+This is useful for grouping aggregations by type, e.g., to do introspective data exploration.
 
 For example, a TZNG stream representing the single string "hello world"
 might look like this:
@@ -150,47 +169,58 @@ value information consistent with the referenced type.
 ## 3. ZNG Binary Format (ZNG)
 
 The ZNG binary format is based on machine-readable data types with an
-encoding methodology inspired by Avro and
+encoding methodology inspired by Avro,
+[Parquet](https://en.wikipedia.org/wiki/Apache_Parquet), and
 [Protocol Buffers](https://developers.google.com/protocol-buffers).
 
 A ZNG stream comprises a sequence of interleaved control messages and value messages
 that are serialized into a stream of bytes.
 
-Each message is prefixed with a single-byte header code.  The upper bit of
-the header code indicates whether the message is a control message (1)
-or a value message (0).
+Each message is prefixed with a single-byte header code.  Codes `0xf0-0xff`
+are allocated as control messages while codes `0x00-0xde` indicate a value message.
 
 ### 3.1 Control Messages
 
-The lower 7 bits of a control header byte define the control code.
-Control codes 0 through 6 are reserved for ZNG:
+Control codes `0xf0` through `0xff` (in hexadecimal) are defined as follows:
 
-| Code | Message Type                   |
-|------|--------------------------------|
-| `0`  | record definition              |
-| `1`  | array definition               |
-| `2`  | set definition                 |
-| `3`  | union definition               |
-| `4`  | type alias                     |
-| `5`  | end-of-stream                  |
-| `6`  | compressed value message block |
+| Code   | Message Type                   |
+|--------|--------------------------------|
+| `0xf0` | record definition              |
+| `0xf1` | array definition               |
+| `0xf2` | set definition                 |
+| `0xf3` | union definition               |
+| `0xf4` | enum definiton                 |
+| `0xf5` | type alias                     |
+| `0xf6` | compressed value message block |
+| `0xf7` | application-defined message    |
+| `...`  | application-defined messages   |
+| `0xfe` | application-defined message    |
+| `0xff` | end-of-stream                  |
 
-All other control codes are available to higher-layer protocols to carry
-application-specific payloads embedded in the ZNG stream.
+The application-defined messages are available to higher-layer protocols and
+potential future enhancements of the ZNG spec.  A ZNG implementation that
+merely skips over all of the application-defined messages is guaranteed by
+this specification to decode all of the data as described herein even if such
+messages provide additional semantics on top of the base ZNG format.
 
-Any such application-specific payloads not known by
+Any such application-defined messages not known by
 a ZNG data receiver shall be ignored.
 
-The body of an application-specific control message is any UTF-8 string.
-These payloads are guaranteed to be preserved
+The body of a application-defined control message is typically a structured
+message in JSON or ZNG.
+These messages are guaranteed to be preserved
 in order within the stream and presented to higher layer components through
 any ZNG streaming API.  In this way, senders and receivers of ZNG can embed
 protocol directives as ZNG control payloads rather than defining additional
 encapsulating protocols.
 
+> For example, the [zqd](../../cmd/zqd) server uses application-defined
+> message `0xf7` to embed search and server stats in the return stream
+> of ZNG data, e.g., as a long-running search progresses on the server.
+
 ### 3.1.1 Typedefs
 
-Following a header byte of 0x80-0x83 is a "typedef".  A typedef binds
+Following a header byte of `0xf0-0xf5` is a "typedef".  A typedef binds
 "the next available" integer type ID to a type encoding.  As there are
 a total of 23 primitive type IDs, the Type IDs for typedefs
 begin at the value 23 and increase by one for each typedef. These bindings
@@ -199,7 +229,7 @@ are scoped to the stream in which the typedef occurs.
 Type IDs for the "primitive types" need not be defined with typedefs and
 are predefined with the IDs shown in the [Primitive Types](#5-primitive-types) table.
 
-A typedef is encoded as a single byte indicating the container type ID followed by
+A typedef is encoded as a single byte indicating the complex type ID followed by
 the type encoding.  This creates a binding between the implied type ID
 (i.e., 23 plus the count of all previous typedefs in the stream) and the new
 type definition.
@@ -219,11 +249,11 @@ A record typedef creates a new type ID equal to the next stream type ID
 with the following structure:
 ```
 ----------------------------------------------------------
-|0x80|<nfields>|<field1><type-id-1><field2><type-id-2>...|
+|0xf0|<nfields>|<field1><type-id-1><field2><type-id-2>...|
 ----------------------------------------------------------
 ```
 Record types consist of an ordered set of columns where each column consists of
-a name and a typed value.  Unlike JSON, the ordering of the columns is significant
+a name and its type.  Unlike JSON, the ordering of the columns is significant
 and must be preserved through any APIs that consume, process, and emit ZNG records.
 
 A record type is encoded as a count of fields, i.e., `<nfields>` from above,
@@ -241,8 +271,10 @@ is further encoded as a "counted string", which is the `uvarint` encoding
 of the length of the string followed by that many bytes of UTF-8 encoded
 string data.
 
-N.B.: The rules for ZNG identifiers follow the same rules as
-[JavaScript identifiers](https://tc39.es/ecma262/#prod-IdentifierName).
+N.B.: A field name can be any valid UTF-8 string much like JSON
+objects can be indexed with arbitrary string keys (via index operator)
+even if the field names available to the dot operator are restricted
+by language syntax for identifiers.
 
 The type ID follows the field name and is encoded as a `uvarint`.
 
@@ -252,23 +284,19 @@ An array type is encoded as simply the type code of the elements of
 the array encoded as a `uvarint`:
 ```
 ----------------
-|0x81|<type-id>|
+|0xf1|<type-id>|
 ----------------
 ```
 
 #### 3.1.1.3 Set Typedef
 
-A set type is encoded as a type count followed by the type ID of the
-elements of the set, each encoded as a `uvarint`:
+A set type is encoded as the type ID of the
+elements of the set, encoded as a `uvarint`:
 ```
--------------------------
-|0x82|<ntypes>|<type-id>|
--------------------------
+----------------
+|0xf2|<type-id>|
+----------------
 ```
-
-`<ntypes>` must be 1.
-
-`<type-id>` must be a primitive type ID.
 
 #### 3.1.1.4 Union Typedef
 
@@ -276,7 +304,7 @@ A union typedef creates a new type ID equal to the next stream type ID
 with the following structure:
 ```
 -----------------------------------------
-|0x83|<ntypes>|<type-id-1><type-id-2>...|
+|0xf3|<ntypes>|<type-id-1><type-id-2>...|
 -----------------------------------------
 ```
 A union type consists of an ordered set of types
@@ -288,7 +316,35 @@ The `<ntypes>` and the type IDs are all encoded as `uvarint`.
 
 `<ntypes>` cannot be 0.
 
-#### 3.1.1.5 Alias Typedef
+#### 3.1.1.5 Enum Typedef
+
+An enum type is encoded as the type code of the enum values as a `uvarint`
+followed by a count of the number of elements in the enum, and in turn,
+followed by the names and values of each element.
+```
+--------------------------------------------------------
+|0xf4|<type-id>|<nelem>|<name1><val-1><name2><val-2>...|
+--------------------------------------------------------
+```
+`<type-id>` and `<nelem>` are encoded as `uvarint`.
+The names have the same UTF-8 format as a record and are encoded
+as tag-encoded primitive strings.  Each value is encoded as
+a tag-encoded value in accordance with the type indicated
+by ``<typd-id>`.
+
+#### 3.1.1.6 Map Typedef
+
+A map type is encoded as the type code of the key
+followed by the type code of the value.
+```
+--------------------------
+|0xf5|<type-id>|<type-id>|
+--------------------------
+```
+Each `<type-id>` is encoded as `uvarint`.
+
+
+#### 3.1.1.7 Alias Typedef
 
 A type alias defines a new type ID that binds a new type name
 to a previously existing type ID.  This is useful for systems like Zeek,
@@ -298,10 +354,14 @@ By encoding the aliases in the format, there is no need to configure mapping
 information across different systems using the format, as the type aliases
 are communicated to the consumer of a ZNG stream.
 
+Type aliases can also be used like the "logical types" in Avro and Parquet,
+where higher-level semantics can be defined for a particular named type,
+all outside the scope of the base ZNG specification.
+
 A type alias is encoded as follows:
 ```
 ----------------------
-|0x84|<name><type-id>|
+|0xf6|<name><type-id>|
 ----------------------
 ```
 where `<name>` is an identifier representing the new type name with a new type ID
@@ -314,7 +374,66 @@ It is an error to define an alias that has the same name as a primitive type.
 It is also an error to redefine a previously defined alias with a
 type that differs from the original definition.
 
-### 3.1.2 End-of-Stream Markers
+### 3.1.2 Compressed Value Message Block
+
+Following a header byte of `0xf6` is a compressed value message block.
+Such a block comprises a compressed sequence of value messages.  The
+sequence must not include control messages.
+
+> The reason control messages are not allowed in compressed blocks is to
+> allow for optimizations that discard entire buffers of data based on
+> heuristics to know a filtering predicate can't be true based on a
+> quick scan of the data (e.g., using the Boyer-Moore algorithm to determine
+> that a comparison with a string constant would not work for any record
+> value in the buffer).  Since blocks may be dropped without parsing using
+> such an optimization, any typedefs should be lifted out into the zng data
+> stream in front of the compressed blocks (i.e., the stream is rearranged
+// but its always safe to move typedefs earlier in the stream as long as
+> the typedef order is preserved and a zng end-of-stream is not crossed).
+> For application-specific messages and end-of-stream, a compressed buffer
+> should be terminated and these messages sent as uncompressed data.
+>
+> Since ZNG streams typically consist of a very sparse
+> set of typedefs with very long runs of data, these constraints are not
+> a barrier to performance in practice.
+
+A compressed value message block is encoded as follows:
+```
+------------------------------------------------------------------------------
+|0xf6|<format><uncompressed-length>|<compressed-length>|<compressed-messages>|
+------------------------------------------------------------------------------
+```
+where
+* `<format>`, a `uvarint`, identifies the compression algorithm applied to the
+  message sequence,
+* `<uncompressed-length>`, a `uvarint`, is the length in bytes of the
+  uncompressed message sequence, and
+* `<compressed-length>`, a `uvarint`, is the length in bytes of `<compressed-messages>`
+* `<compressed-messages>` is the compressed value message sequence.
+
+Values for `<format>` are defined in the
+[ZNG compression format specification](./compression-spec.md).
+
+### 3.1.3 Application-Defined Messages
+
+An application-defined message has the following form:
+```
+-----------------------------------
+|0xf7-0xfe|<encoding>|<len>|<body>|
+-----------------------------------
+```
+where
+* `<encoding>` is a single byte indicating whether the body is encoded
+as ZNG (0), JSON (1), an arbitrary UTF-8 string (2), or arbitrary binary data (3),
+* `<len>` is a `uvarint` encoding the length in bytes of the message body
+(exclusive of the length 1 encoding byte), and
+* `<body>` is a data message whose semantics are outside the scope of
+the base ZNG specification.
+
+If the encoding type is ZNG, the embedded ZNG data
+starts and ends a single ZNG stream independent of outer the ZNG stream.
+
+### 3.1.4 End-of-Stream Markers
 
 A ZNG stream must be terminated by an end-of-stream marker.
 A new ZNG stream may begin immediately after an end-of-stream marker.
@@ -339,7 +458,7 @@ the ZNG messages on Kafka message boundaries).
 A end-of-stream marker is encoded as follows:
 ```
 ------
-|0x85|
+|0xff|
 ------
 ```
 
@@ -350,121 +469,126 @@ previously defined type, the appropriate typedef control code must
 be re-emitted
 (and note that the typedef may now be assigned a different ID).
 
-### 3.1.3 Compressed Value Message Block
 
-Following a header byte of 0x86 is a compressed value message block.
-Such a block comprises a compressed sequence of value messages.  The
-sequence must not include control messages.
-
-A compressed value message block is encoded as follows:
-```
-------------------------------------------------------------------------------
-|0x86|<format><uncompressed-length>|<compressed-length>|<compressed-messages>|
-------------------------------------------------------------------------------
-
-```
-where
-* `<format>`, a `uvarint`, identifies the algorthim used to compress the
-  message sequence
-* `<uncompressed-length>`, a `uvarint`, is the length in bytes of the
-  uncompressed message sequence
-* `<compressed-length>`, a `uvarint`, is the length in bytes of `<compressed-messages>`
-* `<compressed-messages>` is the compressed value message sequence
-
-Values for `<format>` are defined in the
-[ZNG compression format specification](./compression-spec.md).
 
 ### 3.2 Value Messages
 
-Following a header byte with bit 7 zero is a `typed value`
-with a `uvarint7` encoding its length.
+Following a header byte in the range `0x00-0xde` is a ZNG value.
+The header byte indicates the type ID of the value.  If the type ID
+is larger than `0xde`, then the type ID is "escaped" with the value `0xdf`
+and the actual type ID is encoded as a `uvarint` of the difference
+of the type ID less the constant `0xdf`.
 
-> A `uvarint7` is the same as a `uvarint` except only 7 bits instead of 8
-> are available in the first byte.  Its value is equal to the lower 6-bits if bit 6
-> of the first byte is 1; otherwise it is that value plus the value of the
-> subsequent `uvarint` times 64.
+It is an error for a value to reference a type ID that has not been
+previously defined by a typedef scoped to the stream in which the value
+appears.
 
-A `typed value` is encoded as either a `uvarint7` (in a top-level value message)
-or `uvarint` (for any other values)
-encoding the length in bytes of the type ID and value followed by
-the body of the typed value comprising that many bytes.
-Within the body of the typed value,
-the type ID is encoded as a `uvarint` and the value is encoded
-as a byte array whose length is equal to the body length less the
-length in bytes of the type ID.
+The value is encoded in the subsequent bytes using a "tag-encoding" scheme
+that captures the structure of both primitive types and the recursive
+nature of complex types.  This structure is encoded
+explicitly in every value and the boundaries of each value and its
+recursive nesting can be parsed without knowledge of the type or types of
+the underlying values.  This admits an efficient implementation
+for traversing the values, inclusive of recursive traversal of complex values,
+whereby the inner loop need not consult and interpret the type ID of each element.
+
+#### 3.2.1 Tag-Encoding of Values
+
+Each value is prefixed with a "tag" that defines:
+* whether it is a primitive or complex value,
+* whether it is a nil value, and
+* if non-nil, its encoded length in bytes.
+
+The collection of sub-values comprising a complex-type value
+is called a "container".
+
+To encode the length N of the value, a bit for the complex/primitive type indicator,
+and representation for the nil value, the tag is defined as:
 ```
-------------------------
-|uvarint7|type-id|value|
-------------------------
+2*(N+1) + the container bit
 ```
+The length is offset by 1 whereby length of 0 represents nil.
+The container bit is 1 for complex values and 0 for primitive values.
 
-It is an error for a value to reference a type ID that has not been previously
-defined by a typedef scoped to the stream in which the value appears.
+For example, the following tags have the following meanings:
 
+| Tag |    Meaning          |
+|-----|---------------------|
+|  0  | nil primitive       |
+|  1  | nil container       |
+|  2  | length 0 primitive  |
+|  3  | length 0 container  |
+|  4  | length 1 primitive  |
+|  5  | length 1 container  |
+|  6  | length 2 primitive  |
+| ... | etc                 |
+
+A container recursively contains a list of tagged values.  Since the container
+encodes its overall length, there is no need to encode the number of elements
+in a container as they are easily discovered by scanning the buffer for each value
+until the last tagged value is encountered.
+
+#### 3.2.2 Tag-Encoded Body of Primitive Values
+
+Following the tag encoding is the value encoded in N bytes as described above.
 A typed value with a `value` of length `N` is interpreted as described in the
-[Primitive Types](#5-primitive-types) table.
+[Primitive Types](#5-primitive-types) table.  The type information needed to
+interpret all of the value elements of a complex type are all implied by the
+top-level type ID of the value message.  For example, the type ID could indicate
+a particular record type, which recursively provides the type information
+for all of the elements within that record, including other complex types
+embedded within the top-level record.
 
-All multi-byte sequences representing machine words are serialized in
-little-endian format.
+Note that because the tag indicates the length of the value, there is no need
+to use varint encoding of integer values.  Instead, an integer value is encoded
+using the full 8 bits of each byte in little-endian order.  For signed values,
+before encoding, are shifted left one bit, and the sign bit stored as bit 0.
+For negative numbers, the remaining bits are negated so that the upper bytes
+tend to be zero-filled for small integers.
 
-> Note: The `bstring` type is an unusual type representing a hybrid type
-> mixing a UTF-8 string with embedded binary data.  This type is
-> useful in systems like Zeek where data is pulled off the network
-> while expecting a string, but there can be embedded binary data due to
-> bugs, malicious attacks, etc.  It is up to the receiver to determine
-> with out-of-band information or inference whether the data is ultimately
-> arbitrary binary data or a valid UTF-8 string.
+#### 3.2.2 Tag-Encoded Body of Complex Values
+
+The body of a length-N container comprises zero or more tag-encoded values.
+
+Array, set, and record types are variable length and are encoded
+as a sequence of elements and an enum as a small integer:
+
+| Type     |          Value                          |
+|----------|-----------------------------------------|
+| `array`  | concatenation of elements               |
+| `set`    | normalized concatenation of elements    |
+| `record` | concatenation of elements               |
+| `union`  | concatenation of selector and value     |
+| `enum`   | selector of id and value in enum type   |
+| `map`    | concatenation of key and value elements |
+
+Since N, the byte length of any of these container values, is known,
+there is no need to encode a count of the
+elements present.  Also, since the type ID is implied by the typedef
+of any complex type, each value is encoded without its type ID.
+
+For sets, the concatenation of elements must be normalized so that the
+sequence of bytes encoding each element's tag-counted value is
+lexicographically greater than that of the preceding element.
 
 A union value is encoded as a container with two elements. The first
 element is the `uvarint` encoding of the index determining the type of
 the value in reference to the union type, and the second element is
 the value encoded according to that type.
 
-Array, set, and record types are variable length and are encoded
-as a sequence of elements:
+An enumeration value is simply a single, small integer encoded as length-N
+integer that represents the positional index of enum identifier and value as it
+is defined in the enum typedef.
 
-| Type     |          Value                       |
-|----------|--------------------------------------|
-| `array`  | concatenation of elements            |
-| `set`    | normalized concatenation of elements |
-| `record` | concatenation of elements            |
+A map value is encoded as a container as a sequence of alternating tag-encoded
+key and value. The concatenation of elements must be normalized so that the
+sequence of bytes encoding each tag-counted key (of the key/value pair) is
+lexicographically greater than that of the preceding key (of the preceding
+key/value pair).
 
-Since N, the byte length of any of these container values, is known,
-there is no need to encode a count of the
-elements present.  Also, since the type ID is implied by the typedef
-of any container type, each value is encoded without its type ID.
-
-The concatenation of elements is encoded as a sequence of "tag-counted" values.
-A tag carries both the length information of the corresponding value as well
-a "container bit" to differentiate between primitive values and container values
-without having to refer to the implied type.  This admits an efficient implementation
-for traversing the values, inclusive of recursive traversal of container values,
-whereby the inner loop need not consult and interpret the type ID of each element.
-
-The tag encodes the length N of the value and indicates whether
-it is a primitive value or a container value.
-The length is offset by 1 whereby length of 0 represents an unset value
-analogous to null in JSON.
-The container bit is 1 for container values and 0 for primitive values.
-The tag is defined as
-```
-2*(N+1) + the container bit
-```
-and is encoded as a `uvarint`.
-
-For example, tag value 0 is an unset primitive value and tag value 1
-is an unset container value.  Tag value 2 is a length zero primitive
-value, e.g., it could represent empty string.  Tag value 3 is a length
-zero container, such as an empty array or record with no fields.  Tag
-value 4 is a length 1 primitive value, e.g., it would represent the
-boolean "true" if followed by byte value 1 in the context of type ID 0
-(i.e., the type ID for boolean).
-
-Following the tag encoding is the value encoded in N bytes as described above.
-
-For sets, the concatenation of elements must be normalized so that the
-sequence of bytes encoding each element's tag-counted value is
-lexicographically greater than that of the preceding element.
+> XXX it's not clear that we should require sorted keys and give up
+> on a single canonical form for the zng file.  Or make this sort optional.
+> Or have the zq/zng writer do the sort but not correct it on input.
 
 ## 4. ZNG Text Format (TZNG)
 
@@ -514,39 +638,61 @@ This form defines an alias mapping the identifier to the indicated type.
 `<type-name>` is an identifier with semantics as defined in [Section 3.1.1.5](#3115-alias-typedef).
 
 
-### 4.1.3 Application-Specific Payload
+### 4.1.3 Application-Defined Messages
 
-A TZNG application-specific payload has the following form:
+A TZNG application-defined message has the following form:
 ```
-#!<control-code>:<payload>
+#!<control-code>:<message>
 ```
-Here, `<control-code>` is a decimal integer in the range 6-127 and `<payload>`
+Here, `<control-code>` is a decimal integer in the range 248-254 and `<message>`
 is any UTF-8 string with escaped newlines.
+
+### 4.1.4 End of Stream
+
+A TZNG end-of-stream marker has the following form:
+```
+#!255
+```
+A TZNG stream or file should always be terminated with end-of-stream.
+This clears all of the previous type tag bindings and aliases, allowing
+multiple TZNG files with overlapping tags to be concatenated without the
+tags colliding.
+
+> TBD: implement TZNG EOS in zq
 
 ### 4.2 Type Grammar
 
 Given the above textual definitions and the underlying ZNG specification, a
 grammar describing the textual type encodings is:
 ```
-<stype> := bool | byte | int16 | uint16 | int32 | uint32 | int64 | uint64 | float64
-         | string | bytes | bstring | enum | ip | port | net | time | duration | null
-         | <alias-name>
+<primitive> := uint8 | uint16 | uint32 | uint64 | port
+             | int8 | int16 | int32 | int64 | duration | time
+             | float32 | float64 | bool | bytes | string | bstring
+             | ip | net | type | error | null
 
-<ctype> := array [ <stype> ]
-         | union [ <stype-list> ]
-         | set [ <stype> ]
-         | record [ <columns> ]
+<complex> := array [ <type> ]
+           | set [ <type> ]
+           | record [ <columns> ]
+           | union [ <types> ]
+           | enum [ <type> , <elements> ]
+           | map [ <type> , <type> ]
 
+<type> := <primitive> | <complex> | <alias-name>
 
-<type> := <stype> | <ctype>
-
-<stype-list> := <stype>
-              | <stype-list> , <stype>
+<types> :=  <type>
+          | <types> , <type>
 
 <columns> := <column>
            | <columns> , <column>
 
-<column> := <id> : <type>
+<column> := <name> : <type>
+
+<name> := <id> | [ TZNG value of string ]
+
+<elements> := <element>
+            | <elements> , <element>
+
+<element> := <name> : [ <tzng-value-of-enum-type> ]
 
 <alias-name> := <id>
 
@@ -584,6 +730,9 @@ Container values (i.e., sets, arrays, or records) are encoded as
 * an open bracket,
 * zero or more encoded values terminated with semicolon, and
 * a close bracket.
+
+The sequence of key/value pairs of a map is encoded as a container comprising
+key0, val0, key1, val1, ... keyN, valN.
 
 Any value can be specified as "unset" with the ASCII character `-`.
 This is typically used to represent columns of records where not all
@@ -653,13 +802,13 @@ bool
 string
 int64
 ```
-Container types look like this:
+Complex types look like this:
 ```
 #0:array[int64]
-#1:set[bool,string]
+#1:set[bool]
 #2:record[x:float64,y:float64]
 ```
-Container types can be embedded in other container types by referencing
+Complex types can be embedded in other complex types by referencing
 an earlier-defined type alias:
 ```
 #REC=record[a:string,b:string,c:int64]
@@ -702,7 +851,7 @@ In this example:
 
 In this way, an empty `set` and a `set` containing only a zero-length `string` can be distinguished.
 
-This scheme allows containers to be embedded in containers, e.g., a
+This scheme allows complex types to be embedded in other complex types, e.g., a
 `record` inside of a `record` like this:
 ```
 #LL:record[compass:string,degree:float64]
@@ -721,6 +870,10 @@ For each ZNG primitive type, the following table describes:
 * The predefined ID, which need not be defined in [ZNG Typedefs](#311-typedefs)
 * How a typed `value` of length `N` is interpreted in a [ZNG Value Message](#32-value-messages)
 * The format of a UTF-8 string representing a [TZNG Value](#432-value-syntax) of that type
+
+All multi-byte sequences, which are not varints (e.g., float64, ip, etc),
+representing machine words are serialized in little-endian format.
+
 
 | Type       | ID |    N     |       ZNG Value Interpretation                 | TZNG Value Syntax                                             |
 |------------|---:|:--------:|------------------------------------------------|---------------------------------------------------------------|
@@ -741,15 +894,19 @@ For each ZNG primitive type, the following table describes:
 | `bytes`    | 14 | variable | N bytes of value                               | a sequence of bytes encoded as base64                         |
 | `string`   | 15 | variable | UTF-8 byte sequence of string                  | a UTF-8 string                                                |
 | `bstring`  | 16 | variable | UTF-8 byte sequence with `\x` escapes          | a UTF-8 string with `\x` escapes of non-UTF binary data       |
-| `enum `    | 17 | variable | UTF-8 bytes of enum string                     | a string representing an enumeration value defined outside the scope of ZNG |
-| `ip`       | 18 | 4 or 16  | 4 or 16 bytes of IP address                    | a string representing an IP address in [IPv4 or IPv6 format](https://tools.ietf.org/html/draft-main-ipaddr-text-rep-02#section-3) |
-| `net`      | 19 | 8 or 32  | 8 or 32 bytes of IP prefix and subnet mask     | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291. |
-| `type`     | 20 | 8 or 32  | 8 or 32 bytes of IP prefix and subnet mask     | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291. |
-| `error`    | 21 | 8 or 32  | 8 or 32 bytes of IP prefix and subnet mask     | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291. |
-| `null`     | 22 |    0     | No value, always represents an undefined value | must be the literal value `-`                                 |
+| `ip`       | 17 | 4 or 16  | 4 or 16 bytes of IP address                    | a string representing an IP address in [IPv4 or IPv6 format](https://tools.ietf.org/html/draft-main-ipaddr-text-rep-02#section-3) |
+| `net`      | 18 | 8 or 32  | 8 or 32 bytes of IP prefix and subnet mask     | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291. |
+| `type`     | 19 | variable | UTF-8 byte sequence of string representing type in the [TZNG type grammar](#42-type-grammar)  |  a UTF-8 string |
+| `error`    | 20 | variable | UTF-8 byte sequence of string of error message | a UTF-8 string |
+| `null`     | 21 |    0     | No value, always represents an undefined value | the literal value `-`                                 |
 
-> TBD: Types "enum" and "type" will actually be complex types not primitives.  We will
-> address this clarification in a subsequent PR.  There goes our magic constant 23.
+> Note: The `bstring` type is an unusual type representing a hybrid type
+> mixing a UTF-8 string with embedded binary data.  This type is
+> useful in systems like Zeek where data is pulled off the network
+> while expecting a string, but there can be embedded binary data due to
+> bugs, malicious attacks, etc.  It is up to the receiver to determine
+> with out-of-band information or inference whether the data is ultimately
+> arbitrary binary data or a valid UTF-8 string.
 
 ## Appendix A. Related Links
 
@@ -761,3 +918,56 @@ For each ZNG primitive type, the following table describes:
 * [Protocol Buffers](https://developers.google.com/protocol-buffers)
 * [MessagePack](https://msgpack.org/index.html)
 * [gNMI](https://github.com/openconfig/reference/tree/master/rpc/gnmi)
+
+## Appendix B. Recommended Type Coercion rules
+
+> TBD: it might be better to put this in the ZQL docs
+
+While outside the scope of the ZNG format specification, we include here
+some suggested rules for converting types when mixed-type operations occur,
+e.g., adding an uint32 field to an int32 fields or aggregating a stream of
+mixed-type numeric values in a sum operator.
+
+The age old question is "does unsigned(-1) equal unsigned(maxint) and thus
+that signed -1 is larger than unsigned 1 in a coerced comparison?"
+The standard SQL specification goes so far as to avoid unsigned types altogether
+to avoid this confusion.  However, since unsigned types are prevalent
+in the real world, and we want ZNG to be a reliable and complete language-independent
+model for communicating structured data, ZNG embraces the unsigned type.
+
+Given the dynamic typing nature of ZNG streams (e.g., x in one record might
+be a uint8, in another an int64, and in still another, a string), type coercion
+is important for ergonomic use, and implementations are thus encouraged
+to handle mixed-type operations robustly.
+
+For systems that perform analytics directly on ZNG, the following coercion
+patterns are recommend for logical comparisons of numbers, arithmetic operations,
+or streaming aggregations over numbers:
+* For float32 and float64, the float32 is converted to float64.
+* For float32 and any integer type, the integer is converted to float32
+and any loss of precision causes no error.
+* For float64 and any integer type, the integer is converted to float64
+and any loss of precision causes no error.
+* For integers of same signed-ness but different widths, the smaller width
+type is converted to the wider type.
+* For any signed and unsigned integers smaller than 64 bits, the unsigned value
+is converted to the corresponding signed type if possible, and otherwise,
+both are converted to the widest signed type that will allow conversion of
+the unsigned value unless the unsigned value cannot be converted,
+in which case an overflow error occurs.   e.g., uint8(255) and int8(-1), are
+converted to int16(255) and int16(-1), but uint64(2^32) and any signed value
+will result in overflow.
+* For a time or duration with a number, automatic coercion is not performed
+and casts or conversion functions should be used.
+* For a string with number, automatic coercion is not performed
+and casts or conversion functions should be used.
+
+Also,
+* numeric constants should be int64 or float64 unless cast, which means
+comparisons with constants will generally be coerced to these types and results
+of mathematical operations with constants will be promoted as well;
+* times and durations may be added, resulting in a time;
+* times may be subtracted, resulting in a duration; and,
+* a "plus" operator applied to two strings, implies concatenation,
+but a "plus" applied to a string and is a type mismatch and casts
+or conversion functions should be used.

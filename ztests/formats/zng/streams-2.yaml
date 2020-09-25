@@ -15,7 +15,7 @@ output-flags: -b 2 -znglz4blocksize=0
 
 outputHex: |
   # define the record corresponding to type 0 above: 1 col, name s, type string
-  80 01
+  f0 01
   01 73
   0f
   # value using type id 23 (0x17), equivalent to type 0 in the tzng source
@@ -24,7 +24,7 @@ outputHex: |
   # first column is a primitive value, 2 total bytes, the string "a"
   04 61
   # define the record corresponding to type 1: 1 col, name i, type int32
-  80 01
+  f0 01
   01 69
   07
   # value using type id 24 (0x18), corresponding to type 1 in tzng
@@ -32,9 +32,9 @@ outputHex: |
   # consists of one primitive value, representing the integer 1
   04 02
   # end of stream
-  85
+  ff
   # new frame: repeat the type definition for type 1
-  80 01
+  f0 01
   01 69
   07
   # value using the new type definition, since this is a new stream,
@@ -42,4 +42,4 @@ outputHex: |
   17 02
   04 04
   # end of stream
-  85
+  ff

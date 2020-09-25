@@ -2,9 +2,7 @@ package zngio
 
 import (
 	"context"
-	"encoding/binary"
 	"errors"
-	"io"
 	"sync/atomic"
 
 	"github.com/brimsec/zq/filter"
@@ -33,30 +31,49 @@ func (s *zngScanner) Pull() (zbuf.Batch, error) {
 		if err := s.ctx.Err(); err != nil {
 			return nil, err
 		}
-		id, buf, err := s.reader.readPayload()
-		if buf == nil || err != nil {
-			return nil, err
+		rec, msg, err := s.reader.readPayload(&s.rec)
+		if msg != nil {
+			continue
 		}
-		if id < 0 {
-			if -id != zng.CtrlCompressed {
-				// Discard everything else.
-				continue
-			}
-			batch, err := s.scanUncompressed()
+		if err == endBatch {
+			return nil, errors.New("internal error: batch end before zngio batch started")
+		}
+		if err == startBatch {
+			// This is the fast path.  A buffer was just decompressed
+			// so we scan it efficiently here.
+			batch, err := s.scanBatch()
 			if err != nil {
 				return nil, err
 			}
 			if batch == nil {
+				// The entire buffer was filtered.  So move
+				// on to the next chunk which may or may not
+				// be compressed.
 				continue
 			}
 			return batch, nil
 		}
-		rec, err := s.scanOne(&s.rec, id, buf)
+		if rec == nil || err != nil {
+			return nil, err
+		}
+		// This is the slow path when data isn't compressed.
+		// Create a batch for every record.  We also have to copy
+		// the body of the record since it points into the peeker's
+		// read buffer, so that buffer gets sent to GC.  Conceivably
+		// we could make a version of the peeker that used the batch
+		// and buffer pattern here, but the common case is data will
+		// be compressed and we won't traverse this code path very often.
+		rec, err = s.scanOne(rec)
 		if err != nil {
 			return nil, err
 		}
 		if rec != nil {
-			rec.CopyBody()
+			// XXX we don't use rec.CopyBody() here because it will
+			// mark the record volatile but that zng.Record is in
+			// the buffer and will get incorrectly reused.
+			b := make([]byte, len(rec.Raw))
+			copy(b, rec.Raw)
+			rec.Raw = b
 			batch := newBatch(nil)
 			batch.add(rec)
 			return batch, nil
@@ -64,31 +81,40 @@ func (s *zngScanner) Pull() (zbuf.Batch, error) {
 	}
 }
 
-func (s *zngScanner) scanUncompressed() (zbuf.Batch, error) {
+func (s *zngScanner) scanBatch() (zbuf.Batch, error) {
 	ubuf := s.reader.uncompressedBuf
-	s.reader.uncompressedBuf = nil
+	// If s.bufferFilter evaluates to false, we know ubuf cannot
+	// contain records matching s.filter.
 	if s.bufferFilter != nil && !s.bufferFilter.Eval(s.reader.zctx, ubuf.Bytes()) {
-		// s.bufferFilter evaluated to false, so we know ubuf cannot
-		// contain records matching s.filter.
 		atomic.AddInt64(&s.stats.BytesRead, int64(ubuf.length()))
 		ubuf.free()
+		s.reader.uncompressedBuf = nil
 		return nil, nil
 	}
+	// Otherwise, build a batch by reading all records in the
+	// decompressed buffer (i.e., till endBatch).
 	batch := newBatch(ubuf)
-	for ubuf.length() > 0 {
-		id, err := readUvarint7(ubuf)
+	for {
+		rec, msg, err := s.reader.readPayload(&s.rec)
+		if msg != nil {
+			continue
+		}
+		if err == endBatch {
+			if batch.Length() == 0 {
+				batch.Unref()
+				return nil, nil
+			}
+			return batch, nil
+		}
 		if err != nil {
 			return nil, err
 		}
-		length, err := binary.ReadUvarint(ubuf)
-		if err != nil {
-			return nil, err
+
+		if rec == nil {
+			// this shouldn't happen
+			return nil, errors.New("zngio: null record in middle of compressed batch")
 		}
-		raw := ubuf.next(int(length))
-		if len(raw) < int(length) {
-			return nil, errors.New("zngio: short read")
-		}
-		rec, err := s.scanOne(&s.rec, id, raw)
+		rec, err = s.scanOne(rec)
 		if err != nil {
 			return nil, err
 		}
@@ -96,18 +122,9 @@ func (s *zngScanner) scanUncompressed() (zbuf.Batch, error) {
 			batch.add(rec)
 		}
 	}
-	if batch.Length() == 0 {
-		batch.Unref()
-		return nil, nil
-	}
-	return batch, nil
 }
 
-func (s *zngScanner) scanOne(rec *zng.Record, id int, buf []byte) (*zng.Record, error) {
-	rec, err := s.reader.parseValue(rec, id, buf)
-	if err != nil {
-		return nil, err
-	}
+func (s *zngScanner) scanOne(rec *zng.Record) (*zng.Record, error) {
 	atomic.AddInt64(&s.stats.BytesRead, int64(len(rec.Raw)))
 	atomic.AddInt64(&s.stats.RecordsRead, 1)
 	if s.span != nano.MaxSpan && !s.span.Contains(rec.Ts()) ||
@@ -117,24 +134,6 @@ func (s *zngScanner) scanOne(rec *zng.Record, id int, buf []byte) (*zng.Record, 
 	atomic.AddInt64(&s.stats.BytesMatched, int64(len(rec.Raw)))
 	atomic.AddInt64(&s.stats.RecordsMatched, 1)
 	return rec, nil
-}
-
-func readUvarint7(r io.ByteReader) (int, error) {
-	b, err := r.ReadByte()
-	if err != nil {
-		return 0, err
-	}
-	if b >= 0x80 {
-		return 0, errors.New("zngio: unexpected control message")
-	}
-	if (b & 0x40) == 0 {
-		return int(b & 0x3f), nil
-	}
-	u64, err := binary.ReadUvarint(r)
-	if err != nil {
-		return 0, err
-	}
-	return (int(u64) << 6) | int(b&0x3f), nil
 }
 
 // Stats implements scanner.Scanner.Stats.
