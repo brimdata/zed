@@ -3,6 +3,8 @@ on:
   push:
     tags:
       - v*
+    branches:
+      - suricata-in-release-ci
 jobs:
   publish:
     runs-on: ubuntu-latest
