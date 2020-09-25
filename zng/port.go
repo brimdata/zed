@@ -1,7 +1,6 @@
 package zng
 
 import (
-	"errors"
 	"strconv"
 
 	"github.com/brimsec/zq/pkg/byteconv"
@@ -11,33 +10,15 @@ import (
 type TypeOfPort struct{}
 
 func NewPort(p uint32) Value {
-	return Value{TypePort, EncodePort(p)}
-}
-
-func EncodePort(p uint32) zcode.Bytes {
-	var b [2]byte
-	b[0] = byte(p >> 8)
-	b[1] = byte(p)
-	return b[:]
-}
-
-func DecodePort(zv zcode.Bytes) (uint32, error) {
-	if zv == nil {
-		return 0, ErrUnset
-	}
-	if len(zv) != 2 {
-		return 0, errors.New("port encoding must be 2 bytes")
-
-	}
-	return uint32(zv[0])<<8 | uint32(zv[1]), nil
+	return Value{TypePort, EncodeUint(uint64(p))}
 }
 
 func (t *TypeOfPort) Parse(in []byte) (zcode.Bytes, error) {
-	i, err := byteconv.ParseUint32(in)
+	i, err := byteconv.ParseUint64(in)
 	if err != nil {
 		return nil, err
 	}
-	return EncodePort(i), nil
+	return EncodeUint(i), nil
 }
 
 func (t *TypeOfPort) ID() int {
@@ -49,13 +30,13 @@ func (t *TypeOfPort) String() string {
 }
 
 func (t *TypeOfPort) StringOf(zv zcode.Bytes, _ OutFmt, _ bool) string {
-	p, err := DecodePort(zv)
+	p, err := DecodeUint(zv)
 	if err != nil {
 		return badZng(err, t, zv)
 	}
-	return strconv.FormatUint(uint64(p), 10)
+	return strconv.FormatUint(p, 10)
 }
 
 func (t *TypeOfPort) Marshal(zv zcode.Bytes) (interface{}, error) {
-	return DecodePort(zv)
+	return DecodeUint(zv)
 }

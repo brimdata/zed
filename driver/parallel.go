@@ -143,11 +143,11 @@ func newCompareFn(field string, reversed bool) (zbuf.RecordCmpFn, error) {
 			return zbuf.CmpTimeForward, nil
 		}
 	}
-	fieldRead := &ast.FieldRead{
-		Node:  ast.Node{Op: "FieldRead"},
+	fieldRead := &ast.Field{
+		Node:  ast.Node{Op: "Field"},
 		Field: field,
 	}
-	res, err := expr.CompileFieldExpr(fieldRead)
+	res, err := expr.CompileExpr(fieldRead, false)
 	if err != nil {
 		return nil, err
 	}

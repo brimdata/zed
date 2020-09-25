@@ -21,7 +21,7 @@ type FieldCutter struct {
 	pctx     *proc.Context
 	parent   proc.Interface
 	builder  *zng.Builder
-	accessor expr.FieldExprResolver
+	accessor *expr.FieldExpr
 	field    string
 	out      string
 	typ      zng.Type
@@ -30,7 +30,7 @@ type FieldCutter struct {
 // NewFieldCutter creates a FieldCutter for field fieldName, where the
 // output records' single column is named fieldName.
 func NewFieldCutter(pctx *proc.Context, parent proc.Interface, fieldName, out string) (proc.Interface, error) {
-	accessor := expr.CompileFieldAccess(fieldName)
+	accessor := expr.NewFieldAccess(fieldName)
 	if accessor == nil {
 		return nil, fmt.Errorf("bad field syntax: %s", fieldName)
 	}
@@ -62,8 +62,8 @@ func (f *FieldCutter) Pull() (zbuf.Batch, error) {
 		}
 		recs := make([]*zng.Record, 0, batch.Length())
 		for _, rec := range batch.Records() {
-			val := f.accessor(rec)
-			if val.Bytes == nil {
+			val, err := f.accessor.Eval(rec)
+			if err != nil || val.Bytes == nil {
 				continue
 			}
 			if err := f.checkType(val.Type); err != nil {

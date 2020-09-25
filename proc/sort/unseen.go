@@ -1,20 +1,21 @@
 package sort
 
 import (
-	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/zng"
 )
 
 type unseenFieldTracker struct {
-	unseenFields map[ast.FieldExpr]expr.FieldExprResolver
+	unseenFields map[expr.Evaluator]struct{}
 	seenTypes    map[*zng.TypeRecord]bool
 }
 
-func newUnseenFieldTracker(fields []ast.FieldExpr, resolvers []expr.FieldExprResolver) *unseenFieldTracker {
-	unseen := make(map[ast.FieldExpr]expr.FieldExprResolver)
-	for i, r := range resolvers {
-		unseen[fields[i]] = r
+func newUnseenFieldTracker(fields []expr.Evaluator) *unseenFieldTracker {
+	unseen := make(map[expr.Evaluator]struct{})
+	// We start out withe unseen map full of all the fields and take
+	// them out for each record type we encounter.
+	for _, f := range fields {
+		unseen[f] = struct{}{}
 	}
 	return &unseenFieldTracker{
 		unseenFields: unseen,
@@ -24,18 +25,20 @@ func newUnseenFieldTracker(fields []ast.FieldExpr, resolvers []expr.FieldExprRes
 
 func (u *unseenFieldTracker) update(rec *zng.Record) {
 	if len(u.unseenFields) == 0 || u.seenTypes[rec.Type] {
+		// Either have seen this type or nothing to unsee anymore.
 		return
 	}
 	u.seenTypes[rec.Type] = true
-	for field, fieldResolver := range u.unseenFields {
-		if !fieldResolver(rec).IsNil() {
+	for field := range u.unseenFields {
+		v, _ := field.Eval(rec)
+		if !v.IsNil() {
 			delete(u.unseenFields, field)
 		}
 	}
 }
 
-func (u *unseenFieldTracker) unseen() []ast.FieldExpr {
-	var fields []ast.FieldExpr
+func (u *unseenFieldTracker) unseen() []expr.Evaluator {
+	var fields []expr.Evaluator
 	for f := range u.unseenFields {
 		fields = append(fields, f)
 	}

@@ -12,16 +12,16 @@ outputHex: |
   80 03
   # first column name is _path (len 5)
   05 5f 70 61 74 68
-  # first column type is string (9)
-  09
+  # first column type is string (15)
+  0f
   # second column name is ts (len 2)
   02 74 73
-  # second column type is time (16 == 0x10)
-  10
+  # second column type is time (10 == 0x0a)
+  0a
   # third column name is d (len 1)
   01 64
-  # third column type is float64 (8)
-  08
+  # third column type is float64 (12)
+  0c
   # value using type id 23 (0x17), the record defined above
   # total length of this recor is 17 bytes (0x11)
   17 11

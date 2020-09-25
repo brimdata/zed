@@ -20,13 +20,13 @@ const defaultTopLimit = 100
 type Proc struct {
 	parent     proc.Interface
 	limit      int
-	fields     []expr.FieldExprResolver
+	fields     []expr.Evaluator
 	records    *expr.RecordSlice
 	compare    expr.CompareFn
 	flushEvery bool
 }
 
-func New(parent proc.Interface, limit int, fields []expr.FieldExprResolver, flushEvery bool) *Proc {
+func New(parent proc.Interface, limit int, fields []expr.Evaluator, flushEvery bool) *Proc {
 	if limit == 0 {
 		limit = defaultTopLimit
 	}
@@ -64,14 +64,8 @@ func (p *Proc) Done() {
 func (p *Proc) consume(rec *zng.Record) {
 	if p.fields == nil {
 		fld := sort.GuessSortKey(rec)
-		resolver := func(r *zng.Record) zng.Value {
-			e, err := r.Access(fld)
-			if err != nil {
-				return zng.Value{}
-			}
-			return e
-		}
-		p.fields = []expr.FieldExprResolver{resolver}
+		accessor := expr.NewFieldAccess(fld)
+		p.fields = []expr.Evaluator{accessor}
 	}
 	if p.records == nil {
 		p.compare = expr.NewCompareFn(false, p.fields...)

@@ -15,6 +15,10 @@ func EncodeDuration(i int64) zcode.Bytes {
 	return EncodeInt(i)
 }
 
+func AppendDuration(bytes zcode.Bytes, d int64) zcode.Bytes {
+	return AppendInt(bytes, d)
+}
+
 func DecodeDuration(zv zcode.Bytes) (int64, error) {
 	return DecodeInt(zv)
 }

@@ -67,7 +67,7 @@ const keyName = "key"
 
 var keyAst = ast.ExpressionAssignment{
 	Target: "key",
-	Expr:   &ast.FieldRead{Field: "key"},
+	Expr:   &ast.Field{Field: "key"},
 }
 var countAst = ast.Reducer{
 	Node: ast.Node{Op: "Count"},
@@ -91,7 +91,7 @@ func NewTypeRule(typeName string) (*Rule, error) {
 				Keys:     []ast.ExpressionAssignment{keyAst},
 				Reducers: []ast.Reducer{countAst},
 			},
-			&ast.SortProc{Fields: []ast.FieldExpr{&ast.FieldRead{Field: "key"}}},
+			&ast.SortProc{Fields: []ast.Expression{&ast.Field{Field: "key"}}},
 		},
 	}
 	return NewRuleAST("type", &c, typeMicroIndexName(typ), []string{keyName}, framesize)
@@ -110,7 +110,7 @@ func NewFieldRule(fieldName string) (*Rule, error) {
 				Keys:     []ast.ExpressionAssignment{keyAst},
 				Reducers: []ast.Reducer{countAst},
 			},
-			&ast.SortProc{Fields: []ast.FieldExpr{&ast.FieldRead{Field: "key"}}},
+			&ast.SortProc{Fields: []ast.Expression{&ast.Field{Field: "key"}}},
 		},
 	}
 	return NewRuleAST("field", &c, fieldMicroIndexName(fieldName), []string{keyName}, framesize)

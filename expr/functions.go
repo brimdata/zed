@@ -10,11 +10,23 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zngnative"
 )
 
-type Function func([]zngnative.Value) (zngnative.Value, error)
+type Args struct {
+	vals []zng.Value
+	scratch
+}
+
+func NewArgs(n int, keep bool) *Args {
+	return &Args{
+		vals:    make([]zng.Value, n),
+		scratch: scratch{keep: keep},
+	}
+}
+
+type Function func(*Args) (zng.Value, error)
 
 var ErrTooFewArgs = errors.New("too few arguments")
 var ErrTooManyArgs = errors.New("too many arguments")
@@ -58,197 +70,229 @@ var allFns = map[string]struct {
 	"Time.trunc":            {2, 2, timeTrunc},
 }
 
-func err(fn string, err error) (zngnative.Value, error) {
-	return zngnative.Value{}, fmt.Errorf("%s: %w", fn, err)
+//XXX this should be renamed so as not to clash with the conventional
+// id "err" used for the local variable
+func err(fn string, err error) (zng.Value, error) {
+	return zng.Value{}, fmt.Errorf("%s: %w", fn, err)
 }
 
-func lenFn(args []zngnative.Value) (zngnative.Value, error) {
-	switch zng.AliasedType(args[0].Type).(type) {
+func lenFn(args *Args) (zng.Value, error) {
+	switch zng.AliasedType(args.vals[0].Type).(type) {
 	case *zng.TypeArray, *zng.TypeSet:
-		v, err := args[0].ToZngValue()
+		v := args.vals[0]
+		len, err := v.ContainerLength()
 		if err != nil {
-			return zngnative.Value{}, err
+			return zng.Value{}, err
 		}
-		l, err := v.ContainerLength()
-		if err != nil {
-			return zngnative.Value{}, err
-		}
-		return zngnative.Value{zng.TypeInt64, int64(l)}, nil
+		return zng.Value{zng.TypeInt64, args.Int(int64(len))}, nil
 	default:
 		return err("len", ErrBadArgument)
 	}
 }
 
-func mathAbs(args []zngnative.Value) (zngnative.Value, error) {
-	switch args[0].Type.ID() {
-	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
-		x := args[0].Value.(int64)
-		if x < 0 {
-			x = -x
-		}
-		return zngnative.Value{zng.TypeInt64, x}, nil
-
-	case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
-		return args[0], nil
-
-	case zng.IdFloat64:
-		return zngnative.Value{zng.TypeFloat64, math.Abs(args[0].Value.(float64))}, nil
-
-	default:
+func mathAbs(args *Args) (zng.Value, error) {
+	v := args.vals[0]
+	id := v.Type.ID()
+	if zng.IsFloat(id) {
+		f, _ := zng.DecodeFloat64(v.Bytes)
+		f = math.Abs(f)
+		return zng.Value{zng.TypeFloat64, args.Float64(f)}, nil
+	}
+	if !zng.IsInteger(id) {
 		return err("Math.abs", ErrBadArgument)
 	}
-}
-
-func mathCeil(args []zngnative.Value) (zngnative.Value, error) {
-	switch args[0].Type.ID() {
-	case zng.IdInt16, zng.IdInt32, zng.IdInt64, zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
-		return args[0], nil
-
-	case zng.IdFloat64:
-		return zngnative.Value{zng.TypeFloat64, math.Ceil(args[0].Value.(float64))}, nil
-
-	default:
-		return err("Math.Ceil", ErrBadArgument)
+	if !zng.IsSigned(id) {
+		return v, nil
 	}
-}
-
-func mathFloor(args []zngnative.Value) (zngnative.Value, error) {
-	switch args[0].Type.ID() {
-	case zng.IdInt16, zng.IdInt32, zng.IdInt64, zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
-		return args[0], nil
-
-	case zng.IdFloat64:
-		return zngnative.Value{zng.TypeFloat64, math.Floor(args[0].Value.(float64))}, nil
-
-	default:
-		return err("Math.Floor", ErrBadArgument)
+	x, _ := zng.DecodeInt(v.Bytes)
+	if x < 0 {
+		x = -x
 	}
+	return zng.Value{v.Type, args.Int(x)}, nil
 }
 
-func mathLog(args []zngnative.Value) (zngnative.Value, error) {
-	x, ok := zngnative.CoerceNativeToFloat64(args[0])
+func mathCeil(args *Args) (zng.Value, error) {
+	v := args.vals[0]
+	id := v.Type.ID()
+	if zng.IsFloat(id) {
+		f, _ := zng.DecodeFloat64(v.Bytes)
+		f = math.Ceil(f)
+		return zng.Value{zng.TypeFloat64, args.Float64(f)}, nil
+	}
+	if zng.IsInteger(id) {
+		return v, nil
+	}
+	return err("Math.Ceil", ErrBadArgument)
+}
+
+func mathFloor(args *Args) (zng.Value, error) {
+	v := args.vals[0]
+	id := v.Type.ID()
+	if zng.IsFloat(id) {
+		f, _ := zng.DecodeFloat64(v.Bytes)
+		f = math.Floor(f)
+		return zng.Value{zng.TypeFloat64, args.Float64(f)}, nil
+	}
+	if zng.IsInteger(id) {
+		return v, nil
+	}
+	return err("Math.Floor", ErrBadArgument)
+}
+
+func mathLog(args *Args) (zng.Value, error) {
+	x, ok := CoerceToFloat(args.vals[0])
+	// XXX should have better error messages
 	if !ok {
 		return err("Math.log", ErrBadArgument)
 	}
 	if x <= 0 {
 		return err("Math.log", ErrBadArgument)
 	}
-	return zngnative.Value{zng.TypeFloat64, math.Log(x)}, nil
+	return zng.Value{zng.TypeFloat64, args.Float64(math.Log(x))}, nil
 }
 
-func mathMax(args []zngnative.Value) (zngnative.Value, error) {
-	switch args[0].Type.ID() {
-	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
-		ret := args[0].Value.(int64)
-		for _, val := range args[1:] {
-			v, ok := zngnative.CoerceNativeToInt(val)
-			if ok && v > ret {
-				ret = v
-			}
-		}
-		return zngnative.Value{zng.TypeInt64, ret}, nil
+type reducer struct {
+	f64 func(float64, float64) float64
+	i64 func(int64, int64) int64
+	u64 func(uint64, uint64) uint64
+}
 
-	case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
-		ret := args[0].Value.(uint64)
-		for _, val := range args[1:] {
-			v, ok := zngnative.CoerceNativeToUint(val)
-			if ok && v > ret {
-				ret = v
-			}
+var min = &reducer{
+	f64: func(a, b float64) float64 {
+		if a < b {
+			return a
 		}
-		return zngnative.Value{zng.TypeUint64, ret}, nil
-
-	case zng.IdFloat64:
-		ret := args[0].Value.(float64)
-		for _, val := range args[1:] {
-			v, ok := zngnative.CoerceNativeToFloat64(val)
-			if ok && v > ret {
-				ret = v
-			}
+		return b
+	},
+	i64: func(a, b int64) int64 {
+		if a < b {
+			return a
 		}
-		return zngnative.Value{zng.TypeFloat64, ret}, nil
+		return b
+	},
+	u64: func(a, b uint64) uint64 {
+		if a < b {
+			return a
+		}
+		return b
+	},
+}
 
-	default:
-		return err("Math.max", ErrBadArgument)
+var max = &reducer{
+	f64: func(a, b float64) float64 {
+		if a > b {
+			return a
+		}
+		return b
+	},
+	i64: func(a, b int64) int64 {
+		if a > b {
+			return a
+		}
+		return b
+	},
+	u64: func(a, b uint64) uint64 {
+		if a > b {
+			return a
+		}
+		return b
+	},
+}
+
+func mathMax(args *Args) (zng.Value, error) {
+	return reduce(args, max)
+}
+
+func mathMin(args *Args) (zng.Value, error) {
+	return reduce(args, min)
+}
+
+func reduce(args *Args, fn *reducer) (zng.Value, error) {
+	zv := args.vals[0]
+	typ := zv.Type
+	id := typ.ID()
+	if zng.IsFloat(id) {
+		result, _ := zng.DecodeFloat64(zv.Bytes)
+		for _, zv := range args.vals[1:] {
+			v, ok := CoerceToFloat(zv)
+			if !ok {
+				return zng.Value{}, ErrBadArgument
+			}
+			result = fn.f64(result, v)
+		}
+		return zng.Value{typ, args.Float64(result)}, nil
 	}
-}
-
-func mathMin(args []zngnative.Value) (zngnative.Value, error) {
-	switch args[0].Type.ID() {
-	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
-		ret := args[0].Value.(int64)
-		for _, val := range args[1:] {
-			v, ok := zngnative.CoerceNativeToInt(val)
-			if ok && v < ret {
-				ret = v
-			}
-		}
-		return zngnative.Value{zng.TypeInt64, ret}, nil
-
-	case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
-		ret := args[0].Value.(uint64)
-		for _, val := range args[1:] {
-			v, ok := zngnative.CoerceNativeToUint(val)
-			if ok && v < ret {
-				ret = v
-			}
-		}
-		return zngnative.Value{zng.TypeUint64, ret}, nil
-
-	case zng.IdFloat64:
-		ret := args[0].Value.(float64)
-		for _, val := range args[1:] {
-			v, ok := zngnative.CoerceNativeToFloat64(val)
-			if ok && v < ret {
-				ret = v
-			}
-		}
-		return zngnative.Value{zng.TypeFloat64, ret}, nil
-
-	default:
-		return err("Math.min", ErrBadArgument)
+	if !zng.IsNumber(id) {
+		// XXX better message
+		return zng.Value{}, ErrBadArgument
 	}
+	if zng.IsSigned(id) {
+		result, _ := zng.DecodeInt(zv.Bytes)
+		for _, zv := range args.vals[1:] {
+			v, ok := CoerceToInt(zv)
+			if !ok {
+				// XXX better message
+				return zng.Value{}, ErrBadArgument
+			}
+			result = fn.i64(result, v)
+		}
+		return zng.Value{typ, args.Int(result)}, nil
+	}
+	result, _ := zng.DecodeUint(zv.Bytes)
+	for _, zv := range args.vals[1:] {
+		v, ok := CoerceToUint(zv)
+		if !ok {
+			// XXX better message
+			return zng.Value{}, ErrBadArgument
+		}
+		result = fn.u64(result, v)
+	}
+	return zng.Value{typ, args.Uint(result)}, nil
 }
 
-func mathMod(args []zngnative.Value) (zngnative.Value, error) {
-	y, ok := zngnative.CoerceNativeToUint(args[1])
+//XXX currently integer mod, but this could also do fmod
+// also why doesn't zql have x%y instead of Math.mod(x,y)?
+func mathMod(args *Args) (zng.Value, error) {
+	zv := args.vals[0]
+	id := zv.Type.ID()
+	if zng.IsFloat(id) {
+		return err("Math.mod", ErrBadArgument)
+	}
+	y, ok := CoerceToUint(args.vals[1])
 	if !ok {
 		return err("Math.mod", ErrBadArgument)
 	}
-
-	switch args[0].Type.ID() {
-	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
-		x := args[0].Value.(int64)
-		return zngnative.Value{zng.TypeInt64, x % int64(y)}, nil
-
-	case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
-		x := args[0].Value.(uint64)
-		return zngnative.Value{zng.TypeUint64, x % y}, nil
-
-	default:
+	if !zng.IsNumber(id) {
 		return err("Math.mod", ErrBadArgument)
 	}
+	if zng.IsSigned(id) {
+		x, _ := zng.DecodeInt(zv.Bytes)
+		return zng.Value{zv.Type, args.Int(x % int64(y))}, nil
+	}
+	x, _ := zng.DecodeUint(zv.Bytes)
+	return zng.Value{zv.Type, args.Uint(x % y)}, nil
 }
 
-func mathRound(args []zngnative.Value) (zngnative.Value, error) {
-	switch args[0].Type.ID() {
-	case zng.IdInt16, zng.IdInt32, zng.IdInt64, zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
-		return args[0], nil
+func mathRound(args *Args) (zng.Value, error) {
+	zv := args.vals[0]
+	id := zv.Type.ID()
+	if zng.IsFloat(id) {
+		f, _ := zng.DecodeFloat64(zv.Bytes)
+		return zng.Value{zv.Type, args.Float64(math.Round(f))}, nil
 
-	case zng.IdFloat64:
-		return zngnative.Value{zng.TypeFloat64, math.Round(args[0].Value.(float64))}, nil
-
-	default:
+	}
+	if !zng.IsNumber(id) {
 		return err("Math.round", ErrBadArgument)
 	}
+	return zv, nil
 }
 
-func mathPow(args []zngnative.Value) (zngnative.Value, error) {
-	x, ok := zngnative.CoerceNativeToFloat64(args[0])
+func mathPow(args *Args) (zng.Value, error) {
+	x, ok := CoerceToFloat(args.vals[0])
 	if !ok {
 		return err("Math.pow", ErrBadArgument)
 	}
-	y, ok := zngnative.CoerceNativeToFloat64(args[1])
+	y, ok := CoerceToFloat(args.vals[1])
 	if !ok {
 		return err("Math.pow", ErrBadArgument)
 	}
@@ -256,209 +300,256 @@ func mathPow(args []zngnative.Value) (zngnative.Value, error) {
 	if math.IsNaN(r) {
 		return err("Math.pow", ErrBadArgument)
 	}
-	return zngnative.Value{zng.TypeFloat64, r}, nil
+	return zng.Value{zng.TypeFloat64, args.Float64(r)}, nil
 }
 
-func mathSqrt(args []zngnative.Value) (zngnative.Value, error) {
-	var x float64
-	switch args[0].Type.ID() {
-	case zng.IdFloat64:
-		x = args[0].Value.(float64)
-	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
-		x = float64(args[0].Value.(int64))
-	case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
-		x = float64(args[0].Value.(uint64))
-	default:
+func mathSqrt(args *Args) (zng.Value, error) {
+	x, ok := CoerceToFloat(args.vals[0])
+	if !ok {
 		return err("Math.sqrt", ErrBadArgument)
 	}
-
-	r := math.Sqrt(x)
-	if math.IsNaN(r) {
+	x = math.Sqrt(x)
+	if math.IsNaN(x) {
 		// For now we can't represent non-numeric values in a float64,
 		// we will revisit this but it has implications for file
 		// formats, zql, etc.
 		return err("Math.sqrt", ErrBadArgument)
 	}
-
-	return zngnative.Value{zng.TypeFloat64, r}, nil
+	return zng.Value{zng.TypeFloat64, args.Float64(x)}, nil
 }
 
-func stringByteLen(args []zngnative.Value) (zngnative.Value, error) {
-	switch args[0].Type.ID() {
-	case zng.IdString, zng.IdBstring:
-		v := len(args[0].Value.(string))
-		return zngnative.Value{zng.TypeInt64, int64(v)}, nil
-	default:
+// XXX we should just have a len function that applies to different types
+// and a way to get unicode char len, charlen()?
+func stringByteLen(args *Args) (zng.Value, error) {
+	zv := args.vals[0]
+	if !zng.IsStringy(zv.Type.ID()) {
 		return err("Strings.byteLen", ErrBadArgument)
 	}
-
+	v := len(string(zv.Bytes))
+	return zng.Value{zng.TypeInt64, args.Int(int64(v))}, nil
 }
 
-func stringFormatFloat(args []zngnative.Value) (zngnative.Value, error) {
-	if args[0].Type.ID() != zng.IdFloat64 {
+func stringFormatFloat(args *Args) (zng.Value, error) {
+	zv := args.vals[0]
+	if zv.Type.ID() != zng.IdFloat64 {
 		return err("string.floatToString", ErrBadArgument)
 	}
-	s := strconv.FormatFloat(args[0].Value.(float64), 'g', -1, 64)
-	return zngnative.Value{zng.TypeString, s}, nil
+	f, _ := zng.DecodeFloat64(zv.Bytes)
+	s := strconv.FormatFloat(f, 'g', -1, 64)
+	return zng.Value{zng.TypeString, zng.EncodeString(s)}, nil
 }
 
-func stringFormatInt(args []zngnative.Value) (zngnative.Value, error) {
+func stringFormatInt(args *Args) (zng.Value, error) {
+	zv := args.vals[0]
+	id := zv.Type.ID()
 	var s string
-	switch args[0].Type.ID() {
-	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
-		s = strconv.FormatInt(args[0].Value.(int64), 10)
-	case zng.IdByte, zng.IdUint16, zng.IdUint32, zng.IdUint64:
-		s = strconv.FormatUint(args[0].Value.(uint64), 10)
-	default:
+	if !zng.IsInteger(id) {
 		return err("string.intToString", ErrBadArgument)
 	}
-	return zngnative.Value{zng.TypeString, s}, nil
+	if zng.IsSigned(id) {
+		v, _ := zng.DecodeInt(zv.Bytes)
+		// XXX GC
+		s = strconv.FormatInt(v, 10)
+	} else {
+		v, _ := zng.DecodeUint(zv.Bytes)
+		// XXX GC
+		s = strconv.FormatUint(v, 10)
+	}
+	return zng.Value{zng.TypeString, zng.EncodeString(s)}, nil
 }
 
-func stringFormatIp(args []zngnative.Value) (zngnative.Value, error) {
-	if args[0].Type.ID() != zng.IdIP {
+func stringFormatIp(args *Args) (zng.Value, error) {
+	zv := args.vals[0]
+	if zv.Type.ID() != zng.IdIP {
 		return err("string.ipToString", ErrBadArgument)
 	}
-	s := args[0].Value.(net.IP).String()
-	return zngnative.Value{zng.TypeString, s}, nil
+	ip, _ := zng.DecodeIP(zv.Bytes)
+	return zng.Value{zng.TypeString, zng.EncodeString(ip.String())}, nil
 }
 
-func stringParseInt(args []zngnative.Value) (zngnative.Value, error) {
-	switch args[0].Type.ID() {
-	case zng.IdString, zng.IdBstring:
-		i, perr := strconv.ParseInt(args[0].Value.(string), 10, 64)
-		if perr != nil {
-			// Get rid of the strconv wrapping gunk to get the
-			// actual error message
-			e := perr.(*strconv.NumError)
-			return err("String.parseInt", e.Err)
-		}
-		return zngnative.Value{zng.TypeInt64, i}, nil
-	default:
+func stringParseInt(args *Args) (zng.Value, error) {
+	zv := args.vals[0]
+	if !zng.IsStringy(zv.Type.ID()) {
 		return err("String.parseInt", ErrBadArgument)
 	}
+	v, e := zng.DecodeString(zv.Bytes)
+	if e != nil {
+		return zng.Value{}, e
+	}
+	i, perr := strconv.ParseInt(v, 10, 64)
+	if perr != nil {
+		// Get rid of the strconv wrapping gunk to get the
+		// actual error message
+		e := perr.(*strconv.NumError)
+		return err("String.parseInt", e.Err)
+	}
+	return zng.Value{zng.TypeInt64, args.Int(i)}, nil
 }
 
-func stringParseFloat(args []zngnative.Value) (zngnative.Value, error) {
-	switch args[0].Type.ID() {
-	case zng.IdString, zng.IdBstring:
-		f, perr := strconv.ParseFloat(args[0].Value.(string), 64)
-		if perr != nil {
-			// Get rid of the strconv wrapping gunk to get the
-			// actual error message
-			e := perr.(*strconv.NumError)
-			return err("String.parseFloat", e.Err)
-		}
-		return zngnative.Value{zng.TypeFloat64, f}, nil
-	default:
+func stringParseFloat(args *Args) (zng.Value, error) {
+	zv := args.vals[0]
+	if !zng.IsStringy(zv.Type.ID()) {
 		return err("String.parseFloat", ErrBadArgument)
 	}
+	v, perr := zng.DecodeString(zv.Bytes)
+	if perr != nil {
+		return zng.Value{}, perr
+	}
+	f, perr := strconv.ParseFloat(v, 64)
+	if perr != nil {
+		// Get rid of the strconv wrapping gunk to get the
+		// actual error message
+		e := perr.(*strconv.NumError)
+		return err("String.parseFloat", e.Err)
+	}
+	return zng.Value{zng.TypeFloat64, args.Float64(f)}, nil
 }
 
-func stringParseIp(args []zngnative.Value) (zngnative.Value, error) {
-	switch args[0].Type.ID() {
-	case zng.IdString, zng.IdBstring:
-		a := net.ParseIP(args[0].Value.(string))
-		if a == nil {
-			return err("String.parseIp", ErrBadArgument)
-		}
-		return zngnative.Value{zng.TypeIP, a}, nil
-	default:
+func stringParseIp(args *Args) (zng.Value, error) {
+	zv := args.vals[0]
+	if !zng.IsStringy(zv.Type.ID()) {
 		return err("String.parseIp", ErrBadArgument)
 	}
+	v, perr := zng.DecodeString(zv.Bytes)
+	if perr != nil {
+		return zng.Value{}, perr
+	}
+	// XXX GC
+	a := net.ParseIP(v)
+	if a == nil {
+		return err("String.parseIp", ErrBadArgument)
+	}
+	// XXX GC
+	return zng.Value{zng.TypeIP, zng.EncodeIP(a)}, nil
 }
 
-func isString(v zngnative.Value) bool {
-	i := v.Type.ID()
-	return i == zng.IdString || i == zng.IdBstring
+func isStringy(v zng.Value) bool {
+	return zng.IsStringy(v.Type.ID())
 }
 
-func stringReplace(args []zngnative.Value) (zngnative.Value, error) {
-	if !isString(args[0]) || !isString(args[1]) || !isString(args[2]) {
+func stringReplace(args *Args) (zng.Value, error) {
+	zvs := args.vals[0]
+	zvold := args.vals[1]
+	zvnew := args.vals[2]
+	if !isStringy(zvs) || !isStringy(zvold) || !isStringy(zvnew) {
 		return err("String.replace", ErrBadArgument)
 	}
-	s := strings.ReplaceAll(args[0].Value.(string), args[1].Value.(string), args[2].Value.(string))
-	return zngnative.Value{zng.TypeString, s}, nil
+	s, err := zng.DecodeString(zvs.Bytes)
+	if err != nil {
+		return zng.Value{}, err
+	}
+	old, err := zng.DecodeString(zvold.Bytes)
+	if err != nil {
+		return zng.Value{}, err
+	}
+	new, err := zng.DecodeString(zvnew.Bytes)
+	if err != nil {
+		return zng.Value{}, err
+	}
+	result := strings.ReplaceAll(s, old, new)
+	return zng.Value{zng.TypeString, zng.EncodeString(result)}, nil
 }
 
-func stringRuneLen(args []zngnative.Value) (zngnative.Value, error) {
-	switch args[0].Type.ID() {
-	case zng.IdString, zng.IdBstring:
-		v := utf8.RuneCountInString(args[0].Value.(string))
-		return zngnative.Value{zng.TypeInt64, int64(v)}, nil
-	default:
+func stringRuneLen(args *Args) (zng.Value, error) {
+	zv := args.vals[0]
+	if !isStringy(zv) {
 		return err("Strings.byteLen", ErrBadArgument)
 	}
-
+	s, err := zng.DecodeString(zv.Bytes)
+	if err != nil {
+		return zng.Value{}, err
+	}
+	v := utf8.RuneCountInString(s)
+	return zng.Value{zng.TypeInt64, args.Int(int64(v))}, nil
 }
-func stringToLower(args []zngnative.Value) (zngnative.Value, error) {
-	if !isString(args[0]) {
+
+func stringToLower(args *Args) (zng.Value, error) {
+	zv := args.vals[0]
+	if !isStringy(zv) {
 		return err("String.toLower", ErrBadArgument)
 	}
-	s := strings.ToLower(args[0].Value.(string))
-	return zngnative.Value{zng.TypeString, s}, nil
+	s, err := zng.DecodeString(zv.Bytes)
+	if err != nil {
+		return zng.Value{}, err
+	}
+	// XXX GC
+	s = strings.ToLower(s)
+	return zng.Value{zng.TypeString, zng.EncodeString(s)}, nil
 }
 
-func stringToUpper(args []zngnative.Value) (zngnative.Value, error) {
-	if !isString(args[0]) {
+func stringToUpper(args *Args) (zng.Value, error) {
+	zv := args.vals[0]
+	if !isStringy(zv) {
 		return err("String.toUpper", ErrBadArgument)
 	}
-	s := strings.ToUpper(args[0].Value.(string))
-	return zngnative.Value{zng.TypeString, s}, nil
+	s, err := zng.DecodeString(zv.Bytes)
+	if err != nil {
+		return zng.Value{}, err
+	}
+	// XXX GC
+	s = strings.ToUpper(s)
+	return zng.Value{zng.TypeString, zng.EncodeString(s)}, nil
 }
 
-func stringTrim(args []zngnative.Value) (zngnative.Value, error) {
-	if !isString(args[0]) {
+func stringTrim(args *Args) (zng.Value, error) {
+	zv := args.vals[0]
+	if !isStringy(zv) {
 		return err("String.trim", ErrBadArgument)
 	}
-	s := strings.TrimSpace(args[0].Value.(string))
-	return zngnative.Value{zng.TypeString, s}, nil
+	// XXX GC
+	s := strings.TrimSpace(string(zv.Bytes))
+	return zng.Value{zng.TypeString, zng.EncodeString(s)}, nil
 }
 
-func timeFromISO(args []zngnative.Value) (zngnative.Value, error) {
-	if !isString(args[0]) {
+func timeFromISO(args *Args) (zng.Value, error) {
+	zv := args.vals[0]
+	if !isStringy(zv) {
 		return err("Time.fromISO", ErrBadArgument)
 	}
-	ts, e := time.Parse(time.RFC3339Nano, args[0].Value.(string))
+	ts, e := time.Parse(time.RFC3339Nano, string(zv.Bytes))
 	if e != nil {
 		return err("Time.fromISO", ErrBadArgument)
 	}
-	return zngnative.Value{zng.TypeTime, ts.UnixNano()}, nil
+	return zng.Value{zng.TypeTime, args.Time(nano.Ts(ts.UnixNano()))}, nil
 }
 
-func timeFromMsec(args []zngnative.Value) (zngnative.Value, error) {
-	ms, ok := zngnative.CoerceNativeToInt(args[0])
+func timeFromMsec(args *Args) (zng.Value, error) {
+	zv := args.vals[0]
+	ms, ok := CoerceToInt(zv)
 	if !ok {
 		return err("Time.fromMilliseconds", ErrBadArgument)
 	}
-	return zngnative.Value{zng.TypeTime, ms * 1_000_000}, nil
+	return zng.Value{zng.TypeTime, args.Time(nano.Ts(ms * 1_000_000))}, nil
 }
 
-func timeFromUsec(args []zngnative.Value) (zngnative.Value, error) {
-	us, ok := zngnative.CoerceNativeToInt(args[0])
+func timeFromUsec(args *Args) (zng.Value, error) {
+	zv := args.vals[0]
+	us, ok := CoerceToInt(zv)
 	if !ok {
 		return err("Time.fromMicroseconds", ErrBadArgument)
 	}
-	return zngnative.Value{zng.TypeTime, us * 1000}, nil
+	return zng.Value{zng.TypeTime, args.Time(nano.Ts(us * 1000))}, nil
 }
 
-func timeFromNsec(args []zngnative.Value) (zngnative.Value, error) {
-	ns, ok := zngnative.CoerceNativeToInt(args[0])
+func timeFromNsec(args *Args) (zng.Value, error) {
+	zv := args.vals[0]
+	ns, ok := CoerceToInt(zv)
 	if !ok {
 		return err("Time.fromNanoseconds", ErrBadArgument)
 	}
-	return zngnative.Value{zng.TypeTime, ns}, nil
+	return zng.Value{zng.TypeTime, args.Time(nano.Ts(ns))}, nil
 }
 
-func timeTrunc(args []zngnative.Value) (zngnative.Value, error) {
-	ts, ok := zngnative.CoerceNativeToTime(args[0])
+func timeTrunc(args *Args) (zng.Value, error) {
+	zv := args.vals[0]
+	ts, ok := CoerceToTime(zv)
 	if !ok {
 		return err("Time.trunc", ErrBadArgument)
 	}
-	dur, ok := zngnative.CoerceNativeToInt(args[1])
+	dur, ok := CoerceToInt(args.vals[1])
 	if !ok {
 		return err("Time.trunc", ErrBadArgument)
 	}
-	dur = dur * 1_000_000_000
-	return zngnative.Value{zng.TypeTime, int64(ts.Trunc(dur))}, nil
+	dur *= 1_000_000_000
+	return zng.Value{zng.TypeTime, args.Time(nano.Ts(ts.Trunc(dur)))}, nil
 }

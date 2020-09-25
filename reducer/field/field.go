@@ -15,7 +15,7 @@ type Streamfn interface {
 type FieldReducer struct {
 	reducer.Reducer
 	Op       string
-	Resolver expr.FieldExprResolver
+	Resolver *expr.FieldExpr
 	typ      zng.Type
 	fn       Streamfn
 }
@@ -36,8 +36,8 @@ func (fr *FieldReducer) Consume(r *zng.Record) {
 	// reducer just parse the byte slice in the record without making a value...
 	// XXX then we have Values in the zbuf.Record, we would first check the
 	// Value element in the column--- this would all go in a new method of zbuf.Record
-	val := fr.Resolver(r)
-	if val.Type == nil {
+	val, err := fr.Resolver.Eval(r)
+	if err != nil || val.Type == nil {
 		fr.FieldNotFound++
 		return
 	}

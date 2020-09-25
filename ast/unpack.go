@@ -75,13 +75,18 @@ func unpackProc(custom Unpacker, node joe.Interface) (Proc, error) {
 		return &ParallelProc{Procs: procs}, nil
 	case "SortProc":
 		a, _ := node.Get("fields")
-		fields, err := unpackFieldExprArray(a)
+		fields, err := unpackExprs(a)
 		if err != nil {
 			return nil, err
 		}
 		return &SortProc{Fields: fields}, nil
 	case "CutProc":
-		return &CutProc{}, nil
+		a, _ := node.Get("fields")
+		fas, err := unpackFieldAssignments(a)
+		if err != nil {
+			return nil, err
+		}
+		return &CutProc{Fields: fas}, nil
 	case "HeadProc":
 		return &HeadProc{}, nil
 	case "TailProc":
@@ -100,7 +105,12 @@ func unpackProc(custom Unpacker, node joe.Interface) (Proc, error) {
 		}
 		return &PutProc{Clauses: clauses}, nil
 	case "RenameProc":
-		return &RenameProc{}, nil
+		a, _ := node.Get("fields")
+		fas, err := unpackFieldAssignments(a)
+		if err != nil {
+			return nil, err
+		}
+		return &RenameProc{Fields: fas}, nil
 	case "FuseProc":
 		return &FuseProc{}, nil
 	case "UniqProc":
@@ -119,7 +129,7 @@ func unpackProc(custom Unpacker, node joe.Interface) (Proc, error) {
 		return &GroupByProc{Reducers: reducers, Keys: keys}, nil
 	case "TopProc":
 		a, _ := node.Get("fields")
-		fields, err := unpackFieldExprArray(a)
+		fields, err := unpackExprs(a)
 		if err != nil {
 			return nil, err
 		}
@@ -131,6 +141,24 @@ func unpackProc(custom Unpacker, node joe.Interface) (Proc, error) {
 	}
 }
 
+func unpackExprs(node joe.Interface) ([]Expression, error) {
+	if node == nil {
+		return nil, nil
+	}
+	a, ok := node.(joe.Array)
+	if !ok {
+		return nil, errors.New("fields property should be an array")
+	}
+	exprs := make([]Expression, 0, len(a))
+	for _, item := range a {
+		e, err := UnpackExpression(item)
+		if err != nil {
+			return nil, err
+		}
+		exprs = append(exprs, e)
+	}
+	return exprs, nil
+}
 func unpackExpressionAssignment(node joe.Interface) (ExpressionAssignment, error) {
 	exprNode, err := node.Get("expression")
 	if err != nil {
@@ -141,6 +169,37 @@ func unpackExpressionAssignment(node joe.Interface) (ExpressionAssignment, error
 		return ExpressionAssignment{}, err
 	}
 	return ExpressionAssignment{Expr: expr}, nil
+}
+
+func unpackFieldAssignment(node joe.Interface) (FieldAssignment, error) {
+	exprNode, err := node.Get("source")
+	if err != nil {
+		return FieldAssignment{}, errors.New("FieldAssignment missing source field")
+	}
+	expr, err := UnpackExpression(exprNode)
+	if err != nil {
+		return FieldAssignment{}, err
+	}
+	return FieldAssignment{Source: expr}, nil
+}
+
+func unpackFieldAssignments(node joe.Interface) ([]FieldAssignment, error) {
+	if node == nil {
+		return nil, nil
+	}
+	a, ok := node.(joe.Array)
+	if !ok {
+		return nil, errors.New("assignments should be an array")
+	}
+	fas := make([]FieldAssignment, 0, len(a))
+	for _, item := range a {
+		fa, err := unpackFieldAssignment(item)
+		if err != nil {
+			return nil, err
+		}
+		fas = append(fas, fa)
+	}
+	return fas, nil
 }
 
 func unpackExpressionAssignments(node joe.Interface) ([]ExpressionAssignment, error) {
@@ -179,25 +238,7 @@ func UnpackExpression(node joe.Interface) (Expression, error) {
 		}
 		return &UnaryExpression{Operand: operand}, nil
 	case "BinaryExpr":
-		lhsNode, err := node.Get("lhs")
-		if err != nil {
-			return nil, errors.New("BinaryExpression missing lhs")
-		}
-		lhs, err := UnpackExpression(lhsNode)
-		if err != nil {
-			return nil, err
-		}
-
-		rhsNode, err := node.Get("rhs")
-		if err != nil {
-			return nil, errors.New("BinaryExpression missing rhs")
-		}
-		rhs, err := UnpackExpression(rhsNode)
-		if err != nil {
-			return nil, err
-		}
-
-		return &BinaryExpression{LHS: lhs, RHS: rhs}, nil
+		return unpackBinaryExpr(node)
 	case "ConditionalExpr":
 		conditionNode, err := node.Get("condition")
 		if err != nil {
@@ -260,18 +301,8 @@ func UnpackExpression(node joe.Interface) (Expression, error) {
 		return &CastExpression{Expr: expr}, nil
 	case "Literal":
 		return &Literal{}, nil
-	case "FieldRead":
-		return &FieldRead{}, nil
-	case "FieldCall":
-		child, err := node.Get("field")
-		if err != nil {
-			return nil, errors.New("FieldCall missing field property")
-		}
-		field, err := unpackFieldExpr(child)
-		if err != nil {
-			return nil, err
-		}
-		return &FieldCall{Field: field}, nil
+	case "Field":
+		return &Field{}, nil
 	default:
 		return nil, fmt.Errorf("unknown Expression op %s", op)
 	}
@@ -295,6 +326,26 @@ func unpackChildren(node joe.Interface) (BooleanExpr, BooleanExpr, error) {
 		return nil, nil, err
 	}
 	return left, right, nil
+}
+
+func unpackBinaryExpr(node joe.Interface) (*BinaryExpression, error) {
+	lhsNode, err := node.Get("lhs")
+	if err != nil {
+		return nil, errors.New("BinaryExpression missing lhs")
+	}
+	lhs, err := UnpackExpression(lhsNode)
+	if err != nil {
+		return nil, err
+	}
+	rhsNode, err := node.Get("rhs")
+	if err != nil {
+		return nil, errors.New("BinaryExpression missing rhs")
+	}
+	rhs, err := UnpackExpression(rhsNode)
+	if err != nil {
+		return nil, err
+	}
+	return &BinaryExpression{LHS: lhs, RHS: rhs}, nil
 }
 
 func unpackBooleanExpr(node joe.Interface) (BooleanExpr, error) {
@@ -327,59 +378,19 @@ func unpackBooleanExpr(node joe.Interface) (BooleanExpr, error) {
 		return &MatchAll{}, nil
 	case "CompareAny":
 		return &CompareAny{}, nil
+	case "BinaryExpression":
+		return unpackBinaryExpr(node)
 	case "CompareField":
 		child, err := node.Get("field")
 		if err != nil {
 			return nil, errors.New("CompareField missing field property")
 		}
-		field, err := unpackFieldExpr(child)
+		field, err := UnpackExpression(child)
 		if err != nil {
 			return nil, err
 		}
 		return &CompareField{Field: field}, nil
 
-	default:
-		return nil, fmt.Errorf("unknown op: %s", op)
-	}
-}
-
-func unpackFieldExprArray(node joe.Interface) ([]FieldExpr, error) {
-	if node == nil {
-		return nil, nil
-	}
-	a, ok := node.(joe.Array)
-	if !ok {
-		return nil, errors.New("fields property should be an array")
-	}
-	fields := make([]FieldExpr, 0, len(a))
-	for _, item := range a {
-		field, err := unpackFieldExpr(item)
-		if err != nil {
-			return nil, err
-		}
-		fields = append(fields, field)
-	}
-	return fields, nil
-}
-
-func unpackFieldExpr(node joe.Interface) (FieldExpr, error) {
-	op, err := getString(node, "op")
-	if err != nil {
-		return nil, errors.New("AST is missing op field")
-	}
-	switch op {
-	case "FieldCall":
-		child, err := node.Get("field")
-		if err != nil {
-			return nil, errors.New("FieldCall missing field property")
-		}
-		field, err := unpackFieldExpr(child)
-		if err != nil {
-			return nil, err
-		}
-		return &FieldCall{Field: field}, nil
-	case "FieldRead":
-		return &FieldRead{}, nil
 	default:
 		return nil, fmt.Errorf("unknown op: %s", op)
 	}
@@ -399,10 +410,11 @@ func unpackReducers(node joe.Interface) ([]Reducer, error) {
 		if err != nil {
 			continue
 		}
-		reducers[k].Field, err = unpackFieldExpr(fld)
+		r, err := UnpackExpression(fld)
 		if err != nil {
 			return nil, err
 		}
+		reducers[k].Field = r
 	}
 	return reducers, nil
 }
