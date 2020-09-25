@@ -17,16 +17,20 @@ var (
 
 type CompiledReducer struct {
 	Target         string // The name of the field where results are stored.
-	TargetResolver expr.FieldExprResolver
+	TargetResolver expr.Evaluator
 	Instantiate    func() reducer.Interface
 }
 
 func Compile(params ast.Reducer) (CompiledReducer, error) {
-	var fld expr.FieldExprResolver
+	var fld *expr.FieldExpr
 	if params.Field != nil {
-		var err error
-		if fld, err = expr.CompileFieldExpr(params.Field); err != nil {
+		eval, err := expr.CompileExpr(params.Field, false)
+		if err != nil {
 			return CompiledReducer{}, err
+		}
+		var ok bool
+		if fld, ok = eval.(*expr.FieldExpr); !ok {
+			return CompiledReducer{}, errors.New("reducer is not a field expression")
 		}
 	} else if params.Op != "Count" {
 		return CompiledReducer{}, ErrFieldRequired
@@ -61,10 +65,9 @@ func Compile(params ast.Reducer) (CompiledReducer, error) {
 	default:
 		return CompiledReducer{}, fmt.Errorf("unknown reducer op: %s", params.Op)
 	}
-
 	return CompiledReducer{
 		Target:         params.Var,
-		TargetResolver: expr.CompileFieldAccess(params.Var),
+		TargetResolver: expr.NewFieldAccess(params.Var),
 		Instantiate:    inst,
 	}, nil
 }

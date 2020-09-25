@@ -52,7 +52,7 @@ type clauseType struct {
 
 type clause struct {
 	target string
-	eval   expr.ExpressionEvaluator
+	eval   expr.Evaluator
 }
 
 func New(pctx *proc.Context, parent proc.Interface, node *ast.PutProc) (proc.Interface, error) {
@@ -60,7 +60,7 @@ func New(pctx *proc.Context, parent proc.Interface, node *ast.PutProc) (proc.Int
 	for k, cl := range node.Clauses {
 		var err error
 		clauses[k].target = cl.Target
-		clauses[k].eval, err = expr.CompileExpr(cl.Expr)
+		clauses[k].eval, err = expr.CompileExpr(cl.Expr, false)
 		if err != nil {
 			return nil, err
 		}
@@ -88,7 +88,7 @@ func (p *Proc) eval(in *zng.Record) ([]zng.Value, error) {
 	vals := p.vals
 	for k, cl := range p.clauses {
 		var err error
-		vals[k], err = cl.eval(in)
+		vals[k], err = cl.eval.Eval(in)
 		if err != nil {
 			return nil, err
 		}

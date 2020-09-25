@@ -5,4 +5,6 @@ input: |
   #0:record[x:int32]
   0:[1;]
 
-errorRE: divide by zero
+output: |
+  #0:record[x:int32,y:string]
+  0:[1;signed integer divide by 0;]

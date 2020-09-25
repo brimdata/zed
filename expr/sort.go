@@ -29,12 +29,13 @@ func isNull(val zng.Value) bool {
 // is governed by the nullsMax parameter.  If this parameter is true,
 // a record with a null value is considered larger than a record with any
 // other value, and vice versa.
-func NewCompareFn(nullsMax bool, fields ...FieldExprResolver) CompareFn {
+func NewCompareFn(nullsMax bool, fields ...Evaluator) CompareFn {
 	comparefns := make(map[zng.Type]comparefn)
 	return func(ra *zng.Record, rb *zng.Record) int {
 		for _, resolver := range fields {
-			a := resolver(ra)
-			b := resolver(rb)
+			// XXX return errors?
+			a, _ := resolver.Eval(ra)
+			b, _ := resolver.Eval(rb)
 			v := compareValues(a, b, comparefns, nullsMax)
 			// If the events don't match, then return the sort
 			// info.  Otherwise, they match and we continue on
@@ -94,7 +95,7 @@ func compareValues(a, b zng.Value, comparefns map[zng.Type]comparefn, nullsMax b
 
 func NewKeyCompareFn(key *zng.Record) (KeyCompareFn, error) {
 	comparefns := make(map[zng.Type]comparefn)
-	var accessors []FieldExprResolver
+	var accessors []Evaluator
 	var keyval []zng.Value
 	for it := key.FieldIter(); !it.Done(); {
 		name, val, err := it.Next()
@@ -107,11 +108,13 @@ func NewKeyCompareFn(key *zng.Record) (KeyCompareFn, error) {
 			break
 		}
 		keyval = append(keyval, val)
-		accessors = append(accessors, CompileFieldAccess(name))
+		// XXX CompileDottedAccess -> something else
+		accessors = append(accessors, NewFieldAccess(name))
 	}
 	return func(rec *zng.Record) int {
 		for k, access := range accessors {
-			a := access(rec)
+			// XXX error
+			a, _ := access.Eval(rec)
 			if isNull(a) {
 				// we know the key value is not null
 				return -1
@@ -264,35 +267,13 @@ func LookupCompare(typ zng.Type) comparefn {
 			return 0
 		}
 
-	case zng.IdUint16, zng.IdUint32, zng.IdUint64:
+	case zng.IdUint16, zng.IdUint32, zng.IdUint64, zng.IdPort:
 		return func(a, b zcode.Bytes) int {
 			va, err := zng.DecodeUint(a)
 			if err != nil {
 				return -1
 			}
 			vb, err := zng.DecodeUint(b)
-			if err != nil {
-				return 1
-			}
-			if va < vb {
-				return -1
-			} else if va > vb {
-				return 1
-			}
-			return 0
-		}
-
-	//XXX note zeek port type can have "/tcp" etc suffix according
-	// to docs but we've only encountered ints in data files.
-	// need to fix this.  XXX also we should break this sorts
-	// into the different types.
-	case zng.IdPort:
-		return func(a, b zcode.Bytes) int {
-			va, err := zng.DecodePort(a)
-			if err != nil {
-				return -1
-			}
-			vb, err := zng.DecodePort(b)
 			if err != nil {
 				return 1
 			}

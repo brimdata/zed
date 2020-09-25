@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/ast"
-	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/proc/compiler"
@@ -120,8 +119,8 @@ func ReplaceGroupByProcDurationWithKey(p ast.Proc) {
 					Node:     ast.Node{"FunctionCall"},
 					Function: "Time.trunc",
 					Args: []ast.Expression{
-						&ast.FieldRead{
-							Node:  ast.Node{"FieldRead"},
+						&ast.Field{
+							Node:  ast.Node{"Field"},
 							Field: "ts",
 						},
 						&ast.Literal{
@@ -157,7 +156,7 @@ func setGroupByProcInputSortDir(p ast.Proc, inputSortField string, inputSortDir 
 	case *ast.CutProc:
 		// Return true if the output record contains inputSortField.
 		for _, f := range p.Fields {
-			if f.Source == inputSortField {
+			if ast.FieldExprToString(f.Source) == inputSortField {
 				return !p.Complement
 			}
 		}
@@ -167,7 +166,7 @@ func setGroupByProcInputSortDir(p ast.Proc, inputSortField string, inputSortDir 
 		// is inputSortField or an order-preserving function of it.
 		if len(p.Keys) > 0 && p.Keys[0].Target == inputSortField {
 			switch expr := p.Keys[0].Expr.(type) {
-			case *ast.FieldRead:
+			case *ast.Field:
 				if expr.Field == inputSortField {
 					p.InputSortDir = inputSortDir
 					return true
@@ -176,7 +175,7 @@ func setGroupByProcInputSortDir(p ast.Proc, inputSortField string, inputSortDir 
 				switch expr.Function {
 				case "Math.ceil", "Math.floor", "Math.round", "Time.trunc":
 					if len(expr.Args) > 0 {
-						arg0, ok := expr.Args[0].(*ast.FieldRead)
+						arg0, ok := expr.Args[0].(*ast.Field)
 						if ok && arg0.Field == inputSortField {
 							p.InputSortDir = inputSortDir
 							return true
@@ -231,10 +230,8 @@ func expressionFields(e ast.Expression) []string {
 		return expressionFields(e.Expr)
 	case *ast.Literal:
 		return []string{}
-	case *ast.FieldRead:
+	case *ast.Field:
 		return []string{e.Field}
-	case *ast.FieldCall:
-		return expressionFields(e.Field.(ast.Expression))
 	default:
 		panic("expression type not handled")
 	}
@@ -268,7 +265,7 @@ func booleanExpressionFields(e ast.BooleanExpr) []string {
 	case *ast.CompareAny:
 		return nil
 	case *ast.CompareField:
-		return expressionFields(e.Field.(ast.Expression))
+		return expressionFields(e.Field)
 	default:
 		panic("boolean expression type not handled")
 	}
@@ -311,13 +308,13 @@ func computeColumnsR(p ast.Proc, colset map[string]struct{}) (map[string]struct{
 			return colset, false
 		}
 		for _, f := range p.Fields {
-			colset[f.Source] = struct{}{}
+			colset[ast.FieldExprToString(f.Source)] = struct{}{}
 		}
 		return colset, true
 	case *ast.GroupByProc:
 		for _, r := range p.Reducers {
 			if r.Field != nil {
-				colset[expr.FieldExprToString(r.Field)] = struct{}{}
+				colset[ast.FieldExprToString(r.Field)] = struct{}{}
 			}
 		}
 		for _, key := range p.Keys {
@@ -363,7 +360,7 @@ func computeColumnsR(p ast.Proc, colset map[string]struct{}) (map[string]struct{
 		return colset, false
 	case *ast.RenameProc:
 		for _, f := range p.Fields {
-			colset[f.Source] = struct{}{}
+			colset[ast.FieldExprToString(f.Source)] = struct{}{}
 		}
 		return colset, false
 	case *ast.SortProc:
@@ -372,8 +369,8 @@ func computeColumnsR(p ast.Proc, colset map[string]struct{}) (map[string]struct{
 			// be used.
 			return nil, true
 		}
-		for _, f := range p.Fields {
-			colset[expr.FieldExprToString(f)] = struct{}{}
+		for k := range p.Fields {
+			colset[ast.FieldExprToString(p.Fields[k])] = struct{}{}
 		}
 		return colset, false
 	default:
@@ -462,7 +459,7 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string,
 			}
 			if p.Complement {
 				for _, f := range p.Fields {
-					if f.Source == inputSortField {
+					if ast.FieldExprToString(f.Source) == inputSortField {
 						return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
 					}
 				}
@@ -470,10 +467,11 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string,
 			}
 			var found bool
 			for _, f := range p.Fields {
-				if f.Source != inputSortField && f.Target == inputSortField {
+				fieldName := ast.FieldExprToString(f.Source)
+				if fieldName != inputSortField && f.Target == inputSortField {
 					return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
 				}
-				if f.Source == inputSortField && f.Target == "" {
+				if fieldName == inputSortField && f.Target == "" {
 					found = true
 				}
 			}
@@ -521,7 +519,7 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string,
 			dir := map[int]bool{-1: true, 1: false}[p.SortDir]
 			if len(p.Fields) == 1 {
 				// Single sort field: we can sort in each parallel branch, and then do an ordered merge.
-				mergeField := expr.FieldExprToString(p.Fields[0])
+				mergeField := ast.FieldExprToString(p.Fields[0])
 				return buildSplitFlowgraph(seq.Procs[0:i+1], seq.Procs[i+1:], mergeField, dir, N), true
 			} else {
 				// Unknown or multiple sort fields: we sort after the merge point, which can be unordered.

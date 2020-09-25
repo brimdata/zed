@@ -1,7 +1,6 @@
 package filter
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zngnative"
 )
 
 type Filter func(*zng.Record) bool
@@ -27,10 +25,10 @@ func LogicalNot(expr Filter) Filter {
 	return func(p *zng.Record) bool { return !expr(p) }
 }
 
-func combine(res expr.FieldExprResolver, pred Predicate) Filter {
+func combine(res expr.Evaluator, pred Predicate) Filter {
 	return func(r *zng.Record) bool {
-		v := res(r)
-		if v.Type == nil {
+		v, err := res.Eval(r)
+		if err != nil || v.Type == nil {
 			// field (or sub-field) doesn't exist in this record
 			return false
 		}
@@ -44,31 +42,15 @@ func CompileFieldCompare(node *ast.CompareField) (Filter, error) {
 	// value rather than a field from a record.
 
 	// XXX we need to implement proper expressions
-	if op, ok := node.Field.(*ast.FieldCall); ok && op.Fn == "Len" {
-		v, err := zng.Parse(literal)
-		if err != nil {
-			return nil, err
-		}
-		i, ok := zngnative.CoerceToInt(v)
-		if !ok {
-			return nil, errors.New("cannot compare len() with non-integer")
-		}
-		comparison, err := CompareContainerLen(node.Comparator, i)
-		if err != nil {
-			return nil, err
-		}
-		resolver, err := expr.CompileFieldExpr(op.Field)
-		if err != nil {
-			return nil, err
-		}
-		return combine(resolver, comparison), nil
-	}
+	// XXX we took out field call and need to put expressions back into
+	// the search sytnax, which is tricky syntactically to mix this stuff
+	// with keyword search
 
 	comparison, err := Comparison(node.Comparator, literal)
 	if err != nil {
 		return nil, err
 	}
-	resolver, err := expr.CompileFieldExpr(node.Field)
+	resolver, err := expr.CompileExpr(node.Field, false)
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +248,7 @@ func Compile(node ast.BooleanExpr) (Filter, error) {
 
 	case *ast.CompareField:
 		if v.Comparator == "in" {
-			resolver, err := expr.CompileFieldExpr(v.Field)
+			resolver, err := expr.CompileExpr(v.Field, false)
 			if err != nil {
 				return nil, err
 			}
@@ -276,6 +258,22 @@ func Compile(node ast.BooleanExpr) (Filter, error) {
 		}
 
 		return CompileFieldCompare(v)
+
+	case *ast.BinaryExpression:
+		predicate, err := expr.CompileExpr(v, false)
+		if err != nil {
+			return nil, err
+		}
+		return func(rec *zng.Record) bool {
+			zv, err := predicate.Eval(rec)
+			if err != nil {
+				return false
+			}
+			if zv.Type == zng.TypeBool && zng.IsTrue(zv.Bytes) {
+				return true
+			}
+			return false
+		}, nil
 
 	case *ast.CompareAny:
 		if v.Comparator == "in" {

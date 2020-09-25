@@ -1,0 +1,25 @@
+script: |
+  zq -t "put x=p1+1" in.tzng
+  echo ===
+  zq -t "put x=p1>p2" in.tzng
+  echo ===
+  zq -t "put x=a+p1+p2" in.tzng
+
+
+inputs:
+  - name: in.tzng
+    data: |
+      #0:record[a:int32,p1:port,p2:port]
+      0:[1;100;200;]
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[a:int32,p1:port,p2:port,x:int64]
+      0:[1;100;200;101;]
+      ===
+      #0:record[a:int32,p1:port,p2:port,x:bool]
+      0:[1;100;200;F;]
+      ===
+      #0:record[a:int32,p1:port,p2:port,x:int32]
+      0:[1;100;200;301;]

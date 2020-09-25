@@ -113,10 +113,13 @@ searchPred
   / f:fieldExpr _? comp:equalityToken _? v:searchValue {
       RETURN(MAP("op": "CompareField", "comparator": comp, "field": f, "value": v))
     }
+  / expr:FunctionExpr _? comp:equalityToken _? v:searchValue {
+      RETURN(MAP("op": "BinaryExpression", "operator": comp, "lhs": expr, "rhs": v))
+    }
   / v:searchValue _? inToken _? "*" {
       RETURN(MAP("op": "CompareAny", "comparator": "in", "recursive": false, "value": v))
     }
-  / v:searchValue _? inToken _? f:fieldReference {
+  / v:searchValue _? inToken _? f:fieldExpr {
       RETURN(MAP("op": "CompareField", "comparator": "in", "field": f, "value": v))
     }
   / v:searchLiteral {
@@ -257,28 +260,27 @@ fieldName = fieldNameStart fieldNameRest* { RETURN(TEXT) }
 fieldNameStart = [A-Za-z_$]
 fieldNameRest = fieldNameStart / [0-9]
 
-fieldReference
- = base:fieldName ds:(
-       "." field:fieldName    { RETURN(MAP("op": "FieldCall", "fn": "RecordFieldRead", "field": NULL, "param": field)) }
-     / "[" index:suint "]" { RETURN(MAP("op": "FieldCall", "fn": "Index", "field": NULL, "param": index)) }
-   )* {
-     VAR(ret) = MAP("op": "FieldRead", "field": base)
-     FOREACH(ASSERT_ARRAY(ds), d) {
-       VAR(derefs) = ASSERT_MAP(d)
-       derefs["field"] = ret
-       ret = derefs
-     }
-     RETURN(ret)
-   }
+Field
+  = name:fieldName  { RETURN(MAP("op": "Field", "field": name)) }
 
-fieldExpr
-  = fn:fieldOp _? "(" _? field:fieldReference _? ")" {
-      RETURN(MAP("op": "FieldCall", "fn": fn, "field": field, "param": NULL))
-    }
-  / fieldReference
+fieldExpr = base:Field derefs:(Deref)* {
+    RETURN(makeBinaryExprChain(base, derefs))
+  }
 
-fieldOp
-  = "len"i { RETURN("Len") }
+DotExpr = base:Field derefs:(DotField)* {
+    RETURN(makeBinaryExprChain(base, derefs))
+  }
+
+DotExprText = DotExpr { RETURN(TEXT) }
+
+// XXX this is here to support the function call stuff that used to live
+// inside of FieldCall.  This will be replaced by a subset of the expression
+// syntax in a subsequent PR (which is tricky due to mixin keyword search
+// concantenation with expressions)
+FunctionExpr
+    = fn:FunctionName __ "(" args:ArgumentList ")" {
+          RETURN(MAP("op": "FunctionCall", "function": fn, "args": args))
+      }
 
 fieldExprList
   = first:fieldExpr rest:(_? "," _? fieldExpr)* {
@@ -290,9 +292,6 @@ fieldExprList
 
       RETURN(result)
   }
-
-fieldRefDotOnly
-  = base:fieldName refs:("." field:fieldName)* { RETURN(TEXT) }
 
 countOp
   = "count"i { RETURN("Count") }
@@ -429,7 +428,7 @@ cutArgs
 
 cutAssignment
   = FieldAssignment
-  / field:fieldRefDotOnly {
+  / field:DotExpr {
     RETURN(MAP("target": "", "source": field))
   }
 
@@ -482,7 +481,7 @@ ExpressionAssignment
     }
 
 FieldAssignment
-  = l:fieldRefDotOnly __ "=" __ r:fieldRefDotOnly {
+  = l:DotExprText __ "=" __ r:DotExpr {
       RETURN(MAP("target": l, "source": r))
     }
 
@@ -496,19 +495,8 @@ PrimaryExpression
   / IntegerLiteral
   / BooleanLiteral
   / NullLiteral
-  / FieldReference
+  / Field
   / "(" __ expr:Expression __ ")" { RETURN(expr) }
-
-FieldReference
-  = f:fieldName {
-      VAR(ret) = MAP("op": "FieldRead", "field": f)
-      FOREACH(ARRAY(), d) {
-        VAR(derefs) = ASSERT_MAP(d)
-        derefs["field"] = ret
-        ret = derefs
-      }
-      RETURN(ret)
-    }
 
 //
 // Rules for parsing expressions.  Following standard practice, each
@@ -588,7 +576,7 @@ CastExpression
   }
 
 ZngType
- = ("bool" / "byte" / "int16" / "uint16" / "int32" / "uint32"
+ = ("uint8" / "int8" / "int16" / "uint16" / "int32" / "uint32"
  / "int64" / "uint64" / "float64" / "string" / "bstring"
  / "ip" / "net" / "time" / "duration") { RETURN(TEXT) }
 
@@ -612,16 +600,18 @@ ArgumentList
 
 DereferenceExpression
   = base:PrimaryExpression
-    derefs:(
-        __ "[" __ index:Expression __ "]" {
-          RETURN(ARRAY("[", index))
-        }
-      / __ "." __ field:fieldName {
-          RETURN(ARRAY(".", MAP("op": "Literal", "type": "string", "value": field)))
-        }
-    )* {
+    derefs:(Deref)* {
         RETURN(makeBinaryExprChain(base, derefs))
-    }
+   }
+
+Deref = __ "[" __ index:Expression __ "]" {
+    RETURN(ARRAY("[", index))
+  }
+  / __ p:DotField { RETURN(p) }
+
+DotField =  "." __ field:Field {
+    RETURN(ARRAY(".", field))
+  }
 
 duration
   = seconds
@@ -762,7 +752,7 @@ searchWord
 
 searchWordPart
   = "\\" s:(escapeSequence / searchEscape)  { RETURN(s) }
-  / !([\x00-\x1F\x5C(),!><=DQUOTE|SQUOTE;] / ws) . { RETURN(TEXT) }
+  / !([\x00-\x1F\x5C(),!><=DQUOTE|SQUOTE;:] / ws) . { RETURN(TEXT) }
 
 quotedString
   = '"' v:doubleQuotedChar* '"' { RETURN(joinChars(v)) }

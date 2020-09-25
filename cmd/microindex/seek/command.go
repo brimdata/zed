@@ -87,7 +87,7 @@ func (c *Command) Run(args []string) error {
 			writer.Close()
 		}
 	}()
-	readKey := expr.CompileFieldAccess(c.keyField)
+	readKey := expr.NewFieldAccess(c.keyField)
 	var builder *zng.Builder
 	var keyType zng.Type
 	var offset int64
@@ -95,8 +95,8 @@ func (c *Command) Run(args []string) error {
 	// then call SkipStream and the bottmo of the for-loop.
 	rec, err := reader.Read()
 	for err == nil && rec != nil {
-		k := readKey(rec)
-		if k.Type == nil || k.Bytes == nil {
+		k, err := readKey.Eval(rec)
+		if err != nil || k.Type == nil || k.Bytes == nil {
 			// if the key doesn't exist or is unset, fail here
 			// XXX we should check that key order is ascending
 			return fmt.Errorf("key field is missing: %s", rec)

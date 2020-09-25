@@ -433,7 +433,7 @@ func appendItem(builder *zcode.Builder, typ HandledType, iter *columnIterator, m
 		if maxDef > dl {
 			builder.AppendPrimitive(nil)
 		} else {
-			builder.AppendPrimitive(zng.EncodeBstring(string(a)))
+			builder.AppendPrimitive(zng.EncodeString(string(a)))
 		}
 	case timestampMilliseconds, timestampMicroseconds, timestampNanoseconds:
 		var i int64

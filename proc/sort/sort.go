@@ -21,9 +21,9 @@ type Proc struct {
 	parent     proc.Interface
 	dir        int
 	nullsFirst bool
-	fields     []ast.FieldExpr
+	fields     []ast.Expression
 
-	fieldResolvers     []expr.FieldExprResolver
+	fieldResolvers     []expr.Evaluator
 	once               sync.Once
 	resultCh           chan proc.Result
 	compareFn          expr.CompareFn
@@ -31,9 +31,13 @@ type Proc struct {
 }
 
 func New(pctx *proc.Context, parent proc.Interface, node *ast.SortProc) (*Proc, error) {
-	fieldResolvers, err := expr.CompileFieldExprs(node.Fields)
+	fieldResolvers, err := expr.CompileExprs(node.Fields, true)
 	if err != nil {
 		return nil, err
+	}
+	var fields []expr.Evaluator
+	for _, r := range fieldResolvers {
+		fields = append(fields, r)
 	}
 	return &Proc{
 		pctx:               pctx,
@@ -41,9 +45,9 @@ func New(pctx *proc.Context, parent proc.Interface, node *ast.SortProc) (*Proc, 
 		dir:                node.SortDir,
 		nullsFirst:         node.NullsFirst,
 		fields:             node.Fields,
-		fieldResolvers:     fieldResolvers,
+		fieldResolvers:     fields,
 		resultCh:           make(chan proc.Result),
-		unseenFieldTracker: newUnseenFieldTracker(node.Fields, fieldResolvers),
+		unseenFieldTracker: newUnseenFieldTracker(fields),
 	}, nil
 }
 
@@ -162,14 +166,8 @@ func (p *Proc) setCompareFn(r *zng.Record) {
 	resolvers := p.fieldResolvers
 	if resolvers == nil {
 		fld := GuessSortKey(r)
-		resolver := func(r *zng.Record) zng.Value {
-			e, err := r.Access(fld)
-			if err != nil {
-				return zng.Value{}
-			}
-			return e
-		}
-		resolvers = []expr.FieldExprResolver{resolver}
+		resolver := expr.NewFieldAccess(fld)
+		resolvers = []expr.Evaluator{resolver}
 	}
 	nullsMax := !p.nullsFirst
 	if p.dir < 0 {

@@ -42,7 +42,7 @@ func parseOneRecord(zngsrc string) (*zng.Record, error) {
 	return rec, nil
 }
 
-func compileExpr(s string) (expr.ExpressionEvaluator, error) {
+func compileExpr(s string) (expr.Evaluator, error) {
 	parsed, err := zql.ParseExpression(s)
 	if err != nil {
 		return nil, err
@@ -53,29 +53,33 @@ func compileExpr(s string) (expr.ExpressionEvaluator, error) {
 		return nil, errors.New("expected Expression")
 	}
 
-	return expr.CompileExpr(node)
+	return expr.CompileExpr(node, false)
 }
 
 // Compile and evaluate a zql expression against a provided Record.
 // Returns the resulting Value if successful or an error otherwise
 // (which could be failure to compile the expression or failure while
 // evaluating the expression).
-func evaluate(e string, record *zng.Record) (zng.Value, error) {
-	eval, err := compileExpr(e)
+func evaluate(zql string, record *zng.Record) (zng.Value, error) {
+	e, err := compileExpr(zql)
 	if err != nil {
 		return zng.Value{}, err
 	}
 
 	// And execute it.
-	return eval(record)
+	return e.Eval(record)
 }
 
-func testSuccessful(t *testing.T, e string, record *zng.Record, expect zng.Value) {
+func testSuccessful(t *testing.T, e string, record *zng.Record, expect zng.Value, info ...string) {
 	if record == nil {
 		emptyRecordType := zng.NewTypeRecord(-1, nil)
 		record = zng.NewRecord(emptyRecordType, nil)
 	}
-	t.Run(e, func(t *testing.T) {
+	name := e
+	if len(info) > 0 {
+		name += info[0]
+	}
+	t.Run(name, func(t *testing.T) {
 		result, err := evaluate(e, record)
 		require.NoError(t, err)
 
@@ -178,14 +182,14 @@ func TestLogical(t *testing.T) {
 }
 
 func TestCompareNumbers(t *testing.T) {
-	var numericTypes = []string{"byte", "int16", "uint16", "int32", "uint32", "int64", "uint64", "float64"}
+	var numericTypes = []string{"uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64", "float64"}
 	var intFields = []string{"u8", "i16", "u16", "i32", "u32", "i64", "u64"}
 
 	for _, typ := range numericTypes {
 		// Make a test point with this type in a field called x plus
 		// one field of each other integer type
 		src := fmt.Sprintf(`
-#0:record[x:%s,u8:byte,i16:int16,u16:uint16,i32:int32,u32:uint32,i64:int64,u64:uint16]
+#0:record[x:%s,u8:uint8,i16:int16,u16:uint16,i32:int32,u32:uint32,i64:int64,u64:uint16]
 0:[1;0;0;0;0;0;0;0;]`, typ)
 		record, err := parseOneRecord(src)
 		require.NoError(t, err)
@@ -528,16 +532,68 @@ func TestArithmetic(t *testing.T) {
 	testSuccessful(t, "f / 1.25", record, zfloat64(2.0))
 	testSuccessful(t, "5.0 / f", record, zfloat64(2.0))
 
+	width := func(id int) int {
+		switch id {
+		case zng.IdInt8, zng.IdUint8:
+			return 8
+		case zng.IdInt16, zng.IdUint16:
+			return 16
+		case zng.IdInt32, zng.IdUint32:
+			return 32
+		case zng.IdInt64, zng.IdUint64:
+			return 64
+		}
+		panic("width")
+	}
+	signed := func(width int) zng.Type {
+		switch width {
+		case 8:
+			return zng.TypeInt8
+		case 16:
+			return zng.TypeInt16
+		case 32:
+			return zng.TypeInt32
+		case 64:
+			return zng.TypeInt64
+		}
+		panic("signed")
+	}
+	unsigned := func(width int) zng.Type {
+		switch width {
+		case 8:
+			return zng.TypeUint8
+		case 16:
+			return zng.TypeUint16
+		case 32:
+			return zng.TypeUint32
+		case 64:
+			return zng.TypeUint64
+		}
+		panic("signed")
+	}
 	// Test arithmetic between integer types
 	iresult := func(t1, t2 string, v uint64) zng.Value {
-		if (t1[0] == 'u' || t1 == "byte") && (t2[0] == 'u' || t2 == "byte") {
-			return zuint64(v)
-		} else {
-			return zint64(int64(v))
+		typ1 := zng.LookupPrimitive(t1)
+		typ2 := zng.LookupPrimitive(t2)
+		id1 := typ1.ID()
+		id2 := typ2.ID()
+		sign1 := zng.IsSigned(id1)
+		sign2 := zng.IsSigned(id2)
+		sign := true
+		if sign1 == sign2 {
+			sign = sign1
 		}
+		w := width(id1)
+		if w2 := width(id2); w2 > w {
+			w = w2
+		}
+		if sign {
+			return zng.Value{signed(w), zng.AppendInt(nil, int64(v))}
+		}
+		return zng.Value{unsigned(w), zng.AppendUint(nil, v)}
 	}
 
-	var intTypes = []string{"byte", "int16", "uint16", "int32", "uint32", "int64", "uint64"}
+	var intTypes = []string{"int8", "uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64"}
 	for _, t1 := range intTypes {
 		for _, t2 := range intTypes {
 			record, err = parseOneRecord(fmt.Sprintf(`
@@ -551,7 +607,7 @@ func TestArithmetic(t *testing.T) {
 			testSuccessful(t, "a * b", record, iresult(t1, t2, 8))
 			testSuccessful(t, "b * a", record, iresult(t1, t2, 8))
 			testSuccessful(t, "a / b", record, iresult(t1, t2, 2))
-			testSuccessful(t, "b / a", record, iresult(t1, t2, 0))
+			testSuccessful(t, "b / a", record, iresult(t1, t2, 0), t1+t2)
 		}
 
 		// Test arithmetic mixing float + int
@@ -631,12 +687,12 @@ func TestConditional(t *testing.T) {
 	testSuccessful(t, "x != 0 ? x : y", record, zint64(1))
 }
 
-func TestCasts(t *testing.T) {
+func a(t *testing.T) {
 	// Test casts to byte
-	testSuccessful(t, "10 :byte", nil, zng.Value{zng.TypeByte, zng.EncodeByte(10)})
-	testError(t, "-1 :byte", nil, expr.ErrBadCast, "out of range cast to byte")
-	testError(t, "300 :byte", nil, expr.ErrBadCast, "out of range cast to byte")
-	testError(t, `"foo" :byte"`, nil, expr.ErrBadCast, "cannot cast incompatible type to byte")
+	testSuccessful(t, "10 :uint8", nil, zng.Value{zng.TypeUint8, zng.EncodeUint(10)})
+	testError(t, "-1 :uint8", nil, expr.ErrBadCast, "out of range cast to uint8")
+	testError(t, "300 :uint8", nil, expr.ErrBadCast, "out of range cast to uint8")
+	testError(t, `"foo" :uint8"`, nil, expr.ErrBadCast, "cannot cast incompatible type to uint8")
 
 	// Test casts to int16
 	testSuccessful(t, "10 :int16", nil, zng.Value{zng.TypeInt16, zng.EncodeInt(10)})
@@ -659,7 +715,7 @@ func TestCasts(t *testing.T) {
 	// Test casts to uint32
 	testSuccessful(t, "10 :uint32", nil, zng.Value{zng.TypeUint32, zng.EncodeUint(10)})
 	testError(t, "-1 :uint32", nil, expr.ErrBadCast, "out of range cast to uint32")
-	testError(t, "4300000000 :byte", nil, expr.ErrBadCast, "out of range cast to uint32")
+	testError(t, "4300000000 :uint8", nil, expr.ErrBadCast, "out of range cast to uint32")
 	testError(t, `"foo" :uint32"`, nil, expr.ErrBadCast, "cannot cast incompatible type to uint32")
 
 	// Test casts to uint64

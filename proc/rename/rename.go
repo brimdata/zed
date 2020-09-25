@@ -27,9 +27,9 @@ func New(pctx *proc.Context, parent proc.Interface, node *ast.RenameProc) (*Proc
 	var fieldnames, targets []string
 	for _, fa := range node.Fields {
 		ts := strings.Split(fa.Target, ".")
-		fs := strings.Split(fa.Source, ".")
+		fs := strings.Split(ast.FieldExprToString(fa.Source), ".")
 		if len(ts) != len(fs) {
-			return nil, fmt.Errorf("cannot rename %s to %s", fa.Source, fa.Target)
+			return nil, fmt.Errorf("cannot rename %s to %s", ast.FieldExprToString(fa.Source), fa.Target)
 		}
 		for i := range ts[:len(ts)-1] {
 			if ts[i] != fs[i] {
@@ -37,7 +37,7 @@ func New(pctx *proc.Context, parent proc.Interface, node *ast.RenameProc) (*Proc
 			}
 		}
 		targets = append(targets, ts[len(ts)-1])
-		fieldnames = append(fieldnames, fa.Source)
+		fieldnames = append(fieldnames, ast.FieldExprToString(fa.Source))
 	}
 	return &Proc{
 		pctx:       pctx,

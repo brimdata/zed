@@ -8,13 +8,13 @@ import (
 
 type Last struct {
 	Reducer
-	Resolver expr.FieldExprResolver
+	Resolver *expr.FieldExpr
 	val      *zng.Value
 }
 
 func (l *Last) Consume(r *zng.Record) {
-	v := l.Resolver(r)
-	if v.Type == nil {
+	v, err := l.Resolver.Eval(r)
+	if err != nil || v.Type == nil {
 		return
 	}
 	l.val = &v

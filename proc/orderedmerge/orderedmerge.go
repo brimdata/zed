@@ -33,7 +33,7 @@ func New(pctx *proc.Context, parents []proc.Interface, mergeField string, revers
 		pctx:   pctx,
 		doneCh: make(chan struct{}),
 	}
-	cmpFn := expr.NewCompareFn(true, expr.CompileFieldAccess(mergeField))
+	cmpFn := expr.NewCompareFn(true, expr.NewFieldAccess(mergeField))
 	if !reversed {
 		m.cmp = cmpFn
 	} else {

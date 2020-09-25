@@ -191,7 +191,8 @@ encapsulating protocols.
 ### 3.1.1 Typedefs
 
 Following a header byte of 0x80-0x83 is a "typedef".  A typedef binds
-"the next available" integer type ID to a type encoding.  Type IDs
+"the next available" integer type ID to a type encoding.  As there are
+a total of 23 primitive type IDs, the Type IDs for typedefs
 begin at the value 23 and increase by one for each typedef. These bindings
 are scoped to the stream in which the typedef occurs.
 
@@ -723,25 +724,32 @@ For each ZNG primitive type, the following table describes:
 
 | Type       | ID |    N     |       ZNG Value Interpretation                 | TZNG Value Syntax                                             |
 |------------|---:|:--------:|------------------------------------------------|---------------------------------------------------------------|
-| `bool`     |  0 |    1     | one byte 0 (false) or 1 (true)                 | a single character `T` or `F`                                 |
-| `byte`     |  1 |    1     | the byte                                       | two-characters of hexadecimal digit                           |
-| `int16`    |  2 | variable | signed int of length N                         | decimal string representation of any signed, 16-bit integer   |
-| `uint16`   |  3 | variable | unsigned int of length N                       | decimal string representation of any unsigned, 16-bit integer |
-| `int32`    |  4 | variable | signed int of length N                         | decimal string representation of any signed, 32-bit integer   |
-| `uint32`   |  5 | variable | unsigned int of length N                       | decimal string representation of any unsigned, 32-bit integer |
-| `int64`    |  6 | variable | signed int of length N                         | decimal string representation of any signed, 64-bit integer   |
-| `uint64`   |  7 | variable | unsigned int of length N                       | decimal string representation of any unsigned, 64-bit integer |
-| `float64`  |  8 |    8     | 8 bytes of IEEE 64-bit format                  | decimal representation of a 64-bit IEEE floating point literal as defined in JavaScript |
-| `string`   |  9 | variable | UTF-8 byte sequence of string                  | a UTF-8 string                                                |
-| `bytes`    | 10 | variable | bytes of value                                 | a sequence of bytes encoded as base64                         |
-| `bstring`  | 11 | variable | UTF-8 byte sequence with `\x` escapes          | a UTF-8 string with `\x` escapes of non-UTF binary data       |
-| `enum `    | 12 | variable | UTF-8 bytes of enum string                     | a string representing an enumeration value defined outside the scope of ZNG |
-| `ip`       | 13 | 4 or 16  | 4 or 16 bytes of IP address                    | a string representing an IP address in [IPv4 or IPv6 format](https://tools.ietf.org/html/draft-main-ipaddr-text-rep-02#section-3) |
-| `port`     | 14 |    2     | unsigned int of length 2                       | decimal string representation of an unsigned, 16-bit integer  |
-| `net`      | 15 | 8 or 32  | 8 or 32 bytes of IP prefix and subnet mask     | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291. |
-| `time`     | 16 | variable | signed nanoseconds since epoch                 | signed dotted decimal notation of seconds                     |
-| `duration` | 17 | variable | signed nanoseconds duration                    | signed dotted decimal notation of seconds                     |
-| `null`     | 18 |    0     | No value, always represents an undefined value | must be the literal value `-`                                 |
+| `uint8`    |  0 | variable  | unsigned int of length N                       | decimal string representation of any unsigned, 8-bit integer
+| `uint16`   |  1 | variable | unsigned int of length N                       | decimal string representation of any unsigned, 16-bit integer |
+| `uint32`   |  2 | variable | unsigned int of length N                       | decimal string representation of any unsigned, 32-bit integer |
+| `uint64`   |  3 | variable | unsigned int of length N                       | decimal string representation of any unsigned, 64-bit integer |
+| `port`     |  4 | variable | unsigned int of length N                       | decimal string representation of an unsigned, 16-bit integer  |
+| `int8`     |  5 | variable | signed int of length N                         | two-characters of hexadecimal digit                           |
+| `int16`    |  6 | variable | signed int of length N                         | decimal string representation of any signed, 16-bit integer   |
+| `int32`    |  7 | variable | signed int of length N                         | decimal string representation of any signed, 32-bit integer   |
+| `int64`    |  8 | variable | signed int of length N                         | decimal string representation of any signed, 64-bit integer   |
+| `duration` |  9 | variable | signed int of length N as ns                   | signed dotted decimal notation of seconds                     |
+| `time`     | 10 | variable | signed int of length N as ns since epoch       | signed dotted decimal notation of seconds                     |
+| `float32`  | 11 |    8     | 8 bytes of IEEE 64-bit format                  | decimal representation of a 64-bit IEEE floating point literal as defined in JavaScript |
+| `float64`  | 12 |    8     | 8 bytes of IEEE 64-bit format                  | decimal representation of a 64-bit IEEE floating point literal as defined in JavaScript |
+| `bool`     | 13 |    1     | one byte 0 (false) or 1 (true)                 | a single character `T` or `F`
+| `bytes`    | 14 | variable | N bytes of value                               | a sequence of bytes encoded as base64                         |
+| `string`   | 15 | variable | UTF-8 byte sequence of string                  | a UTF-8 string                                                |
+| `bstring`  | 16 | variable | UTF-8 byte sequence with `\x` escapes          | a UTF-8 string with `\x` escapes of non-UTF binary data       |
+| `enum `    | 17 | variable | UTF-8 bytes of enum string                     | a string representing an enumeration value defined outside the scope of ZNG |
+| `ip`       | 18 | 4 or 16  | 4 or 16 bytes of IP address                    | a string representing an IP address in [IPv4 or IPv6 format](https://tools.ietf.org/html/draft-main-ipaddr-text-rep-02#section-3) |
+| `net`      | 19 | 8 or 32  | 8 or 32 bytes of IP prefix and subnet mask     | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291. |
+| `type`     | 20 | 8 or 32  | 8 or 32 bytes of IP prefix and subnet mask     | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291. |
+| `error`    | 21 | 8 or 32  | 8 or 32 bytes of IP prefix and subnet mask     | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291. |
+| `null`     | 22 |    0     | No value, always represents an undefined value | must be the literal value `-`                                 |
+
+> TBD: Types "enum" and "type" will actually be complex types not primitives.  We will
+> address this clarification in a subsequent PR.  There goes our magic constant 23.
 
 ## Appendix A. Related Links
 
@@ -753,3 +761,56 @@ For each ZNG primitive type, the following table describes:
 * [Protocol Buffers](https://developers.google.com/protocol-buffers)
 * [MessagePack](https://msgpack.org/index.html)
 * [gNMI](https://github.com/openconfig/reference/tree/master/rpc/gnmi)
+
+## Appendix B. Recommended Type Coercion rules
+
+> TBD: it might be better to put this in the ZQL docs
+
+While outside the scope of the ZNG format specification, we include here
+some suggested rules for converting types when mixed-type operations occur,
+e.g., adding an uint32 field to an int32 fields or aggregating a stream of
+mixed-type numeric values in a sum operator.
+
+The age old question is "does unsigned(-1) equal unsigned(maxint) and thus
+that signed -1 is larger than unsigned 1 in a coerced comparison?"
+The standard SQL specification goes so far as to avoid unsigned types altogether
+to avoid this confusion.  However, since unsigned types are prevalent
+in the real world, and we want ZNG to be a reliable and complete language-independent
+model for communicating structured data, ZNG embraces the unsigned type.
+
+Given the dynamic typing nature of ZNG streams (e.g., x in one record might
+be a uint8, in another an int64, and in still another, a string), type coercion
+is important for ergonomic use, and implementations are thus encouraged
+to handle mixed-type operations robustly.
+
+For systems that perform analytics directly on ZNG, the following coercion
+patterns are recommend for logical comparisons of numbers, arithmetic operations,
+or streaming aggregations over numbers:
+* For float32 and float64, the float32 is converted to float64.
+* For float32 and any integer type, the integer is converted to float32
+and any loss of precision causes no error.
+* For float64 and any integer type, the integer is converted to float64
+and any loss of precision causes no error.
+* For integers of same signed-ness but different widths, the smaller width
+type is converted to the wider type.
+* For any signed and unsigned integers smaller than 64 bits, the unsigned value
+is converted to the corresponding signed type if possible, and otherwise,
+both are converted to the widest signed type that will allow conversion of
+the unsigned value unless the unsigned value cannot be converted,
+in which case an overflow error occurs.   e.g., uint8(255) and int8(-1), are
+converted to int16(255) and int16(-1), but uint64(2^32) and any signed value
+will result in overflow.
+* For a time or duration with a number, automatic coercion is not performed
+and casts or conversion functions should be used.
+* For a string with number, automatic coercion is not performed
+and casts or conversion functions should be used.
+
+Also,
+* numeric constants should be int64 or float64 unless cast, which means
+comparisons with constants will generally be coerced to these types and results
+of mathematical operations with constants will be promoted as well;
+* times and durations may be added, resulting in a time;
+* times may be subtracted, resulting in a duration; and,
+* a "plus" operator applied to two strings, implies concatenation,
+but a "plus" applied to a string and is a type mismatch and casts
+or conversion functions should be used.
