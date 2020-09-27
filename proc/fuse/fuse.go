@@ -72,6 +72,7 @@ func (p *Proc) pullInput() error {
 }
 
 func (p *Proc) writeBatch(batch zbuf.Batch) error {
+	defer batch.Unref()
 	l := batch.Length()
 	for i := 0; i < l; i++ {
 		rec := batch.Index(i)
@@ -94,12 +95,14 @@ func (p *Proc) writeBatch(batch zbuf.Batch) error {
 }
 
 func (p *Proc) stash(rec *zng.Record) error {
-	p.recs = append(p.recs, rec)
 	p.nbytes += len(rec.Raw)
 	if p.nbytes >= MemMaxBytes {
 		var err error
 		p.spiller, err = spill.NewTempFile()
 		if err != nil {
+			return err
+		}
+		if err := p.spiller.Write(rec); err != nil {
 			return err
 		}
 		for _, rec := range p.recs {
@@ -110,6 +113,8 @@ func (p *Proc) stash(rec *zng.Record) error {
 		p.recs = nil
 		return nil
 	}
+	rec = rec.Keep()
+	p.recs = append(p.recs, rec)
 	return nil
 }
 
