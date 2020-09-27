@@ -62,7 +62,7 @@ jobs:
           aws-region: us-east-2
       - id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - env:
@@ -80,7 +80,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-2
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - env:
