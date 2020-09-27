@@ -47,7 +47,7 @@ aws s3 ls brim-scratch/mark --recursive
 ## Port forwarding for local testing
 To test locally, run this script to forward the Kind/K8s ports to local ports:
 ```
-./k8s/ports.sh
+./k8s/zqd-port.sh
 ```
 
 ## Testing the deployed zqd with zapi and Brim

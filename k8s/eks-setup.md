@@ -155,7 +155,7 @@ To access the running zqd instance, use kubectl port-forward:
 ```
 kubectl port-forward svc/zqd-test-1 9867:9867 &
 ```
-There is a script `k8s/ports.sh` that does this after removing any existing port-forwards.
+There is a script `k8s/zqd-port.sh` that does this after removing any existing port-forwards.
 
 ## Using a K8s hosted zqd to search large logs in the cloud
 This decribes a set of steps to use `zar import` to process large log files that can then be searched with the zqd you just deployed. In order to do this, you will need an EC2 instance in the same region as your EKS cluster. Follow the steps below to set this up.
@@ -224,7 +224,7 @@ Now you can run Brim, and it will use the same local:9867 port used by zapi. You
 
 ## Observing resource usage in Grafana
 
-You can run `linkerd dashboard &` to get to a Grafana dashboard for zqd. `k8s/ports.sh` also includes `linkerd dashboard &`.
+You can run `linkerd dashboard &` to get to a Grafana dashboard for zqd. `k8s/linkerd-port.sh` also runs `linkerd dashboard &`.
 
 See above, at "Step 4: A Grafana dashboard for zqd". Those instructions work the same for a remote Grafana dashboard.
 

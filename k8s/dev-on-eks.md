@@ -112,7 +112,7 @@ Edit the commands to use your pod name.
 ## Expose the endpoint for local development
 Run the following shell script to expose the zqd endpoint on your local host:
 ```
-./k8s/ports.sh
+./k8s/zqd-port.sh
 ```
 This script kills existing port-forwards and creates a new port-forward. It also starts the Linkerd dashboard so you can monitor your endpoint.
 
