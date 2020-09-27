@@ -1,6 +1,6 @@
 # Deploying zqd on EKS
 
-These are instructions for deploying a locally built image for zqd into an EKS cluster, in a namespace that is specific for your development.
+These are instructions for deploying a locally built image for zqd into an EKS cluster, in a namespace that is specific to your dev environment.
 
 ## First time setup
 

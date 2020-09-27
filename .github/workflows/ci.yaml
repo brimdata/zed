@@ -1,12 +1,11 @@
 name: "Tests"
 
 on:
-  # pull_request:
+  pull_request:
   push:
     branches:
-      k8s-makefile-rules
-      #- master
-
+      - master
+  
 jobs:
   test:
     runs-on: ubuntu-latest
