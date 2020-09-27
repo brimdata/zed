@@ -1,0 +1,26 @@
+script: |
+  mkdir logs
+  zar  import -R ./logs -sortmem 0 babble.tzng
+  echo ===
+  zar  import -R ./logs -sortmem 1MiB babble.tzng
+  echo ===
+  zar index -R ./logs -q v
+  zar find -R ./logs -z v=106 | zq -t "cut -c _log" -
+  echo ===
+
+inputs:
+  - name: babble.tzng
+    source: ../data/babble.tzng
+
+outputs:
+  - name: stderr
+    data: |
+      sortmem value must be greater than zero
+  - name: stdout
+    data: |
+      ===
+      ===
+      #0:record[key:int64,count:uint64,first:time,last:time]
+      0:[106;1;1587518620.0622373;1587513611.06391469;]
+      0:[106;2;1587513592.0625444;1587508830.06852324;]
+      ===

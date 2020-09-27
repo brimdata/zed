@@ -9,7 +9,7 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/proc"
-	"github.com/brimsec/zq/proc/sort"
+	"github.com/brimsec/zq/proc/spill"
 	"github.com/brimsec/zq/reducer"
 	"github.com/brimsec/zq/reducer/compile"
 	"github.com/brimsec/zq/zbuf"
@@ -150,7 +150,7 @@ type Aggregator struct {
 	maxTableKey  *zng.Value
 	maxSpillKey  *zng.Value
 	inputSortDir int
-	runManager   *sort.RunManager
+	spiller      *spill.MergeSort
 	consumePart  bool
 	emitPart     bool
 }
@@ -249,31 +249,26 @@ func (p *Proc) Done() {
 }
 
 func (p *Proc) run() {
-	defer func() {
-		close(p.resultCh)
-		if p.agg.runManager != nil {
-			p.agg.runManager.Cleanup()
-		}
-	}()
 	for {
 		batch, err := p.parent.Pull()
 		if err != nil {
-			p.sendResult(nil, err)
+			p.shutdown(err)
 			return
 		}
 		if batch == nil {
 			for {
 				b, err := p.agg.Results(true)
-				p.sendResult(b, err)
 				if b == nil {
+					p.shutdown(err)
 					return
 				}
+				p.sendResult(b, err)
 			}
 		}
 		for k := 0; k < batch.Length(); k++ {
 			if err := p.agg.Consume(batch.Index(k)); err != nil {
 				batch.Unref()
-				p.sendResult(nil, err)
+				p.shutdown(err)
 				return
 			}
 		}
@@ -285,7 +280,7 @@ func (p *Proc) run() {
 		for {
 			res, err := p.agg.Results(false)
 			if err != nil {
-				p.sendResult(nil, err)
+				p.shutdown(err)
 				return
 			}
 			if res == nil {
@@ -302,6 +297,16 @@ func (p *Proc) sendResult(b zbuf.Batch, err error) {
 	case p.resultCh <- proc.Result{Batch: b, Err: err}:
 	case <-p.pctx.Done():
 	}
+}
+
+func (p *Proc) shutdown(err error) {
+	// Make sure we cleanup before sending EOS.  Otherwise, the process
+	// could exit before we remove the spill directory.
+	if p.agg.spiller != nil {
+		p.agg.spiller.Cleanup()
+	}
+	p.sendResult(nil, err)
+	close(p.resultCh)
 }
 
 func (a *Aggregator) createRow(keyCols []zng.Column, vals zcode.Bytes, groupval *zng.Value) *Row {
@@ -431,15 +436,15 @@ func (a *Aggregator) spillTable(eof bool) error {
 	if err != nil || batch == nil {
 		return err
 	}
-	if a.runManager == nil {
-		a.runManager, err = sort.NewRunManager(a.keysCompare)
+	if a.spiller == nil {
+		a.spiller, err = spill.NewMergeSort(a.keysCompare)
 		if err != nil {
 			return err
 		}
 	}
 	recs := batch.Records()
 	// Note that this will sort recs according to g.keysCompare.
-	if err := a.runManager.CreateRun(recs); err != nil {
+	if err := a.spiller.Spill(recs); err != nil {
 		return err
 	}
 	if !eof && a.inputSortDir != 0 {
@@ -477,7 +482,7 @@ func (a *Aggregator) updateMaxSpillKey(v zng.Value) {
 // the input is sorted in the primary key, Results can be called
 // before eof, and keys that are completed will returned.
 func (a *Aggregator) Results(eof bool) (zbuf.Batch, error) {
-	if a.runManager == nil {
+	if a.spiller == nil {
 		return a.readTable(eof, a.emitPart)
 	}
 	if eof {
@@ -496,7 +501,7 @@ func (a *Aggregator) readSpills(eof bool) (zbuf.Batch, error) {
 	}
 	for len(recs) < proc.BatchLen {
 		if !eof && a.inputSortDir != 0 {
-			rec, err := a.runManager.Peek()
+			rec, err := a.spiller.Peek()
 			if err != nil {
 				return nil, err
 			}
@@ -531,7 +536,7 @@ func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 	row := compile.NewRow(a.reducerDefs)
 	var firstRec *zng.Record
 	for {
-		rec, err := a.runManager.Peek()
+		rec, err := a.spiller.Peek()
 		if err != nil {
 			return nil, err
 		}
@@ -546,7 +551,7 @@ func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 		if err := row.ConsumePart(rec); err != nil {
 			return nil, err
 		}
-		if _, err := a.runManager.Read(); err != nil {
+		if _, err := a.spiller.Read(); err != nil {
 			return nil, err
 		}
 	}

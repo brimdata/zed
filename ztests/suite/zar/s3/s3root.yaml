@@ -1,0 +1,31 @@
+script: |
+  source minio.sh
+  zar import -R s3://bucket/zartest babble.tzng
+  zar ls -R s3://bucket/zartest -ranges
+  zar index -R s3://bucket/zartest -q v
+  echo ===
+  zar zq -R s3://bucket/zartest -t "count()"
+  zar find -R s3://bucket/zartest -z v=2 | zq -t "cut -c _log" -
+  echo ===
+  zar ls -R s3://bucket/zartest -relative | sort > t1
+  (cd ./data/bucket/zartest; find zd -type d -regex ".*\.zar$") | sort > t2
+  test -s t1 && test -s t2 && diff t1 t2 && echo ls matches
+
+inputs:
+  - name: babble.tzng
+    source: ../../data/babble.tzng
+  - name: minio.sh
+    source: minio.sh
+
+outputs:
+  - name: stdout
+    data: |
+      [1587518620062237300-1587513611063914690]
+      [1587513592062544400-1587508830068523240]
+      ===
+      #0:record[count:uint64]
+      0:[1000;]
+      #0:record[key:int64,count:uint64,first:time,last:time]
+      0:[2;1;1587518620.0622373;1587513611.06391469;]
+      ===
+      ls matches

@@ -41,8 +41,7 @@ type summaryCache struct {
 }
 
 type Storage struct {
-	ark      *archive.Archive
-	sumCache summaryCache
+	ark *archive.Archive
 }
 
 func (s *Storage) NativeDirection() zbuf.Direction {
@@ -56,48 +55,22 @@ func (s *Storage) MultiSource() driver.MultiSource {
 func (s *Storage) Summary(ctx context.Context) (storage.Summary, error) {
 	var sum storage.Summary
 	sum.Kind = storage.ArchiveStore
-
-	update, err := s.ark.UpdateCheck(ctx)
-	if err != nil {
-		return sum, err
-	}
-
-	s.sumCache.mu.Lock()
-	if update == s.sumCache.lastUpdate {
-		sum.Span = s.sumCache.span
-		sum.DataBytes = s.sumCache.dataBytes
-		sum.RecordCount = s.sumCache.recordCount
-		s.sumCache.mu.Unlock()
-		return sum, nil
-	}
-	s.sumCache.mu.Unlock()
-
-	err = archive.SpanWalk(ctx, s.ark, func(si archive.SpanInfo, zardir iosrc.URI) error {
-		zngpath := archive.ZarDirToLog(zardir)
+	err := archive.Walk(ctx, s.ark, func(chunk archive.Chunk) error {
+		zngpath := chunk.Path(s.ark)
 		info, err := iosrc.Stat(ctx, zngpath)
 		if err != nil {
 			return err
 		}
 		sum.DataBytes += info.Size()
-		sum.RecordCount += int64(si.RecordCount)
+		sum.RecordCount += int64(chunk.RecordCount)
 		if sum.Span.Dur == 0 {
-			sum.Span = si.Span
+			sum.Span = chunk.Span()
 		} else {
-			sum.Span = sum.Span.Union(si.Span)
+			sum.Span = sum.Span.Union(chunk.Span())
 		}
 		return nil
 	})
-	if err != nil {
-		return sum, err
-	}
-
-	s.sumCache.mu.Lock()
-	s.sumCache.lastUpdate = update
-	s.sumCache.span = sum.Span
-	s.sumCache.dataBytes = sum.DataBytes
-	s.sumCache.mu.Unlock()
-
-	return sum, nil
+	return sum, err
 }
 
 func (s *Storage) Write(ctx context.Context, zctx *resolver.Context, zr zbuf.Reader) error {

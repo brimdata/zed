@@ -4,14 +4,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"io/ioutil"
-	"math"
 	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/pkg/iosrc"
-	iosrcmock "github.com/brimsec/zq/pkg/iosrc/mock"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/zbuf"
@@ -19,10 +18,10 @@ import (
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+const babble = "../ztests/suite/data/babble.tzng"
 
 func createArchiveSpace(t *testing.T, datapath string, srcfile string, co *CreateOptions) {
 	ark, err := CreateOrOpenArchive(datapath, co, nil)
@@ -70,7 +69,7 @@ func TestOpenOptions(t *testing.T) {
 	defer os.RemoveAll(datapath)
 
 	thresh := int64(1000)
-	createArchiveSpace(t, datapath, "../tests/suite/data/babble.tzng", &CreateOptions{
+	createArchiveSpace(t, datapath, babble, &CreateOptions{
 		LogSizeThreshold: &thresh,
 	})
 
@@ -78,7 +77,7 @@ func TestOpenOptions(t *testing.T) {
 		LogFilter: []string{"foo"},
 	})
 	require.Error(t, err)
-	require.Regexp(t, "no logs left after filter", err.Error())
+	require.Regexp(t, "not a data filename", err.Error())
 
 	indexArchiveSpace(t, datapath, ":int64")
 
@@ -87,131 +86,103 @@ func TestOpenOptions(t *testing.T) {
 
 	ark1, err := OpenArchive(datapath, nil)
 	require.NoError(t, err)
-	exp := `
+
+	// Verifying the complete index search response requires looking at the
+	// filesystem to find the uuids of the data files.
+	expFormat := `
 #zfile=string
-#0:record[key:int64,count:uint64,_log:zfile]
-0:[336;1;20200422/1587518620.0622373.zng;]
-0:[336;1;20200421/1587509469.06883172.zng;]
+#0:record[key:int64,count:uint64,_log:zfile,first:time,last:time]
+0:[336;1;%s;1587518620.0622373;1587513894.06692143;]
+0:[336;1;%s;1587509168.06759839;1587508830.06852324;]
 `
+	first1 := nano.Ts(1587518620062237300)
+	first2 := nano.Ts(1587509168067598390)
+	var logid1, logid2 LogID
+	err = filepath.Walk(datapath, func(p string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if sf, ok := seekIndexNameMatch(fi.Name()); ok {
+			switch sf.first {
+			case first1:
+				logid1 = newLogID(sf.first, sf.id)
+			case first2:
+				logid2 = newLogID(sf.first, sf.id)
+			}
+		}
+		return nil
+	})
+	require.NoError(t, err)
+	if logid1 == "" || logid2 == "" {
+		t.Fatalf("expected data files not found")
+	}
+
 	out := indexQuery(t, ark1, query, AddPath(DefaultAddPathField, false))
-	require.Equal(t, test.Trim(exp), out)
+	require.Equal(t, test.Trim(fmt.Sprintf(expFormat, logid1, logid2)), out)
 
 	ark2, err := OpenArchive(datapath, &OpenOptions{
-		LogFilter: []string{"20200422/1587518620.0622373.zng"},
+		LogFilter: []string{string(logid1)},
 	})
 	require.NoError(t, err)
 
-	exp = `
+	expFormat = `
 #zfile=string
-#0:record[key:int64,count:uint64,_log:zfile]
-0:[336;1;20200422/1587518620.0622373.zng;]
+#0:record[key:int64,count:uint64,_log:zfile,first:time,last:time]
+0:[336;1;%s;1587518620.0622373;1587513894.06692143;]
 `
 	out = indexQuery(t, ark2, query, AddPath(DefaultAddPathField, false))
-	require.Equal(t, test.Trim(exp), out)
+	require.Equal(t, test.Trim(fmt.Sprintf(expFormat, logid1)), out)
 }
 
-func TestImportWhileOpen(t *testing.T) {
-	// Create an archive with initial data
+func TestSeekIndex(t *testing.T) {
 	datapath, err := ioutil.TempDir("", "")
 	require.NoError(t, err)
 	defer os.RemoveAll(datapath)
 
-	// A large threshold ensures every import will result in a separate log.
-	thresh := int64(math.MaxInt64)
-	ark1, err := CreateOrOpenArchive(datapath, &CreateOptions{
-		LogSizeThreshold: &thresh,
-	}, nil)
-	require.NoError(t, err)
+	orig := importStreamRecordsMax
+	importStreamRecordsMax = 1
+	defer func() {
+		importStreamRecordsMax = orig
+	}()
+	createArchiveSpace(t, datapath, babble, &CreateOptions{
+		// Must use SortAscending: true until zq#1329 is addressed.
+		SortAscending: true,
+	})
 
-	// Verify initial update count.
-	update1, err := ark1.UpdateCheck(context.Background())
-	require.NoError(t, err)
-	assert.Equal(t, 1, update1)
-
-	importTestFile(t, ark1, "testdata/td1.zng")
-
-	// Ensure UpdateCheck has incremented.
-	update2, err := ark1.UpdateCheck(context.Background())
-	require.NoError(t, err)
-	if !assert.Equal(t, 3, update2) {
-		if fi, err := iosrc.Stat(context.Background(), ark1.mdURI()); err == nil {
-			fmt.Fprintf(os.Stderr, "metadata mtime: %v, mdModTime %v", fi.ModTime(), ark1.mdModTime)
+	first1 := nano.Ts(1587508830068523240)
+	var idxPath string
+	err = filepath.Walk(datapath, func(p string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return err
 		}
-	}
-
-	// Verify data & that a span walk now does not increment the update counter.
-	var initialSpans []SpanInfo
-	err = SpanWalk(context.Background(), ark1, func(si SpanInfo, _ iosrc.URI) error {
-		initialSpans = append(initialSpans, si)
+		if sf, ok := seekIndexNameMatch(fi.Name()); ok {
+			if sf.first == first1 {
+				idxPath = p
+			}
+		}
 		return nil
 	})
 	require.NoError(t, err)
-	assert.Equal(t, 3, ark1.mdUpdateCount)
-	exp := []SpanInfo{SpanInfo{
-		Span:        nano.Span{Ts: 1587509776063858170, Dur: 4287004687211},
-		LogID:       "20200422/1587514063.06854538.zng",
-		RecordCount: 460,
-	}}
-	assert.Equal(t, exp, initialSpans)
-
-	// With a separate handle, open & import more data to the archive
-	ark2, err := OpenArchive(datapath, nil)
-	require.NoError(t, err)
-
-	importTestFile(t, ark2, "testdata/td2.zng")
-
-	// Verify that the data appears to the earlier opened handle
-	var postSpans []SpanInfo
-	err = SpanWalk(context.Background(), ark1, func(si SpanInfo, _ iosrc.URI) error {
-		postSpans = append(postSpans, si)
-		return nil
-	})
-	require.NoError(t, err)
-
-	exp = []SpanInfo{{
-		Span:        nano.Span{Ts: 1587514075061481960, Dur: 4545000755341},
-		LogID:       "20200422/1587518620.0622373.zng",
-		RecordCount: 453,
-	}, {
-		Span:        nano.Span{Ts: 1587509776063858170, Dur: 4287004687211},
-		LogID:       "20200422/1587514063.06854538.zng",
-		RecordCount: 460,
-	}}
-	assert.Equal(t, exp, postSpans)
-
-	if !assert.Equal(t, 4, ark1.mdUpdateCount) {
-		if fi, err := iosrc.Stat(context.Background(), ark1.mdURI()); err == nil {
-			fmt.Fprintf(os.Stderr, "metadata mtime: %v, ark1.mdModTime %v, ark2.mdModTime %v", fi.ModTime(), ark1.mdModTime, ark2.mdModTime)
-		}
+	if idxPath == "" {
+		t.Fatalf("expected data files not found")
 	}
-}
-
-func TestRemoteSourceImport(t *testing.T) {
-	root, err := ioutil.TempDir("", "")
+	uri, err := iosrc.ParseURI(idxPath)
 	require.NoError(t, err)
-	defer os.RemoveAll(root)
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	src := iosrcmock.NewMockSource(ctrl)
-	var recvuri iosrc.URI
-	src.EXPECT().NewWriter(context.Background(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, uri iosrc.URI) (io.WriteCloser, error) {
-			recvuri = uri
-			return &nopWriteCloser{}, nil
-		})
-	thresh := int64(math.MaxInt64)
-	co := &CreateOptions{
-		DataPath:         "s3://test-bucket/test-key",
-		LogSizeThreshold: &thresh,
-	}
-	ark, err := CreateOrOpenArchive(root, co, &OpenOptions{DataSource: src})
+	finder := microindex.NewFinder(resolver.NewContext(), uri)
+	err = finder.Open(context.Background())
 	require.NoError(t, err)
-	importTestFile(t, ark, "testdata/td1.zng")
+	keys, err := finder.ParseKeys([]string{"1587508851"})
+	require.NoError(t, err)
+	rec, err := finder.LookupClosest(keys)
+	require.NoError(t, err)
 
-	assert.Equal(t, "s3://test-bucket/test-key/20200422/1587514063.06854538.zng", recvuri.String())
+	var buf bytes.Buffer
+	w := tzngio.NewWriter(zio.NopCloser(&buf))
+	require.NoError(t, w.Write(rec))
+
+	exp := `
+#0:record[ts:time,offset:int64]
+0:[1587508850.06466032;202;]
+`
+	require.Equal(t, test.Trim(exp), buf.String())
 }
-
-type nopWriteCloser struct{}
-
-func (*nopWriteCloser) Close() error                { return nil }
-func (*nopWriteCloser) Write(b []byte) (int, error) { return len(b), nil }

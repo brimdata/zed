@@ -2,6 +2,34 @@ These entries focus on changes we think are relevant to users of Brim,
 zq, or pcap.  For all changes to zqd, its API, or to other components in the
 zq repo, check the git log.
 
+## v0.22.0
+* zq: Change the implementation of the `union` type to conform with the [ZNG spec](https://github.com/brimsec/zq/blob/master/zng/docs/spec.md#3114-union-typedef) (#1245)
+* zq: Make options/flags and version reporting consistent across CLI tools (#1249, #1254, #1256, #1296, #1323, #1334, #1328)
+* zqd: Fix an issue that was preventing flows in nanosecond pcaps from opening in Brim (#1243, #1241)
+* zq: Fix an issue where the TZNG reader did not recognize a bad record type as a syntax error (#1260)
+* zq: Add a CSV writer (`-f csv`) (#1267, #1300)
+* zqd: Add an endpoint for returning results in CSV format (#1280)
+* zqd: Add an endpoint for returning results in NDJSON format (#1283)
+* zapi: Add an option to return results as a JSON array (`-e json`) (#1285)
+* zapi: Add output format options/flags to `zapi get` (#1278)
+* zqd: Add an endpoint for creating/querying search indexes (#1272)
+* zapi: Add commands `zapi index create|find` for creating/querying search indexes (#1289)
+* pcap: Mention ICMP protocol filtering (`-p icmp`) in help text (#1281)
+* zq: Point to new Slack community URL https://www.brimsecurity.com/join-slack/ in docs (#1304)
+* zqd: Fix an issue where starting `zqd listen` created excess error messages when subdirectories were present (#1303)
+* zql: Add the [`fuse` processor](https://github.com/brimsec/zq/tree/master/zql/docs/processors#fuse) for unifying records under a single schema (#1310, #1319, #1324)
+* zql: Fix broken links in documentation (#1321, #1339)
+* zst: Introduce the [ZST format](https://github.com/brimsec/zq/blob/master/zst/README.md) for columnar data based on ZNG (#1268, #1338)
+* pcap: Fix an issue where certain pcapng files could fail import with a `bad option length` error (#1341)
+* zql: [Document the `**` operator](https://github.com/brimsec/zq/tree/master/zql/docs/search-syntax#wildcard-field-names) for type-sepcific searches that look within nested records (#1337)
+* zar: Change the archive data file layout to prepare for handing chunk files with overlapping ranges and improved S3 support (#1330)
+* zar: Support archive data files with overlapping time spans (#1348)
+* zqd: Add a page containing guidance for users that directly access the root `zqd` endpoint in a browser (#1350)
+* pcap: Add a `pcap info` command to print summary/debug details about a packet capture file (#1354)
+* zqd: Fix an issue with empty records (#1353)
+* zq: Fix an issue where interrupted aggregations could leave behind temporary files (#1357)
+* zng: Add a marshaler to generate ZNG streams from native Go values (#1327)
+
 ## v0.21.0
 * zq: Improve performance by making fewer API calls in S3 reader (#1191)
 * zq: Use memory more efficiently by reducing allocations (#1190, #1201)

@@ -10,13 +10,12 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zqe"
 )
 
 type findOptions struct {
 	skipMissing bool
 	zctx        *resolver.Context
-	addPath     func(ark *Archive, si SpanInfo, rec *zng.Record) (*zng.Record, error)
+	addPath     func(ark *Archive, chunk Chunk, rec *zng.Record) (*zng.Record, error)
 }
 
 type FindOption func(*findOptions) error
@@ -42,20 +41,27 @@ func AddPath(pathField string, absolutePath bool) FindOption {
 		if err != nil {
 			return err
 		}
-		pathCol := []zng.Column{{pathField, typ}}
-		opt.addPath = func(ark *Archive, si SpanInfo, rec *zng.Record) (*zng.Record, error) {
+		cols := []zng.Column{
+			{pathField, typ},
+			{"first", zng.TypeTime},
+			{"last", zng.TypeTime},
+		}
+		opt.addPath = func(ark *Archive, chunk Chunk, rec *zng.Record) (*zng.Record, error) {
 			var path string
 			if absolutePath {
 				if ark.DataPath.Scheme == "file" {
-					path = si.LogID.Path(ark).Filepath()
+					path = chunk.Path(ark).Filepath()
 				} else {
-					path = si.LogID.Path(ark).String()
+					path = chunk.Path(ark).String()
 				}
 			} else {
-				path = string(si.LogID)
+				path = string(chunk.LogID())
 			}
-			val := zng.Value{pathCol[0].Type, zng.EncodeString(path)}
-			return opt.zctx.AddColumns(rec, pathCol, []zng.Value{val})
+			return opt.zctx.AddColumns(rec, cols, []zng.Value{
+				{cols[0].Type, zng.EncodeString(path)},
+				{cols[1].Type, zng.EncodeTime(chunk.First)},
+				{cols[2].Type, zng.EncodeTime(chunk.Last)},
+			})
 		}
 		return nil
 	}
@@ -80,28 +86,20 @@ func AddPath(pathField string, absolutePath bool) FindOption {
 func Find(ctx context.Context, zctx *resolver.Context, ark *Archive, query IndexQuery, hits chan<- *zng.Record, opts ...FindOption) error {
 	opt := findOptions{
 		zctx:    zctx,
-		addPath: func(_ *Archive, _ SpanInfo, rec *zng.Record) (*zng.Record, error) { return rec, nil },
+		addPath: func(_ *Archive, _ Chunk, rec *zng.Record) (*zng.Record, error) { return rec, nil },
 	}
 	for _, o := range opts {
 		if err := o(&opt); err != nil {
 			return err
 		}
 	}
-	if _, err := ark.UpdateCheck(ctx); err != nil {
-		return err
-	}
-	ark.mu.RLock()
-	indexInfo, ok := ark.indexes[query.indexName]
-	ark.mu.RUnlock()
-	if !ok {
-		return zqe.E(zqe.NotFound)
-	}
-	return SpanWalk(ctx, ark, func(si SpanInfo, zardir iosrc.URI) error {
+	return Walk(ctx, ark, func(chunk Chunk) error {
 		searchHits := make(chan *zng.Record)
 		var searchErr error
 		go func() {
 			defer close(searchHits)
-			searchErr = search(ctx, opt.zctx, searchHits, zardir.AppendPath(indexInfo.Path), query.patterns)
+			uri := chunk.ZarDir(ark).AppendPath(query.indexName)
+			searchErr = search(ctx, opt.zctx, searchHits, uri, query.patterns)
 			if searchErr != nil && os.IsNotExist(searchErr) && opt.skipMissing {
 				// No index for this rule.  Skip it if the skip boolean
 				// says it's ok.  Otherwise, we return ErrNotExist since
@@ -111,7 +109,7 @@ func Find(ctx context.Context, zctx *resolver.Context, ark *Archive, query Index
 			}
 		}()
 		for hit := range searchHits {
-			h, err := opt.addPath(ark, si, hit)
+			h, err := opt.addPath(ark, chunk, hit)
 			if err != nil {
 				return err
 			}

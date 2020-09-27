@@ -98,17 +98,11 @@ func (c *Command) Run(args []string) error {
 
 	// XXX this is parallelizable except for writing to stdout when
 	// concatenating results
-	return archive.Walk(ctx, ark, func(zardir iosrc.URI) error {
+	return archive.Walk(ctx, ark, func(chunk archive.Chunk) error {
+		zardir := chunk.ZarDir(ark)
 		var paths []string
 		for _, input := range inputs {
-			p := archive.Localize(zardir, input)
-			// XXX Doing this because detector doesn't support file uri's. At
-			// some point it should.
-			if p.Scheme == "file" {
-				paths = append(paths, p.Filepath())
-			} else {
-				paths = append(paths, p.String())
-			}
+			paths = append(paths, chunk.Localize(ark, input).String())
 		}
 		zctx := resolver.NewContext()
 		opts := zio.ReaderOpts{Format: "zng"}

@@ -7,7 +7,8 @@ ECR_VERSION = $(VERSION)-$(ZQD_K8S_USER)
 LDFLAGS = -s -X github.com/brimsec/zq/cli.Version=$(VERSION)
 ZEEKTAG = v3.0.2-brim3
 ZEEKPATH = zeek-$(ZEEKTAG)
-SURICATAPATH = suricata
+SURICATATAG = v5.0.3-brim3
+SURICATAPATH = suricata-$(SURICATATAG)
 
 # This enables a shortcut to run a single test from the ./tests suite, e.g.:
 # make TEST=TestZTest/suite/cut/cut
@@ -43,6 +44,13 @@ bin/$(ZEEKPATH):
 	@unzip -q bin/$(ZEEKPATH).zip -d bin \
 		&& mv bin/zeek bin/$(ZEEKPATH)
 
+bin/$(SURICATAPATH):
+	@mkdir -p bin
+	@curl -L -o bin/$(SURICATAPATH).zip \
+		https://storage.googleapis.com/brimsec/suricata/suricata-$(SURICATATAG).$$(go env GOOS)-$$(go env GOARCH).zip
+	@unzip -q bin/$(SURICATAPATH).zip -d bin \
+		&& mv bin/suricata bin/$(SURICATAPATH)
+
 bin/minio:
 	@mkdir -p bin
 	@echo 'module deps' > bin/go.mod
@@ -60,11 +68,11 @@ test-generate: generate
 test-unit:
 	@go test -short ./...
 
-test-system: build bin/minio bin/$(ZEEKPATH)
-	@ZTEST_PATH=$(CURDIR)/dist:$(CURDIR)/bin:$(CURDIR)/bin/$(ZEEKPATH):$(CURDIR)/bin/$(SURICATAPATH) go test -v ./tests
+test-system: build bin/minio bin/$(ZEEKPATH) bin/$(SURICATAPATH)
+	@ZTEST_PATH=$(CURDIR)/dist:$(CURDIR)/bin:$(CURDIR)/bin/$(ZEEKPATH):$(CURDIR)/bin/$(SURICATAPATH) go test -v .
 
-test-run: build bin/minio bin/$(ZEEKPATH)
-	@ZTEST_PATH=$(CURDIR)/dist:$(CURDIR)/bin:$(CURDIR)/bin/$(ZEEKPATH):$(CURDIR)/bin/$(SURICATAPATH) go test -v ./tests -run $(TEST)
+test-run: build bin/minio bin/$(ZEEKPATH) bin/$(SURICATAPATH)
+	@ZTEST_PATH=$(CURDIR)/dist:$(CURDIR)/bin:$(CURDIR)/bin/$(ZEEKPATH):$(CURDIR)/bin/$(SURICATAPATH) go test -v . -run $(TEST)
 
 test-heavy: build $(SAMPLEDATA)
 	@go test -v -tags=heavy ./tests

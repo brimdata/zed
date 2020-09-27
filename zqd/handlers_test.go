@@ -18,13 +18,16 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/tzngio"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/pcapanalyzer"
@@ -35,6 +38,8 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 )
+
+const babble = "../ztests/suite/data/babble.tzng"
 
 func TestSearch(t *testing.T) {
 	src := `
@@ -736,7 +741,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	payload := api.LogPostRequest{Paths: []string{"../tests/suite/data/babble.tzng"}}
+	payload := api.LogPostRequest{Paths: []string{babble}}
 	err = client.LogPost(context.Background(), sp.ID, payload)
 	require.NoError(t, err)
 
@@ -747,7 +752,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 		DataPath:    sp.DataPath,
 		StorageKind: storage.ArchiveStore,
 		Span:        &span,
-		Size:        34419,
+		Size:        34227,
 	}
 	si, err := client.SpaceInfo(context.Background(), sp.ID)
 	require.NoError(t, err)
@@ -805,7 +810,7 @@ func TestIndexSearch(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	payload := api.LogPostRequest{Paths: []string{"../tests/suite/data/babble.tzng"}}
+	payload := api.LogPostRequest{Paths: []string{babble}}
 	err = client.LogPost(context.Background(), sp.ID, payload)
 	require.NoError(t, err)
 	err = client.IndexPost(context.Background(), sp.ID, api.IndexPostRequest{
@@ -813,15 +818,13 @@ func TestIndexSearch(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	expected := `
-#zfile=string
-#0:record[key:int64,count:uint64,_log:zfile]
-0:[257;2;20200422/1587518620.0622373.zng;]
-0:[257;3;20200422/1587513890.06193968.zng;]
-0:[257;1;20200421/1587509469.06883172.zng;]
+	exp := `
+#0:record[key:int64,count:uint64,first:time,last:time]
+0:[257;2;1587518620.0622373;1587513894.06692143;]
+0:[257;4;1587513592.0625444;1587509181.06547297;]
 `
 	res, _ := indexSearch(t, client, sp.ID, "", []string{"v=257"})
-	assert.Equal(t, test.Trim(expected), res)
+	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c _log", res, "tzng"))
 }
 
 func TestSubspaceCreate(t *testing.T) {
@@ -844,7 +847,7 @@ func TestSubspaceCreate(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	payload := api.LogPostRequest{Paths: []string{"../tests/suite/data/babble.tzng"}}
+	payload := api.LogPostRequest{Paths: []string{babble}}
 	err = client.LogPost(context.Background(), sp1.ID, payload)
 	require.NoError(t, err)
 	err = client.IndexPost(context.Background(), sp1.ID, api.IndexPostRequest{
@@ -854,19 +857,19 @@ func TestSubspaceCreate(t *testing.T) {
 
 	// Verify index search returns all logs
 	exp := `
-#zfile=string
-#0:record[key:int64,count:uint64,_log:zfile]
-0:[336;1;20200422/1587518620.0622373.zng;]
-0:[336;1;20200421/1587509469.06883172.zng;]
+#0:record[key:int64,count:uint64,first:time,last:time]
+0:[336;1;1587518620.0622373;1587513894.06692143;]
+0:[336;1;1587509168.06759839;1587508830.06852324;]
 `
 	res, _ := indexSearch(t, client, sp1.ID, "", []string{":int64=336"})
-	assert.Equal(t, test.Trim(exp), res)
+	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c _log", res, "tzng"))
 
+	logId := strings.TrimSpace(tzngCopy(t, "first=1587509168.06759839 | cut _log", res, "text"))
 	// Create subspace
 	sp2, err := client.SubspacePost(context.Background(), sp1.ID, api.SubspacePostRequest{
 		Name: "subspace",
 		OpenOptions: storage.ArchiveOpenOptions{
-			LogFilter: []string{"20200422/1587518620.0622373.zng"},
+			LogFilter: []string{logId},
 		},
 	})
 	require.NoError(t, err)
@@ -874,17 +877,16 @@ func TestSubspaceCreate(t *testing.T) {
 
 	// Verify index search only returns filtered logs
 	exp = `
-#zfile=string
-#0:record[key:int64,count:uint64,_log:zfile]
-0:[336;1;20200422/1587518620.0622373.zng;]
+#0:record[key:int64,count:uint64,first:time,last:time]
+0:[336;1;1587509168.06759839;1587508830.06852324;]
 `
 	res, _ = indexSearch(t, client, sp2.ID, "", []string{":int64=336"})
-	assert.Equal(t, test.Trim(exp), res)
+	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c _log", res, "tzng"))
 
 	// Verify full search only returns filtered results
 	exp = `
 #0:record[ts:time,s:string,v:int64]
-0:[1587517152.06293072;scrabbler-protohydrogen;336;]
+0:[1587508861.0676317;gatelike-nucleolocentrosome;336;]
 `
 	res, _ = search(t, client, sp2.ID, "v=336")
 	assert.Equal(t, test.Trim(exp), res)
@@ -923,7 +925,7 @@ func TestSubspacePersist(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	payload := api.LogPostRequest{Paths: []string{"../tests/suite/data/babble.tzng"}}
+	payload := api.LogPostRequest{Paths: []string{babble}}
 	err = client1.LogPost(context.Background(), sp1.ID, payload)
 	require.NoError(t, err)
 	err = client1.IndexPost(context.Background(), sp1.ID, api.IndexPostRequest{
@@ -931,11 +933,14 @@ func TestSubspacePersist(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	res, _ := indexSearch(t, client1, sp1.ID, "", []string{":int64=336"})
+	logId := strings.TrimSpace(tzngCopy(t, "first=1587518620.0622373 | cut _log", res, "text"))
+
 	// Create subspace
 	sp2, err := client1.SubspacePost(context.Background(), sp1.ID, api.SubspacePostRequest{
 		Name: "subspace",
 		OpenOptions: storage.ArchiveOpenOptions{
-			LogFilter: []string{"20200422/1587518620.0622373.zng"},
+			LogFilter: []string{logId},
 		},
 	})
 	require.NoError(t, err)
@@ -943,12 +948,11 @@ func TestSubspacePersist(t *testing.T) {
 
 	// Verify index search only returns filtered logs
 	exp := `
-#zfile=string
-#0:record[key:int64,count:uint64,_log:zfile]
-0:[336;1;20200422/1587518620.0622373.zng;]
+#0:record[key:int64,count:uint64,first:time,last:time]
+0:[336;1;1587518620.0622373;1587513894.06692143;]
 `
-	res, _ := indexSearch(t, client1, sp2.ID, "", []string{":int64=336"})
-	assert.Equal(t, test.Trim(exp), res)
+	res, _ = indexSearch(t, client1, sp2.ID, "", []string{":int64=336"})
+	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c _log", res, "tzng"))
 
 	// Verify name change works
 	err = client1.SpacePut(context.Background(), sp2.ID, api.SpacePutRequest{Name: "newname"})
@@ -1005,7 +1009,7 @@ func TestArchiveStat(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	payload := api.LogPostRequest{Paths: []string{"../tests/suite/data/babble.tzng"}}
+	payload := api.LogPostRequest{Paths: []string{babble}}
 	err = client.LogPost(context.Background(), sp.ID, payload)
 	require.NoError(t, err)
 	err = client.IndexPost(context.Background(), sp.ID, api.IndexPostRequest{
@@ -1014,14 +1018,15 @@ func TestArchiveStat(t *testing.T) {
 	require.NoError(t, err)
 
 	exp := `
-#0:record[type:string,log_id:string,start:time,duration:duration,size:uint64,record_count:uint64]
-0:[chunk;20200422/1587518620.0622373.zng;1587509477.06450528;9142.997732021;32205;939;]
-#1:record[type:string,log_id:string,index_id:string,index_type:string,size:uint64,record_count:uint64,keys:record[key:string]]
-1:[index;20200422/1587518620.0622373.zng;microindex-field-v.zng;field;2984;939;[int64;]]
-0:[chunk;20200421/1587509477.06313454.zng;1587508830.06852324;646.994611301;2133;61;]
-1:[index;20200421/1587509477.06313454.zng;microindex-field-v.zng;field;493;61;[int64;]]`
+#0:record[type:string,first:time,last:time,size:uint64,record_count:uint64]
+0:[chunk;1587518620.0622373;1587513611.06391469;16995;496;]
+#1:record[type:string,first:time,last:time,index_id:string,size:uint64,record_count:uint64,keys:record[key:string]]
+1:[index;1587518620.0622373;1587513611.06391469;microindex-field-v.zng;2267;496;[int64;]]
+0:[chunk;1587513592.0625444;1587508830.06852324;17206;504;]
+1:[index;1587513592.0625444;1587508830.06852324;microindex-field-v.zng;2253;504;[int64;]]
+`
 	res := archiveStat(t, client, sp.ID)
-	assert.Equal(t, test.Trim(exp), res)
+	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c log_id", res, "tzng"))
 }
 
 func archiveStat(t *testing.T, client *api.Connection, space api.SpaceID) string {
@@ -1079,6 +1084,18 @@ func search(t *testing.T, client *api.Connection, space api.SpaceID, prog string
 func searchTzng(t *testing.T, client *api.Connection, space api.SpaceID, prog string) string {
 	tzng, _ := search(t, client, space, prog)
 	return tzng
+}
+
+func tzngCopy(t *testing.T, prog string, in string, outFormat string) string {
+	zctx := resolver.NewContext()
+	r := tzngio.NewReader(bytes.NewReader([]byte(in)), zctx)
+	buf := bytes.NewBuffer(nil)
+	w, err := detector.LookupWriter(zio.NopCloser(buf), zio.WriterOpts{Format: outFormat})
+	require.NoError(t, err)
+	p := zql.MustParseProc(prog)
+	err = driver.Copy(context.Background(), w, p, zctx, r, driver.Config{})
+	require.NoError(t, err)
+	return buf.String()
 }
 
 func createTempDir(t *testing.T) string {
