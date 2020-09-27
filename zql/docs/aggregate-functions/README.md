@@ -24,7 +24,7 @@ events before invoking the first element in a pipeline.
 
 # General Usage
 
-All aggregate functions may be invoked with [Grouping](../Grouping/README.md)
+All aggregate functions may be invoked with [grouping](../grouping/README.md)
 options that define the batches on which an aggregate function will operate.
 If explicit grouping is not used, an aggregate function will operate over all
 events in the input stream.
