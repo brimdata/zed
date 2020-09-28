@@ -20,9 +20,6 @@ func (s *scratch) Int(v int64) zcode.Bytes {
 		b = b[:0]
 	}
 	s.buf = zng.AppendInt(b, v)
-	if len(s.buf) == 0 {
-		return nil
-	}
 	return s.buf
 }
 
@@ -35,9 +32,6 @@ func (s *scratch) Uint(v uint64) zcode.Bytes {
 		b = b[:0]
 	}
 	s.buf = zng.AppendUint(b, v)
-	if len(s.buf) == 0 {
-		return nil
-	}
 	return s.buf
 }
 
@@ -62,8 +56,5 @@ func (s *scratch) Time(v nano.Ts) zcode.Bytes {
 		b = b[:0]
 	}
 	s.buf = zng.AppendTime(b, v)
-	if len(s.buf) == 0 {
-		return nil
-	}
 	return s.buf
 }
