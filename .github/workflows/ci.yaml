@@ -53,6 +53,7 @@ jobs:
       - run: make install
       - run: make zng-output-check
   ecr-image-push:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: aws-actions/configure-aws-credentials@v1
@@ -73,6 +74,7 @@ jobs:
         run: |
           make docker-push-ecr
   eks-test-deploy:
+    needs: ecr-image-push
     runs-on: ubuntu-latest
     steps:
       - uses: aws-actions/configure-aws-credentials@v1
