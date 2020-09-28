@@ -1,0 +1,29 @@
+script: |
+  mkdir logs
+  zar import -R ./logs babble.tzng
+  zar index -R ./logs -q :string v
+  echo ===
+  # Verify the log_id's in the default table format.
+  zq -t "count()" $(zar stat -R ./logs | grep -v ^TYPE | awk '{print "logs/"$2}' | sort | uniq)
+  echo ===
+  zar stat -R ./logs -f zng | zq -t "cut -c log_id" -
+
+inputs:
+  - name: babble.tzng
+    source: ../data/babble.tzng
+
+outputs:
+  - name: stdout
+    data: |
+      ===
+      #0:record[count:uint64]
+      0:[1000;]
+      ===
+      #0:record[type:string,first:time,last:time,size:uint64,record_count:uint64]
+      0:[chunk;1587518620.0622373;1587513611.06391469;16995;496;]
+      #1:record[type:string,first:time,last:time,index_id:string,size:uint64,record_count:uint64,keys:record[key:string]]
+      1:[index;1587518620.0622373;1587513611.06391469;microindex-field-v.zng;2267;496;[int64;]]
+      1:[index;1587518620.0622373;1587513611.06391469;microindex-type-string.zng;12677;496;[string;]]
+      0:[chunk;1587513592.0625444;1587508830.06852324;17206;504;]
+      1:[index;1587513592.0625444;1587508830.06852324;microindex-field-v.zng;2253;504;[int64;]]
+      1:[index;1587513592.0625444;1587508830.06852324;microindex-type-string.zng;12714;504;[string;]]

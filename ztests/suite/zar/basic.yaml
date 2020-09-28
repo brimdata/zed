@@ -1,0 +1,22 @@
+script: |
+  mkdir logs
+  zar import -R ./logs babble.tzng
+  echo ===
+  zar index -R ./logs -q v
+  zar find -R ./logs -z v=2 | zq -t "cut -c _log" -
+  echo ===
+  zar find -R ./logs -z v=10 | zq -t "cut -c _log" -
+  echo ===
+
+inputs:
+  - name: babble.tzng
+    source: ../data/babble.tzng
+
+outputs:
+  - name: stdout
+    data: |
+      ===
+      #0:record[key:int64,count:uint64,first:time,last:time]
+      0:[2;1;1587518620.0622373;1587513611.06391469;]
+      ===
+      ===

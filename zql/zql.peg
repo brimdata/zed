@@ -672,7 +672,8 @@ days
   / num:number _? day_abbrev { RETURN(MAP("type": "Duration", "seconds": (ASSERT_INT(num)*3600*24))) }
 
 weeks
-  = num:number _? week_abbrev { RETURN(MAP("type": "Duration", "seconds": ASSERT_INT(num)*3600*24*7)) }
+  = "week" { RETURN(MAP("type": "Duration", "seconds": 3600*24*7)) }
+  / num:number _? week_abbrev { RETURN(MAP("type": "Duration", "seconds": ASSERT_INT(num)*3600*24*7)) }
 
 number = unsignedInteger
 

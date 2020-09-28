@@ -1,0 +1,26 @@
+script: |
+  mkdir logs
+  zar import -R ./logs babble.tzng
+  zar zq -R ./logs "count()" | zq -t -
+  echo ===
+  zar map -R ./logs -o count.zng "count()"
+  zar zq -R ./logs "* | sort -r count" count.zng | zq -t -
+  echo ===
+  zar zq -R ./logs "sum(count)" count.zng | zq -t -
+
+inputs:
+  - name: babble.tzng
+    source: ../data/babble.tzng
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[count:uint64]
+      0:[1000;]
+      ===
+      #0:record[count:uint64]
+      0:[504;]
+      0:[496;]
+      ===
+      #0:record[sum:uint64]
+      0:[1000;]

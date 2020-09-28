@@ -1,0 +1,39 @@
+
+script: |
+  mkdir logs
+  zar import -R ./logs log.tzng
+  zar index -R ./logs -q :ip
+  echo ===
+  zar find -R ./logs :ip=1.1.1.1
+  echo ===
+  zar find -R ./logs -z :ip=192.168.1.102 | zq -t "cut -c _log" -
+  echo ===
+  zar find -R ./logs -z :ip=192.168.2.1 | zq -t "cut -c _log" -
+  echo ===
+  zar find -R ./logs -z :ip=192.168.1.1 | zq -t "cut -c _log" -
+  echo ===
+  zq -t "count(key)" $(find . -name microindex*) # check unset not indexed
+
+inputs:
+  - name: log.tzng
+    data: |
+      #0:record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],referenced_file:record[ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],fuid:bstring]]
+      0:[smb_cmd;1258594907.85978;Chjxid42dvvzIzdeG8;[192.168.1.102;1076;192.168.2.1;139;][1258594907.85978;Chjxid42dvvzIzdeG8;[-;1076;192.168.1.1;139;]ZYjxid42dvvzIzdeG8;]]
+
+
+outputs:
+  - name: stdout
+    data: |
+      ===
+      ===
+      #0:record[key:ip,count:uint64,first:time,last:time]
+      0:[192.168.1.102;1;1258594907.85978;1258594907.85978;]
+      ===
+      #0:record[key:ip,count:uint64,first:time,last:time]
+      0:[192.168.2.1;1;1258594907.85978;1258594907.85978;]
+      ===
+      #0:record[key:ip,count:uint64,first:time,last:time]
+      0:[192.168.1.1;1;1258594907.85978;1258594907.85978;]
+      ===
+      #0:record[count:uint64]
+      0:[3;]

@@ -6,6 +6,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path"
+	"strings"
 
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cmd/zar/root"
@@ -33,6 +35,7 @@ type Command struct {
 	root          string
 	lflag         bool
 	relativePaths bool
+	showRanges    bool
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -40,6 +43,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
 	f.BoolVar(&c.lflag, "l", false, "long form")
 	f.BoolVar(&c.relativePaths, "relative", false, "display paths relative to root")
+	f.BoolVar(&c.showRanges, "ranges", false, "display time ranges instead of paths")
 	return c, nil
 }
 
@@ -57,8 +61,8 @@ func (c *Command) Run(args []string) error {
 	if len(args) == 1 {
 		pattern = args[0]
 	}
-	return archive.Walk(context.TODO(), ark, func(zardir iosrc.URI) error {
-		c.printDir(ark.DataPath, zardir, pattern)
+	return archive.Walk(context.TODO(), ark, func(chunk archive.Chunk) error {
+		c.printDir(ark, chunk, pattern)
 		return nil
 	})
 }
@@ -74,30 +78,35 @@ func fileExists(path iosrc.URI) bool {
 	return true
 }
 
-func (c *Command) printDir(root, dir iosrc.URI, pattern string) {
+func (c *Command) printDir(ark *archive.Archive, chunk archive.Chunk, pattern string) {
+	dir := chunk.ZarDir(ark)
 	if pattern != "" {
 		path := dir.AppendPath(pattern)
 		if fileExists(path) {
-			fmt.Println(c.printable(root, path))
+			fmt.Println(c.printable(ark, chunk, dir, pattern))
 		}
 		return
 	}
-	fmt.Println(c.printable(root, dir))
-	if c.lflag {
+	if !c.lflag {
+		fmt.Println(c.printable(ark, chunk, dir, ""))
+	} else {
 		entries, err := iosrc.ReadDir(context.TODO(), dir)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error listing directory: %v", err)
 			return
 		}
 		for _, e := range entries {
-			fmt.Printf("\t%s\n", e.Name())
+			fmt.Println(c.printable(ark, chunk, dir, e.Name()))
 		}
 	}
 }
 
-func (c *Command) printable(root, path iosrc.URI) string {
-	if c.relativePaths {
-		return root.RelPath(path)
+func (c *Command) printable(ark *archive.Archive, chunk archive.Chunk, zardir iosrc.URI, objPath string) string {
+	if c.showRanges {
+		return path.Join(chunk.Range(ark), objPath)
 	}
-	return path.String()
+	if c.relativePaths {
+		return strings.TrimSuffix(ark.DataPath.RelPath(zardir.AppendPath(objPath)), "/")
+	}
+	return zardir.AppendPath(objPath).String()
 }

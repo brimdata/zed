@@ -1,0 +1,19 @@
+# test a simple indexing scenario with the use of the -i flag
+script: |
+  mkdir logs
+  zar import -R ./logs babble.tzng
+  zar map -R ./logs  -q -o sums.zng "sum(v) by s"
+  zar index -R ./logs -f 10000 -i sums.zng -q -o index.zng -z "put key=s | sort key"
+  indexFile="logs/$(zar stat -R ./logs | grep ^index | awk '{print $2}' | sort | uniq | head -n 1).zar/index.zng"
+  microindex section -t -s 1 ${indexFile}
+
+inputs:
+  - name: babble.tzng
+    source: ../data/babble.tzng
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[key:string,_child:int64]
+      0:[Algedi-pigeonman;0;]
+      0:[increasement-elaioleucite;10025;]
