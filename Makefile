@@ -108,7 +108,7 @@ docker-push-local: docker
 
 docker-push-ecr: docker
 	aws ecr get-login-password --region us-east-2 | docker login \
-	  --username AWS --password-stdin 792043464098.dkr.ecr.us-east-2.amazonaws.com/zqd
+	  --username AWS --password-stdin $(ZQD_ECR_HOST)/zqd
 	docker tag zqd $(ZQD_ECR_HOST)/zqd:$(ECR_VERSION)
 	docker push $(ZQD_ECR_HOST)/zqd:$(ECR_VERSION)
 
