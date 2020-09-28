@@ -69,7 +69,9 @@ func NewReader(reader io.Reader, zctx *resolver.Context, opts ReaderOpts, filepa
 		if len(match) == 2 {
 			path = match[1]
 		}
-		r.configureTypes(*opts.TypeConfig, path)
+		if err = r.configureTypes(*opts.TypeConfig, path); err != nil {
+			return nil, err
+		}
 	}
 	return r, nil
 }
