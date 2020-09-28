@@ -40,7 +40,7 @@ func Extension(format string) string {
 		return ".txt"
 	case "table":
 		return ".tbl"
-	case "zng":
+	case "zng", "azng":
 		return ".zng"
 	case "csv":
 		return ".csv"
