@@ -4,6 +4,8 @@ import (
 	"container/heap"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strconv"
 
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/zng"
@@ -94,9 +96,7 @@ func (r *MergeSort) Read() (*zng.Record, error) {
 			if err := r.runs[0].CloseAndRemove(); err != nil {
 				return nil, err
 			}
-			// XXX
-			//heap.Pop(r)
-			heap.Remove(r, 0)
+			heap.Pop(r)
 		} else {
 			heap.Fix(r, 0)
 		}
