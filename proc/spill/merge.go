@@ -16,6 +16,7 @@ import (
 // disk a chunk at a time, then read back and merged in sorted order, effectively
 // implementing an external merge sort.
 type MergeSort struct {
+	nspill    int
 	runs      []*peeker
 	compareFn expr.CompareFn
 	tempDir   string
@@ -60,12 +61,12 @@ func (r *MergeSort) Cleanup() {
 // the chunks sequentially.
 func (r *MergeSort) Spill(recs []*zng.Record) error {
 	expr.SortStable(recs, r.compareFn)
-	index := len(r.runs)
-	filename := filepath.Join(r.tempDir, strconv.Itoa(index))
-	runFile, err := newPeeker(filename, index, recs, r.zctx)
+	filename := filepath.Join(r.tempDir, strconv.Itoa(r.nspill))
+	runFile, err := newPeeker(filename, r.nspill, recs, r.zctx)
 	if err != nil {
 		return err
 	}
+	r.nspill++
 	heap.Push(r, runFile)
 	return nil
 }
