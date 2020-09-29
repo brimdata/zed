@@ -334,7 +334,7 @@ func TestNDJSONTypeErrors(t *testing.T) {
 		},
 		{
 			name:    "Missing _path",
-			result:  typeStats{MissingPath: 1, FirstBadLine: 1},
+			result:  typeStats{DescriptorNotFound: 1, FirstBadLine: 1},
 			input:   `{"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65"}` + "\n",
 			success: false,
 		},
