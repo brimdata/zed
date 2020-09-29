@@ -14,7 +14,7 @@ tips for their effective use.
 
 # Time Grouping - `every`
 
-To create batches of events that are close together by time, specify
+To create batches of events that are close together in time, specify
 `every <duration>` before invoking your aggregate function(s).
 
 The `<duration>` may be expressed in any of the following units of time. A
