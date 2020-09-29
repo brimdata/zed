@@ -32,8 +32,8 @@ func NewFile(f *os.File) *File {
 	}
 }
 
-func NewTempFile() (*File, error) {
-	f, err := TempFile()
+func NewTempFile(dir string) (*File, error) {
+	f, err := TempFile(dir)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +56,6 @@ func (f *File) Rewind(zctx *resolver.Context) error {
 	}
 	f.Writer = nil
 	if _, err := f.file.Seek(0, 0); err != nil {
-		f.CloseAndRemove()
 		return err
 	}
 	f.Reader = zngio.NewReader(bufio.NewReader(f.file), zctx)

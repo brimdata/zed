@@ -11,11 +11,7 @@ type peeker struct {
 	ordinal    int
 }
 
-func newPeeker(filename string, ordinal int, recs []*zng.Record, zctx *resolver.Context) (*peeker, error) {
-	f, err := NewFileWithPath(filename, zctx)
-	if err != nil {
-		return nil, err
-	}
+func newPeeker(f *File, ordinal int, recs []*zng.Record, zctx *resolver.Context) (*peeker, error) {
 	for _, rec := range recs {
 		if err := f.Write(rec); err != nil {
 			f.CloseAndRemove()

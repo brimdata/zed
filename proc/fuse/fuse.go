@@ -98,7 +98,7 @@ func (p *Proc) stash(rec *zng.Record) error {
 	p.nbytes += len(rec.Raw)
 	if p.nbytes >= MemMaxBytes {
 		var err error
-		p.spiller, err = spill.NewTempFile()
+		p.spiller, err = spill.NewTempFile("")
 		if err != nil {
 			return err
 		}

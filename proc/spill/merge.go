@@ -4,8 +4,6 @@ import (
 	"container/heap"
 	"io/ioutil"
 	"os"
-	"path/filepath"
-	"strconv"
 
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/zng"
@@ -29,8 +27,8 @@ func TempDir() (string, error) {
 	return ioutil.TempDir("", TempPrefix)
 }
 
-func TempFile() (*os.File, error) {
-	return ioutil.TempFile("", TempPrefix)
+func TempFile(dir string) (*os.File, error) {
+	return ioutil.TempFile(dir, TempPrefix)
 }
 
 // NewMergeSort returns a MergeSort to implement external merge sorts of a large
@@ -96,7 +94,9 @@ func (r *MergeSort) Read() (*zng.Record, error) {
 			if err := r.runs[0].CloseAndRemove(); err != nil {
 				return nil, err
 			}
-			heap.Pop(r)
+			// XXX
+			//heap.Pop(r)
+			heap.Remove(r, 0)
 		} else {
 			heap.Fix(r, 0)
 		}
