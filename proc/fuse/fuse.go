@@ -166,7 +166,7 @@ type slot struct {
 
 func (p *Proc) finish() error {
 	uber := newSchema()
-	// positionsByID provides a map from a type ID to a slice of integers
+	// slotByID provides a map from a type ID to a slice of integers
 	// that represent the column position in the uber schema for each column
 	// of the input record type.
 	p.slotByID = make([][]int, len(p.types))
