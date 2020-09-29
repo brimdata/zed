@@ -29,8 +29,8 @@ func TempDir() (string, error) {
 	return ioutil.TempDir("", TempPrefix)
 }
 
-func TempFile(dir string) (*os.File, error) {
-	return ioutil.TempFile(dir, TempPrefix)
+func TempFile() (*os.File, error) {
+	return ioutil.TempFile("", TempPrefix)
 }
 
 // NewMergeSort returns a MergeSort to implement external merge sorts of a large

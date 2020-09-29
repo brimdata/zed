@@ -32,8 +32,8 @@ func NewFile(f *os.File) *File {
 	}
 }
 
-func NewTempFile(dir string) (*File, error) {
-	f, err := TempFile(dir)
+func NewTempFile() (*File, error) {
+	f, err := TempFile()
 	if err != nil {
 		return nil, err
 	}
