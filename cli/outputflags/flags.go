@@ -48,7 +48,7 @@ func (f *Flags) setFlags(fs *flag.FlagSet) {
 
 func (f *Flags) SetFlags(fs *flag.FlagSet) {
 	f.setFlags(fs)
-	fs.StringVar(&f.Format, "f", "zng", "format for output data [zng,ndjson,table,text,csv,zeek,zjson,tzng]")
+	fs.StringVar(&f.Format, "f", "zng", "format for output data [zng,zst,ndjson,table,text,csv,zeek,zjson,tzng]")
 	fs.BoolVar(&f.textShortcut, "t", false, "use format tzng independent of -f option")
 }
 
