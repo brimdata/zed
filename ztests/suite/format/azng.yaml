@@ -1,0 +1,20 @@
+script: |
+  zq -t -i azng hello.azng
+  echo ===
+  zq -t hello.azng
+
+inputs:
+  - name: hello.azng
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[a:string,b:string]
+      0:[hello;world;]
+      #1:record[a:string,b:int32]
+      1:[goodnight;123;]
+      ===
+      #0:record[a:string,b:string]
+      0:[hello;world;]
+      #1:record[a:string,b:int32]
+      1:[goodnight;123;]

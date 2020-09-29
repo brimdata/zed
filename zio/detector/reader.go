@@ -7,6 +7,7 @@ import (
 
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zio/azngio"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zio/zeekio"
@@ -58,9 +59,21 @@ func NewReaderWithOpts(r io.Reader, zctx *resolver.Context, path string, opts zi
 	if zngErr == nil {
 		return zngio.NewReaderWithOpts(recorder, zctx, opts.Zng), nil
 	}
+	track.Reset()
+
+	ar := azngio.NewReader(track, resolver.NewContext())
+	azngErr := match(ar, "azng")
+	// We have to close azng reader since there is a goroutine inside of
+	// the alpha-zng converter that will continue to read from the
+	// recorder/tracker and fight with the new reader unless we
+	// tear it down.
+	ar.Close()
+	if azngErr == nil {
+		return azngio.NewReader(recorder, zctx), nil
+	}
 	parquetErr := errors.New("parquet: auto-detection not supported")
 	zstErr := errors.New("zst: auto-detection not supported")
-	return nil, joinErrs([]error{tzngErr, zeekErr, ndjsonErr, zjsonErr, zngErr, parquetErr, zstErr})
+	return nil, joinErrs([]error{tzngErr, zeekErr, ndjsonErr, zjsonErr, zngErr, azngErr, parquetErr, zstErr})
 }
 
 func NewReader(r io.Reader, zctx *resolver.Context) (zbuf.Reader, error) {

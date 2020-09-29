@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zio/azngio"
 	"github.com/brimsec/zq/zio/csvio"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/tableio"
@@ -73,6 +74,8 @@ func lookupReader(r io.Reader, zctx *resolver.Context, path string, opts zio.Rea
 		return zngio.NewReaderWithOpts(r, zctx, opts.Zng), nil
 	case "zst":
 		return zstio.NewReader(r, zctx)
+	case "azng":
+		return azngio.NewReader(r, zctx), nil
 	}
 	return nil, fmt.Errorf("no such format: \"%s\"", opts.Format)
 }
