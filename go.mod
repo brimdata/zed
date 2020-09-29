@@ -8,6 +8,7 @@ require (
 	github.com/apache/thrift v0.0.0-20181112125854-24918abba929
 	github.com/aws/aws-sdk-go v1.30.19
 	github.com/axiomhq/hyperloglog v0.0.0-20191112132149-a4c4c47bc57f
+	github.com/brimsec/zq/0220 v0.0.0-00010101000000-000000000000
 	github.com/buger/jsonparser v0.0.0-20191004114745-ee4c978eae7e
 	github.com/go-resty/resty/v2 v2.2.0
 	github.com/golang/mock v1.4.3
@@ -41,3 +42,5 @@ require (
 )
 
 replace github.com/minio/minio => github.com/brimsec/minio v0.0.0-20200716214025-90d56627f750
+
+replace github.com/brimsec/zq/0220 => github.com/brimsec/zq v0.22.0
