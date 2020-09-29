@@ -57,7 +57,7 @@ zq -f table 'every 30sec count() | sort -r count' *.log.gz
 ```
 
 #### Output:
-```zq-output head:5
+```zq-output head:4
 TS                COUNT
 1521911940.000000 73512
 1521911790.000000 59701
@@ -99,7 +99,7 @@ unique combination of values found in those fields. To see which responding
 IP+port combinations generated the most traffic:
 
 ```zq-command
-zq -f table 'sum(resp_bytes) by id.resp_h,id.resp_p  | sort -r' conn.log.gz
+zq -f table 'sum(resp_bytes) by id.resp_h,id.resp_p  | sort -r sum' conn.log.gz
 ```
 
 #### Output:
@@ -126,14 +126,14 @@ both `id.resp_h` and an expression that evaluates the length of `answers`
 arrays.
 
 ```zq-command
-zq -f table 'len(answers) > 0 | count() by id.resp_h,num_answers=len(answers) | sort -r num_answers' dns.log.gz
+zq -f table 'len(answers) > 0 | count() by id.resp_h,num_answers=len(answers) | sort -r num_answers,count' dns.log.gz
 ```
 
 #### Output:
 ```zq-output head:5
 ID.RESP_H       NUM_ANSWERS COUNT
-216.239.34.10   16          2
 10.0.0.100      16          4
+216.239.34.10   16          2
 209.112.113.33  15          2
 216.239.34.10   14          4
 ...
