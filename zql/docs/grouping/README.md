@@ -69,7 +69,7 @@ TS                COUNT
 
 To create batches of events based on the values of fields or the results of
 [expressions](../expressions/README.md), specify
-`by <fieldname | name=expression> [, <fieldname | name=expression> ...]`
+`by <field-name | name=expression> [, <field-name | name=expression> ...]`
 after invoking your aggregate function(s).
 
 #### Example #1:

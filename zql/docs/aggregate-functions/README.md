@@ -24,10 +24,10 @@ events before invoking the first element in a pipeline.
 
 # General Usage
 
-All aggregate functions may be invoked with [grouping](../grouping/README.md)
-options that define the batches on which an aggregate function will operate.
-If explicit grouping is not used, an aggregate function will operate over all
-events in the input stream.
+All aggregate functions may be invoked with one or more
+[grouping](../grouping/README.md) options that define the batches of events on
+which they operate. If explicit grouping is not used, an aggregate function
+will operate over all events in the input stream.
 
 Multiple aggregate functions may be invoked at the same time.
 
@@ -48,7 +48,7 @@ MIN      MAX         AVG
 
 As just shown, by default the result returned by an aggregate function is
 placed in a field with the same name as the aggregate function. You may
-instead use `=` to specify an explicit name for the field.
+instead use `=` to specify an explicit name for the generated field.
 
 #### Example:
 
@@ -141,9 +141,9 @@ ftp   93
 | ------------------------- | -------------------------------------------------------------- |
 | **Description**           | Return a quick approximation of the number of unique values of a field. |
 | **Syntax**                | `countdistinct(<field-name>)`                                  |
-| **Required<br>arguments** | None                                                           |
-| **Optional<br>arguments** | `<field-name>`<br>The name of a field containing values to be counted. |
-| **Limitations**           | The potential inaccuracy of the calculated result is described in detail in the code and research linked from the [HyperLogLog implementation repository](https://github.com/axiomhq/hyperloglog). |
+| **Required<br>arguments** | `<field-name>`<br>The name of a field containing values to be counted. |
+| **Optional<br>arguments** | None                                                           |
+| **Limitations**           | The potential inaccuracy of the calculated result is described in detail in the code and research linked from the [HyperLogLog repository](https://github.com/axiomhq/hyperloglog). |
 | **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/reducer#CountDistinct  |
 
 #### Example:
