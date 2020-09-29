@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/pkg/nano"
@@ -358,22 +359,35 @@ func parseSimpleType(value []byte, typ zng.Type) ([]byte, error) {
 	}
 }
 
+func parseISO8601SignedOffset(s []byte) (nano.Ts, error) {
+	t, err := time.Parse("2006-01-02T15:04:05.999999999-0700", string(s))
+	if err != nil {
+		return 0, err
+	}
+	return nano.TimeToTs(t), nil
+}
+
 // parseJSONTimestamp interprets data as a timestamp and returns its value as
 // both a nano.Ts and the standard Zeek format (a decimal floating-point number
 // representing seconds since the Unix epoch).
 //
-// parseJSONTimestamp understands the three timestamp formats that Zeek's ASCII
-// log writer can produce when LogAscii::use_json is true.  These formats
-// correspond to the three possible values for LogAscii::json_timestamps:
-// JSON::TS_EPOCH, JSON::TS_ISO8601, and JSON::TS_MILLIS.  For descriptions, see
+// parseJSONTimestamp understands the three timestamp formats that
+// Zeek's ASCII log writer can produce when LogAscii::use_json is true
+// as well as the ISO8601 format emitted by Suricata in eve.json.
+//
+// The Zeek formats correspond to the three possible values for
+// LogAscii::json_timestamps: JSON::TS_EPOCH, JSON::TS_ISO8601, and
+// JSON::TS_MILLIS.  For descriptions, see
 // https://docs.zeek.org/en/stable/scripts/base/init-bare.zeek.html#type-JSON::TimestampFormat.
 func parseJSONTimestamp(data []byte) (nano.Ts, error) {
 	switch {
-	case bytes.Contains(data, []byte{'-'}): // JSON::TS_ISO8601
+	case bytes.Contains(data, []byte{'Z'}): // Zeek JSON::TS_ISO8601
 		return nano.ParseRFC3339Nano(data)
-	case bytes.Contains(data, []byte{'.'}): // JSON::TS_EPOCH
+	case bytes.Contains(data, []byte{'-'}):
+		return parseISO8601SignedOffset(data)
+	case bytes.Contains(data, []byte{'.'}): // Zeek JSON::TS_EPOCH
 		return nano.Parse(data)
-	default: // JSON::TS_MILLIS
+	default: // Zeek JSON::TS_MILLIS
 		return nano.ParseMillis(data)
 	}
 }
