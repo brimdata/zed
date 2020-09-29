@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/reducer"
 	"github.com/brimsec/zq/reducer/compile"
 	"github.com/brimsec/zq/zbuf"
@@ -31,7 +32,7 @@ func parse(zctx *resolver.Context, src string) (zbuf.Array, error) {
 	return zbuf.Array(records), nil
 }
 
-func runOne(t *testing.T, zctx *resolver.Context, cred compile.CompiledReducer, i int, recs []*zng.Record) zng.Value {
+func runOne(t *testing.T, zctx *resolver.Context, cred compile.Reducer, i int, recs []*zng.Record) zng.Value {
 	red := cred.Instantiate().(reducer.Decomposable)
 	for _, rec := range recs[:i] {
 		red.Consume(rec)
@@ -59,21 +60,15 @@ func TestDecomposableReducers(t *testing.T) {
 	require.NoError(t, err)
 	recs := b.Records()
 
-	makeReducer := func(op, field string) compile.CompiledReducer {
-		cred, err := compile.Compile(ast.Reducer{
-			Node: ast.Node{Op: op},
-			Var:  strings.ToLower(op),
-			Field: &ast.Field{
-				Node:  ast.Node{Op: "Field"},
-				Field: field,
-			},
-		})
+	makeReducer := func(op, fieldName string) compile.Reducer {
+		assignment := ast.NewReducerAssignment(op, nil, field.New(fieldName))
+		cred, err := compile.Compile(assignment)
 		require.NoError(t, err)
 		return cred
 	}
 
 	t.Run("avg", func(t *testing.T) {
-		cred := makeReducer("Avg", "n")
+		cred := makeReducer("avg", "n")
 		for i := 0; i <= len(recs); i++ {
 			res := runOne(t, resolver, cred, i, recs)
 			f, err := zng.DecodeFloat64(res.Bytes)
@@ -82,7 +77,7 @@ func TestDecomposableReducers(t *testing.T) {
 		}
 	})
 	t.Run("count", func(t *testing.T) {
-		cred := makeReducer("Count", "n")
+		cred := makeReducer("count", "n")
 		for i := 0; i <= len(recs); i++ {
 			res := runOne(t, resolver, cred, i, recs)
 			f, err := zng.DecodeUint(res.Bytes)
@@ -91,7 +86,7 @@ func TestDecomposableReducers(t *testing.T) {
 		}
 	})
 	t.Run("first", func(t *testing.T) {
-		cred := makeReducer("First", "n")
+		cred := makeReducer("first", "n")
 		for i := 0; i <= len(recs); i++ {
 			res := runOne(t, resolver, cred, i, recs)
 			f, err := zng.DecodeInt(res.Bytes)
@@ -100,7 +95,7 @@ func TestDecomposableReducers(t *testing.T) {
 		}
 	})
 	t.Run("last", func(t *testing.T) {
-		cred := makeReducer("Last", "n")
+		cred := makeReducer("last", "n")
 		for i := 0; i <= len(recs); i++ {
 			res := runOne(t, resolver, cred, i, recs)
 			f, err := zng.DecodeInt(res.Bytes)
@@ -109,7 +104,7 @@ func TestDecomposableReducers(t *testing.T) {
 		}
 	})
 	t.Run("field-min", func(t *testing.T) {
-		cred := makeReducer("Min", "n")
+		cred := makeReducer("min", "n")
 		for i := 0; i <= len(recs); i++ {
 			res := runOne(t, resolver, cred, i, recs)
 			f, err := zng.DecodeInt(res.Bytes)
@@ -118,7 +113,7 @@ func TestDecomposableReducers(t *testing.T) {
 		}
 	})
 	t.Run("field-max", func(t *testing.T) {
-		cred := makeReducer("Max", "n")
+		cred := makeReducer("max", "n")
 		for i := 0; i <= len(recs); i++ {
 			res := runOne(t, resolver, cred, i, recs)
 			f, err := zng.DecodeInt(res.Bytes)
@@ -127,7 +122,7 @@ func TestDecomposableReducers(t *testing.T) {
 		}
 	})
 	t.Run("field-sum", func(t *testing.T) {
-		cred := makeReducer("Sum", "n")
+		cred := makeReducer("sum", "n")
 		for i := 0; i <= len(recs); i++ {
 			res := runOne(t, resolver, cred, i, recs)
 			f, err := zng.DecodeInt(res.Bytes)

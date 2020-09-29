@@ -8,6 +8,8 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/bufwriter"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/proc/cut"
@@ -46,7 +48,7 @@ import (
 // instead of Close().
 type Writer struct {
 	uri         iosrc.URI
-	keyFields   []string
+	keyFields   []field.Static
 	zctx        *resolver.Context
 	writer      *indexWriter
 	cutter      *cut.Cutter
@@ -76,13 +78,13 @@ type indexWriter struct {
 // provide keys in increasing lexicographic order.  Duplicate keys are not
 // allowed but will not be detected.  Close() or Abort() must be called when
 // done writing.
-func NewWriter(zctx *resolver.Context, path string, keyFields []string, frameThresh int) (*Writer, error) {
+func NewWriter(zctx *resolver.Context, path string, keyFields []field.Static, frameThresh int) (*Writer, error) {
 	return NewWriterWithContext(context.Background(), zctx, path, keyFields, frameThresh)
 
 }
-func NewWriterWithContext(ctx context.Context, zctx *resolver.Context, path string, keyFields []string, frameThresh int) (*Writer, error) {
+func NewWriterWithContext(ctx context.Context, zctx *resolver.Context, path string, keyFields []field.Static, frameThresh int) (*Writer, error) {
 	if keyFields == nil {
-		keyFields = []string{"key"}
+		keyFields = []field.Static{field.New("key")}
 	}
 	if frameThresh == 0 {
 		return nil, errors.New("microindex frame threshold cannot be zero")
@@ -102,10 +104,11 @@ func NewWriterWithContext(ctx context.Context, zctx *resolver.Context, path stri
 	if err != nil {
 		return nil, err
 	}
+	fields, resolvers := expr.CompileAssignments(keyFields, keyFields)
 	w := &Writer{
 		zctx:        zctx,
 		uri:         uri,
-		cutter:      cut.NewStrictCutter(zctx, false, keyFields, keyFields),
+		cutter:      cut.NewStrictCutter(zctx, false, fields, resolvers),
 		tmpdir:      tmp,
 		keyFields:   keyFields,
 		frameThresh: frameThresh,
@@ -237,7 +240,7 @@ func (w *Writer) finalize() error {
 func (w *Writer) writeEmptyTrailer() error {
 	var cols []zng.Column
 	for _, key := range w.keyFields {
-		cols = append(cols, zng.Column{key, zng.TypeNull})
+		cols = append(cols, zng.Column{key.String(), zng.TypeNull})
 	}
 	typ, err := w.zctx.LookupTypeRecord(cols)
 	if err != nil {

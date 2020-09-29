@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/brimsec/zq/driver"
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 )
@@ -23,8 +24,8 @@ func NewStaticSource(ark *Archive, si SpanInfo) driver.MultiSource {
 	}
 }
 
-func (s *staticSource) OrderInfo() (string, bool) {
-	return "ts", s.ark.DataSortDirection == zbuf.DirTimeReverse
+func (s *staticSource) OrderInfo() (field.Static, bool) {
+	return field.New("ts"), s.ark.DataSortDirection == zbuf.DirTimeReverse
 }
 
 func (s *staticSource) SendSources(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan driver.SourceOpener) error {

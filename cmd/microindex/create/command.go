@@ -7,6 +7,7 @@ import (
 	"github.com/brimsec/zq/cli/inputflags"
 	"github.com/brimsec/zq/cmd/microindex/root"
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/detector"
@@ -100,7 +101,7 @@ func (c *Command) Run(args []string) error {
 }
 
 func (c *Command) buildTable(zctx *resolver.Context, reader zbuf.Reader) (*microindex.MemTable, error) {
-	readKey := expr.NewFieldAccess(c.keyField)
+	readKey := expr.NewDotExpr(field.Dotted(c.keyField))
 	table := microindex.NewMemTable(zctx)
 	for {
 		rec, err := reader.Read()

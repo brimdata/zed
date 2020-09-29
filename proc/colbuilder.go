@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -66,8 +67,7 @@ func (e errDuplicateFields) Unwrap() error {
 //  {name: "d", fullname: "b.d", containerBegins: [], containerEnds: 1     }    // steps 4-5
 //  {name: "z", fullname: "x.y.z", containerBegins: ["x", "y"], containerEnds: 2} // steps 6-10
 type fieldInfo struct {
-	name            string
-	fullname        string
+	field           field.Static
 	containerBegins []string
 	containerEnds   int
 }
@@ -79,19 +79,17 @@ type ColumnBuilder struct {
 	curField int
 }
 
-// Build the structures we need to construct output records efficiently.
-// See the comment above for a description of the desired output.
-// Note that we require any nested fields from the same parent record
-// to be adjacent.  Alternatively we could re-order provided fields
-// so the output record can be constructed efficiently, though we don't
-// do this now since it might confuse users who expect to see output
-// fields in the order they specified.
-func NewColumnBuilder(zctx *resolver.Context, fields []string) (*ColumnBuilder, error) {
+// NewColumnBuilder constructs the zcode.Bytes representation for columns
+// buit from an array of input field selectors expressed as field.Static.
+// Append should be called to enter field values in the left to right order
+// of the provided fields and Encode is called to retrieve the nested zcode.Bytes
+// value.  Reset should be called before encoding the next record.
+func NewColumnBuilder(zctx *resolver.Context, fields []field.Static) (*ColumnBuilder, error) {
 	seenRecords := make(map[string]bool)
 	fieldInfos := make([]fieldInfo, 0, len(fields))
 	var currentRecord []string
 	for i, field := range fields {
-		names := strings.Split(field, ".")
+		names := field
 		// Grab everything except the leaf field name and see if
 		// it has changed from the previous field.  If it hasn't,
 		// things are simple but if it has, we need to carefully
@@ -136,11 +134,10 @@ func NewColumnBuilder(zctx *resolver.Context, fields []string) (*ColumnBuilder, 
 			}
 			currentRecord = record
 		}
-		fname := names[len(names)-1]
 		if isIn(field, fieldInfos) {
-			return nil, errDuplicateFields{field}
+			return nil, errDuplicateFields{strings.Join(field, ".")}
 		}
-		fieldInfos = append(fieldInfos, fieldInfo{fname, field, containerBegins, 0})
+		fieldInfos = append(fieldInfos, fieldInfo{field, containerBegins, 0})
 	}
 	if len(fieldInfos) > 0 {
 		fieldInfos[len(fieldInfos)-1].containerEnds = len(currentRecord)
@@ -155,23 +152,21 @@ func NewColumnBuilder(zctx *resolver.Context, fields []string) (*ColumnBuilder, 
 
 // check if fieldname is "in" one of the fields in fis, or if
 // one of fis is "in" fieldname, where "in" means "equal or is a suffix of".
-func isIn(fieldname string, fis []fieldInfo) bool {
-	// check if fieldname is "in" one of fis
-	splits := strings.Split(fieldname, ".")
-	for i := range splits {
-		sub := strings.Join(splits[:i+1], ".")
+func isIn(fieldname field.Static, fis []fieldInfo) bool {
+	// check if fieldname of splits is "in" one of fis
+	for i := range fieldname {
+		sub := fieldname[:i+1]
 		for _, fi := range fis {
-			if sub == fi.fullname {
+			if sub.Equal(fi.field) {
 				return true
 			}
 		}
 	}
 	// check if one of fis is "in" fieldname
 	for _, fi := range fis {
-		splits := strings.Split(fi.fullname, ".")
-		for i := range splits {
-			prefix := strings.Join(splits[:i+1], ".")
-			if prefix == fieldname {
+		for i := range fi.field {
+			prefix := fi.field[:i+1]
+			if prefix.Equal(fieldname) {
 				return true
 			}
 		}
@@ -233,15 +228,15 @@ func (c *ColumnBuilder) TypedColumns(types []zng.Type) []zng.Column {
 	stack := make([]*rec, 1)
 	stack[0] = current
 
-	for i, field := range c.fields {
-		for _, name := range field.containerBegins {
+	for i, fi := range c.fields {
+		for _, name := range fi.containerBegins {
 			current = &rec{name, nil}
 			stack = append(stack, current)
 		}
 
-		current.cols = append(current.cols, zng.NewColumn(field.name, types[i]))
+		current.cols = append(current.cols, zng.NewColumn(fi.field.Leaf(), types[i]))
 
-		for j := 0; j < field.containerEnds; j++ {
+		for j := 0; j < fi.containerEnds; j++ {
 			recType := c.zctx.MustLookupTypeRecord(current.cols)
 			slen := len(stack)
 			stack = stack[:slen-1]

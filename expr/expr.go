@@ -9,6 +9,7 @@ import (
 	"regexp"
 
 	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/reglob"
 	"github.com/brimsec/zq/zcode"
@@ -57,15 +58,17 @@ var ErrBadCast = errors.New("bad cast")
 // are allocated by go libraries and temporary buffers are not used.  This will
 // change down the road when we implement no-allocation string and IP conversion.
 func CompileExpr(node ast.Expression) (Evaluator, error) {
-	return compileExpr(node, true)
+	return compileExpr(node)
 }
 
-func compileExpr(node ast.Expression, root bool) (Evaluator, error) {
+func compileExpr(node ast.Expression) (Evaluator, error) {
 	switch n := node.(type) {
 	case *ast.Literal:
 		return NewLiteral(*n)
-	case *ast.Field:
-		return newFieldNode(n.Field, nil, root), nil
+	case *ast.Identifier:
+		return nil, fmt.Errorf("stray identifier in AST: %s", n.Name)
+	case *ast.RootRecord:
+		return &RootRecord{}, nil
 	case *ast.UnaryExpression:
 		return compileUnary(*n)
 
@@ -73,11 +76,11 @@ func compileExpr(node ast.Expression, root bool) (Evaluator, error) {
 		if n.Operator == "." {
 			return compileDotExpr(n.LHS, n.RHS)
 		}
-		lhs, err := compileExpr(n.LHS, true)
+		lhs, err := compileExpr(n.LHS)
 		if err != nil {
 			return nil, err
 		}
-		rhs, err := compileExpr(n.RHS, true)
+		rhs, err := compileExpr(n.RHS)
 		if err != nil {
 			return nil, err
 		}
@@ -117,7 +120,7 @@ func compileExpr(node ast.Expression, root bool) (Evaluator, error) {
 func CompileExprs(nodes []ast.Expression) ([]Evaluator, error) {
 	var exprs []Evaluator
 	for k := range nodes {
-		e, err := compileExpr(nodes[k], true)
+		e, err := compileExpr(nodes[k])
 		if err != nil {
 			return nil, err
 		}
@@ -134,7 +137,7 @@ func compileUnary(node ast.UnaryExpression) (Evaluator, error) {
 	if node.Operator != "!" {
 		return nil, fmt.Errorf("unknown unary operator %s\n", node.Operator)
 	}
-	e, err := compileExpr(node.Operand, true)
+	e, err := compileExpr(node.Operand)
 	if err != nil {
 		return nil, err
 	}
@@ -768,15 +771,15 @@ type Conditional struct {
 
 func compileConditional(node ast.ConditionalExpression) (Evaluator, error) {
 	var err error
-	predicate, err := compileExpr(node.Condition, true)
+	predicate, err := compileExpr(node.Condition)
 	if err != nil {
 		return nil, err
 	}
-	thenExpr, err := compileExpr(node.Then, true)
+	thenExpr, err := compileExpr(node.Then)
 	if err != nil {
 		return nil, err
 	}
-	elseExpr, err := compileExpr(node.Else, true)
+	elseExpr, err := compileExpr(node.Else)
 	if err != nil {
 		return nil, err
 	}
@@ -801,19 +804,20 @@ func (c *Conditional) Eval(rec *zng.Record) (zng.Value, error) {
 	return c.elseExpr.Eval(rec)
 }
 
-func compileDotExpr(lhs, rhs ast.Expression) (*FieldExpr, error) {
-	record, err := compileExpr(lhs, true)
+func compileDotExpr(lhs, rhs ast.Expression) (*DotExpr, error) {
+	id, ok := rhs.(*ast.Identifier)
+	if !ok {
+		return nil, errors.New("rhs of dot expression is not an identifier")
+	}
+	record, err := compileExpr(lhs)
 	if err != nil {
 		return nil, err
 	}
-	field, err := compileExpr(rhs, false)
-	if err != nil {
-		return nil, err
-	}
-	return &FieldExpr{field, record, false}, nil
+	return &DotExpr{record, id.Name}, nil
 }
 
 type Call struct {
+	name     string
 	function Function
 	exprs    []Evaluator
 	args     *Args
@@ -833,7 +837,7 @@ func compileCall(node ast.FunctionCall) (Evaluator, error) {
 	}
 	exprs := make([]Evaluator, 0, nargs)
 	for _, expr := range node.Args {
-		e, err := compileExpr(expr, true)
+		e, err := compileExpr(expr)
 		if err != nil {
 			return nil, err
 		}
@@ -841,6 +845,7 @@ func compileCall(node ast.FunctionCall) (Evaluator, error) {
 	}
 
 	return &Call{
+		name:     node.Function,
 		function: fn.impl,
 		exprs:    exprs,
 		args:     NewArgs(nargs),
@@ -859,7 +864,7 @@ func (c *Call) Eval(rec *zng.Record) (zng.Value, error) {
 }
 
 func compileCast(node ast.CastExpression) (Evaluator, error) {
-	expr, err := compileExpr(node.Expr, true)
+	expr, err := compileExpr(node.Expr)
 	if err != nil {
 		return nil, err
 	}
@@ -1033,4 +1038,80 @@ func (s *BytesCast) Eval(rec *zng.Record) (zng.Value, error) {
 		return zng.Value{}, err
 	}
 	return zng.Value{zng.TypeBytes, zng.EncodeBytes(zv.Bytes)}, nil
+}
+
+func CompileLval(node ast.Expression) (field.Static, error) {
+	switch node := node.(type) {
+	case *ast.RootRecord:
+		return field.NewRoot(), nil
+	// XXX We need to allow index operators at some point, but for now
+	// we have been assuming only dotted field lvalues.  See Issue #1462.
+	case *ast.BinaryExpression:
+		if node.Operator != "." {
+			break
+		}
+		id, ok := node.RHS.(*ast.Identifier)
+		if !ok {
+			return nil, errors.New("rhs of dot operator is not an identifier")
+		}
+		lhs, err := CompileLval(node.LHS)
+		if err != nil {
+			return nil, err
+		}
+		return append(lhs, id.Name), nil
+	}
+	return nil, errors.New("invalid expression on lhs of assignment")
+}
+
+func NewRootField(name string) Evaluator {
+	return NewDotExpr(field.New(name))
+}
+
+var ErrInference = errors.New("assigment name could not be inferred from rhs expressioin")
+
+func CompileAssignment(node *ast.Assignment) (field.Static, Evaluator, error) {
+	rhs, err := CompileExpr(node.RHS)
+	if err != nil {
+		return nil, nil, fmt.Errorf("rhs of assigment expression: %w", err)
+	}
+	var lhs field.Static
+	if node.LHS != nil {
+		lhs, err = CompileLval(node.LHS)
+		if err != nil {
+			return nil, nil, fmt.Errorf("lhs of assigment expression: %w", err)
+		}
+	} else {
+		switch rhs := node.RHS.(type) {
+		case *ast.RootRecord:
+			lhs = field.New(".")
+		case *ast.FunctionCall:
+			lhs = field.New(rhs.Function)
+		case *ast.BinaryExpression:
+			// This can be a dotted record or some other expression.
+			// In the latter case, it might be nice to infer a name,
+			// e.g., forr "count() by a+b" we could infer "sum" for
+			// the name, i,e., "count() by sum=a+b".  But for now,
+			// we'll just catch this as an error.
+			lhs, err = CompileLval(rhs)
+			if err != nil {
+				err = ErrInference
+			}
+		default:
+			err = ErrInference
+		}
+	}
+	return lhs, rhs, err
+}
+
+func CompileAssignments(dsts []field.Static, srcs []field.Static) ([]field.Static, []Evaluator) {
+	if len(srcs) != len(dsts) {
+		panic("CompileAssignmentFromStrings argument mismatch")
+	}
+	var resolvers []Evaluator
+	var fields []field.Static
+	for k, dst := range dsts {
+		fields = append(fields, dst)
+		resolvers = append(resolvers, NewDotExpr(srcs[k]))
+	}
+	return fields, resolvers
 }

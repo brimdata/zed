@@ -3,9 +3,11 @@ package driver
 import (
 	"context"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/proc/compiler"
@@ -19,7 +21,7 @@ import (
 type MultiSource interface {
 	// OrderInfo reports if the same order exists on the data in any
 	// single source and on the sources reported via SendSources.
-	OrderInfo() (field string, reversed bool)
+	OrderInfo() (field field.Static, reversed bool)
 
 	// SendSources sends SourceOpeners to the given channel. If the
 	// MultiSource declares an ordering via its OrderInfo method, the

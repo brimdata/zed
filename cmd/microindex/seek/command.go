@@ -8,6 +8,7 @@ import (
 
 	"github.com/brimsec/zq/cmd/microindex/root"
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/zio/zngio"
@@ -77,7 +78,7 @@ func (c *Command) Run(args []string) error {
 	}
 	zctx := resolver.NewContext()
 	reader := zngio.NewReader(file, zctx)
-	writer, err := microindex.NewWriter(zctx, c.outputFile, []string{c.keyField}, c.frameThresh)
+	writer, err := microindex.NewWriter(zctx, c.outputFile, field.DottedList(c.keyField), c.frameThresh)
 	if err != nil {
 		return err
 	}
@@ -87,7 +88,7 @@ func (c *Command) Run(args []string) error {
 			writer.Close()
 		}
 	}()
-	readKey := expr.NewFieldAccess(c.keyField)
+	readKey := expr.NewDotExpr(field.Dotted(c.keyField))
 	var builder *zng.Builder
 	var keyType zng.Type
 	var offset int64

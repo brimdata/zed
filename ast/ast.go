@@ -11,8 +11,11 @@ package ast
 
 import (
 	"encoding/json"
+
+	"github.com/brimsec/zq/field"
 )
 
+// XXX Get rid of Node.  Issue #1464.
 // A Node is shared by all the AST type nodes.  Currently, this contains the
 // op field, as every node type is defined by its op name.
 type Node struct {
@@ -29,16 +32,19 @@ type BooleanExpr interface {
 	booleanExprNode()
 }
 
-// Field refers to a name of a field in a record.  It refers to the root
-// record unless it appears as a right-hand side of a "." operator, in which
-// case it refers to the field from the record obtained from the left-hand
-// side evaluation of the parent "." expression.  If that left-hand side value is
-// not a record, then a semantic-analysis or runtime type error should result.
-// A Field may also appear inside an index operator in which case the indexed
-// element is treated as the left-hand side "." record from above.
-type Field struct {
+// Identifier refers to a syntax element analogous to a programming language
+// identifier.  It is currently used exclusively as the RHS of a BinaryExpr "."
+// expression though it may have future uses (e.g., enum names or externally
+// referred to data e.g, maps to do external joins).
+type Identifier struct {
 	Node
-	Field string `json:"field"`
+	Name string `json:"name"`
+}
+
+// RootRecord refers to the outer record being operated upon.  Field accesses
+// typically begin with the LHS of a "." expression set to a RootRecord.
+type RootRecord struct {
+	Node
 }
 
 type Expression interface {
@@ -163,7 +169,10 @@ func (*ConditionalExpression) exprNode() {}
 func (*FunctionCall) exprNode()          {}
 func (*CastExpression) exprNode()        {}
 func (*Literal) exprNode()               {}
-func (*Field) exprNode()                 {}
+func (*Identifier) exprNode()            {}
+func (*RootRecord) exprNode()            {}
+func (*Assignment) exprNode()            {}
+func (*Reducer) exprNode()               {}
 
 // ----------------------------------------------------------------------------
 // Procs
@@ -187,9 +196,9 @@ type (
 		// If non-zero, MergeOrderField contains the field name on
 		// which the branches of this parallel proc should be
 		// merged in the order indicated by MergeOrderReverse.
-		MergeOrderField   string `json:"merge_order_field"`
-		MergeOrderReverse bool   `json:"merge_order_reverse"`
-		Procs             []Proc `json:"procs"`
+		MergeOrderField   field.Static `json:"merge_order_field"`
+		MergeOrderReverse bool         `json:"merge_order_reverse"`
+		Procs             []Proc       `json:"procs"`
 	}
 	// A SortProc node represents a proc that sorts records.
 	SortProc struct {
@@ -203,8 +212,8 @@ type (
 	// sending each such modified record to its output in the order received.
 	CutProc struct {
 		Node
-		Complement bool              `json:"complement"`
-		Fields     []FieldAssignment `json:"fields"`
+		Complement bool         `json:"complement"`
+		Fields     []Assignment `json:"fields"`
 	}
 	// A HeadProc node represents a proc that forwards the indicated number
 	// of records then terminates.
@@ -259,13 +268,13 @@ type (
 	// if any reducer in Reducers is non-decomposable.
 	GroupByProc struct {
 		Node
-		Duration     Duration               `json:"duration"`
-		InputSortDir int                    `json:"input_sort_dir,omitempty"`
-		Limit        int                    `json:"limit,omitempty"`
-		Keys         []ExpressionAssignment `json:"keys"`
-		Reducers     []Reducer              `json:"reducers"`
-		ConsumePart  bool                   `json:"consume_part"`
-		EmitPart     bool                   `json:"emit_part"`
+		Duration     Duration     `json:"duration"`
+		InputSortDir int          `json:"input_sort_dir,omitempty"`
+		Limit        int          `json:"limit,omitempty"`
+		Keys         []Assignment `json:"keys"`
+		Reducers     []Assignment `json:"reducers"`
+		ConsumePart  bool         `json:"consume_part"`
+		EmitPart     bool         `json:"emit_part"`
 	}
 	// TopProc is similar to proc.SortProc with a few key differences:
 	// - It only sorts in descending order.
@@ -281,13 +290,13 @@ type (
 
 	PutProc struct {
 		Node
-		Clauses []ExpressionAssignment `json:"clauses"`
+		Clauses []Assignment `json:"clauses"`
 	}
 
 	// A RenameProc node represents a proc that renames fields.
 	RenameProc struct {
 		Node
-		Fields []FieldAssignment `json:"fields"`
+		Fields []Assignment `json:"fields"`
 	}
 
 	// A FuseProc node represents a proc that turns a zng stream into a dataframe.
@@ -296,14 +305,9 @@ type (
 	}
 )
 
-type ExpressionAssignment struct {
-	Target string     `json:"target"`
-	Expr   Expression `json:"expression"`
-}
-
-type FieldAssignment struct {
-	Target string     `json:"target"`
-	Source Expression `json:"source"`
+type Assignment struct {
+	LHS Expression `json:"lhs,omitempty"`
+	RHS Expression `json:"rhs"`
 }
 
 //XXX TBD: chance to nano.Duration
@@ -340,31 +344,78 @@ func (*PutProc) ProcNode()        {}
 func (*RenameProc) ProcNode()     {}
 func (*FuseProc) ProcNode()       {}
 
-// A Reducer is an AST node that represents a reducer function.  The Op
-// parameter indicates the specific reducer while the Field parameter indicates
-// which field of the incoming records should be operated upon by the reducer.
-// The result is given the field name specified by the Var parameter.
+// A Reducer is an AST node that represents a reducer function.  The Operator
+// parameter indicates the aggregation method while the expr parameter indicates
+// an expression applied to the incoming records that is operated upon by them
+// reducer function.  If expr isn't present, then the reducer doesn't act upon
+// a function of the record, e.g., count() counts up records without looking
+// into them.
 type Reducer struct {
 	Node
-	Var   string     `json:"var"`
-	Field Expression `json:"field,omitempty"`
+	Operator string     `json:"operator"`
+	Expr     Expression `json:"expr,omitempty"`
 }
 
-func FieldExprToString(n Expression) string {
+func DotExprToField(n Expression) (field.Static, bool) {
+	if n == nil {
+		return nil, true
+	}
 	switch n := n.(type) {
 	case *BinaryExpression:
-		if n.Operator == "." {
-			lhs := FieldExprToString(n.LHS)
-			rhs := FieldExprToString(n.RHS)
-			return lhs + "." + rhs
+		if n.Operator == "." || n.Operator == "[" {
+			lhs, ok := DotExprToField(n.LHS)
+			if !ok {
+				return nil, false
+			}
+			rhs, ok := DotExprToField(n.RHS)
+			if !ok {
+				return nil, false
+			}
+			return append(lhs, rhs...), true
 		}
-		if n.Operator == "[" {
-			lhs := FieldExprToString(n.LHS)
-			rhs := FieldExprToString(n.RHS)
-			return lhs + "[" + rhs + "]"
+	case *Assignment:
+		lhs, ok := DotExprToField(n.LHS)
+		if !ok {
+			return nil, false
 		}
-	case *Field:
-		return n.Field
+		rhs, ok := DotExprToField(n.RHS)
+		if !ok {
+			return nil, false
+		}
+		return append(lhs, rhs...), true
+	case *Identifier:
+		return field.Static{n.Name}, true
+	case *RootRecord:
+		return nil, true
 	}
-	return "not a field expr"
+	return nil, false
+}
+
+func NewDotExpr(f field.Static) Expression {
+	lhs := Expression(&RootRecord{Node: Node{Op: "RootRecord"}})
+	for _, name := range f {
+		rhs := &Identifier{
+			Node: Node{"Identifier"},
+			Name: name,
+		}
+		lhs = &BinaryExpression{
+			Node:     Node{"BinaryExpr"},
+			Operator: ".",
+			LHS:      lhs,
+			RHS:      rhs,
+		}
+	}
+	return lhs
+}
+
+func NewReducerAssignment(op string, lval field.Static, arg field.Static) Assignment {
+	reducer := &Reducer{Node: Node{"Reducer"}, Operator: op}
+	if arg != nil {
+		reducer.Expr = NewDotExpr(arg)
+	}
+	lhs := lval
+	if lhs == nil {
+		lhs = field.New(op)
+	}
+	return Assignment{LHS: NewDotExpr(lhs), RHS: reducer}
 }

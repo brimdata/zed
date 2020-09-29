@@ -1,0 +1,18 @@
+zql: 'count() by .'
+
+input: |
+  #0:record[x:int32,s:string]
+  0:[1;foo;]
+  0:[2;Bar;]
+  #1:record[y:int64]
+  1:[5;]
+  1:[5;]
+  1:[7;]
+
+output: |
+  #0:record[[.]:record[x:int32,s:string],count:uint64]
+  0:[[1;foo;]1;]
+  0:[[2;Bar;]1;]
+  #1:record[[.]:record[y:int64],count:uint64]
+  1:[[5;]2;]
+  1:[[7;]1;]

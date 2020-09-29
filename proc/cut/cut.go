@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
@@ -14,31 +16,24 @@ type Proc struct {
 	pctx       *proc.Context
 	parent     proc.Interface
 	complement bool
-	fieldnames []string
+	resolvers  []expr.Evaluator
 	cutter     *Cutter
 }
 
-// XXX update me
-// Build the structures we need to construct output records efficiently.
-// See the comment above for a description of the desired output.
-// Note that we require any nested fields from the same parent record
-// to be adjacent.  Alternatively we could re-order provided fields
-// so the output record can be constructed efficiently, though we don't
-// do this now since it might confuse users who expect to see output
-// fields in the order they specified.
 func New(pctx *proc.Context, parent proc.Interface, node *ast.CutProc) (*Proc, error) {
-	var fieldnames, targets []string
-	for _, fa := range node.Fields {
-		fieldName := ast.FieldExprToString(fa.Source)
-		if fa.Target == "" {
-			fa.Target = fieldName
+	var lhs []field.Static
+	var rhs []expr.Evaluator
+	for k := range node.Fields {
+		field, expression, err := expr.CompileAssignment(&node.Fields[k])
+		if err != nil {
+			return nil, err
 		}
-		targets = append(targets, fa.Target)
-		fieldnames = append(fieldnames, fieldName)
+		lhs = append(lhs, field)
+		rhs = append(rhs, expression)
 	}
 	// build this once at compile time for error checking.
 	if !node.Complement {
-		_, err := proc.NewColumnBuilder(pctx.TypeContext, targets)
+		_, err := proc.NewColumnBuilder(pctx.TypeContext, lhs)
 		if err != nil {
 			return nil, fmt.Errorf("compiling cut: %w", err)
 		}
@@ -48,21 +43,38 @@ func New(pctx *proc.Context, parent proc.Interface, node *ast.CutProc) (*Proc, e
 		pctx:       pctx,
 		parent:     parent,
 		complement: node.Complement,
-		fieldnames: fieldnames,
-		cutter:     NewCutter(pctx.TypeContext, node.Complement, targets, fieldnames),
+		resolvers:  rhs,
+		cutter:     NewCutter(pctx.TypeContext, node.Complement, lhs, rhs),
 	}, nil
+}
+
+func fieldList(fields []expr.Evaluator) string {
+	var each []string
+	for _, fieldExpr := range fields {
+		f, err := expr.DotExprToField(fieldExpr)
+		var s string
+		if err != nil {
+			s = "<not a field>"
+		} else {
+			s = f.String()
+		}
+		each = append(each, s)
+	}
+	return strings.Join(each, ",")
 }
 
 func (p *Proc) maybeWarn() {
 	if p.complement || p.cutter.FoundCut() {
 		return
 	}
-	var msg string
-	if len(p.fieldnames) == 1 {
-		msg = fmt.Sprintf("Cut field %s not present in input", p.fieldnames[0])
-	} else {
-		msg = fmt.Sprintf("Cut fields %s not present together in input", strings.Join(p.fieldnames, ","))
+	together := " together"
+	plural := "s"
+	if len(p.resolvers) == 1 {
+		plural = ""
+		together = ""
 	}
+	list := fieldList(p.resolvers)
+	msg := fmt.Sprintf("Cut field%s %s not present%s in input", plural, list, together)
 	p.pctx.Warnings <- msg
 }
 

@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
@@ -122,11 +123,11 @@ func NewMultiSource(ark *Archive, altPaths []string) driver.MultiSource {
 	}
 }
 
-func (m *multiSource) OrderInfo() (string, bool) {
+func (m *multiSource) OrderInfo() (field.Static, bool) {
 	if len(m.altPaths) == 0 {
-		return "ts", m.ark.DataSortDirection == zbuf.DirTimeReverse
+		return field.New("ts"), m.ark.DataSortDirection == zbuf.DirTimeReverse
 	}
-	return "", false
+	return nil, false
 }
 
 func (m *multiSource) spanWalk(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan<- driver.SourceOpener) error {

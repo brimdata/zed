@@ -108,8 +108,7 @@ func NewKeyCompareFn(key *zng.Record) (KeyCompareFn, error) {
 			break
 		}
 		keyval = append(keyval, val)
-		// XXX CompileDottedAccess -> something else
-		accessors = append(accessors, NewFieldAccess(name))
+		accessors = append(accessors, NewDotExpr(name))
 	}
 	return func(rec *zng.Record) int {
 		for k, access := range accessors {

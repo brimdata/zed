@@ -1,8 +1,8 @@
 foo
 foo | count()
-* | count() -limit 10
-* | count() by _path -limit 10
-* | every 1h count() by _path -limit 10
+* | count() with -limit 10
+* | count() by _path with -limit 10
+* | every 1h count() by _path with -limit 10
 * | filter x=1
 _path=conn
 _path=conn id.resp_p=80

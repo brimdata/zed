@@ -47,15 +47,14 @@
 #define PRINT(...) console.log(__VAR_ARGS__)
 #endif
 
-
-start = _? ast:query _? EOF { RETURN(ast) }
+start = __ ast:query __ EOF { RETURN(ast) }
 
 query
   = procs:procChain {
       VAR(filt) = MAP("op": "FilterProc", "filter": MAP("op": "MatchAll"))
       RETURN(MAP("op": "SequentialProc", "procs": PREPEND(filt, procs)))
     }
-  / s:search _? rest:chainedProc* {
+  / s:search __ rest:chainedProc* {
       if (ARRAY_LEN(rest) == 0) {
           RETURN(s)
       } else {
@@ -75,7 +74,7 @@ procChain
       }
     }
 
-chainedProc = _? "|" _? p:proc { RETURN(p) }
+chainedProc = __ "|" __ p:proc { RETURN(p) }
 
 search
   = expr:searchExpr {
@@ -97,29 +96,29 @@ searchTerm
 andedSearchTerm = _ (andToken _)? f:searchFactor { RETURN(f) }
 
 searchFactor
-  = (notToken _ / "!" _?) e:searchExpr {
+  = (notToken _ / "!" __) e:searchExpr {
       RETURN(MAP("op": "LogicalNot", "expr": e))
     }
   / !("-") s:searchPred { RETURN(s) }
-  / "(" _? expr:searchExpr _? ")" { RETURN(expr) }
+  / "(" __ expr:searchExpr __ ")" { RETURN(expr) }
 
 searchPred
-  = "*" _? comp:equalityToken _? v:searchValue {
+  = "*" __ comp:equalityToken __ v:searchValue {
       RETURN(MAP("op": "CompareAny", "comparator": comp, "recursive": false, "value": v))
     }
-  / "**" _? comp:equalityToken _? v:searchValue {
+  / "**" __ comp:equalityToken __ v:searchValue {
       RETURN(MAP("op": "CompareAny", "comparator": comp, "recursive": true, "value": v))
     }
-  / f:fieldExpr _? comp:equalityToken _? v:searchValue {
+  / f:Lval __ comp:equalityToken __ v:searchValue {
       RETURN(MAP("op": "CompareField", "comparator": comp, "field": f, "value": v))
     }
-  / expr:FunctionExpr _? comp:equalityToken _? v:searchValue {
+  / expr:FunctionExpr __ comp:equalityToken __ v:searchValue {
       RETURN(MAP("op": "BinaryExpression", "operator": comp, "lhs": expr, "rhs": v))
     }
-  / v:searchValue _? inToken _? "*" {
+  / v:searchValue __ inToken __ "*" {
       RETURN(MAP("op": "CompareAny", "comparator": "in", "recursive": false, "value": v))
     }
-  / v:searchValue _? inToken _? f:fieldExpr {
+  / v:searchValue __ inToken __ f:fieldExpr {
       RETURN(MAP("op": "CompareField", "comparator": "in", "field": f, "value": v))
     }
   / v:searchLiteral {
@@ -170,7 +169,7 @@ RegexpLiteral
     }
 
 SubnetLiteral
-  = v:ip6subnet !fieldNameRest {
+  = v:ip6subnet !IdentifierRest {
       RETURN(MAP("op": "Literal", "type": "net", "value": v))
     }
   / v:subnet {
@@ -178,7 +177,7 @@ SubnetLiteral
     }
 
 AddressLiteral
-  = v:ip6addr !fieldNameRest {
+  = v:ip6addr !IdentifierRest {
       RETURN(MAP("op": "Literal", "type": "ip", "value": v))
     }
   / v:addr {
@@ -218,25 +217,29 @@ procList
     }
 
 parallelChain
-  = _? ";" _? ch:procChain { RETURN(MAP("op": "SequentialProc", "procs": ch)) }
+  = __ ";" __ ch:procChain { RETURN(MAP("op": "SequentialProc", "procs": ch)) }
 
 proc
   = simpleProc
   / groupByProc
-  / "(" _? proc:procList _? ")" {
+  / "(" __ proc:procList __ ")" {
       RETURN(proc)
     }
 
 groupByKeys
-  = "by"i _ first:groupByKey rest:(__ "," __ cl:groupByKey { RETURN(cl) })* {
+  = "by"i _ columns:FlexAssignments { RETURN(columns) }
+
+// A FlexAssignment is like an Assignment but it can optionally omit the lhs,
+// in which case, the semantic pass will infer a name from the rhs, e.g., for
+// an expression like "count() by foo", the rhs is Field "foo" and the lhs is nil.
+FlexAssignment
+  = Assignment
+  / expr:Expression { RETURN(MAP("op": "Assignment", "rhs": expr)) }
+
+FlexAssignments
+  = first:FlexAssignment rest:(__ "," __ expr:FlexAssignment { RETURN(expr) })* {
       RETURN(PREPEND(first, rest))
-    }
-
-
-groupByKey
-  = ExpressionAssignment
-  / field:fieldExpr { RETURN(MAP("op": "ExpressionAssignment", "target": TEXT, "expression": field)) }
-
+  }
 
 everyDur
   = "every"i _ dur:duration { RETURN(dur) }
@@ -249,23 +252,29 @@ orToken = "or"i { RETURN(TEXT) }
 inToken = "in"i { RETURN(TEXT) }
 notToken = "not"i { RETURN(TEXT) }
 
-fieldName = fieldNameStart fieldNameRest* { RETURN(TEXT) }
+IdentifierName = IdentifierStart IdentifierRest* { RETURN(TEXT) }
 
-fieldNameStart = [A-Za-z_$]
-fieldNameRest = fieldNameStart / [0-9]
+IdentifierStart = [A-Za-z_$]
+IdentifierRest = IdentifierStart / [0-9]
 
-Field
-  = name:fieldName  { RETURN(MAP("op": "Field", "field": name)) }
+Identifier
+  = IdentifierStart IdentifierRest* { RETURN(MAP("op": "Identifier", "name": TEXT)) }
 
-fieldExpr = base:Field derefs:(Deref)* {
-    RETURN(makeBinaryExprChain(base, derefs))
-  }
+RootField
+  = "."? !(BooleanLiteral / NullLiteral) field:Identifier { RETURN(MAP("op": "BinaryExpr", "operator":".", "lhs":MAP("op":"RootRecord"), "rhs": field)) }
+  / "." !(Identifier)  { RETURN(MAP("op": "RootRecord")) }
 
-DotExpr = base:Field derefs:(DotField)* {
-    RETURN(makeBinaryExprChain(base, derefs))
-  }
+Lval = DerefExpression
 
-DotExprText = DotExpr { RETURN(TEXT) }
+DerefExpression
+  = first:RootField rest:(Deref)* {
+    RETURN(makeBinaryExprChain(first, rest))
+   }
+
+Deref
+  = "[" expr:Expression "]" { RETURN(ARRAY("[", expr)) }
+  / "." !(".") id:Identifier { RETURN(ARRAY(".", id)) }
+
 
 // XXX this is here to support the function call stuff that used to live
 // inside of FieldCall.  This will be replaced by a subset of the expression
@@ -276,8 +285,10 @@ FunctionExpr
           RETURN(MAP("op": "FunctionCall", "function": fn, "args": args))
       }
 
+fieldExpr = Lval
+
 fieldExprList
-  = first:fieldExpr rest:(_? "," _? fieldExpr)* {
+  = first:fieldExpr rest:(__ "," __ fieldExpr)* {
       VAR(result) = ARRAY(first)
 
       FOREACH(ASSERT_ARRAY(rest), r) {
@@ -287,41 +298,34 @@ fieldExprList
       RETURN(result)
   }
 
+ExprList
+  = first:Expression rest:(__ "," __ Expression)* {
+      VAR(result) = ARRAY(first)
+
+      FOREACH(ASSERT_ARRAY(rest), r) {
+        APPEND(result, ASSERT_ARRAY(r)[3])
+      }
+
+      RETURN(result)
+    }
+
 countOp
-  = "count"i { RETURN("Count") }
+  = "count" { RETURN("count") }
 
-fieldReducerOp
-  = "sum"i  { RETURN("Sum") }
-  / "avg"i  { RETURN("Avg") }
-  / "stdev"i { RETURN("Stdev") }
-  / "sd"i   { RETURN("Stdev") }
-  / "var"i  { RETURN("Var") }
-  / "entropy"i { RETURN("Entropy") }
-  / "min"i  { RETURN("Min") }
-  / "max"i  { RETURN("Max") }
-  / "first"i  { RETURN("First") }
-  / "last"i  { RETURN("Last") }
-  / "countdistinct"i { RETURN("CountDistinct") }
+ReducerOp
+  = ReducerOps { RETURN(TEXT) }
 
-paddedFieldExpr = _? field:fieldExpr _? { RETURN(field) }
-
-countReducer
-  = op:countOp _? "(" field:paddedFieldExpr?  _? ")" {
-    VAR(r) = MAP("op": op, "var": "count")
-    if ISNOTNULL(field) {
-      r["field"] = field
-    }
-    RETURN(r)
-  }
-
-fieldReducer
-  = op:fieldReducerOp _? "(" _? field:fieldExpr  _? ")" {
-    VAR(r) = MAP("op": op, "var": toLowerCase(op))
-    if ISNOTNULL(field) {
-      r["field"] = field
-    }
-    RETURN(r)
-  }
+ReducerOps
+  = "sum"
+  / "avg"
+  / "stdev"
+  / "var"
+  / "entropy"
+  / "min"
+  / "max"
+  / "first"
+  / "last"
+  / "countdistinct"
 
 groupByProc
   = every:(everyDur _)? reducers:reducerList keys:(_ groupByKeys)? limit:procLimitArg? {
@@ -341,20 +345,36 @@ groupByProc
     RETURN(MAP("op": "GroupByProc", "reducers": reducers))
   }
 
-reducerExpr
-  = field:fieldName _? "=" _? f:reducer {
-    VAR(r) = ASSERT_MAP(f)
-    r["var"] = field
+ReducerAssignment
+  = lval:Lval __ "=" reducer:reducer {
+      RETURN(MAP("op": "Assignment", "lhs": lval, "rhs": reducer))
+  }
+  / reducer:reducer {
+      RETURN(MAP("op": "Assignment", "rhs": reducer))
+  }
+
+reducer = countReducer / fieldReducer
+
+countReducer
+  = op:countOp __ "(" __ expr:fieldExpr?  __ ")" {
+    VAR(r) = MAP("op": "Reducer", "operator": op)
+    if ISNOTNULL(expr) {
+      r["expr"] = expr
+    }
     RETURN(r)
   }
-  / reducer
 
-reducer
-  = countReducer
-  / fieldReducer
+fieldReducer
+  = op:ReducerOp __ "(" __ expr:fieldExpr  __ ")" {
+    VAR(r) = MAP("op": "Reducer", "operator": op)
+    if ISNOTNULL(expr) {
+      r["expr"] = expr
+    }
+    RETURN(r)
+  }
 
 reducerList
-  = first:reducerExpr rest:(_? "," _? reducerExpr)* {
+  = first:ReducerAssignment rest:(__ "," __ ReducerAssignment)* {
       VAR(result) = ARRAY(first)
       FOREACH(ASSERT_ARRAY(rest), r) {
         APPEND(result, ASSERT_ARRAY(r)[3])
@@ -375,7 +395,7 @@ simpleProc
   / fuse
 
 sort
-  = "sort"i args:sortArgs list:(_ l:fieldExprList { RETURN(l) })? {
+  = "sort"i args:sortArgs list:(_ l:ExprList { RETURN(l) })? {
     VAR(argm) = ASSERT_MAP(args)
     VAR(proc) = MAP("op": "SortProc", "fields": list, "sortdir": 1, "nullsfirst": false)
     if HAS(argm, "r") {
@@ -413,28 +433,24 @@ top
   }
 
 procLimitArg
-  = _ "-limit" _ limit:unsignedInteger { RETURN(limit) }
+  = _ "with" _ "-limit" _ limit:unsignedInteger { RETURN(limit) }
 
 cutArgs
   = args:(_ "-c" { RETURN(MAP("name": "c", "value": NULL)) })* {
     return makeArgMap(args)
   }
 
-cutAssignment
-  = FieldAssignment
-  / field:DotExpr {
-    RETURN(MAP("target": "", "source": field))
-  }
-
 cut
-  = "cut"i args:cutArgs _ first:cutAssignment rest:(__ "," __ cl:cutAssignment { RETURN(cl) })* {
+  = "cut"i args:cutArgs _ columns:FlexAssignments {
     VAR(argm) = ASSERT_MAP(args)
-    VAR(proc) = MAP("op": "CutProc", "fields": PREPEND(first, rest), "complement": false)
+    VAR(proc) = MAP("op": "CutProc", "fields": columns, "complement": false)
     if HAS(argm, "c") {
       proc["complement"] = true
     }
     RETURN(proc)
   }
+
+
 head
   = "head"i _ count:unsignedInteger { RETURN(MAP("op": "HeadProc", "count": count)) }
   / "head"i { RETURN(MAP("op": "HeadProc", "count": 1)) }
@@ -455,12 +471,12 @@ uniq
     }
 
 put
-  = "put"i _ first:ExpressionAssignment rest:(__ "," __ cl:ExpressionAssignment { RETURN(cl) })* {
-      RETURN(MAP("op": "PutProc", "clauses": PREPEND(first, rest)))
+  = "put"i _ columns:FlexAssignments {
+      RETURN(MAP("op": "PutProc", "clauses": columns))
     }
 
 rename
-  = "rename"i _ first:FieldAssignment rest:(__ "," __ cl:FieldAssignment { RETURN(cl) })* {
+  = "rename"i _ first:Assignment rest:(__ "," __ cl:Assignment { RETURN(cl) })* {
       RETURN(MAP("op": "RenameProc", "fields": PREPEND(first, rest)))
     }
 
@@ -469,17 +485,10 @@ fuse
       RETURN(MAP("op": "FuseProc"))
   }
 
-ExpressionAssignment
-  = f:fieldName __ "=" __ e:Expression {
-      RETURN(MAP("target": f, "expression": e))
-    }
+Assignment
+  = lhs:Lval __ "=" __ rhs:Expression { RETURN(MAP("lhs": lhs, "rhs": rhs)) }
 
-FieldAssignment
-  = l:DotExprText __ "=" __ r:DotExpr {
-      RETURN(MAP("target": l, "source": r))
-    }
-
-PrimaryExpression
+Primary
   = StringLiteral
   / RegexpLiteral
   / SubnetLiteral
@@ -488,7 +497,6 @@ PrimaryExpression
   / IntegerLiteral
   / BooleanLiteral
   / NullLiteral
-  / Field
   / "(" __ expr:Expression __ ")" { RETURN(expr) }
 
 //
@@ -560,10 +568,11 @@ NotExpression
   / CastExpression
 
 CastExpression
-  = e:CallExpression ":" ct:PrimitiveType {
-      RETURN(MAP("op": "CastExpr", "expr": e, "type": ct))
+  = e:FuncExpression typ:( ":" typ:PrimitiveType { RETURN(typ) }) {
+    RETURN(MAP("op": "CastExpr", "expr": e, "type": typ))
   }
-  / CallExpression
+  / FuncExpression
+
 
 PrimitiveType
   = (   "bytes" / "uint8" / "uint16" / "uint32" / "uint64"
@@ -574,11 +583,17 @@ PrimitiveType
       / "ip" / "net"
       / "type" / "error" / "null" ) { RETURN(TEXT) }
 
-CallExpression
+FuncExpression
+  = first:FunctionCall rest:(Deref)* {
+    RETURN(makeBinaryExprChain(first, rest))
+  }
+  / DerefExpression
+  / Primary
+
+FunctionCall
   = fn:FunctionName __ "(" args:ArgumentList ")" {
         RETURN(MAP("op": "FunctionCall", "function": fn, "args": args))
     }
-  / DereferenceExpression
 
 FunctionName
   = FunctionNameStart FunctionNameRest* { RETURN(TEXT) }
@@ -591,21 +606,6 @@ ArgumentList
       RETURN(PREPEND(first, rest))
   }
   / __ { RETURN(ARRAY()) }
-
-DereferenceExpression
-  = base:PrimaryExpression
-    derefs:(Deref)* {
-        RETURN(makeBinaryExprChain(base, derefs))
-   }
-
-Deref = __ "[" __ index:Expression __ "]" {
-    RETURN(ARRAY("[", index))
-  }
-  / __ p:DotField { RETURN(p) }
-
-DotField =  "." __ field:Field {
-    RETURN(ARRAY(".", field))
-  }
 
 duration
   = seconds
@@ -641,23 +641,23 @@ week_abbrev = "weeks"/"week"/"wks"/"wk"/"w"
 
 seconds
   = "second" { RETURN(MAP("type": "Duration", "seconds": 1)) }
-  / num:number _? sec_abbrev { RETURN(MAP("type": "Duration", "seconds": num)) }
+  / num:number __ sec_abbrev { RETURN(MAP("type": "Duration", "seconds": num)) }
 
 minutes
   = "minute" { RETURN(MAP("type": "Duration", "seconds": 60)) }
-  / num:number _? min_abbrev { RETURN(MAP("type": "Duration", "seconds": ASSERT_INT(num)*60)) }
+  / num:number __ min_abbrev { RETURN(MAP("type": "Duration", "seconds": ASSERT_INT(num)*60)) }
 
 hours
   = "hour" { RETURN(MAP("type": "Duration", "seconds": 3600)) }
-  / num:number _? hour_abbrev { RETURN(MAP("type": "Duration", "seconds": ASSERT_INT(num)*3600)) }
+  / num:number __ hour_abbrev { RETURN(MAP("type": "Duration", "seconds": ASSERT_INT(num)*3600)) }
 
 days
   = "day" { RETURN(MAP("type": "Duration", "seconds": 3600*24)) }
-  / num:number _? day_abbrev { RETURN(MAP("type": "Duration", "seconds": (ASSERT_INT(num)*3600*24))) }
+  / num:number __ day_abbrev { RETURN(MAP("type": "Duration", "seconds": (ASSERT_INT(num)*3600*24))) }
 
 weeks
   = "week" { RETURN(MAP("type": "Duration", "seconds": 3600*24*7)) }
-  / num:number _? week_abbrev { RETURN(MAP("type": "Duration", "seconds": ASSERT_INT(num)*3600*24*7)) }
+  / num:number __ week_abbrev { RETURN(MAP("type": "Duration", "seconds": ASSERT_INT(num)*3600*24*7)) }
 
 number = unsignedInteger
 

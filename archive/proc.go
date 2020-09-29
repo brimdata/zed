@@ -5,6 +5,7 @@ import (
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zcode"
@@ -21,16 +22,16 @@ type FieldCutter struct {
 	pctx     *proc.Context
 	parent   proc.Interface
 	builder  *zng.Builder
-	accessor *expr.FieldExpr
-	field    string
-	out      string
+	accessor expr.Evaluator
+	field    field.Static
+	out      field.Static
 	typ      zng.Type
 }
 
 // NewFieldCutter creates a FieldCutter for field fieldName, where the
-// output records' single column is named fieldName.
-func NewFieldCutter(pctx *proc.Context, parent proc.Interface, fieldName, out string) (proc.Interface, error) {
-	accessor := expr.NewFieldAccess(fieldName)
+// output records' single column is named out.
+func NewFieldCutter(pctx *proc.Context, parent proc.Interface, fieldName, out field.Static) (proc.Interface, error) {
+	accessor := expr.NewDotExpr(fieldName)
 	if accessor == nil {
 		return nil, fmt.Errorf("bad field syntax: %s", fieldName)
 	}
@@ -70,7 +71,7 @@ func (f *FieldCutter) Pull() (zbuf.Batch, error) {
 				return nil, err
 			}
 			if f.builder == nil {
-				cols := []zng.Column{{f.out, val.Type}}
+				cols := []zng.Column{{f.out.Leaf(), val.Type}}
 				rectyp := f.pctx.TypeContext.MustLookupTypeRecord(cols)
 				f.builder = zng.NewBuilder(rectyp)
 			}
@@ -88,8 +89,8 @@ func (f *FieldCutter) Done() {
 }
 
 type fieldCutterNode struct {
-	field string
-	out   string
+	field field.Static
+	out   field.Static
 }
 
 func (t *fieldCutterNode) ProcNode() {}
@@ -145,7 +146,7 @@ func (t *TypeSplitter) Done() {
 }
 
 type typeSplitterNode struct {
-	key      string
+	key      field.Static
 	typeName string
 }
 
@@ -160,7 +161,7 @@ func compile(node ast.Proc, pctx *proc.Context, parent proc.Interface) (proc.Int
 		if err != nil {
 			return nil, err
 		}
-		return NewTypeSplitter(pctx, parent, typ, v.key)
+		return NewTypeSplitter(pctx, parent, typ, v.key.String())
 	}
 	return nil, nil
 }
