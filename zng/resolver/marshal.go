@@ -207,3 +207,197 @@ func lookupTypeRecord(zctx *Context, structType reflect.Type) (zng.Type, error) 
 	}
 	return zctx.LookupTypeRecord(columns)
 }
+
+type Unmarshaler interface {
+	UnmarshalZNG(*Context, zng.Type, zcode.Bytes) error
+}
+
+func Unmarshal(zctx *Context, typ zng.Type, zv zcode.Bytes, v interface{}) error {
+	return decodeAny(zctx, typ, zv, reflect.ValueOf(v))
+}
+
+func UnmarshalRecord(zctx *Context, rec *zng.Record, v interface{}) error {
+	return decodeAny(zctx, rec.Type, rec.Raw, reflect.ValueOf(v))
+}
+
+func incompatTypeError(zt zng.Type, v reflect.Value) error {
+	return fmt.Errorf("incompatible type translation: zng type %v go type %v go kind %v", zt, v.Type(), v.Kind())
+}
+
+func decodeAny(zctx *Context, typ zng.Type, zv zcode.Bytes, v reflect.Value) error {
+	switch v.Kind() {
+	case reflect.Slice:
+		if isIP(v.Type()) {
+			return decodeIP(typ, zv, v)
+		}
+		return decodeArray(zctx, typ, zv, v)
+	case reflect.Struct:
+		return decodeRecord(zctx, typ, zv, v)
+	case reflect.Interface:
+		m, ok := v.Interface().(Unmarshaler)
+		if !ok {
+			return fmt.Errorf("couldn't unmarshal interface: %v", v)
+		}
+		return m.UnmarshalZNG(zctx, typ, zv)
+	case reflect.Ptr:
+		if zv == nil {
+			v.Set(reflect.Zero(v.Type()))
+			return nil
+		}
+		if v.IsNil() {
+			v.Set(reflect.New(v.Type().Elem()))
+		}
+		v = v.Elem()
+		err := decodeAny(zctx, typ, zv, v)
+		return err
+	case reflect.String:
+		if typ != zng.TypeString {
+			return incompatTypeError(typ, v)
+		}
+		if zv == nil {
+			v.Set(reflect.Zero(v.Type()))
+			return nil
+		}
+		x, err := zng.DecodeString(zv)
+		v.SetString(x)
+		return err
+	case reflect.Bool:
+		if typ != zng.TypeBool {
+			return incompatTypeError(typ, v)
+		}
+		if zv == nil {
+			v.Set(reflect.Zero(v.Type()))
+			return nil
+		}
+		x, err := zng.DecodeBool(zv)
+		v.SetBool(x)
+		return err
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		// TODO: zng.TypeInt8 when it lands
+		switch typ {
+		case zng.TypeInt16, zng.TypeInt32, zng.TypeInt64:
+		default:
+			return incompatTypeError(typ, v)
+		}
+		if zv == nil {
+			v.Set(reflect.Zero(v.Type()))
+			return nil
+		}
+		x, err := zng.DecodeInt(zv)
+		v.SetInt(x)
+		return err
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		// TODO: zng.TypeUint8 when it lands
+		switch typ {
+		case zng.TypeUint16, zng.TypeUint32, zng.TypeUint64:
+		default:
+			return incompatTypeError(typ, v)
+		}
+		if zv == nil {
+			v.Set(reflect.Zero(v.Type()))
+			return nil
+		}
+		x, err := zng.DecodeUint(zv)
+		v.SetUint(x)
+		return err
+	case reflect.Float32, reflect.Float64:
+		// TODO: zng.TypeFloat32 when it lands
+		switch typ {
+		case zng.TypeFloat64:
+		default:
+			return incompatTypeError(typ, v)
+		}
+		if zv == nil {
+			v.Set(reflect.Zero(v.Type()))
+			return nil
+		}
+		x, err := zng.DecodeFloat64(zv)
+		v.SetFloat(x)
+		return err
+	default:
+		return fmt.Errorf("unsupported type: %v", v.Kind())
+	}
+}
+
+func decodeIP(typ zng.Type, zv zcode.Bytes, v reflect.Value) error {
+	if typ != zng.TypeIP {
+		return incompatTypeError(typ, v)
+	}
+	if zv == nil {
+		v.Set(reflect.Zero(v.Type()))
+		return nil
+	}
+	x, err := zng.DecodeIP(zv)
+	v.Set(reflect.ValueOf(x))
+	return err
+}
+
+func decodeRecord(zctx *Context, typ zng.Type, zv zcode.Bytes, sval reflect.Value) error {
+	recType, ok := typ.(*zng.TypeRecord)
+	if !ok {
+		return errors.New("not a record")
+	}
+	nameToField := make(map[string]int)
+	stype := sval.Type()
+	for i := 0; i < stype.NumField(); i++ {
+		if !sval.Field(i).CanSet() {
+			continue
+		}
+		field := stype.Field(i)
+		name := fieldName(field)
+		nameToField[name] = i
+	}
+	for i, it := 0, zv.Iter(); !it.Done(); i++ {
+		if i >= len(recType.Columns) {
+			return zng.ErrMismatch
+		}
+		itzv, _, err := it.Next()
+		if err != nil {
+			return err
+		}
+		name := recType.Columns[i].Name
+		if fieldIdx, ok := nameToField[name]; ok {
+			typ := recType.Columns[i].Type
+			if err := decodeAny(zctx, typ, itzv, sval.Field(fieldIdx)); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func decodeArray(zctx *Context, typ zng.Type, zv zcode.Bytes, arrVal reflect.Value) error {
+	arrType, ok := typ.(*zng.TypeArray)
+	if !ok {
+		return errors.New("not an array")
+	}
+	i := 0
+	for it := zv.Iter(); !it.Done(); i++ {
+		itzv, _, err := it.Next()
+		if err != nil {
+			return err
+		}
+		if i >= arrVal.Cap() {
+			newcap := arrVal.Cap() + arrVal.Cap()/2
+			if newcap < 4 {
+				newcap = 4
+			}
+			newArr := reflect.MakeSlice(arrVal.Type(), arrVal.Len(), newcap)
+			reflect.Copy(newArr, arrVal)
+			arrVal.Set(newArr)
+		}
+		if i >= arrVal.Len() {
+			arrVal.SetLen(i + 1)
+		}
+		if err := decodeAny(zctx, arrType.Type, itzv, arrVal.Index(i)); err != nil {
+			return err
+		}
+	}
+	switch {
+	case i == 0:
+		arrVal.Set(reflect.MakeSlice(arrVal.Type(), 0, 0))
+	case i < arrVal.Len():
+		arrVal.SetLen(i)
+	}
+	return nil
+}

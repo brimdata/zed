@@ -26,6 +26,13 @@ func rectzng(t *testing.T, rec *zng.Record) string {
 	return b.String()
 }
 
+func tzngToRec(t *testing.T, zctx *resolver.Context, tzng string) *zng.Record {
+	r := tzngio.NewReader(strings.NewReader(tzng), zctx)
+	rec, err := r.Read()
+	require.NoError(t, err)
+	return rec
+}
+
 func TestMarshal(t *testing.T) {
 	type S2 struct {
 		Field2 string `zng:"f2"`
@@ -121,8 +128,10 @@ type TestIP struct {
 	Addr net.IP
 }
 
-func TestMarshalIP(t *testing.T) {
-	s := TestIP{Addr: net.ParseIP("192.168.1.1")}
+func TestIPType(t *testing.T) {
+	addr := net.ParseIP("192.168.1.1").To4()
+	require.NotNil(t, addr)
+	s := TestIP{Addr: addr}
 	zctx := resolver.NewContext()
 	rec, err := resolver.MarshalRecord(zctx, s)
 	require.NoError(t, err)
@@ -133,4 +142,89 @@ func TestMarshalIP(t *testing.T) {
 0:[192.168.1.1;]
 `
 	assert.Equal(t, trim(exp), rectzng(t, rec))
+
+	var tip TestIP
+	err = resolver.UnmarshalRecord(zctx, rec, &tip)
+	require.NoError(t, err)
+	require.Equal(t, s, tip)
+}
+
+func TestUnmarshalRecord(t *testing.T) {
+	type T3 struct {
+		T3f1 int32
+		T3f2 float32
+	}
+	type T2 struct {
+		T2f1 T3
+		T2f2 string
+	}
+	type T1 struct {
+		T1f1 *T2 `zng:"top"`
+	}
+	v1 := T1{
+		T1f1: &T2{T2f1: T3{T3f1: 1, T3f2: 1.0}, T2f2: "t2f2-string1"},
+	}
+	zctx := resolver.NewContext()
+	rec, err := resolver.MarshalRecord(zctx, v1)
+	require.NoError(t, err)
+	require.NotNil(t, rec)
+
+	exp := `
+#0:record[top:record[T2f1:record[T3f1:int32,T3f2:float64],T2f2:string]]
+0:[[[1;1;]t2f2-string1;]]
+`
+	require.Equal(t, trim(exp), rectzng(t, rec))
+
+	zctx = resolver.NewContext()
+	rec = tzngToRec(t, zctx, exp)
+
+	var v2 T1
+	err = resolver.UnmarshalRecord(zctx, rec, &v2)
+	require.NoError(t, err)
+	require.Equal(t, v1, v2)
+
+	type T4 struct {
+		T4f1 *T2 `zng:"top"`
+	}
+	var v3 *T4
+	err = resolver.UnmarshalRecord(zctx, rec, &v3)
+	require.NoError(t, err)
+	require.NotNil(t, v3)
+	require.NotNil(t, v3.T4f1)
+	require.Equal(t, *v1.T1f1, *v3.T4f1)
+}
+
+func TestUnmarshalSlice(t *testing.T) {
+	type T1 struct {
+		T1f1 []bool
+	}
+	v1 := T1{
+		T1f1: []bool{true, false, true},
+	}
+	zctx := resolver.NewContext()
+	rec, err := resolver.MarshalRecord(zctx, v1)
+	require.NoError(t, err)
+	require.NotNil(t, rec)
+
+	var v2 T1
+	err = resolver.UnmarshalRecord(zctx, rec, &v2)
+	require.NoError(t, err)
+	require.Equal(t, v1, v2)
+
+	type T2 struct {
+		Field1 []*int
+	}
+	intp := func(x int) *int { return &x }
+	v3 := T2{
+		Field1: []*int{intp(1), intp(2)},
+	}
+	zctx = resolver.NewContext()
+	rec, err = resolver.MarshalRecord(zctx, v3)
+	require.NoError(t, err)
+	require.NotNil(t, rec)
+
+	var v4 T2
+	err = resolver.UnmarshalRecord(zctx, rec, &v4)
+	require.NoError(t, err)
+	require.Equal(t, v1, v2)
 }
