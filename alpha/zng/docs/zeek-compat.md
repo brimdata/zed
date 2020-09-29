@@ -20,8 +20,8 @@ is able to represent each of the types that may appear in Zeek logs.
 Tools like [`zq`](https://github.com/brimsec/zq) and [Brim](https://github.com/brimsec/brim)
 maintain an internal ZNG representation of any Zeek data that is read or
 imported. Therefore, knowing the equivalent types will prove useful when
-performing [ZQL](../../zql/README.md) operations such as
-[type casting](../../zql/docs/data-types#example) or looking at the
+performing [ZQL](../../../zql/README.md) operations such as
+[type casting](../../../zql/docs/data-types#example) or looking at the
 data when output as [TZNG](spec.md#4-zng-text-format-tzng).
 
 ## Equivalent Types
@@ -46,7 +46,7 @@ applicable to handling certain types.
 | [`addr`](https://docs.zeek.org/en/current/script-reference/types.html#type-addr)         | [`ip`](spec.md#5-primitive-types)       | |
 | [`subnet`](https://docs.zeek.org/en/current/script-reference/types.html#type-subnet)     | [`net`](spec.md#5-primitive-types)      | |
 | [`enum`](https://docs.zeek.org/en/current/script-reference/types.html#type-enum)         | [`string`](spec.md#5-primitive-types)   | See [`enum` details](#enum) |
-| [`set`](https://docs.zeek.org/en/current/script-reference/types.html#type-set)           | [`set`](spec.md#3113-set-typedef)       | See [`set` details](#set) | 
+| [`set`](https://docs.zeek.org/en/current/script-reference/types.html#type-set)           | [`set`](spec.md#3113-set-typedef)       | See [`set` details](#set) |
 | [`vector`](https://docs.zeek.org/en/current/script-reference/types.html#type-vector)     | [`array`](spec.md#3112-array-typedef)   | |
 | [`record`](https://docs.zeek.org/en/current/script-reference/types.html#type-record)     | [`record`](spec.md#3111-record-typedef) | See [`record` details](#record) |
 
@@ -66,7 +66,7 @@ log. You may find it helpful to refer to this example when reading the
 [Type-Specific Details](#type-specific-details) sections.
 
 ```
-$ cat zeek_types.log 
+$ cat zeek_types.log
 #separator \x09
 #set_separator	,
 #empty_field	(empty)
@@ -75,7 +75,7 @@ $ cat zeek_types.log
 #types	bool	count	int	double	time	interval	string	string	port	addr	subnet	enum	set[string]	vector[string]	string	count
 T	123	456	123.4560	1592502151.123456	123.456	smile\xf0\x9f\x98\x81smile	\x09\x07\x04	80	127.0.0.1	10.0.0.0/8	tcp	things,in,a,set	order,is,important	Jeanne	122
 
-$ zq -t zeek_types.log 
+$ zq -t zeek_types.log
 #zenum=string
 #0:record[my_bool:bool,my_count:uint64,my_int:int64,my_double:float64,my_time:time,my_interval:duration,my_printable_string:bstring,my_bytes_string:bstring,my_port:port,my_addr:ip,my_subnet:net,my_enum:zenum,my_set:set[bstring],my_vector:array[bstring],my_record:record[name:bstring,age:uint64]]
 0:[T;123;456;123.456;1592502151.123456;123.456;smile😁smile;\x09\x07\x04;80;127.0.0.1;10.0.0.0/8;tcp;[a;in;set;things;][order;is;important;][Jeanne;122;]]
