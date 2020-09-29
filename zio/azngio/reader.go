@@ -5,8 +5,9 @@ import (
 	"io"
 	"sync"
 
-	atzngio "github.com/brimsec/zq/0220/zio/tzngio"
-	azngio "github.com/brimsec/zq/0220/zio/zngio"
+	atzngio "github.com/brimsec/zq/alpha/zio/tzngio"
+	azngio "github.com/brimsec/zq/alpha/zio/zngio"
+	aresolver "github.com/brimsec/zq/alpha/zng/resolver"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
@@ -33,7 +34,7 @@ func NewReader(r io.Reader, zctx *resolver.Context) *Reader {
 	pipe, writer := io.Pipe()
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Reader{
-		ar:     azngio.NewReader(r, resolver.NewContext()),
+		ar:     azngio.NewReader(r, aresolver.NewContext()),
 		zr:     tzngio.NewReader(pipe, zctx),
 		pipe:   writer,
 		ctx:    ctx,
