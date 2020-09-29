@@ -78,17 +78,8 @@ func (s *Storage) Open(_ context.Context, zctx *resolver.Context, span nano.Span
 		if !os.IsNotExist(err) {
 			return nil, err
 		}
-
-		// Couldn't read all.zng, check for an old space with all.bzng
-		bzngFile := strings.TrimSuffix(allZngFile, filepath.Ext(allZngFile)) + ".bzng"
-		f, err = fs.Open(s.join(bzngFile))
-		if err != nil {
-			if !os.IsNotExist(err) {
-				return nil, err
-			}
-			r := zngio.NewReader(strings.NewReader(""), zctx)
-			return zbuf.NopReadCloser(r), nil
-		}
+		r := zngio.NewReader(strings.NewReader(""), zctx)
+		return zbuf.NopReadCloser(r), nil
 	}
 	return s.index.NewReader(f, zctx, span)
 }

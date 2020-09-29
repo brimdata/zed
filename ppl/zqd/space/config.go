@@ -11,12 +11,18 @@ import (
 	"unicode"
 
 	"github.com/brimsec/zq/api"
+	"github.com/brimsec/zq/pkg/bufwriter"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/ppl/zqd/pcapstorage"
+	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zio/azngio"
+	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
 )
 
-const configVersion = 3
+const configVersion = 4
 
 func invalidSpaceNameRune(r rune) bool {
 	return r == '/' || !unicode.IsPrint(r)
@@ -121,6 +127,8 @@ func (m *Manager) migrateConfig(ctx context.Context, version int, data []byte, s
 			mg = migrateConfigV2
 		case 2:
 			mg = migrateConfigV3
+		case 3:
+			mg = migrateConfigV4
 		default:
 			return config{}, fmt.Errorf("unsupported config migration %d", version)
 		}
@@ -134,6 +142,74 @@ func (m *Manager) migrateConfig(ctx context.Context, version int, data []byte, s
 		return c, err
 	}
 	return c, writeConfig(spaceURI, c)
+}
+
+func migrateAlphaAllZng(ctx context.Context, u iosrc.URI) error {
+	return iosrc.Replace(ctx, u, func(w io.Writer) error {
+		zctx := resolver.NewContext()
+		zw := zngio.NewWriter(bufwriter.New(zio.NopCloser(w)), zngio.WriterOpts{
+			StreamRecordsMax: zngio.DefaultStreamRecordsMax,
+			LZ4BlockSize:     zngio.DefaultLZ4BlockSize,
+		})
+		rc, err := iosrc.NewReader(context.Background(), u)
+		if err != nil {
+			return err
+		}
+		ar, err := azngio.NewReader(rc, zctx)
+		if err != nil {
+			rc.Close()
+			return err
+		}
+		err = zbuf.Copy(zw, ar)
+		if rcErr := rc.Close(); err == nil {
+			err = rcErr
+		}
+		if zwErr := zw.Close(); err == nil {
+			err = zwErr
+		}
+		return err
+	})
+}
+
+func findV3File(ctx context.Context, spaceuri iosrc.URI, v3 *config) (iosrc.URI, bool, error) {
+	for _, f := range []string{"all.zng", "all.bzng"} {
+		var uri iosrc.URI
+		if v3.DataURI.IsZero() {
+			uri = spaceuri.AppendPath(f)
+		} else {
+			uri = v3.DataURI.AppendPath(f)
+		}
+		exists, err := iosrc.Exists(ctx, uri)
+		if err != nil {
+			return iosrc.URI{}, false, err
+		}
+		if exists {
+			return uri, true, nil
+		}
+	}
+	return iosrc.URI{}, false, nil
+}
+
+func migrateConfigV4(ctx context.Context, data []byte, spaceuri iosrc.URI) (int, []byte, error) {
+	var v3 config
+	if err := json.Unmarshal(data, &v3); err != nil {
+		return 0, nil, err
+	}
+	if v3.Storage.Kind == api.FileStore {
+		allZng, exists, err := findV3File(ctx, spaceuri, &v3)
+		if err != nil {
+			return 0, nil, err
+		}
+		if exists {
+			if err := migrateAlphaAllZng(ctx, allZng); err != nil {
+				return 0, nil, err
+			}
+		}
+	}
+	c := v3
+	c.Version = 4
+	d, err := json.Marshal(c)
+	return 4, d, err
 }
 
 func migrateConfigV3(ctx context.Context, data []byte, spaceuri iosrc.URI) (int, []byte, error) {
