@@ -19,7 +19,7 @@ func (f *Flags) SetFlags(fs *flag.FlagSet) {
 	f.sortMemMax = units.Bytes(sort.MemMaxBytes)
 	fs.Var(&f.sortMemMax, "sortmem", "maximum memory used by sort in MiB, MB, etc")
 	f.fuseMemMax = units.Bytes(fuse.MemMaxBytes)
-	fs.Var(&f.fuseMemMax, "fusemem", "maximum memory used by sort in MiB, MB, etc")
+	fs.Var(&f.fuseMemMax, "fusemem", "maximum memory used by fuse in MiB, MB, etc")
 }
 
 func (f *Flags) Init() error {
