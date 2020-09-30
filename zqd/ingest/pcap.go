@@ -25,6 +25,8 @@ import (
 	"github.com/brimsec/zq/zqd/storage"
 )
 
+//go:generate go run ../../pkg/jsontyper -o ./suricata.go -package ingest -var suricataTC ../../suricata/types.json
+
 type ClearableStore interface {
 	storage.Storage
 	Clear(ctx context.Context) error
