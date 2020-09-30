@@ -6,7 +6,7 @@ VERSION = $(shell git describe --tags --dirty --always)
 LDFLAGS = -s -X github.com/brimsec/zq/cli.Version=$(VERSION)
 ZEEKTAG = v3.0.2-brim3
 ZEEKPATH = zeek-$(ZEEKTAG)
-SURICATATAG = v5.0.3-brim3
+SURICATATAG = v5.0.3-brim4
 SURICATAPATH = suricata-$(SURICATATAG)
 
 # This enables a shortcut to run a single test from the ./tests suite, e.g.:
