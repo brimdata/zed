@@ -113,7 +113,7 @@ func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
 			pg.scanners[sc] = struct{}{}
 			pg.mu.Unlock()
 
-			println("nextSource returns", sc)
+			println("driver.parallel nextSource returns", sc)
 			return sc, nil
 		case <-pg.pctx.Done():
 			return nil, pg.pctx.Err()
@@ -180,6 +180,8 @@ func createParallelGroup(pctx *proc.Context, filterExpr ast.BooleanExpr, msrc Mu
 			FilterExpr: filterExpr,
 			Span:       mcfg.Span,
 		},
+		// This parallel group will use the multi-source here to provide
+		// SourceOpeners -- maybe convert it to a static srtucture before this?
 		msrc:       msrc,
 		sourceChan: make(chan SourceOpener),
 		scanners:   make(map[scanner.Scanner]struct{}),

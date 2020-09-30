@@ -46,6 +46,7 @@ func OpenFileWithContext(ctx context.Context, zctx *resolver.Context, path strin
 	if err != nil {
 		return nil, err
 	}
+	println("file.OpenFileWithContext returns file for ", path)
 	return OpenFromNamedReadCloser(zctx, f, path, opts)
 }
 
@@ -84,6 +85,7 @@ func OpenFromNamedReadCloser(zctx *resolver.Context, rc io.ReadCloser, path stri
 		return nil, err
 	}
 
+	println("file.OpenFromNamedReadCloser returns file for ", path)
 	return zbuf.NewFile(zr, rc, path), nil
 }
 

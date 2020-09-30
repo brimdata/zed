@@ -62,6 +62,7 @@ type scannerCloser struct {
 
 func newSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, f filter.Filter, filterExpr ast.BooleanExpr, si spanInfo) (sc *scannerCloser, err error) {
 	if len(si.chunks) == 1 {
+		println("archive.multisource newSpanScanner chunk URI is", si.chunks[0].Path(ark).String())
 		rc, err := iosrc.NewReader(ctx, si.chunks[0].Path(ark))
 		if err != nil {
 			return nil, err
@@ -83,6 +84,7 @@ func newSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, f
 	}()
 	readers := make([]zbuf.Reader, 0, len(si.chunks))
 	for _, chunk := range si.chunks {
+		println("archive.multisource newSpanScanner chunk URI is", chunk.Path(ark).String())
 		rc, err := iosrc.NewReader(ctx, chunk.Path(ark))
 		if err != nil {
 			return nil, err
@@ -132,6 +134,7 @@ func (m *multiSource) OrderInfo() (string, bool) {
 func (m *multiSource) spanWalk(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan<- driver.SourceOpener) error {
 	return spanWalk(ctx, m.ark, sf.Span, func(si spanInfo) error {
 		so := func() (driver.ScannerCloser, error) {
+			println("archive.multisource spanWalk function called ", sf.FilterExpr)
 			return newSpanScanner(ctx, m.ark, zctx, sf.Filter, sf.FilterExpr, si)
 		}
 		select {
@@ -149,7 +152,9 @@ func (m *multiSource) chunkWalk(ctx context.Context, zctx *resolver.Context, sf 
 			paths := make([]string, len(m.altPaths))
 			for i, input := range m.altPaths {
 				paths[i] = chunk.Localize(m.ark, input).String()
+				println("(2) archive.multisource SourceOpener function called ", paths[i])
 			}
+			println("archive.multisource SourceOpener function called ", paths)
 			rc := detector.MultiFileReader(zctx, paths, zio.ReaderOpts{Format: "zng"})
 			sn, err := scanner.NewScanner(ctx, rc, sf.Filter, sf.FilterExpr, sf.Span)
 			if err != nil {
