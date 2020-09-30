@@ -93,7 +93,7 @@ above_hole_data_without_any_acks            107
 
 #### Example #2:
 
-By specifying multiple comma-separated field names, batches are formed for each
+By specifying multiple comma-separated field names, one batch is formed for each
 unique combination of values found in those fields. To see which responding
 IP+port combinations generated the most traffic:
 
