@@ -151,7 +151,7 @@ func TestPcapPostInvalidPcap(t *testing.T) {
 
 func TestPcapPostZeekFailImmediate(t *testing.T) {
 	expectedErr := errors.New("zeek error: failed to start")
-	startFn := func(*testZeekProcess) error { return expectedErr }
+	startFn := func(*testPcapProcess) error { return expectedErr }
 	p := pcapPostTest(t, "./testdata/valid.pcap", testLauncher(startFn, nil))
 	t.Run("TaskEndError", func(t *testing.T) {
 		expected := &api.TaskEnd{
@@ -169,7 +169,7 @@ func TestPcapPostZeekFailImmediate(t *testing.T) {
 
 func TestPcapPostZeekFailAfterWrite(t *testing.T) {
 	expectedErr := errors.New("zeek exited after write")
-	write := func(p *testZeekProcess) error {
+	write := func(p *testPcapProcess) error {
 		if err := writeLogsFn(testZeekLogs)(p); err != nil {
 			return err
 		}

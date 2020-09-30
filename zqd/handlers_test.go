@@ -605,7 +605,7 @@ func TestDeleteDuringPcapPost(t *testing.T) {
 	require.NoError(t, err)
 	var zeekClosed int32
 
-	waitFn := func(tzp *testZeekProcess) error {
+	waitFn := func(tzp *testPcapProcess) error {
 		<-tzp.ctx.Done()
 		atomic.StoreInt32(&zeekClosed, 1)
 		return errors.New("zeek exited with error code: -1")
@@ -692,7 +692,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 
 	c, client := newCoreAtDir(t, root)
 
-	c.Zeek = testLauncher(func(tzp *testZeekProcess) error {
+	c.Zeek = testLauncher(func(tzp *testPcapProcess) error {
 		const s = "unexpected attempt to run zeek"
 		t.Error(s)
 		return errors.New(s)
@@ -1146,7 +1146,7 @@ func postSpaceLogs(t *testing.T, c *api.Connection, spaceID api.SpaceID, tc *ndj
 
 func testLauncher(start, wait procFn) pcapanalyzer.Launcher {
 	return func(ctx context.Context, r io.Reader, dir string) (pcapanalyzer.ProcessWaiter, error) {
-		p := &testZeekProcess{
+		p := &testPcapProcess{
 			ctx:    ctx,
 			reader: r,
 			wd:     dir,
@@ -1157,9 +1157,9 @@ func testLauncher(start, wait procFn) pcapanalyzer.Launcher {
 	}
 }
 
-type procFn func(t *testZeekProcess) error
+type procFn func(t *testPcapProcess) error
 
-type testZeekProcess struct {
+type testPcapProcess struct {
 	ctx    context.Context
 	reader io.Reader
 	wd     string
@@ -1167,14 +1167,14 @@ type testZeekProcess struct {
 	wait   procFn
 }
 
-func (p *testZeekProcess) Start() error {
+func (p *testPcapProcess) Start() error {
 	if p.start != nil {
 		return p.start(p)
 	}
 	return nil
 }
 
-func (p *testZeekProcess) Wait() error {
+func (p *testPcapProcess) Wait() error {
 	if p.wait != nil {
 		return p.wait(p)
 	}
@@ -1182,7 +1182,7 @@ func (p *testZeekProcess) Wait() error {
 }
 
 func writeLogsFn(logs []string) procFn {
-	return func(p *testZeekProcess) error {
+	return func(p *testPcapProcess) error {
 		for _, log := range logs {
 			r, err := fs.Open(log)
 			if err != nil {
