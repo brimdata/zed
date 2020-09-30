@@ -163,6 +163,7 @@ func tsDirVisit(ctx context.Context, ark *Archive, filterSpan nano.Span, visitor
 	})
 	for _, d := range tsdirs {
 		dirents, err := iosrc.ReadDir(ctx, zdDir.AppendPath(d.name()))
+		println("archive.walk visting ", d.name())
 		if err != nil {
 			return err
 		}
@@ -177,6 +178,7 @@ func tsDirEntriesToChunks(ark *Archive, filterSpan nano.Span, entries []iosrc.In
 	dfileMap := make(map[ksuid.KSUID]dataFile)
 	sfileMap := make(map[ksuid.KSUID]seekIndexFile)
 	for _, e := range entries {
+		println("walk.tsDirEntriesToChunks chunk for entry name ", e.Name())
 		if df, ok := dataFileNameMatch(e.Name()); ok {
 			dfileMap[df.id] = df
 			continue

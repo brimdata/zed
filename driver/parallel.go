@@ -102,7 +102,9 @@ func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
 			if !ok {
 				return nil, pg.sourceErr
 			}
-			sc, err := opener()
+			sc, err := opener() // This is the call to multisource.go line 150
+			// for multiprocessing case, we need the text  from the SpanInfo to pass through to the REST API
+			// so need an alternative impl of nextSource that return a statis data structure rather than a closer
 			if err != nil {
 				return nil, err
 			}

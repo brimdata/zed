@@ -29,6 +29,7 @@ type spanInfo struct {
 	chunks []Chunk
 }
 
+// Note: it is confusing to call this function spanWalk when there is another spanWalk further down -MTW
 func spanWalk(ctx context.Context, ark *Archive, filter nano.Span, v func(si spanInfo) error) error {
 	return tsDirVisit(ctx, ark, filter, func(_ tsDir, chunks []Chunk) error {
 		sinfos := mergeChunksToSpans(chunks, ark.DataSortDirection, filter)
@@ -61,6 +62,18 @@ type scannerCloser struct {
 }
 
 func newSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, f filter.Filter, filterExpr ast.BooleanExpr, si spanInfo) (sc *scannerCloser, err error) {
+	// Create a form of this that does not depend on an archive pointer, or specific state,
+	// but just depends on the SpanInfo
+
+	// cannot depend on ark or f
+
+	// BTW, zctx is an optimization: the remote worker can contruct the same type info
+
+	// we do need to pass filterExpr so remote zqd can build its own scanner
+
+	// TODO: add a REST API handler that takes information "like this" and opens file for for realing and provide
+	// the data back the socket (reuse most of the code for searchHandler)
+
 	if len(si.chunks) == 1 {
 		println("archive.multisource newSpanScanner chunk URI is", si.chunks[0].Path(ark).String())
 		rc, err := iosrc.NewReader(ctx, si.chunks[0].Path(ark))
@@ -131,9 +144,27 @@ func (m *multiSource) OrderInfo() (string, bool) {
 	return "", false
 }
 
+/*
+Currently I am investigating how to reorganize the code
+in walk.go and multisource.go to have it build a static list
+(containing just strings, not functions or channels) of files
+to be opened. With the alternate implementation of this code,
+when we build the parallel group, each parallel read head
+would get its own partition of this list -- like skipping
+through the list of files backwards through time based on a
+modulus. The partitions of the static list would be passed
+to a "zqd worker" along with the serialized Proc they
+need to execute.
+-MTW
+*/
 func (m *multiSource) spanWalk(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan<- driver.SourceOpener) error {
 	return spanWalk(ctx, m.ark, sf.Span, func(si spanInfo) error {
 		so := func() (driver.ScannerCloser, error) {
+			// this is called from parallel.go line 105
+
+			// In this "so" we could send a REST  message to a remote worker, and then return the
+			// closer to the TCP connection to that worker
+
 			println("archive.multisource spanWalk function called ", sf.FilterExpr)
 			return newSpanScanner(ctx, m.ark, zctx, sf.Filter, sf.FilterExpr, si)
 		}
