@@ -181,7 +181,7 @@ TS                COUNT
 
 Events that are stored and retrieved via [`zqd`](../../../cmd/zqd) (that is,
 using the [Brim application](https://github.com/brimsec/brim) and/or
-[`zapi`](../../../cmd/zqd)) are by default automatically sorted in rerverse
+[`zapi`](../../../cmd/zapi)) are by default automatically sorted in rerverse
 order by timestamp (`ts`). Therefore for the particular case of a
 [time grouping](#time-grouping---every) query entered via Brim or `zapi`,
 if the same reverse time ordering is desired in the output of the aggregation
