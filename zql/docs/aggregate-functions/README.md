@@ -74,7 +74,7 @@ QUICKEST LONGEST     TYPICAL
 | **Syntax**                | `avg(<field-name>)`                                            |
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |
-| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/reducer#Avg            |
+| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer#Avg            |
 
 #### Example:
 
@@ -101,7 +101,7 @@ AVG
 | **Syntax**                | `count([field-name])`                                          |
 | **Required<br>arguments** | None                                                           |
 | **Optional<br>arguments** | `[field-name]`<br>The name a field. If specified, only events that contain this field will be counted. |
-| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/reducer#Count          |
+| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer#Count          |
 
 #### Example #1:
 
@@ -144,7 +144,7 @@ ftp   93
 | **Required<br>arguments** | `<field-name>`<br>The name of a field containing values to be counted. |
 | **Optional<br>arguments** | None                                                           |
 | **Limitations**           | The potential inaccuracy of the calculated result is described in detail in the code and research linked from the [HyperLogLog repository](https://github.com/axiomhq/hyperloglog). |
-| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/reducer#CountDistinct  |
+| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer#CountDistinct  |
 
 #### Example:
 
@@ -185,7 +185,7 @@ to perform this test, the ZQL using `countdistinct()` executed almost 3x faster.
 | **Syntax**                | `first(<field-name>)`                                          |
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |
-| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/reducer#First          |
+| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer#First          |
 
 #### Example:
 
@@ -211,7 +211,7 @@ TCP_ack_underflow_or_misorder
 | **Syntax**                | `last(<field-name>)`                                           |
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |
-| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/reducer#Last           |
+| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer#Last           |
 
 #### Example:
 
@@ -237,7 +237,7 @@ talk.google.com
 | **Syntax**                | `max(<field-name>)`                                            |
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |
-| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/reducer/field#FieldReducer |
+| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer/field#FieldReducer |
 
 #### Example:
 
@@ -264,7 +264,7 @@ MAX
 | **Syntax**                | `min(<field-name>)`                                            |
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |
-| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/reducer/field#FieldReducer |
+| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer/field#FieldReducer |
 
 #### Example:
 
@@ -291,7 +291,7 @@ MIN
 | **Syntax**                | `sum(<field-name>)`                                            |
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |
-| **Developer Docs**        | https://godoc.org/github.com/brimsec/zq/reducer/field#FieldReducer |
+| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer/field#FieldReducer |
 
 #### Example:
 
