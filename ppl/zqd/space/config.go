@@ -104,14 +104,14 @@ func (m *Manager) loadConfig(ctx context.Context, spaceURI iosrc.URI) (config, e
 		return c, fmt.Errorf("space config version %d ahead of binary version %d", vc.Version, configVersion)
 	}
 	if vc.Version < configVersion {
-		return m.migrateConfig(vc.Version, data, spaceURI)
+		return m.migrateConfig(ctx, vc.Version, data, spaceURI)
 	}
 	return c, json.Unmarshal(data, &c)
 }
 
-type migrator func([]byte, iosrc.URI) (int, []byte, error)
+type migrator func(context.Context, []byte, iosrc.URI) (int, []byte, error)
 
-func (m *Manager) migrateConfig(version int, data []byte, spaceURI iosrc.URI) (config, error) {
+func (m *Manager) migrateConfig(ctx context.Context, version int, data []byte, spaceURI iosrc.URI) (config, error) {
 	var mg migrator
 	for version < configVersion {
 		switch version {
@@ -125,7 +125,7 @@ func (m *Manager) migrateConfig(version int, data []byte, spaceURI iosrc.URI) (c
 			return config{}, fmt.Errorf("unsupported config migration %d", version)
 		}
 		var err error
-		if version, data, err = mg(data, spaceURI); err != nil {
+		if version, data, err = mg(ctx, data, spaceURI); err != nil {
 			return config{}, err
 		}
 	}
@@ -136,7 +136,7 @@ func (m *Manager) migrateConfig(version int, data []byte, spaceURI iosrc.URI) (c
 	return c, writeConfig(spaceURI, c)
 }
 
-func migrateConfigV3(data []byte, spaceuri iosrc.URI) (int, []byte, error) {
+func migrateConfigV3(ctx context.Context, data []byte, spaceuri iosrc.URI) (int, []byte, error) {
 	var v2 configV2
 	if err := json.Unmarshal(data, &v2); err != nil {
 		return 0, nil, err
@@ -150,7 +150,7 @@ func migrateConfigV3(data []byte, spaceuri iosrc.URI) (int, []byte, error) {
 		if du.IsZero() {
 			du = spaceuri
 		}
-		if err := pcapstorage.MigrateV3(du, pcapuri); err != nil {
+		if err := pcapstorage.MigrateV3(ctx, du, pcapuri); err != nil {
 			return 0, nil, err
 		}
 	}
@@ -165,7 +165,7 @@ func migrateConfigV3(data []byte, spaceuri iosrc.URI) (int, []byte, error) {
 	return 3, d, err
 }
 
-func migrateConfigV2(data []byte, _ iosrc.URI) (int, []byte, error) {
+func migrateConfigV2(_ context.Context, data []byte, _ iosrc.URI) (int, []byte, error) {
 	var v1 configV1
 	if err := json.Unmarshal(data, &v1); err != nil {
 		return 0, nil, err
@@ -189,7 +189,7 @@ func migrateConfigV2(data []byte, _ iosrc.URI) (int, []byte, error) {
 	return 2, d, err
 }
 
-func (m *Manager) migrateConfigV1(data []byte, spaceURI iosrc.URI) (int, []byte, error) {
+func (m *Manager) migrateConfigV1(_ context.Context, data []byte, spaceURI iosrc.URI) (int, []byte, error) {
 	var c configV1
 	if err := json.Unmarshal(data, &c); err != nil {
 		return 0, nil, err

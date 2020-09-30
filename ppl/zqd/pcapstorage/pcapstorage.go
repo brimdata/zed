@@ -175,7 +175,7 @@ func (s *Store) NewSearch(ctx context.Context, req api.PcapSearch) (*Search, err
 
 const metaFileV0 = "packets.idx.json"
 
-func MigrateV3(u iosrc.URI, pcapuri iosrc.URI) error {
+func MigrateV3(ctx context.Context, u iosrc.URI, pcapuri iosrc.URI) error {
 	b, err := iosrc.ReadFile(context.Background(), u.AppendPath(metaFileV0))
 	if err != nil {
 		return err
@@ -193,8 +193,8 @@ func MigrateV3(u iosrc.URI, pcapuri iosrc.URI) error {
 	if err != nil {
 		return err
 	}
-	if err := iosrc.WriteFile(context.Background(), u.AppendPath(MetaFile), out); err != nil {
+	if err := iosrc.WriteFile(ctx, u.AppendPath(MetaFile), out); err != nil {
 		return err
 	}
-	return iosrc.Remove(context.Background(), u.AppendPath(metaFileV0))
+	return iosrc.Remove(ctx, u.AppendPath(metaFileV0))
 }
