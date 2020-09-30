@@ -20,7 +20,6 @@ type typeStats struct {
 	FirstBadLine         int
 	DescriptorNotFound   int
 	IncompleteDescriptor int
-	MissingPath          int
 }
 
 type typeParser struct {
@@ -34,7 +33,6 @@ type typeParser struct {
 
 var (
 	ErrDescriptorNotFound   = errors.New("descriptor not found")
-	ErrMissingPath          = errors.New("missing path field")
 	ErrIncompleteDescriptor = errors.New("incomplete descriptor")
 )
 
@@ -255,9 +253,6 @@ func (p *typeParser) findTypeInfo(zctx *resolver.Context, jobj []byte, tr typeRu
 			return ti, nil
 		}
 	}
-	if path == "" {
-		return nil, ErrMissingPath
-	}
 	return nil, ErrDescriptorNotFound
 }
 
@@ -275,8 +270,6 @@ func (p *typeParser) parseObject(b []byte) (zng.Value, error) {
 		switch err {
 		case ErrDescriptorNotFound:
 			incr(&p.stats.DescriptorNotFound)
-		case ErrMissingPath:
-			incr(&p.stats.MissingPath)
 		default:
 			panic("unhandled error")
 		}

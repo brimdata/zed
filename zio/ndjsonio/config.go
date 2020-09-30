@@ -52,10 +52,6 @@ func (conf TypeConfig) Validate() error {
 				return fmt.Errorf("descriptor %s has field ts with wrong type %s", name, col["type"])
 			}
 		}
-		col := desc[0].(map[string]interface{})
-		if col["name"] != "_path" {
-			return fmt.Errorf("descriptor %s does not have _path as first column", name)
-		}
 	}
 	return nil
 }
