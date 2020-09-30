@@ -72,7 +72,7 @@ func (c *PcapCommand) Run(args []string) (err error) {
 	if err != nil {
 		return err
 	}
-	stream, err := client.PcapPost(c.Context(), id, api.PcapPostRequest{Path: file})
+	stream, err := client.PcapPostStream(c.Context(), id, api.PcapPostRequest{Path: file})
 	if err != nil {
 		return err
 	}

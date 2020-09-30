@@ -76,9 +76,6 @@ test-run: build bin/minio bin/$(ZEEKPATH) bin/$(SURICATAPATH)
 test-heavy: build $(SAMPLEDATA)
 	@go test -v -tags=heavy ./tests
 
-test-zeek: bin/$(ZEEKPATH)
-	@ZEEK=$(CURDIR)/bin/$(ZEEKPATH)/zeekrunner go test -v -run=PcapPost -tags=zeek ./zqd
-
 perf-compare: build $(SAMPLEDATA)
 	scripts/comparison-test.sh
 
