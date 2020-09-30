@@ -178,3 +178,15 @@ TS                COUNT
 1521912000.000000 337264
 1521911700.000000 441229
 ```
+
+Events that are stored and retrieved via [`zqd`](../../../cmd/zqd) (that is,
+using the [Brim application](https://github.com/brimsec/brim) and/or
+[`zapi`](../../../cmd/zqd)) are by default automatically sorted in rerverse
+order by timestamp (`ts`). Therefore for the particular case of a
+[time grouping](#time-grouping---every) query entered via Brim or `zapi`,
+if the same reverse time ordering is desired in the output of the aggregation
+result, an explicit `| sort -r ts` is _not_ necessary on your ZQL pipeline.
+
+#### Output:
+
+![ZQL "every" in Brim](media/Brim-ZQL-every.png)
