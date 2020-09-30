@@ -29,7 +29,6 @@ const DefaultPathRegexp = `([a-zA-Z0-9_]+)(?:\.|_\d{8}_)\d\d:\d\d:\d\d\-\d\d:\d\
 type ReaderOpts struct {
 	TypeConfig *TypeConfig
 	PathRegexp string
-	FilePath   string
 }
 
 type ReadStats struct {
