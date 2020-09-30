@@ -752,7 +752,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 		DataPath:    sp.DataPath,
 		StorageKind: storage.ArchiveStore,
 		Span:        &span,
-		Size:        34227,
+		Size:        34517,
 	}
 	si, err := client.SpaceInfo(context.Background(), sp.ID)
 	require.NoError(t, err)
@@ -820,8 +820,8 @@ func TestIndexSearch(t *testing.T) {
 
 	exp := `
 #0:record[key:int64,count:uint64,first:time,last:time]
-0:[257;2;1587518620.0622373;1587513894.06692143;]
-0:[257;4;1587513592.0625444;1587509181.06547297;]
+0:[257;2;1587518620.0622373;1587513611.06391469;]
+0:[257;4;1587513578.0687693;1587508830.06852324;]
 `
 	res, _ := indexSearch(t, client, sp.ID, "", []string{"v=257"})
 	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c _log", res, "tzng"))
@@ -858,13 +858,13 @@ func TestSubspaceCreate(t *testing.T) {
 	// Verify index search returns all logs
 	exp := `
 #0:record[key:int64,count:uint64,first:time,last:time]
-0:[336;1;1587518620.0622373;1587513894.06692143;]
-0:[336;1;1587509168.06759839;1587508830.06852324;]
+0:[336;1;1587518620.0622373;1587513611.06391469;]
+0:[336;1;1587513578.0687693;1587508830.06852324;]
 `
 	res, _ := indexSearch(t, client, sp1.ID, "", []string{":int64=336"})
 	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c _log", res, "tzng"))
 
-	logId := strings.TrimSpace(tzngCopy(t, "first=1587509168.06759839 | cut _log", res, "text"))
+	logId := strings.TrimSpace(tzngCopy(t, "first=1587513578.0687693 | cut _log", res, "text"))
 	// Create subspace
 	sp2, err := client.SubspacePost(context.Background(), sp1.ID, api.SubspacePostRequest{
 		Name: "subspace",
@@ -878,7 +878,7 @@ func TestSubspaceCreate(t *testing.T) {
 	// Verify index search only returns filtered logs
 	exp = `
 #0:record[key:int64,count:uint64,first:time,last:time]
-0:[336;1;1587509168.06759839;1587508830.06852324;]
+0:[336;1;1587513578.0687693;1587508830.06852324;]
 `
 	res, _ = indexSearch(t, client, sp2.ID, "", []string{":int64=336"})
 	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c _log", res, "tzng"))
@@ -949,7 +949,7 @@ func TestSubspacePersist(t *testing.T) {
 	// Verify index search only returns filtered logs
 	exp := `
 #0:record[key:int64,count:uint64,first:time,last:time]
-0:[336;1;1587518620.0622373;1587513894.06692143;]
+0:[336;1;1587518620.0622373;1587513611.06391469;]
 `
 	res, _ = indexSearch(t, client1, sp2.ID, "", []string{":int64=336"})
 	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c _log", res, "tzng"))

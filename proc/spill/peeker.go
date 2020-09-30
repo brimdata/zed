@@ -1,6 +1,7 @@
 package spill
 
 import (
+	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
@@ -11,8 +12,8 @@ type peeker struct {
 	ordinal    int
 }
 
-func newPeeker(filename string, ordinal int, recs []*zng.Record, zctx *resolver.Context) (*peeker, error) {
-	f, err := NewFileWithPath(filename, zctx)
+func newPeeker(filename string, ordinal int, recs []*zng.Record, zctx *resolver.Context, opts zngio.WriterOpts) (*peeker, error) {
+	f, err := NewFileWithPath(filename, zctx, opts)
 	if err != nil {
 		return nil, err
 	}

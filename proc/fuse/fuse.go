@@ -8,6 +8,7 @@ import (
 	"github.com/brimsec/zq/proc/spill"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zcode"
+	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
@@ -98,7 +99,7 @@ func (p *Proc) stash(rec *zng.Record) error {
 	p.nbytes += len(rec.Raw)
 	if p.nbytes >= MemMaxBytes {
 		var err error
-		p.spiller, err = spill.NewTempFile()
+		p.spiller, err = spill.NewTempFile(zngio.WriterOpts{})
 		if err != nil {
 			return err
 		}

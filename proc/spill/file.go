@@ -25,27 +25,27 @@ type File struct {
 // NewFile returns a File.  Records should be written to File via the zbuf.Writer
 // interface, followed by a call to the Rewind method, followed by reading
 // records via the zbuf.Reader interface.
-func NewFile(f *os.File) *File {
+func NewFile(f *os.File, opts zngio.WriterOpts) *File {
 	return &File{
-		Writer: zngio.NewWriter(bufwriter.New(zio.NopCloser(f)), zngio.WriterOpts{}),
+		Writer: zngio.NewWriter(bufwriter.New(zio.NopCloser(f)), opts),
 		file:   f,
 	}
 }
 
-func NewTempFile() (*File, error) {
+func NewTempFile(opts zngio.WriterOpts) (*File, error) {
 	f, err := TempFile()
 	if err != nil {
 		return nil, err
 	}
-	return NewFile(f), nil
+	return NewFile(f, opts), nil
 }
 
-func NewFileWithPath(path string, zctx *resolver.Context) (*File, error) {
+func NewFileWithPath(path string, zctx *resolver.Context, opts zngio.WriterOpts) (*File, error) {
 	f, err := fs.Create(path)
 	if err != nil {
 		return nil, err
 	}
-	return NewFile(f), nil
+	return NewFile(f, opts), nil
 }
 
 func (f *File) Rewind(zctx *resolver.Context) error {
@@ -69,4 +69,12 @@ func (r *File) CloseAndRemove() error {
 		err = rmErr
 	}
 	return err
+}
+
+func (f *File) Size() (int64, error) {
+	info, err := f.file.Stat()
+	if err != nil {
+		return 0, err
+	}
+	return info.Size(), nil
 }

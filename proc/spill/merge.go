@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
@@ -20,6 +21,8 @@ type MergeSort struct {
 	runs      []*peeker
 	compareFn expr.CompareFn
 	tempDir   string
+	spillSize int64
+	opts      zngio.WriterOpts
 	zctx      *resolver.Context
 }
 
@@ -48,6 +51,10 @@ func NewMergeSort(compareFn expr.CompareFn) (*MergeSort, error) {
 	}, nil
 }
 
+func (r *MergeSort) SetWriterOpts(opts zngio.WriterOpts) {
+	r.opts = opts
+}
+
 func (r *MergeSort) Cleanup() {
 	for _, run := range r.runs {
 		run.CloseAndRemove()
@@ -62,11 +69,16 @@ func (r *MergeSort) Cleanup() {
 func (r *MergeSort) Spill(recs []*zng.Record) error {
 	expr.SortStable(recs, r.compareFn)
 	filename := filepath.Join(r.tempDir, strconv.Itoa(r.nspill))
-	runFile, err := newPeeker(filename, r.nspill, recs, r.zctx)
+	runFile, err := newPeeker(filename, r.nspill, recs, r.zctx, r.opts)
+	if err != nil {
+		return err
+	}
+	size, err := runFile.Size()
 	if err != nil {
 		return err
 	}
 	r.nspill++
+	r.spillSize += size
 	heap.Push(r, runFile)
 	return nil
 }
@@ -104,6 +116,10 @@ func (r *MergeSort) Read() (*zng.Record, error) {
 			return rec, nil
 		}
 	}
+}
+
+func (r *MergeSort) SpillSize() int64 {
+	return r.spillSize
 }
 
 func (r *MergeSort) Len() int { return len(r.runs) }
