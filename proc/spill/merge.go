@@ -50,7 +50,7 @@ func NewMergeSort(compareFn expr.CompareFn) (*MergeSort, error) {
 
 func (r *MergeSort) Cleanup() {
 	for _, run := range r.runs {
-		run.closeAndRemove()
+		run.CloseAndRemove()
 	}
 	os.RemoveAll(r.tempDir)
 }
@@ -93,7 +93,9 @@ func (r *MergeSort) Read() (*zng.Record, error) {
 			return nil, err
 		}
 		if eof {
-			r.runs[0].closeAndRemove()
+			if err := r.runs[0].CloseAndRemove(); err != nil {
+				return nil, err
+			}
 			heap.Pop(r)
 		} else {
 			heap.Fix(r, 0)
