@@ -29,6 +29,7 @@ func MultiRun(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Co
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	println("MultiRun about to compile")
 	mux, err := compile(ctx, program, zctx, msrc, mcfg)
 	if err != nil {
 		return err

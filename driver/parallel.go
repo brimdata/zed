@@ -46,6 +46,12 @@ func (ph *parallelHead) Pull() (zbuf.Batch, error) {
 	defer ph.mu.Unlock()
 
 	for {
+		// For the multi-process case,
+		// here in the parallel "read head" is where nextSource should
+		// return an element of a statically constructed set of sources,
+		// rather than call back to a function. That is because a static list of
+		// sources (e.g. file names or S3 object paths) can be passed across process
+		// boundaries -MTW
 		if ph.sc == nil {
 			sc, err := ph.pg.nextSource()
 			if sc == nil || err != nil {
@@ -106,6 +112,8 @@ func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
 			pg.mu.Lock()
 			pg.scanners[sc] = struct{}{}
 			pg.mu.Unlock()
+
+			println("nextSource returns", sc)
 			return sc, nil
 		case <-pg.pctx.Done():
 			return nil, pg.pctx.Err()

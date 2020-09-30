@@ -156,6 +156,13 @@ func (m *multiSource) chunkWalk(ctx context.Context, zctx *resolver.Context, sf 
 				return nil, err
 			}
 			return &scannerCloser{Scanner: sn, Closer: rc}, nil
+			// As Al suggested, having this be a function is only useful for
+			// the single-process case. In order to communicate this information
+			// to another process, we would need this to be a serializable data structure.
+			// As a simple start, maybe the source opener channel could be replaced
+			// by a list of files that the pg should open in order.
+			// So if the pg has two parallel heads, each head would have a
+			// list of every other file -MTW
 		}
 		select {
 		case srcChan <- so:
@@ -163,10 +170,17 @@ func (m *multiSource) chunkWalk(ctx context.Context, zctx *resolver.Context, sf 
 		case <-ctx.Done():
 			return ctx.Err()
 		}
+		// So this either writes a new SourceOpener to the channel,
+		// or returns ctx.Err() when done. Will this generally only end with an error?
 	})
 }
 
 func (m *multiSource) SendSources(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan driver.SourceOpener) error {
+	// What does this test mean? e.g. what does altPaths represent here?
+	// Walking spans seems like it would not
+	// be mutually exclusive with walking chunks -MTW
+	// NOTE: for the distributed case, seperate processes would want to walk chunks,
+	// while seperate threads would want to walk spans -MTW
 	if len(m.altPaths) == 0 {
 		return m.spanWalk(ctx, zctx, sf, srcChan)
 	}

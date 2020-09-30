@@ -52,9 +52,13 @@ func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc
 	filterExpr, program = liftFilter(program)
 
 	var isParallel bool
+	// MTW
+	println("mcfg.Parallelism=", mcfg.Parallelism)
+	// END MTW
 	if mcfg.Parallelism > 1 {
 		program, isParallel = parallelizeFlowgraph(ensureSequentialProc(program), mcfg.Parallelism, sortKey, sortReversed)
 	}
+	println("driver.compile isParallel=", isParallel)
 	if !isParallel {
 		mcfg.Parallelism = 1
 	}
@@ -451,6 +455,7 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string,
 		}
 	}
 	for i := range seq.Procs {
+		println("parallelizeFlowgraph", seq.Procs[i])
 		switch p := seq.Procs[i].(type) {
 		case *ast.FilterProc, *ast.PassProc:
 			// Stateless procs: continue until we reach one of the procs below at
