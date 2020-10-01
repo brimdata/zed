@@ -249,3 +249,69 @@ sudo mount -t tmpfs -o size=1024m tmpfs /mnt/ramdisk
 # Copy some S3 data to /mnt/ramdisk
 time aws s3 cp s3://brim-sampledata/wrccdc/zeek-logs/dns.log.gz /mnt/ramdisk/dns.log.gz
 ```
+
+## whoami on AWS
+```
+aws sts get-caller-identity
+```
+
+## Setting up an EC2 instance to run zar import
+
+Create an EC2 instance in the same region as the S3 buckets you want to access. SSH into the instance, and:
+```
+# provide your credentials
+aws configure
+# make sure you can see the S3 buckets
+aws s3 ls
+# install golang tools from https://golang.org/dl/
+wget https://golang.org/dl/go1.14.7.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.14.7.linux-amd64.tar.gz
+echo "export PATH=$PATH:/usr/local/go/bin" >> ~/.bash_profile
+source ~/.bash_profile
+go version  # make sure go is there!
+# install git, clone and install zq
+sudo yum install git -y
+git clone https://github.com/brimsec/zq
+cd zq
+make install
+~/go/bin/zar help  # make sure zar is built!
+```
+Now you have an environment where you can run zar and it can operate on data in S3 with good bandwidth. You can update it as needed with:
+```
+cd zq
+git pull
+make install
+```
+
+First use `lsblk` to find an SSD device, then mount it similarly to the following example:
+```
+lsblk  # look for a free device, e.g. nvme1n1
+sudo mkfs -t xfs /dev/nvme1n1
+sudo mkdir /data
+sudo mount /dev/nvme1n1 /data
+df  # Verify that /data is mounted
+sudo chown ec2-user /data  # so zar can write to it
+echo "export TMPDIR=/data" >> ~/.bash_profile
+source ~/.bash_profile
+```
+
+## Using zar import for large S3 logs
+In the following examples, we import some log files that are already present in S3 in zeek format, and create a local archive for use by zqd. The following commands should be run on an ec2 instance in the same region as your EKS cluster:
+```
+# this is a 7 MB log -- takes a few seconds
+time ~/go/bin/zar import -R s3://zqd-demo-1/mark/zeek-logs/dpd s3://brim-sampledata/wrccdc/zeek-logs/dpd.log.gz
+
+# and a 267 MB log -- takes a few minutes
+time ~/go/bin/zar import -R s3://zqd-demo-1/mark/zeek-logs/dns s3://brim-sampledata/wrccdc/zeek-logs/dns.log.gz
+
+# and a 14 GB log -- takes longer...
+time ~/go/bin/zar import -R s3://zqd-demo-1/mark/zeek-logs/conn s3://brim-sampledata/wrccdc/zeek-logs/conn.log.gz
+```
+Assuming you have an EKS cluster set up as described above, with the port-forward in effect,  you can use zapi to create "spaces" for Brim:
+```
+zapi new -k archivestore -d s3://zqd-demo-1/mark/zeek-logs/dpd dpd-space
+zapi new -k archivestore -d s3://zqd-demo-1/mark/zeek-logs/dns dns-space
+zapi new -k archivestore -d s3://zqd-demo-1/mark/zeek-logs/conn conn-space
+```
+
+Now you can run Brim, and it will use the same local:9867 port used by zapi. You will see the three spaces you just created, dpd-space, dns-space, and conn-space.
