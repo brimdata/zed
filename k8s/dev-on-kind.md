@@ -34,16 +34,6 @@ kubectl logs zqd-56b46985fc-bqv87 -p
 ```
 Edit the commands to use your pod name.
 
-## Creating test data in S3 using zar
-Before using zapi to access the running zqd, we use `zar import` in another console to copy sample data from our zq repo into s3. You must have an AWS account and the AWS CLI on your desktop machine to do this. Change the directory name to match your s3 bucket.
-```
-zar import -R s3://brim-scratch/mark/sample-http-zng zq-sample-data/zng/http.zng.gz
-```
-This creates zng files in an s3 directory called `sample-http-zng` that we will use from zapi. To check what zar created:
-```
-aws s3 ls brim-scratch/mark --recursive
-```
-
 ## Port forwarding for local testing
 To test locally, run this script to forward the Kind/K8s ports to local ports:
 ```
@@ -53,7 +43,8 @@ To test locally, run this script to forward the Kind/K8s ports to local ports:
 ## Testing the deployed zqd with zapi and Brim
 Now use zapi to create a Brim "space":
 ```
-zapi new -k archivestore -d s3://brim-scratch/mark/sample-http-zng http-space
+zapi new -k archivestore http-space
+zapi -s http-space post s3://zq-sample-data/zng/http.zng.gz
 ```
 And try some zapi queries:
 ```
