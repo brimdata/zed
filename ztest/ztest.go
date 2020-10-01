@@ -122,7 +122,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -257,6 +256,8 @@ type ZTest struct {
 	Script  string `yaml:"script,omitempty"`
 	Inputs  []File `yaml:"inputs,omitempty"`
 	Outputs []File `yaml:"outputs,omitempty"`
+	// If provided test will only run on environments where runtime.GOOS = OS[i]
+	OS []string `yaml:"os,omitempty"`
 }
 
 func (z *ZTest) check() error {
@@ -388,12 +389,12 @@ func (z *ZTest) Run(t *testing.T, testname, path, dirname, filename string) {
 		t.Fatalf("%s: bad yaml format: %s", filename, err)
 	}
 	if z.Script != "" {
-		if runtime.GOOS == "windows" {
-			// XXX skip in windows until we figure out the best
-			// way to support script-driven tests across
-			// environments
-			t.Skip("skipping script test on Windows")
-		}
+		// if runtime.GOOS == "windows" {
+		// // XXX skip in windows until we figure out the best
+		// // way to support script-driven tests across
+		// // environments
+		// t.Skip("skipping script test on Windows")
+		// }
 		if path == "" {
 			t.Skip("skipping script test on in-process run")
 		}
@@ -519,7 +520,7 @@ func runsh(testname, path, dirname string, zt *ZTest) error {
 			expectedPattern[f.Name] = re
 		}
 	}
-	stdout, stderr, err := RunShell(dir, path, zt.Script, stdin)
+	stdout, stderr, err := RunShell(dir, path, zt.Script, stdin, zt.OS)
 	if err != nil {
 		// XXX If the err is an exit error, we ignore it and rely on
 		// tests that check stderr etc.  We could pull out the exit
