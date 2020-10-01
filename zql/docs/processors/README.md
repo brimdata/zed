@@ -165,7 +165,7 @@ ssl   1521912240.189735 CSbGJs3jOeB6glWLJj 10.47.7.154 27137     52.85.83.215 44
 | **Syntax**                | `fuse`                                            |
 | **Required<br>arguments** | None                                              |
 | **Optional<br>arguments** | None                                              |
-| **Limitations**           | Because `fuse` must make a first pass through the data to assemble the unified schema, results from queries that use `fuse` will not begin streaming back immediately.<br><br>If the query result is too large, an error message `"fuse processor exceeded memory limit"` will be returned. Issue [zq/1320](https://github.com/brimsec/zq/issues/1320) tracks the removal of this limitation. |
+| **Limitations**           | Because `fuse` must make a first pass through the data to assemble the unified schema, results from queries that use `fuse` will not begin streaming back immediately. |
 | **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/proc/fuse |
 
 #### Example:
