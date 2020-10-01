@@ -33,6 +33,8 @@ func newFieldNode(field string, record Evaluator, root bool) *FieldExpr {
 	return &FieldExpr{field: name, record: record, root: root}
 }
 
+// XXX TODO: change this per https://github.com/brimsec/zq/pull/1071
+
 func accessField(record zng.Value, field string) (zng.Value, error) {
 	recType, ok := record.Type.(*zng.TypeRecord)
 	if !ok {
@@ -97,5 +99,3 @@ func FieldExprToString(e Evaluator) string {
 	}
 	return "not a field expr"
 }
-
-//XXX
