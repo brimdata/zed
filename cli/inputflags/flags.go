@@ -26,7 +26,7 @@ func (f *Flags) Options() zio.ReaderOpts {
 }
 
 func (f *Flags) SetFlags(fs *flag.FlagSet) {
-	fs.StringVar(&f.Format, "i", "auto", "format of input data [auto,zng,ndjson,zeek,zjson,tzng,parquet]")
+	fs.StringVar(&f.Format, "i", "auto", "format of input data [auto,zng,zst,ndjson,zeek,zjson,tzng,parquet]")
 	fs.BoolVar(&f.Zng.Validate, "validate", true, "validate the input format when reading ZNG streams")
 	fs.StringVar(&f.jsonTypesFile, "j", "", "path to json types file")
 	fs.StringVar(&f.JSON.PathRegexp, "pathregexp", ndjsonio.DefaultPathRegexp,

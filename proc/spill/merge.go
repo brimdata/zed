@@ -16,11 +16,11 @@ import (
 // disk a chunk at a time, then read back and merged in sorted order, effectively
 // implementing an external merge sort.
 type MergeSort struct {
-	runs       []*peeker
-	runIndices map[*peeker]int
-	compareFn  expr.CompareFn
-	tempDir    string
-	zctx       *resolver.Context
+	nspill    int
+	runs      []*peeker
+	compareFn expr.CompareFn
+	tempDir   string
+	zctx      *resolver.Context
 }
 
 const TempPrefix = "zq-spill-"
@@ -42,16 +42,15 @@ func NewMergeSort(compareFn expr.CompareFn) (*MergeSort, error) {
 		return nil, err
 	}
 	return &MergeSort{
-		runIndices: make(map[*peeker]int),
-		compareFn:  compareFn,
-		tempDir:    tempDir,
-		zctx:       resolver.NewContext(),
+		compareFn: compareFn,
+		tempDir:   tempDir,
+		zctx:      resolver.NewContext(),
 	}, nil
 }
 
 func (r *MergeSort) Cleanup() {
 	for _, run := range r.runs {
-		run.closeAndRemove()
+		run.CloseAndRemove()
 	}
 	os.RemoveAll(r.tempDir)
 }
@@ -62,13 +61,12 @@ func (r *MergeSort) Cleanup() {
 // the chunks sequentially.
 func (r *MergeSort) Spill(recs []*zng.Record) error {
 	expr.SortStable(recs, r.compareFn)
-	index := len(r.runIndices)
-	filename := filepath.Join(r.tempDir, strconv.Itoa(index))
-	runFile, err := newPeeker(filename, recs, r.zctx)
+	filename := filepath.Join(r.tempDir, strconv.Itoa(r.nspill))
+	runFile, err := newPeeker(filename, r.nspill, recs, r.zctx)
 	if err != nil {
 		return err
 	}
-	r.runIndices[runFile] = index
+	r.nspill++
 	heap.Push(r, runFile)
 	return nil
 }
@@ -95,7 +93,9 @@ func (r *MergeSort) Read() (*zng.Record, error) {
 			return nil, err
 		}
 		if eof {
-			r.runs[0].closeAndRemove()
+			if err := r.runs[0].CloseAndRemove(); err != nil {
+				return nil, err
+			}
 			heap.Pop(r)
 		} else {
 			heap.Fix(r, 0)
@@ -115,7 +115,7 @@ func (r *MergeSort) Less(i, j int) bool {
 		return true
 	case v == 0:
 		// Maintain stability.
-		return r.runIndices[r.runs[i]] < r.runIndices[r.runs[j]]
+		return r.runs[i].ordinal < r.runs[j].ordinal
 	default:
 		return false
 	}

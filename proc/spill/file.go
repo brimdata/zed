@@ -56,16 +56,17 @@ func (f *File) Rewind(zctx *resolver.Context) error {
 	}
 	f.Writer = nil
 	if _, err := f.file.Seek(0, 0); err != nil {
-		f.closeAndRemove()
 		return err
 	}
 	f.Reader = zngio.NewReader(bufio.NewReader(f.file), zctx)
 	return nil
 }
 
-// closeAndRemove closes and removes the underlying file.
-// Errors are ignored.
-func (r *File) closeAndRemove() {
-	r.file.Close()
-	os.Remove(r.file.Name())
+// CloseAndRemove closes and removes the underlying file.
+func (r *File) CloseAndRemove() error {
+	err := r.file.Close()
+	if rmErr := os.Remove(r.file.Name()); err == nil {
+		err = rmErr
+	}
+	return err
 }

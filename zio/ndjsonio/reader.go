@@ -29,7 +29,6 @@ const DefaultPathRegexp = `([a-zA-Z0-9_]+)(?:\.|_\d{8}_)\d\d:\d\d:\d\d\-\d\d:\d\
 type ReaderOpts struct {
 	TypeConfig *TypeConfig
 	PathRegexp string
-	FilePath   string
 }
 
 type ReadStats struct {
@@ -69,7 +68,9 @@ func NewReader(reader io.Reader, zctx *resolver.Context, opts ReaderOpts, filepa
 		if len(match) == 2 {
 			path = match[1]
 		}
-		r.configureTypes(*opts.TypeConfig, path)
+		if err = r.configureTypes(*opts.TypeConfig, path); err != nil {
+			return nil, err
+		}
 	}
 	return r, nil
 }

@@ -24,12 +24,6 @@ var (
 	ErrUnionIndex = errors.New("union index out of bounds")
 )
 
-// Resolver is an interface for looking up Type objects from the type id.
-type Resolver interface {
-	//XXX TypeRecord for now
-	Lookup(int) *TypeRecord
-}
-
 // The fmt paramter passed to Type.StringOf() must be one of the following
 // values, these are used to inform the formatter how containers should be
 // encoded and what sort of escaping should be applied to string types.
