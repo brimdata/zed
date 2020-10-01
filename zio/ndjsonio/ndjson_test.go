@@ -194,7 +194,7 @@ func TestNewRawFromJSON(t *testing.T) {
 			json: `{"_path": "test", "ts":"2019-11-15T23:30:44.637486Z"}`,
 		},
 		{
-			name: "TsISO8601-0700",
+			name: "TsISO8601-0100",
 			tzng: `#0:record[_path:string,b:bool,i:int64,s:set[bool],ts:time,v:array[int64]]
 0:[test;-;-;-;1573864244.637486;-;]`,
 			json: `{"_path": "test", "ts":"2019-11-15T23:30:44.637486-0100"}`,
