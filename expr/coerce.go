@@ -25,7 +25,7 @@ type Coercion struct {
 	a zcode.Bytes
 	b zcode.Bytes
 	// buf is a scratch buf that stays around between calls and the
-	// landng place for either the a or b value if one of them needs to
+	// landing place for either the a or b value if one of them needs to
 	// be coerced (you never need to coerce both).  Then we point a or b
 	// at buf and let go of the other input pointer.
 	buf zcode.Bytes

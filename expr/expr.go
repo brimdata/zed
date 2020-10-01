@@ -48,7 +48,7 @@ var ErrBadCast = errors.New("bad cast")
 // by not allocating memory on a per-Eval basis.  For uses like filtering and
 // aggregations, where the results are immediately use, this is desirable and
 // "keep" should be false in these cases. For use cases like storing the results
-// as groupby keys, the results must bae nonvolatile and "keep" should be true.
+// as groupby keys, the results must be nonvolatile and "keep" should be true.
 func CompileExpr(node ast.Expression, keep bool) (Evaluator, error) {
 	return compileExpr(node, true, keep)
 }
