@@ -158,6 +158,10 @@ func CoerceToFloat(zv zng.Value) (float64, bool) {
 			return float64(v), true
 		}
 	}
+	if id == zng.IdDuration {
+		v, _ := zng.DecodeInt(zv.Bytes)
+		return 1e-9 * float64(v), true
+	}
 	return 0, false
 }
 
@@ -179,6 +183,10 @@ func CoerceToUint(zv zng.Value) (uint64, bool) {
 			return uint64(v), true
 		}
 	}
+	if id == zng.IdDuration {
+		v, _ := zng.DecodeInt(zv.Bytes)
+		return uint64(v / 1_000_000_000), true
+	}
 	return 0, false
 }
 
@@ -197,6 +205,10 @@ func CoerceToInt(zv zng.Value) (int64, bool) {
 			v, _ := zng.DecodeUint(zv.Bytes)
 			return int64(v), true
 		}
+	}
+	if id == zng.IdDuration {
+		v, _ := zng.DecodeInt(zv.Bytes)
+		return int64(v / 1_000_000_000), true
 	}
 	return 0, false
 }
