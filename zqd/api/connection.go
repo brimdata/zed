@@ -225,6 +225,16 @@ func (c *Connection) SearchRaw(ctx context.Context, search SearchRequest, params
 	return c.stream(req)
 }
 
+func (c *Connection) WorkerRaw(ctx context.Context, search WorkerRequest, params map[string]string) (io.ReadCloser, error) {
+	req := c.Request(ctx).
+		SetBody(search).
+		SetQueryParam("format", "zng")
+	req.SetQueryParams(params)
+	req.Method = http.MethodPost
+	req.URL = "/worker"
+	return c.stream(req)
+}
+
 // Search sends a search task to the server and returns a Search interface
 // that the caller uses to stream back results via the Read method.
 func (c *Connection) Search(ctx context.Context, search SearchRequest, params map[string]string) (Search, error) {

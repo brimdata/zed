@@ -112,6 +112,47 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func handleWorker(c *Core, w http.ResponseWriter, r *http.Request) {
+	var req api.WorkerRequest
+	if !request(c, w, r, &req) {
+		return
+	}
+
+	println("handlers.handleWorker req is", req)
+
+	s, err := c.spaces.Get(req.Space)
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+
+	ctx, cancel, err := s.StartOp(r.Context())
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	defer cancel()
+
+	srch, err := search.NewSearchOp(req)
+	if err != nil {
+		// XXX This always returns bad request but should return status codes
+		// that reflect the nature of the returned error.
+		respondError(c, w, r, err)
+		return
+	}
+
+	out, err := getSearchOutput(w, r)
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", out.ContentType())
+	if err := srch.Run(ctx, s.Storage(), out); err != nil {
+		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
+	}
+}
+
 func getSearchOutput(w http.ResponseWriter, r *http.Request) (search.Output, error) {
 	ctrl := true
 	if r.URL.Query().Get("noctrl") != "" {
