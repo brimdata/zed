@@ -28,6 +28,11 @@ func ParseIP(b []byte) (net.IP, error) {
 	return ip, nil
 }
 
+func ParseInt8(b []byte) (int8, error) {
+	v, err := strconv.ParseInt(UnsafeString(b), 10, 8)
+	return int8(v), err
+}
+
 func ParseUint8(b []byte) (uint8, error) {
 	v, err := strconv.ParseUint(UnsafeString(b), 10, 8)
 	return uint8(v), err

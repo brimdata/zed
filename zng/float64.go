@@ -23,6 +23,15 @@ func EncodeFloat64(d float64) zcode.Bytes {
 	return b[:]
 }
 
+func AppendFloat64(b zcode.Bytes, d float64) zcode.Bytes {
+	if cap(b) < 8 {
+		b = make([]byte, 0, 8)
+	}
+	bits := math.Float64bits(d)
+	binary.LittleEndian.PutUint64(b[:8], bits)
+	return b[:8]
+}
+
 func DecodeFloat64(zv zcode.Bytes) (float64, error) {
 	if len(zv) != 8 {
 		return 0, errors.New("byte encoding of double not 8 bytes")

@@ -1,9 +1,9 @@
 package field
 
 import (
+	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/streamfn"
 	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zngnative"
 )
 
 type Uint struct {
@@ -21,7 +21,7 @@ func (u *Uint) Result() zng.Value {
 }
 
 func (u *Uint) Consume(v zng.Value) error {
-	if v, ok := zngnative.CoerceToUint(v); ok {
+	if v, ok := expr.CoerceToUint(v); ok {
 		u.fn.Update(v)
 		return nil
 	}

@@ -7,6 +7,13 @@ import (
 
 type TypeOfBool struct{}
 
+var False = Value{TypeBool, []byte{0}}
+var True = Value{TypeBool, []byte{1}}
+
+func IsTrue(zv zcode.Bytes) bool {
+	return zv[0] != 0
+}
+
 func NewBool(b bool) Value {
 	return Value{TypeBool, EncodeBool(b)}
 }

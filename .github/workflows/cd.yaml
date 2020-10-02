@@ -1,0 +1,50 @@
+name: "Deploy"
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  ecr-image-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+      - id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+      - uses: actions/checkout@v1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - env:
+          ZQD_ECR_HOST: ${{ secrets.AWS_ECR_HOST }}
+          ZQD_DATA_URI: s3://zqd-demo-1/mark/zqd-meta
+          ZQD_K8S_USER: ci-master
+          ZQD_TEST_CLUSTER: zq-test.us-east-2.eksctl.io
+        run: |
+          make docker-push-ecr
+  eks-test-deploy:
+    needs: ecr-image-push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+      - uses: actions/checkout@v1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - env:
+          ZQD_ECR_HOST: ${{ secrets.AWS_ECR_HOST }}
+          ZQD_DATA_URI: s3://zqd-demo-1/mark/zqd-meta
+          ZQD_K8S_USER: ci-master
+          ZQD_TEST_CLUSTER: zq-test.us-east-2.eksctl.io
+        run: |
+          aws eks --region us-east-2 update-kubeconfig --name zq-test
+          kubectl config set-context --current --namespace=ci-master
+          helm uninstall zqd || :
+          make helm-install

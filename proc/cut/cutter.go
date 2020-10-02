@@ -10,7 +10,7 @@ import (
 // A cutBuilder keeps the data structures needed for cutting one
 // particular type of input record.
 type cutBuilder struct {
-	resolvers []expr.FieldExprResolver
+	resolvers []*expr.FieldExpr
 	builder   *proc.ColumnBuilder
 	outType   *zng.TypeRecord
 }
@@ -20,7 +20,7 @@ type cutBuilder struct {
 func (cb *cutBuilder) cut(in *zng.Record) *zng.Record {
 	cb.builder.Reset()
 	for _, resolver := range cb.resolvers {
-		val := resolver(in)
+		val, _ := resolver.Eval(in)
 		cb.builder.Append(val.Bytes, val.IsContainer())
 	}
 	zv, err := cb.builder.Encode()
@@ -82,9 +82,9 @@ func (c *Cutter) complementBuilder(r *zng.Record) (*cutBuilder, error) {
 		return nil, nil
 	}
 
-	var resolvers []expr.FieldExprResolver
+	var resolvers []*expr.FieldExpr
 	for _, f := range fields {
-		resolvers = append(resolvers, expr.CompileFieldAccess(f))
+		resolvers = append(resolvers, expr.NewFieldAccess(f))
 	}
 
 	builder, err := proc.NewColumnBuilder(c.zctx, fields)
@@ -141,12 +141,12 @@ func contains(ss []string, el string) bool {
 func (c *Cutter) setBuilder(r *zng.Record) (*cutBuilder, error) {
 	// Build up the output type.
 	var targets []string
-	var resolvers []expr.FieldExprResolver
+	var resolvers []*expr.FieldExpr
 	var outColTypes []zng.Type
 	for i, f := range c.fieldnames {
-		resolver := expr.CompileFieldAccess(f)
-		val := resolver(r)
-		if val.Type == nil {
+		resolver := expr.NewFieldAccess(f)
+		val, err := resolver.Eval(r)
+		if err != nil || val.Type == nil {
 			// The field is absent, so for this input type, ...
 			if c.strict {
 				// ...produce no output.

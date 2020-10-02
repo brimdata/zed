@@ -1,14 +1,13 @@
 zql: '*'
 
 input: !!binary |
-  gAQGb3JpZ19oDQZvcmlnX3AOBnJlc3BfaA0GcmVzcF9wDoELgBMFX3BhdGgLAnRzEAN1aW
-  QLAmlkFwd2ZXJzaW9uCwZjaXBoZXILBWN1cnZlCwtzZXJ2ZXJfbmFtZQsHcmVzdW1lZAAK
-  bGFzdF9hbGVydAsNbmV4dF9wcm90b2NvbAsLZXN0YWJsaXNoZWQAEGNlcnRfY2hhaW5fZn
-  VpZHMYF2NsaWVudF9jZXJ0X2NoYWluX2Z1aWRzGAdzdWJqZWN0CwZpc3N1ZXILDmNsaWVu
-  dF9zdWJqZWN0Cw1jbGllbnRfaXNzdWVyCxF2YWxpZGF0aW9uX3N0YXR1cwsZhwEIc3NsEg
-  D7VuCL010pJkNmRUJvcDJoYmZKWXBqRzVIZCMKCgoHWgbKyQo25lcYBgG7DlRMU3YxMkxU
-  TFNfRUNESEVfUlNBX1dJVEhfQUVTXzEyOF9HQ01fU0hBMjU2ACZjaG9pY2VzLnRydXN0ZS
-  5jb20EAQASaHR0cC8xLjEEAQEBAAAAAACF
+  H4sICLXHcF8AA2luLnpuZwBdTj1PwkAYbrG0pgRy4gDOJiYumDaBuCI2VIOLJRJNzKVcD+
+  9I6V3uvRJHHIyDP8lfoKt/wMk/4eKhuPguT56PvM+zclyh+B1mzV+UjqsoyDX/Qek8oNVu
+  FctUM1TR4G+VPEMVnrW8JVXARYFcwiWjClVJqZYU1YAaULhIFxR55km5oFndz1PQOM2p0q
+  he0HuNpRJaEJGjGgWdTnMOzOQQMQlMWMoLPDNV0G6RnNPCaP8ND8rpnBKNXA5QmgGNTfJP
+  r2/4xt5ZpjnPUm02Y9OoS0B7T/Y2QN60vq4+nt9vDw8Gs+hEyJBNZ+fXcj7sxtm+7/vejf
+  v65vc+J233xW6MR8kyCEcGcDQ4jSN8mfTx5Gwc436U4CA8xsPBBU7iftjtWQeECU4odLQq
+  QdMOEQvHtppMa3kUdALHtm1rfY/fKpLBR4kBAAA=
 
 output: |
   #0:record[_path:bstring,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],version:bstring,cipher:bstring,curve:bstring,server_name:bstring,resumed:bool,last_alert:bstring,next_protocol:bstring,established:bool,cert_chain_fuids:array[bstring],client_cert_chain_fuids:array[bstring],subject:bstring,issuer:bstring,client_subject:bstring,client_issuer:bstring,validation_status:bstring]

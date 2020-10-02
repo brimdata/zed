@@ -10,15 +10,15 @@ apiVersion: eksctl.io/v1alpha5
 kind: ClusterConfig
 
 metadata:
-  name: zq-dev
+  name: zq-test
   region: us-east-2
   version: "1.17"
   tags:
-    cluster: zq-dev
+    cluster: zq-test
 
 managedNodeGroups:
   - name: standard-workers
-    instanceType: t3.large
+    instanceType: m5ad.xlarge
     minSize: 1
     maxSize: 3
     desiredCapacity: 1
@@ -26,7 +26,7 @@ managedNodeGroups:
       allow: false
     iam:
       attachPolicyARNs:
-        # Policies genrically required for EKS nodes
+        # Policies generically required for EKS nodes
         - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
         - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy

@@ -269,12 +269,12 @@ func (r *Record) AccessInt(field string) (int64, error) {
 		return 0, err
 	}
 	switch AliasedType(v.Type).(type) {
-	case *TypeOfByte:
-		b, err := DecodeByte(v.Bytes)
+	case *TypeOfUint8:
+		b, err := DecodeUint(v.Bytes)
 		return int64(b), err
 	case *TypeOfInt16, *TypeOfInt32, *TypeOfInt64:
 		return DecodeInt(v.Bytes)
-	case *TypeOfUint16, *TypeOfUint32:
+	case *TypeOfUint16, *TypeOfUint32, *TypeOfPort:
 		v, err := DecodeUint(v.Bytes)
 		return int64(v), err
 	case *TypeOfUint64:
@@ -282,9 +282,6 @@ func (r *Record) AccessInt(field string) (int64, error) {
 		if v > math.MaxInt64 {
 			return 0, errors.New("conversion from uint64 to signed int results in overflow")
 		}
-		return int64(v), err
-	case *TypeOfPort:
-		v, err := DecodePort(v.Bytes)
 		return int64(v), err
 	}
 	return 0, ErrTypeMismatch

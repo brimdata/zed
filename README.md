@@ -43,7 +43,7 @@ See the [contributing guide](CONTRIBUTING.md) on how you can help improve `zq`!
 Join our [Public Slack](https://www.brimsecurity.com/join-slack/) workspace for announcements, Q&A, and to trade tips!
 
 [doc-img]: https://godoc.org/github.com/brimsec/zq?status.svg
-[doc]: https://godoc.org/github.com/brimsec/zq
+[doc]: https://pkg.go.dev/github.com/brimsec/zq
 [tests-img]: https://github.com/brimsec/zq/workflows/Tests/badge.svg
 [tests]: https://github.com/brimsec/zq/actions?query=workflow%3ATests
 

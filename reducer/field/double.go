@@ -1,9 +1,9 @@
 package field
 
 import (
+	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/streamfn"
 	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zngnative"
 )
 
 type Double struct {
@@ -21,7 +21,7 @@ func (d *Double) Result() zng.Value {
 }
 
 func (d *Double) Consume(v zng.Value) error {
-	dd, ok := zngnative.CoerceToFloat64(v)
+	dd, ok := expr.CoerceToFloat(v)
 	if !ok {
 		return zng.ErrTypeMismatch
 	}

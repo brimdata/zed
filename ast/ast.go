@@ -29,9 +29,16 @@ type BooleanExpr interface {
 	booleanExprNode()
 }
 
-// FieldExpr is the interface implemented by expressions that reference fields.
-type FieldExpr interface {
-	fieldExprNode()
+// Field refers to a name of a field in a record.  It refers to the root
+// record unless it appears as a right-hand side of a "." operator, in which
+// case it refers to the field from the record obtained from the left-hand
+// side evaluation of the parent "." expression.  If that left-hand side value is
+// not a record, then a semantic-analysis or runtime type error should result.
+// A Field may also appear inside an index operator in which case the indexed
+// element is treated as the left-hand side "." record from above.
+type Field struct {
+	Node
+	Field string `json:"field"`
 }
 
 type Expression interface {
@@ -96,43 +103,23 @@ type (
 	// field in a record.
 	CompareField struct {
 		Node
-		Comparator string    `json:"comparator"`
-		Field      FieldExpr `json:"field"`
-		Value      Literal   `json:"value"`
+		Comparator string     `json:"comparator"`
+		Field      Expression `json:"field"`
+		Value      Literal    `json:"value"`
 	}
 )
 
 // booleanEpxrNode() ensures that only boolean expression nodes can be
 // assigned to a BooleanExpr.
 //
-func (*Search) booleanExprNode()       {}
-func (*LogicalAnd) booleanExprNode()   {}
-func (*LogicalOr) booleanExprNode()    {}
-func (*LogicalNot) booleanExprNode()   {}
-func (*MatchAll) booleanExprNode()     {}
-func (*CompareAny) booleanExprNode()   {}
-func (*CompareField) booleanExprNode() {}
-
-// A FieldExpr is any expression that refers to a field.
-type (
-	// A FieldRead is a direct reference to a particular field.
-	FieldRead struct {
-		Node
-		Field string `json:"field"`
-	}
-
-	// A FieldCall is an operation performed on the value in some field,
-	// e.g., len(some_set) or some_array[1].
-	FieldCall struct {
-		Node
-		Fn    string    `json:"fn"`
-		Field FieldExpr `json:"field"`
-		Param string    `json:"param"`
-	}
-)
-
-func (*FieldRead) fieldExprNode() {}
-func (*FieldCall) fieldExprNode() {}
+func (*Search) booleanExprNode()           {}
+func (*LogicalAnd) booleanExprNode()       {}
+func (*LogicalOr) booleanExprNode()        {}
+func (*LogicalNot) booleanExprNode()       {}
+func (*MatchAll) booleanExprNode()         {}
+func (*CompareAny) booleanExprNode()       {}
+func (*CompareField) booleanExprNode()     {}
+func (*BinaryExpression) booleanExprNode() {}
 
 type UnaryExpression struct {
 	Node
@@ -141,8 +128,9 @@ type UnaryExpression struct {
 }
 
 // A BinaryExpression is any expression of the form "operand operator operand"
-// including arithmetic (+, -, *, /), logical operators (and, or), and
-// comparisons (=, !=, <, <=, >, >=)
+// including arithmetic (+, -, *, /), logical operators (and, or),
+// comparisons (=, !=, <, <=, >, >=), index operatons (on arrays, sets, and records)
+// with operator "[" and a dot expression (".") (on records).
 type BinaryExpression struct {
 	Node
 	Operator string     `json:"operator"`
@@ -175,8 +163,7 @@ func (*ConditionalExpression) exprNode() {}
 func (*FunctionCall) exprNode()          {}
 func (*CastExpression) exprNode()        {}
 func (*Literal) exprNode()               {}
-func (*FieldRead) exprNode()             {}
-func (*FieldCall) exprNode()             {}
+func (*Field) exprNode()                 {}
 
 // ----------------------------------------------------------------------------
 // Procs
@@ -207,9 +194,9 @@ type (
 	// A SortProc node represents a proc that sorts records.
 	SortProc struct {
 		Node
-		Fields     []FieldExpr `json:"fields"`
-		SortDir    int         `json:"sortdir"`
-		NullsFirst bool        `json:"nullsfirst"`
+		Fields     []Expression `json:"fields"`
+		SortDir    int          `json:"sortdir"`
+		NullsFirst bool         `json:"nullsfirst"`
 	}
 	// A CutProc node represents a proc that removes fields from each
 	// input record where each removed field matches one of the named fields
@@ -287,9 +274,9 @@ type (
 	// - It has a hidden option (FlushEvery) to sort and emit on every batch.
 	TopProc struct {
 		Node
-		Limit  int         `json:"limit,omitempty"`
-		Fields []FieldExpr `json:"fields,omitempty"`
-		Flush  bool        `json:"flush"`
+		Limit  int          `json:"limit,omitempty"`
+		Fields []Expression `json:"fields,omitempty"`
+		Flush  bool         `json:"flush"`
 	}
 
 	PutProc struct {
@@ -315,8 +302,8 @@ type ExpressionAssignment struct {
 }
 
 type FieldAssignment struct {
-	Target string `json:"target"`
-	Source string `json:"source"`
+	Target string     `json:"target"`
+	Source Expression `json:"source"`
 }
 
 //XXX TBD: chance to nano.Duration
@@ -359,6 +346,25 @@ func (*FuseProc) ProcNode()       {}
 // The result is given the field name specified by the Var parameter.
 type Reducer struct {
 	Node
-	Var   string    `json:"var"`
-	Field FieldExpr `json:"field,omitempty"`
+	Var   string     `json:"var"`
+	Field Expression `json:"field,omitempty"`
+}
+
+func FieldExprToString(n Expression) string {
+	switch n := n.(type) {
+	case *BinaryExpression:
+		if n.Operator == "." {
+			lhs := FieldExprToString(n.LHS)
+			rhs := FieldExprToString(n.RHS)
+			return lhs + "." + rhs
+		}
+		if n.Operator == "[" {
+			lhs := FieldExprToString(n.LHS)
+			rhs := FieldExprToString(n.RHS)
+			return lhs + "[" + rhs + "]"
+		}
+	case *Field:
+		return n.Field
+	}
+	return "not a field expr"
 }

@@ -5,26 +5,25 @@ import (
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zngnative"
 )
 
 type Avg struct {
 	Reducer
-	Resolver expr.FieldExprResolver
+	Resolver *expr.FieldExpr
 	sum      float64
 	count    uint64
 }
 
 func (a *Avg) Consume(r *zng.Record) {
-	v := a.Resolver(r)
-	if v.Type == nil {
+	v, err := a.Resolver.Eval(r)
+	if err != nil || v.Type == nil {
 		a.FieldNotFound++
 		return
 	}
 	if v.Bytes == nil {
 		return
 	}
-	d, ok := zngnative.CoerceToFloat64(v)
+	d, ok := expr.CoerceToFloat(v)
 	if !ok {
 		a.TypeMismatch++
 		return
