@@ -57,7 +57,6 @@ func accessField(record zng.Value, field string) (zng.Value, error) {
 }
 
 func (f *FieldExpr) Eval(rec *zng.Record) (zng.Value, error) {
-	// XXX make test for 'put x=a[selector]' where selector is another field
 	field, err := f.field.Eval(rec)
 	if err != nil {
 		return zng.Value{}, err

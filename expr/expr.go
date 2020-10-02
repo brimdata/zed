@@ -26,12 +26,13 @@ var ErrNotContainer = errors.New("cannot apply in to a non-container")
 var ErrBadCast = errors.New("bad cast")
 
 // CompileExpr compiles the given Expression into an object
-// that evalutes the expression against a provided Record.  It returns an
+// that evaluates the expression against a provided Record.  It returns an
 // error if compilation fails for any reason.
 //
-// This is the "intepreted slow path" of the analytics engine.
-// It is completely adaptive to the dynamic type system of zng so there
-// are a lot of types checks and run-tme decisions made according to type.
+// This is the "intepreted slow path" of the analytics engine.  Because it
+// handles dynamic typinig at runtime, overheads are incurrend due to
+// type checks and coercions to determine different computational
+// outcomes based on type.
 //
 // Eventually, we will optimize this by adding a "fast path" that dynamically
 // generates byte codes (which an in turn be JIT assembled into machine code)
@@ -258,22 +259,6 @@ func (i *In) Eval(rec *zng.Record) (zng.Value, error) {
 	}
 }
 
-func floatToInt64(f float64) (int64, bool) {
-	i := int64(f)
-	if float64(i) == f {
-		return i, true
-	}
-	return 0, false
-}
-
-func floatToUint64(f float64) (uint64, bool) {
-	u := uint64(f)
-	if float64(u) == f {
-		return u, true
-	}
-	return 0, false
-}
-
 type Equal struct {
 	numeric
 	equality bool
@@ -452,7 +437,10 @@ func (c *Compare) Eval(rec *zng.Record) (zng.Value, error) {
 	}
 	var result int
 	if !c.vals.equal() {
-		if zng.IsFloat(id) {
+		switch {
+		default:
+			return zng.Value{}, fmt.Errorf("bad comparison type ID: %d", id)
+		case zng.IsFloat(id):
 			v1, _ := zng.DecodeFloat64(c.vals.a)
 			v2, _ := zng.DecodeFloat64(c.vals.b)
 			if v1 < v2 {
@@ -460,7 +448,7 @@ func (c *Compare) Eval(rec *zng.Record) (zng.Value, error) {
 			} else {
 				result = 1
 			}
-		} else if zng.IsSigned(id) {
+		case zng.IsSigned(id):
 			v1, _ := zng.DecodeInt(c.vals.a)
 			v2, _ := zng.DecodeInt(c.vals.b)
 			if v1 < v2 {
@@ -468,7 +456,7 @@ func (c *Compare) Eval(rec *zng.Record) (zng.Value, error) {
 			} else {
 				result = 1
 			}
-		} else if zng.IsNumber(id) {
+		case zng.IsNumber(id):
 			v1, _ := zng.DecodeUint(c.vals.a)
 			v2, _ := zng.DecodeUint(c.vals.b)
 			if v1 < v2 {
@@ -476,7 +464,7 @@ func (c *Compare) Eval(rec *zng.Record) (zng.Value, error) {
 			} else {
 				result = 1
 			}
-		} else if zng.IsStringy(id) {
+		case zng.IsStringy(id):
 			v1, _ := zng.DecodeString(c.vals.a)
 			v2, _ := zng.DecodeString(c.vals.b)
 			if v1 < v2 {
@@ -484,8 +472,6 @@ func (c *Compare) Eval(rec *zng.Record) (zng.Value, error) {
 			} else {
 				result = 1
 			}
-		} else {
-			return zng.Value{}, fmt.Errorf("bad comparison type ID: %d", id)
 		}
 	}
 	if c.convert(result) {
@@ -533,22 +519,20 @@ func (a *Add) Eval(rec *zng.Record) (zng.Value, error) {
 		return zng.Value{}, err
 	}
 	typ := zng.LookupPrimitiveById(id)
-	if zng.IsFloat(id) {
+	switch {
+	case zng.IsFloat(id):
 		v1, _ := zng.DecodeFloat64(a.vals.a)
 		v2, _ := zng.DecodeFloat64(a.vals.b)
 		return zng.Value{typ, a.vals.Float64(v1 + v2)}, nil
-	}
-	if zng.IsSigned(id) {
+	case zng.IsSigned(id):
 		v1, _ := zng.DecodeInt(a.vals.a)
 		v2, _ := zng.DecodeInt(a.vals.b)
 		return zng.Value{typ, a.vals.Int(v1 + v2)}, nil
-	}
-	if zng.IsNumber(id) {
+	case zng.IsNumber(id):
 		v1, _ := zng.DecodeUint(a.vals.a)
 		v2, _ := zng.DecodeUint(a.vals.b)
 		return zng.Value{typ, a.vals.Uint(v1 + v2)}, nil
-	}
-	if zng.IsStringy(id) {
+	case zng.IsStringy(id):
 		v1, _ := zng.DecodeString(a.vals.a)
 		v2, _ := zng.DecodeString(a.vals.b)
 		// XXX GC
@@ -563,17 +547,16 @@ func (s *Subtract) Eval(rec *zng.Record) (zng.Value, error) {
 		return zng.Value{}, err
 	}
 	typ := zng.LookupPrimitiveById(id)
-	if zng.IsFloat(id) {
+	switch {
+	case zng.IsFloat(id):
 		v1, _ := zng.DecodeFloat64(s.vals.a)
 		v2, _ := zng.DecodeFloat64(s.vals.b)
 		return zng.Value{typ, s.vals.Float64(v1 - v2)}, nil
-	}
-	if zng.IsSigned(id) {
+	case zng.IsSigned(id):
 		v1, _ := zng.DecodeInt(s.vals.a)
 		v2, _ := zng.DecodeInt(s.vals.b)
 		return zng.Value{typ, s.vals.Int(v1 - v2)}, nil
-	}
-	if zng.IsNumber(id) {
+	case zng.IsNumber(id):
 		v1, _ := zng.DecodeUint(s.vals.a)
 		v2, _ := zng.DecodeUint(s.vals.b)
 		return zng.Value{typ, s.vals.Uint(v1 - v2)}, nil
@@ -587,17 +570,16 @@ func (m *Multiply) Eval(rec *zng.Record) (zng.Value, error) {
 		return zng.Value{}, err
 	}
 	typ := zng.LookupPrimitiveById(id)
-	if zng.IsFloat(id) {
+	switch {
+	case zng.IsFloat(id):
 		v1, _ := zng.DecodeFloat64(m.vals.a)
 		v2, _ := zng.DecodeFloat64(m.vals.b)
 		return zng.Value{typ, m.vals.Float64(v1 * v2)}, nil
-	}
-	if zng.IsSigned(id) {
+	case zng.IsSigned(id):
 		v1, _ := zng.DecodeInt(m.vals.a)
 		v2, _ := zng.DecodeInt(m.vals.b)
 		return zng.Value{typ, m.vals.Int(v1 * v2)}, nil
-	}
-	if zng.IsNumber(id) {
+	case zng.IsNumber(id):
 		v1, _ := zng.DecodeUint(m.vals.a)
 		v2, _ := zng.DecodeUint(m.vals.b)
 		return zng.Value{typ, m.vals.Uint(v1 * v2)}, nil
@@ -611,7 +593,8 @@ func (d *Divide) Eval(rec *zng.Record) (zng.Value, error) {
 		return zng.Value{}, err
 	}
 	typ := zng.LookupPrimitiveById(id)
-	if zng.IsFloat(id) {
+	switch {
+	case zng.IsFloat(id):
 		v1, _ := zng.DecodeFloat64(d.vals.a)
 		v2, _ := zng.DecodeFloat64(d.vals.b)
 		if v2 == 0 {
@@ -619,8 +602,7 @@ func (d *Divide) Eval(rec *zng.Record) (zng.Value, error) {
 			return zng.Value{zng.TypeString, zng.EncodeString("floating point divide by 0")}, nil
 		}
 		return zng.Value{typ, d.vals.Float64(v1 / v2)}, nil
-	}
-	if zng.IsSigned(id) {
+	case zng.IsSigned(id):
 		v1, _ := zng.DecodeInt(d.vals.a)
 		v2, _ := zng.DecodeInt(d.vals.b)
 		if v2 == 0 {
@@ -628,8 +610,7 @@ func (d *Divide) Eval(rec *zng.Record) (zng.Value, error) {
 			return zng.Value{zng.TypeString, zng.EncodeString("signed integer divide by 0")}, nil
 		}
 		return zng.Value{typ, d.vals.Int(v1 / v2)}, nil
-	}
-	if zng.IsNumber(id) {
+	case zng.IsNumber(id):
 		v1, _ := zng.DecodeUint(d.vals.a)
 		v2, _ := zng.DecodeUint(d.vals.b)
 		if v2 == 0 {
@@ -677,6 +658,9 @@ func (i *Index) Eval(rec *zng.Record) (zng.Value, error) {
 	if !ok {
 		//XXX this operator should be used for record accesses for
 		// things like foo["@type"]
+		// XXX make test for 'put x=a[selector]' where selector is another field
+		// so you can say rec["foo"] or rec[bar] where if rec is a record
+		// and bar is stringy and equals "foo", they result in the same value.
 		return zng.Value{}, errors.New("indexed value is not an array")
 	}
 	index, err := i.index.Eval(rec)

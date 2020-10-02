@@ -31,11 +31,9 @@ func EncodeCountedUvarint(dst []byte, u64 uint64) uint {
 }
 
 func AppendCountedUvarint(dst []byte, u64 uint64) []byte {
-	var n uint
 	for u64 != 0 {
 		dst = append(dst, byte(u64))
 		u64 >>= 8
-		n++
 	}
 	return dst
 }
