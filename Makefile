@@ -32,7 +32,7 @@ tidy:
 SAMPLEDATA:=zq-sample-data/README.md
 
 $(SAMPLEDATA):
-	git clone --depth=1 https://github.com/brimsec/zq-sample-data $(@D)
+	git clone --depth=1 --single-branch --branch eval https://github.com/brimsec/zq-sample-data $(@D)
 
 sampledata: $(SAMPLEDATA)
 
