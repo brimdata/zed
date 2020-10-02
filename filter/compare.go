@@ -108,25 +108,14 @@ func CompareInt64(op string, pattern int64) (Predicate, error) {
 	return func(val zng.Value) bool {
 		zv := val.Bytes
 		switch val.Type.ID() {
-		case zng.IdByte:
-			v, err := zng.DecodeByte(zv)
-			if err == nil {
-				return CompareInt(int64(v), pattern)
-			}
-		case zng.IdInt16, zng.IdInt32, zng.IdInt64:
+		case zng.IdInt8, zng.IdInt16, zng.IdInt32, zng.IdInt64:
 			v, err := zng.DecodeInt(zv)
 			if err == nil {
 				return CompareInt(v, pattern)
 			}
-		case zng.IdUint16, zng.IdUint32, zng.IdUint64:
+		case zng.IdUint8, zng.IdUint16, zng.IdUint32, zng.IdUint64, zng.IdPort:
 			v, err := zng.DecodeUint(zv)
 			if err == nil && v <= math.MaxInt64 {
-				return CompareInt(int64(v), pattern)
-			}
-		case zng.IdPort:
-			// we can parse ports as an integer
-			v, err := zng.DecodePort(zv)
-			if err == nil {
 				return CompareInt(int64(v), pattern)
 			}
 		case zng.IdFloat64:
@@ -219,27 +208,16 @@ func CompareFloat64(op string, pattern float64) (Predicate, error) {
 			if err == nil {
 				return compare(v, pattern)
 			}
-		case zng.IdByte:
-			v, err := zng.DecodeByte(zv)
-			if err == nil {
-				return compare(float64(v), pattern)
-			}
-		case zng.IdInt16, zng.IdInt32, zng.IdInt64:
+		case zng.IdInt8, zng.IdInt16, zng.IdInt32, zng.IdInt64:
 			v, err := zng.DecodeInt(zv)
 			if err == nil {
 				return compare(float64(v), pattern)
 			}
-		case zng.IdUint16, zng.IdUint32, zng.IdUint64:
+		case zng.IdUint8, zng.IdUint16, zng.IdUint32, zng.IdUint64, zng.IdPort:
 			v, err := zng.DecodeUint(zv)
 			if err == nil {
 				return compare(float64(v), pattern)
 			}
-		case zng.IdPort:
-			v, err := zng.DecodePort(zv)
-			if err == nil {
-				return compare(float64(v), pattern)
-			}
-
 		case zng.IdTime:
 			ts, err := zng.DecodeTime(zv)
 			if err == nil {
@@ -330,7 +308,7 @@ func ComparePort(op string, pattern uint32) (Predicate, error) {
 		if v.Type.ID() != zng.IdPort {
 			return false
 		}
-		p, err := zng.DecodePort(v.Bytes)
+		p, err := zng.DecodeUint(v.Bytes)
 		if err != nil {
 			return false
 		}

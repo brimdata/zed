@@ -344,12 +344,18 @@ func parseSimpleType(value []byte, typ zng.Type) ([]byte, error) {
 			return nil, err
 		}
 		return zng.EncodeInt(int64(int16(f))), nil
-	case zng.TypeByte:
+	case zng.TypeUint8:
 		f, err := byteconv.ParseFloat64(value)
 		if err != nil {
 			return nil, err
 		}
 		return zng.EncodeUint(uint64(uint8(f))), nil
+	case zng.TypeInt8:
+		f, err := byteconv.ParseFloat64(value)
+		if err != nil {
+			return nil, err
+		}
+		return zng.EncodeInt(int64(int8(f))), nil
 	default:
 		b, err := typ.Parse(value)
 		if err != nil {

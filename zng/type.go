@@ -67,7 +67,8 @@ type Type interface {
 
 var (
 	TypeBool     = &TypeOfBool{}
-	TypeByte     = &TypeOfByte{}
+	TypeInt8     = &TypeOfInt8{}
+	TypeUint8    = &TypeOfUint8{}
 	TypeInt16    = &TypeOfInt16{}
 	TypeUint16   = &TypeOfUint16{}
 	TypeInt32    = &TypeOfInt32{}
@@ -86,28 +87,84 @@ var (
 )
 
 const (
-	IdBool     = 0
-	IdByte     = 1
-	IdInt16    = 2
-	IdUint16   = 3
-	IdInt32    = 4
-	IdUint32   = 5
-	IdInt64    = 6
-	IdUint64   = 7
-	IdFloat64  = 8
-	IdString   = 9
-	IdBytes    = 10
-	IdBstring  = 11
-	IdEnum     = 12
-	IdIP       = 13
-	IdPort     = 14
-	IdNet      = 15
-	IdTime     = 16
-	IdDuration = 17
-	IdNull     = 18
+	IdUint8    = 0
+	IdUint16   = 1
+	IdUint32   = 2
+	IdUint64   = 3
+	IdPort     = 4
+	IdInt8     = 5
+	IdInt16    = 6
+	IdInt32    = 7
+	IdInt64    = 8
+	IdDuration = 9
+	IdTime     = 10
+	IdFloat32  = 11
+	IdFloat64  = 12
+	IdBool     = 13
+	IdBytes    = 14
+	IdString   = 15
+	IdBstring  = 16
+	IdEnum     = 17
+	IdIP       = 18
+	IdNet      = 19
+	IdType     = 20
+	IdError    = 21
+	IdNull     = 22
 
 	IdTypeDef = 23
 )
+
+var promote = []int{
+	IdInt8,    // IdUint8    = 0
+	IdInt16,   // IdUint16   = 1
+	IdInt32,   // IdUint32   = 2
+	IdInt64,   //IdUint64   = 3
+	IdInt16,   // IdPort     = 4
+	IdInt8,    // IdInt8    = 5
+	IdInt16,   // IdInt8   = 6
+	IdInt32,   //IdInt32   = 7
+	IdInt64,   // IdInt64  = 8
+	IdInt64,   // IdDuration = 9
+	IdInt64,   // IdTime     = 10
+	IdFloat32, // IdFloat32  = 11
+	IdFloat64, // IdFloat64  = 12
+}
+
+// Promote type to the largest signed type where the IDs must both
+// satisfy IsNumber.
+func PromoteInt(aid, bid int) int {
+	id := promote[aid]
+	if bid := promote[bid]; bid > id {
+		id = bid
+	}
+	return id
+}
+
+// True iff the type id is encoded as a zng signed or unsigened integer zcode.Bytes.
+func IsInteger(id int) bool {
+	return id <= IdInt64
+}
+
+// True iff the type id is encoded as a zng signed or unsigned integer zcode.Bytes,
+// float32 zcode.Bytes, or float64 zcode.Bytes.
+func IsNumber(id int) bool {
+	return id <= IdFloat64
+}
+
+// True iff the type id is encoded as a float32 or float64 encoding.
+func IsFloat(id int) bool {
+	return id == IdFloat64 || id == IdFloat32
+}
+
+// True iff the type id is encoded as a number encoding and is signed.
+func IsSigned(id int) bool {
+	return id >= IdInt8 && id <= IdTime
+}
+
+// True iff the type id is encoded as a string zcode.Bytes.
+func IsStringy(id int) bool {
+	return id == IdString || id == IdBstring
+}
 
 const (
 	TypeDefRecord  = 0x80
@@ -127,8 +184,10 @@ func LookupPrimitive(name string) Type {
 	switch name {
 	case "bool":
 		return TypeBool
-	case "byte":
-		return TypeByte
+	case "int8":
+		return TypeInt8
+	case "uint8":
+		return TypeUint8
 	case "int16":
 		return TypeInt16
 	case "uint16":
@@ -167,8 +226,10 @@ func LookupPrimitiveById(id int) Type {
 	switch id {
 	case IdBool:
 		return TypeBool
-	case IdByte:
-		return TypeByte
+	case IdInt8:
+		return TypeInt8
+	case IdUint8:
+		return TypeUint8
 	case IdInt16:
 		return TypeInt16
 	case IdUint16:

@@ -101,7 +101,7 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, parent proc.Int
 		return filterproc.New(parent, f), nil
 
 	case *ast.TopProc:
-		fields, err := expr.CompileFieldExprs(v.Fields)
+		fields, err := expr.CompileExprs(v.Fields)
 		if err != nil {
 			return nil, fmt.Errorf("compiling top: %w", err)
 		}

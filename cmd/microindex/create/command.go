@@ -100,7 +100,7 @@ func (c *Command) Run(args []string) error {
 }
 
 func (c *Command) buildTable(zctx *resolver.Context, reader zbuf.Reader) (*microindex.MemTable, error) {
-	readKey := expr.CompileFieldAccess(c.keyField)
+	readKey := expr.NewFieldAccess(c.keyField)
 	table := microindex.NewMemTable(zctx)
 	for {
 		rec, err := reader.Read()
@@ -110,8 +110,8 @@ func (c *Command) buildTable(zctx *resolver.Context, reader zbuf.Reader) (*micro
 		if rec == nil {
 			break
 		}
-		k := readKey(rec)
-		if k.Type == nil {
+		k, err := readKey.Eval(rec)
+		if err != nil || k.Type == nil {
 			// if the key doesn't exist, just skip it
 			continue
 		}

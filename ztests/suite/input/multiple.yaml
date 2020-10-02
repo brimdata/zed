@@ -2,15 +2,10 @@ zql: 'count()'
 
 input:
   - !!binary |
-      gAQGb3JpZ19oDQZvcmlnX3AOBnJlc3BfaA0GcmVzcF9wDoQFemVudW0JgAcFX3BhdGgJA
-      nRzEAN1aWQLAmlkFwVwcm90bxgIYW5hbHl6ZXILDmZhaWx1cmVfcmVhc29uCxlSCGRwZB
-      LgZfg9S9U9KiZDWUdPblYzQklkb2lXS3ZlWGcjCgqkXngGjUsKCi8I2gYAUAh0Y3AKSFR
-      UUDBub3QgYSBodHRwIHJlcXVlc3QgbGluZQ==
+      gAEBeAYXAgQChQ==
+
   - !!binary |
-      gAQGb3JpZ19oDQZvcmlnX3AOBnJlc3BfaA0GcmVzcF9wDoAIBV9wYXRoCQJ0cxADdWlkC
-      wJpZBcDcnR0EQpuYW1lZF9waXBlCwhlbmRwb2ludAsJb3BlcmF0aW9uCxhQEGRjZV9ycG
-      MSYGd2N03VPSomQ2d4c05BMXAyZDBCdXJYZDdjIwoKpF54Bo8jCgovA5cGBAYIMCcNCjE
-      wMzAKc2FtchpTYW1yQ29ubmVjdDI=
+      gAEBeAYXAgQChQ==
 
 output: |
   #0:record[count:uint64]

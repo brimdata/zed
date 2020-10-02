@@ -29,11 +29,12 @@ type Proc struct {
 func New(pctx *proc.Context, parent proc.Interface, node *ast.CutProc) (*Proc, error) {
 	var fieldnames, targets []string
 	for _, fa := range node.Fields {
+		fieldName := ast.FieldExprToString(fa.Source)
 		if fa.Target == "" {
-			fa.Target = fa.Source
+			fa.Target = fieldName
 		}
 		targets = append(targets, fa.Target)
-		fieldnames = append(fieldnames, fa.Source)
+		fieldnames = append(fieldnames, fieldName)
 	}
 	// build this once at compile time for error checking.
 	if !node.Complement {

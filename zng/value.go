@@ -174,3 +174,12 @@ func (v Value) IsUnset() bool {
 func (v Value) IsUnsetOrNil() bool {
 	return v.Bytes == nil
 }
+
+func (v Value) Copy() Value {
+	var b zcode.Bytes
+	if v.Bytes != nil {
+		b = make(zcode.Bytes, len(v.Bytes))
+		copy(b, v.Bytes)
+	}
+	return Value{v.Type, b}
+}

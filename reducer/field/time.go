@@ -1,9 +1,9 @@
 package field
 
 import (
+	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/streamfn"
 	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zngnative"
 )
 
 type Time struct {
@@ -21,7 +21,7 @@ func (t *Time) Result() zng.Value {
 }
 
 func (t *Time) Consume(v zng.Value) error {
-	if ts, ok := zngnative.CoerceToTime(v); ok {
+	if ts, ok := expr.CoerceToTime(v); ok {
 		t.fn.Update(ts)
 		return nil
 	}

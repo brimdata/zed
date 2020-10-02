@@ -44,10 +44,9 @@ func NewBufferFilter(e ast.BooleanExpr) (*BufferFilter, error) {
 		if e.Comparator != "=" && e.Comparator != "in" {
 			return nil, nil
 		}
-		if fc, ok := e.Field.(*ast.FieldCall); ok && fc.Fn == "Len" {
-			return nil, nil
-		}
 		return newBufferFilterForLiteral(e.Value)
+	case *ast.BinaryExpression:
+		return nil, nil
 	case *ast.LogicalAnd:
 		left, err := NewBufferFilter(e.Left)
 		if err != nil {

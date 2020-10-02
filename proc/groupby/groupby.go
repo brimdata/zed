@@ -18,9 +18,14 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
+// Key represents the name of the column (target) and an expression for
+// pulling values out of the underlying record stream.  Because the logic
+// here stashes the result of the expression in some case, and because
+// subsequent calls to Eval on the Evaluator can clobber previus results,
+// we are careful to make copys of the zng.Value whenever we hold onto to it.
 type Key struct {
 	target string
-	expr   expr.ExpressionEvaluator
+	expr   expr.Evaluator
 }
 
 type Params struct {
@@ -50,7 +55,7 @@ func CompileParams(node *ast.GroupByProc, zctx *resolver.Context) (*Params, erro
 	keys := make([]Key, 0)
 	var targets []string
 	for _, astKey := range node.Keys {
-		ex, err := compileKeyExpr(astKey.Expr)
+		ex, err := expr.CompileExpr(astKey.Expr)
 		if err != nil {
 			return nil, fmt.Errorf("compiling groupby: %w", err)
 		}
@@ -84,20 +89,6 @@ func CompileParams(node *ast.GroupByProc, zctx *resolver.Context) (*Params, erro
 		consumePart:  node.ConsumePart,
 		emitPart:     node.EmitPart,
 	}, nil
-}
-
-func compileKeyExpr(ex ast.Expression) (expr.ExpressionEvaluator, error) {
-	if fe, ok := ex.(ast.FieldExpr); ok {
-		f, err := expr.CompileFieldExpr(fe)
-		if err != nil {
-			return nil, err
-		}
-		ev := func(r *zng.Record) (zng.Value, error) {
-			return f(r), nil
-		}
-		return ev, nil
-	}
-	return expr.CompileExpr(ex)
 }
 
 // Proc computes aggregations using an Aggregator.
@@ -138,7 +129,7 @@ type Aggregator struct {
 	// are ever referenced.
 	kctx         *resolver.Context
 	keys         []Key
-	keyResolvers []expr.FieldExprResolver
+	keyResolvers []expr.Evaluator
 	decomposable bool
 	reducerDefs  []compile.CompiledReducer
 	builder      *proc.ColumnBuilder
@@ -178,16 +169,16 @@ func NewAggregator(c *proc.Context, params Params) *Aggregator {
 		} else {
 			valueCompare = vs
 		}
-		rs := expr.NewCompareFn(true, expr.CompileFieldAccess(params.keys[0].target))
+		rs := expr.NewCompareFn(true, expr.NewFieldAccess(params.keys[0].target))
 		if params.inputSortDir < 0 {
 			keyCompare = func(a, b *zng.Record) int { return rs(b, a) }
 		} else {
 			keyCompare = rs
 		}
 	}
-	var resolvers []expr.FieldExprResolver
+	var resolvers []expr.Evaluator
 	for _, k := range params.keys {
-		resolvers = append(resolvers, expr.CompileFieldAccess(k.target))
+		resolvers = append(resolvers, expr.NewFieldAccess(k.target))
 	}
 	rs := expr.NewCompareFn(true, resolvers...)
 	if params.inputSortDir < 0 {
@@ -324,7 +315,7 @@ func (a *Aggregator) createRow(keyCols []zng.Column, vals zcode.Bytes, groupval 
 func newKeyRow(kctx *resolver.Context, r *zng.Record, keys []Key) (keyRow, error) {
 	cols := make([]zng.Column, len(keys))
 	for k, key := range keys {
-		keyVal, err := key.expr(r)
+		keyVal, err := key.expr.Eval(r)
 		// Don't err on ErrNoSuchField; just return an empty
 		// keyRow and the descriptor will be blocked.
 		if err != nil && !errors.Is(err, expr.ErrNoSuchField) {
@@ -393,10 +384,11 @@ func (a *Aggregator) Consume(r *zng.Record) error {
 	a.builder.Reset()
 	var prim *zng.Value
 	for i, key := range a.keys {
-		keyVal, err := key.expr(r)
+		zv, err := key.expr.Eval(r)
 		if err != nil && !errors.Is(err, zng.ErrUnset) {
 			return err
 		}
+		keyVal := zv.Copy()
 		if i == 0 && a.inputSortDir != 0 {
 			a.updateMaxTableKey(keyVal)
 			prim = &keyVal
@@ -448,10 +440,12 @@ func (a *Aggregator) spillTable(eof bool) error {
 		return err
 	}
 	if !eof && a.inputSortDir != 0 {
-		v, err := a.keys[0].expr(recs[len(recs)-1])
+		v, err := a.keys[0].expr.Eval(recs[len(recs)-1])
 		if err != nil && !errors.Is(err, zng.ErrUnset) {
 			return err
 		}
+		// pass volatile zng.Value since updateMaxSpillKey will make
+		// a copy if needed.
 		a.updateMaxSpillKey(v)
 	}
 	return nil
@@ -469,10 +463,12 @@ func (a *Aggregator) updateMaxTableKey(v zng.Value) {
 
 func (a *Aggregator) updateMaxSpillKey(v zng.Value) {
 	if a.maxSpillKey == nil {
+		v = v.Copy()
 		a.maxSpillKey = &v
 		return
 	}
 	if a.valueCompare(v, *a.maxSpillKey) > 0 {
+		v = v.Copy()
 		a.maxSpillKey = &v
 	}
 }
@@ -508,7 +504,7 @@ func (a *Aggregator) readSpills(eof bool) (zbuf.Batch, error) {
 			if rec == nil {
 				break
 			}
-			keyVal, err := a.keys[0].expr(rec)
+			keyVal, err := a.keys[0].expr.Eval(rec)
 			if err != nil && !errors.Is(err, zng.ErrUnset) {
 				return nil, err
 			}
@@ -562,7 +558,8 @@ func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 	a.builder.Reset()
 	var types []zng.Type
 	for _, res := range a.keyResolvers {
-		keyVal := res(firstRec)
+		keyVal, _ := res.Eval(firstRec)
+		keyVal = keyVal.Copy()
 		types = append(types, keyVal.Type)
 		a.builder.Append(keyVal.Bytes, keyVal.IsContainer())
 	}

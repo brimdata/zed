@@ -12,18 +12,7 @@ import (
 type TypeOfBstring struct{}
 
 func NewBstring(s string) Value {
-	return Value{TypeBstring, EncodeBstring(s)}
-}
-
-func EncodeBstring(s string) zcode.Bytes {
-	return zcode.Bytes(s)
-}
-
-func DecodeBstring(zv zcode.Bytes) (string, error) {
-	if zv == nil {
-		return "", ErrUnset
-	}
-	return string(zv), nil
+	return Value{TypeBstring, EncodeString(s)}
 }
 
 func (t *TypeOfBstring) Parse(in []byte) (zcode.Bytes, error) {

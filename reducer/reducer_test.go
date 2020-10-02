@@ -63,8 +63,8 @@ func TestDecomposableReducers(t *testing.T) {
 		cred, err := compile.Compile(ast.Reducer{
 			Node: ast.Node{Op: op},
 			Var:  strings.ToLower(op),
-			Field: &ast.FieldRead{
-				Node:  ast.Node{Op: "FieldRead"},
+			Field: &ast.Field{
+				Node:  ast.Node{Op: "Field"},
 				Field: field,
 			},
 		})

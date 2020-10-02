@@ -11,14 +11,18 @@ func NewUint64(v uint64) Value {
 	return Value{TypeUint64, EncodeUint(v)}
 }
 
-func EncodeByte(b byte) zcode.Bytes {
-	return []byte{b}
-}
-
 func EncodeInt(i int64) zcode.Bytes {
 	var b [8]byte
 	n := zcode.EncodeCountedVarint(b[:], i)
 	return b[:n]
+}
+
+func AppendInt(bytes zcode.Bytes, i int64) zcode.Bytes {
+	if bytes == nil {
+		// Cannot have "unset" ints
+		bytes = make(zcode.Bytes, 0, 8)
+	}
+	return zcode.AppendCountedVarint(bytes, i)
 }
 
 func EncodeUint(i uint64) zcode.Bytes {
@@ -27,11 +31,12 @@ func EncodeUint(i uint64) zcode.Bytes {
 	return b[:n]
 }
 
-func DecodeByte(zv zcode.Bytes) (byte, error) {
-	if len(zv) != 1 {
-		return 0, ErrUnset
+func AppendUint(bytes zcode.Bytes, i uint64) zcode.Bytes {
+	if bytes == nil {
+		// Cannot have "unset" ints
+		bytes = make(zcode.Bytes, 0, 8)
 	}
-	return zv[0], nil
+	return zcode.AppendCountedUvarint(bytes, i)
 }
 
 func DecodeInt(zv zcode.Bytes) (int64, error) {
@@ -64,34 +69,64 @@ func stringOfUint(zv zcode.Bytes, t Type) string {
 	return strconv.FormatUint(i, 10)
 }
 
-type TypeOfByte struct{}
+type TypeOfInt8 struct{}
 
-func (t *TypeOfByte) ID() int {
-	return IdByte
+func (t *TypeOfInt8) ID() int {
+	return IdInt8
 }
 
-func (t *TypeOfByte) String() string {
-	return "byte"
+func (t *TypeOfInt8) String() string {
+	return "int8"
 }
 
-func (t *TypeOfByte) Parse(in []byte) (zcode.Bytes, error) {
+func (t *TypeOfInt8) Parse(in []byte) (zcode.Bytes, error) {
+	b, err := byteconv.ParseInt8(in)
+	if err != nil {
+		return nil, err
+	}
+	return EncodeInt(int64(b)), nil
+}
+
+func (t *TypeOfInt8) StringOf(zv zcode.Bytes, _ OutFmt, _ bool) string {
+	b, err := DecodeInt(zv)
+	if err != nil {
+		return badZng(err, t, zv)
+	}
+	return strconv.FormatInt(int64(b), 10)
+}
+
+func (t *TypeOfInt8) Marshal(zv zcode.Bytes) (interface{}, error) {
+	return DecodeInt(zv)
+}
+
+type TypeOfUint8 struct{}
+
+func (t *TypeOfUint8) ID() int {
+	return IdUint8
+}
+
+func (t *TypeOfUint8) String() string {
+	return "uint8"
+}
+
+func (t *TypeOfUint8) Parse(in []byte) (zcode.Bytes, error) {
 	b, err := byteconv.ParseUint8(in)
 	if err != nil {
 		return nil, err
 	}
-	return EncodeByte(b), nil
+	return EncodeUint(uint64(b)), nil
 }
 
-func (t *TypeOfByte) StringOf(zv zcode.Bytes, _ OutFmt, _ bool) string {
-	b, err := DecodeByte(zv)
+func (t *TypeOfUint8) StringOf(zv zcode.Bytes, _ OutFmt, _ bool) string {
+	b, err := DecodeUint(zv)
 	if err != nil {
 		return badZng(err, t, zv)
 	}
 	return strconv.FormatUint(uint64(b), 10)
 }
 
-func (t *TypeOfByte) Marshal(zv zcode.Bytes) (interface{}, error) {
-	return DecodeByte(zv)
+func (t *TypeOfUint8) Marshal(zv zcode.Bytes) (interface{}, error) {
+	return DecodeUint(zv)
 }
 
 type TypeOfInt16 struct{}

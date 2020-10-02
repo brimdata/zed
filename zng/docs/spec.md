@@ -191,7 +191,8 @@ encapsulating protocols.
 ### 3.1.1 Typedefs
 
 Following a header byte of 0x80-0x83 is a "typedef".  A typedef binds
-"the next available" integer type ID to a type encoding.  Type IDs
+"the next available" integer type ID to a type encoding.  As there are
+a total of 23 primitive type IDs, the Type IDs for typedefs
 begin at the value 23 and increase by one for each typedef. These bindings
 are scoped to the stream in which the typedef occurs.
 
@@ -723,25 +724,32 @@ For each ZNG primitive type, the following table describes:
 
 | Type       | ID |    N     |       ZNG Value Interpretation                 | TZNG Value Syntax                                             |
 |------------|---:|:--------:|------------------------------------------------|---------------------------------------------------------------|
-| `bool`     |  0 |    1     | one byte 0 (false) or 1 (true)                 | a single character `T` or `F`                                 |
-| `byte`     |  1 |    1     | the byte                                       | two-characters of hexadecimal digit                           |
-| `int16`    |  2 | variable | signed int of length N                         | decimal string representation of any signed, 16-bit integer   |
-| `uint16`   |  3 | variable | unsigned int of length N                       | decimal string representation of any unsigned, 16-bit integer |
-| `int32`    |  4 | variable | signed int of length N                         | decimal string representation of any signed, 32-bit integer   |
-| `uint32`   |  5 | variable | unsigned int of length N                       | decimal string representation of any unsigned, 32-bit integer |
-| `int64`    |  6 | variable | signed int of length N                         | decimal string representation of any signed, 64-bit integer   |
-| `uint64`   |  7 | variable | unsigned int of length N                       | decimal string representation of any unsigned, 64-bit integer |
-| `float64`  |  8 |    8     | 8 bytes of IEEE 64-bit format                  | decimal representation of a 64-bit IEEE floating point literal as defined in JavaScript |
-| `string`   |  9 | variable | UTF-8 byte sequence of string                  | a UTF-8 string                                                |
-| `bytes`    | 10 | variable | bytes of value                                 | a sequence of bytes encoded as base64                         |
-| `bstring`  | 11 | variable | UTF-8 byte sequence with `\x` escapes          | a UTF-8 string with `\x` escapes of non-UTF binary data       |
-| `enum `    | 12 | variable | UTF-8 bytes of enum string                     | a string representing an enumeration value defined outside the scope of ZNG |
-| `ip`       | 13 | 4 or 16  | 4 or 16 bytes of IP address                    | a string representing an IP address in [IPv4 or IPv6 format](https://tools.ietf.org/html/draft-main-ipaddr-text-rep-02#section-3) |
-| `port`     | 14 |    2     | unsigned int of length 2                       | decimal string representation of an unsigned, 16-bit integer  |
-| `net`      | 15 | 8 or 32  | 8 or 32 bytes of IP prefix and subnet mask     | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291. |
-| `time`     | 16 | variable | signed nanoseconds since epoch                 | signed dotted decimal notation of seconds                     |
-| `duration` | 17 | variable | signed nanoseconds duration                    | signed dotted decimal notation of seconds                     |
-| `null`     | 18 |    0     | No value, always represents an undefined value | must be the literal value `-`                                 |
+| `uint8`    |  0 | variable  | unsigned int of length N                       | decimal string representation of any unsigned, 8-bit integer
+| `uint16`   |  1 | variable | unsigned int of length N                       | decimal string representation of any unsigned, 16-bit integer |
+| `uint32`   |  2 | variable | unsigned int of length N                       | decimal string representation of any unsigned, 32-bit integer |
+| `uint64`   |  3 | variable | unsigned int of length N                       | decimal string representation of any unsigned, 64-bit integer |
+| `port`     |  4 | variable | unsigned int of length N                       | decimal string representation of an unsigned, 16-bit integer  |
+| `int8`     |  5 | variable | signed int of length N                         | two-characters of hexadecimal digit                           |
+| `int16`    |  6 | variable | signed int of length N                         | decimal string representation of any signed, 16-bit integer   |
+| `int32`    |  7 | variable | signed int of length N                         | decimal string representation of any signed, 32-bit integer   |
+| `int64`    |  8 | variable | signed int of length N                         | decimal string representation of any signed, 64-bit integer   |
+| `duration` |  9 | variable | signed int of length N as ns                   | signed dotted decimal notation of seconds                     |
+| `time`     | 10 | variable | signed int of length N as ns since epoch       | signed dotted decimal notation of seconds                     |
+| `float32`  | 11 |    8     | 8 bytes of IEEE 64-bit format                  | decimal representation of a 64-bit IEEE floating point literal as defined in JavaScript |
+| `float64`  | 12 |    8     | 8 bytes of IEEE 64-bit format                  | decimal representation of a 64-bit IEEE floating point literal as defined in JavaScript |
+| `bool`     | 13 |    1     | one byte 0 (false) or 1 (true)                 | a single character `T` or `F`
+| `bytes`    | 14 | variable | N bytes of value                               | a sequence of bytes encoded as base64                         |
+| `string`   | 15 | variable | UTF-8 byte sequence of string                  | a UTF-8 string                                                |
+| `bstring`  | 16 | variable | UTF-8 byte sequence with `\x` escapes          | a UTF-8 string with `\x` escapes of non-UTF binary data       |
+| `enum `    | 17 | variable | UTF-8 bytes of enum string                     | a string representing an enumeration value defined outside the scope of ZNG |
+| `ip`       | 18 | 4 or 16  | 4 or 16 bytes of IP address                    | a string representing an IP address in [IPv4 or IPv6 format](https://tools.ietf.org/html/draft-main-ipaddr-text-rep-02#section-3) |
+| `net`      | 19 | 8 or 32  | 8 or 32 bytes of IP prefix and subnet mask     | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291. |
+| `type`     | 20 | 8 or 32  | 8 or 32 bytes of IP prefix and subnet mask     | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291. |
+| `error`    | 21 | 8 or 32  | 8 or 32 bytes of IP prefix and subnet mask     | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291. |
+| `null`     | 22 |    0     | No value, always represents an undefined value | must be the literal value `-`                                 |
+
+> TBD: Types "enum" and "type" will actually be complex types not primitives.  We will
+> address this clarification in a subsequent PR.  There goes our magic constant 23.
 
 ## Appendix A. Related Links
 

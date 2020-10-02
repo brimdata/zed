@@ -17,6 +17,10 @@ func EncodeTime(t nano.Ts) zcode.Bytes {
 	return b[:n]
 }
 
+func AppendTime(bytes zcode.Bytes, t nano.Ts) zcode.Bytes {
+	return AppendInt(bytes, int64(t))
+}
+
 func DecodeTime(zv zcode.Bytes) (nano.Ts, error) {
 	if zv == nil {
 		return 0, ErrUnset

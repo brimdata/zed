@@ -66,7 +66,7 @@ func zngTypeToZeek(typ zng.Type) (string, error) {
 			return "", err
 		}
 		return fmt.Sprintf("set[%s]", inner), nil
-	case *zng.TypeOfByte, *zng.TypeOfInt16, *zng.TypeOfInt32, *zng.TypeOfInt64, *zng.TypeOfUint16, *zng.TypeOfUint32:
+	case *zng.TypeOfUint8, *zng.TypeOfInt8, *zng.TypeOfInt16, *zng.TypeOfInt32, *zng.TypeOfInt64, *zng.TypeOfUint16, *zng.TypeOfUint32:
 		return "int", nil
 	case *zng.TypeOfUint64:
 		return "count", nil
