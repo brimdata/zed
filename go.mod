@@ -17,6 +17,7 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/mccanne/charm v0.0.3-0.20191224190439-b05e1b7b1be3
 	github.com/mitchellh/mapstructure v1.3.3
+	github.com/pbnjay/memory v0.0.0-20190104145345-974d429e7ae4
 	github.com/peterh/liner v1.1.0
 	github.com/pierrec/lz4/v4 v4.0.2
 	github.com/pmezard/go-difflib v1.0.0
