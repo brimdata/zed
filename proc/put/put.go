@@ -60,7 +60,7 @@ func New(pctx *proc.Context, parent proc.Interface, node *ast.PutProc) (proc.Int
 	for k, cl := range node.Clauses {
 		var err error
 		clauses[k].target = cl.Target
-		clauses[k].eval, err = expr.CompileExpr(cl.Expr, false)
+		clauses[k].eval, err = expr.CompileExpr(cl.Expr)
 		if err != nil {
 			return nil, err
 		}

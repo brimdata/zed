@@ -16,13 +16,12 @@ import (
 
 type Args struct {
 	vals []zng.Value
-	scratch
+	result
 }
 
-func NewArgs(n int, keep bool) *Args {
+func NewArgs(n int) *Args {
 	return &Args{
-		vals:    make([]zng.Value, n),
-		scratch: scratch{keep: keep},
+		vals: make([]zng.Value, n),
 	}
 }
 

@@ -31,47 +31,52 @@ var ErrBadCast = errors.New("bad cast")
 //
 // This is the "intepreted slow path" of the analytics engine.  Because it
 // handles dynamic typinig at runtime, overheads are incurrend due to
-// type checks and coercions to determine different computational
-// outcomes based on type.
+// various type checks and coercions that determine different computational
+// outcomes based on type.  There is nothing here that optimizes analytics
+// for native machine types; these optimizations (will) happen in the pushdown
+// predicate processing engine in the zst columnar scanner.
 //
-// Eventually, we will optimize this by adding a "fast path" that dynamically
-// generates byte codes (which an in turn be JIT assembled into machine code)
+// Eventually, we will optimize this zst "fast path" by dynamically
+// generating byte codes (which an in turn be JIT assembled into machine code)
 // for each zng TypeRecord encountered.  Once you know the type record,
 // you can generate code using strong typing just as an OLAP system does
 // due to its schemas defined up-front in its relational tables.  Here,
 // each record type is like a schema and as we encounter them, we can compile
 // optimized code for the now-static types within that record type.
 //
-// The keep flag, if true, says to return zng.Value that are safe to stash
-// and will be garbage collected.  Otherwise, the expression will produce
-// values into temporary buffers may be modified on subsequent calls to Eval.
+// The Evaluator return by CompilExpr produces zng.Values that are stored
+// in temporary buffers and may be modified on subsequent calls to Eval.
 // This is intended to minimize the garbage collection needs of the inner loop
 // by not allocating memory on a per-Eval basis.  For uses like filtering and
 // aggregations, where the results are immediately use, this is desirable and
-// "keep" should be false in these cases. For use cases like storing the results
-// as groupby keys, the results must be nonvolatile and "keep" should be true.
-func CompileExpr(node ast.Expression, keep bool) (Evaluator, error) {
-	return compileExpr(node, true, keep)
+// efficient but for use cases like storing the results as groupby keys, the
+// resulting zng.Value should be copied (e.g., via zng.Value.Copy()).
+//
+// TBD: string values and net.IP address do not need to be copied because they
+// are allocated by go libraries and temporary buffers are not used.  This will
+// change down the road when we implement no-allocation string and IP conversion.
+func CompileExpr(node ast.Expression) (Evaluator, error) {
+	return compileExpr(node, true)
 }
 
-func compileExpr(node ast.Expression, root, keep bool) (Evaluator, error) {
+func compileExpr(node ast.Expression, root bool) (Evaluator, error) {
 	switch n := node.(type) {
 	case *ast.Literal:
 		return NewLiteral(*n)
 	case *ast.Field:
 		return newFieldNode(n.Field, nil, root), nil
 	case *ast.UnaryExpression:
-		return compileUnary(*n, keep)
+		return compileUnary(*n)
 
 	case *ast.BinaryExpression:
 		if n.Operator == "." {
-			return compileDotExpr(n.LHS, n.RHS, keep)
+			return compileDotExpr(n.LHS, n.RHS)
 		}
-		lhs, err := compileExpr(n.LHS, true, keep)
+		lhs, err := compileExpr(n.LHS, true)
 		if err != nil {
 			return nil, err
 		}
-		rhs, err := compileExpr(n.RHS, true, keep)
+		rhs, err := compileExpr(n.RHS, true)
 		if err != nil {
 			return nil, err
 		}
@@ -81,13 +86,13 @@ func compileExpr(node ast.Expression, root, keep bool) (Evaluator, error) {
 		case "in":
 			return compileIn(lhs, rhs)
 		case "=", "!=":
-			return compileCompareEquality(lhs, rhs, n.Operator, keep)
+			return compileCompareEquality(lhs, rhs, n.Operator)
 		case "=~", "!~":
 			return compilePatternMatch(lhs, rhs, n.Operator)
 		case "<", "<=", ">", ">=":
-			return compileCompareRelative(lhs, rhs, n.Operator, keep)
+			return compileCompareRelative(lhs, rhs, n.Operator)
 		case "+", "-", "*", "/":
-			return compileArithmetic(lhs, rhs, n.Operator, keep)
+			return compileArithmetic(lhs, rhs, n.Operator)
 		case "[":
 			return compileIndexExpr(lhs, rhs)
 		default:
@@ -95,23 +100,23 @@ func compileExpr(node ast.Expression, root, keep bool) (Evaluator, error) {
 		}
 
 	case *ast.ConditionalExpression:
-		return compileConditional(*n, keep)
+		return compileConditional(*n)
 
 	case *ast.FunctionCall:
-		return compileCall(*n, keep)
+		return compileCall(*n)
 
 	case *ast.CastExpression:
-		return compileCast(*n, keep)
+		return compileCast(*n)
 
 	default:
 		return nil, fmt.Errorf("invalid expression type %T", node)
 	}
 }
 
-func CompileExprs(nodes []ast.Expression, keep bool) ([]Evaluator, error) {
+func CompileExprs(nodes []ast.Expression) ([]Evaluator, error) {
 	var exprs []Evaluator
 	for k := range nodes {
-		e, err := compileExpr(nodes[k], true, keep)
+		e, err := compileExpr(nodes[k], true)
 		if err != nil {
 			return nil, err
 		}
@@ -124,11 +129,11 @@ type Not struct {
 	expr Evaluator
 }
 
-func compileUnary(node ast.UnaryExpression, keep bool) (Evaluator, error) {
+func compileUnary(node ast.UnaryExpression) (Evaluator, error) {
 	if node.Operator != "!" {
 		return nil, fmt.Errorf("unknown unary operator %s\n", node.Operator)
 	}
-	e, err := compileExpr(node.Operand, true, keep)
+	e, err := compileExpr(node.Operand, true)
 	if err != nil {
 		return nil, err
 	}
@@ -264,8 +269,8 @@ type Equal struct {
 	equality bool
 }
 
-func compileCompareEquality(lhs, rhs Evaluator, operator string, keep bool) (Evaluator, error) {
-	e := &Equal{numeric: newNumeric(lhs, rhs, keep)}
+func compileCompareEquality(lhs, rhs Evaluator, operator string) (Evaluator, error) {
+	e := &Equal{numeric: newNumeric(lhs, rhs)}
 	switch operator {
 	case "=":
 		e.equality = true
@@ -360,11 +365,10 @@ type numeric struct {
 	vals Coercion
 }
 
-func newNumeric(lhs, rhs Evaluator, keep bool) numeric {
+func newNumeric(lhs, rhs Evaluator) numeric {
 	return numeric{
-		lhs:  lhs,
-		rhs:  rhs,
-		vals: newCoercion(keep),
+		lhs: lhs,
+		rhs: rhs,
 	}
 }
 
@@ -385,8 +389,8 @@ type Compare struct {
 	convert func(int) bool
 }
 
-func compileCompareRelative(lhs, rhs Evaluator, operator string, keep bool) (Evaluator, error) {
-	c := &Compare{numeric: newNumeric(lhs, rhs, keep)}
+func compileCompareRelative(lhs, rhs Evaluator, operator string) (Evaluator, error) {
+	c := &Compare{numeric: newNumeric(lhs, rhs)}
 	switch operator {
 	case "<":
 		c.convert = func(v int) bool { return v < 0 }
@@ -498,8 +502,8 @@ type Divide struct {
 
 // compileArithmetic compiles an expression of the form "expr1 op expr2"
 // for the arithmetic operators +, -, *, /
-func compileArithmetic(lhs, rhs Evaluator, op string, keep bool) (Evaluator, error) {
-	n := newNumeric(lhs, rhs, keep)
+func compileArithmetic(lhs, rhs Evaluator, op string) (Evaluator, error) {
+	n := newNumeric(lhs, rhs)
 	switch op {
 	case "+":
 		return &Add{n}, nil
@@ -695,17 +699,17 @@ type Conditional struct {
 	elseExpr  Evaluator
 }
 
-func compileConditional(node ast.ConditionalExpression, keep bool) (Evaluator, error) {
+func compileConditional(node ast.ConditionalExpression) (Evaluator, error) {
 	var err error
-	predicate, err := compileExpr(node.Condition, true, keep)
+	predicate, err := compileExpr(node.Condition, true)
 	if err != nil {
 		return nil, err
 	}
-	thenExpr, err := compileExpr(node.Then, true, keep)
+	thenExpr, err := compileExpr(node.Then, true)
 	if err != nil {
 		return nil, err
 	}
-	elseExpr, err := compileExpr(node.Else, true, keep)
+	elseExpr, err := compileExpr(node.Else, true)
 	if err != nil {
 		return nil, err
 	}
@@ -730,12 +734,12 @@ func (c *Conditional) Eval(rec *zng.Record) (zng.Value, error) {
 	return c.elseExpr.Eval(rec)
 }
 
-func compileDotExpr(lhs, rhs ast.Expression, keep bool) (*FieldExpr, error) {
-	record, err := compileExpr(lhs, true, keep)
+func compileDotExpr(lhs, rhs ast.Expression) (*FieldExpr, error) {
+	record, err := compileExpr(lhs, true)
 	if err != nil {
 		return nil, err
 	}
-	field, err := compileExpr(rhs, false, keep)
+	field, err := compileExpr(rhs, false)
 	if err != nil {
 		return nil, err
 	}
@@ -748,7 +752,7 @@ type Call struct {
 	args     *Args
 }
 
-func compileCall(node ast.FunctionCall, keep bool) (Evaluator, error) {
+func compileCall(node ast.FunctionCall) (Evaluator, error) {
 	fn, ok := allFns[node.Function]
 	if !ok {
 		return nil, fmt.Errorf("%s: %w", node.Function, ErrNoSuchFunction)
@@ -762,7 +766,7 @@ func compileCall(node ast.FunctionCall, keep bool) (Evaluator, error) {
 	}
 	exprs := make([]Evaluator, 0, nargs)
 	for _, expr := range node.Args {
-		e, err := compileExpr(expr, true, keep)
+		e, err := compileExpr(expr, true)
 		if err != nil {
 			return nil, err
 		}
@@ -772,7 +776,7 @@ func compileCall(node ast.FunctionCall, keep bool) (Evaluator, error) {
 	return &Call{
 		function: fn.impl,
 		exprs:    exprs,
-		args:     NewArgs(nargs, keep),
+		args:     NewArgs(nargs),
 	}, nil
 }
 
@@ -787,8 +791,8 @@ func (c *Call) Eval(rec *zng.Record) (zng.Value, error) {
 	return c.function(c.args)
 }
 
-func compileCast(node ast.CastExpression, keep bool) (Evaluator, error) {
-	expr, err := compileExpr(node.Expr, true, keep)
+func compileCast(node ast.CastExpression) (Evaluator, error) {
+	expr, err := compileExpr(node.Expr, true)
 	if err != nil {
 		return nil, err
 	}

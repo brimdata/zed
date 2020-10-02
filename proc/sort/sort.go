@@ -31,7 +31,7 @@ type Proc struct {
 }
 
 func New(pctx *proc.Context, parent proc.Interface, node *ast.SortProc) (*Proc, error) {
-	fieldResolvers, err := expr.CompileExprs(node.Fields, true)
+	fieldResolvers, err := expr.CompileExprs(node.Fields)
 	if err != nil {
 		return nil, err
 	}

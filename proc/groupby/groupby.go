@@ -18,6 +18,11 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
+// Key represents the name of the column (target) and an expression for
+// pulling values out of the underlying record stream.  Because the logic
+// here stashes the result of the expression in some case, and because
+// subsequent calls to Eval on the Evaluator can clobber previus results,
+// we are careful to make copys of the zng.Value whenever we hold onto to it.
 type Key struct {
 	target string
 	expr   expr.Evaluator
@@ -50,7 +55,7 @@ func CompileParams(node *ast.GroupByProc, zctx *resolver.Context) (*Params, erro
 	keys := make([]Key, 0)
 	var targets []string
 	for _, astKey := range node.Keys {
-		ex, err := compileKeyExpr(astKey.Expr)
+		ex, err := expr.CompileExpr(astKey.Expr)
 		if err != nil {
 			return nil, fmt.Errorf("compiling groupby: %w", err)
 		}
@@ -84,10 +89,6 @@ func CompileParams(node *ast.GroupByProc, zctx *resolver.Context) (*Params, erro
 		consumePart:  node.ConsumePart,
 		emitPart:     node.EmitPart,
 	}, nil
-}
-
-func compileKeyExpr(ex ast.Expression) (expr.Evaluator, error) {
-	return expr.CompileExpr(ex, true)
 }
 
 // Proc computes aggregations using an Aggregator.
@@ -383,10 +384,11 @@ func (a *Aggregator) Consume(r *zng.Record) error {
 	a.builder.Reset()
 	var prim *zng.Value
 	for i, key := range a.keys {
-		keyVal, err := key.expr.Eval(r)
+		zv, err := key.expr.Eval(r)
 		if err != nil && !errors.Is(err, zng.ErrUnset) {
 			return err
 		}
+		keyVal := zv.Copy()
 		if i == 0 && a.inputSortDir != 0 {
 			a.updateMaxTableKey(keyVal)
 			prim = &keyVal
@@ -442,6 +444,8 @@ func (a *Aggregator) spillTable(eof bool) error {
 		if err != nil && !errors.Is(err, zng.ErrUnset) {
 			return err
 		}
+		// pass volatile zng.Value since updateMaxSpillKey will make
+		// a copy if needed.
 		a.updateMaxSpillKey(v)
 	}
 	return nil
@@ -459,10 +463,12 @@ func (a *Aggregator) updateMaxTableKey(v zng.Value) {
 
 func (a *Aggregator) updateMaxSpillKey(v zng.Value) {
 	if a.maxSpillKey == nil {
+		v = v.Copy()
 		a.maxSpillKey = &v
 		return
 	}
 	if a.valueCompare(v, *a.maxSpillKey) > 0 {
+		v = v.Copy()
 		a.maxSpillKey = &v
 	}
 }
@@ -553,6 +559,7 @@ func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 	var types []zng.Type
 	for _, res := range a.keyResolvers {
 		keyVal, _ := res.Eval(firstRec)
+		keyVal = keyVal.Copy()
 		types = append(types, keyVal.Type)
 		a.builder.Append(keyVal.Bytes, keyVal.IsContainer())
 	}

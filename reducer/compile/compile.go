@@ -24,7 +24,7 @@ type CompiledReducer struct {
 func Compile(params ast.Reducer) (CompiledReducer, error) {
 	var fld *expr.FieldExpr
 	if params.Field != nil {
-		eval, err := expr.CompileExpr(params.Field, false)
+		eval, err := expr.CompileExpr(params.Field)
 		if err != nil {
 			return CompiledReducer{}, err
 		}

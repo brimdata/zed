@@ -147,7 +147,7 @@ func newCompareFn(field string, reversed bool) (zbuf.RecordCmpFn, error) {
 		Node:  ast.Node{Op: "Field"},
 		Field: field,
 	}
-	res, err := expr.CompileExpr(fieldRead, false)
+	res, err := expr.CompileExpr(fieldRead)
 	if err != nil {
 		return nil, err
 	}

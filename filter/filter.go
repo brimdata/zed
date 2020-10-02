@@ -50,7 +50,7 @@ func CompileFieldCompare(node *ast.CompareField) (Filter, error) {
 	if err != nil {
 		return nil, err
 	}
-	resolver, err := expr.CompileExpr(node.Field, false)
+	resolver, err := expr.CompileExpr(node.Field)
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +248,7 @@ func Compile(node ast.BooleanExpr) (Filter, error) {
 
 	case *ast.CompareField:
 		if v.Comparator == "in" {
-			resolver, err := expr.CompileExpr(v.Field, false)
+			resolver, err := expr.CompileExpr(v.Field)
 			if err != nil {
 				return nil, err
 			}
@@ -260,7 +260,7 @@ func Compile(node ast.BooleanExpr) (Filter, error) {
 		return CompileFieldCompare(v)
 
 	case *ast.BinaryExpression:
-		predicate, err := expr.CompileExpr(v, false)
+		predicate, err := expr.CompileExpr(v)
 		if err != nil {
 			return nil, err
 		}

@@ -29,11 +29,7 @@ type Coercion struct {
 	// be coerced (you never need to coerce both).  Then we point a or b
 	// at buf and let go of the other input pointer.
 	buf zcode.Bytes
-	scratch
-}
-
-func newCoercion(keep bool) Coercion {
-	return Coercion{scratch: scratch{keep: keep}}
+	result
 }
 
 func (c *Coercion) equal() bool {
