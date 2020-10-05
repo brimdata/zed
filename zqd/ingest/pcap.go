@@ -12,18 +12,23 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
+	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/zqd/pcapstorage"
 	"github.com/brimsec/zq/zqd/storage"
+	"github.com/brimsec/zq/zql"
 )
+
+//go:generate go run ../../zio/ndjsonio/typegenerator -o ./suricata.go -package ingest -var suricataTC ./suricata-types.json
 
 type ClearableStore interface {
 	storage.Storage
@@ -269,19 +274,18 @@ func (p *PcapOp) createSnapshot(ctx context.Context) error {
 }
 
 func (p *PcapOp) convertSuricataLog(ctx context.Context) error {
-	// For now, this just converts from json to
-	// zng. Soon it will apply a typing config and rename at least
-	// the timestamp field.
+	var eveProc = zql.MustParseProc("rename ts=timestamp")
+
 	zctx := resolver.NewContext()
 	path := filepath.Join(p.logdir, "eve.json")
-	zr, err := detector.OpenFile(zctx, path, zio.ReaderOpts{})
+	zr, err := detector.OpenFile(zctx, path, zio.ReaderOpts{JSON: ndjsonio.ReaderOpts{TypeConfig: suricataTC}})
 	if err != nil {
 		return err
 	}
 	defer zr.Close()
 	return fs.ReplaceFile(filepath.Join(p.logdir, "eve.zng"), os.FileMode(0666), func(w io.Writer) error {
 		zw := zngio.NewWriter(zio.NopCloser(w), zngio.WriterOpts{})
-		return zbuf.CopyWithContext(ctx, zw, zr)
+		return driver.Copy(ctx, zw, eveProc, zctx, zr, driver.Config{})
 	})
 }
 

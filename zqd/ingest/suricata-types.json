@@ -1,0 +1,147 @@
+{
+    "descriptors": {
+        "alert_log": [
+            {
+                "name": "alert",
+                "type": [
+                    {
+                        "name": "action",
+                        "type": "bstring"
+                    },
+                    {
+                        "name": "category",
+                        "type": "bstring"
+                    },
+                    {
+                        "name": "gid",
+                        "type": "uint64"
+                    },
+                    {
+                        "name": "rev",
+                        "type": "uint64"
+                    },
+                    {
+                        "name": "severity",
+                        "type": "uint16"
+                    },
+                    {
+                        "name": "signature",
+                        "type": "bstring"
+                    },
+                    {
+                        "name": "signature_id",
+                        "type": "uint64"
+                    },
+                    {
+                        "name": "metadata",
+                        "type": [
+                            {
+                                "name": "signature_severity",
+                                "type": "array[bstring]"
+                            },
+                            {
+                                "name": "former_category",
+                                "type": "array[bstring]"
+                            },
+                            {
+                                "name": "attack_target",
+                                "type": "array[bstring]"
+                            },
+                            {
+                                "name": "deployment",
+                                "type": "array[bstring]"
+                            },
+                            {
+                                "name": "affected_product",
+                                "type": "array[bstring]"
+                            },
+                            {
+                                "name": "created_at",
+                                "type": "array[bstring]"
+                            },
+                            {
+                                "name": "performance_impact",
+                                "type": "array[bstring]"
+                            },
+                            {
+                                "name": "updated_at",
+                                "type": "array[bstring]"
+                            },
+                            {
+                                "name": "malware_family",
+                                "type": "array[bstring]"
+                            },
+                            {
+                                "name": "tag",
+                                "type": "array[bstring]"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "name": "app_proto",
+                "type": "bstring"
+            },
+            {
+                "name": "dest_ip",
+                "type": "ip"
+            },
+            {
+                "name": "dest_port",
+                "type": "port"
+            },
+            {
+                "name": "src_ip",
+                "type": "ip"
+            },
+            {
+                "name": "src_port",
+                "type": "port"
+            },
+            {
+                "name": "event_type",
+                "type": "bstring"
+            },
+            {
+                "name": "flow_id",
+                "type": "uint64"
+            },
+            {
+                "name": "pcap_cnt",
+                "type": "uint64"
+            },
+            {
+                "name": "proto",
+                "type": "bstring"
+            },
+            {
+                "name": "timestamp",
+                "type": "time"
+            },
+            {
+                "name": "tx_id",
+                "type": "uint64"
+            },
+            {
+                "name": "icmp_code",
+                "type": "uint64"
+            },
+            {
+                "name": "icmp_type",
+                "type": "uint64"
+            },
+            {
+                "name": "community_id",
+                "type": "bstring"
+            }
+        ]
+    },
+    "rules": [
+        {
+            "descriptor": "alert_log",
+            "name": "event_type",
+            "value": "alert"
+        }
+    ]
+}
