@@ -2,6 +2,7 @@ package archive
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/brimsec/zq/ast"
@@ -29,11 +30,12 @@ type spanInfo struct {
 	chunks []Chunk
 }
 
-func spanWalk(ctx context.Context, ark *Archive, filter nano.Span, v func(si spanInfo) error) error {
+func spanWalk(ctx context.Context, ark *Archive, filter nano.Span, visitor func(si spanInfo) error) error {
+	// "v" is the "visitor" function, right?
 	return tsDirVisit(ctx, ark, filter, func(_ tsDir, chunks []Chunk) error {
 		sinfos := mergeChunksToSpans(chunks, ark.DataSortDirection, filter)
 		for _, s := range sinfos {
-			if err := v(s); err != nil {
+			if err := visitor(s); err != nil {
 				return err
 			}
 		}
@@ -61,7 +63,11 @@ type scannerCloser struct {
 }
 
 func newSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, f filter.Filter, filterExpr ast.BooleanExpr, si spanInfo) (sc *scannerCloser, err error) {
+	println("archive.multisource si:", si.span.String())
 	if len(si.chunks) == 1 {
+		c := si.chunks[0]
+		println(fmt.Sprintf("newSpanScanner: %s-%s-%d-%d-%d.zng", c.DataFileKind, c.Id, c.RecordCount, c.First, c.Last))
+		println("archive.multisource newSpanScanner chunk URI is", c.Path(ark).String())
 		rc, err := iosrc.NewReader(ctx, si.chunks[0].Path(ark))
 		if err != nil {
 			return nil, err
@@ -132,6 +138,13 @@ func (m *multiSource) OrderInfo() (string, bool) {
 func (m *multiSource) spanWalk(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan<- driver.SourceOpener) error {
 	return spanWalk(ctx, m.ark, sf.Span, func(si spanInfo) error {
 		so := func() (driver.ScannerCloser, error) {
+			// Do we have enough inforation here to simply return a single scanner closer
+			// that is made from the "Chunk" parameters passed in with the "worker" search? -MTW
+
+			// Special case: if m.Ark is a "single file static archive", just open it and return it.
+			// Flip side of this work is at zqd/handlers.go:160 where space.Storage() is passed in
+			//if(m.Ark )
+
 			return newSpanScanner(ctx, m.ark, zctx, sf.Filter, sf.FilterExpr, si)
 		}
 		select {

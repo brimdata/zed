@@ -106,11 +106,11 @@ func (c *Command) Run(args []string) error {
 	var r io.ReadCloser
 	if c.chunkInfo == "" {
 		req, err := parseExpr(id, expr)
-		req.Span = nano.NewSpanTs(nano.Ts(c.from), nano.Ts(c.to))
-		params := map[string]string{"format": c.encoding}
 		if err != nil {
 			return fmt.Errorf("parse error: %s", err)
 		}
+		req.Span = nano.NewSpanTs(nano.Ts(c.from), nano.Ts(c.to))
+		params := map[string]string{"format": c.encoding}
 		r, err = client.SearchRaw(c.Context(), *req, params)
 		if err != nil {
 			return fmt.Errorf("search error: %w", err)
@@ -182,17 +182,21 @@ func parseExprPlusChunk(spaceID api.SpaceID, expr string, chunkInfo string) (*ap
 	if err != nil {
 		return nil, err
 	}
-	chunkInfoArr := strings.Split(chunkInfo, ",")
-	if len(chunkInfoArr) != 4 {
-		return nil, fmt.Errorf("chunk flag requires 4 comma seperated values", err)
+	chunkInfoArr := strings.Split(chunkInfo, "-")
+	if len(chunkInfoArr) != 5 {
+		return nil, fmt.Errorf("chunk flag requires 5 dash seperated values %s", err)
 	}
-	first, err := strconv.ParseInt(chunkInfoArr[1], 10, 64)
+	recordCount, err := strconv.Atoi(chunkInfoArr[2])
 	if err != nil {
-		return nil, fmt.Errorf("chunk flag list must be string,int64,int64,string", err)
+		return nil, fmt.Errorf("chunk flag list must be string-string-int-int64-int64  %s", err)
 	}
-	last, err := strconv.ParseInt(chunkInfoArr[2], 10, 64)
+	first, err := strconv.ParseInt(chunkInfoArr[3], 10, 64)
 	if err != nil {
-		return nil, fmt.Errorf("chunk flag list must be string,int64,int64,string", err)
+		return nil, fmt.Errorf("chunk flag list must be string-string-int-int64-int64  %s", err)
+	}
+	last, err := strconv.ParseInt(chunkInfoArr[4], 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("chunk flag list must be string-string-int-int64-int64  %s", err)
 	}
 
 	return &api.WorkerRequest{
@@ -201,10 +205,11 @@ func parseExprPlusChunk(spaceID api.SpaceID, expr string, chunkInfo string) (*ap
 			Proc:  proc,
 			Dir:   -1,
 		},
-		ChunkId:       chunkInfoArr[0],
-		ChunkFirst:    nano.Ts(first),
-		ChunkLast:     nano.Ts(last),
-		ChunkFileKind: chunkInfoArr[3],
+		ChunkFileKind:    chunkInfoArr[0],
+		ChunkId:          chunkInfoArr[01],
+		ChunkRecordCount: recordCount,
+		ChunkFirst:       nano.Ts(first),
+		ChunkLast:        nano.Ts(last),
 	}, nil
 }
 

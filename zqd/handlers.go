@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
 	"time"
 
 	"github.com/brimsec/zq/pcap"
@@ -112,44 +113,51 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handleWorker(c *Core, w http.ResponseWriter, r *http.Request) {
+func handleWorker(c *Core, w http.ResponseWriter, httpReq *http.Request) {
 	var req api.WorkerRequest
-	if !request(c, w, r, &req) {
+	if !request(c, w, httpReq, &req) {
 		return
 	}
 
-	println("handlers.handleWorker req is", req)
+	println("handlers.handleWorker req chunk is ",
+		req.ChunkFileKind, req.ChunkId, req.ChunkRecordCount, req.ChunkFirst, req.ChunkLast)
 
-	s, err := c.spaces.Get(req.Space)
+	space, err := c.spaces.Get(req.Space)
 	if err != nil {
-		respondError(c, w, r, err)
+		respondError(c, w, httpReq, err)
 		return
 	}
 
-	ctx, cancel, err := s.StartOp(r.Context())
+	ctx, cancel, err := space.StartOp(httpReq.Context())
 	if err != nil {
-		respondError(c, w, r, err)
+		respondError(c, w, httpReq, err)
 		return
 	}
 	defer cancel()
 
-	srch, err := search.NewSearchOp(req)
+	srchReq := req.SearchRequest
+	srch, err := search.NewSearchOp(srchReq)
 	if err != nil {
 		// XXX This always returns bad request but should return status codes
 		// that reflect the nature of the returned error.
-		respondError(c, w, r, err)
+		respondError(c, w, httpReq, err)
 		return
 	}
 
-	out, err := getSearchOutput(w, r)
+	out, err := getSearchOutput(w, httpReq)
 	if err != nil {
-		respondError(c, w, r, err)
+		respondError(c, w, httpReq, err)
 		return
 	}
 
 	w.Header().Set("Content-Type", out.ContentType())
-	if err := srch.Run(ctx, s.Storage(), out); err != nil {
-		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
+	// TODO: need some logic here so search uses the chunk that was passed in -MTW
+	// Here we need to create an "archivestore" object that will only return one S3 object:
+	// the one referenced by the "Chunk" fields in the req object -MTW
+	println("zqd/handlers.go: space.Storage().(type) = ", reflect.TypeOf(space.Storage()).String())
+
+	if err := srch.Run(ctx, space.Storage(), out); err != nil {
+		c.requestLogger(httpReq).Warn("Error writing response", zap.Error(err))
 	}
 }
 
