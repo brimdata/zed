@@ -135,8 +135,7 @@ func handleWorker(c *Core, w http.ResponseWriter, httpReq *http.Request) {
 	}
 	defer cancel()
 
-	srchReq := req.SearchRequest
-	srch, err := search.NewSearchOp(srchReq)
+	srch, err := search.NewWorkerOp(req)
 	if err != nil {
 		// XXX This always returns bad request but should return status codes
 		// that reflect the nature of the returned error.
@@ -151,29 +150,12 @@ func handleWorker(c *Core, w http.ResponseWriter, httpReq *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", out.ContentType())
-	// TODO: need some logic here so search uses the chunk that was passed in -MTW
-	// Here we need to create an "archivestore" object that will only return one S3 object:
-	// the one referenced by the "Chunk" fields in the req object -MTW
+
 	println("zqd/handlers.go: space.Storage().(type) = ", reflect.TypeOf(space.Storage()).String())
 
-	/* skip this: */
 	if err := srch.Run(ctx, space.Storage(), out); err != nil {
 		c.requestLogger(httpReq).Warn("Error writing response", zap.Error(err))
 	}
-	//
-
-	// Use this:
-	/*
-		newSpanScanner(
-			ctx context.Context,
-			ark *Archive,
-			zctx *resolver.Context,
-			f filter.Filter,
-			filterExpr ast.BooleanExpr,
-			si spanInfo) (sc *scannerCloser, err error) {
-	*/
-	// Then read the scannerCloser and write it to w
-	// Question: how to read the scannerCloser
 
 }
 

@@ -52,6 +52,10 @@ func (s *Storage) MultiSource() driver.MultiSource {
 	return archive.NewMultiSource(s.ark, nil)
 }
 
+func (s *Storage) StaticSource(c archive.Chunk) driver.MultiSource {
+	return archive.NewStaticSource(s.ark, c)
+}
+
 func (s *Storage) Summary(ctx context.Context) (storage.Summary, error) {
 	var sum storage.Summary
 	sum.Kind = storage.ArchiveStore
