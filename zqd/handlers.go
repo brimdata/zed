@@ -156,9 +156,25 @@ func handleWorker(c *Core, w http.ResponseWriter, httpReq *http.Request) {
 	// the one referenced by the "Chunk" fields in the req object -MTW
 	println("zqd/handlers.go: space.Storage().(type) = ", reflect.TypeOf(space.Storage()).String())
 
+	/* skip this: */
 	if err := srch.Run(ctx, space.Storage(), out); err != nil {
 		c.requestLogger(httpReq).Warn("Error writing response", zap.Error(err))
 	}
+	//
+
+	// Use this:
+	/*
+		newSpanScanner(
+			ctx context.Context,
+			ark *Archive,
+			zctx *resolver.Context,
+			f filter.Filter,
+			filterExpr ast.BooleanExpr,
+			si spanInfo) (sc *scannerCloser, err error) {
+	*/
+	// Then read the scannerCloser and write it to w
+	// Question: how to read the scannerCloser
+
 }
 
 func getSearchOutput(w http.ResponseWriter, r *http.Request) (search.Output, error) {

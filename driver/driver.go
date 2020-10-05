@@ -44,7 +44,9 @@ func MultiRun(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Co
 
 func runMux(out *muxOutput, d Driver, statsTickCh <-chan time.Time) error {
 	for !out.Complete() {
+		println("in runMux for loop")
 		chunk := out.Pull(statsTickCh)
+		println("in runMux for loop after Pull")
 		if chunk.Err != nil {
 			if chunk.Err == errTimeout {
 				if err := d.Stats(out.Stats()); err != nil {

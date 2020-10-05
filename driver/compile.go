@@ -28,6 +28,7 @@ type Config struct {
 }
 
 func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc MultiSource, mcfg MultiConfig) (*muxOutput, error) {
+	println("driver.compile")
 	if mcfg.Logger == nil {
 		mcfg.Logger = zap.NewNop()
 	}

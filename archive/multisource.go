@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"reflect"
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
@@ -31,7 +32,6 @@ type spanInfo struct {
 }
 
 func spanWalk(ctx context.Context, ark *Archive, filter nano.Span, visitor func(si spanInfo) error) error {
-	// "v" is the "visitor" function, right?
 	return tsDirVisit(ctx, ark, filter, func(_ tsDir, chunks []Chunk) error {
 		sinfos := mergeChunksToSpans(chunks, ark.DataSortDirection, filter)
 		for _, s := range sinfos {
@@ -66,8 +66,8 @@ func newSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, f
 	println("archive.multisource si:", si.span.String())
 	if len(si.chunks) == 1 {
 		c := si.chunks[0]
-		println(fmt.Sprintf("newSpanScanner: %s-%s-%d-%d-%d.zng", c.DataFileKind, c.Id, c.RecordCount, c.First, c.Last))
-		println("archive.multisource newSpanScanner chunk URI is", c.Path(ark).String())
+		println(fmt.Sprintf("newSpanScanner: %s-%s-%d-%d-%d.zng", c.DataFileKind, c.Id, c.RecordCount, c.First, c.Last),
+			"\n archive.multisource newSpanScanner chunk URI is", c.Path(ark).String())
 		rc, err := iosrc.NewReader(ctx, si.chunks[0].Path(ark))
 		if err != nil {
 			return nil, err
@@ -78,6 +78,7 @@ func newSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, f
 			return nil, err
 		}
 		return &scannerCloser{sn, rc}, nil
+		// This is the end of the logic we care about for the single S3 object case
 	}
 	closers := make([]io.Closer, 0, len(si.chunks))
 	defer func() {
@@ -143,7 +144,11 @@ func (m *multiSource) spanWalk(ctx context.Context, zctx *resolver.Context, sf d
 
 			// Special case: if m.Ark is a "single file static archive", just open it and return it.
 			// Flip side of this work is at zqd/handlers.go:160 where space.Storage() is passed in
+
+			// Question: at some point the multisource m is derived from the archivestore.Storage object
+			// passed in at zqd/handlers.go:160 -- find that place -MTW
 			//if(m.Ark )
+			println("multisource.go: m.ark type is ", reflect.TypeOf(m.ark).String())
 
 			return newSpanScanner(ctx, m.ark, zctx, sf.Filter, sf.FilterExpr, si)
 		}
