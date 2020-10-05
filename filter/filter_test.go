@@ -376,10 +376,6 @@ func TestFilters(t *testing.T) {
 		{"u64 > 1", false},
 		{"u64 = 0.0", true},
 		{"u64 < 0.5", true},
-
-		// Can't coerce an integer to a port
-		{"u16 = :0", false},
-		{"u16 != :0", false},
 	})
 
 	tzng = `
@@ -399,21 +395,12 @@ func TestFilters(t *testing.T) {
 	// Test comparisons with field of type port (can compare with
 	// a port literal or an integer literal)
 	tzng = `
+#port=uint16
 #0:record[p:port]
 0:[443;]`
 	runCases(t, tzng, []testcase{
-		{"p = :443", true},
 		{"p = 443", true},
 		{"p = 80", false},
-		{"p = :80", false},
-	})
-
-	// Test that port searches don't match the port number in strings
-	tzng = `
-#0:record[s:string]
-0:[123456;]`
-	runCases(t, tzng, []testcase{
-		{":123", false},
 	})
 
 	// Test coercion from string to bstring

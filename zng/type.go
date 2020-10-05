@@ -71,15 +71,15 @@ var (
 	TypeUint16   = &TypeOfUint16{}
 	TypeUint32   = &TypeOfUint32{}
 	TypeUint64   = &TypeOfUint64{}
-	TypePort     = &TypeOfPort{} // XXX take out port per Henri's feedback
 	TypeInt8     = &TypeOfInt8{}
 	TypeInt16    = &TypeOfInt16{}
 	TypeInt32    = &TypeOfInt32{}
 	TypeInt64    = &TypeOfInt64{}
 	TypeDuration = &TypeOfDuration{}
 	TypeTime     = &TypeOfTime{}
-	// XXX add Float32
+	// XXX add TypeFloat32
 	TypeFloat64 = &TypeOfFloat64{}
+	// XXX add TypeDecimal
 	TypeBool    = &TypeOfBool{}
 	TypeBytes   = &TypeOfBytes{}
 	TypeString  = &TypeOfString{}
@@ -96,15 +96,15 @@ const (
 	IdUint16   = 1
 	IdUint32   = 2
 	IdUint64   = 3
-	IdPort     = 4
-	IdInt8     = 5
-	IdInt16    = 6
-	IdInt32    = 7
-	IdInt64    = 8
-	IdDuration = 9
-	IdTime     = 10
-	IdFloat32  = 11
-	IdFloat64  = 12
+	IdInt8     = 4
+	IdInt16    = 5
+	IdInt32    = 6
+	IdInt64    = 7
+	IdDuration = 8
+	IdTime     = 9
+	IdFloat32  = 10
+	IdFloat64  = 11
+	IdDecimal  = 12
 	IdBool     = 13
 	IdBytes    = 14
 	IdString   = 15
@@ -122,16 +122,16 @@ var promote = []int{
 	IdInt8,    // IdUint8    = 0
 	IdInt16,   // IdUint16   = 1
 	IdInt32,   // IdUint32   = 2
-	IdInt64,   //IdUint64    = 3
-	IdInt16,   // IdPort     = 4
-	IdInt8,    // IdInt8     = 5
-	IdInt16,   // IdInt8     = 6
-	IdInt32,   //IdInt32     = 7
-	IdInt64,   // IdInt64    = 8
-	IdInt64,   // IdDuration = 9
-	IdInt64,   // IdTime     = 10
-	IdFloat32, // IdFloat32  = 11
-	IdFloat64, // IdFloat64  = 12
+	IdInt64,   // IdUint64   = 3
+	IdInt8,    // IdInt8     = 4
+	IdInt16,   // IdInt16    = 5
+	IdInt32,   // IdInt32    = 6
+	IdInt64,   // IdInt64    = 7
+	IdInt64,   // IdDuration = 8
+	IdInt64,   // IdTime     = 9
+	IdFloat32, // IdFloat32  = 10
+	IdFloat64, // IdFloat64  = 11
+	IdDecimal, // IdDecimal  = 12
 }
 
 // Promote type to the largest signed type where the IDs must both
@@ -152,10 +152,11 @@ func IsInteger(id int) bool {
 // True iff the type id is encoded as a zng signed or unsigned integer zcode.Bytes,
 // float32 zcode.Bytes, or float64 zcode.Bytes.
 func IsNumber(id int) bool {
-	return id <= IdFloat64
+	return id <= IdDecimal
 }
 
 // True iff the type id is encoded as a float32 or float64 encoding.
+// XXX add IdDecimal here when we implement coercible math with it.
 func IsFloat(id int) bool {
 	return id == IdFloat64 || id == IdFloat32
 }
@@ -203,8 +204,6 @@ func LookupPrimitive(name string) Type {
 		return TypeUint32
 	case "uint64":
 		return TypeUint64
-	case "port":
-		return TypePort
 	case "int8":
 		return TypeInt8
 	case "int16":
@@ -269,8 +268,6 @@ func LookupPrimitiveById(id int) Type {
 		return TypeBstring
 	case IdIP:
 		return TypeIP
-	case IdPort:
-		return TypePort
 	case IdNet:
 		return TypeNet
 	case IdTime:

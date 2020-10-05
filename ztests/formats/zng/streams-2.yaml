@@ -26,7 +26,7 @@ outputHex: |
   # define the record corresponding to type 1: 1 col, name i, type int32
   f0 01
   01 69
-  07
+  06
   # value using type id 24 (0x18), corresponding to type 1 in tzng
   18 02
   # consists of one primitive value, representing the integer 1
@@ -36,7 +36,7 @@ outputHex: |
   # new frame: repeat the type definition for type 1
   f0 01
   01 69
-  07
+  06
   # value using the new type definition, since this is a new stream,
   # the value should use type id 23, not 24 as was used in the first stream
   17 02

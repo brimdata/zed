@@ -17,11 +17,11 @@ outputHex: |
   # second column name is ts (len 2)
   02 74 73
   # second column type is time (10 == 0x0a)
-  0a
+  09
   # third column name is d (len 1)
   01 64
   # third column type is float64 (12)
-  0c
+  0b
   # value using type id 23 (0x17), the record defined above
   # total length of this recor is 17 bytes (0x11)
   17 11

@@ -49,6 +49,10 @@ func NewReader(reader io.Reader, zctx *resolver.Context, opts ReaderOpts, filepa
 	if err != nil {
 		return nil, err
 	}
+	_, err = zctx.LookupTypeAlias("port", zng.TypeUint16)
+	if err != nil {
+		return nil, err
+	}
 	buffer := make([]byte, ReadSize)
 	scanner := skim.NewScanner(reader, buffer, MaxLineSize)
 	r := &Reader{

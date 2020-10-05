@@ -1,6 +1,6 @@
 zql: '*'
 
-input: !!binary 8wIID/ABAWEXGAwZBAISYXNkZmFzZGYYBAkCBAIYAQH/
+input: !!binary 8wIHD/ABAWEXGAwZBAISYXNkZmFzZGYYBAkCBAIYAQH/
 
 output: |
   #0:record[a:union[int64,string]]

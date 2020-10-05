@@ -157,6 +157,7 @@ shows type bindings and values in TZNG for Zeek's `weird` and `ftp`
 events:
 
 ```
+#port=uint16
 #24:record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],name:bstring,addl:bstring,notice:bool,peer:bstring]
 24:[weird;1521911720.600843;C1zOivgBT6dBmknqk;[10.47.1.152;49562;23.217.103.245;80;]TCP_ack_underflow_or_misorder;-;F;zeek;]
 #25:record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],user:bstring,password:bstring,command:bstring,arg:bstring,mime_type:bstring,file_size:uint64,reply_code:uint64,reply_msg:bstring,data_channel:record[passive:bool,orig_h:ip,resp_h:ip,resp_p:port],fuid:bstring]
@@ -665,9 +666,10 @@ tags colliding.
 Given the above textual definitions and the underlying ZNG specification, a
 grammar describing the textual type encodings is:
 ```
-<primitive> := uint8 | uint16 | uint32 | uint64 | port
+<primitive> := uint8 | uint16 | uint32 | uint64 |
              | int8 | int16 | int32 | int64 | duration | time
-             | float32 | float64 | bool | bytes | string | bstring
+             | float32 | float64 | decimal
+             | bool | bytes | string | bstring
              | ip | net | type | error | null
 
 <complex> := array [ <type> ]
@@ -881,15 +883,15 @@ representing machine words are serialized in little-endian format.
 | `uint16`   |  1 | variable | unsigned int of length N                       | decimal string representation of any unsigned, 16-bit integer |
 | `uint32`   |  2 | variable | unsigned int of length N                       | decimal string representation of any unsigned, 32-bit integer |
 | `uint64`   |  3 | variable | unsigned int of length N                       | decimal string representation of any unsigned, 64-bit integer |
-| `port`     |  4 | variable | unsigned int of length N                       | decimal string representation of an unsigned, 16-bit integer  |
-| `int8`     |  5 | variable | signed int of length N                         | two-characters of hexadecimal digit                           |
-| `int16`    |  6 | variable | signed int of length N                         | decimal string representation of any signed, 16-bit integer   |
-| `int32`    |  7 | variable | signed int of length N                         | decimal string representation of any signed, 32-bit integer   |
-| `int64`    |  8 | variable | signed int of length N                         | decimal string representation of any signed, 64-bit integer   |
-| `duration` |  9 | variable | signed int of length N as ns                   | signed dotted decimal notation of seconds                     |
-| `time`     | 10 | variable | signed int of length N as ns since epoch       | signed dotted decimal notation of seconds                     |
-| `float32`  | 11 |    8     | 8 bytes of IEEE 64-bit format                  | decimal representation of a 64-bit IEEE floating point literal as defined in JavaScript |
-| `float64`  | 12 |    8     | 8 bytes of IEEE 64-bit format                  | decimal representation of a 64-bit IEEE floating point literal as defined in JavaScript |
+| `int8`     |  4 | variable | signed int of length N                         | two-characters of hexadecimal digit                           |
+| `int16`    |  5 | variable | signed int of length N                         | decimal string representation of any signed, 16-bit integer   |
+| `int32`    |  6 | variable | signed int of length N                         | decimal string representation of any signed, 32-bit integer   |
+| `int64`    |  7 | variable | signed int of length N                         | decimal string representation of any signed, 64-bit integer   |
+| `duration` |  8 | variable | signed int of length N as ns                   | signed dotted decimal notation of seconds                     |
+| `time`     | 9 | variable | signed int of length N as ns since epoch       | signed dotted decimal notation of seconds                     |
+| `float32`  | 10 |    4     | 4 bytes of IEEE 64-bit format                  | decimal string representation of a 64-bit IEEE floating point literal as defined in JavaScript |
+| `float64`  | 11 |    8     | 8 bytes of IEEE 64-bit format                  | decimal string representation of a 64-bit IEEE floating point literal as defined in JavaScript |
+| `decimal`  | 12 |  4,8,16  | N bytes of IEEE decimal format                 | decimal string representation of a 64-bit IEEE floating point literal as defined in JavaScript |
 | `bool`     | 13 |    1     | one byte 0 (false) or 1 (true)                 | a single character `T` or `F`
 | `bytes`    | 14 | variable | N bytes of value                               | a sequence of bytes encoded as base64                         |
 | `string`   | 15 | variable | UTF-8 byte sequence of string                  | a UTF-8 string                                                |

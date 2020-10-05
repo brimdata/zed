@@ -141,7 +141,6 @@ searchPred
 searchLiteral
   = StringLiteral
   / RegexpLiteral
-  / PortLiteral
   / SubnetLiteral
   / AddressLiteral
   / FloatLiteral
@@ -168,11 +167,6 @@ StringLiteral
 RegexpLiteral
   = v:reString {
       RETURN(MAP("op": "Literal", "type": "regexp", "value": v))
-    }
-
-PortLiteral
-  = v:port {
-      RETURN(MAP("op": "Literal", "type": "port", "value": v))
     }
 
 SubnetLiteral
@@ -488,7 +482,6 @@ FieldAssignment
 PrimaryExpression
   = StringLiteral
   / RegexpLiteral
-  / PortLiteral
   / SubnetLiteral
   / AddressLiteral
   / FloatLiteral
@@ -574,7 +567,6 @@ CastExpression
 
 PrimitiveType
  = (   "bytes" / "uint8" / "uint16" / "uint32" / "uint64"
-     / "port"
      / "int8" / "int16" / "int32" / "int64"
      / "duration" / "time"
      / "float64"
@@ -673,9 +665,6 @@ number = unsignedInteger
 //XXX what about mac addrs?
 addr
   = a:(unsignedInteger "." unsignedInteger "." unsignedInteger "." unsignedInteger) { RETURN(TEXT) }
-
-port
-  = ":" v:suint { RETURN(v) }
 
 // this matches a superset of legal syntax for ip6 addresses but the compiler
 // will catch any errors when translating the filter

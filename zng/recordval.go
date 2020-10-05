@@ -274,7 +274,7 @@ func (r *Record) AccessInt(field string) (int64, error) {
 		return int64(b), err
 	case *TypeOfInt16, *TypeOfInt32, *TypeOfInt64:
 		return DecodeInt(v.Bytes)
-	case *TypeOfUint16, *TypeOfUint32, *TypeOfPort:
+	case *TypeOfUint16, *TypeOfUint32:
 		v, err := DecodeUint(v.Bytes)
 		return int64(v), err
 	case *TypeOfUint64:
