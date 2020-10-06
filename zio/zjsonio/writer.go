@@ -4,24 +4,20 @@ import (
 	"encoding/json"
 	"io"
 
+	"github.com/brimsec/zq/pkg/joe"
 	"github.com/brimsec/zq/zng"
 )
 
-type Column struct {
+type Alias struct {
 	Name string      `json:"name"`
 	Type interface{} `json:"type"`
 }
 
-type Alias struct {
-	Name string `json:"name"`
-	Type string `json:"type"`
-}
-
 type Record struct {
-	Id      int            `json:"id"`
-	Type    *[]interface{} `json:"type,omitempty"`
-	Aliases []Alias        `json:"aliases,omitempty"`
-	Values  []interface{}  `json:"values"`
+	Id      int           `json:"id"`
+	Type    joe.Object    `json:"schema,omitempty"`
+	Aliases []Alias       `json:"aliases,omitempty"`
+	Values  []interface{} `json:"values"`
 }
 
 type Writer struct {
@@ -59,4 +55,13 @@ func (w *Writer) Write(r *zng.Record) error {
 func (w *Writer) write(s string) error {
 	_, err := w.writer.Write([]byte(s))
 	return err
+}
+
+func (a *Alias) UnmarshalJSON(b []byte) error {
+	type alias Alias
+	if err := json.Unmarshal(b, (*alias)(a)); err != nil {
+		return err
+	}
+	a.Type = joe.Convert(a.Type)
+	return nil
 }
