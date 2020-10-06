@@ -41,7 +41,10 @@ func Walk(typ Type, body zcode.Bytes, visit Visitor) error {
 	return nil
 }
 
-func checkKind(name string, typ Type, container bool) error {
+func checkKind(name string, typ Type, body zcode.Bytes, container bool) error {
+	if body == nil {
+		return nil
+	}
 	isContainer := IsContainerType(typ)
 	if isContainer == container {
 		return nil
@@ -68,7 +71,7 @@ func walkRecord(typ *TypeRecord, body zcode.Bytes, visit Visitor) error {
 		if err != nil {
 			return err
 		}
-		if err := checkKind(col.Name, col.Type, container); err != nil {
+		if err := checkKind(col.Name, col.Type, body, container); err != nil {
 			return err
 		}
 		if err := Walk(col.Type, body, visit); err != nil {
@@ -89,7 +92,7 @@ func walkArray(typ *TypeArray, body zcode.Bytes, visit Visitor) error {
 		if err != nil {
 			return err
 		}
-		if err := checkKind("<array element>", inner, container); err != nil {
+		if err := checkKind("<array element>", inner, body, container); err != nil {
 			return err
 		}
 		if err := Walk(inner, body, visit); err != nil {
@@ -131,7 +134,7 @@ func walkUnion(typ *TypeUnion, body zcode.Bytes, visit Visitor) error {
 		err := errors.New("union value container has more than two items")
 		return &RecordTypeError{Name: "<union>", Type: typ.String(), Err: err}
 	}
-	if err := checkKind("<union body>", inner, container); err != nil {
+	if err := checkKind("<union body>", inner, body, container); err != nil {
 		return err
 	}
 	return Walk(inner, body, visit)
@@ -148,7 +151,7 @@ func walkSet(typ *TypeSet, body zcode.Bytes, visit Visitor) error {
 		if err != nil {
 			return err
 		}
-		if err := checkKind("<set element>", inner, container); err != nil {
+		if err := checkKind("<set element>", inner, body, container); err != nil {
 			return err
 		}
 		if err := Walk(inner, body, visit); err != nil {
@@ -170,7 +173,7 @@ func walkMap(typ *TypeMap, body zcode.Bytes, visit Visitor) error {
 		if err != nil {
 			return err
 		}
-		if err := checkKind("<map key>", keyType, container); err != nil {
+		if err := checkKind("<map key>", keyType, body, container); err != nil {
 			return err
 		}
 		if err := Walk(keyType, body, visit); err != nil {
@@ -180,7 +183,7 @@ func walkMap(typ *TypeMap, body zcode.Bytes, visit Visitor) error {
 		if err != nil {
 			return err
 		}
-		if err := checkKind("<map value>", valType, container); err != nil {
+		if err := checkKind("<map value>", valType, body, container); err != nil {
 			return err
 		}
 		if err := Walk(valType, body, visit); err != nil {

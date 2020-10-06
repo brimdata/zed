@@ -497,30 +497,34 @@ whereby the inner loop need not consult and interpret the type ID of each elemen
 
 Each value is prefixed with a "tag" that defines:
 * whether it is a primitive or complex value,
-* whether it is a nil value, and
-* if non-nil, its encoded length in bytes.
+* whether it is the null value, and
+* its encoded length in bytes.
 
 The collection of sub-values comprising a complex-type value
 is called a "container".
 
 To encode the length N of the value, a bit for the complex/primitive type indicator,
-and representation for the nil value, the tag is defined as:
+and representation for the nil value,
+The tag for a container of length N is
 ```
-2*(N+1) + the container bit
+2*N + 1
 ```
-The length is offset by 1 whereby length of 0 represents nil.
-The container bit is 1 for complex values and 0 for primitive values.
+The tag for a primitive of length N is
+```
+2*N + 2
+```
+The tag for the null value is 0.
 
 For example, the following tags have the following meanings:
 
 | Tag |    Meaning          |
 |-----|---------------------|
-|  0  | nil primitive       |
-|  1  | nil container       |
+|  0  | null                |
+|  1  | length 0 container  |
 |  2  | length 0 primitive  |
-|  3  | length 0 container  |
+|  3  | length 1 container  |
 |  4  | length 1 primitive  |
-|  5  | length 1 container  |
+|  5  | length 2 container  |
 |  6  | length 2 primitive  |
 | ... | etc                 |
 
@@ -736,10 +740,10 @@ Container values (i.e., sets, arrays, or records) are encoded as
 The sequence of key/value pairs of a map is encoded as a container comprising
 key0, val0, key1, val1, ... keyN, valN.
 
-Any value can be specified as "unset" with the ASCII character `-`.
+Any value can be specified as null with the ASCII character `-`.
 This is typically used to represent columns of records where not all
-columns have been set in a given record value, though any type can be
-validly unset.  A value that is not to be interpreted as "unset"
+columns have been set in a given record value, though any type can have
+a null value.  A value that is not to be interpreted as null
 but is the single-character string `-`, must be escaped (e.g., `\x2d`).
 
 Note that this syntax can be scanned and parsed independent of the
@@ -786,7 +790,7 @@ of a value:
 [ ]
 ```
 In addition, `-` must be escaped if representing the single ASCII byte equal
-to `-` as opposed to representing an unset value.
+to `-` as opposed to representing an null value.
 
 ### 4.3.2 Value Syntax
 
@@ -860,7 +864,7 @@ This scheme allows complex types to be embedded in other complex types, e.g., a
 #26:record[city:string,lat:LL,long:LL]
 26:[NYC;[N;40.7128;][W;74.0060;]]
 ```
-An unset value indicates a field of a `record` that wasn't set by the encoder:
+An null value indicates a field of a `record` that wasn't set by the encoder:
 ```
 26:[North Pole;[N;90;]-;]
 ```

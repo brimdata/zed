@@ -14,7 +14,8 @@ func (i *Iter) Done() bool {
 
 // Next returns the body of the next value along with a boolean that is true if
 // the value is a container.  It returns an empty slice for an empty or
-// zero-length value and nil for an unset value.
+// zero-length value and nil for an unset value.  The container boolean is
+// not meaningful if the returned Bytes slice is nil.
 func (i *Iter) Next() (Bytes, bool, error) {
 	// The tag is zero for an unset value; otherwise, it is the value's
 	// length plus one.
@@ -22,9 +23,9 @@ func (i *Iter) Next() (Bytes, bool, error) {
 	if n <= 0 {
 		return nil, false, fmt.Errorf("bad uvarint: %d", n)
 	}
-	if tagIsUnset(u64) {
+	if tagIsNull(u64) {
 		*i = (*i)[n:]
-		return nil, tagIsContainer(u64), nil
+		return nil, false, nil
 	}
 	end := n + tagLength(u64)
 	val := (*i)[n:end]
@@ -40,7 +41,7 @@ func (i *Iter) NextTagAndBody() (Bytes, bool, error) {
 	if n <= 0 {
 		return nil, false, fmt.Errorf("bad uvarint: %d", n)
 	}
-	if !tagIsUnset(u64) {
+	if !tagIsNull(u64) {
 		n += tagLength(u64)
 	}
 	val := (*i)[:n]

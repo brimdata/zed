@@ -104,7 +104,7 @@ func (b Bytes) ContainerBody() (Bytes, error) {
 // extended buffer.
 func AppendContainer(dst Bytes, val Bytes) Bytes {
 	if val == nil {
-		return AppendUvarint(dst, containerTagUnset)
+		return AppendUvarint(dst, tagNull)
 	}
 	dst = AppendUvarint(dst, containerTag(len(val)))
 	dst = append(dst, val...)
@@ -115,7 +115,7 @@ func AppendContainer(dst Bytes, val Bytes) Bytes {
 // extended buffer.
 func AppendPrimitive(dst Bytes, val []byte) Bytes {
 	if val == nil {
-		return AppendUvarint(dst, primitiveTagUnset)
+		return AppendUvarint(dst, tagNull)
 	}
 	dst = AppendUvarint(dst, primitiveTag(len(val)))
 	return append(dst, val...)
@@ -149,26 +149,23 @@ func uvarint(buf []byte) (uint64, int) {
 }
 
 func containerTag(length int) uint64 {
-	return (uint64(length)+1)<<1 | 1
+	return (uint64(length) << 1) | 1
 }
 
 func primitiveTag(length int) uint64 {
 	return (uint64(length) + 1) << 1
 }
 
-const (
-	primitiveTagUnset = 0
-	containerTagUnset = 1
-)
+const tagNull = 0
 
 func tagIsContainer(t uint64) bool {
 	return t&1 == 1
 }
 
-func tagIsUnset(t uint64) bool {
-	return t>>1 == 0
+func tagIsNull(t uint64) bool {
+	return t == tagNull
 }
 
 func tagLength(t uint64) int {
-	return int(t>>1 - 1)
+	return int(t>>1 - (^t & 1))
 }

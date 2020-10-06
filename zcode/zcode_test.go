@@ -31,7 +31,7 @@ func TestAppendContainer(t *testing.T) {
 			assert.False(t, it.Done())
 			val, container, err := it.Next()
 			assert.NoError(t, err)
-			assert.True(t, container)
+			assert.True(t, val == nil || container)
 			assert.Exactly(t, expected, []byte(val))
 		}
 		assert.True(t, it.Done())

@@ -61,6 +61,7 @@ func (p *Parser) ParseContainer(typ Type, b []byte) ([]byte, error) {
 	if childType == nil && columns == nil && keyType == nil {
 		return nil, ErrNotPrimitive
 	}
+
 	k := 0
 	for {
 		if len(b) == 0 {

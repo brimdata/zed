@@ -169,7 +169,7 @@ func checkSet(typ *TypeSet, body zcode.Bytes) error {
 		if err != nil {
 			return err
 		}
-		if container {
+		if container && tagAndBody[0] != 0 {
 			return &RecordTypeError{Name: "<set element>", Type: typ.String(), Err: ErrNotPrimitive}
 		}
 		if prev != nil {
