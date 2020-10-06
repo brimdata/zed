@@ -45,6 +45,11 @@ type Reader struct {
 }
 
 func NewReader(reader io.Reader, zctx *resolver.Context, opts ReaderOpts, filepath string) (*Reader, error) {
+	// Note: we add hardwired aliases for "port" to "uint16" when reading
+	// *any* json file but they are only used when the schema mapper
+	// (aka typings config) references such types from a configured schema.
+	// However, the schema mapper should be responsible for creating these
+	// aliases according to its configuration.  See issue #1427.
 	_, err := zctx.LookupTypeAlias("zenum", zng.TypeString)
 	if err != nil {
 		return nil, err

@@ -391,8 +391,6 @@ func TestCompareNonNumbers(t *testing.T) {
 	// port
 	testSuccessful(t, "p = 443", record, zbool(true))
 	testSuccessful(t, "p != 443", record, zbool(false))
-	//testSuccessful(t, "p = :443", record, zbool(true))
-	//testSuccessful(t, "p != :443", record, zbool(false))
 
 	// net
 	testSuccessful(t, "net = 10.1.0.0/16", record, zbool(true))

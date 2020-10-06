@@ -376,3 +376,18 @@ func trimInnerTypes(typ string, raw string) string {
 	innerTypes = strings.TrimSuffix(innerTypes, "]")
 	return innerTypes
 }
+
+// ReferencedID returns the underlying type from the given referential type.
+// e.g., aliases and enums both refer to other underlying types and the
+// Value's Bytes field is encoded according to the underlying type.
+// XXX we initially had this as a method on Type but it was removed in favor
+// of TypeAlias.ID() returning the underlying type where code that cared
+// has to check if the type is an alias and use TypeAlias.AliasID().  Now that
+// we have enums we need to implement a similar workaround.  It seems like we
+// should add back the Type method that we took out.
+func ReferencedID(typ Type) int {
+	if typ, ok := typ.(*TypeEnum); ok {
+		return typ.Type.ID()
+	}
+	return typ.ID()
+}

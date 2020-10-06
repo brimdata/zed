@@ -373,12 +373,36 @@ func newNumeric(lhs, rhs Evaluator) numeric {
 	}
 }
 
+func enumify(v zng.Value) (zng.Value, error) {
+	// automatically convert an enum to its value when coercing
+	if typ, ok := v.Type.(*zng.TypeEnum); ok {
+		selector, err := zng.DecodeUint(v.Bytes)
+		if err != nil {
+			return zng.Value{}, err
+		}
+		elem, err := typ.Element(int(selector))
+		if err != nil {
+			return zng.Value{}, err
+		}
+		return zng.Value{typ.Type, elem.Value}, nil
+	}
+	return v, nil
+}
+
 func (n *numeric) eval(rec *zng.Record) (int, error) {
 	lhs, err := n.lhs.Eval(rec)
 	if err != nil {
 		return 0, err
 	}
+	lhs, err = enumify(lhs)
+	if err != nil {
+		return 0, err
+	}
 	rhs, err := n.rhs.Eval(rec)
+	if err != nil {
+		return 0, err
+	}
+	rhs, err = enumify(rhs)
 	if err != nil {
 		return 0, err
 	}
