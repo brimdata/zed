@@ -109,7 +109,7 @@ Objects in a ZJSON stream have the following JSON structure:
 
 The type format follows the terminology in the ZNG spec, where primitive types
 represent concrete values like strings, integers, times, and so forth, while
-complex types are composed of primtive type and/or other complex types, e.g.,
+complex types are composed of primtive types and/or other complex types, e.g.,
 records, sets, arrays, and unions.
 
 The ZJSON type encoding for a primitive type is simply its string name,
