@@ -39,14 +39,14 @@ IEEE 754 floating point number) and was converted from a time type to a number,
 * the int64 lost precision for the same reason, and
 * the IP address has been converted to a string.
 
-As a comparison, the json python library handles the 64-bit integer to full
+As a comparison, Python's `json` module handles the 64-bit integer to full
 precision, but loses precision on the floating point timestamp.
 Also, as mentioned, it is at the whim of a JSON implementation whether
 or not the order of object keys is preserved.
 
 While JSON is well suited for data exchange of generic information, it is not
-so appropriate for structured data format like ZNG.
-That said, JSON can be used an encoding format for ZNG by mapping ZNG data
+so appropriate for a structured data format like ZNG.
+That said, JSON can be used as an encoding format for ZNG by mapping ZNG data
 onto a JSON-based protocol.  This allows clients like web apps or
 electron apps to receive and understand ZNG and, with the help of client
 libraries like [zealot](https://github.com/brimsec/brim/tree/master/zealot),
@@ -74,13 +74,13 @@ Since ZNG steams are self describing and type information is embedded
 in the stream itself, the embedded types are likewise encoded in the
 ZJSON format.
 
-A ZJSON stream defined as a sequence of JSON objects where each object
+A ZJSON stream is defined as a sequence of JSON objects where each object
 represents a ZNG value.  Each object includes an identifier that denotes
-its type, or "schema".  A schema generically refers to the type of the
-ZNG record that defined by a given JSON object.
+its type, or _schema_.  A schema generically refers to the type of the
+ZNG record that is defined by a given JSON object.
 
 Each object contains the following fields:
-* `id` a small integer encoded as a JavaScript number indicating the schema that
+* `id` a small integer encoded as a JSON number indicating the schema that
 applies to this value,
 * `values` a JSON array of strings and arrays encoded as defined below,
 * `schema` an optional field encoding the type of this object's values
@@ -91,17 +91,17 @@ and ZNG types as defined below.
 
 The ID provides a mapping to a type so that future values in the stream may
 reference a schema by ID.  An implementation maintains a table to map schemas
-to types as it decodes values.  The ID's are scoped to the particular ZJSON
+to types as it decodes values.  The IDs are scoped to the particular ZJSON
 data stream in which they are embedded and otherwise have no global persistence
 or meaning.
 
-The form of each value has the following JSON structure:
+Objects in a ZJSON stream have the following JSON structure:
 ```
 {
         id: <id>,
         schema: <type>,
-        aliases: [ <alias1>, <alias2>, ... <aliasn> ],
         values: [ <val> ... [ <val>, ... ] ... ]
+        aliases: [ <alias1>, <alias2>, ... <aliasn> ],
 }
 ```
 
@@ -109,12 +109,12 @@ The form of each value has the following JSON structure:
 
 The type format follows the terminology in the ZNG spec, where primitive types
 represent concrete values like strings, integers, times, and so forth, while
-types are composed of primtive type and/or other complex types, e.g., records,
-sets, arrays, and unionsa.
+complex types are composed of primtive type and/or other complex types, e.g.,
+records, sets, arrays, and unions.
 
-The ZJSON type encoding for a primitive type is simply its string name.
-For example, "int32" or "string".  Complex types are structured and are
-mapped onto JSON structure depending on the type.  For example,
+The ZJSON type encoding for a primitive type is simply its string name,
+e.g., "int32" or "string".  Complex types are structured and their
+mapping onto JSON depends on the type.  For example,
 the ZNG type `record[s:string,x:int32]` has this JSON format:
 ```
 {
@@ -134,14 +134,14 @@ the ZNG type `record[s:string,x:int32]` has this JSON format:
 
 #### Record Type
 
-More formally, a ZNG record type is a JSON object of the form:
+More formally, a ZNG record type is a JSON object of the form
 ```
 {
         type: "record",
         of: [ <col1>, <col2>, ... <coln> ]
 }
 ```
-where each of the `n` columns have the form
+where each of the `n` columns has the form
 ```
 {
         name: <name>,
@@ -150,13 +150,13 @@ where each of the `n` columns have the form
 }
 ```
 and `<name>` is a string defining the ZNG column name, `<type>` is a string
-indicating a primitive type or complex type and `of` is an optional field
+indicating a primitive type or complex type, and `of` is an optional field
 if `<type>` is a complex type where the `<of>` value is defined in accordance
 with its complex type definition.
 
 #### Array Type
 
-A ZNG array type is defined by a JSON object having the form:
+A ZNG array type is defined by a JSON object having the form
 ```
 {
         type: "array",
@@ -164,11 +164,11 @@ A ZNG array type is defined by a JSON object having the form:
 }
 ```
 where `<type>` is any ZJSON type described herein, i.e., a string for a primitive
-type or JSON object defining a complex type.
+type or a JSON object defining a complex type.
 
 #### Set Type
 
-A ZNG set type is defined by a JSON object having the form:
+A ZNG set type is defined by a JSON object having the form
 ```
 {
         type: "set",
@@ -180,7 +180,7 @@ where `<type>` is any ZJSON type described herein.
 
 #### Union type
 
-A ZNG union type is defined by a JSON object having the form:
+A ZNG union type is defined by a JSON object having the form
 ```
 {
         type: "union",
@@ -188,13 +188,13 @@ A ZNG union type is defined by a JSON object having the form:
 }
 ```
 where `<type1>` through `<typen>` comprise the types of the union and
-code any ZJSON type described herein.
+encode any ZJSON type described herein.
 
 
 ### Alias Encoding
 
 Aliases are encoded as a binding between a name and a ZNG type.
-A top-level object can define zero or more aliasas as follows:
+A top-level object can define zero or more aliases as follows:
 ```
 {
         ...
@@ -202,14 +202,14 @@ A top-level object can define zero or more aliasas as follows:
         ...
 }
 ```
-where `<name1>` etc are JSON strings and `<type1>` etc are ZNG types as
+where `<name1>` etc. are JSON strings and `<type1>` etc. are ZNG types as
 defined above.
 
 ### Value Encoding
 
-The primitive values comprising an arbitrary complex ZNG data value are encoded
-as a JSON array of strings mixed with nested JSON arrays where the nested structure
-of these arrays conform with the nested structure of the value's schema as follows:
+The primitive values comprising an arbitrarily complex ZNG data value are encoded
+as a JSON array of strings mixed with nested JSON arrays whose structure
+conforms to the nested structure of the value's schema as follows:
 * each record, array, and set is encoded as a JSON array of its composite values,
 * a union is encoded as a string of the form '<selector:<value>>' where `selector`
 is an integer string representing the positional index in the union's list of
