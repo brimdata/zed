@@ -111,7 +111,6 @@ func (m *muxOutput) Pull(timeout <-chan time.Time) muxResult {
 	case <-timeout:
 		return muxResult{proc.Result{nil, errTimeout}, 0, ""}
 	case result = <-m.in:
-		println("In Pull, read result from channel m *muxOutput.in")
 		// empty
 	case warning := <-m.pctx.Warnings:
 		return muxResult{proc.Result{}, 0, warning}
@@ -119,10 +118,6 @@ func (m *muxOutput) Pull(timeout <-chan time.Time) muxResult {
 
 	if proc.EOS(result.Batch, result.Err) {
 		m.runners--
-	}
-	println("In Pull, have batch ", result.Batch)
-	if result.Batch != nil {
-		println("In Pull, have batch of length ", result.Batch.Length())
 	}
 	return result
 }

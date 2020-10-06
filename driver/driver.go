@@ -29,24 +29,16 @@ func MultiRun(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Co
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	// It would be more convenient for the flow control of multi-processing
-	// if the MultiSource did not need to be included in the call to compile.
-	// Then we could have more seperation between the algorithm that modifies the FlowGraph
-	// and the algorithm that chooses how to traverse the set of S3 objects. -MTW
-	// see below
 	mux, err := compile(ctx, program, zctx, msrc, mcfg)
 	if err != nil {
 		return err
 	}
-	// Include the MultiSource is a call around here, instead of in the compile -MTW
 	return runMux(mux, d, mcfg.StatsTick)
 }
 
 func runMux(out *muxOutput, d Driver, statsTickCh <-chan time.Time) error {
 	for !out.Complete() {
-		println("in runMux for loop")
 		chunk := out.Pull(statsTickCh)
-		println("in runMux for loop after Pull")
 		if chunk.Err != nil {
 			if chunk.Err == errTimeout {
 				if err := d.Stats(out.Stats()); err != nil {
