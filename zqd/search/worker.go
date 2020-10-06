@@ -21,9 +21,9 @@ import (
 )
 
 type WorkerOp struct {
-	chunk archive.Chunk
-	proc  ast.Proc
-	dir   int
+	si   archive.SpanInfo
+	proc ast.Proc
+	dir  int
 }
 
 func NewWorkerOp(req api.WorkerRequest) (*WorkerOp, error) {
@@ -49,15 +49,20 @@ func NewWorkerOp(req api.WorkerRequest) (*WorkerOp, error) {
 		DataFileKind: archive.FileKind(req.ChunkFileKind),
 		RecordCount:  req.ChunkRecordCount,
 	}
+	si := archive.SpanInfo{
+		Span:   chunk.Span(), // make a Span from the chunk
+		Chunks: []archive.Chunk{chunk},
+	}
+
 	proc, err := ast.UnpackJSON(nil, req.Proc)
 	if err != nil {
 		return nil, err
 	}
 
-	return &WorkerOp{proc: proc, chunk: chunk, dir: req.Dir}, nil
+	return &WorkerOp{si: si, proc: proc, dir: req.Dir}, nil
 }
 
-func (s *WorkerOp) Run(ctx context.Context, store storage.Storage, output Output) (err error) {
+func (w *WorkerOp) Run(ctx context.Context, store storage.Storage, output Output) (err error) {
 	d := &searchdriver{
 		output:    output,
 		startTime: nano.Now(),
@@ -77,8 +82,8 @@ func (s *WorkerOp) Run(ctx context.Context, store storage.Storage, output Output
 
 	switch st := store.(type) {
 	case *archivestore.Storage:
-		return driver.MultiRun(ctx, d, s.proc, zctx, st.StaticSource(s.chunk), driver.MultiConfig{
-			Span:      s.chunk.Span(),
+		return driver.MultiRun(ctx, d, w.proc, zctx, st.StaticSource(w.si), driver.MultiConfig{
+			Span:      w.si.Span,
 			StatsTick: statsTicker.C,
 		})
 	default:

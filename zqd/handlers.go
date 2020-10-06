@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"reflect"
 	"time"
 
 	"github.com/brimsec/zq/pcap"
@@ -150,8 +149,6 @@ func handleWorker(c *Core, w http.ResponseWriter, httpReq *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", out.ContentType())
-
-	println("zqd/handlers.go: space.Storage().(type) = ", reflect.TypeOf(space.Storage()).String())
 
 	if err := srch.Run(ctx, space.Storage(), out); err != nil {
 		c.requestLogger(httpReq).Warn("Error writing response", zap.Error(err))

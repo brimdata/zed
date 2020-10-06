@@ -52,8 +52,8 @@ func (s *Storage) MultiSource() driver.MultiSource {
 	return archive.NewMultiSource(s.ark, nil)
 }
 
-func (s *Storage) StaticSource(c archive.Chunk) driver.MultiSource {
-	return archive.NewStaticSource(s.ark, c)
+func (s *Storage) StaticSource(si archive.SpanInfo) driver.MultiSource {
+	return archive.NewStaticSource(s.ark, si)
 }
 
 func (s *Storage) Summary(ctx context.Context) (storage.Summary, error) {

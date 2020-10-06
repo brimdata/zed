@@ -9,14 +9,14 @@ import (
 )
 
 type staticSource struct {
-	ark   *Archive
-	chunk Chunk
+	ark *Archive
+	si  SpanInfo
 }
 
-func NewStaticSource(ark *Archive, c Chunk) driver.MultiSource {
+func NewStaticSource(ark *Archive, si SpanInfo) driver.MultiSource {
 	return &staticSource{
-		ark:   ark,
-		chunk: c,
+		ark: ark,
+		si:  si,
 	}
 }
 
@@ -24,13 +24,9 @@ func (s *staticSource) OrderInfo() (string, bool) {
 	return "ts", s.ark.DataSortDirection == zbuf.DirTimeReverse
 }
 
-func (m *staticSource) SendSources(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan driver.SourceOpener) error {
+func (s *staticSource) SendSources(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan driver.SourceOpener) error {
 	so := func() (driver.ScannerCloser, error) {
-		si := spanInfo{
-			span:   m.chunk.Span(), // make a span from the chunk
-			chunks: []Chunk{m.chunk},
-		}
-		return newSpanScanner(ctx, m.ark, zctx, sf.Filter, sf.FilterExpr, si)
+		return newSpanScanner(ctx, s.ark, zctx, sf.Filter, sf.FilterExpr, s.si)
 	}
 	select {
 	case srcChan <- so:
