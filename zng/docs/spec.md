@@ -120,8 +120,20 @@ from the primitive types.
 ZNG also includes first-class types, where a value can be of type "type".
 This is useful for grouping aggregations by type, e.g., to do introspective data exploration.
 
-For example, a TZNG stream representing the single string "hello world"
-might look like this:
+Any value in ZNG can take on a null representation.  It is up to an implementation to
+decide how to external data structures map into and out of values with nulls.  Typically,
+a null value in a field column means an optional value was not present, though
+the notion of optionality is not explicitly defined by ZNG.
+
+Null values can be typed or untyped.  For example, a null value in a field of
+a record has the type of the field's type.  A null can be "untyped" by creating
+a null value of type null.  The only valid value of type null is null.
+
+### Data Model Examples
+
+Here are a few examples of the ZNG data model expressed iin the TZNG text format.
+
+A stream representing the single string "hello world" might look like this:
 ```
 #35:string
 35:hello, world
@@ -249,22 +261,22 @@ The type ID is encoded as a `uvarint`, an encoding used throughout the ZNG forma
 A record typedef creates a new type ID equal to the next stream type ID
 with the following structure:
 ```
-----------------------------------------------------------
-|0xf0|<nfields>|<field1><type-id-1><field2><type-id-2>...|
-----------------------------------------------------------
+---------------------------------------------------------
+|0xf0|<ncolumns>|<name1><type-id-1><name2><type-id-2>...|
+---------------------------------------------------------
 ```
 Record types consist of an ordered set of columns where each column consists of
 a name and its type.  Unlike JSON, the ordering of the columns is significant
 and must be preserved through any APIs that consume, process, and emit ZNG records.
 
-A record type is encoded as a count of fields, i.e., `<nfields>` from above,
+A record type is encoded as a count of fields, i.e., `<ncolumns>` from above,
 followed by the field definitions,
 where a field definition is a field name followed by a type ID, i.e.,
-`<field1>` followed by `<type-id-1>` etc. as indicated above.
+`<name1>` followed by `<type-id-1>` etc. as indicated above.
 
 The field names in a record must be unique.
 
-The `<nfields>` is encoded as a `uvarint`.
+The `<ncolumns>` is encoded as a `uvarint`.
 
 The field name is encoded as a UTF-8 string defining a "ZNG identifier".
 The UTF-8 string
@@ -328,10 +340,10 @@ followed by the names and values of each element.
 --------------------------------------------------------
 ```
 `<type-id>` and `<nelem>` are encoded as `uvarint`.
-The names have the same UTF-8 format as a record and are encoded
+The names have the same UTF-8 format a record field names and are encoded
 as tag-encoded primitive strings.  Each value is encoded as
 a tag-encoded value in accordance with the type indicated
-by ``<typd-id>`.
+by ``<type-id>`.
 
 #### 3.1.1.6 Map Typedef
 
@@ -504,7 +516,7 @@ The collection of sub-values comprising a complex-type value
 is called a "container".
 
 To encode the length N of the value, a bit for the complex/primitive type indicator,
-and representation for the nil value,
+and representation for the null value,
 The tag for a container of length N is
 ```
 2*N + 1
@@ -553,19 +565,17 @@ tend to be zero-filled for small integers.
 
 #### 3.2.2 Tag-Encoded Body of Complex Values
 
-The body of a length-N container comprises zero or more tag-encoded values.
+The body of a length-N container comprises zero or more tag-encoded values,
+where the values are encoded as follows:
 
-Array, set, and record types are variable length and are encoded
-as a sequence of elements and an enum as a small integer:
-
-| Type     |          Value                          |
-|----------|-----------------------------------------|
-| `array`  | concatenation of elements               |
-| `set`    | normalized concatenation of elements    |
-| `record` | concatenation of elements               |
-| `union`  | concatenation of selector and value     |
-| `enum`   | selector of id and value in enum type   |
-| `map`    | concatenation of key and value elements |
+| Type     |          Value                            |
+|----------|-------------------------------------------|
+| `array`  | concatenation of elements                 |
+| `set`    | normalized concatenation of elements      |
+| `record` | concatenation of elements                 |
+| `union`  | concatenation of type position and value  |
+| `enum`   | position of enum element                  |
+| `map`    | concatenation of key and value elements   |
 
 Since N, the byte length of any of these container values, is known,
 there is no need to encode a count of the
@@ -577,16 +587,17 @@ sequence of bytes encoding each element's tag-counted value is
 lexicographically greater than that of the preceding element.
 
 A union value is encoded as a container with two elements. The first
-element is the `uvarint` encoding of the index determining the type of
-the value in reference to the union type, and the second element is
-the value encoded according to that type.
+element is the `uvarint` encoding of the positional index determining
+the type of the value in reference to the union's list of defined types,
+and the second element is the value encoded according to that type.
 
-An enumeration value is simply a single, small integer encoded as length-N
-integer that represents the positional index of enum identifier and value as it
-is defined in the enum typedef.
+An enumeration value is represented as the `uvarint` encoding of the
+positional index determining the value in reference to the enum's
+list of defined elements.
 
 A map value is encoded as a container as a sequence of alternating tag-encoded
-key and value. The concatenation of elements must be normalized so that the
+key and value encoded as keys and values of the underlying key and value types.
+The concatenation of elements must be normalized so that the
 sequence of bytes encoding each tag-counted key (of the key/value pair) is
 lexicographically greater than that of the preceding key (of the preceding
 key/value pair).
@@ -790,7 +801,7 @@ of a value:
 [ ]
 ```
 In addition, `-` must be escaped if representing the single ASCII byte equal
-to `-` as opposed to representing an null value.
+to `-` as opposed to representing a null value.
 
 ### 4.3.2 Value Syntax
 
@@ -864,11 +875,12 @@ This scheme allows complex types to be embedded in other complex types, e.g., a
 #26:record[city:string,lat:LL,long:LL]
 26:[NYC;[N;40.7128;][W;74.0060;]]
 ```
-An null value indicates a field of a `record` that wasn't set by the encoder:
+A null value indicates a field of a `record` that isn't present in a
+particular value, e.g,
 ```
 26:[North Pole;[N;90;]-;]
 ```
-e.g., the North Pole has a latitude but no meaningful longitude.
+i.e., the North Pole has a latitude but no meaningful longitude.
 
 ## 5. Primitive Types
 
