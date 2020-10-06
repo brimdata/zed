@@ -1,10 +1,10 @@
 # ZNG over JSON
 
 The ZNG data format has richly typed records and a deterministic column order.
-Thus, encoding ZNG directly onto JSON objects would not work without loss
+Thus, encoding ZNG directly into JSON objects would not work without loss
 of information.
 
-For example, consider this ZNG (in ZNG text format):
+For example, consider this ZNG (in TZNG format):
 ```
 #0:record[ts:time,a:string,b:record[x:int64,y:ip]]
 0:[1521911721.926018012;hello, world;[4611686018427387904;127.0.0.1;]]
@@ -20,7 +20,7 @@ A straightforward translation to JSON might look like this:
   }
 }
 ```
-But, when this JSON is transmitted to a javascript client and parsed,
+But, when this JSON is transmitted to a JavaScript client and parsed,
 the result looks something like this:
 ```
 {
@@ -34,8 +34,8 @@ the result looks something like this:
 ```
 The good news is the `a` field came through just fine, but there are
 a few problems with the remaining fields:
-* the timestamp lost precision (due to 53 bits of mantissa in a javascript
-IEEE floating point number) and was converted from a time type to a number,
+* the timestamp lost precision (due to 53 bits of mantissa in a JavaScript
+IEEE 754 floating point number) and was converted from a time type to a number,
 * the int64 lost precision for the same reason, and
 * the IP address has been converted to a string.
 
@@ -51,11 +51,11 @@ onto a JSON-based protocol.  This allows clients like web apps or
 electron apps to receive and understand ZNG and, with the help of client
 libraries like [zealot](https://github.com/brimsec/brim/tree/master/zealot),
 to be enabled with rich, structured ZNG types that are implemented on top of
-the basic javascript types.
+the basic JavaScript types.
 
 In other words,
 because JSON objects do not have a deterministic column order nor does JSON
-in general have typing beyond the basics (i.e., strings, floating-point numbers,
+in general have typing beyond the basics (i.e., strings, floating point numbers,
 objects, arrays, and booleans), we decided to encode the ZNG data format with
 its embedded type model all in a layer above regular JSON.
 
@@ -80,7 +80,7 @@ its type, or "schema".  A schema generically refers to the type of the
 ZNG record that defined by a given JSON object.
 
 Each object contains the following fields:
-* `id` a small integer encoded as a javascript number indicating the schema that
+* `id` a small integer encoded as a JavaScript number indicating the schema that
 applies to this value,
 * `values` a JSON array of strings and arrays encoded as defined below,
 * `schema` an optional field encoding the type of this object's values
@@ -215,7 +215,7 @@ of these arrays conform with the nested structure of the value's schema as follo
 is an integer string representing the positional index in the union's list of
 types that specifies the type of `<value>`, which is a JSON string or array
 as described recursively herein, and
-* each primitive is encoded as a string conforming to its text-ZNG representation,
+* each primitive is encoded as a string conforming to its TZNG representation,
 as described in the
 [corresponding section of the ZNG specification](https://github.com/brimsec/zq/blob/master/zng/docs/spec.md#5-primitive-types).
 
@@ -229,17 +229,17 @@ and an array of union of string, and float64 --- might have a value that looks l
 
 A sequence of ZJSON objects may be framed in two primary ways.
 
-First, they can simply be a sequence of new-line delimited JSON where
+First, they can simply be a sequence of newline delimited JSON where
 each object is transmitted as a single line terminated with a newline character,
-e.g., the [zq](https://github.com/brimsec/zq) CLI command  writes its
+e.g., the [zq](https://github.com/brimsec/zq) CLI command writes its
 ZJSON output as lines of NDJSON.
 
 Second, the objects may be encoded in a JSON array embedded in some other
 JSON-framed protocol, e.g., embedded in the the search results messages
 of the [zqd REST API](https://github.com/brimsec/zq/blob/master/zqd/api/api.go).
 
-It is up to an implementation to understand the context for how the ZJSON
-objects are framed
+It is up to an implementation to determine how the ZJSON
+objects are framed according to its particular use case.
 
 ## Example
 

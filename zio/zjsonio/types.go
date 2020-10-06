@@ -67,12 +67,6 @@ func encodeTypes(in []zng.Type) joe.Array {
 
 func decodeType(zctx *resolver.Context, typ joe.String, of joe.Interface) (zng.Type, error) {
 	switch typ {
-	default:
-		t, err := zctx.LookupByName(string(typ))
-		if err != nil {
-			return nil, errors.New("zjson unknown type: " + string(typ))
-		}
-		return t, nil
 	case "record":
 		return decodeTypeColumns(zctx, of)
 	case "set", "array":
@@ -86,6 +80,12 @@ func decodeType(zctx *resolver.Context, typ joe.String, of joe.Interface) (zng.T
 		return zctx.LookupTypeSet(inner), nil
 	case "union":
 		return decodeTypeUnion(zctx, of)
+	default:
+		t, err := zctx.LookupByName(string(typ))
+		if err != nil {
+			return nil, errors.New("zjson unknown type: " + string(typ))
+		}
+		return t, nil
 	}
 }
 
@@ -131,7 +131,7 @@ func decodeTypeColumns(zctx *resolver.Context, of joe.Interface) (*zng.TypeRecor
 func decodeTypeUnion(zctx *resolver.Context, of joe.Interface) (*zng.TypeUnion, error) {
 	cols, ok := of.(joe.Array)
 	if !ok {
-		return nil, errors.New("zjson union types not an array")
+		return nil, errors.New("zjson union type not an array")
 	}
 	var types []zng.Type
 	for _, col := range cols {

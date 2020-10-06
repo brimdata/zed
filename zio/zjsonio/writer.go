@@ -57,17 +57,11 @@ func (w *Writer) write(s string) error {
 	return err
 }
 
-type tAlias struct {
-	Name string      `json:"name"`
-	Type interface{} `json:"type"`
-}
-
 func (a *Alias) UnmarshalJSON(b []byte) error {
-	v := &tAlias{}
-	if err := json.Unmarshal(b, v); err != nil {
+	type alias Alias
+	if err := json.Unmarshal(b, (*alias)(a)); err != nil {
 		return err
 	}
-	a.Name = v.Name
-	a.Type = joe.Convert(v.Type)
+	a.Type = joe.Convert(a.Type)
 	return nil
 }
