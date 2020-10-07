@@ -97,7 +97,6 @@ func TestOpenOptions(t *testing.T) {
 `
 	first1 := nano.Ts(1587517405066655910)
 	first2 := nano.Ts(1587509168067598390)
-
 	var logid1, logid2 LogID
 	err = filepath.Walk(datapath, func(p string, fi os.FileInfo, err error) error {
 		if err != nil {
