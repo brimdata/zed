@@ -225,7 +225,7 @@ func (dw *tsDirWriter) flush() error {
 		return err
 	}
 	if err := zbuf.CopyWithContext(dw.ctx, w, r); err != nil {
-		w.close(dw.ctx)
+		w.abort()
 		return err
 	}
 	if err := w.close(dw.ctx); err != nil {
@@ -308,6 +308,14 @@ func (cw *chunkWriter) Write(rec *zng.Record) error {
 	return nil
 }
 
+// abort should be called when an error occurs during write. Errors are ignored
+// because the write error will be more informative and should be returned.
+func (cw *chunkWriter) abort() {
+	cw.dataFileWriter.Close()
+	cw.indexTempWriter.Close()
+	os.Remove(cw.indexTempPath)
+}
+
 func (cw *chunkWriter) close(ctx context.Context) error {
 	err := cw.dataFileWriter.Close()
 	if closeErr := cw.indexTempWriter.Close(); err == nil {
@@ -316,7 +324,6 @@ func (cw *chunkWriter) close(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	cw.dataFileWriter = nil
 	// Write the time seek index into the archive, feeding it the key/offset
 	// records written to indexTempPath.
 	tf, err := fs.Open(cw.indexTempPath)
