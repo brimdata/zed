@@ -142,9 +142,9 @@ func newTsDirWriter(iw *importWriter, midnight nano.Ts) (*tsDirWriter, error) {
 	return d, nil
 }
 
-func (w *tsDirWriter) addBufSize(add int64) {
+func (w *tsDirWriter) addBufSize(delta int64) {
 	old := w.bufSize()
-	w.size += add
+	w.size += delta
 	w.importWriter.bufSize += w.bufSize() - old
 }
 
