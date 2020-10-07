@@ -334,10 +334,11 @@ func (cw *chunkWriter) close(ctx context.Context) error {
 		tf.Close()
 		os.Remove(tf.Name())
 	}()
-	tfr := zngio.NewReader(tf, resolver.NewContext())
+	zctx := resolver.NewContext()
+	tfr := zngio.NewReader(tf, zctx)
 	sf := seekIndexFile{id: cw.dataFile.id, recordCount: cw.rcount, first: cw.firstTs, last: cw.lastTs}
 	idxURI := cw.uri.AppendPath(sf.name())
-	idxWriter, err := microindex.NewWriter(resolver.NewContext(), idxURI.String(), []string{"ts"}, framesize)
+	idxWriter, err := microindex.NewWriter(zctx, idxURI.String(), []string{"ts"}, framesize)
 	if err != nil {
 		return err
 	}
