@@ -177,10 +177,6 @@ func (dw *tsDirWriter) spill() error {
 		if err != nil {
 			return err
 		}
-		dw.spiller.SetWriterOpts(zngio.WriterOpts{
-			LZ4BlockSize:     importLZ4BlockSize,
-			StreamRecordsMax: importStreamRecordsMax,
-		})
 	}
 	if err := dw.spiller.Spill(dw.records); err != nil {
 		return err
