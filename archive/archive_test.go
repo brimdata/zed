@@ -114,9 +114,9 @@ func TestOpenOptions(t *testing.T) {
 		return nil
 	})
 	require.NoError(t, err)
-	// if logid1 == "" || logid2 == "" {
-	// t.Fatalf("expected data files not found")
-	// }
+	if logid1 == "" || logid2 == "" {
+		t.Fatalf("expected data files not found")
+	}
 
 	out := indexQuery(t, ark1, query, AddPath(DefaultAddPathField, false))
 	require.Equal(t, test.Trim(fmt.Sprintf(expFormat, logid1, logid2)), out)

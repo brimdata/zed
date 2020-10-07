@@ -44,9 +44,14 @@ func Import(ctx context.Context, ark *Archive, zctx *resolver.Context, r zbuf.Re
 // footprint of the collection of tsDirWriter and instructs the tsDirWriter
 // with the largest footprint to spill its records to a temporary file on disk.
 //
-// XXX importWriter does not currently keep track of size of records written
-// to temporary files. At some point this should have a maxTempFileSize to
-// ensure the importWriter does not exceed the size of a provisioned tmpfs.
+// TODO zq#1432 importWriter does not currently keep track of size of records
+// written to temporary files. At some point this should have a maxTempFileSize
+// to ensure the importWriter does not exceed the size of a provisioned tmpfs.
+//
+// TODO zq#1433 If a tsDir never gets enough data to reach ark.LogSizeThreshold,
+// the data will sit in the tsDirWriter and remain unsearchable until the
+// provided read stream is closed. Add some kind of timeout functionality that
+// periodically flushes stale tsDirWriters.
 type importWriter struct {
 	ark     *Archive
 	ctx     context.Context
