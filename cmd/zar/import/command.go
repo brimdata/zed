@@ -55,7 +55,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c.thresh = archive.DefaultLogSizeThreshold
 	f.Var(&c.thresh, "s", "target size of chunk files, as '10MB' or '4GiB', etc.")
 	c.importBufSize = units.Bytes(archive.ImportBufSize)
-	f.Var(&c.importBufSize, "bufsize", "maximum size of data read into memory before flushing to disk '99MB', '4GiB', etc.")
+	f.Var(&c.importBufSize, "bufsize", "maximum size of data read into memory before flushing to disk, as '99MB', '4GiB', etc.")
 	f.BoolVar(&c.empty, "empty", false, "create an archive without initial data")
 	c.inputFlags.SetFlags(f)
 	c.procFlags.SetFlags(f)
