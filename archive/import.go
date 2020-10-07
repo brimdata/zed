@@ -32,12 +32,11 @@ var (
 
 func Import(ctx context.Context, ark *Archive, zctx *resolver.Context, r zbuf.Reader) error {
 	w := newImportWriter(ctx, ark)
-	err1 := zbuf.CopyWithContext(ctx, w, r)
-	err2 := w.close()
-	if err1 != nil {
-		return err1
+	err := zbuf.CopyWithContext(ctx, w, r)
+	if closeErr := w.close(); err == nil {
+		err = closeErr
 	}
-	return err2
+	return err
 }
 
 // importWriter is a zbuf.Writer the partitions records by day into the
