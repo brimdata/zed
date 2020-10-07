@@ -52,7 +52,7 @@ type importWriter struct {
 	ctx     context.Context
 	writers map[tsDir]*tsDirWriter
 
-	bufSize int64
+	memBuffered int64
 }
 
 func newImportWriter(ctx context.Context, ark *Archive) *importWriter {
@@ -77,7 +77,7 @@ func (iw *importWriter) Write(rec *zng.Record) error {
 	if err := dw.writeOne(rec); err != nil {
 		return err
 	}
-	for iw.bufSize > ImportBufSize {
+	for iw.memBuffered > ImportBufSize {
 		if err := iw.spillLargestBuffer(); err != nil {
 			return err
 		}
@@ -144,7 +144,7 @@ func newTsDirWriter(iw *importWriter, tsDir tsDir) (*tsDirWriter, error) {
 func (dw *tsDirWriter) addBufSize(delta int64) {
 	old := dw.bufSize()
 	dw.size += delta
-	dw.importWriter.bufSize += dw.bufSize() - old
+	dw.importWriter.memBuffered += dw.bufSize() - old
 }
 
 // bufSize returns the actually buffer size as a multiple of importLZ4BlockSize.
