@@ -39,7 +39,7 @@ func Import(ctx context.Context, ark *Archive, zctx *resolver.Context, r zbuf.Re
 	return err
 }
 
-// importWriter is a zbuf.Writer the partitions records by day into the
+// importWriter is a zbuf.Writer that partitions records by day into the
 // appropriate tsDirWriter. importWriter keeps track of the overall memory
 // footprint of the collection of tsDirWriter and instructs the tsDirWriter
 // with the largest footprint to spill its records to a temporary file on disk.
