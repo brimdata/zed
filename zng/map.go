@@ -59,58 +59,32 @@ func (t *TypeMap) Parse(in []byte) (zcode.Bytes, error) {
 }
 
 func (t *TypeMap) StringOf(zv zcode.Bytes, fmt OutFmt, _ bool) string {
-	if len(zv) == 0 && (fmt == OutFormatZeek || fmt == OutFormatZeekAscii) {
-		return "(empty)"
-	}
-
 	var b strings.Builder
-	separator := byte(',')
-	switch fmt {
-	case OutFormatZNG:
-		b.WriteByte('[')
-		separator = ';'
-	case OutFormatDebug:
-		b.WriteString("set[")
-	}
-
-	first := true
 	it := zv.Iter()
+	b.WriteByte('[')
 	for !it.Done() {
-		val, _, err := it.Next()
+		val, container, err := it.Next()
 		if err != nil {
 			//XXX
 			b.WriteString("ERR")
 			break
-		}
-		if first {
-			first = false
-		} else {
-			b.WriteByte(separator)
 		}
 		b.WriteString(t.KeyType.StringOf(val, fmt, true))
-		val, _, err = it.Next()
+		if !container {
+			b.WriteByte(';')
+		}
+		val, container, err = it.Next()
 		if err != nil {
 			//XXX
 			b.WriteString("ERR")
 			break
 		}
-		if first {
-			first = false
-		} else {
-			b.WriteByte(separator)
-		}
 		b.WriteString(t.ValType.StringOf(val, fmt, true))
-	}
-
-	switch fmt {
-	case OutFormatZNG:
-		if !first {
+		if !container {
 			b.WriteByte(';')
 		}
-		b.WriteByte(']')
-	case OutFormatDebug:
-		b.WriteByte(']')
 	}
+	b.WriteByte(']')
 	return b.String()
 }
 

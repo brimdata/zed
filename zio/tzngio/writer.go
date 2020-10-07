@@ -120,7 +120,7 @@ func (w *Writer) writeContainer(parent zng.Value) error {
 		return w.writeUnion(parent)
 	}
 	if typ, ok := realType.(*zng.TypeMap); ok {
-		//  XXX StringOf() should return an error.  See Issue #1417.
+		//  XXX StringOf() should return an error arg.  See Issue #1417.
 		s := typ.StringOf(parent.Bytes, zng.OutFormatZNG, true)
 		return w.write(s)
 	}

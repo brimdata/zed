@@ -2,10 +2,8 @@ package zjsonio
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
-	"strconv"
 
 	"github.com/brimsec/zq/pkg/joe"
 	"github.com/brimsec/zq/pkg/skim"
@@ -69,30 +67,15 @@ func (r *Reader) Read() (*zng.Record, error) {
 		}
 		r.mapper[v.Id] = recType
 	}
-	rec, err := r.parseValues(recType, v.Values)
-	if err != nil {
-		return nil, e(err)
-	}
-	return rec, nil
-}
-
-func (r *Reader) parseValues(typ *zng.TypeRecord, v interface{}) (*zng.Record, error) {
-	values, ok := v.([]interface{})
-	if !ok {
-		return nil, errors.New("zjson record object must be an array")
-	}
-	// reset the builder and decode the body into the builder intermediate
-	// zng representation
 	r.builder.Reset()
-	if err := decodeContainer(r.builder, typ, values); err != nil {
-		return nil, err
+	if err := decodeRecord(r.builder, recType, v.Values); err != nil {
+		return nil, e(err)
 	}
 	zv, err := r.builder.Bytes().ContainerBody()
 	if err != nil {
-		//XXX need better error here... this won't make much sense
-		return nil, err
+		return nil, e(err)
 	}
-	return zng.NewRecordCheck(typ, zv)
+	return zng.NewRecordCheck(recType, zv)
 }
 
 func (r *Reader) parseAliases(aliases []Alias) error {
@@ -106,114 +89,5 @@ func (r *Reader) parseAliases(aliases []Alias) error {
 			return err
 		}
 	}
-	return nil
-}
-
-func decodeField(builder *zcode.Builder, typ zng.Type, s string) error {
-	b := []byte(s)
-	if zng.IsContainerType(typ) && !zng.IsUnionType(typ) {
-		return zng.ErrNotContainer
-	}
-	zv, err := typ.Parse(b)
-	if err != nil {
-		return err
-	}
-	builder.AppendPrimitive(zv)
-	return nil
-}
-
-func decodeUnion(builder *zcode.Builder, typ *zng.TypeUnion, body interface{}) error {
-	builder.BeginContainer()
-	tuple, ok := body.([]interface{})
-	if !ok || len(tuple) != 2 {
-		return errors.New("bad json for zjson union value")
-	}
-	istr, ok := tuple[0].(string)
-	if !ok {
-		return errors.New("bad type index for zjson union value ")
-	}
-	index, err := strconv.Atoi(istr)
-	if err != nil {
-		return fmt.Errorf("bad type index for zjson union value: %w", err)
-	}
-	inner, err := typ.TypeIndex(index)
-	if err != nil {
-		return fmt.Errorf("bad type index for zjson union value: %w", err)
-	}
-	builder.AppendPrimitive(zng.EncodeInt(int64(index)))
-	if utyp, ok := inner.(*zng.TypeUnion); ok {
-		if err := decodeUnion(builder, utyp, tuple[1]); err != nil {
-			return err
-		}
-	} else if zng.IsContainerType(inner) {
-		children, ok := tuple[1].([]interface{})
-		if !ok {
-			return errors.New("bad json for zjson value")
-		}
-		if err := decodeContainer(builder, inner, children); err != nil {
-			return err
-		}
-
-	} else {
-		s, ok := tuple[1].(string)
-		if !ok {
-			return errors.New("bad json for zjson value")
-		}
-		if err := decodeField(builder, inner, s); err != nil {
-			return err
-		}
-	}
-	builder.EndContainer()
-	return nil
-}
-
-func decodeContainer(builder *zcode.Builder, typ zng.Type, body []interface{}) error {
-	childType, columns := zng.ContainedType(typ)
-	if childType == nil && columns == nil {
-		return zng.ErrNotPrimitive
-	}
-	builder.BeginContainer()
-	for k, column := range body {
-		// each column either a string value or an array of string values
-		if column == nil {
-			// this is an unset column
-			if zng.IsContainerType(zng.AliasedType(childType)) || zng.IsContainerType(zng.AliasedType(columns[k].Type)) {
-				builder.AppendContainer(nil)
-			} else {
-				builder.AppendPrimitive(nil)
-			}
-			continue
-		}
-		if columns != nil {
-			if k >= len(columns) {
-				return &zng.RecordTypeError{Name: "<record>", Type: typ.String(), Err: zng.ErrExtraField}
-			}
-			childType = zng.AliasedType(columns[k].Type)
-		}
-		s, ok := column.(string)
-		if ok {
-			if err := decodeField(builder, childType, s); err != nil {
-				return err
-			}
-			continue
-		}
-		if utyp, ok := childType.(*zng.TypeUnion); ok {
-			if err := decodeUnion(builder, utyp, column); err != nil {
-				return err
-			}
-			continue
-		}
-		children, ok := column.([]interface{})
-		if !ok {
-			return errors.New("bad json for zjson value")
-		}
-		if err := decodeContainer(builder, childType, children); err != nil {
-			return err
-		}
-	}
-	if _, ok := typ.(*zng.TypeSet); ok {
-		builder.TransformContainer(zng.NormalizeSet)
-	}
-	builder.EndContainer()
 	return nil
 }
