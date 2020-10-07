@@ -50,7 +50,7 @@ func Import(ctx context.Context, ark *Archive, zctx *resolver.Context, r zbuf.Re
 type importWriter struct {
 	ark     *Archive
 	ctx     context.Context
-	writers map[nano.Ts]*tsDirWriter
+	writers map[tsDir]*tsDirWriter
 
 	bufSize int64
 }
@@ -59,26 +59,26 @@ func newImportWriter(ctx context.Context, ark *Archive) *importWriter {
 	return &importWriter{
 		ark:     ark,
 		ctx:     ctx,
-		writers: make(map[nano.Ts]*tsDirWriter),
+		writers: make(map[tsDir]*tsDirWriter),
 	}
 }
 
-func (w *importWriter) Write(rec *zng.Record) error {
-	day := rec.Ts().Midnight()
-	dw, ok := w.writers[day]
+func (iw *importWriter) Write(rec *zng.Record) error {
+	tsDir := newTsDir(rec.Ts())
+	dw, ok := iw.writers[tsDir]
 	if !ok {
 		var err error
-		dw, err = newTsDirWriter(w, day)
+		dw, err = newTsDirWriter(iw, tsDir)
 		if err != nil {
 			return err
 		}
-		w.writers[day] = dw
+		iw.writers[tsDir] = dw
 	}
 	if err := dw.writeOne(rec); err != nil {
 		return err
 	}
-	for w.bufSize > ImportBufSize {
-		if err := w.spillLargestBuffer(); err != nil {
+	for iw.bufSize > ImportBufSize {
+		if err := iw.spillLargestBuffer(); err != nil {
 			return err
 		}
 	}
@@ -89,9 +89,9 @@ func (w *importWriter) Write(rec *zng.Record) error {
 // ImportBufSize. spillLargestBuffer attempts to clear up memory in use by
 // spilling to disk the records of the tsDirWriter with the largest memory
 // footprint.
-func (w *importWriter) spillLargestBuffer() error {
+func (iw *importWriter) spillLargestBuffer() error {
 	var dw *tsDirWriter
-	for _, w := range w.writers {
+	for _, w := range iw.writers {
 		if dw == nil || w.size > dw.size {
 			dw = w
 		}
@@ -115,120 +115,120 @@ func (i *importWriter) close() error {
 // ark.LogSizeThreshold, they are written to a chunk file in
 // the archive.
 type tsDirWriter struct {
-	importWriter *importWriter
 	ark          *Archive
 	ctx          context.Context
-	day          nano.Ts
+	importWriter *importWriter
 	records      []*zng.Record
 	size         int64
 	spiller      *spill.MergeSort
-	tsDir        iosrc.URI
+	tsDir        tsDir
+	uri          iosrc.URI
 }
 
-func newTsDirWriter(iw *importWriter, midnight nano.Ts) (*tsDirWriter, error) {
+func newTsDirWriter(iw *importWriter, tsDir tsDir) (*tsDirWriter, error) {
 	d := &tsDirWriter{
 		ark:          iw.ark,
-		importWriter: iw,
 		ctx:          iw.ctx,
-		day:          midnight,
-		tsDir:        iw.ark.DataPath.AppendPath(dataDirname, newTsDir(midnight).name()),
+		importWriter: iw,
+		tsDir:        tsDir,
+		uri:          iw.ark.DataPath.AppendPath(dataDirname, tsDir.name()),
 	}
 	if dirmkr, ok := d.ark.dataSrc.(iosrc.DirMaker); ok {
-		if err := dirmkr.MkdirAll(d.tsDir, 0755); err != nil {
+		if err := dirmkr.MkdirAll(d.uri, 0755); err != nil {
 			return nil, err
 		}
 	}
 	return d, nil
 }
 
-func (w *tsDirWriter) addBufSize(delta int64) {
-	old := w.bufSize()
-	w.size += delta
-	w.importWriter.bufSize += w.bufSize() - old
+func (dw *tsDirWriter) addBufSize(delta int64) {
+	old := dw.bufSize()
+	dw.size += delta
+	dw.importWriter.bufSize += dw.bufSize() - old
 }
 
 // bufSize returns the actually buffer size as a multiple of importLZ4BlockSize.
 // This is done to ensure that whenever spill the generated spill is compressed
 // nicely onto disk.
-func (w *tsDirWriter) bufSize() int64 {
-	return (w.size / int64(importLZ4BlockSize)) * int64(importLZ4BlockSize)
+func (dw *tsDirWriter) bufSize() int64 {
+	return (dw.size / int64(importLZ4BlockSize)) * int64(importLZ4BlockSize)
 }
 
 // approxTotalBytes is the sum of the size of compressed records spilt to disk
 // and a crude approximation of the buffer record bytes (simply bufBytes / 2).
-func (d *tsDirWriter) approxTotalBytes() int64 {
-	b := (d.bufSize() / 2)
-	if d.spiller != nil {
-		b += d.spiller.SpillSize()
+func (dw *tsDirWriter) approxTotalBytes() int64 {
+	b := (dw.bufSize() / 2)
+	if dw.spiller != nil {
+		b += dw.spiller.SpillSize()
 	}
 	return b
 }
 
-func (d *tsDirWriter) writeOne(rec *zng.Record) error {
-	d.records = append(d.records, rec)
-	d.addBufSize(int64(len(rec.Raw)))
-	if d.approxTotalBytes() > d.ark.LogSizeThreshold {
-		if err := d.flush(); err != nil {
+func (dw *tsDirWriter) writeOne(rec *zng.Record) error {
+	dw.records = append(dw.records, rec)
+	dw.addBufSize(int64(len(rec.Raw)))
+	if dw.approxTotalBytes() > dw.ark.LogSizeThreshold {
+		if err := dw.flush(); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (d *tsDirWriter) spill() error {
-	if len(d.records) == 0 {
+func (dw *tsDirWriter) spill() error {
+	if len(dw.records) == 0 {
 		return nil
 	}
-	if d.spiller == nil {
+	if dw.spiller == nil {
 		var err error
-		d.spiller, err = spill.NewMergeSort(importCompareFn(d.ark))
+		dw.spiller, err = spill.NewMergeSort(importCompareFn(dw.ark))
 		if err != nil {
 			return err
 		}
-		d.spiller.SetWriterOpts(zngio.WriterOpts{
+		dw.spiller.SetWriterOpts(zngio.WriterOpts{
 			LZ4BlockSize:     importLZ4BlockSize,
 			StreamRecordsMax: importStreamRecordsMax,
 		})
 	}
-	if err := d.spiller.Spill(d.records); err != nil {
+	if err := dw.spiller.Spill(dw.records); err != nil {
 		return err
 	}
-	d.records = d.records[:0]
-	d.addBufSize(d.size * -1)
+	dw.records = dw.records[:0]
+	dw.addBufSize(dw.size * -1)
 	return nil
 }
 
-func (d *tsDirWriter) flush() error {
+func (dw *tsDirWriter) flush() error {
 	var r zbuf.Reader
-	if d.spiller != nil {
-		if err := d.spill(); err != nil {
+	if dw.spiller != nil {
+		if err := dw.spill(); err != nil {
 			return err
 		}
-		spiller := d.spiller
-		d.spiller, r = nil, spiller
+		spiller := dw.spiller
+		dw.spiller, r = nil, spiller
 		defer spiller.Cleanup()
 	} else {
 		// If len of records is 0 and spiller is nil, the tsDirWriter is empty.
 		// Just return nil.
-		if len(d.records) == 0 {
+		if len(dw.records) == 0 {
 			return nil
 		}
-		expr.SortStable(d.records, importCompareFn(d.ark))
-		r = zbuf.Array(d.records).NewReader()
+		expr.SortStable(dw.records, importCompareFn(dw.ark))
+		r = zbuf.Array(dw.records).NewReader()
 		defer func() {
-			d.records = d.records[:0]
-			d.addBufSize(d.size * -1)
+			dw.records = dw.records[:0]
+			dw.addBufSize(dw.size * -1)
 		}()
 	}
-	w, err := newChunkWriter(d.ctx, d.ark, d.tsDir)
+	w, err := newChunkWriter(dw.ctx, dw.ark, dw.uri)
 	if err != nil {
 		return err
 	}
-	if err := zbuf.CopyWithContext(d.ctx, w, r); err != nil {
-		w.close(d.ctx)
+	if err := zbuf.CopyWithContext(dw.ctx, w, r); err != nil {
+		w.close(dw.ctx)
 		return err
 	}
-	if err := w.close(d.ctx); err != nil {
+	if err := w.close(dw.ctx); err != nil {
 		return err
 	}
 	return nil
@@ -244,15 +244,15 @@ type chunkWriter struct {
 	indexTempPath   string
 	indexTempWriter *zngio.Writer
 
-	tsDir           iosrc.URI
 	firstTs, lastTs nano.Ts
-	rcount          int
 	needIndexWrite  bool
+	rcount          int
+	uri             iosrc.URI
 }
 
-func newChunkWriter(ctx context.Context, ark *Archive, tsDir iosrc.URI) (*chunkWriter, error) {
+func newChunkWriter(ctx context.Context, ark *Archive, tsDirUri iosrc.URI) (*chunkWriter, error) {
 	dataFile := newDataFile()
-	out, err := ark.dataSrc.NewWriter(ctx, tsDir.AppendPath(dataFile.name()))
+	out, err := ark.dataSrc.NewWriter(ctx, tsDirUri.AppendPath(dataFile.name()))
 	if err != nil {
 		return nil, err
 	}
@@ -278,49 +278,49 @@ func newChunkWriter(ctx context.Context, ark *Archive, tsDir iosrc.URI) (*chunkW
 		indexBuilder:    indexBuilder,
 		indexTempPath:   indexTempPath,
 		indexTempWriter: indexTempWriter,
-		tsDir:           tsDir,
+		uri:             tsDirUri,
 		needIndexWrite:  true,
 	}, nil
 }
 
-func (c *chunkWriter) Write(rec *zng.Record) error {
+func (cw *chunkWriter) Write(rec *zng.Record) error {
 	// We want to index the start of stream (SOS) position of the data file by
 	// record timestamps; we don't know when we've started a new stream until
 	// after we written the first record in the stream.
-	sos := c.dataFileWriter.LastSOS()
-	if err := c.dataFileWriter.Write(rec); err != nil {
+	sos := cw.dataFileWriter.LastSOS()
+	if err := cw.dataFileWriter.Write(rec); err != nil {
 		return err
 	}
-	c.lastTs = rec.Ts()
-	if c.firstTs == 0 {
-		c.firstTs = c.lastTs
+	cw.lastTs = rec.Ts()
+	if cw.firstTs == 0 {
+		cw.firstTs = cw.lastTs
 	}
-	c.rcount++
-	if c.needIndexWrite {
-		out := c.indexBuilder.Build(zng.EncodeTime(c.lastTs), zng.EncodeInt(sos))
-		if err := c.indexTempWriter.Write(out); err != nil {
+	cw.rcount++
+	if cw.needIndexWrite {
+		out := cw.indexBuilder.Build(zng.EncodeTime(cw.lastTs), zng.EncodeInt(sos))
+		if err := cw.indexTempWriter.Write(out); err != nil {
 			return err
 		}
-		c.needIndexWrite = false
+		cw.needIndexWrite = false
 	}
-	if c.dataFileWriter.LastSOS() != sos {
-		c.needIndexWrite = true
+	if cw.dataFileWriter.LastSOS() != sos {
+		cw.needIndexWrite = true
 	}
 	return nil
 }
 
-func (c *chunkWriter) close(ctx context.Context) error {
-	err := c.dataFileWriter.Close()
-	if closeErr := c.indexTempWriter.Close(); err == nil {
+func (cw *chunkWriter) close(ctx context.Context) error {
+	err := cw.dataFileWriter.Close()
+	if closeErr := cw.indexTempWriter.Close(); err == nil {
 		err = closeErr
 	}
 	if err != nil {
 		return err
 	}
-	c.dataFileWriter = nil
+	cw.dataFileWriter = nil
 	// Write the time seek index into the archive, feeding it the key/offset
 	// records written to indexTempPath.
-	tf, err := fs.Open(c.indexTempPath)
+	tf, err := fs.Open(cw.indexTempPath)
 	if err != nil {
 		return err
 	}
@@ -329,8 +329,8 @@ func (c *chunkWriter) close(ctx context.Context) error {
 		os.Remove(tf.Name())
 	}()
 	tfr := zngio.NewReader(tf, resolver.NewContext())
-	sf := seekIndexFile{id: c.dataFile.id, recordCount: c.rcount, first: c.firstTs, last: c.lastTs}
-	idxURI := c.tsDir.AppendPath(sf.name())
+	sf := seekIndexFile{id: cw.dataFile.id, recordCount: cw.rcount, first: cw.firstTs, last: cw.lastTs}
+	idxURI := cw.uri.AppendPath(sf.name())
 	idxWriter, err := microindex.NewWriter(resolver.NewContext(), idxURI.String(), []string{"ts"}, framesize)
 	if err != nil {
 		return err
