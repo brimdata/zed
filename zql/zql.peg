@@ -170,7 +170,7 @@ RegexpLiteral
     }
 
 SubnetLiteral
-  =  v:ip6subnet !fieldNameRest {
+  = v:ip6subnet !fieldNameRest {
       RETURN(MAP("op": "Literal", "type": "net", "value": v))
     }
   / v:subnet {
@@ -178,7 +178,7 @@ SubnetLiteral
     }
 
 AddressLiteral
-  =  v:ip6addr !fieldNameRest {
+  = v:ip6addr !fieldNameRest {
       RETURN(MAP("op": "Literal", "type": "ip", "value": v))
     }
   / v:addr {
@@ -566,13 +566,13 @@ CastExpression
   / CallExpression
 
 PrimitiveType
- = (   "bytes" / "uint8" / "uint16" / "uint32" / "uint64"
-     / "int8" / "int16" / "int32" / "int64"
-     / "duration" / "time"
-     / "float64"
-     / "bool" / "bytes" / "string" / "bstring"
-     / "ip" / "net"
-     / "type" / "error" / "null" ) { RETURN(TEXT) }
+  = (   "bytes" / "uint8" / "uint16" / "uint32" / "uint64"
+      / "int8" / "int16" / "int32" / "int64"
+      / "duration" / "time"
+      / "float64"
+      / "bool" / "bytes" / "string" / "bstring"
+      / "ip" / "net"
+      / "type" / "error" / "null" ) { RETURN(TEXT) }
 
 CallExpression
   = fn:FunctionName __ "(" args:ArgumentList ")" {

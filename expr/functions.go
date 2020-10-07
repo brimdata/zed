@@ -566,11 +566,10 @@ func typeOf(args *Args) (zng.Value, error) {
 
 func isErr(args *Args) (zng.Value, error) {
 	zv := args.vals[0]
-	result := zng.True
-	if zv.Type != zng.TypeError {
-		result = zng.False
+	if zv.Type == zng.TypeError {
+		return zng.True, nil
 	}
-	return result, nil
+	return zng.False, nil
 }
 
 func fromBase64(args *Args) (zng.Value, error) {

@@ -1,9 +1,13 @@
-zql: "put s=e:string"
+script: |
+  zq -i tzng in.tzng
 
-input: |
-  #0:record[e:enum[int32,foo:[1],bar:[2],baz:[4]]]
-  0:[100;]
+inputs:
+  - name: in.tzng
+    data: |
+      #0:record[e:enum[int32,foo:[1],bar:[2],baz:[4]]]
+      0:[100;]
 
-output: |
-  #0:record[e:enum[int32,foo:[1],bar:[2],baz:[4]],s:error]
-  0:[100;enum index out of bounds;]
+outputs:
+  - name: stderr
+    regexp: |
+      enum selector out of range

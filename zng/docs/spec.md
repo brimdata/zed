@@ -10,16 +10,11 @@
 > the zq output format is subject to change.  In this branch,
 > zq attempts to implement everything herein excepting:
 >
-> * the `bytes` type is not yet implemented,
-> * the `enum` type is not yet implemented,
 > * only streams of `record` types (which may consist of any combination of
 >   other implemented types) are supported by zq even though a stream of
 >   any types may currently be expressed in value messages.
 >
-> TBD: should we add maps? It would be a complex type comprising
-> a list of key/values where the key type and value type is defined in the
-> map typedef.  The contrarian view is that maps are easily represented
-> as a sequence of record[key:keyType,value:valueType].
+> TBD: implement TZNG EOS in zq
 
 * [1. Introduction](#1-introduction)
 * [2. The ZNG Data Model](#2-the-zng-data-model)
@@ -340,10 +335,10 @@ followed by the names and values of each element.
 --------------------------------------------------------
 ```
 `<type-id>` and `<nelem>` are encoded as `uvarint`.
-The names have the same UTF-8 format a record field names and are encoded
+The names have the same UTF-8 format as record field names and are encoded
 as tag-encoded primitive strings.  Each value is encoded as
 a tag-encoded value in accordance with the type indicated
-by ``<type-id>`.
+by `<type-id>`.
 
 #### 3.1.1.6 Map Typedef
 
@@ -379,7 +374,7 @@ A type alias is encoded as follows:
 ```
 where `<name>` is an identifier representing the new type name with a new type ID
 allocated as the next available type ID in the stream that refers to the
-existing type ID ``<type-id>``.  ``<type-id>`` is encoded as a `uvarint` and `<name>`
+existing type ID `<type-id>.  `<type-id> is encoded as a `uvarint` and `<name>`
 is encoded as a `uvarint` representing the length of the name in bytes,
 followed by that many bytes of UTF-8 string.
 
@@ -401,7 +396,7 @@ sequence must not include control messages.
 > value in the buffer).  Since blocks may be dropped without parsing using
 > such an optimization, any typedefs should be lifted out into the zng data
 > stream in front of the compressed blocks (i.e., the stream is rearranged
-// but its always safe to move typedefs earlier in the stream as long as
+> but it's always safe to move typedefs earlier in the stream as long as
 > the typedef order is preserved and a zng end-of-stream is not crossed).
 > For application-specific messages and end-of-stream, a compressed buffer
 > should be terminated and these messages sent as uncompressed data.
@@ -667,14 +662,12 @@ is any UTF-8 string with escaped newlines.
 
 A TZNG end-of-stream marker has the following form:
 ```
-#!255
+#eos
 ```
 A TZNG stream or file should always be terminated with end-of-stream.
 This clears all of the previous type tag bindings and aliases, allowing
 multiple TZNG files with overlapping tags to be concatenated without the
 tags colliding.
-
-> TBD: implement TZNG EOS in zq
 
 ### 4.2 Type Grammar
 

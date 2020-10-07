@@ -25,8 +25,7 @@ func NewReader(reader io.Reader, zctx *resolver.Context) (*Reader, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, err = zctx.LookupTypeAlias("port", zng.TypeUint16)
-	if err != nil {
+	if _, err = zctx.LookupTypeAlias("port", zng.TypeUint16); err != nil {
 		return nil, err
 	}
 	buffer := make([]byte, ReadSize)

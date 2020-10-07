@@ -150,6 +150,12 @@ func (r *Record) TypeCheck() error {
 			}
 			return SkipContainer
 		}
+		if typ, ok := typ.(*TypeEnum); ok {
+			if err := checkEnum(typ, body); err != nil {
+				return err
+			}
+			return SkipContainer
+		}
 		return nil
 	})
 }
@@ -183,6 +189,20 @@ func checkSet(typ *TypeSet, body zcode.Bytes) error {
 			}
 		}
 		prev = tagAndBody
+	}
+	return nil
+}
+
+func checkEnum(typ *TypeEnum, body zcode.Bytes) error {
+	if body == nil {
+		return nil
+	}
+	selector, err := DecodeUint(body)
+	if err != nil {
+		return err
+	}
+	if int(selector) >= len(typ.Elements) {
+		return errors.New("enum selector out of range")
 	}
 	return nil
 }

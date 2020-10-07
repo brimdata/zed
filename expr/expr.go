@@ -674,7 +674,7 @@ func lookupKey(mapBytes, target zcode.Bytes) (zcode.Bytes, bool) {
 		if err != nil {
 			return nil, false
 		}
-		if len(key) == len(target) && bytes.Compare(key, target) == 0 {
+		if bytes.Compare(key, target) == 0 {
 			return val, true
 		}
 	}
@@ -752,7 +752,7 @@ func indexRecord(typ *zng.TypeRecord, record zcode.Bytes, index zng.Value) (zng.
 func indexMap(typ *zng.TypeMap, mapBytes zcode.Bytes, key zng.Value) (zng.Value, error) {
 	if key.Type != typ.KeyType {
 		//XXX should try coercing?
-		return zng.NewError(errors.New("map key type does not match index type ()")), nil
+		return zng.NewError(errors.New("map key type does not match index type")), nil
 	}
 	if valBytes, ok := lookupKey(mapBytes, key.Bytes); ok {
 		return zng.Value{typ.ValType, valBytes}, nil
