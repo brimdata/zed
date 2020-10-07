@@ -99,13 +99,13 @@ func (iw *importWriter) spillLargestBuffer() error {
 	return dw.spill()
 }
 
-func (i *importWriter) close() error {
+func (iw *importWriter) close() error {
 	var merr error
-	for ts, w := range i.writers {
+	for ts, w := range iw.writers {
 		if err := w.flush(); err != nil {
 			merr = multierr.Append(merr, err)
 		}
-		delete(i.writers, ts)
+		delete(iw.writers, ts)
 	}
 	return merr
 }
