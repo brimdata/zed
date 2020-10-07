@@ -39,13 +39,13 @@ func init() {
 
 type Command struct {
 	*root.Command
-	root       string
-	dataPath   string
-	thresh     units.Bytes
+	root          string
+	dataPath      string
+	thresh        units.Bytes
 	importBufSize units.Bytes
-	empty      bool
-	inputFlags inputflags.Flags
-	procFlags  procflags.Flags
+	empty         bool
+	inputFlags    inputflags.Flags
+	procFlags     procflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
