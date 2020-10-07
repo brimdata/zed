@@ -5,7 +5,7 @@ export GO111MODULE=on
 VERSION = $(shell git describe --tags --dirty --always)
 ECR_VERSION = $(VERSION)-$(ZQD_K8S_USER)
 LDFLAGS = -s -X github.com/brimsec/zq/cli.Version=$(VERSION)
-ZEEKTAG = v3.2.1-brim1
+ZEEKTAG = v3.2.1-brim2
 ZEEKPATH = zeek-$(ZEEKTAG)
 SURICATATAG = v5.0.3-brim4
 SURICATAPATH = suricata-$(SURICATATAG)
