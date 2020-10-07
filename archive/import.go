@@ -110,9 +110,9 @@ func (i *importWriter) close() error {
 	return merr
 }
 
-// tsDirWriter accumlates to records to be written to a particular tsDir-
-// currently segmented by day. When a tsdir receives enough records to exceed
-// ark.LogSizeThreshold, the underlying records are written to a chunk file in
+// tsDirWriter accumulates records for one tsDir.
+// When the expected size of writing the records is greater than
+// ark.LogSizeThreshold, they are written to a chunk file in
 // the archive.
 type tsDirWriter struct {
 	importWriter *importWriter
