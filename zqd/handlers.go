@@ -118,8 +118,14 @@ func handleWorker(c *Core, w http.ResponseWriter, httpReq *http.Request) {
 		return
 	}
 
-	println("handlers.handleWorker req chunk is ",
-		req.ChunkFileKind, req.ChunkId, req.ChunkRecordCount, req.ChunkFirst, req.ChunkLast)
+	if len(req.Chunks) > 0 {
+		println("handlers.handleWorker req chunk is ",
+			req.Chunks[0].DataFileKind,
+			req.Chunks[0].Id,
+			req.Chunks[0].RecordCount,
+			req.Chunks[0].First,
+			req.Chunks[0].Last)
+	}
 
 	space, err := c.spaces.Get(req.Space)
 	if err != nil {

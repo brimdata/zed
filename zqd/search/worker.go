@@ -37,21 +37,22 @@ func NewWorkerOp(req api.WorkerRequest) (*WorkerOp, error) {
 	}
 	//query, err := UnpackQuery(req)
 
-	id, err := ksuid.Parse(req.ChunkId)
-	if err != nil {
-		return nil, zqe.E(zqe.Invalid, "unparsable ksuid")
+	chunks := make([]archive.Chunk, len(req.Chunks))
+	for i, chunk := range req.Chunks {
+		id, err := ksuid.Parse(chunk.Id)
+		if err != nil {
+			return nil, zqe.E(zqe.Invalid, "unparsable ksuid")
+		}
+		chunks[i].Id = id
+		chunks[i].First = chunk.First
+		chunks[i].Last = chunk.Last
+		chunks[i].DataFileKind = archive.FileKind(chunk.DataFileKind)
+		chunks[i].RecordCount = chunk.RecordCount
 	}
 
-	chunk := archive.Chunk{
-		Id:           id,
-		First:        req.ChunkFirst,
-		Last:         req.ChunkLast,
-		DataFileKind: archive.FileKind(req.ChunkFileKind),
-		RecordCount:  req.ChunkRecordCount,
-	}
 	si := archive.SpanInfo{
-		Span:   chunk.Span(), // make a Span from the chunk
-		Chunks: []archive.Chunk{chunk},
+		Span:   req.Span,
+		Chunks: chunks,
 	}
 
 	proc, err := ast.UnpackJSON(nil, req.Proc)

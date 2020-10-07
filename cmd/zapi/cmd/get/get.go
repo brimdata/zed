@@ -174,6 +174,7 @@ func parseExpr(spaceID api.SpaceID, expr string) (*api.SearchRequest, error) {
 
 // parseExprPlusChunk creates an api.WorkerRequest to be used with the client.
 func parseExprPlusChunk(spaceID api.SpaceID, expr string, chunkInfo string) (*api.WorkerRequest, error) {
+	// This is only for testing usng the -chunk flag
 	search, err := zql.ParseProc(expr)
 	if err != nil {
 		return nil, err
@@ -199,17 +200,24 @@ func parseExprPlusChunk(spaceID api.SpaceID, expr string, chunkInfo string) (*ap
 		return nil, fmt.Errorf("chunk flag list must be string-string-int-int64-int64  %s", err)
 	}
 
+	firstTs := nano.Ts(first)
+	lastTs := nano.Ts(last)
+	span := nano.Span{Ts: firstTs, Dur: 1}.Union(nano.Span{Ts: lastTs, Dur: 1})
+
 	return &api.WorkerRequest{
 		SearchRequest: api.SearchRequest{
 			Space: spaceID,
 			Proc:  proc,
 			Dir:   -1,
+			Span:  span,
 		},
-		ChunkFileKind:    chunkInfoArr[0],
-		ChunkId:          chunkInfoArr[01],
-		ChunkRecordCount: recordCount,
-		ChunkFirst:       nano.Ts(first),
-		ChunkLast:        nano.Ts(last),
+		Chunks: []api.ChunkEntry{api.ChunkEntry{
+			Id:           chunkInfoArr[1],
+			First:        firstTs,
+			Last:         lastTs,
+			DataFileKind: chunkInfoArr[0],
+			RecordCount:  recordCount,
+		}},
 	}, nil
 }
 

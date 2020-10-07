@@ -47,11 +47,15 @@ type SearchRequest struct {
 
 type WorkerRequest struct {
 	SearchRequest
-	ChunkFileKind    string  `json:"filekind" validate:"required"`
-	ChunkId          string  `json:"ksuid" validate:"required"`
-	ChunkRecordCount int     `json:"recordcount" validate:"required"`
-	ChunkFirst       nano.Ts `json:"first" validate:"required"`
-	ChunkLast        nano.Ts `json:"last" validate:"required"`
+	Chunks []ChunkEntry `json:"chunks"`
+}
+
+type ChunkEntry struct {
+	Id           string  `json:"ksuid" validate:"required"`
+	First        nano.Ts `json:"first" validate:"required"`
+	Last         nano.Ts `json:"last" validate:"required"`
+	DataFileKind string  `json:"filekind" validate:"required"`
+	RecordCount  int     `json:"recordcount" validate:"required"`
 }
 
 type SearchRecords struct {
