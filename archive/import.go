@@ -92,7 +92,7 @@ func (iw *importWriter) Write(rec *zng.Record) error {
 func (iw *importWriter) spillLargestBuffer() error {
 	var dw *tsDirWriter
 	for _, w := range iw.writers {
-		if dw == nil || w.size > dw.size {
+		if dw == nil || w.bufSize > dw.bufSize {
 			dw = w
 		}
 	}
@@ -119,7 +119,7 @@ type tsDirWriter struct {
 	ctx          context.Context
 	importWriter *importWriter
 	records      []*zng.Record
-	size         int64
+	bufSize      int64
 	spiller      *spill.MergeSort
 	tsDir        tsDir
 	uri          iosrc.URI
@@ -142,22 +142,14 @@ func newTsDirWriter(iw *importWriter, tsDir tsDir) (*tsDirWriter, error) {
 }
 
 func (dw *tsDirWriter) addBufSize(delta int64) {
-	old := dw.bufSize()
-	dw.size += delta
-	dw.importWriter.memBuffered += dw.bufSize() - old
+	dw.bufSize += delta
+	dw.importWriter.memBuffered += delta
 }
 
-// bufSize returns the actually buffer size as a multiple of importLZ4BlockSize.
-// This is done to ensure that whenever spill the generated spill is compressed
-// nicely onto disk.
-func (dw *tsDirWriter) bufSize() int64 {
-	return (dw.size / int64(importLZ4BlockSize)) * int64(importLZ4BlockSize)
-}
-
-// approxTotalBytes is the sum of the size of compressed records spilt to disk
+// totalRecordBytes is the sum of the size of compressed records spilt to disk
 // and a crude approximation of the buffer record bytes (simply bufBytes / 2).
-func (dw *tsDirWriter) approxTotalBytes() int64 {
-	b := (dw.bufSize() / 2)
+func (dw *tsDirWriter) totalRecordBytes() int64 {
+	b := dw.bufSize
 	if dw.spiller != nil {
 		b += dw.spiller.SpillSize()
 	}
@@ -167,7 +159,7 @@ func (dw *tsDirWriter) approxTotalBytes() int64 {
 func (dw *tsDirWriter) writeOne(rec *zng.Record) error {
 	dw.records = append(dw.records, rec)
 	dw.addBufSize(int64(len(rec.Raw)))
-	if dw.approxTotalBytes() > dw.ark.LogSizeThreshold {
+	if dw.totalRecordBytes() > dw.ark.LogSizeThreshold {
 		if err := dw.flush(); err != nil {
 			return err
 		}
@@ -194,7 +186,7 @@ func (dw *tsDirWriter) spill() error {
 		return err
 	}
 	dw.records = dw.records[:0]
-	dw.addBufSize(dw.size * -1)
+	dw.addBufSize(dw.bufSize * -1)
 	return nil
 }
 
@@ -217,7 +209,7 @@ func (dw *tsDirWriter) flush() error {
 		r = zbuf.Array(dw.records).NewReader()
 		defer func() {
 			dw.records = dw.records[:0]
-			dw.addBufSize(dw.size * -1)
+			dw.addBufSize(dw.bufSize * -1)
 		}()
 	}
 	w, err := newChunkWriter(dw.ctx, dw.ark, dw.uri)

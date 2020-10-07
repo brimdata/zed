@@ -20,7 +20,7 @@ outputs:
   - name: stdout
     data: |
       #0:record[key:ip,count:uint64,first:time,last:time]
-      0:[192.168.1.102;1;2;1;]
+      0:[192.168.1.102;1;1;1;]
       ===
       #0:record[key:ip,count:uint64,first:time,last:time]
-      0:[192.168.1.103;1;2;1;]
+      0:[192.168.1.103;1;2;2;]
