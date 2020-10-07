@@ -235,8 +235,7 @@ func (dw *tsDirWriter) flush() error {
 }
 
 // chunkWriter is a zbuf.Writer that writes a stream of sorted records into an
-// archive chunk file. chunkWriter is created and written to  by tsDirWriter
-// when it recieves the tsDirWriter.flush() call.
+// archive chunk file.
 type chunkWriter struct {
 	dataFile        dataFile
 	dataFileWriter  *zngio.Writer
