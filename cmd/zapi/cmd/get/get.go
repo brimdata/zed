@@ -202,7 +202,7 @@ func parseExprPlusChunk(spaceID api.SpaceID, expr string, chunkInfo string) (*ap
 
 	firstTs := nano.Ts(first)
 	lastTs := nano.Ts(last)
-	span := nano.Span{Ts: firstTs, Dur: 1}.Union(nano.Span{Ts: lastTs, Dur: 1})
+	span := nano.NewSpanTs(firstTs, lastTs)
 
 	return &api.WorkerRequest{
 		SearchRequest: api.SearchRequest{
