@@ -24,9 +24,10 @@ import (
 )
 
 var Get = &charm.Spec{
-	Name:  "get",
-	Usage: "get [options] <search>",
-	Short: "perform zql searches",
+	Name:        "get",
+	Usage:       "get [options] <search>",
+	Short:       "perform zql searches",
+	HiddenFlags: "chunk",
 	Long: `
 zapi get issues search requests to the zqd search service.
 
