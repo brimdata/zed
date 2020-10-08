@@ -151,10 +151,15 @@ build-python-lib:
 clean-python:
 	@rm -rf python/build
 
-zql/zql.go: zql/zql.peg
+PEG_GEN = zql/zql.go zql/zql.js zql/zql.es.js
+$(PEG_GEN): zql/zql.peg zql/Makefile
 	$(MAKE) -C zql
 
-peg: zql/zql.go FORCE
+# This rule is best for edit-compile-debug cycle of peg development.  It should
+# properly trigger rebuilds of peg-generated code, but best to run "make" in the
+# zql subdirectory if you are changing versions of pigeon, pegjs, or javascript
+# dependencies.
+peg: $(PEG_GEN) FORCE
 	go run ./cmd/ast -repl
 
 FORCE:
