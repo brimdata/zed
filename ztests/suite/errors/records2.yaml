@@ -8,4 +8,4 @@ inputs:
 outputs:
   - name: stderr
     regexp: |
-      expected primitive type, got container
+      zjson primitive value is not a JSON string

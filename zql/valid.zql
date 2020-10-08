@@ -4,7 +4,6 @@ foo | count()
 * | count() by _path -limit 10
 * | every 1h count() by _path -limit 10
 * | filter x=1
-:80
 _path=conn
 _path=conn id.resp_p=80
 * | count(), sum(foo)

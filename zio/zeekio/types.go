@@ -84,8 +84,11 @@ func zngTypeToZeek(typ zng.Type) (string, error) {
 		if typ.Name == "zenum" {
 			return "enum", nil
 		}
+		if typ.Name == "port" {
+			return "port", nil
+		}
 		return zngTypeToZeek(typ.Type)
-	case *zng.TypeOfBool, *zng.TypeOfString, *zng.TypeOfPort, *zng.TypeOfTime:
+	case *zng.TypeOfBool, *zng.TypeOfString, *zng.TypeOfTime:
 		return typ.String(), nil
 	default:
 		return "", fmt.Errorf("type %s: %w", typ, ErrIncompatibleZeekType)

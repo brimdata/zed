@@ -183,6 +183,33 @@ func (b Bool) Bool() (bool, error) {
 	return bool(b), nil
 }
 
+func Unpack(v Interface) interface{} {
+	switch v := v.(type) {
+	case nil:
+		return nil
+	case String:
+		return string(v)
+	case Number:
+		return float64(v)
+	case Bool:
+		return bool(v)
+	case Array:
+		var elements []interface{}
+		for _, elem := range v {
+			elements = append(elements, Unpack(elem))
+		}
+		return elements
+	case Object:
+		object := make(map[string]interface{})
+		for key, val := range v {
+			object[key] = Unpack(val)
+		}
+		return object
+	default:
+		panic(fmt.Sprintf("unknown type in joe.Unpack(): %v", v))
+	}
+}
+
 func Convert(v interface{}) Interface {
 	switch v := v.(type) {
 	case nil:

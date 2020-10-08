@@ -30,6 +30,7 @@ func (t *TypeSet) SetID(id int) {
 func (t *TypeSet) String() string {
 	return fmt.Sprintf("set[%s]", t.InnerType)
 }
+
 func (t *TypeSet) Decode(zv zcode.Bytes) ([]Value, error) {
 	if zv == nil {
 		return nil, ErrUnset
@@ -38,7 +39,7 @@ func (t *TypeSet) Decode(zv zcode.Bytes) ([]Value, error) {
 }
 
 func (t *TypeSet) Parse(in []byte) (zcode.Bytes, error) {
-	panic("zeek.TypeSet.Parse shouldn't be called")
+	return ParseContainer(t, in)
 }
 
 func (t *TypeSet) StringOf(zv zcode.Bytes, fmt OutFmt, _ bool) string {

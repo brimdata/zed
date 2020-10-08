@@ -191,6 +191,27 @@ where `<type1>` through `<typen>` comprise the types of the union and
 encode any ZJSON type described herein.
 
 
+#### Enum Type
+
+A ZNG enum type is a JSON object of the form
+```
+{
+        type: "enum",
+        of: [ <type>, <elem1>, ... <elemn> ]
+}
+```
+where `<type>` represents the type of the enum values and each elements
+`<elem1>` ... `<elemn>` is of the form
+```
+{
+        name: <name>,
+        value: <val>,
+}
+```
+where `<name>` is a string defining the enumeration element name and `<value>`
+is a string representing the value of the element as encoded according to the
+syntax below.
+
 ### Alias Encoding
 
 Aliases are encoded as a binding between a name and a ZNG type.

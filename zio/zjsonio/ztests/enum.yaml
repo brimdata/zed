@@ -1,0 +1,19 @@
+script: |
+  zq -f zjson in.tzng | zq -t -
+
+
+inputs:
+  - name: in.tzng
+    data: |
+      #0:record[e:enum[int32,foo:[1],bar:[2],baz:[4]]]
+      0:[0;]
+      0:[1;]
+      0:[2;]
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[e:enum[int32,foo:[1],bar:[2],baz:[4]]]
+      0:[0;]
+      0:[1;]
+      0:[2;]

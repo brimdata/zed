@@ -1,6 +1,6 @@
 script: |
   source services.sh
-  zapi -h $ZQD_HOST new testsp 
+  zapi -h $ZQD_HOST new testsp
   zapi -h $ZQD_HOST -s testsp pcappost -f ng.pcap >/dev/null
   echo ===
   zapi -h $ZQD_HOST -s testsp get -f tzng "_path != stats | cut -c uid | sort -r ts, _path"
@@ -20,6 +20,7 @@ outputs:
       ===
       #0:record[_path:string,ts:time,ts_delta:duration,peer:bstring,gaps:uint64,acks:uint64,percent_lost:float64]
       0:[capture_loss;1425568893.736974;0.001192;zeek;0;0;0;]
+      #port=uint16
       #zenum=string
       #1:record[_path:string,ts:time,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],proto:zenum,service:bstring,duration:duration,orig_bytes:uint64,resp_bytes:uint64,conn_state:bstring,local_orig:bool,local_resp:bool,missed_bytes:uint64,history:bstring,orig_pkts:uint64,orig_ip_bytes:uint64,resp_pkts:uint64,resp_ip_bytes:uint64,tunnel_parents:set[bstring],geo:record[orig:record[country_code:bstring,region:bstring,city:bstring,latitude:float64,longitude:float64],resp:record[country_code:bstring,region:bstring,city:bstring,latitude:float64,longitude:float64]]]
       1:[conn;1425568893.735782;[192.168.0.2;34446;130.236.100.79;80;]tcp;-;0.001192;0;2776;OTH;-;-;0;Ad;1;52;2;2880;-;[[-;-;-;-;-;][SE;E;Linköping;58.4167;15.6167;]]]

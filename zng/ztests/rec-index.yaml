@@ -1,0 +1,9 @@
+zql: 'put x=r[".bar@"]+3'
+
+input: |
+  #0:record[r:record[[.bar@]:int32,x:string]]
+  0:[[123;hello;]]
+
+output: |
+  #0:record[r:record[[.bar@]:int32,x:string],x:int64]
+  0:[[123;hello;]126;]

@@ -68,6 +68,11 @@ func (b *Builder) AppendPrimitive(val []byte) {
 	b.bytes = AppendPrimitive(b.bytes, val)
 }
 
+// AppendPrimitive appends val as a primitive value.
+func (b *Builder) AppendNull() {
+	b.bytes = append(b.bytes, tagNull)
+}
+
 // Bytes returns the constructed value.  It panics if the receiver has an open
 // container.
 func (b *Builder) Bytes() Bytes {

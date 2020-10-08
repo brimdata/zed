@@ -34,9 +34,5 @@ func ParseLiteral(literal ast.Literal) (interface{}, error) {
 	case *TypeOfBstring:
 		s, err := DecodeString(v.Bytes)
 		return Bstring(s), err
-	case *TypeOfPort:
-		// return as a native Port
-		p, err := DecodeUint(v.Bytes)
-		return Port(p), err
 	}
 }

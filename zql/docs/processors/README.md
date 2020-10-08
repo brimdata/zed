@@ -71,7 +71,7 @@ TS                UID                NAME                             ADDL      
 If the requested list of named fields returns no results, `cut` returns a warning.
 
 ```zq-command
-zq -f table 'cut nothere,alsoabsent' weird.log.gz 
+zq -f table 'cut nothere,alsoabsent' weird.log.gz
 ```
 
 #### Output:
@@ -161,7 +161,7 @@ ssl   1521912240.189735 CSbGJs3jOeB6glWLJj 10.47.7.154 27137     52.85.83.215 44
 
 |                           |                                                   |
 | ------------------------- | ------------------------------------------------- |
-| **Description**           | Transforms input records into output records that unify the field and type information across all records in the query result. | 
+| **Description**           | Transforms input records into output records that unify the field and type information across all records in the query result. |
 | **Syntax**                | `fuse`                                            |
 | **Required<br>arguments** | None                                              |
 | **Optional<br>arguments** | None                                              |
@@ -226,7 +226,7 @@ Other output formats invoked via `zq -f` that benefit greatly from the use of `f
 | ------------------------- | --------------------------------------------------------------------- |
 | **Description**           | Return only the first N events.                                       |
 | **Syntax**                | `head [N]`                                                            |
-| **Required<br>arguments** | None. If no arguments are specified, only the first event is returned.| 
+| **Required<br>arguments** | None. If no arguments are specified, only the first event is returned.|
 | **Optional<br>arguments** | `[N]`<br>An integer specifying the number of results to return. If not specified, defaults to `1`. |
 | **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/proc/head                     |
 
@@ -249,7 +249,7 @@ dns   1521911720.865716 C2zK5f13SbCtKcyiW5 10.47.1.100 41772     10.0.0.100 53  
 To see the first five `conn` events with activity on port `80`:
 
 ```zq-command
-zq -f table ':80 | head 5' conn.log.gz
+zq -f table 'id.resp_p=80 | head 5' conn.log.gz
 ```
 
 #### Output:
@@ -336,7 +336,7 @@ conn  1521911722.690601 CuKFds250kxFgkhh8f 10.47.25.80    50813            10.12
 
 |                           |                                                                           |
 | ------------------------- | ------------------------------------------------------------------------- |
-| **Description**           | Sort events based on the order of values in the specified named field(s). | 
+| **Description**           | Sort events based on the order of values in the specified named field(s). |
 | **Syntax**                | `sort [-r] [-nulls first\|last] [field-list]`                 |
 | **Required<br>arguments** | None                                                                      |
 | **Optional<br>arguments** | `[-r]`<br>If specified, results will be sorted in reverse order.<br><br>`[-nulls first\|last]`<br>Specifies where null values (i.e., values that are unset or that are not present at all in an incoming record) should be placed in the output.<br><br>`[field-list]`<br>One or more comma-separated field names by which to sort. Results will be sorted based on the values of the first field named in the list, then based on values in the second field named in the list, and so on.<br><br>If no field list is provided, sort will automatically pick a field by which to sort. The pick is done by examining the first result returned and finding the first field in left-to-right that is of one of the integer ZNG [data types](../data-types/README.md) (`int16`, `uint16`, `int32`, `uint32`, `int64`, `uint64`) and if no integer fields are found, the first `float64` field is used. If no fields of these numeric types are found, sorting will be performed on the first field found in left-to-right order that is _not_ of the `time` data type. |
@@ -434,7 +434,7 @@ wwonka       1
 | ------------------------- | --------------------------------------------------------------------- |
 | **Description**           | Return only the last N events.                                        |
 | **Syntax**                | `tail [N]`                                                            |
-| **Required<br>arguments** | None. If no arguments are specified, only the last event is returned. | 
+| **Required<br>arguments** | None. If no arguments are specified, only the last event is returned. |
 | **Optional<br>arguments** | `[N]`<br>An integer specifying the number of results to return. If not specified, defaults to `1`. |
 | **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/proc/tail                     |
 
@@ -457,7 +457,7 @@ dns   1521912990.151237 C0ybvu4HG3yWv6H5cb 172.31.255.5 60878     10.0.0.1  53  
 To see the last five `conn` events with activity on port `80`:
 
 ```zq-command
-zq -f table ':80 | tail 5' conn.log.gz
+zq -f table 'id.resp_p=80 | tail 5' conn.log.gz
 ```
 
 #### Output:
@@ -478,7 +478,7 @@ conn  1521912988.752765 COICgc1FXHKteyFy67 10.0.0.227     61314     10.47.5.58  
 | ------------------------- | --------------------------------------------------------------------- |
 | **Description**           | Remove adjacent duplicate events from the output, leaving only unique results.<br><br>Note that due to the large number of fields in typical events, and many fields whose values change often in subtle ways between events (e.g. timestamps), this processor will most often apply to the trimmed output from the [`cut`](#cut) processor. Furthermore, since duplicate field values may not often be adjacent to one another, upstream use of [`sort`](#sort) may also often be appropriate.
 | **Syntax**                | `uniq [-c]`                                                           |
-| **Required<br>arguments** | None                                                                  | 
+| **Required<br>arguments** | None                                                                  |
 | **Optional<br>arguments** | `[-c]`<br>For each unique value shown, include a numeric count of how many times it appeared. |
 | **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/proc/uniq                     |
 

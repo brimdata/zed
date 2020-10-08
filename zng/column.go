@@ -15,7 +15,7 @@ func NewColumn(name string, typ Type) Column {
 }
 
 func (c *Column) String() string {
-	return c.Name + ":" + c.Type.String()
+	return FormatName(c.Name) + ":" + c.Type.String()
 }
 
 func ColumnString(prefix string, columns []Column, suffix string) string {

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"bytes"
 	"io"
 
 	"github.com/brimsec/zq/zio/zngio"
@@ -29,17 +28,17 @@ func (r *ZngSearch) SetOnCtrl(cb func(interface{})) {
 
 func (r *ZngSearch) Read() (*zng.Record, error) {
 	for {
-		rec, b, err := r.reader.ReadPayload()
-		if err != nil || b == nil {
+		rec, msg, err := r.reader.ReadPayload()
+		if err != nil || msg == nil {
 			return rec, err
 		}
-		if !bytes.HasPrefix(b, []byte("json:")) {
+		if msg.Encoding != zng.AppEncodingJSON {
 			// We expect only json control payloads.
 			// XXX should log error if something else,
 			// but just skip for now.
 			continue
 		}
-		ctrl, err := unpack(b[5:])
+		ctrl, err := unpack(msg.Bytes)
 		if err != nil {
 			return nil, err
 		}

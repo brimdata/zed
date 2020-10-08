@@ -42,7 +42,7 @@ func (t *TypeUnion) String() string {
 }
 
 func (t *TypeUnion) Parse(in []byte) (zcode.Bytes, error) {
-	panic("TypeUnion.Parse shouldn't be called")
+	return ParseContainer(t, in)
 }
 
 // SplitZng takes a zng encoding of a value of the receiver's union type and

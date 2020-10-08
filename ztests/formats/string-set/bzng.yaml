@@ -1,6 +1,6 @@
 zql: '*'
 
-input: !!binary ggEQgAEBZhcYAQEYAQMYAgUAGAULCGR1cBgFCwRhBHoYBQsEYQR6GAoVAARhBHoIZHVwhQ==
+input: !!binary +BH2AQFmFxgBABgBARgCAwAYBQkIZHVwGAUJBGEEehgFCQRhBHoYChMABGEEeghkdXD/
 
 output: |
   #0:record[f:set[bstring]]

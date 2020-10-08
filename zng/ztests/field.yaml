@@ -1,0 +1,9 @@
+zql: "*"
+
+input: |
+  #0:record[[foo]:bytes,[.bar@]:int32,x:string]
+  0:[aGksIHdvcmxk;123;hello;]
+
+output: |
+  #0:record[foo:bytes,[.bar@]:int32,x:string]
+  0:[aGksIHdvcmxk;123;hello;]

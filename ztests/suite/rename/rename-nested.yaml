@@ -1,6 +1,7 @@
 zql: rename id.dst=id.resp_h, id.src=id.orig_h, net=id
 
 input: |
+  #port=uint16
   #0:record[id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port]]
   0:[[10.164.94.120;39681;10.47.3.155;3389;]]
   0:[[10.164.94.121;39681;10.47.3.155;3390;]]
@@ -8,6 +9,7 @@ input: |
   1:[[39681;3389;]]
 
 output: |
+  #port=uint16
   #0:record[net:record[src:ip,orig_p:port,dst:ip,resp_p:port]]
   0:[[10.164.94.120;39681;10.47.3.155;3389;]]
   0:[[10.164.94.121;39681;10.47.3.155;3390;]]

@@ -236,6 +236,7 @@ func TestCompareNumbers(t *testing.T) {
 		// number-ish types: port, time, duration
 		if typ != "float64" {
 			src = fmt.Sprintf(`
+#port=uint16
 #0:record[x:%s,p:port,t:time,d:duration]
 0:[1;80;1583794452;1000;]`, typ)
 			record, err = parseOneRecord(src)
@@ -357,6 +358,7 @@ func TestCompareNumbers(t *testing.T) {
 
 func TestCompareNonNumbers(t *testing.T) {
 	record, err := parseOneRecord(`
+#port=uint16
 #0:record[b:bool,s:string,bs:bstring,i:ip,p:port,net:net,t:time,d:duration]
 0:[t;hello;world;10.1.1.1;443;10.1.0.0/16;1583794452;1000;]`)
 	require.NoError(t, err)
@@ -389,8 +391,6 @@ func TestCompareNonNumbers(t *testing.T) {
 	// port
 	testSuccessful(t, "p = 443", record, zbool(true))
 	testSuccessful(t, "p != 443", record, zbool(false))
-	testSuccessful(t, "p = :443", record, zbool(true))
-	testSuccessful(t, "p != :443", record, zbool(false))
 
 	// net
 	testSuccessful(t, "net = 10.1.0.0/16", record, zbool(true))

@@ -267,7 +267,7 @@ func LookupCompare(typ zng.Type) comparefn {
 			return 0
 		}
 
-	case zng.IdUint16, zng.IdUint32, zng.IdUint64, zng.IdPort:
+	case zng.IdUint16, zng.IdUint32, zng.IdUint64:
 		return func(a, b zcode.Bytes) int {
 			va, err := zng.DecodeUint(a)
 			if err != nil {

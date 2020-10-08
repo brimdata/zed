@@ -7,6 +7,7 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zng"
 )
 
 // ZngOutput writes zng encodings directly to the client via
@@ -62,8 +63,7 @@ func (r *ZngOutput) SendControl(ctrl interface{}) error {
 		//XXX need a better json error message
 		return err
 	}
-	b := []byte("json:")
-	if err := r.writer.WriteControl(append(b, msg...)); err != nil {
+	if err := r.writer.WriteControl(msg, zng.AppEncodingJSON); err != nil {
 		return err
 	}
 	r.flush()

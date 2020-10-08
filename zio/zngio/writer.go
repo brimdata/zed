@@ -74,11 +74,20 @@ func (w *Writer) Position() int64 {
 	return w.ow.off
 }
 
-func (w *Writer) EndStream() error {
+func (w *Writer) flushCompressor() error {
+	var err error
 	if w.cw != nil {
-		if err := w.cw.Flush(); err != nil {
-			return err
-		}
+		err = w.cw.Flush()
+	}
+	return err
+}
+
+func (w *Writer) EndStream() error {
+	// Flush any compression state and write the EOS afterward the
+	// compressed block since the buffer-filter may skip entire
+	// compressed before and we would otherwise miss the EOS marker.
+	if err := w.flushCompressor(); err != nil {
+		return err
 	}
 	w.encoder.Reset()
 	w.streamRecords = 0
@@ -104,20 +113,29 @@ func (w *Writer) Write(r *zng.Record) error {
 			return err
 		}
 		w.buffer = b
+		// Write any new typedefs in the uncompressed output ahead of the
+		// compressed buffer being built (i.e., we re-order the stream
+		// but its always safe to move typedefs earlier in the stream as
+		// long as the typedef order is preserved and we don't cross
+		// zng stream boundaries). We could conceivably compress these
+		// typedefs too (in a buffer that is not subject to the buffer-filter)
+		// but typedefs are really small compared to the rest of the data
+		// so it's not worth the hassle.
 		if err := w.writeUncompressed(b); err != nil {
 			return err
 		}
 	}
 	dst := w.buffer[:0]
 	id := typ.ID()
-	// encode id as uvarint7
-	if id < 0x40 {
-		dst = append(dst, byte(id&0x3f))
+	if id < zng.CtrlValueEscape {
+		dst = append(dst, byte(id))
 	} else {
-		dst = append(dst, byte(0x40|(id&0x3f)))
-		dst = zcode.AppendUvarint(dst, uint64(id>>6))
+		dst = append(dst, zng.CtrlValueEscape)
+		dst = zcode.AppendUvarint(dst, uint64(id-zng.CtrlValueEscape))
 	}
 	dst = zcode.AppendUvarint(dst, uint64(len(r.Raw)))
+	// XXX instead of copying write we should do two writes... so we don't
+	// copy the bulk of the data an extra time here when we don't need to.
 	dst = append(dst, r.Raw...)
 	w.buffer = dst
 	if err := w.write(dst); err != nil {
@@ -132,10 +150,17 @@ func (w *Writer) Write(r *zng.Record) error {
 	return nil
 }
 
-func (w *Writer) WriteControl(b []byte) error {
+func (w *Writer) WriteControl(b []byte, encoding uint8) error {
+	// Flush the compressor since we need to preserve the interleaving
+	// order of app messages and zng data and we can't store the app
+	// messages in a compressed buffer that is subject to buffer-filter;
+	// otherwise, they could be incorrectly dropped.
+	if err := w.flushCompressor(); err != nil {
+		return err
+	}
 	dst := w.buffer[:0]
-	//XXX 0xff for now.  need to pass through control codes?
-	dst = append(dst, 0xff)
+	dst = append(dst, zng.CtrlAppMessage)
+	dst = append(dst, encoding)
 	dst = zcode.AppendUvarint(dst, uint64(len(b)))
 	dst = append(dst, b...)
 	return w.writeUncompressed(dst)

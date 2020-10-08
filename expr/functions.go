@@ -1,6 +1,7 @@
 package expr
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"math"
@@ -67,6 +68,11 @@ var allFns = map[string]struct {
 	"Time.fromMicroseconds": {1, 1, timeFromUsec},
 	"Time.fromNanoseconds":  {1, 1, timeFromNsec},
 	"Time.trunc":            {2, 2, timeTrunc},
+
+	"typeof":     {1, 1, typeOf},
+	"iserr":      {1, 1, isErr},
+	"toBase64":   {1, 1, toBase64},
+	"fromBase64": {1, 1, fromBase64},
 }
 
 //XXX this should be renamed so as not to clash with the conventional
@@ -551,4 +557,41 @@ func timeTrunc(args *Args) (zng.Value, error) {
 	}
 	dur *= 1_000_000_000
 	return zng.Value{zng.TypeTime, args.Time(nano.Ts(ts.Trunc(dur)))}, nil
+}
+
+func typeOf(args *Args) (zng.Value, error) {
+	zv := args.vals[0]
+	return zng.Value{zng.TypeType, zng.EncodeType(zv.Type.String())}, nil
+}
+
+func isErr(args *Args) (zng.Value, error) {
+	zv := args.vals[0]
+	if zv.Type == zng.TypeError {
+		return zng.True, nil
+	}
+	return zng.False, nil
+}
+
+func fromBase64(args *Args) (zng.Value, error) {
+	zv := args.vals[0]
+	if !isStringy(zv) {
+		return err("fromBase64", ErrBadArgument)
+
+	}
+	s, _ := zng.DecodeString(zv.Bytes)
+	b, err := base64.StdEncoding.DecodeString(s)
+	if err != nil {
+		return zng.Value{zng.TypeError, zng.EncodeString(err.Error())}, nil
+	}
+	return zng.Value{zng.TypeBytes, zng.EncodeBytes(b)}, nil
+}
+
+func toBase64(args *Args) (zng.Value, error) {
+	zv := args.vals[0]
+	if !isStringy(zv) {
+		return err("fromBase64", ErrBadArgument)
+
+	}
+	s := base64.StdEncoding.EncodeToString(zv.Bytes)
+	return zng.Value{zng.TypeString, zng.EncodeString(s)}, nil
 }
