@@ -24,7 +24,7 @@ func NewArrayWriter(inner zng.Type, spiller *Spiller) *ArrayWriter {
 }
 
 func (a *ArrayWriter) Write(body zcode.Bytes) error {
-	it := zcode.Iter(body)
+	it := body.Iter()
 	var len int32
 	for !it.Done() {
 		body, _, err := it.Next()

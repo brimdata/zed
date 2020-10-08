@@ -246,7 +246,7 @@ func (i *In) Eval(rec *zng.Record) (zng.Value, error) {
 	if err != nil {
 		return elem, err
 	}
-	iter := zcode.Iter(container.Bytes)
+	iter := container.Bytes.Iter()
 	for {
 		if iter.Done() {
 			return zng.False, nil
@@ -649,7 +649,7 @@ func (d *Divide) Eval(rec *zng.Record) (zng.Value, error) {
 }
 
 func getNthFromContainer(container zcode.Bytes, idx uint) (zcode.Bytes, error) {
-	iter := zcode.Iter(container)
+	iter := container.Iter()
 	var i uint = 0
 	for ; !iter.Done(); i++ {
 		zv, _, err := iter.Next()
@@ -664,7 +664,7 @@ func getNthFromContainer(container zcode.Bytes, idx uint) (zcode.Bytes, error) {
 }
 
 func lookupKey(mapBytes, target zcode.Bytes) (zcode.Bytes, bool) {
-	iter := zcode.Iter(mapBytes)
+	iter := mapBytes.Iter()
 	for !iter.Done() {
 		key, _, err := iter.Next()
 		if err != nil {
