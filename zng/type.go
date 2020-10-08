@@ -77,6 +77,7 @@ var (
 	TypeInt64    = &TypeOfInt64{}
 	TypeDuration = &TypeOfDuration{}
 	TypeTime     = &TypeOfTime{}
+	// XXX add TypeFloat16
 	// XXX add TypeFloat32
 	TypeFloat64 = &TypeOfFloat64{}
 	// XXX add TypeDecimal
@@ -102,18 +103,19 @@ const (
 	IdInt64    = 7
 	IdDuration = 8
 	IdTime     = 9
-	IdFloat32  = 10
-	IdFloat64  = 11
-	IdDecimal  = 12
-	IdBool     = 13
-	IdBytes    = 14
-	IdString   = 15
-	IdBstring  = 16
-	IdIP       = 17
-	IdNet      = 18
-	IdType     = 19
-	IdError    = 20
-	IdNull     = 21
+	IdFloat16  = 10
+	IdFloat32  = 11
+	IdFloat64  = 12
+	IdDecimal  = 13
+	IdBool     = 14
+	IdBytes    = 15
+	IdString   = 16
+	IdBstring  = 17
+	IdIP       = 18
+	IdNet      = 19
+	IdType     = 20
+	IdError    = 21
+	IdNull     = 22
 
 	IdTypeDef = 23
 )
@@ -129,9 +131,10 @@ var promote = []int{
 	IdInt64,   // IdInt64    = 7
 	IdInt64,   // IdDuration = 8
 	IdInt64,   // IdTime     = 9
-	IdFloat32, // IdFloat32  = 10
-	IdFloat64, // IdFloat64  = 11
-	IdDecimal, // IdDecimal  = 12
+	IdFloat16, // IdFloat32  = 10
+	IdFloat32, // IdFloat32  = 11
+	IdFloat64, // IdFloat64  = 12
+	IdDecimal, // IdDecimal  = 13
 }
 
 // Promote type to the largest signed type where the IDs must both
@@ -155,10 +158,10 @@ func IsNumber(id int) bool {
 	return id <= IdDecimal
 }
 
-// True iff the type id is encoded as a float32 or float64 encoding.
+// True iff the type id is encoded as a float encoding.
 // XXX add IdDecimal here when we implement coercible math with it.
 func IsFloat(id int) bool {
-	return id == IdFloat64 || id == IdFloat32
+	return id >= IdFloat16 && id <= IdFloat64
 }
 
 // True iff the type id is encoded as a number encoding and is signed.
@@ -172,17 +175,16 @@ func IsStringy(id int) bool {
 }
 
 const (
-	CtrlValueEscape   = 0xdf
-	TypeDefRecord     = 0xf0
-	TypeDefArray      = 0xf1
-	TypeDefSet        = 0xf2
-	TypeDefUnion      = 0xf3
-	TypeDefEnum       = 0xf4
-	TypeDefMap        = 0xf5
-	TypeDefAlias      = 0xf6
-	CtrlCompressed    = 0xf7
-	CtrlAppStart      = 0xf8
-	CtrlAppEnd        = 0xfe
+	CtrlValueEscape   = 0xf5
+	TypeDefRecord     = 0xf6
+	TypeDefArray      = 0xf7
+	TypeDefSet        = 0xf8
+	TypeDefUnion      = 0xf9
+	TypeDefEnum       = 0xfa
+	TypeDefMap        = 0xfb
+	TypeDefAlias      = 0xfc
+	CtrlCompressed    = 0xfd
+	CtrlAppMessage    = 0xfe
 	CtrlEOS           = 0xff
 	AppEncodingZNG    = 0
 	AppEncodingJSON   = 1

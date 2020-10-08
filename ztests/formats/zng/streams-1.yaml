@@ -14,11 +14,11 @@ output-flags: -b 1
 
 outputHex: |
   # define a record with 3 columns
-  f0 03
+  f6 03
   # first column name is _path (len 5)
   05 5f 70 61 74 68
-  # first column type is string (15)
-  0f
+  # first column type is string (16)
+  10
   # second column name is ts (len 2)
   02 74 73
   # second column type is time (10)
@@ -26,7 +26,7 @@ outputHex: |
   # third column name is d (len 1)
   01 64
   # third column type is float64 (12)
-  0b
+  0c
   # value using type id 23 (0x17), the record defined above
   # total length of this recor is 17 bytes (0x11)
   17 11
@@ -46,13 +46,13 @@ outputHex: |
   # end of stream
   ff
   # new frame: repeat the record type definition
-  f0 03
+  f6 03
   05 5f 70 61 74 68
-  0f
+  10
   02 74 73
   09
   01 64
-  0b
+  0c
   # another encoded value using the same record definition as before
   17 13
   # first column: primitive value of 4 total byte, values xyz

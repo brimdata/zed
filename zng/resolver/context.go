@@ -165,6 +165,10 @@ func typeKey(typ zng.Type) string {
 		//XXX why not use this for everything?
 		// See Issue #1418
 		return "e:" + typ.String()
+	case *zng.TypeMap:
+		//XXX why not use this for everything?
+		// See Issue #1418
+		return "m:" + typ.String()
 	}
 }
 
@@ -756,6 +760,8 @@ func (c *Context) TranslateType(ext zng.Type) (zng.Type, error) {
 		return c.TranslateTypeUnion(ext)
 	case *zng.TypeEnum:
 		return c.TranslateTypeEnum(ext)
+	case *zng.TypeMap:
+		return c.TranslateTypeMap(ext)
 	case *zng.TypeAlias:
 		return c.LookupTypeAlias(ext.Name, ext.Type)
 	}
@@ -793,4 +799,16 @@ func (c *Context) TranslateTypeEnum(ext *zng.TypeEnum) (*zng.TypeEnum, error) {
 		return nil, err
 	}
 	return c.LookupTypeEnum(translated, ext.Elements), nil
+}
+
+func (c *Context) TranslateTypeMap(ext *zng.TypeMap) (*zng.TypeMap, error) {
+	keyType, err := c.TranslateType(ext.KeyType)
+	if err != nil {
+		return nil, err
+	}
+	valType, err := c.TranslateType(ext.ValType)
+	if err != nil {
+		return nil, err
+	}
+	return c.LookupTypeMap(keyType, valType), nil
 }
