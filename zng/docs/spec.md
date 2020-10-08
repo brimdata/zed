@@ -184,24 +184,23 @@ encoding methodology inspired by Avro,
 A ZNG stream comprises a sequence of interleaved control messages and value messages
 that are serialized into a stream of bytes.
 
-Each message is prefixed with a single-byte header code.  Codes `0xf0-0xff`
-are allocated as control messages while codes `0x00-0xde` indicate a value message.
+Each message is prefixed with a single-byte header code.  Codes `0xf6-0xff`
+are allocated as control messages while codes `0x00-0xf5` indicate a value message.
 
 ### 3.1 Control Messages
 
-Control codes `0xf0` through `0xff` (in hexadecimal) are defined as follows:
+Control codes `0xf6` through `0xff` (in hexadecimal) are defined as follows:
 
 | Code   | Message Type                   |
 |--------|--------------------------------|
-| `0xf0` | record definition              |
-| `0xf1` | array definition               |
-| `0xf2` | set definition                 |
-| `0xf3` | union definition               |
-| `0xf4` | enum definiton                 |
-| `0xf5` | type alias                     |
-| `0xf6` | compressed value message block |
-| `0xf7` | application-defined message    |
-| `...`  | application-defined messages   |
+| `0xf6` | record definition              |
+| `0xf7` | array definition               |
+| `0xf8` | set definition                 |
+| `0xf9` | union definition               |
+| `0xfa` | enum definiton                 |
+| `0xfb` | map definiton                  |
+| `0xfc` | type alias                     |
+| `0xfd` | compressed value message block |
 | `0xfe` | application-defined message    |
 | `0xff` | end-of-stream                  |
 
@@ -228,7 +227,7 @@ encapsulating protocols.
 
 ### 3.1.1 Typedefs
 
-Following a header byte of `0xf0-0xf5` is a "typedef".  A typedef binds
+Following a header byte of `0xf6-0xfb` is a "typedef".  A typedef binds
 "the next available" integer type ID to a type encoding.  As there are
 a total of 23 primitive type IDs, the Type IDs for typedefs
 begin at the value 23 and increase by one for each typedef. These bindings
@@ -257,7 +256,7 @@ A record typedef creates a new type ID equal to the next stream type ID
 with the following structure:
 ```
 ---------------------------------------------------------
-|0xf0|<ncolumns>|<name1><type-id-1><name2><type-id-2>...|
+|0xf6|<ncolumns>|<name1><type-id-1><name2><type-id-2>...|
 ---------------------------------------------------------
 ```
 Record types consist of an ordered set of columns where each column consists of
@@ -292,7 +291,7 @@ An array type is encoded as simply the type code of the elements of
 the array encoded as a `uvarint`:
 ```
 ----------------
-|0xf1|<type-id>|
+|0xf7|<type-id>|
 ----------------
 ```
 
@@ -302,7 +301,7 @@ A set type is encoded as the type ID of the
 elements of the set, encoded as a `uvarint`:
 ```
 ----------------
-|0xf2|<type-id>|
+|0xf8|<type-id>|
 ----------------
 ```
 
@@ -312,7 +311,7 @@ A union typedef creates a new type ID equal to the next stream type ID
 with the following structure:
 ```
 -----------------------------------------
-|0xf3|<ntypes>|<type-id-1><type-id-2>...|
+|0xf9|<ntypes>|<type-id-1><type-id-2>...|
 -----------------------------------------
 ```
 A union type consists of an ordered set of types
@@ -331,7 +330,7 @@ followed by a count of the number of elements in the enum, and in turn,
 followed by the names and values of each element.
 ```
 --------------------------------------------------------
-|0xf4|<type-id>|<nelem>|<name1><val-1><name2><val-2>...|
+|0xfa|<type-id>|<nelem>|<name1><val-1><name2><val-2>...|
 --------------------------------------------------------
 ```
 `<type-id>` and `<nelem>` are encoded as `uvarint`.
@@ -346,7 +345,7 @@ A map type is encoded as the type code of the key
 followed by the type code of the value.
 ```
 --------------------------
-|0xf5|<type-id>|<type-id>|
+|0xfb|<type-id>|<type-id>|
 --------------------------
 ```
 Each `<type-id>` is encoded as `uvarint`.
@@ -369,7 +368,7 @@ all outside the scope of the base ZNG specification.
 A type alias is encoded as follows:
 ```
 ----------------------
-|0xf6|<name><type-id>|
+|0xfc|<name><type-id>|
 ----------------------
 ```
 where `<name>` is an identifier representing the new type name with a new type ID
@@ -408,7 +407,7 @@ sequence must not include control messages.
 A compressed value message block is encoded as follows:
 ```
 ------------------------------------------------------------------------------
-|0xf6|<format><uncompressed-length>|<compressed-length>|<compressed-messages>|
+|0xfd|<format><uncompressed-length>|<compressed-length>|<compressed-messages>|
 ------------------------------------------------------------------------------
 ```
 where
@@ -426,9 +425,9 @@ Values for `<format>` are defined in the
 
 An application-defined message has the following form:
 ```
------------------------------------
-|0xf7-0xfe|<encoding>|<len>|<body>|
------------------------------------
+------------------------------
+|0xfe|<encoding>|<len>|<body>|
+------------------------------
 ```
 where
 * `<encoding>` is a single byte indicating whether the body is encoded
@@ -481,11 +480,11 @@ be re-emitted
 
 ### 3.2 Value Messages
 
-Following a header byte in the range `0x00-0xde` is a ZNG value.
+Following a header byte in the range `0x00-0xf5` is a ZNG value.
 The header byte indicates the type ID of the value.  If the type ID
-is larger than `0xde`, then the type ID is "escaped" with the value `0xdf`
+is larger than `0xf4`, then the type ID is "escaped" with the value `0xf5`
 and the actual type ID is encoded as a `uvarint` of the difference
-of the type ID less the constant `0xdf`.
+of the type ID less the constant `0xf5`.
 
 It is an error for a value to reference a type ID that has not been
 previously defined by a typedef scoped to the stream in which the value
@@ -898,18 +897,19 @@ representing machine words are serialized in little-endian format.
 | `int64`    |  7 | variable | signed int of length N                         | decimal string representation of any signed, 64-bit integer   |
 | `duration` |  8 | variable | signed int of length N as ns                   | signed dotted decimal notation of seconds                     |
 | `time`     | 9 | variable | signed int of length N as ns since epoch       | signed dotted decimal notation of seconds                     |
-| `float32`  | 10 |    4     | 4 bytes of IEEE 64-bit format                  | decimal string representation of a 64-bit IEEE floating point literal as defined in JavaScript |
-| `float64`  | 11 |    8     | 8 bytes of IEEE 64-bit format                  | decimal string representation of a 64-bit IEEE floating point literal as defined in JavaScript |
-| `decimal`  | 12 |  4,8,16  | N bytes of IEEE decimal format                 | decimal string representation of a 64-bit IEEE floating point literal as defined in JavaScript |
-| `bool`     | 13 |    1     | one byte 0 (false) or 1 (true)                 | a single character `T` or `F`
-| `bytes`    | 14 | variable | N bytes of value                               | a sequence of bytes encoded as base64                         |
-| `string`   | 15 | variable | UTF-8 byte sequence of string                  | a UTF-8 string                                                |
-| `bstring`  | 16 | variable | UTF-8 byte sequence with `\x` escapes          | a UTF-8 string with `\x` escapes of non-UTF binary data       |
-| `ip`       | 17 | 4 or 16  | 4 or 16 bytes of IP address                    | a string representing an IP address in [IPv4 or IPv6 format](https://tools.ietf.org/html/draft-main-ipaddr-text-rep-02#section-3) |
-| `net`      | 18 | 8 or 32  | 8 or 32 bytes of IP prefix and subnet mask     | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291. |
-| `type`     | 19 | variable | UTF-8 byte sequence of string representing type in the [TZNG type grammar](#42-type-grammar)  |  a UTF-8 string |
-| `error`    | 20 | variable | UTF-8 byte sequence of string of error message | a UTF-8 string |
-| `null`     | 21 |    0     | No value, always represents an undefined value | the literal value `-`                                 |
+| `float16`  | 10 |    2     | 2 bytes of IEEE 64-bit format                  | decimal string representation of a 64-bit IEEE floating point literal as defined in JavaScript |
+| `float32`  | 11 |    4     | 4 bytes of IEEE 64-bit format                  | decimal string representation of a 64-bit IEEE floating point literal as defined in JavaScript |
+| `float64`  | 12 |    8     | 8 bytes of IEEE 64-bit format                  | decimal string representation of a 64-bit IEEE floating point literal as defined in JavaScript |
+| `decimal`  | 13 |  4,8,16  | N bytes of IEEE decimal format                 | decimal string representation of a 64-bit IEEE floating point literal as defined in JavaScript |
+| `bool`     | 14 |    1     | one byte 0 (false) or 1 (true)                 | a single character `T` or `F`
+| `bytes`    | 15 | variable | N bytes of value                               | a sequence of bytes encoded as base64                         |
+| `string`   | 16 | variable | UTF-8 byte sequence of string                  | a UTF-8 string                                                |
+| `bstring`  | 17 | variable | UTF-8 byte sequence with `\x` escapes          | a UTF-8 string with `\x` escapes of non-UTF binary data       |
+| `ip`       | 18 | 4 or 16  | 4 or 16 bytes of IP address                    | a string representing an IP address in [IPv4 or IPv6 format](https://tools.ietf.org/html/draft-main-ipaddr-text-rep-02#section-3) |
+| `net`      | 19 | 8 or 32  | 8 or 32 bytes of IP prefix and subnet mask     | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291. |
+| `type`     | 20 | variable | UTF-8 byte sequence of string representing type in the [TZNG type grammar](#42-type-grammar)  |  a UTF-8 string |
+| `error`    | 21 | variable | UTF-8 byte sequence of string of error message | a UTF-8 string |
+| `null`     | 22 |    0     | No value, always represents an undefined value | the literal value `-`                                 |
 
 > Note: The `bstring` type is an unusual type representing a hybrid type
 > mixing a UTF-8 string with embedded binary data.  This type is

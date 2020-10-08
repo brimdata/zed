@@ -12,6 +12,7 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/peeker"
 	"github.com/brimsec/zq/scanner"
+	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/pierrec/lz4/v4"
@@ -150,15 +151,21 @@ func (r *Reader) readPayload(rec *zng.Record) (*zng.Record, *AppMessage, error) 
 			err = r.readTypeArray()
 		case zng.TypeDefUnion:
 			err = r.readTypeUnion()
+		case zng.TypeDefEnum:
+			err = r.readTypeEnum()
+		case zng.TypeDefMap:
+			err = r.readTypeMap()
 		case zng.TypeDefAlias:
 			err = r.readTypeAlias()
 		case zng.CtrlEOS:
 			r.reset()
 		case zng.CtrlCompressed:
 			return nil, nil, r.readCompressed()
-		default:
+		case zng.CtrlAppMessage:
 			msg, err := r.readAppMessage(int(code))
 			return nil, msg, err
+		default:
+			err = fmt.Errorf("unknown zng control code: %d", code)
 		}
 		if err != nil {
 			return nil, nil, err
@@ -345,13 +352,6 @@ func (r *Reader) readTypeUnion() error {
 }
 
 func (r *Reader) readTypeSet() error {
-	len, err := r.readUvarint()
-	if err != nil {
-		return zng.ErrBadFormat
-	}
-	if len != 1 {
-		return fmt.Errorf("set with %d contained types is not supported", len)
-	}
 	id, err := r.readUvarint()
 	if err != nil {
 		return zng.ErrBadFormat
@@ -361,6 +361,71 @@ func (r *Reader) readTypeSet() error {
 		return err
 	}
 	r.zctx.AddType(&zng.TypeSet{InnerType: typ})
+	return nil
+}
+
+func (r *Reader) readTypeEnum() error {
+	id, err := r.readUvarint()
+	if err != nil {
+		return zng.ErrBadFormat
+	}
+	typ, err := r.zctx.LookupType(int(id))
+	if err != nil {
+		return err
+	}
+	nelem, err := r.readUvarint()
+	//XXX 10000
+	if err != nil || nelem > 10000 {
+		return zng.ErrBadFormat
+	}
+	var elems []zng.Element
+	for k := 0; k < int(nelem); k++ {
+		elem, err := r.readElement()
+		if err != nil {
+			return err
+		}
+		elems = append(elems, elem)
+	}
+	r.zctx.LookupTypeEnum(typ, elems)
+	return nil
+}
+
+func (r *Reader) readElement() (zng.Element, error) {
+	n, err := r.readUvarint()
+	if err != nil {
+		return zng.Element{}, zng.ErrBadFormat
+	}
+	b, err := r.read(n)
+	if err != nil {
+		return zng.Element{}, zng.ErrBadFormat
+	}
+	// pull the name out before the next read which might overwrite the buffer
+	name := string(b)
+	zv, _, err := zcode.Read(r)
+	if err != nil {
+		return zng.Element{}, zng.ErrBadFormat
+	}
+	return zng.Element{name, zv}, nil
+}
+
+func (r *Reader) readTypeMap() error {
+	id, err := r.readUvarint()
+	if err != nil {
+		return zng.ErrBadFormat
+	}
+	keyType, err := r.zctx.LookupType(int(id))
+	if err != nil {
+		return err
+	}
+	id, err = r.readUvarint()
+	if err != nil {
+		return zng.ErrBadFormat
+	}
+	valType, err := r.zctx.LookupType(int(id))
+	if err != nil {
+		return err
+	}
+	r.zctx.AddType(&zng.TypeMap{KeyType: keyType, ValType: valType})
 	return nil
 }
 

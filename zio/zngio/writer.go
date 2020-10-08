@@ -1,7 +1,6 @@
 package zngio
 
 import (
-	"errors"
 	"io"
 
 	"github.com/brimsec/zq/zcode"
@@ -151,10 +150,7 @@ func (w *Writer) Write(r *zng.Record) error {
 	return nil
 }
 
-func (w *Writer) WriteControl(b []byte, typ, encoding uint8) error {
-	if typ < zng.CtrlAppStart || typ > zng.CtrlAppEnd {
-		return errors.New("zng application-defined message type is out of range")
-	}
+func (w *Writer) WriteControl(b []byte, encoding uint8) error {
 	// Flush the compressor since we need to preserve the interleaving
 	// order of app messages and zng data and we can't store the app
 	// messages in a compressed buffer that is subject to buffer-filter;
@@ -163,7 +159,7 @@ func (w *Writer) WriteControl(b []byte, typ, encoding uint8) error {
 		return err
 	}
 	dst := w.buffer[:0]
-	dst = append(dst, typ)
+	dst = append(dst, zng.CtrlAppMessage)
 	dst = append(dst, encoding)
 	dst = zcode.AppendUvarint(dst, uint64(len(b)))
 	dst = append(dst, b...)

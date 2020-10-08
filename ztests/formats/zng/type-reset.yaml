@@ -1,11 +1,13 @@
 zql: '*'
 
-input: !!binary |
-  8AEDa2V5EhcFCgAAAAAXESIAAAAAAAAAAAAAAAAAAAAAFwUKASc9Fv8=
+input: |
+  #0:record[_path:string,ts:time,d:float64]
+  0:[a;10;1;]
+  0:[xyz;20;1.5;]
 
 output-format: zng
 
 output-flags: -b 2
 
 output: !!binary |
-  8AEDa2V5EhcFCgAAAAAXESIAAAAAAAAAAAAAAAAAAAAA//ABA2tleRIXBQoBJz0W/w==
+  9gMFX3BhdGgQAnRzCQFkDBcRBGEMAMgXqAQSAAAAAAAA8D8XEwh4eXoMAJAvUAkSAAAAAAAA+D//

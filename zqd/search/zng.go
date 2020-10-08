@@ -63,7 +63,7 @@ func (r *ZngOutput) SendControl(ctrl interface{}) error {
 		//XXX need a better json error message
 		return err
 	}
-	if err := r.writer.WriteControl(msg, zng.CtrlAppStart, zng.AppEncodingJSON); err != nil {
+	if err := r.writer.WriteControl(msg, zng.AppEncodingJSON); err != nil {
 		return err
 	}
 	r.flush()

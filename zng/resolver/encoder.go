@@ -80,6 +80,10 @@ func (e *Encoder) encodeType(dst []byte, ext zng.Type) ([]byte, zng.Type, error)
 		return e.encodeTypeArray(dst, ext)
 	case *zng.TypeUnion:
 		return e.encodeTypeUnion(dst, ext)
+	case *zng.TypeMap:
+		return e.encodeTypeMap(dst, ext)
+	case *zng.TypeEnum:
+		return e.encodeTypeEnum(dst, ext)
 	case *zng.TypeAlias:
 		return e.encodeTypeAlias(dst, ext)
 	}
@@ -164,7 +168,6 @@ func (e *Encoder) encodeTypeSet(dst []byte, ext *zng.TypeSet) ([]byte, zng.Type,
 
 func serializeTypeSet(dst []byte, inner zng.Type) []byte {
 	dst = append(dst, zng.TypeDefSet)
-	dst = zcode.AppendUvarint(dst, 1)
 	return zcode.AppendUvarint(dst, uint64(inner.ID()))
 }
 
@@ -187,6 +190,69 @@ func serializeTypeArray(dst []byte, inner zng.Type) []byte {
 	return zcode.AppendUvarint(dst, uint64(inner.ID()))
 }
 
+func (e *Encoder) encodeTypeEnum(dst []byte, ext *zng.TypeEnum) ([]byte, zng.Type, error) {
+	var elemType zng.Type
+	var err error
+	dst, elemType, err = e.encodeType(dst, ext.Type)
+	if err != nil {
+		return nil, nil, err
+	}
+	typ := e.zctx.LookupTypeEnum(elemType, ext.Elements)
+	if e.isEncoded(typ.ID()) {
+		return dst, typ, nil
+	}
+	return serializeTypeEnum(dst, elemType, typ.Elements), typ, nil
+}
+
+func serializeTypeEnum(dst []byte, typ zng.Type, elems []zng.Element) []byte {
+	dst = append(dst, zng.TypeDefEnum)
+	//XXX fix this alias business... zng.RealID()?
+	if alias, ok := typ.(*zng.TypeAlias); ok {
+		dst = zcode.AppendUvarint(dst, uint64(alias.AliasID()))
+	} else {
+		dst = zcode.AppendUvarint(dst, uint64(typ.ID()))
+	}
+	dst = zcode.AppendUvarint(dst, uint64(len(elems)))
+	container := zng.IsContainerType(typ)
+	for _, elem := range elems {
+		name := []byte(elem.Name)
+		dst = zcode.AppendUvarint(dst, uint64(len(name)))
+		dst = append(dst, name...)
+		//XXX shoud have AppendAs()
+		if container {
+			dst = zcode.AppendContainer(dst, elem.Value)
+		} else {
+			dst = zcode.AppendPrimitive(dst, elem.Value)
+		}
+	}
+	return dst
+}
+
+func (e *Encoder) encodeTypeMap(dst []byte, ext *zng.TypeMap) ([]byte, zng.Type, error) {
+	var keyType zng.Type
+	var err error
+	dst, keyType, err = e.encodeType(dst, ext.KeyType)
+	if err != nil {
+		return nil, nil, err
+	}
+	var valType zng.Type
+	dst, valType, err = e.encodeType(dst, ext.ValType)
+	if err != nil {
+		return nil, nil, err
+	}
+	typ := e.zctx.LookupTypeMap(keyType, valType)
+	if e.isEncoded(typ.ID()) {
+		return dst, typ, nil
+	}
+	return serializeTypeMap(dst, keyType, valType), typ, nil
+}
+
+func serializeTypeMap(dst []byte, keyType, valType zng.Type) []byte {
+	dst = append(dst, zng.TypeDefMap)
+	dst = zcode.AppendUvarint(dst, uint64(keyType.ID()))
+	return zcode.AppendUvarint(dst, uint64(valType.ID()))
+}
+
 func serializeTypes(dst []byte, types []zng.Type) []byte {
 	for _, typ := range types {
 		switch typ := typ.(type) {
@@ -200,6 +266,10 @@ func serializeTypes(dst []byte, types []zng.Type) []byte {
 			dst = serializeTypeArray(dst, typ.Type)
 		case *zng.TypeUnion:
 			dst = serializeTypeUnion(dst, typ.Types)
+		case *zng.TypeEnum:
+			dst = serializeTypeEnum(dst, typ.Type, typ.Elements)
+		case *zng.TypeMap:
+			dst = serializeTypeMap(dst, typ.KeyType, typ.ValType)
 		case *zng.TypeAlias:
 			dst = serializeTypeAlias(dst, typ)
 		}
