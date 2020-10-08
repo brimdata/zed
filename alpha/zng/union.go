@@ -49,7 +49,7 @@ func (t *TypeUnion) Parse(in []byte) (zcode.Bytes, error) {
 // returns the concrete type of the value, its index into the union
 // type, and the value encoding.
 func (t *TypeUnion) SplitZng(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) {
-	it := zcode.Iter(zv)
+	it := zv.Iter()
 	v, container, err := it.Next()
 	if err != nil {
 		return nil, -1, nil, err

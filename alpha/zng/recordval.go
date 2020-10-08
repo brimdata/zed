@@ -162,7 +162,7 @@ func checkSet(typ *TypeSet, body zcode.Bytes) error {
 	if IsContainerType(inner) {
 		return &RecordTypeError{Name: "<set>", Type: typ.String(), Err: ErrNotPrimitive}
 	}
-	it := zcode.Iter(body)
+	it := body.Iter()
 	var prev zcode.Bytes
 	for !it.Done() {
 		tagAndBody, container, err := it.NextTagAndBody()
@@ -192,7 +192,7 @@ func checkSet(typ *TypeSet, body zcode.Bytes) error {
 // result is nil without error, then that columnn is unset in this record value.
 func (r *Record) Slice(column int) (zcode.Bytes, error) {
 	var zv zcode.Bytes
-	for i, it := 0, zcode.Iter(r.Raw); i <= column; i++ {
+	for i, it := 0, r.Raw.Iter(); i <= column; i++ {
 		if it.Done() {
 			return nil, ErrNoSuchColumn
 		}

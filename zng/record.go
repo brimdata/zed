@@ -47,7 +47,7 @@ func (t *TypeRecord) Decode(zv zcode.Bytes) ([]Value, error) {
 		return nil, ErrUnset
 	}
 	var vals []Value
-	for i, it := 0, zcode.Iter(zv); !it.Done(); i++ {
+	for i, it := 0, zv.Iter(); !it.Done(); i++ {
 		val, _, err := it.Next()
 		if err != nil {
 			return nil, err

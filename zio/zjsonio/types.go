@@ -235,7 +235,7 @@ func decodeEnumElement(typ zng.Type, object joe.Object) (zng.Element, error) {
 	if err := decodeAny(&b, typ, joe.Unpack(val)); err != nil {
 		return zng.Element{}, err
 	}
-	it := zcode.Iter(b.Bytes())
+	it := b.Bytes().Iter()
 	zv, _, _ := it.Next()
 	return zng.Element{sname, zv}, nil
 }

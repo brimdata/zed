@@ -40,7 +40,7 @@ func encodeMap(typ *zng.TypeMap, v []byte) (interface{}, error) {
 		return nil, nil
 	}
 	var out []interface{}
-	it := zcode.Iter(zcode.Bytes(v))
+	it := zcode.Bytes(v).Iter()
 	for !it.Done() {
 		key, _, err := it.Next()
 		if err != nil {
@@ -93,15 +93,15 @@ func encodeAny(typ zng.Type, val []byte) (interface{}, error) {
 	}
 }
 
-func encodeRecord(typ *zng.TypeRecord, val []byte) (interface{}, error) {
+func encodeRecord(typ *zng.TypeRecord, val zcode.Bytes) (interface{}, error) {
 	if val == nil {
 		return nil, nil
 	}
 	// We start out with a slice that contains nothing instead of nil
-	// so that an empty containers encode to JSON empty array [].
+	// so that an empty container encodes as a JSON empty array [].
 	out := make([]interface{}, 0)
 	k := 0
-	for it := zcode.Iter(val); !it.Done(); k++ {
+	for it := val.Iter(); !it.Done(); k++ {
 		zv, _, err := it.Next()
 		if err != nil {
 			return nil, err
@@ -115,14 +115,14 @@ func encodeRecord(typ *zng.TypeRecord, val []byte) (interface{}, error) {
 	return out, nil
 }
 
-func encodeContainer(typ zng.Type, val []byte) (interface{}, error) {
+func encodeContainer(typ zng.Type, val zcode.Bytes) (interface{}, error) {
 	if val == nil {
 		return nil, nil
 	}
 	// We start out with a slice that contains nothing instead of nil
-	// so that an empty containers encode to JSON empty array [].
+	// so that an empty container encodes as a JSON empty array [].
 	out := make([]interface{}, 0)
-	for it := zcode.Iter(val); !it.Done(); {
+	for it := val.Iter(); !it.Done(); {
 		zv, _, err := it.Next()
 		if err != nil {
 			return nil, err

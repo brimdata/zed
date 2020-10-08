@@ -78,7 +78,7 @@ func (r *Record) UnmarshalZNG(typ *zng.TypeRecord, in zng.Value, reader io.Reade
 		return errors.New("corrupt zst object: record_column is not a record")
 	}
 	k := 0
-	for it := zcode.Iter(in.Bytes); !it.Done(); k++ {
+	for it := in.Bytes.Iter(); !it.Done(); k++ {
 		zv, _, err := it.Next()
 		if err != nil {
 			return err

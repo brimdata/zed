@@ -35,7 +35,7 @@ func (t *TypeMap) Decode(zv zcode.Bytes) (Value, Value, error) {
 	if zv == nil {
 		return Value{}, Value{}, ErrUnset
 	}
-	it := zcode.Iter(zv)
+	it := zv.Iter()
 	key, container, err := it.Next()
 	if err != nil {
 		return Value{}, Value{}, err

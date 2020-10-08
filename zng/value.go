@@ -37,11 +37,11 @@ func Parse(v ast.Literal) (Value, error) {
 }
 
 //XXX b should be zcode.Bytes
-func parseContainer(containerType Type, elementType Type, b []byte) ([]Value, error) {
+func parseContainer(containerType Type, elementType Type, b zcode.Bytes) ([]Value, error) {
 	// We start out with a pointer instead of nil so that empty sets and arrays
 	// are properly encoded etc., e.g., by json.Marshal.
 	vals := make([]Value, 0)
-	for it := zcode.Iter(b); !it.Done(); {
+	for it := b.Iter(); !it.Done(); {
 		zv, _, err := it.Next()
 		if err != nil {
 			return nil, fmt.Errorf("parsing %s element %q: %w", containerType.String(), zv, err)
@@ -96,7 +96,7 @@ func (v Value) Encode(dst zcode.Bytes) zcode.Bytes {
 }
 
 func (v Value) Iter() zcode.Iter {
-	return zcode.Iter(v.Bytes)
+	return v.Bytes.Iter()
 }
 
 // If the passed-in element is an array, attempt to get the idx'th

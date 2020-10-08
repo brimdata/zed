@@ -5,7 +5,6 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 )
 
@@ -133,7 +132,7 @@ func (w *Writer) writeContainer(parent zng.Value) error {
 	}
 	k := 0
 	if len(parent.Bytes) > 0 {
-		for it := zcode.Iter(parent.Bytes); !it.Done(); {
+		for it := parent.Bytes.Iter(); !it.Done(); {
 			v, container, err := it.Next()
 			if err != nil {
 				return err
