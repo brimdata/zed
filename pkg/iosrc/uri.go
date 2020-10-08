@@ -35,6 +35,14 @@ func ParseURI(path string) (URI, error) {
 	return URI(*u), nil
 }
 
+func MustParseURI(path string) URI {
+	u, err := ParseURI(path)
+	if err != nil {
+		panic(err)
+	}
+	return u
+}
+
 func stdio(path string) (URI, bool) {
 	switch path {
 	case "stdin":

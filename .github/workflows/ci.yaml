@@ -24,7 +24,7 @@ jobs:
       - run: make test-generate
       - run: make test-unit
       - run: make test-system
-      - run: make test-zeek
+      - run: make test-pcap-ingest
       - run: make test-heavy
   test-windows:
     runs-on: windows-latest
