@@ -6,8 +6,8 @@ import (
 	"io"
 	"strconv"
 
+	"github.com/brimsec/zq/alpha/zcode"
 	"github.com/brimsec/zq/alpha/zng"
-	"github.com/brimsec/zq/zcode"
 )
 
 type Writer struct {
@@ -121,7 +121,7 @@ func (w *Writer) writeContainer(parent zng.Value) error {
 	}
 	childType, columns := zng.ContainedType(realType)
 	if childType == nil && columns == nil {
-		return errors.New("syntax error")
+		return errors.New("tzng syntax error")
 	}
 	k := 0
 	if len(parent.Bytes) > 0 {

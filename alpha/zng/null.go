@@ -3,7 +3,7 @@ package zng
 import (
 	"errors"
 
-	"github.com/brimsec/zq/zcode"
+	"github.com/brimsec/zq/alpha/zcode"
 )
 
 var ErrInstantiateNull = errors.New("cannot instantiate type null")

@@ -1,7 +1,7 @@
 package zng
 
 import (
-	"github.com/brimsec/zq/zcode"
+	"github.com/brimsec/zq/alpha/zcode"
 )
 
 type TypeAlias struct {
