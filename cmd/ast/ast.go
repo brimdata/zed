@@ -68,11 +68,21 @@ func (c *Command) Run(args []string) error {
 	return nil
 }
 
+const nodeProblem = `
+Failed to run node on ./zql/run.js.  The "-js" flag is for PEG
+development and should only be used when running ast in the root
+directory of the zq repo.`
+
 func (c *Command) parse(z string) (string, error) {
 	var result string
 	if c.js || c.both {
 		b, err := runNode("", z)
 		result = string(b)
+		if err != nil {
+			// parse errors don't cause this... this is only
+			// caused by a problem running node.
+			return "", errors.New(strings.TrimSpace(nodeProblem))
+		}
 		if !c.both {
 			return result, err
 		}
