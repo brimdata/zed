@@ -7,7 +7,7 @@ ECR_VERSION = $(VERSION)-$(ZQD_K8S_USER)
 LDFLAGS = -s -X github.com/brimsec/zq/cli.Version=$(VERSION)
 ZEEKTAG = v3.2.1-brim2
 ZEEKPATH = zeek-$(ZEEKTAG)
-SURICATATAG = v5.0.3-brim4
+SURICATATAG = v5.0.3-brim5
 SURICATAPATH = suricata-$(SURICATATAG)
 
 # This enables a shortcut to run a single test from the ./tests suite, e.g.:
