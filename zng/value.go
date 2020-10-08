@@ -36,7 +36,6 @@ func Parse(v ast.Literal) (Value, error) {
 	return Value{t, zv}, nil
 }
 
-//XXX b should be zcode.Bytes
 func parseContainer(containerType Type, elementType Type, b zcode.Bytes) ([]Value, error) {
 	// We start out with a pointer instead of nil so that empty sets and arrays
 	// are properly encoded etc., e.g., by json.Marshal.
