@@ -116,8 +116,8 @@ ZNG also includes first-class types, where a value can be of type "type".
 This is useful for grouping aggregations by type, e.g., to do introspective data exploration.
 
 Any value in ZNG can take on a null representation.  It is up to an implementation to
-decide how to external data structures map into and out of values with nulls.  Typically,
-a null value in a field column means an optional value was not present, though
+decide how external data structures map into and out of values with nulls.  Typically,
+a null value in a field means an optional value was not present, though
 the notion of optionality is not explicitly defined by ZNG.
 
 Null values can be typed or untyped.  For example, a null value in a field of
@@ -126,7 +126,7 @@ a null value of type null.  The only valid value of type null is null.
 
 ### Data Model Examples
 
-Here are a few examples of the ZNG data model expressed iin the TZNG text format.
+Here are a few examples of the ZNG data model expressed in the TZNG format.
 
 A stream representing the single string "hello world" might look like this:
 ```
@@ -406,9 +406,9 @@ sequence must not include control messages.
 
 A compressed value message block is encoded as follows:
 ```
-------------------------------------------------------------------------------
-|0xfd|<format><uncompressed-length>|<compressed-length>|<compressed-messages>|
-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+|0xfd|<format>|<uncompressed-length>|<compressed-length>|<compressed-messages>|
+-------------------------------------------------------------------------------
 ```
 where
 * `<format>`, a `uvarint`, identifies the compression algorithm applied to the
