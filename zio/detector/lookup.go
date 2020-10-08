@@ -75,7 +75,7 @@ func lookupReader(r io.Reader, zctx *resolver.Context, path string, opts zio.Rea
 	case "zst":
 		return zstio.NewReader(r, zctx)
 	case "azng":
-		return azngio.NewReader(r, zctx), nil
+		return azngio.NewReader(r, zctx)
 	}
 	return nil, fmt.Errorf("no such format: \"%s\"", opts.Format)
 }

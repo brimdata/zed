@@ -30,7 +30,10 @@ type Reader struct {
 	cancel context.CancelFunc
 }
 
-func NewReader(r io.Reader, zctx *resolver.Context) *Reader {
+func NewReader(r io.Reader, zctx *resolver.Context) (*Reader, error) {
+	if _, err := zctx.LookupTypeAlias("port", zng.TypeUint16); err != nil {
+		return nil, err
+	}
 	pipe, writer := io.Pipe()
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Reader{
@@ -39,7 +42,7 @@ func NewReader(r io.Reader, zctx *resolver.Context) *Reader {
 		pipe:   writer,
 		ctx:    ctx,
 		cancel: cancel,
-	}
+	}, nil
 }
 
 func (r *Reader) Read() (*zng.Record, error) {
