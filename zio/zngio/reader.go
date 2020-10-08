@@ -19,8 +19,9 @@ import (
 )
 
 const (
-	ReadSize = 512 * 1024
-	MaxSize  = 10 * 1024 * 1024
+	ReadSize  = 512 * 1024
+	MaxSize   = 10 * 1024 * 1024
+	TypeLimit = 10000
 )
 
 type Reader struct {
@@ -293,6 +294,9 @@ func (r *Reader) readColumn() (zng.Column, error) {
 	if err != nil {
 		return zng.Column{}, zng.ErrBadFormat
 	}
+	if len > TypeLimit {
+		return zng.Column{}, zng.ErrBadFormat
+	}
 	b, err := r.read(len)
 	if err != nil {
 		return zng.Column{}, zng.ErrBadFormat
@@ -374,8 +378,7 @@ func (r *Reader) readTypeEnum() error {
 		return err
 	}
 	nelem, err := r.readUvarint()
-	//XXX 10000
-	if err != nil || nelem > 10000 {
+	if err != nil || nelem > TypeLimit {
 		return zng.ErrBadFormat
 	}
 	var elems []zng.Element
