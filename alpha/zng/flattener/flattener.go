@@ -3,9 +3,9 @@ package flattener
 import (
 	"fmt"
 
-	"github.com/brimsec/zq/zcode"
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/alpha/zcode"
+	"github.com/brimsec/zq/alpha/zng"
+	"github.com/brimsec/zq/alpha/zng/resolver"
 )
 
 type Flattener struct {

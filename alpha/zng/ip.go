@@ -4,8 +4,8 @@ import (
 	"errors"
 	"net"
 
+	"github.com/brimsec/zq/alpha/zcode"
 	"github.com/brimsec/zq/pkg/byteconv"
-	"github.com/brimsec/zq/zcode"
 )
 
 type TypeOfIP struct{}

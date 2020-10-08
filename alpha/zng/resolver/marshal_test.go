@@ -5,11 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimsec/zq/zcode"
-	"github.com/brimsec/zq/zio"
-	"github.com/brimsec/zq/zio/tzngio"
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/alpha/zcode"
+	"github.com/brimsec/zq/alpha/zio"
+	"github.com/brimsec/zq/alpha/zio/tzngio"
+	"github.com/brimsec/zq/alpha/zng"
+	"github.com/brimsec/zq/alpha/zng/resolver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

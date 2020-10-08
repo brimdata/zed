@@ -6,8 +6,8 @@ import (
 	"math"
 	"net"
 
+	"github.com/brimsec/zq/alpha/zcode"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/zcode"
 )
 
 var (

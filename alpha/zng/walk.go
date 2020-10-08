@@ -3,7 +3,7 @@ package zng
 import (
 	"errors"
 
-	"github.com/brimsec/zq/zcode"
+	"github.com/brimsec/zq/alpha/zcode"
 )
 
 // A Visitor is called for each value in a record encountered by

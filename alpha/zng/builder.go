@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/brimsec/zq/zcode"
+	"github.com/brimsec/zq/alpha/zcode"
 )
 
 var ErrIncomplete = errors.New("not enough values supplied to complete record")

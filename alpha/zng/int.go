@@ -3,8 +3,8 @@ package zng
 import (
 	"strconv"
 
+	"github.com/brimsec/zq/alpha/zcode"
 	"github.com/brimsec/zq/pkg/byteconv"
-	"github.com/brimsec/zq/zcode"
 )
 
 func NewUint64(v uint64) Value {

@@ -1,8 +1,8 @@
 package zng
 
 import (
+	"github.com/brimsec/zq/alpha/zcode"
 	"github.com/brimsec/zq/pkg/byteconv"
-	"github.com/brimsec/zq/zcode"
 )
 
 type TypeOfBool struct{}
