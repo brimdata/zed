@@ -1,7 +1,7 @@
 'use strict';
 
 const fs = require('fs');
-const zql = require('../zql')
+const zql = require('./zql')
 
 let startRule = 'start';
 

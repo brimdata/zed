@@ -151,6 +151,14 @@ build-python-lib:
 clean-python:
 	@rm -rf python/build
 
+zql/zql.go: zql/zql.peg
+	(cd zql ; make)
+
+peg: zql/zql.go FORCE
+	go run ./cmd/ast -repl
+
+FORCE:
+
 # CI performs these actions individually since that looks nicer in the UI;
 # this is a shortcut so that a local dev can easily run everything.
 test-ci: fmt tidy vet test-generate test-unit test-system test-zeek test-heavy
