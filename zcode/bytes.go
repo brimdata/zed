@@ -100,6 +100,13 @@ func (b Bytes) ContainerBody() (Bytes, error) {
 	return body, nil
 }
 
+func AppendAs(dst Bytes, container bool, val []byte) Bytes {
+	if container {
+		return AppendContainer(dst, val)
+	}
+	return AppendPrimitive(dst, val)
+}
+
 // AppendContainer appends val to dst as a container value and returns the
 // extended buffer.
 func AppendContainer(dst Bytes, val Bytes) Bytes {

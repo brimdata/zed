@@ -218,12 +218,7 @@ func serializeTypeEnum(dst []byte, typ zng.Type, elems []zng.Element) []byte {
 		name := []byte(elem.Name)
 		dst = zcode.AppendUvarint(dst, uint64(len(name)))
 		dst = append(dst, name...)
-		//XXX shoud have AppendAs()
-		if container {
-			dst = zcode.AppendContainer(dst, elem.Value)
-		} else {
-			dst = zcode.AppendPrimitive(dst, elem.Value)
-		}
+		dst = zcode.AppendAs(dst, container, elem.Value)
 	}
 	return dst
 }
