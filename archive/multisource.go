@@ -61,18 +61,23 @@ type scannerCloser struct {
 }
 
 func newSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, f filter.Filter, filterExpr ast.BooleanExpr, si SpanInfo) (sc *scannerCloser, err error) {
-	if len(si.Chunks) == 1 {
-		rc, err := iosrc.NewReader(ctx, si.Chunks[0].Path(ark))
-		if err != nil {
-			return nil, err
+	// Is this a spacial case as an optimization?
+	// It looks like it should work if removed,
+	// since the for loop below would handle the same logic. -MTW
+	/*
+		if len(si.Chunks) == 1 {
+			rc, err := iosrc.NewReader(ctx, si.Chunks[0].Path(ark))
+			if err != nil {
+				return nil, err
+			}
+			sn, err := scanner.NewScanner(ctx, zngio.NewReader(rc, zctx), f, filterExpr, si.Span)
+			if err != nil {
+				rc.Close()
+				return nil, err
+			}
+			return &scannerCloser{sn, rc}, nil
 		}
-		sn, err := scanner.NewScanner(ctx, zngio.NewReader(rc, zctx), f, filterExpr, si.Span)
-		if err != nil {
-			rc.Close()
-			return nil, err
-		}
-		return &scannerCloser{sn, rc}, nil
-	}
+	*/
 	closers := make([]io.Closer, 0, len(si.Chunks))
 	defer func() {
 		if err != nil {
@@ -132,8 +137,10 @@ func (m *multiSource) OrderInfo() (string, bool) {
 func (m *multiSource) spanWalk(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan<- driver.SourceOpener) error {
 	return spanWalk(ctx, m.ark, sf.Span, func(si SpanInfo) error {
 		so := func() (driver.ScannerCloser, error) {
+			println("archive.multisource spanWalk function called ", sf.FilterExpr)
 			return newSpanScanner(ctx, m.ark, zctx, sf.Filter, sf.FilterExpr, si)
 		}
+		// suggest: put the SpanInfo on the channel here
 		select {
 		case srcChan <- so:
 			return nil

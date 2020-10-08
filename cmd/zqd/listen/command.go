@@ -61,6 +61,7 @@ type Command struct {
 	logger             *zap.Logger
 	devMode            bool
 	portFile           string
+	workers            string
 	// brimfd is a file descriptor passed through by brim desktop. If set zqd
 	// will exit if the fd is closed.
 	brimfd int
@@ -79,6 +80,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.Var(&c.logLevel, "loglevel", "level for log output (defaults to info)")
 	f.BoolVar(&c.devMode, "dev", false, "runs zqd in development mode")
 	f.StringVar(&c.portFile, "portfile", "", "write port of http listener to file")
+	f.StringVar(&c.workers, "workers", "", "list of zqd worker processes, csv of [addr]:port")
 
 	// hidden
 	f.IntVar(&c.brimfd, "brimfd", -1, "pipe read fd passed by brim to signal brim closure")
@@ -139,6 +141,11 @@ func (c *Command) Run(args []string) error {
 			return err
 		}
 	}
+	/*
+		if c.workers != "" {
+			workerList := strings.Split(c.workers, ",")
+		}
+	*/
 	return srv.Wait()
 }
 

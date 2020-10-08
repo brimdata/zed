@@ -34,6 +34,7 @@ type MultiSource interface {
 	// little or no i/o, and let the returned ScannerCloser perform more intensive
 	// filtering (e.g., reading a micro-index to check for filter matching).
 	SendSources(context.Context, *resolver.Context, SourceFilter, chan SourceOpener) error
+	// try:	SendSources(context.Context, *resolver.Context, SourceFilter, chan SpanInfo) error
 }
 
 // A SourceOpener is a closure sent by a MultiSource to provide scanning

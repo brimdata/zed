@@ -89,6 +89,8 @@ type parallelGroup struct {
 	scanners map[scanner.Scanner]struct{}
 }
 
+//func (pg *parallelGroup) nextSource() (SpanInfo, error) {
+// newSpanScanner needs to be around here instead of archive
 func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
 	for {
 		select {
@@ -96,6 +98,9 @@ func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
 			if !ok {
 				return nil, pg.sourceErr
 			}
+			// here we will have a SpanInfo
+			// local mode: copy code from closure in multisource here
+			// distributed mode: recruit a worker here
 			sc, err := opener()
 			if err != nil {
 				return nil, err
@@ -181,5 +186,7 @@ func createParallelGroup(pctx *proc.Context, filterExpr ast.BooleanExpr, msrc Mu
 	for i := range sources {
 		sources[i] = &parallelHead{pctx: pctx, parent: nil, pg: pg}
 	}
+	// here we could return a group of recruited workers, which must be Proc's
+	// so create a Proc which is a worker interface, needs Pull())
 	return sources, pg, nil
 }
