@@ -31,17 +31,16 @@ pigeon and pegjs to create the two parsers.
 
 ## Testing
 
-[main](main) contains a simple test program that takes zql queries typed
-on the command line, parses them with both parsers, and prints out both
-results so you can compare for accuracy.  Type this to run the test
-program:
-
-`go run ./main`
+The [ast command](../cmd/ast) can be used for easiliy testing the output of
+the zql parser.  
 
 ## Development
 
-For development, each time you make changes to zql.peg, you need to
-rebuild the parser and run the test program.  There is a makefile target
-to simplify this workflow.  Just type:
-
-`make run`
+During development, the easiest way to run the parser
+is with this `make` command at the root of the `zq repo`:
+```
+make peg
+```
+This will ensure the PEG-generated javascript and Go parsers are up to date
+with `zql.peg` and will launch the `ast -repl` so you can type zql queries
+and see the AST output during development.
