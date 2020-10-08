@@ -152,7 +152,7 @@ clean-python:
 	@rm -rf python/build
 
 zql/zql.go: zql/zql.peg
-	(cd zql ; make)
+	$(MAKE) -C zql
 
 peg: zql/zql.go FORCE
 	go run ./cmd/ast -repl

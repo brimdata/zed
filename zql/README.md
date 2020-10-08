@@ -32,7 +32,7 @@ pigeon and pegjs to create the two parsers.
 ## Testing
 
 The [ast command](../cmd/ast) can be used for easiliy testing the output of
-the zql parser.  
+the zql parser.
 
 ## Development
 
