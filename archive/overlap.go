@@ -5,6 +5,7 @@ import (
 
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/segmentio/ksuid"
 )
 
 // mergeChunksToSpans takes an unordered set of Chunks with possibly overlapping
@@ -12,6 +13,15 @@ import (
 // by filter, and where each SpanInfo contains one or more Chunks whose data
 // falls into the SpanInfo's span.
 func mergeChunksToSpans(chunks []Chunk, dir zbuf.Direction, filter nano.Span) []SpanInfo {
+	sinfos := alignChunksToSpans(chunks, dir, filter)
+	sinfos = mergeLargestChunkSpanInfos(sinfos, dir)
+	return sinfos
+}
+
+// alignChunksToSpans creates an ordered slice of SpanInfo's whose boundaries
+// match either the boundaries of a chunk, or in the case of overlapping chunks,
+// the boundaries of each portion of an overlap.
+func alignChunksToSpans(chunks []Chunk, dir zbuf.Direction, filter nano.Span) []SpanInfo {
 	var siChunks []Chunk // accumulating chunks for next SpanInfo
 	var siFirst nano.Ts  // first timestamp for next SpanInfo
 	var result []SpanInfo
@@ -129,4 +139,64 @@ func boundaries(chunks []Chunk, dir zbuf.Direction, fn func(ts nano.Ts, firstChu
 		i = j
 		fn(ts, firstChunks, lastChunks)
 	}
+}
+
+func largestChunk(si SpanInfo) Chunk {
+	res := si.Chunks[0]
+	for _, c := range si.Chunks {
+		if c.RecordCount > res.RecordCount {
+			res = c
+		}
+	}
+	return res
+}
+
+func spanInfoContainsChunk(si SpanInfo, cid ksuid.KSUID) bool {
+	for _, c := range si.Chunks {
+		if c.Id == cid {
+			return true
+		}
+	}
+	return false
+}
+
+func mergeSpanInfos(sis []SpanInfo, dir zbuf.Direction) SpanInfo {
+	if len(sis) == 1 {
+		return sis[0]
+	}
+	var res SpanInfo
+	res.Span = sis[0].Span
+	for _, si := range sis {
+		res.Span = res.Span.Union(si.Span)
+		for _, c := range si.Chunks {
+			if !spanInfoContainsChunk(res, c.Id) {
+				res.Chunks = append(res.Chunks, c)
+			}
+		}
+	}
+	chunksSort(dir, res.Chunks)
+	return res
+}
+
+// mergeLargestChunkSpanInfos merges contiguous SpanInfo's whose largest
+// Chunks by RecordCount is the same in the input slice.
+func mergeLargestChunkSpanInfos(spans []SpanInfo, dir zbuf.Direction) []SpanInfo {
+	if len(spans) < 2 {
+		return spans
+	}
+	var res []SpanInfo
+	run := []SpanInfo{spans[0]}
+	runLargest := largestChunk(spans[0])
+	for i := 1; i < len(spans); i++ {
+		largest := largestChunk(spans[i])
+		if largest.Id != runLargest.Id {
+			res = append(res, mergeSpanInfos(run, dir))
+			run = []SpanInfo{spans[i]}
+			runLargest = largest
+		} else {
+			run = append(run, spans[i])
+		}
+	}
+	res = append(res, mergeSpanInfos(run, dir))
+	return res
 }
