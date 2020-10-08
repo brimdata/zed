@@ -294,9 +294,6 @@ func (r *Reader) readColumn() (zng.Column, error) {
 	if err != nil {
 		return zng.Column{}, zng.ErrBadFormat
 	}
-	if len > TypeLimit {
-		return zng.Column{}, zng.ErrBadFormat
-	}
 	b, err := r.read(len)
 	if err != nil {
 		return zng.Column{}, zng.ErrBadFormat
@@ -378,7 +375,7 @@ func (r *Reader) readTypeEnum() error {
 		return err
 	}
 	nelem, err := r.readUvarint()
-	if err != nil || nelem > TypeLimit {
+	if err != nil {
 		return zng.ErrBadFormat
 	}
 	var elems []zng.Element
