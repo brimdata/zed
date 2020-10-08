@@ -92,10 +92,10 @@ func TestOpenOptions(t *testing.T) {
 	expFormat := `
 #zfile=string
 #0:record[key:int64,count:uint64,_log:zfile,first:time,last:time]
-0:[336;1;%s;1587518620.0622373;1587513894.06692143;]
+0:[336;1;%s;1587517405.06665591;1587517149.06304407;]
 0:[336;1;%s;1587509168.06759839;1587508830.06852324;]
 `
-	first1 := nano.Ts(1587518620062237300)
+	first1 := nano.Ts(1587517405066655910)
 	first2 := nano.Ts(1587509168067598390)
 	var logid1, logid2 LogID
 	err = filepath.Walk(datapath, func(p string, fi os.FileInfo, err error) error {
@@ -128,7 +128,7 @@ func TestOpenOptions(t *testing.T) {
 	expFormat = `
 #zfile=string
 #0:record[key:int64,count:uint64,_log:zfile,first:time,last:time]
-0:[336;1;%s;1587518620.0622373;1587513894.06692143;]
+0:[336;1;%s;1587517405.06665591;1587517149.06304407;]
 `
 	out = indexQuery(t, ark2, query, AddPath(DefaultAddPathField, false))
 	require.Equal(t, test.Trim(fmt.Sprintf(expFormat, logid1)), out)

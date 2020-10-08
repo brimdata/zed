@@ -11,7 +11,7 @@ import (
 	"regexp"
 
 	"github.com/brimsec/zq/pkg/skim"
-	"github.com/brimsec/zq/zio/zjsonio"
+	"github.com/brimsec/zq/zio/ndjsonio/compat"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/buger/jsonparser"
@@ -96,7 +96,7 @@ func (r *Reader) configureTypes(tc TypeConfig, defaultPath string) error {
 	}
 
 	for key, columns := range tc.Descriptors {
-		typeName, err := zjsonio.DecodeType(columns)
+		typeName, err := compat.DecodeType(columns)
 		if err != nil {
 			return fmt.Errorf("error decoding type \"%s\": %s", typeName, err)
 		}

@@ -15,6 +15,13 @@ const (
 	DirTimeReverse = Direction(false)
 )
 
+func (d Direction) Int() int {
+	if d {
+		return 1
+	}
+	return -1
+}
+
 func RecordCompare(d Direction) RecordCmpFn {
 	if d == DirTimeForward {
 		return CmpTimeForward

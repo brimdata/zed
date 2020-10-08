@@ -20,6 +20,7 @@ type MergeSort struct {
 	runs      []*peeker
 	compareFn expr.CompareFn
 	tempDir   string
+	spillSize int64
 	zctx      *resolver.Context
 }
 
@@ -66,7 +67,12 @@ func (r *MergeSort) Spill(recs []*zng.Record) error {
 	if err != nil {
 		return err
 	}
+	size, err := runFile.Size()
+	if err != nil {
+		return err
+	}
 	r.nspill++
+	r.spillSize += size
 	heap.Push(r, runFile)
 	return nil
 }
@@ -104,6 +110,10 @@ func (r *MergeSort) Read() (*zng.Record, error) {
 			return rec, nil
 		}
 	}
+}
+
+func (r *MergeSort) SpillSize() int64 {
+	return r.spillSize
 }
 
 func (r *MergeSort) Len() int { return len(r.runs) }

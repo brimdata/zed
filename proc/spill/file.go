@@ -70,3 +70,11 @@ func (r *File) CloseAndRemove() error {
 	}
 	return err
 }
+
+func (f *File) Size() (int64, error) {
+	info, err := f.file.Stat()
+	if err != nil {
+		return 0, err
+	}
+	return info.Size(), nil
+}
