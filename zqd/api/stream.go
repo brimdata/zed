@@ -15,10 +15,7 @@ type Payloads []interface{}
 func (p Payloads) Error() error {
 	last := p[len(p)-1]
 	if te, ok := last.(*TaskEnd); ok {
-		if te.Error != nil {
-			return te.Error
-		}
-		return nil
+		return te.Error
 	}
 	return errors.New("expected last payload to be of type *TaskEnd")
 }
