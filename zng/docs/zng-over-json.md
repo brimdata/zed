@@ -238,7 +238,7 @@ types that specifies the type of `<value>`, which is a JSON string or array
 as described recursively herein, and
 * each primitive is encoded as a string conforming to its TZNG representation,
 as described in the
-[corresponding section of the ZNG specification](https://github.com/brimsec/zq/blob/master/zng/docs/spec.md#5-primitive-types).
+[corresponding section of the ZNG specification](spec.md#5-primitive-types).
 
 For example, a record with three columns --- a string, an array of integers,
 and an array of union of string, and float64 --- might have a value that looks like this:
