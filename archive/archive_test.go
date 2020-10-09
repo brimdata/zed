@@ -168,8 +168,7 @@ func TestSeekIndex(t *testing.T) {
 	}
 	uri, err := iosrc.ParseURI(idxPath)
 	require.NoError(t, err)
-	finder := microindex.NewFinder(resolver.NewContext(), uri)
-	err = finder.Open(context.Background())
+	finder, err := microindex.NewFinder(context.Background(), resolver.NewContext(), uri)
 	require.NoError(t, err)
 	keys, err := finder.ParseKeys([]string{"1587508851"})
 	require.NoError(t, err)
