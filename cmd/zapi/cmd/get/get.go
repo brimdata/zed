@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
+	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
 	"github.com/brimsec/zq/emitter"
@@ -84,7 +84,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.debug, "debug", false, "dump raw HTTP response straight to output")
 	f.Var(&c.from, "from", "search from timestamp in RFC3339Nano format (e.g. 2006-01-02T15:04:05.999999999Z07:00)")
 	f.Var(&c.to, "to", "search to timestamp in RFC3339Nano format (e.g. 2006-01-02T15:04:05.999999999Z07:00)")
-	f.StringVar(&c.chunkInfo, "chunk", "", "dash separated list of ksuid,first_ts,last_ts,dataFileKind")
+	f.StringVar(&c.chunkInfo, "chunk", "", "chunk to fetch in chunk file name format")
 	c.outputFlags.SetFlags(f)
 	return c, nil
 }
@@ -180,31 +180,19 @@ func parseExprWithChunk(spaceID api.SpaceID, expr string, chunkInfo string) (*ap
 	if err != nil {
 		return nil, err
 	}
-	chunkInfoArr := strings.Split(chunkInfo, "-")
-	if len(chunkInfoArr) != 5 {
-		return nil, fmt.Errorf("chunk flag requires 5 dash seperated values %s", err)
-	}
-	recordCount, err := strconv.Atoi(chunkInfoArr[2])
-	if err != nil {
-		return nil, fmt.Errorf("chunk flag list must be string-string-int-int64-int64  %s", err)
-	}
-	first, err := strconv.ParseInt(chunkInfoArr[3], 10, 64)
-	if err != nil {
-		return nil, fmt.Errorf("chunk flag list must be string-string-int-int64-int64  %s", err)
-	}
-	last, err := strconv.ParseInt(chunkInfoArr[4], 10, 64)
-	if err != nil {
-		return nil, fmt.Errorf("chunk flag list must be string-string-int-int64-int64  %s", err)
+	chunk, ok := archive.ChunkNameMatch(chunkInfo)
+	if !ok {
+		return nil, errors.New("bad format for chunk name")
 	}
 
 	return &api.WorkerRequest{
 		SearchRequest: *searchRequest,
-		Chunks: []api.Chunk{api.Chunk{
-			Id:          chunkInfoArr[1],
-			First:       nano.Ts(first),
-			Last:        nano.Ts(last),
-			FileKind:    chunkInfoArr[0],
-			RecordCount: recordCount,
+		Chunks: []api.Chunk{{
+			Id:          chunk.Id.String(),
+			First:       chunk.First,
+			Last:        chunk.Last,
+			Kind:        string(chunk.Kind),
+			RecordCount: chunk.RecordCount,
 		}},
 	}, nil
 }

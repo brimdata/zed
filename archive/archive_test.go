@@ -77,7 +77,7 @@ func TestOpenOptions(t *testing.T) {
 		LogFilter: []string{"foo"},
 	})
 	require.Error(t, err)
-	require.Regexp(t, "not a data filename", err.Error())
+	require.Regexp(t, "not a chunk file name", err.Error())
 
 	indexArchiveSpace(t, datapath, ":int64")
 
@@ -97,31 +97,31 @@ func TestOpenOptions(t *testing.T) {
 `
 	first1 := nano.Ts(1587517405066655910)
 	first2 := nano.Ts(1587509168067598390)
-	var logid1, logid2 LogID
+	var chunk1, chunk2 Chunk
 	err = filepath.Walk(datapath, func(p string, fi os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if sf, ok := seekIndexNameMatch(fi.Name()); ok {
-			switch sf.first {
+		if c, ok := ChunkNameMatch(fi.Name()); ok {
+			switch c.First {
 			case first1:
-				logid1 = newLogID(sf.first, sf.id)
+				chunk1 = c
 			case first2:
-				logid2 = newLogID(sf.first, sf.id)
+				chunk2 = c
 			}
 		}
 		return nil
 	})
 	require.NoError(t, err)
-	if logid1 == "" || logid2 == "" {
+	if chunk1.Id.IsNil() || chunk2.Id.IsNil() {
 		t.Fatalf("expected data files not found")
 	}
 
 	out := indexQuery(t, ark1, query, AddPath(DefaultAddPathField, false))
-	require.Equal(t, test.Trim(fmt.Sprintf(expFormat, logid1, logid2)), out)
+	require.Equal(t, test.Trim(fmt.Sprintf(expFormat, chunk1.LogID(), chunk2.LogID())), out)
 
 	ark2, err := OpenArchive(datapath, &OpenOptions{
-		LogFilter: []string{string(logid1)},
+		LogFilter: []string{string(chunk1.LogID())},
 	})
 	require.NoError(t, err)
 
@@ -131,7 +131,7 @@ func TestOpenOptions(t *testing.T) {
 0:[336;1;%s;1587517405.06665591;1587517149.06304407;]
 `
 	out = indexQuery(t, ark2, query, AddPath(DefaultAddPathField, false))
-	require.Equal(t, test.Trim(fmt.Sprintf(expFormat, logid1)), out)
+	require.Equal(t, test.Trim(fmt.Sprintf(expFormat, chunk1.LogID())), out)
 }
 
 func TestSeekIndex(t *testing.T) {
@@ -148,27 +148,24 @@ func TestSeekIndex(t *testing.T) {
 		// Must use SortAscending: true until zq#1329 is addressed.
 		SortAscending: true,
 	})
+	ark, err := OpenArchive(datapath, &OpenOptions{})
+	require.NoError(t, err)
 
 	first1 := nano.Ts(1587508830068523240)
-	var idxPath string
+	var idxUri iosrc.URI
 	err = filepath.Walk(datapath, func(p string, fi os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if sf, ok := seekIndexNameMatch(fi.Name()); ok {
-			if sf.first == first1 {
-				idxPath = p
+		if c, ok := ChunkNameMatch(fi.Name()); ok {
+			if c.First == first1 {
+				idxUri = c.seekIndexPath(ark)
 			}
 		}
 		return nil
 	})
 	require.NoError(t, err)
-	if idxPath == "" {
-		t.Fatalf("expected data files not found")
-	}
-	uri, err := iosrc.ParseURI(idxPath)
-	require.NoError(t, err)
-	finder, err := microindex.NewFinder(context.Background(), resolver.NewContext(), uri)
+	finder, err := microindex.NewFinder(context.Background(), resolver.NewContext(), idxUri)
 	require.NoError(t, err)
 	keys, err := finder.ParseKeys([]string{"1587508851"})
 	require.NoError(t, err)

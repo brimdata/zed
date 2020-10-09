@@ -43,7 +43,7 @@ func NewWorkerOp(req api.WorkerRequest) (*WorkerOp, error) {
 		chunks[i].Id = id
 		chunks[i].First = chunk.First
 		chunks[i].Last = chunk.Last
-		chunks[i].DataFileKind = archive.FileKind(chunk.FileKind)
+		chunks[i].Kind = archive.FileKind(chunk.Kind)
 		chunks[i].RecordCount = chunk.RecordCount
 	}
 
