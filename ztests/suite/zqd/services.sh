@@ -7,6 +7,8 @@ function awaitfile {
     let i+=1
     if [ $i -gt 5 ]; then
       echo "timed out waiting for file \"$file\" to appear"
+      cat minio.log
+      cat zqd.log
       exit 1
     fi
     sleep 1
@@ -23,7 +25,7 @@ mkdir -p s3/bucket
 portdir=$(mktemp -d)
 
 
-minio server --writeportfile="$portdir/minio" --quiet --address localhost:0 ./s3 &
+minio server --writeportfile="$portdir/minio" --address localhost:0 ./s3 > minio.log 2>&1 &
 miniopid=$!
 awaitfile $portdir/minio
 
@@ -33,7 +35,7 @@ export AWS_ACCESS_KEY_ID=minioadmin
 export AWS_SECRET_ACCESS_KEY=minioadmin
 export AWS_S3_ENDPOINT=http://localhost:$(cat $portdir/minio)
 
-zqd listen -l=localhost:0 -portfile="$portdir/zqd" -data="$zqdroot" -loglevel=warn &
+zqd listen -l=localhost:0 -portfile="$portdir/zqd" -data="$zqdroot" -loglevel=warn > zqd.log 2>&1 &
 zqdpid=$!
 trap "rm -rf $portdir; kill -9 $miniopid $zqdpid" EXIT
 
