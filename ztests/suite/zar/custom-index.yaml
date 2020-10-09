@@ -1,10 +1,10 @@
 script: |
   mkdir logs
-  zar import -R ./logs babble.tzng
-  zar index -R ./logs -f 10000 -q -f 500 -o index.zng -z "sum(v) by s | put key=s | sort key"
-  zar ls -R ./logs -ranges -l
+  zar import -R logs babble.tzng
+  zar index -R logs -f 10000 -q -f 500 -o index.zng -z "sum(v) by s | put key=s | sort key"
+  zar ls -R logs -ranges -l
   echo ===
-  indexFile="logs/$(zar stat -R ./logs | grep ^index | awk '{print $2}' | sort | uniq | head -n 1).zar/index.zng"
+  indexFile="logs/$(zar stat -R logs | grep ^index | awk '{print $2}' | sort | uniq | head -n 1).zar/index.zng"
   microindex section -s 1 -t ${indexFile}
 
 inputs:

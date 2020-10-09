@@ -1,16 +1,16 @@
 
 script: |
   mkdir logs
-  zar import -R ./logs log.tzng
-  zar index -R ./logs -q :ip
+  zar import -R logs log.tzng
+  zar index -R logs -q :ip
   echo ===
-  zar find -R ./logs :ip=1.1.1.1
+  zar find -R logs :ip=1.1.1.1
   echo ===
-  zar find -R ./logs -z :ip=192.168.1.102 | zq -t "cut -c _log" -
+  zar find -R logs -z :ip=192.168.1.102 | zq -t "cut -c _log" -
   echo ===
-  zar find -R ./logs -z :ip=192.168.2.1 | zq -t "cut -c _log" -
+  zar find -R logs -z :ip=192.168.2.1 | zq -t "cut -c _log" -
   echo ===
-  zar find -R ./logs -z :ip=192.168.1.1 | zq -t "cut -c _log" -
+  zar find -R logs -z :ip=192.168.1.1 | zq -t "cut -c _log" -
   echo ===
   zq -t "count(key)" $(find . -name microindex*) # check unset not indexed
 
