@@ -88,7 +88,7 @@ func TestPcapPostSearch(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("skipping test for windows")
 	}
-	pcapfile := "testdata/valid.pcap"
+	const pcapfile = "testdata/valid.pcap"
 	p := pcapPostTest(t, pcapfile, launcherFromEnv(t, "ZEEK"))
 	t.Run("Success", func(t *testing.T) {
 		req := api.PcapSearch{
