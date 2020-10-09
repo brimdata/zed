@@ -25,13 +25,13 @@ func New(pctx *proc.Context, parent proc.Interface, cflag bool) *Proc {
 	}
 }
 
-// The leading underscore in "_uniq" is to avoid clashing with existing field
-// names. Reducers don't have this problem since ZQL has a way to assign
-// a field name to their returned result. At some point we could maybe add an
-// option like "-f foo" to set a field name, at which point we could safely
-// use a non-underscore field name by default, such as "count".
 func (p *Proc) wrap(t *zng.Record) *zng.Record {
 	if p.cflag {
+		// The leading underscore in "_uniq" is to avoid clashing with existing field
+		// names. Reducers don't have this problem since ZQL has a way to assign
+		// a field name to their returned result. At some point we could maybe add an
+		// option like "-f foo" to set a field name, at which point we could safely
+		// use a non-underscore field name by default, such as "count".
 		cols := []zng.Column{zng.NewColumn("_uniq", zng.TypeUint64)}
 		vals := []zng.Value{zng.NewUint64(p.count)}
 		newR, err := p.pctx.TypeContext.AddColumns(t, cols, vals)
