@@ -1,5 +1,17 @@
 # ZNG over JSON
 
+* [ZJSON](#zjson)
+  + [Type Encoding](#type-encoding)
+    - [Record Type](#record-type)
+    - [Array Type](#array-type)
+    - [Set Type](#set-type)
+    - [Union type](#union-type)
+    - [Enum Type](#enum-type)
+  + [Alias Encoding](#alias-encoding)
+  + [Value Encoding](#value-encoding)
+* [Framing ZJSON objects](#framing-zjson-objects)
+* [Example](#example)
+
 The ZNG data format has richly typed records and a deterministic column order.
 Thus, encoding ZNG directly into JSON objects would not work without loss
 of information.
