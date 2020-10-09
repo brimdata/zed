@@ -52,7 +52,7 @@ func IsErrTooBig(err error) bool {
 var DefaultLimit = 1000000
 
 func CompileParams(node *ast.GroupByProc, zctx *resolver.Context) (*Params, error) {
-	keys := make([]Key, 0)
+	keys := []Key{}
 	var targets []string
 	for _, astKey := range node.Keys {
 		ex, err := expr.CompileExpr(astKey.Expr)
@@ -65,7 +65,7 @@ func CompileParams(node *ast.GroupByProc, zctx *resolver.Context) (*Params, erro
 		})
 		targets = append(targets, astKey.Target)
 	}
-	reducers := make([]compile.CompiledReducer, 0)
+	reducers := []compile.CompiledReducer{}
 	for _, reducer := range node.Reducers {
 		compiled, err := compile.Compile(reducer)
 		if err != nil {
