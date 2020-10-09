@@ -35,7 +35,6 @@ const (
 	OutFormatZNG
 	OutFormatZeek
 	OutFormatZeekAscii
-	OutFormatDebug
 )
 
 // A Type is an interface presented by a zeek type.

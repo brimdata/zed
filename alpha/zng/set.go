@@ -48,12 +48,9 @@ func (t *TypeSet) StringOf(zv zcode.Bytes, fmt OutFmt, _ bool) string {
 
 	var b strings.Builder
 	separator := byte(',')
-	switch fmt {
-	case OutFormatZNG:
+	if fmt == OutFormatZNG {
 		b.WriteByte('[')
 		separator = ';'
-	case OutFormatDebug:
-		b.WriteString("set[")
 	}
 
 	first := true
@@ -73,13 +70,10 @@ func (t *TypeSet) StringOf(zv zcode.Bytes, fmt OutFmt, _ bool) string {
 		b.WriteString(t.InnerType.StringOf(val, fmt, true))
 	}
 
-	switch fmt {
-	case OutFormatZNG:
+	if fmt == OutFormatZNG {
 		if !first {
 			b.WriteByte(';')
 		}
-		b.WriteByte(']')
-	case OutFormatDebug:
 		b.WriteByte(']')
 	}
 	return b.String()

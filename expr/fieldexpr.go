@@ -79,7 +79,7 @@ func (f *FieldExpr) Eval(rec *zng.Record) (zng.Value, error) {
 	return accessField(zng.Value{rec.Type, rec.Raw}, fieldName)
 }
 
-// FieldExprToString returns ZQL for the Evaluator assuming its a field expr.
+// FieldExprToString returns ZQL for the Evaluator assuming it is a field expr.
 func FieldExprToString(e Evaluator) string {
 	switch e := e.(type) {
 	case *FieldExpr:
@@ -90,7 +90,10 @@ func FieldExprToString(e Evaluator) string {
 		rhs := FieldExprToString(e.field)
 		return lhs + rhs
 	case *Literal:
-		return e.zv.String()
+		if e.zv.Type != zng.TypeString {
+			panic("expr: unexpected type " + e.zv.Type.String())
+		}
+		return string(e.zv.Bytes)
 	case *Index:
 		lhs := FieldExprToString(e.container)
 		rhs := FieldExprToString(e.index)
