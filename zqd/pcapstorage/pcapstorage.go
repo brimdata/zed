@@ -78,29 +78,10 @@ func (s *Store) Update(ctx context.Context, pcapuri iosrc.URI, warningCh chan<- 
 		Span:    idx.Span(),
 		Index:   idx,
 	}
-	b, err := json.Marshal(m)
+	err = iosrc.Replace(ctx, s.root.AppendPath(MetaFile), func(w io.Writer) error {
+		return json.NewEncoder(w).Encode(m)
+	})
 	if err != nil {
-		return err
-	}
-	src, err := iosrc.GetSource(s.root)
-	if err != nil {
-		return err
-	}
-	metauri := s.root.AppendPath(MetaFile)
-	var w io.WriteCloser
-	if replace, ok := src.(iosrc.ReplacerAble); ok {
-		w, err = replace.NewReplacer(ctx, metauri)
-	} else {
-		w, err = src.NewWriter(ctx, metauri)
-	}
-	if err != nil {
-		return err
-	}
-	if _, err := w.Write(b); err != nil {
-		w.Close()
-		return err
-	}
-	if err := w.Close(); err != nil {
 		return err
 	}
 	s.meta = m

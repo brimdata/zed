@@ -94,13 +94,17 @@ func (w *Writer) Write(b []byte) (int, error) {
 	return w.writer.Write(b)
 }
 
-func (w *Writer) Close() error {
-	err := w.writer.Close()
+func (w *Writer) closeWithError(pipeErr error) error {
+	err := w.writer.CloseWithError(pipeErr)
 	w.done.Wait()
 	if err != nil {
 		return err
 	}
 	return w.err
+}
+
+func (w *Writer) Close() error {
+	return w.closeWithError(nil)
 }
 
 func RemoveAll(ctx context.Context, path string, cfg *aws.Config) error {
@@ -242,4 +246,24 @@ func newClient(cfg *aws.Config) *s3.S3 {
 		SharedConfigState: scs,
 	}))
 	return s3.New(sess)
+}
+
+type Replacer struct {
+	*Writer
+}
+
+func (r *Replacer) Close() error {
+	return r.closeWithError(nil)
+}
+
+func (r *Replacer) Abort() {
+	_ = r.closeWithError(errors.New("replacer aborted"))
+}
+
+func NewReplacer(ctx context.Context, path string, cfg *aws.Config, options ...func(*s3manager.Uploader)) (*Replacer, error) {
+	wc, err := NewWriter(ctx, path, cfg, options...)
+	if err != nil {
+		return nil, err
+	}
+	return &Replacer{wc}, nil
 }

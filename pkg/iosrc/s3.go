@@ -83,9 +83,9 @@ func (s *s3Source) Stat(ctx context.Context, u URI) (Info, error) {
 	return info{entry}, nil
 }
 
-func (s *s3Source) NewReplacer(ctx context.Context, uri URI) (io.WriteCloser, error) {
-	// Updates to S3 objects are atomic.
-	return s.NewWriter(ctx, uri)
+func (s *s3Source) NewReplacer(ctx context.Context, u URI) (Replacer, error) {
+	r, err := s3io.NewReplacer(ctx, u.String(), s.Config)
+	return r, wrapErr(err)
 }
 
 func (s *s3Source) ReadDir(ctx context.Context, uri URI) ([]Info, error) {

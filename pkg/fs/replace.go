@@ -1,15 +1,25 @@
 package fs
 
 import (
+	"errors"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 )
 
-// NewFileReplacer returns an io.WriteCloser to a temporary file; on close,
-// the temp file will be atomically renamed to the given filename.
-func NewFileReplacer(filename string, perm os.FileMode) (io.WriteCloser, error) {
+type Replacer struct {
+	f        *os.File
+	err      error
+	filename string
+	perm     os.FileMode
+}
+
+// NewFileReplacer returns a Replacer, an io.WriteCloser that can be used
+// to atomically update the content of a file. Either Close or Abort must be
+// called on the Replacer; Close will rename the temp file to the given
+// filename, while Abort will leave the original file unmodified.
+func NewFileReplacer(filename string, perm os.FileMode) (*Replacer, error) {
 	filename, err := filepath.Abs(filename)
 	if err != nil {
 		return nil, err
@@ -18,31 +28,33 @@ func NewFileReplacer(filename string, perm os.FileMode) (io.WriteCloser, error) 
 	if err != nil {
 		return nil, err
 	}
-	return &replacer{
+	return &Replacer{
 		f:        f,
 		filename: filename,
 		perm:     perm,
 	}, nil
 }
 
-type replacer struct {
-	f        *os.File
-	writeErr error
-	filename string
-	perm     os.FileMode
-}
-
-func (r *replacer) Write(b []byte) (int, error) {
+func (r *Replacer) Write(b []byte) (int, error) {
 	n, err := r.f.Write(b)
 	if err != nil {
-		r.writeErr = err
+		r.err = err
 	}
 	return n, err
 }
 
-func (r *replacer) Close() (err error) {
+func (r *Replacer) Abort() {
+	r.err = errors.New("replacer aborted")
+	_ = r.close()
+}
+
+func (r *Replacer) Close() error {
+	return r.close()
+}
+
+func (r *Replacer) close() (err error) {
 	defer func() {
-		if err != nil || r.writeErr != nil {
+		if err != nil || r.err != nil {
 			os.Remove(r.f.Name())
 		}
 	}()
@@ -52,22 +64,20 @@ func (r *replacer) Close() (err error) {
 	if err := os.Chmod(r.f.Name(), r.perm); err != nil {
 		return err
 	}
-	if r.writeErr == nil {
+	if r.err == nil {
 		return os.Rename(r.f.Name(), r.filename)
 	}
-	return nil
+	return r.err
 }
 
-func ReplaceFile(name string, perm os.FileMode, fn func(w io.Writer) error) (err error) {
-	wc, err := NewFileReplacer(name, perm)
+func ReplaceFile(name string, perm os.FileMode, fn func(w io.Writer) error) error {
+	r, err := NewFileReplacer(name, perm)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		closeErr := wc.Close()
-		if err == nil {
-			err = closeErr
-		}
-	}()
-	return fn(wc)
+	if err := fn(r); err != nil {
+		r.Abort()
+		return err
+	}
+	return r.Close()
 }

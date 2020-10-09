@@ -69,7 +69,7 @@ func (s *FileSource) Exists(_ context.Context, uri URI) (bool, error) {
 	return true, nil
 }
 
-func (s *FileSource) NewReplacer(_ context.Context, uri URI) (io.WriteCloser, error) {
+func (s *FileSource) NewReplacer(_ context.Context, uri URI) (Replacer, error) {
 	return fs.NewFileReplacer(uri.Filepath(), s.Perm)
 }
 
