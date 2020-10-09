@@ -87,7 +87,7 @@ func (f *Flattener) Flatten(r *zng.Record) (*zng.Record, error) {
 // FlattenColumns turns nested records into a series of columns of
 // the form "outer.inner".
 func FlattenColumns(cols []zng.Column) []zng.Column {
-	ret := make([]zng.Column, 0)
+	ret := []zng.Column{}
 	for _, c := range cols {
 		recType, isRecord := c.Type.(*zng.TypeRecord)
 		if isRecord {

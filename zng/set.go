@@ -88,7 +88,7 @@ func (t *TypeSet) StringOf(zv zcode.Bytes, fmt OutFmt, _ bool) string {
 
 func (t *TypeSet) Marshal(zv zcode.Bytes) (interface{}, error) {
 	// start out with zero-length container so we get "[]" instead of nil
-	vals := make([]Value, 0)
+	vals := []Value{}
 	it := zv.Iter()
 	for !it.Done() {
 		val, _, err := it.Next()

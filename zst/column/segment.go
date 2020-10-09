@@ -62,7 +62,7 @@ func UnmarshalSegmap(in zng.Value, s *[]Segment) error {
 	if len(segType.Columns) != 2 || !checkSegType(segType.Columns[0], "offset", zng.TypeInt64) || !checkSegType(segType.Columns[1], "length", zng.TypeInt32) {
 		return errors.New("zst object segmap element not a record[offset:int64,length:int32]")
 	}
-	*s = make([]Segment, 0)
+	*s = []Segment{}
 	it := in.Bytes.Iter()
 	for !it.Done() {
 		zv, isContainer, err := it.Next()

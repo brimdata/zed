@@ -99,7 +99,7 @@ func encodeRecord(typ *zng.TypeRecord, val zcode.Bytes) (interface{}, error) {
 	}
 	// We start out with a slice that contains nothing instead of nil
 	// so that an empty container encodes as a JSON empty array [].
-	out := make([]interface{}, 0)
+	out := []interface{}{}
 	k := 0
 	for it := val.Iter(); !it.Done(); k++ {
 		zv, _, err := it.Next()
@@ -121,7 +121,7 @@ func encodeContainer(typ zng.Type, val zcode.Bytes) (interface{}, error) {
 	}
 	// We start out with a slice that contains nothing instead of nil
 	// so that an empty container encodes as a JSON empty array [].
-	out := make([]interface{}, 0)
+	out := []interface{}{}
 	for it := val.Iter(); !it.Done(); {
 		zv, _, err := it.Next()
 		if err != nil {

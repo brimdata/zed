@@ -16,7 +16,7 @@ import (
 
 func parse(zctx *resolver.Context, src string) (zbuf.Array, error) {
 	reader := tzngio.NewReader(strings.NewReader(src), zctx)
-	records := make([]*zng.Record, 0)
+	records := []*zng.Record{}
 	for {
 		rec, err := reader.Read()
 		if err != nil {
