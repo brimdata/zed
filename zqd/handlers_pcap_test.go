@@ -126,7 +126,7 @@ func TestPcapPostSearch(t *testing.T) {
 }
 
 func TestPcapPostPcapNgWithExtraBytes(t *testing.T) {
-	p := pcapPostTest(t, "./testdata/extra.pcapng", testLauncher(nil, nil))
+	p := pcapPostTest(t, "testdata/extra.pcapng", testLauncher(nil, nil))
 	t.Run("PcapNgExtra", func(t *testing.T) {
 		require.NoError(t, p.err)
 		warning := p.payloads[1].(*api.PcapPostWarning)
