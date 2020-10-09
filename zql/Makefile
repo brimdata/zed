@@ -9,9 +9,6 @@ npm = npm --global --prefix $(deps)
 
 all: zql.go zql.js zql.es.js
 
-run: zql.go zql.js
-	go run ./main
-
 .PHONY: zql.go
 zql.go:
 ifeq "$(shell go version -m $(deps)/bin/goimports 2>&1 | fgrep $(GOIMPORTS_VERSION))" ""

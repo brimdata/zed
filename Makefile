@@ -151,6 +151,18 @@ build-python-lib:
 clean-python:
 	@rm -rf python/build
 
+PEG_GEN = zql/zql.go zql/zql.js zql/zql.es.js
+$(PEG_GEN): zql/Makefile zql/parser-support.js zql/zql.peg
+	$(MAKE) -C zql
+
+# This rule is best for edit-compile-debug cycle of peg development.  It should
+# properly trigger rebuilds of peg-generated code, but best to run "make" in the
+# zql subdirectory if you are changing versions of pigeon, pegjs, or javascript
+# dependencies.
+.PHONY: peg
+peg: $(PEG_GEN)
+	go run ./cmd/ast -repl
+
 # CI performs these actions individually since that looks nicer in the UI;
 # this is a shortcut so that a local dev can easily run everything.
 test-ci: fmt tidy vet test-generate test-unit test-system test-zeek test-heavy
