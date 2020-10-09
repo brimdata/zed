@@ -33,7 +33,6 @@ func NewWorkerOp(req api.WorkerRequest) (*WorkerOp, error) {
 	if req.Dir != -1 {
 		return nil, zqe.E(zqe.Invalid, "time direction must be 1 or -1")
 	}
-	//query, err := UnpackQuery(req)
 
 	chunks := make([]archive.Chunk, len(req.Chunks))
 	for i, chunk := range req.Chunks {
