@@ -1083,8 +1083,7 @@ func newCore(t *testing.T) (*zqd.Core, *api.Connection) {
 func newCoreAtDir(t *testing.T, dir string) (*zqd.Core, *api.Connection) {
 	require.NoError(t, os.MkdirAll(dir, 0755))
 	t.Cleanup(func() { os.RemoveAll(dir) })
-	conf := zqd.Config{Root: dir}
-	return newCoreWithConfig(t, conf)
+	return newCoreWithConfig(t, zqd.Config{Root: dir})
 }
 
 func newCoreWithConfig(t *testing.T, conf zqd.Config) (*zqd.Core, *api.Connection) {
