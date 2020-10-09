@@ -133,8 +133,6 @@ func handleWorker(c *Core, w http.ResponseWriter, httpReq *http.Request) {
 
 	srch, err := search.NewWorkerOp(req)
 	if err != nil {
-		// XXX This always returns bad request but should return status codes
-		// that reflect the nature of the returned error.
 		respondError(c, w, httpReq, err)
 		return
 	}

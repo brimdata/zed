@@ -197,23 +197,14 @@ func parseExprWithChunk(spaceID api.SpaceID, expr string, chunkInfo string) (*ap
 		return nil, fmt.Errorf("chunk flag list must be string-string-int-int64-int64  %s", err)
 	}
 
-	firstTs := nano.Ts(first)
-	lastTs := nano.Ts(last)
-	span := nano.NewSpanTs(firstTs, lastTs)
-
 	return &api.WorkerRequest{
-		SearchRequest: api.SearchRequest{
-			Space: spaceID,
-			Proc:  proc,
-			Dir:   -1,
-			Span:  span,
-		},
-		Chunks: []api.ChunkEntry{api.ChunkEntry{
-			Id:           chunkInfoArr[1],
-			First:        firstTs,
-			Last:         lastTs,
-			DataFileKind: chunkInfoArr[0],
-			RecordCount:  recordCount,
+		SearchRequest: *searchRequest,
+		Chunks: []api.Chunk{api.Chunk{
+			Id:          chunkInfoArr[1],
+			First:       nano.Ts(first),
+			Last:        nano.Ts(last),
+			FileKind:    chunkInfoArr[0],
+			RecordCount: recordCount,
 		}},
 	}, nil
 }

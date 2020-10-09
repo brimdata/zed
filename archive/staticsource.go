@@ -8,6 +8,9 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
+// staticSource is an implemetation of driver.MultiSource that provides
+// a single SpanInfo (with Chunks) to be processed by a zqd worker.
+// staticSource is used only for the zqd /worker call.
 type staticSource struct {
 	ark *Archive
 	si  SpanInfo
