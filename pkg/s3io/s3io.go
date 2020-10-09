@@ -256,10 +256,8 @@ func (r *Replacer) Close() error {
 	return r.closeWithError(nil)
 }
 
-var errReplacerAbort = errors.New("replacer aborted")
-
 func (r *Replacer) Abort() {
-	_ = r.closeWithError(errReplacerAbort)
+	_ = r.closeWithError(errors.New("replacer aborted"))
 }
 
 func NewReplacer(ctx context.Context, path string, cfg *aws.Config, options ...func(*s3manager.Uploader)) (*Replacer, error) {

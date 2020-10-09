@@ -43,10 +43,8 @@ func (r *Replacer) Write(b []byte) (int, error) {
 	return n, err
 }
 
-var errReplacerAbort = errors.New("replacer aborted")
-
 func (r *Replacer) Abort() {
-	r.err = errReplacerAbort
+	r.err = errors.New("replacer aborted")
 	_ = r.close()
 }
 
@@ -77,8 +75,7 @@ func ReplaceFile(name string, perm os.FileMode, fn func(w io.Writer) error) erro
 	if err != nil {
 		return err
 	}
-	err = fn(r)
-	if err != nil {
+	if err := fn(r); err != nil {
 		r.Abort()
 		return err
 	}

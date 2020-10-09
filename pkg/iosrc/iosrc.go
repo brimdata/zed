@@ -155,8 +155,7 @@ func Replace(ctx context.Context, uri URI, fn func(w io.Writer) error) error {
 	if err != nil {
 		return err
 	}
-	err = fn(r)
-	if err != nil {
+	if err := fn(r); err != nil {
 		r.Abort()
 		return err
 	}
