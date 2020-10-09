@@ -34,7 +34,7 @@ func TestPcapPostSuccess(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("skipping test for windows")
 	}
-	pcapfile := "testdata/valid.pcap"
+	const pcapfile = "testdata/valid.pcap"
 	p := pcapPostTest(t, pcapfile, launcherFromEnv(t, "ZEEK"))
 	t.Run("DataReverseSorted", func(t *testing.T) {
 		expected := `
