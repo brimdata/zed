@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/brimsec/zq/address"
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/nano"
@@ -29,6 +30,13 @@ type Config struct {
 	Span              nano.Span
 	StatsTick         <-chan time.Time
 	Warnings          chan string
+}
+
+func zbufDirInt(reversed bool) int {
+	if reversed {
+		return -1
+	}
+	return 1
 }
 
 func programPrep(program ast.Proc, sortKey string, sortReversed bool) (ast.Proc, ast.BooleanExpr, filter.Filter, error) {
@@ -104,7 +112,7 @@ func compileSingle(ctx context.Context, program ast.Proc, zctx *resolver.Context
 	return newMuxOutput(pctx, leaves, sn), nil
 }
 
-func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc MultiSource, mcfg MultiConfig) (*muxOutput, error) {
+func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc address.MultiSource, mcfg address.MultiConfig) (*muxOutput, error) {
 	if mcfg.Logger == nil {
 		mcfg.Logger = zap.NewNop()
 	}

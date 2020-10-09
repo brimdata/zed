@@ -111,7 +111,7 @@ func (pg *parallelGroup) nextSource() (address.ScannerCloser, error) {
 			}
 
 			//sc, err := opener()
-			var sc ScannerCloser
+			var sc address.ScannerCloser
 			if sc == nil {
 				continue
 			}
@@ -169,7 +169,7 @@ func newCompareFn(field string, reversed bool) (zbuf.RecordCmpFn, error) {
 	}, nil
 }
 
-func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.BooleanExpr, msrc MultiSource, mcfg MultiConfig) ([]proc.Interface, *parallelGroup, error) {
+func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.BooleanExpr, msrc address.MultiSource, mcfg address.MultiConfig) ([]proc.Interface, *parallelGroup, error) {
 	pg := &parallelGroup{
 		pctx: pctx,
 		filter: address.SourceFilter{
