@@ -3,13 +3,13 @@ package archive
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zqe"
 )
 
 type findOptions struct {
@@ -100,7 +100,7 @@ func Find(ctx context.Context, zctx *resolver.Context, ark *Archive, query Index
 			defer close(searchHits)
 			uri := chunk.ZarDir(ark).AppendPath(query.indexName)
 			searchErr = search(ctx, opt.zctx, searchHits, uri, query.patterns)
-			if searchErr != nil && os.IsNotExist(searchErr) && opt.skipMissing {
+			if searchErr != nil && zqe.IsNotFound(searchErr) && opt.skipMissing {
 				// No index for this rule.  Skip it if the skip boolean
 				// says it's ok.  Otherwise, we return ErrNotExist since
 				// the client was looking for something that wasn't indexed,
@@ -124,9 +124,9 @@ func Find(ctx context.Context, zctx *resolver.Context, ark *Archive, query Index
 }
 
 func search(ctx context.Context, zctx *resolver.Context, hits chan<- *zng.Record, uri iosrc.URI, patterns []string) error {
-	finder := microindex.NewFinder(zctx, uri)
-	if err := finder.Open(ctx); err != nil {
-		return fmt.Errorf("%s: %w", finder.Path(), err)
+	finder, err := microindex.NewFinder(ctx, zctx, uri)
+	if err != nil {
+		return fmt.Errorf("%s: %w", uri, err)
 	}
 	defer finder.Close()
 	keys, err := finder.ParseKeys(patterns)
