@@ -52,7 +52,7 @@ func (t *TypeLogger) TypeDef(id int, typ zng.Type) {
 func formatType(typ zng.Type) string {
 	switch typ := typ.(type) {
 	case *zng.TypeSet:
-		return fmt.Sprintf("%d:set[<%d>]", typ.ID(), typ.InnerType.ID())
+		return fmt.Sprintf("%d:set[<%d>]", typ.ID(), typ.Type.ID())
 	case *zng.TypeArray:
 		return fmt.Sprintf("%d:array[<%d>]", typ.ID(), typ.Type.ID())
 	case *zng.TypeRecord:

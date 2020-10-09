@@ -85,7 +85,7 @@ func encodeAny(typ zng.Type, val []byte) (interface{}, error) {
 	case *zng.TypeArray:
 		return encodeContainer(typ.Type, val)
 	case *zng.TypeSet:
-		return encodeContainer(typ.InnerType, val)
+		return encodeContainer(typ.Type, val)
 	case *zng.TypeMap:
 		return encodeMap(typ, val)
 	default:
@@ -294,7 +294,7 @@ func decodeAny(b *zcode.Builder, typ zng.Type, body interface{}) error {
 			return nil
 		}
 		b.BeginContainer()
-		err := decodeContainerBody(b, typ.InnerType, body, "set")
+		err := decodeContainerBody(b, typ.Type, body, "set")
 		b.TransformContainer(zng.NormalizeSet)
 		b.EndContainer()
 		return err

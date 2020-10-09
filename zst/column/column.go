@@ -65,7 +65,7 @@ func NewWriter(typ zng.Type, spiller *Spiller) Writer {
 	case *zng.TypeSet:
 		// Sets encode the same way as arrays but behave
 		// differently semantically, and we don't care here.
-		return NewArrayWriter(typ.InnerType, spiller)
+		return NewArrayWriter(typ.Type, spiller)
 	case *zng.TypeUnion:
 		return NewUnionWriter(typ, spiller)
 	default:
@@ -93,7 +93,7 @@ func Unmarshal(typ zng.Type, in zng.Value, r io.ReaderAt) (Interface, error) {
 		// Sets encode the same way as arrays but behave
 		// differently semantically, and we don't care here.
 		a := &Array{}
-		err := a.UnmarshalZNG(typ.InnerType, in, r)
+		err := a.UnmarshalZNG(typ.Type, in, r)
 		return a, err
 	case *zng.TypeUnion:
 		u := &Union{}
