@@ -71,9 +71,9 @@ func TestPcapPostSuccess(t *testing.T) {
 		require.NoError(t, err)
 		plen := len(p.payloads)
 		status := p.payloads[plen-2].(*api.PcapPostStatus)
-		assert.Equal(t, status.Type, "PcapPostStatus")
-		assert.Equal(t, status.PcapSize, info.Size())
-		assert.Equal(t, status.PcapReadSize, info.Size())
+		assert.Equal(t, "PcapPostStatus", status.Type)
+		assert.Equal(t, info.Size(), status.PcapSize)
+		assert.Equal(t, info.Size(), status.PcapReadSize)
 		assert.Equal(t, 1, status.SnapshotCount)
 		assert.Equal(t, nano.NewSpanTs(nano.Unix(1501770877, 471635000), nano.Unix(1501770880, 988247001)), *status.Span)
 	})
@@ -196,17 +196,6 @@ func TestPcapPostZeekFailAfterWrite(t *testing.T) {
 		}
 		last := p.payloads[len(p.payloads)-1]
 		require.Equal(t, expected, last)
-	})
-	t.Run("EmptySpaceInfo", func(t *testing.T) {
-		info, err := p.client.SpaceInfo(context.Background(), p.space.ID)
-		assert.NoError(t, err)
-		expected := api.SpaceInfo{
-			ID:          p.space.ID,
-			Name:        p.space.Name,
-			DataPath:    p.space.DataPath,
-			StorageKind: storage.FileStore,
-		}
-		require.Equal(t, &expected, info)
 	})
 }
 

@@ -688,15 +688,7 @@ func TestSpaceDataDir(t *testing.T) {
 
 func TestCreateArchiveSpace(t *testing.T) {
 	thresh := int64(1000)
-	root := createTempDir(t)
-
-	c, client := newCoreAtDir(t, root)
-
-	c.Zeek = testLauncher(func(tzp *testPcapProcess) error {
-		const s = "unexpected attempt to run zeek"
-		t.Error(s)
-		return errors.New(s)
-	}, nil)
+	_, client := newCore(t)
 
 	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{
 		Name: "arktest",
@@ -733,11 +725,6 @@ func TestCreateArchiveSpace(t *testing.T) {
 `
 	res := searchTzng(t, client, sp.ID, "s=harefoot-raucous")
 	require.Equal(t, test.Trim(exptzng), res)
-
-	// Verify pcap post not supported
-	_, err = client.PcapPostStream(context.Background(), sp.ID, api.PcapPostRequest{"foo"})
-	require.Error(t, err)
-	assert.Regexp(t, "space does not support pcap import", err.Error())
 }
 
 func TestBlankNameSpace(t *testing.T) {
