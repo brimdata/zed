@@ -22,11 +22,6 @@ type Driver interface {
 }
 
 func Run(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader, cfg Config) error {
-<<<<<<< HEAD
-	//msrc, mcfg := rdrToMulti(reader, cfg)
-	//return MultiRun(ctx, d, program, zctx, msrc, mcfg)
-	return nil
-=======
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -35,7 +30,6 @@ func Run(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Context
 		return err
 	}
 	return runMux(mux, d, cfg.StatsTick)
->>>>>>> origin/driver-singlesource
 }
 
 func MultiRun(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Context, msrc address.MultiSource, mcfg address.MultiConfig) error {
