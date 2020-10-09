@@ -2,11 +2,25 @@ package api
 
 import (
 	"bufio"
+	"errors"
 	"io"
 )
 
 type Stream struct {
 	scanner *bufio.Scanner
+}
+
+type Payloads []interface{}
+
+func (p Payloads) Error() error {
+	last := p[len(p)-1]
+	if te, ok := last.(*TaskEnd); ok {
+		if te.Error != nil {
+			return te.Error
+		}
+		return nil
+	}
+	return errors.New("expected last payload to be of type *TaskEnd")
 }
 
 func NewStream(s *bufio.Scanner) *Stream {
@@ -28,7 +42,7 @@ func (s *Stream) Next() (interface{}, error) {
 	return nil, nil
 }
 
-func (s *Stream) ReadAll() ([]interface{}, error) {
+func (s *Stream) ReadAll() (Payloads, error) {
 	var payloads []interface{}
 	for {
 		v, err := s.Next()
@@ -39,10 +53,7 @@ func (s *Stream) ReadAll() ([]interface{}, error) {
 			return nil, err
 		}
 		payloads = append(payloads, v)
-		if end, ok := v.(*TaskEnd); ok {
-			if end.Error != nil {
-				return nil, end.Error
-			}
+		if _, ok := v.(*TaskEnd); ok {
 			return payloads, nil
 		}
 	}

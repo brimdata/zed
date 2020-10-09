@@ -1,14 +1,12 @@
-// +build zeek
+// +build pcapingest
 
 package zqd_test
 
 import (
 	"context"
 	"errors"
-	"io/ioutil"
 	"net"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"runtime"
 	"testing"
@@ -23,9 +21,6 @@ import (
 	"github.com/brimsec/zq/zqd/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
-	"go.uber.org/zap/zaptest"
 )
 
 var testZeekLogs = []string{
@@ -39,12 +34,8 @@ func TestPcapPostSuccess(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("skipping test for windows")
 	}
-	pcapuri, err := iosrc.ParseURI("testdata/valid.pcap")
-	require.NoError(t, err)
-	ln, err := pcapanalyzer.LauncherFromPath(os.Getenv("ZEEK"))
-	require.NoError(t, err)
-	p := pcapPost(t, pcapuri.Filepath(), ln)
-	defer p.cleanup()
+	const pcapfile = "testdata/valid.pcap"
+	p := pcapPostTest(t, pcapfile, launcherFromEnv(t, "ZEEK"))
 	t.Run("DataReverseSorted", func(t *testing.T) {
 		expected := `
 #0:record[ts:time]
@@ -59,14 +50,14 @@ func TestPcapPostSuccess(t *testing.T) {
 	t.Run("SpaceInfo", func(t *testing.T) {
 		info, err := p.client.SpaceInfo(context.Background(), p.space.ID)
 		assert.NoError(t, err)
-		assert.Equal(t, p.space.ID, info.ID)
+		assert.Equal(t, info.ID, p.space.ID)
 		assert.Equal(t, nano.NewSpanTs(nano.Unix(1501770877, 471635000), nano.Unix(1501770880, 988247001)), *info.Span)
 		// Must use InDelta here because zeek randomly generates uids that
 		// vary in size.
 		assert.InDelta(t, 1561, info.Size, 10)
 		assert.Equal(t, int64(4224), info.PcapSize)
 		assert.True(t, info.PcapSupport)
-		assert.Equal(t, pcapuri, info.PcapPath)
+		assert.Equal(t, iosrc.MustParseURI(pcapfile), info.PcapPath)
 	})
 	t.Run("PcapIndexExists", func(t *testing.T) {
 		require.FileExists(t, p.core.Root.AppendPath(string(p.space.ID), pcapstorage.MetaFile).Filepath())
@@ -76,7 +67,7 @@ func TestPcapPostSuccess(t *testing.T) {
 		assert.Equal(t, status.Type, "TaskStart")
 	})
 	t.Run("StatusMessage", func(t *testing.T) {
-		info, err := os.Stat(p.pcapfile)
+		info, err := os.Stat(pcapfile)
 		require.NoError(t, err)
 		plen := len(p.payloads)
 		status := p.payloads[plen-2].(*api.PcapPostStatus)
@@ -97,10 +88,8 @@ func TestPcapPostSearch(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("skipping test for windows")
 	}
-	ln, err := pcapanalyzer.LauncherFromPath(os.Getenv("ZEEK"))
-	require.NoError(t, err)
-	p := pcapPost(t, "./testdata/valid.pcap", ln)
-	defer p.cleanup()
+	const pcapfile = "testdata/valid.pcap"
+	p := pcapPostTest(t, pcapfile, launcherFromEnv(t, "ZEEK"))
 	t.Run("Success", func(t *testing.T) {
 		req := api.PcapSearch{
 			Span:    nano.Span{Ts: 1501770877471635000, Dur: 3485852000},
@@ -136,19 +125,8 @@ func TestPcapPostSearch(t *testing.T) {
 	})
 }
 
-func TestPcapSearchNotFound(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("skipping test for windows")
-	}
-	ln, err := pcapanalyzer.LauncherFromPath(os.Getenv("ZEEK"))
-	require.NoError(t, err)
-	p := pcapPost(t, "./testdata/valid.pcap", ln)
-	defer p.cleanup()
-}
-
 func TestPcapPostPcapNgWithExtraBytes(t *testing.T) {
-	p := pcapPost(t, "./testdata/extra.pcapng", testZeekLauncher(nil, nil))
-	defer p.cleanup()
+	p := pcapPostTest(t, "testdata/extra.pcapng", testLauncher(nil, nil))
 	t.Run("PcapNgExtra", func(t *testing.T) {
 		require.NoError(t, p.err)
 		warning := p.payloads[1].(*api.PcapPostWarning)
@@ -157,8 +135,7 @@ func TestPcapPostPcapNgWithExtraBytes(t *testing.T) {
 }
 
 func TestPcapPostInvalidPcap(t *testing.T) {
-	p := pcapPost(t, "./testdata/invalid.pcap", testZeekLauncher(nil, nil))
-	defer p.cleanup()
+	p := pcapPostTest(t, "testdata/invalid.pcap", testLauncher(nil, nil))
 	t.Run("ErrorResponse", func(t *testing.T) {
 		require.Error(t, p.err)
 		var reserr *api.ErrorResponse
@@ -183,9 +160,8 @@ func TestPcapPostInvalidPcap(t *testing.T) {
 
 func TestPcapPostZeekFailImmediate(t *testing.T) {
 	expectedErr := errors.New("zeek error: failed to start")
-	startFn := func(*testZeekProcess) error { return expectedErr }
-	p := pcapPost(t, "./testdata/valid.pcap", testZeekLauncher(startFn, nil))
-	defer p.cleanup()
+	startFn := func(*testPcapProcess) error { return expectedErr }
+	p := pcapPostTest(t, "testdata/valid.pcap", testLauncher(startFn, nil))
 	t.Run("TaskEndError", func(t *testing.T) {
 		expected := &api.TaskEnd{
 			Type:   "TaskEnd",
@@ -202,14 +178,13 @@ func TestPcapPostZeekFailImmediate(t *testing.T) {
 
 func TestPcapPostZeekFailAfterWrite(t *testing.T) {
 	expectedErr := errors.New("zeek exited after write")
-	write := func(p *testZeekProcess) error {
+	write := func(p *testPcapProcess) error {
 		if err := writeLogsFn(testZeekLogs)(p); err != nil {
 			return err
 		}
 		return expectedErr
 	}
-	p := pcapPost(t, "./testdata/valid.pcap", testZeekLauncher(nil, write))
-	defer p.cleanup()
+	p := pcapPostTest(t, "testdata/valid.pcap", testLauncher(nil, write))
 	t.Run("TaskEndError", func(t *testing.T) {
 		expected := &api.TaskEnd{
 			Type:   "TaskEnd",
@@ -235,75 +210,35 @@ func TestPcapPostZeekFailAfterWrite(t *testing.T) {
 	})
 }
 
-func pcapPost(t *testing.T, pcapfile string, l pcapanalyzer.Launcher) pcapPostResult {
-	return pcapPostWithConfig(t, zqd.Config{Zeek: l}, pcapfile)
-}
-
-func pcapPostWithConfig(t *testing.T, conf zqd.Config, pcapfile string) pcapPostResult {
-	if conf.Logger == nil {
-		conf.Logger = zaptest.NewLogger(t, zaptest.Level(zapcore.WarnLevel))
-	}
-	c := setCoreRoot(t, conf)
-	ts := httptest.NewServer(zqd.NewHandler(c, conf.Logger))
-	client := api.NewConnectionTo(ts.URL)
-	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
+func launcherFromEnv(t *testing.T, key string) pcapanalyzer.Launcher {
+	ln, err := pcapanalyzer.LauncherFromPath(os.Getenv(key))
 	require.NoError(t, err)
-	res := pcapPostResult{
-		core:     c,
-		srv:      ts,
-		client:   client,
-		space:    *sp,
-		pcapfile: pcapfile,
-	}
-	res.postPcap(t, pcapfile)
-	return res
+	return ln
 }
 
-func setCoreRoot(t *testing.T, c zqd.Config) *zqd.Core {
-	if c.Root == "" {
-		dir, err := ioutil.TempDir("", "PcapPostTest")
-		require.NoError(t, err)
-		c.Root = dir
-	}
-	if c.Logger == nil {
-		c.Logger = zaptest.NewLogger(t, zaptest.Level(zap.WarnLevel))
-	}
-	core, err := zqd.NewCore(c)
-	require.NoError(t, err)
-	return core
-}
-
-type pcapPostResult struct {
-	core     *zqd.Core
+type pcapPostTestResult struct {
 	client   *api.Connection
-	srv      *httptest.Server
+	core     *zqd.Core
 	space    api.SpaceInfo
-	pcapfile string
-	body     []byte
 	err      error
-	payloads []interface{}
+	payloads api.Payloads
 }
 
-func (r *pcapPostResult) postPcap(t *testing.T, file string) {
-	var stream *api.Stream
-	stream, r.err = r.client.PcapPost(context.Background(), r.space.ID, api.PcapPostRequest{r.pcapfile})
-	if r.err == nil {
-		r.readPayloads(t, stream)
+func pcapPostTest(t *testing.T, pcapfile string, zeek pcapanalyzer.Launcher) pcapPostTestResult {
+	return testPcapPostWithConfig(t, zqd.Config{Zeek: zeek}, pcapfile)
+}
+
+func testPcapPostWithConfig(t *testing.T, conf zqd.Config, pcapfile string) pcapPostTestResult {
+	ctx := context.Background()
+	c, client := newCoreWithConfig(t, conf)
+	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	require.NoError(t, err)
+	payloads, perr := client.PcapPost(ctx, sp.ID, api.PcapPostRequest{pcapfile})
+	return pcapPostTestResult{
+		err:      perr,
+		payloads: payloads,
+		space:    *sp,
+		core:     c,
+		client:   client,
 	}
-}
-
-func (r *pcapPostResult) readPayloads(t *testing.T, stream *api.Stream) {
-	for {
-		i, err := stream.Next()
-		require.NoError(t, err)
-		if i == nil {
-			break
-		}
-		r.payloads = append(r.payloads, i)
-	}
-}
-
-func (r *pcapPostResult) cleanup() {
-	os.RemoveAll(r.core.Root.Filepath())
-	r.srv.Close()
 }
