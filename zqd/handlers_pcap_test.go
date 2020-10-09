@@ -184,7 +184,7 @@ func TestPcapPostZeekFailAfterWrite(t *testing.T) {
 		}
 		return expectedErr
 	}
-	p := pcapPostTest(t, "./testdata/valid.pcap", testLauncher(nil, write))
+	p := pcapPostTest(t, "testdata/valid.pcap", testLauncher(nil, write))
 	t.Run("TaskEndError", func(t *testing.T) {
 		expected := &api.TaskEnd{
 			Type:   "TaskEnd",
