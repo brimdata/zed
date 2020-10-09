@@ -135,7 +135,7 @@ func TestPcapPostPcapNgWithExtraBytes(t *testing.T) {
 }
 
 func TestPcapPostInvalidPcap(t *testing.T) {
-	p := pcapPostTest(t, "./testdata/invalid.pcap", testLauncher(nil, nil))
+	p := pcapPostTest(t, "testdata/invalid.pcap", testLauncher(nil, nil))
 	t.Run("ErrorResponse", func(t *testing.T) {
 		require.Error(t, p.err)
 		var reserr *api.ErrorResponse
