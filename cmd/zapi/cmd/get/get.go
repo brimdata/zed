@@ -117,7 +117,7 @@ func (c *Command) Run(args []string) error {
 			return fmt.Errorf("search error: %w", err)
 		}
 	} else {
-		req, err := parseExprPlusChunk(id, expr, c.chunkInfo)
+		req, err := parseExprWithChunk(id, expr, c.chunkInfo)
 		req.Span = nano.NewSpanTs(nano.Ts(c.from), nano.Ts(c.to))
 		params := map[string]string{"format": c.encoding}
 		if err != nil {
@@ -173,8 +173,8 @@ func parseExpr(spaceID api.SpaceID, expr string) (*api.SearchRequest, error) {
 	}, nil
 }
 
-// parseExprPlusChunk creates an api.WorkerRequest to be used with the client.
-func parseExprPlusChunk(spaceID api.SpaceID, expr string, chunkInfo string) (*api.WorkerRequest, error) {
+// parseExprWithChunk creates an api.WorkerRequest to be used with the client.
+func parseExprWithChunk(spaceID api.SpaceID, expr string, chunkInfo string) (*api.WorkerRequest, error) {
 	// This is only for testing usng the -chunk flag
 	search, err := zql.ParseProc(expr)
 	if err != nil {
