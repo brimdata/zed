@@ -176,11 +176,7 @@ func parseExpr(spaceID api.SpaceID, expr string) (*api.SearchRequest, error) {
 // parseExprWithChunk creates an api.WorkerRequest to be used with the client.
 func parseExprWithChunk(spaceID api.SpaceID, expr string, chunkInfo string) (*api.WorkerRequest, error) {
 	// This is only for testing using the -chunk flag
-	search, err := zql.ParseProc(expr)
-	if err != nil {
-		return nil, err
-	}
-	proc, err := json.Marshal(search)
+	searchRequest, err := parseExpr(spaceID, expr)
 	if err != nil {
 		return nil, err
 	}
