@@ -84,7 +84,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.debug, "debug", false, "dump raw HTTP response straight to output")
 	f.Var(&c.from, "from", "search from timestamp in RFC3339Nano format (e.g. 2006-01-02T15:04:05.999999999Z07:00)")
 	f.Var(&c.to, "to", "search to timestamp in RFC3339Nano format (e.g. 2006-01-02T15:04:05.999999999Z07:00)")
-	f.StringVar(&c.chunkInfo, "chunk", "", "comma separated list of ksuid,first_ts,last_ts,dataFileKind")
+	f.StringVar(&c.chunkInfo, "chunk", "", "dash separated list of ksuid,first_ts,last_ts,dataFileKind")
 	c.outputFlags.SetFlags(f)
 	return c, nil
 }
