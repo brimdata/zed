@@ -1,10 +1,10 @@
 script: |
   mkdir logs
   source minio.sh
-  zar import -R ./logs -data s3://bucket/zartest babble.tzng
-  zar map -R ./logs -o count.zng "count()"
+  zar import -R logs -data s3://bucket/zartest babble.tzng
+  zar map -R logs -o count.zng "count()"
   echo ===
-  zar ls -R ./logs -ranges -l
+  zar ls -R logs -ranges -l
 
 inputs:
   - name: babble.tzng

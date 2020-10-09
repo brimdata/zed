@@ -1,6 +1,6 @@
 script: |
   mkdir logs
-  zar import -R ./logs missingcol.tzng
+  zar import -R logs missingcol.tzng
 
 inputs:
   - name: missingcol.tzng
