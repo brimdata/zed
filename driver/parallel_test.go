@@ -3,6 +3,7 @@ package driver
 import (
 	"bytes"
 	"context"
+	"io"
 	"strings"
 	"testing"
 	"time"
@@ -16,6 +17,22 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type scannerCloser struct {
+	scanner.Scanner
+	io.Closer
+}
+
+type onClose struct {
+	fn func() error
+}
+
+func (c *onClose) Close() error {
+	if c.fn == nil {
+		return nil
+	}
+	return c.fn()
+}
 
 var parallelTestInputs []string = []string{
 	`

@@ -9,17 +9,21 @@ script: |
 inputs:
   - name: in.tzng
     data: |
+      #port=uint16
       #0:record[a:int32,p1:port,p2:port]
       0:[1;100;200;]
 
 outputs:
   - name: stdout
     data: |
+      #port=uint16
       #0:record[a:int32,p1:port,p2:port,x:int64]
       0:[1;100;200;101;]
       ===
+      #port=uint16
       #0:record[a:int32,p1:port,p2:port,x:bool]
       0:[1;100;200;F;]
       ===
+      #port=uint16
       #0:record[a:int32,p1:port,p2:port,x:int32]
       0:[1;100;200;301;]

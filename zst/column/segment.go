@@ -22,7 +22,7 @@ func (s Segment) NewSectionReader(r io.ReaderAt) io.Reader {
 var ErrCorruptSegment = errors.New("segmap value corrupt")
 
 func UnmarshalSegment(zv zcode.Bytes, s *Segment) error {
-	it := zcode.Iter(zv)
+	it := zv.Iter()
 	zv, isContainer, err := it.Next()
 	if err != nil {
 		return err
@@ -63,7 +63,7 @@ func UnmarshalSegmap(in zng.Value, s *[]Segment) error {
 		return errors.New("zst object segmap element not a record[offset:int64,length:int32]")
 	}
 	*s = make([]Segment, 0)
-	it := zcode.Iter(in.Bytes)
+	it := in.Bytes.Iter()
 	for !it.Done() {
 		zv, isContainer, err := it.Next()
 		if err != nil {

@@ -1,0 +1,9 @@
+zql: put c=b:string | put d=toBase64(c),f=toBase64(c):bytes | put e=fromBase64(d):string
+
+input: |
+  #0:record[b:bytes]
+  0:[aGksIHdvcmxk;]
+
+output: |
+  #0:record[b:bytes,c:string,d:string,f:bytes,e:string]
+  0:[aGksIHdvcmxk;hi, world;aGksIHdvcmxk;YUdrc0lIZHZjbXhr;hi, world;]

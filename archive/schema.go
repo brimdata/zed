@@ -3,6 +3,7 @@ package archive
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"os"
 	"time"
 
@@ -23,24 +24,10 @@ type Metadata struct {
 }
 
 func (c *Metadata) Write(uri iosrc.URI) error {
-	src, err := iosrc.GetSource(uri)
+	err := iosrc.Replace(context.Background(), uri, func(w io.Writer) error {
+		return json.NewEncoder(w).Encode(c)
+	})
 	if err != nil {
-		return err
-	}
-	rep, ok := src.(iosrc.ReplacerAble)
-	if !ok {
-		return zqe.E("scheme does not support metadata updates: %s", uri)
-	}
-	// Pass background context because we don't want this to quit.
-	wc, err := rep.NewReplacer(context.Background(), uri)
-	if err != nil {
-		return err
-	}
-	if err := json.NewEncoder(wc).Encode(c); err != nil {
-		wc.Close()
-		return err
-	}
-	if err := wc.Close(); err != nil {
 		return err
 	}
 	if uri.Scheme == "file" {

@@ -279,7 +279,7 @@ func (c *Connection) ArchiveStat(ctx context.Context, space SpaceID, params map[
 	return NewZngSearch(r), nil
 }
 
-func (c *Connection) PcapPost(ctx context.Context, space SpaceID, payload PcapPostRequest) (*Stream, error) {
+func (c *Connection) PcapPostStream(ctx context.Context, space SpaceID, payload PcapPostRequest) (*Stream, error) {
 	req := c.Request(ctx).
 		SetBody(payload)
 	req.Method = http.MethodPost
@@ -290,6 +290,18 @@ func (c *Connection) PcapPost(ctx context.Context, space SpaceID, payload PcapPo
 	}
 	jsonpipe := NewJSONPipeScanner(r)
 	return NewStream(jsonpipe), nil
+}
+
+func (c *Connection) PcapPost(ctx context.Context, space SpaceID, payload PcapPostRequest) (Payloads, error) {
+	stream, err := c.PcapPostStream(ctx, space, payload)
+	if err != nil {
+		return nil, err
+	}
+	payloads, err := stream.ReadAll()
+	if err != nil {
+		return nil, err
+	}
+	return payloads, payloads.Error()
 }
 
 func (c *Connection) PcapSearch(ctx context.Context, space SpaceID, payload PcapSearch) (*PcapReadCloser, error) {
@@ -334,8 +346,11 @@ func (c *Connection) LogPost(ctx context.Context, space SpaceID, payload LogPost
 	if err != nil {
 		return err
 	}
-	_, err = stream.ReadAll()
-	return err
+	payloads, err := stream.ReadAll()
+	if err != nil {
+		return err
+	}
+	return payloads.Error()
 }
 
 type ErrorResponse struct {

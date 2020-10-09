@@ -1,6 +1,7 @@
 package expr
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"math"
@@ -245,7 +246,7 @@ func (i *In) Eval(rec *zng.Record) (zng.Value, error) {
 	if err != nil {
 		return elem, err
 	}
-	iter := zcode.Iter(container.Bytes)
+	iter := container.Bytes.Iter()
 	for {
 		if iter.Done() {
 			return zng.False, nil
@@ -372,12 +373,36 @@ func newNumeric(lhs, rhs Evaluator) numeric {
 	}
 }
 
+func enumify(v zng.Value) (zng.Value, error) {
+	// automatically convert an enum to its value when coercing
+	if typ, ok := v.Type.(*zng.TypeEnum); ok {
+		selector, err := zng.DecodeUint(v.Bytes)
+		if err != nil {
+			return zng.Value{}, err
+		}
+		elem, err := typ.Element(int(selector))
+		if err != nil {
+			return zng.Value{}, err
+		}
+		return zng.Value{typ.Type, elem.Value}, nil
+	}
+	return v, nil
+}
+
 func (n *numeric) eval(rec *zng.Record) (int, error) {
 	lhs, err := n.lhs.Eval(rec)
 	if err != nil {
 		return 0, err
 	}
+	lhs, err = enumify(lhs)
+	if err != nil {
+		return 0, err
+	}
 	rhs, err := n.rhs.Eval(rec)
+	if err != nil {
+		return 0, err
+	}
+	rhs, err = enumify(rhs)
 	if err != nil {
 		return 0, err
 	}
@@ -602,24 +627,21 @@ func (d *Divide) Eval(rec *zng.Record) (zng.Value, error) {
 		v1, _ := zng.DecodeFloat64(d.vals.a)
 		v2, _ := zng.DecodeFloat64(d.vals.b)
 		if v2 == 0 {
-			// XXX change to error type in subsequent PR
-			return zng.Value{zng.TypeString, zng.EncodeString("floating point divide by 0")}, nil
+			return zng.Value{zng.TypeError, zng.EncodeString("floating point divide by 0")}, nil
 		}
 		return zng.Value{typ, d.vals.Float64(v1 / v2)}, nil
 	case zng.IsSigned(id):
 		v1, _ := zng.DecodeInt(d.vals.a)
 		v2, _ := zng.DecodeInt(d.vals.b)
 		if v2 == 0 {
-			// XXX change to error type in subsequent PR
-			return zng.Value{zng.TypeString, zng.EncodeString("signed integer divide by 0")}, nil
+			return zng.Value{zng.TypeError, zng.EncodeString("signed integer divide by 0")}, nil
 		}
 		return zng.Value{typ, d.vals.Int(v1 / v2)}, nil
 	case zng.IsNumber(id):
 		v1, _ := zng.DecodeUint(d.vals.a)
 		v2, _ := zng.DecodeUint(d.vals.b)
 		if v2 == 0 {
-			// XXX change to error type in subsequent PR
-			return zng.Value{zng.TypeString, zng.EncodeString("unsigned integer divide by 0")}, nil
+			return zng.Value{zng.TypeError, zng.EncodeString("unsigned integer divide by 0")}, nil
 		}
 		return zng.Value{typ, d.vals.Uint(v1 / v2)}, nil
 	}
@@ -627,7 +649,7 @@ func (d *Divide) Eval(rec *zng.Record) (zng.Value, error) {
 }
 
 func getNthFromContainer(container zcode.Bytes, idx uint) (zcode.Bytes, error) {
-	iter := zcode.Iter(container)
+	iter := container.Iter()
 	var i uint = 0
 	for ; !iter.Done(); i++ {
 		zv, _, err := iter.Next()
@@ -639,6 +661,24 @@ func getNthFromContainer(container zcode.Bytes, idx uint) (zcode.Bytes, error) {
 		}
 	}
 	return nil, ErrIndexOutOfBounds
+}
+
+func lookupKey(mapBytes, target zcode.Bytes) (zcode.Bytes, bool) {
+	iter := mapBytes.Iter()
+	for !iter.Done() {
+		key, _, err := iter.Next()
+		if err != nil {
+			return nil, false
+		}
+		val, _, err := iter.Next()
+		if err != nil {
+			return nil, false
+		}
+		if bytes.Compare(key, target) == 0 {
+			return val, true
+		}
+	}
+	return nil, false
 }
 
 // Index represents an index operator "container[index]" where container is
@@ -653,44 +693,71 @@ func compileIndexExpr(container, index Evaluator) (Evaluator, error) {
 }
 
 func (i *Index) Eval(rec *zng.Record) (zng.Value, error) {
-	array, err := i.container.Eval(rec)
+	container, err := i.container.Eval(rec)
 	if err != nil {
 		return zng.Value{}, err
-	}
-	//XXX add support for records
-	typ, ok := array.Type.(*zng.TypeArray)
-	if !ok {
-		//XXX this operator should be used for record accesses for
-		// things like foo["@type"]
-		// XXX make test for 'put x=a[selector]' where selector is another field
-		// so you can say rec["foo"] or rec[bar] where if rec is a record
-		// and bar is stringy and equals "foo", they result in the same value.
-		return zng.Value{}, errors.New("indexed value is not an array")
 	}
 	index, err := i.index.Eval(rec)
 	if err != nil {
 		return zng.Value{}, err
 	}
+	switch typ := container.Type.(type) {
+	default:
+		return zng.Value{}, fmt.Errorf("cannot index type \"%s\" with key \"%s\"", typ, index)
+	case *zng.TypeArray:
+		return indexArray(typ, container.Bytes, index)
+	case *zng.TypeRecord:
+		return indexRecord(typ, container.Bytes, index)
+	case *zng.TypeMap:
+		return indexMap(typ, container.Bytes, index)
+	}
+}
+
+func indexArray(typ *zng.TypeArray, array zcode.Bytes, index zng.Value) (zng.Value, error) {
 	id := index.Type.ID()
 	if !zng.IsInteger(id) {
-		return zng.Value{}, errors.New("array index is not an integer")
+		return zng.NewError(errors.New("array index is not an integer")), nil
 	}
 	var idx uint
 	if zng.IsSigned(id) {
 		v, _ := zng.DecodeInt(index.Bytes)
 		if idx < 0 {
-			return zng.Value{}, ErrIndexOutOfBounds
+			return zng.NewError(errors.New("array index out of bounds")), nil
 		}
 		idx = uint(v)
 	} else {
 		v, _ := zng.DecodeUint(index.Bytes)
 		idx = uint(v)
 	}
-	zv, err := getNthFromContainer(array.Bytes, idx)
+	zv, err := getNthFromContainer(array, idx)
 	if err != nil {
 		return zng.Value{}, err
 	}
 	return zng.Value{typ.Type, zv}, nil
+}
+
+func indexRecord(typ *zng.TypeRecord, record zcode.Bytes, index zng.Value) (zng.Value, error) {
+	id := index.Type.ID()
+	if !zng.IsStringy(id) {
+		return zng.NewError(errors.New("record index is not a string")), nil
+	}
+	field, _ := zng.DecodeString(index.Bytes)
+	result, err := zng.NewRecord(typ, record).ValueByField(string(field))
+	if err != nil {
+		return zng.NewError(err), nil
+	}
+	return result, nil
+}
+
+func indexMap(typ *zng.TypeMap, mapBytes zcode.Bytes, key zng.Value) (zng.Value, error) {
+	if key.Type != typ.KeyType {
+		//XXX should try coercing?
+		return zng.NewError(errors.New("map key type does not match index type")), nil
+	}
+	if valBytes, ok := lookupKey(mapBytes, key.Bytes); ok {
+		return zng.Value{typ.ValType, valBytes}, nil
+	}
+	return zng.NewError(fmt.Errorf("key not found in map: %s", key)), nil
 }
 
 type Conditional struct {
@@ -826,6 +893,8 @@ func compileCast(node ast.CastExpression) (Evaluator, error) {
 		return &StringCast{expr, zng.TypeString}, nil
 	case "bstring":
 		return &StringCast{expr, zng.TypeBstring}, nil
+	case "bytes":
+		return &BytesCast{expr}, nil
 	default:
 		return nil, fmt.Errorf("cast to %s not implemeneted", node.Type)
 	}
@@ -940,5 +1009,28 @@ func (s *StringCast) Eval(rec *zng.Record) (zng.Value, error) {
 	if err != nil {
 		return zng.Value{}, err
 	}
+	if zv.Type.ID() == zng.IdBytes {
+		return zng.Value{s.typ, zng.EncodeString(string(zv.Bytes))}, nil
+	}
+	if enum, ok := zv.Type.(*zng.TypeEnum); ok {
+		selector, _ := zng.DecodeUint(zv.Bytes)
+		element, err := enum.Element(int(selector))
+		if err != nil {
+			return zng.NewError(err), nil
+		}
+		return zng.Value{s.typ, zng.EncodeString(element.Name)}, nil
+	}
 	return zng.Value{s.typ, zng.EncodeString(zv.String())}, nil
+}
+
+type BytesCast struct {
+	expr Evaluator
+}
+
+func (s *BytesCast) Eval(rec *zng.Record) (zng.Value, error) {
+	zv, err := s.expr.Eval(rec)
+	if err != nil {
+		return zng.Value{}, err
+	}
+	return zng.Value{zng.TypeBytes, zng.EncodeBytes(zv.Bytes)}, nil
 }

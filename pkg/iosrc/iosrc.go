@@ -4,6 +4,7 @@ package iosrc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -50,9 +51,14 @@ type DirMaker interface {
 	MkdirAll(URI, os.FileMode) error
 }
 
+type Replacer interface {
+	io.WriteCloser
+	Abort()
+}
+
 // A ReplacerAble source supports atomic updates to a URI.
 type ReplacerAble interface {
-	NewReplacer(context.Context, URI) (io.WriteCloser, error)
+	NewReplacer(context.Context, URI) (Replacer, error)
 }
 
 func NewReader(ctx context.Context, uri URI) (Reader, error) {
@@ -134,6 +140,26 @@ func GetSource(uri URI) (Source, error) {
 		return nil, fmt.Errorf("unknown scheme: %q", scheme)
 	}
 	return source, nil
+}
+
+func Replace(ctx context.Context, uri URI, fn func(w io.Writer) error) error {
+	src, err := GetSource(uri)
+	if err != nil {
+		return err
+	}
+	replacerAble, ok := src.(ReplacerAble)
+	if !ok {
+		return errors.New("source does not support replacement")
+	}
+	r, err := replacerAble.NewReplacer(ctx, uri)
+	if err != nil {
+		return err
+	}
+	if err := fn(r); err != nil {
+		r.Abort()
+		return err
+	}
+	return r.Close()
 }
 
 func getScheme(uri URI) string {

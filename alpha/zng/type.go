@@ -13,7 +13,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/brimsec/zq/zcode"
+	"github.com/brimsec/zq/alpha/zcode"
 )
 
 var (

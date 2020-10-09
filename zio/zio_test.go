@@ -19,7 +19,8 @@ func assertError(t *testing.T, err error, pattern, what string) {
 // Test things related to parsing tzng
 func TestTzngDescriptors(t *testing.T) {
 	// Step 1 - Test a simple zng descriptor and corresponding value
-	src := "#1:record[s:string,n:int32]\n"
+	src := "#port=uint16\n"
+	src += "#1:record[s:string,n:int32]\n"
 	src += "1:[foo;5;]\n"
 	// Step 2 - Create a second descriptor of a different type
 	src += "#2:record[a:ip,p:port]\n"

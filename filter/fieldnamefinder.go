@@ -25,22 +25,22 @@ func newFieldNameFinder(pattern string) *fieldNameFinder {
 func (f *fieldNameFinder) find(zctx *resolver.Context, buf []byte) bool {
 	f.checkedIDs.SetInt64(0)
 	for len(buf) > 0 {
-		if buf[0]&0x80 != 0 {
+		code := buf[0]
+		if code > zng.CtrlValueEscape {
 			// Control messages are not expected.
 			return true
 		}
-		// Read uvarint7 encoding of type ID.
 		var id int
-		if buf[0]&0x40 == 0 {
-			id = int(buf[0])
-			buf = buf[1:]
-		} else {
+		if code == zng.CtrlValueEscape {
 			v, n := binary.Uvarint(buf[1:])
 			if n <= 0 {
 				return true
 			}
-			id = int((v << 6) | uint64(buf[0]&0x3f))
+			id = int(v)
 			buf = buf[1+n:]
+		} else {
+			id = int(code)
+			buf = buf[1:]
 		}
 		length, n := binary.Uvarint(buf)
 		if n <= 0 {

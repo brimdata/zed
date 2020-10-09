@@ -76,7 +76,7 @@ func EvalAny(eval Predicate, recursive bool) Filter {
 
 	var fn func(v zcode.Bytes, cols []zng.Column) bool
 	fn = func(v zcode.Bytes, cols []zng.Column) bool {
-		it := zcode.Iter(v)
+		it := v.Iter()
 		for _, c := range cols {
 			val, _, err := it.Next()
 			if err != nil {

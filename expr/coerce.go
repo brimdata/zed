@@ -43,12 +43,6 @@ func (c *Coercion) coerce(a, b zng.Value) (int, error) {
 	if aid == bid {
 		return aid, nil
 	}
-	// Change ports to uint16 so they can be coerced and used in numerical operators.
-	if aid == zng.IdPort {
-		aid = zng.IdUint16
-	} else if bid == zng.IdPort {
-		bid = zng.IdUint16
-	}
 	if zng.IsNumber(aid) {
 		if !zng.IsNumber(bid) {
 			return 0, ErrIncompatibleTypes

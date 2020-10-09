@@ -2,10 +2,10 @@ zql: 'count()'
 
 input:
   - !!binary |
-      gAEBeAYXAgQChQ==
+      9gEFY291bnQDFwIEAv8=
 
   - !!binary |
-      gAEBeAYXAgQChQ==
+      9gEFY291bnQDFwIEAv8=
 
 output: |
   #0:record[count:uint64]

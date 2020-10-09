@@ -6,8 +6,8 @@ import (
 	"math"
 	"strconv"
 
+	"github.com/brimsec/zq/alpha/zcode"
 	"github.com/brimsec/zq/pkg/byteconv"
-	"github.com/brimsec/zq/zcode"
 )
 
 type TypeOfFloat64 struct{}

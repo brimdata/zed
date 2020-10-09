@@ -141,7 +141,6 @@ searchPred
 searchLiteral
   = StringLiteral
   / RegexpLiteral
-  / PortLiteral
   / SubnetLiteral
   / AddressLiteral
   / FloatLiteral
@@ -170,13 +169,8 @@ RegexpLiteral
       RETURN(MAP("op": "Literal", "type": "regexp", "value": v))
     }
 
-PortLiteral
-  = v:port {
-      RETURN(MAP("op": "Literal", "type": "port", "value": v))
-    }
-
 SubnetLiteral
-  = v:ip6subnet {
+  = v:ip6subnet !fieldNameRest {
       RETURN(MAP("op": "Literal", "type": "net", "value": v))
     }
   / v:subnet {
@@ -184,7 +178,7 @@ SubnetLiteral
     }
 
 AddressLiteral
-  = v:ip6addr {
+  = v:ip6addr !fieldNameRest {
       RETURN(MAP("op": "Literal", "type": "ip", "value": v))
     }
   / v:addr {
@@ -488,7 +482,6 @@ FieldAssignment
 PrimaryExpression
   = StringLiteral
   / RegexpLiteral
-  / PortLiteral
   / SubnetLiteral
   / AddressLiteral
   / FloatLiteral
@@ -567,18 +560,19 @@ NotExpression
   / CastExpression
 
 CastExpression
-  = e:CallExpression t:(__ ":" __ ct:ZngType { RETURN(ct) })? {
-    if ISNOTNULL(t) {
-      RETURN(MAP("op": "CastExpr", "expr": e, "type": t))
-    } else {
-      RETURN(e)
-    }
+  = e:CallExpression ":" ct:PrimitiveType {
+      RETURN(MAP("op": "CastExpr", "expr": e, "type": ct))
   }
+  / CallExpression
 
-ZngType
- = ("uint8" / "int8" / "int16" / "uint16" / "int32" / "uint32"
- / "int64" / "uint64" / "float64" / "string" / "bstring"
- / "ip" / "net" / "time" / "duration") { RETURN(TEXT) }
+PrimitiveType
+  = (   "bytes" / "uint8" / "uint16" / "uint32" / "uint64"
+      / "int8" / "int16" / "int32" / "int64"
+      / "duration" / "time"
+      / "float64"
+      / "bool" / "bytes" / "string" / "bstring"
+      / "ip" / "net"
+      / "type" / "error" / "null" ) { RETURN(TEXT) }
 
 CallExpression
   = fn:FunctionName __ "(" args:ArgumentList ")" {
@@ -671,9 +665,6 @@ number = unsignedInteger
 //XXX what about mac addrs?
 addr
   = a:(unsignedInteger "." unsignedInteger "." unsignedInteger "." unsignedInteger) { RETURN(TEXT) }
-
-port
-  = ":" v:suint { RETURN(v) }
 
 // this matches a superset of legal syntax for ip6 addresses but the compiler
 // will catch any errors when translating the filter

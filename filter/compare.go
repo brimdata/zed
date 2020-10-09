@@ -113,7 +113,7 @@ func CompareInt64(op string, pattern int64) (Predicate, error) {
 			if err == nil {
 				return CompareInt(v, pattern)
 			}
-		case zng.IdUint8, zng.IdUint16, zng.IdUint32, zng.IdUint64, zng.IdPort:
+		case zng.IdUint8, zng.IdUint16, zng.IdUint32, zng.IdUint64:
 			v, err := zng.DecodeUint(zv)
 			if err == nil && v <= math.MaxInt64 {
 				return CompareInt(int64(v), pattern)
@@ -213,7 +213,7 @@ func CompareFloat64(op string, pattern float64) (Predicate, error) {
 			if err == nil {
 				return compare(float64(v), pattern)
 			}
-		case zng.IdUint8, zng.IdUint16, zng.IdUint32, zng.IdUint64, zng.IdPort:
+		case zng.IdUint8, zng.IdUint16, zng.IdUint32, zng.IdUint64:
 			v, err := zng.DecodeUint(zv)
 			if err == nil {
 				return compare(float64(v), pattern)
@@ -290,30 +290,6 @@ func compareRegexp(op, pattern string) (Predicate, error) {
 			return false
 		}, nil
 	}
-}
-
-// XXX Comparison returns a Predicate that compares typed byte slices that must
-// be a port with the value's port value using a comparison based on op.
-// Integer fields are not coerced (nor are any other types) so they never
-// match the port literal here.
-func ComparePort(op string, pattern uint32) (Predicate, error) {
-	compare, ok := compareInt[op]
-	if !ok {
-		return nil, fmt.Errorf("unknown port comparator: %s", op)
-	}
-	// only a zeek port can be compared with a port type.  If the user went
-	// to the trouble of specifying a port match (e.g., ":80" vs "80") then
-	// we use strict typing here on the port comparison.
-	return func(v zng.Value) bool {
-		if v.Type.ID() != zng.IdPort {
-			return false
-		}
-		p, err := zng.DecodeUint(v.Bytes)
-		if err != nil {
-			return false
-		}
-		return compare(int64(p), int64(pattern))
-	}, nil
 }
 
 func CompareUnset(op string) (Predicate, error) {
@@ -460,8 +436,6 @@ func Comparison(op string, literal ast.Literal) (Predicate, error) {
 		return CompareFloat64(op, v)
 	case zng.Bstring: //XXX
 		return CompareBstring(op, v)
-	case zng.Port:
-		return ComparePort(op, uint32(v))
 	case int64:
 		return CompareInt64(op, v)
 	}

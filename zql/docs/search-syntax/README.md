@@ -28,7 +28,8 @@ zq -t '*' conn.log.gz
 ```
 
 #### Output:
-```zq-output head:6
+```zq-output head:7
+#port=uint16
 #zenum=string
 #0:record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],proto:zenum,service:bstring,duration:duration,orig_bytes:uint64,resp_bytes:uint64,conn_state:bstring,local_orig:bool,local_resp:bool,missed_bytes:uint64,history:bstring,orig_pkts:uint64,orig_ip_bytes:uint64,resp_pkts:uint64,resp_ip_bytes:uint64,tunnel_parents:set[bstring]]
 0:[conn;1521911721.255387;C8Tful1TvM3Zf5x8fl;[10.164.94.120;39681;10.47.3.155;3389;]tcp;-;0.004266;97;19;RSTR;-;-;0;ShADTdtr;10;730;6;342;-;]

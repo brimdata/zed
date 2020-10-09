@@ -3,17 +3,20 @@ package driver
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"runtime"
 	"strconv"
 	"time"
 
-	"github.com/brimsec/zq/address"
 	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/proc/compiler"
 	"github.com/brimsec/zq/reducer"
 	rcompile "github.com/brimsec/zq/reducer/compile"
+	"github.com/brimsec/zq/scanner"
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 	"go.uber.org/zap"
 )
@@ -28,7 +31,80 @@ type Config struct {
 	Warnings          chan string
 }
 
-func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc address.MultiSource, mcfg address.MultiConfig) (*muxOutput, error) {
+func programPrep(program ast.Proc, sortKey string, sortReversed bool) (ast.Proc, ast.BooleanExpr, filter.Filter, error) {
+	ReplaceGroupByProcDurationWithKey(program)
+	if sortKey != "" {
+		setGroupByProcInputSortDir(program, sortKey, zbufDirInt(sortReversed))
+	}
+	var filterExpr ast.BooleanExpr
+	var filt filter.Filter
+	filterExpr, program = liftFilter(program)
+	if filterExpr != nil {
+		var err error
+		if filt, err = filter.Compile(filterExpr); err != nil {
+			return nil, nil, nil, err
+		}
+	}
+	return program, filterExpr, filt, nil
+}
+
+type scannerProc struct {
+	scanner.Scanner
+}
+
+func (s *scannerProc) Done() {}
+
+type namedScanner struct {
+	scanner.Scanner
+	name string
+}
+
+func (n *namedScanner) Pull() (zbuf.Batch, error) {
+	b, err := n.Scanner.Pull()
+	if err != nil {
+		err = fmt.Errorf("%s: %w", n.name, err)
+	}
+	return b, err
+}
+
+func compileSingle(ctx context.Context, program ast.Proc, zctx *resolver.Context, r zbuf.Reader, cfg Config) (*muxOutput, error) {
+	if cfg.Logger == nil {
+		cfg.Logger = zap.NewNop()
+	}
+	if cfg.Span.Dur == 0 {
+		cfg.Span = nano.MaxSpan
+	}
+	if cfg.Warnings == nil {
+		cfg.Warnings = make(chan string, 5)
+	}
+
+	program, filterExpr, filt, err := programPrep(program, cfg.ReaderSortKey, cfg.ReaderSortReverse)
+	if err != nil {
+		return nil, err
+	}
+
+	sn, err := scanner.NewScanner(ctx, r, filt, filterExpr, cfg.Span)
+	if err != nil {
+		return nil, err
+	}
+	if stringer, ok := r.(fmt.Stringer); ok {
+		sn = &namedScanner{sn, stringer.String()}
+	}
+
+	pctx := &proc.Context{
+		Context:     ctx,
+		TypeContext: zctx,
+		Logger:      cfg.Logger,
+		Warnings:    cfg.Warnings,
+	}
+	leaves, err := compiler.Compile(cfg.Custom, program, pctx, []proc.Interface{&scannerProc{sn}})
+	if err != nil {
+		return nil, err
+	}
+	return newMuxOutput(pctx, leaves, sn), nil
+}
+
+func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc MultiSource, mcfg MultiConfig) (*muxOutput, error) {
 	if mcfg.Logger == nil {
 		mcfg.Logger = zap.NewNop()
 	}
@@ -42,14 +118,11 @@ func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc
 		mcfg.Parallelism = runtime.GOMAXPROCS(0)
 	}
 
-	ReplaceGroupByProcDurationWithKey(program)
-
 	sortKey, sortReversed := msrc.OrderInfo()
-	if sortKey != "" {
-		setGroupByProcInputSortDir(program, sortKey, zbufDirInt(sortReversed))
+	program, filterExpr, filt, err := programPrep(program, sortKey, sortReversed)
+	if err != nil {
+		return nil, err
 	}
-	var filterExpr ast.BooleanExpr
-	filterExpr, program = liftFilter(program)
 
 	var isParallel bool
 	if mcfg.Parallelism > 1 {
@@ -65,7 +138,7 @@ func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc
 		Logger:      mcfg.Logger,
 		Warnings:    mcfg.Warnings,
 	}
-	sources, pgroup, err := createParallelGroup(pctx, filterExpr, msrc, mcfg)
+	sources, pgroup, err := createParallelGroup(pctx, filt, filterExpr, msrc, mcfg)
 	if err != nil {
 		return nil, err
 	}

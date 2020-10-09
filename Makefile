@@ -5,9 +5,9 @@ export GO111MODULE=on
 VERSION = $(shell git describe --tags --dirty --always)
 ECR_VERSION = $(VERSION)-$(ZQD_K8S_USER)
 LDFLAGS = -s -X github.com/brimsec/zq/cli.Version=$(VERSION)
-ZEEKTAG = v3.2.1-brim1
+ZEEKTAG = v3.2.1-brim2
 ZEEKPATH = zeek-$(ZEEKTAG)
-SURICATATAG = v5.0.3-brim4
+SURICATATAG = v5.0.3-brim5
 SURICATAPATH = suricata-$(SURICATATAG)
 
 # This enables a shortcut to run a single test from the ./ztests suite, e.g.:
@@ -77,8 +77,8 @@ test-run: build bin/minio bin/$(ZEEKPATH) bin/$(SURICATAPATH)
 test-heavy: build $(SAMPLEDATA)
 	@go test -v -tags=heavy ./tests
 
-test-zeek: bin/$(ZEEKPATH)
-	@ZEEK=$(CURDIR)/bin/$(ZEEKPATH)/zeekrunner go test -v -run=PcapPost -tags=zeek ./zqd
+test-pcapingest: bin/$(ZEEKPATH)
+	@ZEEK=$(CURDIR)/bin/$(ZEEKPATH)/zeekrunner go test -v -run=PcapPost -tags=pcapingest ./zqd
 
 perf-compare: build $(SAMPLEDATA)
 	scripts/comparison-test.sh
@@ -150,6 +150,18 @@ build-python-lib:
 
 clean-python:
 	@rm -rf python/build
+
+PEG_GEN = zql/zql.go zql/zql.js zql/zql.es.js
+$(PEG_GEN): zql/Makefile zql/parser-support.js zql/zql.peg
+	$(MAKE) -C zql
+
+# This rule is best for edit-compile-debug cycle of peg development.  It should
+# properly trigger rebuilds of peg-generated code, but best to run "make" in the
+# zql subdirectory if you are changing versions of pigeon, pegjs, or javascript
+# dependencies.
+.PHONY: peg
+peg: $(PEG_GEN)
+	go run ./cmd/ast -repl
 
 # CI performs these actions individually since that looks nicer in the UI;
 # this is a shortcut so that a local dev can easily run everything.

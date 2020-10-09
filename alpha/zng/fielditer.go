@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/brimsec/zq/zcode"
+	"github.com/brimsec/zq/alpha/zcode"
 )
 
 var (
@@ -49,7 +49,7 @@ func (r *fieldIter) Next() (name string, value Value, err error) {
 		if !container {
 			return "", Value{}, ErrMismatch
 		}
-		r.stack = append(r.stack, iterInfo{zcode.Iter(zv), recType, 0, name})
+		r.stack = append(r.stack, iterInfo{zv.Iter(), recType, 0, name})
 		return r.Next()
 	}
 

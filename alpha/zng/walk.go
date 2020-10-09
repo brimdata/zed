@@ -3,7 +3,7 @@ package zng
 import (
 	"errors"
 
-	"github.com/brimsec/zq/zcode"
+	"github.com/brimsec/zq/alpha/zcode"
 )
 
 // A Visitor is called for each value in a record encountered by
@@ -57,7 +57,7 @@ func walkRecord(typ *TypeRecord, body zcode.Bytes, visit Visitor) error {
 	if body == nil {
 		return nil
 	}
-	it := zcode.Iter(body)
+	it := body.Iter()
 	for _, col := range typ.Columns {
 		if it.Done() {
 			return &RecordTypeError{Name: col.Name, Type: col.Type.String(), Err: ErrMissingField}
@@ -81,7 +81,7 @@ func walkArray(typ *TypeArray, body zcode.Bytes, visit Visitor) error {
 		return nil
 	}
 	inner := InnerType(AliasedType(typ))
-	it := zcode.Iter(body)
+	it := body.Iter()
 	for !it.Done() {
 		body, container, err := it.Next()
 		if err != nil {
@@ -105,7 +105,7 @@ func walkUnion(typ *TypeUnion, body zcode.Bytes, visit Visitor) error {
 		err := errors.New("union as empty body")
 		return &RecordTypeError{Name: "<union type>", Type: typ.String(), Err: err}
 	}
-	it := zcode.Iter(body)
+	it := body.Iter()
 	v, container, err := it.Next()
 	if err != nil {
 		return err
@@ -143,7 +143,7 @@ func walkSet(typ *TypeSet, body zcode.Bytes, visit Visitor) error {
 	if IsContainerType(inner) {
 		return &RecordTypeError{Name: "<set>", Type: typ.String(), Err: ErrNotPrimitive}
 	}
-	it := zcode.Iter(body)
+	it := body.Iter()
 	for !it.Done() {
 		body, container, err := it.Next()
 		if err != nil {

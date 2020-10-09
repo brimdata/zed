@@ -5,7 +5,6 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 )
 
@@ -56,6 +55,10 @@ func (w *Writer) Write(r *zng.Record) error {
 	if err != nil {
 		return nil
 	}
+	// XXX these write* methods are redundant with the StringOf methods on
+	// zng type.  We should just call StringOf on r.Type here and get rid of
+	// all these write* methods and make sure there is consistency between this
+	// logic and the logic in the StringOfs.  See issue #1417.
 	if err := w.writeContainer(zng.Value{Type: r.Type, Bytes: r.Raw}); err != nil {
 		return err
 	}
@@ -115,16 +118,21 @@ func (w *Writer) writeContainer(parent zng.Value) error {
 	if _, ok := realType.(*zng.TypeUnion); ok {
 		return w.writeUnion(parent)
 	}
+	if typ, ok := realType.(*zng.TypeMap); ok {
+		//  XXX StringOf() should return an error arg.  See Issue #1417.
+		s := typ.StringOf(parent.Bytes, zng.OutFormatZNG, true)
+		return w.write(s)
+	}
 	if err := w.write("["); err != nil {
 		return err
 	}
 	childType, columns := zng.ContainedType(realType)
 	if childType == nil && columns == nil {
-		return ErrSyntax
+		return zng.ErrSyntax
 	}
 	k := 0
 	if len(parent.Bytes) > 0 {
-		for it := zcode.Iter(parent.Bytes); !it.Done(); {
+		for it := parent.Bytes.Iter(); !it.Done(); {
 			v, container, err := it.Next()
 			if err != nil {
 				return err

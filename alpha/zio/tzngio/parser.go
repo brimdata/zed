@@ -3,8 +3,8 @@ package tzngio
 import (
 	"errors"
 
-	"github.com/brimsec/zq/zcode"
-	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/alpha/zcode"
+	"github.com/brimsec/zq/alpha/zng"
 )
 
 var (

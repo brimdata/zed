@@ -1,0 +1,13 @@
+script: |
+  zq -i tzng in.tzng
+
+inputs:
+  - name: in.tzng
+    data: |
+      #0:record[e:enum[int32,foo:[1],bar:[2],baz:[4]]]
+      0:[100;]
+
+outputs:
+  - name: stderr
+    regexp: |
+      enum selector out of range

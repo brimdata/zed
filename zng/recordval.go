@@ -150,6 +150,12 @@ func (r *Record) TypeCheck() error {
 			}
 			return SkipContainer
 		}
+		if typ, ok := typ.(*TypeEnum); ok {
+			if err := checkEnum(typ, body); err != nil {
+				return err
+			}
+			return SkipContainer
+		}
 		return nil
 	})
 }
@@ -162,14 +168,14 @@ func checkSet(typ *TypeSet, body zcode.Bytes) error {
 	if IsContainerType(inner) {
 		return &RecordTypeError{Name: "<set>", Type: typ.String(), Err: ErrNotPrimitive}
 	}
-	it := zcode.Iter(body)
+	it := body.Iter()
 	var prev zcode.Bytes
 	for !it.Done() {
 		tagAndBody, container, err := it.NextTagAndBody()
 		if err != nil {
 			return err
 		}
-		if container {
+		if container && tagAndBody[0] != 0 {
 			return &RecordTypeError{Name: "<set element>", Type: typ.String(), Err: ErrNotPrimitive}
 		}
 		if prev != nil {
@@ -187,12 +193,26 @@ func checkSet(typ *TypeSet, body zcode.Bytes) error {
 	return nil
 }
 
+func checkEnum(typ *TypeEnum, body zcode.Bytes) error {
+	if body == nil {
+		return nil
+	}
+	selector, err := DecodeUint(body)
+	if err != nil {
+		return err
+	}
+	if int(selector) >= len(typ.Elements) {
+		return errors.New("enum selector out of range")
+	}
+	return nil
+}
+
 // Slice returns the encoded zcode.Bytes corresponding to the indicated
 // column or an error if a problem was encountered.  If the encoded bytes
 // result is nil without error, then that columnn is unset in this record value.
 func (r *Record) Slice(column int) (zcode.Bytes, error) {
 	var zv zcode.Bytes
-	for i, it := 0, zcode.Iter(r.Raw); i <= column; i++ {
+	for i, it := 0, r.Raw.Iter(); i <= column; i++ {
 		if it.Done() {
 			return nil, ErrNoSuchColumn
 		}
@@ -274,7 +294,7 @@ func (r *Record) AccessInt(field string) (int64, error) {
 		return int64(b), err
 	case *TypeOfInt16, *TypeOfInt32, *TypeOfInt64:
 		return DecodeInt(v.Bytes)
-	case *TypeOfUint16, *TypeOfUint32, *TypeOfPort:
+	case *TypeOfUint16, *TypeOfUint32:
 		v, err := DecodeUint(v.Bytes)
 		return int64(v), err
 	case *TypeOfUint64:

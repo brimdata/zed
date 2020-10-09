@@ -47,7 +47,7 @@ func (t *TypeRecord) Decode(zv zcode.Bytes) ([]Value, error) {
 		return nil, ErrUnset
 	}
 	var vals []Value
-	for i, it := 0, zcode.Iter(zv); !it.Done(); i++ {
+	for i, it := 0, zv.Iter(); !it.Done(); i++ {
 		val, _, err := it.Next()
 		if err != nil {
 			return nil, err
@@ -62,7 +62,7 @@ func (t *TypeRecord) Decode(zv zcode.Bytes) ([]Value, error) {
 }
 
 func (t *TypeRecord) Parse(in []byte) (zcode.Bytes, error) {
-	panic("record.Parse shouldn't be called")
+	return ParseContainer(t, in)
 }
 
 func (t *TypeRecord) StringOf(zv zcode.Bytes, fmt OutFmt, _ bool) string {
@@ -143,6 +143,6 @@ func (t *TypeRecord) HasField(field string) bool {
 func (t *TypeRecord) createLUT() {
 	t.LUT = make(map[string]int)
 	for k, col := range t.Columns {
-		t.LUT[col.Name] = k
+		t.LUT[string(col.Name)] = k
 	}
 }

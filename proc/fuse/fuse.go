@@ -202,7 +202,7 @@ func (p *Proc) nextBatch(reader zbuf.Reader) (zbuf.Batch, error) {
 			p.slots[k].zv = nil
 		}
 		slotList := p.slotByID[rec.Type.ID()]
-		it := zcode.Iter(rec.Raw)
+		it := rec.Raw.Iter()
 		for _, slot := range slotList {
 			zv, _, err := it.Next()
 			if err != nil {

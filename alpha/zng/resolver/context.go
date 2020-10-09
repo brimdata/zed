@@ -7,8 +7,8 @@ import (
 	"sync"
 	"unicode"
 
+	"github.com/brimsec/zq/alpha/zcode"
 	"github.com/brimsec/zq/alpha/zng"
-	"github.com/brimsec/zq/zcode"
 )
 
 var (

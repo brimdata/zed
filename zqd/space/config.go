@@ -215,25 +215,9 @@ func writeConfig(spaceURI iosrc.URI, c config) error {
 	if c.Version != configVersion {
 		return fmt.Errorf("writing an out of date config: expected version %d, got %d", configVersion, c.Version)
 	}
-	src, err := iosrc.GetSource(spaceURI)
-	if err != nil {
-		return err
-	}
-	uri := spaceURI.AppendPath(configFile)
-	var w io.WriteCloser
-	if replacer, ok := src.(iosrc.ReplacerAble); ok {
-		w, err = replacer.NewReplacer(context.TODO(), uri)
-	} else {
-		w, err = src.NewWriter(context.TODO(), uri)
-	}
-	if err != nil {
-		return err
-	}
-	if err := json.NewEncoder(w).Encode(c); err != nil {
-		w.Close()
-		return err
-	}
-	return w.Close()
+	return iosrc.Replace(context.TODO(), spaceURI.AppendPath(configFile), func(w io.Writer) error {
+		return json.NewEncoder(w).Encode(c)
+	})
 }
 
 func validateName(names map[string]api.SpaceID, name string) error {
