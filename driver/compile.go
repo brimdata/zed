@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/brimsec/zq/address"
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/proc"
@@ -27,7 +28,7 @@ type Config struct {
 	Warnings          chan string
 }
 
-func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc MultiSource, mcfg MultiConfig) (*muxOutput, error) {
+func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc address.MultiSource, mcfg address.MultiConfig) (*muxOutput, error) {
 	if mcfg.Logger == nil {
 		mcfg.Logger = zap.NewNop()
 	}

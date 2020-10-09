@@ -232,6 +232,15 @@ type Chunk struct {
 	RecordCount  int
 }
 
+func (c Chunk) GetId() ksuid.KSUID      { return c.Id }
+func (c Chunk) GetFirst() nano.Ts       { return c.First }
+func (c Chunk) GetLast() nano.Ts        { return c.Last }
+func (c Chunk) GetDataFileKind() string { return string(c.DataFileKind) }
+func (c Chunk) GetRecordCount() int     { return c.RecordCount }
+
+// compile time check
+var _ address.Chunk = Chunk{}
+
 func (c Chunk) Span() nano.Span {
 	return firstLastToSpan(c.First, c.Last)
 }

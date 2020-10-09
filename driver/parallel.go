@@ -3,6 +3,7 @@ package driver
 import (
 	"sync"
 
+	"github.com/brimsec/zq/address"
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/filter"
@@ -19,7 +20,7 @@ type parallelHead struct {
 	pg     *parallelGroup
 
 	mu sync.Mutex // protects below
-	sc ScannerCloser
+	sc address.ScannerCloser
 }
 
 func (ph *parallelHead) closeOnDone() {
@@ -77,12 +78,12 @@ func (ph *parallelHead) Done() {
 }
 
 type parallelGroup struct {
-	pctx       *proc.Context
-	filter     SourceFilter
-	msrc       MultiSource
-	once       sync.Once
-	sourceChan chan SourceOpener
-	sourceErr  error
+	pctx      *proc.Context
+	filter    address.SourceFilter
+	msrc      address.MultiSource
+	once      sync.Once
+	spanChan  chan address.SpanInfo
+	sourceErr error
 
 	mu       sync.Mutex // protects below
 	stats    scanner.ScannerStats
@@ -91,16 +92,24 @@ type parallelGroup struct {
 
 //func (pg *parallelGroup) nextSource() (SpanInfo, error) {
 // newSpanScanner needs to be around here instead of archive
-func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
+func (pg *parallelGroup) nextSource() (address.ScannerCloser, error) {
 	for {
 		select {
-		case opener, ok := <-pg.sourceChan:
+		case spaninfo, ok := <-pg.spanChan:
 			if !ok {
 				return nil, pg.sourceErr
 			}
 			// here we will have a SpanInfo
 			// local mode: copy code from closure in multisource here
 			// distributed mode: recruit a worker here
+
+			if len(pg.msrc.GetAltPaths()) == 0 {
+				//archive.NewSpanScanner(pg.pctx, pg.msrc.ark, pg.pctx.TypeContext, pg.filter.Filter, pg.filter.FilterExpr, spaninfo)
+			} else {
+				// run code from closure in:
+				//return m.chunkWalk(ctx, zctx, sf, srcChan)
+			}
+
 			sc, err := opener()
 			if err != nil {
 				return nil, err
@@ -118,7 +127,7 @@ func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
 	}
 }
 
-func (pg *parallelGroup) doneSource(sc ScannerCloser) {
+func (pg *parallelGroup) doneSource(sc address.ScannerCloser) {
 	pg.mu.Lock()
 	defer pg.mu.Unlock()
 	pg.stats.Accumulate(sc.Stats())
@@ -136,8 +145,8 @@ func (pg *parallelGroup) Stats() *scanner.ScannerStats {
 }
 
 func (pg *parallelGroup) run() {
-	pg.sourceErr = pg.msrc.SendSources(pg.pctx, pg.pctx.TypeContext, pg.filter, pg.sourceChan)
-	close(pg.sourceChan)
+	pg.sourceErr = pg.msrc.SendSources(pg.pctx, pg.pctx.TypeContext, pg.filter, pg.spanChan)
+	close(pg.spanChan)
 }
 
 func newCompareFn(field string, reversed bool) (zbuf.RecordCmpFn, error) {
@@ -162,7 +171,7 @@ func newCompareFn(field string, reversed bool) (zbuf.RecordCmpFn, error) {
 	}, nil
 }
 
-func createParallelGroup(pctx *proc.Context, filterExpr ast.BooleanExpr, msrc MultiSource, mcfg MultiConfig) ([]proc.Interface, *parallelGroup, error) {
+func createParallelGroup(pctx *proc.Context, filterExpr ast.BooleanExpr, msrc address.MultiSource, mcfg address.MultiConfig) ([]proc.Interface, *parallelGroup, error) {
 	var filt filter.Filter
 	if filterExpr != nil {
 		var err error
@@ -172,14 +181,14 @@ func createParallelGroup(pctx *proc.Context, filterExpr ast.BooleanExpr, msrc Mu
 	}
 	pg := &parallelGroup{
 		pctx: pctx,
-		filter: SourceFilter{
+		filter: address.SourceFilter{
 			Filter:     filt,
 			FilterExpr: filterExpr,
 			Span:       mcfg.Span,
 		},
-		msrc:       msrc,
-		sourceChan: make(chan SourceOpener),
-		scanners:   make(map[scanner.Scanner]struct{}),
+		msrc:     msrc,
+		spanChan: make(chan address.SpanInfo),
+		scanners: make(map[scanner.Scanner]struct{}),
 	}
 
 	sources := make([]proc.Interface, mcfg.Parallelism)

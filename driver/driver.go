@@ -7,6 +7,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/brimsec/zq/address"
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
@@ -21,11 +22,12 @@ type Driver interface {
 }
 
 func Run(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader, cfg Config) error {
-	msrc, mcfg := rdrToMulti(reader, cfg)
-	return MultiRun(ctx, d, program, zctx, msrc, mcfg)
+	//msrc, mcfg := rdrToMulti(reader, cfg)
+	//return MultiRun(ctx, d, program, zctx, msrc, mcfg)
+	return nil
 }
 
-func MultiRun(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Context, msrc MultiSource, mcfg MultiConfig) error {
+func MultiRun(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Context, msrc address.MultiSource, mcfg address.MultiConfig) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 

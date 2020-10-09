@@ -5,7 +5,6 @@ import (
 	"io"
 
 	"github.com/brimsec/zq/ast"
-	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
@@ -28,6 +27,19 @@ type SpanInfo struct {
 	// closed span constructed from First & Last.
 	Chunks []Chunk
 }
+
+func (s SpanInfo) GetSpan() nano.Span { return s.Span }
+func (s SpanInfo) GetChunks() []address.Chunk {
+	// It would be nice to know a prettier way to do this
+	var chunks = make([]address.Chunk, len(s.Chunks))
+	for i := 0; i < len(s.Chunks); i++ {
+		chunks[i] = s.Chunks[i]
+	}
+	return chunks
+}
+
+// compile time check
+var _ driver.SpanInfo = SpanInfo{}
 
 func spanWalk(ctx context.Context, ark *Archive, filter nano.Span, v func(si SpanInfo) error) error {
 	return tsDirVisit(ctx, ark, filter, func(_ tsDir, chunks []Chunk) error {
@@ -60,24 +72,19 @@ type scannerCloser struct {
 	io.Closer
 }
 
-func newSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, f filter.Filter, filterExpr ast.BooleanExpr, si SpanInfo) (sc *scannerCloser, err error) {
-	// Is this a spacial case as an optimization?
-	// It looks like it should work if removed,
-	// since the for loop below would handle the same logic. -MTW
-	/*
-		if len(si.Chunks) == 1 {
-			rc, err := iosrc.NewReader(ctx, si.Chunks[0].Path(ark))
-			if err != nil {
-				return nil, err
-			}
-			sn, err := scanner.NewScanner(ctx, zngio.NewReader(rc, zctx), f, filterExpr, si.Span)
-			if err != nil {
-				rc.Close()
-				return nil, err
-			}
-			return &scannerCloser{sn, rc}, nil
+func NewSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, f filter.Filter, filterExpr ast.BooleanExpr, si SpanInfo) (sc *scannerCloser, err error) {
+	if len(si.Chunks) == 1 {
+		rc, err := iosrc.NewReader(ctx, si.Chunks[0].Path(ark))
+		if err != nil {
+			return nil, err
 		}
-	*/
+		sn, err := scanner.NewScanner(ctx, zngio.NewReader(rc, zctx), f, filterExpr, si.Span)
+		if err != nil {
+			rc.Close()
+			return nil, err
+		}
+		return &scannerCloser{sn, rc}, nil
+	}
 	closers := make([]io.Closer, 0, len(si.Chunks))
 	defer func() {
 		if err != nil {
@@ -109,6 +116,11 @@ type multiSource struct {
 	ark      *Archive
 	altPaths []string
 }
+
+func (m *multiSource) GetAltPaths() []string { return altPaths }
+
+// compile time check
+var _ driver.MultiSource = multiSource{}
 
 // NewMultiSource returns a driver.MultiSource for an Archive. If no alternative
 // paths are specified, the MultiSource will send a source for each span in the
