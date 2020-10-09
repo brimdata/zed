@@ -361,7 +361,7 @@ func (r *Reader) readTypeSet() error {
 	if err != nil {
 		return err
 	}
-	r.zctx.AddType(&zng.TypeSet{InnerType: typ})
+	r.zctx.AddType(&zng.TypeSet{Type: typ})
 	return nil
 }
 

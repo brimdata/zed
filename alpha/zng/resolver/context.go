@@ -146,7 +146,7 @@ func typeKey(typ zng.Type) string {
 	case *zng.TypeArray:
 		return arrayKey(typ.Type)
 	case *zng.TypeSet:
-		return setKey(typ.InnerType)
+		return setKey(typ.Type)
 	case *zng.TypeUnion:
 		return unionKey(typ.Types)
 	}
@@ -592,7 +592,7 @@ func (c *Context) TranslateType(ext zng.Type) (zng.Type, error) {
 	case *zng.TypeRecord:
 		return c.TranslateTypeRecord(ext)
 	case *zng.TypeSet:
-		inner, err := c.TranslateType(ext.InnerType)
+		inner, err := c.TranslateType(ext.Type)
 		if err != nil {
 			return nil, err
 		}
