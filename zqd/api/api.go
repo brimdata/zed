@@ -51,11 +51,11 @@ type WorkerRequest struct {
 }
 
 type ChunkEntry struct {
-	Id           string  `json:"ksuid" validate:"required"`
+	Id           string  `json:"id" validate:"required"`
 	First        nano.Ts `json:"first" validate:"required"`
 	Last         nano.Ts `json:"last" validate:"required"`
-	DataFileKind string  `json:"filekind" validate:"required"`
-	RecordCount  int     `json:"recordcount" validate:"required"`
+	FileKind string  `json:"data_file_kind" validate:"required"`
+	RecordCount  int     `json:"record_count" validate:"required"`
 }
 
 type SearchRecords struct {
