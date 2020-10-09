@@ -24,9 +24,9 @@ type Finder struct {
 
 // NewFinder returns an object that is used to lookup keys in a microindex.
 // It opens the file and reads the trailer, returning errors if the file is
-// corrupt, doesn't exist, or if its microindex trailer is invalid.  If the
-// microindex exists but is empty, zero values are returned for any lookups.
-// If the microindex does not exist, a wrapped zqe.NotFound error is returned.
+// corrupt, doesn't exist, or has an invalid trailer.  If the microindex exists
+// but is empty, zero values are returned for any lookups. If the microindex
+// does not exist, a wrapped zqe.NotFound error is returned.
 func NewFinder(ctx context.Context, zctx *resolver.Context, uri iosrc.URI) (*Finder, error) {
 	reader, err := NewReaderFromURI(ctx, zctx, uri)
 	if err != nil {

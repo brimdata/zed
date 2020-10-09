@@ -4,7 +4,7 @@ script: |
   echo ===
   zar find -R ./logs v=10 # no such index
   echo ===
-  zar find -R ./logs -Q v=10 && echo "success" # no such index
+  zar find -R ./logs -Q v=10 && echo success # no such index
 
 inputs:
   - name: babble.tzng
