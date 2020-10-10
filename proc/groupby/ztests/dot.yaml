@@ -11,5 +11,5 @@ input: |
 
 output: |
   #0:record[typeof:type,count:uint64]
-  0:[record[x:int32,s:string];2;]
   0:[record[y:int64];3;]
+  0:[record[x:int32,s:string];2;]
