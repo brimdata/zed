@@ -110,7 +110,7 @@ func (pg *parallelGroup) nextSource() (address.ScannerCloser, error) {
 				//return m.chunkWalk(ctx, zctx, sf, srcChan)
 			}
 
-			//sc, err := opener()
+			sc, err := spaninfo.Opener()
 			var sc address.ScannerCloser
 			if sc == nil {
 				continue

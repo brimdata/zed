@@ -18,6 +18,11 @@ import (
 type SpanInfo interface {
 	GetSpan() nano.Span
 	GetChunks() []Chunk
+	// SourceOpener provides scanning access to a single source.
+	// It works for locals files or S3 (not for accessing zqd/worker).
+	// It may return a nil ScannerCloser, in the
+	// case that it represents a logically empty source.
+	SourceOpener() (ScannerCloser, error)
 }
 
 type Chunk interface {
@@ -27,8 +32,6 @@ type Chunk interface {
 	GetDataFileKind() string
 	GetRecordCount() int
 }
-
-// I need to move most declarations from driver/multi.go into here -MTW
 
 // A MultiSource is a set of one or more ZNG record sources, which could be
 // a zar archive, a local directory, a collection of remote objects, etc.
@@ -50,11 +53,6 @@ type MultiSource interface {
 	SendSources(context.Context, *resolver.Context, SourceFilter, chan SpanInfo) error
 	GetAltPaths() []string
 }
-
-// A SourceOpener is a closure sent by a MultiSource to provide scanning
-// access to a single source. It may return a nil ScannerCloser, in the
-// case that it represents a logically empty source.
-//type SourceOpener func() (ScannerCloser, error)
 
 type ScannerCloser interface {
 	scanner.Scanner
