@@ -1,4 +1,4 @@
-zql: 'count() by .'
+zql: 'count() by . | sort .'
 
 input: |
   #0:record[x:int32,s:string]
