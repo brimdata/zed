@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -23,9 +24,10 @@ import (
 )
 
 var Get = &charm.Spec{
-	Name:  "get",
-	Usage: "get [options] <search>",
-	Short: "perform zql searches",
+	Name:        "get",
+	Usage:       "get [options] <search>",
+	Short:       "perform zql searches",
+	HiddenFlags: "chunk",
 	Long: `
 zapi get issues search requests to the zqd search service.
 
@@ -68,6 +70,7 @@ type Command struct {
 	warnings    bool
 	debug       bool
 	final       *api.SearchStats
+	chunkInfo   string
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -81,6 +84,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.debug, "debug", false, "dump raw HTTP response straight to output")
 	f.Var(&c.from, "from", "search from timestamp in RFC3339Nano format (e.g. 2006-01-02T15:04:05.999999999Z07:00)")
 	f.Var(&c.to, "to", "search to timestamp in RFC3339Nano format (e.g. 2006-01-02T15:04:05.999999999Z07:00)")
+	f.StringVar(&c.chunkInfo, "chunk", "", "dash separated list of ksuid,first_ts,last_ts,dataFileKind")
 	c.outputFlags.SetFlags(f)
 	return c, nil
 }
@@ -99,16 +103,32 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	req, err := parseExpr(id, expr)
-	if err != nil {
-		return fmt.Errorf("parse error: %s", err)
+
+	var r io.ReadCloser
+	if c.chunkInfo == "" {
+		req, err := parseExpr(id, expr)
+		if err != nil {
+			return fmt.Errorf("parse error: %s", err)
+		}
+		req.Span = nano.NewSpanTs(nano.Ts(c.from), nano.Ts(c.to))
+		params := map[string]string{"format": c.encoding}
+		r, err = client.SearchRaw(c.Context(), *req, params)
+		if err != nil {
+			return fmt.Errorf("search error: %w", err)
+		}
+	} else {
+		req, err := parseExprWithChunk(id, expr, c.chunkInfo)
+		req.Span = nano.NewSpanTs(nano.Ts(c.from), nano.Ts(c.to))
+		params := map[string]string{"format": c.encoding}
+		if err != nil {
+			return fmt.Errorf("parse plus chunk error: %s", err)
+		}
+		r, err = client.WorkerRaw(c.Context(), *req, params)
+		if err != nil {
+			return fmt.Errorf("worker error: %w", err)
+		}
 	}
-	req.Span = nano.NewSpanTs(nano.Ts(c.from), nano.Ts(c.to))
-	params := map[string]string{"format": c.encoding}
-	r, err := client.SearchRaw(c.Context(), *req, params)
-	if err != nil {
-		return fmt.Errorf("search error: %w", err)
-	}
+
 	defer r.Close()
 	if c.debug {
 		return c.runRawSearch(r)
@@ -150,6 +170,42 @@ func parseExpr(spaceID api.SpaceID, expr string) (*api.SearchRequest, error) {
 		Space: spaceID,
 		Proc:  proc,
 		Dir:   -1,
+	}, nil
+}
+
+// parseExprWithChunk creates an api.WorkerRequest to be used with the client.
+func parseExprWithChunk(spaceID api.SpaceID, expr string, chunkInfo string) (*api.WorkerRequest, error) {
+	// This is only for testing using the -chunk flag
+	searchRequest, err := parseExpr(spaceID, expr)
+	if err != nil {
+		return nil, err
+	}
+	chunkInfoArr := strings.Split(chunkInfo, "-")
+	if len(chunkInfoArr) != 5 {
+		return nil, fmt.Errorf("chunk flag requires 5 dash seperated values %s", err)
+	}
+	recordCount, err := strconv.Atoi(chunkInfoArr[2])
+	if err != nil {
+		return nil, fmt.Errorf("chunk flag list must be string-string-int-int64-int64  %s", err)
+	}
+	first, err := strconv.ParseInt(chunkInfoArr[3], 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("chunk flag list must be string-string-int-int64-int64  %s", err)
+	}
+	last, err := strconv.ParseInt(chunkInfoArr[4], 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("chunk flag list must be string-string-int-int64-int64  %s", err)
+	}
+
+	return &api.WorkerRequest{
+		SearchRequest: *searchRequest,
+		Chunks: []api.Chunk{api.Chunk{
+			Id:          chunkInfoArr[1],
+			First:       nano.Ts(first),
+			Last:        nano.Ts(last),
+			FileKind:    chunkInfoArr[0],
+			RecordCount: recordCount,
+		}},
 	}, nil
 }
 

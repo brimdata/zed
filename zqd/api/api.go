@@ -45,6 +45,19 @@ type SearchRequest struct {
 	Dir   int             `json:"dir" validate:"required"`
 }
 
+type WorkerRequest struct {
+	SearchRequest
+	Chunks []Chunk `json:"chunks"`
+}
+
+type Chunk struct {
+	Id          string  `json:"id" validate:"required"`
+	First       nano.Ts `json:"first" validate:"required"`
+	Last        nano.Ts `json:"last" validate:"required"`
+	FileKind    string  `json:"data_file_kind" validate:"required"`
+	RecordCount int     `json:"record_count" validate:"required"`
+}
+
 type SearchRecords struct {
 	Type      string           `json:"type"`
 	ChannelID int              `json:"channel_id"`
