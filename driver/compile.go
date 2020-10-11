@@ -31,21 +31,20 @@ type Config struct {
 	Warnings          chan string
 }
 
-func programPrep(program ast.Proc, sortKey string, sortReversed bool) (ast.Proc, ast.BooleanExpr, filter.Filter, error) {
+func programPrep(program ast.Proc, sortKey string, sortReversed bool) (ast.Proc, filter.Filter, ast.BooleanExpr, error) {
 	ReplaceGroupByProcDurationWithKey(program)
 	if sortKey != "" {
 		setGroupByProcInputSortDir(program, sortKey, zbufDirInt(sortReversed))
 	}
-	var filterExpr ast.BooleanExpr
 	var filt filter.Filter
-	filterExpr, program = liftFilter(program)
+	filterExpr, program := liftFilter(program)
 	if filterExpr != nil {
 		var err error
 		if filt, err = filter.Compile(filterExpr); err != nil {
 			return nil, nil, nil, err
 		}
 	}
-	return program, filterExpr, filt, nil
+	return program, filt, filterExpr, nil
 }
 
 type scannerProc struct {
@@ -83,7 +82,7 @@ func compileSingle(ctx context.Context, program ast.Proc, zctx *resolver.Context
 		return nil, err
 	}
 
-	sn, err := scanner.NewScanner(ctx, r, filt, filterExpr, cfg.Span)
+	sn, err := scanner.NewScanner(ctx, r, filterExpr, filt, cfg.Span)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +118,7 @@ func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context,
 	}
 
 	sortKey, sortReversed := msrc.OrderInfo()
-	program, filterExpr, filt, err := programPrep(program, sortKey, sortReversed)
+	program, filt, filterExpr, err := programPrep(program, sortKey, sortReversed)
 	if err != nil {
 		return nil, err
 	}
