@@ -157,14 +157,7 @@ func newCompareFn(field string, reversed bool) (zbuf.RecordCmpFn, error) {
 	}, nil
 }
 
-func createParallelGroup(pctx *proc.Context, filterExpr ast.BooleanExpr, msrc MultiSource, mcfg MultiConfig) ([]proc.Interface, *parallelGroup, error) {
-	var filt filter.Filter
-	if filterExpr != nil {
-		var err error
-		if filt, err = filter.Compile(filterExpr); err != nil {
-			return nil, nil, err
-		}
-	}
+func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.BooleanExpr, msrc MultiSource, mcfg MultiConfig) ([]proc.Interface, *parallelGroup, error) {
 	pg := &parallelGroup{
 		pctx: pctx,
 		filter: SourceFilter{
