@@ -32,9 +32,12 @@ func TailFile(name string) (*TFile, error) {
 	}
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
+		f.Close()
 		return nil, err
 	}
 	if err := watcher.Add(name); err != nil {
+		f.Close()
+		watcher.Close()
 		return nil, err
 	}
 	return &TFile{f, watcher}, nil
@@ -45,6 +48,11 @@ read:
 	n, err := t.f.Read(b)
 	if errors.Is(err, os.ErrClosed) {
 		err = io.EOF
+	}
+	// If there is data and EOF, change err to nil so data is read. Assuming
+	// no data is added to the file, the next Read call will initiate the wait.
+	if n > 0 && err == io.EOF {
+		err = nil
 	}
 	if n == 0 && err == io.EOF {
 		if err := t.waitWrite(); err != nil {
@@ -122,7 +130,7 @@ func NewDirWatcher(dir string) (*DirWatcher, error) {
 	}
 	return &DirWatcher{
 		dir:     dir,
-		events:  make(chan FileEvent, 5),
+		events:  make(chan FileEvent),
 		watcher: watcher,
 	}, err
 }

@@ -15,7 +15,7 @@ import (
 func TestTailFile(t *testing.T) {
 	f, err := ioutil.TempFile("", "tailfile.log")
 	require.NoError(t, err)
-	defer os.Remove(f.Name())
+	t.Cleanup(func() { os.Remove(f.Name()) })
 	tf, err := TailFile(f.Name())
 	require.NoError(t, err)
 	buf := make([]byte, 100)
