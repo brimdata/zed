@@ -80,7 +80,7 @@ type ColumnBuilder struct {
 }
 
 // NewColumnBuilder constructs the zcode.Bytes representation for columns
-// buit from an array of input field selectors expressed as field.Static.
+// built from an array of input field selectors expressed as field.Static.
 // Append should be called to enter field values in the left to right order
 // of the provided fields and Encode is called to retrieve the nested zcode.Bytes
 // value.  Reset should be called before encoding the next record.

@@ -42,7 +42,9 @@ func New(pctx *proc.Context, parent proc.Interface, node *ast.RenameProc) (*Proc
 		if len(dst) != len(src) {
 			return nil, fmt.Errorf("cannot rename %s to %s", src, dst)
 		}
-		for i := len(src) - 2; i >= 0; i-- {
+		// Check that the prefixes match and, if not, report first place
+		// that they don't.
+		for i := 0; i <= len(src)-2; i++ {
 			if src[i] != dst[i] {
 				return nil, fmt.Errorf("cannot rename %s to %s (differ in %s vs %s)", src, dst, src[i], dst[i])
 			}

@@ -345,9 +345,9 @@ func (*RenameProc) ProcNode()     {}
 func (*FuseProc) ProcNode()       {}
 
 // A Reducer is an AST node that represents a reducer function.  The Operator
-// parameter indicates the aggregation method while the expr parameter indicates
+// field indicates the aggregation method while the Expr field indicates
 // an expression applied to the incoming records that is operated upon by them
-// reducer function.  If expr isn't present, then the reducer doesn't act upon
+// reducer function.  If Expr isn't present, then the reducer doesn't act upon
 // a function of the record, e.g., count() counts up records without looking
 // into them.
 type Reducer struct {
@@ -357,10 +357,9 @@ type Reducer struct {
 }
 
 func DotExprToField(n Expression) (field.Static, bool) {
-	if n == nil {
-		return nil, true
-	}
 	switch n := n.(type) {
+	case nil:
+		return nil, true
 	case *BinaryExpression:
 		if n.Operator == "." || n.Operator == "[" {
 			lhs, ok := DotExprToField(n.LHS)

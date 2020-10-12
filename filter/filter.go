@@ -198,14 +198,12 @@ func searchRecordString(term string) Filter {
 		}
 	}
 	searchContainer := Contains(search)
-	fieldNameCheck := make(map[int]bool)
+	fieldNameCheck := make(map[zng.Type]bool)
 	return func(r *zng.Record) bool {
 		// Memoize the result of a search across the names in the
 		// record columns for each unique record type.
-		id := r.Type.ID()
-		match, ok := fieldNameCheck[id]
+		match, ok := fieldNameCheck[r.Type]
 		if !ok {
-			match = false
 			iter := r.FieldIter()
 			for !iter.Done() {
 				name, _, err := iter.Next()
@@ -217,7 +215,7 @@ func searchRecordString(term string) Filter {
 					break
 				}
 			}
-			fieldNameCheck[id] = match
+			fieldNameCheck[r.Type] = match
 		}
 		if match {
 			return true

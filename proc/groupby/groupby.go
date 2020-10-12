@@ -56,8 +56,8 @@ var DefaultLimit = 1000000
 func CompileParams(node *ast.GroupByProc, zctx *resolver.Context) (*Params, error) {
 	keys := []Key{}
 	var targets []field.Static
-	for k := range node.Keys {
-		name, rhs, err := expr.CompileAssignment(&node.Keys[k])
+	for k, key := range node.Keys {
+		name, rhs, err := expr.CompileAssignment(&key)
 		if err != nil {
 			return nil, err
 		}

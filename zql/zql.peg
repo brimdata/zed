@@ -230,7 +230,7 @@ groupByKeys
   = "by"i _ columns:FlexAssignments { RETURN(columns) }
 
 // A FlexAssignment is like an Assignment but it can optionally omit the lhs,
-// in which case, the semantic pass will infer a name from the rhs, e.g., for
+// in which case the semantic pass will infer a name from the rhs, e.g., for
 // an expression like "count() by foo", the rhs is Field "foo" and the lhs is nil.
 FlexAssignment
   = Assignment

@@ -23,8 +23,8 @@ type Proc struct {
 func New(pctx *proc.Context, parent proc.Interface, node *ast.CutProc) (*Proc, error) {
 	var lhs []field.Static
 	var rhs []expr.Evaluator
-	for k := range node.Fields {
-		field, expression, err := expr.CompileAssignment(&node.Fields[k])
+	for _, f := range node.Fields {
+		field, expression, err := expr.CompileAssignment(&f)
 		if err != nil {
 			return nil, err
 		}
@@ -51,11 +51,8 @@ func New(pctx *proc.Context, parent proc.Interface, node *ast.CutProc) (*Proc, e
 func fieldList(fields []expr.Evaluator) string {
 	var each []string
 	for _, fieldExpr := range fields {
-		f, err := expr.DotExprToField(fieldExpr)
-		var s string
-		if err != nil {
-			s = "<not a field>"
-		} else {
+		s := "<not a field>"
+		if f, err := expr.DotExprToField(fieldExpr); err == nil {
 			s = f.String()
 		}
 		each = append(each, s)
@@ -67,11 +64,10 @@ func (p *Proc) maybeWarn() {
 	if p.complement || p.cutter.FoundCut() {
 		return
 	}
-	together := " together"
-	plural := "s"
-	if len(p.resolvers) == 1 {
-		plural = ""
-		together = ""
+	var plural, together string
+	if len(p.resolvers) > 1 {
+		plural = "s"
+		together = " together"
 	}
 	list := fieldList(p.resolvers)
 	msg := fmt.Sprintf("Cut field%s %s not present%s in input", plural, list, together)
