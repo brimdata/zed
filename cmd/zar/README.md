@@ -169,8 +169,7 @@ instead of the logs and run much faster...
 ```
 zar find :ip=10.10.23.2
 ```
-In the output here, you'll see this IP exists in exactly one log file.
-
+In the output here, you'll see this IP exists in exactly one log file:
 ```
 /path/to/ZAR_ROOT/zd/20180324/d-1inHxF95xI4Rgyinph97qoqOrWm.zng
 ```
