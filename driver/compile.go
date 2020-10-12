@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/proc"
@@ -32,9 +33,9 @@ type Config struct {
 	Warnings          chan string
 }
 
-func programPrep(program ast.Proc, sortKey string, sortReversed bool) (ast.Proc, filter.Filter, ast.BooleanExpr, error) {
+func programPrep(program ast.Proc, sortKey field.Static, sortReversed bool) (ast.Proc, filter.Filter, ast.BooleanExpr, error) {
 	ReplaceGroupByProcDurationWithKey(program)
-	if sortKey != "" {
+	if sortKey != nil {
 		setGroupByProcInputSortDir(program, sortKey, zbufDirInt(sortReversed))
 	}
 	var filt filter.Filter
@@ -78,7 +79,7 @@ func compileSingle(ctx context.Context, program ast.Proc, zctx *resolver.Context
 		cfg.Warnings = make(chan string, 5)
 	}
 
-	program, filterExpr, filt, err := programPrep(program, cfg.ReaderSortKey, cfg.ReaderSortReverse)
+	program, filterExpr, filt, err := programPrep(program, field.Dotted(cfg.ReaderSortKey), cfg.ReaderSortReverse)
 	if err != nil {
 		return nil, err
 	}
@@ -119,14 +120,9 @@ func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context,
 	}
 
 	sortKey, sortReversed := msrc.OrderInfo()
-<<<<<<< HEAD
 	program, filt, filterExpr, err := programPrep(program, sortKey, sortReversed)
 	if err != nil {
 		return nil, err
-=======
-	if sortKey != nil {
-		setGroupByProcInputSortDir(program, sortKey, zbufDirInt(sortReversed))
->>>>>>> fix field model and dot expression syntax
 	}
 
 	var isParallel bool

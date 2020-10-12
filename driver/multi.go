@@ -3,7 +3,6 @@ package driver
 import (
 	"context"
 	"io"
-	"strings"
 	"time"
 
 	"github.com/brimsec/zq/ast"
