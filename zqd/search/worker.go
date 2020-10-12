@@ -2,10 +2,8 @@ package search
 
 import (
 	"context"
-	"fmt"
 	"time"
 
-	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/nano"
@@ -17,12 +15,13 @@ import (
 )
 
 type WorkerOp struct {
-	ss   archive.SpanInfoSource
-	proc ast.Proc
-	dir  int
+	proc  ast.Proc
+	span  nano.Span
+	src   driver.Source
+	store *archivestore.Storage
 }
 
-func NewWorkerOp(req api.WorkerRequest) (*WorkerOp, error) {
+func NewWorkerOp(ctx context.Context, req api.WorkerRequest, st storage.Storage) (*WorkerOp, error) {
 	// XXX zqd only supports backwards searches, remove once this has been
 	// fixed.
 	if req.Dir == 1 {
@@ -31,20 +30,22 @@ func NewWorkerOp(req api.WorkerRequest) (*WorkerOp, error) {
 	if req.Dir != -1 {
 		return nil, zqe.E(zqe.Invalid, "time direction must be 1 or -1")
 	}
-
+	store, ok := st.(*archivestore.Storage)
+	if !ok {
+		return nil, zqe.ErrInvalid("unhandled storage type for WorkerOp: %T", store)
+	}
+	src, err := store.MultiSource().SourceFromRequest(ctx, &req)
+	if err != nil {
+		return nil, zqe.ErrInvalid("invalid worker op request: %w", err)
+	}
 	proc, err := ast.UnpackJSON(nil, req.Proc)
 	if err != nil {
 		return nil, err
 	}
-
-	ss := archive.SpanInfoSource{
-		Span:       req.Span,
-		ChunkPaths: req.ChunkPaths,
-	}
-	return &WorkerOp{ss: ss, proc: proc, dir: req.Dir}, nil
+	return &WorkerOp{proc: proc, span: req.Span, src: src, store: store}, nil
 }
 
-func (w *WorkerOp) Run(ctx context.Context, store storage.Storage, output Output) (err error) {
+func (w *WorkerOp) Run(ctx context.Context, output Output) (err error) {
 	d := &searchdriver{
 		output:    output,
 		startTime: nano.Now(),
@@ -62,12 +63,8 @@ func (w *WorkerOp) Run(ctx context.Context, store storage.Storage, output Output
 	defer statsTicker.Stop()
 	zctx := resolver.NewContext()
 
-	switch st := store.(type) {
-	case *archivestore.Storage:
-		return driver.MultiRun(ctx, d, w.proc, zctx, st.StaticSource(w.ss), driver.MultiConfig{
-			StatsTick: statsTicker.C,
-		})
-	default:
-		return fmt.Errorf("unknown storage type %T", st)
-	}
+	return driver.MultiRun(ctx, d, w.proc, zctx, w.store.StaticSource(w.src), driver.MultiConfig{
+		Span:      w.span,
+		StatsTick: statsTicker.C,
+	})
 }

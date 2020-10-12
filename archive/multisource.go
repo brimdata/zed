@@ -2,6 +2,7 @@ package archive
 
 import (
 	"context"
+	"errors"
 	"io"
 
 	"github.com/brimsec/zq/ast"
@@ -9,12 +10,15 @@ import (
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zqd/api"
+	"github.com/brimsec/zq/zqe"
 )
 
 type multiCloser struct {
@@ -76,11 +80,6 @@ func newSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, f
 	}, nil
 }
 
-type multiSource struct {
-	ark      *Archive
-	altPaths []string
-}
-
 // NewMultiSource returns a driver.MultiSource for an Archive. If no alternative
 // paths are specified, the MultiSource will send a source for each span in the
 // driver.SourceFilter span, and report the same ordering as the archive.
@@ -92,26 +91,88 @@ func NewMultiSource(ark *Archive, altPaths []string) driver.MultiSource {
 	if len(altPaths) == 1 && altPaths[0] == "_" {
 		altPaths = nil
 	}
-	return &multiSource{
-		ark:      ark,
-		altPaths: altPaths,
+	if len(altPaths) != 0 {
+		return &chunkMultiSource{
+			ark:      ark,
+			altPaths: altPaths,
+		}
+	}
+	return &spanMultiSource{
+		ark: ark,
 	}
 }
 
-func (m *multiSource) OrderInfo() (field.Static, bool) {
-	if len(m.altPaths) == 0 {
-		return field.New("ts"), m.ark.DataOrder == zbuf.OrderDesc
+type spanMultiSource struct {
+	ark *Archive
+}
+
+func (m *spanMultiSource) OrderInfo() (field.Static, bool) {
+	return field.New("ts"), m.ark.DataOrder == zbuf.OrderDesc
+}
+
+func (m *spanMultiSource) SendSources(ctx context.Context, span nano.Span, srcChan chan driver.Source) error {
+	return SpanWalk(ctx, m.ark, span, func(si SpanInfo) error {
+		select {
+		case srcChan <- &spanSource{ark: m.ark, spanInfo: si}:
+			return nil
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	})
+}
+
+func (m *spanMultiSource) SourceFromRequest(ctx context.Context, req *api.WorkerRequest) (driver.Source, error) {
+	si := SpanInfo{Span: req.Span}
+	for _, p := range req.ChunkPaths {
+		tsd, _, id, ok := parseChunkRelativePath(p)
+		if !ok {
+			return nil, zqe.E(zqe.Invalid, "invalid chunk path: %v", p)
+		}
+		md, err := readChunkMetadata(ctx, chunkMetadataPath(m.ark, tsd, id))
+		if err != nil {
+			return nil, err
+		}
+		si.Chunks = append(si.Chunks, md.Chunk(id))
 	}
+	return &spanSource{
+		ark:      m.ark,
+		spanInfo: si,
+	}, nil
+}
+
+type spanSource struct {
+	ark      *Archive
+	spanInfo SpanInfo
+}
+
+func (s *spanSource) Open(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter) (driver.ScannerCloser, error) {
+	return newSpanScanner(ctx, s.ark, zctx, sf.Filter, sf.FilterExpr, s.spanInfo)
+}
+
+func (s *spanSource) ToRequest(req *api.WorkerRequest) error {
+	req.Span = s.spanInfo.Span
+	for _, c := range s.spanInfo.Chunks {
+		req.ChunkPaths = append(req.ChunkPaths, c.RelativePath())
+	}
+	return nil
+}
+
+// A chunkMultiSource uses the archive.Walk call to provide a driver.Source
+// for each chunk in the archive, possibly combining its data with files named
+// by altPaths located in the chunk's zar directory.
+type chunkMultiSource struct {
+	ark      *Archive
+	altPaths []string
+}
+
+func (cms *chunkMultiSource) OrderInfo() (field.Static, bool) {
 	return nil, false
 }
 
-func (m *multiSource) spanWalk(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan<- driver.SourceOpener) error {
-	return SpanWalk(ctx, m.ark, sf.Span, func(si SpanInfo) error {
-		so := func() (driver.ScannerCloser, error) {
-			return newSpanScanner(ctx, m.ark, zctx, sf.Filter, sf.FilterExpr, si)
-		}
+func (cms *chunkMultiSource) SendSources(ctx context.Context, span nano.Span, srcChan chan driver.Source) error {
+	return Walk(ctx, cms.ark, func(chunk Chunk) error {
 		select {
-		case srcChan <- so:
+		case srcChan <- &chunkSource{cms: cms, chunk: chunk}:
 			return nil
 		case <-ctx.Done():
 			return ctx.Err()
@@ -119,32 +180,30 @@ func (m *multiSource) spanWalk(ctx context.Context, zctx *resolver.Context, sf d
 	})
 }
 
-func (m *multiSource) chunkWalk(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan<- driver.SourceOpener) error {
-	return Walk(ctx, m.ark, func(chunk Chunk) error {
-		so := func() (driver.ScannerCloser, error) {
-			paths := make([]string, len(m.altPaths))
-			for i, input := range m.altPaths {
-				paths[i] = chunk.Localize(m.ark, input).String()
-			}
-			rc := detector.MultiFileReader(zctx, paths, zio.ReaderOpts{Format: "zng"})
-			sn, err := scanner.NewScanner(ctx, rc, sf.Filter, sf.FilterExpr, sf.Span)
-			if err != nil {
-				return nil, err
-			}
-			return &scannerCloser{Scanner: sn, Closer: rc}, nil
-		}
-		select {
-		case srcChan <- so:
-			return nil
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	})
+var errReqForChunk = errors.New("no request support for chunk sources")
+
+func (cms *chunkMultiSource) SourceFromRequest(context.Context, *api.WorkerRequest) (driver.Source, error) {
+	return nil, errReqForChunk
 }
 
-func (m *multiSource) SendSources(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan driver.SourceOpener) error {
-	if len(m.altPaths) == 0 {
-		return m.spanWalk(ctx, zctx, sf, srcChan)
+type chunkSource struct {
+	cms   *chunkMultiSource
+	chunk Chunk
+}
+
+func (s *chunkSource) Open(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter) (driver.ScannerCloser, error) {
+	paths := make([]string, len(s.cms.altPaths))
+	for i, input := range s.cms.altPaths {
+		paths[i] = s.chunk.Localize(s.cms.ark, input).String()
 	}
-	return m.chunkWalk(ctx, zctx, sf, srcChan)
+	rc := detector.MultiFileReader(zctx, paths, zio.ReaderOpts{Format: "zng"})
+	sn, err := scanner.NewScanner(ctx, rc, sf.Filter, sf.FilterExpr, sf.Span)
+	if err != nil {
+		return nil, err
+	}
+	return &scannerCloser{Scanner: sn, Closer: rc}, nil
+}
+
+func (s *chunkSource) ToRequest(*api.WorkerRequest) error {
+	return errReqForChunk
 }
