@@ -162,17 +162,22 @@ zar ls -l
 You will see all the indexes left behind. They are just zng files.
 If you want to see one, just look at it with zq, e.g.
 ```
-zq -t $ZAR_ROOT/20180324/1521912990.158766.zng.zar/microindex-type-ip.zng
+find $ZAR_ROOT -name 'microindex-type-ip.zng' | head -n 1 | xargs zq -t -
 ```
 Now if you run "zar find", it will efficiently look through all the index files
 instead of the logs and run much faster...
 ```
 zar find :ip=10.10.23.2
 ```
-In the output here, you'll see this IP exists in exactly one log file:
+In the output here, you'll see this IP exists in exactly one log file.
+
 ```
-/path/to/ZAR_ROOT/20180324/1521911772.980384.zng
+/path/to/ZAR_ROOT/zd/20180324/d-1inHxF95xI4Rgyinph97qoqOrWm.zng
 ```
+
+(In this and later outputs in this README that show pathnames in the archive,
+the portion of the paths following `d-` will be unique and hence differ in your
+output if you repeat the commands.)
 
 ## micro-indexes
 
@@ -202,11 +207,10 @@ And now you can run field matches on `uri`:
 ```
 zar find uri=/file
 ```
-and you'll get
+and you'll find "hits" in multiple chunks:
 ```
-/path/to/ZAR_ROOT/20180324/1521912507.399929.zng
-/path/to/ZAR_ROOT/20180324/1521912075.114273.zng
-/path/to/ZAR_ROOT/20180324/1521911772.980384.zng
+/path/to/ZAR_ROOT/zd/20180324/d-1inHwoVGpnxI63Ut1MLZOFPjU0s.zng
+/path/to/ZAR_ROOT/zd/20180324/d-1inHwSVzJtCInnfntVSuL32h9hC.zng
 ```
 If you have a look, you'll see there are index files now for both type ip
 and field uri:
@@ -226,10 +230,11 @@ where `-z` says to produce zng output instead of a path listing,
 and you'll get this...
 ```
 #zfile=string
-#0:record[key:ip,count:uint64,_log:zfile]
-0:[10.47.21.138;10;/path/to/ZAR_ROOT/20180324/1521912507.399929.zng;]
-0:[10.47.21.138;3;/path/to/ZAR_ROOT/20180324/1521912075.114273.zng;]
-0:[10.47.21.138;1;/path/to/ZAR_ROOT/20180324/1521911772.980384.zng;]
+#0:record[key:ip,count:uint64,_log:zfile,first:time,last:time]
+0:[10.47.21.138;7;/path/to/ZAR_ROOT/zd/20180324/d-1inHwu114q5BEjyYe0pU8C2r4MM.zng;1521912573.152746;1521911720.608867;]
+0:[10.47.21.138;3;/path/to/ZAR_ROOT/zd/20180324/d-1inHwoVGpnxI63Ut1MLZOFPjU0s.zng;1521912355.502512;1521911720.601374;]
+0:[10.47.21.138;1;/path/to/ZAR_ROOT/zd/20180324/d-1inHwN3qwFsX3j8sGYMklrMl1Oq.zng;1521911994.618642;1521911720.726418;]
+0:[10.47.21.138;3;/path/to/ZAR_ROOT/zd/20180324/d-1inHwSVzJtCInnfntVSuL32h9hC.zng;1521911858.335096;1521911720.600725;]
 ```
 The find command adds a column called "_log" (which can be disabled
 or customized to a different field name) so you can see where the
@@ -261,7 +266,7 @@ zar ls custom.zng
 ```
 To see what's in it:
 ```
-zq -f table $ZAR_ROOT/20180324/1521911772.980384.zng.zar/custom.zng | head -10
+find $ZAR_ROOT -name 'custom.zng' | head -n 1 | xargs zq -f table - | head -n 10
 ```
 You can see the IPs, counts, and _path strings.
 
@@ -269,7 +274,7 @@ At the bottom you'll also find a record describing the micro-index layout. To
 see it:
 
 ```
-zq -f table $ZAR_ROOT/20180324/1521911772.980384.zng.zar/custom.zng | tail -2
+find $ZAR_ROOT -name 'custom.zng' | head -n 1 | xargs zq -f table - | tail -n 2
 ```
 
 ### zar find with custom index
@@ -333,8 +338,8 @@ zar find -z -x custom2.zng 216.58.193.206 10.47.6.173 | zq -t -
 which produces just one record as this pair appears in only one log file.
 ```
 #zfile=string
-#0:record[id:record[resp_h:ip,orig_h:ip],resp_bytes:uint64,_log:zfile]
-0:[[216.58.193.206;10.47.6.173;]5112;/path/to/ZAR_ROOT/20180324/1521912075.114273.zng;]
+#0:record[id:record[resp_h:ip,orig_h:ip],resp_bytes:uint64,_log:zfile,first:time,last:time]
+0:[[216.58.193.206;10.47.6.173;]5112;/path/to/ZAR_ROOT/zd/20180324/d-1inHwoVGpnxI63Ut1MLZOFPjU0s.zng;1521912355.502512;1521911720.601374;]
 ```
 The nice thing here is that you can also just specify a primary key, which will
 issue a search that returns all the index hits that have the primary key with
@@ -386,7 +391,7 @@ zar map -o words.zng "uri != null | cut uri | put count=1"
 ```
 again you can look at one of the files...
 ```
-zq -t $ZAR_ROOT/20180324/1521911772.980384.zng.zar/words.zng
+find $ZAR_ROOT -name 'words.zng' | head -n 1 | xargs zq -t -
 ```
 Now we reduce by aggregating the uri and summing the counts:
 ```
