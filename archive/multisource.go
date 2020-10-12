@@ -38,9 +38,18 @@ func (s SpanInfo) ChunkRange(dir zbuf.Direction, chunkIdx int) string {
 
 // SpanWalk calls visitor with each SpanInfo within the filter span.
 func SpanWalk(ctx context.Context, ark *Archive, filter nano.Span, visitor func(si SpanInfo) error) error {
+	dirmkr, _ := ark.dataSrc.(iosrc.DirMaker)
 	return tsDirVisit(ctx, ark, filter, func(_ tsDir, chunks []Chunk) error {
 		sinfos := mergeChunksToSpans(chunks, ark.DataSortDirection, filter)
 		for _, s := range sinfos {
+			if dirmkr != nil {
+				for _, c := range s.Chunks {
+					zardir := c.ZarDir(ark)
+					if err := dirmkr.MkdirAll(zardir, 0700); err != nil {
+						return err
+					}
+				}
+			}
 			if err := visitor(s); err != nil {
 				return err
 			}
