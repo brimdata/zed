@@ -131,7 +131,7 @@ func handleWorker(c *Core, w http.ResponseWriter, httpReq *http.Request) {
 	}
 	defer cancel()
 
-	srch, err := search.NewWorkerOp(req)
+	srch, err := search.NewWorkerOp(req, space.Storage())
 	if err != nil {
 		respondError(c, w, httpReq, err)
 		return
@@ -145,7 +145,7 @@ func handleWorker(c *Core, w http.ResponseWriter, httpReq *http.Request) {
 
 	w.Header().Set("Content-Type", out.ContentType())
 
-	if err := srch.Run(ctx, space.Storage(), out); err != nil {
+	if err := srch.Run(ctx, out); err != nil {
 		c.requestLogger(httpReq).Warn("Error writing response", zap.Error(err))
 	}
 

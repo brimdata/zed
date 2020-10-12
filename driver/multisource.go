@@ -3,16 +3,14 @@ package driver
 import (
 	"context"
 	"io"
-	"time"
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/proc/compiler"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zng/resolver"
-	"go.uber.org/zap"
+	"github.com/brimsec/zq/zqd/api"
 )
 
 // A MultiSource is a set of one or more ZNG record sources, which could be
@@ -32,13 +30,14 @@ type MultiSource interface {
 	// performance, SendSources should perform quick filtering that performs
 	// little or no i/o, and let the returned ScannerCloser perform more intensive
 	// filtering (e.g., reading a micro-index to check for filter matching).
-	SendSources(context.Context, *resolver.Context, SourceFilter, chan SourceOpener) error
+	SendSources(context.Context, nano.Span, chan Source) error
+	SourceFromRequest(*api.WorkerRequest) (Source, error)
 }
 
-// A SourceOpener is a closure sent by a MultiSource to provide scanning
-// access to a single source. It may return a nil ScannerCloser, in the
-// case that it represents a logically empty source.
-type SourceOpener func() (ScannerCloser, error)
+type Source interface {
+	Open(context.Context, *resolver.Context, SourceFilter) (ScannerCloser, error)
+	ToRequest(*api.WorkerRequest) error
+}
 
 type ScannerCloser interface {
 	scanner.Scanner
@@ -49,20 +48,4 @@ type SourceFilter struct {
 	Filter     filter.Filter
 	FilterExpr ast.BooleanExpr
 	Span       nano.Span
-}
-
-type MultiConfig struct {
-	Custom      compiler.Hook
-	Logger      *zap.Logger
-	Parallelism int
-	Span        nano.Span
-	StatsTick   <-chan time.Time
-	Warnings    chan string
-}
-
-func zbufDirInt(reversed bool) int {
-	if reversed {
-		return -1
-	}
-	return 1
 }

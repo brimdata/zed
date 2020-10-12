@@ -5,22 +5,22 @@ import (
 
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/field"
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zng/resolver"
 )
 
-// staticSource is an implemetation of driver.MultiSource that provides
+// staticSource is an implementation of driver.MultiSource that provides
 // a single SpanInfo (with Chunks) to be processed by a zqd worker.
 // staticSource is used only for the zqd /worker call.
 type staticSource struct {
-	ark *Archive
-	si  SpanInfo
+	*spanMultiSource
+	src driver.Source
 }
 
-func NewStaticSource(ark *Archive, si SpanInfo) driver.MultiSource {
+func NewStaticSource(ark *Archive, src driver.Source) driver.MultiSource {
 	return &staticSource{
-		ark: ark,
-		si:  si,
+		spanMultiSource: &spanMultiSource{ark: ark},
+		src:             src,
 	}
 }
 
@@ -28,12 +28,9 @@ func (s *staticSource) OrderInfo() (field.Static, bool) {
 	return field.New("ts"), s.ark.DataSortDirection == zbuf.DirTimeReverse
 }
 
-func (s *staticSource) SendSources(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan driver.SourceOpener) error {
-	so := func() (driver.ScannerCloser, error) {
-		return newSpanScanner(ctx, s.ark, zctx, sf.Filter, sf.FilterExpr, s.si)
-	}
+func (s *staticSource) SendSources(ctx context.Context, span nano.Span, srcChan chan driver.Source) error {
 	select {
-	case srcChan <- so:
+	case srcChan <- s.src:
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()

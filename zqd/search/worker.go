@@ -2,11 +2,7 @@ package search
 
 import (
 	"context"
-	"fmt"
 	"time"
-
-	"github.com/brimsec/zq/archive"
-	"github.com/segmentio/ksuid"
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
@@ -19,12 +15,13 @@ import (
 )
 
 type WorkerOp struct {
-	si   archive.SpanInfo
-	proc ast.Proc
-	dir  int
+	proc  ast.Proc
+	span  nano.Span
+	src   driver.Source
+	store *archivestore.Storage
 }
 
-func NewWorkerOp(req api.WorkerRequest) (*WorkerOp, error) {
+func NewWorkerOp(req api.WorkerRequest, st storage.Storage) (*WorkerOp, error) {
 	// XXX zqd only supports backwards searches, remove once this has been
 	// fixed.
 	if req.Dir == 1 {
@@ -33,23 +30,13 @@ func NewWorkerOp(req api.WorkerRequest) (*WorkerOp, error) {
 	if req.Dir != -1 {
 		return nil, zqe.E(zqe.Invalid, "time direction must be 1 or -1")
 	}
-
-	chunks := make([]archive.Chunk, len(req.Chunks))
-	for i, chunk := range req.Chunks {
-		id, err := ksuid.Parse(chunk.Id)
-		if err != nil {
-			return nil, zqe.E(zqe.Invalid, "unparsable ksuid")
-		}
-		chunks[i].Id = id
-		chunks[i].First = chunk.First
-		chunks[i].Last = chunk.Last
-		chunks[i].Kind = archive.FileKind(chunk.Kind)
-		chunks[i].RecordCount = chunk.RecordCount
+	store, ok := st.(*archivestore.Storage)
+	if !ok {
+		return nil, zqe.ErrInvalid("unhandled storage type for WorkerOp: %T", store)
 	}
-
-	si := archive.SpanInfo{
-		Span:   req.Span,
-		Chunks: chunks,
+	src, err := store.MultiSource().SourceFromRequest(&req)
+	if err != nil {
+		return nil, zqe.ErrInvalid("invalid worker op request: %w", err)
 	}
 
 	proc, err := ast.UnpackJSON(nil, req.Proc)
@@ -57,10 +44,10 @@ func NewWorkerOp(req api.WorkerRequest) (*WorkerOp, error) {
 		return nil, err
 	}
 
-	return &WorkerOp{si: si, proc: proc, dir: req.Dir}, nil
+	return &WorkerOp{proc: proc, span: req.Span, src: src, store: store}, nil
 }
 
-func (w *WorkerOp) Run(ctx context.Context, store storage.Storage, output Output) (err error) {
+func (w *WorkerOp) Run(ctx context.Context, output Output) (err error) {
 	d := &searchdriver{
 		output:    output,
 		startTime: nano.Now(),
@@ -78,13 +65,8 @@ func (w *WorkerOp) Run(ctx context.Context, store storage.Storage, output Output
 	defer statsTicker.Stop()
 	zctx := resolver.NewContext()
 
-	switch st := store.(type) {
-	case *archivestore.Storage:
-		return driver.MultiRun(ctx, d, w.proc, zctx, st.StaticSource(w.si), driver.MultiConfig{
-			Span:      w.si.Span,
-			StatsTick: statsTicker.C,
-		})
-	default:
-		return fmt.Errorf("unknown storage type %T", st)
-	}
+	return driver.MultiRun(ctx, d, w.proc, zctx, w.store.StaticSource(w.src), driver.MultiConfig{
+		Span:      w.span,
+		StatsTick: statsTicker.C,
+	})
 }

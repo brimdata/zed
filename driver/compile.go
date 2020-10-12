@@ -33,6 +33,13 @@ type Config struct {
 	Warnings          chan string
 }
 
+func zbufDirInt(reversed bool) int {
+	if reversed {
+		return -1
+	}
+	return 1
+}
+
 func programPrep(program ast.Proc, sortKey field.Static, sortReversed bool) (ast.Proc, filter.Filter, ast.BooleanExpr, error) {
 	ReplaceGroupByProcDurationWithKey(program)
 	if sortKey != nil {
@@ -103,6 +110,15 @@ func compileSingle(ctx context.Context, program ast.Proc, zctx *resolver.Context
 		return nil, err
 	}
 	return newMuxOutput(pctx, leaves, sn), nil
+}
+
+type MultiConfig struct {
+	Custom      compiler.Hook
+	Logger      *zap.Logger
+	Parallelism int
+	Span        nano.Span
+	StatsTick   <-chan time.Time
+	Warnings    chan string
 }
 
 func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc MultiSource, mcfg MultiConfig) (*muxOutput, error) {
@@ -181,6 +197,13 @@ func liftFilter(p ast.Proc) (ast.BooleanExpr, ast.Proc) {
 		}
 	}
 	return nil, p
+}
+
+func filterToProc(be ast.BooleanExpr) ast.Proc {
+	return &ast.FilterProc{
+		Node:   ast.Node{Op: "FilterProc"},
+		Filter: be,
+	}
 }
 
 func ReplaceGroupByProcDurationWithKey(p ast.Proc) {

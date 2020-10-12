@@ -3,17 +3,20 @@ package driver
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/brimsec/zq/field"
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -33,6 +36,18 @@ func (c *onClose) Close() error {
 		return nil
 	}
 	return c.fn()
+}
+
+type testSource struct {
+	opener func(*resolver.Context, SourceFilter) (ScannerCloser, error)
+}
+
+func (s *testSource) Open(ctx context.Context, zctx *resolver.Context, sf SourceFilter) (ScannerCloser, error) {
+	return s.opener(zctx, sf)
+}
+
+func (s *testSource) ToRequest(*api.WorkerRequest) error {
+	return errors.New("ToRequest called on testSource")
 }
 
 var parallelTestInputs []string = []string{
@@ -59,7 +74,7 @@ func (m *orderedmsrc) OrderInfo() (field.Static, bool) {
 	return field.New("ts"), false
 }
 
-func (m *orderedmsrc) SendSources(ctx context.Context, zctx *resolver.Context, sf SourceFilter, srcChan chan SourceOpener) error {
+func (m *orderedmsrc) SendSources(ctx context.Context, span nano.Span, srcChan chan Source) error {
 	// Create SourceOpeners that await a signal before returning, then
 	// signal them in reverse of expected order.
 	var releaseChs []chan struct{}
@@ -68,12 +83,12 @@ func (m *orderedmsrc) SendSources(ctx context.Context, zctx *resolver.Context, s
 	}
 	for i := range parallelTestInputs {
 		i := i
-		rdr := tzngio.NewReader(strings.NewReader(parallelTestInputs[i]), zctx)
-		sn, err := scanner.NewScanner(ctx, rdr, sf.Filter, sf.FilterExpr, sf.Span)
-		if err != nil {
-			return err
-		}
-		srcChan <- func() (ScannerCloser, error) {
+		opener := func(zctx *resolver.Context, sf SourceFilter) (ScannerCloser, error) {
+			rdr := tzngio.NewReader(strings.NewReader(parallelTestInputs[i]), zctx)
+			sn, err := scanner.NewScanner(ctx, rdr, sf.Filter, sf.FilterExpr, sf.Span)
+			if err != nil {
+				return nil, err
+			}
 			select {
 			case <-releaseChs[i]:
 			}
@@ -82,11 +97,16 @@ func (m *orderedmsrc) SendSources(ctx context.Context, zctx *resolver.Context, s
 				Closer:  &onClose{},
 			}, nil
 		}
+		srcChan <- &testSource{opener: opener}
 	}
 	for i := len(parallelTestInputs) - 1; i >= 0; i-- {
 		close(releaseChs[i])
 	}
 	return nil
+}
+
+func (m *orderedmsrc) SourceFromRequest(req *api.WorkerRequest) (Source, error) {
+	return nil, errors.New("SourceFromRequest called on orderedmsrc")
 }
 
 func trim(s string) string {
@@ -142,8 +162,8 @@ func (m *scannerCloseMS) OrderInfo() (field.Static, bool) {
 	return nil, false
 }
 
-func (m *scannerCloseMS) SendSources(ctx context.Context, zctx *resolver.Context, sf SourceFilter, srcChan chan SourceOpener) error {
-	srcChan <- func() (ScannerCloser, error) {
+func (m *scannerCloseMS) SendSources(ctx context.Context, span nano.Span, srcChan chan Source) error {
+	opener := func(zctx *resolver.Context, _ SourceFilter) (ScannerCloser, error) {
 		return &scannerCloser{
 			// Use a noEndScanner so that a parallel head never tries to
 			// close the ScannerCloser in its Pull. That way, if the Close fires,
@@ -155,7 +175,12 @@ func (m *scannerCloseMS) SendSources(ctx context.Context, zctx *resolver.Context
 			}},
 		}, nil
 	}
+	srcChan <- &testSource{opener: opener}
 	return nil
+}
+
+func (m *scannerCloseMS) SourceFromRequest(req *api.WorkerRequest) (Source, error) {
+	return nil, errors.New("SourceFromRequest called on scannerCloseMS")
 }
 
 // TestScannerClose verifies that any open ScannerCloser's will be closed soon

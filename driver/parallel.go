@@ -1,6 +1,7 @@
 package driver
 
 import (
+	"encoding/json"
 	"sync"
 
 	"github.com/brimsec/zq/ast"
@@ -11,6 +12,7 @@ import (
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zqd/api"
 )
 
 type parallelHead struct {
@@ -82,7 +84,7 @@ type parallelGroup struct {
 	filter     SourceFilter
 	msrc       MultiSource
 	once       sync.Once
-	sourceChan chan SourceOpener
+	sourceChan chan Source
 	sourceErr  error
 
 	mu       sync.Mutex // protects below
@@ -93,11 +95,11 @@ type parallelGroup struct {
 func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
 	for {
 		select {
-		case opener, ok := <-pg.sourceChan:
+		case src, ok := <-pg.sourceChan:
 			if !ok {
 				return nil, pg.sourceErr
 			}
-			sc, err := opener()
+			sc, err := src.Open(pg.pctx.Context, pg.pctx.TypeContext, pg.filter)
 			if err != nil {
 				return nil, err
 			}
@@ -121,6 +123,26 @@ func (pg *parallelGroup) doneSource(sc ScannerCloser) {
 	delete(pg.scanners, sc)
 }
 
+// XXX Note for mark: This function isn't yet used, but is an example of how
+// to take a Source and fully convert it into a WorkerRequest:
+//
+// req, err := sourceToRequest(src, pg.filter.FilterExpr)
+//
+func sourceToRequest(src Source, filterExpr ast.BooleanExpr) (*api.WorkerRequest, error) {
+	var req api.WorkerRequest
+	if err := src.ToRequest(&req); err != nil {
+		return nil, err
+	}
+	if filterExpr != nil {
+		b, err := json.Marshal(filterToProc(filterExpr))
+		if err != nil {
+			return nil, err
+		}
+		req.Proc = b
+	}
+	return &req, nil
+}
+
 func (pg *parallelGroup) Stats() *scanner.ScannerStats {
 	pg.mu.Lock()
 	defer pg.mu.Unlock()
@@ -132,7 +154,7 @@ func (pg *parallelGroup) Stats() *scanner.ScannerStats {
 }
 
 func (pg *parallelGroup) run() {
-	pg.sourceErr = pg.msrc.SendSources(pg.pctx, pg.pctx.TypeContext, pg.filter, pg.sourceChan)
+	pg.sourceErr = pg.msrc.SendSources(pg.pctx, pg.filter.Span, pg.sourceChan)
 	close(pg.sourceChan)
 }
 
@@ -164,7 +186,7 @@ func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.
 			Span:       mcfg.Span,
 		},
 		msrc:       msrc,
-		sourceChan: make(chan SourceOpener),
+		sourceChan: make(chan Source),
 		scanners:   make(map[scanner.Scanner]struct{}),
 	}
 
