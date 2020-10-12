@@ -121,6 +121,11 @@ func compileSearch(node *ast.Search) (Filter, error) {
 	return searchRecordOther(node.Text, node.Value)
 }
 
+func fieldNameSearch(field []string, term string) bool {
+	dotted := strings.Join(field, ".")
+	return stringSearch(dotted, term)
+}
+
 // stringSearch is like strings.Contains() but with case-insensitive
 // comparison.
 func stringSearch(a, b string) bool {
@@ -193,15 +198,35 @@ func searchRecordString(term string) Filter {
 		}
 	}
 	searchContainer := Contains(search)
-
+	fieldNameCheck := make(map[zng.Type]bool)
 	return func(r *zng.Record) bool {
+		// Memoize the result of a search across the names in the
+		// record columns for each unique record type.
+		match, ok := fieldNameCheck[r.Type]
+		if !ok {
+			iter := r.FieldIter()
+			for !iter.Done() {
+				name, _, err := iter.Next()
+				if err != nil {
+					return false
+				}
+				if fieldNameSearch(name, term) {
+					match = true
+					break
+				}
+			}
+			fieldNameCheck[r.Type] = match
+		}
+		if match {
+			return true
+		}
 		iter := r.FieldIter()
 		for !iter.Done() {
-			name, val, err := iter.Next()
+			_, val, err := iter.Next()
 			if err != nil {
 				return false
 			}
-			if stringSearch(name, term) || search(val) || searchContainer(val) {
+			if search(val) || searchContainer(val) {
 				return true
 			}
 		}

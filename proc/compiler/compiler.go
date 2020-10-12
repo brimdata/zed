@@ -129,16 +129,19 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, parent proc.Int
 func compileSequential(custom Hook, nodes []ast.Proc, pctx *proc.Context, parents []proc.Interface) ([]proc.Interface, error) {
 	node := nodes[0]
 	parents, err := Compile(custom, node, pctx, parents)
+	if err != nil {
+		return nil, err
+	}
 	// merge unless we're at the end of the chain,
 	// in which case the output layer will mux
 	// into channels.
 	if len(nodes) == 1 {
-		return parents, err
+		return parents, nil
 	}
 	if len(parents) > 1 {
 		var parent proc.Interface
 		p := node.(*ast.ParallelProc)
-		if p.MergeOrderField != "" {
+		if p.MergeOrderField != nil {
 			parent = orderedmerge.New(pctx, parents, p.MergeOrderField, p.MergeOrderReverse)
 		} else {
 			parent = merge.New(pctx, parents)

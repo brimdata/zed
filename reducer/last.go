@@ -8,7 +8,7 @@ import (
 
 type Last struct {
 	Reducer
-	Resolver *expr.FieldExpr
+	Resolver expr.Evaluator
 	val      *zng.Value
 }
 

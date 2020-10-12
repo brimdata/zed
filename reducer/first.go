@@ -8,12 +8,8 @@ import (
 
 type First struct {
 	Reducer
-	Resolver *expr.FieldExpr
+	Resolver expr.Evaluator
 	val      *zng.Value
-}
-
-func NewFirstReducer(resolver *expr.FieldExpr) Interface {
-	return &First{Resolver: resolver}
 }
 
 func (f *First) Consume(r *zng.Record) {

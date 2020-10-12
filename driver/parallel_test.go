@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
@@ -54,8 +55,8 @@ var parallelTestInputs []string = []string{
 
 type orderedmsrc struct{}
 
-func (m *orderedmsrc) OrderInfo() (string, bool) {
-	return "ts", false
+func (m *orderedmsrc) OrderInfo() (field.Static, bool) {
+	return field.New("ts"), false
 }
 
 func (m *orderedmsrc) SendSources(ctx context.Context, zctx *resolver.Context, sf SourceFilter, srcChan chan SourceOpener) error {
@@ -137,8 +138,8 @@ type scannerCloseMS struct {
 	input  string
 }
 
-func (m *scannerCloseMS) OrderInfo() (string, bool) {
-	return "", false
+func (m *scannerCloseMS) OrderInfo() (field.Static, bool) {
+	return nil, false
 }
 
 func (m *scannerCloseMS) SendSources(ctx context.Context, zctx *resolver.Context, sf SourceFilter, srcChan chan SourceOpener) error {

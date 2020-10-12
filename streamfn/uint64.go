@@ -12,18 +12,18 @@ type Uint64 struct {
 func NewUint64(op string) *Uint64 {
 	p := &Uint64{}
 	switch op {
-	case "Sum":
+	case "sum":
 		p.Update = func(v uint64) {
 			p.State += v
 		}
-	case "Min":
+	case "min":
 		p.State = math.MaxUint64
 		p.Update = func(v uint64) {
 			if v < p.State {
 				p.State = v
 			}
 		}
-	case "Max":
+	case "max":
 		p.Update = func(v uint64) {
 			if v > p.State {
 				p.State = v

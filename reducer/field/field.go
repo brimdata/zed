@@ -15,7 +15,7 @@ type Streamfn interface {
 type FieldReducer struct {
 	reducer.Reducer
 	Op       string
-	Resolver *expr.FieldExpr
+	Resolver expr.Evaluator
 	typ      zng.Type
 	fn       Streamfn
 }

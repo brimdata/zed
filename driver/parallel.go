@@ -5,6 +5,7 @@ import (
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/scanner"
@@ -135,18 +136,15 @@ func (pg *parallelGroup) run() {
 	close(pg.sourceChan)
 }
 
-func newCompareFn(field string, reversed bool) (zbuf.RecordCmpFn, error) {
-	if field == "ts" {
+func newCompareFn(fieldName string, reversed bool) (zbuf.RecordCmpFn, error) {
+	if fieldName == "ts" {
 		if reversed {
 			return zbuf.CmpTimeReverse, nil
 		} else {
 			return zbuf.CmpTimeForward, nil
 		}
 	}
-	fieldRead := &ast.Field{
-		Node:  ast.Node{Op: "Field"},
-		Field: field,
-	}
+	fieldRead := ast.NewDotExpr(field.New(fieldName))
 	res, err := expr.CompileExpr(fieldRead)
 	if err != nil {
 		return nil, err

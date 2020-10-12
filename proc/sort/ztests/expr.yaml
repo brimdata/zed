@@ -1,0 +1,15 @@
+zql: 'sort String.toLower(s)'
+
+input: |
+  #0:record[s:string]
+  0:[foo;]
+  0:[C;]
+  0:[a;]
+  0:[Bar;]
+
+output: |
+  #0:record[s:string]
+  0:[a;]
+  0:[Bar;]
+  0:[C;]
+  0:[foo;]

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
@@ -63,16 +64,13 @@ func NewRule(pattern string) (*Rule, error) {
 // since the writer always writes a bit past the threshold
 const framesize = 32 * 1024 * 2
 
-const keyName = "key"
+var keyName = field.New("key")
 
-var keyAst = ast.ExpressionAssignment{
-	Target: "key",
-	Expr:   &ast.Field{Field: "key"},
+var keyAst = ast.Assignment{
+	LHS: ast.NewDotExpr(field.New("key")),
+	RHS: ast.NewDotExpr(field.New("key")),
 }
-var countAst = ast.Reducer{
-	Node: ast.Node{Op: "Count"},
-	Var:  "count",
-}
+var countAst = ast.NewReducerAssignment("count", nil, nil)
 
 // NewFieldRule creates an indexing rule that will index all fields of
 // the type passed in as argument.
@@ -88,13 +86,13 @@ func NewTypeRule(typeName string) (*Rule, error) {
 				typeName: typeName,
 			},
 			&ast.GroupByProc{
-				Keys:     []ast.ExpressionAssignment{keyAst},
-				Reducers: []ast.Reducer{countAst},
+				Keys:     []ast.Assignment{keyAst},
+				Reducers: []ast.Assignment{countAst},
 			},
-			&ast.SortProc{Fields: []ast.Expression{&ast.Field{Field: "key"}}},
+			&ast.SortProc{Fields: []ast.Expression{ast.NewDotExpr(field.New("key"))}},
 		},
 	}
-	return NewRuleAST("type", &c, typeMicroIndexName(typ), []string{keyName}, framesize)
+	return NewRuleAST("type", &c, typeMicroIndexName(typ), []field.Static{keyName}, framesize)
 }
 
 // NewFieldRule creates an indexing rule that will index the field passed in as argument.
@@ -103,17 +101,17 @@ func NewFieldRule(fieldName string) (*Rule, error) {
 	c := ast.SequentialProc{
 		Procs: []ast.Proc{
 			&fieldCutterNode{
-				field: fieldName,
+				field: field.Dotted(fieldName),
 				out:   keyName,
 			},
 			&ast.GroupByProc{
-				Keys:     []ast.ExpressionAssignment{keyAst},
-				Reducers: []ast.Reducer{countAst},
+				Keys:     []ast.Assignment{keyAst},
+				Reducers: []ast.Assignment{countAst},
 			},
-			&ast.SortProc{Fields: []ast.Expression{&ast.Field{Field: "key"}}},
+			&ast.SortProc{Fields: []ast.Expression{ast.NewDotExpr(field.New("key"))}},
 		},
 	}
-	return NewRuleAST("field", &c, fieldMicroIndexName(fieldName), []string{keyName}, framesize)
+	return NewRuleAST("field", &c, fieldMicroIndexName(fieldName), []field.Static{keyName}, framesize)
 }
 
 // Rule contains the runtime configuration for an indexing rule.
@@ -122,10 +120,10 @@ type Rule struct {
 	proc      ast.Proc
 	path      string
 	framesize int
-	keys      []string
+	keys      []field.Static
 }
 
-func NewRuleAST(typ string, proc ast.Proc, path string, keys []string, fsize int) (*Rule, error) {
+func NewRuleAST(typ string, proc ast.Proc, path string, keys []field.Static, fsize int) (*Rule, error) {
 	if path == "" {
 		return nil, fmt.Errorf("zql indexing rule requires an output path")
 	}
@@ -141,7 +139,7 @@ func NewRuleAST(typ string, proc ast.Proc, path string, keys []string, fsize int
 	}, nil
 }
 
-func NewZqlRule(s, path string, keys []string, framesize int) (*Rule, error) {
+func NewZqlRule(s, path string, keys []field.Static, framesize int) (*Rule, error) {
 	proc, err := zql.ParseProc(s)
 	if err != nil {
 		return nil, err

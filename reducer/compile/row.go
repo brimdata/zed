@@ -10,11 +10,11 @@ import (
 )
 
 type Row struct {
-	Defs     []CompiledReducer
+	Defs     []Reducer
 	Reducers []reducer.Interface
 }
 
-func NewRow(defs []CompiledReducer) Row {
+func NewRow(defs []Reducer) Row {
 	reducers := make([]reducer.Interface, len(defs))
 	for i := range defs {
 		reducers[i] = defs[i].Instantiate()
@@ -53,7 +53,10 @@ func (r *Row) Result(zctx *resolver.Context) (*zng.Record, error) {
 	var zv zcode.Bytes
 	for k, red := range r.Reducers {
 		val := red.Result()
-		columns[k] = zng.NewColumn(r.Defs[k].Target, val.Type)
+		// Reducers should be able to splice results into
+		// nested record lvalues.  Issue #1462.
+		fieldName := r.Defs[k].Target.Leaf()
+		columns[k] = zng.NewColumn(fieldName, val.Type)
 		zv = val.Encode(zv)
 	}
 	typ, err := zctx.LookupTypeRecord(columns)

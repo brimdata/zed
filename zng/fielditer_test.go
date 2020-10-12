@@ -30,14 +30,14 @@ func TestRecordIter(t *testing.T) {
 
 	name, val, err := it.Next()
 	require.NoError(t, err)
-	require.Equal(t, "r1.r2.s", name, "got correct field name")
+	require.Equal(t, "r1.r2.s", strings.Join(name, "."), "got correct field name")
 	require.Equal(t, zng.TypeString, val.Type, "got correct type for first field")
 	require.Equal(t, "hello", string(val.Bytes), "got correct value for first field")
 	require.False(t, it.Done(), "iterator is not exhausted")
 
 	name, val, err = it.Next()
 	require.NoError(t, err)
-	require.Equal(t, "r1.a", name, "got correct field name")
+	require.Equal(t, "r1.a", strings.Join(name, "."), "got correct field name")
 	l, err := val.ContainerLength()
 	require.NoError(t, err)
 	require.Equal(t, 3, l, "got array of length 3")
@@ -45,7 +45,7 @@ func TestRecordIter(t *testing.T) {
 
 	name, val, err = it.Next()
 	require.NoError(t, err)
-	require.Equal(t, "r1.r3.i", name, "got correct field name")
+	require.Equal(t, "r1.r3.i", strings.Join(name, "."), "got correct field name")
 	require.Equal(t, zng.TypeIP, val.Type, "got correct type for last field")
 	require.True(t, it.Done(), "iterator is exhausted after last field")
 }

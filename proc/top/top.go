@@ -64,7 +64,7 @@ func (p *Proc) Done() {
 func (p *Proc) consume(rec *zng.Record) {
 	if p.fields == nil {
 		fld := sort.GuessSortKey(rec)
-		accessor := expr.NewFieldAccess(fld)
+		accessor := expr.NewDotExpr(fld)
 		p.fields = []expr.Evaluator{accessor}
 	}
 	if p.records == nil {

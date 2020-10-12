@@ -10,11 +10,11 @@ import (
 // a field.
 type CountDistinct struct {
 	Reducer
-	Resolver *expr.FieldExpr
+	Resolver expr.Evaluator
 	sketch   *hyperloglog.Sketch
 }
 
-func NewCountDistinct(resolver *expr.FieldExpr) *CountDistinct {
+func NewCountDistinct(resolver expr.Evaluator) *CountDistinct {
 	return &CountDistinct{
 		Resolver: resolver,
 		sketch:   hyperloglog.New(),

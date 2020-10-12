@@ -7,6 +7,7 @@ import (
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
@@ -88,7 +89,14 @@ func (s *Storage) IndexCreate(ctx context.Context, req api.IndexPostRequest) err
 		if err != nil {
 			return zqe.E(zqe.Invalid, err)
 		}
-		rule, err := archive.NewRuleAST("zql", proc, req.OutputFile, req.Keys, 0)
+		// XXX IndexPostRequest.Keys hould take a []field.Static or
+		// new api.Field type rather than assume embedded "." works
+		// as a field separator.  Issue #1463.
+		var fields []field.Static
+		for _, key := range req.Keys {
+			fields = append(fields, field.Dotted(key))
+		}
+		rule, err := archive.NewRuleAST("zql", proc, req.OutputFile, fields, 0)
 		if err != nil {
 			return zqe.E(zqe.Invalid, err)
 		}
