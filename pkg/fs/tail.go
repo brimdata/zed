@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"sync"
 
 	"github.com/fsnotify/fsnotify"
 )
@@ -109,10 +108,10 @@ type FileEvent struct {
 // or removed. When open for the first time this will emit an event for
 // every existing file.
 type DirWatcher struct {
+	Events chan FileEvent
+
 	dir     string
-	events  chan FileEvent
-	once    sync.Once
-	err     error
+	watched map[string]struct{}
 	watcher *fsnotify.Watcher
 }
 
@@ -128,35 +127,74 @@ func NewDirWatcher(dir string) (*DirWatcher, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &DirWatcher{
+	w := &DirWatcher{
 		dir:     dir,
-		events:  make(chan FileEvent),
+		Events:  make(chan FileEvent),
+		watched: make(map[string]struct{}),
 		watcher: watcher,
-	}, err
+	}
+	if err := w.watcher.Add(w.dir); err != nil {
+		return nil, err
+	}
+	go func() {
+		err := w.start()
+		if errc := w.watcher.Close(); err == nil {
+			err = errc
+		}
+		if err != nil {
+			w.Events <- FileEvent{Err: err}
+		}
+		close(w.Events)
+	}()
+	return w, nil
 }
 
-func (w *DirWatcher) start() {
-	defer close(w.events)
-	defer w.watcher.Close()
-	if err := w.watcher.Add(w.dir); err != nil {
-		w.events <- FileEvent{Err: err}
-		return
-	}
-	if err := w.emitExisting(); err != nil {
-		w.events <- FileEvent{Err: err}
-		return
+func (w *DirWatcher) start() error {
+	if err := w.poll(); err != nil {
+		return err
 	}
 	for ev := range w.watcher.Events {
-		switch ev.Op {
-		case fsnotify.Create:
-			w.events <- FileEvent{Name: ev.Name, Op: FileOpCreated}
-		case fsnotify.Remove:
-			w.events <- FileEvent{Name: ev.Name, Op: FileOpRemoved}
+		switch {
+		case ev.Op&fsnotify.Create == fsnotify.Create:
+			if err := w.addFile(ev.Name); err != nil {
+				return err
+			}
+		case ev.Op&fsnotify.Rename == fsnotify.Rename, ev.Op&fsnotify.Remove == fsnotify.Remove:
+			if err := w.removeFile(ev.Name); err != nil {
+				return err
+			}
 		}
 	}
+	// watcher has been closed, poll once more to make sure we haven't missed
+	// any files due to race.
+	return w.poll()
 }
 
-func (w *DirWatcher) emitExisting() error {
+func (w *DirWatcher) addFile(name string) error {
+	p, err := filepath.Abs(name)
+	if err != nil {
+		return err
+	}
+	if _, ok := w.watched[p]; !ok {
+		w.watched[p] = struct{}{}
+		w.Events <- FileEvent{Name: p, Op: FileOpCreated}
+	}
+	return nil
+}
+
+func (w *DirWatcher) removeFile(name string) error {
+	p, err := filepath.Abs(name)
+	if err != nil {
+		return err
+	}
+	if _, ok := w.watched[p]; ok {
+		delete(w.watched, p)
+		w.Events <- FileEvent{Name: p, Op: FileOpRemoved}
+	}
+	return nil
+}
+
+func (w *DirWatcher) poll() error {
 	infos, err := ioutil.ReadDir(w.dir)
 	if err != nil {
 		return err
@@ -165,17 +203,11 @@ func (w *DirWatcher) emitExisting() error {
 		if info.IsDir() {
 			continue
 		}
-		w.events <- FileEvent{
-			Name: filepath.Join(w.dir, info.Name()),
-			Op:   FileOpExisting,
+		if err := w.addFile(filepath.Join(w.dir, info.Name())); err != nil {
+			return err
 		}
 	}
 	return nil
-}
-
-func (w *DirWatcher) Events() <-chan FileEvent {
-	w.once.Do(func() { go w.start() })
-	return w.events
 }
 
 func (w *DirWatcher) Stop() error {

@@ -64,8 +64,7 @@ func (s *logTailerTSuite) SetupTest() {
 }
 
 func (s *logTailerTSuite) TestCreatedFiles() {
-	started, result, errCh := s.read()
-	<-started
+	result, errCh := s.read()
 	f1 := s.createFile("test1.tzng")
 	f2 := s.createFile("test2.tzng")
 	s.write(f1, f2)
@@ -74,8 +73,7 @@ func (s *logTailerTSuite) TestCreatedFiles() {
 }
 
 func (s *logTailerTSuite) TestIgnoreDir() {
-	started, result, errCh := s.read()
-	<-started
+	result, errCh := s.read()
 	f1 := s.createFile("test1.tzng")
 	f2 := s.createFile("test2.tzng")
 	err := os.Mkdir(filepath.Join(s.dir, "testdir"), 0755)
@@ -88,15 +86,14 @@ func (s *logTailerTSuite) TestIgnoreDir() {
 func (s *logTailerTSuite) TestExistingFiles() {
 	f1 := s.createFile("test1.tzng")
 	f2 := s.createFile("test2.tzng")
-	_, result, errCh := s.read()
+	result, errCh := s.read()
 	s.write(f1, f2)
 	s.Require().NoError(<-errCh)
 	s.Equal(expected, <-result)
 }
 
 func (s *logTailerTSuite) TestInvalidFile() {
-	started, _, errCh := s.read()
-	<-started
+	_, errCh := s.read()
 	f1 := s.createFile("test1.tzng")
 	_, err := f1.WriteString("#0:record[ts:time]\n")
 	s.Require().NoError(err)
@@ -107,7 +104,7 @@ func (s *logTailerTSuite) TestInvalidFile() {
 }
 
 func (s *logTailerTSuite) TestEmptyFile() {
-	_, result, errCh := s.read()
+	result, errCh := s.read()
 	f1 := s.createFile("test1.tzng")
 	_ = s.createFile("test2.tzng")
 	s.write(f1)
@@ -124,14 +121,12 @@ func (s *logTailerTSuite) createFile(name string) *os.File {
 	return f
 }
 
-func (s *logTailerTSuite) read() (<-chan struct{}, <-chan string, <-chan error) {
-	started := make(chan struct{})
+func (s *logTailerTSuite) read() (<-chan string, <-chan error) {
 	result := make(chan string)
 	errCh := make(chan error)
 	buf := bytes.NewBuffer(nil)
 	w := tzngio.NewWriter(zio.NopCloser(buf))
 	go func() {
-		close(started)
 		err := driver.Copy(context.Background(), w, sortTs, s.zctx, s.dr, driver.Config{})
 		if err != nil {
 			close(result)
@@ -141,7 +136,7 @@ func (s *logTailerTSuite) read() (<-chan struct{}, <-chan string, <-chan error) 
 			result <- buf.String()
 		}
 	}()
-	return started, result, errCh
+	return result, errCh
 }
 
 func (s *logTailerTSuite) write(files ...*os.File) {

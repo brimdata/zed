@@ -51,7 +51,7 @@ func newLogTailer(zctx *resolver.Context, dir string, opts zio.ReaderOpts) (*log
 func (d *logTailer) start() {
 	var err error
 	for {
-		ev, ok := <-d.watcher.Events()
+		ev, ok := <-d.watcher.Events
 		// Watcher closed. Enstruct all go routines to stop tailing files so
 		// they read remaining data then exit.
 		if !ok {
