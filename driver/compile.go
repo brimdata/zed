@@ -10,6 +10,7 @@ import (
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/filter"
+	"github.com/brimsec/zq/multisource"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/proc/compiler"
@@ -29,6 +30,13 @@ type Config struct {
 	Span              nano.Span
 	StatsTick         <-chan time.Time
 	Warnings          chan string
+}
+
+func zbufDirInt(reversed bool) int {
+	if reversed {
+		return -1
+	}
+	return 1
 }
 
 func programPrep(program ast.Proc, sortKey string, sortReversed bool) (ast.Proc, filter.Filter, ast.BooleanExpr, error) {
@@ -103,7 +111,16 @@ func compileSingle(ctx context.Context, program ast.Proc, zctx *resolver.Context
 	return newMuxOutput(pctx, leaves, sn), nil
 }
 
-func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc MultiSource, mcfg MultiConfig) (*muxOutput, error) {
+type MultiConfig struct {
+	Custom      compiler.Hook
+	Logger      *zap.Logger
+	Parallelism int
+	Span        nano.Span
+	StatsTick   <-chan time.Time
+	Warnings    chan string
+}
+
+func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc multisource.MultiSource, mcfg MultiConfig) (*muxOutput, error) {
 	if mcfg.Logger == nil {
 		mcfg.Logger = zap.NewNop()
 	}

@@ -6,7 +6,7 @@ import (
 
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/ast"
-	"github.com/brimsec/zq/driver"
+	"github.com/brimsec/zq/multisource"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
@@ -48,11 +48,11 @@ func (s *Storage) NativeDirection() zbuf.Direction {
 	return s.ark.DataSortDirection
 }
 
-func (s *Storage) MultiSource() driver.MultiSource {
+func (s *Storage) MultiSource() multisource.MultiSource {
 	return archive.NewMultiSource(s.ark, nil)
 }
 
-func (s *Storage) StaticSource(si archive.SpanInfo) driver.MultiSource {
+func (s *Storage) StaticSource(si archive.SpanInfo) multisource.MultiSource {
 	return archive.NewStaticSource(s.ark, si)
 }
 

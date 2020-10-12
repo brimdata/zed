@@ -1,17 +1,14 @@
-package driver
+package multisource
 
 import (
 	"context"
 	"io"
-	"time"
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/proc/compiler"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zng/resolver"
-	"go.uber.org/zap"
 )
 
 // A MultiSource is a set of one or more ZNG record sources, which could be
@@ -48,20 +45,4 @@ type SourceFilter struct {
 	Filter     filter.Filter
 	FilterExpr ast.BooleanExpr
 	Span       nano.Span
-}
-
-type MultiConfig struct {
-	Custom      compiler.Hook
-	Logger      *zap.Logger
-	Parallelism int
-	Span        nano.Span
-	StatsTick   <-chan time.Time
-	Warnings    chan string
-}
-
-func zbufDirInt(reversed bool) int {
-	if reversed {
-		return -1
-	}
-	return 1
 }

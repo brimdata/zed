@@ -6,6 +6,7 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/filter"
+	"github.com/brimsec/zq/multisource"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
@@ -19,7 +20,7 @@ type parallelHead struct {
 	pg     *parallelGroup
 
 	mu sync.Mutex // protects below
-	sc ScannerCloser
+	sc multisource.ScannerCloser
 }
 
 func (ph *parallelHead) closeOnDone() {
@@ -78,10 +79,10 @@ func (ph *parallelHead) Done() {
 
 type parallelGroup struct {
 	pctx       *proc.Context
-	filter     SourceFilter
-	msrc       MultiSource
+	filter     multisource.SourceFilter
+	msrc       multisource.MultiSource
 	once       sync.Once
-	sourceChan chan SourceOpener
+	sourceChan chan multisource.SourceOpener
 	sourceErr  error
 
 	mu       sync.Mutex // protects below
@@ -89,7 +90,7 @@ type parallelGroup struct {
 	scanners map[scanner.Scanner]struct{}
 }
 
-func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
+func (pg *parallelGroup) nextSource() (multisource.ScannerCloser, error) {
 	for {
 		select {
 		case opener, ok := <-pg.sourceChan:
@@ -113,7 +114,7 @@ func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
 	}
 }
 
-func (pg *parallelGroup) doneSource(sc ScannerCloser) {
+func (pg *parallelGroup) doneSource(sc multisource.ScannerCloser) {
 	pg.mu.Lock()
 	defer pg.mu.Unlock()
 	pg.stats.Accumulate(sc.Stats())
@@ -157,16 +158,16 @@ func newCompareFn(field string, reversed bool) (zbuf.RecordCmpFn, error) {
 	}, nil
 }
 
-func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.BooleanExpr, msrc MultiSource, mcfg MultiConfig) ([]proc.Interface, *parallelGroup, error) {
+func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.BooleanExpr, msrc multisource.MultiSource, mcfg MultiConfig) ([]proc.Interface, *parallelGroup, error) {
 	pg := &parallelGroup{
 		pctx: pctx,
-		filter: SourceFilter{
+		filter: multisource.SourceFilter{
 			Filter:     filt,
 			FilterExpr: filterExpr,
 			Span:       mcfg.Span,
 		},
 		msrc:       msrc,
-		sourceChan: make(chan SourceOpener),
+		sourceChan: make(chan multisource.SourceOpener),
 		scanners:   make(map[scanner.Scanner]struct{}),
 	}
 

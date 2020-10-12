@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/multisource"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
@@ -31,7 +32,7 @@ func Run(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Context
 	return runMux(mux, d, cfg.StatsTick)
 }
 
-func MultiRun(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Context, msrc MultiSource, mcfg MultiConfig) error {
+func MultiRun(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Context, msrc multisource.MultiSource, mcfg MultiConfig) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 

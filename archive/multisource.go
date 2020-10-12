@@ -5,8 +5,8 @@ import (
 	"io"
 
 	"github.com/brimsec/zq/ast"
-	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/filter"
+	"github.com/brimsec/zq/multisource"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/scanner"
@@ -112,7 +112,7 @@ type multiSource struct {
 // Otherwise, the sources come from localizing the given alternative paths to
 // each chunk in the archive, recognizing "_" as the chunk file itself, with no
 // defined ordering.
-func NewMultiSource(ark *Archive, altPaths []string) driver.MultiSource {
+func NewMultiSource(ark *Archive, altPaths []string) multisource.MultiSource {
 	if len(altPaths) == 1 && altPaths[0] == "_" {
 		altPaths = nil
 	}
@@ -129,9 +129,9 @@ func (m *multiSource) OrderInfo() (string, bool) {
 	return "", false
 }
 
-func (m *multiSource) spanWalk(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan<- driver.SourceOpener) error {
+func (m *multiSource) spanWalk(ctx context.Context, zctx *resolver.Context, sf multisource.SourceFilter, srcChan chan<- multisource.SourceOpener) error {
 	return spanWalk(ctx, m.ark, sf.Span, func(si SpanInfo) error {
-		so := func() (driver.ScannerCloser, error) {
+		so := func() (multisource.ScannerCloser, error) {
 			return newSpanScanner(ctx, m.ark, zctx, sf.Filter, sf.FilterExpr, si)
 		}
 		select {
@@ -143,9 +143,9 @@ func (m *multiSource) spanWalk(ctx context.Context, zctx *resolver.Context, sf d
 	})
 }
 
-func (m *multiSource) chunkWalk(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan<- driver.SourceOpener) error {
+func (m *multiSource) chunkWalk(ctx context.Context, zctx *resolver.Context, sf multisource.SourceFilter, srcChan chan<- multisource.SourceOpener) error {
 	return Walk(ctx, m.ark, func(chunk Chunk) error {
-		so := func() (driver.ScannerCloser, error) {
+		so := func() (multisource.ScannerCloser, error) {
 			paths := make([]string, len(m.altPaths))
 			for i, input := range m.altPaths {
 				paths[i] = chunk.Localize(m.ark, input).String()
@@ -166,7 +166,7 @@ func (m *multiSource) chunkWalk(ctx context.Context, zctx *resolver.Context, sf 
 	})
 }
 
-func (m *multiSource) SendSources(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan driver.SourceOpener) error {
+func (m *multiSource) SendSources(ctx context.Context, zctx *resolver.Context, sf multisource.SourceFilter, srcChan chan multisource.SourceOpener) error {
 	if len(m.altPaths) == 0 {
 		return m.spanWalk(ctx, zctx, sf, srcChan)
 	}
