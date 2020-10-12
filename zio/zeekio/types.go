@@ -22,7 +22,7 @@ func isValidInputType(typ zng.Type) bool {
 	case *zng.TypeRecord, *zng.TypeUnion:
 		return false
 	case *zng.TypeSet:
-		return isValidInputType(t.InnerType)
+		return isValidInputType(t.Type)
 	case *zng.TypeArray:
 		return isValidInputType(t.Type)
 	default:
@@ -61,7 +61,7 @@ func zngTypeToZeek(typ zng.Type) (string, error) {
 		}
 		return fmt.Sprintf("vector[%s]", inner), nil
 	case *zng.TypeSet:
-		inner, err := zngTypeToZeek(typ.InnerType)
+		inner, err := zngTypeToZeek(typ.Type)
 		if err != nil {
 			return "", err
 		}

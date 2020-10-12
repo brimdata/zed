@@ -10,8 +10,8 @@ ZEEKPATH = zeek-$(ZEEKTAG)
 SURICATATAG = v5.0.3-brim5
 SURICATAPATH = suricata-$(SURICATATAG)
 
-# This enables a shortcut to run a single test from the ./tests suite, e.g.:
-# make TEST=TestZTest/suite/cut/cut
+# This enables a shortcut to run a single test from the ./ztests suite, e.g.:
+#  make TEST=TestZq/ztests/suite/cut/cut
 ifneq "$(TEST)" ""
 test-one: test-run
 endif

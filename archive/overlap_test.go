@@ -36,7 +36,7 @@ func TestMergeChunksToSpans(t *testing.T) {
 		chunks []Chunk
 		filter nano.Span
 		dir    zbuf.Direction
-		exp    []spanInfo
+		exp    []SpanInfo
 	}{
 		{
 			chunks: []Chunk{
@@ -45,9 +45,9 @@ func TestMergeChunksToSpans(t *testing.T) {
 			},
 			filter: nano.MaxSpan,
 			dir:    zbuf.DirTimeForward,
-			exp: []spanInfo{
-				{span: nano.Span{Ts: 0, Dur: 1}, chunks: []Chunk{{Id: kid("a"), First: 0, Last: 0}}},
-				{span: nano.Span{Ts: 1, Dur: 1}, chunks: []Chunk{{Id: kid("b"), First: 1, Last: 1}}},
+			exp: []SpanInfo{
+				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []Chunk{{Id: kid("a"), First: 0, Last: 0}}},
+				{Span: nano.Span{Ts: 1, Dur: 1}, Chunks: []Chunk{{Id: kid("b"), First: 1, Last: 1}}},
 			},
 		},
 		{
@@ -57,10 +57,10 @@ func TestMergeChunksToSpans(t *testing.T) {
 			},
 			filter: nano.MaxSpan,
 			dir:    zbuf.DirTimeForward,
-			exp: []spanInfo{
-				{span: nano.Span{Ts: 0, Dur: 1}, chunks: []Chunk{{Id: kid("a"), First: 0, Last: 1}}},
-				{span: nano.Span{Ts: 1, Dur: 1}, chunks: []Chunk{{Id: kid("a"), First: 0, Last: 1}, {Id: kid("b"), First: 1, Last: 2}}},
-				{span: nano.Span{Ts: 2, Dur: 1}, chunks: []Chunk{{Id: kid("b"), First: 1, Last: 2}}},
+			exp: []SpanInfo{
+				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []Chunk{{Id: kid("a"), First: 0, Last: 1}}},
+				{Span: nano.Span{Ts: 1, Dur: 1}, Chunks: []Chunk{{Id: kid("a"), First: 0, Last: 1}, {Id: kid("b"), First: 1, Last: 2}}},
+				{Span: nano.Span{Ts: 2, Dur: 1}, Chunks: []Chunk{{Id: kid("b"), First: 1, Last: 2}}},
 			},
 		},
 		{
@@ -70,10 +70,10 @@ func TestMergeChunksToSpans(t *testing.T) {
 			},
 			filter: nano.MaxSpan,
 			dir:    zbuf.DirTimeForward,
-			exp: []spanInfo{
-				{span: nano.Span{Ts: 0, Dur: 1}, chunks: []Chunk{{Id: kid("a"), First: 0, Last: 3}}},
-				{span: nano.Span{Ts: 1, Dur: 2}, chunks: []Chunk{{Id: kid("a"), First: 0, Last: 3}, {Id: kid("b"), First: 1, Last: 2}}},
-				{span: nano.Span{Ts: 3, Dur: 1}, chunks: []Chunk{{Id: kid("a"), First: 0, Last: 3}}},
+			exp: []SpanInfo{
+				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []Chunk{{Id: kid("a"), First: 0, Last: 3}}},
+				{Span: nano.Span{Ts: 1, Dur: 2}, Chunks: []Chunk{{Id: kid("a"), First: 0, Last: 3}, {Id: kid("b"), First: 1, Last: 2}}},
+				{Span: nano.Span{Ts: 3, Dur: 1}, Chunks: []Chunk{{Id: kid("a"), First: 0, Last: 3}}},
 			},
 		},
 		{
@@ -83,8 +83,8 @@ func TestMergeChunksToSpans(t *testing.T) {
 			},
 			filter: nano.Span{Ts: 1, Dur: 2},
 			dir:    zbuf.DirTimeForward,
-			exp: []spanInfo{
-				{span: nano.Span{Ts: 1, Dur: 2}, chunks: []Chunk{{Id: kid("a"), First: 0, Last: 3}, {Id: kid("b"), First: 1, Last: 2}}},
+			exp: []SpanInfo{
+				{Span: nano.Span{Ts: 1, Dur: 2}, Chunks: []Chunk{{Id: kid("a"), First: 0, Last: 3}, {Id: kid("b"), First: 1, Last: 2}}},
 			},
 		},
 		{
@@ -94,9 +94,9 @@ func TestMergeChunksToSpans(t *testing.T) {
 			},
 			filter: nano.MaxSpan,
 			dir:    zbuf.DirTimeReverse,
-			exp: []spanInfo{
-				{span: nano.Span{Ts: 7, Dur: 3}, chunks: []Chunk{{Id: kid("a"), First: 9, Last: 7}}},
-				{span: nano.Span{Ts: 3, Dur: 3}, chunks: []Chunk{{Id: kid("b"), First: 5, Last: 3}}},
+			exp: []SpanInfo{
+				{Span: nano.Span{Ts: 7, Dur: 3}, Chunks: []Chunk{{Id: kid("a"), First: 9, Last: 7}}},
+				{Span: nano.Span{Ts: 3, Dur: 3}, Chunks: []Chunk{{Id: kid("b"), First: 5, Last: 3}}},
 			},
 		},
 		{
@@ -106,10 +106,10 @@ func TestMergeChunksToSpans(t *testing.T) {
 			},
 			filter: nano.MaxSpan,
 			dir:    zbuf.DirTimeReverse,
-			exp: []spanInfo{
-				{span: nano.Span{Ts: 8, Dur: 2}, chunks: []Chunk{{Id: kid("a"), First: 9, Last: 5}}},
-				{span: nano.Span{Ts: 5, Dur: 3}, chunks: []Chunk{{Id: kid("a"), First: 9, Last: 5}, {Id: kid("b"), First: 7, Last: 3}}},
-				{span: nano.Span{Ts: 3, Dur: 2}, chunks: []Chunk{{Id: kid("b"), First: 7, Last: 3}}},
+			exp: []SpanInfo{
+				{Span: nano.Span{Ts: 8, Dur: 2}, Chunks: []Chunk{{Id: kid("a"), First: 9, Last: 5}}},
+				{Span: nano.Span{Ts: 5, Dur: 3}, Chunks: []Chunk{{Id: kid("a"), First: 9, Last: 5}, {Id: kid("b"), First: 7, Last: 3}}},
+				{Span: nano.Span{Ts: 3, Dur: 2}, Chunks: []Chunk{{Id: kid("b"), First: 7, Last: 3}}},
 			},
 		},
 		{
@@ -121,8 +121,8 @@ func TestMergeChunksToSpans(t *testing.T) {
 			},
 			filter: nano.MaxSpan,
 			dir:    zbuf.DirTimeForward,
-			exp: []spanInfo{
-				{span: nano.Span{Ts: 0, Dur: 1}, chunks: []Chunk{
+			exp: []SpanInfo{
+				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []Chunk{
 					{Id: kid("a"), First: 0, Last: 0},
 					{Id: kid("b"), First: 0, Last: 0},
 					{Id: kid("c"), First: 0, Last: 0},
@@ -221,12 +221,12 @@ func TestOverlapWalking(t *testing.T) {
 			chunkSpans []nano.Span
 		}
 		var sispans []sispan
-		err = spanWalk(context.Background(), ark, nano.Span{Ts: 12, Dur: 10}, func(si spanInfo) error {
+		err = spanWalk(context.Background(), ark, nano.Span{Ts: 12, Dur: 10}, func(si SpanInfo) error {
 			var chunkSpans []nano.Span
-			for _, c := range si.chunks {
+			for _, c := range si.Chunks {
 				chunkSpans = append(chunkSpans, c.Span())
 			}
-			sispans = append(sispans, sispan{si: si.span, chunkSpans: chunkSpans})
+			sispans = append(sispans, sispan{si: si.Span, chunkSpans: chunkSpans})
 			return nil
 		})
 		require.NoError(t, err)

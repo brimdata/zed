@@ -5,12 +5,12 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 	"sync"
 
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cli/procflags"
 	"github.com/brimsec/zq/cmd/zar/root"
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
 	"github.com/mccanne/charm"
@@ -90,9 +90,8 @@ func (c *Command) Run(args []string) error {
 	}
 
 	var rules []archive.Rule
-	keys := strings.Split(c.keys, ",")
 	if c.zql != "" {
-		rule, err := archive.NewZqlRule(c.zql, c.outputFile, keys, c.framesize)
+		rule, err := archive.NewZqlRule(c.zql, c.outputFile, field.DottedList(c.keys), c.framesize)
 		if err != nil {
 			return errors.New("zar index: " + err.Error())
 		}

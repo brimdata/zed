@@ -8,6 +8,7 @@ import (
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/proc/spill"
 	"github.com/brimsec/zq/reducer"
@@ -24,15 +25,16 @@ import (
 // subsequent calls to Eval on the Evaluator can clobber previus results,
 // we are careful to make copys of the zng.Value whenever we hold onto to it.
 type Key struct {
-	target string
-	expr   expr.Evaluator
+	tmp  string
+	name field.Static
+	expr expr.Evaluator
 }
 
 type Params struct {
 	inputSortDir int
 	limit        int
 	keys         []Key
-	reducers     []compile.CompiledReducer
+	reducers     []compile.Reducer
 	builder      *proc.ColumnBuilder
 	consumePart  bool
 	emitPart     bool
@@ -53,19 +55,20 @@ var DefaultLimit = 1000000
 
 func CompileParams(node *ast.GroupByProc, zctx *resolver.Context) (*Params, error) {
 	keys := []Key{}
-	var targets []string
-	for _, astKey := range node.Keys {
-		ex, err := expr.CompileExpr(astKey.Expr)
+	var targets []field.Static
+	for k, key := range node.Keys {
+		name, rhs, err := expr.CompileAssignment(&key)
 		if err != nil {
-			return nil, fmt.Errorf("compiling groupby: %w", err)
+			return nil, err
 		}
 		keys = append(keys, Key{
-			target: astKey.Target,
-			expr:   ex,
+			tmp:  fmt.Sprintf("c%d", k),
+			name: name,
+			expr: rhs,
 		})
-		targets = append(targets, astKey.Target)
+		targets = append(targets, name)
 	}
-	reducers := []compile.CompiledReducer{}
+	reducers := []compile.Reducer{}
 	for _, reducer := range node.Reducers {
 		compiled, err := compile.Compile(reducer)
 		if err != nil {
@@ -131,7 +134,7 @@ type Aggregator struct {
 	keys         []Key
 	keyResolvers []expr.Evaluator
 	decomposable bool
-	reducerDefs  []compile.CompiledReducer
+	reducerDefs  []compile.Reducer
 	builder      *proc.ColumnBuilder
 	table        map[string]*Row
 	limit        int
@@ -169,7 +172,7 @@ func NewAggregator(c *proc.Context, params Params) *Aggregator {
 		} else {
 			valueCompare = vs
 		}
-		rs := expr.NewCompareFn(true, expr.NewFieldAccess(params.keys[0].target))
+		rs := expr.NewCompareFn(true, expr.NewDotExpr(params.keys[0].name))
 		if params.inputSortDir < 0 {
 			keyCompare = func(a, b *zng.Record) int { return rs(b, a) }
 		} else {
@@ -178,7 +181,7 @@ func NewAggregator(c *proc.Context, params Params) *Aggregator {
 	}
 	var resolvers []expr.Evaluator
 	for _, k := range params.keys {
-		resolvers = append(resolvers, expr.NewFieldAccess(k.target))
+		resolvers = append(resolvers, expr.NewDotExpr(k.name))
 	}
 	rs := expr.NewCompareFn(true, resolvers...)
 	if params.inputSortDir < 0 {
@@ -206,7 +209,7 @@ func NewAggregator(c *proc.Context, params Params) *Aggregator {
 	}
 }
 
-func decomposable(rs []compile.CompiledReducer) bool {
+func decomposable(rs []compile.Reducer) bool {
 	for _, r := range rs {
 		instance := r.Instantiate()
 		if _, ok := instance.(reducer.Decomposable); !ok {
@@ -324,7 +327,7 @@ func newKeyRow(kctx *resolver.Context, r *zng.Record, keys []Key) (keyRow, error
 		if keyVal.Type == nil {
 			return keyRow{}, nil
 		}
-		cols[k] = zng.NewColumn(key.target, keyVal.Type)
+		cols[k] = zng.NewColumn(key.tmp, keyVal.Type)
 	}
 	// Lookup a unique ID by converting the columns too a record string
 	// and looking up the record by name in the scratch type context.
@@ -579,7 +582,11 @@ func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 		} else {
 			v = red.Result()
 		}
-		cols = append(cols, zng.NewColumn(row.Defs[i].Target, v.Type))
+		// XXX Currently you can't set dotted field names.  We should
+		// fix this.  For now, "a.b=count() by _path" turns into
+		// "b=count() by _path" here, but it doesn't seem to work at all.
+		fieldName := row.Defs[i].Target.Leaf()
+		cols = append(cols, zng.NewColumn(fieldName, v.Type))
 		zbytes = v.Encode(zbytes)
 	}
 	typ, err := a.zctx.LookupTypeRecord(cols)
@@ -661,7 +668,8 @@ func (a *Aggregator) lookupRowType(row *Row, decompose bool) (*zng.TypeRecord, e
 		} else {
 			z = red.Result()
 		}
-		cols = append(cols, zng.NewColumn(row.reducers.Defs[k].Target, z.Type))
+		fieldName := row.reducers.Defs[k].Target.Leaf()
+		cols = append(cols, zng.NewColumn(fieldName, z.Type))
 	}
 	// This could be more efficient but it's only done during group-by output...
 	return a.zctx.LookupTypeRecord(cols)

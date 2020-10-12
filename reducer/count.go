@@ -8,7 +8,7 @@ import (
 
 type Count struct {
 	Reducer
-	Resolver *expr.FieldExpr
+	Resolver expr.Evaluator
 	count    uint64
 }
 

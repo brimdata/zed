@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
@@ -17,19 +18,19 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-// A spanInfo is a logical view of the records within a time span, stored
+// A SpanInfo is a logical view of the records within a time span, stored
 // in one or more Chunks.
-type spanInfo struct {
-	span nano.Span
+type SpanInfo struct {
+	Span nano.Span
 
-	// chunks are the data files that contain records within this spanInfo.
-	// The Chunks may have spans that extend beyond this spanInfo, so any
+	// chunks are the data files that contain records within this SpanInfo.
+	// The Chunks may have spans that extend beyond this SpanInfo, so any
 	// records from these Chunks should be limited to those that fall within a
 	// closed span constructed from First & Last.
-	chunks []Chunk
+	Chunks []Chunk
 }
 
-func spanWalk(ctx context.Context, ark *Archive, filter nano.Span, v func(si spanInfo) error) error {
+func spanWalk(ctx context.Context, ark *Archive, filter nano.Span, v func(si SpanInfo) error) error {
 	return tsDirVisit(ctx, ark, filter, func(_ tsDir, chunks []Chunk) error {
 		sinfos := mergeChunksToSpans(chunks, ark.DataSortDirection, filter)
 		for _, s := range sinfos {
@@ -60,20 +61,20 @@ type scannerCloser struct {
 	io.Closer
 }
 
-func newSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, f filter.Filter, filterExpr ast.BooleanExpr, si spanInfo) (sc *scannerCloser, err error) {
-	if len(si.chunks) == 1 {
-		rc, err := iosrc.NewReader(ctx, si.chunks[0].Path(ark))
+func newSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, f filter.Filter, filterExpr ast.BooleanExpr, si SpanInfo) (sc *scannerCloser, err error) {
+	if len(si.Chunks) == 1 {
+		rc, err := iosrc.NewReader(ctx, si.Chunks[0].Path(ark))
 		if err != nil {
 			return nil, err
 		}
-		sn, err := scanner.NewScanner(ctx, zngio.NewReader(rc, zctx), f, filterExpr, si.span)
+		sn, err := scanner.NewScanner(ctx, zngio.NewReader(rc, zctx), f, filterExpr, si.Span)
 		if err != nil {
 			rc.Close()
 			return nil, err
 		}
 		return &scannerCloser{sn, rc}, nil
 	}
-	closers := make([]io.Closer, 0, len(si.chunks))
+	closers := make([]io.Closer, 0, len(si.Chunks))
 	defer func() {
 		if err != nil {
 			for _, c := range closers {
@@ -81,8 +82,8 @@ func newSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, f
 			}
 		}
 	}()
-	readers := make([]zbuf.Reader, 0, len(si.chunks))
-	for _, chunk := range si.chunks {
+	readers := make([]zbuf.Reader, 0, len(si.Chunks))
+	for _, chunk := range si.Chunks {
 		rc, err := iosrc.NewReader(ctx, chunk.Path(ark))
 		if err != nil {
 			return nil, err
@@ -90,7 +91,7 @@ func newSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, f
 		closers = append(closers, rc)
 		readers = append(readers, zngio.NewReader(rc, zctx))
 	}
-	sn, err := scanner.NewCombiner(ctx, readers, zbuf.RecordCompare(ark.DataSortDirection), f, filterExpr, si.span)
+	sn, err := scanner.NewCombiner(ctx, readers, zbuf.RecordCompare(ark.DataSortDirection), f, filterExpr, si.Span)
 	if err != nil {
 		return nil, err
 	}
@@ -122,15 +123,15 @@ func NewMultiSource(ark *Archive, altPaths []string) driver.MultiSource {
 	}
 }
 
-func (m *multiSource) OrderInfo() (string, bool) {
+func (m *multiSource) OrderInfo() (field.Static, bool) {
 	if len(m.altPaths) == 0 {
-		return "ts", m.ark.DataSortDirection == zbuf.DirTimeReverse
+		return field.New("ts"), m.ark.DataSortDirection == zbuf.DirTimeReverse
 	}
-	return "", false
+	return nil, false
 }
 
 func (m *multiSource) spanWalk(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan<- driver.SourceOpener) error {
-	return spanWalk(ctx, m.ark, sf.Span, func(si spanInfo) error {
+	return spanWalk(ctx, m.ark, sf.Span, func(si SpanInfo) error {
 		so := func() (driver.ScannerCloser, error) {
 			return newSpanScanner(ctx, m.ark, zctx, sf.Filter, sf.FilterExpr, si)
 		}

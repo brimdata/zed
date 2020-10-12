@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"github.com/brimsec/zq/driver"
+	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/proc/cut"
@@ -75,18 +77,19 @@ type FlowgraphIndexer struct {
 	cutter  *cut.Cutter
 }
 
-func NewFlowgraphIndexer(ctx context.Context, zctx *resolver.Context, uri iosrc.URI, keys []string, framesize int) (*FlowgraphIndexer, error) {
+func NewFlowgraphIndexer(ctx context.Context, zctx *resolver.Context, uri iosrc.URI, keys []field.Static, framesize int) (*FlowgraphIndexer, error) {
 	if len(keys) == 0 {
-		keys = []string{keyName}
+		keys = []field.Static{keyName}
 	}
 	writer, err := microindex.NewWriterWithContext(ctx, zctx, uri.String(), keys, framesize)
 	if err != nil {
 		return nil, err
 	}
+	fields, resolvers := expr.CompileAssignments(keys, keys)
 	return &FlowgraphIndexer{
 		zctx:   zctx,
 		w:      writer,
-		cutter: cut.NewStrictCutter(zctx, false, keys, keys),
+		cutter: cut.NewStrictCutter(zctx, false, fields, resolvers),
 	}, nil
 }
 

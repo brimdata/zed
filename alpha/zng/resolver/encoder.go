@@ -151,7 +151,7 @@ func serializeTypeUnion(dst []byte, types []zng.Type) []byte {
 func (e *Encoder) encodeTypeSet(dst []byte, ext *zng.TypeSet) ([]byte, zng.Type, error) {
 	var inner zng.Type
 	var err error
-	dst, inner, err = e.encodeType(dst, ext.InnerType)
+	dst, inner, err = e.encodeType(dst, ext.Type)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -159,7 +159,7 @@ func (e *Encoder) encodeTypeSet(dst []byte, ext *zng.TypeSet) ([]byte, zng.Type,
 	if e.isEncoded(typ.ID()) {
 		return dst, typ, nil
 	}
-	return serializeTypeSet(dst, typ.InnerType), typ, nil
+	return serializeTypeSet(dst, typ.Type), typ, nil
 }
 
 func serializeTypeSet(dst []byte, inner zng.Type) []byte {
@@ -195,7 +195,7 @@ func serializeTypes(dst []byte, types []zng.Type) []byte {
 		case *zng.TypeRecord:
 			dst = serializeTypeRecord(dst, typ.Columns)
 		case *zng.TypeSet:
-			dst = serializeTypeSet(dst, typ.InnerType)
+			dst = serializeTypeSet(dst, typ.Type)
 		case *zng.TypeArray:
 			dst = serializeTypeArray(dst, typ.Type)
 		case *zng.TypeUnion:

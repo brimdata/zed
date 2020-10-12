@@ -3,20 +3,26 @@ package driver
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"runtime"
 	"strconv"
 	"time"
 
 	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/field"
+	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/proc/compiler"
 	"github.com/brimsec/zq/reducer"
 	rcompile "github.com/brimsec/zq/reducer/compile"
+	"github.com/brimsec/zq/scanner"
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 	"go.uber.org/zap"
 )
 
+// XXX ReaderSortKey should be a field.Static.  Issue #1467.
 type Config struct {
 	Custom            compiler.Hook
 	Logger            *zap.Logger
@@ -27,7 +33,79 @@ type Config struct {
 	Warnings          chan string
 }
 
-func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc MultiSource, mcfg MultiConfig) (*muxOutput, error) {
+func programPrep(program ast.Proc, sortKey field.Static, sortReversed bool) (ast.Proc, filter.Filter, ast.BooleanExpr, error) {
+	ReplaceGroupByProcDurationWithKey(program)
+	if sortKey != nil {
+		setGroupByProcInputSortDir(program, sortKey, zbufDirInt(sortReversed))
+	}
+	var filt filter.Filter
+	filterExpr, program := liftFilter(program)
+	if filterExpr != nil {
+		var err error
+		if filt, err = filter.Compile(filterExpr); err != nil {
+			return nil, nil, nil, err
+		}
+	}
+	return program, filt, filterExpr, nil
+}
+
+type scannerProc struct {
+	scanner.Scanner
+}
+
+func (s *scannerProc) Done() {}
+
+type namedScanner struct {
+	scanner.Scanner
+	name string
+}
+
+func (n *namedScanner) Pull() (zbuf.Batch, error) {
+	b, err := n.Scanner.Pull()
+	if err != nil {
+		err = fmt.Errorf("%s: %w", n.name, err)
+	}
+	return b, err
+}
+
+func compileSingle(ctx context.Context, program ast.Proc, zctx *resolver.Context, r zbuf.Reader, cfg Config) (*muxOutput, error) {
+	if cfg.Logger == nil {
+		cfg.Logger = zap.NewNop()
+	}
+	if cfg.Span.Dur == 0 {
+		cfg.Span = nano.MaxSpan
+	}
+	if cfg.Warnings == nil {
+		cfg.Warnings = make(chan string, 5)
+	}
+
+	program, filterExpr, filt, err := programPrep(program, field.Dotted(cfg.ReaderSortKey), cfg.ReaderSortReverse)
+	if err != nil {
+		return nil, err
+	}
+
+	sn, err := scanner.NewScanner(ctx, r, filterExpr, filt, cfg.Span)
+	if err != nil {
+		return nil, err
+	}
+	if stringer, ok := r.(fmt.Stringer); ok {
+		sn = &namedScanner{sn, stringer.String()}
+	}
+
+	pctx := &proc.Context{
+		Context:     ctx,
+		TypeContext: zctx,
+		Logger:      cfg.Logger,
+		Warnings:    cfg.Warnings,
+	}
+	leaves, err := compiler.Compile(cfg.Custom, program, pctx, []proc.Interface{&scannerProc{sn}})
+	if err != nil {
+		return nil, err
+	}
+	return newMuxOutput(pctx, leaves, sn), nil
+}
+
+func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc MultiSource, mcfg MultiConfig) (*muxOutput, error) {
 	if mcfg.Logger == nil {
 		mcfg.Logger = zap.NewNop()
 	}
@@ -41,14 +119,11 @@ func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc
 		mcfg.Parallelism = runtime.GOMAXPROCS(0)
 	}
 
-	ReplaceGroupByProcDurationWithKey(program)
-
 	sortKey, sortReversed := msrc.OrderInfo()
-	if sortKey != "" {
-		setGroupByProcInputSortDir(program, sortKey, zbufDirInt(sortReversed))
+	program, filt, filterExpr, err := programPrep(program, sortKey, sortReversed)
+	if err != nil {
+		return nil, err
 	}
-	var filterExpr ast.BooleanExpr
-	filterExpr, program = liftFilter(program)
 
 	var isParallel bool
 	if mcfg.Parallelism > 1 {
@@ -64,11 +139,10 @@ func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc
 		Logger:      mcfg.Logger,
 		Warnings:    mcfg.Warnings,
 	}
-	sources, pgroup, err := createParallelGroup(pctx, filterExpr, msrc, mcfg)
+	sources, pgroup, err := createParallelGroup(pctx, filt, filterExpr, msrc, mcfg)
 	if err != nil {
 		return nil, err
 	}
-
 	leaves, err := compiler.Compile(mcfg.Custom, program, pctx, sources)
 	if err != nil {
 		return nil, err
@@ -113,16 +187,13 @@ func ReplaceGroupByProcDurationWithKey(p ast.Proc) {
 	switch p := p.(type) {
 	case *ast.GroupByProc:
 		if duration := p.Duration.Seconds; duration != 0 {
-			durationKey := ast.ExpressionAssignment{
-				Target: "ts",
-				Expr: &ast.FunctionCall{
+			durationKey := ast.Assignment{
+				LHS: ast.NewDotExpr(field.New("ts")),
+				RHS: &ast.FunctionCall{
 					Node:     ast.Node{"FunctionCall"},
 					Function: "Time.trunc",
 					Args: []ast.Expression{
-						&ast.Field{
-							Node:  ast.Node{"Field"},
-							Field: "ts",
-						},
+						ast.NewDotExpr(field.New("ts")),
 						&ast.Literal{
 							Node:  ast.Node{"Literal"},
 							Type:  "int64",
@@ -130,7 +201,7 @@ func ReplaceGroupByProcDurationWithKey(p ast.Proc) {
 						}},
 				},
 			}
-			p.Keys = append([]ast.ExpressionAssignment{durationKey}, p.Keys...)
+			p.Keys = append([]ast.Assignment{durationKey}, p.Keys...)
 		}
 	case *ast.ParallelProc:
 		for _, pp := range p.Procs {
@@ -143,6 +214,14 @@ func ReplaceGroupByProcDurationWithKey(p ast.Proc) {
 	}
 }
 
+func eq(e ast.Expression, b field.Static) bool {
+	a, ok := ast.DotExprToField(e)
+	if !ok {
+		return false
+	}
+	return a.Equal(b)
+}
+
 // setGroupByProcInputSortDir examines p under the assumption that its input is
 // sorted according to inputSortField and inputSortDir.  If p is an
 // ast.GroupByProc and setGroupByProcInputSortDir can determine that its first
@@ -151,12 +230,12 @@ func ReplaceGroupByProcDurationWithKey(p ast.Proc) {
 // to inputSortDir.  setGroupByProcInputSortDir returns true if it determines
 // that p's output will remain sorted according to inputSortField and
 // inputSortDir; otherwise, it returns false.
-func setGroupByProcInputSortDir(p ast.Proc, inputSortField string, inputSortDir int) bool {
+func setGroupByProcInputSortDir(p ast.Proc, inputSortField field.Static, inputSortDir int) bool {
 	switch p := p.(type) {
 	case *ast.CutProc:
 		// Return true if the output record contains inputSortField.
 		for _, f := range p.Fields {
-			if ast.FieldExprToString(f.Source) == inputSortField {
+			if eq(f.RHS, inputSortField) {
 				return !p.Complement
 			}
 		}
@@ -164,22 +243,22 @@ func setGroupByProcInputSortDir(p ast.Proc, inputSortField string, inputSortDir 
 	case *ast.GroupByProc:
 		// Set p.InputSortDir and return true if the first grouping key
 		// is inputSortField or an order-preserving function of it.
-		if len(p.Keys) > 0 && p.Keys[0].Target == inputSortField {
-			switch expr := p.Keys[0].Expr.(type) {
-			case *ast.Field:
-				if expr.Field == inputSortField {
-					p.InputSortDir = inputSortDir
-					return true
-				}
-			case *ast.FunctionCall:
+		if len(p.Keys) > 0 && eq(p.Keys[0].LHS, inputSortField) {
+			rhs, ok := ast.DotExprToField(p.Keys[0].RHS)
+			if ok && rhs.Equal(inputSortField) {
+				p.InputSortDir = inputSortDir
+				return true
+			}
+			if expr, ok := p.Keys[0].RHS.(*ast.FunctionCall); ok {
 				switch expr.Function {
 				case "Math.ceil", "Math.floor", "Math.round", "Time.trunc":
-					if len(expr.Args) > 0 {
-						arg0, ok := expr.Args[0].(*ast.Field)
-						if ok && arg0.Field == inputSortField {
-							p.InputSortDir = inputSortDir
-							return true
-						}
+					if len(expr.Args) == 0 {
+						return false
+					}
+					arg0, ok := ast.DotExprToField(expr.Args[0])
+					if ok && arg0.Equal(inputSortField) {
+						p.InputSortDir = inputSortDir
+						return true
 					}
 				}
 			}
@@ -187,7 +266,11 @@ func setGroupByProcInputSortDir(p ast.Proc, inputSortField string, inputSortDir 
 		return false
 	case *ast.PutProc:
 		for _, c := range p.Clauses {
-			if c.Target == inputSortField {
+			lhs, ok := ast.DotExprToField(c.LHS)
+			if ok && lhs.Equal(inputSortField) {
+				// XXX what if put field is not static and
+				// computes to a collision...
+				// Henri please check and I will remove on PR
 				return false
 			}
 		}
@@ -209,11 +292,17 @@ func setGroupByProcInputSortDir(p ast.Proc, inputSortField string, inputSortDir 
 // expressionFields returns a slice with all fields referenced
 // in an expression. Fields will be repeated if they appear
 // repeatedly.
-func expressionFields(e ast.Expression) []string {
+func expressionFields(e ast.Expression) []ast.Expression {
 	switch e := e.(type) {
 	case *ast.UnaryExpression:
 		return expressionFields(e.Operand)
 	case *ast.BinaryExpression:
+		if e.Operator == "." {
+			// Just capture the whole dot expression.
+			// When the colset computation happens, we will figure
+			// out if this isn't a statically defined field expr.
+			return []ast.Expression{e}
+		}
 		return append(expressionFields(e.LHS), expressionFields(e.RHS)...)
 	case *ast.ConditionalExpression:
 		fields := expressionFields(e.Condition)
@@ -221,17 +310,20 @@ func expressionFields(e ast.Expression) []string {
 		fields = append(fields, expressionFields(e.Else)...)
 		return fields
 	case *ast.FunctionCall:
-		fields := []string{}
+		var exprs []ast.Expression
 		for _, arg := range e.Args {
-			fields = append(fields, expressionFields(arg)...)
+			exprs = append(exprs, expressionFields(arg)...)
 		}
-		return fields
+		return exprs
 	case *ast.CastExpression:
 		return expressionFields(e.Expr)
 	case *ast.Literal:
-		return []string{}
-	case *ast.Field:
-		return []string{e.Field}
+		return nil
+	case *ast.Identifier:
+		// This shouldn't happen as should raise an error but this
+		// function is not wired to do so.  Maybe we just don't try
+		// to optimize an semantically invalid AST?
+		return nil
 	default:
 		panic("expression type not handled")
 	}
@@ -240,7 +332,7 @@ func expressionFields(e ast.Expression) []string {
 // booleanExpressionFields returns a slice with all fields referenced
 // in a boolean expression. Fields will be repeated if they appear
 // repeatedly.  If all fields are referenced, nil is returned.
-func booleanExpressionFields(e ast.BooleanExpr) []string {
+func booleanExpressionFields(e ast.BooleanExpr) []ast.Expression {
 	switch e := e.(type) {
 	case *ast.Search:
 		return nil
@@ -261,7 +353,8 @@ func booleanExpressionFields(e ast.BooleanExpr) []string {
 	case *ast.LogicalNot:
 		return booleanExpressionFields(e.Expr)
 	case *ast.MatchAll:
-		return []string{}
+		// empty slice means match all, but nil means don't know
+		return []ast.Expression{}
 	case *ast.CompareAny:
 		return nil
 	case *ast.CompareField:
@@ -280,8 +373,8 @@ func booleanExpressionFields(e ast.BooleanExpr) []string {
 // The return value is a map where the keys are string representations
 // of the columns to be read at the source. If the return value is a
 // nil map, all columns must be read.
-func computeColumns(p ast.Proc) map[string]struct{} {
-	cols, _ := computeColumnsR(p, map[string]struct{}{})
+func computeColumns(p ast.Proc) *Colset {
+	cols, _ := computeColumnsR(p, newColset())
 	return cols
 }
 
@@ -301,25 +394,36 @@ func computeColumns(p ast.Proc) map[string]struct{} {
 // by x' gets the column set {x, y} which is greater than the minimal
 // column set {x}. (However 'rename x=y | count() by x' also gets {x,
 // y}, which is minimal).
-func computeColumnsR(p ast.Proc, colset map[string]struct{}) (map[string]struct{}, bool) {
+func computeColumnsR(p ast.Proc, colset *Colset) (*Colset, bool) {
 	switch p := p.(type) {
 	case *ast.CutProc:
 		if p.Complement {
 			return colset, false
 		}
 		for _, f := range p.Fields {
-			colset[ast.FieldExprToString(f.Source)] = struct{}{}
+			if ok := colset.Add(&f); !ok {
+				return colset, false
+			}
 		}
 		return colset, true
 	case *ast.GroupByProc:
 		for _, r := range p.Reducers {
-			if r.Field != nil {
-				colset[ast.FieldExprToString(r.Field)] = struct{}{}
+			reducer, ok := r.RHS.(*ast.Reducer)
+			if !ok {
+				// Illegal AST.
+				return nil, false
+			}
+			if reducer.Expr != nil {
+				if ok := colset.Add(reducer.Expr); !ok {
+					return colset, false
+				}
 			}
 		}
 		for _, key := range p.Keys {
-			for _, field := range expressionFields(key.Expr) {
-				colset[field] = struct{}{}
+			for _, field := range expressionFields(key.RHS) {
+				if ok := colset.Add(field); !ok {
+					return colset, false
+				}
 			}
 		}
 		return colset, true
@@ -348,19 +452,31 @@ func computeColumnsR(p ast.Proc, colset map[string]struct{}) (map[string]struct{
 			return nil, true
 		}
 		for _, field := range fields {
-			colset[field] = struct{}{}
+			if ok := colset.Add(field); !ok {
+				//XXX?
+				// Henri please check and I will remove on PR
+				return nil, false
+			}
 		}
 		return colset, false
 	case *ast.PutProc:
 		for _, c := range p.Clauses {
-			for _, field := range expressionFields(c.Expr) {
-				colset[field] = struct{}{}
+			for _, field := range expressionFields(c.RHS) {
+				if ok := colset.Add(field); !ok {
+					//XXX?
+					// Henri please check and I will remove on PR
+					return nil, false
+				}
 			}
 		}
 		return colset, false
 	case *ast.RenameProc:
 		for _, f := range p.Fields {
-			colset[ast.FieldExprToString(f.Source)] = struct{}{}
+			if ok := colset.Add(f.RHS); !ok {
+				//XXX?
+				// Henri please check and I will remove on PR
+				return nil, false
+			}
 		}
 		return colset, false
 	case *ast.SortProc:
@@ -369,8 +485,12 @@ func computeColumnsR(p ast.Proc, colset map[string]struct{}) (map[string]struct{
 			// be used.
 			return nil, true
 		}
-		for k := range p.Fields {
-			colset[ast.FieldExprToString(p.Fields[k])] = struct{}{}
+		for _, f := range p.Fields {
+			if ok := colset.Add(f); !ok {
+				//XXX?
+				// Henri please check and I will remove on PR
+				return nil, false
+			}
 		}
 		return colset, false
 	default:
@@ -394,8 +514,8 @@ func copyProcs(ps []ast.Proc) []ast.Proc {
 	return copies
 }
 
-func buildSplitFlowgraph(branch, tail []ast.Proc, mergeField string, reverse bool, N int) *ast.SequentialProc {
-	if len(tail) == 0 && mergeField != "" {
+func buildSplitFlowgraph(branch, tail []ast.Proc, mergeField field.Static, reverse bool, N int) *ast.SequentialProc {
+	if len(tail) == 0 && mergeField != nil {
 		// Insert a pass tail in order to force a merge of the
 		// parallel branches when compiling. (Trailing parallel branches are wired to
 		// a mux output).
@@ -419,9 +539,9 @@ func buildSplitFlowgraph(branch, tail []ast.Proc, mergeField string, reverse boo
 	}
 }
 
-func decomposable(rs []ast.Reducer) bool {
-	for _, r := range rs {
-		cr, err := rcompile.Compile(r)
+func decomposable(assignments []ast.Assignment) bool {
+	for _, assignment := range assignments {
+		cr, err := rcompile.Compile(assignment)
 		if err != nil {
 			return false
 		}
@@ -436,7 +556,7 @@ func decomposable(rs []ast.Reducer) bool {
 // parallelize it by splitting as much as possible of the sequence
 // into N parallel branches. The boolean return argument indicates
 // whether the flowgraph could be parallelized.
-func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string, inputSortReversed bool) (*ast.SequentialProc, bool) {
+func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField field.Static, inputSortReversed bool) (*ast.SequentialProc, bool) {
 	orderSensitiveTail := true
 	for i := range seq.Procs {
 		switch seq.Procs[i].(type) {
@@ -454,12 +574,12 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string,
 			// which point we'll either split the flowgraph or see we can't and return it as-is.
 			continue
 		case *ast.CutProc:
-			if inputSortField == "" || !orderSensitiveTail {
+			if inputSortField == nil || !orderSensitiveTail {
 				continue
 			}
 			if p.Complement {
 				for _, f := range p.Fields {
-					if ast.FieldExprToString(f.Source) == inputSortField {
+					if eq(f.RHS, inputSortField) {
 						return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
 					}
 				}
@@ -467,11 +587,12 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string,
 			}
 			var found bool
 			for _, f := range p.Fields {
-				fieldName := ast.FieldExprToString(f.Source)
-				if fieldName != inputSortField && f.Target == inputSortField {
+				fieldName, okField := ast.DotExprToField(f.RHS)
+				lhs, okLHS := ast.DotExprToField(f.LHS)
+				if okField && !fieldName.Equal(inputSortField) && okLHS && lhs.Equal(inputSortField) {
 					return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
 				}
-				if fieldName == inputSortField && f.Target == "" {
+				if okField && fieldName.Equal(inputSortField) && lhs == nil {
 					found = true
 				}
 			}
@@ -479,21 +600,21 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string,
 				return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
 			}
 		case *ast.PutProc:
-			if inputSortField == "" || !orderSensitiveTail {
+			if inputSortField == nil || !orderSensitiveTail {
 				continue
 			}
 			for _, c := range p.Clauses {
-				if c.Target == inputSortField {
+				if eq(c.LHS, inputSortField) {
 					return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
 				}
 			}
 			continue
 		case *ast.RenameProc:
-			if inputSortField == "" || !orderSensitiveTail {
+			if inputSortField == nil || !orderSensitiveTail {
 				continue
 			}
 			for _, f := range p.Fields {
-				if f.Target == inputSortField {
+				if eq(f.LHS, inputSortField) {
 					return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
 				}
 			}
@@ -503,10 +624,10 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string,
 			}
 			// We have a decomposable groupby and can split the flowgraph into branches that run up to and including a groupby,
 			// followed by a post-merge groupby that composes the results.
-			var mergeField string
+			var mergeField field.Static
 			if p.Duration.Seconds != 0 {
 				// Group by time requires a time-ordered merge, irrespective of any upstream ordering.
-				mergeField = "ts"
+				mergeField = field.New("ts")
 			}
 			branch := copyProcs(seq.Procs[0 : i+1])
 			branch[len(branch)-1].(*ast.GroupByProc).EmitPart = true
@@ -519,23 +640,27 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string,
 			dir := map[int]bool{-1: true, 1: false}[p.SortDir]
 			if len(p.Fields) == 1 {
 				// Single sort field: we can sort in each parallel branch, and then do an ordered merge.
-				mergeField := ast.FieldExprToString(p.Fields[0])
+				mergeField, ok := ast.DotExprToField(p.Fields[0])
+				if !ok {
+					// XXX is this right?
+					return seq, false
+				}
 				return buildSplitFlowgraph(seq.Procs[0:i+1], seq.Procs[i+1:], mergeField, dir, N), true
 			} else {
 				// Unknown or multiple sort fields: we sort after the merge point, which can be unordered.
-				return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], "", dir, N), true
+				return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], nil, dir, N), true
 			}
 		case *ast.ParallelProc:
 			return seq, false
 		case *ast.HeadProc, *ast.TailProc:
-			if inputSortField == "" {
+			if inputSortField == nil {
 				// Unknown order: we can't parallelize because we can't maintain this unknown order at the merge point.
 				return seq, false
 			}
 			// put one head/tail on each parallel branch and one after the merge.
 			return buildSplitFlowgraph(seq.Procs[0:i+1], seq.Procs[i:], inputSortField, inputSortReversed, N), true
 		case *ast.UniqProc, *ast.FuseProc:
-			if inputSortField == "" {
+			if inputSortField == nil {
 				// Unknown order: we can't parallelize because we can't maintain this unknown order at the merge point.
 				return seq, false
 			}
@@ -551,7 +676,7 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField string,
 	// coming across a merge-forcing proc. If inputs are sorted,
 	// we can parallelize the entire chain and do an ordered
 	// merge. Otherwise, no parallelization.
-	if inputSortField == "" {
+	if inputSortField == nil {
 		return seq, false
 	}
 	return buildSplitFlowgraph(seq.Procs, nil, inputSortField, inputSortReversed, N), true

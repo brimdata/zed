@@ -10,8 +10,8 @@ import (
 )
 
 type TypeSet struct {
-	id        int
-	InnerType Type
+	id   int
+	Type Type
 }
 
 func NewTypeSet(id int, typ Type) *TypeSet {
@@ -28,14 +28,14 @@ func (t *TypeSet) SetID(id int) {
 }
 
 func (t *TypeSet) String() string {
-	return fmt.Sprintf("set[%s]", t.InnerType)
+	return fmt.Sprintf("set[%s]", t.Type)
 }
 
 func (t *TypeSet) Decode(zv zcode.Bytes) ([]Value, error) {
 	if zv == nil {
 		return nil, ErrUnset
 	}
-	return parseContainer(t, t.InnerType, zv)
+	return parseContainer(t, t.Type, zv)
 }
 
 func (t *TypeSet) Parse(in []byte) (zcode.Bytes, error) {
@@ -68,7 +68,7 @@ func (t *TypeSet) StringOf(zv zcode.Bytes, fmt OutFmt, _ bool) string {
 		} else {
 			b.WriteByte(separator)
 		}
-		b.WriteString(t.InnerType.StringOf(val, fmt, true))
+		b.WriteString(t.Type.StringOf(val, fmt, true))
 	}
 
 	if fmt == OutFormatZNG {
@@ -89,7 +89,7 @@ func (t *TypeSet) Marshal(zv zcode.Bytes) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		vals = append(vals, Value{t.InnerType, val})
+		vals = append(vals, Value{t.Type, val})
 	}
 	return vals, nil
 }

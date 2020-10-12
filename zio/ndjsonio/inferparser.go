@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zcode"
@@ -44,11 +45,11 @@ func (p *inferParser) parseObject(b []byte) (zng.Value, error) {
 	sort.Slice(kvs, func(i, j int) bool {
 		return bytes.Compare(kvs[i].key, kvs[j].key) < 0
 	})
-	var fields []string
+	var fields []field.Static
 	var zngTypes []zng.Type
 	var zngValues []zng.Value
 	for _, kv := range kvs {
-		fields = append(fields, string(kv.key))
+		fields = append(fields, field.Dotted(string(kv.key)))
 		v, err := p.parseValue(kv.value, kv.typ)
 		if err != nil {
 			return zng.Value{}, err

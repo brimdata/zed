@@ -112,6 +112,45 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func handleWorker(c *Core, w http.ResponseWriter, httpReq *http.Request) {
+	var req api.WorkerRequest
+	if !request(c, w, httpReq, &req) {
+		return
+	}
+
+	space, err := c.spaces.Get(req.Space)
+	if err != nil {
+		respondError(c, w, httpReq, err)
+		return
+	}
+
+	ctx, cancel, err := space.StartOp(httpReq.Context())
+	if err != nil {
+		respondError(c, w, httpReq, err)
+		return
+	}
+	defer cancel()
+
+	srch, err := search.NewWorkerOp(req)
+	if err != nil {
+		respondError(c, w, httpReq, err)
+		return
+	}
+
+	out, err := getSearchOutput(w, httpReq)
+	if err != nil {
+		respondError(c, w, httpReq, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", out.ContentType())
+
+	if err := srch.Run(ctx, space.Storage(), out); err != nil {
+		c.requestLogger(httpReq).Warn("Error writing response", zap.Error(err))
+	}
+
+}
+
 func getSearchOutput(w http.ResponseWriter, r *http.Request) (search.Output, error) {
 	ctrl := true
 	if r.URL.Query().Get("noctrl") != "" {

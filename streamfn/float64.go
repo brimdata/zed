@@ -12,18 +12,18 @@ type Float64 struct {
 func NewFloat64(op string) *Float64 {
 	p := &Float64{}
 	switch op {
-	case "Sum":
+	case "sum":
 		p.Update = func(v float64) {
 			p.State += v
 		}
-	case "Min":
+	case "min":
 		p.State = math.MaxFloat64
 		p.Update = func(v float64) {
 			if v < p.State {
 				p.State = v
 			}
 		}
-	case "Max":
+	case "max":
 		p.State = -math.MaxFloat64
 		p.Update = func(v float64) {
 			if v > p.State {

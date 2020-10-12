@@ -42,6 +42,7 @@ func NewHandler(core *Core, logger *zap.Logger) http.Handler {
 	h.Handle("/space/{space}/archivestat", handleArchiveStat).Methods("GET")
 	h.Handle("/space/{space}/subspace", handleSubspacePost).Methods("POST")
 	h.Handle("/search", handleSearch).Methods("POST")
+	h.Handle("/worker", handleWorker).Methods("POST")
 	h.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(&api.VersionResponse{Version: core.Version})

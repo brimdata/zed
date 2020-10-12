@@ -9,7 +9,7 @@ import (
 
 type Avg struct {
 	Reducer
-	Resolver *expr.FieldExpr
+	Resolver expr.Evaluator
 	sum      float64
 	count    uint64
 }
