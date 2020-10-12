@@ -38,7 +38,7 @@ func newFieldNode(field string, record Evaluator, root bool) *FieldExpr {
 func accessField(record zng.Value, field string) (zng.Value, error) {
 	recType, ok := record.Type.(*zng.TypeRecord)
 	if !ok {
-		return zng.Value{}, ErrIncompatibleTypes
+		return zng.Value{}, ErrNoSuchField
 	}
 	idx, ok := recType.ColumnOfField(field)
 	if !ok {
