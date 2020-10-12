@@ -260,7 +260,7 @@ func (c Chunk) Path(ark *Archive) iosrc.URI {
 	return ark.DataPath.AppendPath(string(c.LogID()))
 }
 
-func (c Chunk) Range(ark *Archive) string {
+func (c Chunk) Range() string {
 	return fmt.Sprintf("[%d-%d]", c.First, c.Last)
 }
 

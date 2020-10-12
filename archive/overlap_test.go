@@ -221,7 +221,7 @@ func TestOverlapWalking(t *testing.T) {
 			chunkSpans []nano.Span
 		}
 		var sispans []sispan
-		err = spanWalk(context.Background(), ark, nano.Span{Ts: 12, Dur: 10}, func(si SpanInfo) error {
+		err = SpanWalk(context.Background(), ark, nano.Span{Ts: 12, Dur: 10}, func(si SpanInfo) error {
 			var chunkSpans []nano.Span
 			for _, c := range si.Chunks {
 				chunkSpans = append(chunkSpans, c.Span())

@@ -2,6 +2,7 @@ package archive
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/brimsec/zq/ast"
@@ -29,11 +30,18 @@ type SpanInfo struct {
 	Chunks []Chunk
 }
 
-func spanWalk(ctx context.Context, ark *Archive, filter nano.Span, v func(si SpanInfo) error) error {
+func (s SpanInfo) ChunkRange(dir zbuf.Direction, chunkIdx int) string {
+	first, last := spanToFirstLast(dir, s.Span)
+	c := s.Chunks[chunkIdx]
+	return fmt.Sprintf("[%d-%d,%d-%d]", first, last, c.First, c.Last)
+}
+
+// SpanWalk calls visitor with each SpanInfo within the filter span.
+func SpanWalk(ctx context.Context, ark *Archive, filter nano.Span, visitor func(si SpanInfo) error) error {
 	return tsDirVisit(ctx, ark, filter, func(_ tsDir, chunks []Chunk) error {
 		sinfos := mergeChunksToSpans(chunks, ark.DataSortDirection, filter)
 		for _, s := range sinfos {
-			if err := v(s); err != nil {
+			if err := visitor(s); err != nil {
 				return err
 			}
 		}
@@ -130,7 +138,7 @@ func (m *multiSource) OrderInfo() (string, bool) {
 }
 
 func (m *multiSource) spanWalk(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan<- driver.SourceOpener) error {
-	return spanWalk(ctx, m.ark, sf.Span, func(si SpanInfo) error {
+	return SpanWalk(ctx, m.ark, sf.Span, func(si SpanInfo) error {
 		so := func() (driver.ScannerCloser, error) {
 			return newSpanScanner(ctx, m.ark, zctx, sf.Filter, sf.FilterExpr, si)
 		}
