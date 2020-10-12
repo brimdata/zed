@@ -15,6 +15,7 @@ import (
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zqd/api"
 )
 
 // A SpanInfo is a logical view of the records within a time span, stored
@@ -129,13 +130,34 @@ func (m *multiSource) OrderInfo() (string, bool) {
 	return "", false
 }
 
-func (m *multiSource) spanWalk(ctx context.Context, zctx *resolver.Context, sf multisource.SourceFilter, srcChan chan<- multisource.SourceOpener) error {
+type archiveSource struct {
+	// spaninfo
+	// filter
+}
+
+func (as archiveSource) ToWorkerRequest() api.WorkerRequest {
+	// ...
+}
+
+func (m *multiSource) SourceFromRequest(request api.WorkerRequest) (multisource.Source, error) {
+	// create archiveSource...
+}
+
+func (m *multiSource) OpenSource(ctx context.Context, zctx *resolver.Context, src multisource.Source) (multisource.ScannerCloser, error) {
+	// convert to archive source
+	//as, ok := src.(*archiveSource)
+	// filter,filter expr from as
+	//return newSpanScanner(ctx, m.ark, zctx, sf.Filter, sf.FilterExpr, si)
+}
+
+func (m *multiSource) spanWalk(ctx context.Context, zctx *resolver.Context, sf multisource.SourceFilter, srcChan chan<- multisource.Source) error {
 	return spanWalk(ctx, m.ark, sf.Span, func(si SpanInfo) error {
-		so := func() (multisource.ScannerCloser, error) {
-			return newSpanScanner(ctx, m.ark, zctx, sf.Filter, sf.FilterExpr, si)
+		as := &archiveSource{
+			// spaninfo
+			// filter
 		}
 		select {
-		case srcChan <- so:
+		case srcChan <- as:
 			return nil
 		case <-ctx.Done():
 			return ctx.Err()
@@ -143,7 +165,7 @@ func (m *multiSource) spanWalk(ctx context.Context, zctx *resolver.Context, sf m
 	})
 }
 
-func (m *multiSource) chunkWalk(ctx context.Context, zctx *resolver.Context, sf multisource.SourceFilter, srcChan chan<- multisource.SourceOpener) error {
+func (m *multiSource) chunkWalk(ctx context.Context, zctx *resolver.Context, sf multisource.SourceFilter, srcChan chan<- multisource.Source) error {
 	return Walk(ctx, m.ark, func(chunk Chunk) error {
 		so := func() (multisource.ScannerCloser, error) {
 			paths := make([]string, len(m.altPaths))
@@ -166,7 +188,7 @@ func (m *multiSource) chunkWalk(ctx context.Context, zctx *resolver.Context, sf 
 	})
 }
 
-func (m *multiSource) SendSources(ctx context.Context, zctx *resolver.Context, sf multisource.SourceFilter, srcChan chan multisource.SourceOpener) error {
+func (m *multiSource) SendSources(ctx context.Context, zctx *resolver.Context, sf multisource.SourceFilter, srcChan chan multisource.Source) error {
 	if len(m.altPaths) == 0 {
 		return m.spanWalk(ctx, zctx, sf, srcChan)
 	}

@@ -59,7 +59,7 @@ func (m *orderedmsrc) OrderInfo() (string, bool) {
 	return "ts", false
 }
 
-func (m *orderedmsrc) SendSources(ctx context.Context, zctx *resolver.Context, sf multisource.SourceFilter, srcChan chan multisource.SourceOpener) error {
+func (m *orderedmsrc) SendSources(ctx context.Context, zctx *resolver.Context, sf multisource.SourceFilter, srcChan chan multisource.Source) error {
 	// Create SourceOpeners that await a signal before returning, then
 	// signal them in reverse of expected order.
 	var releaseChs []chan struct{}
@@ -142,7 +142,7 @@ func (m *scannerCloseMS) OrderInfo() (string, bool) {
 	return "", false
 }
 
-func (m *scannerCloseMS) SendSources(ctx context.Context, zctx *resolver.Context, sf multisource.SourceFilter, srcChan chan multisource.SourceOpener) error {
+func (m *scannerCloseMS) SendSources(ctx context.Context, zctx *resolver.Context, sf multisource.SourceFilter, srcChan chan multisource.Source) error {
 	srcChan <- func() (multisource.ScannerCloser, error) {
 		return &scannerCloser{
 			// Use a noEndScanner so that a parallel head never tries to

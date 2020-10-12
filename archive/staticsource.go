@@ -27,7 +27,7 @@ func (s *staticSource) OrderInfo() (string, bool) {
 	return "ts", s.ark.DataSortDirection == zbuf.DirTimeReverse
 }
 
-func (s *staticSource) SendSources(ctx context.Context, zctx *resolver.Context, sf multisource.SourceFilter, srcChan chan multisource.SourceOpener) error {
+func (s *staticSource) SendSources(ctx context.Context, zctx *resolver.Context, sf multisource.SourceFilter, srcChan chan multisource.Source) error {
 	so := func() (multisource.ScannerCloser, error) {
 		return newSpanScanner(ctx, s.ark, zctx, sf.Filter, sf.FilterExpr, s.si)
 	}

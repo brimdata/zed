@@ -9,6 +9,7 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zqd/api"
 )
 
 // A MultiSource is a set of one or more ZNG record sources, which could be
@@ -28,13 +29,21 @@ type MultiSource interface {
 	// performance, SendSources should perform quick filtering that performs
 	// little or no i/o, and let the returned ScannerCloser perform more intensive
 	// filtering (e.g., reading a micro-index to check for filter matching).
-	SendSources(context.Context, *resolver.Context, SourceFilter, chan SourceOpener) error
+	SendSources(context.Context, *resolver.Context, SourceFilter, chan Source) error
+
+	OpenSource(context.Context, Source) (ScannerCloser, error)
+
+	SourceFromRequest(api.WorkerRequest) (Source, error)
 }
 
-// A SourceOpener is a closure sent by a MultiSource to provide scanning
+// A Source is a closure sent by a MultiSource to provide scanning
 // access to a single source. It may return a nil ScannerCloser, in the
 // case that it represents a logically empty source.
-type SourceOpener func() (ScannerCloser, error)
+//type Source func() (ScannerCloser, error)
+type Source interface {
+	ToWorkerRequest() api.WorkerRequest
+	String() string // dev/test
+}
 
 type ScannerCloser interface {
 	scanner.Scanner

@@ -82,7 +82,7 @@ type parallelGroup struct {
 	filter     multisource.SourceFilter
 	msrc       multisource.MultiSource
 	once       sync.Once
-	sourceChan chan multisource.SourceOpener
+	sourceChan chan multisource.Source
 	sourceErr  error
 
 	mu       sync.Mutex // protects below
@@ -167,7 +167,7 @@ func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.
 			Span:       mcfg.Span,
 		},
 		msrc:       msrc,
-		sourceChan: make(chan multisource.SourceOpener),
+		sourceChan: make(chan multisource.Source),
 		scanners:   make(map[scanner.Scanner]struct{}),
 	}
 
