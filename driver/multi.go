@@ -2,14 +2,13 @@ package driver
 
 import (
 	"context"
-	"io"
 	"time"
 
+	"github.com/brimsec/zq/address"
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/proc/compiler"
-	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zng/resolver"
 	"go.uber.org/zap"
 )
@@ -31,17 +30,7 @@ type MultiSource interface {
 	// performance, SendSources should perform quick filtering that performs
 	// little or no i/o, and let the returned ScannerCloser perform more intensive
 	// filtering (e.g., reading a micro-index to check for filter matching).
-	SendSources(context.Context, *resolver.Context, SourceFilter, chan SourceOpener) error
-}
-
-// A SourceOpener is a closure sent by a MultiSource to provide scanning
-// access to a single source. It may return a nil ScannerCloser, in the
-// case that it represents a logically empty source.
-type SourceOpener func() (ScannerCloser, error)
-
-type ScannerCloser interface {
-	scanner.Scanner
-	io.Closer
+	SendSources(context.Context, *resolver.Context, SourceFilter, chan address.SpanInfo) error
 }
 
 type SourceFilter struct {

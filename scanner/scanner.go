@@ -2,6 +2,7 @@ package scanner
 
 import (
 	"context"
+	"io"
 	"sync/atomic"
 
 	"github.com/brimsec/zq/ast"
@@ -26,6 +27,11 @@ type Statser interface {
 type Scanner interface {
 	Statser
 	Pull() (zbuf.Batch, error)
+}
+
+type ScannerCloser interface {
+	Scanner
+	io.Closer
 }
 
 // ScannerStats holds Scanner statistics. It should be identical to

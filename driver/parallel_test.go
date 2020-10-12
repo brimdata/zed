@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/brimsec/zq/address"
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
@@ -58,7 +60,17 @@ func (m *orderedmsrc) OrderInfo() (string, bool) {
 	return "ts", false
 }
 
-func (m *orderedmsrc) SendSources(ctx context.Context, zctx *resolver.Context, sf SourceFilter, srcChan chan SourceOpener) error {
+type TestSpanInfo struct {
+	span   nano.Span
+	chunks []address.Chunk
+	opener func() (scanner.ScannerCloser, error)
+}
+
+func (s TestSpanInfo) GetSpan() nano.Span                           { return s.span }
+func (s TestSpanInfo) GetChunks() []address.Chunk                   { return s.chunks }
+func (s TestSpanInfo) SourceOpener() (scanner.ScannerCloser, error) { return s.opener() }
+
+func (m *orderedmsrc) SendSources(ctx context.Context, zctx *resolver.Context, sf SourceFilter, srcChan chan address.SpanInfo) error {
 	// Create SourceOpeners that await a signal before returning, then
 	// signal them in reverse of expected order.
 	var releaseChs []chan struct{}
@@ -72,7 +84,8 @@ func (m *orderedmsrc) SendSources(ctx context.Context, zctx *resolver.Context, s
 		if err != nil {
 			return err
 		}
-		srcChan <- func() (ScannerCloser, error) {
+		si := TestSpanInfo{}
+		si.opener = func() (scanner.ScannerCloser, error) {
 			select {
 			case <-releaseChs[i]:
 			}
@@ -81,6 +94,7 @@ func (m *orderedmsrc) SendSources(ctx context.Context, zctx *resolver.Context, s
 				Closer:  &onClose{},
 			}, nil
 		}
+		srcChan <- si
 	}
 	for i := len(parallelTestInputs) - 1; i >= 0; i-- {
 		close(releaseChs[i])
@@ -141,8 +155,9 @@ func (m *scannerCloseMS) OrderInfo() (string, bool) {
 	return "", false
 }
 
-func (m *scannerCloseMS) SendSources(ctx context.Context, zctx *resolver.Context, sf SourceFilter, srcChan chan SourceOpener) error {
-	srcChan <- func() (ScannerCloser, error) {
+func (m *scannerCloseMS) SendSources(ctx context.Context, zctx *resolver.Context, sf SourceFilter, srcChan chan address.SpanInfo) error {
+	si := TestSpanInfo{}
+	si.opener = func() (scanner.ScannerCloser, error) {
 		return &scannerCloser{
 			// Use a noEndScanner so that a parallel head never tries to
 			// close the ScannerCloser in its Pull. That way, if the Close fires,
@@ -154,6 +169,7 @@ func (m *scannerCloseMS) SendSources(ctx context.Context, zctx *resolver.Context
 			}},
 		}, nil
 	}
+	srcChan <- si
 	return nil
 }
 

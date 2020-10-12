@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 
+	"github.com/brimsec/zq/address"
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/filter"
@@ -27,7 +28,23 @@ type SpanInfo struct {
 	// records from these Chunks should be limited to those that fall within a
 	// closed span constructed from First & Last.
 	Chunks []Chunk
+	opener func() (scanner.ScannerCloser, error)
 }
+
+func (s SpanInfo) GetSpan() nano.Span { return s.Span }
+func (s SpanInfo) GetChunks() []address.Chunk {
+	var chunks = make([]address.Chunk, len(s.Chunks))
+	for i := 0; i < len(s.Chunks); i++ {
+		chunks[i] = s.Chunks[i]
+	}
+	return chunks
+}
+
+// SourceOpener provides scanning access to a single source.
+// It works for locals files or S3 (not for accessing zqd/worker).
+// It may return a nil ScannerCloser, in the
+// case that it represents a logically empty source.
+func (s SpanInfo) SourceOpener() (scanner.ScannerCloser, error) { return s.opener() }
 
 func spanWalk(ctx context.Context, ark *Archive, filter nano.Span, v func(si SpanInfo) error) error {
 	return tsDirVisit(ctx, ark, filter, func(_ tsDir, chunks []Chunk) error {
@@ -129,13 +146,13 @@ func (m *multiSource) OrderInfo() (string, bool) {
 	return "", false
 }
 
-func (m *multiSource) spanWalk(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan<- driver.SourceOpener) error {
+func (m *multiSource) spanWalk(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan<- address.SpanInfo) error {
 	return spanWalk(ctx, m.ark, sf.Span, func(si SpanInfo) error {
-		so := func() (driver.ScannerCloser, error) {
+		si.opener = func() (scanner.ScannerCloser, error) {
 			return newSpanScanner(ctx, m.ark, zctx, sf.Filter, sf.FilterExpr, si)
 		}
 		select {
-		case srcChan <- so:
+		case srcChan <- si:
 			return nil
 		case <-ctx.Done():
 			return ctx.Err()
@@ -143,9 +160,13 @@ func (m *multiSource) spanWalk(ctx context.Context, zctx *resolver.Context, sf d
 	})
 }
 
-func (m *multiSource) chunkWalk(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan<- driver.SourceOpener) error {
+func (m *multiSource) chunkWalk(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan<- address.SpanInfo) error {
 	return Walk(ctx, m.ark, func(chunk Chunk) error {
-		so := func() (driver.ScannerCloser, error) {
+		si := SpanInfo{
+			Span:   chunk.Span(),
+			Chunks: []Chunk{chunk},
+		}
+		si.opener = func() (scanner.ScannerCloser, error) {
 			paths := make([]string, len(m.altPaths))
 			for i, input := range m.altPaths {
 				paths[i] = chunk.Localize(m.ark, input).String()
@@ -158,7 +179,7 @@ func (m *multiSource) chunkWalk(ctx context.Context, zctx *resolver.Context, sf 
 			return &scannerCloser{Scanner: sn, Closer: rc}, nil
 		}
 		select {
-		case srcChan <- so:
+		case srcChan <- si:
 			return nil
 		case <-ctx.Done():
 			return ctx.Err()
@@ -166,7 +187,7 @@ func (m *multiSource) chunkWalk(ctx context.Context, zctx *resolver.Context, sf 
 	})
 }
 
-func (m *multiSource) SendSources(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan driver.SourceOpener) error {
+func (m *multiSource) SendSources(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan address.SpanInfo) error {
 	if len(m.altPaths) == 0 {
 		return m.spanWalk(ctx, zctx, sf, srcChan)
 	}

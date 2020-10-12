@@ -3,6 +3,7 @@ package driver
 import (
 	"sync"
 
+	"github.com/brimsec/zq/address"
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/filter"
@@ -19,7 +20,7 @@ type parallelHead struct {
 	pg     *parallelGroup
 
 	mu sync.Mutex // protects below
-	sc ScannerCloser
+	sc scanner.ScannerCloser
 }
 
 func (ph *parallelHead) closeOnDone() {
@@ -81,7 +82,7 @@ type parallelGroup struct {
 	filter     SourceFilter
 	msrc       MultiSource
 	once       sync.Once
-	sourceChan chan SourceOpener
+	sourceChan chan address.SpanInfo
 	sourceErr  error
 
 	mu       sync.Mutex // protects below
@@ -89,14 +90,14 @@ type parallelGroup struct {
 	scanners map[scanner.Scanner]struct{}
 }
 
-func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
+func (pg *parallelGroup) nextSource() (scanner.ScannerCloser, error) {
 	for {
 		select {
-		case opener, ok := <-pg.sourceChan:
+		case spanInfo, ok := <-pg.sourceChan:
 			if !ok {
 				return nil, pg.sourceErr
 			}
-			sc, err := opener()
+			sc, err := spanInfo.SourceOpener()
 			if err != nil {
 				return nil, err
 			}
@@ -113,7 +114,7 @@ func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
 	}
 }
 
-func (pg *parallelGroup) doneSource(sc ScannerCloser) {
+func (pg *parallelGroup) doneSource(sc scanner.ScannerCloser) {
 	pg.mu.Lock()
 	defer pg.mu.Unlock()
 	pg.stats.Accumulate(sc.Stats())
@@ -166,7 +167,7 @@ func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.
 			Span:       mcfg.Span,
 		},
 		msrc:       msrc,
-		sourceChan: make(chan SourceOpener),
+		sourceChan: make(chan address.SpanInfo),
 		scanners:   make(map[scanner.Scanner]struct{}),
 	}
 
