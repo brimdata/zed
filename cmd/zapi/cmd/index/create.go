@@ -39,10 +39,6 @@ zapi index create -k id.orig_h -k count -o custom -z "count() by _path, id.orig_
 	New: NewCreate,
 }
 
-func init() {
-	cmd.CLI.Add(Create)
-}
-
 type CreateCmd struct {
 	*cmd.Command
 	root       string
@@ -53,7 +49,7 @@ type CreateCmd struct {
 }
 
 func NewCreate(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &CreateCmd{Command: parent.(*IndexCmd).Command}
+	c := &CreateCmd{Command: parent.(*Command).Command}
 	f.Var(&c.keys, "k", "key fields (can be specified multiple times)")
 	f.StringVar(&c.inputFile, "i", "", "input file relative to each zar directory ('' means archive log file in the parent of the zar directory)")
 	f.StringVar(&c.outputFile, "o", "index.zng", "name of microindex output file (for custom indexes)")

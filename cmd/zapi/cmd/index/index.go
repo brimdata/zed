@@ -21,14 +21,14 @@ func init() {
 	Index.Add(Create)
 }
 
-type IndexCmd struct {
+type Command struct {
 	*cmd.Command
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	return &IndexCmd{Command: parent.(*cmd.Command)}, nil
+	return &Command{Command: parent.(*cmd.Command)}, nil
 }
 
-func (c *IndexCmd) Run(args []string) error {
+func (c *Command) Run(args []string) error {
 	return charm.ErrNoRun
 }
