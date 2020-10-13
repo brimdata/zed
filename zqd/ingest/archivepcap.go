@@ -198,9 +198,8 @@ type writeCounter struct {
 }
 
 func (w *writeCounter) Write(b []byte) (int, error) {
-	n, err := w.writer.Write(b)
-	atomic.AddInt64(&w.count, int64(n))
-	return n, err
+	atomic.AddInt64(&w.count, int64(len(b)))
+	return len(b), nil
 }
 
 func (w *writeCounter) Bytes() int64 {
