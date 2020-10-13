@@ -131,9 +131,11 @@ func (c *Command) Run(args []string) error {
 	}()
 	srv := httpd.New(c.listenAddr, h)
 	srv.SetLogger(c.logger.Named("httpd"))
+	fmt.Println("server.starting")
 	if err := srv.Start(ctx); err != nil {
 		return err
 	}
+	fmt.Println("server.started", srv.Addr())
 	if c.portFile != "" {
 		if err := c.writePortFile(srv.Addr()); err != nil {
 			return err
