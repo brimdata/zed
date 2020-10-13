@@ -21,8 +21,9 @@ type mathReducer struct {
 	math     consumer
 }
 
-func newMathReducer(f *anymath.Function, arg expr.Evaluator) *mathReducer {
+func newMathReducer(f *anymath.Function, arg, where expr.Evaluator) *mathReducer {
 	return &mathReducer{
+		Reducer:  Reducer{where: where},
 		arg:      arg,
 		function: f,
 	}
@@ -39,6 +40,9 @@ func (m *mathReducer) Result() zng.Value {
 }
 
 func (m *mathReducer) Consume(r *zng.Record) {
+	if m.filter(r) {
+		return
+	}
 	val, err := m.arg.Eval(r)
 	if err != nil || val.Type == nil {
 		m.FieldNotFound++

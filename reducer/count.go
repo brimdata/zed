@@ -13,6 +13,9 @@ type Count struct {
 }
 
 func (c *Count) Consume(r *zng.Record) {
+	if c.filter(r) {
+		return
+	}
 	if c.arg != nil {
 		if v, err := c.arg.Eval(r); err != nil || v.IsNil() {
 			return

@@ -417,6 +417,11 @@ func computeColumnsR(p ast.Proc, colset *Colset) (*Colset, bool) {
 					return colset, false
 				}
 			}
+			if reducer.Where != nil {
+				if ok := colset.Add(reducer.Where); !ok {
+					return colset, false
+				}
+			}
 		}
 		for _, key := range p.Keys {
 			for _, field := range expressionFields(key.RHS) {

@@ -354,6 +354,7 @@ type Reducer struct {
 	Node
 	Operator string     `json:"operator"`
 	Expr     Expression `json:"expr,omitempty"`
+	Where    Expression `json:"where,omitempty"`
 }
 
 func DotExprToField(n Expression) (field.Static, bool) {

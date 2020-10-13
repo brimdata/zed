@@ -284,7 +284,12 @@ func UnpackExpression(node joe.Interface) (Expression, error) {
 		if exprNode != nil {
 			expr, _ = UnpackExpression(exprNode)
 		}
-		return &Reducer{Expr: expr}, nil
+		whereNode, _ := node.Get("where")
+		var where Expression
+		if whereNode != nil {
+			where, _ = UnpackExpression(whereNode)
+		}
+		return &Reducer{Expr: expr, Where: where}, nil
 	case "Literal":
 		return &Literal{}, nil
 	case "Identifier":
