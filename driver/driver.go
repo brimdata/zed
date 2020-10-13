@@ -152,6 +152,7 @@ func Copy(ctx context.Context, w zbuf.Writer, prog ast.Proc, zctx *resolver.Cont
 type muxReader struct {
 	*muxOutput
 	batch       zbuf.Batch
+	cancel      context.CancelFunc
 	index       int
 	statsTickCh <-chan time.Time
 }
@@ -183,12 +184,20 @@ read:
 	return rec, nil
 }
 
-func NewReader(ctx context.Context, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader) (zbuf.Reader, error) {
+func (mr *muxReader) Close() error {
+	mr.cancel()
+	return nil
+}
+
+func NewReader(ctx context.Context, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader) (zbuf.ReadCloser, error) {
+	ctx, cancel := context.WithCancel(ctx)
 	mux, err := compileSingle(ctx, program, zctx, reader, Config{})
 	if err != nil {
+		cancel()
 		return nil, err
 	}
 	return &muxReader{
+		cancel:      cancel,
 		muxOutput:   mux,
 		statsTickCh: make(chan time.Time),
 	}, nil

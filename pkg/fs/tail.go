@@ -128,8 +128,8 @@ func NewDirWatcher(dir string) (*DirWatcher, error) {
 		return nil, err
 	}
 	w := &DirWatcher{
-		dir:     dir,
 		Events:  make(chan FileEvent),
+		dir:     dir,
 		watched: make(map[string]struct{}),
 		watcher: watcher,
 	}
@@ -137,7 +137,7 @@ func NewDirWatcher(dir string) (*DirWatcher, error) {
 		return nil, err
 	}
 	go func() {
-		err := w.start()
+		err := w.run()
 		if errc := w.watcher.Close(); err == nil {
 			err = errc
 		}
@@ -149,7 +149,7 @@ func NewDirWatcher(dir string) (*DirWatcher, error) {
 	return w, nil
 }
 
-func (w *DirWatcher) start() error {
+func (w *DirWatcher) run() error {
 	if err := w.poll(); err != nil {
 		return err
 	}
