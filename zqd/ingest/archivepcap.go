@@ -86,9 +86,7 @@ func newArchivePcapOp(ctx context.Context, logstore storage.Storage, pcapstore *
 }
 
 func (p *archivePcapOp) run(ctx context.Context) error {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
+	group, ctx := errgroup.WithContext(ctx)
 	pcapfile, err := iosrc.NewReader(ctx, p.pcapuri)
 	if err != nil {
 		return err
@@ -97,7 +95,7 @@ func (p *archivePcapOp) run(ctx context.Context) error {
 	// Keeps track of bytes read from pcapfile.
 	r := io.TeeReader(pcapfile, p.pcapCounter)
 
-	group, zreaders, err := p.runAnalyzers(ctx, r)
+	group, zreaders, err := p.runAnalyzers(ctx, group, r)
 	if err != nil {
 		return err
 	}
@@ -112,8 +110,7 @@ func (p *archivePcapOp) run(ctx context.Context) error {
 	return group.Wait()
 }
 
-func (p *archivePcapOp) runAnalyzers(ctx context.Context, pcapstream io.Reader) (*errgroup.Group, []zbuf.Reader, error) {
-	group, ctx := errgroup.WithContext(ctx)
+func (p *archivePcapOp) runAnalyzers(ctx context.Context, group *errgroup.Group, pcapstream io.Reader) (*errgroup.Group, []zbuf.Reader, error) {
 	var pipes []*io.PipeWriter
 	var zreaders []zbuf.Reader
 	if p.zeek != nil {
