@@ -318,10 +318,10 @@ func RmDirs(ctx context.Context, ark *Archive) error {
 type SpanInfo struct {
 	Span nano.Span
 
-	// chunks are the data files that contain records within this SpanInfo.
+	// Chunks are the data files that contain records within this SpanInfo.
 	// The Chunks may have spans that extend beyond this SpanInfo, so any
-	// records from these Chunks should be limited to those that fall within a
-	// closed span constructed from First & Last.
+	// records from these Chunks should be limited to those that fall within
+	// this SpanInfo's Span.
 	Chunks []Chunk
 }
 

@@ -71,9 +71,9 @@ func firstLastToSpan(x, y nano.Ts) nano.Span {
 
 func spanToFirstLast(dir zbuf.Direction, span nano.Span) (nano.Ts, nano.Ts) {
 	if dir == zbuf.DirTimeForward {
-		return span.Ts, nano.Ts(int64(span.Ts) + span.Dur - 1)
+		return span.Ts, span.End() - 1
 	}
-	return nano.Ts(int64(span.Ts) + span.Dur - 1), span.Ts
+	return span.End() - 1, span.Ts
 }
 
 func nextTs(ts nano.Ts, dir zbuf.Direction) nano.Ts {
