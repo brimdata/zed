@@ -77,8 +77,6 @@ func DotExprToField(e Evaluator) (field.Static, error) {
 			return nil, err
 		}
 		return append(lhs, e.field), nil
-	case *Literal:
-		return field.New(e.zv.String()), nil
 	case *Index:
 		lhs, err := DotExprToField(e.container)
 		if err != nil {
