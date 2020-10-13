@@ -17,7 +17,7 @@ type result struct {
 }
 
 // logTailer is a zbuf.Reader that watches a specified directory and starts
-// tailing existing and new created files in the directory for new logs. Newly
+// tailing existing and newly created files in the directory for new logs. Newly
 // written log data are transformed into *zng.Records and returned on a
 // first-come-first serve basis.
 type logTailer struct {
