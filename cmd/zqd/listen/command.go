@@ -86,22 +86,19 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	fmt.Println("server.run")
 	defer c.Cleanup()
 	if err := c.Init(); err != nil {
 		return err
 	}
-	fmt.Println("server.init.start")
 	if err := c.init(); err != nil {
 		return err
 	}
-	fmt.Println("server.init.done")
-	fmt.Println("server.raiserlimit.start")
+	c.logger.Info("init complete")
 	openFilesLimit, err := rlimit.RaiseOpenFilesLimit()
 	if err != nil {
 		c.logger.Warn("Raising open files limit failed", zap.Error(err))
 	}
-	fmt.Println("server.raiserlimit.done")
+	c.logger.Info("rlimit.raised")
 	core, err := zqd.NewCore(c.conf)
 	if err != nil {
 		return err
@@ -136,11 +133,9 @@ func (c *Command) Run(args []string) error {
 	}()
 	srv := httpd.New(c.listenAddr, h)
 	srv.SetLogger(c.logger.Named("httpd"))
-	fmt.Println("server.starting")
 	if err := srv.Start(ctx); err != nil {
 		return err
 	}
-	fmt.Println("server.started", srv.Addr())
 	if c.portFile != "" {
 		if err := c.writePortFile(srv.Addr()); err != nil {
 			return err
