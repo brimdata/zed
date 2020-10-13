@@ -127,7 +127,7 @@ func (l LogID) Path(ark *Archive) iosrc.URI {
 }
 
 // A Chunk is a file that holds records ordered according to the archive's
-// data order. The name of the file encodes the number of records it contains,
+// data order. The name of the file encodes the number of records it contains
 // and the timestamps of its first & last records. seekIndexPath returns the
 // path of an associated microindex written at import time, which can be used
 // to lookup a nearby seek offset for a desired timestamp.
