@@ -20,6 +20,7 @@ type Function struct {
 }
 
 var Min = &Function{
+	Init: Init{math.MaxFloat64, math.MaxInt64, math.MaxUint64},
 	Float64: func(a, b float64) float64 {
 		if a < b {
 			return a
@@ -38,7 +39,6 @@ var Min = &Function{
 		}
 		return b
 	},
-	Init: Init{math.MaxFloat64, math.MaxInt64, math.MaxUint64},
 }
 
 var Max = &Function{
