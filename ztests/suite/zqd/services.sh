@@ -2,11 +2,12 @@
 
 function awaitfile {
   file=$1
+  start=$SECONDS
   i=0
   until [ -f $file ]; do
     let i+=1
     if [ $i -gt 5 ]; then
-      echo "timed out waiting for file \"$file\" to appear"
+	  echo "timed out waiting for file \"$file\" to appear, waited $(( SECONDS - start )) seconds"
       cat minio.log
       cat zqd.log
       exit 1
