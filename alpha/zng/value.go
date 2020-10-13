@@ -76,12 +76,11 @@ func (v Value) Format(fmt OutFmt) string {
 	return v.Type.StringOf(v.Bytes, fmt, false)
 }
 
-// String implements the fmt.Stringer interface and returns a
-// human-readable string representation of the value.
-// This should only be used for logs, debugging, etc.  Any caller that
-// requires a specific output format should use FormatAs() instead.
+// String implements fmt.Stringer.String.  It should only be used for logs,
+// debugging, etc.  Any caller that requires a specific output format should use
+// FormatAs() instead.
 func (v Value) String() string {
-	return v.Format(OutFormatDebug)
+	return fmt.Sprintf("%s: %s", v.Type, v.Encode(nil))
 }
 
 // Encode appends the ZNG representation of this value to the passed in
