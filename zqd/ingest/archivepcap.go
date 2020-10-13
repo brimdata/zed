@@ -40,7 +40,7 @@ type archivePcapOp struct {
 	// stat fields
 	startTime      nano.Ts
 	pcapBytesTotal int64
-	pcapBytesRead  int64
+	pcapCounter    *writeCounter
 	recordCounter  *recordCounter
 }
 
@@ -67,6 +67,7 @@ func newArchivePcapOp(ctx context.Context, logstore storage.Storage, pcapstore *
 		pcapstore:      pcapstore,
 		store:          logstore,
 		pcapuri:        pcapuri,
+		pcapCounter:    &writeCounter{},
 		recordCounter:  &recordCounter{},
 		done:           make(chan struct{}),
 		snap:           make(chan struct{}),
@@ -94,7 +95,7 @@ func (p *archivePcapOp) run(ctx context.Context) error {
 	}
 	defer pcapfile.Close()
 	// Keeps track of bytes read from pcapfile.
-	r := io.TeeReader(pcapfile, p)
+	r := io.TeeReader(pcapfile, p.pcapCounter)
 
 	group, zreaders, err := p.runAnalyzers(ctx, r)
 	if err != nil {
@@ -188,10 +189,25 @@ func (p *archivePcapOp) Status() api.PcapPostStatus {
 		StartTime:    p.startTime,
 		UpdateTime:   nano.Now(),
 		PcapSize:     p.pcapBytesTotal,
-		PcapReadSize: atomic.LoadInt64(&p.pcapBytesRead),
+		PcapReadSize: p.pcapCounter.Bytes(),
 		RecordCount:  p.recordCounter.Records(),
 		RecordBytes:  p.recordCounter.Bytes(),
 	}
+}
+
+type writeCounter struct {
+	writer io.Writer
+	count  int64
+}
+
+func (w *writeCounter) Write(b []byte) (int, error) {
+	n, err := w.writer.Write(b)
+	atomic.AddInt64(&w.count, int64(n))
+	return n, err
+}
+
+func (w *writeCounter) Bytes() int64 {
+	return atomic.LoadInt64(&w.count)
 }
 
 type recordCounter struct {
@@ -238,10 +254,4 @@ func (p *archivePcapOp) cleanup(fn func()) {
 // Done returns a chan that emits when the ingest process is complete.
 func (p *archivePcapOp) Done() <-chan struct{} {
 	return p.done
-}
-
-func (p *archivePcapOp) Write(b []byte) (int, error) {
-	n := len(b)
-	atomic.AddInt64(&p.pcapBytesRead, int64(n))
-	return n, nil
 }
