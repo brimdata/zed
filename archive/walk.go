@@ -208,7 +208,7 @@ func (c Chunk) Path(ark *Archive) iosrc.URI {
 	return ark.DataPath.AppendPath(string(c.LogID()))
 }
 
-func (c Chunk) Range(ark *Archive) string {
+func (c Chunk) Range() string {
 	return fmt.Sprintf("[%d-%d]", c.First, c.Last)
 }
 
@@ -258,5 +258,45 @@ func Walk(ctx context.Context, ark *Archive, v Visitor) error {
 func RmDirs(ctx context.Context, ark *Archive) error {
 	return Walk(ctx, ark, func(chunk Chunk) error {
 		return ark.dataSrc.RemoveAll(ctx, chunk.ZarDir(ark))
+	})
+}
+
+// A SpanInfo is a logical view of the records within a time span, stored
+// in one or more Chunks.
+type SpanInfo struct {
+	Span nano.Span
+
+	// Chunks are the data files that contain records within this SpanInfo.
+	// The Chunks may have spans that extend beyond this SpanInfo, so any
+	// records from these Chunks should be limited to those that fall within
+	// this SpanInfo's Span.
+	Chunks []Chunk
+}
+
+func (s SpanInfo) ChunkRange(dir zbuf.Direction, chunkIdx int) string {
+	first, last := spanToFirstLast(dir, s.Span)
+	c := s.Chunks[chunkIdx]
+	return fmt.Sprintf("[%d-%d,%d-%d]", first, last, c.First, c.Last)
+}
+
+// SpanWalk calls visitor with each SpanInfo within the filter span.
+func SpanWalk(ctx context.Context, ark *Archive, filter nano.Span, visitor func(si SpanInfo) error) error {
+	dirmkr, _ := ark.dataSrc.(iosrc.DirMaker)
+	return tsDirVisit(ctx, ark, filter, func(_ tsDir, chunks []Chunk) error {
+		sinfos := mergeChunksToSpans(chunks, ark.DataSortDirection, filter)
+		for _, s := range sinfos {
+			if dirmkr != nil {
+				for _, c := range s.Chunks {
+					zardir := c.ZarDir(ark)
+					if err := dirmkr.MkdirAll(zardir, 0700); err != nil {
+						return err
+					}
+				}
+			}
+			if err := visitor(s); err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zqe"
 	"github.com/mccanne/charm"
 )
@@ -59,26 +60,38 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 
-	return archive.Walk(context.TODO(), ark, func(chunk archive.Chunk) error {
-		zardir := chunk.ZarDir(ark)
-		for _, name := range args {
-			path := zardir.AppendPath(name)
-			if err := iosrc.Remove(context.TODO(), path); err != nil {
-				if zqe.IsNotFound(err) {
-					fmt.Printf("%s: not found\n", c.printable(ark, chunk, zardir, name))
-					continue
-				}
-				return err
+	if c.showRanges {
+		return archive.SpanWalk(context.TODO(), ark, nano.MaxSpan, func(si archive.SpanInfo) error {
+			for i, chunk := range si.Chunks {
+				rangeStr := si.ChunkRange(ark.DataSortDirection, i)
+				c.remove(ark, rangeStr, chunk.ZarDir(ark), args)
 			}
-			fmt.Printf("%s: removed\n", c.printable(ark, chunk, zardir, name))
-		}
+			return nil
+		})
+	}
+	return archive.Walk(context.TODO(), ark, func(chunk archive.Chunk) error {
+		c.remove(ark, "", chunk.ZarDir(ark), args)
 		return nil
 	})
 }
 
-func (c *Command) printable(ark *archive.Archive, chunk archive.Chunk, zardir iosrc.URI, objPath string) string {
+func (c *Command) remove(ark *archive.Archive, rangeStr string, dir iosrc.URI, names []string) error {
+	for _, name := range names {
+		path := dir.AppendPath(name)
+		if err := iosrc.Remove(context.TODO(), path); err != nil {
+			if zqe.IsNotFound(err) {
+				fmt.Printf("%s: not found\n", c.printable(ark, rangeStr, dir, name))
+				continue
+			}
+			return err
+		}
+		fmt.Printf("%s: removed\n", c.printable(ark, rangeStr, dir, name))
+	}
+	return nil
+}
+func (c *Command) printable(ark *archive.Archive, rangeStr string, zardir iosrc.URI, objPath string) string {
 	if c.showRanges {
-		return path.Join(chunk.Range(ark), objPath)
+		return path.Join(rangeStr, objPath)
 	}
 	if c.relativePaths {
 		return strings.TrimSuffix(ark.DataPath.RelPath(zardir.AppendPath(objPath)), "/")

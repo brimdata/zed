@@ -9,7 +9,6 @@ import (
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
@@ -17,30 +16,6 @@ import (
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
 )
-
-// A SpanInfo is a logical view of the records within a time span, stored
-// in one or more Chunks.
-type SpanInfo struct {
-	Span nano.Span
-
-	// chunks are the data files that contain records within this SpanInfo.
-	// The Chunks may have spans that extend beyond this SpanInfo, so any
-	// records from these Chunks should be limited to those that fall within a
-	// closed span constructed from First & Last.
-	Chunks []Chunk
-}
-
-func spanWalk(ctx context.Context, ark *Archive, filter nano.Span, v func(si SpanInfo) error) error {
-	return tsDirVisit(ctx, ark, filter, func(_ tsDir, chunks []Chunk) error {
-		sinfos := mergeChunksToSpans(chunks, ark.DataSortDirection, filter)
-		for _, s := range sinfos {
-			if err := v(s); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-}
 
 type multiCloser struct {
 	closers []io.Closer
@@ -131,7 +106,7 @@ func (m *multiSource) OrderInfo() (field.Static, bool) {
 }
 
 func (m *multiSource) spanWalk(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan<- driver.SourceOpener) error {
-	return spanWalk(ctx, m.ark, sf.Span, func(si SpanInfo) error {
+	return SpanWalk(ctx, m.ark, sf.Span, func(si SpanInfo) error {
 		so := func() (driver.ScannerCloser, error) {
 			return newSpanScanner(ctx, m.ark, zctx, sf.Filter, sf.FilterExpr, si)
 		}
