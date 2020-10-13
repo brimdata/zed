@@ -8,6 +8,7 @@ function awaitfile {
     let i+=1
     if [ $i -gt 5 ]; then
 	  echo "timed out waiting for file \"$file\" to appear, waited $(( SECONDS - start )) seconds"
+	  ls
       cat minio.log
       cat zqd.log
       exit 1

@@ -69,7 +69,7 @@ test-unit:
 	@go test -short ./...
 
 test-system: build bin/minio bin/$(ZEEKPATH) bin/$(SURICATAPATH)
-	@ZTEST_PATH=$(CURDIR)/dist:$(CURDIR)/bin:$(CURDIR)/bin/$(ZEEKPATH):$(CURDIR)/bin/$(SURICATAPATH) go test -v -count 100 -run TestZq/ztests/suite/zqd/s3/search .
+	@ZTEST_PATH=$(CURDIR)/dist:$(CURDIR)/bin:$(CURDIR)/bin/$(ZEEKPATH):$(CURDIR)/bin/$(SURICATAPATH) go test -v -count 1000 -run TestZq/ztests/suite/zqd/s3 .
 
 test-run: build bin/minio bin/$(ZEEKPATH) bin/$(SURICATAPATH)
 	@ZTEST_PATH=$(CURDIR)/dist:$(CURDIR)/bin:$(CURDIR)/bin/$(ZEEKPATH):$(CURDIR)/bin/$(SURICATAPATH) go test -v . -run $(TEST)
