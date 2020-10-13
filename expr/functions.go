@@ -11,6 +11,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/brimsec/zq/anymath"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zng"
 )
@@ -156,63 +157,15 @@ func mathLog(args *Args) (zng.Value, error) {
 	return zng.Value{zng.TypeFloat64, args.Float64(math.Log(x))}, nil
 }
 
-type reducer struct {
-	f64 func(float64, float64) float64
-	i64 func(int64, int64) int64
-	u64 func(uint64, uint64) uint64
-}
-
-var min = &reducer{
-	f64: func(a, b float64) float64 {
-		if a < b {
-			return a
-		}
-		return b
-	},
-	i64: func(a, b int64) int64 {
-		if a < b {
-			return a
-		}
-		return b
-	},
-	u64: func(a, b uint64) uint64 {
-		if a < b {
-			return a
-		}
-		return b
-	},
-}
-
-var max = &reducer{
-	f64: func(a, b float64) float64 {
-		if a > b {
-			return a
-		}
-		return b
-	},
-	i64: func(a, b int64) int64 {
-		if a > b {
-			return a
-		}
-		return b
-	},
-	u64: func(a, b uint64) uint64 {
-		if a > b {
-			return a
-		}
-		return b
-	},
-}
-
 func mathMax(args *Args) (zng.Value, error) {
-	return reduce(args, max)
+	return reduce(args, anymath.Max)
 }
 
 func mathMin(args *Args) (zng.Value, error) {
-	return reduce(args, min)
+	return reduce(args, anymath.Min)
 }
 
-func reduce(args *Args, fn *reducer) (zng.Value, error) {
+func reduce(args *Args, fn *anymath.Function) (zng.Value, error) {
 	zv := args.vals[0]
 	typ := zv.Type
 	id := typ.ID()
@@ -223,7 +176,7 @@ func reduce(args *Args, fn *reducer) (zng.Value, error) {
 			if !ok {
 				return zng.Value{}, ErrBadArgument
 			}
-			result = fn.f64(result, v)
+			result = fn.Float64(result, v)
 		}
 		return zng.Value{typ, args.Float64(result)}, nil
 	}
@@ -239,7 +192,7 @@ func reduce(args *Args, fn *reducer) (zng.Value, error) {
 				// XXX better message
 				return zng.Value{}, ErrBadArgument
 			}
-			result = fn.i64(result, v)
+			result = fn.Int64(result, v)
 		}
 		return zng.Value{typ, args.Int(result)}, nil
 	}
@@ -250,7 +203,7 @@ func reduce(args *Args, fn *reducer) (zng.Value, error) {
 			// XXX better message
 			return zng.Value{}, ErrBadArgument
 		}
-		result = fn.u64(result, v)
+		result = fn.Uint64(result, v)
 	}
 	return zng.Value{typ, args.Uint(result)}, nil
 }

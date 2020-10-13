@@ -8,15 +8,15 @@ import (
 
 type First struct {
 	Reducer
-	Resolver expr.Evaluator
-	val      *zng.Value
+	arg expr.Evaluator
+	val *zng.Value
 }
 
 func (f *First) Consume(r *zng.Record) {
 	if f.val != nil {
 		return
 	}
-	v, err := f.Resolver.Eval(r)
+	v, err := f.arg.Eval(r)
 	if err != nil || v.Type == nil {
 		return
 	}
