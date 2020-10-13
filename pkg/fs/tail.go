@@ -45,19 +45,17 @@ func TailFile(name string) (*TFile, error) {
 func (t *TFile) Read(b []byte) (int, error) {
 read:
 	n, err := t.f.Read(b)
-	if errors.Is(err, os.ErrClosed) {
-		err = io.EOF
-	}
-	// If there is data and EOF, change err to nil so data is read. Assuming
-	// no data is added to the file, the next Read call will initiate the wait.
-	if n > 0 && err == io.EOF {
-		err = nil
-	}
-	if n == 0 && err == io.EOF {
+	if err == io.EOF {
+		if n > 0 {
+			return n, nil
+		}
 		if err := t.waitWrite(); err != nil {
 			return 0, err
 		}
 		goto read
+	}
+	if errors.Is(err, os.ErrClosed) {
+		err = io.EOF
 	}
 	return n, err
 }
