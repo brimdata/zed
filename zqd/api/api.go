@@ -54,8 +54,8 @@ type Chunk struct {
 	Id          string  `json:"id" validate:"required"`
 	First       nano.Ts `json:"first" validate:"required"`
 	Last        nano.Ts `json:"last" validate:"required"`
-	FileKind    string  `json:"data_file_kind" validate:"required"`
-	RecordCount int     `json:"record_count" validate:"required"`
+	Kind        string  `json:"kind" validate:"required"`
+	RecordCount int64   `json:"record_count" validate:"required"`
 }
 
 type SearchRecords struct {

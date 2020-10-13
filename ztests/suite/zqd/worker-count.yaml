@@ -15,18 +15,7 @@ script: |
   # it does not matter which one.
   #
   ZNG_FILE_PATH=$(find . -name "d-*.zng" -print | head -1)
-  #
-  # The ksuid is embedded in the filename, and it can be
-  # used to find the "matching" TS file, which will have all
-  # the information we need to do a zapi get with the -chunk flag
-  #
-  KSUID=$(echo $ZNG_FILE_PATH \
-    | awk '{split($0,a,"/d-"); print a[2]}' \
-    | awk '{split($0,a,"\.zng"); print a[1]}')
-  TS_FILE_PATH=$(find . -name "ts-${KSUID}*.zng" -print)
-  CHUNK_INFO=d-$(echo $TS_FILE_PATH \
-    | awk '{split($0,a,"/ts-"); print a[2]}' \
-    | awk '{split($0,a,"\.zng"); print a[1]}')
+  CHUNK_INFO=$(basename $ZNG_FILE_PATH)
   #
   # The count() from zq should be identical to 
   # the count() from zapi get -chunk
