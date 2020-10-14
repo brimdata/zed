@@ -14,8 +14,7 @@ import (
 // falls into the SpanInfo's span.
 func mergeChunksToSpans(chunks []Chunk, dir zbuf.Direction, filter nano.Span) []SpanInfo {
 	sinfos := alignChunksToSpans(chunks, dir, filter)
-	sinfos = mergeLargestChunkSpanInfos(sinfos, dir)
-	return sinfos
+	return mergeLargestChunkSpanInfos(sinfos, dir)
 }
 
 // alignChunksToSpans creates an ordered slice of SpanInfo's whose boundaries
@@ -187,16 +186,15 @@ func mergeLargestChunkSpanInfos(spans []SpanInfo, dir zbuf.Direction) []SpanInfo
 	var res []SpanInfo
 	run := []SpanInfo{spans[0]}
 	runLargest := largestChunk(spans[0])
-	for i := 1; i < len(spans); i++ {
-		largest := largestChunk(spans[i])
+	for _, s := range spans[1:] {
+		largest := largestChunk(s)
 		if largest.Id != runLargest.Id {
 			res = append(res, mergeSpanInfos(run, dir))
-			run = []SpanInfo{spans[i]}
+			run = []SpanInfo{s}
 			runLargest = largest
 		} else {
-			run = append(run, spans[i])
+			run = append(run, s)
 		}
 	}
-	res = append(res, mergeSpanInfos(run, dir))
-	return res
+	return append(res, mergeSpanInfos(run, dir))
 }
