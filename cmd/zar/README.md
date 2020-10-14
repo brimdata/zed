@@ -390,7 +390,7 @@ zar map -o words.zng "uri != null | cut uri | put count=1"
 ```
 again you can look at one of the files...
 ```
-find $ZAR_ROOT -name 'words.zng' | head -n 1 | xargs zq -t -
+find $ZAR_ROOT -name words.zng | head -n 1 | xargs zq -t -
 ```
 Now we reduce by aggregating the uri and summing the counts:
 ```
