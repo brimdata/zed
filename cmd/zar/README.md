@@ -273,7 +273,7 @@ At the bottom you'll also find a record describing the micro-index layout. To
 see it:
 
 ```
-find $ZAR_ROOT -name 'custom.zng' | head -n 1 | xargs zq -f table - | tail -n 2
+find $ZAR_ROOT -name custom.zng | head -n 1 | xargs zq -f table 'tail 1' -
 ```
 
 ### zar find with custom index
