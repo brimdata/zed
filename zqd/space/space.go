@@ -32,6 +32,7 @@ type Space interface {
 	ID() api.SpaceID
 	Name() string
 	Storage() storage.Storage
+	PcapStore() *pcapstorage.Store
 	Info(context.Context) (api.SpaceInfo, error)
 
 	// StartOp is called to register an operation is in progress; the
@@ -43,14 +44,6 @@ type Space interface {
 	// Intended to be called from Manager.Delete().
 	delete(context.Context) error
 	update(api.SpacePutRequest) error
-}
-
-// PcapSpace denotes that a space is capable of storing pcap files and
-// indexes.
-// XXX Temporary. The should be removed once archive spaces are enabled to allow
-// pcap ingest.
-type PcapSpace interface {
-	PcapStore() *pcapstorage.Store
 }
 
 func newSpaceID() api.SpaceID {
@@ -123,13 +116,13 @@ func loadSpaces(ctx context.Context, p iosrc.URI, conf config, logger *zap.Logge
 	}
 	id := api.SpaceID(path.Base(p.Path))
 	logger = logger.With(zap.String("space_id", string(id)))
+	pcapstore, err := loadPcapStore(ctx, datapath)
+	if err != nil {
+		return nil, err
+	}
 	switch conf.Storage.Kind {
 	case storage.FileStore:
 		store, err := filestore.Load(datapath)
-		if err != nil {
-			return nil, err
-		}
-		pcapstore, err := loadPcapStore(ctx, datapath)
 		if err != nil {
 			return nil, err
 		}
@@ -146,7 +139,7 @@ func loadSpaces(ctx context.Context, p iosrc.URI, conf config, logger *zap.Logge
 			return nil, err
 		}
 		parent := &archiveSpace{
-			spaceBase: spaceBase{id, store, nil, newGuard(), logger},
+			spaceBase: spaceBase{id, store, pcapstore, newGuard(), logger},
 			path:      p,
 			conf:      conf,
 		}
@@ -159,7 +152,7 @@ func loadSpaces(ctx context.Context, p iosrc.URI, conf config, logger *zap.Logge
 				return nil, err
 			}
 			sub := &archiveSubspace{
-				spaceBase: spaceBase{subcfg.ID, substore, nil, newGuard(), logger},
+				spaceBase: spaceBase{subcfg.ID, substore, pcapstore, newGuard(), logger},
 				parent:    parent,
 			}
 			ret = append(ret, sub)
@@ -199,6 +192,10 @@ func (s *spaceBase) Storage() storage.Storage {
 	return s.store
 }
 
+func (s *spaceBase) PcapStore() *pcapstorage.Store {
+	return s.pcapstore
+}
+
 func (s *spaceBase) Info(ctx context.Context) (api.SpaceInfo, error) {
 	sum, err := s.store.Summary(ctx)
 	if err != nil {
@@ -214,7 +211,7 @@ func (s *spaceBase) Info(ctx context.Context) (api.SpaceInfo, error) {
 		StorageKind: sum.Kind,
 		Size:        sum.DataBytes,
 	}
-	if s.pcapstore != nil && !s.pcapstore.Empty() {
+	if !s.pcapstore.Empty() {
 		pcapinfo, err := s.pcapstore.Info(ctx)
 		if err != nil {
 			if !zqe.IsNotFound(err) {

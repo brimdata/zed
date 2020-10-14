@@ -10,7 +10,6 @@ import (
 
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pkg/ctxio"
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
@@ -191,12 +190,7 @@ func handlePcapSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		respondError(c, w, r, zqe.E(zqe.Invalid, err))
 		return
 	}
-	pspace, ok := s.(space.PcapSpace)
-	if !ok {
-		respondError(c, w, r, zqe.E(zqe.Invalid, "space does not support pcap searches"))
-		return
-	}
-	pcapstore := pspace.PcapStore()
+	pcapstore := s.PcapStore()
 	if pcapstore.Empty() {
 		respondError(c, w, r, zqe.E(zqe.NotFound, "no pcap in this space"))
 		return
@@ -365,18 +359,7 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pspace, ok := s.(space.PcapSpace)
-	if !ok {
-		respondError(c, w, r, zqe.E(zqe.Invalid, "space does not support pcap import"))
-		return
-	}
-	pcapstore := pspace.PcapStore()
-	logstore, ok := s.Storage().(ingest.ClearableStore)
-	if !ok {
-		respondError(c, w, r, zqe.E(zqe.Invalid, "storage does not support pcap import"))
-		return
-	}
-	op, warnings, err := ingest.NewPcapOp(ctx, pcapstore, logstore, req.Path, c.Suricata, c.Zeek)
+	op, warnings, err := ingest.NewPcapOp(ctx, s, req.Path, c.Suricata, c.Zeek)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -417,15 +400,8 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		status := api.PcapPostStatus{
-			Type:          "PcapPostStatus",
-			StartTime:     op.StartTime,
-			UpdateTime:    nano.Now(),
-			PcapSize:      op.PcapSize,
-			PcapReadSize:  op.PcapReadSize(),
-			SnapshotCount: op.SnapshotCount(),
-			Span:          &sum.Span,
-		}
+		status := op.Status()
+		status.Span = &sum.Span
 		if err := pipe.Send(status); err != nil {
 			logger.Warn("Error sending payload", zap.Error(err))
 			return

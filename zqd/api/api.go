@@ -166,7 +166,9 @@ type PcapPostStatus struct {
 	UpdateTime    nano.Ts    `json:"update_time"`
 	PcapSize      int64      `json:"pcap_total_size" unit:"bytes"`
 	PcapReadSize  int64      `json:"pcap_read_size" unit:"bytes"`
-	SnapshotCount int        `json:"snapshot_count"`
+	RecordBytes   int64      `json:"record_bytes,omitempty" unit:"bytes"`
+	RecordCount   int64      `json:"record_count,omitempty"`
+	SnapshotCount int        `json:"snapshot_count,omitempty"`
 	Span          *nano.Span `json:"span,omitempty"`
 }
 

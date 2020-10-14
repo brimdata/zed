@@ -9,6 +9,7 @@ require (
 	github.com/aws/aws-sdk-go v1.30.19
 	github.com/axiomhq/hyperloglog v0.0.0-20191112132149-a4c4c47bc57f
 	github.com/buger/jsonparser v0.0.0-20191004114745-ee4c978eae7e
+	github.com/fsnotify/fsnotify v1.4.9
 	github.com/go-resty/resty/v2 v2.2.0
 	github.com/golang/mock v1.4.3
 	github.com/google/gopacket v1.1.17

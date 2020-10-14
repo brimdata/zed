@@ -9,6 +9,7 @@ import (
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
 )
@@ -146,4 +147,58 @@ func (d *transformDriver) ChannelEnd(cid int) error           { return nil }
 func Copy(ctx context.Context, w zbuf.Writer, prog ast.Proc, zctx *resolver.Context, r zbuf.Reader, cfg Config) error {
 	d := &transformDriver{w: w}
 	return Run(ctx, d, prog, zctx, r, cfg)
+}
+
+type muxReader struct {
+	*muxOutput
+	batch       zbuf.Batch
+	cancel      context.CancelFunc
+	index       int
+	statsTickCh <-chan time.Time
+}
+
+func (mr *muxReader) Read() (*zng.Record, error) {
+read:
+	if mr.batch == nil {
+		chunk := mr.Pull(mr.statsTickCh)
+		if chunk.ID != 0 {
+			return nil, errors.New("transform proc with multiple tails")
+		}
+		if chunk.Batch != nil {
+			mr.batch = chunk.Batch
+		} else if chunk.Err != nil {
+			return nil, chunk.Err
+		} else if chunk.Warning != "" {
+			goto read
+		} else {
+			return nil, nil
+		}
+	}
+	if mr.index >= mr.batch.Length() {
+		mr.batch.Unref()
+		mr.batch, mr.index = nil, 0
+		goto read
+	}
+	rec := mr.batch.Index(mr.index)
+	mr.index++
+	return rec, nil
+}
+
+func (mr *muxReader) Close() error {
+	mr.cancel()
+	return nil
+}
+
+func NewReader(ctx context.Context, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader) (zbuf.ReadCloser, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	mux, err := compileSingle(ctx, program, zctx, reader, Config{})
+	if err != nil {
+		cancel()
+		return nil, err
+	}
+	return &muxReader{
+		cancel:      cancel,
+		muxOutput:   mux,
+		statsTickCh: make(chan time.Time),
+	}, nil
 }

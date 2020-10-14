@@ -8,7 +8,6 @@ import (
 
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zqd/api"
-	"github.com/brimsec/zq/zqd/pcapstorage"
 	"github.com/brimsec/zq/zqe"
 )
 
@@ -28,10 +27,6 @@ func (s *fileSpace) Info(ctx context.Context) (api.SpaceInfo, error) {
 	si.Name = s.conf.Name
 	si.DataPath = s.dataURI()
 	return si, nil
-}
-
-func (s *fileSpace) PcapStore() *pcapstorage.Store {
-	return s.pcapstore
 }
 
 func (s *fileSpace) dataURI() iosrc.URI {
