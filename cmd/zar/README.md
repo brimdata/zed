@@ -162,7 +162,7 @@ zar ls -l
 You will see all the indexes left behind. They are just zng files.
 If you want to see one, just look at it with zq, e.g.
 ```
-find $ZAR_ROOT -name 'microindex-type-ip.zng' | head -n 1 | xargs zq -t -
+find $ZAR_ROOT -name microindex-type-ip.zng | head -n 1 | xargs zq -t -
 ```
 Now if you run "zar find", it will efficiently look through all the index files
 instead of the logs and run much faster...
