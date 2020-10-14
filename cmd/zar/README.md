@@ -265,7 +265,7 @@ zar ls custom.zng
 ```
 To see what's in it:
 ```
-find $ZAR_ROOT -name 'custom.zng' | head -n 1 | xargs zq -f table - | head -n 10
+find $ZAR_ROOT -name custom.zng | head -n 1 | xargs zq -f table 'head 10' -
 ```
 You can see the IPs, counts, and _path strings.
 
