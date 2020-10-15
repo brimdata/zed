@@ -14,6 +14,11 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
+// MaxValueSize is a limit on an individual aggregation value since sets
+// and arrays could otherwise grow without limit leading to a single record
+// value that cannot fit in memory.
+const MaxValueSize = 20 * 1024 * 1024
+
 var (
 	ErrBadValue      = errors.New("bad value")
 	ErrFieldRequired = errors.New("field parameter required")
@@ -35,6 +40,7 @@ type Decomposable interface {
 type Stats struct {
 	TypeMismatch  int64
 	FieldNotFound int64
+	MemExceeded   int64
 }
 
 type Reducer struct {

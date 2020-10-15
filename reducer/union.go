@@ -12,7 +12,8 @@ type Union struct {
 	zctx *resolver.Context
 	arg  expr.Evaluator
 	typ  zng.Type
-	set  map[string]struct{}
+	val  map[string]struct{}
+	size int
 }
 
 func newUnion(zctx *resolver.Context, arg, where expr.Evaluator) *Union {
@@ -20,7 +21,7 @@ func newUnion(zctx *resolver.Context, arg, where expr.Evaluator) *Union {
 		Reducer: Reducer{where: where},
 		zctx:    zctx,
 		arg:     arg,
-		set:     make(map[string]struct{}),
+		val:     make(map[string]struct{}),
 	}
 }
 
@@ -38,13 +39,32 @@ func (u *Union) Consume(r *zng.Record) {
 		u.TypeMismatch++
 		return
 	}
-	u.set[string(v.Bytes)] = struct{}{}
+	u.update(v.Bytes)
+}
+
+func (u *Union) update(b zcode.Bytes) {
+	if _, ok := u.val[string(b)]; !ok {
+		u.val[string(b)] = struct{}{}
+		u.size += len(b)
+		for u.size > MaxValueSize {
+			u.deleteOne()
+			u.MemExceeded++
+		}
+	}
+}
+
+func (u *Union) deleteOne() {
+	for key := range u.val {
+		u.size -= len(key)
+		delete(u.val, key)
+		return
+	}
 }
 
 func (u *Union) Result() zng.Value {
 	b := zcode.NewBuilder()
 	container := zng.IsContainerType(u.typ)
-	for s, _ := range u.set {
+	for s, _ := range u.val {
 		if container {
 			b.AppendContainer([]byte(s))
 		} else {
@@ -57,11 +77,11 @@ func (u *Union) Result() zng.Value {
 
 func (u *Union) ConsumePart(zv zng.Value) error {
 	for it := zv.Iter(); !it.Done(); {
-		elem, _, err := it.NextTagAndBody()
+		elem, _, err := it.Next()
 		if err != nil {
 			return err
 		}
-		u.set[string(elem)] = struct{}{}
+		u.update(elem)
 	}
 	return nil
 }
