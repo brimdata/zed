@@ -1372,26 +1372,26 @@ var g = &grammar{
 				expr: &seqExpr{
 					pos: position{line: 209, col: 5, offset: 6801},
 					exprs: []interface{}{
-						&ruleRefExpr{
-							pos:  position{line: 209, col: 5, offset: 6801},
-							name: "_",
-						},
 						&litMatcher{
-							pos:        position{line: 209, col: 7, offset: 6803},
+							pos:        position{line: 209, col: 5, offset: 6801},
 							val:        "every",
 							ignoreCase: true,
 						},
 						&ruleRefExpr{
-							pos:  position{line: 209, col: 16, offset: 6812},
+							pos:  position{line: 209, col: 14, offset: 6810},
 							name: "_",
 						},
 						&labeledExpr{
-							pos:   position{line: 209, col: 18, offset: 6814},
+							pos:   position{line: 209, col: 16, offset: 6812},
 							label: "dur",
 							expr: &ruleRefExpr{
-								pos:  position{line: 209, col: 22, offset: 6818},
+								pos:  position{line: 209, col: 20, offset: 6816},
 								name: "duration",
 							},
+						},
+						&ruleRefExpr{
+							pos:  position{line: 209, col: 29, offset: 6825},
+							name: "_",
 						},
 					},
 				},

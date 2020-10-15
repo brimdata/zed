@@ -246,7 +246,7 @@ FlexAssignments
   }
 
 everyDur
-  = _ "every"i _ dur:duration { RETURN(dur) }
+  = "every"i _ dur:duration _ { RETURN(dur) }
 
 equalityToken
   = EqualityOperator / RelativeOperator
