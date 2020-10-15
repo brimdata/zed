@@ -36,13 +36,13 @@ func parse(zctx *resolver.Context, src string) (zbuf.Array, error) {
 // partial results into a second reducer, and feed any remaining
 // records into that reducer.
 func runOne(t *testing.T, zctx *resolver.Context, create reducer.Maker, i int, recs []*zng.Record) zng.Value {
-	red := create().(reducer.Decomposable)
+	red := create(zctx).(reducer.Decomposable)
 	for _, rec := range recs[:i] {
 		red.Consume(rec)
 	}
 	part, err := red.ResultPart(zctx)
 	require.NoError(t, err)
-	red = create().(reducer.Decomposable)
+	red = create(zctx).(reducer.Decomposable)
 	err = red.ConsumePart(part)
 	require.NoError(t, err)
 	for _, rec := range recs[i:] {
@@ -56,11 +56,11 @@ func runOne(t *testing.T, zctx *resolver.Context, create reducer.Maker, i int, r
 func runMany(t *testing.T, zctx *resolver.Context, create reducer.Maker, recs []*zng.Record) zng.Value {
 	var reds []reducer.Decomposable
 	for i := range recs {
-		red := create().(reducer.Decomposable)
+		red := create(zctx).(reducer.Decomposable)
 		red.Consume(recs[i])
 		reds = append(reds, red)
 	}
-	composer := create().(reducer.Decomposable)
+	composer := create(zctx).(reducer.Decomposable)
 	for i := range recs {
 		part, err := reds[i].ResultPart(zctx)
 		require.NoError(t, err)

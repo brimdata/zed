@@ -1,0 +1,19 @@
+script: |
+  zq -t -fusemem 1B "union(x)" in.tzng
+
+inputs:
+  - name: in.tzng
+    data: |
+      #0:record[x:int32]
+      0:[1;]
+      0:[-1;]
+      0:[2;]
+      0:[1;]
+      0:[8;]
+      0:[1;]
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[union:set[int32]]
+      0:[[1;-1;2;8;]]

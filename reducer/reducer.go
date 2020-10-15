@@ -14,12 +14,17 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
+// MaxValueSize is a limit on an individual aggregation value since sets
+// and arrays could otherwise grow without limit leading to a single record
+// value that cannot fit in memory.
+const MaxValueSize = 20 * 1024 * 1024
+
 var (
 	ErrBadValue      = errors.New("bad value")
 	ErrFieldRequired = errors.New("field parameter required")
 )
 
-type Maker func() Interface
+type Maker func(*resolver.Context) Interface
 
 type Interface interface {
 	Consume(*zng.Record)
@@ -35,6 +40,7 @@ type Decomposable interface {
 type Stats struct {
 	TypeMismatch  int64
 	FieldNotFound int64
+	MemExceeded   int64
 }
 
 type Reducer struct {
@@ -61,36 +67,40 @@ func NewMaker(op string, arg, where expr.Evaluator) (Maker, error) {
 	r := Reducer{where: where}
 	switch op {
 	case "count":
-		return func() Interface {
+		return func(*resolver.Context) Interface {
 			return &Count{Reducer: r, arg: arg}
 		}, nil
 	case "first":
-		return func() Interface {
+		return func(*resolver.Context) Interface {
 			return &First{Reducer: r, arg: arg}
 		}, nil
 	case "last":
-		return func() Interface {
+		return func(*resolver.Context) Interface {
 			return &Last{Reducer: r, arg: arg}
 		}, nil
 	case "avg":
-		return func() Interface {
+		return func(*resolver.Context) Interface {
 			return &Avg{Reducer: r, arg: arg}
 		}, nil
 	case "countdistinct":
-		return func() Interface {
+		return func(*resolver.Context) Interface {
 			return NewCountDistinct(arg, where)
 		}, nil
 	case "sum":
-		return func() Interface {
+		return func(*resolver.Context) Interface {
 			return newMathReducer(anymath.Add, arg, where)
 		}, nil
 	case "min":
-		return func() Interface {
+		return func(*resolver.Context) Interface {
 			return newMathReducer(anymath.Min, arg, where)
 		}, nil
 	case "max":
-		return func() Interface {
+		return func(*resolver.Context) Interface {
 			return newMathReducer(anymath.Max, arg, where)
+		}, nil
+	case "union":
+		return func(zctx *resolver.Context) Interface {
+			return newUnion(zctx, arg, where)
 		}, nil
 	default:
 		return nil, fmt.Errorf("unknown reducer op: %s", op)
