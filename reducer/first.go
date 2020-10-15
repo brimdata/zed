@@ -13,7 +13,7 @@ type First struct {
 }
 
 func (f *First) Consume(r *zng.Record) {
-	if f.val != nil {
+	if f.val != nil || f.filter(r) {
 		return
 	}
 	v, err := f.arg.Eval(r)

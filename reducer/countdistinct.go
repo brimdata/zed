@@ -14,14 +14,18 @@ type CountDistinct struct {
 	sketch *hyperloglog.Sketch
 }
 
-func NewCountDistinct(arg expr.Evaluator) *CountDistinct {
+func NewCountDistinct(arg, where expr.Evaluator) *CountDistinct {
 	return &CountDistinct{
-		arg:    arg,
-		sketch: hyperloglog.New(),
+		Reducer: Reducer{where: where},
+		arg:     arg,
+		sketch:  hyperloglog.New(),
 	}
 }
 
 func (c *CountDistinct) Consume(r *zng.Record) {
+	if c.filter(r) {
+		return
+	}
 	v, err := c.arg.Eval(r)
 	if err == nil {
 		c.sketch.Insert(v.Bytes)

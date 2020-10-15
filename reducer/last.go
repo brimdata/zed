@@ -13,6 +13,9 @@ type Last struct {
 }
 
 func (l *Last) Consume(r *zng.Record) {
+	if l.filter(r) {
+		return
+	}
 	v, err := l.arg.Eval(r)
 	if err != nil || v.Type == nil {
 		return

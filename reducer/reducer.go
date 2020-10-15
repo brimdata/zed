@@ -15,7 +15,8 @@ import (
 )
 
 var (
-	ErrBadValue = errors.New("bad value")
+	ErrBadValue      = errors.New("bad value")
+	ErrFieldRequired = errors.New("field parameter required")
 )
 
 type Maker func() Interface
@@ -38,50 +39,58 @@ type Stats struct {
 
 type Reducer struct {
 	Stats
+	where expr.Evaluator
 }
 
-var (
-	ErrUnknownField  = errors.New("unknown field")
-	ErrFieldRequired = errors.New("field parameter required")
-)
+func (r *Reducer) filter(rec *zng.Record) bool {
+	if r.where == nil {
+		return false
+	}
+	zv, err := r.where.Eval(rec)
+	if err != nil {
+		return true
+	}
+	return !zng.IsTrue(zv.Bytes)
+}
 
-func NewMaker(op string, arg expr.Evaluator) (Maker, error) {
+func NewMaker(op string, arg, where expr.Evaluator) (Maker, error) {
 	if arg == nil && op != "count" {
 		// Count is the only reducer that doesn't require an operator.
 		return nil, ErrFieldRequired
 	}
+	r := Reducer{where: where}
 	switch op {
 	case "count":
 		return func() Interface {
-			return &Count{arg: arg}
+			return &Count{Reducer: r, arg: arg}
 		}, nil
 	case "first":
 		return func() Interface {
-			return &First{arg: arg}
+			return &First{Reducer: r, arg: arg}
 		}, nil
 	case "last":
 		return func() Interface {
-			return &Last{arg: arg}
+			return &Last{Reducer: r, arg: arg}
 		}, nil
 	case "avg":
 		return func() Interface {
-			return &Avg{arg: arg}
+			return &Avg{Reducer: r, arg: arg}
 		}, nil
 	case "countdistinct":
 		return func() Interface {
-			return NewCountDistinct(arg)
+			return NewCountDistinct(arg, where)
 		}, nil
 	case "sum":
 		return func() Interface {
-			return newMathReducer(anymath.Add, arg)
+			return newMathReducer(anymath.Add, arg, where)
 		}, nil
 	case "min":
 		return func() Interface {
-			return newMathReducer(anymath.Min, arg)
+			return newMathReducer(anymath.Min, arg, where)
 		}, nil
 	case "max":
 		return func() Interface {
-			return newMathReducer(anymath.Max, arg)
+			return newMathReducer(anymath.Max, arg, where)
 		}, nil
 	default:
 		return nil, fmt.Errorf("unknown reducer op: %s", op)

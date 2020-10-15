@@ -15,6 +15,9 @@ type Avg struct {
 }
 
 func (a *Avg) Consume(r *zng.Record) {
+	if a.filter(r) {
+		return
+	}
 	v, err := a.arg.Eval(r)
 	if err != nil || v.Type == nil {
 		a.FieldNotFound++

@@ -112,9 +112,13 @@ searchPred
   / f:Lval __ comp:equalityToken __ v:searchValue {
       RETURN(MAP("op": "CompareField", "comparator": comp, "field": f, "value": v))
     }
-  / expr:FunctionExpr __ comp:equalityToken __ v:searchValue {
-      RETURN(MAP("op": "BinaryExpression", "operator": comp, "lhs": expr, "rhs": v))
-    }
+  // XXX this is here for now to let "len(array)" be matched now that we have
+  // made reducer names generic (which will be far easier to add to and maintain),
+  // and a better fix awaits the language tweaks coming in issue #1371.  At that
+  // point this peg rule will be subsumed by a unified search/expression syntax.
+  / &"len" expr:FunctionExpr __ comp:equalityToken __ v:searchValue {
+    RETURN(MAP("op": "BinaryExpression", "operator": comp, "lhs": expr, "rhs": v))
+  }
   / v:searchValue __ inToken __ "*" {
       RETURN(MAP("op": "CompareAny", "comparator": "in", "recursive": false, "value": v))
     }
@@ -309,24 +313,6 @@ ExprList
       RETURN(result)
     }
 
-countOp
-  = "count" { RETURN("count") }
-
-ReducerOp
-  = ReducerOps { RETURN(TEXT) }
-
-ReducerOps
-  = "sum"
-  / "avg"
-  / "stdev"
-  / "var"
-  / "entropy"
-  / "min"
-  / "max"
-  / "first"
-  / "last"
-  / "countdistinct"
-
 groupByProc
   = every:(everyDur _)? reducers:reducerList keys:(_ groupByKeys)? limit:procLimitArg? {
     if ISNOTNULL(OR(keys, every)) {
@@ -353,25 +339,16 @@ ReducerAssignment
       RETURN(MAP("op": "Assignment", "rhs": reducer))
   }
 
-reducer = countReducer / fieldReducer
-
-countReducer
-  = op:countOp __ "(" __ expr:fieldExpr?  __ ")" {
-    VAR(r) = MAP("op": "Reducer", "operator": op)
+reducer
+  = !("not"/"len") op:FunctionName __ "(" __ expr:Expression?  __ ")" where:where? {
+    VAR(r) = MAP("op": "Reducer", "operator": op, "where":where)
     if ISNOTNULL(expr) {
       r["expr"] = expr
     }
     RETURN(r)
   }
 
-fieldReducer
-  = op:ReducerOp __ "(" __ expr:fieldExpr  __ ")" {
-    VAR(r) = MAP("op": "Reducer", "operator": op)
-    if ISNOTNULL(expr) {
-      r["expr"] = expr
-    }
-    RETURN(r)
-  }
+where = _ "where" _ expr:Expression { RETURN(expr) }
 
 reducerList
   = first:ReducerAssignment rest:(__ "," __ ReducerAssignment)* {

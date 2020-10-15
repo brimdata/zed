@@ -79,6 +79,13 @@ func CompileReducer(assignment ast.Assignment) (field.Static, reducer.Maker, err
 			return nil, nil, fmt.Errorf("lhs of reducer expression: %w", err)
 		}
 	}
-	f, err := reducer.NewMaker(reducerOp, arg)
+	var where expr.Evaluator
+	if reducerAST.Where != nil {
+		where, err = expr.CompileExpr(reducerAST.Where)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+	f, err := reducer.NewMaker(reducerOp, arg, where)
 	return lhs, f, err
 }
