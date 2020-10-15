@@ -231,7 +231,7 @@ proc
     }
 
 groupByKeys
-  = "by"i _ columns:FlexAssignments { RETURN(columns) }
+  = _ "by"i _ columns:FlexAssignments { RETURN(columns) }
 
 // A FlexAssignment is like an Assignment but it can optionally omit the lhs,
 // in which case the semantic pass will infer a name from the rhs, e.g., for
@@ -246,7 +246,7 @@ FlexAssignments
   }
 
 everyDur
-  = "every"i _ dur:duration { RETURN(dur) }
+  = _ "every"i _ dur:duration { RETURN(dur) }
 
 equalityToken
   = EqualityOperator / RelativeOperator
@@ -314,21 +314,18 @@ ExprList
     }
 
 groupByProc
-  = every:(everyDur _)? reducers:reducerList keys:(_ groupByKeys)? limit:procLimitArg? {
-    if ISNOTNULL(OR(keys, every)) {
-      if ISNOTNULL(keys) {
-        keys = ASSERT_ARRAY(keys)[1]
-      } else {
-        keys = ARRAY()
-      }
-
-      if ISNOTNULL(every) {
-        every = ASSERT_ARRAY(every)[0]
-      }
-
-      RETURN(MAP("op": "GroupByProc", "duration": every, "limit": limit, "keys": keys, "reducers": reducers))
+  = every:everyDur? reducers:reducerList keys:groupByKeys? limit:procLimitArg? {
+    VAR(p) = MAP("op": "GroupByProc", "reducers": reducers)
+    if ISNOTNULL(keys) {
+      p["keys"] = keys
     }
-    RETURN(MAP("op": "GroupByProc", "reducers": reducers))
+    if ISNOTNULL(every) {
+      p["duration"] = every
+    }
+    if ISNOTNULL(limit) {
+      p["limit"] = limit
+    }
+    RETURN(p)
   }
 
 ReducerAssignment
