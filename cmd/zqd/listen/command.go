@@ -93,12 +93,10 @@ func (c *Command) Run(args []string) error {
 	if err := c.init(); err != nil {
 		return err
 	}
-	c.logger.Info("init complete")
 	openFilesLimit, err := rlimit.RaiseOpenFilesLimit()
 	if err != nil {
 		c.logger.Warn("Raising open files limit failed", zap.Error(err))
 	}
-	c.logger.Info("rlimit.raised")
 	core, err := zqd.NewCore(c.conf)
 	if err != nil {
 		return err
