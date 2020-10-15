@@ -56,11 +56,11 @@ func runOne(t *testing.T, zctx *resolver.Context, create reducer.Maker, i int, r
 func runMany(t *testing.T, zctx *resolver.Context, create reducer.Maker, recs []*zng.Record) zng.Value {
 	var reds []reducer.Decomposable
 	for i := range recs {
-		red := create().(reducer.Decomposable)
+		red := create(zctx).(reducer.Decomposable)
 		red.Consume(recs[i])
 		reds = append(reds, red)
 	}
-	composer := create().(reducer.Decomposable)
+	composer := create(zctx).(reducer.Decomposable)
 	for i := range recs {
 		part, err := reds[i].ResultPart(zctx)
 		require.NoError(t, err)
