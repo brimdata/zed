@@ -160,6 +160,9 @@ func compileParallel(custom Hook, pp *ast.ParallelProc, c *proc.Context, parents
 		}
 	}
 	if len(parents) != n {
+		// TODO: This should not be able to happen.
+		// Consider modifying the flow control before this so parents and pp.Procs are
+		// created in the same loop. -MTW
 		return nil, fmt.Errorf("proc.CompileProc: %d parents for parallel proc with %d branches", len(parents), len(pp.Procs))
 	}
 	var procs []proc.Interface

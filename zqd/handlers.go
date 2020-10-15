@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/brimsec/zq/archive"
+
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pkg/ctxio"
 	"github.com/brimsec/zq/zbuf"
@@ -106,7 +108,7 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", out.ContentType())
-	if err := srch.Run(ctx, s.Storage(), out); err != nil {
+	if err := srch.Run(ctx, req.Dir, s, out); err != nil {
 		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
 	}
 }
@@ -117,20 +119,15 @@ func handleWorker(c *Core, w http.ResponseWriter, httpReq *http.Request) {
 		return
 	}
 
-	space, err := c.spaces.Get(req.Space)
+	ctx := httpReq.Context()
+
+	ark, err := archive.OpenArchiveWithContext(ctx, req.DataPath, &archive.OpenOptions{})
 	if err != nil {
 		respondError(c, w, httpReq, err)
 		return
 	}
 
-	ctx, cancel, err := space.StartOp(httpReq.Context())
-	if err != nil {
-		respondError(c, w, httpReq, err)
-		return
-	}
-	defer cancel()
-
-	srch, err := search.NewWorkerOp(ctx, req, space.Storage())
+	work, err := search.NewWorkerOp(ctx, req, archivestore.NewStorage(ark))
 	if err != nil {
 		respondError(c, w, httpReq, err)
 		return
@@ -144,7 +141,7 @@ func handleWorker(c *Core, w http.ResponseWriter, httpReq *http.Request) {
 
 	w.Header().Set("Content-Type", out.ContentType())
 
-	if err := srch.Run(ctx, out); err != nil {
+	if err := work.Run(ctx, out); err != nil {
 		c.requestLogger(httpReq).Warn("Error writing response", zap.Error(err))
 	}
 

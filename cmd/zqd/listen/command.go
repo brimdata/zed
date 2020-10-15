@@ -14,10 +14,12 @@ import (
 	"os/exec"
 	"os/signal"
 	"runtime"
+	"strings"
 
 	"github.com/brimsec/zq/cli"
 	"github.com/brimsec/zq/cmd/zqd/logger"
 	"github.com/brimsec/zq/cmd/zqd/root"
+	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/httpd"
 	"github.com/brimsec/zq/pkg/rlimit"
@@ -39,7 +41,7 @@ var Listen = &charm.Spec{
 	Long: `
 The listen command launches a process to listen on the provided interface and
 `,
-	HiddenFlags: "brimfd",
+	HiddenFlags: "brimfd,workers",
 	New:         New,
 }
 
@@ -61,6 +63,7 @@ type Command struct {
 	logger             *zap.Logger
 	devMode            bool
 	portFile           string
+	workers            string
 	// brimfd is a file descriptor passed through by brim desktop. If set zqd
 	// will exit if the fd is closed.
 	brimfd int
@@ -79,6 +82,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.Var(&c.logLevel, "loglevel", "level for log output (defaults to info)")
 	f.BoolVar(&c.devMode, "dev", false, "runs zqd in development mode")
 	f.StringVar(&c.portFile, "portfile", "", "write port of http listener to file")
+	f.StringVar(&c.workers, "workers", "", "comma separated list of [addr]:port for zqd/workers")
 
 	// hidden
 	f.IntVar(&c.brimfd, "brimfd", -1, "pipe read fd passed by brim to signal brim closure")
@@ -150,6 +154,9 @@ func (c *Command) init() error {
 		return err
 	}
 	if err := c.initZeek(); err != nil {
+		return err
+	}
+	if err := c.initWorkers(); err != nil {
 		return err
 	}
 	return c.initSuricata()
@@ -255,6 +262,24 @@ func (c *Command) initSuricata() error {
 		return err
 	}
 	c.conf.Suricata = ln
+	return nil
+}
+
+func (c *Command) initWorkers() error {
+	// This is for local testing only, at this point.
+	// Workers will be available through a K8s service in a prod deployment.
+	if c.workers != "" {
+		workerArr := strings.Split(c.workers, ",")
+		for i, addr := range workerArr {
+			// default host to 127.0.0.1
+			a := strings.Split(addr, ":")
+			if a[0] == "" {
+				a[0] = "127.0.0.1"
+			}
+			workerArr[i] = "http://" + strings.Join(a, ":")
+		}
+		driver.WorkerURLs = workerArr
+	}
 	return nil
 }
 

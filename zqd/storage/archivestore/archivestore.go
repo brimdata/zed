@@ -45,6 +45,10 @@ type Storage struct {
 	ark *archive.Archive
 }
 
+func NewStorage(ark *archive.Archive) *Storage {
+	return &Storage{ark: ark}
+}
+
 func (s *Storage) NativeOrder() zbuf.Order {
 	return s.ark.DataOrder
 }

@@ -14,7 +14,7 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
-	"github.com/brimsec/zq/zqd/storage"
+	"github.com/brimsec/zq/zqd/space"
 	"github.com/brimsec/zq/zqd/storage/archivestore"
 	"github.com/brimsec/zq/zqd/storage/filestore"
 	"github.com/brimsec/zq/zqe"
@@ -60,7 +60,7 @@ func NewSearchOp(req api.SearchRequest) (*SearchOp, error) {
 	return &SearchOp{query: query}, nil
 }
 
-func (s *SearchOp) Run(ctx context.Context, store storage.Storage, output Output) (err error) {
+func (s *SearchOp) Run(ctx context.Context, dir int, spc space.Space, output Output) (err error) {
 	d := &searchdriver{
 		output:    output,
 		startTime: nano.Now(),
@@ -78,11 +78,14 @@ func (s *SearchOp) Run(ctx context.Context, store storage.Storage, output Output
 	defer statsTicker.Stop()
 	zctx := resolver.NewContext()
 
+	store := spc.Storage()
 	switch st := store.(type) {
 	case *archivestore.Storage:
 		return driver.MultiRun(ctx, d, s.query.Proc, zctx, st.MultiSource(), driver.MultiConfig{
 			Span:      s.query.Span,
 			StatsTick: statsTicker.C,
+			SpaceID:   spc.ID(),
+			Dir:       dir,
 		})
 	case *filestore.Storage:
 		rc, err := st.Open(ctx, zctx, s.query.Span)

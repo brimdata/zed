@@ -151,6 +151,7 @@ func (s *spanSource) Open(ctx context.Context, zctx *resolver.Context, sf driver
 
 func (s *spanSource) ToRequest(req *api.WorkerRequest) error {
 	req.Span = s.spanInfo.Span
+	req.DataPath = s.ark.DataPath.String()
 	for _, c := range s.spanInfo.Chunks {
 		req.ChunkPaths = append(req.ChunkPaths, c.RelativePath())
 	}

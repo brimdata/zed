@@ -18,6 +18,7 @@ import (
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zqd/api"
 	"go.uber.org/zap"
 )
 
@@ -113,8 +114,10 @@ func compileSingle(ctx context.Context, program ast.Proc, zctx *resolver.Context
 
 type MultiConfig struct {
 	Custom      compiler.Hook
+	Dir         int
 	Logger      *zap.Logger
 	Parallelism int
+	SpaceID     api.SpaceID
 	Span        nano.Span
 	StatsTick   <-chan time.Time
 	Warnings    chan string
@@ -130,8 +133,21 @@ func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context,
 	if mcfg.Warnings == nil {
 		mcfg.Warnings = make(chan string, 5)
 	}
+
 	if mcfg.Parallelism == 0 {
-		mcfg.Parallelism = runtime.GOMAXPROCS(0)
+		// If mcfg.Parallelism has not been set by external configuration,
+		// then it will be zero here.
+		if len(WorkerURLs) >= 2 {
+			// If zqd has been started as a "root" process,
+			// there is a -worker parameter with a list of WorkerURLs.
+			// In this case, initialize Parallelism as the number of workers.
+			mcfg.Parallelism = len(WorkerURLs)
+		} else {
+			// Otherwise, we will use threads (goroutines) for parallelism,
+			// so initialize Parallelism based on
+			// runtime configuation of max threads.
+			mcfg.Parallelism = runtime.GOMAXPROCS(0)
+		}
 	}
 
 	sortKey, sortReversed := msrc.OrderInfo()
