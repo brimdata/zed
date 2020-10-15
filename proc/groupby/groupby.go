@@ -174,7 +174,7 @@ func NewAggregator(c *proc.Context, params Params) *Aggregator {
 
 func decomposable(rs []reducerMaker) bool {
 	for _, r := range rs {
-		if _, ok := r.create().(reducer.Decomposable); !ok {
+		if _, ok := r.create(nil).(reducer.Decomposable); !ok {
 			return false
 		}
 	}
@@ -187,7 +187,7 @@ func IsDecomposable(assignments []ast.Assignment) bool {
 		if err != nil {
 			return false
 		}
-		if _, ok := create().(reducer.Decomposable); !ok {
+		if _, ok := create(nil).(reducer.Decomposable); !ok {
 			return false
 		}
 	}
@@ -290,7 +290,7 @@ func (a *Aggregator) createRow(keyCols []zng.Column, vals zcode.Bytes, groupval 
 		keycols:  keyCols,
 		keyvals:  v,
 		groupval: groupval,
-		reducers: newValRow(a.makers),
+		reducers: newValRow(a.zctx, a.makers),
 	}
 }
 
@@ -511,7 +511,7 @@ func (a *Aggregator) readSpills(eof bool) (zbuf.Batch, error) {
 
 func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 	// Consume all partial result records that have the same grouping keys.
-	row := newValRow(a.makers)
+	row := newValRow(a.zctx, a.makers)
 	var firstRec *zng.Record
 	for {
 		rec, err := a.spiller.Peek()
@@ -602,11 +602,7 @@ func (a *Aggregator) readTable(flush, decompose bool) (zbuf.Batch, error) {
 					return nil, err
 				}
 			} else {
-				// a reducer value is never a container
 				v = col.reducer.Result()
-				if v.IsContainer() {
-					panic("internal bug: reducer result cannot be a container!")
-				}
 			}
 			zv = v.Encode(zv)
 		}

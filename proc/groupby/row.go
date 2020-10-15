@@ -19,11 +19,11 @@ type valCol struct {
 
 type valRow []valCol
 
-func newValRow(makers []reducerMaker) valRow {
+func newValRow(zctx *resolver.Context, makers []reducerMaker) valRow {
 	cols := make([]valCol, 0, len(makers))
 	for _, maker := range makers {
 		e := expr.NewDotExpr(maker.name)
-		cols = append(cols, valCol{maker.name, e, maker.create()})
+		cols = append(cols, valCol{maker.name, e, maker.create(zctx)})
 	}
 	return cols
 }
@@ -40,7 +40,8 @@ func (v valRow) ConsumePart(rec *zng.Record) error {
 		if !ok {
 			return errors.New("reducer row doesn't decompose")
 		}
-		v, err := col.nameExpr.Eval(rec)
+		resolver := col.nameExpr
+		v, err := resolver.Eval(rec)
 		if err != nil {
 			return err
 		}
