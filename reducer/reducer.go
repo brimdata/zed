@@ -102,6 +102,10 @@ func NewMaker(op string, arg, where expr.Evaluator) (Maker, error) {
 		return func(zctx *resolver.Context) Interface {
 			return newUnion(zctx, arg, where)
 		}, nil
+	case "collect":
+		return func(zctx *resolver.Context) Interface {
+			return &Collect{Reducer: r, zctx: zctx, arg: arg}
+		}, nil
 	default:
 		return nil, fmt.Errorf("unknown reducer op: %s", op)
 	}
