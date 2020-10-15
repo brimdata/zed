@@ -55,14 +55,14 @@ func (u *Union) update(b zcode.Bytes) {
 
 func (u *Union) deleteOne() {
 	for key := range u.val {
-		u.size -= len([]byte(key))
+		u.size -= len(key)
 		delete(u.val, key)
 		return
 	}
 }
 
 func (u *Union) Result() zng.Value {
-	b := zcode.NewBuilder()
+	var b zcode.Builder
 	container := zng.IsContainerType(u.typ)
 	for s, _ := range u.val {
 		if container {
