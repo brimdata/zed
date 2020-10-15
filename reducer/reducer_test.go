@@ -6,8 +6,8 @@ import (
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/field"
+	"github.com/brimsec/zq/proc/groupby"
 	"github.com/brimsec/zq/reducer"
-	"github.com/brimsec/zq/reducer/compile"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
@@ -32,14 +32,14 @@ func parse(zctx *resolver.Context, src string) (zbuf.Array, error) {
 	return zbuf.Array(records), nil
 }
 
-func runOne(t *testing.T, zctx *resolver.Context, cred compile.Reducer, i int, recs []*zng.Record) zng.Value {
-	red := cred.Instantiate().(reducer.Decomposable)
+func runOne(t *testing.T, zctx *resolver.Context, create reducer.Maker, i int, recs []*zng.Record) zng.Value {
+	red := create().(reducer.Decomposable)
 	for _, rec := range recs[:i] {
 		red.Consume(rec)
 	}
 	part, err := red.ResultPart(zctx)
 	require.NoError(t, err)
-	red = cred.Instantiate().(reducer.Decomposable)
+	red = create().(reducer.Decomposable)
 	err = red.ConsumePart(part)
 	require.NoError(t, err)
 	for _, rec := range recs[i:] {
@@ -60,11 +60,11 @@ func TestDecomposableReducers(t *testing.T) {
 	require.NoError(t, err)
 	recs := b.Records()
 
-	makeReducer := func(op, fieldName string) compile.Reducer {
+	makeReducer := func(op, fieldName string) reducer.Maker {
 		assignment := ast.NewReducerAssignment(op, nil, field.New(fieldName))
-		cred, err := compile.Compile(assignment)
+		_, maker, err := groupby.CompileReducer(assignment)
 		require.NoError(t, err)
-		return cred
+		return maker
 	}
 
 	t.Run("avg", func(t *testing.T) {

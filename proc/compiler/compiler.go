@@ -53,11 +53,7 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, parent proc.Int
 		return nil, fmt.Errorf("unknown AST type: %v", v)
 
 	case *ast.GroupByProc:
-		params, err := groupby.CompileParams(v, pctx.TypeContext)
-		if err != nil {
-			return nil, err
-		}
-		return groupby.New(pctx, parent, *params), nil
+		return groupby.New(pctx, parent, v)
 
 	case *ast.CutProc:
 		cut, err := cut.New(pctx, parent, v)

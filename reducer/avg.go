@@ -9,13 +9,13 @@ import (
 
 type Avg struct {
 	Reducer
-	Resolver expr.Evaluator
-	sum      float64
-	count    uint64
+	arg   expr.Evaluator
+	sum   float64
+	count uint64
 }
 
 func (a *Avg) Consume(r *zng.Record) {
-	v, err := a.Resolver.Eval(r)
+	v, err := a.arg.Eval(r)
 	if err != nil || v.Type == nil {
 		a.FieldNotFound++
 		return
