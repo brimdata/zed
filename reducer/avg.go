@@ -69,7 +69,8 @@ func (a *Avg) ConsumePart(p zng.Value) error {
 	if err != nil {
 		return ErrBadValue
 	}
-	a.sum, a.count = sum, count
+	a.sum += sum
+	a.count += count
 	return nil
 }
 

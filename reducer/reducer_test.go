@@ -32,6 +32,9 @@ func parse(zctx *resolver.Context, src string) (zbuf.Array, error) {
 	return zbuf.Array(records), nil
 }
 
+// Feed the first i records into one reducer, feed that reducer's
+// partial results into a second reducer, and feed any remaining
+// records into that reducer.
 func runOne(t *testing.T, zctx *resolver.Context, create reducer.Maker, i int, recs []*zng.Record) zng.Value {
 	red := create().(reducer.Decomposable)
 	for _, rec := range recs[:i] {
@@ -46,6 +49,25 @@ func runOne(t *testing.T, zctx *resolver.Context, create reducer.Maker, i int, r
 		red.Consume(rec)
 	}
 	return red.Result()
+}
+
+// Feed len(recs) into as many reducers, then feed those reducer
+// partial results into a a separate reducer.
+func runMany(t *testing.T, zctx *resolver.Context, create reducer.Maker, recs []*zng.Record) zng.Value {
+	var reds []reducer.Decomposable
+	for i := range recs {
+		red := create().(reducer.Decomposable)
+		red.Consume(recs[i])
+		reds = append(reds, red)
+	}
+	composer := create().(reducer.Decomposable)
+	for i := range recs {
+		part, err := reds[i].ResultPart(zctx)
+		require.NoError(t, err)
+		err = composer.ConsumePart(part)
+		require.NoError(t, err)
+	}
+	return composer.Result()
 }
 
 func TestDecomposableReducers(t *testing.T) {
@@ -75,6 +97,10 @@ func TestDecomposableReducers(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, f, 5.)
 		}
+		res := runMany(t, resolver, cred, recs)
+		f, err := zng.DecodeFloat64(res.Bytes)
+		require.NoError(t, err)
+		require.Equal(t, f, 5.)
 	})
 	t.Run("count", func(t *testing.T) {
 		cred := makeReducer("count", "n")
@@ -84,6 +110,10 @@ func TestDecomposableReducers(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, f, uint64(3))
 		}
+		res := runMany(t, resolver, cred, recs)
+		f, err := zng.DecodeUint(res.Bytes)
+		require.NoError(t, err)
+		require.Equal(t, f, uint64(3))
 	})
 	t.Run("first", func(t *testing.T) {
 		cred := makeReducer("first", "n")
@@ -93,6 +123,10 @@ func TestDecomposableReducers(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, f, int64(0))
 		}
+		res := runMany(t, resolver, cred, recs)
+		f, err := zng.DecodeInt(res.Bytes)
+		require.NoError(t, err)
+		require.Equal(t, f, int64(0))
 	})
 	t.Run("last", func(t *testing.T) {
 		cred := makeReducer("last", "n")
@@ -102,6 +136,10 @@ func TestDecomposableReducers(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, f, int64(10))
 		}
+		res := runMany(t, resolver, cred, recs)
+		f, err := zng.DecodeInt(res.Bytes)
+		require.NoError(t, err)
+		require.Equal(t, f, int64(10))
 	})
 	t.Run("field-min", func(t *testing.T) {
 		cred := makeReducer("min", "n")
@@ -111,6 +149,10 @@ func TestDecomposableReducers(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, f, int64(0))
 		}
+		res := runMany(t, resolver, cred, recs)
+		f, err := zng.DecodeInt(res.Bytes)
+		require.NoError(t, err)
+		require.Equal(t, f, int64(0))
 	})
 	t.Run("field-max", func(t *testing.T) {
 		cred := makeReducer("max", "n")
@@ -120,6 +162,10 @@ func TestDecomposableReducers(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, f, int64(10))
 		}
+		res := runMany(t, resolver, cred, recs)
+		f, err := zng.DecodeInt(res.Bytes)
+		require.NoError(t, err)
+		require.Equal(t, f, int64(10))
 	})
 	t.Run("field-sum", func(t *testing.T) {
 		cred := makeReducer("sum", "n")
@@ -129,5 +175,9 @@ func TestDecomposableReducers(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, f, int64(15))
 		}
+		res := runMany(t, resolver, cred, recs)
+		f, err := zng.DecodeInt(res.Bytes)
+		require.NoError(t, err)
+		require.Equal(t, f, int64(15))
 	})
 }
