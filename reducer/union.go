@@ -55,7 +55,7 @@ func (u *Union) update(b zcode.Bytes) {
 
 func (u *Union) deleteOne() {
 	for key := range u.val {
-		u.size -= len(key)
+		u.size -= len([]byte(key))
 		delete(u.val, key)
 		return
 	}
