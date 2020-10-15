@@ -47,8 +47,7 @@ var (
 
 func NewMaker(op string, arg expr.Evaluator) (Maker, error) {
 	if arg == nil && op != "count" {
-		// Currently,tThe only reducer that supports operator without
-		// a field is count().
+		// Count is the only reducer that doesn't require an operator.
 		return nil, ErrFieldRequired
 	}
 	switch op {

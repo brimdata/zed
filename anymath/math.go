@@ -2,21 +2,21 @@ package anymath
 
 import "math"
 
+type Float64 func(float64, float64) float64
+type Int64 func(int64, int64) int64
+type Uint64 func(uint64, uint64) uint64
+
+type Function struct {
+	Init
+	Float64
+	Int64
+	Uint64
+}
+
 type Init struct {
 	Float64 float64
 	Int64   int64
 	Uint64  uint64
-}
-
-type Int64 func(int64, int64) int64
-type Uint64 func(uint64, uint64) uint64
-type Float64 func(float64, float64) float64
-
-type Function struct {
-	Init
-	Int64
-	Uint64
-	Float64
 }
 
 var Min = &Function{

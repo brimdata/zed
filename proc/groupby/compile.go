@@ -12,11 +12,6 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-type reducerMaker struct {
-	name   field.Static
-	create reducer.Maker
-}
-
 func compileParams(node *ast.GroupByProc, zctx *resolver.Context) (*Params, error) {
 	keys := []Key{}
 	var targets []field.Static

@@ -39,6 +39,11 @@ type Params struct {
 	emitPart     bool
 }
 
+type reducerMaker struct {
+	name   field.Static
+	create reducer.Maker
+}
+
 type errTooBig int
 
 func (e errTooBig) Error() string {
@@ -169,8 +174,7 @@ func NewAggregator(c *proc.Context, params Params) *Aggregator {
 
 func decomposable(rs []reducerMaker) bool {
 	for _, r := range rs {
-		instance := r.create()
-		if _, ok := instance.(reducer.Decomposable); !ok {
+		if _, ok := r.create().(reducer.Decomposable); !ok {
 			return false
 		}
 	}

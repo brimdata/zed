@@ -40,8 +40,7 @@ func (v valRow) ConsumePart(rec *zng.Record) error {
 		if !ok {
 			return errors.New("reducer row doesn't decompose")
 		}
-		resolver := col.nameExpr
-		v, err := resolver.Eval(rec)
+		v, err := col.nameExpr.Eval(rec)
 		if err != nil {
 			return err
 		}
