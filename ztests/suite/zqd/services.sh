@@ -11,6 +11,7 @@ function awaitfile {
 	  ls
       cat minio.log
       cat zqd.log
+	  echo "minio-port:$(cat $portdir/minio)"
 	  kill -3 $zqdpid
       exit 1
     fi
