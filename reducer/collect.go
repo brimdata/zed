@@ -43,7 +43,7 @@ func (c *Collect) update(b zcode.Bytes) {
 }
 
 func (c *Collect) Result() zng.Value {
-	b := zcode.NewBuilder()
+	var b zcode.Builder
 	container := zng.IsContainerType(c.typ)
 	for _, item := range c.val {
 		if container {
