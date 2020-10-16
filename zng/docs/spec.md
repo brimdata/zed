@@ -750,7 +750,7 @@ a null value.  A value that is not to be interpreted as null
 but is the single-character string `-`, must be escaped (e.g., `\x2d`).
 
 Note that this syntax can be scanned and parsed independent of the
-actual type definition indicated by the descriptor.  It is a semantic error
+actual type definition indicated by the tag.  It is a semantic error
 if the parsed value does not match the indicated type in terms of number and
 sub-structure of value elements present and their interpretation as a valid
 string of the specified type.
@@ -798,7 +798,7 @@ to `-` as opposed to representing a null value.
 ### 4.3.2 Value Syntax
 
 Each UTF-8 string field parsed from a value line is interpreted according to the
-type descriptor of the line using the formats shown in the
+type binding of the line using the formats shown in the
 [Primitive Types](#5-primitive-types) table.
 
 ## 4.4 Examples
