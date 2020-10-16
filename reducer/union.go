@@ -1,6 +1,8 @@
 package reducer
 
 import (
+	"errors"
+
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
@@ -62,6 +64,10 @@ func (u *Union) deleteOne() {
 }
 
 func (u *Union) Result() zng.Value {
+	if u.typ == nil {
+		// empty input
+		return zng.Value{zng.TypeNull, nil}
+	}
 	var b zcode.Builder
 	container := zng.IsContainerType(u.typ)
 	for s, _ := range u.val {
@@ -76,6 +82,17 @@ func (u *Union) Result() zng.Value {
 }
 
 func (u *Union) ConsumePart(zv zng.Value) error {
+	if zv.Bytes == nil {
+		// ignore empty results
+		return nil
+	}
+	if u.typ == nil {
+		typ, ok := zv.Type.(*zng.TypeSet)
+		if !ok {
+			return errors.New("partial not a set type")
+		}
+		u.typ = typ.Type
+	}
 	for it := zv.Iter(); !it.Done(); {
 		elem, _, err := it.Next()
 		if err != nil {

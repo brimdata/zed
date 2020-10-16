@@ -1,0 +1,42 @@
+script: |
+  zq -t "avg(n)" in.tzng > avg.tzng
+  zq -t "count()" in.tzng > count.tzng
+  zq -t "first(n)" in.tzng > first.tzng
+  zq -t "last(n)" in.tzng > last.tzng
+  zq -t "min(n)" in.tzng > min.tzng
+  zq -t "max(n)" in.tzng > max.tzng
+
+inputs:
+  - name: in.tzng
+    data: |
+      #0:record[n:int32]
+      0:[0;]
+      0:[5;]
+      0:[10;]
+
+outputs:
+  - name: avg.tzng
+    data: |
+      #0:record[avg:float64]
+      0:[5;]
+  - name: count.tzng
+    data: |
+      #0:record[count:uint64]
+      0:[3;]
+  - name: first.tzng
+    data: |
+      #0:record[first:int32]
+      0:[0;]
+  - name: last.tzng
+    data: |
+      #0:record[last:int32]
+      0:[10;]
+  # Note: min/max shouldn't be int64 (especially for uint)  Issue #1506.
+  - name: min.tzng
+    data: |
+      #0:record[min:int64]
+      0:[0;]
+  - name: max.tzng
+    data: |
+      #0:record[max:int64]
+      0:[10;]

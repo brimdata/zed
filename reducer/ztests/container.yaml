@@ -1,5 +1,6 @@
 script: |
-  zq -t -fusemem 1B "union(x)" in.tzng
+  zq -t "union(x)" in.tzng > union.tzng
+  zq -t "collect(x)" in.tzng > collect.tzng
 
 inputs:
   - name: in.tzng
@@ -13,7 +14,11 @@ inputs:
       0:[1;]
 
 outputs:
-  - name: stdout
+  - name: union.tzng
     data: |
       #0:record[union:set[int32]]
       0:[[1;-1;2;8;]]
+  - name: collect.tzng
+    data: |
+      #0:record[collect:array[int32]]
+      0:[[1;-1;2;1;8;1;]]
