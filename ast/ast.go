@@ -268,13 +268,13 @@ type (
 	// if any reducer in Reducers is non-decomposable.
 	GroupByProc struct {
 		Node
-		Duration     Duration     `json:"duration"`
+		Duration     Duration     `json:"duration,omitempty"`
 		InputSortDir int          `json:"input_sort_dir,omitempty"`
 		Limit        int          `json:"limit,omitempty"`
-		Keys         []Assignment `json:"keys"`
-		Reducers     []Assignment `json:"reducers"`
-		ConsumePart  bool         `json:"consume_part"`
-		EmitPart     bool         `json:"emit_part"`
+		Keys         []Assignment `json:"keys,omitempty"`
+		Reducers     []Assignment `json:"reducers,omitempty"`
+		ConsumePart  bool         `json:"consume_part,omitempty"`
+		EmitPart     bool         `json:"emit_part,omitempty"`
 	}
 	// TopProc is similar to proc.SortProc with a few key differences:
 	// - It only sorts in descending order.
