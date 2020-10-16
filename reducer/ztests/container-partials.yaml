@@ -1,0 +1,33 @@
+# This test exercises the partials paths in the reduducers by doing a group-by
+# with a single-row limit.  We also make sure the partials consumer can handle
+# an empty input by inncluding a record for key "a" with no value column.
+script: |
+  zq -t "union(x) by key with -limit 1" in.tzng > union.tzng
+  zq -t "collect(x) by key with -limit 1" in.tzng > collect.tzng
+
+inputs:
+  - name: in.tzng
+    data: |
+      #0:record[key:string,x:int32]
+      0:[a;1;]
+      0:[a;-1;]
+      0:[b;2;]
+      0:[b;1;]
+      0:[a;8;]
+      0:[b;1;]
+      #1:record[key:string]
+      1:[a;]
+      1:[a;]
+      1:[a;]
+
+outputs:
+  - name: union.tzng
+    data: |
+      #0:record[key:string,union:set[int32]]
+      0:[a;[1;-1;8;]]
+      0:[b;[1;2;]]
+  - name: collect.tzng
+    data: |
+      #0:record[key:string,collect:array[int32]]
+      0:[a;[1;-1;8;]]
+      0:[b;[2;1;1;]]

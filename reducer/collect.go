@@ -1,6 +1,8 @@
 package reducer
 
 import (
+	"errors"
+
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
@@ -43,6 +45,10 @@ func (c *Collect) update(b zcode.Bytes) {
 }
 
 func (c *Collect) Result() zng.Value {
+	if c.typ == nil {
+		// no values found
+		return zng.Value{zng.TypeNull, nil}
+	}
 	var b zcode.Builder
 	container := zng.IsContainerType(c.typ)
 	for _, item := range c.val {
@@ -57,8 +63,19 @@ func (c *Collect) Result() zng.Value {
 }
 
 func (c *Collect) ConsumePart(zv zng.Value) error {
+	if zv.Bytes == nil {
+		// ignore empty results
+		return nil
+	}
+	if c.typ == nil {
+		typ, ok := zv.Type.(*zng.TypeArray)
+		if !ok {
+			return errors.New("partial not an array type")
+		}
+		c.typ = typ.Type
+	}
 	for it := zv.Iter(); !it.Done(); {
-		elem, _, err := it.NextTagAndBody()
+		elem, _, err := it.Next()
 		if err != nil {
 			return err
 		}

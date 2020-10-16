@@ -1,0 +1,40 @@
+# This test exercises the partials paths in the reduducers by doing a group-by
+# with a single-row limit.  We also make sure the partials consumer can handle
+# an empty input by inncluding a record for key "a" with no value column.
+script: |
+  zq -t "avg(n) by key with -limit 1" in.tzng > avg.tzng
+  zq -t "count() by key with -limit 1" in.tzng > count.tzng
+  zq -t "min(n) by key with -limit 1" in.tzng > min.tzng
+  zq -t "max(n) by key with -limit 1" in.tzng > max.tzng
+
+inputs:
+  - name: in.tzng
+    data: |
+      #0:record[key:string,n:int32]
+      0:[a;0;]
+      0:[a;5;]
+      0:[b;10;]
+      #1:record[key:string]
+      1:[a;]
+
+outputs:
+  - name: avg.tzng
+    data: |
+      #0:record[key:string,avg:float64]
+      0:[a;2.5;]
+      0:[b;10;]
+  - name: count.tzng
+    data: |
+      #0:record[key:string,count:uint64]
+      0:[a;3;]
+      0:[b;1;]
+  - name: min.tzng
+    data: |
+      #0:record[key:string,min:int64]
+      0:[a;0;]
+      0:[b;10;]
+  - name: max.tzng
+    data: |
+      #0:record[key:string,max:int64]
+      0:[a;5;]
+      0:[b;10;]
