@@ -90,6 +90,12 @@ const reducersOut = `
 0:[b;1;1;1;1;1;1;]
 `
 
+const reducersOut2 = `
+#0:record[key1:string,sum:int64,avg:float64,min:int64,max:int64]
+0:[a;3;1.5;1;2;]
+0:[b;1;1;1;1;]
+`
+
 const arrayKeyIn = `
 #0:record[arr:array[int32],val:int32]
 0:[-;2;]
@@ -209,7 +215,7 @@ func New(name, input, output, cmd string) test.Internal {
 	}
 }
 
-func tests() suite {
+func tests(decomposable bool) suite {
 	s := suite{}
 
 	// Test a simple groupby
@@ -230,7 +236,12 @@ func tests() suite {
 	s.add(New("different-key-types", in+differentTypeIn, differentTypeOut, "count() by key1 | sort key1"))
 
 	// Test various reducers
-	s.add(New("reducers", in, reducersOut, "first(n), last(n), sum(n), avg(n), min(n), max(n) by key1 | sort key1"))
+	if decomposable {
+		s.add(New("reducers", in, reducersOut, "first(n), last(n), sum(n), avg(n), min(n), max(n) by key1 | sort key1"))
+	} else {
+		s.add(New("reducers", in, reducersOut2, "sum(n), avg(n), min(n), max(n) by key1 | sort key1"))
+
+	}
 
 	// Check out of bounds array indexes
 	s.add(New("array-out-of-bounds", arrayKeyIn, arrayKeyOut, "count() by arr | sort"))
@@ -244,8 +255,11 @@ func tests() suite {
 	// Test reducers with missing operands
 	s.add(New("not-present", notPresentIn, notPresentOut, "max(val), last(val) by key | sort"))
 
+	//
 	// Test reducers with mixed-type inputs
-	s.add(New("mixed-inputs", mixedIn, mixedOut, "first(f), last(f) by key | sort"))
+	if !decomposable {
+		s.add(New("mixed-inputs", mixedIn, mixedOut, "first(f), last(f) by key | sort"))
+	}
 
 	s.add(New("aliases", aliasIn, aliasOut, "count() by host | sort host"))
 
@@ -261,7 +275,7 @@ func tests() suite {
 
 func TestGroupbySystem(t *testing.T) {
 	t.Run("memory", func(t *testing.T) {
-		tests().runSystem(t)
+		tests(true).runSystem(t)
 	})
 	t.Run("spill", func(t *testing.T) {
 		saved := groupby.DefaultLimit
@@ -269,7 +283,7 @@ func TestGroupbySystem(t *testing.T) {
 		defer func() {
 			groupby.DefaultLimit = saved
 		}()
-		tests().runSystem(t)
+		tests(false).runSystem(t)
 	})
 }
 
