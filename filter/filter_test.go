@@ -458,6 +458,15 @@ func TestFilters(t *testing.T) {
 		{"rec.sub", true},
 		{"c.s", true},
 	})
+
+	// Test searching for a field name of an unset record
+	tzng = `
+#0:record[rec:record[str:string]]
+0:[-;]`
+	runCases(t, tzng, []testcase{
+		{"rec.str", true},
+	})
+
 }
 
 func TestBadFilter(t *testing.T) {
