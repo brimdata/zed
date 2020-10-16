@@ -1,5 +1,5 @@
 script: |
-  zq -t "union(x) by key with -limit 1 | sort ." in.tzng
+  zq -t "collect(x) by key with -limit 1 | sort ." in.tzng
 
 inputs:
   - name: in.tzng
@@ -15,6 +15,6 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      #0:record[key:string,union:set[int32]]
+      #0:record[key:string,collect:array[int32]]
       0:[a;[1;-1;8;]]
-      0:[b;[1;2;]]
+      0:[b;[2;1;1;]]

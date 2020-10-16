@@ -1,6 +1,8 @@
 package reducer
 
 import (
+	"errors"
+
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
@@ -76,6 +78,13 @@ func (u *Union) Result() zng.Value {
 }
 
 func (u *Union) ConsumePart(zv zng.Value) error {
+	if u.typ == nil {
+		typ, ok := zv.Type.(*zng.TypeSet)
+		if !ok {
+			return errors.New("partial not a set type")
+		}
+		u.typ = typ.Type
+	}
 	for it := zv.Iter(); !it.Done(); {
 		elem, _, err := it.Next()
 		if err != nil {
