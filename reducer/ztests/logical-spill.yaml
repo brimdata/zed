@@ -1,0 +1,18 @@
+script: |
+  zq -t "t1=or(x>2),t3=and(x>0) by key with -limit 1 | sort ." in.tzng
+inputs:
+  - name: in.tzng
+    data: |
+      #0:record[key:string,x:int32]
+      0:[a;1;]
+      0:[a;-1;]
+      0:[b;2;]
+      0:[b;1;]
+      0:[a;8;]
+      0:[b;1;]
+outputs:
+  - name: stdout
+    data: |
+      #0:record[key:string,t1:bool,t3:bool]
+      0:[a;T;F;]
+      0:[b;F;T;]
