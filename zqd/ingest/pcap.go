@@ -289,7 +289,7 @@ func (p *legacyPcapOp) createSnapshot(ctx context.Context) error {
 	}
 	// convert logs into sorted zng
 	zctx := resolver.NewContext()
-	zr, err := detector.OpenFiles(ctx, zctx, zbuf.RecordCompare(p.store.NativeDirection()), files...)
+	zr, err := detector.OpenFiles(ctx, zctx, zbuf.RecordCompare(p.store.NativeOrder()), files...)
 	if err != nil {
 		return err
 	}

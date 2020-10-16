@@ -18,9 +18,9 @@ const metadataFilename = "zar.json"
 type Metadata struct {
 	Version int `json:"version"`
 
-	DataPath          string         `json:"data_path"`
-	DataSortDirection zbuf.Direction `json:"data_sort_direction"`
-	LogSizeThreshold  int64          `json:"log_size_threshold"`
+	DataPath         string     `json:"data_path"`
+	DataOrder        zbuf.Order `json:"data_order"`
+	LogSizeThreshold int64      `json:"log_size_threshold"`
 }
 
 func (c *Metadata) Write(uri iosrc.URI) error {
@@ -55,8 +55,8 @@ func MetadataRead(ctx context.Context, uri iosrc.URI) (*Metadata, error) {
 }
 
 const (
-	DefaultLogSizeThreshold  = 500 * 1024 * 1024
-	DefaultDataSortDirection = zbuf.DirTimeReverse
+	DefaultLogSizeThreshold = 500 * 1024 * 1024
+	DefaultDataOrder        = zbuf.OrderDesc
 )
 
 type CreateOptions struct {
@@ -67,10 +67,10 @@ type CreateOptions struct {
 
 func (c *CreateOptions) toMetadata() *Metadata {
 	m := &Metadata{
-		Version:           0,
-		LogSizeThreshold:  DefaultLogSizeThreshold,
-		DataSortDirection: DefaultDataSortDirection,
-		DataPath:          ".",
+		Version:          0,
+		LogSizeThreshold: DefaultLogSizeThreshold,
+		DataOrder:        DefaultDataOrder,
+		DataPath:         ".",
 	}
 	if c.LogSizeThreshold != nil {
 		m.LogSizeThreshold = *c.LogSizeThreshold
@@ -79,26 +79,26 @@ func (c *CreateOptions) toMetadata() *Metadata {
 		m.DataPath = c.DataPath
 	}
 	if c.SortAscending {
-		m.DataSortDirection = zbuf.DirTimeForward
+		m.DataOrder = zbuf.OrderAsc
 	}
 	return m
 }
 
 type Archive struct {
-	Root              iosrc.URI
-	DataPath          iosrc.URI
-	DataSortDirection zbuf.Direction
-	LogSizeThreshold  int64
-	LogFilter         []ksuid.KSUID
-	dataSrc           iosrc.Source
+	Root             iosrc.URI
+	DataPath         iosrc.URI
+	DataOrder        zbuf.Order
+	LogSizeThreshold int64
+	LogFilter        []ksuid.KSUID
+	dataSrc          iosrc.Source
 }
 
 func (ark *Archive) metaWrite() error {
 	m := &Metadata{
-		Version:           0,
-		LogSizeThreshold:  ark.LogSizeThreshold,
-		DataSortDirection: ark.DataSortDirection,
-		DataPath:          ark.DataPath.String(),
+		Version:          0,
+		LogSizeThreshold: ark.LogSizeThreshold,
+		DataOrder:        ark.DataOrder,
+		DataPath:         ark.DataPath.String(),
 	}
 	return m.Write(ark.mdURI())
 }
@@ -150,10 +150,10 @@ func openArchive(ctx context.Context, root iosrc.URI, oo *OpenOptions) (*Archive
 	}
 
 	ark := &Archive{
-		Root:              root,
-		DataSortDirection: m.DataSortDirection,
-		LogSizeThreshold:  m.LogSizeThreshold,
-		DataPath:          dpuri,
+		Root:             root,
+		DataOrder:        m.DataOrder,
+		LogSizeThreshold: m.LogSizeThreshold,
+		DataPath:         dpuri,
 	}
 
 	if oo != nil && oo.DataSource != nil {

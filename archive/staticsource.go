@@ -25,7 +25,7 @@ func NewStaticSource(ark *Archive, si SpanInfo) driver.MultiSource {
 }
 
 func (s *staticSource) OrderInfo() (field.Static, bool) {
-	return field.New("ts"), s.ark.DataSortDirection == zbuf.DirTimeReverse
+	return field.New("ts"), s.ark.DataOrder == zbuf.OrderDesc
 }
 
 func (s *staticSource) SendSources(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan driver.SourceOpener) error {
