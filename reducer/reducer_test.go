@@ -180,4 +180,39 @@ func TestDecomposableReducers(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, f, int64(15))
 	})
+	t.Run("collect", func(t *testing.T) {
+		cred := makeReducer("collect", "n")
+		for i := 0; i <= len(recs); i++ {
+			res := runOne(t, resolver, cred, i, recs)
+			_, ok := res.Type.(*zng.TypeArray)
+			require.Equal(t, ok, true)
+			_, ok = res.Type.(*zng.TypeArray).Type.(*zng.TypeOfInt32)
+			it := res.Bytes.Iter()
+			for i := range recs {
+				zv, _, err := it.Next()
+				require.NoError(t, err)
+				actual, err := zng.DecodeInt(zv)
+				require.NoError(t, err)
+				expected, err := recs[i].AccessInt("n")
+				require.NoError(t, err)
+				require.Equal(t, expected, actual)
+			}
+			require.Equal(t, it.Done(), true)
+		}
+		res := runMany(t, resolver, cred, recs)
+		_, ok := res.Type.(*zng.TypeArray)
+		require.Equal(t, ok, true)
+		_, ok = res.Type.(*zng.TypeArray).Type.(*zng.TypeOfInt32)
+		it := res.Bytes.Iter()
+		for i := range recs {
+			zv, _, err := it.Next()
+			require.NoError(t, err)
+			actual, err := zng.DecodeInt(zv)
+			require.NoError(t, err)
+			expected, err := recs[i].AccessInt("n")
+			require.NoError(t, err)
+			require.Equal(t, expected, actual)
+		}
+		require.Equal(t, it.Done(), true)
+	})
 }

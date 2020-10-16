@@ -46,9 +46,8 @@ func (c *Collect) update(b zcode.Bytes) {
 
 func (c *Collect) Result() zng.Value {
 	if c.typ == nil {
-		// must be empty array
-		typ := c.zctx.LookupTypeArray(zng.TypeNull)
-		return zng.Value{typ, nil}
+		// no values found
+		return zng.Value{zng.TypeNull, nil}
 	}
 	var b zcode.Builder
 	container := zng.IsContainerType(c.typ)
@@ -64,6 +63,10 @@ func (c *Collect) Result() zng.Value {
 }
 
 func (c *Collect) ConsumePart(zv zng.Value) error {
+	if zv.Bytes == nil {
+		// ignore empty results
+		return nil
+	}
 	if c.typ == nil {
 		typ, ok := zv.Type.(*zng.TypeArray)
 		if !ok {

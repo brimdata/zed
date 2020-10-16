@@ -11,6 +11,16 @@ inputs:
       0:[b;1;]
       0:[a;8;]
       0:[b;1;]
+  - name: nulls.tzng
+    data: |
+      #0:record[key:string,x:int32]
+      #1:record[key:string]
+      1:[a;]
+      1:[a;]
+      0:[b;2;]
+      0:[b;1;]
+      0:[a;1;]
+      0:[b;1;]
 
 outputs:
   - name: stdout
