@@ -715,7 +715,7 @@ grammar describing the textual type encodings is:
 ### 4.3 Values
 
 A TZNG value is encoded on a line as a typed value, which is encoded as
-an integer type code followed by `:`, which is in turn followed
+an integer type tag followed by `:`, which is in turn followed
 by a value encoding.
 
 Here is a pseudo-grammar for typed values:
