@@ -18,7 +18,7 @@ func mergeChunksToSpans(chunks []Chunk, dir zbuf.Direction, filter nano.Span) []
 	boundaries(chunks, dir, func(ts nano.Ts, firstChunks, lastChunks []Chunk) {
 		if len(firstChunks) > 0 {
 			// ts is the 'First' timestamp for these chunks.
-			if len(siChunks) > 0 {
+			if len(siChunks) > 0 && ts != siFirst {
 				// We have accumulated chunks; create a span with them whose
 				// last timestamp was just before ts.
 				siSpan := firstLastToSpan(siFirst, prevTs(ts, dir))
