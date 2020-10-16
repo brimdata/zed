@@ -316,11 +316,11 @@ ExprList
 groupByProc
   = every:everyDur? reducers:reducerList keys:groupByKeys? limit:procLimitArg? {
     VAR(p) = MAP("op": "GroupByProc", "reducers": reducers)
-    if ISNOTNULL(keys) {
-      p["keys"] = keys
-    }
     if ISNOTNULL(every) {
       p["duration"] = every
+    }
+    if ISNOTNULL(keys) {
+      p["keys"] = keys
     }
     if ISNOTNULL(limit) {
       p["limit"] = limit
