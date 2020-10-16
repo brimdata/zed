@@ -38,11 +38,6 @@ jobs:
       - run: go build -o dist ./cmd/...
       - run: go test -v ./tests
       - run: make test-pcapingest
-  markdown-link-check:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v1
-    - uses: gaurav-nelson/github-action-markdown-link-check@v1
   zng-output-check:
     runs-on: ubuntu-latest
     steps:
