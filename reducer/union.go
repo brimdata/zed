@@ -64,6 +64,11 @@ func (u *Union) deleteOne() {
 }
 
 func (u *Union) Result() zng.Value {
+	if u.typ == nil {
+		// must be empty set
+		typ := u.zctx.LookupTypeSet(zng.TypeNull)
+		return zng.Value{typ, nil}
+	}
 	var b zcode.Builder
 	container := zng.IsContainerType(u.typ)
 	for s, _ := range u.val {
