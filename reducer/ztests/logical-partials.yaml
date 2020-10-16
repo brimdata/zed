@@ -1,0 +1,13 @@
+zql: 't1=or(x>2),t2=or(x>4),t3=and(x>0),t4=and(x>2),t5=and(x>2) where x>2 by key with -limit 1 | sort .'
+input: |
+  #0:record[key:string,x:int32]
+  0:[a;1;]
+  0:[a;-1;]
+  0:[b;2;]
+  0:[b;1;]
+  0:[a;8;]
+  0:[b;1;]
+output: |
+  #0:record[key:string,t1:bool,t2:bool,t3:bool,t4:bool,t5:bool]
+  0:[a;T;T;F;F;T;]
+  0:[b;F;F;T;F;T;]
