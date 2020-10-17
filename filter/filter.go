@@ -1,6 +1,7 @@
 package filter
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -185,19 +186,11 @@ func searchRecordOther(searchtext string, searchval ast.Literal) (Filter, error)
 
 }
 
+var errMatch = errors.New("match")
+
 // searchRecordString handles the special case of string searching -- it
 // matches both field names and values.
 func searchRecordString(term string) Filter {
-	search := func(zv zng.Value) bool {
-		switch zv.Type.ID() {
-		case zng.IdBstring, zng.IdString:
-			s := byteconv.UnsafeString(zv.Bytes)
-			return stringSearch(s, term)
-		default:
-			return false
-		}
-	}
-	searchContainer := Contains(search)
 	fieldNameCheck := make(map[zng.Type]bool)
 	return func(r *zng.Record) bool {
 		// Memoize the result of a search across the names in the
@@ -220,17 +213,14 @@ func searchRecordString(term string) Filter {
 		if match {
 			return true
 		}
-		iter := r.FieldIter()
-		for !iter.Done() {
-			_, val, err := iter.Next()
-			if err != nil {
-				return false
+		err := r.Walk(func(typ zng.Type, body zcode.Bytes) error {
+			if zng.IsStringy(typ.ID()) &&
+				stringSearch(byteconv.UnsafeString(body), term) {
+				return errMatch
 			}
-			if search(val) || searchContainer(val) {
-				return true
-			}
-		}
-		return false
+			return nil
+		})
+		return err == errMatch
 	}
 }
 

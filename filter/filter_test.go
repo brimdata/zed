@@ -288,6 +288,38 @@ func TestFilters(t *testing.T) {
 		{"wor*", true},
 	})
 
+	// Test searching a record inside an array.
+	tzng = `
+#0:record[a:array[record[s:string]]]
+0:[[[hello;]]]`
+	runCases(t, tzng, []testcase{
+		{"hello", true},
+	})
+
+	// Test searching a record inside a record.
+	tzng = `
+#0:record[r:record[r2:record[s:string]]]
+0:[[[hello;]]]`
+	runCases(t, tzng, []testcase{
+		{"hello", true},
+	})
+
+	// Test searching a record inside a set.
+	tzng = `
+#0:record[s:set[record[s:string]]]
+0:[[[hello;]]]`
+	runCases(t, tzng, []testcase{
+		{"hello", true},
+	})
+
+	// Test searching a record inside a union.
+	tzng = `
+#0:record[u:union[int64,record[s:string]]]
+0:[1:[hello;]]`
+	runCases(t, tzng, []testcase{
+		{"hello", true},
+	})
+
 	// Test searching with subnet syntax
 	tzng = `
 #0:record[addr:ip]
