@@ -44,6 +44,7 @@ func (l *Logical) Result() zng.Value {
 }
 
 func (l *Logical) ConsumePart(p zng.Value) error {
+	// DecodeBool returns error for nil bytes so we don't check it here.
 	b, err := zng.DecodeBool(p.Bytes)
 	if err != nil {
 		return err
