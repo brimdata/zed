@@ -12,6 +12,9 @@ import (
 
 var (
 	errNotStruct = errors.New("not a struct or struct ptr")
+
+	marshalerType   = reflect.TypeOf((*Marshaler)(nil)).Elem()
+	unmarshalerType = reflect.TypeOf((*Unmarshaler)(nil)).Elem()
 )
 
 type Marshaler interface {
@@ -55,14 +58,19 @@ func fieldName(f reflect.StructField) string {
 	return f.Name
 }
 
+func encodeMarshaler(zctx *Context, b *zcode.Builder, v reflect.Value) (zng.Type, error) {
+	m, ok := v.Interface().(Marshaler)
+	if !ok {
+		return nil, fmt.Errorf("couldn't marshal interface: %v", v)
+	}
+	return m.MarshalZNG(zctx, b)
+}
+
 func encodeAny(zctx *Context, b *zcode.Builder, v reflect.Value) (zng.Type, error) {
+	if v.Type().Implements(marshalerType) {
+		return encodeMarshaler(zctx, b, v)
+	}
 	switch v.Kind() {
-	case reflect.Interface:
-		m, ok := v.Interface().(Marshaler)
-		if !ok {
-			return nil, fmt.Errorf("couldn't marshal interface: %v", v)
-		}
-		return m.MarshalZNG(zctx, b)
 	case reflect.Struct:
 		return encodeRecord(zctx, b, v)
 	case reflect.Slice:
@@ -225,6 +233,16 @@ func incompatTypeError(zt zng.Type, v reflect.Value) error {
 }
 
 func decodeAny(zctx *Context, typ zng.Type, zv zcode.Bytes, v reflect.Value) error {
+	if v.Type().Implements(unmarshalerType) {
+		if v.IsNil() {
+			v.Set(reflect.New(v.Type().Elem()))
+		}
+		m, ok := v.Interface().(Unmarshaler)
+		if !ok {
+			return fmt.Errorf("couldn't use Unmarshaler: %v", v)
+		}
+		return m.UnmarshalZNG(zctx, typ, zv)
+	}
 	switch v.Kind() {
 	case reflect.Slice:
 		if isIP(v.Type()) {
@@ -233,12 +251,6 @@ func decodeAny(zctx *Context, typ zng.Type, zv zcode.Bytes, v reflect.Value) err
 		return decodeArray(zctx, typ, zv, v)
 	case reflect.Struct:
 		return decodeRecord(zctx, typ, zv, v)
-	case reflect.Interface:
-		m, ok := v.Interface().(Unmarshaler)
-		if !ok {
-			return fmt.Errorf("couldn't unmarshal interface: %v", v)
-		}
-		return m.UnmarshalZNG(zctx, typ, zv)
 	case reflect.Ptr:
 		if zv == nil {
 			v.Set(reflect.Zero(v.Type()))

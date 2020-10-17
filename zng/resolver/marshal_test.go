@@ -1,6 +1,7 @@
 package resolver_test
 
 import (
+	"errors"
 	"net"
 	"strings"
 	"testing"
@@ -64,33 +65,6 @@ func TestMarshal(t *testing.T) {
 type Thing struct {
 	A string `zng:"a"`
 	B int
-}
-
-type Foo struct {
-	Thing
-}
-
-type Bar interface {
-	MarshalZNG(*resolver.Context, *zcode.Builder) (zng.Type, error)
-}
-
-func (f *Foo) MarshalZNG(zctx *resolver.Context, b *zcode.Builder) (zng.Type, error) {
-	return resolver.Marshal(zctx, b, f.Thing)
-}
-
-func TestMarshalInteface(t *testing.T) {
-	f := &Foo{Thing{A: "hello", B: 123}}
-	b := Bar(f)
-	zctx := resolver.NewContext()
-	rec, err := resolver.MarshalRecord(zctx, b)
-	require.NoError(t, err)
-	require.NotNil(t, rec)
-
-	exp := `
-#0:record[Thing:record[a:string,B:int64]]
-0:[[hello;123;]]
-`
-	assert.Equal(t, trim(exp), rectzng(t, rec))
 }
 
 type Things struct {
@@ -227,4 +201,47 @@ func TestUnmarshalSlice(t *testing.T) {
 	err = resolver.UnmarshalRecord(zctx, rec, &v4)
 	require.NoError(t, err)
 	require.Equal(t, v1, v2)
+}
+
+type testMarshaler string
+
+func (m testMarshaler) MarshalZNG(zctx *resolver.Context, b *zcode.Builder) (zng.Type, error) {
+	return resolver.Marshal(zctx, b, "marshal-"+string(m))
+}
+
+func (m *testMarshaler) UnmarshalZNG(zctx *resolver.Context, zt zng.Type, zb zcode.Bytes) error {
+	var s string
+	if err := resolver.Unmarshal(zctx, zt, zb, &s); err != nil {
+		return err
+	}
+	ss := strings.Split(s, "-")
+	if len(ss) != 2 && ss[0] != "marshal" {
+		return errors.New("bad value")
+	}
+	*m = testMarshaler(ss[1])
+	return nil
+}
+
+func TestMarshalInterface(t *testing.T) {
+	type rectype struct {
+		M1 *testMarshaler
+		M2 testMarshaler
+	}
+	m1 := testMarshaler("m1")
+	r1 := rectype{M1: &m1, M2: testMarshaler("m2")}
+	rec, err := resolver.MarshalRecord(resolver.NewContext(), r1)
+	require.NoError(t, err)
+	require.NotNil(t, rec)
+
+	exp := `
+#0:record[M1:string,M2:string]
+0:[marshal-m1;marshal-m2;]
+`
+	assert.Equal(t, trim(exp), rectzng(t, rec))
+
+	var r2 rectype
+	err = resolver.UnmarshalRecord(resolver.NewContext(), rec, &r2)
+	require.NoError(t, err)
+	assert.Equal(t, "m1", string(*r1.M1))
+	assert.Equal(t, "m2", string(r1.M2))
 }
