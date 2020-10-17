@@ -31,7 +31,7 @@ func importTzng(t *testing.T, ark *Archive, s string) {
 	require.NoError(t, err)
 }
 
-func TestMergeChunksToSpans(t *testing.T) {
+func TestAlignChunksToSpans(t *testing.T) {
 	cases := []struct {
 		chunks []Chunk
 		filter nano.Span
@@ -183,7 +183,7 @@ func TestMergeChunksToSpans(t *testing.T) {
 	}
 	for i, c := range cases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			assert.Equal(t, c.exp, mergeChunksToSpans(c.chunks, c.dir, c.filter))
+			assert.Equal(t, c.exp, alignChunksToSpans(c.chunks, c.dir, c.filter))
 		})
 	}
 }
@@ -275,12 +275,104 @@ func TestOverlapWalking(t *testing.T) {
 			return nil
 		})
 		require.NoError(t, err)
-		assert.Len(t, sispans, 3)
+		assert.Len(t, sispans, 2)
 		exp := []sispan{
-			{si: nano.Span{Ts: 21, Dur: 1}, chunkSpans: []nano.Span{{Ts: 15, Dur: 11}}},
-			{si: nano.Span{Ts: 15, Dur: 6}, chunkSpans: []nano.Span{{Ts: 15, Dur: 11}, {Ts: 10, Dur: 11}}},
+			{si: nano.Span{Ts: 15, Dur: 7}, chunkSpans: []nano.Span{{Ts: 15, Dur: 11}, {Ts: 10, Dur: 11}}},
 			{si: nano.Span{Ts: 12, Dur: 3}, chunkSpans: []nano.Span{{Ts: 10, Dur: 11}}},
 		}
 		assert.Equal(t, exp, sispans)
+	}
+}
+
+func TestMergeLargestChunkSpanInfos(t *testing.T) {
+	cases := []struct {
+		in  []SpanInfo
+		exp []SpanInfo
+	}{
+		{
+			in: []SpanInfo{
+				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []Chunk{
+					{Id: kid("a"), First: 0, Last: 1, RecordCount: 10}}},
+				{Span: nano.Span{Ts: 1, Dur: 1}, Chunks: []Chunk{
+					{Id: kid("a"), First: 0, Last: 1, RecordCount: 10},
+					{Id: kid("b"), First: 1, Last: 1, RecordCount: 5},
+				}},
+			},
+			exp: []SpanInfo{
+				{Span: nano.Span{Ts: 0, Dur: 2}, Chunks: []Chunk{
+					{Id: kid("a"), First: 0, Last: 1, RecordCount: 10},
+					{Id: kid("b"), First: 1, Last: 1, RecordCount: 5},
+				}},
+			},
+		},
+	}
+	for i, c := range cases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			assert.Equal(t, c.exp, mergeLargestChunkSpanInfos(c.in, zbuf.DirTimeForward))
+		})
+	}
+}
+
+func TestMergeChunksToSpans(t *testing.T) {
+	cases := []struct {
+		in     []Chunk
+		filter nano.Span
+		dir    zbuf.Direction
+		exp    []SpanInfo
+	}{
+		{
+			in: []Chunk{
+				{Id: kid("a"), First: 0, Last: 3, RecordCount: 10},
+				{Id: kid("b"), First: 1, Last: 3, RecordCount: 20},
+			},
+			filter: nano.MaxSpan,
+			dir:    zbuf.DirTimeForward,
+			exp: []SpanInfo{
+				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []Chunk{
+					{Id: kid("a"), First: 0, Last: 3, RecordCount: 10}}},
+				{Span: nano.Span{Ts: 1, Dur: 3}, Chunks: []Chunk{
+					{Id: kid("a"), First: 0, Last: 3, RecordCount: 10},
+					{Id: kid("b"), First: 1, Last: 3, RecordCount: 20}}},
+			},
+		},
+		{
+			in: []Chunk{
+				{Id: kid("a"), First: 0, Last: 3, RecordCount: 20},
+				{Id: kid("b"), First: 2, Last: 5, RecordCount: 10},
+			},
+			filter: nano.MaxSpan,
+			dir:    zbuf.DirTimeForward,
+			exp: []SpanInfo{
+				{Span: nano.Span{Ts: 0, Dur: 4}, Chunks: []Chunk{
+					{Id: kid("a"), First: 0, Last: 3, RecordCount: 20},
+					{Id: kid("b"), First: 2, Last: 5, RecordCount: 10}}},
+				{Span: nano.Span{Ts: 4, Dur: 2}, Chunks: []Chunk{
+					{Id: kid("b"), First: 2, Last: 5, RecordCount: 10}}},
+			},
+		},
+		{
+			in: []Chunk{
+				{Id: kid("b"), First: 0, Last: 0, RecordCount: 10},
+				{Id: kid("a"), First: 0, Last: 0, RecordCount: 10},
+			},
+			filter: nano.MaxSpan,
+			dir:    zbuf.DirTimeForward,
+			exp: []SpanInfo{
+				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []Chunk{
+					{Id: kid("a"), First: 0, Last: 0, RecordCount: 10},
+					{Id: kid("b"), First: 0, Last: 0, RecordCount: 10}}},
+			},
+		},
+		{
+			in:     nil,
+			filter: nano.MaxSpan,
+			dir:    zbuf.DirTimeForward,
+			exp:    nil,
+		},
+	}
+	for i, c := range cases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			assert.Equal(t, c.exp, mergeChunksToSpans(c.in, c.dir, c.filter))
+		})
 	}
 }
