@@ -2,6 +2,7 @@ package resolver_test
 
 import (
 	"errors"
+	"math"
 	"net"
 	"strings"
 	"testing"
@@ -268,4 +269,45 @@ func TestMarshalArray(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, r1.A1, r2.A1)
 	assert.Equal(t, *r2.A2, *r2.A2)
+}
+
+func TestIntsAndUints(t *testing.T) {
+	type rectype struct {
+		I    int
+		I8   int8
+		I16  int16
+		I32  int32
+		I64  int64
+		U    uint
+		UI8  uint8
+		UI16 uint16
+		UI32 uint32
+		UI64 uint64
+	}
+	r1 := rectype{
+		I:    math.MinInt64,
+		I8:   math.MinInt8,
+		I16:  math.MinInt16,
+		I32:  math.MinInt32,
+		I64:  math.MinInt64,
+		U:    math.MaxUint64,
+		UI8:  math.MaxUint8,
+		UI16: math.MaxUint16,
+		UI32: math.MaxUint32,
+		UI64: math.MaxUint64,
+	}
+	rec, err := resolver.MarshalRecord(resolver.NewContext(), r1)
+	require.NoError(t, err)
+	require.NotNil(t, rec)
+
+	exp := `
+#0:record[I:int64,I8:int8,I16:int16,I32:int32,I64:int64,U:uint64,UI8:uint8,UI16:uint16,UI32:uint32,UI64:uint64]
+0:[-9223372036854775808;-128;-32768;-2147483648;-9223372036854775808;18446744073709551615;255;65535;4294967295;18446744073709551615;]
+`
+	assert.Equal(t, trim(exp), rectzng(t, rec))
+
+	var r2 rectype
+	err = resolver.UnmarshalRecord(resolver.NewContext(), rec, &r2)
+	require.NoError(t, err)
+	assert.Equal(t, r1, r2)
 }

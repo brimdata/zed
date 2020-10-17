@@ -88,20 +88,20 @@ func encodeAny(zctx *Context, b *zcode.Builder, v reflect.Value) (zng.Type, erro
 	case reflect.Bool:
 		b.AppendPrimitive(zng.EncodeBool(v.Bool()))
 		return zng.TypeBool, nil
-	// XXX Need to finish the zng int types...
-	case reflect.Int, reflect.Int64:
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		zt, err := lookupType(zctx, v.Type())
+		if err != nil {
+			return nil, err
+		}
 		b.AppendPrimitive(zng.EncodeInt(v.Int()))
-		return zng.TypeInt64, nil
-	case reflect.Int32, reflect.Int16, reflect.Int8:
-		b.AppendPrimitive(zng.EncodeInt(v.Int()))
-		return zng.TypeInt32, nil
-	// XXX Need to finish the zng uint types...
-	case reflect.Uint, reflect.Uint64:
+		return zt, nil
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		zt, err := lookupType(zctx, v.Type())
+		if err != nil {
+			return nil, err
+		}
 		b.AppendPrimitive(zng.EncodeUint(v.Uint()))
-		return zng.TypeUint64, nil
-	case reflect.Uint8, reflect.Uint16, reflect.Uint32:
-		b.AppendPrimitive(zng.EncodeUint(v.Uint()))
-		return zng.TypeUint32, nil
+		return zt, nil
 	// XXX add float32 to zng?
 	case reflect.Float64, reflect.Float32:
 		b.AppendPrimitive(zng.EncodeFloat64(v.Float()))
@@ -191,12 +191,20 @@ func lookupType(zctx *Context, typ reflect.Type) (zng.Type, error) {
 		return zng.TypeBool, nil
 	case reflect.Int, reflect.Int64:
 		return zng.TypeInt64, nil
-	case reflect.Int8, reflect.Int16, reflect.Int32:
+	case reflect.Int32:
 		return zng.TypeInt32, nil
+	case reflect.Int16:
+		return zng.TypeInt16, nil
+	case reflect.Int8:
+		return zng.TypeInt8, nil
 	case reflect.Uint, reflect.Uint64:
 		return zng.TypeUint64, nil
-	case reflect.Uint8, reflect.Uint16, reflect.Uint32:
+	case reflect.Uint32:
 		return zng.TypeUint32, nil
+	case reflect.Uint16:
+		return zng.TypeUint16, nil
+	case reflect.Uint8:
+		return zng.TypeUint8, nil
 	case reflect.Float64, reflect.Float32:
 		return zng.TypeUint64, nil
 	default:
@@ -289,9 +297,8 @@ func decodeAny(zctx *Context, typ zng.Type, zv zcode.Bytes, v reflect.Value) err
 		v.SetBool(x)
 		return err
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		// TODO: zng.TypeInt8 when it lands
 		switch typ {
-		case zng.TypeInt16, zng.TypeInt32, zng.TypeInt64:
+		case zng.TypeInt8, zng.TypeInt16, zng.TypeInt32, zng.TypeInt64:
 		default:
 			return incompatTypeError(typ, v)
 		}
@@ -303,9 +310,8 @@ func decodeAny(zctx *Context, typ zng.Type, zv zcode.Bytes, v reflect.Value) err
 		v.SetInt(x)
 		return err
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		// TODO: zng.TypeUint8 when it lands
 		switch typ {
-		case zng.TypeUint16, zng.TypeUint32, zng.TypeUint64:
+		case zng.TypeUint8, zng.TypeUint16, zng.TypeUint32, zng.TypeUint64:
 		default:
 			return incompatTypeError(typ, v)
 		}
