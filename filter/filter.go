@@ -148,6 +148,8 @@ func stringSearch(a, b string) bool {
 	return false
 }
 
+var errMatch = errors.New("match")
+
 // searchRecordOther creates a filter that searches zng records for the
 // given value, which must be of a type other than (b)string.  The filter
 // matches a record that contains this value either as the value of any
@@ -159,34 +161,20 @@ func searchRecordOther(searchtext string, searchval ast.Literal) (Filter, error)
 	if err != nil {
 		return nil, err
 	}
-	compare := func(zv zng.Value) bool {
-		switch zv.Type.ID() {
-		case zng.IdBstring, zng.IdString:
-			s := byteconv.UnsafeString(zv.Bytes)
-			return stringSearch(s, searchtext)
-		default:
-			return typedCompare(zv)
-		}
-	}
-	contains := Contains(compare)
-
 	return func(r *zng.Record) bool {
-		iter := r.FieldIter()
-		for !iter.Done() {
-			_, val, err := iter.Next()
-			if err != nil {
-				return false
+		return errMatch == r.Walk(func(typ zng.Type, body zcode.Bytes) error {
+			if zng.IsStringy(typ.ID()) {
+				if stringSearch(byteconv.UnsafeString(body), searchtext) {
+					return errMatch
+				}
+			} else if typedCompare(zng.Value{Type: typ, Bytes: body}) {
+				return errMatch
 			}
-			if compare(val) || contains(val) {
-				return true
-			}
-		}
-		return false
+			return nil
+		})
 	}, nil
 
 }
-
-var errMatch = errors.New("match")
 
 // searchRecordString handles the special case of string searching -- it
 // matches both field names and values.
@@ -213,14 +201,13 @@ func searchRecordString(term string) Filter {
 		if match {
 			return true
 		}
-		err := r.Walk(func(typ zng.Type, body zcode.Bytes) error {
+		return errMatch == r.Walk(func(typ zng.Type, body zcode.Bytes) error {
 			if zng.IsStringy(typ.ID()) &&
 				stringSearch(byteconv.UnsafeString(body), term) {
 				return errMatch
 			}
 			return nil
 		})
-		return err == errMatch
 	}
 }
 
