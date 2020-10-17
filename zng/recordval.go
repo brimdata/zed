@@ -164,19 +164,12 @@ func checkSet(typ *TypeSet, body zcode.Bytes) error {
 	if body == nil {
 		return nil
 	}
-	inner := AliasedType(InnerType(typ))
-	if IsContainerType(inner) {
-		return &RecordTypeError{Name: "<set>", Type: typ.String(), Err: ErrNotPrimitive}
-	}
 	it := body.Iter()
 	var prev zcode.Bytes
 	for !it.Done() {
-		tagAndBody, container, err := it.NextTagAndBody()
+		tagAndBody, _, err := it.NextTagAndBody()
 		if err != nil {
 			return err
-		}
-		if container && tagAndBody[0] != 0 {
-			return &RecordTypeError{Name: "<set element>", Type: typ.String(), Err: ErrNotPrimitive}
 		}
 		if prev != nil {
 			switch bytes.Compare(prev, tagAndBody) {
