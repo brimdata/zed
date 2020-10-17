@@ -71,10 +71,12 @@ func encodeAny(zctx *Context, b *zcode.Builder, v reflect.Value) (zng.Type, erro
 		return encodeMarshaler(zctx, b, v)
 	}
 	switch v.Kind() {
-	case reflect.Struct:
-		return encodeRecord(zctx, b, v)
+	case reflect.Array:
+		return encodeArray(zctx, b, v)
 	case reflect.Slice:
 		return encodeArray(zctx, b, v)
+	case reflect.Struct:
+		return encodeRecord(zctx, b, v)
 	case reflect.Ptr:
 		if v.IsNil() {
 			return encodeNil(zctx, b, v.Type())
@@ -244,6 +246,8 @@ func decodeAny(zctx *Context, typ zng.Type, zv zcode.Bytes, v reflect.Value) err
 		return m.UnmarshalZNG(zctx, typ, zv)
 	}
 	switch v.Kind() {
+	case reflect.Array:
+		return decodeArray(zctx, typ, zv, v)
 	case reflect.Slice:
 		if isIP(v.Type()) {
 			return decodeIP(typ, zv, v)
