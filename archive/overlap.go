@@ -18,7 +18,7 @@ func mergeChunksToSpans(chunks []Chunk, dir zbuf.Direction, filter nano.Span) []
 }
 
 // alignChunksToSpans creates an ordered slice of SpanInfo's whose boundaries
-// match either the boundaries of a chunk, or in the case of overlapping chunks,
+// match either the boundaries of a chunk or, in the case of overlapping chunks,
 // the boundaries of each portion of an overlap.
 func alignChunksToSpans(chunks []Chunk, dir zbuf.Direction, filter nano.Span) []SpanInfo {
 	var siChunks []Chunk // accumulating chunks for next SpanInfo
@@ -178,7 +178,7 @@ func mergeSpanInfos(sis []SpanInfo, dir zbuf.Direction) SpanInfo {
 }
 
 // mergeLargestChunkSpanInfos merges contiguous SpanInfo's whose largest
-// Chunks by RecordCount is the same in the input slice.
+// Chunk by RecordCount is the same.
 func mergeLargestChunkSpanInfos(spans []SpanInfo, dir zbuf.Direction) []SpanInfo {
 	if len(spans) < 2 {
 		return spans
