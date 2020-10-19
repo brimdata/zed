@@ -8,22 +8,29 @@ import (
 	"github.com/brimsec/zq/zng"
 )
 
-type Direction bool
+type Order bool
 
 const (
-	DirTimeForward = Direction(true)
-	DirTimeReverse = Direction(false)
+	OrderAsc  = Order(false)
+	OrderDesc = Order(true)
 )
 
-func (d Direction) Int() int {
-	if d {
-		return 1
+func (o Order) Int() int {
+	if o {
+		return -1
 	}
-	return -1
+	return 1
 }
 
-func RecordCompare(d Direction) RecordCmpFn {
-	if d == DirTimeForward {
+func (o Order) String() string {
+	if o {
+		return "descending"
+	}
+	return "ascending"
+}
+
+func RecordCompare(o Order) RecordCmpFn {
+	if o == OrderAsc {
 		return CmpTimeForward
 	}
 	return CmpTimeReverse

@@ -45,8 +45,8 @@ type Storage struct {
 	ark *archive.Archive
 }
 
-func (s *Storage) NativeDirection() zbuf.Direction {
-	return s.ark.DataSortDirection
+func (s *Storage) NativeOrder() zbuf.Order {
+	return s.ark.DataOrder
 }
 
 func (s *Storage) MultiSource() driver.MultiSource {

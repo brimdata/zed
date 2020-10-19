@@ -123,7 +123,7 @@ func (c *Command) Run(args []string) error {
 		}
 		err = driver.Run(ctx, d, query, zctx, reader, driver.Config{
 			ReaderSortKey:     "ts",
-			ReaderSortReverse: ark.DataSortDirection == zbuf.DirTimeReverse,
+			ReaderSortReverse: ark.DataOrder == zbuf.OrderDesc,
 			Warnings:          wch,
 		})
 		if closeErr := writer.Close(); closeErr != nil && err == nil {

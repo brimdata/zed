@@ -62,8 +62,8 @@ type Storage struct {
 	wsem       *semaphore.Weighted
 }
 
-func (s *Storage) NativeDirection() zbuf.Direction {
-	return zbuf.DirTimeReverse
+func (s *Storage) NativeOrder() zbuf.Order {
+	return zbuf.OrderDesc
 }
 
 func (s *Storage) join(args ...string) string {
