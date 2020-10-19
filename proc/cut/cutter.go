@@ -2,6 +2,7 @@ package cut
 
 import (
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -10,7 +11,7 @@ import (
 // A cutBuilder keeps the data structures needed for cutting one
 // particular type of input record.
 type cutBuilder struct {
-	resolvers []*expr.FieldExpr
+	resolvers []expr.Evaluator
 	builder   *proc.ColumnBuilder
 	outType   *zng.TypeRecord
 }
@@ -35,8 +36,8 @@ type Cutter struct {
 	zctx        *resolver.Context
 	complement  bool
 	cutBuilders map[int]*cutBuilder
-	targets     []string
-	fieldnames  []string
+	fields      []field.Static
+	resolvers   []expr.Evaluator
 	strict      bool
 }
 
@@ -44,21 +45,20 @@ type Cutter struct {
 // the Cutter copies fields that are not in fieldnames. If complement
 // is false, the Cutter copies any fields in fieldnames, where targets
 // specifies the copied field names.
-func NewCutter(zctx *resolver.Context, complement bool, targets, fieldnames []string) *Cutter {
+func NewCutter(zctx *resolver.Context, complement bool, lhs []field.Static, rhs []expr.Evaluator) *Cutter {
 	return &Cutter{
 		zctx:        zctx,
 		complement:  complement,
-		targets:     targets,
-		fieldnames:  fieldnames,
+		fields:      lhs,
+		resolvers:   rhs,
 		cutBuilders: make(map[int]*cutBuilder),
 	}
 }
 
 // NewStrictCutter is like NewCutter but, if complement is false, (*Cutter).Cut
-// returns a record only if its input record contains all of the fields in
-// fieldnames.
-func NewStrictCutter(zctx *resolver.Context, complement bool, targets, fieldnames []string) *Cutter {
-	c := NewCutter(zctx, complement, targets, fieldnames)
+// returns a record only if its input record contains all of the fields in lhs.
+func NewStrictCutter(zctx *resolver.Context, complement bool, lhs []field.Static, rhs []expr.Evaluator) *Cutter {
+	c := NewCutter(zctx, complement, lhs, rhs)
 	c.strict = true
 	return c
 }
@@ -75,16 +75,16 @@ func (c *Cutter) FoundCut() bool {
 // complementBuilder creates a builder for the complement form of cut, where a
 // all fields not in a set are to be cut from a record and passed on.
 func (c *Cutter) complementBuilder(r *zng.Record) (*cutBuilder, error) {
-	fields, fieldTypes := complementFields(c.fieldnames, "", r.Type)
+	fields, fieldTypes := complementFields(c.fields, nil, r.Type)
 	// if the set of cut -c fields is equal to the set of record
 	// fields, then there is no output for this input type.
 	if len(fieldTypes) == 0 {
 		return nil, nil
 	}
 
-	var resolvers []*expr.FieldExpr
+	var resolvers []expr.Evaluator
 	for _, f := range fields {
-		resolvers = append(resolvers, expr.NewFieldAccess(f))
+		resolvers = append(resolvers, expr.NewDotExpr(f))
 	}
 
 	builder, err := proc.NewColumnBuilder(c.zctx, fields)
@@ -101,28 +101,28 @@ func (c *Cutter) complementBuilder(r *zng.Record) (*cutBuilder, error) {
 
 // complementFields returns the slice of fields and associated types
 // that make up the complement of the set of fields in drops.
-func complementFields(drops []string, prefix string, typ *zng.TypeRecord) ([]string, []zng.Type) {
-	var fields []string
+func complementFields(drops []field.Static, prefix field.Static, typ *zng.TypeRecord) ([]field.Static, []zng.Type) {
+	var fields []field.Static
 	var types []zng.Type
 	for _, c := range typ.Columns {
-		if contains(drops, prefix+c.Name) {
+		if contains(drops, append(prefix, c.Name)) {
 			continue
 		}
 		if typ, ok := c.Type.(*zng.TypeRecord); ok {
-			innerFields, innerTypes := complementFields(drops, prefix+c.Name+".", typ)
+			innerFields, innerTypes := complementFields(drops, append(prefix, c.Name), typ)
 			fields = append(fields, innerFields...)
 			types = append(types, innerTypes...)
 			continue
 		}
-		fields = append(fields, prefix+c.Name)
+		fields = append(fields, append(prefix, c.Name))
 		types = append(types, c.Type)
 	}
 	return fields, types
 }
 
-func contains(ss []string, el string) bool {
+func contains(ss []field.Static, el field.Static) bool {
 	for _, s := range ss {
-		if s == el {
+		if s.Equal(el) {
 			return true
 		}
 	}
@@ -140,11 +140,10 @@ func contains(ss []string, el string) bool {
 // resolver set doesn't seem worth the added special casing.
 func (c *Cutter) setBuilder(r *zng.Record) (*cutBuilder, error) {
 	// Build up the output type.
-	var targets []string
-	var resolvers []*expr.FieldExpr
+	var fields []field.Static
+	var resolvers []expr.Evaluator
 	var outColTypes []zng.Type
-	for i, f := range c.fieldnames {
-		resolver := expr.NewFieldAccess(f)
+	for i, resolver := range c.resolvers {
 		val, err := resolver.Eval(r)
 		if err != nil || val.Type == nil {
 			// The field is absent, so for this input type, ...
@@ -155,14 +154,14 @@ func (c *Cutter) setBuilder(r *zng.Record) (*cutBuilder, error) {
 			// ...omit the field from the output.
 			continue
 		}
-		targets = append(targets, c.targets[i])
+		fields = append(fields, c.fields[i])
 		resolvers = append(resolvers, resolver)
 		outColTypes = append(outColTypes, val.Type)
 	}
-	if len(targets) == 0 {
+	if len(fields) == 0 {
 		return nil, nil
 	}
-	builder, err := proc.NewColumnBuilder(c.zctx, targets)
+	builder, err := proc.NewColumnBuilder(c.zctx, fields)
 	if err != nil {
 		return nil, err
 	}

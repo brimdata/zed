@@ -22,44 +22,67 @@ import (
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/zqd/pcapstorage"
+	"github.com/brimsec/zq/zqd/space"
 	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zql"
 )
 
 //go:generate go run ../../zio/ndjsonio/typegenerator -o ./suricata.go -package ingest -var suricataTC ./suricata-types.json
 
+type PcapOp interface {
+	Status() api.PcapPostStatus
+	// Err returns the an error if an error occurred while the ingest process was
+	// running. If the process is still running Err will wait for the process to
+	// complete before returning.
+	Err() error
+	Done() <-chan struct{}
+	Snap() <-chan struct{}
+}
+
+var suricataTransform = zql.MustParseProc("rename ts=timestamp")
+
 type ClearableStore interface {
 	storage.Storage
 	Clear(ctx context.Context) error
 }
 
-type PcapOp struct {
-	StartTime nano.Ts
-	PcapSize  int64
-
-	pcapstore            *pcapstorage.Store
-	store                ClearableStore
-	snapshots            int32
-	pcapuri              iosrc.URI
-	pcapReadSize         int64
-	logdir               string
-	done, snap           chan struct{}
-	err                  error
-	slauncher, zlauncher pcapanalyzer.Launcher
-}
-
 // NewPcapOp kicks of the process for ingesting a pcap file into a space.
-// Should everything start out successfully, this will return a thread safe
-// Process instance once zeek log files have started to materialize in a tmp
-// directory. If zeekExec is an empty string, this will attempt to resolve zeek
-// from $PATH.
-func NewPcapOp(ctx context.Context, pcapstore *pcapstorage.Store, store ClearableStore, pcap string, slauncher, zlauncher pcapanalyzer.Launcher) (*PcapOp, []string, error) {
+func NewPcapOp(ctx context.Context, space space.Space, pcap string, suricata, zeek pcapanalyzer.Launcher) (PcapOp, []string, error) {
 	pcapuri, err := iosrc.ParseURI(pcap)
 	if err != nil {
 		return nil, nil, err
 	}
+	if suricata == nil && zeek == nil {
+		return nil, nil, fmt.Errorf("must provide at least one launcher")
+	}
+	logstore, ok := space.Storage().(ClearableStore)
+	if ok {
+		return newFilePcapOp(ctx, space.PcapStore(), logstore, pcapuri, suricata, zeek)
+	}
+	return newArchivePcapOp(ctx, space.Storage(), space.PcapStore(), pcapuri, suricata, zeek)
+}
+
+type legacyPcapOp struct {
+	pcapstore  *pcapstorage.Store
+	store      ClearableStore
+	snapshots  int32
+	pcapuri    iosrc.URI
+	logdir     string
+	done, snap chan struct{}
+	err        error
+
+	slauncher, zlauncher pcapanalyzer.Launcher
+
+	// stats
+	startTime    nano.Ts
+	pcapSize     int64
+	pcapReadSize int64
+}
+
+func newFilePcapOp(ctx context.Context, pcapstore *pcapstorage.Store, store ClearableStore, pcapuri iosrc.URI, slauncher, zlauncher pcapanalyzer.Launcher) (*legacyPcapOp, []string, error) {
 	if slauncher == nil && zlauncher == nil {
 		return nil, nil, fmt.Errorf("must provide at least one launcher")
 	}
@@ -83,9 +106,9 @@ func NewPcapOp(ctx context.Context, pcapstore *pcapstorage.Store, store Clearabl
 	if err != nil {
 		return nil, warnings, err
 	}
-	p := &PcapOp{
-		StartTime: nano.Now(),
-		PcapSize:  info.Size(),
+	p := &legacyPcapOp{
+		startTime: nano.Now(),
+		pcapSize:  info.Size(),
 		pcapstore: pcapstore,
 		store:     store,
 		pcapuri:   pcapuri,
@@ -103,7 +126,7 @@ func NewPcapOp(ctx context.Context, pcapstore *pcapstorage.Store, store Clearabl
 	return p, warnings, nil
 }
 
-func (p *PcapOp) run(ctx context.Context) error {
+func (p *legacyPcapOp) run(ctx context.Context) error {
 	var sErr, zErr error
 	var wg sync.WaitGroup
 	slurpDone := make(chan struct{})
@@ -177,7 +200,7 @@ outer:
 	return nil
 }
 
-func (p *PcapOp) runZeek(ctx context.Context) error {
+func (p *legacyPcapOp) runZeek(ctx context.Context) error {
 	pcapfile, err := iosrc.NewReader(ctx, p.pcapuri)
 	if err != nil {
 		return err
@@ -191,7 +214,7 @@ func (p *PcapOp) runZeek(ctx context.Context) error {
 	return zproc.Wait()
 }
 
-func (p *PcapOp) runSuricata(ctx context.Context) error {
+func (p *legacyPcapOp) runSuricata(ctx context.Context) error {
 	pcapfile, err := iosrc.NewReader(ctx, p.pcapuri)
 	if err != nil {
 		return err
@@ -207,36 +230,41 @@ func (p *PcapOp) runSuricata(ctx context.Context) error {
 	return p.convertSuricataLog(ctx)
 }
 
-// PcapReadSize returns the total size in bytes of data read from the underlying
-// pcap file.
-func (p *PcapOp) PcapReadSize() int64 {
-	return atomic.LoadInt64(&p.pcapReadSize)
+func (p *legacyPcapOp) Status() api.PcapPostStatus {
+	return api.PcapPostStatus{
+		Type:          "PcapPostStatus",
+		StartTime:     p.startTime,
+		UpdateTime:    nano.Now(),
+		PcapSize:      p.pcapSize,
+		PcapReadSize:  atomic.LoadInt64(&p.pcapReadSize),
+		SnapshotCount: int(atomic.LoadInt32(&p.snapshots)),
+	}
 }
 
 // Err returns the an error if an error occurred while the ingest process was
 // running. If the process is still running Err will wait for the process to
 // complete before returning.
-func (p *PcapOp) Err() error {
+func (p *legacyPcapOp) Err() error {
 	<-p.done
 	return p.err
 }
 
 // Done returns a chan that emits when the ingest process is complete.
-func (p *PcapOp) Done() <-chan struct{} {
+func (p *legacyPcapOp) Done() <-chan struct{} {
 	return p.done
 }
 
-func (p *PcapOp) SnapshotCount() int {
+func (p *legacyPcapOp) SnapshotCount() int {
 	return int(atomic.LoadInt32(&p.snapshots))
 }
 
 // Snap returns a chan that emits every time a snapshot is made. It
 // should no longer be read from after Done() has emitted.
-func (p *PcapOp) Snap() <-chan struct{} {
+func (p *legacyPcapOp) Snap() <-chan struct{} {
 	return p.snap
 }
 
-func (p *PcapOp) zeekFiles() []string {
+func (p *legacyPcapOp) zeekFiles() []string {
 	files, err := filepath.Glob(filepath.Join(p.logdir, "*.log"))
 	// Per filepath.Glob documentation the only possible error would be due to
 	// an invalid glob pattern. Ok to panic.
@@ -246,7 +274,7 @@ func (p *PcapOp) zeekFiles() []string {
 	return files
 }
 
-func (p *PcapOp) suricataFiles() []string {
+func (p *legacyPcapOp) suricataFiles() []string {
 	path := filepath.Join(p.logdir, "eve.zng")
 	if _, err := os.Stat(path); err != nil {
 		return nil
@@ -254,7 +282,7 @@ func (p *PcapOp) suricataFiles() []string {
 	return []string{path}
 }
 
-func (p *PcapOp) createSnapshot(ctx context.Context) error {
+func (p *legacyPcapOp) createSnapshot(ctx context.Context) error {
 	files := append(p.zeekFiles(), p.suricataFiles()...)
 	if len(files) == 0 {
 		return nil
@@ -273,9 +301,7 @@ func (p *PcapOp) createSnapshot(ctx context.Context) error {
 	return nil
 }
 
-func (p *PcapOp) convertSuricataLog(ctx context.Context) error {
-	var eveProc = zql.MustParseProc("rename ts=timestamp")
-
+func (p *legacyPcapOp) convertSuricataLog(ctx context.Context) error {
 	zctx := resolver.NewContext()
 	path := filepath.Join(p.logdir, "eve.json")
 	zr, err := detector.OpenFile(zctx, path, zio.ReaderOpts{JSON: ndjsonio.ReaderOpts{TypeConfig: suricataTC}})
@@ -285,11 +311,11 @@ func (p *PcapOp) convertSuricataLog(ctx context.Context) error {
 	defer zr.Close()
 	return fs.ReplaceFile(filepath.Join(p.logdir, "eve.zng"), os.FileMode(0666), func(w io.Writer) error {
 		zw := zngio.NewWriter(zio.NopCloser(w), zngio.WriterOpts{})
-		return driver.Copy(ctx, zw, eveProc, zctx, zr, driver.Config{})
+		return driver.Copy(ctx, zw, suricataTransform, zctx, zr, driver.Config{})
 	})
 }
 
-func (p *PcapOp) Write(b []byte) (int, error) {
+func (p *legacyPcapOp) Write(b []byte) (int, error) {
 	n := len(b)
 	atomic.AddInt64(&p.pcapReadSize, int64(n))
 	return n, nil

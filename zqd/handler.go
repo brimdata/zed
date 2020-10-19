@@ -2,7 +2,6 @@ package zqd
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 
@@ -42,18 +41,13 @@ func NewHandler(core *Core, logger *zap.Logger) http.Handler {
 	h.Handle("/space/{space}/archivestat", handleArchiveStat).Methods("GET")
 	h.Handle("/space/{space}/subspace", handleSubspacePost).Methods("POST")
 	h.Handle("/search", handleSearch).Methods("POST")
+	h.Handle("/worker", handleWorker).Methods("POST")
 	h.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(&api.VersionResponse{Version: core.Version})
 	})
 	h.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok"))
-	})
-	// XXX This can be removed once a new release has been cut and added to
-	// brim.
-	h.HandleFunc("/space/{space}/packet", func(w http.ResponseWriter, r *http.Request) {
-		name := mux.Vars(r)["space"]
-		http.Redirect(w, r, fmt.Sprintf("/space/%s/pcap", name), http.StatusPermanentRedirect)
 	})
 	h.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, indexPage)

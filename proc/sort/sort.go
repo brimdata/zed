@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/proc/spill"
 	"github.com/brimsec/zq/zbuf"
@@ -31,13 +32,9 @@ type Proc struct {
 }
 
 func New(pctx *proc.Context, parent proc.Interface, node *ast.SortProc) (*Proc, error) {
-	fieldResolvers, err := expr.CompileExprs(node.Fields)
+	fields, err := expr.CompileExprs(node.Fields)
 	if err != nil {
 		return nil, err
-	}
-	var fields []expr.Evaluator
-	for _, r := range fieldResolvers {
-		fields = append(fields, r)
 	}
 	return &Proc{
 		pctx:               pctx,
@@ -158,7 +155,8 @@ func (p *Proc) createRuns(firstRunRecs []*zng.Record) (*spill.MergeSort, error) 
 
 func (p *Proc) warnAboutUnseenFields() {
 	for _, f := range p.unseenFieldTracker.unseen() {
-		p.pctx.Warnings <- fmt.Sprintf("Sort field %s not present in input", expr.FieldExprToString(f))
+		name, _ := expr.DotExprToString(f)
+		p.pctx.Warnings <- fmt.Sprintf("Sort field %s not present in input", name)
 	}
 }
 
@@ -166,7 +164,7 @@ func (p *Proc) setCompareFn(r *zng.Record) {
 	resolvers := p.fieldResolvers
 	if resolvers == nil {
 		fld := GuessSortKey(r)
-		resolver := expr.NewFieldAccess(fld)
+		resolver := expr.NewDotExpr(fld)
 		resolvers = []expr.Evaluator{resolver}
 	}
 	nullsMax := !p.nullsFirst
@@ -210,16 +208,16 @@ var intTypes = []zng.Type{
 	zng.TypeUint64,
 }
 
-func GuessSortKey(rec *zng.Record) string {
+func GuessSortKey(rec *zng.Record) field.Static {
 	typ := rec.Type
 	if fld := firstOf(typ, intTypes); fld != "" {
-		return fld
+		return field.New(fld)
 	}
 	if fld := firstOf(typ, []zng.Type{zng.TypeFloat64}); fld != "" {
-		return fld
+		return field.New(fld)
 	}
 	if fld := firstNot(typ, zng.TypeTime); fld != "" {
-		return fld
+		return field.New(fld)
 	}
-	return "ts"
+	return field.New("ts")
 }

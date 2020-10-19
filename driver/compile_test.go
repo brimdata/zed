@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -80,62 +81,71 @@ func TestComputeColumns(t *testing.T) {
 			// will be applied after it when it is plugged into compilation.
 			ReplaceGroupByProcDurationWithKey(query)
 			cols := computeColumns(query)
-			var expected map[string]struct{}
+			var expected *Colset
 			if tc.cols != nil {
-				expected = make(map[string]struct{})
+				expected = newColset()
 				for _, s := range tc.cols {
-					expected[s] = struct{}{}
+					expected.Add(ast.NewDotExpr(field.New(s)))
 				}
 			}
-			assert.Equal(t, expected, cols)
+			assert.Equal(t, expected.Equal(cols), true)
 		})
 	}
+}
+
+func fields(flds ...string) []ast.Expression {
+	var out []ast.Expression
+	for _, f := range flds {
+		e := ast.NewDotExpr(field.New(f))
+		out = append(out, e)
+	}
+	return out
 }
 
 func TestExpressionFields(t *testing.T) {
 	tests := []struct {
 		expr     string
-		expected []string
+		expected []ast.Expression
 	}{
 		{
 			"a=1",
-			[]string{"a"},
+			fields("a"),
 		},
 		{
 			"a:time",
-			[]string{"a"},
+			fields("a"),
 		},
 		{
 			"!a=1",
-			[]string{"a"},
+			fields("a"),
 		},
 		{
 			"a=1 or b=c",
-			[]string{"a", "b", "c"},
+			fields("a", "b", "c"),
 		},
 		{
 			"a ? b : c + d",
-			[]string{"a", "b", "c", "d"},
+			fields("a", "b", "c", "d"),
 		},
 		{
 			"Time.trunc(ts, 10)",
-			[]string{"ts"},
+			fields("ts"),
 		},
 		{
 			"Math.max(a, b, c, d)",
-			[]string{"a", "b", "c", "d"},
+			fields("a", "b", "c", "d"),
 		},
 		{
 			"String.replace(a, b, c)",
-			[]string{"a", "b", "c"},
+			fields("a", "b", "c"),
 		},
 		{
 			"String.replace(a, 'b', c)",
-			[]string{"a", "c"},
+			fields("a", "c"),
 		},
 		{
 			"x = 0 ? y : z",
-			[]string{"x", "y", "z"},
+			fields("x", "y", "z"),
 		},
 	}
 	for _, tc := range tests {
@@ -151,7 +161,7 @@ func TestExpressionFields(t *testing.T) {
 func TestBooleanExpressionFields(t *testing.T) {
 	tests := []struct {
 		expr     string
-		expected []string
+		expected []ast.Expression
 	}{
 		{
 			"* = 1",
@@ -159,7 +169,7 @@ func TestBooleanExpressionFields(t *testing.T) {
 		},
 		{
 			"*",
-			[]string{},
+			[]ast.Expression{},
 		},
 		{
 			"* OR *=1",
@@ -167,11 +177,11 @@ func TestBooleanExpressionFields(t *testing.T) {
 		},
 		{
 			"* OR x=1",
-			[]string{"x"},
+			fields("x"),
 		},
 		{
 			"!(* OR x=1)",
-			[]string{"x"},
+			fields("x"),
 		},
 	}
 	for _, tc := range tests {
@@ -182,6 +192,13 @@ func TestBooleanExpressionFields(t *testing.T) {
 			assert.Equal(t, tc.expected, f)
 		})
 	}
+}
+
+func sf(f string) field.Static {
+	if f == "" {
+		return nil
+	}
+	return field.Dotted(f)
 }
 
 func TestParallelizeFlowgraph(t *testing.T) {
@@ -274,7 +291,7 @@ func TestParallelizeFlowgraph(t *testing.T) {
 		t.Run(tc.zql, func(t *testing.T) {
 			query, err := zql.ParseProc(tc.zql)
 			require.NoError(t, err)
-			parallelized, ok := parallelizeFlowgraph(query.(*ast.SequentialProc), 2, tc.orderField, false)
+			parallelized, ok := parallelizeFlowgraph(query.(*ast.SequentialProc), 2, sf(tc.orderField), false)
 			require.Equal(t, ok, tc.zql != tc.expected)
 
 			expected, err := zql.ParseProc(tc.expected)
@@ -297,7 +314,7 @@ func TestParallelizeFlowgraph(t *testing.T) {
 				}
 			}
 			if tc.zql != tc.expected {
-				expected.(*ast.SequentialProc).Procs[0].(*ast.ParallelProc).MergeOrderField = tc.expectedMergeOrderField
+				expected.(*ast.SequentialProc).Procs[0].(*ast.ParallelProc).MergeOrderField = sf(tc.expectedMergeOrderField)
 			}
 			assert.Equal(t, expected.(*ast.SequentialProc), parallelized)
 		})
@@ -310,7 +327,7 @@ func TestParallelizeFlowgraph(t *testing.T) {
 		dquery := "(filter * | cut ts, y, z | put x=y | rename y=z; filter * | cut ts, y, z | put x=y | rename y=z)"
 		program, err := zql.ParseProc(query)
 		require.NoError(t, err)
-		parallelized, ok := parallelizeFlowgraph(program.(*ast.SequentialProc), 2, orderField, false)
+		parallelized, ok := parallelizeFlowgraph(program.(*ast.SequentialProc), 2, sf(orderField), false)
 		require.True(t, ok)
 
 		expected, err := zql.ParseProc(dquery)
@@ -319,7 +336,7 @@ func TestParallelizeFlowgraph(t *testing.T) {
 		// We can't express a pass proc in zql, so add it to the AST this way.
 		// (It's added by the parallelized flowgraph in order to force a merge rather than having trailing leaves connected to a mux output).
 		expected.(*ast.SequentialProc).Procs = append(expected.(*ast.SequentialProc).Procs[1:], &ast.PassProc{Node: ast.Node{"PassProc"}})
-		expected.(*ast.SequentialProc).Procs[0].(*ast.ParallelProc).MergeOrderField = orderField
+		expected.(*ast.SequentialProc).Procs[0].(*ast.ParallelProc).MergeOrderField = sf(orderField)
 
 		assert.Equal(t, expected.(*ast.SequentialProc), parallelized)
 	})
@@ -344,7 +361,7 @@ func TestSetGroupByProcInputSortDir(t *testing.T) {
 			query, err := zql.ParseProc(tc.zql)
 			require.NoError(t, err)
 			ReplaceGroupByProcDurationWithKey(query)
-			outputSorted := setGroupByProcInputSortDir(query, tc.inputSortField, 1)
+			outputSorted := setGroupByProcInputSortDir(query, sf(tc.inputSortField), 1)
 			require.Equal(t, tc.outputSorted, outputSorted)
 
 			var found bool

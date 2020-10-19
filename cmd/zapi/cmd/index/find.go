@@ -50,10 +50,6 @@ records of the base layer of the index file (-z)
 	New: NewFind,
 }
 
-func init() {
-	cmd.CLI.Add(Find)
-}
-
 type FindCmd struct {
 	*cmd.Command
 	indexFile     string
@@ -64,7 +60,7 @@ type FindCmd struct {
 }
 
 func NewFind(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &FindCmd{Command: parent.(*IndexCmd).Command}
+	c := &FindCmd{Command: parent.(*Command).Command}
 	f.StringVar(&c.indexFile, "x", "", "name of microindex for custom index searches")
 	f.StringVar(&c.pathField, "l", archive.DefaultAddPathField, "zng field name for path name of log file")
 	f.BoolVar(&c.relativePaths, "relative", false, "display paths relative to root")

@@ -47,12 +47,9 @@ func (t *TypeArray) StringOf(zv zcode.Bytes, fmt OutFmt, _ bool) string {
 
 	var b strings.Builder
 	separator := byte(',')
-	switch fmt {
-	case OutFormatZNG:
+	if fmt == OutFormatZNG {
 		b.WriteByte('[')
 		separator = ';'
-	case OutFormatDebug:
-		b.WriteString("array[")
 	}
 
 	first := true
@@ -76,13 +73,10 @@ func (t *TypeArray) StringOf(zv zcode.Bytes, fmt OutFmt, _ bool) string {
 		}
 	}
 
-	switch fmt {
-	case OutFormatZNG:
+	if fmt == OutFormatZNG {
 		if !first {
 			b.WriteByte(';')
 		}
-		b.WriteByte(']')
-	case OutFormatDebug:
 		b.WriteByte(']')
 	}
 	return b.String()
@@ -90,7 +84,7 @@ func (t *TypeArray) StringOf(zv zcode.Bytes, fmt OutFmt, _ bool) string {
 
 func (t *TypeArray) Marshal(zv zcode.Bytes) (interface{}, error) {
 	// start out with zero-length container so we get "[]" instead of nil
-	vals := make([]Value, 0)
+	vals := []Value{}
 	it := zv.Iter()
 	for !it.Done() {
 		val, _, err := it.Next()

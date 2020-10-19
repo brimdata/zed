@@ -10,19 +10,23 @@ import (
 // a field.
 type CountDistinct struct {
 	Reducer
-	Resolver *expr.FieldExpr
-	sketch   *hyperloglog.Sketch
+	arg    expr.Evaluator
+	sketch *hyperloglog.Sketch
 }
 
-func NewCountDistinct(resolver *expr.FieldExpr) *CountDistinct {
+func NewCountDistinct(arg, where expr.Evaluator) *CountDistinct {
 	return &CountDistinct{
-		Resolver: resolver,
-		sketch:   hyperloglog.New(),
+		Reducer: Reducer{where: where},
+		arg:     arg,
+		sketch:  hyperloglog.New(),
 	}
 }
 
 func (c *CountDistinct) Consume(r *zng.Record) {
-	v, err := c.Resolver.Eval(r)
+	if c.filter(r) {
+		return
+	}
+	v, err := c.arg.Eval(r)
 	if err == nil {
 		c.sketch.Insert(v.Bytes)
 	}

@@ -16,11 +16,11 @@ type Unpacker interface {
 func unpackProcs(custom Unpacker, node joe.Interface) ([]Proc, error) {
 	procList, err := node.Get("procs")
 	if err != nil {
-		return nil, fmt.Errorf("procs field is missing")
+		return nil, fmt.Errorf("ast.unpackProcs: procs field is missing")
 	}
 	a, ok := procList.(joe.Array)
 	if !ok {
-		return nil, fmt.Errorf("procs field is not an array")
+		return nil, fmt.Errorf("ast.unpackProcs: procs field is not an array")
 	}
 	procs := make([]Proc, 0, len(a))
 	for _, item := range a {
@@ -82,7 +82,7 @@ func unpackProc(custom Unpacker, node joe.Interface) (Proc, error) {
 		return &SortProc{Fields: fields}, nil
 	case "CutProc":
 		a, _ := node.Get("fields")
-		fas, err := unpackFieldAssignments(a)
+		fas, err := unpackAssignments(a)
 		if err != nil {
 			return nil, err
 		}
@@ -99,14 +99,14 @@ func unpackProc(custom Unpacker, node joe.Interface) (Proc, error) {
 		return &FilterProc{Filter: filter}, nil
 	case "PutProc":
 		a, _ := node.Get("clauses")
-		clauses, err := unpackExpressionAssignments(a)
+		clauses, err := unpackAssignments(a)
 		if err != nil {
 			return nil, err
 		}
 		return &PutProc{Clauses: clauses}, nil
 	case "RenameProc":
 		a, _ := node.Get("fields")
-		fas, err := unpackFieldAssignments(a)
+		fas, err := unpackAssignments(a)
 		if err != nil {
 			return nil, err
 		}
@@ -117,12 +117,12 @@ func unpackProc(custom Unpacker, node joe.Interface) (Proc, error) {
 		return &UniqProc{}, nil
 	case "GroupByProc":
 		a, _ := node.Get("keys")
-		keys, err := unpackExpressionAssignments(a)
+		keys, err := unpackAssignments(a)
 		if err != nil {
 			return nil, err
 		}
 		a, _ = node.Get("reducers")
-		reducers, err := unpackReducers(a)
+		reducers, err := unpackAssignments(a)
 		if err != nil {
 			return nil, err
 		}
@@ -137,7 +137,7 @@ func unpackProc(custom Unpacker, node joe.Interface) (Proc, error) {
 	case "PassProc":
 		return &PassProc{}, nil
 	default:
-		return nil, fmt.Errorf("unknown proc op: %s", op)
+		return nil, fmt.Errorf("ast.unpackProc: unknown proc op: %s", op)
 	}
 }
 
@@ -147,7 +147,7 @@ func unpackExprs(node joe.Interface) ([]Expression, error) {
 	}
 	a, ok := node.(joe.Array)
 	if !ok {
-		return nil, errors.New("fields property should be an array")
+		return nil, errors.New("ast.unpackExprs: fields property should be an array")
 	}
 	exprs := make([]Expression, 0, len(a))
 	for _, item := range a {
@@ -159,66 +159,45 @@ func unpackExprs(node joe.Interface) ([]Expression, error) {
 	}
 	return exprs, nil
 }
-func unpackExpressionAssignment(node joe.Interface) (ExpressionAssignment, error) {
-	exprNode, err := node.Get("expression")
-	if err != nil {
-		return ExpressionAssignment{}, errors.New("ExpressionAssignment missing expression")
+
+func unpackAssignment(node joe.Interface) (Assignment, error) {
+	var lhs Expression
+	lhsNode, err := node.Get("lhs")
+	// LHS is optional as compiler will infer a field name from the LHS.
+	if err == nil && lhsNode != nil {
+		lhs, err = UnpackExpression(lhsNode)
+		if err != nil {
+			return Assignment{}, err
+		}
 	}
-	expr, err := UnpackExpression(exprNode)
+	rhsNode, err := node.Get("rhs")
 	if err != nil {
-		return ExpressionAssignment{}, err
+		return Assignment{}, errors.New("ast.unpackAssignment: missing rhs field")
 	}
-	return ExpressionAssignment{Expr: expr}, nil
+	rhs, err := UnpackExpression(rhsNode)
+	if err != nil {
+		return Assignment{}, err
+	}
+	return Assignment{LHS: lhs, RHS: rhs}, nil
 }
 
-func unpackFieldAssignment(node joe.Interface) (FieldAssignment, error) {
-	exprNode, err := node.Get("source")
-	if err != nil {
-		return FieldAssignment{}, errors.New("FieldAssignment missing source field")
-	}
-	expr, err := UnpackExpression(exprNode)
-	if err != nil {
-		return FieldAssignment{}, err
-	}
-	return FieldAssignment{Source: expr}, nil
-}
-
-func unpackFieldAssignments(node joe.Interface) ([]FieldAssignment, error) {
+func unpackAssignments(node joe.Interface) ([]Assignment, error) {
 	if node == nil {
 		return nil, nil
 	}
 	a, ok := node.(joe.Array)
 	if !ok {
-		return nil, errors.New("assignments should be an array")
+		return nil, errors.New("ast.unpackAssignments: not an array")
 	}
-	fas := make([]FieldAssignment, 0, len(a))
+	fas := make([]Assignment, 0, len(a))
 	for _, item := range a {
-		fa, err := unpackFieldAssignment(item)
+		fa, err := unpackAssignment(item)
 		if err != nil {
 			return nil, err
 		}
 		fas = append(fas, fa)
 	}
 	return fas, nil
-}
-
-func unpackExpressionAssignments(node joe.Interface) ([]ExpressionAssignment, error) {
-	if node == nil {
-		return nil, nil
-	}
-	a, ok := node.(joe.Array)
-	if !ok {
-		return nil, errors.New("assignments should be an array")
-	}
-	keys := make([]ExpressionAssignment, 0, len(a))
-	for _, item := range a {
-		assi, err := unpackExpressionAssignment(item)
-		if err != nil {
-			return nil, err
-		}
-		keys = append(keys, assi)
-	}
-	return keys, nil
 }
 
 func UnpackExpression(node joe.Interface) (Expression, error) {
@@ -299,19 +278,33 @@ func UnpackExpression(node joe.Interface) (Expression, error) {
 			return nil, err
 		}
 		return &CastExpression{Expr: expr}, nil
+	case "Reducer":
+		exprNode, _ := node.Get("expr")
+		var expr Expression
+		if exprNode != nil {
+			expr, _ = UnpackExpression(exprNode)
+		}
+		whereNode, _ := node.Get("where")
+		var where Expression
+		if whereNode != nil {
+			where, _ = UnpackExpression(whereNode)
+		}
+		return &Reducer{Expr: expr, Where: where}, nil
 	case "Literal":
 		return &Literal{}, nil
-	case "Field":
-		return &Field{}, nil
+	case "Identifier":
+		return &Identifier{}, nil
+	case "RootRecord":
+		return &RootRecord{}, nil
 	default:
-		return nil, fmt.Errorf("unknown Expression op %s", op)
+		return nil, fmt.Errorf("ast.UnpackExpression: unknown op %s", op)
 	}
 }
 
 func UnpackChild(node joe.Interface, field string) (BooleanExpr, error) {
 	child, err := node.Get(field)
 	if err != nil {
-		return nil, fmt.Errorf("%s field is missing", field)
+		return nil, fmt.Errorf("ast.UnpackChild: missing field: %s", field)
 	}
 	return unpackBooleanExpr(child)
 }
@@ -392,31 +385,8 @@ func unpackBooleanExpr(node joe.Interface) (BooleanExpr, error) {
 		return &CompareField{Field: field}, nil
 
 	default:
-		return nil, fmt.Errorf("unknown op: %s", op)
+		return nil, fmt.Errorf("ast.unpackBooleanExpr: unknown op: %s", op)
 	}
-}
-
-func unpackReducers(node joe.Interface) ([]Reducer, error) {
-	if node == nil {
-		return nil, nil
-	}
-	a, ok := node.(joe.Array)
-	if !ok {
-		return nil, errors.New("reducers property should be an array")
-	}
-	reducers := make([]Reducer, len(a))
-	for k, item := range a {
-		fld, err := item.Get("field")
-		if err != nil {
-			continue
-		}
-		r, err := UnpackExpression(fld)
-		if err != nil {
-			return nil, err
-		}
-		reducers[k].Field = r
-	}
-	return reducers, nil
 }
 
 func UnpackMap(custom Unpacker, m interface{}) (Proc, error) {

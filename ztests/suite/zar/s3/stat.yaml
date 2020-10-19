@@ -1,10 +1,10 @@
 script: |
   mkdir logs
   source minio.sh
-  zar import -R ./logs -data s3://bucket/zartest babble.tzng
-  zar ls -R ./logs -ranges
+  zar import -R logs -data s3://bucket/zartest babble.tzng
+  zar ls -R logs -ranges
   echo ===
-  zar stat -R ./logs -f zng | zq -t "cut -c log_id" -
+  zar stat -R logs -f zng | zq -t "cut -c log_id" -
 
 inputs:
   - name: babble.tzng
@@ -15,8 +15,8 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      [1587518620062237300-1587513611063914690]
-      [1587513592062544400-1587508830068523240]
+      [1587518620062237300-1587513611063914690,1587518620062237300-1587513611063914690]
+      [1587513592062544400-1587508830068523240,1587513592062544400-1587508830068523240]
       ===
       #0:record[type:string,first:time,last:time,size:uint64,record_count:uint64]
       0:[chunk;1587518620.0622373;1587513611.06391469;16995;496;]

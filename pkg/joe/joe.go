@@ -206,7 +206,7 @@ func Unpack(v Interface) interface{} {
 		}
 		return object
 	default:
-		panic(fmt.Sprintf("unknown type in joe.Unpack(): %v", v))
+		panic(fmt.Sprintf("unknown type in joe.Unpack(): %T", v))
 	}
 }
 
@@ -235,7 +235,7 @@ func Convert(v interface{}) Interface {
 		}
 		return Object(object)
 	default:
-		panic(fmt.Sprintf("unknown type in joe.Convert(): %v", v))
+		panic(fmt.Sprintf("unknown type in joe.Convert(): %T", v))
 	}
 }
 

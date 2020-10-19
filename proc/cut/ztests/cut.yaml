@@ -1,0 +1,11 @@
+zql: 'cut y=x+1,a=String.toLower(s),typeof(s)'
+
+input: |
+  #0:record[a:array[int32],x:int32,s:string,b:bytes]
+  0:[[]1;foo;aGVsbG8K;]
+  0:[[1;]2;Bar;dGhlcmUK;]
+
+output: |
+  #0:record[y:int64,a:string,typeof:type]
+  0:[2;foo;string;]
+  0:[3;bar;string;]

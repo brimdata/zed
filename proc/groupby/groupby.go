@@ -8,10 +8,10 @@ import (
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/proc/spill"
 	"github.com/brimsec/zq/reducer"
-	"github.com/brimsec/zq/reducer/compile"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
@@ -24,18 +24,24 @@ import (
 // subsequent calls to Eval on the Evaluator can clobber previus results,
 // we are careful to make copys of the zng.Value whenever we hold onto to it.
 type Key struct {
-	target string
-	expr   expr.Evaluator
+	tmp  string
+	name field.Static
+	expr expr.Evaluator
 }
 
 type Params struct {
 	inputSortDir int
 	limit        int
 	keys         []Key
-	reducers     []compile.CompiledReducer
+	makers       []reducerMaker
 	builder      *proc.ColumnBuilder
 	consumePart  bool
 	emitPart     bool
+}
+
+type reducerMaker struct {
+	name   field.Static
+	create reducer.Maker
 }
 
 type errTooBig int
@@ -50,46 +56,6 @@ func IsErrTooBig(err error) bool {
 }
 
 var DefaultLimit = 1000000
-
-func CompileParams(node *ast.GroupByProc, zctx *resolver.Context) (*Params, error) {
-	keys := make([]Key, 0)
-	var targets []string
-	for _, astKey := range node.Keys {
-		ex, err := expr.CompileExpr(astKey.Expr)
-		if err != nil {
-			return nil, fmt.Errorf("compiling groupby: %w", err)
-		}
-		keys = append(keys, Key{
-			target: astKey.Target,
-			expr:   ex,
-		})
-		targets = append(targets, astKey.Target)
-	}
-	reducers := make([]compile.CompiledReducer, 0)
-	for _, reducer := range node.Reducers {
-		compiled, err := compile.Compile(reducer)
-		if err != nil {
-			return nil, err
-		}
-		reducers = append(reducers, compiled)
-	}
-	builder, err := proc.NewColumnBuilder(zctx, targets)
-	if err != nil {
-		return nil, fmt.Errorf("compiling groupby: %w", err)
-	}
-	if (node.ConsumePart || node.EmitPart) && !decomposable(reducers) {
-		return nil, errors.New("partial input or output requested with non-decomposable reducers")
-	}
-	return &Params{
-		limit:        node.Limit,
-		keys:         keys,
-		reducers:     reducers,
-		builder:      builder,
-		inputSortDir: node.InputSortDir,
-		consumePart:  node.ConsumePart,
-		emitPart:     node.EmitPart,
-	}, nil
-}
 
 // Proc computes aggregations using an Aggregator.
 type Proc struct {
@@ -131,7 +97,7 @@ type Aggregator struct {
 	keys         []Key
 	keyResolvers []expr.Evaluator
 	decomposable bool
-	reducerDefs  []compile.CompiledReducer
+	makers       []reducerMaker
 	builder      *proc.ColumnBuilder
 	table        map[string]*Row
 	limit        int
@@ -150,7 +116,7 @@ type Row struct {
 	keycols  []zng.Column
 	keyvals  zcode.Bytes
 	groupval *zng.Value // for sorting when input sorted
-	reducers compile.Row
+	reducers valRow
 }
 
 func NewAggregator(c *proc.Context, params Params) *Aggregator {
@@ -169,7 +135,7 @@ func NewAggregator(c *proc.Context, params Params) *Aggregator {
 		} else {
 			valueCompare = vs
 		}
-		rs := expr.NewCompareFn(true, expr.NewFieldAccess(params.keys[0].target))
+		rs := expr.NewCompareFn(true, expr.NewDotExpr(params.keys[0].name))
 		if params.inputSortDir < 0 {
 			keyCompare = func(a, b *zng.Record) int { return rs(b, a) }
 		} else {
@@ -178,7 +144,7 @@ func NewAggregator(c *proc.Context, params Params) *Aggregator {
 	}
 	var resolvers []expr.Evaluator
 	for _, k := range params.keys {
-		resolvers = append(resolvers, expr.NewFieldAccess(k.target))
+		resolvers = append(resolvers, expr.NewDotExpr(k.name))
 	}
 	rs := expr.NewCompareFn(true, resolvers...)
 	if params.inputSortDir < 0 {
@@ -193,8 +159,8 @@ func NewAggregator(c *proc.Context, params Params) *Aggregator {
 		keyResolvers: resolvers,
 		zctx:         c.TypeContext,
 		kctx:         resolver.NewContext(),
-		decomposable: decomposable(params.reducers),
-		reducerDefs:  params.reducers,
+		decomposable: decomposable(params.makers),
+		makers:       params.makers,
 		builder:      params.builder,
 		keyRows:      make(map[int]keyRow),
 		table:        make(map[string]*Row),
@@ -206,25 +172,41 @@ func NewAggregator(c *proc.Context, params Params) *Aggregator {
 	}
 }
 
-func decomposable(rs []compile.CompiledReducer) bool {
+func decomposable(rs []reducerMaker) bool {
 	for _, r := range rs {
-		instance := r.Instantiate()
-		if _, ok := instance.(reducer.Decomposable); !ok {
+		if _, ok := r.create(nil).(reducer.Decomposable); !ok {
 			return false
 		}
 	}
 	return true
 }
 
-func New(pctx *proc.Context, parent proc.Interface, params Params) *Proc {
+func IsDecomposable(assignments []ast.Assignment) bool {
+	for _, assignment := range assignments {
+		_, create, err := CompileReducer(assignment)
+		if err != nil {
+			return false
+		}
+		if _, ok := create(nil).(reducer.Decomposable); !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func New(pctx *proc.Context, parent proc.Interface, node *ast.GroupByProc) (*Proc, error) {
+	params, err := compileParams(node, pctx.TypeContext)
+	if err != nil {
+		return nil, err
+	}
 	// XXX in a subsequent PR we will isolate ast params and pass in
 	// ast.GroupByParams
 	return &Proc{
 		pctx:     pctx,
 		parent:   parent,
-		agg:      NewAggregator(pctx, params),
+		agg:      NewAggregator(pctx, *params),
 		resultCh: make(chan proc.Result),
-	}
+	}, nil
 }
 
 func (p *Proc) Pull() (zbuf.Batch, error) {
@@ -308,7 +290,7 @@ func (a *Aggregator) createRow(keyCols []zng.Column, vals zcode.Bytes, groupval 
 		keycols:  keyCols,
 		keyvals:  v,
 		groupval: groupval,
-		reducers: compile.NewRow(a.reducerDefs),
+		reducers: newValRow(a.zctx, a.makers),
 	}
 }
 
@@ -324,7 +306,7 @@ func newKeyRow(kctx *resolver.Context, r *zng.Record, keys []Key) (keyRow, error
 		if keyVal.Type == nil {
 			return keyRow{}, nil
 		}
-		cols[k] = zng.NewColumn(key.target, keyVal.Type)
+		cols[k] = zng.NewColumn(key.tmp, keyVal.Type)
 	}
 	// Lookup a unique ID by converting the columns too a record string
 	// and looking up the record by name in the scratch type context.
@@ -529,7 +511,7 @@ func (a *Aggregator) readSpills(eof bool) (zbuf.Batch, error) {
 
 func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 	// Consume all partial result records that have the same grouping keys.
-	row := compile.NewRow(a.reducerDefs)
+	row := newValRow(a.zctx, a.makers)
 	var firstRec *zng.Record
 	for {
 		rec, err := a.spiller.Peek()
@@ -568,18 +550,22 @@ func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 		return nil, err
 	}
 	cols := a.builder.TypedColumns(types)
-	for i, red := range row.Reducers {
+	for _, col := range row {
 		var v zng.Value
 		if a.emitPart {
-			vv, err := red.(reducer.Decomposable).ResultPart(a.zctx)
+			vv, err := col.reducer.(reducer.Decomposable).ResultPart(a.zctx)
 			if err != nil {
 				return nil, err
 			}
 			v = vv
 		} else {
-			v = red.Result()
+			v = col.reducer.Result()
 		}
-		cols = append(cols, zng.NewColumn(row.Defs[i].Target, v.Type))
+		// XXX Currently you can't set dotted field names.  We should
+		// fix this.  For now, "a.b=count() by _path" turns into
+		// "b=count() by _path" here, but it doesn't seem to work at all.
+		fieldName := col.name.Leaf()
+		cols = append(cols, zng.NewColumn(fieldName, v.Type))
 		zbytes = v.Encode(zbytes)
 	}
 	typ, err := a.zctx.LookupTypeRecord(cols)
@@ -606,21 +592,17 @@ func (a *Aggregator) readTable(flush, decompose bool) (zbuf.Batch, error) {
 		}
 		var zv zcode.Bytes
 		zv = append(zv, row.keyvals...)
-		for _, red := range row.reducers.Reducers {
+		for _, col := range row.reducers {
 			var v zng.Value
 			if decompose {
 				var err error
-				dec := red.(reducer.Decomposable)
+				dec := col.reducer.(reducer.Decomposable)
 				v, err = dec.ResultPart(a.zctx)
 				if err != nil {
 					return nil, err
 				}
 			} else {
-				// a reducer value is never a container
-				v = red.Result()
-				if v.IsContainer() {
-					panic("internal bug: reducer result cannot be a container!")
-				}
+				v = col.reducer.Result()
 			}
 			zv = v.Encode(zv)
 		}
@@ -642,7 +624,7 @@ func (a *Aggregator) lookupRowType(row *Row, decompose bool) (*zng.TypeRecord, e
 	// bottleneck, but this could be optimized by keeping a cache of the
 	// record types since it is rare for there to be multiple such types
 	// or for it change from row to row.
-	n := len(a.keys) + len(a.reducerDefs)
+	n := len(a.keys) + len(a.makers)
 	cols := make([]zng.Column, 0, n)
 	types := make([]zng.Type, len(row.keycols))
 
@@ -650,18 +632,19 @@ func (a *Aggregator) lookupRowType(row *Row, decompose bool) (*zng.TypeRecord, e
 		types[k] = col.Type
 	}
 	cols = append(cols, a.builder.TypedColumns(types)...)
-	for k, red := range row.reducers.Reducers {
+	for _, col := range row.reducers {
 		var z zng.Value
 		if decompose {
 			var err error
-			z, err = red.(reducer.Decomposable).ResultPart(a.zctx)
+			z, err = col.reducer.(reducer.Decomposable).ResultPart(a.zctx)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			z = red.Result()
+			z = col.reducer.Result()
 		}
-		cols = append(cols, zng.NewColumn(row.reducers.Defs[k].Target, z.Type))
+		fieldName := col.name.Leaf()
+		cols = append(cols, zng.NewColumn(fieldName, z.Type))
 	}
 	// This could be more efficient but it's only done during group-by output...
 	return a.zctx.LookupTypeRecord(cols)

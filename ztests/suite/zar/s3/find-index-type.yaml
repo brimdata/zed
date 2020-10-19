@@ -1,17 +1,17 @@
 script: |
   mkdir logs
   source minio.sh
-  zar import -R ./logs -data s3://bucket/zartest log.tzng
-  zar index -R ./logs -q :ip
-  zar find -R ./logs -z :ip=1.1.1.1 | zq -t "cut -c _log" -
+  zar import -R logs -data s3://bucket/zartest log.tzng
+  zar index -R logs -q :ip
+  zar find -R logs -z :ip=1.1.1.1 | zq -t "cut -c _log" -
   echo ===
-  zar find -R ./logs -z :ip=192.168.1.102 | zq -t "cut -c _log" -
+  zar find -R logs -z :ip=192.168.1.102 | zq -t "cut -c _log" -
   echo ===
-  zar find -R ./logs -z :ip=192.168.2.1 | zq -t "cut -c _log" -
+  zar find -R logs -z :ip=192.168.2.1 | zq -t "cut -c _log" -
   echo ===
-  zar find -R ./logs -z :ip=192.168.1.1 | zq -t "cut -c _log" -
+  zar find -R logs -z :ip=192.168.1.1 | zq -t "cut -c _log" -
   echo ===
-  zar ls -R ./logs -ranges -l
+  zar ls -R logs -ranges -l
   zq -t "count(key)" $(find data/bucket/zartest -name microindex-type-ip.zng) # check unset not indexed
 
 inputs:
@@ -37,6 +37,6 @@ outputs:
       #0:record[key:ip,count:uint64,first:time,last:time]
       0:[192.168.1.1;1;1258594907.85978;1258594907.85978;]
       ===
-      [1258594907859780000-1258594907859780000]/microindex-type-ip.zng
+      [1258594907859780000-1258594907859780000,1258594907859780000-1258594907859780000]/microindex-type-ip.zng
       #0:record[count:uint64]
       0:[3;]

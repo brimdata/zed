@@ -35,7 +35,6 @@ const (
 	OutFormatZNG
 	OutFormatZeek
 	OutFormatZeekAscii
-	OutFormatDebug
 )
 
 // A Type is an interface presented by a zeek type.
@@ -302,7 +301,7 @@ func SameType(t1, t2 Type) bool {
 func InnerType(typ Type) Type {
 	switch typ := typ.(type) {
 	case *TypeSet:
-		return typ.InnerType
+		return typ.Type
 	case *TypeArray:
 		return typ.Type
 	default:
@@ -317,7 +316,7 @@ func InnerType(typ Type) Type {
 func ContainedType(typ Type) (Type, []Column) {
 	switch typ := typ.(type) {
 	case *TypeSet:
-		return typ.InnerType, nil
+		return typ.Type, nil
 	case *TypeArray:
 		return typ.Type, nil
 	case *TypeRecord:
@@ -348,7 +347,7 @@ func AliasTypes(typ Type) []*TypeAlias {
 	var aliases []*TypeAlias
 	switch typ := typ.(type) {
 	case *TypeSet:
-		aliases = AliasTypes(typ.InnerType)
+		aliases = AliasTypes(typ.Type)
 	case *TypeArray:
 		aliases = AliasTypes(typ.Type)
 	case *TypeRecord:

@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
@@ -28,12 +29,12 @@ type mergeParent struct {
 	resultCh chan proc.Result
 }
 
-func New(pctx *proc.Context, parents []proc.Interface, mergeField string, reversed bool) *Proc {
+func New(pctx *proc.Context, parents []proc.Interface, mergeField field.Static, reversed bool) *Proc {
 	m := &Proc{
 		pctx:   pctx,
 		doneCh: make(chan struct{}),
 	}
-	cmpFn := expr.NewCompareFn(true, expr.NewFieldAccess(mergeField))
+	cmpFn := expr.NewCompareFn(true, expr.NewDotExpr(mergeField))
 	if !reversed {
 		m.cmp = cmpFn
 	} else {

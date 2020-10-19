@@ -8,13 +8,16 @@ import (
 
 type Count struct {
 	Reducer
-	Resolver *expr.FieldExpr
-	count    uint64
+	arg   expr.Evaluator
+	count uint64
 }
 
 func (c *Count) Consume(r *zng.Record) {
-	if c.Resolver != nil {
-		if v, err := c.Resolver.Eval(r); err != nil || v.IsNil() {
+	if c.filter(r) {
+		return
+	}
+	if c.arg != nil {
+		if v, err := c.arg.Eval(r); err != nil || v.IsNil() {
 			return
 		}
 	}

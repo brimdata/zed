@@ -45,6 +45,19 @@ type SearchRequest struct {
 	Dir   int             `json:"dir" validate:"required"`
 }
 
+type WorkerRequest struct {
+	SearchRequest
+	Chunks []Chunk `json:"chunks"`
+}
+
+type Chunk struct {
+	Id          string  `json:"id" validate:"required"`
+	First       nano.Ts `json:"first" validate:"required"`
+	Last        nano.Ts `json:"last" validate:"required"`
+	Kind        string  `json:"kind" validate:"required"`
+	RecordCount int64   `json:"record_count" validate:"required"`
+}
+
 type SearchRecords struct {
 	Type      string           `json:"type"`
 	ChannelID int              `json:"channel_id"`
@@ -153,7 +166,9 @@ type PcapPostStatus struct {
 	UpdateTime    nano.Ts    `json:"update_time"`
 	PcapSize      int64      `json:"pcap_total_size" unit:"bytes"`
 	PcapReadSize  int64      `json:"pcap_read_size" unit:"bytes"`
-	SnapshotCount int        `json:"snapshot_count"`
+	RecordBytes   int64      `json:"record_bytes,omitempty" unit:"bytes"`
+	RecordCount   int64      `json:"record_count,omitempty"`
+	SnapshotCount int        `json:"snapshot_count,omitempty"`
 	Span          *nano.Span `json:"span,omitempty"`
 }
 

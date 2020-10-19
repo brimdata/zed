@@ -30,86 +30,6 @@ const (
 	FileKindSeek             = "ts"
 )
 
-// A dataFile holds archive record data. Only one kind of data file
-// currently exists, representing a file created during ingest.
-type dataFile struct {
-	id   ksuid.KSUID
-	kind FileKind
-}
-
-func newDataFile() dataFile {
-	return dataFile{ksuid.New(), FileKindData}
-}
-
-func (f dataFile) name() string {
-	return fmt.Sprintf("%s-%s.zng", f.kind, f.id)
-}
-
-var dataFileNameRegex = regexp.MustCompile(`d-([0-9A-Za-z]{27}).zng$`)
-
-func dataFileNameMatch(s string) (f dataFile, ok bool) {
-	match := dataFileNameRegex.FindStringSubmatch(s)
-	if match == nil {
-		return
-	}
-	id, err := ksuid.Parse(match[1])
-	if err != nil {
-		return
-	}
-	return dataFile{id, FileKindData}, true
-}
-
-// A seekIndexFile is a microindex whose keys are record timestamps, and whose
-// values are seek offsets into the data file with the same id. The name
-// of a seekIndexFile encodes the number of records, and the first & last
-// record timestamps of the corresponding data file. The order of the
-// first & last records matches the archive's data order.
-type seekIndexFile struct {
-	id          ksuid.KSUID
-	first       nano.Ts
-	last        nano.Ts
-	recordCount int
-}
-
-func (f seekIndexFile) name() string {
-	return fmt.Sprintf("%s-%s-%d-%d-%d.zng", FileKindSeek, f.id, f.recordCount, f.first, f.last)
-}
-
-func (f seekIndexFile) span() nano.Span {
-	return firstLastToSpan(f.first, f.last)
-}
-
-var seekIndexNameRegex = regexp.MustCompile(`ts-([0-9A-Za-z]{27})-([0-9]+)-([0-9]+)-([0-9]+).zng$`)
-
-func seekIndexNameMatch(s string) (f seekIndexFile, ok bool) {
-	match := seekIndexNameRegex.FindStringSubmatch(s)
-	if match == nil {
-		return
-	}
-	id, err := ksuid.Parse(match[1])
-	if err != nil {
-		return
-	}
-	recordCount, err := strconv.ParseInt(match[2], 10, 64)
-	if err != nil {
-		return
-	}
-	firstTs, err := strconv.ParseInt(match[3], 10, 64)
-	if err != nil {
-		return
-	}
-	lastTs, err := strconv.ParseInt(match[4], 10, 64)
-	if err != nil {
-		return
-	}
-	return seekIndexFile{
-		id:          id,
-		first:       nano.Ts(firstTs),
-		last:        nano.Ts(lastTs),
-		recordCount: int(recordCount),
-	}, true
-}
-
 // A tsDir is a directory found in the "<DataPath>/zd" directory of the archive,
 // and holds all of the data & associated files for a span of time, currently
 // fixed to a single day.
@@ -127,6 +47,10 @@ func parseTsDirName(name string) (tsDir, bool) {
 		return tsDir{}, false
 	}
 	return newTsDir(nano.TimeToTs(t)), true
+}
+
+func (t tsDir) path(ark *Archive) iosrc.URI {
+	return ark.DataPath.AppendPath(dataDirname, t.name())
 }
 
 func (t tsDir) name() string {
@@ -174,37 +98,19 @@ func tsDirVisit(ctx context.Context, ark *Archive, filterSpan nano.Span, visitor
 }
 
 func tsDirEntriesToChunks(ark *Archive, filterSpan nano.Span, entries []iosrc.Info) []Chunk {
-	dfileMap := make(map[ksuid.KSUID]dataFile)
-	sfileMap := make(map[ksuid.KSUID]seekIndexFile)
-	for _, e := range entries {
-		if df, ok := dataFileNameMatch(e.Name()); ok {
-			dfileMap[df.id] = df
-			continue
-		}
-		if sf, ok := seekIndexNameMatch(e.Name()); ok {
-			sfileMap[sf.id] = sf
-			continue
-		}
-	}
 	var chunks []Chunk
-	for id, sf := range sfileMap {
-		if !ark.filterAllowed(id) {
-			continue
-		}
-		if !filterSpan.Overlaps(sf.span()) {
-			continue
-		}
-		df, ok := dfileMap[id]
+	for _, e := range entries {
+		chunk, ok := ChunkNameMatch(e.Name())
 		if !ok {
 			continue
 		}
-		chunks = append(chunks, Chunk{
-			Id:           sf.id,
-			First:        sf.first,
-			Last:         sf.last,
-			DataFileKind: df.kind,
-			RecordCount:  sf.recordCount,
-		})
+		if !ark.filterAllowed(chunk.Id) {
+			continue
+		}
+		if !filterSpan.Overlaps(chunk.Span()) {
+			continue
+		}
+		chunks = append(chunks, chunk)
 	}
 	return chunks
 }
@@ -214,22 +120,63 @@ func tsDirEntriesToChunks(ark *Archive, filterSpan nano.Span, entries []iosrc.In
 // of the relative location of the file under the archive's root directory.
 type LogID string
 
-func newLogID(ts nano.Ts, id ksuid.KSUID) LogID {
-	return LogID(path.Join(dataDirname, newTsDir(ts).name(), fmt.Sprintf("%s-%s.zng", FileKindData, id)))
-}
-
 // Path returns the local filesystem path for the log file, using the
 // platforms file separator.
 func (l LogID) Path(ark *Archive) iosrc.URI {
 	return ark.DataPath.AppendPath(string(l))
 }
 
+// A Chunk is a file that holds records ordered according to the archive's
+// data order. The name of the file encodes the number of records it contains
+// and the timestamps of its first & last records. seekIndexPath returns the
+// path of an associated microindex written at import time, which can be used
+// to lookup a nearby seek offset for a desired timestamp.
 type Chunk struct {
-	Id           ksuid.KSUID
-	First        nano.Ts
-	Last         nano.Ts
-	DataFileKind FileKind
-	RecordCount  int
+	Id          ksuid.KSUID
+	First       nano.Ts
+	Last        nano.Ts
+	Kind        FileKind
+	RecordCount int64
+}
+
+var chunkNameRegex = regexp.MustCompile(`d-([0-9A-Za-z]{27})-([0-9]+)-([0-9]+)-([0-9]+).zng$`)
+
+func ChunkNameMatch(s string) (c Chunk, ok bool) {
+	match := chunkNameRegex.FindStringSubmatch(s)
+	if match == nil {
+		return
+	}
+	id, err := ksuid.Parse(match[1])
+	if err != nil {
+		return
+	}
+	recordCount, err := strconv.ParseInt(match[2], 10, 64)
+	if err != nil {
+		return
+	}
+	firstTs, err := strconv.ParseInt(match[3], 10, 64)
+	if err != nil {
+		return
+	}
+	lastTs, err := strconv.ParseInt(match[4], 10, 64)
+	if err != nil {
+		return
+	}
+	return Chunk{
+		Id:          id,
+		First:       nano.Ts(firstTs),
+		Last:        nano.Ts(lastTs),
+		Kind:        FileKindData,
+		RecordCount: recordCount,
+	}, true
+}
+
+func (c Chunk) tsDir() tsDir {
+	return newTsDir(c.First)
+}
+
+func (c Chunk) seekIndexPath(ark *Archive) iosrc.URI {
+	return c.tsDir().path(ark).AppendPath(fmt.Sprintf("%s-%s.zng", FileKindSeek, c.Id))
 }
 
 func (c Chunk) Span() nano.Span {
@@ -237,7 +184,8 @@ func (c Chunk) Span() nano.Span {
 }
 
 func (c Chunk) LogID() LogID {
-	return LogID(path.Join(dataDirname, newTsDir(c.First).name(), fmt.Sprintf("%s-%s.zng", c.DataFileKind, c.Id)))
+	name := fmt.Sprintf("%s-%s-%d-%d-%d.zng", c.Kind, c.Id, c.RecordCount, c.First, c.Last)
+	return LogID(path.Join(dataDirname, newTsDir(c.First).name(), name))
 }
 
 // ZarDir returns a URI for a directory specific to this data file, expected
@@ -260,7 +208,7 @@ func (c Chunk) Path(ark *Archive) iosrc.URI {
 	return ark.DataPath.AppendPath(string(c.LogID()))
 }
 
-func (c Chunk) Range(ark *Archive) string {
+func (c Chunk) Range() string {
 	return fmt.Sprintf("[%d-%d]", c.First, c.Last)
 }
 
@@ -310,5 +258,45 @@ func Walk(ctx context.Context, ark *Archive, v Visitor) error {
 func RmDirs(ctx context.Context, ark *Archive) error {
 	return Walk(ctx, ark, func(chunk Chunk) error {
 		return ark.dataSrc.RemoveAll(ctx, chunk.ZarDir(ark))
+	})
+}
+
+// A SpanInfo is a logical view of the records within a time span, stored
+// in one or more Chunks.
+type SpanInfo struct {
+	Span nano.Span
+
+	// Chunks are the data files that contain records within this SpanInfo.
+	// The Chunks may have spans that extend beyond this SpanInfo, so any
+	// records from these Chunks should be limited to those that fall within
+	// this SpanInfo's Span.
+	Chunks []Chunk
+}
+
+func (s SpanInfo) ChunkRange(dir zbuf.Direction, chunkIdx int) string {
+	first, last := spanToFirstLast(dir, s.Span)
+	c := s.Chunks[chunkIdx]
+	return fmt.Sprintf("[%d-%d,%d-%d]", first, last, c.First, c.Last)
+}
+
+// SpanWalk calls visitor with each SpanInfo within the filter span.
+func SpanWalk(ctx context.Context, ark *Archive, filter nano.Span, visitor func(si SpanInfo) error) error {
+	dirmkr, _ := ark.dataSrc.(iosrc.DirMaker)
+	return tsDirVisit(ctx, ark, filter, func(_ tsDir, chunks []Chunk) error {
+		sinfos := mergeChunksToSpans(chunks, ark.DataSortDirection, filter)
+		for _, s := range sinfos {
+			if dirmkr != nil {
+				for _, c := range s.Chunks {
+					zardir := c.ZarDir(ark)
+					if err := dirmkr.MkdirAll(zardir, 0700); err != nil {
+						return err
+					}
+				}
+			}
+			if err := visitor(s); err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 }

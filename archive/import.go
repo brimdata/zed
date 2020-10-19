@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/pkg/bufwriter"
 	"github.com/brimsec/zq/pkg/fs"
@@ -17,6 +18,7 @@ import (
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/segmentio/ksuid"
 	"go.uber.org/multierr"
 )
 
@@ -121,13 +123,15 @@ func (iw *importWriter) close() error {
 // the archive.
 type tsDirWriter struct {
 	ark          *Archive
+	bufSize      int64
+	count        int64
 	ctx          context.Context
 	importWriter *importWriter
+	maxTs        nano.Ts
+	minTs        nano.Ts
 	records      []*zng.Record
-	bufSize      int64
 	spiller      *spill.MergeSort
 	tsDir        tsDir
-	uri          iosrc.URI
 }
 
 func newTsDirWriter(iw *importWriter, tsDir tsDir) (*tsDirWriter, error) {
@@ -136,10 +140,11 @@ func newTsDirWriter(iw *importWriter, tsDir tsDir) (*tsDirWriter, error) {
 		ctx:          iw.ctx,
 		importWriter: iw,
 		tsDir:        tsDir,
-		uri:          iw.ark.DataPath.AppendPath(dataDirname, tsDir.name()),
+		minTs:        nano.MaxTs,
+		maxTs:        nano.MinTs,
 	}
 	if dirmkr, ok := d.ark.dataSrc.(iosrc.DirMaker); ok {
-		if err := dirmkr.MkdirAll(d.uri, 0755); err != nil {
+		if err := dirmkr.MkdirAll(tsDir.path(iw.ark), 0755); err != nil {
 			return nil, err
 		}
 	}
@@ -163,6 +168,14 @@ func (dw *tsDirWriter) totalRecordBytes() int64 {
 
 func (dw *tsDirWriter) writeOne(rec *zng.Record) error {
 	dw.records = append(dw.records, rec)
+	ts := rec.Ts()
+	if ts < dw.minTs {
+		dw.minTs = ts
+	}
+	if ts > dw.maxTs {
+		dw.maxTs = ts
+	}
+	dw.count++
 	dw.addBufSize(int64(len(rec.Raw)))
 	if dw.totalRecordBytes() > dw.ark.LogSizeThreshold {
 		if err := dw.flush(); err != nil {
@@ -208,12 +221,19 @@ func (dw *tsDirWriter) flush() error {
 		}
 		expr.SortStable(dw.records, importCompareFn(dw.ark))
 		r = zbuf.Array(dw.records).NewReader()
-		defer func() {
-			dw.records = dw.records[:0]
-			dw.addBufSize(dw.bufSize * -1)
-		}()
 	}
-	w, err := newChunkWriter(dw.ctx, dw.ark, dw.uri)
+	first, last := dw.minTs, dw.maxTs
+	if dw.ark.DataSortDirection == zbuf.DirTimeReverse {
+		first, last = last, first
+	}
+	chunk := Chunk{
+		Id:          ksuid.New(),
+		First:       first,
+		Last:        last,
+		Kind:        FileKindData,
+		RecordCount: dw.count,
+	}
+	w, err := newChunkWriter(dw.ctx, dw.ark, dw.tsDir, chunk)
 	if err != nil {
 		return err
 	}
@@ -224,27 +244,29 @@ func (dw *tsDirWriter) flush() error {
 	if err := w.close(dw.ctx); err != nil {
 		return err
 	}
+	dw.records = dw.records[:0]
+	dw.addBufSize(dw.bufSize * -1)
+	dw.minTs = nano.MaxTs
+	dw.maxTs = nano.MinTs
+	dw.count = 0
 	return nil
 }
 
 // chunkWriter is a zbuf.Writer that writes a stream of sorted records into an
 // archive chunk file.
 type chunkWriter struct {
-	dataFile        dataFile
+	ark             *Archive
+	chunk           Chunk
 	dataFileWriter  *zngio.Writer
 	indexBuilder    *zng.Builder
 	indexTempPath   string
 	indexTempWriter *zngio.Writer
-
-	firstTs, lastTs nano.Ts
 	needIndexWrite  bool
-	rcount          int
-	uri             iosrc.URI
+	tsDir           tsDir
 }
 
-func newChunkWriter(ctx context.Context, ark *Archive, tsDirUri iosrc.URI) (*chunkWriter, error) {
-	dataFile := newDataFile()
-	out, err := ark.dataSrc.NewWriter(ctx, tsDirUri.AppendPath(dataFile.name()))
+func newChunkWriter(ctx context.Context, ark *Archive, tsDir tsDir, chunk Chunk) (*chunkWriter, error) {
+	out, err := ark.dataSrc.NewWriter(ctx, chunk.Path(ark))
 	if err != nil {
 		return nil, err
 	}
@@ -265,13 +287,14 @@ func newChunkWriter(ctx context.Context, ark *Archive, tsDirUri iosrc.URI) (*chu
 		{"offset", zng.TypeInt64},
 	}))
 	return &chunkWriter{
-		dataFile:        dataFile,
+		ark:             ark,
+		chunk:           chunk,
 		dataFileWriter:  dataFileWriter,
 		indexBuilder:    indexBuilder,
 		indexTempPath:   indexTempPath,
 		indexTempWriter: indexTempWriter,
-		uri:             tsDirUri,
 		needIndexWrite:  true,
+		tsDir:           tsDir,
 	}, nil
 }
 
@@ -283,13 +306,8 @@ func (cw *chunkWriter) Write(rec *zng.Record) error {
 	if err := cw.dataFileWriter.Write(rec); err != nil {
 		return err
 	}
-	cw.lastTs = rec.Ts()
-	if cw.firstTs == 0 {
-		cw.firstTs = cw.lastTs
-	}
-	cw.rcount++
 	if cw.needIndexWrite {
-		out := cw.indexBuilder.Build(zng.EncodeTime(cw.lastTs), zng.EncodeInt(sos))
+		out := cw.indexBuilder.Build(zng.EncodeTime(rec.Ts()), zng.EncodeInt(sos))
 		if err := cw.indexTempWriter.Write(out); err != nil {
 			return err
 		}
@@ -329,9 +347,8 @@ func (cw *chunkWriter) close(ctx context.Context) error {
 	}()
 	zctx := resolver.NewContext()
 	tfr := zngio.NewReader(tf, zctx)
-	sf := seekIndexFile{id: cw.dataFile.id, recordCount: cw.rcount, first: cw.firstTs, last: cw.lastTs}
-	idxURI := cw.uri.AppendPath(sf.name())
-	idxWriter, err := microindex.NewWriter(zctx, idxURI.String(), []string{"ts"}, framesize)
+	idxURI := cw.chunk.seekIndexPath(cw.ark)
+	idxWriter, err := microindex.NewWriter(zctx, idxURI.String(), []field.Static{field.New("ts")}, framesize)
 	if err != nil {
 		return err
 	}

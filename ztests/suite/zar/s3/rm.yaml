@@ -1,14 +1,14 @@
 script: |
   mkdir logs
   source minio.sh
-  zar import -R ./logs -data s3://bucket/zartest babble.tzng
-  zar map -R ./logs -o count.zng "count()"
+  zar import -R logs -data s3://bucket/zartest babble.tzng
+  zar map -R logs -o count.zng "count()"
   echo ===
-  zar ls -R ./logs -ranges -l
+  zar ls -R logs -ranges -l
   echo ===
-  zar rm -R ./logs -ranges count.zng
+  zar rm -R logs -ranges count.zng
   echo ===
-  zar rm -R ./logs -ranges count.zng
+  zar rm -R logs -ranges count.zng
 
 inputs:
   - name: babble.tzng
@@ -20,11 +20,11 @@ outputs:
   - name: stdout
     data: |
       ===
-      [1587518620062237300-1587513611063914690]/count.zng
-      [1587513592062544400-1587508830068523240]/count.zng
+      [1587518620062237300-1587513611063914690,1587518620062237300-1587513611063914690]/count.zng
+      [1587513592062544400-1587508830068523240,1587513592062544400-1587508830068523240]/count.zng
       ===
-      [1587518620062237300-1587513611063914690]/count.zng: removed
-      [1587513592062544400-1587508830068523240]/count.zng: removed
+      [1587518620062237300-1587513611063914690,1587518620062237300-1587513611063914690]/count.zng: removed
+      [1587513592062544400-1587508830068523240,1587513592062544400-1587508830068523240]/count.zng: removed
       ===
-      [1587518620062237300-1587513611063914690]/count.zng: not found
-      [1587513592062544400-1587508830068523240]/count.zng: not found
+      [1587518620062237300-1587513611063914690,1587518620062237300-1587513611063914690]/count.zng: not found
+      [1587513592062544400-1587508830068523240,1587513592062544400-1587508830068523240]/count.zng: not found

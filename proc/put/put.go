@@ -1,8 +1,11 @@
 package put
 
 import (
+	"fmt"
+
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zcode"
@@ -51,18 +54,21 @@ type clauseType struct {
 }
 
 type clause struct {
-	target string
-	eval   expr.Evaluator
+	field field.Static
+	eval  expr.Evaluator
 }
 
 func New(pctx *proc.Context, parent proc.Interface, node *ast.PutProc) (proc.Interface, error) {
 	clauses := make([]clause, len(node.Clauses))
 	for k, cl := range node.Clauses {
 		var err error
-		clauses[k].target = cl.Target
-		clauses[k].eval, err = expr.CompileExpr(cl.Expr)
+		clauses[k].field, clauses[k].eval, err = expr.CompileAssignment(&cl)
 		if err != nil {
 			return nil, err
+		}
+		if len(clauses[k].field) > 1 {
+			name := clauses[k].field.String()
+			return nil, fmt.Errorf("%s: put currently supports only top-level field assignemnts", name)
 		}
 	}
 	return &Proc{
@@ -110,8 +116,9 @@ func (p *Proc) buildRule(inType *zng.TypeRecord, vals []zng.Value) (*putRule, er
 	for k, cl := range p.clauses {
 		typ := vals[k].Type
 		clauseTypes[k] = clauseType{typ, zng.IsContainerType(typ)}
-		col := zng.Column{Name: cl.target, Type: typ}
-		position, hasCol := inType.ColumnOfField(cl.target)
+		name := cl.field.String()
+		col := zng.Column{Name: name, Type: typ}
+		position, hasCol := inType.ColumnOfField(name)
 		if hasCol {
 			nreplace++
 			replace[position] = k

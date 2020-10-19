@@ -85,7 +85,7 @@ func encodeAny(typ zng.Type, val []byte) (interface{}, error) {
 	case *zng.TypeArray:
 		return encodeContainer(typ.Type, val)
 	case *zng.TypeSet:
-		return encodeContainer(typ.InnerType, val)
+		return encodeContainer(typ.Type, val)
 	case *zng.TypeMap:
 		return encodeMap(typ, val)
 	default:
@@ -99,7 +99,7 @@ func encodeRecord(typ *zng.TypeRecord, val zcode.Bytes) (interface{}, error) {
 	}
 	// We start out with a slice that contains nothing instead of nil
 	// so that an empty container encodes as a JSON empty array [].
-	out := make([]interface{}, 0)
+	out := []interface{}{}
 	k := 0
 	for it := val.Iter(); !it.Done(); k++ {
 		zv, _, err := it.Next()
@@ -121,7 +121,7 @@ func encodeContainer(typ zng.Type, val zcode.Bytes) (interface{}, error) {
 	}
 	// We start out with a slice that contains nothing instead of nil
 	// so that an empty container encodes as a JSON empty array [].
-	out := make([]interface{}, 0)
+	out := []interface{}{}
 	for it := val.Iter(); !it.Done(); {
 		zv, _, err := it.Next()
 		if err != nil {
@@ -294,7 +294,7 @@ func decodeAny(b *zcode.Builder, typ zng.Type, body interface{}) error {
 			return nil
 		}
 		b.BeginContainer()
-		err := decodeContainerBody(b, typ.InnerType, body, "set")
+		err := decodeContainerBody(b, typ.Type, body, "set")
 		b.TransformContainer(zng.NormalizeSet)
 		b.EndContainer()
 		return err

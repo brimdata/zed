@@ -3,10 +3,10 @@ package convert
 import (
 	"errors"
 	"flag"
-	"strings"
 
 	"github.com/brimsec/zq/cli/inputflags"
 	"github.com/brimsec/zq/cmd/microindex/root"
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/detector"
@@ -76,8 +76,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer file.Close()
-	keys := strings.Split(c.keys, ",")
-	writer, err := microindex.NewWriter(zctx, c.outputFile, keys, c.frameThresh)
+	writer, err := microindex.NewWriter(zctx, c.outputFile, field.DottedList(c.keys), c.frameThresh)
 	if err != nil {
 		return err
 	}

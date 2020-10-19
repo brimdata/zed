@@ -2,7 +2,6 @@ package zng
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/brimsec/zq/zcode"
 )
@@ -13,10 +12,10 @@ var (
 )
 
 type iterInfo struct {
-	iter     zcode.Iter
-	typ      *TypeRecord
-	offset   int
-	fullname string
+	iter   zcode.Iter
+	typ    *TypeRecord
+	offset int
+	field  []string
 }
 
 type fieldIter struct {
@@ -27,29 +26,26 @@ func (r *fieldIter) Done() bool {
 	return len(r.stack) == 0
 }
 
-func (r *fieldIter) Next() (name string, value Value, err error) {
+func (r *fieldIter) Next() ([]string, Value, error) {
 	if len(r.stack) == 0 {
-		return "", Value{}, ErrExhausted
+		return nil, Value{}, ErrExhausted
 	}
 	info := &r.stack[len(r.stack)-1]
 
 	zv, container, err := info.iter.Next()
 	if err != nil {
-		return "", Value{}, err
+		return nil, Value{}, err
 	}
 
 	col := info.typ.Columns[info.offset]
-	name = col.Name
-	if len(info.fullname) > 0 {
-		name = fmt.Sprintf("%s.%s", info.fullname, col.Name)
-	}
+	fullname := append(info.field, col.Name)
 
 	recType, isRecord := AliasedType(col.Type).(*TypeRecord)
 	if isRecord {
 		if !container {
-			return "", Value{}, ErrMismatch
+			return nil, Value{}, ErrMismatch
 		}
-		r.stack = append(r.stack, iterInfo{zv.Iter(), recType, 0, name})
+		r.stack = append(r.stack, iterInfo{zv.Iter(), recType, 0, fullname})
 		return r.Next()
 	}
 
@@ -60,7 +56,7 @@ func (r *fieldIter) Next() (name string, value Value, err error) {
 	info.offset++
 	for info.offset >= len(info.typ.Columns) {
 		if !info.iter.Done() {
-			return "", Value{}, ErrMismatch
+			return nil, Value{}, ErrMismatch
 		}
 		r.stack = r.stack[:len(r.stack)-1]
 		if len(r.stack) == 0 {
@@ -70,5 +66,5 @@ func (r *fieldIter) Next() (name string, value Value, err error) {
 		info.offset++
 	}
 
-	return name, val, nil
+	return fullname, val, nil
 }

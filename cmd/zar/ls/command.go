@@ -12,6 +12,7 @@ import (
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/mccanne/charm"
 )
 
@@ -61,8 +62,17 @@ func (c *Command) Run(args []string) error {
 	if len(args) == 1 {
 		pattern = args[0]
 	}
+	if c.showRanges {
+		return archive.SpanWalk(context.TODO(), ark, nano.MaxSpan, func(si archive.SpanInfo) error {
+			for i, chunk := range si.Chunks {
+				rangeStr := si.ChunkRange(ark.DataSortDirection, i)
+				c.printDir(ark, rangeStr, chunk.ZarDir(ark), pattern)
+			}
+			return nil
+		})
+	}
 	return archive.Walk(context.TODO(), ark, func(chunk archive.Chunk) error {
-		c.printDir(ark, chunk, pattern)
+		c.printDir(ark, "", chunk.ZarDir(ark), pattern)
 		return nil
 	})
 }
@@ -78,17 +88,16 @@ func fileExists(path iosrc.URI) bool {
 	return true
 }
 
-func (c *Command) printDir(ark *archive.Archive, chunk archive.Chunk, pattern string) {
-	dir := chunk.ZarDir(ark)
+func (c *Command) printDir(ark *archive.Archive, rangeStr string, dir iosrc.URI, pattern string) {
 	if pattern != "" {
 		path := dir.AppendPath(pattern)
 		if fileExists(path) {
-			fmt.Println(c.printable(ark, chunk, dir, pattern))
+			fmt.Println(c.printable(ark, rangeStr, dir, pattern))
 		}
 		return
 	}
 	if !c.lflag {
-		fmt.Println(c.printable(ark, chunk, dir, ""))
+		fmt.Println(c.printable(ark, rangeStr, dir, ""))
 	} else {
 		entries, err := iosrc.ReadDir(context.TODO(), dir)
 		if err != nil {
@@ -96,14 +105,14 @@ func (c *Command) printDir(ark *archive.Archive, chunk archive.Chunk, pattern st
 			return
 		}
 		for _, e := range entries {
-			fmt.Println(c.printable(ark, chunk, dir, e.Name()))
+			fmt.Println(c.printable(ark, rangeStr, dir, e.Name()))
 		}
 	}
 }
 
-func (c *Command) printable(ark *archive.Archive, chunk archive.Chunk, zardir iosrc.URI, objPath string) string {
+func (c *Command) printable(ark *archive.Archive, rangeStr string, zardir iosrc.URI, objPath string) string {
 	if c.showRanges {
-		return path.Join(chunk.Range(ark), objPath)
+		return path.Join(rangeStr, objPath)
 	}
 	if c.relativePaths {
 		return strings.TrimSuffix(ark.DataPath.RelPath(zardir.AppendPath(objPath)), "/")

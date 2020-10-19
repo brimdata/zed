@@ -95,7 +95,7 @@ meta-records, and ZNG merely modernizes this original approach.
 The [`zq`](https://github.com/brimsec/zq) command-line tool provides a
 reference implementation of ZNG as it's described here, including the type
 system, error handling, etc., barring the exceptions
-described in the [alpha notice](#note-this-specification-is-alpha-and-a-work-in-progress)
+described in the [beta notice](#note-this-specification-is-in-beta-development)
 at the top of this specification.
 
 ## 2. The ZNG Data Model
@@ -645,7 +645,7 @@ Here, `<type-name>` is an identifier and `<type-string>`
 is a string defining a type (`<type>`) according to the [TZNG type grammar](#42-type-grammar). They create a
 binding between the indicated tag and the indicated type.
 This form defines an alias mapping the identifier to the indicated type.
-`<type-name>` is an identifier with semantics as defined in [Section 3.1.1.5](#3115-alias-typedef).
+`<type-name>` is an identifier with semantics as defined in [Section 3.1.1.7](#3117-alias-typedef).
 
 
 ### 4.1.3 Application-Defined Messages
@@ -675,7 +675,7 @@ grammar describing the textual type encodings is:
 ```
 <primitive> := uint8 | uint16 | uint32 | uint64 |
              | int8 | int16 | int32 | int64 | duration | time
-             | float32 | float64 | decimal
+             | float16 | float32 | float64 | decimal
              | bool | bytes | string | bstring
              | ip | net | type | error | null
 
@@ -715,7 +715,7 @@ grammar describing the textual type encodings is:
 ### 4.3 Values
 
 A TZNG value is encoded on a line as a typed value, which is encoded as
-an integer type code followed by `:`, which is in turn followed
+an integer type tag followed by `:`, which is in turn followed
 by a value encoding.
 
 Here is a pseudo-grammar for typed values:
@@ -750,7 +750,7 @@ a null value.  A value that is not to be interpreted as null
 but is the single-character string `-`, must be escaped (e.g., `\x2d`).
 
 Note that this syntax can be scanned and parsed independent of the
-actual type definition indicated by the descriptor.  It is a semantic error
+actual type definition indicated by the tag.  It is a semantic error
 if the parsed value does not match the indicated type in terms of number and
 sub-structure of value elements present and their interpretation as a valid
 string of the specified type.
@@ -798,7 +798,7 @@ to `-` as opposed to representing a null value.
 ### 4.3.2 Value Syntax
 
 Each UTF-8 string field parsed from a value line is interpreted according to the
-type descriptor of the line using the formats shown in the
+type binding of the line using the formats shown in the
 [Primitive Types](#5-primitive-types) table.
 
 ## 4.4 Examples

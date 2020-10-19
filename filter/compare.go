@@ -29,30 +29,10 @@ var compareBool = map[string]func(bool, bool) bool{
 	"!=": func(a, b bool) bool { return a != b },
 	"=~": func(a, b bool) bool { return false },
 	"!~": func(a, b bool) bool { return false },
-	">": func(a, b bool) bool {
-		if a {
-			return !b
-		}
-		return false
-	},
-	">=": func(a, b bool) bool {
-		if a {
-			return true
-		}
-		return !b
-	},
-	"<": func(a, b bool) bool {
-		if a {
-			return false
-		}
-		return b
-	},
-	"<=": func(a, b bool) bool {
-		if a {
-			return b
-		}
-		return !b
-	},
+	">":  func(a, b bool) bool { return a && !b },
+	">=": func(a, b bool) bool { return a || !b },
+	"<":  func(a, b bool) bool { return !a && b },
+	"<=": func(a, b bool) bool { return !a || b },
 }
 
 // CompareBool returns a Predicate that compares zng.Values to a boolean literal

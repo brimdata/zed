@@ -90,7 +90,7 @@ func (t *TypeMap) StringOf(zv zcode.Bytes, fmt OutFmt, _ bool) string {
 
 func (t *TypeMap) Marshal(zv zcode.Bytes) (interface{}, error) {
 	// start out with zero-length container so we get "[]" instead of nil
-	vals := make([]Value, 0)
+	vals := []Value{}
 	it := zv.Iter()
 	for !it.Done() {
 		val, _, err := it.Next()

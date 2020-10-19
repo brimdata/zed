@@ -33,7 +33,7 @@ func encodeType(typ zng.Type) (joe.String, joe.Interface) {
 	case *zng.TypeArray:
 		return joe.String("array"), encodeTypeAny(typ.Type)
 	case *zng.TypeSet:
-		return joe.String("set"), encodeTypeAny(typ.InnerType)
+		return joe.String("set"), encodeTypeAny(typ.Type)
 	case *zng.TypeUnion:
 		return joe.String("union"), encodeTypes(typ.Types)
 	case *zng.TypeEnum:
