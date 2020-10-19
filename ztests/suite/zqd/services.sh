@@ -6,10 +6,10 @@ function awaitfile {
   until [ -f $file ]; do
     let i+=1
     if [ $i -gt 5 ]; then
-      echo "timed out waiting for file \"$file\" to appear\n"
-      echo "minio log:\n"
+      echo "timed out waiting for file \"$file\" to appear"
+      echo "minio log:"
       cat minio.log
-      echo "zqd log:\n"
+      echo "zqd log:"
       cat zqd.log
       exit 1
     fi
