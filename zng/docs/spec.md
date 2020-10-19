@@ -3,18 +3,18 @@
 > ### Note: This specification is in BETA development.
 > We hope that no backward incompatible changes will be made during
 > the BETA phase.  We plan to
-> declare the specification stable and finalized in spring 2021.
+> declare the specification stable and finalized in Spring, 2021.
 >
 > [Zq](https://github.com/brimsec/zq/blob/master/README.md)'s
 > implementation of ZNG is tracking this spec and as it changes,
 > the zq output format is subject to change.  In this branch,
 > zq attempts to implement everything herein excepting:
 >
-> * only streams of `record` types (which may consist of any combination of
+> * Only streams of `record` types (which may consist of any combination of
 >   other implemented types) are supported by zq even though a stream of
 >   any types may currently be expressed in value messages.
->
-> TBD: implement TZNG EOS in zq
+> * [TZNG End of Stream](#414-end-of-stream) markers are not yet implemented. ([zq/1364](https://github.com/brimsec/zq/issues/1364))
+> * [Primitive Types](#5-primitive-types) for `float16`, `float32`, and `decimal` are not yet implemented. ([zq/1312](https://github.com/brimsec/zq/issues/1312), [zq/1522](https://github.com/brimsec/zq/issues/1522))
 
 * [1. Introduction](#1-introduction)
 * [2. The ZNG Data Model](#2-the-zng-data-model)
@@ -663,10 +663,11 @@ A TZNG end-of-stream marker has the following form:
 ```
 #eos
 ```
-A TZNG stream or file should always be terminated with end-of-stream.
-This clears all of the previous type tag bindings and aliases, allowing
-multiple TZNG files with overlapping tags to be concatenated without the
-tags colliding.
+
+It is recommended that a TZNG stream or file be terminated with an
+end-of-stream marker. This explicitly clears all of the previous type tag
+bindings and aliases, allowing multiple TZNG files with overlapping tags to be concatenated without the tags colliding. However, a TZNG reader should not
+generate an error if a TZNG end-of-stream marker is not present.
 
 ### 4.2 Type Grammar
 
