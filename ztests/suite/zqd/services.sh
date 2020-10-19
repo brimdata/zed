@@ -10,9 +10,12 @@ function awaitfile {
 	  echo "timed out waiting for file \"$file\" to appear, waited $(( SECONDS - start )) seconds"
 	  ls
       cat minio.log
-      cat zqd.log
 	  echo "minio-port:$(cat $portdir/minio)"
-	  kill -3 $zqdpid 2>&1
+	  kill -3 $zqdpid
+	  while kill -0 $zqdpid; do 
+        sleep 1
+      done
+      cat zqd.log
       exit 1
     fi
     sleep 1
