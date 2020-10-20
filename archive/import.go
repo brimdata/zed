@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/pkg/bufwriter"
 	"github.com/brimsec/zq/pkg/fs"
@@ -348,7 +347,7 @@ func (cw *chunkWriter) close(ctx context.Context) error {
 	zctx := resolver.NewContext()
 	tfr := zngio.NewReader(tf, zctx)
 	idxURI := cw.chunk.seekIndexPath(cw.ark)
-	idxWriter, err := microindex.NewWriter(zctx, idxURI.String(), []field.Static{field.New("ts")}, framesize)
+	idxWriter, err := microindex.NewWriter(zctx, idxURI.String(), microindex.Keys("ts"), microindex.FrameThresh(framesize))
 	if err != nil {
 		return err
 	}

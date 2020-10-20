@@ -37,6 +37,7 @@ func init() {
 type Command struct {
 	*root.Command
 	frameThresh int
+	desc        bool
 	outputFile  string
 	keys        string
 	inputFlags  inputflags.Flags
@@ -49,6 +50,7 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.IntVar(&c.frameThresh, "f", 32*1024, "minimum frame size used in microindex file")
 	f.StringVar(&c.outputFile, "o", "index.zng", "name of microindex output file")
 	f.StringVar(&c.keys, "k", "", "comma-separated list of field names for keys")
+	f.BoolVar(&c.desc, "desc", false, "specify data is in descending order")
 	c.inputFlags.SetFlags(f)
 
 	return c, nil
@@ -76,7 +78,11 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer file.Close()
-	writer, err := microindex.NewWriter(zctx, c.outputFile, field.DottedList(c.keys), c.frameThresh)
+	writer, err := microindex.NewWriter(zctx, c.outputFile,
+		microindex.KeyFields(field.DottedList(c.keys)...),
+		microindex.FrameThresh(c.frameThresh),
+		microindex.Order(zbuf.Order(c.desc)),
+	)
 	if err != nil {
 		return err
 	}

@@ -17,5 +17,5 @@ outputs:
     data: ''
   - name: stdout
     data: |
-      #0:record[magic:string,version:int32,child_field:string,frame_thresh:int32,sections:array[int64],keys:record[_child:int64]]
-      0:[microindex;1;_child_0;50;[33;]-;]
+      #0:record[magic:string,version:int32,order:int32,child_field:string,frame_thresh:int32,sections:array[int64],keys:record[_child:int64]]
+      0:[microindex;2;1;_child_0;50;[33;]-;]

@@ -71,7 +71,7 @@ func (c *LookupCommand) Run(args []string) error {
 		return err
 	}
 	defer finder.Close()
-	keys, err := finder.ParseKeys(strings.Split(c.keys, ","))
+	keys, err := finder.ParseKeys(strings.Split(c.keys, ",")...)
 	if err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ func (c *LookupCommand) Run(args []string) error {
 	go func() {
 		if c.closest {
 			var rec *zng.Record
-			rec, searchErr = finder.LookupClosest(keys)
+			rec, searchErr = finder.ClosestLTE(keys)
 			if rec != nil {
 				hits <- rec
 			}

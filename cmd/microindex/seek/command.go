@@ -78,7 +78,8 @@ func (c *Command) Run(args []string) error {
 	}
 	zctx := resolver.NewContext()
 	reader := zngio.NewReader(file, zctx)
-	writer, err := microindex.NewWriter(zctx, c.outputFile, field.DottedList(c.keyField), c.frameThresh)
+	keys := field.DottedList(c.keyField)
+	writer, err := microindex.NewWriter(zctx, c.outputFile, microindex.KeyFields(keys...), microindex.FrameThresh(c.frameThresh))
 	if err != nil {
 		return err
 	}

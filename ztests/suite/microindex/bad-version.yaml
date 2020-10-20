@@ -18,4 +18,4 @@ inputs:
 outputs:
   - name: stderr
     regexp: |
-      .*: microindex version 0 found while expecting version 1
+      .*: microindex version 0 found while expecting version 2

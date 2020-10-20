@@ -2,7 +2,6 @@ package microindex
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -13,6 +12,7 @@ import (
 	"github.com/brimsec/zq/pkg/bufwriter"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/proc/cut"
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -58,6 +58,7 @@ type Writer struct {
 	iow         io.WriteCloser
 	childField  string
 	nlevel      int
+	order       zbuf.Order
 }
 
 type indexWriter struct {
@@ -78,43 +79,74 @@ type indexWriter struct {
 // provide keys in increasing lexicographic order.  Duplicate keys are not
 // allowed but will not be detected.  Close() or Abort() must be called when
 // done writing.
-func NewWriter(zctx *resolver.Context, path string, keyFields []field.Static, frameThresh int) (*Writer, error) {
-	return NewWriterWithContext(context.Background(), zctx, path, keyFields, frameThresh)
-
+func NewWriter(zctx *resolver.Context, path string, options ...Option) (*Writer, error) {
+	return NewWriterWithContext(context.Background(), zctx, path, options...)
 }
-func NewWriterWithContext(ctx context.Context, zctx *resolver.Context, path string, keyFields []field.Static, frameThresh int) (*Writer, error) {
-	if keyFields == nil {
-		keyFields = []field.Static{field.New("key")}
+
+func NewWriterWithContext(ctx context.Context, zctx *resolver.Context, path string, options ...Option) (*Writer, error) {
+	w := &Writer{zctx: zctx}
+	for _, opt := range options {
+		opt.apply(w)
 	}
-	if frameThresh == 0 {
-		return nil, errors.New("microindex frame threshold cannot be zero")
+	if w.keyFields == nil {
+		w.keyFields = []field.Static{field.New("key")}
 	}
-	if frameThresh > FrameMaxSize {
-		return nil, fmt.Errorf("frame threshold too large (%d)", frameThresh)
+	if w.frameThresh == 0 {
+		w.frameThresh = frameThresh
 	}
-	uri, err := iosrc.ParseURI(path)
+	if w.frameThresh > FrameMaxSize {
+		return nil, fmt.Errorf("frame threshold too large (%d)", w.frameThresh)
+	}
+	var err error
+	w.uri, err = iosrc.ParseURI(path)
 	if err != nil {
 		return nil, err
 	}
-	writer, err := iosrc.NewWriter(ctx, uri)
+	w.iow, err = iosrc.NewWriter(ctx, w.uri)
 	if err != nil {
 		return nil, err
 	}
-	tmp, err := ioutil.TempDir("", "microindex-*")
+	w.tmpdir, err = ioutil.TempDir("", "microindex-*")
 	if err != nil {
 		return nil, err
 	}
-	fields, resolvers := expr.CompileAssignments(keyFields, keyFields)
-	w := &Writer{
-		zctx:        zctx,
-		uri:         uri,
-		cutter:      cut.NewStrictCutter(zctx, false, fields, resolvers),
-		tmpdir:      tmp,
-		keyFields:   keyFields,
-		frameThresh: frameThresh,
-		iow:         writer,
-	}
+	fields, resolvers := expr.CompileAssignments(w.keyFields, w.keyFields)
+	w.cutter = cut.NewStrictCutter(zctx, false, fields, resolvers)
 	return w, nil
+}
+
+type Option interface {
+	apply(*Writer)
+}
+
+type optionFunc func(*Writer)
+
+func (f optionFunc) apply(w *Writer) { f(w) }
+
+func KeyFields(keys ...field.Static) Option {
+	return optionFunc(func(w *Writer) {
+		w.keyFields = keys
+	})
+}
+
+func Keys(keys ...string) Option {
+	return optionFunc(func(w *Writer) {
+		for _, k := range keys {
+			w.keyFields = append(w.keyFields, field.Dotted(k))
+		}
+	})
+}
+
+func FrameThresh(frameThresh int) Option {
+	return optionFunc(func(w *Writer) {
+		w.frameThresh = frameThresh
+	})
+}
+
+func Order(order zbuf.Order) Option {
+	return optionFunc(func(w *Writer) {
+		w.order = order
+	})
 }
 
 func (w *Writer) Write(rec *zng.Record) error {
@@ -234,7 +266,7 @@ func (w *Writer) finalize() error {
 			return err
 		}
 	}
-	return writeTrailer(base.zng, w.zctx, w.childField, w.frameThresh, sizes, w.keyType)
+	return writeTrailer(base.zng, w.zctx, w.childField, w.frameThresh, sizes, w.keyType, w.order)
 }
 
 func (w *Writer) writeEmptyTrailer() error {
@@ -247,12 +279,12 @@ func (w *Writer) writeEmptyTrailer() error {
 		return err
 	}
 	zw := zngio.NewWriter(w.iow, zngio.WriterOpts{})
-	return writeTrailer(zw, w.zctx, "", w.frameThresh, nil, typ)
+	return writeTrailer(zw, w.zctx, "", w.frameThresh, nil, typ, w.order)
 }
 
-func writeTrailer(w *zngio.Writer, zctx *resolver.Context, childField string, frameThresh int, sizes []int64, keyType *zng.TypeRecord) error {
+func writeTrailer(w *zngio.Writer, zctx *resolver.Context, childField string, frameThresh int, sizes []int64, keyType *zng.TypeRecord, order zbuf.Order) error {
 	// Finally, write the size records as the trailer of the microindex.
-	rec, err := newTrailerRecord(zctx, childField, frameThresh, sizes, keyType)
+	rec, err := newTrailerRecord(zctx, childField, frameThresh, sizes, keyType, order)
 	if err != nil {
 		return err
 	}

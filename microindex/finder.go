@@ -40,27 +40,63 @@ func NewFinder(ctx context.Context, zctx *resolver.Context, uri iosrc.URI) (*Fin
 }
 
 // lookup searches for a match of the given key compared to the
-// key values in the records read from the reader.  If the boolean argument
-// "exact" is true, then only exact matches are returned.  Otherwise, the
-// record with the lagest key smaller than the key argument is returned.
-func lookup(reader zbuf.Reader, compare expr.KeyCompareFn, exact bool) (*zng.Record, error) {
+// key values in the records read from the reader.  If the op argument is "="
+// then only exact matches are returned.  Otherwise, the record with the
+// largest key smaller (or larger) than the key argument is returned.
+func lookup(reader zbuf.Reader, compare expr.KeyCompareFn, dir zbuf.Order, op string) (*zng.Record, error) {
+	if dir == zbuf.OrderAsc {
+		return lookupAsc(reader, compare, op)
+	}
+	return lookupDesc(reader, compare, op)
+}
+
+func lookupAsc(reader zbuf.Reader, fn expr.KeyCompareFn, op string) (*zng.Record, error) {
 	var prev *zng.Record
 	for {
 		rec, err := reader.Read()
-		if err != nil || rec == nil {
-			if exact {
+		if rec == nil || err != nil {
+			if op == "=" || op == ">=" {
 				prev = nil
 			}
 			return prev, err
 		}
-		if cmp := compare(rec); cmp >= 0 {
+		if cmp := fn(rec); cmp >= 0 {
 			if cmp == 0 {
 				return rec, nil
 			}
-			if exact {
-				return nil, nil
+			if op == "=" {
+				rec = nil
 			}
-			return prev, nil
+			if op == "<=" {
+				return prev, nil
+			}
+			return rec, nil
+		}
+		prev = rec
+	}
+}
+
+func lookupDesc(reader zbuf.Reader, fn expr.KeyCompareFn, op string) (*zng.Record, error) {
+	var prev *zng.Record
+	for {
+		rec, err := reader.Read()
+		if rec == nil || err != nil {
+			if op == "=" || op == "<=" {
+				prev = nil
+			}
+			return prev, err
+		}
+		if cmp := fn(rec); cmp <= 0 {
+			if cmp == 0 {
+				return rec, nil
+			}
+			if op == "=" {
+				rec = nil
+			}
+			if op == ">=" {
+				return prev, nil
+			}
+			return rec, nil
 		}
 		prev = rec
 	}
@@ -79,7 +115,14 @@ func (f *Finder) search(compare expr.KeyCompareFn) (zbuf.Reader, error) {
 	off := int64(0)
 	for level := 1; level < n; level++ {
 		reader, err := f.newSectionReader(level, off)
-		rec, err := lookup(reader, compare, false)
+		if err != nil {
+			return nil, err
+		}
+		op := "<="
+		if f.trailer.Order == zbuf.OrderDesc {
+			op = ">="
+		}
+		rec, err := lookup(reader, compare, f.trailer.Order, op)
 		if err != nil {
 			return nil, err
 		}
@@ -112,7 +155,7 @@ func (f *Finder) Lookup(keys *zng.Record) (*zng.Record, error) {
 		}
 		return nil, err
 	}
-	return lookup(reader, compare, true)
+	return lookup(reader, compare, f.trailer.Order, "=")
 }
 
 func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zng.Record, keys *zng.Record) error {
@@ -131,7 +174,7 @@ func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zng.Record, keys *z
 		// As long as we have an exact key-match, where unset key
 		// columns are "don't care", keep reading records and return
 		// them via the channel.
-		rec, err := lookup(reader, compare, true)
+		rec, err := lookup(reader, compare, f.trailer.Order, "=")
 		if err != nil {
 			return err
 		}
@@ -146,7 +189,9 @@ func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zng.Record, keys *z
 	}
 }
 
-func (f *Finder) LookupClosest(keys *zng.Record) (*zng.Record, error) {
+// ClosestGTE returns the closets record that is greater than or equal to the
+// provided key values.
+func (f *Finder) ClosestGTE(keys *zng.Record) (*zng.Record, error) {
 	if f.IsEmpty() {
 		return nil, nil
 	}
@@ -158,7 +203,24 @@ func (f *Finder) LookupClosest(keys *zng.Record) (*zng.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	return lookup(reader, compare, false)
+	return lookup(reader, compare, f.trailer.Order, ">=")
+}
+
+// ClosestLTE returns the closets record that is less than or equal to the
+// provided key values.
+func (f *Finder) ClosestLTE(keys *zng.Record) (*zng.Record, error) {
+	if f.IsEmpty() {
+		return nil, nil
+	}
+	compare, err := expr.NewKeyCompareFn(keys)
+	if err != nil {
+		return nil, err
+	}
+	reader, err := f.search(compare)
+	if err != nil {
+		return nil, err
+	}
+	return lookup(reader, compare, f.trailer.Order, "<=")
 }
 
 // ParseKeys uses the key template from the microindex trailer to parse
@@ -167,7 +229,7 @@ func (f *Finder) LookupClosest(keys *zng.Record) (*zng.Record, error) {
 // number of key fields, in which case they are "don't cares"
 // in terms of key lookups.  Any don't-care fields must all be
 // at the end of the key record.
-func (f *Finder) ParseKeys(inputs []string) (*zng.Record, error) {
+func (f *Finder) ParseKeys(inputs ...string) (*zng.Record, error) {
 	if f.IsEmpty() {
 		return nil, nil
 	}

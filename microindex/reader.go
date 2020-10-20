@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	FrameThresh  = 32 * 1024
+	frameThresh  = 32 * 1024
 	FrameFudge   = 1024
-	FrameBufSize = FrameThresh + FrameFudge
+	FrameBufSize = frameThresh + FrameFudge
 	FrameMaxSize = 20 * 1024 * 1024
 )
 

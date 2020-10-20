@@ -79,7 +79,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	writer, err := microindex.NewWriter(zctx, c.outputFile, nil, c.frameThresh)
+	writer, err := microindex.NewWriter(zctx, c.outputFile, microindex.FrameThresh(c.frameThresh))
 	if err != nil {
 		return err
 	}

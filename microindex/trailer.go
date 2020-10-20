@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
@@ -19,9 +20,10 @@ const (
 	FrameThreshField = "frame_thresh"
 	SectionsField    = "sections"
 	KeysField        = "keys"
+	OrderField       = "order"
 
 	MagicVal      = "microindex"
-	VersionVal    = 1
+	VersionVal    = 2
 	ChildFieldVal = "_child"
 
 	TrailerMaxSize = 4096
@@ -34,15 +36,17 @@ type Trailer struct {
 	FrameThresh      int
 	KeyType          *zng.TypeRecord
 	Sections         []int64
+	Order            zbuf.Order
 }
 
 var ErrNotIndex = errors.New("not a microindex")
 
-func newTrailerRecord(zctx *resolver.Context, childField string, frameThresh int, sections []int64, keyType *zng.TypeRecord) (*zng.Record, error) {
+func newTrailerRecord(zctx *resolver.Context, childField string, frameThresh int, sections []int64, keyType *zng.TypeRecord, order zbuf.Order) (*zng.Record, error) {
 	sectionsType := zctx.LookupTypeArray(zng.TypeInt64)
 	cols := []zng.Column{
 		{MagicField, zng.TypeString},
 		{VersionField, zng.TypeInt32},
+		{OrderField, zng.TypeInt32},
 		{ChildField, zng.TypeString},
 		{FrameThreshField, zng.TypeInt32},
 		{SectionsField, sectionsType},
@@ -56,6 +60,7 @@ func newTrailerRecord(zctx *resolver.Context, childField string, frameThresh int
 	return builder.Build(
 		zng.EncodeString(MagicVal),
 		zng.EncodeInt(VersionVal),
+		zng.EncodeInt(int64(order.Int())),
 		zng.EncodeString(childField),
 		zng.EncodeInt(int64(frameThresh)),
 		encodeSections(sections),
@@ -137,6 +142,13 @@ func recordToTrailer(rec *zng.Record) (*Trailer, error) {
 	trailer.Version, err = trailerVersion(rec)
 	if err != nil {
 		return nil, err
+	}
+	order, err := rec.AccessInt(OrderField)
+	if err != nil {
+		return nil, err
+	}
+	if order < 0 {
+		trailer.Order = zbuf.OrderDesc
 	}
 
 	trailer.ChildOffsetField, err = rec.AccessString(ChildField)

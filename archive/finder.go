@@ -129,7 +129,7 @@ func search(ctx context.Context, zctx *resolver.Context, hits chan<- *zng.Record
 		return fmt.Errorf("%s: %w", uri, err)
 	}
 	defer finder.Close()
-	keys, err := finder.ParseKeys(patterns)
+	keys, err := finder.ParseKeys(patterns...)
 	if err != nil {
 		return fmt.Errorf("%s: %w", finder.Path(), err)
 	}
