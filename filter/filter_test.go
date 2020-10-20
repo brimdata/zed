@@ -288,6 +288,37 @@ func TestFilters(t *testing.T) {
 		{"wor*", true},
 	})
 
+	// Test searching a record inside an array, record, set, and union.
+	for _, c := range []struct {
+		name string
+		tzng string
+	}{
+		{"array", `
+#0:record[a:array[record[i:int64,s1:string,s2:string]]]
+0:[[[123;456;hello;]]]`},
+		{"record", `
+#0:record[r:record[r2:record[i:int64,s1:string,s2:string]]]
+0:[[[123;456;hello;]]]`},
+		{"set", `
+#0:record[s:set[record[i:int64,s1:string,s2:string]]]
+0:[[[123;456;hello;]]]`},
+		{"union", `
+#0:record[u:union[int64,record[i:int64,s1:string,s2:string]]]
+0:[1:[123;456;hello, world;]]`},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			runCases(t, c.tzng, []testcase{
+				{"123", true},
+				{`"123"`, false},
+				{"12", false},
+				{"456", true},
+				{`"456"`, true},
+				{"45", true},
+				{"hello", true},
+			})
+		})
+	}
+
 	// Test searching with subnet syntax
 	tzng = `
 #0:record[addr:ip]
