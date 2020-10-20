@@ -39,23 +39,31 @@ func NewFinder(ctx context.Context, zctx *resolver.Context, uri iosrc.URI) (*Fin
 	}, nil
 }
 
+type operator int
+
+const (
+	eql operator = iota
+	gte
+	lte
+)
+
 // lookup searches for a match of the given key compared to the
 // key values in the records read from the reader.  If the op argument is "="
 // then only exact matches are returned.  Otherwise, the record with the
 // largest key smaller (or larger) than the key argument is returned.
-func lookup(reader zbuf.Reader, compare expr.KeyCompareFn, order zbuf.Order, op string) (*zng.Record, error) {
+func lookup(reader zbuf.Reader, compare expr.KeyCompareFn, order zbuf.Order, op operator) (*zng.Record, error) {
 	if order == zbuf.OrderAsc {
 		return lookupAsc(reader, compare, op)
 	}
 	return lookupDesc(reader, compare, op)
 }
 
-func lookupAsc(reader zbuf.Reader, fn expr.KeyCompareFn, op string) (*zng.Record, error) {
+func lookupAsc(reader zbuf.Reader, fn expr.KeyCompareFn, op operator) (*zng.Record, error) {
 	var prev *zng.Record
 	for {
 		rec, err := reader.Read()
 		if rec == nil || err != nil {
-			if op == "=" || op == ">=" {
+			if op == eql || op == gte {
 				prev = nil
 			}
 			return prev, err
@@ -64,10 +72,10 @@ func lookupAsc(reader zbuf.Reader, fn expr.KeyCompareFn, op string) (*zng.Record
 			if cmp == 0 {
 				return rec, nil
 			}
-			if op == "=" {
+			if op == eql {
 				rec = nil
 			}
-			if op == "<=" {
+			if op == lte {
 				return prev, nil
 			}
 			return rec, nil
@@ -76,12 +84,12 @@ func lookupAsc(reader zbuf.Reader, fn expr.KeyCompareFn, op string) (*zng.Record
 	}
 }
 
-func lookupDesc(reader zbuf.Reader, fn expr.KeyCompareFn, op string) (*zng.Record, error) {
+func lookupDesc(reader zbuf.Reader, fn expr.KeyCompareFn, op operator) (*zng.Record, error) {
 	var prev *zng.Record
 	for {
 		rec, err := reader.Read()
 		if rec == nil || err != nil {
-			if op == "=" || op == "<=" {
+			if op == eql || op == lte {
 				prev = nil
 			}
 			return prev, err
@@ -90,10 +98,10 @@ func lookupDesc(reader zbuf.Reader, fn expr.KeyCompareFn, op string) (*zng.Recor
 			if cmp == 0 {
 				return rec, nil
 			}
-			if op == "=" {
+			if op == eql {
 				rec = nil
 			}
-			if op == ">=" {
+			if op == gte {
 				return prev, nil
 			}
 			return rec, nil
@@ -118,9 +126,9 @@ func (f *Finder) search(compare expr.KeyCompareFn) (zbuf.Reader, error) {
 		if err != nil {
 			return nil, err
 		}
-		op := "<="
+		op := lte
 		if f.trailer.Order == zbuf.OrderDesc {
-			op = ">="
+			op = gte
 		}
 		rec, err := lookup(reader, compare, f.trailer.Order, op)
 		if err != nil {
@@ -155,7 +163,7 @@ func (f *Finder) Lookup(keys *zng.Record) (*zng.Record, error) {
 		}
 		return nil, err
 	}
-	return lookup(reader, compare, f.trailer.Order, "=")
+	return lookup(reader, compare, f.trailer.Order, eql)
 }
 
 func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zng.Record, keys *zng.Record) error {
@@ -174,7 +182,7 @@ func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zng.Record, keys *z
 		// As long as we have an exact key-match, where unset key
 		// columns are "don't care", keep reading records and return
 		// them via the channel.
-		rec, err := lookup(reader, compare, f.trailer.Order, "=")
+		rec, err := lookup(reader, compare, f.trailer.Order, eql)
 		if err != nil {
 			return err
 		}
@@ -192,16 +200,16 @@ func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zng.Record, keys *z
 // ClosestGTE returns the closets record that is greater than or equal to the
 // provided key values.
 func (f *Finder) ClosestGTE(keys *zng.Record) (*zng.Record, error) {
-	return closest(keys, ">=")
+	return f.closest(keys, gte)
 }
 
 // ClosestLTE returns the closets record that is less than or equal to the
 // provided key values.
 func (f *Finder) ClosestLTE(keys *zng.Record) (*zng.Record, error) {
-	return closest(keys, "<=")
+	return f.closest(keys, lte)
 }
-		
-func (f *Finder) closest(keys *zng.Record, op string) (*zng.Record, error) {
+
+func (f *Finder) closest(keys *zng.Record, op operator) (*zng.Record, error) {
 	if f.IsEmpty() {
 		return nil, nil
 	}
