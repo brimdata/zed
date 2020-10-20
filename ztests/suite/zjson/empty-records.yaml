@@ -3,6 +3,6 @@ zql: '*'
 input: |
   {"id":23,"schema":{"type":"record","of":[{"name":"ja3s","type":"int32"}]},"values":[null]}
 
-output-format: zjson
+output-flags: -f zjson
 output: |
   {"id":23,"schema":{"of":[{"name":"ja3s","type":"int32"}],"type":"record"},"values":[null]}

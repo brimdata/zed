@@ -8,7 +8,7 @@ input: |
   0:[conn;-1425565514.419939;1;]
   0:[conn;-;-;]
 
-output-format: zeek
+output-flags: -f zeek
 
 output: |
   #separator \x09

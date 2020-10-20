@@ -13,7 +13,7 @@ input: |
   0:[conn;9;]
   0:[conn;10;]
 
-output-format: table
+output-flags: -f table
 
 output: |
   C

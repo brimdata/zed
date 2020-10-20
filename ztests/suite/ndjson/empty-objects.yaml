@@ -4,7 +4,7 @@ input: |
   {}
   {"ja3s":{}}
 
-output-format: ndjson
+output-flags: -f ndjson
 output: |
   {}
   {"ja3s":{}}
