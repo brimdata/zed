@@ -43,8 +43,8 @@ func NewFinder(ctx context.Context, zctx *resolver.Context, uri iosrc.URI) (*Fin
 // key values in the records read from the reader.  If the op argument is "="
 // then only exact matches are returned.  Otherwise, the record with the
 // largest key smaller (or larger) than the key argument is returned.
-func lookup(reader zbuf.Reader, compare expr.KeyCompareFn, dir zbuf.Order, op string) (*zng.Record, error) {
-	if dir == zbuf.OrderAsc {
+func lookup(reader zbuf.Reader, compare expr.KeyCompareFn, order zbuf.Order, op string) (*zng.Record, error) {
+	if order == zbuf.OrderAsc {
 		return lookupAsc(reader, compare, op)
 	}
 	return lookupDesc(reader, compare, op)
