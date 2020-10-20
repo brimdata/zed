@@ -213,7 +213,7 @@ func (f *Finder) closest(keys *zng.Record, op string) (*zng.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	return lookup(reader, compare, f.trailer.Order, "<=")
+	return lookup(reader, compare, f.trailer.Order, op)
 }
 
 // ParseKeys uses the key template from the microindex trailer to parse
