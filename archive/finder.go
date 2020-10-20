@@ -55,7 +55,7 @@ func AddPath(pathField string, absolutePath bool) FindOption {
 					path = chunk.Path(ark).String()
 				}
 			} else {
-				path = string(chunk.LogID())
+				path = string(chunk.RelativePath())
 			}
 			return opt.zctx.AddColumns(rec, cols, []zng.Value{
 				{cols[0].Type, zng.EncodeString(path)},

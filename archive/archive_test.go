@@ -102,12 +102,21 @@ func TestOpenOptions(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		if c, ok := ChunkNameMatch(fi.Name()); ok {
-			switch c.First {
+		if k, id, ok := chunkFileMatch(fi.Name()); ok && k == FileKindMetadata {
+			uri, err := iosrc.ParseURI(p)
+			if err != nil {
+				return err
+			}
+			md, err := readChunkMetadata(context.Background(), uri)
+			if err != nil {
+				return err
+			}
+			chunk := md.Chunk(id)
+			switch md.First {
 			case first1:
-				chunk1 = c
+				chunk1 = chunk
 			case first2:
-				chunk2 = c
+				chunk2 = chunk
 			}
 		}
 		return nil
@@ -118,10 +127,10 @@ func TestOpenOptions(t *testing.T) {
 	}
 
 	out := indexQuery(t, ark1, query, AddPath(DefaultAddPathField, false))
-	require.Equal(t, test.Trim(fmt.Sprintf(expFormat, chunk1.LogID(), chunk2.LogID())), out)
+	require.Equal(t, test.Trim(fmt.Sprintf(expFormat, chunk1.RelativePath(), chunk2.RelativePath())), out)
 
 	ark2, err := OpenArchive(datapath, &OpenOptions{
-		LogFilter: []string{string(chunk1.LogID())},
+		LogFilter: []string{string(chunk1.RelativePath())},
 	})
 	require.NoError(t, err)
 
@@ -131,7 +140,7 @@ func TestOpenOptions(t *testing.T) {
 0:[336;1;%s;1587517405.06665591;1587517149.06304407;]
 `
 	out = indexQuery(t, ark2, query, AddPath(DefaultAddPathField, false))
-	require.Equal(t, test.Trim(fmt.Sprintf(expFormat, chunk1.LogID())), out)
+	require.Equal(t, test.Trim(fmt.Sprintf(expFormat, chunk1.RelativePath())), out)
 }
 
 func TestSeekIndex(t *testing.T) {
@@ -157,9 +166,18 @@ func TestSeekIndex(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		if c, ok := ChunkNameMatch(fi.Name()); ok {
-			if c.First == first1 {
-				idxUri = c.seekIndexPath(ark)
+		if k, id, ok := chunkFileMatch(fi.Name()); ok && k == FileKindMetadata {
+			uri, err := iosrc.ParseURI(p)
+			if err != nil {
+				return err
+			}
+			md, err := readChunkMetadata(context.Background(), uri)
+			if err != nil {
+				return err
+			}
+			chunk := md.Chunk(id)
+			if chunk.First == first1 {
+				idxUri = chunk.seekIndexPath(ark)
 			}
 		}
 		return nil

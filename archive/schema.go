@@ -165,11 +165,11 @@ func openArchive(ctx context.Context, root iosrc.URI, oo *OpenOptions) (*Archive
 	}
 	if oo != nil {
 		for _, l := range oo.LogFilter {
-			c, ok := ChunkNameMatch(l)
+			_, id, ok := chunkFileMatch(l)
 			if !ok {
 				return nil, zqe.E(zqe.Invalid, "log filter %s not a chunk file name", l)
 			}
-			ark.LogFilter = append(ark.LogFilter, c.Id)
+			ark.LogFilter = append(ark.LogFilter, id)
 		}
 	}
 

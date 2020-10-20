@@ -47,15 +47,7 @@ type SearchRequest struct {
 
 type WorkerRequest struct {
 	SearchRequest
-	Chunks []Chunk `json:"chunks"`
-}
-
-type Chunk struct {
-	Id          string  `json:"id" validate:"required"`
-	First       nano.Ts `json:"first" validate:"required"`
-	Last        nano.Ts `json:"last" validate:"required"`
-	Kind        string  `json:"kind" validate:"required"`
-	RecordCount int64   `json:"record_count" validate:"required"`
+	ChunkRelativePaths []string `json:"chunk_relative_paths"`
 }
 
 type SearchRecords struct {

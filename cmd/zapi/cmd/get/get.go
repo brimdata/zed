@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
 	"github.com/brimsec/zq/emitter"
@@ -180,20 +179,9 @@ func parseExprWithChunk(spaceID api.SpaceID, expr string, chunkInfo string) (*ap
 	if err != nil {
 		return nil, err
 	}
-	chunk, ok := archive.ChunkNameMatch(chunkInfo)
-	if !ok {
-		return nil, errors.New("bad format for chunk name")
-	}
-
 	return &api.WorkerRequest{
-		SearchRequest: *searchRequest,
-		Chunks: []api.Chunk{{
-			Id:          chunk.Id.String(),
-			First:       chunk.First,
-			Last:        chunk.Last,
-			Kind:        string(chunk.Kind),
-			RecordCount: chunk.RecordCount,
-		}},
+		SearchRequest:      *searchRequest,
+		ChunkRelativePaths: []string{chunkInfo},
 	}, nil
 }
 
