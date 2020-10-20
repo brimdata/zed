@@ -183,9 +183,6 @@ func (b *Builder) parseSet(typ *TypeSet, in string) error {
 		b.appendUnset(inner)
 		return nil
 	}
-	if IsContainerType(inner) {
-		return &RecordTypeError{Name: "<set>", Type: typ.String(), Err: ErrNotPrimitive}
-	}
 	//XXX for now just use simple comma rule, which means comman
 	// cannot be embedded in a set value here.  we need a recursive
 	// descent parser like the type parser to d this correctly
