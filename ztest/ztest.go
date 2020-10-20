@@ -34,7 +34,7 @@
 //      0:[1;]
 //      0:[2;]
 //
-//    output-format: table
+//    output-flags: -f table
 //
 //    output: |
 //      COUNT
@@ -146,7 +146,7 @@ import (
 func Run(t *testing.T, dirname string) {
 	path := os.Getenv("ZTEST_PATH")
 	if path != "" {
-		if out, _, err := runzq(path, "help", "", ""); err != nil {
+		if out, _, err := runzq(path, "help", nil); err != nil {
 			if out != "" {
 				out = fmt.Sprintf(" with output %q", out)
 			}
@@ -244,15 +244,14 @@ func (f *File) load(dir string) ([]byte, *regexp.Regexp, error) {
 
 // ZTest defines a ztest.
 type ZTest struct {
-	ZQL          string `yaml:"zql,omitempty"`
-	Input        Inputs `yaml:"input,omitempty"`
-	OutputFormat string `yaml:"output-format,omitempty"`
-	Output       string `yaml:"output,omitempty"`
-	OutputHex    string `yaml:"outputHex,omitempty"`
-	OutputFlags  string `yaml:"output-flags,omitempty"`
-	ErrorRE      string `yaml:"errorRE"`
-	errRegex     *regexp.Regexp
-	Warnings     string `yaml:"warnings,omitempty"`
+	ZQL         string `yaml:"zql,omitempty"`
+	Input       Inputs `yaml:"input,omitempty"`
+	Output      string `yaml:"output,omitempty"`
+	OutputHex   string `yaml:"outputHex,omitempty"`
+	OutputFlags string `yaml:"output-flags,omitempty"`
+	ErrorRE     string `yaml:"errorRE"`
+	errRegex    *regexp.Regexp
+	Warnings    string `yaml:"warnings,omitempty"`
 	// shell mode params
 	Script  string `yaml:"script,omitempty"`
 	Inputs  []File `yaml:"inputs,omitempty"`
@@ -360,9 +359,6 @@ func FromYAMLFile(filename string) (*ZTest, error) {
 	if d.Decode(&v) != io.EOF {
 		return nil, errors.New("found multiple YAML documents or garbage after first document")
 	}
-	if z.OutputFormat == "" {
-		z.OutputFormat = "tzng"
-	}
 	if z.ErrorRE != "" {
 		z.errRegex, err = regexp.Compile(z.ErrorRE)
 		if err != nil {
@@ -403,7 +399,8 @@ func (z *ZTest) Run(t *testing.T, testname, path, dirname, filename string) {
 		}
 		return
 	}
-	out, errout, err := runzq(path, z.ZQL, z.OutputFormat, z.OutputFlags, z.Input...)
+	outputFlags := append([]string{"-f=tzng"}, strings.Fields(z.OutputFlags)...)
+	out, errout, err := runzq(path, z.ZQL, outputFlags, z.Input...)
 	if err != nil {
 		if z.errRegex != nil {
 			if !z.errRegex.Match([]byte(errout)) {
@@ -539,13 +536,13 @@ func runsh(testname, path, dirname string, zt *ZTest) error {
 	return checkData(expectedData, dir, stdout, stderr)
 }
 
-// runzq runs the query in ZQL over inputs and returns the output formatted
-// according to outputFormat. inputs may be in any format recognized by "zq -i
-// auto" and maybe be gzip-compressed.  outputFormat may be any string accepted
-// by "zq -f".  If path is empty, the query runs in the current process.
-// If path is not empty, it specifies a command search path used to find
-// a zq executable to run the query.
-func runzq(path, ZQL, outputFormat, outputFlags string, inputs ...string) (out string, warnOrError string, err error) {
+// runzq runs the query in ZQL over inputs and returns the output.  inputs may
+// be in any format recognized by "zq -i auto" and may be gzip-compressed.
+// outputFlags may contain any flags accepted by cli/outputflags.Flags.  If path
+// is empty, the query runs in the current process.  If path is not empty, it
+// specifies a command search path used to find a zq executable to run the
+// query.
+func runzq(path, ZQL string, outputFlags []string, inputs ...string) (out string, warnOrError string, err error) {
 	var outbuf bytes.Buffer
 	var errbuf bytes.Buffer
 	if path != "" {
@@ -558,13 +555,7 @@ func runzq(path, ZQL, outputFormat, outputFlags string, inputs ...string) (out s
 			return "", "", err
 		}
 		defer os.RemoveAll(tmpdir)
-		cmd := exec.Command(zq, "-f", outputFormat)
-		if len(outputFlags) > 0 {
-			flags := strings.Split(outputFlags, " ")
-			cmd.Args = append(cmd.Args, flags...)
-		}
-		cmd.Args = append(cmd.Args, ZQL)
-		cmd.Args = append(cmd.Args, files...)
+		cmd := exec.Command(zq, append(append(outputFlags, ZQL), files...)...)
 		cmd.Stdout = &outbuf
 		cmd.Stderr = &errbuf
 		err = cmd.Run()
@@ -586,10 +577,9 @@ func runzq(path, ZQL, outputFormat, outputFlags string, inputs ...string) (out s
 	var zflags outputflags.Flags
 	var flags flag.FlagSet
 	zflags.SetFlags(&flags)
-	if err := flags.Parse(strings.Split(outputFlags, " ")); err != nil {
+	if err := flags.Parse(outputFlags); err != nil {
 		return "", "", err
 	}
-	zflags.Format = outputFormat
 	zw, err := detector.LookupWriter(&nopCloser{&outbuf}, zflags.Options())
 	if err != nil {
 		return "", "", err

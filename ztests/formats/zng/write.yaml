@@ -5,7 +5,7 @@ input: |
   0:[a;10;1;]
   0:[xyz;20;1.5;]
 
-output-format: zng
+output-flags: -f zng
 
 outputHex: |
   # define a record with 3 columns

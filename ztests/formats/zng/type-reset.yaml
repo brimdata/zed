@@ -5,9 +5,7 @@ input: |
   0:[a;10;1;]
   0:[xyz;20;1.5;]
 
-output-format: zng
-
-output-flags: -b 2
+output-flags: -f zng -b 2
 
 output: !!binary |
   9gMFX3BhdGgQAnRzCQFkDBcRBGEMAMgXqAQSAAAAAAAA8D8XEwh4eXoMAJAvUAkSAAAAAAAA+D//

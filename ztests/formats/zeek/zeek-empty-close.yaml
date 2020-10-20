@@ -10,6 +10,6 @@ input: |
   #types	time	string	addr	port	addr	port	string	string	string	string	bool	string	string	bool	vector[string]	vector[string]	string	string	string	string	string
   #close  2019-10-10-08-30-35
 
-output-format: zeek
+output-flags: -f zeek
 
 output: ""

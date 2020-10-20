@@ -8,7 +8,7 @@ input: |
   0:[conn;1.123e8;1.123e8;]
   0:[conn;1e-8;1e-8;]
 
-output-format: ndjson
+output-flags: -f ndjson
 
 output: |
   {"_path":"conn","d":"1000000000","ts":"1000000000"}
