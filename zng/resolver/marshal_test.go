@@ -1,6 +1,8 @@
 package resolver_test
 
 import (
+	"errors"
+	"math"
 	"net"
 	"strings"
 	"testing"
@@ -64,33 +66,6 @@ func TestMarshal(t *testing.T) {
 type Thing struct {
 	A string `zng:"a"`
 	B int
-}
-
-type Foo struct {
-	Thing
-}
-
-type Bar interface {
-	MarshalZNG(*resolver.Context, *zcode.Builder) (zng.Type, error)
-}
-
-func (f *Foo) MarshalZNG(zctx *resolver.Context, b *zcode.Builder) (zng.Type, error) {
-	return resolver.Marshal(zctx, b, f.Thing)
-}
-
-func TestMarshalInteface(t *testing.T) {
-	f := &Foo{Thing{A: "hello", B: 123}}
-	b := Bar(f)
-	zctx := resolver.NewContext()
-	rec, err := resolver.MarshalRecord(zctx, b)
-	require.NoError(t, err)
-	require.NotNil(t, rec)
-
-	exp := `
-#0:record[Thing:record[a:string,B:int64]]
-0:[[hello;123;]]
-`
-	assert.Equal(t, trim(exp), rectzng(t, rec))
 }
 
 type Things struct {
@@ -227,4 +202,114 @@ func TestUnmarshalSlice(t *testing.T) {
 	err = resolver.UnmarshalRecord(zctx, rec, &v4)
 	require.NoError(t, err)
 	require.Equal(t, v1, v2)
+}
+
+type testMarshaler string
+
+func (m testMarshaler) MarshalZNG(zctx *resolver.Context, b *zcode.Builder) (zng.Type, error) {
+	return resolver.Marshal(zctx, b, "marshal-"+string(m))
+}
+
+func (m *testMarshaler) UnmarshalZNG(zctx *resolver.Context, zt zng.Type, zb zcode.Bytes) error {
+	var s string
+	if err := resolver.Unmarshal(zctx, zt, zb, &s); err != nil {
+		return err
+	}
+	ss := strings.Split(s, "-")
+	if len(ss) != 2 && ss[0] != "marshal" {
+		return errors.New("bad value")
+	}
+	*m = testMarshaler(ss[1])
+	return nil
+}
+
+func TestMarshalInterface(t *testing.T) {
+	type rectype struct {
+		M1 *testMarshaler
+		M2 testMarshaler
+	}
+	m1 := testMarshaler("m1")
+	r1 := rectype{M1: &m1, M2: testMarshaler("m2")}
+	rec, err := resolver.MarshalRecord(resolver.NewContext(), r1)
+	require.NoError(t, err)
+	require.NotNil(t, rec)
+
+	exp := `
+#0:record[M1:string,M2:string]
+0:[marshal-m1;marshal-m2;]
+`
+	assert.Equal(t, trim(exp), rectzng(t, rec))
+
+	var r2 rectype
+	err = resolver.UnmarshalRecord(resolver.NewContext(), rec, &r2)
+	require.NoError(t, err)
+	assert.Equal(t, "m1", string(*r1.M1))
+	assert.Equal(t, "m2", string(r1.M2))
+}
+
+func TestMarshalArray(t *testing.T) {
+	type rectype struct {
+		A1 [2]int8
+		A2 *[2]string
+		A3 [][2]byte
+	}
+	a2 := &[2]string{"foo", "bar"}
+	r1 := rectype{A1: [2]int8{1, 2}, A2: a2} // A3 left as nil
+	rec, err := resolver.MarshalRecord(resolver.NewContext(), r1)
+	require.NoError(t, err)
+	require.NotNil(t, rec)
+
+	exp := `
+#0:record[A1:array[int8],A2:array[string],A3:array[array[uint8]]]
+0:[[1;2;][foo;bar;][]]
+`
+	assert.Equal(t, trim(exp), rectzng(t, rec))
+
+	var r2 rectype
+	err = resolver.UnmarshalRecord(resolver.NewContext(), rec, &r2)
+	require.NoError(t, err)
+	assert.Equal(t, r1.A1, r2.A1)
+	assert.Equal(t, *r2.A2, *r2.A2)
+	assert.Len(t, r2.A3, 0)
+}
+
+func TestIntsAndUints(t *testing.T) {
+	type rectype struct {
+		I    int
+		I8   int8
+		I16  int16
+		I32  int32
+		I64  int64
+		U    uint
+		UI8  uint8
+		UI16 uint16
+		UI32 uint32
+		UI64 uint64
+	}
+	r1 := rectype{
+		I:    math.MinInt64,
+		I8:   math.MinInt8,
+		I16:  math.MinInt16,
+		I32:  math.MinInt32,
+		I64:  math.MinInt64,
+		U:    math.MaxUint64,
+		UI8:  math.MaxUint8,
+		UI16: math.MaxUint16,
+		UI32: math.MaxUint32,
+		UI64: math.MaxUint64,
+	}
+	rec, err := resolver.MarshalRecord(resolver.NewContext(), r1)
+	require.NoError(t, err)
+	require.NotNil(t, rec)
+
+	exp := `
+#0:record[I:int64,I8:int8,I16:int16,I32:int32,I64:int64,U:uint64,UI8:uint8,UI16:uint16,UI32:uint32,UI64:uint64]
+0:[-9223372036854775808;-128;-32768;-2147483648;-9223372036854775808;18446744073709551615;255;65535;4294967295;18446744073709551615;]
+`
+	assert.Equal(t, trim(exp), rectzng(t, rec))
+
+	var r2 rectype
+	err = resolver.UnmarshalRecord(resolver.NewContext(), rec, &r2)
+	require.NoError(t, err)
+	assert.Equal(t, r1, r2)
 }
