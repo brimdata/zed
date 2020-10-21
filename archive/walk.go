@@ -31,8 +31,8 @@ type FileKind string
 const (
 	FileKindUnknown  FileKind = ""
 	FileKindData              = "d"
-	FileKindSeek              = "ts"
 	FileKindMetadata          = "m"
+	FileKindSeek              = "ts"
 )
 
 // A tsDir is a directory found in the "<DataPath>/zd" directory of the archive,
@@ -121,11 +121,10 @@ func tsDirEntriesToChunks(ctx context.Context, ark *Archive, filterSpan nano.Spa
 			switch kind {
 			case FileKindData:
 				s.data = true
-				m[id] = s
 			case FileKindMetadata:
 				s.meta = true
-				m[id] = s
 			}
+			m[id] = s
 		}
 	}
 	var chunks []Chunk

@@ -20,8 +20,8 @@ type staticSource struct {
 }
 
 type SpanInfoSource struct {
-	Span               nano.Span
-	ChunkRelativePaths []string
+	Span       nano.Span
+	ChunkPaths []string
 }
 
 func NewStaticSource(ark *Archive, sis SpanInfoSource) driver.MultiSource {
@@ -37,7 +37,7 @@ func (s *staticSource) OrderInfo() (field.Static, bool) {
 
 func (s *staticSource) SendSources(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter, srcChan chan driver.SourceOpener) error {
 	si := SpanInfo{Span: s.sis.Span}
-	for _, p := range s.sis.ChunkRelativePaths {
+	for _, p := range s.sis.ChunkPaths {
 		tsd, _, id, ok := parseChunkRelativePath(p)
 		if !ok {
 			return zqe.E(zqe.Invalid, "invalid chunk path: %v", p)

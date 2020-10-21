@@ -180,8 +180,8 @@ func parseExprWithChunk(spaceID api.SpaceID, expr string, chunkInfo string) (*ap
 		return nil, err
 	}
 	return &api.WorkerRequest{
-		SearchRequest:      *searchRequest,
-		ChunkRelativePaths: []string{chunkInfo},
+		SearchRequest: *searchRequest,
+		ChunkPaths:    []string{chunkInfo},
 	}, nil
 }
 

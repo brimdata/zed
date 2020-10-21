@@ -47,7 +47,7 @@ type SearchRequest struct {
 
 type WorkerRequest struct {
 	SearchRequest
-	ChunkRelativePaths []string `json:"chunk_relative_paths"`
+	ChunkPaths []string `json:"chunk_paths"`
 }
 
 type SearchRecords struct {

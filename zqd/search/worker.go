@@ -38,8 +38,8 @@ func NewWorkerOp(req api.WorkerRequest) (*WorkerOp, error) {
 	}
 
 	ss := archive.SpanInfoSource{
-		Span:               req.Span,
-		ChunkRelativePaths: req.ChunkRelativePaths,
+		Span:       req.Span,
+		ChunkPaths: req.ChunkPaths,
 	}
 	return &WorkerOp{ss: ss, proc: proc, dir: req.Dir}, nil
 }
