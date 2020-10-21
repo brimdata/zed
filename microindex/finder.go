@@ -197,7 +197,7 @@ func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zng.Record, keys *z
 	}
 }
 
-// ClosestGTE returns the closets record that is greater than or equal to the
+// ClosestGTE returns the closest record that is greater than or equal to the
 // provided key values.
 func (f *Finder) ClosestGTE(keys *zng.Record) (*zng.Record, error) {
 	return f.closest(keys, gte)
