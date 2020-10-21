@@ -223,7 +223,7 @@ func (dw *tsDirWriter) flush() error {
 		r = zbuf.Array(dw.records).NewReader()
 	}
 	first, last := dw.minTs, dw.maxTs
-	if dw.ark.DataSortDirection == zbuf.DirTimeReverse {
+	if dw.ark.DataOrder == zbuf.OrderDesc {
 		first, last = last, first
 	}
 	chunk := Chunk{
@@ -374,6 +374,6 @@ func importCompareFn(ark *Archive) expr.CompareFn {
 		if d > 0 {
 			cmp = 1
 		}
-		return cmp * ark.DataSortDirection.Int()
+		return cmp * ark.DataOrder.Int()
 	}
 }

@@ -99,7 +99,7 @@ func (p *archivePcapOp) run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	combiner := zbuf.NewCombiner(zreaders, zbuf.RecordCompare(p.store.NativeDirection()))
+	combiner := zbuf.NewCombiner(zreaders, zbuf.RecordCompare(p.store.NativeOrder()))
 	defer combiner.Close()
 	// track stats on records produced from analyzers.
 	p.recordCounter.reader = combiner

@@ -21,17 +21,8 @@ func TestRecordTypeCheck(t *testing.T) {
 			zng.NewColumn("f", zng.NewTypeSet(0, zng.TypeString)),
 		}),
 	}
-	t.Run("set/error/container-element", func(t *testing.T) {
-		b := zcode.NewBuilder()
-		b.BeginContainer()
-		b.AppendContainer(nil)
-		b.TransformContainer(zng.NormalizeSet)
-		b.EndContainer()
-		r.Raw = b.Bytes()
-		//assert.EqualError(t, r.TypeCheck(), "<set element> (set[string]): expected primitive type, got container")
-	})
 	t.Run("set/error/duplicate-element", func(t *testing.T) {
-		b := zcode.NewBuilder()
+		var b zcode.Builder
 		b.BeginContainer()
 		b.AppendPrimitive([]byte("dup"))
 		b.AppendPrimitive([]byte("dup"))
@@ -41,7 +32,7 @@ func TestRecordTypeCheck(t *testing.T) {
 		assert.EqualError(t, r.TypeCheck(), "<set element> (set[string]): duplicate element")
 	})
 	t.Run("set/error/unsorted-elements", func(t *testing.T) {
-		b := zcode.NewBuilder()
+		var b zcode.Builder
 		b.BeginContainer()
 		b.AppendPrimitive([]byte("a"))
 		b.AppendPrimitive([]byte("z"))
@@ -51,8 +42,8 @@ func TestRecordTypeCheck(t *testing.T) {
 		r.Raw = b.Bytes()
 		assert.EqualError(t, r.TypeCheck(), "<set element> (set[string]): elements not sorted")
 	})
-	t.Run("set/no-error", func(t *testing.T) {
-		b := zcode.NewBuilder()
+	t.Run("set/primitive-elements", func(t *testing.T) {
+		var b zcode.Builder
 		b.BeginContainer()
 		b.AppendPrimitive([]byte("dup"))
 		b.AppendPrimitive([]byte("dup"))
@@ -63,6 +54,27 @@ func TestRecordTypeCheck(t *testing.T) {
 		r.Raw = b.Bytes()
 		assert.NoError(t, r.TypeCheck())
 	})
+	t.Run("set/complex-elements", func(t *testing.T) {
+		var b zcode.Builder
+		b.BeginContainer()
+		for _, s := range []string{"dup", "dup", "z", "a"} {
+			b.BeginContainer()
+			b.AppendPrimitive([]byte(s))
+			b.EndContainer()
+		}
+		b.TransformContainer(zng.NormalizeSet)
+		b.EndContainer()
+		r := zng.Record{
+			Type: zng.NewTypeRecord(0, []zng.Column{
+				zng.NewColumn("f", zng.NewTypeSet(0, zng.NewTypeRecord(0, []zng.Column{
+					zng.NewColumn("g", zng.TypeString),
+				}))),
+			}),
+			Raw: b.Bytes(),
+		}
+		assert.NoError(t, r.TypeCheck())
+	})
+
 }
 
 const in = `

@@ -675,7 +675,7 @@ grammar describing the textual type encodings is:
 ```
 <primitive> := uint8 | uint16 | uint32 | uint64 |
              | int8 | int16 | int32 | int64 | duration | time
-             | float32 | float64 | decimal
+             | float16 | float32 | float64 | decimal
              | bool | bytes | string | bstring
              | ip | net | type | error | null
 

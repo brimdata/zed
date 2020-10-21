@@ -6,7 +6,7 @@ input: |
   0:[goodnight;gracie;]
   0:[,;gracie;]
 
-output-format: csv
+output-flags: -f csv
 
 output: |
   a,b

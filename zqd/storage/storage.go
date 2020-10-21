@@ -61,7 +61,7 @@ type Summary struct {
 }
 
 type Storage interface {
-	NativeDirection() zbuf.Direction
+	NativeOrder() zbuf.Order
 	Summary(ctx context.Context) (Summary, error)
 	Write(ctx context.Context, zctx *resolver.Context, zr zbuf.Reader) error
 }

@@ -80,7 +80,7 @@ func tsDirVisit(ctx context.Context, ark *Archive, filterSpan nano.Span, visitor
 		tsdirs = append(tsdirs, tsd)
 	}
 	sort.Slice(tsdirs, func(i, j int) bool {
-		if ark.DataSortDirection == zbuf.DirTimeForward {
+		if ark.DataOrder == zbuf.OrderAsc {
 			return tsdirs[i].Ts < tsdirs[j].Ts
 		}
 		return tsdirs[j].Ts < tsdirs[i].Ts
@@ -212,8 +212,8 @@ func (c Chunk) Range() string {
 	return fmt.Sprintf("[%d-%d]", c.First, c.Last)
 }
 
-func chunkTsLess(dir zbuf.Direction, iTs nano.Ts, iKid ksuid.KSUID, jTs nano.Ts, jKid ksuid.KSUID) bool {
-	if dir == zbuf.DirTimeForward {
+func chunkTsLess(order zbuf.Order, iTs nano.Ts, iKid ksuid.KSUID, jTs nano.Ts, jKid ksuid.KSUID) bool {
+	if order == zbuf.OrderAsc {
 		if iTs == jTs {
 			return ksuid.Compare(iKid, jKid) < 0
 		}
@@ -225,9 +225,9 @@ func chunkTsLess(dir zbuf.Direction, iTs nano.Ts, iKid ksuid.KSUID, jTs nano.Ts,
 	return jTs < iTs
 }
 
-func chunksSort(dir zbuf.Direction, c []Chunk) {
+func chunksSort(order zbuf.Order, c []Chunk) {
 	sort.Slice(c, func(i, j int) bool {
-		return chunkTsLess(dir, c[i].First, c[i].Id, c[j].First, c[j].Id)
+		return chunkTsLess(order, c[i].First, c[i].Id, c[j].First, c[j].Id)
 	})
 }
 
@@ -237,7 +237,7 @@ type Visitor func(chunk Chunk) error
 func Walk(ctx context.Context, ark *Archive, v Visitor) error {
 	dirmkr, _ := ark.dataSrc.(iosrc.DirMaker)
 	return tsDirVisit(ctx, ark, nano.MaxSpan, func(_ tsDir, chunks []Chunk) error {
-		chunksSort(ark.DataSortDirection, chunks)
+		chunksSort(ark.DataOrder, chunks)
 		for _, c := range chunks {
 			if dirmkr != nil {
 				zardir := c.ZarDir(ark)
@@ -273,8 +273,8 @@ type SpanInfo struct {
 	Chunks []Chunk
 }
 
-func (s SpanInfo) ChunkRange(dir zbuf.Direction, chunkIdx int) string {
-	first, last := spanToFirstLast(dir, s.Span)
+func (s SpanInfo) ChunkRange(order zbuf.Order, chunkIdx int) string {
+	first, last := spanToFirstLast(order, s.Span)
 	c := s.Chunks[chunkIdx]
 	return fmt.Sprintf("[%d-%d,%d-%d]", first, last, c.First, c.Last)
 }
@@ -283,7 +283,7 @@ func (s SpanInfo) ChunkRange(dir zbuf.Direction, chunkIdx int) string {
 func SpanWalk(ctx context.Context, ark *Archive, filter nano.Span, visitor func(si SpanInfo) error) error {
 	dirmkr, _ := ark.dataSrc.(iosrc.DirMaker)
 	return tsDirVisit(ctx, ark, filter, func(_ tsDir, chunks []Chunk) error {
-		sinfos := mergeChunksToSpans(chunks, ark.DataSortDirection, filter)
+		sinfos := mergeChunksToSpans(chunks, ark.DataOrder, filter)
 		for _, s := range sinfos {
 			if dirmkr != nil {
 				for _, c := range s.Chunks {

@@ -65,7 +65,7 @@ func (c *Command) Run(args []string) error {
 	if c.showRanges {
 		return archive.SpanWalk(context.TODO(), ark, nano.MaxSpan, func(si archive.SpanInfo) error {
 			for i, chunk := range si.Chunks {
-				rangeStr := si.ChunkRange(ark.DataSortDirection, i)
+				rangeStr := si.ChunkRange(ark.DataOrder, i)
 				c.printDir(ark, rangeStr, chunk.ZarDir(ark), pattern)
 			}
 			return nil

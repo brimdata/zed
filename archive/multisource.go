@@ -66,7 +66,7 @@ func newSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, f
 		closers = append(closers, rc)
 		readers = append(readers, zngio.NewReader(rc, zctx))
 	}
-	sn, err := scanner.NewCombiner(ctx, readers, zbuf.RecordCompare(ark.DataSortDirection), f, filterExpr, si.Span)
+	sn, err := scanner.NewCombiner(ctx, readers, zbuf.RecordCompare(ark.DataOrder), f, filterExpr, si.Span)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func NewMultiSource(ark *Archive, altPaths []string) driver.MultiSource {
 
 func (m *multiSource) OrderInfo() (field.Static, bool) {
 	if len(m.altPaths) == 0 {
-		return field.New("ts"), m.ark.DataSortDirection == zbuf.DirTimeReverse
+		return field.New("ts"), m.ark.DataOrder == zbuf.OrderDesc
 	}
 	return nil, false
 }
