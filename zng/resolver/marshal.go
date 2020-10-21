@@ -58,17 +58,9 @@ func fieldName(f reflect.StructField) string {
 	return f.Name
 }
 
-func encodeMarshaler(zctx *Context, b *zcode.Builder, v reflect.Value) (zng.Type, error) {
-	m, ok := v.Interface().(Marshaler)
-	if !ok {
-		return nil, fmt.Errorf("couldn't marshal interface: %v", v)
-	}
-	return m.MarshalZNG(zctx, b)
-}
-
 func encodeAny(zctx *Context, b *zcode.Builder, v reflect.Value) (zng.Type, error) {
 	if v.Type().Implements(marshalerType) {
-		return encodeMarshaler(zctx, b, v)
+		return v.Interface().(Marshaler).MarshalZNG(zctx, b)
 	}
 	switch v.Kind() {
 	case reflect.Array:
@@ -247,11 +239,7 @@ func decodeAny(zctx *Context, typ zng.Type, zv zcode.Bytes, v reflect.Value) err
 		if v.IsNil() {
 			v.Set(reflect.New(v.Type().Elem()))
 		}
-		m, ok := v.Interface().(Unmarshaler)
-		if !ok {
-			return fmt.Errorf("couldn't use Unmarshaler: %v", v)
-		}
-		return m.UnmarshalZNG(zctx, typ, zv)
+		return v.Interface().(Unmarshaler).UnmarshalZNG(zctx, typ, zv)
 	}
 	switch v.Kind() {
 	case reflect.Array:
