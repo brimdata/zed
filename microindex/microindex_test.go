@@ -181,7 +181,7 @@ func newReader(size int) (*tzngio.Reader, error) {
 }
 
 func tempDir(t *testing.T) string {
-	dir, err := ioutil.TempDir("", "table_test")
+	dir, err := ioutil.TempDir("", t.Name())
 	require.NoError(t, err)
 	t.Cleanup(func() { os.RemoveAll(dir) })
 	return dir
