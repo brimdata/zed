@@ -16,11 +16,11 @@ import (
 const (
 	MagicField       = "magic"
 	VersionField     = "version"
+	DescendingField  = "descending"
 	ChildField       = "child_field"
 	FrameThreshField = "frame_thresh"
 	SectionsField    = "sections"
 	KeysField        = "keys"
-	OrderField       = "order"
 
 	MagicVal      = "microindex"
 	VersionVal    = 2
@@ -32,11 +32,11 @@ const (
 type Trailer struct {
 	Magic            string
 	Version          int
+	Order            zbuf.Order
 	ChildOffsetField string
 	FrameThresh      int
 	KeyType          *zng.TypeRecord
 	Sections         []int64
-	Order            zbuf.Order
 }
 
 var ErrNotIndex = errors.New("not a microindex")
@@ -46,7 +46,7 @@ func newTrailerRecord(zctx *resolver.Context, childField string, frameThresh int
 	cols := []zng.Column{
 		{MagicField, zng.TypeString},
 		{VersionField, zng.TypeInt32},
-		{OrderField, zng.TypeInt32},
+		{DescendingField, zng.TypeBool},
 		{ChildField, zng.TypeString},
 		{FrameThreshField, zng.TypeInt32},
 		{SectionsField, sectionsType},
@@ -56,11 +56,15 @@ func newTrailerRecord(zctx *resolver.Context, childField string, frameThresh int
 	if err != nil {
 		return nil, err
 	}
+	var desc bool
+	if order == zbuf.OrderDesc {
+		desc = true
+	}
 	builder := zng.NewBuilder(typ)
 	return builder.Build(
 		zng.EncodeString(MagicVal),
 		zng.EncodeInt(VersionVal),
-		zng.EncodeInt(int64(order.Int())),
+		zng.EncodeBool(desc),
 		zng.EncodeString(childField),
 		zng.EncodeInt(int64(frameThresh)),
 		encodeSections(sections),
@@ -143,11 +147,11 @@ func recordToTrailer(rec *zng.Record) (*Trailer, error) {
 	if err != nil {
 		return nil, err
 	}
-	order, err := rec.AccessInt(OrderField)
+	desc, err := rec.AccessBool(DescendingField)
 	if err != nil {
 		return nil, err
 	}
-	if order < 0 {
+	if desc {
 		trailer.Order = zbuf.OrderDesc
 	}
 
