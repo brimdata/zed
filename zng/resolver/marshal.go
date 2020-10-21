@@ -175,14 +175,14 @@ func encodeArray(zctx *Context, b *zcode.Builder, arrayVal reflect.Value) (zng.T
 
 func lookupType(zctx *Context, typ reflect.Type) (zng.Type, error) {
 	switch typ.Kind() {
-	case reflect.Struct:
-		return lookupTypeRecord(zctx, typ)
-	case reflect.Slice:
+	case reflect.Array, reflect.Slice:
 		typ, err := lookupType(zctx, typ.Elem())
 		if err != nil {
 			return nil, err
 		}
 		return zctx.LookupTypeArray(typ), nil
+	case reflect.Struct:
+		return lookupTypeRecord(zctx, typ)
 	case reflect.Ptr:
 		return lookupType(zctx, typ.Elem())
 	case reflect.String:

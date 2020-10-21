@@ -251,16 +251,17 @@ func TestMarshalArray(t *testing.T) {
 	type rectype struct {
 		A1 [2]int8
 		A2 *[2]string
+		A3 [][2]byte
 	}
 	a2 := &[2]string{"foo", "bar"}
-	r1 := rectype{A1: [2]int8{1, 2}, A2: a2}
+	r1 := rectype{A1: [2]int8{1, 2}, A2: a2} // A3 left as nil
 	rec, err := resolver.MarshalRecord(resolver.NewContext(), r1)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
 
 	exp := `
-#0:record[A1:array[int8],A2:array[string]]
-0:[[1;2;][foo;bar;]]
+#0:record[A1:array[int8],A2:array[string],A3:array[array[uint8]]]
+0:[[1;2;][foo;bar;][]]
 `
 	assert.Equal(t, trim(exp), rectzng(t, rec))
 
@@ -269,6 +270,7 @@ func TestMarshalArray(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, r1.A1, r2.A1)
 	assert.Equal(t, *r2.A2, *r2.A2)
+	assert.Len(t, r2.A3, 0)
 }
 
 func TestIntsAndUints(t *testing.T) {
