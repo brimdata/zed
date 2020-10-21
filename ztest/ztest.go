@@ -135,7 +135,6 @@ import (
 	"github.com/brimsec/zq/zqe"
 	"github.com/brimsec/zq/zql"
 	"github.com/pmezard/go-difflib/difflib"
-	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
 
@@ -321,13 +320,6 @@ func decodeHex(in string) (string, error) {
 	return string(out), nil
 }
 
-func encodeHex(in string) string {
-	var buf bytes.Buffer
-	dumper := hex.Dumper(&buf)
-	dumper.Write([]byte(in))
-	return buf.String()
-}
-
 func (z *ZTest) getOutput() (string, error) {
 	outlen := len(z.Output)
 	hexlen := len(z.OutputHex)
@@ -368,17 +360,6 @@ func FromYAMLFile(filename string) (*ZTest, error) {
 	return &z, nil
 }
 
-func diffErr(expected, actual string) error {
-	diff, _ := difflib.GetUnifiedDiffString(difflib.UnifiedDiff{
-		A:        difflib.SplitLines(expected),
-		FromFile: "expected",
-		B:        difflib.SplitLines(actual),
-		ToFile:   "actual",
-		Context:  5,
-	})
-	return fmt.Errorf("expected and actual outputs differ:\n%s", diff)
-}
-
 func (z *ZTest) Run(t *testing.T, testname, path, dirname, filename string) {
 	if err := z.check(); err != nil {
 		t.Fatalf("%s: bad yaml format: %s", filename, err)
@@ -403,7 +384,7 @@ func (z *ZTest) Run(t *testing.T, testname, path, dirname, filename string) {
 	out, errout, err := runzq(path, z.ZQL, outputFlags, z.Input...)
 	if err != nil {
 		if z.errRegex != nil {
-			if !z.errRegex.Match([]byte(errout)) {
+			if !z.errRegex.MatchString(errout) {
 				t.Fatalf("%s: error doesn't match expected error regex: %s %s", filename, z.ErrorRE, errout)
 			}
 		} else {
@@ -414,25 +395,34 @@ func (z *ZTest) Run(t *testing.T, testname, path, dirname, filename string) {
 		}
 	} else if z.errRegex != nil {
 		t.Fatalf("%s: no error when expecting error regex: %s", filename, z.ErrorRE)
+	} else if z.Warnings != errout {
+		t.Fatalf("%s: %s", filename, diffErr("warnings", z.Warnings, errout))
 	}
-	expectedOut, oerr := z.getOutput()
-	require.NoError(t, oerr)
-	if out != expectedOut {
-		a := expectedOut
-		b := out
+	expectedOut, err := z.getOutput()
+	if err != nil {
+		t.Fatalf("%s: getting test output: %s", filename, err)
+	}
+	if expectedOut != out {
+		t.Fatalf("%s: %s", filename, diffErr("output", expectedOut, out))
+	}
+}
 
-		if !utf8.ValidString(a) {
-			a = encodeHex(a)
-			b = encodeHex(b)
-		}
-
-		err := diffErr(a, b)
-		t.Fatalf("%s: expected and actual outputs differ:\n%s", filename, err)
+func diffErr(name, expected, actual string) error {
+	if !utf8.ValidString(expected) {
+		expected = hex.Dump([]byte(expected))
+		actual = hex.Dump([]byte(actual))
 	}
-	if err == nil && errout != z.Warnings {
-		err := diffErr(z.Warnings, errout)
-		t.Fatalf("%s: expected and actual warnings differ:\n%s", filename, err)
+	diff, err := difflib.GetUnifiedDiffString(difflib.UnifiedDiff{
+		A:        difflib.SplitLines(expected),
+		FromFile: "expected",
+		B:        difflib.SplitLines(actual),
+		ToFile:   "actual",
+		Context:  5,
+	})
+	if err != nil {
+		panic("ztest: " + err.Error())
 	}
+	return fmt.Errorf("expected and actual %s differ:\n%s", name, diff)
 }
 
 func checkPatterns(patterns map[string]*regexp.Regexp, dir *Dir, stdout, stderr string) error {
@@ -451,7 +441,7 @@ func checkPatterns(patterns map[string]*regexp.Regexp, dir *Dir, stdout, stderr 
 			}
 		}
 		if !re.Match(body) {
-			return fmt.Errorf("regex mismatch: '%s' does not match '%s'", re, string(body))
+			return fmt.Errorf("%s: regex %s does not match %s'", name, re, body)
 		}
 	}
 	return nil
@@ -473,7 +463,7 @@ func checkData(files map[string][]byte, dir *Dir, stdout, stderr string) error {
 			}
 		}
 		if !bytes.Equal(expected, actual) {
-			return diffErr(string(expected), string(actual))
+			return diffErr(name, string(expected), string(actual))
 		}
 	}
 	return nil
@@ -542,9 +532,8 @@ func runsh(testname, path, dirname string, zt *ZTest) error {
 // is empty, the query runs in the current process.  If path is not empty, it
 // specifies a command search path used to find a zq executable to run the
 // query.
-func runzq(path, ZQL string, outputFlags []string, inputs ...string) (out string, warnOrError string, err error) {
-	var outbuf bytes.Buffer
-	var errbuf bytes.Buffer
+func runzq(path, ZQL string, outputFlags []string, inputs ...string) (string, string, error) {
+	var errbuf, outbuf bytes.Buffer
 	if path != "" {
 		zq, err := lookupzq(path)
 		if err != nil {
@@ -562,7 +551,7 @@ func runzq(path, ZQL string, outputFlags []string, inputs ...string) (out string
 		// If there was an error, errbuf could potentially hold both warnings
 		// and error messages, but that's not currently an issue with existing
 		// tests.
-		return string(outbuf.Bytes()), string(errbuf.Bytes()), err
+		return outbuf.String(), errbuf.String(), err
 	}
 	proc, err := zql.ParseProc(ZQL)
 	if err != nil {
@@ -591,9 +580,9 @@ func runzq(path, ZQL string, outputFlags []string, inputs ...string) (out string
 		err = err2
 	}
 	if err != nil {
-		return string(outbuf.Bytes()), err.Error(), err
+		errbuf.WriteString(err.Error())
 	}
-	return string(outbuf.Bytes()), string(errbuf.Bytes()), nil
+	return outbuf.String(), errbuf.String(), err
 }
 
 func lookupzq(path string) (string, error) {
