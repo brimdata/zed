@@ -6,12 +6,16 @@ import (
 	"path"
 	"regexp"
 	"sort"
-	"strconv"
+	"strings"
 	"time"
 
+	"github.com/brimsec/zq/pkg/bufwriter"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zqe"
 	"github.com/segmentio/ksuid"
 )
 
@@ -25,9 +29,10 @@ const (
 type FileKind string
 
 const (
-	FileKindUnknown FileKind = ""
-	FileKindData             = "d"
-	FileKindSeek             = "ts"
+	FileKindUnknown  FileKind = ""
+	FileKindData              = "d"
+	FileKindMetadata          = "m"
+	FileKindSeek              = "ts"
 )
 
 // A tsDir is a directory found in the "<DataPath>/zd" directory of the archive,
@@ -90,85 +95,94 @@ func tsDirVisit(ctx context.Context, ark *Archive, filterSpan nano.Span, visitor
 		if err != nil {
 			return err
 		}
-		if err := visitor(d, tsDirEntriesToChunks(ark, filterSpan, dirents)); err != nil {
+		chunks, err := tsDirEntriesToChunks(ctx, ark, filterSpan, d, dirents)
+		if err != nil {
+			return err
+		}
+		if err := visitor(d, chunks); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func tsDirEntriesToChunks(ark *Archive, filterSpan nano.Span, entries []iosrc.Info) []Chunk {
-	var chunks []Chunk
+func tsDirEntriesToChunks(ctx context.Context, ark *Archive, filterSpan nano.Span, tsDir tsDir, entries []iosrc.Info) ([]Chunk, error) {
+	type seen struct {
+		data bool
+		meta bool
+	}
+	m := make(map[ksuid.KSUID]seen)
 	for _, e := range entries {
-		chunk, ok := ChunkNameMatch(e.Name())
-		if !ok {
+		if kind, id, ok := chunkFileMatch(e.Name()); ok {
+			if !ark.filterAllowed(id) {
+				continue
+			}
+			s := m[id]
+			switch kind {
+			case FileKindData:
+				s.data = true
+			case FileKindMetadata:
+				s.meta = true
+			}
+			m[id] = s
+		}
+	}
+	var chunks []Chunk
+	for id, seen := range m {
+		if !seen.meta || !seen.data {
 			continue
 		}
-		if !ark.filterAllowed(chunk.Id) {
-			continue
+		md, err := readChunkMetadata(ctx, chunkMetadataPath(ark, tsDir, id))
+		if err != nil {
+			if zqe.IsNotFound(err) {
+				continue
+			}
+			return nil, err
 		}
+		chunk := md.Chunk(id)
 		if !filterSpan.Overlaps(chunk.Span()) {
 			continue
 		}
 		chunks = append(chunks, chunk)
 	}
-	return chunks
+	return chunks, nil
 }
 
-// A LogID identifies a single zng file within an archive. It is created
-// by doing a path join (with forward slashes, regardless of platform)
-// of the relative location of the file under the archive's root directory.
-type LogID string
+var chunkFileRegex = regexp.MustCompile(`(d|m)-([0-9A-Za-z]{27}).zng$`)
 
-// Path returns the local filesystem path for the log file, using the
-// platforms file separator.
-func (l LogID) Path(ark *Archive) iosrc.URI {
-	return ark.DataPath.AppendPath(string(l))
+func chunkFileMatch(s string) (kind FileKind, id ksuid.KSUID, ok bool) {
+	match := chunkFileRegex.FindStringSubmatch(s)
+	if match == nil {
+		return
+	}
+	k := FileKind(match[1])
+	switch k {
+	case FileKindData:
+	case FileKindMetadata:
+	default:
+		return
+	}
+	id, err := ksuid.Parse(match[2])
+	if err != nil {
+		return
+	}
+	return k, id, true
 }
 
 // A Chunk is a file that holds records ordered according to the archive's
-// data order. The name of the file encodes the number of records it contains
-// and the timestamps of its first & last records. seekIndexPath returns the
-// path of an associated microindex written at import time, which can be used
-// to lookup a nearby seek offset for a desired timestamp.
+// data order.
+// seekIndexPath returns the path of an associated microindex written at import
+// time, which can be used to lookup a nearby seek offset for a desired
+// timestamp.
+// metadataPath returns the path of an associated zng file that holds
+// information about the records in the chunk, including the total number,
+// and the first and last record timestamps.
 type Chunk struct {
 	Id          ksuid.KSUID
 	First       nano.Ts
 	Last        nano.Ts
 	Kind        FileKind
-	RecordCount int64
-}
-
-var chunkNameRegex = regexp.MustCompile(`d-([0-9A-Za-z]{27})-([0-9]+)-([0-9]+)-([0-9]+).zng$`)
-
-func ChunkNameMatch(s string) (c Chunk, ok bool) {
-	match := chunkNameRegex.FindStringSubmatch(s)
-	if match == nil {
-		return
-	}
-	id, err := ksuid.Parse(match[1])
-	if err != nil {
-		return
-	}
-	recordCount, err := strconv.ParseInt(match[2], 10, 64)
-	if err != nil {
-		return
-	}
-	firstTs, err := strconv.ParseInt(match[3], 10, 64)
-	if err != nil {
-		return
-	}
-	lastTs, err := strconv.ParseInt(match[4], 10, 64)
-	if err != nil {
-		return
-	}
-	return Chunk{
-		Id:          id,
-		First:       nano.Ts(firstTs),
-		Last:        nano.Ts(lastTs),
-		Kind:        FileKindData,
-		RecordCount: recordCount,
-	}, true
+	RecordCount uint64
 }
 
 func (c Chunk) tsDir() tsDir {
@@ -179,19 +193,38 @@ func (c Chunk) seekIndexPath(ark *Archive) iosrc.URI {
 	return c.tsDir().path(ark).AppendPath(fmt.Sprintf("%s-%s.zng", FileKindSeek, c.Id))
 }
 
+func (c Chunk) metadataPath(ark *Archive) iosrc.URI {
+	return chunkMetadataPath(ark, c.tsDir(), c.Id)
+}
+
 func (c Chunk) Span() nano.Span {
 	return firstLastToSpan(c.First, c.Last)
 }
 
-func (c Chunk) LogID() LogID {
-	name := fmt.Sprintf("%s-%s-%d-%d-%d.zng", c.Kind, c.Id, c.RecordCount, c.First, c.Last)
-	return LogID(path.Join(dataDirname, newTsDir(c.First).name(), name))
+func (c Chunk) RelativePath() string {
+	return path.Join(dataDirname, c.tsDir().name(), fmt.Sprintf("%s-%s.zng", c.Kind, c.Id))
+}
+
+func parseChunkRelativePath(s string) (tsDir, FileKind, ksuid.KSUID, bool) {
+	ss := strings.Split(s, "/")
+	if len(ss) < 2 {
+		return tsDir{}, FileKindUnknown, ksuid.Nil, false
+	}
+	kind, id, ok := chunkFileMatch(ss[len(ss)-1])
+	if !ok {
+		return tsDir{}, FileKindUnknown, ksuid.Nil, false
+	}
+	tsd, ok := parseTsDirName(ss[len(ss)-2])
+	if !ok {
+		return tsDir{}, FileKindUnknown, ksuid.Nil, false
+	}
+	return tsd, kind, id, true
 }
 
 // ZarDir returns a URI for a directory specific to this data file, expected
 // to hold microindexes or other files associated with this chunk's data.
 func (c Chunk) ZarDir(ark *Archive) iosrc.URI {
-	return ark.DataPath.AppendPath(string(c.LogID() + zarExt))
+	return ark.DataPath.AppendPath(string(c.RelativePath() + zarExt))
 }
 
 // Localize returns a URI that joins the provided relative path name to the
@@ -205,7 +238,7 @@ func (c Chunk) Localize(ark *Archive, pathname string) iosrc.URI {
 }
 
 func (c Chunk) Path(ark *Archive) iosrc.URI {
-	return ark.DataPath.AppendPath(string(c.LogID()))
+	return ark.DataPath.AppendPath(string(c.RelativePath()))
 }
 
 func (c Chunk) Range() string {
@@ -229,6 +262,64 @@ func chunksSort(order zbuf.Order, c []Chunk) {
 	sort.Slice(c, func(i, j int) bool {
 		return chunkTsLess(order, c[i].First, c[i].Id, c[j].First, c[j].Id)
 	})
+}
+
+type chunkMetadata struct {
+	Kind        FileKind
+	First       nano.Ts
+	Last        nano.Ts
+	RecordCount uint64
+}
+
+func (md chunkMetadata) Chunk(id ksuid.KSUID) Chunk {
+	return Chunk{
+		Id:          id,
+		First:       md.First,
+		Last:        md.Last,
+		Kind:        md.Kind,
+		RecordCount: md.RecordCount,
+	}
+}
+
+func chunkMetadataPath(ark *Archive, tsDir tsDir, id ksuid.KSUID) iosrc.URI {
+	return tsDir.path(ark).AppendPath(fmt.Sprintf("%s-%s.zng", FileKindMetadata, id))
+}
+
+func writeChunkMetadata(ctx context.Context, uri iosrc.URI, md chunkMetadata) error {
+	zctx := resolver.NewContext()
+	rec, err := resolver.MarshalRecord(zctx, md)
+	if err != nil {
+		return err
+	}
+	out, err := iosrc.NewWriter(ctx, uri)
+	if err != nil {
+		return err
+	}
+	zw := zngio.NewWriter(bufwriter.New(out), zngio.WriterOpts{})
+	if err := zw.Write(rec); err != nil {
+		zw.Close()
+		return err
+	}
+	return zw.Close()
+}
+
+func readChunkMetadata(ctx context.Context, uri iosrc.URI) (chunkMetadata, error) {
+	in, err := iosrc.NewReader(ctx, uri)
+	if err != nil {
+		return chunkMetadata{}, err
+	}
+	defer in.Close()
+	zctx := resolver.NewContext()
+	zr := zngio.NewReader(in, zctx)
+	rec, err := zr.Read()
+	if err != nil {
+		return chunkMetadata{}, err
+	}
+	var md chunkMetadata
+	if err := resolver.UnmarshalRecord(zctx, rec, &md); err != nil {
+		return chunkMetadata{}, err
+	}
+	return md, nil
 }
 
 type Visitor func(chunk Chunk) error

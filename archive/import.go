@@ -123,7 +123,7 @@ func (iw *importWriter) close() error {
 type tsDirWriter struct {
 	ark          *Archive
 	bufSize      int64
-	count        int64
+	count        uint64
 	ctx          context.Context
 	importWriter *importWriter
 	maxTs        nano.Ts
@@ -331,6 +331,15 @@ func (cw *chunkWriter) close(ctx context.Context) error {
 	if closeErr := cw.indexTempWriter.Close(); err == nil {
 		err = closeErr
 	}
+	if err != nil {
+		return err
+	}
+	err = writeChunkMetadata(ctx, chunkMetadataPath(cw.ark, cw.tsDir, cw.chunk.Id), chunkMetadata{
+		First:       cw.chunk.First,
+		Last:        cw.chunk.Last,
+		Kind:        FileKindData,
+		RecordCount: cw.chunk.RecordCount,
+	})
 	if err != nil {
 		return err
 	}

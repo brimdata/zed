@@ -6,8 +6,6 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/archive"
-	"github.com/segmentio/ksuid"
-
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/nano"
@@ -19,7 +17,7 @@ import (
 )
 
 type WorkerOp struct {
-	si   archive.SpanInfo
+	ss   archive.SpanInfoSource
 	proc ast.Proc
 	dir  int
 }
@@ -34,30 +32,16 @@ func NewWorkerOp(req api.WorkerRequest) (*WorkerOp, error) {
 		return nil, zqe.E(zqe.Invalid, "time direction must be 1 or -1")
 	}
 
-	chunks := make([]archive.Chunk, len(req.Chunks))
-	for i, chunk := range req.Chunks {
-		id, err := ksuid.Parse(chunk.Id)
-		if err != nil {
-			return nil, zqe.E(zqe.Invalid, "unparsable ksuid")
-		}
-		chunks[i].Id = id
-		chunks[i].First = chunk.First
-		chunks[i].Last = chunk.Last
-		chunks[i].Kind = archive.FileKind(chunk.Kind)
-		chunks[i].RecordCount = chunk.RecordCount
-	}
-
-	si := archive.SpanInfo{
-		Span:   req.Span,
-		Chunks: chunks,
-	}
-
 	proc, err := ast.UnpackJSON(nil, req.Proc)
 	if err != nil {
 		return nil, err
 	}
 
-	return &WorkerOp{si: si, proc: proc, dir: req.Dir}, nil
+	ss := archive.SpanInfoSource{
+		Span:       req.Span,
+		ChunkPaths: req.ChunkPaths,
+	}
+	return &WorkerOp{ss: ss, proc: proc, dir: req.Dir}, nil
 }
 
 func (w *WorkerOp) Run(ctx context.Context, store storage.Storage, output Output) (err error) {
@@ -80,8 +64,7 @@ func (w *WorkerOp) Run(ctx context.Context, store storage.Storage, output Output
 
 	switch st := store.(type) {
 	case *archivestore.Storage:
-		return driver.MultiRun(ctx, d, w.proc, zctx, st.StaticSource(w.si), driver.MultiConfig{
-			Span:      w.si.Span,
+		return driver.MultiRun(ctx, d, w.proc, zctx, st.StaticSource(w.ss), driver.MultiConfig{
 			StatsTick: statsTicker.C,
 		})
 	default:

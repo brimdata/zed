@@ -62,7 +62,7 @@ func (s *statReadCloser) chunkRecord(chunk Chunk) error {
 
 	rec := s.chunkBuilder.Build(
 		zng.EncodeString("chunk"),
-		zng.EncodeString(string(chunk.LogID())),
+		zng.EncodeString(string(chunk.RelativePath())),
 		zng.EncodeTime(chunk.First),
 		zng.EncodeTime(chunk.Last),
 		zng.EncodeUint(uint64(fi.Size())),
@@ -121,7 +121,7 @@ func (s *statReadCloser) indexRecord(chunk Chunk, indexPath string) error {
 
 	rec := s.indexBuilders[indexPath].Build(
 		zng.EncodeString("index"),
-		zng.EncodeString(string(chunk.LogID())),
+		zng.EncodeString(string(chunk.RelativePath())),
 		zng.EncodeTime(chunk.First),
 		zng.EncodeTime(chunk.Last),
 		zng.EncodeString(indexPath),

@@ -15,14 +15,13 @@ script: |
   # it does not matter which one.
   #
   ZNG_FILE_PATH=$(find . -name "d-*.zng" -print | head -1)
-  CHUNK_INFO=$(basename $ZNG_FILE_PATH)
   #
   # The count() from zq should be identical to 
   # the count() from zapi get -chunk
   #
   zq -t "count()" $ZNG_FILE_PATH > zqcount.tzng
   zapi -h $ZQD_HOST -s testsp get -t \
-    -chunk $CHUNK_INFO "count()" > zapicount.tzng
+    -chunk $ZNG_FILE_PATH "count()" > zapicount.tzng
   echo ===
   diff -s zqcount.tzng zapicount.tzng
   #
@@ -31,7 +30,7 @@ script: |
   #
   zq -t "tail 5" $ZNG_FILE_PATH > zqtail.tzng
   zapi -h $ZQD_HOST -s testsp get -t \
-    -chunk $CHUNK_INFO "tail 5" > zapitail.tzng
+    -chunk $ZNG_FILE_PATH "tail 5" > zapitail.tzng
   echo ===
   diff -s zqtail.tzng zapitail.tzng
   #
@@ -41,7 +40,7 @@ script: |
   #
   zq -t "39161" $ZNG_FILE_PATH > zqfilter.tzng
   zapi -h $ZQD_HOST -s testsp get -t \
-    -chunk $CHUNK_INFO "39161" > zapifilter.tzng
+    -chunk $ZNG_FILE_PATH "39161" > zapifilter.tzng
   echo ===
   diff -s zqfilter.tzng zapifilter.tzng
   
