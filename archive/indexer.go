@@ -81,7 +81,7 @@ func NewFlowgraphIndexer(ctx context.Context, zctx *resolver.Context, uri iosrc.
 	if len(keys) == 0 {
 		keys = []field.Static{keyName}
 	}
-	writer, err := microindex.NewWriterWithContext(ctx, zctx, uri.String(), keys, framesize)
+	writer, err := microindex.NewWriterWithContext(ctx, zctx, uri.String(), microindex.KeyFields(keys...), microindex.FrameThresh(framesize))
 	if err != nil {
 		return nil, err
 	}

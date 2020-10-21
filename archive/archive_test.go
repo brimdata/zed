@@ -167,9 +167,9 @@ func TestSeekIndex(t *testing.T) {
 	require.NoError(t, err)
 	finder, err := microindex.NewFinder(context.Background(), resolver.NewContext(), idxUri)
 	require.NoError(t, err)
-	keys, err := finder.ParseKeys([]string{"1587508851"})
+	keys, err := finder.ParseKeys("1587508851")
 	require.NoError(t, err)
-	rec, err := finder.LookupClosest(keys)
+	rec, err := finder.ClosestLTE(keys)
 	require.NoError(t, err)
 
 	var buf bytes.Buffer

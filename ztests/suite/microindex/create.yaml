@@ -13,5 +13,5 @@ outputs:
     data: |
       #0:record[key:string]
       0:[hello;]
-      #1:record[magic:string,version:int32,child_field:string,frame_thresh:int32,sections:array[int64],keys:record[key:string]]
-      1:[microindex;1;_child;32768;[16;]-;]
+      #1:record[magic:string,version:int32,descending:bool,child_field:string,frame_thresh:int32,sections:array[int64],keys:record[key:string]]
+      1:[microindex;2;F;_child;32768;[16;]-;]
