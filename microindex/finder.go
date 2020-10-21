@@ -48,7 +48,7 @@ const (
 )
 
 // lookup searches for a match of the given key compared to the
-// key values in the records read from the reader.  If the op argument is "="
+// key values in the records read from the reader.  If the op argument is eql
 // then only exact matches are returned.  Otherwise, the record with the
 // largest key smaller (or larger) than the key argument is returned.
 func lookup(reader zbuf.Reader, compare expr.KeyCompareFn, order zbuf.Order, op operator) (*zng.Record, error) {
