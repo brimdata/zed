@@ -203,7 +203,7 @@ func (f *Finder) ClosestGTE(keys *zng.Record) (*zng.Record, error) {
 	return f.closest(keys, gte)
 }
 
-// ClosestLTE returns the closets record that is less than or equal to the
+// ClosestLTE returns the closest record that is less than or equal to the
 // provided key values.
 func (f *Finder) ClosestLTE(keys *zng.Record) (*zng.Record, error) {
 	return f.closest(keys, lte)
