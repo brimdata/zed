@@ -32,9 +32,11 @@ func alignChunksToSpans(chunks []Chunk, order zbuf.Order, filter nano.Span) []Sp
 				// last timestamp was just before ts.
 				siSpan := firstLastToSpan(siFirst, prevTs(ts, order))
 				if filter.Overlaps(siSpan) {
+					chunks := copyChunks(siChunks, nil)
+					chunksSort(order, chunks)
 					result = append(result, SpanInfo{
 						Span:   filter.Intersect(siSpan),
-						Chunks: copyChunks(siChunks, nil),
+						Chunks: chunks,
 					})
 				}
 			}
@@ -46,9 +48,11 @@ func alignChunksToSpans(chunks []Chunk, order zbuf.Order, filter nano.Span) []Sp
 			// ts is the 'Last' timestamp for these chunks.
 			siSpan := firstLastToSpan(siFirst, ts)
 			if filter.Overlaps(siSpan) {
+				chunks := copyChunks(siChunks, nil)
+				chunksSort(order, chunks)
 				result = append(result, SpanInfo{
 					Span:   filter.Intersect(siSpan),
-					Chunks: copyChunks(siChunks, nil),
+					Chunks: chunks,
 				})
 			}
 			// Drop the chunks that ended from our accumulation.
@@ -114,7 +118,10 @@ func boundaries(chunks []Chunk, order zbuf.Order, fn func(ts nano.Ts, firstChunk
 		points[2*i+1] = point{idx: i, ts: c.Last}
 	}
 	sort.Slice(points, func(i, j int) bool {
-		return chunkTsLess(order, points[i].ts, chunks[points[i].idx].Id, points[j].ts, chunks[points[j].idx].Id)
+		if order == zbuf.OrderAsc {
+			return points[i].ts < points[j].ts
+		}
+		return points[j].ts < points[i].ts
 	})
 	firstChunks := make([]Chunk, 0, len(chunks))
 	lastChunks := make([]Chunk, 0, len(chunks))

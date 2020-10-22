@@ -245,22 +245,34 @@ func (c Chunk) Range() string {
 	return fmt.Sprintf("[%d-%d]", c.First, c.Last)
 }
 
-func chunkTsLess(order zbuf.Order, iTs nano.Ts, iKid ksuid.KSUID, jTs nano.Ts, jKid ksuid.KSUID) bool {
+func chunkLess(order zbuf.Order, i, j Chunk) bool {
 	if order == zbuf.OrderAsc {
-		if iTs == jTs {
-			return ksuid.Compare(iKid, jKid) < 0
+		if i.First != j.First {
+			return i.First < j.First
 		}
-		return iTs < jTs
+		if i.Last != j.Last {
+			return i.Last < j.Last
+		}
+		if i.RecordCount != j.RecordCount {
+			return i.RecordCount < j.RecordCount
+		}
+		return ksuid.Compare(i.Id, j.Id) < 0
 	}
-	if jTs == iTs {
-		return ksuid.Compare(jKid, iKid) < 0
+	if j.First != i.First {
+		return j.First < i.First
 	}
-	return jTs < iTs
+	if j.Last != i.Last {
+		return j.Last < i.Last
+	}
+	if j.RecordCount != i.RecordCount {
+		return j.RecordCount < i.RecordCount
+	}
+	return ksuid.Compare(j.Id, i.Id) < 0
 }
 
 func chunksSort(order zbuf.Order, c []Chunk) {
 	sort.Slice(c, func(i, j int) bool {
-		return chunkTsLess(order, c[i].First, c[i].Id, c[j].First, c[j].Id)
+		return chunkLess(order, c[i], c[j])
 	})
 }
 
