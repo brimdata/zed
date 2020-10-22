@@ -272,11 +272,14 @@ func (c *Command) initWorkers() error {
 		workerArr := strings.Split(c.workers, ",")
 		for i, addr := range workerArr {
 			// default host to 127.0.0.1
-			a := strings.Split(addr, ":")
-			if a[0] == "" {
-				a[0] = "127.0.0.1"
+			host, port, err := net.SplitHostPort(addr)
+			if err != nil {
+				return err
 			}
-			workerArr[i] = "http://" + strings.Join(a, ":")
+			if host == "" {
+				host = "127.0.0.1"
+			}
+			workerArr[i] = "http://" + host + ":" + port
 		}
 		driver.WorkerURLs = workerArr
 	}

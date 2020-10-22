@@ -84,7 +84,6 @@ func (s *SearchOp) Run(ctx context.Context, dir int, spc space.Space, output Out
 		return driver.MultiRun(ctx, d, s.query.Proc, zctx, st.MultiSource(), driver.MultiConfig{
 			Span:      s.query.Span,
 			StatsTick: statsTicker.C,
-			SpaceID:   spc.ID(),
 			Dir:       dir,
 		})
 	case *filestore.Storage:

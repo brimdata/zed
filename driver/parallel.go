@@ -261,7 +261,7 @@ func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.
 
 	var sources []proc.Interface
 	// Two type of parallelGroups:
-	if len(WorkerURLs) > 0 && mcfg.Parallelism > 1 {
+	if len(WorkerURLs) > 0 {
 		// If -worker URLs are passed in zqd listen command,
 		// and driver.compile has determined that execution should be parallel
 		// then the sources are parallelHead procs that hold connections to

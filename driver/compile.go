@@ -18,7 +18,6 @@ import (
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zqd/api"
 	"go.uber.org/zap"
 )
 
@@ -117,7 +116,6 @@ type MultiConfig struct {
 	Dir         int
 	Logger      *zap.Logger
 	Parallelism int
-	SpaceID     api.SpaceID
 	Span        nano.Span
 	StatsTick   <-chan time.Time
 	Warnings    chan string
@@ -137,7 +135,7 @@ func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context,
 	if mcfg.Parallelism == 0 {
 		// If mcfg.Parallelism has not been set by external configuration,
 		// then it will be zero here.
-		if len(WorkerURLs) >= 2 {
+		if len(WorkerURLs) > 0 {
 			// If zqd has been started as a "root" process,
 			// there is a -worker parameter with a list of WorkerURLs.
 			// In this case, initialize Parallelism as the number of workers.
