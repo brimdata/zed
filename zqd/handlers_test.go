@@ -971,11 +971,11 @@ func TestArchiveStat(t *testing.T) {
 	require.NoError(t, err)
 
 	exp := `
-#0:record[type:string,first:time,last:time,size:uint64,record_count:uint64]
-0:[chunk;1587518620.0622373;1587513611.06391469;16995;496;]
+#0:record[type:string,kind:string,first:time,last:time,size:uint64,record_count:uint64]
+0:[chunk;d;1587518620.0622373;1587513611.06391469;16995;496;]
 #1:record[type:string,first:time,last:time,index_id:string,size:uint64,record_count:uint64,keys:record[key:string]]
 1:[index;1587518620.0622373;1587513611.06391469;microindex-field-v.zng;2281;496;[int64;]]
-0:[chunk;1587513592.0625444;1587508830.06852324;17206;504;]
+0:[chunk;d;1587513592.0625444;1587508830.06852324;17206;504;]
 1:[index;1587513592.0625444;1587508830.06852324;microindex-field-v.zng;2267;504;[int64;]]
 `
 	res := archiveStat(t, client, sp.ID)

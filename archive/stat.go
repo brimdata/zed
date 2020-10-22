@@ -53,6 +53,7 @@ func (s *statReadCloser) chunkRecord(chunk Chunk) error {
 		s.chunkBuilder = zng.NewBuilder(s.zctx.MustLookupTypeRecord([]zng.Column{
 			zng.NewColumn("type", zng.TypeString),
 			zng.NewColumn("log_id", zng.TypeString),
+			zng.NewColumn("kind", zng.TypeString),
 			zng.NewColumn("first", zng.TypeTime),
 			zng.NewColumn("last", zng.TypeTime),
 			zng.NewColumn("size", zng.TypeUint64),
@@ -62,7 +63,8 @@ func (s *statReadCloser) chunkRecord(chunk Chunk) error {
 
 	rec := s.chunkBuilder.Build(
 		zng.EncodeString("chunk"),
-		zng.EncodeString(string(chunk.RelativePath())),
+		zng.EncodeString(chunk.RelativePath()),
+		zng.EncodeString(string(chunk.Kind)),
 		zng.EncodeTime(chunk.First),
 		zng.EncodeTime(chunk.Last),
 		zng.EncodeUint(uint64(fi.Size())),
