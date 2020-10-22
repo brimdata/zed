@@ -3,6 +3,7 @@
 - [Introduction](#introduction)
 - [Equivalent Types](#equivalent-types)
 - [Example](#example)
+- [About Aliases](#about-aliases)
 - [Type-Specific Details](#type-specific-details)
   * [`double`](#double)
   * [`set`](#set)
@@ -42,7 +43,7 @@ applicable to handling certain types.
 | [`time`](https://docs.zeek.org/en/current/script-reference/types.html#type-time)         | [`time`](spec.md#5-primitive-types)     | |
 | [`interval`](https://docs.zeek.org/en/current/script-reference/types.html#type-interval) | [`duration`](spec.md#5-primitive-types) | |
 | [`string`](https://docs.zeek.org/en/current/script-reference/types.html#type-string)     | [`bstring` or `string`](spec.md#5-primitive-types) | See [`string` details](#string) |
-| [`port`](https://docs.zeek.org/en/current/script-reference/types.html#type-port)         | [`port`](spec.md#5-primitive-types)     | |
+| [`port`](https://docs.zeek.org/en/current/script-reference/types.html#type-port)         | [`uint16`](spec.md#5-primitive-types)   | See [`port` details](#port) |
 | [`addr`](https://docs.zeek.org/en/current/script-reference/types.html#type-addr)         | [`ip`](spec.md#5-primitive-types)       | |
 | [`subnet`](https://docs.zeek.org/en/current/script-reference/types.html#type-subnet)     | [`net`](spec.md#5-primitive-types)      | |
 | [`enum`](https://docs.zeek.org/en/current/script-reference/types.html#type-enum)         | [`string`](spec.md#5-primitive-types)   | See [`enum` details](#enum) |
@@ -76,6 +77,7 @@ $ cat zeek_types.log
 T	123	456	123.4560	1592502151.123456	123.456	smile\xf0\x9f\x98\x81smile	\x09\x07\x04	80	127.0.0.1	10.0.0.0/8	tcp	things,in,a,set	order,is,important	Jeanne	122
 
 $ zq -t zeek_types.log 
+#port=uint16
 #zenum=string
 #0:record[my_bool:bool,my_count:uint64,my_int:int64,my_double:float64,my_time:time,my_interval:duration,my_printable_string:bstring,my_bytes_string:bstring,my_port:port,my_addr:ip,my_subnet:net,my_enum:zenum,my_set:set[bstring],my_vector:array[bstring],my_record:record[name:bstring,age:uint64]]
 0:[T;123;456;123.456;1592502151.123456;123.456;smile😁smile;\x09\x07\x04;80;127.0.0.1;10.0.0.0/8;tcp;[a;in;set;things;][order;is;important;][Jeanne;122;]]
@@ -89,6 +91,17 @@ $ zq -t zeek_types.log | zq -f zeek -
 #types	bool	count	int	double	time	interval	string	string	port	addr	subnet	enum	set[string]	vector[string]	string	count
 T	123	456	123.456	1592502151.123456	123.456	smile\xf0\x9f\x98\x81smile	\x09\x07\x04	80	127.0.0.1	10.0.0.0/8	tcp	a,in,set,things	order,is,important	Jeanne	122
 ```
+
+## About Aliases
+
+Multiple Zeek types discussed below are represented via a
+[type alias](spec.md#3117-alias-typedef) to one of ZNG's
+[primitive types](spec.md#5-primitive-types). The use of the alias maintains
+the history of the field's original Zeek type such that `zq` may restore it
+if/when the field may be later output again in Zeek format. Knowledge of its
+original Zeek type may also enable special operations in ZQL that are unique to
+values known to have originated as a specific Zeek type, though no such
+operations are currently implemented in `zq`.
 
 ## Type-Specific Details
 
@@ -138,6 +151,12 @@ would create an opportunity to assign the appropriate ZNG `bytes` or `string`
 type at the point of origin, depending on what's known about how the field's
 value is intended to be populated and used.
 
+### `port`
+
+The numeric values that appear in Zeek logs under this type are represented
+with an alias to ZNG's `uint16` type. See the [About Aliases](#about-aliases)
+section above for more details.
+
 ### `enum`
 
 As they're encountered in common programming languages, enum variables
@@ -145,19 +164,8 @@ typically hold one of a set of predefined values. While this is
 how Zeek's `enum` type behaves inside the Zeek scripting language,
 when the `enum` type is output in a Zeek log, the log does not communicate
 any such set of "allowed" values as they were originally defined. Therefore,
-when `zq` reads a Zeek `enum` into ZNG, it defines a
-[type alias](spec.md#3117-alias-typedef) called `zenum` to use for such a field,
-ultimately treating the value as if it were of the ZNG `string` type. The use
-of the alias maintains the history of the field having originally been read in
-from a Zeek `enum` field. This allows `zq` to restore the Zeek `enum` type
-if/when the field may be later output again in Zeek log format. However, when
-working with the value in ZQL, only `string`-type operations will be possible.
-
-As explained in the [beta notice in the ZNG specification](spec.md#note-this-specification-is-in-beta-development), a true
-ZNG `enum` type with predefined values has not yet been defined in the spec
-nor implemented in `zq`. Once available in ZNG, Zeek could potentially
-offer direct log output in ZNG format that communicates the full definition of
-an `enum`, including the set of allowed values.
+these values are represented with an alias to ZNG's `string` type. See the
+[About Aliases](#about-aliases) section above for more details.
 
 ### `set`
 
