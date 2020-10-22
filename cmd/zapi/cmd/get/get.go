@@ -184,15 +184,13 @@ func parseExprWithChunk(expr string, chunkPath string) (*api.WorkerRequest, erro
 	if err != nil {
 		return nil, err
 	}
-	searchRequest := &api.SearchRequest{
-		Proc: proc,
-		Dir:  -1,
-	}
-	dataPath := filepath.Join(filepath.Dir(chunkPath), "../..")
 	return &api.WorkerRequest{
-		SearchRequest: *searchRequest,
-		DataPath:      dataPath,
-		ChunkPaths:    []string{chunkPath},
+		SearchRequest: api.SearchRequest{
+			Proc: proc,
+			Dir:  -1,
+		},
+		DataPath:   filepath.Join(filepath.Dir(chunkPath), "../.."),
+		ChunkPaths: []string{chunkPath},
 	}, nil
 }
 

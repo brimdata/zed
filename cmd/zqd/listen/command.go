@@ -63,10 +63,10 @@ type Command struct {
 	logger             *zap.Logger
 	devMode            bool
 	portFile           string
-	workers            string
 	// brimfd is a file descriptor passed through by brim desktop. If set zqd
 	// will exit if the fd is closed.
-	brimfd int
+	brimfd  int
+	workers string
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -82,10 +82,10 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.Var(&c.logLevel, "loglevel", "level for log output (defaults to info)")
 	f.BoolVar(&c.devMode, "dev", false, "runs zqd in development mode")
 	f.StringVar(&c.portFile, "portfile", "", "write port of http listener to file")
-	f.StringVar(&c.workers, "workers", "", "comma separated list of [addr]:port for zqd/workers")
 
 	// hidden
 	f.IntVar(&c.brimfd, "brimfd", -1, "pipe read fd passed by brim to signal brim closure")
+	f.StringVar(&c.workers, "workers", "", "comma separated list of [addr]:port for zqd/workers")
 	return c, nil
 }
 
@@ -153,10 +153,10 @@ func (c *Command) init() error {
 	if err := c.initLogger(); err != nil {
 		return err
 	}
-	if err := c.initZeek(); err != nil {
+	if err := c.initWorkers(); err != nil {
 		return err
 	}
-	if err := c.initWorkers(); err != nil {
+	if err := c.initZeek(); err != nil {
 		return err
 	}
 	return c.initSuricata()
@@ -269,8 +269,8 @@ func (c *Command) initWorkers() error {
 	// This is for local testing only, at this point.
 	// Workers will be available through a K8s service in a prod deployment.
 	if c.workers != "" {
-		workerArr := strings.Split(c.workers, ",")
-		for i, addr := range workerArr {
+		workers := strings.Split(c.workers, ",")
+		for i, addr := range workers {
 			// default host to 127.0.0.1
 			host, port, err := net.SplitHostPort(addr)
 			if err != nil {
@@ -279,9 +279,9 @@ func (c *Command) initWorkers() error {
 			if host == "" {
 				host = "127.0.0.1"
 			}
-			workerArr[i] = "http://" + host + ":" + port
+			workers[i] = "http://" + host + ":" + port
 		}
-		driver.WorkerURLs = workerArr
+		driver.WorkerURLs = workers
 	}
 	return nil
 }

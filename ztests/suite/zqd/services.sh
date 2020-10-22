@@ -44,10 +44,10 @@ if [[ "$2" == workers ]]; then
   zqdw2pid=$!
 
   awaitfile $portdir/zqd-w1
-  portw1=$(cat $portdir/zqd-w1 | tr -d '[:space:]')
+  portw1=$(cat $portdir/zqd-w1)
 
   awaitfile $portdir/zqd-w2
-  portw2=$(cat $portdir/zqd-w2 | tr -d '[:space:]')
+  portw2=$(cat $portdir/zqd-w2)
 
   workers=":$portw1,:$portw2"
   zqd listen -l=localhost:0 -portfile="$portdir/zqd" -data="$zqdroot" -workers $workers -loglevel=warn &> zqd-root.log &
