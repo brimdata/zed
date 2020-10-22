@@ -111,7 +111,6 @@ func (c *Command) Run(args []string) error {
 			return fmt.Errorf("parse error: %s", err)
 		}
 		req.Span = nano.NewSpanTs(nano.Ts(c.from), nano.Ts(c.to))
-
 		params := map[string]string{"format": c.encoding}
 		r, err = client.SearchRaw(c.Context(), *req, params)
 		if err != nil {
