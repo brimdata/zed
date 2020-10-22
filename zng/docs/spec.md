@@ -3,7 +3,7 @@
 > ### Note: This specification is in BETA development.
 > We hope that no backward incompatible changes will be made during
 > the BETA phase.  We plan to
-> declare the specification stable and finalized in Spring, 2021.
+> declare the specification stable and finalized in spring 2021.
 >
 > [Zq](https://github.com/brimsec/zq/blob/master/README.md)'s
 > implementation of ZNG is tracking this spec and as it changes,
@@ -665,10 +665,11 @@ A TZNG end-of-stream marker has the following form:
 #eos
 ```
 
-It is recommended that a TZNG stream or file be terminated with an
-end-of-stream marker. This explicitly clears all of the previous type tag
-bindings and aliases, allowing multiple TZNG files with overlapping tags to be concatenated without the tags colliding. However, a TZNG reader should not
-generate an error if a TZNG end-of-stream marker is not present.
+A TZNG stream or file should be terminated with an end-of-stream marker. This
+This explicitly clears all of the previous type tag bindings and aliases,
+allowing multiple TZNG files with overlapping tags to be concatenated without
+the tags colliding. However, a TZNG reader should not generate an error if a
+TZNG end-of-stream marker is not present.
 
 ### 4.2 Type Grammar
 
