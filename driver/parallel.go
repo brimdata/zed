@@ -16,13 +16,6 @@ import (
 	"github.com/brimsec/zq/zqd/api"
 )
 
-// Global variable for driver package
-// which determines whether this go process will
-// (1) implement parallelism by engaging multiple
-// remote zqd /worker processes, or
-// (2) implement parallelism with local goroutines
-var WorkerURLs []string
-
 type parallelHead struct {
 	pctx   *proc.Context
 	parent proc.Interface
@@ -245,7 +238,7 @@ func newCompareFn(fieldName string, reversed bool) (zbuf.RecordCmpFn, error) {
 	}, nil
 }
 
-func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.BooleanExpr, msrc MultiSource, mcfg MultiConfig) ([]proc.Interface, *parallelGroup, error) {
+func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.BooleanExpr, msrc MultiSource, mcfg MultiConfig, workerURLs []string) ([]proc.Interface, *parallelGroup, error) {
 	pg := &parallelGroup{
 		pctx: pctx,
 		filter: SourceFilter{
@@ -261,14 +254,14 @@ func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.
 
 	var sources []proc.Interface
 	// Two type of parallelGroups:
-	if len(WorkerURLs) > 0 {
+	if len(workerURLs) > 0 {
 		// If -worker URLs are passed in zqd listen command,
 		// and driver.compile has determined that execution should be parallel
 		// then the sources are parallelHead procs that hold connections to
 		// remote zqd workers.
-		sources = make([]proc.Interface, len(WorkerURLs))
+		sources = make([]proc.Interface, len(workerURLs))
 		for i := range sources {
-			conn := api.NewConnectionTo(WorkerURLs[i])
+			conn := api.NewConnectionTo(workerURLs[i])
 			sources[i] = &parallelHead{pctx: pctx, parent: nil, pg: pg, workerConn: conn}
 		}
 	} else {

@@ -21,6 +21,13 @@ import (
 	"go.uber.org/zap"
 )
 
+// Global variable for driver package
+// which determines whether this go process will
+// (1) implement parallelism by engaging multiple
+// remote zqd /worker processes, or
+// (2) implement parallelism with local goroutines
+var WorkerURLs []string
+
 // XXX ReaderSortKey should be a field.Static.  Issue #1467.
 type Config struct {
 	Custom            compiler.Hook
@@ -168,7 +175,7 @@ func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context,
 		Logger:      mcfg.Logger,
 		Warnings:    mcfg.Warnings,
 	}
-	sources, pgroup, err := createParallelGroup(pctx, filt, filterExpr, msrc, mcfg)
+	sources, pgroup, err := createParallelGroup(pctx, filt, filterExpr, msrc, mcfg, WorkerURLs)
 	if err != nil {
 		return nil, err
 	}
