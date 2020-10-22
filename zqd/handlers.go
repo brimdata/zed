@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/archive"
-
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pkg/ctxio"
 	"github.com/brimsec/zq/zbuf"
