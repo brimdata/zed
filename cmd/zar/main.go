@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	_ "github.com/brimsec/zq/cmd/zar/compact"
 	_ "github.com/brimsec/zq/cmd/zar/find"
 	_ "github.com/brimsec/zq/cmd/zar/import"
 	_ "github.com/brimsec/zq/cmd/zar/index"
