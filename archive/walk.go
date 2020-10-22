@@ -202,7 +202,11 @@ func (c Chunk) Span() nano.Span {
 }
 
 func (c Chunk) RelativePath() string {
-	return path.Join(dataDirname, c.tsDir().name(), fmt.Sprintf("%s-%s.zng", c.Kind, c.Id))
+	return chunkRelativePath(c.tsDir(), c.Kind, c.Id)
+}
+
+func chunkRelativePath(tsd tsDir, kind FileKind, id ksuid.KSUID) string {
+	return path.Join(dataDirname, tsd.name(), fmt.Sprintf("%s-%s.zng", kind, id))
 }
 
 func parseChunkRelativePath(s string) (tsDir, FileKind, ksuid.KSUID, bool) {
@@ -238,7 +242,11 @@ func (c Chunk) Localize(ark *Archive, pathname string) iosrc.URI {
 }
 
 func (c Chunk) Path(ark *Archive) iosrc.URI {
-	return ark.DataPath.AppendPath(string(c.RelativePath()))
+	return chunkPath(ark, c.tsDir(), c.Kind, c.Id)
+}
+
+func chunkPath(ark *Archive, tsd tsDir, kind FileKind, id ksuid.KSUID) iosrc.URI {
+	return ark.DataPath.AppendPath(chunkRelativePath(tsd, kind, id))
 }
 
 func (c Chunk) Range() string {
