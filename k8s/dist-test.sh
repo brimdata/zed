@@ -6,8 +6,7 @@ set -x #echo on
 # it should be run in a seperate directory that contains smtp.log.gz
 
 # remove processes from previous run of dist-test.sh:
-kill $(ps aux | grep '[z]qd' | awk '{print $2}')
-kill $(ps aux | grep '[t]ail' | awk '{print $2}')
+pkill tail zqd
 
 # remove directories from previous run of dist-test.sh:
 rm -rf spacedir
