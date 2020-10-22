@@ -123,11 +123,8 @@ func (iw *importWriter) close() error {
 type tsDirWriter struct {
 	ark          *Archive
 	bufSize      int64
-	count        uint64
 	ctx          context.Context
 	importWriter *importWriter
-	maxTs        nano.Ts
-	minTs        nano.Ts
 	records      []*zng.Record
 	spiller      *spill.MergeSort
 	tsDir        tsDir
@@ -139,8 +136,6 @@ func newTsDirWriter(iw *importWriter, tsDir tsDir) (*tsDirWriter, error) {
 		ctx:          iw.ctx,
 		importWriter: iw,
 		tsDir:        tsDir,
-		minTs:        nano.MaxTs,
-		maxTs:        nano.MinTs,
 	}
 	if dirmkr, ok := d.ark.dataSrc.(iosrc.DirMaker); ok {
 		if err := dirmkr.MkdirAll(tsDir.path(iw.ark), 0755); err != nil {
@@ -167,14 +162,6 @@ func (dw *tsDirWriter) totalRecordBytes() int64 {
 
 func (dw *tsDirWriter) writeOne(rec *zng.Record) error {
 	dw.records = append(dw.records, rec)
-	ts := rec.Ts()
-	if ts < dw.minTs {
-		dw.minTs = ts
-	}
-	if ts > dw.maxTs {
-		dw.maxTs = ts
-	}
-	dw.count++
 	dw.addBufSize(int64(len(rec.Raw)))
 	if dw.totalRecordBytes() > dw.ark.LogSizeThreshold {
 		if err := dw.flush(); err != nil {
@@ -221,18 +208,7 @@ func (dw *tsDirWriter) flush() error {
 		expr.SortStable(dw.records, importCompareFn(dw.ark))
 		r = zbuf.Array(dw.records).NewReader()
 	}
-	first, last := dw.minTs, dw.maxTs
-	if dw.ark.DataOrder == zbuf.OrderDesc {
-		first, last = last, first
-	}
-	chunk := Chunk{
-		Id:          ksuid.New(),
-		First:       first,
-		Last:        last,
-		Kind:        FileKindData,
-		RecordCount: dw.count,
-	}
-	w, err := newChunkWriter(dw.ctx, dw.ark, dw.tsDir, chunk)
+	w, err := newChunkWriter(dw.ctx, dw.ark, dw.tsDir, FileKindData, nil)
 	if err != nil {
 		return err
 	}
@@ -240,14 +216,11 @@ func (dw *tsDirWriter) flush() error {
 		w.abort()
 		return err
 	}
-	if err := w.close(dw.ctx); err != nil {
+	if _, err := w.close(dw.ctx); err != nil {
 		return err
 	}
 	dw.records = dw.records[:0]
 	dw.addBufSize(dw.bufSize * -1)
-	dw.minTs = nano.MaxTs
-	dw.maxTs = nano.MinTs
-	dw.count = 0
 	return nil
 }
 
@@ -255,17 +228,24 @@ func (dw *tsDirWriter) flush() error {
 // archive chunk file.
 type chunkWriter struct {
 	ark             *Archive
-	chunk           Chunk
+	count           uint64
 	dataFileWriter  *zngio.Writer
+	firstTs         nano.Ts
+	id              ksuid.KSUID
 	indexBuilder    *zng.Builder
 	indexTempPath   string
 	indexTempWriter *zngio.Writer
+	kind            FileKind
+	lastTs          nano.Ts
+	masks           []ksuid.KSUID
 	needIndexWrite  bool
-	tsDir           tsDir
+	tsd             tsDir
+	wroteFirst      bool
 }
 
-func newChunkWriter(ctx context.Context, ark *Archive, tsDir tsDir, chunk Chunk) (*chunkWriter, error) {
-	out, err := ark.dataSrc.NewWriter(ctx, chunk.Path(ark))
+func newChunkWriter(ctx context.Context, ark *Archive, tsd tsDir, kind FileKind, masks []ksuid.KSUID) (*chunkWriter, error) {
+	id := ksuid.New()
+	out, err := ark.dataSrc.NewWriter(ctx, chunkPath(ark, tsd, kind, id))
 	if err != nil {
 		return nil, err
 	}
@@ -287,14 +267,20 @@ func newChunkWriter(ctx context.Context, ark *Archive, tsDir tsDir, chunk Chunk)
 	}))
 	return &chunkWriter{
 		ark:             ark,
-		chunk:           chunk,
 		dataFileWriter:  dataFileWriter,
+		id:              id,
 		indexBuilder:    indexBuilder,
 		indexTempPath:   indexTempPath,
 		indexTempWriter: indexTempWriter,
+		kind:            kind,
+		masks:           masks,
 		needIndexWrite:  true,
-		tsDir:           tsDir,
+		tsd:             tsd,
 	}, nil
+}
+
+func (cw *chunkWriter) position() (int64, nano.Ts, nano.Ts) {
+	return cw.dataFileWriter.Position(), cw.firstTs, cw.lastTs
 }
 
 func (cw *chunkWriter) Write(rec *zng.Record) error {
@@ -315,6 +301,13 @@ func (cw *chunkWriter) Write(rec *zng.Record) error {
 	if cw.dataFileWriter.LastSOS() != sos {
 		cw.needIndexWrite = true
 	}
+	ts := rec.Ts()
+	if !cw.wroteFirst {
+		cw.firstTs = ts
+		cw.wroteFirst = true
+	}
+	cw.lastTs = ts
+	cw.count++
 	return nil
 }
 
@@ -326,28 +319,33 @@ func (cw *chunkWriter) abort() {
 	os.Remove(cw.indexTempPath)
 }
 
-func (cw *chunkWriter) close(ctx context.Context) error {
+func (cw *chunkWriter) close(ctx context.Context) (Chunk, error) {
+	return cw.closeWithTs(ctx, cw.firstTs, cw.lastTs)
+}
+
+func (cw *chunkWriter) closeWithTs(ctx context.Context, firstTs, lastTs nano.Ts) (Chunk, error) {
 	err := cw.dataFileWriter.Close()
 	if closeErr := cw.indexTempWriter.Close(); err == nil {
 		err = closeErr
 	}
 	if err != nil {
-		return err
+		return Chunk{}, err
 	}
-	err = writeChunkMetadata(ctx, chunkMetadataPath(cw.ark, cw.tsDir, cw.chunk.Id), chunkMetadata{
-		First:       cw.chunk.First,
-		Last:        cw.chunk.Last,
-		Kind:        FileKindData,
-		RecordCount: cw.chunk.RecordCount,
-	})
+	chunkMd := chunkMetadata{
+		First:       firstTs,
+		Last:        lastTs,
+		Kind:        cw.kind,
+		RecordCount: cw.count,
+	}
+	err = writeChunkMetadata(ctx, chunkMetadataPath(cw.ark, cw.tsd, cw.id), chunkMd)
 	if err != nil {
-		return err
+		return Chunk{}, err
 	}
 	// Write the time seek index into the archive, feeding it the key/offset
 	// records written to indexTempPath.
 	tf, err := fs.Open(cw.indexTempPath)
 	if err != nil {
-		return err
+		return Chunk{}, err
 	}
 	defer func() {
 		tf.Close()
@@ -355,22 +353,27 @@ func (cw *chunkWriter) close(ctx context.Context) error {
 	}()
 	zctx := resolver.NewContext()
 	tfr := zngio.NewReader(tf, zctx)
-	idxURI := cw.chunk.seekIndexPath(cw.ark)
+	chunk := chunkMd.Chunk(cw.id)
+	idxURI := chunk.seekIndexPath(cw.ark)
 	idxWriter, err := microindex.NewWriter(zctx, idxURI.String(), microindex.Keys("ts"), microindex.FrameThresh(framesize))
 	if err != nil {
-		return err
+		return Chunk{}, err
 	}
 	// XXX: zq#1329
 	// The microindex finder doesn't yet handle searching when keys
 	// are stored in descending order, which is the zar default.
 	if err = zbuf.CopyWithContext(ctx, idxWriter, tfr); err != nil {
 		idxWriter.Abort()
-		return err
+		return Chunk{}, err
 	}
 	// TODO: zq#1264
 	// Add an entry to the update log for S3 backed stores containing the
 	// location of the just added data & index file.
-	return idxWriter.Close()
+	err = idxWriter.Close()
+	if err != nil {
+		return Chunk{}, err
+	}
+	return chunk, nil
 }
 
 func importCompareFn(ark *Archive) expr.CompareFn {
