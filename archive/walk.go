@@ -29,10 +29,11 @@ const (
 type FileKind string
 
 const (
-	FileKindUnknown  FileKind = ""
-	FileKindData              = "d"
-	FileKindMetadata          = "m"
-	FileKindSeek              = "ts"
+	FileKindUnknown       FileKind = ""
+	FileKindData                   = "d"
+	FileKindDataCompacted          = "dc"
+	FileKindMetadata               = "m"
+	FileKindSeek                   = "ts"
 )
 
 // A tsDir is a directory found in the "<DataPath>/zd" directory of the archive,
@@ -108,7 +109,7 @@ func tsDirVisit(ctx context.Context, ark *Archive, filterSpan nano.Span, visitor
 
 func tsDirEntriesToChunks(ctx context.Context, ark *Archive, filterSpan nano.Span, tsDir tsDir, entries []iosrc.Info) ([]Chunk, error) {
 	type seen struct {
-		data bool
+		data FileKind
 		meta bool
 	}
 	m := make(map[ksuid.KSUID]seen)
@@ -119,8 +120,8 @@ func tsDirEntriesToChunks(ctx context.Context, ark *Archive, filterSpan nano.Spa
 			}
 			s := m[id]
 			switch kind {
-			case FileKindData:
-				s.data = true
+			case FileKindData, FileKindDataCompacted:
+				s.data = kind
 			case FileKindMetadata:
 				s.meta = true
 			}
@@ -129,7 +130,7 @@ func tsDirEntriesToChunks(ctx context.Context, ark *Archive, filterSpan nano.Spa
 	}
 	var chunks []Chunk
 	for id, seen := range m {
-		if !seen.meta || !seen.data {
+		if !seen.meta || (seen.data == FileKindUnknown) {
 			continue
 		}
 		md, err := readChunkMetadata(ctx, chunkMetadataPath(ark, tsDir, id))
@@ -148,7 +149,7 @@ func tsDirEntriesToChunks(ctx context.Context, ark *Archive, filterSpan nano.Spa
 	return chunks, nil
 }
 
-var chunkFileRegex = regexp.MustCompile(`(d|m)-([0-9A-Za-z]{27}).zng$`)
+var chunkFileRegex = regexp.MustCompile(`(d|dc|m)-([0-9A-Za-z]{27}).zng$`)
 
 func chunkFileMatch(s string) (kind FileKind, id ksuid.KSUID, ok bool) {
 	match := chunkFileRegex.FindStringSubmatch(s)
@@ -158,6 +159,7 @@ func chunkFileMatch(s string) (kind FileKind, id ksuid.KSUID, ok bool) {
 	k := FileKind(match[1])
 	switch k {
 	case FileKindData:
+	case FileKindDataCompacted:
 	case FileKindMetadata:
 	default:
 		return
@@ -183,6 +185,7 @@ type Chunk struct {
 	Last        nano.Ts
 	Kind        FileKind
 	RecordCount uint64
+	Masks       []ksuid.KSUID
 }
 
 func (c Chunk) tsDir() tsDir {
@@ -253,6 +256,24 @@ func (c Chunk) Range() string {
 	return fmt.Sprintf("[%d-%d]", c.First, c.Last)
 }
 
+// Remove deletes the data, metadata, seek, and any other associated files
+// with the chunk, including the zar directory. Any 'not found' errors will
+// be ignored.
+func (c Chunk) Remove(ctx context.Context, ark *Archive) error {
+	uris := []iosrc.URI{
+		c.Path(ark),
+		c.ZarDir(ark),
+		c.metadataPath(ark),
+		c.seekIndexPath(ark),
+	}
+	for _, u := range uris {
+		if err := ark.dataSrc.RemoveAll(ctx, u); err != nil && !zqe.IsNotFound(err) {
+			return err
+		}
+	}
+	return nil
+}
+
 func chunkLess(order zbuf.Order, i, j Chunk) bool {
 	if order == zbuf.OrderAsc {
 		if i.First != j.First {
@@ -289,6 +310,7 @@ type chunkMetadata struct {
 	First       nano.Ts
 	Last        nano.Ts
 	RecordCount uint64
+	Masks       []ksuid.KSUID
 }
 
 func (md chunkMetadata) Chunk(id ksuid.KSUID) Chunk {
@@ -298,6 +320,7 @@ func (md chunkMetadata) Chunk(id ksuid.KSUID) Chunk {
 		Last:        md.Last,
 		Kind:        md.Kind,
 		RecordCount: md.RecordCount,
+		Masks:       md.Masks,
 	}
 }
 

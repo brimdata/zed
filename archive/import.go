@@ -336,6 +336,7 @@ func (cw *chunkWriter) closeWithTs(ctx context.Context, firstTs, lastTs nano.Ts)
 		Last:        lastTs,
 		Kind:        cw.kind,
 		RecordCount: cw.count,
+		Masks:       cw.masks,
 	}
 	err = writeChunkMetadata(ctx, chunkMetadataPath(cw.ark, cw.tsd, cw.id), chunkMd)
 	if err != nil {
