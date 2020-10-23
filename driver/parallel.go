@@ -100,7 +100,7 @@ type parallelGroup struct {
 	pctx       *proc.Context
 	filter     SourceFilter
 	msrc       MultiSource
-	mcfg       MultiConfig // supports a hack -MTW
+	mcfg       MultiConfig
 	once       sync.Once
 	sourceChan chan Source
 	sourceErr  error
