@@ -265,7 +265,7 @@ func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.
 		// and Parallelism is determined by mcfg
 		sources = make([]proc.Interface, mcfg.Parallelism)
 		for i := range sources {
-			sources[i] = &parallelHead{pctx: pctx, parent: nil, pg: pg}
+			sources[i] = &parallelHead{pctx: pctx, pg: pg}
 		}
 	}
 	return sources, pg, nil
