@@ -61,7 +61,7 @@ func (ph *parallelHead) Pull() (zbuf.Batch, error) {
 			if ph.workerConn == nil {
 				// Thread (goroutine) parallelism uses nextSource
 				sc, err = ph.pg.nextSource()
-	
+
 			} else {
 				// Worker process parallelism uses nextSourceForConn
 				sc, err = ph.pg.nextSourceForConn(ph.workerConn)
@@ -137,43 +137,38 @@ func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
 // nextSourceForConn sends a request to a remote zqd worker process, and returns
 // the scannerCloser (i.e.output stream) for the remote zqd worker.
 func (pg *parallelGroup) nextSourceForConn(conn *api.Connection) (ScannerCloser, error) {
-	for {
-		select {
-		case src, ok := <-pg.sourceChan:
-			if !ok {
-				return nil, pg.sourceErr
-			}
-
-			req, err := pg.sourceToRequest(src)
-			if err != nil {
-				return nil, err
-			}
-			if req == nil {
-				continue
-			}
-
-			rc, err := conn.WorkerRaw(pg.pctx.Context, *req, nil) // rc is io.ReadCloser
-			if err != nil {
-				return nil, err
-			}
-			search := api.NewZngSearch(rc)
-			s, err := scanner.NewScanner(pg.pctx.Context, search, nil, nil, req.Span)
-			if err != nil {
-				return nil, err
-			}
-			sc := struct {
-				scanner.Scanner
-				io.Closer
-			}{s, rc}
-
-			pg.mu.Lock()
-			pg.scanners[sc] = struct{}{}
-			pg.mu.Unlock()
-			return sc, nil
-
-		case <-pg.pctx.Done():
-			return nil, pg.pctx.Err()
+	select {
+	case src, ok := <-pg.sourceChan:
+		if !ok {
+			return nil, pg.sourceErr
 		}
+
+		req, err := pg.sourceToRequest(src)
+		if err != nil {
+			return nil, err
+		}
+
+		rc, err := conn.WorkerRaw(pg.pctx.Context, *req, nil) // rc is io.ReadCloser
+		if err != nil {
+			return nil, err
+		}
+		search := api.NewZngSearch(rc)
+		s, err := scanner.NewScanner(pg.pctx.Context, search, nil, nil, req.Span)
+		if err != nil {
+			return nil, err
+		}
+		sc := struct {
+			scanner.Scanner
+			io.Closer
+		}{s, rc}
+
+		pg.mu.Lock()
+		pg.scanners[sc] = struct{}{}
+		pg.mu.Unlock()
+		return sc, nil
+
+	case <-pg.pctx.Done():
+		return nil, pg.pctx.Err()
 	}
 }
 
@@ -253,12 +248,9 @@ func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.
 	var sources []proc.Interface
 	// Two type of parallelGroups:
 	if len(workerURLs) > 0 {
-		// If -worker URLs are passed in zqd listen command,
-		// and driver.compile has determined that execution should be parallel
-		// then the sources are parallelHead procs that hold connections to
-		// remote zqd workers.
-		range _, w := range workerURLs {
-			sources = append(sources, &parallelHead{pctx: pctx, pg: pg, workerConn: api.NewConnectionTo(w)}
+		// If workerURLs are present, then base the sources on the number of workers
+		for _, w := range workerURLs {
+			sources = append(sources, &parallelHead{pctx: pctx, pg: pg, workerConn: api.NewConnectionTo(w)})
 		}
 	} else {
 		// Normal: the sources are regular parallelHead procs
