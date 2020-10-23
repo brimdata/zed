@@ -41,7 +41,7 @@ var Listen = &charm.Spec{
 	Long: `
 The listen command launches a process to listen on the provided interface and
 `,
-	HiddenFlags: "brimfd,workers",
+	HiddenFlags: "brimfd,workers,svc",
 	New:         New,
 }
 
@@ -65,8 +65,9 @@ type Command struct {
 	portFile           string
 	// brimfd is a file descriptor passed through by brim desktop. If set zqd
 	// will exit if the fd is closed.
-	brimfd  int
-	workers string
+	brimfd      int
+	workers     string
+	serviceAddr string
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -86,6 +87,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	// hidden
 	f.IntVar(&c.brimfd, "brimfd", -1, "pipe read fd passed by brim to signal brim closure")
 	f.StringVar(&c.workers, "workers", "", "comma separated list of [addr]:port for zqd/workers")
+	f.StringVar(&c.serviceAddr, "svc", "", "host:port for load balanced zqd worker service")
 	return c, nil
 }
 
@@ -268,7 +270,9 @@ func (c *Command) initSuricata() error {
 func (c *Command) initWorkers() error {
 	// This is for local testing only, at this point.
 	// Workers will be available through a K8s service in a prod deployment.
-	if c.workers != "" {
+	if c.workers != "" && c.serviceAddr != "" {
+		return fmt.Errorf("-workers and -svc flags are mutually exclusive")
+	} else if c.workers != "" {
 		workers := strings.Split(c.workers, ",")
 		for i, addr := range workers {
 			// default host to 127.0.0.1
@@ -282,6 +286,12 @@ func (c *Command) initWorkers() error {
 			workers[i] = "http://" + host + ":" + port
 		}
 		driver.WorkerURLs = workers
+		driver.ParallelModel = driver.PM_USE_WORKER_URLS
+	} else if c.serviceAddr != "" {
+		driver.WorkerServiceAddr = c.serviceAddr
+		driver.ParallelModel = driver.PM_USE_SERVICE_ENDPOINT
+	} else {
+		driver.ParallelModel = driver.PM_USE_GOROUTINES
 	}
 	return nil
 }

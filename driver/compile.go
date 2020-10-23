@@ -23,9 +23,20 @@ import (
 
 // Global variable for driver package
 // which determines whether this go process will
+// (0) implement parallelism with local goroutines
 // (1) implement parallelism by engaging multiple
-// remote zqd /worker processes, or
-// (2) implement parallelism with local goroutines
+// remote zqd /worker processes on the WorkerURLs list, or,
+// (2) implement parallelism by calling a load-balanced
+// Kubernetes service endpoint
+const (
+	PM_USE_GOROUTINES = iota
+	PM_USE_WORKER_URLS
+	PM_USE_SERVICE_ENDPOINT
+)
+
+// Default ParallelModel is local goroutines
+var ParallelModel int = PM_USE_GOROUTINES
+var WorkerServiceAddr string
 var WorkerURLs []string
 
 // XXX ReaderSortKey should be a field.Static.  Issue #1467.
