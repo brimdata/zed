@@ -61,15 +61,13 @@ func (ph *parallelHead) Pull() (zbuf.Batch, error) {
 			if ph.workerConn == nil {
 				// Thread (goroutine) parallelism uses nextSource
 				sc, err = ph.pg.nextSource()
-				if sc == nil || err != nil {
-					return nil, err
-				}
+	
 			} else {
 				// Worker process parallelism uses nextSourceForConn
 				sc, err = ph.pg.nextSourceForConn(ph.workerConn)
-				if sc == nil || err != nil {
-					return nil, err
-				}
+			}
+			if sc == nil || err != nil {
+				return nil, err
 			}
 			ph.sc = sc
 		}
