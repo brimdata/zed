@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
+	"io"
 	"sync/atomic"
 
-	"github.com/brimsec/zq/pkg/fs"
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
@@ -52,7 +52,7 @@ func NewLogOp(ctx context.Context, store storage.Storage, req api.LogPostRequest
 		opts.JSON.PathRegexp = ndjsonio.DefaultPathRegexp
 	}
 	for _, path := range req.Paths {
-		rc, size, err := openIncomingLog(path)
+		rc, size, err := openIncomingLog(ctx, path)
 		if err != nil {
 			p.closeFiles()
 			return nil, err
@@ -81,12 +81,12 @@ func (p *LogOp) openWarning(path string, err error) {
 }
 
 type readCounter struct {
-	f     *os.File
-	nread int64
+	readCloser io.ReadCloser
+	nread      int64
 }
 
 func (rc *readCounter) Read(p []byte) (int, error) {
-	n, err := rc.f.Read(p)
+	n, err := rc.readCloser.Read(p)
 	atomic.AddInt64(&rc.nread, int64(n))
 	return n, err
 }
@@ -96,22 +96,26 @@ func (rc *readCounter) bytesRead() int64 {
 }
 
 func (rc *readCounter) Close() error {
-	return rc.f.Close()
+	return rc.readCloser.Close()
 }
 
-func openIncomingLog(path string) (*readCounter, int64, error) {
-	info, err := os.Stat(path)
+func openIncomingLog(ctx context.Context, path string) (*readCounter, int64, error) {
+	uri, err := iosrc.ParseURI(path)
+	if err != nil {
+		return nil, 0, err
+	}
+	info, err := iosrc.Stat(ctx, uri)
 	if err != nil {
 		return nil, 0, err
 	}
 	if info.IsDir() {
 		return nil, 0, zqe.E(zqe.Invalid, "path is a directory")
 	}
-	f, err := fs.Open(path)
+	rc, err := iosrc.NewReader(ctx, uri)
 	if err != nil {
 		return nil, 0, err
 	}
-	return &readCounter{f: f}, info.Size(), nil
+	return &readCounter{readCloser: rc}, info.Size(), nil
 }
 
 func (p *LogOp) closeFiles() error {
