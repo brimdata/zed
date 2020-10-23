@@ -118,7 +118,7 @@ func abspaths(paths []string) ([]string, error) {
 	for i, path := range paths {
 		// Special handling for paths starting with S3:
 		// we will not convert to absolute path -MTW
-		if path[0:4] == "s3:/" {
+		if path[0:5] == "s3://" {
 			out[i] = path
 			continue
 		}
