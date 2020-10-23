@@ -78,8 +78,7 @@ func (s *SearchOp) Run(ctx context.Context, dir int, spc space.Space, output Out
 	defer statsTicker.Stop()
 	zctx := resolver.NewContext()
 
-	store := spc.Storage()
-	switch st := store.(type) {
+	switch st := spc.Storage().(type) {
 	case *archivestore.Storage:
 		return driver.MultiRun(ctx, d, s.query.Proc, zctx, st.MultiSource(), driver.MultiConfig{
 			Span:      s.query.Span,
