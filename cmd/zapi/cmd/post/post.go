@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"sync/atomic"
 	"time"
 
 	"github.com/brimsec/zq/cmd/zapi/cmd"
 	"github.com/brimsec/zq/cmd/zapi/format"
 	"github.com/brimsec/zq/pkg/display"
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/mccanne/charm"
 )
@@ -113,26 +113,13 @@ loop:
 }
 
 func abspaths(paths []string) ([]string, error) {
-	var err error
 	out := make([]string, len(paths))
 	for i, path := range paths {
-		// Special handling for paths starting with S3:
-		// we will not convert to absolute path -MTW
-		if path[0:5] == "s3://" {
-			out[i] = path
-			continue
-		}
-		// TODO: This looks wrong to me,
-		// because it assumes that zapi and zqd
-		// are using the same filesystem. If they do not,
-		// then filepath.Abs(path) will produce a path
-		// that will not work when passed to zqd.
-		// I think the filepath.Abs function should be called
-		// in the zqd process instead. -MTW
-		out[i], err = filepath.Abs(path)
+		uri, err := iosrc.ParseURI(path)
 		if err != nil {
 			return nil, err
 		}
+		out[i] = uri.String()
 	}
 	return out, nil
 }
