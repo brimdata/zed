@@ -84,7 +84,9 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
             - mountPath: /spaces
-              name: spaces-volume     
+              name: spaces-volume
+            - mountPath: /tmp
+              name: tmp-volume                   
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -99,4 +101,6 @@ spec:
       {{- end }}
       volumes:
         - name: spaces-volume
+          emptyDir: {}
+        - name: tmp-volume
           emptyDir: {}

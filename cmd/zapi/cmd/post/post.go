@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"sync/atomic"
 	"time"
 
 	"github.com/brimsec/zq/cmd/zapi/cmd"
 	"github.com/brimsec/zq/cmd/zapi/format"
 	"github.com/brimsec/zq/pkg/display"
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/mccanne/charm"
 )
@@ -113,13 +113,13 @@ loop:
 }
 
 func abspaths(paths []string) ([]string, error) {
-	var err error
 	out := make([]string, len(paths))
 	for i, path := range paths {
-		out[i], err = filepath.Abs(path)
+		uri, err := iosrc.ParseURI(path)
 		if err != nil {
 			return nil, err
 		}
+		out[i] = uri.String()
 	}
 	return out, nil
 }
