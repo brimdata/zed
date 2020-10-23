@@ -257,10 +257,8 @@ func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.
 		// and driver.compile has determined that execution should be parallel
 		// then the sources are parallelHead procs that hold connections to
 		// remote zqd workers.
-		sources = make([]proc.Interface, len(workerURLs))
-		for i := range sources {
-			conn := api.NewConnectionTo(workerURLs[i])
-			sources[i] = &parallelHead{pctx: pctx, parent: nil, pg: pg, workerConn: conn}
+		range _, w := range workerURLs {
+			sources = append(sources, &parallelHead{pctx: pctx, pg: pg, workerConn: api.NewConnectionTo(w)}
 		}
 	} else {
 		// Normal: the sources are regular parallelHead procs
