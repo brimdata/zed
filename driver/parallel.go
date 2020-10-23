@@ -134,7 +134,7 @@ func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
 
 // nextSourceForConn is similar to nextSource, but instead of returning the scannerCloser
 // for an open file (i.e. the stream for the open file),
-// nextSourceForConn sends an zapi api request to a remote zqd worker process, and returns
+// nextSourceForConn sends a request to a remote zqd worker process, and returns
 // the scannerCloser (i.e.output stream) for the remote zqd worker.
 func (pg *parallelGroup) nextSourceForConn(conn *api.Connection) (ScannerCloser, error) {
 	for {
