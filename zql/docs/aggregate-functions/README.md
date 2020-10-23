@@ -78,7 +78,7 @@ QUICKEST LONGEST     TYPICAL
 | **Syntax**                | `and(<expression>)`                                            |
 | **Required<br>arguments** | `<expression>`<br>A valid ZQL [expression](../expressions/README.md). |
 | **Optional<br>arguments** | None                                                           |
-| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer/logical       |
+| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer               |
 
 #### Example:
 
@@ -370,7 +370,7 @@ MIN
 | **Syntax**                | `or(<expression>)`                                             |
 | **Required<br>arguments** | `<expression>`<br>A valid ZQL [expression](../expressions/README.md). |
 | **Optional<br>arguments** | None                                                           |
-| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer/logical       |
+| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer               |
 
 #### Example:
 
