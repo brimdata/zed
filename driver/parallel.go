@@ -2,6 +2,7 @@ package driver
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"sync"
 
@@ -15,6 +16,24 @@ import (
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zqd/api"
 )
+
+// Global variable for driver package
+// which determines whether this go process will
+// (0) implement parallelism with local goroutines
+// (1) implement parallelism by engaging multiple
+// remote zqd /worker processes on the WorkerURLs list, or,
+// (2) implement parallelism by calling a load-balanced
+// Kubernetes service endpoint
+const (
+	PM_USE_GOROUTINES = iota
+	PM_USE_WORKER_URLS
+	PM_USE_SERVICE_ENDPOINT
+)
+
+// Default ParallelModel is local goroutines
+var ParallelModel int = PM_USE_GOROUTINES
+var WorkerServiceAddr string
+var WorkerURLs []string
 
 type parallelHead struct {
 	pctx   *proc.Context
@@ -247,18 +266,32 @@ func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.
 
 	var sources []proc.Interface
 	// Two type of parallelGroups:
-	if len(workerURLs) > 0 {
-		// If workerURLs are present, then base the sources on the number of workers
-		for _, w := range workerURLs {
-			sources = append(sources, &parallelHead{pctx: pctx, pg: pg, workerConn: api.NewConnectionTo(w)})
-		}
-	} else {
-		// Normal: the sources are regular parallelHead procs
-		// and Parallelism is determined by mcfg
+	if ParallelModel == PM_USE_GOROUTINES {
 		sources = make([]proc.Interface, mcfg.Parallelism)
 		for i := range sources {
 			sources[i] = &parallelHead{pctx: pctx, pg: pg}
 		}
+	} else if ParallelModel == PM_USE_WORKER_URLS {
+		// In this case each parallel head will be dedicated to a running zqd worker process
+		for _, w := range workerURLs {
+			sources = append(sources, &parallelHead{pctx: pctx, pg: pg, workerConn: api.NewConnectionTo(w)})
+		}
+	} else if ParallelModel == PM_USE_SERVICE_ENDPOINT {
+		// In this case each parallel head will seperately request from a
+		// load-balanced service endpoint (backed by an unspecified number of process instances)
+		for i := 0; i < mcfg.Parallelism; i++ { // TODO: need to update mcfg.Parallelism in compile!
+			sources = append(sources, &parallelHead{pctx: pctx, pg: pg,
+				workerConn: api.NewConnectionTo(WorkerServiceAddr)})
+		}
+	} else {
+		return sources, pg, fmt.Errorf("Unsupported ParallelModel %d", ParallelModel)
+	}
+
+	if len(workerURLs) > 0 {
+		// If workerURLs are present, then base the sources on the number of workers
+	} else {
+		// Normal: the sources are regular parallelHead procs
+		// and Parallelism is determined by mcfg
 	}
 	return sources, pg, nil
 }

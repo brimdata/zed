@@ -27,7 +27,7 @@ var Get = &charm.Spec{
 	Name:        "get",
 	Usage:       "get [options] <search>",
 	Short:       "perform zql searches",
-	HiddenFlags: "chunk",
+	HiddenFlags: "chunk parallel",
 	Long: `
 zapi get issues search requests to the zqd search service.
 
@@ -71,6 +71,7 @@ type Command struct {
 	debug       bool
 	final       *api.SearchStats
 	chunkInfo   string
+	parallel    int
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -84,7 +85,9 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.debug, "debug", false, "dump raw HTTP response straight to output")
 	f.Var(&c.from, "from", "search from timestamp in RFC3339Nano format (e.g. 2006-01-02T15:04:05.999999999Z07:00)")
 	f.Var(&c.to, "to", "search to timestamp in RFC3339Nano format (e.g. 2006-01-02T15:04:05.999999999Z07:00)")
+	// hidden
 	f.StringVar(&c.chunkInfo, "chunk", "", "chunk to fetch in chunk file name format")
+	f.IntVar(&c.parallel, "parallel", 0, "number of parallel worker zqd processes requested")
 	c.outputFlags.SetFlags(f)
 	return c, nil
 }
@@ -111,6 +114,13 @@ func (c *Command) Run(args []string) error {
 			return fmt.Errorf("parse error: %s", err)
 		}
 		req.Span = nano.NewSpanTs(nano.Ts(c.from), nano.Ts(c.to))
+		if c.parallel > 1 {
+			// The presence of the "parallel" flag will
+			// cause zqd to request that number of worker instances
+			// from the service. -parallel is only allowed if zqd listen has been
+			// started with the -svc parameter.
+			req.Parallel = c.parallel
+		}
 		params := map[string]string{"format": c.encoding}
 		r, err = client.SearchRaw(c.Context(), *req, params)
 		if err != nil {

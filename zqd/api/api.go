@@ -39,10 +39,11 @@ type TaskEnd struct {
 }
 
 type SearchRequest struct {
-	Space SpaceID         `json:"space" validate:"required"`
-	Proc  json.RawMessage `json:"proc" validate:"required"`
-	Span  nano.Span       `json:"span"`
-	Dir   int             `json:"dir" validate:"required"`
+	Space    SpaceID         `json:"space" validate:"required"`
+	Proc     json.RawMessage `json:"proc" validate:"required"`
+	Span     nano.Span       `json:"span"`
+	Dir      int             `json:"dir" validate:"required"`
+	Parallel int             `json:"parallel"`
 }
 
 type WorkerRequest struct {
