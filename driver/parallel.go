@@ -287,11 +287,5 @@ func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.
 		return sources, pg, fmt.Errorf("Unsupported ParallelModel %d", ParallelModel)
 	}
 
-	if len(workerURLs) > 0 {
-		// If workerURLs are present, then base the sources on the number of workers
-	} else {
-		// Normal: the sources are regular parallelHead procs
-		// and Parallelism is determined by mcfg
-	}
 	return sources, pg, nil
 }
