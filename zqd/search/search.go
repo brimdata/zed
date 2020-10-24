@@ -70,6 +70,7 @@ func NewSearchOp(req api.SearchRequest) (*SearchOp, error) {
 }
 
 func (s *SearchOp) Run(ctx context.Context, dir int, spc space.Space, output Output) (err error) {
+	//println("in seach.go SearchOp.Run dir", dir)
 	d := &searchdriver{
 		output:    output,
 		startTime: nano.Now(),
@@ -94,6 +95,7 @@ func (s *SearchOp) Run(ctx context.Context, dir int, spc space.Space, output Out
 			StatsTick:   statsTicker.C,
 			Dir:         dir,
 			Parallelism: s.parallelism,
+			UseWorkers:  true,
 		})
 	case *filestore.Storage:
 		rc, err := st.Open(ctx, zctx, s.query.Span)

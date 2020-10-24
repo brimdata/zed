@@ -25,10 +25,10 @@ func NewWorkerOp(ctx context.Context, req api.WorkerRequest, st storage.Storage)
 	// XXX zqd only supports backwards searches, remove once this has been
 	// fixed.
 	if req.Dir == 1 {
-		return nil, zqe.E(zqe.Invalid, "forward searches not yet supported")
+		return nil, zqe.E(zqe.Invalid, "worker: forward searches not yet supported")
 	}
 	if req.Dir != -1 {
-		return nil, zqe.E(zqe.Invalid, "time direction must be 1 or -1")
+		return nil, zqe.E(zqe.Invalid, "worker: time direction must be 1 or -1")
 	}
 	store, ok := st.(*archivestore.Storage)
 	if !ok {
@@ -45,7 +45,7 @@ func NewWorkerOp(ctx context.Context, req api.WorkerRequest, st storage.Storage)
 	return &WorkerOp{proc: proc, span: req.Span, src: src, store: store}, nil
 }
 
-func (w *WorkerOp) Run(ctx context.Context, output Output) (err error) {
+func (w *WorkerOp) Run(ctx context.Context, dir int, output Output) (err error) {
 	d := &searchdriver{
 		output:    output,
 		startTime: nano.Now(),
@@ -64,7 +64,9 @@ func (w *WorkerOp) Run(ctx context.Context, output Output) (err error) {
 	zctx := resolver.NewContext()
 
 	return driver.MultiRun(ctx, d, w.proc, zctx, w.store.StaticSource(w.src), driver.MultiConfig{
-		Span:      w.span,
-		StatsTick: statsTicker.C,
+		Span:        w.span,
+		StatsTick:   statsTicker.C,
+		Dir:         dir,
+		Parallelism: 1,
 	})
 }

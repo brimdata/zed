@@ -33,6 +33,7 @@ func Run(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Context
 }
 
 func MultiRun(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Context, msrc MultiSource, mcfg MultiConfig) error {
+	//println("compileMulti mcfg.Dir=", mcfg.Dir)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 

@@ -166,7 +166,8 @@ func (pg *parallelGroup) nextSourceForConn(conn *api.Connection) (ScannerCloser,
 		if err != nil {
 			return nil, err
 		}
-
+		//jreq, _ := json.Marshal(*req)
+		//println("Outbound request to worker: ", string(jreq))
 		rc, err := conn.WorkerRaw(pg.pctx.Context, *req, nil) // rc is io.ReadCloser
 		if err != nil {
 			return nil, err
@@ -251,6 +252,7 @@ func newCompareFn(fieldName string, reversed bool) (zbuf.RecordCmpFn, error) {
 }
 
 func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.BooleanExpr, msrc MultiSource, mcfg MultiConfig, workerURLs []string) ([]proc.Interface, *parallelGroup, error) {
+	//println("createParallelGroup mcfg.Dir=", mcfg.Dir)
 	pg := &parallelGroup{
 		pctx: pctx,
 		filter: SourceFilter{
@@ -265,8 +267,11 @@ func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.
 	}
 
 	var sources []proc.Interface
-	// Two type of parallelGroups:
-	if ParallelModel == PM_USE_GOROUTINES {
+	// mcfg.UseWorkers is used to indicate that we are processing
+	// a request that could be delegated to worker processes.
+	// /search requests have mcfg.UseWorkers=true
+	// If we are in a worker process, then mcfg.UseWorkers defaults to false.
+	if !mcfg.UseWorkers || ParallelModel == PM_USE_GOROUTINES {
 		sources = make([]proc.Interface, mcfg.Parallelism)
 		for i := range sources {
 			sources[i] = &parallelHead{pctx: pctx, pg: pg}

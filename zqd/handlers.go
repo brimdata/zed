@@ -140,7 +140,7 @@ func handleWorker(c *Core, w http.ResponseWriter, httpReq *http.Request) {
 
 	w.Header().Set("Content-Type", out.ContentType())
 
-	if err := work.Run(ctx, out); err != nil {
+	if err := work.Run(ctx, req.Dir, out); err != nil {
 		c.requestLogger(httpReq).Warn("Error writing response", zap.Error(err))
 	}
 

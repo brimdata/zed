@@ -288,7 +288,7 @@ func (c *Command) initWorkers() error {
 		driver.WorkerURLs = workers
 		driver.ParallelModel = driver.PM_USE_WORKER_URLS
 	} else if c.serviceAddr != "" {
-		driver.WorkerServiceAddr = c.serviceAddr
+		driver.WorkerServiceAddr = "http://" + c.serviceAddr
 		driver.ParallelModel = driver.PM_USE_SERVICE_ENDPOINT
 	} else {
 		driver.ParallelModel = driver.PM_USE_GOROUTINES

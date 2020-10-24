@@ -8,7 +8,7 @@ useCredSecret: true
 
 configyaml: false
 
-replicaCount: 1
+replicaCount: 5
 
 image:
   repository: "localhost:5000/"

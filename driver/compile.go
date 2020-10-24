@@ -119,9 +119,11 @@ type MultiConfig struct {
 	Span        nano.Span
 	StatsTick   <-chan time.Time
 	Warnings    chan string
+	UseWorkers  bool
 }
 
 func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc MultiSource, mcfg MultiConfig) (*muxOutput, error) {
+	//println("compileMulti mcfg.Dir=", mcfg.Dir)
 	if mcfg.Logger == nil {
 		mcfg.Logger = zap.NewNop()
 	}
