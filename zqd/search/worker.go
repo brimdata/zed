@@ -2,6 +2,7 @@ package search
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/brimsec/zq/ast"
@@ -22,6 +23,9 @@ type WorkerOp struct {
 }
 
 func NewWorkerOp(ctx context.Context, req api.WorkerRequest, st storage.Storage) (*WorkerOp, error) {
+	jreq, _ := json.Marshal(req)
+	println("Inbound request to worker: ", string(jreq))
+
 	// XXX zqd only supports backwards searches, remove once this has been
 	// fixed.
 	if req.Dir == 1 {
