@@ -86,6 +86,10 @@ func (s *Storage) Write(ctx context.Context, zctx *resolver.Context, zr zbuf.Rea
 	return archive.Import(ctx, s.ark, zctx, zr)
 }
 
+func (s *Storage) NewWriter(ctx context.Context) *archive.Writer {
+	return archive.NewWriter(ctx, s.ark)
+}
+
 func (s *Storage) IndexCreate(ctx context.Context, req api.IndexPostRequest) error {
 	var rules []archive.Rule
 	if req.AST != nil {
