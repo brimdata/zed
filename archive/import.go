@@ -21,15 +21,15 @@ import (
 	"go.uber.org/multierr"
 )
 
-// ImportBufSize specifies the max size of the records buffered during import
-// before they are flushed to disk.
-var ImportBufSize = int64(sort.MemMaxBytes)
-
-// The below are vars for unit testing.
 var (
-	importLZ4BlockSize     = zngio.DefaultLZ4BlockSize
-	importStreamRecordsMax = zngio.DefaultStreamRecordsMax
+	// ImportBufSize specifies the max size of the records buffered during import
+	// before they are flushed to disk.
+	ImportBufSize          = int64(sort.MemMaxBytes)
+	ImportStreamRecordsMax = zngio.DefaultStreamRecordsMax
 )
+
+// For unit testing.
+var importLZ4BlockSize = zngio.DefaultLZ4BlockSize
 
 func Import(ctx context.Context, ark *Archive, zctx *resolver.Context, r zbuf.Reader) error {
 	w := newImportWriter(ctx, ark)
@@ -250,7 +250,7 @@ func newChunkWriter(ctx context.Context, ark *Archive, tsd tsDir, masks []ksuid.
 	}
 	dataFileWriter := zngio.NewWriter(bufwriter.New(out), zngio.WriterOpts{
 		LZ4BlockSize:     importLZ4BlockSize,
-		StreamRecordsMax: importStreamRecordsMax,
+		StreamRecordsMax: ImportStreamRecordsMax,
 	})
 	// Create the temporary index key file
 	idxTemp, err := ioutil.TempFile("", "archive-import-index-key-")
@@ -334,6 +334,7 @@ func (cw *chunkWriter) closeWithTs(ctx context.Context, firstTs, lastTs nano.Ts)
 		Last:        lastTs,
 		RecordCount: cw.count,
 		Masks:       cw.masks,
+		Size:        cw.dataFileWriter.Position(),
 	}
 	if err := writeChunkMetadata(ctx, chunkMetadataPath(cw.ark, cw.tsd, cw.id), metadata); err != nil {
 		return Chunk{}, err
@@ -352,13 +353,14 @@ func (cw *chunkWriter) closeWithTs(ctx context.Context, firstTs, lastTs nano.Ts)
 	tfr := zngio.NewReader(tf, zctx)
 	chunk := metadata.Chunk(cw.id)
 	idxURI := chunk.seekIndexPath(cw.ark)
-	idxWriter, err := microindex.NewWriter(zctx, idxURI.String(), microindex.Keys("ts"), microindex.FrameThresh(framesize))
+	idxWriter, err := microindex.NewWriter(zctx, idxURI.String(),
+		microindex.Keys("ts"),
+		microindex.FrameThresh(framesize),
+		microindex.Order(cw.ark.DataOrder),
+	)
 	if err != nil {
 		return Chunk{}, err
 	}
-	// XXX: zq#1329
-	// The microindex finder doesn't yet handle searching when keys
-	// are stored in descending order, which is the zar default.
 	if err = zbuf.CopyWithContext(ctx, idxWriter, tfr); err != nil {
 		idxWriter.Abort()
 		return Chunk{}, err

@@ -39,23 +39,27 @@ func init() {
 
 type Command struct {
 	*root.Command
-	root          string
-	dataPath      string
-	thresh        units.Bytes
-	importBufSize units.Bytes
-	empty         bool
-	inputFlags    inputflags.Flags
-	procFlags     procflags.Flags
+	asc                   bool
+	root                  string
+	dataPath              string
+	thresh                units.Bytes
+	importBufSize         units.Bytes
+	importStreamRecordMax int
+	empty                 bool
+	inputFlags            inputflags.Flags
+	procFlags             procflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
+	f.BoolVar(&c.asc, "asc", false, "store archive data in ascending order")
 	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
 	f.StringVar(&c.dataPath, "data", "", "location for storing data files (defaults to root)")
 	c.thresh = archive.DefaultLogSizeThreshold
 	f.Var(&c.thresh, "s", "target size of chunk files, as '10MB' or '4GiB', etc.")
 	c.importBufSize = units.Bytes(archive.ImportBufSize)
 	f.Var(&c.importBufSize, "bufsize", "maximum size of data read into memory before flushing to disk, as '99MB', '4GiB', etc.")
+	f.IntVar(&c.importStreamRecordMax, "streammax", archive.ImportStreamRecordsMax, "limit for number of records in each ZNG stream (0 for no limit)")
 	f.BoolVar(&c.empty, "empty", false, "create an archive without initial data")
 	c.inputFlags.SetFlags(f)
 	c.procFlags.SetFlags(f)
@@ -73,10 +77,14 @@ func (c *Command) Run(args []string) error {
 		return errors.New("zar import: exactly one input file must be specified (- for stdin)")
 	}
 	archive.ImportBufSize = int64(c.importBufSize)
+	archive.ImportStreamRecordsMax = c.importStreamRecordMax
 
-	co := &archive.CreateOptions{DataPath: c.dataPath}
 	thresh := int64(c.thresh)
-	co.LogSizeThreshold = &thresh
+	co := &archive.CreateOptions{
+		DataPath:         c.dataPath,
+		SortAscending:    c.asc,
+		LogSizeThreshold: &thresh,
+	}
 
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err

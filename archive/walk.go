@@ -2,18 +2,23 @@ package archive
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
+	"math"
 	"path"
 	"regexp"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/pkg/bufwriter"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
 	"github.com/segmentio/ksuid"
@@ -187,6 +192,7 @@ type Chunk struct {
 	Last        nano.Ts
 	RecordCount uint64
 	Masks       []ksuid.KSUID
+	Size        int64
 }
 
 func (c Chunk) tsDir() tsDir {
@@ -275,6 +281,98 @@ func (c Chunk) Remove(ctx context.Context, ark *Archive) error {
 	return nil
 }
 
+type chunkReader struct {
+	io.Reader
+	io.Closer
+	totalSize int64
+	readSize  int64
+}
+
+// newChunkReader returns an io.ReadCloser for this chunk. If the chunk has a seek
+// index and if the provided span skips part of the chunk, the seek index will
+// be used to limit the reading window of the chunk's reader.
+func newChunkReader(ctx context.Context, chunk Chunk, ark *Archive, span nano.Span) (*chunkReader, error) {
+	cspan := chunk.Span()
+	span = cspan.Intersect(span)
+	if span.Dur == 0 {
+		return nil, errors.New("chunk span does intersect provided span")
+	}
+	r, err := iosrc.NewReader(ctx, chunk.Path(ark))
+	if err != nil {
+		return nil, err
+	}
+	cr := &chunkReader{
+		Reader:    r,
+		Closer:    r,
+		totalSize: chunk.Size,
+		readSize:  chunk.Size,
+	}
+	if span == cspan {
+		return cr, nil
+	}
+	finder, err := microindex.NewFinder(ctx, resolver.NewContext(), chunk.seekIndexPath(ark))
+	if err != nil {
+		if zqe.IsNotFound(err) {
+			return cr, nil
+		}
+		return nil, err
+	}
+	start, end, err := spanOffsets(ctx, span, finder)
+	if err != nil {
+		return nil, err
+	}
+	if start > 0 {
+		if _, err := r.Seek(start, io.SeekStart); err != nil {
+			return nil, err
+		}
+	}
+	if end > cr.totalSize {
+		end = cr.totalSize
+	}
+	cr.readSize = end - start
+	cr.Reader = io.LimitReader(r, cr.readSize)
+	return cr, nil
+}
+
+func spanOffsets(ctx context.Context, span nano.Span, finder *microindex.Finder) (int64, int64, error) {
+	start, err := tsOffset(ctx, span.Ts, true, finder)
+	if err != nil {
+		return 0, 0, err
+	}
+	end, err := tsOffset(ctx, span.End(), false, finder)
+	if err != nil {
+		return 0, 0, err
+	}
+	if finder.Order() == zbuf.OrderDesc {
+		start, end = end, start
+	}
+	if start == -1 {
+		start = 0
+	}
+	if end == -1 {
+		end = math.MaxInt64
+	}
+	return start, end, nil
+}
+
+func tsOffset(ctx context.Context, ts nano.Ts, min bool, finder *microindex.Finder) (int64, error) {
+	key, err := finder.ParseKeys(ts.StringFloat())
+	if err != nil {
+		return -1, err
+	}
+	var rec *zng.Record
+	// XXX These calls to finder should have the ability to pass context.
+	if min {
+		rec, err = finder.ClosestLTE(key)
+	} else {
+		rec, err = finder.ClosestGTE(key)
+	}
+	if rec == nil || err != nil {
+		return -1, err
+	}
+	return rec.AccessInt("offset")
+}
+
 func chunkLess(order zbuf.Order, a, b Chunk) bool {
 	if order == zbuf.OrderDesc {
 		a, b = b, a
@@ -301,6 +399,7 @@ type chunkMetadata struct {
 	Last        nano.Ts
 	RecordCount uint64
 	Masks       []ksuid.KSUID
+	Size        int64
 }
 
 func (md chunkMetadata) Chunk(id ksuid.KSUID) Chunk {
@@ -310,6 +409,7 @@ func (md chunkMetadata) Chunk(id ksuid.KSUID) Chunk {
 		Last:        md.Last,
 		RecordCount: md.RecordCount,
 		Masks:       md.Masks,
+		Size:        md.Size,
 	}
 }
 

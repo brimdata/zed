@@ -148,10 +148,10 @@ func TestSeekIndex(t *testing.T) {
 	require.NoError(t, err)
 	defer os.RemoveAll(datapath)
 
-	orig := importStreamRecordsMax
-	importStreamRecordsMax = 1
+	orig := ImportStreamRecordsMax
+	ImportStreamRecordsMax = 1
 	defer func() {
-		importStreamRecordsMax = orig
+		ImportStreamRecordsMax = orig
 	}()
 	createArchiveSpace(t, datapath, babble, &CreateOptions{
 		// Must use SortAscending: true until zq#1329 is addressed.
