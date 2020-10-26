@@ -269,19 +269,11 @@ func (c *Command) initWorkers() error {
 	// This is for local testing only, at this point.
 	// Workers will be available through a K8s service in a prod deployment.
 	if c.workers != "" {
-		workers := strings.Split(c.workers, ",")
-		for i, addr := range workers {
-			// default host to 127.0.0.1
-			host, port, err := net.SplitHostPort(addr)
-			if err != nil {
+		for _, w := range strings.Split(c.workers, ",") {
+			if _, _, err := net.SplitHostPort(w); err != nil {
 				return err
 			}
-			if host == "" {
-				host = "127.0.0.1"
-			}
-			workers[i] = "http://" + host + ":" + port
-		}
-		driver.WorkerURLs = workers
+			driver.WorkerURLs = append(driver.WorkerURLs, "http://" + w)
 	}
 	return nil
 }
