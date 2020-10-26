@@ -97,9 +97,7 @@ func NewMultiSource(ark *Archive, altPaths []string) driver.MultiSource {
 			altPaths: altPaths,
 		}
 	}
-	return &spanMultiSource{
-		ark: ark,
-	}
+	return &spanMultiSource{ark}
 }
 
 type spanMultiSource struct {
