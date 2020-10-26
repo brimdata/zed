@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
+	"path"
 	"strings"
 	"time"
 
@@ -189,7 +189,7 @@ func parseExprWithChunk(expr string, chunkPath string) (*api.WorkerRequest, erro
 			Proc: proc,
 			Dir:  -1,
 		},
-		DataPath:   filepath.Join(filepath.Dir(chunkPath), "../.."),
+		DataPath:   path.Join(path.Dir(chunkPath), "../.."),
 		ChunkPaths: []string{chunkPath},
 	}, nil
 }

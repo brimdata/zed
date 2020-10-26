@@ -273,7 +273,8 @@ func (c *Command) initWorkers() error {
 			if _, _, err := net.SplitHostPort(w); err != nil {
 				return err
 			}
-			driver.WorkerURLs = append(driver.WorkerURLs, "http://" + w)
+			driver.WorkerURLs = append(driver.WorkerURLs, "http://"+w)
+		}
 	}
 	return nil
 }
