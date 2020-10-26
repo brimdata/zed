@@ -21,11 +21,9 @@ import (
 	"go.uber.org/zap"
 )
 
-// Global variable for driver package
-// which determines whether this go process will
-// (1) implement parallelism by engaging multiple
-// remote zqd /worker processes, or
-// (2) implement parallelism with local goroutines
+// WorkerURLs, if not empty, causes this process to
+// implement parallelism using worker processes
+// instead of goroutines.
 var WorkerURLs []string
 
 // XXX ReaderSortKey should be a field.Static.  Issue #1467.
