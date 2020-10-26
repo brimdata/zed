@@ -198,6 +198,7 @@ func (s *chunkSource) Open(ctx context.Context, zctx *resolver.Context, sf drive
 	rc := detector.MultiFileReader(zctx, paths, zio.ReaderOpts{Format: "zng"})
 	sn, err := scanner.NewScanner(ctx, rc, sf.Filter, sf.FilterExpr, sf.Span)
 	if err != nil {
+		rc.Close()
 		return nil, err
 	}
 	return &scannerCloser{Scanner: sn, Closer: rc}, nil
