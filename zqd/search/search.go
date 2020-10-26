@@ -60,7 +60,7 @@ func NewSearchOp(req api.SearchRequest) (*SearchOp, error) {
 	return &SearchOp{query: query}, nil
 }
 
-func (s *SearchOp) Run(ctx context.Context, dir int, spc space.Space, output Output) (err error) {
+func (s *SearchOp) Run(ctx context.Context, order zbuf.Order, spc space.Space, output Output) (err error) {
 	d := &searchdriver{
 		output:    output,
 		startTime: nano.Now(),
@@ -83,7 +83,7 @@ func (s *SearchOp) Run(ctx context.Context, dir int, spc space.Space, output Out
 		return driver.MultiRun(ctx, d, s.query.Proc, zctx, st.MultiSource(), driver.MultiConfig{
 			Span:      s.query.Span,
 			StatsTick: statsTicker.C,
-			Dir:       dir,
+			Order:     order,
 		})
 	case *filestore.Storage:
 		rc, err := st.Open(ctx, zctx, s.query.Span)

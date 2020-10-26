@@ -118,7 +118,7 @@ func compileSingle(ctx context.Context, program ast.Proc, zctx *resolver.Context
 
 type MultiConfig struct {
 	Custom      compiler.Hook
-	Dir         int
+	Order       zbuf.Order
 	Logger      *zap.Logger
 	Parallelism int
 	Span        nano.Span

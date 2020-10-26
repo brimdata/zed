@@ -192,7 +192,7 @@ func (pg *parallelGroup) sourceToRequest(src Source) (*api.WorkerRequest, error)
 		}
 		req.Proc = b
 	}
-	req.Dir = pg.mcfg.Dir
+	req.Dir = pg.mcfg.Order.Int()
 	return &req, nil
 }
 

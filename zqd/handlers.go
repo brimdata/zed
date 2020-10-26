@@ -106,8 +106,13 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var order zbuf.Order
+	if req.Dir == -1 {
+		order = zbuf.OrderDesc
+	}
+
 	w.Header().Set("Content-Type", out.ContentType())
-	if err := srch.Run(ctx, req.Dir, s, out); err != nil {
+	if err := srch.Run(ctx, order, s, out); err != nil {
 		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
 	}
 }
