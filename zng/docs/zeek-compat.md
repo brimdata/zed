@@ -3,7 +3,6 @@
 - [Introduction](#introduction)
 - [Equivalent Types](#equivalent-types)
 - [Example](#example)
-- [About Aliases](#about-aliases)
 - [Type-Specific Details](#type-specific-details)
   * [`double`](#double)
   * [`set`](#set)
@@ -92,7 +91,12 @@ $ zq -t zeek_types.log | zq -f zeek -
 T	123	456	123.456	1592502151.123456	123.456	smile\xf0\x9f\x98\x81smile	\x09\x07\x04	80	127.0.0.1	10.0.0.0/8	tcp	a,in,set,things	order,is,important	Jeanne	122
 ```
 
-## About Aliases
+## Type-Specific Details
+
+As `zq` acts as a reference implementation for ZNG, it's helpful to understand
+how it reads the following Zeek data types into ZNG equivalents and writes
+them back out again in Zeek log format. Other ZNG implementations (should they
+exist) may handle these differently.
 
 Multiple Zeek types discussed below are represented via a
 [type alias](spec.md#3117-alias-typedef) to one of ZNG's
@@ -102,13 +106,6 @@ if/when the field may be later output again in Zeek format. Knowledge of its
 original Zeek type may also enable special operations in ZQL that are unique to
 values known to have originated as a specific Zeek type, though no such
 operations are currently implemented in `zq`.
-
-## Type-Specific Details
-
-As `zq` acts as a reference implementation for ZNG, it's helpful to understand
-how it reads the following Zeek data types into ZNG equivalents and writes
-them back out again in Zeek log format. Other ZNG implementations (should they
-exist) may handle these differently.
 
 ### `double`
 
@@ -154,8 +151,8 @@ value is intended to be populated and used.
 ### `port`
 
 The numeric values that appear in Zeek logs under this type are represented
-with an alias to ZNG's `uint16` type. See the [About Aliases](#about-aliases)
-section above for more details.
+with an alias to ZNG's `uint16` type. See the text above regarding
+[aliases](#type-specific-details) for more details.
 
 ### `enum`
 
@@ -165,7 +162,7 @@ how Zeek's `enum` type behaves inside the Zeek scripting language,
 when the `enum` type is output in a Zeek log, the log does not communicate
 any such set of "allowed" values as they were originally defined. Therefore,
 these values are represented with an alias to ZNG's `string` type. See the
-[About Aliases](#about-aliases) section above for more details.
+text above regarding [aliases](#type-specific-details) for more details.
 
 ### `set`
 
