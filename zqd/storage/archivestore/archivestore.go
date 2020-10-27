@@ -45,6 +45,10 @@ type Storage struct {
 	ark *archive.Archive
 }
 
+func NewStorage(ark *archive.Archive) *Storage {
+	return &Storage{ark: ark}
+}
+
 func (s *Storage) NativeOrder() zbuf.Order {
 	return s.ark.DataOrder
 }
@@ -53,8 +57,8 @@ func (s *Storage) MultiSource() driver.MultiSource {
 	return archive.NewMultiSource(s.ark, nil)
 }
 
-func (s *Storage) StaticSource(ss archive.SpanInfoSource) driver.MultiSource {
-	return archive.NewStaticSource(s.ark, ss)
+func (s *Storage) StaticSource(src driver.Source) driver.MultiSource {
+	return archive.NewStaticSource(s.ark, src)
 }
 
 func (s *Storage) Summary(ctx context.Context) (storage.Summary, error) {

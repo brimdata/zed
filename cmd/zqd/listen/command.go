@@ -14,10 +14,12 @@ import (
 	"os/exec"
 	"os/signal"
 	"runtime"
+	"strings"
 
 	"github.com/brimsec/zq/cli"
 	"github.com/brimsec/zq/cmd/zqd/logger"
 	"github.com/brimsec/zq/cmd/zqd/root"
+	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/httpd"
 	"github.com/brimsec/zq/pkg/rlimit"
@@ -39,7 +41,7 @@ var Listen = &charm.Spec{
 	Long: `
 The listen command launches a process to listen on the provided interface and
 `,
-	HiddenFlags: "brimfd",
+	HiddenFlags: "brimfd,workers",
 	New:         New,
 }
 
@@ -63,7 +65,8 @@ type Command struct {
 	portFile           string
 	// brimfd is a file descriptor passed through by brim desktop. If set zqd
 	// will exit if the fd is closed.
-	brimfd int
+	brimfd  int
+	workers string
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -82,6 +85,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 
 	// hidden
 	f.IntVar(&c.brimfd, "brimfd", -1, "pipe read fd passed by brim to signal brim closure")
+	f.StringVar(&c.workers, "workers", "", "comma separated list of [addr]:port for zqd/workers")
 	return c, nil
 }
 
@@ -147,6 +151,9 @@ func (c *Command) init() error {
 		return err
 	}
 	if err := c.initLogger(); err != nil {
+		return err
+	}
+	if err := c.initWorkers(); err != nil {
 		return err
 	}
 	if err := c.initZeek(); err != nil {
@@ -255,6 +262,20 @@ func (c *Command) initSuricata() error {
 		return err
 	}
 	c.conf.Suricata = ln
+	return nil
+}
+
+func (c *Command) initWorkers() error {
+	// This is for local testing only, at this point.
+	// Workers will be available through a K8s service in a prod deployment.
+	if c.workers != "" {
+		for _, w := range strings.Split(c.workers, ",") {
+			if _, _, err := net.SplitHostPort(w); err != nil {
+				return err
+			}
+			driver.WorkerURLs = append(driver.WorkerURLs, "http://"+w)
+		}
+	}
 	return nil
 }
 
