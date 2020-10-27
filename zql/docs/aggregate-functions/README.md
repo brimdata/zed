@@ -105,7 +105,7 @@ TS                SHORT_RTT            SHORT_COUNT LONG_RTT             LONG_COU
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
-| **Description**           | Returns the boolean value `true` if the provided expression evaluates to `true` for all input values. Contrast with [`or`](#or). |
+| **Description**           | Returns the boolean value `true` if the provided expression evaluates to `true` for all inputs. Contrast with [`or`](#or). |
 | **Syntax**                | `and(<expression>)`                                            |
 | **Required<br>arguments** | `<expression>`<br>A valid ZQL [expression](../expressions/README.md). |
 | **Optional<br>arguments** | None                                                           |
