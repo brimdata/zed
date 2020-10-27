@@ -75,17 +75,6 @@ func CreateIndexWithWarnings(r io.Reader, size int, c chan<- string) (Index, err
 			break
 		}
 		switch typ {
-		default:
-			if section == nil {
-				err := errors.New("missing section header")
-				return nil, pcapio.NewErrInvalidPcap(err)
-			}
-			slice := slicer.Slice{
-				Offset: off,
-				Length: uint64(len(block)),
-			}
-			section.Blocks = append(section.Blocks, slice)
-
 		case pcapio.TypePacket:
 			pkt, ts, _, err := reader.Packet(block)
 			if pkt == nil {
@@ -123,6 +112,17 @@ func CreateIndexWithWarnings(r io.Reader, size int, c chan<- string) (Index, err
 				Blocks: []slicer.Slice{slice},
 			}
 			offsets = offsets[:0]
+
+		default:
+			if section == nil {
+				err := errors.New("missing section header")
+				return nil, pcapio.NewErrInvalidPcap(err)
+			}
+			slice := slicer.Slice{
+				Offset: off,
+				Length: uint64(len(block)),
+			}
+			section.Blocks = append(section.Blocks, slice)
 		}
 	}
 	// end last section

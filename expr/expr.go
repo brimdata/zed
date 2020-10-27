@@ -470,8 +470,6 @@ func (c *Compare) Eval(rec *zng.Record) (zng.Value, error) {
 	var result int
 	if !c.vals.equal() {
 		switch {
-		default:
-			return zng.Value{}, fmt.Errorf("bad comparison type ID: %d", id)
 		case zng.IsFloat(id):
 			v1, _ := zng.DecodeFloat64(c.vals.a)
 			v2, _ := zng.DecodeFloat64(c.vals.b)
@@ -504,6 +502,8 @@ func (c *Compare) Eval(rec *zng.Record) (zng.Value, error) {
 			} else {
 				result = 1
 			}
+		default:
+			return zng.Value{}, fmt.Errorf("bad comparison type ID: %d", id)
 		}
 	}
 	if c.convert(result) {
@@ -705,14 +705,14 @@ func (i *Index) Eval(rec *zng.Record) (zng.Value, error) {
 		return zng.Value{}, err
 	}
 	switch typ := container.Type.(type) {
-	default:
-		return zng.Value{}, fmt.Errorf("cannot index type \"%s\" with key \"%s\"", typ, index)
 	case *zng.TypeArray:
 		return indexArray(typ, container.Bytes, index)
 	case *zng.TypeRecord:
 		return indexRecord(typ, container.Bytes, index)
 	case *zng.TypeMap:
 		return indexMap(typ, container.Bytes, index)
+	default:
+		return zng.Value{}, fmt.Errorf("cannot index type \"%s\" with key \"%s\"", typ, index)
 	}
 }
 

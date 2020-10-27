@@ -220,10 +220,6 @@ func LookupCompare(typ zng.Type) comparefn {
 		}
 	}
 	switch typ.ID() {
-	default:
-		return func(a, b zcode.Bytes) int {
-			return bytes.Compare(a, b)
-		}
 	case zng.IdBool:
 		return func(a, b zcode.Bytes) int {
 			va, err := zng.DecodeBool(a)
@@ -349,6 +345,11 @@ func LookupCompare(typ zng.Type) comparefn {
 				return 1
 			}
 			return bytes.Compare(va.To16(), vb.To16())
+		}
+
+	default:
+		return func(a, b zcode.Bytes) int {
+			return bytes.Compare(a, b)
 		}
 	}
 }
