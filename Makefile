@@ -12,6 +12,12 @@ SURICATAPATH = suricata-$(SURICATATAG)
 
 # This enables a shortcut to run a single test from the ./ztests suite, e.g.:
 #  make TEST=TestZq/ztests/suite/cut/cut
+ifeq ($(shell go env GOOS),windows)
+  ZTEST_PATH = $(CURDIR)/dist;$(CURDIR)/bin;$(CURDIR)/bin/$(ZEEKPATH);$(CURDIR)/bin/$(SURICATAPATH)
+else
+  ZTEST_PATH = $(CURDIR)/dist:$(CURDIR)/bin:$(CURDIR)/bin/$(ZEEKPATH):$(CURDIR)/bin/$(SURICATAPATH)
+endif
+
 ifneq "$(TEST)" ""
 test-one: test-run
 endif
@@ -55,7 +61,7 @@ bin/minio:
 	@mkdir -p bin
 	@echo 'module deps' > bin/go.mod
 	@echo 'require github.com/minio/minio latest' >> bin/go.mod
-	@echo 'replace github.com/minio/minio => github.com/brimsec/minio v0.0.0-20201019191454-3c6f24527f6d' >> bin/go.mod
+	@echo 'replace github.com/minio/minio => github.com/brimsec/minio v0.0.0-20201027180508-1316860783bc' >> bin/go.mod
 	@cd bin && GOBIN=$(CURDIR)/bin go install github.com/minio/minio
 
 generate:
@@ -69,10 +75,10 @@ test-unit:
 	@go test -short ./...
 
 test-system: build bin/minio bin/$(ZEEKPATH) bin/$(SURICATAPATH)
-	@ZTEST_PATH=$(CURDIR)/dist:$(CURDIR)/bin:$(CURDIR)/bin/$(ZEEKPATH):$(CURDIR)/bin/$(SURICATAPATH) go test -v .
+	@ZTEST_PATH='$(ZTEST_PATH)' go test -v .
 
 test-run: build bin/minio bin/$(ZEEKPATH) bin/$(SURICATAPATH)
-	@ZTEST_PATH=$(CURDIR)/dist:$(CURDIR)/bin:$(CURDIR)/bin/$(ZEEKPATH):$(CURDIR)/bin/$(SURICATAPATH) go test -v . -run $(TEST)
+	@ZTEST_PATH='$(ZTEST_PATH)' go test -v . -run $(TEST)
 
 test-heavy: build $(SAMPLEDATA)
 	@go test -v -tags=heavy ./tests

@@ -1,5 +1,6 @@
 script: |
-  zq -t -i zst /dev/null
+  touch empty.zst
+  zq -t -i zst empty.zst
 
 outputs:
   - name: stderr

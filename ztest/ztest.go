@@ -122,7 +122,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -255,6 +254,8 @@ type ZTest struct {
 	Script  string `yaml:"script,omitempty"`
 	Inputs  []File `yaml:"inputs,omitempty"`
 	Outputs []File `yaml:"outputs,omitempty"`
+	// If provided test will only run on environments where runtime.GOOS = OS[i]
+	OS []string `yaml:"os,omitempty"`
 }
 
 func (z *ZTest) check() error {
@@ -365,12 +366,12 @@ func (z *ZTest) Run(t *testing.T, testname, path, dirname, filename string) {
 		t.Fatalf("%s: bad yaml format: %s", filename, err)
 	}
 	if z.Script != "" {
-		if runtime.GOOS == "windows" {
-			// XXX skip in windows until we figure out the best
-			// way to support script-driven tests across
-			// environments
-			t.Skip("skipping script test on Windows")
-		}
+		// if runtime.GOOS == "windows" {
+		// // XXX skip in windows until we figure out the best
+		// // way to support script-driven tests across
+		// // environments
+		// t.Skip("skipping script test on Windows")
+		// }
 		if path == "" {
 			t.Skip("skipping script test on in-process run")
 		}

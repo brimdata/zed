@@ -9,9 +9,9 @@ import (
 type URI url.URL
 
 const (
-	stdin  = "stdio:///stdin"
-	stdout = "stdio:///stdout"
-	stderr = "stdio:///stderr"
+	Stdin  = "stdio:///stdin"
+	Stdout = "stdio:///stdout"
+	Stderr = "stdio:///stderr"
 )
 
 // ParseURI parses the path using `url.Parse`. If the provided uri does not

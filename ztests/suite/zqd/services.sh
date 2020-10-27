@@ -58,6 +58,6 @@ else
   zqdpid=$!
   awaitfile $portdir/zqd
 fi
-trap "rm -rf $portdir; kill -9 $miniopid $zqdpid $zqdw1pid $zqdw2pid" EXIT
+trap "rm -rf $portdir; kill -9 $miniopid $zqdpid $zqdw1pid $zqdw2pid; cat zqd.log" EXIT
 
 export ZQD_HOST=localhost:$(cat $portdir/zqd)

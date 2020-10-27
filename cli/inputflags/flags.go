@@ -8,6 +8,7 @@ import (
 	"os"
 	"regexp"
 
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/azngio"
@@ -70,7 +71,7 @@ func (f *Flags) Open(zctx *resolver.Context, paths []string, stopOnErr bool) ([]
 	var warned bool
 	for _, path := range paths {
 		if path == "-" {
-			path = detector.StdinPath
+			path = iosrc.Stdin
 		}
 		file, err := detector.OpenFile(zctx, path, f.ReaderOpts)
 		if err != nil {

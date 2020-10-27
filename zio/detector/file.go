@@ -19,7 +19,7 @@ import (
 	"github.com/xitongsys/parquet-go/source"
 )
 
-const StdinPath = "/dev/stdin"
+const StdinPath = iosrc.Stdin
 
 // OpenFile creates and returns zbuf.File for the indicated "path",
 // which can be a local file path, a local directory path, or an S3
