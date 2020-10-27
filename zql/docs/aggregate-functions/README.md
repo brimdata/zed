@@ -10,14 +10,18 @@ the events.
      + [Grouping](#grouping)
      + [`where` filtering](#where-filtering)
    * [Available Aggregate Functions](#available-aggregate-functions)
+     + [`and`](#and)
      + [`avg`](#avg)
+     + [`collect`](#collect)
      + [`count`](#count)
      + [`countdistinct`](#countdistinct)
      + [`first`](#first)
      + [`last`](#last)
      + [`max`](#max)
      + [`min`](#min)
+     + [`or`](#or)
      + [`sum`](#sum)
+     + [`union`](#union)
 
 **Note**: Per ZQL [search syntax](../search-syntax/README.md), many examples
 below use shorthand that leaves off the explicit leading `* |`, matching all
@@ -97,6 +101,49 @@ TS                SHORT_RTT            SHORT_COUNT LONG_RTT             LONG_COU
 
 ## Available Aggregate Functions
 
+### `and`
+
+|                           |                                                                |
+| ------------------------- | -------------------------------------------------------------- |
+| **Description**           | Returns the boolean value `true` if the provided expression evaluates to `true` for all inputs. Contrast with [`or`](#or). |
+| **Syntax**                | `and(<expression>)`                                            |
+| **Required<br>arguments** | `<expression>`<br>A valid ZQL [expression](../expressions/README.md). |
+| **Optional<br>arguments** | None                                                           |
+| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer               |
+
+#### Example:
+
+Let's say you've been studying `weird` events and noticed that lots of
+connections have made one or more bad HTTP requests.
+
+```zq-command
+zq -f table 'count() by name | sort -r count' weird.log.gz
+```
+
+#### Output:
+```zq-output head:5
+NAME                                        COUNT
+bad_HTTP_request                            11777
+line_terminated_with_single_CR              11734
+unknown_HTTP_method                         140
+above_hole_data_without_any_acks            107
+...
+```
+
+To count the number of connections for which this was the _only_ category of
+`weird` event observed:
+
+```zq-command
+zq -f table 'only_bads=and(name="bad_HTTP_request") by uid | count() where only_bads=true' weird.log.gz
+```
+
+#### Output:
+```zq-output
+COUNT
+37
+```
+
+---
 ### `avg`
 
 |                           |                                                                |
@@ -105,7 +152,7 @@ TS                SHORT_RTT            SHORT_COUNT LONG_RTT             LONG_COU
 | **Syntax**                | `avg(<field-name>)`                                            |
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |
-| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer#Avg            |
+| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer#Avg           |
 
 #### Example:
 
@@ -124,15 +171,46 @@ AVG
 
 ---
 
+### `collect`
+
+|                           |                                                                |
+| ------------------------- | -------------------------------------------------------------- |
+| **Description**           | Assemble all input values into an array. Contrast with [`union`](#union). |
+| **Syntax**                | `collect(<field-name>)`                                        |
+| **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
+| **Optional<br>arguments** | None                                                           |
+| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer#Collect       |
+
+#### Example #1:
+
+To assemble the sequence of HTTP methods invoked in each interaction with the
+Bing search engine:
+
+```zq-command
+zq -f table 'host=www.bing.com | methods=collect(method) by uid | sort uid' http.log.gz
+```
+
+#### Output:
+```zq-output head:5
+UID                METHODS
+C1iilt2FG8PnyEl0bb GET,GET,POST,GET,GET,POST
+C31wi6XQB8h9igoa5  GET,GET,POST,POST,POST
+CFwagt4ivDe3p6R7U8 GET,GET,POST,POST,GET,GET,GET,POST,POST,GET,GET,GET,GET,POST
+CI0SCN14gWpY087KA3 GET,POST,GET,GET,GET,GET,GET,GET,GET,GET,GET,GET,GET
+...
+```
+
+---
+
 ### `count`
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
-| **Description**           | Return the number of events. |
+| **Description**           | Return the number of events.                                   |
 | **Syntax**                | `count([field-name])`                                          |
 | **Required<br>arguments** | None                                                           |
 | **Optional<br>arguments** | `[field-name]`<br>The name a field. If specified, only events that contain this field will be counted. |
-| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer#Count          |
+| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer#Count         |
 
 #### Example #1:
 
@@ -175,7 +253,7 @@ ftp   93
 | **Required<br>arguments** | `<field-name>`<br>The name of a field containing values to be counted. |
 | **Optional<br>arguments** | None                                                           |
 | **Limitations**           | The potential inaccuracy of the calculated result is described in detail in the code and research linked from the [HyperLogLog repository](https://github.com/axiomhq/hyperloglog). |
-| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer#CountDistinct  |
+| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer#CountDistinct |
 
 #### Example:
 
@@ -216,7 +294,7 @@ to perform this test, the ZQL using `countdistinct()` executed almost 3x faster.
 | **Syntax**                | `first(<field-name>)`                                          |
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |
-| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer#First          |
+| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer#First         |
 
 #### Example:
 
@@ -242,7 +320,7 @@ TCP_ack_underflow_or_misorder
 | **Syntax**                | `last(<field-name>)`                                           |
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |
-| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer#Last           |
+| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer#Last          |
 
 #### Example:
 
@@ -314,6 +392,50 @@ MIN
 
 ---
 
+### `or`
+
+|                           |                                                                |
+| ------------------------- | -------------------------------------------------------------- |
+| **Description**           | Returns the boolean value `true` if the provided expression evaluates to `true` for one or more inputs. Contrast with [`and`](#and). |
+| **Syntax**                | `or(<expression>)`                                             |
+| **Required<br>arguments** | `<expression>`<br>A valid ZQL [expression](../expressions/README.md). |
+| **Optional<br>arguments** | None                                                           |
+| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer               |
+
+#### Example:
+
+Let's say you've noticed there's lots of HTTP traffic happening on ports higher
+than the standard port `80`.
+
+```zq-command
+zq -f table 'count() by id.resp_p | sort -r' http.log.gz
+```
+
+#### Output:
+```zq-output head:5
+ID.RESP_P COUNT
+80        134496
+8080      5204
+5800      1691
+65534     903
+...
+```
+
+The following query confirms this high-port traffic is present, but that none of
+those ports are higher than what TCP allows.
+
+```zq-command
+zq -f table 'some_highports=or(id.resp_p>80),impossible_ports=or(id.resp_p>65535)' http.log.gz
+```
+
+#### Output:
+```zq-output
+SOME_HIGHPORTS IMPOSSIBLE_PORTS
+T              F
+```
+
+---
+
 ### `sum`
 
 |                           |                                                                |
@@ -337,4 +459,40 @@ zq -f table 'sum(total_bytes)' files.log.gz
 ```zq-output
 SUM
 3092961270
+```
+
+---
+
+## `union`
+
+|                           |                                                                |
+| ------------------------- | -------------------------------------------------------------- |
+| **Description**           | Gather all unique input values into a set. Contrast with [`collect`](#collect). |
+| **Syntax**                | `union(<field-name>)`                                          |
+| **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
+| **Optional<br>arguments** | None                                                           |
+| **Limitations**           | The data type of the input values must be uniform.             |
+| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer#Union         |
+
+#### Example #1:
+
+To observe which HTTP methods were invoked in each interaction with the Bing
+search engine:
+
+```zq-command
+zq -f table 'host=www.bing.com | methods=union(method) by uid | sort uid' http.log.gz
+```
+
+#### Output:
+```zq-output head:9
+UID                METHODS
+C1iilt2FG8PnyEl0bb GET,POST
+C31wi6XQB8h9igoa5  GET,POST
+CFwagt4ivDe3p6R7U8 GET,POST
+CI0SCN14gWpY087KA3 GET,POST
+CJcF5E1DVn8FLq5JVc POST
+CLsXgZ1W5l9gMzx7e8 GET,POST
+CM2qfb4dhM2KJ6uAZk GET
+CSOmBD4vJEGRU6pJmg POST
+...
 ```
