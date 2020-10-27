@@ -413,6 +413,39 @@ func (s SpanInfo) ChunkRange(order zbuf.Order, chunkIdx int) string {
 	return fmt.Sprintf("[%d-%d,%d-%d]", first, last, c.First, c.Last)
 }
 
+func (si *SpanInfo) RemoveMasked() []Chunk {
+	if len(si.Chunks) == 1 {
+		return nil
+	}
+	var maskIds []ksuid.KSUID
+	for _, c := range si.Chunks {
+		for _, mid := range c.Masks {
+			maskIds = append(maskIds, mid)
+		}
+	}
+	if len(maskIds) == 0 {
+		return nil
+	}
+	var chunks []Chunk
+	var removed []Chunk
+	for _, c := range si.Chunks {
+		var masked bool
+		for _, mid := range maskIds {
+			if mid == c.Id {
+				masked = true
+				removed = append(removed, c)
+				break
+			}
+		}
+		if !masked {
+			chunks = append(chunks, c)
+		}
+	}
+	// No need to sort chunks since we perform the mask removal in-order.
+	si.Chunks = chunks
+	return removed
+}
+
 // SpanWalk calls visitor with each SpanInfo within the filter span.
 func SpanWalk(ctx context.Context, ark *Archive, filter nano.Span, visitor func(si SpanInfo) error) error {
 	dirmkr, _ := ark.dataSrc.(iosrc.DirMaker)

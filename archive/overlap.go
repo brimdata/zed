@@ -216,44 +216,16 @@ func mergeLargestChunkSpanInfos(spans []SpanInfo, order zbuf.Order) []SpanInfo {
 // If trackMasked is true, it will return a slice of chunks that have been
 // masked and are no longer present in any SpanInfo.
 func removeMaskedChunks(spans []SpanInfo, trackMasked bool) []Chunk {
-	var maskIds []ksuid.KSUID
 	var maskedChunks map[ksuid.KSUID]Chunk
-	for i, si := range spans {
-		if len(si.Chunks) == 1 {
-			continue
-		}
-		maskIds = maskIds[:0]
-		for _, c := range si.Chunks {
-			for _, mid := range c.Masks {
-				maskIds = append(maskIds, mid)
+	for i := range spans {
+		rem := spans[i].RemoveMasked()
+		if trackMasked && len(rem) > 0 {
+			if maskedChunks == nil {
+				maskedChunks = make(map[ksuid.KSUID]Chunk)
 			}
-		}
-		if len(maskIds) == 0 {
-			continue
-		}
-		var chunks []Chunk
-		for _, c := range si.Chunks {
-			var masked bool
-			for _, mid := range maskIds {
-				if mid == c.Id {
-					masked = true
-					if trackMasked {
-						if maskedChunks == nil {
-							maskedChunks = make(map[ksuid.KSUID]Chunk)
-						}
-						maskedChunks[c.Id] = c
-					}
-					break
-				}
+			for _, c := range rem {
+				maskedChunks[c.Id] = c
 			}
-			if !masked {
-				chunks = append(chunks, c)
-			}
-		}
-		// No need to sort chunks since we perform the mask removal in-order.
-		spans[i] = SpanInfo{
-			Span:   si.Span,
-			Chunks: chunks,
 		}
 	}
 	var mc []Chunk
