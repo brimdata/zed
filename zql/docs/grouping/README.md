@@ -1,8 +1,9 @@
 # Grouping
 
 All [aggregate functions](../aggregate-functions/README.md) may be invoked with
-one or more _grouping_ options that partition the input stream into batches that are aggregated separately. If explicit grouping is not used, an aggregate function will operate
-over all events in the input stream.
+one or more _grouping_ options that partition the input stream into batches
+that are aggregated separately. If explicit grouping is not used, an aggregate
+function will operate over all events in the input stream.
 
 Below you will find details regarding the available grouping mechanisms and
 tips for their effective use.

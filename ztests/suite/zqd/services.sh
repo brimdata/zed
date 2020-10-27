@@ -20,14 +20,13 @@ function awaitfile {
 zqdroot=$1
 if [ -z "$zqdroot" ]; then
   zqdroot=zqdroot
-  mkdir -p zqdroot
 fi
+mkdir -p $zqdroot
 
 mkdir -p s3/bucket
 portdir=$(mktemp -d)
 
-
-minio server --writeportfile="$portdir/minio" --quiet --address localhost:0 ./s3  > minio.log 2>&1 &
+minio server --writeportfile="$portdir/minio" --quiet --address localhost:0 ./s3 > minio.log 2>&1 &
 miniopid=$!
 awaitfile $portdir/minio
 
@@ -37,10 +36,28 @@ export AWS_ACCESS_KEY_ID=minioadmin
 export AWS_SECRET_ACCESS_KEY=minioadmin
 export AWS_S3_ENDPOINT=http://localhost:$(cat $portdir/minio)
 
-zqd listen -l=localhost:0 -portfile="$portdir/zqd" -data="$zqdroot" > zqd.log 2>&1 &
-zqdpid=$!
-trap "rm -rf $portdir; kill -9 $miniopid $zqdpid" EXIT
+if [[ "$2" == workers ]]; then
+  # start two zqd workers and a zqd root process
+  zqd listen -l=localhost:0 -portfile="$portdir/zqd-w1" -data="$zqdroot" -loglevel=warn &> zqd-w1.log &
+  zqdw1pid=$!
+  zqd listen -l=localhost:0 -portfile="$portdir/zqd-w2" -data="$zqdroot" -loglevel=warn &> zqd-w2.log &
+  zqdw2pid=$!
 
-awaitfile $portdir/zqd
+  awaitfile $portdir/zqd-w1
+  portw1=$(cat $portdir/zqd-w1)
+
+  awaitfile $portdir/zqd-w2
+  portw2=$(cat $portdir/zqd-w2)
+
+  workers="127.0.0.1:$portw1,127.0.0.1:$portw2"
+  zqd listen -l=localhost:0 -portfile="$portdir/zqd" -data="$zqdroot" -workers $workers -loglevel=warn &> zqd-root.log &
+  zqdpid=$!
+  awaitfile $portdir/zqd
+else
+  zqd listen -l=localhost:0 -portfile="$portdir/zqd" -data="$zqdroot" -loglevel=warn &> zqd.log &
+  zqdpid=$!
+  awaitfile $portdir/zqd
+fi
+trap "rm -rf $portdir; kill -9 $miniopid $zqdpid $zqdw1pid $zqdw2pid" EXIT
 
 export ZQD_HOST=localhost:$(cat $portdir/zqd)

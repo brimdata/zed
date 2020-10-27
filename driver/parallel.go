@@ -1,6 +1,8 @@
 package driver
 
 import (
+	"encoding/json"
+	"io"
 	"sync"
 
 	"github.com/brimsec/zq/ast"
@@ -11,6 +13,7 @@ import (
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zqd/api"
 )
 
 type parallelHead struct {
@@ -21,6 +24,11 @@ type parallelHead struct {
 
 	mu sync.Mutex // protects below
 	sc ScannerCloser
+
+	// workerConn is connection to a worker zqd process
+	// that is only used for distributed zqd.
+	// Thread (goroutine) parallelism is used when workerConn is nil.
+	workerConn *api.Connection
 }
 
 func (ph *parallelHead) closeOnDone() {
@@ -48,7 +56,16 @@ func (ph *parallelHead) Pull() (zbuf.Batch, error) {
 
 	for {
 		if ph.sc == nil {
-			sc, err := ph.pg.nextSource()
+			var sc ScannerCloser
+			var err error
+			if ph.workerConn == nil {
+				// Thread (goroutine) parallelism uses nextSource
+				sc, err = ph.pg.nextSource()
+
+			} else {
+				// Worker process parallelism uses nextSourceForConn
+				sc, err = ph.pg.nextSourceForConn(ph.workerConn)
+			}
 			if sc == nil || err != nil {
 				return nil, err
 			}
@@ -81,8 +98,9 @@ type parallelGroup struct {
 	pctx       *proc.Context
 	filter     SourceFilter
 	msrc       MultiSource
+	mcfg       MultiConfig
 	once       sync.Once
-	sourceChan chan SourceOpener
+	sourceChan chan Source
 	sourceErr  error
 
 	mu       sync.Mutex // protects below
@@ -93,11 +111,11 @@ type parallelGroup struct {
 func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
 	for {
 		select {
-		case opener, ok := <-pg.sourceChan:
+		case src, ok := <-pg.sourceChan:
 			if !ok {
 				return nil, pg.sourceErr
 			}
-			sc, err := opener()
+			sc, err := src.Open(pg.pctx.Context, pg.pctx.TypeContext, pg.filter)
 			if err != nil {
 				return nil, err
 			}
@@ -114,11 +132,68 @@ func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
 	}
 }
 
+// nextSourceForConn is similar to nextSource, but instead of returning the scannerCloser
+// for an open file (i.e. the stream for the open file),
+// nextSourceForConn sends a request to a remote zqd worker process, and returns
+// the ScannerCloser (i.e.output stream) for the remote zqd worker.
+func (pg *parallelGroup) nextSourceForConn(conn *api.Connection) (ScannerCloser, error) {
+	select {
+	case src, ok := <-pg.sourceChan:
+		if !ok {
+			return nil, pg.sourceErr
+		}
+
+		req, err := pg.sourceToRequest(src)
+		if err != nil {
+			return nil, err
+		}
+
+		rc, err := conn.WorkerRaw(pg.pctx.Context, *req, nil) // rc is io.ReadCloser
+		if err != nil {
+			return nil, err
+		}
+		search := api.NewZngSearch(rc)
+		s, err := scanner.NewScanner(pg.pctx.Context, search, nil, nil, req.Span)
+		if err != nil {
+			return nil, err
+		}
+		sc := struct {
+			scanner.Scanner
+			io.Closer
+		}{s, rc}
+
+		pg.mu.Lock()
+		pg.scanners[sc] = struct{}{}
+		pg.mu.Unlock()
+		return sc, nil
+
+	case <-pg.pctx.Done():
+		return nil, pg.pctx.Err()
+	}
+}
+
 func (pg *parallelGroup) doneSource(sc ScannerCloser) {
 	pg.mu.Lock()
 	defer pg.mu.Unlock()
 	pg.stats.Accumulate(sc.Stats())
 	delete(pg.scanners, sc)
+}
+
+// sourceToRequest takes a Source and converts it into a WorkerRequest
+func (pg *parallelGroup) sourceToRequest(src Source) (*api.WorkerRequest, error) {
+	var req api.WorkerRequest
+	if err := src.ToRequest(&req); err != nil {
+		return nil, err
+	}
+	if filterExpr := pg.filter.FilterExpr; filterExpr != nil {
+		b, err := json.Marshal(filterToProc(filterExpr))
+		if err != nil {
+			return nil, err
+		}
+		req.Proc = b
+	}
+	req.Dir = pg.mcfg.Order.Int()
+	return &req, nil
 }
 
 func (pg *parallelGroup) Stats() *scanner.ScannerStats {
@@ -132,7 +207,7 @@ func (pg *parallelGroup) Stats() *scanner.ScannerStats {
 }
 
 func (pg *parallelGroup) run() {
-	pg.sourceErr = pg.msrc.SendSources(pg.pctx, pg.pctx.TypeContext, pg.filter, pg.sourceChan)
+	pg.sourceErr = pg.msrc.SendSources(pg.pctx, pg.filter.Span, pg.sourceChan)
 	close(pg.sourceChan)
 }
 
@@ -155,7 +230,7 @@ func newCompareFn(fieldName string, reversed bool) (zbuf.RecordCmpFn, error) {
 	}, nil
 }
 
-func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.BooleanExpr, msrc MultiSource, mcfg MultiConfig) ([]proc.Interface, *parallelGroup, error) {
+func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.BooleanExpr, msrc MultiSource, mcfg MultiConfig, workerURLs []string) ([]proc.Interface, *parallelGroup, error) {
 	pg := &parallelGroup{
 		pctx: pctx,
 		filter: SourceFilter{
@@ -164,13 +239,25 @@ func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.
 			Span:       mcfg.Span,
 		},
 		msrc:       msrc,
-		sourceChan: make(chan SourceOpener),
+		mcfg:       mcfg,
+		sourceChan: make(chan Source),
 		scanners:   make(map[scanner.Scanner]struct{}),
 	}
 
-	sources := make([]proc.Interface, mcfg.Parallelism)
-	for i := range sources {
-		sources[i] = &parallelHead{pctx: pctx, parent: nil, pg: pg}
+	var sources []proc.Interface
+	// Two type of parallelGroups:
+	if len(workerURLs) > 0 {
+		// If workerURLs are present, then base the sources on the number of workers
+		for _, w := range workerURLs {
+			sources = append(sources, &parallelHead{pctx: pctx, pg: pg, workerConn: api.NewConnectionTo(w)})
+		}
+	} else {
+		// Normal: the sources are regular parallelHead procs
+		// and Parallelism is determined by mcfg
+		sources = make([]proc.Interface, mcfg.Parallelism)
+		for i := range sources {
+			sources[i] = &parallelHead{pctx: pctx, pg: pg}
+		}
 	}
 	return sources, pg, nil
 }

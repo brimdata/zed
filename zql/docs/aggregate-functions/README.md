@@ -4,34 +4,32 @@ A pipeline may contain one or more _aggregate functions_, which operate on
 batches of events to carry out a running computation over values contained in
 the events.
 
-The [General Usage](#general-usage) section below describes details
-relevant to all aggregate functions, then the following
-[Available Aggregate Functions](#available-aggregate-functions) are
-documented in detail:
-
-* [`and`](#and)
-* [`avg`](#avg)
-* [`collect`](#collect)
-* [`count`](#count)
-* [`countdistinct`](#countdistinct)
-* [`first`](#first)
-* [`last`](#last)
-* [`max`](#max)
-* [`min`](#min)
-* [`or`](#or)
-* [`sum`](#sum)
-* [`union`](#union)
+   * [General Usage](#general-usage)
+     + [Invoking](#invoking)
+     + [Field naming](#field-naming)
+     + [Grouping](#grouping)
+     + [`where` filtering](#where-filtering)
+   * [Available Aggregate Functions](#available-aggregate-functions)
+     + [`and`](#and)
+     + [`avg`](#avg)
+     + [`collect`](#collect)
+     + [`count`](#count)
+     + [`countdistinct`](#countdistinct)
+     + [`first`](#first)
+     + [`last`](#last)
+     + [`max`](#max)
+     + [`min`](#min)
+     + [`or`](#or)
+     + [`sum`](#sum)
+     + [`union`](#union)
 
 **Note**: Per ZQL [search syntax](../search-syntax/README.md), many examples
 below use shorthand that leaves off the explicit leading `* |`, matching all
 events before invoking the first element in a pipeline.
 
-# General Usage
+## General Usage
 
-All aggregate functions may be invoked with one or more
-[grouping](../grouping/README.md) options that define the batches of events on
-which they operate. If explicit grouping is not used, an aggregate function
-will operate over all events in the input stream.
+### Invoking
 
 Multiple aggregate functions may be invoked at the same time.
 
@@ -50,6 +48,8 @@ MIN      MAX         AVG
 0.000001 1269.512465 1.6373747834138621
 ```
 
+### Field naming
+
 As just shown, by default the result returned by an aggregate function is
 placed in a field with the same name as the aggregate function. You may
 instead use `=` to specify an explicit name for the generated field.
@@ -66,11 +66,42 @@ QUICKEST LONGEST     TYPICAL
 0.000001 1269.512465 1.6373747834138621
 ```
 
+### Grouping
+
+All aggregate functions may be invoked with one or more
+[grouping](../grouping/README.md) options that define the batches of events on
+which they operate. If explicit grouping is not used, an aggregate function
+will operate over all events in the input stream.
+
+### `where` filtering
+
+A `where` clause may also be added to filter the values on which an aggregate
+function will operate.
+
+#### Example:
+
+To check whether we've seen higher DNS round-trip times when servers return
+longer lists of `answers`:
+
+```zq-command
+zq -f table 'answers != null | every 5 minutes short_rtt=avg(rtt) where len(answers)<=2, short_count=count() where len(answers)<=2, long_rtt=avg(rtt) where len(answers)>2, long_count=count() where len(answers)>2 | sort ts' dns.log.gz
+```
+
+#### Output:
+```zq-output
+TS                SHORT_RTT            SHORT_COUNT LONG_RTT             LONG_COUNT
+1521911700.000000 0.004386461911629731 7628        0.01571223665048545  824
+1521912000.000000 0.006360169034406226 9010        0.01992656544502617  764
+1521912300.000000 0.006063177039132521 8486        0.02742244411764705  680
+1521912600.000000 0.005641562210915819 8652        0.021644265586034935 802
+1521912900.000000 0.008572169213139795 2618        0.01933044954128441  218
+```
+
 ---
 
-# Available Aggregate Functions
+## Available Aggregate Functions
 
-## `and`
+### `and`
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
@@ -113,7 +144,7 @@ COUNT
 ```
 
 ---
-## `avg`
+### `avg`
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
@@ -140,7 +171,7 @@ AVG
 
 ---
 
-## `collect`
+### `collect`
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
@@ -171,7 +202,7 @@ CI0SCN14gWpY087KA3 GET,POST,GET,GET,GET,GET,GET,GET,GET,GET,GET,GET,GET
 
 ---
 
-## `count`
+### `count`
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
@@ -213,8 +244,7 @@ ftp   93
 
 ---
 
-
-## `countdistinct`
+### `countdistinct`
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
@@ -256,7 +286,7 @@ to perform this test, the ZQL using `countdistinct()` executed almost 3x faster.
 
 ---
 
-## `first`
+### `first`
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
@@ -282,7 +312,7 @@ TCP_ack_underflow_or_misorder
 
 ---
 
-## `last`
+### `last`
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
@@ -308,7 +338,7 @@ talk.google.com
 
 ---
 
-## `max`
+### `max`
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
@@ -335,7 +365,7 @@ MAX
 
 ---
 
-## `min`
+### `min`
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
@@ -362,7 +392,7 @@ MIN
 
 ---
 
-## `or`
+### `or`
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
@@ -406,7 +436,7 @@ T              F
 
 ---
 
-## `sum`
+### `sum`
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
