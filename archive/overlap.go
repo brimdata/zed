@@ -232,6 +232,8 @@ func removeMaskedChunks(spans []SpanInfo, trackMasked bool) []Chunk {
 	if trackMasked {
 	outer:
 		for id := range maskedChunks {
+			// This check ensures that only chunks that are completely masked
+			// within the input []SpanInfo are returned.
 			for _, si := range spans {
 				if spanInfoContainsChunk(si, id) {
 					continue outer
@@ -306,7 +308,6 @@ func compactOverlaps(ctx context.Context, ark *Archive, s SpanInfo) error {
 		return err
 	}
 	defer ss.Close()
-	tsd := newTsDir(s.Span.Ts)
 	var masks []ksuid.KSUID
 	for _, c := range s.Chunks {
 		masks = append(masks, c.Id)
@@ -315,7 +316,7 @@ func compactOverlaps(ctx context.Context, ark *Archive, s SpanInfo) error {
 		ark:   ark,
 		ctx:   ctx,
 		masks: masks,
-		tsd:   tsd,
+		tsd:   newTsDir(s.Span.Ts),
 	}
 	_, slast := spanToFirstLast(ark.DataOrder, s.Span)
 	if err := zbuf.CopyWithContext(ctx, mw, zbuf.PullerReader(ss)); err != nil {

@@ -15,7 +15,7 @@ var Compact = &charm.Spec{
 	Usage: "compact [-R root]",
 	Short: "merge overlapping chunk files",
 	Long: `
-"zar compact" looks for chunk files whose time range overlaps, and writes
+"zar compact" looks for chunk files whose time ranges overlap, and writes
 new chunk files that combine their records.
 `,
 	New: New,

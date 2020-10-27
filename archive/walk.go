@@ -274,29 +274,19 @@ func (c Chunk) Remove(ctx context.Context, ark *Archive) error {
 	return nil
 }
 
-func chunkLess(order zbuf.Order, i, j Chunk) bool {
-	if order == zbuf.OrderAsc {
-		if i.First != j.First {
-			return i.First < j.First
-		}
-		if i.Last != j.Last {
-			return i.Last < j.Last
-		}
-		if i.RecordCount != j.RecordCount {
-			return i.RecordCount < j.RecordCount
-		}
-		return ksuid.Compare(i.Id, j.Id) < 0
+func chunkLess(order zbuf.Order, a, b Chunk) bool {
+	if order == zbuf.OrderDesc {
+		a, b = b, a
 	}
-	if j.First != i.First {
-		return j.First < i.First
+	switch {
+	case a.First != b.First:
+		return a.First < b.First
+	case a.Last != b.Last:
+		return a.Last < b.Last
+	case a.RecordCount != b.RecordCount:
+		return a.RecordCount < b.RecordCount
 	}
-	if j.Last != i.Last {
-		return j.Last < i.Last
-	}
-	if j.RecordCount != i.RecordCount {
-		return j.RecordCount < i.RecordCount
-	}
-	return ksuid.Compare(j.Id, i.Id) < 0
+	return ksuid.Compare(a.Id, b.Id) < 0
 }
 
 func chunksSort(order zbuf.Order, c []Chunk) {

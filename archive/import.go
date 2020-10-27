@@ -338,8 +338,7 @@ func (cw *chunkWriter) closeWithTs(ctx context.Context, firstTs, lastTs nano.Ts)
 		RecordCount: cw.count,
 		Masks:       cw.masks,
 	}
-	err = writeChunkMetadata(ctx, chunkMetadataPath(cw.ark, cw.tsd, cw.id), chunkMd)
-	if err != nil {
+	if err := writeChunkMetadata(ctx, chunkMetadataPath(cw.ark, cw.tsd, cw.id), chunkMd); err != nil {
 		return Chunk{}, err
 	}
 	// Write the time seek index into the archive, feeding it the key/offset
@@ -370,11 +369,7 @@ func (cw *chunkWriter) closeWithTs(ctx context.Context, firstTs, lastTs nano.Ts)
 	// TODO: zq#1264
 	// Add an entry to the update log for S3 backed stores containing the
 	// location of the just added data & index file.
-	err = idxWriter.Close()
-	if err != nil {
-		return Chunk{}, err
-	}
-	return chunk, nil
+	return chunk, idxWriter.Close()
 }
 
 func importCompareFn(ark *Archive) expr.CompareFn {
