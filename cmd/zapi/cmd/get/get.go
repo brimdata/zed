@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -98,13 +99,13 @@ func (c *Command) Run(args []string) error {
 		expr = strings.Join(args, " ")
 	}
 	client := c.Client()
-	id, err := c.SpaceID()
-	if err != nil {
-		return err
-	}
 
 	var r io.ReadCloser
 	if c.chunkInfo == "" {
+		id, err := c.SpaceID()
+		if err != nil {
+			return err
+		}
 		req, err := parseExpr(id, expr)
 		if err != nil {
 			return fmt.Errorf("parse error: %s", err)
@@ -116,7 +117,7 @@ func (c *Command) Run(args []string) error {
 			return fmt.Errorf("search error: %w", err)
 		}
 	} else {
-		req, err := parseExprWithChunk(id, expr, c.chunkInfo)
+		req, err := parseExprWithChunk(expr, c.chunkInfo)
 		req.Span = nano.NewSpanTs(nano.Ts(c.from), nano.Ts(c.to))
 		params := map[string]string{"format": c.encoding}
 		if err != nil {
@@ -173,15 +174,23 @@ func parseExpr(spaceID api.SpaceID, expr string) (*api.SearchRequest, error) {
 }
 
 // parseExprWithChunk creates an api.WorkerRequest to be used with the client.
-func parseExprWithChunk(spaceID api.SpaceID, expr string, chunkInfo string) (*api.WorkerRequest, error) {
+func parseExprWithChunk(expr string, chunkPath string) (*api.WorkerRequest, error) {
 	// This is only for testing using the -chunk flag
-	searchRequest, err := parseExpr(spaceID, expr)
+	search, err := zql.ParseProc(expr)
+	if err != nil {
+		return nil, err
+	}
+	proc, err := json.Marshal(search)
 	if err != nil {
 		return nil, err
 	}
 	return &api.WorkerRequest{
-		SearchRequest: *searchRequest,
-		ChunkPaths:    []string{chunkInfo},
+		SearchRequest: api.SearchRequest{
+			Proc: proc,
+			Dir:  -1,
+		},
+		DataPath:   path.Join(path.Dir(chunkPath), "../.."),
+		ChunkPaths: []string{chunkPath},
 	}, nil
 }
 

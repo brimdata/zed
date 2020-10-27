@@ -21,6 +21,11 @@ import (
 	"go.uber.org/zap"
 )
 
+// WorkerURLs, if not empty, causes this process to
+// implement parallelism using worker processes
+// instead of goroutines.
+var WorkerURLs []string
+
 // XXX ReaderSortKey should be a field.Static.  Issue #1467.
 type Config struct {
 	Custom            compiler.Hook
@@ -30,6 +35,13 @@ type Config struct {
 	Span              nano.Span
 	StatsTick         <-chan time.Time
 	Warnings          chan string
+}
+
+func zbufDirInt(reversed bool) int {
+	if reversed {
+		return -1
+	}
+	return 1
 }
 
 func programPrep(program ast.Proc, sortKey field.Static, sortReversed bool) (ast.Proc, filter.Filter, ast.BooleanExpr, error) {
@@ -104,6 +116,16 @@ func compileSingle(ctx context.Context, program ast.Proc, zctx *resolver.Context
 	return newMuxOutput(pctx, leaves, sn), nil
 }
 
+type MultiConfig struct {
+	Custom      compiler.Hook
+	Order       zbuf.Order
+	Logger      *zap.Logger
+	Parallelism int
+	Span        nano.Span
+	StatsTick   <-chan time.Time
+	Warnings    chan string
+}
+
 func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc MultiSource, mcfg MultiConfig) (*muxOutput, error) {
 	if mcfg.Logger == nil {
 		mcfg.Logger = zap.NewNop()
@@ -114,8 +136,21 @@ func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context,
 	if mcfg.Warnings == nil {
 		mcfg.Warnings = make(chan string, 5)
 	}
+
 	if mcfg.Parallelism == 0 {
-		mcfg.Parallelism = runtime.GOMAXPROCS(0)
+		// If mcfg.Parallelism has not been set by external configuration,
+		// then it will be zero here.
+		if len(WorkerURLs) > 0 {
+			// If zqd has been started as a "root" process,
+			// there is a -worker parameter with a list of WorkerURLs.
+			// In this case, initialize Parallelism as the number of workers.
+			mcfg.Parallelism = len(WorkerURLs)
+		} else {
+			// Otherwise, we will use threads (goroutines) for parallelism,
+			// so initialize Parallelism based on
+			// runtime configuation of max threads.
+			mcfg.Parallelism = runtime.GOMAXPROCS(0)
+		}
 	}
 
 	sortKey, sortReversed := msrc.OrderInfo()
@@ -138,7 +173,7 @@ func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context,
 		Logger:      mcfg.Logger,
 		Warnings:    mcfg.Warnings,
 	}
-	sources, pgroup, err := createParallelGroup(pctx, filt, filterExpr, msrc, mcfg)
+	sources, pgroup, err := createParallelGroup(pctx, filt, filterExpr, msrc, mcfg, WorkerURLs)
 	if err != nil {
 		return nil, err
 	}
@@ -180,6 +215,13 @@ func liftFilter(p ast.Proc) (ast.BooleanExpr, ast.Proc) {
 		}
 	}
 	return nil, p
+}
+
+func filterToProc(be ast.BooleanExpr) ast.Proc {
+	return &ast.FilterProc{
+		Node:   ast.Node{Op: "FilterProc"},
+		Filter: be,
+	}
 }
 
 func ReplaceGroupByProcDurationWithKey(p ast.Proc) {

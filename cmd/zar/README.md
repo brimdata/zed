@@ -129,6 +129,7 @@ zar zq "id.orig_h=10.10.23.2" | zq -t -
 ```
 which gives this somewhat cryptic result in text zng format:
 ```
+#port=uint16
 #zenum=string
 #0:record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],proto:zenum,service:bstring,duration:duration,orig_bytes:uint64,resp_bytes:uint64,conn_state:bstring,local_orig:bool,local_resp:bool,missed_bytes:uint64,history:bstring,orig_pkts:uint64,orig_ip_bytes:uint64,resp_pkts:uint64,resp_ip_bytes:uint64,tunnel_parents:set[bstring]]
 0:[conn;1521911721.307472;C4NuQHXpLAuXjndmi;[10.10.23.2;11;10.0.0.111;0;]icmp;-;1260.819589;23184;0;OTH;-;-;0;-;828;46368;0;0;-;]
@@ -171,7 +172,7 @@ zar find :ip=10.10.23.2
 ```
 In the output here, you'll see this IP exists in exactly one log file:
 ```
-/path/to/ZAR_ROOT/zd/20180324/d-1iqJRrGuLtwPdlZKhVIRGz2YINs-188695-1521912990158766000-1521911720601474000.zng
+/path/to/ZAR_ROOT/zd/20180324/d-1jQ2dLYVOL4NSSYCYC4P400ZfPN.zng
 ```
 
 (In this and later outputs in this README that show pathnames in the archive,
@@ -208,8 +209,8 @@ zar find uri=/file
 ```
 and you'll find "hits" in multiple chunks:
 ```
-/path/to/ZAR_ROOT/zd/20180324/d-1iqJRhSJwPZvKZbYmNJObtUIlpq-199875-1521912355502512000-1521911720601374000.zng
-/path/to/ZAR_ROOT/zd/20180324/d-1iqJRMNCjWevhyKU8vKjMwJH7RP-214650-1521911858335096000-1521911720600725000.zng
+/path/to/ZAR_ROOT/zd/20180324/d-1jQ2d5DwDHJULCRN6gq84IwArbb.zng
+/path/to/ZAR_ROOT/zd/20180324/d-1jQ2co6Ttjk9wEUdzI2yW7koYtB.zng
 ```
 If you have a look, you'll see there are index files now for both type ip
 and field uri:
@@ -230,10 +231,11 @@ and you'll get this...
 ```
 #zfile=string
 #0:record[key:ip,count:uint64,_log:zfile,first:time,last:time]
-0:[10.47.21.138;7;/path/to/ZAR_ROOT/zd/20180324/d-1iqff136CrSClpbjQL9SHWp3U6E-224712-1521912573152746000-1521911720608867000.zng;1521912573.152746;1521911720.608867;]
-0:[10.47.21.138;3;/path/to/ZAR_ROOT/zd/20180324/d-1iqfeuY9BQUlokwbz10jhlyfQAY-199875-1521912355502512000-1521911720601374000.zng;1521912355.502512;1521911720.601374;]
-0:[10.47.21.138;1;/path/to/ZAR_ROOT/zd/20180324/d-1iqfemI1m1A3AEjxdPoDbcqzmZl-212678-1521911994618642000-1521911720726418000.zng;1521911994.618642;1521911720.726418;]
-0:[10.47.21.138;3;/path/to/ZAR_ROOT/zd/20180324/d-1iqfeaOkRb0obfqkQIkR4qOA2Qn-214650-1521911858335096000-1521911720600725000.zng;1521911858.335096;1521911720.600725;]
+0:[10.47.21.138;7;/path/to/ZAR_ROOT/zd/20180324/d-1jQ2d2Lm73UC15rpiy6MoFInFvW.zng;1521912573.152746;1521911720.608867;]
+0:[10.47.21.138;3;/path/to/ZAR_ROOT/zd/20180324/d-1jQ2d5DwDHJULCRN6gq84IwArbb.zng;1521912355.502512;1521911720.601374;]
+0:[10.47.21.138;1;/path/to/ZAR_ROOT/zd/20180324/d-1jQ2cqELA2CKS1LSZVOyQNd6wIH.zng;1521911994.618642;1521911720.726418;]
+0:[10.47.21.138;3;/path/to/ZAR_ROOT/zd/20180324/d-1jQ2co6Ttjk9wEUdzI2yW7koYtB.zng;1521911858.335096;1521911720.600725;]
+
 ```
 The find command adds a column called "_log" (which can be disabled
 or customized to a different field name) so you can see where the
@@ -338,7 +340,7 @@ which produces just one record as this pair appears in only one log file.
 ```
 #zfile=string
 #0:record[id:record[resp_h:ip,orig_h:ip],resp_bytes:uint64,_log:zfile,first:time,last:time]
-0:[[216.58.193.206;10.47.6.173;]5112;/path/to/ZAR_ROOT/zd/20180324/d-1iqJRhSJwPZvKZbYmNJObtUIlpq-199875-1521912355502512000-1521911720601374000.zng;1521912355.502512;1521911720.601374;]
+0:[[216.58.193.206;10.47.6.173;]5112;/path/to/ZAR_ROOT/zd/20180324/d-1jQ2d5DwDHJULCRN6gq84IwArbb.zng;1521912355.502512;1521911720.601374;]
 ```
 The nice thing here is that you can also just specify a primary key, which will
 issue a search that returns all the index hits that have the primary key with
