@@ -396,7 +396,7 @@ MIN
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
-| **Description**           | Returns the boolean value `true` if the provided expression evaluates to `true` for any input value. Contrast with [`and`](#and). |
+| **Description**           | Returns the boolean value `true` if the provided expression evaluates to `true` for one or more inputs. Contrast with [`and`](#and). |
 | **Syntax**                | `or(<expression>)`                                             |
 | **Required<br>arguments** | `<expression>`<br>A valid ZQL [expression](../expressions/README.md). |
 | **Optional<br>arguments** | None                                                           |
