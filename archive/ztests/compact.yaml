@@ -54,17 +54,17 @@ outputs:
       [9789993714060-18995060660,9763001337940-30999108460]
       [18995060659-0,9770997797100-0]
       ===
-      #0:record[type:string,kind:string,first:time,last:time,size:uint64,record_count:uint64]
-      0:[chunk;d;9789.99371406;18.99506066;6563;200;]
-      0:[chunk;d;9770.9977971;0;6636;200;]
-      0:[chunk;d;9763.00133794;30.99910846;6616;200;]
+      #0:record[type:string,first:time,last:time,size:uint64,record_count:uint64]
+      0:[chunk;9789.99371406;18.99506066;6563;200;]
+      0:[chunk;9770.9977971;0;6636;200;]
+      0:[chunk;9763.00133794;30.99910846;6616;200;]
       ===
       [9789993714060-0,9789993714060-0]
-      #0:record[type:string,kind:string,first:time,last:time,size:uint64,record_count:uint64]
-      0:[chunk;d;9789.99371406;18.99506066;6563;200;]
-      0:[chunk;dc;9789.99371406;0;19511;600;]
-      0:[chunk;d;9770.9977971;0;6636;200;]
-      0:[chunk;d;9763.00133794;30.99910846;6616;200;]
+      #0:record[type:string,first:time,last:time,size:uint64,record_count:uint64]
+      0:[chunk;9789.99371406;18.99506066;6563;200;]
+      0:[chunk;9789.99371406;0;19511;600;]
+      0:[chunk;9770.9977971;0;6636;200;]
+      0:[chunk;9763.00133794;30.99910846;6616;200;]
       ===
       [9789993714060-0,9789993714060-0]
       [9789993714060-0,9693996501330-5998729820]
@@ -73,21 +73,20 @@ outputs:
       #0:record[count:uint64]
       0:[800;]
       ===
-      #0:record[type:string,kind:string,first:time,last:time,size:uint64,record_count:uint64]
-      0:[chunk;d;9789.99371406;18.99506066;6563;200;]
-      0:[chunk;dc;9789.99371406;0;25828;800;]
-      0:[chunk;dc;9789.99371406;0;19511;600;]
-      0:[chunk;d;9770.9977971;0;6636;200;]
-      0:[chunk;d;9763.00133794;30.99910846;6616;200;]
-      0:[chunk;d;9693.99650133;5.99872982;6503;200;]
+      #0:record[type:string,first:time,last:time,size:uint64,record_count:uint64]
+      0:[chunk;9789.99371406;18.99506066;6563;200;]
+      0:[chunk;9789.99371406;0;25828;800;]
+      0:[chunk;9789.99371406;0;19511;600;]
+      0:[chunk;9770.9977971;0;6636;200;]
+      0:[chunk;9763.00133794;30.99910846;6616;200;]
+      0:[chunk;9693.99650133;5.99872982;6503;200;]
       ===
       #0:record[count:uint64]
       0:[800;]
-      #0:record[type:string,kind:string,first:time,last:time,size:uint64,record_count:uint64]
-      0:[chunk;dc;9789.99371406;0;25828;800;]
+      #0:record[type:string,first:time,last:time,size:uint64,record_count:uint64]
+      0:[chunk;9789.99371406;0;25828;800;]
       ===
       #0:record[count:uint64]
       0:[1000;]
       ===
       Files t1.tzng and t2.tzng are identical
-

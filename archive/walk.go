@@ -29,11 +29,10 @@ const (
 type FileKind string
 
 const (
-	FileKindUnknown       FileKind = ""
-	FileKindData                   = "d"
-	FileKindDataCompacted          = "dc"
-	FileKindMetadata               = "m"
-	FileKindSeek                   = "ts"
+	FileKindUnknown  FileKind = ""
+	FileKindData              = "d"
+	FileKindMetadata          = "m"
+	FileKindSeek              = "ts"
 )
 
 // A tsDir is a directory found in the "<DataPath>/zd" directory of the archive,
@@ -109,7 +108,7 @@ func tsDirVisit(ctx context.Context, ark *Archive, filterSpan nano.Span, visitor
 
 func tsDirEntriesToChunks(ctx context.Context, ark *Archive, filterSpan nano.Span, tsDir tsDir, entries []iosrc.Info) ([]Chunk, error) {
 	type seen struct {
-		data FileKind
+		data bool
 		meta bool
 	}
 	m := make(map[ksuid.KSUID]seen)
@@ -120,8 +119,8 @@ func tsDirEntriesToChunks(ctx context.Context, ark *Archive, filterSpan nano.Spa
 			}
 			s := m[id]
 			switch kind {
-			case FileKindData, FileKindDataCompacted:
-				s.data = kind
+			case FileKindData:
+				s.data = true
 			case FileKindMetadata:
 				s.meta = true
 			}
@@ -130,7 +129,7 @@ func tsDirEntriesToChunks(ctx context.Context, ark *Archive, filterSpan nano.Spa
 	}
 	var chunks []Chunk
 	for id, seen := range m {
-		if !seen.meta || (seen.data == FileKindUnknown) {
+		if !seen.meta || !seen.data {
 			continue
 		}
 		md, err := readChunkMetadata(ctx, chunkMetadataPath(ark, tsDir, id))
@@ -149,7 +148,7 @@ func tsDirEntriesToChunks(ctx context.Context, ark *Archive, filterSpan nano.Spa
 	return chunks, nil
 }
 
-var chunkFileRegex = regexp.MustCompile(`(d|dc|m)-([0-9A-Za-z]{27}).zng$`)
+var chunkFileRegex = regexp.MustCompile(`(d|m)-([0-9A-Za-z]{27}).zng$`)
 
 func chunkFileMatch(s string) (kind FileKind, id ksuid.KSUID, ok bool) {
 	match := chunkFileRegex.FindStringSubmatch(s)
@@ -159,7 +158,6 @@ func chunkFileMatch(s string) (kind FileKind, id ksuid.KSUID, ok bool) {
 	k := FileKind(match[1])
 	switch k {
 	case FileKindData:
-	case FileKindDataCompacted:
 	case FileKindMetadata:
 	default:
 		return
@@ -183,7 +181,6 @@ type Chunk struct {
 	Id          ksuid.KSUID
 	First       nano.Ts
 	Last        nano.Ts
-	Kind        FileKind
 	RecordCount uint64
 	Masks       []ksuid.KSUID
 }
@@ -205,11 +202,11 @@ func (c Chunk) Span() nano.Span {
 }
 
 func (c Chunk) RelativePath() string {
-	return chunkRelativePath(c.tsDir(), c.Kind, c.Id)
+	return chunkRelativePath(c.tsDir(), c.Id)
 }
 
-func chunkRelativePath(tsd tsDir, kind FileKind, id ksuid.KSUID) string {
-	return path.Join(dataDirname, tsd.name(), fmt.Sprintf("%s-%s.zng", kind, id))
+func chunkRelativePath(tsd tsDir, id ksuid.KSUID) string {
+	return path.Join(dataDirname, tsd.name(), fmt.Sprintf("%s-%s.zng", FileKindData, id))
 }
 
 func parseChunkRelativePath(s string) (tsDir, FileKind, ksuid.KSUID, bool) {
@@ -245,11 +242,11 @@ func (c Chunk) Localize(ark *Archive, pathname string) iosrc.URI {
 }
 
 func (c Chunk) Path(ark *Archive) iosrc.URI {
-	return chunkPath(ark, c.tsDir(), c.Kind, c.Id)
+	return chunkPath(ark, c.tsDir(), c.Id)
 }
 
-func chunkPath(ark *Archive, tsd tsDir, kind FileKind, id ksuid.KSUID) iosrc.URI {
-	return ark.DataPath.AppendPath(chunkRelativePath(tsd, kind, id))
+func chunkPath(ark *Archive, tsd tsDir, id ksuid.KSUID) iosrc.URI {
+	return ark.DataPath.AppendPath(chunkRelativePath(tsd, id))
 }
 
 func (c Chunk) Range() string {
@@ -296,7 +293,6 @@ func chunksSort(order zbuf.Order, c []Chunk) {
 }
 
 type chunkMetadata struct {
-	Kind        FileKind
 	First       nano.Ts
 	Last        nano.Ts
 	RecordCount uint64
@@ -308,7 +304,6 @@ func (md chunkMetadata) Chunk(id ksuid.KSUID) Chunk {
 		Id:          id,
 		First:       md.First,
 		Last:        md.Last,
-		Kind:        md.Kind,
 		RecordCount: md.RecordCount,
 		Masks:       md.Masks,
 	}

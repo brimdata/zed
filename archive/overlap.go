@@ -272,7 +272,7 @@ func (cw *compactWriter) Write(rec *zng.Record) error {
 	}
 	if cw.w == nil {
 		var err error
-		cw.w, err = newChunkWriter(cw.ctx, cw.ark, cw.tsd, FileKindDataCompacted, cw.masks)
+		cw.w, err = newChunkWriter(cw.ctx, cw.ark, cw.tsd, cw.masks)
 		if err != nil {
 			return err
 		}

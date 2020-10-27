@@ -208,7 +208,7 @@ func (dw *tsDirWriter) flush() error {
 		expr.SortStable(dw.records, importCompareFn(dw.ark))
 		r = zbuf.Array(dw.records).NewReader()
 	}
-	w, err := newChunkWriter(dw.ctx, dw.ark, dw.tsDir, FileKindData, nil)
+	w, err := newChunkWriter(dw.ctx, dw.ark, dw.tsDir, nil)
 	if err != nil {
 		return err
 	}
@@ -235,7 +235,6 @@ type chunkWriter struct {
 	indexBuilder    *zng.Builder
 	indexTempPath   string
 	indexTempWriter *zngio.Writer
-	kind            FileKind
 	lastTs          nano.Ts
 	masks           []ksuid.KSUID
 	needIndexWrite  bool
@@ -243,9 +242,9 @@ type chunkWriter struct {
 	wroteFirst      bool
 }
 
-func newChunkWriter(ctx context.Context, ark *Archive, tsd tsDir, kind FileKind, masks []ksuid.KSUID) (*chunkWriter, error) {
+func newChunkWriter(ctx context.Context, ark *Archive, tsd tsDir, masks []ksuid.KSUID) (*chunkWriter, error) {
 	id := ksuid.New()
-	out, err := ark.dataSrc.NewWriter(ctx, chunkPath(ark, tsd, kind, id))
+	out, err := ark.dataSrc.NewWriter(ctx, chunkPath(ark, tsd, id))
 	if err != nil {
 		return nil, err
 	}
@@ -272,7 +271,6 @@ func newChunkWriter(ctx context.Context, ark *Archive, tsd tsDir, kind FileKind,
 		indexBuilder:    indexBuilder,
 		indexTempPath:   indexTempPath,
 		indexTempWriter: indexTempWriter,
-		kind:            kind,
 		masks:           masks,
 		needIndexWrite:  true,
 		tsd:             tsd,
@@ -334,7 +332,6 @@ func (cw *chunkWriter) closeWithTs(ctx context.Context, firstTs, lastTs nano.Ts)
 	chunkMd := chunkMetadata{
 		First:       firstTs,
 		Last:        lastTs,
-		Kind:        cw.kind,
 		RecordCount: cw.count,
 		Masks:       cw.masks,
 	}
