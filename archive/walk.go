@@ -171,6 +171,10 @@ func chunkFileMatch(s string) (kind FileKind, id ksuid.KSUID, ok bool) {
 
 // A Chunk is a file that holds records ordered according to the archive's
 // data order.
+// To support reading chunks that contain records originally from one or
+// more other chunks, a chunk has a list of chunk ids it "masks". During a read
+// of data for time span T, if chunks X and Y both have data within span T, and
+// X masks Y, then only data from X should be used.
 // seekIndexPath returns the path of an associated microindex written at import
 // time, which can be used to lookup a nearby seek offset for a desired
 // timestamp.
