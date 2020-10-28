@@ -1,0 +1,30 @@
+script: |
+  zar import -streammax=100 -asc -R asc babble.tzng
+  zar zq -f tzng -start 2020-04-21T23:59:26.063Z -end 2020-04-21T23:59:38.069Z -s -R asc "*"
+  echo === | tee /dev/stderr
+  zar import -streammax=100 -R desc babble.tzng
+  zar zq -f tzng -start 2020-04-21T23:59:26.063Z -end 2020-04-21T23:59:38.069Z -s -R desc "*"
+
+inputs:
+  - name: babble.tzng
+    source: ../../ztests/suite/data/babble.tzng
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[ts:time,s:string,v:int64]
+      0:[1587513566.06326664;potbellied-Dedanim;230;]
+      0:[1587513569.06985813;areek-ashless;266;]
+      0:[1587513578.0687693;topcoating-rhexis;415;]
+      ===
+      #0:record[ts:time,s:string,v:int64]
+      0:[1587513578.0687693;topcoating-rhexis;415;]
+      0:[1587513569.06985813;areek-ashless;266;]
+      0:[1587513566.06326664;potbellied-Dedanim;230;]
+  - name: stderr
+    data: |
+      data opened: 17565
+      data read:   3642
+      ===
+      data opened: 17555
+      data read:   3473

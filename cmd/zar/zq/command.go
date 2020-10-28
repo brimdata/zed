@@ -2,11 +2,14 @@ package zq
 
 import (
 	"flag"
+	"fmt"
 	"os"
+	"text/tabwriter"
 
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cli/procflags"
+	"github.com/brimsec/zq/cli/searchflags"
 	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/rlimit"
@@ -38,24 +41,28 @@ type Command struct {
 	*root.Command
 	quiet       bool
 	root        string
+	stats       bool
 	stopErr     bool
 	outputFlags outputflags.Flags
 	procFlags   procflags.Flags
+	searchFlags searchflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
 	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive to walk")
+	f.BoolVar(&c.stats, "s", false, "print search stats to stderr on successful completion")
 	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
 	c.outputFlags.SetFlags(f)
 	c.procFlags.SetFlags(f)
+	c.searchFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
 	defer c.Cleanup()
-	if err := c.Init(&c.outputFlags, &c.procFlags); err != nil {
+	if err := c.Init(&c.outputFlags, &c.procFlags, &c.searchFlags); err != nil {
 		return err
 	}
 
@@ -85,9 +92,24 @@ func (c *Command) Run(args []string) error {
 	if !c.quiet {
 		d.SetWarningsWriter(os.Stderr)
 	}
-	err = driver.MultiRun(ctx, d, query, resolver.NewContext(), msrc, driver.MultiConfig{})
-	if closeErr := writer.Close(); closeErr != nil && err == nil {
+	err = driver.MultiRun(ctx, d, query, resolver.NewContext(), msrc, driver.MultiConfig{
+		Span: c.searchFlags.Span(),
+	})
+	if closeErr := writer.Close(); err == nil {
 		err = closeErr
 	}
+	if err == nil {
+		c.printStats(msrc)
+	}
 	return err
+}
+
+func (c *Command) printStats(msrc archive.MultiSource) {
+	if c.stats {
+		stats := msrc.Stats()
+		w := tabwriter.NewWriter(os.Stderr, 0, 0, 1, ' ', 0)
+		fmt.Fprintf(w, "data opened:\t%d\n", stats.ChunksOpenedBytes)
+		fmt.Fprintf(w, "data read:\t%d\n", stats.ChunksReadBytes)
+		w.Flush()
+	}
 }

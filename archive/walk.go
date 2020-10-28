@@ -2,18 +2,23 @@ package archive
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
+	"math"
 	"path"
 	"regexp"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/pkg/bufwriter"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
 	"github.com/segmentio/ksuid"
@@ -171,6 +176,10 @@ func chunkFileMatch(s string) (kind FileKind, id ksuid.KSUID, ok bool) {
 
 // A Chunk is a file that holds records ordered according to the archive's
 // data order.
+// To support reading chunks that contain records originally from one or
+// more other chunks, a chunk has a list of chunk IDs it "masks". During a read
+// of data for time span T, if chunks X and Y both have data within span T, and
+// X masks Y, then only data from X should be used.
 // seekIndexPath returns the path of an associated microindex written at import
 // time, which can be used to lookup a nearby seek offset for a desired
 // timestamp.
@@ -181,8 +190,9 @@ type Chunk struct {
 	Id          ksuid.KSUID
 	First       nano.Ts
 	Last        nano.Ts
-	Kind        FileKind
 	RecordCount uint64
+	Masks       []ksuid.KSUID
+	Size        int64
 }
 
 func (c Chunk) tsDir() tsDir {
@@ -202,7 +212,11 @@ func (c Chunk) Span() nano.Span {
 }
 
 func (c Chunk) RelativePath() string {
-	return path.Join(dataDirname, c.tsDir().name(), fmt.Sprintf("%s-%s.zng", c.Kind, c.Id))
+	return chunkRelativePath(c.tsDir(), c.Id)
+}
+
+func chunkRelativePath(tsd tsDir, id ksuid.KSUID) string {
+	return path.Join(dataDirname, tsd.name(), fmt.Sprintf("%s-%s.zng", FileKindData, id))
 }
 
 func parseChunkRelativePath(s string) (tsDir, FileKind, ksuid.KSUID, bool) {
@@ -238,37 +252,154 @@ func (c Chunk) Localize(ark *Archive, pathname string) iosrc.URI {
 }
 
 func (c Chunk) Path(ark *Archive) iosrc.URI {
-	return ark.DataPath.AppendPath(string(c.RelativePath()))
+	return chunkPath(ark, c.tsDir(), c.Id)
+}
+
+func chunkPath(ark *Archive, tsd tsDir, id ksuid.KSUID) iosrc.URI {
+	return ark.DataPath.AppendPath(chunkRelativePath(tsd, id))
 }
 
 func (c Chunk) Range() string {
 	return fmt.Sprintf("[%d-%d]", c.First, c.Last)
 }
 
-func chunkTsLess(order zbuf.Order, iTs nano.Ts, iKid ksuid.KSUID, jTs nano.Ts, jKid ksuid.KSUID) bool {
-	if order == zbuf.OrderAsc {
-		if iTs == jTs {
-			return ksuid.Compare(iKid, jKid) < 0
+// Remove deletes the data, metadata, seek, and any other associated files
+// with the chunk, including the zar directory. Any 'not found' errors will
+// be ignored.
+func (c Chunk) Remove(ctx context.Context, ark *Archive) error {
+	uris := []iosrc.URI{
+		c.Path(ark),
+		c.ZarDir(ark),
+		c.metadataPath(ark),
+		c.seekIndexPath(ark),
+	}
+	for _, u := range uris {
+		if err := ark.dataSrc.RemoveAll(ctx, u); err != nil && !zqe.IsNotFound(err) {
+			return err
 		}
-		return iTs < jTs
 	}
-	if jTs == iTs {
-		return ksuid.Compare(jKid, iKid) < 0
+	return nil
+}
+
+type chunkReader struct {
+	io.Reader
+	io.Closer
+	totalSize int64
+	readSize  int64
+}
+
+// newChunkReader returns an io.ReadCloser for this chunk. If the chunk has a seek
+// index and if the provided span skips part of the chunk, the seek index will
+// be used to limit the reading window of the chunk's reader.
+func newChunkReader(ctx context.Context, chunk Chunk, ark *Archive, span nano.Span) (*chunkReader, error) {
+	cspan := chunk.Span()
+	span = cspan.Intersect(span)
+	if span.Dur == 0 {
+		return nil, errors.New("chunk span does intersect provided span")
 	}
-	return jTs < iTs
+	r, err := iosrc.NewReader(ctx, chunk.Path(ark))
+	if err != nil {
+		return nil, err
+	}
+	cr := &chunkReader{
+		Reader:    r,
+		Closer:    r,
+		totalSize: chunk.Size,
+		readSize:  chunk.Size,
+	}
+	if span == cspan {
+		return cr, nil
+	}
+	finder, err := microindex.NewFinder(ctx, resolver.NewContext(), chunk.seekIndexPath(ark))
+	if err != nil {
+		if zqe.IsNotFound(err) {
+			return cr, nil
+		}
+		return nil, err
+	}
+	start, end, err := spanOffsets(ctx, span, finder)
+	if err != nil {
+		return nil, err
+	}
+	if start > 0 {
+		if _, err := r.Seek(start, io.SeekStart); err != nil {
+			return nil, err
+		}
+	}
+	if end > cr.totalSize {
+		end = cr.totalSize
+	}
+	cr.readSize = end - start
+	cr.Reader = io.LimitReader(r, cr.readSize)
+	return cr, nil
+}
+
+func spanOffsets(ctx context.Context, span nano.Span, finder *microindex.Finder) (int64, int64, error) {
+	start, err := tsOffset(ctx, span.Ts, true, finder)
+	if err != nil {
+		return 0, 0, err
+	}
+	end, err := tsOffset(ctx, span.End(), false, finder)
+	if err != nil {
+		return 0, 0, err
+	}
+	if finder.Order() == zbuf.OrderDesc {
+		start, end = end, start
+	}
+	if start == -1 {
+		start = 0
+	}
+	if end == -1 {
+		end = math.MaxInt64
+	}
+	return start, end, nil
+}
+
+func tsOffset(ctx context.Context, ts nano.Ts, min bool, finder *microindex.Finder) (int64, error) {
+	key, err := finder.ParseKeys(ts.StringFloat())
+	if err != nil {
+		return -1, err
+	}
+	var rec *zng.Record
+	// XXX These calls to finder should have the ability to pass context.
+	if min {
+		rec, err = finder.ClosestLTE(key)
+	} else {
+		rec, err = finder.ClosestGTE(key)
+	}
+	if rec == nil || err != nil {
+		return -1, err
+	}
+	return rec.AccessInt("offset")
+}
+
+func chunkLess(order zbuf.Order, a, b Chunk) bool {
+	if order == zbuf.OrderDesc {
+		a, b = b, a
+	}
+	switch {
+	case a.First != b.First:
+		return a.First < b.First
+	case a.Last != b.Last:
+		return a.Last < b.Last
+	case a.RecordCount != b.RecordCount:
+		return a.RecordCount < b.RecordCount
+	}
+	return ksuid.Compare(a.Id, b.Id) < 0
 }
 
 func chunksSort(order zbuf.Order, c []Chunk) {
 	sort.Slice(c, func(i, j int) bool {
-		return chunkTsLess(order, c[i].First, c[i].Id, c[j].First, c[j].Id)
+		return chunkLess(order, c[i], c[j])
 	})
 }
 
 type chunkMetadata struct {
-	Kind        FileKind
 	First       nano.Ts
 	Last        nano.Ts
 	RecordCount uint64
+	Masks       []ksuid.KSUID
+	Size        int64
 }
 
 func (md chunkMetadata) Chunk(id ksuid.KSUID) Chunk {
@@ -276,8 +407,9 @@ func (md chunkMetadata) Chunk(id ksuid.KSUID) Chunk {
 		Id:          id,
 		First:       md.First,
 		Last:        md.Last,
-		Kind:        md.Kind,
 		RecordCount: md.RecordCount,
+		Masks:       md.Masks,
+		Size:        md.Size,
 	}
 }
 
@@ -368,6 +500,38 @@ func (s SpanInfo) ChunkRange(order zbuf.Order, chunkIdx int) string {
 	first, last := spanToFirstLast(order, s.Span)
 	c := s.Chunks[chunkIdx]
 	return fmt.Sprintf("[%d-%d,%d-%d]", first, last, c.First, c.Last)
+}
+
+func (si *SpanInfo) RemoveMasked() []Chunk {
+	if len(si.Chunks) == 1 {
+		return nil
+	}
+	var maskIds []ksuid.KSUID
+	for _, c := range si.Chunks {
+		for _, mid := range c.Masks {
+			maskIds = append(maskIds, mid)
+		}
+	}
+	if len(maskIds) == 0 {
+		return nil
+	}
+	var chunks, removed []Chunk
+	for _, c := range si.Chunks {
+		var masked bool
+		for _, mid := range maskIds {
+			if mid == c.Id {
+				masked = true
+				removed = append(removed, c)
+				break
+			}
+		}
+		if !masked {
+			chunks = append(chunks, c)
+		}
+	}
+	// No need to sort chunks since we perform the mask removal in-order.
+	si.Chunks = chunks
+	return removed
 }
 
 // SpanWalk calls visitor with each SpanInfo within the filter span.

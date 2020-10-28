@@ -47,12 +47,18 @@ func encodeMap(typ *zng.TypeMap, v []byte) (interface{}, error) {
 			return nil, err
 		}
 		v, err := encodeAny(typ.KeyType, key)
+		if err != nil {
+			return nil, err
+		}
 		out = append(out, v)
 		val, _, err := it.Next()
 		if err != nil {
 			return nil, err
 		}
 		v, err = encodeAny(typ.ValType, val)
+		if err != nil {
+			return nil, err
+		}
 		out = append(out, v)
 	}
 	return out, nil

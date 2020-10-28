@@ -134,6 +134,10 @@ func (r *Reader) Path() string {
 	return r.path.String()
 }
 
+func (r *Reader) Order() zbuf.Order {
+	return r.trailer.Order
+}
+
 func (r *Reader) Keys() *zng.TypeRecord {
 	return r.trailer.KeyType
 }

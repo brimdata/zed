@@ -35,8 +35,6 @@ func LookupWriter(w io.WriteCloser, opts zio.WriterOpts) (zbuf.WriteCloser, erro
 		opts.Format = "tzng"
 	}
 	switch opts.Format {
-	default:
-		return nil, fmt.Errorf("unknown format: %s", opts.Format)
 	case "null":
 		return &nullWriter{}, nil
 	case "tzng":
@@ -57,6 +55,8 @@ func LookupWriter(w io.WriteCloser, opts zio.WriterOpts) (zbuf.WriteCloser, erro
 		return tableio.NewWriter(w, opts.UTF8), nil
 	case "csv":
 		return csvio.NewWriter(w, opts.UTF8, opts.EpochDates), nil
+	default:
+		return nil, fmt.Errorf("unknown format: %s", opts.Format)
 	}
 }
 

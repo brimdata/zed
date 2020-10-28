@@ -48,10 +48,6 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, parent proc.Int
 		}
 	}
 	switch v := node.(type) {
-
-	default:
-		return nil, fmt.Errorf("unknown AST type: %v", v)
-
 	case *ast.GroupByProc:
 		return groupby.New(pctx, parent, v)
 
@@ -119,6 +115,10 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, parent proc.Int
 
 	case *ast.FuseProc:
 		return fuse.New(pctx, parent)
+
+	default:
+		return nil, fmt.Errorf("unknown AST type: %v", v)
+
 	}
 }
 
@@ -181,13 +181,6 @@ func Compile(custom Hook, node ast.Proc, pctx *proc.Context, parents []proc.Inte
 		return nil, errors.New("no parents")
 	}
 	switch node := node.(type) {
-	default:
-		if len(parents) > 1 {
-			return nil, fmt.Errorf("ast type %v cannot have multiple parents", node)
-		}
-		p, err := compileProc(custom, node, pctx, parents[0])
-		return []proc.Interface{p}, err
-
 	case *ast.SequentialProc:
 		if len(node.Procs) == 0 {
 			return nil, errors.New("sequential proc without procs")
@@ -196,5 +189,12 @@ func Compile(custom Hook, node ast.Proc, pctx *proc.Context, parents []proc.Inte
 
 	case *ast.ParallelProc:
 		return compileParallel(custom, node, pctx, parents)
+
+	default:
+		if len(parents) > 1 {
+			return nil, fmt.Errorf("ast type %v cannot have multiple parents", node)
+		}
+		p, err := compileProc(custom, node, pctx, parents[0])
+		return []proc.Interface{p}, err
 	}
 }

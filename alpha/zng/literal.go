@@ -21,8 +21,6 @@ func ParseLiteral(literal ast.Literal) (interface{}, error) {
 		return nil, err
 	}
 	switch v.Type.(type) {
-	default:
-		return v.Type.Marshal(v.Bytes)
 	case nil:
 		return nil, nil
 	case *TypeOfIP:
@@ -38,5 +36,7 @@ func ParseLiteral(literal ast.Literal) (interface{}, error) {
 		// return as a native Port
 		p, err := DecodePort(v.Bytes)
 		return Port(p), err
+	default:
+		return v.Type.Marshal(v.Bytes)
 	}
 }

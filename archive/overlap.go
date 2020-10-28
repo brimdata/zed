@@ -1,10 +1,14 @@
 package archive
 
 import (
+	"context"
 	"sort"
 
+	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/segmentio/ksuid"
 )
 
@@ -14,6 +18,7 @@ import (
 // falls into the SpanInfo's span.
 func mergeChunksToSpans(chunks []Chunk, order zbuf.Order, filter nano.Span) []SpanInfo {
 	sinfos := alignChunksToSpans(chunks, order, filter)
+	removeMaskedChunks(sinfos, false)
 	return mergeLargestChunkSpanInfos(sinfos, order)
 }
 
@@ -32,9 +37,11 @@ func alignChunksToSpans(chunks []Chunk, order zbuf.Order, filter nano.Span) []Sp
 				// last timestamp was just before ts.
 				siSpan := firstLastToSpan(siFirst, prevTs(ts, order))
 				if filter.Overlaps(siSpan) {
+					chunks := copyChunks(siChunks, nil)
+					chunksSort(order, chunks)
 					result = append(result, SpanInfo{
 						Span:   filter.Intersect(siSpan),
-						Chunks: copyChunks(siChunks, nil),
+						Chunks: chunks,
 					})
 				}
 			}
@@ -46,9 +53,11 @@ func alignChunksToSpans(chunks []Chunk, order zbuf.Order, filter nano.Span) []Sp
 			// ts is the 'Last' timestamp for these chunks.
 			siSpan := firstLastToSpan(siFirst, ts)
 			if filter.Overlaps(siSpan) {
+				chunks := copyChunks(siChunks, nil)
+				chunksSort(order, chunks)
 				result = append(result, SpanInfo{
 					Span:   filter.Intersect(siSpan),
-					Chunks: copyChunks(siChunks, nil),
+					Chunks: chunks,
 				})
 			}
 			// Drop the chunks that ended from our accumulation.
@@ -114,7 +123,10 @@ func boundaries(chunks []Chunk, order zbuf.Order, fn func(ts nano.Ts, firstChunk
 		points[2*i+1] = point{idx: i, ts: c.Last}
 	}
 	sort.Slice(points, func(i, j int) bool {
-		return chunkTsLess(order, points[i].ts, chunks[points[i].idx].Id, points[j].ts, chunks[points[j].idx].Id)
+		if order == zbuf.OrderAsc {
+			return points[i].ts < points[j].ts
+		}
+		return points[j].ts < points[i].ts
 	})
 	firstChunks := make([]Chunk, 0, len(chunks))
 	lastChunks := make([]Chunk, 0, len(chunks))
@@ -197,4 +209,173 @@ func mergeLargestChunkSpanInfos(spans []SpanInfo, order zbuf.Order) []SpanInfo {
 		}
 	}
 	return append(res, mergeSpanInfos(run, order))
+}
+
+// removeMaskedChunks performs an in-place edit of the spans input slice,
+// updating each SpanInfo to remove chunks that mask other chunks within the
+// same SpanInfo.
+// If trackMasked is true, it will return a slice of chunks that have been
+// masked and are no longer present in any SpanInfo.
+func removeMaskedChunks(spans []SpanInfo, trackMasked bool) []Chunk {
+	var maskedChunks map[ksuid.KSUID]Chunk
+	for i := range spans {
+		rem := spans[i].RemoveMasked()
+		if trackMasked && len(rem) > 0 {
+			if maskedChunks == nil {
+				maskedChunks = make(map[ksuid.KSUID]Chunk)
+			}
+			for _, c := range rem {
+				maskedChunks[c.Id] = c
+			}
+		}
+	}
+	var mc []Chunk
+	if trackMasked {
+	outer:
+		for id := range maskedChunks {
+			// This check ensures that only chunks that are completely masked
+			// within the input []SpanInfo are returned.
+			for _, si := range spans {
+				if spanInfoContainsChunk(si, id) {
+					continue outer
+				}
+			}
+			mc = append(mc, maskedChunks[id])
+		}
+	}
+	return mc
+}
+
+type compactWriter struct {
+	ark   *Archive
+	ctx   context.Context
+	masks []ksuid.KSUID
+	tsd   tsDir
+	w     *chunkWriter
+}
+
+func (cw *compactWriter) Write(rec *zng.Record) error {
+	if cw.w != nil {
+		pos, firstTs, lastTs := cw.w.position()
+		if pos > cw.ark.LogSizeThreshold && lastTs != rec.Ts() {
+			// If we need to create a new chunk writer, we must ensure that the
+			// span for the current chunk leaves no gap between its last timestamp
+			// and the first timestamp of our next chunk, to ensure these chunks
+			// are seen as covering the entire span of the source chunks. Hence
+			// the use of 'chunkLastTs', and the lastTs check above to ensure we are
+			// not in a run of records with the same timestamp.
+			chunkLastTs := prevTs(rec.Ts(), cw.ark.DataOrder)
+			if _, err := cw.w.closeWithTs(cw.ctx, firstTs, chunkLastTs); err != nil {
+				return err
+			}
+			cw.w = nil
+		}
+	}
+	if cw.w == nil {
+		var err error
+		cw.w, err = newChunkWriter(cw.ctx, cw.ark, cw.tsd, cw.masks)
+		if err != nil {
+			return err
+		}
+	}
+	return cw.w.Write(rec)
+}
+
+func (cw *compactWriter) abort() {
+	if cw.w != nil {
+		cw.w.abort()
+		cw.w = nil
+	}
+}
+
+func (cw *compactWriter) close(lastTs nano.Ts) error {
+	if cw.w == nil {
+		return nil
+	}
+	_, firstTs, _ := cw.w.position()
+	if _, err := cw.w.closeWithTs(cw.ctx, firstTs, lastTs); err != nil {
+		return err
+	}
+	cw.w = nil
+	return nil
+}
+
+func compactOverlaps(ctx context.Context, ark *Archive, s SpanInfo) error {
+	if len(s.Chunks) == 1 {
+		return nil
+	}
+	ss, _, err := newSpanScanner(ctx, ark, resolver.NewContext(), driver.SourceFilter{Span: nano.MaxSpan}, s)
+	if err != nil {
+		return err
+	}
+	defer ss.Close()
+	var masks []ksuid.KSUID
+	for _, c := range s.Chunks {
+		masks = append(masks, c.Id)
+	}
+	mw := &compactWriter{
+		ark:   ark,
+		ctx:   ctx,
+		masks: masks,
+		tsd:   newTsDir(s.Span.Ts),
+	}
+	_, slast := spanToFirstLast(ark.DataOrder, s.Span)
+	if err := zbuf.CopyWithContext(ctx, mw, zbuf.PullerReader(ss)); err != nil {
+		mw.abort()
+		return err
+	}
+	return mw.close(slast)
+}
+
+// mergeCommonChunkSpans generates a SpanInfo slice by merging runs of
+// SpanInfos where a SpanInfo has some chunk in common with its previous
+// SpanInfo.
+func mergeCommonChunkSpans(spans []SpanInfo, order zbuf.Order) []SpanInfo {
+	if len(spans) < 2 {
+		return spans
+	}
+	var res []SpanInfo
+	run := []SpanInfo{spans[0]}
+outer:
+	for _, s := range spans[1:] {
+		for _, c := range s.Chunks {
+			if spanInfoContainsChunk(run[len(run)-1], c.Id) {
+				run = append(run, s)
+				continue outer
+			}
+		}
+		res = append(res, mergeSpanInfos(run, order))
+		run = []SpanInfo{s}
+	}
+	return append(res, mergeSpanInfos(run, order))
+}
+
+func Compact(ctx context.Context, ark *Archive) error {
+	return tsDirVisit(ctx, ark, nano.MaxSpan, func(_ tsDir, chunks []Chunk) error {
+		spans := alignChunksToSpans(chunks, ark.DataOrder, nano.MaxSpan)
+		removeMaskedChunks(spans, false)
+		spans = mergeCommonChunkSpans(spans, ark.DataOrder)
+		for _, s := range spans {
+			if err := compactOverlaps(ctx, ark, s); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func Purge(ctx context.Context, ark *Archive) error {
+	return tsDirVisit(ctx, ark, nano.MaxSpan, func(_ tsDir, chunks []Chunk) error {
+		spans := alignChunksToSpans(chunks, ark.DataOrder, nano.MaxSpan)
+		maskedChunks := removeMaskedChunks(spans, true)
+		if len(maskedChunks) == 0 {
+			return nil
+		}
+		for _, c := range maskedChunks {
+			if err := c.Remove(ctx, ark); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }

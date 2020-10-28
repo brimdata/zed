@@ -69,9 +69,6 @@ func (e *Encoder) encodeType(dst []byte, ext zng.Type) ([]byte, zng.Type, error)
 		return dst, ext, nil
 	}
 	switch ext := ext.(type) {
-	default:
-		//XXX
-		panic(fmt.Sprintf("zng cannot encode type: %s", ext))
 	case *zng.TypeRecord:
 		return e.encodeTypeRecord(dst, ext)
 	case *zng.TypeSet:
@@ -86,6 +83,9 @@ func (e *Encoder) encodeType(dst []byte, ext zng.Type) ([]byte, zng.Type, error)
 		return e.encodeTypeEnum(dst, ext)
 	case *zng.TypeAlias:
 		return e.encodeTypeAlias(dst, ext)
+	default:
+		//XXX
+		panic(fmt.Sprintf("zng cannot encode type: %s", ext))
 	}
 }
 
@@ -251,8 +251,6 @@ func serializeTypeMap(dst []byte, keyType, valType zng.Type) []byte {
 func serializeTypes(dst []byte, types []zng.Type) []byte {
 	for _, typ := range types {
 		switch typ := typ.(type) {
-		default:
-			panic(fmt.Sprintf("zng cannot serialize type: %s", typ))
 		case *zng.TypeRecord:
 			dst = serializeTypeRecord(dst, typ.Columns)
 		case *zng.TypeSet:
@@ -267,6 +265,8 @@ func serializeTypes(dst []byte, types []zng.Type) []byte {
 			dst = serializeTypeMap(dst, typ.KeyType, typ.ValType)
 		case *zng.TypeAlias:
 			dst = serializeTypeAlias(dst, typ)
+		default:
+			panic(fmt.Sprintf("zng cannot serialize type: %s", typ))
 		}
 	}
 	return dst

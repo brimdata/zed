@@ -58,14 +58,13 @@ func getStdioSource(uri URI) (*os.File, error) {
 		return nil, fmt.Errorf("scheme of %q must stdio", uri)
 	}
 	switch uri.Path {
-	default:
-		return nil, fmt.Errorf("unknown stdio path %q", uri.Path)
 	case "/stdout":
 		return os.Stdout, nil
 	case "/stdin":
 		return os.Stdin, nil
 	case "/stderr":
 		return os.Stderr, nil
+	default:
+		return nil, fmt.Errorf("unknown stdio path %q", uri.Path)
 	}
-
 }
