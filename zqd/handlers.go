@@ -145,7 +145,12 @@ func handleWorker(c *Core, w http.ResponseWriter, httpReq *http.Request) {
 
 	w.Header().Set("Content-Type", out.ContentType())
 
-	if err := work.Run(ctx, out); err != nil {
+	var order zbuf.Order
+	if req.Dir == -1 {
+		order = zbuf.OrderDesc
+	}
+
+	if err := work.Run(ctx, order, out); err != nil {
 		c.requestLogger(httpReq).Warn("Error writing response", zap.Error(err))
 	}
 

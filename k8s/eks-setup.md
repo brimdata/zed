@@ -163,3 +163,15 @@ You can run `linkerd dashboard &` to get to a Grafana dashboard for zqd. `k8s/li
 
 See above, at "Step 4: A Grafana dashboard for zqd". Those instructions work the same for a remote Grafana dashboard.
 
+## Configuring Ingress with HAProxy
+
+We will use HA Proxy for Ingress because it supports "leastconn" routing (routwe to the instance with the least number of outstanding connections) which is what we want for zqd. We followed the install instructions at:
+
+https://www.haproxy.com/documentation/kubernetes/latest/installation/community/aws/
+
+With the following steps:
+```
+helm repo add haproxytech https://haproxytech.github.io/helm-charts
+helm repo update
+helm install kubernetes-ingress haproxytech/kubernetes-ingress --set controller.service.type=LoadBalancer
+```

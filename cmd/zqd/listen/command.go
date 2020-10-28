@@ -41,7 +41,7 @@ var Listen = &charm.Spec{
 	Long: `
 The listen command launches a process to listen on the provided interface and
 `,
-	HiddenFlags: "brimfd,workers",
+	HiddenFlags: "brimfd,workers,svc",
 	New:         New,
 }
 
@@ -65,8 +65,9 @@ type Command struct {
 	portFile           string
 	// brimfd is a file descriptor passed through by brim desktop. If set zqd
 	// will exit if the fd is closed.
-	brimfd  int
-	workers string
+	brimfd      int
+	workers     string
+	serviceAddr string
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -82,10 +83,10 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.Var(&c.logLevel, "loglevel", "level for log output (defaults to info)")
 	f.BoolVar(&c.devMode, "dev", false, "runs zqd in development mode")
 	f.StringVar(&c.portFile, "portfile", "", "write port of http listener to file")
-
 	// hidden
 	f.IntVar(&c.brimfd, "brimfd", -1, "pipe read fd passed by brim to signal brim closure")
 	f.StringVar(&c.workers, "workers", "", "comma separated list of [addr]:port for zqd/workers")
+	f.StringVar(&c.serviceAddr, "svc", "", "host:port for load balanced zqd worker service")
 	return c, nil
 }
 
@@ -268,13 +269,21 @@ func (c *Command) initSuricata() error {
 func (c *Command) initWorkers() error {
 	// This is for local testing only, at this point.
 	// Workers will be available through a K8s service in a prod deployment.
-	if c.workers != "" {
+	if c.workers != "" && c.serviceAddr != "" {
+		return fmt.Errorf("-workers and -svc flags are mutually exclusive")
+	} else if c.workers != "" {
 		for _, w := range strings.Split(c.workers, ",") {
 			if _, _, err := net.SplitHostPort(w); err != nil {
 				return err
 			}
 			driver.WorkerURLs = append(driver.WorkerURLs, "http://"+w)
 		}
+		driver.ParallelModel = driver.PM_USE_WORKER_URLS
+	} else if c.serviceAddr != "" {
+		driver.WorkerServiceAddr = "http://" + c.serviceAddr
+		driver.ParallelModel = driver.PM_USE_SERVICE_ENDPOINT
+	} else {
+		driver.ParallelModel = driver.PM_USE_GOROUTINES
 	}
 	return nil
 }

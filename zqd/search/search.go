@@ -35,7 +35,8 @@ const (
 )
 
 type SearchOp struct {
-	query *Query
+	query       *Query
+	parallelism int // used only for queries to service cluster
 }
 
 func NewSearchOp(req api.SearchRequest) (*SearchOp, error) {
@@ -53,11 +54,19 @@ func NewSearchOp(req api.SearchRequest) (*SearchOp, error) {
 	if req.Dir != -1 {
 		return nil, zqe.E(zqe.Invalid, "time direction must be 1 or -1")
 	}
+
+	var parallelism int
+	if driver.ParallelModel == driver.PM_USE_WORKER_URLS {
+		parallelism = len(driver.WorkerURLs)
+	} else if driver.ParallelModel == driver.PM_USE_SERVICE_ENDPOINT {
+		parallelism = req.Parallel
+	}
+
 	query, err := UnpackQuery(req)
 	if err != nil {
 		return nil, err
 	}
-	return &SearchOp{query: query}, nil
+	return &SearchOp{query: query, parallelism: parallelism}, nil
 }
 
 func (s *SearchOp) Run(ctx context.Context, order zbuf.Order, spc space.Space, output Output) (err error) {
@@ -81,9 +90,11 @@ func (s *SearchOp) Run(ctx context.Context, order zbuf.Order, spc space.Space, o
 	switch st := spc.Storage().(type) {
 	case *archivestore.Storage:
 		return driver.MultiRun(ctx, d, s.query.Proc, zctx, st.MultiSource(), driver.MultiConfig{
-			Span:      s.query.Span,
-			StatsTick: statsTicker.C,
-			Order:     order,
+			Span:        s.query.Span,
+			StatsTick:   statsTicker.C,
+			Order:       order,
+			Parallelism: s.parallelism,
+			UseWorkers:  true,
 		})
 	case *filestore.Storage:
 		rc, err := st.Open(ctx, zctx, s.query.Span)

@@ -2,7 +2,9 @@ package driver
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
+	"strconv"
 	"sync"
 
 	"github.com/brimsec/zq/ast"
@@ -28,7 +30,10 @@ type parallelHead struct {
 	// workerConn is connection to a worker zqd process
 	// that is only used for distributed zqd.
 	// Thread (goroutine) parallelism is used when workerConn is nil.
-	workerConn *api.Connection
+	workerConn             *api.Connection
+	elapsedWaitForPull     int64
+	elapsedLocalProcessing int64
+	Label                  string
 }
 
 func (ph *parallelHead) closeOnDone() {
@@ -64,7 +69,7 @@ func (ph *parallelHead) Pull() (zbuf.Batch, error) {
 
 			} else {
 				// Worker process parallelism uses nextSourceForConn
-				sc, err = ph.pg.nextSourceForConn(ph.workerConn)
+				sc, err = ph.pg.nextSourceForConn(ph.workerConn, ph.Label)
 			}
 			if sc == nil || err != nil {
 				return nil, err
@@ -106,6 +111,9 @@ type parallelGroup struct {
 	mu       sync.Mutex // protects below
 	stats    scanner.ScannerStats
 	scanners map[scanner.Scanner]struct{}
+
+	// counters for analyzing distributed zqd performance
+	reqCount int
 }
 
 func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
@@ -136,7 +144,7 @@ func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
 // for an open file (i.e. the stream for the open file),
 // nextSourceForConn sends a request to a remote zqd worker process, and returns
 // the ScannerCloser (i.e.output stream) for the remote zqd worker.
-func (pg *parallelGroup) nextSourceForConn(conn *api.Connection) (ScannerCloser, error) {
+func (pg *parallelGroup) nextSourceForConn(conn *api.Connection, label string) (ScannerCloser, error) {
 	select {
 	case src, ok := <-pg.sourceChan:
 		if !ok {
@@ -147,6 +155,11 @@ func (pg *parallelGroup) nextSourceForConn(conn *api.Connection) (ScannerCloser,
 		if err != nil {
 			return nil, err
 		}
+
+		//jreq, _ := json.Marshal(*req)
+		//println("Outbound request to worker: ", string(jreq))
+		pg.reqCount++
+		req.Label = fmt.Sprintf("Request %d from Head %s", pg.reqCount, label)
 
 		rc, err := conn.WorkerRaw(pg.pctx.Context, *req, nil) // rc is io.ReadCloser
 		if err != nil {
@@ -245,19 +258,30 @@ func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.
 	}
 
 	var sources []proc.Interface
-	// Two type of parallelGroups:
-	if len(workerURLs) > 0 {
-		// If workerURLs are present, then base the sources on the number of workers
-		for _, w := range workerURLs {
-			sources = append(sources, &parallelHead{pctx: pctx, pg: pg, workerConn: api.NewConnectionTo(w)})
-		}
-	} else {
-		// Normal: the sources are regular parallelHead procs
-		// and Parallelism is determined by mcfg
+	// mcfg.UseWorkers is used to indicate that we are processing
+	// a request that could be delegated to worker processes.
+	// /search requests have mcfg.UseWorkers=true
+	// If we are in a worker process, then mcfg.UseWorkers defaults to false.
+	if !mcfg.UseWorkers || ParallelModel == PM_USE_GOROUTINES {
 		sources = make([]proc.Interface, mcfg.Parallelism)
 		for i := range sources {
-			sources[i] = &parallelHead{pctx: pctx, pg: pg}
+			sources[i] = &parallelHead{pctx: pctx, pg: pg, Label: strconv.Itoa(i + 1)}
 		}
+	} else if ParallelModel == PM_USE_WORKER_URLS {
+		// In this case each parallel head will be dedicated to a running zqd worker process
+		for i, w := range workerURLs {
+			sources = append(sources, &parallelHead{pctx: pctx, pg: pg,
+				workerConn: api.NewConnectionTo(w), Label: strconv.Itoa(i + 1)})
+		}
+	} else if ParallelModel == PM_USE_SERVICE_ENDPOINT {
+		// In this case each parallel head will seperately request from a
+		// load-balanced service endpoint (backed by an unspecified number of process instances)
+		for i := 0; i < mcfg.Parallelism; i++ { // TODO: need to update mcfg.Parallelism in compile!
+			sources = append(sources, &parallelHead{pctx: pctx, pg: pg,
+				workerConn: api.NewConnectionTo(WorkerServiceAddr), Label: strconv.Itoa(i + 1)})
+		}
+	} else {
+		return sources, pg, fmt.Errorf("Unsupported ParallelModel %d", ParallelModel)
 	}
 	return sources, pg, nil
 }

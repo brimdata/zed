@@ -7,6 +7,7 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/storage"
@@ -22,13 +23,15 @@ type WorkerOp struct {
 }
 
 func NewWorkerOp(ctx context.Context, req api.WorkerRequest, st storage.Storage) (*WorkerOp, error) {
+	//jreq, _ := json.Marshal(req)
+	//println("Inbound request to worker: ", string(jreq))
 	// XXX zqd only supports backwards searches, remove once this has been
 	// fixed.
 	if req.Dir == 1 {
-		return nil, zqe.E(zqe.Invalid, "forward searches not yet supported")
+		return nil, zqe.E(zqe.Invalid, "worker: forward searches not yet supported")
 	}
 	if req.Dir != -1 {
-		return nil, zqe.E(zqe.Invalid, "time direction must be 1 or -1")
+		return nil, zqe.E(zqe.Invalid, "worker: time direction must be 1 or -1")
 	}
 	store, ok := st.(*archivestore.Storage)
 	if !ok {
@@ -45,7 +48,7 @@ func NewWorkerOp(ctx context.Context, req api.WorkerRequest, st storage.Storage)
 	return &WorkerOp{proc: proc, span: req.Span, src: src, store: store}, nil
 }
 
-func (w *WorkerOp) Run(ctx context.Context, output Output) (err error) {
+func (w *WorkerOp) Run(ctx context.Context, order zbuf.Order, output Output) (err error) {
 	d := &searchdriver{
 		output:    output,
 		startTime: nano.Now(),
@@ -64,7 +67,9 @@ func (w *WorkerOp) Run(ctx context.Context, output Output) (err error) {
 	zctx := resolver.NewContext()
 
 	return driver.MultiRun(ctx, d, w.proc, zctx, w.store.StaticSource(w.src), driver.MultiConfig{
-		Span:      w.span,
-		StatsTick: statsTicker.C,
+		Span:        w.span,
+		StatsTick:   statsTicker.C,
+		Order:       order,
+		Parallelism: 1,
 	})
 }
