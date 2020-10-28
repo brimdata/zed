@@ -329,13 +329,13 @@ func (cw *chunkWriter) closeWithTs(ctx context.Context, firstTs, lastTs nano.Ts)
 	if err != nil {
 		return Chunk{}, err
 	}
-	chunkMd := chunkMetadata{
+	metadata := chunkMetadata{
 		First:       firstTs,
 		Last:        lastTs,
 		RecordCount: cw.count,
 		Masks:       cw.masks,
 	}
-	if err := writeChunkMetadata(ctx, chunkMetadataPath(cw.ark, cw.tsd, cw.id), chunkMd); err != nil {
+	if err := writeChunkMetadata(ctx, chunkMetadataPath(cw.ark, cw.tsd, cw.id), metadata); err != nil {
 		return Chunk{}, err
 	}
 	// Write the time seek index into the archive, feeding it the key/offset
@@ -350,7 +350,7 @@ func (cw *chunkWriter) closeWithTs(ctx context.Context, firstTs, lastTs nano.Ts)
 	}()
 	zctx := resolver.NewContext()
 	tfr := zngio.NewReader(tf, zctx)
-	chunk := chunkMd.Chunk(cw.id)
+	chunk := metadata.Chunk(cw.id)
 	idxURI := chunk.seekIndexPath(cw.ark)
 	idxWriter, err := microindex.NewWriter(zctx, idxURI.String(), microindex.Keys("ts"), microindex.FrameThresh(framesize))
 	if err != nil {
