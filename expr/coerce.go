@@ -240,8 +240,6 @@ func CoerceToDuration(in zng.Value) (int64, bool) {
 	var out int64
 	var err error
 	switch in.Type.ID() {
-	default:
-		return 0, false
 	case zng.IdDuration:
 		out, err = zng.DecodeDuration(in.Bytes)
 	case zng.IdUint16, zng.IdUint32, zng.IdUint64:
@@ -261,6 +259,8 @@ func CoerceToDuration(in zng.Value) (int64, bool) {
 		v, err = zng.DecodeFloat64(in.Bytes)
 		v *= 1e9
 		out = int64(v)
+	default:
+		return 0, false
 	}
 	if err != nil {
 		return 0, false

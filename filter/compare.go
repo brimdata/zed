@@ -251,8 +251,6 @@ func compareRegexp(op, pattern string) (Predicate, error) {
 		return nil, err
 	}
 	switch op {
-	default:
-		return nil, fmt.Errorf("unknown pattern comparator: %s", op)
 	case "=~":
 		return func(v zng.Value) bool {
 			switch v.Type.ID() {
@@ -269,13 +267,13 @@ func compareRegexp(op, pattern string) (Predicate, error) {
 			}
 			return false
 		}, nil
+	default:
+		return nil, fmt.Errorf("unknown pattern comparator: %s", op)
 	}
 }
 
 func CompareUnset(op string) (Predicate, error) {
 	switch op {
-	default:
-		return nil, fmt.Errorf("unknown unset comparator: %s", op)
 	case "=":
 		return func(v zng.Value) bool {
 			return v.IsUnset()
@@ -284,6 +282,8 @@ func CompareUnset(op string) (Predicate, error) {
 		return func(v zng.Value) bool {
 			return !v.IsUnset()
 		}, nil
+	default:
+		return nil, fmt.Errorf("unknown unset comparator: %s", op)
 	}
 }
 
@@ -402,8 +402,6 @@ func Comparison(op string, literal ast.Literal) (Predicate, error) {
 		return nil, err
 	}
 	switch v := v.(type) {
-	default:
-		return nil, fmt.Errorf("unknown type of constant: %s (%T)", literal.Type, v)
 	case nil:
 		return CompareUnset(op)
 	case net.IP:
@@ -418,5 +416,7 @@ func Comparison(op string, literal ast.Literal) (Predicate, error) {
 		return CompareBstring(op, v)
 	case int64:
 		return CompareInt64(op, v)
+	default:
+		return nil, fmt.Errorf("unknown type of constant: %s (%T)", literal.Type, v)
 	}
 }

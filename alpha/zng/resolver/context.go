@@ -137,8 +137,6 @@ func unionKey(types []zng.Type) string {
 
 func typeKey(typ zng.Type) string {
 	switch typ := typ.(type) {
-	default:
-		panic("unsupported type in typeKey")
 	case *zng.TypeAlias:
 		return aliasKey(typ.Name)
 	case *zng.TypeRecord:
@@ -149,6 +147,8 @@ func typeKey(typ zng.Type) string {
 		return setKey(typ.Type)
 	case *zng.TypeUnion:
 		return unionKey(typ.Types)
+	default:
+		panic("unsupported type in typeKey")
 	}
 }
 
@@ -157,8 +157,6 @@ func (c *Context) addTypeWithLock(key string, typ zng.Type) {
 	c.lut[key] = id
 	c.table = append(c.table, typ)
 	switch typ := typ.(type) {
-	default:
-		panic("unsupported type in addTypeWithLock")
 	case *zng.TypeAlias:
 		typ.SetID(id)
 	case *zng.TypeRecord:
@@ -169,6 +167,8 @@ func (c *Context) addTypeWithLock(key string, typ zng.Type) {
 		typ.SetID(id)
 	case *zng.TypeUnion:
 		typ.SetID(id)
+	default:
+		panic("unsupported type in addTypeWithLock")
 	}
 	if c.logger != nil {
 		c.logger.TypeDef(id, typ)
@@ -586,9 +586,6 @@ func (c *Context) TranslateType(ext zng.Type) (zng.Type, error) {
 		return ext, nil
 	}
 	switch ext := ext.(type) {
-	default:
-		//XXX
-		panic(fmt.Sprintf("zng cannot translate type: %s", ext))
 	case *zng.TypeRecord:
 		return c.TranslateTypeRecord(ext)
 	case *zng.TypeSet:
@@ -607,6 +604,9 @@ func (c *Context) TranslateType(ext zng.Type) (zng.Type, error) {
 		return c.TranslateTypeUnion(ext)
 	case *zng.TypeAlias:
 		return c.LookupTypeAlias(ext.Name, ext.Type)
+	default:
+		//XXX
+		panic(fmt.Sprintf("zng cannot translate type: %s", ext))
 	}
 }
 

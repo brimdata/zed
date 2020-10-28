@@ -21,8 +21,6 @@ func ParseLiteral(literal ast.Literal) (interface{}, error) {
 		return nil, err
 	}
 	switch v.Type.(type) {
-	default:
-		return v.Type.Marshal(v.Bytes)
 	case nil:
 		return nil, nil
 	case *TypeOfIP:
@@ -34,5 +32,7 @@ func ParseLiteral(literal ast.Literal) (interface{}, error) {
 	case *TypeOfBstring:
 		s, err := DecodeString(v.Bytes)
 		return Bstring(s), err
+	default:
+		return v.Type.Marshal(v.Bytes)
 	}
 }
