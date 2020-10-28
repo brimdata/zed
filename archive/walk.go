@@ -171,6 +171,10 @@ func chunkFileMatch(s string) (kind FileKind, id ksuid.KSUID, ok bool) {
 
 // A Chunk is a file that holds records ordered according to the archive's
 // data order.
+// To support reading chunks that contain records originally from one or
+// more other chunks, a chunk has a list of chunk IDs it "masks". During a read
+// of data for time span T, if chunks X and Y both have data within span T, and
+// X masks Y, then only data from X should be used.
 // seekIndexPath returns the path of an associated microindex written at import
 // time, which can be used to lookup a nearby seek offset for a desired
 // timestamp.
@@ -181,8 +185,8 @@ type Chunk struct {
 	Id          ksuid.KSUID
 	First       nano.Ts
 	Last        nano.Ts
-	Kind        FileKind
 	RecordCount uint64
+	Masks       []ksuid.KSUID
 }
 
 func (c Chunk) tsDir() tsDir {
@@ -202,7 +206,11 @@ func (c Chunk) Span() nano.Span {
 }
 
 func (c Chunk) RelativePath() string {
-	return path.Join(dataDirname, c.tsDir().name(), fmt.Sprintf("%s-%s.zng", c.Kind, c.Id))
+	return chunkRelativePath(c.tsDir(), c.Id)
+}
+
+func chunkRelativePath(tsd tsDir, id ksuid.KSUID) string {
+	return path.Join(dataDirname, tsd.name(), fmt.Sprintf("%s-%s.zng", FileKindData, id))
 }
 
 func parseChunkRelativePath(s string) (tsDir, FileKind, ksuid.KSUID, bool) {
@@ -238,37 +246,61 @@ func (c Chunk) Localize(ark *Archive, pathname string) iosrc.URI {
 }
 
 func (c Chunk) Path(ark *Archive) iosrc.URI {
-	return ark.DataPath.AppendPath(string(c.RelativePath()))
+	return chunkPath(ark, c.tsDir(), c.Id)
+}
+
+func chunkPath(ark *Archive, tsd tsDir, id ksuid.KSUID) iosrc.URI {
+	return ark.DataPath.AppendPath(chunkRelativePath(tsd, id))
 }
 
 func (c Chunk) Range() string {
 	return fmt.Sprintf("[%d-%d]", c.First, c.Last)
 }
 
-func chunkTsLess(order zbuf.Order, iTs nano.Ts, iKid ksuid.KSUID, jTs nano.Ts, jKid ksuid.KSUID) bool {
-	if order == zbuf.OrderAsc {
-		if iTs == jTs {
-			return ksuid.Compare(iKid, jKid) < 0
+// Remove deletes the data, metadata, seek, and any other associated files
+// with the chunk, including the zar directory. Any 'not found' errors will
+// be ignored.
+func (c Chunk) Remove(ctx context.Context, ark *Archive) error {
+	uris := []iosrc.URI{
+		c.Path(ark),
+		c.ZarDir(ark),
+		c.metadataPath(ark),
+		c.seekIndexPath(ark),
+	}
+	for _, u := range uris {
+		if err := ark.dataSrc.RemoveAll(ctx, u); err != nil && !zqe.IsNotFound(err) {
+			return err
 		}
-		return iTs < jTs
 	}
-	if jTs == iTs {
-		return ksuid.Compare(jKid, iKid) < 0
+	return nil
+}
+
+func chunkLess(order zbuf.Order, a, b Chunk) bool {
+	if order == zbuf.OrderDesc {
+		a, b = b, a
 	}
-	return jTs < iTs
+	switch {
+	case a.First != b.First:
+		return a.First < b.First
+	case a.Last != b.Last:
+		return a.Last < b.Last
+	case a.RecordCount != b.RecordCount:
+		return a.RecordCount < b.RecordCount
+	}
+	return ksuid.Compare(a.Id, b.Id) < 0
 }
 
 func chunksSort(order zbuf.Order, c []Chunk) {
 	sort.Slice(c, func(i, j int) bool {
-		return chunkTsLess(order, c[i].First, c[i].Id, c[j].First, c[j].Id)
+		return chunkLess(order, c[i], c[j])
 	})
 }
 
 type chunkMetadata struct {
-	Kind        FileKind
 	First       nano.Ts
 	Last        nano.Ts
 	RecordCount uint64
+	Masks       []ksuid.KSUID
 }
 
 func (md chunkMetadata) Chunk(id ksuid.KSUID) Chunk {
@@ -276,8 +308,8 @@ func (md chunkMetadata) Chunk(id ksuid.KSUID) Chunk {
 		Id:          id,
 		First:       md.First,
 		Last:        md.Last,
-		Kind:        md.Kind,
 		RecordCount: md.RecordCount,
+		Masks:       md.Masks,
 	}
 }
 
@@ -368,6 +400,38 @@ func (s SpanInfo) ChunkRange(order zbuf.Order, chunkIdx int) string {
 	first, last := spanToFirstLast(order, s.Span)
 	c := s.Chunks[chunkIdx]
 	return fmt.Sprintf("[%d-%d,%d-%d]", first, last, c.First, c.Last)
+}
+
+func (si *SpanInfo) RemoveMasked() []Chunk {
+	if len(si.Chunks) == 1 {
+		return nil
+	}
+	var maskIds []ksuid.KSUID
+	for _, c := range si.Chunks {
+		for _, mid := range c.Masks {
+			maskIds = append(maskIds, mid)
+		}
+	}
+	if len(maskIds) == 0 {
+		return nil
+	}
+	var chunks, removed []Chunk
+	for _, c := range si.Chunks {
+		var masked bool
+		for _, mid := range maskIds {
+			if mid == c.Id {
+				masked = true
+				removed = append(removed, c)
+				break
+			}
+		}
+		if !masked {
+			chunks = append(chunks, c)
+		}
+	}
+	// No need to sort chunks since we perform the mask removal in-order.
+	si.Chunks = chunks
+	return removed
 }
 
 // SpanWalk calls visitor with each SpanInfo within the filter span.
