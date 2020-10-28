@@ -4,6 +4,7 @@ import (
 	"context"
 	"sort"
 
+	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
@@ -303,7 +304,7 @@ func compactOverlaps(ctx context.Context, ark *Archive, s SpanInfo) error {
 	if len(s.Chunks) == 1 {
 		return nil
 	}
-	ss, err := newSpanScanner(ctx, ark, resolver.NewContext(), nil, nil, s)
+	ss, _, err := newSpanScanner(ctx, ark, resolver.NewContext(), driver.SourceFilter{Span: nano.MaxSpan}, s)
 	if err != nil {
 		return err
 	}
