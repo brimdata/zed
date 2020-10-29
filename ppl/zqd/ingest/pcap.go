@@ -30,7 +30,7 @@ import (
 	"github.com/brimsec/zq/zql"
 )
 
-//go:generate go run ../../zio/ndjsonio/typegenerator -o ./suricata.go -package ingest -var suricataTC ./suricata-types.json
+//go:generate go run ../../../zio/ndjsonio/typegenerator -o ./suricata.go -package ingest -var suricataTC ./suricata-types.json
 
 type PcapOp interface {
 	Status() api.PcapPostStatus
