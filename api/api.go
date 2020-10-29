@@ -281,26 +281,21 @@ type StorageKind string
 
 const (
 	UnknownStore StorageKind = ""
-	FileStore    StorageKind = "filestore"
 	ArchiveStore StorageKind = "archivestore"
+	FileStore    StorageKind = "filestore"
 )
 
 func (k StorageKind) String() string {
 	return string(k)
 }
 
-func (k *StorageKind) Set(x string) error {
-	kx := StorageKind(x)
-	switch kx {
-	case FileStore:
-		fallthrough
-	case ArchiveStore:
-		*k = kx
+func (k *StorageKind) Set(s string) error {
+	switch s := StorageKind(s); s {
+	case ArchiveStore, FileStore:
+		*k = s
 		return nil
-
-	default:
-		return fmt.Errorf("unknown storage kind: %s", x)
 	}
+	return fmt.Errorf("unknown storage kind: %s", s)
 }
 
 type Config struct {
