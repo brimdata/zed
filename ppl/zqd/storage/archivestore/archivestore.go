@@ -5,12 +5,12 @@ import (
 	"sync"
 
 	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/ppl/archive"
 	"github.com/brimsec/zq/ppl/zqd/storage"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"

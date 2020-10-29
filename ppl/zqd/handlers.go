@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pkg/ctxio"
+	"github.com/brimsec/zq/ppl/archive"
 	"github.com/brimsec/zq/ppl/zqd/ingest"
 	"github.com/brimsec/zq/ppl/zqd/search"
 	"github.com/brimsec/zq/ppl/zqd/space"

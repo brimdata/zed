@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const babble = "../ztests/suite/data/babble.tzng"
+const babble = "../../ztests/suite/data/babble.tzng"
 
 func createArchiveSpace(t *testing.T, datapath string, srcfile string, co *CreateOptions) {
 	ark, err := CreateOrOpenArchive(datapath, co, nil)

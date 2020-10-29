@@ -6,8 +6,8 @@ import (
 	"flag"
 	"os"
 
-	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/emitter"
+	"github.com/brimsec/zq/ppl/archive"
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"

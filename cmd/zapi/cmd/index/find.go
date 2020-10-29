@@ -4,10 +4,10 @@ import (
 	"flag"
 
 	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
 	"github.com/brimsec/zq/emitter"
+	"github.com/brimsec/zq/ppl/archive"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/mccanne/charm"
 )

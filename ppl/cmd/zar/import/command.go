@@ -5,12 +5,12 @@ import (
 	"flag"
 	"os"
 
-	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cli/inputflags"
 	"github.com/brimsec/zq/cli/procflags"
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
 	"github.com/brimsec/zq/pkg/units"
+	"github.com/brimsec/zq/ppl/archive"
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"

@@ -9,9 +9,9 @@ import (
 	"path"
 	"strings"
 
-	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/ppl/archive"
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
 	"github.com/brimsec/zq/zqe"
 	"github.com/mccanne/charm"
