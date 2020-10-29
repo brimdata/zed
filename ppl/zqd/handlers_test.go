@@ -23,15 +23,14 @@ import (
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/test"
+	"github.com/brimsec/zq/ppl/zqd"
+	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zqd"
-	"github.com/brimsec/zq/zqd/pcapanalyzer"
-	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -39,7 +38,7 @@ import (
 	"go.uber.org/zap/zaptest"
 )
 
-const babble = "../ztests/suite/data/babble.tzng"
+const babble = "../../ztests/suite/data/babble.tzng"
 
 func TestSearch(t *testing.T) {
 	src := `
@@ -203,7 +202,7 @@ func TestSpaceList(t *testing.T) {
 				ID:          sp.ID,
 				Name:        n,
 				DataPath:    c.Root.AppendPath(string(sp.ID)),
-				StorageKind: storage.FileStore,
+				StorageKind: api.FileStore,
 			})
 		}
 
@@ -241,7 +240,7 @@ func TestSpaceInfo(t *testing.T) {
 		ID:          sp.ID,
 		Name:        sp.Name,
 		DataPath:    sp.DataPath,
-		StorageKind: storage.FileStore,
+		StorageKind: api.FileStore,
 		Span:        &span,
 		Size:        81,
 		PcapSupport: false,
@@ -262,7 +261,7 @@ func TestSpaceInfoNoData(t *testing.T) {
 		ID:          sp.ID,
 		Name:        sp.Name,
 		DataPath:    sp.DataPath,
-		StorageKind: storage.FileStore,
+		StorageKind: api.FileStore,
 		Size:        0,
 		PcapSupport: false,
 	}
@@ -433,7 +432,7 @@ func TestPostZngLogs(t *testing.T) {
 		ID:          sp.ID,
 		Name:        sp.Name,
 		DataPath:    sp.DataPath,
-		StorageKind: storage.FileStore,
+		StorageKind: api.FileStore,
 		Span:        span,
 		Size:        79,
 		PcapSupport: false,
@@ -518,7 +517,7 @@ func TestPostNDJSONLogs(t *testing.T) {
 			ID:          sp.ID,
 			Name:        sp.Name,
 			DataPath:    sp.DataPath,
-			StorageKind: storage.FileStore,
+			StorageKind: api.FileStore,
 			Span:        &span,
 			Size:        79,
 			PcapSupport: false,
@@ -692,10 +691,10 @@ func TestCreateArchiveSpace(t *testing.T) {
 
 	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{
 		Name: "arktest",
-		Storage: &storage.Config{
-			Kind: storage.ArchiveStore,
-			Archive: &storage.ArchiveConfig{
-				CreateOptions: &storage.ArchiveCreateOptions{
+		Storage: &api.Config{
+			Kind: api.ArchiveStore,
+			Archive: &api.ArchiveConfig{
+				CreateOptions: &api.ArchiveCreateOptions{
 					LogSizeThreshold: &thresh,
 				},
 			},
@@ -711,7 +710,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 		ID:          sp.ID,
 		Name:        sp.Name,
 		DataPath:    sp.DataPath,
-		StorageKind: storage.ArchiveStore,
+		StorageKind: api.ArchiveStore,
 		Span:        &span,
 		Size:        35331,
 	}
@@ -754,10 +753,10 @@ func TestIndexSearch(t *testing.T) {
 
 	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{
 		Name: "TestIndexSearch",
-		Storage: &storage.Config{
-			Kind: storage.ArchiveStore,
-			Archive: &storage.ArchiveConfig{
-				CreateOptions: &storage.ArchiveCreateOptions{
+		Storage: &api.Config{
+			Kind: api.ArchiveStore,
+			Archive: &api.ArchiveConfig{
+				CreateOptions: &api.ArchiveCreateOptions{
 					LogSizeThreshold: &thresh,
 				},
 			},
@@ -794,10 +793,10 @@ func TestSubspaceCreate(t *testing.T) {
 
 	sp1, err := client.SpacePost(context.Background(), api.SpacePostRequest{
 		Name: "TestSubspaceCreate",
-		Storage: &storage.Config{
-			Kind: storage.ArchiveStore,
-			Archive: &storage.ArchiveConfig{
-				CreateOptions: &storage.ArchiveCreateOptions{
+		Storage: &api.Config{
+			Kind: api.ArchiveStore,
+			Archive: &api.ArchiveConfig{
+				CreateOptions: &api.ArchiveCreateOptions{
 					LogSizeThreshold: &thresh,
 				},
 			},
@@ -825,7 +824,7 @@ func TestSubspaceCreate(t *testing.T) {
 	// Create subspace
 	sp2, err := client.SubspacePost(context.Background(), sp1.ID, api.SubspacePostRequest{
 		Name: "subspace",
-		OpenOptions: storage.ArchiveOpenOptions{
+		OpenOptions: api.ArchiveOpenOptions{
 			LogFilter: []string{logId},
 		},
 	})
@@ -871,10 +870,10 @@ func TestSubspacePersist(t *testing.T) {
 
 	sp1, err := client1.SpacePost(context.Background(), api.SpacePostRequest{
 		Name: "TestSubspaceCreate",
-		Storage: &storage.Config{
-			Kind: storage.ArchiveStore,
-			Archive: &storage.ArchiveConfig{
-				CreateOptions: &storage.ArchiveCreateOptions{
+		Storage: &api.Config{
+			Kind: api.ArchiveStore,
+			Archive: &api.ArchiveConfig{
+				CreateOptions: &api.ArchiveCreateOptions{
 					LogSizeThreshold: &thresh,
 				},
 			},
@@ -895,7 +894,7 @@ func TestSubspacePersist(t *testing.T) {
 	// Create subspace
 	sp2, err := client1.SubspacePost(context.Background(), sp1.ID, api.SubspacePostRequest{
 		Name: "subspace",
-		OpenOptions: storage.ArchiveOpenOptions{
+		OpenOptions: api.ArchiveOpenOptions{
 			LogFilter: []string{logId},
 		},
 	})
@@ -952,10 +951,10 @@ func TestArchiveStat(t *testing.T) {
 
 	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{
 		Name: "TestArchiveStat",
-		Storage: &storage.Config{
-			Kind: storage.ArchiveStore,
-			Archive: &storage.ArchiveConfig{
-				CreateOptions: &storage.ArchiveCreateOptions{
+		Storage: &api.Config{
+			Kind: api.ArchiveStore,
+			Archive: &api.ArchiveConfig{
+				CreateOptions: &api.ArchiveCreateOptions{
 					LogSizeThreshold: &thresh,
 				},
 			},

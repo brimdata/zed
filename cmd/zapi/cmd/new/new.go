@@ -9,7 +9,6 @@ import (
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
 	"github.com/brimsec/zq/pkg/units"
-	"github.com/brimsec/zq/zqd/storage"
 	"github.com/mccanne/charm"
 )
 
@@ -28,7 +27,7 @@ func init() {
 
 type Command struct {
 	*cmd.Command
-	kind     storage.Kind
+	kind     api.StorageKind
 	datapath string
 	thresh   units.Bytes
 }
@@ -36,7 +35,7 @@ type Command struct {
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{
 		Command: parent.(*cmd.Command),
-		kind:    storage.FileStore,
+		kind:    api.FileStore,
 		thresh:  archive.DefaultLogSizeThreshold,
 	}
 	f.Var(&c.kind, "k", "kind of storage for this space")
@@ -57,10 +56,10 @@ func (c *Command) Run(args []string) error {
 	req := api.SpacePostRequest{
 		Name:     args[0],
 		DataPath: c.datapath,
-		Storage: &storage.Config{
+		Storage: &api.Config{
 			Kind: c.kind,
-			Archive: &storage.ArchiveConfig{
-				CreateOptions: &storage.ArchiveCreateOptions{
+			Archive: &api.ArchiveConfig{
+				CreateOptions: &api.ArchiveCreateOptions{
 					LogSizeThreshold: (*int64)(&c.thresh),
 				},
 			},

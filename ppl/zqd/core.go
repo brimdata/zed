@@ -5,8 +5,8 @@ import (
 	"sync/atomic"
 
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/zqd/pcapanalyzer"
-	"github.com/brimsec/zq/zqd/space"
+	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
+	"github.com/brimsec/zq/ppl/zqd/space"
 	"go.uber.org/zap"
 )
 

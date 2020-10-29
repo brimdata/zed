@@ -7,7 +7,6 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
-	"github.com/brimsec/zq/zqd/storage"
 	"github.com/mccanne/charm"
 )
 
@@ -43,7 +42,7 @@ func (c *Command) Run(args []string) error {
 	client := c.Client()
 	req := api.SubspacePostRequest{
 		Name: c.name,
-		OpenOptions: storage.ArchiveOpenOptions{
+		OpenOptions: api.ArchiveOpenOptions{
 			LogFilter: args,
 		},
 	}

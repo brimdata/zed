@@ -15,10 +15,9 @@ import (
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/test"
-	"github.com/brimsec/zq/zqd"
-	"github.com/brimsec/zq/zqd/pcapanalyzer"
-	"github.com/brimsec/zq/zqd/pcapstorage"
-	"github.com/brimsec/zq/zqd/storage"
+	"github.com/brimsec/zq/ppl/zqd"
+	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
+	"github.com/brimsec/zq/ppl/zqd/pcapstorage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -152,7 +151,7 @@ func TestPcapPostInvalidPcap(t *testing.T) {
 			ID:          p.space.ID,
 			Name:        p.space.Name,
 			DataPath:    p.space.DataPath,
-			StorageKind: storage.FileStore,
+			StorageKind: api.FileStore,
 		}
 		require.Equal(t, &expected, info)
 	})

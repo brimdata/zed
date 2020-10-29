@@ -12,11 +12,11 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/ppl/zqd/space"
+	"github.com/brimsec/zq/ppl/zqd/storage/archivestore"
+	"github.com/brimsec/zq/ppl/zqd/storage/filestore"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zqd/space"
-	"github.com/brimsec/zq/zqd/storage/archivestore"
-	"github.com/brimsec/zq/zqd/storage/filestore"
 	"github.com/brimsec/zq/zqe"
 )
 

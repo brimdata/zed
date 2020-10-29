@@ -11,13 +11,13 @@ import (
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/ppl/zqd/storage"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqe"
 )
 
-func Load(ctx context.Context, path iosrc.URI, cfg *storage.ArchiveConfig) (*Storage, error) {
+func Load(ctx context.Context, path iosrc.URI, cfg *api.ArchiveConfig) (*Storage, error) {
 	co := &archive.CreateOptions{}
 	if cfg != nil && cfg.CreateOptions != nil {
 		co.LogSizeThreshold = cfg.CreateOptions.LogSizeThreshold
@@ -63,7 +63,7 @@ func (s *Storage) StaticSource(src driver.Source) driver.MultiSource {
 
 func (s *Storage) Summary(ctx context.Context) (storage.Summary, error) {
 	var sum storage.Summary
-	sum.Kind = storage.ArchiveStore
+	sum.Kind = api.ArchiveStore
 	err := archive.Walk(ctx, s.ark, func(chunk archive.Chunk) error {
 		zngpath := chunk.Path(s.ark)
 		info, err := iosrc.Stat(ctx, zngpath)

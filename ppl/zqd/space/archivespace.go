@@ -6,8 +6,7 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/zqd/storage"
-	"github.com/brimsec/zq/zqd/storage/archivestore"
+	"github.com/brimsec/zq/ppl/zqd/storage/archivestore"
 	"github.com/brimsec/zq/zqe"
 	"go.uber.org/zap"
 )
@@ -81,7 +80,7 @@ func (s *archiveSpace) CreateSubspace(ctx context.Context, req api.SubspacePostR
 	s.confMu.Lock()
 	defer s.confMu.Unlock()
 
-	substore, err := archivestore.Load(ctx, s.conf.DataURI, &storage.ArchiveConfig{
+	substore, err := archivestore.Load(ctx, s.conf.DataURI, &api.ArchiveConfig{
 		OpenOptions: &req.OpenOptions,
 	})
 	if err != nil {

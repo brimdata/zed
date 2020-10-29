@@ -9,10 +9,10 @@ import (
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/zqd/pcapstorage"
-	"github.com/brimsec/zq/zqd/storage"
-	"github.com/brimsec/zq/zqd/storage/archivestore"
-	"github.com/brimsec/zq/zqd/storage/filestore"
+	"github.com/brimsec/zq/ppl/zqd/pcapstorage"
+	"github.com/brimsec/zq/ppl/zqd/storage"
+	"github.com/brimsec/zq/ppl/zqd/storage/archivestore"
+	"github.com/brimsec/zq/ppl/zqd/storage/filestore"
 	"github.com/brimsec/zq/zqe"
 	"github.com/segmentio/ksuid"
 	"go.uber.org/zap"
@@ -121,7 +121,7 @@ func loadSpaces(ctx context.Context, p iosrc.URI, conf config, logger *zap.Logge
 		return nil, err
 	}
 	switch conf.Storage.Kind {
-	case storage.FileStore:
+	case api.FileStore:
 		store, err := filestore.Load(datapath)
 		if err != nil {
 			return nil, err
@@ -133,7 +133,7 @@ func loadSpaces(ctx context.Context, p iosrc.URI, conf config, logger *zap.Logge
 		}
 		return []Space{s}, nil
 
-	case storage.ArchiveStore:
+	case api.ArchiveStore:
 		store, err := archivestore.Load(ctx, datapath, conf.Storage.Archive)
 		if err != nil {
 			return nil, err
@@ -145,7 +145,7 @@ func loadSpaces(ctx context.Context, p iosrc.URI, conf config, logger *zap.Logge
 		}
 		ret := []Space{parent}
 		for _, subcfg := range conf.Subspaces {
-			substore, err := archivestore.Load(ctx, datapath, &storage.ArchiveConfig{
+			substore, err := archivestore.Load(ctx, datapath, &api.ArchiveConfig{
 				OpenOptions: &subcfg.OpenOptions,
 			})
 			if err != nil {

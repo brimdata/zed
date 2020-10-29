@@ -13,7 +13,6 @@ import (
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/zqd/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -47,8 +46,8 @@ func TestV3MigrationNoPcap(t *testing.T) {
 		Name:     "test",
 		DataURI:  iosrc.URI{},
 		PcapPath: "",
-		Storage: storage.Config{
-			Kind: storage.FileStore,
+		Storage: api.Config{
+			Kind: api.FileStore,
 		},
 	})
 	info := tm.spaceInfo(id)
@@ -69,8 +68,8 @@ func TestV3MigrationPcap(t *testing.T) {
 		Name:     "test",
 		DataURI:  iosrc.URI{},
 		PcapPath: pcapuri.Filepath(),
-		Storage: storage.Config{
-			Kind: storage.FileStore,
+		Storage: api.Config{
+			Kind: api.FileStore,
 		},
 	})
 	err := iosrc.WriteFile(context.Background(), pcapuri, nil)
@@ -95,8 +94,8 @@ func TestV2Migration(t *testing.T) {
 		Name:     "test",
 		DataPath: ".",
 		PcapPath: pcapuri.Filepath(),
-		Storage: storage.Config{
-			Kind: storage.FileStore,
+		Storage: api.Config{
+			Kind: api.FileStore,
 		},
 	})
 	err := iosrc.WriteFile(context.Background(), pcapuri, nil)

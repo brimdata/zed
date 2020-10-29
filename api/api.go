@@ -13,7 +13,6 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/zjsonio"
-	"github.com/brimsec/zq/zqd/storage"
 )
 
 type Error struct {
@@ -103,16 +102,16 @@ func (s *SpaceID) Set(str string) error {
 }
 
 type SpaceInfo struct {
-	ID          SpaceID      `json:"id"`
-	Name        string       `json:"name"`
-	DataPath    iosrc.URI    `json:"data_path"`
-	StorageKind storage.Kind `json:"storage_kind"`
-	Span        *nano.Span   `json:"span,omitempty"`
-	Size        int64        `json:"size" unit:"bytes"`
-	PcapSupport bool         `json:"pcap_support"`
-	PcapSize    int64        `json:"pcap_size" unit:"bytes"`
-	PcapPath    iosrc.URI    `json:"pcap_path"`
-	ParentID    SpaceID      `json:"parent_id,omitempty"`
+	ID          SpaceID     `json:"id"`
+	Name        string      `json:"name"`
+	DataPath    iosrc.URI   `json:"data_path"`
+	StorageKind StorageKind `json:"storage_kind"`
+	Span        *nano.Span  `json:"span,omitempty"`
+	Size        int64       `json:"size" unit:"bytes"`
+	PcapSupport bool        `json:"pcap_support"`
+	PcapSize    int64       `json:"pcap_size" unit:"bytes"`
+	PcapPath    iosrc.URI   `json:"pcap_path"`
+	ParentID    SpaceID     `json:"parent_id,omitempty"`
 }
 
 type SpaceInfos []SpaceInfo
@@ -130,14 +129,14 @@ type VersionResponse struct {
 }
 
 type SpacePostRequest struct {
-	Name     string          `json:"name"`
-	DataPath string          `json:"data_path"`
-	Storage  *storage.Config `json:"storage,omitempty"`
+	Name     string  `json:"name"`
+	DataPath string  `json:"data_path"`
+	Storage  *Config `json:"storage,omitempty"`
 }
 
 type SubspacePostRequest struct {
-	Name        string                     `json:"name"`
-	OpenOptions storage.ArchiveOpenOptions `json:"open_options"`
+	Name        string             `json:"name"`
+	OpenOptions ArchiveOpenOptions `json:"open_options"`
 }
 
 type SpacePutRequest struct {
@@ -276,4 +275,48 @@ type IndexPostRequest struct {
 	Keys       []string        `json:"keys"`
 	InputFile  string          `json:"input_file"`
 	OutputFile string          `json:"output_file"`
+}
+
+type StorageKind string
+
+const (
+	UnknownStore StorageKind = ""
+	FileStore    StorageKind = "filestore"
+	ArchiveStore StorageKind = "archivestore"
+)
+
+func (k StorageKind) String() string {
+	return string(k)
+}
+
+func (k *StorageKind) Set(x string) error {
+	kx := StorageKind(x)
+	switch kx {
+	case FileStore:
+		fallthrough
+	case ArchiveStore:
+		*k = kx
+		return nil
+
+	default:
+		return fmt.Errorf("unknown storage kind: %s", x)
+	}
+}
+
+type Config struct {
+	Kind    StorageKind    `json:"kind"`
+	Archive *ArchiveConfig `json:"archive,omitempty"`
+}
+
+type ArchiveConfig struct {
+	OpenOptions   *ArchiveOpenOptions   `json:"open_options,omitempty"`
+	CreateOptions *ArchiveCreateOptions `json:"create_options,omitempty"`
+}
+
+type ArchiveOpenOptions struct {
+	LogFilter []string `json:"log_filter,omitempty"`
+}
+
+type ArchiveCreateOptions struct {
+	LogSizeThreshold *int64 `json:"log_size_threshold,omitempty"`
 }

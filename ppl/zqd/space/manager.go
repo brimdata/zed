@@ -7,7 +7,6 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqe"
 	"go.uber.org/zap"
 )
@@ -87,14 +86,14 @@ func (m *Manager) Create(ctx context.Context, req api.SpacePostRequest) (Space, 
 	if err := validateName(m.names, req.Name); err != nil {
 		return nil, err
 	}
-	var storecfg storage.Config
+	var storecfg api.Config
 	if req.Storage != nil {
 		storecfg = *req.Storage
 	}
-	if storecfg.Kind == storage.UnknownStore {
-		storecfg.Kind = storage.FileStore
+	if storecfg.Kind == api.UnknownStore {
+		storecfg.Kind = api.FileStore
 	}
-	if storecfg.Kind == storage.FileStore && m.rootPath.Scheme != "file" {
+	if storecfg.Kind == api.FileStore && m.rootPath.Scheme != "file" {
 		return nil, zqe.E(zqe.Invalid, "cannot create file storage space on non-file backed data path")
 	}
 	id := newSpaceID()

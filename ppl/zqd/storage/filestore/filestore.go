@@ -9,17 +9,18 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/bufwriter"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/ppl/zqd/storage"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqe"
 	"github.com/brimsec/zq/zql"
 	"golang.org/x/sync/semaphore"
@@ -183,7 +184,7 @@ func (s *Storage) Summary(_ context.Context) (storage.Summary, error) {
 	}
 	// XXX This is not thread safe and it should be.
 	sum.Span = s.span
-	sum.Kind = storage.FileStore
+	sum.Kind = api.FileStore
 	return sum, nil
 }
 

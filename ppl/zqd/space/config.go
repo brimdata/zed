@@ -12,8 +12,7 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/zqd/pcapstorage"
-	"github.com/brimsec/zq/zqd/storage"
+	"github.com/brimsec/zq/ppl/zqd/pcapstorage"
 	"github.com/brimsec/zq/zqe"
 )
 
@@ -31,7 +30,7 @@ type config struct {
 	Version   int              `json:"version"`
 	Name      string           `json:"name"`
 	DataURI   iosrc.URI        `json:"data_uri"`
-	Storage   storage.Config   `json:"storage"`
+	Storage   api.Config       `json:"storage"`
 	Subspaces []subspaceConfig `json:"subspaces"`
 }
 
@@ -40,7 +39,7 @@ type configV2 struct {
 	Name      string           `json:"name"`
 	DataURI   iosrc.URI        `json:"data_uri"`
 	PcapPath  string           `json:"pcap_path"`
-	Storage   storage.Config   `json:"storage"`
+	Storage   api.Config       `json:"storage"`
 	Subspaces []subspaceConfig `json:"subspaces"`
 }
 
@@ -51,7 +50,7 @@ type configV1 struct {
 	// XXX PcapPath should be named pcap_path in json land. To avoid having to
 	// do a migration we'll keep this as-is for now.
 	PcapPath  string           `json:"packet_path"`
-	Storage   storage.Config   `json:"storage"`
+	Storage   api.Config       `json:"storage"`
 	Subspaces []subspaceConfig `json:"subspaces"`
 }
 
@@ -62,9 +61,9 @@ type versionCheck struct {
 }
 
 type subspaceConfig struct {
-	ID          api.SpaceID                `json:"id"`
-	Name        string                     `json:"name"`
-	OpenOptions storage.ArchiveOpenOptions `json:"open_options"`
+	ID          api.SpaceID            `json:"id"`
+	Name        string                 `json:"name"`
+	OpenOptions api.ArchiveOpenOptions `json:"open_options"`
 }
 
 func (c config) clone() config {
@@ -204,8 +203,8 @@ func (m *Manager) migrateConfigV1(data []byte, spaceURI iosrc.URI) (int, []byte,
 		c.Name = uniqueName(m.names, c.Name)
 	}
 	c.Name = safeName(c.Name)
-	if c.Storage.Kind == storage.UnknownStore {
-		c.Storage.Kind = storage.FileStore
+	if c.Storage.Kind == api.UnknownStore {
+		c.Storage.Kind = api.FileStore
 	}
 	d, err := json.Marshal(c)
 	return 1, d, err
