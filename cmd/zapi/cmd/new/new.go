@@ -5,10 +5,10 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
 	"github.com/brimsec/zq/pkg/units"
-	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/storage"
 	"github.com/mccanne/charm"
 )

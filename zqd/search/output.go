@@ -1,8 +1,8 @@
 package search
 
 import (
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zqd/api"
 )
 
 type Output interface {

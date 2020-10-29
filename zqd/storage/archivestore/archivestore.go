@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
@@ -12,7 +13,6 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqe"
 )

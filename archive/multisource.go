@@ -6,6 +6,7 @@ import (
 	"io"
 	"sync/atomic"
 
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/iosrc"
@@ -16,7 +17,6 @@ import (
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqe"
 	"go.uber.org/multierr"
 )

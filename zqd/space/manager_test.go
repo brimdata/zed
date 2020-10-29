@@ -9,10 +9,10 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

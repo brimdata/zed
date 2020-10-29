@@ -5,6 +5,7 @@ import (
 	"io"
 	"sync"
 
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/field"
@@ -13,7 +14,6 @@ import (
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zqd/api"
 )
 
 type parallelHead struct {

@@ -8,12 +8,12 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pkg/ctxio"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/ingest"
 	"github.com/brimsec/zq/zqd/search"
 	"github.com/brimsec/zq/zqd/space"

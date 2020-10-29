@@ -8,11 +8,11 @@ import (
 	"os"
 	"sync"
 
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pcap/pcapio"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqe"
 )
 

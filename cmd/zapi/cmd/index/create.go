@@ -6,8 +6,8 @@ import (
 	"flag"
 	"strings"
 
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
-	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zql"
 	"github.com/mccanne/charm"
 )

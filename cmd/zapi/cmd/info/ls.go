@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
 	"github.com/brimsec/zq/pkg/colw"
-	"github.com/brimsec/zq/zqd/api"
 	"github.com/mccanne/charm"
 	"github.com/mccanne/charm/pkg/termwidth"
 )

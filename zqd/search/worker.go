@@ -4,11 +4,11 @@ import (
 	"context"
 	"time"
 
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqd/storage/archivestore"
 	"github.com/brimsec/zq/zqe"

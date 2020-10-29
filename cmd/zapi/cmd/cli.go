@@ -8,8 +8,8 @@ import (
 	"os"
 	"syscall"
 
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/cli"
-	"github.com/brimsec/zq/zqd/api"
 	"github.com/kballard/go-shellquote"
 	"github.com/mccanne/charm"
 	"golang.org/x/crypto/ssh/terminal"

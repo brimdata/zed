@@ -6,9 +6,9 @@ import (
 	"path"
 	"sync"
 
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/pcapstorage"
 	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zqd/storage/archivestore"

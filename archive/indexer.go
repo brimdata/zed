@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/field"
@@ -14,7 +15,6 @@ import (
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zqd/api"
 )
 
 // XXX Embedding the type and field names like this can result in some clunky

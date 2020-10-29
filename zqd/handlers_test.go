@@ -18,6 +18,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
@@ -29,7 +30,6 @@ import (
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqd"
-	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/zqd/storage"
 	"github.com/brimsec/zq/zql"

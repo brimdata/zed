@@ -7,8 +7,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/pkg/glob"
-	"github.com/brimsec/zq/zqd/api"
 )
 
 var (

@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/brimsec/zq/zqd/api"
+	"github.com/brimsec/zq/api"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )

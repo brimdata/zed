@@ -7,11 +7,10 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"path"
-	"strconv"
-
 	"net/http"
 	"net/url"
+	"path"
+	"strconv"
 	"time"
 
 	"github.com/brimsec/zq/pcap/pcapio"

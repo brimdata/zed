@@ -5,9 +5,9 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/zjsonio"
-	"github.com/brimsec/zq/zqd/api"
 )
 
 const MaxJSONRecords = 25000
