@@ -135,7 +135,7 @@ which gives this somewhat cryptic result in text zng format:
 0:[conn;1521911721.307472;C4NuQHXpLAuXjndmi;[10.10.23.2;11;10.0.0.111;0;]icmp;-;1260.819589;23184;0;OTH;-;-;0;-;828;46368;0;0;-;]
 ```
 (If you want to learn more about this format, check out the
-[ZNG spec](../../zng/docs/spec.md).)
+[ZNG spec](../../../zng/docs/spec.md).)
 
 You might have noticed that this is kind of slow --- like all the counting above ---
 because every record is read to search for that IP.

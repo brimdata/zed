@@ -9,10 +9,10 @@ import (
 
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cli/procflags"
-	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
+	"github.com/brimsec/zq/ppl/cmd/zar/root"
 	"github.com/mccanne/charm"
 )
 

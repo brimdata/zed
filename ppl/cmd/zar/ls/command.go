@@ -1,4 +1,4 @@
-package rm
+package ls
 
 import (
 	"context"
@@ -10,31 +10,31 @@ import (
 	"strings"
 
 	"github.com/brimsec/zq/archive"
-	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/zqe"
+	"github.com/brimsec/zq/ppl/cmd/zar/root"
 	"github.com/mccanne/charm"
 )
 
-var Rm = &charm.Spec{
-	Name:  "rm",
-	Usage: "rm [-R root] file",
-	Short: "remove files from zar directories in an archive",
+var Ls = &charm.Spec{
+	Name:  "ls",
+	Usage: "ls [-R root] [options] [pattern]",
+	Short: "list the zar directories in an archive",
 	Long: `
-"zar rm" walks a zar achive and removes the file with the given name from
-each zar directory.
+"zar ls" walks an archive's directories and prints out
+the path of each zar directory contained with those top-level directories.
 `,
 	New: New,
 }
 
 func init() {
-	root.Zar.Add(Rm)
+	root.Zar.Add(Ls)
 }
 
 type Command struct {
 	*root.Command
 	root          string
+	lflag         bool
 	relativePaths bool
 	showRanges    bool
 }
@@ -42,17 +42,15 @@ type Command struct {
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
+	f.BoolVar(&c.lflag, "l", false, "long form")
 	f.BoolVar(&c.relativePaths, "relative", false, "display paths relative to root")
 	f.BoolVar(&c.showRanges, "ranges", false, "display time ranges instead of paths")
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	if len(args) == 0 {
-		return errors.New("zar rm: no file specified")
-	}
-	if c.root == "" {
-		return errors.New("zar rm: no archive root specified with -R or ZAR_ROOT")
+	if len(args) > 1 {
+		return errors.New("zar ls: too many arguments")
 	}
 
 	ark, err := archive.OpenArchive(c.root, nil)
@@ -60,35 +58,58 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 
+	var pattern string
+	if len(args) == 1 {
+		pattern = args[0]
+	}
 	if c.showRanges {
 		return archive.SpanWalk(context.TODO(), ark, nano.MaxSpan, func(si archive.SpanInfo) error {
 			for i, chunk := range si.Chunks {
 				rangeStr := si.ChunkRange(ark.DataOrder, i)
-				c.remove(ark, rangeStr, chunk.ZarDir(ark), args)
+				c.printDir(ark, rangeStr, chunk.ZarDir(ark), pattern)
 			}
 			return nil
 		})
 	}
 	return archive.Walk(context.TODO(), ark, func(chunk archive.Chunk) error {
-		c.remove(ark, "", chunk.ZarDir(ark), args)
+		c.printDir(ark, "", chunk.ZarDir(ark), pattern)
 		return nil
 	})
 }
 
-func (c *Command) remove(ark *archive.Archive, rangeStr string, dir iosrc.URI, names []string) error {
-	for _, name := range names {
-		path := dir.AppendPath(name)
-		if err := iosrc.Remove(context.TODO(), path); err != nil {
-			if zqe.IsNotFound(err) {
-				fmt.Printf("%s: not found\n", c.printable(ark, rangeStr, dir, name))
-				continue
-			}
-			return err
-		}
-		fmt.Printf("%s: removed\n", c.printable(ark, rangeStr, dir, name))
+func fileExists(path iosrc.URI) bool {
+	info, err := iosrc.Stat(context.TODO(), path)
+	if err != nil {
+		return false
 	}
-	return nil
+	if fsinfo, ok := info.(os.FileInfo); ok {
+		return !fsinfo.IsDir()
+	}
+	return true
 }
+
+func (c *Command) printDir(ark *archive.Archive, rangeStr string, dir iosrc.URI, pattern string) {
+	if pattern != "" {
+		path := dir.AppendPath(pattern)
+		if fileExists(path) {
+			fmt.Println(c.printable(ark, rangeStr, dir, pattern))
+		}
+		return
+	}
+	if !c.lflag {
+		fmt.Println(c.printable(ark, rangeStr, dir, ""))
+	} else {
+		entries, err := iosrc.ReadDir(context.TODO(), dir)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error listing directory: %v", err)
+			return
+		}
+		for _, e := range entries {
+			fmt.Println(c.printable(ark, rangeStr, dir, e.Name()))
+		}
+	}
+}
+
 func (c *Command) printable(ark *archive.Archive, rangeStr string, zardir iosrc.URI, objPath string) string {
 	if c.showRanges {
 		return path.Join(rangeStr, objPath)

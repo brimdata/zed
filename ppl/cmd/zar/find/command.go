@@ -8,8 +8,8 @@ import (
 
 	"github.com/brimsec/zq/archive"
 	"github.com/brimsec/zq/cli/outputflags"
-	"github.com/brimsec/zq/cmd/zar/root"
 	"github.com/brimsec/zq/emitter"
+	"github.com/brimsec/zq/ppl/cmd/zar/root"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
