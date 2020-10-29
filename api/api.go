@@ -129,9 +129,9 @@ type VersionResponse struct {
 }
 
 type SpacePostRequest struct {
-	Name     string  `json:"name"`
-	DataPath string  `json:"data_path"`
-	Storage  *Config `json:"storage,omitempty"`
+	Name     string         `json:"name"`
+	DataPath string         `json:"data_path"`
+	Storage  *StorageConfig `json:"storage,omitempty"`
 }
 
 type SubspacePostRequest struct {
@@ -298,7 +298,7 @@ func (k *StorageKind) Set(s string) error {
 	return fmt.Errorf("unknown storage kind: %s", s)
 }
 
-type Config struct {
+type StorageConfig struct {
 	Kind    StorageKind    `json:"kind"`
 	Archive *ArchiveConfig `json:"archive,omitempty"`
 }

@@ -56,7 +56,7 @@ func (c *Command) Run(args []string) error {
 	req := api.SpacePostRequest{
 		Name:     args[0],
 		DataPath: c.datapath,
-		Storage: &api.Config{
+		Storage: &api.StorageConfig{
 			Kind: c.kind,
 			Archive: &api.ArchiveConfig{
 				CreateOptions: &api.ArchiveCreateOptions{

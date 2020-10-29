@@ -27,20 +27,20 @@ func validSpaceName(s string) bool {
 }
 
 type config struct {
-	Version   int              `json:"version"`
-	Name      string           `json:"name"`
-	DataURI   iosrc.URI        `json:"data_uri"`
-	Storage   api.Config       `json:"storage"`
-	Subspaces []subspaceConfig `json:"subspaces"`
+	Version   int               `json:"version"`
+	Name      string            `json:"name"`
+	DataURI   iosrc.URI         `json:"data_uri"`
+	Storage   api.StorageConfig `json:"storage"`
+	Subspaces []subspaceConfig  `json:"subspaces"`
 }
 
 type configV2 struct {
-	Version   int              `json:"version"`
-	Name      string           `json:"name"`
-	DataURI   iosrc.URI        `json:"data_uri"`
-	PcapPath  string           `json:"pcap_path"`
-	Storage   api.Config       `json:"storage"`
-	Subspaces []subspaceConfig `json:"subspaces"`
+	Version   int               `json:"version"`
+	Name      string            `json:"name"`
+	DataURI   iosrc.URI         `json:"data_uri"`
+	PcapPath  string            `json:"pcap_path"`
+	Storage   api.StorageConfig `json:"storage"`
+	Subspaces []subspaceConfig  `json:"subspaces"`
 }
 
 type configV1 struct {
@@ -49,9 +49,9 @@ type configV1 struct {
 	DataPath string `json:"data_path"`
 	// XXX PcapPath should be named pcap_path in json land. To avoid having to
 	// do a migration we'll keep this as-is for now.
-	PcapPath  string           `json:"packet_path"`
-	Storage   api.Config       `json:"storage"`
-	Subspaces []subspaceConfig `json:"subspaces"`
+	PcapPath  string            `json:"packet_path"`
+	Storage   api.StorageConfig `json:"storage"`
+	Subspaces []subspaceConfig  `json:"subspaces"`
 }
 
 // versionCheck is used to establish the version of the loaded config file.

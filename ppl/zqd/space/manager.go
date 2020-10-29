@@ -86,7 +86,7 @@ func (m *Manager) Create(ctx context.Context, req api.SpacePostRequest) (Space, 
 	if err := validateName(m.names, req.Name); err != nil {
 		return nil, err
 	}
-	var storecfg api.Config
+	var storecfg api.StorageConfig
 	if req.Storage != nil {
 		storecfg = *req.Storage
 	}

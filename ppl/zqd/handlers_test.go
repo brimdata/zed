@@ -692,7 +692,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 
 	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{
 		Name: "arktest",
-		Storage: &api.Config{
+		Storage: &api.StorageConfig{
 			Kind: api.ArchiveStore,
 			Archive: &api.ArchiveConfig{
 				CreateOptions: &api.ArchiveCreateOptions{
@@ -754,7 +754,7 @@ func TestIndexSearch(t *testing.T) {
 
 	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{
 		Name: "TestIndexSearch",
-		Storage: &api.Config{
+		Storage: &api.StorageConfig{
 			Kind: api.ArchiveStore,
 			Archive: &api.ArchiveConfig{
 				CreateOptions: &api.ArchiveCreateOptions{
@@ -794,7 +794,7 @@ func TestSubspaceCreate(t *testing.T) {
 
 	sp1, err := conn.SpacePost(context.Background(), api.SpacePostRequest{
 		Name: "TestSubspaceCreate",
-		Storage: &api.Config{
+		Storage: &api.StorageConfig{
 			Kind: api.ArchiveStore,
 			Archive: &api.ArchiveConfig{
 				CreateOptions: &api.ArchiveCreateOptions{
@@ -871,7 +871,7 @@ func TestSubspacePersist(t *testing.T) {
 
 	sp1, err := conn1.SpacePost(context.Background(), api.SpacePostRequest{
 		Name: "TestSubspaceCreate",
-		Storage: &api.Config{
+		Storage: &api.StorageConfig{
 			Kind: api.ArchiveStore,
 			Archive: &api.ArchiveConfig{
 				CreateOptions: &api.ArchiveCreateOptions{
@@ -952,7 +952,7 @@ func TestArchiveStat(t *testing.T) {
 
 	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{
 		Name: "TestArchiveStat",
-		Storage: &api.Config{
+		Storage: &api.StorageConfig{
 			Kind: api.ArchiveStore,
 			Archive: &api.ArchiveConfig{
 				CreateOptions: &api.ArchiveCreateOptions{

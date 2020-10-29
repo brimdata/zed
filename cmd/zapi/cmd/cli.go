@@ -76,7 +76,7 @@ func (c *Command) Context() context.Context {
 	return c.ctx
 }
 
-// Connection returns a central api.Connection instance.
+// Connection returns a central client.Connection instance.
 func (c *Command) Connection() *client.Connection {
 	if c.conn == nil {
 		c.conn = client.NewConnectionTo("http://" + c.Host)

@@ -46,7 +46,7 @@ func TestV3MigrationNoPcap(t *testing.T) {
 		Name:     "test",
 		DataURI:  iosrc.URI{},
 		PcapPath: "",
-		Storage: api.Config{
+		Storage: api.StorageConfig{
 			Kind: api.FileStore,
 		},
 	})
@@ -68,7 +68,7 @@ func TestV3MigrationPcap(t *testing.T) {
 		Name:     "test",
 		DataURI:  iosrc.URI{},
 		PcapPath: pcapuri.Filepath(),
-		Storage: api.Config{
+		Storage: api.StorageConfig{
 			Kind: api.FileStore,
 		},
 	})
@@ -94,7 +94,7 @@ func TestV2Migration(t *testing.T) {
 		Name:     "test",
 		DataPath: ".",
 		PcapPath: pcapuri.Filepath(),
-		Storage: api.Config{
+		Storage: api.StorageConfig{
 			Kind: api.FileStore,
 		},
 	})
