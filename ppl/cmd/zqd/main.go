@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	_ "github.com/brimsec/zq/cmd/zqd/listen"
-	root "github.com/brimsec/zq/cmd/zqd/root"
-	_ "github.com/brimsec/zq/cmd/zqd/winexec"
+	_ "github.com/brimsec/zq/ppl/cmd/zqd/listen"
+	"github.com/brimsec/zq/ppl/cmd/zqd/root"
+	_ "github.com/brimsec/zq/ppl/cmd/zqd/winexec"
 )
 
 func main() {

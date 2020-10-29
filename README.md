@@ -5,7 +5,7 @@ and store structured log data, including:
 
 * The [zq](cmd/zq/README.md) command line tool, for searching and analyzing log
  files
-* The [zqd](cmd/zqd/README.md) daemon, which serves a REST-like API to manage
+* The [zqd](ppl/cmd/zqd/README.md) daemon, which serves a REST-like API to manage
  and query log archives, and is the backend for the [Brim](https://github.com/brimsec/brim)
  application
 * The [zar](cmd/zar/README.md) command line tool, for working with log data
