@@ -6,8 +6,8 @@ import (
 	"sync"
 
 	"github.com/brimsec/zq/api"
+	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/ast"
-	"github.com/brimsec/zq/cmd/zapi/connection"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/filter"
@@ -29,7 +29,7 @@ type parallelHead struct {
 	// workerConn is connection to a worker zqd process
 	// that is only used for distributed zqd.
 	// Thread (goroutine) parallelism is used when workerConn is nil.
-	workerConn *connection.Connection
+	workerConn *client.Connection
 }
 
 func (ph *parallelHead) closeOnDone() {
@@ -137,7 +137,7 @@ func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
 // for an open file (i.e. the stream for the open file),
 // nextSourceForConn sends a request to a remote zqd worker process, and returns
 // the ScannerCloser (i.e.output stream) for the remote zqd worker.
-func (pg *parallelGroup) nextSourceForConn(conn *connection.Connection) (ScannerCloser, error) {
+func (pg *parallelGroup) nextSourceForConn(conn *client.Connection) (ScannerCloser, error) {
 	select {
 	case src, ok := <-pg.sourceChan:
 		if !ok {
@@ -153,7 +153,7 @@ func (pg *parallelGroup) nextSourceForConn(conn *connection.Connection) (Scanner
 		if err != nil {
 			return nil, err
 		}
-		search := connection.NewZngSearch(rc)
+		search := client.NewZngSearch(rc)
 		s, err := scanner.NewScanner(pg.pctx.Context, search, nil, nil, req.Span)
 		if err != nil {
 			return nil, err
@@ -250,7 +250,7 @@ func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.
 	if len(workerURLs) > 0 {
 		// If workerURLs are present, then base the sources on the number of workers
 		for _, w := range workerURLs {
-			sources = append(sources, &parallelHead{pctx: pctx, pg: pg, workerConn: connection.NewConnectionTo(w)})
+			sources = append(sources, &parallelHead{pctx: pctx, pg: pg, workerConn: client.NewConnectionTo(w)})
 		}
 	} else {
 		// Normal: the sources are regular parallelHead procs

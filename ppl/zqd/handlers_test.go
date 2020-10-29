@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/cmd/zapi/connection"
+	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
@@ -47,11 +47,11 @@ func TestSearch(t *testing.T) {
 0:[conn;1521911723.205187;CBrzd94qfowOqJwCHa;]
 0:[conn;1521911721.255387;C8Tful1TvM3Zf5x8fl;]
 `
-	_, client := newCore(t)
-	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
+	_, conn := newCore(t)
+	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	_ = postSpaceLogs(t, client, sp.ID, nil, src)
-	res := searchTzng(t, client, sp.ID, "*")
+	_ = postSpaceLogs(t, conn, sp.ID, nil, src)
+	res := searchTzng(t, conn, sp.ID, "*")
 	require.Equal(t, test.Trim(src), res)
 }
 
@@ -61,10 +61,10 @@ func TestSearchNoCtrl(t *testing.T) {
 0:[conn;1521911723.205187;CBrzd94qfowOqJwCHa;]
 0:[conn;1521911721.255387;C8Tful1TvM3Zf5x8fl;]
 `
-	_, client := newCore(t)
-	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
+	_, conn := newCore(t)
+	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	_ = postSpaceLogs(t, client, sp.ID, nil, src)
+	_ = postSpaceLogs(t, conn, sp.ID, nil, src)
 
 	parsed, err := zql.ParseProc("*")
 	require.NoError(t, err)
@@ -76,7 +76,7 @@ func TestSearchNoCtrl(t *testing.T) {
 		Span:  nano.MaxSpan,
 		Dir:   -1,
 	}
-	r, err := client.Search(context.Background(), req, map[string]string{"noctrl": "true"})
+	r, err := conn.Search(context.Background(), req, map[string]string{"noctrl": "true"})
 	require.NoError(t, err)
 	var msgs []interface{}
 	r.SetOnCtrl(func(i interface{}) {
@@ -95,11 +95,11 @@ func TestSearchStats(t *testing.T) {
 0:[a;1;]
 0:[b;1;]
 `
-	_, client := newCore(t)
-	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
+	_, conn := newCore(t)
+	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	_ = postSpaceLogs(t, client, sp.ID, nil, src)
-	_, msgs := search(t, client, sp.ID, "_path != b")
+	_ = postSpaceLogs(t, conn, sp.ID, nil, src)
+	_, msgs := search(t, conn, sp.ID, "_path != b")
 	var stats *api.SearchStats
 	for i := len(msgs) - 1; i >= 0; i-- {
 		if s, ok := msgs[i].(*api.SearchStats); ok {
@@ -129,20 +129,20 @@ func TestGroupByReverse(t *testing.T) {
 0:[2;1;]
 0:[1;2;]
 `
-	_, client := newCore(t)
-	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
+	_, conn := newCore(t)
+	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	_ = postSpaceLogs(t, client, sp.ID, nil, src)
-	res := searchTzng(t, client, sp.ID, "every 1s count()")
+	_ = postSpaceLogs(t, conn, sp.ID, nil, src)
+	res := searchTzng(t, conn, sp.ID, "every 1s count()")
 	require.Equal(t, test.Trim(counts), res)
 }
 
 func TestSearchEmptySpace(t *testing.T) {
 	ctx := context.Background()
-	_, client := newCore(t)
-	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	_, conn := newCore(t)
+	sp, err := conn.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	res := searchTzng(t, client, sp.ID, "*")
+	res := searchTzng(t, conn, sp.ID, "*")
 	require.Equal(t, "", res)
 }
 
@@ -152,10 +152,10 @@ func TestSearchError(t *testing.T) {
 0:[conn;1521911723.205187;CBrzd94qfowOqJwCHa;]
 0:[conn;1521911721.255387;C8Tful1TvM3Zf5x8fl;]
 `
-	_, client := newCore(t)
-	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
+	_, conn := newCore(t)
+	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	_ = postSpaceLogs(t, client, sp.ID, nil, src)
+	_ = postSpaceLogs(t, conn, sp.ID, nil, src)
 
 	parsed, err := zql.ParseProc("*")
 	require.NoError(t, err)
@@ -168,9 +168,9 @@ func TestSearchError(t *testing.T) {
 			Span:  nano.MaxSpan,
 			Dir:   2,
 		}
-		_, err = client.Search(context.Background(), req, nil)
+		_, err = conn.Search(context.Background(), req, nil)
 		require.Error(t, err)
-		errResp := err.(*connection.ErrorResponse)
+		errResp := err.(*client.ErrorResponse)
 		assert.Equal(t, http.StatusBadRequest, errResp.StatusCode())
 		assert.IsType(t, &api.Error{}, errResp.Err)
 	})
@@ -181,9 +181,9 @@ func TestSearchError(t *testing.T) {
 			Span:  nano.MaxSpan,
 			Dir:   1,
 		}
-		_, err = client.Search(context.Background(), req, nil)
+		_, err = conn.Search(context.Background(), req, nil)
 		require.Error(t, err)
-		errResp := err.(*connection.ErrorResponse)
+		errResp := err.(*client.ErrorResponse)
 		assert.Equal(t, http.StatusBadRequest, errResp.StatusCode())
 		assert.IsType(t, &api.Error{}, errResp.Err)
 	})
@@ -194,10 +194,10 @@ func TestSpaceList(t *testing.T) {
 	var expected []api.SpaceInfo
 
 	ctx := context.Background()
-	c, client := newCore(t)
+	c, conn := newCore(t)
 	{
 		for _, n := range names {
-			sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: n})
+			sp, err := conn.SpacePost(ctx, api.SpacePostRequest{Name: n})
 			require.NoError(t, err)
 			expected = append(expected, api.SpaceInfo{
 				ID:          sp.ID,
@@ -207,7 +207,7 @@ func TestSpaceList(t *testing.T) {
 			})
 		}
 
-		list, err := client.SpaceList(ctx)
+		list, err := conn.SpaceList(ctx)
 		require.NoError(t, err)
 		sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
 		require.Equal(t, expected, list)
@@ -218,9 +218,9 @@ func TestSpaceList(t *testing.T) {
 	require.NoError(t, os.RemoveAll(filepath.Join(c.Root.Filepath(), string(expected[2].ID))))
 	expected = append(expected[:2], expected[3:]...)
 
-	_, client = newCoreAtDir(t, c.Root.Filepath())
+	_, conn = newCoreAtDir(t, c.Root.Filepath())
 
-	list, err := client.SpaceList(ctx)
+	list, err := conn.SpaceList(ctx)
 	require.NoError(t, err)
 	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
 	require.Equal(t, expected, list)
@@ -232,10 +232,10 @@ func TestSpaceInfo(t *testing.T) {
 0:[conn;1;CBrzd94qfowOqJwCHa;]
 0:[conn;2;C8Tful1TvM3Zf5x8fl;]`
 	ctx := context.Background()
-	_, client := newCore(t)
-	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	_, conn := newCore(t)
+	sp, err := conn.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	_ = postSpaceLogs(t, client, sp.ID, nil, src)
+	_ = postSpaceLogs(t, conn, sp.ID, nil, src)
 	span := nano.Span{Ts: 1e9, Dur: 1e9 + 1}
 	expected := &api.SpaceInfo{
 		ID:          sp.ID,
@@ -246,17 +246,17 @@ func TestSpaceInfo(t *testing.T) {
 		Size:        81,
 		PcapSupport: false,
 	}
-	info, err := client.SpaceInfo(ctx, sp.ID)
+	info, err := conn.SpaceInfo(ctx, sp.ID)
 	require.NoError(t, err)
 	require.Equal(t, expected, info)
 }
 
 func TestSpaceInfoNoData(t *testing.T) {
 	ctx := context.Background()
-	_, client := newCore(t)
-	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	_, conn := newCore(t)
+	sp, err := conn.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	info, err := client.SpaceInfo(ctx, sp.ID)
+	info, err := conn.SpaceInfo(ctx, sp.ID)
 	require.NoError(t, err)
 	expected := &api.SpaceInfo{
 		ID:          sp.ID,
@@ -271,8 +271,8 @@ func TestSpaceInfoNoData(t *testing.T) {
 
 func TestSpacePostNameOnly(t *testing.T) {
 	ctx := context.Background()
-	c, client := newCore(t)
-	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	c, conn := newCore(t)
+	sp, err := conn.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 	assert.Equal(t, "test", sp.Name)
 	assert.Equal(t, c.Root.AppendPath(string(sp.ID)), sp.DataPath)
@@ -281,38 +281,38 @@ func TestSpacePostNameOnly(t *testing.T) {
 
 func TestSpacePostDuplicateName(t *testing.T) {
 	ctx := context.Background()
-	_, client := newCore(t)
-	_, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	_, conn := newCore(t)
+	_, err := conn.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	_, err = client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
-	require.Equal(t, connection.ErrSpaceExists, err)
+	_, err = conn.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	require.Equal(t, client.ErrSpaceExists, err)
 }
 
 func TestSpaceInvalidName(t *testing.T) {
 	ctx := context.Background()
-	_, client := newCore(t)
+	_, conn := newCore(t)
 	t.Run("Post", func(t *testing.T) {
-		_, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "𝚭𝚴𝚪 is.good"})
+		_, err := conn.SpacePost(ctx, api.SpacePostRequest{Name: "𝚭𝚴𝚪 is.good"})
 		require.NoError(t, err)
-		_, err = client.SpacePost(ctx, api.SpacePostRequest{Name: "𝚭𝚴𝚪/bad"})
+		_, err = conn.SpacePost(ctx, api.SpacePostRequest{Name: "𝚭𝚴𝚪/bad"})
 		require.EqualError(t, err, "status code 400: name may not contain '/' or non-printable characters")
 	})
 	t.Run("Put", func(t *testing.T) {
-		sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "𝚭𝚴𝚪1"})
+		sp, err := conn.SpacePost(ctx, api.SpacePostRequest{Name: "𝚭𝚴𝚪1"})
 		require.NoError(t, err)
-		err = client.SpacePut(ctx, sp.ID, api.SpacePutRequest{Name: "𝚭𝚴𝚪/2"})
+		err = conn.SpacePut(ctx, sp.ID, api.SpacePutRequest{Name: "𝚭𝚴𝚪/2"})
 		require.EqualError(t, err, "status code 400: name may not contain '/' or non-printable characters")
 	})
 }
 
 func TestSpacePutDuplicateName(t *testing.T) {
 	ctx := context.Background()
-	_, client := newCore(t)
-	_, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	_, conn := newCore(t)
+	_, err := conn.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test1"})
+	sp, err := conn.SpacePost(ctx, api.SpacePostRequest{Name: "test1"})
 	require.NoError(t, err)
-	err = client.SpacePut(ctx, sp.ID, api.SpacePutRequest{Name: "test"})
+	err = conn.SpacePut(ctx, sp.ID, api.SpacePutRequest{Name: "test"})
 	assert.EqualError(t, err, "status code 409: space with name 'test' already exists")
 }
 
@@ -320,8 +320,8 @@ func TestSpacePostDataPath(t *testing.T) {
 	ctx := context.Background()
 	tmp := createTempDir(t)
 	datapath := filepath.Join(tmp, "mypcap.brim")
-	_, client := newCoreAtDir(t, filepath.Join(tmp, "spaces"))
-	sp, err := client.SpacePost(ctx, api.SpacePostRequest{DataPath: datapath})
+	_, conn := newCoreAtDir(t, filepath.Join(tmp, "spaces"))
+	sp, err := conn.SpacePost(ctx, api.SpacePostRequest{DataPath: datapath})
 	require.NoError(t, err)
 	assert.Equal(t, "mypcap.brim", sp.Name)
 	assert.Equal(t, datapath, sp.DataPath.Filepath())
@@ -329,24 +329,24 @@ func TestSpacePostDataPath(t *testing.T) {
 
 func TestSpacePut(t *testing.T) {
 	ctx := context.Background()
-	_, client := newCore(t)
-	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	_, conn := newCore(t)
+	sp, err := conn.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	err = client.SpacePut(ctx, sp.ID, api.SpacePutRequest{Name: "new_name"})
+	err = conn.SpacePut(ctx, sp.ID, api.SpacePutRequest{Name: "new_name"})
 	require.NoError(t, err)
-	info, err := client.SpaceInfo(ctx, sp.ID)
+	info, err := conn.SpaceInfo(ctx, sp.ID)
 	require.NoError(t, err)
 	assert.Equal(t, "new_name", info.Name)
 }
 
 func TestSpaceDelete(t *testing.T) {
 	ctx := context.Background()
-	_, client := newCore(t)
-	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	_, conn := newCore(t)
+	sp, err := conn.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	err = client.SpaceDelete(ctx, sp.ID)
+	err = conn.SpaceDelete(ctx, sp.ID)
 	require.NoError(t, err)
-	list, err := client.SpaceList(ctx)
+	list, err := conn.SpaceList(ctx)
 	require.NoError(t, err)
 	require.Equal(t, []api.SpaceInfo{}, list)
 }
@@ -354,13 +354,13 @@ func TestSpaceDelete(t *testing.T) {
 func TestSpaceDeleteDataDir(t *testing.T) {
 	ctx := context.Background()
 	tmp := createTempDir(t)
-	_, client := newCoreAtDir(t, filepath.Join(tmp, "spaces"))
+	_, conn := newCoreAtDir(t, filepath.Join(tmp, "spaces"))
 	datadir := filepath.Join(tmp, "mypcap.brim")
-	sp, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
+	sp, err := conn.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	err = client.SpaceDelete(ctx, sp.ID)
+	err = conn.SpaceDelete(ctx, sp.ID)
 	require.NoError(t, err)
-	list, err := client.SpaceList(ctx)
+	list, err := conn.SpaceList(ctx)
 	require.NoError(t, err)
 	require.Equal(t, []api.SpaceInfo{}, list)
 	// ensure data dir has also been deleted
@@ -370,27 +370,27 @@ func TestSpaceDeleteDataDir(t *testing.T) {
 }
 
 func TestNoEndSlashSupport(t *testing.T) {
-	_, client := newCore(t)
-	_, err := client.Do(context.Background(), "GET", "/space/", nil)
+	_, conn := newCore(t)
+	_, err := conn.Do(context.Background(), "GET", "/space/", nil)
 	require.Error(t, err)
-	require.Equal(t, 404, err.(*connection.ErrorResponse).StatusCode())
+	require.Equal(t, 404, err.(*client.ErrorResponse).StatusCode())
 }
 
 func TestRequestID(t *testing.T) {
 	ctx := context.Background()
 	t.Run("GeneratesUniqueID", func(t *testing.T) {
-		_, client := newCore(t)
-		res1, err := client.Do(ctx, "GET", "/space", nil)
+		_, conn := newCore(t)
+		res1, err := conn.Do(ctx, "GET", "/space", nil)
 		require.NoError(t, err)
-		res2, err := client.Do(ctx, "GET", "/space", nil)
+		res2, err := conn.Do(ctx, "GET", "/space", nil)
 		require.NoError(t, err)
 		assert.Equal(t, "1", res1.Header().Get("X-Request-ID"))
 		assert.Equal(t, "2", res2.Header().Get("X-Request-ID"))
 	})
 	t.Run("PropagatesID", func(t *testing.T) {
-		_, client := newCore(t)
+		_, conn := newCore(t)
 		requestID := "random-request-ID"
-		req := client.Request(context.Background())
+		req := conn.Request(context.Background())
 		req.SetHeader("X-Request-ID", requestID)
 		res, err := req.Execute("GET", "/space")
 		require.NoError(t, err)
@@ -407,11 +407,11 @@ func TestPostZngLogs(t *testing.T) {
 		"#0:record[_path:string,ts:time,uid:bstring]",
 		"0:[conn;2;CBrzd94qfowOqJwCHa;]",
 	}
-	_, client := newCore(t)
-	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
+	_, conn := newCore(t)
+	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 
-	payloads := postSpaceLogs(t, client, sp.ID, nil, strings.Join(src1, "\n"), strings.Join(src2, "\n"))
+	payloads := postSpaceLogs(t, conn, sp.ID, nil, strings.Join(src1, "\n"), strings.Join(src2, "\n"))
 	status := payloads[len(payloads)-2].(*api.LogPostStatus)
 	span := &nano.Span{Ts: 1e9, Dur: 1e9 + 1}
 	require.Equal(t, &api.LogPostStatus{
@@ -424,10 +424,10 @@ func TestPostZngLogs(t *testing.T) {
 	assert.Equal(t, taskend.Type, "TaskEnd")
 	assert.Nil(t, taskend.Error)
 
-	res := searchTzng(t, client, sp.ID, "*")
+	res := searchTzng(t, conn, sp.ID, "*")
 	require.Equal(t, strings.Join(append(src2, src1[1]), "\n"), strings.TrimSpace(res))
 
-	info, err := client.SpaceInfo(context.Background(), sp.ID)
+	info, err := conn.SpaceInfo(context.Background(), sp.ID)
 	require.NoError(t, err)
 	require.Equal(t, &api.SpaceInfo{
 		ID:          sp.ID,
@@ -449,11 +449,11 @@ func TestPostZngLogWarning(t *testing.T) {
 		"0:[conn;1;CBrzd94qfowOqJwCHa;]",
 		"detectablebutbadline",
 	}
-	_, client := newCore(t)
-	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
+	_, conn := newCore(t)
+	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 
-	payloads := postSpaceLogs(t, client, sp.ID, nil, strings.Join(src1, "\n"), strings.Join(src2, "\n"))
+	payloads := postSpaceLogs(t, conn, sp.ID, nil, strings.Join(src1, "\n"), strings.Join(src2, "\n"))
 	warnings := payloads.LogPostWarnings()
 	assert.Regexp(t, ": format detection error.*", warnings[0].Warning)
 	assert.Regexp(t, ": line 3: bad format$", warnings[1].Warning)
@@ -498,21 +498,21 @@ func TestPostNDJSONLogs(t *testing.T) {
 	}
 
 	test := func(input string) {
-		_, client := newCore(t)
+		_, conn := newCore(t)
 
-		sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
+		sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 		require.NoError(t, err)
 
-		payloads := postSpaceLogs(t, client, sp.ID, &tc, input)
+		payloads := postSpaceLogs(t, conn, sp.ID, &tc, input)
 		last := payloads[len(payloads)-1].(*api.TaskEnd)
 		assert.Equal(t, last.Type, "TaskEnd")
 		assert.Nil(t, last.Error)
 
-		res := searchTzng(t, client, sp.ID, "*")
+		res := searchTzng(t, conn, sp.ID, "*")
 		require.Equal(t, expected, strings.TrimSpace(res))
 
 		span := nano.Span{Ts: 1e9, Dur: 1e9 + 1}
-		info, err := client.SpaceInfo(context.Background(), sp.ID)
+		info, err := conn.SpaceInfo(context.Background(), sp.ID)
 		require.NoError(t, err)
 		require.Equal(t, &api.SpaceInfo{
 			ID:          sp.ID,
@@ -559,11 +559,11 @@ func TestPostNDJSONLogWarning(t *testing.T) {
 			ndjsonio.Rule{"_path", "http", "http_log"},
 		},
 	}
-	_, client := newCore(t)
-	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
+	_, conn := newCore(t)
+	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 
-	payloads := postSpaceLogs(t, client, sp.ID, &tc, src1, src2)
+	payloads := postSpaceLogs(t, conn, sp.ID, &tc, src1, src2)
 	warnings := payloads.LogPostWarnings()
 	assert.Regexp(t, ": line 1: descriptor not found", warnings[0].Warning)
 	assert.Regexp(t, ": line 2: incomplete descriptor", warnings[1].Warning)
@@ -587,21 +587,21 @@ func TestPostLogStopErr(t *testing.T) {
 0:[conn;1;CBrzd94qfowOqJwCHa;]`
 	logfile := writeTempFile(t, src)
 	defer os.Remove(logfile)
-	_, client := newCore(t)
+	_, conn := newCore(t)
 
-	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
+	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 
-	_, err = client.LogPostStream(context.Background(), sp.ID, api.LogPostRequest{Paths: []string{logfile}, StopErr: true})
+	_, err = conn.LogPostStream(context.Background(), sp.ID, api.LogPostRequest{Paths: []string{logfile}, StopErr: true})
 	require.Error(t, err)
 	assert.Regexp(t, ": format detection error.*", err.Error())
 }
 
 func TestDeleteDuringPcapPost(t *testing.T) {
-	c, client := newCore(t)
+	c, conn := newCore(t)
 
 	pcapfile := "./testdata/valid.pcap"
-	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{Name: "deleteDuringPacketPost"})
+	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "deleteDuringPacketPost"})
 	require.NoError(t, err)
 	var zeekClosed int32
 
@@ -618,7 +618,7 @@ func TestDeleteDuringPcapPost(t *testing.T) {
 
 	wg.Add(1)
 	doPost := func() error {
-		stream, err := client.PcapPostStream(context.Background(), sp.ID, api.PcapPostRequest{pcapfile})
+		stream, err := conn.PcapPostStream(context.Background(), sp.ID, api.PcapPostRequest{pcapfile})
 		wg.Done()
 		if err != nil {
 			return err
@@ -647,7 +647,7 @@ func TestDeleteDuringPcapPost(t *testing.T) {
 	}()
 
 	wg.Wait()
-	err = client.SpaceDelete(context.Background(), sp.ID)
+	err = conn.SpaceDelete(context.Background(), sp.ID)
 	require.NoError(t, err)
 
 	assert.EqualError(t, <-pcapPostErr, "pcap post operation canceled")
@@ -664,33 +664,33 @@ func TestSpaceDataDir(t *testing.T) {
 	root := createTempDir(t)
 	datapath := createTempDir(t)
 
-	_, client1 := newCoreAtDir(t, root)
+	_, conn1 := newCoreAtDir(t, root)
 
 	// Verify space creation request uses datapath.
-	sp, err := client1.SpacePost(context.Background(), api.SpacePostRequest{
+	sp, err := conn1.SpacePost(context.Background(), api.SpacePostRequest{
 		Name:     "test",
 		DataPath: datapath,
 	})
 	require.NoError(t, err)
-	_ = postSpaceLogs(t, client1, sp.ID, nil, src)
-	res := searchTzng(t, client1, sp.ID, "*")
+	_ = postSpaceLogs(t, conn1, sp.ID, nil, src)
+	res := searchTzng(t, conn1, sp.ID, "*")
 	require.Equal(t, test.Trim(src), res)
 
 	_, err = os.Stat(filepath.Join(datapath, "all.zng"))
 	require.NoError(t, err)
 
 	// Verify space load on startup uses datapath.
-	_, client2 := newCoreAtDir(t, root)
+	_, conn2 := newCoreAtDir(t, root)
 
-	res = searchTzng(t, client2, sp.ID, "*")
+	res = searchTzng(t, conn2, sp.ID, "*")
 	require.Equal(t, test.Trim(src), res)
 }
 
 func TestCreateArchiveSpace(t *testing.T) {
 	thresh := int64(1000)
-	_, client := newCore(t)
+	_, conn := newCore(t)
 
-	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{
+	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{
 		Name: "arktest",
 		Storage: &api.Config{
 			Kind: api.ArchiveStore,
@@ -703,7 +703,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 	})
 	require.NoError(t, err)
 	payload := api.LogPostRequest{Paths: []string{babble}}
-	err = client.LogPost(context.Background(), sp.ID, payload)
+	err = conn.LogPost(context.Background(), sp.ID, payload)
 	require.NoError(t, err)
 
 	span := nano.Span{Ts: 1587508830068523240, Dur: 9789993714061}
@@ -715,7 +715,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 		Span:        &span,
 		Size:        35331,
 	}
-	si, err := client.SpaceInfo(context.Background(), sp.ID)
+	si, err := conn.SpaceInfo(context.Background(), sp.ID)
 	require.NoError(t, err)
 	require.Equal(t, expsi, si)
 
@@ -723,7 +723,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 #0:record[ts:time,s:string,v:int64]
 0:[1587508881.0613914;harefoot-raucous;137;]
 `
-	res := searchTzng(t, client, sp.ID, "s=harefoot-raucous")
+	res := searchTzng(t, conn, sp.ID, "s=harefoot-raucous")
 	require.Equal(t, test.Trim(exptzng), res)
 }
 
@@ -739,9 +739,9 @@ func TestBlankNameSpace(t *testing.T) {
 	err = ioutil.WriteFile(filepath.Join(root, testdirname, "config.json"), []byte(oldconfig), 0600)
 	require.NoError(t, err)
 
-	_, client := newCoreAtDir(t, root)
+	_, conn := newCoreAtDir(t, root)
 
-	si, err := client.SpaceInfo(context.Background(), api.SpaceID(testdirname))
+	si, err := conn.SpaceInfo(context.Background(), api.SpaceID(testdirname))
 	require.NoError(t, err)
 	assert.Equal(t, testdirname, si.Name)
 }
@@ -750,9 +750,9 @@ func TestIndexSearch(t *testing.T) {
 	thresh := int64(1000)
 	root := createTempDir(t)
 
-	_, client := newCoreAtDir(t, root)
+	_, conn := newCoreAtDir(t, root)
 
-	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{
+	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{
 		Name: "TestIndexSearch",
 		Storage: &api.Config{
 			Kind: api.ArchiveStore,
@@ -765,9 +765,9 @@ func TestIndexSearch(t *testing.T) {
 	})
 	require.NoError(t, err)
 	payload := api.LogPostRequest{Paths: []string{babble}}
-	err = client.LogPost(context.Background(), sp.ID, payload)
+	err = conn.LogPost(context.Background(), sp.ID, payload)
 	require.NoError(t, err)
-	err = client.IndexPost(context.Background(), sp.ID, api.IndexPostRequest{
+	err = conn.IndexPost(context.Background(), sp.ID, api.IndexPostRequest{
 		Patterns: []string{"v"},
 	})
 	require.NoError(t, err)
@@ -781,7 +781,7 @@ func TestIndexSearch(t *testing.T) {
 0:[257;1;1587510381.06636177;1587510063.06326614;]
 0:[257;1;1587509477.06450528;1587509181.06547297;]
 `
-	res, _ := indexSearch(t, client, sp.ID, "", []string{"v=257"})
+	res, _ := indexSearch(t, conn, sp.ID, "", []string{"v=257"})
 	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c _log", res, "tzng"))
 }
 
@@ -790,9 +790,9 @@ func TestSubspaceCreate(t *testing.T) {
 
 	// Create server & the parent space
 	root := createTempDir(t)
-	_, client := newCoreAtDir(t, root)
+	_, conn := newCoreAtDir(t, root)
 
-	sp1, err := client.SpacePost(context.Background(), api.SpacePostRequest{
+	sp1, err := conn.SpacePost(context.Background(), api.SpacePostRequest{
 		Name: "TestSubspaceCreate",
 		Storage: &api.Config{
 			Kind: api.ArchiveStore,
@@ -805,9 +805,9 @@ func TestSubspaceCreate(t *testing.T) {
 	})
 	require.NoError(t, err)
 	payload := api.LogPostRequest{Paths: []string{babble}}
-	err = client.LogPost(context.Background(), sp1.ID, payload)
+	err = conn.LogPost(context.Background(), sp1.ID, payload)
 	require.NoError(t, err)
-	err = client.IndexPost(context.Background(), sp1.ID, api.IndexPostRequest{
+	err = conn.IndexPost(context.Background(), sp1.ID, api.IndexPostRequest{
 		Patterns: []string{":int64"},
 	})
 	require.NoError(t, err)
@@ -818,12 +818,12 @@ func TestSubspaceCreate(t *testing.T) {
 0:[336;1;1587517405.06665591;1587517149.06304407;]
 0:[336;1;1587509168.06759839;1587508830.06852324;]
 `
-	res, _ := indexSearch(t, client, sp1.ID, "", []string{":int64=336"})
+	res, _ := indexSearch(t, conn, sp1.ID, "", []string{":int64=336"})
 	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c _log", res, "tzng"))
 
 	logId := strings.TrimSpace(tzngCopy(t, "first=1587509168.06759839 | cut _log", res, "text"))
 	// Create subspace
-	sp2, err := client.SubspacePost(context.Background(), sp1.ID, api.SubspacePostRequest{
+	sp2, err := conn.SubspacePost(context.Background(), sp1.ID, api.SubspacePostRequest{
 		Name: "subspace",
 		OpenOptions: api.ArchiveOpenOptions{
 			LogFilter: []string{logId},
@@ -837,7 +837,7 @@ func TestSubspaceCreate(t *testing.T) {
 #0:record[key:int64,count:uint64,first:time,last:time]
 0:[336;1;1587509168.06759839;1587508830.06852324;]
 `
-	res, _ = indexSearch(t, client, sp2.ID, "", []string{":int64=336"})
+	res, _ = indexSearch(t, conn, sp2.ID, "", []string{":int64=336"})
 	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c _log", res, "tzng"))
 
 	// Verify full search only returns filtered results
@@ -845,20 +845,20 @@ func TestSubspaceCreate(t *testing.T) {
 #0:record[ts:time,s:string,v:int64]
 0:[1587508861.0676317;gatelike-nucleolocentrosome;336;]
 `
-	res, _ = search(t, client, sp2.ID, "v=336")
+	res, _ = search(t, conn, sp2.ID, "v=336")
 	assert.Equal(t, test.Trim(exp), res)
 
 	// Verify delete on parent fails
-	err = client.SpaceDelete(context.Background(), sp1.ID)
+	err = conn.SpaceDelete(context.Background(), sp1.ID)
 	require.Error(t, err)
 	require.Regexp(t, "subspaces", err.Error())
 
 	// Delete subspace
-	err = client.SpaceDelete(context.Background(), sp2.ID)
+	err = conn.SpaceDelete(context.Background(), sp2.ID)
 	require.NoError(t, err)
 
 	// parent delete should now succeed
-	err = client.SpaceDelete(context.Background(), sp1.ID)
+	err = conn.SpaceDelete(context.Background(), sp1.ID)
 	require.NoError(t, err)
 }
 
@@ -867,9 +867,9 @@ func TestSubspacePersist(t *testing.T) {
 
 	// Create server & the parent space
 	root := createTempDir(t)
-	_, client1 := newCoreAtDir(t, root)
+	_, conn1 := newCoreAtDir(t, root)
 
-	sp1, err := client1.SpacePost(context.Background(), api.SpacePostRequest{
+	sp1, err := conn1.SpacePost(context.Background(), api.SpacePostRequest{
 		Name: "TestSubspaceCreate",
 		Storage: &api.Config{
 			Kind: api.ArchiveStore,
@@ -882,18 +882,18 @@ func TestSubspacePersist(t *testing.T) {
 	})
 	require.NoError(t, err)
 	payload := api.LogPostRequest{Paths: []string{babble}}
-	err = client1.LogPost(context.Background(), sp1.ID, payload)
+	err = conn1.LogPost(context.Background(), sp1.ID, payload)
 	require.NoError(t, err)
-	err = client1.IndexPost(context.Background(), sp1.ID, api.IndexPostRequest{
+	err = conn1.IndexPost(context.Background(), sp1.ID, api.IndexPostRequest{
 		Patterns: []string{":int64"},
 	})
 	require.NoError(t, err)
 
-	res, _ := indexSearch(t, client1, sp1.ID, "", []string{":int64=336"})
+	res, _ := indexSearch(t, conn1, sp1.ID, "", []string{":int64=336"})
 	logId := strings.TrimSpace(tzngCopy(t, "first=1587509168.06759839 | cut _log", res, "text"))
 
 	// Create subspace
-	sp2, err := client1.SubspacePost(context.Background(), sp1.ID, api.SubspacePostRequest{
+	sp2, err := conn1.SubspacePost(context.Background(), sp1.ID, api.SubspacePostRequest{
 		Name: "subspace",
 		OpenOptions: api.ArchiveOpenOptions{
 			LogFilter: []string{logId},
@@ -907,40 +907,40 @@ func TestSubspacePersist(t *testing.T) {
 #0:record[key:int64,count:uint64,first:time,last:time]
 0:[336;1;1587509168.06759839;1587508830.06852324;]
 `
-	res, _ = indexSearch(t, client1, sp2.ID, "", []string{":int64=336"})
+	res, _ = indexSearch(t, conn1, sp2.ID, "", []string{":int64=336"})
 	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c _log", res, "tzng"))
 
 	// Verify name change works
-	err = client1.SpacePut(context.Background(), sp2.ID, api.SpacePutRequest{Name: "newname"})
+	err = conn1.SpacePut(context.Background(), sp2.ID, api.SpacePutRequest{Name: "newname"})
 	require.NoError(t, err)
 
-	si, err := client1.SpaceInfo(context.Background(), sp2.ID)
+	si, err := conn1.SpaceInfo(context.Background(), sp2.ID)
 	require.NoError(t, err)
 	assert.Equal(t, sp2.ID, si.ID)
 	assert.Equal(t, sp1.ID, si.ParentID)
 	assert.Equal(t, "newname", si.Name)
 
 	// Verify subspace is present & has new name with new server
-	_, client2 := newCoreAtDir(t, root)
+	_, conn2 := newCoreAtDir(t, root)
 
-	si, err = client2.SpaceInfo(context.Background(), sp2.ID)
+	si, err = conn2.SpaceInfo(context.Background(), sp2.ID)
 	require.NoError(t, err)
 	assert.Equal(t, sp2.ID, si.ID)
 	assert.Equal(t, sp1.ID, si.ParentID)
 	assert.Equal(t, "newname", si.Name)
 
 	// Delete subspace
-	err = client2.SpaceDelete(context.Background(), sp2.ID)
+	err = conn2.SpaceDelete(context.Background(), sp2.ID)
 	require.NoError(t, err)
 
-	si, err = client2.SpaceInfo(context.Background(), sp2.ID)
+	si, err = conn2.SpaceInfo(context.Background(), sp2.ID)
 	require.Error(t, err)
 	assert.Regexp(t, "not found", err.Error())
 
 	// Verify subspace gone with new server
-	_, client3 := newCoreAtDir(t, root)
+	_, conn3 := newCoreAtDir(t, root)
 
-	si, err = client3.SpaceInfo(context.Background(), sp2.ID)
+	si, err = conn3.SpaceInfo(context.Background(), sp2.ID)
 	require.Error(t, err)
 	assert.Regexp(t, "not found", err.Error())
 }
@@ -948,9 +948,9 @@ func TestSubspacePersist(t *testing.T) {
 func TestArchiveStat(t *testing.T) {
 	thresh := int64(20 * 1024)
 	root := createTempDir(t)
-	_, client := newCoreAtDir(t, root)
+	_, conn := newCoreAtDir(t, root)
 
-	sp, err := client.SpacePost(context.Background(), api.SpacePostRequest{
+	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{
 		Name: "TestArchiveStat",
 		Storage: &api.Config{
 			Kind: api.ArchiveStore,
@@ -963,9 +963,9 @@ func TestArchiveStat(t *testing.T) {
 	})
 	require.NoError(t, err)
 	payload := api.LogPostRequest{Paths: []string{babble}}
-	err = client.LogPost(context.Background(), sp.ID, payload)
+	err = conn.LogPost(context.Background(), sp.ID, payload)
 	require.NoError(t, err)
-	err = client.IndexPost(context.Background(), sp.ID, api.IndexPostRequest{
+	err = conn.IndexPost(context.Background(), sp.ID, api.IndexPostRequest{
 		Patterns: []string{"v"},
 	})
 	require.NoError(t, err)
@@ -978,12 +978,12 @@ func TestArchiveStat(t *testing.T) {
 0:[chunk;1587513592.0625444;1587508830.06852324;17206;504;]
 1:[index;1587513592.0625444;1587508830.06852324;microindex-field-v.zng;2267;504;[int64;]]
 `
-	res := archiveStat(t, client, sp.ID)
+	res := archiveStat(t, conn, sp.ID)
 	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c log_id", res, "tzng"))
 }
 
-func archiveStat(t *testing.T, client *connection.Connection, space api.SpaceID) string {
-	r, err := client.ArchiveStat(context.Background(), space, nil)
+func archiveStat(t *testing.T, conn *client.Connection, space api.SpaceID) string {
+	r, err := conn.ArchiveStat(context.Background(), space, nil)
 	require.NoError(t, err)
 	buf := bytes.NewBuffer(nil)
 	w := tzngio.NewWriter(zio.NopCloser(buf))
@@ -991,12 +991,12 @@ func archiveStat(t *testing.T, client *connection.Connection, space api.SpaceID)
 	return buf.String()
 }
 
-func indexSearch(t *testing.T, client *connection.Connection, space api.SpaceID, indexName string, patterns []string) (string, []interface{}) {
+func indexSearch(t *testing.T, conn *client.Connection, space api.SpaceID, indexName string, patterns []string) (string, []interface{}) {
 	req := api.IndexSearchRequest{
 		IndexName: indexName,
 		Patterns:  patterns,
 	}
-	r, err := client.IndexSearch(context.Background(), space, req, nil)
+	r, err := conn.IndexSearch(context.Background(), space, req, nil)
 	require.NoError(t, err)
 	buf := bytes.NewBuffer(nil)
 	w := tzngio.NewWriter(zio.NopCloser(buf))
@@ -1011,7 +1011,7 @@ func indexSearch(t *testing.T, client *connection.Connection, space api.SpaceID,
 // search runs the provided zql program as a search on the provided
 // space, returning the tzng results along with a slice of all control
 // messages that were received.
-func search(t *testing.T, client *connection.Connection, space api.SpaceID, prog string) (string, []interface{}) {
+func search(t *testing.T, conn *client.Connection, space api.SpaceID, prog string) (string, []interface{}) {
 	parsed, err := zql.ParseProc(prog)
 	require.NoError(t, err)
 	proc, err := json.Marshal(parsed)
@@ -1022,7 +1022,7 @@ func search(t *testing.T, client *connection.Connection, space api.SpaceID, prog
 		Span:  nano.MaxSpan,
 		Dir:   -1,
 	}
-	r, err := client.Search(context.Background(), req, nil)
+	r, err := conn.Search(context.Background(), req, nil)
 	require.NoError(t, err)
 	buf := bytes.NewBuffer(nil)
 	w := tzngio.NewWriter(zio.NopCloser(buf))
@@ -1034,8 +1034,8 @@ func search(t *testing.T, client *connection.Connection, space api.SpaceID, prog
 	return buf.String(), msgs
 }
 
-func searchTzng(t *testing.T, client *connection.Connection, space api.SpaceID, prog string) string {
-	tzng, _ := search(t, client, space, prog)
+func searchTzng(t *testing.T, conn *client.Connection, space api.SpaceID, prog string) string {
+	tzng, _ := search(t, conn, space, prog)
 	return tzng
 }
 
@@ -1062,18 +1062,18 @@ func createTempDir(t *testing.T) string {
 	return dir
 }
 
-func newCore(t *testing.T) (*zqd.Core, *connection.Connection) {
+func newCore(t *testing.T) (*zqd.Core, *client.Connection) {
 	root := createTempDir(t)
 	return newCoreAtDir(t, root)
 }
 
-func newCoreAtDir(t *testing.T, dir string) (*zqd.Core, *connection.Connection) {
+func newCoreAtDir(t *testing.T, dir string) (*zqd.Core, *client.Connection) {
 	require.NoError(t, os.MkdirAll(dir, 0755))
 	t.Cleanup(func() { os.RemoveAll(dir) })
 	return newCoreWithConfig(t, zqd.Config{Root: dir})
 }
 
-func newCoreWithConfig(t *testing.T, conf zqd.Config) (*zqd.Core, *connection.Connection) {
+func newCoreWithConfig(t *testing.T, conf zqd.Config) (*zqd.Core, *client.Connection) {
 	if conf.Root == "" {
 		conf.Root = createTempDir(t)
 	}
@@ -1084,7 +1084,7 @@ func newCoreWithConfig(t *testing.T, conf zqd.Config) (*zqd.Core, *connection.Co
 	require.NoError(t, err)
 	srv := httptest.NewServer(zqd.NewHandler(core, conf.Logger))
 	t.Cleanup(srv.Close)
-	return core, connection.NewConnectionTo(srv.URL)
+	return core, client.NewConnectionTo(srv.URL)
 }
 
 func writeTempFile(t *testing.T, contents string) string {
@@ -1110,7 +1110,7 @@ func (ps postPayloads) LogPostWarnings() []*api.LogPostWarning {
 }
 
 // postSpaceLogs POSTs the provided strings as logs in to the provided space, and returns a slice of any payloads that the server sent.
-func postSpaceLogs(t *testing.T, c *connection.Connection, spaceID api.SpaceID, tc *ndjsonio.TypeConfig, logs ...string) postPayloads {
+func postSpaceLogs(t *testing.T, c *client.Connection, spaceID api.SpaceID, tc *ndjsonio.TypeConfig, logs ...string) postPayloads {
 	var filenames []string
 	for _, log := range logs {
 		name := writeTempFile(t, log)

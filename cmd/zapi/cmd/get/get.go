@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/api"
+	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
-	"github.com/brimsec/zq/cmd/zapi/connection"
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
@@ -99,7 +99,7 @@ func (c *Command) Run(args []string) error {
 	if len(args) > 0 {
 		expr = strings.Join(args, " ")
 	}
-	client := c.Client()
+	conn := c.Connection()
 
 	var r io.ReadCloser
 	if c.chunkInfo == "" {
@@ -113,7 +113,7 @@ func (c *Command) Run(args []string) error {
 		}
 		req.Span = nano.NewSpanTs(nano.Ts(c.from), nano.Ts(c.to))
 		params := map[string]string{"format": c.encoding}
-		r, err = client.SearchRaw(c.Context(), *req, params)
+		r, err = conn.SearchRaw(c.Context(), *req, params)
 		if err != nil {
 			return fmt.Errorf("search error: %w", err)
 		}
@@ -124,7 +124,7 @@ func (c *Command) Run(args []string) error {
 		if err != nil {
 			return fmt.Errorf("parse plus chunk error: %s", err)
 		}
-		r, err = client.WorkerRaw(c.Context(), *req, params)
+		r, err = conn.WorkerRaw(c.Context(), *req, params)
 		if err != nil {
 			return fmt.Errorf("worker error: %w", err)
 		}
@@ -145,7 +145,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	stream := connection.NewZngSearch(r)
+	stream := client.NewZngSearch(r)
 	stream.SetOnCtrl(c.handleControl)
 	if err := zbuf.Copy(writer, stream); err != nil {
 		writer.Close()

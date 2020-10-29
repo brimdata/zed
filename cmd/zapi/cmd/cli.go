@@ -9,8 +9,8 @@ import (
 	"syscall"
 
 	"github.com/brimsec/zq/api"
+	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/cli"
-	"github.com/brimsec/zq/cmd/zapi/connection"
 	"github.com/kballard/go-shellquote"
 	"github.com/mccanne/charm"
 	"golang.org/x/crypto/ssh/terminal"
@@ -63,7 +63,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 }
 
 type Command struct {
-	client    *connection.Connection
+	conn      *client.Connection
 	Host      string
 	Spacename string
 	NoFancy   bool
@@ -76,12 +76,12 @@ func (c *Command) Context() context.Context {
 	return c.ctx
 }
 
-// Client returns a central api.Connection instance.
-func (c *Command) Client() *connection.Connection {
-	if c.client == nil {
-		c.client = connection.NewConnectionTo("http://" + c.Host)
+// Connection returns a central api.Connection instance.
+func (c *Command) Connection() *client.Connection {
+	if c.conn == nil {
+		c.conn = client.NewConnectionTo("http://" + c.Host)
 	}
-	return c.client
+	return c.conn
 }
 
 func (c *Command) SpaceID() (api.SpaceID, error) {
@@ -91,7 +91,7 @@ func (c *Command) SpaceID() (api.SpaceID, error) {
 	if c.Spacename == "" {
 		return "", ErrSpaceNotSpecified
 	}
-	return GetSpaceID(c.ctx, c.Client(), c.Spacename)
+	return GetSpaceID(c.ctx, c.Connection(), c.Spacename)
 }
 
 func (c *Command) Cleanup() {

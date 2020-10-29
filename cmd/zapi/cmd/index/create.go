@@ -81,7 +81,7 @@ func (c *CreateCmd) Run(args []string) error {
 		}
 		req.Keys = c.keys
 	}
-	return c.Client().IndexPost(c.Context(), id, req)
+	return c.Connection().IndexPost(c.Context(), id, req)
 }
 
 type arrayFlag []string

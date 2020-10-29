@@ -39,14 +39,14 @@ func (c *Command) Run(args []string) error {
 	if len(args) == 0 {
 		return errors.New("must specify at least one log from parent")
 	}
-	client := c.Client()
+	conn := c.Connection()
 	req := api.SubspacePostRequest{
 		Name: c.name,
 		OpenOptions: api.ArchiveOpenOptions{
 			LogFilter: args,
 		},
 	}
-	if _, err := client.SubspacePost(c.Context(), api.SpaceID(c.parentID), req); err != nil {
+	if _, err := conn.SubspacePost(c.Context(), api.SpaceID(c.parentID), req); err != nil {
 		return fmt.Errorf("couldn't create subspace %s: %w", c.name, err)
 	}
 	fmt.Printf("%s: subspace created\n", c.name)

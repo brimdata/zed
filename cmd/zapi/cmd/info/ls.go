@@ -38,8 +38,8 @@ func NewLs(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 // Run lists all spaces in the current zqd host or if a parameter
 // is provided (in glob style) lists the info about that space.
 func (c *LsCommand) Run(args []string) error {
-	client := c.Client()
-	matches, err := cmd.SpaceGlob(c.Context(), client, args...)
+	conn := c.Connection()
+	matches, err := cmd.SpaceGlob(c.Context(), conn, args...)
 	if err != nil {
 		if err == cmd.ErrNoSpacesExist {
 			fmt.Println("no spaces exist")

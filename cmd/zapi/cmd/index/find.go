@@ -78,7 +78,7 @@ func (c *FindCmd) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	stream, err := c.Client().IndexSearch(c.Context(), id, req, nil)
+	stream, err := c.Connection().IndexSearch(c.Context(), id, req, nil)
 	if err != nil {
 		return err
 	}

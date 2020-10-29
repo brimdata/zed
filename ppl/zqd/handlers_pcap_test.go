@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/cmd/zapi/connection"
+	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/test"
@@ -121,7 +121,7 @@ func TestPcapPostSearch(t *testing.T) {
 			DstPort: 80,
 		}
 		_, err := p.client.PcapSearch(context.Background(), p.space.ID, req)
-		require.Equal(t, connection.ErrNoPcapResultsFound, err)
+		require.Equal(t, client.ErrNoPcapResultsFound, err)
 	})
 }
 
@@ -138,7 +138,7 @@ func TestPcapPostInvalidPcap(t *testing.T) {
 	p := pcapPostTest(t, "testdata/invalid.pcap", testLauncher(nil, nil))
 	t.Run("ErrorResponse", func(t *testing.T) {
 		require.Error(t, p.err)
-		var reserr *connection.ErrorResponse
+		var reserr *client.ErrorResponse
 		if !errors.As(p.err, &reserr) {
 			t.Fatalf("expected error to be for type *api.ErrorResponse, got %T", p.err)
 		}
@@ -206,11 +206,11 @@ func launcherFromEnv(t *testing.T, key string) pcapanalyzer.Launcher {
 }
 
 type pcapPostTestResult struct {
-	client   *connection.Connection
+	client   *client.Connection
 	core     *zqd.Core
 	space    api.SpaceInfo
 	err      error
-	payloads connection.Payloads
+	payloads client.Payloads
 }
 
 func pcapPostTest(t *testing.T, pcapfile string, zeek pcapanalyzer.Launcher) pcapPostTestResult {

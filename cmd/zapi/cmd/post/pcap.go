@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/api"
+	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
-	"github.com/brimsec/zq/cmd/zapi/connection"
 	"github.com/brimsec/zq/cmd/zapi/format"
 	"github.com/brimsec/zq/pkg/display"
 	"github.com/mccanne/charm"
@@ -47,10 +47,10 @@ func (c *PcapCommand) Run(args []string) (err error) {
 		return errors.New("pcap path arg required")
 	}
 	var id api.SpaceID
-	client := c.Client()
+	conn := c.Connection()
 	if c.force {
-		sp, err := client.SpacePost(c.Context(), api.SpacePostRequest{Name: c.Spacename})
-		if err != nil && err != connection.ErrSpaceExists {
+		sp, err := conn.SpacePost(c.Context(), api.SpacePostRequest{Name: c.Spacename})
+		if err != nil && err != client.ErrSpaceExists {
 			return err
 		}
 		if sp != nil {
@@ -73,7 +73,7 @@ func (c *PcapCommand) Run(args []string) (err error) {
 	if err != nil {
 		return err
 	}
-	stream, err := client.PcapPostStream(c.Context(), id, api.PcapPostRequest{Path: file})
+	stream, err := conn.PcapPostStream(c.Context(), id, api.PcapPostRequest{Path: file})
 	if err != nil {
 		return err
 	}

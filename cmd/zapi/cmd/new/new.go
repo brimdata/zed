@@ -52,7 +52,7 @@ func (c *Command) Run(args []string) error {
 		return errors.New("must specify a space name")
 	}
 
-	client := c.Client()
+	conn := c.Connection()
 	req := api.SpacePostRequest{
 		Name:     args[0],
 		DataPath: c.datapath,
@@ -65,7 +65,7 @@ func (c *Command) Run(args []string) error {
 			},
 		},
 	}
-	if _, err := client.SpacePost(c.Context(), req); err != nil {
+	if _, err := conn.SpacePost(c.Context(), req); err != nil {
 		return fmt.Errorf("couldn't create new space %s: %v", req.Name, err)
 	}
 	fmt.Printf("%s: space created\n", req.Name)
