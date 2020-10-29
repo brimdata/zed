@@ -1,9 +1,13 @@
-package api
+package jsonpipe
 
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/brimsec/zq/api"
 )
+
+var sep = []byte("\n\n")
 
 // JSONPipe is an abstraction for sending reponses as multiple payloads over
 // a potentially long-lived connection using HTTP chunked encoding and a convention
@@ -15,11 +19,11 @@ type JSONPipe struct {
 	separator []byte
 }
 
-// NewJSONPipe creates a new JSONPipe object for streaming the response to
+// New creates a new JSONPipe object for streaming the response to
 // the indicated request.  The Start should be called to initiate the pipe.
 // Then JSON objects are transmitted by calling the Send method one or more times.
 // The pipe is closed by calling the End method.
-func NewJSONPipe(w http.ResponseWriter) *JSONPipe {
+func New(w http.ResponseWriter) *JSONPipe {
 	p := &JSONPipe{
 		ResponseWriter: w,
 		encoder:        json.NewEncoder(w),
@@ -34,15 +38,15 @@ func (p *JSONPipe) flush() {
 }
 
 func (p *JSONPipe) SendStart(taskID int64) error {
-	return p.Send(TaskStart{Type: "TaskStart", TaskID: taskID})
+	return p.Send(api.TaskStart{Type: "TaskStart", TaskID: taskID})
 }
 
 func (p *JSONPipe) SendEnd(taskID int64, err error) error {
-	var apierr *Error
+	var apierr *api.Error
 	if err != nil {
-		apierr = &Error{Type: "Error", Message: err.Error()}
+		apierr = &api.Error{Type: "Error", Message: err.Error()}
 	}
-	return p.SendFinal(TaskEnd{Type: "TaskEnd", TaskID: taskID, Error: apierr})
+	return p.SendFinal(api.TaskEnd{Type: "TaskEnd", TaskID: taskID, Error: apierr})
 }
 
 // Send encodes as JSON the payload and streams it as a message over the

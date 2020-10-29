@@ -13,6 +13,7 @@ import (
 	"github.com/brimsec/zq/pkg/ctxio"
 	"github.com/brimsec/zq/ppl/archive"
 	"github.com/brimsec/zq/ppl/zqd/ingest"
+	"github.com/brimsec/zq/ppl/zqd/jsonpipe"
 	"github.com/brimsec/zq/ppl/zqd/search"
 	"github.com/brimsec/zq/ppl/zqd/space"
 	"github.com/brimsec/zq/ppl/zqd/storage/archivestore"
@@ -367,7 +368,7 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/ndjson")
 	w.WriteHeader(http.StatusAccepted)
-	pipe := api.NewJSONPipe(w)
+	pipe := jsonpipe.New(w)
 	taskID := c.getTaskID()
 	taskStart := api.TaskStart{Type: "TaskStart", TaskID: taskID}
 	if err := pipe.Send(taskStart); err != nil {
@@ -456,7 +457,7 @@ func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/ndjson")
 	w.WriteHeader(http.StatusAccepted)
 	logger := c.requestLogger(r)
-	pipe := api.NewJSONPipe(w)
+	pipe := jsonpipe.New(w)
 	if err := pipe.SendStart(0); err != nil {
 		logger.Warn("error sending payload", zap.Error(err))
 		return

@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/api"
+	"github.com/brimsec/zq/cmd/zapi/connection"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
@@ -169,7 +170,7 @@ func TestSearchError(t *testing.T) {
 		}
 		_, err = client.Search(context.Background(), req, nil)
 		require.Error(t, err)
-		errResp := err.(*api.ErrorResponse)
+		errResp := err.(*connection.ErrorResponse)
 		assert.Equal(t, http.StatusBadRequest, errResp.StatusCode())
 		assert.IsType(t, &api.Error{}, errResp.Err)
 	})
@@ -182,7 +183,7 @@ func TestSearchError(t *testing.T) {
 		}
 		_, err = client.Search(context.Background(), req, nil)
 		require.Error(t, err)
-		errResp := err.(*api.ErrorResponse)
+		errResp := err.(*connection.ErrorResponse)
 		assert.Equal(t, http.StatusBadRequest, errResp.StatusCode())
 		assert.IsType(t, &api.Error{}, errResp.Err)
 	})
@@ -284,7 +285,7 @@ func TestSpacePostDuplicateName(t *testing.T) {
 	_, err := client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 	_, err = client.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
-	require.Equal(t, api.ErrSpaceExists, err)
+	require.Equal(t, connection.ErrSpaceExists, err)
 }
 
 func TestSpaceInvalidName(t *testing.T) {
@@ -372,7 +373,7 @@ func TestNoEndSlashSupport(t *testing.T) {
 	_, client := newCore(t)
 	_, err := client.Do(context.Background(), "GET", "/space/", nil)
 	require.Error(t, err)
-	require.Equal(t, 404, err.(*api.ErrorResponse).StatusCode())
+	require.Equal(t, 404, err.(*connection.ErrorResponse).StatusCode())
 }
 
 func TestRequestID(t *testing.T) {
@@ -981,7 +982,7 @@ func TestArchiveStat(t *testing.T) {
 	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c log_id", res, "tzng"))
 }
 
-func archiveStat(t *testing.T, client *api.Connection, space api.SpaceID) string {
+func archiveStat(t *testing.T, client *connection.Connection, space api.SpaceID) string {
 	r, err := client.ArchiveStat(context.Background(), space, nil)
 	require.NoError(t, err)
 	buf := bytes.NewBuffer(nil)
@@ -990,7 +991,7 @@ func archiveStat(t *testing.T, client *api.Connection, space api.SpaceID) string
 	return buf.String()
 }
 
-func indexSearch(t *testing.T, client *api.Connection, space api.SpaceID, indexName string, patterns []string) (string, []interface{}) {
+func indexSearch(t *testing.T, client *connection.Connection, space api.SpaceID, indexName string, patterns []string) (string, []interface{}) {
 	req := api.IndexSearchRequest{
 		IndexName: indexName,
 		Patterns:  patterns,
@@ -1010,7 +1011,7 @@ func indexSearch(t *testing.T, client *api.Connection, space api.SpaceID, indexN
 // search runs the provided zql program as a search on the provided
 // space, returning the tzng results along with a slice of all control
 // messages that were received.
-func search(t *testing.T, client *api.Connection, space api.SpaceID, prog string) (string, []interface{}) {
+func search(t *testing.T, client *connection.Connection, space api.SpaceID, prog string) (string, []interface{}) {
 	parsed, err := zql.ParseProc(prog)
 	require.NoError(t, err)
 	proc, err := json.Marshal(parsed)
@@ -1033,7 +1034,7 @@ func search(t *testing.T, client *api.Connection, space api.SpaceID, prog string
 	return buf.String(), msgs
 }
 
-func searchTzng(t *testing.T, client *api.Connection, space api.SpaceID, prog string) string {
+func searchTzng(t *testing.T, client *connection.Connection, space api.SpaceID, prog string) string {
 	tzng, _ := search(t, client, space, prog)
 	return tzng
 }
@@ -1061,18 +1062,18 @@ func createTempDir(t *testing.T) string {
 	return dir
 }
 
-func newCore(t *testing.T) (*zqd.Core, *api.Connection) {
+func newCore(t *testing.T) (*zqd.Core, *connection.Connection) {
 	root := createTempDir(t)
 	return newCoreAtDir(t, root)
 }
 
-func newCoreAtDir(t *testing.T, dir string) (*zqd.Core, *api.Connection) {
+func newCoreAtDir(t *testing.T, dir string) (*zqd.Core, *connection.Connection) {
 	require.NoError(t, os.MkdirAll(dir, 0755))
 	t.Cleanup(func() { os.RemoveAll(dir) })
 	return newCoreWithConfig(t, zqd.Config{Root: dir})
 }
 
-func newCoreWithConfig(t *testing.T, conf zqd.Config) (*zqd.Core, *api.Connection) {
+func newCoreWithConfig(t *testing.T, conf zqd.Config) (*zqd.Core, *connection.Connection) {
 	if conf.Root == "" {
 		conf.Root = createTempDir(t)
 	}
@@ -1083,7 +1084,7 @@ func newCoreWithConfig(t *testing.T, conf zqd.Config) (*zqd.Core, *api.Connectio
 	require.NoError(t, err)
 	srv := httptest.NewServer(zqd.NewHandler(core, conf.Logger))
 	t.Cleanup(srv.Close)
-	return core, api.NewConnectionTo(srv.URL)
+	return core, connection.NewConnectionTo(srv.URL)
 }
 
 func writeTempFile(t *testing.T, contents string) string {
@@ -1109,7 +1110,7 @@ func (ps postPayloads) LogPostWarnings() []*api.LogPostWarning {
 }
 
 // postSpaceLogs POSTs the provided strings as logs in to the provided space, and returns a slice of any payloads that the server sent.
-func postSpaceLogs(t *testing.T, c *api.Connection, spaceID api.SpaceID, tc *ndjsonio.TypeConfig, logs ...string) postPayloads {
+func postSpaceLogs(t *testing.T, c *connection.Connection, spaceID api.SpaceID, tc *ndjsonio.TypeConfig, logs ...string) postPayloads {
 	var filenames []string
 	for _, log := range logs {
 		name := writeTempFile(t, log)

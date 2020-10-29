@@ -1,9 +1,11 @@
-package api
+package connection
 
 import (
 	"bufio"
 	"errors"
 	"io"
+
+	"github.com/brimsec/zq/api"
 )
 
 type Stream struct {
@@ -14,7 +16,7 @@ type Payloads []interface{}
 
 func (p Payloads) Error() error {
 	last := p[len(p)-1]
-	if te, ok := last.(*TaskEnd); ok {
+	if te, ok := last.(*api.TaskEnd); ok {
 		if te.Error != nil {
 			return te.Error
 		}
@@ -53,7 +55,7 @@ func (s *Stream) ReadAll() (Payloads, error) {
 			return nil, err
 		}
 		payloads = append(payloads, v)
-		if _, ok := v.(*TaskEnd); ok {
+		if _, ok := v.(*api.TaskEnd); ok {
 			return payloads, nil
 		}
 	}

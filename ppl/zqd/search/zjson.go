@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/brimsec/zq/api"
+	"github.com/brimsec/zq/ppl/zqd/jsonpipe"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/zjsonio"
 	"github.com/brimsec/zq/zng"
@@ -11,7 +12,7 @@ import (
 
 // ZJSON implements the Output interface.
 type ZJSON struct {
-	pipe   *api.JSONPipe
+	pipe   *jsonpipe.JSONPipe
 	stream *zjsonio.Stream
 	mtu    int
 	ctrl   bool
@@ -19,7 +20,7 @@ type ZJSON struct {
 
 func NewZJSONOutput(resp http.ResponseWriter, mtu int, ctrl bool) *ZJSON {
 	return &ZJSON{
-		pipe:   api.NewJSONPipe(resp),
+		pipe:   jsonpipe.New(resp),
 		stream: zjsonio.NewStream(),
 		mtu:    mtu,
 		ctrl:   ctrl,

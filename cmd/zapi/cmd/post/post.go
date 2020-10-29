@@ -11,6 +11,7 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
+	"github.com/brimsec/zq/cmd/zapi/connection"
 	"github.com/brimsec/zq/cmd/zapi/format"
 	"github.com/brimsec/zq/pkg/display"
 	"github.com/brimsec/zq/pkg/iosrc"
@@ -54,7 +55,7 @@ func (c *LogCommand) Run(args []string) (err error) {
 	}
 	if c.force {
 		sp, err := client.SpacePost(c.Context(), api.SpacePostRequest{Name: c.Spacename})
-		if err != nil && err != api.ErrSpaceExists {
+		if err != nil && err != connection.ErrSpaceExists {
 			return err
 		}
 		c.Spacename = sp.Name

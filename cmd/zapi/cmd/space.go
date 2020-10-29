@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/brimsec/zq/api"
+	"github.com/brimsec/zq/cmd/zapi/connection"
 	"github.com/brimsec/zq/pkg/glob"
 )
 
@@ -16,7 +17,7 @@ var (
 	ErrNoSpacesExist = errors.New("no spaces exist")
 )
 
-func SpaceGlob(ctx context.Context, client *api.Connection, patterns ...string) ([]api.SpaceInfo, error) {
+func SpaceGlob(ctx context.Context, client *connection.Connection, patterns ...string) ([]api.SpaceInfo, error) {
 	all, err := client.SpaceList(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't fetch spaces: %w", err)
@@ -44,7 +45,7 @@ func SpaceGlob(ctx context.Context, client *api.Connection, patterns ...string) 
 	return spaces, nil
 }
 
-func GetSpaceID(ctx context.Context, client *api.Connection, name string) (api.SpaceID, error) {
+func GetSpaceID(ctx context.Context, client *connection.Connection, name string) (api.SpaceID, error) {
 	spaces, err := SpaceGlob(ctx, client, name)
 	if err != nil {
 		return "", err

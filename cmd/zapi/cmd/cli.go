@@ -10,6 +10,7 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/cli"
+	"github.com/brimsec/zq/cmd/zapi/connection"
 	"github.com/kballard/go-shellquote"
 	"github.com/mccanne/charm"
 	"golang.org/x/crypto/ssh/terminal"
@@ -62,7 +63,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 }
 
 type Command struct {
-	client    *api.Connection
+	client    *connection.Connection
 	Host      string
 	Spacename string
 	NoFancy   bool
@@ -76,9 +77,9 @@ func (c *Command) Context() context.Context {
 }
 
 // Client returns a central api.Connection instance.
-func (c *Command) Client() *api.Connection {
+func (c *Command) Client() *connection.Connection {
 	if c.client == nil {
-		c.client = api.NewConnectionTo("http://" + c.Host)
+		c.client = connection.NewConnectionTo("http://" + c.Host)
 	}
 	return c.client
 }

@@ -1,4 +1,4 @@
-package api
+package connection
 
 import (
 	"bufio"
@@ -6,13 +6,13 @@ import (
 	"io"
 )
 
-var sep = []byte("\n\n")
-
 func NewJSONPipeScanner(r io.Reader) *bufio.Scanner {
 	s := bufio.NewScanner(r)
 	s.Split(splitJSONPipe)
 	return s
 }
+
+var sep = []byte("\n\n")
 
 func splitJSONPipe(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	if atEOF && len(data) == 0 {

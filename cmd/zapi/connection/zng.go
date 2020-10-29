@@ -1,8 +1,9 @@
-package api
+package connection
 
 import (
 	"io"
 
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -45,7 +46,7 @@ func (r *ZngSearch) Read() (*zng.Record, error) {
 		if r.onctrl != nil {
 			r.onctrl(ctrl)
 		}
-		if end, ok := ctrl.(*TaskEnd); ok && end.Error != nil {
+		if end, ok := ctrl.(*api.TaskEnd); ok && end.Error != nil {
 			return nil, end.Error
 		}
 	}

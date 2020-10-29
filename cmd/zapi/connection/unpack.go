@@ -1,8 +1,10 @@
-package api
+package connection
 
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/brimsec/zq/api"
 )
 
 // unpack transforms a piped json stream into the appropriate api response
@@ -18,25 +20,25 @@ func unpack(b []byte) (interface{}, error) {
 	var out interface{}
 	switch v.Type {
 	case "TaskStart":
-		out = &TaskStart{}
+		out = &api.TaskStart{}
 	case "TaskEnd":
-		out = &TaskEnd{}
+		out = &api.TaskEnd{}
 	case "SearchRecords":
-		out = &SearchRecords{}
+		out = &api.SearchRecords{}
 	case "SearchWarning":
-		out = &SearchWarning{}
+		out = &api.SearchWarning{}
 	case "SearchStats":
-		out = &SearchStats{}
+		out = &api.SearchStats{}
 	case "SearchEnd":
-		out = &SearchEnd{}
+		out = &api.SearchEnd{}
 	case "PcapPostStatus":
-		out = &PcapPostStatus{}
+		out = &api.PcapPostStatus{}
 	case "PcapPostWarning":
-		out = &PcapPostWarning{}
+		out = &api.PcapPostWarning{}
 	case "LogPostStatus":
-		out = &LogPostStatus{}
+		out = &api.LogPostStatus{}
 	case "LogPostWarning":
-		out = &LogPostWarning{}
+		out = &api.LogPostWarning{}
 	case "":
 		return nil, fmt.Errorf("no type field in search result: %s", string(b))
 	default:

@@ -14,6 +14,7 @@ import (
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
+	"github.com/brimsec/zq/cmd/zapi/connection"
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
@@ -144,7 +145,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	stream := api.NewZngSearch(r)
+	stream := connection.NewZngSearch(r)
 	stream.SetOnCtrl(c.handleControl)
 	if err := zbuf.Copy(writer, stream); err != nil {
 		writer.Close()

@@ -1,4 +1,4 @@
-package api
+package connection
 
 import (
 	"github.com/brimsec/zq/zbuf"
