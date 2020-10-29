@@ -78,7 +78,7 @@ test-heavy: build $(SAMPLEDATA)
 	@go test -v -tags=heavy ./tests
 
 test-pcapingest: bin/$(ZEEKPATH)
-	@ZEEK=$(CURDIR)/bin/$(ZEEKPATH)/zeekrunner go test -v -run=PcapPost -tags=pcapingest ./zqd
+	@ZEEK=$(CURDIR)/bin/$(ZEEKPATH)/zeekrunner go test -v -run=PcapPost -tags=pcapingest ./ppl/zqd
 
 perf-compare: build $(SAMPLEDATA)
 	scripts/comparison-test.sh
@@ -165,7 +165,7 @@ peg: $(PEG_GEN)
 
 # CI performs these actions individually since that looks nicer in the UI;
 # this is a shortcut so that a local dev can easily run everything.
-test-ci: fmt tidy vet test-generate test-unit test-system test-zeek test-heavy
+test-ci: fmt tidy vet test-generate test-unit test-system test-pcapingest test-heavy
 
 clean: clean-python
 	@rm -rf dist
