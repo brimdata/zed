@@ -5,8 +5,8 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
-	"github.com/brimsec/zq/zqd/api"
 	"github.com/mccanne/charm"
 )
 
@@ -34,11 +34,11 @@ func (c *Command) Run(args []string) error {
 	}
 	oldname := args[0]
 	newname := args[1]
-	id, err := cmd.GetSpaceID(c.Context(), c.Client(), oldname)
+	id, err := cmd.GetSpaceID(c.Context(), c.Connection(), oldname)
 	if err != nil {
 		return err
 	}
-	if err := c.Client().SpacePut(c.Context(), id, api.SpacePutRequest{Name: newname}); err != nil {
+	if err := c.Connection().SpacePut(c.Context(), id, api.SpacePutRequest{Name: newname}); err != nil {
 		return err
 	}
 	fmt.Printf("%s: space renamed to %s\n", oldname, newname)

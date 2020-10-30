@@ -5,10 +5,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zqe"
 )
 

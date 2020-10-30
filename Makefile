@@ -78,7 +78,7 @@ test-heavy: build $(SAMPLEDATA)
 	@go test -v -tags=heavy ./tests
 
 test-pcapingest: bin/$(ZEEKPATH)
-	@ZEEK=$(CURDIR)/bin/$(ZEEKPATH)/zeekrunner go test -v -run=PcapPost -tags=pcapingest ./zqd
+	@ZEEK=$(CURDIR)/bin/$(ZEEKPATH)/zeekrunner go test -v -run=PcapPost -tags=pcapingest ./ppl/zqd
 
 perf-compare: build $(SAMPLEDATA)
 	scripts/comparison-test.sh
@@ -89,10 +89,10 @@ zng-output-check: build $(SAMPLEDATA)
 # If the build recipe changes, please also change npm/build.
 build:
 	@mkdir -p dist
-	@go build -ldflags='$(LDFLAGS)' -o dist ./cmd/...
+	@go build -ldflags='$(LDFLAGS)' -o dist ./cmd/... ./ppl/cmd/...
 
 install:
-	@go install -ldflags='$(LDFLAGS)' ./cmd/...
+	@go install -ldflags='$(LDFLAGS)' ./cmd/... ./ppl/cmd/...
 
 docker:
 	DOCKER_BUILDKIT=1 docker build --pull --rm \
@@ -165,7 +165,7 @@ peg: $(PEG_GEN)
 
 # CI performs these actions individually since that looks nicer in the UI;
 # this is a shortcut so that a local dev can easily run everything.
-test-ci: fmt tidy vet test-generate test-unit test-system test-zeek test-heavy
+test-ci: fmt tidy vet test-generate test-unit test-system test-pcapingest test-heavy
 
 clean: clean-python
 	@rm -rf dist

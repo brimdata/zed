@@ -7,11 +7,11 @@ import (
 	"io"
 	"time"
 
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zqd/api"
 )
 
 type Driver interface {

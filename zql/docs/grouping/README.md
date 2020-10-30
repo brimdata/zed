@@ -180,7 +180,7 @@ TS                COUNT
 1521911700.000000 441229
 ```
 
-Events that are stored and retrieved via [`zqd`](../../../cmd/zqd) (that is,
+Events that are stored and retrieved via [`zqd`](../../../ppl/cmd/zqd) (that is,
 using the [Brim application](https://github.com/brimsec/brim) and/or
 [`zapi`](../../../cmd/zapi)) are by default automatically sorted in rerverse
 order by timestamp (`ts`). Therefore for the particular case of a
