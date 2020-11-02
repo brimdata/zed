@@ -20,6 +20,7 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
+	"github.com/brimsec/zq/zql"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
@@ -78,6 +79,23 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	var req api.SearchRequest
 	if !request(c, w, r, &req) {
 		return
+	}
+
+	if req.ZQL != "" {
+		if req.Proc != nil {
+			respondError(c, w, r, zqe.ErrInvalid("specify either proc or zql"))
+			return
+		}
+		search, err := zql.ParseProc(req.ZQL)
+		if err != nil {
+			respondError(c, w, r, err)
+			return
+		}
+		req.Proc, err = json.Marshal(search)
+		if err != nil {
+			respondError(c, w, r, err)
+			return
+		}
 	}
 
 	s, err := c.spaces.Get(req.Space)

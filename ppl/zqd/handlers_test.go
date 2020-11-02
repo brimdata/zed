@@ -51,8 +51,26 @@ func TestSearch(t *testing.T) {
 	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 	_ = postSpaceLogs(t, conn, sp.ID, nil, src)
-	res := searchTzng(t, conn, sp.ID, "*")
-	require.Equal(t, test.Trim(src), res)
+
+	const zql = "*"
+	t.Run("Proc", func(t *testing.T) {
+		res := searchTzng(t, conn, sp.ID, zql)
+		require.Equal(t, test.Trim(src), res)
+	})
+	t.Run("ZQL", func(t *testing.T) {
+		req := api.SearchRequest{
+			Space: sp.ID,
+			ZQL:   zql,
+			Span:  nano.MaxSpan,
+			Dir:   -1,
+		}
+		r, err := conn.Search(context.Background(), req, nil)
+		require.NoError(t, err)
+		var buf bytes.Buffer
+		w := tzngio.NewWriter(zio.NopCloser(&buf))
+		require.NoError(t, zbuf.Copy(w, r))
+		require.Equal(t, test.Trim(src), buf.String())
+	})
 }
 
 func TestSearchNoCtrl(t *testing.T) {
@@ -173,6 +191,7 @@ func TestSearchError(t *testing.T) {
 		errResp := err.(*client.ErrorResponse)
 		assert.Equal(t, http.StatusBadRequest, errResp.StatusCode())
 		assert.IsType(t, &api.Error{}, errResp.Err)
+		assert.EqualError(t, errResp.Unwrap(), "time direction must be 1 or -1")
 	})
 	t.Run("ForwardSearchUnsupported", func(t *testing.T) {
 		req := api.SearchRequest{
@@ -186,6 +205,22 @@ func TestSearchError(t *testing.T) {
 		errResp := err.(*client.ErrorResponse)
 		assert.Equal(t, http.StatusBadRequest, errResp.StatusCode())
 		assert.IsType(t, &api.Error{}, errResp.Err)
+		assert.EqualError(t, errResp.Unwrap(), "forward searches not yet supported")
+	})
+	t.Run("EitherProcOrZQL", func(t *testing.T) {
+		req := api.SearchRequest{
+			Space: sp.ID,
+			Proc:  proc,
+			ZQL:   "*",
+			Span:  nano.MaxSpan,
+			Dir:   -1,
+		}
+		_, err = conn.Search(context.Background(), req, nil)
+		require.Error(t, err)
+		errResp := err.(*client.ErrorResponse)
+		assert.Equal(t, http.StatusBadRequest, errResp.StatusCode())
+		assert.IsType(t, &api.Error{}, errResp.Err)
+		assert.EqualError(t, errResp.Unwrap(), "specify either proc or zql")
 	})
 }
 

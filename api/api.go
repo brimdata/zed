@@ -37,9 +37,11 @@ type TaskEnd struct {
 	Error  *Error `json:"error,omitempty"`
 }
 
+// A SearchRequest can have either Proc or ZQL set, but not both.
 type SearchRequest struct {
 	Space SpaceID         `json:"space" validate:"required"`
-	Proc  json.RawMessage `json:"proc" validate:"required"`
+	Proc  json.RawMessage `json:"proc,omitempty"`
+	ZQL   string          `json:"zql,omitempty"`
 	Span  nano.Span       `json:"span"`
 	Dir   int             `json:"dir" validate:"required"`
 }
