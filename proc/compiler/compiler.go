@@ -86,14 +86,14 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, parent proc.Int
 		return pass.New(parent), nil
 
 	case *ast.FilterProc:
-		f, err := filter.Compile(v.Filter)
+		f, err := filter.Compile(pctx.TypeContext, v.Filter)
 		if err != nil {
 			return nil, fmt.Errorf("compiling filter: %w", err)
 		}
 		return filterproc.New(parent, f), nil
 
 	case *ast.TopProc:
-		fields, err := expr.CompileExprs(v.Fields)
+		fields, err := expr.CompileExprs(pctx.TypeContext, v.Fields)
 		if err != nil {
 			return nil, fmt.Errorf("compiling top: %w", err)
 		}

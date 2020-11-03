@@ -23,10 +23,11 @@ type TypeLogger interface {
 // and zng descriptor objects, which hold the binding between an identifier
 // and a zng.Type.
 type Context struct {
-	mu     sync.RWMutex
-	table  []zng.Type
-	lut    map[string]int
-	logger TypeLogger
+	mu      sync.RWMutex
+	table   []zng.Type
+	lut     map[string]int
+	logger  TypeLogger
+	typeErr *zng.TypeAlias
 }
 
 func NewContext() *Context {
@@ -811,4 +812,20 @@ func (c *Context) TranslateTypeMap(ext *zng.TypeMap) (*zng.TypeMap, error) {
 		return nil, err
 	}
 	return c.LookupTypeMap(keyType, valType), nil
+}
+
+func (c *Context) NewError(format string, args ...interface{}) (zng.Value, error) {
+	msg := fmt.Sprintf(format, args...)
+	if c.typeErr == nil {
+		typ, err := c.LookupTypeAlias("error", zng.TypeString)
+		if err != nil {
+			return zng.Value{}, err
+		}
+		c.typeErr = typ
+	}
+	return zng.Value{c.typeErr, zng.EncodeString(msg)}, nil
+}
+
+func (c *Context) IsError(typ zng.Type) bool {
+	return c.typeErr != nil && c.typeErr == typ
 }

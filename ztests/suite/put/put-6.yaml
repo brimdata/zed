@@ -6,5 +6,6 @@ input: |
   0:[1;]
 
 output: |
+  #error=string
   #0:record[x:int32,y:error]
   0:[1;signed integer divide by 0;]

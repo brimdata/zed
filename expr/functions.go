@@ -14,6 +14,7 @@ import (
 	"github.com/brimsec/zq/anymath"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 )
 
 type Args struct {
@@ -27,7 +28,7 @@ func NewArgs(n int) *Args {
 	}
 }
 
-type Function func(*Args) (zng.Value, error)
+type Function func(*resolver.Context, *Args) (zng.Value, error)
 
 var ErrTooFewArgs = errors.New("too few arguments")
 var ErrTooManyArgs = errors.New("too many arguments")
@@ -82,7 +83,7 @@ func err(fn string, err error) (zng.Value, error) {
 	return zng.Value{}, fmt.Errorf("%s: %w", fn, err)
 }
 
-func lenFn(args *Args) (zng.Value, error) {
+func lenFn(_ *resolver.Context, args *Args) (zng.Value, error) {
 	switch zng.AliasedType(args.vals[0].Type).(type) {
 	case *zng.TypeArray, *zng.TypeSet:
 		v := args.vals[0]
@@ -96,7 +97,7 @@ func lenFn(args *Args) (zng.Value, error) {
 	}
 }
 
-func mathAbs(args *Args) (zng.Value, error) {
+func mathAbs(_ *resolver.Context, args *Args) (zng.Value, error) {
 	v := args.vals[0]
 	id := v.Type.ID()
 	if zng.IsFloat(id) {
@@ -117,7 +118,7 @@ func mathAbs(args *Args) (zng.Value, error) {
 	return zng.Value{v.Type, args.Int(x)}, nil
 }
 
-func mathCeil(args *Args) (zng.Value, error) {
+func mathCeil(_ *resolver.Context, args *Args) (zng.Value, error) {
 	v := args.vals[0]
 	id := v.Type.ID()
 	if zng.IsFloat(id) {
@@ -131,7 +132,7 @@ func mathCeil(args *Args) (zng.Value, error) {
 	return err("Math.Ceil", ErrBadArgument)
 }
 
-func mathFloor(args *Args) (zng.Value, error) {
+func mathFloor(_ *resolver.Context, args *Args) (zng.Value, error) {
 	v := args.vals[0]
 	id := v.Type.ID()
 	if zng.IsFloat(id) {
@@ -145,7 +146,7 @@ func mathFloor(args *Args) (zng.Value, error) {
 	return err("Math.Floor", ErrBadArgument)
 }
 
-func mathLog(args *Args) (zng.Value, error) {
+func mathLog(_ *resolver.Context, args *Args) (zng.Value, error) {
 	x, ok := CoerceToFloat(args.vals[0])
 	// XXX should have better error messages
 	if !ok {
@@ -157,11 +158,11 @@ func mathLog(args *Args) (zng.Value, error) {
 	return zng.Value{zng.TypeFloat64, args.Float64(math.Log(x))}, nil
 }
 
-func mathMax(args *Args) (zng.Value, error) {
+func mathMax(_ *resolver.Context, args *Args) (zng.Value, error) {
 	return reduce(args, anymath.Max)
 }
 
-func mathMin(args *Args) (zng.Value, error) {
+func mathMin(_ *resolver.Context, args *Args) (zng.Value, error) {
 	return reduce(args, anymath.Min)
 }
 
@@ -210,7 +211,7 @@ func reduce(args *Args, fn *anymath.Function) (zng.Value, error) {
 
 //XXX currently integer mod, but this could also do fmod
 // also why doesn't zql have x%y instead of Math.mod(x,y)?
-func mathMod(args *Args) (zng.Value, error) {
+func mathMod(_ *resolver.Context, args *Args) (zng.Value, error) {
 	zv := args.vals[0]
 	id := zv.Type.ID()
 	if zng.IsFloat(id) {
@@ -231,7 +232,7 @@ func mathMod(args *Args) (zng.Value, error) {
 	return zng.Value{zv.Type, args.Uint(x % y)}, nil
 }
 
-func mathRound(args *Args) (zng.Value, error) {
+func mathRound(_ *resolver.Context, args *Args) (zng.Value, error) {
 	zv := args.vals[0]
 	id := zv.Type.ID()
 	if zng.IsFloat(id) {
@@ -245,7 +246,7 @@ func mathRound(args *Args) (zng.Value, error) {
 	return zv, nil
 }
 
-func mathPow(args *Args) (zng.Value, error) {
+func mathPow(_ *resolver.Context, args *Args) (zng.Value, error) {
 	x, ok := CoerceToFloat(args.vals[0])
 	if !ok {
 		return err("Math.pow", ErrBadArgument)
@@ -261,7 +262,7 @@ func mathPow(args *Args) (zng.Value, error) {
 	return zng.Value{zng.TypeFloat64, args.Float64(r)}, nil
 }
 
-func mathSqrt(args *Args) (zng.Value, error) {
+func mathSqrt(_ *resolver.Context, args *Args) (zng.Value, error) {
 	x, ok := CoerceToFloat(args.vals[0])
 	if !ok {
 		return err("Math.sqrt", ErrBadArgument)
@@ -278,7 +279,7 @@ func mathSqrt(args *Args) (zng.Value, error) {
 
 // XXX we should just have a len function that applies to different types
 // and a way to get unicode char len, charlen()?
-func stringByteLen(args *Args) (zng.Value, error) {
+func stringByteLen(_ *resolver.Context, args *Args) (zng.Value, error) {
 	zv := args.vals[0]
 	if !zng.IsStringy(zv.Type.ID()) {
 		return err("Strings.byteLen", ErrBadArgument)
@@ -287,7 +288,7 @@ func stringByteLen(args *Args) (zng.Value, error) {
 	return zng.Value{zng.TypeInt64, args.Int(int64(v))}, nil
 }
 
-func stringFormatFloat(args *Args) (zng.Value, error) {
+func stringFormatFloat(_ *resolver.Context, args *Args) (zng.Value, error) {
 	zv := args.vals[0]
 	if zv.Type.ID() != zng.IdFloat64 {
 		return err("string.floatToString", ErrBadArgument)
@@ -297,7 +298,7 @@ func stringFormatFloat(args *Args) (zng.Value, error) {
 	return zng.Value{zng.TypeString, zng.EncodeString(s)}, nil
 }
 
-func stringFormatInt(args *Args) (zng.Value, error) {
+func stringFormatInt(_ *resolver.Context, args *Args) (zng.Value, error) {
 	zv := args.vals[0]
 	id := zv.Type.ID()
 	var s string
@@ -316,7 +317,7 @@ func stringFormatInt(args *Args) (zng.Value, error) {
 	return zng.Value{zng.TypeString, zng.EncodeString(s)}, nil
 }
 
-func stringFormatIp(args *Args) (zng.Value, error) {
+func stringFormatIp(_ *resolver.Context, args *Args) (zng.Value, error) {
 	zv := args.vals[0]
 	if zv.Type.ID() != zng.IdIP {
 		return err("string.ipToString", ErrBadArgument)
@@ -325,7 +326,7 @@ func stringFormatIp(args *Args) (zng.Value, error) {
 	return zng.Value{zng.TypeString, zng.EncodeString(ip.String())}, nil
 }
 
-func stringParseInt(args *Args) (zng.Value, error) {
+func stringParseInt(_ *resolver.Context, args *Args) (zng.Value, error) {
 	zv := args.vals[0]
 	if !zng.IsStringy(zv.Type.ID()) {
 		return err("String.parseInt", ErrBadArgument)
@@ -344,7 +345,7 @@ func stringParseInt(args *Args) (zng.Value, error) {
 	return zng.Value{zng.TypeInt64, args.Int(i)}, nil
 }
 
-func stringParseFloat(args *Args) (zng.Value, error) {
+func stringParseFloat(_ *resolver.Context, args *Args) (zng.Value, error) {
 	zv := args.vals[0]
 	if !zng.IsStringy(zv.Type.ID()) {
 		return err("String.parseFloat", ErrBadArgument)
@@ -363,7 +364,7 @@ func stringParseFloat(args *Args) (zng.Value, error) {
 	return zng.Value{zng.TypeFloat64, args.Float64(f)}, nil
 }
 
-func stringParseIp(args *Args) (zng.Value, error) {
+func stringParseIp(_ *resolver.Context, args *Args) (zng.Value, error) {
 	zv := args.vals[0]
 	if !zng.IsStringy(zv.Type.ID()) {
 		return err("String.parseIp", ErrBadArgument)
@@ -385,7 +386,7 @@ func isStringy(v zng.Value) bool {
 	return zng.IsStringy(v.Type.ID())
 }
 
-func stringReplace(args *Args) (zng.Value, error) {
+func stringReplace(_ *resolver.Context, args *Args) (zng.Value, error) {
 	zvs := args.vals[0]
 	zvold := args.vals[1]
 	zvnew := args.vals[2]
@@ -408,7 +409,7 @@ func stringReplace(args *Args) (zng.Value, error) {
 	return zng.Value{zng.TypeString, zng.EncodeString(result)}, nil
 }
 
-func stringRuneLen(args *Args) (zng.Value, error) {
+func stringRuneLen(_ *resolver.Context, args *Args) (zng.Value, error) {
 	zv := args.vals[0]
 	if !isStringy(zv) {
 		return err("Strings.byteLen", ErrBadArgument)
@@ -421,7 +422,7 @@ func stringRuneLen(args *Args) (zng.Value, error) {
 	return zng.Value{zng.TypeInt64, args.Int(int64(v))}, nil
 }
 
-func stringToLower(args *Args) (zng.Value, error) {
+func stringToLower(_ *resolver.Context, args *Args) (zng.Value, error) {
 	zv := args.vals[0]
 	if !isStringy(zv) {
 		return err("String.toLower", ErrBadArgument)
@@ -435,7 +436,7 @@ func stringToLower(args *Args) (zng.Value, error) {
 	return zng.Value{zng.TypeString, zng.EncodeString(s)}, nil
 }
 
-func stringToUpper(args *Args) (zng.Value, error) {
+func stringToUpper(_ *resolver.Context, args *Args) (zng.Value, error) {
 	zv := args.vals[0]
 	if !isStringy(zv) {
 		return err("String.toUpper", ErrBadArgument)
@@ -449,7 +450,7 @@ func stringToUpper(args *Args) (zng.Value, error) {
 	return zng.Value{zng.TypeString, zng.EncodeString(s)}, nil
 }
 
-func stringTrim(args *Args) (zng.Value, error) {
+func stringTrim(_ *resolver.Context, args *Args) (zng.Value, error) {
 	zv := args.vals[0]
 	if !isStringy(zv) {
 		return err("String.trim", ErrBadArgument)
@@ -459,7 +460,7 @@ func stringTrim(args *Args) (zng.Value, error) {
 	return zng.Value{zng.TypeString, zng.EncodeString(s)}, nil
 }
 
-func timeFromISO(args *Args) (zng.Value, error) {
+func timeFromISO(_ *resolver.Context, args *Args) (zng.Value, error) {
 	zv := args.vals[0]
 	if !isStringy(zv) {
 		return err("Time.fromISO", ErrBadArgument)
@@ -471,7 +472,7 @@ func timeFromISO(args *Args) (zng.Value, error) {
 	return zng.Value{zng.TypeTime, args.Time(nano.Ts(ts.UnixNano()))}, nil
 }
 
-func timeFromMsec(args *Args) (zng.Value, error) {
+func timeFromMsec(_ *resolver.Context, args *Args) (zng.Value, error) {
 	zv := args.vals[0]
 	ms, ok := CoerceToInt(zv)
 	if !ok {
@@ -480,7 +481,7 @@ func timeFromMsec(args *Args) (zng.Value, error) {
 	return zng.Value{zng.TypeTime, args.Time(nano.Ts(ms * 1_000_000))}, nil
 }
 
-func timeFromUsec(args *Args) (zng.Value, error) {
+func timeFromUsec(_ *resolver.Context, args *Args) (zng.Value, error) {
 	zv := args.vals[0]
 	us, ok := CoerceToInt(zv)
 	if !ok {
@@ -489,7 +490,7 @@ func timeFromUsec(args *Args) (zng.Value, error) {
 	return zng.Value{zng.TypeTime, args.Time(nano.Ts(us * 1000))}, nil
 }
 
-func timeFromNsec(args *Args) (zng.Value, error) {
+func timeFromNsec(_ *resolver.Context, args *Args) (zng.Value, error) {
 	zv := args.vals[0]
 	ns, ok := CoerceToInt(zv)
 	if !ok {
@@ -498,7 +499,7 @@ func timeFromNsec(args *Args) (zng.Value, error) {
 	return zng.Value{zng.TypeTime, args.Time(nano.Ts(ns))}, nil
 }
 
-func timeTrunc(args *Args) (zng.Value, error) {
+func timeTrunc(_ *resolver.Context, args *Args) (zng.Value, error) {
 	zv := args.vals[0]
 	ts, ok := CoerceToTime(zv)
 	if !ok {
@@ -512,20 +513,20 @@ func timeTrunc(args *Args) (zng.Value, error) {
 	return zng.Value{zng.TypeTime, args.Time(nano.Ts(ts.Trunc(dur)))}, nil
 }
 
-func typeOf(args *Args) (zng.Value, error) {
+func typeOf(_ *resolver.Context, args *Args) (zng.Value, error) {
 	zv := args.vals[0]
 	return zng.Value{zng.TypeType, zng.EncodeType(zv.Type.String())}, nil
 }
 
-func isErr(args *Args) (zng.Value, error) {
+func isErr(zctx *resolver.Context, args *Args) (zng.Value, error) {
 	zv := args.vals[0]
-	if zv.Type == zng.TypeError {
+	if zctx.IsError(zv.Type) {
 		return zng.True, nil
 	}
 	return zng.False, nil
 }
 
-func fromBase64(args *Args) (zng.Value, error) {
+func fromBase64(zctx *resolver.Context, args *Args) (zng.Value, error) {
 	zv := args.vals[0]
 	if !isStringy(zv) {
 		return err("fromBase64", ErrBadArgument)
@@ -534,12 +535,12 @@ func fromBase64(args *Args) (zng.Value, error) {
 	s, _ := zng.DecodeString(zv.Bytes)
 	b, err := base64.StdEncoding.DecodeString(s)
 	if err != nil {
-		return zng.Value{zng.TypeError, zng.EncodeString(err.Error())}, nil
+		return zctx.NewError(err.Error())
 	}
 	return zng.Value{zng.TypeBytes, zng.EncodeBytes(b)}, nil
 }
 
-func toBase64(args *Args) (zng.Value, error) {
+func toBase64(_ *resolver.Context, args *Args) (zng.Value, error) {
 	zv := args.vals[0]
 	if !isStringy(zv) {
 		return err("fromBase64", ErrBadArgument)

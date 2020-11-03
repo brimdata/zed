@@ -53,7 +53,7 @@ func programPrep(program ast.Proc, sortKey field.Static, sortReversed bool) (ast
 	filterExpr, program := liftFilter(program)
 	if filterExpr != nil {
 		var err error
-		if filt, err = filter.Compile(filterExpr); err != nil {
+		if filt, err = filter.Compile(resolver.NewContext(), filterExpr); err != nil {
 			return nil, nil, nil, err
 		}
 	}

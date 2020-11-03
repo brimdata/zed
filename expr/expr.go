@@ -14,6 +14,7 @@ import (
 	"github.com/brimsec/zq/reglob"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 )
 
 type Evaluator interface {
@@ -57,11 +58,11 @@ var ErrBadCast = errors.New("bad cast")
 // TBD: string values and net.IP address do not need to be copied because they
 // are allocated by go libraries and temporary buffers are not used.  This will
 // change down the road when we implement no-allocation string and IP conversion.
-func CompileExpr(node ast.Expression) (Evaluator, error) {
-	return compileExpr(node)
+func CompileExpr(zctx *resolver.Context, node ast.Expression) (Evaluator, error) {
+	return compileExpr(zctx, node)
 }
 
-func compileExpr(node ast.Expression) (Evaluator, error) {
+func compileExpr(zctx *resolver.Context, node ast.Expression) (Evaluator, error) {
 	switch n := node.(type) {
 	case *ast.Literal:
 		return NewLiteral(*n)
@@ -70,17 +71,17 @@ func compileExpr(node ast.Expression) (Evaluator, error) {
 	case *ast.RootRecord:
 		return &RootRecord{}, nil
 	case *ast.UnaryExpression:
-		return compileUnary(*n)
+		return compileUnary(zctx, *n)
 
 	case *ast.BinaryExpression:
 		if n.Operator == "." {
-			return compileDotExpr(n.LHS, n.RHS)
+			return compileDotExpr(zctx, n.LHS, n.RHS)
 		}
-		lhs, err := compileExpr(n.LHS)
+		lhs, err := compileExpr(zctx, n.LHS)
 		if err != nil {
 			return nil, err
 		}
-		rhs, err := compileExpr(n.RHS)
+		rhs, err := compileExpr(zctx, n.RHS)
 		if err != nil {
 			return nil, err
 		}
@@ -90,37 +91,37 @@ func compileExpr(node ast.Expression) (Evaluator, error) {
 		case "in":
 			return compileIn(lhs, rhs)
 		case "=", "!=":
-			return compileCompareEquality(lhs, rhs, n.Operator)
+			return compileCompareEquality(zctx, lhs, rhs, n.Operator)
 		case "=~", "!~":
 			return compilePatternMatch(lhs, rhs, n.Operator)
 		case "<", "<=", ">", ">=":
-			return compileCompareRelative(lhs, rhs, n.Operator)
+			return compileCompareRelative(zctx, lhs, rhs, n.Operator)
 		case "+", "-", "*", "/":
-			return compileArithmetic(lhs, rhs, n.Operator)
+			return compileArithmetic(zctx, lhs, rhs, n.Operator)
 		case "[":
-			return compileIndexExpr(lhs, rhs)
+			return compileIndexExpr(zctx, lhs, rhs)
 		default:
 			return nil, fmt.Errorf("invalid binary operator %s", n.Operator)
 		}
 
 	case *ast.ConditionalExpression:
-		return compileConditional(*n)
+		return compileConditional(zctx, *n)
 
 	case *ast.FunctionCall:
-		return compileCall(*n)
+		return compileCall(zctx, *n)
 
 	case *ast.CastExpression:
-		return compileCast(*n)
+		return compileCast(zctx, *n)
 
 	default:
 		return nil, fmt.Errorf("invalid expression type %T", node)
 	}
 }
 
-func CompileExprs(nodes []ast.Expression) ([]Evaluator, error) {
+func CompileExprs(zctx *resolver.Context, nodes []ast.Expression) ([]Evaluator, error) {
 	var exprs []Evaluator
 	for k := range nodes {
-		e, err := compileExpr(nodes[k])
+		e, err := compileExpr(zctx, nodes[k])
 		if err != nil {
 			return nil, err
 		}
@@ -133,11 +134,11 @@ type Not struct {
 	expr Evaluator
 }
 
-func compileUnary(node ast.UnaryExpression) (Evaluator, error) {
+func compileUnary(zctx *resolver.Context, node ast.UnaryExpression) (Evaluator, error) {
 	if node.Operator != "!" {
 		return nil, fmt.Errorf("unknown unary operator %s\n", node.Operator)
 	}
-	e, err := compileExpr(node.Operand)
+	e, err := compileExpr(zctx, node.Operand)
 	if err != nil {
 		return nil, err
 	}
@@ -273,8 +274,8 @@ type Equal struct {
 	equality bool
 }
 
-func compileCompareEquality(lhs, rhs Evaluator, operator string) (Evaluator, error) {
-	e := &Equal{numeric: newNumeric(lhs, rhs)}
+func compileCompareEquality(zctx *resolver.Context, lhs, rhs Evaluator, operator string) (Evaluator, error) {
+	e := &Equal{numeric: newNumeric(zctx, lhs, rhs)}
 	switch operator {
 	case "=":
 		e.equality = true
@@ -364,15 +365,17 @@ func (m *Match) Eval(rec *zng.Record) (zng.Value, error) {
 }
 
 type numeric struct {
+	zctx *resolver.Context
 	lhs  Evaluator
 	rhs  Evaluator
 	vals Coercion
 }
 
-func newNumeric(lhs, rhs Evaluator) numeric {
+func newNumeric(zctx *resolver.Context, lhs, rhs Evaluator) numeric {
 	return numeric{
-		lhs: lhs,
-		rhs: rhs,
+		zctx: zctx,
+		lhs:  lhs,
+		rhs:  rhs,
 	}
 }
 
@@ -417,8 +420,8 @@ type Compare struct {
 	convert func(int) bool
 }
 
-func compileCompareRelative(lhs, rhs Evaluator, operator string) (Evaluator, error) {
-	c := &Compare{numeric: newNumeric(lhs, rhs)}
+func compileCompareRelative(zctx *resolver.Context, lhs, rhs Evaluator, operator string) (Evaluator, error) {
+	c := &Compare{numeric: newNumeric(zctx, lhs, rhs)}
 	switch operator {
 	case "<":
 		c.convert = func(v int) bool { return v < 0 }
@@ -530,8 +533,8 @@ type Divide struct {
 
 // compileArithmetic compiles an expression of the form "expr1 op expr2"
 // for the arithmetic operators +, -, *, /
-func compileArithmetic(lhs, rhs Evaluator, op string) (Evaluator, error) {
-	n := newNumeric(lhs, rhs)
+func compileArithmetic(zctx *resolver.Context, lhs, rhs Evaluator, op string) (Evaluator, error) {
+	n := newNumeric(zctx, lhs, rhs)
 	switch op {
 	case "+":
 		return &Add{n}, nil
@@ -630,21 +633,21 @@ func (d *Divide) Eval(rec *zng.Record) (zng.Value, error) {
 		v1, _ := zng.DecodeFloat64(d.vals.a)
 		v2, _ := zng.DecodeFloat64(d.vals.b)
 		if v2 == 0 {
-			return zng.Value{zng.TypeError, zng.EncodeString("floating point divide by 0")}, nil
+			return d.zctx.NewError("floating point divide by 0")
 		}
 		return zng.Value{typ, d.vals.Float64(v1 / v2)}, nil
 	case zng.IsSigned(id):
 		v1, _ := zng.DecodeInt(d.vals.a)
 		v2, _ := zng.DecodeInt(d.vals.b)
 		if v2 == 0 {
-			return zng.Value{zng.TypeError, zng.EncodeString("signed integer divide by 0")}, nil
+			return d.zctx.NewError("signed integer divide by 0")
 		}
 		return zng.Value{typ, d.vals.Int(v1 / v2)}, nil
 	case zng.IsNumber(id):
 		v1, _ := zng.DecodeUint(d.vals.a)
 		v2, _ := zng.DecodeUint(d.vals.b)
 		if v2 == 0 {
-			return zng.Value{zng.TypeError, zng.EncodeString("unsigned integer divide by 0")}, nil
+			return d.zctx.NewError("unsigned integer divide by 0")
 		}
 		return zng.Value{typ, d.vals.Uint(v1 / v2)}, nil
 	}
@@ -687,12 +690,13 @@ func lookupKey(mapBytes, target zcode.Bytes) (zcode.Bytes, bool) {
 // Index represents an index operator "container[index]" where container is
 // either an array (with index type integer) or a record (with index type string).
 type Index struct {
+	zctx      *resolver.Context
 	container Evaluator
 	index     Evaluator
 }
 
-func compileIndexExpr(container, index Evaluator) (Evaluator, error) {
-	return &Index{container, index}, nil
+func compileIndexExpr(zctx *resolver.Context, container, index Evaluator) (Evaluator, error) {
+	return &Index{zctx, container, index}, nil
 }
 
 func (i *Index) Eval(rec *zng.Record) (zng.Value, error) {
@@ -706,26 +710,26 @@ func (i *Index) Eval(rec *zng.Record) (zng.Value, error) {
 	}
 	switch typ := container.Type.(type) {
 	case *zng.TypeArray:
-		return indexArray(typ, container.Bytes, index)
+		return indexArray(i.zctx, typ, container.Bytes, index)
 	case *zng.TypeRecord:
-		return indexRecord(typ, container.Bytes, index)
+		return indexRecord(i.zctx, typ, container.Bytes, index)
 	case *zng.TypeMap:
-		return indexMap(typ, container.Bytes, index)
+		return indexMap(i.zctx, typ, container.Bytes, index)
 	default:
 		return zng.Value{}, fmt.Errorf("cannot index type \"%s\" with key \"%s\"", typ, index)
 	}
 }
 
-func indexArray(typ *zng.TypeArray, array zcode.Bytes, index zng.Value) (zng.Value, error) {
+func indexArray(zctx *resolver.Context, typ *zng.TypeArray, array zcode.Bytes, index zng.Value) (zng.Value, error) {
 	id := index.Type.ID()
 	if !zng.IsInteger(id) {
-		return zng.NewError(errors.New("array index is not an integer")), nil
+		return zctx.NewError("array index is not an integer")
 	}
 	var idx uint
 	if zng.IsSigned(id) {
 		v, _ := zng.DecodeInt(index.Bytes)
 		if idx < 0 {
-			return zng.NewError(errors.New("array index out of bounds")), nil
+			return zctx.NewError("array index out of bounds")
 		}
 		idx = uint(v)
 	} else {
@@ -739,28 +743,28 @@ func indexArray(typ *zng.TypeArray, array zcode.Bytes, index zng.Value) (zng.Val
 	return zng.Value{typ.Type, zv}, nil
 }
 
-func indexRecord(typ *zng.TypeRecord, record zcode.Bytes, index zng.Value) (zng.Value, error) {
+func indexRecord(zctx *resolver.Context, typ *zng.TypeRecord, record zcode.Bytes, index zng.Value) (zng.Value, error) {
 	id := index.Type.ID()
 	if !zng.IsStringy(id) {
-		return zng.NewError(errors.New("record index is not a string")), nil
+		return zctx.NewError("record index is not a string")
 	}
 	field, _ := zng.DecodeString(index.Bytes)
 	result, err := zng.NewRecord(typ, record).ValueByField(string(field))
 	if err != nil {
-		return zng.NewError(err), nil
+		return zctx.NewError(err.Error())
 	}
 	return result, nil
 }
 
-func indexMap(typ *zng.TypeMap, mapBytes zcode.Bytes, key zng.Value) (zng.Value, error) {
+func indexMap(zctx *resolver.Context, typ *zng.TypeMap, mapBytes zcode.Bytes, key zng.Value) (zng.Value, error) {
 	if key.Type != typ.KeyType {
 		//XXX should try coercing?
-		return zng.NewError(errors.New("map key type does not match index type")), nil
+		return zctx.NewError("map key type does not match index type")
 	}
 	if valBytes, ok := lookupKey(mapBytes, key.Bytes); ok {
 		return zng.Value{typ.ValType, valBytes}, nil
 	}
-	return zng.NewError(fmt.Errorf("key not found in map: %s", key)), nil
+	return zctx.NewError("key not found in map: %s", key)
 }
 
 type Conditional struct {
@@ -769,17 +773,17 @@ type Conditional struct {
 	elseExpr  Evaluator
 }
 
-func compileConditional(node ast.ConditionalExpression) (Evaluator, error) {
+func compileConditional(zctx *resolver.Context, node ast.ConditionalExpression) (Evaluator, error) {
 	var err error
-	predicate, err := compileExpr(node.Condition)
+	predicate, err := compileExpr(zctx, node.Condition)
 	if err != nil {
 		return nil, err
 	}
-	thenExpr, err := compileExpr(node.Then)
+	thenExpr, err := compileExpr(zctx, node.Then)
 	if err != nil {
 		return nil, err
 	}
-	elseExpr, err := compileExpr(node.Else)
+	elseExpr, err := compileExpr(zctx, node.Else)
 	if err != nil {
 		return nil, err
 	}
@@ -804,12 +808,12 @@ func (c *Conditional) Eval(rec *zng.Record) (zng.Value, error) {
 	return c.elseExpr.Eval(rec)
 }
 
-func compileDotExpr(lhs, rhs ast.Expression) (*DotExpr, error) {
+func compileDotExpr(zctx *resolver.Context, lhs, rhs ast.Expression) (*DotExpr, error) {
 	id, ok := rhs.(*ast.Identifier)
 	if !ok {
 		return nil, errors.New("rhs of dot expression is not an identifier")
 	}
-	record, err := compileExpr(lhs)
+	record, err := compileExpr(zctx, lhs)
 	if err != nil {
 		return nil, err
 	}
@@ -817,13 +821,14 @@ func compileDotExpr(lhs, rhs ast.Expression) (*DotExpr, error) {
 }
 
 type Call struct {
+	zctx     *resolver.Context
 	name     string
 	function Function
 	exprs    []Evaluator
 	args     *Args
 }
 
-func compileCall(node ast.FunctionCall) (Evaluator, error) {
+func compileCall(zctx *resolver.Context, node ast.FunctionCall) (Evaluator, error) {
 	fn, ok := allFns[node.Function]
 	if !ok {
 		return nil, fmt.Errorf("%s: %w", node.Function, ErrNoSuchFunction)
@@ -837,7 +842,7 @@ func compileCall(node ast.FunctionCall) (Evaluator, error) {
 	}
 	exprs := make([]Evaluator, 0, nargs)
 	for _, expr := range node.Args {
-		e, err := compileExpr(expr)
+		e, err := compileExpr(zctx, expr)
 		if err != nil {
 			return nil, err
 		}
@@ -845,6 +850,7 @@ func compileCall(node ast.FunctionCall) (Evaluator, error) {
 	}
 
 	return &Call{
+		zctx:     zctx,
 		name:     node.Function,
 		function: fn.impl,
 		exprs:    exprs,
@@ -860,11 +866,11 @@ func (c *Call) Eval(rec *zng.Record) (zng.Value, error) {
 		}
 		c.args.vals[k] = val
 	}
-	return c.function(c.args)
+	return c.function(c.zctx, c.args)
 }
 
-func compileCast(node ast.CastExpression) (Evaluator, error) {
-	expr, err := compileExpr(node.Expr)
+func compileCast(zctx *resolver.Context, node ast.CastExpression) (Evaluator, error) {
+	expr, err := compileExpr(zctx, node.Expr)
 	if err != nil {
 		return nil, err
 	}
@@ -895,9 +901,9 @@ func compileCast(node ast.CastExpression) (Evaluator, error) {
 	case "time":
 		return &TimeCast{expr}, nil
 	case "string":
-		return &StringCast{expr, zng.TypeString}, nil
+		return &StringCast{zctx, expr, zng.TypeString}, nil
 	case "bstring":
-		return &StringCast{expr, zng.TypeBstring}, nil
+		return &StringCast{zctx, expr, zng.TypeBstring}, nil
 	case "bytes":
 		return &BytesCast{expr}, nil
 	default:
@@ -1005,6 +1011,7 @@ func (t *TimeCast) Eval(rec *zng.Record) (zng.Value, error) {
 }
 
 type StringCast struct {
+	zctx *resolver.Context
 	expr Evaluator
 	typ  zng.Type
 }
@@ -1021,7 +1028,7 @@ func (s *StringCast) Eval(rec *zng.Record) (zng.Value, error) {
 		selector, _ := zng.DecodeUint(zv.Bytes)
 		element, err := enum.Element(int(selector))
 		if err != nil {
-			return zng.NewError(err), nil
+			return s.zctx.NewError(err.Error())
 		}
 		return zng.Value{s.typ, zng.EncodeString(element.Name)}, nil
 	}
@@ -1069,8 +1076,8 @@ func NewRootField(name string) Evaluator {
 
 var ErrInference = errors.New("assigment name could not be inferred from rhs expressioin")
 
-func CompileAssignment(node *ast.Assignment) (field.Static, Evaluator, error) {
-	rhs, err := CompileExpr(node.RHS)
+func CompileAssignment(zctx *resolver.Context, node *ast.Assignment) (field.Static, Evaluator, error) {
+	rhs, err := CompileExpr(zctx, node.RHS)
 	if err != nil {
 		return nil, nil, fmt.Errorf("rhs of assigment expression: %w", err)
 	}
