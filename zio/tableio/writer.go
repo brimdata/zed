@@ -72,7 +72,7 @@ func (w *Writer) Write(r *zng.Record) error {
 	for k, col := range r.Type.Columns {
 		var v string
 		value := r.Value(k)
-		if !w.epochDates && col.Name == "ts" && col.Type == zng.TypeTime {
+		if !w.epochDates && col.Type == zng.TypeTime {
 			if !value.IsUnsetOrNil() {
 				ts, err := zng.DecodeTime(value.Bytes)
 				if err != nil {
