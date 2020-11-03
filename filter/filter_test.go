@@ -48,7 +48,7 @@ func runCasesHelper(t *testing.T, tzng string, cases []testcase, expectBufferFil
 			require.NoError(t, err, "filter: %q", c.filter)
 			filterExpr := proc.(*ast.FilterProc).Filter
 
-			f, err := filter.Compile(filterExpr)
+			f, err := filter.Compile(zctx, filterExpr)
 			assert.NoError(t, err, "filter: %q", c.filter)
 			if f != nil {
 				assert.Equal(t, c.expected, f(rec),
@@ -504,7 +504,7 @@ func TestBadFilter(t *testing.T) {
 	t.Parallel()
 	proc, err := zql.ParseProc(`s =~ \xa8*`)
 	require.NoError(t, err)
-	_, err = filter.Compile(proc.(*ast.FilterProc).Filter)
+	_, err = filter.Compile(resolver.NewContext(), proc.(*ast.FilterProc).Filter)
 	assert.Error(t, err, "Received error for bad glob")
 	assert.Contains(t, err.Error(), "invalid UTF-8", "Received good error message for invalid UTF-8 in a regexp")
 }

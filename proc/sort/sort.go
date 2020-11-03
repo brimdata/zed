@@ -32,7 +32,7 @@ type Proc struct {
 }
 
 func New(pctx *proc.Context, parent proc.Interface, node *ast.SortProc) (*Proc, error) {
-	fields, err := expr.CompileExprs(node.Fields)
+	fields, err := expr.CompileExprs(pctx.TypeContext, node.Fields)
 	if err != nil {
 		return nil, err
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 )
 
 type Filter func(*zng.Record) bool
@@ -37,7 +38,7 @@ func combine(res expr.Evaluator, pred Predicate) Filter {
 	}
 }
 
-func CompileFieldCompare(node *ast.CompareField) (Filter, error) {
+func CompileFieldCompare(zctx *resolver.Context, node *ast.CompareField) (Filter, error) {
 	literal := node.Value
 	// Treat len(field) specially since we're looking at a computed
 	// value rather than a field from a record.
@@ -51,7 +52,7 @@ func CompileFieldCompare(node *ast.CompareField) (Filter, error) {
 	if err != nil {
 		return nil, err
 	}
-	resolver, err := expr.CompileExpr(node.Field)
+	resolver, err := expr.CompileExpr(zctx, node.Field)
 	if err != nil {
 		return nil, err
 	}
@@ -203,32 +204,32 @@ func searchRecordString(term string) Filter {
 	}
 }
 
-func Compile(node ast.BooleanExpr) (Filter, error) {
+func Compile(zctx *resolver.Context, node ast.BooleanExpr) (Filter, error) {
 	switch v := node.(type) {
 	case *ast.LogicalNot:
-		expr, err := Compile(v.Expr)
+		expr, err := Compile(zctx, v.Expr)
 		if err != nil {
 			return nil, err
 		}
 		return LogicalNot(expr), nil
 
 	case *ast.LogicalAnd:
-		left, err := Compile(v.Left)
+		left, err := Compile(zctx, v.Left)
 		if err != nil {
 			return nil, err
 		}
-		right, err := Compile(v.Right)
+		right, err := Compile(zctx, v.Right)
 		if err != nil {
 			return nil, err
 		}
 		return LogicalAnd(left, right), nil
 
 	case *ast.LogicalOr:
-		left, err := Compile(v.Left)
+		left, err := Compile(zctx, v.Left)
 		if err != nil {
 			return nil, err
 		}
-		right, err := Compile(v.Right)
+		right, err := Compile(zctx, v.Right)
 		if err != nil {
 			return nil, err
 		}
@@ -242,7 +243,7 @@ func Compile(node ast.BooleanExpr) (Filter, error) {
 
 	case *ast.CompareField:
 		if v.Comparator == "in" {
-			resolver, err := expr.CompileExpr(v.Field)
+			resolver, err := expr.CompileExpr(zctx, v.Field)
 			if err != nil {
 				return nil, err
 			}
@@ -251,10 +252,10 @@ func Compile(node ast.BooleanExpr) (Filter, error) {
 			return combine(resolver, comparison), nil
 		}
 
-		return CompileFieldCompare(v)
+		return CompileFieldCompare(zctx, v)
 
 	case *ast.BinaryExpression:
-		predicate, err := expr.CompileExpr(v)
+		predicate, err := expr.CompileExpr(zctx, v)
 		if err != nil {
 			return nil, err
 		}
