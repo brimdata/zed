@@ -4,6 +4,8 @@ metadata:
   name: {{ include "zqd.fullname" . }}
   labels:
     {{- include "zqd.labels" . | nindent 4 }}
+  annotations:
+    haproxy.org/load-balance: "leastconn"
 spec:
   type: {{ .Values.service.type }}
   ports:

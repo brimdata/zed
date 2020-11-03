@@ -165,13 +165,51 @@ See above, at "Step 4: A Grafana dashboard for zqd". Those instructions work the
 
 ## Configuring Ingress with HAProxy
 
-We will use HA Proxy for Ingress because it supports "leastconn" routing (routwe to the instance with the least number of outstanding connections) which is what we want for zqd. We followed the install instructions at:
+We will use HA Proxy for Ingress because it supports "leastconn" routing (routwe to the instance with the least number of outstanding connections) which is what we want for zqd. 
 
-https://www.haproxy.com/documentation/kubernetes/latest/installation/community/aws/
+HAProxy controller wil be installed in it's own namespace. To set this up, we started by pulling this github repo for HAProxy kubernetes ingress:
+```
+git clone https://github.com/haproxytech/kubernetes-ingress.git
+cd kubernetes-ingress/deploy
+ls
+```
+There is an example yaml file that is very clise to what we need. Edit `haproxy-ingress.yaml` to make a single line change, change spec: type: from NodePort to LoadBalancer. Then,
+```
+kubectl apply -f haproxy-ingress.yaml
+```
+To verify that the controller is running, look at the pods and services:
+```
+kubectl get ns
+kubectl get pod -n default
+kubectl get pod -n haproxy-controller
+kubectl get service -n haproxy-controller
+```
 
-With the following steps:
+To deploy zqd with ingress, use folowing helm command. You must set ZQD_ELB to the host for you the ELB created by the HAProxy controller, e.g. a6912345127653265324d48-398735649.us-east-2.elb.amazonaws.com (not a real example.)
 ```
-helm repo add haproxytech https://haproxytech.github.io/helm-charts
-helm repo update
-helm install kubernetes-ingress haproxytech/kubernetes-ingress --set controller.service.type=LoadBalancer
+helm install zqd charts/zqd \
+  --set AWSRegion="us-east-2" \
+  --set image.repository="$ZQD_ECR_HOST/" \
+  --set image.tag="zqd:$ECR_VERSION" \
+  --set useCredSecret=false \
+  --set datauri=$ZQD_DATA_URI \
+  --set ingress.enabled=true \
+  --set ingress.hosts[0].host=$ZQD_ELB \
+  --set ingress.hosts[0].paths={"/"}
 ```
+
+Test the ingress with,
+```
+curl $ZQD_ELB
+```
+And you should get a 404 form the default endpoint. Test the zqd endpoint with zapi:
+```
+zapi -h $ZQD_ELB ls
+```
+Should return a list of spaces from zapi.
+
+## Setting up GitOps with ArgoCD
+
+This step is optional (obviously) and is included so developers will know how Brim configures CI/CD on K8s for the zq project.
+
+Work in progress!

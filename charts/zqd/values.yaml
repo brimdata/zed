@@ -8,7 +8,7 @@ useCredSecret: true
 
 configyaml: false
 
-replicaCount: 5
+replicaCount: 8
 
 image:
   repository: "localhost:5000/"
@@ -52,11 +52,11 @@ service:
 
 ingress:
   enabled: false
-  annotations: {}
+  annotations:
     haproxy.org/load-balance: "leastconn"
   #hosts:
-  #  - host: chart-example.local
-  #    paths: []
+  #  - host: "dummy"
+  #    paths: ["/"]
   #tls: []
   #  - secretName: chart-example-tls
   #    hosts:
