@@ -212,4 +212,7 @@ Should return a list of spaces from zapi.
 
 This step is optional (obviously) and is included so developers will know how Brim configures CI/CD on K8s for the zq project.
 
-Work in progress!
+We use the setup instructions at:
+https://argoproj.github.io/argo-cd/
+
+At step 3, we chose Service Type Load Balancer.
