@@ -4,7 +4,7 @@ import sys
 from cffi import FFI
 
 # This ffibuilder code expects an archive via the Go c-archive buildmode:
-# go build -buildmode=c-archive -o python/build/zqext/libzqext.a ./python/src/zqext.go
+# go build -buildmode=c-archive -o python/brim/build/zqext/libzqext.a python/brim/src/zqext.go
 zqextbuild = os.path.abspath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)),
                  '..', 'build', 'zqext'))
