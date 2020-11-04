@@ -911,7 +911,8 @@ representing machine words are serialized in little-endian format.
 | `ip`       | 18 | 4 or 16  | 4 or 16 bytes of IP address                    | a string representing an IP address in [IPv4 or IPv6 format](https://tools.ietf.org/html/draft-main-ipaddr-text-rep-02#section-3) |
 | `net`      | 19 | 8 or 32  | 8 or 32 bytes of IP prefix and subnet mask     | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291. |
 | `type`     | 20 | variable | UTF-8 byte sequence of string representing type in the [TZNG type grammar](#42-type-grammar)  |  a UTF-8 string |
-| `null`     | 21 |    0    | No value, always represents an undefined value | the literal value `-`                                 |
+| RESERVED   | 21 |    NA   | Currently unused | |
+| `null`     | 22 |    0    | No value, always represents an undefined value | the literal value `-`                                 |
 
 > Note: The `bstring` type is an unusual type representing a hybrid type
 > mixing a UTF-8 string with embedded binary data.  This type is
