@@ -142,14 +142,14 @@ create-release-assets:
 	done
 
 build-python-wheel: build-python-lib
-	pip3 wheel --no-deps -w dist ./python
+	pip3 wheel --no-deps -w dist python/brim
 
 build-python-lib:
-	@mkdir -p python/build/zqext
-	go build -buildmode=c-archive -o python/build/zqext/libzqext.a ./python/src/zqext.go
+	@mkdir -p python/brim/build/zqext
+	go build -buildmode=c-archive -o python/brim/build/zqext/libzqext.a python/brim/src/zqext.go
 
 clean-python:
-	@rm -rf python/build
+	@rm -rf python/brim/build
 
 PEG_GEN = zql/zql.go zql/zql.js zql/zql.es.js
 $(PEG_GEN): zql/Makefile zql/parser-support.js zql/zql.peg

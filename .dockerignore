@@ -1,6 +1,6 @@
 bin/
 dist/
-python/build/
+python/brim/build/
 tests/test-root
 zq-sample-data
 zql/deps/
