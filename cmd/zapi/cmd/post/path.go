@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
 	"github.com/brimsec/zq/cmd/zapi/format"
 	"github.com/brimsec/zq/pkg/display"
@@ -18,47 +17,45 @@ import (
 	"github.com/mccanne/charm"
 )
 
-var PostLog = &charm.Spec{
-	Name:  "post",
-	Usage: "post [options] path...",
-	Short: "post log file(s) to a space",
-	New:   NewLogPost,
+var LogPath = &charm.Spec{
+	Name:  "postpath",
+	Usage: "postpath [options] path...",
+	Short: "post log paths to a space",
+	Long: `Post log paths to a space. ZQD will open the specifed paths and
+writing the data into the space. Posted paths must therefore be accessible by
+the specified zqd endpoint. Paths can be s3 URIs.`,
+	New: NewLogPath,
 }
 
 func init() {
-	cmd.CLI.Add(PostLog)
+	cmd.CLI.Add(LogPath)
 }
 
-type LogCommand struct {
+type LogPathCommand struct {
 	*cmd.Command
-	force      bool
+	spaceFlags spaceFlags
 	bytesRead  int64
 	bytesTotal int64
 	start      time.Time
-	done       bool
 }
 
-func NewLogPost(parent charm.Command, flags *flag.FlagSet) (charm.Command, error) {
-	c := &LogCommand{Command: parent.(*cmd.Command)}
-	flags.BoolVar(&c.force, "f", false, "create space if specified space does not exist")
+func NewLogPath(parent charm.Command, fs *flag.FlagSet) (charm.Command, error) {
+	c := &LogPathCommand{Command: parent.(*cmd.Command)}
+	c.spaceFlags.SetFlags(fs)
+	c.spaceFlags.cmd = c.Command
 	return c, nil
 }
 
-func (c *LogCommand) Run(args []string) (err error) {
-	conn := c.Connection()
+func (c *LogPathCommand) Run(args []string) (err error) {
 	if len(args) == 0 {
 		return errors.New("path arg(s) required")
+	}
+	if err := c.Init(&c.spaceFlags); err != nil {
+		return err
 	}
 	paths, err := abspaths(args)
 	if err != nil {
 		return err
-	}
-	if c.force {
-		sp, err := conn.SpacePost(c.Context(), api.SpacePostRequest{Name: c.Spacename})
-		if err != nil && err != client.ErrSpaceExists {
-			return err
-		}
-		c.Spacename = sp.Name
 	}
 	var out io.Writer
 	var dp *display.Display
@@ -74,7 +71,7 @@ func (c *LogCommand) Run(args []string) (err error) {
 		return err
 	}
 	c.start = time.Now()
-	stream, err := conn.LogPostStream(c.Context(), id, api.LogPostRequest{Paths: paths})
+	stream, err := c.Connection().LogPostPathStream(c.Context(), id, nil, paths...)
 	if err != nil {
 		return err
 	}
@@ -125,7 +122,7 @@ func abspaths(paths []string) ([]string, error) {
 	return out, nil
 }
 
-func (c *LogCommand) Display(w io.Writer) bool {
+func (c *LogPathCommand) Display(w io.Writer) bool {
 	total := atomic.LoadInt64(&c.bytesTotal)
 	if total == 0 {
 		io.WriteString(w, "posting...\n")

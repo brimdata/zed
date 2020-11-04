@@ -17,6 +17,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/api/client"
@@ -49,7 +50,7 @@ func TestASTPost(t *testing.T) {
 }
 
 func TestSearch(t *testing.T) {
-	src := `
+	const src = `
 #0:record[_path:string,ts:time,uid:bstring]
 0:[conn;1521911723.205187;CBrzd94qfowOqJwCHa;]
 0:[conn;1521911721.255387;C8Tful1TvM3Zf5x8fl;]
@@ -57,7 +58,9 @@ func TestSearch(t *testing.T) {
 	_, conn := newCore(t)
 	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	_ = postSpaceLogs(t, conn, sp.ID, nil, src)
+	_, err = conn.LogPostReaders(context.Background(), sp.ID, nil, strings.NewReader(src))
+	require.NoError(t, err)
+
 	res := searchTzng(t, conn, sp.ID, "*")
 	require.Equal(t, test.Trim(src), res)
 }
@@ -71,7 +74,8 @@ func TestSearchNoCtrl(t *testing.T) {
 	_, conn := newCore(t)
 	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	_ = postSpaceLogs(t, conn, sp.ID, nil, src)
+	_, err = conn.LogPostReaders(context.Background(), sp.ID, nil, strings.NewReader(src))
+	require.NoError(t, err)
 
 	parsed, err := zql.ParseProc("*")
 	require.NoError(t, err)
@@ -105,7 +109,8 @@ func TestSearchStats(t *testing.T) {
 	_, conn := newCore(t)
 	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	_ = postSpaceLogs(t, conn, sp.ID, nil, src)
+	_, err = conn.LogPostReaders(context.Background(), sp.ID, nil, strings.NewReader(src))
+	require.NoError(t, err)
 	_, msgs := search(t, conn, sp.ID, "_path != b")
 	var stats *api.SearchStats
 	for i := len(msgs) - 1; i >= 0; i-- {
@@ -139,7 +144,8 @@ func TestGroupByReverse(t *testing.T) {
 	_, conn := newCore(t)
 	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	_ = postSpaceLogs(t, conn, sp.ID, nil, src)
+	_, err = conn.LogPostReaders(context.Background(), sp.ID, nil, strings.NewReader(src))
+	require.NoError(t, err)
 	res := searchTzng(t, conn, sp.ID, "every 1s count()")
 	require.Equal(t, test.Trim(counts), res)
 }
@@ -162,7 +168,8 @@ func TestSearchError(t *testing.T) {
 	_, conn := newCore(t)
 	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	_ = postSpaceLogs(t, conn, sp.ID, nil, src)
+	_, err = conn.LogPostReaders(context.Background(), sp.ID, nil, strings.NewReader(src))
+	require.NoError(t, err)
 
 	parsed, err := zql.ParseProc("*")
 	require.NoError(t, err)
@@ -242,7 +249,9 @@ func TestSpaceInfo(t *testing.T) {
 	_, conn := newCore(t)
 	sp, err := conn.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	_ = postSpaceLogs(t, conn, sp.ID, nil, src)
+	_, err = conn.LogPostReaders(context.Background(), sp.ID, nil, strings.NewReader(src))
+	require.NoError(t, err)
+
 	span := nano.Span{Ts: 1e9, Dur: 1e9 + 1}
 	expected := &api.SpaceInfo{
 		ID:          sp.ID,
@@ -406,76 +415,59 @@ func TestRequestID(t *testing.T) {
 }
 
 func TestPostZngLogs(t *testing.T) {
-	src1 := []string{
-		"#0:record[_path:string,ts:time,uid:bstring]",
-		"0:[conn;1;CBrzd94qfowOqJwCHa;]",
-	}
-	src2 := []string{
-		"#0:record[_path:string,ts:time,uid:bstring]",
-		"0:[conn;2;CBrzd94qfowOqJwCHa;]",
-	}
+	const src1 = `#0:record[_path:string,ts:time,uid:bstring]
+0:[conn;1;CBrzd94qfowOqJwCHa;]`
+	const src2 = `#0:record[_path:string,ts:time,uid:bstring]
+0:[conn;2;CBrzd94qfowOqJwCHa;]`
+	const expected = `#0:record[_path:string,ts:time,uid:bstring]
+0:[conn;2;CBrzd94qfowOqJwCHa;]
+0:[conn;1;CBrzd94qfowOqJwCHa;]`
+
 	_, conn := newCore(t)
 	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 
-	payloads := postSpaceLogs(t, conn, sp.ID, nil, strings.Join(src1, "\n"), strings.Join(src2, "\n"))
-	status := payloads[len(payloads)-2].(*api.LogPostStatus)
-	span := &nano.Span{Ts: 1e9, Dur: 1e9 + 1}
-	require.Equal(t, &api.LogPostStatus{
-		Type:         "LogPostStatus",
-		LogTotalSize: 148,
-		LogReadSize:  148,
-	}, status)
-
-	taskend := payloads[len(payloads)-1].(*api.TaskEnd)
-	assert.Equal(t, taskend.Type, "TaskEnd")
-	assert.Nil(t, taskend.Error)
+	pres, err := conn.LogPostReaders(context.Background(), sp.ID, nil,
+		strings.NewReader(src1),
+		strings.NewReader(src2),
+	)
+	require.NoError(t, err)
+	assert.Equal(t, api.LogPostResponse{Type: "LogPostResponse", BytesRead: 148}, pres)
 
 	res := searchTzng(t, conn, sp.ID, "*")
-	require.Equal(t, strings.Join(append(src2, src1[1]), "\n"), strings.TrimSpace(res))
+	require.EqualValues(t, expected, strings.TrimSpace(res))
 
 	info, err := conn.SpaceInfo(context.Background(), sp.ID)
 	require.NoError(t, err)
-	require.Equal(t, &api.SpaceInfo{
+	assert.Equal(t, &api.SpaceInfo{
 		ID:          sp.ID,
 		Name:        sp.Name,
 		DataPath:    sp.DataPath,
 		StorageKind: api.FileStore,
-		Span:        span,
+		Span:        &nano.Span{Ts: nano.Ts(time.Second), Dur: int64(time.Second) + 1},
 		Size:        79,
 		PcapSupport: false,
 	}, info)
 }
 
 func TestPostZngLogWarning(t *testing.T) {
-	src1 := []string{
-		"undetectableformat",
-	}
-	src2 := []string{
-		"#0:record[_path:string,ts:time,uid:bstring]",
-		"0:[conn;1;CBrzd94qfowOqJwCHa;]",
-		"detectablebutbadline",
-	}
+	const src1 = `undetectableformat`
+	const src2 = `#0:record[_path:string,ts:time,uid:bstring]
+0:[conn;1;CBrzd94qfowOqJwCHa;]
+detectablebutbadline`
+
 	_, conn := newCore(t)
 	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 
-	payloads := postSpaceLogs(t, conn, sp.ID, nil, strings.Join(src1, "\n"), strings.Join(src2, "\n"))
-	warnings := payloads.LogPostWarnings()
-	assert.Regexp(t, ": format detection error.*", warnings[0].Warning)
-	assert.Regexp(t, ": line 3: bad format$", warnings[1].Warning)
-
-	status := payloads[len(payloads)-2].(*api.LogPostStatus)
-	expected := &api.LogPostStatus{
-		Type:         "LogPostStatus",
-		LogTotalSize: 95,
-		LogReadSize:  95,
-	}
-	require.Equal(t, expected, status)
-
-	taskend := payloads[len(payloads)-1].(*api.TaskEnd)
-	assert.Equal(t, taskend.Type, "TaskEnd")
-	assert.Nil(t, taskend.Error)
+	res, err := conn.LogPostReaders(context.Background(), sp.ID, nil,
+		strings.NewReader(src1),
+		strings.NewReader(src2),
+	)
+	require.NoError(t, err)
+	assert.Regexp(t, ": format detection error.*", res.Warnings[0])
+	assert.Regexp(t, ": line 3: bad format$", res.Warnings[1])
+	assert.EqualValues(t, 113, res.BytesRead)
 }
 
 func TestPostNDJSONLogs(t *testing.T) {
@@ -510,10 +502,9 @@ func TestPostNDJSONLogs(t *testing.T) {
 		sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 		require.NoError(t, err)
 
-		payloads := postSpaceLogs(t, conn, sp.ID, &tc, input)
-		last := payloads[len(payloads)-1].(*api.TaskEnd)
-		assert.Equal(t, last.Type, "TaskEnd")
-		assert.Nil(t, last.Error)
+		opts := &client.LogPostOpts{JSON: &tc}
+		_, err = conn.LogPostReaders(context.Background(), sp.ID, opts, strings.NewReader(src))
+		require.NoError(t, err)
 
 		res := searchTzng(t, conn, sp.ID, "*")
 		require.Equal(t, expected, strings.TrimSpace(res))
@@ -545,10 +536,10 @@ func TestPostNDJSONLogs(t *testing.T) {
 }
 
 func TestPostNDJSONLogWarning(t *testing.T) {
-	const src1 = `{"ts":"1000","_path":"nosuchpath"}
-{"ts":"2000","_path":"http"}`
-	const src2 = `{"ts":"1000","_path":"http"}
-{"ts":"1000","_path":"http","extra":"foo"}`
+	src1 := strings.NewReader(`{"ts":"1000","_path":"nosuchpath"}
+{"ts":"2000","_path":"http"}`)
+	src2 := strings.NewReader(`{"ts":"1000","_path":"http"}
+{"ts":"1000","_path":"http","extra":"foo"}`)
 	tc := ndjsonio.TypeConfig{
 		Descriptors: map[string][]interface{}{
 			"http_log": []interface{}{
@@ -570,36 +561,26 @@ func TestPostNDJSONLogWarning(t *testing.T) {
 	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 
-	payloads := postSpaceLogs(t, conn, sp.ID, &tc, src1, src2)
-	warnings := payloads.LogPostWarnings()
-	assert.Regexp(t, ": line 1: descriptor not found", warnings[0].Warning)
-	assert.Regexp(t, ": line 2: incomplete descriptor", warnings[1].Warning)
-
-	status := payloads[len(payloads)-2].(*api.LogPostStatus)
-	expected := &api.LogPostStatus{
-		Type:         "LogPostStatus",
-		LogTotalSize: 71,
-		LogReadSize:  71,
-	}
-	require.Equal(t, expected, status)
-
-	taskend := payloads[len(payloads)-1].(*api.TaskEnd)
-	assert.Equal(t, taskend.Type, "TaskEnd")
-	assert.Nil(t, taskend.Error)
+	opts := &client.LogPostOpts{JSON: &tc}
+	res, err := conn.LogPostReaders(context.Background(), sp.ID, opts, src1, src2)
+	require.NoError(t, err)
+	require.Len(t, res.Warnings, 2)
+	assert.Regexp(t, ": line 1: descriptor not found", res.Warnings[0])
+	assert.Regexp(t, ": line 2: incomplete descriptor", res.Warnings[1])
+	assert.EqualValues(t, 134, res.BytesRead)
 }
 
 func TestPostLogStopErr(t *testing.T) {
-	src := `
+	const src = `
 #0:record[_path:string,ts:time,uid:bstring
 0:[conn;1;CBrzd94qfowOqJwCHa;]`
-	logfile := writeTempFile(t, src)
-	defer os.Remove(logfile)
-	_, conn := newCore(t)
 
+	_, conn := newCore(t)
 	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 
-	_, err = conn.LogPostStream(context.Background(), sp.ID, api.LogPostRequest{Paths: []string{logfile}, StopErr: true})
+	opts := &client.LogPostOpts{StopError: true}
+	_, err = conn.LogPostReaders(context.Background(), sp.ID, opts, strings.NewReader(src))
 	require.Error(t, err)
 	assert.Regexp(t, ": format detection error.*", err.Error())
 }
@@ -679,7 +660,8 @@ func TestSpaceDataDir(t *testing.T) {
 		DataPath: datapath,
 	})
 	require.NoError(t, err)
-	_ = postSpaceLogs(t, conn1, sp.ID, nil, src)
+	_, err = conn1.LogPostReaders(context.Background(), sp.ID, nil, strings.NewReader(src))
+	require.NoError(t, err)
 	res := searchTzng(t, conn1, sp.ID, "*")
 	require.Equal(t, test.Trim(src), res)
 
@@ -709,8 +691,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	payload := api.LogPostRequest{Paths: []string{babble}}
-	err = conn.LogPost(context.Background(), sp.ID, payload)
+	_, err = conn.LogPost(context.Background(), sp.ID, nil, babble)
 	require.NoError(t, err)
 
 	span := nano.Span{Ts: 1587508830068523240, Dur: 9789993714061}
@@ -771,8 +752,7 @@ func TestIndexSearch(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	payload := api.LogPostRequest{Paths: []string{babble}}
-	err = conn.LogPost(context.Background(), sp.ID, payload)
+	_, err = conn.LogPost(context.Background(), sp.ID, nil, babble)
 	require.NoError(t, err)
 	err = conn.IndexPost(context.Background(), sp.ID, api.IndexPostRequest{
 		Patterns: []string{"v"},
@@ -811,8 +791,7 @@ func TestSubspaceCreate(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	payload := api.LogPostRequest{Paths: []string{babble}}
-	err = conn.LogPost(context.Background(), sp1.ID, payload)
+	_, err = conn.LogPost(context.Background(), sp1.ID, nil, babble)
 	require.NoError(t, err)
 	err = conn.IndexPost(context.Background(), sp1.ID, api.IndexPostRequest{
 		Patterns: []string{":int64"},
@@ -888,8 +867,7 @@ func TestSubspacePersist(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	payload := api.LogPostRequest{Paths: []string{babble}}
-	err = conn1.LogPost(context.Background(), sp1.ID, payload)
+	_, err = conn1.LogPost(context.Background(), sp1.ID, nil, babble)
 	require.NoError(t, err)
 	err = conn1.IndexPost(context.Background(), sp1.ID, api.IndexPostRequest{
 		Patterns: []string{":int64"},
@@ -940,14 +918,14 @@ func TestSubspacePersist(t *testing.T) {
 	err = conn2.SpaceDelete(context.Background(), sp2.ID)
 	require.NoError(t, err)
 
-	si, err = conn2.SpaceInfo(context.Background(), sp2.ID)
+	_, err = conn2.SpaceInfo(context.Background(), sp2.ID)
 	require.Error(t, err)
 	assert.Regexp(t, "not found", err.Error())
 
 	// Verify subspace gone with new server
 	_, conn3 := newCoreAtDir(t, root)
 
-	si, err = conn3.SpaceInfo(context.Background(), sp2.ID)
+	_, err = conn3.SpaceInfo(context.Background(), sp2.ID)
 	require.Error(t, err)
 	assert.Regexp(t, "not found", err.Error())
 }
@@ -969,8 +947,7 @@ func TestArchiveStat(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	payload := api.LogPostRequest{Paths: []string{babble}}
-	err = conn.LogPost(context.Background(), sp.ID, payload)
+	_, err = conn.LogPost(context.Background(), sp.ID, nil, babble)
 	require.NoError(t, err)
 	err = conn.IndexPost(context.Background(), sp.ID, api.IndexPostRequest{
 		Patterns: []string{"v"},
@@ -1069,6 +1046,17 @@ func createTempDir(t *testing.T) string {
 	return dir
 }
 
+func writeTempFile(t *testing.T, data string) string {
+	f, err := ioutil.TempFile("", t.Name())
+	require.NoError(t, err)
+	name := f.Name()
+	t.Cleanup(func() { os.Remove(name) })
+	_, err = f.WriteString(data)
+	require.NoError(t, err)
+	require.NoError(t, f.Close())
+	return name
+}
+
 func newCore(t *testing.T) (*zqd.Core, *client.Connection) {
 	root := createTempDir(t)
 	return newCoreAtDir(t, root)
@@ -1092,52 +1080,6 @@ func newCoreWithConfig(t *testing.T, conf zqd.Config) (*zqd.Core, *client.Connec
 	srv := httptest.NewServer(zqd.NewHandler(core, conf.Logger))
 	t.Cleanup(srv.Close)
 	return core, client.NewConnectionTo(srv.URL)
-}
-
-func writeTempFile(t *testing.T, contents string) string {
-	pattern := strings.ReplaceAll(t.Name(), "/", "-")
-	f, err := ioutil.TempFile("", pattern)
-	require.NoError(t, err)
-	defer f.Close()
-	_, err = f.WriteString(contents)
-	require.NoError(t, err)
-	return f.Name()
-}
-
-type postPayloads []interface{}
-
-func (ps postPayloads) LogPostWarnings() []*api.LogPostWarning {
-	var warnings []*api.LogPostWarning
-	for _, p := range ps {
-		if w, ok := p.(*api.LogPostWarning); ok {
-			warnings = append(warnings, w)
-		}
-	}
-	return warnings
-}
-
-// postSpaceLogs POSTs the provided strings as logs in to the provided space, and returns a slice of any payloads that the server sent.
-func postSpaceLogs(t *testing.T, c *client.Connection, spaceID api.SpaceID, tc *ndjsonio.TypeConfig, logs ...string) postPayloads {
-	var filenames []string
-	for _, log := range logs {
-		name := writeTempFile(t, log)
-		filenames = append(filenames, name)
-		defer os.Remove(name)
-	}
-
-	ctx := context.Background()
-	s, err := c.LogPostStream(ctx, spaceID, api.LogPostRequest{Paths: filenames, JSONTypeConfig: tc})
-	require.NoError(t, err)
-	var payloads []interface{}
-	for {
-		p, err := s.Next()
-		require.NoError(t, err)
-		if p == nil {
-			break
-		}
-		payloads = append(payloads, p)
-	}
-	return payloads
 }
 
 func testLauncher(start, wait procFn) pcapanalyzer.Launcher {

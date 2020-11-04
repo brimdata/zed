@@ -186,6 +186,12 @@ type LogPostStatus struct {
 	LogReadSize  int64  `json:"log_read_size" unit:"bytes"`
 }
 
+type LogPostResponse struct {
+	Type      string   `json:"type"`
+	BytesRead int64    `json:"bytes_read" unit:"bytes"`
+	Warnings  []string `json:"warnings"`
+}
+
 // PcapSearch are the query string args to the packet endpoint when searching
 // for packets within a connection 5-tuple.
 type PcapSearch struct {

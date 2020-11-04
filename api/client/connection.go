@@ -15,6 +15,7 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/pcap/pcapio"
+	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/go-resty/resty/v2"
 )
 
@@ -328,21 +329,13 @@ type PcapReadCloser struct {
 	io.Closer
 }
 
-func (c *Connection) LogPostStream(ctx context.Context, space api.SpaceID, payload api.LogPostRequest) (*Stream, error) {
-	req := c.Request(ctx).
-		SetBody(payload)
-	req.Method = http.MethodPost
-	req.URL = path.Join("/space", url.PathEscape(string(space)), "log")
-	r, err := c.stream(req)
-	if err != nil {
-		return nil, err
-	}
-	jsonpipe := NewJSONPipeScanner(r)
-	return NewStream(jsonpipe), nil
+type LogPostOpts struct {
+	JSON      *ndjsonio.TypeConfig
+	StopError bool
 }
 
-func (c *Connection) LogPost(ctx context.Context, space api.SpaceID, payload api.LogPostRequest) error {
-	stream, err := c.LogPostStream(ctx, space, payload)
+func (c *Connection) LogPostPath(ctx context.Context, space api.SpaceID, opts *LogPostOpts, paths ...string) error {
+	stream, err := c.LogPostPathStream(ctx, space, opts, paths...)
 	if err != nil {
 		return err
 	}
@@ -351,6 +344,62 @@ func (c *Connection) LogPost(ctx context.Context, space api.SpaceID, payload api
 		return err
 	}
 	return payloads.Error()
+}
+
+func (c *Connection) LogPostPathStream(ctx context.Context, space api.SpaceID, opts *LogPostOpts, paths ...string) (*Stream, error) {
+	body := api.LogPostRequest{Paths: paths}
+	if opts != nil {
+		body.JSONTypeConfig = opts.JSON
+		body.StopErr = opts.StopError
+	}
+	req := c.Request(ctx).
+		SetBody(body)
+	req.Method = http.MethodPost
+	req.URL = path.Join("/space", url.PathEscape(string(space)), "log/paths")
+	r, err := c.stream(req)
+	if err != nil {
+		return nil, err
+	}
+	jsonpipe := NewJSONPipeScanner(r)
+	return NewStream(jsonpipe), nil
+}
+
+func (c *Connection) LogPost(ctx context.Context, space api.SpaceID, opts *LogPostOpts, paths ...string) (api.LogPostResponse, error) {
+	w, err := MultipartFileWriter(paths...)
+	if err != nil {
+		return api.LogPostResponse{}, err
+	}
+	return c.LogPostWriter(ctx, space, opts, w)
+}
+
+func (c *Connection) LogPostReaders(ctx context.Context, space api.SpaceID, opts *LogPostOpts, readers ...io.Reader) (api.LogPostResponse, error) {
+	w, err := MultipartDataWriter(readers...)
+	if err != nil {
+		return api.LogPostResponse{}, err
+	}
+	return c.LogPostWriter(ctx, space, opts, w)
+}
+
+func (c *Connection) LogPostWriter(ctx context.Context, space api.SpaceID, opts *LogPostOpts, writer *MultipartWriter) (api.LogPostResponse, error) {
+	req := c.Request(ctx).
+		SetBody(writer).
+		SetResult(&api.LogPostResponse{}).
+		SetHeader("Content-Type", writer.ContentType())
+	if opts != nil {
+		if opts.StopError {
+			req.SetQueryParam("stop_err", "true")
+		}
+		if opts.JSON != nil {
+			writer.SetJSONConfig(opts.JSON)
+		}
+	}
+	u := path.Join("/space", url.PathEscape(string(space)), "log/stream")
+	resp, err := req.Post(u)
+	if err != nil {
+		return api.LogPostResponse{}, err
+	}
+	v := resp.Result().(*api.LogPostResponse)
+	return *v, nil
 }
 
 type ErrorResponse struct {

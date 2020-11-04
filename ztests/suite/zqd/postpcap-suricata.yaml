@@ -1,23 +1,19 @@
 script: |
   source services.sh
-  zapi -h $ZQD_HOST new -k archivestore testsp 
-  zapi -h $ZQD_HOST -s testsp pcappost alerts.pcap >/dev/null
-  echo ===
+  zapi -h $ZQD_HOST -s testsp postpcap -f alerts.pcap >/dev/null
   zapi -h $ZQD_HOST -s testsp get -f tzng "event_type = alert | every 1s count()"
   echo ===
   zapi -h $ZQD_HOST -s testsp get -f tzng "_path != null | count()"
 
 inputs:
   - name: alerts.pcap
-    source: ../alerts.pcap
+    source: alerts.pcap
   - name: services.sh
-    source: ../services.sh
+    source: services.sh
 
 outputs:
   - name: stdout
     data: |
-      testsp: space created
-      ===
       #0:record[ts:time,count:uint64]
       0:[1425568033;13;]
       0:[1425567868;2;]

@@ -1,7 +1,6 @@
 script: |
   source services.sh
-  zapi -h $ZQD_HOST new -k archivestore testsp
-  zapi -h $ZQD_HOST -s testsp pcappost -stats ng.pcap
+  zapi -h $ZQD_HOST -s testsp postpcap -f -k archivestore -stats ng.pcap
 
 inputs:
   - name: ng.pcap

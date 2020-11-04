@@ -1,23 +1,19 @@
 script: |
   source services.sh
-  zapi -h $ZQD_HOST new testsp
-  zapi -h $ZQD_HOST -s testsp pcappost -f ng.pcap >/dev/null
-  echo ===
+  zapi -h $ZQD_HOST -s testsp postpcap -k archivestore -f ng.pcap >/dev/null
   zapi -h $ZQD_HOST -s testsp get -f tzng "_path != stats | cut -c uid | sort -r ts, _path"
   echo ===
   zapi -h $ZQD_HOST -s testsp get -f tzng "count()"
 
 inputs:
   - name: ng.pcap
-    source: ../pcap/ng.pcap
+    source: ../../pcap/ng.pcap
   - name: services.sh
-    source: services.sh
+    source: ../services.sh
 
 outputs:
   - name: stdout
     data: |
-      testsp: space created
-      ===
       #0:record[_path:string,ts:time,ts_delta:duration,peer:bstring,gaps:uint64,acks:uint64,percent_lost:float64]
       0:[capture_loss;1425568893.736974;0.001192;zeek;0;0;0;]
       #port=uint16

@@ -84,6 +84,10 @@ func (c *Command) Connection() *client.Connection {
 	return c.conn
 }
 
+func (c *Command) SetSpaceID(id api.SpaceID) {
+	c.spaceID = id
+}
+
 func (c *Command) SpaceID() (api.SpaceID, error) {
 	if c.spaceID != "" {
 		return c.spaceID, nil
