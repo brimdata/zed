@@ -28,6 +28,7 @@ func NewHandler(core *Core, logger *zap.Logger) http.Handler {
 	h.Use(requestIDMiddleware())
 	h.Use(accessLogMiddleware(logger))
 	h.Use(panicCatchMiddleware(logger))
+	h.Handle("/ast", handleASTPost).Methods("POST")
 	h.Handle("/space", handleSpaceList).Methods("GET")
 	h.Handle("/space", handleSpacePost).Methods("POST")
 	h.Handle("/space/{space}", handleSpaceGet).Methods("GET")

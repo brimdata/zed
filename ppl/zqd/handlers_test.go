@@ -41,6 +41,13 @@ import (
 
 const babble = "../../ztests/suite/data/babble.tzng"
 
+func TestASTPost(t *testing.T) {
+	_, conn := newCore(t)
+	resp, err := conn.Do(context.Background(), http.MethodPost, "/ast", &api.ASTRequest{ZQL: "*"})
+	require.NoError(t, err)
+	require.Equal(t, string(resp.Body()), "{\"op\":\"FilterProc\",\"filter\":{\"op\":\"MatchAll\"}}\n")
+}
+
 func TestSearch(t *testing.T) {
 	src := `
 #0:record[_path:string,ts:time,uid:bstring]

@@ -26,6 +26,10 @@ func (e Error) Error() string {
 	return e.Message
 }
 
+type ASTRequest struct {
+	ZQL string `json:"zql"`
+}
+
 type TaskStart struct {
 	Type   string `json:"type"`
 	TaskID int64  `json:"task_id"`

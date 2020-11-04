@@ -20,6 +20,7 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
+	"github.com/brimsec/zq/zql"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
@@ -72,6 +73,19 @@ func request(c *Core, w http.ResponseWriter, r *http.Request, apiobj interface{}
 		return false
 	}
 	return true
+}
+
+func handleASTPost(c *Core, w http.ResponseWriter, r *http.Request) {
+	var req api.ASTRequest
+	if !request(c, w, r, &req) {
+		return
+	}
+	proc, err := zql.ParseProc(req.ZQL)
+	if err != nil {
+		respondError(c, w, r, zqe.ErrInvalid(err))
+		return
+	}
+	respond(c, w, r, http.StatusOK, proc)
 }
 
 func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
