@@ -3,7 +3,6 @@ import decimal
 import ipaddress
 import json
 import requests
-import time
 
 
 DEFAULT_BASE_URL = 'http://127.0.0.1:9867'
