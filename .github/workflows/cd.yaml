@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - master
-
+      - zqd-dist-haproxy
 jobs:
   ecr-image-push:
     runs-on: ubuntu-latest
