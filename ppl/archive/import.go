@@ -150,20 +150,20 @@ func (dw *tsDirWriter) addBufSize(delta int64) {
 	dw.importWriter.memBuffered += delta
 }
 
-// totalRecordBytes is the sum of the size of compressed records spilt to disk
-// and a crude approximation of the buffer record bytes (simply bufBytes / 2).
-func (dw *tsDirWriter) totalRecordBytes() int64 {
+// chunkSizeEstimate returns a crude approximation of all records when written
+// to a chunk file (i.e. compressed).
+func (dw *tsDirWriter) chunkSizeEstimate() int64 {
 	b := dw.bufSize
 	if dw.spiller != nil {
 		b += dw.spiller.SpillSize()
 	}
-	return b
+	return b / 2
 }
 
 func (dw *tsDirWriter) writeOne(rec *zng.Record) error {
 	dw.records = append(dw.records, rec)
 	dw.addBufSize(int64(len(rec.Raw)))
-	if dw.totalRecordBytes() > dw.ark.LogSizeThreshold {
+	if dw.chunkSizeEstimate() > dw.ark.LogSizeThreshold {
 		if err := dw.flush(); err != nil {
 			return err
 		}
