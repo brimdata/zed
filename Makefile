@@ -78,7 +78,7 @@ test-heavy: build $(SAMPLEDATA)
 	@go test -v -tags=heavy ./tests
 
 test-pcapingest: bin/$(ZEEKPATH)
-	@ZEEK=$(CURDIR)/bin/$(ZEEKPATH)/zeekrunner go test -v -run=PcapPost -tags=pcapingest ./zqd
+	@ZEEK=$(CURDIR)/bin/$(ZEEKPATH)/zeekrunner go test -v -run=PcapPost -tags=pcapingest ./ppl/zqd
 
 perf-compare: build $(SAMPLEDATA)
 	scripts/comparison-test.sh
@@ -89,10 +89,10 @@ zng-output-check: build $(SAMPLEDATA)
 # If the build recipe changes, please also change npm/build.
 build:
 	@mkdir -p dist
-	@go build -ldflags='$(LDFLAGS)' -o dist ./cmd/...
+	@go build -ldflags='$(LDFLAGS)' -o dist ./cmd/... ./ppl/cmd/...
 
 install:
-	@go install -ldflags='$(LDFLAGS)' ./cmd/...
+	@go install -ldflags='$(LDFLAGS)' ./cmd/... ./ppl/cmd/...
 
 docker:
 	DOCKER_BUILDKIT=1 docker build --pull --rm \
@@ -142,14 +142,14 @@ create-release-assets:
 	done
 
 build-python-wheel: build-python-lib
-	pip3 wheel --no-deps -w dist ./python
+	pip3 wheel --no-deps -w dist python/brim
 
 build-python-lib:
-	@mkdir -p python/build/zqext
-	go build -buildmode=c-archive -o python/build/zqext/libzqext.a ./python/src/zqext.go
+	@mkdir -p python/brim/build/zqext
+	go build -buildmode=c-archive -o python/brim/build/zqext/libzqext.a python/brim/src/zqext.go
 
 clean-python:
-	@rm -rf python/build
+	@rm -rf python/brim/build
 
 PEG_GEN = zql/zql.go zql/zql.js zql/zql.es.js
 $(PEG_GEN): zql/Makefile zql/parser-support.js zql/zql.peg
@@ -165,7 +165,7 @@ peg: $(PEG_GEN)
 
 # CI performs these actions individually since that looks nicer in the UI;
 # this is a shortcut so that a local dev can easily run everything.
-test-ci: fmt tidy vet test-generate test-unit test-system test-zeek test-heavy
+test-ci: fmt tidy vet test-generate test-unit test-system test-pcapingest test-heavy
 
 clean: clean-python
 	@rm -rf dist

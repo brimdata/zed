@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
 	"github.com/brimsec/zq/pkg/repl"
 	"github.com/brimsec/zq/pkg/units"
-	"github.com/brimsec/zq/zqd/storage"
 	"github.com/mccanne/charm"
 )
 
@@ -27,7 +27,7 @@ func init() {
 
 type Command struct {
 	*cmd.Command
-	kind     storage.Kind
+	kind     api.StorageKind
 	datapath string
 	thresh   units.Bytes
 }

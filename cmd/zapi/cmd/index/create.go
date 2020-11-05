@@ -6,8 +6,8 @@ import (
 	"flag"
 	"strings"
 
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
-	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zql"
 	"github.com/mccanne/charm"
 )
@@ -81,7 +81,7 @@ func (c *CreateCmd) Run(args []string) error {
 		}
 		req.Keys = c.keys
 	}
-	return c.Client().IndexPost(c.Context(), id, req)
+	return c.Connection().IndexPost(c.Context(), id, req)
 }
 
 type arrayFlag []string

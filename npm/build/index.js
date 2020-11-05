@@ -18,7 +18,7 @@ const getLdflags = (version) => `-s -X github.com/brimsec/zq/cli.Version=${versi
 
 const getBuildCommand = (options) =>
   // Double-quotes work both in Windows and *nix shells
-  `go build -ldflags="${options.ldflags}" -o dist ./cmd/...`
+  `go build -ldflags="${options.ldflags}" -o dist ./cmd/... ./ppl/cmd/...`
 
 const mkdir_p = (path) => {
   if (!fs.existsSync(path)) {

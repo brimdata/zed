@@ -1,6 +1,8 @@
 package zng
 
 import (
+	"time"
+
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zcode"
 )
@@ -61,5 +63,5 @@ func (t *TypeOfTime) Marshal(zv zcode.Bytes) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ts.StringFloat(), nil
+	return ts.Time().UTC().Format(time.RFC3339Nano), nil
 }

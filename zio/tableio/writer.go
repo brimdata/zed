@@ -5,37 +5,37 @@ import (
 	"io"
 	"strings"
 	"text/tabwriter"
+	"time"
 
-	"github.com/brimsec/zq/zio/zeekio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/flattener"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
 type Writer struct {
-	writer    io.WriteCloser
-	flattener *flattener.Flattener
-	table     *tabwriter.Writer
-	typ       *zng.TypeRecord
-	limit     int
-	nline     int
-	precision int
-	format    zng.OutFmt
+	writer     io.WriteCloser
+	flattener  *flattener.Flattener
+	table      *tabwriter.Writer
+	typ        *zng.TypeRecord
+	limit      int
+	nline      int
+	epochDates bool
+	format     zng.OutFmt
 }
 
-func NewWriter(w io.WriteCloser, utf8 bool) *Writer {
+func NewWriter(w io.WriteCloser, utf8, epochDates bool) *Writer {
 	table := tabwriter.NewWriter(w, 0, 8, 1, ' ', 0)
 	format := zng.OutFormatZeekAscii
 	if utf8 {
 		format = zng.OutFormatZeek
 	}
 	return &Writer{
-		writer:    w,
-		flattener: flattener.New(resolver.NewContext()),
-		table:     table,
-		limit:     1000,
-		precision: 6,
-		format:    format,
+		writer:     w,
+		flattener:  flattener.New(resolver.NewContext()),
+		table:      table,
+		limit:      1000,
+		epochDates: epochDates,
+		format:     format,
 	}
 }
 
@@ -68,16 +68,25 @@ func (w *Writer) Write(r *zng.Record) error {
 		w.writeHeader(w.typ)
 		w.nline = 0
 	}
-	//XXX only works for zeek-oriented records right now (won't work for NDJSON nested records)
-	ss, changePrecision, err := zeekio.ZeekStrings(r, w.precision, w.format)
-	if err != nil {
-		return err
-	}
-	if changePrecision {
-		w.precision = 9
+	var out []string
+	for k, col := range r.Type.Columns {
+		var v string
+		value := r.Value(k)
+		if !w.epochDates && col.Type == zng.TypeTime {
+			if !value.IsUnsetOrNil() {
+				ts, err := zng.DecodeTime(value.Bytes)
+				if err != nil {
+					return err
+				}
+				v = ts.Time().UTC().Format(time.RFC3339Nano)
+			}
+		} else {
+			v = value.Format(w.format)
+		}
+		out = append(out, v)
 	}
 	w.nline++
-	_, err = fmt.Fprintf(w.table, "%s\n", strings.Join(ss, "\t"))
+	_, err = fmt.Fprintf(w.table, "%s\n", strings.Join(out, "\t"))
 	return err
 }
 

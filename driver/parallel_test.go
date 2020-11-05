@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/scanner"
@@ -16,7 +17,6 @@ import (
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

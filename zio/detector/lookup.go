@@ -52,7 +52,7 @@ func LookupWriter(w io.WriteCloser, opts zio.WriterOpts) (zbuf.WriteCloser, erro
 	case "text":
 		return textio.NewWriter(w, opts.UTF8, opts.Text, opts.EpochDates), nil
 	case "table":
-		return tableio.NewWriter(w, opts.UTF8), nil
+		return tableio.NewWriter(w, opts.UTF8, opts.EpochDates), nil
 	case "csv":
 		return csvio.NewWriter(w, opts.UTF8, opts.EpochDates), nil
 	default:

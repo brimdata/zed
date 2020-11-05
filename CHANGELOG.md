@@ -57,7 +57,7 @@ zq repo, check the git log.
 * zar: Add `zar map` to handle "for each file" operations (#1138, #1148)
 * zq: Add Boyer-Moore filter optimization to ZNG scanner to improve performance (#1080)
 * zar: Change "zdx" to "microindex" (#1150)
-* zar: Update the [`zar` README](https://github.com/brimsec/zq/blob/master/cmd/zar/README.md) to reflect recent changes in commands/output (#1149)
+* zar: Update the [`zar` README](https://github.com/brimsec/zq/blob/master/ppl/cmd/zar/README.md) to reflect recent changes in commands/output (#1149)
 * zqd: Fix an issue where text stack traces could leak into ZJSON response streams (#1166)
 * zq: Fix an issue where an error "slice bounds out of range" would be triggered during attempted type conversion (#1158)
 * pcap: Fix an issue with pcapng files that have extra bytes at end-of-file (#1178)
@@ -149,7 +149,8 @@ zq repo, check the git log.
 * zql: Make ipv4 subnet bases contain 4 octets to remove ambiguity between fractions & CIDR (#670)
 * zq: Use an external sort for large inputs (removes the 10-million line `sort` limit) (#527)
 * zq: Fix an issue where duplicate field names could be produced by aggregate functions & group-by (#676)
-* zar: Introduce an experimental prototype for working with archived logs ([README](https://github.com/brimsec/zq/blob/master/cmd/zar/README.md)) (#700)
+* zar: Introduce an experimental prototype for working with archived logs
+ ([README](https://github.com/brimsec/zq/blob/master/ppl/cmd/zar/README.md)) (#700)
 * zq: Support recursive record nesting in Zeek reader/writer (#715)
 * zqd: Zeek log import support needed for Brim (#616, #517, #608, #592, #592, #582, #709)
 

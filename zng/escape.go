@@ -17,7 +17,7 @@ func ShouldEscape(r rune, fmt OutFmt, pos int, inContainer bool) bool {
 		return true
 	}
 
-	if fmt == OutFormatZNG && (r == ';' || (pos == 0 && r == '[')) {
+	if fmt == OutFormatZNG && (r == ';' || (pos == 0 && (r == '[' || r == ']'))) {
 		return true
 	}
 
