@@ -101,10 +101,10 @@ zar map "count()" | zq -f table -
 which results in:
 ```
 COUNT
-459433
-447342
-475005
-80298
+188697
+436829
+409224
+427328
 ```
 
 You could take the stream of event counts and sum them to get a total:
@@ -231,11 +231,9 @@ and you'll get this...
 ```
 #zfile=string
 #0:record[key:ip,count:uint64,_log:zfile,first:time,last:time]
-0:[10.47.21.138;7;/path/to/ZAR_ROOT/zd/20180324/d-1jQ2d2Lm73UC15rpiy6MoFInFvW.zng;1521912573.152746;1521911720.608867;]
-0:[10.47.21.138;3;/path/to/ZAR_ROOT/zd/20180324/d-1jQ2d5DwDHJULCRN6gq84IwArbb.zng;1521912355.502512;1521911720.601374;]
-0:[10.47.21.138;1;/path/to/ZAR_ROOT/zd/20180324/d-1jQ2cqELA2CKS1LSZVOyQNd6wIH.zng;1521911994.618642;1521911720.726418;]
-0:[10.47.21.138;3;/path/to/ZAR_ROOT/zd/20180324/d-1jQ2co6Ttjk9wEUdzI2yW7koYtB.zng;1521911858.335096;1521911720.600725;]
-
+0:[10.47.21.138;7;/path/to/ZAR_ROOT/zd/20180324/d-1jvy17wRMItpJQy7BOqV0tJ3VOJ.zng;1521912809.032641;1521911720.608867;]
+0:[10.47.21.138;3;/path/to/ZAR_ROOT/zd/20180324/d-1jvy0t5HhfvTvfPXiTd9VzhqmWK.zng;1521912355.502493;1521911720.601374;]
+0:[10.47.21.138;4;/path/to/ZAR_ROOT/zd/20180324/d-1jvy0lIfit4cfvDENwzx7OWYcXD.zng;1521911994.618642;1521911720.600725;]
 ```
 The find command adds a column called "_log" (which can be disabled
 or customized to a different field name) so you can see where the
