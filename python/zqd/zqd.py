@@ -106,7 +106,9 @@ if __name__ == '__main__':
     import argparse
     import pprint
 
-    parser = argparse.ArgumentParser(description='Search zqd.')
+    parser = argparse.ArgumentParser(
+        description='Send a query to zqd and pretty-print results.',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-u', dest='base_url', default=DEFAULT_BASE_URL,
                         help='zqd base URL')
     parser.add_argument('space_name')
