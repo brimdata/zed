@@ -48,7 +48,7 @@ func (c *Command) Run(args []string) error {
 	conn := c.Connection()
 	sp, err := c.createFlags.Create(c.Context(), conn, name)
 	if err != nil {
-		return fmt.Errorf("couldn't create new space %s: %v", name, err)
+		return fmt.Errorf("couldn't create new space %s: %w", name, err)
 	}
 	fmt.Printf("%s: space created\n", sp.Name)
 	return nil
