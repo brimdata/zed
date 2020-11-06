@@ -31,15 +31,13 @@ func (f *spaceFlags) Init() error {
 	}
 
 	sp, err := f.SpaceCreateFlags.Create(c.Context(), c.Connection(), c.Spacename)
-	if err != nil && err != client.ErrSpaceExists {
+	if err != nil {
+		if err == client.ErrSpaceExists {
+			// Fetch space ID.
+			_, err = c.SpaceID()
+		}
 		return err
 	}
-	if sp != nil {
-		c.SetSpaceID(sp.ID)
-	} else {
-		// space already exists, fetch space ID
-		_, err := c.SpaceID()
-		return err
-	}
+	c.SetSpaceID(sp.ID)
 	return nil
 }
