@@ -18,20 +18,20 @@ import (
 	"github.com/mccanne/charm"
 )
 
-var Pcap = &charm.Spec{
+var PostPcap = &charm.Spec{
 	Name:  "postpcap",
 	Usage: "postpcap [options] path",
 	Short: "post a pcap file to a space",
 	Long: `Post a pcap path to a space. Paths must be accessible to the
 specified ZQD service. Paths can be s3 URIs`,
-	New: NewPcap,
+	New: NewPostPcap,
 }
 
 func init() {
-	cmd.CLI.Add(Pcap)
+	cmd.CLI.Add(PostPcap)
 }
 
-type PcapCommand struct {
+type PostPcapCommand struct {
 	*cmd.Command
 	spaceFlags spaceFlags
 	stats      bool
@@ -42,15 +42,15 @@ type PcapCommand struct {
 	pcapBytesTotal int64
 }
 
-func NewPcap(parent charm.Command, fs *flag.FlagSet) (charm.Command, error) {
-	c := &PcapCommand{Command: parent.(*cmd.Command)}
+func NewPostPcap(parent charm.Command, fs *flag.FlagSet) (charm.Command, error) {
+	c := &PostPcapCommand{Command: parent.(*cmd.Command)}
 	fs.BoolVar(&c.stats, "stats", false, "write stats to stderr on successful completion")
 	c.spaceFlags.SetFlags(fs)
 	c.spaceFlags.cmd = c.Command
 	return c, nil
 }
 
-func (c *PcapCommand) Run(args []string) (err error) {
+func (c *PostPcapCommand) Run(args []string) (err error) {
 	if len(args) == 0 {
 		return errors.New("path arg required")
 	}
@@ -109,7 +109,7 @@ loop:
 	return err
 }
 
-func (c *PcapCommand) Display(w io.Writer) bool {
+func (c *PostPcapCommand) Display(w io.Writer) bool {
 	total := atomic.LoadInt64(&c.pcapBytesTotal)
 	if total == 0 {
 		io.WriteString(w, "posting...\n")
@@ -121,7 +121,7 @@ func (c *PcapCommand) Display(w io.Writer) bool {
 	return true
 }
 
-func (c *PcapCommand) printStats() {
+func (c *PostPcapCommand) printStats() {
 	if c.stats {
 		w := tabwriter.NewWriter(os.Stderr, 0, 0, 1, ' ', 0)
 		// truncate bytes written for tests

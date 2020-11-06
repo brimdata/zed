@@ -17,21 +17,21 @@ import (
 	"github.com/mccanne/charm"
 )
 
-var LogPath = &charm.Spec{
+var PostPath = &charm.Spec{
 	Name:  "postpath",
 	Usage: "postpath [options] path...",
 	Short: "post log paths to a space",
 	Long: `Post log paths to a space. Zqd will open the paths and
 write the data into the space, so paths must be accessible by
 zqd. Paths can be S3 URIs.`,
-	New: NewLogPath,
+	New: NewPostPath,
 }
 
 func init() {
-	cmd.CLI.Add(LogPath)
+	cmd.CLI.Add(PostPath)
 }
 
-type LogPathCommand struct {
+type PostPathCommand struct {
 	*cmd.Command
 	spaceFlags spaceFlags
 	bytesRead  int64
@@ -39,14 +39,14 @@ type LogPathCommand struct {
 	start      time.Time
 }
 
-func NewLogPath(parent charm.Command, fs *flag.FlagSet) (charm.Command, error) {
-	c := &LogPathCommand{Command: parent.(*cmd.Command)}
+func NewPostPath(parent charm.Command, fs *flag.FlagSet) (charm.Command, error) {
+	c := &PostPathCommand{Command: parent.(*cmd.Command)}
 	c.spaceFlags.SetFlags(fs)
 	c.spaceFlags.cmd = c.Command
 	return c, nil
 }
 
-func (c *LogPathCommand) Run(args []string) (err error) {
+func (c *PostPathCommand) Run(args []string) (err error) {
 	if len(args) == 0 {
 		return errors.New("path arg(s) required")
 	}
@@ -122,7 +122,7 @@ func abspaths(paths []string) ([]string, error) {
 	return out, nil
 }
 
-func (c *LogPathCommand) Display(w io.Writer) bool {
+func (c *PostPathCommand) Display(w io.Writer) bool {
 	total := atomic.LoadInt64(&c.bytesTotal)
 	if total == 0 {
 		io.WriteString(w, "posting...\n")

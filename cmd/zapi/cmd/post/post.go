@@ -15,32 +15,32 @@ import (
 	"github.com/mccanne/charm"
 )
 
-var LogStream = &charm.Spec{
+var Post = &charm.Spec{
 	Name:  "post",
 	Usage: "post [options] path...",
 	Short: "stream log data to a space",
-	New:   NewLogStream,
+	New:   NewPost,
 }
 
 func init() {
-	cmd.CLI.Add(LogStream)
+	cmd.CLI.Add(Post)
 }
 
-type LogStreamCommand struct {
+type PostCommand struct {
 	*cmd.Command
 	spaceFlags spaceFlags
 	logwriter  *client.MultipartWriter
 	start      time.Time
 }
 
-func NewLogStream(parent charm.Command, fs *flag.FlagSet) (charm.Command, error) {
-	c := &LogStreamCommand{Command: parent.(*cmd.Command)}
+func NewPost(parent charm.Command, fs *flag.FlagSet) (charm.Command, error) {
+	c := &PostCommand{Command: parent.(*cmd.Command)}
 	c.spaceFlags.SetFlags(fs)
 	c.spaceFlags.cmd = c.Command
 	return c, nil
 }
 
-func (c *LogStreamCommand) Run(args []string) (err error) {
+func (c *PostCommand) Run(args []string) (err error) {
 	if len(args) == 0 {
 		return errors.New("path arg(s) required")
 	}
@@ -87,7 +87,7 @@ func (c *LogStreamCommand) Run(args []string) (err error) {
 	return nil
 }
 
-func (c *LogStreamCommand) Display(w io.Writer) bool {
+func (c *PostCommand) Display(w io.Writer) bool {
 	total := c.logwriter.BytesTotal
 	if total == 0 {
 		io.WriteString(w, "posting...\n")
