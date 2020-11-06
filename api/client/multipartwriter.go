@@ -34,7 +34,7 @@ func newMultipartWriter() *MultipartWriter {
 }
 
 func MultipartFileWriter(files ...string) (*MultipartWriter, error) {
-	lw := newMultipartWriter()
+	m := newMultipartWriter()
 	for _, f := range files {
 		u, err := iosrc.ParseURI(f)
 		if err != nil {
@@ -44,87 +44,85 @@ func MultipartFileWriter(files ...string) (*MultipartWriter, error) {
 		if err != nil {
 			return nil, err
 		}
-		lw.BytesTotal += info.Size()
-		lw.uris = append(lw.uris, u)
+		m.BytesTotal += info.Size()
+		m.uris = append(m.uris, u)
 	}
-	return lw, nil
+	return m, nil
 }
 
 func MultipartDataWriter(readers ...io.Reader) (*MultipartWriter, error) {
-	pr, pw := io.Pipe()
-	form := multipart.NewWriter(pw)
-	lw := &MultipartWriter{form: form, pr: pr, pw: pw}
-	lw.readers = readers
-	return lw, nil
+	m := newMultipartWriter()
+	m.readers = readers
+	return m, nil
 }
 
-func (l *MultipartWriter) SetJSONConfig(config *ndjsonio.TypeConfig) {
-	l.json = config
+func (m *MultipartWriter) SetJSONConfig(config *ndjsonio.TypeConfig) {
+	m.json = config
 }
 
-func (l *MultipartWriter) ContentType() string {
-	return l.form.FormDataContentType()
+func (m *MultipartWriter) ContentType() string {
+	return m.form.FormDataContentType()
 }
 
-func (l *MultipartWriter) BytesRead() int64 {
-	return atomic.LoadInt64(&l.bytesRead)
+func (m *MultipartWriter) BytesRead() int64 {
+	return atomic.LoadInt64(&m.bytesRead)
 }
 
-func (l *MultipartWriter) Read(b []byte) (int, error) {
-	l.start.Do(func() {
-		go l.run()
+func (m *MultipartWriter) Read(b []byte) (int, error) {
+	m.start.Do(func() {
+		go m.run()
 	})
-	return l.pr.Read(b)
+	return m.pr.Read(b)
 }
 
-func (l *MultipartWriter) run() {
-	if err := l.sendJSONConfig(); err != nil {
-		l.pw.CloseWithError(err)
+func (m *MultipartWriter) run() {
+	if err := m.sendJSONConfig(); err != nil {
+		m.pw.CloseWithError(err)
 		return
 	}
-	for _, u := range l.uris {
-		if err := l.writeFile(u); err != nil {
-			l.pw.CloseWithError(err)
+	for _, u := range m.uris {
+		if err := m.writeFile(u); err != nil {
+			m.pw.CloseWithError(err)
 			return
 		}
 	}
-	for i, r := range l.readers {
-		if err := l.write(fmt.Sprintf("data%d", i+1), r); err != nil {
-			l.pw.CloseWithError(err)
+	for i, r := range m.readers {
+		if err := m.write(fmt.Sprintf("data%d", i+1), r); err != nil {
+			m.pw.CloseWithError(err)
 			return
 		}
 	}
-	l.pw.CloseWithError(l.form.Close())
+	m.pw.CloseWithError(m.form.Close())
 }
 
-func (l *MultipartWriter) writeFile(u iosrc.URI) error {
+func (m *MultipartWriter) writeFile(u iosrc.URI) error {
 	r, err := iosrc.NewReader(context.Background(), u)
 	if err != nil {
 		return err
 	}
 	defer r.Close()
-	return l.write(u.String(), r)
+	return m.write(u.String(), r)
 }
 
-func (l *MultipartWriter) write(name string, r io.Reader) error {
-	w, err := l.form.CreateFormFile("", name)
+func (m *MultipartWriter) write(name string, r io.Reader) error {
+	w, err := m.form.CreateFormFile("", name)
 	if err != nil {
 		return err
 	}
-	c := &counter{reader: bufio.NewReader(r), nread: &l.bytesRead}
+	c := &counter{reader: bufio.NewReader(r), nread: &m.bytesRead}
 	_, err = io.Copy(w, c)
 	return err
 }
 
-func (l *MultipartWriter) sendJSONConfig() error {
-	if l.json == nil {
+func (m *MultipartWriter) sendJSONConfig() error {
+	if m.json == nil {
 		return nil
 	}
-	w, err := l.form.CreateFormField("json_config")
+	w, err := m.form.CreateFormField("json_config")
 	if err != nil {
 		return err
 	}
-	return json.NewEncoder(w).Encode(l.json)
+	return json.NewEncoder(w).Encode(m.json)
 }
 
 type counter struct {
