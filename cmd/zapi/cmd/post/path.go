@@ -21,9 +21,9 @@ var LogPath = &charm.Spec{
 	Name:  "postpath",
 	Usage: "postpath [options] path...",
 	Short: "post log paths to a space",
-	Long: `Post log paths to a space. ZQD will open the specifed paths and
-writing the data into the space. Posted paths must therefore be accessible by
-the specified zqd endpoint. Paths can be s3 URIs.`,
+	Long: `Post log paths to a space. Zqd will open the paths and
+write the data into the space, so paths must be accessible by
+zqd. Paths can be S3 URIs.`,
 	New: NewLogPath,
 }
 
