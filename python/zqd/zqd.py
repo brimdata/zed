@@ -30,7 +30,8 @@ class Client():
             'space': self.spaces()[space_name]['id'],
         }
         params = {'format': 'zjson'}
-        r = self.session.post(self.base_url + "/search", json=body, params=params, stream=True)
+        r = self.session.post(self.base_url + "/search", json=body,
+                              params=params, stream=True)
         r.raise_for_status()
         for line in r.iter_lines():
             if line:
@@ -66,7 +67,8 @@ def _to_native(aliases, schema, value):
     typ = schema['type']
     typ = aliases.get(typ, typ)
     if typ == 'record':
-        return {of['name']: _to_native(aliases, of, v) for of, v in zip(schema['of'], value)}
+        return {of['name']: _to_native(aliases, of, v)
+                for of, v in zip(schema['of'], value)}
     if typ in ['array', 'set']:
         of = schema['of']
         if type(of) is str:
@@ -74,7 +76,8 @@ def _to_native(aliases, schema, value):
         return [_to_native(aliases, of, v) for v in value]
     if typ in ['enum', 'union']:
         raise 'unimplemented'
-    if typ in ['uint8', 'uint16', 'uint32', 'uint64', 'int8', 'int16', 'int32', 'int64']:
+    if typ in ['uint8', 'uint16', 'uint32', 'uint64',
+               'int8', 'int16', 'int32', 'int64']:
         return int(value)
     if typ == 'duration':
         return datetime.timedelta(seconds=float(value))
@@ -104,7 +107,8 @@ if __name__ == '__main__':
     import pprint
 
     parser = argparse.ArgumentParser(description='Search zqd.')
-    parser.add_argument('-u', dest='base_url', default=DEFAULT_BASE_URL, help='base URL')
+    parser.add_argument('-u', dest='base_url', default=DEFAULT_BASE_URL,
+                        help='zqd base URL')
     parser.add_argument('space_name')
     parser.add_argument('zql')
     args = parser.parse_args()
