@@ -2,6 +2,32 @@ These entries focus on changes we think are relevant to users of Brim,
 zq, or pcap.  For all changes to zqd, its API, or to other components in the
 zq repo, check the git log.
 
+## v0.23.0
+* zql: Add `week` as a unit for [time grouping with `every`](https://github.com/brimsec/zq/tree/master/zql/docs/grouping#time-grouping---every) (#1374)
+* zq: Fix an issue where a `null` value in a [JSON type definition](https://github.com/brimsec/zq/blob/master/zeek/README.md) caused a failure without an error message (#1377)
+* zq: Add [`zst` format](https://github.com/brimsec/zq/blob/master/zst/README.md) to `-i` and `-f` command-line help (#1384)
+* zq: Introduce the beta ZNG storage format (#1375, #1394). Changes includes:
+   * New numeric data types `float16` and `float32` (not yet implemented in `zq`) (#1312)
+   * New data type `bytes` for storing sequences of bytes encoded as base64 (#1315)
+   * Improvements to the `enum` data type (#1314)
+   * Special characters like `.` and `@` may now appear in field name (#1291)
+   * A `set` may now only support elements of a single type (#1220)
+   * Remove the `byte` type from the spec in favor of `uint8` (#1316)
+   * New data type `map`, which is like `set` but the contents are key value pairs where only keys need to be unique and the canonical order is based on the key order (#1317)
+   * First-class ZNG types (#1365) ...
+* zq: Add backward compatibility for reading the alpha ZNG storage format (#1386, #1392, #1393, #1441)
+* zq: Allow the [`fuse` processor](https://github.com/brimsec/zq/tree/master/zql/docs/processors#fuse) to spill-to-disk to avoid memory limitations (#1355, #1402)
+* zq: No longer require `_path` as a first column in a [JSON type definition](https://github.com/brimsec/zq/blob/master/zeek/README.md) (#1370)
+* zql: Improve ZQL docs for [aggregate functions](https://github.com/brimsec/zq/blob/master/zql/docs/aggregate-functions/README.md) and [grouping](https://github.com/brimsec/zq/blob/master/zql/docs/grouping/README.md) (#1385)
+* zql: Point links for developer docs at pkg.go.dev instead of godoc.org (#1401)
+* zq: Add support for timestamps with signed timezone offsets (#1389)
+* zq: Add a [JSON type definition](https://github.com/brimsec/zq/blob/master/zeek/README.md) for alert events in Suricata EVE logs (#1400)
+* zq: Update the [ZNG over JSON (ZJSON)](https://github.com/brimsec/zq/blob/master/zng/docs/zng-over-json.md) spec and implementation (#1299)
+* zqd: Support import of pcaps into archive Spaces (#1397)
+* zq: Add an `ast` command that prints parsed ZQL as its underlying JSON object (#1416)
+* 
+...  fix bug in spill file name allocation (#1391)
+
 ## v0.22.0
 * zq: Change the implementation of the `union` type to conform with the [ZNG spec](https://github.com/brimsec/zq/blob/master/zng/docs/spec.md#3114-union-typedef) (#1245)
 * zq: Make options/flags and version reporting consistent across CLI tools (#1249, #1254, #1256, #1296, #1323, #1334, #1328)
