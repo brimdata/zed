@@ -12,13 +12,13 @@ import (
 	"github.com/brimsec/zq/pkg/ctxio"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/ppl/archive"
 	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/ppl/zqd/pcapstorage"
-	"github.com/brimsec/zq/ppl/zqd/storage"
+	"github.com/brimsec/zq/ppl/zqd/storage/archivestore"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/ndjsonio"
-	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"golang.org/x/sync/errgroup"
 )
@@ -29,7 +29,8 @@ type archivePcapOp struct {
 	done           chan struct{}
 	pcapuri        iosrc.URI
 	pcapstore      *pcapstorage.Store
-	store          storage.Storage
+	store          *archivestore.Storage
+	writer         *archive.Writer
 	zeek, suricata pcapanalyzer.Launcher
 	zctx           *resolver.Context
 
@@ -41,10 +42,9 @@ type archivePcapOp struct {
 	startTime      nano.Ts
 	pcapBytesTotal int64
 	pcapCounter    *writeCounter
-	recordCounter  *recordCounter
 }
 
-func newArchivePcapOp(ctx context.Context, logstore storage.Storage, pcapstore *pcapstorage.Store, pcapuri iosrc.URI, suricata, zeek pcapanalyzer.Launcher) (PcapOp, []string, error) {
+func newArchivePcapOp(ctx context.Context, logstore *archivestore.Storage, pcapstore *pcapstorage.Store, pcapuri iosrc.URI, suricata, zeek pcapanalyzer.Launcher) (PcapOp, []string, error) {
 	info, err := iosrc.Stat(ctx, pcapuri)
 	if err != nil {
 		return nil, nil, err
@@ -62,18 +62,19 @@ func newArchivePcapOp(ctx context.Context, logstore storage.Storage, pcapstore *
 		return nil, warnings, err
 	}
 	p := &archivePcapOp{
+		done:      make(chan struct{}),
+		pcapstore: pcapstore,
+		store:     logstore,
+		pcapuri:   pcapuri,
+		snap:      make(chan struct{}),
+		suricata:  suricata,
+		writer:    logstore.NewWriter(ctx),
+		zeek:      zeek,
+		zctx:      resolver.NewContext(),
+
 		startTime:      nano.Now(),
 		pcapBytesTotal: info.Size(),
-		pcapstore:      pcapstore,
-		store:          logstore,
-		pcapuri:        pcapuri,
 		pcapCounter:    &writeCounter{},
-		recordCounter:  &recordCounter{},
-		done:           make(chan struct{}),
-		snap:           make(chan struct{}),
-		suricata:       suricata,
-		zeek:           zeek,
-		zctx:           resolver.NewContext(),
 	}
 	go func() {
 		p.err = p.run(ctx)
@@ -101,13 +102,16 @@ func (p *archivePcapOp) run(ctx context.Context) error {
 	}
 	combiner := zbuf.NewCombiner(zreaders, zbuf.RecordCompare(p.store.NativeOrder()))
 	defer combiner.Close()
-	// track stats on records produced from analyzers.
-	p.recordCounter.reader = combiner
 
-	if err := p.store.Write(ctx, p.zctx, p.recordCounter); err != nil {
+	if err := zbuf.CopyWithContext(ctx, p.writer, combiner); err != nil {
+		p.writer.Close()
 		return err
 	}
-	return group.Wait()
+	err = p.writer.Close()
+	if errg := group.Wait(); err == nil {
+		err = errg
+	}
+	return err
 }
 
 func (p *archivePcapOp) runAnalyzers(ctx context.Context, group *errgroup.Group, pcapstream io.Reader) (*errgroup.Group, []zbuf.Reader, error) {
@@ -181,14 +185,16 @@ func (p *archivePcapOp) runAnalyzer(ctx context.Context, group *errgroup.Group, 
 }
 
 func (p *archivePcapOp) Status() api.PcapPostStatus {
+	importStats := p.writer.Stats()
 	return api.PcapPostStatus{
-		Type:         "PcapPostStatus",
-		StartTime:    p.startTime,
-		UpdateTime:   nano.Now(),
-		PcapSize:     p.pcapBytesTotal,
-		PcapReadSize: p.pcapCounter.Bytes(),
-		RecordCount:  p.recordCounter.Records(),
-		RecordBytes:  p.recordCounter.Bytes(),
+		Type:               "PcapPostStatus",
+		StartTime:          p.startTime,
+		UpdateTime:         nano.Now(),
+		PcapSize:           p.pcapBytesTotal,
+		PcapReadSize:       p.pcapCounter.Bytes(),
+		DataChunksWritten:  importStats.DataChunksWritten,
+		RecordsWritten:     importStats.RecordsWritten,
+		RecordBytesWritten: importStats.RecordBytesWritten,
 	}
 }
 
@@ -204,29 +210,6 @@ func (w *writeCounter) Write(b []byte) (int, error) {
 
 func (w *writeCounter) Bytes() int64 {
 	return atomic.LoadInt64(&w.count)
-}
-
-type recordCounter struct {
-	reader      zbuf.Reader
-	bytesRead   int64
-	recordsRead int64
-}
-
-func (r *recordCounter) Read() (*zng.Record, error) {
-	rec, err := r.reader.Read()
-	if rec != nil {
-		atomic.AddInt64(&r.bytesRead, int64(len(rec.Raw)))
-		atomic.AddInt64(&r.recordsRead, 1)
-	}
-	return rec, err
-}
-
-func (r *recordCounter) Bytes() int64 {
-	return atomic.LoadInt64(&r.bytesRead)
-}
-
-func (r *recordCounter) Records() int64 {
-	return atomic.LoadInt64(&r.recordsRead)
 }
 
 // Snap for archivePcapOp is functionally useless. It is only here to satisfy

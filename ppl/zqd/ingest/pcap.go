@@ -21,6 +21,7 @@ import (
 	"github.com/brimsec/zq/ppl/zqd/pcapstorage"
 	"github.com/brimsec/zq/ppl/zqd/space"
 	"github.com/brimsec/zq/ppl/zqd/storage"
+	"github.com/brimsec/zq/ppl/zqd/storage/archivestore"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
@@ -62,7 +63,7 @@ func NewPcapOp(ctx context.Context, space space.Space, pcap string, suricata, ze
 	if ok {
 		return newFilePcapOp(ctx, space.PcapStore(), logstore, pcapuri, suricata, zeek)
 	}
-	return newArchivePcapOp(ctx, space.Storage(), space.PcapStore(), pcapuri, suricata, zeek)
+	return newArchivePcapOp(ctx, space.Storage().(*archivestore.Storage), space.PcapStore(), pcapuri, suricata, zeek)
 }
 
 type legacyPcapOp struct {
