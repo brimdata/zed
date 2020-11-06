@@ -1,0 +1,17 @@
+script: |
+  source services.sh
+  zapi -h $ZQD_HOST new -k archivestore testsp
+  zapi -h $ZQD_HOST -s testsp pcappost -stats ng.pcap
+
+inputs:
+  - name: ng.pcap
+    source: ../../pcap/ng.pcap
+  - name: services.sh
+    source: ../services.sh
+
+outputs:
+  - name: stderr
+    data: |
+      data chunks written:  1
+      record bytes written: 1.40KB
+      records written:      10

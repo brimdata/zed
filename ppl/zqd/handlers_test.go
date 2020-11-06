@@ -720,7 +720,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 		DataPath:    sp.DataPath,
 		StorageKind: api.ArchiveStore,
 		Span:        &span,
-		Size:        35331,
+		Size:        35123,
 	}
 	si, err := conn.SpaceInfo(context.Background(), sp.ID)
 	require.NoError(t, err)
@@ -781,12 +781,12 @@ func TestIndexSearch(t *testing.T) {
 
 	exp := `
 #0:record[key:int64,count:uint64,first:time,last:time]
-0:[257;1;1587518413.06793405;1587518047.0644003;]
-0:[257;1;1587516776.06824358;1587516493.06912585;]
-0:[257;1;1587511936.0617591;1587511728.0667174;]
-0:[257;1;1587511451.0627401;1587511191.061708;]
-0:[257;1;1587510381.06636177;1587510063.06326614;]
-0:[257;1;1587509477.06450528;1587509181.06547297;]
+0:[257;1;1587518582.06699522;1587517999.06307953;]
+0:[257;1;1587516748.0632538;1587516200.06892251;]
+0:[257;1;1587512245.0693411;1587511709.06845389;]
+0:[257;1;1587511703.06774599;1587511182.064686;]
+0:[257;1;1587510666.06396109;1587510062.069881;]
+0:[257;1;1587509477.06450528;1587508830.06852324;]
 `
 	res, _ := indexSearch(t, conn, sp.ID, "", []string{"v=257"})
 	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c _log", res, "tzng"))
@@ -822,13 +822,13 @@ func TestSubspaceCreate(t *testing.T) {
 	// Verify index search returns all logs
 	exp := `
 #0:record[key:int64,count:uint64,first:time,last:time]
-0:[336;1;1587517405.06665591;1587517149.06304407;]
-0:[336;1;1587509168.06759839;1587508830.06852324;]
+0:[336;1;1587517353.06239121;1587516769.06905117;]
+0:[336;1;1587509477.06450528;1587508830.06852324;]
 `
 	res, _ := indexSearch(t, conn, sp1.ID, "", []string{":int64=336"})
 	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c _log", res, "tzng"))
 
-	logId := strings.TrimSpace(tzngCopy(t, "first=1587509168.06759839 | cut _log", res, "text"))
+	logId := strings.TrimSpace(tzngCopy(t, "first=1587509477.06450528 | cut _log", res, "text"))
 	// Create subspace
 	sp2, err := conn.SubspacePost(context.Background(), sp1.ID, api.SubspacePostRequest{
 		Name: "subspace",
@@ -842,7 +842,7 @@ func TestSubspaceCreate(t *testing.T) {
 	// Verify index search only returns filtered logs
 	exp = `
 #0:record[key:int64,count:uint64,first:time,last:time]
-0:[336;1;1587509168.06759839;1587508830.06852324;]
+0:[336;1;1587509477.06450528;1587508830.06852324;]
 `
 	res, _ = indexSearch(t, conn, sp2.ID, "", []string{":int64=336"})
 	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c _log", res, "tzng"))
@@ -897,7 +897,7 @@ func TestSubspacePersist(t *testing.T) {
 	require.NoError(t, err)
 
 	res, _ := indexSearch(t, conn1, sp1.ID, "", []string{":int64=336"})
-	logId := strings.TrimSpace(tzngCopy(t, "first=1587509168.06759839 | cut _log", res, "text"))
+	logId := strings.TrimSpace(tzngCopy(t, "first=1587509477.06450528 | cut _log", res, "text"))
 
 	// Create subspace
 	sp2, err := conn1.SubspacePost(context.Background(), sp1.ID, api.SubspacePostRequest{
@@ -912,7 +912,7 @@ func TestSubspacePersist(t *testing.T) {
 	// Verify index search only returns filtered logs
 	exp := `
 #0:record[key:int64,count:uint64,first:time,last:time]
-0:[336;1;1587509168.06759839;1587508830.06852324;]
+0:[336;1;1587509477.06450528;1587508830.06852324;]
 `
 	res, _ = indexSearch(t, conn1, sp2.ID, "", []string{":int64=336"})
 	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c _log", res, "tzng"))

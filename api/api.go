@@ -157,15 +157,16 @@ type PcapPostWarning struct {
 }
 
 type PcapPostStatus struct {
-	Type          string     `json:"type"`
-	StartTime     nano.Ts    `json:"start_time"`
-	UpdateTime    nano.Ts    `json:"update_time"`
-	PcapSize      int64      `json:"pcap_total_size" unit:"bytes"`
-	PcapReadSize  int64      `json:"pcap_read_size" unit:"bytes"`
-	RecordBytes   int64      `json:"record_bytes,omitempty" unit:"bytes"`
-	RecordCount   int64      `json:"record_count,omitempty"`
-	SnapshotCount int        `json:"snapshot_count,omitempty"`
-	Span          *nano.Span `json:"span,omitempty"`
+	Type               string     `json:"type"`
+	StartTime          nano.Ts    `json:"start_time"`
+	UpdateTime         nano.Ts    `json:"update_time"`
+	PcapSize           int64      `json:"pcap_total_size" unit:"bytes"`
+	PcapReadSize       int64      `json:"pcap_read_size" unit:"bytes"`
+	DataChunksWritten  int64      `json:"data_chunks_written,omitempty" unit:"bytes"`
+	RecordBytesWritten int64      `json:"record_bytes_written,omitempty" unit:"bytes"`
+	RecordsWritten     int64      `json:"records_written,omitempty"`
+	SnapshotCount      int        `json:"snapshot_count,omitempty"`
+	Span               *nano.Span `json:"span,omitempty"`
 }
 
 type LogPostRequest struct {
