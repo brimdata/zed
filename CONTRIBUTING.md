@@ -41,7 +41,7 @@ To run unit tests in your local repo, execute:
 make test-unit
 ```
 
-And to run system tests, execute:
+System tests require Python 3.3 or better.  To run them, execute:
 ```
 make test-system
 ```
