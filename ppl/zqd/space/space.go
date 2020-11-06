@@ -122,7 +122,7 @@ func loadSpaces(ctx context.Context, p iosrc.URI, conf config, logger *zap.Logge
 	}
 	switch conf.Storage.Kind {
 	case api.FileStore:
-		store, err := filestore.Load(datapath)
+		store, err := filestore.Load(datapath, logger)
 		if err != nil {
 			return nil, err
 		}

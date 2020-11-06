@@ -18,11 +18,14 @@ import (
 	"github.com/brimsec/zq/ppl/zqd/storage"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zio/azngio"
+	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
 	"github.com/brimsec/zq/zql"
+	"go.uber.org/zap"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -39,13 +42,14 @@ var (
 	zngWriteProc = zql.MustParseProc("sort -r ts")
 )
 
-func Load(path iosrc.URI) (*Storage, error) {
+func Load(path iosrc.URI, logger *zap.Logger) (*Storage, error) {
 	if path.Scheme != "file" {
 		return nil, fmt.Errorf("unsupported FileStore scheme %q", path)
 	}
 	s := &Storage{
-		path:       path.Filepath(),
 		index:      zngio.NewTimeIndex(),
+		logger:     logger,
+		path:       path.Filepath(),
 		streamsize: defaultStreamSize,
 		wsem:       semaphore.NewWeighted(1),
 	}
@@ -56,11 +60,13 @@ func Load(path iosrc.URI) (*Storage, error) {
 // storage choice for Brim, where its intended to be a write-once
 // import of data.
 type Storage struct {
-	path       string
-	span       nano.Span
-	index      *zngio.TimeIndex
-	streamsize int
-	wsem       *semaphore.Weighted
+	alphaMigrated bool
+	index         *zngio.TimeIndex
+	logger        *zap.Logger
+	path          string
+	span          nano.Span
+	streamsize    int
+	wsem          *semaphore.Weighted
 }
 
 func (s *Storage) NativeOrder() zbuf.Order {
@@ -72,7 +78,10 @@ func (s *Storage) join(args ...string) string {
 	return filepath.Join(args...)
 }
 
-func (s *Storage) Open(_ context.Context, zctx *resolver.Context, span nano.Span) (zbuf.ReadCloser, error) {
+func (s *Storage) Open(ctx context.Context, zctx *resolver.Context, span nano.Span) (zbuf.ReadCloser, error) {
+	if err := s.migrateAlphaZngIfNeeded(ctx); err != nil {
+		return nil, err
+	}
 	f, err := fs.Open(s.join(allZngFile))
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -189,8 +198,9 @@ func (s *Storage) Summary(_ context.Context) (storage.Summary, error) {
 }
 
 type info struct {
-	MinTime nano.Ts `json:"min_time"`
-	MaxTime nano.Ts `json:"max_time"`
+	AlphaMigrated bool    `json:"alpha_migrated"`
+	MinTime       nano.Ts `json:"min_time"`
+	MaxTime       nano.Ts `json:"max_time"`
 }
 
 // readInfoFile reads the info file on disk (if it exists) and sets the cached
@@ -204,10 +214,16 @@ func (s *Storage) readInfoFile() error {
 		return err
 	}
 	s.span = nano.NewSpanTs(inf.MinTime, inf.MaxTime)
+	s.alphaMigrated = inf.AlphaMigrated
 	return nil
 }
 
 func (s *Storage) syncInfoFile() error {
+	// If we are updating the info file, we've either written data, or are clearing
+	// the info file so that we can write data later. In either case, we'd be using
+	// the post-alpha zng format.
+	s.alphaMigrated = true
+
 	path := s.join(infoFile)
 	// If span.Dur is 0 this means we have a zero span and should therefore
 	// delete the file.
@@ -217,6 +233,112 @@ func (s *Storage) syncInfoFile() error {
 		}
 		return nil
 	}
-	info := info{s.span.Ts, s.span.End()}
+	info := info{
+		MinTime:       s.span.Ts,
+		MaxTime:       s.span.End(),
+		AlphaMigrated: true,
+	}
 	return fs.MarshalJSONFile(info, path, 0600)
+}
+
+func (s *Storage) migrateAlphaZngIfNeeded(ctx context.Context) error {
+	if s.alphaMigrated {
+		return nil
+	}
+	if err := s.wsem.Acquire(ctx, 1); err != nil {
+		return err
+	}
+	defer s.wsem.Release(1)
+	exists, err := s.ensureAllZngFile()
+	if err != nil {
+		return err
+	}
+	if !exists {
+		s.alphaMigrated = true
+		return nil
+	}
+	isAlpha, err := isAlphaZngFile(s.join(allZngFile))
+	if err != nil {
+		return err
+	}
+	if !isAlpha {
+		return s.syncInfoFile()
+	}
+	return s.migrateAlphaZngFile()
+}
+
+// ensureAllZngFile returns true if there is a data file for this file store.
+// If an older file name of 'all.bzng' is found, it is renamed to all.zng.
+func (s *Storage) ensureAllZngFile() (bool, error) {
+	_, err := os.Stat(s.join(allZngFile))
+	if err != nil && !os.IsNotExist(err) {
+		return false, err
+	}
+	if err == nil {
+		return true, nil
+	}
+	allBzng := s.join("all.bzng")
+	_, err = os.Stat(allBzng)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, os.Rename(allBzng, s.join(allZngFile))
+}
+
+func isAlphaZngFile(fpath string) (bool, error) {
+	zfile, err := detector.OpenFile(resolver.NewContext(), fpath, zio.ReaderOpts{})
+	if err != nil {
+		return false, err
+	}
+	defer zfile.Close()
+	if _, ok := zfile.Reader.(*azngio.Reader); ok {
+		return true, nil
+	}
+	return false, nil
+}
+
+// migrateAlphaZngFile uses the azngio package to read the alpha zng file
+// for this file store, and replaces it with a zng file using the post-alpha
+// format.
+func (s *Storage) migrateAlphaZngFile() (err error) {
+	fpath := s.join(allZngFile)
+	s.logger.Info("Alpha zng migration start", zap.String("file", fpath))
+	defer func() {
+		if err != nil {
+			s.logger.Info("Alpha zng migration failure", zap.String("file", fpath), zap.Error(err))
+			return
+		}
+		s.logger.Info("Alpha zng migration success", zap.String("file", fpath))
+	}()
+	err = fs.ReplaceFile(fpath, 0666, func(w io.Writer) error {
+		zctx := resolver.NewContext()
+		zw := zngio.NewWriter(bufwriter.New(zio.NopCloser(w)), zngio.WriterOpts{
+			StreamRecordsMax: defaultStreamSize,
+			LZ4BlockSize:     zngio.DefaultLZ4BlockSize,
+		})
+		rc, err := fs.Open(fpath)
+		if err != nil {
+			return err
+		}
+		ar, err := azngio.NewReader(rc, zctx)
+		if err != nil {
+			rc.Close()
+			return err
+		}
+		err = zbuf.Copy(zw, ar)
+		if rcErr := rc.Close(); err == nil {
+			err = rcErr
+		}
+		if zwErr := zw.Close(); err == nil {
+			err = zwErr
+		}
+		return err
+	})
+	if err != nil {
+		return err
+	}
+	return s.syncInfoFile()
 }
