@@ -1,0 +1,37 @@
+script: |
+  python3 -m venv v
+  . v/bin/activate
+
+  mkdir zqd
+  mv setup.py zqd.py zqd
+  pip install -q ./zqd
+
+  source services.sh
+  zapi -h $ZQD_HOST new test >/dev/null
+  zapi -h $ZQD_HOST -s test post in.tzng >/dev/null
+
+  python <<EOF
+  import zqd
+  c = zqd.Client('http://$ZQD_HOST')
+  for rec in c.search('test', '*'):
+    print(rec['s'])
+  EOF
+
+inputs:
+  - name: in.tzng
+    data: |
+      #0:record[s:string]
+      0:[hello;]
+      0:[world;]
+  - name: services.sh
+    source: services.sh
+  - name: setup.py
+    source: ../../../python/zqd/setup.py
+  - name: zqd.py
+    source: ../../../python/zqd/zqd.py
+
+outputs:
+  - name: stdout
+    data: |
+      hello
+      world
