@@ -116,5 +116,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     c = Client(args.base_url)
-    for rec in c.search(args.space_name, args.zql):
-        pprint.pprint(rec)
+    for record in c.search(args.space_name, args.zql):
+        pprint.pprint(record)
