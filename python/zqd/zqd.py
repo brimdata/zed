@@ -9,7 +9,6 @@ DEFAULT_BASE_URL = 'http://127.0.0.1:9867'
 
 
 class Client():
-
     def __init__(self, base_url=DEFAULT_BASE_URL):
         self.base_url = base_url
         self.session = requests.Session()
@@ -20,16 +19,9 @@ class Client():
         return r.json()
 
     def search(self, space_name, zql):
-        aliases, schemas = {}, {}
-        for raw in self.search_raw(space_name, zql):
-            if raw['type'] == 'SearchRecords':
-                for rec in raw['records']:
-                    if 'aliases' in rec:
-                        for a in rec['aliases']:
-                            aliases[a['name']] = a['type']
-                    if 'schema' in rec:
-                        schemas[rec['id']] = rec['schema']
-                    yield _to_native(aliases, schemas[rec['id']], rec['values'])
+        raw = self.search_raw(space_name, zql)
+        zjson = take_zjson(raw)
+        return decode_zjson(zjson)
 
     def search_raw(self, space_name, zql):
         body = {
@@ -48,6 +40,24 @@ class Client():
         r = self.session.get(self.base_url + "/space")
         r.raise_for_status()
         return {s['name']: s for s in r.json()}
+
+
+def take_zjson(raw):
+    for obj in raw:
+        if obj['type'] == 'SearchRecords':
+            for zjson in obj['records']:
+                yield zjson
+
+
+def decode_zjson(zjson):
+    aliases, schemas = {}, {}
+    for obj in zjson:
+        if 'aliases' in obj:
+            for a in obj['aliases']:
+                aliases[a['name']] = a['type']
+        if 'schema' in obj:
+            schemas[obj['id']] = obj['schema']
+        yield _to_native(aliases, schemas[obj['id']], obj['values'])
 
 
 def _to_native(aliases, schema, value):
