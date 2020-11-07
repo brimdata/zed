@@ -7,8 +7,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
-	"sync"
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/driver"
@@ -332,46 +332,27 @@ func (s *Storage) migrateAlphaZngFile() (err error) {
 }
 
 type Migrator struct {
-	ctx     context.Context
-	once    sync.Once
-	sem     *semaphore.Weighted
-	storeCh chan *Storage
+	ctx context.Context
+	sem *semaphore.Weighted
 }
 
 func NewMigrator(ctx context.Context) *Migrator {
-	m := &Migrator{
-		ctx:     ctx,
-		storeCh: make(chan *Storage),
-		sem:     semaphore.NewWeighted(1),
+	return &Migrator{
+		ctx: ctx,
+		sem: semaphore.NewWeighted(int64(runtime.GOMAXPROCS(0))),
 	}
-	return m
 }
 
 func (m *Migrator) Add(s *Storage) {
 	if s.alphaMigrated {
 		return
 	}
-	m.once.Do(func() { go m.run() })
-	select {
-	case m.storeCh <- s:
-	case <-m.ctx.Done():
-	}
-}
-
-func (m *Migrator) run() {
-	for {
-		select {
-		case s := <-m.storeCh:
-			go func() {
-				if err := m.sem.Acquire(m.ctx, 1); err != nil {
-					return
-				}
-				defer m.sem.Release(1)
-				// Error handling and logging handled inside the migrate call.
-				_ = s.migrateAlphaZngIfNeeded(m.ctx)
-			}()
-		case <-m.ctx.Done():
+	go func() {
+		if err := m.sem.Acquire(m.ctx, 1); err != nil {
 			return
 		}
-	}
+		defer m.sem.Release(1)
+		// Error handling and logging handled inside the migrate call.
+		_ = s.migrateAlphaZngIfNeeded(m.ctx)
+	}()
 }
