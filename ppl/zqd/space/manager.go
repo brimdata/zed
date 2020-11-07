@@ -12,23 +12,19 @@ import (
 )
 
 type Manager struct {
-	rootPath iosrc.URI
-	spacesMu sync.Mutex
-	spaces   map[api.SpaceID]Space
-	names    map[string]api.SpaceID
-	logger   *zap.Logger
+	logger            *zap.Logger
+	names             map[string]api.SpaceID
+	rootPath          iosrc.URI
+	spaces            map[api.SpaceID]Space
+	spacesMu          sync.Mutex
 }
 
-func NewManager(root iosrc.URI, logger *zap.Logger) (*Manager, error) {
-	return NewManagerWithContext(context.Background(), root, logger)
-}
-
-func NewManagerWithContext(ctx context.Context, root iosrc.URI, logger *zap.Logger) (*Manager, error) {
+func NewManager(ctx context.Context, root iosrc.URI, logger *zap.Logger) (*Manager, error) {
 	mgr := &Manager{
-		rootPath: root,
-		spaces:   make(map[api.SpaceID]Space),
-		names:    make(map[string]api.SpaceID),
-		logger:   logger,
+		logger:            logger,
+		names:             make(map[string]api.SpaceID),
+		rootPath:          root,
+		spaces:            make(map[api.SpaceID]Space),
 	}
 
 	list, err := iosrc.ReadDir(ctx, root)
@@ -50,7 +46,7 @@ func NewManagerWithContext(ctx context.Context, root iosrc.URI, logger *zap.Logg
 			continue
 		}
 
-		spaces, err := loadSpaces(ctx, dir, config, mgr.logger)
+		spaces, err := mgr.loadSpaces(ctx, dir, config)
 		if err != nil {
 			return nil, err
 		}
@@ -115,7 +111,7 @@ func (m *Manager) Create(ctx context.Context, req api.SpacePostRequest) (Space, 
 		iosrc.RemoveAll(context.Background(), path)
 		return nil, err
 	}
-	spaces, err := loadSpaces(ctx, path, conf, m.logger)
+	spaces, err := m.loadSpaces(ctx, path, conf)
 	if err != nil {
 		return nil, err
 	}

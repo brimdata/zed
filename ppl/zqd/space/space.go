@@ -109,13 +109,13 @@ func (g *guard) acquireForDelete() error {
 	return nil
 }
 
-func loadSpaces(ctx context.Context, p iosrc.URI, conf config, logger *zap.Logger) ([]Space, error) {
+func (m *Manager) loadSpaces(ctx context.Context, p iosrc.URI, conf config) ([]Space, error) {
 	datapath := conf.DataURI
 	if datapath.IsZero() {
 		datapath = p
 	}
 	id := api.SpaceID(path.Base(p.Path))
-	logger = logger.With(zap.String("space_id", string(id)))
+	logger := m.logger.With(zap.String("space_id", string(id)))
 	pcapstore, err := loadPcapStore(ctx, datapath)
 	if err != nil {
 		return nil, err
