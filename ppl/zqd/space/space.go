@@ -126,6 +126,7 @@ func (m *Manager) loadSpaces(ctx context.Context, p iosrc.URI, conf config) ([]S
 		if err != nil {
 			return nil, err
 		}
+		m.alphaFileMigrator.Add(store)
 		s := &fileSpace{
 			spaceBase: spaceBase{id, store, pcapstore, newGuard(), logger},
 			path:      p,

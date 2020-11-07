@@ -7,11 +7,13 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/brimsec/zq/ppl/zqd/storage/filestore"
 	"github.com/brimsec/zq/zqe"
 	"go.uber.org/zap"
 )
 
 type Manager struct {
+	alphaFileMigrator *filestore.Migrator
 	logger            *zap.Logger
 	names             map[string]api.SpaceID
 	rootPath          iosrc.URI
@@ -21,6 +23,7 @@ type Manager struct {
 
 func NewManager(ctx context.Context, root iosrc.URI, logger *zap.Logger) (*Manager, error) {
 	mgr := &Manager{
+		alphaFileMigrator: filestore.NewMigrator(ctx),
 		logger:            logger,
 		names:             make(map[string]api.SpaceID),
 		rootPath:          root,
