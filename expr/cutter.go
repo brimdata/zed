@@ -1,18 +1,17 @@
-package cut
+package expr
 
 import (
-	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/field"
-	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/builder"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
 // A cutBuilder keeps the data structures needed for cutting one
 // particular type of input record.
 type cutBuilder struct {
-	resolvers []expr.Evaluator
-	builder   *proc.ColumnBuilder
+	resolvers []Evaluator
+	builder   *builder.ColumnBuilder
 	outType   *zng.TypeRecord
 }
 
@@ -37,7 +36,7 @@ type Cutter struct {
 	complement  bool
 	cutBuilders map[int]*cutBuilder
 	fields      []field.Static
-	resolvers   []expr.Evaluator
+	resolvers   []Evaluator
 	strict      bool
 }
 
@@ -45,7 +44,7 @@ type Cutter struct {
 // the Cutter copies fields that are not in fieldnames. If complement
 // is false, the Cutter copies any fields in fieldnames, where targets
 // specifies the copied field names.
-func NewCutter(zctx *resolver.Context, complement bool, lhs []field.Static, rhs []expr.Evaluator) *Cutter {
+func NewCutter(zctx *resolver.Context, complement bool, lhs []field.Static, rhs []Evaluator) *Cutter {
 	return &Cutter{
 		zctx:        zctx,
 		complement:  complement,
@@ -57,7 +56,7 @@ func NewCutter(zctx *resolver.Context, complement bool, lhs []field.Static, rhs 
 
 // NewStrictCutter is like NewCutter but, if complement is false, (*Cutter).Cut
 // returns a record only if its input record contains all of the fields in lhs.
-func NewStrictCutter(zctx *resolver.Context, complement bool, lhs []field.Static, rhs []expr.Evaluator) *Cutter {
+func NewStrictCutter(zctx *resolver.Context, complement bool, lhs []field.Static, rhs []Evaluator) *Cutter {
 	c := NewCutter(zctx, complement, lhs, rhs)
 	c.strict = true
 	return c
@@ -82,12 +81,12 @@ func (c *Cutter) complementBuilder(r *zng.Record) (*cutBuilder, error) {
 		return nil, nil
 	}
 
-	var resolvers []expr.Evaluator
+	var resolvers []Evaluator
 	for _, f := range fields {
-		resolvers = append(resolvers, expr.NewDotExpr(f))
+		resolvers = append(resolvers, NewDotExpr(f))
 	}
 
-	builder, err := proc.NewColumnBuilder(c.zctx, fields)
+	builder, err := builder.NewColumnBuilder(c.zctx, fields)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +140,7 @@ func contains(ss []field.Static, el field.Static) bool {
 func (c *Cutter) setBuilder(r *zng.Record) (*cutBuilder, error) {
 	// Build up the output type.
 	var fields []field.Static
-	var resolvers []expr.Evaluator
+	var resolvers []Evaluator
 	var outColTypes []zng.Type
 	for i, resolver := range c.resolvers {
 		val, err := resolver.Eval(r)
@@ -161,7 +160,7 @@ func (c *Cutter) setBuilder(r *zng.Record) (*cutBuilder, error) {
 	if len(fields) == 0 {
 		return nil, nil
 	}
-	builder, err := proc.NewColumnBuilder(c.zctx, fields)
+	builder, err := builder.NewColumnBuilder(c.zctx, fields)
 	if err != nil {
 		return nil, err
 	}

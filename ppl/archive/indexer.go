@@ -10,7 +10,6 @@ import (
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/proc/cut"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
@@ -74,7 +73,7 @@ type FlowgraphIndexer struct {
 	zctx    *resolver.Context
 	w       *microindex.Writer
 	keyType zng.Type
-	cutter  *cut.Cutter
+	cutter  *expr.Cutter
 }
 
 func NewFlowgraphIndexer(ctx context.Context, zctx *resolver.Context, uri iosrc.URI, keys []field.Static, framesize int) (*FlowgraphIndexer, error) {
@@ -89,7 +88,7 @@ func NewFlowgraphIndexer(ctx context.Context, zctx *resolver.Context, uri iosrc.
 	return &FlowgraphIndexer{
 		zctx:   zctx,
 		w:      writer,
-		cutter: cut.NewStrictCutter(zctx, false, fields, resolvers),
+		cutter: expr.NewStrictCutter(zctx, false, fields, resolvers),
 	}, nil
 }
 
