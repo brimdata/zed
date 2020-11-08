@@ -7,8 +7,8 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/field"
-	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/reducer"
+	"github.com/brimsec/zq/zng/builder"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
@@ -35,7 +35,7 @@ func compileParams(node *ast.GroupByProc, zctx *resolver.Context) (*Params, erro
 		}
 		reducerMakers = append(reducerMakers, reducerMaker{name, f})
 	}
-	builder, err := proc.NewColumnBuilder(zctx, targets)
+	builder, err := builder.NewColumnBuilder(zctx, targets)
 	if err != nil {
 		return nil, fmt.Errorf("compiling groupby: %w", err)
 	}
