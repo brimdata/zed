@@ -415,11 +415,14 @@ func TestRequestID(t *testing.T) {
 }
 
 func TestPostZngLogs(t *testing.T) {
-	const src1 = `#0:record[_path:string,ts:time,uid:bstring]
+	const src1 = `
+#0:record[_path:string,ts:time,uid:bstring]
 0:[conn;1;CBrzd94qfowOqJwCHa;]`
-	const src2 = `#0:record[_path:string,ts:time,uid:bstring]
+	const src2 = `
+#0:record[_path:string,ts:time,uid:bstring]
 0:[conn;2;CBrzd94qfowOqJwCHa;]`
-	const expected = `#0:record[_path:string,ts:time,uid:bstring]
+	const expected = `
+#0:record[_path:string,ts:time,uid:bstring]
 0:[conn;2;CBrzd94qfowOqJwCHa;]
 0:[conn;1;CBrzd94qfowOqJwCHa;]`
 
@@ -452,7 +455,8 @@ func TestPostZngLogs(t *testing.T) {
 
 func TestPostZngLogWarning(t *testing.T) {
 	const src1 = `undetectableformat`
-	const src2 = `#0:record[_path:string,ts:time,uid:bstring]
+	const src2 = `
+#0:record[_path:string,ts:time,uid:bstring]
 0:[conn;1;CBrzd94qfowOqJwCHa;]
 detectablebutbadline`
 

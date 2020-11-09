@@ -393,7 +393,7 @@ func (c *Connection) LogPostWriter(ctx context.Context, space api.SpaceID, opts 
 			writer.SetJSONConfig(opts.JSON)
 		}
 	}
-	u := path.Join("/space", url.PathEscape(string(space)), "log/stream")
+	u := path.Join("/space", url.PathEscape(string(space)), "log")
 	resp, err := req.Post(u)
 	if err != nil {
 		return api.LogPostResponse{}, err
