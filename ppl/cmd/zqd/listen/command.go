@@ -156,10 +156,23 @@ func (c *Command) init() error {
 	if err := c.initWorkers(); err != nil {
 		return err
 	}
-	if err := c.initZeek(); err != nil {
+	var err error
+	c.conf.Suricata, err = getLauncher(c.suricataRunnerPath, "suricatarunner")
+	if err != nil {
 		return err
 	}
-	return c.initSuricata()
+	c.conf.Zeek, err = getLauncher(c.zeekRunnerPath, "zeekrunner")
+	return err
+}
+
+func getLauncher(path, defaultFile string) (pcapanalyzer.Launcher, error) {
+	if path == "" {
+		var err error
+		if path, err = exec.LookPath(defaultFile); err != nil {
+			return nil, nil
+		}
+	}
+	return pcapanalyzer.LauncherFromPath(path)
 }
 
 func (c *Command) watchBrimFd(ctx context.Context) (context.Context, error) {
@@ -233,36 +246,6 @@ func (c *Command) loadConfigFile() error {
 	}
 
 	return err
-}
-
-func (c *Command) initZeek() error {
-	if c.zeekRunnerPath == "" {
-		var err error
-		if c.zeekRunnerPath, err = exec.LookPath("zeekrunner"); err != nil {
-			return nil
-		}
-	}
-	ln, err := pcapanalyzer.LauncherFromPath(c.zeekRunnerPath)
-	if err != nil {
-		return err
-	}
-	c.conf.Zeek = ln
-	return nil
-}
-
-func (c *Command) initSuricata() error {
-	if c.suricataRunnerPath == "" {
-		var err error
-		if c.suricataRunnerPath, err = exec.LookPath("suricatarunner"); err != nil {
-			return nil
-		}
-	}
-	ln, err := pcapanalyzer.LauncherFromPath(c.suricataRunnerPath)
-	if err != nil {
-		return err
-	}
-	c.conf.Suricata = ln
-	return nil
 }
 
 func (c *Command) initWorkers() error {
