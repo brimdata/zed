@@ -32,8 +32,6 @@ import (
 const (
 	allZngFile = "all.zng"
 	infoFile   = "info.json"
-
-	defaultStreamSize = 5000
 )
 
 var (
@@ -50,7 +48,7 @@ func Load(path iosrc.URI, logger *zap.Logger) (*Storage, error) {
 		index:      zngio.NewTimeIndex(),
 		logger:     logger,
 		path:       path.Filepath(),
-		streamsize: defaultStreamSize,
+		streamsize: zngio.DefaultStreamRecordsMax,
 		wsem:       semaphore.NewWeighted(1),
 	}
 	return s, s.readInfoFile()
@@ -261,10 +259,12 @@ func (s *Storage) migrateAlphaZngIfNeeded(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if !isAlpha {
-		return s.syncInfoFile()
+	if isAlpha {
+		if err := s.migrateAlphaZngFile(); err != nil {
+			return err
+		}
 	}
-	return s.migrateAlphaZngFile()
+	return s.syncInfoFile()
 }
 
 // ensureAllZngFile returns true if there is a data file for this file store.
@@ -313,10 +313,10 @@ func (s *Storage) migrateAlphaZngFile() (err error) {
 		}
 		s.logger.Info("Alpha zng migration success", zap.String("file", fpath))
 	}()
-	err = fs.ReplaceFile(fpath, 0666, func(w io.Writer) error {
+	return fs.ReplaceFile(fpath, 0666, func(w io.Writer) error {
 		zctx := resolver.NewContext()
 		zw := zngio.NewWriter(bufwriter.New(zio.NopCloser(w)), zngio.WriterOpts{
-			StreamRecordsMax: defaultStreamSize,
+			StreamRecordsMax: zngio.DefaultStreamRecordsMax,
 			LZ4BlockSize:     zngio.DefaultLZ4BlockSize,
 		})
 		rc, err := fs.Open(fpath)
@@ -337,8 +337,4 @@ func (s *Storage) migrateAlphaZngFile() (err error) {
 		}
 		return err
 	})
-	if err != nil {
-		return err
-	}
-	return s.syncInfoFile()
 }
