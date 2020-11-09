@@ -24,9 +24,10 @@ func TestConfigCurrentVersion(t *testing.T) {
 	defer os.RemoveAll(root)
 	u, err := iosrc.ParseURI(root)
 	require.NoError(t, err)
-	m, err := NewManager(u, zap.NewNop())
+	ctx := context.Background()
+	m, err := NewManager(ctx, u, zap.NewNop())
 	require.NoError(t, err)
-	s, err := m.Create(context.Background(), api.SpacePostRequest{Name: "test"})
+	s, err := m.Create(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 	id := s.ID()
 	versionConfig := struct {
@@ -162,7 +163,7 @@ func (tm *testMigration) initRoot() {
 
 func (tm *testMigration) manager() *Manager {
 	if tm.mgr == nil {
-		mgr, err := NewManager(tm.root, zap.NewNop())
+		mgr, err := NewManager(context.Background(), tm.root, zap.NewNop())
 		require.NoError(tm.T, err)
 		tm.mgr = mgr
 	}

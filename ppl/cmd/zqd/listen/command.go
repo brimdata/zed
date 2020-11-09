@@ -101,7 +101,14 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		c.logger.Warn("Raising open files limit failed", zap.Error(err))
 	}
-	core, err := zqd.NewCore(c.conf)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if c.brimfd != -1 {
+		if ctx, err = c.watchBrimFd(ctx); err != nil {
+			return err
+		}
+	}
+	core, err := zqd.NewCore(ctx, c.conf)
 	if err != nil {
 		return err
 	}
@@ -118,13 +125,6 @@ func (c *Command) Run(args []string) error {
 	}
 	if c.prom {
 		h = prometheusHandlers(h)
-	}
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	if c.brimfd != -1 {
-		if ctx, err = c.watchBrimFd(ctx); err != nil {
-			return err
-		}
 	}
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt)

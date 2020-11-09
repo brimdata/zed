@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/brimsec/zq/api"
@@ -328,4 +329,30 @@ func (s *Storage) migrateAlphaZngFile() (err error) {
 		}
 		return err
 	})
+}
+
+type Migrator struct {
+	ctx context.Context
+	sem *semaphore.Weighted
+}
+
+func NewMigrator(ctx context.Context) *Migrator {
+	return &Migrator{
+		ctx: ctx,
+		sem: semaphore.NewWeighted(int64(runtime.GOMAXPROCS(0))),
+	}
+}
+
+func (m *Migrator) Add(s *Storage) {
+	if s.alphaMigrated {
+		return
+	}
+	go func() {
+		if err := m.sem.Acquire(m.ctx, 1); err != nil {
+			return
+		}
+		defer m.sem.Release(1)
+		// Error handling and logging handled inside the migrate call.
+		_ = s.migrateAlphaZngIfNeeded(m.ctx)
+	}()
 }
