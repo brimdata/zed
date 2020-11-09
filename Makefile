@@ -134,7 +134,7 @@ create-release-assets:
 		rm -rf dist/$${zqdir} ; \
 		mkdir -p dist/$${zqdir} ; \
 		cp LICENSE.txt acknowledgments.txt dist/$${zqdir} ; \
-		GOOS=$${os} GOARCH=amd64 go build -ldflags='$(LDFLAGS)' -o dist/$${zqdir} ./cmd/... ; \
+		GOOS=$${os} GOARCH=amd64 go build -ldflags='$(LDFLAGS)' -o dist/$${zqdir} ./cmd/... ./ppl/cmd/...; \
 	done
 	rm -rf dist/release && mkdir -p dist/release
 	cd dist && for d in zq-$(VERSION)* ; do \
