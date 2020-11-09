@@ -1116,11 +1116,11 @@ func (p *testPcapProcess) Start() error {
 	return nil
 }
 
-func (p *testPcapProcess) Wait() error {
+func (p *testPcapProcess) Wait() (string, error) {
 	if p.wait != nil {
-		return p.wait(p)
+		return "", p.wait(p)
 	}
-	return nil
+	return "", nil
 }
 
 func writeLogsFn(logs []string) procFn {

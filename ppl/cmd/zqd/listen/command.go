@@ -51,18 +51,20 @@ func init() {
 
 type Command struct {
 	*root.Command
-	listenAddr         string
-	conf               zqd.Config
-	pprof              bool
-	prom               bool
-	suricataRunnerPath string
-	zeekRunnerPath     string
-	configfile         string
-	loggerConf         *logger.Config
-	logLevel           zapcore.Level
-	logger             *zap.Logger
-	devMode            bool
-	portFile           string
+	listenAddr          string
+	conf                zqd.Config
+	pprof               bool
+	prom                bool
+	suricataRunnerPath  string
+	suricataUpdater     pcapanalyzer.Launcher
+	suricataUpdaterPath string
+	zeekRunnerPath      string
+	configfile          string
+	loggerConf          *logger.Config
+	logLevel            zapcore.Level
+	logger              *zap.Logger
+	devMode             bool
+	portFile            string
 	// brimfd is a file descriptor passed through by brim desktop. If set zqd
 	// will exit if the fd is closed.
 	brimfd  int
@@ -75,6 +77,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.listenAddr, "l", ":9867", "[addr]:port to listen on")
 	f.StringVar(&c.conf.Root, "data", ".", "data location")
 	f.StringVar(&c.suricataRunnerPath, "suricatarunner", "", "path to command that generates suricata eve.json from pcap data")
+	f.StringVar(&c.suricataUpdaterPath, "suricataupdater", "", "path to suricata-update command (will be invoked once at startup)")
 	f.StringVar(&c.zeekRunnerPath, "zeekrunner", "", "path to command that generates zeek logs from pcap data")
 	f.BoolVar(&c.pprof, "pprof", false, "add pprof routes to api")
 	f.BoolVar(&c.prom, "prometheus", false, "add prometheus metrics routes to api")
@@ -126,6 +129,9 @@ func (c *Command) Run(args []string) error {
 	if c.prom {
 		h = prometheusHandlers(h)
 	}
+	if c.suricataUpdater != nil {
+		c.launchSuricataUpdate(ctx)
+	}
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt)
 	go func() {
@@ -158,6 +164,10 @@ func (c *Command) init() error {
 	}
 	var err error
 	c.conf.Suricata, err = getLauncher(c.suricataRunnerPath, "suricatarunner")
+	if err != nil {
+		return err
+	}
+	c.suricataUpdater, err = getLauncher(c.suricataUpdaterPath, "suricataupdater")
 	if err != nil {
 		return err
 	}
@@ -246,6 +256,22 @@ func (c *Command) loadConfigFile() error {
 	}
 
 	return err
+}
+
+func (c *Command) launchSuricataUpdate(ctx context.Context) {
+	c.logger.Info("Launching suricata updater")
+	go func() {
+		sproc, err := c.suricataUpdater(ctx, nil, "")
+		if err != nil {
+			c.logger.Error("Launching suricata updater", zap.Error(err))
+			return
+		}
+		stdout, err := sproc.Wait()
+		c.logger.Info("Suricata updater completed", zap.String("stdout", stdout))
+		if err != nil {
+			c.logger.Error("Running suricata updater", zap.Error(err))
+		}
+	}()
 }
 
 func (c *Command) initWorkers() error {
