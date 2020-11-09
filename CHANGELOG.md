@@ -17,6 +17,7 @@ zq repo, check the git log.
    * New numeric data types `float16` and `float32` (not yet implemented in `zq`) (#1312, #1514)
    * New numeric data type `decimal` (not yet implemented in `zq`) (#1522)
 * zq: Add backward compatibility for reading the alpha ZNG storage format (#1386, #1392, #1393, #1441)
+* zqd: Check and convert alpha ZNG filestores to beta ZNG (#1574, #1576)
 * zq: Fix an issue where spill-to-disk file names could collide (#1391)
 * zq: Allow the [`fuse` processor](https://github.com/brimsec/zq/tree/master/zql/docs/processors#fuse) to spill-to-disk to avoid memory limitations (#1355, #1402)
 * zq: No longer require `_path` as a first column in a [JSON type definition](https://github.com/brimsec/zq/blob/master/zeek/README.md) (#1370)
