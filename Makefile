@@ -111,6 +111,8 @@ docker-push-ecr: docker
 	  --username AWS --password-stdin $(ZQD_ECR_HOST)/zqd
 	docker tag zqd $(ZQD_ECR_HOST)/zqd:$(ECR_VERSION)
 	docker push $(ZQD_ECR_HOST)/zqd:$(ECR_VERSION)
+	docker tag zqd $(ZQD_ECR_HOST)/zqd:$(ZQD_K8S_USER)
+	docker push $(ZQD_ECR_HOST)/zqd:$(ZQD_K8S_USER)
 
 kubectl-config:
 	kubectl create namespace $(ZQD_K8S_USER)

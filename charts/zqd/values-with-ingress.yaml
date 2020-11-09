@@ -51,7 +51,7 @@ service:
   port: 9867
 
 ingress:
-  enabled: false
+  enabled: true
   annotations:
     haproxy.org/load-balance: "leastconn"
   hosts:
