@@ -60,10 +60,6 @@ var ErrBadCast = errors.New("bad cast")
 // are allocated by go libraries and temporary buffers are not used.  This will
 // change down the road when we implement no-allocation string and IP conversion.
 func CompileExpr(zctx *resolver.Context, node ast.Expression) (Evaluator, error) {
-	return compileExpr(zctx, node)
-}
-
-func compileExpr(zctx *resolver.Context, node ast.Expression) (Evaluator, error) {
 	switch n := node.(type) {
 	case *ast.Literal:
 		return NewLiteral(*n)
@@ -78,11 +74,11 @@ func compileExpr(zctx *resolver.Context, node ast.Expression) (Evaluator, error)
 		if n.Operator == "." {
 			return compileDotExpr(zctx, n.LHS, n.RHS)
 		}
-		lhs, err := compileExpr(zctx, n.LHS)
+		lhs, err := CompileExpr(zctx, n.LHS)
 		if err != nil {
 			return nil, err
 		}
-		rhs, err := compileExpr(zctx, n.RHS)
+		rhs, err := CompileExpr(zctx, n.RHS)
 		if err != nil {
 			return nil, err
 		}
@@ -122,7 +118,7 @@ func compileExpr(zctx *resolver.Context, node ast.Expression) (Evaluator, error)
 func CompileExprs(zctx *resolver.Context, nodes []ast.Expression) ([]Evaluator, error) {
 	var exprs []Evaluator
 	for k := range nodes {
-		e, err := compileExpr(zctx, nodes[k])
+		e, err := CompileExpr(zctx, nodes[k])
 		if err != nil {
 			return nil, err
 		}
@@ -139,7 +135,7 @@ func compileUnary(zctx *resolver.Context, node ast.UnaryExpression) (Evaluator, 
 	if node.Operator != "!" {
 		return nil, fmt.Errorf("unknown unary operator %s\n", node.Operator)
 	}
-	e, err := compileExpr(zctx, node.Operand)
+	e, err := CompileExpr(zctx, node.Operand)
 	if err != nil {
 		return nil, err
 	}
@@ -775,15 +771,15 @@ type Conditional struct {
 
 func compileConditional(zctx *resolver.Context, node ast.ConditionalExpression) (Evaluator, error) {
 	var err error
-	predicate, err := compileExpr(zctx, node.Condition)
+	predicate, err := CompileExpr(zctx, node.Condition)
 	if err != nil {
 		return nil, err
 	}
-	thenExpr, err := compileExpr(zctx, node.Then)
+	thenExpr, err := CompileExpr(zctx, node.Then)
 	if err != nil {
 		return nil, err
 	}
-	elseExpr, err := compileExpr(zctx, node.Else)
+	elseExpr, err := CompileExpr(zctx, node.Else)
 	if err != nil {
 		return nil, err
 	}
@@ -813,7 +809,7 @@ func compileDotExpr(zctx *resolver.Context, lhs, rhs ast.Expression) (*DotExpr, 
 	if !ok {
 		return nil, errors.New("rhs of dot expression is not an identifier")
 	}
-	record, err := compileExpr(zctx, lhs)
+	record, err := CompileExpr(zctx, lhs)
 	if err != nil {
 		return nil, err
 	}
@@ -836,7 +832,7 @@ func compileCall(zctx *resolver.Context, node ast.FunctionCall) (Evaluator, erro
 	}
 	exprs := make([]Evaluator, 0, nargs)
 	for _, expr := range node.Args {
-		e, err := compileExpr(zctx, expr)
+		e, err := CompileExpr(zctx, expr)
 		if err != nil {
 			return nil, err
 		}
@@ -864,7 +860,7 @@ func (c *Call) Eval(rec *zng.Record) (zng.Value, error) {
 }
 
 func compileCast(zctx *resolver.Context, node ast.CastExpression) (Evaluator, error) {
-	expr, err := compileExpr(zctx, node.Expr)
+	expr, err := CompileExpr(zctx, node.Expr)
 	if err != nil {
 		return nil, err
 	}

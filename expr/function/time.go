@@ -16,11 +16,11 @@ type iso struct {
 func (i *iso) Call(args []zng.Value) (zng.Value, error) {
 	zv := args[0]
 	if !zv.IsStringy() {
-		return badarg("Time.fromISO")
+		return badarg("iso")
 	}
 	ts, e := time.Parse(time.RFC3339Nano, string(zv.Bytes))
 	if e != nil {
-		return badarg("Time.fromISO")
+		return badarg("iso")
 	}
 	return zng.Value{zng.TypeTime, i.Time(nano.Ts(ts.UnixNano()))}, nil
 }
@@ -33,7 +33,7 @@ func (m *ms) Call(args []zng.Value) (zng.Value, error) {
 	zv := args[0]
 	ms, ok := coerce.ToInt(zv)
 	if !ok {
-		return badarg("Time.fromMilliseconds")
+		return badarg("ms")
 	}
 	return zng.Value{zng.TypeTime, m.Time(nano.Ts(ms * 1_000_000))}, nil
 }
@@ -46,7 +46,7 @@ func (u *us) Call(args []zng.Value) (zng.Value, error) {
 	zv := args[0]
 	us, ok := coerce.ToInt(zv)
 	if !ok {
-		return badarg("Time.fromMicroseconds")
+		return badarg("us")
 	}
 	return zng.Value{zng.TypeTime, u.Time(nano.Ts(us * 1000))}, nil
 }
@@ -59,7 +59,7 @@ func (n *ns) Call(args []zng.Value) (zng.Value, error) {
 	zv := args[0]
 	ns, ok := coerce.ToInt(zv)
 	if !ok {
-		return badarg("Time.fromNanoseconds")
+		return badarg("ns")
 	}
 	return zng.Value{zng.TypeTime, n.Time(nano.Ts(ns))}, nil
 }
@@ -72,11 +72,11 @@ func (t *trunc) Call(args []zng.Value) (zng.Value, error) {
 	zv := args[0]
 	ts, ok := coerce.ToTime(zv)
 	if !ok {
-		return badarg("Time.trunc")
+		return badarg("trunc")
 	}
 	dur, ok := coerce.ToInt(args[1])
 	if !ok {
-		return badarg("Time.trunc")
+		return badarg("trunc")
 	}
 	dur *= 1_000_000_000
 	return zng.Value{zng.TypeTime, t.Time(nano.Ts(ts.Trunc(dur)))}, nil

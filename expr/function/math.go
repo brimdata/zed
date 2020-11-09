@@ -22,7 +22,7 @@ func (a *abs) Call(args []zng.Value) (zng.Value, error) {
 		return zng.Value{zng.TypeFloat64, a.Float64(f)}, nil
 	}
 	if !zng.IsInteger(id) {
-		return badarg("Math.abs")
+		return badarg("abs")
 	}
 	if !zng.IsSigned(id) {
 		return v, nil
@@ -49,7 +49,7 @@ func (c *ceil) Call(args []zng.Value) (zng.Value, error) {
 	if zng.IsInteger(id) {
 		return v, nil
 	}
-	return badarg("Math.Ceil")
+	return badarg("ceil")
 }
 
 type floor struct {
@@ -67,7 +67,7 @@ func (f *floor) Call(args []zng.Value) (zng.Value, error) {
 	if zng.IsInteger(id) {
 		return v, nil
 	}
-	return badarg("Math.Floor")
+	return badarg("floor")
 }
 
 type log struct {
@@ -78,10 +78,10 @@ func (l *log) Call(args []zng.Value) (zng.Value, error) {
 	x, ok := coerce.ToFloat(args[0])
 	// XXX should have better error messages
 	if !ok {
-		return badarg("Math.log")
+		return badarg("log")
 	}
 	if x <= 0 {
-		return badarg("Math.log")
+		return badarg("log")
 	}
 	return zng.Value{zng.TypeFloat64, l.Float64(math.Log(x))}, nil
 }
@@ -144,14 +144,14 @@ func (m *mod) Call(args []zng.Value) (zng.Value, error) {
 	zv := args[0]
 	id := zv.Type.ID()
 	if zng.IsFloat(id) {
-		return badarg("Math.mod")
+		return badarg("mod")
 	}
 	y, ok := coerce.ToUint(args[1])
 	if !ok {
-		return badarg("Math.mod")
+		return badarg("mod")
 	}
 	if !zng.IsNumber(id) {
-		return badarg("Math.mod")
+		return badarg("mod")
 	}
 	if zng.IsSigned(id) {
 		x, _ := zng.DecodeInt(zv.Bytes)
@@ -174,7 +174,7 @@ func (r *round) Call(args []zng.Value) (zng.Value, error) {
 
 	}
 	if !zng.IsNumber(id) {
-		return badarg("Math.round")
+		return badarg("round")
 	}
 	return zv, nil
 }
@@ -186,15 +186,15 @@ type pow struct {
 func (p *pow) Call(args []zng.Value) (zng.Value, error) {
 	x, ok := coerce.ToFloat(args[0])
 	if !ok {
-		return badarg("Math.pow")
+		return badarg("pow")
 	}
 	y, ok := coerce.ToFloat(args[1])
 	if !ok {
-		return badarg("Math.pow")
+		return badarg("pow")
 	}
 	r := math.Pow(x, y)
 	if math.IsNaN(r) {
-		return badarg("Math.pow")
+		return badarg("pow")
 	}
 	return zng.Value{zng.TypeFloat64, p.Float64(r)}, nil
 }
@@ -206,14 +206,14 @@ type sqrt struct {
 func (s *sqrt) Call(args []zng.Value) (zng.Value, error) {
 	x, ok := coerce.ToFloat(args[0])
 	if !ok {
-		return badarg("Math.sqrt")
+		return badarg("sqrt")
 	}
 	x = math.Sqrt(x)
 	if math.IsNaN(x) {
 		// For now we can't represent non-numeric values in a float64,
 		// we will revisit this but it has implications for file
 		// formats, zql, etc.
-		return badarg("Math.sqrt")
+		return badarg("sqrt")
 	}
 	return zng.Value{zng.TypeFloat64, s.Float64(x)}, nil
 }

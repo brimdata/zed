@@ -34,7 +34,7 @@ type Pair struct {
 }
 
 func (c *Pair) Equal() bool {
-	return bytes.Compare(c.A, c.B) == 0
+	return bytes.Equal(c.A, c.B)
 }
 
 func (c *Pair) Coerce(a, b zng.Value) (int, error) {

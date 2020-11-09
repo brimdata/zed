@@ -146,7 +146,7 @@ func (*replace) Call(args []zng.Value) (zng.Value, error) {
 	zvold := args[1]
 	zvnew := args[2]
 	if !zvs.IsStringy() || !zvold.IsStringy() || !zvnew.IsStringy() {
-		return badarg("String.replace")
+		return badarg("replace")
 	}
 	s, err := zng.DecodeString(zvs.Bytes)
 	if err != nil {
@@ -164,11 +164,11 @@ func (*replace) Call(args []zng.Value) (zng.Value, error) {
 	return zng.Value{zng.TypeString, zng.EncodeString(result)}, nil
 }
 
-type rune_len struct {
+type runeLen struct {
 	result.Buffer
 }
 
-func (s *rune_len) Call(args []zng.Value) (zng.Value, error) {
+func (s *runeLen) Call(args []zng.Value) (zng.Value, error) {
 	zv := args[0]
 	if !zv.IsStringy() {
 		return badarg("Strings.byteLen")
@@ -181,12 +181,12 @@ func (s *rune_len) Call(args []zng.Value) (zng.Value, error) {
 	return zng.Value{zng.TypeInt64, s.Int(int64(v))}, nil
 }
 
-type to_lower struct{}
+type toLower struct{}
 
-func (*to_lower) Call(args []zng.Value) (zng.Value, error) {
+func (*toLower) Call(args []zng.Value) (zng.Value, error) {
 	zv := args[0]
 	if !zv.IsStringy() {
-		return badarg("String.toLower")
+		return badarg("to_lower")
 	}
 	s, err := zng.DecodeString(zv.Bytes)
 	if err != nil {
@@ -197,12 +197,12 @@ func (*to_lower) Call(args []zng.Value) (zng.Value, error) {
 	return zng.Value{zng.TypeString, zng.EncodeString(s)}, nil
 }
 
-type to_upper struct{}
+type toUpper struct{}
 
-func (*to_upper) Call(args []zng.Value) (zng.Value, error) {
+func (*toUpper) Call(args []zng.Value) (zng.Value, error) {
 	zv := args[0]
 	if !zv.IsStringy() {
-		return badarg("String.toUpper")
+		return badarg("to_upper")
 	}
 	s, err := zng.DecodeString(zv.Bytes)
 	if err != nil {
@@ -218,7 +218,7 @@ type trim struct{}
 func (*trim) Call(args []zng.Value) (zng.Value, error) {
 	zv := args[0]
 	if !zv.IsStringy() {
-		return badarg("String.trim")
+		return badarg("trim")
 	}
 	// XXX GC
 	s := strings.TrimSpace(string(zv.Bytes))

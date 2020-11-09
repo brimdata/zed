@@ -10,10 +10,10 @@ import (
 )
 
 var (
-	ErrTooFewArgs     = errors.New("too few arguments")
-	ErrTooManyArgs    = errors.New("too many arguments")
 	ErrBadArgument    = errors.New("bad argument")
 	ErrNoSuchFunction = errors.New("no such function")
+	ErrTooFewArgs     = errors.New("too few arguments")
+	ErrTooManyArgs    = errors.New("too many arguments")
 )
 
 type Interface interface {
@@ -80,11 +80,11 @@ func New(name string, narg int) (Interface, error) {
 		argmax = 3
 		f = &replace{}
 	case "String.runeLen", "rune_len":
-		f = &rune_len{}
+		f = &runeLen{}
 	case "String.toLower", "to_lower":
-		f = &to_lower{}
+		f = &toLower{}
 	case "String.toUpper", "to_upper":
-		f = &to_upper{}
+		f = &toUpper{}
 	case "String.trim", "trim":
 		f = &trim{}
 	case "Time.fromISO", "iso":
@@ -104,9 +104,9 @@ func New(name string, narg int) (Interface, error) {
 	case "iserr":
 		f = &isErr{}
 	case "toBase64", "to_base64":
-		f = &to_base64{}
+		f = &toBase64{}
 	case "fromBase64", "from_base64":
-		f = &from_base64{}
+		f = &fromBase64{}
 	}
 	if argmin != -1 && narg < argmin {
 		return nil, ErrTooFewArgs

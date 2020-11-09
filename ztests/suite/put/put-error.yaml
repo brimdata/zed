@@ -13,4 +13,4 @@ output: |
   0:[-2;]
 
 warnings: |
-  Math.sqrt: bad argument
+  sqrt: bad argument
