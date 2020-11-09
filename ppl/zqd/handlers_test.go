@@ -1087,7 +1087,7 @@ func newCoreWithConfig(t *testing.T, conf zqd.Config) (*zqd.Core, *client.Connec
 	if conf.Logger == nil {
 		conf.Logger = zaptest.NewLogger(t, zaptest.Level(zap.WarnLevel))
 	}
-	core, err := zqd.NewCore(conf)
+	core, err := zqd.NewCore(context.Background(), conf)
 	require.NoError(t, err)
 	srv := httptest.NewServer(zqd.NewHandler(core, conf.Logger))
 	t.Cleanup(srv.Close)

@@ -7,9 +7,9 @@ import (
 
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/byteconv"
-	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/builder"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/buger/jsonparser"
 )
@@ -57,7 +57,7 @@ func (p *inferParser) parseObject(b []byte) (zng.Value, error) {
 		zngTypes = append(zngTypes, v.Type)
 		zngValues = append(zngValues, v)
 	}
-	columnBuilder, err := proc.NewColumnBuilder(p.zctx, fields)
+	columnBuilder, err := builder.NewColumnBuilder(p.zctx, fields)
 	if err != nil {
 		return zng.Value{}, err
 	}

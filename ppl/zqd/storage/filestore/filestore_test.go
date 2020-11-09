@@ -14,6 +14,7 @@ import (
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 type waitReader struct {
@@ -35,7 +36,7 @@ func TestFailOnConcurrentWrites(t *testing.T) {
 	}()
 	u, err := iosrc.ParseURI(dir)
 	require.NoError(t, err)
-	store, err := Load(u)
+	store, err := Load(u, zap.NewNop())
 	require.NoError(t, err)
 	zctx := resolver.NewContext()
 	wr := &waitReader{dur: time.Second * 5}
@@ -64,7 +65,7 @@ func TestWriteNoRecords(t *testing.T) {
 	}()
 	u, err := iosrc.ParseURI(dir)
 	require.NoError(t, err)
-	store, err := Load(u)
+	store, err := Load(u, zap.NewNop())
 	require.NoError(t, err)
 
 	sp := nano.Span{Ts: 10, Dur: 10}

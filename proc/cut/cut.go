@@ -10,6 +10,7 @@ import (
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/builder"
 )
 
 type Proc struct {
@@ -17,7 +18,7 @@ type Proc struct {
 	parent     proc.Interface
 	complement bool
 	resolvers  []expr.Evaluator
-	cutter     *Cutter
+	cutter     *expr.Cutter
 }
 
 func New(pctx *proc.Context, parent proc.Interface, node *ast.CutProc) (*Proc, error) {
@@ -33,7 +34,7 @@ func New(pctx *proc.Context, parent proc.Interface, node *ast.CutProc) (*Proc, e
 	}
 	// build this once at compile time for error checking.
 	if !node.Complement {
-		_, err := proc.NewColumnBuilder(pctx.TypeContext, lhs)
+		_, err := builder.NewColumnBuilder(pctx.TypeContext, lhs)
 		if err != nil {
 			return nil, fmt.Errorf("compiling cut: %w", err)
 		}
@@ -44,7 +45,7 @@ func New(pctx *proc.Context, parent proc.Interface, node *ast.CutProc) (*Proc, e
 		parent:     parent,
 		complement: node.Complement,
 		resolvers:  rhs,
-		cutter:     NewCutter(pctx.TypeContext, node.Complement, lhs, rhs),
+		cutter:     expr.NewCutter(pctx.TypeContext, node.Complement, lhs, rhs),
 	}, nil
 }
 

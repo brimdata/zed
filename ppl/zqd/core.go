@@ -1,6 +1,7 @@
 package zqd
 
 import (
+	"context"
 	"net/http"
 	"sync/atomic"
 
@@ -31,7 +32,7 @@ type Core struct {
 	logger    *zap.Logger
 }
 
-func NewCore(conf Config) (*Core, error) {
+func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	logger := conf.Logger
 	if logger == nil {
 		logger = zap.NewNop()
@@ -40,7 +41,7 @@ func NewCore(conf Config) (*Core, error) {
 	if err != nil {
 		return nil, err
 	}
-	spaces, err := space.NewManager(root, conf.Logger)
+	spaces, err := space.NewManager(ctx, root, conf.Logger)
 	if err != nil {
 		return nil, err
 	}
