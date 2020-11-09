@@ -234,7 +234,7 @@ func (s *Storage) syncInfoFile() error {
 	info := info{
 		MinTime:       s.span.Ts,
 		MaxTime:       s.span.End(),
-		AlphaMigrated: true,
+		AlphaMigrated: s.alphaMigrated,
 	}
 	return fs.MarshalJSONFile(info, path, 0600)
 }
