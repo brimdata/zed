@@ -1,0 +1,28 @@
+zql: put v=cut(s,x)
+
+warnings: |
+  field is not present
+
+input: |
+  #0:record[x:int32,s:string]
+  0:[1;a;]
+  0:[2;b;]
+  #1:record[s:string]
+  1:[x;]
+  1:[b;]
+  #2:record[none:string]
+  2:[bad;]
+  0:[1;a;]
+  0:[3;e;]
+
+output: |
+  #0:record[x:int32,s:string,v:record[s:string,x:int32]]
+  0:[1;a;[a;1;]]
+  0:[2;b;[b;2;]]
+  #1:record[s:string,v:record[s:string]]
+  1:[x;[x;]]
+  1:[b;[b;]]
+  #2:record[none:string]
+  2:[bad;]
+  0:[1;a;[a;1;]]
+  0:[3;e;[e;3;]]
