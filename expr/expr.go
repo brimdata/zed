@@ -825,6 +825,13 @@ type Call struct {
 }
 
 func compileCall(zctx *resolver.Context, node ast.FunctionCall) (Evaluator, error) {
+	// For now, we special case cut here.  As we add more stateful functions
+	// this will make more sense.  We could also compile any reducer as a
+	// stateful function here, e.g., count(), would produce a new count() for
+	// each record encountered analogous to juttle stream functions.
+	if node.Function == "cut" {
+		return compileCut(zctx, node)
+	}
 	nargs := len(node.Args)
 	fn, err := function.New(node.Function, nargs)
 	if err != nil {
