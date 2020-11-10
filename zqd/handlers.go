@@ -53,7 +53,7 @@ func respond(c *Core, w http.ResponseWriter, r *http.Request, status int, body i
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(body); err != nil {
-		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
+		c.requestLogger(r).Warn("Error writing response (1)", zap.Error(err))
 	}
 }
 
@@ -113,7 +113,7 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", out.ContentType())
 	if err := srch.Run(ctx, order, s, out); err != nil {
-		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
+		c.requestLogger(r).Warn("Error writing response (2)", zap.Error(err))
 	}
 }
 
@@ -151,7 +151,7 @@ func handleWorker(c *Core, w http.ResponseWriter, httpReq *http.Request) {
 	}
 
 	if err := work.Run(ctx, order, out); err != nil {
-		c.requestLogger(httpReq).Warn("Error writing response", zap.Error(err))
+		c.requestLogger(httpReq).Warn("Error writing response (3)", zap.Error(err))
 	}
 
 }
@@ -567,7 +567,7 @@ func handleIndexSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", out.ContentType())
 	if err := srch.Run(out); err != nil {
-		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
+		c.requestLogger(r).Warn("Error writing response (4)", zap.Error(err))
 	}
 }
 
@@ -607,7 +607,7 @@ func handleArchiveStat(c *Core, w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", out.ContentType())
 	if err := search.SendFromReader(out, rc); err != nil {
-		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
+		c.requestLogger(r).Warn("Error writing response (5)", zap.Error(err))
 	}
 }
 
