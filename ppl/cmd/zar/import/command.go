@@ -12,14 +12,14 @@ import (
 	"github.com/brimsec/zq/pkg/units"
 	"github.com/brimsec/zq/ppl/archive"
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
-	"github.com/brimsec/zq/zio/detector"
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
 )
 
 var Import = &charm.Spec{
 	Name:  "import",
-	Usage: "import [-R root] [options] [file|S3-object|-]",
+	Usage: "import [-R root] [options] [file|S3-object|- ...]",
 	Short: "import log files into pieces",
 	Long: `
 The import command provides a way to create a new zar archive with ZNG data
@@ -73,8 +73,8 @@ func (c *Command) Run(args []string) error {
 	}
 	if c.empty && len(args) > 0 {
 		return errors.New("zar import: empty flag specified with input files")
-	} else if !c.empty && len(args) != 1 {
-		return errors.New("zar import: exactly one input file must be specified (- for stdin)")
+	} else if !c.empty && len(args) == 0 {
+		return errors.New("zar import: at least one input file must be specified (- for stdin)")
 	}
 	archive.ImportBufSize = int64(c.importBufSize)
 	archive.ImportStreamRecordsMax = c.importStreamRecordMax
@@ -99,14 +99,17 @@ func (c *Command) Run(args []string) error {
 		return nil
 	}
 
-	path := args[0]
-	if path == "-" {
-		path = detector.StdinPath
-	}
+	paths := args
 	zctx := resolver.NewContext()
-	reader, err := detector.OpenFile(zctx, path, c.inputFlags.Options())
+	readers, err := c.inputFlags.Open(zctx, paths, false)
 	if err != nil {
 		return err
+	}
+	var reader zbuf.ReadCloser
+	if ark.DataOrder == zbuf.OrderAsc {
+		reader = zbuf.NewCombiner(readers, zbuf.CmpTimeForward)
+	} else {
+		reader = zbuf.NewCombiner(readers, zbuf.CmpTimeReverse)
 	}
 	defer reader.Close()
 
