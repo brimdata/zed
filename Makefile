@@ -3,17 +3,12 @@ export GO111MODULE=on
 # If VERSION or LDFLAGS change, please also change
 # npm/build.
 VERSION = $(shell git describe --tags --dirty --always)
-GIT_BRANCH = $(shell git branch --show-current)
 ECR_VERSION = $(VERSION)-$(ZQD_K8S_USER)
 LDFLAGS = -s -X github.com/brimsec/zq/cli.Version=$(VERSION)
 ZEEKTAG = v3.2.1-brim2
 ZEEKPATH = zeek-$(ZEEKTAG)
 SURICATATAG = v5.0.3-brim8
 SURICATAPATH = suricata-$(SURICATATAG)
-
-ifneq "$(GIT_BRANCH)" ""
-GIT_BRANCH = $(shell git branch --show-current)
-endif
 
 # This enables a shortcut to run a single test from the ./ztests suite, e.g.:
 #  make TEST=TestZq/ztests/suite/cut/cut
@@ -116,8 +111,6 @@ docker-push-ecr: docker
 	  --username AWS --password-stdin $(ZQD_ECR_HOST)/zqd
 	docker tag zqd $(ZQD_ECR_HOST)/zqd:$(ECR_VERSION)
 	docker push $(ZQD_ECR_HOST)/zqd:$(ECR_VERSION)
-	docker tag zqd $(ZQD_ECR_HOST)/zqd:$(GIT_BRANCH)
-	docker push $(ZQD_ECR_HOST)/zqd:$(GIT_BRANCH)
 
 kubectl-config:
 	kubectl create namespace $(ZQD_K8S_USER)
