@@ -78,6 +78,7 @@ func (ph *parallelHead) Pull() (zbuf.Batch, error) {
 		}
 		batch, err := ph.sc.Pull()
 		if err != nil {
+			println("Error in parallelHead.Pull: ", err.Error, " for head ", ph.Label)
 			return nil, err
 		}
 		if batch == nil {
