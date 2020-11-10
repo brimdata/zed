@@ -11,6 +11,10 @@ ZEEKPATH = zeek-$(ZEEKTAG)
 SURICATATAG = v5.0.3-brim8
 SURICATAPATH = suricata-$(SURICATATAG)
 
+ifneq "$(GIT_BRANCH)" ""
+GIT_BRANCH = $(shell git branch --show-current)
+endif
+
 # This enables a shortcut to run a single test from the ./ztests suite, e.g.:
 #  make TEST=TestZq/ztests/suite/cut/cut
 ifneq "$(TEST)" ""
