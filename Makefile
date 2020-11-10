@@ -3,6 +3,7 @@ export GO111MODULE=on
 # If VERSION or LDFLAGS change, please also change
 # npm/build.
 VERSION = $(shell git describe --tags --dirty --always)
+GIT_BRANCH = $(shell git branch --show-current)
 ECR_VERSION = $(VERSION)-$(ZQD_K8S_USER)
 LDFLAGS = -s -X github.com/brimsec/zq/cli.Version=$(VERSION)
 ZEEKTAG = v3.2.1-brim2
@@ -111,8 +112,8 @@ docker-push-ecr: docker
 	  --username AWS --password-stdin $(ZQD_ECR_HOST)/zqd
 	docker tag zqd $(ZQD_ECR_HOST)/zqd:$(ECR_VERSION)
 	docker push $(ZQD_ECR_HOST)/zqd:$(ECR_VERSION)
-	docker tag zqd $(ZQD_ECR_HOST)/zqd:$(ZQD_K8S_USER)
-	docker push $(ZQD_ECR_HOST)/zqd:$(ZQD_K8S_USER)
+	docker tag zqd $(ZQD_ECR_HOST)/zqd:$(GIT_BRANCH)
+	docker push $(ZQD_ECR_HOST)/zqd:$(GIT_BRANCH)
 
 kubectl-config:
 	kubectl create namespace $(ZQD_K8S_USER)
