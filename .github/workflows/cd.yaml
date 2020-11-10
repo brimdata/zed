@@ -26,6 +26,7 @@ jobs:
           ZQD_TEST_CLUSTER: zq-test.us-east-2.eksctl.io
         run: |
           make docker-push-ecr
+          echo docker tag for git branch: ${GITHUB_REF##*/}
           docker tag zqd ${ZQD_ECR_HOST}/zqd:${GITHUB_REF##*/}
           docker push ${ZQD_ECR_HOST}/zqd:${GITHUB_REF##*/}
 
