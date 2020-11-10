@@ -106,7 +106,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	var reader zbuf.ReadCloser
-	if c.asc {
+	if ark.DataOrder == zbuf.OrderAsc {
 		reader = zbuf.NewCombiner(readers, zbuf.CmpTimeForward)
 	} else {
 		reader = zbuf.NewCombiner(readers, zbuf.CmpTimeReverse)
