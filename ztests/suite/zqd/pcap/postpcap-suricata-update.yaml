@@ -33,23 +33,19 @@ script: |
     sleep 1
   done
 
-  zapi -h $ZQD_HOST new testsp
-  zapi -h $ZQD_HOST -s testsp pcappost -f alerts.pcap >/dev/null
-  echo ===
+  zapi -h $ZQD_HOST -s testsp postpcap -f alerts.pcap >/dev/null
   zapi -h $ZQD_HOST -s testsp get -f tzng "event_type = alert | count()"
 
 inputs:
   - name: alerts.pcap
     source: alerts.pcap
   - name: services.sh
-    source: services.sh
+    source: ../services.sh
   - name: emerging.rules.tar.gz
     source: emerging.rules.tar.gz
 
 outputs:
   - name: stdout
     data: |
-      testsp: space created
-      ===
       #0:record[count:uint64]
       0:[15;]
