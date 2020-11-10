@@ -13,6 +13,9 @@ import (
 )
 
 func TestZq(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
 	t.Parallel()
 	dirs := map[string]struct{}{}
 	pattern := fmt.Sprintf(`.*ztests\%c.*\.yaml$`, filepath.Separator)
