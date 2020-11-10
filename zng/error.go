@@ -2,11 +2,17 @@ package zng
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/brimsec/zq/zcode"
 )
 
 type TypeOfError struct{}
+
+func NewErrorf(format string, args ...interface{}) Value {
+	msg := fmt.Sprintf(format, args...)
+	return Value{TypeError, zcode.Bytes(msg)}
+}
 
 func NewError(err error) Value {
 	return Value{TypeError, zcode.Bytes(err.Error())}

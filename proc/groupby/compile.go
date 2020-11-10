@@ -16,7 +16,7 @@ func compileParams(node *ast.GroupByProc, zctx *resolver.Context) (*Params, erro
 	keys := []Key{}
 	var targets []field.Static
 	for k, key := range node.Keys {
-		name, rhs, err := expr.CompileAssignment(&key)
+		name, rhs, err := expr.CompileAssignment(zctx, &key)
 		if err != nil {
 			return nil, err
 		}
@@ -29,7 +29,7 @@ func compileParams(node *ast.GroupByProc, zctx *resolver.Context) (*Params, erro
 	}
 	reducerMakers := make([]reducerMaker, 0, len(node.Reducers))
 	for _, assignment := range node.Reducers {
-		name, f, err := CompileReducer(assignment)
+		name, f, err := CompileReducer(zctx, assignment)
 		if err != nil {
 			return nil, err
 		}
@@ -53,7 +53,7 @@ func compileParams(node *ast.GroupByProc, zctx *resolver.Context) (*Params, erro
 	}, nil
 }
 
-func CompileReducer(assignment ast.Assignment) (field.Static, reducer.Maker, error) {
+func CompileReducer(zctx *resolver.Context, assignment ast.Assignment) (field.Static, reducer.Maker, error) {
 	reducerAST, ok := assignment.RHS.(*ast.Reducer)
 	if !ok {
 		return nil, nil, errors.New("reducer is not a reducer expression")
@@ -62,7 +62,7 @@ func CompileReducer(assignment ast.Assignment) (field.Static, reducer.Maker, err
 	var err error
 	var arg expr.Evaluator
 	if reducerAST.Expr != nil {
-		arg, err = expr.CompileExpr(reducerAST.Expr)
+		arg, err = expr.CompileExpr(zctx, reducerAST.Expr)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -81,7 +81,7 @@ func CompileReducer(assignment ast.Assignment) (field.Static, reducer.Maker, err
 	}
 	var where expr.Evaluator
 	if reducerAST.Where != nil {
-		where, err = expr.CompileExpr(reducerAST.Where)
+		where, err = expr.CompileExpr(zctx, reducerAST.Where)
 		if err != nil {
 			return nil, nil, err
 		}

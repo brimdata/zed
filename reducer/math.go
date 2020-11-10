@@ -3,6 +3,7 @@ package reducer
 import (
 	"github.com/brimsec/zq/anymath"
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/expr/coerce"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -109,7 +110,7 @@ func (f *Float64) result() zng.Value {
 }
 
 func (f *Float64) consume(v zng.Value) error {
-	if v, ok := expr.CoerceToFloat(v); ok {
+	if v, ok := coerce.ToFloat(v); ok {
 		f.state = f.function(f.state, v)
 		return nil
 	}
@@ -133,7 +134,7 @@ func (i *Int64) result() zng.Value {
 }
 
 func (i *Int64) consume(v zng.Value) error {
-	if v, ok := expr.CoerceToInt(v); ok {
+	if v, ok := coerce.ToInt(v); ok {
 		i.state = i.function(i.state, v)
 		return nil
 	}
@@ -157,7 +158,7 @@ func (u *Uint64) result() zng.Value {
 }
 
 func (u *Uint64) consume(v zng.Value) error {
-	if v, ok := expr.CoerceToUint(v); ok {
+	if v, ok := coerce.ToUint(v); ok {
 		u.state = u.function(u.state, v)
 		return nil
 	}
@@ -181,7 +182,7 @@ func (d *Duration) result() zng.Value {
 }
 
 func (d *Duration) consume(v zng.Value) error {
-	if v, ok := expr.CoerceToDuration(v); ok {
+	if v, ok := coerce.ToDuration(v); ok {
 		d.state = d.function(d.state, v)
 		return nil
 	}
@@ -205,7 +206,7 @@ func (t *Time) result() zng.Value {
 }
 
 func (t *Time) consume(v zng.Value) error {
-	if v, ok := expr.CoerceToTime(v); ok {
+	if v, ok := coerce.ToTime(v); ok {
 		t.state = nano.Ts(t.function(int64(t.state), int64(v)))
 		return nil
 	}

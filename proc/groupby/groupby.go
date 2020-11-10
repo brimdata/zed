@@ -183,8 +183,9 @@ func decomposable(rs []reducerMaker) bool {
 }
 
 func IsDecomposable(assignments []ast.Assignment) bool {
+	zctx := resolver.NewContext()
 	for _, assignment := range assignments {
-		_, create, err := CompileReducer(assignment)
+		_, create, err := CompileReducer(zctx, assignment)
 		if err != nil {
 			return false
 		}

@@ -1,43 +1,45 @@
-package expr
+package coerce
 
 import (
 	"bytes"
 	"errors"
 	"math"
 
+	"github.com/brimsec/zq/expr/result"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 )
 
 var ErrOverflow = errors.New("integer overflow: uint64 value too large for int64")
+var ErrIncompatibleTypes = errors.New("incompatible types")
 
 // XXX aliases should probably be preserved according to the rank
 // of the underlying number type.
 
-// Coercion provides a buffer to decode values into while doing comparisons
+// Pair provides a buffer to decode values into while doing comparisons
 // so the same buffers can be reused on each call without zcode.Bytes buffers
 // escaping to GC.  This method uses the zng.AppendInt(), zng.AppendUint(),
 // etc to encode zcode.Bytes as an in-place slice instead of allocating
 // new slice buffers for every value created.
-type Coercion struct {
+type Pair struct {
 	// a and b point to inputs that can't change
-	a zcode.Bytes
-	b zcode.Bytes
-	// result is a scratch buffer that stays around between calls and is the
+	A zcode.Bytes
+	B zcode.Bytes
+	// Buffer is a scratch buffer that stays around between calls and is the
 	// landing place for either the a or b value if one of them needs to
 	// be coerced (you never need to coerce both).  Then we point a or b
 	// at buf and let go of the other input pointer.
-	result
+	result.Buffer
 }
 
-func (c *Coercion) equal() bool {
-	return bytes.Compare(c.a, c.b) == 0
+func (c *Pair) Equal() bool {
+	return bytes.Equal(c.A, c.B)
 }
 
-func (c *Coercion) coerce(a, b zng.Value) (int, error) {
-	c.a = a.Bytes
-	c.b = b.Bytes
+func (c *Pair) Coerce(a, b zng.Value) (int, error) {
+	c.A = a.Bytes
+	c.B = b.Bytes
 	aid := a.Type.ID()
 	bid := b.Type.ID()
 	if aid == bid {
@@ -60,11 +62,11 @@ func (c *Coercion) coerce(a, b zng.Value) (int, error) {
 	return 0, ErrIncompatibleTypes
 }
 
-func (c *Coercion) compare(lhs, rhs zng.Value) (bool, error) {
-	if _, err := c.coerce(lhs, rhs); err != nil {
+func (c *Pair) compare(lhs, rhs zng.Value) (bool, error) {
+	if _, err := c.Coerce(lhs, rhs); err != nil {
 		return false, err
 	}
-	return c.equal(), nil
+	return c.Equal(), nil
 }
 
 func intToFloat(id int, b zcode.Bytes) float64 {
@@ -76,7 +78,7 @@ func intToFloat(id int, b zcode.Bytes) float64 {
 	return float64(v)
 }
 
-func (c *Coercion) promoteToSigned(in zcode.Bytes) (zcode.Bytes, error) {
+func (c *Pair) promoteToSigned(in zcode.Bytes) (zcode.Bytes, error) {
 	v, _ := zng.DecodeUint(in)
 	if v > math.MaxInt64 {
 		return nil, ErrOverflow
@@ -84,7 +86,7 @@ func (c *Coercion) promoteToSigned(in zcode.Bytes) (zcode.Bytes, error) {
 	return c.Int(int64(v)), nil
 }
 
-func (c *Coercion) promoteToUnsigned(in zcode.Bytes) (zcode.Bytes, error) {
+func (c *Pair) promoteToUnsigned(in zcode.Bytes) (zcode.Bytes, error) {
 	v, _ := zng.DecodeInt(in)
 	if v < 0 {
 		return nil, ErrOverflow
@@ -92,13 +94,13 @@ func (c *Coercion) promoteToUnsigned(in zcode.Bytes) (zcode.Bytes, error) {
 	return c.Uint(uint64(v)), nil
 }
 
-func (c *Coercion) coerceNumbers(aid, bid int) (int, error) {
+func (c *Pair) coerceNumbers(aid, bid int) (int, error) {
 	if zng.IsFloat(aid) {
-		c.b = c.Float64(intToFloat(bid, c.b))
+		c.B = c.Float64(intToFloat(bid, c.B))
 		return aid, nil
 	}
 	if zng.IsFloat(bid) {
-		c.a = c.Float64(intToFloat(aid, c.a))
+		c.A = c.Float64(intToFloat(aid, c.A))
 		return bid, nil
 	}
 	aIsSigned := zng.IsSigned(aid)
@@ -120,24 +122,24 @@ func (c *Coercion) coerceNumbers(aid, bid int) (int, error) {
 	// case, we report an overflow error.
 	var err error
 	if aIsSigned {
-		c.b, err = c.promoteToSigned(c.b)
+		c.B, err = c.promoteToSigned(c.B)
 	} else {
-		c.a, err = c.promoteToSigned(c.a)
+		c.A, err = c.promoteToSigned(c.A)
 	}
 	if err == ErrOverflow {
 		// We got overflow trying to turn the unsigned to signed,
 		// so try turning the signed into unsigned.
 		if aIsSigned {
-			c.a, err = c.promoteToUnsigned(c.a)
+			c.A, err = c.promoteToUnsigned(c.A)
 		} else {
-			c.b, err = c.promoteToUnsigned(c.b)
+			c.B, err = c.promoteToUnsigned(c.B)
 		}
 		id = zng.IdUint64
 	}
 	return id, err
 }
 
-func CoerceToFloat(zv zng.Value) (float64, bool) {
+func ToFloat(zv zng.Value) (float64, bool) {
 	id := zv.Type.ID()
 	if zng.IsFloat(id) {
 		f, _ := zng.DecodeFloat64(zv.Bytes)
@@ -159,7 +161,7 @@ func CoerceToFloat(zv zng.Value) (float64, bool) {
 	return 0, false
 }
 
-func CoerceToUint(zv zng.Value) (uint64, bool) {
+func ToUint(zv zng.Value) (uint64, bool) {
 	id := zv.Type.ID()
 	if zng.IsFloat(id) {
 		f, _ := zng.DecodeFloat64(zv.Bytes)
@@ -184,7 +186,7 @@ func CoerceToUint(zv zng.Value) (uint64, bool) {
 	return 0, false
 }
 
-func CoerceToInt(zv zng.Value) (int64, bool) {
+func ToInt(zv zng.Value) (int64, bool) {
 	id := zv.Type.ID()
 	if zng.IsFloat(id) {
 		f, _ := zng.DecodeFloat64(zv.Bytes)
@@ -207,7 +209,7 @@ func CoerceToInt(zv zng.Value) (int64, bool) {
 	return 0, false
 }
 
-func CoerceToTime(zv zng.Value) (nano.Ts, bool) {
+func ToTime(zv zng.Value) (nano.Ts, bool) {
 	id := zv.Type.ID()
 	if id == zng.IdTime {
 		ts, _ := zng.DecodeTime(zv.Bytes)
@@ -232,11 +234,11 @@ func CoerceToTime(zv zng.Value) (nano.Ts, bool) {
 	return 0, false
 }
 
-// CoerceToDuration attempts to convert a value to a duration.  Int
+// ToDuration attempts to convert a value to a duration.  Int
 // and Double are converted as seconds. The resulting coerced value is
 // written to out, and true is returned. If the value cannot be
 // coerced, then false is returned.
-func CoerceToDuration(in zng.Value) (int64, bool) {
+func ToDuration(in zng.Value) (int64, bool) {
 	var out int64
 	var err error
 	switch in.Type.ID() {

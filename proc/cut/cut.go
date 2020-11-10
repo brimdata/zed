@@ -25,7 +25,7 @@ func New(pctx *proc.Context, parent proc.Interface, node *ast.CutProc) (*Proc, e
 	var lhs []field.Static
 	var rhs []expr.Evaluator
 	for _, f := range node.Fields {
-		field, expression, err := expr.CompileAssignment(&f)
+		field, expression, err := expr.CompileAssignment(pctx.TypeContext, &f)
 		if err != nil {
 			return nil, err
 		}

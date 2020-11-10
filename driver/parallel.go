@@ -8,13 +8,10 @@ import (
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/ast"
-	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zng"
 )
 
 type parallelHead struct {
@@ -210,25 +207,6 @@ func (pg *parallelGroup) Stats() *scanner.ScannerStats {
 func (pg *parallelGroup) run() {
 	pg.sourceErr = pg.msrc.SendSources(pg.pctx, pg.filter.Span, pg.sourceChan)
 	close(pg.sourceChan)
-}
-
-func newCompareFn(fieldName string, reversed bool) (zbuf.RecordCmpFn, error) {
-	if fieldName == "ts" {
-		if reversed {
-			return zbuf.CmpTimeReverse, nil
-		} else {
-			return zbuf.CmpTimeForward, nil
-		}
-	}
-	fieldRead := ast.NewDotExpr(field.New(fieldName))
-	res, err := expr.CompileExpr(fieldRead)
-	if err != nil {
-		return nil, err
-	}
-	rcmp := expr.NewCompareFn(true, res)
-	return func(a, b *zng.Record) bool {
-		return rcmp(a, b) < 0
-	}, nil
 }
 
 func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.BooleanExpr, msrc MultiSource, mcfg MultiConfig, workerURLs []string) ([]proc.Interface, *parallelGroup, error) {

@@ -181,3 +181,11 @@ func (v Value) Copy() Value {
 	}
 	return Value{v.Type, b}
 }
+
+func (v Value) IsStringy() bool {
+	return IsStringy(v.Type.ID())
+}
+
+func (v Value) IsError() bool {
+	return v.Type == TypeError
+}

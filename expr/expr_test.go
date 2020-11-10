@@ -53,7 +53,7 @@ func compileExpr(s string) (expr.Evaluator, error) {
 		return nil, errors.New("expected Expression")
 	}
 
-	return expr.CompileExpr(node)
+	return expr.CompileExpr(resolver.NewContext(), node)
 }
 
 // Compile and evaluate a zql expression against a provided Record.
