@@ -60,7 +60,7 @@ func TestMultiFileScanner(t *testing.T) {
 	defer os.Remove(f2)
 
 	mfr := MultiFileReader(resolver.NewContext(), []string{f1, f2}, zio.ReaderOpts{})
-	sn, err := scanner.NewScanner(context.Background(), mfr, nil, nil, nano.MaxSpan)
+	sn, err := scanner.NewScanner(context.Background(), mfr, nil, nano.MaxSpan)
 	require.NoError(t, err)
 	_, ok := sn.(*multiFileScanner)
 	assert.True(t, ok)

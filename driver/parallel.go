@@ -8,7 +8,6 @@ import (
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/ast"
-	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
@@ -151,7 +150,7 @@ func (pg *parallelGroup) nextSourceForConn(conn *client.Connection) (ScannerClos
 			return nil, err
 		}
 		search := client.NewZngSearch(rc)
-		s, err := scanner.NewScanner(pg.pctx.Context, search, nil, nil, req.Span)
+		s, err := scanner.NewScanner(pg.pctx.Context, search, nil, req.Span)
 		if err != nil {
 			return nil, err
 		}
@@ -209,11 +208,10 @@ func (pg *parallelGroup) run() {
 	close(pg.sourceChan)
 }
 
-func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.BooleanExpr, msrc MultiSource, mcfg MultiConfig, workerURLs []string) ([]proc.Interface, *parallelGroup, error) {
+func createParallelGroup(pctx *proc.Context, filterExpr ast.BooleanExpr, msrc MultiSource, mcfg MultiConfig, workerURLs []string) ([]proc.Interface, *parallelGroup, error) {
 	pg := &parallelGroup{
 		pctx: pctx,
 		filter: SourceFilter{
-			Filter:     filt,
 			FilterExpr: filterExpr,
 			Span:       mcfg.Span,
 		},
