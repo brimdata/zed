@@ -22,6 +22,7 @@ import (
 	"github.com/brimsec/zq/ppl/zqd/space"
 	"github.com/brimsec/zq/ppl/zqd/storage"
 	"github.com/brimsec/zq/ppl/zqd/storage/archivestore"
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zio/ndjsonio"
@@ -289,12 +290,16 @@ func (p *legacyPcapOp) createSnapshot(ctx context.Context) error {
 	}
 	// convert logs into sorted zng
 	zctx := resolver.NewContext()
-	zr, err := detector.OpenFiles(ctx, zctx, p.store.NativeOrder().RecordLess(), files...)
+	readers, err := detector.OpenFiles(ctx, zctx, files...)
 	if err != nil {
 		return err
 	}
-	defer zr.Close()
-	if err := p.store.Write(ctx, zctx, zr); err != nil {
+	defer zbuf.CloseReaders(readers)
+	reader, err := zbuf.MergeReadersByTsAsReader(ctx, readers, p.store.NativeOrder())
+	if err != nil {
+		return err
+	}
+	if err := p.store.Write(ctx, zctx, reader); err != nil {
 		return err
 	}
 	atomic.AddInt32(&p.snapshots, 1)

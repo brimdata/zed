@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/tzngio"
@@ -60,7 +59,7 @@ func TestMultiFileScanner(t *testing.T) {
 	defer os.Remove(f2)
 
 	mfr := MultiFileReader(resolver.NewContext(), []string{f1, f2}, zio.ReaderOpts{})
-	sn, err := scanner.NewScanner(context.Background(), mfr, nil, nano.MaxSpan)
+	sn, err := zbuf.NewScanner(context.Background(), mfr, nil, nano.MaxSpan)
 	require.NoError(t, err)
 	_, ok := sn.(*multiFileScanner)
 	assert.True(t, ok)
@@ -70,7 +69,7 @@ func TestMultiFileScanner(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, trim(exp), trim(sb.String()))
 
-	expStats := scanner.ScannerStats{
+	expStats := zbuf.ScannerStats{
 		BytesRead:      30,
 		BytesMatched:   30,
 		RecordsRead:    4,

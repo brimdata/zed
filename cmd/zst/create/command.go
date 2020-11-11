@@ -1,6 +1,7 @@
 package create
 
 import (
+	"context"
 	"errors"
 	"flag"
 
@@ -72,8 +73,12 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	reader := zbuf.NewCombiner(readers, zbuf.RecordLessTsForward)
-	defer reader.Close()
+	defer zbuf.CloseReaders(readers)
+	ctx := context.Background()
+	reader, err := zbuf.MergeReadersByTsAsReader(ctx, readers, zbuf.OrderAsc)
+	if err != nil {
+		return err
+	}
 	writer, err := c.outputFlags.Open()
 	if err != nil {
 		return err

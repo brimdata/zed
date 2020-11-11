@@ -106,12 +106,12 @@ func CompareInt64(op string, pattern int64) (Predicate, error) {
 		case zng.IdTime:
 			ts, err := zng.DecodeTime(zv)
 			if err == nil {
-				return CompareInt(int64(ts), pattern*1e9)
+				return CompareInt(int64(ts), pattern*1_000_000_000)
 			}
 		case zng.IdDuration:
 			v, err := zng.DecodeInt(zv)
 			if err == nil {
-				return CompareInt(int64(v), pattern*1e9)
+				return CompareInt(int64(v), pattern*1_000_000_000)
 			}
 		}
 		return false

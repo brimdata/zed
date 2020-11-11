@@ -11,7 +11,6 @@ import (
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
@@ -37,14 +36,16 @@ func (c multiCloser) Close() (err error) {
 	return
 }
 
-type scannerCloser struct {
-	scanner.Scanner
+type pullerCloser struct {
+	zbuf.Puller
+	zbuf.MultiStats
 	io.Closer
 }
 
-func newSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, sf driver.SourceFilter, si SpanInfo) (sc *scannerCloser, stats ChunkStats, err error) {
+func newSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, sf driver.SourceFilter, si SpanInfo) (sc *pullerCloser, stats ChunkStats, err error) {
 	closers := make(multiCloser, 0, len(si.Chunks))
-	readers := make([]zbuf.Reader, 0, len(si.Chunks))
+	pullers := make([]zbuf.Puller, 0, len(si.Chunks))
+	scanners := make([]zbuf.Scanner, 0, len(si.Chunks))
 	for _, chunk := range si.Chunks {
 		rc, err := newChunkReader(ctx, chunk, ark, si.Span)
 		if err != nil {
@@ -54,21 +55,19 @@ func newSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, s
 		stats.ChunksOpenedBytes += rc.totalSize
 		stats.ChunksReadBytes += rc.readSize
 		closers = append(closers, rc)
-		readers = append(readers, zngio.NewReader(rc, zctx))
+		reader := zngio.NewReader(rc, zctx)
+		scanner, err := reader.NewScanner(ctx, sf.FilterExpr, si.Span)
+		if err != nil {
+			closers.Close()
+			return nil, stats, err
+		}
+		scanners = append(scanners, scanner)
+		pullers = append(pullers, scanner)
 	}
-	var scn scanner.Scanner
-	if len(readers) == 1 {
-		scn, err = scanner.NewScanner(ctx, readers[0], sf.FilterExpr, si.Span)
-	} else {
-		scn, err = scanner.NewCombiner(ctx, readers, ark.DataOrder.RecordLess(), sf.FilterExpr, si.Span)
-	}
-	if err != nil {
-		closers.Close()
-		return nil, stats, err
-	}
-	return &scannerCloser{
-		Scanner: scn,
-		Closer:  closers,
+	return &pullerCloser{
+		Puller:     zbuf.MergeByTs(ctx, pullers, ark.DataOrder),
+		MultiStats: scanners,
+		Closer:     closers,
 	}, stats, nil
 }
 
@@ -192,6 +191,11 @@ func (m *chunkMultiSource) Stats() ChunkStats {
 	return m.stats.Copy()
 }
 
+type scannerCloser struct {
+	zbuf.Scanner
+	io.Closer
+}
+
 type chunkSource struct {
 	cms   *chunkMultiSource
 	chunk Chunk
@@ -211,7 +215,7 @@ func (s *chunkSource) Open(ctx context.Context, zctx *resolver.Context, sf drive
 		paths[i] = u.String()
 	}
 	rc := detector.MultiFileReader(zctx, paths, zio.ReaderOpts{Format: "zng"})
-	sn, err := scanner.NewScanner(ctx, rc, sf.FilterExpr, sf.Span)
+	sn, err := zbuf.NewScanner(ctx, rc, sf.FilterExpr, sf.Span)
 	if err != nil {
 		rc.Close()
 		return nil, err

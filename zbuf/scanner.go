@@ -1,4 +1,4 @@
-package scanner
+package zbuf
 
 import (
 	"context"
@@ -7,12 +7,11 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-// ScannerAble is implemented by zbuf.Readers that provide an optimized
+// ScannerAble is implemented by Readers that provide an optimized
 // implementation of the Scanner interface.
 type ScannerAble interface {
 	NewScanner(ctx context.Context, filterExpr ast.BooleanExpr, s nano.Span) (Scanner, error)
@@ -23,10 +22,10 @@ type Statser interface {
 	Stats() *ScannerStats
 }
 
-// A Scanner is a zbuf.Batch source that also provides statistics.
+// A Scanner is a Batch source that also provides statistics.
 type Scanner interface {
 	Statser
-	Pull() (zbuf.Batch, error)
+	Puller
 }
 
 // ScannerStats holds Scanner statistics. It should be identical to
@@ -46,10 +45,39 @@ func (s *ScannerStats) Accumulate(ss *ScannerStats) {
 	s.RecordsMatched += ss.RecordsMatched
 }
 
+func ReadersToScanners(ctx context.Context, readers []Reader) ([]Scanner, error) {
+	scanners := make([]Scanner, 0, len(readers))
+	for _, reader := range readers {
+		s, err := NewScanner(ctx, reader, nil, nano.MaxSpan)
+		if err != nil {
+			return nil, err
+		}
+		scanners = append(scanners, s)
+	}
+	return scanners, nil
+}
+
+// ReadersToPullers returns a slice of Pullers that pull from the given
+// Readers.  If any or all of the readers implement Scannerable, then
+// a scanner will be created from the underlying Scannerable so that the
+// pulled Batches are more efficient, i.e., the zng scanner will arrange
+// for each Batch to be returned to a pool instead of being GC'd.
+func ReadersToPullers(ctx context.Context, readers []Reader) ([]Puller, error) {
+	scanners, err := ReadersToScanners(ctx, readers)
+	if err != nil {
+		return nil, err
+	}
+	pullers := make([]Puller, 0, len(scanners))
+	for _, s := range scanners {
+		pullers = append(pullers, s)
+	}
+	return pullers, nil
+}
+
 // NewScanner returns a Scanner for r that filters records by filterExpr and s.
-func NewScanner(ctx context.Context, r zbuf.Reader, filterExpr ast.BooleanExpr, s nano.Span) (Scanner, error) {
+func NewScanner(ctx context.Context, r Reader, filterExpr ast.BooleanExpr, s nano.Span) (Scanner, error) {
 	var sa ScannerAble
-	if zf, ok := r.(*zbuf.File); ok {
+	if zf, ok := r.(*File); ok {
 		sa, _ = zf.Reader.(ScannerAble)
 	} else {
 		sa, _ = r.(ScannerAble)
@@ -68,17 +96,17 @@ func NewScanner(ctx context.Context, r zbuf.Reader, filterExpr ast.BooleanExpr, 
 }
 
 type scanner struct {
-	reader zbuf.Reader
+	reader Reader
 	filter filter.Filter
 	span   nano.Span
 	ctx    context.Context
 	stats  ScannerStats
 }
 
-var BatchSize = 100
+var ScannerBatchSize = 100
 
-func (s *scanner) Pull() (zbuf.Batch, error) {
-	return zbuf.ReadBatch(s, BatchSize)
+func (s *scanner) Pull() (Batch, error) {
+	return ReadBatch(s, ScannerBatchSize)
 }
 
 func (s *scanner) Stats() *ScannerStats {
@@ -90,7 +118,7 @@ func (s *scanner) Stats() *ScannerStats {
 	}
 }
 
-// Read implements zbuf.Reader.Read.
+// Read implements Reader.Read.
 func (s *scanner) Read() (*zng.Record, error) {
 	for {
 		if err := s.ctx.Err(); err != nil {
@@ -113,4 +141,14 @@ func (s *scanner) Read() (*zng.Record, error) {
 		rec.CopyBody()
 		return rec, nil
 	}
+}
+
+type MultiStats []Scanner
+
+func (m MultiStats) Stats() *ScannerStats {
+	var ss ScannerStats
+	for _, s := range m {
+		ss.Accumulate(s.Stats())
+	}
+	return &ss
 }

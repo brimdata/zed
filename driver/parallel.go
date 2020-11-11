@@ -9,7 +9,6 @@ import (
 	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/proc"
-	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 )
 
@@ -101,8 +100,8 @@ type parallelGroup struct {
 	sourceErr  error
 
 	mu       sync.Mutex // protects below
-	stats    scanner.ScannerStats
-	scanners map[scanner.Scanner]struct{}
+	stats    zbuf.ScannerStats
+	scanners map[zbuf.Scanner]struct{}
 }
 
 func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
@@ -150,12 +149,12 @@ func (pg *parallelGroup) nextSourceForConn(conn *client.Connection) (ScannerClos
 			return nil, err
 		}
 		search := client.NewZngSearch(rc)
-		s, err := scanner.NewScanner(pg.pctx.Context, search, nil, req.Span)
+		s, err := zbuf.NewScanner(pg.pctx.Context, search, nil, req.Span)
 		if err != nil {
 			return nil, err
 		}
 		sc := struct {
-			scanner.Scanner
+			zbuf.Scanner
 			io.Closer
 		}{s, rc}
 
@@ -193,7 +192,7 @@ func (pg *parallelGroup) sourceToRequest(src Source) (*api.WorkerRequest, error)
 	return &req, nil
 }
 
-func (pg *parallelGroup) Stats() *scanner.ScannerStats {
+func (pg *parallelGroup) Stats() *zbuf.ScannerStats {
 	pg.mu.Lock()
 	defer pg.mu.Unlock()
 	s := pg.stats
@@ -218,7 +217,7 @@ func createParallelGroup(pctx *proc.Context, filterExpr ast.BooleanExpr, msrc Mu
 		msrc:       msrc,
 		mcfg:       mcfg,
 		sourceChan: make(chan Source),
-		scanners:   make(map[scanner.Scanner]struct{}),
+		scanners:   make(map[zbuf.Scanner]struct{}),
 	}
 
 	var sources []proc.Interface

@@ -7,7 +7,6 @@ import (
 
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 )
@@ -20,10 +19,10 @@ type zngScanner struct {
 	filter       filter.Filter
 	rec          zng.Record // Used to reduce memory allocations.
 	span         nano.Span
-	stats        scanner.ScannerStats
+	stats        zbuf.ScannerStats
 }
 
-var _ scanner.ScannerAble = (*Reader)(nil)
+var _ zbuf.ScannerAble = (*Reader)(nil)
 
 // Pull implements scanner.Scanner.Pull.
 func (s *zngScanner) Pull() (zbuf.Batch, error) {
@@ -137,8 +136,8 @@ func (s *zngScanner) scanOne(rec *zng.Record) (*zng.Record, error) {
 }
 
 // Stats implements scanner.Scanner.Stats.
-func (s *zngScanner) Stats() *scanner.ScannerStats {
-	return &scanner.ScannerStats{
+func (s *zngScanner) Stats() *zbuf.ScannerStats {
+	return &zbuf.ScannerStats{
 		BytesRead:      atomic.LoadInt64(&s.stats.BytesRead),
 		BytesMatched:   atomic.LoadInt64(&s.stats.BytesMatched),
 		RecordsRead:    atomic.LoadInt64(&s.stats.RecordsRead),

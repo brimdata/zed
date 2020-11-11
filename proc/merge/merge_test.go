@@ -1,4 +1,4 @@
-package orderedmerge_test
+package merge_test
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/proc"
-	"github.com/brimsec/zq/proc/orderedmerge"
+	"github.com/brimsec/zq/proc/merge"
 	"github.com/brimsec/zq/proc/proctest"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
@@ -108,7 +108,8 @@ func TestParallelOrder(t *testing.T) {
 				r := tzngio.NewReader(bytes.NewReader([]byte(s)), zctx)
 				parents = append(parents, &proctest.RecordPuller{R: r})
 			}
-			om := orderedmerge.New(pctx, parents, field.New(c.field), c.reversed)
+			cmp := zbuf.NewCompareFn(field.New(c.field), c.reversed)
+			om := merge.New(pctx.Context, parents, cmp)
 
 			var sb strings.Builder
 			err := zbuf.CopyPuller(tzngio.NewWriter(zio.NopCloser(&sb)), om)

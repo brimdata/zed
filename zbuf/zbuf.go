@@ -89,3 +89,15 @@ func (m *multiWriter) Write(rec *zng.Record) error {
 	}
 	return nil
 }
+
+func CloseReaders(readers []Reader) error {
+	var err error
+	for _, reader := range readers {
+		if closer, ok := reader.(io.Closer); ok {
+			if e := closer.Close(); err == nil {
+				err = e
+			}
+		}
+	}
+	return err
+}

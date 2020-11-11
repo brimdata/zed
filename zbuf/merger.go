@@ -1,0 +1,192 @@
+package zbuf
+
+import (
+	"context"
+	"sync"
+
+	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/field"
+	"github.com/brimsec/zq/zng"
+)
+
+// A Merger merges multiple upstream Pullers into one downstream Puller.
+// If the input streams are ordered according to the configured comparison,
+// the output of Merger will have the same order.  Each parent puller is run
+// in its own goroutine so that deadlock is avoided when the upstream pullers
+// would otherwise block waiting for an adjacent puller to finish but the
+// Merger is waiting on the upstream puller.
+type Merger struct {
+	ctx      context.Context
+	cmp      expr.CompareFn
+	cancelCh chan struct{}
+	once     sync.Once
+	pullers  []*puller
+}
+
+type puller struct {
+	Puller
+	ch    chan batch
+	recs  []*zng.Record
+	batch Batch
+}
+
+type batch struct {
+	Batch
+	err error
+}
+
+func NewCompareFn(mergeField field.Static, reversed bool) expr.CompareFn {
+	fn := expr.NewCompareFn(true, expr.NewDotExpr(mergeField))
+	if !reversed {
+		return fn
+	}
+	return func(a, b *zng.Record) int { return fn(b, a) }
+}
+
+func NewMerger(ctx context.Context, pullers []Puller, cmp expr.CompareFn) *Merger {
+	m := &Merger{
+		ctx:      ctx,
+		cmp:      cmp,
+		cancelCh: make(chan struct{}),
+	}
+	m.pullers = make([]*puller, 0, len(pullers))
+	for _, p := range pullers {
+		m.pullers = append(m.pullers, &puller{Puller: p, ch: make(chan batch)})
+	}
+	return m
+}
+
+func (m *Merger) Cancel() {
+	if m.cancelCh != nil {
+		close(m.cancelCh)
+		m.cancelCh = nil
+	}
+}
+
+func MergeReadersByTsAsReader(ctx context.Context, readers []Reader, order Order) (Reader, error) {
+	if len(readers) == 1 {
+		return readers[0], nil
+	}
+	return MergeReadersByTs(ctx, readers, order)
+}
+
+func MergeReadersByTs(ctx context.Context, readers []Reader, order Order) (*Merger, error) {
+	pullers, err := ReadersToPullers(ctx, readers)
+	if err != nil {
+		return nil, err
+	}
+	return MergeByTs(ctx, pullers, order), nil
+}
+
+func MergeByTs(ctx context.Context, pullers []Puller, order Order) *Merger {
+	reversed := bool(order)
+	cmp := NewCompareFn(field.New("ts"), reversed)
+	return NewMerger(ctx, pullers, cmp)
+}
+
+func (m *Merger) run() {
+	for i := range m.pullers {
+		p := m.pullers[i]
+		go func() {
+			for {
+				b, err := p.Pull()
+				select {
+				case p.ch <- batch{Batch: b, err: err}:
+					if b == nil && err == nil {
+						// EOS
+						return
+					}
+				case <-m.cancelCh:
+					return
+				case <-m.ctx.Done():
+					return
+				}
+			}
+		}()
+	}
+}
+
+// Read fulfills Reader so that we can use ReadBatch or
+// use Merger as a Reader directly.
+func (m *Merger) Read() (*zng.Record, error) {
+	m.once.Do(m.run)
+	leader, err := m.findLeader()
+	if leader < 0 || err != nil {
+		m.Cancel()
+		return nil, err
+	}
+	return m.pullers[leader].next(), nil
+}
+
+func (p *puller) next() *zng.Record {
+	rec := p.recs[0]
+	p.recs = p.recs[1:]
+	p.batch = nil
+	return rec
+}
+
+func (m *Merger) findLeader() (int, error) {
+	leader := -1
+	for k, p := range m.pullers {
+		if p == nil {
+			continue
+		}
+		if len(p.recs) == 0 {
+			select {
+			case b := <-p.ch:
+				if b.err != nil {
+					return -1, b.err
+				}
+				if b.Batch == nil {
+					// EOS
+					m.pullers[k] = nil
+					continue
+				}
+				// We're keeping records owned by res.Batch so don't call Unref.
+				// XXX this means the batch won't be returned to
+				// the pool and instead will run through GC.
+				p.recs = b.Batch.Records()
+				p.batch = b.Batch
+			case <-m.ctx.Done():
+				return -1, m.ctx.Err()
+			}
+		}
+		if leader == -1 || m.cmp(p.recs[0], m.pullers[leader].recs[0]) < 0 {
+			leader = k
+		}
+	}
+	return leader, nil
+}
+
+func (m *Merger) overlaps(leader int) bool {
+	hol := m.pullers[leader]
+	if hol.batch == nil {
+		return true
+	}
+	last := hol.recs[len(hol.recs)-1]
+	for k, p := range m.pullers {
+		if k == leader || p == nil {
+			continue
+		}
+		if m.cmp(last, p.recs[0]) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *Merger) Pull() (Batch, error) {
+	m.once.Do(m.run)
+	leader, err := m.findLeader()
+	if leader < 0 || err != nil {
+		m.Cancel()
+		return nil, err
+	}
+	if !m.overlaps(leader) {
+		b := m.pullers[leader].batch
+		m.pullers[leader].recs = nil
+		return b, nil
+	}
+	const batchLen = 100 // XXX
+	return ReadBatch(m, batchLen)
+}

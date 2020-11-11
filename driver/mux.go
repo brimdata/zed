@@ -7,7 +7,6 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/proc"
-	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zqe"
 )
@@ -24,7 +23,7 @@ type muxOutput struct {
 	muxProcs []*mux
 	once     sync.Once
 	in       chan muxResult
-	scanner  scanner.Statser
+	scanner  zbuf.Statser
 }
 
 type mux struct {
@@ -70,7 +69,7 @@ func (m *mux) run() {
 	}
 }
 
-func newMuxOutput(pctx *proc.Context, parents []proc.Interface, scanner scanner.Statser) *muxOutput {
+func newMuxOutput(pctx *proc.Context, parents []proc.Interface, scanner zbuf.Statser) *muxOutput {
 	n := len(parents)
 	c := make(chan muxResult, n)
 	mux := &muxOutput{pctx: pctx, runners: n, in: c, scanner: scanner}

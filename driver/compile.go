@@ -14,7 +14,6 @@ import (
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/proc/compiler"
 	"github.com/brimsec/zq/proc/groupby"
-	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 	"go.uber.org/zap"
@@ -52,13 +51,13 @@ func programPrep(program ast.Proc, sortKey field.Static, sortReversed bool) (ast
 }
 
 type scannerProc struct {
-	scanner.Scanner
+	zbuf.Scanner
 }
 
 func (s *scannerProc) Done() {}
 
 type namedScanner struct {
-	scanner.Scanner
+	zbuf.Scanner
 	name string
 }
 
@@ -82,7 +81,7 @@ func compileSingle(ctx context.Context, program ast.Proc, zctx *resolver.Context
 	}
 
 	filterExpr, program := programPrep(program, field.Dotted(cfg.ReaderSortKey), cfg.ReaderSortReverse)
-	sn, err := scanner.NewScanner(ctx, r, filterExpr, cfg.Span)
+	sn, err := zbuf.NewScanner(ctx, r, filterExpr, cfg.Span)
 	if err != nil {
 		return nil, err
 	}

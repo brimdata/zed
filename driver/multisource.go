@@ -8,7 +8,7 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/scanner"
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
@@ -39,7 +39,7 @@ type Source interface {
 }
 
 type ScannerCloser interface {
-	scanner.Scanner
+	zbuf.Scanner
 	io.Closer
 }
 
