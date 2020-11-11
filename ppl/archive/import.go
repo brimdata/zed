@@ -192,7 +192,7 @@ func (dw *tsDirWriter) writeOne(rec *zng.Record) error {
 	// and slow down import. We should instead copy the raw record bytes into a
 	// recycled buffer and keep around an array of ts + byte-slice structs for
 	// sorting.
-	rec = rec.Keep()
+	rec.CopyBody()
 	dw.records = append(dw.records, rec)
 	dw.addBufSize(int64(len(rec.Raw)))
 	if dw.chunkSizeEstimate() > dw.ark.LogSizeThreshold {
