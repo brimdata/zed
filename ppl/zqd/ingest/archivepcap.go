@@ -100,7 +100,7 @@ func (p *archivePcapOp) run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	combiner := zbuf.NewCombiner(zreaders, zbuf.RecordCompare(p.store.NativeOrder()))
+	combiner := zbuf.NewCombiner(zreaders, p.store.NativeOrder().RecordLess())
 	defer combiner.Close()
 
 	if err := zbuf.CopyWithContext(ctx, p.writer, combiner); err != nil {

@@ -618,7 +618,7 @@ func loadInputs(inputs []string, zctx *resolver.Context) (zbuf.ReadCloser, error
 		}
 		readers = append(readers, zr)
 	}
-	return zbuf.NewCombiner(readers, zbuf.CmpTimeForward), nil
+	return zbuf.NewCombiner(readers, zbuf.RecordLessTsForward), nil
 }
 
 func tmpInputFiles(inputs []string) (string, []string, error) {

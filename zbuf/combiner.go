@@ -29,29 +29,29 @@ func (o Order) String() string {
 	return "ascending"
 }
 
-func RecordCompare(o Order) RecordCmpFn {
+func (o Order) RecordLess() RecordLessFn {
 	if o == OrderAsc {
-		return CmpTimeForward
+		return RecordLessTsForward
 	}
-	return CmpTimeReverse
+	return RecordLessTsReverse
 }
 
-// RecordCmpFn returns true if a < b.
-type RecordCmpFn func(a, b *zng.Record) bool
+// RecordLessFn returns true if a < b.
+type RecordLessFn func(a, b *zng.Record) bool
 
-func CmpTimeForward(a, b *zng.Record) bool {
+func RecordLessTsForward(a, b *zng.Record) bool {
 	return a.Ts() < b.Ts()
 }
 
-func CmpTimeReverse(a, b *zng.Record) bool {
-	return !CmpTimeForward(a, b)
+func RecordLessTsReverse(a, b *zng.Record) bool {
+	return !RecordLessTsForward(a, b)
 }
 
 // NewCombiner returns a ReaderCloser that merges zbuf.Readers into
 // a single Reader. If the ordering of the input readers matches
 // the direction specified, the output records will maintain
 // that order.
-func NewCombiner(readers []Reader, cmp RecordCmpFn) ReadCloser {
+func NewCombiner(readers []Reader, less RecordLessFn) ReadCloser {
 	if len(readers) == 1 {
 		if rc, ok := readers[0].(ReadCloser); ok {
 			return rc
@@ -59,16 +59,16 @@ func NewCombiner(readers []Reader, cmp RecordCmpFn) ReadCloser {
 	}
 	return &combiner{
 		readers: readers,
+		less:    less,
 		hol:     make([]*zng.Record, len(readers)),
 		done:    make([]bool, len(readers)),
-		less:    cmp,
 	}
 }
 
 type combiner struct {
-	hol     []*zng.Record
-	less    RecordCmpFn
 	readers []Reader
+	less    RecordLessFn
+	hol     []*zng.Record
 
 	mu   sync.Mutex // protects below
 	done []bool

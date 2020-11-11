@@ -15,7 +15,7 @@ type combiner struct {
 
 // NewCombiner returns a Scanner that combines the records scanned from
 // a set of filtered readers.
-func NewCombiner(ctx context.Context, readers []zbuf.Reader, cmp zbuf.RecordCmpFn, filterExpr ast.BooleanExpr, span nano.Span) (Scanner, error) {
+func NewCombiner(ctx context.Context, readers []zbuf.Reader, less zbuf.RecordLessFn, filterExpr ast.BooleanExpr, span nano.Span) (Scanner, error) {
 	scanners := make([]Scanner, len(readers))
 	scanReaders := make([]zbuf.Reader, len(readers))
 	for i, r := range readers {
@@ -27,7 +27,7 @@ func NewCombiner(ctx context.Context, readers []zbuf.Reader, cmp zbuf.RecordCmpF
 		scanReaders[i] = zbuf.PullerReader(s)
 	}
 	return &combiner{
-		reader:   zbuf.NewCombiner(scanReaders, cmp),
+		reader:   zbuf.NewCombiner(scanReaders, less),
 		scanners: scanners,
 	}, nil
 }

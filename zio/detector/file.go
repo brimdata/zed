@@ -86,7 +86,7 @@ func OpenFromNamedReadCloser(zctx *resolver.Context, rc io.ReadCloser, path stri
 	return zbuf.NewFile(zr, rc, path), nil
 }
 
-func OpenFiles(ctx context.Context, zctx *resolver.Context, dir zbuf.RecordCmpFn, paths ...string) (zbuf.ReadCloser, error) {
+func OpenFiles(ctx context.Context, zctx *resolver.Context, less zbuf.RecordLessFn, paths ...string) (zbuf.ReadCloser, error) {
 	var readers []zbuf.Reader
 	for _, path := range paths {
 		reader, err := OpenFileWithContext(ctx, zctx, path, zio.ReaderOpts{})
@@ -95,7 +95,7 @@ func OpenFiles(ctx context.Context, zctx *resolver.Context, dir zbuf.RecordCmpFn
 		}
 		readers = append(readers, reader)
 	}
-	return zbuf.NewCombiner(readers, dir), nil
+	return zbuf.NewCombiner(readers, less), nil
 }
 
 type multiFileReader struct {
