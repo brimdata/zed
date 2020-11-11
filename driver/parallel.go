@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"reflect"
 	"strconv"
 	"sync"
 
@@ -66,19 +67,25 @@ func (ph *parallelHead) Pull() (zbuf.Batch, error) {
 			if ph.workerConn == nil {
 				// Thread (goroutine) parallelism uses nextSource
 				sc, err = ph.pg.nextSource()
-
+				if sc == nil || err != nil {
+					return nil, err
+				}
 			} else {
 				// Worker process parallelism uses nextSourceForConn
 				sc, err = ph.pg.nextSourceForConn(ph.workerConn, ph.Label)
-			}
-			if sc == nil || err != nil {
-				return nil, err
+				if err != nil {
+					println("Error in parallelHead.nextSourceForConn: ", err.Error, reflect.TypeOf(err), " for head ", ph.Label)
+					return nil, fmt.Errorf("Error connecting to remote worker %v: %w", ph.Label, err)
+				}
+				if sc == nil {
+					return nil, nil
+				}
 			}
 			ph.sc = sc
 		}
 		batch, err := ph.sc.Pull()
 		if err != nil {
-			println("Error in parallelHead.Pull: ", err.Error, " for head ", ph.Label)
+			println("Error in parallelHead.Pull: ", err.Error, reflect.TypeOf(err), " for head ", ph.Label)
 			return nil, err
 		}
 		if batch == nil {
@@ -271,15 +278,21 @@ func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.
 	} else if ParallelModel == PM_USE_WORKER_URLS {
 		// In this case each parallel head will be dedicated to a running zqd worker process
 		for i, w := range workerURLs {
-			sources = append(sources, &parallelHead{pctx: pctx, pg: pg,
-				workerConn: api.NewConnectionTo(w), Label: strconv.Itoa(i + 1)})
+			sources = append(sources, &parallelHead{
+				pctx:       pctx,
+				pg:         pg,
+				workerConn: api.NewConnectionTo(w),
+				Label:      w + "#" + strconv.Itoa(i+1)})
 		}
 	} else if ParallelModel == PM_USE_SERVICE_ENDPOINT {
 		// In this case each parallel head will seperately request from a
 		// load-balanced service endpoint (backed by an unspecified number of process instances)
 		for i := 0; i < mcfg.Parallelism; i++ { // TODO: need to update mcfg.Parallelism in compile!
-			sources = append(sources, &parallelHead{pctx: pctx, pg: pg,
-				workerConn: api.NewConnectionTo(WorkerServiceAddr), Label: strconv.Itoa(i + 1)})
+			sources = append(sources, &parallelHead{
+				pctx:       pctx,
+				pg:         pg,
+				workerConn: api.NewConnectionTo(WorkerServiceAddr),
+				Label:      WorkerServiceAddr + "#" + strconv.Itoa(i+1)})
 		}
 	} else {
 		return sources, pg, fmt.Errorf("Unsupported ParallelModel %d", ParallelModel)

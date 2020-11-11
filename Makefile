@@ -128,6 +128,15 @@ helm-install:
 	--set useCredSecret=false \
 	--set datauri=$(ZQD_DATA_URI)
 
+helm-install-with-ingress:
+	helm install zqd charts/zqd \
+	--set AWSRegion="us-east-2" \
+	--set image.repository="$(ZQD_ECR_HOST)/" \
+	--set image.tag="zqd:$(ECR_VERSION)" \
+	--set useCredSecret=false \
+	--set datauri=$(ZQD_DATA_URI) \
+	--set ingress.enabled="true"
+	
 create-release-assets:
 	for os in darwin linux windows; do \
 		zqdir=zq-$(VERSION).$${os}-amd64 ; \

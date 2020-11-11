@@ -41,7 +41,8 @@ spec:
           args: [
             "listen", "-l", ":9867", 
             "-data", {{ quote .Values.datauri }}, 
-            "-svc", "{{ include "zqd.fullname" . }}.test.brimsecops.com:9867"
+            "-svc", "zqd.brimsecops.com:9867",
+            "-prefix", "/test/{{ .Release.Namespace }}"
             ] 
           ports:
             - name: http

@@ -27,6 +27,12 @@ spec:
     {{- end }}
   {{- end }}
   rules:
+    - http:
+        paths:
+          - path: "/test/{{ .Release.Namespace }}"
+            backend:
+              serviceName: {{ $fullName }}
+              servicePort: {{ $svcPort }}
     {{- range .Values.ingress.hosts }}
     - host: {{ .host | quote }}
       http:

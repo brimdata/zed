@@ -68,6 +68,7 @@ type Command struct {
 	brimfd      int
 	workers     string
 	serviceAddr string
+	pathPrefix  string
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -87,6 +88,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.IntVar(&c.brimfd, "brimfd", -1, "pipe read fd passed by brim to signal brim closure")
 	f.StringVar(&c.workers, "workers", "", "comma separated list of [addr]:port for zqd/workers")
 	f.StringVar(&c.serviceAddr, "svc", "", "host:port for load balanced zqd worker service")
+	f.StringVar(&c.pathPrefix, "prefix", "", "path prefix for load balanced zqd worker service")
 	return c, nil
 }
 
@@ -280,7 +282,7 @@ func (c *Command) initWorkers() error {
 		}
 		driver.ParallelModel = driver.PM_USE_WORKER_URLS
 	} else if c.serviceAddr != "" {
-		driver.WorkerServiceAddr = "http://" + c.serviceAddr
+		driver.WorkerServiceAddr = "http://" + c.serviceAddr + c.pathPrefix
 		driver.ParallelModel = driver.PM_USE_SERVICE_ENDPOINT
 	} else {
 		driver.ParallelModel = driver.PM_USE_GOROUTINES

@@ -54,9 +54,10 @@ ingress:
   enabled: true
   annotations:
     haproxy.org/load-balance: "leastconn"
-  hosts:
-    - host: "zqd-test-1.brimsecops.com"
-      paths: ["/"]
+  roothostname: "zqd-test-1.brimsecops.com"
+  #hosts:
+  #  - host: "zqd-test-1.brimsecops.com"
+  #    paths: ["/"]
   #tls: []
   #  - secretName: chart-example-tls
   #    hosts:

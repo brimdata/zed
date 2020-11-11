@@ -56,6 +56,7 @@ func runMux(out *muxOutput, d Driver, statsTickCh <-chan time.Time) error {
 			if chunk.Err == context.Canceled {
 				out.Drain()
 			}
+			println("chunk.Err", chunk.Err.Error())
 			return chunk.Err
 		}
 		if chunk.Warning != "" {
