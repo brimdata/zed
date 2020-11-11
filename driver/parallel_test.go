@@ -85,7 +85,7 @@ func (m *orderedmsrc) SendSources(ctx context.Context, span nano.Span, srcChan c
 		i := i
 		opener := func(zctx *resolver.Context, sf SourceFilter) (ScannerCloser, error) {
 			rdr := tzngio.NewReader(strings.NewReader(parallelTestInputs[i]), zctx)
-			sn, err := scanner.NewScanner(ctx, rdr, sf.Filter, sf.FilterExpr, sf.Span)
+			sn, err := scanner.NewScanner(ctx, rdr, sf.FilterExpr, sf.Span)
 			if err != nil {
 				return nil, err
 			}

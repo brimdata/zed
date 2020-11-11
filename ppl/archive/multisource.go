@@ -58,9 +58,9 @@ func newSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, s
 	}
 	var scn scanner.Scanner
 	if len(readers) == 1 {
-		scn, err = scanner.NewScanner(ctx, readers[0], sf.Filter, sf.FilterExpr, si.Span)
+		scn, err = scanner.NewScanner(ctx, readers[0], sf.FilterExpr, si.Span)
 	} else {
-		scn, err = scanner.NewCombiner(ctx, readers, zbuf.RecordCompare(ark.DataOrder), sf.Filter, sf.FilterExpr, si.Span)
+		scn, err = scanner.NewCombiner(ctx, readers, zbuf.RecordCompare(ark.DataOrder), sf.FilterExpr, si.Span)
 	}
 	if err != nil {
 		closers.Close()
@@ -211,7 +211,7 @@ func (s *chunkSource) Open(ctx context.Context, zctx *resolver.Context, sf drive
 		paths[i] = u.String()
 	}
 	rc := detector.MultiFileReader(zctx, paths, zio.ReaderOpts{Format: "zng"})
-	sn, err := scanner.NewScanner(ctx, rc, sf.Filter, sf.FilterExpr, sf.Span)
+	sn, err := scanner.NewScanner(ctx, rc, sf.FilterExpr, sf.Span)
 	if err != nil {
 		rc.Close()
 		return nil, err

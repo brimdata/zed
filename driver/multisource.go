@@ -7,7 +7,6 @@ import (
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/field"
-	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zng/resolver"
@@ -45,7 +44,6 @@ type ScannerCloser interface {
 }
 
 type SourceFilter struct {
-	Filter     filter.Filter
 	FilterExpr ast.BooleanExpr
 	Span       nano.Span
 }

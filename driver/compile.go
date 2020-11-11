@@ -10,7 +10,6 @@ import (
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/field"
-	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/proc/compiler"
@@ -44,20 +43,12 @@ func zbufDirInt(reversed bool) int {
 	return 1
 }
 
-func programPrep(program ast.Proc, sortKey field.Static, sortReversed bool) (ast.Proc, filter.Filter, ast.BooleanExpr, error) {
+func programPrep(program ast.Proc, sortKey field.Static, sortReversed bool) (ast.BooleanExpr, ast.Proc) {
 	ReplaceGroupByProcDurationWithKey(program)
 	if sortKey != nil {
 		setGroupByProcInputSortDir(program, sortKey, zbufDirInt(sortReversed))
 	}
-	var filt filter.Filter
-	filterExpr, program := liftFilter(program)
-	if filterExpr != nil {
-		var err error
-		if filt, err = filter.Compile(resolver.NewContext(), filterExpr); err != nil {
-			return nil, nil, nil, err
-		}
-	}
-	return program, filt, filterExpr, nil
+	return liftFilter(program)
 }
 
 type scannerProc struct {
@@ -90,12 +81,8 @@ func compileSingle(ctx context.Context, program ast.Proc, zctx *resolver.Context
 		cfg.Warnings = make(chan string, 5)
 	}
 
-	program, filterExpr, filt, err := programPrep(program, field.Dotted(cfg.ReaderSortKey), cfg.ReaderSortReverse)
-	if err != nil {
-		return nil, err
-	}
-
-	sn, err := scanner.NewScanner(ctx, r, filterExpr, filt, cfg.Span)
+	filterExpr, program := programPrep(program, field.Dotted(cfg.ReaderSortKey), cfg.ReaderSortReverse)
+	sn, err := scanner.NewScanner(ctx, r, filterExpr, cfg.Span)
 	if err != nil {
 		return nil, err
 	}
@@ -154,10 +141,7 @@ func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context,
 	}
 
 	sortKey, sortReversed := msrc.OrderInfo()
-	program, filt, filterExpr, err := programPrep(program, sortKey, sortReversed)
-	if err != nil {
-		return nil, err
-	}
+	filterExpr, program := programPrep(program, sortKey, sortReversed)
 
 	var isParallel bool
 	if mcfg.Parallelism > 1 {
@@ -173,7 +157,7 @@ func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context,
 		Logger:      mcfg.Logger,
 		Warnings:    mcfg.Warnings,
 	}
-	sources, pgroup, err := createParallelGroup(pctx, filt, filterExpr, msrc, mcfg, WorkerURLs)
+	sources, pgroup, err := createParallelGroup(pctx, filterExpr, msrc, mcfg, WorkerURLs)
 	if err != nil {
 		return nil, err
 	}
