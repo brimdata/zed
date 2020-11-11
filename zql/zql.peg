@@ -61,10 +61,6 @@ Query
           RETURN(MAP("op": "SequentialProc", "procs": PREPEND(s, rest)))
       }
     }
-  / s:Search {
-      // XXX does this ever match?  Rule above shoul;d match first
-      RETURN(MAP("op": "SequentialProc", "procs": ARRAY(s)))
-    }
 
 Search
   = expr:SearchExpr {
@@ -118,7 +114,7 @@ SearchPred
   / v:SearchLiteral {
       RETURN(MAP("op": "Search", "text": TEXT, "value": v))
     }
-  / !((SearchKeywords) _ ) v:SearchWord {
+  / !(SearchKeywords _ ) v:SearchWord {
       VAR(str) = ASSERT_STRING(v)
       if (str == "*") {
         RETURN(MAP("op": "MatchAll"))
@@ -171,7 +167,7 @@ SubnetLiteral
   = v:IP6Net !IdentifierRest {
       RETURN(MAP("op": "Literal", "type": "net", "value": v))
     }
-  / v:IPNet {
+  / v:IP4Net {
       RETURN(MAP("op": "Literal", "type": "net", "value": v))
     }
 
@@ -204,9 +200,8 @@ SequentialProcs
   = first:Proc rest:SequentialTail* {
      if ISNOTNULL(rest) {
         RETURN(PREPEND(first, rest))
-      } else {
-        RETURN(ARRAY(first))
       }
+      RETURN(ARRAY(first))
     }
 
 SequentialTail = __ "|" __ p:Proc { RETURN(p) }
@@ -338,7 +333,7 @@ TopProc
         proc["fields"] = fields
       }
       if ISNOTNULL(flush) {
-       proc["flush"] = true
+        proc["flush"] = true
       }
       RETURN(proc)
     }
@@ -430,18 +425,18 @@ Assignment
 Expr = ConditionalExpr
 
 ConditionalExpr
-  = condition:LogicalORExpr __ "?" __ thenClause:Expr __ ":" __ elseClause:Expr {
+  = condition:LogicalOrExpr __ "?" __ thenClause:Expr __ ":" __ elseClause:Expr {
       RETURN(MAP("op": "ConditionalExpr", "condition": condition, "then": thenClause, "else": elseClause))
     }
-  / LogicalORExpr
+  / LogicalOrExpr
 
-LogicalORExpr
-  = first:LogicalANDExpr
-    rest:(__ op:OrToken __ expr:LogicalANDExpr{ RETURN(ARRAY(op, expr)) })* {
+LogicalOrExpr
+  = first:LogicalAndExpr
+    rest:(__ op:OrToken __ expr:LogicalAndExpr{ RETURN(ARRAY(op, expr)) })* {
         RETURN(makeBinaryExprChain(first, rest))
     }
 
-LogicalANDExpr
+LogicalAndExpr
   = first:EqualityCompareExpr
     rest:(__ op:AndToken __ expr:EqualityCompareExpr{ RETURN(ARRAY(op, expr)) })* {
         RETURN(makeBinaryExprChain(first, rest))
@@ -647,7 +642,7 @@ IP6Tail
 ColonHex = ":" v:Hex { RETURN(":" + ASSERT_STRING(v)) }
 HexColon = v:Hex ":" { RETURN(ASSERT_STRING(v) + ":") }
 
-IPNet
+IP4Net
   = a:IP '/' m:UInt {
       RETURN(ASSERT_STRING(a) + "/" + TOSTRING(m));
     }
