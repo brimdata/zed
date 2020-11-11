@@ -66,17 +66,6 @@ Query
       RETURN(MAP("op": "SequentialProc", "procs": ARRAY(s)))
     }
 
-SequentialProcs
-  = first:Proc rest:SequentialTail* {
-      if ISNOTNULL(rest) {
-        RETURN(PREPEND(first, rest))
-      } else {
-        RETURN(ARRAY(first))
-      }
-    }
-
-SequentialTail = __ "|" __ p:Proc { RETURN(p) }
-
 Search
   = expr:SearchExpr {
       RETURN(MAP("op": "FilterProc", "filter": expr))
@@ -142,6 +131,17 @@ SearchPred
       RETURN(MAP("op": "Search", "text": TEXT, "value": literal))
     }
 
+SearchValue
+  = SearchLiteral
+  / !((SearchKeywords) _) v:SearchWord {
+      RETURN(MAP("op": "Literal", "type": "string", "value": v))
+    }
+
+SearchKeywords
+  = AndToken
+  / OrToken
+  / InToken
+
 SearchLiteral
   = StringLiteral
   / RegexpLiteral
@@ -156,12 +156,6 @@ SearchLiteral
   / !(SearchKeywords _) v:BooleanLiteral { RETURN(v) }
   / !(SearchKeywords _) v:NullLiteral { RETURN(v) }
 
-
-SearchValue
-  = SearchLiteral
-  / !((SearchKeywords) _) v:SearchWord {
-      RETURN(MAP("op": "Literal", "type": "string", "value": v))
-    }
 
 StringLiteral
   = v:QuotedString {
@@ -206,10 +200,23 @@ BooleanLiteral
 NullLiteral
   = "null"           { RETURN(MAP("op": "Literal", "type": "null")) }
 
-SearchKeywords
-  = AndToken
-  / OrToken
-  / InToken
+SequentialProcs
+  = first:Proc rest:SequentialTail* {
+     if ISNOTNULL(rest) {
+        RETURN(PREPEND(first, rest))
+      } else {
+        RETURN(ARRAY(first))
+      }
+    }
+
+SequentialTail = __ "|" __ p:Proc { RETURN(p) }
+
+Proc
+  = NamedProc
+  / GroupByProc
+  / "(" __ proc:Procs __ ")" {
+      RETURN(proc)
+    }
 
 Procs
   = first:SequentialProcs rest:ParallelTail* {
@@ -224,86 +231,6 @@ Procs
 ParallelTail
   = __ ";" __ ch:SequentialProcs { RETURN(MAP("op": "SequentialProc", "procs": ch)) }
 
-Proc
-  = NamedProc
-  / GroupByProc
-  / "(" __ proc:Procs __ ")" {
-      RETURN(proc)
-    }
-
-GroupByKeys
-  = _ "by"i _ columns:FlexAssignments { RETURN(columns) }
-
-// A FlexAssignment is like an Assignment but it can optionally omit the lhs,
-// in which case the semantic pass will infer a name from the rhs, e.g., for
-// an expression like "count() by foo", the rhs is Field "foo" and the lhs is nil.
-FlexAssignment
-  = Assignment
-  / expr:Expr { RETURN(MAP("op": "Assignment", "rhs": expr)) }
-
-FlexAssignments
-  = first:FlexAssignment rest:(__ "," __ expr:FlexAssignment { RETURN(expr) })* {
-      RETURN(PREPEND(first, rest))
-  }
-
-EveryDur
-  = "every"i _ dur:Duration _ { RETURN(dur) }
-
-EqualityToken
-  = EqualityOperator / RelativeOperator
-
-AndToken = "and"i { RETURN(TEXT) }
-OrToken = "or"i { RETURN(TEXT) }
-InToken = "in"i { RETURN(TEXT) }
-NotToken = "not"i { RETURN(TEXT) }
-
-IdentifierName = IdentifierStart IdentifierRest* { RETURN(TEXT) }
-
-IdentifierStart = [A-Za-z_$]
-IdentifierRest = IdentifierStart / [0-9]
-
-Identifier
-  = IdentifierStart IdentifierRest* { RETURN(MAP("op": "Identifier", "name": TEXT)) }
-
-RootField
-  = "."? !(BooleanLiteral / NullLiteral) field:Identifier { RETURN(MAP("op": "BinaryExpr", "operator":".", "lhs":MAP("op":"RootRecord"), "rhs": field)) }
-  / "." !(Identifier)  { RETURN(MAP("op": "RootRecord")) }
-
-Lval = DerefExpr
-
-DerefExpr
-  = first:RootField rest:(Deref)* {
-      RETURN(makeBinaryExprChain(first, rest))
-    }
-
-Deref
-  = "[" expr:Expr "]" { RETURN(ARRAY("[", expr)) }
-  / "." !(".") id:Identifier { RETURN(ARRAY(".", id)) }
-
-FieldExpr = Lval
-
-FieldExprs
-  = first:FieldExpr rest:(__ "," __ FieldExpr)* {
-      VAR(result) = ARRAY(first)
-
-      FOREACH(ASSERT_ARRAY(rest), r) {
-        APPEND(result, ASSERT_ARRAY(r)[3])
-      }
-
-      RETURN(result)
-    }
-
-Exprs
-  = first:Expr rest:(__ "," __ Expr)* {
-      VAR(result) = ARRAY(first)
-
-      FOREACH(ASSERT_ARRAY(rest), r) {
-        APPEND(result, ASSERT_ARRAY(r)[3])
-      }
-
-      RETURN(result)
-    }
-
 GroupByProc
   = every:EveryDur? reducers:Reducers keys:GroupByKeys? limit:LimitArg? {
       VAR(p) = MAP("op": "GroupByProc", "reducers": reducers)
@@ -317,6 +244,27 @@ GroupByProc
         p["limit"] = limit
       }
       RETURN(p)
+    }
+
+EveryDur
+  = "every"i _ dur:Duration _ { RETURN(dur) }
+
+GroupByKeys
+  = _ "by"i _ columns:FlexAssignments { RETURN(columns) }
+
+LimitArg
+  = _ "with" _ "-limit" _ limit:UInt { RETURN(limit) }
+
+// A FlexAssignment is like an Assignment but it can optionally omit the lhs,
+// in which case the semantic pass will infer a name from the rhs, e.g., for
+// an expression like "count() by foo", the rhs is Field "foo" and the lhs is nil.
+FlexAssignment
+  = Assignment
+  / expr:Expr { RETURN(MAP("op": "Assignment", "rhs": expr)) }
+
+FlexAssignments
+  = first:FlexAssignment rest:(__ "," __ expr:FlexAssignment { RETURN(expr) })* {
+      RETURN(PREPEND(first, rest))
     }
 
 ReducerAssignment
@@ -395,14 +343,6 @@ TopProc
       RETURN(proc)
     }
 
-LimitArg
-  = _ "with" _ "-limit" _ limit:UInt { RETURN(limit) }
-
-CutArgs
-  = args:(_ "-c" { RETURN(MAP("name": "c", "value": NULL)) })* {
-      return makeArgMap(args)
-    }
-
 CutProc
   = "cut"i args:CutArgs _ columns:FlexAssignments {
       VAR(argm) = ASSERT_MAP(args)
@@ -411,6 +351,11 @@ CutProc
         proc["complement"] = true
       }
       RETURN(proc)
+    }
+
+CutArgs
+  = args:(_ "-c" { RETURN(MAP("name": "c", "value": NULL)) })* {
+      return makeArgMap(args)
     }
 
 HeadProc
@@ -449,25 +394,38 @@ FuseProc
       RETURN(MAP("op": "FuseProc"))
     }
 
+RootField
+  = "."? !(BooleanLiteral / NullLiteral) field:Identifier { RETURN(MAP("op": "BinaryExpr", "operator":".", "lhs":MAP("op":"RootRecord"), "rhs": field)) }
+  / "." !(Identifier)  { RETURN(MAP("op": "RootRecord")) }
+
+Lval = DerefExpr
+
+FieldExpr = Lval
+
+FieldExprs
+  = first:FieldExpr rest:(__ "," __ FieldExpr)* {
+      VAR(result) = ARRAY(first)
+
+      FOREACH(ASSERT_ARRAY(rest), r) {
+        APPEND(result, ASSERT_ARRAY(r)[3])
+      }
+
+      RETURN(result)
+    }
+
+Exprs
+  = first:Expr rest:(__ "," __ Expr)* {
+      VAR(result) = ARRAY(first)
+
+      FOREACH(ASSERT_ARRAY(rest), r) {
+        APPEND(result, ASSERT_ARRAY(r)[3])
+      }
+
+      RETURN(result)
+    }
+
 Assignment
   = lhs:Lval __ "=" __ rhs:Expr { RETURN(MAP("lhs": lhs, "rhs": rhs)) }
-
-Primary
-  = StringLiteral
-  / RegexpLiteral
-  / SubnetLiteral
-  / AddressLiteral
-  / FloatLiteral
-  / IntegerLiteral
-  / BooleanLiteral
-  / NullLiteral
-  / "(" __ expr:Expr __ ")" { RETURN(expr) }
-
-//
-// Rules for parsing expressions.  Following standard practice, each
-// level of operator precedence has a rule that references the next
-// highest level of precedence.
-//
 
 Expr = ConditionalExpr
 
@@ -570,6 +528,42 @@ ArgumentList
       RETURN(PREPEND(first, rest))
     }
   / __ { RETURN(ARRAY()) }
+
+DerefExpr
+  = first:RootField rest:(Deref)* {
+      RETURN(makeBinaryExprChain(first, rest))
+    }
+
+Deref
+  = "[" expr:Expr "]" { RETURN(ARRAY("[", expr)) }
+  / "." !(".") id:Identifier { RETURN(ARRAY(".", id)) }
+
+Primary
+  = StringLiteral
+  / RegexpLiteral
+  / SubnetLiteral
+  / AddressLiteral
+  / FloatLiteral
+  / IntegerLiteral
+  / BooleanLiteral
+  / NullLiteral
+  / "(" __ expr:Expr __ ")" { RETURN(expr) }
+
+EqualityToken
+  = EqualityOperator / RelativeOperator
+
+AndToken = "and"i { RETURN(TEXT) }
+OrToken = "or"i { RETURN(TEXT) }
+InToken = "in"i { RETURN(TEXT) }
+NotToken = "not"i { RETURN(TEXT) }
+
+IdentifierName = IdentifierStart IdentifierRest* { RETURN(TEXT) }
+
+IdentifierStart = [A-Za-z_$]
+IdentifierRest = IdentifierStart / [0-9]
+
+Identifier
+  = IdentifierStart IdentifierRest* { RETURN(MAP("op": "Identifier", "name": TEXT)) }
 
 Duration
   = Seconds
