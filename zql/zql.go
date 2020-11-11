@@ -5469,29 +5469,13 @@ var g = &grammar{
 						&labeledExpr{
 							pos:   position{line: 694, col: 9, offset: 20231},
 							label: "body",
-							expr: &oneOrMoreExpr{
-								pos: position{line: 694, col: 14, offset: 20236},
-								expr: &choiceExpr{
-									pos: position{line: 694, col: 15, offset: 20237},
-									alternatives: []interface{}{
-										&charClassMatcher{
-											pos:        position{line: 694, col: 15, offset: 20237},
-											val:        "[^/\\\\]",
-											chars:      []rune{'/', '\\'},
-											ignoreCase: false,
-											inverted:   true,
-										},
-										&litMatcher{
-											pos:        position{line: 694, col: 22, offset: 20244},
-											val:        "\\/",
-											ignoreCase: false,
-										},
-									},
-								},
+							expr: &ruleRefExpr{
+								pos:  position{line: 694, col: 14, offset: 20236},
+								name: "RegexpBody",
 							},
 						},
 						&litMatcher{
-							pos:        position{line: 694, col: 30, offset: 20252},
+							pos:        position{line: 694, col: 25, offset: 20247},
 							val:        "/",
 							ignoreCase: false,
 						},
@@ -5500,10 +5484,38 @@ var g = &grammar{
 			},
 		},
 		{
+			name: "RegexpBody",
+			pos:  position{line: 696, col: 1, offset: 20273},
+			expr: &actionExpr{
+				pos: position{line: 697, col: 5, offset: 20288},
+				run: (*parser).callonRegexpBody1,
+				expr: &oneOrMoreExpr{
+					pos: position{line: 697, col: 5, offset: 20288},
+					expr: &choiceExpr{
+						pos: position{line: 697, col: 6, offset: 20289},
+						alternatives: []interface{}{
+							&charClassMatcher{
+								pos:        position{line: 697, col: 6, offset: 20289},
+								val:        "[^/\\\\]",
+								chars:      []rune{'/', '\\'},
+								ignoreCase: false,
+								inverted:   true,
+							},
+							&litMatcher{
+								pos:        position{line: 697, col: 13, offset: 20296},
+								val:        "\\/",
+								ignoreCase: false,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			name: "EscapedChar",
-			pos:  position{line: 696, col: 1, offset: 20278},
+			pos:  position{line: 699, col: 1, offset: 20336},
 			expr: &charClassMatcher{
-				pos:        position{line: 697, col: 5, offset: 20294},
+				pos:        position{line: 700, col: 5, offset: 20352},
 				val:        "[\\x00-\\x1f\\\\]",
 				chars:      []rune{'\\'},
 				ranges:     []rune{'\x00', '\x1f'},
@@ -5513,37 +5525,37 @@ var g = &grammar{
 		},
 		{
 			name: "WhiteSpace",
-			pos:  position{line: 699, col: 1, offset: 20309},
+			pos:  position{line: 702, col: 1, offset: 20367},
 			expr: &choiceExpr{
-				pos: position{line: 700, col: 5, offset: 20324},
+				pos: position{line: 703, col: 5, offset: 20382},
 				alternatives: []interface{}{
 					&litMatcher{
-						pos:        position{line: 700, col: 5, offset: 20324},
+						pos:        position{line: 703, col: 5, offset: 20382},
 						val:        "\t",
 						ignoreCase: false,
 					},
 					&litMatcher{
-						pos:        position{line: 701, col: 5, offset: 20333},
+						pos:        position{line: 704, col: 5, offset: 20391},
 						val:        "\v",
 						ignoreCase: false,
 					},
 					&litMatcher{
-						pos:        position{line: 702, col: 5, offset: 20342},
+						pos:        position{line: 705, col: 5, offset: 20400},
 						val:        "\f",
 						ignoreCase: false,
 					},
 					&litMatcher{
-						pos:        position{line: 703, col: 5, offset: 20351},
+						pos:        position{line: 706, col: 5, offset: 20409},
 						val:        " ",
 						ignoreCase: false,
 					},
 					&litMatcher{
-						pos:        position{line: 704, col: 5, offset: 20359},
+						pos:        position{line: 707, col: 5, offset: 20417},
 						val:        "\u00a0",
 						ignoreCase: false,
 					},
 					&litMatcher{
-						pos:        position{line: 705, col: 5, offset: 20372},
+						pos:        position{line: 708, col: 5, offset: 20430},
 						val:        "\ufeff",
 						ignoreCase: false,
 					},
@@ -5552,33 +5564,33 @@ var g = &grammar{
 		},
 		{
 			name: "_",
-			pos:  position{line: 707, col: 1, offset: 20382},
+			pos:  position{line: 710, col: 1, offset: 20440},
 			expr: &oneOrMoreExpr{
-				pos: position{line: 707, col: 6, offset: 20387},
+				pos: position{line: 710, col: 6, offset: 20445},
 				expr: &ruleRefExpr{
-					pos:  position{line: 707, col: 6, offset: 20387},
+					pos:  position{line: 710, col: 6, offset: 20445},
 					name: "WhiteSpace",
 				},
 			},
 		},
 		{
 			name: "__",
-			pos:  position{line: 708, col: 1, offset: 20399},
+			pos:  position{line: 711, col: 1, offset: 20457},
 			expr: &zeroOrMoreExpr{
-				pos: position{line: 708, col: 6, offset: 20404},
+				pos: position{line: 711, col: 6, offset: 20462},
 				expr: &ruleRefExpr{
-					pos:  position{line: 708, col: 6, offset: 20404},
+					pos:  position{line: 711, col: 6, offset: 20462},
 					name: "WhiteSpace",
 				},
 			},
 		},
 		{
 			name: "EOF",
-			pos:  position{line: 710, col: 1, offset: 20417},
+			pos:  position{line: 713, col: 1, offset: 20475},
 			expr: &notExpr{
-				pos: position{line: 710, col: 7, offset: 20423},
+				pos: position{line: 713, col: 7, offset: 20481},
 				expr: &anyMatcher{
-					line: 710, col: 8, offset: 20424,
+					line: 713, col: 8, offset: 20482,
 				},
 			},
 		},
@@ -7391,6 +7403,16 @@ func (p *parser) callonRegexp1() (interface{}, error) {
 	stack := p.vstack[len(p.vstack)-1]
 	_ = stack
 	return p.cur.onRegexp1(stack["body"])
+}
+
+func (c *current) onRegexpBody1() (interface{}, error) {
+	return string(c.text), nil
+}
+
+func (p *parser) callonRegexpBody1() (interface{}, error) {
+	stack := p.vstack[len(p.vstack)-1]
+	_ = stack
+	return p.cur.onRegexpBody1()
 }
 
 var (
