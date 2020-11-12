@@ -5,20 +5,18 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
 	"path"
 	"regexp"
 	"sort"
 	"strings"
 	"time"
 
-	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/pkg/bufwriter"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/ppl/archive/seekindex"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/zngio"
-	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
 	"github.com/segmentio/ksuid"
@@ -200,7 +198,7 @@ func (c Chunk) tsDir() tsDir {
 }
 
 func (c Chunk) seekIndexPath(ark *Archive) iosrc.URI {
-	return c.tsDir().path(ark).AppendPath(fmt.Sprintf("%s-%s.zng", FileKindSeek, c.Id))
+	return chunkSeekIndexPath(ark, c.tsDir(), c.Id)
 }
 
 func (c Chunk) metadataPath(ark *Archive) iosrc.URI {
@@ -259,6 +257,10 @@ func chunkPath(ark *Archive, tsd tsDir, id ksuid.KSUID) iosrc.URI {
 	return ark.DataPath.AppendPath(chunkRelativePath(tsd, id))
 }
 
+func chunkSeekIndexPath(ark *Archive, tsd tsDir, id ksuid.KSUID) iosrc.URI {
+	return tsd.path(ark).AppendPath(fmt.Sprintf("%s-%s.zng", FileKindSeek, id))
+}
+
 func (c Chunk) Range() string {
 	return fmt.Sprintf("[%d-%d]", c.First, c.Last)
 }
@@ -310,67 +312,22 @@ func newChunkReader(ctx context.Context, chunk Chunk, ark *Archive, span nano.Sp
 	if span == cspan {
 		return cr, nil
 	}
-	finder, err := microindex.NewFinder(ctx, resolver.NewContext(), chunk.seekIndexPath(ark))
+	s, err := seekindex.Open(ctx, chunk.seekIndexPath(ark))
 	if err != nil {
 		if zqe.IsNotFound(err) {
 			return cr, nil
 		}
 		return nil, err
 	}
-	start, end, err := spanOffsets(ctx, span, finder)
+	defer s.Close()
+	rg, err := s.Lookup(ctx, span)
 	if err != nil {
 		return nil, err
 	}
-	if start > 0 {
-		if _, err := r.Seek(start, io.SeekStart); err != nil {
-			return nil, err
-		}
-	}
-	if end > cr.totalSize {
-		end = cr.totalSize
-	}
-	cr.readSize = end - start
-	cr.Reader = io.LimitReader(r, cr.readSize)
-	return cr, nil
-}
-
-func spanOffsets(ctx context.Context, span nano.Span, finder *microindex.Finder) (int64, int64, error) {
-	start, err := tsOffset(ctx, span.Ts, true, finder)
-	if err != nil {
-		return 0, 0, err
-	}
-	end, err := tsOffset(ctx, span.End(), false, finder)
-	if err != nil {
-		return 0, 0, err
-	}
-	if finder.Order() == zbuf.OrderDesc {
-		start, end = end, start
-	}
-	if start == -1 {
-		start = 0
-	}
-	if end == -1 {
-		end = math.MaxInt64
-	}
-	return start, end, nil
-}
-
-func tsOffset(ctx context.Context, ts nano.Ts, min bool, finder *microindex.Finder) (int64, error) {
-	key, err := finder.ParseKeys(ts.StringFloat())
-	if err != nil {
-		return -1, err
-	}
-	var rec *zng.Record
-	// XXX These calls to finder should have the ability to pass context.
-	if min {
-		rec, err = finder.ClosestLTE(key)
-	} else {
-		rec, err = finder.ClosestGTE(key)
-	}
-	if rec == nil || err != nil {
-		return -1, err
-	}
-	return rec.AccessInt("offset")
+	rg = rg.TrimEnd(cr.totalSize)
+	cr.readSize = rg.Size()
+	cr.Reader, err = rg.LimitReader(r)
+	return cr, err
 }
 
 func chunkLess(order zbuf.Order, a, b Chunk) bool {
