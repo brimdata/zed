@@ -121,8 +121,8 @@ func (r *Reader) reset() {
 	r.sos = r.peekerOffset
 }
 
-var startBatch = errors.New("start of uncmompressed batch")
-var endBatch = errors.New("end of uncmmpressed batch encountered while parsing data")
+var startBatch = errors.New("start of uncompressed batch")
+var endBatch = errors.New("end of uncompressed batch encountered while parsing data")
 
 // ReadPayload returns either data values as zbuf.Record or app-specific
 // messages .  The record or message is volatile so they must be
