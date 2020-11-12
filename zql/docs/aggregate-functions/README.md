@@ -109,7 +109,7 @@ TS                   SHORT_RTT            SHORT_COUNT LONG_RTT             LONG_
 | **Syntax**                | `and(<expression>)`                                            |
 | **Required<br>arguments** | `<expression>`<br>A valid ZQL [expression](../expressions/README.md). |
 | **Optional<br>arguments** | None                                                           |
-| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer               |
+| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer#Logical       |
 
 #### Example:
 
@@ -400,7 +400,7 @@ MIN
 | **Syntax**                | `or(<expression>)`                                             |
 | **Required<br>arguments** | `<expression>`<br>A valid ZQL [expression](../expressions/README.md). |
 | **Optional<br>arguments** | None                                                           |
-| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer               |
+| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer#Logical       |
 
 #### Example:
 
