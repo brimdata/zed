@@ -1,0 +1,17 @@
+zql: a=union(cut(x)),b=union(cut(x,s))
+
+input: |
+  #0:record[x:int32,s:string]
+  0:[1;a;]
+  0:[2;b;]
+  #1:record[s:string]
+  1:[x;]
+  1:[b;]
+  #2:record[none:string]
+  2:[bad;]
+  0:[1;a;]
+  0:[3;e;]
+
+output: |
+  #0:record[a:set[record[x:int32]],b:set[record[x:int32,s:string]]]
+  0:[[[1;][2;][3;]][[1;a;][2;b;][3;e;]]]

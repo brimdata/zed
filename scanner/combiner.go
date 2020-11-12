@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/brimsec/zq/ast"
-	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 )
@@ -16,11 +15,11 @@ type combiner struct {
 
 // NewCombiner returns a Scanner that combines the records scanned from
 // a set of filtered readers.
-func NewCombiner(ctx context.Context, readers []zbuf.Reader, cmp zbuf.RecordCmpFn, f filter.Filter, filterExpr ast.BooleanExpr, span nano.Span) (Scanner, error) {
+func NewCombiner(ctx context.Context, readers []zbuf.Reader, less zbuf.RecordLessFn, filterExpr ast.BooleanExpr, span nano.Span) (Scanner, error) {
 	scanners := make([]Scanner, len(readers))
 	scanReaders := make([]zbuf.Reader, len(readers))
 	for i, r := range readers {
-		s, err := NewScanner(ctx, r, f, filterExpr, span)
+		s, err := NewScanner(ctx, r, filterExpr, span)
 		if err != nil {
 			return nil, err
 		}
@@ -28,7 +27,7 @@ func NewCombiner(ctx context.Context, readers []zbuf.Reader, cmp zbuf.RecordCmpF
 		scanReaders[i] = zbuf.PullerReader(s)
 	}
 	return &combiner{
-		reader:   zbuf.NewCombiner(scanReaders, cmp),
+		reader:   zbuf.NewCombiner(scanReaders, less),
 		scanners: scanners,
 	}, nil
 }

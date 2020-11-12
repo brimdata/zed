@@ -8,15 +8,12 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/brimsec/zq/api"
+	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/ast"
-	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/field"
-	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zqd/api"
 )
 
 type parallelHead struct {
@@ -31,7 +28,7 @@ type parallelHead struct {
 	// workerConn is connection to a worker zqd process
 	// that is only used for distributed zqd.
 	// Thread (goroutine) parallelism is used when workerConn is nil.
-	workerConn             *api.Connection
+	workerConn             *client.Connection
 	elapsedWaitForPull     int64
 	elapsedLocalProcessing int64
 	Label                  string
@@ -152,7 +149,7 @@ func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
 // for an open file (i.e. the stream for the open file),
 // nextSourceForConn sends a request to a remote zqd worker process, and returns
 // the ScannerCloser (i.e.output stream) for the remote zqd worker.
-func (pg *parallelGroup) nextSourceForConn(conn *api.Connection, label string) (ScannerCloser, error) {
+func (pg *parallelGroup) nextSourceForConn(conn *client.Connection, label string) (ScannerCloser, error) {
 	select {
 	case src, ok := <-pg.sourceChan:
 		if !ok {
@@ -173,8 +170,8 @@ func (pg *parallelGroup) nextSourceForConn(conn *api.Connection, label string) (
 		if err != nil {
 			return nil, err
 		}
-		search := api.NewZngSearch(rc)
-		s, err := scanner.NewScanner(pg.pctx.Context, search, nil, nil, req.Span)
+		search := client.NewZngSearch(rc)
+		s, err := scanner.NewScanner(pg.pctx.Context, search, nil, req.Span)
 		if err != nil {
 			return nil, err
 		}
@@ -232,30 +229,10 @@ func (pg *parallelGroup) run() {
 	close(pg.sourceChan)
 }
 
-func newCompareFn(fieldName string, reversed bool) (zbuf.RecordCmpFn, error) {
-	if fieldName == "ts" {
-		if reversed {
-			return zbuf.CmpTimeReverse, nil
-		} else {
-			return zbuf.CmpTimeForward, nil
-		}
-	}
-	fieldRead := ast.NewDotExpr(field.New(fieldName))
-	res, err := expr.CompileExpr(fieldRead)
-	if err != nil {
-		return nil, err
-	}
-	rcmp := expr.NewCompareFn(true, res)
-	return func(a, b *zng.Record) bool {
-		return rcmp(a, b) < 0
-	}, nil
-}
-
-func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.BooleanExpr, msrc MultiSource, mcfg MultiConfig, workerURLs []string) ([]proc.Interface, *parallelGroup, error) {
+func createParallelGroup(pctx *proc.Context, filterExpr ast.BooleanExpr, msrc MultiSource, mcfg MultiConfig, workerURLs []string) ([]proc.Interface, *parallelGroup, error) {
 	pg := &parallelGroup{
 		pctx: pctx,
 		filter: SourceFilter{
-			Filter:     filt,
 			FilterExpr: filterExpr,
 			Span:       mcfg.Span,
 		},
@@ -281,7 +258,7 @@ func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.
 			sources = append(sources, &parallelHead{
 				pctx:       pctx,
 				pg:         pg,
-				workerConn: api.NewConnectionTo(w),
+				workerConn: client.NewConnectionTo(w),
 				Label:      w + "#" + strconv.Itoa(i+1)})
 		}
 	} else if ParallelModel == PM_USE_SERVICE_ENDPOINT {
@@ -291,7 +268,7 @@ func createParallelGroup(pctx *proc.Context, filt filter.Filter, filterExpr ast.
 			sources = append(sources, &parallelHead{
 				pctx:       pctx,
 				pg:         pg,
-				workerConn: api.NewConnectionTo(WorkerServiceAddr),
+				workerConn: client.NewConnectionTo(WorkerServiceAddr),
 				Label:      WorkerServiceAddr + "#" + strconv.Itoa(i+1)})
 		}
 	} else {

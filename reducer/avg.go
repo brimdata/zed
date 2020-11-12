@@ -2,6 +2,7 @@ package reducer
 
 import (
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/expr/coerce"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -26,7 +27,7 @@ func (a *Avg) Consume(r *zng.Record) {
 	if v.Bytes == nil {
 		return
 	}
-	d, ok := expr.CoerceToFloat(v)
+	d, ok := coerce.ToFloat(v)
 	if !ok {
 		a.TypeMismatch++
 		return

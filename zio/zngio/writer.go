@@ -190,11 +190,12 @@ func (o *offsetWriter) Write(b []byte) (int, error) {
 }
 
 type compressionWriter struct {
-	w         io.Writer
-	blockSize int
-	header    []byte
-	ubuf      []byte
-	zbuf      []byte
+	w          io.Writer
+	blockSize  int
+	compressor lz4.Compressor
+	header     []byte
+	ubuf       []byte
+	zbuf       []byte
 }
 
 func (c *compressionWriter) Flush() error {
@@ -205,8 +206,8 @@ func (c *compressionWriter) Flush() error {
 		c.zbuf = make([]byte, len(c.ubuf))
 	}
 	zbuf := c.zbuf[:len(c.ubuf)]
-	zlen, err := lz4.CompressBlock(c.ubuf, zbuf, nil)
-	if err != nil {
+	zlen, err := c.compressor.CompressBlock(c.ubuf, zbuf)
+	if err != nil && err != lz4.ErrInvalidSourceShortBuffer {
 		return err
 	}
 	if zlen > 0 {

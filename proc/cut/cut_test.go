@@ -5,8 +5,8 @@ import (
 
 	"errors"
 
-	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/proc/proctest"
+	"github.com/brimsec/zq/zng/builder"
 	"github.com/stretchr/testify/require"
 )
 
@@ -85,7 +85,7 @@ func TestCutComplement(t *testing.T) {
 func testNonAdjacentFields(t *testing.T, zql string) {
 	_, err := proctest.CompileTestProc(zql, proctest.NewTestContext(nil), nil)
 	require.Error(t, err, "cut with non-adjacent records did not fail")
-	ok := errors.Is(err, proc.ErrNonAdjacent)
+	ok := errors.Is(err, builder.ErrNonAdjacent)
 	require.True(t, ok, "cut with non-adjacent records failed with the wrong error")
 }
 
@@ -101,7 +101,7 @@ func TestNotAdjacentErrors(t *testing.T) {
 func testDuplicateFields(t *testing.T, zql string) {
 	_, err := proctest.CompileTestProc(zql, proctest.NewTestContext(nil), nil)
 	require.Error(t, err, "cut with duplicate records did not fail")
-	ok := errors.Is(err, proc.ErrDuplicateFields)
+	ok := errors.Is(err, builder.ErrDuplicateFields)
 	require.True(t, ok, "cut with duplicate records failed with wrong error")
 }
 

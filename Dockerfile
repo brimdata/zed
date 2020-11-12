@@ -18,7 +18,7 @@ COPY . .
 
 # And compile the project 
 # CGO_ENABLED and installsuffix are part of the scheme to get better caching on builds
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="${LDFLAGS}" -a -installsuffix cgo -o /go/bin/zqd ./cmd/zqd
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="${LDFLAGS}" -a -installsuffix cgo -o /go/bin/zqd ./ppl/cmd/zqd
 
 
 FROM scratch

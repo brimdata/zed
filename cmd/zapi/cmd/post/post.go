@@ -9,11 +9,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/brimsec/zq/api"
+	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
 	"github.com/brimsec/zq/cmd/zapi/format"
 	"github.com/brimsec/zq/pkg/display"
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/zqd/api"
 	"github.com/mccanne/charm"
 )
 
@@ -44,7 +45,7 @@ func NewLogPost(parent charm.Command, flags *flag.FlagSet) (charm.Command, error
 }
 
 func (c *LogCommand) Run(args []string) (err error) {
-	client := c.Client()
+	conn := c.Connection()
 	if len(args) == 0 {
 		return errors.New("path arg(s) required")
 	}
@@ -53,8 +54,8 @@ func (c *LogCommand) Run(args []string) (err error) {
 		return err
 	}
 	if c.force {
-		sp, err := client.SpacePost(c.Context(), api.SpacePostRequest{Name: c.Spacename})
-		if err != nil && err != api.ErrSpaceExists {
+		sp, err := conn.SpacePost(c.Context(), api.SpacePostRequest{Name: c.Spacename})
+		if err != nil && err != client.ErrSpaceExists {
 			return err
 		}
 		c.Spacename = sp.Name
@@ -73,7 +74,7 @@ func (c *LogCommand) Run(args []string) (err error) {
 		return err
 	}
 	c.start = time.Now()
-	stream, err := client.LogPostStream(c.Context(), id, api.LogPostRequest{Paths: paths})
+	stream, err := conn.LogPostStream(c.Context(), id, api.LogPostRequest{Paths: paths})
 	if err != nil {
 		return err
 	}

@@ -10,6 +10,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/test"
@@ -22,7 +23,6 @@ import (
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zqd/api"
 	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -15,6 +15,7 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/builder"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
@@ -34,7 +35,7 @@ type Params struct {
 	limit        int
 	keys         []Key
 	makers       []reducerMaker
-	builder      *proc.ColumnBuilder
+	builder      *builder.ColumnBuilder
 	consumePart  bool
 	emitPart     bool
 }
@@ -98,7 +99,7 @@ type Aggregator struct {
 	keyResolvers []expr.Evaluator
 	decomposable bool
 	makers       []reducerMaker
-	builder      *proc.ColumnBuilder
+	builder      *builder.ColumnBuilder
 	table        map[string]*Row
 	limit        int
 	valueCompare expr.ValueCompareFn // to compare primary group keys for early key output
@@ -182,8 +183,9 @@ func decomposable(rs []reducerMaker) bool {
 }
 
 func IsDecomposable(assignments []ast.Assignment) bool {
+	zctx := resolver.NewContext()
 	for _, assignment := range assignments {
-		_, create, err := CompileReducer(assignment)
+		_, create, err := CompileReducer(zctx, assignment)
 		if err != nil {
 			return false
 		}

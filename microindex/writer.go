@@ -11,7 +11,6 @@ import (
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/bufwriter"
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/proc/cut"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
@@ -51,7 +50,7 @@ type Writer struct {
 	keyFields   []field.Static
 	zctx        *resolver.Context
 	writer      *indexWriter
-	cutter      *cut.Cutter
+	cutter      *expr.Cutter
 	tmpdir      string
 	frameThresh int
 	keyType     *zng.TypeRecord
@@ -111,7 +110,7 @@ func NewWriterWithContext(ctx context.Context, zctx *resolver.Context, path stri
 		return nil, err
 	}
 	fields, resolvers := expr.CompileAssignments(w.keyFields, w.keyFields)
-	w.cutter = cut.NewStrictCutter(zctx, false, fields, resolvers)
+	w.cutter = expr.NewStrictCutter(zctx, false, fields, resolvers)
 	return w, nil
 }
 

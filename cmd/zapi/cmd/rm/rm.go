@@ -38,7 +38,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := c.Client().SpaceDelete(c.Context(), id); err != nil {
+	if err := c.Connection().SpaceDelete(c.Context(), id); err != nil {
 		return err
 	}
 	name := c.Spacename

@@ -47,88 +47,74 @@
 #define PRINT(...) console.log(__VAR_ARGS__)
 #endif
 
-start = __ ast:query __ EOF { RETURN(ast) }
+start = __ ast:Query __ EOF { RETURN(ast) }
 
-query
-  = procs:procChain {
+Query
+  = procs:SequentialProcs {
       VAR(filt) = MAP("op": "FilterProc", "filter": MAP("op": "MatchAll"))
       RETURN(MAP("op": "SequentialProc", "procs": PREPEND(filt, procs)))
     }
-  / s:search __ rest:chainedProc* {
+  / s:Search __ rest:SequentialTail* {
       if (ARRAY_LEN(rest) == 0) {
           RETURN(s)
       } else {
           RETURN(MAP("op": "SequentialProc", "procs": PREPEND(s, rest)))
       }
     }
-  / s:search {
-      RETURN(MAP("op": "SequentialProc", "procs": ARRAY(s)))
-    }
 
-procChain
-  = first:proc rest:chainedProc* {
-      if ISNOTNULL(rest) {
-        RETURN(PREPEND(first, rest))
-      } else {
-        RETURN(ARRAY(first))
-      }
-    }
-
-chainedProc = __ "|" __ p:proc { RETURN(p) }
-
-search
-  = expr:searchExpr {
+Search
+  = expr:SearchExpr {
       RETURN(MAP("op": "FilterProc", "filter": expr))
     }
 
-searchExpr
-  = first:searchTerm rest:oredSearchTerm* {
+SearchExpr
+  = first:SearchTerm rest:OredSearchTerm* {
       RETURN(makeChain(first, rest, "LogicalOr"))
     }
 
-oredSearchTerm = _ orToken _ t:searchTerm { RETURN(t) }
+OredSearchTerm = _ OrToken _ t:SearchTerm { RETURN(t) }
 
-searchTerm
-  = first:searchFactor rest:andedSearchTerm* {
+SearchTerm
+  = first:SearchFactor rest:AndedSearchTerm* {
       RETURN(makeChain(first, rest, "LogicalAnd"))
     }
 
-andedSearchTerm = _ (andToken _)? f:searchFactor { RETURN(f) }
+AndedSearchTerm = _ (AndToken _)? f:SearchFactor { RETURN(f) }
 
-searchFactor
-  = (notToken _ / "!" __) e:searchExpr {
+SearchFactor
+  = (NotToken _ / "!" __) e:SearchExpr {
       RETURN(MAP("op": "LogicalNot", "expr": e))
     }
-  / !("-") s:searchPred { RETURN(s) }
-  / "(" __ expr:searchExpr __ ")" { RETURN(expr) }
+  / !("-") s:SearchPred { RETURN(s) }
+  / "(" __ expr:SearchExpr __ ")" { RETURN(expr) }
 
-searchPred
-  = "*" __ comp:equalityToken __ v:searchValue {
+SearchPred
+  = "*" __ comp:EqualityToken __ v:SearchValue {
       RETURN(MAP("op": "CompareAny", "comparator": comp, "recursive": false, "value": v))
     }
-  / "**" __ comp:equalityToken __ v:searchValue {
+  / "**" __ comp:EqualityToken __ v:SearchValue {
       RETURN(MAP("op": "CompareAny", "comparator": comp, "recursive": true, "value": v))
     }
-  / f:Lval __ comp:equalityToken __ v:searchValue {
+  / f:Lval __ comp:EqualityToken __ v:SearchValue {
       RETURN(MAP("op": "CompareField", "comparator": comp, "field": f, "value": v))
     }
   // XXX this is here for now to let "len(array)" be matched now that we have
   // made reducer names generic (which will be far easier to add to and maintain),
   // and a better fix awaits the language tweaks coming in issue #1371.  At that
   // point this peg rule will be subsumed by a unified search/expression syntax.
-  / &"len" expr:FunctionExpr __ comp:equalityToken __ v:searchValue {
+  / &"len" expr:Function __ comp:EqualityToken __ v:SearchValue {
     RETURN(MAP("op": "BinaryExpression", "operator": comp, "lhs": expr, "rhs": v))
   }
-  / v:searchValue __ inToken __ "*" {
+  / v:SearchValue __ InToken __ "*" {
       RETURN(MAP("op": "CompareAny", "comparator": "in", "recursive": false, "value": v))
     }
-  / v:searchValue __ inToken __ f:fieldExpr {
+  / v:SearchValue __ InToken __ f:FieldExpr {
       RETURN(MAP("op": "CompareField", "comparator": "in", "field": f, "value": v))
     }
-  / v:searchLiteral {
+  / v:SearchLiteral {
       RETURN(MAP("op": "Search", "text": TEXT, "value": v))
     }
-  / !((searchKeywords) _ ) v:searchWord {
+  / !(SearchKeywords _ ) v:SearchWord {
       VAR(str) = ASSERT_STRING(v)
       if (str == "*") {
         RETURN(MAP("op": "MatchAll"))
@@ -141,7 +127,18 @@ searchPred
       RETURN(MAP("op": "Search", "text": TEXT, "value": literal))
     }
 
-searchLiteral
+SearchValue
+  = SearchLiteral
+  / !((SearchKeywords) _) v:SearchWord {
+      RETURN(MAP("op": "Literal", "type": "string", "value": v))
+    }
+
+SearchKeywords
+  = AndToken
+  / OrToken
+  / InToken
+
+SearchLiteral
   = StringLiteral
   / RegexpLiteral
   / SubnetLiteral
@@ -150,51 +147,45 @@ searchLiteral
 
   // Careful not to use IntegerLiteral unconditionally or it will consume
   // the beginning of something like 1234abcd which is a valid search word
-  / i:IntegerLiteral !searchWord { RETURN(i) }
+  / i:IntegerLiteral !SearchWord { RETURN(i) }
 
-  / !(searchKeywords _) v:BooleanLiteral { RETURN(v) }
-  / !(searchKeywords _) v:NullLiteral { RETURN(v) }
+  / !(SearchKeywords _) v:BooleanLiteral { RETURN(v) }
+  / !(SearchKeywords _) v:NullLiteral { RETURN(v) }
 
-
-searchValue
-  = searchLiteral
-  / !((searchKeywords) _) v:searchWord {
-      RETURN(MAP("op": "Literal", "type": "string", "value": v))
-    }
 
 StringLiteral
-  = v:quotedString {
+  = v:QuotedString {
       RETURN(MAP("op": "Literal", "type": "string", "value": v))
     }
 
 RegexpLiteral
-  = v:reString {
+  = v:Regexp {
       RETURN(MAP("op": "Literal", "type": "regexp", "value": v))
     }
 
 SubnetLiteral
-  = v:ip6subnet !IdentifierRest {
+  = v:IP6Net !IdentifierRest {
       RETURN(MAP("op": "Literal", "type": "net", "value": v))
     }
-  / v:subnet {
+  / v:IP4Net {
       RETURN(MAP("op": "Literal", "type": "net", "value": v))
     }
 
 AddressLiteral
-  = v:ip6addr !IdentifierRest {
+  = v:IP6 !IdentifierRest {
       RETURN(MAP("op": "Literal", "type": "ip", "value": v))
     }
-  / v:addr {
+  / v:IP {
       RETURN(MAP("op": "Literal", "type": "ip", "value": v))
     }
 
 FloatLiteral
-  = v:sdouble {
+  = v:FloatString {
       RETURN(MAP("op": "Literal", "type": "float64", "value": v))
     }
 
 IntegerLiteral
-  = v:sinteger {
+  = v:IntString {
       RETURN(MAP("op": "Literal", "type": "int64", "value": v))
     }
 
@@ -205,13 +196,25 @@ BooleanLiteral
 NullLiteral
   = "null"           { RETURN(MAP("op": "Literal", "type": "null")) }
 
-searchKeywords
-  = andToken
-  / orToken
-  / inToken
+SequentialProcs
+  = first:Proc rest:SequentialTail* {
+     if ISNOTNULL(rest) {
+        RETURN(PREPEND(first, rest))
+      }
+      RETURN(ARRAY(first))
+    }
 
-procList
-  = first:procChain rest:parallelChain* {
+SequentialTail = __ "|" __ p:Proc { RETURN(p) }
+
+Proc
+  = NamedProc
+  / GroupByProc
+  / "(" __ proc:Procs __ ")" {
+      RETURN(proc)
+    }
+
+Procs
+  = first:SequentialProcs rest:ParallelTail* {
       VAR(fp) = MAP("op": "SequentialProc", "procs": first)
       if ISNOTNULL(rest) {
         RETURN(MAP("op": "ParallelProc", "procs": PREPEND(fp, rest)))
@@ -220,134 +223,65 @@ procList
       }
     }
 
-parallelChain
-  = __ ";" __ ch:procChain { RETURN(MAP("op": "SequentialProc", "procs": ch)) }
+ParallelTail
+  = __ ";" __ ch:SequentialProcs { RETURN(MAP("op": "SequentialProc", "procs": ch)) }
 
-proc
-  = simpleProc
-  / groupByProc
-  / "(" __ proc:procList __ ")" {
-      RETURN(proc)
+GroupByProc
+  = every:EveryDur? reducers:Reducers keys:GroupByKeys? limit:LimitArg? {
+      VAR(p) = MAP("op": "GroupByProc", "reducers": reducers)
+      if ISNOTNULL(every) {
+        p["duration"] = every
+      }
+      if ISNOTNULL(keys) {
+        p["keys"] = keys
+      }
+      if ISNOTNULL(limit) {
+        p["limit"] = limit
+      }
+      RETURN(p)
     }
 
-groupByKeys
+EveryDur
+  = "every"i _ dur:Duration _ { RETURN(dur) }
+
+GroupByKeys
   = _ "by"i _ columns:FlexAssignments { RETURN(columns) }
+
+LimitArg
+  = _ "with" _ "-limit" _ limit:UInt { RETURN(limit) }
 
 // A FlexAssignment is like an Assignment but it can optionally omit the lhs,
 // in which case the semantic pass will infer a name from the rhs, e.g., for
 // an expression like "count() by foo", the rhs is Field "foo" and the lhs is nil.
 FlexAssignment
   = Assignment
-  / expr:Expression { RETURN(MAP("op": "Assignment", "rhs": expr)) }
+  / expr:Expr { RETURN(MAP("op": "Assignment", "rhs": expr)) }
 
 FlexAssignments
   = first:FlexAssignment rest:(__ "," __ expr:FlexAssignment { RETURN(expr) })* {
       RETURN(PREPEND(first, rest))
-  }
-
-everyDur
-  = "every"i _ dur:duration _ { RETURN(dur) }
-
-equalityToken
-  = EqualityOperator / RelativeOperator
-
-andToken = "and"i { RETURN(TEXT) }
-orToken = "or"i { RETURN(TEXT) }
-inToken = "in"i { RETURN(TEXT) }
-notToken = "not"i { RETURN(TEXT) }
-
-IdentifierName = IdentifierStart IdentifierRest* { RETURN(TEXT) }
-
-IdentifierStart = [A-Za-z_$]
-IdentifierRest = IdentifierStart / [0-9]
-
-Identifier
-  = IdentifierStart IdentifierRest* { RETURN(MAP("op": "Identifier", "name": TEXT)) }
-
-RootField
-  = "."? !(BooleanLiteral / NullLiteral) field:Identifier { RETURN(MAP("op": "BinaryExpr", "operator":".", "lhs":MAP("op":"RootRecord"), "rhs": field)) }
-  / "." !(Identifier)  { RETURN(MAP("op": "RootRecord")) }
-
-Lval = DerefExpression
-
-DerefExpression
-  = first:RootField rest:(Deref)* {
-    RETURN(makeBinaryExprChain(first, rest))
-   }
-
-Deref
-  = "[" expr:Expression "]" { RETURN(ARRAY("[", expr)) }
-  / "." !(".") id:Identifier { RETURN(ARRAY(".", id)) }
-
-
-// XXX this is here to support the function call stuff that used to live
-// inside of FieldCall.  This will be replaced by a subset of the expression
-// syntax in a subsequent PR (which is tricky due to mixin keyword search
-// concantenation with expressions)
-FunctionExpr
-    = fn:FunctionName __ "(" args:ArgumentList ")" {
-          RETURN(MAP("op": "FunctionCall", "function": fn, "args": args))
-      }
-
-fieldExpr = Lval
-
-fieldExprList
-  = first:fieldExpr rest:(__ "," __ fieldExpr)* {
-      VAR(result) = ARRAY(first)
-
-      FOREACH(ASSERT_ARRAY(rest), r) {
-        APPEND(result, ASSERT_ARRAY(r)[3])
-      }
-
-      RETURN(result)
-  }
-
-ExprList
-  = first:Expression rest:(__ "," __ Expression)* {
-      VAR(result) = ARRAY(first)
-
-      FOREACH(ASSERT_ARRAY(rest), r) {
-        APPEND(result, ASSERT_ARRAY(r)[3])
-      }
-
-      RETURN(result)
     }
-
-groupByProc
-  = every:everyDur? reducers:reducerList keys:groupByKeys? limit:procLimitArg? {
-    VAR(p) = MAP("op": "GroupByProc", "reducers": reducers)
-    if ISNOTNULL(every) {
-      p["duration"] = every
-    }
-    if ISNOTNULL(keys) {
-      p["keys"] = keys
-    }
-    if ISNOTNULL(limit) {
-      p["limit"] = limit
-    }
-    RETURN(p)
-  }
 
 ReducerAssignment
-  = lval:Lval __ "=" reducer:reducer {
+  = lval:Lval __ "=" reducer:Reducer {
       RETURN(MAP("op": "Assignment", "lhs": lval, "rhs": reducer))
-  }
-  / reducer:reducer {
-      RETURN(MAP("op": "Assignment", "rhs": reducer))
-  }
-
-reducer
-  = !("not"/"len") op:FunctionName __ "(" __ expr:Expression?  __ ")" where:where? {
-    VAR(r) = MAP("op": "Reducer", "operator": op, "where":where)
-    if ISNOTNULL(expr) {
-      r["expr"] = expr
     }
-    RETURN(r)
-  }
+  / reducer:Reducer {
+      RETURN(MAP("op": "Assignment", "rhs": reducer))
+    }
 
-where = _ "where" _ expr:Expression { RETURN(expr) }
+Reducer
+  = !("not"/"len") op:FuncName __ "(" __ expr:Expr?  __ ")" where:WhereClause? {
+      VAR(r) = MAP("op": "Reducer", "operator": op, "where":where)
+      if ISNOTNULL(expr) {
+        r["expr"] = expr
+      }
+      RETURN(r)
+    }
 
-reducerList
+WhereClause = _ "where" _ expr:Expr { RETURN(expr) }
+
+Reducers
   = first:ReducerAssignment rest:(__ "," __ ReducerAssignment)* {
       VAR(result) = ARRAY(first)
       FOREACH(ASSERT_ARRAY(rest), r) {
@@ -356,87 +290,83 @@ reducerList
       RETURN(result)
     }
 
-simpleProc
-  = sort
-  / top
-  / cut
-  / head
-  / tail
-  / filter
-  / uniq
-  / put
-  / rename
-  / fuse
+NamedProc
+  = SortProc
+  / TopProc
+  / CutProc
+  / HeadProc
+  / TailProc
+  / FilterProc
+  / UniqProc
+  / PutProc
+  / RenameProc
+  / FuseProc
 
-sort
-  = "sort"i args:sortArgs list:(_ l:ExprList { RETURN(l) })? {
-    VAR(argm) = ASSERT_MAP(args)
-    VAR(proc) = MAP("op": "SortProc", "fields": list, "sortdir": 1, "nullsfirst": false)
-    if HAS(argm, "r") {
-      proc["sortdir"] = -1
-    }
-    if HAS(argm, "nulls") {
-      if (argm["nulls"] == "first") {
-        proc["nullsfirst"] = true
+SortProc
+  = "sort"i args:SortArgs list:(_ l:Exprs { RETURN(l) })? {
+      VAR(argm) = ASSERT_MAP(args)
+      VAR(proc) = MAP("op": "SortProc", "fields": list, "sortdir": 1, "nullsfirst": false)
+      if HAS(argm, "r") {
+        proc["sortdir"] = -1
       }
+      if HAS(argm, "nulls") {
+        if (argm["nulls"] == "first") {
+          proc["nullsfirst"] = true
+        }
+      }
+      RETURN(proc)
     }
-    RETURN(proc)
-  }
 
-sortArgs = args:(_ a:sortArg{ RETURN(a) })* {
-    return makeArgMap(args)
-}
+SortArgs = args:(_ a:SortArg{ RETURN(a) })* { return makeArgMap(args) }
 
-sortArg
+SortArg
   = "-r" { RETURN(MAP("name": "r", "value": NULL)) }
   / "-nulls" _ where:(("first" / "last") { RETURN(TEXT) } ) { RETURN(MAP("name": "nulls", "value": where)) }
 
-top
-  = "top"i limit:(_ n:unsignedInteger { RETURN(n)})? flush:(_ "-flush")? fields:(_ f:fieldExprList { RETURN(f) })? {
-    VAR(proc) = MAP("op": "TopProc")
-    if ISNOTNULL(limit) {
-      proc["limit"] = limit
+TopProc
+  = "top"i limit:(_ n:UInt { RETURN(n)})? flush:(_ "-flush")? fields:(_ f:FieldExprs { RETURN(f) })? {
+      VAR(proc) = MAP("op": "TopProc")
+      if ISNOTNULL(limit) {
+        proc["limit"] = limit
+      }
+      if ISNOTNULL(fields) {
+        proc["fields"] = fields
+      }
+      if ISNOTNULL(flush) {
+        proc["flush"] = true
+      }
+      RETURN(proc)
     }
-    if ISNOTNULL(fields) {
-      proc["fields"] = fields
-    }
-    if ISNOTNULL(flush) {
-      proc["flush"] = true
-    }
-    RETURN(proc)
-  }
 
-procLimitArg
-  = _ "with" _ "-limit" _ limit:unsignedInteger { RETURN(limit) }
+CutProc
+  = "cut"i args:CutArgs _ columns:FlexAssignments {
+      VAR(argm) = ASSERT_MAP(args)
+      VAR(proc) = MAP("op": "CutProc", "fields": columns, "complement": false)
+      if HAS(argm, "c") {
+        proc["complement"] = true
+      }
+      RETURN(proc)
+    }
 
-cutArgs
+CutArgs
   = args:(_ "-c" { RETURN(MAP("name": "c", "value": NULL)) })* {
-    return makeArgMap(args)
-  }
-
-cut
-  = "cut"i args:cutArgs _ columns:FlexAssignments {
-    VAR(argm) = ASSERT_MAP(args)
-    VAR(proc) = MAP("op": "CutProc", "fields": columns, "complement": false)
-    if HAS(argm, "c") {
-      proc["complement"] = true
+      return makeArgMap(args)
     }
-    RETURN(proc)
-  }
 
-
-head
-  = "head"i _ count:unsignedInteger { RETURN(MAP("op": "HeadProc", "count": count)) }
+HeadProc
+  = "head"i _ count:UInt { RETURN(MAP("op": "HeadProc", "count": count)) }
   / "head"i { RETURN(MAP("op": "HeadProc", "count": 1)) }
-tail
-  = "tail"i _ count:unsignedInteger { RETURN(MAP("op": "TailProc", "count": count)) }
+
+TailProc
+  = "tail"i _ count:UInt { RETURN(MAP("op": "TailProc", "count": count)) }
   / "tail"i { RETURN(MAP("op": "TailProc", "count": 1)) }
 
-filter
-  = "filter"i _ expr:searchExpr {
+FilterProc
+  = "filter"i _ expr:SearchExpr {
       RETURN(MAP("op": "FilterProc", "filter": expr))
     }
-uniq
+
+UniqProc
   = "uniq"i _ "-c" {
       RETURN(MAP("op": "UniqProc", "cflag": true))
     }
@@ -444,64 +374,77 @@ uniq
       RETURN(MAP("op": "UniqProc", "cflag": false))
     }
 
-put
+PutProc
   = "put"i _ columns:FlexAssignments {
       RETURN(MAP("op": "PutProc", "clauses": columns))
     }
 
-rename
+RenameProc
   = "rename"i _ first:Assignment rest:(__ "," __ cl:Assignment { RETURN(cl) })* {
       RETURN(MAP("op": "RenameProc", "fields": PREPEND(first, rest)))
     }
 
-fuse
+FuseProc
   = "fuse"i {
       RETURN(MAP("op": "FuseProc"))
-  }
+    }
+
+RootField
+  = "."? !(BooleanLiteral / NullLiteral) field:Identifier { RETURN(MAP("op": "BinaryExpr", "operator":".", "lhs":MAP("op":"RootRecord"), "rhs": field)) }
+  / "." !(Identifier)  { RETURN(MAP("op": "RootRecord")) }
+
+Lval = DerefExpr
+
+FieldExpr = Lval
+
+FieldExprs
+  = first:FieldExpr rest:(__ "," __ FieldExpr)* {
+      VAR(result) = ARRAY(first)
+
+      FOREACH(ASSERT_ARRAY(rest), r) {
+        APPEND(result, ASSERT_ARRAY(r)[3])
+      }
+
+      RETURN(result)
+    }
+
+Exprs
+  = first:Expr rest:(__ "," __ Expr)* {
+      VAR(result) = ARRAY(first)
+
+      FOREACH(ASSERT_ARRAY(rest), r) {
+        APPEND(result, ASSERT_ARRAY(r)[3])
+      }
+
+      RETURN(result)
+    }
 
 Assignment
-  = lhs:Lval __ "=" __ rhs:Expression { RETURN(MAP("lhs": lhs, "rhs": rhs)) }
+  = lhs:Lval __ "=" __ rhs:Expr { RETURN(MAP("lhs": lhs, "rhs": rhs)) }
 
-Primary
-  = StringLiteral
-  / RegexpLiteral
-  / SubnetLiteral
-  / AddressLiteral
-  / FloatLiteral
-  / IntegerLiteral
-  / BooleanLiteral
-  / NullLiteral
-  / "(" __ expr:Expression __ ")" { RETURN(expr) }
+Expr = ConditionalExpr
 
-//
-// Rules for parsing expressions.  Following standard practice, each
-// level of operator precedence has a rule that references the next
-// highest level of precedence.
-//
+ConditionalExpr
+  = condition:LogicalOrExpr __ "?" __ thenClause:Expr __ ":" __ elseClause:Expr {
+      RETURN(MAP("op": "ConditionalExpr", "condition": condition, "then": thenClause, "else": elseClause))
+    }
+  / LogicalOrExpr
 
-Expression = ConditionalExpression
-
-ConditionalExpression
-  = condition:LogicalORExpression __ "?" __ thenClause:Expression __ ":" __ elseClause:Expression {
-    RETURN(MAP("op": "ConditionalExpr", "condition": condition, "then": thenClause, "else": elseClause))
-  }
-  / LogicalORExpression
-
-LogicalORExpression
-  = first:LogicalANDExpression
-    rest:(__ op:orToken __ expr:LogicalANDExpression{ RETURN(ARRAY(op, expr)) })* {
+LogicalOrExpr
+  = first:LogicalAndExpr
+    rest:(__ op:OrToken __ expr:LogicalAndExpr{ RETURN(ARRAY(op, expr)) })* {
         RETURN(makeBinaryExprChain(first, rest))
     }
 
-LogicalANDExpression
-  = first:EqualityCompareExpression
-    rest:(__ op:andToken __ expr:EqualityCompareExpression{ RETURN(ARRAY(op, expr)) })* {
+LogicalAndExpr
+  = first:EqualityCompareExpr
+    rest:(__ op:AndToken __ expr:EqualityCompareExpr{ RETURN(ARRAY(op, expr)) })* {
         RETURN(makeBinaryExprChain(first, rest))
     }
 
-EqualityCompareExpression
-  = first:RelativeExpression
-    rest:(__ comp:EqualityComparator __ expr:RelativeExpression{ RETURN(ARRAY(comp, expr)) })* {
+EqualityCompareExpr
+  = first:RelativeExpr
+    rest:(__ comp:EqualityComparator __ expr:RelativeExpr{ RETURN(ARRAY(comp, expr)) })* {
         RETURN(makeBinaryExprChain(first, rest))
     }
 
@@ -511,41 +454,41 @@ EqualityComparator
   = EqualityOperator
   / "in" { RETURN(TEXT) }
 
-RelativeExpression
-  = first:AdditiveExpression
-    rest:(__ op:RelativeOperator __ expr:AdditiveExpression{ RETURN(ARRAY(op, expr)) })* {
+RelativeExpr
+  = first:AdditiveExpr
+    rest:(__ op:RelativeOperator __ expr:AdditiveExpr{ RETURN(ARRAY(op, expr)) })* {
         RETURN(makeBinaryExprChain(first, rest))
     }
 
 RelativeOperator = ("<=" / "<" / ">=" / ">") { RETURN(TEXT) }
 
-AdditiveExpression
-  = first:MultiplicativeExpression
-    rest:(__ op:AdditiveOperator __ expr:MultiplicativeExpression{ RETURN(ARRAY(op, expr)) })* {
+AdditiveExpr
+  = first:MultiplicativeExpr
+    rest:(__ op:AdditiveOperator __ expr:MultiplicativeExpr{ RETURN(ARRAY(op, expr)) })* {
         RETURN(makeBinaryExprChain(first, rest))
     }
 
 AdditiveOperator = ("+" / "-") { RETURN(TEXT) }
 
-MultiplicativeExpression
-  = first:NotExpression
-    rest:(__ op:MultiplicativeOperator __ expr:NotExpression{ RETURN(ARRAY(op, expr)) })* {
+MultiplicativeExpr
+  = first:NotExpr
+    rest:(__ op:MultiplicativeOperator __ expr:NotExpr{ RETURN(ARRAY(op, expr)) })* {
         RETURN(makeBinaryExprChain(first, rest))
     }
 
 MultiplicativeOperator = ("*" / "/") { RETURN(TEXT) }
 
-NotExpression
-  = "!" __ e:NotExpression {
+NotExpr
+  = "!" __ e:NotExpr {
         RETURN(MAP("op": "UnaryExpr", "operator": "!", "operand": e))
     }
-  / CastExpression
+  / CastExpr
 
-CastExpression
-  = e:FuncExpression typ:( ":" typ:PrimitiveType { RETURN(typ) }) {
-    RETURN(MAP("op": "CastExpr", "expr": e, "type": typ))
-  }
-  / FuncExpression
+CastExpr
+  = e:FuncExpr typ:( ":" typ:PrimitiveType { RETURN(typ) }) {
+      RETURN(MAP("op": "CastExpr", "expr": e, "type": typ))
+    }
+  / FuncExpr
 
 
 PrimitiveType
@@ -557,187 +500,209 @@ PrimitiveType
       / "ip" / "net"
       / "type" / "error" / "null" ) { RETURN(TEXT) }
 
-FuncExpression
-  = first:FunctionCall rest:(Deref)* {
-    RETURN(makeBinaryExprChain(first, rest))
-  }
-  / DerefExpression
+FuncExpr
+  = first:Function rest:(Deref)* {
+      RETURN(makeBinaryExprChain(first, rest))
+    }
+  / DerefExpr
   / Primary
 
-FunctionCall
-  = fn:FunctionName __ "(" args:ArgumentList ")" {
-        RETURN(MAP("op": "FunctionCall", "function": fn, "args": args))
+Function
+  = fn:FuncName __ "(" args:ArgumentList ")" {
+      RETURN(MAP("op": "FunctionCall", "function": fn, "args": args))
     }
 
-FunctionName
-  = FunctionNameStart FunctionNameRest* { RETURN(TEXT) }
+FuncName
+  = FuncNameStart FuncNameRest* { RETURN(TEXT) }
 
-FunctionNameStart = [A-Za-z]
-FunctionNameRest = FunctionNameStart / [.0-9]
+FuncNameStart = [A-Za-z]
+FuncNameRest = FuncNameStart / [.0-9]
 
 ArgumentList
-  = first:Expression rest:(__ "," __ e:Expression { RETURN(e) })* {
+  = first:Expr rest:(__ "," __ e:Expr { RETURN(e) })* {
       RETURN(PREPEND(first, rest))
-  }
+    }
   / __ { RETURN(ARRAY()) }
 
-duration
-  = seconds
-  / minutes
-  / hours
-  / hours _ "and" _ minutes
-  / days
-  / weeks
+DerefExpr
+  = first:RootField rest:(Deref)* {
+      RETURN(makeBinaryExprChain(first, rest))
+    }
 
-sec_abbrev
+Deref
+  = "[" expr:Expr "]" { RETURN(ARRAY("[", expr)) }
+  / "." !(".") id:Identifier { RETURN(ARRAY(".", id)) }
+
+Primary
+  = StringLiteral
+  / RegexpLiteral
+  / SubnetLiteral
+  / AddressLiteral
+  / FloatLiteral
+  / IntegerLiteral
+  / BooleanLiteral
+  / NullLiteral
+  / "(" __ expr:Expr __ ")" { RETURN(expr) }
+
+EqualityToken
+  = EqualityOperator / RelativeOperator
+
+AndToken = "and"i { RETURN(TEXT) }
+OrToken = "or"i { RETURN(TEXT) }
+InToken = "in"i { RETURN(TEXT) }
+NotToken = "not"i { RETURN(TEXT) }
+
+IdentifierName = IdentifierStart IdentifierRest* { RETURN(TEXT) }
+
+IdentifierStart = [A-Za-z_$]
+IdentifierRest = IdentifierStart / [0-9]
+
+Identifier
+  = IdentifierStart IdentifierRest* { RETURN(MAP("op": "Identifier", "name": TEXT)) }
+
+Duration
+  = Seconds
+  / Minutes
+  / Hours
+  / Hours _ "and" _ Minutes
+  / Days
+  / Weeks
+
+SecondsToken
   = "seconds"
   / "second"
   / "secs"
   / "sec"
   / "s"
 
-min_abbrev
+MinutesToken
   = "minutes"
   / "minute"
   / "mins"
   / "min"
   / "m"
 
-hour_abbrev
+HoursToken
   = "hours"
   / "hrs"
   / "hr"
   / "h"
   / "hour"
 
-day_abbrev = "days"/"day"/"d"
-week_abbrev = "weeks"/"week"/"wks"/"wk"/"w"
+DaysToken = "days"/"day"/"d"
+WeeksToken = "weeks"/"week"/"wks"/"wk"/"w"
 
-seconds
+Seconds
   = "second" { RETURN(MAP("type": "Duration", "seconds": 1)) }
-  / num:number __ sec_abbrev { RETURN(MAP("type": "Duration", "seconds": num)) }
+  / num:UInt __ SecondsToken { RETURN(MAP("type": "Duration", "seconds": num)) }
 
-minutes
+Minutes
   = "minute" { RETURN(MAP("type": "Duration", "seconds": 60)) }
-  / num:number __ min_abbrev { RETURN(MAP("type": "Duration", "seconds": ASSERT_INT(num)*60)) }
+  / num:UInt __ MinutesToken { RETURN(MAP("type": "Duration", "seconds": ASSERT_INT(num)*60)) }
 
-hours
+Hours
   = "hour" { RETURN(MAP("type": "Duration", "seconds": 3600)) }
-  / num:number __ hour_abbrev { RETURN(MAP("type": "Duration", "seconds": ASSERT_INT(num)*3600)) }
+  / num:UInt __ HoursToken { RETURN(MAP("type": "Duration", "seconds": ASSERT_INT(num)*3600)) }
 
-days
+Days
   = "day" { RETURN(MAP("type": "Duration", "seconds": 3600*24)) }
-  / num:number __ day_abbrev { RETURN(MAP("type": "Duration", "seconds": (ASSERT_INT(num)*3600*24))) }
+  / num:UInt __ DaysToken { RETURN(MAP("type": "Duration", "seconds": (ASSERT_INT(num)*3600*24))) }
 
-weeks
+Weeks
   = "week" { RETURN(MAP("type": "Duration", "seconds": 3600*24*7)) }
-  / num:number __ week_abbrev { RETURN(MAP("type": "Duration", "seconds": ASSERT_INT(num)*3600*24*7)) }
-
-number = unsignedInteger
-
+  / num:UInt __ WeeksToken { RETURN(MAP("type": "Duration", "seconds": ASSERT_INT(num)*3600*24*7)) }
 
 //XXX what about mac addrs?
-addr
-  = a:(unsignedInteger "." unsignedInteger "." unsignedInteger "." unsignedInteger) { RETURN(TEXT) }
+IP
+  = UInt "." UInt "." UInt "." UInt { RETURN(TEXT) }
 
 // this matches a superset of legal syntax for ip6 addresses but the compiler
 // will catch any errors when translating the filter
-ip6addr
-  = a:(h_prepend)+ b:ip6tail {
+IP6
+  = a:HexColon+ b:IP6Tail {
       RETURN(joinChars(a) + ASSERT_STRING(b))
     }
-  / a:h16 b:(h_append)* "::" d:(h_prepend)* e:ip6tail {
+  / a:Hex b:ColonHex* "::" d:HexColon* e:IP6Tail {
       RETURN(ASSERT_STRING(a) + joinChars(b) + "::" + joinChars(d) + ASSERT_STRING(e))
     }
-  / "::" a:(h_prepend)* b:ip6tail {
+  / "::" a:HexColon* b:IP6Tail {
       RETURN("::" + joinChars(a) + ASSERT_STRING(b))
     }
-  / a:h16 b:(h_append)* "::" {
+  / a:Hex b:ColonHex* "::" {
       RETURN(ASSERT_STRING(a) + joinChars(b) + "::")
     }
   / "::" {
       RETURN("::")
     }
 
-ip6tail
-  = addr
-  / h16
+IP6Tail
+  = IP
+  / Hex
 
-h_append = ":" v:h16 { RETURN(":" + ASSERT_STRING(v)) }
-h_prepend = v:h16 ":" { RETURN(ASSERT_STRING(v) + ":") }
+ColonHex = ":" v:Hex { RETURN(":" + ASSERT_STRING(v)) }
+HexColon = v:Hex ":" { RETURN(ASSERT_STRING(v) + ":") }
 
-subnet
-  = a:addr '/' m:unsignedInteger {
+IP4Net
+  = a:IP '/' m:UInt {
       RETURN(ASSERT_STRING(a) + "/" + TOSTRING(m));
     }
 
-ip6subnet
-  = a:ip6addr '/' m:unsignedInteger {
+IP6Net
+  = a:IP6 '/' m:UInt {
       RETURN(ASSERT_STRING(a) + "/" + ASSERT_STRING(m));
     }
 
-unsignedInteger
-  = s:suint { RETURN(parseInt(s)) }
+UInt
+ = s:UIntString { RETURN(parseInt(s)) }
 
-suint
-  = [0-9]+ { RETURN(TEXT) }
+IntString
+  = UIntString
+  / MinusIntString
 
-integer
-  = s:sinteger { RETURN(parseInt(s)) }
+UIntString = [0-9]+ { RETURN(TEXT) }
 
-sinteger
-  = [+-]? suint { RETURN(TEXT) }
+MinusIntString
+  = "-" UIntString { RETURN(TEXT) }
 
-double
-  = s:sdouble {
-      RETURN(parseFloat(s))
-  }
-
-sdouble
-  = "-"? doubleInteger+ "." doubleDigit+ exponentPart? {
+FloatString
+  = "-"? [0-9]+ "." [0-9]+ ExponentPart? {
       RETURN(TEXT)
     }
-  / "-"? "." doubleDigit+ exponentPart? {
+  / "-"? "." [0-9]+ ExponentPart? {
       RETURN(TEXT)
     }
 
-doubleInteger
-  = "0"
-  / [1-9] [0-9]*
+ExponentPart = "e"i [+-]? UIntString
 
-doubleDigit = [0-9]
+Hex = HexDigit+ { RETURN(TEXT) }
 
-exponentPart = "e"i sinteger
+HexDigit = [0-9a-fA-F]
 
-h16 = chars:hexdigit+ { RETURN(TEXT) }
+SearchWord
+  = chars:SearchWordPart+ { RETURN(joinChars(chars)) }
 
-hexdigit = [0-9a-fA-F]
+SearchWordPart
+  = "\\" s:(EscapeSequence / SearchEscape)  { RETURN(s) }
+  / !([\x00-\x1F\x5C(),!><=DQUOTE|SQUOTE;:] / WhiteSpace) . { RETURN(TEXT) }
 
-searchWord
-  = chars:searchWordPart+ { RETURN(joinChars(chars)) }
+QuotedString
+  = '"' v:DoubleQuotedChar* '"' { RETURN(joinChars(v)) }
+  / "'" v:SingleQuotedChar* "'" { RETURN(joinChars(v)) }
 
-searchWordPart
-  = "\\" s:(escapeSequence / searchEscape)  { RETURN(s) }
-  / !([\x00-\x1F\x5C(),!><=DQUOTE|SQUOTE;:] / ws) . { RETURN(TEXT) }
+DoubleQuotedChar
+  = !('"' / EscapedChar) . { RETURN(TEXT) }
+  / "\\" s:EscapeSequence { RETURN(s) }
 
-quotedString
-  = '"' v:doubleQuotedChar* '"' { RETURN(joinChars(v)) }
-  / "'" v:singleQuotedChar* "'" { RETURN(joinChars(v)) }
+SingleQuotedChar
+  = !("'" / EscapedChar) . { RETURN(TEXT) }
+  / "\\" s:EscapeSequence { RETURN(s) }
 
-doubleQuotedChar
-  = !('"' / escapedChar) . { RETURN(TEXT) }
-  / "\\" s:escapeSequence { RETURN(s) }
+EscapeSequence
+  = "x" HexDigit HexDigit { RETURN("\\" + TEXT) }
+  / SingleCharEscape
+  / UnicodeEscape
 
-singleQuotedChar
-  = !("'" / escapedChar) . { RETURN(TEXT) }
-  / "\\" s:escapeSequence { RETURN(s) }
-
-escapeSequence
-  = "x" hexdigit hexdigit { RETURN("\\" + TEXT) }
-  / singleCharEscape
-  / unicodeEscape
-
-singleCharEscape
+SingleCharEscape
   = "'"
   / '"'
   / "\\"
@@ -748,28 +713,28 @@ singleCharEscape
   / "t" { RETURN("\t") }
   / "v" { RETURN("\v") }
 
-searchEscape
+SearchEscape
   = "=" { RETURN("=") }
   / "*" { RETURN("\\*") }
 
-unicodeEscape
-  = "u" chars:(hexdigit hexdigit hexdigit hexdigit) {
+UnicodeEscape
+  = "u" chars:(HexDigit HexDigit HexDigit HexDigit) {
       RETURN(makeUnicodeChar(chars))
     }
-  / "u" "{" chars:(hexdigit hexdigit? hexdigit? hexdigit? hexdigit? hexdigit?) "}" {
+  / "u" "{" chars:(HexDigit HexDigit? HexDigit? HexDigit? HexDigit? HexDigit?) "}" {
       RETURN(makeUnicodeChar(chars))
     }
 
-reString
-  = '/' v:reBody '/' { RETURN(v) }
+Regexp
+  = "/" body:RegexpBody "/" { RETURN(body) }
 
-reBody
+RegexpBody
   = ([^/\\]/"\\/")+ { RETURN(TEXT) }
 
-escapedChar
+EscapedChar
   = [\x00-\x1f\\]
 
-ws
+WhiteSpace
   = "\t"
   / "\v"
   / "\f"
@@ -777,7 +742,7 @@ ws
   / "\u00A0"
   / "\uFEFF"
 
-_ "whitespace" = ws+
-__ = ws*
+_  = WhiteSpace+
+__ = WhiteSpace*
 
 EOF = !.

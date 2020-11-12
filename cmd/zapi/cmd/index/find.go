@@ -3,12 +3,12 @@ package idx
 import (
 	"flag"
 
-	"github.com/brimsec/zq/archive"
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
 	"github.com/brimsec/zq/emitter"
+	"github.com/brimsec/zq/ppl/archive"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zqd/api"
 	"github.com/mccanne/charm"
 )
 
@@ -78,7 +78,7 @@ func (c *FindCmd) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	stream, err := c.Client().IndexSearch(c.Context(), id, req, nil)
+	stream, err := c.Connection().IndexSearch(c.Context(), id, req, nil)
 	if err != nil {
 		return err
 	}

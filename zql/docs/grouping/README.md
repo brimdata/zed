@@ -40,11 +40,11 @@ zq -f table 'every minute sum(orig_bytes) | sort -r ts' conn.log.gz
 
 #### Output:
 ```zq-output head:5
-TS                SUM
-1521912960.000000 1443272
-1521912900.000000 3851308
-1521912840.000000 4704644
-1521912780.000000 10189155
+TS                   SUM
+2018-03-24T17:36:00Z 1443272
+2018-03-24T17:35:00Z 3851308
+2018-03-24T17:34:00Z 4704644
+2018-03-24T17:33:00Z 10189155
 ...
 ```
 
@@ -58,10 +58,10 @@ zq -f table 'every 30sec count() | sort -r count' *.log.gz
 
 #### Output:
 ```zq-output head:4
-TS                COUNT
-1521911940.000000 73512
-1521911790.000000 59701
-1521912000.000000 51229
+TS                   COUNT
+2018-03-24T17:19:00Z 73512
+2018-03-24T17:16:30Z 59701
+2018-03-24T17:20:00Z 51229
 ...
 ```
 
@@ -156,12 +156,12 @@ zq -f table 'every 5 minutes count() | sort ts' *.log.gz
 
 #### Output:
 ```zq-output
-TS                COUNT
-1521911700.000000 441229
-1521912000.000000 337264
-1521912300.000000 310546
-1521912600.000000 274284
-1521912900.000000 98755
+TS                   COUNT
+2018-03-24T17:15:00Z 441229
+2018-03-24T17:20:00Z 337264
+2018-03-24T17:25:00Z 310546
+2018-03-24T17:30:00Z 274284
+2018-03-24T17:35:00Z 98755
 ```
 
 If we'd wanted to see them ordered from lowest to highest event count:
@@ -172,15 +172,15 @@ zq -f table 'every 5 minutes count() | sort count' *.log.gz
 
 #### Output:
 ```zq-output
-TS                COUNT
-1521912900.000000 98755
-1521912600.000000 274284
-1521912300.000000 310546
-1521912000.000000 337264
-1521911700.000000 441229
+TS                   COUNT
+2018-03-24T17:35:00Z 98755
+2018-03-24T17:30:00Z 274284
+2018-03-24T17:25:00Z 310546
+2018-03-24T17:20:00Z 337264
+2018-03-24T17:15:00Z 441229
 ```
 
-Events that are stored and retrieved via [`zqd`](../../../cmd/zqd) (that is,
+Events that are stored and retrieved via [`zqd`](../../../ppl/cmd/zqd) (that is,
 using the [Brim application](https://github.com/brimsec/brim) and/or
 [`zapi`](../../../cmd/zapi)) are by default automatically sorted in rerverse
 order by timestamp (`ts`). Therefore for the particular case of a
