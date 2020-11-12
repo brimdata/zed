@@ -11,9 +11,6 @@ import (
 	"go.uber.org/zap"
 )
 
-type Launchers struct {
-}
-
 type Config struct {
 	Root     string
 	Version  string
