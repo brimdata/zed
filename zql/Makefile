@@ -29,7 +29,7 @@ zql.js:
 ifeq "$(shell $(deps)/bin/pegjs --version 2>&1 | fgrep $(PEGJS_VERSION))" ""
 	$(npm) install pegjs@$(PEGJS_VERSION)
 endif
-	cpp -E -P zql.peg | $(deps)/bin/pegjs --allowed-start-rules start,Expression -o $@
+	cpp -E -P zql.peg | $(deps)/bin/pegjs --allowed-start-rules start,Expr -o $@
 
 .PHONY: zql.es.js
 zql.es.js: zql.js

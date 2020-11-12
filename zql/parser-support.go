@@ -22,7 +22,7 @@ func ParseProc(query string, opts ...Option) (ast.Proc, error) {
 }
 
 func ParseExpression(expr string) (ast.Expression, error) {
-	m, err := Parse("", []byte(expr), Entrypoint("Expression"))
+	m, err := Parse("", []byte(expr), Entrypoint("Expr"))
 	if err != nil {
 		return nil, err
 	}
