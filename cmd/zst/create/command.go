@@ -72,7 +72,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	reader := zbuf.NewCombiner(readers, zbuf.CmpTimeForward)
+	reader := zbuf.NewCombiner(readers, zbuf.RecordLessTsForward)
 	defer reader.Close()
 	writer, err := c.outputFlags.Open()
 	if err != nil {

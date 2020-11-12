@@ -141,7 +141,7 @@ func (c *Command) Run(args []string) error {
 			readers[i] = zbuf.NewWarningReader(r, wch)
 		}
 	}
-	reader := zbuf.NewCombiner(readers, zbuf.CmpTimeForward)
+	reader := zbuf.NewCombiner(readers, zbuf.RecordLessTsForward)
 	defer reader.Close()
 
 	writer, err := c.outputFlags.Open()

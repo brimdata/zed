@@ -105,12 +105,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	var reader zbuf.ReadCloser
-	if ark.DataOrder == zbuf.OrderAsc {
-		reader = zbuf.NewCombiner(readers, zbuf.CmpTimeForward)
-	} else {
-		reader = zbuf.NewCombiner(readers, zbuf.CmpTimeReverse)
-	}
+	reader := zbuf.NewCombiner(readers, ark.DataOrder.RecordLess())
 	defer reader.Close()
 
 	ctx, cancel := signalctx.New(os.Interrupt)

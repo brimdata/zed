@@ -60,7 +60,7 @@ func newSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, s
 	if len(readers) == 1 {
 		scn, err = scanner.NewScanner(ctx, readers[0], sf.FilterExpr, si.Span)
 	} else {
-		scn, err = scanner.NewCombiner(ctx, readers, zbuf.RecordCompare(ark.DataOrder), sf.FilterExpr, si.Span)
+		scn, err = scanner.NewCombiner(ctx, readers, ark.DataOrder.RecordLess(), sf.FilterExpr, si.Span)
 	}
 	if err != nil {
 		closers.Close()
