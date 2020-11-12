@@ -36,9 +36,12 @@ func (c *Collect) Consume(r *zng.Record) {
 }
 
 func (c *Collect) update(b zcode.Bytes) {
-	c.val = append(c.val, b)
+	stash := make(zcode.Bytes, len(b))
+	copy(stash, b)
+	c.val = append(c.val, stash)
 	c.size += len(b)
 	for c.size > MaxValueSize {
+		c.MemExceeded++
 		c.size -= len(c.val[0])
 		c.val = c.val[1:]
 	}
