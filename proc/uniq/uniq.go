@@ -62,24 +62,28 @@ func (p *Proc) appendUniq(out []*zng.Record, t *zng.Record) []*zng.Record {
 // uniq is a little bit complicated because we have to check uniqueness
 // across records between calls to Pull.
 func (p *Proc) Pull() (zbuf.Batch, error) {
-	batch, err := p.parent.Pull()
-	if err != nil {
-		return nil, err
-	}
-	if batch == nil {
-		if p.last == nil {
-			return nil, nil
+	for {
+		batch, err := p.parent.Pull()
+		if err != nil {
+			return nil, err
 		}
-		t := p.wrap(p.last)
-		p.last = nil
-		return zbuf.Array{t}, nil
+		if batch == nil {
+			if p.last == nil {
+				return nil, nil
+			}
+			t := p.wrap(p.last)
+			p.last = nil
+			return zbuf.Array{t}, nil
+		}
+		var out []*zng.Record
+		for k := 0; k < batch.Length(); k++ {
+			out = p.appendUniq(out, batch.Index(k))
+		}
+		batch.Unref()
+		if len(out) > 0 {
+			return zbuf.Array(out), nil
+		}
 	}
-	defer batch.Unref()
-	var out []*zng.Record
-	for k := 0; k < batch.Length(); k++ {
-		out = p.appendUniq(out, batch.Index(k))
-	}
-	return zbuf.Array(out), nil
 }
 
 func (p *Proc) Done() {
