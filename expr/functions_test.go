@@ -5,7 +5,6 @@ import (
 	"net"
 	"testing"
 
-	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/expr/function"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zng"
@@ -142,36 +141,6 @@ func TestMod(t *testing.T) {
 	testError(t, "mod(3.2, 2)", record, function.ErrBadArgument, "mod() with float64 arg")
 }
 
-func TestStrFormat(t *testing.T) {
-	testSuccessful(t, "1.2:string", nil, zstring("1.2"))
-	//testError(t, "String.formatFloat()", nil, function.ErrTooFewArgs, "formatFloat() with no args")
-	//testError(t, "String.formatFloat(1.2, 3.4)", nil, function.ErrTooManyArgs, "formatFloat() with too many args")
-	//testError(t, "String.formatFloat(1)", nil, function.ErrBadArgument, "formatFloat() with non-float arg")
-
-	testSuccessful(t, "5:string", nil, zstring("5"))
-	//testError(t, "String.formatInt()", nil, function.ErrTooFewArgs, "formatInt() with no args")
-	//testError(t, "String.formatInt(3, 4)", nil, function.ErrTooManyArgs, "formatInt() with too many args")
-	//testError(t, "String.formatInt(1.5)", nil, function.ErrBadArgument, "formatInt() with non-int arg")
-
-	testSuccessful(t, "1.2.3.4:string", nil, zstring("1.2.3.4"))
-	//testError(t, "String.formatIp()", nil, function.ErrTooFewArgs, "formatIp() with no args")
-	//testError(t, "String.formatIp(1.2, 3.4)", nil, function.ErrTooManyArgs, "formatIp() with too many args")
-	testError(t, "1:ip", nil, expr.ErrBadCast, "formatIp() with non-ip arg")
-}
-
-func TestCastStrings(t *testing.T) {
-	testSuccessful(t, `"1":int64`, nil, zint64(1))
-	testSuccessful(t, `"-1":int64`, nil, zint64(-1))
-
-	testError(t, `"abc":int64`, nil, expr.ErrBadCast, "parseInt() with non-parseable string")
-
-	testSuccessful(t, `"5.5":float64`, nil, zfloat64(5.5))
-	testError(t, `"abc":float64`, nil, expr.ErrBadCast, "parseFloat() with non-parseable string")
-
-	testSuccessful(t, `"1.2.3.4":ip`, nil, zaddr("1.2.3.4"))
-	testError(t, `"abc":ip`, nil, expr.ErrBadCast, "parseIp() with non-parseable string")
-}
-
 func TestOtherStrFuncs(t *testing.T) {
 	testSuccessful(t, `replace("bann", "n", "na")`, nil, zstring("banana"))
 	testError(t, `replace("foo", "bar")`, nil, function.ErrTooFewArgs, "replace() with too few args")
@@ -202,7 +171,6 @@ func TestLen(t *testing.T) {
 
 	testError(t, "len()", record, function.ErrTooFewArgs, "len() with no args")
 	testError(t, `len("foo", "bar")`, record, function.ErrTooManyArgs, "len() with too many args")
-	//testError(t, `len("foo")`, record, function.ErrBadArgument, "len() with string arg")
 	testError(t, "len(5)", record, function.ErrBadArgument, "len() with non-container arg")
 
 	record, err = parseOneRecord(`

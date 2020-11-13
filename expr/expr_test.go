@@ -738,3 +738,18 @@ func a(t *testing.T) {
 	testSuccessful(t, "1589126400 :time", nil, ts)
 	testError(t, `"1234" :time`, nil, expr.ErrBadCast, "cannot cast string to time")
 }
+
+func TestCasts(t *testing.T) {
+	testSuccessful(t, "1.2:string", nil, zstring("1.2"))
+	testSuccessful(t, "5:string", nil, zstring("5"))
+	testSuccessful(t, "1.2.3.4:string", nil, zstring("1.2.3.4"))
+	testSuccessful(t, `"1":int64`, nil, zint64(1))
+	testSuccessful(t, `"-1":int64`, nil, zint64(-1))
+	testSuccessful(t, `"5.5":float64`, nil, zfloat64(5.5))
+	testSuccessful(t, `"1.2.3.4":ip`, nil, zaddr("1.2.3.4"))
+
+	testError(t, "1:ip", nil, expr.ErrBadCast, "ip cast non-ip arg")
+	testError(t, `"abc":int64`, nil, expr.ErrBadCast, "int64 cast with non-parseable string")
+	testError(t, `"abc":float64`, nil, expr.ErrBadCast, "float64 cast with non-parseable string")
+	testError(t, `"abc":ip`, nil, expr.ErrBadCast, "ip cast with non-parseable string")
+}
