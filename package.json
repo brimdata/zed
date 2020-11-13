@@ -11,7 +11,7 @@
   "directories": {
       "bin": "dist"
   },
-  "brim-dependencies": {
+  "brimdependencies": {
       "zeektag": "v3.2.1-brim4",
       "suricatatag": "v5.0.3-brim8"
   }
