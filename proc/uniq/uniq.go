@@ -75,11 +75,11 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 			p.last = nil
 			return zbuf.Array{t}, nil
 		}
-		defer batch.Unref()
 		var out []*zng.Record
 		for k := 0; k < batch.Length(); k++ {
 			out = p.appendUniq(out, batch.Index(k))
 		}
+		batch.Unref()
 		if len(out) > 0 {
 			return zbuf.Array(out), nil
 		}
