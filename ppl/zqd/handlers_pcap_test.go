@@ -60,7 +60,7 @@ func TestPcapPostSuccess(t *testing.T) {
 		assert.Equal(t, iosrc.MustParseURI(pcapfile), info.PcapPath)
 	})
 	t.Run("PcapIndexExists", func(t *testing.T) {
-		require.FileExists(t, p.core.Root.AppendPath(string(p.space.ID), pcapstorage.MetaFile).Filepath())
+		require.FileExists(t, p.core.Root().AppendPath(string(p.space.ID), pcapstorage.MetaFile).Filepath())
 	})
 	t.Run("TaskStartMessage", func(t *testing.T) {
 		status := p.payloads[0].(*api.TaskStart)
