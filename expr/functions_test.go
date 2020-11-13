@@ -229,10 +229,9 @@ func TestTime(t *testing.T) {
 	zval := zng.Value{zng.TypeTime, zng.EncodeTime(nano.Ts(nsec))}
 
 	exp := fmt.Sprintf(`iso("%s")`, iso)
-	//testSuccessful(t, exp, nil, zval)
+	testSuccessful(t, exp, nil, zval)
 	exp = fmt.Sprintf("msec(%d):time", msec)
 	testSuccessful(t, exp, nil, zval)
-	return
 	exp = fmt.Sprintf("msec(%d.0):time", msec)
 	testSuccessful(t, exp, nil, zval)
 	exp = fmt.Sprintf("usec(%d):time", msec*1000)
@@ -249,13 +248,7 @@ func TestTime(t *testing.T) {
 
 	testError(t, "msec()", nil, function.ErrTooFewArgs, "Time.fromMilliseconds() with no args")
 	testError(t, "msec(123, 456)", nil, function.ErrTooManyArgs, "Time.fromMilliseconds() with too many args")
-	//testError(t, `Time.fromMilliseconds("1234")`, nil, function.ErrBadArgument, "Time.fromMilliseconds() with wrong argument type")
 
 	testError(t, "usec()", nil, function.ErrTooFewArgs, "Time.fromMicroseconds() with no args")
 	testError(t, "usec(123, 456)", nil, function.ErrTooManyArgs, "Time.fromMicroseconds() with too many args")
-	//testError(t, `Time.fromMicroseconds("1234")`, nil, function.ErrBadArgument, "Time.fromMicroseconds() with wrong argument type")
-
-	testError(t, "nsec()", nil, function.ErrTooFewArgs, "Time.fromNanoseconds() with no args")
-	testError(t, "nsec(123, 456)", nil, function.ErrTooManyArgs, "Time.fromNanoseconds() with too many args")
-	//testError(t, `Time.fromNanoseconds("1234")`, nil, function.ErrBadArgument, "Time.fromNanoseconds() with wrong argument type")
 }
