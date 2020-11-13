@@ -1,6 +1,6 @@
 script: |
   source services.sh
-  zapi -h $ZQD_HOST -s testsp pcappost -f ng.pcap >/dev/null
+  zapi -h $ZQD_HOST -s testsp postpcap -f ng.pcap >/dev/null
   echo ===
   zapi -h $ZQD_HOST -s testsp info | egrep -v 'data_path|id|pcap_path|size'
   echo ===

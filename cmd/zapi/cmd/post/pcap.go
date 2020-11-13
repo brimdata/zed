@@ -12,29 +12,29 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
 	"github.com/brimsec/zq/cmd/zapi/format"
 	"github.com/brimsec/zq/pkg/display"
 	"github.com/mccanne/charm"
 )
 
-var PcapPost = &charm.Spec{
-	Name:  "pcappost",
-	Usage: "pcappost [options] path",
+var PostPcap = &charm.Spec{
+	Name:  "postpcap",
+	Usage: "postpcap [options] path",
 	Short: "post a pcap file to a space",
-	New:   NewPcap,
+	Long: `Post a pcap path to a space. Paths must be accessible to the
+specified ZQD service. Paths can be s3 URIs`,
+	New: NewPostPcap,
 }
 
 func init() {
-	cmd.CLI.Add(PcapPost)
+	cmd.CLI.Add(PostPcap)
 }
 
-type PcapCommand struct {
+type PostPcapCommand struct {
 	*cmd.Command
-	done  bool
-	force bool
-	stats bool
+	spaceFlags spaceFlags
+	stats      bool
 
 	// stats
 	lastStatus     *api.PcapPostStatus
@@ -42,33 +42,20 @@ type PcapCommand struct {
 	pcapBytesTotal int64
 }
 
-func NewPcap(parent charm.Command, flags *flag.FlagSet) (charm.Command, error) {
-	c := &PcapCommand{Command: parent.(*cmd.Command)}
-	flags.BoolVar(&c.force, "f", false, "create space if specified space does not exist")
-	flags.BoolVar(&c.stats, "stats", false, "write stats to stderr on successful completion")
+func NewPostPcap(parent charm.Command, fs *flag.FlagSet) (charm.Command, error) {
+	c := &PostPcapCommand{Command: parent.(*cmd.Command)}
+	fs.BoolVar(&c.stats, "stats", false, "write stats to stderr on successful completion")
+	c.spaceFlags.SetFlags(fs)
+	c.spaceFlags.cmd = c.Command
 	return c, nil
 }
 
-func (c *PcapCommand) Run(args []string) (err error) {
+func (c *PostPcapCommand) Run(args []string) (err error) {
 	if len(args) == 0 {
-		return errors.New("pcap path arg required")
+		return errors.New("path arg required")
 	}
-	var id api.SpaceID
-	conn := c.Connection()
-	if c.force {
-		sp, err := conn.SpacePost(c.Context(), api.SpacePostRequest{Name: c.Spacename})
-		if err != nil && err != client.ErrSpaceExists {
-			return err
-		}
-		if sp != nil {
-			id = sp.ID
-		}
-	}
-	if id == "" {
-		id, err = c.SpaceID()
-		if err != nil {
-			return err
-		}
+	if err := c.Init(&c.spaceFlags); err != nil {
+		return err
 	}
 	var dp *display.Display
 	if !c.NoFancy {
@@ -80,6 +67,11 @@ func (c *PcapCommand) Run(args []string) (err error) {
 	if err != nil {
 		return err
 	}
+	id, err := c.SpaceID()
+	if err != nil {
+		return err
+	}
+	conn := c.Connection()
 	stream, err := conn.PcapPostStream(c.Context(), id, api.PcapPostRequest{Path: file})
 	if err != nil {
 		return err
@@ -117,7 +109,7 @@ loop:
 	return err
 }
 
-func (c *PcapCommand) Display(w io.Writer) bool {
+func (c *PostPcapCommand) Display(w io.Writer) bool {
 	total := atomic.LoadInt64(&c.pcapBytesTotal)
 	if total == 0 {
 		io.WriteString(w, "posting...\n")
@@ -129,7 +121,7 @@ func (c *PcapCommand) Display(w io.Writer) bool {
 	return true
 }
 
-func (c *PcapCommand) printStats() {
+func (c *PostPcapCommand) printStats() {
 	if c.stats {
 		w := tabwriter.NewWriter(os.Stderr, 0, 0, 1, ' ', 0)
 		// truncate bytes written for tests

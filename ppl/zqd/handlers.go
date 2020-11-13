@@ -390,7 +390,7 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, warning := range warnings {
-		err := pipe.Send(api.LogPostWarning{
+		err := pipe.Send(api.PcapPostWarning{
 			Type:    "PcapPostWarning",
 			Warning: warning,
 		})
@@ -509,6 +509,43 @@ loop:
 		logger.Warn("error sending payload", zap.Error(err))
 		return
 	}
+}
+
+func handleLogStream(c *Core, w http.ResponseWriter, r *http.Request) {
+	s := extractSpace(c, w, r)
+	if s == nil {
+		return
+	}
+	ctx, cancel, err := s.StartOp(r.Context())
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	defer cancel()
+
+	form, err := r.MultipartReader()
+	if err != nil {
+		respondError(c, w, r, zqe.ErrInvalid(err))
+		return
+	}
+
+	zctx := resolver.NewContext()
+	zr := ingest.NewMultipartLogReader(form, zctx)
+
+	if r.URL.Query().Get("stop_err") != "" {
+		zr.SetStopOnError()
+	}
+
+	if err := s.Storage().Write(ctx, zctx, zr); err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+
+	respond(c, w, r, http.StatusOK, api.LogPostResponse{
+		Type:      "LogPostResponse",
+		BytesRead: zr.BytesRead(),
+		Warnings:  zr.Warnings(),
+	})
 }
 
 func handleIndexPost(c *Core, w http.ResponseWriter, r *http.Request) {

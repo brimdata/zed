@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
 	"sort"
 	"strings"
@@ -10,12 +11,48 @@ import (
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/pkg/glob"
+	"github.com/brimsec/zq/pkg/units"
+	"github.com/brimsec/zq/ppl/archive"
 )
 
 var (
 	ErrNoMatch       = errors.New("no match")
 	ErrNoSpacesExist = errors.New("no spaces exist")
 )
+
+type SpaceCreateFlags struct {
+	kind     api.StorageKind
+	datapath string
+	thresh   units.Bytes
+}
+
+func (f *SpaceCreateFlags) SetFlags(fs *flag.FlagSet) {
+	f.kind = api.FileStore
+	f.thresh = archive.DefaultLogSizeThreshold
+	fs.Var(&f.kind, "k", "kind of storage for this space")
+	fs.StringVar(&f.datapath, "d", "", "specific directory for storage data")
+	fs.Var(&f.thresh, "thresh", "target size of chopped files, as '10MB', '4GiB', etc.")
+}
+
+func (f *SpaceCreateFlags) Init() error {
+	return nil
+}
+
+func (f *SpaceCreateFlags) Create(ctx context.Context, conn *client.Connection, name string) (*api.SpaceInfo, error) {
+	req := api.SpacePostRequest{
+		Name:     name,
+		DataPath: f.datapath,
+		Storage: &api.StorageConfig{
+			Kind: f.kind,
+			Archive: &api.ArchiveConfig{
+				CreateOptions: &api.ArchiveCreateOptions{
+					LogSizeThreshold: (*int64)(&f.thresh),
+				},
+			},
+		},
+	}
+	return conn.SpacePost(ctx, req)
+}
 
 func SpaceGlob(ctx context.Context, conn *client.Connection, patterns ...string) ([]api.SpaceInfo, error) {
 	all, err := conn.SpaceList(ctx)

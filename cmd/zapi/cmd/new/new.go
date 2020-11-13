@@ -5,10 +5,7 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
-	"github.com/brimsec/zq/pkg/units"
-	"github.com/brimsec/zq/ppl/archive"
 	"github.com/mccanne/charm"
 )
 
@@ -27,20 +24,12 @@ func init() {
 
 type Command struct {
 	*cmd.Command
-	kind     api.StorageKind
-	datapath string
-	thresh   units.Bytes
+	createFlags cmd.SpaceCreateFlags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{
-		Command: parent.(*cmd.Command),
-		kind:    api.FileStore,
-		thresh:  archive.DefaultLogSizeThreshold,
-	}
-	f.Var(&c.kind, "k", "kind of storage for this space")
-	f.StringVar(&c.datapath, "d", "", "specific directory for storage data")
-	f.Var(&c.thresh, "thresh", "target size of chopped files, as '10MB', '4GiB', etc.")
+	c := &Command{Command: parent.(*cmd.Command)}
+	c.createFlags.SetFlags(f)
 	return c, nil
 }
 
@@ -51,23 +40,16 @@ func (c *Command) Run(args []string) error {
 	if len(args) != 1 {
 		return errors.New("must specify a space name")
 	}
+	if err := c.Init(&c.createFlags); err != nil {
+		return err
+	}
 
+	name := args[0]
 	conn := c.Connection()
-	req := api.SpacePostRequest{
-		Name:     args[0],
-		DataPath: c.datapath,
-		Storage: &api.StorageConfig{
-			Kind: c.kind,
-			Archive: &api.ArchiveConfig{
-				CreateOptions: &api.ArchiveCreateOptions{
-					LogSizeThreshold: (*int64)(&c.thresh),
-				},
-			},
-		},
+	sp, err := c.createFlags.Create(c.Context(), conn, name)
+	if err != nil {
+		return fmt.Errorf("couldn't create new space %s: %w", name, err)
 	}
-	if _, err := conn.SpacePost(c.Context(), req); err != nil {
-		return fmt.Errorf("couldn't create new space %s: %v", req.Name, err)
-	}
-	fmt.Printf("%s: space created\n", req.Name)
+	fmt.Printf("%s: space created\n", sp.Name)
 	return nil
 }
