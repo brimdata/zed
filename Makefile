@@ -5,9 +5,9 @@ export GO111MODULE=on
 VERSION = $(shell git describe --tags --dirty --always)
 ECR_VERSION = $(VERSION)-$(ZQD_K8S_USER)
 LDFLAGS = -s -X github.com/brimsec/zq/cli.Version=$(VERSION)
-ZEEKTAG = v3.2.1-brim4
+ZEEKTAG := $(shell python -c 'import json ;print(json.load(open("package.json"))["brimDependencies"]["zeekTag"])')
 ZEEKPATH = zeek-$(ZEEKTAG)
-SURICATATAG = v5.0.3-brim8
+SURICATATAG := $(shell python -c 'import json; print(json.load(open("package.json"))["brimDependencies"]["suricataTag"])')
 SURICATAPATH = suricata-$(SURICATATAG)
 
 # This enables a shortcut to run a single test from the ./ztests suite, e.g.:
