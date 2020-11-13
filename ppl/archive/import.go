@@ -363,7 +363,6 @@ func (cw *chunkWriter) closeWithTs(ctx context.Context, firstTs, lastTs nano.Ts)
 		return Chunk{}, err
 	}
 	if err := cw.seekIndex.Close(); err != nil {
-		cw.seekIndex.Abort()
 		return Chunk{}, err
 	}
 	// TODO: zq#1264

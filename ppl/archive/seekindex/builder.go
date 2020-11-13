@@ -12,7 +12,6 @@ import (
 
 type Builder struct {
 	builder *zng.Builder
-	path    string
 	writer  *microindex.Writer
 }
 
@@ -25,7 +24,6 @@ func NewBuilder(ctx context.Context, path string, order zbuf.Order) (*Builder, e
 	builder := zng.NewBuilder(zctx.MustLookupTypeRecord(Schema))
 	return &Builder{
 		builder: builder,
-		path:    path,
 		writer:  writer,
 	}, nil
 }
@@ -39,6 +37,12 @@ func (b *Builder) Abort() error {
 	return b.writer.Abort()
 }
 
+// Close closes the underlying microindex.Writer. Should an error occur the
+// microindex will be deleted via a call to abort.
 func (b *Builder) Close() error {
-	return b.writer.Close()
+	err := b.writer.Close()
+	if err != nil {
+		b.Abort()
+	}
+	return err
 }

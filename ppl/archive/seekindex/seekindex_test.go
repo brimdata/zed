@@ -17,22 +17,22 @@ import (
 
 func TestAscending(t *testing.T) {
 	var entries = []entry{
-		{1490469784771872000, 0},
-		{1490469786286912000, 215367},
-		{1490469787357005000, 438514},
-		{1490469788607068000, 680477},
-		{1490469790128032000, 904528},
-		{1490469791268206000, 1139588},
-		{1490469792684029000, 1355498},
-		{1490469794231011000, 1564211},
-		{1490469795517324000, 1776965},
-		{1490469796974189000, 1992947},
+		{100, 0},
+		{200, 215367},
+		{300, 438514},
+		{400, 680477},
+		{500, 904528},
+		{600, 1139588},
+		{700, 1355498},
+		{800, 1564211},
+		{900, 1776965},
+		{1000, 1992947},
 	}
 	s := newTestSeekIndex(t, entries)
-	s.Lookup(nano.Span{Ts: 1490469784771872000, Dur: 1}, Range{0, 215367})
-	s.Lookup(nano.Span{Ts: 1490469784771871999, Dur: 1}, Range{0, 0})
-	s.Lookup(nano.Span{Ts: 1490469791268206000, Dur: 1}, Range{1139588, 1355498})
-	s.Lookup(nano.Span{Ts: 1490469796974189000, Dur: 1}, Range{1992947, math.MaxInt64})
+	s.Lookup(nano.Span{Ts: 100, Dur: 1}, Range{0, 215367})
+	s.Lookup(nano.Span{Ts: 99, Dur: 1}, Range{0, 0})
+	s.Lookup(nano.Span{Ts: 600, Dur: 1}, Range{1139588, 1355498})
+	s.Lookup(nano.Span{Ts: 1000, Dur: 1}, Range{1992947, math.MaxInt64})
 }
 
 func TestDescending(t *testing.T) {
@@ -83,6 +83,7 @@ func (t *testSeekIndex) Lookup(span nano.Span, expected Range) {
 func newTestSeekIndex(t *testing.T, entries []entry) *testSeekIndex {
 	path := build(t, entries)
 	s, err := Open(context.Background(), iosrc.MustParseURI(path))
+	t.Cleanup(func() { require.NoError(t, s.Close()) })
 	require.NoError(t, err)
 	return &testSeekIndex{s, t}
 }
