@@ -435,10 +435,10 @@ func TestPostZngLogs(t *testing.T) {
 		strings.NewReader(src2),
 	)
 	require.NoError(t, err)
-	assert.Equal(t, api.LogPostResponse{Type: "LogPostResponse", BytesRead: 148}, pres)
+	assert.Equal(t, api.LogPostResponse{Type: "LogPostResponse", BytesRead: 150}, pres)
 
 	res := searchTzng(t, conn, sp.ID, "*")
-	require.EqualValues(t, expected, strings.TrimSpace(res))
+	require.EqualValues(t, test.Trim(expected), res)
 
 	info, err := conn.SpaceInfo(context.Background(), sp.ID)
 	require.NoError(t, err)
@@ -470,8 +470,8 @@ detectablebutbadline`
 	)
 	require.NoError(t, err)
 	assert.Regexp(t, ": format detection error.*", res.Warnings[0])
-	assert.Regexp(t, ": line 3: bad format$", res.Warnings[1])
-	assert.EqualValues(t, 113, res.BytesRead)
+	assert.Regexp(t, ": line 4: bad format$", res.Warnings[1])
+	assert.EqualValues(t, 114, res.BytesRead)
 }
 
 func TestPostNDJSONLogs(t *testing.T) {
