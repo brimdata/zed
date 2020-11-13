@@ -5,7 +5,7 @@ export GO111MODULE=on
 VERSION = $(shell git describe --tags --dirty --always)
 ECR_VERSION = $(VERSION)-$(ZQD_K8S_USER)
 LDFLAGS = -s -X github.com/brimsec/zq/cli.Version=$(VERSION)
-ZEEKTAG = $(shell python -c 'import json,sys;print(json.load(open("package.json","rt"))["brimdependencies"]["zeektag"])')
+ZEEKTAG := $(shell python -c 'import json ;print(json.load(open("package.json"))["brimDependencies"]["zeekTag"])')
 ZEEKPATH = zeek-$(ZEEKTAG)
 SURICATATAG = $(shell python -c 'import json,sys;print(json.load(open("package.json","rt"))["brimdependencies"]["suricatatag"])')
 SURICATAPATH = suricata-$(SURICATATAG)
