@@ -1,4 +1,4 @@
-zql: 'sort String.toLower(s)'
+zql: 'sort to_lower(s)'
 
 input: |
   #0:record[s:string]

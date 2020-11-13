@@ -216,7 +216,7 @@ func ReplaceGroupByProcDurationWithKey(p ast.Proc) {
 				LHS: ast.NewDotExpr(field.New("ts")),
 				RHS: &ast.FunctionCall{
 					Node:     ast.Node{"FunctionCall"},
-					Function: "Time.trunc",
+					Function: "trunc",
 					Args: []ast.Expression{
 						ast.NewDotExpr(field.New("ts")),
 						&ast.Literal{
@@ -276,7 +276,7 @@ func setGroupByProcInputSortDir(p ast.Proc, inputSortField field.Static, inputSo
 			}
 			if expr, ok := p.Keys[0].RHS.(*ast.FunctionCall); ok {
 				switch expr.Function {
-				case "Math.ceil", "Math.floor", "Math.round", "Time.trunc":
+				case "ceil", "floor", "round", "trunc":
 					if len(expr.Args) == 0 {
 						return false
 					}

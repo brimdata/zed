@@ -52,7 +52,7 @@ func TestComputeColumns(t *testing.T) {
 			[]string{"ts", "x", "y"},
 		},
 		{
-			"every 1s count(y) by foo=String.replace(x, y, z)",
+			"every 1s count(y) by foo=replace(x, y, z)",
 			[]string{"ts", "x", "y", "z"},
 		},
 		{
@@ -68,7 +68,7 @@ func TestComputeColumns(t *testing.T) {
 			[]string{"ts", "x", "y", "z"},
 		},
 		{
-			"*>1 | every 1s count(y) by foo=String.replace(x, y, z) | (head 1; tail 1)",
+			"*>1 | every 1s count(y) by foo=replace(x, y, z) | (head 1; tail 1)",
 			nil,
 		},
 	}
@@ -128,19 +128,19 @@ func TestExpressionFields(t *testing.T) {
 			fields("a", "b", "c", "d"),
 		},
 		{
-			"Time.trunc(ts, 10)",
+			"trunc(ts, 10)",
 			fields("ts"),
 		},
 		{
-			"Math.max(a, b, c, d)",
+			"max(a, b, c, d)",
 			fields("a", "b", "c", "d"),
 		},
 		{
-			"String.replace(a, b, c)",
+			"replace(a, b, c)",
 			fields("a", "b", "c"),
 		},
 		{
-			"String.replace(a, 'b', c)",
+			"replace(a, 'b', c)",
 			fields("a", "c"),
 		},
 		{

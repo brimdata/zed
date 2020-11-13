@@ -1,4 +1,4 @@
-zql: put c=b:string | put d=toBase64(c),f=toBase64(c):bytes | put e=fromBase64(d):string
+zql: put c=b:string | put d=to_base64(c),f=to_base64(c):bytes | put e=from_base64(d):string
 
 input: |
   #0:record[b:bytes]

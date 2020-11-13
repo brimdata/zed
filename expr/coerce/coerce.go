@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"math"
+	"strconv"
 
 	"github.com/brimsec/zq/expr/result"
 	"github.com/brimsec/zq/pkg/nano"
@@ -158,6 +159,10 @@ func ToFloat(zv zng.Value) (float64, bool) {
 		v, _ := zng.DecodeInt(zv.Bytes)
 		return 1e-9 * float64(v), true
 	}
+	if zng.IsStringy(id) {
+		v, err := strconv.ParseFloat(string(zv.Bytes), 64)
+		return v, err == nil
+	}
 	return 0, false
 }
 
@@ -183,6 +188,10 @@ func ToUint(zv zng.Value) (uint64, bool) {
 		v, _ := zng.DecodeInt(zv.Bytes)
 		return uint64(v / 1_000_000_000), true
 	}
+	if zng.IsStringy(id) {
+		v, err := strconv.ParseUint(string(zv.Bytes), 10, 64)
+		return v, err == nil
+	}
 	return 0, false
 }
 
@@ -205,6 +214,10 @@ func ToInt(zv zng.Value) (int64, bool) {
 	if id == zng.IdDuration {
 		v, _ := zng.DecodeInt(zv.Bytes)
 		return int64(v / 1_000_000_000), true
+	}
+	if zng.IsStringy(id) {
+		v, err := strconv.ParseInt(string(zv.Bytes), 10, 64)
+		return v, err == nil
 	}
 	return 0, false
 }

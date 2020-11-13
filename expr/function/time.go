@@ -25,43 +25,61 @@ func (i *iso) Call(args []zng.Value) (zng.Value, error) {
 	return zng.Value{zng.TypeTime, i.Time(nano.Ts(ts.UnixNano()))}, nil
 }
 
-type ms struct {
+type sec struct {
 	result.Buffer
 }
 
-func (m *ms) Call(args []zng.Value) (zng.Value, error) {
-	zv := args[0]
-	ms, ok := coerce.ToInt(zv)
-	if !ok {
-		return badarg("ms")
-	}
-	return zng.Value{zng.TypeTime, m.Time(nano.Ts(ms * 1_000_000))}, nil
-}
-
-type us struct {
-	result.Buffer
-}
-
-func (u *us) Call(args []zng.Value) (zng.Value, error) {
-	zv := args[0]
-	us, ok := coerce.ToInt(zv)
-	if !ok {
-		return badarg("us")
-	}
-	return zng.Value{zng.TypeTime, u.Time(nano.Ts(us * 1000))}, nil
-}
-
-type ns struct {
-	result.Buffer
-}
-
-func (n *ns) Call(args []zng.Value) (zng.Value, error) {
+func (s *sec) Call(args []zng.Value) (zng.Value, error) {
 	zv := args[0]
 	ns, ok := coerce.ToInt(zv)
 	if !ok {
-		return badarg("ns")
+		sec, ok := coerce.ToFloat(zv)
+		if !ok {
+			return badarg("sec")
+		}
+		ns = int64(1e9 * sec)
+	} else {
+		ns *= 1_000_000_000
 	}
-	return zng.Value{zng.TypeTime, n.Time(nano.Ts(ns))}, nil
+	return zng.Value{zng.TypeInt64, s.Int(ns)}, nil
+}
+
+type msec struct {
+	result.Buffer
+}
+
+func (m *msec) Call(args []zng.Value) (zng.Value, error) {
+	zv := args[0]
+	ns, ok := coerce.ToInt(zv)
+	if !ok {
+		ms, ok := coerce.ToFloat(zv)
+		if !ok {
+			return badarg("msec")
+		}
+		ns = int64(1e6 * ms)
+	} else {
+		ns *= 1_000_000
+	}
+	return zng.Value{zng.TypeInt64, m.Int(ns)}, nil
+}
+
+type usec struct {
+	result.Buffer
+}
+
+func (u *usec) Call(args []zng.Value) (zng.Value, error) {
+	zv := args[0]
+	ns, ok := coerce.ToInt(zv)
+	if !ok {
+		us, ok := coerce.ToFloat(zv)
+		if !ok {
+			return badarg("usec")
+		}
+		ns = int64(1000. * us)
+	} else {
+		ns *= 1000
+	}
+	return zng.Value{zng.TypeInt64, u.Int(ns)}, nil
 }
 
 type trunc struct {
