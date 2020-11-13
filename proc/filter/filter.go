@@ -20,20 +20,24 @@ func New(parent proc.Interface, f filter.Filter) *Proc {
 }
 
 func (f *Proc) Pull() (zbuf.Batch, error) {
-	batch, err := f.parent.Pull()
-	if proc.EOS(batch, err) {
-		return nil, err
-	}
-	defer batch.Unref()
-	// Now we'll a new batch with the (sub)set of reords that match.
-	out := make([]*zng.Record, 0, batch.Length())
-	for k := 0; k < batch.Length(); k++ {
-		r := batch.Index(k)
-		if f.Filter(r) {
-			out = append(out, r.Keep())
+	for {
+		batch, err := f.parent.Pull()
+		if proc.EOS(batch, err) {
+			return nil, err
+		}
+		// Create a new batch containing matching records.
+		out := make([]*zng.Record, 0, batch.Length())
+		for k := 0; k < batch.Length(); k++ {
+			r := batch.Index(k)
+			if f.Filter(r) {
+				out = append(out, r.Keep())
+			}
+		}
+		batch.Unref()
+		if len(out) > 0 {
+			return zbuf.Array(out), nil
 		}
 	}
-	return zbuf.Array(out), nil
 }
 
 func (p *Proc) Done() {
