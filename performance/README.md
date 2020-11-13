@@ -48,7 +48,7 @@ The results below reflect performance as of `zq` release `v0.23.0`.
 |`zq`|`*`|ndjson|zng-uncompressed|65.58|83.43|1.52|
 |`zq`|`*`|ndjson|tzng|65.92|95.82|1.56|
 |`zq`|`*`|ndjson|ndjson|71.29|148.68|2.24|
-|`zeek-cut`|``|zeek|zeek-cut|1.36|1.23|0.10|
+|`zeek-cut`||zeek|zeek-cut|1.36|1.23|0.10|
 |`jq`|`-c "."`|ndjson|ndjson|37.98|4.60|0.88|
 
 ### Extract the field `ts`
