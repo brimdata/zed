@@ -25,7 +25,7 @@ func (f *Proc) Pull() (zbuf.Batch, error) {
 		if proc.EOS(batch, err) {
 			return nil, err
 		}
-		// Now we'll a new batch with the (sub)set of reords that match.
+		// Create a new batch containing matching records.
 		out := make([]*zng.Record, 0, batch.Length())
 		for k := 0; k < batch.Length(); k++ {
 			r := batch.Index(k)
