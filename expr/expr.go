@@ -1005,7 +1005,7 @@ func (t *TimeCast) Eval(rec *zng.Record) (zng.Value, error) {
 	if !ok {
 		return zng.Value{}, ErrBadCast
 	}
-	return zng.Value{zng.TypeTime, zng.EncodeTime(nano.Ts(ns * 1_000_000_000))}, nil
+	return zng.Value{zng.TypeTime, zng.EncodeTime(nano.Ts(ns))}, nil
 }
 
 type StringCast struct {
@@ -1029,7 +1029,12 @@ func (s *StringCast) Eval(rec *zng.Record) (zng.Value, error) {
 		}
 		return zng.Value{s.typ, zng.EncodeString(element.Name)}, nil
 	}
-	return zng.Value{s.typ, zng.EncodeString(zv.String())}, nil
+	//XXX here, we need to create a human-readable string rep
+	// rather than a tzng encoding, e.g., for time, an iso date instead of
+	// ns int.  For now, this works for numbers and IPs.  We will fix in a
+	// subsequent PR (see issue #1603).
+	result := zv.Type.StringOf(zv.Bytes, zng.OutFormatUnescaped, false)
+	return zng.Value{s.typ, zng.EncodeString(result)}, nil
 }
 
 type BytesCast struct {

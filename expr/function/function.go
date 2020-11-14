@@ -20,7 +20,50 @@ type Interface interface {
 	Call([]zng.Value) (zng.Value, error)
 }
 
+var deprecated = map[string]string{
+	"Math.abs":              "abs",
+	"Math.ceil":             "ceil",
+	"Math.floor":            "floor",
+	"Math.log":              "log",
+	"Math.max":              "max",
+	"Math.min":              "min",
+	"Math.mod":              "mod",
+	"Math.round":            "round",
+	"Math.pow":              "pow",
+	"Math.sqrt":             "sqrt",
+	"String.byteLen":        "len",
+	"String.formatFloat":    "type cast, e.g., <float-value>:string",
+	"String.formatInt":      "type cast, e.g., <int-value>:string",
+	"String.formatIp":       "type cast, e.g., <ip-value>:string",
+	"String.parseFloat":     "type cast, e.g., <string-value>:float64",
+	"String.parseInt":       "type cast, e.g., <string-value>:int64",
+	"String.parseIp":        "type cast, e.g., <string-value>:ip",
+	"String.replace":        "replace",
+	"String.runeLen":        "rune_len",
+	"String.toLower":        "to_lower",
+	"String.toUpper":        "to_upper",
+	"String.trim":           "trim",
+	"Time.fromISO":          "iso",
+	"Time.fromMilliseconds": "msec and ype cast, e.g., msec(<msec-value>):time",
+	"Time.fromMicroseconds": "usec and type cast, e.g., usec(<usec-value>):time",
+	"Time.fromNanoseconds":  "type cast, e.g., <nsec-value>:time",
+	"Time.trunc":            "trunc",
+	"toBase64":              "to_base64",
+	"fromBase64":            "from_base64",
+}
+
+func isDeprecated(name string) error {
+	msg, ok := deprecated[name]
+	if ok {
+		return fmt.Errorf("function is deprecated: use %s", msg)
+	}
+	return nil
+}
+
 func New(name string, narg int) (Interface, error) {
+	if err := isDeprecated(name); err != nil {
+		return nil, err
+	}
 	argmin := 1
 	argmax := 1
 	var f Interface
@@ -29,73 +72,53 @@ func New(name string, narg int) (Interface, error) {
 		return nil, ErrNoSuchFunction
 	case "len":
 		f = &lenFn{}
-	case "Math.abs", "abs":
+	case "abs":
 		f = &abs{}
-	case "Math.ceil", "ceil":
+	case "ceil":
 		f = &ceil{}
-	case "Math.floor", "floor":
+	case "floor":
 		f = &floor{}
-	case "Math.log", "log":
+	case "log":
 		f = &log{}
-	case "Math.max", "max":
+	case "max":
 		argmax = -1
 		f = &reducer{fn: anymath.Max}
-	case "Math.min", "min":
+	case "min":
 		argmax = -1
 		f = &reducer{fn: anymath.Min}
-	case "Math.mod", "mod":
+	case "mod":
 		argmin = 2
 		argmax = 2
 		f = &mod{}
-	case "Math.round", "round":
+	case "round":
 		f = &round{}
-	case "Math.pow", "pow":
+	case "pow":
 		argmin = 2
 		argmax = 2
 		f = &pow{}
-	case "Math.sqrt", "sqrt":
+	case "sqrt":
 		f = &sqrt{}
-	case "String.byteLen":
-		f = &bytelen{}
-	case "String.formatFloat":
-		// deprecated by <float-val>:string
-		f = &stringFormatFloat{}
-	case "String.formatInt":
-		// deprecated by <int-val>:string
-		f = &stringFormatInt{}
-	case "String.formatIp":
-		// deprecated by <ip-val>:string
-		f = &stringFormatIp{}
-	case "String.parseFloat":
-		// deprecated by <string-val>:float
-		f = &stringParseFloat{}
-	case "String.parseInt":
-		// deprecated by <string-val>:int<n>
-		f = &stringParseInt{}
-	case "String.parseIp":
-		// deprecated by <string-val>:ip
-		f = &stringParseIp{}
-	case "String.replace", "replace":
+	case "replace":
 		argmin = 3
 		argmax = 3
 		f = &replace{}
-	case "String.runeLen", "rune_len":
+	case "rune_len":
 		f = &runeLen{}
-	case "String.toLower", "to_lower":
+	case "to_lower":
 		f = &toLower{}
-	case "String.toUpper", "to_upper":
+	case "to_upper":
 		f = &toUpper{}
-	case "String.trim", "trim":
+	case "trim":
 		f = &trim{}
-	case "Time.fromISO", "iso":
+	case "iso":
 		f = &iso{}
-	case "Time.fromMilliseconds", "ms":
-		f = &ms{}
-	case "Time.fromMicroseconds", "us":
-		f = &us{}
-	case "Time.fromNanoseconds", "ns":
-		f = &ns{}
-	case "Time.trunc", "trunc":
+	case "sec":
+		f = &sec{}
+	case "msec":
+		f = &msec{}
+	case "usec":
+		f = &usec{}
+	case "trunc":
 		argmin = 2
 		argmax = 2
 		f = &trunc{}
@@ -103,9 +126,9 @@ func New(name string, narg int) (Interface, error) {
 		f = &typeOf{}
 	case "iserr":
 		f = &isErr{}
-	case "toBase64", "to_base64":
+	case "to_base64":
 		f = &toBase64{}
-	case "fromBase64", "from_base64":
+	case "from_base64":
 		f = &fromBase64{}
 	}
 	if argmin != -1 && narg < argmin {
@@ -138,6 +161,9 @@ func (l *lenFn) Call(args []zng.Value) (zng.Value, error) {
 			return zng.Value{}, err
 		}
 		return zng.Value{zng.TypeInt64, l.Int(int64(len))}, nil
+	case *zng.TypeOfString, *zng.TypeOfBstring:
+		v := len(args[0].Bytes)
+		return zng.Value{zng.TypeInt64, l.Int(int64(v))}, nil
 	default:
 		return badarg("len")
 	}

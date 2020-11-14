@@ -10,21 +10,6 @@ import (
 	"github.com/brimsec/zq/zng"
 )
 
-type bytelen struct {
-	result.Buffer
-}
-
-// XXX we should just have a len function that applies to different types
-// and a way to get unicode char len, charlen()?
-func (b *bytelen) Call(args []zng.Value) (zng.Value, error) {
-	zv := args[0]
-	if !zv.IsStringy() {
-		return badarg("Strings.byteLen")
-	}
-	v := len(string(zv.Bytes))
-	return zng.Value{zng.TypeInt64, b.Int(int64(v))}, nil
-}
-
 // XXX these string format functions should be handlded by :string cast
 
 type stringFormatFloat struct{}
@@ -171,7 +156,7 @@ type runeLen struct {
 func (s *runeLen) Call(args []zng.Value) (zng.Value, error) {
 	zv := args[0]
 	if !zv.IsStringy() {
-		return badarg("Strings.byteLen")
+		return badarg("rune_len")
 	}
 	in, err := zng.DecodeString(zv.Bytes)
 	if err != nil {

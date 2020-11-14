@@ -271,7 +271,7 @@ ReducerAssignment
     }
 
 Reducer
-  = !("not"/"len") op:FuncName __ "(" __ expr:Expr?  __ ")" where:WhereClause? {
+  = !("not"/"len") op:IdentifierName __ "(" __ expr:Expr?  __ ")" where:WhereClause? {
       VAR(r) = MAP("op": "Reducer", "operator": op, "where":where)
       if ISNOTNULL(expr) {
         r["expr"] = expr
@@ -508,15 +508,13 @@ FuncExpr
   / Primary
 
 Function
-  = fn:FuncName __ "(" args:ArgumentList ")" {
+  = fn:DeprecatedName __ "(" args:ArgumentList ")" {
       RETURN(MAP("op": "FunctionCall", "function": fn, "args": args))
     }
 
-FuncName
-  = FuncNameStart FuncNameRest* { RETURN(TEXT) }
-
-FuncNameStart = [A-Za-z]
-FuncNameRest = FuncNameStart / [.0-9]
+//XXX change Function names to IdentifierName once we completely
+// get rid of deprecated package-style function name errors.
+DeprecatedName = IdentifierStart (IdentifierRest / ".")* { RETURN(TEXT) }
 
 ArgumentList
   = first:Expr rest:(__ "," __ e:Expr { RETURN(e) })* {
