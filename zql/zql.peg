@@ -227,13 +227,23 @@ ParallelTail
   = __ ";" __ ch:SequentialProcs { RETURN(MAP("op": "SequentialProc", "procs": ch)) }
 
 GroupByProc
-  = every:EveryDur? reducers:Reducers keys:GroupByKeys? limit:LimitArg? {
+  = every:EveryDur? keys:GroupByKeys limit:LimitArg? {
+      VAR(p) = MAP("op": "GroupByProc", "keys": keys)
+      if ISNOTNULL(every) {
+        p["duration"] = every
+      }
+      if ISNOTNULL(limit) {
+        p["limit"] = limit
+      }
+      RETURN(p)
+    }
+  / every:EveryDur? reducers:Reducers keys:(_ GroupByKeys)? limit:LimitArg? {
       VAR(p) = MAP("op": "GroupByProc", "reducers": reducers)
       if ISNOTNULL(every) {
         p["duration"] = every
       }
       if ISNOTNULL(keys) {
-        p["keys"] = keys
+        p["keys"] = ASSERT_ARRAY(keys)[1]
       }
       if ISNOTNULL(limit) {
         p["limit"] = limit
@@ -245,7 +255,7 @@ EveryDur
   = "every"i _ dur:Duration _ { RETURN(dur) }
 
 GroupByKeys
-  = _ "by"i _ columns:FlexAssignments { RETURN(columns) }
+  = "by"i _ columns:FlexAssignments { RETURN(columns) }
 
 LimitArg
   = _ "with" _ "-limit" _ limit:UInt { RETURN(limit) }
