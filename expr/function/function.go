@@ -162,7 +162,7 @@ func (l *lenFn) Call(args []zng.Value) (zng.Value, error) {
 		}
 		return zng.Value{zng.TypeInt64, l.Int(int64(len))}, nil
 	case *zng.TypeOfString, *zng.TypeOfBstring:
-		v := len(string(args[0].Bytes))
+		v := len(args[0].Bytes)
 		return zng.Value{zng.TypeInt64, l.Int(int64(v))}, nil
 	default:
 		return badarg("len")
