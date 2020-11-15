@@ -16,11 +16,11 @@ import (
 // would otherwise block waiting for an adjacent puller to finish but the
 // Merger is waiting on the upstream puller.
 type Merger struct {
-	ctx      context.Context
-	cmp      expr.CompareFn
-	cancelCh chan struct{}
-	once     sync.Once
-	pullers  []*puller
+	ctx     context.Context
+	cancel  context.CancelFunc
+	cmp     expr.CompareFn
+	once    sync.Once
+	pullers []*puller
 }
 
 type puller struct {
@@ -44,10 +44,11 @@ func NewCompareFn(mergeField field.Static, reversed bool) expr.CompareFn {
 }
 
 func NewMerger(ctx context.Context, pullers []Puller, cmp expr.CompareFn) *Merger {
+	ctx, cancel := context.WithCancel(ctx)
 	m := &Merger{
-		ctx:      ctx,
-		cmp:      cmp,
-		cancelCh: make(chan struct{}),
+		ctx:    ctx,
+		cmp:    cmp,
+		cancel: cancel,
 	}
 	m.pullers = make([]*puller, 0, len(pullers))
 	for _, p := range pullers {
@@ -57,10 +58,7 @@ func NewMerger(ctx context.Context, pullers []Puller, cmp expr.CompareFn) *Merge
 }
 
 func (m *Merger) Cancel() {
-	if m.cancelCh != nil {
-		close(m.cancelCh)
-		m.cancelCh = nil
-	}
+	m.cancel()
 }
 
 func MergeReadersByTsAsReader(ctx context.Context, readers []Reader, order Order) (Reader, error) {
@@ -96,8 +94,6 @@ func (m *Merger) run() {
 						// EOS
 						return
 					}
-				case <-m.cancelCh:
-					return
 				case <-m.ctx.Done():
 					return
 				}

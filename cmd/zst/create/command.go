@@ -74,8 +74,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer zbuf.CloseReaders(readers)
-	ctx := context.Background()
-	reader, err := zbuf.MergeReadersByTsAsReader(ctx, readers, zbuf.OrderAsc)
+	reader, err := zbuf.MergeReadersByTsAsReader(context.Background(), readers, zbuf.OrderAsc)
 	if err != nil {
 		return err
 	}
