@@ -38,7 +38,7 @@ func (b *Builder) Abort() error {
 }
 
 // Close closes the underlying microindex.Writer. Should an error occur the
-// microindex will be deleted via a call to abort.
+// microindex will be deleted via a call to Abort.
 func (b *Builder) Close() error {
 	err := b.writer.Close()
 	if err != nil {
