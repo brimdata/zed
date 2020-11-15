@@ -74,6 +74,7 @@ type Command struct {
 	stats       bool
 	quiet       bool
 	stopErr     bool
+	parallel    bool
 	inputFlags  inputflags.Flags
 	outputFlags outputflags.Flags
 	procFlags   procflags.Flags
@@ -97,6 +98,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
 	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
 	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
+	f.BoolVar(&c.parallel, "P", false, "read two or more files into parallel-input zql query")
 	return c, nil
 }
 
@@ -143,12 +145,6 @@ func (c *Command) Run(args []string) error {
 	}
 	defer zbuf.CloseReaders(readers)
 
-	ctx, cancel := signalctx.New(os.Interrupt)
-	defer cancel()
-	reader, err := zbuf.MergeReadersByTsAsReader(ctx, readers, zbuf.OrderAsc)
-	if err != nil {
-		return err
-	}
 	writer, err := c.outputFlags.Open()
 	if err != nil {
 		return err
@@ -157,11 +153,26 @@ func (c *Command) Run(args []string) error {
 	if !c.quiet {
 		d.SetWarningsWriter(os.Stderr)
 	}
-	if err := driver.Run(ctx, d, query, zctx, reader, driver.Config{
-		Warnings: wch,
-	}); err != nil {
-		writer.Close()
-		return err
+	driverConf := driver.Config{Warnings: wch}
+
+	ctx, cancel := signalctx.New(os.Interrupt)
+	defer cancel()
+
+	if c.parallel {
+		if err := driver.RunParallel(ctx, d, query, zctx, readers, driverConf); err != nil {
+			writer.Close()
+			return err
+		}
+	} else {
+		reader, err := zbuf.MergeReadersByTsAsReader(ctx, readers, zbuf.OrderAsc)
+		if err != nil {
+			writer.Close()
+			return err
+		}
+		if err := driver.Run(ctx, d, query, zctx, reader, driverConf); err != nil {
+			writer.Close()
+			return err
+		}
 	}
 	return writer.Close()
 }

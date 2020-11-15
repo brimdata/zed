@@ -1,0 +1,13 @@
+script: |
+  zq -P -t '( put k=a+10 ; put k=b+20) | sort k' A.tzng
+
+inputs:
+  - name: A.tzng
+    data: |
+      #0:record[a:int32]
+      0:[1;]
+
+outputs:
+  - name: stderr
+    data: |
+      number of input sources must match number of parallel inputs in zql query

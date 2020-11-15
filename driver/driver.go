@@ -32,6 +32,20 @@ func Run(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Context
 	return runMux(mux, d, cfg.StatsTick)
 }
 
+func RunParallel(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Context, readers []zbuf.Reader, cfg Config) error {
+	if len(readers) != ast.FanIn(program) {
+		return errors.New("number of input sources must match number of parallel inputs in zql query")
+	}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	mux, err := compileParallel(ctx, program, zctx, readers, cfg)
+	if err != nil {
+		return err
+	}
+	return runMux(mux, d, cfg.StatsTick)
+}
+
 func MultiRun(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Context, msrc MultiSource, mcfg MultiConfig) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
