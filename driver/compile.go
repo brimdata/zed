@@ -176,23 +176,25 @@ func ensureSequentialProc(p ast.Proc) *ast.SequentialProc {
 	}
 }
 
+var passProc = &ast.PassProc{Node: ast.Node{"PassProc"}}
+
 // liftFilter removes the filter at the head of the flowgraph AST, if
 // one is present, and returns its ast.BooleanExpr and the modified
 // flowgraph AST. If the flowgraph does not start with a filter, it
 // returns nil and the unmodified flowgraph.
 func liftFilter(p ast.Proc) (ast.BooleanExpr, ast.Proc) {
 	if fp, ok := p.(*ast.FilterProc); ok {
-		pass := &ast.PassProc{
-			Node: ast.Node{"PassProc"},
-		}
-		return fp.Filter, pass
+		return fp.Filter, passProc
 	}
 	seq, ok := p.(*ast.SequentialProc)
 	if ok && len(seq.Procs) > 0 {
 		if fp, ok := seq.Procs[0].(*ast.FilterProc); ok {
-			rest := &ast.SequentialProc{
-				Node:  ast.Node{"SequentialProc"},
-				Procs: seq.Procs[1:],
+			rest := ast.Proc(passProc)
+			if len(seq.Procs) > 1 {
+				rest = &ast.SequentialProc{
+					Node:  ast.Node{"SequentialProc"},
+					Procs: seq.Procs[1:],
+				}
 			}
 			return fp.Filter, rest
 		}
