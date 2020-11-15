@@ -10,6 +10,11 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
+var schema = []zng.Column{
+	{"ts", zng.TypeTime},
+	{"offset", zng.TypeInt64},
+}
+
 type Builder struct {
 	builder *zng.Builder
 	writer  *microindex.Writer
@@ -22,7 +27,7 @@ func NewBuilder(ctx context.Context, path string, order zbuf.Order) (*Builder, e
 		return nil, err
 	}
 	return &Builder{
-		builder: zng.NewBuilder(zctx.MustLookupTypeRecord(Schema)),
+		builder: zng.NewBuilder(zctx.MustLookupTypeRecord(schema)),
 		writer:  writer,
 	}, nil
 }

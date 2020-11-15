@@ -267,10 +267,10 @@ type chunkWriter struct {
 	dataFileWriter *zngio.Writer
 	firstTs        nano.Ts
 	id             ksuid.KSUID
-	seekIndex      *seekindex.Builder
 	lastTs         nano.Ts
 	masks          []ksuid.KSUID
 	needIndexWrite bool
+	seekIndex      *seekindex.Builder
 	tsd            tsDir
 	wroteFirst     bool
 }

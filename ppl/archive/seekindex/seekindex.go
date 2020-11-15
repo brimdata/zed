@@ -12,11 +12,6 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-var Schema = []zng.Column{
-	{"ts", zng.TypeTime},
-	{"offset", zng.TypeInt64},
-}
-
 type SeekIndex struct {
 	finder *microindex.Finder
 }
