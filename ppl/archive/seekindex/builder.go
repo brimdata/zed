@@ -21,9 +21,8 @@ func NewBuilder(ctx context.Context, path string, order zbuf.Order) (*Builder, e
 	if err != nil {
 		return nil, err
 	}
-	builder := zng.NewBuilder(zctx.MustLookupTypeRecord(Schema))
 	return &Builder{
-		builder: builder,
+		builder: zng.NewBuilder(zctx.MustLookupTypeRecord(Schema)),
 		writer:  writer,
 	}, nil
 }
