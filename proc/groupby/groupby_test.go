@@ -292,7 +292,7 @@ func compileGroupBy(code string) (*ast.GroupByProc, error) {
 		return nil, err
 	}
 	sp := parsed.(*ast.SequentialProc)
-	return sp.Procs[1].(*ast.GroupByProc), nil
+	return sp.Procs[0].(*ast.GroupByProc), nil
 }
 
 func TestGroupbyUnit(t *testing.T) {

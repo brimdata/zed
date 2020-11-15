@@ -14,6 +14,9 @@ type Unpacker interface {
 }
 
 func unpackProcs(custom Unpacker, node joe.Interface) ([]Proc, error) {
+	if node == nil {
+		return nil, errors.New("ast.unpackProcs: procs field is missing")
+	}
 	procList, err := node.Get("procs")
 	if err != nil {
 		return nil, fmt.Errorf("ast.unpackProcs: procs field is missing")
@@ -46,6 +49,9 @@ func getString(node joe.Interface, field string) (string, error) {
 }
 
 func unpackProc(custom Unpacker, node joe.Interface) (Proc, error) {
+	if node == nil {
+		return nil, errors.New("bad AST: missing proc field")
+	}
 	op, err := getString(node, "op")
 	if err != nil {
 		return nil, err
@@ -161,6 +167,9 @@ func unpackExprs(node joe.Interface) ([]Expression, error) {
 }
 
 func unpackAssignment(node joe.Interface) (Assignment, error) {
+	if node == nil {
+		return Assignment{}, errors.New("ast.unpackAssignment: missing assignment field")
+	}
 	var lhs Expression
 	lhsNode, err := node.Get("lhs")
 	// LHS is optional as compiler will infer a field name from the LHS.
@@ -201,6 +210,9 @@ func unpackAssignments(node joe.Interface) ([]Assignment, error) {
 }
 
 func UnpackExpression(node joe.Interface) (Expression, error) {
+	if node == nil {
+		return nil, errors.New("ast.UnpackExpression: no expression provided")
+	}
 	op, err := getString(node, "op")
 	if err != nil {
 		return nil, err

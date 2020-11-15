@@ -41,10 +41,6 @@ func TestCompileParents(t *testing.T) {
 		query, err := zql.ParseProc("(filter *; filter *) | filter *")
 		require.NoError(t, err)
 
-		// Remove the "filter *" that is pre-pended during parsing
-		// if the proc started with a parallel graph.
-		query.(*ast.SequentialProc).Procs = query.(*ast.SequentialProc).Procs[1:]
-
 		leaves, err := compiler.Compile(nil, query, pctx, sources)
 		require.NoError(t, err)
 
