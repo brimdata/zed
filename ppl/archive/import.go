@@ -3,16 +3,13 @@ package archive
 import (
 	"context"
 	"io"
-	"io/ioutil"
-	"os"
 	"sync/atomic"
 
 	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/pkg/bufwriter"
-	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/ppl/archive/seekindex"
 	"github.com/brimsec/zq/proc/sort"
 	"github.com/brimsec/zq/proc/spill"
 	"github.com/brimsec/zq/zbuf"
@@ -264,20 +261,18 @@ func (dw *tsDirWriter) flush() error {
 // chunkWriter is a zbuf.Writer that writes a stream of sorted records into an
 // archive chunk file.
 type chunkWriter struct {
-	ark             *Archive
-	byteCounter     *writeCounter
-	count           uint64
-	dataFileWriter  *zngio.Writer
-	firstTs         nano.Ts
-	id              ksuid.KSUID
-	indexBuilder    *zng.Builder
-	indexTempPath   string
-	indexTempWriter *zngio.Writer
-	lastTs          nano.Ts
-	masks           []ksuid.KSUID
-	needIndexWrite  bool
-	tsd             tsDir
-	wroteFirst      bool
+	ark            *Archive
+	byteCounter    *writeCounter
+	count          uint64
+	dataFileWriter *zngio.Writer
+	firstTs        nano.Ts
+	id             ksuid.KSUID
+	lastTs         nano.Ts
+	masks          []ksuid.KSUID
+	needIndexWrite bool
+	seekIndex      *seekindex.Builder
+	tsd            tsDir
+	wroteFirst     bool
 }
 
 func newChunkWriter(ctx context.Context, ark *Archive, tsd tsDir, masks []ksuid.KSUID) (*chunkWriter, error) {
@@ -291,29 +286,20 @@ func newChunkWriter(ctx context.Context, ark *Archive, tsd tsDir, masks []ksuid.
 		LZ4BlockSize:     importLZ4BlockSize,
 		StreamRecordsMax: ImportStreamRecordsMax,
 	})
-	// Create the temporary index key file
-	idxTemp, err := ioutil.TempFile("", "archive-import-index-key-")
+	seekIndexPath := chunkSeekIndexPath(ark, tsd, id)
+	seekIndex, err := seekindex.NewBuilder(ctx, seekIndexPath.String(), ark.DataOrder)
 	if err != nil {
 		return nil, err
 	}
-	indexTempPath := idxTemp.Name()
-	indexTempWriter := zngio.NewWriter(bufwriter.New(idxTemp), zngio.WriterOpts{})
-	zctx := resolver.NewContext()
-	indexBuilder := zng.NewBuilder(zctx.MustLookupTypeRecord([]zng.Column{
-		{"ts", zng.TypeTime},
-		{"offset", zng.TypeInt64},
-	}))
 	return &chunkWriter{
-		ark:             ark,
-		byteCounter:     counter,
-		dataFileWriter:  dataFileWriter,
-		id:              id,
-		indexBuilder:    indexBuilder,
-		indexTempPath:   indexTempPath,
-		indexTempWriter: indexTempWriter,
-		masks:           masks,
-		needIndexWrite:  true,
-		tsd:             tsd,
+		ark:            ark,
+		byteCounter:    counter,
+		dataFileWriter: dataFileWriter,
+		id:             id,
+		seekIndex:      seekIndex,
+		masks:          masks,
+		needIndexWrite: true,
+		tsd:            tsd,
 	}, nil
 }
 
@@ -330,8 +316,7 @@ func (cw *chunkWriter) Write(rec *zng.Record) error {
 		return err
 	}
 	if cw.needIndexWrite {
-		out := cw.indexBuilder.Build(zng.EncodeTime(rec.Ts()), zng.EncodeInt(sos))
-		if err := cw.indexTempWriter.Write(out); err != nil {
+		if err := cw.seekIndex.Enter(rec.Ts(), sos); err != nil {
 			return err
 		}
 		cw.needIndexWrite = false
@@ -353,8 +338,7 @@ func (cw *chunkWriter) Write(rec *zng.Record) error {
 // because the write error will be more informative and should be returned.
 func (cw *chunkWriter) abort() {
 	cw.dataFileWriter.Close()
-	cw.indexTempWriter.Close()
-	os.Remove(cw.indexTempPath)
+	cw.seekIndex.Abort()
 }
 
 func (cw *chunkWriter) close(ctx context.Context) (Chunk, error) {
@@ -363,10 +347,8 @@ func (cw *chunkWriter) close(ctx context.Context) (Chunk, error) {
 
 func (cw *chunkWriter) closeWithTs(ctx context.Context, firstTs, lastTs nano.Ts) (Chunk, error) {
 	err := cw.dataFileWriter.Close()
-	if closeErr := cw.indexTempWriter.Close(); err == nil {
-		err = closeErr
-	}
 	if err != nil {
+		cw.seekIndex.Abort()
 		return Chunk{}, err
 	}
 	metadata := chunkMetadata{
@@ -377,38 +359,16 @@ func (cw *chunkWriter) closeWithTs(ctx context.Context, firstTs, lastTs nano.Ts)
 		Size:        cw.dataFileWriter.Position(),
 	}
 	if err := writeChunkMetadata(ctx, chunkMetadataPath(cw.ark, cw.tsd, cw.id), metadata); err != nil {
+		cw.seekIndex.Abort()
 		return Chunk{}, err
 	}
-	// Write the time seek index into the archive, feeding it the key/offset
-	// records written to indexTempPath.
-	tf, err := fs.Open(cw.indexTempPath)
-	if err != nil {
-		return Chunk{}, err
-	}
-	defer func() {
-		tf.Close()
-		os.Remove(tf.Name())
-	}()
-	zctx := resolver.NewContext()
-	tfr := zngio.NewReader(tf, zctx)
-	chunk := metadata.Chunk(cw.id)
-	idxURI := chunk.seekIndexPath(cw.ark)
-	idxWriter, err := microindex.NewWriter(zctx, idxURI.String(),
-		microindex.Keys("ts"),
-		microindex.FrameThresh(framesize),
-		microindex.Order(cw.ark.DataOrder),
-	)
-	if err != nil {
-		return Chunk{}, err
-	}
-	if err = zbuf.CopyWithContext(ctx, idxWriter, tfr); err != nil {
-		idxWriter.Abort()
+	if err := cw.seekIndex.Close(); err != nil {
 		return Chunk{}, err
 	}
 	// TODO: zq#1264
 	// Add an entry to the update log for S3 backed stores containing the
 	// location of the just added data & index file.
-	return chunk, idxWriter.Close()
+	return metadata.Chunk(cw.id), nil
 }
 
 type writeCounter struct {
