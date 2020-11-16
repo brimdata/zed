@@ -28,7 +28,6 @@ import (
 	"github.com/brimsec/zq/proc/sort"
 	"github.com/mccanne/charm"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/yaml.v3"
@@ -115,6 +114,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
+	core.Registry().MustRegister(prometheus.NewGoCollector())
 	c.logger.Info("Starting",
 		zap.String("datadir", c.conf.Root),
 		zap.Uint64("open_files_limit", openFilesLimit),
@@ -125,9 +125,6 @@ func (c *Command) Run(args []string) error {
 	h := zqd.NewHandler(core, c.logger)
 	if c.pprof {
 		h = pprofHandlers(h)
-	}
-	if c.prom {
-		h = prometheusHandlers(h)
 	}
 	if c.suricataUpdater != nil {
 		c.launchSuricataUpdate(ctx)
@@ -208,19 +205,6 @@ func pprofHandlers(h http.Handler) http.Handler {
 	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
 	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
-	return mux
-}
-
-// XXX Eventually this function should take prometheus.Registry as an argument.
-// For now since we only care about retrieving go stats, create registry
-// here.
-func prometheusHandlers(h http.Handler) http.Handler {
-	mux := http.NewServeMux()
-	mux.Handle("/", h)
-	promreg := prometheus.NewRegistry()
-	promreg.MustRegister(prometheus.NewGoCollector())
-	promhandler := promhttp.HandlerFor(promreg, promhttp.HandlerOpts{})
-	mux.Handle("/metrics", promhandler)
 	return mux
 }
 

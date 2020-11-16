@@ -8,6 +8,7 @@ import (
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/ppl/zqd/space"
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 )
 
@@ -22,6 +23,7 @@ type Config struct {
 
 type Core struct {
 	logger    *zap.Logger
+	registry  *prometheus.Registry
 	root      iosrc.URI
 	spaces    *space.Manager
 	taskCount int64
@@ -39,7 +41,8 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	if err != nil {
 		return nil, err
 	}
-	spaces, err := space.NewManager(ctx, root, conf.Logger)
+	registry := prometheus.NewRegistry()
+	spaces, err := space.NewManager(ctx, conf.Logger, registry, root)
 	if err != nil {
 		return nil, err
 	}
@@ -48,6 +51,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	}
 	return &Core{
 		logger:   conf.Logger,
+		registry: registry,
 		root:     root,
 		spaces:   spaces,
 		version:  conf.Version,
@@ -62,6 +66,10 @@ func (c *Core) HasSuricata() bool {
 
 func (c *Core) HasZeek() bool {
 	return c.zeek != nil
+}
+
+func (c *Core) Registry() *prometheus.Registry {
+	return c.registry
 }
 
 func (c *Core) Root() iosrc.URI {

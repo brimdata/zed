@@ -13,6 +13,7 @@ import (
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -25,7 +26,7 @@ func TestConfigCurrentVersion(t *testing.T) {
 	u, err := iosrc.ParseURI(root)
 	require.NoError(t, err)
 	ctx := context.Background()
-	m, err := NewManager(ctx, u, zap.NewNop())
+	m, err := NewManager(ctx, zap.NewNop(), prometheus.NewRegistry(), u)
 	require.NoError(t, err)
 	s, err := m.Create(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
@@ -163,7 +164,7 @@ func (tm *testMigration) initRoot() {
 
 func (tm *testMigration) manager() *Manager {
 	if tm.mgr == nil {
-		mgr, err := NewManager(context.Background(), tm.root, zap.NewNop())
+		mgr, err := NewManager(context.Background(), zap.NewNop(), prometheus.NewRegistry(), tm.root)
 		require.NoError(tm.T, err)
 		tm.mgr = mgr
 	}
