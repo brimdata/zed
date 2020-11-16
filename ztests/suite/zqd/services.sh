@@ -38,9 +38,9 @@ export AWS_S3_ENDPOINT=http://localhost:$(cat $portdir/minio)
 
 if [[ "$2" == workers ]]; then
   # start two zqd workers and a zqd root process
-  zqd listen -l=localhost:0 -portfile="$portdir/zqd-w1" -data="$zqdroot" -loglevel=warn &> zqd-w1.log &
+  zqd listen -l=localhost:0 -portfile="$portdir/zqd-w1" -data="$zqdroot" -loglevel=warn -suricataupdater=true &> zqd-w1.log &
   zqdw1pid=$!
-  zqd listen -l=localhost:0 -portfile="$portdir/zqd-w2" -data="$zqdroot" -loglevel=warn &> zqd-w2.log &
+  zqd listen -l=localhost:0 -portfile="$portdir/zqd-w2" -data="$zqdroot" -loglevel=warn -suricataupdater=true &> zqd-w2.log &
   zqdw2pid=$!
 
   awaitfile $portdir/zqd-w1
@@ -50,11 +50,11 @@ if [[ "$2" == workers ]]; then
   portw2=$(cat $portdir/zqd-w2)
 
   workers="127.0.0.1:$portw1,127.0.0.1:$portw2"
-  zqd listen -l=localhost:0 -portfile="$portdir/zqd" -data="$zqdroot" -workers $workers -loglevel=warn &> zqd-root.log &
+  zqd listen -l=localhost:0 -portfile="$portdir/zqd" -data="$zqdroot" -workers $workers -loglevel=warn -suricataupdater=true &> zqd-root.log &
   zqdpid=$!
   awaitfile $portdir/zqd
 else
-  zqd listen -l=localhost:0 -portfile="$portdir/zqd" -data="$zqdroot" -loglevel=warn &> zqd.log &
+  zqd listen -l=localhost:0 -portfile="$portdir/zqd" -data="$zqdroot" -loglevel=warn -suricataupdater=true &> zqd.log &
   zqdpid=$!
   awaitfile $portdir/zqd
 fi
