@@ -11,7 +11,7 @@ import (
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/peeker"
-	"github.com/brimsec/zq/scanner"
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -493,9 +493,9 @@ func (r *Reader) parseValue(rec *zng.Record, id int, b []byte) (*zng.Record, err
 	return rec, nil
 }
 
-var _ scanner.ScannerAble = (*Reader)(nil)
+var _ zbuf.ScannerAble = (*Reader)(nil)
 
-func (r *Reader) NewScanner(ctx context.Context, filterExpr ast.BooleanExpr, s nano.Span) (scanner.Scanner, error) {
+func (r *Reader) NewScanner(ctx context.Context, filterExpr ast.BooleanExpr, s nano.Span) (zbuf.Scanner, error) {
 	var bf *filter.BufferFilter
 	var f filter.Filter
 	if filterExpr != nil {

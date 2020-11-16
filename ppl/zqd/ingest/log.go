@@ -141,9 +141,9 @@ func (p *LogOp) start(ctx context.Context, store storage.Storage) {
 	for _, warning := range p.warnings {
 		p.warningCh <- warning
 	}
-	rc := zbuf.NewCombiner(p.readers, store.NativeOrder().RecordLess())
-	defer rc.Close()
-	p.err = store.Write(ctx, p.zctx, rc)
+	defer zbuf.CloseReaders(p.readers)
+	reader, _ := zbuf.MergeReadersByTsAsReader(ctx, p.readers, store.NativeOrder())
+	p.err = store.Write(ctx, p.zctx, reader)
 	if err := p.closeFiles(); err != nil && p.err != nil {
 		p.err = err
 	}

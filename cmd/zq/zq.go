@@ -141,9 +141,14 @@ func (c *Command) Run(args []string) error {
 			readers[i] = zbuf.NewWarningReader(r, wch)
 		}
 	}
-	reader := zbuf.NewCombiner(readers, zbuf.RecordLessTsForward)
-	defer reader.Close()
+	defer zbuf.CloseReaders(readers)
 
+	ctx, cancel := signalctx.New(os.Interrupt)
+	defer cancel()
+	reader, err := zbuf.MergeReadersByTsAsReader(ctx, readers, zbuf.OrderAsc)
+	if err != nil {
+		return err
+	}
 	writer, err := c.outputFlags.Open()
 	if err != nil {
 		return err
@@ -152,8 +157,6 @@ func (c *Command) Run(args []string) error {
 	if !c.quiet {
 		d.SetWarningsWriter(os.Stderr)
 	}
-	ctx, cancel := signalctx.New(os.Interrupt)
-	defer cancel()
 	if err := driver.Run(ctx, d, query, zctx, reader, driver.Config{
 		Warnings: wch,
 	}); err != nil {

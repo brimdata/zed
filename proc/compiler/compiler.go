@@ -8,13 +8,13 @@ import (
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/proc/combine"
 	"github.com/brimsec/zq/proc/cut"
 	filterproc "github.com/brimsec/zq/proc/filter"
 	"github.com/brimsec/zq/proc/fuse"
 	"github.com/brimsec/zq/proc/groupby"
 	"github.com/brimsec/zq/proc/head"
 	"github.com/brimsec/zq/proc/merge"
-	"github.com/brimsec/zq/proc/orderedmerge"
 	"github.com/brimsec/zq/proc/pass"
 	"github.com/brimsec/zq/proc/put"
 	"github.com/brimsec/zq/proc/rename"
@@ -23,6 +23,7 @@ import (
 	"github.com/brimsec/zq/proc/tail"
 	"github.com/brimsec/zq/proc/top"
 	"github.com/brimsec/zq/proc/uniq"
+	"github.com/brimsec/zq/zbuf"
 )
 
 type Hook func(ast.Proc, *proc.Context, proc.Interface) (proc.Interface, error)
@@ -138,9 +139,10 @@ func compileSequential(custom Hook, nodes []ast.Proc, pctx *proc.Context, parent
 		var parent proc.Interface
 		p := node.(*ast.ParallelProc)
 		if p.MergeOrderField != nil {
-			parent = orderedmerge.New(pctx, parents, p.MergeOrderField, p.MergeOrderReverse)
+			cmp := zbuf.NewCompareFn(p.MergeOrderField, p.MergeOrderReverse)
+			parent = merge.New(pctx, parents, cmp)
 		} else {
-			parent = merge.New(pctx, parents)
+			parent = combine.New(pctx, parents)
 		}
 		parents = parents[0:1]
 		parents[0] = parent

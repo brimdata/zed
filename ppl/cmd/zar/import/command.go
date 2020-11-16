@@ -99,17 +99,19 @@ func (c *Command) Run(args []string) error {
 		return nil
 	}
 
+	ctx, cancel := signalctx.New(os.Interrupt)
+	defer cancel()
+
 	paths := args
 	zctx := resolver.NewContext()
 	readers, err := c.inputFlags.Open(zctx, paths, false)
 	if err != nil {
 		return err
 	}
-	reader := zbuf.NewCombiner(readers, ark.DataOrder.RecordLess())
-	defer reader.Close()
-
-	ctx, cancel := signalctx.New(os.Interrupt)
-	defer cancel()
-
+	defer zbuf.CloseReaders(readers)
+	reader, err := zbuf.MergeReadersByTsAsReader(ctx, readers, ark.DataOrder)
+	if err != nil {
+		return err
+	}
 	return archive.Import(ctx, ark, zctx, reader)
 }

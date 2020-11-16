@@ -100,10 +100,13 @@ func (p *archivePcapOp) run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	combiner := zbuf.NewCombiner(zreaders, p.store.NativeOrder().RecordLess())
-	defer combiner.Close()
-
-	if err := zbuf.CopyWithContext(ctx, p.writer, combiner); err != nil {
+	defer zbuf.CloseReaders(zreaders)
+	merger, err := zbuf.MergeReadersByTsAsReader(ctx, zreaders, p.store.NativeOrder())
+	if err != nil {
+		p.writer.Close()
+		return err
+	}
+	if err := zbuf.CopyWithContext(ctx, p.writer, merger); err != nil {
 		p.writer.Close()
 		return err
 	}

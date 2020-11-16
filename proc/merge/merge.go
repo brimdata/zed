@@ -1,90 +1,39 @@
 package merge
 
 import (
-	"sync"
+	"context"
 
+	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 )
 
 // A Merge proc merges multiple upstream inputs into one output.
+// If the input streams are ordered according to the configured comparison,
+// the output of Merge will have the same order.
 type Proc struct {
-	pctx     *proc.Context
-	once     sync.Once
-	ch       <-chan proc.Result
-	doneCh   chan struct{}
-	parents  []*runnerProc
-	nparents int
+	parents []proc.Interface
+	merger  *zbuf.Merger
 }
 
-type runnerProc struct {
-	pctx   *proc.Context
-	parent proc.Interface
-	ch     chan<- proc.Result
-	doneCh <-chan struct{}
-}
-
-func (r *runnerProc) run() {
-	for {
-		batch, err := r.parent.Pull()
-		select {
-		case r.ch <- proc.Result{batch, err}:
-			if proc.EOS(batch, err) {
-				return
-			}
-		case <-r.doneCh:
-			r.parent.Done()
-			return
-		case <-r.pctx.Done():
-			return
-		}
-	}
-}
-
-func New(pctx *proc.Context, parents []proc.Interface) *Proc {
-	ch := make(chan proc.Result)
-	doneCh := make(chan struct{})
-	var runners []*runnerProc
-	for _, parent := range parents {
-		runners = append(runners, &runnerProc{
-			pctx:   pctx,
-			parent: parent,
-			ch:     ch,
-			doneCh: doneCh,
-		})
+func New(ctx context.Context, parents []proc.Interface, cmp expr.CompareFn) *Proc {
+	pullers := make([]zbuf.Puller, 0, len(parents))
+	for _, p := range parents {
+		pullers = append(pullers, p)
 	}
 	return &Proc{
-		pctx:     pctx,
-		ch:       ch,
-		doneCh:   doneCh,
-		parents:  runners,
-		nparents: len(parents),
+		parents: parents,
+		merger:  zbuf.NewMerger(ctx, pullers, cmp),
 	}
 }
 
-// Pull implements the merge logic for returning data from the upstreams.
-func (p *Proc) Pull() (zbuf.Batch, error) {
-	p.once.Do(func() {
-		for _, m := range p.parents {
-			go m.run()
-		}
-	})
-	for {
-		if p.nparents == 0 {
-			return nil, nil
-		}
-		select {
-		case res := <-p.ch:
-			if res.Batch != nil || res.Err != nil {
-				return res.Batch, res.Err
-			}
-			p.nparents--
-		case <-p.pctx.Done():
-			return nil, p.pctx.Err()
-		}
-	}
+func (m *Proc) Pull() (zbuf.Batch, error) {
+	return m.merger.Pull()
 }
 
 func (m *Proc) Done() {
-	close(m.doneCh)
+	m.merger.Cancel()
+	for _, p := range m.parents {
+		p.Done()
+	}
 }

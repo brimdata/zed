@@ -16,7 +16,6 @@ import (
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/proc/groupby"
 	"github.com/brimsec/zq/proc/proctest"
-	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
@@ -483,12 +482,12 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 	// spill before that all records for that key have been
 	// written to the spill.
 	//
-	savedBatchSize := scanner.BatchSize
-	scanner.BatchSize = 1
+	savedBatchSize := zbuf.ScannerBatchSize
+	zbuf.ScannerBatchSize = 1
 	savedBatchSizeGroupByLimit := groupby.DefaultLimit
 	groupby.DefaultLimit = 2
 	defer func() {
-		scanner.BatchSize = savedBatchSize
+		zbuf.ScannerBatchSize = savedBatchSize
 		groupby.DefaultLimit = savedBatchSizeGroupByLimit
 	}()
 

@@ -12,7 +12,6 @@ import (
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/tzngio"
@@ -23,7 +22,7 @@ import (
 )
 
 type scannerCloser struct {
-	scanner.Scanner
+	zbuf.Scanner
 	io.Closer
 }
 
@@ -85,7 +84,7 @@ func (m *orderedmsrc) SendSources(ctx context.Context, span nano.Span, srcChan c
 		i := i
 		opener := func(zctx *resolver.Context, sf SourceFilter) (ScannerCloser, error) {
 			rdr := tzngio.NewReader(strings.NewReader(parallelTestInputs[i]), zctx)
-			sn, err := scanner.NewScanner(ctx, rdr, sf.FilterExpr, sf.Span)
+			sn, err := zbuf.NewScanner(ctx, rdr, sf.FilterExpr, sf.Span)
 			if err != nil {
 				return nil, err
 			}
@@ -149,8 +148,8 @@ func (rp *noEndScanner) Pull() (zbuf.Batch, error) {
 	return zbuf.ReadBatch(r, 1)
 }
 
-func (rp *noEndScanner) Stats() *scanner.ScannerStats {
-	return &scanner.ScannerStats{}
+func (rp *noEndScanner) Stats() *zbuf.ScannerStats {
+	return &zbuf.ScannerStats{}
 }
 
 type scannerCloseMS struct {

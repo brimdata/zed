@@ -22,7 +22,7 @@ const BatchLen = 100
 // of calls to Pull() and Done() cannot be done concurrently.  In short, never
 // call Done() concurrently to another goroutine calling Pull().
 type Interface interface {
-	Pull() (zbuf.Batch, error)
+	zbuf.Puller
 	Done()
 }
 

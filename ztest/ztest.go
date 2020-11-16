@@ -557,12 +557,12 @@ func runzq(path, ZQL string, outputFlags []string, inputs ...string) (string, st
 	if err != nil {
 		return "", "", err
 	}
+	ctx := context.Background()
 	zctx := resolver.NewContext()
-	rc, err := loadInputs(inputs, zctx)
+	rc, err := loadInputs(ctx, inputs, zctx)
 	if err != nil {
 		return "", err.Error(), err
 	}
-	defer rc.Close()
 	var zflags outputflags.Flags
 	var flags flag.FlagSet
 	zflags.SetFlags(&flags)
@@ -575,7 +575,7 @@ func runzq(path, ZQL string, outputFlags []string, inputs ...string) (string, st
 	}
 	d := driver.NewCLI(zw)
 	d.SetWarningsWriter(&errbuf)
-	err = driver.Run(context.Background(), d, proc, zctx, rc, driver.Config{})
+	err = driver.Run(ctx, d, proc, zctx, rc, driver.Config{})
 	if err2 := zw.Close(); err == nil {
 		err = err2
 	}
@@ -598,7 +598,7 @@ func lookupzq(path string) (string, error) {
 	return "", zqe.E(zqe.NotFound)
 }
 
-func loadInputs(inputs []string, zctx *resolver.Context) (zbuf.ReadCloser, error) {
+func loadInputs(ctx context.Context, inputs []string, zctx *resolver.Context) (zbuf.Reader, error) {
 	var readers []zbuf.Reader
 	for _, input := range inputs {
 		zr, err := detector.NewReader(detector.GzipReader(strings.NewReader(input)), zctx)
@@ -607,7 +607,7 @@ func loadInputs(inputs []string, zctx *resolver.Context) (zbuf.ReadCloser, error
 		}
 		readers = append(readers, zr)
 	}
-	return zbuf.NewCombiner(readers, zbuf.RecordLessTsForward), nil
+	return zbuf.MergeReadersByTsAsReader(ctx, readers, zbuf.OrderAsc)
 }
 
 func tmpInputFiles(inputs []string) (string, []string, error) {

@@ -8,7 +8,6 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/scanner"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/parquetio"
@@ -86,7 +85,7 @@ func OpenFromNamedReadCloser(zctx *resolver.Context, rc io.ReadCloser, path stri
 	return zbuf.NewFile(zr, rc, path), nil
 }
 
-func OpenFiles(ctx context.Context, zctx *resolver.Context, less zbuf.RecordLessFn, paths ...string) (zbuf.ReadCloser, error) {
+func OpenFiles(ctx context.Context, zctx *resolver.Context, paths ...string) ([]zbuf.Reader, error) {
 	var readers []zbuf.Reader
 	for _, path := range paths {
 		reader, err := OpenFileWithContext(ctx, zctx, path, zio.ReaderOpts{})
@@ -95,7 +94,7 @@ func OpenFiles(ctx context.Context, zctx *resolver.Context, less zbuf.RecordLess
 		}
 		readers = append(readers, reader)
 	}
-	return zbuf.NewCombiner(readers, less), nil
+	return readers, nil
 }
 
 type multiFileReader struct {
@@ -107,7 +106,7 @@ type multiFileReader struct {
 }
 
 var _ zbuf.ReadCloser = (*multiFileReader)(nil)
-var _ scanner.ScannerAble = (*multiFileReader)(nil)
+var _ zbuf.ScannerAble = (*multiFileReader)(nil)
 
 // MultiFileReader returns a zbuf.ReadCloser that's the logical concatenation
 // of the provided input paths. They're read sequentially. Once all inputs have
@@ -167,7 +166,7 @@ func (r *multiFileReader) Close() (err error) {
 	return
 }
 
-func (r *multiFileReader) NewScanner(ctx context.Context, filterExpr ast.BooleanExpr, s nano.Span) (scanner.Scanner, error) {
+func (r *multiFileReader) NewScanner(ctx context.Context, filterExpr ast.BooleanExpr, s nano.Span) (zbuf.Scanner, error) {
 	return &multiFileScanner{
 		multiFileReader: r,
 		ctx:             ctx,
@@ -183,8 +182,8 @@ type multiFileScanner struct {
 	span       nano.Span
 
 	mu      sync.Mutex // protects below
-	scanner scanner.Scanner
-	stats   scanner.ScannerStats
+	scanner zbuf.Scanner
+	stats   zbuf.ScannerStats
 }
 
 func (s *multiFileScanner) Pull() (zbuf.Batch, error) {
@@ -195,7 +194,7 @@ func (s *multiFileScanner) Pull() (zbuf.Batch, error) {
 			return nil, err
 		}
 		if s.scanner == nil {
-			sn, err := scanner.NewScanner(s.ctx, s.reader, s.filterExpr, s.span)
+			sn, err := zbuf.NewScanner(s.ctx, s.reader, s.filterExpr, s.span)
 			if err != nil {
 				return nil, err
 			}
@@ -213,7 +212,7 @@ func (s *multiFileScanner) Pull() (zbuf.Batch, error) {
 	}
 }
 
-func (s *multiFileScanner) Stats() *scanner.ScannerStats {
+func (s *multiFileScanner) Stats() *zbuf.ScannerStats {
 	s.mu.Lock()
 	st := s.stats
 	if s.scanner != nil {
