@@ -14,26 +14,26 @@ type Proc struct {
 	cancel   context.CancelFunc
 	once     sync.Once
 	ch       <-chan proc.Result
-	parents  []*runnerProc
+	parents  []*puller
 	nparents int
 }
 
-type runnerProc struct {
-	ctx    context.Context
-	parent proc.Interface
-	ch     chan<- proc.Result
+type puller struct {
+	proc.Interface
+	ctx context.Context
+	ch  chan<- proc.Result
 }
 
-func (r *runnerProc) run() {
+func (p *puller) run() {
 	for {
-		batch, err := r.parent.Pull()
+		batch, err := p.Pull()
 		select {
-		case r.ch <- proc.Result{batch, err}:
+		case p.ch <- proc.Result{batch, err}:
 			if proc.EOS(batch, err) {
 				return
 			}
-		case <-r.ctx.Done():
-			r.parent.Done()
+		case <-p.ctx.Done():
+			p.Done()
 			return
 		}
 	}
@@ -42,19 +42,15 @@ func (r *runnerProc) run() {
 func New(pctx *proc.Context, parents []proc.Interface) *Proc {
 	ch := make(chan proc.Result)
 	ctx, cancel := context.WithCancel(pctx.Context)
-	runners := make([]*runnerProc, 0, len(parents))
+	pullers := make([]*puller, 0, len(parents))
 	for _, parent := range parents {
-		runners = append(runners, &runnerProc{
-			ctx:    ctx,
-			parent: parent,
-			ch:     ch,
-		})
+		pullers = append(pullers, &puller{parent, ctx, ch})
 	}
 	return &Proc{
 		ctx:      ctx,
 		cancel:   cancel,
 		ch:       ch,
-		parents:  runners,
+		parents:  pullers,
 		nparents: len(parents),
 	}
 }
