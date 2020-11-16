@@ -163,26 +163,26 @@ func (c *Command) init() error {
 		return err
 	}
 	var err error
-	c.conf.Suricata, err = getLauncher(c.suricataRunnerPath, "suricatarunner")
+	c.conf.Suricata, err = getLauncher(c.suricataRunnerPath, "suricatarunner", false)
 	if err != nil {
 		return err
 	}
-	c.suricataUpdater, err = getLauncher(c.suricataUpdaterPath, "suricataupdater")
+	c.suricataUpdater, err = getLauncher(c.suricataUpdaterPath, "suricataupdater", true)
 	if err != nil {
 		return err
 	}
-	c.conf.Zeek, err = getLauncher(c.zeekRunnerPath, "zeekrunner")
+	c.conf.Zeek, err = getLauncher(c.zeekRunnerPath, "zeekrunner", false)
 	return err
 }
 
-func getLauncher(path, defaultFile string) (pcapanalyzer.Launcher, error) {
+func getLauncher(path, defaultFile string, stdout bool) (pcapanalyzer.Launcher, error) {
 	if path == "" {
 		var err error
 		if path, err = exec.LookPath(defaultFile); err != nil {
 			return nil, nil
 		}
 	}
-	return pcapanalyzer.LauncherFromPath(path)
+	return pcapanalyzer.LauncherFromPath(path, stdout)
 }
 
 func (c *Command) watchBrimFd(ctx context.Context) (context.Context, error) {
@@ -266,11 +266,14 @@ func (c *Command) launchSuricataUpdate(ctx context.Context) {
 			c.logger.Error("Launching suricata updater", zap.Error(err))
 			return
 		}
-		stdout, err := sproc.Wait()
-		c.logger.Info("Suricata updater completed", zap.String("stdout", stdout))
+		err = sproc.Wait()
+		c.logger.Info("Suricata updater completed")
 		if err != nil {
 			c.logger.Error("Running suricata updater", zap.Error(err))
+			return
 		}
+		stdout := sproc.Stdout()
+		c.logger.Info("Suricata updater stdout", zap.String("stdout", stdout))
 	}()
 }
 

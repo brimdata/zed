@@ -15,9 +15,12 @@ var ErrNotFound = errors.New("executable not found")
 
 // Process is an interface for interacting running with a running process.
 type ProcessWaiter interface {
-	// Wait waits for a running process to exit, returning the
-	// process' accumulated stdout and any errors that occur.
-	Wait() (string, error)
+	// Wait waits for a running process to exit, returning any errors that
+	// occur.
+	Wait() error
+	// Stdout returns the captured standard output if capture was
+	// enabled, "" otherwise.
+	Stdout() string
 }
 
 func wrapError(err error, name, stderr string) error {
@@ -42,7 +45,12 @@ type Process struct {
 func NewProcess(cmd *exec.Cmd) *Process {
 	p := &Process{cmd: cmd, stderrBuf: bytes.NewBuffer(nil), stdoutBuf: bytes.NewBuffer(nil)}
 	cmd.Stderr = p.stderrBuf
-	cmd.Stdout = p.stdoutBuf
+	return p
+}
+
+func NewProcessStdout(cmd *exec.Cmd) *Process {
+	p := NewProcess(cmd)
+	p.cmd.Stdout = p.stdoutBuf
 	return p
 }
 
@@ -50,7 +58,13 @@ func (p *Process) Start() error {
 	return wrapError(p.cmd.Start(), p.cmd.Path, p.stderrBuf.String())
 }
 
-func (p *Process) Wait() (string, error) {
-	err := p.cmd.Wait()
-	return p.stdoutBuf.String(), wrapError(err, p.cmd.Path, p.stderrBuf.String())
+func (p *Process) Wait() error {
+	return wrapError(p.cmd.Wait(), p.cmd.Path, p.stderrBuf.String())
+}
+
+func (p *Process) Stdout() string {
+	if p.stdoutBuf == nil {
+		return ""
+	}
+	return p.stdoutBuf.String()
 }

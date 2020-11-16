@@ -20,7 +20,7 @@ type Launcher func(context.Context, io.Reader, string) (ProcessWaiter, error)
 // zeekpath should point to an executable or script that:
 // - expects to receive a pcap file on stdin
 // - writes the resulting logs into its working directory
-func LauncherFromPath(path string) (Launcher, error) {
+func LauncherFromPath(path string, stdout bool) (Launcher, error) {
 	var cmdline []string
 
 	if runtime.GOOS == "windows" {
@@ -39,7 +39,12 @@ func LauncherFromPath(path string) (Launcher, error) {
 		cmd := exec.CommandContext(ctx, cmdline[0], cmdline[1:]...)
 		cmd.Dir = dir
 		cmd.Stdin = r
-		p := NewProcess(cmd)
+		var p *Process
+		if stdout {
+			p = NewProcessStdout(cmd)
+		} else {
+			p = NewProcess(cmd)
+		}
 		return p, p.Start()
 	}, nil
 }

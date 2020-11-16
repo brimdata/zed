@@ -172,7 +172,7 @@ func (p *archivePcapOp) runAnalyzer(ctx context.Context, group *errgroup.Group, 
 		return nil, nil, err
 	}
 	group.Go(func() error {
-		_, err := waiter.Wait()
+		err := waiter.Wait()
 		// Analyzer has either encountered an error or received an EOF from the
 		// pcap stream. Tell DirReader to stop tail files, which will in turn
 		// cause an EOF on zbuf.Read stream when remaining data has been read.
