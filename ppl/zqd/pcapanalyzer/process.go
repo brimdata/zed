@@ -18,6 +18,9 @@ type ProcessWaiter interface {
 	// Wait waits for a running process to exit, returning any errors that
 	// occur.
 	Wait() error
+	// Stdout returns the captured standard output if capture was
+	// enabled, "" otherwise.
+	Stdout() string
 }
 
 func wrapError(err error, name, stderr string) error {
@@ -28,7 +31,7 @@ func wrapError(err error, name, stderr string) error {
 	}
 	var pathErr *os.PathError
 	if errors.As(err, &pathErr) {
-		return fmt.Errorf("error executing %s runner: %s: %v", name, pathErr.Path, pathErr.Err)
+		return fmt.Errorf("error executing %s: %s: %v", name, pathErr.Path, pathErr.Err)
 	}
 	return err
 }
@@ -36,12 +39,15 @@ func wrapError(err error, name, stderr string) error {
 type Process struct {
 	cmd       *exec.Cmd
 	stderrBuf *bytes.Buffer
+	stdoutBuf *bytes.Buffer
 }
 
-func NewProcess(cmd *exec.Cmd) *Process {
-	p := &Process{cmd: cmd, stderrBuf: bytes.NewBuffer(nil)}
-	// Capture stderr for error reporting.
+func NewProcess(cmd *exec.Cmd, stdout bool) *Process {
+	p := &Process{cmd: cmd, stderrBuf: bytes.NewBuffer(nil), stdoutBuf: bytes.NewBuffer(nil)}
 	cmd.Stderr = p.stderrBuf
+	if stdout {
+		p.cmd.Stdout = p.stdoutBuf
+	}
 	return p
 }
 
@@ -51,4 +57,8 @@ func (p *Process) Start() error {
 
 func (p *Process) Wait() error {
 	return wrapError(p.cmd.Wait(), p.cmd.Path, p.stderrBuf.String())
+}
+
+func (p *Process) Stdout() string {
+	return p.stdoutBuf.String()
 }

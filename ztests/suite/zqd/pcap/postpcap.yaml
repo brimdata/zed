@@ -7,9 +7,9 @@ script: |
 
 inputs:
   - name: ng.pcap
-    source: ../pcap/ng.pcap
+    source: ../../pcap/ng.pcap
   - name: services.sh
-    source: services.sh
+    source: ../services.sh
 
 outputs:
   - name: stdout

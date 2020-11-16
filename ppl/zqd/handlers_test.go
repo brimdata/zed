@@ -1121,6 +1121,8 @@ func (p *testPcapProcess) Wait() error {
 	return nil
 }
 
+func (p *testPcapProcess) Stdout() string { return "" }
+
 func writeLogsFn(logs []string) procFn {
 	return func(p *testPcapProcess) error {
 		for _, log := range logs {

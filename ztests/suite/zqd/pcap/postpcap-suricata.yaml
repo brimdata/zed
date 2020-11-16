@@ -9,7 +9,7 @@ inputs:
   - name: alerts.pcap
     source: alerts.pcap
   - name: services.sh
-    source: services.sh
+    source: ../services.sh
 
 outputs:
   - name: stdout

@@ -7,7 +7,7 @@ script: |
 
 inputs:
   - name: alerts.pcap
-    source: ../alerts.pcap
+    source: ../pcap/alerts.pcap
   - name: services.sh
     source: ../services.sh
 

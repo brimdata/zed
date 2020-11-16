@@ -51,18 +51,20 @@ func init() {
 
 type Command struct {
 	*root.Command
-	listenAddr         string
-	conf               zqd.Config
-	pprof              bool
-	prom               bool
-	suricataRunnerPath string
-	zeekRunnerPath     string
-	configfile         string
-	loggerConf         *logger.Config
-	logLevel           zapcore.Level
-	logger             *zap.Logger
-	devMode            bool
-	portFile           string
+	listenAddr          string
+	conf                zqd.Config
+	pprof               bool
+	prom                bool
+	suricataRunnerPath  string
+	suricataUpdater     pcapanalyzer.Launcher
+	suricataUpdaterPath string
+	zeekRunnerPath      string
+	configfile          string
+	loggerConf          *logger.Config
+	logLevel            zapcore.Level
+	logger              *zap.Logger
+	devMode             bool
+	portFile            string
 	// brimfd is a file descriptor passed through by brim desktop. If set zqd
 	// will exit if the fd is closed.
 	brimfd  int
@@ -75,6 +77,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.listenAddr, "l", ":9867", "[addr]:port to listen on")
 	f.StringVar(&c.conf.Root, "data", ".", "data location")
 	f.StringVar(&c.suricataRunnerPath, "suricatarunner", "", "path to command that generates suricata eve.json from pcap data")
+	f.StringVar(&c.suricataUpdaterPath, "suricataupdater", "", "path to suricata-update command (will be invoked once at startup)")
 	f.StringVar(&c.zeekRunnerPath, "zeekrunner", "", "path to command that generates zeek logs from pcap data")
 	f.BoolVar(&c.pprof, "pprof", false, "add pprof routes to api")
 	f.BoolVar(&c.prom, "prometheus", false, "add prometheus metrics routes to api")
@@ -126,6 +129,9 @@ func (c *Command) Run(args []string) error {
 	if c.prom {
 		h = prometheusHandlers(h)
 	}
+	if c.suricataUpdater != nil {
+		c.launchSuricataUpdate(ctx)
+	}
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt)
 	go func() {
@@ -157,22 +163,26 @@ func (c *Command) init() error {
 		return err
 	}
 	var err error
-	c.conf.Suricata, err = getLauncher(c.suricataRunnerPath, "suricatarunner")
+	c.conf.Suricata, err = getLauncher(c.suricataRunnerPath, "suricatarunner", false)
 	if err != nil {
 		return err
 	}
-	c.conf.Zeek, err = getLauncher(c.zeekRunnerPath, "zeekrunner")
+	c.suricataUpdater, err = getLauncher(c.suricataUpdaterPath, "suricataupdater", true)
+	if err != nil {
+		return err
+	}
+	c.conf.Zeek, err = getLauncher(c.zeekRunnerPath, "zeekrunner", false)
 	return err
 }
 
-func getLauncher(path, defaultFile string) (pcapanalyzer.Launcher, error) {
+func getLauncher(path, defaultFile string, stdout bool) (pcapanalyzer.Launcher, error) {
 	if path == "" {
 		var err error
 		if path, err = exec.LookPath(defaultFile); err != nil {
 			return nil, nil
 		}
 	}
-	return pcapanalyzer.LauncherFromPath(path)
+	return pcapanalyzer.LauncherFromPath(path, stdout)
 }
 
 func (c *Command) watchBrimFd(ctx context.Context) (context.Context, error) {
@@ -246,6 +256,25 @@ func (c *Command) loadConfigFile() error {
 	}
 
 	return err
+}
+
+func (c *Command) launchSuricataUpdate(ctx context.Context) {
+	c.logger.Info("Launching suricata updater")
+	go func() {
+		sproc, err := c.suricataUpdater(ctx, nil, "")
+		if err != nil {
+			c.logger.Error("Launching suricata updater", zap.Error(err))
+			return
+		}
+		err = sproc.Wait()
+		c.logger.Info("Suricata updater completed")
+		if err != nil {
+			c.logger.Error("Running suricata updater", zap.Error(err))
+			return
+		}
+		stdout := sproc.Stdout()
+		c.logger.Info("Suricata updater stdout", zap.String("stdout", stdout))
+	}()
 }
 
 func (c *Command) initWorkers() error {

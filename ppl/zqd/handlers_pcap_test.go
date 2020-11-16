@@ -200,7 +200,7 @@ func TestPcapPostZeekFailAfterWrite(t *testing.T) {
 }
 
 func launcherFromEnv(t *testing.T, key string) pcapanalyzer.Launcher {
-	ln, err := pcapanalyzer.LauncherFromPath(os.Getenv(key))
+	ln, err := pcapanalyzer.LauncherFromPath(os.Getenv(key), false)
 	require.NoError(t, err)
 	return ln
 }
