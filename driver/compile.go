@@ -74,11 +74,7 @@ func (n *namedScanner) Pull() (zbuf.Batch, error) {
 	return b, err
 }
 
-func compileSingle(ctx context.Context, program ast.Proc, zctx *resolver.Context, r zbuf.Reader, cfg Config) (*muxOutput, error) {
-	return compileParallel(ctx, program, zctx, []zbuf.Reader{r}, cfg)
-}
-
-func compileParallel(ctx context.Context, program ast.Proc, zctx *resolver.Context, readers []zbuf.Reader, cfg Config) (*muxOutput, error) {
+func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, readers []zbuf.Reader, cfg Config) (*muxOutput, error) {
 	if cfg.Logger == nil {
 		cfg.Logger = zap.NewNop()
 	}

@@ -25,7 +25,7 @@ func Run(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Context
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	mux, err := compileSingle(ctx, program, zctx, reader, cfg)
+	mux, err := compile(ctx, program, zctx, []zbuf.Reader{reader}, cfg)
 	if err != nil {
 		return err
 	}
@@ -39,7 +39,7 @@ func RunParallel(ctx context.Context, d Driver, program ast.Proc, zctx *resolver
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	mux, err := compileParallel(ctx, program, zctx, readers, cfg)
+	mux, err := compile(ctx, program, zctx, readers, cfg)
 	if err != nil {
 		return err
 	}
@@ -205,7 +205,7 @@ func (mr *muxReader) Close() error {
 
 func NewReader(ctx context.Context, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader) (zbuf.ReadCloser, error) {
 	ctx, cancel := context.WithCancel(ctx)
-	mux, err := compileSingle(ctx, program, zctx, reader, Config{})
+	mux, err := compile(ctx, program, zctx, []zbuf.Reader{reader}, Config{})
 	if err != nil {
 		cancel()
 		return nil, err
