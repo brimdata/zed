@@ -63,8 +63,5 @@ func (p *Process) Wait() error {
 }
 
 func (p *Process) Stdout() string {
-	if p.stdoutBuf == nil {
-		return ""
-	}
 	return p.stdoutBuf.String()
 }

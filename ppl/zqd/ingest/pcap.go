@@ -211,8 +211,7 @@ func (p *legacyPcapOp) runZeek(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	err = zproc.Wait()
-	return err
+	return zproc.Wait()
 }
 
 func (p *legacyPcapOp) runSuricata(ctx context.Context) error {
