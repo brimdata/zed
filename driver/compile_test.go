@@ -296,22 +296,17 @@ func TestParallelizeFlowgraph(t *testing.T) {
 
 			expected, err := zql.ParseProc(tc.expected)
 			require.NoError(t, err)
-			if _, ok := expected.(*ast.SequentialProc).Procs[1].(*ast.ParallelProc); ok {
-				// Remove the "filter *" that is pre-pended during parsing
-				// if the proc started with a parallel graph.
-				expected.(*ast.SequentialProc).Procs = expected.(*ast.SequentialProc).Procs[1:]
 
-				// If the parallelized flowgraph includes a groupby, then adjust the expected AST by setting
-				// the EmitPart flag on the parallelized groupbys and the ConsumePart flag on the post-merge groupby.
-				branch := expected.(*ast.SequentialProc).Procs[0].(*ast.ParallelProc).Procs[0].(*ast.SequentialProc)
-				if _, ok := branch.Procs[len(branch.Procs)-1].(*ast.GroupByProc); ok {
-					for _, b := range expected.(*ast.SequentialProc).Procs[0].(*ast.ParallelProc).Procs {
-						seq := b.(*ast.SequentialProc)
-						seq.Procs[len(seq.Procs)-1].(*ast.GroupByProc).EmitPart = true
-					}
-					g := expected.(*ast.SequentialProc).Procs[1].(*ast.GroupByProc)
-					g.ConsumePart = true
+			// If the parallelized flowgraph includes a groupby, then adjust the expected AST by setting
+			// the EmitPart flag on the parallelized groupbys and the ConsumePart flag on the post-merge groupby.
+			branch := expected.(*ast.SequentialProc).Procs[0].(*ast.ParallelProc).Procs[0].(*ast.SequentialProc)
+			if _, ok := branch.Procs[len(branch.Procs)-1].(*ast.GroupByProc); ok {
+				for _, b := range expected.(*ast.SequentialProc).Procs[0].(*ast.ParallelProc).Procs {
+					seq := b.(*ast.SequentialProc)
+					seq.Procs[len(seq.Procs)-1].(*ast.GroupByProc).EmitPart = true
 				}
+				g := expected.(*ast.SequentialProc).Procs[1].(*ast.GroupByProc)
+				g.ConsumePart = true
 			}
 			if tc.zql != tc.expected {
 				expected.(*ast.SequentialProc).Procs[0].(*ast.ParallelProc).MergeOrderField = sf(tc.expectedMergeOrderField)
@@ -335,7 +330,7 @@ func TestParallelizeFlowgraph(t *testing.T) {
 
 		// We can't express a pass proc in zql, so add it to the AST this way.
 		// (It's added by the parallelized flowgraph in order to force a merge rather than having trailing leaves connected to a mux output).
-		expected.(*ast.SequentialProc).Procs = append(expected.(*ast.SequentialProc).Procs[1:], &ast.PassProc{Node: ast.Node{"PassProc"}})
+		expected.(*ast.SequentialProc).Procs = append(expected.(*ast.SequentialProc).Procs, &ast.PassProc{Node: ast.Node{"PassProc"}})
 		expected.(*ast.SequentialProc).Procs[0].(*ast.ParallelProc).MergeOrderField = sf(orderField)
 
 		assert.Equal(t, expected.(*ast.SequentialProc), parallelized)

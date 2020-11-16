@@ -287,8 +287,7 @@ function peg$parse(input, options) {
 
       peg$c0 = function(ast) { return ast },
       peg$c1 = function(procs) {
-            let filt = {"op": "FilterProc", "filter": {"op": "MatchAll"}};
-            return {"op": "SequentialProc", "procs": [filt, ... procs]}
+            return {"op": "SequentialProc", "procs": procs}
           },
       peg$c2 = function(s, rest) {
             if (rest.length == 0) {

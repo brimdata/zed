@@ -51,8 +51,7 @@ start = __ ast:Query __ EOF { RETURN(ast) }
 
 Query
   = procs:SequentialProcs {
-      VAR(filt) = MAP("op": "FilterProc", "filter": MAP("op": "MatchAll"))
-      RETURN(MAP("op": "SequentialProc", "procs": PREPEND(filt, procs)))
+      RETURN(MAP("op": "SequentialProc", "procs": procs))
     }
   / s:Search __ rest:SequentialTail* {
       if (ARRAY_LEN(rest) == 0) {
