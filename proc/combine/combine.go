@@ -22,7 +22,6 @@ type runnerProc struct {
 	ctx    context.Context
 	parent proc.Interface
 	ch     chan<- proc.Result
-	doneCh <-chan struct{}
 }
 
 func (r *runnerProc) run() {
