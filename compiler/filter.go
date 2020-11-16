@@ -1,6 +1,7 @@
 package compiler
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/brimsec/zq/ast"
@@ -17,10 +18,10 @@ var _ zbuf.Filter = (*Filter)(nil)
 // importing compiler (and causing an import loop).
 type Filter struct {
 	zctx *resolver.Context
-	ast  ast.BooleanExpr
+	ast  ast.Expression
 }
 
-func NewFilter(zctx *resolver.Context, ast ast.BooleanExpr) *Filter {
+func NewFilter(zctx *resolver.Context, ast ast.Expression) *Filter {
 	return &Filter{zctx, ast}
 }
 
@@ -28,7 +29,9 @@ func (f *Filter) AsFilter() (expr.Filter, error) {
 	if f == nil {
 		return nil, nil
 	}
-	return compileFilter(f.zctx, f.ast)
+	// XXX nil scope... when we implement global scope, the filters
+	// will need access to it.
+	return compileFilter(f.zctx, nil, f.ast)
 }
 
 func (f *Filter) AsBufferFilter() (*expr.BufferFilter, error) {
@@ -38,7 +41,7 @@ func (f *Filter) AsBufferFilter() (*expr.BufferFilter, error) {
 	return compileBufferFilter(f.ast)
 }
 
-func (f *Filter) AST() ast.BooleanExpr {
+func (f *Filter) AST() ast.Expression {
 	return f.ast
 }
 
@@ -46,21 +49,40 @@ func (f *Filter) AsProc() ast.Proc {
 	return ast.FilterToProc(f.ast)
 }
 
-func compileFieldCompare(zctx *resolver.Context, node *ast.CompareField) (expr.Filter, error) {
-	literal := node.Value
-	// Treat len(field) specially since we're looking at a computed
-	// value rather than a field from a record.
-
-	// XXX we need to implement proper expressions
-	// XXX we took out field call and need to put expressions back into
-	// the search sytnax, which is tricky syntactically to mix this stuff
-	// with keyword search
-
-	comparison, err := expr.Comparison(node.Comparator, literal)
-	if err != nil {
-		return nil, err
+func compileCompareField(zctx *resolver.Context, scope *Scope, e *ast.BinaryExpression) (expr.Filter, error) {
+	if e.Operator == "in" {
+		literal, ok := e.LHS.(*ast.Literal)
+		if !ok {
+			return nil, nil
+		}
+		// Check if RHS is a legit lval/field.
+		if _, err := CompileLval(e.RHS); err != nil {
+			return nil, nil
+		}
+		resolver, err := compileExpr(zctx, scope, e.RHS)
+		if err != nil {
+			return nil, err
+		}
+		eql, _ := expr.Comparison("=", *literal)
+		comparison := expr.Contains(eql)
+		return expr.Combine(resolver, comparison), nil
 	}
-	resolver, err := CompileExpr(zctx, node.Field)
+	literal, ok := e.RHS.(*ast.Literal)
+	if !ok {
+		return nil, nil
+	}
+	comparison, err := expr.Comparison(e.Operator, *literal)
+	if err != nil {
+		// If this fails, return no match instead of the error and
+		// let later-on code detect the error as this could be a
+		// non-error situation that isn't a simple comparison.
+		return nil, nil
+	}
+	// Check if LHS is a legit lval/field before compiling the expr.
+	if _, err := CompileLval(e.LHS); err != nil {
+		return nil, nil
+	}
+	resolver, err := compileExpr(zctx, scope, e.LHS)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +91,7 @@ func compileFieldCompare(zctx *resolver.Context, node *ast.CompareField) (expr.F
 
 func compileSearch(node *ast.Search) (expr.Filter, error) {
 	if node.Value.Type == "regexp" || node.Value.Type == "net" {
-		match, err := expr.Comparison("=~", node.Value)
+		match, err := expr.Comparison("=", node.Value)
 		if err != nil {
 			return nil, err
 		}
@@ -92,58 +114,65 @@ func compileSearch(node *ast.Search) (expr.Filter, error) {
 	return expr.SearchRecordOther(node.Text, node.Value)
 }
 
-func compileFilter(zctx *resolver.Context, node ast.BooleanExpr) (expr.Filter, error) {
+func compileFilter(zctx *resolver.Context, scope *Scope, node ast.Expression) (expr.Filter, error) {
 	switch v := node.(type) {
-	case *ast.LogicalNot:
-		e, err := compileFilter(zctx, v.Expr)
+	case *ast.UnaryExpression:
+		if v.Operator != "!" {
+			return nil, fmt.Errorf("unknown unary operator: %s", v.Operator)
+		}
+		e, err := compileFilter(zctx, scope, v.Operand)
 		if err != nil {
 			return nil, err
 		}
 		return expr.LogicalNot(e), nil
 
-	case *ast.LogicalAnd:
-		left, err := compileFilter(zctx, v.Left)
-		if err != nil {
-			return nil, err
+	case *ast.Literal:
+		// This literal translation should happen elsewhere will
+		// be fixed when we add ZSON literals to Z, e.g.,
+		// ast.Literal.AsBool() etc methods.
+		if v.Type != "bool" {
+			return nil, fmt.Errorf("bad literal type in filter compiler: %s", v.Type)
 		}
-		right, err := compileFilter(zctx, v.Right)
-		if err != nil {
-			return nil, err
+		var b bool
+		switch v.Value {
+		case "true":
+			b = true
+		case "false":
+		default:
+			return nil, fmt.Errorf("bad boolean value in ast.Literal: %s", v.Value)
 		}
-		return expr.LogicalAnd(left, right), nil
-
-	case *ast.LogicalOr:
-		left, err := compileFilter(zctx, v.Left)
-		if err != nil {
-			return nil, err
-		}
-		right, err := compileFilter(zctx, v.Right)
-		if err != nil {
-			return nil, err
-		}
-		return expr.LogicalOr(left, right), nil
-
-	case *ast.MatchAll:
-		return func(*zng.Record) bool { return true }, nil
+		return func(*zng.Record) bool { return b }, nil
 
 	case *ast.Search:
 		return compileSearch(v)
 
-	case *ast.CompareField:
-		if v.Comparator == "in" {
-			resolver, err := CompileExpr(zctx, v.Field)
+	case *ast.BinaryExpression:
+		if v.Operator == "and" {
+			left, err := compileFilter(zctx, scope, v.LHS)
 			if err != nil {
 				return nil, err
 			}
-			eql, _ := expr.Comparison("=", v.Value)
-			comparison := expr.Contains(eql)
-			return expr.Combine(resolver, comparison), nil
+			right, err := compileFilter(zctx, scope, v.RHS)
+			if err != nil {
+				return nil, err
+			}
+			return expr.LogicalAnd(left, right), nil
 		}
-
-		return compileFieldCompare(zctx, v)
-
-	case *ast.BinaryExpression:
-		predicate, err := CompileExpr(zctx, v)
+		if v.Operator == "or" {
+			left, err := compileFilter(zctx, scope, v.LHS)
+			if err != nil {
+				return nil, err
+			}
+			right, err := compileFilter(zctx, scope, v.RHS)
+			if err != nil {
+				return nil, err
+			}
+			return expr.LogicalOr(left, right), nil
+		}
+		if f, err := compileCompareField(zctx, scope, v); f != nil || err != nil {
+			return f, err
+		}
+		predicate, err := compileExpr(zctx, scope, v)
 		if err != nil {
 			return nil, err
 		}
@@ -158,22 +187,35 @@ func compileFilter(zctx *resolver.Context, node ast.BooleanExpr) (expr.Filter, e
 			return false
 		}, nil
 
-	case *ast.CompareAny:
-		if v.Comparator == "in" {
-			compare, err := expr.Comparison("=", v.Value)
-			if err != nil {
-				return nil, err
-			}
-			contains := expr.Contains(compare)
-			return expr.EvalAny(contains, v.Recursive), nil
+	case *ast.FunctionCall:
+		if f, err := compileCompareAny(v); f != nil || err != nil {
+			return f, err
 		}
-		comparison, err := expr.Comparison(v.Comparator, v.Value)
-		if err != nil {
-			return nil, err
-		}
-		return expr.EvalAny(comparison, v.Recursive), nil
+		return nil, errors.New("top-level function calls not yet supported in search context")
 
 	default:
 		return nil, fmt.Errorf("Filter AST unknown type: %v", v)
 	}
+}
+
+func compileCompareAny(e *ast.FunctionCall) (expr.Filter, error) {
+	literal, op, ok := isCompareAny(e)
+	if !ok {
+		return nil, nil
+	}
+	var pred expr.Boolean
+	var err error
+	if op == "in" {
+		comparison, err := expr.Comparison("=", *literal)
+		if err != nil {
+			return nil, err
+		}
+		pred = expr.Contains(comparison)
+	} else {
+		pred, err = expr.Comparison(op, *literal)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return expr.EvalAny(pred, false), nil
 }

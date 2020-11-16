@@ -21,6 +21,10 @@ var ErrIndexOutOfBounds = errors.New("array index out of bounds")
 var ErrNotContainer = errors.New("cannot apply in to a non-container")
 var ErrBadCast = errors.New("bad cast")
 
+// The literature on SQL++ etc uses the concept of missing values rather than
+// "no such field".  Missing seems more apt.
+var ErrMissing = ErrNoSuchField
+
 type Evaluator interface {
 	Eval(*zng.Record) (zng.Value, error)
 }
@@ -123,17 +127,34 @@ func NewIn(elem, container Evaluator) *In {
 }
 
 func (i *In) Eval(rec *zng.Record) (zng.Value, error) {
+	elem, err := i.elem.Eval(rec)
+	if err != nil {
+		return elem, err
+	}
 	container, err := i.container.Eval(rec)
 	if err != nil {
 		return container, err
 	}
+	if typ := zng.AliasedType(container.Type); typ == zng.TypeNet {
+		n, err := zng.DecodeNet(container.Bytes)
+		if err != nil {
+			return zng.Value{}, err
+		}
+		if typ := zng.AliasedType(elem.Type); typ != zng.TypeIP {
+			return zng.Value{}, ErrIncompatibleTypes
+		}
+		a, err := zng.DecodeIP(elem.Bytes)
+		if err != nil {
+			return zng.Value{}, err
+		}
+		if n.IP.Equal(a.Mask(n.Mask)) {
+			return zng.True, nil
+		}
+		return zng.False, nil
+	}
 	typ := zng.InnerType(container.Type)
 	if typ == nil {
 		return zng.Value{}, ErrNotContainer
-	}
-	elem, err := i.elem.Eval(rec)
-	if err != nil {
-		return elem, err
 	}
 	iter := container.Bytes.Iter()
 	for {
@@ -737,8 +758,6 @@ func (c *evalCast) Eval(rec *zng.Record) (zng.Value, error) {
 func NewRootField(name string) Evaluator {
 	return NewDotExpr(field.New(name))
 }
-
-var ErrInference = errors.New("assigment name could not be inferred from rhs expression")
 
 type Assignment struct {
 	LHS field.Static

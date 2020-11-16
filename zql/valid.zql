@@ -23,3 +23,5 @@ foo\x11\bar
 *abc*
 field=null
 every 3600s count() by _path
+s="harefoot-raucous"
+s=/a/b
