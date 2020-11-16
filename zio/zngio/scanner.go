@@ -24,7 +24,7 @@ type zngScanner struct {
 
 var _ zbuf.ScannerAble = (*Reader)(nil)
 
-// Pull implements scanner.Scanner.Pull.
+// Pull implements zbuf.Scanner.Pull.
 func (s *zngScanner) Pull() (zbuf.Batch, error) {
 	for {
 		if err := s.ctx.Err(); err != nil {
@@ -135,7 +135,7 @@ func (s *zngScanner) scanOne(rec *zng.Record) (*zng.Record, error) {
 	return rec, nil
 }
 
-// Stats implements scanner.Scanner.Stats.
+// Stats implements zbuf.Scanner.Stats.
 func (s *zngScanner) Stats() *zbuf.ScannerStats {
 	return &zbuf.ScannerStats{
 		BytesRead:      atomic.LoadInt64(&s.stats.BytesRead),

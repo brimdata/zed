@@ -57,10 +57,6 @@ func NewMerger(ctx context.Context, pullers []Puller, cmp expr.CompareFn) *Merge
 	return m
 }
 
-func (m *Merger) Cancel() {
-	m.cancel()
-}
-
 func MergeReadersByTsAsReader(ctx context.Context, readers []Reader, order Order) (Reader, error) {
 	if len(readers) == 1 {
 		return readers[0], nil
@@ -83,13 +79,13 @@ func MergeByTs(ctx context.Context, pullers []Puller, order Order) *Merger {
 }
 
 func (m *Merger) run() {
-	for i := range m.pullers {
-		p := m.pullers[i]
+	for _, p := range m.pullers {
+		puller := p
 		go func() {
 			for {
-				b, err := p.Pull()
+				b, err := puller.Pull()
 				select {
-				case p.ch <- batch{Batch: b, err: err}:
+				case puller.ch <- batch{Batch: b, err: err}:
 					if b == nil && err == nil {
 						// EOS
 						return
@@ -185,4 +181,8 @@ func (m *Merger) Pull() (Batch, error) {
 	}
 	const batchLen = 100 // XXX
 	return ReadBatch(m, batchLen)
+}
+
+func (m *Merger) Cancel() {
+	m.cancel()
 }

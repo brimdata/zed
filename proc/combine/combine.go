@@ -1,24 +1,25 @@
+// A combine proc merges multiple upstream inputs into one output.
 package combine
 
 import (
+	"context"
 	"sync"
 
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 )
 
-// A Merge proc merges multiple upstream inputs into one output.
 type Proc struct {
-	pctx     *proc.Context
+	ctx      context.Context
+	cancel   context.CancelFunc
 	once     sync.Once
 	ch       <-chan proc.Result
-	doneCh   chan struct{}
 	parents  []*runnerProc
 	nparents int
 }
 
 type runnerProc struct {
-	pctx   *proc.Context
+	ctx    context.Context
 	parent proc.Interface
 	ch     chan<- proc.Result
 	doneCh <-chan struct{}
@@ -32,10 +33,8 @@ func (r *runnerProc) run() {
 			if proc.EOS(batch, err) {
 				return
 			}
-		case <-r.doneCh:
+		case <-r.ctx.Done():
 			r.parent.Done()
-			return
-		case <-r.pctx.Done():
 			return
 		}
 	}
@@ -43,20 +42,19 @@ func (r *runnerProc) run() {
 
 func New(pctx *proc.Context, parents []proc.Interface) *Proc {
 	ch := make(chan proc.Result)
-	doneCh := make(chan struct{})
-	var runners []*runnerProc
+	ctx, cancel := context.WithCancel(pctx.Context)
+	runners := make([]*runnerProc, 0, len(parents))
 	for _, parent := range parents {
 		runners = append(runners, &runnerProc{
-			pctx:   pctx,
+			ctx:    ctx,
 			parent: parent,
 			ch:     ch,
-			doneCh: doneCh,
 		})
 	}
 	return &Proc{
-		pctx:     pctx,
+		ctx:      ctx,
+		cancel:   cancel,
 		ch:       ch,
-		doneCh:   doneCh,
 		parents:  runners,
 		nparents: len(parents),
 	}
@@ -79,12 +77,12 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 				return res.Batch, res.Err
 			}
 			p.nparents--
-		case <-p.pctx.Done():
-			return nil, p.pctx.Err()
+		case <-p.ctx.Done():
+			return nil, p.ctx.Err()
 		}
 	}
 }
 
 func (m *Proc) Done() {
-	close(m.doneCh)
+	m.cancel()
 }
