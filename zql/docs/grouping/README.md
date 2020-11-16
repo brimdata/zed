@@ -1,9 +1,10 @@
 # Grouping
 
-All [aggregate functions](../aggregate-functions/README.md) may be invoked with
-one or more _grouping_ options that partition the input stream into batches
-that are aggregated separately. If explicit grouping is not used, an aggregate
-function will operate over all events in the input stream.
+ZQL includes _grouping_ options that partition the input stream into batches
+that are aggregated separately based on field values. Grouping is most often
+used with [aggregate functions](../aggregate-functions/README.md). If explicit
+grouping is not used, an aggregate function will operate over all events in the
+input stream.
 
 Below you will find details regarding the available grouping mechanisms and
 tips for their effective use.
@@ -74,22 +75,20 @@ after invoking your aggregate function(s).
 
 #### Example #1:
 
-The simplest example creates batches based on the values found in a single
-field. To see the most commonly encountered Zeek `weird` events in our sample
-data:
+The simplest example summarizes the unique values of the named field(s), which
+requires no aggregate function. To see which protocols were observed in our
+Zeek `conn` events:
 
 ```zq-command
-zq -f table 'count() by name | sort -r' weird.log.gz
+zq -f table 'by proto | sort' conn.log.gz
 ```
 
 #### Output:
-```zq-output head:5
-NAME                                        COUNT
-bad_HTTP_request                            11777
-line_terminated_with_single_CR              11734
-unknown_HTTP_method                         140
-above_hole_data_without_any_acks            107
-...
+```zq-output
+PROTO
+icmp
+tcp
+udp
 ```
 
 #### Example #2:
@@ -114,7 +113,7 @@ ID.RESP_H       ID.RESP_P SUM
 
 #### Example #3:
 
-Instead of a simple field name, any of the comma-separate `by` groupings could
+Instead of a simple field name, any of the comma-separated `by` groupings could
 be based on the result of an [expression](../expressions/README.md). The
 expression must be preceded by the name that will hold the expression result
 for further processing/presentation downstream in your ZQL pipeline.
