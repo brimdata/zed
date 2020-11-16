@@ -187,11 +187,6 @@ func (pg *parallelGroup) sourceToRequest(src Source) (*api.WorkerRequest, error)
 			return nil, err
 		}
 		req.Proc = b
-	} else {
-		// If there's no filter, then send a match-all proc since the
-		// client can't handle a null req.Proc.  XXX It seems like a
-		// null proc should mean return everything in the span.
-		req.Proc = json.RawMessage(`{"op":"FilterProc","filter":{"op":"MatchAll"}}`)
 	}
 	req.Dir = pg.mcfg.Order.Int()
 	return &req, nil

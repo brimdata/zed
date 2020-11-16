@@ -42,7 +42,12 @@ func zbufDirInt(reversed bool) int {
 	return 1
 }
 
+var passProc = &ast.PassProc{Node: ast.Node{"PassProc"}}
+
 func programPrep(program ast.Proc, sortKey field.Static, sortReversed bool) (ast.BooleanExpr, ast.Proc) {
+	if program == nil {
+		return nil, passProc
+	}
 	ReplaceGroupByProcDurationWithKey(program)
 	if sortKey != nil {
 		setGroupByProcInputSortDir(program, sortKey, zbufDirInt(sortReversed))
@@ -175,8 +180,6 @@ func ensureSequentialProc(p ast.Proc) *ast.SequentialProc {
 		Procs: []ast.Proc{p},
 	}
 }
-
-var passProc = &ast.PassProc{Node: ast.Node{"PassProc"}}
 
 // liftFilter removes the filter at the head of the flowgraph AST, if
 // one is present, and returns its ast.BooleanExpr and the modified

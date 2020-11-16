@@ -421,9 +421,15 @@ func UnpackMap(custom Unpacker, m interface{}) (Proc, error) {
 
 // UnpackJSON transforms a JSON representation of a proc into an ast.Proc.
 func UnpackJSON(custom Unpacker, buf []byte) (Proc, error) {
+	if len(buf) == 0 {
+		return nil, nil
+	}
 	obj, err := joe.Unmarshal(buf)
 	if err != nil {
 		return nil, err
+	}
+	if obj == nil {
+		return nil, nil
 	}
 	proc, err := unpackProc(custom, obj)
 	if err != nil {
