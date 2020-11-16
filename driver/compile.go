@@ -75,36 +75,7 @@ func (n *namedScanner) Pull() (zbuf.Batch, error) {
 }
 
 func compileSingle(ctx context.Context, program ast.Proc, zctx *resolver.Context, r zbuf.Reader, cfg Config) (*muxOutput, error) {
-	if cfg.Logger == nil {
-		cfg.Logger = zap.NewNop()
-	}
-	if cfg.Span.Dur == 0 {
-		cfg.Span = nano.MaxSpan
-	}
-	if cfg.Warnings == nil {
-		cfg.Warnings = make(chan string, 5)
-	}
-
-	filterExpr, program := programPrep(program, field.Dotted(cfg.ReaderSortKey), cfg.ReaderSortReverse)
-	sn, err := zbuf.NewScanner(ctx, r, filterExpr, cfg.Span)
-	if err != nil {
-		return nil, err
-	}
-	if stringer, ok := r.(fmt.Stringer); ok {
-		sn = &namedScanner{sn, stringer.String()}
-	}
-
-	pctx := &proc.Context{
-		Context:     ctx,
-		TypeContext: zctx,
-		Logger:      cfg.Logger,
-		Warnings:    cfg.Warnings,
-	}
-	leaves, err := compiler.Compile(cfg.Custom, program, pctx, []proc.Interface{&scannerProc{sn}})
-	if err != nil {
-		return nil, err
-	}
-	return newMuxOutput(pctx, leaves, sn), nil
+	return compileParallel(ctx, program, zctx, []zbuf.Reader{r}, cfg)
 }
 
 func compileParallel(ctx context.Context, program ast.Proc, zctx *resolver.Context, readers []zbuf.Reader, cfg Config) (*muxOutput, error) {
