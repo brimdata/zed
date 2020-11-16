@@ -375,7 +375,7 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	op, warnings, err := ingest.NewPcapOp(ctx, s, req.Path, c.Suricata, c.Zeek)
+	op, warnings, err := ingest.NewPcapOp(ctx, s, req.Path, c.suricata, c.zeek)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -383,7 +383,7 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/ndjson")
 	w.WriteHeader(http.StatusAccepted)
 	pipe := jsonpipe.New(w)
-	taskID := c.getTaskID()
+	taskID := c.nextTaskID()
 	taskStart := api.TaskStart{Type: "TaskStart", TaskID: taskID}
 	if err := pipe.Send(taskStart); err != nil {
 		logger.Warn("Error sending payload", zap.Error(err))

@@ -12,27 +12,28 @@ import (
 )
 
 type Config struct {
-	Root     string
-	Version  string
+	Logger  *zap.Logger
+	Root    string
+	Version string
+
 	Suricata pcapanalyzer.Launcher
 	Zeek     pcapanalyzer.Launcher
-	Logger   *zap.Logger
 }
 
 type Core struct {
-	Root      iosrc.URI
-	Version   string
-	Suricata  pcapanalyzer.Launcher
-	Zeek      pcapanalyzer.Launcher
+	logger    *zap.Logger
+	root      iosrc.URI
 	spaces    *space.Manager
 	taskCount int64
-	logger    *zap.Logger
+	version   string
+
+	suricata pcapanalyzer.Launcher
+	zeek     pcapanalyzer.Launcher
 }
 
 func NewCore(ctx context.Context, conf Config) (*Core, error) {
-	logger := conf.Logger
-	if logger == nil {
-		logger = zap.NewNop()
+	if conf.Logger == nil {
+		conf.Logger = zap.NewNop()
 	}
 	root, err := iosrc.ParseURI(conf.Root)
 	if err != nil {
@@ -42,32 +43,35 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	if err != nil {
 		return nil, err
 	}
-	version := conf.Version
-	if version == "" {
-		version = "unknown"
+	if conf.Version == "" {
+		conf.Version = "unknown"
 	}
 	return &Core{
-		Root:     root,
-		Version:  version,
-		Suricata: conf.Suricata,
-		Zeek:     conf.Zeek,
+		logger:   conf.Logger,
+		root:     root,
 		spaces:   spaces,
-		logger:   logger,
+		version:  conf.Version,
+		suricata: conf.Suricata,
+		zeek:     conf.Zeek,
 	}, nil
 }
 
 func (c *Core) HasSuricata() bool {
-	return c.Suricata != nil
+	return c.suricata != nil
 }
 
 func (c *Core) HasZeek() bool {
-	return c.Zeek != nil
+	return c.zeek != nil
+}
+
+func (c *Core) Root() iosrc.URI {
+	return c.root
+}
+
+func (c *Core) nextTaskID() int64 {
+	return atomic.AddInt64(&c.taskCount, 1)
 }
 
 func (c *Core) requestLogger(r *http.Request) *zap.Logger {
 	return c.logger.With(zap.String("request_id", getRequestID(r.Context())))
-}
-
-func (c *Core) getTaskID() int64 {
-	return atomic.AddInt64(&c.taskCount, 1)
 }

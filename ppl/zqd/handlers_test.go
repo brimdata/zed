@@ -216,7 +216,7 @@ func TestSpaceList(t *testing.T) {
 			expected = append(expected, api.SpaceInfo{
 				ID:          sp.ID,
 				Name:        n,
-				DataPath:    c.Root.AppendPath(string(sp.ID)),
+				DataPath:    c.Root().AppendPath(string(sp.ID)),
 				StorageKind: api.FileStore,
 			})
 		}
@@ -229,10 +229,10 @@ func TestSpaceList(t *testing.T) {
 
 	// Delete dir from one space, then simulate a restart by
 	// creating a new Core pointing to the same root.
-	require.NoError(t, os.RemoveAll(filepath.Join(c.Root.Filepath(), string(expected[2].ID))))
+	require.NoError(t, os.RemoveAll(filepath.Join(c.Root().Filepath(), string(expected[2].ID))))
 	expected = append(expected[:2], expected[3:]...)
 
-	_, conn = newCoreAtDir(t, c.Root.Filepath())
+	_, conn = newCoreAtDir(t, c.Root().Filepath())
 
 	list, err := conn.SpaceList(ctx)
 	require.NoError(t, err)
@@ -291,7 +291,7 @@ func TestSpacePostNameOnly(t *testing.T) {
 	sp, err := conn.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 	assert.Equal(t, "test", sp.Name)
-	assert.Equal(t, c.Root.AppendPath(string(sp.ID)), sp.DataPath)
+	assert.Equal(t, c.Root().AppendPath(string(sp.ID)), sp.DataPath)
 	assert.Regexp(t, "^sp", sp.ID)
 }
 
@@ -590,26 +590,24 @@ func TestPostLogStopErr(t *testing.T) {
 }
 
 func TestDeleteDuringPcapPost(t *testing.T) {
-	c, conn := newCore(t)
-
-	pcapfile := "./testdata/valid.pcap"
-	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "deleteDuringPacketPost"})
-	require.NoError(t, err)
 	var zeekClosed int32
-
 	waitFn := func(tzp *testPcapProcess) error {
 		<-tzp.ctx.Done()
 		atomic.StoreInt32(&zeekClosed, 1)
 		return errors.New("zeek exited with error code: -1")
 	}
 
-	c.Zeek = testLauncher(nil, waitFn)
+	_, conn := newCoreWithConfig(t, zqd.Config{Zeek: testLauncher(nil, waitFn)})
+
+	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "deleteDuringPacketPost"})
+	require.NoError(t, err)
 
 	var wg sync.WaitGroup
 	pcapPostErr := make(chan error)
 
 	wg.Add(1)
 	doPost := func() error {
+		const pcapfile = "testdata/valid.pcap"
 		stream, err := conn.PcapPostStream(context.Background(), sp.ID, api.PcapPostRequest{pcapfile})
 		wg.Done()
 		if err != nil {
