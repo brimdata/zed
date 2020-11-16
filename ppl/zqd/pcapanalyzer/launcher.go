@@ -40,11 +40,7 @@ func LauncherFromPath(path string, stdout bool) (Launcher, error) {
 		cmd.Dir = dir
 		cmd.Stdin = r
 		var p *Process
-		if stdout {
-			p = NewProcessStdout(cmd)
-		} else {
-			p = NewProcess(cmd)
-		}
+		p = NewProcess(cmd, stdout)
 		return p, p.Start()
 	}, nil
 }

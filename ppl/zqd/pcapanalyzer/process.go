@@ -42,15 +42,12 @@ type Process struct {
 	stdoutBuf *bytes.Buffer
 }
 
-func NewProcess(cmd *exec.Cmd) *Process {
+func NewProcess(cmd *exec.Cmd, stdout bool) *Process {
 	p := &Process{cmd: cmd, stderrBuf: bytes.NewBuffer(nil), stdoutBuf: bytes.NewBuffer(nil)}
 	cmd.Stderr = p.stderrBuf
-	return p
-}
-
-func NewProcessStdout(cmd *exec.Cmd) *Process {
-	p := NewProcess(cmd)
-	p.cmd.Stdout = p.stdoutBuf
+	if stdout {
+		p.cmd.Stdout = p.stdoutBuf
+	}
 	return p
 }
 
