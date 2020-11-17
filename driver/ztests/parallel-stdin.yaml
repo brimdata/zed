@@ -1,0 +1,36 @@
+script: |
+  zq -P -t '( put k=a+10 ; put k=b+20) | sort k' - B.tzng
+
+inputs:
+  - name: stdin
+    data: |
+      #0:record[a:int32]
+      0:[1;]
+      0:[3;]
+      0:[5;]
+      0:[3;]
+      0:[1;]
+  - name: B.tzng
+    data: |
+      #0:record[b:int32]
+      0:[2;]
+      0:[4;]
+      0:[6;]
+      0:[4;]
+      0:[2;]
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[a:int32,k:int64]
+      0:[1;11;]
+      0:[1;11;]
+      0:[3;13;]
+      0:[3;13;]
+      0:[5;15;]
+      #1:record[b:int32,k:int64]
+      1:[2;22;]
+      1:[2;22;]
+      1:[4;24;]
+      1:[4;24;]
+      1:[6;26;]

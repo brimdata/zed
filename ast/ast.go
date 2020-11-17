@@ -419,3 +419,14 @@ func NewReducerAssignment(op string, lval field.Static, arg field.Static) Assign
 	}
 	return Assignment{LHS: NewDotExpr(lhs), RHS: reducer}
 }
+
+func FanIn(p Proc) int {
+	first := p
+	if seq, ok := first.(*SequentialProc); ok {
+		first = seq.Procs[0]
+	}
+	if p, ok := first.(*ParallelProc); ok {
+		return len(p.Procs)
+	}
+	return 1
+}

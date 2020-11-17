@@ -74,7 +74,7 @@ func (n *namedScanner) Pull() (zbuf.Batch, error) {
 	return b, err
 }
 
-func compileSingle(ctx context.Context, program ast.Proc, zctx *resolver.Context, r zbuf.Reader, cfg Config) (*muxOutput, error) {
+func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, readers []zbuf.Reader, cfg Config) (*muxOutput, error) {
 	if cfg.Logger == nil {
 		cfg.Logger = zap.NewNop()
 	}
@@ -86,12 +86,18 @@ func compileSingle(ctx context.Context, program ast.Proc, zctx *resolver.Context
 	}
 
 	filterExpr, program := programPrep(program, field.Dotted(cfg.ReaderSortKey), cfg.ReaderSortReverse)
-	sn, err := zbuf.NewScanner(ctx, r, filterExpr, cfg.Span)
-	if err != nil {
-		return nil, err
-	}
-	if stringer, ok := r.(fmt.Stringer); ok {
-		sn = &namedScanner{sn, stringer.String()}
+	procs := make([]proc.Interface, 0, len(readers))
+	scanners := make([]zbuf.Scanner, 0, len(readers))
+	for _, r := range readers {
+		sn, err := zbuf.NewScanner(ctx, r, filterExpr, cfg.Span)
+		if err != nil {
+			return nil, err
+		}
+		if stringer, ok := r.(fmt.Stringer); ok {
+			sn = &namedScanner{sn, stringer.String()}
+		}
+		scanners = append(scanners, sn)
+		procs = append(procs, &scannerProc{sn})
 	}
 
 	pctx := &proc.Context{
@@ -100,11 +106,11 @@ func compileSingle(ctx context.Context, program ast.Proc, zctx *resolver.Context
 		Logger:      cfg.Logger,
 		Warnings:    cfg.Warnings,
 	}
-	leaves, err := compiler.Compile(cfg.Custom, program, pctx, []proc.Interface{&scannerProc{sn}})
+	leaves, err := compiler.Compile(cfg.Custom, program, pctx, procs)
 	if err != nil {
 		return nil, err
 	}
-	return newMuxOutput(pctx, leaves, sn), nil
+	return newMuxOutput(pctx, leaves, zbuf.MultiStats(scanners)), nil
 }
 
 type MultiConfig struct {
