@@ -437,5 +437,8 @@ func FanIn(p Proc) int {
 	if p, ok := first.(*ParallelProc); ok {
 		return len(p.Procs)
 	}
+	if _, ok := first.(*JoinProc); ok {
+		return 2
+	}
 	return 1
 }

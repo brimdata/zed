@@ -51,7 +51,7 @@ func (p *puller) Pull() (zbuf.Batch, error) {
 	}
 }
 
-func (p *puller) next() (*zng.Record, error) {
+func (p *puller) Read() (*zng.Record, error) {
 	if p.off >= p.len {
 		// XXX last batch at EOS gets sent to GC
 		if p.batch != nil {

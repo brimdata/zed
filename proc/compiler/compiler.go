@@ -129,18 +129,6 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, parent proc.Int
 	}
 }
 
-func compileJoin(custom Hook, v *ast.JoinProc, rest []ast.Proc, pctx *proc.Context, left, right proc.Interface) ([]proc.Interface, error) {
-	join, err := join.New(pctx, left, right, v)
-	if err != nil {
-		return nil, err
-	}
-	parents := []proc.Interface{join}
-	if len(rest) == 0 {
-		return parents, nil
-	}
-	return compileSequential(custom, rest, pctx, parents)
-}
-
 func enteringJoin(nodes []ast.Proc) bool {
 	var ok bool
 	if len(nodes) > 0 {
@@ -151,12 +139,6 @@ func enteringJoin(nodes []ast.Proc) bool {
 
 func compileSequential(custom Hook, nodes []ast.Proc, pctx *proc.Context, parents []proc.Interface) ([]proc.Interface, error) {
 	node := nodes[0]
-	if join, ok := node.(*ast.JoinProc); ok {
-		if len(parents) != 2 {
-			return nil, ErrJoinParents
-		}
-		return compileJoin(custom, join, nodes[1:], pctx, parents[0], parents[1])
-	}
 	parents, err := Compile(custom, node, pctx, parents)
 	if err != nil {
 		return nil, err
@@ -223,6 +205,16 @@ func Compile(custom Hook, node ast.Proc, pctx *proc.Context, parents []proc.Inte
 
 	case *ast.ParallelProc:
 		return compileParallel(custom, node, pctx, parents)
+
+	case *ast.JoinProc:
+		if len(parents) != 2 {
+			return nil, ErrJoinParents
+		}
+		join, err := join.New(pctx, parents[0], parents[1], node)
+		if err != nil {
+			return nil, err
+		}
+		return []proc.Interface{join}, nil
 
 	default:
 		if len(parents) > 1 {

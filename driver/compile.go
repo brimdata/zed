@@ -477,7 +477,7 @@ func computeColumnsR(p ast.Proc, colset *Colset) (*Colset, bool) {
 		}
 		// We got to end without seeing a boundary proc, return "all cols"
 		return nil, true
-	case *ast.ParallelProc, *ast.JoinProc:
+	case *ast.JoinProc, *ast.ParallelProc:
 		// (These could be further analysed to determine the
 		// colsets on each branch, and then merge them at the
 		// split point.)

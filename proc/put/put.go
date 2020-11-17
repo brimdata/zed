@@ -59,11 +59,11 @@ func New(pctx *proc.Context, parent proc.Interface, node *ast.PutProc) (proc.Int
 		if err != nil {
 			return nil, err
 		}
-		clauses = append(clauses, c)
 		if len(c.LHS) > 1 {
 			name := c.LHS.String()
 			return nil, fmt.Errorf("%s: put currently supports only top-level field assignemnts", name)
 		}
+		clauses = append(clauses, c)
 	}
 	return &Proc{
 		pctx:    pctx,

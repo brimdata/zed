@@ -19,14 +19,13 @@ type Proc struct {
 	cancel      context.CancelFunc
 	once        sync.Once
 	left        *puller
-	right       *puller
+	right       *zbuf.Peeker
 	getLeftKey  expr.Evaluator
 	getRightKey expr.Evaluator
 	compare     expr.ValueCompareFn
 	cutter      *expr.Cutter
 	joinKey     zng.Value
 	joinSet     []*zng.Record
-	peek        *zng.Record
 	types       map[int]map[int]*zng.TypeRecord
 }
 
@@ -57,7 +56,7 @@ func New(pctx *proc.Context, left, right proc.Interface, v *ast.JoinProc) (*Proc
 		getLeftKey:  expr.NewDotExpr(leftKey),
 		getRightKey: expr.NewDotExpr(rightKey),
 		left:        newPuller(left, ctx),
-		right:       newPuller(right, ctx),
+		right:       zbuf.NewPeeker(newPuller(right, ctx)),
 		// XXX need to make sure nullsmax agrees with inbound merge
 		compare: expr.NewValueCompareFn(false),
 		cutter:  expr.NewCutter(pctx.TypeContext, false, lhs, rhs),
@@ -69,11 +68,11 @@ func New(pctx *proc.Context, left, right proc.Interface, v *ast.JoinProc) (*Proc
 func (p *Proc) Pull() (zbuf.Batch, error) {
 	p.once.Do(func() {
 		go p.left.run()
-		go p.right.run()
+		go p.right.Reader.(*puller).run()
 	})
 	var out []*zng.Record
 	for {
-		leftRec, err := p.left.next()
+		leftRec, err := p.left.Read()
 		if err != nil {
 			return nil, err
 		}
@@ -130,39 +129,19 @@ func (p *Proc) Done() {
 	p.cancel()
 }
 
-func (p *Proc) peekRight() (*zng.Record, error) {
-	if p.peek == nil {
-		var err error
-		p.peek, err = p.right.next()
-		if err != nil {
-			return nil, err
-		}
-	}
-	return p.peek, nil
-}
-
-func (p *Proc) nextRight() (*zng.Record, error) {
-	rec := p.peek
-	if rec != nil {
-		p.peek = nil
-		return rec, nil
-	}
-	return p.right.next()
-}
-
 func (p *Proc) getJoinSet(leftKey zng.Value) ([]*zng.Record, error) {
 	if leftKey.Equal(p.joinKey) {
 		return p.joinSet, nil
 	}
 	for {
-		rec, err := p.peekRight()
+		rec, err := p.right.Peek()
 		if err != nil || rec == nil {
 			return nil, err
 		}
 		rightKey, err := p.getRightKey.Eval(rec)
 		if err != nil {
 			if err == expr.ErrNoSuchField {
-				p.peek = nil
+				p.right.Read()
 				continue
 			}
 			return nil, err
@@ -181,7 +160,7 @@ func (p *Proc) getJoinSet(leftKey zng.Value) ([]*zng.Record, error) {
 		// Discard the peeked-at record and keep looking for
 		// a righthand key that either matches or exceeds the
 		// lefthand key.
-		p.peek = nil
+		p.right.Read()
 	}
 }
 
@@ -192,7 +171,7 @@ func (p *Proc) getJoinSet(leftKey zng.Value) ([]*zng.Record, error) {
 func (p *Proc) readJoinSet(joinKey zng.Value) ([]*zng.Record, error) {
 	var recs []*zng.Record
 	for {
-		rec, err := p.peekRight()
+		rec, err := p.right.Peek()
 		if err != nil {
 			return nil, err
 		}
@@ -202,7 +181,7 @@ func (p *Proc) readJoinSet(joinKey zng.Value) ([]*zng.Record, error) {
 		key, err := p.getRightKey.Eval(rec)
 		if err != nil {
 			if err == expr.ErrNoSuchField {
-				p.peek = nil
+				p.right.Read()
 				continue
 			}
 			return nil, err
@@ -211,7 +190,7 @@ func (p *Proc) readJoinSet(joinKey zng.Value) ([]*zng.Record, error) {
 			return recs, nil
 		}
 		recs = append(recs, rec)
-		p.peek = nil
+		p.right.Read()
 	}
 }
 

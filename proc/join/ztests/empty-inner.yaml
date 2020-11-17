@@ -1,5 +1,5 @@
 script: |
-  zq -P -t '( sort a ; sort c ) | join a=b hit=sb | sort a' A.tzng B.tzng
+  zq -P -t '( filter * ; filter *) | join a=b hit=sc | sort a' A.tzng C.tzng
 
 inputs:
   - name: A.tzng
@@ -9,14 +9,14 @@ inputs:
       0:[20;a1;]
       0:[30;a2;]
       0:[40;a3;]
-  - name: B.tzng
+  - name: C.tzng
     data: |
-      #0:record[c:int32,sb:string]
+      #0:record[c:int32,sc:string]
       0:[20;b20;]
-      0:[40;b40;]
-      0:[60;b60;]
-      0:[40;b40v2;]
       0:[20;b20v2;]
+      0:[40;b40;]
+      0:[40;b40v2;]
+      0:[60;b60;]
 
 outputs:
   - name: stdout
