@@ -22,15 +22,15 @@ type Proc struct {
 }
 
 func New(pctx *proc.Context, parent proc.Interface, node *ast.CutProc) (*Proc, error) {
-	var lhs []field.Static
-	var rhs []expr.Evaluator
+	lhs := make([]field.Static, 0, len(node.Fields))
+	rhs := make([]expr.Evaluator, 0, len(node.Fields))
 	for _, f := range node.Fields {
-		field, expression, err := expr.CompileAssignment(pctx.TypeContext, &f)
+		c, err := expr.CompileAssignment(pctx.TypeContext, &f)
 		if err != nil {
 			return nil, err
 		}
-		lhs = append(lhs, field)
-		rhs = append(rhs, expression)
+		lhs = append(lhs, c.LHS)
+		rhs = append(rhs, c.RHS)
 	}
 	// build this once at compile time for error checking.
 	if !node.Complement {

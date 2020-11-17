@@ -5,7 +5,6 @@ import (
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zcode"
@@ -23,7 +22,7 @@ import (
 type Proc struct {
 	pctx    *proc.Context
 	parent  proc.Interface
-	clauses []clause
+	clauses []expr.Assignment
 	// vals is a fixed array to avoid re-allocating for every record
 	vals   []zng.Value
 	rules  map[int]*putRule
@@ -53,21 +52,16 @@ type clauseType struct {
 	container bool
 }
 
-type clause struct {
-	field field.Static
-	eval  expr.Evaluator
-}
-
 func New(pctx *proc.Context, parent proc.Interface, node *ast.PutProc) (proc.Interface, error) {
-	clauses := make([]clause, len(node.Clauses))
-	for k, cl := range node.Clauses {
-		var err error
-		clauses[k].field, clauses[k].eval, err = expr.CompileAssignment(pctx.TypeContext, &cl)
+	clauses := make([]expr.Assignment, 0, len(node.Clauses))
+	for _, cl := range node.Clauses {
+		c, err := expr.CompileAssignment(pctx.TypeContext, &cl)
 		if err != nil {
 			return nil, err
 		}
-		if len(clauses[k].field) > 1 {
-			name := clauses[k].field.String()
+		clauses = append(clauses, c)
+		if len(c.LHS) > 1 {
+			name := c.LHS.String()
 			return nil, fmt.Errorf("%s: put currently supports only top-level field assignemnts", name)
 		}
 	}
@@ -94,7 +88,7 @@ func (p *Proc) eval(in *zng.Record) ([]zng.Value, error) {
 	vals := p.vals
 	for k, cl := range p.clauses {
 		var err error
-		vals[k], err = cl.eval.Eval(in)
+		vals[k], err = cl.RHS.Eval(in)
 		if err != nil {
 			return nil, err
 		}
@@ -116,7 +110,7 @@ func (p *Proc) buildRule(inType *zng.TypeRecord, vals []zng.Value) (*putRule, er
 	for k, cl := range p.clauses {
 		typ := vals[k].Type
 		clauseTypes[k] = clauseType{typ, zng.IsContainerType(typ)}
-		name := cl.field.String()
+		name := cl.LHS.String()
 		col := zng.Column{Name: name, Type: typ}
 		position, hasCol := inType.ColumnOfField(name)
 		if hasCol {

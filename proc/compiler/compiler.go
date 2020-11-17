@@ -14,6 +14,7 @@ import (
 	"github.com/brimsec/zq/proc/fuse"
 	"github.com/brimsec/zq/proc/groupby"
 	"github.com/brimsec/zq/proc/head"
+	"github.com/brimsec/zq/proc/join"
 	"github.com/brimsec/zq/proc/merge"
 	"github.com/brimsec/zq/proc/pass"
 	"github.com/brimsec/zq/proc/put"
@@ -25,6 +26,8 @@ import (
 	"github.com/brimsec/zq/proc/uniq"
 	"github.com/brimsec/zq/zbuf"
 )
+
+var ErrJoinParents = errors.New("join requires two upstream parallel query paths")
 
 type Hook func(ast.Proc, *proc.Context, proc.Interface) (proc.Interface, error)
 
@@ -117,14 +120,43 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, parent proc.Int
 	case *ast.FuseProc:
 		return fuse.New(pctx, parent)
 
+	case *ast.JoinProc:
+		return nil, ErrJoinParents
+
 	default:
 		return nil, fmt.Errorf("unknown AST type: %v", v)
 
 	}
 }
 
+func compileJoin(custom Hook, v *ast.JoinProc, rest []ast.Proc, pctx *proc.Context, left, right proc.Interface) ([]proc.Interface, error) {
+	join, err := join.New(pctx, left, right, v)
+	if err != nil {
+		return nil, err
+	}
+	parents := []proc.Interface{join}
+	if len(rest) == 0 {
+		return parents, nil
+	}
+	return compileSequential(custom, rest, pctx, parents)
+}
+
+func enteringJoin(nodes []ast.Proc) bool {
+	var ok bool
+	if len(nodes) > 0 {
+		_, ok = nodes[0].(*ast.JoinProc)
+	}
+	return ok
+}
+
 func compileSequential(custom Hook, nodes []ast.Proc, pctx *proc.Context, parents []proc.Interface) ([]proc.Interface, error) {
 	node := nodes[0]
+	if join, ok := node.(*ast.JoinProc); ok {
+		if len(parents) != 2 {
+			return nil, ErrJoinParents
+		}
+		return compileJoin(custom, join, nodes[1:], pctx, parents[0], parents[1])
+	}
 	parents, err := Compile(custom, node, pctx, parents)
 	if err != nil {
 		return nil, err
@@ -135,7 +167,7 @@ func compileSequential(custom Hook, nodes []ast.Proc, pctx *proc.Context, parent
 	if len(nodes) == 1 {
 		return parents, nil
 	}
-	if len(parents) > 1 {
+	if len(parents) > 1 && !enteringJoin(nodes[1:]) {
 		var parent proc.Interface
 		p := node.(*ast.ParallelProc)
 		if p.MergeOrderField != nil {

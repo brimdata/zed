@@ -142,6 +142,29 @@ func unpackProc(custom Unpacker, node joe.Interface) (Proc, error) {
 		return &TopProc{Fields: fields}, nil
 	case "PassProc":
 		return &PassProc{}, nil
+	case "JoinProc":
+		n, _ := node.Get("clauses")
+		clauses, err := unpackAssignments(n)
+		if err != nil {
+			return nil, err
+		}
+		n, err = node.Get("left_key")
+		if err != nil {
+			return nil, errors.New("ast join proc: missing left_key field")
+		}
+		leftKey, err := UnpackExpression(n)
+		if err != nil {
+			return nil, err
+		}
+		n, err = node.Get("right_key")
+		if err != nil {
+			return nil, errors.New("ast join proc: missing right_key field")
+		}
+		rightKey, err := UnpackExpression(n)
+		if err != nil {
+			return nil, err
+		}
+		return &JoinProc{LeftKey: leftKey, RightKey: rightKey, Clauses: clauses}, nil
 	default:
 		return nil, fmt.Errorf("ast.unpackProc: unknown proc op: %s", op)
 	}

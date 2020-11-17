@@ -1,0 +1,272 @@
+package join
+
+import (
+	"context"
+	"fmt"
+	"sync"
+
+	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/field"
+	"github.com/brimsec/zq/proc"
+	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zng"
+)
+
+type Proc struct {
+	pctx        *proc.Context
+	ctx         context.Context
+	cancel      context.CancelFunc
+	once        sync.Once
+	left        *puller
+	right       *puller
+	getLeftKey  expr.Evaluator
+	getRightKey expr.Evaluator
+	compare     expr.ValueCompareFn
+	cutter      *expr.Cutter
+	joinKey     zng.Value
+	joinSet     []*zng.Record
+	peek        *zng.Record
+	types       map[int]map[int]*zng.TypeRecord
+}
+
+func New(pctx *proc.Context, left, right proc.Interface, v *ast.JoinProc) (*Proc, error) {
+	lhs := make([]field.Static, 0, len(v.Clauses))
+	rhs := make([]expr.Evaluator, 0, len(v.Clauses))
+	for _, clause := range v.Clauses {
+		c, err := expr.CompileAssignment(pctx.TypeContext, &clause)
+		if err != nil {
+			return nil, err
+		}
+		lhs = append(lhs, c.LHS)
+		rhs = append(rhs, c.RHS)
+	}
+	leftKey, err := expr.CompileLval(v.LeftKey)
+	if err != nil {
+		return nil, err
+	}
+	rightKey, err := expr.CompileLval(v.RightKey)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithCancel(pctx.Context)
+	return &Proc{
+		pctx:        pctx,
+		ctx:         ctx,
+		cancel:      cancel,
+		getLeftKey:  expr.NewDotExpr(leftKey),
+		getRightKey: expr.NewDotExpr(rightKey),
+		left:        newPuller(left, ctx),
+		right:       newPuller(right, ctx),
+		// XXX need to make sure nullsmax agrees with inbound merge
+		compare: expr.NewValueCompareFn(false),
+		cutter:  expr.NewCutter(pctx.TypeContext, false, lhs, rhs),
+		types:   make(map[int]map[int]*zng.TypeRecord),
+	}, nil
+}
+
+// Pull implements the merge logic for returning data from the upstreams.
+func (p *Proc) Pull() (zbuf.Batch, error) {
+	p.once.Do(func() {
+		go p.left.run()
+		go p.right.run()
+	})
+	var out []*zng.Record
+	for {
+		leftRec, err := p.left.next()
+		if err != nil {
+			return nil, err
+		}
+		if leftRec == nil {
+			if len(out) == 0 {
+				return nil, nil
+			}
+			return zbuf.Array(out), nil
+		}
+		key, err := p.getLeftKey.Eval(leftRec)
+		if err != nil {
+			// If the left key isn't present (which is not a thing
+			// in a sql join), then drop the record and return only
+			// left records that can eval the key expression.
+			if err == expr.ErrNoSuchField {
+				continue
+			}
+			return nil, err
+		}
+		rightRecs, err := p.getJoinSet(key)
+		if err != nil {
+			return nil, err
+		}
+		if rightRecs == nil {
+			// Nothing to add to the left join.
+			// Accumulate this record for an outer join.
+			out = append(out, leftRec.Keep())
+			continue
+		}
+		// For every record on the right with a key matching
+		// this left record, generate a joined record.
+		// XXX This loop could be more efficient if we had CutAppend
+		// and built the record in a re-usable buffer, then allocated
+		// a right-sized output buffer for the record body and copied
+		// the two inputs into the output buffer.  Even better, these
+		// output buffers could come from a large buffer that implements
+		// Batch and lives in a pool so the downstream user can
+		// release the batch with and bypass GC.
+		for _, rightRec := range rightRecs {
+			cutRec, err := p.cutter.Cut(rightRec)
+			if err != nil {
+				return nil, err
+			}
+			rec, err := p.splice(leftRec, cutRec)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, rec)
+		}
+	}
+}
+
+func (p *Proc) Done() {
+	p.cancel()
+}
+
+func (p *Proc) peekRight() (*zng.Record, error) {
+	if p.peek == nil {
+		var err error
+		p.peek, err = p.right.next()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return p.peek, nil
+}
+
+func (p *Proc) nextRight() (*zng.Record, error) {
+	rec := p.peek
+	if rec != nil {
+		p.peek = nil
+		return rec, nil
+	}
+	return p.right.next()
+}
+
+func (p *Proc) getJoinSet(leftKey zng.Value) ([]*zng.Record, error) {
+	if leftKey.Equal(p.joinKey) {
+		return p.joinSet, nil
+	}
+	for {
+		rec, err := p.peekRight()
+		if err != nil || rec == nil {
+			return nil, err
+		}
+		rightKey, err := p.getRightKey.Eval(rec)
+		if err != nil {
+			if err == expr.ErrNoSuchField {
+				p.peek = nil
+				continue
+			}
+			return nil, err
+		}
+		if leftKey.Equal(rightKey) {
+			p.joinKey = leftKey
+			p.joinSet, err = p.readJoinSet(leftKey)
+			return p.joinSet, err
+		}
+		if p.compare(leftKey, rightKey) < 0 {
+			// If the left key is smaller than the next eligible
+			// join key, then there is nothing to join for this
+			// record.
+			return nil, nil
+		}
+		// Discard the peeked-at record and keep looking for
+		// a righthand key that either matches or exceeds the
+		// lefthand key.
+		p.peek = nil
+	}
+}
+
+// fillJoinSet is called when a join key has been found that matches
+// the current lefthand key.  It returns the all the subsequent records
+// from the righthand stream that match this key and sets the current joinKey
+// to the matched key.
+func (p *Proc) readJoinSet(joinKey zng.Value) ([]*zng.Record, error) {
+	var recs []*zng.Record
+	for {
+		rec, err := p.peekRight()
+		if err != nil {
+			return nil, err
+		}
+		if rec == nil {
+			return recs, nil
+		}
+		key, err := p.getRightKey.Eval(rec)
+		if err != nil {
+			if err == expr.ErrNoSuchField {
+				p.peek = nil
+				continue
+			}
+			return nil, err
+		}
+		if !key.Equal(joinKey) {
+			return recs, nil
+		}
+		recs = append(recs, rec)
+		p.peek = nil
+	}
+}
+
+func (p *Proc) lookupType(left, right *zng.TypeRecord) *zng.TypeRecord {
+	if table, ok := p.types[left.ID()]; ok {
+		return table[right.ID()]
+	}
+	return nil
+}
+
+func (p *Proc) enterType(combined, left, right *zng.TypeRecord) {
+	id := left.ID()
+	table := p.types[id]
+	if table == nil {
+		table = make(map[int]*zng.TypeRecord)
+		p.types[id] = table
+	}
+	table[right.ID()] = combined
+}
+
+func (p *Proc) buildType(left, right *zng.TypeRecord) (*zng.TypeRecord, error) {
+	cols := make([]zng.Column, 0, len(left.Columns)+len(right.Columns))
+	for _, c := range left.Columns {
+		cols = append(cols, c)
+	}
+	for _, c := range right.Columns {
+		name := c.Name
+		for k := 2; left.HasField(name); k++ {
+			name = fmt.Sprintf("%s_%d", c.Name, k)
+		}
+		cols = append(cols, zng.Column{name, c.Type})
+	}
+	return p.pctx.TypeContext.LookupTypeRecord(cols)
+}
+
+func (p *Proc) combinedType(left, right *zng.TypeRecord) (*zng.TypeRecord, error) {
+	if typ := p.lookupType(left, right); typ != nil {
+		return typ, nil
+	}
+	typ, err := p.buildType(left, right)
+	if err != nil {
+		return nil, err
+	}
+	p.enterType(typ, left, right)
+	return typ, nil
+}
+
+func (p *Proc) splice(left, right *zng.Record) (*zng.Record, error) {
+	typ, err := p.combinedType(left.Type, right.Type)
+	if err != nil {
+		return nil, err
+	}
+	n := len(left.Raw)
+	bytes := make([]byte, n+len(right.Raw))
+	copy(bytes, left.Raw)
+	copy(bytes[n:], right.Raw)
+	return zng.NewRecord(typ, bytes), nil
+}

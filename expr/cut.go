@@ -21,12 +21,12 @@ func compileCut(zctx *resolver.Context, node ast.FunctionCall) (Evaluator, error
 		// gives a value of type record[id:record[orig_h:ip],_path:string]
 		// with field names that are the same as the cut names.
 		assignment := &ast.Assignment{LHS: expr, RHS: expr}
-		field, expression, err := CompileAssignment(zctx, assignment)
+		compiled, err := CompileAssignment(zctx, assignment)
 		if err != nil {
 			return nil, err
 		}
-		lhs = append(lhs, field)
-		rhs = append(rhs, expression)
+		lhs = append(lhs, compiled.LHS)
+		rhs = append(rhs, compiled.RHS)
 	}
 	return &cutFunc{NewCutter(zctx, false, lhs, rhs)}, nil
 }

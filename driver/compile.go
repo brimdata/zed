@@ -477,7 +477,7 @@ func computeColumnsR(p ast.Proc, colset *Colset) (*Colset, bool) {
 		}
 		// We got to end without seeing a boundary proc, return "all cols"
 		return nil, true
-	case *ast.ParallelProc:
+	case *ast.ParallelProc, *ast.JoinProc:
 		// (These could be further analysed to determine the
 		// colsets on each branch, and then merge them at the
 		// split point.)
@@ -694,6 +694,11 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField field.S
 			// Split all the upstream procs into parallel branches, then merge and continue with this and any remaining procs.
 			return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
 		case *ast.SequentialProc:
+			return seq, false
+			// XXX Joins can be parallelized but we need to write
+			// the code to parallelize the flow graph, which is a bit
+			// different from how group-bys are parallelized.
+		case *ast.JoinProc:
 			return seq, false
 		default:
 			panic("proc type not handled")
