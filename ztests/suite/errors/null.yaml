@@ -10,4 +10,4 @@ inputs:
 outputs:
   - name: stderr
     regexp: |
-      cannot instantiate type null
+      cannot instantiate type null with nonempty value "bleah"
