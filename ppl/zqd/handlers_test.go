@@ -34,6 +34,7 @@ import (
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -357,7 +358,7 @@ func TestSpacePut(t *testing.T) {
 
 func TestSpaceDelete(t *testing.T) {
 	ctx := context.Background()
-	_, conn := newCore(t)
+	c, conn := newCore(t)
 	sp, err := conn.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 	err = conn.SpaceDelete(ctx, sp.ID)
@@ -365,6 +366,9 @@ func TestSpaceDelete(t *testing.T) {
 	list, err := conn.SpaceList(ctx)
 	require.NoError(t, err)
 	require.Equal(t, []api.SpaceInfo{}, list)
+
+	require.Equal(t, 1.0, promCounterValue(c.Registry(), "spaces_created_total"))
+	require.Equal(t, 1.0, promCounterValue(c.Registry(), "spaces_deleted_total"))
 }
 
 func TestSpaceDeleteDataDir(t *testing.T) {
@@ -1082,6 +1086,19 @@ func newCoreWithConfig(t *testing.T, conf zqd.Config) (*zqd.Core, *client.Connec
 	srv := httptest.NewServer(zqd.NewHandler(core, conf.Logger))
 	t.Cleanup(srv.Close)
 	return core, client.NewConnectionTo(srv.URL)
+}
+
+func promCounterValue(g prometheus.Gatherer, name string) interface{} {
+	metricFamilies, err := g.Gather()
+	if err != nil {
+		return err
+	}
+	for _, mf := range metricFamilies {
+		if mf.GetName() == name {
+			return mf.GetMetric()[0].GetCounter().GetValue()
+		}
+	}
+	return errors.New("metric not found")
 }
 
 func testLauncher(start, wait procFn) pcapanalyzer.Launcher {

@@ -7,6 +7,7 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 )
 
@@ -29,6 +30,7 @@ func NewHandler(core *Core, logger *zap.Logger) http.Handler {
 	h.Use(accessLogMiddleware(logger))
 	h.Use(panicCatchMiddleware(logger))
 	h.Handle("/ast", handleASTPost).Methods("POST")
+	h.Router.Handle("/metrics", promhttp.HandlerFor(core.registry, promhttp.HandlerOpts{}))
 	h.Handle("/space", handleSpaceList).Methods("GET")
 	h.Handle("/space", handleSpacePost).Methods("POST")
 	h.Handle("/space/{space}", handleSpaceGet).Methods("GET")

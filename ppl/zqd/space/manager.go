@@ -9,6 +9,8 @@ import (
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/ppl/zqd/storage/filestore"
 	"github.com/brimsec/zq/zqe"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.uber.org/zap"
 )
 
@@ -19,15 +21,28 @@ type Manager struct {
 	rootPath          iosrc.URI
 	spaces            map[api.SpaceID]Space
 	spacesMu          sync.Mutex
+
+	created prometheus.Counter
+	deleted prometheus.Counter
 }
 
-func NewManager(ctx context.Context, root iosrc.URI, logger *zap.Logger) (*Manager, error) {
+func NewManager(ctx context.Context, logger *zap.Logger, registerer prometheus.Registerer, root iosrc.URI) (*Manager, error) {
+	factory := promauto.With(registerer)
 	mgr := &Manager{
 		alphaFileMigrator: filestore.NewMigrator(ctx),
 		logger:            logger,
 		names:             make(map[string]api.SpaceID),
 		rootPath:          root,
 		spaces:            make(map[api.SpaceID]Space),
+
+		created: factory.NewCounter(prometheus.CounterOpts{
+			Name: "spaces_created_total",
+			Help: "Number of spaces created.",
+		}),
+		deleted: factory.NewCounter(prometheus.CounterOpts{
+			Name: "spaces_deleted_total",
+			Help: "Number of spaces deleted.",
+		}),
 	}
 
 	list, err := iosrc.ReadDir(ctx, root)
@@ -121,7 +136,8 @@ func (m *Manager) Create(ctx context.Context, req api.SpacePostRequest) (Space, 
 	s := spaces[0]
 	m.spaces[s.ID()] = s
 	m.names[s.Name()] = s.ID()
-	return s, err
+	m.created.Inc()
+	return s, nil
 }
 
 func (m *Manager) CreateSubspace(ctx context.Context, parent Space, req api.SubspacePostRequest) (Space, error) {
@@ -192,6 +208,7 @@ func (m *Manager) Delete(ctx context.Context, id api.SpaceID) error {
 
 	delete(m.spaces, id)
 	delete(m.names, name)
+	m.deleted.Inc()
 	return nil
 }
 
