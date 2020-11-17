@@ -85,22 +85,20 @@ func TestCompileMergeDone(t *testing.T) {
 	pctx := &proc.Context{Context: context.Background(), TypeContext: zctx}
 	r := tzngio.NewReader(bytes.NewReader([]byte(input)), zctx)
 	src := &proctest.RecordPuller{R: r}
-	t.Run("merge done before scanners out of data", func(t *testing.T) {
-		query, err := zql.ParseProc("(filter * ; head 1) | head 3")
-		require.NoError(t, err)
+	query, err := zql.ParseProc("(filter * ; head 1) | head 3")
+	require.NoError(t, err)
 
-		seq, ok := query.(*ast.SequentialProc)
-		require.Equal(t, ok, true)
-		p, ok := seq.Procs[0].(*ast.ParallelProc)
-		require.Equal(t, ok, true)
+	seq, ok := query.(*ast.SequentialProc)
+	require.Equal(t, ok, true)
+	p, ok := seq.Procs[0].(*ast.ParallelProc)
+	require.Equal(t, ok, true)
 
-		// Force the parallel proc to create a merge proc instead of combine.
-		p.MergeOrderField = field.New("k")
-		leaves, err := compiler.Compile(nil, query, pctx, []proc.Interface{src})
-		require.NoError(t, err)
+	// Force the parallel proc to create a merge proc instead of combine.
+	p.MergeOrderField = field.New("k")
+	leaves, err := compiler.Compile(nil, query, pctx, []proc.Interface{src})
+	require.NoError(t, err)
 
-		var sb strings.Builder
-		err = zbuf.CopyPuller(tzngio.NewWriter(zio.NopCloser(&sb)), leaves[0])
-		require.NoError(t, err)
-	})
+	var sb strings.Builder
+	err = zbuf.CopyPuller(tzngio.NewWriter(zio.NopCloser(&sb)), leaves[0])
+	require.NoError(t, err)
 }
