@@ -144,8 +144,7 @@ func compileSequential(custom Hook, nodes []ast.Proc, pctx *proc.Context, parent
 		} else {
 			parent = combine.New(pctx, parents)
 		}
-		parents = parents[0:1]
-		parents[0] = parent
+		parents = []proc.Interface{parent}
 	}
 	return compileSequential(custom, nodes[1:], pctx, parents)
 }
