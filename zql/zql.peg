@@ -310,6 +310,7 @@ NamedProc
   / PutProc
   / RenameProc
   / FuseProc
+  / JoinProc
 
 SortProc
   = "sort"i args:SortArgs list:(_ l:Exprs { RETURN(l) })? {
@@ -396,6 +397,14 @@ RenameProc
 FuseProc
   = "fuse"i {
       RETURN(MAP("op": "FuseProc"))
+    }
+
+JoinProc
+  = "join"i _ leftKey:Expression __ "=" __ rightKey:Expression _ columns:FlexAssignments {
+      RETURN(MAP("op": "JoinProc", "left_key": leftKey, "right_key": rightKey, "clauses": columns))
+    }
+  / "join"i _ key:Lval _ columns:FlexAssignments {
+      RETURN(MAP("op": "JoinProc", "left_key": key, "right_key": key, "clauses": columns))
     }
 
 RootField

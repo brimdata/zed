@@ -303,6 +303,14 @@ type (
 	FuseProc struct {
 		Node
 	}
+
+	// A JoinProc node represents a proc that joins two zng streams.
+	JoinProc struct {
+		Node
+		LeftKey  Expression   `json:"left_key"`
+		RightKey Expression   `json:"right_key"`
+		Clauses  []Assignment `json:"clauses"`
+	}
 )
 
 type Assignment struct {
@@ -343,6 +351,7 @@ func (*TopProc) ProcNode()        {}
 func (*PutProc) ProcNode()        {}
 func (*RenameProc) ProcNode()     {}
 func (*FuseProc) ProcNode()       {}
+func (*JoinProc) ProcNode()       {}
 
 // A Reducer is an AST node that represents a reducer function.  The Operator
 // field indicates the aggregation method while the Expr field indicates
@@ -427,6 +436,9 @@ func FanIn(p Proc) int {
 	}
 	if p, ok := first.(*ParallelProc); ok {
 		return len(p.Procs)
+	}
+	if _, ok := first.(*JoinProc); ok {
+		return 2
 	}
 	return 1
 }

@@ -16,16 +16,16 @@ func compileParams(node *ast.GroupByProc, zctx *resolver.Context) (*Params, erro
 	keys := []Key{}
 	var targets []field.Static
 	for k, key := range node.Keys {
-		name, rhs, err := expr.CompileAssignment(zctx, &key)
+		c, err := expr.CompileAssignment(zctx, &key)
 		if err != nil {
 			return nil, err
 		}
 		keys = append(keys, Key{
 			tmp:  fmt.Sprintf("c%d", k),
-			name: name,
-			expr: rhs,
+			name: c.LHS,
+			expr: c.RHS,
 		})
-		targets = append(targets, name)
+		targets = append(targets, c.LHS)
 	}
 	reducerMakers := make([]reducerMaker, 0, len(node.Reducers))
 	for _, assignment := range node.Reducers {

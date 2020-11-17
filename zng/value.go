@@ -1,6 +1,7 @@
 package zng
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -185,4 +186,8 @@ func (v Value) IsStringy() bool {
 
 func (v Value) IsError() bool {
 	return v.Type == TypeError
+}
+
+func (v Value) Equal(p Value) bool {
+	return v.Type == p.Type && bytes.Equal(v.Bytes, p.Bytes)
 }

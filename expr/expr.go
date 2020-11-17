@@ -1078,16 +1078,21 @@ func NewRootField(name string) Evaluator {
 
 var ErrInference = errors.New("assigment name could not be inferred from rhs expressioin")
 
-func CompileAssignment(zctx *resolver.Context, node *ast.Assignment) (field.Static, Evaluator, error) {
+type Assignment struct {
+	LHS field.Static
+	RHS Evaluator
+}
+
+func CompileAssignment(zctx *resolver.Context, node *ast.Assignment) (Assignment, error) {
 	rhs, err := CompileExpr(zctx, node.RHS)
 	if err != nil {
-		return nil, nil, fmt.Errorf("rhs of assigment expression: %w", err)
+		return Assignment{}, fmt.Errorf("rhs of assigment expression: %w", err)
 	}
 	var lhs field.Static
 	if node.LHS != nil {
 		lhs, err = CompileLval(node.LHS)
 		if err != nil {
-			return nil, nil, fmt.Errorf("lhs of assigment expression: %w", err)
+			return Assignment{}, fmt.Errorf("lhs of assigment expression: %w", err)
 		}
 	} else {
 		switch rhs := node.RHS.(type) {
@@ -1109,7 +1114,7 @@ func CompileAssignment(zctx *resolver.Context, node *ast.Assignment) (field.Stat
 			err = ErrInference
 		}
 	}
-	return lhs, rhs, err
+	return Assignment{lhs, rhs}, err
 }
 
 func CompileAssignments(dsts []field.Static, srcs []field.Static) ([]field.Static, []Evaluator) {
