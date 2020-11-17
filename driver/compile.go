@@ -303,9 +303,6 @@ func setGroupByProcInputSortDir(p ast.Proc, inputSortField field.Static, inputSo
 		for _, c := range p.Clauses {
 			lhs, ok := ast.DotExprToField(c.LHS)
 			if ok && lhs.Equal(inputSortField) {
-				// XXX what if put field is not static and
-				// computes to a collision...
-				// Henri please check and I will remove on PR
 				return false
 			}
 		}
@@ -493,8 +490,6 @@ func computeColumnsR(p ast.Proc, colset *Colset) (*Colset, bool) {
 		}
 		for _, field := range fields {
 			if ok := colset.Add(field); !ok {
-				//XXX?
-				// Henri please check and I will remove on PR
 				return nil, false
 			}
 		}
@@ -503,8 +498,6 @@ func computeColumnsR(p ast.Proc, colset *Colset) (*Colset, bool) {
 		for _, c := range p.Clauses {
 			for _, field := range expressionFields(c.RHS) {
 				if ok := colset.Add(field); !ok {
-					//XXX?
-					// Henri please check and I will remove on PR
 					return nil, false
 				}
 			}
@@ -513,8 +506,6 @@ func computeColumnsR(p ast.Proc, colset *Colset) (*Colset, bool) {
 	case *ast.RenameProc:
 		for _, f := range p.Fields {
 			if ok := colset.Add(f.RHS); !ok {
-				//XXX?
-				// Henri please check and I will remove on PR
 				return nil, false
 			}
 		}
@@ -527,8 +518,6 @@ func computeColumnsR(p ast.Proc, colset *Colset) (*Colset, bool) {
 		}
 		for _, f := range p.Fields {
 			if ok := colset.Add(f); !ok {
-				//XXX?
-				// Henri please check and I will remove on PR
 				return nil, false
 			}
 		}
@@ -669,7 +658,6 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField field.S
 				// Single sort field: we can sort in each parallel branch, and then do an ordered merge.
 				mergeField, ok := ast.DotExprToField(p.Fields[0])
 				if !ok {
-					// XXX is this right?
 					return seq, false
 				}
 				return buildSplitFlowgraph(seq.Procs[0:i+1], seq.Procs[i+1:], mergeField, dir, N), true
