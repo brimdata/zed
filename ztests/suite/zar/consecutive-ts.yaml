@@ -1,0 +1,26 @@
+script: |
+  zar import -R logs -streammax 2 -
+  microindex section -s 0 -t logs/zd/19700101/ts-*.zng
+
+inputs:
+  - name: stdin
+    data: |
+      #0:record[ts:time]
+      0:[0;]
+      0:[2;]
+      0:[2;]
+      0:[3;]
+      0:[3;]
+      0:[3;]
+      0:[6;]
+      0:[7;]
+      0:[8;]
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[ts:time,offset:int64]
+      0:[8;0;]
+      0:[6;23;]
+      0:[2;69;]
+      0:[0;90;]

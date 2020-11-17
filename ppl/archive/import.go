@@ -315,7 +315,8 @@ func (cw *chunkWriter) Write(rec *zng.Record) error {
 	if err := cw.dataFileWriter.Write(rec); err != nil {
 		return err
 	}
-	if cw.needIndexWrite {
+	ts := rec.Ts()
+	if !cw.wroteFirst || (cw.needIndexWrite && ts != cw.lastTs) {
 		if err := cw.seekIndex.Enter(rec.Ts(), sos); err != nil {
 			return err
 		}
@@ -324,7 +325,6 @@ func (cw *chunkWriter) Write(rec *zng.Record) error {
 	if cw.dataFileWriter.LastSOS() != sos {
 		cw.needIndexWrite = true
 	}
-	ts := rec.Ts()
 	if !cw.wroteFirst {
 		cw.firstTs = ts
 		cw.wroteFirst = true
