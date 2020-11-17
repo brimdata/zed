@@ -1,17 +1,18 @@
 package zng
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/brimsec/zq/zcode"
 )
 
-var ErrInstantiateNull = errors.New("cannot instantiate type null")
-
 type TypeOfNull struct{}
 
 func (t *TypeOfNull) Parse(in []byte) (zcode.Bytes, error) {
-	return nil, ErrInstantiateNull
+	if len(in) > 0 {
+		return nil, fmt.Errorf("cannot instantiate type null with nonempty value %q", in)
+	}
+	return nil, nil
 }
 
 func (t *TypeOfNull) ID() int {

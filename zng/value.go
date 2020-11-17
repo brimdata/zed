@@ -19,12 +19,9 @@ type Value struct {
 	Bytes zcode.Bytes
 }
 
-// Parse translates an Literal into a Value.
+// Parse translates an ast.Literal into a Value.
 // This currently supports only primitive literals.
 func Parse(v ast.Literal) (Value, error) {
-	if v.Type == "null" {
-		return Value{}, nil
-	}
 	t := LookupPrimitive(v.Type)
 	if t == nil {
 		return Value{}, fmt.Errorf("unsupported type %s in ast.Literal", v.Type)
