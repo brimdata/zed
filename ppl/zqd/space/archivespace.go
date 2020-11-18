@@ -13,7 +13,8 @@ import (
 
 type archiveSpace struct {
 	spaceBase
-	path iosrc.URI
+	path      iosrc.URI
+	compactor *compactor
 
 	confMu sync.Mutex
 	conf   config
@@ -80,7 +81,7 @@ func (s *archiveSpace) CreateSubspace(ctx context.Context, req api.SubspacePostR
 	s.confMu.Lock()
 	defer s.confMu.Unlock()
 
-	substore, err := archivestore.Load(ctx, s.conf.DataURI, &api.ArchiveConfig{
+	substore, err := archivestore.Load(ctx, s.conf.DataURI, nil, &api.ArchiveConfig{
 		OpenOptions: &req.OpenOptions,
 	})
 	if err != nil {
@@ -103,4 +104,8 @@ func (s *archiveSpace) CreateSubspace(ctx context.Context, req api.SubspacePostR
 		spaceBase: spaceBase{subcfg.ID, substore, nil, newGuard(), logger},
 		parent:    s,
 	}, nil
+}
+
+func (s *archiveSpace) WriterClosed() {
+	s.compactor.WriteComplete(s.ID())
 }

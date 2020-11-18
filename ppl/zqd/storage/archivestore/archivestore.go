@@ -17,7 +17,7 @@ import (
 	"github.com/brimsec/zq/zqe"
 )
 
-func Load(ctx context.Context, path iosrc.URI, cfg *api.ArchiveConfig) (*Storage, error) {
+func Load(ctx context.Context, path iosrc.URI, notifier WriteNotifier, cfg *api.ArchiveConfig) (*Storage, error) {
 	co := &archive.CreateOptions{}
 	if cfg != nil && cfg.CreateOptions != nil {
 		co.LogSizeThreshold = cfg.CreateOptions.LogSizeThreshold
@@ -30,7 +30,14 @@ func Load(ctx context.Context, path iosrc.URI, cfg *api.ArchiveConfig) (*Storage
 	if err != nil {
 		return nil, err
 	}
-	return &Storage{ark: ark}, nil
+	return &Storage{
+		ark:      ark,
+		notifier: notifier,
+	}, nil
+}
+
+type WriteNotifier interface {
+	WriterClosed()
 }
 
 type summaryCache struct {
@@ -42,7 +49,8 @@ type summaryCache struct {
 }
 
 type Storage struct {
-	ark *archive.Archive
+	ark      *archive.Archive
+	notifier WriteNotifier
 }
 
 func NewStorage(ark *archive.Archive) *Storage {
@@ -83,11 +91,32 @@ func (s *Storage) Summary(ctx context.Context) (storage.Summary, error) {
 }
 
 func (s *Storage) Write(ctx context.Context, zctx *resolver.Context, zr zbuf.Reader) error {
-	return archive.Import(ctx, s.ark, zctx, zr)
+	err := archive.Import(ctx, s.ark, zctx, zr)
+	if s.notifier != nil {
+		s.notifier.WriterClosed()
+	}
+	return err
 }
 
-func (s *Storage) NewWriter(ctx context.Context) *archive.Writer {
-	return archive.NewWriter(ctx, s.ark)
+type Writer struct {
+	*archive.Writer
+	notifier WriteNotifier
+}
+
+func (w *Writer) Close() error {
+	err := w.Writer.Close()
+	if w.notifier != nil {
+		w.notifier.WriterClosed()
+	}
+	return err
+}
+
+// NewWriter returns an arcive.Writer so data can be written to the archive
+// store. When the Writer has been closed a task will be started to compact
+// the store.
+func (s *Storage) NewWriter(ctx context.Context) *Writer {
+	writer := archive.NewWriter(ctx, s.ark)
+	return &Writer{writer, s.notifier}
 }
 
 func (s *Storage) IndexCreate(ctx context.Context, req api.IndexPostRequest) error {
@@ -131,4 +160,11 @@ func (s *Storage) IndexSearch(ctx context.Context, zctx *resolver.Context, query
 
 func (s *Storage) ArchiveStat(ctx context.Context, zctx *resolver.Context) (zbuf.ReadCloser, error) {
 	return archive.Stat(ctx, zctx, s.ark)
+}
+
+func (s *Storage) Compact(ctx context.Context) error {
+	if err := archive.Compact(ctx, s.ark); err != nil {
+		return err
+	}
+	return archive.Purge(ctx, s.ark)
 }

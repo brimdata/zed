@@ -41,7 +41,10 @@ import (
 	"go.uber.org/zap/zaptest"
 )
 
-const babble = "../../ztests/suite/data/babble.tzng"
+const (
+	babble       = "../../ztests/suite/data/babble.tzng"
+	babbleSorted = "../../ztests/suite/data/babble-sorted.tzng"
+)
 
 func TestASTPost(t *testing.T) {
 	_, conn := newCore(t)
@@ -758,7 +761,7 @@ func TestIndexSearch(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	_, err = conn.LogPost(context.Background(), sp.ID, nil, babble)
+	_, err = conn.LogPost(context.Background(), sp.ID, nil, babbleSorted)
 	require.NoError(t, err)
 	err = conn.IndexPost(context.Background(), sp.ID, api.IndexPostRequest{
 		Patterns: []string{"v"},
@@ -767,7 +770,7 @@ func TestIndexSearch(t *testing.T) {
 
 	exp := `
 #0:record[key:int64,count:uint64,first:time,last:time]
-0:[257;1;1587518582.06699522;1587517999.06307953;]
+0:[257;1;1587518582.06699522;1587518014.06491752;]
 0:[257;1;1587516748.0632538;1587516200.06892251;]
 0:[257;1;1587512245.0693411;1587511709.06845389;]
 0:[257;1;1587511703.06774599;1587511182.064686;]
@@ -797,7 +800,7 @@ func TestSubspaceCreate(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	_, err = conn.LogPost(context.Background(), sp1.ID, nil, babble)
+	_, err = conn.LogPost(context.Background(), sp1.ID, nil, babbleSorted)
 	require.NoError(t, err)
 	err = conn.IndexPost(context.Background(), sp1.ID, api.IndexPostRequest{
 		Patterns: []string{":int64"},
@@ -873,7 +876,7 @@ func TestSubspacePersist(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	_, err = conn1.LogPost(context.Background(), sp1.ID, nil, babble)
+	_, err = conn1.LogPost(context.Background(), sp1.ID, nil, babbleSorted)
 	require.NoError(t, err)
 	err = conn1.IndexPost(context.Background(), sp1.ID, api.IndexPostRequest{
 		Patterns: []string{":int64"},

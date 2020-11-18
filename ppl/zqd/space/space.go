@@ -120,33 +120,40 @@ func (m *Manager) loadSpaces(ctx context.Context, p iosrc.URI, conf config) ([]S
 	if err != nil {
 		return nil, err
 	}
+	base := spaceBase{
+		id:        id,
+		pcapstore: pcapstore,
+		sg:        newGuard(),
+		logger:    logger,
+	}
 	switch conf.Storage.Kind {
 	case api.FileStore:
-		store, err := filestore.Load(datapath, logger)
-		if err != nil {
-			return nil, err
-		}
-		m.alphaFileMigrator.Add(store)
 		s := &fileSpace{
-			spaceBase: spaceBase{id, store, pcapstore, newGuard(), logger},
+			spaceBase: base,
 			path:      p,
 			conf:      conf,
 		}
+		s.store, err = filestore.Load(datapath, logger)
+		if err != nil {
+			return nil, err
+		}
+		m.alphaFileMigrator.Add(s.store.(*filestore.Storage))
 		return []Space{s}, nil
 
 	case api.ArchiveStore:
-		store, err := archivestore.Load(ctx, datapath, conf.Storage.Archive)
+		parent := &archiveSpace{
+			spaceBase: base,
+			path:      p,
+			conf:      conf,
+			compactor: m.compactor,
+		}
+		parent.store, err = archivestore.Load(ctx, datapath, parent, conf.Storage.Archive)
 		if err != nil {
 			return nil, err
 		}
-		parent := &archiveSpace{
-			spaceBase: spaceBase{id, store, pcapstore, newGuard(), logger},
-			path:      p,
-			conf:      conf,
-		}
 		ret := []Space{parent}
 		for _, subcfg := range conf.Subspaces {
-			substore, err := archivestore.Load(ctx, datapath, &api.ArchiveConfig{
+			substore, err := archivestore.Load(ctx, datapath, nil, &api.ArchiveConfig{
 				OpenOptions: &subcfg.OpenOptions,
 			})
 			if err != nil {
