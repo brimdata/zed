@@ -40,11 +40,11 @@ func New(pctx *proc.Context, left, right proc.Interface, v *ast.JoinProc) (*Proc
 		lhs = append(lhs, c.LHS)
 		rhs = append(rhs, c.RHS)
 	}
-	leftKey, err := expr.CompileLval(v.LeftKey)
+	getLeftKey, err := expr.CompileExpr(pctx.TypeContext, v.LeftKey)
 	if err != nil {
 		return nil, err
 	}
-	rightKey, err := expr.CompileLval(v.RightKey)
+	getRightKey, err := expr.CompileExpr(pctx.TypeContext, v.RightKey)
 	if err != nil {
 		return nil, err
 	}
@@ -53,8 +53,8 @@ func New(pctx *proc.Context, left, right proc.Interface, v *ast.JoinProc) (*Proc
 		pctx:        pctx,
 		ctx:         ctx,
 		cancel:      cancel,
-		getLeftKey:  expr.NewDotExpr(leftKey),
-		getRightKey: expr.NewDotExpr(rightKey),
+		getLeftKey:  getLeftKey,
+		getRightKey: getRightKey,
 		left:        newPuller(left, ctx),
 		right:       zbuf.NewPeeker(newPuller(right, ctx)),
 		// XXX need to make sure nullsmax agrees with inbound merge
@@ -239,6 +239,14 @@ func (p *Proc) combinedType(left, right *zng.TypeRecord) (*zng.TypeRecord, error
 }
 
 func (p *Proc) splice(left, right *zng.Record) (*zng.Record, error) {
+	if right == nil {
+		// This happens on a simple join, i.e., "join key",
+		// where there are not cut expressions.  For left joins,
+		// this does nothing, but for inner joins, it will
+		// filter the lefthand stream by what's in the righthand
+		// stream.
+		return left, nil
+	}
 	typ, err := p.combinedType(left.Type, right.Type)
 	if err != nil {
 		return nil, err

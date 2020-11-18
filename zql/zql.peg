@@ -400,12 +400,24 @@ FuseProc
     }
 
 JoinProc
-  = "join"i _ leftKey:Expression __ "=" __ rightKey:Expression _ columns:FlexAssignments {
-      RETURN(MAP("op": "JoinProc", "left_key": leftKey, "right_key": rightKey, "clauses": columns))
+  = "join"i _ leftKey:JoinKey __ "=" __ rightKey:JoinKey columns:(_ FlexAssignments)? {
+      VAR(proc) = MAP("op": "JoinProc", "left_key": leftKey, "right_key": rightKey)
+      if ISNOTNULL(columns) {
+        proc["clauses"] = ASSERT_ARRAY(columns)[1]
+      }
+      RETURN(proc)
     }
-  / "join"i _ key:Lval _ columns:FlexAssignments {
-      RETURN(MAP("op": "JoinProc", "left_key": key, "right_key": key, "clauses": columns))
+  / "join"i _ key:JoinKey columns:(_ FlexAssignments)? {
+      VAR(proc) = MAP("op": "JoinProc", "left_key": key, "right_key": key)
+      if ISNOTNULL(columns) {
+        proc["clauses"] = ASSERT_ARRAY(columns)[1]
+      }
+      RETURN(proc)
     }
+
+JoinKey
+  = Lval
+  / "(" expr:Expr ")" { RETURN(expr) }
 
 RootField
   = "."? !(BooleanLiteral / NullLiteral) field:Identifier { RETURN(MAP("op": "BinaryExpr", "operator":".", "lhs":MAP("op":"RootRecord"), "rhs": field)) }

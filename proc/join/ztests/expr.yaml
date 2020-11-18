@@ -1,0 +1,47 @@
+script: |
+  zq -t -P 'join s b' A.tzng B.tzng
+  echo ===
+  zq -t -P 'join s=(to_lower(s)) b' A.tzng B.tzng
+  echo ===
+  zq -t -P 'join (to_lower(s))=(to_lower(s)) b' A.tzng B.tzng
+  echo ===
+  zq -t -P 'join s' A.tzng B.tzng
+
+inputs:
+  - name: A.tzng
+    data: |
+      #0:record[a:int32,s:string]
+      0:[1;a;]
+      0:[2;B;]
+      0:[3;c;]
+  - name: B.tzng
+    data: |
+      #0:record[b:int32,s:string]
+      0:[4;A;]
+      0:[5;b;]
+      0:[6;c;]
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[a:int32,s:string]
+      0:[1;a;]
+      0:[2;B;]
+      #1:record[a:int32,s:string,b:int32]
+      1:[3;c;6;]
+      ===
+      #0:record[a:int32,s:string,b:int32]
+      0:[1;a;4;]
+      #1:record[a:int32,s:string]
+      1:[2;B;]
+      0:[3;c;6;]
+      ===
+      #0:record[a:int32,s:string,b:int32]
+      0:[1;a;4;]
+      0:[2;B;5;]
+      0:[3;c;6;]
+      ===
+      #0:record[a:int32,s:string]
+      0:[1;a;]
+      0:[2;B;]
+      0:[3;c;]
