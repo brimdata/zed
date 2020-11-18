@@ -157,7 +157,7 @@ aggregator.
 
 Turns out there's fix: just count the conn logs:
 ```
-_path=conn OR _path=ssl | count() where _path=conn,<other-aggregations> by id.resp_h,id.orig_h
+_path=conn OR _path=ssl | count() where _path="conn",<other-aggregations> by id.resp_h,id.orig_h
 ```
 Now we can have aggregations that work either on conn logs or ssl logs
 and do not mess up our connection count.  The beauty of the zng data model here
@@ -304,9 +304,9 @@ Combining all of the above concepts,
 here the final zql expression to construct a connection summary:
 ```
 _path=conn OR _path=ssl |
-   count(_path=conn),
+   count(_path="conn"),
    bytes=collect(orig_bytes),
-   ts_set=union(ts) where _path=conn,
+   ts_set=union(ts) where _path="conn",
    tuples=union(cut(id.orig_p,proto,service)),
    icert=or(!(validation_status="ok" OR validation_status=" " OR
               validation_status="" OR validation_status=null)),
@@ -314,6 +314,17 @@ _path=conn OR _path=ssl |
    tbytes=sum(orig_bytes+resp_bytes),
    tdur=sum(duration)
      by id.resp_h,id.orig_h
+```
+
+> TBD: note the conn strings are quoted in the count() arg and where clause
+> and thus look different compared to the search expressions.  We are fixing
+> this in issue #1371.
+
+If the input logs are in `logs.zng`, then you can produce the edge graph
+with the above zql (say it's called "edge-graph.zql") and save it in `edges.zng`
+as follows:
+```
+zq -o edges.zng -z edge-graph.zql logs.zng
 ```
 
 > TBD: compute strobe and filter out ts/bytes for strobes to reduce overhead.
@@ -345,17 +356,18 @@ In practice there is little overlap between originators (on the inside of the se
 and responders (on the outside), so little inefficiency arises fromo having
 seprate tables.
 
-Here is parallel query that accomplishes this:
+So, if we take the edge graph output from above (edges.zng), we can
+compute a host table using this zql in say a file called `host-table.zql`:
 ```
-<from-connection-summary> | (
-	count_src=sum(count) by host=id.orig_h | sort host ;
-	count_dst=sum(count) by host=id.resp_h | sort host
-      ) | join host
+(
+  count_src=sum(count) by host=id.orig_h | sort host ;
+  count_dst=sum(count) by host=id.resp_h | sort host
+) | join host count_dst
 ```
-> TBD: we need zql syntax for join that creates an orderedmerge join
-> <bikeshed>
-> let's change the name of orderedmerge in the code
-> </bikeshed>
+by running the following zq command:
+```
+zq -o hosts.zng -z host-table.zql edges.zng
+```
 
 For the `txt_query_count`, we need to scan the raw DNS logs but the query
 is easy:
@@ -363,15 +375,23 @@ is easy:
 qtype_name="TXT" | count() by id.orig_h
 ```
 This summary table could be stored adjacent to the counts summary, or
-it could be mixed in like this:
+it could be mixed in like this by augmenting qhost-table.zql` as follows:
 ```
-( <from-connection-summary> | (
-	count_src=sum(count) by host=id.orig_h | sort host ;
-	count_dst=sum(count) by host=id.resp_h | sort host
-      ) | join host ;
-   _path=dns qtype_name="TXT" | count() by host=id.orig_hp | sort host
-) | join host
+(
+  (
+    count_src=sum(count) by host=id.orig_h | sort host ;
+    count_dst=sum(count) by host=id.resp_h | sort host
+  )  | join host count_dst ;
+  filter _path=dns qtype_name="TXT" | count_dns=count() by host=id.orig_h | sort host
+) | join host count_dns
 ```
+With this query, the table can be built from the edge graph above and
+the original logs using the `-P` option to `zq` to tell it to splice the
+file arguments directly onto the zql query parallel inputs like this:
+```
+zq -P -o hosts.zng -z hosts-table.zql edges.zng logs.zng
+```
+
 > BTW, noting here that the groupby spill code will already have sorted the
 > data so no use sorting again, and when you spill groupby you'll have to
 > spill sort.  We should fix this.  Maybe the easiest thing to do is make sorting
@@ -385,14 +405,15 @@ it could be mixed in like this:
 upps_count=count(icert=true) by id.orig_h
 ```
 and can be folded into the first leg of the first parallel flow graph
-as follows:
+from `host-table.zql` as follows:
 ```
-( <from-connection-summary> | (
-	count_src=sum(count),upps_count=count(icert=true) by host=id.orig_h | sort host ;
-	count_dst=sum(count) by host=id.resp_h | sort host
-      ) | join host ;
-   _path=dns qtype_name="TXT" | count() by host=id.orig_hp | sort host
-) | join host
+(
+  (
+    count_src=sum(count),upps_count=count(icert=true) by host=id.orig_h | sort host ;
+    count_dst=sum(count) by host=id.resp_h | sort host
+  )  | join host count_dst ;
+  filter _path=dns qtype_name="TXT" | count_dns=count() by host=id.orig_h | sort host
+) | join host count_dns
 ```
 
 ### The Domain Summary
