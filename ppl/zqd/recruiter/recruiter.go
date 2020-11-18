@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+// WorkerPool is the internal state of the recruiter system
+// The pools are exported only for use in unit tests
 type WorkerPool struct {
 	mu           sync.Mutex                // for right now, just share one lock for all three maps
 	FreePool     map[string]WorkerDetail   // Map of all free workers
@@ -23,7 +25,11 @@ type WorkerDetail struct {
 
 func NewWorkerPool() *WorkerPool {
 	rand.Seed(time.Now().UnixNano())
-	return &WorkerPool{}
+	return &WorkerPool{
+		FreePool:     make(map[string]WorkerDetail),
+		NodePool:     make(map[string][]WorkerDetail),
+		ReservedPool: make(map[string]WorkerDetail),
+	}
 }
 
 func (pool *WorkerPool) Register(addr string, nodename string) error {
@@ -49,7 +55,7 @@ func (pool *WorkerPool) Register(addr string, nodename string) error {
 	return nil
 }
 
-func (pool *WorkerPool) Unregister(addr string) {
+func (pool *WorkerPool) Deregister(addr string) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 	wd, prs := pool.FreePool[addr]
@@ -64,10 +70,15 @@ func (pool *WorkerPool) Unregister(addr string) {
 			}
 		}
 		if i != -1 {
-			s[len(s)-1], s[i] = s[i], s[len(s)-1]
-			pool.NodePool[wd.NodeName] = s[:len(s)-1]
+			if len(s) == 1 {
+				delete(pool.NodePool, wd.NodeName)
+			} else {
+				s[len(s)-1], s[i] = s[i], s[len(s)-1]
+				pool.NodePool[wd.NodeName] = s[:len(s)-1]
+			}
 		}
 	}
+	delete(pool.FreePool, addr)
 }
 
 // Unreserve removes from the reserved pool, but does not reregister
