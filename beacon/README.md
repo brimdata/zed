@@ -369,21 +369,21 @@ by running the following zq command:
 zq -o hosts.zng -z host-table.zql edges.zng
 ```
 
-For the `txt_query_count`, we need to scan the raw DNS logs but the query
+For `txt_query_count`, we need to scan the raw DNS logs but the query
 is easy:
 ```
 qtype_name="TXT" | count() by id.orig_h
 ```
 This summary table could be stored adjacent to the counts summary, or
-it could be mixed in like this by augmenting qhost-table.zql` as follows:
+it could be mixed in like this by augmenting `host-table.zql` as follows:
 ```
 (
   (
     count_src=sum(count) by host=id.orig_h | sort host ;
     count_dst=sum(count) by host=id.resp_h | sort host
   )  | join host count_dst ;
-  filter _path=dns qtype_name="TXT" | count_dns=count() by host=id.orig_h | sort host
-) | join host count_dns
+  filter _path=dns qtype_name="TXT" | txt_query_count=count() by host=id.orig_h | sort host
+) | join host txt_query_count
 ```
 With this query, the table can be built from the edge graph above and
 the original logs using the `-P` option to `zq` to tell it to splice the
@@ -412,8 +412,8 @@ from `host-table.zql` as follows:
     count_src=sum(count),upps_count=count(icert=true) by host=id.orig_h | sort host ;
     count_dst=sum(count) by host=id.resp_h | sort host
   )  | join host count_dst ;
-  filter _path=dns qtype_name="TXT" | count_dns=count() by host=id.orig_h | sort host
-) | join host count_dns
+  filter _path=dns qtype_name="TXT" | txt_query_count=count() by host=id.orig_h | sort host
+) | join host txt_query_count
 ```
 
 ### The Domain Summary
@@ -437,7 +437,6 @@ Armed with split, we can say
 ```
 _path=dns | split -sep "." query | count() by query
 ```
-
 ### The Host Name Summary
 
 > TBD
