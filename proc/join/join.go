@@ -241,7 +241,7 @@ func (p *Proc) combinedType(left, right *zng.TypeRecord) (*zng.TypeRecord, error
 func (p *Proc) splice(left, right *zng.Record) (*zng.Record, error) {
 	if right == nil {
 		// This happens on a simple join, i.e., "join key",
-		// where there are not cut expressions.  For left joins,
+		// where there are no cut expressions.  For left joins,
 		// this does nothing, but for inner joins, it will
 		// filter the lefthand stream by what's in the righthand
 		// stream.
