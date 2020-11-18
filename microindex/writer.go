@@ -69,7 +69,6 @@ type indexWriter struct {
 	frameStart int64
 	frameEnd   int64
 	frameKey   *zng.Record
-	headerSize int
 }
 
 // NewWriter returns a Writer ready to write a microindex or it returns
