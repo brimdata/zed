@@ -242,19 +242,14 @@ Okay, back to the `tuples` field.  With the union operator,
 we simply need a way to treat the input to union as a value tuple comprised
 of the aforementioned three elements.  Zng however does not have a tuple
 data type (they are not columnar friendly), but zql does have a way to
-refer to record literals composed of other values so we can compose the
+cut fields from a record to form another record value so we can compose the
 tuple into a record on-the-fly and have the union aggregator apply to
 the resulting sequence of record values.
 
-> TBD: Actually, it doesn't yet, but we will add it soon.  Syntax could simply
-> be record[id.orig_p,proto,service] and you inherit the names and types of the
-> values and names provided or you could optionally specify field names,
-> i.e., record[op:id_orig_p,p:proto,s:service]
-
-Armed with `union` and record literals, we can now extend our connection-summary
-query to handle the `tuples` field:
+Armed with the `union` aggregator and the `cut` funtion,
+we can now extend our connection-summary query to handle the `tuples` field:
 ```
-count(),...,tuples=union(record[id.orig_p,proto,service]) by id.resp_h,id.orig_h
+count(),...,tuples=union(cut(id.orig_p,proto,service)) by id.resp_h,id.orig_h
 ```
 where we have elided the other aggregations to save space here.
 
@@ -312,7 +307,7 @@ _path=conn OR _path=ssl |
    count(_path=conn),
    bytes=collect(orig_bytes),
    ts_set=union(ts) where _path=conn,
-   tuples=union(record[id.orig_p,proto,service]),
+   tuples=union(cut(id.orig_p,proto,service)),
    icert=or(!(validation_status="ok" OR validation_status=" " OR
               validation_status="" OR validation_status=null)),
    maxdur=max(duration),
