@@ -27,7 +27,6 @@ import (
 	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/proc/sort"
 	"github.com/mccanne/charm"
-	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/yaml.v3"
@@ -64,6 +63,7 @@ type Command struct {
 	devMode             bool
 	listenAddr          string
 	logLevel            zapcore.Level
+	personality         string
 	portFile            string
 	pprof               bool
 	suricataRunnerPath  string
@@ -81,6 +81,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.devMode, "dev", false, "run in development mode")
 	f.StringVar(&c.listenAddr, "l", ":9867", "[addr]:port to listen on")
 	f.Var(&c.logLevel, "loglevel", "logging level")
+	f.StringVar(&c.conf.Personality, "personality", "all", "server personality (all, apiserver, or worker)")
 	f.StringVar(&c.portFile, "portfile", "", "write listen port to file")
 	f.BoolVar(&c.pprof, "pprof", false, "add pprof routes to API")
 	f.StringVar(&c.suricataRunnerPath, "suricatarunner", "", "command to generate Suricata eve.json from pcap data")
@@ -113,15 +114,15 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	core.Registry().MustRegister(prometheus.NewGoCollector())
 	c.logger.Info("Starting",
 		zap.String("datadir", c.conf.Root),
 		zap.Uint64("open_files_limit", openFilesLimit),
+		zap.String("personality", c.conf.Personality),
 		zap.Bool("pprof_routes", c.pprof),
 		zap.Bool("suricata_supported", core.HasSuricata()),
 		zap.Bool("zeek_supported", core.HasZeek()),
 	)
-	h := zqd.NewHandler(core, c.logger)
+	h := core.HTTPHandler()
 	if c.pprof {
 		h = pprofHandlers(h)
 	}
