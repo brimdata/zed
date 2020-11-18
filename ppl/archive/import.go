@@ -298,7 +298,6 @@ func newChunkWriter(ctx context.Context, ark *Archive, tsd tsDir, masks []ksuid.
 		id:             id,
 		seekIndex:      seekIndex,
 		masks:          masks,
-		needIndexWrite: true,
 		tsd:            tsd,
 	}, nil
 }
@@ -317,7 +316,7 @@ func (cw *chunkWriter) Write(rec *zng.Record) error {
 	}
 	ts := rec.Ts()
 	if !cw.wroteFirst || (cw.needIndexWrite && ts != cw.lastTs) {
-		if err := cw.seekIndex.Enter(rec.Ts(), sos); err != nil {
+		if err := cw.seekIndex.Enter(ts, sos); err != nil {
 			return err
 		}
 		cw.needIndexWrite = false
