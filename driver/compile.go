@@ -544,6 +544,9 @@ func copyProcs(ps []ast.Proc) []ast.Proc {
 }
 
 func buildSplitFlowgraph(branch, tail []ast.Proc, mergeField field.Static, reverse bool, N int) *ast.SequentialProc {
+	if len(branch) == 0 {
+		branch = []ast.Proc{passProc}
+	}
 	if len(tail) == 0 && mergeField != nil {
 		// Insert a pass tail in order to force a merge of the
 		// parallel branches when compiling. (Trailing parallel branches are wired to
@@ -651,7 +654,7 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField field.S
 			composerGroupBy := copyProcs([]ast.Proc{p})[0].(*ast.GroupByProc)
 			composerGroupBy.ConsumePart = true
 
-			return buildSplitFlowgraph(branch, append([]ast.Proc{composerGroupBy}, seq.Procs[i+1:]...), mergeField, false, N), true
+			return buildSplitFlowgraph(branch, append([]ast.Proc{composerGroupBy}, seq.Procs[i+1:]...), mergeField, inputSortReversed, N), true
 		case *ast.SortProc:
 			dir := map[int]bool{-1: true, 1: false}[p.SortDir]
 			if len(p.Fields) == 1 {
