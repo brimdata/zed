@@ -24,7 +24,7 @@ type WorkerDetail struct {
 }
 
 func NewWorkerPool() *WorkerPool {
-	rand.Seed(time.Now().UnixNano())
+	rand.Seed(time.Now().UnixNano()) // for shuffling NodePool keys
 	return &WorkerPool{
 		FreePool:     make(map[string]WorkerDetail),
 		NodePool:     make(map[string][]WorkerDetail),
@@ -52,6 +52,7 @@ func (pool *WorkerPool) Register(addr string, nodename string) error {
 		pool.NodePool[nodename] = make([]WorkerDetail, 0)
 	}
 	pool.NodePool[nodename] = append(pool.NodePool[nodename], wd)
+	println(len(pool.FreePool))
 	return nil
 }
 
@@ -128,7 +129,7 @@ func (pool *WorkerPool) Recruit(n int) ([]string, error) {
 		if goal > recruitsNeeded {
 			goal = recruitsNeeded
 		}
-		if len(workers) >= goal {
+		if len(workers) > goal {
 			recruitsNeeded -= goal
 			recruits = append(recruits, workers[:goal]...)
 			pool.NodePool[key] = workers[goal:]
