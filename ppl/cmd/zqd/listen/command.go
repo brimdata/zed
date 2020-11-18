@@ -81,7 +81,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.devMode, "dev", false, "run in development mode")
 	f.StringVar(&c.listenAddr, "l", ":9867", "[addr]:port to listen on")
 	f.Var(&c.logLevel, "loglevel", "logging level")
-	f.StringVar(&c.personality, "personality", "all", "server personality (all, apiserver, or worker)")
+	f.StringVar(&c.conf.Personality, "personality", "all", "server personality (all, apiserver, or worker)")
 	f.StringVar(&c.portFile, "portfile", "", "write listen port to file")
 	f.BoolVar(&c.pprof, "pprof", false, "add pprof routes to API")
 	f.StringVar(&c.suricataRunnerPath, "suricatarunner", "", "command to generate Suricata eve.json from pcap data")
@@ -117,22 +117,11 @@ func (c *Command) Run(args []string) error {
 	c.logger.Info("Starting",
 		zap.String("datadir", c.conf.Root),
 		zap.Uint64("open_files_limit", openFilesLimit),
-		zap.String("personality", c.personality),
+		zap.String("personality", c.conf.Personality),
 		zap.Bool("pprof_routes", c.pprof),
 		zap.Bool("suricata_supported", core.HasSuricata()),
 		zap.Bool("zeek_supported", core.HasZeek()),
 	)
-	switch c.personality {
-	case "all":
-		core.AddAPIServerRoutes()
-		core.AddWorkerRoutes()
-	case "apiserver":
-		core.AddAPIServerRoutes()
-	case "worker":
-		core.AddWorkerRoutes()
-	default:
-		return fmt.Errorf("unknown personality %s", c.personality)
-	}
 	h := core.HTTPHandler()
 	if c.pprof {
 		h = pprofHandlers(h)

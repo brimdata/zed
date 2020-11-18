@@ -3,6 +3,7 @@ package zqd
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"sync/atomic"
@@ -30,9 +31,10 @@ const indexPage = `
 </html>`
 
 type Config struct {
-	Logger  *zap.Logger
-	Root    string
-	Version string
+	Logger      *zap.Logger
+	Personality string
+	Root        string
+	Version     string
 
 	Suricata pcapanalyzer.Launcher
 	Zeek     pcapanalyzer.Launcher
@@ -87,7 +89,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 		json.NewEncoder(w).Encode(&api.VersionResponse{Version: conf.Version})
 	})
 
-	return &Core{
+	c := &Core{
 		logger:   conf.Logger,
 		registry: registry,
 		root:     root,
@@ -95,11 +97,24 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 		spaces:   spaces,
 		suricata: conf.Suricata,
 		zeek:     conf.Zeek,
-	}, nil
+	}
+
+	switch conf.Personality {
+	case "", "all":
+		c.addAPIServerRoutes()
+		c.addWorkerRoutes()
+	case "apiserver":
+		c.addAPIServerRoutes()
+	case "worker":
+		c.addWorkerRoutes()
+	default:
+		return nil, fmt.Errorf("unknown personality %s", conf.Personality)
+	}
+
+	return c, nil
 }
 
-// AddAPIServerRoutes adds routes for zqd's API server personality.
-func (c *Core) AddAPIServerRoutes() {
+func (c *Core) addAPIServerRoutes() {
 	c.handle("/ast", handleASTPost).Methods("POST")
 	c.handle("/search", handleSearch).Methods("POST")
 	c.handle("/space", handleSpaceList).Methods("GET")
@@ -117,8 +132,7 @@ func (c *Core) AddAPIServerRoutes() {
 	c.handle("/space/{space}/subspace", handleSubspacePost).Methods("POST")
 }
 
-// AddWorkerRoutes adds routes for zqd's worker personality.
-func (c *Core) AddWorkerRoutes() {
+func (c *Core) addWorkerRoutes() {
 	c.handle("/worker", handleWorker).Methods("POST")
 }
 
