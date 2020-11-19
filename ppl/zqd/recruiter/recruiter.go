@@ -112,25 +112,21 @@ func (pool *WorkerPool) Recruit(n int) ([]WorkerDetail, error) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
+	recruits := make([]WorkerDetail, 0)
 	if len(pool.nodePool) < 1 {
-		return []WorkerDetail{}, nil
+		return recruits, nil
 	}
 
 	// Make a single pass through the nodes in the cluster that have
 	// available workers, and try to pick evenly from each node. If that pass
 	// fails to recruit enough workers, then we start to pick from the freePool, regardless
 	// of node, until we recruit enough workers, or all available workers.
-
-	var keys []string
-	for k, _ := range pool.nodePool {
-		keys = append(keys, k)
-	}
-	// shuffle the keys
-	rand.Shuffle(len(keys), func(i, j int) { keys[i], keys[j] = keys[j], keys[i] })
-
-	recruits := make([]WorkerDetail, 0)
-
 	if !pool.SkipSpread && n > 1 {
+		var keys []string
+		for k, _ := range pool.nodePool {
+			keys = append(keys, k)
+		}
+		rand.Shuffle(len(keys), func(i, j int) { keys[i], keys[j] = keys[j], keys[i] })
 		for i, key := range keys {
 			workers := pool.nodePool[key]
 			// adjust goal on each iteration
