@@ -1,7 +1,6 @@
 package recruiter
 
 import (
-	"math/rand"
 	"strconv"
 	"testing"
 
@@ -61,7 +60,7 @@ func TestRecruit1(t *testing.T) {
 	assert.Equal(t, addr, s[0].Addr)
 	// try recruiting 0 workers
 	_, err = wp.Recruit(0)
-	assert.EqualError(t, err, "Recruit must request one or more workers: n=0")
+	assert.EqualError(t, err, "recruit must request one or more workers: n=0")
 	// attempt to register reserved worker should be ignored
 	wp.Register(addr, nodename)
 	AssertPoolLen(t, wp, nodename, 0, 0, 0, 1)
@@ -166,7 +165,7 @@ func TestRandom1(t *testing.T) {
 	assert.Equal(t, wp.LenReservedPool(), 0)
 	remainingWorkers := numWorkers
 	for remainingWorkers > 0 {
-		numRecruits := rand.Intn(size) + 1
+		numRecruits := wp.r.Intn(size) + 1
 		s, err := wp.Recruit(numRecruits)
 		require.Nil(t, err)
 		remainingWorkers -= len(s)
@@ -194,7 +193,7 @@ func TestRandomWithReregister(t *testing.T) {
 	}
 	remainingWorkers := numWorkers
 	for i := 0; i < size; i++ {
-		numRecruits := rand.Intn(2*size) + 1
+		numRecruits := wp.r.Intn(2*size) + 1
 		s, err := wp.Recruit(numRecruits)
 		require.Nil(t, err)
 		//println("iteration", i, "recruit", len(s), "from", remainingWorkers, "for", remainingWorkers-len(s))
@@ -202,7 +201,7 @@ func TestRandomWithReregister(t *testing.T) {
 		require.Equal(t, wp.LenFreePool(), remainingWorkers)
 		require.Equal(t, wp.LenReservedPool(), numWorkers-remainingWorkers)
 
-		j := rand.Intn(len(q)-2) + 1
+		j := wp.r.Intn(len(q)-2) + 1
 		q = append(q, s)
 		copy(q[j+1:], q[j:])
 		q[j] = s
@@ -247,7 +246,7 @@ func TestRandomRectangle(t *testing.T) {
 	}
 	remainingWorkers := numWorkers
 	for i := 0; i < iterations; i++ {
-		numRecruits := rand.Intn(reqmax-reqmin) + reqmin
+		numRecruits := wp.r.Intn(reqmax-reqmin) + reqmin
 		s, err := wp.Recruit(numRecruits)
 		require.Nil(t, err)
 		//println("iteration", i, "recruit", len(s), "from", remainingWorkers, "for", remainingWorkers-len(s))
@@ -255,7 +254,7 @@ func TestRandomRectangle(t *testing.T) {
 		require.Equal(t, wp.LenFreePool(), remainingWorkers)
 		require.Equal(t, wp.LenReservedPool(), numWorkers-remainingWorkers)
 
-		j := rand.Intn(len(q)-2) + 1
+		j := wp.r.Intn(len(q)-2) + 1
 		q = append(q, s)
 		copy(q[j+1:], q[j:])
 		q[j] = s

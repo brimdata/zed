@@ -16,6 +16,7 @@ type WorkerPool struct {
 	nodePool     map[string][]WorkerDetail // Map of nodes of slices of free workers
 	reservedPool map[string]WorkerDetail   // Map of busy workers
 	SkipSpread   bool                      // option to test algorithm performance
+	r            *rand.Rand
 }
 
 type WorkerDetail struct {
@@ -24,35 +25,30 @@ type WorkerDetail struct {
 }
 
 func NewWorkerPool() *WorkerPool {
-	rand.Seed(time.Now().UnixNano()) // for shuffling nodePool keys
 	return &WorkerPool{
 		freePool:     make(map[string]WorkerDetail),
 		nodePool:     make(map[string][]WorkerDetail),
 		reservedPool: make(map[string]WorkerDetail),
+		r:            rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
 func (pool *WorkerPool) Register(addr string, nodename string) error {
 	if _, _, err := net.SplitHostPort(addr); err != nil {
-		return fmt.Errorf("Invalid address for Register: %w", err)
+		return fmt.Errorf("invalid address for Register: %w", err)
 	}
 	if nodename == "" {
-		return fmt.Errorf("Node name required for Register")
+		return fmt.Errorf("node name required for Register")
 	}
 	wd := WorkerDetail{Addr: addr, NodeName: nodename}
 
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	_, prs := pool.reservedPool[addr]
-	if prs {
+	if _, ok := pool.reservedPool[addr]; ok {
 		return nil // ignore register for existing workers
 	}
 	pool.freePool[addr] = wd
-	_, prs = pool.nodePool[nodename]
-	if !prs {
-		pool.nodePool[nodename] = make([]WorkerDetail, 0)
-	}
 	pool.nodePool[nodename] = append(pool.nodePool[nodename], wd)
 	return nil
 }
@@ -105,13 +101,13 @@ func (pool *WorkerPool) Unreserve(addr string) {
 // Recruit attempts to spread the workers across nodes.
 func (pool *WorkerPool) Recruit(n int) ([]WorkerDetail, error) {
 	if n < 1 {
-		return nil, fmt.Errorf("Recruit must request one or more workers: n=%d", n)
+		return nil, fmt.Errorf("recruit must request one or more workers: n=%d", n)
 	}
 
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	recruits := make([]WorkerDetail, 0)
+	var recruits []WorkerDetail
 	if len(pool.nodePool) < 1 {
 		return recruits, nil
 	}
@@ -125,7 +121,7 @@ func (pool *WorkerPool) Recruit(n int) ([]WorkerDetail, error) {
 		for k, _ := range pool.nodePool {
 			keys = append(keys, k)
 		}
-		rand.Shuffle(len(keys), func(i, j int) { keys[i], keys[j] = keys[j], keys[i] })
+		pool.r.Shuffle(len(keys), func(i, j int) { keys[i], keys[j] = keys[j], keys[i] })
 		for i, key := range keys {
 			workers := pool.nodePool[key]
 			// adjust goal on each iteration
