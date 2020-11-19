@@ -113,7 +113,7 @@ SearchPred
   / v:SearchLiteral {
       RETURN(MAP("op": "Search", "text": TEXT, "value": v))
     }
-  / !(SearchKeywords _ ) v:SearchWord {
+  / !(SearchTokens _ ) v:KeyWord {
       VAR(str) = ASSERT_STRING(v)
       if (str == "*") {
         RETURN(MAP("op": "MatchAll"))
@@ -128,11 +128,11 @@ SearchPred
 
 SearchValue
   = SearchLiteral
-  / !((SearchKeywords) _) v:SearchWord {
+  / !(SearchTokens _) v:KeyWord {
       RETURN(MAP("op": "Literal", "type": "string", "value": v))
     }
 
-SearchKeywords
+SearchTokens
   = AndToken
   / OrToken
   / InToken
@@ -146,10 +146,10 @@ SearchLiteral
 
   // Careful not to use IntegerLiteral unconditionally or it will consume
   // the beginning of something like 1234abcd which is a valid search word
-  / i:IntegerLiteral !SearchWord { RETURN(i) }
+  / i:IntegerLiteral !KeyWord { RETURN(i) }
 
-  / !(SearchKeywords _) v:BooleanLiteral { RETURN(v) }
-  / !(SearchKeywords _) v:NullLiteral { RETURN(v) }
+  / !(SearchTokens _) v:BooleanLiteral { RETURN(v) }
+  / !(SearchTokens _) v:NullLiteral { RETURN(v) }
 
 
 StringLiteral
@@ -272,7 +272,7 @@ FlexAssignments
     }
 
 ReducerAssignment
-  = lval:Lval __ "=" reducer:Reducer {
+  = lval:Lval __ "=" __ reducer:Reducer {
       RETURN(MAP("op": "Assignment", "lhs": lval, "rhs": reducer))
     }
   / reducer:Reducer {
@@ -706,10 +706,10 @@ Hex = HexDigit+ { RETURN(TEXT) }
 
 HexDigit = [0-9a-fA-F]
 
-SearchWord
-  = chars:SearchWordPart+ { RETURN(joinChars(chars)) }
+KeyWord
+  = chars:KeyWordPart+ { RETURN(joinChars(chars)) }
 
-SearchWordPart
+KeyWordPart
   = "\\" s:(EscapeSequence / SearchEscape)  { RETURN(s) }
   / !([\x00-\x1F\x5C(),!><=DQUOTE|SQUOTE;:] / WhiteSpace) . { RETURN(TEXT) }
 
@@ -762,7 +762,18 @@ RegexpBody
 EscapedChar
   = [\x00-\x1f\\]
 
-WhiteSpace
+_  = AnySpace+
+__ = AnySpace*
+
+AnySpace
+  = WhiteSpace
+  / LineTerminator
+  / Comment
+
+SourceCharacter
+  = .
+
+WhiteSpace "whitespace"
   = "\t"
   / "\v"
   / "\f"
@@ -770,7 +781,22 @@ WhiteSpace
   / "\u00A0"
   / "\uFEFF"
 
-_  = WhiteSpace+
-__ = WhiteSpace*
+LineTerminator
+  = [\n\r\u2028\u2029]
+
+// XXX We will leave multi-line comments out for now since there is some work
+// that needs to be done disambiguating among KeyWord, Regexp, and "/*".
+// We will tackle this in the search-expr branch that is changing the grammar
+// to better mix together ad hoc keyword search with formal boolean expressions.
+Comment "comment"
+  // = MultiLineComment
+  // / SingleLineComment
+  = SingleLineComment
+
+MultiLineComment
+  = "/*" (!"*/" SourceCharacter)* "*/"
+
+SingleLineComment
+  = "//" (!LineTerminator SourceCharacter)*
 
 EOF = !.

@@ -1,0 +1,21 @@
+script: |
+  zq -t -z count.zql in.tzng
+
+inputs:
+  - name: count.zql
+    data: |
+      2 | c  = count() //,
+          , sum(v) // moon
+
+  - name: in.tzng
+    data: |
+      #0:record[v:int64]
+      0:[1;]
+      0:[2;]
+      0:[3;]
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[c:uint64,sum:int64]
+      0:[1;2;]
