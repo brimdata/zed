@@ -543,7 +543,7 @@ func copyProcs(ps []ast.Proc) []ast.Proc {
 	return copies
 }
 
-func buildSplitFlowgraph(branch, tail []ast.Proc, mergeField field.Static, reverse bool, N int) (ast.Proc, bool) {
+func buildSplitFlowgraph(branch, tail []ast.Proc, mergeField field.Static, reverse bool, N int) (*ast.SequentialProc, bool) {
 	if len(branch) == 0 {
 		return &ast.SequentialProc{
 			Node:  ast.Node{"SequentialProc"},
@@ -578,7 +578,7 @@ func buildSplitFlowgraph(branch, tail []ast.Proc, mergeField field.Static, rever
 // parallelize it by splitting as much as possible of the sequence
 // into N parallel branches. The boolean return argument indicates
 // whether the flowgraph could be parallelized.
-func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField field.Static, inputSortReversed bool) (ast.Proc, bool) {
+func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField field.Static, inputSortReversed bool) (*ast.SequentialProc, bool) {
 	orderSensitiveTail := true
 	for i := range seq.Procs {
 		switch seq.Procs[i].(type) {
