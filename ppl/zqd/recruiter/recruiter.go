@@ -13,9 +13,9 @@ import (
 // The pools are exported only for use in unit tests
 type WorkerPool struct {
 	mu           sync.Mutex                // for right now, just share one lock for all three maps
-	FreePool     map[string]WorkerDetail   // Map of all free workers
-	NodePool     map[string][]WorkerDetail // Map of nodes of slices of free workers
-	ReservedPool map[string]WorkerDetail   // Map of busy workers
+	freePool     map[string]WorkerDetail   // Map of all free workers
+	nodePool     map[string][]WorkerDetail // Map of nodes of slices of free workers
+	reservedPool map[string]WorkerDetail   // Map of busy workers
 }
 
 type WorkerDetail struct {
@@ -24,11 +24,11 @@ type WorkerDetail struct {
 }
 
 func NewWorkerPool() *WorkerPool {
-	rand.Seed(time.Now().UnixNano()) // for shuffling NodePool keys
+	rand.Seed(time.Now().UnixNano()) // for shuffling nodePool keys
 	return &WorkerPool{
-		FreePool:     make(map[string]WorkerDetail),
-		NodePool:     make(map[string][]WorkerDetail),
-		ReservedPool: make(map[string]WorkerDetail),
+		freePool:     make(map[string]WorkerDetail),
+		nodePool:     make(map[string][]WorkerDetail),
+		reservedPool: make(map[string]WorkerDetail),
 	}
 }
 
@@ -42,44 +42,53 @@ func (pool *WorkerPool) Register(addr string, nodename string) error {
 	wd := WorkerDetail{Addr: addr, NodeName: nodename}
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-	_, prs := pool.ReservedPool[addr]
+	_, prs := pool.reservedPool[addr]
 	if prs {
 		return nil // ignore register for existing workers
 	}
-	pool.FreePool[addr] = wd
-	_, prs = pool.NodePool[nodename]
+	pool.freePool[addr] = wd
+	_, prs = pool.nodePool[nodename]
 	if !prs {
-		pool.NodePool[nodename] = make([]WorkerDetail, 0)
+		pool.nodePool[nodename] = make([]WorkerDetail, 0)
 	}
-	pool.NodePool[nodename] = append(pool.NodePool[nodename], wd)
-	println(len(pool.FreePool))
+	pool.nodePool[nodename] = append(pool.nodePool[nodename], wd)
+	//println(len(pool.freePool))
 	return nil
+}
+
+// removeFromNodePool is internal and the calling function must be holding the mutex
+func (pool *WorkerPool) removeFromNodePool(wd WorkerDetail) {
+	s := pool.nodePool[wd.NodeName]
+	i := -1
+	for j, v := range s {
+		if v == wd {
+			i = j
+			break
+		}
+	}
+	if i == -1 {
+		// this will only happen when there is a bug in this file
+		panic(fmt.Errorf("expected WorkerDetail not in list: %v", wd.Addr))
+	}
+	if len(s) == 1 {
+		// the convention is to remove empty lists from the hash
+		// so len(pool.nodePool) is a good estimate
+		delete(pool.nodePool, wd.NodeName)
+	} else {
+		// overwrite with the last element and truncate slice
+		s[i] = s[len(s)-1]
+		pool.nodePool[wd.NodeName] = s[:len(s)-1]
+	}
 }
 
 func (pool *WorkerPool) Deregister(addr string) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-	wd, prs := pool.FreePool[addr]
+	wd, prs := pool.freePool[addr]
 	if prs {
-		// remove from array while not preserving order
-		s := pool.NodePool[wd.NodeName]
-		i := -1
-		for j, v := range s {
-			if v == wd {
-				i = j
-				break
-			}
-		}
-		if i != -1 {
-			if len(s) == 1 {
-				delete(pool.NodePool, wd.NodeName)
-			} else {
-				s[len(s)-1], s[i] = s[i], s[len(s)-1]
-				pool.NodePool[wd.NodeName] = s[:len(s)-1]
-			}
-		}
+		pool.removeFromNodePool(wd)
+		delete(pool.freePool, addr)
 	}
-	delete(pool.FreePool, addr)
 }
 
 // Unreserve removes from the reserved pool, but does not reregister
@@ -87,7 +96,7 @@ func (pool *WorkerPool) Deregister(addr string) {
 func (pool *WorkerPool) Unreserve(addr string) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-	delete(pool.ReservedPool, addr)
+	delete(pool.reservedPool, addr)
 }
 
 func recalcGoal(n int, nodecount int) int {
@@ -101,18 +110,18 @@ func (pool *WorkerPool) Recruit(n int) ([]string, error) {
 	}
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-	var nodecount = len(pool.NodePool)
+	var nodecount = len(pool.nodePool)
 	if nodecount < 1 {
 		return nil, fmt.Errorf("No workers available")
 	}
 
 	// Make a single pass through the nodes in the cluster that have
 	// available workers, and try to pick evenly from each node. If that pass
-	// fails to recruit enough workers, then we start to pick from the FreePool, regardless
+	// fails to recruit enough workers, then we start to pick from the freePool, regardless
 	// of node, until we recruit enough workers, or all available workers.
 
 	var keys []string
-	for k, _ := range pool.NodePool {
+	for k, _ := range pool.nodePool {
 		keys = append(keys, k)
 	}
 	// shuffle the keys
@@ -125,36 +134,42 @@ func (pool *WorkerPool) Recruit(n int) ([]string, error) {
 
 	for _, key := range keys {
 		remainingNodes--
-		workers := pool.NodePool[key]
+		workers := pool.nodePool[key]
 		if goal > recruitsNeeded {
 			goal = recruitsNeeded
 		}
 		if len(workers) > goal {
 			recruitsNeeded -= goal
 			recruits = append(recruits, workers[:goal]...)
-			pool.NodePool[key] = workers[goal:]
+			pool.nodePool[key] = workers[goal:]
 		} else {
 			recruitsNeeded -= len(workers)
 			// not enough recruits from this node, recalculate goal
 			goal = recalcGoal(recruitsNeeded, remainingNodes)
 			recruits = append(recruits, workers...)
-			delete(pool.NodePool, key)
+			delete(pool.nodePool, key)
 		}
 		if recruitsNeeded == 0 {
 			break
 		}
 	}
 
-	// Delete the recruits obtained in this pass from the FreePool
+	// Delete the recruits obtained in this pass from the freePool
 	for _, wd := range recruits {
-		delete(pool.FreePool, wd.Addr)
+		_, prs := pool.freePool[wd.Addr]
+		if !prs {
+			panic(fmt.Errorf("attempt to remove addr that was not in freePool: %v", wd.Addr))
+		}
+		delete(pool.freePool, wd.Addr)
+		//println("deleted ", wd.Addr)
 	}
 
 	// If there are still recruits needed, select them "randomly"
 	if recruitsNeeded > 0 {
-		for k, wd := range pool.FreePool {
+		for k, wd := range pool.freePool {
+			pool.removeFromNodePool(wd)
+			delete(pool.freePool, k)
 			recruits = append(recruits, wd)
-			delete(pool.FreePool, k)
 			recruitsNeeded--
 			if recruitsNeeded < 1 {
 				break
@@ -165,8 +180,26 @@ func (pool *WorkerPool) Recruit(n int) ([]string, error) {
 	// Now add the recruits to the Reserved Pool
 	retval := make([]string, len(recruits))
 	for i, r := range recruits {
-		pool.ReservedPool[r.Addr] = r
+		pool.reservedPool[r.Addr] = r
 		retval[i] = r.Addr
 	}
 	return retval, nil
+}
+
+func (pool *WorkerPool) LenFreePool() int {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+	return len(pool.freePool)
+}
+
+func (pool *WorkerPool) LenReservedPool() int {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+	return len(pool.reservedPool)
+}
+
+func (pool *WorkerPool) LenNodePool() int {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+	return len(pool.nodePool)
 }
