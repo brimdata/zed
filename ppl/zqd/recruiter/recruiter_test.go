@@ -162,47 +162,51 @@ func TestRandom1(t *testing.T) {
 	}
 }
 
-func noTestRandomWithReregister(t *testing.T) {
+func TestRandomWithReregister(t *testing.T) {
 	// This test re-registers previously recruited workers
 	// in a random order after each recruit call.
 	// This is a rough simulation of a multi-user load.
 	wp := NewWorkerPool()
 	size := 30
-	qsize := 10
+	qsize := 30
 	InitTriangle(t, wp, size)
 	numWorkers := size * (size + 1) / 2
 	assert.Equal(t, wp.LenFreePool(), numWorkers)
 	assert.Equal(t, wp.LenReservedPool(), 0)
-	reregisterQueue := make([][]WorkerDetail, qsize)
-	// The reregisterQueue is initialized with empty lists, and
+	q := make([][]WorkerDetail, qsize)
+	// The Reregister Queue is initialized with empty lists, then
 	// previously recruited lists of workers are shuffled in.
 	for i := 0; i < qsize; i++ {
-		reregisterQueue[i] = make([]WorkerDetail, 0)
+		q[i] = make([]WorkerDetail, 0)
 	}
 	remainingWorkers := numWorkers
 	for i := 0; i < size; i++ {
-		numRecruits := rand.Intn(size) + 1
+		numRecruits := rand.Intn(2*size) + 1
 		s, err := wp.Recruit(numRecruits)
 		require.Nil(t, err)
-		println("iteration", i, "recruit", len(s), "from", remainingWorkers, "for", remainingWorkers-len(s))
+		//println("iteration", i, "recruit", len(s), "from", remainingWorkers, "for", remainingWorkers-len(s))
 		remainingWorkers -= len(s)
-		assert.Equal(t, wp.LenFreePool(), remainingWorkers)
-		assert.Equal(t, wp.LenReservedPool(), numWorkers-remainingWorkers)
+		require.Equal(t, wp.LenFreePool(), remainingWorkers)
+		require.Equal(t, wp.LenReservedPool(), numWorkers-remainingWorkers)
 
-		qoffset := rand.Intn(qsize)
-		head := reregisterQueue[:qoffset]
-		tail := reregisterQueue[qoffset:]
-		reregisterQueue = append(append(head, s), tail...)
+		j := rand.Intn(len(q)-2) + 1
+		q = append(q, s)
+		copy(q[j+1:], q[j:])
+		q[j] = s
 
-		reregisterNow := reregisterQueue[0]
-		reregisterQueue = reregisterQueue[1:]
+		if len(q) > 2 {
+			reregisterNow := q[0]
+			q = q[1:]
 
-		for _, wd := range reregisterNow {
-			wp.Register(wd.Addr, wd.NodeName)
+			for _, wd := range reregisterNow {
+				wp.Unreserve(wd.Addr)
+				wp.Register(wd.Addr, wd.NodeName)
+				require.Nil(t, err)
+			}
+			remainingWorkers += len(reregisterNow)
+			//println("iteration", i, "register", len(reregisterNow), "for", remainingWorkers)
+			require.Equal(t, wp.LenFreePool(), remainingWorkers)
+			require.Equal(t, wp.LenReservedPool(), numWorkers-remainingWorkers)
 		}
-		remainingWorkers += len(reregisterNow)
-		println("iteration", i, "register", len(reregisterNow), "for", remainingWorkers)
-		assert.Equal(t, wp.LenFreePool(), remainingWorkers)
-		assert.Equal(t, wp.LenReservedPool(), numWorkers-remainingWorkers)
 	}
 }

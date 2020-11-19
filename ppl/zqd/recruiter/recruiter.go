@@ -12,7 +12,7 @@ import (
 // WorkerPool is the internal state of the recruiter system
 // The pools are exported only for use in unit tests
 type WorkerPool struct {
-	mu           sync.Mutex                // for right now, just share one lock for all three maps
+	mu           sync.Mutex                // one lock for all three maps
 	freePool     map[string]WorkerDetail   // Map of all free workers
 	nodePool     map[string][]WorkerDetail // Map of nodes of slices of free workers
 	reservedPool map[string]WorkerDetail   // Map of busy workers
@@ -40,8 +40,10 @@ func (pool *WorkerPool) Register(addr string, nodename string) error {
 		return fmt.Errorf("Node name required for Register")
 	}
 	wd := WorkerDetail{Addr: addr, NodeName: nodename}
+
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
+
 	_, prs := pool.reservedPool[addr]
 	if prs {
 		return nil // ignore register for existing workers
@@ -58,6 +60,14 @@ func (pool *WorkerPool) Register(addr string, nodename string) error {
 // removeFromNodePool is internal and the calling function must be holding the mutex
 func (pool *WorkerPool) removeFromNodePool(wd WorkerDetail) {
 	s := pool.nodePool[wd.NodeName]
+	if len(s) == 1 {
+		if s[0] == wd {
+			// Remove empty list from the hash so len(pool.nodePool)
+			// is a a count of nodes with available workers.
+			delete(pool.nodePool, wd.NodeName)
+		}
+		return
+	}
 	i := -1
 	for j, v := range s {
 		if v == wd {
@@ -68,20 +78,15 @@ func (pool *WorkerPool) removeFromNodePool(wd WorkerDetail) {
 	if i == -1 {
 		panic(fmt.Errorf("expected WorkerDetail not in list: %v", wd.Addr))
 	}
-	if len(s) == 1 {
-		// the convention is to remove empty lists from the hash
-		// so len(pool.nodePool) is a good estimate
-		delete(pool.nodePool, wd.NodeName)
-	} else {
-		// overwrite with the last element and truncate slice
-		s[i] = s[len(s)-1]
-		pool.nodePool[wd.NodeName] = s[:len(s)-1]
-	}
+	// Overwrite removed node and truncate slice
+	s[i] = s[len(s)-1]
+	pool.nodePool[wd.NodeName] = s[:len(s)-1]
 }
 
 func (pool *WorkerPool) Deregister(addr string) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
+
 	wd, prs := pool.freePool[addr]
 	if prs {
 		pool.removeFromNodePool(wd)
@@ -89,23 +94,24 @@ func (pool *WorkerPool) Deregister(addr string) {
 	}
 }
 
-// Unreserve removes from the reserved pool, but does not reregister
-// We expect the worker process to initiate the register
+// Unreserve removes from the reserved pool, but does not reregister.
+// The worker process should initiate register.
 func (pool *WorkerPool) Unreserve(addr string) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 	delete(pool.reservedPool, addr)
 }
 
-// Recruit attempts to spread the workers across nodes
+// Recruit attempts to spread the workers across nodes.
 func (pool *WorkerPool) Recruit(n int) ([]WorkerDetail, error) {
 	if n < 1 {
 		return nil, fmt.Errorf("Recruit must request one or more workers: n=%d", n)
 	}
+
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-	var nodecount = len(pool.nodePool)
-	if nodecount < 1 {
+
+	if len(pool.nodePool) < 1 {
 		return []WorkerDetail{}, nil
 	}
 
@@ -125,7 +131,7 @@ func (pool *WorkerPool) Recruit(n int) ([]WorkerDetail, error) {
 	for i, key := range keys {
 		workers := pool.nodePool[key]
 		// adjust goal on each iteration
-		goal := int(math.Ceil(float64(n-len(recruits)) / float64(nodecount-i)))
+		goal := int(math.Ceil(float64(n-len(recruits)) / float64(len(keys)-i)))
 		if len(workers) > goal {
 			recruits = append(recruits, workers[:goal]...)
 			pool.nodePool[key] = workers[goal:]
@@ -147,7 +153,7 @@ func (pool *WorkerPool) Recruit(n int) ([]WorkerDetail, error) {
 		delete(pool.freePool, wd.Addr)
 	}
 
-	// If there are still recruits needed, select them "randomly"
+	// If there are still recruits needed, select them by iterating through the freePool
 	if len(recruits) < n {
 		for k, wd := range pool.freePool {
 			pool.removeFromNodePool(wd)
@@ -159,7 +165,7 @@ func (pool *WorkerPool) Recruit(n int) ([]WorkerDetail, error) {
 		}
 	}
 
-	// Now add the recruits to the Reserved Pool
+	// Add the recruits to the Reserved Pool
 	for _, r := range recruits {
 		pool.reservedPool[r.Addr] = r
 	}
