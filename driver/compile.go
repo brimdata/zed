@@ -543,9 +543,12 @@ func copyProcs(ps []ast.Proc) []ast.Proc {
 	return copies
 }
 
-func buildSplitFlowgraph(branch, tail []ast.Proc, mergeField field.Static, reverse bool, N int) *ast.SequentialProc {
+func buildSplitFlowgraph(branch, tail []ast.Proc, mergeField field.Static, reverse bool, N int) (ast.Proc, bool) {
 	if len(branch) == 0 {
-		branch = []ast.Proc{passProc}
+		return &ast.SequentialProc{
+			Node:  ast.Node{"SequentialProc"},
+			Procs: tail,
+		}, false
 	}
 	if len(tail) == 0 && mergeField != nil {
 		// Insert a pass tail in order to force a merge of the
@@ -568,14 +571,14 @@ func buildSplitFlowgraph(branch, tail []ast.Proc, mergeField field.Static, rever
 	return &ast.SequentialProc{
 		Node:  ast.Node{"SequentialProc"},
 		Procs: append([]ast.Proc{pp}, tail...),
-	}
+	}, true
 }
 
 // parallelizeFlowgraph takes a sequential proc AST and tries to
 // parallelize it by splitting as much as possible of the sequence
 // into N parallel branches. The boolean return argument indicates
 // whether the flowgraph could be parallelized.
-func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField field.Static, inputSortReversed bool) (*ast.SequentialProc, bool) {
+func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField field.Static, inputSortReversed bool) (ast.Proc, bool) {
 	orderSensitiveTail := true
 	for i := range seq.Procs {
 		switch seq.Procs[i].(type) {
@@ -599,7 +602,7 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField field.S
 			if p.Complement {
 				for _, f := range p.Fields {
 					if eq(f.RHS, inputSortField) {
-						return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
+						return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N)
 					}
 				}
 				continue
@@ -609,14 +612,14 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField field.S
 				fieldName, okField := ast.DotExprToField(f.RHS)
 				lhs, okLHS := ast.DotExprToField(f.LHS)
 				if okField && !fieldName.Equal(inputSortField) && okLHS && lhs.Equal(inputSortField) {
-					return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
+					return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N)
 				}
 				if okField && fieldName.Equal(inputSortField) && lhs == nil {
 					found = true
 				}
 			}
 			if !found {
-				return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
+				return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N)
 			}
 		case *ast.PutProc:
 			if inputSortField == nil || !orderSensitiveTail {
@@ -624,7 +627,7 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField field.S
 			}
 			for _, c := range p.Clauses {
 				if eq(c.LHS, inputSortField) {
-					return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
+					return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N)
 				}
 			}
 			continue
@@ -634,12 +637,12 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField field.S
 			}
 			for _, f := range p.Fields {
 				if eq(f.LHS, inputSortField) {
-					return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
+					return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N)
 				}
 			}
 		case *ast.GroupByProc:
 			if !groupby.IsDecomposable(p.Reducers) {
-				return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
+				return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N)
 			}
 			// We have a decomposable groupby and can split the flowgraph into branches that run up to and including a groupby,
 			// followed by a post-merge groupby that composes the results.
@@ -654,7 +657,7 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField field.S
 			composerGroupBy := copyProcs([]ast.Proc{p})[0].(*ast.GroupByProc)
 			composerGroupBy.ConsumePart = true
 
-			return buildSplitFlowgraph(branch, append([]ast.Proc{composerGroupBy}, seq.Procs[i+1:]...), mergeField, inputSortReversed, N), true
+			return buildSplitFlowgraph(branch, append([]ast.Proc{composerGroupBy}, seq.Procs[i+1:]...), mergeField, inputSortReversed, N)
 		case *ast.SortProc:
 			dir := map[int]bool{-1: true, 1: false}[p.SortDir]
 			if len(p.Fields) == 1 {
@@ -663,10 +666,10 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField field.S
 				if !ok {
 					return seq, false
 				}
-				return buildSplitFlowgraph(seq.Procs[0:i+1], seq.Procs[i+1:], mergeField, dir, N), true
+				return buildSplitFlowgraph(seq.Procs[0:i+1], seq.Procs[i+1:], mergeField, dir, N)
 			} else {
 				// Unknown or multiple sort fields: we sort after the merge point, which can be unordered.
-				return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], nil, dir, N), true
+				return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], nil, dir, N)
 			}
 		case *ast.ParallelProc:
 			return seq, false
@@ -676,14 +679,14 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField field.S
 				return seq, false
 			}
 			// put one head/tail on each parallel branch and one after the merge.
-			return buildSplitFlowgraph(seq.Procs[0:i+1], seq.Procs[i:], inputSortField, inputSortReversed, N), true
+			return buildSplitFlowgraph(seq.Procs[0:i+1], seq.Procs[i:], inputSortField, inputSortReversed, N)
 		case *ast.UniqProc, *ast.FuseProc:
 			if inputSortField == nil {
 				// Unknown order: we can't parallelize because we can't maintain this unknown order at the merge point.
 				return seq, false
 			}
 			// Split all the upstream procs into parallel branches, then merge and continue with this and any remaining procs.
-			return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N), true
+			return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N)
 		case *ast.SequentialProc:
 			return seq, false
 			// XXX Joins can be parallelized but we need to write
@@ -702,5 +705,5 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField field.S
 	if inputSortField == nil {
 		return seq, false
 	}
-	return buildSplitFlowgraph(seq.Procs, nil, inputSortField, inputSortReversed, N), true
+	return buildSplitFlowgraph(seq.Procs, nil, inputSortField, inputSortReversed, N)
 }
