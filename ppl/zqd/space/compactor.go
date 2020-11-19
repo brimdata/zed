@@ -7,24 +7,31 @@ import (
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/ppl/zqd/storage/archivestore"
 	"go.uber.org/zap"
+	"golang.org/x/sync/semaphore"
 )
 
 type compactor struct {
-	cancel  context.CancelFunc
-	done    chan struct{}
-	logger  *zap.Logger
-	manager *Manager
-	notify  chan api.SpaceID
+	cancel      context.CancelFunc
+	done        chan struct{}
+	logger      *zap.Logger
+	manager     *Manager
+	notify      chan api.SpaceID
+	compactDone chan api.SpaceID
+	sem         *semaphore.Weighted
 }
+
+const maxConcurrentCompacts = 1
 
 func newCompactor(manager *Manager) *compactor {
 	ctx, cancel := context.WithCancel(context.Background())
 	c := &compactor{
-		cancel:  cancel,
-		done:    make(chan struct{}),
-		logger:  manager.logger.Named("compactor"),
-		manager: manager,
-		notify:  make(chan api.SpaceID, 5),
+		cancel:      cancel,
+		done:        make(chan struct{}),
+		logger:      manager.logger.Named("compactor"),
+		manager:     manager,
+		notify:      make(chan api.SpaceID),
+		compactDone: make(chan api.SpaceID),
+		sem:         semaphore.NewWeighted(maxConcurrentCompacts),
 	}
 	go c.run(ctx)
 	return c
@@ -34,11 +41,44 @@ func (c *compactor) WriteComplete(id api.SpaceID) {
 	c.notify <- id
 }
 
-func (c *compactor) run(ctx context.Context) {
-	for id := range c.notify {
+func (c *compactor) launchCompact(ctx context.Context, id api.SpaceID) {
+	go func() {
+		if err := c.sem.Acquire(ctx, 1); err != nil {
+			return
+		}
+		defer c.sem.Release(1)
+		defer func() { c.compactDone <- id }()
 		c.compact(ctx, id)
+	}()
+}
+
+func (c *compactor) run(ctx context.Context) {
+	active := make(map[api.SpaceID]bool)
+	for {
+		select {
+		case id := <-c.notify:
+			_, ok := active[id]
+			if !ok {
+				// No compaction active for this space right now.
+				active[id] = false
+				c.launchCompact(ctx, id)
+				continue
+			}
+			// When the current compaction is done, start another.
+			active[id] = true
+		case id := <-c.compactDone:
+			again := active[id]
+			if again {
+				active[id] = false
+				c.launchCompact(ctx, id)
+				continue
+			}
+			delete(active, id)
+		case <-ctx.Done():
+			close(c.done)
+			return
+		}
 	}
-	close(c.done)
 }
 
 func (c *compactor) compact(ctx context.Context, id api.SpaceID) {
