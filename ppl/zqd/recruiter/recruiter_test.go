@@ -92,6 +92,19 @@ func TestRegister10(t *testing.T) {
 	AssertPoolLen(t, wp, nodename, 5, 5, 1, 5)
 }
 
+func InitRectangle(t *testing.T, wp *WorkerPool, width int, height int) {
+	var addr string
+	var nodename string
+	for i := 0; i < width; i++ {
+		nodename = "n" + strconv.Itoa(i)
+		for j := 0; j < height; j++ {
+			addr = nodename + ".x:" + strconv.Itoa(5000+j)
+			err := wp.Register(addr, nodename)
+			require.Nil(t, err)
+		}
+	}
+}
+
 func InitTriangle(t *testing.T, wp *WorkerPool, size int) {
 	var addr string
 	var nodename string
@@ -209,4 +222,73 @@ func TestRandomWithReregister(t *testing.T) {
 			require.Equal(t, wp.LenReservedPool(), numWorkers-remainingWorkers)
 		}
 	}
+}
+
+func TestRandomRectangle(t *testing.T) {
+	// This is a helpful test for tuning the algorithm
+	// because we can vary the params on the next three lines
+	// and toggle the value of wp.SkipSpread.
+	width, height := 16, 20
+	reqmin, reqmax, qsize := 4, 16, 30
+	iterations := 50
+
+	totalRecruited := 0.0
+	totalSibCount := 0.0
+
+	wp := NewWorkerPool()
+	wp.SkipSpread = false
+	InitRectangle(t, wp, width, height)
+	numWorkers := width * height
+	assert.Equal(t, wp.LenFreePool(), numWorkers)
+	assert.Equal(t, wp.LenReservedPool(), 0)
+	q := make([][]WorkerDetail, qsize)
+	for i := 0; i < qsize; i++ {
+		q[i] = make([]WorkerDetail, 0)
+	}
+	remainingWorkers := numWorkers
+	for i := 0; i < iterations; i++ {
+		numRecruits := rand.Intn(reqmax-reqmin) + reqmin
+		s, err := wp.Recruit(numRecruits)
+		require.Nil(t, err)
+		//println("iteration", i, "recruit", len(s), "from", remainingWorkers, "for", remainingWorkers-len(s))
+		remainingWorkers -= len(s)
+		require.Equal(t, wp.LenFreePool(), remainingWorkers)
+		require.Equal(t, wp.LenReservedPool(), numWorkers-remainingWorkers)
+
+		j := rand.Intn(len(q)-2) + 1
+		q = append(q, s)
+		copy(q[j+1:], q[j:])
+		q[j] = s
+
+		if len(q) > 2 {
+			reregisterNow := q[0]
+			q = q[1:]
+
+			for _, wd := range reregisterNow {
+				wp.Unreserve(wd.Addr)
+				wp.Register(wd.Addr, wd.NodeName)
+				require.Nil(t, err)
+			}
+			remainingWorkers += len(reregisterNow)
+			//println("iteration", i, "register", len(reregisterNow), "for", remainingWorkers)
+			require.Equal(t, wp.LenFreePool(), remainingWorkers)
+			require.Equal(t, wp.LenReservedPool(), numWorkers-remainingWorkers)
+		}
+
+		// count siblings in recruited set
+		for _, wd := range s {
+			sibCount := -1 // avoid counting self
+			for _, sib := range s {
+				if sib.NodeName == wd.NodeName {
+					sibCount++
+				}
+			}
+			totalSibCount += float64(sibCount)
+			totalRecruited++
+		}
+	}
+	// Uncomment these for tuning:
+	// println(fmt.Sprintf("SkipSpread=%v  Average number of siblings=%6.4f",
+	// 	wp.SkipSpread, totalSibCount/totalRecruited))
+	// require.Equal(t, 1, 0)
 }

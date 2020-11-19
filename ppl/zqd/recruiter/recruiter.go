@@ -16,6 +16,7 @@ type WorkerPool struct {
 	freePool     map[string]WorkerDetail   // Map of all free workers
 	nodePool     map[string][]WorkerDetail // Map of nodes of slices of free workers
 	reservedPool map[string]WorkerDetail   // Map of busy workers
+	SkipSpread   bool                      // option to test algorithm performance
 }
 
 type WorkerDetail struct {
@@ -128,29 +129,32 @@ func (pool *WorkerPool) Recruit(n int) ([]WorkerDetail, error) {
 	rand.Shuffle(len(keys), func(i, j int) { keys[i], keys[j] = keys[j], keys[i] })
 
 	recruits := make([]WorkerDetail, 0)
-	for i, key := range keys {
-		workers := pool.nodePool[key]
-		// adjust goal on each iteration
-		goal := int(math.Ceil(float64(n-len(recruits)) / float64(len(keys)-i)))
-		if len(workers) > goal {
-			recruits = append(recruits, workers[:goal]...)
-			pool.nodePool[key] = workers[goal:]
-		} else {
-			recruits = append(recruits, workers...)
-			delete(pool.nodePool, key)
-		}
-		if len(recruits) == n {
-			break
-		}
-	}
 
-	// Delete the recruits obtained in this pass from the freePool
-	for _, wd := range recruits {
-		_, prs := pool.freePool[wd.Addr]
-		if !prs {
-			panic(fmt.Errorf("attempt to remove addr that was not in freePool: %v", wd.Addr))
+	if !pool.SkipSpread {
+		for i, key := range keys {
+			workers := pool.nodePool[key]
+			// adjust goal on each iteration
+			goal := int(math.Ceil(float64(n-len(recruits)) / float64(len(keys)-i)))
+			if len(workers) > goal {
+				recruits = append(recruits, workers[:goal]...)
+				pool.nodePool[key] = workers[goal:]
+			} else {
+				recruits = append(recruits, workers...)
+				delete(pool.nodePool, key)
+			}
+			if len(recruits) == n {
+				break
+			}
 		}
-		delete(pool.freePool, wd.Addr)
+
+		// Delete the recruits obtained in this pass from the freePool
+		for _, wd := range recruits {
+			_, prs := pool.freePool[wd.Addr]
+			if !prs {
+				panic(fmt.Errorf("attempt to remove addr that was not in freePool: %v", wd.Addr))
+			}
+			delete(pool.freePool, wd.Addr)
+		}
 	}
 
 	// If there are still recruits needed, select them by iterating through the freePool
