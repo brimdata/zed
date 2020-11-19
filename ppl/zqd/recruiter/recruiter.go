@@ -2,7 +2,6 @@ package recruiter
 
 import (
 	"fmt"
-	"math"
 	"math/rand"
 	"net"
 	"sync"
@@ -130,7 +129,8 @@ func (pool *WorkerPool) Recruit(n int) ([]WorkerDetail, error) {
 		for i, key := range keys {
 			workers := pool.nodePool[key]
 			// adjust goal on each iteration
-			goal := int(math.Ceil(float64(n-len(recruits)) / float64(len(keys)-i)))
+			d := len(keys) - i
+			goal := (n - len(recruits) + d - 1) / d
 			if len(workers) > goal {
 				recruits = append(recruits, workers[:goal]...)
 				pool.nodePool[key] = workers[goal:]
