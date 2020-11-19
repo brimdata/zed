@@ -1,8 +1,8 @@
 script: |
   mkdir logs
-  # groupby.zng contains records over two days, mapping to two tsdirs, and
+  # group-by-ts.zng contains records over two days, mapping to two tsdirs, and
   # this small target size causes each tsdir to have several chunk files.
-  zar import -R logs -s 256B groupby.zng
+  zar import -R logs -s 256B group-by-ts.zng
   echo ===
   zar zq -R logs -t 'first(g)'
   zar zq -R logs -t 'head 1'
@@ -17,8 +17,8 @@ script: |
   zar zq -R logs -t 'every 3600s count() by g | sort ts, g'
 
 inputs:
-  - name: groupby.zng
-    source: ../testdata/groupby.zng
+  - name: group-by-ts.zng
+    source: ../testdata/group-by-ts.zng
 
 outputs:
   - name: stdout
