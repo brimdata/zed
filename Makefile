@@ -87,7 +87,7 @@ zng-output-check: build $(SAMPLEDATA)
 	scripts/zng-output-check.sh
 
 # If the build recipe changes, please also change npm/build.
-build:
+build: peg
 	@mkdir -p dist
 	@go build -ldflags='$(LDFLAGS)' -o dist ./cmd/... ./ppl/cmd/...
 
@@ -159,8 +159,10 @@ $(PEG_GEN): zql/Makefile zql/parser-support.js zql/zql.peg
 # properly trigger rebuilds of peg-generated code, but best to run "make" in the
 # zql subdirectory if you are changing versions of pigeon, pegjs, or javascript
 # dependencies.
-.PHONY: peg
+.PHONY: peg peg-run
 peg: $(PEG_GEN)
+
+peg-run: $(PEG_GEN)
 	go run ./cmd/ast -repl
 
 # CI performs these actions individually since that looks nicer in the UI;
