@@ -46,6 +46,7 @@
   + [4.4 Examples](#44-examples)
 * [5. Primitive Types](#5-primitive-types)
 * [Appendix A. Related Links](#appendix-a-related-links)
+* [Appendix B. Recommended Type Coercion Rules](#appendix-b-recommended-type-coercion-rules)
 
 ## 1. Introduction
 
@@ -933,7 +934,7 @@ representing machine words are serialized in little-endian format.
 * [MessagePack](https://msgpack.org/index.html)
 * [gNMI](https://github.com/openconfig/reference/tree/master/rpc/gnmi)
 
-## Appendix B. Recommended Type Coercion rules
+## Appendix B. Recommended Type Coercion Rules
 
 > TBD: it might be better to put this in the ZQL docs
 
@@ -983,5 +984,5 @@ of mathematical operations with constants will be promoted as well;
 * times and durations may be added, resulting in a time;
 * times may be subtracted, resulting in a duration; and,
 * a "plus" operator applied to two strings, implies concatenation,
-but a "plus" applied to a string and is a type mismatch and casts
+but a "plus" applied to a string and a non-string is a type mismatch and casts
 or conversion functions should be used.
