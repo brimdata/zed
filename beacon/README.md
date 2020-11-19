@@ -16,9 +16,10 @@ The mechanisms here are inspired by the algorithmic techniques used in
 [RITA](https://github.com/activecm/rita).
 
 RITA is a go program structured as a command-line tool that parses zeek logs,
-performs initial analyses on the parsed logs, and places these results in MongoDB.
+performs initial analyses on the parsed logs, and places these results in
+[MongoDB](https://github.com/mongodb/mongo).
 It then provides
-a means to query the mongodb to look for various security-related features present
+a means to query the MongoDB to look for various security-related features present
 in the original zeek logs, e.g., dns exfiltration, peculiar relations between
 top-level DNS names and high-volume queries within the domain, peculiar connections,
 beaconing patterns, and so forth.
@@ -26,19 +27,21 @@ beaconing patterns, and so forth.
 
 ## The Zql Approach
 
-The imperative nature of the RITA framework (i.e., the algorithm is realized
-as a sequence of actions taken on tables in mongo) leads to a fairly complex
-implementation mixing together parsing of JSON and Zeek TSV log lines with
-analytics some of which live in native Go code and some of which lives in MongoDB.
+RITA is written in an imperative language, i.e, Go, and this imperative design
+leads to a fairly complex implementation mixing together parsing of JSON and
+Zeek TSV log lines with analytics some of which live in native Go code and some
+of which lives in MongoDB.
 
-The zql approach, on the other hand, can be described
-in declarative terms and none of the underlying plumbing needs to be addressed
-as it's all taken care of by zq.
+The zql approach, like SQL, is declarative.  Zql is a dataflow language and
+all of the underlying plumbing for how data gets pumped around the system
+is taken care of automatically and under the covers.
 This simplifies the description of the analytics.
 Additionally, as you will see, the fact zng streams are based on heterogeneous
 streams of records and need not conform to a single relational schema (much as
-mongo is based on semistructured documents instead of pre-defined schemas)
-further simplifies the declarative approach.
+MongoDB is based on semistructured documents instead of pre-defined schemas)
+further simplifies the declarative approach.  RITA, on the other hand,
+has hard-coded in the Go code a set of Go types that specially define the
+type of zeek log types that it can handle, and that's it.
 
 The idea here is to re-implement the concepts
 from RITA in a completely different way using the declarative approach
@@ -50,11 +53,16 @@ Then, various declarative queries operate over windowed
 passes over the raw data creating intermediate analytics that are, in turn,
 stored in the lake.  These results can then be further queried to create
 the beacon tables or queried directly in the threat hunting workflow,
-just as RITA's mongo tables can be queried in various ways in security workflows.
+just as RITA's MongoDB tables can be queried in various ways in security workflows.
 
-We will call these partial results "summaries".
+For each windowed pass, we build a collection of tables each comprising a
+different view of the underlying log data.  To simplify the discussion here,
+we will describe how a single set of tables if computed from one snapshot
+in time of the underlying logs.  In practice, an operational system would
+continuously apply these windowed analyses as live data is ingested into a
+data lake.
 
-> There are different ways using zq and zdl to organize and store summaries,
+> There are different ways using zq and zdl to organize and store tables,
 > for example, you can take the output of a "zdl map" command that builds summary
 > and pipe it a big zng file and put it wherever you like or import it to another
 > lake using 'zdl import'.
@@ -66,12 +74,16 @@ We will call these partial results "summaries".
 > time spans in the output records and have a way to automatically append these
 > spans to group-by result.
 
-Taking this approach, at a high level, the model here is as follows:
-* a _connection summary_ is created from a zql group-by keyed on both id.orig_h and
-id.resp_h;
-* a _host summary_ is created from a zql query merging a group-by keyed on `id.orig_h` with
-another group-by keyed on `id.resp_h`;
-* a _domain summary_ is created from a zql group-by over the all the query strings in DNS logs plus
+Taking this approach then, the analytics model comprises a number of tables
+that we name as follows:
+
+* the _edge graph_ is a table where each row has a unique IP originator and responder
+representing the "edge" of the network graph and the remaining columns contain
+various aggregated inforamtion about that edge,
+* the _host table_ table is keyed by IP and contains a subset of the
+edge data connected to that host aggregated across all of the incident edges,
+* the _domain table is keyed by
+is created from a zql group-by over the all the query strings in DNS logs plus
 all the domain names obtained from unwinding the subdomains of each query string,
 * a _hostname summary_ is created from a group-by also keyed on DNS host names (without
 the subdomains) that aggregates additional information;
