@@ -83,8 +83,7 @@ func (pool *WorkerPool) Deregister(addr string) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	wd, prs := pool.freePool[addr]
-	if prs {
+	if wd, ok := pool.freePool[addr]; ok {
 		pool.removeFromNodePool(wd)
 		delete(pool.freePool, addr)
 	}
