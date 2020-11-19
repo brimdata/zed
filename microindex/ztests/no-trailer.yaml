@@ -4,7 +4,7 @@ script: |
 
 inputs:
   - name: babble.tzng
-    source: ../data/babble.tzng
+    source: ../../ztests/suite/data/babble.tzng
 
 outputs:
   - name: stderr

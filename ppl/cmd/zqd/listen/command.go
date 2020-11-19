@@ -27,7 +27,6 @@ import (
 	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/proc/sort"
 	"github.com/mccanne/charm"
-	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/yaml.v3"
@@ -50,44 +49,45 @@ func init() {
 
 type Command struct {
 	*root.Command
-	listenAddr          string
-	conf                zqd.Config
-	pprof               bool
-	prom                bool
-	suricataRunnerPath  string
-	suricataUpdater     pcapanalyzer.Launcher
-	suricataUpdaterPath string
-	zeekRunnerPath      string
-	configfile          string
-	loggerConf          *logger.Config
-	logLevel            zapcore.Level
-	logger              *zap.Logger
-	devMode             bool
-	portFile            string
+	conf            zqd.Config
+	logger          *zap.Logger
+	loggerConf      *logger.Config
+	suricataUpdater pcapanalyzer.Launcher
+
+	// Flags
+
 	// brimfd is a file descriptor passed through by brim desktop. If set zqd
 	// will exit if the fd is closed.
-	brimfd  int
-	workers string
+	brimfd              int
+	configfile          string
+	devMode             bool
+	listenAddr          string
+	logLevel            zapcore.Level
+	personality         string
+	portFile            string
+	pprof               bool
+	suricataRunnerPath  string
+	suricataUpdaterPath string
+	workers             string
+	zeekRunnerPath      string
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	c.conf.Version = cli.Version
-	f.StringVar(&c.listenAddr, "l", ":9867", "[addr]:port to listen on")
-	f.StringVar(&c.conf.Root, "data", ".", "data location")
-	f.StringVar(&c.suricataRunnerPath, "suricatarunner", "", "path to command that generates suricata eve.json from pcap data")
-	f.StringVar(&c.suricataUpdaterPath, "suricataupdater", "", "path to suricata-update command (will be invoked once at startup)")
-	f.StringVar(&c.zeekRunnerPath, "zeekrunner", "", "path to command that generates zeek logs from pcap data")
-	f.BoolVar(&c.pprof, "pprof", false, "add pprof routes to api")
-	f.BoolVar(&c.prom, "prometheus", false, "add prometheus metrics routes to api")
-	f.StringVar(&c.configfile, "config", "", "path to a zqd config file")
-	f.Var(&c.logLevel, "loglevel", "level for log output (defaults to info)")
-	f.BoolVar(&c.devMode, "dev", false, "runs zqd in development mode")
-	f.StringVar(&c.portFile, "portfile", "", "write port of http listener to file")
-
-	// hidden
 	f.IntVar(&c.brimfd, "brimfd", -1, "pipe read fd passed by brim to signal brim closure")
-	f.StringVar(&c.workers, "workers", "", "comma separated list of [addr]:port for zqd/workers")
+	f.StringVar(&c.configfile, "config", "", "path to zqd config file")
+	f.StringVar(&c.conf.Root, "data", ".", "data location")
+	f.BoolVar(&c.devMode, "dev", false, "run in development mode")
+	f.StringVar(&c.listenAddr, "l", ":9867", "[addr]:port to listen on")
+	f.Var(&c.logLevel, "loglevel", "logging level")
+	f.StringVar(&c.conf.Personality, "personality", "all", "server personality (all, apiserver, or worker)")
+	f.StringVar(&c.portFile, "portfile", "", "write listen port to file")
+	f.BoolVar(&c.pprof, "pprof", false, "add pprof routes to API")
+	f.StringVar(&c.suricataRunnerPath, "suricatarunner", "", "command to generate Suricata eve.json from pcap data")
+	f.StringVar(&c.suricataUpdaterPath, "suricataupdater", "", "command to update Suricata rules (run once at startup)")
+	f.StringVar(&c.workers, "workers", "", "workers as comma-separated [addr]:port list")
+	f.StringVar(&c.zeekRunnerPath, "zeekrunner", "", "command to generate Zeek logs from pcap data")
 	return c, nil
 }
 
@@ -114,15 +114,15 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	core.Registry().MustRegister(prometheus.NewGoCollector())
 	c.logger.Info("Starting",
 		zap.String("datadir", c.conf.Root),
 		zap.Uint64("open_files_limit", openFilesLimit),
+		zap.String("personality", c.conf.Personality),
 		zap.Bool("pprof_routes", c.pprof),
 		zap.Bool("suricata_supported", core.HasSuricata()),
 		zap.Bool("zeek_supported", core.HasZeek()),
 	)
-	h := zqd.NewHandler(core, c.logger)
+	h := core.HTTPHandler()
 	if c.pprof {
 		h = pprofHandlers(h)
 	}
