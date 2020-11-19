@@ -52,7 +52,6 @@ func (pool *WorkerPool) Register(addr string, nodename string) error {
 		pool.nodePool[nodename] = make([]WorkerDetail, 0)
 	}
 	pool.nodePool[nodename] = append(pool.nodePool[nodename], wd)
-	//println(len(pool.freePool))
 	return nil
 }
 
@@ -67,7 +66,6 @@ func (pool *WorkerPool) removeFromNodePool(wd WorkerDetail) {
 		}
 	}
 	if i == -1 {
-		// this will only happen when there is a bug in this file
 		panic(fmt.Errorf("expected WorkerDetail not in list: %v", wd.Addr))
 	}
 	if len(s) == 1 {
@@ -99,12 +97,8 @@ func (pool *WorkerPool) Unreserve(addr string) {
 	delete(pool.reservedPool, addr)
 }
 
-func recalcGoal(n int, nodecount int) int {
-	return int(math.Ceil(float64(n) / float64(nodecount)))
-}
-
 // Recruit attempts to spread the workers across nodes
-func (pool *WorkerPool) Recruit(n int) ([]string, error) {
+func (pool *WorkerPool) Recruit(n int) ([]WorkerDetail, error) {
 	if n < 1 {
 		return nil, fmt.Errorf("Recruit must request one or more workers: n=%d", n)
 	}
@@ -112,7 +106,7 @@ func (pool *WorkerPool) Recruit(n int) ([]string, error) {
 	defer pool.mu.Unlock()
 	var nodecount = len(pool.nodePool)
 	if nodecount < 1 {
-		return nil, fmt.Errorf("No workers available")
+		return []WorkerDetail{}, nil
 	}
 
 	// Make a single pass through the nodes in the cluster that have
@@ -127,29 +121,19 @@ func (pool *WorkerPool) Recruit(n int) ([]string, error) {
 	// shuffle the keys
 	rand.Shuffle(len(keys), func(i, j int) { keys[i], keys[j] = keys[j], keys[i] })
 
-	remainingNodes := len(keys)
-	recruitsNeeded := n
-	goal := recalcGoal(n, nodecount)
 	recruits := make([]WorkerDetail, 0)
-
-	for _, key := range keys {
-		remainingNodes--
+	for i, key := range keys {
 		workers := pool.nodePool[key]
-		if goal > recruitsNeeded {
-			goal = recruitsNeeded
-		}
+		// adjust goal on each iteration
+		goal := int(math.Ceil(float64(n-len(recruits)) / float64(nodecount-i)))
 		if len(workers) > goal {
-			recruitsNeeded -= goal
 			recruits = append(recruits, workers[:goal]...)
 			pool.nodePool[key] = workers[goal:]
 		} else {
-			recruitsNeeded -= len(workers)
-			// not enough recruits from this node, recalculate goal
-			goal = recalcGoal(recruitsNeeded, remainingNodes)
 			recruits = append(recruits, workers...)
 			delete(pool.nodePool, key)
 		}
-		if recruitsNeeded == 0 {
+		if len(recruits) == n {
 			break
 		}
 	}
@@ -161,29 +145,25 @@ func (pool *WorkerPool) Recruit(n int) ([]string, error) {
 			panic(fmt.Errorf("attempt to remove addr that was not in freePool: %v", wd.Addr))
 		}
 		delete(pool.freePool, wd.Addr)
-		//println("deleted ", wd.Addr)
 	}
 
 	// If there are still recruits needed, select them "randomly"
-	if recruitsNeeded > 0 {
+	if len(recruits) < n {
 		for k, wd := range pool.freePool {
 			pool.removeFromNodePool(wd)
 			delete(pool.freePool, k)
 			recruits = append(recruits, wd)
-			recruitsNeeded--
-			if recruitsNeeded < 1 {
+			if len(recruits) == n {
 				break
 			}
 		}
 	}
 
 	// Now add the recruits to the Reserved Pool
-	retval := make([]string, len(recruits))
-	for i, r := range recruits {
+	for _, r := range recruits {
 		pool.reservedPool[r.Addr] = r
-		retval[i] = r.Addr
 	}
-	return retval, nil
+	return recruits, nil
 }
 
 func (pool *WorkerPool) LenFreePool() int {
