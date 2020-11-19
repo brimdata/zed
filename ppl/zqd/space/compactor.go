@@ -2,6 +2,7 @@ package space
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/brimsec/zq/api"
@@ -12,7 +13,7 @@ import (
 
 type compactor struct {
 	cancel      context.CancelFunc
-	done        chan struct{}
+	done        sync.WaitGroup
 	logger      *zap.Logger
 	manager     *Manager
 	notify      chan api.SpaceID
@@ -26,7 +27,6 @@ func newCompactor(manager *Manager) *compactor {
 	ctx, cancel := context.WithCancel(context.Background())
 	c := &compactor{
 		cancel:      cancel,
-		done:        make(chan struct{}),
 		logger:      manager.logger.Named("compactor"),
 		manager:     manager,
 		notify:      make(chan api.SpaceID),
@@ -53,6 +53,7 @@ func (c *compactor) launchCompact(ctx context.Context, id api.SpaceID) {
 }
 
 func (c *compactor) run(ctx context.Context) {
+	c.done.Add(1)
 	active := make(map[api.SpaceID]bool)
 	for {
 		select {
@@ -75,7 +76,7 @@ func (c *compactor) run(ctx context.Context) {
 			}
 			delete(active, id)
 		case <-ctx.Done():
-			close(c.done)
+			c.done.Done()
 			return
 		}
 	}
@@ -109,11 +110,11 @@ func (c *compactor) compact(ctx context.Context, id api.SpaceID) {
 		}
 		return
 	}
-	logger.Info("compaction completed", zap.Duration("duration", time.Since(start)))
+	logger.Info("Compaction completed", zap.Duration("duration", time.Since(start)))
 }
 
 func (c *compactor) close() {
 	close(c.notify)
 	c.cancel()
-	<-c.done
+	c.done.Wait()
 }
