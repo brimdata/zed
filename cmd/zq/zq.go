@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/cli"
 	"github.com/brimsec/zq/cli/inputflags"
 	"github.com/brimsec/zq/cli/outputflags"
@@ -59,8 +58,8 @@ then the file overrides.
 
 The ZQL query may be specified in a source file using -z, which is particularly
 convenient when a large, complex query spans multiple lines.  In this case,
-a zql query string additionaly specified on the command line will be interpreted
-as a file path, which like will result in a "not found" error.
+a ZQL query string additionaly specified on the command line will be interpreted
+as a file path, which typically will result in a "not found" error.
 
 See the zq source repository for more information:
 
@@ -120,24 +119,23 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	paths := args
-	var query ast.Proc
-	src := "*"
+	zqlSrc := "*"
 	if cli.FileExists(paths[0]) || s3io.IsS3Path(paths[0]) {
 		if c.zqlPath != "" {
 			b, err := ioutil.ReadFile(c.zqlPath)
 			if err != nil {
 				return err
 			}
-			src = string(b)
+			zqlSrc = string(b)
 		}
 	} else {
 		if c.zqlPath != "" || len(paths) == 1 {
 			return fmt.Errorf("not found: %s", paths[0])
 		}
-		src = paths[0]
+		zqlSrc = paths[0]
 		paths = paths[1:]
 	}
-	query, err = zql.ParseProc(src)
+	query, err := zql.ParseProc(zqlSrc)
 	if err != nil {
 		return fmt.Errorf("parse error: %s", err)
 	}
