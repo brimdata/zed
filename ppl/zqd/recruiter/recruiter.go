@@ -113,7 +113,7 @@ func (pool *WorkerPool) Recruit(n int) ([]WorkerDetail, error) {
 	var recruits []WorkerDetail
 	if !pool.SkipSpread && n > 1 {
 		var keys []string
-		for k, _ := range pool.nodePool {
+		for k := range pool.nodePool {
 			keys = append(keys, k)
 		}
 		pool.r.Shuffle(len(keys), func(i, j int) { keys[i], keys[j] = keys[j], keys[i] })
@@ -135,8 +135,7 @@ func (pool *WorkerPool) Recruit(n int) ([]WorkerDetail, error) {
 		}
 		// Delete the recruits obtained in this pass from the freePool
 		for _, wd := range recruits {
-			_, prs := pool.freePool[wd.Addr]
-			if !prs {
+			if _, ok := pool.freePool[wd.Addr]; !ok {
 				panic(fmt.Errorf("attempt to remove addr that was not in freePool: %v", wd.Addr))
 			}
 			delete(pool.freePool, wd.Addr)

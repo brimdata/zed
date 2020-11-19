@@ -8,14 +8,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Register1(t *testing.T, addr string, nodename string, fp int, np int, rp int) *WorkerPool {
+func register1(t *testing.T, addr string, nodename string, fp int, np int, rp int) *WorkerPool {
 	wp := NewWorkerPool()
 	wp.Register(addr, nodename)
-	AssertPoolLen(t, wp, fp, np, rp)
+	assertPoolLen(t, wp, fp, np, rp)
 	return wp
 }
 
-func AssertPoolLen(t *testing.T, wp *WorkerPool, fp int, np int, rp int) {
+func assertPoolLen(t *testing.T, wp *WorkerPool, fp int, np int, rp int) {
 	assert.Equal(t, fp, wp.LenFreePool(), "FreePool len=%d", fp)
 	require.Equal(t, np, wp.LenNodePool(), "NodePool len=%d", np)
 	assert.Equal(t, rp, wp.LenReservedPool(), "ReservedPool len=%d", rp)
@@ -25,44 +25,45 @@ func TestBadCalls(t *testing.T) {
 	wp := NewWorkerPool()
 	err := wp.Register("a.b;;5000", "n1")
 	assert.NotNil(t, err)
-	AssertPoolLen(t, wp, 0, 0, 0)
+	assertPoolLen(t, wp, 0, 0, 0)
 	err = wp.Register("a.b:5000", "")
 	assert.NotNil(t, err)
-	AssertPoolLen(t, wp, 0, 0, 0)
+	assertPoolLen(t, wp, 0, 0, 0)
 }
 
 func TestRegisterTwice(t *testing.T) {
-	wp := Register1(t, "a.b:5000", "n1", 1, 1, 0)
+	wp := register1(t, "a.b:5000", "n1", 1, 1, 0)
 	wp.Register("a.b:5000", "n1")
-	AssertPoolLen(t, wp, 1, 1, 0)
+	assertPoolLen(t, wp, 1, 1, 0)
 }
 
 func TestDeregister1(t *testing.T) {
-	wp := Register1(t, "a.b:5000", "n2", 1, 1, 0)
+	wp := register1(t, "a.b:5000", "n2", 1, 1, 0)
+	wp.Register("a.b:5001", "n2")
 	wp.Deregister("a.b:5000")
-	AssertPoolLen(t, wp, 0, 0, 0)
+	assertPoolLen(t, wp, 1, 1, 0)
 }
 
 func TestRecruit1(t *testing.T) {
 	addr := "a.b:5000"
 	nodename := "n2"
-	wp := Register1(t, addr, nodename, 1, 1, 0)
+	wp := register1(t, addr, nodename, 1, 1, 0)
 	s, err := wp.Recruit(1)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Len(t, s, 1)
-	AssertPoolLen(t, wp, 0, 0, 1)
+	assertPoolLen(t, wp, 0, 0, 1)
 	assert.Equal(t, addr, s[0].Addr)
 	// try recruiting 0 workers
 	_, err = wp.Recruit(0)
 	assert.EqualError(t, err, "recruit must request one or more workers: n=0")
 	// attempt to register reserved worker should be ignored
 	wp.Register(addr, nodename)
-	AssertPoolLen(t, wp, 0, 0, 1)
+	assertPoolLen(t, wp, 0, 0, 1)
 	wp.Unreserve(addr)
-	AssertPoolLen(t, wp, 0, 0, 0)
+	assertPoolLen(t, wp, 0, 0, 0)
 	// recruit with none available returns empty list
 	s, err = wp.Recruit(1)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	assert.Len(t, s, 0)
 }
 
@@ -75,17 +76,17 @@ func TestRegister10(t *testing.T) {
 		for j := 0; j < 2; j++ {
 			addr = nodename + ".x:" + strconv.Itoa(5000+j)
 			err := wp.Register(addr, nodename)
-			require.Nil(t, err)
+			require.NoError(t, err)
 		}
 	}
-	AssertPoolLen(t, wp, 10, 5, 0)
+	assertPoolLen(t, wp, 10, 5, 0)
 	s, err := wp.Recruit(5)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Len(t, s, 5)
-	AssertPoolLen(t, wp, 5, 5, 5)
+	assertPoolLen(t, wp, 5, 5, 5)
 }
 
-func InitNodesWithWorkers(t *testing.T, wp *WorkerPool, width int, height int) {
+func initNodesWithWorkers(t *testing.T, wp *WorkerPool, width int, height int) {
 	var addr string
 	var nodename string
 	for i := 0; i < width; i++ {
@@ -93,12 +94,12 @@ func InitNodesWithWorkers(t *testing.T, wp *WorkerPool, width int, height int) {
 		for j := 0; j < height; j++ {
 			addr = nodename + ".x:" + strconv.Itoa(5000+j)
 			err := wp.Register(addr, nodename)
-			require.Nil(t, err)
+			require.NoError(t, err)
 		}
 	}
 }
 
-func InitNodesOfVaryingSize(t *testing.T, wp *WorkerPool, size int) {
+func initNodesOfVaryingSize(t *testing.T, wp *WorkerPool, size int) {
 	var addr string
 	var nodename string
 	for i := 0; i < size; i++ {
@@ -106,17 +107,17 @@ func InitNodesOfVaryingSize(t *testing.T, wp *WorkerPool, size int) {
 		for j := 0; j < i+1; j++ {
 			addr = nodename + ".x:" + strconv.Itoa(5000+j)
 			err := wp.Register(addr, nodename)
-			require.Nil(t, err)
+			require.NoError(t, err)
 		}
 	}
 }
 
 func TestRecruitFromVariablePool(t *testing.T) {
 	wp := NewWorkerPool()
-	InitNodesOfVaryingSize(t, wp, 5)
-	AssertPoolLen(t, wp, 15, 5, 0)
+	initNodesOfVaryingSize(t, wp, 5)
+	assertPoolLen(t, wp, 15, 5, 0)
 	s, err := wp.Recruit(14)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Len(t, s, 14)
 	assert.Equal(t, wp.LenFreePool(), 1)
 	assert.Equal(t, wp.LenReservedPool(), 14)
@@ -124,10 +125,10 @@ func TestRecruitFromVariablePool(t *testing.T) {
 
 func TestRecruitTooMany(t *testing.T) {
 	wp := NewWorkerPool()
-	InitNodesOfVaryingSize(t, wp, 5)
-	AssertPoolLen(t, wp, 15, 5, 0)
+	initNodesOfVaryingSize(t, wp, 5)
+	assertPoolLen(t, wp, 15, 5, 0)
 	s, err := wp.Recruit(20)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Len(t, s, 15)
 	assert.Equal(t, wp.LenFreePool(), 0)
 	assert.Equal(t, wp.LenReservedPool(), 15)
@@ -135,16 +136,16 @@ func TestRecruitTooMany(t *testing.T) {
 
 func TestRecruitTwice(t *testing.T) {
 	wp := NewWorkerPool()
-	InitNodesOfVaryingSize(t, wp, 5)
-	AssertPoolLen(t, wp, 15, 5, 0)
+	initNodesOfVaryingSize(t, wp, 5)
+	assertPoolLen(t, wp, 15, 5, 0)
 	s, err := wp.Recruit(10)
 	//println(fmt.Sprintf("%v", s))
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Len(t, s, 10)
 	assert.Equal(t, wp.LenFreePool(), 5)
 	assert.Equal(t, wp.LenReservedPool(), 10)
 	s, err = wp.Recruit(7)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Len(t, s, 5)
 	assert.Equal(t, wp.LenFreePool(), 0)
 	assert.Equal(t, wp.LenReservedPool(), 15)
@@ -153,7 +154,7 @@ func TestRecruitTwice(t *testing.T) {
 func TestRandomRecruitFromVariablePool(t *testing.T) {
 	wp := NewWorkerPool()
 	size := 20
-	InitNodesOfVaryingSize(t, wp, size)
+	initNodesOfVaryingSize(t, wp, size)
 	numWorkers := size * (size + 1) / 2
 	assert.Equal(t, wp.LenFreePool(), numWorkers)
 	assert.Equal(t, wp.LenReservedPool(), 0)
@@ -161,7 +162,7 @@ func TestRandomRecruitFromVariablePool(t *testing.T) {
 	for remainingWorkers > 0 {
 		numRecruits := wp.r.Intn(size) + 1
 		s, err := wp.Recruit(numRecruits)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		remainingWorkers -= len(s)
 		assert.Equal(t, wp.LenFreePool(), remainingWorkers)
 		assert.Equal(t, wp.LenReservedPool(), numWorkers-remainingWorkers)
@@ -175,7 +176,7 @@ func TestRandomWithReregister(t *testing.T) {
 	wp := NewWorkerPool()
 	size := 30
 	qsize := 30
-	InitNodesOfVaryingSize(t, wp, size)
+	initNodesOfVaryingSize(t, wp, size)
 	numWorkers := size * (size + 1) / 2
 	assert.Equal(t, wp.LenFreePool(), numWorkers)
 	assert.Equal(t, wp.LenReservedPool(), 0)
@@ -189,7 +190,7 @@ func TestRandomWithReregister(t *testing.T) {
 	for i := 0; i < size; i++ {
 		numRecruits := wp.r.Intn(2*size) + 1
 		s, err := wp.Recruit(numRecruits)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		//println("iteration", i, "recruit", len(s), "from", remainingWorkers, "for", remainingWorkers-len(s))
 		remainingWorkers -= len(s)
 		require.Equal(t, wp.LenFreePool(), remainingWorkers)
@@ -207,7 +208,7 @@ func TestRandomWithReregister(t *testing.T) {
 			for _, wd := range reregisterNow {
 				wp.Unreserve(wd.Addr)
 				wp.Register(wd.Addr, wd.NodeName)
-				require.Nil(t, err)
+				require.NoError(t, err)
 			}
 			remainingWorkers += len(reregisterNow)
 			//println("iteration", i, "register", len(reregisterNow), "for", remainingWorkers)
@@ -230,7 +231,7 @@ func TestRandomRecruitDetectSiblings(t *testing.T) {
 
 	wp := NewWorkerPool()
 	wp.SkipSpread = false
-	InitNodesWithWorkers(t, wp, width, height)
+	initNodesWithWorkers(t, wp, width, height)
 	numWorkers := width * height
 	assert.Equal(t, wp.LenFreePool(), numWorkers)
 	assert.Equal(t, wp.LenReservedPool(), 0)
@@ -242,7 +243,7 @@ func TestRandomRecruitDetectSiblings(t *testing.T) {
 	for i := 0; i < iterations; i++ {
 		numRecruits := wp.r.Intn(reqmax-reqmin) + reqmin
 		s, err := wp.Recruit(numRecruits)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		//println("iteration", i, "recruit", len(s), "from", remainingWorkers, "for", remainingWorkers-len(s))
 		remainingWorkers -= len(s)
 		require.Equal(t, wp.LenFreePool(), remainingWorkers)
@@ -260,7 +261,7 @@ func TestRandomRecruitDetectSiblings(t *testing.T) {
 			for _, wd := range reregisterNow {
 				wp.Unreserve(wd.Addr)
 				wp.Register(wd.Addr, wd.NodeName)
-				require.Nil(t, err)
+				require.NoError(t, err)
 			}
 			remainingWorkers += len(reregisterNow)
 			//println("iteration", i, "register", len(reregisterNow), "for", remainingWorkers)
