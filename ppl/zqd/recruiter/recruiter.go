@@ -130,7 +130,7 @@ func (pool *WorkerPool) Recruit(n int) ([]WorkerDetail, error) {
 
 	recruits := make([]WorkerDetail, 0)
 
-	if !pool.SkipSpread {
+	if !pool.SkipSpread && n > 1 {
 		for i, key := range keys {
 			workers := pool.nodePool[key]
 			// adjust goal on each iteration
