@@ -1,14 +1,14 @@
 # Beacon Analysis on the zql and zng
 
-Zng and zq provides a flexible and powerful foundation for security
-analytics.  In addition to the zeek- and suricata-specific UX in the brim app,
+Zql and zng provide a flexible and powerful foundation for security
+analytics.  In addition to its use exploring zeek- and suricata-specific UX in the brim app,
 zql can be used to analyze security aspects of network and endpoint data along with
 cloud telemetry data to provide insights into beaconing, dns infiltration, and
 other related security concepts.
 
-> This directory contains working notes on how zql/zng solves beaconing and related
-> analytics challenges.  We will migrate the concepts worked out here into
-> reusable building blocks integrated into zq, zdl, the brim app, etc.
+This directory contains working notes on how zql solves beaconing and related
+analytics challenges.  We plan to migrate the concepts worked out here into
+reusable building blocks integrated into zq, zdl, the brim app, etc.
 
 ## RITA
 
@@ -16,7 +16,7 @@ The mechanisms here are inspired by the algorithmic techniques used in
 [RITA](https://github.com/activecm/rita).
 
 RITA is a go program structured as a command-line tool that parses zeek logs,
-performs initial analyses on the parsed logs, and places these results in mongodb.
+performs initial analyses on the parsed logs, and places these results in MongoDB.
 It then provides
 a means to query the mongodb to look for various security-related features present
 in the original zeek logs, e.g., dns exfiltration, peculiar relations between
