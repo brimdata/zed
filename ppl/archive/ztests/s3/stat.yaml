@@ -8,9 +8,9 @@ script: |
 
 inputs:
   - name: babble.tzng
-    source: ../../data/babble.tzng
+    source: ../../../../ztests/suite/data/babble.tzng
   - name: minio.sh
-    source: ./minio.sh
+    source: ../../../../ztests/suite/s3/minio.sh
 
 outputs:
   - name: stdout

@@ -4,7 +4,7 @@ script: |
 
 inputs:
   - name: minio.sh
-    source: ../zar/s3/minio.sh
+    source: minio.sh
 
 outputs:
   - name: stderr

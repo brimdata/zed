@@ -5,7 +5,7 @@ script: |
 
 inputs:
   - name: minio.sh
-    source: ../zar/s3/minio.sh
+    source: minio.sh
   - name: log1.tzng
     data: |
       #0:record[ts:time,uid:bstring]
