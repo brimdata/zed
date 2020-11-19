@@ -19,6 +19,7 @@ func (f *First) Consume(r *zng.Record) {
 	if err != nil || v.Type == nil {
 		return
 	}
+	v = v.Copy()
 	f.val = &v
 }
 
