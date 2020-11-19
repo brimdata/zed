@@ -44,7 +44,6 @@ func (pool *WorkerPool) Register(addr string, nodename string) error {
 
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-
 	if _, ok := pool.reservedPool[addr]; ok {
 		return nil // ignore register for existing workers
 	}
@@ -82,7 +81,6 @@ func (pool *WorkerPool) removeFromNodePool(wd WorkerDetail) {
 func (pool *WorkerPool) Deregister(addr string) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-
 	if wd, ok := pool.freePool[addr]; ok {
 		pool.removeFromNodePool(wd)
 		delete(pool.freePool, addr)
@@ -105,16 +103,14 @@ func (pool *WorkerPool) Recruit(n int) ([]WorkerDetail, error) {
 
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-
-	var recruits []WorkerDetail
 	if len(pool.nodePool) < 1 {
-		return recruits, nil
+		return nil, nil
 	}
-
 	// Make a single pass through the nodes in the cluster that have
 	// available workers, and try to pick evenly from each node. If that pass
 	// fails to recruit enough workers, then we start to pick from the freePool, regardless
 	// of node, until we recruit enough workers, or all available workers.
+	var recruits []WorkerDetail
 	if !pool.SkipSpread && n > 1 {
 		var keys []string
 		for k, _ := range pool.nodePool {
@@ -137,7 +133,6 @@ func (pool *WorkerPool) Recruit(n int) ([]WorkerDetail, error) {
 				break
 			}
 		}
-
 		// Delete the recruits obtained in this pass from the freePool
 		for _, wd := range recruits {
 			_, prs := pool.freePool[wd.Addr]
@@ -147,7 +142,6 @@ func (pool *WorkerPool) Recruit(n int) ([]WorkerDetail, error) {
 			delete(pool.freePool, wd.Addr)
 		}
 	}
-
 	// If there are still recruits needed, select them by iterating through the freePool
 	if len(recruits) < n {
 		for k, wd := range pool.freePool {
@@ -159,7 +153,6 @@ func (pool *WorkerPool) Recruit(n int) ([]WorkerDetail, error) {
 			}
 		}
 	}
-
 	// Add the recruits to the Reserved Pool
 	for _, r := range recruits {
 		pool.reservedPool[r.Addr] = r

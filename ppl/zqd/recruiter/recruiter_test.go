@@ -8,64 +8,58 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Register1(t *testing.T, addr string, nodename string, fp int, np int, np1 int, rp int) *WorkerPool {
+func Register1(t *testing.T, addr string, nodename string, fp int, np int, rp int) *WorkerPool {
 	wp := NewWorkerPool()
 	wp.Register(addr, nodename)
-	AssertPoolLen(t, wp, nodename, fp, np, np1, rp)
+	AssertPoolLen(t, wp, fp, np, rp)
 	return wp
 }
 
-func AssertPoolLen(t *testing.T, wp *WorkerPool, name string, fp int, np int, np1 int, rp int) {
+func AssertPoolLen(t *testing.T, wp *WorkerPool, fp int, np int, rp int) {
 	assert.Equal(t, fp, wp.LenFreePool(), "FreePool len=%d", fp)
 	require.Equal(t, np, wp.LenNodePool(), "NodePool len=%d", np)
 	assert.Equal(t, rp, wp.LenReservedPool(), "ReservedPool len=%d", rp)
 }
 
-func TestRegister1(t *testing.T) {
-	Register1(t, "a.b:5000", "n1", 1, 1, 1, 0)
-}
-
-func TestRegisterBadAddr(t *testing.T) {
+func TestBadCalls(t *testing.T) {
 	wp := NewWorkerPool()
-	wp.Register("a.b;;5000", "n1")
-	AssertPoolLen(t, wp, "", 0, 0, -1, 0)
-}
-
-func TestRegisterBlankNode(t *testing.T) {
-	wp := NewWorkerPool()
-	wp.Register("a.b:5000", "")
-	AssertPoolLen(t, wp, "", 0, 0, -1, 0)
+	err := wp.Register("a.b;;5000", "n1")
+	assert.NotNil(t, err)
+	AssertPoolLen(t, wp, 0, 0, 0)
+	err = wp.Register("a.b:5000", "")
+	assert.NotNil(t, err)
+	AssertPoolLen(t, wp, 0, 0, 0)
 }
 
 func TestRegisterTwice(t *testing.T) {
-	wp := Register1(t, "a.b:5000", "n1", 1, 1, 1, 0)
+	wp := Register1(t, "a.b:5000", "n1", 1, 1, 0)
 	wp.Register("a.b:5000", "n1")
-	AssertPoolLen(t, wp, "n1", 1, 1, 1, 0)
+	AssertPoolLen(t, wp, 1, 1, 0)
 }
 
 func TestDeregister1(t *testing.T) {
-	wp := Register1(t, "a.b:5000", "n2", 1, 1, 1, 0)
+	wp := Register1(t, "a.b:5000", "n2", 1, 1, 0)
 	wp.Deregister("a.b:5000")
-	AssertPoolLen(t, wp, "n2", 0, 0, 0, 0)
+	AssertPoolLen(t, wp, 0, 0, 0)
 }
 
 func TestRecruit1(t *testing.T) {
 	addr := "a.b:5000"
 	nodename := "n2"
-	wp := Register1(t, addr, nodename, 1, 1, 1, 0)
+	wp := Register1(t, addr, nodename, 1, 1, 0)
 	s, err := wp.Recruit(1)
 	require.Nil(t, err)
 	require.Len(t, s, 1)
-	AssertPoolLen(t, wp, nodename, 0, 0, 0, 1)
+	AssertPoolLen(t, wp, 0, 0, 1)
 	assert.Equal(t, addr, s[0].Addr)
 	// try recruiting 0 workers
 	_, err = wp.Recruit(0)
 	assert.EqualError(t, err, "recruit must request one or more workers: n=0")
 	// attempt to register reserved worker should be ignored
 	wp.Register(addr, nodename)
-	AssertPoolLen(t, wp, nodename, 0, 0, 0, 1)
+	AssertPoolLen(t, wp, 0, 0, 1)
 	wp.Unreserve(addr)
-	AssertPoolLen(t, wp, nodename, 0, 0, 0, 0)
+	AssertPoolLen(t, wp, 0, 0, 0)
 	// recruit with none available returns empty list
 	s, err = wp.Recruit(1)
 	assert.Nil(t, err)
@@ -84,14 +78,14 @@ func TestRegister10(t *testing.T) {
 			require.Nil(t, err)
 		}
 	}
-	AssertPoolLen(t, wp, nodename, 10, 5, 2, 0)
+	AssertPoolLen(t, wp, 10, 5, 0)
 	s, err := wp.Recruit(5)
 	require.Nil(t, err)
 	assert.Len(t, s, 5)
-	AssertPoolLen(t, wp, nodename, 5, 5, 1, 5)
+	AssertPoolLen(t, wp, 5, 5, 5)
 }
 
-func InitRectangle(t *testing.T, wp *WorkerPool, width int, height int) {
+func InitNodesWithWorkers(t *testing.T, wp *WorkerPool, width int, height int) {
 	var addr string
 	var nodename string
 	for i := 0; i < width; i++ {
@@ -104,7 +98,7 @@ func InitRectangle(t *testing.T, wp *WorkerPool, width int, height int) {
 	}
 }
 
-func InitTriangle(t *testing.T, wp *WorkerPool, size int) {
+func InitNodesOfVaryingSize(t *testing.T, wp *WorkerPool, size int) {
 	var addr string
 	var nodename string
 	for i := 0; i < size; i++ {
@@ -117,10 +111,32 @@ func InitTriangle(t *testing.T, wp *WorkerPool, size int) {
 	}
 }
 
-func TestTriangle1(t *testing.T) {
+func TestRecruitFromVariablePool(t *testing.T) {
 	wp := NewWorkerPool()
-	InitTriangle(t, wp, 5)
-	AssertPoolLen(t, wp, "n0", 15, 5, 1, 0)
+	InitNodesOfVaryingSize(t, wp, 5)
+	AssertPoolLen(t, wp, 15, 5, 0)
+	s, err := wp.Recruit(14)
+	require.Nil(t, err)
+	assert.Len(t, s, 14)
+	assert.Equal(t, wp.LenFreePool(), 1)
+	assert.Equal(t, wp.LenReservedPool(), 14)
+}
+
+func TestRecruitTooMany(t *testing.T) {
+	wp := NewWorkerPool()
+	InitNodesOfVaryingSize(t, wp, 5)
+	AssertPoolLen(t, wp, 15, 5, 0)
+	s, err := wp.Recruit(20)
+	require.Nil(t, err)
+	assert.Len(t, s, 15)
+	assert.Equal(t, wp.LenFreePool(), 0)
+	assert.Equal(t, wp.LenReservedPool(), 15)
+}
+
+func TestRecruitTwice(t *testing.T) {
+	wp := NewWorkerPool()
+	InitNodesOfVaryingSize(t, wp, 5)
+	AssertPoolLen(t, wp, 15, 5, 0)
 	s, err := wp.Recruit(10)
 	//println(fmt.Sprintf("%v", s))
 	require.Nil(t, err)
@@ -134,32 +150,10 @@ func TestTriangle1(t *testing.T) {
 	assert.Equal(t, wp.LenReservedPool(), 15)
 }
 
-func TestTriangle2(t *testing.T) {
-	wp := NewWorkerPool()
-	InitTriangle(t, wp, 5)
-	AssertPoolLen(t, wp, "n0", 15, 5, 1, 0)
-	s, err := wp.Recruit(20)
-	require.Nil(t, err)
-	assert.Len(t, s, 15)
-	assert.Equal(t, wp.LenFreePool(), 0)
-	assert.Equal(t, wp.LenReservedPool(), 15)
-}
-
-func TestTriangle3(t *testing.T) {
-	wp := NewWorkerPool()
-	InitTriangle(t, wp, 5)
-	AssertPoolLen(t, wp, "n0", 15, 5, 1, 0)
-	s, err := wp.Recruit(14)
-	require.Nil(t, err)
-	assert.Len(t, s, 14)
-	assert.Equal(t, wp.LenFreePool(), 1)
-	assert.Equal(t, wp.LenReservedPool(), 14)
-}
-
-func TestRandom1(t *testing.T) {
+func TestRandomRecruitFromVariablePool(t *testing.T) {
 	wp := NewWorkerPool()
 	size := 20
-	InitTriangle(t, wp, size)
+	InitNodesOfVaryingSize(t, wp, size)
 	numWorkers := size * (size + 1) / 2
 	assert.Equal(t, wp.LenFreePool(), numWorkers)
 	assert.Equal(t, wp.LenReservedPool(), 0)
@@ -181,7 +175,7 @@ func TestRandomWithReregister(t *testing.T) {
 	wp := NewWorkerPool()
 	size := 30
 	qsize := 30
-	InitTriangle(t, wp, size)
+	InitNodesOfVaryingSize(t, wp, size)
 	numWorkers := size * (size + 1) / 2
 	assert.Equal(t, wp.LenFreePool(), numWorkers)
 	assert.Equal(t, wp.LenReservedPool(), 0)
@@ -223,7 +217,7 @@ func TestRandomWithReregister(t *testing.T) {
 	}
 }
 
-func TestRandomRectangle(t *testing.T) {
+func TestRandomRecruitDetectSiblings(t *testing.T) {
 	// This is a helpful test for tuning the algorithm
 	// because we can vary the params on the next three lines
 	// and toggle the value of wp.SkipSpread.
@@ -236,7 +230,7 @@ func TestRandomRectangle(t *testing.T) {
 
 	wp := NewWorkerPool()
 	wp.SkipSpread = false
-	InitRectangle(t, wp, width, height)
+	InitNodesWithWorkers(t, wp, width, height)
 	numWorkers := width * height
 	assert.Equal(t, wp.LenFreePool(), numWorkers)
 	assert.Equal(t, wp.LenReservedPool(), 0)
@@ -286,6 +280,8 @@ func TestRandomRectangle(t *testing.T) {
 			totalRecruited++
 		}
 	}
+	avgSiblings := totalSibCount / totalRecruited
+	assert.Less(t, avgSiblings, 0.1)
 	// Uncomment these for tuning:
 	// println(fmt.Sprintf("SkipSpread=%v  Average number of siblings=%6.4f",
 	// 	wp.SkipSpread, totalSibCount/totalRecruited))
