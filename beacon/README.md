@@ -1,18 +1,18 @@
-# Beacon Analysis on the Zng Data Lake
+# Beacon Analysis on the zql and zng
 
-The zng data lake (ZDL) provides a flexible and powerful foundation for security
+Zng and zq provides a flexible and powerful foundation for security
 analytics.  In addition to the zeek- and suricata-specific UX in the brim app,
-ZDL can be used to analyze security aspects of network and endpoint data along with
+zql can be used to analyze security aspects of network and endpoint data along with
 cloud telemetry data to provide insights into beaconing, dns infiltration, and
 other related security concepts.
 
-> This directory contains working notes on how ZDL solves beaconing and related
+> This directory contains working notes on how zql/zng solves beaconing and related
 > analytics challenges.  We will migrate the concepts worked out here into
 > reusable building blocks integrated into zq, zdl, the brim app, etc.
 
 ## RITA
 
-The mechanisms here are inspired by the techniques used in
+The mechanisms here are inspired by the algorithmic techniques used in
 [RITA](https://github.com/activecm/rita).
 
 RITA is a go program structured as a command-line tool that parses zeek logs,
@@ -24,14 +24,14 @@ top-level DNS names and high-volume queries within the domain, peculiar connecti
 beaconing patterns, and so forth.
 
 
-## The ZDL Approach
+## The Zql Approach
 
 The imperative nature of the RITA framework (i.e., the algorithm is realized
 as a sequence of actions taken on tables in mongo) leads to a fairly complex
 implementation mixing together parsing of JSON and Zeek TSV log lines with
 analytics some of which live in native Go code and some of which lives in MongoDB.
 
-The ZDL approach, on the other hand, can be described
+The zql approach, on the other hand, can be described
 in declarative terms and none of the underlying plumbing needs to be addressed
 as it's all taken care of by zq.
 This simplifies the description of the analytics.
@@ -45,15 +45,14 @@ from RITA in a completely different way using the declarative approach
 of zql.
 
 In this approach, the zeek log data is converted to zng and imported into a
-zng data lake.  Then, various declarative queries operate over windowed
+a set of zng files (or into a zng data lake in the cloud).
+Then, various declarative queries operate over windowed
 passes over the raw data creating intermediate analytics that are, in turn,
 stored in the lake.  These results can then be further queried to create
 the beacon tables or queried directly in the threat hunting workflow,
 just as RITA's mongo tables can be queried in various ways in security workflows.
 
 We will call these partial results "summaries".
-The data here is simply stored as zng (or zst columnar) files or cloud objects,
-in accordance with the zdl data naming conventions.
 
 > There are different ways using zq and zdl to organize and store summaries,
 > for example, you can take the output of a "zdl map" command that builds summary
@@ -457,7 +456,16 @@ _path=dns | split -sep "." query | count() by query
 
 > TBD
 
-Streaming model... lots of joins can be done in parallel using `zar map`
+The zng data lake (ZDL) provides a flexible and powerful foundation for security
+analytics.  In addition to the zeek- and suricata-specific UX in the brim app,
+ZDL can be used to analyze security aspects of network and endpoint data along with
+cloud telemetry data to provide insights into beaconing, dns infiltration, and
+other related security concepts.
+
+The data here is simply stored as zng (or zst columnar) files or cloud objects,
+in accordance with the zdl data naming conventions.
+
+Streaming model... lots of joins can be done in parallel using `zdl map` projection
 and ... no need to loop through tables and do mongo lookups on each
 search key.  Instead we think in terms of dataflow and map-reduce style
 aggregations and analytics.
