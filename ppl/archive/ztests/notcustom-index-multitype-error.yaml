@@ -21,7 +21,7 @@ inputs:
 outputs:
   - name: stderr
     regexp: |
-      type of id.orig_h field changed from ip to string
+      type of id.orig_h field changed from string to ip
   - name: stdout
     data: |
       ===

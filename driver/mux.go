@@ -103,7 +103,7 @@ func (m *muxOutput) Pull(timeout <-chan time.Time) muxResult {
 		}
 	})
 	if m.Complete() {
-		return muxResult{proc.Result{}, -1, ""}
+		return muxResult{proc.Result{}, 0, ""}
 	}
 	var result muxResult
 	select {
