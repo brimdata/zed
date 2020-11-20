@@ -22,7 +22,7 @@ maintain an internal ZNG representation of any Zeek data that is read or
 imported. Therefore, knowing the equivalent types will prove useful when
 performing [ZQL](../../zql/README.md) operations such as
 [type casting](../../zql/docs/data-types#example) or looking at the
-data when output as [TZNG](spec.md#4-zng-text-format-tzng).
+data when output as [ZSON](zson.md).
 
 ## Equivalent Types
 
@@ -46,9 +46,9 @@ applicable to handling certain types.
 | [`addr`](https://docs.zeek.org/en/current/script-reference/types.html#type-addr)         | [`ip`](spec.md#5-primitive-types)       | |
 | [`subnet`](https://docs.zeek.org/en/current/script-reference/types.html#type-subnet)     | [`net`](spec.md#5-primitive-types)      | |
 | [`enum`](https://docs.zeek.org/en/current/script-reference/types.html#type-enum)         | [`string`](spec.md#5-primitive-types)   | See [`enum` details](#enum) |
-| [`set`](https://docs.zeek.org/en/current/script-reference/types.html#type-set)           | [`set`](spec.md#3113-set-typedef)       | See [`set` details](#set) | 
-| [`vector`](https://docs.zeek.org/en/current/script-reference/types.html#type-vector)     | [`array`](spec.md#3112-array-typedef)   | |
-| [`record`](https://docs.zeek.org/en/current/script-reference/types.html#type-record)     | [`record`](spec.md#3111-record-typedef) | See [`record` details](#record) |
+| [`set`](https://docs.zeek.org/en/current/script-reference/types.html#type-set)           | [`set`](spec.md#2113-set-typedef)       | See [`set` details](#set) |
+| [`vector`](https://docs.zeek.org/en/current/script-reference/types.html#type-vector)     | [`array`](spec.md#2112-array-typedef)   | |
+| [`record`](https://docs.zeek.org/en/current/script-reference/types.html#type-record)     | [`record`](spec.md#2111-record-typedef) | See [`record` details](#record) |
 
 * **Note**: The [Zeek data type](https://docs.zeek.org/en/current/script-reference/types.html)
 page describes the types in the context of the
@@ -61,12 +61,12 @@ no authoritative specification of the Zeek log format.
 ## Example
 
 The following example shows an input log that includes each Zeek data type,
-how it's output as TZNG by `zq`, then how it's written back out again as a Zeek
+how it's output as ZSON by `zq`, then how it's written back out again as a Zeek
 log. You may find it helpful to refer to this example when reading the
 [Type-Specific Details](#type-specific-details) sections.
 
 ```
-$ cat zeek_types.log 
+$ cat zeek_types.log
 #separator \x09
 #set_separator	,
 #empty_field	(empty)
@@ -75,11 +75,36 @@ $ cat zeek_types.log
 #types	bool	count	int	double	time	interval	string	string	port	addr	subnet	enum	set[string]	vector[string]	string	count
 T	123	456	123.4560	1592502151.123456	123.456	smile\xf0\x9f\x98\x81smile	\x09\x07\x04	80	127.0.0.1	10.0.0.0/8	tcp	things,in,a,set	order,is,important	Jeanne	122
 
-$ zq -t zeek_types.log 
-#port=uint16
-#zenum=string
-#0:record[my_bool:bool,my_count:uint64,my_int:int64,my_double:float64,my_time:time,my_interval:duration,my_printable_string:bstring,my_bytes_string:bstring,my_port:port,my_addr:ip,my_subnet:net,my_enum:zenum,my_set:set[bstring],my_vector:array[bstring],my_record:record[name:bstring,age:uint64]]
-0:[T;123;456;123.456;1592502151.123456;123.456;smile😁smile;\x09\x07\x04;80;127.0.0.1;10.0.0.0/8;tcp;[a;in;set;things;][order;is;important;][Jeanne;122;]]
+$ zq -f zson zeek_types.log
+{
+    my_bool: T,
+    my_count: 123 (uint64),
+    my_int: 456,
+    my_double: 123.456,
+    my_time: 2020-06-18T17:42:31.123456Z,
+    my_interval: 2m3.456s (duration),
+    my_printable_string: "smile😁smile" (bstring),
+    my_bytes_string: "\x09\x07\x04" (bstring),
+    my_port: 80 (uint16) (=port),
+    my_addr: 127.0.0.1,
+    my_subnet: 10.0.0.0/8,
+    my_enum: "tcp" (=zenum),
+    my_set: |[
+        "a",
+        "in",
+        "set",
+        "things"
+    ]| (|[bstring]| (=23)),
+    my_vector: [
+        "order",
+        "is",
+        "important"
+    ] ([bstring] (=24)),
+    my_record: {
+        name: "Jeanne" (bstring),
+        age: 122 (uint64)
+    } (=25)
+} (=26)
 
 $ zq -t zeek_types.log | zq -f zeek -
 #separator \x09
@@ -91,6 +116,9 @@ $ zq -t zeek_types.log | zq -f zeek -
 T	123	456	123.456	1592502151.123456	123.456	smile\xf0\x9f\x98\x81smile	\x09\x07\x04	80	127.0.0.1	10.0.0.0/8	tcp	a,in,set,things	order,is,important	Jeanne	122
 ```
 
+> TBD: we don't yet have a ZSON reader so we can update the above example yet.
+> See issue #1679
+
 ## Type-Specific Details
 
 As `zq` acts as a reference implementation for ZNG, it's helpful to understand
@@ -99,7 +127,7 @@ them back out again in Zeek log format. Other ZNG implementations (should they
 exist) may handle these differently.
 
 Multiple Zeek types discussed below are represented via a
-[type alias](spec.md#3117-alias-typedef) to one of ZNG's
+[type alias](spec.md#2117-alias-typedef) to one of ZNG's
 [primitive types](spec.md#5-primitive-types). The use of the alias maintains
 the history of the field's original Zeek type such that `zq` may restore it
 if/when the field may be later output again in Zeek format. Knowledge of its
@@ -111,7 +139,7 @@ operations are currently implemented in `zq`.
 
 As they do not affect accuracy, "trailing zero" decimal digits on Zeek `double`
 values will _not_ be preserved when they are formatted into a string, such as
-via the TZNG/Zeek/table output options in `zq` (e.g. `123.4560` becomes
+via the ZSON/Zeek/table output options in `zq` (e.g. `123.4560` becomes
 `123.456`).
 
 ### `string`
@@ -174,7 +202,7 @@ maintain the order of `set` elements as they originally appeared in a Zeek log.
 Zeek's `record` type is unique in that every Zeek log line effectively _is_ a
 record, with its schema defined via the `#fields` and `#types` directives in
 the headers of each log file. Unlike what we saw in the
-[example TZNG output](#example), the word "record" never appears
+[example ZSON output](#example), the word "record" never appears
 explicitly in the schema definition in Zeek logs.
 
 Embedded records also subtly appear within Zeek log lines in the form of

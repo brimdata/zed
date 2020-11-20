@@ -187,8 +187,9 @@ const (
 	CtrlEOS           = 0xff
 	AppEncodingZNG    = 0
 	AppEncodingJSON   = 1
-	AppEncodingString = 2
-	AppEncodingBinary = 3
+	AppEncodingZSON   = 2
+	AppEncodingString = 3
+	AppEncodingBinary = 4
 )
 
 type CompressionFormat int

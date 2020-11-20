@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strconv"
 	"strings"
 	"time"
 
@@ -56,20 +55,26 @@ func (w *Writer) Write(rec *zng.Record) error {
 	if err != nil {
 		return err
 	}
-	if err := w.writeValue(0, typ, typ, rec.Raw); err != nil {
+	known := w.tags.exists(typ)
+	if err := w.writeValue(0, typ, rec.Raw, known); err != nil {
 		return err
 	}
-	return w.write(",\n")
+	if known {
+		if err := w.writef(" (%s)", w.tags.lookup(typ)); err != nil {
+			return err
+		}
+	}
+	return w.write("\n")
 }
 
-func (w *Writer) writeValue(indent int, typ, decType zng.Type, bytes zcode.Bytes) error {
+func (w *Writer) writeValue(indent int, typ zng.Type, bytes zcode.Bytes, known bool) error {
 	if bytes == nil {
 		if err := w.write("null"); err != nil {
 			if err != nil {
 				return err
 			}
 		}
-		return w.writeDecorator(decType)
+		return w.writeDecorator(typ, known, true)
 	}
 	var err error
 	switch t := typ.(type) {
@@ -77,62 +82,37 @@ func (w *Writer) writeValue(indent int, typ, decType zng.Type, bytes zcode.Bytes
 	default:
 		err = w.writePrimitive(indent, typ, bytes)
 	case *zng.TypeAlias:
-		if decType == nil {
-			return w.writeValue(indent, t.Type, nil, bytes)
+		childKnown := known
+		if !childKnown {
+			childKnown = w.tags.exists(typ)
 		}
-		if w.tags.exists(typ) {
-			return w.writeValue(indent, t.Type, typ, bytes)
-		}
-		if err := w.writeValue(indent, t.Type, t.Type, bytes); err != nil {
+		if err = w.writeValue(indent, t.Type, bytes, childKnown); err != nil {
 			return err
 		}
-		w.tags.enter(typ, t.Name)
-		decType = typ
+		if known {
+			return nil
+		}
+		return w.writef(" (%s)", w.tags.lookupAlias(typ, t.Name))
 	case *zng.TypeRecord:
 		err = w.writeRecord(indent, t, bytes)
 	case *zng.TypeArray:
-		err = w.writeVector(indent, "[", "]", t.Type, zng.Value{t, bytes})
-		if decType == nil {
-			return err
-		}
-		decType = t.Type
+		err = w.writeVector(indent, "[", "]", t.Type, zng.Value{t, bytes}, known)
 	case *zng.TypeSet:
-		err = w.writeVector(indent, "|[", "]|", t.Type, zng.Value{t, bytes})
-		if decType == nil {
-			return err
-		}
-		decType = t.Type
+		err = w.writeVector(indent, "|[", "]|", t.Type, zng.Value{t, bytes}, known)
 	case *zng.TypeUnion:
-		if err := w.writeUnion(indent, t, decType, bytes); err != nil {
-			return err
-		}
-		if w.tags.exists(typ) {
-			return nil
-		}
-		w.tags.enter(typ, strconv.Itoa(t.ID()))
+		err = w.writeUnion(indent, t, bytes, known)
 	case *zng.TypeMap:
-		if err := w.writeMap(indent, t, bytes); err != nil {
-			return err
-		}
-		if !w.tags.exists(typ) {
-			if err := w.writeDecorator(decType); err != nil {
-				return err
-			}
-			w.tags.enter(typ, strconv.Itoa(t.ID()))
-		}
+		err = w.writeMap(indent, t, bytes)
 	}
-	if err != nil {
-		return err
+	if err == nil {
+		err = w.writeDecorator(typ, known, false)
 	}
-	return w.writeDecorator(decType)
+	return err
 }
 
-func (w *Writer) writeDecorator(typ zng.Type) error {
-	if typ == nil || impliedPrimitive(typ) {
+func (w *Writer) writeDecorator(typ zng.Type, known, null bool) error {
+	if known || (!null && impliedPrimitive(typ)) {
 		return nil
-	}
-	if !w.tags.exists(typ) {
-		w.tags.enter(typ, w.tags.lookup(typ))
 	}
 	return w.writef(" (%s)", w.tags.lookup(typ))
 }
@@ -144,7 +124,7 @@ func (w *Writer) writeRecord(indent int, typ *zng.TypeRecord, bytes zcode.Bytes)
 	if len(typ.Columns) == 0 {
 		return w.write("}")
 	}
-	seen := w.tags.exists(typ)
+	known := w.tags.exists(typ)
 	indent += w.tab
 	sep := w.newline
 	it := bytes.Iter()
@@ -165,11 +145,7 @@ func (w *Writer) writeRecord(indent int, typ *zng.TypeRecord, bytes zcode.Bytes)
 		if err := w.write(": "); err != nil {
 			return err
 		}
-		var decType zng.Type
-		if !seen {
-			decType = field.Type
-		}
-		if err := w.writeValue(indent, field.Type, decType, bytes); err != nil {
+		if err := w.writeValue(indent, field.Type, bytes, known); err != nil {
 			return err
 		}
 		sep = "," + w.newline
@@ -180,7 +156,7 @@ func (w *Writer) writeRecord(indent int, typ *zng.TypeRecord, bytes zcode.Bytes)
 	return w.indent(indent-w.tab, "}")
 }
 
-func (w *Writer) writeVector(indent int, open, close string, inner zng.Type, zv zng.Value) error {
+func (w *Writer) writeVector(indent int, open, close string, inner zng.Type, zv zng.Value, known bool) error {
 	if err := w.write(open); err != nil {
 		return err
 	}
@@ -205,7 +181,7 @@ func (w *Writer) writeVector(indent int, open, close string, inner zng.Type, zv 
 		if err := w.indent(indent, ""); err != nil {
 			return err
 		}
-		if err := w.writeValue(indent, inner, nil, bytes); err != nil {
+		if err := w.writeValue(indent, inner, bytes, true); err != nil {
 			return err
 		}
 		sep = "," + w.newline
@@ -216,15 +192,17 @@ func (w *Writer) writeVector(indent int, open, close string, inner zng.Type, zv 
 	return w.indent(indent-w.tab, close)
 }
 
-func (w *Writer) writeUnion(indent int, union *zng.TypeUnion, decType zng.Type, bytes zcode.Bytes) error {
-	typ, selector, bytes, err := union.SplitZng(bytes)
+func (w *Writer) writeUnion(indent int, union *zng.TypeUnion, bytes zcode.Bytes, known bool) error {
+	typ, _, bytes, err := union.SplitZng(bytes)
 	if err != nil {
 		return err
 	}
-	if err := w.writef("<%d>", selector); err != nil {
-		return err
-	}
-	return w.writeValue(indent, typ, decType, bytes)
+	// XXX For now, we always write the dectorator of a union value so that
+	// we can determine the selector from the value's explicit type.
+	// We will later optimize this so we only print the dectorator if its
+	// ambigous with another type (e.g., int8 and int16 vs a union of int8 and string).
+	known = false
+	return w.writeValue(indent, typ, bytes, known)
 }
 
 func (w *Writer) writeMap(indent int, typ *zng.TypeMap, bytes zcode.Bytes) error {
@@ -254,13 +232,15 @@ func (w *Writer) writeMap(indent int, typ *zng.TypeMap, bytes zcode.Bytes) error
 		if err := w.indent(indent, "{"); err != nil {
 			return err
 		}
-		if err := w.writeValue(indent+w.tab, typ.KeyType, nil, keyBytes); err != nil {
+		known := w.tags.known(typ.KeyType)
+		if err := w.writeValue(indent+w.tab, typ.KeyType, keyBytes, known); err != nil {
 			return err
 		}
 		if err := w.write(","); err != nil {
 			return err
 		}
-		if err := w.writeValue(indent+w.tab, typ.ValType, nil, valBytes); err != nil {
+		known = w.tags.known(typ.ValType)
+		if err := w.writeValue(indent+w.tab, typ.ValType, valBytes, known); err != nil {
 			return err
 		}
 		if err := w.write("}"); err != nil {
@@ -288,6 +268,13 @@ func (w *Writer) writePrimitive(indent int, typ zng.Type, bytes zcode.Bytes) err
 		}
 		b := t.Time().Format(time.RFC3339Nano)
 		return w.write(string(b))
+
+	case *zng.TypeOfDuration:
+		ns, err := zng.DecodeDuration(bytes)
+		if err != nil {
+			return err
+		}
+		return w.write(time.Duration(ns).String())
 
 	case *zng.TypeOfBytes:
 		if err := w.write("0x"); err != nil {
