@@ -78,7 +78,6 @@ func testZQL(t *testing.T, line string) {
 	assert.JSONEq(t, string(pigeonJSON), string(astJSON), "pigeon and ast.Proc mismatch: %q", line)
 
 	if runtime.GOOS != "windows" {
-		var err error
 		pegJSON, err := parsePEGjs(line)
 		assert.NoError(t, err, "parsePEGjs: %q", line)
 		assert.JSONEq(t, string(pigeonJSON), string(pegJSON), "pigeon and PEGjs mismatch: %q", line)
