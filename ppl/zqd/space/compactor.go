@@ -70,8 +70,7 @@ func (c *compactor) run(ctx context.Context) {
 			// When the current compaction is done, start another.
 			active[id] = true
 		case id := <-c.compactDone:
-			again := active[id]
-			if again {
+			if active[id] {
 				active[id] = false
 				c.launchCompact(ctx, id)
 				continue
