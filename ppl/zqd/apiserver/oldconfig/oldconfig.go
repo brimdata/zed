@@ -1,32 +1,28 @@
-package space
+// Package oldconfig can read and migrate per-space json config files that
+// were once used by zqd.
+package oldconfig
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"path"
-	"strings"
-	"unicode"
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/ppl/zqd/pcapstorage"
 	"github.com/brimsec/zq/zqe"
+	"go.uber.org/zap"
 )
 
-const configVersion = 3
+const (
+	ConfigFile = "config.json"
 
-func invalidSpaceNameRune(r rune) bool {
-	return r == '/' || !unicode.IsPrint(r)
-}
+	lastOldConfigVersion = 3
+)
 
-func validSpaceName(s string) bool {
-	return strings.IndexFunc(s, invalidSpaceNameRune) == -1
-}
-
-type config struct {
+type ConfigV3 struct {
 	Version   int               `json:"version"`
 	Name      string            `json:"name"`
 	DataURI   iosrc.URI         `json:"data_uri"`
@@ -34,7 +30,7 @@ type config struct {
 	Subspaces []subspaceConfig  `json:"subspaces"`
 }
 
-type configV2 struct {
+type ConfigV2 struct {
 	Version   int               `json:"version"`
 	Name      string            `json:"name"`
 	DataURI   iosrc.URI         `json:"data_uri"`
@@ -43,7 +39,7 @@ type configV2 struct {
 	Subspaces []subspaceConfig  `json:"subspaces"`
 }
 
-type configV1 struct {
+type ConfigV1 struct {
 	Version  int    `json:"version"`
 	Name     string `json:"name"`
 	DataPath string `json:"data_path"`
@@ -66,44 +62,54 @@ type subspaceConfig struct {
 	OpenOptions api.ArchiveOpenOptions `json:"open_options"`
 }
 
-func (c config) clone() config {
-	n := c
-	n.Subspaces = append([]subspaceConfig{}, c.Subspaces...)
-	return n
+type configMigrator struct {
+	names map[string]api.SpaceID
 }
 
-func (c config) subspaceIndex(id api.SpaceID) int {
-	for i, sub := range c.Subspaces {
-		if sub.ID == id {
-			return i
-		}
+func LoadConfigs(ctx context.Context, logger *zap.Logger, root iosrc.URI) (map[api.SpaceID]ConfigV3, error) {
+	m := configMigrator{names: map[string]api.SpaceID{}}
+	list, err := iosrc.ReadDir(ctx, root)
+	if err != nil {
+		return nil, err
 	}
-	return -1
+	res := make(map[api.SpaceID]ConfigV3)
+	for _, l := range list {
+		if !l.IsDir() {
+			continue
+		}
+		dir := root.AppendPath(l.Name())
+		config, err := m.loadConfig(ctx, dir)
+		if err != nil {
+			if zqe.IsNotFound(err) {
+				logger.Debug("Config file not found", zap.String("uri", dir.String()))
+			} else {
+				logger.Warn("Error loading space", zap.String("uri", dir.String()), zap.Error(err))
+			}
+			continue
+		}
+		id := api.SpaceID(l.Name())
+		m.names[config.Name] = id
+		res[id] = config
+	}
+	return res, nil
 }
 
 // loadConfig loads the contents of config.json in a space's path.
-func (m *Manager) loadConfig(ctx context.Context, spaceURI iosrc.URI) (config, error) {
-	var c config
-	p := spaceURI.AppendPath(configFile)
-	r, err := iosrc.NewReader(ctx, p)
+func (m *configMigrator) loadConfig(ctx context.Context, spaceURI iosrc.URI) (ConfigV3, error) {
+	var c ConfigV3
+	p := spaceURI.AppendPath(ConfigFile)
+	data, err := iosrc.ReadFile(ctx, p)
 	if err != nil {
-		return c, err
-	}
-	data, err := ioutil.ReadAll(r)
-	if err != nil {
-		return c, err
-	}
-	if err := r.Close(); err != nil {
 		return c, err
 	}
 	var vc versionCheck
 	if err := json.Unmarshal(data, &vc); err != nil {
 		return c, err
 	}
-	if vc.Version > configVersion {
-		return c, fmt.Errorf("space config version %d ahead of binary version %d", vc.Version, configVersion)
+	if vc.Version > lastOldConfigVersion {
+		return c, fmt.Errorf("space config version %d ahead of binary version %d", vc.Version, lastOldConfigVersion)
 	}
-	if vc.Version < configVersion {
+	if vc.Version < lastOldConfigVersion {
 		return m.migrateConfig(vc.Version, data, spaceURI)
 	}
 	return c, json.Unmarshal(data, &c)
@@ -111,9 +117,9 @@ func (m *Manager) loadConfig(ctx context.Context, spaceURI iosrc.URI) (config, e
 
 type migrator func([]byte, iosrc.URI) (int, []byte, error)
 
-func (m *Manager) migrateConfig(version int, data []byte, spaceURI iosrc.URI) (config, error) {
+func (m *configMigrator) migrateConfig(version int, data []byte, spaceURI iosrc.URI) (ConfigV3, error) {
 	var mg migrator
-	for version < configVersion {
+	for version < lastOldConfigVersion {
 		switch version {
 		case 0:
 			mg = m.migrateConfigV1
@@ -122,14 +128,14 @@ func (m *Manager) migrateConfig(version int, data []byte, spaceURI iosrc.URI) (c
 		case 2:
 			mg = migrateConfigV3
 		default:
-			return config{}, fmt.Errorf("unsupported config migration %d", version)
+			return ConfigV3{}, fmt.Errorf("unsupported config migration %d", version)
 		}
 		var err error
 		if version, data, err = mg(data, spaceURI); err != nil {
-			return config{}, err
+			return ConfigV3{}, err
 		}
 	}
-	var c config
+	var c ConfigV3
 	if err := json.Unmarshal(data, &c); err != nil {
 		return c, err
 	}
@@ -137,7 +143,7 @@ func (m *Manager) migrateConfig(version int, data []byte, spaceURI iosrc.URI) (c
 }
 
 func migrateConfigV3(data []byte, spaceuri iosrc.URI) (int, []byte, error) {
-	var v2 configV2
+	var v2 ConfigV2
 	if err := json.Unmarshal(data, &v2); err != nil {
 		return 0, nil, err
 	}
@@ -154,7 +160,7 @@ func migrateConfigV3(data []byte, spaceuri iosrc.URI) (int, []byte, error) {
 			return 0, nil, err
 		}
 	}
-	c := config{
+	c := ConfigV3{
 		Version:   3,
 		Name:      v2.Name,
 		DataURI:   v2.DataURI,
@@ -166,7 +172,7 @@ func migrateConfigV3(data []byte, spaceuri iosrc.URI) (int, []byte, error) {
 }
 
 func migrateConfigV2(data []byte, _ iosrc.URI) (int, []byte, error) {
-	var v1 configV1
+	var v1 ConfigV1
 	if err := json.Unmarshal(data, &v1); err != nil {
 		return 0, nil, err
 	}
@@ -177,7 +183,7 @@ func migrateConfigV2(data []byte, _ iosrc.URI) (int, []byte, error) {
 	if err != nil {
 		return 0, nil, err
 	}
-	c := configV2{
+	c := ConfigV2{
 		Version:   2,
 		Name:      v1.Name,
 		DataURI:   du,
@@ -189,8 +195,8 @@ func migrateConfigV2(data []byte, _ iosrc.URI) (int, []byte, error) {
 	return 2, d, err
 }
 
-func (m *Manager) migrateConfigV1(data []byte, spaceURI iosrc.URI) (int, []byte, error) {
-	var c configV1
+func (m *configMigrator) migrateConfigV1(data []byte, spaceURI iosrc.URI) (int, []byte, error) {
+	var c ConfigV1
 	if err := json.Unmarshal(data, &c); err != nil {
 		return 0, nil, err
 	}
@@ -202,7 +208,7 @@ func (m *Manager) migrateConfigV1(data []byte, spaceURI iosrc.URI) (int, []byte,
 	if _, ok := m.names[c.Name]; ok {
 		c.Name = uniqueName(m.names, c.Name)
 	}
-	c.Name = safeName(c.Name)
+	c.Name = api.SafeName(c.Name)
 	if c.Storage.Kind == api.UnknownStore {
 		c.Storage.Kind = api.FileStore
 	}
@@ -210,39 +216,13 @@ func (m *Manager) migrateConfigV1(data []byte, spaceURI iosrc.URI) (int, []byte,
 	return 1, d, err
 }
 
-func writeConfig(spaceURI iosrc.URI, c config) error {
-	if c.Version != configVersion {
-		return fmt.Errorf("writing an out of date config: expected version %d, got %d", configVersion, c.Version)
+func writeConfig(spaceURI iosrc.URI, c ConfigV3) error {
+	if c.Version != lastOldConfigVersion {
+		return fmt.Errorf("writing an out of date config: expected version %d, got %d", lastOldConfigVersion, c.Version)
 	}
-	return iosrc.Replace(context.TODO(), spaceURI.AppendPath(configFile), func(w io.Writer) error {
+	return iosrc.Replace(context.TODO(), spaceURI.AppendPath(ConfigFile), func(w io.Writer) error {
 		return json.NewEncoder(w).Encode(c)
 	})
-}
-
-func validateName(names map[string]api.SpaceID, name string) error {
-	if name == "" {
-		return zqe.E(zqe.Invalid, "cannot set name to an empty string")
-	}
-	if !validSpaceName(name) {
-		return zqe.E(zqe.Invalid, "name may not contain '/' or non-printable characters")
-	}
-	if _, ok := names[name]; ok {
-		return zqe.E(zqe.Conflict, "space with name '%s' already exists", name)
-	}
-	return nil
-}
-
-// safeName converts the proposed name to a name that adheres to the constraints
-// placed on a space's name (i.e. follows the name regex).
-func safeName(proposed string) string {
-	var sb strings.Builder
-	for _, r := range proposed {
-		if invalidSpaceNameRune(r) {
-			r = '_'
-		}
-		sb.WriteRune(r)
-	}
-	return sb.String()
 }
 
 func uniqueName(names map[string]api.SpaceID, proposed string) string {

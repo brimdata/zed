@@ -15,7 +15,6 @@ import (
 	"github.com/brimsec/zq/ppl/zqd/ingest"
 	"github.com/brimsec/zq/ppl/zqd/jsonpipe"
 	"github.com/brimsec/zq/ppl/zqd/search"
-	"github.com/brimsec/zq/ppl/zqd/space"
 	"github.com/brimsec/zq/ppl/zqd/storage/archivestore"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
@@ -94,23 +93,8 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s, err := c.spaces.Get(req.Space)
-	if err != nil {
-		respondError(c, w, r, err)
-		return
-	}
-
-	ctx, cancel, err := s.StartOp(r.Context())
-	if err != nil {
-		respondError(c, w, r, err)
-		return
-	}
-	defer cancel()
-
 	srch, err := search.NewSearchOp(req)
 	if err != nil {
-		// XXX This always returns bad request but should return status codes
-		// that reflect the nature of the returned error.
 		respondError(c, w, r, err)
 		return
 	}
@@ -121,13 +105,14 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var order zbuf.Order
-	if req.Dir == -1 {
-		order = zbuf.OrderDesc
+	store, err := c.mgr.GetStorage(r.Context(), req.Space)
+	if err != nil {
+		respondError(c, w, r, err)
+		return
 	}
 
 	w.Header().Set("Content-Type", out.ContentType())
-	if err := srch.Run(ctx, order, s, out); err != nil {
+	if err := srch.Run(r.Context(), store, out); err != nil {
 		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
 	}
 }
@@ -189,29 +174,25 @@ func getSearchOutput(w http.ResponseWriter, r *http.Request) (search.Output, err
 }
 
 func handlePcapSearch(c *Core, w http.ResponseWriter, r *http.Request) {
-	s := extractSpace(c, w, r)
-	if s == nil {
-		return
-	}
-
-	ctx, cancel, err := s.StartOp(r.Context())
-	if err != nil {
-		respondError(c, w, r, err)
-		return
-	}
-	defer cancel()
-
 	var req api.PcapSearch
 	if err := req.FromQuery(r.URL.Query()); err != nil {
 		respondError(c, w, r, zqe.E(zqe.Invalid, err))
 		return
 	}
-	pcapstore := s.PcapStore()
+	id, ok := extractSpaceID(c, w, r)
+	if !ok {
+		return
+	}
+	pcapstore, err := c.mgr.GetPcapStorage(r.Context(), id)
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
 	if pcapstore.Empty() {
 		respondError(c, w, r, zqe.E(zqe.NotFound, "no pcap in this space"))
 		return
 	}
-	reader, err := pcapstore.NewSearch(ctx, req)
+	reader, err := pcapstore.NewSearch(r.Context(), req)
 	if err == pcap.ErrNoPcapsFound {
 		respondError(c, w, r, zqe.E(zqe.NotFound, err))
 		return
@@ -223,14 +204,14 @@ func handlePcapSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	defer reader.Close()
 	w.Header().Set("Content-Type", "application/vnd.tcpdump.pcap")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%s.pcap", reader.ID()))
-	_, err = ctxio.Copy(ctx, w, reader)
+	_, err = ctxio.Copy(r.Context(), w, reader)
 	if err != nil {
 		c.requestLogger(r).Error("Error writing packet response", zap.Error(err))
 	}
 }
 
 func handleSpaceList(c *Core, w http.ResponseWriter, r *http.Request) {
-	spaces, err := c.spaces.List(r.Context())
+	spaces, err := c.mgr.ListSpaces(r.Context())
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -239,24 +220,16 @@ func handleSpaceList(c *Core, w http.ResponseWriter, r *http.Request) {
 }
 
 func handleSpaceGet(c *Core, w http.ResponseWriter, r *http.Request) {
-	s := extractSpace(c, w, r)
-	if s == nil {
+	id, ok := extractSpaceID(c, w, r)
+	if !ok {
 		return
 	}
 
-	ctx, cancel, err := s.StartOp(r.Context())
+	info, err := c.mgr.GetSpace(r.Context(), id)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
 	}
-	defer cancel()
-
-	info, err := s.Info(ctx)
-	if err != nil {
-		respondError(c, w, r, err)
-		return
-	}
-
 	respond(c, w, r, http.StatusOK, info)
 }
 
@@ -266,70 +239,43 @@ func handleSpacePost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sp, err := c.spaces.Create(r.Context(), req)
+	info, err := c.mgr.CreateSpace(r.Context(), req)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
 	}
-	info, err := sp.Info(r.Context())
-	if err != nil {
-		respondError(c, w, r, err)
-		return
-	}
-
 	respond(c, w, r, http.StatusOK, info)
 }
 
 func handleSubspacePost(c *Core, w http.ResponseWriter, r *http.Request) {
-	s := extractSpace(c, w, r)
-	if s == nil {
-		return
-	}
-
-	ctx, cancel, err := s.StartOp(r.Context())
-	if err != nil {
-		respondError(c, w, r, err)
-		return
-	}
-	defer cancel()
-
 	var req api.SubspacePostRequest
 	if !request(c, w, r, &req) {
 		return
 	}
+	id, ok := extractSpaceID(c, w, r)
+	if !ok {
+		return
+	}
 
-	sp, err := c.spaces.CreateSubspace(ctx, s, req)
+	info, err := c.mgr.CreateSubspace(r.Context(), id, req)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
 	}
-	info, err := sp.Info(ctx)
-	if err != nil {
-		respondError(c, w, r, err)
-		return
-	}
-
 	respond(c, w, r, http.StatusOK, info)
 }
 
 func handleSpacePut(c *Core, w http.ResponseWriter, r *http.Request) {
-	s := extractSpace(c, w, r)
-	if s == nil {
-		return
-	}
-
-	_, cancel, err := s.StartOp(r.Context())
-	if err != nil {
-		respondError(c, w, r, err)
-		return
-	}
-	defer cancel()
-
 	var req api.SpacePutRequest
 	if !request(c, w, r, &req) {
 		return
 	}
-	if err := c.spaces.UpdateSpace(s, req); err != nil {
+	id, ok := extractSpaceID(c, w, r)
+	if !ok {
+		return
+	}
+
+	if err := c.mgr.UpdateSpaceName(r.Context(), id, req.Name); err != nil {
 		respondError(c, w, r, err)
 		return
 	}
@@ -337,14 +283,12 @@ func handleSpacePut(c *Core, w http.ResponseWriter, r *http.Request) {
 }
 
 func handleSpaceDelete(c *Core, w http.ResponseWriter, r *http.Request) {
-	v := mux.Vars(r)
-	id, ok := v["space"]
+	id, ok := extractSpaceID(c, w, r)
 	if !ok {
-		respondError(c, w, r, zqe.E(zqe.Invalid, "no space id in path"))
 		return
 	}
 
-	if err := c.spaces.Delete(r.Context(), api.SpaceID(id)); err != nil {
+	if err := c.mgr.DeleteSpace(r.Context(), id); err != nil {
 		respondError(c, w, r, err)
 		return
 	}
@@ -358,24 +302,24 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	logger := c.requestLogger(r)
 
-	s := extractSpace(c, w, r)
-	if s == nil {
-		return
-	}
-
-	ctx, cancel, err := s.StartOp(r.Context())
-	if err != nil {
-		respondError(c, w, r, err)
-		return
-	}
-	defer cancel()
-
 	var req api.PcapPostRequest
 	if !request(c, w, r, &req) {
 		return
 	}
 
-	op, warnings, err := ingest.NewPcapOp(ctx, s, req.Path, c.suricata, c.zeek)
+	ctx := r.Context()
+	id, ok := extractSpaceID(c, w, r)
+	if !ok {
+		return
+	}
+	store, err := c.mgr.GetStorage(ctx, id)
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	pcapstore, err := c.mgr.GetPcapStorage(ctx, id)
+
+	op, warnings, err := ingest.NewPcapOp(ctx, store, pcapstore, req.Path, c.suricata, c.zeek)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -410,7 +354,7 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		case <-ticker.C:
 		}
 
-		sum, err := s.Storage().Summary(ctx)
+		sum, err := store.Summary(ctx)
 		if err != nil {
 			logger.Warn("Error reading storage summary", zap.Error(err))
 			return
@@ -444,17 +388,6 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 }
 
 func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {
-	s := extractSpace(c, w, r)
-	if s == nil {
-		return
-	}
-	ctx, cancel, err := s.StartOp(r.Context())
-	if err != nil {
-		respondError(c, w, r, err)
-		return
-	}
-	defer cancel()
-
 	var req api.LogPostRequest
 	if !request(c, w, r, &req) {
 		return
@@ -463,7 +396,18 @@ func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		respondError(c, w, r, zqe.E(zqe.Invalid, "empty paths"))
 		return
 	}
-	op, err := ingest.NewLogOp(ctx, s.Storage(), req)
+	id, ok := extractSpaceID(c, w, r)
+	if !ok {
+		return
+	}
+
+	store, err := c.mgr.GetStorage(r.Context(), id)
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+
+	op, err := ingest.NewLogOp(r.Context(), store, req)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -512,20 +456,20 @@ loop:
 }
 
 func handleLogStream(c *Core, w http.ResponseWriter, r *http.Request) {
-	s := extractSpace(c, w, r)
-	if s == nil {
-		return
-	}
-	ctx, cancel, err := s.StartOp(r.Context())
-	if err != nil {
-		respondError(c, w, r, err)
-		return
-	}
-	defer cancel()
-
 	form, err := r.MultipartReader()
 	if err != nil {
 		respondError(c, w, r, zqe.ErrInvalid(err))
+		return
+	}
+
+	id, ok := extractSpaceID(c, w, r)
+	if !ok {
+		return
+	}
+
+	store, err := c.mgr.GetStorage(r.Context(), id)
+	if err != nil {
+		respondError(c, w, r, err)
 		return
 	}
 
@@ -536,7 +480,7 @@ func handleLogStream(c *Core, w http.ResponseWriter, r *http.Request) {
 		zr.SetStopOnError()
 	}
 
-	if err := s.Storage().Write(ctx, zctx, zr); err != nil {
+	if err := store.Write(r.Context(), zctx, zr); err != nil {
 		respondError(c, w, r, err)
 		return
 	}
@@ -549,28 +493,26 @@ func handleLogStream(c *Core, w http.ResponseWriter, r *http.Request) {
 }
 
 func handleIndexPost(c *Core, w http.ResponseWriter, r *http.Request) {
-	s := extractSpace(c, w, r)
-	if s == nil {
-		return
-	}
-	ctx, cancel, err := s.StartOp(r.Context())
-	if err != nil {
-		respondError(c, w, r, err)
-		return
-	}
-	defer cancel()
-
 	var req api.IndexPostRequest
 	if !request(c, w, r, &req) {
 		return
 	}
-
-	store, ok := s.Storage().(*archivestore.Storage)
+	id, ok := extractSpaceID(c, w, r)
+	if !ok {
+		return
+	}
+	store, err := c.mgr.GetStorage(r.Context(), id)
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	as, ok := store.(*archivestore.Storage)
 	if !ok {
 		respondError(c, w, r, zqe.E(zqe.Invalid, "space storage does not support creating indexes"))
 		return
 	}
-	if err := store.IndexCreate(ctx, req); err != nil {
+
+	if err := as.IndexCreate(r.Context(), req); err != nil {
 		respondError(c, w, r, err)
 		return
 	}
@@ -578,28 +520,26 @@ func handleIndexPost(c *Core, w http.ResponseWriter, r *http.Request) {
 }
 
 func handleIndexSearch(c *Core, w http.ResponseWriter, r *http.Request) {
-	s := extractSpace(c, w, r)
-	if s == nil {
-		return
-	}
-	ctx, cancel, err := s.StartOp(r.Context())
-	if err != nil {
-		respondError(c, w, r, err)
-		return
-	}
-	defer cancel()
-
 	var req api.IndexSearchRequest
 	if !request(c, w, r, &req) {
 		return
 	}
-
-	store, ok := s.Storage().(search.IndexSearcher)
+	id, ok := extractSpaceID(c, w, r)
+	if !ok {
+		return
+	}
+	store, err := c.mgr.GetStorage(r.Context(), id)
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	as, ok := store.(*archivestore.Storage)
 	if !ok {
 		respondError(c, w, r, zqe.E(zqe.Invalid, "space storage does not support index search"))
 		return
 	}
-	srch, err := search.NewIndexSearchOp(ctx, store, req)
+
+	srch, err := search.NewIndexSearchOp(r.Context(), as, req)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -623,23 +563,22 @@ type ArchiveStater interface {
 }
 
 func handleArchiveStat(c *Core, w http.ResponseWriter, r *http.Request) {
-	s := extractSpace(c, w, r)
-	if s == nil {
+	id, ok := extractSpaceID(c, w, r)
+	if !ok {
 		return
 	}
-	ctx, cancel, err := s.StartOp(r.Context())
+	store, err := c.mgr.GetStorage(r.Context(), id)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
 	}
-	defer cancel()
-
-	store, ok := s.Storage().(ArchiveStater)
+	as, ok := store.(*archivestore.Storage)
 	if !ok {
 		respondError(c, w, r, zqe.E(zqe.Invalid, "space storage does not support archive stat"))
 		return
 	}
-	rc, err := store.ArchiveStat(ctx, resolver.NewContext())
+
+	rc, err := as.ArchiveStat(r.Context(), resolver.NewContext())
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -658,17 +597,12 @@ func handleArchiveStat(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func extractSpace(c *Core, w http.ResponseWriter, r *http.Request) space.Space {
+func extractSpaceID(c *Core, w http.ResponseWriter, r *http.Request) (api.SpaceID, bool) {
 	v := mux.Vars(r)
 	id, ok := v["space"]
 	if !ok {
 		respondError(c, w, r, zqe.E(zqe.Invalid, "no space id in path"))
-		return nil
+		return "", false
 	}
-	s, err := c.spaces.Get(api.SpaceID(id))
-	if err != nil {
-		respondError(c, w, r, err)
-		return nil
-	}
-	return s
+	return api.SpaceID(id), true
 }

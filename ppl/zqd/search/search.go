@@ -4,7 +4,6 @@ package search
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -12,7 +11,7 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/ppl/zqd/space"
+	"github.com/brimsec/zq/ppl/zqd/storage"
 	"github.com/brimsec/zq/ppl/zqd/storage/archivestore"
 	"github.com/brimsec/zq/ppl/zqd/storage/filestore"
 	"github.com/brimsec/zq/zbuf"
@@ -40,18 +39,18 @@ type SearchOp struct {
 
 func NewSearchOp(req api.SearchRequest) (*SearchOp, error) {
 	if req.Span.Ts < 0 {
-		return nil, errors.New("time span must have non-negative timestamp")
+		return nil, zqe.ErrInvalid("time span must have non-negative timestamp")
 	}
 	if req.Span.Dur < 0 {
-		return nil, errors.New("time span must have non-negative duration")
+		return nil, zqe.ErrInvalid("time span must have non-negative duration")
 	}
 	// XXX zqd only supports backwards searches, remove once this has been
 	// fixed.
 	if req.Dir == 1 {
-		return nil, zqe.E(zqe.Invalid, "forward searches not yet supported")
+		return nil, zqe.ErrInvalid("forward searches not yet supported")
 	}
 	if req.Dir != -1 {
-		return nil, zqe.E(zqe.Invalid, "time direction must be 1 or -1")
+		return nil, zqe.ErrInvalid("time direction must be 1 or -1")
 	}
 	query, err := UnpackQuery(req)
 	if err != nil {
@@ -60,7 +59,7 @@ func NewSearchOp(req api.SearchRequest) (*SearchOp, error) {
 	return &SearchOp{query: query}, nil
 }
 
-func (s *SearchOp) Run(ctx context.Context, order zbuf.Order, spc space.Space, output Output) (err error) {
+func (s *SearchOp) Run(ctx context.Context, store storage.Storage, output Output) (err error) {
 	d := &searchdriver{
 		output:    output,
 		startTime: nano.Now(),
@@ -78,12 +77,12 @@ func (s *SearchOp) Run(ctx context.Context, order zbuf.Order, spc space.Space, o
 	defer statsTicker.Stop()
 	zctx := resolver.NewContext()
 
-	switch st := spc.Storage().(type) {
+	switch st := store.(type) {
 	case *archivestore.Storage:
 		return driver.MultiRun(ctx, d, s.query.Proc, zctx, st.MultiSource(), driver.MultiConfig{
 			Span:      s.query.Span,
 			StatsTick: statsTicker.C,
-			Order:     order,
+			Order:     zbuf.OrderDesc,
 		})
 	case *filestore.Storage:
 		rc, err := st.Open(ctx, zctx, s.query.Span)
