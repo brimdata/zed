@@ -22,11 +22,7 @@ const (
 	configFile = "config.json"
 )
 
-var (
-	ErrPcapOpsNotSupported = zqe.E(zqe.Invalid, "space does not support pcap operations")
-	ErrSpaceExists         = zqe.E(zqe.Exists, "space exists")
-	ErrSpaceNotExist       = zqe.E(zqe.NotFound, "space does not exist")
-)
+var ErrSpaceNotExist = zqe.E(zqe.NotFound, "space does not exist")
 
 type Space interface {
 	ID() api.SpaceID
