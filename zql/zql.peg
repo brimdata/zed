@@ -193,7 +193,7 @@ BooleanLiteral
   / "false"          { RETURN(MAP("op": "Literal", "type": "bool", "value": "false")) }
 
 NullLiteral
-  = "null"           { RETURN(MAP("op": "Literal", "type": "null")) }
+  = "null"           { RETURN(MAP("op": "Literal", "type": "null", "value": "")) }
 
 SequentialProcs
   = first:Proc rest:SequentialTail* {
@@ -226,26 +226,13 @@ ParallelTail
   = __ ";" __ ch:SequentialProcs { RETURN(MAP("op": "SequentialProc", "procs": ch)) }
 
 GroupByProc
-  = every:EveryDur? keys:GroupByKeys limit:LimitArg? {
-      VAR(p) = MAP("op": "GroupByProc", "keys": keys)
-      if ISNOTNULL(every) {
-        p["duration"] = every
-      }
-      if ISNOTNULL(limit) {
-        p["limit"] = limit
-      }
-      RETURN(p)
+  = every:EveryDur? keys:GroupByKeys limit:LimitArg {
+      RETURN(MAP("op": "GroupByProc", "keys": keys, "reducers": NULL, "duration": every, "limit": limit))
     }
   / every:EveryDur? reducers:Reducers keys:(_ GroupByKeys)? limit:LimitArg? {
-      VAR(p) = MAP("op": "GroupByProc", "reducers": reducers)
-      if ISNOTNULL(every) {
-        p["duration"] = every
-      }
+      VAR(p) = MAP("op": "GroupByProc", "keys": NULL, "reducers": reducers, "duration": every, "limit": limit)
       if ISNOTNULL(keys) {
         p["keys"] = ASSERT_ARRAY(keys)[1]
-      }
-      if ISNOTNULL(limit) {
-        p["limit"] = limit
       }
       RETURN(p)
     }
@@ -258,13 +245,14 @@ GroupByKeys
 
 LimitArg
   = _ "with" _ "-limit" _ limit:UInt { RETURN(limit) }
+  / "" { RETURN(0) }
 
 // A FlexAssignment is like an Assignment but it can optionally omit the lhs,
 // in which case the semantic pass will infer a name from the rhs, e.g., for
 // an expression like "count() by foo", the rhs is Field "foo" and the lhs is nil.
 FlexAssignment
   = Assignment
-  / expr:Expr { RETURN(MAP("op": "Assignment", "rhs": expr)) }
+  / expr:Expr { RETURN(MAP("op": "Assignment", "lhs": NULL, "rhs": expr)) }
 
 FlexAssignments
   = first:FlexAssignment rest:(__ "," __ expr:FlexAssignment { RETURN(expr) })* {
@@ -276,12 +264,12 @@ ReducerAssignment
       RETURN(MAP("op": "Assignment", "lhs": lval, "rhs": reducer))
     }
   / reducer:Reducer {
-      RETURN(MAP("op": "Assignment", "rhs": reducer))
+      RETURN(MAP("op": "Assignment", "lhs": NULL, "rhs": reducer))
     }
 
 Reducer
   = !("not"/"len") op:IdentifierName __ "(" __ expr:Expr?  __ ")" where:WhereClause? {
-      VAR(r) = MAP("op": "Reducer", "operator": op, "where":where)
+      VAR(r) = MAP("op": "Reducer", "operator": op, "expr": NULL, "where":where)
       if ISNOTNULL(expr) {
         r["expr"] = expr
       }
@@ -335,7 +323,7 @@ SortArg
 
 TopProc
   = "top"i limit:(_ n:UInt { RETURN(n)})? flush:(_ "-flush")? fields:(_ f:FieldExprs { RETURN(f) })? {
-      VAR(proc) = MAP("op": "TopProc")
+      VAR(proc) = MAP("op": "TopProc", "limit": 0, "fields": NULL, "flush": false)
       if ISNOTNULL(limit) {
         proc["limit"] = limit
       }
@@ -401,14 +389,14 @@ FuseProc
 
 JoinProc
   = "join"i _ leftKey:JoinKey __ "=" __ rightKey:JoinKey columns:(_ FlexAssignments)? {
-      VAR(proc) = MAP("op": "JoinProc", "left_key": leftKey, "right_key": rightKey)
+      VAR(proc) = MAP("op": "JoinProc", "left_key": leftKey, "right_key": rightKey, "clauses": NULL)
       if ISNOTNULL(columns) {
         proc["clauses"] = ASSERT_ARRAY(columns)[1]
       }
       RETURN(proc)
     }
   / "join"i _ key:JoinKey columns:(_ FlexAssignments)? {
-      VAR(proc) = MAP("op": "JoinProc", "left_key": key, "right_key": key)
+      VAR(proc) = MAP("op": "JoinProc", "left_key": key, "right_key": key, "clauses": NULL)
       if ISNOTNULL(columns) {
         proc["clauses"] = ASSERT_ARRAY(columns)[1]
       }
@@ -450,7 +438,7 @@ Exprs
     }
 
 Assignment
-  = lhs:Lval __ "=" __ rhs:Expr { RETURN(MAP("lhs": lhs, "rhs": rhs)) }
+  = lhs:Lval __ "=" __ rhs:Expr { RETURN(MAP("op": "Assignment", "lhs": lhs, "rhs": rhs)) }
 
 Expr = ConditionalExpr
 
