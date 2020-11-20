@@ -23,155 +23,155 @@ The results below reflect performance as of `zq` release `v0.23.0`.
 
 |**<br>Tool**|**<br>Arguments**|**Input<br>Format**|**Output<br>Format**|**<br>Real**|**<br>User**|**<br>Sys**|
 |:----------:|:---------------:|:-----------------:|:------------------:|-----------:|-----------:|----------:|
-|`zq`|`*`|zeek|zeek|14.08|31.21|0.69|
-|`zq`|`*`|zeek|zng|8.84|13.32|0.47|
-|`zq`|`*`|zeek|zng-uncompressed|8.95|12.82|0.50|
-|`zq`|`*`|zeek|tzng|10.15|23.43|0.31|
-|`zq`|`*`|zeek|ndjson|53.83|76.23|1.17|
-|`zq`|`*`|zng|zeek|13.18|19.12|0.46|
-|`zq`|`*`|zng|zng|3.42|4.60|0.24|
-|`zq`|`*`|zng|zng-uncompressed|3.68|4.36|0.34|
-|`zq`|`*`|zng|tzng|9.38|12.91|0.43|
-|`zq`|`*`|zng|ndjson|52.30|61.79|0.89|
-|`zq`|`*`|zng-uncompressed|zeek|12.83|18.73|0.58|
-|`zq`|`*`|zng-uncompressed|zng|3.48|4.57|0.29|
-|`zq`|`*`|zng-uncompressed|zng-uncompressed|3.69|4.41|0.30|
-|`zq`|`*`|zng-uncompressed|tzng|9.14|12.66|0.43|
-|`zq`|`*`|zng-uncompressed|ndjson|51.58|61.27|0.95|
-|`zq`|`*`|tzng|zeek|12.90|26.30|0.51|
-|`zq`|`*`|tzng|zng|7.69|9.49|0.54|
-|`zq`|`*`|tzng|zng-uncompressed|7.63|8.90|0.43|
-|`zq`|`*`|tzng|tzng|9.04|18.91|0.25|
-|`zq`|`*`|tzng|ndjson|52.63|70.91|1.11|
-|`zq`|`*`|ndjson|zeek|68.05|103.58|1.82|
-|`zq`|`*`|ndjson|zng|64.59|83.04|1.54|
-|`zq`|`*`|ndjson|zng-uncompressed|65.58|83.43|1.52|
-|`zq`|`*`|ndjson|tzng|65.92|95.82|1.56|
-|`zq`|`*`|ndjson|ndjson|71.29|148.68|2.24|
-|`zeek-cut`||zeek|zeek-cut|1.36|1.23|0.10|
-|`jq`|`-c "."`|ndjson|ndjson|37.98|4.60|0.88|
+|`zq`|`*`|zeek|zeek|16.49|44.28|1.13|
+|`zq`|`*`|zeek|zng|11.50|25.66|0.95|
+|`zq`|`*`|zeek|zng-uncompressed|11.61|25.48|0.85|
+|`zq`|`*`|zeek|tzng|13.24|37.55|0.85|
+|`zq`|`*`|zeek|ndjson|53.80|87.31|1.56|
+|`zq`|`*`|zng|zeek|15.48|31.25|0.77|
+|`zq`|`*`|zng|zng|10.27|14.07|0.64|
+|`zq`|`*`|zng|zng-uncompressed|10.36|13.67|0.59|
+|`zq`|`*`|zng|tzng|11.67|23.92|0.55|
+|`zq`|`*`|zng|ndjson|52.16|72.71|1.13|
+|`zq`|`*`|zng-uncompressed|zeek|23.85|51.58|3.73|
+|`zq`|`*`|zng-uncompressed|zng|21.56|32.32|3.23|
+|`zq`|`*`|zng-uncompressed|zng-uncompressed|21.44|31.43|3.25|
+|`zq`|`*`|zng-uncompressed|tzng|22.00|42.45|3.34|
+|`zq`|`*`|zng-uncompressed|ndjson|55.36|94.82|4.03|
+|`zq`|`*`|tzng|zeek|15.96|40.65|0.83|
+|`zq`|`*`|tzng|zng|10.58|21.25|0.59|
+|`zq`|`*`|tzng|zng-uncompressed|10.75|21.00|0.67|
+|`zq`|`*`|tzng|tzng|12.15|32.39|0.70|
+|`zq`|`*`|tzng|ndjson|53.49|83.33|1.46|
+|`zq`|`*`|ndjson|zeek|57.06|145.47|2.15|
+|`zq`|`*`|ndjson|zng|54.38|117.43|1.78|
+|`zq`|`*`|ndjson|zng-uncompressed|54.75|117.23|1.88|
+|`zq`|`*`|ndjson|tzng|55.19|131.88|1.96|
+|`zq`|`*`|ndjson|ndjson|65.05|182.80|2.41|
+|`zeek-cut`||zeek|zeek-cut|1.35|1.39|0.18|
+|`jq`|`-c "."`|ndjson|ndjson|38.19|41.81|2.05|
 
 ### Extract the field `ts`
 
 |**<br>Tool**|**<br>Arguments**|**Input<br>Format**|**Output<br>Format**|**<br>Real**|**<br>User**|**<br>Sys**|
 |:----------:|:---------------:|:-----------------:|:------------------:|-----------:|-----------:|----------:|
-|`zq`|`cut ts`|zeek|zeek|9.58|15.01|0.58|
-|`zq`|`cut ts`|zeek|zng|9.77|13.86|0.53|
-|`zq`|`cut ts`|zeek|zng-uncompressed|9.35|13.13|0.55|
-|`zq`|`cut ts`|zeek|tzng|9.28|14.39|0.49|
-|`zq`|`cut ts`|zeek|ndjson|10.25|19.71|0.59|
-|`zq`|`cut ts`|zng|zeek|4.02|6.09|0.28|
-|`zq`|`cut ts`|zng|zng|3.92|4.67|0.36|
-|`zq`|`cut ts`|zng|zng-uncompressed|4.02|4.72|0.37|
-|`zq`|`cut ts`|zng|tzng|3.90|5.68|0.31|
-|`zq`|`cut ts`|zng|ndjson|5.51|9.26|0.31|
-|`zq`|`cut ts`|zng-uncompressed|zeek|3.87|5.86|0.28|
-|`zq`|`cut ts`|zng-uncompressed|zng|3.82|4.46|0.40|
-|`zq`|`cut ts`|zng-uncompressed|zng-uncompressed|3.81|4.41|0.33|
-|`zq`|`cut ts`|zng-uncompressed|tzng|3.77|5.47|0.28|
-|`zq`|`cut ts`|zng-uncompressed|ndjson|5.50|9.19|0.33|
-|`zq`|`cut ts`|tzng|zeek|8.33|11.31|0.46|
-|`zq`|`cut ts`|tzng|zng|8.11|9.50|0.43|
-|`zq`|`cut ts`|tzng|zng-uncompressed|7.88|9.16|0.41|
-|`zq`|`cut ts`|tzng|tzng|8.20|11.21|0.40|
-|`zq`|`cut ts`|tzng|ndjson|8.24|14.53|0.43|
-|`zq`|`cut ts`|ndjson|zeek|64.87|83.81|1.43|
-|`zq`|`cut ts`|ndjson|zng|64.74|82.25|1.32|
-|`zq`|`cut ts`|ndjson|zng-uncompressed|64.62|81.89|1.48|
-|`zq`|`cut ts`|ndjson|tzng|65.87|84.95|1.46|
-|`zq`|`cut ts`|ndjson|ndjson|66.58|89.70|1.57|
-|`zeek-cut`|`ts`|zeek|zeek-cut|1.32|1.27|0.05|
-|`jq`|`-c ". \| { ts }"`|ndjson|ndjson|21.35|3.48|0.56|
+|`zq`|`cut ts`|zeek|zeek|11.81|27.20|0.78|
+|`zq`|`cut ts`|zeek|zng|12.00|26.29|0.87|
+|`zq`|`cut ts`|zeek|zng-uncompressed|11.43|24.74|0.80|
+|`zq`|`cut ts`|zeek|tzng|11.77|26.65|0.81|
+|`zq`|`cut ts`|zeek|ndjson|12.53|32.39|0.89|
+|`zq`|`cut ts`|zng|zeek|10.48|15.23|0.54|
+|`zq`|`cut ts`|zng|zng|10.60|13.87|0.50|
+|`zq`|`cut ts`|zng|zng-uncompressed|10.30|13.43|0.58|
+|`zq`|`cut ts`|zng|tzng|10.20|14.58|0.46|
+|`zq`|`cut ts`|zng|ndjson|10.83|19.18|0.68|
+|`zq`|`cut ts`|zng-uncompressed|zeek|21.33|32.41|3.46|
+|`zq`|`cut ts`|zng-uncompressed|zng|21.13|30.68|3.31|
+|`zq`|`cut ts`|zng-uncompressed|zng-uncompressed|21.17|30.41|3.55|
+|`zq`|`cut ts`|zng-uncompressed|tzng|21.26|32.22|3.19|
+|`zq`|`cut ts`|zng-uncompressed|ndjson|21.68|36.82|3.39|
+|`zq`|`cut ts`|tzng|zeek|10.77|22.32|0.72|
+|`zq`|`cut ts`|tzng|zng|10.52|20.18|0.67|
+|`zq`|`cut ts`|tzng|zng-uncompressed|10.58|20.10|0.72|
+|`zq`|`cut ts`|tzng|tzng|10.60|21.55|0.65|
+|`zq`|`cut ts`|tzng|ndjson|11.44|27.38|0.66|
+|`zq`|`cut ts`|ndjson|zeek|53.96|117.15|2.00|
+|`zq`|`cut ts`|ndjson|zng|53.69|115.38|1.81|
+|`zq`|`cut ts`|ndjson|zng-uncompressed|53.53|114.77|1.84|
+|`zq`|`cut ts`|ndjson|tzng|53.60|116.40|1.75|
+|`zq`|`cut ts`|ndjson|ndjson|53.90|121.50|1.90|
+|`zeek-cut`|`ts`|zeek|zeek-cut|1.29|1.39|0.14|
+|`jq`|`-c ". \| { ts }"`|ndjson|ndjson|20.94|23.66|1.31|
 
 ### Count all events
 
 |**<br>Tool**|**<br>Arguments**|**Input<br>Format**|**Output<br>Format**|**<br>Real**|**<br>User**|**<br>Sys**|
 |:----------:|:---------------:|:-----------------:|:------------------:|-----------:|-----------:|----------:|
-|`zq`|`count()`|zeek|zeek|8.64|11.64|0.22|
-|`zq`|`count()`|zeek|zng|8.58|11.58|0.20|
-|`zq`|`count()`|zeek|zng-uncompressed|8.56|11.56|0.22|
-|`zq`|`count()`|zeek|tzng|8.49|11.48|0.18|
-|`zq`|`count()`|zeek|ndjson|8.54|11.52|0.19|
-|`zq`|`count()`|zng|zeek|3.26|3.40|0.06|
-|`zq`|`count()`|zng|zng|3.26|3.40|0.07|
-|`zq`|`count()`|zng|zng-uncompressed|3.29|3.43|0.06|
-|`zq`|`count()`|zng|tzng|3.37|3.54|0.05|
-|`zq`|`count()`|zng|ndjson|3.45|3.61|0.06|
-|`zq`|`count()`|zng-uncompressed|zeek|3.37|3.45|0.07|
-|`zq`|`count()`|zng-uncompressed|zng|3.34|3.41|0.08|
-|`zq`|`count()`|zng-uncompressed|zng-uncompressed|3.25|3.33|0.06|
-|`zq`|`count()`|zng-uncompressed|tzng|3.23|3.31|0.07|
-|`zq`|`count()`|zng-uncompressed|ndjson|3.21|3.29|0.06|
-|`zq`|`count()`|tzng|zeek|7.37|7.93|0.07|
-|`zq`|`count()`|tzng|zng|7.38|7.93|0.09|
-|`zq`|`count()`|tzng|zng-uncompressed|7.44|8.01|0.07|
-|`zq`|`count()`|tzng|tzng|7.45|7.98|0.11|
-|`zq`|`count()`|tzng|ndjson|7.44|8.02|0.07|
-|`zq`|`count()`|ndjson|zeek|65.86|83.06|0.98|
-|`zq`|`count()`|ndjson|zng|65.25|82.11|1.08|
-|`zq`|`count()`|ndjson|zng-uncompressed|65.74|82.84|1.12|
-|`zq`|`count()`|ndjson|tzng|64.59|81.43|0.99|
-|`zq`|`count()`|ndjson|ndjson|65.29|82.26|1.05|
-|`jq`|`-c -s ". \| length"`|ndjson|ndjson|21.07|3.62|0.65|
+|`zq`|`count()`|zeek|zeek|11.07|23.56|0.56|
+|`zq`|`count()`|zeek|zng|10.95|23.34|0.58|
+|`zq`|`count()`|zeek|zng-uncompressed|11.40|24.30|0.56|
+|`zq`|`count()`|zeek|tzng|11.15|23.60|0.56|
+|`zq`|`count()`|zeek|ndjson|10.99|23.34|0.59|
+|`zq`|`count()`|zng|zeek|9.75|12.10|0.34|
+|`zq`|`count()`|zng|zng|9.97|12.54|0.30|
+|`zq`|`count()`|zng|zng-uncompressed|10.04|12.58|0.35|
+|`zq`|`count()`|zng|tzng|9.94|12.33|0.32|
+|`zq`|`count()`|zng|ndjson|9.88|12.35|0.26|
+|`zq`|`count()`|zng-uncompressed|zeek|20.78|29.95|3.19|
+|`zq`|`count()`|zng-uncompressed|zng|20.77|29.98|3.13|
+|`zq`|`count()`|zng-uncompressed|zng-uncompressed|20.59|29.66|3.10|
+|`zq`|`count()`|zng-uncompressed|tzng|20.48|29.25|3.48|
+|`zq`|`count()`|zng-uncompressed|ndjson|20.69|29.50|3.53|
+|`zq`|`count()`|tzng|zeek|9.92|18.65|0.35|
+|`zq`|`count()`|tzng|zng|9.92|18.49|0.41|
+|`zq`|`count()`|tzng|zng-uncompressed|9.81|18.36|0.41|
+|`zq`|`count()`|tzng|tzng|9.81|18.47|0.37|
+|`zq`|`count()`|tzng|ndjson|9.77|18.28|0.40|
+|`zq`|`count()`|ndjson|zeek|52.91|112.08|1.58|
+|`zq`|`count()`|ndjson|zng|53.06|112.33|1.47|
+|`zq`|`count()`|ndjson|zng-uncompressed|53.65|113.55|1.53|
+|`zq`|`count()`|ndjson|tzng|53.44|113.01|1.45|
+|`zq`|`count()`|ndjson|ndjson|54.24|114.84|1.49|
+|`jq`|`-c -s ". \| length"`|ndjson|ndjson|23.26|24.03|3.26|
 
 ### Count all events, grouped by the field `id.orig_h`
 
 |**<br>Tool**|**<br>Arguments**|**Input<br>Format**|**Output<br>Format**|**<br>Real**|**<br>User**|**<br>Sys**|
 |:----------:|:---------------:|:-----------------:|:------------------:|-----------:|-----------:|----------:|
-|`zq`|`count() by id.orig_h`|zeek|zeek|9.24|12.37|0.29|
-|`zq`|`count() by id.orig_h`|zeek|zng|9.28|12.58|0.15|
-|`zq`|`count() by id.orig_h`|zeek|zng-uncompressed|9.27|12.49|0.24|
-|`zq`|`count() by id.orig_h`|zeek|tzng|9.21|12.36|0.26|
-|`zq`|`count() by id.orig_h`|zeek|ndjson|9.14|12.27|0.26|
-|`zq`|`count() by id.orig_h`|zng|zeek|3.77|3.94|0.07|
-|`zq`|`count() by id.orig_h`|zng|zng|3.78|3.96|0.07|
-|`zq`|`count() by id.orig_h`|zng|zng-uncompressed|3.89|4.10|0.05|
-|`zq`|`count() by id.orig_h`|zng|tzng|3.90|4.09|0.07|
-|`zq`|`count() by id.orig_h`|zng|ndjson|3.89|4.09|0.06|
-|`zq`|`count() by id.orig_h`|zng-uncompressed|zeek|3.78|3.91|0.07|
-|`zq`|`count() by id.orig_h`|zng-uncompressed|zng|3.80|3.93|0.07|
-|`zq`|`count() by id.orig_h`|zng-uncompressed|zng-uncompressed|3.86|3.98|0.08|
-|`zq`|`count() by id.orig_h`|zng-uncompressed|tzng|3.91|4.05|0.06|
-|`zq`|`count() by id.orig_h`|zng-uncompressed|ndjson|3.87|4.03|0.04|
-|`zq`|`count() by id.orig_h`|tzng|zeek|8.26|8.96|0.07|
-|`zq`|`count() by id.orig_h`|tzng|zng|7.97|8.60|0.10|
-|`zq`|`count() by id.orig_h`|tzng|zng-uncompressed|7.98|8.60|0.10|
-|`zq`|`count() by id.orig_h`|tzng|tzng|7.97|8.64|0.05|
-|`zq`|`count() by id.orig_h`|tzng|ndjson|7.93|8.52|0.12|
-|`zq`|`count() by id.orig_h`|ndjson|zeek|66.41|84.39|0.98|
-|`zq`|`count() by id.orig_h`|ndjson|zng|65.58|83.24|0.96|
-|`zq`|`count() by id.orig_h`|ndjson|zng-uncompressed|66.44|84.34|1.01|
-|`zq`|`count() by id.orig_h`|ndjson|tzng|65.21|82.75|0.97|
-|`zq`|`count() by id.orig_h`|ndjson|ndjson|66.53|84.55|0.93|
-|`jq`|`-c -s "group_by(."id.orig_h")[] \| length as $l \| .[0] \| .count = $l \| {count,"id.orig_h"}"`|ndjson|ndjson|19.96|3.40|0.68|
+|`zq`|`count() by id.orig_h`|zeek|zeek|11.64|24.74|0.57|
+|`zq`|`count() by id.orig_h`|zeek|zng|11.61|24.61|0.62|
+|`zq`|`count() by id.orig_h`|zeek|zng-uncompressed|11.48|24.54|0.58|
+|`zq`|`count() by id.orig_h`|zeek|tzng|11.59|24.58|0.73|
+|`zq`|`count() by id.orig_h`|zeek|ndjson|11.63|24.83|0.58|
+|`zq`|`count() by id.orig_h`|zng|zeek|10.63|13.23|0.30|
+|`zq`|`count() by id.orig_h`|zng|zng|10.25|12.79|0.23|
+|`zq`|`count() by id.orig_h`|zng|zng-uncompressed|10.60|13.30|0.25|
+|`zq`|`count() by id.orig_h`|zng|tzng|10.89|13.61|0.21|
+|`zq`|`count() by id.orig_h`|zng|ndjson|10.70|13.28|0.33|
+|`zq`|`count() by id.orig_h`|zng-uncompressed|zeek|22.09|31.96|3.40|
+|`zq`|`count() by id.orig_h`|zng-uncompressed|zng|22.37|32.44|3.44|
+|`zq`|`count() by id.orig_h`|zng-uncompressed|zng-uncompressed|22.05|31.93|3.31|
+|`zq`|`count() by id.orig_h`|zng-uncompressed|tzng|22.07|31.80|3.54|
+|`zq`|`count() by id.orig_h`|zng-uncompressed|ndjson|22.34|32.49|3.30|
+|`zq`|`count() by id.orig_h`|tzng|zeek|10.67|19.87|0.41|
+|`zq`|`count() by id.orig_h`|tzng|zng|10.64|19.77|0.41|
+|`zq`|`count() by id.orig_h`|tzng|zng-uncompressed|10.44|19.41|0.43|
+|`zq`|`count() by id.orig_h`|tzng|tzng|10.53|19.50|0.41|
+|`zq`|`count() by id.orig_h`|tzng|ndjson|10.60|19.73|0.42|
+|`zq`|`count() by id.orig_h`|ndjson|zeek|55.83|119.51|1.49|
+|`zq`|`count() by id.orig_h`|ndjson|zng|53.28|113.99|1.46|
+|`zq`|`count() by id.orig_h`|ndjson|zng-uncompressed|53.44|114.38|1.54|
+|`zq`|`count() by id.orig_h`|ndjson|tzng|53.45|114.44|1.47|
+|`zq`|`count() by id.orig_h`|ndjson|ndjson|53.52|114.33|1.68|
+|`jq`|`-c -s "group_by(."id.orig_h")[] \| length as $l \| .[0] \| .count = $l \| {count,"id.orig_h"}"`|ndjson|ndjson|34.01|34.74|3.35|
 
 ### Output all events with the field `id.resp_h` set to `52.85.83.116`
 
 |**<br>Tool**|**<br>Arguments**|**Input<br>Format**|**Output<br>Format**|**<br>Real**|**<br>User**|**<br>Sys**|
 |:----------:|:---------------:|:-----------------:|:------------------:|-----------:|-----------:|----------:|
-|`zq`|`id.resp_h=52.85.83.116`|zeek|zeek|8.88|11.91|0.20|
-|`zq`|`id.resp_h=52.85.83.116`|zeek|zng|8.85|11.82|0.26|
-|`zq`|`id.resp_h=52.85.83.116`|zeek|zng-uncompressed|8.97|12.05|0.18|
-|`zq`|`id.resp_h=52.85.83.116`|zeek|tzng|8.99|11.99|0.26|
-|`zq`|`id.resp_h=52.85.83.116`|zeek|ndjson|8.97|12.05|0.18|
-|`zq`|`id.resp_h=52.85.83.116`|zng|zeek|3.53|3.61|0.06|
-|`zq`|`id.resp_h=52.85.83.116`|zng|zng|3.53|3.63|0.04|
-|`zq`|`id.resp_h=52.85.83.116`|zng|zng-uncompressed|3.54|3.62|0.07|
-|`zq`|`id.resp_h=52.85.83.116`|zng|tzng|3.43|3.51|0.06|
-|`zq`|`id.resp_h=52.85.83.116`|zng|ndjson|3.40|3.50|0.04|
-|`zq`|`id.resp_h=52.85.83.116`|zng-uncompressed|zeek|3.31|3.29|0.08|
-|`zq`|`id.resp_h=52.85.83.116`|zng-uncompressed|zng|3.29|3.31|0.05|
-|`zq`|`id.resp_h=52.85.83.116`|zng-uncompressed|zng-uncompressed|3.30|3.32|0.05|
-|`zq`|`id.resp_h=52.85.83.116`|zng-uncompressed|tzng|3.30|3.33|0.05|
-|`zq`|`id.resp_h=52.85.83.116`|zng-uncompressed|ndjson|3.28|3.30|0.05|
-|`zq`|`id.resp_h=52.85.83.116`|tzng|zeek|7.60|8.18|0.06|
-|`zq`|`id.resp_h=52.85.83.116`|tzng|zng|7.66|8.23|0.07|
-|`zq`|`id.resp_h=52.85.83.116`|tzng|zng-uncompressed|7.64|8.22|0.05|
-|`zq`|`id.resp_h=52.85.83.116`|tzng|tzng|7.61|8.15|0.09|
-|`zq`|`id.resp_h=52.85.83.116`|tzng|ndjson|7.67|8.23|0.07|
-|`zq`|`id.resp_h=52.85.83.116`|ndjson|zeek|65.43|82.31|1.05|
-|`zq`|`id.resp_h=52.85.83.116`|ndjson|zng|66.00|83.14|0.99|
-|`zq`|`id.resp_h=52.85.83.116`|ndjson|zng-uncompressed|64.73|81.35|1.14|
-|`zq`|`id.resp_h=52.85.83.116`|ndjson|tzng|65.53|82.52|0.99|
-|`zq`|`id.resp_h=52.85.83.116`|ndjson|ndjson|64.82|81.59|1.00|
-|`jq`|`-c ". \| select(.["id.resp_h"]=="52.85.83.116")"`|ndjson|ndjson|19.32|3.61|0.44|
+|`zq`|`id.resp_h=52.85.83.116`|zeek|zeek|11.00|23.33|0.57|
+|`zq`|`id.resp_h=52.85.83.116`|zeek|zng|11.02|23.44|0.52|
+|`zq`|`id.resp_h=52.85.83.116`|zeek|zng-uncompressed|11.10|23.50|0.56|
+|`zq`|`id.resp_h=52.85.83.116`|zeek|tzng|11.19|23.64|0.51|
+|`zq`|`id.resp_h=52.85.83.116`|zeek|ndjson|11.00|23.36|0.54|
+|`zq`|`id.resp_h=52.85.83.116`|zng|zeek|9.94|12.25|0.35|
+|`zq`|`id.resp_h=52.85.83.116`|zng|zng|9.92|12.33|0.23|
+|`zq`|`id.resp_h=52.85.83.116`|zng|zng-uncompressed|10.20|12.55|0.33|
+|`zq`|`id.resp_h=52.85.83.116`|zng|tzng|9.97|12.28|0.32|
+|`zq`|`id.resp_h=52.85.83.116`|zng|ndjson|10.02|12.45|0.25|
+|`zq`|`id.resp_h=52.85.83.116`|zng-uncompressed|zeek|20.58|29.50|3.18|
+|`zq`|`id.resp_h=52.85.83.116`|zng-uncompressed|zng|20.71|29.53|3.31|
+|`zq`|`id.resp_h=52.85.83.116`|zng-uncompressed|zng-uncompressed|20.66|29.45|3.35|
+|`zq`|`id.resp_h=52.85.83.116`|zng-uncompressed|tzng|20.48|29.29|3.25|
+|`zq`|`id.resp_h=52.85.83.116`|zng-uncompressed|ndjson|20.72|29.72|3.19|
+|`zq`|`id.resp_h=52.85.83.116`|tzng|zeek|10.08|18.79|0.42|
+|`zq`|`id.resp_h=52.85.83.116`|tzng|zng|9.79|18.33|0.36|
+|`zq`|`id.resp_h=52.85.83.116`|tzng|zng-uncompressed|9.85|18.39|0.37|
+|`zq`|`id.resp_h=52.85.83.116`|tzng|tzng|10.12|18.94|0.31|
+|`zq`|`id.resp_h=52.85.83.116`|tzng|ndjson|9.79|18.39|0.32|
+|`zq`|`id.resp_h=52.85.83.116`|ndjson|zeek|52.75|111.75|1.44|
+|`zq`|`id.resp_h=52.85.83.116`|ndjson|zng|53.49|113.23|1.52|
+|`zq`|`id.resp_h=52.85.83.116`|ndjson|zng-uncompressed|53.77|113.99|1.45|
+|`zq`|`id.resp_h=52.85.83.116`|ndjson|tzng|54.43|115.00|1.68|
+|`zq`|`id.resp_h=52.85.83.116`|ndjson|ndjson|55.38|117.00|1.73|
+|`jq`|`-c ". \| select(.["id.resp_h"]=="52.85.83.116")"`|ndjson|ndjson|19.22|21.85|1.44|
