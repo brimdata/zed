@@ -198,10 +198,10 @@ type info struct {
 func (s *Storage) readInfoFile() error {
 	var inf info
 	if err := fs.UnmarshalJSONFile(s.join(infoFile), &inf); err != nil {
-		if os.IsNotExist(err) {
-			return nil
+		if !os.IsNotExist(err) {
+			return err
 		}
-		return err
+		inf.AlphaMigrated = true
 	}
 	s.span = nano.NewSpanTs(inf.MinTime, inf.MaxTime)
 	s.alphaMigrated = inf.AlphaMigrated
