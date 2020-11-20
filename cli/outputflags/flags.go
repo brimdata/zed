@@ -34,6 +34,8 @@ func (f *Flags) setFlags(fs *flag.FlagSet) {
 	fs.IntVar(&f.Zng.StreamRecordsMax, "b", 0, "limit for number of records in each ZNG stream (0 for no limit)")
 	fs.IntVar(&f.Zng.LZ4BlockSize, "znglz4blocksize", zngio.DefaultLZ4BlockSize,
 		"LZ4 block size in bytes for ZNG compression (nonpositive to disable)")
+	fs.IntVar(&f.ZSON.Pretty, "pretty", 4,
+		"tab size to pretty print zson output (0 for newline-delimited zson")
 	f.Zst.ColumnThresh = zstio.DefaultColumnThresh
 	fs.Var(&f.Zst.ColumnThresh, "coltresh", "minimum frame size (MiB) used for zst columns")
 	f.Zst.SkewThresh = zstio.DefaultSkewThresh
@@ -48,7 +50,7 @@ func (f *Flags) setFlags(fs *flag.FlagSet) {
 
 func (f *Flags) SetFlags(fs *flag.FlagSet) {
 	f.setFlags(fs)
-	fs.StringVar(&f.Format, "f", "zng", "format for output data [zng,zst,ndjson,table,text,csv,zeek,zjson,tzng]")
+	fs.StringVar(&f.Format, "f", "zng", "format for output data [zng,zst,ndjson,table,text,csv,zeek,zjson,zson,tzng]")
 	fs.BoolVar(&f.textShortcut, "t", false, "use format tzng independent of -f option")
 }
 
