@@ -11,6 +11,7 @@ import (
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
+	"github.com/brimsec/zq/ppl/zqd/recruiter"
 	"github.com/brimsec/zq/ppl/zqd/space"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
@@ -41,12 +42,13 @@ type Config struct {
 }
 
 type Core struct {
-	logger    *zap.Logger
-	registry  *prometheus.Registry
-	root      iosrc.URI
-	router    *mux.Router
-	spaces    *space.Manager
-	taskCount int64
+	logger     *zap.Logger
+	registry   *prometheus.Registry
+	root       iosrc.URI
+	router     *mux.Router
+	spaces     *space.Manager
+	taskCount  int64
+	workerPool *recruiter.WorkerPool
 
 	suricata pcapanalyzer.Launcher
 	zeek     pcapanalyzer.Launcher
@@ -107,6 +109,9 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 		c.addAPIServerRoutes()
 	case "worker":
 		c.addWorkerRoutes()
+	case "recruiter":
+		c.workerPool = recruiter.NewWorkerPool()
+		c.addRecruiterRoutes()
 	default:
 		return nil, fmt.Errorf("unknown personality %s", conf.Personality)
 	}
@@ -134,6 +139,12 @@ func (c *Core) addAPIServerRoutes() {
 
 func (c *Core) addWorkerRoutes() {
 	c.handle("/worker", handleWorker).Methods("POST")
+}
+
+func (c *Core) addRecruiterRoutes() {
+	c.handle("/register", handleRegister).Methods("POST")
+	c.handle("/deregister", handleDeregister).Methods("POST")
+	c.handle("/recruit", handleRecruit).Methods("POST")
 }
 
 func (c *Core) handle(path string, f func(*Core, http.ResponseWriter, *http.Request)) *mux.Route {

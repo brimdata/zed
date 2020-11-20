@@ -81,7 +81,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.devMode, "dev", false, "run in development mode")
 	f.StringVar(&c.listenAddr, "l", ":9867", "[addr]:port to listen on")
 	f.Var(&c.logLevel, "loglevel", "logging level")
-	f.StringVar(&c.conf.Personality, "personality", "all", "server personality (all, apiserver, or worker)")
+	f.StringVar(&c.conf.Personality, "personality", "all", "server personality (all, apiserver, worker, or recruiter)")
 	f.StringVar(&c.portFile, "portfile", "", "write listen port to file")
 	f.BoolVar(&c.pprof, "pprof", false, "add pprof routes to API")
 	f.StringVar(&c.suricataRunnerPath, "suricatarunner", "", "command to generate Suricata eve.json from pcap data")

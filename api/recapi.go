@@ -1,11 +1,19 @@
 package api
 
-type RegisterRequest struct {
+type Worker struct {
 	Addr     string `json:"addr"`
 	NodeName string `json:"node"`
 }
 
-type UnregisterRequest struct {
+type RegisterRequest struct {
+	Worker
+}
+
+type StatusResponse struct {
+	Status string `json:"status"`
+}
+
+type DeregisterRequest struct {
 	Addr string `json:"addr"`
 }
 
@@ -14,5 +22,5 @@ type RecruitRequest struct {
 }
 
 type RecruitResponse struct {
-	Workers []string `json:"workers"`
+	Workers []Worker `json:"workers"`
 }

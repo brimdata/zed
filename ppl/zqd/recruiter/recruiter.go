@@ -8,8 +8,9 @@ import (
 	"time"
 )
 
-// WorkerPool is the internal state of the recruiter system
-// The pools are exported only for use in unit tests
+// WorkerPool holds the internal state of the recruiter system.
+// The methods for WorkerPool provide the core algorithms for a
+// load-balancing API. Exported methods are thread safe.
 type WorkerPool struct {
 	mu           sync.Mutex                // one lock for all three maps
 	freePool     map[string]WorkerDetail   // Map of all free workers
@@ -52,7 +53,7 @@ func (pool *WorkerPool) Register(addr string, nodename string) error {
 	return nil
 }
 
-// removeFromNodePool is internal and the calling function must be holding the mutex
+// removeFromNodePool is internal and the calling function must hold the lock
 func (pool *WorkerPool) removeFromNodePool(wd WorkerDetail) {
 	s := pool.nodePool[wd.NodeName]
 	if len(s) == 1 {
