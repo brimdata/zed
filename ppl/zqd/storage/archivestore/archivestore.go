@@ -115,8 +115,7 @@ func (w *Writer) Close() error {
 // store. When the Writer has been closed a task will be started to compact
 // the store.
 func (s *Storage) NewWriter(ctx context.Context) *Writer {
-	writer := archive.NewWriter(ctx, s.ark)
-	return &Writer{writer, s.notifier}
+	return &Writer{archive.NewWriter(ctx, s.ark), s.notifier}
 }
 
 func (s *Storage) IndexCreate(ctx context.Context, req api.IndexPostRequest) error {
