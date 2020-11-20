@@ -17,7 +17,7 @@ As there are many results to sift through, here's a few key summary take-aways:
 
 # Results
 
-The results below reflect performance as of `zq` release `v0.23.0`.
+The results below reflect performance as of `zq` commit `e01700de`.
 
 ### Output all events unmodified
 
