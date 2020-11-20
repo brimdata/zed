@@ -1,5 +1,9 @@
 package zqd
 
+// Useful CLI tests for recruiter API:
+// zqd listen -l=localhost:8020 -portfile=portfile -personality=recruiter
+// curl -v --header "Content-Type: application/json" -request POST --data '{"N":2}' http://localhost:8020/recruit
+
 import (
 	"net/http"
 

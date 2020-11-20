@@ -34,6 +34,10 @@ func NewWorkerPool() *WorkerPool {
 	}
 }
 
+// Register adds workers to both the freePool and to the nodePool
+// In the nodePool, they are added to the end of the slice,
+// and when they are recruited they are removed from the start of the slice.
+// So the []WorkerDetail slice for each node functions as a FIFO queue.
 func (pool *WorkerPool) Register(addr string, nodename string) error {
 	if _, _, err := net.SplitHostPort(addr); err != nil {
 		return fmt.Errorf("invalid address for Register: %w", err)
@@ -96,7 +100,8 @@ func (pool *WorkerPool) Unreserve(addr string) {
 	delete(pool.reservedPool, addr)
 }
 
-// Recruit attempts to spread the workers across nodes.
+// Recruit attempts to return a set of workers distributed evenly
+// across the maximum number of nodes.
 func (pool *WorkerPool) Recruit(n int) ([]WorkerDetail, error) {
 	if n < 1 {
 		return nil, fmt.Errorf("recruit must request one or more workers: n=%d", n)
@@ -109,8 +114,8 @@ func (pool *WorkerPool) Recruit(n int) ([]WorkerDetail, error) {
 	}
 	// Make a single pass through the nodes in the cluster that have
 	// available workers, and try to pick evenly from each node. If that pass
-	// fails to recruit enough workers, then we start to pick from the freePool, regardless
-	// of node, until we recruit enough workers, or all available workers.
+	// fails to recruit enough workers, then we start to pick from the freePool,
+	// regardless of node, until we recruit enough workers, or all available workers.
 	var recruits []WorkerDetail
 	if !pool.SkipSpread && n > 1 {
 		var keys []string
