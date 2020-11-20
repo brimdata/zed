@@ -12,7 +12,6 @@ import (
 	"github.com/brimsec/zq/pkg/ctxio"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/ppl/archive"
 	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/ppl/zqd/pcapstorage"
 	"github.com/brimsec/zq/ppl/zqd/storage/archivestore"
@@ -30,7 +29,7 @@ type archivePcapOp struct {
 	pcapuri        iosrc.URI
 	pcapstore      *pcapstorage.Store
 	store          *archivestore.Storage
-	writer         *archive.Writer
+	writer         *archivestore.Writer
 	zeek, suricata pcapanalyzer.Launcher
 	zctx           *resolver.Context
 

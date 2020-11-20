@@ -16,6 +16,7 @@ import (
 
 type Manager struct {
 	alphaFileMigrator *filestore.Migrator
+	compactor         *compactor
 	logger            *zap.Logger
 	names             map[string]api.SpaceID
 	rootPath          iosrc.URI
@@ -44,6 +45,7 @@ func NewManager(ctx context.Context, logger *zap.Logger, registerer prometheus.R
 			Help: "Number of spaces deleted.",
 		}),
 	}
+	mgr.compactor = newCompactor(mgr)
 
 	list, err := iosrc.ReadDir(ctx, root)
 	if err != nil {
@@ -232,4 +234,8 @@ func (m *Manager) List(ctx context.Context) ([]api.SpaceInfo, error) {
 		result = append(result, info)
 	}
 	return result, nil
+}
+
+func (m *Manager) Shutdown() {
+	m.compactor.close()
 }

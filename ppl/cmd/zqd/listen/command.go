@@ -114,6 +114,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
+	defer core.Shutdown()
 	c.logger.Info("Starting",
 		zap.String("datadir", c.conf.Root),
 		zap.Uint64("open_files_limit", openFilesLimit),
