@@ -111,9 +111,7 @@ func (w *Writer) Close() error {
 	return err
 }
 
-// NewWriter returns an arcive.Writer so data can be written to the archive
-// store. When the Writer has been closed a task will be started to compact
-// the store.
+// NewWriter returns a writer that will start a compaction when it is closed.
 func (s *Storage) NewWriter(ctx context.Context) *Writer {
 	return &Writer{archive.NewWriter(ctx, s.ark), s.notifier}
 }
