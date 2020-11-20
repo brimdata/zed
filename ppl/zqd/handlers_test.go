@@ -700,7 +700,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	_, err = conn.LogPost(context.Background(), sp.ID, nil, babbleSorted)
+	_, err = conn.LogPost(context.Background(), sp.ID, nil, babble)
 	require.NoError(t, err)
 
 	span := nano.Span{Ts: 1587508830068523240, Dur: 9789993714061}
@@ -710,7 +710,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 		DataPath:    sp.DataPath,
 		StorageKind: api.ArchiveStore,
 		Span:        &span,
-		Size:        35118,
+		Size:        35123,
 	}
 	si, err := conn.SpaceInfo(context.Background(), sp.ID)
 	require.NoError(t, err)
@@ -761,6 +761,10 @@ func TestIndexSearch(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
+	// babbleSorted must be used because regular babble isn't fully sorted and
+	// generates an overlap which on compaction deletes certain indices. We
+	// should be able to remove this once #1656 is completed and we have some
+	// api way of determining if compactions are complete.
 	_, err = conn.LogPost(context.Background(), sp.ID, nil, babbleSorted)
 	require.NoError(t, err)
 	err = conn.IndexPost(context.Background(), sp.ID, api.IndexPostRequest{
