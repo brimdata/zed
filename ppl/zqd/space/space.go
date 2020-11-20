@@ -143,9 +143,9 @@ func (m *Manager) loadSpaces(ctx context.Context, p iosrc.URI, conf config) ([]S
 	case api.ArchiveStore:
 		parent := &archiveSpace{
 			spaceBase: base,
-			path:      p,
 			conf:      conf,
 			compactor: m.compactor,
+			path:      p,
 		}
 		parent.store, err = archivestore.Load(ctx, datapath, parent, conf.Storage.Archive)
 		if err != nil {

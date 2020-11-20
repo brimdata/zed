@@ -13,8 +13,8 @@ import (
 
 type archiveSpace struct {
 	spaceBase
-	path      iosrc.URI
 	compactor *compactor
+	path      iosrc.URI
 
 	confMu sync.Mutex
 	conf   config
@@ -106,6 +106,6 @@ func (s *archiveSpace) CreateSubspace(ctx context.Context, req api.SubspacePostR
 	}, nil
 }
 
-func (s *archiveSpace) WriterClosed() {
+func (s *archiveSpace) WriteNotify() {
 	s.compactor.WriteComplete(s.ID())
 }

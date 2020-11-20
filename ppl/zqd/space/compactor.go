@@ -33,7 +33,11 @@ func newCompactor(manager *Manager) *compactor {
 		compactDone: make(chan api.SpaceID),
 		sem:         semaphore.NewWeighted(maxConcurrentCompacts),
 	}
-	go c.run(ctx)
+	c.done.Add(1)
+	go func() {
+		c.run(ctx)
+		c.done.Done()
+	}()
 	return c
 }
 
@@ -46,14 +50,13 @@ func (c *compactor) launchCompact(ctx context.Context, id api.SpaceID) {
 		if err := c.sem.Acquire(ctx, 1); err != nil {
 			return
 		}
-		defer c.sem.Release(1)
-		defer func() { c.compactDone <- id }()
 		c.compact(ctx, id)
+		c.sem.Release(1)
+		c.compactDone <- id
 	}()
 }
 
 func (c *compactor) run(ctx context.Context) {
-	c.done.Add(1)
 	active := make(map[api.SpaceID]bool)
 	for {
 		select {
@@ -75,7 +78,6 @@ func (c *compactor) run(ctx context.Context) {
 			}
 			delete(active, id)
 		case <-ctx.Done():
-			c.done.Done()
 			return
 		}
 	}

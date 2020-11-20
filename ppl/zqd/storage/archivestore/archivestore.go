@@ -37,7 +37,7 @@ func Load(ctx context.Context, path iosrc.URI, notifier WriteNotifier, cfg *api.
 }
 
 type WriteNotifier interface {
-	WriterClosed()
+	WriteNotify()
 }
 
 type summaryCache struct {
@@ -93,7 +93,7 @@ func (s *Storage) Summary(ctx context.Context) (storage.Summary, error) {
 func (s *Storage) Write(ctx context.Context, zctx *resolver.Context, zr zbuf.Reader) error {
 	err := archive.Import(ctx, s.ark, zctx, zr)
 	if s.notifier != nil {
-		s.notifier.WriterClosed()
+		s.notifier.WriteNotify()
 	}
 	return err
 }
@@ -106,7 +106,7 @@ type Writer struct {
 func (w *Writer) Close() error {
 	err := w.Writer.Close()
 	if w.notifier != nil {
-		w.notifier.WriterClosed()
+		w.notifier.WriteNotify()
 	}
 	return err
 }
