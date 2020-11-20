@@ -58,8 +58,7 @@ func (c *compactor) run(ctx context.Context) {
 	for {
 		select {
 		case id := <-c.notify:
-			_, ok := active[id]
-			if !ok {
+			if _, ok := active[id]; !ok {
 				// No compaction active for this space right now.
 				active[id] = false
 				c.launchCompact(ctx, id)
