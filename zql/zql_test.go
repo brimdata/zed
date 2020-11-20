@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -68,17 +69,20 @@ func parsePigeon(z string) ([]byte, error) {
 // trip through json marshal and unmarshal to turn the parse-tree types
 // into generic JSON types.
 func testZQL(t *testing.T, line string) {
-	pegJSON, err := parsePEGjs(line)
-	assert.NoError(t, err, "parsePEGjs: %q", line)
-
 	pigeonJSON, err := parsePigeon(line)
 	assert.NoError(t, err, "parsePigeon: %q", line)
 
 	astJSON, err := parseProc(line)
 	assert.NoError(t, err, "parseProc: %q", line)
 
-	assert.JSONEq(t, string(pigeonJSON), string(pegJSON), "pigeon and PEGjs mismatch: %q", line)
 	assert.JSONEq(t, string(pigeonJSON), string(astJSON), "pigeon and ast.Proc mismatch: %q", line)
+
+	if runtime.GOOS != "windows" {
+		var err error
+		pegJSON, err := parsePEGjs(line)
+		assert.NoError(t, err, "parsePEGjs: %q", line)
+		assert.JSONEq(t, string(pigeonJSON), string(pegJSON), "pigeon and PEGjs mismatch: %q", line)
+	}
 }
 
 func TestValid(t *testing.T) {
