@@ -1,0 +1,8 @@
+zql: '*'
+
+input: &input |
+  {"Hyphen":"-"}
+
+output-flags: -f ndjson
+
+output: *input
