@@ -196,8 +196,8 @@ type (
 		// If non-zero, MergeOrderField contains the field name on
 		// which the branches of this parallel proc should be
 		// merged in the order indicated by MergeOrderReverse.
-		MergeOrderField   field.Static `json:"merge_order_field"`
-		MergeOrderReverse bool         `json:"merge_order_reverse"`
+		MergeOrderField   field.Static `json:"merge_order_field,omitempty"`
+		MergeOrderReverse bool         `json:"merge_order_reverse,omitempty"`
 		Procs             []Proc       `json:"procs"`
 	}
 	// A SortProc node represents a proc that sorts records.
@@ -268,11 +268,11 @@ type (
 	// if any reducer in Reducers is non-decomposable.
 	GroupByProc struct {
 		Node
-		Duration     Duration     `json:"duration,omitempty"`
+		Duration     Duration     `json:"duration"`
 		InputSortDir int          `json:"input_sort_dir,omitempty"`
-		Limit        int          `json:"limit,omitempty"`
-		Keys         []Assignment `json:"keys,omitempty"`
-		Reducers     []Assignment `json:"reducers,omitempty"`
+		Limit        int          `json:"limit"`
+		Keys         []Assignment `json:"keys"`
+		Reducers     []Assignment `json:"reducers"`
 		ConsumePart  bool         `json:"consume_part,omitempty"`
 		EmitPart     bool         `json:"emit_part,omitempty"`
 	}
@@ -283,8 +283,8 @@ type (
 	// - It has a hidden option (FlushEvery) to sort and emit on every batch.
 	TopProc struct {
 		Node
-		Limit  int          `json:"limit,omitempty"`
-		Fields []Expression `json:"fields,omitempty"`
+		Limit  int          `json:"limit"`
+		Fields []Expression `json:"fields"`
 		Flush  bool         `json:"flush"`
 	}
 
@@ -314,7 +314,8 @@ type (
 )
 
 type Assignment struct {
-	LHS Expression `json:"lhs,omitempty"`
+	Node
+	LHS Expression `json:"lhs"`
 	RHS Expression `json:"rhs"`
 }
 
@@ -326,6 +327,14 @@ type Duration struct {
 type DurationNode struct {
 	Type    string `json:"type"`
 	Seconds int    `json:"seconds"`
+}
+
+func (d *Duration) MarshalJSON() ([]byte, error) {
+	if d.Seconds == 0 {
+		return json.Marshal(nil)
+	}
+	v := DurationNode{"Duration", d.Seconds}
+	return json.Marshal(&v)
 }
 
 func (d *Duration) UnmarshalJSON(b []byte) error {
@@ -362,8 +371,8 @@ func (*JoinProc) ProcNode()       {}
 type Reducer struct {
 	Node
 	Operator string     `json:"operator"`
-	Expr     Expression `json:"expr,omitempty"`
-	Where    Expression `json:"where,omitempty"`
+	Expr     Expression `json:"expr"`
+	Where    Expression `json:"where"`
 }
 
 func DotExprToField(n Expression) (field.Static, bool) {
