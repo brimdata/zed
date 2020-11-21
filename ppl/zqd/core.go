@@ -142,9 +142,10 @@ func (c *Core) addWorkerRoutes() {
 }
 
 func (c *Core) addRecruiterRoutes() {
-	c.handle("/register", handleRegister).Methods("POST")
 	c.handle("/deregister", handleDeregister).Methods("POST")
 	c.handle("/recruit", handleRecruit).Methods("POST")
+	c.handle("/register", handleRegister).Methods("POST")
+	c.handle("/unreserve", handleUnreserve).Methods("POST")
 }
 
 func (c *Core) handle(path string, f func(*Core, http.ResponseWriter, *http.Request)) *mux.Route {

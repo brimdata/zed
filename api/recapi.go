@@ -1,20 +1,28 @@
 package api
 
+type StatusResponse struct {
+	Status string `json:"status"`
+}
+
+type WorkerAddr struct {
+	Addr string `json:"addr"`
+}
+
+type UnreserveRequest struct {
+	WorkerAddr
+}
+
+type DeregisterRequest struct {
+	WorkerAddr
+}
+
 type Worker struct {
-	Addr     string `json:"addr"`
+	WorkerAddr
 	NodeName string `json:"node"`
 }
 
 type RegisterRequest struct {
 	Worker
-}
-
-type StatusResponse struct {
-	Status string `json:"status"`
-}
-
-type DeregisterRequest struct {
-	Addr string `json:"addr"`
 }
 
 type RecruitRequest struct {
