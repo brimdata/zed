@@ -85,8 +85,19 @@ func MergeReadersByTs(ctx context.Context, readers []Reader, order Order) (*Merg
 }
 
 func MergeByTs(ctx context.Context, pullers []Puller, order Order) *Merger {
-	reversed := bool(order)
-	cmp := NewCompareFn(field.New("ts"), reversed)
+	cmp := func(a, b *zng.Record) int {
+		if order == OrderDesc {
+			a, b = b, a
+		}
+		aTs, bTs := a.Ts(), b.Ts()
+		if aTs < bTs {
+			return -1
+		}
+		if aTs > bTs {
+			return 1
+		}
+		return bytes.Compare(a.Raw, b.Raw)
+	}
 	return NewMerger(ctx, pullers, cmp)
 }
 
