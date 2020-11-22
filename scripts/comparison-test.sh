@@ -10,8 +10,6 @@ DATA="../zq-sample-data"
 ln -sfn zeek-default "$DATA/zeek"
 ln -sfn zeek-ndjson "$DATA/ndjson"
 
-TIME="$(command -v time) -p"
-
 if [[ $(type -P "gzcat") ]]; then
   ZCAT="gzcat"
 elif [[ $(type -P "zcat") ]]; then
@@ -91,9 +89,9 @@ do
           INPUT_FMT="$INPUT"
         fi
         if [[ $OUTPUT == "zng-uncompressed" ]]; then
-          ALL_TIMES=$( ($TIME zq -i "$INPUT_FMT" -f zng -znglz4blocksize 0 "$zql" $DATA/$INPUT/* > /dev/null) 2>&1)
+          ALL_TIMES=$(time -p (zq -i "$INPUT_FMT" -f zng -znglz4blocksize 0 "$zql" $DATA/$INPUT/* > /dev/null) 2>&1)
         else
-          ALL_TIMES=$( ($TIME zq -i "$INPUT_FMT" -f "$OUTPUT" "$zql" $DATA/$INPUT/* > /dev/null) 2>&1)
+          ALL_TIMES=$(time -p (zq -i "$INPUT_FMT" -f "$OUTPUT" "$zql" $DATA/$INPUT/* > /dev/null) 2>&1)
         fi
         echo "$ALL_TIMES" | tr '\n' ' ' | awk '{ print $2 "|" $4 "|" $6 "|" }' | tee -a "$MD"
       done
@@ -102,7 +100,7 @@ do
     ZCUT=${ZCUT_FIELDS[$n]}
     if [[ $ZCUT != "NONE" ]]; then
       echo "|\`zeek-cut\`|\`$ZCUT\`|zeek|zeek-cut|" | sed 's/\`\`//' | tr -d '\n' | tee -a "$MD"
-      ALL_TIMES=$( ($TIME $ZCAT "$DATA"/zeek/* | zeek-cut "$ZCUT" > /dev/null) 2>&1)
+      ALL_TIMES=$(time -p ($ZCAT "$DATA"/zeek/* | zeek-cut "$ZCUT" > /dev/null) 2>&1)
       echo "$ALL_TIMES" | tr '\n' ' ' | awk '{ print $2 "|" $4 "|" $6 "|" }' | tee -a "$MD"
     fi
 
@@ -110,7 +108,7 @@ do
     JQFLAG=${JQFLAGS[$n]}
     echo -n "|\`jq\`|\`$JQFLAG \"${JQ//|/\\|}\"\`|ndjson|ndjson|" | tee -a "$MD"
     # shellcheck disable=SC2086      # For expanding JQFLAG
-    ALL_TIMES=$( ($TIME $ZCAT "$DATA"/zeek-ndjson/* | jq $JQFLAG "$JQ" > /dev/null) 2>&1)
+    ALL_TIMES=$(time -p ($ZCAT "$DATA"/zeek-ndjson/* | jq $JQFLAG "$JQ" > /dev/null) 2>&1)
     echo "$ALL_TIMES" | tr '\n' ' ' | awk '{ print $2 "|" $4 "|" $6 "|" }' | tee -a "$MD"
 
     echo | tee -a "$MD"

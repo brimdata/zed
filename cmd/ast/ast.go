@@ -39,32 +39,81 @@ func init() {
 }
 
 type Command struct {
-	repl bool
-	js   bool
-	both bool
+	repl   bool
+	js     bool
+	pigeon bool
+	ast    bool
+	all    bool
+	n      int
 }
 
 func New(f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{}
 	f.BoolVar(&c.repl, "repl", false, "enter repl")
 	f.BoolVar(&c.js, "js", false, "run javascript version of peg parser")
-	f.BoolVar(&c.both, "both", false, "run both javascript and go version of peg parser")
+	f.BoolVar(&c.pigeon, "pigeon", true, "run pigeon version of peg parser")
+	f.BoolVar(&c.ast, "ast", false, "run pigeon version of peg parser and show marshaled ast")
+	f.BoolVar(&c.all, "all", false, "run all and show variants")
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
+	if len(args) == 0 {
+		return Ast.Exec(c, []string{"help"})
+	}
+	if c.all {
+		c.ast = true
+		c.pigeon = true
+		c.js = true
+	}
+	c.n = 0
+	if c.js {
+		c.n++
+	}
+	if c.pigeon {
+		c.n++
+	}
+	if c.ast {
+		c.n++
+	}
 	if c.repl {
 		c.interactive()
 		return nil
 	}
-	if len(args) == 0 {
-		return Ast.Exec(c, []string{"help"})
+	return c.parse(strings.Join(args, " "))
+}
+
+func (c *Command) parse(z string) error {
+	if c.js {
+		s, err := parsePEGjs(z)
+		if err != nil {
+			return err
+		}
+		if c.n > 1 {
+			fmt.Println("pegjs")
+		}
+		fmt.Println(s)
 	}
-	result, err := c.parse(strings.Join(args, " "))
-	if err != nil {
-		return err
+	if c.pigeon {
+		s, err := parsePigeon(z)
+		if err != nil {
+			return err
+		}
+		if c.n > 1 {
+			fmt.Println("pigeon")
+		}
+		fmt.Println(s)
 	}
-	fmt.Println(result)
+	if c.ast {
+		s, err := parseProc(z)
+		if err != nil {
+			return err
+		}
+		if c.n > 1 {
+			fmt.Println("ast.Proc")
+		}
+		fmt.Println(s)
+	}
 	return nil
 }
 
@@ -72,31 +121,6 @@ const nodeProblem = `
 Failed to run node on ./zql/run.js.  The "-js" flag is for PEG
 development and should only be used when running ast in the root
 directory of the zq repo.`
-
-func (c *Command) parse(z string) (string, error) {
-	var result string
-	if c.js || c.both {
-		b, err := runNode("", z)
-		result = string(b)
-		if err != nil {
-			// parse errors don't cause this... this is only
-			// caused by a problem running node.
-			return "", errors.New(strings.TrimSpace(nodeProblem))
-		}
-		if !c.both {
-			return result, err
-		}
-	}
-	query, err := zql.ParseProc(z)
-	if err != nil {
-		return "", err
-	}
-	b, err := json.MarshalIndent(query, "", "  ")
-	if err != nil {
-		return "", errors.New("couldn't format AST as json")
-	}
-	return result + string(b), nil
-}
 
 func (c *Command) interactive() {
 	rl := liner.NewLiner()
@@ -110,12 +134,9 @@ func (c *Command) interactive() {
 			log.Fatal(err)
 		}
 		rl.AppendHistory(line)
-		result, err := c.parse(line)
-		if err != nil {
-			fmt.Println(err)
-			continue
+		if err := c.parse(line); err != nil {
+			log.Println(err)
 		}
-		fmt.Println(result)
 	}
 }
 
@@ -126,4 +147,48 @@ func runNode(dir, line string) ([]byte, error) {
 	}
 	cmd.Stdin = strings.NewReader(line)
 	return cmd.Output()
+}
+
+func normalize(b []byte) (string, error) {
+	var v interface{}
+	err := json.Unmarshal(b, &v)
+	if err != nil {
+		return "", err
+	}
+	out, err := json.MarshalIndent(v, "", "    ")
+	return string(out), err
+}
+
+func parsePEGjs(z string) (string, error) {
+	b, err := runNode("", z)
+	if err != nil {
+		// parse errors don't cause this... this is only
+		// caused by a problem running node.
+		return "", errors.New(strings.TrimSpace(nodeProblem))
+	}
+	return normalize(b)
+}
+
+func parseProc(z string) (string, error) {
+	proc, err := zql.ParseProc(z)
+	if err != nil {
+		return "", err
+	}
+	procJSON, err := json.Marshal(proc)
+	if err != nil {
+		return "", err
+	}
+	return normalize(procJSON)
+}
+
+func parsePigeon(z string) (string, error) {
+	ast, err := zql.Parse("", []byte(z))
+	if err != nil {
+		return "", err
+	}
+	goPEGJSON, err := json.Marshal(ast)
+	if err != nil {
+		return "", errors.New("go peg parser returned bad value for: " + z)
+	}
+	return normalize(goPEGJSON)
 }

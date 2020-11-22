@@ -174,6 +174,10 @@ func (c *Core) Root() iosrc.URI {
 	return c.root
 }
 
+func (c *Core) Shutdown() {
+	c.spaces.Shutdown()
+}
+
 func (c *Core) nextTaskID() int64 {
 	return atomic.AddInt64(&c.taskCount, 1)
 }

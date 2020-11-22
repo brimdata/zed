@@ -2,8 +2,6 @@ package space
 
 import (
 	"context"
-	"errors"
-	"os"
 	"sync"
 
 	"github.com/brimsec/zq/api"
@@ -70,15 +68,4 @@ func (s *fileSpace) delete(ctx context.Context) error {
 		return err
 	}
 	return iosrc.RemoveAll(ctx, s.conf.DataURI)
-}
-
-func filesize(path string) (int64, error) {
-	f, err := os.Stat(path)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return 0, nil
-		}
-		return 0, err
-	}
-	return f.Size(), nil
 }

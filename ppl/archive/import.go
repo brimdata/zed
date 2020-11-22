@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/bufwriter"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
@@ -382,14 +383,5 @@ func (w *writeCounter) Write(b []byte) (int, error) {
 }
 
 func importCompareFn(ark *Archive) expr.CompareFn {
-	return func(a, b *zng.Record) (cmp int) {
-		d := a.Ts() - b.Ts()
-		if d < 0 {
-			cmp = -1
-		}
-		if d > 0 {
-			cmp = 1
-		}
-		return cmp * ark.DataOrder.Int()
-	}
+	return zbuf.NewCompareFn(field.New("ts"), ark.DataOrder == zbuf.OrderDesc)
 }

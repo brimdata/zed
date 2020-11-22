@@ -1,6 +1,7 @@
 package zbuf
 
 import (
+	"bytes"
 	"context"
 	"sync"
 
@@ -37,10 +38,21 @@ type batch struct {
 
 func NewCompareFn(mergeField field.Static, reversed bool) expr.CompareFn {
 	fn := expr.NewCompareFn(true, expr.NewDotExpr(mergeField))
+	fn = totalOrderCompare(fn)
 	if !reversed {
 		return fn
 	}
 	return func(a, b *zng.Record) int { return fn(b, a) }
+}
+
+func totalOrderCompare(fn expr.CompareFn) expr.CompareFn {
+	return func(a, b *zng.Record) int {
+		cmp := fn(a, b)
+		if cmp == 0 {
+			return bytes.Compare(a.Raw, b.Raw)
+		}
+		return cmp
+	}
 }
 
 func NewMerger(ctx context.Context, pullers []Puller, cmp expr.CompareFn) *Merger {
@@ -73,8 +85,19 @@ func MergeReadersByTs(ctx context.Context, readers []Reader, order Order) (*Merg
 }
 
 func MergeByTs(ctx context.Context, pullers []Puller, order Order) *Merger {
-	reversed := bool(order)
-	cmp := NewCompareFn(field.New("ts"), reversed)
+	cmp := func(a, b *zng.Record) int {
+		if order == OrderDesc {
+			a, b = b, a
+		}
+		aTs, bTs := a.Ts(), b.Ts()
+		if aTs < bTs {
+			return -1
+		}
+		if aTs > bTs {
+			return 1
+		}
+		return bytes.Compare(a.Raw, b.Raw)
+	}
 	return NewMerger(ctx, pullers, cmp)
 }
 
