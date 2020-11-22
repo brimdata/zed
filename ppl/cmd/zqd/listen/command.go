@@ -16,6 +16,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/cli"
 	"github.com/brimsec/zq/driver"
@@ -151,6 +152,9 @@ func (c *Command) Run(args []string) error {
 			return err
 		}
 	}
+	if err := c.registerWithRecruiter(ctx, srv.Addr()); err != nil {
+		return err
+	}
 	return srv.Wait()
 }
 
@@ -159,9 +163,6 @@ func (c *Command) init() error {
 		return err
 	}
 	if err := c.initLogger(); err != nil {
-		return err
-	}
-	if err := c.initRecruiter(); err != nil {
 		return err
 	}
 	if err := c.initWorkers(); err != nil {
@@ -269,12 +270,55 @@ func (c *Command) launchSuricataUpdate(ctx context.Context) {
 	}()
 }
 
-func (c *Command) initRecruiter() error {
+func (c *Command) registerWithRecruiter(ctx context.Context, srvAddr string) error {
+	if c.recruiter == "" {
+		c.recruiter = os.Getenv("ZQD_RECRUITER")
+	}
 	if c.recruiter != "" {
 		if _, _, err := net.SplitHostPort(c.recruiter); err != nil {
 			return fmt.Errorf("recruiter does not have host:port %v", err)
 		}
 		c.conf.RecruiterConn = client.NewConnectionTo(c.recruiter)
+
+		// We start the conversation with the recruiter by sending /unreserve
+		// in case this instance of zqd was restarted after being in a reserved state
+		// The information we need to send the recruiter is obtained through environment
+		// variables that can be set within the K8s deployment. See this doc:
+		// https://kubernetes.io/docs/tasks/inject-data-application/environment-variable-expose-pod-information/
+
+		// For server address, we allow the environment variable to override the discover address
+		if addr := os.Getenv("ZQD_ADDR"); addr != "" {
+			srvAddr = addr
+		}
+		unreservereq := api.UnreserveRequest{
+			WorkerAddr: api.WorkerAddr{Addr: srvAddr},
+		}
+		resp, err := c.conf.RecruiterConn.Unreserve(ctx, unreservereq)
+		if err != nil {
+			return fmt.Errorf("error on unreserve with recruiter at %s : %v", c.recruiter, err)
+		}
+		if resp.Status != "ok" {
+			return fmt.Errorf("recruiter did not acknowlege unreserve, status=%s", resp.Status)
+		}
+
+		nodename := os.Getenv("ZQD_NODE_NAME")
+		if nodename == "" {
+			return fmt.Errorf("env var ZQD_NODE_NAME required to register with recruiter")
+		}
+		registerreq := api.RegisterRequest{
+			Worker: api.Worker{
+				WorkerAddr: api.WorkerAddr{Addr: srvAddr},
+				NodeName:   nodename,
+			},
+		}
+		resp, err = c.conf.RecruiterConn.Register(ctx, registerreq)
+		if err != nil {
+			return fmt.Errorf("error on register with recruiter at %s : %v", c.recruiter, err)
+		}
+		if resp.Status != "ok" {
+			return fmt.Errorf("recruiter did not acknowlege register, status=%s", resp.Status)
+		}
+
 	}
 	return nil
 }
