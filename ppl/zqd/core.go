@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 
 	"github.com/brimsec/zq/api"
+	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/ppl/zqd/recruiter"
@@ -32,10 +33,11 @@ const indexPage = `
 </html>`
 
 type Config struct {
-	Logger      *zap.Logger
-	Personality string
-	Root        string
-	Version     string
+	Logger        *zap.Logger
+	Personality   string
+	RecruiterConn *client.Connection
+	Root          string
+	Version       string
 
 	Suricata pcapanalyzer.Launcher
 	Zeek     pcapanalyzer.Launcher

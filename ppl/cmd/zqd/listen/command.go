@@ -16,6 +16,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/cli"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/fs"
@@ -66,6 +67,7 @@ type Command struct {
 	personality         string
 	portFile            string
 	pprof               bool
+	recruiter           string
 	suricataRunnerPath  string
 	suricataUpdaterPath string
 	workers             string
@@ -84,6 +86,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.conf.Personality, "personality", "all", "server personality (all, apiserver, worker, or recruiter)")
 	f.StringVar(&c.portFile, "portfile", "", "write listen port to file")
 	f.BoolVar(&c.pprof, "pprof", false, "add pprof routes to API")
+	f.StringVar(&c.recruiter, "recruiter", "", "addr:port of zqd recruiter for cluster")
 	f.StringVar(&c.suricataRunnerPath, "suricatarunner", "", "command to generate Suricata eve.json from pcap data")
 	f.StringVar(&c.suricataUpdaterPath, "suricataupdater", "", "command to update Suricata rules (run once at startup)")
 	f.StringVar(&c.workers, "workers", "", "workers as comma-separated [addr]:port list")
@@ -120,6 +123,7 @@ func (c *Command) Run(args []string) error {
 		zap.Uint64("open_files_limit", openFilesLimit),
 		zap.String("personality", c.conf.Personality),
 		zap.Bool("pprof_routes", c.pprof),
+		zap.String("recruiter", c.recruiter),
 		zap.Bool("suricata_supported", core.HasSuricata()),
 		zap.Bool("zeek_supported", core.HasZeek()),
 	)
@@ -155,6 +159,9 @@ func (c *Command) init() error {
 		return err
 	}
 	if err := c.initLogger(); err != nil {
+		return err
+	}
+	if err := c.initRecruiter(); err != nil {
 		return err
 	}
 	if err := c.initWorkers(); err != nil {
@@ -262,9 +269,19 @@ func (c *Command) launchSuricataUpdate(ctx context.Context) {
 	}()
 }
 
+func (c *Command) initRecruiter() error {
+	if c.recruiter != "" {
+		if _, _, err := net.SplitHostPort(c.recruiter); err != nil {
+			return fmt.Errorf("recruiter does not have host:port %v", err)
+		}
+		c.conf.RecruiterConn = client.NewConnectionTo(c.recruiter)
+	}
+	return nil
+}
+
 func (c *Command) initWorkers() error {
 	// This is for local testing only, at this point.
-	// Workers will be available through a K8s service in a prod deployment.
+	// Workers will be available through the recruiter service in a prod deployment.
 	if c.workers != "" {
 		for _, w := range strings.Split(c.workers, ",") {
 			if _, _, err := net.SplitHostPort(w); err != nil {
