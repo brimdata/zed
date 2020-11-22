@@ -45,3 +45,19 @@ func TestDuplicates(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, setType.ID(), typ3.ID())
 }
+
+func TestTranslateAlias(t *testing.T) {
+	c1 := resolver.NewContext()
+	c2 := resolver.NewContext()
+	set1, err := c1.LookupByName("set[int64]")
+	require.NoError(t, err)
+	set2, err := c2.LookupByName("set[int64]")
+	require.NoError(t, err)
+	alias1, err := c1.LookupTypeAlias("foo", set1)
+	require.NoError(t, err)
+	alias2, err := c2.LookupTypeAlias("foo", set2)
+	require.NoError(t, err)
+	alias3, err := c2.TranslateType(alias1)
+	require.NoError(t, err)
+	assert.Equal(t, alias2, alias3)
+}
