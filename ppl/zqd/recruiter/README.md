@@ -12,9 +12,9 @@ zqd recruit provides the following REST API:
 
 ### /register
 
-{
-"addr":"<host:port for worker>",
-"node":"<ID of node in cluster>"}
+{  
+"addr" : "*host:port for worker*",  
+"node" : *ID of node in cluster*  
 }
 
 /register is called by a worker process after it has started and is capable of processing /worker messages.
@@ -30,8 +30,8 @@ This will allow a restarted zqd recruiter process to get registrations from runn
 
 ### /recruit
 
-Request: {"N":<number of workers requested>}
-Response: {"workers":[<list of recruited workers (addr,node)> ]}
+Request: {"N":*number of workers requested*}  
+Response: {"workers":[ *list of recruited workers addr,node* ]}
 
 /recruit is called by a zqd root process prior to starting query execution (i.e. /search). The number of workers returned may be less than requested, based on availability.
 
@@ -41,13 +41,13 @@ When a worker is recruited, the worker is added to the “reserved pool” so it
 
 ### /unregister
 
-{"addr":"<host:port for worker>"}
+{"addr":"*host:port for worker*"}
 
 /unregister is called by a zqd worker process that gracefully terminates while “believing” that it is registered with the zqd recruiter.
 
 ### /unreserve
 
-{"addr":"<host:port for worker>"}
+{"addr":"*host:port for worker*"}
 
 /unreserve is called by a zqd worker process that becomes idle after having completed a /worker request. It is removed from the reserved pool. This is a noop if it was not in the reserved pool.
 
