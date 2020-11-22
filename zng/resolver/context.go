@@ -15,18 +15,13 @@ var (
 	ErrAliasExists   = errors.New("alias exists with different type")
 )
 
-type TypeLogger interface {
-	TypeDef(int, zng.Type)
-}
-
 // A Context manages the mapping between small-integer descriptor identifiers
 // and zng descriptor objects, which hold the binding between an identifier
 // and a zng.Type.
 type Context struct {
-	mu     sync.RWMutex
-	table  []zng.Type
-	lut    map[string]int
-	logger TypeLogger
+	mu    sync.RWMutex
+	table []zng.Type
+	lut   map[string]int
 }
 
 func NewContext() *Context {
@@ -35,10 +30,6 @@ func NewContext() *Context {
 		table: make([]zng.Type, zng.IdTypeDef),
 		lut:   make(map[string]int),
 	}
-}
-
-func (c *Context) SetLogger(logger TypeLogger) {
-	c.logger = logger
 }
 
 func (c *Context) Reset() {
@@ -193,9 +184,6 @@ func (c *Context) addTypeWithLock(key string, typ zng.Type) {
 		typ.SetID(id)
 	default:
 		panic("unsupported type in addTypeWithLock: " + typ.String())
-	}
-	if c.logger != nil {
-		c.logger.TypeDef(id, typ)
 	}
 }
 
