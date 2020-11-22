@@ -49,11 +49,21 @@ When a worker is recruited, the worker is added to the “reserved pool” so it
 
 {"addr":"<host:port for worker>"}
 
-/unreserve is caledl by a zqd worker process that becomes idle after having completed a /worker request. It is removed from the reserved pool. This is a noop if it was not in the reserved pool.
+/unreserve is called by a zqd worker process that becomes idle after having completed a /worker request. It is removed from the reserved pool. This is a noop if it was not in the reserved pool.
 
 /unreserve is also called by a zqd worker process when it starts up, in case the addr of the worker was reserved by a previous process that is no longer running.
 
-The /unreserve API, along with the reserved pool maintained by /recruit, avoid the potential race condition of a worker re-registering itself while it is in the process of being recruited.
+The /unreserve API, along with the reserved pool maintained by /recruit, avoids the potential race condition of a worker re-registering itself after it has been recruited but before it has been sent work by a zqd root process.
+
+## Analysis of failures
+
+1. If the zqd root process halts after receiving a reply to the /recruit message and sending /worker messages to the recruited workers, then the recruited workers will be unavailable until they have an idle time out and send /register again. This could be a negative impact if the idle timeout for /register is long.
+
+2. There is a window of time between the recruiter process replying to a /recruit and the worker process becoming busy in which the worker could resend a /register message. In this case, the initial /recruit transaction will have already added the worker to the reserved pool, the the errant /register request will be ignored. The worker (or some other process) must call /unreserve before the worker will be reregistered.
+
+3. If a worker process halts without sending /unregister, then it can be recruited with a call to /recruit. In this case, the recruiting agent (e.g. the zqd root) must be tolerant of the fault, and detect that it cannot reach the worker. It should either do without, or send another /recruit request to get a replacement.
+
+4. Each of the API calls (/register /unregister /unreserve /recruit) may only mutate the state of the freePool, nodePool, and reservedPool as an atomic transaction. In this initial implementation, this is easy to guarantee because all the data is in-memory. The four transactions "can't fail" -- that is, any failure is a panic that will halt the process. (If we move to an exernal database implementation, we would need to build a transaction manager to handle failure cases.) Out of memory failure is not likely, since the data structures are small. I think deadlock is practically impossible since we share one mutex for all three maps and all four operations, but pending transactions could get backed if they are not completed as quickly as they are received. For very large node pools (> 1000 nodes) the current implementation will be too slow because of the shuffle. 
 
 ## Database
 
@@ -62,14 +72,6 @@ The initial implementation of zqd recruit will not require an external database.
 Future implementations may use an external Redis database. This will have the advantage of allowing a zqd recruiter instance to more quickly recover all state after an unexpected restart. It would also allow us to run more than one instance of a zqd recruiter process per cluster. The CPU requirements and memory requirements for a zqd recruiter process are likely to be small, but we may find that having extra instances improves availability.
 
 The main reason to introduce Redis will come when we introduce SSD caches for nodes running zqd workers. We can then use cache state (e.g. the availability of desired S3 objects) to preferentially schedule zqd workers on a given node. This heuristic for scheduling will require up-to-date information on the cache state of each node in the cluster, and a Redis database is a convenient way to share information on recent cache state.
-
-## Analysis of failures
-
-1. If the zqd root process halts after receiving a reply to the /recruit message and sending /worker messages to the recruited workers, then the recruited workers will be unavailable until they have an idle time out and send /register again. This could be a negative impact if the idle timeout for /register is long.
-
-2. There is a window of time between the recruiter process replying to a /recruit and the worker process becoming busy in which the worker could resend a /register message. In this case, the initial /recruit transaction will have already added the worker to the reserved pool. The worker (or some other process) must call /unreserve before the worker will be reregistered.
-
-3. If a worker process halts without sending /unregister, then it can be recruited with a call to /recruit. In this case, the recruiting agent (e.g. the zqd root) must be tolerant of the fault, and detect that it cannot reach the worker. It should either do without, or send another /recruit request to get a replacement.
 
 ## Future plans for autoscaling
 
