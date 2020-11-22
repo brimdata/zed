@@ -1,6 +1,6 @@
 package zqd
 
-// Note that the handlers in the file write errors to their ResponseWriter,
+// Note that the handlers in this file write errors to their ResponseWriter,
 // so there are no errors returned from handle functions.
 
 // Useful CLI tests for recruiter API:
