@@ -402,6 +402,42 @@ func (c *Connection) LogPostWriter(ctx context.Context, space api.SpaceID, opts 
 	return *v, nil
 }
 
+// Recruit wraps the rechandlers.go handleRecruit API
+func (c *Connection) Recruit(ctx context.Context, req api.RecruitRequest) (*api.RecruitResponse, error) {
+	resp, err := c.Request(ctx).SetBody(req).SetResult(&api.RecruitResponse{}).Post("/recruit")
+	if err != nil {
+		return nil, err
+	}
+	return resp.Result().(*api.RecruitResponse), nil
+}
+
+// Register wraps the rechandlers.go handleRegister API
+func (c *Connection) Register(ctx context.Context, req api.RegisterRequest) (*api.StatusResponse, error) {
+	resp, err := c.Request(ctx).SetBody(req).SetResult(&api.StatusResponse{}).Post("/register")
+	if err != nil {
+		return nil, err
+	}
+	return resp.Result().(*api.StatusResponse), nil
+}
+
+// Deregister wraps the rechandlers.go handleDeregister API
+func (c *Connection) Deregister(ctx context.Context, req api.DeregisterRequest) (*api.StatusResponse, error) {
+	resp, err := c.Request(ctx).SetBody(req).SetResult(&api.StatusResponse{}).Post("/deregister")
+	if err != nil {
+		return nil, err
+	}
+	return resp.Result().(*api.StatusResponse), nil
+}
+
+// Unreserve wraps the rechandlers.go handleUnreserve API
+func (c *Connection) Unreserve(ctx context.Context, req api.UnreserveRequest) (*api.StatusResponse, error) {
+	resp, err := c.Request(ctx).SetBody(req).SetResult(&api.StatusResponse{}).Post("/unreserve")
+	if err != nil {
+		return nil, err
+	}
+	return resp.Result().(*api.StatusResponse), nil
+}
+
 type ErrorResponse struct {
 	*resty.Response
 	Err error
