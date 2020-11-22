@@ -14,7 +14,7 @@ zqd recruit provides the following REST API:
 
 {  
 "addr" : "*host:port for worker*",  
-"node" : *ID of node in cluster*  
+"node" : "*ID of node in cluster*"  
 }
 
 /register is called by a worker process after it has started and is capable of processing /worker messages.
