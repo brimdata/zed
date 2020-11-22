@@ -5,10 +5,11 @@ package zqd
 
 // Useful CLI tests for recruiter API:
 // zqd listen -l=localhost:8020 -portfile=portfile -personality=recruiter
-// curl -v --header "Content-Type: application/json" -request POST --data '{"N":2}' http://localhost:8020/recruit
-// curl -v --header "Content-Type: application/json" -request POST --data '{"addr":"a.b.c:5000","node":"a.b"}' http://localhost:8020/register
-// curl -v --header "Content-Type: application/json" -request POST --data '{"addr":"a.b.c:5000"}' http://localhost:8020/unreserve
-// curl -v --header "Content-Type: application/json" -request POST --data '{"addr":"a.b.c:5000"}' http://localhost:8020/deregister
+// curl --header "Content-Type: application/json" -request POST --data '{"N":2}' http://localhost:8020/recruit
+// curl --header "Content-Type: application/json" -request POST --data '{"addr":"a.b.c:5000","node":"a.b"}' http://localhost:8020/register
+// curl --header "Content-Type: application/json" -request POST --data '{"addr":"a.b.c:5000"}' http://localhost:8020/unreserve
+// curl --header "Content-Type: application/json" -request POST --data '{"addr":"a.b.c:5000"}' http://localhost:8020/deregister
+// Or run system test with: make TEST=TestZq/ztests/suite/zqd/rec-curl
 
 import (
 	"net/http"
