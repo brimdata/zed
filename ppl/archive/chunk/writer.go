@@ -108,7 +108,7 @@ func (cw *Writer) CloseWithTs(ctx context.Context, firstTs, lastTs nano.Ts) (Chu
 		Masks:       cw.masks,
 		Size:        cw.dataFileWriter.Position(),
 	}
-	if err := WriteMetadata(ctx, MetadataPath(cw.dir, cw.id), metadata); err != nil {
+	if err := metadata.Write(ctx, MetadataPath(cw.dir, cw.id)); err != nil {
 		cw.seekIndex.Abort()
 		return Chunk{}, err
 	}

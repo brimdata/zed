@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"path"
+	"path/filepath"
 	"sync/atomic"
 
 	"github.com/brimsec/zq/api"
@@ -117,7 +118,7 @@ func (m *spanMultiSource) SendSources(ctx context.Context, span nano.Span, srcCh
 func (m *spanMultiSource) SourceFromRequest(ctx context.Context, req *api.WorkerRequest) (driver.Source, error) {
 	si := SpanInfo{Span: req.Span}
 	for _, p := range req.ChunkPaths {
-		dir, file := path.Split(p)
+		dir, file := path.Split(filepath.ToSlash(p))
 		_, id, ok := chunk.FileMatch(file)
 		if !ok {
 			return nil, zqe.E(zqe.Invalid, "invalid chunk path: %v", p)

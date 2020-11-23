@@ -20,40 +20,6 @@ type Metadata struct {
 	Size        int64
 }
 
-func (md Metadata) Chunk(dir iosrc.URI, id ksuid.KSUID) Chunk {
-	return Chunk{
-		Dir:         dir,
-		Id:          id,
-		First:       md.First,
-		Last:        md.Last,
-		RecordCount: md.RecordCount,
-		Masks:       md.Masks,
-		Size:        md.Size,
-	}
-}
-
-func MetadataPath(dir iosrc.URI, id ksuid.KSUID) iosrc.URI {
-	return dir.AppendPath(fmt.Sprintf("%s-%s.zng", FileKindMetadata, id))
-}
-
-func WriteMetadata(ctx context.Context, uri iosrc.URI, md Metadata) error {
-	zctx := resolver.NewContext()
-	rec, err := resolver.MarshalRecord(zctx, md)
-	if err != nil {
-		return err
-	}
-	out, err := iosrc.NewWriter(ctx, uri)
-	if err != nil {
-		return err
-	}
-	zw := zngio.NewWriter(bufwriter.New(out), zngio.WriterOpts{})
-	if err := zw.Write(rec); err != nil {
-		zw.Close()
-		return err
-	}
-	return zw.Close()
-}
-
 func ReadMetadata(ctx context.Context, uri iosrc.URI) (Metadata, error) {
 	in, err := iosrc.NewReader(ctx, uri)
 	if err != nil {
@@ -71,4 +37,38 @@ func ReadMetadata(ctx context.Context, uri iosrc.URI) (Metadata, error) {
 		return Metadata{}, err
 	}
 	return md, nil
+}
+
+func (m Metadata) Chunk(dir iosrc.URI, id ksuid.KSUID) Chunk {
+	return Chunk{
+		Dir:         dir,
+		Id:          id,
+		First:       m.First,
+		Last:        m.Last,
+		RecordCount: m.RecordCount,
+		Masks:       m.Masks,
+		Size:        m.Size,
+	}
+}
+
+func (m Metadata) Write(ctx context.Context, uri iosrc.URI) error {
+	zctx := resolver.NewContext()
+	rec, err := resolver.MarshalRecord(zctx, m)
+	if err != nil {
+		return err
+	}
+	out, err := iosrc.NewWriter(ctx, uri)
+	if err != nil {
+		return err
+	}
+	zw := zngio.NewWriter(bufwriter.New(out), zngio.WriterOpts{})
+	if err := zw.Write(rec); err != nil {
+		zw.Close()
+		return err
+	}
+	return zw.Close()
+}
+
+func MetadataPath(dir iosrc.URI, id ksuid.KSUID) iosrc.URI {
+	return dir.AppendPath(fmt.Sprintf("%s-%s.zng", FileKindMetadata, id))
 }
