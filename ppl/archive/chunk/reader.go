@@ -18,9 +18,9 @@ type Reader struct {
 	ReadSize  int64
 }
 
-// newChunkReader returns an io.ReadCloser for this chunk. If the chunk has a seek
-// index and if the provided span skips part of the chunk, the seek index will
-// be used to limit the reading window of the chunk's reader.
+// NewReader returns a Reader for this chunk. If the chunk has a seek index and
+// if the provided span skips part of the chunk, the seek index will be used to
+// limit the reading window of the returned reader.
 func NewReader(ctx context.Context, chunk Chunk, span nano.Span) (*Reader, error) {
 	cspan := chunk.Span()
 	span = cspan.Intersect(span)
