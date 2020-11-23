@@ -54,7 +54,7 @@ func FileMatch(s string) (kind FileKind, id ksuid.KSUID, ok bool) {
 // seekIndexPath returns the path of an associated microindex written at import
 // time, which can be used to lookup a nearby seek offset for a desired
 // timestamp.
-// metadataPath returns the path of an associated zng file that holds
+// MetadataPath returns the path of an associated zng file that holds
 // information about the records in the chunk, including the total number,
 // and the first and last record timestamps.
 type Chunk struct {
