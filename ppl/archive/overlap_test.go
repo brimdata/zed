@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/ppl/archive/chunk"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
@@ -33,87 +34,87 @@ func importTzng(t *testing.T, ark *Archive, s string) {
 
 func TestAlignChunksToSpans(t *testing.T) {
 	cases := []struct {
-		chunks []Chunk
+		chunks []chunk.Chunk
 		filter nano.Span
 		order  zbuf.Order
 		exp    []SpanInfo
 	}{
 		{
-			chunks: []Chunk{
+			chunks: []chunk.Chunk{
 				{Id: kid("a"), First: 0, Last: 0},
 				{Id: kid("b"), First: 1, Last: 1},
 			},
 			filter: nano.MaxSpan,
 			order:  zbuf.OrderAsc,
 			exp: []SpanInfo{
-				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []Chunk{{Id: kid("a"), First: 0, Last: 0}}},
-				{Span: nano.Span{Ts: 1, Dur: 1}, Chunks: []Chunk{{Id: kid("b"), First: 1, Last: 1}}},
+				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []chunk.Chunk{{Id: kid("a"), First: 0, Last: 0}}},
+				{Span: nano.Span{Ts: 1, Dur: 1}, Chunks: []chunk.Chunk{{Id: kid("b"), First: 1, Last: 1}}},
 			},
 		},
 		{
-			chunks: []Chunk{
+			chunks: []chunk.Chunk{
 				{Id: kid("a"), First: 0, Last: 1},
 				{Id: kid("b"), First: 1, Last: 2},
 			},
 			filter: nano.MaxSpan,
 			order:  zbuf.OrderAsc,
 			exp: []SpanInfo{
-				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []Chunk{{Id: kid("a"), First: 0, Last: 1}}},
-				{Span: nano.Span{Ts: 1, Dur: 1}, Chunks: []Chunk{{Id: kid("a"), First: 0, Last: 1}, {Id: kid("b"), First: 1, Last: 2}}},
-				{Span: nano.Span{Ts: 2, Dur: 1}, Chunks: []Chunk{{Id: kid("b"), First: 1, Last: 2}}},
+				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []chunk.Chunk{{Id: kid("a"), First: 0, Last: 1}}},
+				{Span: nano.Span{Ts: 1, Dur: 1}, Chunks: []chunk.Chunk{{Id: kid("a"), First: 0, Last: 1}, {Id: kid("b"), First: 1, Last: 2}}},
+				{Span: nano.Span{Ts: 2, Dur: 1}, Chunks: []chunk.Chunk{{Id: kid("b"), First: 1, Last: 2}}},
 			},
 		},
 		{
-			chunks: []Chunk{
+			chunks: []chunk.Chunk{
 				{Id: kid("a"), First: 0, Last: 3},
 				{Id: kid("b"), First: 1, Last: 2},
 			},
 			filter: nano.MaxSpan,
 			order:  zbuf.OrderAsc,
 			exp: []SpanInfo{
-				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []Chunk{{Id: kid("a"), First: 0, Last: 3}}},
-				{Span: nano.Span{Ts: 1, Dur: 2}, Chunks: []Chunk{{Id: kid("a"), First: 0, Last: 3}, {Id: kid("b"), First: 1, Last: 2}}},
-				{Span: nano.Span{Ts: 3, Dur: 1}, Chunks: []Chunk{{Id: kid("a"), First: 0, Last: 3}}},
+				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []chunk.Chunk{{Id: kid("a"), First: 0, Last: 3}}},
+				{Span: nano.Span{Ts: 1, Dur: 2}, Chunks: []chunk.Chunk{{Id: kid("a"), First: 0, Last: 3}, {Id: kid("b"), First: 1, Last: 2}}},
+				{Span: nano.Span{Ts: 3, Dur: 1}, Chunks: []chunk.Chunk{{Id: kid("a"), First: 0, Last: 3}}},
 			},
 		},
 		{
-			chunks: []Chunk{
+			chunks: []chunk.Chunk{
 				{Id: kid("a"), First: 0, Last: 3},
 				{Id: kid("b"), First: 1, Last: 2},
 			},
 			filter: nano.Span{Ts: 1, Dur: 2},
 			order:  zbuf.OrderAsc,
 			exp: []SpanInfo{
-				{Span: nano.Span{Ts: 1, Dur: 2}, Chunks: []Chunk{{Id: kid("a"), First: 0, Last: 3}, {Id: kid("b"), First: 1, Last: 2}}},
+				{Span: nano.Span{Ts: 1, Dur: 2}, Chunks: []chunk.Chunk{{Id: kid("a"), First: 0, Last: 3}, {Id: kid("b"), First: 1, Last: 2}}},
 			},
 		},
 		{
-			chunks: []Chunk{
+			chunks: []chunk.Chunk{
 				{Id: kid("a"), First: 9, Last: 7},
 				{Id: kid("b"), First: 5, Last: 3},
 			},
 			filter: nano.MaxSpan,
 			order:  zbuf.OrderDesc,
 			exp: []SpanInfo{
-				{Span: nano.Span{Ts: 7, Dur: 3}, Chunks: []Chunk{{Id: kid("a"), First: 9, Last: 7}}},
-				{Span: nano.Span{Ts: 3, Dur: 3}, Chunks: []Chunk{{Id: kid("b"), First: 5, Last: 3}}},
+				{Span: nano.Span{Ts: 7, Dur: 3}, Chunks: []chunk.Chunk{{Id: kid("a"), First: 9, Last: 7}}},
+				{Span: nano.Span{Ts: 3, Dur: 3}, Chunks: []chunk.Chunk{{Id: kid("b"), First: 5, Last: 3}}},
 			},
 		},
 		{
-			chunks: []Chunk{
+			chunks: []chunk.Chunk{
 				{Id: kid("a"), First: 9, Last: 5},
 				{Id: kid("b"), First: 7, Last: 3},
 			},
 			filter: nano.MaxSpan,
 			order:  zbuf.OrderDesc,
 			exp: []SpanInfo{
-				{Span: nano.Span{Ts: 8, Dur: 2}, Chunks: []Chunk{{Id: kid("a"), First: 9, Last: 5}}},
-				{Span: nano.Span{Ts: 5, Dur: 3}, Chunks: []Chunk{{Id: kid("a"), First: 9, Last: 5}, {Id: kid("b"), First: 7, Last: 3}}},
-				{Span: nano.Span{Ts: 3, Dur: 2}, Chunks: []Chunk{{Id: kid("b"), First: 7, Last: 3}}},
+				{Span: nano.Span{Ts: 8, Dur: 2}, Chunks: []chunk.Chunk{{Id: kid("a"), First: 9, Last: 5}}},
+				{Span: nano.Span{Ts: 5, Dur: 3}, Chunks: []chunk.Chunk{{Id: kid("a"), First: 9, Last: 5}, {Id: kid("b"), First: 7, Last: 3}}},
+				{Span: nano.Span{Ts: 3, Dur: 2}, Chunks: []chunk.Chunk{{Id: kid("b"), First: 7, Last: 3}}},
 			},
 		},
 		{
-			chunks: []Chunk{
+			chunks: []chunk.Chunk{
 				{Id: kid("b"), First: 0, Last: 0},
 				{Id: kid("a"), First: 0, Last: 0},
 				{Id: kid("d"), First: 0, Last: 0},
@@ -122,7 +123,7 @@ func TestAlignChunksToSpans(t *testing.T) {
 			filter: nano.MaxSpan,
 			order:  zbuf.OrderAsc,
 			exp: []SpanInfo{
-				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []Chunk{
+				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []chunk.Chunk{
 					{Id: kid("a"), First: 0, Last: 0},
 					{Id: kid("b"), First: 0, Last: 0},
 					{Id: kid("c"), First: 0, Last: 0},
@@ -130,7 +131,7 @@ func TestAlignChunksToSpans(t *testing.T) {
 			},
 		},
 		{
-			chunks: []Chunk{
+			chunks: []chunk.Chunk{
 				{Id: kid("a"), First: 0, Last: 5},
 				{Id: kid("b"), First: 1, Last: 8},
 				{Id: kid("c"), First: 6, Last: 6},
@@ -139,23 +140,23 @@ func TestAlignChunksToSpans(t *testing.T) {
 			filter: nano.MaxSpan,
 			order:  zbuf.OrderAsc,
 			exp: []SpanInfo{
-				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []Chunk{
+				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []chunk.Chunk{
 					{Id: kid("a"), First: 0, Last: 5}}},
-				{Span: nano.Span{Ts: 1, Dur: 5}, Chunks: []Chunk{
+				{Span: nano.Span{Ts: 1, Dur: 5}, Chunks: []chunk.Chunk{
 					{Id: kid("a"), First: 0, Last: 5},
 					{Id: kid("b"), First: 1, Last: 8}}},
-				{Span: nano.Span{Ts: 6, Dur: 1}, Chunks: []Chunk{
+				{Span: nano.Span{Ts: 6, Dur: 1}, Chunks: []chunk.Chunk{
 					{Id: kid("b"), First: 1, Last: 8},
 					{Id: kid("c"), First: 6, Last: 6}}},
-				{Span: nano.Span{Ts: 7, Dur: 2}, Chunks: []Chunk{
+				{Span: nano.Span{Ts: 7, Dur: 2}, Chunks: []chunk.Chunk{
 					{Id: kid("b"), First: 1, Last: 8},
 					{Id: kid("d"), First: 7, Last: 10}}},
-				{Span: nano.Span{Ts: 9, Dur: 2}, Chunks: []Chunk{
+				{Span: nano.Span{Ts: 9, Dur: 2}, Chunks: []chunk.Chunk{
 					{Id: kid("d"), First: 7, Last: 10}}},
 			},
 		},
 		{
-			chunks: []Chunk{
+			chunks: []chunk.Chunk{
 				{Id: kid("a"), First: 0, Last: 10},
 				{Id: kid("b"), First: 1, Last: 10},
 				{Id: kid("c"), First: 2, Last: 10},
@@ -163,12 +164,12 @@ func TestAlignChunksToSpans(t *testing.T) {
 			filter: nano.MaxSpan,
 			order:  zbuf.OrderAsc,
 			exp: []SpanInfo{
-				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []Chunk{
+				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []chunk.Chunk{
 					{Id: kid("a"), First: 0, Last: 10}}},
-				{Span: nano.Span{Ts: 1, Dur: 1}, Chunks: []Chunk{
+				{Span: nano.Span{Ts: 1, Dur: 1}, Chunks: []chunk.Chunk{
 					{Id: kid("a"), First: 0, Last: 10},
 					{Id: kid("b"), First: 1, Last: 10}}},
-				{Span: nano.Span{Ts: 2, Dur: 9}, Chunks: []Chunk{
+				{Span: nano.Span{Ts: 2, Dur: 9}, Chunks: []chunk.Chunk{
 					{Id: kid("a"), First: 0, Last: 10},
 					{Id: kid("b"), First: 1, Last: 10},
 					{Id: kid("c"), First: 2, Last: 10}}},
@@ -217,14 +218,14 @@ func TestOverlapWalking(t *testing.T) {
 	importTzng(t, ark, data3)
 
 	{
-		var chunks []Chunk
-		err = tsDirVisit(context.Background(), ark, nano.MaxSpan, func(tsd tsDir, c []Chunk) error {
+		var chunks []chunk.Chunk
+		err = tsDirVisit(context.Background(), ark, nano.MaxSpan, func(tsd tsDir, c []chunk.Chunk) error {
 			chunks = append(chunks, c...)
 			return nil
 		})
 		require.NoError(t, err)
 		require.Len(t, chunks, 3)
-		chunksSort(ark.DataOrder, chunks)
+		chunk.Sort(ark.DataOrder, chunks)
 		var spans []nano.Span
 		for _, c := range chunks {
 			spans = append(spans, c.Span())
@@ -232,8 +233,8 @@ func TestOverlapWalking(t *testing.T) {
 		require.Equal(t, dataChunkSpans, spans)
 	}
 	{
-		var chunks []Chunk
-		err = Walk(context.Background(), ark, func(c Chunk) error {
+		var chunks []chunk.Chunk
+		err = Walk(context.Background(), ark, func(c chunk.Chunk) error {
 			chunks = append(chunks, c)
 			return nil
 		})
@@ -246,14 +247,14 @@ func TestOverlapWalking(t *testing.T) {
 		require.Equal(t, dataChunkSpans, spans)
 	}
 	{
-		var chunks []Chunk
-		err = tsDirVisit(context.Background(), ark, nano.Span{Ts: 12, Dur: 20}, func(tsd tsDir, c []Chunk) error {
+		var chunks []chunk.Chunk
+		err = tsDirVisit(context.Background(), ark, nano.Span{Ts: 12, Dur: 20}, func(tsd tsDir, c []chunk.Chunk) error {
 			chunks = append(chunks, c...)
 			return nil
 		})
 		require.NoError(t, err)
 		assert.Len(t, chunks, 2)
-		chunksSort(ark.DataOrder, chunks)
+		chunk.Sort(ark.DataOrder, chunks)
 		var spans []nano.Span
 		for _, c := range chunks {
 			spans = append(spans, c.Span())
@@ -291,15 +292,15 @@ func TestMergeLargestChunkSpanInfos(t *testing.T) {
 	}{
 		{
 			in: []SpanInfo{
-				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []Chunk{
+				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []chunk.Chunk{
 					{Id: kid("a"), First: 0, Last: 1, RecordCount: 10}}},
-				{Span: nano.Span{Ts: 1, Dur: 1}, Chunks: []Chunk{
+				{Span: nano.Span{Ts: 1, Dur: 1}, Chunks: []chunk.Chunk{
 					{Id: kid("a"), First: 0, Last: 1, RecordCount: 10},
 					{Id: kid("b"), First: 1, Last: 1, RecordCount: 5},
 				}},
 			},
 			exp: []SpanInfo{
-				{Span: nano.Span{Ts: 0, Dur: 2}, Chunks: []Chunk{
+				{Span: nano.Span{Ts: 0, Dur: 2}, Chunks: []chunk.Chunk{
 					{Id: kid("a"), First: 0, Last: 1, RecordCount: 10},
 					{Id: kid("b"), First: 1, Last: 1, RecordCount: 5},
 				}},
@@ -315,50 +316,50 @@ func TestMergeLargestChunkSpanInfos(t *testing.T) {
 
 func TestMergeChunksToSpans(t *testing.T) {
 	cases := []struct {
-		in     []Chunk
+		in     []chunk.Chunk
 		filter nano.Span
 		order  zbuf.Order
 		exp    []SpanInfo
 	}{
 		{
-			in: []Chunk{
+			in: []chunk.Chunk{
 				{Id: kid("a"), First: 0, Last: 3, RecordCount: 10},
 				{Id: kid("b"), First: 1, Last: 3, RecordCount: 20},
 			},
 			filter: nano.MaxSpan,
 			order:  zbuf.OrderAsc,
 			exp: []SpanInfo{
-				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []Chunk{
+				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []chunk.Chunk{
 					{Id: kid("a"), First: 0, Last: 3, RecordCount: 10}}},
-				{Span: nano.Span{Ts: 1, Dur: 3}, Chunks: []Chunk{
+				{Span: nano.Span{Ts: 1, Dur: 3}, Chunks: []chunk.Chunk{
 					{Id: kid("a"), First: 0, Last: 3, RecordCount: 10},
 					{Id: kid("b"), First: 1, Last: 3, RecordCount: 20}}},
 			},
 		},
 		{
-			in: []Chunk{
+			in: []chunk.Chunk{
 				{Id: kid("a"), First: 0, Last: 3, RecordCount: 20},
 				{Id: kid("b"), First: 2, Last: 5, RecordCount: 10},
 			},
 			filter: nano.MaxSpan,
 			order:  zbuf.OrderAsc,
 			exp: []SpanInfo{
-				{Span: nano.Span{Ts: 0, Dur: 4}, Chunks: []Chunk{
+				{Span: nano.Span{Ts: 0, Dur: 4}, Chunks: []chunk.Chunk{
 					{Id: kid("a"), First: 0, Last: 3, RecordCount: 20},
 					{Id: kid("b"), First: 2, Last: 5, RecordCount: 10}}},
-				{Span: nano.Span{Ts: 4, Dur: 2}, Chunks: []Chunk{
+				{Span: nano.Span{Ts: 4, Dur: 2}, Chunks: []chunk.Chunk{
 					{Id: kid("b"), First: 2, Last: 5, RecordCount: 10}}},
 			},
 		},
 		{
-			in: []Chunk{
+			in: []chunk.Chunk{
 				{Id: kid("b"), First: 0, Last: 0, RecordCount: 10},
 				{Id: kid("a"), First: 0, Last: 0, RecordCount: 10},
 			},
 			filter: nano.MaxSpan,
 			order:  zbuf.OrderAsc,
 			exp: []SpanInfo{
-				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []Chunk{
+				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []chunk.Chunk{
 					{Id: kid("a"), First: 0, Last: 0, RecordCount: 10},
 					{Id: kid("b"), First: 0, Last: 0, RecordCount: 10}}},
 			},

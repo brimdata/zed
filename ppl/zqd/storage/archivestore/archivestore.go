@@ -9,6 +9,7 @@ import (
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/ppl/archive"
+	"github.com/brimsec/zq/ppl/archive/chunk"
 	"github.com/brimsec/zq/ppl/zqd/storage"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
@@ -62,9 +63,8 @@ func (s *Storage) StaticSource(src driver.Source) driver.MultiSource {
 func (s *Storage) Summary(ctx context.Context) (storage.Summary, error) {
 	var sum storage.Summary
 	sum.Kind = api.ArchiveStore
-	err := archive.Walk(ctx, s.ark, func(chunk archive.Chunk) error {
-		zngpath := chunk.Path(s.ark)
-		info, err := iosrc.Stat(ctx, zngpath)
+	err := archive.Walk(ctx, s.ark, func(chunk chunk.Chunk) error {
+		info, err := iosrc.Stat(ctx, chunk.Path())
 		if err != nil {
 			return err
 		}

@@ -2,22 +2,18 @@ package archive
 
 import (
 	"context"
-	"io"
 	"sync/atomic"
 
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/field"
-	"github.com/brimsec/zq/pkg/bufwriter"
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/ppl/archive/seekindex"
+	"github.com/brimsec/zq/ppl/archive/chunk"
 	"github.com/brimsec/zq/proc/sort"
 	"github.com/brimsec/zq/proc/spill"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/segmentio/ksuid"
 	"go.uber.org/multierr"
 )
 
@@ -238,148 +234,28 @@ func (dw *tsDirWriter) flush() error {
 		expr.SortStable(dw.records, importCompareFn(dw.ark))
 		r = zbuf.Array(dw.records).NewReader()
 	}
-	w, err := newChunkWriter(dw.ctx, dw.ark, dw.tsDir, nil)
+	w, err := chunk.NewWriter(dw.ctx, dw.tsDir.path(dw.ark), dw.ark.DataOrder, nil, zngio.WriterOpts{
+		StreamRecordsMax: ImportStreamRecordsMax,
+		LZ4BlockSize:     importLZ4BlockSize,
+	})
 	if err != nil {
 		return err
 	}
 	if err := zbuf.CopyWithContext(dw.ctx, w, r); err != nil {
-		w.abort()
+		w.Abort()
 		return err
 	}
-	if _, err := w.close(dw.ctx); err != nil {
+	if _, err := w.Close(dw.ctx); err != nil {
 		return err
 	}
 	dw.writer.stats.Accumulate(ImportStats{
 		DataChunksWritten:  1,
-		RecordBytesWritten: w.byteCounter.size,
-		RecordsWritten:     int64(w.count),
+		RecordBytesWritten: w.BytesWritten(),
+		RecordsWritten:     int64(w.RecordsWritten()),
 	})
 	dw.records = dw.records[:0]
 	dw.addBufSize(dw.bufSize * -1)
 	return nil
-}
-
-// chunkWriter is a zbuf.Writer that writes a stream of sorted records into an
-// archive chunk file.
-type chunkWriter struct {
-	ark            *Archive
-	byteCounter    *writeCounter
-	count          uint64
-	dataFileWriter *zngio.Writer
-	firstTs        nano.Ts
-	id             ksuid.KSUID
-	lastTs         nano.Ts
-	masks          []ksuid.KSUID
-	needIndexWrite bool
-	seekIndex      *seekindex.Builder
-	tsd            tsDir
-	wroteFirst     bool
-}
-
-func newChunkWriter(ctx context.Context, ark *Archive, tsd tsDir, masks []ksuid.KSUID) (*chunkWriter, error) {
-	id := ksuid.New()
-	out, err := ark.dataSrc.NewWriter(ctx, chunkPath(ark, tsd, id))
-	if err != nil {
-		return nil, err
-	}
-	counter := &writeCounter{bufwriter.New(out), 0}
-	dataFileWriter := zngio.NewWriter(counter, zngio.WriterOpts{
-		LZ4BlockSize:     importLZ4BlockSize,
-		StreamRecordsMax: ImportStreamRecordsMax,
-	})
-	seekIndexPath := chunkSeekIndexPath(ark, tsd, id)
-	seekIndex, err := seekindex.NewBuilder(ctx, seekIndexPath.String(), ark.DataOrder)
-	if err != nil {
-		return nil, err
-	}
-	return &chunkWriter{
-		ark:            ark,
-		byteCounter:    counter,
-		dataFileWriter: dataFileWriter,
-		id:             id,
-		seekIndex:      seekIndex,
-		masks:          masks,
-		tsd:            tsd,
-	}, nil
-}
-
-func (cw *chunkWriter) position() (int64, nano.Ts, nano.Ts) {
-	return cw.dataFileWriter.Position(), cw.firstTs, cw.lastTs
-}
-
-func (cw *chunkWriter) Write(rec *zng.Record) error {
-	// We want to index the start of stream (SOS) position of the data file by
-	// record timestamps; we don't know when we've started a new stream until
-	// after we written the first record in the stream.
-	sos := cw.dataFileWriter.LastSOS()
-	if err := cw.dataFileWriter.Write(rec); err != nil {
-		return err
-	}
-	ts := rec.Ts()
-	if !cw.wroteFirst || (cw.needIndexWrite && ts != cw.lastTs) {
-		if err := cw.seekIndex.Enter(ts, sos); err != nil {
-			return err
-		}
-		cw.needIndexWrite = false
-	}
-	if cw.dataFileWriter.LastSOS() != sos {
-		cw.needIndexWrite = true
-	}
-	if !cw.wroteFirst {
-		cw.firstTs = ts
-		cw.wroteFirst = true
-	}
-	cw.lastTs = ts
-	cw.count++
-	return nil
-}
-
-// abort should be called when an error occurs during write. Errors are ignored
-// because the write error will be more informative and should be returned.
-func (cw *chunkWriter) abort() {
-	cw.dataFileWriter.Close()
-	cw.seekIndex.Abort()
-}
-
-func (cw *chunkWriter) close(ctx context.Context) (Chunk, error) {
-	return cw.closeWithTs(ctx, cw.firstTs, cw.lastTs)
-}
-
-func (cw *chunkWriter) closeWithTs(ctx context.Context, firstTs, lastTs nano.Ts) (Chunk, error) {
-	err := cw.dataFileWriter.Close()
-	if err != nil {
-		cw.seekIndex.Abort()
-		return Chunk{}, err
-	}
-	metadata := chunkMetadata{
-		First:       firstTs,
-		Last:        lastTs,
-		RecordCount: cw.count,
-		Masks:       cw.masks,
-		Size:        cw.dataFileWriter.Position(),
-	}
-	if err := writeChunkMetadata(ctx, chunkMetadataPath(cw.ark, cw.tsd, cw.id), metadata); err != nil {
-		cw.seekIndex.Abort()
-		return Chunk{}, err
-	}
-	if err := cw.seekIndex.Close(); err != nil {
-		return Chunk{}, err
-	}
-	// TODO: zq#1264
-	// Add an entry to the update log for S3 backed stores containing the
-	// location of the just added data & index file.
-	return metadata.Chunk(cw.id), nil
-}
-
-type writeCounter struct {
-	io.WriteCloser
-	size int64
-}
-
-func (w *writeCounter) Write(b []byte) (int, error) {
-	n, err := w.WriteCloser.Write(b)
-	w.size += int64(n)
-	return n, err
 }
 
 func importCompareFn(ark *Archive) expr.CompareFn {

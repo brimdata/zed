@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"path"
 	"sync/atomic"
 
 	"github.com/brimsec/zq/api"
@@ -11,6 +12,7 @@ import (
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/ppl/archive/chunk"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
@@ -46,14 +48,14 @@ func newSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, s
 	closers := make(multiCloser, 0, len(si.Chunks))
 	pullers := make([]zbuf.Puller, 0, len(si.Chunks))
 	scanners := make([]zbuf.Scanner, 0, len(si.Chunks))
-	for _, chunk := range si.Chunks {
-		rc, err := newChunkReader(ctx, chunk, ark, si.Span)
+	for _, chk := range si.Chunks {
+		rc, err := chunk.NewReader(ctx, chk, si.Span)
 		if err != nil {
 			closers.Close()
 			return nil, stats, err
 		}
-		stats.ChunksOpenedBytes += rc.totalSize
-		stats.ChunksReadBytes += rc.readSize
+		stats.ChunksOpenedBytes += rc.TotalSize
+		stats.ChunksReadBytes += rc.ReadSize
 		closers = append(closers, rc)
 		reader := zngio.NewReader(rc, zctx)
 		scanner, err := reader.NewScanner(ctx, sf.FilterExpr, si.Span)
@@ -115,15 +117,17 @@ func (m *spanMultiSource) SendSources(ctx context.Context, span nano.Span, srcCh
 func (m *spanMultiSource) SourceFromRequest(ctx context.Context, req *api.WorkerRequest) (driver.Source, error) {
 	si := SpanInfo{Span: req.Span}
 	for _, p := range req.ChunkPaths {
-		tsd, _, id, ok := parseChunkRelativePath(p)
+		dir, file := path.Split(p)
+		_, id, ok := chunk.FileMatch(file)
 		if !ok {
 			return nil, zqe.E(zqe.Invalid, "invalid chunk path: %v", p)
 		}
-		md, err := readChunkMetadata(ctx, chunkMetadataPath(m.ark, tsd, id))
+		uri := m.ark.Root.AppendPath(dir)
+		md, err := chunk.ReadMetadata(ctx, chunk.MetadataPath(uri, id))
 		if err != nil {
 			return nil, err
 		}
-		si.Chunks = append(si.Chunks, md.Chunk(id))
+		si.Chunks = append(si.Chunks, md.Chunk(uri, id))
 	}
 	return &spanSource{
 		ark:      m.ark,
@@ -152,7 +156,7 @@ func (s *spanSource) ToRequest(req *api.WorkerRequest) error {
 	req.Span = s.spanInfo.Span
 	req.DataPath = s.ark.DataPath.String()
 	for _, c := range s.spanInfo.Chunks {
-		req.ChunkPaths = append(req.ChunkPaths, c.RelativePath())
+		req.ChunkPaths = append(req.ChunkPaths, s.ark.Root.RelPath(c.Path()))
 	}
 	return nil
 }
@@ -171,7 +175,7 @@ func (cms *chunkMultiSource) OrderInfo() (field.Static, bool) {
 }
 
 func (cms *chunkMultiSource) SendSources(ctx context.Context, span nano.Span, srcChan chan driver.Source) error {
-	return Walk(ctx, cms.ark, func(chunk Chunk) error {
+	return Walk(ctx, cms.ark, func(chunk chunk.Chunk) error {
 		select {
 		case srcChan <- &chunkSource{cms: cms, chunk: chunk, stats: cms.stats}:
 			return nil
@@ -198,7 +202,7 @@ type scannerCloser struct {
 
 type chunkSource struct {
 	cms   *chunkMultiSource
-	chunk Chunk
+	chunk chunk.Chunk
 	stats *ChunkStats
 }
 
@@ -206,7 +210,7 @@ func (s *chunkSource) Open(ctx context.Context, zctx *resolver.Context, sf drive
 	var size int64
 	paths := make([]string, len(s.cms.altPaths))
 	for i, input := range s.cms.altPaths {
-		u := s.chunk.Localize(s.cms.ark, input)
+		u := s.chunk.Localize(input)
 		stat, err := iosrc.Stat(ctx, u)
 		if err != nil {
 			return nil, err

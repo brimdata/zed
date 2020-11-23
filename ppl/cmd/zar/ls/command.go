@@ -12,6 +12,7 @@ import (
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/ppl/archive"
+	"github.com/brimsec/zq/ppl/archive/chunk"
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
 	"github.com/mccanne/charm"
 )
@@ -66,13 +67,13 @@ func (c *Command) Run(args []string) error {
 		return archive.SpanWalk(context.TODO(), ark, nano.MaxSpan, func(si archive.SpanInfo) error {
 			for i, chunk := range si.Chunks {
 				rangeStr := si.ChunkRange(ark.DataOrder, i)
-				c.printDir(ark, rangeStr, chunk.ZarDir(ark), pattern)
+				c.printDir(ark, rangeStr, chunk.ZarDir(), pattern)
 			}
 			return nil
 		})
 	}
-	return archive.Walk(context.TODO(), ark, func(chunk archive.Chunk) error {
-		c.printDir(ark, "", chunk.ZarDir(ark), pattern)
+	return archive.Walk(context.TODO(), ark, func(chunk chunk.Chunk) error {
+		c.printDir(ark, "", chunk.ZarDir(), pattern)
 		return nil
 	})
 }

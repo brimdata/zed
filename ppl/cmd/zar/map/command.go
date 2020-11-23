@@ -13,6 +13,7 @@ import (
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
 	"github.com/brimsec/zq/ppl/archive"
+	"github.com/brimsec/zq/ppl/archive/chunk"
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
@@ -98,11 +99,11 @@ func (c *Command) Run(args []string) error {
 
 	// XXX this is parallelizable except for writing to stdout when
 	// concatenating results
-	return archive.Walk(ctx, ark, func(chunk archive.Chunk) error {
-		zardir := chunk.ZarDir(ark)
+	return archive.Walk(ctx, ark, func(chunk chunk.Chunk) error {
+		zardir := chunk.ZarDir()
 		var paths []string
 		for _, input := range inputs {
-			paths = append(paths, chunk.Localize(ark, input).String())
+			paths = append(paths, chunk.Localize(input).String())
 		}
 		zctx := resolver.NewContext()
 		opts := zio.ReaderOpts{Format: "zng"}

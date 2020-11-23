@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"testing"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/test"
+	"github.com/brimsec/zq/ppl/archive/chunk"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
@@ -98,22 +100,22 @@ func TestOpenOptions(t *testing.T) {
 
 	first1 := nano.Ts(1587517353062391210)
 	first2 := nano.Ts(1587509477064505280)
-	var chunk1, chunk2 Chunk
+	var chunk1, chunk2 chunk.Chunk
 	err = filepath.Walk(datapath, func(p string, fi os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if k, id, ok := chunkFileMatch(fi.Name()); ok && k == FileKindMetadata {
+		if k, id, ok := chunk.FileMatch(fi.Name()); ok && k == chunk.FileKindMetadata {
 			uri, err := iosrc.ParseURI(p)
 			if err != nil {
 				return err
 			}
-			md, err := readChunkMetadata(context.Background(), uri)
+			uri.Path = path.Dir(uri.Path)
+			chunk, err := chunk.Open(context.Background(), uri, id)
 			if err != nil {
 				return err
 			}
-			chunk := md.Chunk(id)
-			switch md.First {
+			switch chunk.First {
 			case first1:
 				chunk1 = chunk
 			case first2:
@@ -128,10 +130,13 @@ func TestOpenOptions(t *testing.T) {
 	}
 
 	out := indexQuery(t, ark1, query, AddPath(DefaultAddPathField, false))
-	require.Equal(t, test.Trim(fmt.Sprintf(expFormat, chunk1.RelativePath(), chunk2.RelativePath())), out)
+	require.Equal(t,
+		test.Trim(fmt.Sprintf(expFormat, ark1.Root.RelPath(chunk1.Path()), ark1.Root.RelPath(chunk2.Path()))),
+		out,
+	)
 
 	ark2, err := OpenArchive(datapath, &OpenOptions{
-		LogFilter: []string{string(chunk1.RelativePath())},
+		LogFilter: []string{ark1.Root.RelPath(chunk1.Path())},
 	})
 	require.NoError(t, err)
 
@@ -141,7 +146,7 @@ func TestOpenOptions(t *testing.T) {
 0:[336;1;%s;1587517353.06239121;1587516769.06905117;]
 `
 	out = indexQuery(t, ark2, query, AddPath(DefaultAddPathField, false))
-	require.Equal(t, test.Trim(fmt.Sprintf(expFormat, chunk1.RelativePath())), out)
+	require.Equal(t, test.Trim(fmt.Sprintf(expFormat, ark1.Root.RelPath(chunk1.Path()))), out)
 }
 
 func TestSeekIndex(t *testing.T) {
@@ -158,7 +163,7 @@ func TestSeekIndex(t *testing.T) {
 		// Must use SortAscending: true until zq#1329 is addressed.
 		SortAscending: true,
 	})
-	ark, err := OpenArchive(datapath, &OpenOptions{})
+	_, err = OpenArchive(datapath, &OpenOptions{})
 	require.NoError(t, err)
 
 	first1 := nano.Ts(1587508830068523240)
@@ -167,18 +172,18 @@ func TestSeekIndex(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		if k, id, ok := chunkFileMatch(fi.Name()); ok && k == FileKindMetadata {
+		if k, id, ok := chunk.FileMatch(fi.Name()); ok && k == chunk.FileKindMetadata {
 			uri, err := iosrc.ParseURI(p)
 			if err != nil {
 				return err
 			}
-			md, err := readChunkMetadata(context.Background(), uri)
+			uri.Path = path.Dir(uri.Path)
+			chunk, err := chunk.Open(context.Background(), uri, id)
 			if err != nil {
 				return err
 			}
-			chunk := md.Chunk(id)
 			if chunk.First == first1 {
-				idxUri = chunk.seekIndexPath(ark)
+				idxUri = chunk.SeekIndexPath()
 			}
 		}
 		return nil
