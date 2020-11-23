@@ -18,7 +18,7 @@ type Writer struct {
 	writer     io.WriteCloser
 	flattener  *flattener.Flattener
 	precision  int
-	format     zng.OutFmt
+	utf8       bool
 }
 
 type WriterOpts struct {
@@ -27,17 +27,13 @@ type WriterOpts struct {
 }
 
 func NewWriter(w io.WriteCloser, utf8 bool, opts WriterOpts, dates bool) *Writer {
-	format := zng.OutFormatZeekAscii
-	if utf8 {
-		format = zng.OutFormatZeek
-	}
 	return &Writer{
 		WriterOpts: opts,
 		EpochDates: dates,
 		writer:     w,
 		flattener:  flattener.New(resolver.NewContext()),
 		precision:  6,
-		format:     format,
+		utf8:       utf8,
 	}
 }
 
@@ -66,7 +62,10 @@ func (w *Writer) Write(rec *zng.Record) error {
 					v = ts.Time().UTC().Format(time.RFC3339Nano)
 				}
 			} else {
-				v = value.Format(w.format)
+				v = value.Format(zng.OutFormatUnescaped)
+				if !w.utf8 {
+					v = zeekio.EscapeNonASCII(v)
+				}
 			}
 			if w.ShowFields {
 				s = col.Name + ":"
@@ -79,7 +78,7 @@ func (w *Writer) Write(rec *zng.Record) error {
 	} else {
 		var err error
 		var changePrecision bool
-		out, changePrecision, err = zeekio.ZeekStrings(rec, w.precision, w.format)
+		out, changePrecision, err = zeekio.ZeekStrings(rec, w.precision, w.utf8)
 		if err != nil {
 			return err
 		}

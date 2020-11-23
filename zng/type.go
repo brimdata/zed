@@ -33,8 +33,6 @@ type OutFmt int
 const (
 	OutFormatUnescaped = OutFmt(iota)
 	OutFormatZNG
-	OutFormatZeek
-	OutFormatZeekAscii
 )
 
 // A Type is an interface presented by a zeek type.

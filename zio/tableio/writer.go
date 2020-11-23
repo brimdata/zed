@@ -7,6 +7,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/brimsec/zq/zio/zeekio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/flattener"
 	"github.com/brimsec/zq/zng/resolver"
@@ -20,22 +21,18 @@ type Writer struct {
 	limit      int
 	nline      int
 	epochDates bool
-	format     zng.OutFmt
+	utf8       bool
 }
 
 func NewWriter(w io.WriteCloser, utf8, epochDates bool) *Writer {
 	table := tabwriter.NewWriter(w, 0, 8, 1, ' ', 0)
-	format := zng.OutFormatZeekAscii
-	if utf8 {
-		format = zng.OutFormatZeek
-	}
 	return &Writer{
 		writer:     w,
 		flattener:  flattener.New(resolver.NewContext()),
 		table:      table,
 		limit:      1000,
 		epochDates: epochDates,
-		format:     format,
+		utf8:       utf8,
 	}
 }
 
@@ -81,7 +78,10 @@ func (w *Writer) Write(r *zng.Record) error {
 				v = ts.Time().UTC().Format(time.RFC3339Nano)
 			}
 		} else {
-			v = value.Format(w.format)
+			v = value.Format(zng.OutFormatUnescaped)
+			if !w.utf8 {
+				v = zeekio.EscapeNonASCII(v)
+			}
 		}
 		out = append(out, v)
 	}

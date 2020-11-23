@@ -43,10 +43,6 @@ func (t *TypeSet) Parse(in []byte) (zcode.Bytes, error) {
 }
 
 func (t *TypeSet) StringOf(zv zcode.Bytes, fmt OutFmt, _ bool) string {
-	if len(zv) == 0 && (fmt == OutFormatZeek || fmt == OutFormatZeekAscii) {
-		return "(empty)"
-	}
-
 	var b strings.Builder
 	separator := byte(',')
 	if fmt == OutFormatZNG {

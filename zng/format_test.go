@@ -46,8 +46,6 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewBstring("foo"),
 			[]Expect{
-				{zng.OutFormatZeek, "foo"},
-				{zng.OutFormatZeekAscii, "foo"},
 				{zng.OutFormatZNG, "foo"},
 			},
 		},
@@ -56,8 +54,6 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.Value{zng.TypeBstring, nil},
 			[]Expect{
-				{zng.OutFormatZeek, "-"},
-				{zng.OutFormatZeekAscii, "-"},
 				{zng.OutFormatZNG, "-"},
 			},
 		},
@@ -66,8 +62,6 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewBstring("-"),
 			[]Expect{
-				{zng.OutFormatZeek, `\x2d`},
-				{zng.OutFormatZeekAscii, `\x2d`},
 				{zng.OutFormatZNG, `\x2d`},
 			},
 		},
@@ -76,8 +70,6 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewBstring("--"),
 			[]Expect{
-				{zng.OutFormatZeek, "--"},
-				{zng.OutFormatZeekAscii, "--"},
 				{zng.OutFormatZNG, "--"},
 			},
 		},
@@ -86,8 +78,6 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.Value{zng.TypeBstring, []byte{0xae, 0x8c, 0x9f, 0xf0}},
 			[]Expect{
-				{zng.OutFormatZeek, `\xae\x8c\x9f\xf0`},
-				{zng.OutFormatZeekAscii, `\xae\x8c\x9f\xf0`},
 				{zng.OutFormatZNG, `\xae\x8c\x9f\xf0`},
 			},
 		},
@@ -96,8 +86,6 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewBstring(`\`),
 			[]Expect{
-				{zng.OutFormatZeek, `\\`},
-				{zng.OutFormatZeekAscii, `\\`},
 				{zng.OutFormatZNG, `\\`},
 			},
 		},
@@ -106,8 +94,6 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewBstring("\n\t"),
 			[]Expect{
-				{zng.OutFormatZeek, `\x0a\x09`},
-				{zng.OutFormatZeekAscii, `\x0a\x09`},
 				{zng.OutFormatZNG, `\x0a\x09`},
 			},
 		},
@@ -116,8 +102,6 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewBstring("a,b"),
 			[]Expect{
-				{zng.OutFormatZeek, `a,b`},
-				{zng.OutFormatZeekAscii, `a,b`},
 				{zng.OutFormatZNG, `a,b`},
 			},
 		},
@@ -126,8 +110,6 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewBstring("[hello"),
 			[]Expect{
-				{zng.OutFormatZeek, `[hello`},
-				{zng.OutFormatZeekAscii, `[hello`},
 				{zng.OutFormatZNG, `\x5bhello`},
 			},
 		},
@@ -136,8 +118,6 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewBstring("hello["),
 			[]Expect{
-				{zng.OutFormatZeek, `hello[`},
-				{zng.OutFormatZeekAscii, `hello[`},
 				{zng.OutFormatZNG, `hello[`},
 			},
 		},
@@ -146,19 +126,14 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewBstring(";"),
 			[]Expect{
-				{zng.OutFormatZeek, `;`},
-				{zng.OutFormatZeekAscii, `;`},
 				{zng.OutFormatZNG, `\x3b`},
 			},
 		},
 
-		// A non-ascii unicode code point is escaped in zeek-ascii
-		// but left intact in other formats.
+		// A non-ascii unicode code point is left intact.
 		{
 			zng.NewBstring("🌮"),
 			[]Expect{
-				{zng.OutFormatZeek, "🌮"},
-				{zng.OutFormatZeekAscii, `\xf0\x9f\x8c\xae`},
 				{zng.OutFormatZNG, "🌮"},
 			},
 		},
@@ -171,8 +146,6 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewString("-"),
 			[]Expect{
-				{zng.OutFormatZeek, `\u002d`},
-				{zng.OutFormatZeekAscii, `\u002d`},
 				{zng.OutFormatZNG, `\u002d`},
 			},
 		},
@@ -181,8 +154,6 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewString(`\`),
 			[]Expect{
-				{zng.OutFormatZeek, `\\`},
-				{zng.OutFormatZeekAscii, `\\`},
 				{zng.OutFormatZNG, `\\`},
 			},
 		},
@@ -191,8 +162,6 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewString("\n\t"),
 			[]Expect{
-				{zng.OutFormatZeek, `\u{a}\u{9}`},
-				{zng.OutFormatZeekAscii, `\u{a}\u{9}`},
 				{zng.OutFormatZNG, `\u{a}\u{9}`},
 			},
 		},
@@ -201,8 +170,6 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewString("a,b"),
 			[]Expect{
-				{zng.OutFormatZeek, `a,b`},
-				{zng.OutFormatZeekAscii, `a,b`},
 				{zng.OutFormatZNG, `a,b`},
 			},
 		},
@@ -211,8 +178,6 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewString("[hello"),
 			[]Expect{
-				{zng.OutFormatZeek, `[hello`},
-				{zng.OutFormatZeekAscii, `[hello`},
 				{zng.OutFormatZNG, `\u{5b}hello`},
 			},
 		},
@@ -221,8 +186,6 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewString(";"),
 			[]Expect{
-				{zng.OutFormatZeek, `;`},
-				{zng.OutFormatZeekAscii, `;`},
 				{zng.OutFormatZNG, `\u{3b}`},
 			},
 		},
@@ -235,8 +198,6 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.Value{bstringSetType, nil},
 			[]Expect{
-				{zng.OutFormatZeek, "-"},
-				{zng.OutFormatZeekAscii, "-"},
 				{zng.OutFormatZNG, "-"},
 			},
 		},
@@ -245,8 +206,6 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.Value{bstringSetType, []byte{}},
 			[]Expect{
-				{zng.OutFormatZeek, "(empty)"},
-				{zng.OutFormatZeekAscii, "(empty)"},
 				{zng.OutFormatZNG, "[]"},
 			},
 		},
@@ -258,17 +217,7 @@ func TestFormatting(t *testing.T) {
 				makeContainer([]byte("abc"), []byte("xyz")),
 			},
 			[]Expect{
-				{zng.OutFormatZeek, "abc,xyz"},
-				{zng.OutFormatZeekAscii, "abc,xyz"},
 				{zng.OutFormatZNG, "[abc;xyz;]"},
-			},
-		},
-
-		// A comma inside a string inside a set is escaped in Zeek.
-		{
-			zng.Value{bstringSetType, makeContainer([]byte("a,b"))},
-			[]Expect{
-				{zng.OutFormatZeek, `a\x2cb`},
 			},
 		},
 
@@ -282,7 +231,6 @@ func TestFormatting(t *testing.T) {
 				),
 			},
 			[]Expect{
-				// not representable in zeek
 				{zng.OutFormatZNG, `[[a;b;];[x;y;];]`},
 			},
 		},
@@ -295,8 +243,6 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.Value{bstringVecType, nil},
 			[]Expect{
-				{zng.OutFormatZeek, "-"},
-				{zng.OutFormatZeekAscii, "-"},
 				{zng.OutFormatZNG, "-"},
 			},
 		},
@@ -305,8 +251,6 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.Value{bstringVecType, []byte{}},
 			[]Expect{
-				{zng.OutFormatZeek, "(empty)"},
-				{zng.OutFormatZeekAscii, "(empty)"},
 				{zng.OutFormatZNG, "[]"},
 			},
 		},
@@ -318,8 +262,6 @@ func TestFormatting(t *testing.T) {
 				makeContainer([]byte("abc"), []byte("xyz")),
 			},
 			[]Expect{
-				{zng.OutFormatZeek, "abc,xyz"},
-				{zng.OutFormatZeekAscii, "abc,xyz"},
 				{zng.OutFormatZNG, "[abc;xyz;]"},
 			},
 		},
@@ -334,16 +276,7 @@ func TestFormatting(t *testing.T) {
 				),
 			},
 			[]Expect{
-				// not representable in zeek
 				{zng.OutFormatZNG, `[[a;b;];[x;y;];]`},
-			},
-		},
-
-		// A comma inside a string inside a vector is escaped in Zeek.
-		{
-			zng.Value{bstringVecType, makeContainer([]byte("a,b"))},
-			[]Expect{
-				{zng.OutFormatZeek, `a\x2cb`},
 			},
 		},
 
@@ -354,7 +287,6 @@ func TestFormatting(t *testing.T) {
 				makeContainer([]byte("-"), nil),
 			},
 			[]Expect{
-				{zng.OutFormatZeek, `\x2d,-`},
 				{zng.OutFormatZNG, `[\x2d;-;]`},
 			},
 		},
@@ -363,7 +295,6 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.Value{bstringVecType, makeContainer([]byte{})},
 			[]Expect{
-				{zng.OutFormatZeek, ""},
 				{zng.OutFormatZNG, `[;]`},
 			},
 		},

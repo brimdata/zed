@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"unicode"
 
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/flattener"
 	"github.com/brimsec/zq/zng/resolver"
@@ -20,21 +22,15 @@ type Writer struct {
 	flattener *flattener.Flattener
 	typ       *zng.TypeRecord
 	precision int
-	format    zng.OutFmt
+	utf8      bool
 }
 
 func NewWriter(w io.WriteCloser, utf8 bool) *Writer {
-	var format zng.OutFmt
-	if utf8 {
-		format = zng.OutFormatZeek
-	} else {
-		format = zng.OutFormatZeekAscii
-	}
 	return &Writer{
 		writer:    w,
 		flattener: flattener.New(resolver.NewContext()),
 		precision: 6,
-		format:    format,
+		utf8:      utf8,
 	}
 }
 
@@ -54,7 +50,7 @@ func (w *Writer) Write(r *zng.Record) error {
 		}
 		w.typ = r.Type
 	}
-	values, changePrecision, err := ZeekStrings(r, w.precision, w.format)
+	values, changePrecision, err := ZeekStrings(r, w.precision, w.utf8)
 	if err != nil {
 		return err
 	}
@@ -129,7 +125,7 @@ func isHighPrecision(ts nano.Ts) bool {
 
 // This returns the zeek strings for this record.  XXX We need to not use this.
 // XXX change to Pretty for output writers?... except zeek?
-func ZeekStrings(r *zng.Record, precision int, fmt zng.OutFmt) ([]string, bool, error) {
+func ZeekStrings(r *zng.Record, precision int, utf8 bool) ([]string, bool, error) {
 	var ss []string
 	it := r.ZvalIter()
 	var changePrecision bool
@@ -152,9 +148,82 @@ func ZeekStrings(r *zng.Record, precision int, fmt zng.OutFmt) ([]string, bool, 
 			}
 			field = string(ts.AppendFloat(nil, precision))
 		} else {
-			field = col.Type.StringOf(val, fmt, false)
+			var err error
+			field, err = format(col.Type, val)
+			if err != nil {
+				return nil, false, err
+			}
+			if !utf8 {
+				field = EscapeNonASCII(field)
+			}
 		}
 		ss = append(ss, field)
 	}
 	return ss, changePrecision, nil
+}
+
+func format(typ zng.Type, zb zcode.Bytes) (string, error) {
+	if zb == nil {
+		return "-", nil
+	}
+	switch typ := zng.AliasedType(typ).(type) {
+	case *zng.TypeRecord, *zng.TypeUnion, *zng.TypeEnum, *zng.TypeMap:
+		return "", fmt.Errorf("can't format type %T", typ)
+	case *zng.TypeArray:
+		return formatArrayOrSet(typ.Type, zb)
+	case *zng.TypeSet:
+		return formatArrayOrSet(typ.Type, zb)
+	default:
+		return typ.StringOf(zb, zng.OutFormatUnescaped, false), nil
+	}
+}
+
+func formatArrayOrSet(typ zng.Type, zb zcode.Bytes) (string, error) {
+	iter := zb.Iter()
+	if iter.Done() {
+		return "(empty)", nil
+	}
+	var b strings.Builder
+	for {
+		zb, _, err := iter.Next()
+		if err != nil {
+			return "", err
+		}
+		s, err := format(typ, zb)
+		if err != nil {
+			return "", err
+		}
+		b.WriteString(strings.ReplaceAll(s, ",", "\\x2c"))
+		if iter.Done() {
+			return b.String(), nil
+		}
+		b.WriteByte(',')
+	}
+}
+
+// EscapeNonASCII returns a copy of s with each non-ASCII byte replaced by its
+// corresponding \xhh hexadecimal escape sequence.
+func EscapeNonASCII(s string) string {
+	var nonascii bool
+	for i := 0; i < len(s); i++ {
+		if rune(s[i]) > unicode.MaxASCII {
+			nonascii = true
+			break
+		}
+	}
+	if !nonascii {
+		return s
+	}
+	var b strings.Builder
+	for i := 0; i < len(s); i++ {
+		if rune(s[i]) > unicode.MaxASCII {
+			b.WriteString("\\x")
+			const hex = "0123456789abcdef"
+			b.WriteByte(hex[s[i]>>4])
+			b.WriteByte(hex[s[i]&0xf])
+		} else {
+			b.WriteByte(s[i])
+		}
+	}
+	return b.String()
 }

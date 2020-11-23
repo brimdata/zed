@@ -52,7 +52,7 @@ func uescape(r rune) []byte {
 	return []byte(s)
 }
 
-func (t *TypeOfString) StringOf(zv zcode.Bytes, fmt OutFmt, inContainer bool) string {
+func (t *TypeOfString) StringOf(zv zcode.Bytes, fmt OutFmt, _ bool) string {
 	if fmt != OutFormatUnescaped && bytes.Equal(zv, []byte{'-'}) {
 		return "\\u002d"
 	}
@@ -68,7 +68,7 @@ func (t *TypeOfString) StringOf(zv zcode.Bytes, fmt OutFmt, inContainer bool) st
 			start = i
 			continue
 		}
-		if !unicode.IsPrint(r) || ShouldEscape(r, fmt, i, inContainer) {
+		if !unicode.IsPrint(r) || ShouldEscape(r, fmt, i) {
 			out = append(out, zv[start:i]...)
 			out = append(out, uescape(r)...)
 			i += l

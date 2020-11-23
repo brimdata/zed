@@ -37,10 +37,7 @@ const hexdigits = "0123456789abcdef"
 // Values of type bstring may contain a mix of valid UTF-8 and arbitrary
 // binary data.  These are represented in output using the same formatting
 // with "\x.." escapes as Zeek.
-// In general, valid UTF-8 code points are passed through unmodified,
-// though for the ZEEK_ASCII output format, all non-ascii bytes are
-// escaped for compatibility with older versions of Zeek.
-func (t *TypeOfBstring) StringOf(data zcode.Bytes, fmt OutFmt, inContainer bool) string {
+func (t *TypeOfBstring) StringOf(data zcode.Bytes, fmt OutFmt, _ bool) string {
 	if bytes.Equal(data, []byte{'-'}) {
 		return "\\x2d"
 	}
@@ -58,7 +55,7 @@ func (t *TypeOfBstring) StringOf(data zcode.Bytes, fmt OutFmt, inContainer bool)
 		}
 		needEscape := r == utf8.RuneError || !unicode.IsPrint(r)
 		if !needEscape {
-			needEscape = ShouldEscape(r, fmt, i, inContainer)
+			needEscape = ShouldEscape(r, fmt, i)
 		}
 		if needEscape {
 			out = append(out, data[start:i]...)

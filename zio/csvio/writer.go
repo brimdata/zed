@@ -6,6 +6,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/brimsec/zq/zio/zeekio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/flattener"
 	"github.com/brimsec/zq/zng/resolver"
@@ -18,21 +19,17 @@ type Writer struct {
 	writer     io.WriteCloser
 	encoder    *csv.Writer
 	flattener  *flattener.Flattener
-	format     zng.OutFmt
+	utf8       bool
 	first      *zng.TypeRecord
 }
 
 func NewWriter(w io.WriteCloser, utf8, epochDates bool) *Writer {
-	format := zng.OutFormatZeekAscii
-	if utf8 {
-		format = zng.OutFormatZeek
-	}
 	return &Writer{
 		writer:     w,
 		epochDates: epochDates,
 		encoder:    csv.NewWriter(w),
 		flattener:  flattener.New(resolver.NewContext()),
-		format:     format,
+		utf8:       utf8,
 	}
 }
 
@@ -76,7 +73,10 @@ func (w *Writer) Write(rec *zng.Record) error {
 				v = ts.Time().UTC().Format(time.RFC3339Nano)
 			}
 		} else {
-			v = value.Format(w.format)
+			v = value.Format(zng.OutFormatUnescaped)
+			if !w.utf8 {
+				v = zeekio.EscapeNonASCII(v)
+			}
 		}
 		out = append(out, v)
 	}
