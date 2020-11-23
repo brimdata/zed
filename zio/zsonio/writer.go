@@ -19,7 +19,6 @@ type Writer struct {
 	zctx        *resolver.Context
 	mapper      *resolver.Mapper
 	tags        typemap
-	nrec        int
 	tab         int
 	newline     string
 	whitespace  string
@@ -237,8 +236,7 @@ func (w *Writer) writeMap(indent int, typ *zng.TypeMap, bytes zcode.Bytes) error
 	}
 	indent += w.tab
 	sep := w.newline
-	it := bytes.Iter()
-	for !it.Done() {
+	for it := bytes.Iter(); !it.Done(); {
 		keyBytes, _, err := it.Next()
 		if err != nil {
 			return err
