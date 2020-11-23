@@ -112,7 +112,7 @@ func (w *Writer) Write(rec *zng.Record) error {
 }
 
 // flusher is a background goroutine for an active Writer that periodically
-// checks for tsdir writers that have not recieved data in a while. If such a
+// checks for tsdir writers that have not received data in a while. If such a
 // writer is found, it is flushed to disk and closed.
 func (w *Writer) flusher() error {
 	ticker := time.NewTicker(time.Second)
