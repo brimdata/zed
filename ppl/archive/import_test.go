@@ -29,14 +29,13 @@ func testImportFlushTimeout(t *testing.T, timeout time.Duration, expected uint64
 0:[1587508850.06466032;202;]`
 
 	// create archive with a 1 ns ImportFlushTimeout
-	ark, err := CreateOrOpenArchive(t.TempDir(), &CreateOptions{
-		ImportFlushTimeout: timeout,
-	}, nil)
+	ark, err := CreateOrOpenArchive(t.TempDir(), nil, nil)
 	require.NoError(t, err)
 
 	// write one record to an open archive.Writer and do NOT close it.
 	w := NewWriter(context.Background(), ark)
 	defer w.Close()
+	w.SetFlushTimeout(timeout)
 	r := tzngio.NewReader(strings.NewReader(data), resolver.NewContext())
 	require.NoError(t, zbuf.Copy(w, r))
 

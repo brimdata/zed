@@ -26,6 +26,10 @@ var (
 	// before they are flushed to disk.
 	ImportBufSize          = int64(sort.MemMaxBytes)
 	ImportStreamRecordsMax = zngio.DefaultStreamRecordsMax
+	// DefaultImportFlushTimeout is the default time that an archive will wait
+	// before flushing to disk and closing a tsdir that has not received any new
+	// data.
+	DefaultImportFlushTimeout = time.Second
 )
 
 // For unit testing.
@@ -48,34 +52,39 @@ func Import(ctx context.Context, ark *Archive, zctx *resolver.Context, r zbuf.Re
 // TODO zq#1432 Writer does not currently keep track of size of records
 // written to temporary files. At some point this should have a maxTempFileSize
 // to ensure the Writer does not exceed the size of a provisioned tmpfs.
-//
-// TODO zq#1433 If a tsDir never gets enough data to reach ark.LogSizeThreshold,
-// the data will sit in the tsDirWriter and remain unsearchable until the
-// provided read stream is closed. Add some kind of timeout functionality that
-// periodically flushes stale tsDirWriters.
 type Writer struct {
-	ark      *Archive
-	cancel   context.CancelFunc
-	ctx      context.Context
-	errgroup *errgroup.Group
-	mu       sync.RWMutex
-	once     sync.Once
-	writers  map[tsDir]*tsDirWriter
+	ark          *Archive
+	cancel       context.CancelFunc
+	ctx          context.Context
+	errgroup     *errgroup.Group
+	flushTimeout time.Duration
+	once         sync.Once
+	writers      map[tsDir]*tsDirWriter
+	writersMu    sync.RWMutex
 
 	memBuffered int64
 	stats       ImportStats
 }
 
+// NewWriter creates a zbuf.Writer compliant writer for writing data to an
+// archive.
 func NewWriter(ctx context.Context, ark *Archive) *Writer {
 	g, ctx := errgroup.WithContext(ctx)
 	ctx, cancel := context.WithCancel(ctx)
 	return &Writer{
-		ark:      ark,
-		cancel:   cancel,
-		ctx:      ctx,
-		errgroup: g,
-		writers:  make(map[tsDir]*tsDirWriter),
+		ark:          ark,
+		cancel:       cancel,
+		ctx:          ctx,
+		errgroup:     g,
+		flushTimeout: DefaultImportFlushTimeout,
+		writers:      make(map[tsDir]*tsDirWriter),
 	}
+}
+
+// SetFlushTimeout sets the interval at which the Writer will wait to flush
+// stale records to disk. This must be called before writing any records.
+func (w *Writer) SetFlushTimeout(timeout time.Duration) {
+	w.flushTimeout = timeout
 }
 
 func (w *Writer) Write(rec *zng.Record) error {
@@ -83,27 +92,33 @@ func (w *Writer) Write(rec *zng.Record) error {
 		w.errgroup.Go(w.flusher)
 	})
 	if w.ctx.Err() != nil {
-		return w.errgroup.Wait()
+		if err := w.errgroup.Wait(); err != nil {
+			return err
+		}
+		return w.ctx.Err()
 	}
 
 	tsDir := newTsDir(rec.Ts())
-	w.mu.RLock()
+	w.writersMu.RLock()
 	dw, ok := w.writers[tsDir]
-	w.mu.RUnlock()
+	w.writersMu.RUnlock()
 	if !ok {
 		var err error
 		dw, err = newTsDirWriter(w, tsDir)
 		if err != nil {
 			return err
 		}
-		w.mu.Lock()
-		w.writers[tsDir] = dw
-		w.mu.Unlock()
+		w.writersMu.Lock()
+		if _, ok := w.writers[tsDir]; !ok {
+			w.writers[tsDir] = dw
+		}
+		dw = w.writers[tsDir]
+		w.writersMu.Unlock()
 	}
 	if err := dw.Write(rec); err != nil {
 		return err
 	}
-	for w.memBuffered > ImportBufSize {
+	for atomic.LoadInt64(&w.memBuffered) > ImportBufSize {
 		if err := w.spillLargestBuffer(); err != nil {
 			return err
 		}
@@ -115,7 +130,7 @@ func (w *Writer) Write(rec *zng.Record) error {
 // checks for tsdir writers that have not received data in a while. If such a
 // writer is found, it is flushed to disk and closed.
 func (w *Writer) flusher() error {
-	ticker := time.NewTicker(time.Second)
+	ticker := time.NewTicker(w.flushTimeout)
 	defer ticker.Stop()
 	for {
 		select {
@@ -130,16 +145,16 @@ func (w *Writer) flusher() error {
 }
 
 func (w *Writer) flushStaleWriters() error {
-	w.mu.Lock()
-	var stale []*tsDirWriter
 	now := time.Now()
+	w.writersMu.Lock()
+	var stale []*tsDirWriter
 	for tsd, writer := range w.writers {
-		if now.Sub(writer.modified()) > w.ark.ImportFlushTimeout {
+		if now.Sub(writer.modified()) > w.flushTimeout {
 			stale = append(stale, writer)
 			delete(w.writers, tsd)
 		}
 	}
-	w.mu.Unlock()
+	w.writersMu.Unlock()
 	for _, writer := range stale {
 		if err := writer.flush(); err != nil {
 			return err
@@ -153,8 +168,8 @@ func (w *Writer) flushStaleWriters() error {
 // spilling to disk the records of the tsDirWriter with the largest memory
 // footprint.
 func (w *Writer) spillLargestBuffer() error {
-	w.mu.RLock()
-	defer w.mu.RUnlock()
+	w.writersMu.RLock()
+	defer w.writersMu.RUnlock()
 	var largest *tsDirWriter
 	for _, dw := range w.writers {
 		if largest == nil || dw.bufSize > largest.bufSize {
@@ -165,7 +180,7 @@ func (w *Writer) spillLargestBuffer() error {
 }
 
 func (w *Writer) Close() error {
-	w.mu.Lock()
+	w.writersMu.Lock()
 	var merr error
 	for ts, dw := range w.writers {
 		if err := dw.flush(); err != nil {
@@ -173,7 +188,7 @@ func (w *Writer) Close() error {
 		}
 		delete(w.writers, ts)
 	}
-	w.mu.Unlock()
+	w.writersMu.Unlock()
 	w.cancel()
 	if err := w.errgroup.Wait(); merr == nil {
 		merr = err
@@ -237,7 +252,7 @@ func newTsDirWriter(w *Writer, tsDir tsDir) (*tsDirWriter, error) {
 
 func (dw *tsDirWriter) addBufSize(delta int64) {
 	dw.bufSize += delta
-	dw.writer.memBuffered += delta
+	atomic.AddInt64(&dw.writer.memBuffered, delta)
 }
 
 // chunkSizeEstimate returns a crude approximation of all records when written

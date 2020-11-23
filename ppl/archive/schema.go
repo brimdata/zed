@@ -19,10 +19,9 @@ const metadataFilename = "zar.json"
 type Metadata struct {
 	Version int `json:"version"`
 
-	DataPath           string        `json:"data_path"`
-	DataOrder          zbuf.Order    `json:"data_order"`
-	ImportFlushTimeout time.Duration `json:"import_flush_time"`
-	LogSizeThreshold   int64         `json:"log_size_threshold"`
+	DataPath         string     `json:"data_path"`
+	DataOrder        zbuf.Order `json:"data_order"`
+	LogSizeThreshold int64      `json:"log_size_threshold"`
 }
 
 func (c *Metadata) Write(uri iosrc.URI) error {
@@ -57,31 +56,22 @@ func MetadataRead(ctx context.Context, uri iosrc.URI) (*Metadata, error) {
 }
 
 const (
-	DefaultDataOrder = zbuf.OrderDesc
-	// DefaultImportFlushTimeout is the default time that an archive will wait
-	// before flushing to disk and closing a tsdir has not received any new
-	// data.
-	DefaultImportFlushTimeout = time.Second * 5
-	DefaultLogSizeThreshold   = 500 * 1024 * 1024
+	DefaultDataOrder        = zbuf.OrderDesc
+	DefaultLogSizeThreshold = 500 * 1024 * 1024
 )
 
 type CreateOptions struct {
-	DataPath           string
-	ImportFlushTimeout time.Duration
-	LogSizeThreshold   *int64
-	SortAscending      bool
+	DataPath         string
+	LogSizeThreshold *int64
+	SortAscending    bool
 }
 
 func (c *CreateOptions) toMetadata() *Metadata {
 	m := &Metadata{
-		Version:            0,
-		ImportFlushTimeout: DefaultImportFlushTimeout,
-		LogSizeThreshold:   DefaultLogSizeThreshold,
-		DataOrder:          DefaultDataOrder,
-		DataPath:           ".",
-	}
-	if c.ImportFlushTimeout != 0 {
-		m.ImportFlushTimeout = c.ImportFlushTimeout
+		Version:          0,
+		LogSizeThreshold: DefaultLogSizeThreshold,
+		DataOrder:        DefaultDataOrder,
+		DataPath:         ".",
 	}
 	if c.LogSizeThreshold != nil {
 		m.LogSizeThreshold = *c.LogSizeThreshold
@@ -96,22 +86,20 @@ func (c *CreateOptions) toMetadata() *Metadata {
 }
 
 type Archive struct {
-	Root               iosrc.URI
-	DataPath           iosrc.URI
-	DataOrder          zbuf.Order
-	ImportFlushTimeout time.Duration
-	LogSizeThreshold   int64
-	LogFilter          []ksuid.KSUID
-	dataSrc            iosrc.Source
+	Root             iosrc.URI
+	DataPath         iosrc.URI
+	DataOrder        zbuf.Order
+	LogSizeThreshold int64
+	LogFilter        []ksuid.KSUID
+	dataSrc          iosrc.Source
 }
 
 func (ark *Archive) metaWrite() error {
 	m := &Metadata{
-		Version:            0,
-		ImportFlushTimeout: ark.ImportFlushTimeout,
-		LogSizeThreshold:   ark.LogSizeThreshold,
-		DataOrder:          ark.DataOrder,
-		DataPath:           ark.DataPath.String(),
+		Version:          0,
+		LogSizeThreshold: ark.LogSizeThreshold,
+		DataOrder:        ark.DataOrder,
+		DataPath:         ark.DataPath.String(),
 	}
 	return m.Write(ark.mdURI())
 }
@@ -163,11 +151,10 @@ func openArchive(ctx context.Context, root iosrc.URI, oo *OpenOptions) (*Archive
 	}
 
 	ark := &Archive{
-		Root:               root,
-		DataOrder:          m.DataOrder,
-		ImportFlushTimeout: m.ImportFlushTimeout,
-		LogSizeThreshold:   m.LogSizeThreshold,
-		DataPath:           dpuri,
+		Root:             root,
+		DataOrder:        m.DataOrder,
+		LogSizeThreshold: m.LogSizeThreshold,
+		DataPath:         dpuri,
 	}
 
 	if oo != nil && oo.DataSource != nil {
@@ -214,6 +201,9 @@ func CreateOrOpenArchiveWithContext(ctx context.Context, rpath string, co *Creat
 			if err := dm.MkdirAll(root.AppendPath(dataDirname), 0700); err != nil {
 				return nil, err
 			}
+		}
+		if co == nil {
+			co = &CreateOptions{}
 		}
 		if err := co.toMetadata().Write(mdPath); err != nil {
 			return nil, err
