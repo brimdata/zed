@@ -760,7 +760,11 @@ func (c *Context) TranslateType(ext zng.Type) (zng.Type, error) {
 	case *zng.TypeMap:
 		return c.TranslateTypeMap(ext)
 	case *zng.TypeAlias:
-		return c.LookupTypeAlias(ext.Name, ext.Type)
+		local, err := c.TranslateType(ext.Type)
+		if err != nil {
+			return nil, err
+		}
+		return c.LookupTypeAlias(ext.Name, local)
 	default:
 		//XXX
 		panic(fmt.Sprintf("zng cannot translate type: %s", ext))
