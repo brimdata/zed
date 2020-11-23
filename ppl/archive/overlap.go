@@ -6,7 +6,9 @@ import (
 
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/ppl/archive/chunk"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/segmentio/ksuid"
@@ -16,7 +18,7 @@ import (
 // spans, and returns an ordered list of spanInfos, whose spans will be bounded
 // by filter, and where each SpanInfo contains one or more Chunks whose data
 // falls into the SpanInfo's span.
-func mergeChunksToSpans(chunks []Chunk, order zbuf.Order, filter nano.Span) []SpanInfo {
+func mergeChunksToSpans(chunks []chunk.Chunk, order zbuf.Order, filter nano.Span) []SpanInfo {
 	sinfos := alignChunksToSpans(chunks, order, filter)
 	removeMaskedChunks(sinfos, false)
 	return mergeLargestChunkSpanInfos(sinfos, order)
@@ -25,11 +27,11 @@ func mergeChunksToSpans(chunks []Chunk, order zbuf.Order, filter nano.Span) []Sp
 // alignChunksToSpans creates an ordered slice of SpanInfo's whose boundaries
 // match either the boundaries of a chunk or, in the case of overlapping chunks,
 // the boundaries of each portion of an overlap.
-func alignChunksToSpans(chunks []Chunk, order zbuf.Order, filter nano.Span) []SpanInfo {
-	var siChunks []Chunk // accumulating chunks for next SpanInfo
-	var siFirst nano.Ts  // first timestamp for next SpanInfo
+func alignChunksToSpans(chunks []chunk.Chunk, order zbuf.Order, filter nano.Span) []SpanInfo {
+	var siChunks []chunk.Chunk // accumulating chunks for next SpanInfo
+	var siFirst nano.Ts        // first timestamp for next SpanInfo
 	var result []SpanInfo
-	boundaries(chunks, order, func(ts nano.Ts, firstChunks, lastChunks []Chunk) {
+	boundaries(chunks, order, func(ts nano.Ts, firstChunks, lastChunks []chunk.Chunk) {
 		if len(firstChunks) > 0 {
 			// ts is the 'First' timestamp for these chunks.
 			if len(siChunks) > 0 && ts != siFirst {
@@ -38,7 +40,7 @@ func alignChunksToSpans(chunks []Chunk, order zbuf.Order, filter nano.Span) []Sp
 				siSpan := firstLastToSpan(siFirst, prevTs(ts, order))
 				if filter.Overlaps(siSpan) {
 					chunks := copyChunks(siChunks, nil)
-					chunksSort(order, chunks)
+					chunk.Sort(order, chunks)
 					result = append(result, SpanInfo{
 						Span:   filter.Intersect(siSpan),
 						Chunks: chunks,
@@ -54,7 +56,7 @@ func alignChunksToSpans(chunks []Chunk, order zbuf.Order, filter nano.Span) []Sp
 			siSpan := firstLastToSpan(siFirst, ts)
 			if filter.Overlaps(siSpan) {
 				chunks := copyChunks(siChunks, nil)
-				chunksSort(order, chunks)
+				chunk.Sort(order, chunks)
 				result = append(result, SpanInfo{
 					Span:   filter.Intersect(siSpan),
 					Chunks: chunks,
@@ -68,7 +70,7 @@ func alignChunksToSpans(chunks []Chunk, order zbuf.Order, filter nano.Span) []Sp
 	return result
 }
 
-func copyChunks(src []Chunk, skip []Chunk) (dst []Chunk) {
+func copyChunks(src []chunk.Chunk, skip []chunk.Chunk) (dst []chunk.Chunk) {
 outer:
 	for i := range src {
 		for j := range skip {
@@ -116,7 +118,7 @@ type point struct {
 
 // boundaries sorts the given chunks, then calls fn with each timestamp that
 // acts as a first and/or last timestamp of one or more of the chunks.
-func boundaries(chunks []Chunk, order zbuf.Order, fn func(ts nano.Ts, firstChunks, lastChunks []Chunk)) {
+func boundaries(chunks []chunk.Chunk, order zbuf.Order, fn func(ts nano.Ts, firstChunks, lastChunks []chunk.Chunk)) {
 	points := make([]point, 2*len(chunks))
 	for i, c := range chunks {
 		points[2*i] = point{idx: i, first: true, ts: c.First}
@@ -128,8 +130,8 @@ func boundaries(chunks []Chunk, order zbuf.Order, fn func(ts nano.Ts, firstChunk
 		}
 		return points[j].ts < points[i].ts
 	})
-	firstChunks := make([]Chunk, 0, len(chunks))
-	lastChunks := make([]Chunk, 0, len(chunks))
+	firstChunks := make([]chunk.Chunk, 0, len(chunks))
+	lastChunks := make([]chunk.Chunk, 0, len(chunks))
 	for i := 0; i < len(points); {
 		j := i + 1
 		for ; j < len(points); j++ {
@@ -152,7 +154,7 @@ func boundaries(chunks []Chunk, order zbuf.Order, fn func(ts nano.Ts, firstChunk
 	}
 }
 
-func largestChunk(si SpanInfo) Chunk {
+func largestChunk(si SpanInfo) chunk.Chunk {
 	res := si.Chunks[0]
 	for _, c := range si.Chunks {
 		if c.RecordCount > res.RecordCount {
@@ -185,7 +187,7 @@ func mergeSpanInfos(sis []SpanInfo, order zbuf.Order) SpanInfo {
 			}
 		}
 	}
-	chunksSort(order, res.Chunks)
+	chunk.Sort(order, res.Chunks)
 	return res
 }
 
@@ -216,20 +218,20 @@ func mergeLargestChunkSpanInfos(spans []SpanInfo, order zbuf.Order) []SpanInfo {
 // same SpanInfo.
 // If trackMasked is true, it will return a slice of chunks that have been
 // masked and are no longer present in any SpanInfo.
-func removeMaskedChunks(spans []SpanInfo, trackMasked bool) []Chunk {
-	var maskedChunks map[ksuid.KSUID]Chunk
+func removeMaskedChunks(spans []SpanInfo, trackMasked bool) []chunk.Chunk {
+	var maskedChunks map[ksuid.KSUID]chunk.Chunk
 	for i := range spans {
 		rem := spans[i].RemoveMasked()
 		if trackMasked && len(rem) > 0 {
 			if maskedChunks == nil {
-				maskedChunks = make(map[ksuid.KSUID]Chunk)
+				maskedChunks = make(map[ksuid.KSUID]chunk.Chunk)
 			}
 			for _, c := range rem {
 				maskedChunks[c.Id] = c
 			}
 		}
 	}
-	var mc []Chunk
+	var mc []chunk.Chunk
 	if trackMasked {
 	outer:
 		for id := range maskedChunks {
@@ -251,12 +253,12 @@ type compactWriter struct {
 	ctx   context.Context
 	masks []ksuid.KSUID
 	tsd   tsDir
-	w     *chunkWriter
+	w     *chunk.Writer
 }
 
 func (cw *compactWriter) Write(rec *zng.Record) error {
 	if cw.w != nil {
-		pos, firstTs, lastTs := cw.w.position()
+		pos, firstTs, lastTs := cw.w.Position()
 		if pos > cw.ark.LogSizeThreshold && lastTs != rec.Ts() {
 			// If we need to create a new chunk writer, we must ensure that the
 			// span for the current chunk leaves no gap between its last timestamp
@@ -265,7 +267,7 @@ func (cw *compactWriter) Write(rec *zng.Record) error {
 			// the use of 'chunkLastTs', and the lastTs check above to ensure we are
 			// not in a run of records with the same timestamp.
 			chunkLastTs := prevTs(rec.Ts(), cw.ark.DataOrder)
-			if _, err := cw.w.closeWithTs(cw.ctx, firstTs, chunkLastTs); err != nil {
+			if _, err := cw.w.CloseWithTs(cw.ctx, firstTs, chunkLastTs); err != nil {
 				return err
 			}
 			cw.w = nil
@@ -273,7 +275,10 @@ func (cw *compactWriter) Write(rec *zng.Record) error {
 	}
 	if cw.w == nil {
 		var err error
-		cw.w, err = newChunkWriter(cw.ctx, cw.ark, cw.tsd, cw.masks)
+		cw.w, err = chunk.NewWriter(cw.ctx, cw.tsd.path(cw.ark), cw.ark.DataOrder, cw.masks, zngio.WriterOpts{
+			StreamRecordsMax: ImportStreamRecordsMax,
+			LZ4BlockSize:     importLZ4BlockSize,
+		})
 		if err != nil {
 			return err
 		}
@@ -283,7 +288,7 @@ func (cw *compactWriter) Write(rec *zng.Record) error {
 
 func (cw *compactWriter) abort() {
 	if cw.w != nil {
-		cw.w.abort()
+		cw.w.Abort()
 		cw.w = nil
 	}
 }
@@ -292,8 +297,8 @@ func (cw *compactWriter) close(lastTs nano.Ts) error {
 	if cw.w == nil {
 		return nil
 	}
-	_, firstTs, _ := cw.w.position()
-	if _, err := cw.w.closeWithTs(cw.ctx, firstTs, lastTs); err != nil {
+	_, firstTs, _ := cw.w.Position()
+	if _, err := cw.w.CloseWithTs(cw.ctx, firstTs, lastTs); err != nil {
 		return err
 	}
 	cw.w = nil
@@ -351,7 +356,7 @@ outer:
 }
 
 func Compact(ctx context.Context, ark *Archive) error {
-	return tsDirVisit(ctx, ark, nano.MaxSpan, func(_ tsDir, chunks []Chunk) error {
+	return tsDirVisit(ctx, ark, nano.MaxSpan, func(_ tsDir, chunks []chunk.Chunk) error {
 		spans := alignChunksToSpans(chunks, ark.DataOrder, nano.MaxSpan)
 		removeMaskedChunks(spans, false)
 		spans = mergeCommonChunkSpans(spans, ark.DataOrder)
@@ -365,14 +370,14 @@ func Compact(ctx context.Context, ark *Archive) error {
 }
 
 func Purge(ctx context.Context, ark *Archive) error {
-	return tsDirVisit(ctx, ark, nano.MaxSpan, func(_ tsDir, chunks []Chunk) error {
+	return tsDirVisit(ctx, ark, nano.MaxSpan, func(_ tsDir, chunks []chunk.Chunk) error {
 		spans := alignChunksToSpans(chunks, ark.DataOrder, nano.MaxSpan)
 		maskedChunks := removeMaskedChunks(spans, true)
 		if len(maskedChunks) == 0 {
 			return nil
 		}
 		for _, c := range maskedChunks {
-			if err := c.Remove(ctx, ark); err != nil {
+			if err := c.Remove(ctx); err != nil {
 				return err
 			}
 		}

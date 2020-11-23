@@ -10,6 +10,7 @@ import (
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/brimsec/zq/ppl/archive/chunk"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
@@ -28,9 +29,9 @@ func fieldMicroIndexName(fieldname string) string {
 }
 
 func IndexDirTree(ctx context.Context, ark *Archive, rules []Rule, path string, progress chan<- string) error {
-	return Walk(ctx, ark, func(chunk Chunk) error {
-		zardir := chunk.ZarDir(ark)
-		logPath := chunk.Localize(ark, path)
+	return Walk(ctx, ark, func(chunk chunk.Chunk) error {
+		zardir := chunk.ZarDir()
+		logPath := chunk.Localize(path)
 		return run(ctx, zardir, rules, logPath, progress)
 	})
 }
