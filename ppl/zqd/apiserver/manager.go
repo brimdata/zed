@@ -21,15 +21,18 @@ import (
 )
 
 type Manager struct {
-	compactor *compactor
-	ldb       *FileDb
-	logger    *zap.Logger
-	rootPath  iosrc.URI
-
-	// single-file based storage support
 	alphaFileMigrator *filestore.Migrator
-	filestores        map[api.SpaceID]*filestore.Storage
-	filestoresMu      sync.Mutex
+	compactor         *compactor
+	ldb               *FileDb
+	logger            *zap.Logger
+	rootPath          iosrc.URI
+
+	// We keep instances to any loaded filestore because the seek indexes
+	// we create for them are not persisted to disk. We are unlikely to
+	// implement persistence, since we intend to use archive based
+	// storage by default at some point in the future.
+	filestores   map[api.SpaceID]*filestore.Storage
+	filestoresMu sync.Mutex
 
 	created prometheus.Counter
 	deleted prometheus.Counter
