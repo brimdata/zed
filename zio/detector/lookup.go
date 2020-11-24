@@ -15,6 +15,7 @@ import (
 	"github.com/brimsec/zq/zio/zeekio"
 	"github.com/brimsec/zq/zio/zjsonio"
 	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zio/zsonio"
 	"github.com/brimsec/zq/zio/zstio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -47,6 +48,8 @@ func LookupWriter(w io.WriteCloser, opts zio.WriterOpts) (zbuf.WriteCloser, erro
 		return ndjsonio.NewWriter(w), nil
 	case "zjson":
 		return zjsonio.NewWriter(w), nil
+	case "zson":
+		return zsonio.NewWriter(w, opts.ZSON), nil
 	case "zst":
 		return zstio.NewWriter(w, opts.Zst)
 	case "text":

@@ -34,6 +34,14 @@ func (m *Mapper) Enter(id int, ext *zng.TypeRecord) (*zng.TypeRecord, error) {
 	return nil, nil
 }
 
+func (m *Mapper) Translate(foreign *zng.TypeRecord) (*zng.TypeRecord, error) {
+	id := foreign.ID()
+	if local := m.Map(id); local != nil {
+		return local, nil
+	}
+	return m.Enter(id, foreign)
+}
+
 func (m *Mapper) EnterTypeRecord(td int, typ *zng.TypeRecord) {
 	m.Slice.Enter(td, typ)
 }
