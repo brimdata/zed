@@ -76,9 +76,8 @@ func NewWriter(ctx context.Context, ark *Archive) *Writer {
 	}
 }
 
-// SetStaleDuration sets the StaleThreshold for the writer which is the
-// duration since a tsdir has last since received new data will  flushed to
-// disk. Must be set before the first Write call occurs.
+// SetStaleDuration sets the stale threshold for the writer which is the delay
+// after the last write to a tsdir until it is flushed and removed.
 func (w *Writer) SetStaleDuration(dur time.Duration) {
 	w.staleDuration = dur
 }

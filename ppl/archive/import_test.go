@@ -14,16 +14,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestImportFlushTimeout(t *testing.T) {
+func TestImportStaleDuration(t *testing.T) {
 	t.Run("Stale", func(t *testing.T) {
-		testImportFlushTimeout(t, 1, 1)
+		testImportStaleDuration(t, 1, 1)
 	})
 	t.Run("NotStale", func(t *testing.T) {
-		testImportFlushTimeout(t, math.MaxInt64, 0)
+		testImportStaleDuration(t, math.MaxInt64, 0)
 	})
 }
 
-func testImportFlushTimeout(t *testing.T, stale time.Duration, expected uint64) {
+func testImportStaleDuration(t *testing.T, stale time.Duration, expected uint64) {
 	const data = `
 #0:record[ts:time,offset:int64]
 0:[1587508850.06466032;202;]`
