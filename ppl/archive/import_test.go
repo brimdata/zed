@@ -23,7 +23,7 @@ func TestImportFlushTimeout(t *testing.T) {
 	})
 }
 
-func testImportFlushTimeout(t *testing.T, timeout time.Duration, expected uint64) {
+func testImportFlushTimeout(t *testing.T, stale time.Duration, expected uint64) {
 	const data = `
 #0:record[ts:time,offset:int64]
 0:[1587508850.06466032;202;]`
@@ -35,12 +35,11 @@ func testImportFlushTimeout(t *testing.T, timeout time.Duration, expected uint64
 	// write one record to an open archive.Writer and do NOT close it.
 	w := NewWriter(context.Background(), ark)
 	defer w.Close()
-	w.SetFlushTimeout(timeout)
+	w.SetStaleDuration(stale)
 	r := tzngio.NewReader(strings.NewReader(data), resolver.NewContext())
 	require.NoError(t, zbuf.Copy(w, r))
 
 	// flush stale writers and ensure data has been written to archive
-	time.Sleep(10)
 	err = w.flushStaleWriters()
 	require.NoError(t, err)
 	count, err := RecordCount(context.Background(), ark)

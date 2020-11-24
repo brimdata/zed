@@ -26,10 +26,6 @@ var (
 	// before they are flushed to disk.
 	ImportBufSize          = int64(sort.MemMaxBytes)
 	ImportStreamRecordsMax = zngio.DefaultStreamRecordsMax
-	// DefaultImportFlushTimeout is the default time that an archive will wait
-	// before flushing to disk and closing a tsdir that has not received any new
-	// data.
-	DefaultImportFlushTimeout = time.Second
 )
 
 // For unit testing.
@@ -53,14 +49,14 @@ func Import(ctx context.Context, ark *Archive, zctx *resolver.Context, r zbuf.Re
 // written to temporary files. At some point this should have a maxTempFileSize
 // to ensure the Writer does not exceed the size of a provisioned tmpfs.
 type Writer struct {
-	ark          *Archive
-	cancel       context.CancelFunc
-	ctx          context.Context
-	errgroup     *errgroup.Group
-	flushTimeout time.Duration
-	once         sync.Once
-	writers      map[tsDir]*tsDirWriter
-	writersMu    sync.RWMutex
+	ark           *Archive
+	cancel        context.CancelFunc
+	ctx           context.Context
+	errgroup      *errgroup.Group
+	once          sync.Once
+	staleDuration time.Duration
+	writers       map[tsDir]*tsDirWriter
+	writersMu     sync.RWMutex
 
 	memBuffered int64
 	stats       ImportStats
@@ -69,22 +65,22 @@ type Writer struct {
 // NewWriter creates a zbuf.Writer compliant writer for writing data to an
 // archive.
 func NewWriter(ctx context.Context, ark *Archive) *Writer {
-	g, ctx := errgroup.WithContext(ctx)
 	ctx, cancel := context.WithCancel(ctx)
+	g, ctx := errgroup.WithContext(ctx)
 	return &Writer{
-		ark:          ark,
-		cancel:       cancel,
-		ctx:          ctx,
-		errgroup:     g,
-		flushTimeout: DefaultImportFlushTimeout,
-		writers:      make(map[tsDir]*tsDirWriter),
+		ark:      ark,
+		cancel:   cancel,
+		ctx:      ctx,
+		errgroup: g,
+		writers:  make(map[tsDir]*tsDirWriter),
 	}
 }
 
-// SetFlushTimeout sets the interval at which the Writer will wait to flush
-// stale records to disk. This must be called before writing any records.
-func (w *Writer) SetFlushTimeout(timeout time.Duration) {
-	w.flushTimeout = timeout
+// SetStaleDuration sets the StaleThreshold for the writer which is the
+// duration since a tsdir has last since received new data will  flushed to
+// disk. Must be set before the first Write call occurs.
+func (w *Writer) SetStaleDuration(dur time.Duration) {
+	w.staleDuration = dur
 }
 
 func (w *Writer) Write(rec *zng.Record) error {
@@ -127,10 +123,9 @@ func (w *Writer) Write(rec *zng.Record) error {
 }
 
 // flusher is a background goroutine for an active Writer that periodically
-// checks for tsdir writers that have not received data in a while. If such a
-// writer is found, it is flushed to disk and closed.
+// checks and closes stale tsdirs.
 func (w *Writer) flusher() error {
-	ticker := time.NewTicker(w.flushTimeout)
+	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 	for {
 		select {
@@ -144,12 +139,15 @@ func (w *Writer) flusher() error {
 	}
 }
 
+// flushStateWriters loops through the open tsdir writers and flushes and
+// removes any writers that haven't recieved any updates since
+// Writer.staleDuration.
 func (w *Writer) flushStaleWriters() error {
 	now := time.Now()
 	w.writersMu.Lock()
 	var stale []*tsDirWriter
 	for tsd, writer := range w.writers {
-		if now.Sub(writer.modified()) > w.flushTimeout {
+		if now.Sub(writer.modified()) > w.staleDuration {
 			stale = append(stale, writer)
 			delete(w.writers, tsd)
 		}
