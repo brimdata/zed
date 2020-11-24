@@ -138,6 +138,9 @@ func isIP(typ reflect.Type) bool {
 }
 
 func encodeArray(zctx *Context, b *zcode.Builder, arrayVal reflect.Value) (zng.Type, error) {
+	if arrayVal.IsNil() {
+		return encodeNil(zctx, b, arrayVal.Type())
+	}
 	if isIP(arrayVal.Type()) {
 		b.AppendPrimitive(zng.EncodeIP(arrayVal.Bytes()))
 		return zng.TypeIP, nil
@@ -380,6 +383,9 @@ func decodeArray(zctx *Context, typ zng.Type, zv zcode.Bytes, arrVal reflect.Val
 	arrType, ok := typ.(*zng.TypeArray)
 	if !ok {
 		return errors.New("not an array")
+	}
+	if zv == nil {
+		return nil
 	}
 	i := 0
 	for it := zv.Iter(); !it.Done(); i++ {
