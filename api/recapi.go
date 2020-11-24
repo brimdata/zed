@@ -1,15 +1,15 @@
 package api
 
-type StatusResponse struct {
-	Status string `json:"status"`
-}
-
 type WorkerAddr struct {
 	Addr string `json:"addr"`
 }
 
 type UnreserveRequest struct {
 	WorkerAddr
+}
+
+type UnreserveResponse struct {
+	Reserved bool `json:"reserved"`
 }
 
 type DeregisterRequest struct {
@@ -23,6 +23,10 @@ type Worker struct {
 
 type RegisterRequest struct {
 	Worker
+}
+
+type RegisterResponse struct {
+	Registered bool `json:"registered"`
 }
 
 type RecruitRequest struct {

@@ -1,0 +1,17 @@
+script: |
+  source recworker.sh
+  echo ===
+  curl --header "Content-Type: application/json" -request POST \
+    --data '{"N":1}' \
+    http://$ZQD_HOST/workers/recruit 2> err
+  cat zqd-w1.log
+
+inputs:
+  - name: recworker.sh
+    source: recworker.sh
+
+outputs:
+  - name: stdout
+    data: |
+      ===
+      {"workers":[{"addr":"test1:5000","node":"test1"}]}

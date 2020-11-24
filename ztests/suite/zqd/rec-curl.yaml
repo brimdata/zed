@@ -3,57 +3,38 @@ script: |
   echo ===
   curl --header "Content-Type: application/json" -request POST \
     --data '{"addr":"a.b.c:5000","node":"a.b"}' \
-    http://$ZQD_HOST/register 2> err
+    http://$ZQD_HOST/workers/register 2> err
   echo ===
   curl --header "Content-Type: application/json" -request POST \
     --data '{"N":1}' \
-    http://$ZQD_HOST/recruit 2> err
+    http://$ZQD_HOST/workers/recruit 2> err
   #
   # For this second register, the worker will be in the reserved pool,
-  # so it will not be reregistered. This still returns a status of OK.
+  # so it will not be reregistered.
   #
   echo ===
   curl --header "Content-Type: application/json" -request POST \
     --data '{"addr":"a.b.c:5000","node":"a.b"}' \
-    http://$ZQD_HOST/register 2> err
+    http://$ZQD_HOST/workers/register 2> err
   #
-  # Now when recruit is called again, the reserved worker will not be recruited
-  #
-  echo ===
-  curl --header "Content-Type: application/json" -request POST \
-    --data '{"N":1}' \
-    http://$ZQD_HOST/recruit 2> err
-  #
-  # Now unreserve the worker so it can be reregistered
+  # unreserve the worker
   #
   echo ===
   curl --header "Content-Type: application/json" -request POST \
     --data '{"addr":"a.b.c:5000"}' \
-    http://$ZQD_HOST/unreserve 2> err
+    http://$ZQD_HOST/workers/unreserve 2> err
   echo ===
   curl --header "Content-Type: application/json" -request POST \
     --data '{"addr":"a.b.c:5000","node":"a.b"}' \
-    http://$ZQD_HOST/register 2> err
+    http://$ZQD_HOST/workers/register 2> err
+  echo ===
+  curl --header "Content-Type: application/json" -request POST \
+    --data '{"addr":"a.b.c:5000"}' \
+    http://$ZQD_HOST/workers/deregister 2> err
   echo ===
   curl --header "Content-Type: application/json" -request POST \
     --data '{"N":1}' \
-    http://$ZQD_HOST/recruit 2> err
-  #
-  # Now register a node, then deregister it, and verify that
-  # it is not available to be recruited
-  #
-  echo ===
-  curl --header "Content-Type: application/json" -request POST \
-    --data '{"addr":"a.b.c:5001","node":"a.b"}' \
-    http://$ZQD_HOST/register 2> err
-  echo ===
-  curl --header "Content-Type: application/json" -request POST \
-    --data '{"addr":"a.b.c:5001"}' \
-    http://$ZQD_HOST/deregister 2> err
-  echo ===
-  curl --header "Content-Type: application/json" -request POST \
-    --data '{"N":1}' \
-    http://$ZQD_HOST/recruit 2> err
+    http://$ZQD_HOST/workers/recruit 2> err
 
 inputs:
   - name: recserv.sh
@@ -63,22 +44,16 @@ outputs:
   - name: stdout
     data: |
       ===
-      {"status":"ok"}
+      {"registered":true}
       ===
       {"workers":[{"addr":"a.b.c:5000","node":"a.b"}]}
       ===
-      {"status":"ok"}
+      {"registered":false}
       ===
-      {"workers":[]}
+      {"reserved":false}
       ===
-      {"status":"ok"}
+      {"registered":true}
       ===
-      {"status":"ok"}
-      ===
-      {"workers":[{"addr":"a.b.c:5000","node":"a.b"}]}
-      ===
-      {"status":"ok"}
-      ===
-      {"status":"ok"}
+      {"registered":false}
       ===
       {"workers":[]}

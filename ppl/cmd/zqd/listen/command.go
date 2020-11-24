@@ -84,7 +84,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.devMode, "dev", false, "run in development mode")
 	f.StringVar(&c.listenAddr, "l", ":9867", "[addr]:port to listen on")
 	f.Var(&c.logLevel, "loglevel", "logging level")
-	f.StringVar(&c.conf.Personality, "personality", "all", "server personality (all, apiserver, worker, or recruiter)")
+	f.StringVar(&c.conf.Personality, "personality", "all", "server personality (all, apiserver, recruiter, or worker)")
 	f.StringVar(&c.portFile, "portfile", "", "write listen port to file")
 	f.BoolVar(&c.pprof, "pprof", false, "add pprof routes to API")
 	f.StringVar(&c.recruiter, "recruiter", "", "addr:port of zqd recruiter for cluster")
@@ -147,13 +147,15 @@ func (c *Command) Run(args []string) error {
 	if err := srv.Start(ctx); err != nil {
 		return err
 	}
+	// Our intent is to registerWithRecruiter as late as possible,
+	// just before writing Port file for tests.
+	if err := c.registerWithRecruiter(ctx, srv.Addr()); err != nil {
+		return err
+	}
 	if c.portFile != "" {
 		if err := c.writePortFile(srv.Addr()); err != nil {
 			return err
 		}
-	}
-	if err := c.registerWithRecruiter(ctx, srv.Addr()); err != nil {
-		return err
 	}
 	return srv.Wait()
 }
@@ -278,10 +280,10 @@ func (c *Command) registerWithRecruiter(ctx context.Context, srvAddr string) err
 		if _, _, err := net.SplitHostPort(c.recruiter); err != nil {
 			return fmt.Errorf("recruiter does not have host:port %v", err)
 		}
-		c.conf.RecruiterConn = client.NewConnectionTo(c.recruiter)
+		c.conf.RecruiterConn = client.NewConnectionTo("http://" + c.recruiter)
 
 		// We start the conversation with the recruiter by sending /unreserve
-		// in case this instance of zqd was restarted after being in a reserved state
+		// in case this instance of zqd was restarted after being in a reserved state.
 		// The information we need to send the recruiter is obtained through environment
 		// variables that can be set within the K8s deployment. See this doc:
 		// https://kubernetes.io/docs/tasks/inject-data-application/environment-variable-expose-pod-information/
@@ -293,12 +295,15 @@ func (c *Command) registerWithRecruiter(ctx context.Context, srvAddr string) err
 		unreservereq := api.UnreserveRequest{
 			WorkerAddr: api.WorkerAddr{Addr: srvAddr},
 		}
-		resp, err := c.conf.RecruiterConn.Unreserve(ctx, unreservereq)
+		// For debugging remote call (e.g. Unreserve) print JSON by uncommenting:
+		// j, _ := json.Marshal(unreservereq)
+		// println("/unreserve", string(j))
+		resp1, err := c.conf.RecruiterConn.Unreserve(ctx, unreservereq)
 		if err != nil {
 			return fmt.Errorf("error on unreserve with recruiter at %s : %v", c.recruiter, err)
 		}
-		if resp.Status != "ok" {
-			return fmt.Errorf("recruiter did not acknowlege unreserve, status=%s", resp.Status)
+		if resp1.Reserved != false {
+			return fmt.Errorf("recruiter did not acknowlege unreserve")
 		}
 
 		nodename := os.Getenv("ZQD_NODE_NAME")
@@ -311,14 +316,13 @@ func (c *Command) registerWithRecruiter(ctx context.Context, srvAddr string) err
 				NodeName:   nodename,
 			},
 		}
-		resp, err = c.conf.RecruiterConn.Register(ctx, registerreq)
+		resp2, err := c.conf.RecruiterConn.Register(ctx, registerreq)
 		if err != nil {
 			return fmt.Errorf("error on register with recruiter at %s : %v", c.recruiter, err)
 		}
-		if resp.Status != "ok" {
-			return fmt.Errorf("recruiter did not acknowlege register, status=%s", resp.Status)
+		if resp2.Registered != true {
+			return fmt.Errorf("recruiter did not acknowlege register")
 		}
-
 	}
 	return nil
 }

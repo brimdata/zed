@@ -34,30 +34,30 @@ func NewWorkerPool() *WorkerPool {
 	}
 }
 
-// Register adds workers to both the freePool and to the nodePool
+// Register adds workers to both the freePool and to the nodePool.
 // In the nodePool, they are added to the end of the slice,
 // and when they are recruited they are removed from the start of the slice.
 // So the []WorkerDetail slice for each node functions as a FIFO queue.
-func (pool *WorkerPool) Register(addr string, nodename string) error {
+func (pool *WorkerPool) Register(addr string, nodename string) (bool, error) {
 	if _, _, err := net.SplitHostPort(addr); err != nil {
-		return fmt.Errorf("invalid address for Register: %w", err)
+		return false, fmt.Errorf("invalid address for Register: %w", err)
 	}
 	if nodename == "" {
-		return fmt.Errorf("node name required for Register")
+		return false, fmt.Errorf("node name required for Register")
 	}
 	wd := WorkerDetail{Addr: addr, NodeName: nodename}
 
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 	if _, ok := pool.reservedPool[addr]; ok {
-		return nil // ignore register for existing workers
+		return false, nil // if the worker is reserved, it will not be registered
 	}
 	pool.freePool[addr] = wd
 	pool.nodePool[nodename] = append(pool.nodePool[nodename], wd)
-	return nil
+	return true, nil
 }
 
-// removeFromNodePool is internal and the calling function must hold the lock
+// removeFromNodePool is internal and the calling function must hold the lock.
 func (pool *WorkerPool) removeFromNodePool(wd WorkerDetail) {
 	s := pool.nodePool[wd.NodeName]
 	if len(s) == 1 {
@@ -78,7 +78,7 @@ func (pool *WorkerPool) removeFromNodePool(wd WorkerDetail) {
 	if i == -1 {
 		panic(fmt.Errorf("expected WorkerDetail not in list: %v", wd.Addr))
 	}
-	// Overwrite removed node and truncate slice
+	// Overwrite the removed node and truncate the slice.
 	s[i] = s[len(s)-1]
 	pool.nodePool[wd.NodeName] = s[:len(s)-1]
 }

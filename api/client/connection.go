@@ -404,7 +404,7 @@ func (c *Connection) LogPostWriter(ctx context.Context, space api.SpaceID, opts 
 
 // Recruit wraps the rechandlers.go handleRecruit API
 func (c *Connection) Recruit(ctx context.Context, req api.RecruitRequest) (*api.RecruitResponse, error) {
-	resp, err := c.Request(ctx).SetBody(req).SetResult(&api.RecruitResponse{}).Post("/recruit")
+	resp, err := c.Request(ctx).SetBody(req).SetResult(&api.RecruitResponse{}).Post("/workers/recruit")
 	if err != nil {
 		return nil, err
 	}
@@ -412,30 +412,30 @@ func (c *Connection) Recruit(ctx context.Context, req api.RecruitRequest) (*api.
 }
 
 // Register wraps the rechandlers.go handleRegister API
-func (c *Connection) Register(ctx context.Context, req api.RegisterRequest) (*api.StatusResponse, error) {
-	resp, err := c.Request(ctx).SetBody(req).SetResult(&api.StatusResponse{}).Post("/register")
+func (c *Connection) Register(ctx context.Context, req api.RegisterRequest) (*api.RegisterResponse, error) {
+	resp, err := c.Request(ctx).SetBody(req).SetResult(&api.RegisterResponse{}).Post("/workers/register")
 	if err != nil {
 		return nil, err
 	}
-	return resp.Result().(*api.StatusResponse), nil
+	return resp.Result().(*api.RegisterResponse), nil
 }
 
 // Deregister wraps the rechandlers.go handleDeregister API
-func (c *Connection) Deregister(ctx context.Context, req api.DeregisterRequest) (*api.StatusResponse, error) {
-	resp, err := c.Request(ctx).SetBody(req).SetResult(&api.StatusResponse{}).Post("/deregister")
+func (c *Connection) Deregister(ctx context.Context, req api.DeregisterRequest) (*api.RegisterResponse, error) {
+	resp, err := c.Request(ctx).SetBody(req).SetResult(&api.RegisterResponse{}).Post("/workers/deregister")
 	if err != nil {
 		return nil, err
 	}
-	return resp.Result().(*api.StatusResponse), nil
+	return resp.Result().(*api.RegisterResponse), nil
 }
 
 // Unreserve wraps the rechandlers.go handleUnreserve API
-func (c *Connection) Unreserve(ctx context.Context, req api.UnreserveRequest) (*api.StatusResponse, error) {
-	resp, err := c.Request(ctx).SetBody(req).SetResult(&api.StatusResponse{}).Post("/unreserve")
+func (c *Connection) Unreserve(ctx context.Context, req api.UnreserveRequest) (*api.UnreserveResponse, error) {
+	resp, err := c.Request(ctx).SetBody(req).SetResult(&api.UnreserveResponse{}).Post("/workers/unreserve")
 	if err != nil {
 		return nil, err
 	}
-	return resp.Result().(*api.StatusResponse), nil
+	return resp.Result().(*api.UnreserveResponse), nil
 }
 
 type ErrorResponse struct {

@@ -4,12 +4,14 @@ package zqd
 // so there are no errors returned from handle functions.
 
 // Useful CLI tests for recruiter API:
-// zqd listen -l=localhost:8020 -portfile=portfile -personality=recruiter
+// zqd listen -l=localhost:8020 -personality=recruiter
 // curl --header "Content-Type: application/json" -request POST --data '{"N":2}' http://localhost:8020/recruit
 // curl --header "Content-Type: application/json" -request POST --data '{"addr":"a.b.c:5000","node":"a.b"}' http://localhost:8020/register
 // curl --header "Content-Type: application/json" -request POST --data '{"addr":"a.b.c:5000"}' http://localhost:8020/unreserve
 // curl --header "Content-Type: application/json" -request POST --data '{"addr":"a.b.c:5000"}' http://localhost:8020/deregister
 // Or run system test with: make TEST=TestZq/ztests/suite/zqd/rec-curl
+// To test the API using the connection from a worker zqd to the recruiter, start a worker with:
+// ZQD_NODE_NAME=mytest zqd listen -l=localhost:8030 -recruiter=localhost:8020
 
 import (
 	"net/http"
@@ -24,8 +26,8 @@ func handleDeregister(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c.workerPool.Deregister(req.Addr)
-	respond(c, w, r, http.StatusOK, api.StatusResponse{
-		Status: "ok",
+	respond(c, w, r, http.StatusOK, api.RegisterResponse{
+		Registered: false,
 	})
 }
 
@@ -53,13 +55,13 @@ func handleRegister(c *Core, w http.ResponseWriter, r *http.Request) {
 	if !request(c, w, r, &req) {
 		return
 	}
-	err := c.workerPool.Register(req.Addr, req.NodeName)
+	registered, err := c.workerPool.Register(req.Addr, req.NodeName)
 	if err != nil {
 		respondError(c, w, r, zqe.ErrInvalid(err))
 		return
 	}
-	respond(c, w, r, http.StatusOK, api.StatusResponse{
-		Status: "ok",
+	respond(c, w, r, http.StatusOK, api.RegisterResponse{
+		Registered: registered,
 	})
 }
 
@@ -69,7 +71,7 @@ func handleUnreserve(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c.workerPool.Unreserve(req.Addr)
-	respond(c, w, r, http.StatusOK, api.StatusResponse{
-		Status: "ok",
+	respond(c, w, r, http.StatusOK, api.UnreserveResponse{
+		Reserved: false,
 	})
 }

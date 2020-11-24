@@ -109,11 +109,11 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 		c.addWorkerRoutes()
 	case "apiserver":
 		c.addAPIServerRoutes()
-	case "worker":
-		c.addWorkerRoutes()
 	case "recruiter":
 		c.workerPool = recruiter.NewWorkerPool()
 		c.addRecruiterRoutes()
+	case "worker":
+		c.addWorkerRoutes()
 	default:
 		return nil, fmt.Errorf("unknown personality %s", conf.Personality)
 	}
@@ -139,15 +139,15 @@ func (c *Core) addAPIServerRoutes() {
 	c.handle("/space/{space}/subspace", handleSubspacePost).Methods("POST")
 }
 
-func (c *Core) addWorkerRoutes() {
-	c.handle("/worker", handleWorker).Methods("POST")
+func (c *Core) addRecruiterRoutes() {
+	c.handle("/workers/deregister", handleDeregister).Methods("POST")
+	c.handle("/workers/recruit", handleRecruit).Methods("POST")
+	c.handle("/workers/register", handleRegister).Methods("POST")
+	c.handle("/workers/unreserve", handleUnreserve).Methods("POST")
 }
 
-func (c *Core) addRecruiterRoutes() {
-	c.handle("/deregister", handleDeregister).Methods("POST")
-	c.handle("/recruit", handleRecruit).Methods("POST")
-	c.handle("/register", handleRegister).Methods("POST")
-	c.handle("/unreserve", handleUnreserve).Methods("POST")
+func (c *Core) addWorkerRoutes() {
+	c.handle("/worker", handleWorker).Methods("POST")
 }
 
 func (c *Core) handle(path string, f func(*Core, http.ResponseWriter, *http.Request)) *mux.Route {
