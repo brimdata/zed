@@ -1,12 +1,10 @@
 package textio
 
 import (
-	"fmt"
+	"bytes"
 	"io"
-	"strings"
 	"time"
 
-	"github.com/brimsec/zq/zio/zeekio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/flattener"
 	"github.com/brimsec/zq/zng/resolver"
@@ -16,6 +14,7 @@ type Writer struct {
 	WriterOpts
 	EpochDates bool
 	writer     io.WriteCloser
+	buffer     bytes.Buffer
 	flattener  *flattener.Flattener
 	format     zng.OutFmt
 }
@@ -43,45 +42,42 @@ func (w *Writer) Close() error {
 	return w.writer.Close()
 }
 
-func (w *Writer) Write(rec *zng.Record) error {
-	rec, err := w.flattener.Flatten(rec)
+func (w *Writer) Write(r *zng.Record) error {
+	r, err := w.flattener.Flatten(r)
 	if err != nil {
 		return err
 	}
-	var out []string
-	if w.ShowFields || w.ShowTypes || !w.EpochDates {
-		for k, col := range rec.Type.Columns {
-			var s, v string
-			value := rec.Value(k)
-			if !w.EpochDates && col.Type == zng.TypeTime {
-				if value.IsUnsetOrNil() {
-					v = "-"
-				} else {
-					ts, err := zng.DecodeTime(value.Bytes)
-					if err != nil {
-						return err
-					}
-					v = ts.Time().UTC().Format(time.RFC3339Nano)
-				}
+	w.buffer.Reset()
+	for k, col := range r.Type.Columns {
+		if k > 0 {
+			w.buffer.WriteByte('\t')
+		}
+		if w.ShowFields {
+			w.buffer.WriteString(col.Name)
+			w.buffer.WriteByte(':')
+		}
+		if w.ShowTypes {
+			w.buffer.WriteString(col.Type.String())
+			w.buffer.WriteByte(':')
+		}
+		value := r.Value(k)
+		var s string
+		if !w.EpochDates && col.Type == zng.TypeTime {
+			if value.IsUnsetOrNil() {
+				s = "-"
 			} else {
-				v = value.Format(w.format)
+				ts, err := zng.DecodeTime(value.Bytes)
+				if err != nil {
+					return err
+				}
+				s = ts.Time().UTC().Format(time.RFC3339Nano)
 			}
-			if w.ShowFields {
-				s = col.Name + ":"
-			}
-			if w.ShowTypes {
-				s = s + col.Type.String() + ":"
-			}
-			out = append(out, s+v)
+		} else {
+			s = value.Format(w.format)
 		}
-	} else {
-		var err error
-		out, err = zeekio.ZeekStrings(rec, w.format)
-		if err != nil {
-			return err
-		}
+		w.buffer.WriteString(s)
 	}
-	s := strings.Join(out, "\t")
-	_, err = fmt.Fprintf(w.writer, "%s\n", s)
+	w.buffer.WriteByte('\n')
+	_, err = w.writer.Write(w.buffer.Bytes())
 	return err
 }

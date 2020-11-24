@@ -1,10 +1,10 @@
 package zeekio
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zng"
@@ -17,6 +17,7 @@ var ErrDescriptorChanged = errors.New("descriptor changed")
 type Writer struct {
 	writer io.WriteCloser
 	header
+	buffer    bytes.Buffer
 	flattener *flattener.Flattener
 	typ       *zng.TypeRecord
 	format    zng.OutFmt
@@ -52,16 +53,35 @@ func (w *Writer) Write(r *zng.Record) error {
 		}
 		w.typ = r.Type
 	}
-	values, err := ZeekStrings(r, w.format)
-	if err != nil {
-		return err
+	w.buffer.Reset()
+	var sep string
+	for k, col := range r.Type.Columns {
+		if col.Name == "_path" {
+			continue
+		}
+		w.buffer.WriteString(sep)
+		sep = "\t"
+		value := r.Value(k)
+		var s string
+		if value.IsUnsetOrNil() {
+			s = "-"
+		} else if col.Type == zng.TypeTime {
+			ts, err := zng.DecodeTime(value.Bytes)
+			if err != nil {
+				return err
+			}
+			precision := 6
+			if isHighPrecision(ts) {
+				precision = 9
+			}
+			s = string(ts.AppendFloat(nil, precision))
+		} else {
+			s = value.Format(w.format)
+		}
+		w.buffer.WriteString(s)
 	}
-	if i, ok := r.ColumnOfField("_path"); ok {
-		// delete _path column
-		values = append(values[:i], values[i+1:]...)
-	}
-	out := strings.Join(values, "\t") + "\n"
-	_, err = w.writer.Write([]byte(out))
+	w.buffer.WriteByte('\n')
+	_, err = w.writer.Write(w.buffer.Bytes())
 	return err
 }
 
@@ -120,35 +140,4 @@ func (w *Writer) writeHeader(r *zng.Record, path string) error {
 func isHighPrecision(ts nano.Ts) bool {
 	_, ns := ts.Split()
 	return (ns/1000)*1000 != ns
-}
-
-// This returns the zeek strings for this record.  XXX We need to not use this.
-// XXX change to Pretty for output writers?... except zeek?
-func ZeekStrings(r *zng.Record, fmt zng.OutFmt) ([]string, error) {
-	var ss []string
-	it := r.ZvalIter()
-	for _, col := range r.Type.Columns {
-		val, _, err := it.Next()
-		if err != nil {
-			return nil, err
-		}
-		var field string
-		if val == nil {
-			field = "-"
-		} else if col.Type == zng.TypeTime {
-			ts, err := zng.DecodeTime(val)
-			if err != nil {
-				return nil, err
-			}
-			precision := 6
-			if isHighPrecision(ts) {
-				precision = 9
-			}
-			field = string(ts.AppendFloat(nil, precision))
-		} else {
-			field = col.Type.StringOf(val, fmt, false)
-		}
-		ss = append(ss, field)
-	}
-	return ss, nil
 }
