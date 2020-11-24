@@ -11,26 +11,26 @@ import (
 	"github.com/brimsec/zq/zqe"
 )
 
-type FileDb struct {
+type FileDB struct {
 	mu   sync.Mutex
 	path iosrc.URI
 }
 
-func CreateFileDb(ctx context.Context, path iosrc.URI, rows []SpaceRow) (*FileDb, error) {
-	ldb := &FileDb{path: path}
-	if err := ldb.save(ctx, rows); err != nil {
+func CreateFileDB(ctx context.Context, path iosrc.URI, rows []SpaceRow) (*FileDB, error) {
+	db := &FileDB{path: path}
+	if err := db.save(ctx, rows); err != nil {
 		return nil, err
 	}
-	return ldb, nil
+	return db, nil
 }
 
-func OpenFileDb(ctx context.Context, path iosrc.URI) (*FileDb, error) {
-	ldb := &FileDb{path: path}
+func OpenFileDB(ctx context.Context, path iosrc.URI) (*FileDB, error) {
+	db := &FileDB{path: path}
 	// Verify file exists & is readable.
-	if _, err := ldb.load(ctx); err != nil {
+	if _, err := db.load(ctx); err != nil {
 		return nil, err
 	}
-	return ldb, nil
+	return db, nil
 }
 
 const dbversion = 4
@@ -40,8 +40,8 @@ type dbdataV4 struct {
 	SpaceRows []SpaceRow `json:"space_rows"`
 }
 
-func (ldb *FileDb) load(ctx context.Context) ([]SpaceRow, error) {
-	b, err := iosrc.ReadFile(ctx, ldb.path)
+func (db *FileDB) load(ctx context.Context) ([]SpaceRow, error) {
+	b, err := iosrc.ReadFile(ctx, db.path)
 	if err != nil {
 		return nil, err
 	}
@@ -52,8 +52,8 @@ func (ldb *FileDb) load(ctx context.Context) ([]SpaceRow, error) {
 	return lf.SpaceRows, nil
 }
 
-func (ldb *FileDb) save(ctx context.Context, lcs []SpaceRow) error {
-	return iosrc.Replace(ctx, ldb.path, func(w io.Writer) error {
+func (db *FileDB) save(ctx context.Context, lcs []SpaceRow) error {
+	return iosrc.Replace(ctx, db.path, func(w io.Writer) error {
 		return json.NewEncoder(w).Encode(dbdataV4{
 			Version:   dbversion,
 			SpaceRows: lcs,
@@ -69,14 +69,14 @@ type SpaceRow struct {
 	Storage  api.StorageConfig `json:"storage"`
 }
 
-func (ldb *FileDb) CreateSpace(ctx context.Context, lr SpaceRow) error {
+func (db *FileDB) CreateSpace(ctx context.Context, lr SpaceRow) error {
 	if lr.ID == "" {
 		return zqe.ErrInvalid("lr must have an id")
 	}
 
-	ldb.mu.Lock()
-	defer ldb.mu.Unlock()
-	rows, err := ldb.load(ctx)
+	db.mu.Lock()
+	defer db.mu.Unlock()
+	rows, err := db.load(ctx)
 	if err != nil {
 		return err
 	}
@@ -90,10 +90,10 @@ func (ldb *FileDb) CreateSpace(ctx context.Context, lr SpaceRow) error {
 		}
 	}
 
-	return ldb.save(ctx, append(rows, lr))
+	return db.save(ctx, append(rows, lr))
 }
 
-func (ldb *FileDb) CreateSubspace(ctx context.Context, lr SpaceRow) error {
+func (db *FileDB) CreateSubspace(ctx context.Context, lr SpaceRow) error {
 	if lr.ID == "" {
 		return zqe.ErrInvalid("lr must have an id")
 	}
@@ -101,9 +101,9 @@ func (ldb *FileDb) CreateSubspace(ctx context.Context, lr SpaceRow) error {
 		return zqe.ErrInvalid("subspace must have parent id")
 	}
 
-	ldb.mu.Lock()
-	defer ldb.mu.Unlock()
-	rows, err := ldb.load(ctx)
+	db.mu.Lock()
+	defer db.mu.Unlock()
+	rows, err := db.load(ctx)
 	if err != nil {
 		return err
 	}
@@ -124,13 +124,13 @@ func (ldb *FileDb) CreateSubspace(ctx context.Context, lr SpaceRow) error {
 		return zqe.ErrNotFound("subspace parent not found")
 	}
 
-	return ldb.save(ctx, append(rows, lr))
+	return db.save(ctx, append(rows, lr))
 }
 
-func (ldb *FileDb) GetSpace(ctx context.Context, id api.SpaceID) (SpaceRow, error) {
-	ldb.mu.Lock()
-	defer ldb.mu.Unlock()
-	rows, err := ldb.load(ctx)
+func (db *FileDB) GetSpace(ctx context.Context, id api.SpaceID) (SpaceRow, error) {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+	rows, err := db.load(ctx)
 	if err != nil {
 		return SpaceRow{}, err
 	}
@@ -142,16 +142,16 @@ func (ldb *FileDb) GetSpace(ctx context.Context, id api.SpaceID) (SpaceRow, erro
 	return SpaceRow{}, zqe.ErrNotFound()
 }
 
-func (ldb *FileDb) ListSpaces(ctx context.Context) ([]SpaceRow, error) {
-	ldb.mu.Lock()
-	defer ldb.mu.Unlock()
-	return ldb.load(ctx)
+func (db *FileDB) ListSpaces(ctx context.Context) ([]SpaceRow, error) {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+	return db.load(ctx)
 }
 
-func (ldb *FileDb) UpdateSpaceName(ctx context.Context, id api.SpaceID, name string) error {
-	ldb.mu.Lock()
-	defer ldb.mu.Unlock()
-	rows, err := ldb.load(ctx)
+func (db *FileDB) UpdateSpaceName(ctx context.Context, id api.SpaceID, name string) error {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+	rows, err := db.load(ctx)
 	if err != nil {
 		return err
 	}
@@ -171,13 +171,13 @@ func (ldb *FileDb) UpdateSpaceName(ctx context.Context, id api.SpaceID, name str
 	}
 
 	rows[idx].Name = name
-	return ldb.save(ctx, rows)
+	return db.save(ctx, rows)
 }
 
-func (ldb *FileDb) DeleteSpace(ctx context.Context, id api.SpaceID) error {
-	ldb.mu.Lock()
-	defer ldb.mu.Unlock()
-	rows, err := ldb.load(ctx)
+func (db *FileDB) DeleteSpace(ctx context.Context, id api.SpaceID) error {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+	rows, err := db.load(ctx)
 	if err != nil {
 		return err
 	}
@@ -197,5 +197,5 @@ func (ldb *FileDb) DeleteSpace(ctx context.Context, id api.SpaceID) error {
 
 	rows[idx] = rows[len(rows)-1]
 	rows = rows[:len(rows)-1]
-	return ldb.save(ctx, rows)
+	return db.save(ctx, rows)
 }

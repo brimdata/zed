@@ -23,7 +23,7 @@ import (
 type Manager struct {
 	alphaFileMigrator *filestore.Migrator
 	compactor         *compactor
-	ldb               *FileDb
+	db                *FileDB
 	logger            *zap.Logger
 	rootPath          iosrc.URI
 
@@ -39,7 +39,7 @@ type Manager struct {
 }
 
 func NewManager(ctx context.Context, logger *zap.Logger, registerer prometheus.Registerer, root iosrc.URI) (*Manager, error) {
-	ldb, err := prepareFileDb(ctx, logger, root)
+	db, err := prepareFileDB(ctx, logger, root)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func NewManager(ctx context.Context, logger *zap.Logger, registerer prometheus.R
 	m := &Manager{
 		logger:   logger,
 		rootPath: root,
-		ldb:      ldb,
+		db:       db,
 
 		alphaFileMigrator: filestore.NewMigrator(ctx),
 		filestores:        make(map[api.SpaceID]*filestore.Storage),
@@ -73,14 +73,14 @@ func (m *Manager) Shutdown() {
 
 const dbname = "zqd.json"
 
-func prepareFileDb(ctx context.Context, logger *zap.Logger, root iosrc.URI) (*FileDb, error) {
+func prepareFileDB(ctx context.Context, logger *zap.Logger, root iosrc.URI) (*FileDB, error) {
 	dburi := root.AppendPath(dbname)
 	exists, err := iosrc.Exists(ctx, dburi)
 	if err != nil {
 		return nil, err
 	}
 	if exists {
-		return OpenFileDb(ctx, dburi)
+		return OpenFileDB(ctx, dburi)
 	}
 
 	// If the dbfile doesn't exist, we check if we need to migrate the older
@@ -117,11 +117,11 @@ func prepareFileDb(ctx context.Context, logger *zap.Logger, root iosrc.URI) (*Fi
 			})
 		}
 	}
-	return CreateFileDb(ctx, dburi, rows)
+	return CreateFileDB(ctx, dburi, rows)
 }
 
 func (m *Manager) spawnAlphaMigrations(ctx context.Context) {
-	rows, err := m.ldb.ListSpaces(ctx)
+	rows, err := m.db.ListSpaces(ctx)
 	if err != nil {
 		return
 	}
@@ -186,7 +186,7 @@ func (m *Manager) CreateSpace(ctx context.Context, req api.SpacePostRequest) (ap
 
 	name := row.Name
 	for i := 1; ; i++ {
-		err := m.ldb.CreateSpace(ctx, row)
+		err := m.db.CreateSpace(ctx, row)
 		if err == nil {
 			break
 		}
@@ -212,7 +212,7 @@ func (m *Manager) CreateSubspace(ctx context.Context, parentID api.SpaceID, req 
 	if !api.ValidSpaceName(req.Name) {
 		return api.SpaceInfo{}, zqe.E(zqe.Invalid, "name may not contain '/' or non-printable characters")
 	}
-	parent, err := m.ldb.GetSpace(ctx, parentID)
+	parent, err := m.db.GetSpace(ctx, parentID)
 	if err != nil {
 		return api.SpaceInfo{}, err
 	}
@@ -231,7 +231,7 @@ func (m *Manager) CreateSubspace(ctx context.Context, parentID api.SpaceID, req 
 			},
 		},
 	}
-	if err := m.ldb.CreateSubspace(ctx, row); err != nil {
+	if err := m.db.CreateSubspace(ctx, row); err != nil {
 		return api.SpaceInfo{}, err
 	}
 	m.created.Inc()
@@ -240,7 +240,7 @@ func (m *Manager) CreateSubspace(ctx context.Context, parentID api.SpaceID, req 
 }
 
 func (m *Manager) GetStorage(ctx context.Context, id api.SpaceID) (storage.Storage, error) {
-	sr, err := m.ldb.GetSpace(ctx, id)
+	sr, err := m.db.GetSpace(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +248,7 @@ func (m *Manager) GetStorage(ctx context.Context, id api.SpaceID) (storage.Stora
 }
 
 func (m *Manager) GetPcapStorage(ctx context.Context, id api.SpaceID) (*pcapstorage.Store, error) {
-	sr, err := m.ldb.GetSpace(ctx, id)
+	sr, err := m.db.GetSpace(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -349,7 +349,7 @@ func (m *Manager) rowToSpaceInfo(ctx context.Context, sr SpaceRow) (api.SpaceInf
 }
 
 func (m *Manager) GetSpace(ctx context.Context, id api.SpaceID) (api.SpaceInfo, error) {
-	sr, err := m.ldb.GetSpace(ctx, id)
+	sr, err := m.db.GetSpace(ctx, id)
 	if err != nil {
 		return api.SpaceInfo{}, err
 	}
@@ -357,7 +357,7 @@ func (m *Manager) GetSpace(ctx context.Context, id api.SpaceID) (api.SpaceInfo, 
 }
 
 func (m *Manager) ListSpaces(ctx context.Context) ([]api.SpaceInfo, error) {
-	rows, err := m.ldb.ListSpaces(ctx)
+	rows, err := m.db.ListSpaces(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -379,15 +379,15 @@ func (m *Manager) UpdateSpaceName(ctx context.Context, id api.SpaceID, name stri
 	if !api.ValidSpaceName(name) {
 		return zqe.E(zqe.Invalid, "name may not contain '/' or non-printable characters")
 	}
-	return m.ldb.UpdateSpaceName(ctx, id, name)
+	return m.db.UpdateSpaceName(ctx, id, name)
 }
 
 func (m *Manager) DeleteSpace(ctx context.Context, id api.SpaceID) error {
-	sr, err := m.ldb.GetSpace(ctx, id)
+	sr, err := m.db.GetSpace(ctx, id)
 	if err != nil {
 		return err
 	}
-	if err := m.ldb.DeleteSpace(ctx, id); err != nil {
+	if err := m.db.DeleteSpace(ctx, id); err != nil {
 		return err
 	}
 	if sr.Storage.Kind == api.FileStore {
