@@ -16,7 +16,7 @@ import (
 
 func TestImportStaleDuration(t *testing.T) {
 	t.Run("Stale", func(t *testing.T) {
-		testImportStaleDuration(t, 1, 1)
+		testImportStaleDuration(t, 0, 1)
 	})
 	t.Run("NotStale", func(t *testing.T) {
 		testImportStaleDuration(t, math.MaxInt64, 0)

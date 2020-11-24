@@ -146,7 +146,7 @@ func (w *Writer) flushStaleWriters() error {
 	w.writersMu.Lock()
 	var stale []*tsDirWriter
 	for tsd, writer := range w.writers {
-		if now.Sub(writer.modified()) > w.staleDuration {
+		if now.Sub(writer.modified()) >= w.staleDuration {
 			stale = append(stale, writer)
 			delete(w.writers, tsd)
 		}
