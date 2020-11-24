@@ -19,7 +19,6 @@ type Writer struct {
 	header
 	flattener *flattener.Flattener
 	typ       *zng.TypeRecord
-	precision int
 	format    zng.OutFmt
 }
 
@@ -33,7 +32,6 @@ func NewWriter(w io.WriteCloser, utf8 bool) *Writer {
 	return &Writer{
 		writer:    w,
 		flattener: flattener.New(resolver.NewContext()),
-		precision: 6,
 		format:    format,
 	}
 }
@@ -54,12 +52,9 @@ func (w *Writer) Write(r *zng.Record) error {
 		}
 		w.typ = r.Type
 	}
-	values, changePrecision, err := ZeekStrings(r, w.precision, w.format)
+	values, err := ZeekStrings(r, w.format)
 	if err != nil {
 		return err
-	}
-	if changePrecision {
-		w.precision = 9
 	}
 	if i, ok := r.ColumnOfField("_path"); ok {
 		// delete _path column
@@ -129,26 +124,25 @@ func isHighPrecision(ts nano.Ts) bool {
 
 // This returns the zeek strings for this record.  XXX We need to not use this.
 // XXX change to Pretty for output writers?... except zeek?
-func ZeekStrings(r *zng.Record, precision int, fmt zng.OutFmt) ([]string, bool, error) {
+func ZeekStrings(r *zng.Record, fmt zng.OutFmt) ([]string, error) {
 	var ss []string
 	it := r.ZvalIter()
-	var changePrecision bool
 	for _, col := range r.Type.Columns {
 		val, _, err := it.Next()
 		if err != nil {
-			return nil, false, err
+			return nil, err
 		}
 		var field string
 		if val == nil {
 			field = "-"
-		} else if precision >= 0 && col.Type == zng.TypeTime {
+		} else if col.Type == zng.TypeTime {
 			ts, err := zng.DecodeTime(val)
 			if err != nil {
-				return nil, false, err
+				return nil, err
 			}
-			if precision == 6 && isHighPrecision(ts) {
+			precision := 6
+			if isHighPrecision(ts) {
 				precision = 9
-				changePrecision = true
 			}
 			field = string(ts.AppendFloat(nil, precision))
 		} else {
@@ -156,5 +150,5 @@ func ZeekStrings(r *zng.Record, precision int, fmt zng.OutFmt) ([]string, bool, 
 		}
 		ss = append(ss, field)
 	}
-	return ss, changePrecision, nil
+	return ss, nil
 }
