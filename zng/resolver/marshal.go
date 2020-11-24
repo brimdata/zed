@@ -66,6 +66,9 @@ func encodeAny(zctx *Context, b *zcode.Builder, v reflect.Value) (zng.Type, erro
 	case reflect.Array:
 		return encodeArray(zctx, b, v)
 	case reflect.Slice:
+		if v.IsNil() {
+			return encodeNil(zctx, b, v.Type())
+		}
 		return encodeArray(zctx, b, v)
 	case reflect.Struct:
 		return encodeRecord(zctx, b, v)
@@ -380,6 +383,9 @@ func decodeArray(zctx *Context, typ zng.Type, zv zcode.Bytes, arrVal reflect.Val
 	arrType, ok := typ.(*zng.TypeArray)
 	if !ok {
 		return errors.New("not an array")
+	}
+	if zv == nil {
+		return nil
 	}
 	i := 0
 	for it := zv.Iter(); !it.Done(); i++ {

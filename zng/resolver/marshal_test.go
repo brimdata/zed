@@ -1,6 +1,7 @@
 package resolver_test
 
 import (
+	"bytes"
 	"errors"
 	"math"
 	"net"
@@ -10,6 +11,7 @@ import (
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/tzngio"
+	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
@@ -33,6 +35,21 @@ func tzngToRec(t *testing.T, zctx *resolver.Context, tzng string) *zng.Record {
 	rec, err := r.Read()
 	require.NoError(t, err)
 	return rec
+}
+
+func boomerang(t *testing.T, in interface{}, out interface{}) {
+	rec, err := resolver.MarshalRecord(resolver.NewContext(), in)
+	require.NoError(t, err)
+	var buf bytes.Buffer
+	zw := zngio.NewWriter(zio.NopCloser(&buf), zngio.WriterOpts{})
+	err = zw.Write(rec)
+	require.NoError(t, err)
+	zctx := resolver.NewContext()
+	zr := zngio.NewReader(&buf, zctx)
+	rec, err = zr.Read()
+	require.NoError(t, err)
+	err = resolver.UnmarshalRecord(zctx, rec, out)
+	require.NoError(t, err)
 }
 
 func TestMarshal(t *testing.T) {
@@ -86,7 +103,7 @@ func TestMarshalSlice(t *testing.T) {
 `
 	assert.Equal(t, trim(exp), rectzng(t, rec))
 
-	var empty []Thing
+	empty := []Thing{}
 	r2 := Things{empty}
 	rec2, err := resolver.MarshalRecord(zctx, r2)
 	require.NoError(t, err)
@@ -97,6 +114,28 @@ func TestMarshalSlice(t *testing.T) {
 0:[[]]
 `
 	assert.Equal(t, trim(exp2), rectzng(t, rec2))
+}
+
+func TestMarshalNilSlice(t *testing.T) {
+	type TestNilSlice struct {
+		Name  string
+		Slice []string
+	}
+	t1 := TestNilSlice{Name: "test"}
+	var t2 TestNilSlice
+	boomerang(t, t1, &t2)
+	assert.Equal(t, t1, t2)
+}
+
+func TestMarshalEmptySlice(t *testing.T) {
+	type TestNilSlice struct {
+		Name  string
+		Slice []string
+	}
+	t1 := TestNilSlice{Name: "test", Slice: []string{}}
+	var t2 TestNilSlice
+	boomerang(t, t1, &t2)
+	assert.Equal(t, t1, t2)
 }
 
 type TestIP struct {
@@ -261,7 +300,7 @@ func TestMarshalArray(t *testing.T) {
 
 	exp := `
 #0:record[A1:array[int8],A2:array[string],A3:array[array[uint8]]]
-0:[[1;2;][foo;bar;][]]
+0:[[1;2;][foo;bar;]-;]
 `
 	assert.Equal(t, trim(exp), rectzng(t, rec))
 
