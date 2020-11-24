@@ -8,14 +8,11 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
-	"strings"
-	"unicode"
 
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/zjsonio"
-	"github.com/segmentio/ksuid"
 )
 
 type Error struct {
@@ -91,11 +88,6 @@ type ScannerStats struct {
 var spaceIDRegexp = regexp.MustCompile("^[a-zA-Z0-9_]+$")
 
 type SpaceID string
-
-func NewSpaceID() SpaceID {
-	id := ksuid.New()
-	return SpaceID(fmt.Sprintf("sp_%s", id.String()))
-}
 
 // String is part of the flag.Value interface allowing a SpaceID value to be
 // used as a command line flag.
@@ -333,25 +325,4 @@ type ArchiveOpenOptions struct {
 
 type ArchiveCreateOptions struct {
 	LogSizeThreshold *int64 `json:"log_size_threshold,omitempty"`
-}
-
-func invalidSpaceNameRune(r rune) bool {
-	return r == '/' || !unicode.IsPrint(r)
-}
-
-func ValidSpaceName(s string) bool {
-	return strings.IndexFunc(s, invalidSpaceNameRune) == -1
-}
-
-// SafeName converts the proposed name to a name that adheres to the constraints
-// placed on a space's name (i.e. follows the name regex).
-func SafeName(proposed string) string {
-	var sb strings.Builder
-	for _, r := range proposed {
-		if invalidSpaceNameRune(r) {
-			r = '_'
-		}
-		sb.WriteRune(r)
-	}
-	return sb.String()
 }

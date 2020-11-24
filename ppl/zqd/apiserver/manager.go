@@ -10,6 +10,7 @@ import (
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/ppl/zqd/apiserver/oldconfig"
+	"github.com/brimsec/zq/ppl/zqd/apiserver/space"
 	"github.com/brimsec/zq/ppl/zqd/pcapstorage"
 	"github.com/brimsec/zq/ppl/zqd/storage"
 	"github.com/brimsec/zq/ppl/zqd/storage/archivestore"
@@ -141,10 +142,10 @@ func (m *Manager) CreateSpace(ctx context.Context, req api.SpacePostRequest) (ap
 	if req.Name == "" && req.DataPath == "" {
 		return api.SpaceInfo{}, zqe.E(zqe.Invalid, "must supply non-empty name or dataPath")
 	}
-	if !api.ValidSpaceName(req.Name) {
+	if !space.ValidSpaceName(req.Name) {
 		return api.SpaceInfo{}, zqe.E(zqe.Invalid, "name may not contain '/' or non-printable characters")
 	}
-	id := api.NewSpaceID()
+	id := space.NewSpaceID()
 	var datapath iosrc.URI
 	if req.DataPath == "" {
 		datapath = m.rootPath.AppendPath(string(id))
@@ -163,7 +164,7 @@ func (m *Manager) CreateSpace(ctx context.Context, req api.SpacePostRequest) (ap
 	var retryNameConflict bool
 	if req.Name == "" {
 		retryNameConflict = true
-		req.Name = api.SafeName(path.Base(datapath.Path))
+		req.Name = space.SafeName(path.Base(datapath.Path))
 	}
 
 	var storecfg api.StorageConfig
@@ -209,7 +210,7 @@ func (m *Manager) CreateSubspace(ctx context.Context, parentID api.SpaceID, req 
 	if req.Name == "" {
 		return api.SpaceInfo{}, zqe.E(zqe.Invalid, "cannot set name to an empty string")
 	}
-	if !api.ValidSpaceName(req.Name) {
+	if !space.ValidSpaceName(req.Name) {
 		return api.SpaceInfo{}, zqe.E(zqe.Invalid, "name may not contain '/' or non-printable characters")
 	}
 	parent, err := m.db.GetSpace(ctx, parentID)
@@ -220,7 +221,7 @@ func (m *Manager) CreateSubspace(ctx context.Context, parentID api.SpaceID, req 
 		return api.SpaceInfo{}, zqe.E(zqe.Invalid, "space does not support creating subspaces")
 	}
 	row := SpaceRow{
-		ID:       api.NewSpaceID(),
+		ID:       space.NewSpaceID(),
 		ParentID: parentID,
 		Name:     req.Name,
 		DataURI:  parent.DataURI,
@@ -376,7 +377,7 @@ func (m *Manager) UpdateSpaceName(ctx context.Context, id api.SpaceID, name stri
 	if name == "" {
 		return zqe.E(zqe.Invalid, "cannot set name to an empty string")
 	}
-	if !api.ValidSpaceName(name) {
+	if !space.ValidSpaceName(name) {
 		return zqe.E(zqe.Invalid, "name may not contain '/' or non-printable characters")
 	}
 	return m.db.UpdateSpaceName(ctx, id, name)

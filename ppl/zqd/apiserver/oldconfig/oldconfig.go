@@ -11,6 +11,7 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/brimsec/zq/ppl/zqd/apiserver/space"
 	"github.com/brimsec/zq/ppl/zqd/pcapstorage"
 	"github.com/brimsec/zq/zqe"
 	"go.uber.org/zap"
@@ -208,7 +209,7 @@ func (m *configMigrator) migrateConfigV1(data []byte, spaceURI iosrc.URI) (int, 
 	if _, ok := m.names[c.Name]; ok {
 		c.Name = uniqueName(m.names, c.Name)
 	}
-	c.Name = api.SafeName(c.Name)
+	c.Name = space.SafeName(c.Name)
 	if c.Storage.Kind == api.UnknownStore {
 		c.Storage.Kind = api.FileStore
 	}
