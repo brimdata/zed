@@ -159,6 +159,15 @@ func (s *statReadCloser) run() {
 	})
 }
 
+func RecordCount(ctx context.Context, ark *Archive) (uint64, error) {
+	var count uint64
+	err := Walk(ctx, ark, func(chunk chunk.Chunk) error {
+		count += chunk.RecordCount
+		return nil
+	})
+	return count, err
+}
+
 func Stat(ctx context.Context, zctx *resolver.Context, ark *Archive) (zbuf.ReadCloser, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	s := &statReadCloser{

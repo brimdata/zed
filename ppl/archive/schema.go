@@ -56,13 +56,13 @@ func MetadataRead(ctx context.Context, uri iosrc.URI) (*Metadata, error) {
 }
 
 const (
-	DefaultLogSizeThreshold = 500 * 1024 * 1024
 	DefaultDataOrder        = zbuf.OrderDesc
+	DefaultLogSizeThreshold = 500 * 1024 * 1024
 )
 
 type CreateOptions struct {
-	LogSizeThreshold *int64
 	DataPath         string
+	LogSizeThreshold *int64
 	SortAscending    bool
 }
 
@@ -201,6 +201,9 @@ func CreateOrOpenArchiveWithContext(ctx context.Context, rpath string, co *Creat
 			if err := dm.MkdirAll(root.AppendPath(dataDirname), 0700); err != nil {
 				return nil, err
 			}
+		}
+		if co == nil {
+			co = &CreateOptions{}
 		}
 		if err := co.toMetadata().Write(mdPath); err != nil {
 			return nil, err

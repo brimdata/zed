@@ -2,11 +2,14 @@ package archive
 
 import (
 	"context"
+	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/ppl/archive/chunk"
 	"github.com/brimsec/zq/proc/sort"
 	"github.com/brimsec/zq/proc/spill"
@@ -15,6 +18,7 @@ import (
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"go.uber.org/multierr"
+	"golang.org/x/sync/errgroup"
 )
 
 var (
@@ -22,6 +26,10 @@ var (
 	// before they are flushed to disk.
 	ImportBufSize          = int64(sort.MemMaxBytes)
 	ImportStreamRecordsMax = zngio.DefaultStreamRecordsMax
+	// DefaultImportFlushTimeout is the default time that an archive will wait
+	// before flushing to disk and closing a tsdir that has not received any new
+	// data.
+	DefaultImportFlushTimeout = time.Second
 )
 
 // For unit testing.
@@ -44,44 +52,111 @@ func Import(ctx context.Context, ark *Archive, zctx *resolver.Context, r zbuf.Re
 // TODO zq#1432 Writer does not currently keep track of size of records
 // written to temporary files. At some point this should have a maxTempFileSize
 // to ensure the Writer does not exceed the size of a provisioned tmpfs.
-//
-// TODO zq#1433 If a tsDir never gets enough data to reach ark.LogSizeThreshold,
-// the data will sit in the tsDirWriter and remain unsearchable until the
-// provided read stream is closed. Add some kind of timeout functionality that
-// periodically flushes stale tsDirWriters.
 type Writer struct {
-	ark     *Archive
-	ctx     context.Context
-	writers map[tsDir]*tsDirWriter
+	ark          *Archive
+	cancel       context.CancelFunc
+	ctx          context.Context
+	errgroup     *errgroup.Group
+	flushTimeout time.Duration
+	once         sync.Once
+	writers      map[tsDir]*tsDirWriter
+	writersMu    sync.RWMutex
 
 	memBuffered int64
 	stats       ImportStats
 }
 
+// NewWriter creates a zbuf.Writer compliant writer for writing data to an
+// archive.
 func NewWriter(ctx context.Context, ark *Archive) *Writer {
+	g, ctx := errgroup.WithContext(ctx)
+	ctx, cancel := context.WithCancel(ctx)
 	return &Writer{
-		ark:     ark,
-		ctx:     ctx,
-		writers: make(map[tsDir]*tsDirWriter),
+		ark:          ark,
+		cancel:       cancel,
+		ctx:          ctx,
+		errgroup:     g,
+		flushTimeout: DefaultImportFlushTimeout,
+		writers:      make(map[tsDir]*tsDirWriter),
 	}
 }
 
+// SetFlushTimeout sets the interval at which the Writer will wait to flush
+// stale records to disk. This must be called before writing any records.
+func (w *Writer) SetFlushTimeout(timeout time.Duration) {
+	w.flushTimeout = timeout
+}
+
 func (w *Writer) Write(rec *zng.Record) error {
+	w.once.Do(func() {
+		w.errgroup.Go(w.flusher)
+	})
+	if w.ctx.Err() != nil {
+		if err := w.errgroup.Wait(); err != nil {
+			return err
+		}
+		return w.ctx.Err()
+	}
+
 	tsDir := newTsDir(rec.Ts())
+	w.writersMu.RLock()
 	dw, ok := w.writers[tsDir]
+	w.writersMu.RUnlock()
 	if !ok {
 		var err error
 		dw, err = newTsDirWriter(w, tsDir)
 		if err != nil {
 			return err
 		}
-		w.writers[tsDir] = dw
+		w.writersMu.Lock()
+		if _, ok := w.writers[tsDir]; !ok {
+			w.writers[tsDir] = dw
+		}
+		dw = w.writers[tsDir]
+		w.writersMu.Unlock()
 	}
-	if err := dw.writeOne(rec); err != nil {
+	if err := dw.Write(rec); err != nil {
 		return err
 	}
-	for w.memBuffered > ImportBufSize {
+	for atomic.LoadInt64(&w.memBuffered) > ImportBufSize {
 		if err := w.spillLargestBuffer(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// flusher is a background goroutine for an active Writer that periodically
+// checks for tsdir writers that have not received data in a while. If such a
+// writer is found, it is flushed to disk and closed.
+func (w *Writer) flusher() error {
+	ticker := time.NewTicker(w.flushTimeout)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			if err := w.flushStaleWriters(); err != nil {
+				return err
+			}
+		case <-w.ctx.Done():
+			return nil
+		}
+	}
+}
+
+func (w *Writer) flushStaleWriters() error {
+	now := time.Now()
+	w.writersMu.Lock()
+	var stale []*tsDirWriter
+	for tsd, writer := range w.writers {
+		if now.Sub(writer.modified()) > w.flushTimeout {
+			stale = append(stale, writer)
+			delete(w.writers, tsd)
+		}
+	}
+	w.writersMu.Unlock()
+	for _, writer := range stale {
+		if err := writer.flush(); err != nil {
 			return err
 		}
 	}
@@ -93,6 +168,8 @@ func (w *Writer) Write(rec *zng.Record) error {
 // spilling to disk the records of the tsDirWriter with the largest memory
 // footprint.
 func (w *Writer) spillLargestBuffer() error {
+	w.writersMu.RLock()
+	defer w.writersMu.RUnlock()
 	var largest *tsDirWriter
 	for _, dw := range w.writers {
 		if largest == nil || dw.bufSize > largest.bufSize {
@@ -103,12 +180,18 @@ func (w *Writer) spillLargestBuffer() error {
 }
 
 func (w *Writer) Close() error {
+	w.writersMu.Lock()
 	var merr error
 	for ts, dw := range w.writers {
 		if err := dw.flush(); err != nil {
 			merr = multierr.Append(merr, err)
 		}
 		delete(w.writers, ts)
+	}
+	w.writersMu.Unlock()
+	w.cancel()
+	if err := w.errgroup.Wait(); merr == nil {
+		merr = err
 	}
 	return merr
 }
@@ -145,6 +228,7 @@ type tsDirWriter struct {
 	ark     *Archive
 	bufSize int64
 	ctx     context.Context
+	modts   int64
 	records []*zng.Record
 	spiller *spill.MergeSort
 	tsDir   tsDir
@@ -168,7 +252,7 @@ func newTsDirWriter(w *Writer, tsDir tsDir) (*tsDirWriter, error) {
 
 func (dw *tsDirWriter) addBufSize(delta int64) {
 	dw.bufSize += delta
-	dw.writer.memBuffered += delta
+	atomic.AddInt64(&dw.writer.memBuffered, delta)
 }
 
 // chunkSizeEstimate returns a crude approximation of all records when written
@@ -181,7 +265,7 @@ func (dw *tsDirWriter) chunkSizeEstimate() int64 {
 	return b / 2
 }
 
-func (dw *tsDirWriter) writeOne(rec *zng.Record) error {
+func (dw *tsDirWriter) Write(rec *zng.Record) error {
 	// XXX This call leads to a ton of one-off allocations that burden the GC
 	// and slow down import. We should instead copy the raw record bytes into a
 	// recycled buffer and keep around an array of ts + byte-slice structs for
@@ -189,12 +273,21 @@ func (dw *tsDirWriter) writeOne(rec *zng.Record) error {
 	rec.CopyBody()
 	dw.records = append(dw.records, rec)
 	dw.addBufSize(int64(len(rec.Raw)))
+	dw.touch()
 	if dw.chunkSizeEstimate() > dw.ark.LogSizeThreshold {
 		if err := dw.flush(); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (dw *tsDirWriter) touch() {
+	atomic.StoreInt64(&dw.modts, int64(nano.Now()))
+}
+
+func (dw *tsDirWriter) modified() time.Time {
+	return nano.Ts(atomic.LoadInt64(&dw.modts)).Time()
 }
 
 func (dw *tsDirWriter) spill() error {
