@@ -3,6 +3,7 @@ package apiserver
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"sync"
 
@@ -48,6 +49,9 @@ func (db *FileDB) load(ctx context.Context) ([]SpaceRow, error) {
 	var data dbdataV4
 	if err := json.Unmarshal(b, &data); err != nil {
 		return nil, err
+	}
+	if data.Version != dbversion {
+		return nil, fmt.Errorf("expected db version %d, found %d", dbversion, data.Version)
 	}
 	return data.SpaceRows, nil
 }
