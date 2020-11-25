@@ -45,11 +45,11 @@ func (db *FileDB) load(ctx context.Context) ([]SpaceRow, error) {
 	if err != nil {
 		return nil, err
 	}
-	var lf dbdataV4
-	if err := json.Unmarshal(b, &lf); err != nil {
+	var data dbdataV4
+	if err := json.Unmarshal(b, &data); err != nil {
 		return nil, err
 	}
-	return lf.SpaceRows, nil
+	return data.SpaceRows, nil
 }
 
 func (db *FileDB) save(ctx context.Context, lcs []SpaceRow) error {
@@ -69,9 +69,9 @@ type SpaceRow struct {
 	Storage  api.StorageConfig `json:"storage"`
 }
 
-func (db *FileDB) CreateSpace(ctx context.Context, lr SpaceRow) error {
-	if lr.ID == "" {
-		return zqe.ErrInvalid("lr must have an id")
+func (db *FileDB) CreateSpace(ctx context.Context, row SpaceRow) error {
+	if row.ID == "" {
+		return zqe.ErrInvalid("row must have an id")
 	}
 
 	db.mu.Lock()
@@ -81,23 +81,23 @@ func (db *FileDB) CreateSpace(ctx context.Context, lr SpaceRow) error {
 		return err
 	}
 
-	for _, l := range rows {
-		if lr.Name == l.Name {
-			return zqe.ErrConflict("space with name '%s' already exists", lr.Name)
+	for _, r := range rows {
+		if row.Name == r.Name {
+			return zqe.ErrConflict("space with name '%s' already exists", row.Name)
 		}
-		if lr.ID == l.ID {
+		if row.ID == r.ID {
 			return zqe.ErrExists()
 		}
 	}
 
-	return db.save(ctx, append(rows, lr))
+	return db.save(ctx, append(rows, row))
 }
 
-func (db *FileDB) CreateSubspace(ctx context.Context, lr SpaceRow) error {
-	if lr.ID == "" {
-		return zqe.ErrInvalid("lr must have an id")
+func (db *FileDB) CreateSubspace(ctx context.Context, row SpaceRow) error {
+	if row.ID == "" {
+		return zqe.ErrInvalid("row must have an id")
 	}
-	if lr.ParentID == "" {
+	if row.ParentID == "" {
 		return zqe.ErrInvalid("subspace must have parent id")
 	}
 
@@ -109,14 +109,14 @@ func (db *FileDB) CreateSubspace(ctx context.Context, lr SpaceRow) error {
 	}
 
 	parentIdx := -1
-	for i, l := range rows {
-		if lr.Name == l.Name {
-			return zqe.ErrConflict("space with name '%s' already exists", lr.Name)
+	for i, r := range rows {
+		if row.Name == r.Name {
+			return zqe.ErrConflict("space with name '%s' already exists", row.Name)
 		}
-		if lr.ID == l.ID {
+		if row.ID == r.ID {
 			return zqe.ErrExists()
 		}
-		if lr.ParentID == l.ID {
+		if row.ParentID == r.ID {
 			parentIdx = i
 		}
 	}
@@ -124,7 +124,7 @@ func (db *FileDB) CreateSubspace(ctx context.Context, lr SpaceRow) error {
 		return zqe.ErrNotFound("subspace parent not found")
 	}
 
-	return db.save(ctx, append(rows, lr))
+	return db.save(ctx, append(rows, row))
 }
 
 func (db *FileDB) GetSpace(ctx context.Context, id api.SpaceID) (SpaceRow, error) {
