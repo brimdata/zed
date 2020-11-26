@@ -272,6 +272,8 @@ func (c *Command) launchSuricataUpdate(ctx context.Context) {
 	}()
 }
 
+// registerWithRecruiter connects with the zqd recruiter instance,
+// then call /unreserve and /register.
 func (c *Command) registerWithRecruiter(ctx context.Context, srvAddr string) error {
 	if c.recruiter == "" {
 		c.recruiter = os.Getenv("ZQD_RECRUITER")
@@ -282,13 +284,12 @@ func (c *Command) registerWithRecruiter(ctx context.Context, srvAddr string) err
 		}
 		c.conf.RecruiterConn = client.NewConnectionTo("http://" + c.recruiter)
 
-		// We start the conversation with the recruiter by sending /unreserve
-		// in case this instance of zqd was restarted after being in a reserved state.
 		// The information we need to send the recruiter is obtained through environment
 		// variables that can be set within the K8s deployment. See this doc:
 		// https://kubernetes.io/docs/tasks/inject-data-application/environment-variable-expose-pod-information/
 
-		// For server address, we allow the environment variable to override the discover address
+		// For server address, the environment variable will override the discovered address.
+		// This allows the deployment to specify a dns address provided by the K8s API rather than an IP.
 		if addr := os.Getenv("ZQD_ADDR"); addr != "" {
 			srvAddr = addr
 		}
@@ -327,9 +328,9 @@ func (c *Command) registerWithRecruiter(ctx context.Context, srvAddr string) err
 	return nil
 }
 
+// initWorkers is for local testing only.
+// Workers are obtained through the recruiter service in a prod deployment.
 func (c *Command) initWorkers() error {
-	// This is for local testing only, at this point.
-	// Workers will be available through the recruiter service in a prod deployment.
 	if c.workers != "" {
 		for _, w := range strings.Split(c.workers, ",") {
 			if _, _, err := net.SplitHostPort(w); err != nil {

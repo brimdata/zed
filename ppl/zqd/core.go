@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 	"sync/atomic"
 
 	"github.com/brimsec/zq/api"
@@ -33,14 +34,15 @@ const indexPage = `
 </html>`
 
 type Config struct {
-	Logger        *zap.Logger
-	Personality   string
-	RecruiterConn *client.Connection
-	Root          string
-	Version       string
+	Logger      *zap.Logger
+	Personality string
+	Root        string
+	Version     string
 
 	Suricata pcapanalyzer.Launcher
 	Zeek     pcapanalyzer.Launcher
+
+	RecruiterConn *client.Connection
 }
 
 type Core struct {
@@ -54,6 +56,8 @@ type Core struct {
 
 	suricata pcapanalyzer.Launcher
 	zeek     pcapanalyzer.Launcher
+
+	workerOnce sync.Once
 }
 
 func NewCore(ctx context.Context, conf Config) (*Core, error) {
