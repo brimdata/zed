@@ -22,6 +22,12 @@ import (
 // WorkerURLs, if not empty, causes this process to
 // implement parallelism using worker processes
 // instead of goroutines.
+// TODO: I am still trying to figure out the best way to get rid of
+// this package global. The alternative I tried looked like a
+// bucket-brigade: WorkerURLs starts in the zqd.Config, get copied
+// into the zqd.Core, and then copied into the driver.MultiConfig.
+// That seemed too complicated, so I am hoping for
+// a suggestion for a more direct approach. -Mark 11/25
 var WorkerURLs []string
 
 // XXX ReaderSortKey should be a field.Static.  Issue #1467.
