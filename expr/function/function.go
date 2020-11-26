@@ -130,6 +130,9 @@ func New(name string, narg int) (Interface, error) {
 		f = &toBase64{}
 	case "from_base64":
 		f = &fromBase64{}
+	case "network_of":
+		argmax = 2
+		f = &networkOf{}
 	}
 	if argmin != -1 && narg < argmin {
 		return nil, ErrTooFewArgs
