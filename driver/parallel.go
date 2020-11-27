@@ -231,11 +231,34 @@ func createParallelGroup(pctx *proc.Context, filterExpr ast.BooleanExpr, msrc Mu
 		if _, _, err := net.SplitHostPort(raddr); err != nil {
 			return nil, nil, fmt.Errorf("ZQD_RECRUITER for root process does not have host:port %v", err)
 		}
-		// include logic for here, for now, exit if missing
-		os.Exit(1)
-	} else if workers := os.Getenv("ZQD_TEST_WORKERS"); workers != "" {
+		conn := client.NewConnectionTo("http://" + raddr)
+		recreq := api.RecruitRequest{NumberRequested: mcfg.Parallelism}
+		resp, err := conn.Recruit(pctx, recreq)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error on recruit for recruiter at %s : %v", raddr, err)
+		}
+		if mcfg.Parallelism > len(resp.Workers) {
+			// TODO: we should fail back to running the query with fewer worker if possible.
+			// Determining when that is possible is non-trivial.
+			// Alternative is to wait and try to recruit more workers,
+			// which would reserve the idle zqd root process while waiting. -MTW
+			return nil, nil, fmt.Errorf("requested parallelism %d greater than available workers %d",
+				mcfg.Parallelism, len(resp.Workers))
+		}
+		for _, w := range resp.Workers {
+			sources = append(sources, &parallelHead{
+				pctx:       pctx,
+				pg:         pg,
+				workerConn: client.NewConnectionTo("http://" + w.Addr)})
+		}
+	} else if workerstr := os.Getenv("ZQD_TEST_WORKERS"); workerstr != "" {
 		// ZQD_TEST_WORKERS is is used for ZTests, and can be used for clustering without K8s.
-		for _, w := range strings.Split(workers, ",") {
+		workers := strings.Split(workerstr, ",")
+		if mcfg.Parallelism > len(workers) {
+			return nil, nil, fmt.Errorf("requested parallelism %d is greater than the number of workers %d",
+				mcfg.Parallelism, len(workers))
+		}
+		for _, w := range workers {
 			if _, _, err := net.SplitHostPort(w); err != nil {
 				return nil, nil, err
 			}
@@ -243,10 +266,6 @@ func createParallelGroup(pctx *proc.Context, filterExpr ast.BooleanExpr, msrc Mu
 				pctx:       pctx,
 				pg:         pg,
 				workerConn: client.NewConnectionTo("http://" + w)})
-		}
-		if mcfg.Parallelism > len(sources) {
-			return nil, nil, fmt.Errorf("requested parallelism %d is greater than the number of workers %d",
-				mcfg.Parallelism, len(sources))
 		}
 	} else {
 		// This is the code path used by the zqd daemon for Brim.
