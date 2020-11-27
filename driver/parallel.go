@@ -226,10 +226,10 @@ func createParallelGroup(pctx *proc.Context, filterExpr ast.BooleanExpr, msrc Mu
 
 	// Parallel group is created with different sources based on environment variables.
 	var sources []proc.Interface
-	if raddr := os.Getenv("ZQD_RECRUITER"); raddr != "" {
-		// ZQD_RECRUITER is set in K8s deployment.
+	if raddr := os.Getenv("ZQD_RECRUIT"); raddr != "" {
+		// Only the zqd root process will take this path, not workers
 		if _, _, err := net.SplitHostPort(raddr); err != nil {
-			return nil, nil, fmt.Errorf("ZQD_RECRUITER for root process does not have host:port %v", err)
+			return nil, nil, fmt.Errorf("ZQD_RECRUIT for root process does not have host:port %v", err)
 		}
 		conn := client.NewConnectionTo("http://" + raddr)
 		recreq := api.RecruitRequest{NumberRequested: mcfg.Parallelism}

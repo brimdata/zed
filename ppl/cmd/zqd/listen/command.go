@@ -267,13 +267,13 @@ func (c *Command) launchSuricataUpdate(ctx context.Context) {
 // registerWithRecruiter connects with the zqd recruiter instance,
 // then call /unreserve and /register.
 func (c *Command) registerWithRecruiter(ctx context.Context, srvAddr string) error {
-	recruiter := os.Getenv("ZQD_RECRUITER")
+	recruiter := os.Getenv("ZQD_REGISTER")
 	if recruiter == "" {
 		// For ZTests, we start the worker personality without ZQD_RECRUITER
 		return nil
 	}
 	if _, _, err := net.SplitHostPort(recruiter); err != nil {
-		return fmt.Errorf("worker ZQD_RECRUITER does not have host:port %v", err)
+		return fmt.Errorf("worker ZQD_REGISTER does not have host:port %v", err)
 	}
 	c.conf.RecruiterConn = client.NewConnectionTo("http://" + recruiter)
 
