@@ -22,7 +22,7 @@ script: |
   # the count() from zapi get -chunk
   #
   zq -t "count()" smtp.log.gz > zqcount.tzng
-  zapi -h $ZQD_HOST -s testsp get -t "count()" > zapicount.tzng
+  zapi -h $ZQD_HOST -s testsp get -p 2 -t "count()" > zapicount.tzng
   echo ===
   diff -s zqcount.tzng zapicount.tzng
   #
@@ -31,7 +31,7 @@ script: |
   # passed though to the worker zqd.
   #
   zq -t "39161" smtp.log.gz > zqfilter.tzng
-  zapi -h $ZQD_HOST -s testsp get -t "39161" > zapifilter.tzng
+  zapi -h $ZQD_HOST -s testsp get -p 2 -t "39161" > zapifilter.tzng
   echo ===
   diff -s zqfilter.tzng zapifilter.tzng
   #
@@ -39,9 +39,11 @@ script: |
   # the record order is the same.
   #
   zq -t "sort -r ts | tail 5" smtp.log.gz > zqtail.tzng
-  zapi -h $ZQD_HOST -s testsp get -t "tail 5" > zapitail.tzng
+  zapi -h $ZQD_HOST -s testsp get -p 2 -t "tail 5" > zapitail.tzng
   echo ===
   diff -s zqtail.tzng zapitail.tzng
+ 
+  cat zqd-root.log
   
 inputs:
   - name: services.sh

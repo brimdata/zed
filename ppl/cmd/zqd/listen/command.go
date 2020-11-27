@@ -14,12 +14,10 @@ import (
 	"os/exec"
 	"os/signal"
 	"runtime"
-	"strings"
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/cli"
-	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/httpd"
 	"github.com/brimsec/zq/pkg/rlimit"
@@ -68,10 +66,8 @@ type Command struct {
 	personality         string
 	portFile            string
 	pprof               bool
-	recruiter           string
 	suricataRunnerPath  string
 	suricataUpdaterPath string
-	workers             string
 	zeekRunnerPath      string
 }
 
@@ -87,10 +83,8 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.conf.Personality, "personality", "all", "server personality (all, apiserver, recruiter, or worker)")
 	f.StringVar(&c.portFile, "portfile", "", "write listen port to file")
 	f.BoolVar(&c.pprof, "pprof", false, "add pprof routes to API")
-	f.StringVar(&c.recruiter, "recruiter", "", "addr:port of zqd recruiter for cluster")
 	f.StringVar(&c.suricataRunnerPath, "suricatarunner", "", "command to generate Suricata eve.json from pcap data")
 	f.StringVar(&c.suricataUpdaterPath, "suricataupdater", "", "command to update Suricata rules (run once at startup)")
-	f.StringVar(&c.workers, "workers", "", "workers as comma-separated [addr]:port list")
 	f.StringVar(&c.zeekRunnerPath, "zeekrunner", "", "command to generate Zeek logs from pcap data")
 	return c, nil
 }
@@ -124,7 +118,6 @@ func (c *Command) Run(args []string) error {
 		zap.Uint64("open_files_limit", openFilesLimit),
 		zap.String("personality", c.conf.Personality),
 		zap.Bool("pprof_routes", c.pprof),
-		zap.String("recruiter", c.recruiter),
 		zap.Bool("suricata_supported", core.HasSuricata()),
 		zap.Bool("zeek_supported", core.HasZeek()),
 	)
@@ -147,10 +140,12 @@ func (c *Command) Run(args []string) error {
 	if err := srv.Start(ctx); err != nil {
 		return err
 	}
-	// Our intent is to registerWithRecruiter as late as possible,
+	// Workers should registerWithRecruiter as late as possible,
 	// just before writing Port file for tests.
-	if err := c.registerWithRecruiter(ctx, srv.Addr()); err != nil {
-		return err
+	if c.conf.Personality == "worker" {
+		if err := c.registerWithRecruiter(ctx, srv.Addr()); err != nil {
+			return err
+		}
 	}
 	if c.portFile != "" {
 		if err := c.writePortFile(srv.Addr()); err != nil {
@@ -165,9 +160,6 @@ func (c *Command) init() error {
 		return err
 	}
 	if err := c.initLogger(); err != nil {
-		return err
-	}
-	if err := c.initWorkers(); err != nil {
 		return err
 	}
 	var err error
@@ -275,69 +267,51 @@ func (c *Command) launchSuricataUpdate(ctx context.Context) {
 // registerWithRecruiter connects with the zqd recruiter instance,
 // then call /unreserve and /register.
 func (c *Command) registerWithRecruiter(ctx context.Context, srvAddr string) error {
-	if c.recruiter == "" {
-		c.recruiter = os.Getenv("ZQD_RECRUITER")
+	recruiter := os.Getenv("ZQD_RECRUITER")
+	if recruiter == "" {
+		// For ZTests, we start the worker personality without ZQD_RECRUITER
+		return nil
 	}
-	if c.recruiter != "" {
-		if _, _, err := net.SplitHostPort(c.recruiter); err != nil {
-			return fmt.Errorf("recruiter does not have host:port %v", err)
-		}
-		c.conf.RecruiterConn = client.NewConnectionTo("http://" + c.recruiter)
+	if _, _, err := net.SplitHostPort(recruiter); err != nil {
+		return fmt.Errorf("worker ZQD_RECRUITER does not have host:port %v", err)
+	}
+	c.conf.RecruiterConn = client.NewConnectionTo("http://" + recruiter)
 
-		// The information we need to send the recruiter is obtained through environment
-		// variables that can be set within the K8s deployment. See this doc:
-		// https://kubernetes.io/docs/tasks/inject-data-application/environment-variable-expose-pod-information/
+	// For server address, the environment variable will override the discovered address.
+	// This allows the deployment to specify a dns address provided by the K8s API rather than an IP.
+	if addr := os.Getenv("ZQD_ADDR"); addr != "" {
+		srvAddr = addr
+	}
+	unreservereq := api.UnreserveRequest{
+		WorkerAddr: api.WorkerAddr{Addr: srvAddr},
+	}
+	// For debugging remote call (e.g. Unreserve) print JSON by uncommenting:
+	// j, _ := json.Marshal(unreservereq)
+	// println("/unreserve", string(j))
+	resp1, err := c.conf.RecruiterConn.Unreserve(ctx, unreservereq)
+	if err != nil {
+		return fmt.Errorf("error on unreserve with recruiter at %s : %v", recruiter, err)
+	}
+	if resp1.Reserved != false {
+		return fmt.Errorf("recruiter did not acknowlege unreserve")
+	}
 
-		// For server address, the environment variable will override the discovered address.
-		// This allows the deployment to specify a dns address provided by the K8s API rather than an IP.
-		if addr := os.Getenv("ZQD_ADDR"); addr != "" {
-			srvAddr = addr
-		}
-		unreservereq := api.UnreserveRequest{
+	nodename := os.Getenv("ZQD_NODE_NAME")
+	if nodename == "" {
+		return fmt.Errorf("env var ZQD_NODE_NAME required to register with recruiter")
+	}
+	registerreq := api.RegisterRequest{
+		Worker: api.Worker{
 			WorkerAddr: api.WorkerAddr{Addr: srvAddr},
-		}
-		// For debugging remote call (e.g. Unreserve) print JSON by uncommenting:
-		// j, _ := json.Marshal(unreservereq)
-		// println("/unreserve", string(j))
-		resp1, err := c.conf.RecruiterConn.Unreserve(ctx, unreservereq)
-		if err != nil {
-			return fmt.Errorf("error on unreserve with recruiter at %s : %v", c.recruiter, err)
-		}
-		if resp1.Reserved != false {
-			return fmt.Errorf("recruiter did not acknowlege unreserve")
-		}
-
-		nodename := os.Getenv("ZQD_NODE_NAME")
-		if nodename == "" {
-			return fmt.Errorf("env var ZQD_NODE_NAME required to register with recruiter")
-		}
-		registerreq := api.RegisterRequest{
-			Worker: api.Worker{
-				WorkerAddr: api.WorkerAddr{Addr: srvAddr},
-				NodeName:   nodename,
-			},
-		}
-		resp2, err := c.conf.RecruiterConn.Register(ctx, registerreq)
-		if err != nil {
-			return fmt.Errorf("error on register with recruiter at %s : %v", c.recruiter, err)
-		}
-		if resp2.Registered != true {
-			return fmt.Errorf("recruiter did not acknowlege register")
-		}
+			NodeName:   nodename,
+		},
 	}
-	return nil
-}
-
-// initWorkers is for local testing only.
-// Workers are obtained through the recruiter service in a prod deployment.
-func (c *Command) initWorkers() error {
-	if c.workers != "" {
-		for _, w := range strings.Split(c.workers, ",") {
-			if _, _, err := net.SplitHostPort(w); err != nil {
-				return err
-			}
-			driver.WorkerURLs = append(driver.WorkerURLs, "http://"+w)
-		}
+	resp2, err := c.conf.RecruiterConn.Register(ctx, registerreq)
+	if err != nil {
+		return fmt.Errorf("error on register with recruiter at %s : %v", recruiter, err)
+	}
+	if resp2.Registered != true {
+		return fmt.Errorf("recruiter did not acknowlege register")
 	}
 	return nil
 }

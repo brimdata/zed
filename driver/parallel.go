@@ -2,7 +2,11 @@ package driver
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
+	"net"
+	"os"
+	"strings"
 	"sync"
 
 	"github.com/brimsec/zq/api"
@@ -207,7 +211,7 @@ func (pg *parallelGroup) run() {
 	close(pg.sourceChan)
 }
 
-func createParallelGroup(pctx *proc.Context, filterExpr ast.BooleanExpr, msrc MultiSource, mcfg MultiConfig, workerURLs []string) ([]proc.Interface, *parallelGroup, error) {
+func createParallelGroup(pctx *proc.Context, filterExpr ast.BooleanExpr, msrc MultiSource, mcfg MultiConfig) ([]proc.Interface, *parallelGroup, error) {
 	pg := &parallelGroup{
 		pctx: pctx,
 		filter: SourceFilter{
@@ -220,16 +224,32 @@ func createParallelGroup(pctx *proc.Context, filterExpr ast.BooleanExpr, msrc Mu
 		scanners:   make(map[zbuf.Scanner]struct{}),
 	}
 
+	// Parallel group is created with different sources based on environment variables.
 	var sources []proc.Interface
-	// Two type of parallelGroups:
-	if len(workerURLs) > 0 {
-		// If workerURLs are present, then base the sources on the number of workers
-		for _, w := range workerURLs {
-			sources = append(sources, &parallelHead{pctx: pctx, pg: pg, workerConn: client.NewConnectionTo(w)})
+	if raddr := os.Getenv("ZQD_RECRUITER"); raddr != "" {
+		// ZQD_RECRUITER is set in K8s deployment.
+		if _, _, err := net.SplitHostPort(raddr); err != nil {
+			return nil, nil, fmt.Errorf("ZQD_RECRUITER for root process does not have host:port %v", err)
+		}
+		// include logic for here, for now, exit if missing
+		os.Exit(1)
+	} else if workers := os.Getenv("ZQD_TEST_WORKERS"); workers != "" {
+		// ZQD_TEST_WORKERS is is used for ZTests, and can be used for clustering without K8s.
+		for _, w := range strings.Split(workers, ",") {
+			if _, _, err := net.SplitHostPort(w); err != nil {
+				return nil, nil, err
+			}
+			sources = append(sources, &parallelHead{
+				pctx:       pctx,
+				pg:         pg,
+				workerConn: client.NewConnectionTo("http://" + w)})
+		}
+		if mcfg.Parallelism > len(sources) {
+			return nil, nil, fmt.Errorf("requested parallelism %d is greater than the number of workers %d",
+				mcfg.Parallelism, len(sources))
 		}
 	} else {
-		// Normal: the sources are regular parallelHead procs
-		// and Parallelism is determined by mcfg
+		// This is the code path used by the zqd daemon for Brim.
 		sources = make([]proc.Interface, mcfg.Parallelism)
 		for i := range sources {
 			sources[i] = &parallelHead{pctx: pctx, pg: pg}

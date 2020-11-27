@@ -87,7 +87,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.Var(&c.from, "from", "search from timestamp in RFC3339Nano format (e.g. 2006-01-02T15:04:05.999999999Z07:00)")
 	f.Var(&c.to, "to", "search to timestamp in RFC3339Nano format (e.g. 2006-01-02T15:04:05.999999999Z07:00)")
 	f.StringVar(&c.chunkInfo, "chunk", "", "chunk to fetch in chunk file name format")
-	f.IntVar(&c.parallel, "parallel", 0, "number of parallel worker zqd processes requested")
+	f.IntVar(&c.parallel, "p", 0, "number of parallel worker zqd processes requested")
 	c.outputFlags.SetFlags(f)
 	return c, nil
 }

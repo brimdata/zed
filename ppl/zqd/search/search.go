@@ -35,7 +35,8 @@ const (
 )
 
 type SearchOp struct {
-	query *Query
+	query       *Query
+	parallelism int // for distributed queries only
 }
 
 func NewSearchOp(req api.SearchRequest) (*SearchOp, error) {
@@ -57,7 +58,7 @@ func NewSearchOp(req api.SearchRequest) (*SearchOp, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &SearchOp{query: query}, nil
+	return &SearchOp{query: query, parallelism: req.Parallel}, nil
 }
 
 func (s *SearchOp) Run(ctx context.Context, order zbuf.Order, spc space.Space, output Output) (err error) {
@@ -81,9 +82,10 @@ func (s *SearchOp) Run(ctx context.Context, order zbuf.Order, spc space.Space, o
 	switch st := spc.Storage().(type) {
 	case *archivestore.Storage:
 		return driver.MultiRun(ctx, d, s.query.Proc, zctx, st.MultiSource(), driver.MultiConfig{
-			Span:      s.query.Span,
-			StatsTick: statsTicker.C,
-			Order:     order,
+			Span:        s.query.Span,
+			StatsTick:   statsTicker.C,
+			Order:       order,
+			Parallelism: s.parallelism,
 		})
 	case *filestore.Storage:
 		rc, err := st.Open(ctx, zctx, s.query.Span)

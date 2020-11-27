@@ -19,17 +19,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// WorkerURLs, if not empty, causes this process to
-// implement parallelism using worker processes
-// instead of goroutines.
-// TODO: I am still trying to figure out the best way to get rid of
-// this package global. The alternative I tried looked like a
-// bucket-brigade: WorkerURLs starts in the zqd.Config, get copied
-// into the zqd.Core, and then copied into the driver.MultiConfig.
-// That seemed too complicated, so I am hoping for
-// a suggestion for a more direct approach. -Mark 11/25
-var WorkerURLs []string
-
 // XXX ReaderSortKey should be a field.Static.  Issue #1467.
 type Config struct {
 	Custom            compiler.Hook
@@ -141,19 +130,7 @@ func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context,
 	}
 
 	if mcfg.Parallelism == 0 {
-		// If mcfg.Parallelism has not been set by external configuration,
-		// then it will be zero here.
-		if len(WorkerURLs) > 0 {
-			// If zqd has been started as a "root" process,
-			// there is a -worker parameter with a list of WorkerURLs.
-			// In this case, initialize Parallelism as the number of workers.
-			mcfg.Parallelism = len(WorkerURLs)
-		} else {
-			// Otherwise, we will use threads (goroutines) for parallelism,
-			// so initialize Parallelism based on
-			// runtime configuation of max threads.
-			mcfg.Parallelism = runtime.GOMAXPROCS(0)
-		}
+		mcfg.Parallelism = runtime.GOMAXPROCS(0)
 	}
 
 	sortKey, sortReversed := msrc.OrderInfo()
@@ -173,7 +150,7 @@ func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context,
 		Logger:      mcfg.Logger,
 		Warnings:    mcfg.Warnings,
 	}
-	sources, pgroup, err := createParallelGroup(pctx, filterExpr, msrc, mcfg, WorkerURLs)
+	sources, pgroup, err := createParallelGroup(pctx, filterExpr, msrc, mcfg)
 	if err != nil {
 		return nil, err
 	}

@@ -25,3 +25,9 @@ The following environment variables are only used for testing a zqd root instanc
 ```
 ZQD_TEST_WORKERS=<comma seperated list of host:port for zqd workers being tested>
 ```
+## K8s deployment.yaml
+
+The information we need to send the recruiter is obtained through environment
+variables that can be set within the K8s deployment. See this doc:
+https://kubernetes.io/docs/tasks/inject-data-application/environment-variable-expose-pod-information/
+
