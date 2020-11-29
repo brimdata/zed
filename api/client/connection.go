@@ -438,6 +438,15 @@ func (c *Connection) Unreserve(ctx context.Context, req api.UnreserveRequest) (*
 	return resp.Result().(*api.UnreserveResponse), nil
 }
 
+// WorkersStats wraps the rechandlers.go handleWorkersStats API
+func (c *Connection) WorkersStats(ctx context.Context) (*api.WorkersStatsResponse, error) {
+	resp, err := c.Request(ctx).SetResult(&api.WorkersStatsResponse{}).Get("/workers/stats")
+	if err != nil {
+		return nil, err
+	}
+	return resp.Result().(*api.WorkersStatsResponse), nil
+}
+
 type ErrorResponse struct {
 	*resty.Response
 	Err error

@@ -36,3 +36,9 @@ type RecruitRequest struct {
 type RecruitResponse struct {
 	Workers []Worker `json:"workers"`
 }
+
+type WorkersStatsResponse struct {
+	LenFreePool     int `json:"LenFreePool"`
+	LenReservedPool int `json:"LenReservedPool"`
+	LenNodePool     int `json:"LenNodePool"`
+}

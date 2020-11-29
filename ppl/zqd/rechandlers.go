@@ -75,3 +75,11 @@ func handleUnreserve(c *Core, w http.ResponseWriter, r *http.Request) {
 		Reserved: false,
 	})
 }
+
+func handleWorkersStats(c *Core, w http.ResponseWriter, r *http.Request) {
+	respond(c, w, r, http.StatusOK, api.WorkersStatsResponse{
+		LenFreePool:     c.workerPool.LenFreePool(),
+		LenReservedPool: c.workerPool.LenReservedPool(),
+		LenNodePool:     c.workerPool.LenNodePool(),
+	})
+}
