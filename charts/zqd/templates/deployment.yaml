@@ -43,11 +43,11 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["/app/zqd"]
           {{- if eq .Values.personality "recruiter" }}
-          args: ["-personality", "recruiter", "listen", "-l", ":9867"] 
+          args: ["listen", "-personality=recruiter", "-l=:9867"] 
           {{- else if eq .Values.personality "worker" }}
-          args: ["-personality", "worker", "listen", "-l", ":9867"] 
+          args: ["listen", "-personality=worker", "-l=:9867"] 
           {{- else }}
-          args: ["listen", "-l", ":9867", "-data", {{ quote .Values.datauri }}] 
+          args: ["listen", "-l=:9867", "-data={{ .Values.datauri }}""] 
           {{- end }}
           ports:
             - name: http

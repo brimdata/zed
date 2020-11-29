@@ -1,0 +1,4 @@
+Warning: Invalid character is found in given range. A specified range MUST 
+Warning: have only digits in 'start'-'stop'. The server's response to this 
+Warning: request is uncertain.
+curl: (6) Could not resolve host: POST
