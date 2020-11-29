@@ -238,7 +238,7 @@ func createParallelGroup(pctx *proc.Context, filterExpr ast.BooleanExpr, msrc Mu
 			return nil, nil, fmt.Errorf("error on recruit for recruiter at %s : %v", raddr, err)
 		}
 		if mcfg.Parallelism > len(resp.Workers) {
-			// TODO: we should fail back to running the query with fewer worker if possible.
+			// TODO: we should fail back to running the query with fewer workers if possible.
 			// Determining when that is possible is non-trivial.
 			// Alternative is to wait and try to recruit more workers,
 			// which would reserve the idle zqd root process while waiting. -MTW

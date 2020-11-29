@@ -9,8 +9,12 @@ metadata:
     # will always result in yaml changes and trigger an upgrade
     timestamp: "{{ date "20060102150405" .Release.Time }}"
 spec:
-{{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
+{{- if eq .Values.personality "recruiter" }}
+  replicas: 1
+{{- else if eq .Values.personality "worker" }}
+  replicas: {{ .Values.workerReplicaCount }}
+{{- else }}
+  replicas: {{ .Values.rootReplicaCount }}
 {{- end }}
   selector:
     matchLabels:
@@ -38,7 +42,13 @@ spec:
           image: "{{ .Values.image.repository }}{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["/app/zqd"]
+          {{- if eq .Values.personality "recruiter" }}
+          args: ["-personality", "recruiter", "listen", "-l", ":9867"] 
+          {{- else if eq .Values.personality "worker" }}
+          args: ["-personality", "worker", "listen", "-l", ":9867"] 
+          {{- else }}
           args: ["listen", "-l", ":9867", "-data", {{ quote .Values.datauri }}] 
+          {{- end }}
           ports:
             - name: http
               containerPort: 9867
@@ -52,7 +62,21 @@ spec:
               path: /status
               port: http
           env:
-          ##- if eq .Values.serviceAccount.name "" ##
+          {{- if eq .Values.personality "worker"}}
+          - name: ZQD_REGISTER
+            value: "{{ .Values.RecruiterAddr }}"
+          - name: ZQD_HOST
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: ZQD_NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          {{- else if eq .Values.personality "root" }}
+          - name: ZQD_RECRUIT
+            value: "{{ .Values.RecruiterAddr }}"
+          {{- end }}
           {{- if .Values.useCredSecret }}
           # These environment variables are set from secrets
           # when there is no service account

@@ -13,12 +13,18 @@ This will deploy zqd recruiter as a service with a replication count of 1. With 
 In a K8s cluster, the zqd worker instances that register with the recruiter should be started with the `-personality=worker` command line flag, and with these environment variables:
 
 ```
-ZQD_RECRUITER=<the host:port of the zqd recruiter K8s service within the cluster>
-ZQD_ADDR=<host:port of the zqd worker pod that is registering>
-ZQD_NODE_NAME=<name of the K8s node within the cluster on which the pod is deployed>
+ZQD_REGISTER=<the host:port to be used for registration by a zqd worker process>
+ZQD_HOST=<host ip of the zqd worker pod that is registering>
+ZQD_PORT=<port for zqd worker service in the pod>
+ZQD_NODE_NAME=<name of the K8s node within the cluster on which the worker pod is deployed>
 ```
 
 The zqd helm template includes deployment.yaml that provides these env vars.
+
+The zqd recruiter process should be deployed with the following env vars:
+```
+ZQD_RECRUIT=<the host:port to be used for recruit by a zqd root process>
+```
 
 The following environment variables are only used for testing a zqd root instance and should not be used within a K8s deployment:
 

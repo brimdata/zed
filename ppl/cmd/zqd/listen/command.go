@@ -277,11 +277,16 @@ func (c *Command) registerWithRecruiter(ctx context.Context, srvAddr string) err
 	}
 	c.conf.RecruiterConn = client.NewConnectionTo("http://" + recruiter)
 
-	// For server address, the environment variable will override the discovered address.
+	// For server host and port, the environment variables will override the discovered address.
 	// This allows the deployment to specify a dns address provided by the K8s API rather than an IP.
-	if addr := os.Getenv("ZQD_ADDR"); addr != "" {
-		srvAddr = addr
+	host, port, _ := net.SplitHostPort(srvAddr)
+	if h := os.Getenv("ZQD_MY_HOST"); h != "" {
+		host = h
 	}
+	if p := os.Getenv("ZQD_MY_PORT"); p != "" {
+		port = p
+	}
+	srvAddr = net.JoinHostPort(host, port)
 	unreservereq := api.UnreserveRequest{
 		WorkerAddr: api.WorkerAddr{Addr: srvAddr},
 	}
