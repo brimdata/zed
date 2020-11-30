@@ -14,10 +14,12 @@ package zqd
 // ZQD_NODE_NAME=mytest zqd listen -l=localhost:8030 -recruiter=localhost:8020
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/zqe"
+	"go.uber.org/zap"
 )
 
 func handleDeregister(c *Core, w http.ResponseWriter, r *http.Request) {
@@ -84,13 +86,21 @@ func handleWorkersStats(c *Core, w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// handleListFree pretty prints the output because it is for manual trouble-shooting
 func handleListFree(c *Core, w http.ResponseWriter, r *http.Request) {
 	ws := c.workerPool.ListFreePool()
 	workers := make([]api.Worker, len(ws))
 	for i, e := range ws {
 		workers[i] = api.Worker{WorkerAddr: api.WorkerAddr{Addr: e.Addr}, NodeName: e.NodeName}
 	}
-	respond(c, w, r, http.StatusOK, api.RecruitResponse{
+	body := api.RecruitResponse{
 		Workers: workers,
-	})
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(body); err != nil {
+		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
+	}
 }

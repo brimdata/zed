@@ -120,15 +120,6 @@ kubectl-config:
 	--user=$(ZQD_K8S_USER)@$(ZQD_TEST_CLUSTER)
 	kubectl config use-context zqtest
 
-helm-install-workers:
-	helm install worker charts/zqd \
-	--set personality=worker \
-	--set RecruiterAddr=recruiter-zqd:9867 \
-	--set AWSRegion="us-east-2" \
-	--set image.repository="$(ZQD_ECR_HOST)/" \
-	--set image.tag="zqd:$(ECR_VERSION)" \
-	--set useCredSecret=false
-
 helm-install-recruiter:
 	helm install recruiter charts/zqd \
 	--set personality=recruiter \
@@ -145,6 +136,15 @@ helm-install-root:
 	--set image.tag="zqd:$(ECR_VERSION)" \
 	--set useCredSecret=false \
 	--set datauri=$(ZQD_DATA_URI)
+
+helm-install-workers:
+	helm install worker charts/zqd \
+	--set personality=worker \
+	--set RecruiterAddr=recruiter-zqd:9867 \
+	--set AWSRegion="us-east-2" \
+	--set image.repository="$(ZQD_ECR_HOST)/" \
+	--set image.tag="zqd:$(ECR_VERSION)" \
+	--set useCredSecret=false
 
 create-release-assets:
 	for os in darwin linux windows; do \

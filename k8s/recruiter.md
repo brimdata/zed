@@ -43,6 +43,9 @@ https://kubernetes.io/docs/tasks/inject-data-application/environment-variable-ex
 
 ```
 kubectl port-forward svc/recruiter-zqd 8020:9867 &
-curl -request GET http://localhost:8020/workers/stats
+curl http://localhost:8020/workers/stats
+curl http://localhost:8020/workers/listfree
 ```
+
+
 

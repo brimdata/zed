@@ -27,7 +27,14 @@ outputs:
     data: |
       {"registered":true}
       {"LenFreePool":1,"LenReservedPool":0,"LenNodePool":1}
-      {"workers":[{"addr":"a.b.c:5000","node":"a.b"}]}
+      {
+        "workers": [
+          {
+            "addr": "a.b.c:5000",
+            "node": "a.b"
+          }
+        ]
+      }
       {"workers":[{"addr":"a.b.c:5000","node":"a.b"}]}
       {"LenFreePool":0,"LenReservedPool":1,"LenNodePool":0}
       {"registered":false}
