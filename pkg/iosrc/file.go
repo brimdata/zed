@@ -76,7 +76,7 @@ func (s *FileSource) NewReplacer(_ context.Context, uri URI) (Replacer, error) {
 func (s *FileSource) ReadDir(_ context.Context, uri URI) ([]Info, error) {
 	entries, err := ioutil.ReadDir(uri.Filepath())
 	if err != nil {
-		return nil, err
+		return nil, wrapfileError(uri, err)
 	}
 	infos := make([]Info, len(entries))
 	for i, e := range entries {
