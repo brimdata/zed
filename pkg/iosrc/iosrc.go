@@ -162,6 +162,19 @@ func Replace(ctx context.Context, uri URI, fn func(w io.Writer) error) error {
 	return r.Close()
 }
 
+// MkdirAll will run Source.MkdirAll on the provided URI if the URI's source
+// is a DirMaker, otherwise it will do nothing.
+func MkdirAll(uri URI, mode os.FileMode) error {
+	src, err := GetSource(uri)
+	if err != nil {
+		return err
+	}
+	if mkr, ok := src.(DirMaker); ok {
+		err = mkr.MkdirAll(uri, mode)
+	}
+	return err
+}
+
 func getScheme(uri URI) string {
 	if uri.Scheme == "" {
 		return FileScheme

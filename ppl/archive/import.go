@@ -239,10 +239,8 @@ func newTsDirWriter(w *Writer, tsDir tsDir) (*tsDirWriter, error) {
 		tsDir:  tsDir,
 		writer: w,
 	}
-	if dirmkr, ok := d.ark.dataSrc.(iosrc.DirMaker); ok {
-		if err := dirmkr.MkdirAll(tsDir.path(w.ark), 0755); err != nil {
-			return nil, err
-		}
+	if err := iosrc.MkdirAll(tsDir.path(w.ark), 0755); err != nil {
+		return nil, err
 	}
 	return d, nil
 }

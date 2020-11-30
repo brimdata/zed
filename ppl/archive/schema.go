@@ -193,14 +193,8 @@ func CreateOrOpenArchiveWithContext(ctx context.Context, rpath string, co *Creat
 		return nil, err
 	}
 	if !ok {
-		src, err := iosrc.GetSource(root)
-		if err != nil {
+		if err := iosrc.MkdirAll(root.AppendPath(dataDirname), 0700); err != nil {
 			return nil, err
-		}
-		if dm, ok := src.(iosrc.DirMaker); ok {
-			if err := dm.MkdirAll(root.AppendPath(dataDirname), 0700); err != nil {
-				return nil, err
-			}
 		}
 		if co == nil {
 			co = &CreateOptions{}
