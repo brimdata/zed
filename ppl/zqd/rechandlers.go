@@ -83,3 +83,14 @@ func handleWorkersStats(c *Core, w http.ResponseWriter, r *http.Request) {
 		LenNodePool:     c.workerPool.LenNodePool(),
 	})
 }
+
+func handleListFree(c *Core, w http.ResponseWriter, r *http.Request) {
+	ws := c.workerPool.ListFreePool()
+	workers := make([]api.Worker, len(ws))
+	for i, e := range ws {
+		workers[i] = api.Worker{WorkerAddr: api.WorkerAddr{Addr: e.Addr}, NodeName: e.NodeName}
+	}
+	respond(c, w, r, http.StatusOK, api.RecruitResponse{
+		Workers: workers,
+	})
+}

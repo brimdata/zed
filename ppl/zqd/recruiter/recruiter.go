@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"sort"
 	"sync"
 	"time"
 )
@@ -181,4 +182,20 @@ func (pool *WorkerPool) LenNodePool() int {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 	return len(pool.nodePool)
+}
+
+func (pool *WorkerPool) ListFreePool() []WorkerDetail {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	var recruits []WorkerDetail
+	var keys []string
+	for k := range pool.freePool {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		recruits = append(recruits, pool.freePool[key])
+	}
+	return recruits
 }

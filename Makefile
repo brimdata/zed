@@ -123,6 +123,7 @@ kubectl-config:
 helm-install-workers:
 	helm install worker charts/zqd \
 	--set personality=worker \
+	--set RecruiterAddr=recruiter-zqd:9867 \
 	--set AWSRegion="us-east-2" \
 	--set image.repository="$(ZQD_ECR_HOST)/" \
 	--set image.tag="zqd:$(ECR_VERSION)" \
@@ -144,8 +145,6 @@ helm-install-root:
 	--set image.tag="zqd:$(ECR_VERSION)" \
 	--set useCredSecret=false \
 	--set datauri=$(ZQD_DATA_URI)
-
-helm-install-all: helm-install-workers helm-install-recruiter helm-install-root
 
 create-release-assets:
 	for os in darwin linux windows; do \

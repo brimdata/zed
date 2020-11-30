@@ -149,6 +149,7 @@ func (c *Core) addRecruiterRoutes() {
 	c.handle("/workers/register", handleRegister).Methods("POST")
 	c.handle("/workers/unreserve", handleUnreserve).Methods("POST")
 	c.handle("/workers/stats", handleWorkersStats).Methods("GET")
+	c.handle("/workers/listfree", handleListFree).Methods("GET")
 }
 
 func (c *Core) addWorkerRoutes() {

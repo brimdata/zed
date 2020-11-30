@@ -39,3 +39,10 @@ The information we need to send the recruiter is obtained through environment
 variables that can be set within the K8s deployment. See this doc:
 https://kubernetes.io/docs/tasks/inject-data-application/environment-variable-expose-pod-information/
 
+## Testing the deployment
+
+```
+kubectl port-forward svc/recruiter-zqd 8020:9867 &
+curl -request GET http://localhost:8020/workers/stats
+```
+

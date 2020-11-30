@@ -65,7 +65,7 @@ spec:
           {{- if eq .Values.personality "worker"}}
           - name: ZQD_REGISTER
             value: "{{ .Values.RecruiterAddr }}"
-          - name: ZQD_HOST
+          - name: ZQD_POD_IP
             valueFrom:
               fieldRef:
                 fieldPath: status.podIP

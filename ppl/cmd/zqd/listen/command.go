@@ -280,10 +280,10 @@ func (c *Command) registerWithRecruiter(ctx context.Context, srvAddr string) err
 	// For server host and port, the environment variables will override the discovered address.
 	// This allows the deployment to specify a dns address provided by the K8s API rather than an IP.
 	host, port, _ := net.SplitHostPort(srvAddr)
-	if h := os.Getenv("ZQD_MY_HOST"); h != "" {
+	if h := os.Getenv("ZQD_POD_IP"); h != "" {
 		host = h
 	}
-	if p := os.Getenv("ZQD_MY_PORT"); p != "" {
+	if p := os.Getenv("ZQD_PORT"); p != "" {
 		port = p
 	}
 	srvAddr = net.JoinHostPort(host, port)
@@ -318,6 +318,13 @@ func (c *Command) registerWithRecruiter(ctx context.Context, srvAddr string) err
 	if resp2.Registered != true {
 		return fmt.Errorf("recruiter did not acknowlege register")
 	}
+	c.logger.Info(
+		"Registered",
+		zap.String("my_host", host),
+		zap.String("my_port", port),
+		zap.String("worker_addr", srvAddr),
+		zap.String("node_name", nodename),
+	)
 	return nil
 }
 
