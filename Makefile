@@ -46,9 +46,9 @@ bin/$(ZEEKPATH):
 
 bin/$(SURICATAPATH):
 	@mkdir -p bin
-	@curl -L -o bin/$(SURICATAPATH).zip \
-		https://storage.googleapis.com/brimsec/suricata/suricata-$(SURICATATAG).$$(go env GOOS)-$$(go env GOARCH).zip
-	@unzip -q bin/$(SURICATAPATH).zip -d bin \
+	curl -L -o bin/$(SURICATAPATH).zip \
+		https://github.com/brimsec/build-suricata/releases/download/$(SURICATATAG)/suricata-$(SURICATATAG).$$(go env GOOS)-$$(go env GOARCH).zip
+	unzip -q bin/$(SURICATAPATH).zip -d bin \
 		&& mv bin/suricata bin/$(SURICATAPATH)
 
 bin/minio:
