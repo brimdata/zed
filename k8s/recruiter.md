@@ -2,12 +2,16 @@
 
 Here is a pattern for deploying zqd recruiter in a cluster, and using it as a service that supplied zqd worker instances to perform distributed query execution.
 
-zqd recruiter, workers, and root can be deployed with the zqd helm chart with the following Makefile targets
+zqd recruiter, workers, and root can be deployed with the zqd helm chart with the following Makefile targets.
 
+Install the recruiter and let it come up before installing the workers.
 ```
 make helm-install-recruiter
-make helm-install-workers
+```
+
+```
 make helm-install-root
+make helm-install-workers
 ```
 
 This will deploy zqd recruiter as a service with a replication count of 1. With its current design, zqd recruiter should not have more than one instance deployed in a cluster. The zqd recruiter is reliable because it can quickly recover state after an expected or unexpected restart.
@@ -46,6 +50,7 @@ kubectl port-forward svc/recruiter-zqd 8020:9867 &
 curl http://localhost:8020/workers/stats
 curl http://localhost:8020/workers/listfree
 ```
+
 
 
 
