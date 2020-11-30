@@ -1,10 +1,7 @@
 script: |
   mkdir logs
   zar import -R logs babble.tzng
-  echo ===
   zar find -R logs v=10 # no such index
-  echo ===
-  zar find -R logs -Q v=10 && echo success # no such index
 
 inputs:
   - name: babble.tzng
@@ -12,10 +9,4 @@ inputs:
 
 outputs:
   - name: stderr
-    regexp: does not exist
-
-  - name: stdout
-    data: |
-      ===
-      ===
-      success
+    regexp: no matching rule found

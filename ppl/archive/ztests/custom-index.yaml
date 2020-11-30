@@ -1,11 +1,9 @@
 script: |
   mkdir logs
   zar import -R logs babble.tzng
-  zar index -R logs -f 10000 -q -f 500 -o index.zng -z "sum(v) by s | put key=s | sort key"
-  zar ls -R logs -ranges -l
+  zar index -R logs -q -f 500 -o customindex -z "sum(v) by s | put key=s | sort key"
   echo ===
-  indexFile="logs/$(zar stat -R logs | grep ^index | awk '{print $2}' | sort | uniq | head -n 1).zar/index.zng"
-  microindex section -s 1 -t ${indexFile}
+  zar find -R logs -x customindex "inelegancy-Atoxyl" | wc -l
 
 inputs:
   - name: babble.tzng
@@ -14,9 +12,5 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      [1587518620062237300-1587513611063914690,1587518620062237300-1587513611063914690]/index.zng
-      [1587513592062544400-1587508830068523240,1587513592062544400-1587508830068523240]/index.zng
       ===
-      #0:record[key:string,_child:int64]
-      0:[Areopagite-unfarrowed;0;]
-      0:[inelegancy-Atoxyl;529;]
+             1

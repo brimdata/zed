@@ -267,7 +267,7 @@ func (cw *compactWriter) Write(rec *zng.Record) error {
 			// the use of 'chunkLastTs', and the lastTs check above to ensure we are
 			// not in a run of records with the same timestamp.
 			chunkLastTs := prevTs(rec.Ts(), cw.ark.DataOrder)
-			if _, err := cw.w.CloseWithTs(cw.ctx, firstTs, chunkLastTs); err != nil {
+			if err := cw.w.CloseWithTs(cw.ctx, firstTs, chunkLastTs); err != nil {
 				return err
 			}
 			cw.w = nil
@@ -275,9 +275,14 @@ func (cw *compactWriter) Write(rec *zng.Record) error {
 	}
 	if cw.w == nil {
 		var err error
-		cw.w, err = chunk.NewWriter(cw.ctx, cw.tsd.path(cw.ark), cw.ark.DataOrder, cw.masks, zngio.WriterOpts{
-			StreamRecordsMax: ImportStreamRecordsMax,
-			LZ4BlockSize:     importLZ4BlockSize,
+		cw.w, err = chunk.NewWriter(cw.ctx, cw.tsd.path(cw.ark), chunk.Options{
+			Order:     cw.ark.DataOrder,
+			Masks:     cw.masks,
+			IndexDefs: cw.ark.IndexDefs.List(),
+			ZngWriter: zngio.WriterOpts{
+				StreamRecordsMax: ImportStreamRecordsMax,
+				LZ4BlockSize:     importLZ4BlockSize,
+			},
 		})
 		if err != nil {
 			return err
@@ -298,7 +303,7 @@ func (cw *compactWriter) close(lastTs nano.Ts) error {
 		return nil
 	}
 	_, firstTs, _ := cw.w.Position()
-	if _, err := cw.w.CloseWithTs(cw.ctx, firstTs, lastTs); err != nil {
+	if err := cw.w.CloseWithTs(cw.ctx, firstTs, lastTs); err != nil {
 		return err
 	}
 	cw.w = nil

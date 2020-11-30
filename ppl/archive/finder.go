@@ -2,11 +2,9 @@ package archive
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/brimsec/zq/microindex"
-	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/ppl/archive/chunk"
+	"github.com/brimsec/zq/ppl/archive/index"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -84,9 +82,9 @@ func AddPath(pathField string, absolutePath bool) FindOption {
 // be more efficient at large scale to allow multipe patterns that
 // are effectively OR-ed together so that there is locality of
 // access to the microindex files.
-func Find(ctx context.Context, zctx *resolver.Context, ark *Archive, query IndexQuery, hits chan<- *zng.Record, opts ...FindOption) error {
+func Find(ctx context.Context, ark *Archive, query index.Query, hits chan<- *zng.Record, opts ...FindOption) error {
 	opt := findOptions{
-		zctx:    zctx,
+		zctx:    resolver.NewContext(),
 		addPath: func(_ *Archive, _ chunk.Chunk, rec *zng.Record) (*zng.Record, error) { return rec, nil },
 	}
 	for _, o := range opts {
@@ -94,50 +92,33 @@ func Find(ctx context.Context, zctx *resolver.Context, ark *Archive, query Index
 			return err
 		}
 	}
+	matched, ok := ark.IndexDefs.LookupQuery(query)
+	if !ok {
+		return zqe.ErrInvalid("no index rule matching query found")
+	}
 	return Walk(ctx, ark, func(chunk chunk.Chunk) error {
-		searchHits := make(chan *zng.Record)
-		var searchErr error
-		go func() {
-			defer close(searchHits)
-			uri := chunk.ZarDir().AppendPath(query.indexName)
-			searchErr = search(ctx, opt.zctx, searchHits, uri, query.patterns)
-			if searchErr != nil && zqe.IsNotFound(searchErr) && opt.skipMissing {
-				// No index for this rule.  Skip it if the skip boolean
-				// says it's ok.  Otherwise, we return ErrNotExist since
-				// the client was looking for something that wasn't indexed,
-				// and they would probably want to know.
-				searchErr = nil
-			}
-		}()
-		for hit := range searchHits {
-			h, err := opt.addPath(ark, chunk, hit)
+		idx := chunk.Index()
+		batch, err := idx.FindAll(ctx, matched.DefID, matched.Values...)
+		if err != nil && zqe.IsNotFound(err) && opt.skipMissing {
+			// No index for this rule.  Skip it if the skip boolean
+			// says it's ok.  Otherwise, we return ErrNotExist since
+			// the client was looking for something that wasn't indexed,
+			// and they would probably want to know.
+			return nil
+		}
+		for i := 0; i < batch.Length(); i++ {
+			rec, err := opt.addPath(ark, chunk, batch.Index(i))
 			if err != nil {
 				return err
 			}
 			select {
-			case hits <- h:
+			case hits <- rec:
 			case <-ctx.Done():
 				return ctx.Err()
 			}
 		}
-		return searchErr
+		return nil
 	})
-}
-
-func search(ctx context.Context, zctx *resolver.Context, hits chan<- *zng.Record, uri iosrc.URI, patterns []string) error {
-	finder, err := microindex.NewFinder(ctx, zctx, uri)
-	if err != nil {
-		return fmt.Errorf("%s: %w", uri, err)
-	}
-	defer finder.Close()
-	keys, err := finder.ParseKeys(patterns...)
-	if err != nil {
-		return fmt.Errorf("%s: %w", finder.Path(), err)
-	}
-	if err := finder.LookupAll(ctx, hits, keys); err != nil {
-		return fmt.Errorf("%s: %w", finder.Path(), err)
-	}
-	return nil
 }
 
 type findReadCloser struct {
@@ -164,7 +145,7 @@ func (f *findReadCloser) Close() error {
 	return nil
 }
 
-func FindReadCloser(ctx context.Context, zctx *resolver.Context, ark *Archive, query IndexQuery, opts ...FindOption) (zbuf.ReadCloser, error) {
+func FindReadCloser(ctx context.Context, ark *Archive, query index.Query, opts ...FindOption) (zbuf.ReadCloser, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	f := &findReadCloser{
 		ctx:    ctx,
@@ -172,7 +153,7 @@ func FindReadCloser(ctx context.Context, zctx *resolver.Context, ark *Archive, q
 		hits:   make(chan *zng.Record),
 	}
 	go func() {
-		f.err = Find(ctx, zctx, ark, query, f.hits, opts...)
+		f.err = Find(ctx, ark, query, f.hits, opts...)
 		close(f.hits)
 	}()
 	return f, nil

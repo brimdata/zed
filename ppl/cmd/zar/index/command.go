@@ -5,13 +5,13 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"sync"
 
 	"github.com/brimsec/zq/cli/procflags"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
 	"github.com/brimsec/zq/ppl/archive"
+	"github.com/brimsec/zq/ppl/archive/index"
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
 	"github.com/mccanne/charm"
 )
@@ -46,14 +46,15 @@ func init() {
 
 type Command struct {
 	*root.Command
-	root       string
-	quiet      bool
-	inputFile  string
-	outputFile string
 	framesize  int
+	inputFile  string
 	keys       string
-	zql        string
+	noapply    bool
+	outputFile string
 	procFlags  procflags.Flags
+	quiet      bool
+	root       string
+	zql        string
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -62,6 +63,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.keys, "k", "key", "one or more comma-separated key fields")
 	f.IntVar(&c.framesize, "f", 32*1024, "minimum frame size used in microindex file")
 	f.StringVar(&c.inputFile, "i", "_", "input file relative to each zar directory ('_' means archive log file in the parent of the zar directory)")
+	f.BoolVar(&c.noapply, "noapply", false, "add index rules but do not apply them to the archive")
 	f.StringVar(&c.outputFile, "o", "index.zng", "name of microindex output file (for custom indexes)")
 	f.BoolVar(&c.quiet, "q", false, "don't print progress on stdout")
 	f.StringVar(&c.zql, "z", "", "zql for custom indexes")
@@ -75,10 +77,10 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	if len(args) == 0 && c.zql == "" {
-		return errors.New("zar index: one or more indexing patterns must be specified")
+		return errors.New("zar index add: one or more indexing patterns must be specified")
 	}
 	if c.root == "" {
-		return errors.New("zar index: a directory must be specified with -R or ZAR_ROOT")
+		return errors.New("zar index add: a directory must be specified with -R or ZAR_ROOT")
 	}
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
@@ -89,39 +91,59 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 
-	var rules []archive.Rule
-	if c.zql != "" {
-		rule, err := archive.NewZqlRule(c.zql, c.outputFile, field.DottedList(c.keys), c.framesize)
-		if err != nil {
-			return errors.New("zar index: " + err.Error())
-		}
-		rules = append(rules, *rule)
+	rules, err := c.rules(args)
+	if err != nil {
+		return err
 	}
-	for _, pattern := range args {
-		rule, err := archive.NewRule(pattern)
-		if err != nil {
-			return errors.New("zar index: " + err.Error())
-		}
-		rules = append(rules, *rule)
-	}
-	var wg sync.WaitGroup
-	var progress chan string
-	if !c.quiet {
-		wg.Add(1)
-		progress = make(chan string)
-		go func() {
-			for line := range progress {
-				fmt.Println(line)
-			}
-			wg.Done()
-		}()
-	}
+
 	ctx, cancel := signalctx.New(os.Interrupt)
 	defer cancel()
-	err = archive.IndexDirTree(ctx, ark, rules, c.inputFile, progress)
-	if progress != nil {
-		close(progress)
-		wg.Wait()
+	defs, err := ark.IndexDefs.AddRules(ctx, rules)
+	if err != nil {
+		return err
 	}
-	return err
+	if c.noapply {
+		return nil
+	}
+	// XXX add progress
+	// var wg sync.WaitGroup
+	// var progress chan string
+	// if !c.quiet {
+	// wg.Add(1)
+	// progress = make(chan string)
+	// go func() {
+	// for line := range progress {
+	// fmt.Println(line)
+	// }
+	// wg.Done()
+	// }()
+	// }
+	return archive.ApplyDefs(ctx, ark, defs...)
+}
+
+func (c *Command) rules(args []string) ([]index.Rule, error) {
+	var input string
+	if c.inputFile != "_" {
+		input = c.inputFile
+	}
+
+	var rules []index.Rule
+	if c.zql != "" {
+		rule, err := index.NewZqlRule(c.zql, c.outputFile, field.DottedList(c.keys))
+		if err != nil {
+			return nil, fmt.Errorf("zar index add: %w", err)
+		}
+		rule.Framesize = c.framesize
+		rule.Input = input
+		rules = append(rules, rule)
+	}
+	for _, pattern := range args {
+		rule, err := index.NewRule(pattern)
+		if err != nil {
+			return nil, fmt.Errorf("zar index add: %w", err)
+		}
+		rule.Input = input
+		rules = append(rules, rule)
+	}
+	return rules, nil
 }

@@ -1,6 +1,8 @@
 package zbuf
 
 import (
+	"context"
+
 	"github.com/brimsec/zq/zng"
 )
 
@@ -26,6 +28,10 @@ type Batch interface {
 	Index(int) *zng.Record
 	Length() int
 	Records() []*zng.Record
+}
+
+type BatchWriter interface {
+	WriteBatch(Batch) error
 }
 
 // ReadBatch reads up to n records read from zr and returns them as a Batch.  At
@@ -71,6 +77,53 @@ func CopyPuller(w Writer, p Puller) error {
 		}
 		b.Unref()
 	}
+}
+
+func CopyBatchesWithContext(ctx context.Context, w BatchWriter, p Puller) error {
+	for ctx.Err() == nil {
+		batch, err := p.Pull()
+		if batch == nil || err != nil {
+			return err
+		}
+		if err := w.WriteBatch(batch); err != nil {
+			return err
+		}
+	}
+	return ctx.Err()
+}
+
+type batchRecordWriter struct {
+	Size    int
+	w       BatchWriter
+	records []*zng.Record
+}
+
+func BatchRecordWriter(w BatchWriter) WriteCloser {
+	return &batchRecordWriter{Size: 100, w: w}
+}
+
+func (b *batchRecordWriter) Write(rec *zng.Record) error {
+	b.records = append(b.records, rec)
+	if len(b.records) > b.Size {
+		return b.flush()
+	}
+	return nil
+}
+
+func (b *batchRecordWriter) flush() error {
+	n := len(b.records)
+	if n == 0 {
+		return nil
+	}
+	recs := make([]*zng.Record, n)
+	copy(recs, b.records)
+	err := b.w.WriteBatch(Array(recs))
+	b.records = b.records[:0]
+	return err
+}
+
+func (b *batchRecordWriter) Close() error {
+	return b.flush()
 }
 
 func PullerReader(p Puller) Reader {

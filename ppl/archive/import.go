@@ -322,9 +322,13 @@ func (dw *tsDirWriter) flush() error {
 		expr.SortStable(dw.records, importCompareFn(dw.ark))
 		r = zbuf.Array(dw.records).NewReader()
 	}
-	w, err := chunk.NewWriter(dw.ctx, dw.tsDir.path(dw.ark), dw.ark.DataOrder, nil, zngio.WriterOpts{
-		StreamRecordsMax: ImportStreamRecordsMax,
-		LZ4BlockSize:     importLZ4BlockSize,
+	w, err := chunk.NewWriter(dw.ctx, dw.tsDir.path(dw.ark), chunk.Options{
+		Order:     dw.ark.DataOrder,
+		IndexDefs: dw.ark.IndexDefs.List(),
+		ZngWriter: zngio.WriterOpts{
+			StreamRecordsMax: ImportStreamRecordsMax,
+			LZ4BlockSize:     importLZ4BlockSize,
+		},
 	})
 	if err != nil {
 		return err
@@ -333,7 +337,7 @@ func (dw *tsDirWriter) flush() error {
 		w.Abort()
 		return err
 	}
-	if _, err := w.Close(dw.ctx); err != nil {
+	if err := w.Close(dw.ctx); err != nil {
 		return err
 	}
 	dw.writer.stats.Accumulate(ImportStats{

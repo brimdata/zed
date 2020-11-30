@@ -9,6 +9,7 @@ import (
 
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/ppl/archive/chunk"
+	"github.com/brimsec/zq/ppl/archive/index"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zqe"
 	"github.com/segmentio/ksuid"
@@ -89,6 +90,7 @@ type Archive struct {
 	Root             iosrc.URI
 	DataPath         iosrc.URI
 	DataOrder        zbuf.Order
+	IndexDefs        *index.Defs
 	LogSizeThreshold int64
 	LogFilter        []ksuid.KSUID
 	dataSrc          iosrc.Source
@@ -142,6 +144,10 @@ func openArchive(ctx context.Context, root iosrc.URI, oo *OpenOptions) (*Archive
 	if err != nil {
 		return nil, err
 	}
+	defs, err := index.OpenDefs(ctx, root)
+	if err != nil {
+		return nil, err
+	}
 	if m.DataPath == "." {
 		m.DataPath = root.String()
 	}
@@ -151,10 +157,11 @@ func openArchive(ctx context.Context, root iosrc.URI, oo *OpenOptions) (*Archive
 	}
 
 	ark := &Archive{
-		Root:             root,
 		DataOrder:        m.DataOrder,
-		LogSizeThreshold: m.LogSizeThreshold,
 		DataPath:         dpuri,
+		IndexDefs:        defs,
+		LogSizeThreshold: m.LogSizeThreshold,
+		Root:             root,
 	}
 
 	if oo != nil && oo.DataSource != nil {

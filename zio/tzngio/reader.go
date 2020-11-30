@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 
 	"github.com/brimsec/zq/pkg/skim"
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
@@ -209,4 +211,10 @@ func (r *Reader) parseValue(line []byte) (*zng.Record, error) {
 	}
 
 	return zng.NewRecordCheck(typ, raw)
+}
+
+func ReadAll(str string) (zbuf.Array, error) {
+	var arr zbuf.Array
+	r := NewReader(strings.NewReader(str), resolver.NewContext())
+	return arr, zbuf.Copy(&arr, r)
 }

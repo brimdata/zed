@@ -2,6 +2,7 @@ package ztest
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os/exec"
 	"runtime"
@@ -21,5 +22,6 @@ func RunShell(dir *Dir, bindir, script string, stdin io.Reader) (string, string,
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	err := cmd.Run()
+	fmt.Println(stderr.String())
 	return stdout.String(), stderr.String(), err
 }

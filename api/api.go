@@ -281,11 +281,11 @@ type IndexSearchRequest struct {
 }
 
 type IndexPostRequest struct {
-	Patterns   []string        `json:"patterns"`
-	AST        json.RawMessage `json:"ast,omitempty"`
-	Keys       []string        `json:"keys"`
-	InputFile  string          `json:"input_file"`
-	OutputFile string          `json:"output_file"`
+	Patterns   []string `json:"patterns"`
+	ZQL        string   `json:"zql,omitempty"`
+	Keys       []string `json:"keys"`
+	InputFile  string   `json:"input_file"`
+	OutputFile string   `json:"output_file"`
 }
 
 type StorageKind string

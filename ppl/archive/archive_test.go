@@ -15,6 +15,7 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/ppl/archive/chunk"
+	"github.com/brimsec/zq/ppl/archive/index"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
@@ -43,18 +44,20 @@ func importTestFile(t *testing.T, ark *Archive, srcfile string) {
 }
 
 func indexArchiveSpace(t *testing.T, datapath string, ruledef string) {
-	rule, err := NewRule(ruledef)
+	rule, err := index.NewRule(ruledef)
 	require.NoError(t, err)
 
 	ark, err := OpenArchive(datapath, nil)
 	require.NoError(t, err)
 
-	err = IndexDirTree(context.Background(), ark, []Rule{*rule}, "_", nil)
+	err = ApplyRules(context.Background(), ark, rule)
 	require.NoError(t, err)
 }
 
-func indexQuery(t *testing.T, ark *Archive, query IndexQuery, opts ...FindOption) string {
-	rc, err := FindReadCloser(context.Background(), resolver.NewContext(), ark, query, opts...)
+func indexQuery(t *testing.T, ark *Archive, patterns []string, opts ...FindOption) string {
+	q, err := index.ParseQuery("", patterns)
+	require.NoError(t, err)
+	rc, err := FindReadCloser(context.Background(), ark, q, opts...)
 	require.NoError(t, err)
 	defer rc.Close()
 
@@ -82,9 +85,6 @@ func TestOpenOptions(t *testing.T) {
 	require.Regexp(t, "not a chunk file name", err.Error())
 
 	indexArchiveSpace(t, datapath, ":int64")
-
-	query, err := ParseIndexQuery("", []string{":int64=336"})
-	require.NoError(t, err)
 
 	ark1, err := OpenArchive(datapath, nil)
 	require.NoError(t, err)
@@ -129,7 +129,8 @@ func TestOpenOptions(t *testing.T) {
 		t.Fatalf("expected data files not found")
 	}
 
-	out := indexQuery(t, ark1, query, AddPath(DefaultAddPathField, false))
+	pattern := []string{":int64=336"}
+	out := indexQuery(t, ark1, pattern, AddPath(DefaultAddPathField, false))
 	require.Equal(t,
 		test.Trim(fmt.Sprintf(expFormat, ark1.Root.RelPath(chunk1.Path()), ark1.Root.RelPath(chunk2.Path()))),
 		out,
@@ -145,7 +146,7 @@ func TestOpenOptions(t *testing.T) {
 #0:record[key:int64,count:uint64,_log:zfile,first:time,last:time]
 0:[336;1;%s;1587517353.06239121;1587516769.06905117;]
 `
-	out = indexQuery(t, ark2, query, AddPath(DefaultAddPathField, false))
+	out = indexQuery(t, ark2, pattern, AddPath(DefaultAddPathField, false))
 	require.Equal(t, test.Trim(fmt.Sprintf(expFormat, ark1.Root.RelPath(chunk1.Path()))), out)
 }
 

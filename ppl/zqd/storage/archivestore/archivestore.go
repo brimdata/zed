@@ -4,12 +4,12 @@ import (
 	"context"
 
 	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/ppl/archive"
 	"github.com/brimsec/zq/ppl/archive/chunk"
+	"github.com/brimsec/zq/ppl/archive/index"
 	"github.com/brimsec/zq/ppl/zqd/storage"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
@@ -107,12 +107,9 @@ func (s *Storage) NewWriter(ctx context.Context) *Writer {
 }
 
 func (s *Storage) IndexCreate(ctx context.Context, req api.IndexPostRequest) error {
-	var rules []archive.Rule
-	if req.AST != nil {
-		proc, err := ast.UnpackJSON(nil, req.AST)
-		if err != nil {
-			return zqe.E(zqe.Invalid, err)
-		}
+	var rules []index.Rule
+	if req.ZQL != "" {
+		// XXX
 		// XXX IndexPostRequest.Keys hould take a []field.Static or
 		// new api.Field type rather than assume embedded "." works
 		// as a field separator.  Issue #1463.
@@ -120,29 +117,27 @@ func (s *Storage) IndexCreate(ctx context.Context, req api.IndexPostRequest) err
 		for _, key := range req.Keys {
 			fields = append(fields, field.Dotted(key))
 		}
-		rule, err := archive.NewRuleAST("zql", proc, req.OutputFile, fields, 0)
+		rule, err := index.NewZqlRule(req.ZQL, req.OutputFile, fields)
 		if err != nil {
 			return zqe.E(zqe.Invalid, err)
 		}
-		rules = append(rules, *rule)
+		rule.Input = req.InputFile
+		rules = append(rules, rule)
 	}
 	for _, pattern := range req.Patterns {
-		rule, err := archive.NewRule(pattern)
+		rule, err := index.NewRule(pattern)
 		if err != nil {
 			return zqe.E(zqe.Invalid, err)
 		}
-		rules = append(rules, *rule)
-	}
-	inputFile := req.InputFile
-	if inputFile == "" {
-		inputFile = "_"
+		rule.Input = req.InputFile
+		rules = append(rules, rule)
 	}
 	// XXX Eventually this method should provide progress updates.
-	return archive.IndexDirTree(ctx, s.ark, rules, inputFile, nil)
+	return archive.ApplyRules(ctx, s.ark, rules...)
 }
 
-func (s *Storage) IndexSearch(ctx context.Context, zctx *resolver.Context, query archive.IndexQuery) (zbuf.ReadCloser, error) {
-	return archive.FindReadCloser(ctx, zctx, s.ark, query, archive.AddPath(archive.DefaultAddPathField, false))
+func (s *Storage) IndexSearch(ctx context.Context, zctx *resolver.Context, query index.Query) (zbuf.ReadCloser, error) {
+	return archive.FindReadCloser(ctx, s.ark, query, archive.AddPath(archive.DefaultAddPathField, false))
 }
 
 func (s *Storage) ArchiveStat(ctx context.Context, zctx *resolver.Context) (zbuf.ReadCloser, error) {

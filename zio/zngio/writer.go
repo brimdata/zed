@@ -33,14 +33,18 @@ type WriterOpts struct {
 	LZ4BlockSize     int
 }
 
-func NewWriter(w io.WriteCloser, opts WriterOpts) *Writer {
+func NewWriter(w io.Writer, opts WriterOpts) *Writer {
 	ow := &offsetWriter{w: w}
 	var cw *compressionWriter
 	if opts.LZ4BlockSize > 0 {
 		cw = &compressionWriter{w: ow, blockSize: opts.LZ4BlockSize}
 	}
+	var closer io.Closer
+	if c, ok := w.(io.Closer); ok {
+		closer = c
+	}
 	return &Writer{
-		closer:           w,
+		closer:           closer,
 		ow:               ow,
 		cw:               cw,
 		encoder:          resolver.NewEncoder(),
@@ -51,8 +55,10 @@ func NewWriter(w io.WriteCloser, opts WriterOpts) *Writer {
 
 func (w *Writer) Close() error {
 	err := w.flush()
-	if closeErr := w.closer.Close(); err == nil {
-		err = closeErr
+	if w.closer != nil {
+		if closeErr := w.closer.Close(); err == nil {
+			err = closeErr
+		}
 	}
 	return err
 }

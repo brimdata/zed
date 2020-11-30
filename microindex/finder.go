@@ -197,6 +197,29 @@ func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zng.Record, keys *z
 	}
 }
 
+func (f *Finder) LookupBatch(ctx context.Context, keys *zng.Record) (zbuf.Batch, error) {
+	if f.IsEmpty() {
+		return nil, nil
+	}
+	compare, err := expr.NewKeyCompareFn(keys)
+	if err != nil {
+		return nil, err
+	}
+	reader, err := f.search(compare)
+	if err != nil {
+		return nil, err
+	}
+	array := &zbuf.Array{}
+	for ctx.Err() == nil {
+		rec, err := lookup(reader, compare, f.trailer.Order, eql)
+		if rec == nil || err != nil {
+			return array, err
+		}
+		array.Append(rec)
+	}
+	return *array, ctx.Err()
+}
+
 // ClosestGTE returns the closest record that is greater than or equal to the
 // provided key values.
 func (f *Finder) ClosestGTE(keys *zng.Record) (*zng.Record, error) {

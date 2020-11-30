@@ -32,6 +32,11 @@ type WriteCloser interface {
 	io.Closer
 }
 
+type WriteFlusher interface {
+	Writer
+	Flush() error
+}
+
 type nopReadCloser struct {
 	Reader
 }

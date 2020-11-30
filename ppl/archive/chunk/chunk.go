@@ -8,7 +8,10 @@ import (
 
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/ppl/archive/index"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
 	"github.com/segmentio/ksuid"
 )
@@ -19,9 +22,9 @@ type FileKind string
 
 const (
 	FileKindUnknown  FileKind = ""
-	FileKindData              = "d"
-	FileKindMetadata          = "m"
-	FileKindSeek              = "ts"
+	FileKindData     FileKind = "d"
+	FileKindMetadata FileKind = "m"
+	FileKindSeek     FileKind = "ts"
 )
 
 var fileRegex = regexp.MustCompile(`(d|m)-([0-9A-Za-z]{27}).zng$`)
@@ -105,6 +108,27 @@ func (c Chunk) ZarDir() iosrc.URI {
 	return c.Dir.AppendPath(c.FileName() + ".zar")
 }
 
+func (c Chunk) Index() index.Dir {
+	return index.Dir(c.ZarDir())
+}
+
+func (c Chunk) ApplyIndexDefs(ctx context.Context, defs ...*index.Def) error {
+	defs = index.DefList(defs).StandardInputs()
+	if len(defs) == 0 {
+		return nil
+	}
+	return c.Index().AddFromPath(ctx, c.Path(), defs...)
+}
+
+func (c Chunk) NewScanner(ctx context.Context) (zbuf.Scanner, error) {
+	r, err := iosrc.NewReader(ctx, c.Path())
+	if err != nil {
+		return nil, err
+	}
+	zr := zngio.NewReader(r, resolver.NewContext())
+	return zr.NewScanner(ctx, nil, nano.MaxSpan)
+}
+
 // Localize returns a URI that joins the provided relative path name to the
 // zardir for this chunk. The special name "_" is mapped to the path of the
 // data file for this chunk.
@@ -121,6 +145,10 @@ func ChunkPath(dir iosrc.URI, id ksuid.KSUID) iosrc.URI {
 
 func chunkSeekIndexPath(tsd iosrc.URI, id ksuid.KSUID) iosrc.URI {
 	return tsd.AppendPath(fmt.Sprintf("%s-%s.zng", FileKindSeek, id))
+}
+
+func chunkIndexDir(dir iosrc.URI, id ksuid.KSUID) index.Dir {
+	return index.Dir(dir.AppendPath(ChunkFileName(id) + ".zar"))
 }
 
 func (c Chunk) Range() string {

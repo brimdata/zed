@@ -1,7 +1,6 @@
 package idx
 
 import (
-	"encoding/json"
 	"errors"
 	"flag"
 	"strings"
@@ -42,7 +41,6 @@ zapi index create -k id.orig_h -k count -o custom -z "count() by _path, id.orig_
 type CreateCmd struct {
 	*cmd.Command
 	root       string
-	inputFile  string
 	outputFile string
 	keys       arrayFlag
 	zql        string
@@ -51,7 +49,6 @@ type CreateCmd struct {
 func NewCreate(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &CreateCmd{Command: parent.(*Command).Command}
 	f.Var(&c.keys, "k", "key fields (can be specified multiple times)")
-	f.StringVar(&c.inputFile, "i", "", "input file relative to each zar directory ('' means archive log file in the parent of the zar directory)")
 	f.StringVar(&c.outputFile, "o", "index.zng", "name of microindex output file (for custom indexes)")
 	f.StringVar(&c.zql, "z", "", "zql for custom indexes")
 	return c, nil
@@ -67,15 +64,14 @@ func (c *CreateCmd) Run(args []string) error {
 	}
 	req := api.IndexPostRequest{
 		Patterns:   args,
-		InputFile:  c.inputFile,
 		OutputFile: c.outputFile,
 	}
 	if c.zql != "" {
-		proc, err := zql.ParseProc(c.zql)
+		_, err := zql.ParseProc(c.zql)
 		if err != nil {
 			return err
 		}
-		req.AST, err = json.Marshal(proc)
+		req.ZQL = c.zql
 		if err != nil {
 			return err
 		}
