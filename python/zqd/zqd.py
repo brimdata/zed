@@ -33,9 +33,8 @@ class Client():
         r = self.session.post(self.base_url + "/search", json=body,
                               params=params, stream=True)
         r.raise_for_status()
-        for line in r.iter_lines():
-            if line:
-                yield json.loads(line)
+        # Return rather than yield to raise exceptions earlier.
+        return (json.loads(line) for line in r.iter_lines() if line)
 
     def spaces(self):
         r = self.session.get(self.base_url + "/space")
