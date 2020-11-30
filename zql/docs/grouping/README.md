@@ -197,8 +197,8 @@ zq -t 'count() by _path,typeof(.) | sort -r' http.log.gz dns.log.gz
 
 A way to achieve this would be to use the
 [`fuse` processor](../processors/README.md#fuse) to unite the `http` and `dns`
-events under a single schema. This has the effect of populating previously
-non-present fields with null values. Now that the named fields are present in
+events under a single schema. This has the effect of populating missing
+fields with null values. Now that the named fields are present in
 all records, the `by` grouping has the desired effect.
 
 ```zq-command
