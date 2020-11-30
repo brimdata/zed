@@ -138,6 +138,81 @@ ID.RESP_H       NUM_ANSWERS COUNT
 ...
 ```
 
+#### Example #4
+
+All fields referenced in a `by` grouping must be present in a given record for
+the grouping to have effect.
+
+Let's say we've performed separate aggregations for fields present in different
+Zeek events. First we count the unique `host` values in `http` events.
+
+```zq-command
+zq -f table 'count() by host | sort -r | head 3' http.log.gz
+```
+
+#### Output:
+```zq-output
+HOST       COUNT
+10.47.7.58 24693
+10.47.2.58 16499
+10.47.6.58 15180
+```
+
+Next we count the unique `query` values in `dns` events.
+
+```zq-command
+zq -f table 'count() by query | sort -r | head 3' dns.log.gz
+```
+
+#### Output:
+```zq-output
+QUERY                                                     COUNT
+ise.wrccdc.org                                            22160
+*\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00 3834
+videosearch.ubuntu.com                                    1088
+```
+
+The following attempt to reference both fields simultaneously in a `by`
+grouping to perform a single aggregation would yield no output.
+
+```
+zq -f table 'count() by host,query | sort -r' http.log.gz dns.log.gz
+```
+
+This is due to the `query` field not being present in any of the `http` records
+and the `host` field not being present in any of the `dns` records. This can
+be observed by looking at the TZNG representation of the type definitions for
+each record type.
+
+```zq-command
+zq -t 'count() by _path,typeof(.) | sort -r' http.log.gz dns.log.gz
+```
+
+#### Output:
+```zq-output
+#0:record[_path:string,typeof:type,count:uint64]
+0:[http;record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],trans_depth:uint64,method:bstring,host:bstring,uri:bstring,referrer:bstring,version:bstring,user_agent:bstring,origin:bstring,request_body_len:uint64,response_body_len:uint64,status_code:uint64,status_msg:bstring,info_code:uint64,info_msg:bstring,tags:set[zenum],username:bstring,password:bstring,proxied:set[bstring],orig_fuids:array[bstring],orig_filenames:array[bstring],orig_mime_types:array[bstring],resp_fuids:array[bstring],resp_filenames:array[bstring],resp_mime_types:array[bstring]];144034;]
+0:[dns;record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],proto:zenum,trans_id:uint64,rtt:duration,query:bstring,qclass:uint64,qclass_name:bstring,qtype:uint64,qtype_name:bstring,rcode:uint64,rcode_name:bstring,AA:bool,TC:bool,RD:bool,RA:bool,Z:uint64,answers:array[bstring],TTLs:array[duration],rejected:bool];53615;]
+```
+
+A way to achieve this would be to use the
+[`fuse` processor](../processors/README.md#fuse) to unite the `http` and `dns`
+events under a single schema. This has the effect of populating missing
+fields with null values. Now that the named fields are present in
+all records, the `by` grouping has the desired effect.
+
+```zq-command
+zq -f table 'fuse | count() by host,query | sort -r | head 3' http.log.gz dns.log.gz
+```
+
+#### Output:
+```zq-output
+HOST       QUERY          COUNT
+10.47.7.58 -              24693
+-          ise.wrccdc.org 22160
+10.47.2.58 -              16499
+```
+
 # Note: Undefined Order
 
 The order of results from a grouped aggregation are undefined. If you want to
