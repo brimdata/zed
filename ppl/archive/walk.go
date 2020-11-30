@@ -137,15 +137,11 @@ type Visitor func(chunk chunk.Chunk) error
 
 // Walk calls visitor for every data chunk in the archive.
 func Walk(ctx context.Context, ark *Archive, v Visitor) error {
-	dirmkr, _ := ark.dataSrc.(iosrc.DirMaker)
 	return tsDirVisit(ctx, ark, nano.MaxSpan, func(_ tsDir, chunks []chunk.Chunk) error {
 		chunk.Sort(ark.DataOrder, chunks)
 		for _, c := range chunks {
-			if dirmkr != nil {
-				zardir := c.ZarDir()
-				if err := dirmkr.MkdirAll(zardir, 0700); err != nil {
-					return err
-				}
+			if err := iosrc.MkdirAll(c.ZarDir(), 0700); err != nil {
+				return err
 			}
 			if err := v(c); err != nil {
 				return err
@@ -215,16 +211,12 @@ func (si *SpanInfo) RemoveMasked() []chunk.Chunk {
 
 // SpanWalk calls visitor with each SpanInfo within the filter span.
 func SpanWalk(ctx context.Context, ark *Archive, filter nano.Span, visitor func(si SpanInfo) error) error {
-	dirmkr, _ := ark.dataSrc.(iosrc.DirMaker)
 	return tsDirVisit(ctx, ark, filter, func(_ tsDir, chunks []chunk.Chunk) error {
 		sinfos := mergeChunksToSpans(chunks, ark.DataOrder, filter)
 		for _, s := range sinfos {
-			if dirmkr != nil {
-				for _, c := range s.Chunks {
-					zardir := c.ZarDir()
-					if err := dirmkr.MkdirAll(zardir, 0700); err != nil {
-						return err
-					}
+			for _, c := range s.Chunks {
+				if err := iosrc.MkdirAll(c.ZarDir(), 0700); err != nil {
+					return err
 				}
 			}
 			if err := visitor(s); err != nil {

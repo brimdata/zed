@@ -114,14 +114,8 @@ func (m *Manager) Create(ctx context.Context, req api.SpacePostRequest) (Space, 
 	}
 	id := newSpaceID()
 	path := m.rootPath.AppendPath(string(id))
-	src, err := iosrc.GetSource(path)
-	if err != nil {
+	if err := iosrc.MkdirAll(path, 0754); err != nil {
 		return nil, err
-	}
-	if dirmk, ok := src.(iosrc.DirMaker); ok {
-		if err := dirmk.MkdirAll(path, 0754); err != nil {
-			return nil, err
-		}
 	}
 	if req.DataPath == "" {
 		datapath = path
