@@ -29,16 +29,6 @@ type Key struct {
 	expr expr.Evaluator
 }
 
-type Params struct {
-	inputSortDir int
-	limit        int
-	keys         []Key
-	makers       []reducerMaker
-	builder      *builder.ColumnBuilder
-	consumePart  bool
-	emitPart     bool
-}
-
 type reducerMaker struct {
 	name   field.Static
 	create reducer.Maker
@@ -108,8 +98,8 @@ type Aggregator struct {
 	maxSpillKey  *zng.Value
 	inputSortDir int
 	spiller      *spill.MergeSort
-	consumePart  bool
-	emitPart     bool
+	partialsIn   bool
+	partialsOut  bool
 }
 
 type Row struct {
@@ -163,7 +153,7 @@ func NewAggregator(zctx *resolver.Context, keyExprs []expr.Assignment, makers []
 	}
 	builder, err := builder.NewColumnBuilder(zctx, keyNames)
 	if err != nil {
-		return nil, fmt.Errorf("compiling groupby: %w", err)
+		return nil, err
 	}
 	return &Aggregator{
 		inputSortDir: inputSortDir,
@@ -180,8 +170,8 @@ func NewAggregator(zctx *resolver.Context, keyExprs []expr.Assignment, makers []
 		keyCompare:   keyCompare,
 		keysCompare:  keysCompare,
 		valueCompare: valueCompare,
-		consumePart:  partialsIn,
-		emitPart:     partialsOut,
+		partialsIn:   partialsIn,
+		partialsOut:  partialsOut,
 	}, nil
 }
 
@@ -403,7 +393,7 @@ func (a *Aggregator) Consume(r *zng.Record) error {
 		a.table[string(keyBytes)] = row
 	}
 
-	if a.consumePart {
+	if a.partialsIn {
 		return row.reducers.ConsumePart(r)
 	}
 	row.reducers.Consume(r)
@@ -466,7 +456,7 @@ func (a *Aggregator) updateMaxSpillKey(v zng.Value) {
 // before eof, and keys that are completed will returned.
 func (a *Aggregator) Results(eof bool) (zbuf.Batch, error) {
 	if a.spiller == nil {
-		return a.readTable(eof, a.emitPart)
+		return a.readTable(eof, a.partialsOut)
 	}
 	if eof {
 		// EOF: spill in-memory table before merging all files for output.
@@ -557,7 +547,7 @@ func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 	cols := a.builder.TypedColumns(types)
 	for _, col := range row {
 		var v zng.Value
-		if a.emitPart {
+		if a.partialsOut {
 			vv, err := col.reducer.(reducer.Decomposable).ResultPart(a.zctx)
 			if err != nil {
 				return nil, err

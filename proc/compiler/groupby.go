@@ -41,11 +41,11 @@ func compileReducers(assignments []ast.Assignment, zctx *resolver.Context) ([]fi
 	names := make([]field.Static, 0, len(assignments))
 	reducers := make([]reducer.Maker, 0, len(assignments))
 	for _, assignment := range assignments {
-		name, f, err := compileReducer(zctx, assignment)
+		name, maker, err := compileReducer(zctx, assignment)
 		if err != nil {
 			return nil, nil, err
 		}
-		reducers = append(reducers, f)
+		reducers = append(reducers, maker)
 		names = append(names, name)
 	}
 	return names, reducers, nil
@@ -84,18 +84,18 @@ func compileReducer(zctx *resolver.Context, assignment ast.Assignment) (field.St
 			return nil, nil, err
 		}
 	}
-	f, err := reducer.NewMaker(reducerOp, arg, where)
-	return lhs, f, err
+	m, err := reducer.NewMaker(reducerOp, arg, where)
+	return lhs, m, err
 }
 
 func IsDecomposable(assignments []ast.Assignment) bool {
 	zctx := resolver.NewContext()
 	for _, assignment := range assignments {
-		_, create, err := compileReducer(zctx, assignment)
+		_, maker, err := compileReducer(zctx, assignment)
 		if err != nil {
 			return false
 		}
-		if _, ok := create(nil).(reducer.Decomposable); !ok {
+		if _, ok := maker(nil).(reducer.Decomposable); !ok {
 			return false
 		}
 	}
