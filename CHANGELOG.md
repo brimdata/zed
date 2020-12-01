@@ -29,7 +29,7 @@ zq repo, check the git log.
 * zq: Fix an issue where the JavaScript and Go versions of ASTs could differ (#1665)
 * zq: Fix an issue where a lone hyphen in an NDJSON value was output incorrectly (#1673)
 * zq: Add an experimental writer for a new format called ZSON (#1681)
-* zar: Ensure stale data is flushed and committed to disk (#1652, #1696)
+* zar: Fix an issue during import that could buffer too much data (#1652, #1696)
 * zql: Add a `network_of()` function for mapping IP addresses to CIDR nets (#1700)
 * zql: Add a [docs example](https://github.com/brimsec/zq/tree/master/zql/docs/grouping#example-4) showing `by` grouping with non-present fields (#1703)
 
