@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 )
@@ -61,6 +62,10 @@ func fieldName(f reflect.StructField) string {
 func encodeAny(zctx *Context, b *zcode.Builder, v reflect.Value) (zng.Type, error) {
 	if v.Type().Implements(marshalerType) {
 		return v.Interface().(Marshaler).MarshalZNG(zctx, b)
+	}
+	if v, ok := v.Interface().(nano.Ts); ok {
+		b.AppendPrimitive(zng.EncodeTime(v))
+		return zng.TypeTime, nil
 	}
 	switch v.Kind() {
 	case reflect.Array:
@@ -243,6 +248,18 @@ func decodeAny(zctx *Context, typ zng.Type, zv zcode.Bytes, v reflect.Value) err
 			v.Set(reflect.New(v.Type().Elem()))
 		}
 		return v.Interface().(Unmarshaler).UnmarshalZNG(zctx, typ, zv)
+	}
+	if _, ok := v.Interface().(nano.Ts); ok {
+		if typ != zng.TypeTime {
+			return incompatTypeError(typ, v)
+		}
+		if zv == nil {
+			v.Set(reflect.Zero(v.Type()))
+			return nil
+		}
+		x, err := zng.DecodeTime(zv)
+		v.Set(reflect.ValueOf(x))
+		return err
 	}
 	switch v.Kind() {
 	case reflect.Array:
