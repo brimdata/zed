@@ -13,6 +13,6 @@
   },
   "brimDependencies": {
       "suricataTag": "v5.0.3-brimpre0",
-      "zeekTag": "v3.2.1-brim4"
+      "zeekTag": "v3.2.1-brim5"
   }
 }
