@@ -96,9 +96,9 @@ func (w *Writer) writeValue(indent int, typ zng.Type, bytes zcode.Bytes, known b
 	case *zng.TypeRecord:
 		err = w.writeRecord(indent, t, bytes)
 	case *zng.TypeArray:
-		err = w.writeVector(indent, "[", "]", t.Type, zng.Value{t, bytes}, known)
+		err = w.writeVector(indent, "[", "]", t.Type, zng.Value{t, bytes})
 	case *zng.TypeSet:
-		err = w.writeVector(indent, "|[", "]|", t.Type, zng.Value{t, bytes}, known)
+		err = w.writeVector(indent, "|[", "]|", t.Type, zng.Value{t, bytes})
 	case *zng.TypeUnion:
 		err = w.writeUnion(indent, t, bytes, known)
 	case *zng.TypeMap:
@@ -156,7 +156,7 @@ func (w *Writer) writeRecord(indent int, typ *zng.TypeRecord, bytes zcode.Bytes)
 	return w.indent(indent-w.tab, "}")
 }
 
-func (w *Writer) writeVector(indent int, open, close string, inner zng.Type, zv zng.Value, known bool) error {
+func (w *Writer) writeVector(indent int, open, close string, inner zng.Type, zv zng.Value) error {
 	if err := w.write(open); err != nil {
 		return err
 	}
