@@ -3,8 +3,7 @@ script: |
   echo ===
   curl --header "Content-Type: application/json" -request POST \
     --data '{"N":1}' \
-    http://$ZQD_HOST/workers/recruit 2> err
-  cat zqd-w1.log
+    http://$ZQD_HOST/recruiter/recruit 2> err
 
 inputs:
   - name: recworker.sh

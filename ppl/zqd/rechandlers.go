@@ -1,17 +1,6 @@
 package zqd
 
-// Note that the handlers in this file write errors to their ResponseWriter,
-// so there are no errors returned from handle functions.
-
-// Useful CLI tests for recruiter API:
-// zqd listen -l=localhost:8020 -personality=recruiter
-// curl --header "Content-Type: application/json" -request POST --data '{"N":2}' http://localhost:8020/recruit
-// curl --header "Content-Type: application/json" -request POST --data '{"addr":"a.b.c:5000","node":"a.b"}' http://localhost:8020/register
-// curl --header "Content-Type: application/json" -request POST --data '{"addr":"a.b.c:5000"}' http://localhost:8020/unreserve
-// curl --header "Content-Type: application/json" -request POST --data '{"addr":"a.b.c:5000"}' http://localhost:8020/deregister
-// Or run system test with: make TEST=TestZq/ztests/suite/zqd/rec-curl
-// To test the API using the connection from a worker zqd to the recruiter, start a worker with:
-// ZQD_NODE_NAME=mytest zqd listen -l=localhost:8030 -recruiter=localhost:8020
+// system test with: make TEST=TestZq/ztests/suite/zqd/rec-curl
 
 import (
 	"encoding/json"
@@ -43,7 +32,7 @@ func handleRecruit(c *Core, w http.ResponseWriter, r *http.Request) {
 		respondError(c, w, r, zqe.ErrInvalid(err))
 		return
 	}
-	//println(time.Now().Unix()%10000, "/workers/recruit", req.NumberRequested)
+	//println(time.Now().Unix()%10000, "/recruiter/recruit", req.NumberRequested)
 	workers := make([]api.Worker, len(ws))
 	for i, e := range ws {
 		workers[i] = api.Worker{WorkerAddr: api.WorkerAddr{Addr: e.Addr}, NodeName: e.NodeName}

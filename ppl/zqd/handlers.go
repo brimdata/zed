@@ -132,24 +132,12 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// func handleWorker(c *Core, w http.ResponseWriter, httpReq *http.Request) {
-// 	if os.Getenv("ZQD_WORKER_ONCE") == "true" {
-// 		// With this env flag, a worker process will only handle
-// 		// one /worker request, after which it exits.
-// 		// If it gets a second request it is an error.
-// 		c.workerOnce.Do(func() {
-// 			handleWorkerSearch(c, w, httpReq)
-// 			println(time.Now().Unix()%10000, "handleWorkerSearch complete")
-// 			//c.logger.Info("Scheduled exit after single /worker request")
-// 			//os.Exit(0)
-// 		})
-// 		respondError(c, w, httpReq, fmt.Errorf("zqd process already busy with /worker request"))
-// 	} else {
-// 		handleWorkerSearch(c, w, httpReq)
-// 	}
-// }
+func handleWorkerRelease(c *Core, w http.ResponseWriter, httpReq *http.Request) {
+	w.WriteHeader(http.StatusNoContent)
+	//c.reccore.Release()
+}
 
-func handleWorker(c *Core, w http.ResponseWriter, httpReq *http.Request) {
+func handleWorkerSearch(c *Core, w http.ResponseWriter, httpReq *http.Request) {
 	var req api.WorkerRequest
 	if !request(c, w, httpReq, &req) {
 		return
