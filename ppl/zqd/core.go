@@ -6,11 +6,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"sync"
 	"sync/atomic"
 
 	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/ppl/zqd/recruiter"
@@ -41,8 +39,6 @@ type Config struct {
 
 	Suricata pcapanalyzer.Launcher
 	Zeek     pcapanalyzer.Launcher
-
-	RecruiterConn *client.Connection
 }
 
 type Core struct {
@@ -53,11 +49,10 @@ type Core struct {
 	spaces     *space.Manager
 	taskCount  int64
 	workerPool *recruiter.WorkerPool
+	workerReg  *recruiter.WorkerReg
 
 	suricata pcapanalyzer.Launcher
 	zeek     pcapanalyzer.Launcher
-
-	workerOnce sync.Once
 }
 
 func NewCore(ctx context.Context, conf Config) (*Core, error) {
@@ -193,4 +188,13 @@ func (c *Core) nextTaskID() int64 {
 
 func (c *Core) requestLogger(r *http.Request) *zap.Logger {
 	return c.logger.With(zap.String("request_id", getRequestID(r.Context())))
+}
+
+func (c *Core) WorkerRegistration(ctx context.Context, srvAddr string) error {
+	var err error
+	c.workerReg, err = recruiter.NewWorkerReg(ctx, srvAddr)
+	if err != nil {
+		return err
+	}
+	return c.workerReg.RegisterWithRecruiter(ctx, c.logger)
 }

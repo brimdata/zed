@@ -15,8 +15,6 @@ import (
 	"os/signal"
 	"runtime"
 
-	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/cli"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/httpd"
@@ -143,7 +141,7 @@ func (c *Command) Run(args []string) error {
 	// Workers should registerWithRecruiter as late as possible,
 	// just before writing Port file for tests.
 	if c.conf.Personality == "worker" {
-		if err := c.registerWithRecruiter(ctx, srv.Addr()); err != nil {
+		if err := core.WorkerRegistration(ctx, srv.Addr()); err != nil {
 			return err
 		}
 	}
@@ -262,70 +260,6 @@ func (c *Command) launchSuricataUpdate(ctx context.Context) {
 		stdout := sproc.Stdout()
 		c.logger.Info("Suricata updater stdout", zap.String("stdout", stdout))
 	}()
-}
-
-// registerWithRecruiter connects with the zqd recruiter instance,
-// then call /unreserve and /register.
-func (c *Command) registerWithRecruiter(ctx context.Context, srvAddr string) error {
-	recruiter := os.Getenv("ZQD_REGISTER")
-	if recruiter == "" {
-		// For ZTests, we start the worker personality without ZQD_RECRUITER
-		return nil
-	}
-	if _, _, err := net.SplitHostPort(recruiter); err != nil {
-		return fmt.Errorf("worker ZQD_REGISTER does not have host:port %v", err)
-	}
-	c.conf.RecruiterConn = client.NewConnectionTo("http://" + recruiter)
-
-	// For server host and port, the environment variables will override the discovered address.
-	// This allows the deployment to specify a dns address provided by the K8s API rather than an IP.
-	host, port, _ := net.SplitHostPort(srvAddr)
-	if h := os.Getenv("ZQD_POD_IP"); h != "" {
-		host = h
-	}
-	if p := os.Getenv("ZQD_PORT"); p != "" {
-		port = p
-	}
-	srvAddr = net.JoinHostPort(host, port)
-	unreservereq := api.UnreserveRequest{
-		Addrs: []string{srvAddr},
-	}
-	// For debugging remote call (e.g. Unreserve) print JSON by uncommenting:
-	// j, _ := json.Marshal(unreservereq)
-	// println("/unreserve", string(j))
-	resp1, err := c.conf.RecruiterConn.Unreserve(ctx, unreservereq)
-	if err != nil {
-		return fmt.Errorf("error on unreserve with recruiter at %s : %v", recruiter, err)
-	}
-	if resp1.Reserved != false {
-		return fmt.Errorf("recruiter did not acknowlege unreserve")
-	}
-
-	nodename := os.Getenv("ZQD_NODE_NAME")
-	if nodename == "" {
-		return fmt.Errorf("env var ZQD_NODE_NAME required to register with recruiter")
-	}
-	registerreq := api.RegisterRequest{
-		Worker: api.Worker{
-			WorkerAddr: api.WorkerAddr{Addr: srvAddr},
-			NodeName:   nodename,
-		},
-	}
-	resp2, err := c.conf.RecruiterConn.Register(ctx, registerreq)
-	if err != nil {
-		return fmt.Errorf("error on register with recruiter at %s : %v", recruiter, err)
-	}
-	if resp2.Registered != true {
-		return fmt.Errorf("recruiter did not acknowlege register")
-	}
-	c.logger.Info(
-		"Registered",
-		zap.String("my_host", host),
-		zap.String("my_port", port),
-		zap.String("worker_addr", srvAddr),
-		zap.String("node_name", nodename),
-	)
-	return nil
 }
 
 // defaultLogger ignores output from the access logger.
