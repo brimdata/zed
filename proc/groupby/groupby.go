@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/proc"
@@ -120,57 +119,70 @@ type Row struct {
 	reducers valRow
 }
 
-func NewAggregator(c *proc.Context, params Params) *Aggregator {
-	limit := params.limit
+func NewAggregator(zctx *resolver.Context, keyExprs []expr.Assignment, makers []reducerMaker, limit, inputSortDir int, partialsIn, partialsOut bool) (*Aggregator, error) {
 	if limit == 0 {
 		limit = DefaultLimit
 	}
 	var valueCompare expr.ValueCompareFn
 	var keyCompare, keysCompare expr.CompareFn
 
-	if len(params.keys) > 0 && params.inputSortDir != 0 {
+	nkeys := len(keyExprs)
+	if nkeys > 0 && inputSortDir != 0 {
 		// As the default sort behavior, nullsMax=true is also expected for streaming groupby.
 		vs := expr.NewValueCompareFn(true)
-		if params.inputSortDir < 0 {
+		if inputSortDir < 0 {
 			valueCompare = func(a, b zng.Value) int { return vs(b, a) }
 		} else {
 			valueCompare = vs
 		}
-		rs := expr.NewCompareFn(true, expr.NewDotExpr(params.keys[0].name))
-		if params.inputSortDir < 0 {
+
+		rs := expr.NewCompareFn(true, expr.NewDotExpr(keyExprs[0].LHS))
+		if inputSortDir < 0 {
 			keyCompare = func(a, b *zng.Record) int { return rs(b, a) }
 		} else {
 			keyCompare = rs
 		}
 	}
-	var resolvers []expr.Evaluator
-	for _, k := range params.keys {
-		resolvers = append(resolvers, expr.NewDotExpr(k.name))
+	resolvers := make([]expr.Evaluator, 0, nkeys)
+	keyNames := make([]field.Static, 0, nkeys)
+	keys := make([]Key, 0, nkeys)
+	for k, e := range keyExprs {
+		resolvers = append(resolvers, expr.NewDotExpr(e.LHS))
+		keyNames = append(keyNames, e.LHS)
+		keys = append(keys, Key{
+			tmp:  fmt.Sprintf("c%d", k),
+			name: e.LHS,
+			expr: e.RHS,
+		})
 	}
 	rs := expr.NewCompareFn(true, resolvers...)
-	if params.inputSortDir < 0 {
+	if inputSortDir < 0 {
 		keysCompare = func(a, b *zng.Record) int { return rs(b, a) }
 	} else {
 		keysCompare = rs
 	}
+	builder, err := builder.NewColumnBuilder(zctx, keyNames)
+	if err != nil {
+		return nil, fmt.Errorf("compiling groupby: %w", err)
+	}
 	return &Aggregator{
-		inputSortDir: params.inputSortDir,
+		inputSortDir: inputSortDir,
 		limit:        limit,
-		keys:         params.keys,
+		keys:         keys,
 		keyResolvers: resolvers,
-		zctx:         c.TypeContext,
+		zctx:         zctx,
 		kctx:         resolver.NewContext(),
-		decomposable: decomposable(params.makers),
-		makers:       params.makers,
-		builder:      params.builder,
+		decomposable: decomposable(makers),
+		makers:       makers,
+		builder:      builder,
 		keyRows:      make(map[int]keyRow),
 		table:        make(map[string]*Row),
 		keyCompare:   keyCompare,
 		keysCompare:  keysCompare,
 		valueCompare: valueCompare,
-		consumePart:  params.consumePart,
-		emitPart:     params.emitPart,
-	}
+		consumePart:  partialsIn,
+		emitPart:     partialsOut,
+	}, nil
 }
 
 func decomposable(rs []reducerMaker) bool {
@@ -182,31 +194,22 @@ func decomposable(rs []reducerMaker) bool {
 	return true
 }
 
-func IsDecomposable(assignments []ast.Assignment) bool {
-	zctx := resolver.NewContext()
-	for _, assignment := range assignments {
-		_, create, err := CompileReducer(zctx, assignment)
-		if err != nil {
-			return false
-		}
-		if _, ok := create(nil).(reducer.Decomposable); !ok {
-			return false
-		}
+func New(pctx *proc.Context, parent proc.Interface, keys []expr.Assignment, names []field.Static, reducers []reducer.Maker, limit, inputSortDir int, partialsIn, partialsOut bool) (*Proc, error) {
+	makers := make([]reducerMaker, 0, len(reducers))
+	for k, r := range reducers {
+		makers = append(makers, reducerMaker{names[k], r})
 	}
-	return true
-}
-
-func New(pctx *proc.Context, parent proc.Interface, node *ast.GroupByProc) (*Proc, error) {
-	params, err := compileParams(node, pctx.TypeContext)
+	if (partialsIn || partialsOut) && !decomposable(makers) {
+		return nil, errors.New("partial input or output requested with non-decomposable reducers")
+	}
+	agg, err := NewAggregator(pctx.TypeContext, keys, makers, limit, inputSortDir, partialsIn, partialsOut)
 	if err != nil {
 		return nil, err
 	}
-	// XXX in a subsequent PR we will isolate ast params and pass in
-	// ast.GroupByParams
 	return &Proc{
 		pctx:     pctx,
 		parent:   parent,
-		agg:      NewAggregator(pctx, *params),
+		agg:      agg,
 		resultCh: make(chan proc.Result),
 	}, nil
 }
