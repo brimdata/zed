@@ -14,6 +14,7 @@ make helm-install-root
 make helm-install-workers
 ```
 
+
 This will deploy zqd recruiter as a service with a replication count of 1. With its current design, zqd recruiter should not have more than one instance deployed in a cluster. The zqd recruiter is reliable because it can quickly recover state after an expected or unexpected restart.
 
 In a K8s cluster, the zqd worker instances that register with the recruiter should be started with the `-personality=worker` command line flag, and with these environment variables:

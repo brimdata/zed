@@ -73,6 +73,8 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: spec.nodeName
+          - name: ZQD_WORKER_ONCE
+            value: "true"
           {{- else if eq .Values.personality "root" }}
           - name: ZQD_RECRUIT
             value: "{{ .Values.RecruiterAddr }}"

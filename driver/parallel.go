@@ -29,6 +29,7 @@ type parallelHead struct {
 	// that is only used for distributed zqd.
 	// Thread (goroutine) parallelism is used when workerConn is nil.
 	workerConn *client.Connection
+	label      string
 }
 
 func (ph *parallelHead) closeOnDone() {
@@ -64,7 +65,7 @@ func (ph *parallelHead) Pull() (zbuf.Batch, error) {
 
 			} else {
 				// Worker process parallelism uses nextSourceForConn
-				sc, err = ph.pg.nextSourceForConn(ph.workerConn)
+				sc, err = ph.pg.nextSourceForConn(ph.workerConn, ph.label)
 			}
 			if sc == nil || err != nil {
 				return nil, err
@@ -136,7 +137,7 @@ func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
 // for an open file (i.e. the stream for the open file),
 // nextSourceForConn sends a request to a remote zqd worker process, and returns
 // the ScannerCloser (i.e.output stream) for the remote zqd worker.
-func (pg *parallelGroup) nextSourceForConn(conn *client.Connection) (ScannerCloser, error) {
+func (pg *parallelGroup) nextSourceForConn(conn *client.Connection, label string) (ScannerCloser, error) {
 	select {
 	case src, ok := <-pg.sourceChan:
 		if !ok {
@@ -148,6 +149,7 @@ func (pg *parallelGroup) nextSourceForConn(conn *client.Connection) (ScannerClos
 			return nil, err
 		}
 
+		//println(time.Now().Unix()%10000, "request to", label, "chunks", req.ChunkPaths[0])
 		rc, err := conn.WorkerRaw(pg.pctx.Context, *req, nil) // rc is io.ReadCloser
 		if err != nil {
 			return nil, err
@@ -226,53 +228,88 @@ func createParallelGroup(pctx *proc.Context, filterExpr ast.BooleanExpr, msrc Mu
 
 	// Parallel group is created with different sources based on environment variables.
 	var sources []proc.Interface
+	var err error
 	if raddr := os.Getenv("ZQD_RECRUIT"); raddr != "" {
 		// Only the zqd root process will take this path, not workers
-		if _, _, err := net.SplitHostPort(raddr); err != nil {
-			return nil, nil, fmt.Errorf("ZQD_RECRUIT for root process does not have host:port %v", err)
-		}
-		conn := client.NewConnectionTo("http://" + raddr)
-		recreq := api.RecruitRequest{NumberRequested: mcfg.Parallelism}
-		resp, err := conn.Recruit(pctx, recreq)
-		if err != nil {
-			return nil, nil, fmt.Errorf("error on recruit for recruiter at %s : %v", raddr, err)
-		}
-		if mcfg.Parallelism > len(resp.Workers) {
-			// TODO: we should fail back to running the query with fewer workers if possible.
-			// Determining when that is possible is non-trivial.
-			// Alternative is to wait and try to recruit more workers,
-			// which would reserve the idle zqd root process while waiting. -MTW
-			return nil, nil, fmt.Errorf("requested parallelism %d greater than available workers %d",
-				mcfg.Parallelism, len(resp.Workers))
-		}
-		for _, w := range resp.Workers {
-			sources = append(sources, &parallelHead{
-				pctx:       pctx,
-				pg:         pg,
-				workerConn: client.NewConnectionTo("http://" + w.Addr)})
-		}
+		sources, err = pg.recruitWorkers(pctx, raddr, mcfg)
 	} else if workerstr := os.Getenv("ZQD_TEST_WORKERS"); workerstr != "" {
 		// ZQD_TEST_WORKERS is is used for ZTests, and can be used for clustering without K8s.
-		workers := strings.Split(workerstr, ",")
-		if mcfg.Parallelism > len(workers) {
-			return nil, nil, fmt.Errorf("requested parallelism %d is greater than the number of workers %d",
-				mcfg.Parallelism, len(workers))
-		}
-		for _, w := range workers {
-			if _, _, err := net.SplitHostPort(w); err != nil {
-				return nil, nil, err
-			}
-			sources = append(sources, &parallelHead{
-				pctx:       pctx,
-				pg:         pg,
-				workerConn: client.NewConnectionTo("http://" + w)})
-		}
+		sources, err = pg.testWorkers(pctx, workerstr, mcfg)
 	} else {
 		// This is the code path used by the zqd daemon for Brim.
-		sources = make([]proc.Interface, mcfg.Parallelism)
-		for i := range sources {
-			sources[i] = &parallelHead{pctx: pctx, pg: pg}
+		for i := 0; i < mcfg.Parallelism; i++ {
+			sources = append(sources, &parallelHead{pctx: pctx, pg: pg})
 		}
 	}
-	return sources, pg, nil
+	return sources, pg, err
+}
+
+func (pg *parallelGroup) testWorkers(pctx *proc.Context, workerstr string, mcfg MultiConfig) ([]proc.Interface, error) {
+	var sources []proc.Interface
+	workers := strings.Split(workerstr, ",")
+	if mcfg.Parallelism > len(workers) {
+		return nil, fmt.Errorf("requested parallelism %d is greater than the number of workers %d",
+			mcfg.Parallelism, len(workers))
+	}
+	for _, w := range workers {
+		if _, _, err := net.SplitHostPort(w); err != nil {
+			return nil, err
+		}
+		sources = append(sources, &parallelHead{
+			pctx:       pctx,
+			pg:         pg,
+			workerConn: client.NewConnectionTo("http://" + w),
+			label:      w,
+		})
+	}
+	return sources, nil
+}
+
+func (pg *parallelGroup) recruitWorkers(pctx *proc.Context, recruiterAddr string, mcfg MultiConfig) ([]proc.Interface, error) {
+	var sources []proc.Interface
+	if _, _, err := net.SplitHostPort(recruiterAddr); err != nil {
+		return nil, fmt.Errorf("ZQD_RECRUIT for root process does not have host:port %v", err)
+	}
+	conn := client.NewConnectionTo("http://" + recruiterAddr)
+	recreq := api.RecruitRequest{NumberRequested: mcfg.Parallelism}
+	resp, err := conn.Recruit(pctx, recreq)
+	if err != nil {
+		return nil, fmt.Errorf("error on recruit for recruiter at %s : %v", recruiterAddr, err)
+	}
+	//println(time.Now().Unix()%10000, "PG recruited", mcfg.Parallelism)
+	if mcfg.Parallelism > len(resp.Workers) {
+		// TODO: we should fail back to running the query with fewer workers if possible.
+		// Determining when that is possible is non-trivial.
+		// Alternative is to wait and try to recruit more workers,
+		// which would reserve the idle zqd root process while waiting. -MTW
+		return nil, fmt.Errorf("requested parallelism %d greater than available workers %d",
+			mcfg.Parallelism, len(resp.Workers))
+	}
+
+	// This goroutine will wait for pg.pctx to be cancelled
+	go pg.releaseWorkersOnDone(conn, resp)
+
+	for _, w := range resp.Workers {
+		sources = append(sources, &parallelHead{
+			pctx:       pctx,
+			pg:         pg,
+			workerConn: client.NewConnectionTo("http://" + w.Addr)})
+	}
+	return sources, nil
+}
+
+func (pg *parallelGroup) releaseWorkersOnDone(conn *client.Connection, resp *api.RecruitResponse) {
+	<-pg.pctx.Done()
+	// send a message to the recruiter to release the workers
+	// relreq := api.ReleaseRequest{ReservationID: resp.ReservationID}
+	// resp, err := conn.ReleaseRequest(pctx, relreq)
+	// if err != nil {
+	// 	pg.pctx.logger.Warn(
+	// 		"Registered",
+	// 		zap.String("my_host", host),
+	// 		zap.String("my_port", port),
+	// 		zap.String("worker_addr", srvAddr),
+	// 		zap.String("node_name", nodename),
+	// 	)
+	// }
 }

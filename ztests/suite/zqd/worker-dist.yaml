@@ -42,8 +42,6 @@ script: |
   zapi -h $ZQD_HOST -s testsp get -p 2 -t "tail 5" > zapitail.tzng
   echo ===
   diff -s zqtail.tzng zapitail.tzng
- 
-  cat zqd-root.log
   
 inputs:
   - name: services.sh

@@ -131,6 +131,7 @@ helm-install-recruiter:
 helm-install-root:
 	helm install zqd-root charts/zqd \
 	--set personality=root \
+	--set RecruiterAddr=recruiter-zqd:9867 \
 	--set AWSRegion="us-east-2" \
 	--set image.repository="$(ZQD_ECR_HOST)/" \
 	--set image.tag="zqd:$(ECR_VERSION)" \

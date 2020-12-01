@@ -88,6 +88,7 @@ func runMux(out *muxOutput, d Driver, statsTickCh <-chan time.Time) error {
 			}
 		}
 	}
+	//println(time.Now().Unix()%10000, "runMux complete")
 	if statsTickCh != nil {
 		return d.Stats(out.Stats())
 	}
