@@ -26,7 +26,7 @@ zq repo, check the git log.
 * zqd: Automatically compact data via a background task (#1625)
 * zq: Make ordered merge deterministic (#1663)
 * zq: Fix a performance regression (#1672)
-* zq: Fix an issue wwhere the JavaScript and Go versions of ASTs could differ (#1665)
+* zq: Fix an issue where the JavaScript and Go versions of ASTs could differ (#1665)
 * zq: Fix an issue where a lone hyphen in an NDJSON value was output incorrectly (#1673)
 * zq: Add an experimental writer for a new format called ZSON (#1681)
 * zar: Ensure stale data is flushed and committed to disk (#1652, #1696)
