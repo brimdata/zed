@@ -1,0 +1,11 @@
+zql: cut len(addr)
+
+input: |
+  #0:record[addr:ip]
+  0:[10.0.0.1;]
+  0:[fe80::215:17ff:fe84:c13f;]
+
+output: |
+  #0:record[len:int64]
+  0:[4;]
+  0:[16;]

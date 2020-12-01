@@ -164,7 +164,7 @@ func (l *lenFn) Call(args []zng.Value) (zng.Value, error) {
 			return zng.Value{}, err
 		}
 		return zng.Value{zng.TypeInt64, l.Int(int64(len))}, nil
-	case *zng.TypeOfString, *zng.TypeOfBstring:
+	case *zng.TypeOfString, *zng.TypeOfBstring, *zng.TypeOfIP, *zng.TypeOfNet:
 		v := len(args[0].Bytes)
 		return zng.Value{zng.TypeInt64, l.Int(int64(v))}, nil
 	default:
