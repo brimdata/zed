@@ -2,6 +2,38 @@ These entries focus on changes we think are relevant to users of Brim,
 zq, or pcap.  For all changes to zqd, its API, or to other components in the
 zq repo, check the git log.
 
+## v0.24.0
+* zq: Update Zeek pointer to [v3.2.1-brim5](https://github.com/brimsec/zeek/releases/tag/v3.2.1-brim5) which provides the latest [geolocation](https://github.com/brimsec/brim/wiki/Geolocation) data (#1713)
+* zql: For functions, introduce "snake case" names and deprecate package syntax (#1575, #1609)
+* zql: Add a `cut()` function (#1585)
+* zar: Allow `zar import` of multiple paths (#1582)
+* zar: Fix an issue where a bare word `zar zq` search could cause a panic (#1590)
+* zq: Update Go dependency to 1.15 (#1547)
+* zar: Fix an issue where `zar zq` yielded incorrect event counts compared to plain `zq` (#1588, #1602)
+* zq: Fix a memory bug in `collect()` that caused incorrect results (#1598)
+* zqd: Support log imports over the network (#1336)
+* zq: Update [performance results](https://github.com/brimsec/zq/blob/master/performance/README.md) to reflect recent improvements (#1605, #1669, #1671)
+* zq: Move Zeek & Suricata dependencies into `package.json` so Brim can point to them also (#1607, #1610)
+* zql: Add support for [aggregation-less group by](https://github.com/brimsec/zq/tree/master/zql/docs/grouping#example-1-1) (#1615, #1623)
+* zqd: Run `suricata-update` at startup when Suricata pcap analysis is enabled (#1586)
+* zqd: Add example Prometheus metrics (#1627)
+* zq: Fix an issue where doing `put` of a null value caused a crash (#1631)
+* zq: Add `-P` flag to connect two or more inputs to a ZQL query that begins with a parallel flow graph (#1628, #1618)
+* zql: Add an initial `join` processor (#1632, #1642)
+* zar: Fix an issue where consecutive timestamps caused seek index misses (#1634)
+* zar: Fix an issue where time grouping was not working correctly for zar archives (#1650)
+* zq/zql: Add support for ZQL comments, multi-line queries, and a `-z` flag for reading ZQL from a file (#1654)
+* zqd: Automatically compact data via a background task (#1625)
+* zq: Make ordered merge deterministic (#1663)
+* zq: Fix a performance regression (#1672)
+* zq: Fix an issue where the JavaScript and Go versions of ASTs could differ (#1665)
+* zq: Fix an issue where a lone hyphen in an NDJSON value was output incorrectly (#1673)
+* zq: Add an experimental writer for a new format called ZSON (#1681)
+* zar: Fix an issue during import that could buffer too much data (#1652, #1696)
+* zql: Add a `network_of()` function for mapping IP addresses to CIDR nets (#1700)
+* zql: Add a [docs example](https://github.com/brimsec/zq/tree/master/zql/docs/grouping#example-4) showing `by` grouping with non-present fields (#1703)
+
+
 ## v0.23.0
 * zql: Add `week` as a unit for [time grouping with `every`](https://github.com/brimsec/zq/tree/master/zql/docs/grouping#time-grouping---every) (#1374)
 * zq: Fix an issue where a `null` value in a [JSON type definition](https://github.com/brimsec/zq/blob/master/zeek/README.md) caused a failure without an error message (#1377)
