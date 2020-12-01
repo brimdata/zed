@@ -15,7 +15,7 @@ zq repo, check the git log.
 * zq: Update [performance results](https://github.com/brimsec/zq/blob/master/performance/README.md) to reflect recent improvements (#1605, #1669, #1671)
 * zq: Move Zeek & Suricata dependencies into `package.json` so Brim can point to them also (#1607, #1610)
 * zql: Add support for [aggregation-less group by](https://github.com/brimsec/zq/tree/master/zql/docs/grouping#example-1-1) (#1615, #1623)
-* zqd: Run `suricata-update` at startup (#1586)
+* zqd: Run `suricata-update` at startup when Suricata pcap analysis is enabled (#1586)
 * zqd: Add example Prometheus metrics (#1627)
 * zq: Fix an issue where doing `put` of a null value caused a crash (#1631)
 * zq: Add `-P` flag to connect two or more inputs to a ZQL query that begins with a parallel flow graph (#1628, #1618)
