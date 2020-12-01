@@ -11,7 +11,7 @@ zq repo, check the git log.
 * zq: Update Go dependency to 1.15 (#1547)
 * zar: Fix an issue where `zar zq` yielded incorrect event counts compared to plain `zq` (#1588, #1602)
 * zq: Fix a memory bug in `collect()` that caused incorrect results (#1598)
-* zqd: Perform log imports over the network instead of via local files (#1336)
+* zqd: Support log imports over the network (#1336)
 * zq: Update [performance results](https://github.com/brimsec/zq/blob/master/performance/README.md) to reflect recent improvements (#1605, #1669, #1671)
 * zq: Move Zeek & Suricata dependencies into `package.json` so Brim can point to them also (#1607, #1610)
 * zql: Add support for [aggregation-less group by](https://github.com/brimsec/zq/tree/master/zql/docs/grouping#example-1-1) (#1615, #1623)
