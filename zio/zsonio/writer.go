@@ -255,12 +255,20 @@ func (w *Writer) writeMap(indent int, typ *zng.TypeMap, bytes zcode.Bytes) error
 }
 
 func (w *Writer) writePrimitive(indent int, typ zng.Type, bytes zcode.Bytes) error {
+	// TBD: This is placeholder formatting logic until a method on zng.Type
+	// is available that produces a ZSON-formatted string.  See issue #1723.
 	switch typ.(type) {
 	default:
 		zv := zng.Value{typ, bytes} //XXX
 		if err := w.write(zv.Format(zng.OutFormatZNG)); err != nil {
 			return err
 		}
+	case *zng.TypeOfBool:
+		s := "false"
+		if zng.IsTrue(bytes) {
+			s = "true"
+		}
+		return w.write(s)
 	case *zng.TypeOfTime:
 		t, err := zng.DecodeTime(bytes)
 		if err != nil {

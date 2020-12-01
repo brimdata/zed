@@ -17,7 +17,7 @@
 > * [Primitive Types](#3-primitive-types) for `float16`, `float32`, and `decimal` are not yet implemented. ([zq/1312](https://github.com/brimsec/zq/issues/1312), [zq/1522](https://github.com/brimsec/zq/issues/1522))
 
 * [1. Introduction](#1-introduction)
-* [2. The ZNG Format](#2-zng-binary-format-zng)
+* [2. The ZNG Format](#2-the-zng-format)
   + [2.1 Control Messages](#21-control-messages)
     - [2.1.1 Typedefs](#211-typedefs)
       - [2.1.1.1 Record Typedef](#2111-record-typedef)
@@ -515,7 +515,6 @@ key/value pair).
 For each ZNG primitive type, the following table describes:
 * The predefined ID, which need not be defined in [ZNG Typedefs](#211-typedefs)
 * How a typed `value` of length `N` is interpreted in a [ZNG Value Message](#22-value-messages)
-* The format of a UTF-8 string representing a [ZSON Value](#xxx-zson-tag) of that type
 
 All multi-byte sequences, which are not varints (e.g., float64, ip, etc),
 representing machine words are serialized in little-endian format.
@@ -549,8 +548,6 @@ representing machine words are serialized in little-endian format.
 
 > TBD: For decimal, ZSON assumes decimal128 and there's not a way to specify
 > different widths.  This should be okay since a 128 will hold the others.
-> For duration, ZSON says RFC-3339 but there is no way to specify negative
-> durations in RDC-3339 but ZNG is and zq are perfectly happy with them.
 
 ## Appendix A. Related Links
 

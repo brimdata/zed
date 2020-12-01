@@ -56,9 +56,9 @@ There's no need for a type decorator here.  It's explicitly a string.
 
 A structured SQL table might look like this:
 ```
-{ city: "Berkeley", state: "CA", population:121643 (uint32) } (=schema)
-{ city: "Broad Cove", state: "ME", population:806 } (schema)
-{ city: "Baton Rouge", state: "LA", population:221599 } (schema)
+{ city: "Berkeley", state: "CA", population: 121643 (uint32) } (=schema)
+{ city: "Broad Cove", state: "ME", population: 806 } (schema)
+{ city: "Baton Rouge", state: "LA", population: 221599 } (schema)
 ```
 This ZSON text depicts three record values.  It defines a type called `schema`
 based on the first value and decorates the two subsequent values with that type.
@@ -66,7 +66,7 @@ The implied value of the `schema` record type is:
 ```
 { city:string, state:string, population:uint32 }
 ```
-When all the values have the same record type, the of values can be interpreted
+When all the values have the same record type, the values can be interpreted
 as a _table_, where the ZSON record values are _rows_ and the fields of
 the records form _columns_.
 
@@ -75,22 +75,22 @@ might look like this:
 ```
 {
     info: "Connection Example",
-    src: { addr: 10.1.1.2, port:80 (uint16) } (=socket),
-    dst: { addr: 10.0.1.2, port:20130 } (socket)
+    src: { addr: 10.1.1.2, port: 80 (uint16) } (=socket),
+    dst: { addr: 10.0.1.2, port: 20130 } (socket)
 } (=conn)
 {
     info: "Connection Example 2",
-    src: { addr: 10.1.1.8, port:80 },
-    dst: { addr: 10.1.2.88, port:19801 }
+    src: { addr: 10.1.1.8, port: 80 },
+    dst: { addr: 10.1.2.88, port: 19801 }
 } (conn)
 {
     info: "Access List Example",
     nets: [ 10.1.1.0/24, 10.1.2.0/24 ]
 } (=access_list)
-{ metric: "A", ts:2020-11-24T08:44:09.586441-08:00, value:120 }
-{ metric: "B", ts:2020-11-24T08:44:20.726057-08:00, value:0.86 }
-{ metric: "A", ts:2020-11-24T08:44:32.201458-08:00, value:126 }
-{ metric: "C", ts:2020-11-24T08:44:43.547506-08:00, value:{ x:10, y:101 } }
+{ metric: "A", ts: 2020-11-24T08:44:09.586441-08:00, value: 120 }
+{ metric: "B", ts: 2020-11-24T08:44:20.726057-08:00, value: 0.86 }
+{ metric: "A", ts: 2020-11-24T08:44:32.201458-08:00, value: 126 }
+{ metric: "C", ts: 2020-11-24T08:44:43.547506-08:00, value: { x:10, y:101 } }
 ```
 In this case, the first record value defines not just the new record type
 called `conn`, but also a second embedded record type called `socket`.
@@ -107,10 +107,10 @@ top-level record type.
 The subsequent value defines a type called `access_list`.  In this case,
 the `nets` field is an array of networks and illustrates the helpful range of
 primitive types in ZSON.  Note that the syntax here implies
-the type of the array, as its inferred from the type of the elements.
+the type of the array, as it is inferred from the type of the elements.
 
-Finally, there are four more values that show the ZSON's efficacy for
-representing metrics.  Here, there is no type decorators as all of the field
+Finally, there are four more values that show ZSON's efficacy for
+representing metrics.  Here, there are no type decorators as all of the field
 types are implied by their syntax, and hence, the top-level record type is implied.
 For instance, the `ts` field is an RFC-3339 date/time string,
 unambiguously the primitive type `time`.  Further,
@@ -184,7 +184,7 @@ the sequence, implying that a new binding must be defined from that point on
 for each unique use of a type.
 
 A type name is either internal or external.  Internal names are used exclusively
-the organize the types in the type context within the data sequence itself and have
+to organize the types in the type context within the data sequence itself and have
 no meaning outside of that data.  External names are visible outside of
 data sequence as named types providing external systems a way to
 discover and refer to types by name where the type is defined within the data
@@ -207,13 +207,13 @@ A ZSON text is a sequence of UTF-8 characters organized either as a bounded inpu
 or as or an unbounded stream.  Like NDJSON, ZSON input represents a sequence of
 data objects that can be incrementally parsed and is human readable,
 though ZSON values must be individually parsed to find their boundaries
-as they are not new-line delimited.
+as they are not newline delimited.
 
 A ZSON UTF-8 input is organized as a
 sequence of one or more values optionally separated by and interspersed
 with arbitrary and ignored whitespace.
-Single line `//` comments and multi-line comments `/* ... */` are
-treated as whitespace.
+Single-line (`//`) and multi-line (`/* ... */`) comments are
+treated like whitespace and ignored.
 
 All subsequent references to characters and strings in this section refer to
 the Unicode code points that result when the stream is decoded.
@@ -260,7 +260,7 @@ The value of a type definition is the given value whose type value is
 given by `<identifier>` as the newly defined type.
 
 It is an error for an external type to be defined to a different type
-than its previously definition though multiple definitions of the same
+than its previous definition though multiple definitions of the same
 type are legal (thereby allowing for concatenation of otherwise
 indepdent sequences).
 
@@ -471,7 +471,7 @@ A map value has the following syntax:
 ```
 |{ {<key>, <value>}, {<key>, <value>}, ... }|
 ```
-A type decorator applied to an map can either be one element, referring to a
+A type decorator applied to a map can either be one element, referring to a
 map type, or two elements referring to the type of the keys and type of the values.
 
 A map value may be empty.  An empty map value without a type decorator is
