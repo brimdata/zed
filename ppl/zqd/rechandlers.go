@@ -76,7 +76,7 @@ func handleUnreserve(c *Core, w http.ResponseWriter, r *http.Request) {
 	if !request(c, w, r, &req) {
 		return
 	}
-	c.workerPool.Unreserve(req.Addr)
+	c.workerPool.Unreserve(req.Addrs)
 	respond(c, w, r, http.StatusOK, api.UnreserveResponse{
 		Reserved: false,
 	})

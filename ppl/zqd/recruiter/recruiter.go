@@ -95,10 +95,12 @@ func (pool *WorkerPool) Deregister(addr string) {
 
 // Unreserve removes from the reserved pool, but does not reregister.
 // The worker process should initiate register.
-func (pool *WorkerPool) Unreserve(addr string) {
+func (pool *WorkerPool) Unreserve(addrs []string) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-	delete(pool.reservedPool, addr)
+	for _, addr := range addrs {
+		delete(pool.reservedPool, addr)
+	}
 }
 
 // Recruit attempts to return a set of workers distributed evenly

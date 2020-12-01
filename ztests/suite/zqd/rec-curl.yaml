@@ -10,7 +10,7 @@ script: |
   # so it will not be reregistered.
   curl -X POST -d '{"addr":"a.b.c:5000","node":"a.b"}' \
     http://$ZQD_HOST/workers/register 2> err
-  curl -X POST -d '{"addr":"a.b.c:5000"}' \
+  curl -X POST -d '{"addrs":["a.b.c:5000"]}' \
     http://$ZQD_HOST/workers/unreserve 2> err
   curl -X POST -d '{"addr":"a.b.c:5000","node":"a.b"}' \
     http://$ZQD_HOST/workers/register 2> err

@@ -63,7 +63,7 @@ func TestRecruit1(t *testing.T) {
 	// attempt to register reserved worker should be ignored
 	wp.Register(addr, nodename)
 	assertPoolLen(t, wp, 0, 0, 1)
-	wp.Unreserve(addr)
+	wp.Unreserve([]string{addr})
 	assertPoolLen(t, wp, 0, 0, 0)
 	// recruit with none available returns empty list
 	s, err = wp.Recruit(1)
@@ -213,7 +213,7 @@ func TestRandomWithReregister(t *testing.T) {
 			q = q[1:]
 
 			for _, wd := range reregisterNow {
-				wp.Unreserve(wd.Addr)
+				wp.Unreserve([]string{wd.Addr})
 				wp.Register(wd.Addr, wd.NodeName)
 				require.NoError(t, err)
 			}
@@ -266,7 +266,7 @@ func TestRandomRecruitDetectSiblings(t *testing.T) {
 			q = q[1:]
 
 			for _, wd := range reregisterNow {
-				wp.Unreserve(wd.Addr)
+				wp.Unreserve([]string{wd.Addr})
 				wp.Register(wd.Addr, wd.NodeName)
 				require.NoError(t, err)
 			}

@@ -5,7 +5,7 @@ type WorkerAddr struct {
 }
 
 type UnreserveRequest struct {
-	WorkerAddr
+	Addrs []string `json:"addrs"`
 }
 
 type UnreserveResponse struct {

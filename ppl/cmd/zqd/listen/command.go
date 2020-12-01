@@ -288,7 +288,7 @@ func (c *Command) registerWithRecruiter(ctx context.Context, srvAddr string) err
 	}
 	srvAddr = net.JoinHostPort(host, port)
 	unreservereq := api.UnreserveRequest{
-		WorkerAddr: api.WorkerAddr{Addr: srvAddr},
+		Addrs: []string{srvAddr},
 	}
 	// For debugging remote call (e.g. Unreserve) print JSON by uncommenting:
 	// j, _ := json.Marshal(unreservereq)
