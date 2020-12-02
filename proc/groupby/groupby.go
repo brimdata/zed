@@ -522,8 +522,8 @@ func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 	// Build the result record.
 	a.builder.Reset()
 	var types []zng.Type
-	for _, res := range a.keyEvals {
-		keyVal, _ := res.Eval(firstRec)
+	for _, e := range a.keyEvals {
+		keyVal, _ := e.Eval(firstRec)
 		keyVal = keyVal.Copy()
 		types = append(types, keyVal.Type)
 		a.builder.Append(keyVal.Bytes, keyVal.IsContainer())
