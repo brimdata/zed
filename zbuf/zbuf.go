@@ -101,3 +101,10 @@ func CloseReaders(readers []Reader) error {
 	}
 	return err
 }
+
+func ReadAll(r Reader) (arr Array, err error) {
+	if err := Copy(&arr, r); err != nil {
+		return nil, err
+	}
+	return
+}
