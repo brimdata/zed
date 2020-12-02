@@ -1,7 +1,6 @@
 package groupby
 
 import (
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"sync"
@@ -59,7 +58,7 @@ type Aggregator struct {
 	// there are no group-by keys, then the map is set to an empty
 	// slice.
 	keyRows  map[int]keyRow
-	cacheKey []byte // Reduces memory allocations in Consume.
+	keyCache []byte // Reduces memory allocations in Consume.
 	// zctx is the type context of the running search.
 	zctx *resolver.Context
 	// kctx is a scratch type context used to generate unique
@@ -69,11 +68,11 @@ type Aggregator struct {
 	// are ever referenced.
 	kctx         *resolver.Context
 	keyExprs     []expr.Assignment
-	keyEvals     []expr.Evaluator
+	keyRefs      []expr.Evaluator
 	decomposable bool
 	makers       []reducer.Maker
 	aggNames     []field.Static
-	valEvals     []expr.Evaluator
+	valRefs      []expr.Evaluator
 	builder      *builder.ColumnBuilder
 	table        map[string]*Row
 	limit        int
@@ -119,17 +118,17 @@ func NewAggregator(zctx *resolver.Context, keyExprs []expr.Assignment, makers []
 			keyCompare = rs
 		}
 	}
-	keyEvals := make([]expr.Evaluator, 0, nkeys)
+	keyRefs := make([]expr.Evaluator, 0, nkeys)
 	keyNames := make([]field.Static, 0, nkeys)
 	for _, e := range keyExprs {
-		keyEvals = append(keyEvals, expr.NewDotExpr(e.LHS))
+		keyRefs = append(keyRefs, expr.NewDotExpr(e.LHS))
 		keyNames = append(keyNames, e.LHS)
 	}
-	valEvals := make([]expr.Evaluator, 0, len(aggNames))
+	valRefs := make([]expr.Evaluator, 0, len(aggNames))
 	for _, fieldName := range aggNames {
-		valEvals = append(valEvals, expr.NewDotExpr(fieldName))
+		valRefs = append(valRefs, expr.NewDotExpr(fieldName))
 	}
-	rs := expr.NewCompareFn(true, keyEvals...)
+	rs := expr.NewCompareFn(true, keyRefs...)
 	if inputSortDir < 0 {
 		keysCompare = func(a, b *zng.Record) int { return rs(b, a) }
 	} else {
@@ -143,15 +142,16 @@ func NewAggregator(zctx *resolver.Context, keyExprs []expr.Assignment, makers []
 		inputSortDir: inputSortDir,
 		limit:        limit,
 		keyExprs:     keyExprs,
-		keyEvals:     keyEvals,
+		keyRefs:      keyRefs,
 		zctx:         zctx,
 		kctx:         resolver.NewContext(),
 		decomposable: decomposable(makers),
 		makers:       makers,
 		aggNames:     aggNames,
-		valEvals:     valEvals,
+		valRefs:      valRefs,
 		builder:      builder,
 		keyRows:      make(map[int]keyRow),
+		keyCache:     make(zcode.Bytes, 0, 128),
 		table:        make(map[string]*Row),
 		keyCompare:   keyCompare,
 		keysCompare:  keysCompare,
@@ -339,33 +339,32 @@ func (a *Aggregator) Consume(r *zng.Record) error {
 	// we can rely on just the key types (and input desciptor uniquely
 	// implying those types)
 
-	var keyBytes zcode.Bytes
-	if a.cacheKey != nil {
-		keyBytes = a.cacheKey[:4]
-	} else {
-		keyBytes = make(zcode.Bytes, 4, 128)
-	}
-	binary.BigEndian.PutUint32(keyBytes, uint32(keyRow.id))
-	a.builder.Reset()
+	// XXX The comment above is incorrect and the cause of bug #1701.  Neither
+	// the output type of the keys nor of the values is determinined by the
+	// input record type.  This used to be the case but now that we have
+	// type-varying functions and expressions for the keys, this assumption
+	// no longer holds.
+
+	// XXX Store key flattened then let the builder construct the
+	// structure at output time, which is the new approach that will be
+	// taken by the fix to #1701.
+
+	keyBytes := zcode.AppendUvarint(a.keyCache[:0], uint64(keyRow.id))
+	off := len(keyBytes)
 	var prim *zng.Value
 	for i, key := range a.keyExprs {
 		zv, err := key.RHS.Eval(r)
 		if err != nil && !errors.Is(err, zng.ErrUnset) {
 			return err
 		}
-		keyVal := zv.Copy()
 		if i == 0 && a.inputSortDir != 0 {
-			a.updateMaxTableKey(keyVal)
-			prim = &keyVal
+			prim = a.updateMaxTableKey(zv)
 		}
-		a.builder.Append(keyVal.Bytes, keyVal.IsContainer())
+		// Append each value to the key as a flat value, independent
+		// of whether this is a primitive or container.
+		keyBytes = zcode.AppendPrimitive(keyBytes, zv.Bytes)
 	}
-	zv, err := a.builder.Encode()
-	if err != nil {
-		// XXX internal error
-	}
-	keyBytes = append(keyBytes, zv...)
-	a.cacheKey = keyBytes
+	a.keyCache = keyBytes
 
 	row, ok := a.table[string(keyBytes)]
 	if !ok {
@@ -377,12 +376,12 @@ func (a *Aggregator) Consume(r *zng.Record) error {
 				return err
 			}
 		}
-		row = a.createRow(keyRow.types, keyBytes[4:], prim)
+		row = a.createRow(keyRow.types, keyBytes[off:], prim)
 		a.table[string(keyBytes)] = row
 	}
 
 	if a.partialsIn {
-		return row.reducers.consumePartial(r, a.valEvals)
+		return row.reducers.consumePartial(r, a.valRefs)
 	}
 	row.reducers.consume(r)
 	return nil
@@ -416,23 +415,18 @@ func (a *Aggregator) spillTable(eof bool) error {
 	return nil
 }
 
-func (a *Aggregator) updateMaxTableKey(v zng.Value) {
-	if a.maxTableKey == nil {
+// updateMaxTableKey is called with a volatile zng.Value to update the
+// max value seen in the table for the streaming logic when the input is sorted.
+func (a *Aggregator) updateMaxTableKey(zv zng.Value) *zng.Value {
+	if a.maxTableKey == nil || a.valueCompare(zv, *a.maxTableKey) > 0 {
+		v := zv.Copy()
 		a.maxTableKey = &v
-		return
 	}
-	if a.valueCompare(v, *a.maxTableKey) > 0 {
-		a.maxTableKey = &v
-	}
+	return a.maxTableKey
 }
 
 func (a *Aggregator) updateMaxSpillKey(v zng.Value) {
-	if a.maxSpillKey == nil {
-		v = v.Copy()
-		a.maxSpillKey = &v
-		return
-	}
-	if a.valueCompare(v, *a.maxSpillKey) > 0 {
+	if a.maxSpillKey == nil || a.valueCompare(v, *a.maxSpillKey) > 0 {
 		v = v.Copy()
 		a.maxSpillKey = &v
 	}
@@ -493,7 +487,13 @@ func (a *Aggregator) readSpills(eof bool) (zbuf.Batch, error) {
 }
 
 func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
-	// Consume all partial result records that have the same grouping keys.
+	// This loop pulls records from the spiller in key order.
+	// The spiller is doing a merge across all of the spills and
+	// here we merge the decomposed aggregations across the batch
+	// of rows from the different spill files that share the same key.
+	// XXX This could be optimized by reusing the reducers and resetting
+	// their state instead of allocating a new one per row and sending
+	// each one to GC, but this would require a change to reducer API.
 	row := newValRow(a.zctx, a.makers)
 	var firstRec *zng.Record
 	for {
@@ -509,7 +509,7 @@ func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 		} else if a.keysCompare(firstRec, rec) != 0 {
 			break
 		}
-		if err := row.consumePartial(rec, a.valEvals); err != nil {
+		if err := row.consumePartial(rec, a.valRefs); err != nil {
 			return nil, err
 		}
 		if _, err := a.spiller.Read(); err != nil {
@@ -522,9 +522,8 @@ func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 	// Build the result record.
 	a.builder.Reset()
 	var types []zng.Type
-	for _, e := range a.keyEvals {
+	for _, e := range a.keyRefs {
 		keyVal, _ := e.Eval(firstRec)
-		keyVal = keyVal.Copy()
 		types = append(types, keyVal.Type)
 		a.builder.Append(keyVal.Bytes, keyVal.IsContainer())
 	}
@@ -573,8 +572,26 @@ func (a *Aggregator) readTable(flush, partialsOut bool) (zbuf.Batch, error) {
 		if !flush && a.valueCompare(*row.groupval, *a.maxTableKey) >= 0 {
 			continue
 		}
+		// Unflatten the key in the hash table using the builder.
+		// XXX This will be replaced soon when we fix issue #1701,
+		// where we will properly build the entire output record in one
+		// pass over both the key columns and the value columns,
+		// which will also fix the "a.b=count()" bug.
+		a.builder.Reset()
+		it := row.keyvals.Iter()
+		for _, typ := range row.keyTypes {
+			flatVal, _, err := it.Next()
+			if err != nil {
+				return nil, err
+			}
+			a.builder.Append(flatVal, zng.IsContainerType(typ))
+		}
+		zbytes, err := a.builder.Encode()
+		if err != nil {
+			return nil, err
+		}
 		var zv zcode.Bytes
-		zv = append(zv, row.keyvals...)
+		zv = append(zv, zbytes...)
 		for _, col := range row.reducers {
 			var v zng.Value
 			if partialsOut {
@@ -594,6 +611,12 @@ func (a *Aggregator) readTable(flush, partialsOut bool) (zbuf.Batch, error) {
 			return nil, err
 		}
 		recs = append(recs, zng.NewRecord(typ, zv))
+		// Delete entries from the table as we create records, so
+		// the freed enries can be GC'd incrementally as we shift
+		// state from the table to the records.  Otherwise, when
+		// operating near capacity, we would double the memory footprint
+		// unnecessarily by holding back the table entries from GC
+		// until this loop finished.
 		delete(a.table, k)
 	}
 	if len(recs) == 0 {
