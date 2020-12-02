@@ -236,6 +236,11 @@ func (c *Connection) WorkerRaw(ctx context.Context, search api.WorkerRequest, pa
 	return c.stream(req)
 }
 
+func (c *Connection) WorkerRelease(ctx context.Context) error {
+	_, err := c.Request(ctx).Get("/worker/release")
+	return err
+}
+
 // Search sends a search task to the server and returns a Search interface
 // that the caller uses to stream back results via the Read method.
 func (c *Connection) Search(ctx context.Context, search api.SearchRequest, params map[string]string) (Search, error) {

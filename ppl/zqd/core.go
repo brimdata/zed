@@ -48,8 +48,8 @@ type Core struct {
 	router     *mux.Router
 	spaces     *space.Manager
 	taskCount  int64
-	workerPool *recruiter.WorkerPool
-	workerReg  *recruiter.WorkerReg
+	workerPool *recruiter.WorkerPool // state for personality=recruiter
+	workerReg  *recruiter.WorkerReg  // state for personality=worker
 
 	suricata pcapanalyzer.Launcher
 	zeek     pcapanalyzer.Launcher
