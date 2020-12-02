@@ -141,8 +141,8 @@ string, bstring, byte sequence, boolean, IP address, and IP network.
 > This type is useful in systems that, for instance, pull data off the network
 > while expecting a string, but sometimes encounter embedded binary data due to
 > bugs, malicious attacks, etc.  It is up to the application to differentiate
-> between a bstring value that happens to look like a valid UTF-8 string and
-> an actual UTF-8 string encoded as a bstring.
+> between a `bstring` value that happens to look like a valid UTF-8 string and
+> an actual UTF-8 string encoded as a `bstring`.
 
 ### Complex Types
 
